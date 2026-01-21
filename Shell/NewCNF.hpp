@@ -22,7 +22,6 @@
 #include "Lib/Deque.hpp"
 #include "Lib/SmartPtr.hpp"
 #include "Lib/DHMap.hpp"
-#include "Lib/SharedSet.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Kernel/Formula.hpp" //TODO AYB remove, it is not required in master
 
@@ -64,10 +63,11 @@ class NewCNF
 {
 public:
   NewCNF(unsigned namingThreshold)
-    : _namingThreshold(namingThreshold), _iteInliningThreshold((unsigned)ceil(log2(namingThreshold))),
+    : _namingThreshold(namingThreshold),
+      _iteInliningThreshold(namingThreshold ? (unsigned)ceil(log2(namingThreshold)) : 0),
       _collectedVarSorts(false), _maxVar(0),_forInduction(false) {}
 
-  void clausify(FormulaUnit* unit, Stack<Clause*>& output, DHMap<unsigned, Term*>* bindings = nullptr);
+  void clausify(FormulaUnit* unit, Stack<Clause*>& output, Substitution* subst = nullptr);
   void setForInduction(){ _forInduction=true; }
 private:
   unsigned _namingThreshold;
@@ -559,7 +559,13 @@ private:
   bool _collectedVarSorts;
   unsigned _maxVar;
 
+  Substitution _skolemTypeVarSubst;
+
   void ensureHavingVarSorts();
+  TermList getVarSort(unsigned var) const;
+  // Variant of the above where we instantiate the
+  // sort with the Skolemizations of type variables.
+  TermList getInstantiatedVarSort(unsigned var) const;
 
   Term* createSkolemTerm(unsigned var, VarSet* free);
 
@@ -627,11 +633,11 @@ private:
   void processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences);
   void processITE(Formula* condition, Formula* thenBranch, Formula* elseBranch, Occurrences &occurrences);
   void processMatch(Term::SpecialTermData* sd, Term* term, Occurrences &occurrences);
-  void processLet(Term::SpecialTermData* sd, TermList contents, Occurrences &occurrences);
-  TermList eliminateLet(Term::SpecialTermData *sd, TermList contents);
+  void processLet(Term* term, Occurrences &occurrences);
+  TermList eliminateLet(Term* term);
 
-  TermList nameLetBinding(unsigned symbol, VList *bindingVariables, TermList binding, TermList contents);
-  TermList inlineLetBinding(unsigned symbol, VList *bindingVariables, TermList binding, TermList contents);
+  TermList nameLetBinding(Term* lhs, TermList rhs, TermList body, VList* boundVars);
+  TermList inlineLetBinding(Term* lhs, TermList rhs, TermList body);
 
   TermList findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula*> &conditions,
                     Stack<TermList> &thenBranches, Stack<TermList> &elseBranches,

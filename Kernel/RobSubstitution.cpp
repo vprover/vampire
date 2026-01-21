@@ -16,20 +16,16 @@
 #include "RobSubstitution.hpp"
 
 #include "Debug/Assertion.hpp"
-#include "Lib/Output.hpp"
 #include "Debug/Tracer.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
-#include "Kernel/NumTraits.hpp"
 #include "Kernel/Term.hpp"
 #include "Lib/Backtrackable.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/DHMap.hpp"
-#include "Lib/Int.hpp"
 
 #include "Renaming.hpp"
 #include "SortHelper.hpp"
-#include "TermIterators.hpp"
 
 namespace Kernel
 {
@@ -674,7 +670,7 @@ public:
     ASS_EQ(_l1->functor(), _l2->functor());
     ASS(_l1->isEquality());
   }
-  ~AssocIterator() {
+  ~AssocIterator() override {
     if (_state != FINISHED && _state != FIRST) {
       backtrack(_bdataMain);
       backtrack(_bdataEqAssoc);
@@ -682,7 +678,7 @@ public:
     ASS(_bdataMain.isEmpty());
     ASS(_bdataEqAssoc.isEmpty());
   }
-  bool hasNext() {
+  bool hasNext() override {
     if (_state == FINISHED) {
       return false;
     }
@@ -740,7 +736,7 @@ public:
     return _state != FINISHED;
   }
 
-  RobSubstitution* next() {
+  RobSubstitution* next() override {
     _used = true;
     return _subst;
   }

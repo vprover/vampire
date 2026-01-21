@@ -136,7 +136,7 @@ bool SDHelper::checkForSubsumptionResolution(Clause* cl, SDClauseMatches const& 
  * Build clause that results from subsumption resolution with main premise 'cl' and side premise 'mcl'.
  * The literal 'resLit' is the resolved literal from 'cl'.
  */
-Clause* SDHelper::generateSubsumptionResolutionClause(Clause* cl, Literal* resLit, Clause* mcl)
+Clause* SDHelper::generateSubsumptionResolutionClause(Clause* cl, Literal* resLit, Clause* mcl, bool forward)
 {
   RStack<Literal*> resLits;
 
@@ -151,7 +151,9 @@ Clause* SDHelper::generateSubsumptionResolutionClause(Clause* cl, Literal* resLi
   // (it should never appear twice because we apply duplicate literal removal before subsumption resolution)
   ASS_EQ(resLits->length(), cl->length() - 1)
 
-  return Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, cl, mcl));
+  return Clause::fromStack(*resLits, SimplifyingInference2(forward
+      ? InferenceRule::FORWARD_SUBSUMPTION_RESOLUTION
+      : InferenceRule::BACKWARD_SUBSUMPTION_RESOLUTION, cl, mcl));
 }
 
 

@@ -17,13 +17,11 @@
 #include "Term.hpp"
 #include "Signature.hpp"
 #include "TermIterators.hpp"
-#include "ApplicativeHelper.hpp"
-#include "Lib/Deque.hpp"
+#include "Kernel/HOL/HOL.hpp"
+#include "Lib/Environment.hpp"
 
 namespace Kernel
 {
-
-typedef ApplicativeHelper AH;
 
 /**
  * True if there exists next variable
@@ -154,11 +152,10 @@ bool BooleanSubtermIt::hasNext()
   if(!_used){ return true; }
 
   static TermStack args;
-  TermList head;
   while(!_stack.isEmpty()){
     Term* t = _stack.pop();
-    AH::getHeadAndArgs(t, head, args);
-    if(SortHelper::getResultSort(t) == AtomicSort::boolSort() && !AH::isBool(head)){
+    auto head = HOL::getHeadAndArgs(TermList(t), args);
+    if(SortHelper::getResultSort(t) == AtomicSort::boolSort() && !HOL::isBool(head)){
       _next = TermList(t);
       _used = false;
     }

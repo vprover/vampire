@@ -15,8 +15,6 @@
 #ifndef __Z3Interfacing__
 #define __Z3Interfacing__
 
-#include "Lib/Allocator.hpp"
-#include <algorithm>
 #if VZ3
 
 /* an (imperfect and under development) version of tracing the Z3 interface
@@ -27,25 +25,22 @@
 
 #include <fstream>
 
-#include "Lib/DHMap.hpp"
 #include "Lib/Option.hpp"
 #include "Lib/BiMap.hpp"
 #include "Lib/Set.hpp"
+#include "Lib/Environment.hpp"
 
 #include "SATSolver.hpp"
 #include "SATLiteral.hpp"
 #include "SATClause.hpp"
 #include "SATInference.hpp"
 #include "SAT2FO.hpp"
-#include "Lib/Option.hpp"
 #include "Lib/Coproduct.hpp"
-#include "Kernel/Theory.hpp"
 
 #include "Kernel/Signature.hpp"
 
 #define __EXCEPTIONS 1
 #include "z3++.h"
-#include "z3_api.h"
 
 namespace SAT{
 
@@ -173,45 +168,27 @@ namespace ProblemExport {
 } // namespace ProblemExport
 
 
-class Z3Interfacing : public PrimitiveProofRecordingSATSolver
+class Z3Interfacing : public SATSolver
 {
 public:
   Z3Interfacing(const Shell::Options& opts, SAT2FO& s2f, bool unsatCoresForAssumptions, std::string const& exportSmtlib,Shell::Options::ProblemExportSyntax s);
   Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCoresForAssumptions, std::string const& exportSmtlib, Shell::Options::ProblemExportSyntax s);
-  ~Z3Interfacing();
+  ~Z3Interfacing() override;
 
   static char const* z3_full_version();
 
   void addClause(SATClause* cl) override;
 
-  Status solve();
-  virtual Status solve(unsigned conflictCountLimit) override { return solve(); };
   /**
    * If status is @c SATISFIABLE, return assignment of variable @c var
    */
-  virtual VarAssignment getAssignment(unsigned var) override;
+  VarAssignment getAssignment(unsigned var) override;
 
   /**
    * If status is @c SATISFIABLE, return 0 if the assignment of @c var is
    * implied only by unit propagation (i.e. does not depend on any decisions)
    */
-  virtual bool isZeroImplied(unsigned var) override;
-  /**
-   * Collect zero-implied literals.
-   *
-   * Can be used in SATISFIABLE and UNKNOWN state.
-   *
-   * @see isZeroImplied()
-   */
-  virtual void collectZeroImplied(SATLiteralStack& acc) override;
-  /**
-   * Return a valid clause that contains the zero-implied literal
-   * and possibly the assumptions that implied it. Return 0 if @c var
-   * was an assumption itself.
-   * If called on a proof producing solver, the clause will have
-   * a proper proof history.
-   */
-  virtual SATClause* getZeroImpliedCertificate(unsigned var) override;
+  bool isZeroImplied(unsigned var) override;
 
   void ensureVarCount(unsigned newVarCnt) override {
     while (_varCnt < newVarCnt) {
@@ -219,28 +196,15 @@ public:
     }
   }
 
-
   unsigned newVar() override;
 
   // Currently not implemented for Z3
-  virtual void suggestPolarity(unsigned var, unsigned pol) override {}
+  void suggestPolarity(unsigned var, unsigned pol) override {}
 
-  virtual void addAssumption(SATLiteral lit) override;
-  virtual void retractAllAssumptions() override;
-  virtual bool hasAssumptions() const override { return !_assumptions.isEmpty(); }
+  Status solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit) override;
+  SATLiteralStack failedAssumptions() override;
 
-  virtual Status solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit) override;
-
-  /**
-   * The set of inserted clauses may not be propositionally UNSAT
-   * due to theory reasoning inside Z3.
-   * We cannot later minimize this set with minisat.
-   *
-   * TODO: think of extracting true refutation from Z3 instead.
-   */
-  SATClauseList* getRefutationPremiseList() override{ return 0; }
-
-  SATClause* getRefutation() override;
+  SATClauseList *minimizePremises(SATClauseList *premises) override;
 
   template<class F>
   auto scoped(F f)  -> decltype(f())
@@ -309,6 +273,8 @@ public:
   };
 
 private:
+  void addAssumption(SATLiteral lit);
+  void solveModuloAssumptionsAndSetStatus();
 
   Map<SortId, z3::sort> _sorts;
   struct Z3Hash {
@@ -352,7 +318,7 @@ public:
   };
 
 
-  Representation getRepresentation(Term* trm);
+  z3::expr getRepresentation(Term* trm);
   Representation getRepresentation(SATLiteral lit);
   Representation getRepresentation(SATClause* cl);
 

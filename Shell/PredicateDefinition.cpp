@@ -12,14 +12,12 @@
  * Implements class PredicateDefinition.
  */
 
-#include "Lib/Allocator.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/ScopedLet.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/Int.hpp"
-#include "Lib/MultiCounter.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
@@ -214,7 +212,7 @@ void PredicateDefinition::eliminatePredicateDefinition(unsigned pred, ReplMap& r
     if (env.options->showPreprocessing()) {
       std::cout << "[PP] definition " << (*def) << " removed" << std::endl;
     }
-    _processedPrb->addEliminatedPredicate(pred,def);
+    _processedPrb->addEliminatedPredicate(pred,def->formula());
   }
   else {
     //otherwise it occurs either only positively or only negatively,
@@ -237,7 +235,7 @@ void PredicateDefinition::eliminatePredicateDefinition(unsigned pred, ReplMap& r
 
       return;
     }
-    _processedPrb->addPartiallyEliminatedPredicate(pred,def);
+    _processedPrb->addPartiallyEliminatedPredicate(pred,repl->formula());
 
     if (env.options->showPreprocessing()) {
       std::cout << "[PP] definition " << (*def) << " replaced by "
@@ -839,16 +837,11 @@ void PredicateDefinition::count (TermList ts,int add, Unit* unit)
         break;
 
       case SpecialFunctor::ITE:
-        count(sd->getCondition(), 0, add, unit);
+        count(sd->getITECondition(), 0, add, unit);
         break;
 
       case SpecialFunctor::LET:
-      case SpecialFunctor::LET_TUPLE:
-        count(sd->getBinding(), add, unit);
-        break;
-
-      case SpecialFunctor::TUPLE:
-        count(TermList(sd->getTupleTerm()), add, unit);
+        count(sd->getLetBinding(), 0, add, unit);
         break;
 
       case SpecialFunctor::LAMBDA:
@@ -875,16 +868,15 @@ bool PredicateDefinition::tryGetDef(Literal* lhs, Formula* rhs, FormulaUnit* uni
     return false;
   }
 
-  MultiCounter counter;
+  ZIArray<unsigned> counter;
   for (const TermList* ts = lhs->args(); ts->isNonEmpty(); ts=ts->next()) {
     if (! ts->isVar()) {
       return false;
     }
     int w = ts->var();
-    if (counter.get(w) != 0) { // more than one occurrence
+    if (counter[w]++) { // more than one occurrence
       return false;
     }
-    counter.inc(w);
   }
 
   SubformulaIterator sfit(rhs);

@@ -17,11 +17,7 @@
 #ifndef __NNF__
 #define __NNF__
 
-namespace Kernel {
-  class Unit;
-};
-
-#include "Kernel/Formula.hpp"
+#include "Forwards.hpp"
 
 using namespace Kernel;
 

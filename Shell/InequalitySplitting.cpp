@@ -12,21 +12,17 @@
  * Implements class InequalitySplitting.
  */
 
-#include "Lib/DArray.hpp"
 #include "Lib/Environment.hpp"
 
 #include "Kernel/Clause.hpp"
+#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/InferenceStore.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/Unit.hpp"
-#include "Kernel/ApplicativeHelper.hpp"
 #include "Kernel/TermIterators.hpp"
-
-#include "Indexing/TermSharing.hpp"
 
 #include "Options.hpp"
 #include "Statistics.hpp"
@@ -229,8 +225,7 @@ Literal* InequalitySplitting::makeNameLiteral(unsigned predNum, TermList arg, bo
   } else {
     TermList boolT = polarity ? TermList(Term::foolTrue()) : TermList(Term::foolFalse());
     TermList head = TermList(Term::create(predNum, vars.size(), vars.begin()));
-    TermList headS = SortHelper::getResultSort(head.term());
-    TermList t = ApplicativeHelper::createAppTerm(headS, head, arg);
+    TermList t = HOL::create::app(head, arg);
     return Literal::createEquality(true, t, boolT, AtomicSort::boolSort());
   }
 

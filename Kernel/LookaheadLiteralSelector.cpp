@@ -13,13 +13,10 @@
  */
 
 #include "Lib/DArray.hpp"
-#include "Lib/Exception.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Stack.hpp"
 
-#include "Indexing/IndexManager.hpp"
 #include "Indexing/LiteralIndex.hpp"
-#include "Indexing/LiteralIndexingStructure.hpp"
 #include "Indexing/TermIndex.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -70,39 +67,34 @@ struct LookaheadLiteralSelector::GenIteratorIterator
       return false;
     }
 
-    IndexManager* imgr=salg->getIndexManager();
-    ASS(imgr);
   start:
     switch(stage) {
     case 0:  //resolution
     {
-      if(!imgr->contains(BINARY_RESOLUTION_SUBST_TREE)) { stage++; goto start; }
-      BinaryResolutionIndex* gli=static_cast<BinaryResolutionIndex*>(imgr->get(BINARY_RESOLUTION_SUBST_TREE));
-      ASS(gli);
+      auto gli = salg->tryGetGeneratingIndex<BinaryResolutionIndex>();
+      if(!gli) { stage++; goto start; }
 
       nextIt=pvi( dropElementType(gli->getUnifications(lit,true,false)) );
       break;
     }
     case 1:  //backward superposition
     {
-      if(!imgr->contains(SUPERPOSITION_SUBTERM_SUBST_TREE)) { stage++; goto start; }
-      TermIndex* bsi=static_cast<TermIndex*>(imgr->get(SUPERPOSITION_SUBTERM_SUBST_TREE));
-      ASS(bsi);
+      auto bsi = salg->tryGetGeneratingIndex<SuperpositionSubtermIndex>();
+      if(!bsi) { stage++; goto start; }
 
       nextIt=pvi( getMapAndFlattenIterator(
 	       EqHelper::getLHSIterator(lit, _parent._ord),
-	       TermUnificationRetriever(bsi)) );
+	       TermUnificationRetriever(bsi.get())) );
       break;
     }
     case 2:  //forward superposition
     {
-      if(!imgr->contains(SUPERPOSITION_LHS_SUBST_TREE)) { stage++; goto start; }
-      TermIndex* fsi=static_cast<TermIndex*>(imgr->get(SUPERPOSITION_LHS_SUBST_TREE));
-      ASS(fsi);
+      auto fsi=salg->tryGetGeneratingIndex<SuperpositionLHSIndex>();
+      if(!fsi) { stage++; goto start; }
 
       nextIt=pvi( getMapAndFlattenIterator(
 	       EqHelper::getSubtermIterator(lit, _parent._ord), //TODO update for HO superposition
-	       TermUnificationRetriever(fsi)) );
+	       TermUnificationRetriever(fsi.get())) );
       break;
     }
     case 3:  //equality resolution
@@ -141,7 +133,7 @@ struct LookaheadLiteralSelector::GenIteratorIterator
     ASS(prepared);
     prepared=false;
     stage++;
-    return nextIt;
+    return std::move(nextIt);
   }
 private:
 
@@ -189,6 +181,13 @@ Literal* LookaheadLiteralSelector::pickTheBest(Literal** lits, unsigned cnt)
     runifs[i]=getGeneraingInferenceIterator(lits[i]);
   }
 
+  /*
+   * MR: the above thing looks like a crazy way to estimate which literal
+   * generate least inferences and that a loop returning size_t would be better.
+   *
+   * However, the trick here is that the iterators compute the inferences _lazily_,
+   * and so saves some effort in the common case where there is one clear winner.
+   */
   static Stack<Literal*> candidates;
   candidates.reset();
   do {
@@ -220,7 +219,7 @@ Literal* LookaheadLiteralSelector::pickTheBest(Literal** lits, unsigned cnt)
   }
 
   for(unsigned i=0;i<cnt;i++) {
-    runifs[i].drop(); //release the iterators
+    runifs[i].~VirtualIterator(); //release the iterators
   }
   return res;
 }

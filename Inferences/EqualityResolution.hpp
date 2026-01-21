@@ -20,7 +20,6 @@
 
 #include "InferenceEngine.hpp"
 #include "Inferences/ProofExtra.hpp"
-#include "Shell/Options.hpp"
 
 namespace Inferences {
 
@@ -32,7 +31,7 @@ class EqualityResolution
 : public GeneratingInferenceEngine
 {
 public:
-  ClauseIterator generateClauses(Clause* premise);
+  ClauseIterator generateClauses(Clause* premise) override;
   static Clause* tryResolveEquality(Clause* cl, Literal* toResolve);
 private:
   struct ResultFn;

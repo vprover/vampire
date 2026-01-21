@@ -13,7 +13,6 @@
  */
 
 #include "Saturation/SaturationAlgorithm.hpp"
-#include "Shell/Statistics.hpp"
 
 #include "ProofExtra.hpp"
 #include "CodeTreeForwardSubsumptionAndResolution.hpp"
@@ -23,15 +22,14 @@ namespace Inferences {
 void CodeTreeForwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
 {
   ForwardSimplificationEngine::attach(salg);
-  auto index = static_cast<CodeTreeSubsumptionIndex*>(
-    _salg->getIndexManager()->request(FW_SUBSUMPTION_CODE_TREE));
-  _ct = index->getClauseCodeTree();
+  _index = salg->getSimplifyingIndex<CodeTreeSubsumptionIndex>();
+  _ct = _index->getClauseCodeTree();
 }
 
 void CodeTreeForwardSubsumptionAndResolution::detach()
 {
   _ct = nullptr;
-  _salg->getIndexManager()->release(FW_SUBSUMPTION_CODE_TREE);
+  _index = nullptr;
   ForwardSimplificationEngine::detach();
 }
 
@@ -65,11 +63,10 @@ bool CodeTreeForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&repla
       }
       res.push((*cl)[i]);
     }
-    replacement = Clause::fromStack(res, SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, cl, premise));
+    replacement = Clause::fromStack(res, SimplifyingInference2(InferenceRule::FORWARD_SUBSUMPTION_RESOLUTION, cl, premise));
     if(env.options->proofExtra() == Options::ProofExtra::FULL)
       env.proofExtra.insert(replacement, new LiteralInferenceExtra((*cl)[resolvedQueryLit]));
     premises = pvi(getSingletonIterator(premise));
-    env.statistics->forwardSubsumptionResolution++;
     cm.reset();
     return true;
   }

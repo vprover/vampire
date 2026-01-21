@@ -25,12 +25,10 @@
 #include "Kernel/Clause.hpp"
 #include "Lib/Coproduct.hpp"
 #include "Test/ClausePattern.hpp"
-#include "Saturation/Otter.hpp"
 #include "Kernel/Problem.hpp"
 #include "Shell/Options.hpp"
 #include "Lib/STL.hpp"
 #include "Test/MockedSaturationAlgorithm.hpp"
-#include "Test/SyntaxSugar.hpp"
 
 namespace Test {
 
@@ -226,6 +224,8 @@ public:
   friend class SymmetricTest;
 };
 
+using TestIndices = Stack<std::function<Indexing::Index*(const Options&)>>;
+
 class AsymmetricTest
 {
   using Clause = Kernel::Clause;
@@ -236,7 +236,7 @@ class AsymmetricTest
   Option<StackMatcher> _expected;
   Stack<Clause*> _context;
   bool _premiseRedundant;
-  Stack<std::function<Indexing::Index*()>> _indices;
+  TestIndices _indices;
   std::function<void(SaturationAlgorithm&)> _setup = [](SaturationAlgorithm&){};
   bool _selfApplications;
   OptionMap _options;
@@ -272,11 +272,9 @@ public:
   __BUILDER_METHOD(bool, premiseRedundant)
   __BUILDER_METHOD(bool, selfApplications)
   __BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
-  __BUILDER_METHOD(Stack<std::function<Indexing::Index*()>>, indices)
+  __BUILDER_METHOD(TestIndices, indices)
   __BUILDER_METHOD(std::function<void(SaturationAlgorithm&)>, setup)
   __BUILDER_METHOD(OptionMap, options)
-  __BUILDER_METHOD(Stack<Condition>, preConditions)
-  __BUILDER_METHOD(Stack<Condition>, postConditions)
 
 #undef __BUILDER_METHOD
 
@@ -287,9 +285,6 @@ public:
       c = simpl.normalize(c);
     }
     _input = simpl.normalize(_input);
-
-    // set up saturation algorithm
-    auto container = ActiveClauseContainer();
 
     // init problem
     Problem p;
@@ -308,43 +303,35 @@ public:
     MockedSaturationAlgorithm alg(p, *env.options);
     _setup(alg);
     SimplifyingGeneratingInference& rule = *_rule.unwrapOrElse([&](){ return &simpl._rule; });
-    rule.InferenceEngine::attach(&alg);
+    rule.attach(&alg);
     Stack<Indexing::Index*> indices;
     for (auto i : _indices) {
-      indices.push(i());
+      indices.push(i(*env.options));
     }
 
-    rule.setTestIndices(indices);
+    auto container = alg.getActiveClauseContainer();
+
     for (auto i : indices) {
-      i->attachContainer(&container);
+      i->attachContainer(container);
     }
 
     // add the clauses to the index
     for (auto c : _context) {
       c->setStore(Clause::ACTIVE);
-      container.add(c);
-    }
-
-    // check that the preconditions hold
-    std::string s1, s2;
-    for (auto c : _preConditions) {
-      if (!c(s1, s2)) {
-        s2.append(" (precondition)");
-        testFail(s1, s2);
-      }
+      container->add(c);
     }
 
     // run rule
     if (_selfApplications) {
       _input->setStore(Clause::ACTIVE);
-      container.add(_input);
+      container->add(_input);
     }
 
     auto res = rule.generateSimplify(_input);
 
     // run checks
     auto sExp = this->_expected.unwrap();
-    auto sRes = Stack<Kernel::Clause*>::fromIterator(res.clauses);
+    auto sRes = Stack<Kernel::Clause*>::fromIterator(std::move(res.clauses));
 
     if (!sExp.matches(sRes, simpl)) {
       testFail(sRes, sExp);
@@ -355,24 +342,14 @@ public:
       testFail( wrapStr(res.premiseRedundant), wrapStr(_premiseRedundant));
     }
 
-
-    // check that the postconditions hold
-    for (auto c : _postConditions) {
-      if (!c(s1, s2)) {
-        s2.append(" (postcondition)");
-        testFail(s1, s2);
-      }
-    }
-
-
-    // add the clauses to the index
+    // remove the clauses from the index
     for (auto c : _context) {
       // c->setStore(Clause::ACTIVE);
-      container.remove(c);
+      container->remove(c);
     }
 
-    // // tear down saturation algorithm
-    rule.InferenceEngine::detach();
+    // tear down saturation algorithm
+    rule.detach();
 
     Ordering::unsetGlobalOrdering();
   }
@@ -386,7 +363,7 @@ class SymmetricTest
   Option<StackMatcher> _expected;
   bool _premiseRedundant;
   bool _selfApplications;
-  Stack<std::function<Indexing::Index*()>> _indices;
+  TestIndices _indices;
 
   template<class Is, class Expected>
   void testFail(Is const& is, Expected const& expected) {
@@ -413,7 +390,7 @@ public:
   __BUILDER_METHOD(bool, premiseRedundant)
   __BUILDER_METHOD(bool, selfApplications)
   __BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
-  __BUILDER_METHOD(Stack<std::function<Indexing::Index*()>>, indices)
+  __BUILDER_METHOD(TestIndices, indices)
 
 #undef __BUILDER_METHOD
 

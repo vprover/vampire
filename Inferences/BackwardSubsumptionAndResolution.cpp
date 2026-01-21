@@ -27,7 +27,6 @@
 #include "Lib/List.hpp"
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralIndex.hpp"
-#include "Indexing/IndexManager.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Shell/Statistics.hpp"
 #include "BackwardSubsumptionAndResolution.hpp"
@@ -42,15 +41,12 @@ using namespace Saturation;
 void BackwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
 {
   BackwardSimplificationEngine::attach(salg);
-  _bwIndex = static_cast<BackwardSubsumptionIndex *>(
-      _salg->getIndexManager()->request(BACKWARD_SUBSUMPTION_SUBST_TREE)
-  );
+  _bwIndex = salg->getSimplifyingIndex<BackwardSubsumptionIndex>();
 }
 
 void BackwardSubsumptionAndResolution::detach()
 {
-  _bwIndex = 0;
-  _salg->getIndexManager()->release(BACKWARD_SUBSUMPTION_SUBST_TREE);
+  _bwIndex = nullptr;
   BackwardSimplificationEngine::detach();
 }
 
@@ -102,9 +98,8 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
         Clause *icl = res.data->clause;
         if (!_checked.insert(icl))
           continue;
-        Clause *conclusion = SATSubsumption::SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(icl, res.data->literal, cl);
+        Clause *conclusion = SATSubsumption::SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(icl, res.data->literal, cl, /*forward=*/false);
         ASS(conclusion)
-        env.statistics->backwardSubsumptionResolution++;
         List<BwSimplificationRecord>::push(BwSimplificationRecord(icl, conclusion), simplificationBuffer);
       }
     }
@@ -160,9 +155,8 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
       }
       if (checkSR) {
         // check subsumption resolution
-        Clause *conclusion = _satSubs.checkSubsumptionResolution(cl, icl, checkS); // use the previous setup only if subsumption was checked
+        Clause *conclusion = _satSubs.checkSubsumptionResolution(cl, icl, /*forward=*/false, checkS); // use the previous setup only if subsumption was checked
         if (conclusion) {
-          env.statistics->backwardSubsumptionResolution++;
           List<BwSimplificationRecord>::push(BwSimplificationRecord(icl, conclusion), simplificationBuffer);
         }
       }
@@ -182,9 +176,8 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
       if (!_checked.insert(icl))
         continue;
       // check subsumption resolution
-      Clause *conclusion = _satSubs.checkSubsumptionResolution(cl, icl, false);
+      Clause *conclusion = _satSubs.checkSubsumptionResolution(cl, icl, /*forward=*/false, false);
       if (conclusion) {
-        env.statistics->backwardSubsumptionResolution++;
         List<BwSimplificationRecord>::push(BwSimplificationRecord(icl, conclusion), simplificationBuffer);
       }
     }

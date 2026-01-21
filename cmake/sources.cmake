@@ -17,6 +17,8 @@ set(TESTING_SOURCES
     Test/TestUtils.hpp
     Test/UnitTesting.cpp
     Test/UnitTesting.hpp
+    Test/HOLUtils.cpp
+    Test/HOLUtils.hpp
 )
 
 ################################################################
@@ -39,6 +41,7 @@ set(UNIT_TESTS
     UnitTests/tALASCA_TermFactoring.cpp
     UnitTests/tALASCA_VIRAS.cpp
     UnitTests/tALASCA_VariableElimination.cpp
+    UnitTests/tAnswerLiteralProcessors_Synthesis.cpp
     UnitTests/tArithCompare.cpp
     UnitTests/tArithmeticSubtermGeneralization.cpp
     UnitTests/tBinaryHeap.cpp
@@ -54,7 +57,7 @@ set(UNIT_TESTS
     UnitTests/tFunctionDefinitionHandler.cpp
     UnitTests/tFunctionDefinitionRewriting.cpp
     UnitTests/tGaussianElimination.cpp
-    UnitTests/tHOL_Printing.cpp
+    UnitTests/tIndexManager.cpp
     UnitTests/tInduction.cpp
     UnitTests/tIntegerConstantType.cpp
     UnitTests/tInterpretedFunctions.cpp
@@ -68,12 +71,10 @@ set(UNIT_TESTS
     UnitTests/tPushUnaryMinus.cpp
     UnitTests/tQKbo.cpp
     UnitTests/tQuotientE.cpp
-    UnitTests/tRatioKeeper.cpp
     UnitTests/tRebalance.cpp
     UnitTests/tRobSubstitution.cpp
     UnitTests/tSATSolver.cpp
     UnitTests/tSATSubsumptionResolution.cpp
-    UnitTests/tSafeRecursion.cpp
     UnitTests/tSet.cpp
     UnitTests/tSkipList.cpp
     UnitTests/tStack.cpp
@@ -82,6 +83,11 @@ set(UNIT_TESTS
     UnitTests/tTermIndex.cpp
     UnitTests/tTimeTrace.cpp
     UnitTests/tUnificationWithAbstraction.cpp
+    UnitTests/HOL/tHOL_Printing.cpp
+    UnitTests/HOL/tBetaReduction.cpp
+    UnitTests/HOL/tEtaReduction.cpp
+    UnitTests/HOL/tTermShifter.cpp
+    UnitTests/HOL/tSubtermReplacer.cpp
 )
 
 ################################################################
@@ -117,8 +123,6 @@ set(SOURCES
     FMB/ClauseFlattening.hpp
     FMB/CliqueFinder.hpp
     FMB/DefinitionIntroduction.hpp
-    FMB/FiniteModel.cpp
-    FMB/FiniteModel.hpp
     FMB/FiniteModelBuilder.cpp
     FMB/FiniteModelBuilder.hpp
     FMB/FiniteModelMultiSorted.cpp
@@ -152,7 +156,6 @@ set(SOURCES
     Indexing/LiteralMiniIndex.cpp
     Indexing/LiteralMiniIndex.hpp
     Indexing/LiteralSubstitutionTree.hpp
-    Indexing/RequestedIndex.hpp
     Indexing/ResultSubstitution.cpp
     Indexing/ResultSubstitution.hpp
     Indexing/SubstitutionTree.hpp
@@ -200,6 +203,8 @@ set(SOURCES
     Inferences/ALASCA/VariableElimination.cpp
     Inferences/ALASCA/VariableElimination.hpp
     Inferences/ALASCA/VirasInterfacing.hpp
+    Inferences/AnswerLiteralProcessors.cpp
+    Inferences/AnswerLiteralProcessors.hpp
     Inferences/ArgCong.cpp
     Inferences/ArgCong.hpp
     Inferences/ArithmeticSubtermGeneralization.cpp
@@ -289,8 +294,6 @@ set(SOURCES
     Inferences/Instantiation.hpp
     Inferences/InterpretedEvaluation.cpp
     Inferences/InterpretedEvaluation.hpp
-    Inferences/InvalidAnswerLiteralRemovals.cpp
-    Inferences/InvalidAnswerLiteralRemovals.hpp
     Inferences/LfpRule.hpp
     Inferences/NegativeExt.cpp
     Inferences/NegativeExt.hpp
@@ -323,8 +326,6 @@ set(SOURCES
     Kernel/ALASCA/Signature.hpp
     Kernel/ALASCA/State.cpp
     Kernel/ALASCA/State.hpp
-    Kernel/ApplicativeHelper.cpp
-    Kernel/ApplicativeHelper.hpp
     Kernel/BestLiteralSelector.hpp
     Kernel/BottomUpEvaluation.hpp
     Kernel/Clause.cpp
@@ -349,6 +350,8 @@ set(SOURCES
     Kernel/FormulaVarIterator.hpp
     Kernel/Grounder.cpp
     Kernel/Grounder.hpp
+    Kernel/InductionTemplate.cpp
+    Kernel/InductionTemplate.hpp
     Kernel/Inference.cpp
     Kernel/Inference.hpp
     Kernel/InferenceStore.cpp
@@ -445,14 +448,24 @@ set(SOURCES
     Kernel/Unit.cpp
     Kernel/Unit.hpp
     Kernel/HOL/HOL.cpp
+    Kernel/HOL/HOL.hpp
     Kernel/HOL/Create.cpp
     Kernel/HOL/Convert.cpp
-    Kernel/HOL/HOL.hpp
+    Kernel/HOL/Reduce.cpp
+    Kernel/HOL/BetaNormaliser.cpp
+    Kernel/HOL/BetaNormaliser.hpp
+    Kernel/HOL/RedexReducer.cpp
+    Kernel/HOL/RedexReducer.hpp
+    Kernel/HOL/TermShifter.cpp
+    Kernel/HOL/TermShifter.hpp
+    Kernel/HOL/EtaNormaliser.cpp
+    Kernel/HOL/EtaNormaliser.hpp
+    Kernel/HOL/SubtermReplacer.cpp
+    Kernel/HOL/SubtermReplacer.hpp
     Lib/Allocator.cpp
     Lib/Allocator.hpp
     Lib/Array.hpp
     Lib/ArrayMap.hpp
-    Lib/BacktrackIterators.hpp
     Lib/Backtrackable.hpp
     Lib/BacktrackableCollections.hpp
     Lib/BiMap.hpp
@@ -460,9 +473,7 @@ set(SOURCES
     Lib/BitUtils.hpp
     Lib/Comparison.hpp
     Lib/Coproduct.hpp
-    Lib/Counter.hpp
     Lib/DArray.hpp
-    Lib/DHMap.cpp
     Lib/DHMap.hpp
     Lib/DHMultiset.hpp
     Lib/DHSet.hpp
@@ -477,19 +488,14 @@ set(SOURCES
     Lib/Hash.hpp
     Lib/Int.cpp
     Lib/Int.hpp
-    Lib/IntNameTable.cpp
-    Lib/IntNameTable.hpp
     Lib/IntUnionFind.cpp
     Lib/IntUnionFind.hpp
-    Lib/IntegerSet.cpp
-    Lib/IntegerSet.hpp
     Lib/InverseLookup.hpp
     Lib/List.hpp
     Lib/MacroUtils.hpp
     Lib/Map.hpp
     Lib/MaybeBool.hpp
     Lib/Metaiterators.hpp
-    Lib/MultiCounter.hpp
     Lib/NameArray.cpp
     Lib/NameArray.hpp
     Lib/Numbering.hpp
@@ -501,11 +507,9 @@ set(SOURCES
     Lib/ProofExtra.hpp
     Lib/Random.cpp
     Lib/Random.hpp
-    Lib/RatioKeeper.hpp
     Lib/Recycled.hpp
     Lib/Reflection.hpp
     Lib/STL.hpp
-    Lib/SafeRecursion.hpp
     Lib/ScopeGuard.hpp
     Lib/ScopedLet.hpp
     Lib/ScopedPtr.hpp
@@ -554,8 +558,6 @@ set(SOURCES
     Parse/SMTLIB2.hpp
     Parse/TPTP.cpp
     Parse/TPTP.hpp
-    SAT/BufferedSolver.cpp
-    SAT/BufferedSolver.hpp
     SAT/CadicalInterfacing.cpp
     SAT/CadicalInterfacing.hpp
     SAT/FallbackSolverWrapper.cpp
@@ -564,17 +566,17 @@ set(SOURCES
     SAT/MinimizingSolver.hpp
     SAT/MinisatInterfacing.cpp
     SAT/MinisatInterfacing.hpp
-    SAT/MinisatInterfacingNewSimp.cpp
-    SAT/MinisatInterfacingNewSimp.hpp
     SAT/SAT2FO.cpp
     SAT/SAT2FO.hpp
     SAT/SATClause.cpp
     SAT/SATClause.hpp
     SAT/SATInference.cpp
     SAT/SATInference.hpp
-    SAT/SATLiteral.cpp
     SAT/SATLiteral.hpp
+    SAT/ProofProducingSATSolver.hpp
+    SAT/ProofProducingSATSolver.cpp
     SAT/SATSolver.hpp
+    SAT/SATSolver.cpp
     SAT/Z3Interfacing.cpp
     SAT/Z3Interfacing.hpp
     SAT/Z3MainLoop.cpp
@@ -662,11 +664,7 @@ set(SOURCES
     Shell/Interpolants.hpp
     Shell/InterpretedNormalizer.cpp
     Shell/InterpretedNormalizer.hpp
-    Shell/LaTeX.cpp
-    Shell/LaTeX.hpp
     Shell/Lexer.cpp
-    Shell/Lexer.cpp
-    Shell/Lexer.hpp
     Shell/Lexer.hpp
     Shell/LispLexer.cpp
     Shell/LispLexer.hpp

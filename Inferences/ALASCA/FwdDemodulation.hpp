@@ -40,22 +40,16 @@ public:
   FwdDemodulation(FwdDemodulation&&) = default;
   FwdDemodulation(std::shared_ptr<AlascaState> shared) 
     : _shared(shared)
-    , _index(nullptr)
   { ASS(_shared); }
 
-  void attach(SaturationAlgorithm* salg) final override;
-  void detach() final override;
+  void attach(SaturationAlgorithm* salg) final;
+  void detach() final;
 
-
-  virtual bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
-#if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const& indices) override;
-#endif // VDEBUG
+  bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 
 private:
   std::shared_ptr<AlascaState> _shared;
-  // FwdDemodulationIndex* _index;
-  AlascaIndex<Demodulation::Lhs>* _index;
+  std::shared_ptr<AlascaIndex<Demodulation::Lhs>> _index;
 };
 
 } // namespaceALASCA 

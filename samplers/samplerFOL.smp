@@ -302,26 +302,14 @@ sa=fmb > sas ~cat minisat:7,cadical:10
 # avatar_add_complementary
 sa!=fmb av=on > aac ~cat none:147,ground:600
 
-# avatar_buffered_solver
-sa!=fmb av=on > abs ~cat on:63,off:300
-
 # avatar_congruence_closure
 sa!=fmb sas!=z3 av=on > acc ~cat off:600,on:58
 
-# cc_unsat_cores
-sa!=fmb acc!=off > ccuc ~cat first:1,small_ones:1,all:3
-
 # avatar_minimize_model
-sa!=fmb av=on > amm ~cat all:600,sco:32,off:69
-
-# avatar_eager_removal
-sa!=fmb av=on amm=all > aer ~cat on:300,off:1
+sa!=fmb av=on > amm ~cat on:600,off:69
 
 # avatar_delete_deactivated
 sa!=fmb av=on > add ~cat on:300,large:55,off:8
-
-# avatar_fast_restart
-sa!=fmb av=on > afr ~cat off:10,on:1
 
 # avatar_literal_polarity_advice
 sa!=fmb av=on > alpa ~cat none:300,false:13,true:6,random:4
@@ -334,14 +322,6 @@ sa!=fmb av=on > anc ~cat known:300,all_dependent:38,all:45,none:48
 # sa!=fmb av=on $atotf=1 > atotf ~cat 1:1
 # sa!=fmb av=on $atotf!=1 > atotf ~uf 0.0,0.7
 # TODO: leaving out weird timing dependent options
-
-# avatar_flush_period
-sa!=fmb av=on > $afp ~cat 0:15,666:1
-sa!=fmb av=on $afp=0 > afp ~cat 0:1
-sa!=fmb av=on $afp!=0 > afp ~cat 1:1,10:1,50:1,300:1,1000:1,2000:1,4000:1,10000:1,40000:1,100000:1,1000000:1
-
-# avatar_flush_quotient
-sa!=fmb afp!=0 > afq ~uf 1.0,3.0
 
 # nonliterals_in_clause_weight
 sa!=fmb av=on > nicw ~cat off:600,on:76
@@ -376,24 +356,15 @@ sa!=fmb avsq=on > avsqc ~cat 0:80,1:30,2:20,3:20,4:10,5:5
 # avatar_split_queue_ratios
 sa!=fmb avsq=on > avsqr ~u2r -5;3;,
 
-# GLOBAL SUBSUMPTION (only after AVATAR -- careful of dependencies!)
+# GLOBAL SUBSUMPTION
 # global_subsumption
 sa!=fmb > gs ~cat off:5,on:1
 
-# global_subsumption_explicit_minim
-sa!=fmb gs=on > gsem ~cat randomized:50,on:5,off:17
-
-# global_subsumption_sat_solver_power
-sa!=fmb gs=on > gsssp ~cat propagation_only:20,full:1
-
-# global_subsumption_avatar_assumptions
-sa!=fmb gs=on av=on > gsaa ~cat off:30,from_current:11,full_model:3
-
-# MISC
-
-> uhcvi ~cat off:1,on:1
-
 # FMB options
+
+# TODO: a candidate for hardwiring "on" (go an collect the data)
+# fmb_use_simplifying_solver
+sa=fmb sas=minisat > fmbuss ~cat off:1,on:5
 
 # fmb_enumeration_strategy (TODO: in the multi-sorted setting, sbeam makes only sense with intent=sat)
 $has_z3=true  sa=fmb > fmbes ~cat sbeam:1,smt:1,contour:1

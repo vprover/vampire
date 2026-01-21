@@ -20,17 +20,14 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/List.hpp"
-#include "Lib/Set.hpp"
-#include "Lib/DHMap.hpp"
 
+#include "SAT/SATClause.hpp"
 #include "Shell/Statistics.hpp"
 
 #include "Inference.hpp"
-#include "InferenceStore.hpp"
 #include "Clause.hpp"
 #include "Formula.hpp"
 #include "FormulaUnit.hpp"
-#include "SubformulaIterator.hpp"
 
 #include "Unit.hpp"
 
@@ -59,7 +56,7 @@ Unit::Unit(Kind kind, Inference inf)
     _inheritedColor(COLOR_INVALID),
     _inference(std::move(inf))
 {
-
+  env.statistics->reportUnit(this,Statistics::TOTAL_CNT);
 } // Unit::Unit
   //
 
@@ -189,8 +186,11 @@ std::string Unit::inferenceAsString() const
   const Inference& inf = inference();
 
   std::string result = (std::string)"[" + inf.name();
-  bool first = true;
+  SAT::SATClause *sat = inf.satPremise();
+  if(sat)
+    return result + " s" + Int::toString(inf.satPremise()->number) + "]";
 
+  bool first = true;
   auto it = inf.iterator();
   while (inf.hasNext(it)) {
     Unit* parent = inf.next(it);
@@ -269,51 +269,7 @@ bool Unit::minimizeAncestorsAndUpdateSelectedStats()
         ASS_EQ(inf.isPureTheoryDescendant(),inf.isTheoryAxiom());
       }
       inf.updateStatistics(); // in particular, update inductionDepth (which could have decreased, since we might have fewer parents after miniminization)
-
-      switch (inf.rule()) {
-        case InferenceRule::STRUCT_INDUCTION_AXIOM_ONE:
-        case InferenceRule::STRUCT_INDUCTION_AXIOM_TWO:
-        case InferenceRule::STRUCT_INDUCTION_AXIOM_THREE:
-        case InferenceRule::STRUCT_INDUCTION_AXIOM_RECURSION:
-          env.statistics->structInductionInProof++;
-          break;
-        case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
-        case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
-          env.statistics->intInfInductionInProof++;
-          break;
-        case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
-        case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
-          env.statistics->intFinInductionInProof++;
-          break;
-        case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
-        case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
-          env.statistics->intDBInductionInProof++;
-          break;
-        default:
-          ;
-      }
-      switch (inf.rule()) {
-        case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
-          env.statistics->intInfUpInductionInProof++;
-          break;
-        case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
-          env.statistics->intInfDownInductionInProof++;
-          break;
-        case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
-          env.statistics->intFinUpInductionInProof++;
-          break;
-        case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
-          env.statistics->intFinDownInductionInProof++;
-          break;
-        case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
-          env.statistics->intDBUpInductionInProof++;
-          break;
-        case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
-          env.statistics->intDBDownInductionInProof++;
-          break;
-        default:
-          ;
-      }
+      env.statistics->reportUnit(current,Statistics::INPROOF_CNT);
 
     } else {
       if (!done.insert(current)) {

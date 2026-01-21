@@ -13,9 +13,9 @@
 #define __TimeProfiling__
 
 #include "Lib/Stack.hpp"
-#include "Lib/Option.hpp"
-#include "Debug/Assertion.hpp"
 #include <chrono>
+#include <ostream>
+#include <memory>
 #include "Lib/MacroUtils.hpp"
 
 namespace Shell {

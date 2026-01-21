@@ -22,6 +22,8 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Stack.hpp"
 
+#include "Indexing/TermSubstitutionTree.hpp"
+
 #include "AcyclicityIndex.hpp"
 
 using namespace std;
@@ -52,6 +54,11 @@ namespace Indexing
     }
     List<TypedTermList>::push(t, l);
   }
+
+  AcyclicityIndex::AcyclicityIndex(SaturationAlgorithm&) :
+    _sIndexes(),
+    _tis(new TermSubstitutionTree<TermLiteralClause>())
+  {}
   
   List<TypedTermList>* AcyclicityIndex::getSubterms(Term *t)
   {

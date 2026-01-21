@@ -142,20 +142,17 @@ MINISAT_OBJ = Minisat/core/Solver.o\
   Minisat/simp/SimpSolver.o\
   Minisat/utils/Options.o\
   Minisat/utils/System.o\
-  SAT/MinisatInterfacing.o\
-  SAT/MinisatInterfacingNewSimp.o
+  SAT/MinisatInterfacing.o
 
 VD_OBJ = Debug/Assertion.o\
          Debug/RuntimeStatistics.o\
          Debug/Tracer.o
 
 VL_OBJ= Lib/Allocator.o\
-        Lib/DHMap.o\
         Lib/Environment.o\
         Lib/Event.o\
         Lib/Exception.o\
         Lib/Int.o\
-        Lib/IntNameTable.o\
         Lib/IntUnionFind.o\
         Lib/NameArray.o\
         Lib/Random.o\
@@ -193,6 +190,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/MLMatcher.o\
         Kernel/MLMatcherSD.o\
         Kernel/MLVariant.o\
+        Kernel/InductionTemplate.o\
         Kernel/Ordering.o\
         Kernel/Ordering_Equality.o\
         Kernel/PartialOrdering.o\
@@ -202,7 +200,6 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/UnificationWithAbstraction.o\
         Kernel/Signature.o\
         Kernel/SortHelper.o\
-        Kernel/ApplicativeHelper.o\
         Kernel/OperatorType.o\
         Kernel/SubformulaIterator.o\
         Kernel/Term.o\
@@ -220,6 +217,12 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/HOL/HOL.o\
         Kernel/HOL/Create.o\
         Kernel/HOL/Convert.o\
+        Kernel/HOL/Reduce.o\
+        Kernel/HOL/BetaNormaliser.o\
+        Kernel/HOL/RedexReducer.o\
+        Kernel/HOL/TermShifter.o\
+        Kernel/HOL/EtaNormaliser.o\
+        Kernel/HOL/SubtermReplacer.o\
         Kernel/InterpretedLiteralEvaluator.o\
         Kernel/Rebalancing.o\
         Kernel/Rebalancing/Inverters.o\
@@ -286,6 +289,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/ALASCA/BwdDemodulation.o\
          Inferences/ALASCA/FourierMotzkin.o\
          Inferences/ALASCA/TermFactoring.o\
+         Inferences/AnswerLiteralProcessors.o\
          Inferences/TautologyDeletionISE.o\
          Inferences/TermAlgebraReasoning.o\
          Inferences/Induction.o\
@@ -299,7 +303,6 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/BoolEqToDiseq.o\
          Inferences/GaussianVariableElimination.o\
          Inferences/InterpretedEvaluation.o\
-         Inferences/InvalidAnswerLiteralRemovals.o\
          Inferences/TheoryInstAndSimp.o\
          Inferences/ProofExtra.o\
          Inferences/ForwardGroundJoinability.o\
@@ -313,12 +316,12 @@ VSAT_OBJ=SAT/MinimizingSolver.o\
          SAT/SAT2FO.o\
          SAT/SATClause.o\
          SAT/SATInference.o\
-         SAT/SATLiteral.o\
+	 SAT/SATSolver.o\
 	 SAT/CadicalInterfacing.o\
 	 SAT/Z3Interfacing.o\
 	 SAT/Z3MainLoop.o\
-	 SAT/BufferedSolver.o\
-	 SAT/FallbackSolverWrapper.o
+	 SAT/FallbackSolverWrapper.o\
+	 SAT/ProofProducingSATSolver.o
 
 VST_OBJ= Saturation/AWPassiveClauseContainers.o\
          Saturation/PredicateSplitPassiveClauseContainers.o\
@@ -354,7 +357,6 @@ VS_OBJ = Shell/AnswerLiteralManager.o\
          Shell/InterpolantMinimizer.o\
          Shell/Interpolants.o\
          Shell/InterpretedNormalizer.o\
-         Shell/LaTeX.o\
          Shell/LispLexer.o\
          Shell/LispParser.o\
          Shell/Naming.o\
@@ -405,7 +407,6 @@ VFMB_OBJ = FMB/ClauseFlattening.o\
            FMB/SortInference.o\
 	   FMB/Monotonicity.o\
 	   FMB/FunctionRelationshipInference.o\
-	   FMB/FiniteModel.o\
 	   FMB/FiniteModelMultiSorted.o\
            FMB/FiniteModelBuilder.o
 
@@ -430,8 +431,7 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Kernel/InferenceStore.o\
 	  Kernel/Problem.o\
 	  Kernel/SortHelper.o\
-      Kernel/ApplicativeHelper.o\
-      Kernel/OperatorType.o\
+	  Kernel/OperatorType.o\
 	  Kernel/Signature.o\
 	  Kernel/SubformulaIterator.o\
 	  Kernel/Term.o\
@@ -492,7 +492,7 @@ all: #default make disabled
 ################################################################
 # automated generation of Vampire revision information
 
-VERSION_NUMBER = 4.9
+VERSION_NUMBER = 5.0.1
 
 # We extract the revision number from svn every time the svn meta-data are modified
 # (that's why there is the dependency on .svn/entries) 

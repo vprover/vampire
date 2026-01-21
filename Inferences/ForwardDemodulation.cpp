@@ -12,29 +12,22 @@
  * Implements class ForwardDemodulation.
  */
 
-#include "Debug/RuntimeStatistics.hpp"
-
 #include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Debug/TimeProfiling.hpp"
-#include "Lib/Timer.hpp"
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Kernel/Renaming.hpp"
-#include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/ColorHelper.hpp"
 #include "Kernel/RobSubstitution.hpp"
 
 #include "Indexing/Index.hpp"
-#include "Indexing/IndexManager.hpp"
 #include "Indexing/TermIndex.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -78,8 +71,7 @@ struct ApplicatorWithEqSort : SubstApplicator {
 void ForwardDemodulation::attach(SaturationAlgorithm* salg)
 {
   ForwardSimplificationEngine::attach(salg);
-  _index=static_cast<DemodulationLHSIndex*>(
-	  _salg->getIndexManager()->request(DEMODULATION_LHS_CODE_TREE) );
+  _index = salg->getSimplifyingIndex<DemodulationLHSIndex>();
 
   auto& opt = getOptions();
   _preorderedOnly = opt.forwardDemodulation()==Options::Demodulation::PREORDERED;
@@ -91,12 +83,11 @@ void ForwardDemodulation::attach(SaturationAlgorithm* salg)
 
 void ForwardDemodulation::detach()
 {
-  _index=0;
-  _salg->getIndexManager()->release(DEMODULATION_LHS_CODE_TREE);
+  _index = nullptr;
   ForwardSimplificationEngine::detach();
 }
 
-bool ForwardDemodulationImpl::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
+bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   TIME_TRACE("forward demodulation");
 
@@ -222,8 +213,6 @@ bool ForwardDemodulationImpl::perform(Clause* cl, Clause*& replacement, ClauseIt
             resLits->push(curr);
           }
         }
-
-        env.statistics->forwardDemodulations++;
 
         premises = pvi( getSingletonIterator(qr.data->clause));
         replacement = Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.data->clause));

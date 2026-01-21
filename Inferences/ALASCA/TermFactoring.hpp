@@ -19,13 +19,7 @@
 #include "Forwards.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
-#include "Kernel/Ordering.hpp"
-#include "Indexing/IndexManager.hpp"
-#include "Indexing/TermIndex.hpp"
-#include "Inferences/PolynomialEvaluation.hpp"
 #include "Kernel/ALASCA.hpp"
-#include "Shell/Options.hpp"
-#include "Lib/Output.hpp"
 
 namespace Inferences {
 namespace ALASCA {
@@ -45,17 +39,12 @@ public:
     : _shared(std::move(shared))
   {  }
 
-  void attach(SaturationAlgorithm* salg) final override;
-  void detach() final override;
+  void attach(SaturationAlgorithm* salg) final ;
+  void detach() final ;
 
-  ClauseIterator generateClauses(Clause* premise) final override;
-
-#if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const&) final override {  }
-#endif
+  ClauseIterator generateClauses(Clause* premise) final ;
 
 private:
-
                             Option<Clause*> applyRule(SelectedSummand const& l, SelectedSummand const& r, Stack<TermList> const& maxAtoms);
   template<class NumTraits> Option<Clause*> applyRule(SelectedSummand const& l, SelectedSummand const& r, Stack<TermList> const& maxAtoms);
 

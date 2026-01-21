@@ -27,7 +27,7 @@ class Factoring
 : public GeneratingInferenceEngine
 {
 public:
-  ClauseIterator generateClauses(Kernel::Clause* premise);
+  ClauseIterator generateClauses(Kernel::Clause* premise) override;
 private:
   class ResultsFn;
 };

@@ -18,26 +18,18 @@
 #define __Parser_TPTP__
 
 #include <filesystem>
-#include <iostream>
 #include <unordered_set>
 
 #include "Forwards.hpp"
 #include "Lib/Array.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Exception.hpp"
-#include "Lib/IntNameTable.hpp"
 
-#include "Kernel/Formula.hpp"
-#include "Kernel/Unit.hpp"
 #include "Kernel/Theory.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/RobSubstitution.hpp"
 
 //#define DEBUG_SHOW_STATE
-
-namespace Kernel {
-  class Clause;
-};
 
 namespace Parse {
   using namespace Kernel;
@@ -305,8 +297,8 @@ public:
       : _message(message), _path(path), _ln(ln) {}
     ParseErrorException(std::string message, Token& tok, std::filesystem::path path, unsigned ln)
       : ParseErrorException(message + " (text: " + tok.toString() + ')', path, ln) {}
-    void cry(std::ostream&) const;
-    ~ParseErrorException() {}
+    void cry(std::ostream&) const override;
+    ~ParseErrorException() override {}
   protected:
     std::string _message;
     std::filesystem::path _path;
@@ -352,9 +344,9 @@ public:
   unsigned lineNumber(){ return currentFile.lineNumber; }
   std::string currentPath(){ return currentFile.path; }
 
-  static Map<int,std::string>* findQuestionVars(unsigned questionNumber) {
-    auto res = _questionVariableNames.findPtr(questionNumber);
-    return res ? *res : nullptr;
+  // careful: the returned pointer will be invalidated if _questionVariableNames is changed
+  static Map<unsigned,std::string>* findQuestionVars(unsigned questionNumber) {
+    return _questionVariableNames.findPtr(questionNumber);
   }
   static bool seenQuestions() {
     return !_questionVariableNames.isEmpty();
@@ -559,7 +551,7 @@ private:
   /** input type of the last read unit */ // it must be int since -1 can be used as a value
   UnitInputType _lastInputType;
   /** true if the last read unit is a question */
-  bool _isQuestion;
+  bool _isQuestion = false;
   /** */
   bool _isThf;
   /** */
@@ -587,9 +579,9 @@ private:
   /** term lists */
   Stack<TermList> _termLists;
   /** name table for variable names */
-  IntNameTable _vars;
+  Map<std::string, unsigned> _vars;
   /** When parsing a question, make note of the inverse mapping to _vars, i.e. from the ints back to the vstrings, for better user reporting */
-  Map<int,std::string> _curQuestionVarNames;
+  Map<unsigned,std::string> _curQuestionVarNames;
   /** parsed types */
   Stack<Type*> _types;
   /** various type tags saved during parsing */
@@ -606,10 +598,14 @@ private:
   /** a function name and arity */
   typedef std::pair<std::string, unsigned> LetSymbolName;
 
-  /** a symbol number with a predicate/function flag */
-  typedef std::pair<unsigned, bool> LetSymbolReference;
-  #define SYMBOL(ref) (ref.first)
-  #define IS_PREDICATE(ref) (ref.second)
+  /** a symbol number with a predicate/function flag, and implicit type args */
+  struct LetSymbolReference {
+    unsigned symbol;
+    bool isPredicate;
+    TermStack iTypeArgs;
+  };
+  #define SYMBOL(ref) (ref.symbol)
+  #define IS_PREDICATE(ref) (ref.isPredicate)
 
   /** a definition of a function symbol, defined in $let */
   typedef std::pair<LetSymbolName, LetSymbolReference> LetSymbol;
@@ -623,6 +619,8 @@ private:
 
   /** Record whether a formula or term has been pushed more recently */
   LastPushed _lastPushed;
+
+  static Substitution getTypeSub(const LetSymbolReference& ref);
 
   /** finds if the symbol has been defined in an enclosing $let */
   bool findLetSymbol(LetSymbolName symbolName, LetSymbolReference& symbolReference);
@@ -745,6 +743,7 @@ private:
   Formula* createPredicateApplication(std::string name,unsigned arity);
   TermList createFunctionApplication(std::string name,unsigned arity);
   TermList createTypeConApplication(std::string name,unsigned arity);
+  void insertImplicitLetTypeArguments(const LetSymbolReference& ref, unsigned& arity);
   void endEquality();
   void midEquality();
   void formulaInfix();
@@ -803,7 +802,9 @@ private:
 
   bool findInterpretedPredicate(std::string name, unsigned arity);
 
-  OperatorType* constructOperatorType(Type* t, VList* vars = 0);
+  /* If ivars is non-null, the function collects into it the
+   * implicit (non-quantified) type variables (needed in $lets). */
+  OperatorType* constructOperatorType(Type* t, VList* vars = 0, DHSet<unsigned>* ivars = nullptr);
 
 public:
 
@@ -837,13 +838,13 @@ public:
   struct FileSourceRecord : SourceRecord {
     const std::string fileName;
     const std::string nameInFile;
-    bool isFile(){ return true; }
+    bool isFile() override{ return true; }
     FileSourceRecord(std::string fN, std::string nF) : fileName(fN), nameInFile(nF) {}
   };
   struct InferenceSourceRecord : SourceRecord{
     const std::string name;
     Stack<std::string> premises;
-    bool isFile(){ return false; }
+    bool isFile() override{ return false; }
     InferenceSourceRecord(std::string n) : name(n) {}
   };
 
@@ -870,7 +871,7 @@ private:
    *
    * (Can there be more than one question? Yes, e.g., in the interactive mode.)
    */
-  static DHMap<unsigned, Map<int,std::string>*> _questionVariableNames;
+  static DHMap<unsigned, Map<unsigned,std::string>> _questionVariableNames;
 
   /** Stores the type arities of function symbols */
   DHMap<std::string, unsigned> _typeArities;

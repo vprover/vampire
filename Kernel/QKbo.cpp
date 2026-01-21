@@ -11,7 +11,6 @@
 #include "QKbo.hpp"
 #include "Term.hpp"
 #include "NumTraits.hpp"
-#include "Kernel/PolynomialNormalizer.hpp"
 #include "Lib/Option.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Kernel/OrderingUtils.hpp"

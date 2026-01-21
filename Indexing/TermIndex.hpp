@@ -19,10 +19,6 @@
 #include "Index.hpp"
 #include "TermIndexingStructure.hpp"
 
-#include "Indexing/TermSubstitutionTree.hpp"
-#include "TermIndexingStructure.hpp"
-#include "Lib/Set.hpp"
-
 namespace Indexing {
 
 template<class Data>
@@ -30,7 +26,7 @@ class TermIndex
 : public Index
 {
 public:
-  virtual ~TermIndex() {}
+  ~TermIndex() override {}
 
   VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
   { return _is->getUwa(t, uwa, fixedPointIteration); }
@@ -56,10 +52,9 @@ class SuperpositionSubtermIndex
 : public TermIndex<TermLiteralClause>
 {
 public:
-  SuperpositionSubtermIndex(Indexing::TermIndexingStructure<TermLiteralClause>* is, Ordering& ord)
-  : TermIndex(is), _ord(ord) {};
+  SuperpositionSubtermIndex(SaturationAlgorithm& salg);
 protected:
-  void handleClause(Clause* c, bool adding);
+  void handleClause(Clause* c, bool adding) override;
 private:
   Ordering& _ord;
 };
@@ -68,14 +63,12 @@ class SuperpositionLHSIndex
 : public TermIndex<TermLiteralClause>
 {
 public:
-  SuperpositionLHSIndex(TermSubstitutionTree<TermLiteralClause>* is, Ordering& ord, const Options& opt)
-  : TermIndex(is), _ord(ord), _opt(opt), _tree(is) {};
+  SuperpositionLHSIndex(SaturationAlgorithm& salg);
 protected:
-  void handleClause(Clause* c, bool adding);
+  void handleClause(Clause* c, bool adding) override;
 private:
   Ordering& _ord;
   const Options& _opt;
-  TermSubstitutionTree<TermLiteralClause>* _tree;
 };
 
 /**
@@ -85,24 +78,11 @@ class DemodulationSubtermIndex
 : public TermIndex<TermLiteralClause>
 {
 public:
-  // people seemed to like the class, although it add's no interface on top of TermIndex
-  DemodulationSubtermIndex(TermIndexingStructure<TermLiteralClause>* is)
-  : TermIndex(is) {};
+  DemodulationSubtermIndex(SaturationAlgorithm& salg);
 protected:
-  // it's the implementation of this below in DemodulationSubtermIndexImpl, which makes this work
-  void handleClause(Clause* c, bool adding) = 0;
-};
-
-class DemodulationSubtermIndexImpl
-: public DemodulationSubtermIndex
-{
-public:
-  DemodulationSubtermIndexImpl(TermIndexingStructure<TermLiteralClause>* is, const Options& opt)
-  : DemodulationSubtermIndex(is), _opt(opt) {};
-protected:
-  void handleClause(Clause* c, bool adding);
+  void handleClause(Clause* c, bool adding) override;
 private:
-  const Options& _opt;
+  const bool _skipNonequationalLiterals;
 };
 
 /**
@@ -112,13 +92,12 @@ class DemodulationLHSIndex
 : public TermIndex<DemodulatorData>
 {
 public:
-  DemodulationLHSIndex(TermIndexingStructure<DemodulatorData>* is, Ordering& ord, const Options& opt)
-  : TermIndex(is), _ord(ord), _opt(opt) {};
+  DemodulationLHSIndex(SaturationAlgorithm& salg);
 protected:
-  void handleClause(Clause* c, bool adding);
+  void handleClause(Clause* c, bool adding) override;
 private:
   Ordering& _ord;
-  const Options& _opt;
+  const bool _preordered;
 };
 
 /**
@@ -128,11 +107,11 @@ class InductionTermIndex
 : public TermIndex<TermLiteralClause>
 {
 public:
-  InductionTermIndex(TermIndexingStructure<TermLiteralClause>* is)
-  : TermIndex(is) {}
-
+  InductionTermIndex(SaturationAlgorithm& salg);
 protected:
-  void handleClause(Clause* c, bool adding);
+  void handleClause(Clause* c, bool adding) override;
+private:
+  const bool _inductionGroundOnly;
 };
 
 /**
@@ -142,19 +121,18 @@ class StructInductionTermIndex
 : public TermIndex<TermLiteralClause>
 {
 public:
-  StructInductionTermIndex(TermIndexingStructure<TermLiteralClause>* is)
-  : TermIndex(is) {}
-
+  StructInductionTermIndex(SaturationAlgorithm& salg);
 protected:
-  void handleClause(Clause* c, bool adding);
+  void handleClause(Clause* c, bool adding) override;
+private:
+  const bool _inductionGroundOnly;
 };
 
 class SkolemisingFormulaIndex
 : public TermIndex<TermWithValue<TermList>>
 {
 public:
-  SkolemisingFormulaIndex(TermIndexingStructure<TermWithValue<TermList>>* is) : TermIndex(is)
-  {}
+  SkolemisingFormulaIndex(SaturationAlgorithm&);
   void insertFormula(TermList formula, TermList skolem);
 };
 

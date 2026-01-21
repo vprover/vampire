@@ -16,7 +16,6 @@
 #include "VariableElimination.hpp"
 #include "Lib/Map.hpp"
 #include "Lib/Set.hpp"
-#include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Kernel/TermIterators.hpp"
 
@@ -35,11 +34,6 @@ void VariableElimination::attach(SaturationAlgorithm* salg)
 
 void VariableElimination::detach() 
 { }
-
-#if VDEBUG
-void VariableElimination::setTestIndices(Stack<Indexing::Index*> const&) 
-{ }
-#endif
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // ACTUAL RULE
@@ -206,13 +200,6 @@ ClauseIterator VariableElimination::applyRule(Clause* premise, FoundVariable<Num
   auto& L = found.neq;
   auto& K = found.eq;
   auto Ksize = K.size();
-
-  if (Ksize > 0) {
-    env.statistics->alascaVarElimKNonZeroCnt++;
-  }
-  env.statistics->alascaVarElimKSum += Ksize;
-  if (Ksize > env.statistics->alascaVarElimKMax)
-    env.statistics->alascaVarElimKMax = Ksize;
 
   auto Csize = premise->size() - Ksize - I.size() - J.size() - L.size();
 

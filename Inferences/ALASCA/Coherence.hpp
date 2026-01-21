@@ -22,18 +22,11 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/ALASCA/Superposition.hpp"
 #include "Kernel/ALASCA/Signature.hpp"
-#include "Kernel/NumTraits.hpp"
-#include "Kernel/Ordering.hpp"
-#include "Kernel/ALASCA/Index.hpp"
 #include "BinInf.hpp"
 #include "Lib/STL.hpp"
-#include "Kernel/PolynomialNormalizer.hpp"
-#include "Lib/Backtrackable.hpp"
 #include "Lib/Recycled.hpp"
 #include "Lib/Reflection.hpp"
-#include "Shell/Options.hpp"
 #include "Lib/BacktrackableCollections.hpp"
-#include "Lib/Output.hpp"
 #include "Kernel/EqHelper.hpp"
 
 #define DEBUG_COHERENCE(lvl, ...) if (lvl < 0) DBG(__VA_ARGS__)
@@ -90,7 +83,6 @@ public:
     // TODO get rid of the need for a typed term list in this case
     TypedTermList key() const { return TypedTermList((**js_u)[sIdx].first, ASig::sort()); }
     static const char* name() { return "alasca coherence lhs"; }
-    static IndexType indexType() { return Indexing::ALASCA_COHERENCE_LHS_SUBST_TREE; }
 
     static auto iter(AlascaState& shared, Clause* cl)
     {
@@ -127,7 +119,6 @@ public:
     // TODO get rid of the need for a typed term list in this case
     TypedTermList key() const { return TypedTermList((**ks_t)[sIdx].first, ASig::sort()); }
     static const char* name() { return "alasca coherence rhs"; }
-    static IndexType indexType() { return Indexing::ALASCA_COHERENCE_RHS_SUBST_TREE; }
 
     static auto iter(AlascaState& shared, Clause* cl)
     {
@@ -236,11 +227,11 @@ struct CoherenceNormalization : SimplifyingGeneratingInference {
   std::shared_ptr<AlascaState> shared;
   CoherenceNormalization(std::shared_ptr<AlascaState> shared) : shared(std::move(shared)) {}
 
-  void attach(SaturationAlgorithm* salg) final override { }
+  void attach(SaturationAlgorithm* salg) final { }
 
-  void detach() final override { }
+  void detach() final { }
 
-  ClauseGenerationResult generateSimplify(Clause* premise) final override {
+  ClauseGenerationResult generateSimplify(Clause* premise) final {
     return ClauseGenerationResult {
       .clauses = pvi( Superposition::Lhs::iter(*shared, premise)
                         .filter([](auto& x) { return NumTraits::isFloor(x.biggerSide()); })
@@ -267,10 +258,6 @@ struct CoherenceNormalization : SimplifyingGeneratingInference {
           Inference(GeneratingInference1(InferenceRule::ALASCA_COHERENCE_NORMALIZATION, prem.clause()))));
     }
   }
-
-#if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const& i) final override { }
-#endif
 };
 
 #undef DEBUG

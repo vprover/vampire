@@ -16,12 +16,12 @@
 #ifndef __LiteralIndex__
 #define __LiteralIndex__
 
+#include "Indexing/LiteralSubstitutionTree.hpp"
 #include "Lib/Output.hpp"
 #include "Lib/DHMap.hpp"
 
 #include "Index.hpp"
 #include "LiteralIndexingStructure.hpp"
-
 
 namespace Indexing {
 
@@ -52,7 +52,7 @@ public:
   friend std::ostream& operator<<(std::ostream& out, Output::Multiline<LiteralIndex>const& self) { return out << Output::multiline(*self.self._is, self.indent); }
 
 protected:
-  LiteralIndex(LiteralIndexingStructure<Data>* is) : _is(is) {}
+  LiteralIndex() : _is(new LiteralSubstitutionTree<LiteralClause>()) {}
 
   void handle(Data data, bool add)
   { _is->handle(std::move(data), add); }
@@ -64,30 +64,25 @@ class BinaryResolutionIndex
 : public LiteralIndex<LiteralClause>
 {
 public:
-  BinaryResolutionIndex(LiteralIndexingStructure<LiteralClause>* is)
-  : LiteralIndex<LiteralClause>(is) {};
+  BinaryResolutionIndex(SaturationAlgorithm&) {}
 protected:
-  void handleClause(Clause* c, bool adding);
+  void handleClause(Clause* c, bool adding) override;
 };
 
 class BackwardSubsumptionIndex
 : public LiteralIndex<LiteralClause>
 {
 public:
-  BackwardSubsumptionIndex(LiteralIndexingStructure<LiteralClause>* is)
-  : LiteralIndex<LiteralClause>(is) {};
+  BackwardSubsumptionIndex(SaturationAlgorithm&) {}
 protected:
-  void handleClause(Clause* c, bool adding);
+  void handleClause(Clause* c, bool adding) override;
 };
 
 class FwSubsSimplifyingLiteralIndex
 : public LiteralIndex<LiteralClause>
 {
 public:
-  FwSubsSimplifyingLiteralIndex(LiteralIndexingStructure<LiteralClause>* is)
-    : LiteralIndex<LiteralClause>(is)
-  { }
-
+  FwSubsSimplifyingLiteralIndex(SaturationAlgorithm&) {}
 protected:
   void handleClause(Clause* c, bool adding) override;
 };
@@ -96,10 +91,7 @@ class FSDLiteralIndex
 : public LiteralIndex<LiteralClause>
 {
 public:
-  FSDLiteralIndex(LiteralIndexingStructure<LiteralClause>* is)
-    : LiteralIndex<LiteralClause>(is)
-  { }
-
+  FSDLiteralIndex(SaturationAlgorithm&) {}
 protected:
   void handleClause(Clause* c, bool adding) override;
 };
@@ -108,87 +100,66 @@ class UnitClauseLiteralIndex
 : public LiteralIndex<LiteralClause>
 {
 public:
-  UnitClauseLiteralIndex(LiteralIndexingStructure<LiteralClause>* is)
-  : LiteralIndex<LiteralClause>(is) {};
+  UnitClauseLiteralIndex(SaturationAlgorithm&) {}
 protected:
-  void handleClause(Clause* c, bool adding);
+  void handleClause(Clause* c, bool adding) override;
 };
 
 class UnitClauseWithALLiteralIndex
 : public LiteralIndex<LiteralClause>
 {
 public:
-  UnitClauseWithALLiteralIndex(LiteralIndexingStructure<LiteralClause>* is)
-  : LiteralIndex(is) {};
+  UnitClauseWithALLiteralIndex(SaturationAlgorithm&) {}
 protected:
-  void handleClause(Clause* c, bool adding);
+  void handleClause(Clause* c, bool adding) override;
 };
 
 class NonUnitClauseLiteralIndex
 : public LiteralIndex<LiteralClause>
 {
 public:
-  NonUnitClauseLiteralIndex(LiteralIndexingStructure<LiteralClause>* is, bool selectedOnly=false)
-  : LiteralIndex<LiteralClause>(is), _selectedOnly(selectedOnly) {};
+  NonUnitClauseLiteralIndex(SaturationAlgorithm&) {}
 protected:
-  void handleClause(Clause* c, bool adding);
-private:
-  bool _selectedOnly;
+  void handleClause(Clause* c, bool adding) override;
 };
 
 class NonUnitClauseWithALLiteralIndex
 : public LiteralIndex<LiteralClause>
 {
 public:
-  NonUnitClauseWithALLiteralIndex(LiteralIndexingStructure<LiteralClause>* is, bool selectedOnly=false)
-  : LiteralIndex(is), _selectedOnly(selectedOnly) {};
+  NonUnitClauseWithALLiteralIndex(SaturationAlgorithm&) {}
 protected:
-  void handleClause(Clause* c, bool adding);
-private:
-  bool _selectedOnly;
+  void handleClause(Clause* c, bool adding) override;
 };
 
 class RewriteRuleIndex
 : public LiteralIndex<LiteralClause>
 {
 public:
-  RewriteRuleIndex(LiteralIndexingStructure<LiteralClause>* is, Ordering& ordering);
-  ~RewriteRuleIndex();
+  RewriteRuleIndex(SaturationAlgorithm& salg);
 
   Clause* getCounterpart(Clause* c) {
     return _counterparts.get(c);
   }
 protected:
-  void handleClause(Clause* c, bool adding);
+  void handleClause(Clause* c, bool adding) override;
   Literal* getGreater(Clause* c);
 
 private:
   void handleEquivalence(Clause* c, Literal* cgr, Clause* d, Literal* dgr, bool adding);
 
-  LiteralIndexingStructure<LiteralClause>* _partialIndex;
+  LiteralSubstitutionTree<LiteralClause> _partialIndex;
   DHMap<Clause*,Clause*> _counterparts;
   Ordering& _ordering;
-};
-
-class DismatchingLiteralIndex
-: public LiteralIndex<LiteralClause>
-{
-public:
-  DismatchingLiteralIndex(LiteralIndexingStructure<LiteralClause>* is)
-  : LiteralIndex<LiteralClause>(is) {};
-  void handleClause(Clause* c, bool adding);
-  void addLiteral(Literal* c);
 };
 
 class UnitIntegerComparisonLiteralIndex
 : public LiteralIndex<LiteralClause>
 {
 public:
-  UnitIntegerComparisonLiteralIndex(LiteralIndexingStructure<LiteralClause>* is)
-  : LiteralIndex<LiteralClause>(is) {}
-
+  UnitIntegerComparisonLiteralIndex(SaturationAlgorithm&) {}
 protected:
-  void handleClause(Clause* c, bool adding);
+  void handleClause(Clause* c, bool adding) override;
 };
 
 };

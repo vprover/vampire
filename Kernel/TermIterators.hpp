@@ -21,11 +21,10 @@
 #include "Lib/Stack.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/DHMultiset.hpp"
 
-#include "Term.hpp"
 #include "SortHelper.hpp"
-#include "ApplicativeHelper.hpp"
+#include "Term.hpp"
+#include "TypedTermList.hpp"
 
 namespace Kernel {
 
@@ -135,10 +134,10 @@ public:
   }
 
 
-  bool hasNext();
+  bool hasNext() override;
   /** Return the next variable
    * @warning hasNext() must have been called before */
-  TermList next()
+  TermList next() override
   {
     ASS(!_used);
     ASS(_stack.top()->isVar());
@@ -205,10 +204,10 @@ public:
     }
   }
 
-  bool hasNext();
+  bool hasNext() override;
   /** Return the next variable
    * @warning hasNext() must have been called before */
-  std::pair<TermList, TermList> next()
+  std::pair<TermList, TermList> next() override
   {
     ASS(!_used);
     _used=true;
@@ -234,10 +233,10 @@ public:
     pushNext(term->args());
   }
 
-  bool hasNext();
+  bool hasNext() override;
   /** Return next subterm
    * @warning hasNext() must have been called before */
-  TermList next()
+  TermList next() override
   {
     ASS(!_used && !_stack->isEmpty());
     _used=true;
@@ -292,8 +291,8 @@ public:
     _stack.push(term);
   }
 
-  bool hasNext();
-  TermList next(){
+  bool hasNext() override;
+  TermList next() override{
     ASS(!_used);
     _used = true;
     return _next;
@@ -325,10 +324,10 @@ public:
     pushNext(term->args());
   }
 
-  bool hasNext();
+  bool hasNext() override;
   /** Return next subterm
    * @warning hasNext() must have been called before */
-  TermList next()
+  TermList next() override
   {
     ASS(!_used && !_stack.isEmpty());
     _used=true;
@@ -382,8 +381,8 @@ public:
   // NonVariableIterator(TermList ts);
 
   /** true if there exists at least one subterm */
-  bool hasNext() { return !_stack.isEmpty(); }
-  TermList next();
+  bool hasNext() override { return !_stack.isEmpty(); }
+  TermList next() override;
   void right();
 private:
   /** available non-variable subterms */
@@ -423,8 +422,8 @@ public:
   // NonVariableIterator(TermList ts);
 
   /** true if there exists at least one subterm */
-  bool hasNext() { return !_stack.isEmpty(); }
-  Term* next();
+  bool hasNext() override { return !_stack.isEmpty(); }
+  Term* next() override;
   void right();
 private:
   /** available non-variable subterms */
@@ -514,11 +513,11 @@ public:
     }
   }
 
-  bool hasNext();
+  bool hasNext() override;
 
   /** Return next subterm
    * @warning hasNext() must have been called before */
-  std::pair<TermList, TermList> next()
+  std::pair<TermList, TermList> next() override
   {
     std::pair<TermList, TermList> res(_arg1,_arg2);
     _arg1 = TermList::empty();
@@ -545,8 +544,8 @@ class TermFunIterator
 public:
   TermFunIterator (const Term*);
 
-  bool hasNext();
-  unsigned next();
+  bool hasNext() override;
+  unsigned next() override;
 private:
   /** True if the next symbol is found */
   bool _hasNext;
@@ -569,8 +568,8 @@ public:
   TermVarIterator (const Term*);
   TermVarIterator (const TermList*);
 
-  bool hasNext ();
-  unsigned next ();
+  bool hasNext () override;
+  unsigned next () override;
 private:
   /** True if the next variable is found */
   // bool _hasNext; // MS: unused
@@ -627,6 +626,9 @@ static const auto anyArgIterTyped = [](Term const* term)
       .map([=](auto i)
            { return TypedTermList(*term->nthArgument(i), SortHelper::getArgSort(term, i)); }); };
 
+/** iterator that creates a range of variables */
+static const auto varRange = [](unsigned i, unsigned j)
+  { return range(i,j).map(unsignedToVarFn); };
 
 } // namespace Kernel
 

@@ -12,13 +12,9 @@
  * Implements class ForwardLiteralRewriting.
  */
 
-#include "Lib/Int.hpp"
-
 #include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/ColorHelper.hpp"
-
-#include "Indexing/IndexManager.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -30,14 +26,12 @@ namespace Inferences
 void ForwardLiteralRewriting::attach(SaturationAlgorithm* salg)
 {
   ForwardSimplificationEngine::attach(salg);
-  _index=static_cast<RewriteRuleIndex*>(
-    _salg->getIndexManager()->request(REWRITE_RULE_SUBST_TREE) );
+  _index = salg->getSimplifyingIndex<RewriteRuleIndex>();
 }
 
 void ForwardLiteralRewriting::detach()
 {
-  _index=0;
-  _salg->getIndexManager()->release(REWRITE_RULE_SUBST_TREE);
+  _index = nullptr;
   ForwardSimplificationEngine::detach();
 }
 
@@ -104,8 +98,6 @@ bool ForwardLiteralRewriting::perform(Clause* cl, Clause*& replacement, ClauseIt
           resLits->push(curr);
         }
       }
-
-      env.statistics->forwardLiteralRewrites++;
 
       premises = pvi( getSingletonIterator(premise));
       replacement = Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::FORWARD_LITERAL_REWRITING, cl, premise));

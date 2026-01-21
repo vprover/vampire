@@ -25,20 +25,11 @@
 #include "Kernel/Ordering.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/Unit.hpp"
 #include "Kernel/LiteralSelector.hpp"
-#include "Kernel/ApplicativeHelper.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Shell/Statistics.hpp"
-
 #include "EqualityFactoring.hpp"
-
-#if VDEBUG
-#include <iostream>
-using namespace std;
-#endif
 
 namespace Inferences
 {
@@ -81,9 +72,9 @@ struct EqualityFactoring::FactorablePairsFn
 
     auto it3 = getMapAndFlattenIterator(it2,EqHelper::EqualityArgumentIteratorFn());
 
-    auto it4 = pushPairIntoRightIterator(arg,it3);
+    auto it4 = pushPairIntoRightIterator(arg,std::move(it3));
 
-    return pvi( it4 );
+    return pvi( std::move(it4) );
   }
 private:
   Clause* _cl;
@@ -153,7 +144,7 @@ struct EqualityFactoring::ResultFn
         if (sLitAfter) {
           TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
           if (i < _cl->numSelected() && _ordering.compare(currAfter,sLitAfter) == Ordering::GREATER) {
-            env.statistics->inferencesBlockedForOrderingAftercheck++;
+            env.statistics->inferencesBlockedDueToOrderingAftercheck++;
             return nullptr;
           }
         }
@@ -163,8 +154,6 @@ struct EqualityFactoring::ResultFn
     }
 
     resLits->loadFromIterator(constraints->iterFifo());
-
-    env.statistics->equalityFactoring++;
 
     Clause *cl = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, _cl));
     if(env.options->proofExtra() == Options::ProofExtra::FULL)
@@ -193,15 +182,15 @@ ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
 
   auto it3 = getMapAndFlattenIterator(it2,EqHelper::LHSIteratorFn(_salg->getOrdering()));
 
-  auto it4 = getMapAndFlattenIterator(it3,FactorablePairsFn(premise));
+  auto it4 = getMapAndFlattenIterator(std::move(it3),FactorablePairsFn(premise));
 
-  auto it5 = getMappingIterator(it4,ResultFn(*this, premise,
+  auto it5 = getMappingIterator(std::move(it4),ResultFn(*this, premise,
       getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),
       _salg->getOrdering(), _uwaFixedPointIteration));
 
-  auto it6 = getFilteredIterator(it5,NonzeroFn());
+  auto it6 = getFilteredIterator(std::move(it5),NonzeroFn());
 
-  return pvi( it6 );
+  return pvi( std::move(it6) );
 }
 
 }

@@ -34,7 +34,7 @@ public:
   TautologyDeletion(std::shared_ptr<AlascaState> shared) 
     : _shared(std::move(shared)) {}
 
-  virtual Clause* simplify(Clause* premise) override 
+  Clause* simplify(Clause* premise) override 
   {
     Map<AnyAlascaLiteral, bool> lits;
     TIME_TRACE("alasca tautology detection")

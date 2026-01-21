@@ -37,10 +37,10 @@ public:
   static bool isDistinctPred(Literal* l);
 
 protected:
-  virtual bool apply(FormulaUnit* unit, Unit*& res);
-  virtual bool apply(Clause* cl, Unit*& res);
+  bool apply(FormulaUnit* unit, Unit*& res) override;
+  bool apply(Clause* cl, Unit*& res) override;
 
-  virtual void updateModifiedProblem(Problem& prb)
+  void updateModifiedProblem(Problem& prb) override
   {
     prb.invalidateProperty();
   }

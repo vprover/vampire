@@ -15,8 +15,6 @@
 
 #include "Lib/DHMultiset.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/Int.hpp"
-#include "Lib/List.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Lib/VirtualIterator.hpp"
@@ -26,14 +24,10 @@
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Kernel/Renaming.hpp"
-#include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/RobSubstitution.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/TermIndex.hpp"
-#include "Indexing/IndexManager.hpp"
 #include "Debug/TimeProfiling.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -54,15 +48,13 @@ using namespace Saturation;
 void BackwardDemodulation::attach(SaturationAlgorithm* salg)
 {
   BackwardSimplificationEngine::attach(salg);
-  _index=static_cast<DemodulationSubtermIndex*>(
-	  _salg->getIndexManager()->request(DEMODULATION_SUBTERM_SUBST_TREE) );
+  _index = salg->getSimplifyingIndex<DemodulationSubtermIndex>();
   _helper = DemodulationHelper(getOptions(), &_salg->getOrdering());
 }
 
 void BackwardDemodulation::detach()
 {
-  _index=0;
-  _salg->getIndexManager()->release(DEMODULATION_SUBTERM_SUBST_TREE);
+  _index = nullptr;
   BackwardSimplificationEngine::detach();
 }
 
@@ -174,7 +166,6 @@ struct BackwardDemodulation::ResultFn
       }
     }
 
-    env.statistics->backwardDemodulations++;
     _removed->insert(qr.data->clause);
     Clause *replacement = Clause::fromStack(
       *resLits,
@@ -213,7 +204,7 @@ void BackwardDemodulation::perform(Clause* cl,
 			    EqHelper::getDemodulationLHSIterator(lit,
             _salg->getOptions().backwardDemodulation() == Options::Demodulation::PREORDERED,
             _salg->getOrdering()).first,
-			    RewritableClausesFn(_index)),
+			    RewritableClausesFn(_index.get())),
 		    ResultFn(cl, *this, _helper)),
  	    RemovedIsNonzeroFn()) );
 
@@ -221,7 +212,7 @@ void BackwardDemodulation::perform(Clause* cl,
   //replacementIterator right at this point, so we can measure the time just
   //simply (which cannot be generally done when iterators are involved)
 
-  simplifications=getPersistentIterator(replacementIterator);
+  simplifications=getPersistentIterator(std::move(replacementIterator));
 }
 
 }

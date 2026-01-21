@@ -17,8 +17,9 @@
  * Check out UnitTests/tGaussianElimination.cpp, to see how it is to be used.
  */
 
-#include "Test/TestUtils.hpp"
 #include "Test/ClausePattern.hpp"
+#include "Test/GenerationTester.hpp"
+#include "Test/TestUtils.hpp"
 #include "Kernel/Clause.hpp"
 #include "Lib/Coproduct.hpp"
 
@@ -96,7 +97,6 @@ public:
   }
 };
 
-
 class NotApplicable
 {
   Kernel::Clause* _input;
@@ -122,6 +122,87 @@ public:
   }
 };
 
+template<class Rule>
+class SimplificationManyTester
+  : public Generation::GenerationTester<Rule>
+{
+public:
+  SimplificationManyTester(Rule rule)
+    : Generation::GenerationTester<Rule>(rule)
+  {  }
+  virtual Option<ClauseIterator> simplifyMany(Kernel::Clause*) = 0;
+};
+
+class NotApplicableMany
+{
+  Kernel::Clause* _input;
+public:
+  NotApplicableMany() {}
+
+  NotApplicableMany input(Kernel::Clause* x)
+  {
+    _input = x;
+    return *this;
+  }
+
+  template<class Rule>
+  void run(SimplificationManyTester<Rule>& simpl) {
+    auto resOp = simpl.simplifyMany(_input);
+    if (resOp.isSome()) {
+      auto res = Stack<Kernel::Clause*>::fromIterator(std::move(*resOp));
+      std::cout  << std::endl;
+      std::cout << "[     case ]: " << pretty(*_input) << std::endl;
+      std::cout << "[       is ]: " << pretty(res) << std::endl;
+      std::cout << "[ expected ]: < nop >" << std::endl;
+      exit(-1);
+    }
+  }
+};
+
+class SuccessMany
+{
+  Kernel::Clause* _input;
+  Option<StackMatcher> _expected;
+
+public:
+  SuccessMany() : _input(nullptr) {}
+
+  SuccessMany input(Kernel::Clause* x)
+  {
+    _input = x;
+    return *this;
+  }
+
+  SuccessMany expected(StackMatcher x)
+  {
+    _expected = some(x);
+    return *this;
+  }
+
+  template<class Rule>
+  void run(SimplificationManyTester<Rule>& simpl) {
+    auto resOp = simpl.simplifyMany(_input);
+    auto exp = _expected.unwrap();
+    if (resOp.isNone()) {
+      std::cout  << std::endl;
+      std::cout << "[     case ]: " << pretty(*_input) << std::endl;
+      std::cout << "[       is ]: < nop >" << std::endl;
+      std::cout << "[ expected ]: " << pretty(exp) << std::endl;
+      exit(-1);
+    } else {
+      auto res = Stack<Kernel::Clause*>::fromIterator(std::move(*resOp));
+      if (!exp.matches(res, simpl)) {
+        std::cout  << std::endl;
+        std::cout << "[     case ]: " << pretty(*_input) << std::endl;
+        std::cout << "[       is ]: " << pretty(res) << std::endl;
+        std::cout << "[ expected ]: " << pretty(exp) << std::endl;
+        exit(-1);
+      }
+    }
+  }
+};
+
+
 #define REGISTER_SIMPL_TESTER(t) using SimplTester = t;
 
 #define TEST_SIMPLIFY(name, ...)                                                                              \
@@ -130,6 +211,19 @@ public:
 #define TEST_SIMPLIFY_WITH_SUGAR(name, syntax_sugar, ...)                                                     \
   TEST_FUN(name) {                                                                                            \
     SimplTester simpl;                                                                                        \
+    __ALLOW_UNUSED(syntax_sugar)                                                                              \
+    __VA_ARGS__.run(simpl);                                                                                   \
+  }                                                                                                           \
+
+
+#define REGISTER_SIMPL_MANY_TESTER(t) using SimplManyTester = t;
+
+#define TEST_SIMPLIFY_MANY(name, ...)                                                                         \
+        TEST_SIMPLIFY_MANY_WITH_SUGAR(name, MY_SYNTAX_SUGAR, __VA_ARGS__)
+
+#define TEST_SIMPLIFY_MANY_WITH_SUGAR(name, syntax_sugar, ...)                                                \
+  TEST_FUN(name) {                                                                                            \
+    SimplManyTester simpl;                                                                                    \
     __ALLOW_UNUSED(syntax_sugar)                                                                              \
     __VA_ARGS__.run(simpl);                                                                                   \
   }                                                                                                           \

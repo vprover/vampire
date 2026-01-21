@@ -8,8 +8,9 @@
  * and in the source directory
  */
 #include "Kernel/Substitution.hpp"
+#include "Kernel/Matcher.hpp"
 #include "Kernel/Formula.hpp"
-#include "Kernel/SortHelper.hpp"
+#include "Kernel/SubstHelper.hpp"
 
 #include "SymbolDefinitionInlining.hpp"
 
@@ -18,38 +19,48 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
-TermList SymbolDefinitionInlining::substitute(Term::Iterator tit) {
+SymbolDefinitionInlining::SymbolDefinitionInlining(Term* lhs, TermList rhs, unsigned freshVarOffset)
+  : _isPredicate(lhs->isBoolean()), _lhs(lhs), _rhs(rhs),
+    _bound(0), _counter(0), _freshVarOffset(freshVarOffset), _varRenames(0)
+{
+  // the symbol that we replace must be in the form of a literal
+  if (_isPredicate && !_lhs->isLiteral()) {
+    ASS(_lhs->isFormula());
+    auto inner = _lhs->getSpecialData()->getFormula();
+    ASS_EQ(inner->connective(), Connective::LITERAL);
+    _lhs = inner->literal();
+  }
+}
+
+TermList SymbolDefinitionInlining::substitute(Term::Iterator tit)
+{
   Substitution substitution;
 
-  VList::Iterator vit(_bindingVariables);
-  while (vit.hasNext()) {
-    unsigned var = vit.next();
+  for (const auto& baseArg : iterTraits(Term::Iterator(_lhs))) {
     ASS(tit.hasNext());
-    TermList arg = tit.next();
-    substitution.bindUnbound(var, arg);
+    // TODO find out if process needs to be called on tit.next() here
+    ALWAYS(MatchingUtils::matchTerms(baseArg, tit.next(), substitution));
   }
   ASS(!tit.hasNext());
 
   if (_counter > 0) {
     /**
-     * The _binding is inlined more than once. In such case, rename it's bound
+     * The _rhs is inlined more than once. In such case, rename it's bound
      * variables.
      */
 
     if (_counter == 1) {
       /**
-       * The second occurrence of the _binding -- need to calculate it's bound variables.
+       * The second occurrence of the _rhs -- need to calculate it's bound variables.
        *
        * TODO: This is insufficient to cover the case when a variable is bound
        * multiple times in nested expressions. This is left as is for now,
        * because this case cannot occur with let-bindings of constant.
        */
-      collectBoundVariables(_binding);
+      collectBoundVariables(_rhs);
     }
 
-    VList::Iterator bit(_bound);
-    while (bit.hasNext()) {
-      unsigned boundVar = bit.next();
+    for (const auto& boundVar : iterTraits(VList::Iterator(_bound))) {
       unsigned freshVar = ++_freshVarOffset;
       substitution.bindUnbound(boundVar, TermList(freshVar, false));
       List<pair<unsigned, unsigned>>::push(make_pair(boundVar, freshVar), _varRenames);
@@ -58,11 +69,12 @@ TermList SymbolDefinitionInlining::substitute(Term::Iterator tit) {
 
   _counter++;
 
-  return SubstHelper::apply(_binding, substitution);
+  return SubstHelper::apply(_rhs, substitution);
 }
 
-TermList SymbolDefinitionInlining::process(TermList ts) {
-  if (ts.isVar()) {
+TermList SymbolDefinitionInlining::process(TermList ts)
+{
+  if (ts.isVar() || ts.term()->isSort()) {
     return ts;
   }
 
@@ -82,11 +94,11 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
       }
 
       case SpecialFunctor::ITE: {
-        Formula* condition  = process(sd->getCondition());
+        Formula* condition  = process(sd->getITECondition());
         TermList thenBranch = process(*term->nthArgument(0));
         TermList elseBranch = process(*term->nthArgument(1));
 
-        if ((condition == sd->getCondition()) && (thenBranch == *term->nthArgument(0)) && (elseBranch == *term->nthArgument(1))) {
+        if ((condition == sd->getITECondition()) && (thenBranch == *term->nthArgument(0)) && (elseBranch == *term->nthArgument(1))) {
           return ts;
         }
 
@@ -94,45 +106,14 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
       }
 
       case SpecialFunctor::LET: {
-        TermList binding = process(sd->getBinding());
+        Formula* binding = process(sd->getLetBinding());
         TermList body = process(*term->nthArgument(0));
 
-        if ((sd->getBinding() == binding) && (*term->nthArgument(0) == body)) {
+        if ((sd->getLetBinding() == binding) && (*term->nthArgument(0) == body)) {
           return ts;
         }
 
-        return TermList(Term::createLet(sd->getFunctor(), sd->getVariables(),
-                                        binding, body, sd->getSort()));
-      }
-
-      case SpecialFunctor::LET_TUPLE: {
-        TermList binding = process(sd->getBinding());
-        TermList body = process(*term->nthArgument(0));
-
-        if ((sd->getBinding() == binding) && (*term->nthArgument(0) == body)) {
-          return ts;
-        }
-
-        return TermList(Term::createTupleLet(sd->getFunctor(), sd->getTupleSymbols(),
-                                             binding, body, sd->getSort()));
-      }
-
-      case SpecialFunctor::TUPLE: {
-        TermList tuple = process(TermList(sd->getTupleTerm()));
-        ASS(tuple.isTerm());
-
-        Term* t = tuple.term();
-        if (t == sd->getTupleTerm()) {
-          return ts;
-        }
-
-        // Replace [$proj(0, t), ..., $proj(n, t)] with t
-        TermList tupleConstant;
-        if (mirroredTuple(t, tupleConstant)) {
-          return tupleConstant;
-        }
-
-        return TermList(Term::createTuple(t));
+        return TermList(Term::createLet(binding, body, sd->getSort()));
       }
 
       case SpecialFunctor::LAMBDA:
@@ -157,7 +138,7 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
 
   Term::Iterator terms(term);
 
-  if (!_isPredicate && (term->functor() == _symbol)) {
+  if (!_isPredicate && (term->functor() == _lhs->functor())) {
     return substitute(terms);
   }
 
@@ -179,57 +160,14 @@ TermList SymbolDefinitionInlining::process(TermList ts) {
   return TermList(Term::create(term, args.begin()));
 }
 
-bool SymbolDefinitionInlining::mirroredTuple(Term* tuple, TermList &tupleConstant) {
-  bool foundTupleConstant = false;
-  TermList tupleSort = env.signature->getFunction(tuple->functor())->fnType()->result();
-  ASS(tupleSort.isTupleSort());
-  for (unsigned i = 0; i < tuple->arity(); i++) {
-    if (!tuple->nthArgument(i)->isTerm()) {
-      return false;
-    }
-    Term* arg = (tuple->nthArgument(i))->term();
-    TermList possibleTupleConstant;
-    if (arg->isSpecial()) {
-      if (arg->specialFunctor() != SpecialFunctor::FORMULA) {
-        return false;
-      }
-      Formula* f = arg->getSpecialData()->getFormula();
-      if (f->connective() != LITERAL) {
-        return false;
-      }
-      Literal* l = f->literal();
-      if (l->functor() != Theory::tuples()->getProjectionFunctor(i, tupleSort)) {
-        return false;
-      }
-      possibleTupleConstant = *l->nthArgument(0);
-    } else {
-      if (arg->functor() != Theory::tuples()->getProjectionFunctor(i, tupleSort)) {
-        return false;
-      }
-      possibleTupleConstant = *arg->nthArgument(0);
-    }
-    if (!possibleTupleConstant.isTerm()) {
-      return false;
-    }
-    if (!foundTupleConstant) {
-      tupleConstant = possibleTupleConstant;
-      foundTupleConstant = true;
-    } else {
-      if (possibleTupleConstant != tupleConstant) {
-        return false;
-      }
-    }
-  }
-  return true;
-}
-
-Formula* SymbolDefinitionInlining::process(Formula* formula) {
+Formula* SymbolDefinitionInlining::process(Formula* formula)
+{
   switch (formula->connective()) {
     case LITERAL: {
       Literal* literal = formula->literal();
       Term::Iterator terms(literal);
 
-      if (_isPredicate && (literal->functor() == _symbol)) {
+      if (_isPredicate && (literal->functor() == _lhs->functor())) {
         if (literal->polarity()) {
           return BoolTermFormula::create(substitute(terms));
         } else {
@@ -324,7 +262,8 @@ Formula* SymbolDefinitionInlining::process(Formula* formula) {
   }
 }
 
-FormulaList* SymbolDefinitionInlining::process(FormulaList* formulas) {
+FormulaList* SymbolDefinitionInlining::process(FormulaList* formulas)
+{
   Stack<Formula*> elements(FormulaList::length(formulas));
 
   bool substituted = false;
@@ -351,7 +290,8 @@ FormulaList* SymbolDefinitionInlining::process(FormulaList* formulas) {
   return processedFormula;
 }
 
-void SymbolDefinitionInlining::collectBoundVariables(TermList ts) {
+void SymbolDefinitionInlining::collectBoundVariables(TermList ts)
+{
   if (ts.isVar()) {
     return;
   }
@@ -359,7 +299,8 @@ void SymbolDefinitionInlining::collectBoundVariables(TermList ts) {
   collectBoundVariables(ts.term());
 }
 
-void SymbolDefinitionInlining::collectBoundVariables(Term* t) {
+void SymbolDefinitionInlining::collectBoundVariables(Term* t)
+{
   if (t->shared()) {
     return;
   }
@@ -372,21 +313,11 @@ void SymbolDefinitionInlining::collectBoundVariables(Term* t) {
         break;
       }
       case SpecialFunctor::ITE: {
-        collectBoundVariables(sd->getCondition());
+        collectBoundVariables(sd->getITECondition());
         break;
       }
       case SpecialFunctor::LET: {
-        collectBoundVariables(sd->getBinding());
-        VList::Iterator vit(sd->getVariables());
-        VList::pushFromIterator(vit, _bound);
-        break;
-      }
-      case SpecialFunctor::LET_TUPLE: {
-        collectBoundVariables(sd->getBinding());
-        break;
-      }
-      case SpecialFunctor::TUPLE: {
-        collectBoundVariables(sd->getTupleTerm());
+        collectBoundVariables(sd->getLetBinding());
         break;
       }
       case SpecialFunctor::LAMBDA:

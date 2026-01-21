@@ -12,11 +12,7 @@
  * Implements class Renaming
  */
 
-#include "Debug/RuntimeStatistics.hpp"
-
 #include "Kernel/SortHelper.hpp"
-#include "Lib/DArray.hpp"
-#include "Indexing/TermSharing.hpp"
 
 #include "SubstHelper.hpp"
 #include "TermIterators.hpp"
@@ -24,7 +20,6 @@
 #include "Renaming.hpp"
 
 #if VDEBUG
-#include "Lib/Int.hpp"
 #include "Lib/Set.hpp"
 #endif
 

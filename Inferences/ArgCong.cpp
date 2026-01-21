@@ -12,33 +12,20 @@
  * Implements class ArgCong.
  */
 
-#include <utility>
-
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/PairUtils.hpp"
-
-#include "Lib/Environment.hpp"
-#include "Shell/Statistics.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/Unit.hpp"
+#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Substitution.hpp"
-#include "Kernel/EqHelper.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/ApplicativeHelper.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/LiteralSelector.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "ArgCong.hpp"
-
-#if VDEBUG
-#include <iostream>
-using namespace std;
-#endif
 
 namespace Inferences
 {
@@ -91,8 +78,8 @@ struct ArgCong::ResultFn
       lhs = SubstHelper::apply(lhs, subst);
       rhs = SubstHelper::apply(rhs, subst);
     }
-    TermList newLhs = ApplicativeHelper::createAppTerm(alpha1, alpha2, lhs, freshVar);
-    TermList newRhs = ApplicativeHelper::createAppTerm(alpha1, alpha2, rhs, freshVar);
+    TermList newLhs = HOL::create::app(alpha1, alpha2, lhs, freshVar);
+    TermList newRhs = HOL::create::app(alpha1, alpha2, rhs, freshVar);
 
     Literal* newLit = Literal::createEquality(true, newLhs, newRhs, alpha2);
 
@@ -107,7 +94,7 @@ struct ArgCong::ResultFn
           /*
 
           if (i < _cl->numSelected() && _ord->compare(currAfter,newLit) == Ordering::GREATER) {
-            env.statistics->inferencesBlockedForOrderingAftercheck++;
+            env.statistics->inferencesBlockedDueToOrderingAftercheck++;
             return 0;
           }*/ //TODO reintroduce check
         } else {
@@ -119,8 +106,6 @@ struct ArgCong::ResultFn
         resLits->push(newLit);
       }
     }
-
-    env.statistics->argumentCongruence++;
 
     return Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::ARG_CONG, _cl));
   }

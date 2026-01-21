@@ -16,16 +16,11 @@
 #include "Lib/Output.hpp"
 #include "Debug/Assertion.hpp"
 #include "Lib/Backtrackable.hpp"
-#include "Lib/Coproduct.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Recycled.hpp"
 #include "Shell/Options.hpp"
 #include "Lib/Environment.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Inferences/PolynomialEvaluation.hpp"
-#include "Kernel/ALASCA.hpp"
-#include "Kernel/QKbo.hpp"
-#include <functional>
 #include "Debug/TimeProfiling.hpp"
 
 
@@ -37,9 +32,7 @@
 
 #include "UnificationWithAbstraction.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/TermIterators.hpp"
 #include "NumTraits.hpp"
-#include "Kernel/TermIterators.hpp"
 #include "Debug/Tracer.hpp"
 #define DEBUG_FINALIZE(LVL, ...) if (LVL < 0) DBG(__VA_ARGS__)
 #define DEBUG_UNIFY(LVL, ...) if (LVL < 0) DBG(__VA_ARGS__)
@@ -164,9 +157,8 @@ Shell::Options::UnificationWithAbstraction AbstractionOracle::create()
 {
   if (env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF) {
     return env.options->unificationWithAbstraction();
-  } else if (/* env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && */ env.getMainProblem()->getProperty()->higherOrder()) {
-    HOL_ERROR;
-    // return Options::UnificationWithAbstraction::FUNC_EXT;
+  } else if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.getMainProblem()->getProperty()->higherOrder()) {
+    return Options::UnificationWithAbstraction::FUNC_EXT;
   } else {
     return Options::UnificationWithAbstraction::OFF;
   }
@@ -174,9 +166,8 @@ Shell::Options::UnificationWithAbstraction AbstractionOracle::create()
 
 Shell::Options::UnificationWithAbstraction AbstractionOracle::createOnlyHigherOrder()
 {
-  if (/* env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION &&*/ env.getMainProblem()->getProperty()->higherOrder()) {
-    // return Options::UnificationWithAbstraction::FUNC_EXT;
-    HOL_ERROR;
+  if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.getMainProblem()->getProperty()->higherOrder()) {
+    return Options::UnificationWithAbstraction::FUNC_EXT;
   } else {
     return Options::UnificationWithAbstraction::OFF;
   }

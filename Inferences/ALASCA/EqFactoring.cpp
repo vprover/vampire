@@ -14,7 +14,6 @@
  */
 
 #include "EqFactoring.hpp"
-#include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
@@ -186,16 +185,6 @@ ClauseIterator EqFactoring::generateClauses(Clause* premise)
           });
       }));
 }
-
-
-  
-
-#if VDEBUG
-void EqFactoring::setTestIndices(Stack<Indexing::Index*> const&) 
-{
-
-}
-#endif
 
 } // namespace ALASCA 
 } // namespace Inferences 

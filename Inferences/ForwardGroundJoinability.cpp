@@ -18,21 +18,13 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
-#include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/TermOrderingDiagram.hpp"
-#include "Kernel/SortHelper.hpp"
 #include "Kernel/TermIterators.hpp"
-#include "Kernel/ColorHelper.hpp"
-
-#include "Indexing/IndexManager.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
-
-#include "DemodulationHelper.hpp"
 
 #include "ForwardGroundJoinability.hpp"
 
@@ -59,14 +51,12 @@ struct Applicator : SubstApplicator {
 void ForwardGroundJoinability::attach(SaturationAlgorithm* salg)
 {
   ForwardSimplificationEngine::attach(salg);
-  _index=static_cast<DemodulationLHSIndex*>(
-	  _salg->getIndexManager()->request(DEMODULATION_LHS_CODE_TREE) );
+  _index = salg->getSimplifyingIndex<DemodulationLHSIndex>();
 }
 
 void ForwardGroundJoinability::detach()
 {
-  _index=0;
-  _salg->getIndexManager()->release(DEMODULATION_LHS_CODE_TREE);
+  _index = nullptr;
   ForwardSimplificationEngine::detach();
 }
 

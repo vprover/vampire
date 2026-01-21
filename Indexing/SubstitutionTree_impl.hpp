@@ -23,7 +23,6 @@
 #include "Kernel/Renaming.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/ApplicativeHelper.hpp"
 
 #include "Lib/BinaryHeap.hpp"
 #include "Lib/Metaiterators.hpp"

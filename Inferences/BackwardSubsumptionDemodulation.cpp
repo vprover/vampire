@@ -11,10 +11,8 @@
 
 #include "Debug/RuntimeStatistics.hpp"
 
-#include "Lib/DArray.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/List.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/ScopeGuard.hpp"
 #include "Lib/VirtualIterator.hpp"
@@ -27,19 +25,15 @@
 #include "Kernel/MLMatcherSD.hpp"
 #include "Kernel/Matcher.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Kernel/Signature.hpp"
-#include "Kernel/OperatorType.hpp"
 #include "Kernel/Term.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralIndex.hpp"
 #include "Indexing/LiteralMiniIndex.hpp"
-#include "Indexing/IndexManager.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Shell/Statistics.hpp"
-#include "Shell/TPTPPrinter.hpp"
 
 #include "BackwardSubsumptionDemodulation.hpp"
 #include "SubsumptionDemodulationHelper.hpp"
@@ -65,14 +59,13 @@ BackwardSubsumptionDemodulation::BackwardSubsumptionDemodulation(bool enableOrde
 void BackwardSubsumptionDemodulation::attach(SaturationAlgorithm* salg)
 {
   BackwardSimplificationEngine::attach(salg);
-
-  _index.request(salg->getIndexManager(), BACKWARD_SUBSUMPTION_SUBST_TREE);
+  _index = salg->getSimplifyingIndex<BackwardSubsumptionIndex>();
 }
 
 
 void BackwardSubsumptionDemodulation::detach()
 {
-  _index.release();
+  _index = nullptr;
   BackwardSimplificationEngine::detach();
 }
 
@@ -556,7 +549,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
               ASS_EQ(binder.applyTo(eqLit), Literal::complementaryLiteral(dlit));  // ¬eqLitS == dlit
               ASS_EQ(ordering.compare(binder.applyTo(eqLit), dlit), Ordering::GREATER);  // L > ¬L
               ASS(SDHelper::checkForSubsumptionResolution(mainCl, SDClauseMatches{sideCl,LiteralMiniIndex{mainCl}}, dlit));
-              replacement = SDHelper::generateSubsumptionResolutionClause(mainCl, dlit, sideCl);
+              replacement = SDHelper::generateSubsumptionResolutionClause(mainCl, dlit, sideCl, /*forward=*/false);
 #if VDEBUG && BSD_VDEBUG_REDUNDANCY_ASSERTIONS
               if (getOptions().literalComparisonMode() != Options::LiteralComparisonMode::REVERSE) {
                 // Note that mclθ < cl does not always hold here,
@@ -565,7 +558,6 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
                 ASS(SDHelper::clauseIsSmaller(replacement, mainCl, ordering));
               }
 #endif
-              env.statistics->backwardSubsumptionResolution++;
               return true;
             }
           }
@@ -641,8 +633,6 @@ isRedundant:
             resLits->push((*mainCl)[i]);
           }
         }
-
-        env.statistics->backwardSubsumptionDemodulations++;
 
         replacement = Clause::fromStack(*resLits,
             SimplifyingInference2(InferenceRule::BACKWARD_SUBSUMPTION_DEMODULATION, mainCl, sideCl));

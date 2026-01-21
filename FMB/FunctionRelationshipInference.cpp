@@ -17,7 +17,6 @@
 #include "Lib/DHSet.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/IntUnionFind.hpp"
     
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
@@ -27,15 +26,12 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Connective.hpp" 
 #include "Kernel/Inference.hpp"
-#include "Kernel/MainLoop.hpp"
 #include "Kernel/OperatorType.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Saturation/LabelFinder.hpp"
     
 #include "Shell/Options.hpp"
-#include "Shell/UIHelper.hpp"
-#include "Shell/Statistics.hpp"
 #include "Shell/Skolem.hpp"
 #include "Shell/Rectify.hpp"
 #include "Shell/Flattening.hpp"
@@ -57,9 +53,9 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
 
   ClauseList* checkingClauses = getCheckingClauses();
 
-  ClauseIterator cit = pvi(concatIters(clauses,ClauseList::Iterator(checkingClauses)));
+  ClauseIterator cit = pvi(concatIters(std::move(clauses),ClauseList::Iterator(checkingClauses)));
 
-  Problem prb(cit,false);
+  Problem prb(std::move(cit),false);
   Options opt; // default saturation algorithm options
 
   Problem* inputProblem = env.getMainProblem();

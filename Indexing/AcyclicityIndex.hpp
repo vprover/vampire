@@ -17,10 +17,7 @@
 
 #include "Indexing/Index.hpp"
 
-#include "Kernel/Clause.hpp"
 #include "Kernel/Term.hpp"
-
-#include "Indexing/TermIndexingStructure.hpp"
 
 #include "Lib/DHMap.hpp"
 #include "Lib/List.hpp"
@@ -56,19 +53,15 @@ class AcyclicityIndex
 {
   using TermIndexingStructure   = Indexing::TermIndexingStructure<TermLiteralClause>;
 public:
-  AcyclicityIndex(TermIndexingStructure* tis) :
-    _sIndexes(),
-    _tis(tis)
-  {}
-
-  ~AcyclicityIndex() {}
+  AcyclicityIndex(SaturationAlgorithm&);
+  ~AcyclicityIndex() override = default;
   
   void insert(Kernel::Literal *lit, Kernel::Clause *c);
   void remove(Kernel::Literal *lit, Kernel::Clause *c);
 
   CycleQueryResultsIterator queryCycles(Kernel::Literal *lit, Kernel::Clause *c);
 protected:
-  void handleClause(Kernel::Clause* c, bool adding);
+  void handleClause(Kernel::Clause* c, bool adding) override;
 private:
   bool matchesPattern(Kernel::Literal *lit, Kernel::TermList *&fs, Kernel::TermList *&t, TermList *sort);
   Lib::List<TypedTermList>* getSubterms(Kernel::Term *t);

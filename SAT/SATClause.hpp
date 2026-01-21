@@ -43,7 +43,7 @@ public:
 
   /** New clause */
   SATClause(unsigned length);
-  
+
   SATInference* inference() const { return _inference; }
   void setInference(SATInference* val);
 
@@ -70,33 +70,32 @@ public:
   /**
    * Return the (reference to) the nth literal
    */
-  inline SATLiteral& operator[] (int n)
+  SATLiteral& operator[] (int n)
   { return _literals[n]; }
   /** Return the (reference to) the nth literal */
-  inline const SATLiteral& operator[] (int n) const
+  const SATLiteral& operator[] (int n) const
   { return const_cast<const SATLiteral&>(_literals[n]); }
 
   /** Return the length (number of literals) */
-  inline unsigned length() const { return _length; }
+  unsigned length() const { return _length; }
   /** Alternative name for length to conform with other containers */
-  inline unsigned size() const { return _length; }
+  unsigned size() const { return _length; }
 
   /** Return a pointer to the array of literals. */
-  inline SATLiteral* literals() { return _literals; }
+  SATLiteral* literals() { return _literals; }
 
   /** True if the clause is empty */
-  inline bool isEmpty() const { return _length == 0; }
+  bool isEmpty() const { return _length == 0; }
 
   void sort();
 
   void destroy();
 
-  std::string toString() const;
-
   static SATClause* removeDuplicateLiterals(SATClause *cl);
 
   static SATClause* fromStack(SATLiteralStack& stack);
 
+  unsigned number = 0;
 private:
   /** number of literals */
   unsigned _length : 31;
@@ -107,9 +106,12 @@ private:
 
   /** Array of literals of this unit */
   SATLiteral _literals[1];
+
+  // counter for `number`
+  static unsigned _lastNumber;
 }; // class SATClause
 
-std::ostream& operator<< (std::ostream& out, const SAT::SATClause& cl );
+std::ostream &operator<<(std::ostream &out, const SATClause &cl);
 
 };
 

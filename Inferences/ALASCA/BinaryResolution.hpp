@@ -18,16 +18,10 @@
 
 #include "Forwards.hpp"
 
-#include "Indexing/IndexManager.hpp"
 #include "Indexing/SubstitutionTree.hpp"
-#include "Inferences/InferenceEngine.hpp"
-#include "Kernel/NumTraits.hpp"
-#include "Kernel/Ordering.hpp"
-#include "Kernel/ALASCA/Index.hpp"
 #include "Inferences/BinaryResolution.hpp"
 #include "BinInf.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
-#include "Shell/Options.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
@@ -61,8 +55,6 @@ struct BinaryResolutionConf
              .filter([](auto x) { return x.literal()->isPositive(); })
              .map([](auto x) { return Lhs(std::move(x)); });
     }
-
-    static IndexType indexType() { return Indexing::ALASCA_BINARY_RESOLUTION_LHS_SUBST_TREE; }
   };
 
 
@@ -80,8 +72,6 @@ struct BinaryResolutionConf
              .filter([](auto x) { return !x.literal()->isPositive(); })
              .map([](auto x) { return Rhs(std::move(x)); });
     }
-
-    static IndexType indexType() { return Indexing::ALASCA_BINARY_RESOLUTION_RHS_SUBST_TREE; }
   };
 
   auto applyRule(

@@ -43,7 +43,7 @@ class FastCondensation
 : public ImmediateSimplificationEngine
 {
 public:
-  Clause* simplify(Clause* cl);
+  Clause* simplify(Clause* cl) override;
 private:
   struct CondensationBinder;
 };

@@ -16,14 +16,12 @@
 #include "Lib/Environment.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/EqHelper.hpp"
+#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/TermIterators.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/OperatorType.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/ApplicativeHelper.hpp"
 
 #include "Injectivity.hpp"
 
@@ -58,10 +56,10 @@ ClauseIterator Injectivity::generateClauses(Clause* premise) {
   static TermStack argsLhs;//No need to reset because getHeadAndArgs resets
   static TermStack argsRhs;
   TermStack termArgs;
-  TermList argLhs, argRhs, headLhs, headRhs, differingArg;
+  TermList argLhs, argRhs, differingArg;
 
-  ApplicativeHelper::getHeadAndArgs(lhsM, headLhs, argsLhs);
-  ApplicativeHelper::getHeadAndArgs(rhsM, headRhs, argsRhs);
+  auto headLhs = HOL::getHeadAndArgs(lhsM, argsLhs);
+  auto headRhs = HOL::getHeadAndArgs(rhsM, argsRhs);
   if (headLhs != headRhs || headLhs.isVar()) {
     return ClauseIterator::getEmpty();
   }
@@ -118,16 +116,16 @@ TermList Injectivity::createNewLhs(TermList oldhead, TermStack& termArgs, unsign
   OperatorType* funcType = func->fnType();
   TermList type = funcType->result(); 
 
-  TermList oldResult = ApplicativeHelper::getResultApplieadToNArgs(type, termArgs.size());
+  TermList oldResult = HOL::getResultAppliedToNArgs(type, termArgs.size());
   TermStack sorts;
   TermList newResult;
 
   sorts.push(oldResult); 
   for(unsigned i = 1; i <= termArgs.size(); i++){
     if(i - 1 != index){
-      sorts.push(ApplicativeHelper::getNthArg(type,i));
+      sorts.push(HOL::getNthArg(type,i));
     } else {
-      newResult = ApplicativeHelper::getNthArg(type,i);
+      newResult = HOL::getNthArg(type,i);
     }
   }
 
@@ -138,8 +136,7 @@ TermList Injectivity::createNewLhs(TermList oldhead, TermStack& termArgs, unsign
   invFunc->setType(invFuncType);
   TermList invFuncHead = TermList(Term::create(iFunc, func->arity(), typeArgs.begin()));
 
-  TermList invFuncHeadType = SortHelper::getResultSort(invFuncHead.term());
-  return ApplicativeHelper::createAppTerm(invFuncHeadType, invFuncHead, termArgs);  
+  return HOL::create::app(invFuncHead, termArgs);  
 }
 
 

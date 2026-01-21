@@ -13,23 +13,16 @@
  */
 
 #include "Lib/DArray.hpp"
-#include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Debug/TimeProfiling.hpp"
-#include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/MLMatcher.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/Renaming.hpp"
-#include "Kernel/Matcher.hpp"
 #include "Kernel/RobSubstitution.hpp"
 
 #include "Indexing/LiteralMiniIndex.hpp"
-
-#include "Lib/Environment.hpp"
-#include "Shell/Statistics.hpp"
 
 #include "Condensation.hpp"
 
@@ -129,7 +122,6 @@ Clause* Condensation::simplify(Clause* cl)
       }
 
       if(success) {
-        env.statistics->condensations++;
         return Clause::fromArray(newLits.begin(), newLen, SimplifyingInference1(InferenceRule::CONDENSATION, cl));
       }
     }

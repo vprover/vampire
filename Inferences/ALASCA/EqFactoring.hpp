@@ -19,9 +19,7 @@
 #include "Forwards.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
-#include "Kernel/Ordering.hpp"
 #include "Kernel/ALASCA/Index.hpp"
-#include "Shell/Options.hpp"
 
 namespace Inferences {
 namespace ALASCA {
@@ -41,18 +39,13 @@ public:
     : _shared(std::move(shared))
   {  }
 
-  void attach(SaturationAlgorithm* salg) final override;
-  void detach() final override;
+  void attach(SaturationAlgorithm* salg) final ;
+  void detach() final ;
 
   Option<Clause*> applyRule(SelectedEquality const& e1, SelectedEquality const& e2);
-  ClauseIterator generateClauses(Clause* premise) final override;
-  
-#if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const&) final override;
-#endif
+  ClauseIterator generateClauses(Clause* premise) final ;
 
 private:
-
   std::shared_ptr<AlascaState> _shared;
 };
 

@@ -12,35 +12,24 @@
  * Implements class PrimitiveInstantiation.
  */
 
-#include "Debug/RuntimeStatistics.hpp"
-
-#include "Kernel/OperatorType.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/Signature.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/ApplicativeHelper.hpp"
-#include "Kernel/TermIterators.hpp"
 
-#include "Lib/Environment.hpp"
+#include "Kernel/HOL/HOL.hpp"
+
 #include "Lib/Metaiterators.hpp"
 
 #include "BoolEqToDiseq.hpp"
 
-#if VDEBUG
-#include <iostream>
-using namespace std;
-#endif
-
 namespace Inferences
 {
-  
+
 using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
-
-typedef ApplicativeHelper AH;
+using namespace HOL::create;
 
 ClauseIterator BoolEqToDiseq::generateClauses(Clause* cl)
 {
@@ -54,40 +43,28 @@ ClauseIterator BoolEqToDiseq::generateClauses(Clause* cl)
       continue;
     }
     TermList eqSort = SortHelper::getEqualityArgumentSort(lit);
-    if(eqSort == AtomicSort::boolSort()){
+    if(eqSort.isBoolSort()) {
       TermList lhs = *lit->nthArgument(0);
       TermList rhs = *lit->nthArgument(1);
-      if(AH::isBool(lhs) || AH::isBool(rhs)){
+      if(HOL::isBool(lhs) || HOL::isBool(rhs)){
         pos++;
         continue;
       }
-      TermList head = AH::getHead(lhs);
-      if(!head.isVar()){
-        Signature::Symbol* sym = env.signature->getFunction(head.term()->functor());
-        if (sym->proxy() != Proxy::NOT) {
-          TermList vNot = TermList(Term::createConstant(env.signature->getNotProxy()));
-          TermList vNotSort = SortHelper::getResultSort(vNot.term());
-          TermList newLhs = AH::createAppTerm(vNotSort, vNot, lhs);
-          newLit = Literal::createEquality(false, newLhs, rhs, AtomicSort::boolSort());
-          goto afterLoop;
-        } 
+      TermList head = lhs.head();
+      if(!head.isVar() && !head.isProxy(Proxy::NOT)){
+        newLit = Literal::createEquality(false, app(neg(), lhs), rhs, AtomicSort::boolSort());
+        goto afterLoop;
       }
-      head = AH::getHead(rhs);
-      if(!head.isVar()){
-        Signature::Symbol* sym = env.signature->getFunction(head.term()->functor());
-        if (sym->proxy() != Proxy::NOT) {
-          TermList vNot = TermList(Term::createConstant(env.signature->getNotProxy()));
-          TermList vNotSort = SortHelper::getResultSort(vNot.term());
-          TermList newRhs = AH::createAppTerm(vNotSort, vNot, rhs);
-          newLit = Literal::createEquality(false, lhs, newRhs, AtomicSort::boolSort());
-          goto afterLoop;
-        } 
+      head = rhs.head();
+      if(!head.isVar() && !head.isProxy(Proxy::NOT)){
+        newLit = Literal::createEquality(false, lhs, app(neg(), rhs), AtomicSort::boolSort());
+        goto afterLoop;
       }
     }
     pos++;
   }
 
-  return ClauseIterator::getEmpty(); 
+  return ClauseIterator::getEmpty();
 
 afterLoop:
 

@@ -12,9 +12,7 @@
 #include "Test/SyntaxSugar.hpp"
 #include "Kernel/Rebalancing.hpp"
 #include "Kernel/Rebalancing/Inverters.hpp"
-#include "Indexing/TermSharing.hpp"
 #include "Kernel/InterpretedLiteralEvaluator.hpp"
-#include "Shell/TermAlgebra.hpp"
 
 
 using namespace std;

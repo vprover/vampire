@@ -12,22 +12,17 @@
  * Implements class Z3Interfacing
  */
 
-#include "Lib/Allocator.hpp"
 #if VZ3
 #define UNIMPLEMENTED ASSERTION_VIOLATION
 #define MODEL_COMPLETION true
 
 #include "Forwards.hpp"
-#include "Lib/StringUtils.hpp"
-#include "z3.h"
 
 #include "SATSolver.hpp"
 #include "SATLiteral.hpp"
 #include "SATClause.hpp"
-#include "SATInference.hpp"
 
 #include "Lib/Environment.hpp"
-#include "Lib/System.hpp"
 
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/Signature.hpp"
@@ -38,8 +33,9 @@
 #include "Lib/Coproduct.hpp"
 
 #include "Shell/UIHelper.hpp"
-#include "Indexing/TermSharing.hpp"
 #include "Z3Interfacing.hpp"
+
+#include <unordered_set>
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
@@ -897,10 +893,6 @@ unsigned Z3Interfacing::newVar()
 void Z3Interfacing::addClause(SATClause* cl)
 {
   ASS(cl);
-
-  // store to later generate the refutation
-  PrimitiveProofRecordingSATSolver::addClause(cl);
-
   auto z3clause = getRepresentation(cl);
 
   if(_showZ3){
@@ -914,12 +906,6 @@ void Z3Interfacing::addClause(SATClause* cl)
 
   z3_add(z3clause.expr);
   DEBUG("adding expr: ", z3clause.expr)
-}
-
-void Z3Interfacing::retractAllAssumptions()
-{
-  _assumptionLookup.clear();
-  _assumptions.truncate(0);
 }
 
 void Z3Interfacing::addAssumption(SATLiteral lit)
@@ -962,7 +948,7 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATClause* cl)
   return Representation(std::move(z3clause), std::move(defs));
 }
 
-SATSolver::Status Z3Interfacing::solve()
+void Z3Interfacing::solveModuloAssumptionsAndSetStatus()
 {
   DEBUG("assumptions: ", _assumptions);
 
@@ -987,16 +973,6 @@ SATSolver::Status Z3Interfacing::solve()
     std::cout << "[Z3] solve result: " << result << std::endl;
   }
 
-  if (_unsatCore) {
-    auto core = z3_unsat_core();
-    for (auto phi : core) {
-      _assumptionLookup
-             .tryGet(phi)
-             .andThen([this](SATLiteral l)
-                 { _failedAssumptionBuffer.push(l); });
-    }
-  }
-
   switch (result) {
     case z3::check_result::unsat:
       _status = Status::UNSATISFIABLE;
@@ -1010,27 +986,70 @@ SATSolver::Status Z3Interfacing::solve()
       break;
     default: ASSERTION_VIOLATION;
   }
+}
 
+Status Z3Interfacing::solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit)
+{
+  _assumptionLookup.clear();
+  _assumptions.reset();
+  for (auto a: assumps)
+    addAssumption(a);
+  solveModuloAssumptionsAndSetStatus();
   return _status;
 }
 
-SATSolver::Status Z3Interfacing::solveUnderAssumptions(const SATLiteralStack& assumps, unsigned conflictCountLimit)
-{
-  if (!_unsatCore) {
-    return SATSolverWithAssumptions::solveUnderAssumptions(assumps,conflictCountLimit);
+SATLiteralStack Z3Interfacing::failedAssumptions() {
+  SATLiteralStack result;
+  if (_unsatCore) {
+    auto core = z3_unsat_core();
+    for (auto phi : core) {
+      _assumptionLookup
+             .tryGet(phi)
+             .andThen([&result](SATLiteral l) { result.push(l); });
+    }
+    return result;
   }
-
-  ASS(!hasAssumptions());
-
-  for (auto a: assumps) {
-    addAssumption(a);
-  }
-  auto result = solve();
-  retractAllAssumptions();
-  return result;
+  ASSERTION_VIOLATION
 }
 
-SATSolver::VarAssignment Z3Interfacing::getAssignment(unsigned var)
+SATClauseList *Z3Interfacing::minimizePremises(SATClauseList *premises) {
+  // auxiliary solver to produce an unsat core
+  z3::solver solver(*_context);
+
+  // load all SAT clauses into `solver`
+  for(SATClause *cl : iterTraits(premises->iter())) {
+    // including their theory representation
+    auto repr = getRepresentation(cl);
+    // tag this clause with its number so that it can appear in the unsat core
+    auto tag = _context->constant(_context->int_symbol(cl->number), _context->bool_sort());
+    solver.add(repr.expr, tag);
+
+    // won't need tracking for definitions, they're just "ambient"
+    for(z3::expr def : repr.defs)
+      solver.add(def);
+  }
+
+  // if this fails, somehow `premises` is not enough to show unsatisfiability
+  // - good luck!
+  ALWAYS(solver.check() == z3::unsat);
+
+  // load the unsat core into a lookup of SAT clause numbers
+  z3::expr_vector core = solver.unsat_core();
+  std::unordered_set<unsigned> lookup;
+  for(z3::expr member : core) {
+    ASS(member.is_const())
+    lookup.insert(member.decl().name().to_int());
+  }
+
+  // finally look for `premises` in the unsat core
+  SATClauseList *minimised = nullptr;
+  for(SATClause *cl : iterTraits(premises->iter()))
+    if(lookup.count(cl->number))
+      SATClauseList::push(cl, minimised);
+  return minimised;
+}
+
+VarAssignment Z3Interfacing::getAssignment(unsigned var)
 {
   ASS_EQ(_status,Status::SATISFIABLE);
   z3::expr rep = isNamedExpr(var) ? getNameExpr(var) : getRepresentation(SATLiteral(var,1)).expr;
@@ -1078,8 +1097,7 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
   DEBUG("model: \n", _model)
   ASS(!trm->isLiteral());
 
-  auto ev = z3_eval(getRepresentation(trm).expr);
-  ASS(getRepresentation(trm).defs.isEmpty())
+  auto ev = z3_eval(getRepresentation(trm));
   SortId sort = SortHelper::getResultSort(trm);
 
   DEBUG("z3 expr: ", ev)
@@ -1189,18 +1207,6 @@ bool Z3Interfacing::isZeroImplied(unsigned var)
 {
   // Safe. TODO consider getting zero-implied
   return false;
-}
-
-void Z3Interfacing::collectZeroImplied(SATLiteralStack& acc)
-{
-  NOT_IMPLEMENTED;
-}
-
-SATClause* Z3Interfacing::getZeroImpliedCertificate(unsigned)
-{
-  NOT_IMPLEMENTED;
-
-  return 0;
 }
 
 z3::sort Z3Interfacing::getz3sort(SortId s)
@@ -1532,9 +1538,8 @@ z3::func_decl Z3Interfacing::z3Function(FuncOrPredId functor)
  * - Translates the ground structure
  * - Some interpreted functions/predicates are handled
  */
-Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
+z3::expr Z3Interfacing::getRepresentation(Term* trm)
 {
-  Stack<z3::expr> defs;
   auto expr = BottomUpEvaluation<TermList, z3::expr>()
     .function(
       [&](TermList toEval, z3::expr* args) -> z3::expr
@@ -1767,7 +1772,7 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
         return f(f.arity(), args);
       })
       .apply(TermList(trm));
-  return Representation(expr, std::move(defs));
+  return expr;
 }
 
 Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATLiteral slit)
@@ -1778,7 +1783,7 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATLiteral slit)
     //cout << "getRepresentation of " << lit->toString() << endl;
     // Now translate it into an SMT object
     try{
-      auto repr = getRepresentation(lit);
+      Representation repr(getRepresentation(lit), Stack<z3::expr>());
       _exporter.apply([&expr = repr.expr](auto& exp){ exp.instantiate_expression(expr); });
 
       /* we name all literals in order to make z3 cache their truth values.
@@ -1795,7 +1800,7 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATLiteral slit)
         std::cout << "[Z3] add (naming): " << naming << std::endl;
       }
 
-      if(slit.isNegative()) {
+      if(!slit.positive()) {
         repr.expr = !repr.expr;
         _exporter.apply([&expr = repr.expr](auto& exp){ exp.instantiate_expression(expr); });
       }
@@ -1810,19 +1815,10 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATLiteral slit)
   } else {
     //if non ground then just create a propositional variable
     z3::expr e = getNameExpr(slit.var());
-    e = slit.isPositive() ? e : !e;
+    e = slit.positive() ? e : !e;
     _exporter.apply([&](auto& exp){ exp.instantiate_expression(e); });
     return Representation(e, Stack<z3::expr>());
   }
-}
-
-SATClause* Z3Interfacing::getRefutation()
-{
-  return PrimitiveProofRecordingSATSolver::getRefutation();
-
-  // TODO: optionally, we could try getting an unsat core from Z3 (could be smaller than all the added clauses so far)
-  // NOTE: this will not (necessarily) be the same option as _unsatCore, which takes care of minimization of added assumptions
-  // also ':core.minimize' might need to be set to get some effect
 }
 
 Z3Interfacing::~Z3Interfacing()

@@ -16,22 +16,14 @@
 #ifndef __InferenceEngine__
 #define __InferenceEngine__
 
+#include <memory>
+
 #include "Forwards.hpp"
-#include "Lib/SmartPtr.hpp"
-#include "Lib/Stack.hpp"
 
-#include "Kernel/Term.hpp"
-#include "Kernel/Signature.hpp"
-
-#include "Lib/VirtualIterator.hpp"
-#include "Lib/List.hpp"
-
-#include "Lib/Allocator.hpp"
 #include "Kernel/Inference.hpp"
 #include "Lib/Coproduct.hpp"
-#if VDEBUG
-#include "Indexing/Index.hpp"
-#endif
+#include "Lib/Metaiterators.hpp"
+#include "Lib/Stack.hpp"
 
 namespace Inferences
 {
@@ -75,15 +67,6 @@ public:
   bool attached() const { return _salg; }
 
   virtual const Options& getOptions() const;
-#if VDEBUG
-  /**
-   * Normally indices are managed by `IndexManager`, which is contained in the saturation algorithm class.
-   * This is unfortunate for unit testing, as it requires to instantiate the whole SaturationAlgorithm
-   * machinery for unit testing a single rule if that rule uses a term index. In order to circumvent this
-   * issue we add this method in debug mode.
-   * */
-  virtual void setTestIndices(Stack<Indexing::Index*> const&) {}
-#endif // VDEBUG
 protected:
   SaturationAlgorithm* _salg;
 };
@@ -134,20 +117,20 @@ public:
    * Perform an immediate simplification on @b cl and return
    * the result. If the simplification is not applicable, return
    * @b cl, if @b cl should be deleted, return 0.
-   *
-   * When the simplification yields a simplified clause, repeated
-   * run of the method on resulting clause can lead to another
-   * simplification.
-   *
-   * A trivial simplification does not depend on any other clauses.
-   * The simplified clause, if any, will have just one inference
-   * premise, which will be equal to @b cl.
-   *
-   * An example of a trivial simplification is deletion of duplicate
-   * literals.
    */
-  virtual ClauseIterator simplifyMany(Clause* cl){ NOT_IMPLEMENTED; } ;
   virtual Clause* simplify(Clause* cl) = 0;
+};
+
+class ImmediateSimplificationEngineMany
+: public InferenceEngine
+{
+public:
+  /**
+   * Perform an immediate simplification on @b cl and return
+   * the resulting clauses. If the simplification is not applicable 
+   * return an empty option.
+   */
+  virtual Option<ClauseIterator> simplifyMany(Clause* cl) = 0;
 };
 
 /**
@@ -185,8 +168,8 @@ public:
    */
   ImmediateSimplificationEngine& asISE();
 
-  virtual void attach(SaturationAlgorithm* salg) override { SimplifyingGeneratingInference::attach(salg); }
-  virtual void detach() override { SimplifyingGeneratingInference::detach(); }
+  void attach(SaturationAlgorithm* salg) override { SimplifyingGeneratingInference::attach(salg); }
+  void detach() override { SimplifyingGeneratingInference::detach(); }
   
 protected:
 
@@ -297,7 +280,7 @@ class DummyGIE
 : public GeneratingInferenceEngine
 {
 public:
-  ClauseIterator generateClauses(Clause* premise)
+  ClauseIterator generateClauses(Clause* premise) override
   {
     return ClauseIterator::getEmpty();
   }
@@ -330,18 +313,43 @@ class CompositeISE
 : public ImmediateSimplificationEngine
 {
 public:
-  CompositeISE() : _inners(0), _innersMany(0) {}
-  virtual ~CompositeISE();
+  CompositeISE() : _inners(0) {}
+  ~CompositeISE() override;
   void addFront(ImmediateSimplificationEngine* fse);
-  void addFrontMany(ImmediateSimplificationEngine* fse);
-  Clause* simplify(Clause* cl);
-  ClauseIterator simplifyMany(Clause* cl);
-  void attach(SaturationAlgorithm* salg);
-  void detach();
+  Clause* simplify(Clause* cl) override;
+  void attach(SaturationAlgorithm* salg) override;
+  void detach() override;
 private:
   typedef List<ImmediateSimplificationEngine*> ISList;
   ISList* _inners;
-  ISList* _innersMany;
+};
+
+class CompositeISEMany
+: public ImmediateSimplificationEngineMany
+{
+public:
+  CompositeISEMany() : _inners() {}
+  CompositeISEMany(CompositeISEMany&&) = default;
+  CompositeISEMany& operator=(CompositeISEMany&&) = default;
+  void addFront(std::unique_ptr<ImmediateSimplificationEngineMany> fse) {
+    _inners.push(std::move(fse));
+  }
+  auto iter() {
+    /* reverse iter, to implement addFront */
+    return arrayIter(_inners).reverse();
+  }
+  Option<ClauseIterator> simplifyMany(Clause* cl) final {
+    for (auto& e : iter()) {
+      if (auto res = e->simplifyMany(cl)) {
+        return res;
+      }
+    }
+    return {};
+  }
+  void attach(SaturationAlgorithm* salg) final { for (auto& e : iter()) { e->attach(salg); } }
+  void detach() final { for (auto& e : iter()) { e->detach(); } }
+private:
+  Stack<std::unique_ptr<ImmediateSimplificationEngineMany>> _inners;
 };
 
 class CompositeGIE
@@ -349,7 +357,7 @@ class CompositeGIE
 {
 public:
   CompositeGIE() : _inners(0) {}
-  virtual ~CompositeGIE();
+  ~CompositeGIE() override;
   void addFront(GeneratingInferenceEngine* fse);
   ClauseIterator generateClauses(Clause* premise) override;
   void attach(SaturationAlgorithm* salg) override;
@@ -365,7 +373,7 @@ class CompositeSGI
 {
 public:
   CompositeSGI() : _simplifiers(), _generators() {}
-  virtual ~CompositeSGI();
+  ~CompositeSGI() override;
   void push(SimplifyingGeneratingInference*);
   void push(GeneratingInferenceEngine*);
   ClauseGenerationResult generateSimplify(Clause* premise) override;
@@ -381,7 +389,7 @@ class ChoiceDefinitionISE
 : public ImmediateSimplificationEngine
 {
 public:
-  Clause* simplify(Clause* cl);
+  Clause* simplify(Clause* cl) override;
 
   bool isPositive(Literal* lit);
  
@@ -393,21 +401,21 @@ class DuplicateLiteralRemovalISE
 : public ImmediateSimplificationEngine
 {
 public:
-  Clause* simplify(Clause* cl);
+  Clause* simplify(Clause* cl) override;
 };
 
 class TautologyDeletionISE2
 : public ImmediateSimplificationEngine
 {
 public:
-  Clause* simplify(Clause* cl);
+  Clause* simplify(Clause* cl) override;
 };
 
 class TrivialInequalitiesRemovalISE
 : public ImmediateSimplificationEngine
 {
 public:
-  Clause* simplify(Clause* cl);
+  Clause* simplify(Clause* cl) override;
 };
 
 };

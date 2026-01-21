@@ -18,12 +18,9 @@
 
 #include "Lib/ArrayMap.hpp"
 
-#include "Lib/Environment.hpp"
 #include "Lib/IntUnionFind.hpp"
-#include "Lib/SafeRecursion.hpp"
 #include "Lib/DynamicHeap.hpp"
 
-#include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 
 #include "Shell/DistinctProcessor.hpp"
@@ -232,53 +229,23 @@ unsigned SimpleCongruenceClosure::getPairName(CPair p)
   return res;
 }
 
-struct SimpleCongruenceClosure::FOConversionWorker
-{
-  FOConversionWorker(SimpleCongruenceClosure& parent)
-      : _parent(parent) {}
-
-
-  template<class ChildCallback>
-  void pre(TermList t, ChildCallback childCallbackFn) {
-    if (t.isTerm()) {
-      if(_parent._termNames.find(t)) {
-        //term is in cache, we don't need to traverse it
-        return;
-      }
-
-      Term::Iterator argIt(t.term());
-      while(argIt.hasNext()) {
-        TermList arg = argIt.next();
-        childCallbackFn(arg);
-      }
-    }
+// memoising structure used in convertFO below
+// TODO: should this be provided as part of the BUE machinery?
+struct Memo {
+  Option<unsigned> get(TermList t) {
+    unsigned cached;
+    return termNames.find(t, cached) ? some(cached) : none<unsigned>();
   }
 
-  unsigned post(TermList t, size_t childCnt, unsigned* childRes)
-  {
-    unsigned res;
-    if(_parent._termNames.find(t, res)) {
-      return res;
-    }
-
-    if(t.isVar()) {
-      res = _parent.getSignatureConst(t.var(), SignatureKind::VARIABLE);
-    }
-    else {
-      ASS(t.isTerm());
-      Term* trm = t.term();
-      SignatureKind sk = trm->isSort() ? SignatureKind::TYPECON : SignatureKind::FUNCTION;
-      res = _parent.getSignatureConst(trm->functor(), sk);
-      for(size_t i=0; i<childCnt; i++) {
-        res = _parent.getPairName(CPair(res, childRes[i]));
-      }
-    }
-    _parent._cInfos[res].term = t;
-    _parent._termNames.insert(t, res);
-    return res;
+  template<class Init> unsigned getOrInit(TermList orig, Init init) {
+    unsigned cached;
+    if(termNames.find(orig, cached))
+      return cached;
+    unsigned result = init();
+    termNames.insert(orig, result);
+    return result;
   }
-
-  SimpleCongruenceClosure& _parent;
+  DHMap<TermList, unsigned> &termNames;
 };
 
 /**
@@ -290,14 +257,31 @@ struct SimpleCongruenceClosure::FOConversionWorker
  */
 unsigned SimpleCongruenceClosure::convertFO(TermList trm)
 {
-  unsigned cachedRes;
-  if(_termNames.find(trm, cachedRes)) {
-    return cachedRes;
-  }
+  unsigned cached;
+  if(_termNames.find(trm, cached))
+    return cached;
 
-  FOConversionWorker wrk(*this);
-  SafeRecursion<TermList,unsigned,FOConversionWorker> converter(wrk);
-  return converter(trm);
+  return BottomUpEvaluation<TermList, unsigned>()
+    .context(TermListContext {.ignoreTypeArgs = false})
+    .function([&](TermList t, unsigned *children) {
+        unsigned res;
+        if(t.isVar()) {
+          res = getSignatureConst(t.var(), SignatureKind::VARIABLE);
+        }
+        else {
+          ASS(t.isTerm());
+          Term *trm = t.term();
+          SignatureKind sk = trm->isSort() ? SignatureKind::TYPECON : SignatureKind::FUNCTION;
+          res = getSignatureConst(trm->functor(), sk);
+          for(size_t i = 0; i < trm->arity(); i++) {
+            res = getPairName(CPair(res, children[i]));
+          }
+        }
+        _cInfos[res].term = t;
+        return res;
+    })
+    .memo(Memo {_termNames})
+    .apply(trm);
 }
 
 /**
@@ -325,7 +309,7 @@ unsigned SimpleCongruenceClosure::convertFONonEquality(Literal* lit)
     TermList a = ait.next();
     unsigned argConst = convertFO(a);
     res = getPairName(CPair(res, argConst));
-    //Martin: same way to currify like in FOConversionWorker::post
+    //Martin: same way to currify like in convertFO
   }
   _cInfos[res].lit = lit;
 

@@ -17,15 +17,10 @@
 
 #include "Forwards.hpp"
 #include "InferenceEngine.hpp"
-#include "Kernel/Term.hpp"
-#include "Kernel/Signature.hpp"
-#include "Kernel/Inference.hpp"
 
 #include "Indexing/TermIndex.hpp"
 
 #include "InferenceEngine.hpp"
-
-#include <memory>
 
 namespace Inferences {
 using namespace Indexing;
@@ -34,7 +29,7 @@ class IFFXORRewriterISE
   : public ImmediateSimplificationEngine
 {
 public:
-  Clause* simplify(Clause* c);
+  Clause* simplify(Clause* c) override;
 };
 
 class EagerClausificationISE
@@ -42,7 +37,7 @@ class EagerClausificationISE
 {
 public:
   ClauseIterator simplifyMany(Clause* c);
-  Clause* simplify(Clause* c){ NOT_IMPLEMENTED; }
+  Clause* simplify(Clause* c) override{ NOT_IMPLEMENTED; }
 
 };
 
@@ -50,34 +45,26 @@ class LazyClausification
   : public SimplificationEngine
 {
 public:
-  LazyClausification(){
-    _formulaIndex = 0;
-  }
-
   ClauseIterator perform(Clause* c) override;
 
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
 
 private:
-  SkolemisingFormulaIndex* _formulaIndex;
+  std::shared_ptr<SkolemisingFormulaIndex> _formulaIndex;
 };
 
 class LazyClausificationGIE
   : public GeneratingInferenceEngine
 {
 public:
-  LazyClausificationGIE(){
-    _formulaIndex = 0;
-  }
-
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
 
   ClauseIterator generateClauses(Clause* c) override;
 
 private:
-  SkolemisingFormulaIndex* _formulaIndex;
+  std::shared_ptr<SkolemisingFormulaIndex> _formulaIndex;
 };
 
 /*class NotProxyISE

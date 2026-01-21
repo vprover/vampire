@@ -21,7 +21,6 @@
 
 #include "InferenceEngine.hpp"
 #include "Inferences/ProofExtra.hpp"
-#include "Kernel/RobSubstitution.hpp"
 
 namespace Inferences {
 
@@ -33,10 +32,10 @@ class Superposition
 : public GeneratingInferenceEngine
 {
 public:
-  void attach(SaturationAlgorithm* salg);
-  void detach();
+  void attach(SaturationAlgorithm* salg) override;
+  void detach() override;
 
-  ClauseIterator generateClauses(Clause* premise);
+  ClauseIterator generateClauses(Clause* premise) override;
 
 
 private:
@@ -52,13 +51,6 @@ private:
       ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer, unsigned numPositiveLiteralsLowerBound, const Inference& inf);
 
   static bool checkSuperpositionFromVariable(Clause* eqClause, Literal* eqLit, TermList eqLHS);
-#if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const& is) final
-  { 
-    _lhsIndex = static_cast<decltype(_lhsIndex)>(is[0]);
-    _subtermIndex = static_cast<decltype(_subtermIndex)>(is[1]);
-  }
-#endif
 
   struct ForwardResultFn;
 
@@ -66,8 +58,8 @@ private:
   struct RewritableResultsFn;
   struct BackwardResultFn;
 
-  SuperpositionSubtermIndex* _subtermIndex;
-  SuperpositionLHSIndex* _lhsIndex;
+  std::shared_ptr<SuperpositionSubtermIndex> _subtermIndex;
+  std::shared_ptr<SuperpositionLHSIndex> _lhsIndex;
 };
 
 using SuperpositionExtra = TwoLiteralRewriteInferenceExtra;

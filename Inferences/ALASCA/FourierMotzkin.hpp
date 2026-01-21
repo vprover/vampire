@@ -18,12 +18,7 @@
 
 #include "Forwards.hpp"
 
-#include "Indexing/IndexManager.hpp"
-#include "Inferences/InferenceEngine.hpp"
-#include "Kernel/Ordering.hpp"
-#include "Kernel/ALASCA/Index.hpp"
 #include "BinInf.hpp"
-#include "Shell/Options.hpp"
 
 namespace Inferences {
 namespace ALASCA {
@@ -43,7 +38,6 @@ struct FourierMotzkinConf
   class Lhs : public SelectedSummand { 
   public: 
     static const char* name() { return "alasca fourier motzkin lhs"; }
-    static IndexType indexType() { return Indexing::ALASCA_FOURIER_MOTZKIN_LHS_SUBST_TREE; }
 
     explicit Lhs(Lhs const&) = default;
     Lhs(SelectedSummand s) : SelectedSummand(std::move(s)) {} 
@@ -64,7 +58,6 @@ struct FourierMotzkinConf
   class Rhs : public SelectedSummand { 
   public: 
     static const char* name() { return "alasca fourier motzkin rhs"; }
-    static IndexType indexType() { return Indexing::ALASCA_FOURIER_MOTZKIN_RHS_SUBST_TREE; }
 
     explicit Rhs(Rhs const&) = default;
     Rhs(SelectedSummand s) : SelectedSummand(std::move(s)) {} 

@@ -20,10 +20,6 @@
   DECL_SORT(srt)                 \
   DECL_FUNC (f, {srt, srt}, srt)
 
-TermIndex<DemodulatorData>* demodulationLhsIndex(const SaturationAlgorithm& salg) {
-  return new DemodulationLHSIndex(new CodeTreeTIS<DemodulatorData>(), salg.getOrdering(), salg.getOptions());
-}
-
 Clause* axiomC() {
   __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
   return clause({ f(x,y) == f(y,x) });
@@ -63,9 +59,6 @@ ClauseStack acsAxioms() {
 
 void joinabilityTest(ClauseStack axioms, Clause* cl, bool joinable, bool useKbo) {
 
-  // set up saturation algorithm
-  auto container = PlainClauseContainer();
-
   // init problem
   Problem p;
   auto ul = UnitList::empty();
@@ -77,19 +70,16 @@ void joinabilityTest(ClauseStack axioms, Clause* cl, bool joinable, bool useKbo)
   o.set("term_ordering", useKbo ? "kbo" : "lpo");
   env.options->set("term_ordering", useKbo ? "kbo" : "lpo");
   Test::MockedSaturationAlgorithm salg(p, o);
-  const Stack<Index*>& indices = { demodulationLhsIndex(salg) };
 
   ForwardGroundJoinability fgj;
-  fgj.setTestIndices(indices);
-  fgj.InferenceEngine::attach(&salg);
-  for (auto i : indices) {
-    i->attachContainer(&container);
-  }
+  fgj.attach(&salg);
+
+  auto container = salg.getSimplifyingClauseContainer();
 
   // add the clauses to the index
   for (auto c : axioms) {
     c->setStore(Clause::ACTIVE);
-    container.add(c);
+    container->add(c);
   }
 
   ClauseIterator replacements;
@@ -100,7 +90,7 @@ void joinabilityTest(ClauseStack axioms, Clause* cl, bool joinable, bool useKbo)
   ASS(!replacement);
 
   // tear down saturation algorithm
-  fgj.InferenceEngine::detach();
+  fgj.detach();
 }
 
 #define TEST_AC_KBO_JOINABLE(name, cl, axioms)                 \

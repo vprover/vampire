@@ -15,7 +15,6 @@
 
 #include "InequalityFactoring.hpp"
 #include "Debug/Assertion.hpp"
-#include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
@@ -246,12 +245,6 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* premise)
           });
       }));
 }
-
-  
-
-#if VDEBUG
-void InequalityFactoring::setTestIndices(Stack<Indexing::Index*> const&) { }
-#endif
 
 } // namespace ALASCA 
 } // namespace Inferences 

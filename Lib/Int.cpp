@@ -16,7 +16,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cerrno>
-#include <iostream>
 #include <climits>
 
 #include "Int.hpp"
@@ -103,17 +102,6 @@ std::string Int::toString(unsigned long i)
 
   return result;
 } // Int::toString
-
-std::string Int::toHexString(size_t i)
-{
-  constexpr auto BUFSIZE = 256;
-  char tmp [BUFSIZE];
-  snprintf(tmp,BUFSIZE,"0x%zx",i);
-  std::string result(tmp);
-
-  return result;
-} // Int::toString
-
 
 /**
  * Convert a string to a long value.
@@ -272,31 +260,3 @@ bool Int::stringToUnsigned64 (const std::string& str,long long unsigned& result)
 {
   return stringToUnsigned64(str.c_str(),result);
 } // Int::stringToUnsigned64
-
-/**
- * True if @b str is a string representing an (arbitrary precision) integer.
- * @since 30/07/2010 Linz
- */
-bool Int::isInteger(const char* str)
-{
-	if (*str == '-') {
-		str++;
-	}
-
-	// str must represent a non-negative integer
-	if (! *str) {
-		return false;
-	}
-
-	// str is non-empty and must represent a non-negative integer
-	do {
-		if (*str < '0' || *str > '9') {
-			return false;
-		}
-		str++;
-	}
-	while (*str);
-
-	return true;
-} // Int::isInteger
-

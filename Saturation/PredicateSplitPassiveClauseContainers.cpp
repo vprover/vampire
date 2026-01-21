@@ -10,7 +10,6 @@
 
 #include "PredicateSplitPassiveClauseContainers.hpp"
 
-#include <numeric>
 #include <string>
 #include <algorithm>
 #include <iterator>
@@ -27,10 +26,6 @@ namespace Saturation
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
-
-int computeLCM(int a, int b) {
-  return (a*b)/Int::gcd(a, b);
-}
 
 PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, std::string name,
     std::vector<std::unique_ptr<PassiveClauseContainer>> queues,
@@ -62,7 +57,7 @@ PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool 
   auto lcm = 1;
   for (unsigned i = 0; i < ratios.size(); i++)
   {
-    lcm = computeLCM(lcm, ratios[i]);
+    lcm = std::lcm(lcm, ratios[i]);
   }
   // initialize
   for (unsigned i = 0; i < ratios.size(); i++)

@@ -17,9 +17,9 @@
 #ifndef __OPTIONAL_H__
 #define __OPTIONAL_H__
 
+#include <iosfwd>
 #include <type_traits>
 #include "Debug/Assertion.hpp"
-#include <iostream>
 #include "Lib/Reflection.hpp"
 
 
@@ -82,7 +82,7 @@ struct MaybeUninit {
   { return MV(_elem.init); }                                                              \
                                                                                           \
   void init(T REF content)                                                                \
-  { ::new(&_elem)T(MV(content)); }                                                        \
+  { ::new(&_elem.init)T(MV(content)); }                                                   \
                                                                                           \
   MaybeUninit& operator=(T REF content)                                                   \
   {                                                                                       \

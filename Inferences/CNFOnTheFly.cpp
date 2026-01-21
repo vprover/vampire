@@ -15,17 +15,12 @@
 #include "Lib/Environment.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/EqHelper.hpp"
+#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
-#include "Kernel/Signature.hpp"
-#include "Kernel/OperatorType.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/ApplicativeHelper.hpp"
 
-#include "Shell/Statistics.hpp"
 #include "Shell/Skolem.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -41,8 +36,6 @@ static TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt);
 static TermList piRemoval(TermList piTerm, Clause* clause, TermList expsrt);
 static InferenceRule convert(Proxy cnst);
 static ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaIndex* index = 0);
-
-typedef ApplicativeHelper AH;
 
 /*Clause* NotProxyISE::simplify(Clause* c){
   TermList boolSort = AtomicSort::boolSort();
@@ -412,7 +405,6 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
   TermList boolSort = AtomicSort::boolSort();
 
   static TermStack args;
-  TermList head;
  
   ClauseStack resultStack;
   unsigned clength = c->length();
@@ -423,10 +415,10 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
     TermList rhs = *lit->nthArgument(1);
     TermList term;
     TermList boolVal;
-    if(AH::isBool(lhs)){
+    if(HOL::isBool(lhs)){
       boolVal = lhs;
       term = rhs;
-    } else if(AH::isBool(rhs)){
+    } else if(HOL::isBool(rhs)){
       boolVal = rhs;
       term = lhs;
     } else if(SortHelper::getEqualityArgumentSort(lit) == boolSort && !not_be) {
@@ -451,8 +443,11 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
       continue;
     }
 
-    AH::getHeadAndArgs(term, head, args);
-    Proxy prox = AH::getProxy(head);
+    auto head = HOL::getHeadAndArgs(term, args);
+    if (head.isVar()) {
+      continue;
+    }
+    Proxy prox = env.signature->getFunction(head.term()->functor())->proxy();
     if(prox == Proxy::NOT_PROXY || prox == Proxy::IFF ||
        prox == Proxy::XOR){
       continue;
@@ -462,7 +457,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
       continue;
     }
 
-    bool positive = AH::isTrue(boolVal) == lit->polarity();
+    bool positive = HOL::isTrue(boolVal) == lit->polarity();
 
     if((prox == Proxy::OR) && (args.size() == 2)){
       if(positive){
@@ -552,7 +547,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
             auto tqr = results.next();
             TermList skolemTerm = tqr.data->value;
             skolemTerm = tqr.unifier->applyToBoundResult(skolemTerm);
-            newTerm = AH::createAppTerm(srt, args[0], skolemTerm);
+            newTerm = HOL::create::app(srt, args[0], skolemTerm);
             newTermCreated = true;
           }
         }
@@ -561,7 +556,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
           if(index){
             index->insertFormula(TypedTermList(term.term()), skolemTerm);
           }
-          newTerm = AH::createAppTerm(srt, args[0], skolemTerm);
+          newTerm = HOL::create::app(srt, args[0], skolemTerm);
         }
         rule = convert(Proxy::SIGMA);
       }
@@ -668,7 +663,7 @@ TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt){
   TermList skSymSort = AtomicSort::arrowSort(termVarSorts, resultSort);
   unsigned fun = Skolem::addSkolemFunction(typeVars.size(), typeVars.size(), 0, skSymSort);
   TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
-  TermList skolemTerm = ApplicativeHelper::createAppTerm(SortHelper::getResultSort(head.term()), head, termVars);
+  TermList skolemTerm = HOL::create::app(head, termVars);
 
   ASS(*expsrt.term()->nthArgument(1) == AtomicSort::boolSort());
   //cout << "OUT OF sigmaRemoval " + sigmaTerm.toString() << endl;
@@ -682,7 +677,7 @@ TermList piRemoval(TermList piTerm, Clause* clause, TermList expsrt){
   do{ 
     maxVar++;
     TermList newVar = TermList(maxVar, false);
-    piTerm = ApplicativeHelper::createAppTerm(expsrt, piTerm, newVar);
+    piTerm = HOL::create::app(expsrt, piTerm, newVar);
     expsrt = *expsrt.term()->nthArgument(1);
   }while(expsrt != AtomicSort::boolSort()); 
   
@@ -694,7 +689,6 @@ Clause* IFFXORRewriterISE::simplify(Clause* c){
   TermList boolSort = AtomicSort::boolSort();
 
   static TermStack args;
-  TermList head;
  
   for(unsigned i = 0; i < c->length(); i++){
     Literal* lit = (*c)[i];
@@ -702,20 +696,23 @@ Clause* IFFXORRewriterISE::simplify(Clause* c){
     TermList rhs = *lit->nthArgument(1);
     TermList term;
     TermList boolVal;
-    if(AH::isBool(lhs)){
+    if(HOL::isBool(lhs)){
       boolVal = lhs;
       term = rhs;
-    } else if(AH::isBool(rhs)){
+    } else if(HOL::isBool(rhs)){
       boolVal = rhs;
       term = lhs;
     } else {
       continue;
     }
 
-    bool positive = AH::isTrue(boolVal) == lit->polarity();
+    bool positive = HOL::isTrue(boolVal) == lit->polarity();
 
-    AH::getHeadAndArgs(term, head, args);
-    Proxy prox = AH::getProxy(head);
+    auto head = HOL::getHeadAndArgs(term, args);
+    if (head.isVar()) {
+      continue;
+    }
+    auto prox = env.signature->getFunction(head.term()->functor())->proxy();
 
     if((prox == Proxy::IFF || prox == Proxy::XOR) && (args.size() == 2)){
       bool polarity = (prox == Proxy::IFF) == positive;
@@ -731,28 +728,24 @@ Clause* IFFXORRewriterISE::simplify(Clause* c){
 void LazyClausificationGIE::attach(SaturationAlgorithm* salg)
 {
   GeneratingInferenceEngine::attach(salg);
-  _formulaIndex=static_cast<SkolemisingFormulaIndex*> (
-    _salg->getIndexManager()->request(SKOLEMISING_FORMULA_INDEX) );
+  _formulaIndex = salg->getSimplifyingIndex<SkolemisingFormulaIndex>();
 }
 
 void LazyClausificationGIE::detach()
 {
-  _formulaIndex=0;
-  _salg->getIndexManager()->release(SKOLEMISING_FORMULA_INDEX);
+  _formulaIndex = nullptr;
   GeneratingInferenceEngine::detach();
 }
 
 void LazyClausification::attach(SaturationAlgorithm* salg)
 {
   SimplificationEngine::attach(salg);
-  _formulaIndex=static_cast<SkolemisingFormulaIndex*> (
-   _salg->getIndexManager()->request(SKOLEMISING_FORMULA_INDEX) );
+  _formulaIndex = salg->getSimplifyingIndex<SkolemisingFormulaIndex>();
 }
 
 void LazyClausification::detach()
 {
-  _formulaIndex=0;
-  _salg->getIndexManager()->release(SKOLEMISING_FORMULA_INDEX);
+  _formulaIndex = nullptr;
   SimplificationEngine::detach();
 }
 
@@ -763,12 +756,12 @@ ClauseIterator EagerClausificationISE::simplifyMany(Clause* c)
 
 ClauseIterator LazyClausificationGIE::generateClauses(Clause* c)
 {
-  return produceClauses(c, true, _formulaIndex);
+  return produceClauses(c, true, _formulaIndex.get());
 }
 
 ClauseIterator LazyClausification::perform(Clause* c)
 {
-  return produceClauses(c, false, _formulaIndex);
+  return produceClauses(c, false, _formulaIndex.get());
 }
 
 

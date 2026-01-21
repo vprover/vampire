@@ -14,13 +14,9 @@
 
 #include <cstdarg>
 
-
-#include "Lib/List.hpp"
 #include "Kernel/TermIterators.hpp"
 
-#include "Kernel/Formula.hpp"
-#include "Kernel/Unit.hpp"
-
+#include "Lib/Environment.hpp"
 #include "SAT/SATClause.hpp"
 #include "SAT/SATLiteral.hpp"
 

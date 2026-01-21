@@ -17,31 +17,22 @@
 #include "Indexing/ResultSubstitution.hpp"
 #include "Kernel/UnificationWithAbstraction.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/PairUtils.hpp"
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/ColorHelper.hpp"
-#include "Kernel/Formula.hpp"
-#include "Kernel/Unit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/LiteralSelector.hpp"
-#include "Kernel/SortHelper.hpp"
 #include "Kernel/RobSubstitution.hpp"
 
-#include "Indexing/Index.hpp"
 #include "Indexing/LiteralIndex.hpp"
-#include "Indexing/IndexManager.hpp"
 #include "Indexing/SubstitutionTree.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Shell/AnswerLiteralManager.hpp"
 #include "Shell/PartialRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
-#include "Shell/Statistics.hpp"
 
 #include "BinaryResolution.hpp"
 #define DEBUG_RESOLUTION(lvl, ...) if (lvl < 0) { DBG("resolution: ", __VA_ARGS__) }
@@ -57,19 +48,13 @@ using namespace Saturation;
 
 void BinaryResolution::attach(SaturationAlgorithm* salg)
 {
-  ASS(!_index);
-
   GeneratingInferenceEngine::attach(salg);
-  _index=static_cast<BinaryResolutionIndex*> (
-	  _salg->getIndexManager()->request(BINARY_RESOLUTION_SUBST_TREE) );
+  _index = salg->getGeneratingIndex<BinaryResolutionIndex>();
 }
 
 void BinaryResolution::detach()
 {
-  ASS(_salg);
-
-  _index=0;
-  _salg->getIndexManager()->release(BINARY_RESOLUTION_SUBST_TREE);
+  _index = nullptr;
   GeneratingInferenceEngine::detach();
 }
 
@@ -105,7 +90,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
   // since we have not built the clause yet we compute lower bounds on the weight of the clause after each step and recheck whether the weight-limit can still be fulfilled.
   unsigned wlb=0;//weight lower bound
   unsigned numPositiveLiteralsLowerBound = // lower bound on number of positive literals, don't know at this point whether duplicate positive literals will occur
-      Int::max(queryLit->isPositive() ?  queryCl->numPositiveLiterals()-1 :  queryCl->numPositiveLiterals(),
+      std::max(queryLit->isPositive() ?  queryCl->numPositiveLiterals()-1 :  queryCl->numPositiveLiterals(),
               resultLit->isPositive() ? resultCl->numPositiveLiterals()-1 : resultCl->numPositiveLiterals());
 
   auto constraints = computeConstraints();
@@ -142,11 +127,6 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     }
   }
 
-  bool synthesis = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
-  Literal* cAnsLit = synthesis ? queryCl->getAnswerLiteral() : nullptr;
-  Literal* dAnsLit = synthesis ? resultCl->getAnswerLiteral() : nullptr;
-  bool bothHaveAnsLit = (cAnsLit != nullptr) && (dAnsLit != nullptr);
-
   RStack<Literal*> resLits;
 
   Literal* queryLitAfter = 0;
@@ -158,7 +138,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
   resLits->loadFromIterator(constraints->iterFifo());
   for(unsigned i=0;i<clength;i++) {
     Literal* curr=(*queryCl)[i];
-    if(curr!=queryLit && (!bothHaveAnsLit || curr!=cAnsLit)) {
+    if(curr!=queryLit) {
       Literal* newLit = subs->applyToQuery(curr);
       if(hasAgeLimitStrike) {
         wlb+=newLit->weight() - curr->weight();
@@ -176,7 +156,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
         if (o == Ordering::GREATER ||
             (ls->isPositiveForSelection(newLit)    // strict maximimality for positive literals
                 && o == Ordering::EQUAL)) {
-          env.statistics->inferencesBlockedForOrderingAftercheck++;
+          env.statistics->inferencesBlockedDueToOrderingAftercheck++;
           return nullptr;
         }
       }
@@ -192,7 +172,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
 
   for(unsigned i=0;i<dlength;i++) {
     Literal* curr=(*resultCl)[i];
-    if(curr!=resultLit && (!bothHaveAnsLit || curr!=dAnsLit)) {
+    if(curr!=resultLit) {
       Literal* newLit = subs->applyToResult(curr);
       if(hasAgeLimitStrike) {
         wlb+=newLit->weight() - curr->weight();
@@ -210,7 +190,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
         if (o == Ordering::GREATER ||
             (ls->isPositiveForSelection(newLit)   // strict maximimality for positive literals
                 && o == Ordering::EQUAL)) {
-          env.statistics->inferencesBlockedForOrderingAftercheck++;
+          env.statistics->inferencesBlockedDueToOrderingAftercheck++;
           return nullptr;
         }
       }
@@ -224,25 +204,24 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     }
   }
 
-   if (bothHaveAnsLit) {
-     Literal* newLitC = subs->applyToQuery(cAnsLit);
-     Literal* newLitD = subs->applyToResult(dAnsLit);
-     bool cNeg = queryLit->isNegative();
-     Literal* condLit = cNeg ? subs->applyToResult(resultLit) : subs->applyToQuery(queryLit);
-     resLits->push(SynthesisALManager::getInstance()->makeITEAnswerLiteral(condLit, cNeg ? newLitC : newLitD, cNeg ? newLitD : newLitC));
-   }
-
-  if(nConstraints != 0){
-    env.statistics->cResolution++;
-  }
-  else{
-    env.statistics->resolution++;
-  }
-
   inf_destroyer.disable(); // ownership passed to the the clause below
   Clause *cl = Clause::fromStack(*resLits, inf);
-  if(env.options->proofExtra() == Options::ProofExtra::FULL)
+  Literal *qAnsLit, *rAnsLit;
+  if ((env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) &&
+      (qAnsLit = queryCl->getAnswerLiteral()) && (rAnsLit = resultCl->getAnswerLiteral())) {
+    Literal* sqAnsLit = subs->applyToQuery(qAnsLit);
+    Literal* srAnsLit = subs->applyToResult(rAnsLit);
+    bool queryNeg = queryLit->isNegative();
+    env.proofExtra.insert(cl, new BinaryResolutionExtra(
+      queryLit,
+      resultLit,
+      queryNeg ? subs->applyToResult(resultLit) : subs->applyToQuery(queryLit),
+      queryNeg ? sqAnsLit : srAnsLit,
+      queryNeg ? srAnsLit : sqAnsLit
+    ));
+  } else if (env.options->proofExtra() == Options::ProofExtra::FULL) {
     env.proofExtra.insert(cl, new BinaryResolutionExtra(queryLit, resultLit));
+  }
 
   return cl;
 

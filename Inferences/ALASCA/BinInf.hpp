@@ -20,8 +20,6 @@
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
-#include "Kernel/NumTraits.hpp"
-#include "Kernel/Ordering.hpp"
 #include "Kernel/ALASCA/Index.hpp"
 #include "Shell/Options.hpp"
 #include "Lib/TypeList.hpp"
@@ -65,8 +63,8 @@ struct BinInf
 private:
   std::shared_ptr<AlascaState> _shared;
   Rule _rule;
-  AlascaIndex<Lhs>* _lhs;
-  AlascaIndex<Rhs>* _rhs;
+  std::shared_ptr<AlascaIndex<Lhs>> _lhs;
+  std::shared_ptr<AlascaIndex<Rhs>> _rhs;
 public:
   USE_ALLOCATOR(BinInf);
 
@@ -74,21 +72,14 @@ public:
   BinInf(std::shared_ptr<AlascaState> shared, Rule rule)
     : _shared(std::move(shared))
     , _rule(std::move(rule))
-    , _lhs(nullptr)
-    , _rhs(nullptr)
   {  }
 
-      
-    
-  void attach(SaturationAlgorithm* salg) final override
-  { 
-    ASS(!_rhs);
-    ASS(!_lhs);
-
+  void attach(SaturationAlgorithm* salg) final
+  {
     GeneratingInferenceEngine::attach(salg);
 
-    _lhs=static_cast<decltype(_lhs)> (_salg->getIndexManager()->request(Lhs::indexType()));
-    _rhs=static_cast<decltype(_rhs)>(_salg->getIndexManager()->request(Rhs::indexType()));
+    _lhs = _salg->getGeneratingIndex<AlascaIndex<Lhs>>();
+    _rhs = _salg->getGeneratingIndex<AlascaIndex<Rhs>>();
 
     _lhs->setShared(_shared);
     _rhs->setShared(_shared);
@@ -96,30 +87,17 @@ public:
     attachToInner(_rule, salg);
   }
 
-  void detach() final override {
+  void detach() final {
     ASS(_salg);
     _lhs = nullptr;
     _rhs = nullptr;
-    _salg->getIndexManager()->release(Lhs::indexType());
-    _salg->getIndexManager()->release(Rhs::indexType());
     GeneratingInferenceEngine::detach();
   }
 
-
-#if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const& indices) final override
+  ClauseIterator generateClauses(Clause* premise) final
   {
-    _lhs = (decltype(_lhs)) indices[0]; 
-    _lhs->setShared(_shared);
-    _rhs = (decltype(_rhs)) indices[1]; 
-    _rhs->setShared(_shared);
-  }
-#endif
-
-  ClauseIterator generateClauses(Clause* premise) final override
-  {
-    ASS(_lhs)
-    ASS(_rhs)
+    ASS(_lhs.get())
+    ASS(_rhs.get())
     ASS(_shared)
 
     // TODO get rid of stack
@@ -190,9 +168,9 @@ struct TriInf
 private:
   std::shared_ptr<AlascaState> _shared;
   Rule _rule;
-  AlascaIndex<Premise0>* _prem0;
-  AlascaIndex<Premise1>* _prem1;
-  AlascaIndex<Premise2>* _prem2;
+  std::shared_ptr<AlascaIndex<Premise0>> _prem0;
+  std::shared_ptr<AlascaIndex<Premise1>> _prem1;
+  std::shared_ptr<AlascaIndex<Premise2>> _prem2;
 public:
   USE_ALLOCATOR(TriInf);
 
@@ -200,51 +178,28 @@ public:
   TriInf(std::shared_ptr<AlascaState> shared, Rule rule)
     : _shared(std::move(shared))
     , _rule(std::move(rule))
-    , _prem0(nullptr)
-    , _prem1(nullptr)
-    , _prem2(nullptr)
   {  }
 
-  void attach(SaturationAlgorithm* salg) final override
-  { 
-    ASS(!_prem0);
-    ASS(!_prem1);
-    ASS(!_prem2);
-
+  void attach(SaturationAlgorithm* salg) final
+  {
     GeneratingInferenceEngine::attach(salg);
 
-    _prem0=static_cast<decltype(_prem0)> (_salg->getIndexManager()->request(Premise0::indexType()));
-    _prem1=static_cast<decltype(_prem1)>(_salg->getIndexManager()->request(Premise1::indexType()));
-    _prem2=static_cast<decltype(_prem2)>(_salg->getIndexManager()->request(Premise2::indexType()));
+    _prem0 = salg->getGeneratingIndex<AlascaIndex<Premise0>>();
+    _prem1 = salg->getGeneratingIndex<AlascaIndex<Premise1>>();
+    _prem2 = salg->getGeneratingIndex<AlascaIndex<Premise2>>();
 
     _prem0->setShared(_shared);
     _prem1->setShared(_shared);
     _prem2->setShared(_shared);
   }
 
-  void detach() final override {
+  void detach() final {
     ASS(_salg);
     _prem0 = nullptr;
     _prem1 = nullptr;
     _prem2 = nullptr;
-    _salg->getIndexManager()->release(Premise0::indexType());
-    _salg->getIndexManager()->release(Premise1::indexType());
-    _salg->getIndexManager()->release(Premise2::indexType());
     GeneratingInferenceEngine::detach();
   }
-
-
-#if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const& indices) final override
-  {
-    _prem0 = (decltype(_prem0)) indices[0]; 
-    _prem1 = (decltype(_prem1)) indices[1]; 
-    _prem2 = (decltype(_prem2)) indices[2]; 
-    _prem0->setShared(_shared);
-    _prem1->setShared(_shared);
-    _prem2->setShared(_shared);
-  }
-#endif
 
   template<unsigned p>
   auto getIdx() { return std::get<p>(std::tie(_prem0, _prem1, _prem2)); }
@@ -253,11 +208,11 @@ public:
   template<unsigned p>
   using Prem = TL::Get<p, TL::List<Premise0, Premise1, Premise2>>;
 
-  ClauseIterator generateClauses(Clause* premise) final override
+  ClauseIterator generateClauses(Clause* premise) final
   {
-    ASS(_prem0)
-    ASS(_prem1)
-    ASS(_prem2)
+    ASS(_prem0.get())
+    ASS(_prem1.get())
+    ASS(_prem2.get())
     ASS(_shared)
 
     // TODO get rid of stack

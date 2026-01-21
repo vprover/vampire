@@ -19,18 +19,12 @@
 #include "Debug/RuntimeStatistics.hpp"
 
 #include "Lib/Allocator.hpp"
-#include "Lib/DArray.hpp"
-#include "Lib/Output.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/SharedSet.hpp"
 #include "Lib/Stack.hpp"
-#include "Lib/BitUtils.hpp"
 
-#include "Saturation/ClauseContainer.hpp"
 #include "Saturation/Splitter.hpp"
-
-#include "SAT/SATClause.hpp"
 
 #include "Shell/PartialRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
@@ -40,10 +34,6 @@
 #include "Term.hpp"
 #include "TermIterators.hpp"
 #include "SortHelper.hpp"
-
-#include <cmath>
-
-
 
 #include "Clause.hpp"
 
@@ -193,7 +183,8 @@ void Clause::destroy()
   static Stack<Clause*> toDestroy(32);
   Clause* cl = this;
   for(;;) {
-    if (env.options->proofExtra() == Options::ProofExtra::FULL) {
+    if ((env.options->proofExtra() == Options::ProofExtra::FULL) ||
+        (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS)) {
       env.proofExtra.remove(cl);
     }
     Inference::Iterator it = cl->_inference.iterator();
@@ -769,18 +760,6 @@ Literal* Clause::getAnswerLiteral() {
     }
   }
   return nullptr;
-}
-
-bool Clause::computable() {
-  for (unsigned i = 0; i < length(); ++i) {
-    if ((*this)[i]->isAnswerLiteral()) {
-      continue;
-    }
-    if (!(*this)[i]->computable()) {
-      return false;
-    }
-  }
-  return true;
 }
 
 }

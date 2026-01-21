@@ -12,10 +12,6 @@
 #include "Kernel/Rebalancing/Inverters.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
-#include "Kernel/InterpretedLiteralEvaluator.hpp"
-#include "Inferences/InterpretedEvaluation.hpp"
-#include "Kernel/PolynomialNormalizer.hpp"
-#include "Shell/Statistics.hpp"
 
 #define DEBUG(...)  //DBG(__VA_ARGS__)
 
@@ -54,8 +50,6 @@ SimplifyingGeneratingInference1::Result GaussianVariableElimination::simplify(Cl
 
 SimplifyingGeneratingInference1::Result GaussianVariableElimination::rewrite(Clause& cl, TermList find, TermList replace, unsigned skipLiteral, bool doCheckOrdering) const 
 {
-  env.statistics->gveCnt++;
-
   Inference inf(SimplifyingInference1(Kernel::InferenceRule::GAUSSIAN_VARIABLE_ELIMINIATION, &cl));
 
   bool premiseRedundant = true;
@@ -78,10 +72,6 @@ SimplifyingGeneratingInference1::Result GaussianVariableElimination::rewrite(Cla
     if (i != skipLiteral) {
       resLits->push(checkLeq(cl[i], EqHelper::replace(cl[i], find, replace)));
     }
-  }
-
-  if(!premiseRedundant) {
-    env.statistics->gveViolations++;
   }
 
   return SimplifyingGeneratingInference1::Result{Clause::fromStack(*resLits, inf), premiseRedundant};

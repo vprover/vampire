@@ -24,11 +24,11 @@ TermList HOL::create::app(TermList sort, TermList head, TermList arg) {
 TermList HOL::create::app(TermList head, TermList arg) {
   ASS(head.isTerm())
 
-  return app(Kernel::SortHelper::getResultSort(head.term()), head, arg);
+  return app(SortHelper::getResultSort(head.term()), head, arg);
 }
 
 TermList HOL::create::app(TermList s1, TermList s2, TermList arg1, TermList arg2, bool shared) {
-  static Kernel::TermStack args;
+  static TermStack args;
 
   args.reset();
   args.push(s1);
@@ -37,57 +37,93 @@ TermList HOL::create::app(TermList s1, TermList s2, TermList arg1, TermList arg2
   args.push(arg2);
 
   unsigned app = env.signature->getApp();
-  if (shared) {
-    return TermList(Term::create(app, 4, args.begin()));
-  }
-  return TermList(Term::createNonShared(app, 4, args.begin()));
+  return TermList(shared ? Term::create(app, 4, args.begin())
+                         : Term::createNonShared(app, 4, args.begin()));
 }
 
-Term* HOL::create::lambda(std::initializer_list<unsigned> vars, std::initializer_list<TermList> varSorts, Kernel::TypedTermList body) {
+TermList HOL::create::app(TermList sort, TermList head, const TermStack& terms) {
+  ASS(head.isVar() || SortHelper::getResultSort(head.term()) == sort)
 
-  ASS_EQ(vars.size(), varSorts.size())
+  TermList res = head;
 
+  for (std::size_t i = terms.size(); i > 0; i--) {
+    TermList s1 = getNthArg(sort, 1);
+    TermList s2 = getResultAppliedToNArgs(sort, 1);
+    res = app(s1, s2, res, terms[i-1]);
+    sort = s2;
+  }
+
+  return res;
+}
+
+TermList HOL::create::app(TermList head, const TermStack& terms) {
+  ASS(head.isTerm())
+
+  return app(SortHelper::getResultSort(head.term()), head, terms);
+}
+
+Term* HOL::create::lambda(unsigned numArgs, const unsigned* vars, const TermList* varSorts, TypedTermList body, TermList* resultExprSort) {
   auto s = new (0, sizeof(Term::SpecialTermData)) Term;
-  s->makeSymbol(Term::toNormalFunctor(Kernel::SpecialFunctor::LAMBDA), 0);
-  //should store body of lambda in args
+  s->makeSymbol(Term::toNormalFunctor(SpecialFunctor::LAMBDA), 0);
+
   auto sp = s->getSpecialData();
   sp->setLambdaExp(body.untyped());
   sp->setLambdaExpSort(body.sort());
 
-  auto varList = Kernel::VList::empty();
-  for (auto it = std::rbegin(vars); it != std::rend(vars); ++it)
-    varList = Kernel::VList::cons(*it, varList);
-  sp->setLambdaVars(varList);
+  sp->setLambdaVars(VList::fromData(vars, numArgs));
 
-  auto sortList = Kernel::SList::empty();
-  auto lambdaSort = body.sort();
-  for (auto it = std::rbegin(varSorts); it != std::rend(varSorts); ++it) {
-    sortList = Kernel::SList::cons(*it, sortList);
-    lambdaSort = Kernel::AtomicSort::arrowSort(*it, lambdaSort);
-  }
-  sp->setLambdaVarSorts(sortList);
+  auto lambdaSort = AtomicSort::arrowSort(numArgs, varSorts, body.sort());
+  sp->setLambdaVarSorts(SList::fromData(varSorts, numArgs));
   sp->setLambdaSort(lambdaSort);
+  if (resultExprSort != nullptr)
+    *resultExprSort = lambdaSort;
 
   return s;
 }
 
-TermList HOL::create::namelessLambda(TermList varSort, TermList termSort, TermList term)
-{
+
+TermList HOL::create::namelessLambda(TermList varSort, TermList termSort, TermList term) {
   ASS(varSort.isVar()  || varSort.term()->isSort());
   ASS(termSort.isVar() || termSort.term()->isSort());
 
-  static Kernel::TermStack args;
+  static const unsigned lam = env.signature->getLam();
+
+  static TermStack args;
   args.reset();
   args.push(varSort);
   args.push(termSort);
   args.push(term);
-  unsigned lam = env.signature->getLam();
+
   return TermList(Term::create(lam, 3, args.begin()));
 }
 
 TermList HOL::create::namelessLambda(TermList varSort, TermList term) {
   ASS(term.isTerm())
 
-  TermList termSort = Kernel::SortHelper::getResultSort(term.term());
+  TermList termSort = SortHelper::getResultSort(term.term());
   return namelessLambda(varSort, termSort, term);
+}
+
+TermList HOL::create::surroundWithLambdas(TermList t, TermStack& sorts, bool fromTop) {
+  ASS(t.isTerm())
+
+  TermList sort = SortHelper::getResultSort(t.term());
+  return surroundWithLambdas(t, sorts, sort, fromTop);
+}
+
+TermList HOL::create::surroundWithLambdas(TermList t, TermStack& sorts, TermList sort, bool fromTop) {
+  // TODO fromTop is very hacky. See if can merge these two into one loop
+  if (fromTop) {
+    for (auto i = sorts.size(); i-- > 0; ) {
+      t = namelessLambda(sorts[i], sort, t);
+      sort = AtomicSort::arrowSort(sorts[i], sort);
+    }
+    return t;
+  }
+
+  for (unsigned i = 0; i < sorts.size(); i++) {
+    t = namelessLambda(sorts[i], sort, t);
+    sort = AtomicSort::arrowSort(sorts[i], sort);
+  }
+  return t;
 }

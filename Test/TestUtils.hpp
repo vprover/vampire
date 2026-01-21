@@ -17,13 +17,10 @@
 
 #include "Forwards.hpp"
 #include "Kernel/Theory.hpp"
-#include "Kernel/Signature.hpp"
-#include "Lib/Environment.hpp"
 
 #include "Lib/Coproduct.hpp"
 #include "Lib/Map.hpp"
 #include "Kernel/Clause.hpp"
-#include "Lib/Output.hpp"
 
 namespace Test {
 class TestUtils {

@@ -18,7 +18,6 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/DHMap.hpp"
 #include "Lib/Event.hpp"
 #include "Lib/List.hpp"
 #include "Lib/ScopedPtr.hpp"
@@ -31,13 +30,8 @@
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/Instantiation.hpp"
-#include "Inferences/TheoryInstAndSimp.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
-
-#if VDEBUG
-#include<iostream>
-#endif
 
 namespace Shell { class AnswerLiteralManager; }
 
@@ -65,12 +59,13 @@ public:
   */
   static bool couldEqualityArise(const Problem& prb, const Options& opt) {
     // TODO: similar cases of "we might need equational reasoning later" might be relevant to theory reasoning too
-    return prb.hasEquality() || (prb.hasFOOL() && opt.FOOLParamodulation());
+    return prb.hasEquality() || (prb.hasFOOL() && opt.FOOLParamodulation()) ||
+      (opt.questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
   }
-  static SaturationAlgorithm* createFromOptions(Problem& prb, const Options& opt, IndexManager* indexMgr=0);
+  static SaturationAlgorithm* createFromOptions(Problem& prb, const Options& opt);
 
   SaturationAlgorithm(Problem& prb, const Options& opt);
-  virtual ~SaturationAlgorithm();
+  ~SaturationAlgorithm() override;
 
 
   //the following two functions allow to run the saturation algorithm step by step.
@@ -81,6 +76,7 @@ public:
 
   void setGeneratingInferenceEngine(SimplifyingGeneratingInference* generator);
   void setImmediateSimplificationEngine(ImmediateSimplificationEngine* immediateSimplifier);
+  void setImmediateSimplificationEngineMany(CompositeISEMany ise) { _immediateSimplifierMany = std::move(ise); }
 
   void setLabelFinder(LabelFinder* finder){ _labelFinder = finder; }
 
@@ -115,13 +111,18 @@ public:
 
   ActiveClauseContainer* getActiveClauseContainer() { return _active; }
   PassiveClauseContainer* getPassiveClauseContainer() { return _passive.get(); }
-  IndexManager* getIndexManager() { return _imgr.ptr(); }
+  IndexManager* getIndexManager() { return &_imgr; }
+
+  template<typename IndexType>
+  std::shared_ptr<IndexType> getGeneratingIndex() { return _imgr.get<IndexType, true>(); }
+  template<typename IndexType>
+  std::shared_ptr<IndexType> getSimplifyingIndex() { return _imgr.get<IndexType, false>(); }
+  template<typename IndexType>
+  std::shared_ptr<IndexType> tryGetGeneratingIndex() { return _imgr.tryGet<IndexType, true>(); }
+
   Ordering& getOrdering() const {  return *_ordering; }
   LiteralSelector& getLiteralSelector() const { return *_selector; }
   const PartialRedundancyHandler& parRedHandler() const { return *_partialRedundancyHandler; }
-
-  /** Return the number of clauses that entered the passive container */
-  unsigned getGeneratedClauseCount() { return _generatedClauseCount; }
 
   /**
    * if an intermediate clause is derived somewhere, it still needs to be passed to this function
@@ -145,8 +146,8 @@ public:
   void setSoftTimeLimit(unsigned deciseconds) { _softTimeLimit = deciseconds; }
 
 protected:
-  virtual void init();
-  virtual MainLoopResult runImpl();
+  void init() override;
+  MainLoopResult runImpl() override;
   void doUnprocessedLoop();
   virtual bool handleClauseBeforeActivation(Clause* c);
   void addInputSOSClause(Clause* cl);
@@ -182,7 +183,7 @@ private:
   void handleEmptyClause(Clause* cl);
   Clause* doImmediateSimplification(Clause* cl);
   MainLoopResult saturateImpl();
-  SmartPtr<IndexManager> _imgr;
+  IndexManager _imgr;
 
   class TotalSimplificationPerformer;
   class PartialSimplificationPerformer;
@@ -203,6 +204,7 @@ protected:
 
   ScopedPtr<SimplifyingGeneratingInference> _generator;
   ScopedPtr<ImmediateSimplificationEngine> _immediateSimplifier;
+  CompositeISEMany _immediateSimplifierMany;
 
   typedef List<ForwardSimplificationEngine*> FwSimplList;
   FwSimplList* _fwSimplifiers;
@@ -249,10 +251,9 @@ protected:
   // counters
 
   /** Number of clauses that entered the unprocessed container */
-  unsigned _generatedClauseCount;
   unsigned _activationLimit;
 private:
-  static CompositeISE* createISE(Problem& prb, const Options& opt, Ordering& ordering,
+  static std::pair<CompositeISE*, CompositeISEMany> createISE(Problem& prb, const Options& opt, Ordering& ordering,
      bool alascaTakesOver);
 
   // a "soft" time limit in deciseconds, checked manually: 0 is no limit

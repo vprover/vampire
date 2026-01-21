@@ -10,8 +10,6 @@
 
 #include "PartialRedundancyHandler.hpp"
 
-#include "Lib/SharedSet.hpp"
-
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/SortHelper.hpp"
@@ -19,8 +17,6 @@
 
 #include "Indexing/CodeTreeInterfaces.hpp"
 #include "Indexing/ResultSubstitution.hpp"
-
-#include "Inferences/DemodulationHelper.hpp"
 
 #include "Statistics.hpp"
 
@@ -178,13 +174,13 @@ private:
 
         // collect statistics
         if (e->ordCons.isNonEmpty()) {
-          env.statistics->skippedInferencesDueToOrderingConstraints++;
+          env.statistics->inferencesSkippedDueToOrderingConstraints++;
         }
         if (e->lits.size()>0) {
-          env.statistics->skippedInferencesDueToLiteralConstraints++;
+          env.statistics->inferencesSkippedDueToLiteralConstraints++;
         }
         if (!e->splits->isEmpty()) {
-          env.statistics->skippedInferencesDueToAvatarConstraints++;
+          env.statistics->inferencesSkippedDueToAvatarConstraints++;
         }
         matcher.reset();
         return true;
@@ -397,48 +393,47 @@ bool PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::checkSuperposit
   return true;
 }
 
+bool checkOrConstrainGreater(Ordering::Result value, TermList lhs, TermList rhs, OrderingConstraints& cons)
+{
+  switch (value) {
+    case Ordering::GREATER:
+      break;
+    case Ordering::EQUAL:
+    case Ordering::LESS:
+      return false;
+    case Ordering::INCOMPARABLE: {
+      if (!lhs.containsAllVariablesOf(rhs)) {
+        return false;
+      }
+      cons.push({ lhs, rhs, Ordering::GREATER });
+      break;
+    }
+  }
+  return true;
+}
+
 template<bool enabled, bool ordC, bool avatarC, bool litC>
 void PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::insertSuperposition(
-  Clause* eqClause, Clause* rwClause, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
+  Clause* eqClause, Clause* rwClause, TermList rwTerm, TermList rwTermS, TermList tgtTermS, TermList eqLHS,
   Literal* rwLitS, Literal* eqLit, Ordering::Result eqComp, bool eqIsResult, ResultSubstitution* subs) const
 {
   if constexpr (!enabled) {
     return;
   }
 
-  struct Applicator : SubstApplicator {
-    Applicator(ResultSubstitution* subst, bool result) : subst(subst) {}
-    TermList operator()(unsigned v) const override {
-      return subst->apply(TermList::var(v), result);
-    }
-    ResultSubstitution* subst;
-    bool result;
-  };
-
-  Applicator appl(subs, !eqIsResult);
-  Ordering::Result otherComp;
-
-  auto premiseRedundant = isSuperpositionPremiseRedundant(
-    rwClause, rwLitS, rwTermS, tgtTermS, eqClause, eqLHS, &appl, otherComp);
-
   // create ordering constraints
   OrderingConstraints ordCons;
-  if constexpr (ordC) {
-    if (eqComp != Ordering::LESS) {
-      if (!rwTermS.containsAllVariablesOf(tgtTermS)) {
-        return;
-      }
-      ordCons.push({ rwTermS, tgtTermS, Ordering::GREATER });
-    }
-    if (!premiseRedundant) {
-      TermList other = EqHelper::getOtherEqualitySide(rwLitS, rwTermS);
-      if (otherComp != Ordering::INCOMPARABLE || !other.containsAllVariablesOf(tgtTermS)) {
-        return;
-      }
-      ordCons.push({ other, tgtTermS, Ordering::GREATER });
-    }
-  } else {
-    if (eqComp != Ordering::LESS || !premiseRedundant) {
+  // determine whether conclusion is smaller
+  if (!checkOrConstrainGreater(Ordering::reverse(eqComp), rwTermS, tgtTermS, ordCons)) {
+    return;
+  }
+  // determine whether side premise is smaller
+  if (!compareWithSuperpositionPremise(rwClause, rwLitS, rwTerm, rwTermS, tgtTermS, eqClause, eqLHS, ordCons)) {
+    return;
+  }
+  // don't insert if there are ordering constraints but they are disabled
+  if constexpr (!ordC) {
+    if (ordCons.isNonEmpty()) {
       return;
     }
   }
@@ -489,9 +484,8 @@ bool PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::handleResolutio
  * However, here we do not assume that the rewriting equation is unit, which necessitates some additional checks.
  */
 template<bool enabled, bool ordC, bool avatarC, bool litC>
-bool PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::isSuperpositionPremiseRedundant(
-  Clause* rwCl, Literal* rwLit, TermList rwTerm, TermList tgtTerm, Clause* eqCl, TermList eqLHS,
-  const SubstApplicator* eqApplicator, Ordering::Result& tord) const
+bool PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::compareWithSuperpositionPremise(
+  Clause* rwCl, Literal* rwLitS, TermList rwTerm, TermList rwTermS, TermList tgtTermS, Clause* eqCl, TermList eqLHS, OrderingConstraints& cons) const
 {
   // if check is turned off, we always report redundant
   if (!_redundancyCheck) {
@@ -499,27 +493,54 @@ bool PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::isSuperposition
   }
 
   // if the top-level terms are not involved, premise is redundant
-  if (!rwLit->isEquality() || (rwTerm!=*rwLit->nthArgument(0) && rwTerm!=*rwLit->nthArgument(1))) {
+  if (!rwLitS->isEquality() || (rwTermS!=*rwLitS->nthArgument(0) && rwTermS!=*rwLitS->nthArgument(1))) {
     return true;
   }
 
+  auto other = EqHelper::getOtherEqualitySide(rwLitS, rwTermS);
+  const bool canEqEncompass = (eqCl->length() == 1);
+  const bool canRwEncompass = (rwLitS->isPositive() && rwCl->length() == 1);
+
   // we can only check encompassment demodulation if eqCl is unit
-  if (_encompassing && eqCl->length()==1) {
-    // if we have a negative literal or non-unit, premise is redundant
-    if (rwLit->isNegative() || rwCl->length() != 1) {
-      return true;
+  if (_encompassing) {
+    if (canEqEncompass) {
+      if (!canRwEncompass) {
+        return true;
+      }
+      // both eqClause and rwClause can encompass, check corner cases
+      //  l = r      s = t
+      // ------------------ σ = mgu(l,s)
+      //      (r = t)σ
+      // Take grounding substitution θ. Then, (s = t) ⋅ θ is redundant if
+      // 1. lθ > rθ, and
+      // 2. either
+      //    a. s ⊐ l, or
+      //    b. l and s are variants, and tθ > rθ, or
+      //    c. ¬(l ⊐ s) and sθ > tθ > rθ.
+
+      if (MatchingUtils::matchTerms(eqLHS, rwTerm)) {
+        // case 2.a.
+        if (!MatchingUtils::matchTerms(rwTerm, eqLHS)) {
+          return true;
+        }
+        // case 2.b.
+        return checkOrConstrainGreater(_ord->compare(other, tgtTermS), other, tgtTermS, cons);
+      }
+      // case 2.c.
+      if (!MatchingUtils::matchTerms(rwTerm, eqLHS)) {
+        return checkOrConstrainGreater(_ord->compare(rwTermS, other), rwTermS, other, cons)
+          && checkOrConstrainGreater(_ord->compare(other, tgtTermS), other, tgtTermS, cons);
+      }
+      return false;
     }
-    // otherwise (we have a positive unit), if substitution is not
-    // renaming on side premise, main premise is redundant
-    if (!Inferences::DemodulationHelper::isRenamingOn(eqApplicator,eqLHS)) {
-      return true;
+    if (canRwEncompass) {
+      // if rwClause can encompass, it is always smaller than eqClause
+      return false;
     }
   }
 
-  // else we do standard redundancy check
-  TermList other=EqHelper::getOtherEqualitySide(rwLit, rwTerm);
-  tord = _ord->compare(tgtTerm, other);
-  return tord == Ordering::LESS;
+  // else we perform standard redundancy check
+  return checkOrConstrainGreater(_ord->compare(other, tgtTermS), other, tgtTermS, cons);
   // TODO perform ordering check for rest of rwCl
 }
 
