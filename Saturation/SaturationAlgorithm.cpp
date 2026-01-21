@@ -1708,6 +1708,12 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
 
   bool mayHaveEquality = couldEqualityArise(prb,opt);
 
+  // This was earlier at the beginning of forward simplifications,
+  // so let's put it for now to the end of immediate simplifications
+  if (mayHaveEquality && opt.innerRewriting()) {
+    res->addFront(new InnerRewriting(ordering));
+  }
+
   if (mayHaveEquality && opt.equationalTautologyRemoval()) {
     res->addFront(new EquationalTautologyRemoval());
   }
@@ -1799,12 +1805,6 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
     res->addFront(new MultipleAnswerLiteralRemoval());
     // Note: SynthesisAnswerLiteralProcessor must be THE LAST added simplification-many rule.
     resMany.addFront(std::make_unique<SynthesisAnswerLiteralProcessor>());
-  }
-
-  // This was earlier at the beginning of forward simplifications,
-  // so let's put it for now to the end of immediate simplifications
-  if (mayHaveEquality && opt.innerRewriting()) {
-    res->addFront(new InnerRewriting(ordering));
   }
 
   return std::make_pair(res, std::move(resMany));
