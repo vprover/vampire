@@ -43,7 +43,7 @@ protected:
   bool _useTermOrderingDiagrams;
   bool _skipNonequationalLiterals;
   DemodulationHelper _helper;
-  DemodulationLHSIndex* _index;
+  std::shared_ptr<DemodulationLHSIndex> _index;
 };
 
 using ForwardDemodulationExtra = RewriteInferenceExtra;

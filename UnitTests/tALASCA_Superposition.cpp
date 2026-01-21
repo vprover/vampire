@@ -84,12 +84,6 @@ using namespace Inferences::ALASCA;
 
 #define UWA_MODE Options::UnificationWithAbstraction::ALASCA_MAIN
 
-Generation::TestIndices alascaSuperpositionIndices()
-{ return {
-    [](const Options&){ return new AlascaIndex<Superposition::Lhs>();},
-    [](const Options&){ return new AlascaIndex<Superposition::Rhs>();},
-  }; }
-
 auto testSuperposition(Options::UnificationWithAbstraction uwa, bool simultaneous = false)
 { 
   auto s = testAlascaState(uwa);
@@ -107,7 +101,6 @@ REGISTER_GEN_TESTER(AlascaGenerationTester<Superposition>(testSuperposition(UWA_
 
 TEST_GENERATION(basic01,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .inputs  ({ clause({ selected( 3 * f(x) - 4 - a == 0 )  }) 
                 , clause({ selected(     3 * f(x) >  0 )  }) })
       .expected(exactly(
@@ -117,7 +110,6 @@ TEST_GENERATION(basic01,
 
 TEST_GENERATION(basic02,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .inputs  ({ clause({ selected( 3 * f(x) - 4 * a == 0 )  })
                 , clause({ selected(     f(x) + b >  0 )  }) })
       .expected(exactly(
@@ -127,7 +119,6 @@ TEST_GENERATION(basic02,
 
 TEST_GENERATION(basic03,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .inputs  ({ clause({selected( f(a) + a + 3 == 0 ) })
                 , clause({selected( f(x) > 0 ) }) })
       .expected(exactly(
@@ -137,7 +128,6 @@ TEST_GENERATION(basic03,
 
 TEST_GENERATION(basic04,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .inputs  ({ clause({ selected( f(a) + a + 3 == 0 ) })
                 , clause({  f(x) > 0, selected(f(g(x)) > 0) }) })
       .expected(exactly(
@@ -146,7 +136,6 @@ TEST_GENERATION(basic04,
 
 TEST_GENERATION(basic05,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .inputs  ({ clause({selected( f(a) + a + 3 == 0 ) })
                 , clause({selected( p(f(x)) ) }) })
       .expected(exactly(
@@ -156,7 +145,6 @@ TEST_GENERATION(basic05,
 
 TEST_GENERATION(basic06,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .inputs  ({ clause({selected( f(a) + a + 3 == 0 ) })
                 , clause({selected( g(f(x)) != 0 ) }) })
       .expected(exactly(
@@ -166,7 +154,6 @@ TEST_GENERATION(basic06,
 
 TEST_GENERATION(basic07,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .inputs  ({ clause({selected( f(a) + a + 3 == 0 ) })
                 , clause({selected( g(3 * f(x)) != 0 ) }) })
       .expected(exactly(
@@ -177,7 +164,6 @@ TEST_GENERATION(basic07,
 // • s2σ ⊴ t ∈ active(L[s2]σ)
 TEST_GENERATION(basic10,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .inputs  ({ clause({selected( g2(x, y) + g2(y, y) > 0 ) })
                 , clause({selected( g2(a, f(a)) - a == 0 ) }) })
       .expected(exactly(
@@ -188,7 +174,6 @@ TEST_GENERATION(basic10,
 
 TEST_GENERATION(uwa1,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .inputs  ({ clause({ selected( f(a + b) == 0 )  })
                 , clause({ selected(   a - b  == 0 )  }) })
       .expected(exactly(
@@ -198,7 +183,6 @@ TEST_GENERATION(uwa1,
 
 TEST_GENERATION(self_applications_run_only_once,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .selfApplications(true)
       .inputs  ({ clause({ selected( f(x) + f(y) == 0 )  }) })
       .expected(exactly(
@@ -217,7 +201,6 @@ TEST_GENERATION(self_applications_run_only_once,
 // TODO requires non-linear reasoning
 // TEST_GENERATION(misc01,
 //     Generation::SymmetricTest()
-//       .indices(alascaSuperpositionIndices())
 //       .inputs  ({         clause({ selected(0 == -17 + a) })
 //                 ,         clause({ selected(-19 + -f(x) + a * y  >= 0) }) })
 //       .expected(exactly(  clause({          -19 + -f(y) + 17 * x >= 0  }) ))
@@ -225,7 +208,6 @@ TEST_GENERATION(self_applications_run_only_once,
 
 TEST_GENERATION(ordering1_ok_1_simult,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .rule(move_to_heap(testSuperposition(UWA_MODE, /*simultaneous=*/ true)))
       .inputs  ({         clause({ selected( g2(a,a) == 0 ) })
                 ,         clause({ selected( f(g2(x,y)) != 0 ), selected( f(g2(y,x)) != 0 ) }) }) 
@@ -237,7 +219,6 @@ TEST_GENERATION(ordering1_ok_1_simult,
 //   or L[s2]σ /∈ Lit+ and L[s2]σ /≺ C2σ
 TEST_GENERATION(ordering1_ok_1,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .inputs  ({         clause({ selected( g2(a,a) == 0 ) })
                 ,         clause({ selected( f(g2(x,y)) != 0 ), selected( f(g2(y,x)) != 0 ) }) }) 
       .expected(exactly(  clause({ f(0) != 0, f(g2(a,a)) != 0 }) 
@@ -246,7 +227,6 @@ TEST_GENERATION(ordering1_ok_1,
 
 TEST_GENERATION(ordering1_ok_2,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .inputs  ({         clause({ selected( g2(a,a) == 0 ) })
                 ,         clause({ selected( -f(g2(x,y)) > 0 ), selected( -f(g2(y,x)) > 0 ) }) }) 
       .expected(exactly(  clause({ -f(0) > 0, -f(g2(a,a)) > 0 }) 
@@ -254,14 +234,12 @@ TEST_GENERATION(ordering1_ok_2,
     )
 TEST_GENERATION(ordering1_fail_1,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .inputs  ({         clause({ selected( g2(a,a) == 0 ) })
                 ,         clause({ selected( f(g2(x,y)) > 0 ), selected( f(g2(y,x)) > 0 ) }) }) 
       .expected(exactly(  /* */ ))
     )
 // TEST_GENERATION(ordering1_fail_2,
 //     Generation::SymmetricTest()
-//       .indices(alascaSuperpositionIndices())
 //       .inputs  ({         clause({ g2(a,a) == 0 })
 //                 ,         clause({ -f(g2(x,y)) > 0, -f(g2(y,x)) > 0 }) }) 
 //       .expected(exactly(  /* nothing */          ))
@@ -270,7 +248,6 @@ TEST_GENERATION(ordering1_fail_1,
 // • (±k. s1 + t1 ≈ 0)σ is strictly maximal in Hyp1σ
 TEST_GENERATION(ordering2_ok,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .inputs  ({         clause({ selected( g2(x,y) == 0 ), selected( g2(z,z) == 0 ) })
                 ,         clause({ selected( f(g2(a,a)) > 0 ) }) }) 
       .expected(exactly(  clause({ f(0) > 0, g2(x,x) == 0 }) 
@@ -278,7 +255,6 @@ TEST_GENERATION(ordering2_ok,
     )
 TEST_GENERATION(ordering2_fail,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .inputs  ({         clause({ g2(x,y) == 0, g2(y,x) == 0 })
                 ,         clause({ f(g2(a,a)) > 0 }) }) 
       .expected(exactly(  /* nothing */  ))
@@ -288,7 +264,6 @@ TEST_GENERATION(ordering2_fail,
 // •        s1  σ is strictly maximal in terms(s1 + t1)σ
 TEST_GENERATION(ordering3_ok,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .selfApplications(false)
       .inputs  ({         clause({ selected( g2(x,y) + 2 * g2(z,z) == 0 ) })
                 ,         clause({ selected( f(g2(a,a)) > 0                   ) }) }) 
@@ -298,7 +273,6 @@ TEST_GENERATION(ordering3_ok,
     )
 TEST_GENERATION(ordering3_fail,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .selfApplications(false)
       .inputs  ({         clause({  g2(x,y) + g2(y,x) + g2(y,x) == 0 })
                 ,         clause({ f(g2(a,a)) > 0 }) }) 
@@ -308,7 +282,6 @@ TEST_GENERATION(ordering3_fail,
 
 TEST_GENERATION(uninterpreted_pred_1,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .inputs  ({        clause({ selected(   f(x) - 1 == 0 )  })
                 ,        clause({ selected( p(f(x)) )          }) })
       .expected(exactly( clause({           p(1)               })
@@ -317,7 +290,6 @@ TEST_GENERATION(uninterpreted_pred_1,
 
 TEST_GENERATION(uninterpreted_pred_2,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .inputs  ({        clause({ selected(   f(x) - 1 == 0 )      })
                 ,        clause({ selected( p(f(a)) ), f(f(b)) > 0 }) })
       .expected(exactly( clause({           p(1)     , f(f(b)) > 0 }) ))
@@ -325,7 +297,6 @@ TEST_GENERATION(uninterpreted_pred_2,
 
 TEST_GENERATION(uninterpreted_pred_3, // TODO couldn't we replace all occurrences of f(x) instead of the maximal one
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .inputs  ({        clause({ selected(   f(x) - 1 == 0 )      })
                 ,        clause({ selected( p(f(x)) ), f(f(x)) > 0 }) })
       .expected(exactly( clause({           p(1)     , f(f(x)) > 0 }) ))
@@ -333,7 +304,6 @@ TEST_GENERATION(uninterpreted_pred_3, // TODO couldn't we replace all occurrence
 
 TEST_GENERATION(uninterpreted_sort_1,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .inputs  ({        clause({ selected( f(x) - 1 == 0  ) })
                 ,        clause({ selected( fa(f(x)) == aa ) }) })
       .expected(exactly( clause({           fa(  1 ) == aa   }) ))
@@ -342,7 +312,6 @@ TEST_GENERATION(uninterpreted_sort_1,
 TEST_GENERATION(uninterpreted_sort_2,
     Generation::SymmetricTest()
       .selfApplications(false)
-      .indices(alascaSuperpositionIndices())
       .inputs  ({        clause({ selected( f(x) - 1 == 0  ) })
                 ,        clause({ selected( fa(3 *   f(x)) == aa ) }) })
       .expected(exactly( clause({           fa(3 * num(1)) == aa   }) ))
@@ -355,7 +324,6 @@ TEST_GENERATION(uninterpreted_sort_2,
 
 TEST_GENERATION(bug01a,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .selfApplications(false)
       .inputs  ({        clause({ selected(  z + -g2(f2(y, z), y) > 0 ), 0 == y  })
                           // (1) {y -> x, z -> y + z}
@@ -377,7 +345,6 @@ TEST_GENERATION(bug01a,
 
 TEST_GENERATION(bug01b,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .selfApplications(false)
       .inputs  ({        clause({ selected(  z + -g2((y * z), y) > 0 ), 0 == y  })
                           // (1) {y -> x, z -> y + z}
@@ -398,7 +365,6 @@ TEST_GENERATION(bug01b,
 
 TEST_GENERATION(only_replace_max_rat,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .selfApplications(false)
       .inputs  ({        clause({ selected( 0 == f(x) + f(y) + x ) })
                 ,        clause({ selected( p(f(g(a)))           ) })
@@ -411,7 +377,6 @@ TEST_GENERATION(only_replace_max_rat,
 
 TEST_GENERATION(only_replace_max_uninter_01,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .inputs  ({        clause({ selected( fa(x) == aa   ) })
                 ,        clause({ selected( p(fn(fa(f(b))))  ) })
                 })
@@ -423,7 +388,6 @@ TEST_GENERATION(only_replace_max_uninter_01,
 
 TEST_GENERATION(only_replace_max_uninter_02,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .selfApplications(false)
       .inputs  ({        clause({ selected( fa(x) == fa(y)   ) })
                 ,        clause({ selected( p(fn(fa(f(b))))  ) })
@@ -436,7 +400,6 @@ TEST_GENERATION(only_replace_max_uninter_02,
 
 TEST_GENERATION(only_replace_by_smaller_uninterp_01,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .inputs  ({        clause({ selected( ga(x, a) == ga(f(a), x) ) })
                 ,        clause({ selected( p(fn(ga(a, a)))         ) })
                 })
@@ -445,7 +408,6 @@ TEST_GENERATION(only_replace_by_smaller_uninterp_01,
 
 TEST_GENERATION(only_replace_by_smaller_uninterp_02,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .inputs  ({        clause({ selected( ga(x, a) == ga(f(a), x) ) })
                 ,        clause({ selected( p(fn(ga(f(a), a)))      ) })
                 }) /////////////////////////////////////////////////////
@@ -463,14 +425,12 @@ TEST_GENERATION(only_replace_by_smaller_uninterp_02,
                                                                                           \
   TEST_GENERATION(only_replace_uninter_in_active__ ## name ## __fail,                     \
       Generation::SymmetricTest()                                                         \
-        .indices(alascaSuperpositionIndices())                                               \
         .inputs  ({ clause({ selected( fa(b) == ba )  })                                  \
                   , clause({ selected( f(f(f(a))) + fn(fa(b)) diamond  0 )  }) })         \
         .expected(exactly( /* nothing */)))                                               \
                                                                                           \
   TEST_GENERATION(only_replace_uninter_in_active__ ## name ## __success,                  \
       Generation::SymmetricTest()                                                         \
-        .indices(alascaSuperpositionIndices())                                               \
         .inputs  ({ clause({ selected( fa(b) == ba )  })                                  \
                   , clause({ selected( fn(fa(b)) + b diamond  0 )  }) })                  \
         .expected(exactly(                                                                \
@@ -479,14 +439,12 @@ TEST_GENERATION(only_replace_by_smaller_uninterp_02,
                                                                                           \
   TEST_GENERATION(only_replace_rat_in_active__ ## name ## __fail,                         \
       Generation::SymmetricTest()                                                         \
-        .indices(alascaSuperpositionIndices())                                               \
         .inputs  ({ clause({ selected( f(b) - a == 0 )  })                                \
                   , clause({ selected( f(f(a)) + f(b) diamond  0 )  }) })                 \
         .expected(exactly( /* nothing */)))                                               \
                                                                                           \
   TEST_GENERATION(only_replace_rat_in_active__ ## name ## __success,                      \
       Generation::SymmetricTest()                                                         \
-        .indices(alascaSuperpositionIndices())                                               \
         .inputs  ({ clause({ selected( f(b) - a == 0 )  })                                \
                   , clause({ selected( f(f(b)) + a diamond  0 )  }) })                    \
         .expected(exactly(                                                                \
@@ -503,7 +461,6 @@ for_diamond(TEST_only_replace_in_active)
 #define TEST_only_replace_in_active_uninterpretd(pol, name)                               \
   TEST_GENERATION(replace_unintepreted_in_active_uninterpreted_ ## name,                  \
       Generation::SymmetricTest()                                                         \
-        .indices(alascaSuperpositionIndices())                                               \
         .inputs  ({ clause({ selected( fa(b) == ba ) })                                   \
                   , clause({ selected( pol p(fn(fa(b)))    ) }) })                        \
         .expected(exactly(                                                                \
@@ -512,7 +469,6 @@ for_diamond(TEST_only_replace_in_active)
                                                                                           \
   TEST_GENERATION(replace_rat_in_active_uninterpreted_ ## name,                           \
       Generation::SymmetricTest()                                                         \
-        .indices(alascaSuperpositionIndices())                                               \
         .inputs  ({ clause({ selected( f(b) - a == 0 ) })                                 \
                   , clause({ selected( pol p(f(f(b)))    ) }) })                          \
         .expected(exactly(                                                                \
@@ -526,7 +482,6 @@ for_polarity(TEST_only_replace_in_active_uninterpretd)
 // 115090. 0 = (a + (-b + 400)) [alasca superposition 17851,17137]
 TEST_GENERATION_WITH_SUGAR(int_bug01, SUGAR(Int),
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .rule(move_to_heap(testSuperposition(Options::UnificationWithAbstraction::ALASCA_MAIN)))
       .inputs  ({ clause({ 0 == (-400 + f2(400,1))  }) 
                 , clause({ 0 == (a + (-b + f2((-a + b),1)))  }) 
@@ -539,7 +494,6 @@ TEST_GENERATION_WITH_SUGAR(int_bug01, SUGAR(Int),
 #if INT_TESTS
 TEST_GENERATION_WITH_SUGAR(int_01, SUGAR(Int),
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .inputs  ({ clause({ selected( 3 * f(x) - a == 0 )  }) 
                 , clause({ selected( p(3 * f(a)))  }) })
       .expected(exactly( clause({ p(a)  }) ))
@@ -547,7 +501,6 @@ TEST_GENERATION_WITH_SUGAR(int_01, SUGAR(Int),
 
 TEST_GENERATION_WITH_SUGAR(int_02, SUGAR(Int),
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .inputs  ({ clause({ selected( 3 * f(x) - a == 0 )  })
                 , clause({ selected(     p(f(x)) )  }) })
       .expected(exactly( /* nothing */ ))
@@ -555,7 +508,6 @@ TEST_GENERATION_WITH_SUGAR(int_02, SUGAR(Int),
 
 TEST_GENERATION_WITH_SUGAR(int_03, SUGAR(Int),
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .inputs  ({ clause({ selected( 3 * f(x) - a == 0 )  })
                 , clause({ selected(     p(21 * f(x)) )  }) })
       .expected(exactly( clause({ p(7 * a)  }) ))
@@ -566,7 +518,6 @@ TEST_GENERATION_WITH_SUGAR(int_03, SUGAR(Int),
 
 TEST_GENERATION(two_var_01,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .selfApplications(false)
       .inputs  ({ clause({ x == aa   }) 
                 , clause({ p(f(a))  }) })
@@ -577,7 +528,6 @@ TEST_GENERATION(two_var_01,
 
 TEST_GENERATION(bug02,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .inputs  ({ clause({ x == aa   }) })
       .expected(exactly(
           clause({ sorted(x, alpha) == y })
@@ -588,7 +538,6 @@ TEST_GENERATION(bug02,
 
 TEST_GENERATION(bug03,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .inputs  ({ 
           clause({ pa(aa)   })
         , clause({ x == sorted(y, alpha), fa(x) != fa(y) })
@@ -600,7 +549,6 @@ TEST_GENERATION(bug03,
 
 TEST_GENERATION(bug04,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .inputs  ({ 
           clause({ p(a)   })
         , clause({ 0  == x - y, 0 != f(x) - f(y) })
@@ -612,7 +560,6 @@ TEST_GENERATION(bug04,
 
 TEST_GENERATION(bug05,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .selfApplications(true)
       .inputs  ({ 
           clause({ x == true, x == false   })
@@ -648,7 +595,6 @@ TEST_GENERATION(bug05,
 
 TEST_GENERATION(bug06,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .selfApplications(true)
       .inputs  ({ 
           clause({ 0 == -8 + -a  }),
@@ -672,7 +618,6 @@ TEST_GENERATION(bug06,
 
 TEST_GENERATION(abstraction_bug01a,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .rule(move_to_heap(testSuperposition(Options::UnificationWithAbstraction::ALASCA_MAIN)))
       .selfApplications(false)
       .inputs  ({ 
@@ -686,7 +631,6 @@ TEST_GENERATION(abstraction_bug01a,
  
 TEST_GENERATION(abstraction_bug01b,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .rule(move_to_heap(testSuperposition(Options::UnificationWithAbstraction::ALASCA_MAIN)))
       .selfApplications(false)
       .inputs  ({ 
@@ -701,7 +645,6 @@ TEST_GENERATION(abstraction_bug01b,
  
 TEST_GENERATION(is_int_skip_app,
     Generation::SymmetricTest()
-      .indices(alascaSuperpositionIndices())
       .rule(move_to_heap(testSuperposition(Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR)))
       .selfApplications(true)
       .inputs  ({ 

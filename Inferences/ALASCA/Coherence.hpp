@@ -83,7 +83,6 @@ public:
     // TODO get rid of the need for a typed term list in this case
     TypedTermList key() const { return TypedTermList((**js_u)[sIdx].first, ASig::sort()); }
     static const char* name() { return "alasca coherence lhs"; }
-    static IndexType indexType() { return Indexing::ALASCA_COHERENCE_LHS_SUBST_TREE; }
 
     static auto iter(AlascaState& shared, Clause* cl)
     {
@@ -120,7 +119,6 @@ public:
     // TODO get rid of the need for a typed term list in this case
     TypedTermList key() const { return TypedTermList((**ks_t)[sIdx].first, ASig::sort()); }
     static const char* name() { return "alasca coherence rhs"; }
-    static IndexType indexType() { return Indexing::ALASCA_COHERENCE_RHS_SUBST_TREE; }
 
     static auto iter(AlascaState& shared, Clause* cl)
     {
@@ -260,10 +258,6 @@ struct CoherenceNormalization : SimplifyingGeneratingInference {
           Inference(GeneratingInference1(InferenceRule::ALASCA_COHERENCE_NORMALIZATION, prem.clause()))));
     }
   }
-
-#if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const& i) final override { }
-#endif
 };
 
 #undef DEBUG

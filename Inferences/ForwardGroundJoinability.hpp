@@ -35,12 +35,6 @@ public:
   void detach() override;
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 
-#if VDEBUG
-  void setTestIndices(const Stack<Index*>& indices) override {
-    _index = static_cast<DemodulationLHSIndex*>(indices[0]);
-  }
-#endif // VDEBUG
-
   static bool makeEqual(Literal* lit, Stack<TermOrderingConstraint>& res);
 
 private:
@@ -59,7 +53,7 @@ private:
     Branch* _curr;
   };
 
-  DemodulationLHSIndex* _index;
+  std::shared_ptr<DemodulationLHSIndex> _index;
 };
 
 };

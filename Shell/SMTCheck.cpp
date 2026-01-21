@@ -752,7 +752,7 @@ static void splitClause(std::ostream &out, SortMap &conclSorts, Unit *concl)
   ALWAYS(parents.hasNext())
   Clause *split = parents.next()->asClause();
   outputPremise(out, conclSorts, split);
-  for (Unit *u : iterTraits(parents)) {
+  for (Unit *u : iterTraits(std::move(parents))) {
     Clause *component = env.proofExtra.get<Indexing::SplitDefinitionExtra>(u).component;
     SortMap otherSorts;
     SortHelper::collectVariableSorts(component, otherSorts);

@@ -1238,7 +1238,6 @@ OperatorType* Theory::getOperatorType(Interpretation i)
 
 TermAlgebra* Theory::getTupleTermAlgebra(unsigned arity)
 {
-  auto tupleTypeCon = env.signature->getTupleConstructor(arity);
   auto typeVars = TermStack::fromIterator(varRange(0, arity));
 
   auto tupleSort = AtomicSort::tupleSort(arity, typeVars.begin());

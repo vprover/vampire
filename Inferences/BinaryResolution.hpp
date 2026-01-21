@@ -36,10 +36,6 @@ class BinaryResolution
 : public GeneratingInferenceEngine
 {
 public:
-  BinaryResolution() 
-    : _index(0)
-  {  }
-
   void attach(SaturationAlgorithm* salg) override;
   void detach() override;
 
@@ -60,7 +56,7 @@ private:
     Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit,
     ResultSubstitutionSP subs, AbstractingUnifier* absUnif);
 
-  BinaryResolutionIndex* _index;
+  std::shared_ptr<BinaryResolutionIndex> _index;
 };
 
 using BinaryResolutionExtra = TwoLiteralInferenceExtra;

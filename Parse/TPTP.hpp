@@ -551,7 +551,7 @@ private:
   /** input type of the last read unit */ // it must be int since -1 can be used as a value
   UnitInputType _lastInputType;
   /** true if the last read unit is a question */
-  bool _isQuestion;
+  bool _isQuestion = false;
   /** */
   bool _isThf;
   /** */

@@ -53,12 +53,8 @@ class AcyclicityIndex
 {
   using TermIndexingStructure   = Indexing::TermIndexingStructure<TermLiteralClause>;
 public:
-  AcyclicityIndex(TermIndexingStructure* tis) :
-    _sIndexes(),
-    _tis(tis)
-  {}
-
-  ~AcyclicityIndex() override {}
+  AcyclicityIndex(SaturationAlgorithm&);
+  ~AcyclicityIndex() override = default;
   
   void insert(Kernel::Literal *lit, Kernel::Clause *c);
   void remove(Kernel::Literal *lit, Kernel::Clause *c);

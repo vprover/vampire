@@ -2726,7 +2726,9 @@ void TPTP::endLet()
         }
       });
     } else {
-      args.loadFromIterator(iterTraits(varList->iter()).map(unsignedToVarFn));
+      if (varList) {
+        args.loadFromIterator(iterTraits(varList->iter()).map(unsignedToVarFn));
+      }
       vars = varList;
     }
     auto binding = Formula::createDefinition(Term::create(symbol, args), body, vars);

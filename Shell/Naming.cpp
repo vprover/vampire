@@ -667,7 +667,9 @@ Formula* Naming::apply_iter(Formula* top_f) {
         // FormulaList* gs = apply_list(fs->tail(), where, results + 1, negResults + 1);
         Task t1;
         t1.fncTag = APPLY_LIST_TOP;
-        t1.taskApplyList = {tal.fs->tail(),tal.where,tal.results+1,tal.negResults+1};
+
+        ASS_EQ(tal.negResults != nullptr, tal.where == UNDER_IFF)
+        t1.taskApplyList = {tal.fs->tail(),tal.where,tal.results+1,tal.negResults ? tal.negResults+1 : nullptr};
 
         // Formula* g = apply_sub(fs->head(), where, results[0], neg);
         Task t2;
@@ -1213,7 +1215,7 @@ FormulaList* Naming::apply_list(FormulaList* fs, Where where, int* results,
   if (where == UNDER_IFF) {
     negResults[0] = neg;
   }
-  FormulaList* gs = apply_list(fs->tail(), where, results + 1, negResults + 1);
+  FormulaList* gs = apply_list(fs->tail(), where, results + 1, negResults ? negResults + 1 : nullptr);
 
   if (g != fs->head() || gs != fs->tail()) {
     fs = new FormulaList(g, gs);

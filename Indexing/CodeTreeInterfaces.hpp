@@ -67,6 +67,7 @@ class CodeTreeSubsumptionIndex
 : public Index
 {
 public:
+  CodeTreeSubsumptionIndex(SaturationAlgorithm&) {}
   ClauseCodeTree* getClauseCodeTree() { return &_ct; }
 protected:
   void handleClause(Clause* c, bool adding) override;

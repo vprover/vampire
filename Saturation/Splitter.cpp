@@ -175,8 +175,20 @@ void SplittingBranchSelector::handleSatRefutation()
   SATClause *proof = nullptr;
   SATClauseList *satPremises = nullptr;
 #if VZ3
-  if(_parent.hasSMTSolver)
-    satPremises = _solver.premiseList();
+  if(_parent.hasSMTSolver) {
+    satPremises = _solver.minimizedPremises();
+    // SATClause::removeDuplicateLiterals can insert a single PROP_INF between here and the FO_CONVERSION
+    // replace these cases with the "true" duplicate-literal premise
+    for(SATClause *&cl : iterTraits(satPremises->iter())) {
+      SATInference *inf = cl->inference();
+      if(inf->getType() == SATInference::InfType::PROP_INF) {
+        ASS_EQ(SATClauseList::length(inf->propInf()->getPremises()), 1)
+        // The following (destructively) changes satPremises, as cl is a reference!
+        cl = inf->propInf()->getPremises()->head();
+      }
+      ASS(cl->inference()->getType() == SATInference::InfType::FO_CONVERSION)
+    }
+  }
 #endif
   if(!satPremises) {
     proof = _solver.proof();
@@ -1312,7 +1324,7 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
   SplitSet* unionAll;
   if(replacement) {
     unionAll = replacement->splits();
-    ASS(forAll(premises, 
+    ASS(forAll(std::move(premises),
             [replacement] (Clause* premise) { 
               //SplitSet* difference = premise->splits()->subtract(replacement->splits());
               //if(difference->isEmpty()) return true; // isSubsetOf true

@@ -81,7 +81,7 @@ struct ExtensionalityResolution::ForwardUnificationsFn
     if (!unifs.hasNext()) {
       return VirtualIterator<pair<pair<Literal*, ExtensionalityClause>, RobSubstitution*> >::getEmpty();
     }
-    return pvi(pushPairIntoRightIterator(arg, unifs));
+    return pvi(pushPairIntoRightIterator(arg, std::move(unifs)));
   }
 private:
   RobSubstitutionSP _subst;
@@ -159,7 +159,7 @@ struct ExtensionalityResolution::BackwardUnificationsFn
     if (!unifs.hasNext()) {
       return VirtualIterator<pair<pair<Clause*, Literal*>, RobSubstitution*> >::getEmpty();
     }
-    return pvi(pushPairIntoRightIterator(arg, unifs));
+    return pvi(pushPairIntoRightIterator(arg, std::move(unifs)));
   }
 private:
   Literal* _extLit;
@@ -254,15 +254,15 @@ ClauseIterator ExtensionalityResolution::generateClauses(Clause* premise)
     // For each <clause,literal> pair, we get 2 substitutions (by unifying
     // X=Y from given extensionality clause and literal.
     // Elements: <<clause,literal>,subst>
-    auto it2 = getMapAndFlattenIterator(it1,BackwardUnificationsFn(extLit));
+    auto it2 = getMapAndFlattenIterator(std::move(it1),BackwardUnificationsFn(extLit));
 
     // Construct result clause by applying substitution.
-    auto it3 = getMappingIterator(it2,BackwardResultFn(premise, extLit, *this));
+    auto it3 = getMappingIterator(std::move(it2),BackwardResultFn(premise, extLit, *this));
 
     // filter out only non-zero results
-    auto it4 = getFilteredIterator(it3, NonzeroFn());
+    auto it4 = getFilteredIterator(std::move(it3), NonzeroFn());
 
-    backwardIterator = pvi(it4);
+    backwardIterator = pvi(std::move(it4));
   } else {
     backwardIterator = ClauseIterator::getEmpty();
   }
@@ -276,17 +276,17 @@ ClauseIterator ExtensionalityResolution::generateClauses(Clause* premise)
   // unifying literal and extClause.literal, i.e. the variable equality in
   // extensionality clause).
   // Elements: <<literal,extClause>,subst>
-  auto it2 = getMapAndFlattenIterator(it1,ForwardUnificationsFn());
+  auto it2 = getMapAndFlattenIterator(std::move(it1),ForwardUnificationsFn());
 
   // Construct result clause by applying substitution.
-  auto it3 = getMappingIterator(it2,ForwardResultFn(premise, *this));
+  auto it3 = getMappingIterator(std::move(it2),ForwardResultFn(premise, *this));
 
   // filter out only non-zero results
-  auto it4 = getFilteredIterator(it3, NonzeroFn());
+  auto it4 = getFilteredIterator(std::move(it3), NonzeroFn());
 
   // Concatenate results from forward extensionality and (above constructed)
   // backward extensionality.
-  auto it5 = concatIters(it4,backwardIterator);
+  auto it5 = concatIters(std::move(it4),std::move(backwardIterator));
 
-  return pvi(it5);
+  return pvi(std::move(it5));
 }

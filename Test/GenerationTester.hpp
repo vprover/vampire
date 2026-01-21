@@ -286,9 +286,6 @@ public:
     }
     _input = simpl.normalize(_input);
 
-    // set up saturation algorithm
-    auto container = ActiveClauseContainer();
-
     // init problem
     Problem p;
     auto ul = UnitList::empty();
@@ -306,34 +303,35 @@ public:
     MockedSaturationAlgorithm alg(p, *env.options);
     _setup(alg);
     SimplifyingGeneratingInference& rule = *_rule.unwrapOrElse([&](){ return &simpl._rule; });
-    rule.InferenceEngine::attach(&alg);
+    rule.attach(&alg);
     Stack<Indexing::Index*> indices;
     for (auto i : _indices) {
       indices.push(i(*env.options));
     }
 
-    rule.setTestIndices(indices);
+    auto container = alg.getActiveClauseContainer();
+
     for (auto i : indices) {
-      i->attachContainer(&container);
+      i->attachContainer(container);
     }
 
     // add the clauses to the index
     for (auto c : _context) {
       c->setStore(Clause::ACTIVE);
-      container.add(c);
+      container->add(c);
     }
 
     // run rule
     if (_selfApplications) {
       _input->setStore(Clause::ACTIVE);
-      container.add(_input);
+      container->add(_input);
     }
 
     auto res = rule.generateSimplify(_input);
 
     // run checks
     auto sExp = this->_expected.unwrap();
-    auto sRes = Stack<Kernel::Clause*>::fromIterator(res.clauses);
+    auto sRes = Stack<Kernel::Clause*>::fromIterator(std::move(res.clauses));
 
     if (!sExp.matches(sRes, simpl)) {
       testFail(sRes, sExp);
@@ -344,14 +342,14 @@ public:
       testFail( wrapStr(res.premiseRedundant), wrapStr(_premiseRedundant));
     }
 
-    // add the clauses to the index
+    // remove the clauses from the index
     for (auto c : _context) {
       // c->setStore(Clause::ACTIVE);
-      container.remove(c);
+      container->remove(c);
     }
 
-    // // tear down saturation algorithm
-    rule.InferenceEngine::detach();
+    // tear down saturation algorithm
+    rule.detach();
 
     Ordering::unsetGlobalOrdering();
   }
