@@ -25,7 +25,6 @@ namespace Inferences
 using namespace Kernel;
 using namespace Saturation;
 
-// TODO this should be an immediate simplification
 class InnerRewriting
 : public ImmediateSimplificationEngine
 {
