@@ -16,6 +16,7 @@
  */
 
 
+#include "Kernel/Theory.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Environment.hpp"
 
@@ -773,16 +774,19 @@ void Property::scanForInterpreted(Term* t)
     _interpretationPresence[itp] = true;
   }
 
-  if(Theory::isConversionOperation(itp)){
-    addProp(PR_NUMBER_CONVERSION);
+  // TODO check whether this is enough for equality
+  if (itp == Interpretation::EQUAL) {
     return;
   }
 
-  if (Theory::isPolymorphic(itp)) {
-    OperatorType* type = t->isLiteral() ?
-        env.signature->getPredicate(t->functor())->predType() : env.signature->getFunction(t->functor())->fnType();
+  if (itp == Interpretation::ARRAY_SELECT || itp == Interpretation::ARRAY_STORE) {
+    // TODO this could be separated into store and select
+    addProp(PR_HAS_ARRAYS);
+    return;
+  }
 
-    _polymorphicInterpretations.insert(std::make_pair(itp,type));
+  if(Theory::isConversionOperation(itp)){
+    addProp(PR_NUMBER_CONVERSION);
     return;
   }
 

@@ -260,7 +260,7 @@ Signature::Signature ():
 void Signature::addEquality()
 {
   // initialize equality
-  addInterpretedPredicate(Theory::EQUAL, OperatorType::getPredicateType(2), "=");
+  addInterpretedPredicate(Theory::EQUAL, "=");
   ASS_EQ(predicateName(0), "="); //equality must have number 0
   getPredicate(0)->markSkip();
 }
@@ -285,14 +285,12 @@ Signature::~Signature ()
 /**
  * Add interpreted function
  */
-unsigned Signature::addInterpretedFunction(Interpretation interpretation, OperatorType* type, const std::string& name)
+unsigned Signature::addInterpretedFunction(Interpretation interpretation, const std::string& name)
 {
   ASS(Theory::isFunction(interpretation));
 
-  Theory::MonomorphisedInterpretation mi = std::make_pair(interpretation,type);
-
   unsigned res;
-  if (_iSymbols.find(mi,res)) { // already declared
+  if (_iSymbols.find(interpretation,res)) { // already declared
     // TODO should this really be done in release mode?
     if (name!=functionName(res)) {
       USER_ERROR("Interpreted function '"+functionName(res)+"' has the same interpretation as '"+name+"' should have");
@@ -300,6 +298,7 @@ unsigned Signature::addInterpretedFunction(Interpretation interpretation, Operat
     return res;
   }
 
+  auto type = Theory::getOperatorType(interpretation);
   auto symbolKey = SymbolKey(std::make_pair(interpretation, type));
   ASS_REP(!_funNames.find(symbolKey), name);
 
@@ -307,7 +306,7 @@ unsigned Signature::addInterpretedFunction(Interpretation interpretation, Operat
   InterpretedSymbol* sym = new InterpretedSymbol(name, interpretation);
   _funs.push(sym);
   _funNames.insert(symbolKey, fnNum);
-  ALWAYS(_iSymbols.insert(mi, fnNum));
+  ALWAYS(_iSymbols.insert(interpretation, fnNum));
 
   OperatorType* fnType = type;
   ASS(fnType->isFunctionType());
@@ -318,22 +317,21 @@ unsigned Signature::addInterpretedFunction(Interpretation interpretation, Operat
 /**
  * Add interpreted predicate
  */
-unsigned Signature::addInterpretedPredicate(Interpretation interpretation, OperatorType* type, const std::string& name)
+unsigned Signature::addInterpretedPredicate(Interpretation interpretation, const std::string& name)
 {
   ASS(!Theory::isFunction(interpretation));
 
   // cout << "addInterpretedPredicate " << (type ? type->toString() : "nullptr") << " " << name << endl;
 
-  Theory::MonomorphisedInterpretation mi = std::make_pair(interpretation,type);
-
   unsigned res;
-  if (_iSymbols.find(mi,res)) { // already declared
+  if (_iSymbols.find(interpretation,res)) { // already declared
     if (name!=predicateName(res)) {
       USER_ERROR("Interpreted predicate '"+predicateName(res)+"' has the same interpretation as '"+name+"' should have");
     }
     return res;
   }
 
+  auto type = Theory::getOperatorType(interpretation);
   auto symbolKey = SymbolKey(std::make_pair(interpretation, type));
 
   // cout << "symbolKey " << symbolKey << endl;
@@ -344,7 +342,7 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, Opera
   InterpretedSymbol* sym = new InterpretedSymbol(name, interpretation);
   _preds.push(sym);
   _predNames.insert(symbolKey,predNum);
-  ALWAYS(_iSymbols.insert(mi, predNum));
+  ALWAYS(_iSymbols.insert(interpretation, predNum));
   if (predNum!=0) {
     OperatorType* predType = type;
     ASS_REP(!predType->isFunctionType(), predType->toString());
@@ -359,12 +357,10 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, Opera
  *
  * If no such symbol exists, it is created.
  */
-unsigned Signature::getInterpretingSymbol(Interpretation interp, OperatorType* type)
+unsigned Signature::getInterpretingSymbol(Interpretation interp)
 {
-  Theory::MonomorphisedInterpretation mi = std::make_pair(interp,type);
-
   unsigned res;
-  if (_iSymbols.find(mi, res)) {
+  if (_iSymbols.find(interp, res)) {
     return res;
   }
 
@@ -379,7 +375,7 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp, OperatorType* t
       }
       name=name+Int::toString(i);
     }
-    addInterpretedFunction(interp, type, name);
+    addInterpretedFunction(interp, name);
   }
   else {
     if (predicateExists(name, arity)) {
@@ -389,11 +385,11 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp, OperatorType* t
       }
       name=name+Int::toString(i);
     }
-    addInterpretedPredicate(interp, type, name);
+    addInterpretedPredicate(interp, name);
   }
 
   //we have now registered a new function, so it should be present in the map
-  return _iSymbols.get(mi);
+  return _iSymbols.get(interp);
 }
 
 const std::string& Signature::functionName(int number)

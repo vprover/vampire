@@ -197,7 +197,6 @@ static std::ostream &operator<<(std::ostream &out, FunctionName name) {
   case Theory::INT_CEILING:
     ASSERTION_VIOLATION
   case Theory::ARRAY_SELECT:
-  case Theory::ARRAY_BOOL_SELECT:
   case Theory::ARRAY_STORE:
     NOT_IMPLEMENTED;
   case Theory::INVALID_INTERPRETATION:
@@ -308,7 +307,6 @@ static std::ostream &operator<<(std::ostream &out, PredicateName name) {
   case Theory::REAL_TO_RAT:
   case Theory::REAL_TO_REAL:
   case Theory::ARRAY_SELECT:
-  case Theory::ARRAY_BOOL_SELECT:
   case Theory::ARRAY_STORE:
     // should be predicates, not functions
     ASSERTION_VIOLATION
