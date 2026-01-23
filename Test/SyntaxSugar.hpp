@@ -67,6 +67,8 @@
 #define DECL_CONST(f, sort) auto f = ConstSugar(#f, sort);
 #define DECL_SKOLEM_CONST(f, sort) auto f = ConstSugar(#f, sort, true);
 #define DECL_FUNC(f, ...)   auto f = FuncSugar(#f, __VA_ARGS__);
+#define DECL_LEFT_FUNC(f, ...)   auto f = FuncSugar(#f, __VA_ARGS__, /*taArity=*/0, /*skolem=*/false, Color::COLOR_LEFT);
+#define DECL_RIGHT_FUNC(f, ...)   auto f = FuncSugar(#f, __VA_ARGS__, /*taArity=*/0, /*skolem=*/false, Color::COLOR_RIGHT);
 #define DECL_SKOLEM_FUNC(f, ...) auto f = FuncSugar(#f, __VA_ARGS__, /*taArity=*/0, true);
 #define DECL_POLY_FUNC(f, i, ...)   auto f = FuncSugar(#f, __VA_ARGS__, i); 
 #define DECL_POLY_CONST(f, i, sort)   auto f = FuncSugar(#f, {}, sort, i);    
@@ -555,7 +557,7 @@ public:
     , _arity(env.signature->getFunction(functor)->arity()) {}
 
   FuncSugar(std::string const& name, std::initializer_list<SortSugar> as_, 
-    ExpressionSugar result, unsigned taArity = 0, bool skolem = false)
+    ExpressionSugar result, unsigned taArity = 0, bool skolem = false, Color c = COLOR_TRANSPARENT)
   {
     Stack<SortId> as;
     for (auto a : as_) 
@@ -578,6 +580,10 @@ public:
         ->setType(OperatorType::getFunctionType(as.size(), as.begin(), res, taArity));
       if (skolem) {
         env.signature->getFunction(_functor)->markSkolem();
+      }
+      if (c != COLOR_TRANSPARENT) {
+        env.colorUsed = true;
+        env.signature->getFunction(_functor)->addColor(c);
       }
     }
   }
@@ -709,14 +715,6 @@ inline Clause* clause(Stack<Lit> ls)
 
 inline Clause* clause(std::initializer_list<Lit> ls) 
 { return clause(Stack<Lit>(ls)); }
-
-inline Stack<Clause*> clauses(std::initializer_list<std::initializer_list<Lit>> cls) { 
-  auto out = Stack<Clause*>();
-  for (auto cl : cls) {
-    out.push(clause(cl));
-  }
-  return out;
-}
 
 inline void createTermAlgebra(SortSugar sort, std::initializer_list<FuncSugar> fs) {
   // avoid redeclaration

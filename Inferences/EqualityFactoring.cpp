@@ -40,9 +40,8 @@ using namespace Indexing;
 using namespace Saturation;
 using std::pair;
 
-EqualityFactoring::EqualityFactoring()
-  : _abstractionOracle(AbstractionOracle::createOnlyHigherOrder())
-  , _uwaFixedPointIteration(env.options->unificationWithAbstractionFixedPointIteration())
+EqualityFactoring::EqualityFactoring(Options::UnificationWithAbstraction uwa, bool uwaFixedPointIteration)
+  : _abstractionOracle(uwa), _uwaFixedPointIteration(uwaFixedPointIteration)
 {
 
 }

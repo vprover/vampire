@@ -10,7 +10,6 @@
 
 #if VZ3
 
-#include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Inferences/TheoryInstAndSimp.hpp"
 
@@ -87,7 +86,6 @@ TheoryInstAndSimp* theoryInstAndSimp(Options::TheoryInstSimp mode, bool withGene
       );
 }
 
-using Shell::Int;
 REGISTER_GEN_TESTER(Test::Generation::GenerationTester<TheoryInstAndSimp>(std::move(*theoryInstAndSimp(Options::TheoryInstSimp::ALL))))
 
 TEST_GENERATION(test_01,

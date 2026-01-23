@@ -275,17 +275,6 @@ public:
   virtual void perform(Clause* premise, BwSimplificationRecordIterator& simplifications) = 0;
 };
 
-
-class DummyGIE
-: public GeneratingInferenceEngine
-{
-public:
-  ClauseIterator generateClauses(Clause* premise) override
-  {
-    return ClauseIterator::getEmpty();
-  }
-};
-
 template<class... Args>
 class TupleISE
 : public ImmediateSimplificationEngine

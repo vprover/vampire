@@ -8,15 +8,12 @@
  * and in the source directory
  */
 #include "Test/AlascaTestUtils.hpp"
-#include "Test/TestUtils.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Inferences/GaussianVariableElimination.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Inferences/Cancellation.hpp"
 
-#include "Test/SyntaxSugar.hpp"
-#include "Test/TestUtils.hpp"
 #include "Test/SimplificationTester.hpp"
 #include "Test/GenerationTester.hpp"
 #include "Kernel/KBO.hpp"
@@ -59,15 +56,6 @@ public:
       latest = simpl(gve.asISE().simplify(last));
     } while (latest != last);
     return latest;
-  }
-
-  /** 
-   * OPTIONAL: override how equality between clauses is checked. 
-   * Defaults to TestUtils::eqModAC(Clause*, Clause*).
-   */
-  virtual bool eq(Kernel::Clause* lhs, Kernel::Clause* rhs) const override
-  {
-    return TestUtils::eqModAC(lhs, rhs);
   }
 };
 
