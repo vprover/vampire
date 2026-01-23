@@ -42,10 +42,11 @@ class FunctionDefinitionRewriting
   : public GeneratingInferenceEngine
   {
 public:
-  void attach(SaturationAlgorithm* salg) override;
+  FunctionDefinitionRewriting(SaturationAlgorithm& salg);
   ClauseIterator generateClauses(Clause *premise) override;
 
 private:
+  const SaturationAlgorithm& _salg;
   DemodulationHelper _helper;
 };
 

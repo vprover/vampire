@@ -14,6 +14,7 @@
 #include "Forwards.hpp"
 
 #include "Kernel/ALASCA.hpp"
+#include "Saturation/SaturationAlgorithm.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
@@ -27,19 +28,19 @@ using namespace Saturation;
 class TautologyDeletion
 : public ImmediateSimplificationEngine
 {
-  std::shared_ptr<AlascaState> _shared;
+  const AlascaState& _shared;
 public:
   USE_ALLOCATOR(TautologyDeletion);
 
-  TautologyDeletion(std::shared_ptr<AlascaState> shared) 
-    : _shared(std::move(shared)) {}
+  TautologyDeletion(SaturationAlgorithm& salg)
+    : _shared(salg.alascaState()) {}
 
   Clause* simplify(Clause* premise) override 
   {
     Map<AnyAlascaLiteral, bool> lits;
     TIME_TRACE("alasca tautology detection")
     for (auto lit : iterTraits(premise->iterLits())) {
-      auto norm_ = _shared->norm().tryNormalizeInterpreted(lit);
+      auto norm_ = _shared.norm().tryNormalizeInterpreted(lit);
       if (norm_.isSome()) {
         auto norm = norm_.unwrap();
         lits.insert(norm, true);

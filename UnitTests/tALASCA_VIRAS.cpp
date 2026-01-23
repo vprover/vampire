@@ -31,6 +31,8 @@ using namespace Inferences::ALASCA;
 ////// TEST CASES 
 /////////////////////////////////////
 
+namespace {
+
 #define SUGAR(Num)                                                                        \
   NUMBER_SUGAR(Num)                                                                       \
   DECL_DEFAULT_VARS                                                                       \
@@ -45,16 +47,16 @@ using namespace Inferences::ALASCA;
   DECL_PRED(R, {Num,Num})                                                                 \
   DECL_PRED(P, {Num})                                                                     \
 
+#define MY_GEN_RULE     VirasQuantifierElimination
+#define MY_GEN_TESTER   AlascaGenerationTester
 #define MY_SYNTAX_SUGAR SUGAR(Real)
-
-REGISTER_GEN_TESTER(AlascaGenerationTester<VirasQuantifierElimination>())
 
 /////////////////////////////////////////////////////////
 // Basic tests
 //////////////////////////////////////
 
 TEST_GENERATION(ported_lra_test_basic01,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs ({  clause({x + a > 0, x + b > 0 }) })
       .expected(exactly(
             clause({})
@@ -62,7 +64,7 @@ TEST_GENERATION(ported_lra_test_basic01,
       .premiseRedundant(true)
     )
 TEST_GENERATION(ported_lra_test_basic02,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs ({  clause({x + a > 0, - x + b > 0 }) })
       .expected(exactly(
             clause({ a + b > 0 })
@@ -71,7 +73,7 @@ TEST_GENERATION(ported_lra_test_basic02,
     )
 
 TEST_GENERATION(ported_lra_test_basic03,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs ({  clause({x + a > 0, - x + b > 0, f(y) + c > 0 }) })
       .expected(exactly(
         clause({a + b > 0, f(y) + c > 0 }) 
@@ -80,7 +82,7 @@ TEST_GENERATION(ported_lra_test_basic03,
     )
 
 TEST_GENERATION(ported_lra_test_basic04,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs ({  clause({ x + a > 0, -x + b >= 0, x + c >= 0 }) })
       .expected(exactly(
             clause({ a + b >= 0, b + c >= 0 })
@@ -89,7 +91,7 @@ TEST_GENERATION(ported_lra_test_basic04,
     )
 
 TEST_GENERATION(ported_lra_test_basic05_pos,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs ({  clause({ -x + a > 0, x + b >= 0,  x - c >= 0 }) })
       .expected(exactly(
             clause({ a + b >= 0, a - c >= 0 })
@@ -99,7 +101,7 @@ TEST_GENERATION(ported_lra_test_basic05_pos,
 
 
 TEST_GENERATION(ported_lra_test_basic05_neg,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs ({  clause({ x + a > 0, -x + b >= 0, - x - c >= 0 }) })
       .expected(exactly(
           clause({ (a + b) >= 0, (-b + -c) > 0 }), 
@@ -117,14 +119,14 @@ TEST_GENERATION(ported_lra_test_basic05_neg,
 //////////////////////////////////////
 
 TEST_GENERATION(ported_lra_test_shielded01,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs ({  clause({x + a > 0, - x + b > 0, f(x) + c > 0 }) })
       .expected(exactly())
       .premiseRedundant(false)
     )
 
 TEST_GENERATION(ported_lra_test_shielded02,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs ({  clause({ x + a > 0, - x + b > 0, P(x) }) })
       .expected(exactly())
       .premiseRedundant(false)
@@ -135,7 +137,7 @@ TEST_GENERATION(ported_lra_test_shielded02,
 //////////////////////////////////////
 
 TEST_GENERATION(ported_lra_test_eq01a,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs ({  clause({ x + a >= 0, x - b == 0, P(y) }) })
       .expected(exactly(
             clause({ a + b >= 0, P(y) }),
@@ -145,7 +147,7 @@ TEST_GENERATION(ported_lra_test_eq01a,
     )
 
 TEST_GENERATION(ported_lra_test_eq01b,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs ({  clause({ x + a >= 0, - x + b == 0, P(y) }) })
       .expected(exactly(
             clause({ a + b >= 0, P(y) }),
@@ -155,7 +157,7 @@ TEST_GENERATION(ported_lra_test_eq01b,
     )
 
 TEST_GENERATION(ported_lra_test_eq02a,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs ({  clause({ x + a > 0, x - b == 0, P(y) }) })
       .expected(exactly(
             clause({ a + b >= 0, P(y) }),
@@ -165,7 +167,7 @@ TEST_GENERATION(ported_lra_test_eq02a,
     )
 
 TEST_GENERATION(ported_lra_test_eq02b,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs ({  clause({ x + a > 0, - x + b == 0, P(y) }) })
       .expected(exactly(
             clause({ a + b >= 0, P(y) }),
@@ -176,7 +178,7 @@ TEST_GENERATION(ported_lra_test_eq02b,
 
 
 TEST_GENERATION(ported_lra_test_eq03a,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs ({  clause({ -x + a > 0, x - b == 0, P(y) }) })
       // elim set: { a, b + ε, -∞ }
       .expected(exactly(
@@ -200,7 +202,7 @@ TEST_GENERATION(ported_lra_test_eq03a,
 
 
 TEST_GENERATION(ported_lra_test_eq03a_neg,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs ({  clause({ x + a > 0, -x + b == 0, P(y) }) })
       // elim set: { a, -∞ }
       .expected(exactly(
@@ -216,7 +218,7 @@ TEST_GENERATION(ported_lra_test_eq03a_neg,
 
 
 TEST_GENERATION(ported_lra_test_neq1a,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs ({  clause({ 0 != x + a , 0 != x + b })})
       .expected(exactly(
              clause({ 0 != a - b })
@@ -226,7 +228,7 @@ TEST_GENERATION(ported_lra_test_neq1a,
     )
 
 TEST_GENERATION(ported_lra_test_neq1b,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs ({  clause({ 0 != -x - a , 0 != x + b })})
       .expected(exactly(
             clause({ 0 != a - b })
@@ -236,7 +238,7 @@ TEST_GENERATION(ported_lra_test_neq1b,
     )
 
 TEST_GENERATION(ported_lra_test_neq1c,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs ({  clause({ 0 != -x - a , 0 != -x - b })})
       .expected(exactly(
             clause({ 0 != a - b })
@@ -247,7 +249,7 @@ TEST_GENERATION(ported_lra_test_neq1c,
 
 
 TEST_GENERATION(ported_lra_test_neq1d,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs ({  clause({ 0 != x + a , 0 != -x - b })})
       .expected(exactly(
             clause({ 0 != a - b })
@@ -257,7 +259,7 @@ TEST_GENERATION(ported_lra_test_neq1d,
     )
 
 TEST_GENERATION(ported_lra_test_neq2,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs ({  clause({ 0 != 2 * x + a , 0 != -x - b })})
       .expected(exactly(
             clause({ 0 != frac(1,2) * a - b })
@@ -268,7 +270,7 @@ TEST_GENERATION(ported_lra_test_neq2,
 
 
 TEST_GENERATION(ported_lra_test_misc02,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs ({  clause({ 0 != 30 * x +          f2(y,z) , 0 != 2 * x +       y })})
       .expected(exactly(
                  clause({ 0 != -15 * y +  f2(y,z)  }), // TODO optimization for this case
@@ -278,7 +280,7 @@ TEST_GENERATION(ported_lra_test_misc02,
     )
 
 TEST_GENERATION(ported_lra_test_bug02a,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs ({  clause({ 0 == y + -1 , 0 != y + -c })})
       .expected(exactly(
             clause({ -c + 1 == 0             })
@@ -287,7 +289,7 @@ TEST_GENERATION(ported_lra_test_bug02a,
     )
 
 TEST_GENERATION(ported_lra_test_bug03,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs ({  clause({ 0 != -1 + -x + -3 * f(x) + y 
                              , 0 !=  1 +  x +  3 * f(x) - y })})
       .expected(exactly(
@@ -297,7 +299,7 @@ TEST_GENERATION(ported_lra_test_bug03,
     )
 
 TEST_GENERATION(ported_lra_test_bug04,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       // .inputs ({         clause({ y - x >= 0, x - z >= 0, f(z) - f(y) > 0})})
       .inputs ({         clause({ -x + y >= 0, x + -z >= 0, -f(y) + f(z) > 0 })})
       .expected(exactly( clause({ y             - z >= 0, f(z) - f(y) > 0}) ))
@@ -305,7 +307,7 @@ TEST_GENERATION(ported_lra_test_bug04,
     )
 
 // TEST_GENERATION(ported_lra_test_bug05,
-//     Generation::SymmetricTest()
+//     alascaSymmetricTest()
 //     .inputs({clause({
 //           -5 * x + e + -4 * f(z) + -7 * b >= 0,
 //           -4 * x +  -19 * g(z) + - c * y  + - (d * f(z)) >= 0,
@@ -343,7 +345,7 @@ TEST_GENERATION(ported_lra_test_bug04,
 
 
 TEST_GENERATION(to_optimize_2,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs ({  clause({ 0 != a - x, 0 != b - x })})
       .expected(exactly(
                    clause({ 0 != b - a  })
@@ -354,7 +356,7 @@ TEST_GENERATION(to_optimize_2,
     )
 
 TEST_GENERATION(to_optimize_3,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs ({  clause({ 0 != a - x, 0 != b - x, 0 != c - x })})
       .expected(exactly(
                    clause({             0 != b - a, 0 != c - a  })
@@ -366,7 +368,7 @@ TEST_GENERATION(to_optimize_3,
     )
 
 TEST_GENERATION(to_optimize_4,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs ({  clause({ 0 != a - x, 0 != b - x, 0 != c - x, 0 != d - x })})
       .expected(exactly(
                    clause({             0 != b - a, 0 != c - a, 0 != d - a  })
@@ -385,7 +387,7 @@ TEST_GENERATION(to_optimize_4,
 
 #define NOT_APPLICABLE_TEST(i, lit)                                                       \
   TEST_GENERATION(not_applicable_ ## i,                                                   \
-      Generation::SymmetricTest()                                                         \
+      alascaSymmetricTest()                                                               \
         .inputs ({         clause({ x > 0, lit })})                                       \
         .expected(exactly())                                                              \
         .premiseRedundant(false)                                                          \
@@ -398,7 +400,7 @@ NOT_APPLICABLE_TEST(5, (x * x) > 0)
 NOT_APPLICABLE_TEST(6, isInt(x))
 
 TEST_GENERATION(lira_01,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       // .inputs ({         clause({ y - x >= 0, x - z >= 0, f(z) - f(y) > 0})})
       .inputs ({         clause({ floor(a) + frac(1,3) - x > 0, x  -  floor(a) - frac(2,3) > 0 , b - ceil(x) + x > 0 })})
       .expected(exactly( clause({ b > frac(2,3) }) ))
@@ -407,21 +409,21 @@ TEST_GENERATION(lira_01,
 
 
 TEST_GENERATION(lia_01_1,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs ({         clause({ 3 * floor(x) - 1 == 0 })})
       .expected(withoutDuplicates(exactly( clause({ }) )))
       .premiseRedundant(true)
     )
 
 TEST_GENERATION(lia_01_2,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs ({         clause({ 3 * floor(x) - 1 != 0 })})
       .expected(withoutDuplicates(exactly()))
       .premiseRedundant(true)
     )
 
 TEST_GENERATION(lia_02,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs ({         clause({ 3 * floor(x) - 1 != 0, x - floor(a) > 0, floor(b) - x > 0 })})
       // elimSet: 1, 1 + ε, 4/3, 1/3
       //          -∞
@@ -447,7 +449,7 @@ TEST_GENERATION(lia_02,
 #define liraRem(l,r) (l) - ((r) * liraQuot(l, r))
 
 TEST_GENERATION(lia_03,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs ({         clause({ liraRem(x, 3)  - 1 != 0, x - 3 * floor(a) > 0, 3 * floor(b) - x > 0 })})
       // elimSet = { 3 Z + 0, 3 Z + 1, 3 * floor(b), -infty }
       .expected(withoutDuplicates(exactly( 
@@ -471,7 +473,7 @@ TEST_GENERATION(lia_03,
     )
 
 TEST_GENERATION(test_misc_01,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs ({         clause({ x + f(a) > 0 })})
       .expected(withoutDuplicates(exactly( 
              clause({  })
@@ -480,7 +482,7 @@ TEST_GENERATION(test_misc_01,
     )
 
 TEST_GENERATION(test_misc_02,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs ({         clause({ x + f(x) > 0 })})
       .expected(withoutDuplicates(exactly( )))
       .premiseRedundant(false)
@@ -496,3 +498,5 @@ TEST_GENERATION(test_misc_02,
 
 TEST_INTERNAL(Real)
 TEST_INTERNAL(Rat)
+
+}

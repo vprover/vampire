@@ -56,9 +56,7 @@ class LazyClausificationGIE
   : public GeneratingInferenceEngine
 {
 public:
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
-
+  LazyClausificationGIE(SaturationAlgorithm& salg);
   ClauseIterator generateClauses(Clause* c) override;
 
 private:

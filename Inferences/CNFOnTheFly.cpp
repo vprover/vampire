@@ -725,17 +725,9 @@ Clause* IFFXORRewriterISE::simplify(Clause* c){
   return c;
 }
 
-void LazyClausificationGIE::attach(SaturationAlgorithm* salg)
-{
-  GeneratingInferenceEngine::attach(salg);
-  _formulaIndex = salg->getSimplifyingIndex<SkolemisingFormulaIndex>();
-}
-
-void LazyClausificationGIE::detach()
-{
-  _formulaIndex = nullptr;
-  GeneratingInferenceEngine::detach();
-}
+LazyClausificationGIE::LazyClausificationGIE(SaturationAlgorithm& salg)
+  : _formulaIndex(salg.getSimplifyingIndex<SkolemisingFormulaIndex>())
+{}
 
 LazyClausification::LazyClausification(SaturationAlgorithm& salg)
   : _formulaIndex(salg.getSimplifyingIndex<SkolemisingFormulaIndex>())

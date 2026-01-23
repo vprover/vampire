@@ -39,8 +39,8 @@ set(UNIT_TESTS
     UnitTests/tALASCA_Superposition.cpp
     UnitTests/tALASCA_TautologyDeletion.cpp
     UnitTests/tALASCA_TermFactoring.cpp
-    UnitTests/tALASCA_VIRAS.cpp
     UnitTests/tALASCA_VariableElimination.cpp
+    UnitTests/tALASCA_VIRAS.cpp
     UnitTests/tAnswerLiteralProcessors_Synthesis.cpp
     UnitTests/tArithCompare.cpp
     UnitTests/tArithmeticSubtermGeneralization.cpp
@@ -324,7 +324,6 @@ set(SOURCES
     Kernel/ALASCA/SelectionPrimitves.hpp
     Kernel/ALASCA/Signature.cpp
     Kernel/ALASCA/Signature.hpp
-    Kernel/ALASCA/State.cpp
     Kernel/ALASCA/State.hpp
     Kernel/BestLiteralSelector.hpp
     Kernel/BottomUpEvaluation.hpp

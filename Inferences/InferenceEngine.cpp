@@ -96,52 +96,12 @@ CompositeGIE::~CompositeGIE()
 }
 void CompositeGIE::addFront(GeneratingInferenceEngine* fse)
 {
-  ASS_EQ(_salg,0);
   GIList::push(fse,_inners);
 }
 ClauseIterator CompositeGIE::generateClauses(Clause* premise)
 {
   return pvi( getFlattenedIterator(
 	  getMappingIterator(GIList::Iterator(_inners), GeneratingFunctor(premise))) );
-}
-void CompositeGIE::attach(SaturationAlgorithm* salg)
-{
-  GeneratingInferenceEngine::attach(salg);
-  GIList* eit=_inners;
-  while(eit) {
-    eit->head()->attach(salg);
-    eit=eit->tail();
-  }
-}
-void CompositeGIE::detach()
-{
-  GIList* eit=_inners;
-  while(eit) {
-    eit->head()->detach();
-    eit=eit->tail();
-  }
-  GeneratingInferenceEngine::detach();
-}
-
-void CompositeSGI::detach()
-{ 
-  for (auto g : _generators) {
-    g->detach();
-  }
-  for (auto s : _simplifiers) {
-    s->detach();
-  }
-}
-
-
-void CompositeSGI::attach(SaturationAlgorithm* sa)
-{ 
-  for (auto g : _generators) {
-    g->attach(sa);
-  }
-  for (auto s : _simplifiers) {
-    s->attach(sa);
-  }
 }
 
 void CompositeSGI::push(SimplifyingGeneratingInference* gen)

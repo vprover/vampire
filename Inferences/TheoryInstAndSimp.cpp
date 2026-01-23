@@ -59,7 +59,11 @@ using namespace SAT;
 
 using SortId = SAT::Z3Interfacing::SortId;
 
-TheoryInstAndSimp::TheoryInstAndSimp(Options& opts) : TheoryInstAndSimp(
+TheoryInstAndSimp::TheoryInstAndSimp(SaturationAlgorithm& salg)
+  : TheoryInstAndSimp(salg.getSplitter(), salg.getOptions()) {}
+
+TheoryInstAndSimp::TheoryInstAndSimp(Splitter* splitter, const Options& opts) : TheoryInstAndSimp(
+    splitter,
     opts.theoryInstAndSimp(),
     opts.thiTautologyDeletion(), 
     opts.showZ3(),  
@@ -83,8 +87,8 @@ Options::TheoryInstSimp manageDeprecations(Options::TheoryInstSimp mode)
   }
 }
 
-TheoryInstAndSimp::TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, std::string const& exportSmtlib, Options::ProblemExportSyntax problemExportSyntax) 
-  : _splitter(0)
+TheoryInstAndSimp::TheoryInstAndSimp(Splitter* splitter, Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, std::string const& exportSmtlib, Options::ProblemExportSyntax problemExportSyntax) 
+  : _splitter(splitter)
   , _mode(manageDeprecations(mode))
   , _thiTautologyDeletion(thiTautologyDeletion)
   , _naming()
@@ -93,15 +97,6 @@ TheoryInstAndSimp::TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTauto
   , _instantiationConstants ("$inst")
   , _generalizationConstants("$inst$gen")
 { }
-
-
-void TheoryInstAndSimp::attach(SaturationAlgorithm* salg)
-{
-  SimplifyingGeneratingInference::attach(salg);
-  _splitter = salg->getSplitter();
-}
-
-
 
 bool TheoryInstAndSimp::calcIsSupportedSort(SortId sort)
 {
@@ -950,6 +945,7 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
 
 bool TheoryInstAndSimp::isTheoryLemma(Clause* cl, bool& couldNotCheck) {
   static TheoryInstAndSimp checker(
+    /*splitter=*/ nullptr,
     Options::TheoryInstSimp::ALL,
     /* thiTautologyDeletion */ true,
     /* showZ3 */ false,

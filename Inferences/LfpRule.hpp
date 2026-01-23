@@ -11,6 +11,8 @@
 #ifndef __LFP_RULE_HPP__
 #define __LFP_RULE_HPP__
 
+#include "Kernel/Clause.hpp"
+
 #include "InferenceEngine.hpp"
 
 namespace Inferences {
@@ -22,7 +24,7 @@ class LfpISE
 {
   Rule _inner;
 public:
-  LfpISE(Rule rule) : _inner(std::move(rule)) {}
+  LfpISE(SaturationAlgorithm& salg) : _inner(salg) {}
   Clause* simplify(Clause* c) override {
     auto c0 = c;
     auto c1 = c;
@@ -40,27 +42,14 @@ public:
 };
 
 template<class Rule>
-LfpISE<Rule> lfpISE(Rule rule) { return LfpISE<Rule>(std::move(rule)); }
-
-template<class Rule>
 class LfpRule
   : public SimplifyingGeneratingInference1
 {
   Rule _inner;
 public:
-  LfpRule(Rule rule);
-  LfpRule();
+  LfpRule(SaturationAlgorithm& salg) {}
   SimplifyingGeneratingInference1::Result simplify(Clause *cl, bool doCheckOrdering) override;
-  void attach(SaturationAlgorithm* alg) override { SimplifyingGeneratingInference1::attach(alg); _inner.attach(alg); }
-  void detach() override { SimplifyingGeneratingInference1::detach(); _inner.detach(); }
 };
-
-
-template<class Rule> 
-LfpRule<Rule>::LfpRule(Rule rule) : _inner(std::move(rule)) {}
-
-template<class Rule> 
-LfpRule<Rule>::LfpRule() : _inner() {}
 
 template<class Rule> 
 SimplifyingGeneratingInference1::Result LfpRule<Rule>::simplify(Clause *cl, bool doCheckOrdering) 

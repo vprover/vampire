@@ -14,6 +14,9 @@
 #include "Kernel/NumTraits.hpp"
 #include "Lib/Reflection.hpp"
 #include "Lib/Option.hpp"
+
+#include "Saturation/SaturationAlgorithm.hpp"
+
 #define DEBUG(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }
 
 using namespace Kernel;
@@ -90,7 +93,7 @@ Option<SimplifyingGeneratingInference::ClauseGenerationResult> VirasQuantifierEl
 
   Recycled<DHSet<unsigned>> topLevelVars;
   for (auto l : premise->iterLits()) {
-    Option<AlascaLiteral<NumTraits>> norm = _shared->norm().tryNormalizeInterpreted(l)
+    Option<AlascaLiteral<NumTraits>> norm = _shared.norm().tryNormalizeInterpreted(l)
       .flatMap([](auto l) { return l.template as<AlascaLiteral<NumTraits>>().toOwned(); })
       .filter([](auto l) { switch(l.symbol()) {
           case AlascaPredicate::EQ:
@@ -147,6 +150,8 @@ Option<SimplifyingGeneratingInference::ClauseGenerationResult> VirasQuantifierEl
   // TODO viras for integers ? (=  cooper)
   return {};
 }
+
+VirasQuantifierElimination::VirasQuantifierElimination(SaturationAlgorithm& salg) : _shared(salg.alascaState()) {}
 
 SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierElimination::generateSimplify(Clause* premise) {
   return 

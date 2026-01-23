@@ -18,16 +18,13 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
 
-
-
 #include "Debug/TimeProfiling.hpp"
 
 #include "Normalization.hpp"
 #include "Kernel/ALASCA/Signature.hpp"
+#include "Saturation/SaturationAlgorithm.hpp"
 
 #define DEBUG_NORMALIZE(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }
-
-using Kernel::InequalityLiteral;
 
 namespace Inferences {
 namespace ALASCA {
@@ -58,13 +55,15 @@ Option<bool> trivial(Literal* l) {
   });
 }
 
+Normalization::Normalization(SaturationAlgorithm& salg) : _shared(salg.alascaState()) {}
+
 Clause* Normalization::simplify(Clause* cl) 
 {
   TIME_TRACE("perform alasca normalization")
   bool altered = false; 
   Recycled<Stack<Literal*>> out;
   for (unsigned i = 0; i < cl->size(); i++) {
-    auto lit = _shared->norm().normalizedLiteral((*cl)[i]);
+    auto lit = _shared.norm().normalizedLiteral((*cl)[i]);
     altered |= lit != (*cl)[i];
     auto triv = trivial(lit);
     if (triv.isSome()) {
@@ -90,6 +89,8 @@ Clause* Normalization::simplify(Clause* cl)
   }
 
 }
+
+FloorElimination::FloorElimination(SaturationAlgorithm& salg) : _shared(salg.alascaState()) {}
 
 } // namespace ALASCA
 } // namespace Inferences

@@ -38,12 +38,12 @@ public:
   USE_ALLOCATOR(FwdDemodulation);
 
   FwdDemodulation(FwdDemodulation&&) = default;
-  FwdDemodulation(std::shared_ptr<AlascaState> shared, SaturationAlgorithm& salg);
+  FwdDemodulation(SaturationAlgorithm& salg);
 
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 
 private:
-  std::shared_ptr<AlascaState> _shared;
+  AlascaState& _shared;
   std::shared_ptr<AlascaIndex<Demodulation::Lhs>> _index;
 };
 

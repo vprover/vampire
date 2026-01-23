@@ -73,7 +73,6 @@ protected:
 
 /** A generating inference that might make its major premise redundant. */
 class SimplifyingGeneratingInference
-: public InferenceEngine
 {
 public:
 
@@ -88,7 +87,7 @@ public:
     }
   };
 
-
+  virtual ~SimplifyingGeneratingInference() = default;
   /**
    * Applies this rule to the clause, and returns an iterator over the resulting clauses, 
    * as well as the information whether the premise was made redundant.
@@ -168,9 +167,6 @@ public:
    */
   ImmediateSimplificationEngine& asISE();
 
-  void attach(SaturationAlgorithm* salg) override { SimplifyingGeneratingInference::attach(salg); }
-  void detach() override { SimplifyingGeneratingInference::detach(); }
-  
 protected:
 
   /** returns the simplified clause and whether the premise was made redundant. 
@@ -281,7 +277,7 @@ class TupleISE
 {
   std::tuple<Args...> _self;
 public:
-  TupleISE(Args... args) : _self(std::move(args)...) { }
+  TupleISE(SaturationAlgorithm& salg) : _self(Args(salg)...) { }
   auto iter() { return std::apply([](auto&... args) { return iterItems(static_cast<ImmediateSimplificationEngine*>(&args)...); }, _self); }
   Clause* simplify(Clause* premise) override {
     return iter()
@@ -290,13 +286,6 @@ public:
           .unwrapOr(premise);
   }
 };
-
-template<class... Args>
-TupleISE<Args...> tupleISE(Args... args) 
-{ return TupleISE<Args...>(std::move(args)...); }
-
-
-
 
 class CompositeISE
 : public ImmediateSimplificationEngine
@@ -345,8 +334,6 @@ public:
   ~CompositeGIE() override;
   void addFront(GeneratingInferenceEngine* fse);
   ClauseIterator generateClauses(Clause* premise) override;
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
 private:
   typedef List<GeneratingInferenceEngine*> GIList;
   GIList* _inners;
@@ -362,8 +349,6 @@ public:
   void push(SimplifyingGeneratingInference*);
   void push(GeneratingInferenceEngine*);
   ClauseGenerationResult generateSimplify(Clause* premise) override;
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
 private:
   Stack<SimplifyingGeneratingInference*> _simplifiers;
   Stack<GeneratingInferenceEngine*> _generators;

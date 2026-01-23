@@ -10,7 +10,6 @@
 
 #include "Test/SyntaxSugar.hpp"
 #include "Inferences/ALASCA/TermFactoring.hpp"
-#include "Lib/STL.hpp"
 
 #include "Test/SyntaxSugar.hpp"
 #include "Test/AlascaTestUtils.hpp"
@@ -26,6 +25,8 @@ using namespace Inferences::ALASCA;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////// TEST CASES 
 /////////////////////////////////////
+
+namespace {
 
 #define SUGAR(Num)                                                                                  \
   NUMBER_SUGAR(Num)                                                                                 \
@@ -47,28 +48,22 @@ using namespace Inferences::ALASCA;
   DECL_PRED(p, {Num})                                                                               \
   DECL_PRED(r, {Num,Num})                                                                           \
 
+#define MY_GEN_RULE     TermFactoring
+#define MY_GEN_TESTER   AlascaGenerationTester
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
-
-
-TermFactoring testTermFactoring(
-    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA_MAIN
-    )
-{ return TermFactoring(testAlascaState(uwa)); }
-
-REGISTER_GEN_TESTER(AlascaGenerationTester<TermFactoring>())
 
 /////////////////////////////////////////////////////////
 // Basic tests
 //////////////////////////////////////
 
 TEST_GENERATION(basic01a,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({  clause({selected( g(a, x) + -g(y, b) > 0 ) }) })
       .expected(exactly(
           clause({ 0 * g(a, b) > 0 })
       )))
 TEST_GENERATION(basic01b,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({  clause({selected( g(a, x) + g(y, b) > 0 ) }) })
       .expected(exactly(
           clause({ 2 * g(a, b) > 0 })
@@ -77,10 +72,10 @@ TEST_GENERATION(basic01b,
 // checking different symbols
 
 
-#define test_basic03(pred, name)                                                                       \
-TEST_GENERATION(basic03_ ## name,                                                                     \
-    Generation::SymmetricTest()                                                                     \
-      .inputs  ({  clause({selected( pred(g(a, x) + g(y, b))  ) }) })                                \
+#define test_basic03(pred, name)                                                                    \
+TEST_GENERATION(basic03_ ## name,                                                                   \
+    alascaSymmetricTest()                                                                           \
+      .inputs  ({  clause({selected( pred(g(a, x) + g(y, b))  ) }) })                               \
       .expected(exactly(                                                                            \
           clause({ pred(2 * g(a, b)) })                                                             \
       )))                                                                                           \
@@ -91,81 +86,81 @@ test_basic03([](auto x){ return x == 0; }, eq)
 test_basic03([](auto x){ return x != 0; }, neq)
 
 TEST_GENERATION(basic02,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({              clause({ - f(x) + f(y) > 0 }) })
       .expected(exactly(       clause({      0 * f(x) > 0 }) )))
 
 TEST_GENERATION(basic03,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({              clause({ - f(x) - f(y) > 0 }) })
       .expected(exactly(       clause({     -2 * f(x) > 0 }) )))
 
 TEST_GENERATION(basic04,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({              clause({   f(x) + f(y) > 0 }) })
       .expected(exactly(       clause({      2 * f(x) > 0 }) )))
 
 
 TEST_GENERATION(basic05a,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({  clause({selected( 3 * g(a, x) + 2 * g(y, b) > 0 ), p(x) }) })
       .expected(exactly(
           /* nothing because uninterpreted stuff is bigger */
       )))
 
 TEST_GENERATION(basic05b,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({  clause({selected( 3 * g(a, x) + 2 * g(y, b) > 0 ), f(x) - 1 == 0 }) })
       .expected(exactly(
             clause({ 5 * g(a,b) > 0, f(b) - 1 == 0  })
       )))
 
 TEST_GENERATION(basic06,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({  clause({ selected( 1 * f(x) +  -1 * f(a) > 0 )  }) })
       .expected(exactly(
             clause({      0 * f(a) > 0 }) 
       )))
 
 TEST_GENERATION(basic07a,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({              clause({   f(x) + f(y) != 0 }) })
       .expected(exactly(       clause({      2 * f(x) != 0 }) )))
 
 TEST_GENERATION(basic07b,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({              clause({   f(x) + f(y) == 0 }) })
       .expected(exactly(       clause({      2 * f(x) == 0 }) )))
 
 
 TEST_GENERATION(basic07c,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({              clause({   f(x) + f(y) >= 0 }) })
       .expected(exactly(       clause({      2 * f(x) >= 0 }) )))
 
 
 // checking (k1 s1 + k2 s2 + t <> 0)σ /≺ Cσ
 TEST_GENERATION(lit_max_after_unif_1,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({  clause({ f(x) +  -f(a) > 0, f(f(a)) > 0 }) })
       .expected(exactly(
       )))
 
 // checking (k1 s1 + k2 s2 + t <> 0)σ /≺ Cσ
 TEST_GENERATION(lit_max_after_unif_2,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({  clause({ selected( f(x) +  -f(a) > 0 ), selected( f(f(a)) > 0 ), selected( f(z) > 0 ) }) })
       .expected(exactly(
       )))
 
 // checking (k1 s1 + k2 s2 + t <> 0) /≺ Cσ
 TEST_GENERATION(lit_max_after_unif_3,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({        clause({ selected( f(x) +  -f(a) > 0 ), f(z) > 0 }) })
       .expected(exactly( clause({ selected(      0 * f(a) > 0 ), f(z) > 0 }) )))
 
 TEST_GENERATION(term_max_after_unif_0,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({        clause({ f(a + b) + -f(a + b + c) > 0 }) })
       .expected(exactly(                               )))
 
@@ -173,27 +168,26 @@ TEST_GENERATION(term_max_after_unif_0,
 // checking s1σ /≺ terms(s2 + t)σ
 // checking s2σ /≺ terms(s1 + t)σ
 TEST_GENERATION(term_max_after_unif_1,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({        clause({ g(a + x, c) + -g(a + b + x, x) > 0 }) })
       .expected(exactly(                               )))
 
 // checking s1σ /≺ terms(s2 + t)σ
 // checking s2σ /≺ terms(s1 + t)σ
 TEST_GENERATION(term_max_after_unif_2,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({        clause({ g(a, c) + -g(a, x) + g(x, x) > 0 }) })
       .expected(exactly(                               )))
 
 TEST_GENERATION(basic07,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({  clause({ selected( 1 * f(x) +  -1 * f(y) > 0 )  }) })
       .expected(exactly(
             clause({      num(0) * f(x) > 0 }) 
       )))
 
 TEST_GENERATION(basic10,
-    Generation::SymmetricTest()
-      .rule(new TermFactoring(testTermFactoring(Shell::Options::UnificationWithAbstraction::OFF)))
+    alascaSymmetricTest("off")
       .inputs  ({  clause({ selected(h(a, x, x1) + h(x, x, x2) + h(b, x, x3) > 0)  }) })
       .expected(exactly(
                   clause({ 2 * h(a, a, x) + h(b, a, y) > 0  }) 
@@ -202,26 +196,26 @@ TEST_GENERATION(basic10,
 
 
 TEST_GENERATION(unshielded_vars_0,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({  clause({ selected(x + a > 0)  }) })
       .expected(exactly( /* nothing */  ))
     )
 
 TEST_GENERATION(unshielded_vars_1,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({  clause({ selected(-x + a > 0)  }) })
       .expected(exactly( /* nothing */  ))
     )
 
 
 TEST_GENERATION(unshielded_vars_2,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({  clause({ selected(x + -a > 0)  }) })
       .expected(exactly( /* nothing */  ))
     )
 
 TEST_GENERATION(unshielded_vars_3,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({  clause({ selected(-x + -a > 0)  }) })
       .expected(exactly( /* nothing */  ))
     )
@@ -231,15 +225,14 @@ TEST_GENERATION(unshielded_vars_3,
 //////////////////////////////////////
 
 TEST_GENERATION(abstraction1_one_interp,
-    Generation::SymmetricTest()
-      .rule(new TermFactoring(testTermFactoring(Shell::Options::UnificationWithAbstraction::ALASCA_ONE_INTERP)))
+    alascaSymmetricTest("alasca_one_interp")
       .inputs  ({  clause({ selected(-f(f(x) + g(a, c)) + f(f(y) + g(b, c)) > 0)   })})
       .expected(exactly(
             clause({ 0 * f(f(x) + g(a, c)) > 0, f(y) + g(b, c) != f(x) + g(a, c) })
       )))
 
 TEST_GENERATION(abstraction1,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({  clause({ selected(-f(f(x) + g(a, c)) + f(f(y) + g(b, c)) > 0)   })})
       .expected(exactly(
       )))
@@ -251,19 +244,19 @@ TEST_GENERATION(abstraction1,
 //////////////////////////////////////
 
 TEST_GENERATION(misc01,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({          clause({ selected( -     x    - g(x,z) + g(-30 * y,y) > 0 ) , selected( 0 != y + z ) }) }) // { x -> -30 * x, z -> x, y -> x }
       .expected(exactly(  clause({ -(-30 * x) + 0 * g(-30 * x, x) > 0 , 0 != x + x }) )))
 
 TEST_GENERATION(misc02,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({              clause({ selected( -(    x  ) + 2 * g(-30 * y, z) + -g(x,y) > 0 ) , selected( 0 != z ) }) }) // { x -> -30 * x, z -> x, y -> x }
       .expected(exactly(anyOf(clause({   (-30 * x) + -1 * g(-30 * x, x) > 0          , 0 != x }),
                               clause({  -(-30 * x) +  1 * g(-30 * x, x) > 0       , 0 != x })
             ) )))
 
 TEST_GENERATION(misc03,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({              clause({ selected(   x0 + g(x2,x3) + g(x0,x1) > 0 ) , selected( 0 != x3 + x1 ) }) }) // { x3 -> x0, x2 -> x1 }
       .expected(exactly(anyOf(clause({   x0 +        2 * g(x0,x1) > 0 , 0 != x1 + x1 })  
                             , clause({  -x0 +       -2 * g(x0,x1) > 0 , 0 != x1 + x1 })))))
@@ -275,34 +268,34 @@ TEST_GENERATION(misc03,
   
 
 TEST_GENERATION(misc04,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({              clause({selected( -3 * x0 + g0(x3,x4) - g0(x0,x1) + g1(18 * x1, x2) > 0 ) , selected( 0 != x0 + -10 * x2 )}) })
       .expected(exactly(       clause({-3 * x0 +       0 * g0(x0, x2)  + g1(18 * x2, x3) > 0 , 0 != x0 + -10 * x3}) )))
 
 
 TEST_GENERATION(factor_only_global_max_atomic_terms_01,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({              clause({ f(x) + f(f(y)) > 0, f(f(x)) + f(f(y)) > 0 }) })
       .expected(exactly(       clause({ f(x) + f(f(x)) > 0, 2 * f(f(x)) > 0 }) )))
 
 TEST_GENERATION(factor_only_global_max_atomic_terms_02,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({              clause({ f(x) + f(y) > 0, f(f(x)) > 0 }) })
       .expected(exactly(                                                       )))
 
 
 TEST_GENERATION(factor_only_global_max_atomic_terms_03,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({              clause({ f(x) + f(y) + a > 0, 2 * f(x) + b > 0 }) })
       .expected(exactly(       clause({    2 * f(x) + a > 0, 2 * f(x) + b > 0 }) )))
 
 TEST_GENERATION(factor_only_global_max_atomic_terms_04,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({              clause({ f(x) + f(y) + b > 0, 2 * f(x) + a > 0 }) })
       .expected(exactly(       clause({    2 * f(x) + b > 0, 2 * f(x) + a > 0 }) )))
 
 TEST_GENERATION(factor_only_global_max_atomic_terms_05,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({              clause({ g(x,y) + g(y,x) + b > 0, f(g(x,x)) > 0 }) })
       .expected(exactly(       /* nothing */                                     )))
 
@@ -311,7 +304,7 @@ TEST_GENERATION(factor_only_global_max_atomic_terms_05,
 //////////////////////////////////////
 
 TEST_GENERATION(bug_01,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
 // 1 + f26(f34(f59,X0),X0) + f26(f34(f59,X1),X1) > 0 [theory normalization 1587]
 // 2 * f26(f34(f59,X0),X0) + f26(f34(f59,X0),X0) > 0 [inequality factoring 2373]
       .inputs  ({          clause({ selected(1 + f(x) + f(y) > 0)  })    })
@@ -322,8 +315,7 @@ TEST_GENERATION(bug_01,
 
 
 TEST_GENERATION(bug_02b_one_interp,
-    Generation::SymmetricTest()
-      .rule(move_to_heap(testTermFactoring(Shell::Options::UnificationWithAbstraction::ALASCA_ONE_INTERP)))
+    alascaSymmetricTest("alasca_one_interp")
       .inputs  ({   clause({ selected( -23 * x0 + g(x0, -23 * x1) + -g(x1, -23 * x2) > 0 ) })    })
       // ({x1 -> x0}, -23 * x0 != -23 * x2) = uwa( ^^^^^^^^^^^^^^,    ^^^^^^^^^^^^^^ ) (1)
       .expected(exactly(  
@@ -331,7 +323,7 @@ TEST_GENERATION(bug_02b_one_interp,
           )))
 
 TEST_GENERATION(bug_02b,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
   // 0.0 != ((-23.0 * X24) + (lG113($product(-23.0,X22),X24) + (-(lG113($product(-23.0,X21),X22)) + lG113(X23,X21)))) | 0.0 = X23
       .inputs  ({   clause({ selected( -23 * x0 + g(x0, -23 * x1) + -g(x1, -23 * x2) > 0 ) })    })
       // ({x1 -> x0}, -23 * x0 != -23 * x2) = uwa( ^^^^^^^^^^^^^^,    ^^^^^^^^^^^^^^ ) (1)
@@ -341,8 +333,7 @@ TEST_GENERATION(bug_02b,
 
 
 TEST_GENERATION(bug_02_one_interp,
-    Generation::SymmetricTest()
-      .rule(new TermFactoring(testTermFactoring(Shell::Options::UnificationWithAbstraction::ALASCA_ONE_INTERP)))
+    alascaSymmetricTest("alasca_one_interp")
   // 0.0 != ((-23.0 * X24) + (lG113($product(-23.0,X22),X24) + (-(lG113($product(-23.0,X21),X22)) + lG113(X23,X21)))) | 0.0 = X23
       .inputs  ({    clause({ selected( -23 * x0 + g(-23 * x1,x0) + -g(-23 * x2, x1) > 0 ) })    })
       // ({x1 -> x0}, -23 * x0 != -23 * x2) = uwa( ^^^^^^^^^^^^^^ ,  ^^^^^^^^^^^^^^ ) 
@@ -351,7 +342,7 @@ TEST_GENERATION(bug_02_one_interp,
           )))
 
 TEST_GENERATION(bug_02,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({    clause({ selected( -23 * x0 + g(-23 * x1,x0) + -g(-23 * x2, x1) > 0 ) })    })
       // ({x1 -> x0}, -23 * x0 != -23 * x2) = uwa( ^^^^^^^^^^^^^^ ,  ^^^^^^^^^^^^^^ ) 
       .expected(exactly(  
@@ -359,35 +350,35 @@ TEST_GENERATION(bug_02,
           )))
 
 TEST_GENERATION(non_linear_tryout01,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({    clause({ (x * a) - (a * a) != 0 })    })
-      .rule(new TermFactoring(testTermFactoring(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN)))
       .expected(exactly(  
            clause({ 0 * (a * a) != 0 })
           )))
 
 TEST_GENERATION(tricky_uwa_01_one_interp,
-    Generation::SymmetricTest()
-    .rule(move_to_heap(testTermFactoring(Shell::Options::UnificationWithAbstraction::ALASCA_ONE_INTERP)))
+    alascaSymmetricTest("alasca_one_interp")
       .inputs  ({    clause({     f(x) + f(f(x) + y) > 0  })    })
       .expected(exactly( clause({ 2 * f(x) > 0, f(x) + y != x }) )))
 
 TEST_GENERATION(tricky_uwa_01,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({    clause({     f(x) + f(f(x) + y) > 0  })    })
       .expected(exactly( clause({ 2 * f(x) > 0 }) )))
 
 TEST_GENERATION(tricky_uwa_02,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({    clause({     f(x) + f(f(x)) > 0  })    })
       .expected(exactly( /* nothing */ )))
 
 TEST_GENERATION(tricky_uwa_03,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({    clause({     f(x) + f(g(x, x + y)) > 0  })    })
       .expected(exactly( /* nothing */ )))
 
 TEST_GENERATION(tricky_uwa_04,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({        clause({  f(x) + f(g(x + z, x + y)) > 0  }) })
       .expected(exactly( clause({  2 * f(x) > 0, x != g(x + z, x + y)  }) )))
+
+}

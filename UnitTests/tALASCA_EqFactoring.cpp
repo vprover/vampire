@@ -26,6 +26,8 @@ using namespace Inferences::ALASCA;
 ////// TEST CASES 
 /////////////////////////////////////
 
+namespace {
+
 #define INT_TESTS 0
 
 #define SUGAR(Num)                                                                                  \
@@ -46,9 +48,9 @@ using namespace Inferences::ALASCA;
   DECL_CONST(ba, alpha)                                                                             \
   DECL_FUNC(fn, {alpha}, Num)                                                                       \
 
+#define MY_GEN_RULE     EqFactoring
+#define MY_GEN_TESTER   AlascaGenerationTester
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
-
-REGISTER_GEN_TESTER(AlascaGenerationTester<EqFactoring>())
 
 /////////////////////////////////////////////////////////
 // Basic tests
@@ -56,84 +58,84 @@ REGISTER_GEN_TESTER(AlascaGenerationTester<EqFactoring>())
 
 
 TEST_GENERATION(basic01,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({        clause({      selected(f(a) - c == 0), selected(f(a) - b == 0 ),  })  })
       .expected(exactly( clause({           b != c,                      f(a) - b == 0     })  ))
     )
 
 TEST_GENERATION(basic02a,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({        clause({      selected(4 * f(a) - c == 0), selected( 3 * f(a) - b == 0 ),  }) })
       .expected(exactly( clause({           frac(1, 3) * b != frac(1,4) * c,  3 * f(a) - b == 0     }) ))
     )
 
 TEST_GENERATION(basic02b,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({        clause({      selected(-4 * f(a) + c == 0), selected( 3 * f(a) - b == 0 ),  }) })
       .expected(exactly( clause({           frac(1, 3) * b != frac(1,4) * c,  3 * f(a) - b == 0     }) ))
     )
 
 TEST_GENERATION(basic02c,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({        clause({      selected(-4 * f(a) + c == 0), selected( -3 * f(a) + b == 0 ),  }) })
       .expected(exactly( clause({           frac(1, 3) * b != frac(1,4) * c,  -3 * f(a) + b == 0     }) ))
     )
 
 TEST_GENERATION(basic02d,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({        clause({      selected(-4 * f(a) - c == 0), selected( -3 * f(a) + b == 0 ),  }) })
       .expected(exactly( clause({           frac(1, 3) * b != frac(-1,4) * c,  -3 * f(a) + b == 0     }) ))
     )
 
 TEST_GENERATION(basic02e,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({        clause({      selected(-4 * f(a) - c == 0), selected( 3 * f(a) + b == 0 ),  }) })
       .expected(exactly( clause({           frac(-1, 3) * b != frac(-1,4) * c,  3 * f(a) + b == 0     }) ))
     )
 
 TEST_GENERATION(basic03_different_sorts_a,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({        clause({      selected(f(a) - c == 0), selected( f(a) + b == 0 ), selected( fa(f(a)) == aa )  }) })
       .expected(exactly( /* northing */ ))
     )
 
 TEST_GENERATION(basic03_different_sorts_b,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({        clause({      selected(f(a) - c == 0), selected( f(a) + b == 0 ), selected( fa(f(a)) == aa ), selected( fa(f(a)) == ba )  }) })
       .expected(exactly( clause({               f(a) - c == 0,            f(a) + b == 0  ,           fa(f(a)) == aa  ,                ba != aa     }) ))
     )
 
 TEST_GENERATION(basic03_different_sorts_c,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({        clause({      selected(fn(fa(a)) - c == 0), selected( fn(fa(a)) - b == 0 ), selected( fa(a) == aa ), selected( fa(a) == ba )  }) })
       .expected(exactly( clause({                       b != c     ,           fn(fa(a)) - b == 0  ,           fa(a) == aa  ,           fa(a) == ba    }) ))
     )
 
 TEST_GENERATION(basic03_different_sorts_d,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({        clause({       selected( fn(fa(a)) - b == 0 ), selected( fa(a) == aa ), selected( fa(a) == ba )  }) })
       .expected(exactly( /* nothing */ ))
     )
 
 TEST_GENERATION(unshielded_variables_01,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({        clause({  x == aa, fa(b) == ba  }) })
       .expected(exactly( clause({ ba != aa, fa(b) == aa  })  )))
 
 TEST_GENERATION(unshielded_variables_02,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({        clause({ x - a == 0, f(b) - b == 0  }) })
       .expected(exactly( /* nothing */ )))
 
 #if INT_TESTS
 TEST_GENERATION_WITH_SUGAR(int_01, SUGAR(Int),
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({        clause({      selected(f(a) - c == 0), selected(f(a) - b == 0 ),  })  })
       .expected(exactly( clause({           b != c,                      f(a) - b == 0     })  ))
     )
 
 TEST_GENERATION_WITH_SUGAR(int_02a, SUGAR(Int),
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({        clause({      selected(4 * f(a) - c == 0), selected( 3 * f(a) - b == 0 ),  }) })
       .expected(exactly( clause({           4 * b != 3 * c,  3 * f(a) - b == 0     }) ))
     )
@@ -141,10 +143,12 @@ TEST_GENERATION_WITH_SUGAR(int_02a, SUGAR(Int),
 #endif // INT_TESTS
 
 TEST_GENERATION(two_var_01,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({        clause({      x - a == 0, y == aa,  })  })
       .expected(exactly( /* nothing */ ))
     )
 
 
   // xa == ya \/ xn == yn
+
+}

@@ -24,28 +24,12 @@ template<class Rule>
 struct AlascaSimplRule 
   : public SimplifyingGeneratingInference
 {
-  Option<std::shared_ptr<AlascaState>> _state;
-
   Rule _rule;
   ALASCA::Normalization _norm;
-  AlascaSimplRule()
-    : _state(testAlascaState()) 
-    , _rule(*_state)
-    , _norm(*_state)
+  AlascaSimplRule(SaturationAlgorithm& salg)
+    : _rule(salg)
+    , _norm(salg)
   { }
-
-  std::shared_ptr<AlascaState> state() const { return *_state; }
-
-  AlascaSimplRule(std::shared_ptr<AlascaState> state, Rule r, ALASCA::Normalization n) : _state(state), _rule(std::move(r)), _norm(std::move(n)) {}
-  AlascaSimplRule(std::shared_ptr<AlascaState> state, Rule r) : _state(state), _rule(std::move(r)), _norm(state) {}
-
-  void attach(SaturationAlgorithm* salg) final override {
-    _rule.attach(salg);
-  }
-
-  void detach() final override {
-    _rule.detach();
-  }
 
   ClauseGenerationResult generateSimplify(Clause* premise) final override {
     auto res = _rule.generateSimplify(_norm.simplify(premise));
@@ -59,19 +43,13 @@ struct AlascaSimplRule
   }
 };
 
-template<class Rule>
-AlascaSimplRule<Rule> alascaSimplRule(std::shared_ptr<AlascaState> state, Rule r, ALASCA::Normalization n) { return AlascaSimplRule<Rule>(std::move(state), std::move(r), std::move(n)); }
-
 template<class ISE>
 struct ToSgi : SimplifyingGeneratingInference {
   ISE self;
 
-  ToSgi(ISE ise) : self(std::move(ise)) {}
+  ToSgi(SaturationAlgorithm& salg) : self(salg) {}
 
-  void attach(SaturationAlgorithm* salg) final override { }
-
-  void detach() final override { }
-ClauseGenerationResult generateSimplify(Clause* premise) final override { auto concl = self.simplify(premise);
+  ClauseGenerationResult generateSimplify(Clause* premise) final override { auto concl = self.simplify(premise);
     return concl == nullptr 
          ? ClauseGenerationResult {
              .clauses = pvi(iterItems<Clause*>()),
@@ -97,13 +75,13 @@ ToSgi<ISE> toSgi(ISE ise) { return ToSgi<ISE>(std::move(ise)); }
 
 struct AlascaTestUtil {
 
-  static Clause* normalize(std::shared_ptr<AlascaState> state, Kernel::Clause* c)
-  { return ALASCA::Normalization(state).simplify(c); }
+  // static Clause* normalize(ALASCA::Normalization& norm, Kernel::Clause* c)
+  // { return norm.simplify(c); }
 
-  static bool eq(std::shared_ptr<AlascaState> state, Kernel::Clause* lhs, Kernel::Clause* rhs)
+  static bool eq(ALASCA::Normalization& norm, Kernel::Clause* lhs, Kernel::Clause* rhs)
   { 
-    lhs = normalize(state, lhs);
-    rhs = normalize(state, rhs);
+    lhs = norm.simplify( lhs);
+    rhs = norm.simplify( rhs);
     auto vars = [](auto cl) {
       auto vs = cl->iterLits()
         .flatMap([](Literal* lit) { return vi(new VariableIterator(lit)); })
@@ -144,29 +122,27 @@ struct AlascaTestUtil {
                     }));
               }),
             Inference(NonspecificInference1(InferenceRule::RECTIFY, rhs)));
-        auto r = normalize(state, renamed);
+        auto r = norm.simplify(renamed);
         return Test::TestUtils::eqModAC(lhs, r); 
     });
   }
 };
 
-template<class Rule> 
-class AlascaGenerationTester : public Test::Generation::GenerationTester<AlascaSimplRule<Rule>>
+class AlascaGenerationTester : public Test::Generation::GenerationTester
 {
- public:
+  ALASCA::Normalization _norm;
 
- std::shared_ptr<AlascaState> state() { return Test::Generation::GenerationTester<AlascaSimplRule<Rule>>::_rule.state(); }
+public:
+  AlascaGenerationTester(SaturationAlgorithm& salg)
+    : GenerationTester(salg), _norm(salg)
+  {}
 
-  AlascaGenerationTester(AlascaSimplRule<Rule> r) : Test::Generation::GenerationTester<AlascaSimplRule<Rule>>(std::move(r)) { }
-  AlascaGenerationTester() : AlascaGenerationTester(AlascaSimplRule<Rule>()) { }
+  Clause* normalize(Kernel::Clause* c) override
+  { return _norm.simplify(c); }
 
-  virtual Clause* normalize(Kernel::Clause* c) override 
-  { return Test::Generation::GenerationTester<AlascaSimplRule<Rule>>::_rule._norm.simplify(c); }
-
-  virtual bool eq(Kernel::Clause* lhs, Kernel::Clause* rhs) override
-  { return AlascaTestUtil::eq(state(), lhs, rhs); }
+  bool eq(Kernel::Clause* lhs, Kernel::Clause* rhs) override
+  { return AlascaTestUtil::eq(_norm, lhs, rhs); }
 };
-
 
 inline void overrideFractionalNumerals(IntTraits n) { }
 
@@ -203,6 +179,17 @@ void mkAlascaSyntaxSugar(NumTraits n) {
   overrideFractionalNumerals(n);
 }
 
+inline Test::OptionMap alascaTestOptions(const char* uwaMode = "alasca_main") {
+  return {
+    { "abstracting_linear_arithmetic_superposition_calculus", "on" },
+    { "term_ordering", "qkbo" },
+    { "unification_with_abstraction", uwaMode },
+  };
+}
 
+inline auto alascaSymmetricTest(const char* uwaMode = "alasca_main") {
+  return Test::Generation::SymmetricTest()
+    .options(alascaTestOptions(uwaMode));
+}
 
 #endif // def __TEST_ALASCA_SIMPL_RULE__

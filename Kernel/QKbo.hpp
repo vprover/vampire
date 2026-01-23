@@ -69,17 +69,14 @@ using namespace Lib;
 class QKbo
   : public Ordering
 {
-  std::shared_ptr<InequalityNormalizer> _norm;
+  const InequalityNormalizer& _norm;
   KBO _kbo;
 public:
   USE_ALLOCATOR(QKbo);
-
-  QKbo(QKbo&& kbo) = default;
-  QKbo& operator=(QKbo&& kbo) = default;
-  explicit QKbo(KBO kbo, std::shared_ptr<InequalityNormalizer> norm);
+  explicit QKbo(KBO kbo);
 
   QKbo(Problem& prb, const Options& opts)
-    : QKbo(KBO(prb, opts, /* qkboPrecedence */ true), InequalityNormalizer::global()) {}
+    : QKbo(KBO(prb, opts, /* qkboPrecedence */ true)) {}
 
   ~QKbo() override {}
 
@@ -89,7 +86,7 @@ public:
   void show(std::ostream& out) const final ;
 
 private:
-  auto& norm() const { return *_norm; }
+  auto& norm() const { return _norm; }
 
   auto asClosure() const
   { return [this](auto const& l, auto const& r) { return this->compare(l, r); }; }

@@ -22,6 +22,7 @@
 #include "Lib/List.hpp"
 #include "Lib/ScopedPtr.hpp"
 
+#include "Kernel/ALASCA/State.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/MainLoop.hpp"
 #include "Kernel/RCClauseStack.hpp"
@@ -62,6 +63,11 @@ public:
     return prb.hasEquality() || (prb.hasFOOL() && opt.FOOLParamodulation()) ||
       (opt.questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
   }
+  static bool doesAlascaTakeOver(const Problem& prb, const Options& opt) {
+    // TODO some unit tests fail because of the second conjunct
+    return opt.alasca() && prb.hasAlascaArithmetic();
+  }
+
   static SaturationAlgorithm* createFromOptions(Problem& prb, const Options& opt);
 
   SaturationAlgorithm(Problem& prb, const Options& opt);
@@ -74,7 +80,6 @@ public:
 
   UnitList* collectSaturatedSet();
 
-  void setGeneratingInferenceEngine(SimplifyingGeneratingInference* generator);
   void setImmediateSimplificationEngine(ImmediateSimplificationEngine* immediateSimplifier);
   void setImmediateSimplificationEngineMany(CompositeISEMany ise) { _immediateSimplifierMany = std::move(ise); }
 
@@ -123,6 +128,7 @@ public:
   Ordering& getOrdering() const {  return *_ordering; }
   LiteralSelector& getLiteralSelector() const { return *_selector; }
   const PartialRedundancyHandler& parRedHandler() const { return *_partialRedundancyHandler; }
+  AlascaState& alascaState() { return *_alascaState; }
 
   /**
    * if an intermediate clause is derived somewhere, it still needs to be passed to this function
@@ -225,6 +231,7 @@ protected:
 
   Splitter* _splitter;
 
+  std::unique_ptr<AlascaState> _alascaState;
   ConsequenceFinder* _consFinder;
   LabelFinder* _labelFinder;
   SymElOutput* _symEl;
@@ -253,8 +260,7 @@ protected:
   /** Number of clauses that entered the unprocessed container */
   unsigned _activationLimit;
 private:
-  static std::pair<CompositeISE*, CompositeISEMany> createISE(Problem& prb, const Options& opt, const Ordering& ordering,
-     bool alascaTakesOver);
+  static std::pair<CompositeISE*, CompositeISEMany> createISE(Problem& prb, const Options& opt, const Ordering& ordering);
 
   // a "soft" time limit in deciseconds, checked manually: 0 is no limit
   unsigned _softTimeLimit = 0;

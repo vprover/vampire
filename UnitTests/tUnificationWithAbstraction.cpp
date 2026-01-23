@@ -11,6 +11,7 @@
 #include "Forwards.hpp"
 #include "Indexing/SubstitutionTree.hpp"
 
+#include "Kernel/ALASCA/Normalization.hpp"
 #include "Shell/Options.hpp"
 #include "Test/TestUtils.hpp"
 
@@ -66,9 +67,9 @@ struct UnificationResultSpec {
 
   friend bool operator==(UnificationResultSpec const& l, UnificationResultSpec const& r)
   {
-    static shared_ptr<AlascaState> state = testAlascaState();
+    static InequalityNormalizer norm;
     auto eq = [&](auto t1, auto t2) { 
-      return (l.alascaSimpl || r.alascaSimpl) ? state->norm().equivalent(t1, t2)
+      return (l.alascaSimpl || r.alascaSimpl) ? norm.equivalent(t1, t2)
                                             : Test::TestUtils::eqModAC(t1, t2);
     };
     return eq(l.querySigma, r.querySigma)

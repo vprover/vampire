@@ -26,6 +26,17 @@ using namespace Test;
 /////////////////////////////////////
 
 
+class SynthesisALProcessorTester : public SynthesisAnswerLiteralProcessor
+{
+public:
+  SynthesisALProcessorTester()
+  {
+    env.options->set("question_answering", "synthesis");
+  }
+};
+
+#define MY_SIMPL_RULE SynthesisALProcessorTester
+#define MY_SIMPL_TESTER Simplification::SimplificationTester
 #define MY_SYNTAX_SUGAR                                                                   \
   DECL_DEFAULT_VARS                                                                       \
   DECL_SORT(s)                                                                            \
@@ -35,20 +46,6 @@ using namespace Test;
   DECL_ANSWER_PRED (ans, {s})                                                             \
   DECL_PRED (p, {s})                                                                      \
   DECL_PRED (q, {s})                                                                      \
-
-class SynthesisALProcessorTester : public Test::Simplification::SimplificationManyTester<SynthesisAnswerLiteralProcessor>
-{
-public:
-  SynthesisALProcessorTester()
-    : Test::Simplification::SimplificationManyTester<SynthesisAnswerLiteralProcessor>(SynthesisAnswerLiteralProcessor())
-  {
-    env.options->set("question_answering", "synthesis");
-  }
-  virtual Option<ClauseIterator> simplifyMany(Kernel::Clause* in) override 
-  { return _rule.simplifyMany(in); }
-};
-
-REGISTER_SIMPL_MANY_TESTER(SynthesisALProcessorTester)
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////// TEST CASES
@@ -81,7 +78,9 @@ TEST_SIMPLIFY_MANY(three_answer_literals_binary_resolution,
     )
 
 TEST_SIMPLIFY_MANY(two_answer_literals_binary_resolution,
-    Literal *al1 = ~ans(f(x)), *al2 = ~ans(a), *cond = q(a);
+    Literal *al1 = ~ans(f(x));
+    Literal *al2 = ~ans(a);
+    Literal *cond = q(a);
     Clause* cl = clause({ p(x), al1, al2 }, Inference(Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::RESOLUTION)));
     env.proofExtra.insert(cl, new Inferences::TwoLiteralInferenceExtra(
       q(a),
@@ -98,7 +97,9 @@ TEST_SIMPLIFY_MANY(two_answer_literals_binary_resolution,
     )
 
 TEST_SIMPLIFY_MANY(two_answer_literals_superposition,
-    Literal *al1 = ~ans(f(x)), *al2 = ~ans(a), *cond = g(a)==f(x);
+    Literal *al1 = ~ans(f(x));
+    Literal *al2 = ~ans(a);
+    Literal *cond = g(a)==f(x);
     Clause* cl = clause({ p(g(a)), al1, al2 }, Inference(Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::SUPERPOSITION)));
     env.proofExtra.insert(cl, new Inferences::TwoLiteralRewriteInferenceExtra(
       p(f(x)),
@@ -117,7 +118,9 @@ TEST_SIMPLIFY_MANY(two_answer_literals_superposition,
     )
 
 TEST_SIMPLIFY_MANY(twice_the_same_answer_literal_binary_resolution,
-    Literal *al1 = ~ans(f(x)), *al2 = ~ans(f(x)), *cond = q(a);
+    Literal *al1 = ~ans(f(x));
+    Literal *al2 = ~ans(f(x));
+    Literal *cond = q(a);
     Clause* cl = clause({ p(x), al1, al2 }, Inference(Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::RESOLUTION)));
     env.proofExtra.insert(cl, new Inferences::TwoLiteralInferenceExtra(
       q(a),

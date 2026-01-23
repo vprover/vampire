@@ -14,63 +14,46 @@
 #ifndef __ALASCA_State__
 #define __ALASCA_State__
 
+#include "Kernel/ALASCA/Normalization.hpp"
 #include "Kernel/ALASCA/SelectionPrimitves.hpp"
 #include "Kernel/UnificationWithAbstraction.hpp"
 
 namespace Kernel {
   struct AlascaState 
   {
+    const InequalityNormalizer _normalizer;
+    const Ordering& ordering;
+    Shell::Options::UnificationWithAbstraction uwa;
+    bool const uwaFixedPointIteration;
+
+  public:
     USE_ALLOCATOR(AlascaState);
 
-    // TODO get rid of this
-    static std::shared_ptr<AlascaState> globalState;
-
-  private:
     AlascaState(
-          std::shared_ptr<InequalityNormalizer> normalizer,
-          Ordering* const ordering,
+          const Ordering& ordering,
           Shell::Options::UnificationWithAbstraction uwa,
           bool fixedPointIteration
         )
-      : _normalizer(std::move(normalizer))
-      , ordering(std::move(ordering))
+      : _normalizer(InequalityNormalizer::global())
+      , ordering(ordering)
       , uwa(uwa) 
       , uwaFixedPointIteration(fixedPointIteration)
     {}
 
-  public:
-    std::shared_ptr<InequalityNormalizer> _normalizer;
-    Ordering* const ordering;
-    Shell::Options::UnificationWithAbstraction uwa;
-    bool const uwaFixedPointIteration;
-
-    InequalityNormalizer& norm() const { return *_normalizer; }
-    std::shared_ptr<InequalityNormalizer> normalizerPtr() const { return _normalizer; }
+    const InequalityNormalizer& norm() const { return _normalizer; }
 
     Shell::Options::UnificationWithAbstraction uwaMode() const { return uwa; }
-
-
-    static std::shared_ptr<AlascaState> create(
-          std::shared_ptr<InequalityNormalizer> normalizer,
-          Ordering* const ordering,
-          Shell::Options::UnificationWithAbstraction const uwa,
-          bool const fixedPointIteration
-        ) 
-    {
-      globalState = Lib::make_shared(AlascaState(std::move(normalizer), ordering, uwa, fixedPointIteration));
-      return globalState;
-    }
 
     bool isAtomic(Term* t) const
     { return forAllNumTraits([&](auto n) { return asig(n).isAtomic(t); }); }
 
     bool isAtomic(TermList t) const { return t.isTerm() && isAtomic(t.term()); }
 
-    auto maxLits(Clause* cl, SelectionCriterion sel) {
+    auto maxLits(Clause* cl, SelectionCriterion sel) const {
       return OrderingUtils::maxElems(
           cl->size(), 
           [=](unsigned l, unsigned r) 
-          { return ordering->compare((*cl)[l], (*cl)[r]); },
+          { return ordering.compare((*cl)[l], (*cl)[r]); },
           [=](unsigned i) -> Literal&
           { return *(*cl)[i]; },
           sel)
@@ -79,19 +62,19 @@ namespace Kernel {
     }
 
     template<class LitOrTerm>
-    bool greater(LitOrTerm lhs, LitOrTerm rhs)
-    { return ordering->compare(lhs, rhs) == Ordering::Result::GREATER; }
+    bool greater(LitOrTerm lhs, LitOrTerm rhs) const
+    { return ordering.compare(lhs, rhs) == Ordering::Result::GREATER; }
 
     template<class LitOrTerm>
-    bool notLess(LitOrTerm lhs, LitOrTerm rhs)
-    { return OrderingUtils::notLess(ordering->compare(lhs, rhs)); }
+    bool notLess(LitOrTerm lhs, LitOrTerm rhs) const
+    { return OrderingUtils::notLess(ordering.compare(lhs, rhs)); }
 
     template<class LitOrTerm>
-    bool notLeq(LitOrTerm lhs, LitOrTerm rhs)
-    { return OrderingUtils::notLeq(ordering->compare(lhs, rhs)); }
+    bool notLeq(LitOrTerm lhs, LitOrTerm rhs) const
+    { return OrderingUtils::notLeq(ordering.compare(lhs, rhs)); }
 
     template<class NumTraits>
-    auto maxSummandIndices(AlascaLiteral<NumTraits> const& lit, SelectionCriterion selection)
+    auto maxSummandIndices(AlascaLiteral<NumTraits> const& lit, SelectionCriterion selection) const
     {
         // TODO optimize less denormalization
         auto monomAt = [=](auto i) 
@@ -100,7 +83,7 @@ namespace Kernel {
         return iterTraits(OrderingUtils::maxElems(
                   lit.term().nSummands(),
                   [=](unsigned l, unsigned r) 
-                  { return ordering->compare(monomAt(l), monomAt(r)); },
+                  { return ordering.compare(monomAt(l), monomAt(r)); },
                   [=](unsigned i)
                   { return monomAt(i); },
                   selection))
@@ -111,15 +94,15 @@ namespace Kernel {
 
 
     template<class T>
-    auto maxSummandIndices(std::shared_ptr<T> const& sum, SelectionCriterion selection)
+    auto maxSummandIndices(std::shared_ptr<T> const& sum, SelectionCriterion selection) const
     { return maxSummandIndices(*sum, selection); }
 
     template<class T>
-    auto maxSummandIndices(Recycled<T> const& sum, SelectionCriterion selection)
+    auto maxSummandIndices(Recycled<T> const& sum, SelectionCriterion selection) const
     { return maxSummandIndices(*sum, selection); }
 
     template<class Numeral>
-    auto maxSummandIndices(Stack<std::pair<TermList, Numeral>> const& sum, SelectionCriterion selection)
+    auto maxSummandIndices(Stack<std::pair<TermList, Numeral>> const& sum, SelectionCriterion selection) const
     {
         auto monomAt = [=](auto i) 
              { return sum[i].first; }; 
@@ -127,7 +110,7 @@ namespace Kernel {
         return iterTraits(OrderingUtils::maxElems(
                   sum.size(),
                   [=](unsigned l, unsigned r) 
-                  { return ordering->compare(monomAt(l), monomAt(r)); },
+                  { return ordering.compare(monomAt(l), monomAt(r)); },
                   [=](unsigned i)
                   { return monomAt(i); },
                   selection));
@@ -135,14 +118,14 @@ namespace Kernel {
 
 
 
-    auto maxEqIndices(Literal* lit, SelectionCriterion sel)
+    auto maxEqIndices(Literal* lit, SelectionCriterion sel) const
     {
       Stack<unsigned> is(2);
       auto iter = [](std::initializer_list<unsigned> out)  
                   { return arrayIter(Stack<unsigned>(out)); };
       switch (sel) {
         case SelectionCriterion::STRICTLY_MAX:
-          switch (ordering->compare(lit->termArg(0), lit->termArg(1))) {
+          switch (ordering.compare(lit->termArg(0), lit->termArg(1))) {
             case Ordering::Result::GREATER: return iter({0});
             case Ordering::Result::LESS:    return iter({1});
 
@@ -154,7 +137,7 @@ namespace Kernel {
           return iter({0,1});
 
         case SelectionCriterion::NOT_LESS:
-          switch (ordering->compare(lit->termArg(0), lit->termArg(1))) {
+          switch (ordering.compare(lit->termArg(0), lit->termArg(1))) {
             case Ordering::Result::GREATER: return iter({0});
             case Ordering::Result::LESS:    return iter({1});
 
@@ -163,7 +146,7 @@ namespace Kernel {
           }
 
         case SelectionCriterion::NOT_LEQ:
-          switch (ordering->compare(lit->termArg(0), lit->termArg(1))) {
+          switch (ordering.compare(lit->termArg(0), lit->termArg(1))) {
             case Ordering::Result::GREATER: return iter({0});
             case Ordering::Result::LESS:    return iter({1});
             case Ordering::Result::EQUAL:        return iter({});
@@ -174,7 +157,7 @@ namespace Kernel {
       return arrayIter(std::move(is));
     }
 
-    auto selectUninterpretedEquality(SelectedLiteral lit, SelectionCriterion sel)
+    auto selectUninterpretedEquality(SelectedLiteral lit, SelectionCriterion sel) const
     { return maxEqIndices(lit.literal(), sel)
         .map([lit](auto i) { return SelectedUninterpretedEquality(lit, i); }); }
 
@@ -201,7 +184,7 @@ namespace Kernel {
     }
 
 
-    bool subtermEqModT(TermList sub, TermList sup)
+    bool subtermEqModT(TermList sub, TermList sup) const
     {
       ASS(isAtomic(sub))
       return norm().normalize(sup).denormalize()
@@ -209,7 +192,7 @@ namespace Kernel {
     }
 
 
-    auto maxSummands(SelectedLiteral sel_lit , SelectionCriterion sel) 
+    auto maxSummands(SelectedLiteral sel_lit , SelectionCriterion sel) const
     { return coproductIter(sel_lit.interpreted.unwrap()
                 .applyCo([&](auto& lit) 
                        { return maxSummandIndices(lit, sel); }))
@@ -220,7 +203,7 @@ namespace Kernel {
     auto selectedActivePositions(
         Clause* cl, SelectionCriterion selLit, 
         SelectionCriterion selSum,
-        bool includeUnshieldedNumberVariables)
+        bool includeUnshieldedNumberVariables) const
     {
       using Out = Coproduct<SelectedSummand, SelectedUninterpretedEquality, SelectedUninterpretedPredicate>;
       return maxLits(cl, selLit)
@@ -244,13 +227,13 @@ namespace Kernel {
     auto isUninterpreted(Literal* l) const 
     { return !l->isEquality() && norm().tryNormalizeInterpreted(l).isNone(); }
 
-    auto selectedUninterpretedLiterals(Clause* cl, SelectionCriterion selLit) {
+    auto selectedUninterpretedLiterals(Clause* cl, SelectionCriterion selLit) const {
       return maxLits(cl, selLit)
         .filter([&](auto& lit) { return isUninterpreted(lit.literal()); });
     }
 
 
-    auto selectedEqualities(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables) {
+    auto selectedEqualities(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables) const {
       using Out = SelectedEquality;
       return selectedActivePositions(cl, selLit, selTerm, includeUnshieldedNumberVariables)
         .filterMap([](auto x) -> Option<Out>
@@ -270,10 +253,10 @@ namespace Kernel {
     }
 
 
-    bool interpretedFunction(TermList t) 
+    bool interpretedFunction(TermList t) const
     { return t.isTerm() && interpretedFunction(t.term()); }
 
-    bool interpretedFunction(Term* t) 
+    bool interpretedFunction(Term* t) const
     { return forAnyNumTraits([&](auto numTraits) -> bool {
             return theory->isInterpretedFunction(t, numTraits.addI)
                 || theory->isInterpretedFunction(t, numTraits.minusI)
@@ -292,7 +275,7 @@ namespace Kernel {
       });
     }
 
-    bool isUninterpretedEquality(Literal* t) {
+    bool isUninterpretedEquality(Literal* t) const {
       return t->isEquality()
         && !forAnyNumTraits([&](auto numTraits) -> bool {
             return SortHelper::getEqualityArgumentSort(t) == numTraits.sort();
@@ -300,7 +283,7 @@ namespace Kernel {
     }
 
 
-    auto maxAtoms(Clause* cl, SelectionCriterion criterion, bool includeUnshieldedNumberVariables) {
+    auto maxAtoms(Clause* cl, SelectionCriterion criterion, bool includeUnshieldedNumberVariables) const {
       using Out = SelectedAtom;
       auto atoms = Lib::make_shared(Stack<Out>());
       for (unsigned i : range(0, cl->size())) {
@@ -326,7 +309,7 @@ namespace Kernel {
       return OrderingUtils::maxElems(
           atoms->size(), 
           [=](unsigned l, unsigned r) 
-          { return ordering->compare((*atoms)[l].atom(), (*atoms)[r].atom()); },
+          { return ordering.compare((*atoms)[l].atom(), (*atoms)[r].atom()); },
           [=](unsigned i)
           { return (*atoms)[i].atom(); },
           criterion)
@@ -338,7 +321,7 @@ namespace Kernel {
     }
 
 
-    auto selectedSummands(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables) {
+    auto selectedSummands(Clause* cl, SelectionCriterion selLit, SelectionCriterion selTerm, bool includeUnshieldedNumberVariables) const {
       using Out = SelectedSummand;
       return selectedActivePositions(cl, selLit, selTerm, includeUnshieldedNumberVariables)
         .filterMap([](auto x) -> Option<Out> {
@@ -361,7 +344,7 @@ namespace Kernel {
 
 
     template<class LitOrTerm, class Iter>
-    bool strictlyMaximal(LitOrTerm pivot, Iter lits)
+    bool strictlyMaximal(LitOrTerm pivot, Iter lits) const
     {
       bool found = false;
       for (auto lit : iterTraits(lits)) {
@@ -372,7 +355,7 @@ namespace Kernel {
             found = true;
           }
         }
-        if (ordering->compare(pivot, lit) == Ordering::LESS) {
+        if (ordering.compare(pivot, lit) == Ordering::LESS) {
           return false;
         }
       }
@@ -380,17 +363,6 @@ namespace Kernel {
       return true;
     }
   };
-
-#if VDEBUG
-  std::shared_ptr<AlascaState> testAlascaState(
-    Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA_MAIN,
-    std::shared_ptr<InequalityNormalizer> strongNormalization = Lib::make_shared(InequalityNormalizer()),
-    Ordering* ordering = nullptr,
-    bool uwaFixdPointIteration = false
-    );
-#endif
-
-
 } // namespace Kernel
  
 #endif // __ALASCA_State__

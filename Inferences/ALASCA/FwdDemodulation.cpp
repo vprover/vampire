@@ -21,11 +21,9 @@ using Demod = Inferences::ALASCA::Demodulation;
 namespace Inferences {
 namespace ALASCA {
 
-FwdDemodulation::FwdDemodulation(std::shared_ptr<AlascaState> shared, SaturationAlgorithm& salg)
-  : _shared(shared), _index(salg.getSimplifyingIndex<AlascaIndex<Demodulation::Lhs>>())
-{
-  _index->setShared(_shared);
-}
+FwdDemodulation::FwdDemodulation(SaturationAlgorithm& salg)
+  : _shared(salg.alascaState()), _index(salg.getSimplifyingIndex<AlascaIndex<Demodulation::Lhs>>())
+{}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // RULE APPLICATION
@@ -44,10 +42,10 @@ bool FwdDemodulation::perform(Clause* toSimplify, Clause*& replacement, ClauseIt
 {
   ASS_EQ(replacement, NULL)
   Stack<Literal*> simplified;
-  for (auto rhs : Rhs::iter(*_shared, toSimplify)) {
+  for (auto rhs : Rhs::iter(_shared, toSimplify)) {
     // DEBUG("simplifyable position: ", pos.term, " in ", *pos.lit)
     for (auto lhs : _index->generalizations(rhs.term)) {
-      auto simplified = Demodulation::apply(*_shared, *lhs.data, rhs);
+      auto simplified = Demodulation::apply(_shared, *lhs.data, rhs);
       if (simplified.isSome()) {
         replacement = simplified.unwrap();
         premises    = pvi(iterItems(lhs.data->clause()));

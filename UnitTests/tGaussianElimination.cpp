@@ -7,16 +7,14 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
+#include "Inferences/LfpRule.hpp"
 #include "Test/AlascaTestUtils.hpp"
-#include "Test/TestUtils.hpp"
-#include "Test/SyntaxSugar.hpp"
 #include "Inferences/GaussianVariableElimination.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Inferences/Cancellation.hpp"
 
 #include "Test/SyntaxSugar.hpp"
-#include "Test/TestUtils.hpp"
 #include "Test/SimplificationTester.hpp"
 #include "Test/GenerationTester.hpp"
 #include "Kernel/KBO.hpp"
@@ -33,14 +31,13 @@ using namespace Test;
 /** 
  * NECESSARY: We need a subclass of SimplificationTester
  */
-class GveSimplTester : public Test::Simplification::SimplificationTester
+class GveSimplTester : public ImmediateSimplificationEngine
 {
 public:
-
   /**
    * NECESSARY: performs the simplification
    */
-  virtual Kernel::Clause* simplify(Kernel::Clause* in) override 
+  Kernel::Clause* simplify(Kernel::Clause* in) override 
   {
     KBO ord = KBO::testKBO();
     auto simpl = [](Clause* cl)  -> Clause*
@@ -60,21 +57,13 @@ public:
     } while (latest != last);
     return latest;
   }
-
-  /** 
-   * OPTIONAL: override how equality between clauses is checked. 
-   * Defaults to TestUtils::eqModAC(Clause*, Clause*).
-   */
-  virtual bool eq(Kernel::Clause* lhs, Kernel::Clause* rhs) const override
-  {
-    return TestUtils::eqModAC(lhs, rhs);
-  }
 };
 
 /**
  * NECESSARY: Register our simpl tester as the one to use
  */
-REGISTER_SIMPL_TESTER(GveSimplTester)
+#define MY_SIMPL_RULE   GveSimplTester
+#define MY_SIMPL_TESTER Simplification::SimplificationTester
 
 /**
  * NECESSARY: We need to tell the simplification tester which syntax sugar to import for creating terms & clauses.
@@ -158,8 +147,8 @@ TEST_SIMPLIFY(gve_test_div,
 ////// TEST CASES for generating inferences
 /////////////////////////////////////
 
-
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<LfpRule<GaussianVariableElimination>>(LfpRule<GaussianVariableElimination>()))
+#define MY_GEN_RULE   LfpRule<GaussianVariableElimination>
+#define MY_GEN_TESTER Test::Generation::GenerationTester
 
 TEST_GENERATION(test_redundancy_01,
     Generation::AsymmetricTest()

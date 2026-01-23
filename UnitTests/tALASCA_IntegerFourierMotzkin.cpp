@@ -28,6 +28,8 @@ using namespace Inferences::ALASCA;
 ////// TEST CASES 
 /////////////////////////////////////
 
+namespace {
+
 #define SUGAR(Num)                                                                        \
   NUMBER_SUGAR(Num)                                                                       \
   DECL_DEFAULT_VARS                                                                       \
@@ -83,17 +85,9 @@ using namespace Inferences::ALASCA;
   DECL_FUNC(ab, {Num}, Num)                                                               \
   DECL_FUNC(skx, {Num}, Num)                                                              \
 
+#define MY_GEN_RULE     IntegerFourierMotzkin<RealTraits>
+#define MY_GEN_TESTER   AlascaGenerationTester
 #define MY_SYNTAX_SUGAR SUGAR(Real)
-
-auto testIntegerFourierMotzkin(
-   Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA_MAIN
-    ) 
-{ 
-  auto s = testAlascaState(uwa);
-  return alascaSimplRule(s, IntegerFourierMotzkin<RealTraits>(s), s); 
-}
-
-REGISTER_GEN_TESTER(AlascaGenerationTester<IntegerFourierMotzkin<RealTraits>>(testIntegerFourierMotzkin()))
 
 /////////////////////////////////////////////////////////
 // Basic tests
@@ -102,7 +96,7 @@ REGISTER_GEN_TESTER(AlascaGenerationTester<IntegerFourierMotzkin<RealTraits>>(te
 #define isInt(t) floor(t) == t
 
 TEST_GENERATION(basic01,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ f3(a,b,c)  + a  > 0   }) 
                ,  clause({ -f3(a,b,c) + b > 0   }) 
                ,  clause({ isInt(f3(a,b,c)) }) })
@@ -112,7 +106,7 @@ TEST_GENERATION(basic01,
     )
 
 TEST_GENERATION(basic02,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ f3(a,b,c)  + a  > 0   }) 
                ,  clause({ -f3(a,b,c) + b > 0   }) 
                ,  clause({ isInt(b) }) })
@@ -122,7 +116,7 @@ TEST_GENERATION(basic02,
     )
 
 TEST_GENERATION(basic03,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ f3(a,b,c)  + a  > 0   }) 
                ,  clause({ -f3(a,b,c) + b > 0   }) 
                ,  clause({ f3(a,b,c) == floor(f(f3(a,b,c))) }) })
@@ -132,7 +126,7 @@ TEST_GENERATION(basic03,
     )
 
 TEST_GENERATION(basic04,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ f3(a,b,c)  + a  > 0   }) 
                ,  clause({ -f3(a,b,c) + b > 0   }) 
                ,  clause({ isInt(2 * f3(a,b,c)) }) })
@@ -142,7 +136,7 @@ TEST_GENERATION(basic04,
     )
 
 TEST_GENERATION(basic05,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ f3(a,b,c)  + a  > 0   }) 
                ,  clause({ -f3(a,b,c) + b > 0   }) 
                ,  clause({ isInt(f3(a,b,c) / 2) }) })
@@ -152,7 +146,7 @@ TEST_GENERATION(basic05,
     )
 
 TEST_GENERATION(basic06,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ f3(a,b,c)  + a  > 0   }) 
                ,  clause({ -f3(a,b,c) + b > 0   }) 
                ,  clause({ isInt(f3(a,b,c) / 2 + frac(1,2)) }) })
@@ -162,7 +156,7 @@ TEST_GENERATION(basic06,
     )
 
 TEST_GENERATION(basic07,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ f3(a,b,c)  + a  > 0   }) 
                ,  clause({ -f3(a,b,c) + b > 0   }) 
                ,  clause({ isInt(f3(a,b,c) / 2 + c) }) })
@@ -173,7 +167,7 @@ TEST_GENERATION(basic07,
 
 
 TEST_GENERATION(bug01,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ b  + a  > 0   }) 
                ,  clause({ -b - a > 0   }) 
                ,  clause({ floor(c) == -a - b }) })
@@ -183,7 +177,7 @@ TEST_GENERATION(bug01,
     )
 
 TEST_GENERATION(bug02,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ b  + a >= 0   }) 
                ,  clause({ -b - a >= 0   }) 
                ,  clause({ floor(c) == -a - b }) })
@@ -194,7 +188,7 @@ TEST_GENERATION(bug02,
 
 
 TEST_GENERATION(bug03,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ f3(a, y, z)  + a > 0   }) 
                ,  clause({ -f3(x, b, z) - a > 0   }) 
                ,  clause({ floor(-a - f3(x, y, c)) == -a - f3(x, y, c) }) })
@@ -203,3 +197,4 @@ TEST_GENERATION(bug03,
       ))
     )
 
+}

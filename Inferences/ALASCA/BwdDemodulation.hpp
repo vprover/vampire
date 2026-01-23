@@ -32,12 +32,12 @@ public:
   USE_ALLOCATOR(BwdDemodulation);
 
   BwdDemodulation(BwdDemodulation&&) = default;
-  BwdDemodulation(std::shared_ptr<AlascaState> shared, SaturationAlgorithm& salg);
+  BwdDemodulation(SaturationAlgorithm& salg);
 
   void perform(Clause* premise, BwSimplificationRecordIterator& simplifications) final;
 
 private:
-  std::shared_ptr<AlascaState> _shared;
+  AlascaState& _shared;
   std::shared_ptr<AlascaIndex<Rhs>> _index;
 };
 

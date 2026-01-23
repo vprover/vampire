@@ -38,7 +38,7 @@ class FloorBounds
 {
   using NumTraits = RealTraits;
 
-  std::shared_ptr<AlascaState> _shared;
+  AlascaState& _shared;
 
   static TermList floor(TermList t) { return TermList(NumTraits::floor(t)); }
   static TermList minus(TermList t) { return TermList(NumTraits::minus(t)); }
@@ -138,7 +138,7 @@ class FloorBounds
 
   template<class RuleKind>
   auto generateClauses(Clause* premise) const {
-    return iterTraits(RuleKind::iter(*_shared, premise))
+    return iterTraits(RuleKind::iter(_shared, premise))
       .filter([](auto x) { return NumTraits::ifFloor(x.selectedAtom(), [](auto...) { return true; }); })
       .flatMap([this](auto x) { return this->generateClauses(x); });
   }
@@ -147,15 +147,9 @@ public:
   USE_ALLOCATOR(FloorBounds);
 
   FloorBounds(FloorBounds&&) = default;
-  FloorBounds(std::shared_ptr<AlascaState> shared) 
-    : _shared(std::move(shared))
+  FloorBounds(SaturationAlgorithm& salg) 
+    : _shared(salg.alascaState())
   {  }
-
-  void attach(SaturationAlgorithm* salg) final
-  { GeneratingInferenceEngine::attach(salg); }
-
-  void detach() final
-  { ASS(_salg); GeneratingInferenceEngine::detach(); }
 
   ClauseIterator generateClauses(Clause* premise) final
   {

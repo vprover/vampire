@@ -19,7 +19,7 @@
 #include "Forwards.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
-#include "Kernel/ALASCA/Index.hpp"
+#include "Kernel/ALASCA/State.hpp"
 
 namespace Inferences {
 namespace ALASCA {
@@ -31,19 +31,19 @@ using namespace Saturation;
 class Normalization
 : public ImmediateSimplificationEngine 
 {
-  std::shared_ptr<AlascaState> _shared;
+  const AlascaState& _shared;
 public: 
-  Normalization(std::shared_ptr<AlascaState> shared) : _shared(std::move(shared)) {}
+  Normalization(SaturationAlgorithm& salg);
   USE_ALLOCATOR(Normalization);
 
-  Clause* simplify(Clause* cl) final ;
+  Clause* simplify(Clause* cl) final;
 };
 
 
 class FloorElimination
 : public ImmediateSimplificationEngine 
 {
-  std::shared_ptr<AlascaState> _shared;
+  const AlascaState& _shared;
 
   template<class NumTraits>
   bool deleteableSum(Monom<NumTraits> const& l, Monom<NumTraits> const& r_) const { 
@@ -68,13 +68,13 @@ class FloorElimination
   }
 
 public: 
-  FloorElimination(std::shared_ptr<AlascaState> shared) : _shared(std::move(shared)) {}
+  FloorElimination(SaturationAlgorithm& salg);
   USE_ALLOCATOR(FloorElimination);
 
   Clause* simplify(Clause* cl) final {
     auto res = RStack<Literal*>();
     for (auto l : cl->iterLits()) {
-      auto norm = _shared->norm().tryNormalizeInterpreted(l);
+      auto norm = _shared.norm().tryNormalizeInterpreted(l);
       if (norm.isSome() && deleteableLiteral(*norm)) {
         /* we the deleted literal */
       } else {

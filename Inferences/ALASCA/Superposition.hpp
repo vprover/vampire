@@ -32,11 +32,11 @@ using namespace Saturation;
 
 struct SuperpositionConf
 {
-  std::shared_ptr<AlascaState> _shared;
+  AlascaState& _shared;
   // TODO make option and test and double check (?)
   bool _simultaneousSuperposition;
 
-  SuperpositionConf(std::shared_ptr<AlascaState> shared, bool simultaneous = true) : _shared(shared), _simultaneousSuperposition(simultaneous) {  }
+  SuperpositionConf(SaturationAlgorithm& salg, bool simultaneous = true) : _shared(salg.alascaState()), _simultaneousSuperposition(simultaneous) {  }
 
   static const char* name() { return "alasca superposition"; }
 
@@ -47,7 +47,7 @@ struct SuperpositionConf
     Lhs(SelectedEquality inner) : SelectedEquality(std::move(inner)) {}
 
 
-    static auto iter(AlascaState& shared, Clause* cl)
+    static auto iter(const AlascaState& shared, Clause* cl)
     {
       return shared.selectedEqualities(cl, /* literal */ SelectionCriterion::NOT_LEQ, 
                                            /* terms   */ SelectionCriterion::NOT_LEQ,
@@ -123,8 +123,8 @@ struct SuperpositionConf
              return VirtualIterator<Out>::getEmpty();
            } else {
              return pvi(iterTraits(vi(new NonVariableNonTypeIterator(term.term(), includeSelf)))
-                 // .filter([](auto& t) { return SortHelper::getResultSort(t) == IntTraits::sort() || AlascaState::globalState->isAtomic(t); })
-                 .filter([](auto& t) { return AlascaState::globalState->isAtomic(t); })
+                 // .filter([](auto& t) { return SortHelper::getResultSort(t) == IntTraits::sort() || shared.isAtomic(t); })
+                 .filter([&](auto& t) { return shared.isAtomic(t); })
                  .map([=](auto t) { return Rhs(sel, t, inLitPlus); }))
                ;
            }
@@ -164,7 +164,7 @@ struct Superposition
 : public BinInf<SuperpositionConf> 
 {
   template<class... Args>
-  Superposition(std::shared_ptr<AlascaState> shared, Args... args) : BinInf<SuperpositionConf>(shared, SuperpositionConf(shared, args...)) {}
+  Superposition(SaturationAlgorithm& salg, Args... args) : BinInf<SuperpositionConf>(salg, SuperpositionConf(salg, args...)) {}
 };
 
 #undef DEBUG

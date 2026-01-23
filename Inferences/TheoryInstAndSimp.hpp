@@ -48,13 +48,11 @@ class TheoryInstAndSimp
 {
 public:
   using SortId = SAT::Z3Interfacing::SortId;
-  TheoryInstAndSimp() : TheoryInstAndSimp(*env.options) {}
+  TheoryInstAndSimp(SaturationAlgorithm& salg);
   TheoryInstAndSimp(TheoryInstAndSimp&&) = default;
 
-  TheoryInstAndSimp(Options& opts);
-  TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, std::string const& exportSmtlib, Options::ProblemExportSyntax problemExportSyntax);
-
-  void attach(SaturationAlgorithm* salg) override;
+  TheoryInstAndSimp(Splitter* splitter, const Options& opts);
+  TheoryInstAndSimp(Splitter* splitter, Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, std::string const& exportSmtlib, Options::ProblemExportSyntax problemExportSyntax);
 
   ClauseGenerationResult generateSimplify(Clause* premise) override;
 

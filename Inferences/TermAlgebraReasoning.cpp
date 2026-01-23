@@ -275,17 +275,9 @@ namespace Inferences {
     return c;
   }
 
-  void AcyclicityGIE::attach(SaturationAlgorithm* salg)
-  {
-    GeneratingInferenceEngine::attach(salg);
-    _acyclIndex = salg->getGeneratingIndex<AcyclicityIndex>();
-  }
-
-  void AcyclicityGIE::detach()
-  {
-    _acyclIndex = nullptr;
-    GeneratingInferenceEngine::detach();
-  }
+  AcyclicityGIE::AcyclicityGIE(SaturationAlgorithm& salg)
+    : _acyclIndex(salg.getGeneratingIndex<AcyclicityIndex>())
+  {}
 
   struct AcyclicityGIE::AcyclicityGenIterator
   {

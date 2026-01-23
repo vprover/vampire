@@ -17,11 +17,9 @@ using Demod = Inferences::ALASCA::Demodulation;
 namespace Inferences {
 namespace ALASCA {
 
-BwdDemodulation::BwdDemodulation(std::shared_ptr<AlascaState> shared, SaturationAlgorithm& salg)
-  : _shared(shared), _index(salg.getSimplifyingIndex<AlascaIndex<Rhs>>())
-{
-  _index->setShared(_shared);
-}
+BwdDemodulation::BwdDemodulation(SaturationAlgorithm& salg)
+  : _shared(salg.alascaState()), _index(salg.getSimplifyingIndex<AlascaIndex<Rhs>>())
+{}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
 // RULE APPLICATION
@@ -50,7 +48,7 @@ auto applyResultSubstitution(ResultSubstitution& subs, Literal* lit)
 void BwdDemodulation::perform(Clause* premise, BwSimplificationRecordIterator& simplifications)
 {
   DEBUG_CODE(unsigned cnt = 0;)
-  for (auto lhs : Lhs::iter(*_shared, premise)) {
+  for (auto lhs : Lhs::iter(_shared, premise)) {
     DEBUG_CODE(cnt++;)
     Stack<BwSimplificationRecord> simpls;
     Set<Clause*> simplified;
@@ -60,7 +58,7 @@ void BwdDemodulation::perform(Clause* premise, BwSimplificationRecordIterator& s
           /* We skip this potential simplification, because we do not simplify the same clause in 
            * two different ways with the same equality.  */
         } else {
-          auto maybeSimpl = Demod::apply(*_shared, lhs, *rhs.data);
+          auto maybeSimpl = Demod::apply(_shared, lhs, *rhs.data);
           if (maybeSimpl.isSome()) {
             simplified.insert(toSimpl);
             simpls.push(BwSimplificationRecord(toSimpl, maybeSimpl.unwrap()));

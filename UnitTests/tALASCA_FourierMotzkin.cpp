@@ -28,6 +28,8 @@ using namespace Inferences::ALASCA;
 ////// TEST CASES 
 /////////////////////////////////////
 
+namespace {
+
 // #define BOT num(0) > 0,
 #define BOT 
 
@@ -85,18 +87,9 @@ using namespace Inferences::ALASCA;
   DECL_FUNC(ab, {Num}, Num)                                                               \
   DECL_FUNC(skx, {Num}, Num)                                                              \
 
+#define MY_GEN_RULE AlascaSimplRule<FourierMotzkin>
+#define MY_GEN_TESTER AlascaGenerationTester
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
-
-auto testFourierMotzkin(
-   Options::UnificationWithAbstraction uwa = Options::UnificationWithAbstraction::ALASCA_MAIN
-    ) 
-{ 
-  auto s = testAlascaState(uwa);
-  return alascaSimplRule(s,FourierMotzkin(s), ALASCA::Normalization(s));
-}
-
-
-REGISTER_GEN_TESTER(AlascaGenerationTester<FourierMotzkin>())
 
 /////////////////////////////////////////////////////////
 // Basic tests
@@ -104,7 +97,7 @@ REGISTER_GEN_TESTER(AlascaGenerationTester<FourierMotzkin>())
 
 // check whether we apply the rule for every weakly maximal negative term
 TEST_GENERATION(basic01,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({selected( 5 * f(x) +       a  > 0 )   }) 
                ,  clause({selected(-2 * f(x) - 3 * f(y) > 0 ) }) })
       .expected(exactly(
@@ -115,7 +108,7 @@ TEST_GENERATION(basic01,
 
 // check whether we apply the rule only for strictly maximal positive
 TEST_GENERATION(basic02,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({selected( 5 * f(x) + 2 * f(f(a)) + a > 0 )   }) 
                ,  clause({selected(-2 * f(a) - 3 * f(a) > 0 ) }) })
       .expected(exactly(
@@ -124,7 +117,7 @@ TEST_GENERATION(basic02,
 
 // inequaity symbols right
 TEST_GENERATION(basic0301,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({selected(  f(a) + a > 0 )   }) 
                ,  clause({selected( -f(x) + c > 0 ) }) })
       .expected(exactly(
@@ -132,7 +125,7 @@ TEST_GENERATION(basic0301,
       ))
     )
 TEST_GENERATION(basic0302,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({selected(  f(a) + a >= 0 )   }) 
                ,  clause({selected( -f(x) + c > 0 ) }) })
       .expected(exactly(
@@ -140,7 +133,7 @@ TEST_GENERATION(basic0302,
       ))
     )
 TEST_GENERATION(basic0303,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({selected(  f(a) + a > 0 )   }) 
                ,  clause({selected( -f(x) + c >= 0 ) }) })
       .expected(exactly(
@@ -148,7 +141,7 @@ TEST_GENERATION(basic0303,
       ))
     )
 TEST_GENERATION(basic0304,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({selected(  f(a) + a >= 0 )   }) 
                ,  clause({selected( -f(x) + c >= 0 ) }) })
       .expected(exactly(
@@ -158,7 +151,7 @@ TEST_GENERATION(basic0304,
 
 
 TEST_GENERATION(basic04,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({selected( f(x) > 0 ), x - 7 == 0   }) 
                ,  clause({selected(-f(x) > 0 )           }) })
       .expected(exactly(
@@ -167,7 +160,7 @@ TEST_GENERATION(basic04,
     )
 
 TEST_GENERATION(basic05,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({selected(     f(a) > 0) }) 
                ,  clause({selected(a + -f(a) > 0) }) })
       .expected(exactly(
@@ -176,7 +169,7 @@ TEST_GENERATION(basic05,
     )
 
 TEST_GENERATION(basic06a,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({selected( -g(x,a) + -g(g(a,b), f(x)) > 0) }) 
                ,  clause({selected(  g(a,a) +  g(g(a,b), f(b)) > 0) }) })
       .expected(exactly(
@@ -185,7 +178,7 @@ TEST_GENERATION(basic06a,
     )
 
 TEST_GENERATION(basic07,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ selected( a + -f(x) > 0), x - 7 == 0 })  
                ,  clause({ selected( a +  f(a) > 0) })         })
       .expected(exactly(
@@ -194,7 +187,7 @@ TEST_GENERATION(basic07,
     )
 
 TEST_GENERATION(basic07_variation,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ selected( a +  f(a) > 0) })
                ,  clause({ selected( a + -f(x) > 0), x -7 == 0 }) })
       .expected(exactly(
@@ -203,7 +196,7 @@ TEST_GENERATION(basic07_variation,
     )
 
 TEST_GENERATION(basic10,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ selected( a + -f(y) > 0) }) 
                ,  clause({ selected( a +  f(a) > 0), x - 7 == 0 }) })
       .expected(exactly(
@@ -212,7 +205,7 @@ TEST_GENERATION(basic10,
     )
 
 TEST_GENERATION(basic12,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ selected(a > 0) }) 
                ,  clause({ selected(a > 0) }) })
       .expected(exactly(
@@ -220,7 +213,7 @@ TEST_GENERATION(basic12,
     )
 
 TEST_GENERATION(basic14,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ selected(-a > 0) }) 
                ,  clause({ selected( a > 0) }) })
       .expected(exactly(
@@ -230,7 +223,7 @@ TEST_GENERATION(basic14,
 
 // Testing only strictly maximal atoms are being chained
 TEST_GENERATION(basic15a,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ selected(- g(x,y) - g(y,x) > 0) }) 
                ,  clause({ selected(  g(x,x) > 0) }) })
       .expected(exactly( /* nothing */ ))
@@ -238,7 +231,7 @@ TEST_GENERATION(basic15a,
 
 // Testing only strictly maximal atoms are being chained
 TEST_GENERATION(basic15b,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ selected(  g(x,y) + g(y,x) > 0) }) 
                ,  clause({ selected(- g(x,x) > 0) }) })
       .expected(exactly( /* nothing */))
@@ -246,7 +239,7 @@ TEST_GENERATION(basic15b,
 
 // Testing only strictly maximal atoms are being chained
 TEST_GENERATION(basic15c,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs         ({ clause({ selected(  g(x,y) > 0) }) 
                       ,  clause({ selected(- g(x,x) > 0) }) })
       .expected(exactly( clause({            BOT  }) ))
@@ -254,7 +247,7 @@ TEST_GENERATION(basic15c,
 
 // Testing that the rhs may be only weakly not only strictly maximal
 TEST_GENERATION(basic16a,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs         ({ clause({ - g(x,y) + f(z) > 0, -g(y, x) + f(z) > 0 }) 
                        , clause({ g(x,x) > 0   }) })
       .expected(exactly( clause({ f(z) > 0, - g(x,x) + f(z) > 0   }) 
@@ -262,7 +255,7 @@ TEST_GENERATION(basic16a,
           ))
     )
 TEST_GENERATION(basic16b,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs         ({ clause({ -g(x,y) + f(x) > 0, -g(y,x) + f(z) > 0 }) 
                        , clause({ g(x,x) > 0   }) })
       .expected(exactly( clause({ f(x) > 0, -g(x,x) + f(z) > 0   }) 
@@ -272,13 +265,13 @@ TEST_GENERATION(basic16b,
 
 // Testing that the lhs may be only strictly maximal
 TEST_GENERATION(basic17a,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs         ({ clause({ g(x,y) + f(z) > 0, g(y, x) + f(z) > 0 }) 
                        , clause({ -g(x,x) > 0   }) })
       .expected(exactly( /* nothing */ ))
     )
 TEST_GENERATION(basic17b,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs         ({ clause({ g(x,y) + f(x) > 0, g(y, x) + f(z) > 0 }) 
                        , clause({ -g(x,x) > 0   }) })
       .expected(exactly( clause({ f(x) > 0, g(x,x) + f(z) > 0   }) 
@@ -287,7 +280,7 @@ TEST_GENERATION(basic17b,
     )
 
 TEST_GENERATION(basic18,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ b  + a >= 0   }) 
                ,  clause({ -b - a >= 0   }) })
       .expected(exactly( 
@@ -295,120 +288,105 @@ TEST_GENERATION(basic18,
     )
 
 TEST_GENERATION(uwa01_one_interp,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA_ONE_INTERP))  )
+    alascaSymmetricTest("alasca_one_interp")
       .inputs         ({ clause({ -f(a + b) > 0, }) 
                        , clause({  f(x + 1) > 0  }) })
       .expected(exactly( clause({ BOT x + 1 != a + b }) ))
     )
 
 TEST_GENERATION(uwa01,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN))  )
+    alascaSymmetricTest()
       .inputs         ({ clause({ -f(a + b) > 0, }) 
                        , clause({  f(x + 1) > 0  }) })
       .expected(exactly( clause({ BOT  }) ))
     )
 
 TEST_GENERATION(uwa02,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN))  )
+    alascaSymmetricTest()
       .inputs         ({ clause({ -f(a + b) > 0, }) 
                        , clause({  f(a + 1) > 0  }) })
       .expected(exactly( /* nothing */ ))
     )
 
 TEST_GENERATION(uwa03,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN))  )
+    alascaSymmetricTest()
       .inputs         ({ clause({ -f(f(x) + b) > 0, }) 
                        , clause({  f(f(y) + 1) > 0  }) })
       .expected(exactly( /* nothing */ ))
     )
 
 TEST_GENERATION(uwa04,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA_CAN_ABSTRACT))  )
+    alascaSymmetricTest("alasca_can_abstract")
       .inputs         ({ clause({ -f(f(x) + b) > 0, }) 
                        , clause({  f(f(y) + b) > 0  }) })
       .expected(exactly( clause({ BOT f(x) + b != f(y) + b }) ))
     )
 
 TEST_GENERATION(uwa05,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN))  )
+    alascaSymmetricTest()
       .inputs         ({ clause({ -f(f(x) + b) > 0, }) 
                        , clause({  f(f(y) + b + a) > 0  }) })
       .expected(exactly( /* nothing */ ))
     )
 
 TEST_GENERATION(uwa06,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN))  )
+    alascaSymmetricTest()
       .inputs         ({ clause({ -f(f(x) + b + a) > 0, }) 
                        , clause({  f(f(y) + b) > 0  }) })
       .expected(exactly( /* nothing */ ))
     )
 
 TEST_GENERATION(uwa07,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN))  )
+    alascaSymmetricTest()
       .inputs         ({ clause({ -f(f(x) + 2 * b) > 0, }) 
                        , clause({  f(f(y) + b) > 0  }) })
       .expected(exactly( /* nothing */ ))
     )
 
 TEST_GENERATION(uwa08,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN))  )
+    alascaSymmetricTest()
       .inputs         ({ clause({ -f(f(x) - b) > 0, }) 
                        , clause({  f(f(y) + b) > 0  }) })
       .expected(exactly( /* nothing */ ))
     )
 
 TEST_GENERATION(uwa09,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN))  )
+    alascaSymmetricTest()
       .inputs         ({ clause({ -f(f(x) - b) > 0, }) 
                        , clause({  f(f(y) + b - z) > 0  }) })
       .expected(exactly( clause({ BOT }) ))
     )
 
 TEST_GENERATION(uwa09_one_interp,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA_ONE_INTERP))  )
+    alascaSymmetricTest("alasca_one_interp")
       .inputs         ({ clause({ -f(f(x) - b) > 0, }) 
                        , clause({  f(f(y) + b - z) > 0  }) })
       .expected(exactly( clause({ BOT f(x) - b != f(z) + b - y }) ))
     )
 
 TEST_GENERATION(uwa10,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN))  )
+    alascaSymmetricTest()
       .inputs         ({ clause({ -f(f(x) - b) > 0, }) 
                        , clause({  f(f(y) + b - z) > 0  }) })
       .expected(exactly( clause({ BOT }) ))
     )
 
 TEST_GENERATION(uwa10_one_interp,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA_ONE_INTERP))  )
+    alascaSymmetricTest("alasca_one_interp")
       .inputs         ({ clause({ -f(f(x) - b) > 0, }) 
                        , clause({  f(f(y) + b - z) > 0  }) })
       .expected(exactly( clause({ BOT f(x) - b != f(y) + b - z }) ))
     )
 
 TEST_GENERATION(uwa11,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN))  )
+    alascaSymmetricTest()
       .inputs         ({ clause({ -f(fn(au)) > 0, }) 
                        , clause({  f(fn(bu)) > 0  }) })
       .expected(exactly( /* nothing */ ))
     )
 
 TEST_GENERATION(uwa12,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN))  )
+    alascaSymmetricTest()
       .inputs         ({ clause({ ab(ff(skx(x0)) + gg(skx(x0))) + -2 * c >= 0 })
                        , clause({-ab(gg(x0)) + c > 0 })
                       })
@@ -416,8 +394,7 @@ TEST_GENERATION(uwa12,
     )
 
 TEST_GENERATION(uwa13,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN))  )
+    alascaSymmetricTest()
       .inputs         ({ clause({ -2 * c + ab(ff(skx(x0)) + gg(skx(x0))) >= 0 })
                        , clause({-ab(gg(x0)) + c > 0 }) })
       .expected(exactly( /* nothing */ ))
@@ -425,16 +402,14 @@ TEST_GENERATION(uwa13,
 
 
 TEST_GENERATION(uwa14,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN))  )
+    alascaSymmetricTest()
       .inputs         ({ clause({ -f(2 * x) > 0, }) 
                        , clause({  f(2 * f(y)) > 0  }) })
       .expected(exactly( clause({ BOT }) ))
     )
 
 TEST_GENERATION(uwa14_one_interp,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA_ONE_INTERP))  )
+    alascaSymmetricTest("alasca_one_interp")
       .inputs         ({ clause({ -f(2 * x) > 0, }) 
                        , clause({  f(2 * f(y)) > 0  }) })
       .expected(exactly( clause({ BOT 2 * x != 2 * f(y) }) ))
@@ -443,7 +418,7 @@ TEST_GENERATION(uwa14_one_interp,
 
 
 TEST_GENERATION(greater_equal01a,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ selected( a + -f(y) >= 0) }) 
                ,  clause({ selected( a +  f(a) >= 0), x - 7 == 0}) })
       .expected(exactly(
@@ -452,7 +427,7 @@ TEST_GENERATION(greater_equal01a,
     )
 
 TEST_GENERATION(greater_equal01b,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ selected( a + -f(y) >= 0) }) 
                ,  clause({ selected( a +  f(a) >  0), x - 7 == 0}) })
       .expected(exactly(
@@ -461,7 +436,7 @@ TEST_GENERATION(greater_equal01b,
     )
 
 TEST_GENERATION(greater_equal01c,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ selected( a + -f(y) >  0) }) 
                ,  clause({ selected( a +  f(a) >= 0), x - 7 == 0}) })
       .expected(exactly(
@@ -473,7 +448,7 @@ TEST_GENERATION(greater_equal01c,
 // ordering condition not fulfilled
 // • ( -k s₂ + t₂ >₂ 0 )σ /⪯  ( +j s₁ + t₁ >₁ 0 )σ
 TEST_GENERATION(strictly_max_after_unification_0a,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .selfApplications(false)
       .inputs  ({ clause({ selected(-f(x) + f(a) > 0) }) 
                ,  clause({ selected( f(a)        > 0) }) })
@@ -484,7 +459,7 @@ TEST_GENERATION(strictly_max_after_unification_0a,
 
 
 TEST_GENERATION(strictly_max_after_unification_01a,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .selfApplications(false)
       .inputs  ({ clause({ selected(-2 * f(x) + f(a) > 0) }) 
                ,  clause({ selected( f(a)        > 0) }) })
@@ -492,7 +467,7 @@ TEST_GENERATION(strictly_max_after_unification_01a,
     )
 
 TEST_GENERATION(strictly_max_after_unification_01b,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .selfApplications(false)
       .inputs  ({ clause({ selected( f(x) - f(a) > 0) }) 
                ,  clause({ selected(-f(a)        > 0) }) })
@@ -501,7 +476,7 @@ TEST_GENERATION(strictly_max_after_unification_01b,
 
 
 TEST_GENERATION(strictly_max_after_unification_02a,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .selfApplications(false)
       .inputs  ({        clause({ selected(-f(x) + f(a) > 0 )}) 
                ,         clause({ selected( f(b)        > 0) }) })
@@ -509,7 +484,7 @@ TEST_GENERATION(strictly_max_after_unification_02a,
     )
 
 TEST_GENERATION(strictly_max_after_unification_02b,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .selfApplications(false)
       .inputs  ({        clause({ selected( f(b)        > 0) })  
                ,         clause({ selected(-f(x) + f(a) > 0 )}) })
@@ -518,28 +493,28 @@ TEST_GENERATION(strictly_max_after_unification_02b,
 
 
 TEST_GENERATION(max_compared_to_uniterpreted_equalites_01,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({        clause({ selected( a > 0), selected( fu(a) == au  ) })  
                ,         clause({ selected(-a > 0 )}) })
       .expected(exactly( /* nothing */ ))
     )
 
 TEST_GENERATION(max_compared_to_uniterpreted_equalites_02,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({        clause({ selected( a > 0), selected( fu(a) != au  ) })  
                ,         clause({ selected(-a > 0 )}) })
       .expected(exactly( /* nothing */ ))
     )
 
 TEST_GENERATION(max_compared_to_uniterpreted_equalites_03,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({        clause({ selected( fn(fu(a)) > 0), selected( fu(a) == au  ) })  
                ,         clause({ selected(-fn(fu(a)) > 0 )}) })
       .expected(exactly( clause({              BOT            fu(a) == au    })  ))
     )
 
 TEST_GENERATION(max_compared_to_uniterpreted_equalites_04,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({        clause({ selected( fn(fu(a)) > 0), selected( fu(a) != au  ) })  
                ,         clause({ selected(-fn(fu(a)) > 0 )}) })
       .expected(exactly( clause({              BOT            fu(a) != au    })  ))
@@ -550,7 +525,7 @@ TEST_GENERATION(max_compared_to_uniterpreted_equalites_04,
 //////////////////////////////////////
 
 TEST_GENERATION(substitution01,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ selected(-f(f(x)) + f(x) > 0) })  
                ,  clause({ selected( f(f(a))        > 0) }) })
       .expected(exactly(
@@ -559,7 +534,7 @@ TEST_GENERATION(substitution01,
     )
 
 TEST_GENERATION(substitution02,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ selected( g(f(x), f(f(b))) +    f(x)  > 0) })  
                ,  clause({ selected(-g(f(a), f(f(y))) +    f(y)  > 0) }) })
       .expected(exactly(
@@ -572,7 +547,7 @@ TEST_GENERATION(substitution02,
 //////////////////////////////////////
 
 TEST_GENERATION(abstraction1,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ selected(-f(   f(y)       ) > 0) })  
                ,  clause({ selected( f(f(a) + g(b, c)) > 0) }) })
       .expected(exactly(
@@ -581,8 +556,7 @@ TEST_GENERATION(abstraction1,
     )
 
 TEST_GENERATION(abstraction1_one_interp,
-    Generation::SymmetricTest()
-      .rule(move_to_heap(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA_ONE_INTERP)))
+    alascaSymmetricTest("alasca_one_interp")
       .inputs  ({ clause({ selected(-f(   f(y)       ) > 0) })  
                ,  clause({ selected( f(f(a) + g(b, c)) > 0) }) })
       .expected(exactly(
@@ -591,136 +565,119 @@ TEST_GENERATION(abstraction1_one_interp,
     )
 
 TEST_GENERATION(abstraction2,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA_MAIN))  )
+    alascaSymmetricTest()
       .inputs  ({         clause({ selected(-f(   f(y)       ) > 0) })  
                ,          clause({ selected( f(f(a) + g(b, c)) > 0) }) })
       .expected(exactly(                                                  ))
     )
 
 TEST_GENERATION(abstraction2_one_interp,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA_ONE_INTERP))  )
+    alascaSymmetricTest("alasca_one_interp")
       .inputs  ({         clause({ selected(-f(   f(y)       ) > 0) })  
                ,          clause({ selected( f(f(a) + g(b, c)) > 0) }) })
       .expected(exactly(  clause({ BOT f(a) + g(b, c) != f(y)  }) ))
     )
 
 TEST_GENERATION(abstraction3,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA_MAIN))  )
+    alascaSymmetricTest()
       .inputs  ({ clause({ selected(-f(b) > 0) })  
                ,  clause({ selected( f(a) > 0) }) })
       .expected(exactly())
     )
 
 TEST_GENERATION(abstraction5,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA_MAIN))  )
+    alascaSymmetricTest()
       .inputs  ({        clause({ selected(-f(a + b) > 0) })  
                ,         clause({ selected( f(7 * a) > 0) }) })
       .expected(exactly(                                        ))
     )
 
 TEST_GENERATION(abstraction5_one_interp,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA_ONE_INTERP))  )
+    alascaSymmetricTest("alasca_one_interp")
       .inputs  ({        clause({ selected(-f(a + b) > 0) })  
                ,         clause({ selected( f(7 * a) > 0) }) })
       .expected(exactly( clause({ BOT a + b != 7 * a }) ))
     )
 
 TEST_GENERATION(abstraction6,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA_MAIN))  )
+    alascaSymmetricTest()
       .inputs  ({        clause({ selected(-f(g(a,x)) > 0) })  
                ,         clause({ selected( f(7 * y)  > 0) }) })
       .expected(exactly( clause({ BOT                  }) ))
     )
 
 TEST_GENERATION(abstraction6_one_interp,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA_ONE_INTERP))  )
+    alascaSymmetricTest("alasca_one_interp")
       .inputs  ({        clause({ selected(-f(g(a,x)) > 0) })  
                ,         clause({ selected( f(7 * y)  > 0) }) })
       .expected(exactly( clause({ BOT g(a,x) != 7 * y }) ))
     )
 
 TEST_GENERATION(abstraction7,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA_MAIN))  )
+    alascaSymmetricTest()
       .inputs  ({        clause({ selected(-f(a + b) > 0) })
                ,         clause({ selected(     f(c) > 0) })              })
       .expected(exactly(                                     ))
     )
 
 TEST_GENERATION(abstraction7_one_interp,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA_ONE_INTERP))  )
+    alascaSymmetricTest("alasca_one_interp")
       .inputs  ({        clause({ selected(-f(a + b) > 0) })
                ,         clause({ selected(     f(c) > 0) })              })
       .expected(exactly( clause({ BOT a + b != c })  ))
     )
 
 TEST_GENERATION(abstraction8,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA_MAIN))  )
+    alascaSymmetricTest()
       .inputs  ({        clause({ selected(-f(c + b) > 0) })
                ,         clause({ selected(     f(a) > 0) })              })
       .expected(exactly(                                    ))
     )
 
 TEST_GENERATION(abstraction8_one_interp,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA_ONE_INTERP))  )
+    alascaSymmetricTest("alasca_one_interp")
       .inputs  ({        clause({ selected(-f(c + b) > 0) })
                ,         clause({ selected(     f(a) > 0) })              })
       .expected(exactly( clause({ BOT a != c + b }) ))
     )
 
 TEST_GENERATION(abstraction1_alasca2,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA_MAIN))  )
+    alascaSymmetricTest()
       .inputs  ({        clause({ -f(a + b) > 0 })
                ,         clause({  f(c) > 0 })              })
       .expected(exactly( /* nothing */                      ))
     )
 
 TEST_GENERATION(abstraction2_alasca2,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA_MAIN))  )
+    alascaSymmetricTest()
       .inputs  ({        clause({ selected(-f(a + b) > 0) })
                ,         clause({ selected( f(c + x) > 0) })              })
       .expected(exactly( clause({  BOT                   }) ))
     )
 
 TEST_GENERATION(abstraction2_alasca2_one_interp,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA_ONE_INTERP))  )
+    alascaSymmetricTest("alasca_one_interp")
       .inputs  ({        clause({ selected(-f(a + b) > 0) })
                ,         clause({ selected( f(c + x) > 0) })              })
       .expected(exactly( clause({  BOT c + x != a + b   }) ))
     )
 
 TEST_GENERATION(abstraction3_alasca2,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA_MAIN))  )
+    alascaSymmetricTest()
       .inputs  ({        clause({ -f(3 * a) > 0 })
                ,         clause({  f(4 * a) > 0 })              })
       .expected(exactly(   ))
     )
 
 TEST_GENERATION(abstraction4,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA_MAIN))  )
+    alascaSymmetricTest()
       .inputs  ({        clause({ -f(3 * a) > 0 })  
                ,         clause({  f(7 * a) > 0 }) })
       .expected(exactly(                                            ))
     )
 
 TEST_GENERATION(abstraction4_one_interp,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA_ONE_INTERP))  )
+    alascaSymmetricTest("alasca_one_interp")
       .inputs  ({        clause({ -f(3 * a) > 0 })  
                ,         clause({  f(7 * a) > 0 }) })
       .expected(exactly( clause({    BOT 3 * a != 7 * a  }) ))
@@ -728,16 +685,14 @@ TEST_GENERATION(abstraction4_one_interp,
 
 
 TEST_GENERATION(abstraction9,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA_MAIN))  )
+    alascaSymmetricTest()
         .inputs  ({        clause({ -f( a ) > 0 })
                  ,         clause({  f( a + f(b) ) > 0 })        })
         .expected(exactly( /* nothing */                         ))
       )
 
 TEST_GENERATION(abstraction9_one_interp,
-    Generation::SymmetricTest()
-      .rule(    move_to_heap(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA_ONE_INTERP))  )
+    alascaSymmetricTest("alasca_one_interp")
         .inputs  ({        clause({ -f( a ) > 0 })
                  ,         clause({  f( a + f(b) ) > 0 })        })
         .expected(exactly( clause({ BOT a != a + f(b) }) ))
@@ -749,7 +704,7 @@ TEST_GENERATION(abstraction9_one_interp,
   //////////////////////////////////////
 
   TEST_GENERATION(misc01,
-      Generation::SymmetricTest()
+      alascaSymmetricTest()
         .inputs  ({ clause({ selected(a + -f(a) > 0    ) }) 
                  ,  clause({ selected(f(a) > 0) }) })
         .expected(exactly(
@@ -758,8 +713,9 @@ TEST_GENERATION(abstraction9_one_interp,
       )
 
   TEST_GENERATION_WITH_SUGAR(misc02_INT,
+      MY_GEN_RULE, MY_GEN_TESTER,
       SUGAR(Int),
-      Generation::SymmetricTest()
+      alascaSymmetricTest()
         .inputs  ({ clause({selected(a + -f(a) + 1 > 0 )  }) 
                  ,  clause({selected(f(a) > 0) }) }) 
         .expected(exactly(
@@ -768,8 +724,9 @@ TEST_GENERATION(abstraction9_one_interp,
       )
 
   TEST_GENERATION_WITH_SUGAR(misc02_Rat,
+      MY_GEN_RULE, MY_GEN_TESTER,
       SUGAR(Rat),
-      Generation::SymmetricTest()
+      alascaSymmetricTest()
         .inputs  ({ clause({selected( a + -f(a) >= 0)  }) 
                  ,  clause({selected(f(a) > 0) }) })
         .expected(exactly(
@@ -779,8 +736,9 @@ TEST_GENERATION(abstraction9_one_interp,
 
   // only for integers (which we r using here)
   TEST_GENERATION_WITH_SUGAR(misc03,
+      MY_GEN_RULE, MY_GEN_TESTER,
       SUGAR(Int),
-      Generation::SymmetricTest()
+      alascaSymmetricTest()
         .inputs  ({ clause({selected( f(a) + 1 > 0) }) 
                  ,  clause({selected(a + -f(a) > 0) }) })
         .expected(exactly(
@@ -789,8 +747,9 @@ TEST_GENERATION(abstraction9_one_interp,
       )
 
   TEST_GENERATION_WITH_SUGAR(bug01a,
+      MY_GEN_RULE, MY_GEN_TESTER,
       SUGAR(Real),
-      Generation::SymmetricTest()
+      alascaSymmetricTest()
       .inputs  ({ clause({ selected(r(x, y)),  (f(x) + -f(y) > 0)  }) 
                ,  clause({ selected(f(a) >  0) }) })
       //                                      (y - 1 > 0) 
@@ -799,24 +758,27 @@ TEST_GENERATION(abstraction9_one_interp,
     )
 
 TEST_GENERATION_WITH_SUGAR(misc02a,
+    MY_GEN_RULE, MY_GEN_TESTER,
     SUGAR(Real),
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({        clause({ selected( -3 +  a  > 0 ) })  
                ,         clause({ selected(  0 + -a  > 0 ) }) })
       .expected(exactly( clause({            num(-3) > 0   }) ))
     )
 
 TEST_GENERATION_WITH_SUGAR(misc02b,
+    MY_GEN_RULE, MY_GEN_TESTER,
     SUGAR(Real),
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({        clause({ selected(  0 +  a  > 0 ) })  
                ,         clause({ selected( -3 + -a  > 0 ) }) })
       .expected(exactly( clause({            num(-3) > 0   }) ))
     )
 
 TEST_GENERATION_WITH_SUGAR(bug03a,
+    MY_GEN_RULE, MY_GEN_TESTER,
     SUGAR(Real),
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
 // *cl2 = ~P(X1,X2) | 1 + -X1 + a > 0
 // *resolvent = $greater($sum(1,$uminus(X1)),0) | ~'MS'(X0,X1,s2)
       .inputs  ({        clause({            selected(1 + -f(a)        > 0) })  
@@ -825,8 +787,9 @@ TEST_GENERATION_WITH_SUGAR(bug03a,
     )
 
 TEST_GENERATION_WITH_SUGAR(bug03b,
+    MY_GEN_RULE, MY_GEN_TESTER,
     SUGAR(Real),
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .selfApplications(false)
 // *cl2 = ~P(X1,X2) | 1 + -X1 + a > 0
 // *resolvent = $greater($sum(1,$uminus(X1)),0) | ~'MS'(X0,X1,s2)
@@ -837,10 +800,10 @@ TEST_GENERATION_WITH_SUGAR(bug03b,
 
 
 TEST_GENERATION_WITH_SUGAR(bug_uwa_01,
+    MY_GEN_RULE, MY_GEN_TESTER,
     SUGAR(Real),
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .selfApplications(false)
-      .rule(    move_to_heap(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA_MAIN))  )
   // (not (P (+ x1 x0) (+ x2 x0))) (P x1 x2))))
   //      (P x0 x0)
   // ; ==================================
@@ -864,10 +827,10 @@ TEST_GENERATION_WITH_SUGAR(bug_uwa_01,
 
 
 TEST_GENERATION_WITH_SUGAR(bug_uwa_02,
+    MY_GEN_RULE, MY_GEN_TESTER,
     SUGAR(Real),
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .selfApplications(false)
-      .rule(    move_to_heap(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA_MAIN))  )
 // 19. (-delta + ab((a + skx(X0)))) > 0/1 [theory normalization 13]
 // 23. (c + -ab(gg(X0))) > 0/1 | (delta + -ab((X0 + a))) >= 0/1 [theory normalization 17]
       .inputs  ({ clause({ -delta + ab(a + skx(x)) > 0 })
@@ -880,10 +843,10 @@ TEST_GENERATION_WITH_SUGAR(bug_uwa_02,
     )
 
 TEST_GENERATION_WITH_SUGAR(bug_uwa_03,
+    MY_GEN_RULE, MY_GEN_TESTER,
     SUGAR(Real),
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .selfApplications(false)
-      .rule(    move_to_heap(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA_MAIN))  )
 // 19. (-delta + ab((a + skx(X0)))) > 0/1 [theory normalization 13]
 // 23. (c + -ab(gg(X0))) > 0/1 | (delta + -ab((X0 + a))) >= 0/1 [theory normalization 17]
       .inputs  ({ clause({ -delta + ab(a + skx(x)) > 0 })
@@ -896,10 +859,10 @@ TEST_GENERATION_WITH_SUGAR(bug_uwa_03,
     )
 
 TEST_GENERATION_WITH_SUGAR(bug_uwa_04,
+    MY_GEN_RULE, MY_GEN_TESTER,
     SUGAR(Real),
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .selfApplications(false)
-      .rule(    move_to_heap(testFourierMotzkin(Options::UnificationWithAbstraction::ALASCA_MAIN))  )
 // 19. (-delta + ab((a + skx(X0)))) > 0/1 [theory normalization 13]
 // 23. (c + -ab(gg(X0))) > 0/1 | (delta + -ab((X0 + a))) >= 0/1 [theory normalization 17]
       .inputs  ({ clause({ -delta + ab(a + skx(x)) > 0 })
@@ -912,8 +875,9 @@ TEST_GENERATION_WITH_SUGAR(bug_uwa_04,
 
 
 TEST_GENERATION_WITH_SUGAR(bug_overflow_01,
+    MY_GEN_RULE, MY_GEN_TESTER,
     SUGAR(Real),
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ selected(          num(2) * (1073741824 * a + 536870912) > 0 ) })  
                ,  clause({ selected(num(-1) * num(2) * (1073741824 * a + 536870912) > 0 )   }) })
       .expected(exactly(
@@ -925,8 +889,9 @@ TEST_GENERATION_WITH_SUGAR(bug_overflow_01,
   // 2 f13(f14, 1) 1073741824
 
 TEST_GENERATION_WITH_SUGAR(bug_overflow_02,
+    MY_GEN_RULE, MY_GEN_TESTER,
     SUGAR(Int),
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ selected( 0 < 2 * (f(a) * num(1073741824)) ) })  
                ,  clause({ selected( 3  + -a > 0 )  }) })
       .expected(exactly(
@@ -935,9 +900,9 @@ TEST_GENERATION_WITH_SUGAR(bug_overflow_02,
 
 
 TEST_GENERATION_WITH_SUGAR(misc04_one_interp,
+    MY_GEN_RULE, MY_GEN_TESTER,
     SUGAR(Real),
-    Generation::SymmetricTest()
-      .rule(move_to_heap(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA_ONE_INTERP)))
+    alascaSymmetricTest("alasca_one_interp")
       .inputs  ({        clause({ selected(-f(x0 + -x1 + g(x0,x1)) > 0) })
                ,         clause({ selected( f(x2 + -g(x3,x2)     ) > 0) }) })
       .expected(exactly( clause({                           BOT x0 + -x1 + g(x0,x1) != x2 + -g(x3,x2) })))
@@ -945,9 +910,10 @@ TEST_GENERATION_WITH_SUGAR(misc04_one_interp,
 
 
 TEST_GENERATION_WITH_SUGAR(bug05_one_interp,
+    MY_GEN_RULE, MY_GEN_TESTER,
     SUGAR(Real),
     Generation::AsymmetricTest()
-      .rule(move_to_heap(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA_ONE_INTERP)))
+      .options(alascaTestOptions("alasca_one_interp"))
       .input   (         clause({ selected(-f(x0 + 3 * a) > 0) }))
       .context ({        clause({ selected( f(x1 + a0   ) > 0) })
                 ,        clause({ selected( f(x1 + a1   ) > 0) })
@@ -965,9 +931,10 @@ TEST_GENERATION_WITH_SUGAR(bug05_one_interp,
 
 
 TEST_GENERATION_WITH_SUGAR(bug05,
+    MY_GEN_RULE, MY_GEN_TESTER,
     SUGAR(Real),
     Generation::AsymmetricTest()
-      .rule(move_to_heap(testFourierMotzkin(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN)))
+      .options(alascaTestOptions())
       .input   (         clause({ selected(-f(x0 + 3 * a) > 0) }))
       .context ({        clause({ selected( f(x1 + a0   ) > 0) })
                 ,        clause({ selected( f(x1 + a1   ) > 0) })
@@ -984,8 +951,9 @@ TEST_GENERATION_WITH_SUGAR(bug05,
     )
 
 TEST_GENERATION_WITH_SUGAR(bug06,
+    MY_GEN_RULE, MY_GEN_TESTER,
     SUGAR(Real),
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({  gg(x) >= 0   , delta + -ab(x + 1) >= 0, c > 0 })
                 , clause({ -gg(x) + c > 0, delta + -ab(x + 1) >= 0, -gg(x) > 0 })
                 })
@@ -999,8 +967,10 @@ TEST_GENERATION_WITH_SUGAR(bug06,
 #define _SUM(L,R) (L + R)
 
 TEST_GENERATION_WITH_SUGAR(bug07,
+    MY_GEN_RULE, MY_GEN_TESTER,
     SUGAR(Real),
     Generation::AsymmetricTest()
+      .options(alascaTestOptions())
       .input  ( clause({ -gg(x) + c > 0, delta + -ab(x + 1) >= 0, -gg(x) > 0 }) )
       .context({
                 clause({ _SUM(ab(1 + skx(x)),-delta) > 0 , }) // 19
@@ -1051,11 +1021,14 @@ TEST_GENERATION_WITH_SUGAR(bug07,
 
 
 // TEST_GENERATION_WITH_SUGAR(uwa_floor_1,
+//     MY_GEN_RULE, MY_GEN_TESTER,
 //     SUGAR(Real),
-//     Generation::SymmetricTest()
+//     alascaSymmetricTest()
 //       .inputs  ({ clause({ selected( f(num(123)) > 0 ) })  
 //                ,  clause({ selected( -f(floor(x)) + a > 0 )  }) })
 //       .expected(exactly(
 //           clause({ a > 0 })
 //       ))
 //     )
+
+}

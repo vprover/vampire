@@ -105,11 +105,9 @@ Clause* performRewriting(
   return Clause::fromStack(*resLits, inf);
 }
 
-void FunctionDefinitionRewriting::attach(SaturationAlgorithm* salg)
-{
-  GeneratingInferenceEngine::attach(salg);
-  _helper = DemodulationHelper(salg->getOptions(), &salg->getOrdering());
-}
+FunctionDefinitionRewriting::FunctionDefinitionRewriting(SaturationAlgorithm& salg)
+  : _salg(salg), _helper(DemodulationHelper(salg.getOptions(), &salg.getOrdering()))
+{}
 
 Kernel::ClauseIterator FunctionDefinitionRewriting::generateClauses(Clause *premise)
 {
@@ -120,7 +118,7 @@ Kernel::ClauseIterator FunctionDefinitionRewriting::generateClauses(Clause *prem
     })
     .flatMap([this](std::pair<Literal*, Term*> arg){
       return pvi(pushPairIntoRightIterator(arg,
-        GeneratingInferenceEngine::_salg->getFunctionDefinitionHandler().getGeneralizations(arg.second)));
+        _salg.getFunctionDefinitionHandler().getGeneralizations(arg.second)));
     })
     .map([premise](auto arg) {
       auto &qr = arg.second;

@@ -40,28 +40,14 @@ using namespace Indexing;
 using namespace Saturation;
 
 template<bool synthesis>
-URResolution<synthesis>::URResolution(bool full)
-: _full(full), _selectedOnly(false) {}
-
-template<bool synthesis>
-void URResolution<synthesis>::attach(SaturationAlgorithm* salg)
+URResolution<synthesis>::URResolution(SaturationAlgorithm& salg)
+: _full(salg.getOptions().unitResultingResolution() == Options::URResolution::FULL),
+  _emptyClauseOnly(salg.getOptions().unitResultingResolution() == Options::URResolution::EC_ONLY),
+  _selectedOnly(false),
+  _unitIndex(salg.getGeneratingIndex<UnitIndexType>()),
+  _nonUnitIndex(salg.getGeneratingIndex<NonUnitIndexType>())
 {
-  GeneratingInferenceEngine::attach(salg);
-
-  _unitIndex = salg->getGeneratingIndex<UnitIndexType>();
-  _nonUnitIndex = salg->getGeneratingIndex<NonUnitIndexType>();
-
-  Options::URResolution optSetting = _salg->getOptions().unitResultingResolution();
-  ASS_NEQ(optSetting,  Options::URResolution::OFF);
-  _emptyClauseOnly = optSetting==Options::URResolution::EC_ONLY;
-}
-
-template<bool synthesis>
-void URResolution<synthesis>::detach()
-{
-  _nonUnitIndex = nullptr;
-  _unitIndex = nullptr;
-  GeneratingInferenceEngine::detach();
+  ASS_NEQ(salg.getOptions().unitResultingResolution(),  Options::URResolution::OFF);
 }
 
 template<bool synthesis>

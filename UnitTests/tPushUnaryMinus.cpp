@@ -9,11 +9,9 @@
  */
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
-#include "Inferences/PushUnaryMinus.hpp"
-
-#include "Test/SyntaxSugar.hpp"
-#include "Test/TestUtils.hpp"
 #include "Test/SimplificationTester.hpp"
+
+#include "Inferences/PushUnaryMinus.hpp"
 
 using namespace std;
 using namespace Kernel;
@@ -24,25 +22,8 @@ using namespace Test;
 ////// TEST UNIT INITIALIZATION
 /////////////////////////////////////
 
-/** 
- * NECESSARY: We need a subclass of SimplificationTester
- */
-class PumSimplTester : public Test::Simplification::SimplificationTester
-{
-public:
-
-  virtual Kernel::Clause* simplify(Kernel::Clause* in) override 
-  {
-    PushUnaryMinus pum;
-    return pum.simplify(in);
-  }
-
-  virtual bool eq(Kernel::Clause* lhs, Kernel::Clause* rhs) const  override
-  { return TestUtils::eqModAC(lhs, rhs); }
-};
-
-REGISTER_SIMPL_TESTER(PumSimplTester)
-
+#define MY_SIMPL_RULE   PushUnaryMinus
+#define MY_SIMPL_TESTER Test::Simplification::SimplificationTester
 #define MY_SYNTAX_SUGAR                                                                                       \
   NUMBER_SUGAR(Real)                                                                                          \
   DECL_DEFAULT_VARS                                                                                           \

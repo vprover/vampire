@@ -105,8 +105,7 @@ private:
 class AcyclicityGIE
   : public GeneratingInferenceEngine {
 public:
-  void attach(Saturation::SaturationAlgorithm* salg) override;
-  void detach() override;
+  AcyclicityGIE(SaturationAlgorithm& salg);
   Kernel::ClauseIterator generateClauses(Kernel::Clause *c) override;
 private:
   struct AcyclicityGenIterator;
