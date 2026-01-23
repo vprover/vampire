@@ -1708,8 +1708,8 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
 
   bool mayHaveEquality = couldEqualityArise(prb,opt);
 
-  // This was earlier at the beginning of forward simplifications,
-  // so let's put it for now to the end of immediate simplifications
+  // InnerRewriting is relatively expensive, so let's insert it first,
+  // so that it gets applied as the last ImmediateSimplification
   if (mayHaveEquality && opt.innerRewriting()) {
     res->addFront(new InnerRewriting(ordering));
   }
