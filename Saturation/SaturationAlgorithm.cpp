@@ -510,6 +510,7 @@ void SaturationAlgorithm::showPredecessorsNR(Clause* cl) {
   }
 }
 
+/*
 void SaturationAlgorithm::showSubterms(Term* t) {
   if (_subtermsShown.find(t->getId())) return;
 
@@ -534,6 +535,52 @@ void SaturationAlgorithm::showSubterms(Term* t) {
 
   ALWAYS(_subtermsShown.insert(t->getId()));
 }
+*/
+
+void SaturationAlgorithm::showSubtermsNR(Term* t) {
+  struct Todo {
+    Term* t;
+    bool starting;
+  };
+
+  Stack<Todo> todos;
+  todos.push({t,true});
+  while (todos.isNonEmpty()) {
+    Todo& todo = todos.top();
+    Term* t = todo.t;
+    if (todo.starting) {
+      if (_subtermsShown.find(t->getId())) {
+        todos.pop();
+      } else {
+        todo.starting = false;
+        // don't touch todo anymore, after pushing!
+        for (unsigned n = 0; n < t->arity(); n++) {
+          TermList arg = *t->nthArgument(n);
+          if (arg.isTerm()) {
+            todos.push({arg.term(),true});
+          }
+        }
+      }
+    } else {
+      vector<int64_t> args;
+      for (unsigned n = 0; n < t->arity(); n++) {
+        TermList arg = *t->nthArgument(n);
+        if (arg.isTerm()) {
+          args.push_back(arg.term()->getId()+1);
+        } else {
+          args.push_back(0); // all variables are 0
+        }
+      }
+      _neuralModel->gweightEnqueueTerm(
+          t->getId()+1,
+          funcToSymb(t->functor()),
+          0.0,
+          args);
+      ALWAYS(_subtermsShown.insert(t->getId()));
+      todos.pop();
+    }
+  }
+}
 
 void SaturationAlgorithm::showClauseLiterals(Clause* c) {
   vector<int64_t> lits;
@@ -549,7 +596,7 @@ void SaturationAlgorithm::showClauseLiterals(Clause* c) {
     for (unsigned n = 0; n < lit->arity(); n++) {
       TermList arg = *lit->nthArgument(n);
       if (arg.isTerm()) {
-        showSubterms(arg.term());
+        showSubtermsNR(arg.term());
         args.push_back(arg.term()->getId()+1);
       } else {
         args.push_back(0); // all variables are 0

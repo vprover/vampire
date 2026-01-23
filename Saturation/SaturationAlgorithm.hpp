@@ -178,7 +178,8 @@ private:
   // we need both as literal have a different counter in term sharing than terms
   DHSet<unsigned> _subtermsShown;
   DHSet<unsigned> _literalsShown;
-  void showSubterms(Term* t);
+  // void showSubterms(Term* t); // left only for documentation purposes
+  void showSubtermsNR(Term* t); // a non-recursive version
   void showClauseLiterals(Clause* c);
 
   // to remember which clauses have already had their feature vector shown
