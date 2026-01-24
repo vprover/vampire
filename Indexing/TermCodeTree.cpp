@@ -78,7 +78,7 @@ void TermCodeTree<Data>::remove(const Data& data)
   
   Data* dptr = nullptr;
   for(;;) {
-    if (!rtm.next()) {
+    if (!rtm.execute()) {
       ASSERTION_VIOLATION;
       INVALID_OPERATION("term being removed was not found");
     }
@@ -122,7 +122,7 @@ template<class Data>
 void TermCodeTree<Data>::RemovingTermMatcher::init(FlatTerm* ft_,
 					     TermCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_)
 {
-  RemovingMatcher::init(tree_->getEntryPoint(), 0, 0, tree_, firstsInBlocks_);
+  Matcher::init(tree_, tree_->getEntryPoint(), 0, 0, firstsInBlocks_);
   
   firstsInBlocks->push(entry);
 

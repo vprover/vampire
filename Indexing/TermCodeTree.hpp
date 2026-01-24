@@ -43,7 +43,7 @@ public:
 
 private:
   struct RemovingTermMatcher
-  : public RemovingMatcher<false>
+  : public Matcher</*removing*/true,false>
   {
   public:
     void init(FlatTerm* ft_, TermCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_);
@@ -52,7 +52,7 @@ private:
 
 public:
   struct TermMatcher
-  : public Matcher
+  : public Matcher</*removing*/false,false>
   {
     TermMatcher();
 
