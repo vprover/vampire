@@ -257,6 +257,12 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _extensionality = 0;
   }
 
+  if (opt.splitting()) {
+    _splitter = new Splitter();
+  }
+
+  _partialRedundancyHandler.reset(PartialRedundancyHandler::create(opt, _ordering.ptr(), _splitter));
+
   s_instance = this;
 }
 
@@ -1437,10 +1443,6 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     NOT_IMPLEMENTED;
   }
 
-  if (opt.splitting()) {
-    res->_splitter = new Splitter();
-  }
-
   // create generating inference engine
   CompositeGIE *gie = new CompositeGIE();
 
@@ -1463,7 +1465,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   if (mayHaveEquality) {
     if (!alascaTakesOver) { // in alasca we have a special equality factoring rule
-      gie->addFront(new EqualityFactoring());
+      gie->addFront(new EqualityFactoring(AbstractionOracle::createOnlyHigherOrder(), opt.unificationWithAbstractionFixedPointIteration()));
     }
     gie->addFront(new EqualityResolution());
     if(env.options->superposition() && !alascaTakesOver){ // in alasca we have a special superposition rule
@@ -1484,9 +1486,9 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   if (opt.unitResultingResolution() != Options::URResolution::OFF) {
     if (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) {
-      gie->addFront(new URResolution</*synthesis=*/true>(opt.unitResultingResolution() == Options::URResolution::FULL));
+      gie->addFront(new URResolution</*synthesis=*/true>());
     } else {
-      gie->addFront(new URResolution</*synthesis=*/false>(opt.unitResultingResolution() == Options::URResolution::FULL));
+      gie->addFront(new URResolution</*synthesis=*/false>());
     }
   }
   if (opt.extensionalityResolution() != Options::ExtensionalityResolution::OFF) {
@@ -1609,9 +1611,6 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   // create simplification engine
 
   // create forward simplification engine
-  if (mayHaveEquality && opt.innerRewriting()) {
-    res->addForwardSimplifierToFront(new InnerRewriting());
-  }
   if (opt.globalSubsumption()) {
     res->addForwardSimplifierToFront(new GlobalSubsumption(opt));
   }
@@ -1693,8 +1692,6 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     res->_symEl = new SymElOutput();
   }
 
-  res->_partialRedundancyHandler.reset(PartialRedundancyHandler::create(opt, &ordering, res->_splitter));
-
   res->_answerLiteralManager = AnswerLiteralManager::getInstance(); // selects the right one, according to options!
   ASS(!res->_answerLiteralManager||opt.questionAnswering()!=Options::QuestionAnsweringMode::OFF);
   ASS( res->_answerLiteralManager||opt.questionAnswering()==Options::QuestionAnsweringMode::OFF);
@@ -1710,6 +1707,12 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
   CompositeISEMany resMany;
 
   bool mayHaveEquality = couldEqualityArise(prb,opt);
+
+  // InnerRewriting is relatively expensive, so let's insert it first,
+  // so that it gets applied as the last ImmediateSimplification
+  if (mayHaveEquality && opt.innerRewriting()) {
+    res->addFront(new InnerRewriting(ordering));
+  }
 
   if (mayHaveEquality && opt.equationalTautologyRemoval()) {
     res->addFront(new EquationalTautologyRemoval());
@@ -1803,5 +1806,6 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
     // Note: SynthesisAnswerLiteralProcessor must be THE LAST added simplification-many rule.
     resMany.addFront(std::make_unique<SynthesisAnswerLiteralProcessor>());
   }
+
   return std::make_pair(res, std::move(resMany));
 }

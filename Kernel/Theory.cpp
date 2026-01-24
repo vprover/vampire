@@ -19,8 +19,6 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 
-#include "Shell/Skolem.hpp"
-
 #include "Signature.hpp"
 #include "SortHelper.hpp"
 #include "OperatorType.hpp"
@@ -422,10 +420,8 @@ namespace Kernel {
 //
 
 Theory Theory::theory_obj;  // to facilitate destructor call at deinitization
-Theory::Tuples Theory::tuples_obj;
 
 Theory* theory = &Theory::theory_obj;
-Theory::Tuples* theory_tuples = &Theory::tuples_obj;
 
 /**
  * Accessor for the singleton instance of the Theory class.
@@ -433,21 +429,6 @@ Theory::Tuples* theory_tuples = &Theory::tuples_obj;
 Theory* Theory::instance()
 {
   return theory;
-}
-
-Theory::Tuples* Theory::tuples()
-{
-  return theory_tuples;
-}
-
-/**
- * Constructor of the Theory object
- *
- * The constructor is private, since Theory is a singleton class.
- */
-Theory::Theory()
-{
-
 }
 
 /**
@@ -552,14 +533,15 @@ unsigned Theory::getArity(Interpretation i)
   case REAL_REMAINDER_T:
   case REAL_REMAINDER_F:
 
-  case ARRAY_SELECT:
-  case ARRAY_BOOL_SELECT:
-
     return 2;
+
+  case ARRAY_SELECT:
+
+    return 4;
 
   case ARRAY_STORE:
 
-    return 3;
+    return 5;
 
   default:
     ASSERTION_VIOLATION_REP(i);
@@ -668,8 +650,6 @@ bool Theory::isFunction(Interpretation i)
   case REAL_IS_RAT:
   case REAL_IS_REAL:
 
-  case ARRAY_BOOL_SELECT:
-
     return false;
 
   default:
@@ -723,7 +703,6 @@ bool Theory::hasSingleSort(Interpretation i)
   case REAL_TO_RAT:
 
   case ARRAY_SELECT:
-  case ARRAY_BOOL_SELECT:
   case ARRAY_STORE:
 
     return false;
@@ -741,7 +720,6 @@ bool Theory::isPolymorphic(Interpretation i)
   switch(i) {
   case EQUAL:
   case ARRAY_SELECT:
-  case ARRAY_BOOL_SELECT:
   case ARRAY_STORE:
 
     return true;
@@ -1017,47 +995,18 @@ bool Theory::partiallyDefinedFunctionUndefinedForArgs(Term* t) {
   }
 }
 
-
-/**
- * Get the number of the skolem function symbol used in the clause form of the
- * array extensionality axiom (of particular sort).
- *
- * select(X,sk(X,Y)) != select(Y,sk(X,Y)) | X = Y
- * 
- * If the symbol does not exist yet, it is added to the signature. We use 0 to
- * represent that the symbol not yet exists, assuming that at call time of this
- * method, at least the array function are already in the signature.
- *
- * We want to have this function available e.g. in simplification rules.
- */
-unsigned Theory::getArrayExtSkolemFunction(TermList sort) {
-  ASS(sort.isArraySort());
-
-  if(_arraySkolemFunctions.find(sort)){
-    return _arraySkolemFunctions.get(sort);
-  }
-
-  TermList indexSort = SortHelper::getIndexSort(sort);
-  TermList params[] = {sort, sort};
-  unsigned skolemFunction = Shell::Skolem::addSkolemFunction(2, 0, params, indexSort, "arrayDiff");
-
-  _arraySkolemFunctions.insert(sort,skolemFunction);
-
-  return skolemFunction; 
-}
-
-unsigned Theory::Tuples::getConstructor(unsigned arity)
+unsigned Theory::getTupleConstructor(unsigned arity)
 {
   return theory->getTupleTermAlgebra(arity)->constructor(0)->functor();
 }
 
-bool Theory::Tuples::isConstructor(Term* t)
+bool Theory::isTupleConstructor(Term* t)
 {
   return !t->isSpecial() && !t->isSort() && SortHelper::getResultSort(t).isTupleSort()
-    && getConstructor(t->numTypeArguments()) == t->functor();
+    && getTupleConstructor(t->numTypeArguments()) == t->functor();
 }
 
-unsigned Theory::Tuples::getProjectionFunctor(unsigned arity, unsigned proj)
+unsigned Theory::getTupleProjectionFunctor(unsigned arity, unsigned proj)
 {
   auto c = theory->getTupleTermAlgebra(arity)->constructor(0);
 
@@ -1067,7 +1016,7 @@ unsigned Theory::Tuples::getProjectionFunctor(unsigned arity, unsigned proj)
 }
 
 // TODO: replace with a constant time algorithm
-bool Theory::Tuples::findProjection(unsigned projFunctor, bool isPredicate, unsigned &proj) {
+bool Theory::findTupleProjection(unsigned projFunctor, bool isPredicate, unsigned &proj) {
   OperatorType* projType = isPredicate ? env.signature->getPredicate(projFunctor)->predType()
                                        : env.signature->getFunction(projFunctor)->fnType();
 
@@ -1241,7 +1190,6 @@ std::string Theory::getInterpretationName(Interpretation interp) {
     case REAL_CEILING:
       return "ceiling";
     case ARRAY_SELECT:
-    case ARRAY_BOOL_SELECT:
       return "$select";
     case ARRAY_STORE:
       return "$store";
@@ -1250,33 +1198,30 @@ std::string Theory::getInterpretationName(Interpretation interp) {
   }
 }
 
-OperatorType* Theory::getArrayOperatorType(TermList arraySort, Interpretation i) {
-  ASS(arraySort.isArraySort());
-
-  TermList indexSort = SortHelper::getIndexSort(arraySort);
-  TermList innerSort = SortHelper::getInnerSort(arraySort);
-
-  switch (i) {
-    case Interpretation::ARRAY_SELECT:
-      return OperatorType::getFunctionType({ arraySort, indexSort }, innerSort);
-
-    case Interpretation::ARRAY_BOOL_SELECT:
-      return OperatorType::getPredicateType({ arraySort, indexSort });
-
-    case Interpretation::ARRAY_STORE:
-      return OperatorType::getFunctionType({ arraySort, indexSort, innerSort }, arraySort);
-
-    default:
-      ASSERTION_VIOLATION;
-  }
-}
-
 /**
  * Return type of the function representing interpreted function/predicate @c i.
  */
-OperatorType* Theory::getNonpolymorphicOperatorType(Interpretation i)
+OperatorType* Theory::getOperatorType(Interpretation i)
 {
-  ASS(!isPolymorphic(i));
+  // Equality is of predicate type with two arguments.
+  // Note that equality is treated specially as monomorphic,
+  // as deducing the actual arguments types from the arguments
+  // (except for two variable equalities where the type argument
+  // is stored as an extra in the Literal).
+  if (i == Interpretation::EQUAL) {
+    return OperatorType::getPredicateType(2);
+  }
+
+  // Array operators have two type arguments, index type and element type
+  if (i == Interpretation::ARRAY_SELECT || i == Interpretation::ARRAY_STORE) {
+    auto indexSort = TermList::var(0);
+    auto innerSort = TermList::var(1);
+    TermList arraySort(AtomicSort::create2(env.signature->getArrayConstructor(), indexSort, innerSort));
+    if (i == Interpretation::ARRAY_SELECT) {
+      return OperatorType::getFunctionType({ arraySort, indexSort }, innerSort, /*taArity=*/2);
+    }
+    return OperatorType::getFunctionType({ arraySort, indexSort, innerSort }, arraySort, /*taArity=*/2);
+  }
 
   if (isConversionOperation(i)) {
     return getConversionOperationType(i);
@@ -1697,7 +1642,6 @@ std::ostream& operator<<(std::ostream& out, Kernel::Theory::Interpretation const
     case Kernel::Theory::REAL_TO_RAT: return out << "REAL_TO_RAT";
     case Kernel::Theory::REAL_TO_REAL: return out << "REAL_TO_REAL";
     case Kernel::Theory::ARRAY_SELECT: return out << "ARRAY_SELECT";
-    case Kernel::Theory::ARRAY_BOOL_SELECT: return out << "ARRAY_BOOL_SELECT";
     case Kernel::Theory::ARRAY_STORE: return out << "ARRAY_STORE";
     case Kernel::Theory::INVALID_INTERPRETATION: return out << "INVALID_INTERPRETATION";
   }

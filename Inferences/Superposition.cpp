@@ -171,7 +171,7 @@ bool Superposition::checkClauseColorCompatibility(Clause* eqClause, Clause* rwCl
  *
  * This function checks that we don't perform superpositions from
  * variables that occur in the remaining part of the clause either in
- * a literal which is not an equality, or in a as an argument of a function.
+ * a literal which is not an equality, or as an argument of a function.
  * Such situation would mean that there is no ground substitution in which
  * @c eqLHS would be the larger argument of the largest literal.
  */
@@ -189,10 +189,10 @@ bool Superposition::checkSuperpositionFromVariable(Clause* eqClause, Literal* eq
     }
     if(lit->isEquality()) {
       for(unsigned aIdx=0; aIdx<2; aIdx++) {
-	TermList arg = *lit->nthArgument(aIdx);
-	if(arg.isTerm() && arg.containsSubterm(eqLHS)) {
-	  return false;
-	}
+        TermList arg = *lit->nthArgument(aIdx);
+        if(arg.isTerm() && arg.containsSubterm(eqLHS)) {
+          return false;
+        }
       }
     }
     else if(lit->containsSubterm(eqLHS)) {

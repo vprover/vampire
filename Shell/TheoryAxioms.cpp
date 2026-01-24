@@ -14,7 +14,6 @@
 
 #include "Lib/Environment.hpp"
 #include "Lib/Stack.hpp"
-#include "Lib/DHSet.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
@@ -24,12 +23,10 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Theory.hpp"
-#include "Kernel/SortHelper.hpp"
 #include "Kernel/NumTraits.hpp"
 
-#include "Indexing/TermSharing.hpp"
-
 #include "Property.hpp"
+#include "Skolem.hpp"
 #include "SymCounter.hpp"
 #include "TheoryAxioms.hpp"
 #include "Options.hpp"
@@ -796,7 +793,7 @@ void TheoryAxioms::addTruncateAxioms(Interpretation truncate, Interpretation les
 
 /**
  * Adds the extensionality axiom of arrays (of type array1 or array2): 
- * select(X,sk(X,Y)) != select(Y,sk(X,Y)) | X = Y
+ * select_{a,b}(X,sk_{a,b}(X,Y)) != select_{a,b}(Y,sk_{a,b}(X,Y)) | X = Y
  *
  * @author Laura Kovacs
  * @since 31/08/2012, Vienna
@@ -805,134 +802,60 @@ void TheoryAxioms::addTruncateAxioms(Interpretation truncate, Interpretation les
  * @since 05/01/2014 Vienna, add axiom in clause form (we need skolem function in other places)
  * @author Bernhard Kragl
 */
-void TheoryAxioms::addArrayExtensionalityAxioms(TermList arraySort, unsigned skolemFn)
+void TheoryAxioms::addArrayExtensionalityAxioms()
 {
-  unsigned sel = env.signature->getInterpretingSymbol(Theory::ARRAY_SELECT,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_SELECT));
+  unsigned sel = env.signature->getInterpretingSymbol(Kernel::Theory::ARRAY_SELECT);
 
-  TermList rangeSort = SortHelper::getInnerSort(arraySort);
+  auto indexSort = TermList::var(0);
+  auto innerSort = TermList::var(1);
+  auto x         = TermList::var(2);
+  auto y         = TermList::var(3);
 
-  TermList x(0,false);
-  TermList y(1,false);
+  TermList arraySort(AtomicSort::create2(env.signature->getArrayConstructor(), indexSort, innerSort));
+  TermStack args { arraySort, arraySort };
+  auto skolemFn = Skolem::addSkolemFunction(4, 2, args.begin(), indexSort, "arrayDiff");
 
-  TermList sk(Term::create2(skolemFn, x, y)); //sk(x,y)
-  TermList sel_x_sk(Term::create2(sel,x,sk)); //select(x,sk(x,y))
-  TermList sel_y_sk(Term::create2(sel,y,sk)); //select(y,sk(x,y))
-  Literal* eq = Literal::createEquality(true,x,y,arraySort); //x = y
-  Literal* ineq = Literal::createEquality(false,sel_x_sk,sel_y_sk,rangeSort); //select(x,sk(x,y) != select(y,z)
+  TermList sk(Term::create(skolemFn, { indexSort, innerSort, x, y })); //sk(x,y)
+  TermList sel_x_sk(Term::create(sel, { indexSort, innerSort, x, sk })); //select(x,sk(x,y))
+  TermList sel_y_sk(Term::create(sel, { indexSort, innerSort, y, sk })); //select(y,sk(x,y))
+  Literal* eq = Literal::createEquality(true, x, y, arraySort); //x = y
+  Literal* ineq = Literal::createEquality(false, sel_x_sk, sel_y_sk, innerSort); //select(x,sk(x,y) != select(y,z)
 
-  addTheoryClauseFromLits({eq,ineq}, InferenceRule::THA_ARRAY_EXTENSIONALITY, EXPENSIVE);
+  addTheoryClauseFromLits({eq, ineq}, InferenceRule::THA_ARRAY_EXTENSIONALITY, EXPENSIVE);
 } // addArrayExtensionalityAxiom
 
 /**
- * Adds the extensionality axiom of boolean arrays:
- * select(X, sk(X, Y)) <~> select(Y, sk(X, Y)) | X = Y
- *
- * @since 25/08/2015 Gothenburg
- * @author Evgeny Kotelnikov
- */
-void TheoryAxioms::addBooleanArrayExtensionalityAxioms(TermList arraySort, unsigned skolemFn)
-{
-  OperatorType* selectType = Theory::getArrayOperatorType(arraySort,Theory::ARRAY_BOOL_SELECT);
-
-  unsigned sel = env.signature->getInterpretingSymbol(Theory::ARRAY_BOOL_SELECT,selectType);
-
-  TermList x(0,false);
-  TermList y(1,false);
-
-  TermList sk(Term::create2(skolemFn, x, y)); //sk(x,y)
-  Formula* x_neq_y = new AtomicFormula(Literal::createEquality(false,x,y,arraySort)); //x != y
-
-  Formula* sel_x_sk = new AtomicFormula(Literal::create2(sel, true, x, sk)); //select(x,sk(x,y))
-  Formula* sel_y_sk = new AtomicFormula(Literal::create2(sel, true, y, sk)); //select(y,sk(x,y))
-  Formula* sx_neq_sy = new BinaryFormula(XOR, sel_x_sk, sel_y_sk); //select(x,sk(x,y)) <~> select(y,sk(x,y))
-
-  Formula* axiom = new QuantifiedFormula(FORALL, VList::cons(0, VList::cons(1, VList::empty())),
-                                         SList::cons(arraySort, SList::cons(arraySort,SList::empty())),
-                                         new BinaryFormula(IMP, x_neq_y, sx_neq_sy));
-
-  addAndOutputTheoryUnit(new FormulaUnit(axiom, TheoryAxiom(InferenceRule::THA_BOOLEAN_ARRAY_EXTENSIONALITY)),EXPENSIVE);
-} // addBooleanArrayExtensionalityAxiom
-
-/**
 * Adds the write/select axiom of arrays (of type array1 or array2),
  * @author Laura Kovacs
  * @since 31/08/2012, Vienna
 */
-void TheoryAxioms::addArrayWriteAxioms(TermList arraySort)
+void TheoryAxioms::addArrayWriteAxioms()
 {
-  unsigned func_select = env.signature->getInterpretingSymbol(Theory::ARRAY_SELECT,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_SELECT));
-  unsigned func_store = env.signature->getInterpretingSymbol(Theory::ARRAY_STORE,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_STORE));
+  unsigned func_select = env.signature->getInterpretingSymbol(Kernel::Theory::ARRAY_SELECT);
+  unsigned func_store = env.signature->getInterpretingSymbol(Kernel::Theory::ARRAY_STORE);
 
-  TermList rangeSort = SortHelper::getInnerSort(arraySort);
-  TermList domainSort = SortHelper::getIndexSort(arraySort);
+  auto indexSort = TermList::var(0);
+  auto innerSort = TermList::var(1);
+  auto i = TermList::var(2);
+  auto j = TermList::var(3);
+  auto v = TermList::var(4);
+  auto a = TermList::var(5);
 
-  TermList i(0,false);
-  TermList j(1,false);
-  TermList v(2,false);
-  TermList a(3,false);
-  TermList args[] = {a, i, v};
+  TermList arraySort(AtomicSort::create2(env.signature->getArrayConstructor(), indexSort, innerSort));
 
-  //axiom (!A: arraySort, !I:domainSort, !V:rangeSort: (select(store(A,I,V), I) = V
-  TermList wAIV(Term::create(func_store, 3, args)); //store(A,I,V)
-  TermList sWI(Term::create2(func_select, wAIV,i)); //select(wAIV,I)
-  Literal* ax = Literal::createEquality(true, sWI, v, rangeSort);
+  //axiom (!A: arraySort, !I:indexSort, !V:innerSort: (select(store(A,I,V), I) = V
+  TermList wAIV(Term::create(func_store, { indexSort, innerSort, a, i, v })); //store(A,I,V)
+  TermList sWI(Term::create(func_select, { indexSort, innerSort, wAIV, i })); //select(wAIV,I)
+  auto ax = Literal::createEquality(true, sWI, v, innerSort);
   addTheoryClauseFromLits({ax}, InferenceRule::THA_ARRAY_WRITE1, CHEAP);
 
-  //axiom (!A: arraySort, !I,J:domainSort, !V:rangeSort: (I!=J)->(select(store(A,I,V), J) = select(A,J)
-  TermList sWJ(Term::create2(func_select, wAIV,j)); //select(wAIV,J)
-  TermList sAJ(Term::create2(func_select, a, j)); //select(A,J)
+  //axiom (!A: arraySort, !I,J:indexSort, !V:innerSort: (I!=J)->(select(store(A,I,V), J) = select(A,J)
+  TermList sWJ(Term::create(func_select, { indexSort, innerSort, wAIV, j })); //select(wAIV,J)
+  TermList sAJ(Term::create(func_select, { indexSort, innerSort, a, j })); //select(A,J)
 
-  Literal* indexEq = Literal::createEquality(true, i, j, domainSort);//!(!(I=J)) === I=J
-  Literal* writeEq = Literal::createEquality(true, sWJ, sAJ, rangeSort);//(select(store(A,I,V), J) = select(A,J)
+  Literal* indexEq = Literal::createEquality(true, i, j, indexSort);//!(!(I=J)) === I=J
+  Literal* writeEq = Literal::createEquality(true, sWJ, sAJ, innerSort);//(select(store(A,I,V), J) = select(A,J)
   addTheoryClauseFromLits({indexEq,writeEq}, InferenceRule::THA_ARRAY_WRITE2, CHEAP);
-} //
-
-/**
-* Adds the write/select axiom of arrays (of type array1 or array2),
- * @author Laura Kovacs
- * @since 31/08/2012, Vienna
-*/
-void TheoryAxioms::addBooleanArrayWriteAxioms(TermList arraySort)
-{
-  unsigned pred_select = env.signature->getInterpretingSymbol(Theory::ARRAY_BOOL_SELECT,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_BOOL_SELECT));
-  unsigned func_store = env.signature->getInterpretingSymbol(Theory::ARRAY_STORE,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_STORE));
-
-  TermList domainSort = SortHelper::getIndexSort(arraySort);
-
-  TermList a(0,false);
-  TermList i(1,false);
-
-  TermList false_(Term::foolFalse());
-  TermList true_(Term::foolTrue());
-
-  // select(store(A,I,$$true), I)
-  //~select(store(A,I,$$false), I)
-
-  for (TermList bval : {false_,true_}) {
-    TermList args[] = {a, i, bval};
-    TermList wAIV(Term::create(func_store, 3, args)); //store(A,I,bval)
-    Literal* lit = Literal::create2(pred_select, true, wAIV,i);
-    if (bval == false_) {
-      lit = Literal::complementaryLiteral(lit);
-    }
-    Formula* ax = new AtomicFormula(lit);
-    addAndOutputTheoryUnit(new FormulaUnit(ax, TheoryAxiom(InferenceRule::THA_BOOLEAN_ARRAY_WRITE1)),CHEAP);
-  }
-
-  TermList v(2,false);
-  TermList j(3,false);
-
-  TermList args[] = {a, i, v};
-
-  //axiom (!A: arraySort, !I,J:domainSort, !V:rangeSort: (I!=J)->(select(store(A,I,V), J) <=> select(A,J)
-  TermList wAIV(Term::create(func_store, 3, args)); //store(A,I,V)
-  Formula* sWJ = new AtomicFormula(Literal::create2(pred_select, true, wAIV,j)); //select(wAIV,J)
-  Formula* sAJ = new AtomicFormula(Literal::create2(pred_select, true, a, j)); //select(A,J)
-
-  Formula* indexEq = new AtomicFormula(Literal::createEquality(false, i, j, domainSort));//I!=J
-  Formula* writeEq = new BinaryFormula(IFF, sWJ, sAJ);//(select(store(A,I,V), J) <=> select(A,J)
-  Formula* ax2 = new BinaryFormula(IMP, indexEq, writeEq);
-  addAndOutputTheoryUnit(new FormulaUnit(ax2, TheoryAxiom(InferenceRule::THA_BOOLEAN_ARRAY_WRITE2)),CHEAP);
 } //
 
 //Axioms for integer division that hven't been implemented yet
@@ -1105,34 +1028,17 @@ void TheoryAxioms::apply()
     }
   }
 
-  DHSet<TermList>* arraySorts = env.sharing->getArraySorts();
-  DHSet<TermList>::Iterator it(*arraySorts);
-  while(it.hasNext()){
-    TermList arraySort = it.next();
+  // TODO this should probably come from parsing the properties
+  // Check if they are used
+  bool haveSelect = prop->hasInterpretedOperation(Theory::ARRAY_SELECT);
+  bool haveStore = prop->hasInterpretedOperation(Theory::ARRAY_STORE);
 
-    bool isBool = SortHelper::getInnerSort(arraySort) == AtomicSort::boolSort();
-    
-    // Check if they are used
-    Interpretation arraySelect = isBool ? Theory::ARRAY_BOOL_SELECT : Theory::ARRAY_SELECT;
-    bool haveSelect = prop->hasInterpretedOperation(arraySelect,Theory::getArrayOperatorType(arraySort,arraySelect));
-    bool haveStore = prop->hasInterpretedOperation(Theory::ARRAY_STORE,Theory::getArrayOperatorType(arraySort,Theory::ARRAY_STORE));
-
-    if (haveSelect || haveStore) {
-      unsigned sk = theory->getArrayExtSkolemFunction(arraySort);
-      if (isBool) {
-        addBooleanArrayExtensionalityAxioms(arraySort, sk);
-      } else {
-        addArrayExtensionalityAxioms(arraySort, sk);
-      }
-      if (haveStore) {
-        if (isBool) {
-          addBooleanArrayWriteAxioms(arraySort);
-        } else {
-          addArrayWriteAxioms(arraySort);
-        }
-      }
-      modified = true;
+  if (haveSelect || haveStore) {
+    addArrayExtensionalityAxioms();
+    if (haveStore) {
+      addArrayWriteAxioms();
     }
+    modified = true;
   }
 
   VirtualIterator<TermAlgebra*> tas = env.signature->termAlgebrasIterator();
