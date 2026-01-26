@@ -7,3 +7,7 @@
 [submodule "viras"]
 	path = viras
 	url = https://github.com/joe-hauns/viras
+[submodule "NapSAT"]
+	path = NapSAT
+	url = git@github.com:RobCoutel/NapSAT.git
+	branch = assumptions

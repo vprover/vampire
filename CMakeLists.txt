@@ -131,6 +131,7 @@ if(COVERAGE)
       "${PROJECT_SOURCE_DIR}/UnitTests"
       "${PROJECT_SOURCE_DIR}/Test"
       "${PROJECT_SOURCE_DIR}/cadical"
+      "${PROJECT_SOURCE_DIR}/NapSAT"
       "${PROJECT_SOURCE_DIR}/viras"
       "${PROJECT_SOURCE_DIR}/z3")
 endif()
@@ -191,6 +192,44 @@ if(NOT HAVE_CLOSEFROM)
 endif()
 
 ################################################################
+# NapSAT
+################################################################
+if (NOT EXISTS "${PROJECT_SOURCE_DIR}/NapSAT/README.md")
+  message(FATAL_ERROR "NapSAT not found")
+endif()
+
+find_package(BZip2 REQUIRED)
+find_package(LibLZMA REQUIRED)
+
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/NapSAT/src)
+include(ExternalProject)
+
+ExternalProject_Add(
+    napsat
+    SOURCE_DIR ${CMAKE_SOURCE_DIR}/NapSAT
+    CONFIGURE_COMMAND ""             # no ./configure
+    BUILD_COMMAND make debug         # TODO replace with make lib for release build
+    BUILD_IN_SOURCE 1                # uses NapSAT/Makefile
+    INSTALL_COMMAND make install     # install the libraries required by NapSAT
+)
+
+add_library(NapSAT STATIC IMPORTED)
+set_target_properties(NapSAT PROPERTIES
+    IMPORTED_LOCATION
+        ${CMAKE_SOURCE_DIR}/NapSAT/build/NapSAT.a
+    INTERFACE_INCLUDE_DIRECTORIES
+        ${CMAKE_SOURCE_DIR}/NapSAT/include
+)
+
+target_link_libraries(NapSAT
+    INTERFACE
+        BZip2::BZip2
+        LibLZMA::LibLZMA
+)
+
+add_dependencies(NapSAT napsat)
+
+################################################################
 # Z3
 ################################################################
 
@@ -232,6 +271,7 @@ add_library(common OBJECT ${SOURCES})
 add_executable(vampire vampire.cpp $<TARGET_OBJECTS:common>)
 
 install(TARGETS vampire)
+target_link_libraries(vampire PRIVATE NapSAT)
 
 ################################################################
 # UNIT TESTING
