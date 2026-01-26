@@ -155,6 +155,18 @@ void Solver::releaseVar(Lit l)
     }
 }
 
+void Solver::shuffle(vec<Lit>& v, int from)
+{
+    static double shuffling_seed = 91648253;
+    int len = v.size();
+    for(unsigned i=from;i<len;i++){
+        int j = irand(shuffling_seed,len-i)+i;
+        Lit tmp = v[i];
+        v[i] = v[j];
+        v[j] = tmp;
+    }
+}
+
 
 bool Solver::addClause_(vec<Lit>& ps)
 {
@@ -170,6 +182,8 @@ bool Solver::addClause_(vec<Lit>& ps)
         else if (value(ps[i]) != l_False && ps[i] != p)
             ps[j++] = p = ps[i];
     ps.shrink(i - j);
+
+    shuffle(ps);
 
     if (ps.size() == 0)
         return ok = false;
@@ -726,6 +740,7 @@ lbool Solver::search(int nof_conflicts)
             if (learnt_clause.size() == 1){
                 uncheckedEnqueue(learnt_clause[0]);
             }else{
+                shuffle(learnt_clause,1);
                 CRef cr = ca.alloc(learnt_clause, true);
                 learnts.push(cr);
                 attachClause(cr);
