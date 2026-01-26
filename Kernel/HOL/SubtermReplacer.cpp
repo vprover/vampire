@@ -16,7 +16,7 @@
 #include "TermShifter.hpp"
 
 SubtermReplacer::SubtermReplacer(TermList what, TermList by, bool liftFree)
-      : TermTransformer(false),
+      : TermTransformer(/*transformSorts=*/false),
         _what(what),
         _by(by),
         _liftFreeIndices(liftFree) {

@@ -15,7 +15,7 @@
 #include "Kernel/HOL/HOL.hpp"
 
 ToPlaceholders::ToPlaceholders(std::optional<Options::FunctionExtensionality> funcExtMode)
-      : TermTransformer(false),
+      : TermTransformer(/*transformSorts=*/false),
         _nextIsPrefix(false),
         _topLevel(true),
         _mode(funcExtMode.value_or(env.options->functionExtensionality())) {}

@@ -37,7 +37,7 @@ class TermShifter : public TermTransformer
 {
 public:
   explicit TermShifter(int shiftBy)
-    : TermTransformer(false),
+    : TermTransformer(/*transformSorts=*/false),
       _shiftBy(shiftBy) {}
 
   // positive value -> shift up

@@ -26,7 +26,7 @@
 namespace HOL {
 
 using Kernel::Term;
-  
+
 inline bool isTrue(TermList term) {
   return term.isTerm() && env.signature->isFoolConstantSymbol(true, term.term()->functor());
 }
