@@ -1,0 +1,86 @@
+/*
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
+/**
+ * @file MinisatInterfacing.hpp
+ * Defines class MinisatInterfacing
+ */
+#ifndef __NapSATInterfacing__
+#define __NapSATInterfacing__
+
+#include "SATSolver.hpp"
+#include "SATLiteral.hpp"
+#include "SATClause.hpp"
+
+#include "NapSAT/include/SAT-types.hpp"
+#include "NapSAT/include/SAT-API.hpp"
+
+namespace SAT {
+
+class NapSATInterfacing : public SATSolver
+{
+public:
+  NapSATInterfacing();
+  ~NapSATInterfacing() override;
+
+  void addClause(SATClause* cl) override;
+
+  VarAssignment getAssignment(unsigned var) override;
+
+  bool isZeroImplied(unsigned var) override;
+
+  void ensureVarCount(unsigned newVarCnt) override;
+
+  unsigned newVar() override;
+
+  void suggestPolarity(unsigned var, unsigned pol) override;
+
+  Status solveUnderAssumptionsLimited(const SATLiteralStack& assumps,
+                                      unsigned conflictCountLimit) override;
+
+  SATLiteralStack failedAssumptions() override;
+
+  static SATClauseList* minimizePremiseList(SATClauseList* premises,
+                                            SATLiteralStack& assumps);
+
+  static void interpolateViaAssumptions(unsigned maxVar,
+                                        const SATClauseStack& first,
+                                        const SATClauseStack& second,
+                                        SATClauseStack& result);
+
+  SATClauseList *minimizePremises(SATClauseList *premises) override;
+
+protected:
+  Tvar vampireVar2NapSAT(unsigned vvar) {
+    ASS_GE(vvar,0);
+    return vvar;
+  }
+
+  unsigned napSATVar2Vampire(Tvar nvar) {
+    return (unsigned)(nvar);
+  }
+
+  const napsat::Tlit vampireLit2NapSAT(SATLiteral vlit) {
+    return napsat::literal(vampireVar2NapSAT(vlit.var()), !vlit.positive());
+  }
+
+
+  const SATLiteral napSATLit2Vampire(napsat::Tlit nlit) {
+    return SATLiteral(napSATVar2Vampire(napsat::lit_to_var(nlit)), napsat::lit_pol(nlit) ? 0 : 1);
+  }
+
+private:
+  napsat::status _status = napsat::status::SAT;
+  std::vector<napsat::Tlit> _assumptions;
+  napsat::NapSAT* _solver;
+};
+
+}//end SAT namespace
+
+ #endif /* __NapSATInterfacing__ */
