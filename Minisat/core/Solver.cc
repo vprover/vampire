@@ -66,6 +66,7 @@ Solver::Solver() :
   , random_var_freq  (opt_random_var_freq)
   , random_seed      (opt_random_seed)
   , luby_restart     (opt_luby_restart)
+  , shuffle_clauses  (false)
   , ccmin_mode       (opt_ccmin_mode)
   , phase_saving     (opt_phase_saving)
   , rnd_pol          (false)
@@ -183,7 +184,8 @@ bool Solver::addClause_(vec<Lit>& ps)
             ps[j++] = p = ps[i];
     ps.shrink(i - j);
 
-    shuffle(ps);
+    if (shuffle_clauses)
+        shuffle(ps);
 
     if (ps.size() == 0)
         return ok = false;
@@ -740,7 +742,8 @@ lbool Solver::search(int nof_conflicts)
             if (learnt_clause.size() == 1){
                 uncheckedEnqueue(learnt_clause[0]);
             }else{
-                shuffle(learnt_clause,1);
+                if (shuffle_clauses)
+                    shuffle(learnt_clause,1);
                 CRef cr = ca.alloc(learnt_clause, true);
                 learnts.push(cr);
                 attachClause(cr);

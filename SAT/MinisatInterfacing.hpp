@@ -53,7 +53,7 @@ public:
 
   void suggestPolarity(unsigned var, unsigned pol) override {
     // 0 -> true which means negated, e.g. false in the model
-    bool mpol = pol ? false : true; 
+    bool mpol = pol ? false : true;
     _solver.suggestPolarity(vampireVar2Minisat(var),mpol);
   }
 
@@ -83,27 +83,36 @@ public:
     return minimizePremiseList(premises, assumps);
   }
 
-protected:    
+  void setSeed(unsigned seed) {
+    ASS_NEQ(seed,0)
+    _solver.random_seed = seed;
+  }
+
+  void setClauseShuffling(bool newVal) {
+    _solver.shuffle_clauses = newVal;
+  }
+
+protected:
   void solveModuloAssumptionsAndSetStatus(unsigned conflictCountLimit = UINT_MAX);
-  
+
   Minisat::Var vampireVar2Minisat(unsigned vvar) {
     ASS_G(vvar,0); ASS_LE(vvar,(unsigned)_solver.nVars());
     return (vvar-1);
   }
-  
+
   unsigned minisatVar2Vampire(Minisat::Var mvar) {
     return (unsigned)(mvar+1);
   }
-  
+
   const Minisat::Lit vampireLit2Minisat(SATLiteral vlit) {
-    return Minisat::mkLit(vampireVar2Minisat(vlit.var()),!vlit.positive()); 
+    return Minisat::mkLit(vampireVar2Minisat(vlit.var()),!vlit.positive());
   }
-  
+
   /* sign=true in minisat means "negated" in vampire */
   const SATLiteral minisatLit2Vampire(Minisat::Lit mlit) {
     return SATLiteral(minisatVar2Vampire(Minisat::var(mlit)),Minisat::sign(mlit) ? 0 : 1);
   }
-  
+
 private:
   Status _status = Status::SATISFIABLE;
   Minisat::vec<Minisat::Lit> _assumptions;

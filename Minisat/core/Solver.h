@@ -139,6 +139,8 @@ public:
     double    random_var_freq;
     double    random_seed;
     bool      luby_restart;
+    bool      shuffle_clauses;    // MS: add clause shuffling, for both intput clauses and learnt ones
+                                  // (NB: shuffling input clauses on client size does not work, as internal processing sorts first)
     int       ccmin_mode;         // Controls conflict clause minimization (0=none, 1=basic, 2=deep).
     int       phase_saving;       // Controls the level of phase saving (0=none, 1=limited, 2=full).
     bool      rnd_pol;            // Use random polarities for branching heuristics.
