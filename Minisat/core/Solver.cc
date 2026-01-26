@@ -160,7 +160,7 @@ void Solver::shuffle(vec<Lit>& v, int from)
 {
     static double shuffling_seed = 91648253;
     int len = v.size();
-    for(unsigned i=from;i<len;i++){
+    for(int i=from;i<len;i++){
         int j = irand(shuffling_seed,len-i)+i;
         Lit tmp = v[i];
         v[i] = v[j];
