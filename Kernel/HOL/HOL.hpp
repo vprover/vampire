@@ -64,8 +64,6 @@ inline bool canHeadReduce(const TermList& head, const TermStack& args) {
   return head.isLambdaTerm() && args.isNonEmpty();
 }
 
-TermList toPlaceholders(TermList term, std::optional<Options::FunctionExtensionality> funcExtMode = std::nullopt);
-
 } // namespace HOL
 
 namespace HOL::create {

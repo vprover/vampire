@@ -9,6 +9,7 @@
  */
 
 #include "Kernel/HOL/HOL.hpp"
+#include "Kernel/HOL/ToPlaceholders.hpp"
 #include "Test/HOLUtils.hpp"
 #include "Test/UnitTesting.hpp"
 
@@ -32,21 +33,21 @@ HOL_TEST_FUN(to_placeholders_1) {
     "vAPP(srt,srt,vAPP(srt > srt,srt > srt,h,f),vAPP(srt,srt,X1,X2))"
   )
 
-  auto res = HOL::toPlaceholders(term);
+  auto res = ToPlaceholders::replace(term);
   ASS_EQ(res, app({D.h, ph(D.fSrt), ph(D.srt)}))
   ASS_EQ(termListToString(res, Options::HPrinting::TPTP), "(h @ ph0⟨srt > srt⟩ @ ph0⟨srt⟩)")
   ASS_EQ(termListToString(res, Options::HPrinting::RAW), "vAPP(srt,srt,vAPP(srt > srt,srt > srt,h,ph0(srt > srt)),ph0(srt))")
 
   // With the setting FunctionExtensionality::OFF, the result of toPlaceholders(h @ f @ (x1 @ x2))
   // is h @ f @ ☐ as the functional subterm f is not replaced by a placeholder.
-  res = HOL::toPlaceholders(term, Options::FunctionExtensionality::OFF);
+  res = ToPlaceholders::replace(term, Options::FunctionExtensionality::OFF);
   ASS_EQ(res, app({D.h, D.f, ph(D.srt)}))
   ASS_EQ(termListToString(res, Options::HPrinting::TPTP), "(h @ f @ ph0⟨srt⟩)")
   ASS_EQ(termListToString(res, Options::HPrinting::RAW), "vAPP(srt,srt,vAPP(srt > srt,srt > srt,h,f),ph0(srt))")
 }
 
 HOL_TEST_FUN(to_placeholders_2) {
-  const auto res = HOL::toPlaceholders(app({D.h, LAM(D.srt, db(0)), D.a}));
+  const auto res = ToPlaceholders::replace(app({D.h, LAM(D.srt, db(0)), D.a}));
 
   ASS_EQ(res, app({D.h, ph(D.fSrt), D.a}))
   ASS_EQ(termListToString(res, Options::HPrinting::TPTP), "(h @ ph0⟨srt > srt⟩ @ a)")

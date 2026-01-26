@@ -14,20 +14,20 @@
 #include "Kernel/HOL/ToPlaceholders.hpp"
 #include "Kernel/HOL/HOL.hpp"
 
-ToPlaceholders::ToPlaceholders(std::optional<Options::FunctionExtensionality> funcExtMode)
+ToPlaceholders::ToPlaceholders(Options::FunctionExtensionality funcExtMode)
       : TermTransformer(/*transformSorts=*/false),
         _nextIsPrefix(false),
         _topLevel(true),
-        _mode(funcExtMode.value_or(env.options->functionExtensionality())) {}
+        _mode(funcExtMode) {}
 
-TermList ToPlaceholders::replace(TermList term) {
-  TermList transformed = transformSubterm(term);
+TermList ToPlaceholders::replace(TermList term, std::optional<Options::FunctionExtensionality> funcExtMode) {
+  auto toPlaceholders = ToPlaceholders(funcExtMode.value_or(env.options->functionExtensionality()));
 
-  if (transformed != term)
+  if (auto transformed = toPlaceholders.transformSubterm(term); transformed != term)
     return transformed;
 
-  _topLevel = false;
-  return transform(term);
+  toPlaceholders._topLevel = false;
+  return toPlaceholders.transform(term);
 }
 
 TermList ToPlaceholders::transformSubterm(TermList t) {

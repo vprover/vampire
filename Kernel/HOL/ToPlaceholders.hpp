@@ -33,9 +33,7 @@ using namespace Kernel;
 class ToPlaceholders : public TermTransformer
 {
 public:
-  explicit ToPlaceholders(std::optional<Shell::Options::FunctionExtensionality> funcExtMode);
-
-  TermList replace(TermList term);
+  static TermList replace(TermList term, std::optional<Shell::Options::FunctionExtensionality> funcExtMode = std::nullopt);
   TermList transformSubterm(TermList t) override;
 
   void onTermEntry(Term* t) override {
@@ -48,6 +46,7 @@ public:
   }
 
 private:
+  explicit ToPlaceholders(Shell::Options::FunctionExtensionality funcExtMode);
   bool _nextIsPrefix;
   bool _topLevel;
   Shell::Options::FunctionExtensionality _mode;

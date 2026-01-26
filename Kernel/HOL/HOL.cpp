@@ -377,7 +377,3 @@ void HOL::getMatrixAndPrefSorts(TermList t, TermList& matrix, TermStack& sorts) 
   }
   matrix = t;
 }
-
-TermList HOL::toPlaceholders(TermList term, std::optional<Options::FunctionExtensionality> funcExtMode) {
-  return ToPlaceholders(funcExtMode).replace(term);
-}
