@@ -312,9 +312,7 @@ protected:
         int len = v.size();
         for(int i=from;i<len;i++){
             int j = irand(random_seed,len-i)+i;
-            T tmp = v[i];
-            v[i] = v[j];
-            v[j] = tmp;
+            std::swap(v[i],v[j]);
         }
     }
 };
