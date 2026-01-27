@@ -16,6 +16,7 @@
 
 #include "Kernel/Term.hpp"
 #include "Kernel/TypedTermList.hpp"
+#include "Kernel/HOL/HOL.hpp"
 #include "Shell/Options.hpp"
 
 #include <optional>
@@ -41,8 +42,21 @@ inline TypedTermList lam(TypedTermList var, TypedTermList body) {
   return lam({var}, body);
 }
 
-TypedTermList app(TypedTermList lhs, TypedTermList rhs);
-TypedTermList app(const std::initializer_list<TypedTermList>& terms);
+template <class T, class ...Ts>
+TypedTermList app(TypedTermList arg1, T arg2, Ts... args) {
+  ASS(arg1.sort().isArrowSort())
+
+  auto [domain, result] = arg1.sort().asPair();
+
+  ASS(domain == arg2.sort())
+
+  TypedTermList t = {::HOL::create::app(domain, result, arg1, arg2), result};
+
+  if constexpr (sizeof...(args) == 0)
+    return t;
+  else
+    return app(t, args...);
+}
 
 class Defs {
   static Defs* _instance;
@@ -51,7 +65,7 @@ public:
   static Defs* instance();
 
   TermList srt, fSrt;
-  TypedTermList a, f, f2, f3, g;
+  TypedTermList a, f, f2, f3, g, h;
 };
 
 TypedTermList x(unsigned idx, std::optional<TermList> sort = std::nullopt);

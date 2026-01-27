@@ -24,7 +24,7 @@ HOL_TEST_FUN(beta_reduction_1) {
   unsigned reds;
   for (const auto term : testTerms) {
     auto reduced = betaNF(
-      toNameless(app(id(), {term, D.srt})), &reds
+      toNameless(app(id(), TypedTermList(term, D.srt))), &reds
     );
 
     ASS_EQ(reds, 1)
@@ -46,7 +46,7 @@ HOL_TEST_FUN(beta_reduction_2) {
     for (const auto term2 : testTerms) {
       auto constFn = lam(x(0), {term1, D.srt});
       auto reduced = betaNF(
-        toNameless(app(constFn, {term2, D.srt})), &reds
+        toNameless(app(constFn, TypedTermList(term2, D.srt))), &reds
       );
 
       ASS_EQ(reds, 1)

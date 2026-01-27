@@ -118,3 +118,26 @@ HOL_TEST_FUN(hol_print_2) {
       {TPTP,       "(^[Y0 : srt > srt]: ((^[Y1 : srt]: (Y1))))" }}
   );
 }
+
+HOL_TEST_FUN(hol_print_3) {
+  runTest(
+    D.f3.sort(),
+    { {RAW,    "(srt > (srt > (srt > srt)))" },
+      {PRETTY, "(srt → srt → srt → srt)" },
+      {TPTP,   "(srt > srt > srt > srt)"} }
+  );
+
+  runTest(
+    D.g.sort(),
+    { {RAW,    "((srt > srt) > srt)" },
+      {PRETTY, "((srt → srt) → srt)" },
+      {TPTP,   "((srt > srt) > srt)"} }
+  );
+
+  runTest(
+    D.h.sort(),
+    { {RAW,    "((srt > srt) > (srt > srt))" },
+      {PRETTY, "((srt → srt) → srt → srt)" },
+      {TPTP,   "((srt > srt) > srt > srt)"} }
+  );
+}

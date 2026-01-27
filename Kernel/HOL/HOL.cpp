@@ -13,6 +13,7 @@
 
 #include "Kernel/HOL/HOL.hpp"
 
+#include "ToPlaceholders.hpp"
 #include "Kernel/Formula.hpp"
 
 using IndexVarStack = Stack<std::pair<unsigned, unsigned>>;
@@ -121,6 +122,10 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
     if (pretty && term.arity() > 0)
       res += "⟩";
     return res;
+  }
+
+  if (term.isPlaceholder()) {
+    return term.functionName() + "⟨" + term.nthArgument(0)->toString(true) + "⟩";
   }
 
   if (term.isLambdaTerm()) {

@@ -20,12 +20,6 @@
 using IndexSortPair = std::pair<int, TermList>;
 using VarToIndexMap = std::unordered_map<unsigned, IndexSortPair>;
 
-static TermList sortOf(TermList t) {
-  ASS(t.isTerm())
-
-  return SortHelper::getResultSort(t.term());
-}
-
 static TermList termToNameless(TermList term, const VarToIndexMap& map);
 static TermList formulaToNameless(Formula *formula, const VarToIndexMap& map);
 
@@ -40,7 +34,7 @@ static TermList toNamelessAux(VList* vars, SList* sorts, TermList body, TermList
     vars->tail() == nullptr ? termToNameless(body, newMap)
                             : toNamelessAux(vars->tail(), sorts->tail(), body, bodySort, newMap);
 
-  bodySort = converted.isVar() ? bodySort : sortOf(converted);
+  bodySort = converted.isVar() ? bodySort : converted.resultSort();
   return HOL::create::namelessLambda(sorts->head(), bodySort, converted);
 }
 
@@ -68,7 +62,7 @@ static TermList termToNameless(TermList term, const VarToIndexMap& map) {
         const auto vars = sd->getLambdaVars();
 
         const auto eliminated = toNamelessAux(vars, sorts, sd->getLambdaExp(), sd->getLambdaExpSort(), map);
-        ASS_REP2(eliminated.isVar() || sortOf(eliminated) == sd->getSort(), t->toString(), eliminated.toString())
+        ASS_REP2(eliminated.isVar() || eliminated.resultSort() == sd->getSort(), t->toString(), eliminated.toString())
         return eliminated;
       }
 
