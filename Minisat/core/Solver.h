@@ -91,7 +91,7 @@ public:
     void    toDimacs     (const char* file, Lit p);
     void    toDimacs     (const char* file, Lit p, Lit q);
     void    toDimacs     (const char* file, Lit p, Lit q, Lit r);
-    
+
     // Variable mode:
     // 
     void    suggestPolarity(Var v, bool b);
@@ -305,7 +305,17 @@ protected:
     static inline int irand(double& seed, int size) {
         return (int)(drand(seed) * size); }
 
-    void shuffle(vec<Lit>& v, int from = 0);
+    template <typename T>
+    void shuffle(vec<T>& v, int from = 0)
+    {
+        int len = v.size();
+        for(int i=from;i<len;i++){
+            int j = irand(random_seed,len-i)+i;
+            T tmp = v[i];
+            v[i] = v[j];
+            v[j] = tmp;
+        }
+    }
 };
 
 

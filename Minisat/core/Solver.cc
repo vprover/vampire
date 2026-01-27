@@ -156,19 +156,6 @@ void Solver::releaseVar(Lit l)
     }
 }
 
-void Solver::shuffle(vec<Lit>& v, int from)
-{
-    static double shuffling_seed = 91648253;
-    int len = v.size();
-    for(int i=from;i<len;i++){
-        int j = irand(shuffling_seed,len-i)+i;
-        Lit tmp = v[i];
-        v[i] = v[j];
-        v[j] = tmp;
-    }
-}
-
-
 bool Solver::addClause_(vec<Lit>& ps)
 {
     assert(decisionLevel() == 0);
@@ -343,7 +330,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
                     out_learnt.push(q);
             }
         }
-        
+
         // Select next clause to look at:
         while (!seen[var(trail[index--])]);
         p     = trail[index+1];
@@ -516,11 +503,11 @@ void Solver::uncheckedEnqueue(Lit p, CRef from)
 /*_________________________________________________________________________________________________
 |
 |  propagate : [void]  ->  [Clause*]
-|  
+|
 |  Description:
 |    Propagates all enqueued facts. If a conflict arises, the conflicting clause is returned,
 |    otherwise CRef_Undef.
-|  
+|
 |    Post-conditions:
 |      * the propagation queue is empty, even if there was a conflict.
 |________________________________________________________________________________________________@*/
