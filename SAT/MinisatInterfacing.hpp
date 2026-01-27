@@ -92,6 +92,10 @@ public:
     _solver.shuffle_clauses = newVal;
   }
 
+  void setWatchesShuffling(bool newVal) {
+    _solver.shuffle_watches = newVal;
+  }
+
 protected:
   void solveModuloAssumptionsAndSetStatus(unsigned conflictCountLimit = UINT_MAX);
 

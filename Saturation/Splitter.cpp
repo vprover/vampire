@@ -80,6 +80,7 @@ void SplittingBranchSelector::init()
       auto minisat = new MinisatInterfacing();
       minisat->setSeed(Random::seed());
       minisat->setClauseShuffling(_parent.getOptions().randomTraversals());
+      minisat->setWatchesShuffling(_parent.getOptions().randomTraversals());
       inner = minisat;
       break;
     }
