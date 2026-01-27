@@ -66,6 +66,8 @@ Solver::Solver() :
   , random_var_freq  (opt_random_var_freq)
   , random_seed      (opt_random_seed)
   , luby_restart     (opt_luby_restart)
+  , shuffle_watches  (false)
+  , shuffle_clauses  (false)
   , ccmin_mode       (opt_ccmin_mode)
   , phase_saving     (opt_phase_saving)
   , rnd_pol          (false)
@@ -155,7 +157,6 @@ void Solver::releaseVar(Lit l)
     }
 }
 
-
 bool Solver::addClause_(vec<Lit>& ps)
 {
     assert(decisionLevel() == 0);
@@ -170,6 +171,9 @@ bool Solver::addClause_(vec<Lit>& ps)
         else if (value(ps[i]) != l_False && ps[i] != p)
             ps[j++] = p = ps[i];
     ps.shrink(i - j);
+
+    if (shuffle_clauses)
+        shuffle(ps);
 
     if (ps.size() == 0)
         return ok = false;
@@ -327,7 +331,7 @@ void Solver::analyze(CRef confl, vec<Lit>& out_learnt, int& out_btlevel)
                     out_learnt.push(q);
             }
         }
-        
+
         // Select next clause to look at:
         while (!seen[var(trail[index--])]);
         p     = trail[index+1];
@@ -500,11 +504,11 @@ void Solver::uncheckedEnqueue(Lit p, CRef from)
 /*_________________________________________________________________________________________________
 |
 |  propagate : [void]  ->  [Clause*]
-|  
+|
 |  Description:
 |    Propagates all enqueued facts. If a conflict arises, the conflicting clause is returned,
 |    otherwise CRef_Undef.
-|  
+|
 |    Post-conditions:
 |      * the propagation queue is empty, even if there was a conflict.
 |________________________________________________________________________________________________@*/
@@ -518,6 +522,9 @@ CRef Solver::propagate()
         vec<Watcher>&  ws  = watches.lookup(p);
         Watcher        *i, *j, *end;
         num_props++;
+
+        if (shuffle_watches)
+            shuffle(ws);
 
         for (i = j = (Watcher*)ws, end = i + ws.size();  i != end;){
             // Try to avoid inspecting the clause:
@@ -726,6 +733,8 @@ lbool Solver::search(int nof_conflicts)
             if (learnt_clause.size() == 1){
                 uncheckedEnqueue(learnt_clause[0]);
             }else{
+                if (shuffle_clauses)
+                    shuffle(learnt_clause,1);
                 CRef cr = ca.alloc(learnt_clause, true);
                 learnts.push(cr);
                 attachClause(cr);

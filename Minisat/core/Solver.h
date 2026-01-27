@@ -91,7 +91,7 @@ public:
     void    toDimacs     (const char* file, Lit p);
     void    toDimacs     (const char* file, Lit p, Lit q);
     void    toDimacs     (const char* file, Lit p, Lit q, Lit r);
-    
+
     // Variable mode:
     // 
     void    suggestPolarity(Var v, bool b);
@@ -139,6 +139,9 @@ public:
     double    random_var_freq;
     double    random_seed;
     bool      luby_restart;
+    bool      shuffle_watches;    // MS: randomize traversal of the watched literals
+    bool      shuffle_clauses;    // MS: add clause shuffling, for both intput clauses and learnt ones
+                                  // (NB: shuffling input clauses on client size does not work, as internal processing sorts first)
     int       ccmin_mode;         // Controls conflict clause minimization (0=none, 1=basic, 2=deep).
     int       phase_saving;       // Controls the level of phase saving (0=none, 1=limited, 2=full).
     bool      rnd_pol;            // Use random polarities for branching heuristics.
@@ -302,6 +305,16 @@ protected:
     // Returns a random integer 0 <= x < size. Seed must never be 0.
     static inline int irand(double& seed, int size) {
         return (int)(drand(seed) * size); }
+
+    template <typename T>
+    void shuffle(vec<T>& v, int from = 0)
+    {
+        int len = v.size();
+        for(int i=from;i<len;i++){
+            int j = irand(random_seed,len-i)+i;
+            std::swap(v[i],v[j]);
+        }
+    }
 };
 
 
