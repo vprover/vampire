@@ -2121,10 +2121,11 @@ void Options::init()
 //*********************** SAT solver (used in various places)  ***********************
     _satSolver = ChoiceOptionValue<SatSolver>("sat_solver","sas",SatSolver::MINISAT, {
       "minisat",
-      "cadical"
+      "cadical",
 #if VZ3
-      ,"z3"
+      "z3",
 #endif
+      "napsat"
     });
     _satSolver.description= "Select the SAT solver to be used throughout Vampire."
       " This will be used in AVATAR (for splitting) when the saturation algorithm is discount, lrs or otter."
@@ -2534,7 +2535,7 @@ void Options::output (std::ostream& str) const
      try{
        option = _lookup.findLong(name);
      }
-     catch(const ValueNotFoundException&){ 
+     catch(const ValueNotFoundException&){
        try{
          option = _lookup.findShort(name);
        }
@@ -2542,12 +2543,12 @@ void Options::output (std::ostream& str) const
          option = 0;
        }
      }
-     if(!option){ 
+     if(!option){
        str << name << " not a known option" << endl;
        Stack<std::string> sim_s = getSimilarOptionNames(name,true);
        Stack<std::string> sim_l = getSimilarOptionNames(name,false);
        VirtualIterator<std::string> sit = pvi(concatIters(
-           Stack<std::string>::Iterator(sim_s),Stack<std::string>::Iterator(sim_l))); 
+           Stack<std::string>::Iterator(sim_s),Stack<std::string>::Iterator(sim_l)));
         if(sit.hasNext()){
           std::string first = sit.next();
           str << "\tMaybe you meant ";

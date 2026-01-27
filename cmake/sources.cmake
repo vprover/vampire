@@ -579,6 +579,8 @@ set(SOURCES
     SAT/MinimizingSolver.hpp
     SAT/MinisatInterfacing.cpp
     SAT/MinisatInterfacing.hpp
+    SAT/NapSATInterfacing.cpp
+    SAT/NapSATInterfacing.hpp
     SAT/SAT2FO.cpp
     SAT/SAT2FO.hpp
     SAT/SATClause.cpp

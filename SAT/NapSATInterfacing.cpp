@@ -17,7 +17,7 @@ namespace SAT
   }
 
   NapSATInterfacing::~NapSATInterfacing() {
-    delete _solver;
+    delete_solver(_solver);
   }
 
   unsigned NapSATInterfacing::newVar() {
@@ -31,7 +31,11 @@ namespace SAT
     for (unsigned i = 0; i < cl->length(); i++) {
       push_literal(_solver, vampireLit2NapSAT((*cl)[i]));
     }
-    finalize_clause(_solver);
+    Tclause napsat_cl = finalize_clause(_solver);
+    if (napsat_cl >= _addedClauses.size()) {
+      _addedClauses.resize(napsat_cl + 1, nullptr);
+    }
+    _addedClauses[napsat_cl] = cl;
   }
 
 
@@ -78,14 +82,24 @@ namespace SAT
       napsat_assumptions.push_back(vampireLit2NapSAT(assumps[i]));
     }
     add_assumption(_solver, napsat_assumptions);
-    _status = static_cast<napsat::status>(solve_limited(_solver, conflictCountLimit));
+    _status = solve_limited(_solver, conflictCountLimit);
+    switch (_status) {
+    case napsat::status::SAT:
+      return Status::SATISFIABLE;
+    case napsat::status::UNSAT:
+      return Status::UNSATISFIABLE;
+    case napsat::status::UNKNOWN:
+      return Status::UNKNOWN;
+    default:
+      ASSERTION_VIOLATION;
+    }
   }
 
 
   SATLiteralStack NapSATInterfacing::failedAssumptions()
   {
     SATLiteralStack result;
-    std::vector<napsat::Tlit> failed = napsat::failed_assumptions(_solver);
+    std::vector<napsat::Tlit> failed = napsat::unsat_core(_solver);
     for (unsigned i = 0; i < failed.size(); i++) {
       result.push(napSATLit2Vampire(failed[i]));
     }
@@ -97,14 +111,6 @@ namespace SAT
   {
     return nullptr;
   }
-
-
-  void NapSATInterfacing::interpolateViaAssumptions(unsigned maxVar,
-                                                    const SATClauseStack& first,
-                                                    const SATClauseStack& second,
-                                                    SATClauseStack& result)
-  {}
-
 
   SATClauseList* NapSATInterfacing::minimizePremises(SATClauseList* premises)
   {

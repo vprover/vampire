@@ -56,7 +56,7 @@
 #ifndef VAMPIRE_CLAUSE_TRACING
 #  if VDEBUG
 #    define VAMPIRE_CLAUSE_TRACING 1
-#  else 
+#  else
 #    define VAMPIRE_CLAUSE_TRACING 0
 #  endif
 #endif // ndef VAMPIRE_CLAUSE_TRACINGE
@@ -459,10 +459,11 @@ public:
   /** Possible values for sat_solver */
   enum class SatSolver : unsigned int {
      MINISAT = 0,
-     CADICAL = 1
+     CADICAL = 1,
 #if VZ3
-     ,Z3 = 2
+     Z3 = 2,
 #endif
+     NAPSAT = 3
   };
 
   /** Possible values for saturation_algorithm */
@@ -766,7 +767,7 @@ private:
       }
     public:
         OptionChoiceValues() : _names() { };
-        OptionChoiceValues(Stack<std::string> names) : _names(std::move(names))  
+        OptionChoiceValues(Stack<std::string> names) : _names(std::move(names))
         {
           check_names_are_short();
         }
@@ -775,7 +776,7 @@ private:
         {
           check_names_are_short();
         }
-        
+
         int find(std::string value) const {
             for(unsigned i=0;i<_names.length();i++){
                 if(value.compare(_names[i])==0) return i;
@@ -898,11 +899,11 @@ private:
         // the Options object is copied.
         bool _should_copy;
         bool shouldCopy() const { return _should_copy; }
-       
+
         typedef std::unique_ptr<DArray<std::string>> stringDArrayUP;
 
         typedef std::pair<OptionProblemConstraintUP,stringDArrayUP> RandEntry;
- 
+
     private:
         // Tag state
         OptionTag _tag;
@@ -953,7 +954,7 @@ private:
         // Getting the string versions of values, useful for output
         virtual std::string getStringOfValue(T value) const{ ASSERTION_VIOLATION;}
         std::string getStringOfActual() const override { return getStringOfValue(actualValue); }
-        
+
         // Adding and checking constraints
         // By default constraints are soft and reaction to them is controlled by the bad_option option
         // But a constraint can be added as Hard, meaning that it always causes a UserError
@@ -1038,7 +1039,7 @@ private:
         ChoiceOptionValue(std::string l, std::string s,T def,OptionChoiceValues c) :
         OptionValue<T>(l,s,def), choices(c) {}
         ChoiceOptionValue(std::string l, std::string s,T d) : ChoiceOptionValue(l,s,d, T::optionChoiceValues()) {}
-        
+
         bool setValue(const std::string& value) override{
             // makes reasonable assumption about ordering of every enum
             int index = choices.find(value.c_str());
@@ -1073,7 +1074,7 @@ private:
             }
             out << std::endl;
         }
-        
+
         std::string getStringOfValue(T value) const override {
             unsigned i = static_cast<unsigned>(value);
             return choices[i];
@@ -1103,7 +1104,7 @@ private:
 
             return true;
         }
-        
+
         std::string getStringOfValue(bool value) const override { return (value ? "on" : "off"); }
     };
 
@@ -1125,7 +1126,7 @@ private:
         }
         std::string getStringOfValue(unsigned value) const override{ return Lib::Int::toString(value); }
     };
-    
+
     struct StringOptionValue : public OptionValue<std::string> {
         StringOptionValue(){}
         StringOptionValue(std::string l,std::string s, std::string d) : OptionValue(l,s,d){}
@@ -1433,7 +1434,7 @@ bool _hard;
 
         bool check(const OptionValue<T>&) override{ return con->check(); }
         std::string msg(const OptionValue<T>&) override{ return con->msg(); }
-        
+
         AbstractWrappedConstraintUP con;
     };
 
@@ -1552,7 +1553,7 @@ bool _hard;
         bool check(const OptionValue<T>& value) override{
             return (value.actualValue > _goodvalue || (_orequal && value.actualValue==_goodvalue));
         }
-        
+
         std::string msg(const OptionValue<T>& value) override{
             if(_orequal) return value.longName+"("+value.getStringOfActual()+") is greater than or equal to " + value.getStringOfValue(_goodvalue);
             return value.longName+"("+value.getStringOfActual()+") is greater than "+ value.getStringOfValue(_goodvalue);
@@ -1612,7 +1613,7 @@ bool _hard;
             ASS(then_con);
             return !if_con->check(value) || then_con->check(value);
         }
-        
+
         std::string msg(const OptionValue<T>& value) override{
             return "if "+if_con->msg(value)+" then "+ then_con->msg(value);
         }
@@ -1683,7 +1684,7 @@ bool _hard;
                     rvalue.defaultOtherValue != rvalue.otherValue);
         }
         std::string msg(const OptionValue<int>& value) override { return value.longName+"("+value.getStringOfActual()+") is not default";}
-        
+
     };
 
     // You will need to provide the type, optionally use addConstraintIfNotDefault
@@ -1757,7 +1758,7 @@ bool _hard;
       }
       std::string msg() override{ return "not (" + _inner->msg() + ")"; }
     };
-      
+
     friend OptionProblemConstraintUP operator~(OptionProblemConstraintUP x) {
       return OptionProblemConstraintUP({std::move(x)});
     }
@@ -1873,9 +1874,9 @@ bool _hard;
     struct OptionHasValue : OptionProblemConstraint{
       OptionHasValue(std::string ov,std::string v) : option_value(ov),value(v) {}
       bool check(Property*p) override;
-      std::string msg() override{ return option_value+" has value "+value; } 
+      std::string msg() override{ return option_value+" has value "+value; }
       std::string option_value;
-      std::string value; 
+      std::string value;
     };
 
     struct ManyOptionProblemConstraints : OptionProblemConstraint {
@@ -2354,7 +2355,7 @@ private:
           }
         }
     }
-  
+
     Stack<std::string> getSimilarOptionNames(std::string name, bool is_short) const;
 
     //==========================================================

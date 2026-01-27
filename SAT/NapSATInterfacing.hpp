@@ -49,20 +49,14 @@ public:
   static SATClauseList* minimizePremiseList(SATClauseList* premises,
                                             SATLiteralStack& assumps);
 
-  static void interpolateViaAssumptions(unsigned maxVar,
-                                        const SATClauseStack& first,
-                                        const SATClauseStack& second,
-                                        SATClauseStack& result);
-
   SATClauseList *minimizePremises(SATClauseList *premises) override;
 
 protected:
-  Tvar vampireVar2NapSAT(unsigned vvar) {
-    ASS_GE(vvar,0);
+  napsat::Tvar vampireVar2NapSAT(unsigned vvar) {
     return vvar;
   }
 
-  unsigned napSATVar2Vampire(Tvar nvar) {
+  unsigned napSATVar2Vampire(napsat::Tvar nvar) {
     return (unsigned)(nvar);
   }
 
@@ -79,6 +73,11 @@ private:
   napsat::status _status = napsat::status::SAT;
   std::vector<napsat::Tlit> _assumptions;
   napsat::NapSAT* _solver;
+
+  /**
+   * @brief Maps the napsat::Tclause added by the solver to the SATClause* added by Vampire.
+   */
+  std::vector<SATClause*> _addedClauses;
 };
 
 }//end SAT namespace

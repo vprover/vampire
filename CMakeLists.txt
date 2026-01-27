@@ -207,10 +207,12 @@ include(ExternalProject)
 ExternalProject_Add(
     napsat
     SOURCE_DIR ${CMAKE_SOURCE_DIR}/NapSAT
-    CONFIGURE_COMMAND ""             # no ./configure
-    BUILD_COMMAND make debug         # TODO replace with make lib for release build
-    BUILD_IN_SOURCE 1                # uses NapSAT/Makefile
-    INSTALL_COMMAND make install     # install the libraries required by NapSAT
+    CONFIGURE_COMMAND ""
+    BUILD_COMMAND make debug # todo replace with make lib for release
+    BUILD_IN_SOURCE 1
+    INSTALL_COMMAND ""
+    BUILD_BYPRODUCTS
+        ${CMAKE_SOURCE_DIR}/NapSAT/build/NapSAT.a
 )
 
 add_library(NapSAT STATIC IMPORTED)
@@ -271,6 +273,7 @@ add_library(common OBJECT ${SOURCES})
 add_executable(vampire vampire.cpp $<TARGET_OBJECTS:common>)
 
 install(TARGETS vampire)
+add_dependencies(vampire napsat)
 target_link_libraries(vampire PRIVATE NapSAT)
 
 ################################################################

@@ -27,6 +27,7 @@
 
 #include "SAT/CadicalInterfacing.hpp"
 #include "SAT/MinisatInterfacing.hpp"
+#include "SAT/NapSATInterfacing.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Lib/Timer.hpp"
@@ -132,14 +133,14 @@ FiniteModelBuilder::~FiniteModelBuilder()
   }
 }
 
-// Do all setting up required for finite model search 
+// Do all setting up required for finite model search
 // Returns false we if we failed to reset, this can happen if offsets overflow 2^32, possible for
 // large signatures and large models. If this a frequent problem then we can go to longs.
 bool FiniteModelBuilder::reset(){
   // Construct the offsets for symbols
   // Each symbol requires size^n) variables where n is the number of spaces for grounding
   // For function symbols we have n=arity+1 as we have the return value
-  // For predicate symbols n=arity 
+  // For predicate symbols n=arity
 
 
   // This has been refined after adding multiple sorts i.e. no general 'size'
@@ -179,8 +180,8 @@ bool FiniteModelBuilder::reset(){
     if(del_p[p]) continue;
     p_offsets[p]=offsets;
 #if VTRACE_FMB
-    cout << "offset for " << p << " is " << offsets << " for " << env.signature->predicateName(p) << endl; 
- 
+    cout << "offset for " << p << " is " << offsets << " for " << env.signature->predicateName(p) << endl;
+
 #endif
 
     auto const& p_signature = _sortedSignature->predicateSignatures[p];
@@ -198,7 +199,7 @@ bool FiniteModelBuilder::reset(){
     if(VAR_MAX - add < offsets){
       return false;
     }
-    offsets += add; 
+    offsets += add;
   }
 
 #if VTRACE_FMB
@@ -250,7 +251,9 @@ bool FiniteModelBuilder::reset(){
   }
   else if (env.options->satSolver() == Options::SatSolver::CADICAL) {
     _solver = new CadicalInterfacing;
-  } else {
+  } else if (env.options->satSolver() == Options::SatSolver::NAPSAT) {
+    _solver = new NapSATInterfacing;
+  }else {
     USER_ERROR("Finite model builder can only use minisat or cadical as SAT solvers.");
   }
 
@@ -259,7 +262,7 @@ bool FiniteModelBuilder::reset(){
   _solver->ensureVarCount(_curMaxVar);
 
   // needs to be redone for each size as we use this to pick the number of
-  // things to order and the constants to ground with 
+  // things to order and the constants to ground with
   createSymmetryOrdering();
 
   return true;
@@ -369,7 +372,7 @@ void FiniteModelBuilder::createSymmetryOrdering()
               outOfBounds=true;
           }
           if(outOfBounds) continue;
-  
+
           _sortedGroundedTerms[s].push(g);
           //cout << "Adding " << g.toString() << " to " << s << endl;
         }
@@ -795,11 +798,11 @@ void FiniteModelBuilder::init()
     while(cit.hasNext()){
       Clause* c = cit.next();
 #if VTRACE_FMB
-      cout << "CLAUSE " << c->toString() << endl;  
+      cout << "CLAUSE " << c->toString() << endl;
 #endif
-      // will record the sorts for each variable in the clause 
+      // will record the sorts for each variable in the clause
       // note that clauses have been normalized so variables go from 0 to varCnt
-      DArray<unsigned>* csig = new DArray<unsigned>(c->varCnt()); 
+      DArray<unsigned>* csig = new DArray<unsigned>(c->varCnt());
       DArray<bool> csig_set(c->varCnt());
       for(unsigned i=0;i<c->varCnt();i++) csig_set[i]=false;
       static Stack<Literal*> twoVarEqualities;
@@ -820,17 +823,17 @@ void FiniteModelBuilder::init()
           unsigned var = lit->nthArgument(1)->var();
           unsigned ret = fsg[env.signature->functionArity(t->functor())];
           if(csig_set[var]){ ASS_EQ((*csig)[var],ret); }
-          else{ 
+          else{
             (*csig)[var]=ret;
             csig_set[var]=true;
           }
           for(unsigned j=0;j<t->arity();j++){
             ASS(t->nthArgument(j)->isVar());
-            unsigned asrt = fsg[j]; 
+            unsigned asrt = fsg[j];
             unsigned avar = (t->nthArgument(j))->var();
             ASS(avar < csig->size());
             if(!csig_set[var]){ ASS((*csig)[avar]==asrt); }
-            else{ 
+            else{
               (*csig)[avar]=asrt;
               csig_set[avar]=true;
             }
@@ -843,7 +846,7 @@ void FiniteModelBuilder::init()
             unsigned asrt = _sortedSignature->predicateSignatures[lit->functor()][j];
             unsigned avar = (lit->nthArgument(j))->var();
             if(csig_set[avar]){ ASS((*csig)[avar]==asrt); }
-            else{ 
+            else{
               (*csig)[avar]=asrt;
               csig_set[avar]=true;
             }
@@ -868,11 +871,11 @@ void FiniteModelBuilder::init()
               unsigned sort = _sortedSignature->varEqSorts[dsort];
               ASS((*csig)[var1] == sort || (*csig)[var2] == sort);
               if((*csig)[var1] == sort){ (*csig)[var1] = (*csig)[var2]; }
-              else{ (*csig)[var2] = (*csig)[var1]; } 
+              else{ (*csig)[var2] = (*csig)[var1]; }
             }
           }
-          else{ 
-            (*csig)[var2] = (*csig)[var1]; 
+          else{
+            (*csig)[var2] = (*csig)[var1];
             csig_set[var2]=true;
           }
         }
@@ -880,7 +883,7 @@ void FiniteModelBuilder::init()
           (*csig)[var1] = (*csig)[var2];
           csig_set[var1]=true;
         }
-        else{ 
+        else{
           // At this point I have a two-variable equality where those variables do not
           // tell me what sorts they should have by appearance in a function or predicate symbol
           // So I use the special sort for this
@@ -905,7 +908,7 @@ void FiniteModelBuilder::init()
 #endif
       _clauseVariableSorts.insert(c,csig);
       //cout << "done" << endl;
-    } 
+    }
   }
 } // init()
 
@@ -967,7 +970,7 @@ unsigned FiniteModelBuilder::estimateInstanceCount()
 
 void FiniteModelBuilder::addNewInstances()
 {
-  ClauseList::Iterator cit(_clauses); 
+  ClauseList::Iterator cit(_clauses);
 
   while(cit.hasNext()){
     Clause* c = cit.next();
@@ -985,7 +988,7 @@ void FiniteModelBuilder::addNewInstances()
       // this means that the clause consists only of variable equalities
       // earlier we ensured that such clauses have at least one positive
       // variable equality, therefore they can always be satisfied
-      // so we skip this clause 
+      // so we skip this clause
       // TODO should it be removed earlier?
       continue;
     }
@@ -1011,7 +1014,7 @@ void FiniteModelBuilder::addNewInstances()
         }
       }
     }
-    
+
     static DArray<unsigned> grounding;
     grounding.ensure(vars);
 
@@ -1020,11 +1023,11 @@ void FiniteModelBuilder::addNewInstances()
 
 instanceLabel:
     for(unsigned var=vars-1;var+1!=0;var--){
-     
+
       //Checking against mins skips instances where sort size restricts it
       if(grounding[var]==maxVarSize[var]){
         grounding[var]=1;
-      } 
+      }
       else{
         grounding[var]++;
         // Grounding represents a new instance
@@ -1079,11 +1082,11 @@ instanceLabel:
 
           // check cases where literal is x=y
           if(lit->isTwoVarEquality()){
-            bool equal = grounding[lit->nthArgument(0)->var()] == grounding[lit->nthArgument(1)->var()]; 
+            bool equal = grounding[lit->nthArgument(0)->var()] == grounding[lit->nthArgument(1)->var()];
             if((lit->isPositive() && equal) || (!lit->isPositive() && !equal)){
               //Skip instance
-              goto instanceLabel; 
-            } 
+              goto instanceLabel;
+            }
             if((lit->isPositive() && !equal) || (!lit->isPositive() && equal)){
               //Skip literal
               continue;
@@ -1118,7 +1121,7 @@ instanceLabel:
             satClauseLits.push(getSATLiteral(functor,use,lit->polarity(),false));
           }
         }
-     
+
         SATClause* satCl = SATClause::fromStack(satClauseLits);
         addSATClause(satCl);
 
@@ -1312,7 +1315,7 @@ void FiniteModelBuilder::addUseModelSize(unsigned size)
   static SATLiteralStack satClauseLits;
   satClauseLits.reset();
 
-  for(unsigned s=0;s<_sortedSignature->sorts;s++){ 
+  for(unsigned s=0;s<_sortedSignature->sorts;s++){
     Stack<GroundedTerm> groundedTerms = _sortedGroundedTerms[s];
     for(unsigned i=0;i< groundedTerms.length();i++){
         GroundedTerm gt = groundedTerms[i];
@@ -1322,13 +1325,13 @@ void FiniteModelBuilder::addUseModelSize(unsigned size)
         grounding.ensure(arity+1);
         grounding[arity]=size;
         if(arity==0){
-          satClauseLits.push(getSATLiteral(gt.f,grounding,true,true)); 
+          satClauseLits.push(getSATLiteral(gt.f,grounding,true,true));
         }
         else{
           for(unsigned m=1;m<=size;m++){
             //assume arity=1
             grounding[0]=m;
-            satClauseLits.push(getSATLiteral(gt.f,grounding,true,true)); 
+            satClauseLits.push(getSATLiteral(gt.f,grounding,true,true));
           }
         }
     }
@@ -1403,7 +1406,7 @@ void FiniteModelBuilder::addNewTotalityDefs()
     static DArray<unsigned> maxVarSize;
     maxVarSize.ensure(arity);
     for(unsigned var=0;var<arity;var++){
-      unsigned srt = f_signature[var]; 
+      unsigned srt = f_signature[var];
       maxVarSize[var] = min(_sortedSignature->sortBounds[srt],_sortModelSizes[srt]);
     }
     unsigned retSrt = f_signature[arity];
@@ -1473,11 +1476,11 @@ SATLiteral FiniteModelBuilder::getSATLiteral(unsigned f, const DArray<unsigned>&
   unsigned offset = isFunction ? f_offsets[f] : p_offsets[f];
 
   //cout << "getSATLiteral " << f<< ","  << offset << ", grounding = ";
-  //for(unsigned i=0;i<grounding.size();i++) cout <<  grounding[i] << " "; 
+  //for(unsigned i=0;i<grounding.size();i++) cout <<  grounding[i] << " ";
   //cout << endl;
 
   DArray<unsigned>& signature = isFunction ?
-             _sortedSignature->functionSignatures[f] : 
+             _sortedSignature->functionSignatures[f] :
              _sortedSignature->predicateSignatures[f];
 
   unsigned var = offset;
@@ -2155,7 +2158,7 @@ bool FiniteModelBuilder::HackyDSAE::increaseModelSizes(DArray<unsigned>& newSort
         }
       }
 
-      // test 2b -- old generators 
+      // test 2b -- old generators
       if (_keepOldGenerators ) {
         for (unsigned n = 0; n < _old_generators.size(); n++) {
           if (checkConstriant(newSortSizes,_old_generators[n]->_vals)) {

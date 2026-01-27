@@ -44,6 +44,7 @@
 #include "SAT/FallbackSolverWrapper.hpp"
 #include "SAT/CadicalInterfacing.hpp"
 #include "SAT/MinisatInterfacing.hpp"
+#include "SAT/NapSATInterfacing.hpp"
 #include "SAT/Z3Interfacing.hpp"
 
 #include "DP/ShortConflictMetaDP.hpp"
@@ -81,6 +82,9 @@ void SplittingBranchSelector::init()
       break;
     case Options::SatSolver::CADICAL:
       inner = new CadicalInterfacing;
+      break;
+    case Options::SatSolver::NAPSAT:
+      inner = new NapSATInterfacing;
       break;
 #if VZ3
     case Options::SatSolver::Z3:
@@ -1167,7 +1171,7 @@ SplitLevel Splitter::addNonGroundComponent(unsigned size, Literal* const * lits,
 {
   ASS_REP(_db.size()%2==0, _db.size());
   ASS_G(size,0);
-  ASS(forAll(arrayIter(lits, size), 
+  ASS(forAll(arrayIter(lits, size),
           [] (Literal* l) { return !l->ground(); } )); //none of the literals can be ground
 
   SATLiteral posLit(_sat2fo.createSpareSatVar(), true);
@@ -1199,9 +1203,9 @@ SplitLevel Splitter::addGroundComponent(Literal* lit, Clause* orig, Clause*& com
     _db.push(0);
   }
   else {
-    ASS_EQ(_complBehavior,Options::SplittingAddComplementary::NONE); 
+    ASS_EQ(_complBehavior,Options::SplittingAddComplementary::NONE);
     //otherwise the complement would have been created below ...
-    // ... in the respective previous pass through this method 
+    // ... in the respective previous pass through this method
   }
   ASS_L(compName,_db.size());
 
@@ -1278,7 +1282,7 @@ static const int NOT_WORTH_REINTRODUCING = 0;
 void Splitter::assignClauseSplitSet(Clause* cl, SplitSet* splits)
 {
   ASS(!cl->splits());
-    
+
   cl->setSplits(splits);
 
   //update "children" field of relevant SplitRecords
@@ -1287,20 +1291,20 @@ void Splitter::assignClauseSplitSet(Clause* cl, SplitSet* splits)
   unsigned cl_weight = cl->weight();
   while(bsit.hasNext()) {
     SplitLevel slev=bsit.next();
-    _db[slev]->children.push(cl);    
+    _db[slev]->children.push(cl);
     if (cl_weight <= _db[slev]->component->weight()) {
       should_reintroduce = true;
     }
-  }  
-  
+  }
+
   /**
    * Heuristic idea -- only if the clause is lighter than at least
-   * one of the component clauses on which it depends, 
+   * one of the component clauses on which it depends,
    * it will be kept for reintroduction.
    */
   if (_deleteDeactivated != Options::SplittingDeleteDeactivated::ON) {
     cl->setNumActiveSplits(
-      (_deleteDeactivated == Options::SplittingDeleteDeactivated::OFF || should_reintroduce) ? 
+      (_deleteDeactivated == Options::SplittingDeleteDeactivated::OFF || should_reintroduce) ?
         splits->size() : NOT_WORTH_REINTRODUCING);
   }
 }
@@ -1325,7 +1329,7 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
   if(replacement) {
     unionAll = replacement->splits();
     ASS(forAll(std::move(premises),
-            [replacement] (Clause* premise) { 
+            [replacement] (Clause* premise) {
               //SplitSet* difference = premise->splits()->subtract(replacement->splits());
               //if(difference->isEmpty()) return true; // isSubsetOf true
               // Now check if those in the difference are zero implied
@@ -1337,7 +1341,7 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
               //  if(!_branchSelector.isZeroImplied(sat_lit)) return false;
               //}
               //return true; // all okay
-              return premise->splits()->isSubsetOf(replacement->splits()); 
+              return premise->splits()->isSubsetOf(replacement->splits());
             } ));
   } else {
     Clause* premise0 = premises.next();
@@ -1348,8 +1352,8 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
       unionAll=unionAll->getUnion(premise->splits());
     }
   }
-  SplitSet* diff=unionAll->subtract(cl->splits());      
-        
+  SplitSet* diff=unionAll->subtract(cl->splits());
+
   ASS(allSplitLevelsActive(diff));
 
   if(diff->isEmpty()) {
@@ -1439,7 +1443,7 @@ void Splitter::onNewClause(Clause* cl)
     }
   }
 
-  ASS(allSplitLevelsActive(cl->splits()));  
+  ASS(allSplitLevelsActive(cl->splits()));
 }
 
 /**
