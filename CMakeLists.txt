@@ -209,6 +209,7 @@ ExternalProject_Add(
     SOURCE_DIR ${CMAKE_SOURCE_DIR}/NapSAT
     CONFIGURE_COMMAND ""
     BUILD_COMMAND make debug # todo replace with make lib for release
+    BUILD_ALWAYS ON
     BUILD_IN_SOURCE 1
     INSTALL_COMMAND ""
     BUILD_BYPRODUCTS
@@ -223,13 +224,14 @@ set_target_properties(NapSAT PROPERTIES
         ${CMAKE_SOURCE_DIR}/NapSAT/include
 )
 
+add_custom_target(napsat_always ALL)
+add_dependencies(napsat_always napsat)
+
 target_link_libraries(NapSAT
     INTERFACE
         BZip2::BZip2
         LibLZMA::LibLZMA
 )
-
-add_dependencies(NapSAT napsat)
 
 ################################################################
 # Z3
@@ -273,7 +275,7 @@ add_library(common OBJECT ${SOURCES})
 add_executable(vampire vampire.cpp $<TARGET_OBJECTS:common>)
 
 install(TARGETS vampire)
-add_dependencies(vampire napsat)
+add_dependencies(vampire napsat_always)
 target_link_libraries(vampire PRIVATE NapSAT)
 
 ################################################################

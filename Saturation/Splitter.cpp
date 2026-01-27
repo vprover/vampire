@@ -76,6 +76,8 @@ void SplittingBranchSelector::init()
   _literalPolarityAdvice = _parent.getOptions().splittingLiteralPolarityAdvice();
 
   SATSolver *inner;
+  cout << "Creating inner SAT solver for splitting branch selector..." << endl;
+  cout << "_parent.getOptions().satSolver() = " << static_cast<unsigned int>(_parent.getOptions().satSolver()) << endl;
   switch(_parent.getOptions().satSolver()){
     case Options::SatSolver::MINISAT:
       inner = new MinisatInterfacing;

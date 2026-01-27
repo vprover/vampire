@@ -243,6 +243,7 @@ bool FiniteModelBuilder::reset(){
   }
 
   // Create a new SAT solver
+  cout << "env.options->satSolver() = " << env.options->satSolver() << endl;
   if (env.options->satSolver() == Options::SatSolver::MINISAT) {
     if(env.options->fmbUseSimplifyingSolver())
       _solver = new MinisatInterfacingNewSimp;

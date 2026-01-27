@@ -2122,10 +2122,10 @@ void Options::init()
     _satSolver = ChoiceOptionValue<SatSolver>("sat_solver","sas",SatSolver::MINISAT, {
       "minisat",
       "cadical",
-#if VZ3
-      "z3",
-#endif
       "napsat"
+#if VZ3
+      ,"z3"
+#endif
     });
     _satSolver.description= "Select the SAT solver to be used throughout Vampire."
       " This will be used in AVATAR (for splitting) when the saturation algorithm is discount, lrs or otter."

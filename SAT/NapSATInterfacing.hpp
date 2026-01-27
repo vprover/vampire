@@ -61,12 +61,12 @@ protected:
   }
 
   const napsat::Tlit vampireLit2NapSAT(SATLiteral vlit) {
-    return napsat::literal(vampireVar2NapSAT(vlit.var()), !vlit.positive());
+    return napsat::literal(vampireVar2NapSAT(vlit.var()), vlit.positive());
   }
 
 
   const SATLiteral napSATLit2Vampire(napsat::Tlit nlit) {
-    return SATLiteral(napSATVar2Vampire(napsat::lit_to_var(nlit)), napsat::lit_pol(nlit) ? 0 : 1);
+    return SATLiteral(napSATVar2Vampire(napsat::lit_to_var(nlit)), napsat::lit_pol(nlit) ? 1 : 0);
   }
 
 private:

@@ -1,7 +1,10 @@
 #include "SAT/NapSATInterfacing.hpp"
 #include "NapSATInterfacing.hpp"
 
+#include <iostream>
+
 using namespace napsat;
+using namespace std;
 
 
 namespace SAT
@@ -10,7 +13,11 @@ namespace SAT
   {
     std::vector<std::string> opt_args;
     opt_args.push_back("-gb");
-    opt_args.push_back("-o");
+    // opt_args.push_back("-o");
+    opt_args.push_back("--restarts");
+    opt_args.push_back("off");
+    opt_args.push_back("-del");
+    opt_args.push_back("off");
     napsat::options opts(opt_args);
 
     _solver = create_solver(0, 0, opts);
@@ -32,6 +39,16 @@ namespace SAT
       push_literal(_solver, vampireLit2NapSAT((*cl)[i]));
     }
     Tclause napsat_cl = finalize_clause(_solver);
+
+    if (napsat_cl == CLAUSE_UNDEF) {
+      // it means the clause was deleted by the solver
+      cout << "the clause : ";
+      for (unsigned i = 0; i < cl->length(); i++) {
+        cout << (*cl)[i] << " ";
+      }
+      cout << " was deleted upon addition by the solver." << endl;
+      return;
+    }
     if (napsat_cl >= _addedClauses.size()) {
       _addedClauses.resize(napsat_cl + 1, nullptr);
     }

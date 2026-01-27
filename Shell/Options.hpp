@@ -460,10 +460,10 @@ public:
   enum class SatSolver : unsigned int {
      MINISAT = 0,
      CADICAL = 1,
+     NAPSAT = 2
 #if VZ3
-     Z3 = 2,
+     ,Z3 = 3
 #endif
-     NAPSAT = 3
   };
 
   /** Possible values for saturation_algorithm */
