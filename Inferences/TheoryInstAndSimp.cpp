@@ -164,7 +164,6 @@ bool TheoryInstAndSimp::isSupportedFunction(Term* trm) {
 
 bool TheoryInstAndSimp::isSupportedFunction(Theory::Interpretation itp) {
   switch (itp) {
-    case Theory::ARRAY_BOOL_SELECT:
     case Theory::ARRAY_SELECT:
     case Theory::ARRAY_STORE:
     case Theory::INT_SUCCESSOR:

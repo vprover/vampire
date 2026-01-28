@@ -8,15 +8,14 @@
  * and in the source directory
  */
 
-#include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Test/GenerationTester.hpp"
 
-#include "Inferences/EqualityResolution.hpp"
+#include "Inferences/Factoring.hpp"
 
 using namespace Test;
 
-#define MY_GEN_RULE   EqualityResolution
+#define MY_GEN_RULE   Factoring
 #define MY_GEN_TESTER Generation::GenerationTester
 
 /**
@@ -29,54 +28,65 @@ using namespace Test;
   DECL_FUNC(f, {s}, s)                                                                                        \
   DECL_FUNC(g, {s}, s)                                                                                        \
   DECL_CONST(a, s)                                                                                            \
+  DECL_CONST(b, s)                                                                                            \
   DECL_PRED (p, {s})                                                                                          \
-  DECL_PRED (q, {s})                                                                                          \
+  DECL_PRED (q, {s})
 
-
-/** Defines a test case. */
-TEST_GENERATION(test_01,                                   // <- name
+// no factoring for unit clauses
+TEST_GENERATION(test01,
     Generation::AsymmetricTest()
-      .input(     clause({  selected(x != f(a)), p(x)  })) // <- input clause
-      .expected(exactly(                                   // <- a list of exactly which clauses are expected
-            clause({  p(f(a))  })                          //    to be returned. Order matters!
+      .input( clause({ selected(p(f(x))) }))
+      .expected(none())
+    )
+
+// no factoring for equalities
+TEST_GENERATION(test02,
+    Generation::AsymmetricTest()
+      .input( clause({ selected(f(x) == x), selected(f(f(y)) == f(y)) }))
+      .expected(none())
+    )
+
+// no factoring for negative literals
+TEST_GENERATION(test03,
+    Generation::AsymmetricTest()
+      .input( clause({ selected(~p(f(x))), selected(~p(y)) }))
+      .expected(none())
+    )
+
+// no factoring for non-unifiable predicates
+TEST_GENERATION(test04,
+    Generation::AsymmetricTest()
+      .input( clause({ selected(p(f(x))), selected(q(y)) }))
+      .expected(none())
+    )
+
+// no factoring for non-unifiable functions
+TEST_GENERATION(test05,
+    Generation::AsymmetricTest()
+      .input( clause({ selected(p(f(x))), selected(p(g(y))) }))
+      .expected(none())
+    )
+
+// no factoring for non-selected literals
+TEST_GENERATION(test06,
+    Generation::AsymmetricTest()
+      .input( clause({ p(f(x)), p(y) }))
+      .expected(none())
+    )
+
+// factoring between positive literals where one is selected
+TEST_GENERATION(test07,
+    Generation::AsymmetricTest()
+      .input( clause({ selected(p(f(x))), p(y) }))
+      .expected(exactly(clause({ p(f(x)) })))
+    )
+
+// factoring between only two positive literals
+TEST_GENERATION(test08,
+    Generation::AsymmetricTest()
+      .input( clause({ selected(p(f(x))), p(y), p(f(g(z))) }))
+      .expected(exactly(
+        clause({ p(f(x)), p(f(g(y))) }),
+        clause({ p(f(g(x))), p(y) })
       ))
-      .premiseRedundant(false)                             // <- shall the premis be removed from the search 
-                                                           //    space after the rule application ? 
-                                                           //    (default value: false)
-    )
-
-TEST_GENERATION(test_02,
-    Generation::AsymmetricTest()
-      .input(     clause({  x != f(a), selected(p(x))  }))
-      .expected( exactly())
-    )
-
-TEST_GENERATION(test_03,
-    Generation::AsymmetricTest()
-      .input(     clause({  selected(x != f(a)), selected(p(x))  }))
-      .expected( exactly())
-    )
-
-TEST_GENERATION(test_04,
-    Generation::AsymmetricTest()
-      .input(     clause({  selected(g(x) != f(a)), p(x)  }))
-      .expected( exactly())
-    )
-
-TEST_GENERATION(test_05,
-    Generation::AsymmetricTest()
-      .input(     clause({  selected(f(g(x)) != f(y))  }))
-      .expected( exactly( clause({})))
-    )
-
-TEST_GENERATION(test_06,
-    Generation::AsymmetricTest()
-      .input(     clause({  selected(f(g(x)) != f(x))  }))
-      .expected( exactly())
-    )
-
-TEST_GENERATION(test_07,
-    Generation::AsymmetricTest()
-      .input(     clause({  selected(x != f(a)), selected(x != a)  }))
-      .expected( exactly( clause({  f(a) != a  })))
     )

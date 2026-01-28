@@ -19,12 +19,13 @@
  * Don't rely on any part of the interface, but the things contained in the examples,
  * because it's rather unstable.
  */
+#include "TestUtils.hpp"
+#include "ClausePattern.hpp"
+#include "MockedSaturationAlgorithm.hpp"
+#include "BuilderPattern.hpp"
+#include "UnitTesting.hpp"
 
-#include "Test/TestUtils.hpp"
 #include "Kernel/Clause.hpp"
-#include "Test/ClausePattern.hpp"
-#include "Test/MockedSaturationAlgorithm.hpp"
-#include "Test/BuilderPattern.hpp"
 
 namespace Test {
 
@@ -59,7 +60,6 @@ class TestCase
   }
 
 public:
-
   BUILDER_METHOD(TestCase, Stack<Clause*>, simplifyWith)
   BUILDER_METHOD(TestCase, Stack<Clause*>, toSimplify  )
   BUILDER_METHOD(TestCase, Stack<ClausePattern>, expected)
@@ -96,7 +96,7 @@ public:
         testFail("fwd", e); 
       }
 
-      if (succ ) {
+      if (succ) {
         if (replacement) {
           results.push(replacement);
         }
@@ -140,7 +140,7 @@ public:
     }
 
     // simplify using every clause in simplifyWith.unwrap()
-    Stack<Clause*> results; //= toSimplify().unwrap();
+    ClauseStack results; //= toSimplify().unwrap();
     auto simplifyWith = this->simplifyWith().unwrap();
     for (auto cl : simplifyWith) {
       Inferences::BwSimplificationRecordIterator simpls;
@@ -150,7 +150,9 @@ public:
         testFail("bwd", e); 
       }
       for (auto simpl : iterTraits(std::move(simpls))) {
-        results.push(simpl.replacement);
+        if (simpl.replacement) {
+          results.push(simpl.replacement);
+        }
       }
     }
     Ordering::unsetGlobalOrdering();

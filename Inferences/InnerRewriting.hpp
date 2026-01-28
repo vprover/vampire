@@ -26,11 +26,12 @@ using namespace Kernel;
 using namespace Saturation;
 
 class InnerRewriting
-: public ForwardSimplificationEngine
+: public ImmediateSimplificationEngine
 {
 public:
   InnerRewriting(SaturationAlgorithm& salg);
-  bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
+  Clause* simplify(Clause* cl) override;
+
 private:
   const Ordering& _ord;
 };

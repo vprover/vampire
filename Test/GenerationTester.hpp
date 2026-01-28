@@ -27,7 +27,7 @@
 #include "Test/ClausePattern.hpp"
 #include "Test/BuilderPattern.hpp"
 #include "Kernel/Problem.hpp"
-#include "Shell/Options.hpp"
+#include "UnitTesting.hpp"
 #include "Lib/STL.hpp"
 #include "Test/MockedSaturationAlgorithm.hpp"
 
@@ -205,8 +205,7 @@ public:
 
     // init problem
     Problem p;
-    auto ul = UnitList::empty();
-    UnitList::pushFromIterator(ClauseStack::Iterator(_context), ul);
+    auto ul = UnitList::fromIterator(ClauseStack::Iterator(_context));
     p.addUnits(ul);
     env.setMainProblem(&p);
 
@@ -229,9 +228,10 @@ public:
       container->add(c);
     }
 
+    _input->setStore(Clause::ACTIVE);
+
     // run rule
     if (_selfApplications) {
-      _input->setStore(Clause::ACTIVE);
       container->add(_input);
     }
 

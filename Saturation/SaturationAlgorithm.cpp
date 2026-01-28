@@ -265,6 +265,12 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     );
   }
 
+  if (opt.splitting()) {
+    _splitter = new Splitter();
+  }
+
+  _partialRedundancyHandler.reset(PartialRedundancyHandler::create(opt, _ordering.ptr(), _splitter));
+
   s_instance = this;
 }
 
@@ -1409,10 +1415,6 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     NOT_IMPLEMENTED;
   }
 
-  if (opt.splitting()) {
-    res->_splitter = new Splitter();
-  }
-
   // create generating inference engine
   CompositeGIE *gie = new CompositeGIE();
 
@@ -1514,7 +1516,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
   }
 
-  auto [ise, iseMany] = createISE(prb, opt, ordering);
+  auto [ise, iseMany] = createISE(prb, opt, *res);
   if (alascaTakesOver) {
     if (opt.alascaDemodulation()) {
       res->addForwardSimplifierToFront(new ALASCA::FwdDemodulation(*res));
@@ -1575,18 +1577,12 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   // create simplification engine
 
   // create forward simplification engine
-  if (mayHaveEquality && opt.innerRewriting()) {
-    res->addForwardSimplifierToFront(new InnerRewriting(*res));
-  }
   if (opt.globalSubsumption()) {
     res->addForwardSimplifierToFront(new GlobalSubsumption(*res));
   }
   if (opt.forwardLiteralRewriting()) {
     res->addForwardSimplifierToFront(new ForwardLiteralRewriting(*res));
   }
-  bool subDemodOrdOpt = /* enables ordering optimizations of subsumption demodulation rules */
-            opt.termOrdering() == Shell::Options::TermOrdering::KBO
-            || opt.termOrdering() == Shell::Options::TermOrdering::LPO;
   if (mayHaveEquality) {
     // NOTE:
     // fsd should be performed after forward subsumption,
@@ -1641,7 +1637,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   
   if (mayHaveEquality && opt.backwardSubsumptionDemodulation()) {
-    res->addBackwardSimplifierToFront(new BackwardSubsumptionDemodulation(subDemodOrdOpt, *res));
+    res->addBackwardSimplifierToFront(new BackwardSubsumptionDemodulation(*res));
   }
 
   bool backSubsumption = opt.backwardSubsumption() != Options::Subsumption::OFF;
@@ -1657,8 +1653,6 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     res->_symEl = new SymElOutput();
   }
 
-  res->_partialRedundancyHandler.reset(PartialRedundancyHandler::create(opt, &ordering, res->_splitter));
-
   res->_answerLiteralManager = AnswerLiteralManager::getInstance(); // selects the right one, according to options!
   ASS(!res->_answerLiteralManager||opt.questionAnswering()!=Options::QuestionAnsweringMode::OFF);
   ASS( res->_answerLiteralManager||opt.questionAnswering()==Options::QuestionAnsweringMode::OFF);
@@ -1668,13 +1662,20 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 /**
  * Create local clause simplifier for problem @c prb according to options @c opt
  */
-std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Problem& prb, const Options& opt, const Ordering& ordering)
+std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Problem& prb, const Options& opt, SaturationAlgorithm& salg)
 {
   CompositeISE* res =new CompositeISE();
   CompositeISEMany resMany;
 
   bool mayHaveEquality = couldEqualityArise(prb,opt);
   bool alascaTakesOver = doesAlascaTakeOver(prb, opt);
+  auto& ordering = salg.getOrdering();
+
+  // InnerRewriting is relatively expensive, so let's insert it first,
+  // so that it gets applied as the last ImmediateSimplification
+  if (mayHaveEquality && opt.innerRewriting()) {
+    res->addFront(new InnerRewriting(salg));
+  }
 
   if (mayHaveEquality && opt.equationalTautologyRemoval()) {
     res->addFront(new EquationalTautologyRemoval());
@@ -1768,5 +1769,6 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
     // Note: SynthesisAnswerLiteralProcessor must be THE LAST added simplification-many rule.
     resMany.addFront(std::make_unique<SynthesisAnswerLiteralProcessor>());
   }
+
   return std::make_pair(res, std::move(resMany));
 }

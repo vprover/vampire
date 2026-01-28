@@ -5,8 +5,43 @@ on:
 jobs:
   build:
     runs-on: ubuntu-24.04
+    env:
+      CC: gcc
+      CXX: g++
     steps:
+
+    - name: Setup
+      run: |
+        sudo apt-get update -y
+        sudo apt-get install -y gcovr
+
     - name: Checkout Tree
       uses: actions/checkout@v4
       with:
         submodules: true
+
+    - name: Configure and Build Z3
+      working-directory: ${{ runner.workspace }}/vampire
+      run: |
+        mkdir -p z3/build
+        cd z3/build
+        cmake -DCMAKE_BUILD_TYPE=Release -DZ3_BUILD_EXECUTABLE=OFF -DZ3_BUILD_TEST_EXECUTABLES=OFF ..
+        make -j4
+      if: false
+
+    - name: Configure and Build Vampire
+      working-directory: ${{ runner.workspace }}/vampire
+      run: |
+        mkdir -p build
+        cd build
+        cmake -DCOVERAGE=ON -DCMAKE_BUILD_TYPE=Debug ..
+        make -j4 vtest vcoverage
+
+    - name: Upload coverage files
+      uses: actions/upload-artifact@v4
+      with:
+        name: vcoverage-${{ github.sha }}
+        path: |
+          ${{ runner.workspace }}/vampire/build/vcoverage/*
+        overwrite: true
+        if-no-files-found: error

@@ -119,11 +119,22 @@ public:
     return *this;
   }
 
-  template<typename Rule, typename Tester>
+  template<typename Rule, typename Tester, bool withSaturation = false>
   void run() {
-    Rule simpl;
-    auto res = simpl.simplify(_input);
-    if (res != _input ) {
+    Problem prb;
+    Options opt;
+    opt.resolveAwayAutoValues(prb);
+    MockedSaturationAlgorithm alg(prb, opt);
+
+    Clause* res;
+    if constexpr (withSaturation) {
+      Rule rule(alg);
+      res = rule.simplify(_input);
+    } else {
+      Rule rule;
+      res = rule.simplify(_input);
+    }
+    if (res != _input) {
       std::cout  << std::endl;
       std::cout << "[     case ]: " << pretty(*_input) << std::endl;
       std::cout << "[       is ]: " << pretty(*res) << std::endl;

@@ -48,7 +48,7 @@ class BackwardSubsumptionDemodulation
   : public BackwardSimplificationEngine
 {
   public:
-    BackwardSubsumptionDemodulation(bool enableOrderingOptimizations, SaturationAlgorithm& salg);
+    BackwardSubsumptionDemodulation(SaturationAlgorithm& salg);
 
     void perform(Clause* premise, BwSimplificationRecordIterator& simplifications) override;
 

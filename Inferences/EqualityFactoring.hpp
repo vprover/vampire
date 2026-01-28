@@ -18,6 +18,8 @@
 
 #include "Forwards.hpp"
 
+#include "Kernel/UnificationWithAbstraction.hpp"
+
 #include "InferenceEngine.hpp"
 #include "Kernel/UnificationWithAbstraction.hpp"
 #include "ProofExtra.hpp"

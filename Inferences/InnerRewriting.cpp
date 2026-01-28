@@ -15,8 +15,9 @@
 #include "InnerRewriting.hpp"
 
 #include "Kernel/EqHelper.hpp"
-#include "Kernel/Inference.hpp"
-
+#include "Kernel/Clause.hpp"
+#include "Lib/Environment.hpp"
+#include "Shell/Statistics.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 
 namespace Inferences {
@@ -27,7 +28,7 @@ using namespace Kernel;
 InnerRewriting::InnerRewriting(SaturationAlgorithm& salg)
   : _ord(salg.getOrdering()) {}
 
-bool InnerRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
+Clause* InnerRewriting::simplify(Clause* cl)
 {
   // look for the first equality which rewrites something and rewrite everything with it (check for EqTaut as you go)
   unsigned len = cl->length();
@@ -42,7 +43,7 @@ bool InnerRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& p
           if (nLit != lit) {
             if(EqHelper::isEqTautology(nLit)) {
               env.statistics->innerRewritesToEqTaut++;
-              return true;
+              return nullptr;
             }
 
             RStack<Literal*> resLits;
@@ -59,22 +60,20 @@ bool InnerRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& p
                 Literal* rLit = EqHelper::replace(oLit,lhs,rhs);
                 if(EqHelper::isEqTautology(rLit)) {
                   env.statistics->innerRewritesToEqTaut++;
-                  return true;
+                  return nullptr;
                 }
                 resLits->push(rLit);
               }
             }
 
-            replacement = Clause::fromStack(*resLits,SimplifyingInference1(InferenceRule::INNER_REWRITING, cl));
-            return true;
+            return Clause::fromStack(*resLits,SimplifyingInference1(InferenceRule::INNER_REWRITING, cl));
           }
         }
       }
     }
   }
 
-  return false;
+  return cl;
 }
-
 
 }

@@ -10,7 +10,6 @@
 
 #if VZ3
 
-#include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Inferences/TheoryInstAndSimp.hpp"
 

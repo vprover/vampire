@@ -7,7 +7,6 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
-#include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Test/SimplificationTester.hpp"
 

@@ -49,12 +49,14 @@ using namespace Indexing;
 using namespace Saturation;
 
 
-BackwardSubsumptionDemodulation::BackwardSubsumptionDemodulation(bool enableOrderingOptimizations, SaturationAlgorithm& salg)
+BackwardSubsumptionDemodulation::BackwardSubsumptionDemodulation(SaturationAlgorithm& salg)
   : _ord(salg.getOrdering())
   , _index(salg.getSimplifyingIndex<BackwardSubsumptionIndex>())
   , _preorderedOnly{false}
   , _allowIncompleteness{false}
-  , _enableOrderingOptimizations{enableOrderingOptimizations}
+  , _enableOrderingOptimizations{
+      salg.getOptions().termOrdering() == Shell::Options::TermOrdering::KBO ||
+      salg.getOptions().termOrdering() == Shell::Options::TermOrdering::LPO}
   , _literalComparisonMode(salg.getOptions().literalComparisonMode())
   , _backwardSubsumptionDemodulationMaxMatches(salg.getOptions().backwardSubsumptionDemodulationMaxMatches())
 { }

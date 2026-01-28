@@ -9,11 +9,8 @@
  */
 #include "Inferences/ALASCA/Normalization.hpp"
 #include "Inferences/ALASCA/TautologyDeletion.hpp"
-#include "Inferences/InferenceEngine.hpp"
-#include "Inferences/LfpRule.hpp"
-#include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
-#include "Inferences/GaussianVariableElimination.hpp"
+#include "Inferences/LfpRule.hpp"
 
 #include "Test/SimplificationTester.hpp"
 
@@ -30,7 +27,6 @@ namespace {
 
 #define MY_SIMPL_RULE LfpISE<TupleISE<ALASCA::Normalization, ALASCA::TautologyDeletion>>
 #define MY_SIMPL_TESTER Simplification::SimplificationTester
-
 #define MY_SYNTAX_SUGAR                                                                   \
   NUMBER_SUGAR(Real)                                                                      \
   DECL_DEFAULT_VARS                                                                       \

@@ -18,7 +18,6 @@
 #define __TermSharing__
 
 #include "Lib/Set.hpp"
-#include "Lib/DHSet.hpp"
 #include "Kernel/Term.hpp"
 
 using namespace Lib;
@@ -60,10 +59,6 @@ public:
         [&](auto i){ return *l2->nthArgument(i); }, 
         l2->arity(), someIf(l2->isTwoVarEquality(), [&](){ return l2->twoVarEqSort(); })); }
 
-  DHSet<TermList>* getArraySorts(){
-    return &_arraySorts;
-  }
-
   struct OpLitWrapper {
     OpLitWrapper(Literal* l) : l(l) {}
     Literal* l;
@@ -103,10 +98,6 @@ private:
   Set<Literal*,TermSharing> _literals;
   /** The set storing all sorts */
   Set<AtomicSort*,TermSharing> _sorts;
-  /* Set containing all array sorts. 
-   * Can be deleted once array axioms are made truly poltmorphic
-   */  
-  DHSet<TermList> _arraySorts;
 
   bool _poly;
   bool _wellSortednessCheckingDisabled;

@@ -260,7 +260,7 @@ protected:
   /** Number of clauses that entered the unprocessed container */
   unsigned _activationLimit;
 private:
-  static std::pair<CompositeISE*, CompositeISEMany> createISE(Problem& prb, const Options& opt, const Ordering& ordering);
+  static std::pair<CompositeISE*, CompositeISEMany> createISE(Problem& prb, const Options& opt, SaturationAlgorithm& salg);
 
   // a "soft" time limit in deciseconds, checked manually: 0 is no limit
   unsigned _softTimeLimit = 0;
