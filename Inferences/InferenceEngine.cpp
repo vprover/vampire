@@ -9,7 +9,7 @@
  */
 /**
  * @file InferenceEngine.cpp
- * Implements class InferenceEngine amd its simple subclasses.
+ * Implements classes for inferences.
  */
 
 #include "Kernel/HOL/HOL.hpp"
@@ -22,8 +22,6 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
-
-#include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Shell/Statistics.hpp"
 
@@ -39,19 +37,6 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
-
-/**
- * Return options that control the inference engine.
- *
- * This function may be called only when attached to the saturation algorithm,
- * unless a child class overrides this function.
- */
-const Options& InferenceEngine::getOptions() const
-{
-  ASS(attached());
-
-  return _salg->getOptions();
-}
 
 CompositeISE::~CompositeISE()
 {

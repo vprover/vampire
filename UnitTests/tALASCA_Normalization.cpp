@@ -8,7 +8,6 @@
  * and in the source directory
  */
 
-#include "Test/MockedSaturationAlgorithm.hpp"
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Inferences/ALASCA/Normalization.hpp"
@@ -57,16 +56,11 @@ struct TestCase
   void run() {
     Clause* input = Clause::fromLiterals({ in }, Inference(FromInput(UnitInputType::ASSUMPTION)));
 
-    Problem p;
-    Options o;
-    o.resolveAwayAutoValues(p);
-    o.set("alasca", "on", false);
-    MockedSaturationAlgorithm alg(p, o);
     Stack<ImmediateSimplificationEngine*> rules;
     if (strong) {
-      rules.pushMany(new Inferences::ALASCA::Normalization(alg), new Inferences::ALASCA::InequalityPredicateNormalization());
+      rules.pushMany(new Inferences::ALASCA::Normalization(), new Inferences::ALASCA::InequalityPredicateNormalization());
     } else {
-      rules.pushMany(new Inferences::ALASCA::Normalization(alg));
+      rules.pushMany(new Inferences::ALASCA::Normalization());
     }
 
     Clause* last = input;

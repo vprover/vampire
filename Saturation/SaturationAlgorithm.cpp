@@ -1341,40 +1341,20 @@ MainLoopResult SaturationAlgorithm::runImpl()
 }
 
 /**
- * Assign an immediate simplifier object @b immediateSimplifier
- * to be used
- *
- * This object takes ownership of the @b immediateSimplifier object
- * and will be responsible for its deletion.
- *
- * For description of what an immediate simplifier is, see
- * @b ImmediateSimplificationEngine documentation.
- *
- * To use multiple immediate simplifiers, use the @b CompositeISE
- * object.
- */
-void SaturationAlgorithm::setImmediateSimplificationEngine(ImmediateSimplificationEngine *immediateSimplifier)
-{
-  ASS(!_immediateSimplifier);
-  _immediateSimplifier = immediateSimplifier;
-}
-
-/**
  * Add a forward simplifier, so that it is applied before the
  * simplifiers that were added before it. The object takes ownership
  * of the forward simplifier and will take care of destroying it.
- *
- * Forward demodulation simplifier should be added by the
- * @b setFwDemodulator function, not by this one.
  */
-void SaturationAlgorithm::addForwardSimplifierToFront(ForwardSimplificationEngine *fwSimplifier)
+template<typename Inference>
+void SaturationAlgorithm::addForwardSimplifierToFront()
 {
-  FwSimplList::push(fwSimplifier, _fwSimplifiers);
+  FwSimplList::push(new Inference(*this), _fwSimplifiers);
 }
 
-void SaturationAlgorithm::addExpensiveForwardSimplifierToFront(ForwardSimplificationEngine *fwSimplifier)
+template<typename Inference>
+void SaturationAlgorithm::addExpensiveForwardSimplifierToFront()
 {
-  FwSimplList::push(fwSimplifier, _expensiveFwSimplifiers);
+  FwSimplList::push(new Inference(*this), _expensiveFwSimplifiers);
 }
 
 void SaturationAlgorithm::addSimplifierToFront(SimplificationEngine *simplifier)
@@ -1387,9 +1367,10 @@ void SaturationAlgorithm::addSimplifierToFront(SimplificationEngine *simplifier)
  * simplifiers that were added before it. The object takes ownership
  * of the backward simplifier and will take care of destroying it.
  */
-void SaturationAlgorithm::addBackwardSimplifierToFront(BackwardSimplificationEngine *bwSimplifier)
+template<typename Inference>
+void SaturationAlgorithm::addBackwardSimplifierToFront()
 {
-  BwSimplList::push(bwSimplifier, _bwSimplifiers);
+  BwSimplList::push(new Inference(*this), _bwSimplifiers);
 }
 
 /**
@@ -1490,7 +1471,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   if (opt.functionDefinitionRewriting()) {
     gie->addFront(new FunctionDefinitionRewriting(*res));
-    res->addForwardSimplifierToFront(new FunctionDefinitionDemodulation(*res));
+    res->addForwardSimplifierToFront<FunctionDefinitionDemodulation>();
   }
 
   auto sgi = new CompositeSGI();
@@ -1519,8 +1500,8 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   auto [ise, iseMany] = createISE(prb, opt, *res);
   if (alascaTakesOver) {
     if (opt.alascaDemodulation()) {
-      res->addForwardSimplifierToFront(new ALASCA::FwdDemodulation(*res));
-      res->addBackwardSimplifierToFront(new ALASCA::BwdDemodulation(*res));
+      res->addForwardSimplifierToFront<ALASCA::FwdDemodulation>();
+      res->addBackwardSimplifierToFront<ALASCA::BwdDemodulation>();
     }
     ise->addFront(new InterpretedEvaluation(/* inequalityNormalization() */ false));
     // TODO add an option for this
@@ -1535,8 +1516,8 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
 
     // TODO properly create an option for that, make it a simplifying rule
-    ise->addFront(new ALASCA::TautologyDeletion(*res));
-    ise->addFront(new ALASCA::Normalization(*res));
+    ise->addFront(new ALASCA::TautologyDeletion());
+    ise->addFront(new ALASCA::Normalization());
     // TODO check when the other one is better
     if (opt.viras()) {
       sgi->push(new ALASCA::VirasQuantifierElimination(*res));
@@ -1570,35 +1551,34 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 #endif
 
   res->_generator = sgi;
-
-  res->setImmediateSimplificationEngine(ise);
-  res->setImmediateSimplificationEngineMany(std::move(iseMany));
+  res->_immediateSimplifier = ise;
+  res->_immediateSimplifierMany = std::move(iseMany);
 
   // create simplification engine
 
   // create forward simplification engine
   if (opt.globalSubsumption()) {
-    res->addForwardSimplifierToFront(new GlobalSubsumption(*res));
+    res->addForwardSimplifierToFront<GlobalSubsumption>();
   }
   if (opt.forwardLiteralRewriting()) {
-    res->addForwardSimplifierToFront(new ForwardLiteralRewriting(*res));
+    res->addForwardSimplifierToFront<ForwardLiteralRewriting>();
   }
   if (mayHaveEquality) {
     // NOTE:
     // fsd should be performed after forward subsumption,
     // because every successful forward subsumption will lead to a (useless) match in fsd.
     if (opt.forwardSubsumptionDemodulation()) {
-      res->addForwardSimplifierToFront(new ForwardSubsumptionDemodulation(*res));
+      res->addForwardSimplifierToFront<ForwardSubsumptionDemodulation>();
     }
   }
   if (mayHaveEquality) {
     if (opt.forwardGroundJoinability()) {
-      res->addExpensiveForwardSimplifierToFront(new ForwardGroundJoinability(*res));
+      res->addExpensiveForwardSimplifierToFront<ForwardGroundJoinability>();
     }
     switch (opt.forwardDemodulation()) {
       case Options::Demodulation::ALL:
       case Options::Demodulation::PREORDERED:
-        res->addForwardSimplifierToFront(new ForwardDemodulation(*res));
+        res->addForwardSimplifierToFront<ForwardDemodulation>();
         break;
       case Options::Demodulation::OFF:
         break;
@@ -1611,9 +1591,9 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   if (opt.forwardSubsumption()) {
     if (opt.codeTreeSubsumption()) {
-      res->addForwardSimplifierToFront(new CodeTreeForwardSubsumptionAndResolution(*res));
+      res->addForwardSimplifierToFront<CodeTreeForwardSubsumptionAndResolution>();
     } else {
-      res->addForwardSimplifierToFront(new ForwardSubsumptionAndResolution(*res));
+      res->addForwardSimplifierToFront<ForwardSubsumptionAndResolution>();
     }
   }
   else if (opt.forwardSubsumptionResolution()) {
@@ -1625,7 +1605,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     switch (opt.backwardDemodulation()) {
       case Options::Demodulation::ALL:
       case Options::Demodulation::PREORDERED:
-        res->addBackwardSimplifierToFront(new BackwardDemodulation(*res));
+        res->addBackwardSimplifierToFront<BackwardDemodulation>();
         break;
       case Options::Demodulation::OFF:
         break;
@@ -1637,13 +1617,13 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   
   if (mayHaveEquality && opt.backwardSubsumptionDemodulation()) {
-    res->addBackwardSimplifierToFront(new BackwardSubsumptionDemodulation(*res));
+    res->addBackwardSimplifierToFront<BackwardSubsumptionDemodulation>();
   }
 
   bool backSubsumption = opt.backwardSubsumption() != Options::Subsumption::OFF;
   bool backSR = opt.backwardSubsumptionResolution() != Options::Subsumption::OFF;
   if (backSubsumption || backSR) {
-    res->addBackwardSimplifierToFront(new BackwardSubsumptionAndResolution(*res));
+    res->addBackwardSimplifierToFront<BackwardSubsumptionAndResolution>();
   }
 
   if (opt.mode() == Options::Mode::CONSEQUENCE_ELIMINATION) {

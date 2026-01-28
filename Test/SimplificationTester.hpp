@@ -29,9 +29,6 @@ namespace Simplification {
 
 struct SimplificationTester : public Generation::GenerationTester
 {
-  SimplificationTester(SaturationAlgorithm& salg)
-    : Generation::GenerationTester(salg) {}
-
   bool eq(Kernel::Clause* lhs, Kernel::Clause* rhs) override 
   { return TestUtils::eqModAC(lhs, rhs); }
 };
@@ -78,7 +75,7 @@ public:
       Rule rule;
       res = rule.simplify(_input);
     }
-    Tester tester(alg);
+    Tester tester;
 
     return _expected->match(
         [&](ClausePattern& expected) {
@@ -188,11 +185,6 @@ public:
 
   template<typename Rule, typename Tester>
   void run() {
-    Problem prb;
-    Options opt;
-    opt.resolveAwayAutoValues(prb);
-    MockedSaturationAlgorithm alg(prb, opt);
-
     Rule rule;
     auto resOp = rule.simplifyMany(_input);
     auto exp = _expected.unwrap();
@@ -203,7 +195,7 @@ public:
       std::cout << "[ expected ]: " << pretty(exp) << std::endl;
       exit(-1);
     } else {
-      Tester tester(alg);
+      Tester tester;
       auto res = Stack<Kernel::Clause*>::fromIterator(std::move(*resOp));
       if (!exp.matches(res, tester)) {
         std::cout  << std::endl;

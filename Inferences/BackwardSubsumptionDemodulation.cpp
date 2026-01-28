@@ -55,8 +55,8 @@ BackwardSubsumptionDemodulation::BackwardSubsumptionDemodulation(SaturationAlgor
   , _preorderedOnly{false}
   , _allowIncompleteness{false}
   , _enableOrderingOptimizations{
-      salg.getOptions().termOrdering() == Shell::Options::TermOrdering::KBO ||
-      salg.getOptions().termOrdering() == Shell::Options::TermOrdering::LPO}
+    salg.getOptions().termOrdering() == Shell::Options::TermOrdering::KBO ||
+    salg.getOptions().termOrdering() == Shell::Options::TermOrdering::LPO}
   , _literalComparisonMode(salg.getOptions().literalComparisonMode())
   , _backwardSubsumptionDemodulationMaxMatches(salg.getOptions().backwardSubsumptionDemodulationMaxMatches())
 { }

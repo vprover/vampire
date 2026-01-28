@@ -63,9 +63,6 @@ class GenerationTesterInduction
   : public GenerationTester
 {
 public:
-  GenerationTesterInduction(SaturationAlgorithm& salg)
-    : GenerationTester(salg) {}
-
   ~GenerationTesterInduction() override {
     _btd.drop();
   }
@@ -235,11 +232,7 @@ private:
 
 TEST_FUN(test_tester1) {
   __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
-  Problem prb;
-  Options opt;
-  opt.resolveAwayAutoValues(prb);
-  MockedSaturationAlgorithm alg(prb, opt);
-  GenerationTesterInduction tester(alg);
+  GenerationTesterInduction tester;
   // first literal is matched both ways but none of them works
   ASS(!tester.eq(
     clause({ r(sK1) == r(x), f(r(sK1),y) != z }),
@@ -248,11 +241,7 @@ TEST_FUN(test_tester1) {
 
 TEST_FUN(test_tester2) {
   __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
-  Problem prb;
-  Options opt;
-  opt.resolveAwayAutoValues(prb);
-  MockedSaturationAlgorithm alg(prb, opt);
-  GenerationTesterInduction tester(alg);
+  GenerationTesterInduction tester;
   // second clause cannot be matched because of x4
   ASS(!tester.eq(
     clause({ r(sK1) == r(x), f(r(sK1),y) != z }),
@@ -261,11 +250,7 @@ TEST_FUN(test_tester2) {
 
 TEST_FUN(test_tester3) {
   __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
-  Problem prb;
-  Options opt;
-  opt.resolveAwayAutoValues(prb);
-  MockedSaturationAlgorithm alg(prb, opt);
-  GenerationTesterInduction tester(alg);
+  GenerationTesterInduction tester;
   // y is matched to both y4 and y5
   ASS(!tester.eq(
     clause({ r(sK1) == r(x), f(r(sK1),y) != y }),
@@ -274,11 +259,7 @@ TEST_FUN(test_tester3) {
 
 TEST_FUN(test_tester4) {
   __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
-  Problem prb;
-  Options opt;
-  opt.resolveAwayAutoValues(prb);
-  MockedSaturationAlgorithm alg(prb, opt);
-  GenerationTesterInduction tester(alg);
+  GenerationTesterInduction tester;
   // Skolem function with different args is matched
   ASS(!tester.eq(
     clause({ r(sK1_1(x)) == r(x), f(r(sK1_1(y)),y) != z }),
@@ -287,11 +268,7 @@ TEST_FUN(test_tester4) {
 
 TEST_FUN(test_tester5) {
   __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
-  Problem prb;
-  Options opt;
-  opt.resolveAwayAutoValues(prb);
-  MockedSaturationAlgorithm alg(prb, opt);
-  GenerationTesterInduction tester(alg);
+  GenerationTesterInduction tester;
   // normal match
   ASS(tester.eq(
     clause({ r(sK1) == r(x), f(r(sK1),y) != z }),
@@ -300,11 +277,7 @@ TEST_FUN(test_tester5) {
 
 TEST_FUN(test_tester6) {
   __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
-  Problem prb;
-  Options opt;
-  opt.resolveAwayAutoValues(prb);
-  MockedSaturationAlgorithm alg(prb, opt);
-  GenerationTesterInduction tester(alg);
+  GenerationTesterInduction tester;
   // normal match with Skolem function
   ASS(tester.eq(
     clause({ r(sK1_1(x)) == r(x), f(r(sK1_1(x)),y) != z }),

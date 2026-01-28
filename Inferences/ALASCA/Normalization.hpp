@@ -31,9 +31,9 @@ using namespace Saturation;
 class Normalization
 : public ImmediateSimplificationEngine 
 {
-  const AlascaState& _shared;
+  const InequalityNormalizer& _norm;
 public: 
-  Normalization(SaturationAlgorithm& salg);
+  Normalization();
   USE_ALLOCATOR(Normalization);
 
   Clause* simplify(Clause* cl) final;

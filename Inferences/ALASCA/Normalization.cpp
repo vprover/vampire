@@ -55,7 +55,7 @@ Option<bool> trivial(Literal* l) {
   });
 }
 
-Normalization::Normalization(SaturationAlgorithm& salg) : _shared(salg.alascaState()) {}
+Normalization::Normalization() : _norm(InequalityNormalizer::global()) {}
 
 Clause* Normalization::simplify(Clause* cl) 
 {
@@ -63,7 +63,7 @@ Clause* Normalization::simplify(Clause* cl)
   bool altered = false; 
   Recycled<Stack<Literal*>> out;
   for (unsigned i = 0; i < cl->size(); i++) {
-    auto lit = _shared.norm().normalizedLiteral((*cl)[i]);
+    auto lit = _norm.normalizedLiteral((*cl)[i]);
     altered |= lit != (*cl)[i];
     auto triv = trivial(lit);
     if (triv.isSome()) {

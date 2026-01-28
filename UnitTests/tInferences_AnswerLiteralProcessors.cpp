@@ -88,6 +88,7 @@ TEST_SIMPLIFY_MANY(two_answer_literals_binary_resolution,
       al1,
       al2
     ));
+    env.options->set("question_answering", "synthesis");
     Clause* exp1 = clause({ p(x), static_cast<Shell::SynthesisALManager*>(Shell::SynthesisALManager::getInstance())->makeITEAnswerLiteral(cond, al1, al2) });
     Clause* exp2 = clause({ p(x), f(x) != a, al1 });
     Simplification::SuccessMany()
@@ -109,6 +110,7 @@ TEST_SIMPLIFY_MANY(two_answer_literals_superposition,
       al1,
       al2
     ));
+    env.options->set("question_answering", "synthesis");
     Clause* exp1 = clause({ p(g(a)), static_cast<Shell::SynthesisALManager*>(Shell::SynthesisALManager::getInstance())->makeITEAnswerLiteral(cond, al1, al2) });
     Clause* exp2 = clause({ p(g(a)), f(x) != a, al1 });
     Simplification::SuccessMany()

@@ -80,15 +80,12 @@ public:
 
   UnitList* collectSaturatedSet();
 
-  void setImmediateSimplificationEngine(ImmediateSimplificationEngine* immediateSimplifier);
-  void setImmediateSimplificationEngineMany(CompositeISEMany ise) { _immediateSimplifierMany = std::move(ise); }
-
   void setLabelFinder(LabelFinder* finder){ _labelFinder = finder; }
 
-  void addForwardSimplifierToFront(ForwardSimplificationEngine* fwSimplifier);
-  void addExpensiveForwardSimplifierToFront(ForwardSimplificationEngine* fwSimplifier);
+  template<typename Inference> void addForwardSimplifierToFront();
+  template<typename Inference> void addExpensiveForwardSimplifierToFront();
   void addSimplifierToFront(SimplificationEngine* simplifier);
-  void addBackwardSimplifierToFront(BackwardSimplificationEngine* bwSimplifier);
+  template<typename Inference> void addBackwardSimplifierToFront();
 
 
   void addNewClause(Clause* cl);

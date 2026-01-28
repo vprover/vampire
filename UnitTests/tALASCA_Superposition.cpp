@@ -196,32 +196,42 @@ TEST_GENERATION(self_applications_run_only_once,
 //       .expected(exactly(  clause({          -19 + -f(y) + 17 * x >= 0  }) ))
 //     )
 
-TEST_GENERATION(ordering1_ok_1_simult,
-    alascaSymmetricTest()
-      .inputs  ({         clause({ selected( g2(a,a) == 0 ) })
-                ,         clause({ selected( f(g2(x,y)) != 0 ), selected( f(g2(y,x)) != 0 ) }) }) 
-      .expected(exactly(  clause({ f(0) != 0, f(0) != 0 }) 
-                       ,  clause({ f(0) != 0, f(0) != 0 }) )),
-    /*simultaneous=*/true
-    )
-
-// •    L[s2]σ  ∈ Lit+ and L[s2]σ /⪯ C2σ
-//   or L[s2]σ /∈ Lit+ and L[s2]σ /≺ C2σ
 TEST_GENERATION(ordering1_ok_1,
     alascaSymmetricTest()
       .inputs  ({         clause({ selected( g2(a,a) == 0 ) })
                 ,         clause({ selected( f(g2(x,y)) != 0 ), selected( f(g2(y,x)) != 0 ) }) }) 
+      .expected(exactly(  clause({ f(0) != 0, f(0) != 0 }) 
+                       ,  clause({ f(0) != 0, f(0) != 0 }) ))
+    )
+
+// •    L[s2]σ  ∈ Lit+ and L[s2]σ /⪯ C2σ
+//   or L[s2]σ /∈ Lit+ and L[s2]σ /≺ C2σ
+TEST_GENERATION(ordering1_ok_1_non_simult,
+    alascaSymmetricTest()
+      .inputs  ({         clause({ selected( g2(a,a) == 0 ) })
+                ,         clause({ selected( f(g2(x,y)) != 0 ), selected( f(g2(y,x)) != 0 ) }) }) 
       .expected(exactly(  clause({ f(0) != 0, f(g2(a,a)) != 0 }) 
-                       ,  clause({ f(0) != 0, f(g2(a,a)) != 0 }) ))
+                       ,  clause({ f(0) != 0, f(g2(a,a)) != 0 }) )),
+      /*simultaneous=*/false
     )
 
 TEST_GENERATION(ordering1_ok_2,
     alascaSymmetricTest()
       .inputs  ({         clause({ selected( g2(a,a) == 0 ) })
                 ,         clause({ selected( -f(g2(x,y)) > 0 ), selected( -f(g2(y,x)) > 0 ) }) }) 
-      .expected(exactly(  clause({ -f(0) > 0, -f(g2(a,a)) > 0 }) 
-                       ,  clause({ -f(0) > 0, -f(g2(a,a)) > 0 }) ))
+      .expected(exactly(  clause({ -f(0) > 0, -f(0) > 0 }) 
+                       ,  clause({ -f(0) > 0, -f(0) > 0 }) ))
     )
+
+TEST_GENERATION(ordering1_ok_2_non_simult,
+    alascaSymmetricTest()
+      .inputs  ({         clause({ selected( g2(a,a) == 0 ) })
+                ,         clause({ selected( -f(g2(x,y)) > 0 ), selected( -f(g2(y,x)) > 0 ) }) }) 
+      .expected(exactly(  clause({ -f(0) > 0, -f(g2(a,a)) > 0 }) 
+                       ,  clause({ -f(0) > 0, -f(g2(a,a)) > 0 }) )),
+      /*simultaneous=*/false
+    )
+
 TEST_GENERATION(ordering1_fail_1,
     alascaSymmetricTest()
       .inputs  ({         clause({ selected( g2(a,a) == 0 ) })
@@ -285,11 +295,19 @@ TEST_GENERATION(uninterpreted_pred_2,
       .expected(exactly( clause({           p(1)     , f(f(b)) > 0 }) ))
     )
 
-TEST_GENERATION(uninterpreted_pred_3, // TODO couldn't we replace all occurrences of f(x) instead of the maximal one
+TEST_GENERATION(uninterpreted_pred_3,
     alascaSymmetricTest()
       .inputs  ({        clause({ selected(   f(x) - 1 == 0 )      })
                 ,        clause({ selected( p(f(x)) ), f(f(x)) > 0 }) })
-      .expected(exactly( clause({           p(1)     , f(f(x)) > 0 }) ))
+      .expected(exactly( clause({           p(1)     , f(1) > 0 }) ))
+    )
+
+TEST_GENERATION(uninterpreted_pred_3_non_simult,
+    alascaSymmetricTest()
+      .inputs  ({        clause({ selected(   f(x) - 1 == 0 )      })
+                ,        clause({ selected( p(f(x)) ), f(f(x)) > 0 }) })
+      .expected(exactly( clause({           p(1)     , f(f(x)) > 0 }) )),
+      /*simultaneous=*/false
     )
 
 TEST_GENERATION(uninterpreted_sort_1,

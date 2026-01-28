@@ -164,7 +164,6 @@ class SymmetricTest;
 class GenerationTester
 {
 public:
-  GenerationTester(SaturationAlgorithm&) {}
   virtual ~GenerationTester() = default;
   virtual Clause* normalize(Kernel::Clause* c)
   { return c; }
@@ -203,6 +202,13 @@ public:
   template<typename Rule, typename Tester, typename... Args>
   void run(Args... args) {
 
+    Tester tester;
+
+    for (auto& c : _context) {
+      c = tester.normalize(c);
+    }
+    _input = tester.normalize(_input);
+
     // init problem
     Problem p;
     auto ul = UnitList::fromIterator(ClauseStack::Iterator(_context));
@@ -213,12 +219,6 @@ public:
     MockedSaturationAlgorithm alg(p, *env.options);
     _setup(alg);
     Rule rule(alg, args...);
-    Tester tester(alg);
-
-    for (auto& c : _context) {
-      c = tester.normalize(c);
-    }
-    _input = tester.normalize(_input);
 
     auto container = alg.getActiveClauseContainer();
 

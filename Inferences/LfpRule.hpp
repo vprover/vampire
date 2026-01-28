@@ -24,7 +24,7 @@ class LfpISE
 {
   Rule _inner;
 public:
-  LfpISE(SaturationAlgorithm& salg) : _inner(salg) {}
+  LfpISE(SaturationAlgorithm&) {}
   Clause* simplify(Clause* c) override {
     auto c0 = c;
     auto c1 = c;

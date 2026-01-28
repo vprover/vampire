@@ -11,7 +11,6 @@
 #ifndef __TEST_ALASCA_SIMPL_RULE__
 #define __TEST_ALASCA_SIMPL_RULE__
 
-#include "Kernel/ALASCA/State.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
 #include "Kernel/Inference.hpp"
 #include "Test/TestUtils.hpp"
@@ -28,7 +27,7 @@ struct AlascaSimplRule
   ALASCA::Normalization _norm;
   AlascaSimplRule(SaturationAlgorithm& salg)
     : _rule(salg)
-    , _norm(salg)
+    , _norm()
   { }
 
   ClauseGenerationResult generateSimplify(Clause* premise) final override {
@@ -131,12 +130,7 @@ struct AlascaTestUtil {
 class AlascaGenerationTester : public Test::Generation::GenerationTester
 {
   ALASCA::Normalization _norm;
-
 public:
-  AlascaGenerationTester(SaturationAlgorithm& salg)
-    : GenerationTester(salg), _norm(salg)
-  {}
-
   Clause* normalize(Kernel::Clause* c) override
   { return _norm.simplify(c); }
 

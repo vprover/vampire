@@ -9,7 +9,7 @@
  */
 /**
  * @file InferenceEngine.hpp
- * Defines class InferenceEngine
+ * Defines inference classes
  *
  */
 
@@ -32,44 +32,6 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Saturation;
 using namespace Shell;
-
-/**
- * InferenceEngine is a base class for classes representing possible
- * inferences -- generating inferences and forward and backward
- * simplifications. These inferences will take only the non-propositional
- * part of the clause into account. The caller must take care of the
- * propositional part, or be sure that the propositional part is not
- * being used at all.
- */
-class InferenceEngine
-{
-public:
-  InferenceEngine() : _salg(0) {}
-  virtual ~InferenceEngine()
-  {
-    //the object has to be detached before destruction
-    ASS(!_salg);
-  }
-  virtual void attach(SaturationAlgorithm* salg)
-  {
-    ASS(!_salg);
-    _salg=salg;
-  }
-  virtual void detach()
-  {
-    ASS(_salg);
-    _salg=0;
-  }
-
-  /**
-   * Return true if inference engine is attached to a saturation algorithm
-   */
-  bool attached() const { return _salg; }
-
-  virtual const Options& getOptions() const;
-protected:
-  SaturationAlgorithm* _salg;
-};
 
 /** A generating inference that might make its major premise redundant. */
 class SimplifyingGeneratingInference
@@ -277,7 +239,6 @@ class TupleISE
 {
   std::tuple<Args...> _self;
 public:
-  TupleISE(SaturationAlgorithm& salg) : _self(Args(salg)...) { }
   auto iter() { return std::apply([](auto&... args) { return iterItems(static_cast<ImmediateSimplificationEngine*>(&args)...); }, _self); }
   Clause* simplify(Clause* premise) override {
     return iter()
