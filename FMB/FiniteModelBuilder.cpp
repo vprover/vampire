@@ -243,7 +243,6 @@ bool FiniteModelBuilder::reset(){
   }
 
   // Create a new SAT solver
-  cout << "env.options->satSolver() = " << env.options->satSolver() << endl;
   if (env.options->satSolver() == Options::SatSolver::MINISAT) {
     if(env.options->fmbUseSimplifyingSolver())
       _solver = new MinisatInterfacingNewSimp;
@@ -255,7 +254,7 @@ bool FiniteModelBuilder::reset(){
   } else if (env.options->satSolver() == Options::SatSolver::NAPSAT) {
     _solver = new NapSATInterfacing;
   }else {
-    USER_ERROR("Finite model builder can only use minisat or cadical as SAT solvers.");
+    USER_ERROR("Finite model builder can only use minisat, cadical or napsat as SAT solvers.");
   }
 
   // set the number of SAT variables, this could cause an exception

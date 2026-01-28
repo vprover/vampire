@@ -11,13 +11,22 @@ namespace SAT
 {
   NapSATInterfacing::NapSATInterfacing()
   {
+    std::vector<std::string> env_args;
+    env_args.push_back("--invariant-configuration-folder");
+    env_args.push_back("../NapSAT/invariant-configurations/");
+    env_args.push_back("-sw"); // suppress warnings
+    env::extract_environment_variables(env_args);
+
     std::vector<std::string> opt_args;
     opt_args.push_back("-gb");
-    // opt_args.push_back("-o");
+    // opt_args.push_back("-c"); // enable checking invariants
+    // opt_args.push_back("-o"); // enable observer
     opt_args.push_back("--restarts");
     opt_args.push_back("off");
     opt_args.push_back("-del");
     opt_args.push_back("off");
+    opt_args.push_back("--backtrack-possibilities-limit");
+    opt_args.push_back("5000");
     napsat::options opts(opt_args);
 
     _solver = create_solver(0, 0, opts);
@@ -40,13 +49,7 @@ namespace SAT
     }
     Tclause napsat_cl = finalize_clause(_solver);
 
-    if (napsat_cl == CLAUSE_UNDEF) {
-      // it means the clause was deleted by the solver
-      cout << "the clause : ";
-      for (unsigned i = 0; i < cl->length(); i++) {
-        cout << (*cl)[i] << " ";
-      }
-      cout << " was deleted upon addition by the solver." << endl;
+    if (napsat_cl == CLAUSE_UNDEF) { // the solver deleted the clause upon addition
       return;
     }
     if (napsat_cl >= _addedClauses.size()) {

@@ -204,17 +204,33 @@ find_package(LibLZMA REQUIRED)
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/NapSAT/src)
 include(ExternalProject)
 
-ExternalProject_Add(
-    napsat
-    SOURCE_DIR ${CMAKE_SOURCE_DIR}/NapSAT
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND make debug # todo replace with make lib for release
-    BUILD_ALWAYS ON
-    BUILD_IN_SOURCE 1
-    INSTALL_COMMAND ""
-    BUILD_BYPRODUCTS
-        ${CMAKE_SOURCE_DIR}/NapSAT/build/NapSAT.a
-)
+if(CMAKE_BUILD_TYPE STREQUAL Debug)
+  message(STATUS "Building NapSAT in Debug mode")
+  ExternalProject_Add(
+      napsat
+      SOURCE_DIR ${CMAKE_SOURCE_DIR}/NapSAT
+      CONFIGURE_COMMAND ""
+      BUILD_COMMAND $(MAKE) debug -j${CMAKE_BUILD_PARALLEL_LEVEL}
+      BUILD_ALWAYS ON
+      BUILD_IN_SOURCE 1
+      INSTALL_COMMAND ""
+      BUILD_BYPRODUCTS
+          ${CMAKE_SOURCE_DIR}/NapSAT/build/NapSAT.a
+  )
+else()
+  message(STATUS "Building NapSAT in Release mode " ${CMAKE_BUILD_TYPE})
+  ExternalProject_Add(
+      napsat
+      SOURCE_DIR ${CMAKE_SOURCE_DIR}/NapSAT
+      CONFIGURE_COMMAND ""
+      BUILD_COMMAND $(MAKE) lib -j${CMAKE_BUILD_PARALLEL_LEVEL}
+      BUILD_ALWAYS ON
+      BUILD_IN_SOURCE 1
+      INSTALL_COMMAND ""
+      BUILD_BYPRODUCTS
+          ${CMAKE_SOURCE_DIR}/NapSAT/build/NapSAT.a
+  )
+endif()
 
 add_library(NapSAT STATIC IMPORTED)
 set_target_properties(NapSAT PROPERTIES
