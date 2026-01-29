@@ -38,7 +38,7 @@ TEST_GENERATION(test_01,                                   // <- name
       .expected(exactly(                                   // <- a list of exactly which clauses are expected
             clause({  p(f(a))  })                          //    to be returned. Order matters!
       ))
-      .premiseRedundant(false)                             // <- shall the premis be removed from the search 
+      .premiseRedundant(false)                             // <- shall the premise be removed from the search
                                                            //    space after the rule application ? 
                                                            //    (default value: false)
     )
