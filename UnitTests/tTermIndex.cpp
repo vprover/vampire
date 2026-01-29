@@ -11,82 +11,15 @@
 #include "Lib/DArray.hpp"
 
 #include "Test/UnitTesting.hpp"
-#include "Test/TestUtils.hpp"
+
 #include "Test/SyntaxSugar.hpp"
+#include "Test/TermIndexTester.hpp"
 #include "Indexing/TermSubstitutionTree.hpp"
 #include "Indexing/LiteralSubstitutionTree.hpp"
 
-
 using namespace Test;
 using namespace Indexing;
-
-template<class... A>
-void perform_test(const A&...) 
-{ /* dummy function to get rid of warnings */ }
-
-template<class Idx, class Data, class Iter, class Key>
-void __check(const char* operation, Idx& tree, Key key, Stack<Data> expected, Iter iter)
-{
-  auto is = iterTraits(iter(key))
-    .map([](auto u) { return *u.data; })
-    .template collect<Stack>();
-  std::sort(is.begin(), is.end());
-  std::sort(expected.begin(), expected.end());
-  if (is == expected) {
-    std::cout << "[  ok  ] " << operation << " " << pretty(key) << std::endl;
-  } else {
-    std::cout << std::endl;
-    std::cout << "[ FAIL ] " << operation << " " << pretty(key) << std::endl;
-    std::cout << "[  idx ] " << Output::multiline(tree) << std::endl;
-    std::cout << "[  key ] " << pretty(key) << std::endl;
-    std::cout << "[   is ]" << is << std::endl;
-    std::cout << "[  exp ]" << expected << std::endl;
-    ASSERTION_VIOLATION
-  }
-}
-
-template<class Data, class Iter>
-void check_lit(const char* op, LiteralSubstitutionTree<Data>& tree, Literal* key, Stack<Data> expected, Iter iter)
-{
-  auto ckey = Literal::complementaryLiteral(key);
-  __check(op, tree,  key, expected, [&](auto key) { return iter(key, /* complementary */ false); });
-  __check(op, tree, ckey, expected, [&](auto key) { return iter(key, /* complementary */ true); });
-}
-
-
-template<class Data>
-void check_unify(LiteralSubstitutionTree<Data>& tree, Literal* key, Stack<Data> expected)
-{ return check_lit("unify", tree, key, expected, [&](Literal* key, bool complementary) 
-      { return tree.getUnifications(key, complementary, /* retrieveSubstitutions */ true); }); }
-
-template<class Data>
-void check_inst(LiteralSubstitutionTree<Data>& tree, Literal* key, Stack<Data> expected)
-{ return check_lit("getInst", tree, key, expected, [&](Literal* key, bool complementary) 
-      { return tree.getInstances(key, complementary, /* retrieveSubstitutions */ true); }); }
-
-template<class Data>
-void check_gen(LiteralSubstitutionTree<Data>& tree, Literal* key, Stack<Data> expected)
-{ return check_lit("getGen", tree, key, expected, [&](Literal* key, bool complementary) 
-      { return tree.getGeneralizations(key, complementary, /* retrieveSubstitutions */ true); }); }
-
-
-template<class Data>
-void check_unify(TermSubstitutionTree<Data>& tree, TypedTermList key, Stack<Data> expected)
-{ return __check("unify", tree, key, expected, [&](TypedTermList key) 
-      { return tree.getUnifications(key, /* retrieveSubstitutions */ true); }); }
-
-// TODO write tests using this
-template<class Data>
-void check_gen(TermSubstitutionTree<Data>& tree, TypedTermList key, Stack<Data> expected)
-{ return __check("getGen", tree, key, expected, [&](TypedTermList key) 
-      { return tree.getGeneralizations(key, /* retrieveSubstitutions */ true); }); }
-
-// TODO write tests using this
-template<class Data>
-void check_inst(TermSubstitutionTree<Data>& tree, TypedTermList key, Stack<Data> expected)
-{ return __check("getInst", tree, key, expected, [&](TypedTermList key) 
-      { return tree.getInstances(key, /* retrieveSubstitutions */ true); }); }
-
+using namespace Test::TermIndexTest;
 
 TEST_FUN(basic01) {
 
@@ -104,6 +37,7 @@ TEST_FUN(basic01) {
   tree.insert(dat(f(a), g(b)));
   tree.insert(dat(f(a), g(c)));
 
+  std::cout << std::endl;
   check_unify(tree, f(a), { dat(f(a), g(a)), dat(f(a), g(b)), dat(f(a), g(c)), });
   check_unify(tree, f(b), Stack<TermWithValue<Literal*>>{});
   check_unify(tree, f(x), { dat(f(a), g(a)), dat(f(a), g(b)), dat(f(a), g(c)), });
@@ -145,6 +79,7 @@ TEST_FUN(custom_data_01) {
   tree.insert(dat(f(a), "b"));
   tree.insert(dat(f(a), "c"));
 
+  std::cout << std::endl;
   check_unify(tree, f(a), { dat(f(a), "a"), dat(f(a), "b"), dat(f(a), "c") });
   check_unify(tree, f(b), Stack<MyData<TypedTermList>>{});
   check_unify(tree, f(x), { dat(f(a), "a"), dat(f(a), "b"), dat(f(a), "c") });
@@ -165,6 +100,7 @@ TEST_FUN(custom_data_literal_01) {
   tree.insert(dat(~p(a), "b"));
   tree.insert(dat( p(a), "c"));
 
+  std::cout << std::endl;
   check_unify(tree,  p(a), { dat(p(a), "a"), dat(p(a), "c") });
   check_unify(tree, ~p(a), { dat(~p(a), "b") });
   check_unify(tree,  p(b), Stack<MyData<Literal*>>{});
@@ -187,6 +123,7 @@ TEST_FUN(custom_data_02) {
   tree.insert(dat(f(a), "b"));
   tree.insert(dat(f(a), "c"));
 
+  std::cout << std::endl;
   check_unify(tree, f(a), { dat(f(a), "a"), dat(f(a), "b"), dat(f(a), "c") });
   check_unify(tree, f(b), Stack<TermWithValue<std::string>>{});
   check_unify(tree, f(x), { dat(f(a), "a"), dat(f(a), "b"), dat(f(a), "c") });
@@ -211,6 +148,7 @@ TEST_FUN(custom_data_03_no_default_constructor) {
   tree.insert(dat(f(a), "b"));
   tree.insert(dat(f(a), "c"));
 
+  std::cout << std::endl;
   check_unify(tree, f(a), { dat(f(a), "a"), dat(f(a), "b"), dat(f(a), "c") });
   check_unify(tree, f(b), Stack<MyData3>{});
   check_unify(tree, f(x), { dat(f(a), "a"), dat(f(a), "b"), dat(f(a), "c") });
@@ -236,6 +174,7 @@ TEST_FUN(custom_data_04_no_copy_constructor) {
   tree.insert(dat(f(a), "b"));
   tree.insert(dat(f(a), "c"));
 
+  std::cout << std::endl;
   check_unify(tree, f(a), { dat(f(a), "a"), dat(f(a), "b"), dat(f(a), "c") });
   check_unify(tree, f(b), Stack<MyData4>{});
   check_unify(tree, f(x), { dat(f(a), "a"), dat(f(a), "b"), dat(f(a), "c") });
@@ -268,6 +207,7 @@ TEST_FUN(zero_arity_predicate) {
   tree.insert(dat(~p1(a), "~p1(a)"));
   tree.insert(dat(~p1(b), "~p1(b)"));
 
+  std::cout << std::endl;
   check_unify(tree,  p0() , { dat( p0() , " p0()") });
   check_unify(tree,  p1(x), { dat( p1(a), " p1(a)"), dat( p1(b), " p1(b)") });
   check_unify(tree, ~p0() , { dat(~p0() , "~p0()") });
@@ -298,6 +238,5 @@ TEST_FUN(zero_arity_predicate) {
   check_gen(  tree, a != a, Stack<Data>{});
   check_inst( tree, a != a, Stack<Data>{});
   check_unify(tree, a != a, Stack<Data>{});
-
 }
 
