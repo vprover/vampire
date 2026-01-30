@@ -9,7 +9,7 @@ using namespace std;
 
 namespace SAT
 {
-  NapSATInterfacing::NapSATInterfacing()
+  NapSATInterfacing::NapSATInterfacing(std::function<double(SATLiteral)> func)
   {
     std::vector<std::string> env_args;
     env_args.push_back("--invariant-configuration-folder");
@@ -21,15 +21,22 @@ namespace SAT
     opt_args.push_back("-gb");
     // opt_args.push_back("-c"); // enable checking invariants
     // opt_args.push_back("-o"); // enable observer
-    opt_args.push_back("--restarts");
-    opt_args.push_back("off");
+    // opt_args.push_back("--restarts");
+    // opt_args.push_back("off");
     opt_args.push_back("-del");
     opt_args.push_back("off");
+    opt_args.push_back("-stats");
     opt_args.push_back("--backtrack-possibilities-limit");
     opt_args.push_back("5000");
     napsat::options opts(opt_args);
 
     _solver = create_solver(0, 0, opts);
+    if (func) {
+      _vampire_weightFunction = func;
+      set_weight_function(_solver, [this](Tlit lit) {
+        return this->weightFunction(lit);
+      });
+    }
   }
 
   NapSATInterfacing::~NapSATInterfacing() {
@@ -91,12 +98,16 @@ namespace SAT
 
   void NapSATInterfacing::suggestPolarity(unsigned var, unsigned pol)
   {
-    suggest_polarity(_solver, vampireVar2NapSAT(var), pol);
+    suggest_polarity(_solver, vampireVar2NapSAT(var), pol > 0);
   }
 
 
   Status NapSATInterfacing::solveUnderAssumptionsLimited(const SATLiteralStack& assumps, unsigned conflictCountLimit)
   {
+    if (assumps.size() != 0) {
+      cerr << "ERROR: NapSATInterfacing::solveUnderAssumptionsLimited does not support assumptions yet.\n";
+      ASSERTION_VIOLATION
+    }
     std::vector<napsat::Tlit> napsat_assumptions;
     for (unsigned i = 0; i < assumps.size(); i++) {
       napsat_assumptions.push_back(vampireLit2NapSAT(assumps[i]));
@@ -118,6 +129,8 @@ namespace SAT
 
   SATLiteralStack NapSATInterfacing::failedAssumptions()
   {
+    cerr << "ERROR: NapSATInterfacing::failedAssumptions does not support assumptions yet.\n";
+    ASSERTION_VIOLATION
     SATLiteralStack result;
     std::vector<napsat::Tlit> failed = napsat::unsat_core(_solver);
     for (unsigned i = 0; i < failed.size(); i++) {
@@ -129,11 +142,15 @@ namespace SAT
 
   SATClauseList* NapSATInterfacing::minimizePremiseList(SATClauseList* premises, SATLiteralStack& assumps)
   {
+    cerr << "ERROR: NapSATInterfacing::minimizePremiseList is not implemented yet.\n";
+    ASSERTION_VIOLATION
     return nullptr;
   }
 
   SATClauseList* NapSATInterfacing::minimizePremises(SATClauseList* premises)
   {
+    cerr << "ERROR: NapSATInterfacing::minimizePremises is not implemented yet.\n";
+    ASSERTION_VIOLATION
     return nullptr;
   }
 } // namespace SAT

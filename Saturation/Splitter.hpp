@@ -71,6 +71,8 @@ class Splitter;
  */
 class SplittingBranchSelector {
 public:
+  SATSolver* _inner = nullptr;
+
   SplittingBranchSelector(Splitter& parent) : _parent(parent) {}
   /** To be called from Splitter::init() */
   void init();
@@ -245,6 +247,8 @@ private:
   bool allSplitLevelsActive(SplitSet* s);
 
   void conjectureSingleton(Literal* theLit, Clause* orig);
+
+  double weightFunction(SATLiteral lit) const;
 
   //settings
   bool _showSplitting;

@@ -84,7 +84,9 @@ void SplittingBranchSelector::init()
       inner = new CadicalInterfacing;
       break;
     case Options::SatSolver::NAPSAT:
-      inner = new NapSATInterfacing;
+      inner = new NapSATInterfacing(std::function<double(SATLiteral)>(
+        [this](SATLiteral lit) { return _parent.weightFunction(lit); }
+      ));
       break;
 #if VZ3
     case Options::SatSolver::Z3:
@@ -101,9 +103,14 @@ void SplittingBranchSelector::init()
     default:
       ASSERTION_VIOLATION_REP(_parent.getOptions().satSolver());
   }
-
+  _inner = inner;
   if (_parent.getOptions().splittingMinimizeModel()) {
-    inner = new MinimizingSolver(inner);
+    if (_parent.getOptions().satSolver() == Options::SatSolver::NAPSAT) {
+      // NapSATInterfacing already supports weight functions
+      return;
+    } else {
+      inner = new MinimizingSolver(new CadicalInterfacing());
+    }
   }
 
   if(_parent.getOptions().splittingCongruenceClosure()) {
@@ -513,6 +520,10 @@ Splitter::Splitter()
 
 Splitter::~Splitter()
 {
+  std::cout << "Splitter destructor called\n";
+  if(_branchSelector._inner) {
+    delete _branchSelector._inner;
+  }
   while(_db.isNonEmpty()) {
     if(_db.top()) {
       delete _db.top();
@@ -772,6 +783,25 @@ void Splitter::conjectureSingleton(Literal* theLit, Clause* orig)
     // this isn't exactly adding a clause, but we want to recompute a model at some point soon
     _clausesAdded = true;
   }
+}
+
+double Splitter::weightFunction(SATLiteral vlit) const
+{
+
+  SplitLevel lvl = getNameFromLiteral(vlit);
+  SplitLevel neglevel = getNameFromLiteral(vlit.opposite());
+  const SplitRecord* rec = _db[lvl];
+  const SplitRecord* negrec = _db[neglevel];
+  double posWeight = 0.0;
+  double negWeight = 0.0;
+  if (rec && !rec->active)
+    posWeight = 16.0 * (rec->reduced.size() + rec->children.size());
+
+  if (negrec && !negrec->active)
+    negWeight = 16.0 * (negrec->reduced.size() + negrec->children.size());
+  if (!vlit.positive())
+    return 1.0;
+  return posWeight;
 }
 
 bool Splitter::handleNonSplittable(Clause* cl)
