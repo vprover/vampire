@@ -13,6 +13,7 @@
 
 #include "Kernel/HOL/HOL.hpp"
 
+#include "TermShifter.hpp"
 #include "ToPlaceholders.hpp"
 #include "Kernel/Formula.hpp"
 
@@ -376,4 +377,83 @@ void HOL::getMatrixAndPrefSorts(TermList t, TermList& matrix, TermStack& sorts) 
     t = t.lambdaBody();
   }
   matrix = t;
+}
+
+std::optional<TermList> HOL::isEtaExpandedVar(TermList body) {
+  unsigned l = 0; // number of lambda binders
+  while (body.isLambdaTerm()) {
+    l++;
+    body = body.lambdaBody();
+  }
+
+  unsigned n = 0; // number of De bruijn indices at end of term
+  while (body.isApplication()) {
+    auto dbIndex = body.rhs().deBruijnIndex();
+    if (!dbIndex.isSome() || dbIndex.unwrap() != n)
+      break;
+    body = body.lhs();
+    n++;
+  }
+
+  return n == l && body.isVar() ? std::optional(body) : std::nullopt;
+}
+
+std::pair<TermList, TermList> HOL::normaliseLambdaPrefixes(TermList t1, TermList t2)
+{
+  if (t1.isVar() && t2.isVar())
+    return {t1, t2};
+
+  TermList nonVar = t1.isVar() ? t2 : t1;
+  TermList sort = SortHelper::getResultSort(nonVar.term());
+
+  auto etaExpand = [](TermList t, TermList sort, TermStack* sorts, unsigned n){
+    TermStack sorts1; // sorts of new prefix
+
+    t = TermShifter::shift(t, n).first; // lift loose indices by n
+
+    for(int i = n - 1; i >= 0; i--) { // append De Bruijn indices
+      ASS(sort.isArrowSort())
+
+      auto s = sort.domain();
+      auto dbIndex = getDeBruijnIndex(i, s);
+      t = create::app(sort, t, dbIndex);
+      sort = sort.result();
+      sorts1.push(s);
+    }
+
+    while (!sorts1.isEmpty()) { // wrap in new lambdas
+      t = create::namelessLambda(sorts1.pop(), t);
+    }
+
+    while (!sorts->isEmpty()) { // wrap in original lambdas
+      t = create::namelessLambda(sorts->pop(), t);
+    }
+
+    return t;
+  };
+
+  unsigned m = 0, n = 0;
+  TermList t1_body = t1, t2_body = t2, t1_sort = sort, t2_sort = sort;
+  TermStack prefSorts1, prefSorts2;
+
+  while (t1_body.isLambdaTerm()) {
+    t1_body = t1_body.lambdaBody();
+    prefSorts1.push(t1_sort.domain());
+    t1_sort = t1_sort.result();
+    m++;
+  }
+
+  while (t2_body.isLambdaTerm()) {
+    t2_body = t2_body.lambdaBody();
+    prefSorts2.push(t2_sort.domain());
+    t2_sort = t2_sort.result();
+    n++;
+  }
+
+  if (m > n)
+    return {t1, etaExpand(t2_body, t2_sort, &prefSorts2, m - n)};
+  if (n > m)
+    return {etaExpand(t1_body, t1_sort, &prefSorts1, n - m), t2};
+
+  return {t1, t2};
 }

@@ -64,6 +64,10 @@ inline bool canHeadReduce(const TermList& head, const TermStack& args) {
   return head.isLambdaTerm() && args.isNonEmpty();
 }
 
+// TOOD: maybe make separate unification namespace
+std::optional<TermList> isEtaExpandedVar(TermList body);
+std::pair<TermList, TermList> normaliseLambdaPrefixes(TermList t1, TermList t2);
+
 } // namespace HOL
 
 namespace HOL::create {
