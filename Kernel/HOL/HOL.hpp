@@ -87,6 +87,10 @@ TermList createGeneralBinding(TermList head, const TermStack& sorts, unsigned& f
 // disequality λ x. s' ≠ t for each 1 ≤ i ≤ k where s' is s with si replaced with x.
 TermStack getAbstractionTerms(Literal* lit);
 
+// TOOD: maybe make separate unification namespace
+std::optional<TermList> isEtaExpandedVar(TermList body);
+std::pair<TermList, TermList> normaliseLambdaPrefixes(TermList t1, TermList t2);
+
 } // namespace HOL
 
 namespace HOL::create {
