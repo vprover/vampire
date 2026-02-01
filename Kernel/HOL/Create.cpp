@@ -134,14 +134,14 @@ TermList HOL::create::namelessLambda(TermList varSort, TermList term) {
   return namelessLambda(varSort, termSort, term);
 }
 
-TermList HOL::create::surroundWithLambdas(TermList t, TermStack& sorts, bool fromTop) {
+TermList HOL::create::surroundWithLambdas(TermList t, const TermStack& sorts, bool fromTop) {
   ASS(t.isTerm())
 
   TermList sort = SortHelper::getResultSort(t.term());
   return surroundWithLambdas(t, sorts, sort, fromTop);
 }
 
-TermList HOL::create::surroundWithLambdas(TermList t, TermStack& sorts, TermList sort, bool fromTop) {
+TermList HOL::create::surroundWithLambdas(TermList t, const TermStack& sorts, TermList sort, bool fromTop) {
   // TODO fromTop is very hacky. See if can merge these two into one loop
   if (fromTop) {
     for (auto i = sorts.size(); i-- > 0; ) {
