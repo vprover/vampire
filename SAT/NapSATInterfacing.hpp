@@ -52,6 +52,8 @@ public:
 
   SATClauseList *minimizePremises(SATClauseList *premises) override;
 
+  void printStatistics() const;
+
 protected:
   napsat::Tvar vampireVar2NapSAT(unsigned vvar) const {
     return vvar;

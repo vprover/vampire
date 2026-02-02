@@ -44,7 +44,7 @@ void MinimizingSolver::addClause(SATClause* cl)
   // pass it to inner ...
   _inner->addClause(cl);
   _assignmentValid = false;
-  
+
   // ... and also keep track for minimization
   if (cl->length()!=0) {
     //we need to filter out the empty clause -- it won't have any influence on our algorithm
@@ -85,7 +85,7 @@ void MinimizingSolver::selectVariable(unsigned var)
 {
   ASS_G(var,0); ASS_LE(var,_varCnt);
   ASS_G(_unsClCnt[var],0);
-  
+
   SATClauseStack& satisfied = _clIdx[var];
   SATClauseStack& watch = _watcher[var];
   while(satisfied.isNonEmpty()) {
@@ -97,7 +97,7 @@ void MinimizingSolver::selectVariable(unsigned var)
     auto cit = cl->iter();
     while(cit.hasNext()) {
       SATLiteral cl_lit = cit.next();
-      unsigned cl_var = cl_lit.var(); 
+      unsigned cl_var = cl_lit.var();
       if (cl_lit.positive() == _asgn[cl_var]) {
         ASS_G(_unsClCnt[cl_var], 0);
         _unsClCnt[cl_var]--;
@@ -106,7 +106,7 @@ void MinimizingSolver::selectVariable(unsigned var)
         }
       }
     }
-  }  
+  }
 }
 
 void MinimizingSolver::putIntoIndex(SATClause* cl)
@@ -151,14 +151,14 @@ void MinimizingSolver::processUnprocessedAndFillHeap()
       putIntoIndex(cl);
     }
   }
-  
+
   for(unsigned var=1; var<=_varCnt; var++) {
     ASS(!_heap.contains(var));
     if(_unsClCnt[var]>0) {
-      _heap.addToEnd(var);      
+      _heap.addToEnd(var);
     }
   }
-  _heap.heapify();    
+  _heap.heapify();
 }
 
 /**
@@ -184,6 +184,7 @@ void MinimizingSolver::processInnerAssignmentChanges()
       break;
     case VarAssignment::NOT_KNOWN:
     default:
+      std::cerr << "Unknown variable assignment state for variable " << v << ": " << static_cast<int>(va) << "\n";
       ASSERTION_VIOLATION;
       break;
     }
@@ -200,7 +201,7 @@ void MinimizingSolver::processInnerAssignmentChanges()
 void MinimizingSolver::updateAssignment()
 {
   TIME_TRACE("minimizing solver time");
-  
+
   processInnerAssignmentChanges();
   processUnprocessedAndFillHeap();
 
@@ -214,7 +215,7 @@ void MinimizingSolver::updateAssignment()
       _clIdx[best_var].reset();
     }
   }
-  
+
   _assignmentValid = true;
 }
 

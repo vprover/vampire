@@ -105,12 +105,7 @@ void SplittingBranchSelector::init()
   }
   _inner = inner;
   if (_parent.getOptions().splittingMinimizeModel()) {
-    if (_parent.getOptions().satSolver() == Options::SatSolver::NAPSAT) {
-      // NapSATInterfacing already supports weight functions
-      return;
-    } else {
-      inner = new MinimizingSolver(new CadicalInterfacing());
-    }
+    inner = new MinimizingSolver(inner);
   }
 
   if(_parent.getOptions().splittingCongruenceClosure()) {
@@ -520,9 +515,14 @@ Splitter::Splitter()
 
 Splitter::~Splitter()
 {
-  std::cout << "Splitter destructor called\n";
-  if(_branchSelector._inner) {
-    delete _branchSelector._inner;
+  if (getOptions().satSolver() == Options::SatSolver::NAPSAT) {
+    NapSATInterfacing* napsatSolver = static_cast<NapSATInterfacing*>(_branchSelector._inner);
+    if (napsatSolver) {
+      cout << "------------------------\n";
+      cout << "   NapSAT statistics:   \n";
+      cout << "------------------------\n";
+      napsatSolver->printStatistics();
+    }
   }
   while(_db.isNonEmpty()) {
     if(_db.top()) {
@@ -789,16 +789,16 @@ double Splitter::weightFunction(SATLiteral vlit) const
 {
 
   SplitLevel lvl = getNameFromLiteral(vlit);
-  SplitLevel neglevel = getNameFromLiteral(vlit.opposite());
+  // SplitLevel neglevel = getNameFromLiteral(vlit.opposite());
   const SplitRecord* rec = _db[lvl];
-  const SplitRecord* negrec = _db[neglevel];
+  // const SplitRecord* negrec = _db[neglevel];
   double posWeight = 0.0;
-  double negWeight = 0.0;
+  // double negWeight = 0.0;
   if (rec && !rec->active)
     posWeight = 16.0 * (rec->reduced.size() + rec->children.size());
 
-  if (negrec && !negrec->active)
-    negWeight = 16.0 * (negrec->reduced.size() + negrec->children.size());
+  // if (negrec && !negrec->active)
+  //   negWeight = 16.0 * (negrec->reduced.size() + negrec->children.size());
   if (!vlit.positive())
     return 1.0;
   return posWeight;
