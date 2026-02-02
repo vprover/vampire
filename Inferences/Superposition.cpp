@@ -512,6 +512,11 @@ Clause* Superposition::performSuperposition(
       eqLHS,
       rwTerm
     ));
+  } else if (env.options->proofExtra() == Options::ProofExtra::RECONSTRUCT) {
+    auto eqClauseVarIter = eqClause->getVariableIterator();
+    auto rwClauseVarIter = rwClause->getVariableIterator();
+    UnifierInferenceExtra* ue = new UnifierInferenceExtra(subst.ptr(),{{0, &rwClauseVarIter}, {1, &eqClauseVarIter}});
+    env.proofExtra.insert(clause, ue);
   }
 
   return clause;

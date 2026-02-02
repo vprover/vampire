@@ -15,9 +15,12 @@
 #include <iosfwd>
 
 #include "Forwards.hpp"
+#include "Shell/InferenceReplay.hpp"
 
 namespace Shell {
 namespace SMTCheck {
+
+extern InferenceReplayer* replayer;
 
 void outputSignature(std::ostream &out);
 void outputStep(std::ostream &out, Kernel::Unit *u);

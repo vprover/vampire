@@ -293,7 +293,8 @@ public:
   enum class ProofExtra : unsigned int {
     OFF,
     FREE,
-    FULL
+    FULL,
+    RECONSTRUCT
   };
   enum class FMBWidgetOrders : unsigned int {
     FUNCTION_FIRST, // f(1) f(2) f(3) ... g(1) g(2) ...
@@ -1948,6 +1949,7 @@ public:
   Proof proof() const { return _proof.actualValue; }
   bool minimizeSatProofs() const { return _minimizeSatProofs.actualValue; }
   ProofExtra proofExtra() const { return _proofExtra.actualValue; }
+  void setProofExtra(ProofExtra newVal) { _proofExtra .actualValue = newVal; }
   bool traceback() const { return _traceback.actualValue; }
   void setTraceback(bool traceback) { _traceback.actualValue = traceback; }
   std::string printProofToFile() const { return _printProofToFile.actualValue; }

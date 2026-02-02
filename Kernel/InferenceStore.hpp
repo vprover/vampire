@@ -28,6 +28,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Ordering.hpp"
 
 namespace Kernel {
 
@@ -66,6 +67,8 @@ public:
     InferenceRule rule;
     Unit* premises[1];
   };
+
+  SmartPtr<Ordering> ordering;
 
   void recordSplittingNameLiteral(Unit* us, Literal* lit);
   void recordIntroducedSymbol(Unit* u, SymbolType st, unsigned number);

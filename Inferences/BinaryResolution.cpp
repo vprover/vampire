@@ -221,6 +221,11 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     ));
   } else if (env.options->proofExtra() == Options::ProofExtra::FULL) {
     env.proofExtra.insert(cl, new BinaryResolutionExtra(queryLit, resultLit));
+  } else if (env.options->proofExtra() == Options::ProofExtra::RECONSTRUCT) {
+    auto qClIter = queryCl->getVariableIterator();
+    auto rClIter = resultCl->getVariableIterator();
+    UnifierInferenceExtra* ue = new UnifierInferenceExtra(subs.ptr(),{{0, &qClIter}, {1, &rClIter}});
+    env.proofExtra.insert(cl, ue);
   }
 
   return cl;

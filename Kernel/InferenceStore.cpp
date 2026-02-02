@@ -22,6 +22,7 @@
 #include "Lib/StringUtils.hpp"
 #include "Lib/ScopedPtr.hpp"
 
+#include "Shell/InferenceReplay.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/UIHelper.hpp"
 #include "Shell/SMTCheck.hpp"
@@ -219,8 +220,7 @@ struct InferenceStore::ProofPrinter
         todo.push_back(prem);
       }
     }
-  }
-
+  }  
   virtual ~ProofPrinter() {}
 
   virtual void print()
@@ -230,7 +230,6 @@ struct InferenceStore::ProofPrinter
       if(sat)
         for(SATClause *scl : topological_sort(sat))
           printSATStep(scl);
-
       printStep(u);
     }
   }
@@ -1563,7 +1562,11 @@ struct InferenceStore::SMTCheckPrinter
 : public InferenceStore::ProofPrinter
 {
   SMTCheckPrinter(ostream& out, InferenceStore* is)
-  : ProofPrinter(out, is) {}
+  : ProofPrinter(out, is), _replayer(out) {
+    _replayer.makeInferenceEngine(this->_is->ordering);
+    SMTCheck::replayer = &(this->_replayer);
+  }
+  InferenceReplayer _replayer;
 
   void print() override
   {

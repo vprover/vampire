@@ -12,6 +12,7 @@
  * Implements class EqualityResolution.
  */
 
+#include "Inferences/ProofExtra.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Stack.hpp"
@@ -104,8 +105,13 @@ struct EqualityResolution::ResultFn
     resLits->loadFromIterator(constraints->iterFifo());
 
     Clause *cl = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
-    if(env.options->proofExtra() == Options::ProofExtra::FULL)
+    if(env.options->proofExtra() == Options::ProofExtra::FULL){
       env.proofExtra.insert(cl, new EqualityResolutionExtra(lit));
+    }
+    else if(env.options->proofExtra() == Options::ProofExtra::RECONSTRUCT){
+      auto clVar = cl->getVariableIterator();
+      env.proofExtra.insert(cl, new UnifierInferenceExtra(absUnif->subs(), {{0, &clVar}}));
+    }
     return cl;
   }
 private:

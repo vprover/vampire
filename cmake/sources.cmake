@@ -13,8 +13,6 @@ set(TESTING_SOURCES
     Test/SyntaxSugar.cpp
     Test/SyntaxSugar.hpp
     Test/TermIndexTester.hpp
-    Test/TestUtils.cpp
-    Test/TestUtils.hpp
     Test/UnitTesting.cpp
     Test/UnitTesting.hpp
     Test/HOLUtils.cpp
@@ -674,6 +672,8 @@ set(SOURCES
     Shell/GoalGuessing.hpp
     Shell/InequalitySplitting.cpp
     Shell/InequalitySplitting.hpp
+    Shell/InferenceReplay.hpp
+    Shell/InferenceReplay.cpp
     Shell/InterpolantMinimizer.cpp
     Shell/InterpolantMinimizer.hpp
     Shell/Interpolants.cpp
@@ -745,6 +745,8 @@ set(SOURCES
     Shell/TweeGoalTransformation.hpp
     Shell/UIHelper.cpp
     Shell/UIHelper.hpp
+    Test/TestUtils.cpp
+    Test/TestUtils.hpp
     cadical/contrib/craigtracer.cpp
     cadical/contrib/craigtracer.hpp
     cadical/src/analyze.cpp

@@ -216,8 +216,13 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
 
         premises = pvi( getSingletonIterator(qr.data->clause));
         replacement = Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.data->clause));
-        if(env.options->proofExtra() == Options::ProofExtra::FULL)
+        if(env.options->proofExtra() == Options::ProofExtra::FULL){
           env.proofExtra.insert(replacement, new ForwardDemodulationExtra(lhs, trm));
+        } else if (env.options->proofExtra() == Options::ProofExtra::RECONSTRUCT) {
+          auto clVars = cl->getVariableIterator();
+          UnifierInferenceExtra* ue = new UnifierInferenceExtra(subs.ptr(),{{0, &clVars}});
+          env.proofExtra.insert(replacement, ue);
+        }
         return true;
       }
     }

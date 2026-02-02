@@ -14,6 +14,8 @@
 
 #include "Debug/Assertion.hpp"
 
+#include "Kernel/Ordering.hpp"
+#include "Kernel/InferenceStore.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Stack.hpp"
@@ -222,6 +224,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   _activationLimit = opt.activationLimit();
 
   _ordering = OrderingSP(Ordering::create(prb, opt));
+  InferenceStore::instance()->ordering = _ordering;
   if (!Ordering::trySetGlobalOrdering(_ordering)) {
     // this is not an error, it may just lead to lower performance (and most likely not significantly lower)
     cerr << "SaturationAlgorithm cannot set its ordering as global" << endl;

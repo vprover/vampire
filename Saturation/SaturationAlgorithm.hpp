@@ -121,6 +121,7 @@ public:
   std::shared_ptr<IndexType> tryGetGeneratingIndex() { return _imgr.tryGet<IndexType, true>(); }
 
   Ordering& getOrdering() const {  return *_ordering; }
+  void setOrdering(OrderingSP ordering) {  _ordering = ordering; }
   LiteralSelector& getLiteralSelector() const { return *_selector; }
   const PartialRedundancyHandler& parRedHandler() const { return *_partialRedundancyHandler; }
 

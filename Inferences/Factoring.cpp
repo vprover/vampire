@@ -99,8 +99,14 @@ public:
     }
 
     Clause *cl = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::FACTORING,_cl));
-    if(env.options->proofExtra() == Options::ProofExtra::FULL)
+    if(env.options->proofExtra() == Options::ProofExtra::FULL){
       env.proofExtra.insert(cl, new FactoringExtra(l1, l2));
+    }
+    else if(env.options->proofExtra() == Options::ProofExtra::RECONSTRUCT) {
+      auto varIterator = cl->getVariableIterator();
+      std::pair<unsigned, VirtualIterator<unsigned>*> banks = {0, &varIterator};
+      env.proofExtra.insert(cl, new UnifierInferenceExtra(subst, {banks}));
+    }
     return cl;
   }
 private:
