@@ -38,6 +38,39 @@ std::string termListToString(TermList t, Options::HPrinting opt);
 
 TypedTermList lam(std::initializer_list<TypedTermList> vars, TypedTermList body);
 
+template <class T>
+void assertThrows(T f, const std::string& cond = "") {
+  bool exceptionThrown = false;
+
+  auto originalVal = ::HOL::catchViolations;
+  ::HOL::catchViolations = true;
+  try {
+    f();
+  }
+  catch (const ::HOL::HOLError& err) {
+    exceptionThrown = true;
+
+    if (!cond.empty() && cond != err.cond) {
+      std::string msg = "Expected condition '";
+      msg.append(cond);
+      msg.append("' but got '");
+      msg.append(err.cond);
+      msg.append("'");
+
+      Debug::Assertion::violated(err.file, err.line, msg.c_str());
+    }
+  }
+
+  if (!exceptionThrown)
+    Debug::Assertion::violated(__FILE__, __LINE__, "No exception was thrown");
+
+  ::HOL::catchViolations = originalVal;
+}
+
+inline TermList mkAtomicSort(const std::string& name) {
+  return TermList(AtomicSort::createConstant(name));
+}
+
 inline TypedTermList lam(TypedTermList var, TypedTermList body) {
   return lam({var}, body);
 }

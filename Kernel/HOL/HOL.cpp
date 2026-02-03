@@ -277,34 +277,34 @@ std::pair<TermList, TermStack> HOL::getHeadAndArgs(TermList term) {
 
 /** indexed from 1 */
 TermList HOL::getNthArg(TermList arrowSort, unsigned argNum) {
-  ASS(argNum > 0)
+  ASSERT(argNum > 0);
 
-  TermList res;
-  while (argNum >= 1) {
-    ASS(arrowSort.isArrowSort())
+  for (;;) {
+    ASSERT(arrowSort.isArrowSort());
 
-    res = arrowSort.domain();
+    if (argNum == 1)
+      return arrowSort.domain();
     arrowSort = arrowSort.result();
-    argNum--;
+    --argNum;
   }
-  return res;
 }
 
-/** indexed from 1 */
 TermList HOL::getResultAppliedToNArgs(TermList arrowSort, unsigned argNum) {
   while (argNum > 0) {
-    ASS(arrowSort.isArrowSort())
+    ASSERT(arrowSort.isArrowSort());
+
     arrowSort = arrowSort.result();
-    argNum--;
+    --argNum;
   }
   return arrowSort;
 }
 
 unsigned HOL::getArity(TermList sort) {
   unsigned arity = 0;
+
   while (sort.isArrowSort()) {
     sort = sort.result();
-    arity++;
+    ++arity;
   }
   return arity;
 }
@@ -509,7 +509,6 @@ bool HOL::getProjAndImitBindings(TermList flexTerm, TermList rigidTerm, TermStac
   // since term is rigid, cannot be a variable
   TermList sort = finalResult(matrix(rigidTerm).resultSort());
   TermList headRigid = rigidTerm.head();
-
 
   auto [headFlex, argsFlex] = getHeadAndArgs(flexTerm);
 

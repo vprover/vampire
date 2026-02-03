@@ -14,6 +14,7 @@
 #ifndef HOL_HPP
 #define HOL_HPP
 
+
 #include "Kernel/Signature.hpp"
 #include "Kernel/TypedTermList.hpp"
 #include "Lib/Environment.hpp"
@@ -24,6 +25,32 @@
  * This namespace contains several helper functions to deal with higher-order terms.
  */
 namespace HOL {
+
+#if VDEBUG
+
+inline bool catchViolations = false;
+
+struct HOLError {
+  const char* file;
+  int line;
+  const char* cond;
+};
+
+#define ASSERT(Cond)                                           \
+  do {                                                         \
+    if (!(Cond)) {                                             \
+      if (::HOL::catchViolations)                              \
+        throw ::HOL::HOLError{__FILE__, __LINE__, #Cond};      \
+      else                                                     \
+        Debug::Assertion::violated(__FILE__, __LINE__, #Cond); \
+    }                                                          \
+  } while (0)
+
+#else // ! VDEBUG
+
+#define ASSERT(Cond) do {} while (0)
+
+#endif
 
 using Kernel::Term;
 
