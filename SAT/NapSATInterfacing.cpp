@@ -21,7 +21,7 @@ namespace SAT
     opt_args.push_back("-gb");
     opt_args.push_back("-lcm");
     // opt_args.push_back("-bl");
-    opt_args.push_back("-ecr");
+    // opt_args.push_back("-ecr");
 #if VDEBUG
     opt_args.push_back("-c"); // enable checking invariants
     // opt_args.push_back("-o"); // enable observer
@@ -31,6 +31,7 @@ namespace SAT
     opt_args.push_back("-del");
     opt_args.push_back("off");
     opt_args.push_back("-stat");
+    opt_args.push_back("-live-stat");
     opt_args.push_back("--backtrack-possibilities-limit");
     opt_args.push_back("5000");
     napsat::options opts(opt_args);

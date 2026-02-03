@@ -792,15 +792,11 @@ double Splitter::weightFunction(SATLiteral vlit) const
   // SplitLevel neglevel = getNameFromLiteral(vlit.opposite());
   const SplitRecord* rec = _db[lvl];
   // const SplitRecord* negrec = _db[neglevel];
-  double posWeight = 0.0;
+  double posWeight = 1.0;
   // double negWeight = 0.0;
   if (rec && !rec->active)
-    posWeight = 16.0 * (rec->reduced.size() + rec->children.size());
+    posWeight = 16.0 * (rec->children.size() - rec->reduced.size());
 
-  // if (negrec && !negrec->active)
-  //   negWeight = 16.0 * (negrec->reduced.size() + negrec->children.size());
-  if (!vlit.positive())
-    return 1.0;
   return posWeight;
 }
 
