@@ -119,6 +119,7 @@ set(UNIT_TESTS
     UnitTests/HOL/tHOL_TermShifter.cpp
     UnitTests/HOL/tHOL_SubtermReplacer.cpp
     UnitTests/HOL/tHOL_ToPlaceholders.cpp
+    UnitTests/HOL/tHOL_Utils.cpp
 )
 
 ################################################################

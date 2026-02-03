@@ -44,10 +44,6 @@ TypedTermList lam(std::initializer_list<TypedTermList> typedVars, TypedTermList 
   return {TermList(term), sort};
 }
 
-static TermList mkAtomicSort(const std::string& name) {
-  return TermList(AtomicSort::createConstant(name));
-}
-
 static TypedTermList mkConst(const std::string& name, TermList sort) {
   unsigned nameIndex = env.signature->addFunction(name, 0);
   env.signature->getFunction(nameIndex)->setType(OperatorType::getFunctionType({}, sort));
