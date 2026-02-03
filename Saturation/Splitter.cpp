@@ -515,15 +515,15 @@ Splitter::Splitter()
 
 Splitter::~Splitter()
 {
-  if (getOptions().satSolver() == Options::SatSolver::NAPSAT) {
-    NapSATInterfacing* napsatSolver = static_cast<NapSATInterfacing*>(_branchSelector._inner);
-    if (napsatSolver) {
-      cout << "------------------------\n";
-      cout << "   NapSAT statistics:   \n";
-      cout << "------------------------\n";
-      napsatSolver->printStatistics();
-    }
-  }
+  // if (getOptions().satSolver() == Options::SatSolver::NAPSAT) {
+  //   NapSATInterfacing* napsatSolver = static_cast<NapSATInterfacing*>(_branchSelector._inner);
+  //   if (napsatSolver) {
+  //     cout << "------------------------\n";
+  //     cout << "   NapSAT statistics:   \n";
+  //     cout << "------------------------\n";
+  //     napsatSolver->printStatistics();
+  //   }
+  // }
   while(_db.isNonEmpty()) {
     if(_db.top()) {
       delete _db.top();

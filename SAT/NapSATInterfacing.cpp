@@ -24,16 +24,17 @@ namespace SAT
     // opt_args.push_back("-ecr");
 #if VDEBUG
     opt_args.push_back("-c"); // enable checking invariants
-    // opt_args.push_back("-o"); // enable observer
+    opt_args.push_back("-o"); // enable observer
 #endif
-    opt_args.push_back("--restarts");
-    opt_args.push_back("off");
+    // opt_args.push_back("--restarts");
+    // opt_args.push_back("off");
     opt_args.push_back("-del");
     opt_args.push_back("off");
     opt_args.push_back("-stat");
     opt_args.push_back("-live-stat");
     opt_args.push_back("--backtrack-possibilities-limit");
-    opt_args.push_back("5000");
+    opt_args.push_back("100");
+    opt_args.push_back("-approx-max-cost");
     napsat::options opts(opt_args);
 
     _solver = create_solver(0, 0, opts);
