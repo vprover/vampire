@@ -250,6 +250,7 @@ public:
   static bool hasXEqualsY(const Formula*);
 
   static bool onlyExistsForallPrefix(UnitList* units);
+  static bool isLeroy(UnitList* units,bool reversed = false);
 
   // reading in properties of problems
   void scan(Unit*);

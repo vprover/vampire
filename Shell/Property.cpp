@@ -19,6 +19,8 @@
 #include "Kernel/Theory.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/System.hpp"
+#include "Lib/SharedSet.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/FormulaUnit.hpp"
@@ -140,7 +142,12 @@ void Property::add(UnitList* units)
 
   if ((_maxFunArity == 0) && onlyExistsForallPrefix(units)) {
     addProp(PR_ESSENTIALLY_BSR);
+
+    if (!_equalityAtoms && isLeroy(units,false)) {
+      cout << "isLeroy" << endl;
+    }
   }
+  Lib::System::terminateImmediately(0);
 
   // information about sorts is read from the environment, not from the problem
   if (env.signature->hasSorts()) {
@@ -1160,6 +1167,45 @@ bool Property::onlyExistsForallPrefix(UnitList* units)
 
   return true;
 } // Property::onlyExistsForallPrefix(UnitList* units)
+
+bool Property::isLeroy(UnitList* units, bool reversed)
+{
+  UnitList::Iterator us(units);
+  while (us.hasNext()) {
+    Unit* u = us.next();
+    if (!u->isClause()) {
+      cout << "not in CNF" << endl;
+      return false;
+    }
+    Clause* cl = u->asClause();
+    unsigned len = cl->length();
+    for (unsigned i = 0; i < len; i++) {
+      Literal* lit_i = (*cl)[i];
+      SplitSet* lit_i_vars = SplitSet::getFromIterator(MappingIterator(VariableIterator(lit_i),[](TermList t) { return t.var(); } ));
+      for (unsigned j = i+1; j < len; j++) {
+        Literal* lit_j = (*cl)[j];
+        SplitSet* lit_j_vars = SplitSet::getFromIterator(MappingIterator(VariableIterator(lit_j),[](TermList t) { return t.var(); } ));
+        SplitSet* common_vars = lit_i_vars->getIntersection(lit_j_vars);
+        for (auto var : common_vars->iter()) {
+          for (unsigned l = 0; l < lit_i->arity(); l++) {
+            unsigned k = reversed ? (lit_i->arity() - l - 1): l;
+            TermList lit_i_k = *lit_i->nthArgument(k);
+            if (lit_i_k != *lit_j->nthArgument(k)) {
+              cout << "in clause " << cl->toString() << endl;
+              cout << "literals " << i << " : " << lit_i->toString() << " and " << j << " : " << lit_j->toString() << " share a variable " << TermList(var,false) << endl;
+              cout << "which was not seen until a mismatch at position " << k << endl;
+              return false;
+            }
+            if (lit_i_k.isVar() && lit_i_k.var() == var) {
+              break;
+            }
+          }
+        }
+      }
+    }
+  }
+  return true;
+}
 
 
 /**

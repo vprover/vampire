@@ -334,7 +334,7 @@ public:
   {
     static ItemStack is;
     is.reset();
-    is.loadFromIterator(it);
+    is.loadFromIterator(std::move(it));
     return getFromArray(is.begin(), is.length());
   }
 
