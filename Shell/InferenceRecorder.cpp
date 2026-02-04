@@ -188,9 +188,13 @@ void InferenceRecorder::forwardDemodulation(unsigned int id, Clause *conclusion,
   }
 }
 
-void InferenceRecorder::backwardDemodulation(unsigned int id, Clause *conclusion, const std::vector<Clause *> &premises, const ResultSubstitutionSP &recordedSubst)
+void InferenceRecorder::backwardDemodulation(unsigned int id, Clause *conclusion, const std::vector<Clause *> &premises, const SubstApplicator& appl)
 {
-  recordGenericSubstitutionInference(id, conclusion, premises, recordedSubst);
+  recordGenericSubstitutionToOneBank<SubstApplicator>(id, conclusion, premises, appl, 
+	[](const SubstApplicator &subst, const TermList &term, size_t bank) {
+      return subst(term.var());
+    }
+  );
 }
 
 bool InferenceRecorder::isSameAsProofStep(Clause *clause, Clause *goal, std::unordered_map<unsigned int, unsigned int> &outVarMap)

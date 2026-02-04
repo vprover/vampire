@@ -175,7 +175,7 @@ struct BackwardDemodulation::ResultFn
     if(env.options->proofExtra() == Options::ProofExtra::FULL)
       env.proofExtra.insert(replacement, new BackwardDemodulationExtra(lhs, lhsS));
     if(env.reconstruction){
-      Shell::InferenceRecorder::instance()->backwardDemodulation(0, replacement, {qr.data->clause, _cl}, subs);
+      Shell::InferenceRecorder::instance()->backwardDemodulation(replacement->number(), replacement, {qr.data->clause, _cl}, appl);
     }
     return BwSimplificationRecord(qr.data->clause, replacement);
   }

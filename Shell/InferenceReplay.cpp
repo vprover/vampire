@@ -132,7 +132,7 @@ void InferenceReplayer::runBackwardsSimp(Inferences::BackwardSimplificationEngin
   ClauseContainer *simplClauseContainer = alg->getSimplifyingClauseContainer();
 
   // Backward simplification, so we add the clause to be simplified to the simplifying container
-  context[1]->setStore(Clause::ACTIVE);
+  context[0]->setStore(Clause::ACTIVE);
   simplClauseContainer->add(context[0]);
 
   Clause *clause = Clause::fromClause(context[1]);

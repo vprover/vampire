@@ -31,6 +31,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Lib/SharedSet.hpp"
+
 #include "Saturation/Splitter.hpp"
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
 #include "Shell/InferenceReplay.hpp"
