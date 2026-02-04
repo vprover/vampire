@@ -19,15 +19,8 @@
 #define __Inferences_ProofExtra__
 
 
-#include "Kernel/RobSubstitution.hpp"
-#include "Kernel/Substitution.hpp"
 #include "Kernel/Term.hpp"
 #include "Lib/ProofExtra.hpp"
-#include "Lib/VirtualIterator.hpp"
-#include "Indexing/ResultSubstitution.hpp"
-
-#include <initializer_list>
-#include <vector>
 
 namespace Inferences {
 
@@ -92,63 +85,6 @@ struct TwoLiteralRewriteInferenceExtra : public InferenceExtra {
   TwoLiteralInferenceExtra selected;
   // rewrite information
   RewriteInferenceExtra rewrite;
-};
-
-struct UnifierInferenceExtra : public InferenceExtra {
-  UnifierInferenceExtra(Indexing::ResultSubstitution* subst, std::initializer_list<std::pair<unsigned,VirtualIterator<unsigned>*>> banks) {
-    substitutionForBanks.resize(banks.size());
-    for(auto [index, iter]: banks)
-    {
-      unsigned int highestVar = 0;
-      while(iter->hasNext()) {
-        unsigned int var = iter->next();
-        if(var > highestVar) {
-          highestVar = var;
-        }
-      }
-      for(unsigned v = 0; v <= highestVar; v++ ) {
-        substitutionForBanks[index].emplace_back(subst->applyTo(TermList::var(v),index));
-      }
-    }
-  }
-
-  UnifierInferenceExtra(Kernel::RobSubstitution& subst, std::initializer_list<std::pair<unsigned,VirtualIterator<unsigned>*>> banks) {
-    substitutionForBanks.resize(banks.size());
-    for(auto [index, iter]: banks)
-    {
-      unsigned int highestVar = 0;
-      while(iter->hasNext()) {
-        unsigned int var = iter->next();
-        if(var > highestVar) {
-          highestVar = var;
-        }
-      }
-      for(unsigned v = 0; v <= highestVar; v++ ) {
-        substitutionForBanks[index].emplace_back(subst.apply(TermList::var(v),index));
-      }
-    }
-  }
-
-  UnifierInferenceExtra(Kernel::Substitution& subst) {
-    substitutionForBanks.resize(1);
-    unsigned int highestVar = 0;
-    auto x = subst.items();
-    while(x.hasNext()) {
-      auto [var, term] = x.next();
-      if(var > highestVar) {
-        highestVar = var;
-      }
-    }
-    for(unsigned v = 0; v <= highestVar; v++ ) {
-      substitutionForBanks[0].emplace_back(subst.apply(v));
-    }
-  }
-  UnifierInferenceExtra(){
-  }
-  void output(std::ostream &out) const override;
-  // the unifier used
-  
-  std::vector<std::vector<Kernel::TermList>> substitutionForBanks;
 };
 } // namespace Inferences
 

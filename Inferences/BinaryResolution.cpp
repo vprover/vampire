@@ -33,6 +33,7 @@
 
 #include "Shell/PartialRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
+#include "Shell/InferenceRecorder.hpp"
 
 #include "BinaryResolution.hpp"
 #define DEBUG_RESOLUTION(lvl, ...) if (lvl < 0) { DBG("resolution: ", __VA_ARGS__) }
@@ -221,15 +222,11 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     ));
   } else if (env.options->proofExtra() == Options::ProofExtra::FULL) {
     env.proofExtra.insert(cl, new BinaryResolutionExtra(queryLit, resultLit));
-  } else if (env.options->proofExtra() == Options::ProofExtra::RECONSTRUCT) {
-    auto qClIter = queryCl->getVariableIterator();
-    auto rClIter = resultCl->getVariableIterator();
-    UnifierInferenceExtra* ue = new UnifierInferenceExtra(subs.ptr(),{{0, &qClIter}, {1, &rClIter}});
-    env.proofExtra.insert(cl, ue);
   }
-
+  if(env.reconstruction){
+    Shell::InferenceRecorder::instance()->resolution(cl->number(), cl, {queryCl, resultCl}, subs);
+  }
   return cl;
-
 }
 
 

@@ -16,11 +16,10 @@
 #include <unordered_set>
 
 #include "Debug/Assertion.hpp"
-#include "Inferences/EqualityResolution.hpp"
-#include "Inferences/Factoring.hpp"
 #include "Inferences/ProofExtra.hpp"
-#include "Inferences/Superposition.hpp"
+#include "Kernel/Inference.hpp"
 #include "Kernel/Substitution.hpp"
+#include "Kernel/Term.hpp"
 #include "Kernel/Theory.hpp"
 #include "Lib/Exception.hpp"
 #include "SMTCheck.hpp"
@@ -28,8 +27,6 @@
 #include "Inferences/ALASCA/BinInf.hpp"
 #include "Inferences/ALASCA/FourierMotzkin.hpp"
 #include "Inferences/ALASCA/Superposition.hpp"
-#include "Inferences/BinaryResolution.hpp"
-#include "Kernel/EqHelper.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
@@ -37,6 +34,7 @@
 #include "Saturation/Splitter.hpp"
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
 #include "Shell/InferenceReplay.hpp"
+#include "Shell/InferenceRecorder.hpp"
 
 using namespace Kernel;
 using Indexing::Splitter;
@@ -535,8 +533,9 @@ struct Identity {
 };
 
 struct DoSubst {
-  Substitution &subst;
+  const Substitution &subst;
   DoSubst(Substitution &subst) : subst(subst) {}
+  DoSubst(const Substitution &subst) : subst(subst) {}
   Literal *operator()(Literal *l) { return SubstHelper::apply(l, subst); }
 };
 
@@ -590,42 +589,10 @@ static void trivial(std::ostream &out, SortMap &conclSorts, Clause *concl)
   outputConclusion(out, conclSorts, concl->asClause());
 }
 
-static void resolution(std::ostream &out, SortMap &conclSorts, Clause *concl)
+static void resolution(std::ostream &out, SortMap &conclSorts, Clause *concl, const Shell::InferenceRecorder::InferenceInformation* info)
 {
-  auto [left, right] = getParents<2>(concl);
-  const auto &br = env.proofExtra.get<Inferences::UnifierInferenceExtra>(concl);
-
-  //auto uwa = AbstractingUnifier::empty(AbstractionOracle(env.options->unificationWithAbstraction()));
-  //Literal *selectedLeft = br.selectedLiteral.selectedLiteral;
-  //Literal *selectedRight = br.otherLiteral;
-  //for(unsigned i = 0; i < selectedLeft->arity(); i++)
-  //  ALWAYS(uwa.unify((*selectedLeft)[i], 0, (*selectedRight)[i], 1))
-  //ASS_NEQ(selectedLeft->polarity(), selectedRight->polarity())
-  //RobSubstitution &subst = uwa.subs();
-
-  //for (unsigned i = 0; i < left->length(); i++)
-  //  if ((*left)[i] != selectedLeft)
-  //    subst.apply((*left)[i], 0);
-  //for (unsigned i = 0; i < right->length(); i++)
-  //  if ((*right)[i] != selectedRight)
-  //    subst.apply((*right)[i], 1);
-
-  Substitution subs1;
-  Substitution subs2;
-
-  for(unsigned var = 0; var < br.substitutionForBanks[0].size(); var++){
-    subs1.bind(var, br.substitutionForBanks[0][var]);
-  }
-  for(unsigned var = 0; var < br.substitutionForBanks[1].size(); var++){
-    subs2.bind(var, br.substitutionForBanks[1][var]);
-  }
-  
-  //out << subs1 << subs2 << std::endl;
-  //out << left->asClause()->toString() << std::endl;
-  //out << right->asClause()->toString() << std::endl;
-  //out << concl->asClause()->toString() << std::endl;
-  outputPremise(out, conclSorts, left->asClause(), DoSubst(subs1));
-  outputPremise(out, conclSorts, right->asClause(), DoSubst(subs2));
+  outputPremise(out, conclSorts, info->premises[0]->asClause(), DoSubst(info->substitutionForBanksSub[0]));
+  outputPremise(out, conclSorts, info->premises[1]->asClause(), DoSubst(info->substitutionForBanksSub[1]));
   outputConclusion(out, conclSorts, concl->asClause());
 }
 
@@ -645,129 +612,34 @@ static void subsumptionResolution(std::ostream &out, SortMap &conclSorts, Clause
   outputConclusion(out, conclSorts, concl->asClause());
 }
 
-static void factoring(std::ostream &out, SortMap &conclSorts, Clause *concl) {
-  auto [premise] = getParents<1>(concl);
-  const auto &fact = env.proofExtra.get<Inferences::FactoringExtra>(concl);
-
-  RobSubstitution subst;
-  Literal *selected = fact.selectedLiteral.selectedLiteral;
-  Literal *other = fact.otherLiteral;
-  ASS_EQ(selected->polarity(), other->polarity())
-  ASS_EQ(selected->functor(), other->functor())
-  ALWAYS(subst.unify(TermList(selected), 0, TermList(other), 0));
-
-  for (unsigned i = 0; i < premise->length(); i++)
-    if ((*premise)[i] != other)
-      subst.apply((*premise)[i], 0);
-
-  outputPremise(out, conclSorts, premise->asClause(), DoRobSubst<0>(subst));
+static void factoring(std::ostream &out, SortMap &conclSorts, Clause *concl, const InferenceRecorder::InferenceInformation* info) {
+  outputPremise(out, conclSorts, info->premises[0]->asClause(), DoSubst(info->substitutionForBanksSub[0]));
   outputConclusion(out, conclSorts, concl->asClause());
 }
 
-static void equalityResolution(std::ostream &out, SortMap &conclSorts, Clause *concl) {
-  auto [premise] = getParents<1>(concl);
-  //const auto &res = env.proofExtra.get<Inferences::EqualityResolutionExtra>(concl);
-
-  //RobSubstitution subst;
-  //Literal *selected = res.selectedLiteral;
-  //ASS(selected->isEquality())
-  //ASS(selected->isNegative())
-  //TermList s = selected->termArg(0), t = selected->termArg(1);
-  //ALWAYS(subst.unify(s, 0, t, 0));
-  //for (unsigned i = 0; i < premise->length(); i++)
-  //  if ((*premise)[i] != selected)
-  //    subst.apply((*premise)[i], 0);
-
-  const auto &uni = env.proofExtra.get<Inferences::UnifierInferenceExtra>(concl);
-  Substitution subs;
-
-  for(unsigned var = 0; var < uni.substitutionForBanks[0].size(); var++){
-    subs.bind(var, uni.substitutionForBanks[0][var]);
-  }
-  outputPremise(out, conclSorts, premise->asClause(), DoSubst(subs));
+static void equalityResolution(std::ostream &out, SortMap &conclSorts, Clause *concl, const InferenceRecorder::InferenceInformation* info) {
+ 
+  outputPremise(out, conclSorts, info->premises[0]->asClause(), DoSubst(info->substitutionForBanksSub[0]));
   outputConclusion(out, conclSorts, concl->asClause());
 }
 
-static void superposition(std::ostream &out, SortMap &conclSorts, Clause *concl)
+static void superposition(std::ostream &out, SortMap &conclSorts, Clause *concl, const Shell::InferenceRecorder::InferenceInformation* info)
 {
+  outputPremise(out, conclSorts, info->premises[0]->asClause(), DoSubst(info->substitutionForBanksSub[0]));
+  outputPremise(out, conclSorts, info->premises[1]->asClause(), DoSubst(info->substitutionForBanksSub[1]));
+  outputConclusion(out, conclSorts, concl->asClause());
+}
+
+static void demodulation(std::ostream &out, SortMap &conclSorts, Clause *concl, const Shell::InferenceRecorder::InferenceInformation* info)
+{
+
   auto [left, right] = getParents<2>(concl);
-  //auto sup = env.proofExtra.get<Inferences::SuperpositionExtra>(concl);
-
-  // compute unifier for selected literals
-  //RobSubstitution subst;
-  //Literal *leftSelected = sup.selected.selectedLiteral.selectedLiteral;
-  //Literal *rightSelected = sup.selected.otherLiteral;
-  //TermList from = sup.rewrite.lhs;
-  //TermList to = EqHelper::getOtherEqualitySide(rightSelected, from);
-  //TermList target = sup.rewrite.rewritten;
-  //ASS(rightSelected->isEquality())
-  //ASS(rightSelected->isPositive())
-  //ASS(rightSelected->termArg(0) == from || rightSelected->termArg(1) == from)
-  //ALWAYS(subst.unify(target, 0, from, 1))
-//
-  //subst.apply(to, 1);
-  //subst.apply(leftSelected, 0);
-  //subst.apply(target, 0);
-  //subst.apply(from, 1);
-  //for (unsigned i = 0; i < left->length(); i++)
-  //  if ((*left)[i] != leftSelected)
-  //    subst.apply((*left)[i], 0);
-  //for (unsigned i = 0; i < right->length(); i++)
-  //  if ((*right)[i] != rightSelected)
-  //    subst.apply((*right)[i], 1);
-  const auto &uni = env.proofExtra.get<Inferences::UnifierInferenceExtra>(concl);
-  Substitution subs1;
-  Substitution subs2;
-
-  for(unsigned var = 0; var < uni.substitutionForBanks[0].size(); var++){
-    subs1.bind(var, uni.substitutionForBanks[0][var]);
-  }
-  for(unsigned var = 0; var < uni.substitutionForBanks[1].size(); var++){
-    subs2.bind(var, uni.substitutionForBanks[1][var]);
-  }
-
-  outputPremise(out, conclSorts, left->asClause(), DoSubst(subs1));
-  outputPremise(out, conclSorts, right->asClause(), DoSubst(subs2));
-  outputConclusion(out, conclSorts, concl->asClause());
-}
-
-// check whether `demodulator` l = r rewrites left-to-right in the context of C[t] -> C[s]
-// TODO copied from Dedukti, merge at some point
-static bool isL2RDemodulatorFor(Literal *demodulator, Clause *rewritten, TermList target, Clause *result)
-{
-  ASS(demodulator->isEquality())
-  ASS(demodulator->isPositive())
-
-  // TODO this is waaay overkill, but it's very hard to work out which way a demodulator was used
-  // consult MH about how best to do this
-  Substitution subst;
-  if (!MatchingUtils::matchTerms(demodulator->termArg(0), target, subst))
-    return false;
-  TermList rhsSubst = SubstHelper::apply(demodulator->termArg(1), subst);
-
-  for (Literal *l : rewritten->iterLits())
-    if (!result->contains(l) && !result->contains(EqHelper::replace(l, target, rhsSubst)))
-      return false;
-
-  return true;
-}
-
-static void demodulation(std::ostream &out, SortMap &conclSorts, Clause *concl)
-{
-  auto [left, right] = getParents<2>(concl);
-  auto rw = env.proofExtra.get<Inferences::RewriteInferenceExtra>(concl);
-
-  Substitution subst;
-  Literal *rightLit = (*right)[0];
-  TermList target = rw.rewritten;
-  TermList from = rightLit->termArg(!isL2RDemodulatorFor(rightLit, left, target, concl));
-  ASS(rightLit->isEquality())
-  ASS(rightLit->isPositive())
-  ASS(rightLit->termArg(0) == from || rightLit->termArg(1) == from)
-  ALWAYS(MatchingUtils::matchTerms(from, target, subst))
-
+  //auto right = info->premises[1]->asClause();
+  ASS((*right)[0]->isEquality())
+  ASS((*right)[0]->isPositive())
+  
   outputPremise(out, conclSorts, left->asClause());
-  outputPremise(out, conclSorts, right->asClause(), DoSubst(subst));
+  outputPremise(out, conclSorts, right->asClause(), DoSubst(info->substitutionForBanksSub[0]));
   outputConclusion(out, conclSorts, concl->asClause());
 }
 
@@ -964,7 +836,7 @@ void outputStep(std::ostream &out, Unit *u)
       || rule == InferenceRule::AVATAR_CONTRADICTION_CLAUSE)
     return;
 
-  out << "\n; step " << u->number() << "\n";
+  out << "\n; step " << u->number() << " " << ruleName(u->inference().rule()) << "\n";
   out << "(push)\n";
 
   bool sorry = false;
@@ -1034,12 +906,10 @@ void outputStep(std::ostream &out, Unit *u)
       break;
     case InferenceRule::RESOLUTION:
       {
-      Clause* c = replayer->replayInference(u);
-      ASS(c != nullptr); //Did not find fitting inference
-      if(!u->asClause()->noSplits()){
-        c->setSplits(u->asClause()->splits());
-      }
-      resolution(out, conclSorts, c);
+      InferenceRecorder::instance()->setCurrentGoal(u->asClause());
+      replayer->replayInference(u);
+      auto info = InferenceRecorder::instance()->getLastRecordedInferenceInformation();
+      resolution(out, conclSorts, u->asClause(), info);
       }
       break;
     case InferenceRule::FORWARD_SUBSUMPTION_RESOLUTION:
@@ -1047,31 +917,37 @@ void outputStep(std::ostream &out, Unit *u)
       subsumptionResolution(out, conclSorts, u->asClause());
       break;
     case InferenceRule::FACTORING:
-      factoring(out, conclSorts, u->asClause());
+      {
+        InferenceRecorder::instance()->setCurrentGoal(u->asClause());
+        replayer->replayInference(u);
+        auto info = InferenceRecorder::instance()->getLastRecordedInferenceInformation();
+        factoring(out, conclSorts, u->asClause(), info);
+      }
       break;
     case InferenceRule::EQUALITY_RESOLUTION:
       {
-        Clause* c = replayer->replayInference(u);
-        ASS(c != nullptr); 
-        if(!u->asClause()->noSplits()){
-          c->setSplits(u->asClause()->splits());
-        }
-        equalityResolution(out, conclSorts, c);
+        InferenceRecorder::instance()->setCurrentGoal(u->asClause());
+        replayer->replayInference(u);
+        auto info = InferenceRecorder::instance()->getLastRecordedInferenceInformation();
+        equalityResolution(out, conclSorts, u->asClause(), info);
       }
       break;
     case InferenceRule::SUPERPOSITION:
       {
-        Clause* c = replayer->replayInference(u);
-        ASS(c != nullptr); 
-        if(!u->asClause()->noSplits()){
-          c->setSplits(u->asClause()->splits());
-        }
-        superposition(out, conclSorts, c);
+        InferenceRecorder::instance()->setCurrentGoal(u->asClause());
+        replayer->replayInference(u);
+        auto info = InferenceRecorder::instance()->getLastRecordedInferenceInformation();
+        superposition(out, conclSorts, u->asClause(), info);
       }
       break;
     case InferenceRule::FORWARD_DEMODULATION:
     case InferenceRule::BACKWARD_DEMODULATION:
-      demodulation(out, conclSorts, u->asClause());
+      {
+        InferenceRecorder::instance()->setCurrentGoal(u->asClause());
+        replayer->replayInference(u);
+        auto info = InferenceRecorder::instance()->getLastRecordedInferenceInformation();
+        demodulation(out, conclSorts, u->asClause(),info);
+      }
       break;
     case InferenceRule::AVATAR_SPLIT_CLAUSE:
       splitClause(out, conclSorts, u);

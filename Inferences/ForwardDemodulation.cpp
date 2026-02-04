@@ -34,6 +34,7 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/InferenceRecorder.hpp"
 #include "Debug/TimeProfiling.hpp"
 
 #include "DemodulationHelper.hpp"
@@ -218,10 +219,11 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
         replacement = Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.data->clause));
         if(env.options->proofExtra() == Options::ProofExtra::FULL){
           env.proofExtra.insert(replacement, new ForwardDemodulationExtra(lhs, trm));
-        } else if (env.options->proofExtra() == Options::ProofExtra::RECONSTRUCT) {
-          auto clVars = cl->getVariableIterator();
-          UnifierInferenceExtra* ue = new UnifierInferenceExtra(subs.ptr(),{{0, &clVars}});
-          env.proofExtra.insert(replacement, ue);
+        } 
+        if(env.reconstruction){
+          ASS(qr.data->clause->length()==1);
+          ASS(qr.data->clause->literals()[0]->isEquality());
+          Shell::InferenceRecorder::instance()->forwardDemodulation(replacement->number(), replacement, {cl, qr.data->clause}, appl,qr.data, rhsS);
         }
         return true;
       }

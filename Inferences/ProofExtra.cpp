@@ -46,25 +46,5 @@ void TwoLiteralRewriteInferenceExtra::output(std::ostream &out) const {
   out << ',';
   rewrite.output(out);
 }
-
-void UnifierInferenceExtra::output(std::ostream &out) const {
-  out << "substitutionForBanks={";
-  for (size_t bankIdx = 0; bankIdx < substitutionForBanks.size(); bankIdx++) {
-    if (bankIdx > 0) {
-      out << "; ";
-    }
-    out << "bank" << bankIdx << "={";
-    const auto& substMap = substitutionForBanks[bankIdx];
-    bool first = true;
-    for (unsigned var = 0; var < substMap.size(); var++) {
-      if (!first) {
-        out << ", ";
-      }
-      first = false;
-      out << var << "/" << substMap[var].toString();
-    }
-    out << "}";
-  }
-  out << "}";
-} 
+ 
 }// namespace Inferences

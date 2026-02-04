@@ -37,6 +37,7 @@
 
 #include "Shell/PartialRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
+#include "Shell/InferenceRecorder.hpp"
 #include "Debug/TimeProfiling.hpp"
 
 #include "Superposition.hpp"
@@ -512,11 +513,10 @@ Clause* Superposition::performSuperposition(
       eqLHS,
       rwTerm
     ));
-  } else if (env.options->proofExtra() == Options::ProofExtra::RECONSTRUCT) {
-    auto eqClauseVarIter = eqClause->getVariableIterator();
-    auto rwClauseVarIter = rwClause->getVariableIterator();
-    UnifierInferenceExtra* ue = new UnifierInferenceExtra(subst.ptr(),{{0, &rwClauseVarIter}, {1, &eqClauseVarIter}});
-    env.proofExtra.insert(clause, ue);
+  } 
+  if(env.reconstruction){
+    Shell::InferenceRecorder* recorder = Shell::InferenceRecorder::instance();
+    recorder->superposition(clause->number(), clause, {rwClause, eqClause}, subst, eqIsResult);
   }
 
   return clause;

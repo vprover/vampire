@@ -12,13 +12,14 @@
  * Implements class EqualityResolution.
  */
 
-#include "Inferences/ProofExtra.hpp"
+
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Stack.hpp"
 
 #include "Lib/Environment.hpp"
 #include "Shell/Options.hpp"
+#include "Shell/InferenceRecorder.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
@@ -108,9 +109,8 @@ struct EqualityResolution::ResultFn
     if(env.options->proofExtra() == Options::ProofExtra::FULL){
       env.proofExtra.insert(cl, new EqualityResolutionExtra(lit));
     }
-    else if(env.options->proofExtra() == Options::ProofExtra::RECONSTRUCT){
-      auto clVar = cl->getVariableIterator();
-      env.proofExtra.insert(cl, new UnifierInferenceExtra(absUnif->subs(), {{0, &clVar}}));
+    if(env.reconstruction){
+      Shell::InferenceRecorder::instance()->equalityResolution(0, cl, {_cl}, absUnif->subs());
     }
     return cl;
   }

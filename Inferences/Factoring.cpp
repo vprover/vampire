@@ -24,6 +24,8 @@
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/Ordering.hpp"
 
+#include "Shell/InferenceRecorder.hpp"
+
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Factoring.hpp"
@@ -102,11 +104,10 @@ public:
     if(env.options->proofExtra() == Options::ProofExtra::FULL){
       env.proofExtra.insert(cl, new FactoringExtra(l1, l2));
     }
-    else if(env.options->proofExtra() == Options::ProofExtra::RECONSTRUCT) {
-      auto varIterator = cl->getVariableIterator();
-      std::pair<unsigned, VirtualIterator<unsigned>*> banks = {0, &varIterator};
-      env.proofExtra.insert(cl, new UnifierInferenceExtra(subst, {banks}));
+    if(env.reconstruction){
+      Shell::InferenceRecorder::instance()->factoring(0, cl, {_cl}, subst);
     }
+
     return cl;
   }
 private:

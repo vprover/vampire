@@ -17,6 +17,8 @@ set(TESTING_SOURCES
     Test/UnitTesting.hpp
     Test/HOLUtils.cpp
     Test/HOLUtils.hpp
+    Test/TestUtils.cpp
+    Test/TestUtils.hpp
 )
 
 ################################################################
@@ -672,8 +674,10 @@ set(SOURCES
     Shell/GoalGuessing.hpp
     Shell/InequalitySplitting.cpp
     Shell/InequalitySplitting.hpp
-    Shell/InferenceReplay.hpp
+    Shell/InferenceRecorder.cpp
+    Shell/InferenceRecorder.hpp
     Shell/InferenceReplay.cpp
+    Shell/InferenceReplay.hpp
     Shell/InterpolantMinimizer.cpp
     Shell/InterpolantMinimizer.hpp
     Shell/Interpolants.cpp
@@ -745,8 +749,6 @@ set(SOURCES
     Shell/TweeGoalTransformation.hpp
     Shell/UIHelper.cpp
     Shell/UIHelper.hpp
-    Test/TestUtils.cpp
-    Test/TestUtils.hpp
     cadical/contrib/craigtracer.cpp
     cadical/contrib/craigtracer.hpp
     cadical/src/analyze.cpp

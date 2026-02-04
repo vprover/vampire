@@ -34,6 +34,7 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/InferenceRecorder.hpp"
 
 #include "BackwardDemodulation.hpp"
 
@@ -173,6 +174,9 @@ struct BackwardDemodulation::ResultFn
     );
     if(env.options->proofExtra() == Options::ProofExtra::FULL)
       env.proofExtra.insert(replacement, new BackwardDemodulationExtra(lhs, lhsS));
+    if(env.reconstruction){
+      Shell::InferenceRecorder::instance()->backwardDemodulation(0, replacement, {qr.data->clause, _cl}, subs);
+    }
     return BwSimplificationRecord(qr.data->clause, replacement);
   }
 private:

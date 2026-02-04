@@ -9,7 +9,6 @@
 
 #include "Kernel/Unit.hpp"
 
-
 #include <ostream>
 namespace Shell{
 class InferenceReplayer
@@ -19,14 +18,14 @@ class InferenceReplayer
 
     InferenceReplayer(std::ostream& output) : out(&output) {}
 
-    Clause* replayInference(Kernel::Unit* u);
+    void replayInference(Kernel::Unit* u);
 
     void makeInferenceEngine(Kernel::OrderingSP ord) {
         ASS(alg == nullptr);
         _ordering = ord;
         Problem p;
         env.options->setSaturationAlgorithm(Shell::Options::SaturationAlgorithm::DISCOUNT);
-        env.options->setProofExtra(Shell::Options::ProofExtra::RECONSTRUCT);
+        env.reconstruction = true;
         alg = Saturation::SaturationAlgorithm::createFromOptions(p, *env.options);
         alg->setOrdering(_ordering);   
     }
