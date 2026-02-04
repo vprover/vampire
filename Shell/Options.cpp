@@ -1206,6 +1206,7 @@ void Options::init()
     _lookup.insert(&_sineToAgeGeneralityThreshold);
     _sineToAgeGeneralityThreshold.tag(OptionTag::SATURATION);
     _sineToAgeGeneralityThreshold.onlyUsefulWith(Or(
+      _neuralClauseEvaluationModel.is(notEqual(std::string(""))),
       _sineToAge.is(equal(true)),
       _sineToPredLevels.is(notEqual(PredicateSineLevels::OFF)),
       _useSineLevelSplitQueues.is(equal(true))));
@@ -1219,6 +1220,7 @@ void Options::init()
     _sineToAgeTolerance.addConstraint(Or(equal(-1.0f),greaterThanEq(1.0f)));
     // Captures that if the value is not 1.0 then sineSelection must be on
     _sineToAgeTolerance.onlyUsefulWith(Or(
+      _neuralClauseEvaluationModel.is(notEqual(std::string(""))),
       _sineToAge.is(equal(true)),
       _sineToPredLevels.is(notEqual(PredicateSineLevels::OFF)),
       _useSineLevelSplitQueues.is(equal(true))));
