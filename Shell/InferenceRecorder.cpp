@@ -108,6 +108,18 @@ void InferenceRecorder::equalityResolution(unsigned int id, Clause *conclusion, 
 bool hasVarSubstAndCompute(TermList &expectedTerm, TermList &haveTerm, Substitution &outVariableSwitch)
 {
   bool haveProperSubst = false;
+  if(expectedTerm.isVar()) {
+    if (haveTerm.isVar()) {
+      outVariableSwitch.bind(expectedTerm.var(), haveTerm);
+      haveProperSubst = true;
+    }
+    return haveProperSubst;
+  }
+  
+  if(haveTerm.isTerm() && expectedTerm.isTerm() && haveTerm.term()->arity()==0 && expectedTerm.term()->arity()==0) {
+    return expectedTerm.term() == haveTerm.term();
+  }
+
   if (MatchingUtils::matchTerms(expectedTerm, haveTerm)) {
     haveProperSubst = true;
     MatchingUtils::matchArgs(expectedTerm.term(), haveTerm.term(), outVariableSwitch);
