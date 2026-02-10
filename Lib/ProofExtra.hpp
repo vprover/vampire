@@ -43,22 +43,22 @@ inline std::ostream &operator<<(std::ostream &out, const InferenceExtra &extra) 
 
 // container for extras
 class ProofExtra {
-  DHMap<Kernel::Unit *, std::unique_ptr<InferenceExtra>> extras;
+  DHMap<unsigned, std::unique_ptr<InferenceExtra>> extras;
 
 public:
   // associate `extra` with `unit`, taking ownership of `extra`
   void insert(Kernel::Unit *unit, InferenceExtra *extra) {
-    ALWAYS(extras.insert(unit, std::unique_ptr<InferenceExtra>(extra)));
+    ALWAYS(extras.insert(unit->number(), std::unique_ptr<InferenceExtra>(extra)));
   }
 
   // remove the extra information for this unit
   void remove(Kernel::Unit *unit) {
-    extras.remove(unit);
+    extras.remove(unit->number());
   }
 
   // associated InferenceExtra if present, nullptr otherwise
   const InferenceExtra *find(const Kernel::Unit *unit) {
-    auto *found = extras.findPtr(const_cast<Kernel::Unit *>(unit));
+    auto *found = extras.findPtr(unit->number());
     if(!found)
       return nullptr;
     return found->get();
@@ -67,7 +67,7 @@ public:
   // associated InferenceExtra: must be present
   template<typename T>
   T &get(Kernel::Unit *unit) {
-    auto &found = extras.get(unit);
+    auto &found = extras.get(unit->number());
     ASS(found)
     return static_cast<T &>(*found);
   }

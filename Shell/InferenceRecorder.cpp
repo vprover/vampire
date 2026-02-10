@@ -199,7 +199,6 @@ void InferenceRecorder::backwardDemodulation(unsigned int id, Clause *conclusion
 
 bool InferenceRecorder::isSameAsProofStep(Clause *clause, Clause *goal, std::unordered_map<unsigned int, unsigned int> &outVarMap)
 {
-
   if (clause->length() != goal->length()) {
     return false;
   }

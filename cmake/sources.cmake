@@ -684,6 +684,12 @@ set(SOURCES
     Shell/Interpolants.hpp
     Shell/InterpretedNormalizer.cpp
     Shell/InterpretedNormalizer.hpp
+    Shell/LeanChecker/LeanChecker.cpp
+    Shell/LeanChecker/LeanChecker.hpp
+    Shell/LeanChecker/LeanPrinter.cpp
+    Shell/LeanChecker/LeanPrinter.hpp
+    Shell/LeanChecker/VariablePrenexOrderingTree.cpp
+    Shell/LeanChecker/VariablePrenexOrderingTree.hpp
     Shell/Lexer.cpp
     Shell/Lexer.hpp
     Shell/LispLexer.cpp

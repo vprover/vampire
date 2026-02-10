@@ -1,3 +1,6 @@
+#ifndef __INFERENCE_RECORDER__
+#define __INFERENCE_RECORDER__
+
 #include "Forwards.hpp"
 
 #include "Indexing/Index.hpp"
@@ -36,6 +39,8 @@ public:
                            TermList rhsS);
 
   void backwardDemodulation(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const SubstApplicator &appl);
+
+  //void unitResultingResolution(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Unit *> &premises, const std::vector<Indexing::ResultSubstitutionSP> &substitutions);
 
   void setCurrentGoal(Kernel::Clause *goal)
   {
@@ -203,3 +208,5 @@ private:
   unsigned int _lastInferenceId = 0;
 };
 } // namespace Shell
+
+#endif // __INFERENCE_RECORDER__

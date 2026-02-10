@@ -12,6 +12,7 @@
  * Implements class InferenceStore.
  */
 
+#include "Forwards.hpp"
 #include "Kernel/Theory.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/Environment.hpp"
@@ -26,6 +27,7 @@
 #include "Shell/Options.hpp"
 #include "Shell/UIHelper.hpp"
 #include "Shell/SMTCheck.hpp"
+#include "Shell/LeanChecker/LeanChecker.hpp"
 
 #include "Parse/TPTP.hpp"
 
@@ -44,6 +46,7 @@
 #include "InferenceStore.hpp"
 
 #include <set>
+#include <utility>
 
 //TODO: when we delete clause, we should also delete all its records from the inference store
 
@@ -76,11 +79,47 @@ void InferenceStore::recordSplittingNameLiteral(Unit* us, Literal* lit)
 /**
  * Record the introduction of a new symbol
  */
-void InferenceStore::recordIntroducedSymbol(Unit* u, SymbolType st, unsigned number)
+void InferenceStore::recordIntroducedSymbol(Unit* u, SymbolType st, unsigned number, unsigned replacedVar)
 {
   SymbolStack* pStack;
   _introducedSymbols.getValuePtr(u->number(),pStack);
+  _introducedSymbolReplacedVars.insert(number, replacedVar);
   pStack->push(SymbolId(st,number));
+}
+
+void InferenceStore::recordIntroducedSymbol(Unit* u, SymbolType st, unsigned number, Formula* formula)
+{
+  SymbolStack* pStack;
+  _introducedSymbols.getValuePtr(u->number(),pStack);
+  _introducedSymbolFormulas.insert(number, formula);
+  pStack->push(SymbolId(st,number));
+}
+
+bool InferenceStore::hasIntroducedSymbols(Unit* u) {
+  return _introducedSymbols.find(u->number()).isSome();
+}
+
+/**
+ * Return the stack of introduced symbols for unit u
+ */
+Lib::Stack<std::pair<SymbolType, unsigned>>& InferenceStore::getIntroducedSymbols(Unit* u) {
+  return _introducedSymbols.get(u->number());
+}
+
+long InferenceStore::variableReplacedByIntroducedSymbol(unsigned symbolNumber) {
+  auto found = _introducedSymbolReplacedVars.find(symbolNumber);
+  if(found.isSome()){
+    return found.unwrap();
+  }
+  return -1;
+}
+
+Formula* InferenceStore::formulaReplacedByIntroducedSymbol(unsigned symbolNumber) {
+  auto found = _introducedSymbolFormulas.find(symbolNumber);
+  if(found.isSome()){
+    return found.unwrap();
+  }
+  return nullptr;
 }
 
 /**
@@ -185,42 +224,42 @@ std::string getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
   return getQuantifiedStr(vars, res, t_map);
 }
 
-struct InferenceStore::ProofPrinter
+void InferenceStore::AbstractProofPrinter::scheduleForPrinting(Unit* us)
+{
+  std::vector<Unit *> todo = {us};
+  while (!todo.empty()) {
+    Unit *next = todo.back();
+    todo.pop_back();
+
+    // check if this step should be printed
+    InferenceRule rule = next->inference().rule();
+    if (!hideProofStep(rule)) {
+      // check if already processed (proofs are DAGs, not trees)
+      auto [_, inserted] = proof.insert(next);
+      if (!inserted)
+        continue;
+    }
+    // NB step may be hidden, but its parents are not
+    // TODO not sure this is desirable, but it was the old behaviour
+
+    // process premise parents
+    UnitIterator parents = next->getParents();
+    while (parents.hasNext()) {
+      Unit *prem = parents.next();
+      ASS_NEQ(prem, next)
+      todo.push_back(prem);
+    }
+  }
+}
+
+struct InferenceStore::ProofPrinter : public InferenceStore::AbstractProofPrinter
 {
   ProofPrinter(std::ostream& out, InferenceStore* is)
-  : _is(is), out(out)
+  : AbstractProofPrinter(out,is)
   {
     outputAxiomNames=env.options->outputAxiomNames();
   }
 
-  // compute closure of `us`' ancestors for printing and insert into `proof`
-  void scheduleForPrinting(Unit* us)
-  {
-    std::vector<Unit *> todo = { us };
-    while(!todo.empty()) {
-      Unit *next = todo.back();
-      todo.pop_back();
-
-      // check if this step should be printed
-      InferenceRule rule = next->inference().rule();
-      if(!hideProofStep(rule)) {
-        // check if already processed (proofs are DAGs, not trees)
-        auto [_, inserted] = proof.insert(next);
-        if(!inserted)
-          continue;
-      }
-      // NB step may be hidden, but its parents are not
-      // TODO not sure this is desirable, but it was the old behaviour
-
-      // process premise parents
-      UnitIterator parents = next->getParents();
-      while(parents.hasNext()) {
-        Unit* prem = parents.next();
-        ASS_NEQ(prem, next)
-        todo.push_back(prem);
-      }
-    }
-  }  
   virtual ~ProofPrinter() {}
 
   virtual void print()
@@ -290,8 +329,6 @@ protected:
     out << *cl << '\n';
   }
 
-  InferenceStore *_is = nullptr;
-  ostream &out;
   bool outputAxiomNames;
 
 private:
@@ -333,7 +370,6 @@ private:
     return topological;
   }
 
-  std::set<Unit *, CompareUnits> proof;
 };
 
 struct InferenceStore::ProofPropertyPrinter
@@ -1559,10 +1595,10 @@ protected:
 };
 
 struct InferenceStore::SMTCheckPrinter
-: public InferenceStore::ProofPrinter
+: public InferenceStore::AbstractProofPrinter
 {
   SMTCheckPrinter(ostream& out, InferenceStore* is)
-  : ProofPrinter(out, is), _replayer(out) {
+  : AbstractProofPrinter(out, is), _replayer(out) {
     _replayer.makeInferenceEngine(this->_is->ordering);
     SMTCheck::replayer = &(this->_replayer);
   }
@@ -1571,7 +1607,7 @@ struct InferenceStore::SMTCheckPrinter
   void print() override
   {
     SMTCheck::outputSignature(out);
-    ProofPrinter::print();
+    AbstractProofPrinter::print();
   }
 
   void printStep(Unit* u) override
@@ -1580,7 +1616,7 @@ struct InferenceStore::SMTCheckPrinter
   }
 };
 
-InferenceStore::ProofPrinter* InferenceStore::createProofPrinter(std::ostream& out)
+InferenceStore::AbstractProofPrinter* InferenceStore::createProofPrinter(std::ostream& out)
 {
   switch(env.options->proof()) {
   case Options::Proof::ON:
@@ -1597,6 +1633,8 @@ InferenceStore::ProofPrinter* InferenceStore::createProofPrinter(std::ostream& o
     return 0;
   case Shell::Options::Proof::SMTCHECK:
     return new SMTCheckPrinter(out, this);
+  case Shell::Options::Proof::LEANCHECK:
+    return new LeanChecker(out, this);
   }
   ASSERTION_VIOLATION;
 }
@@ -1662,11 +1700,11 @@ void InferenceStore::outputUnsatCore(std::ostream& out, Unit* refutation)
  */
 void InferenceStore::outputProof(std::ostream& out, Unit* refutation)
 {
-  ProofPrinter* p = createProofPrinter(out);
+  AbstractProofPrinter* p = createProofPrinter(out);
   if (!p) {
     return;
   }
-  ScopedPtr<ProofPrinter> pp(p);
+  ScopedPtr<AbstractProofPrinter> pp(p);
   pp->scheduleForPrinting(refutation);
   pp->print();
 }
@@ -1677,11 +1715,11 @@ void InferenceStore::outputProof(std::ostream& out, Unit* refutation)
  */
 void InferenceStore::outputProof(std::ostream& out, UnitList* units)
 {
-  ProofPrinter* p = createProofPrinter(out);
+  AbstractProofPrinter* p = createProofPrinter(out);
   if (!p) {
     return;
   }
-  ScopedPtr<ProofPrinter> pp(p);
+  ScopedPtr<AbstractProofPrinter> pp(p);
   UnitList::Iterator uit(units);
   while(uit.hasNext()) {
     Unit* u = uit.next();

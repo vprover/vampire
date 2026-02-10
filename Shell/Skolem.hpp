@@ -103,7 +103,11 @@ private:
   DHMap<unsigned,TermList> _varSorts;
 
   // for some heuristic evaluations after we are done
-  Stack<std::pair<bool, unsigned>> _introducedSkolemSyms;
+  // Type, numberOfSymbol, replacedVar
+  Stack<std::tuple<bool, unsigned, unsigned>> _introducedSkolemSyms;
+
+  // for using "simple" skolemization
+  Stack<unsigned> _universalScope;
   
   FormulaUnit* _beingSkolemised;
 

@@ -32,6 +32,8 @@
 #include "Rectify.hpp"
 #include "Skolem.hpp"
 
+#include <variant>
+
 using namespace std;
 using namespace Kernel;
 using namespace Shell;
@@ -77,6 +79,7 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
   _subst.reset();
   _varDeps.reset();
   _blockLookup.reset();
+  _universalScope.reset();
 
   Formula* f = unit->formula();
   preskolemise(f);
@@ -98,17 +101,17 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
   while(_introducedSkolemSyms.isNonEmpty()) {
     auto symPair = _introducedSkolemSyms.pop();
 
-    if(symPair.first){
-      InferenceStore::instance()->recordIntroducedSymbol(res,SymbolType::TYPE_CON,symPair.second);
+    if(std::get<0>(symPair)){
+      InferenceStore::instance()->recordIntroducedSymbol(res,SymbolType::TYPE_CON,std::get<1>(symPair), std::get<2>(symPair));
     } else {
-      InferenceStore::instance()->recordIntroducedSymbol(res,SymbolType::FUNC,symPair.second);
+      InferenceStore::instance()->recordIntroducedSymbol(res,SymbolType::FUNC,std::get<1>(symPair), std::get<2>(symPair));
     }
 
     if(unit->derivedFromGoal()){
-      if(symPair.first){
-        env.signature->getTypeCon(symPair.second)->markInGoal();
+      if(std::get<0>(symPair)){
+        env.signature->getTypeCon(std::get<1>(symPair))->markInGoal();
       } else {
-        env.signature->getFunction(symPair.second)->markInGoal();
+        env.signature->getFunction(std::get<1>(symPair))->markInGoal();
       }
     }
   }
@@ -329,7 +332,15 @@ Formula* Skolem::skolemise (Formula* f)
 
   case FORALL:
     {
+      if(env.options->proof() == Options::Proof::LEANCHECK){
+        _universalScope.loadFromIterator(f->vars()->iter());
+      }
       Formula* g = skolemise(f->qarg());
+      if(env.options->proof() == Options::Proof::LEANCHECK){
+        for(int x =0;x<VList::length(f->vars());x++){
+          _universalScope.pop();
+        }
+      }
       if (g == f->qarg()) {
         return f;
       }
@@ -385,9 +396,16 @@ Formula* Skolem::skolemise (Formula* f)
        * although perhaps only C occurs in "something", it's as if A occurred as well */
       depInfo.univ = dep;
 
-      auto vuIt = dep->iter();
-      while(vuIt.hasNext()) {
-        unsigned uvar = vuIt.next();
+      auto x = VStack::BottomFirstIterator(_universalScope);
+      using IterA = decltype(dep->iter());
+      using IterB = decltype(x);
+
+      std::variant<IterA, IterB> vuIt = (env.options->proof() == Options::Proof::LEANCHECK)
+        ? std::variant<IterA, IterB>{x}
+        : std::variant<IterA, IterB>{dep->iter()};
+      
+      while(std::visit([](auto&& it) { return it.hasNext(); }, vuIt)) {
+        unsigned uvar = std::visit([](auto&& it) { return it.next(); }, vuIt);
         TermList sort = _varSorts.get(uvar, AtomicSort::defaultSort());
         if(sort == AtomicSort::superSort()){
           //This a type variable
@@ -447,7 +465,7 @@ Formula* Skolem::skolemise (Formula* f)
           TermList head = TermList(Term::create(sym, typeVars.size(), typeVars.begin()));
           skolemTerm = HOL::create::app(head, termVars).term();
         }
-        _introducedSkolemSyms.push(make_pair(skolemisingTypeVar, sym));
+        _introducedSkolemSyms.push(make_tuple(skolemisingTypeVar, sym, v));
 
         env.statistics->skolemFunctions++;
 

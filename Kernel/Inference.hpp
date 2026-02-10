@@ -163,7 +163,7 @@ enum class InferenceRule : unsigned char {
   REDUCE_FALSE_TRUE,
 
   /** any kind of definition folding */
-  DEFINITION_FOLDING,
+  DEFINITION_FOLDING_PRED,
 //     /** Replace formula (Q x1 ... xk ... x_n)A by
 //      * (Q x1 ... xk-1 xk+1 ... x_n)A, where xk does not occur in A */
 //     DUMMY_QUANTIFIER_REMOVAL,
@@ -193,6 +193,7 @@ enum class InferenceRule : unsigned char {
 //     HALF_EQUIV,
 //     /** miniscoping */
 //     MINISCOPE,
+  DEFINITION_FOLDING_TWEE,
   /** normalizing inference */
   THEORY_NORMALIZATION,
   ALASCA_INTEGER_TRANSFORMATION,

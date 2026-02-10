@@ -652,7 +652,9 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "extensionality resolution";
   case InferenceRule::DEFINITION_UNFOLDING:
     return "definition unfolding";
-  case InferenceRule::DEFINITION_FOLDING:
+  case InferenceRule::DEFINITION_FOLDING_PRED:
+    return "definition folding";
+  case InferenceRule::DEFINITION_FOLDING_TWEE:
     return "definition folding";
   case InferenceRule::FUNCTION_DEFINITION:
     return "function definition";

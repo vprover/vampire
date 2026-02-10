@@ -102,7 +102,7 @@ FormulaUnit* Naming::apply(FormulaUnit* unit, UnitList*& defs) {
   UnitList* premises = UnitList::copy(_defs);
   UnitList::push(unit, premises);
   return new FormulaUnit(g,
-      FormulaClauseTransformationMany(InferenceRule::DEFINITION_FOLDING, premises));
+      FormulaClauseTransformationMany(InferenceRule::DEFINITION_FOLDING_PRED, premises));
 } // Naming::apply
 
 Formula* Naming::apply_iter(Formula* top_f) {
@@ -1180,7 +1180,7 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
   Unit* definition = new FormulaUnit(def, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::PREDICATE_DEFINITION));
 
   InferenceStore::instance()->recordIntroducedSymbol(definition, SymbolType::PRED,
-      atom->functor());
+      atom->functor(), f);
 
   env.statistics->formulaNames++;
   UnitList::push(definition, _defs);
