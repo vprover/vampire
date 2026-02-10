@@ -143,8 +143,15 @@ void Property::add(UnitList* units)
   if ((_maxFunArity == 0) && onlyExistsForallPrefix(units)) {
     addProp(PR_ESSENTIALLY_BSR);
 
-    if (!_equalityAtoms && isLeroy(units,false)) {
-      cout << "isLeroy" << endl;
+    cout << "EPR" << endl;
+
+    if (!_equalityAtoms) {
+      unsigned fork;
+      if (isQealm(units,fork,false)) {
+        cout << "isQealm " << fork << endl;
+      } else if (isQealm(units,fork,true)) {
+          cout << "isQealmRev " << fork << endl;
+      }
     }
   }
   Lib::System::terminateImmediately(0);
@@ -1168,8 +1175,9 @@ bool Property::onlyExistsForallPrefix(UnitList* units)
   return true;
 } // Property::onlyExistsForallPrefix(UnitList* units)
 
-bool Property::isLeroy(UnitList* units, bool reversed)
+bool Property::isQealm(UnitList* units, unsigned& fork, bool reversed)
 {
+  SplitSet* fork_set = SplitSet::getEmpty();
   UnitList::Iterator us(units);
   while (us.hasNext()) {
     Unit* u = us.next();
@@ -1182,10 +1190,11 @@ bool Property::isLeroy(UnitList* units, bool reversed)
     for (unsigned i = 0; i < len; i++) {
       Literal* lit_i = (*cl)[i];
       SplitSet* lit_i_vars = SplitSet::getFromIterator(MappingIterator(VariableIterator(lit_i),[](TermList t) { return t.var(); } ));
-      for (unsigned j = i+1; j < len; j++) {
+      for (unsigned j = i; j < len; j++) {
         Literal* lit_j = (*cl)[j];
         SplitSet* lit_j_vars = SplitSet::getFromIterator(MappingIterator(VariableIterator(lit_j),[](TermList t) { return t.var(); } ));
         SplitSet* common_vars = lit_i_vars->getIntersection(lit_j_vars);
+        unsigned fork_idx = 0;
         for (auto var : common_vars->iter()) {
           for (unsigned l = 0; l < lit_i->arity(); l++) {
             unsigned k = reversed ? (lit_i->arity() - l - 1): l;
@@ -1197,13 +1206,18 @@ bool Property::isLeroy(UnitList* units, bool reversed)
               return false;
             }
             if (lit_i_k.isVar() && lit_i_k.var() == var) {
+              if (l+1 > fork_idx) {
+                fork_idx = l+1;
+              }
               break;
             }
           }
         }
+        fork_set = fork_set->getUnion(SplitSet::getSingleton(fork_idx));
       }
     }
   }
+  fork = fork_set->size();
   return true;
 }
 
