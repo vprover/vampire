@@ -155,9 +155,15 @@ void UIHelper::outputSaturatedSet(std::ostream& out, UnitIterator uit)
 
   while (uit.hasNext()) {
     Clause *cl = uit.next()->asClause();
-    ASS(cl->length() == 1)
+    if(cl->length() != 1) {
+      std::cout << "non-UEQ saturation\n";
+      return;
+    }
     Literal *l = (*cl)[0];
-    ASS(l->isEquality())
+    if(!l->isEquality()) {
+      std::cout << "non-UEQ saturation\n";
+      return;
+    }
 
     if(!l->polarity()) {
       std::cout << *l << '\n';
@@ -169,7 +175,7 @@ void UIHelper::outputSaturatedSet(std::ostream& out, UnitIterator uit)
     else if(ordering == Ordering::LESS)
       out << l->termArg(1) << " -> " << l->termArg(0) << '\n';
     else
-      std::cout << "% not preordered\n";
+      out << l->termArg(0) << " = " << l->termArg(1) << '\n';
   }
 
   if (szsOutputMode()) {
