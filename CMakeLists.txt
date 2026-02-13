@@ -281,7 +281,7 @@ if (GIT_IS_REPOSITORY STREQUAL true)
   # VAMPIRE_VERSION_NUMBER and CMAKE_BUILD_TYPE used by version.cpp.in through
   # ConfigureGitVersionCpp.cmake
   add_custom_target(update_git_version ALL
-    COMMAND cmake -DVAMPIRE_SOURCE_DIR=${CMAKE_SOURCE_DIR}
+    COMMAND ${CMAKE_COMMAND} -DVAMPIRE_SOURCE_DIR=${CMAKE_SOURCE_DIR}
                   -DVAMPIRE_VERSION_NUMBER=${VAMPIRE_VERSION_NUMBER}
                   -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                   -P ${CMAKE_SOURCE_DIR}/cmake/ConfigureGitVersionCpp.cmake
