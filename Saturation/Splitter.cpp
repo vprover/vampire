@@ -623,6 +623,9 @@ std::string Splitter::getFormulaStringFromName(SplitLevel compName, bool negated
 }
 
 std::string Splitter::getFormulaStringFromLiteral(SATLiteral lit) {
+  if(env.options->proof()==Options::Proof::LEANCHECK){
+     return std::string((lit.positive() ? "" : "¬")) + "sA" + Lib::Int::toString(lit.var());
+  }
   if (lit.positive()) {
     return splPrefix+Lib::Int::toString(lit.var());
   } else {
@@ -851,7 +854,7 @@ bool Splitter::handleNonSplittable(Clause* cl)
 
     Formula* f = JunctionFormula::generalJunction(OR,resLst);
     FormulaUnit* scl = new FormulaUnit(f,NonspecificInferenceMany(InferenceRule::AVATAR_SPLIT_CLAUSE,ps));
-    if(env.options->proofExtra() == Options::ProofExtra::FULL)
+    if(env.options->proofExtra() == Options::ProofExtra::FULL || env.options->proofExtra() == Options::ProofExtra::LEAN) 
       env.proofExtra.insert(scl, new SATClauseExtra(nsClause));
 
     nsClause->setInference(new FOConversionInference(scl));
@@ -1043,7 +1046,7 @@ bool Splitter::doSplitting(Clause* cl)
 
   Formula* f = JunctionFormula::generalJunction(OR,resLst);
   FormulaUnit* scl = new FormulaUnit(f,NonspecificInferenceMany(InferenceRule::AVATAR_SPLIT_CLAUSE,ps));
-  if(env.options->proofExtra() == Options::ProofExtra::FULL)
+  if(env.options->proofExtra() == Options::ProofExtra::FULL || env.options->proofExtra() == Options::ProofExtra::LEAN)
     env.proofExtra.insert(scl, new SATClauseExtra(splitClause));
 
   splitClause->setInference(new FOConversionInference(scl));
@@ -1136,7 +1139,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
   Clause* compCl = Clause::fromIterator(arrayIter(lits, size),
           NonspecificInference1(InferenceRule::AVATAR_COMPONENT,def_u));
 
-  if(posName == name && env.options->proofExtra() == Options::ProofExtra::FULL)
+  if(posName == name && (env.options->proofExtra() == Options::ProofExtra::FULL||env.options->proofExtra() == Options::ProofExtra::LEAN))
     env.proofExtra.insert(def_u, new SplitDefinitionExtra(compCl));
 
   // propagate running sums:
@@ -1524,7 +1527,7 @@ bool Splitter::handleEmptyClause(Clause* cl)
 
   Formula* f = JunctionFormula::generalJunction(OR,resLst);
   FormulaUnit* scl = new FormulaUnit(f,NonspecificInference1(InferenceRule::AVATAR_CONTRADICTION_CLAUSE,cl));
-  if(env.options->proofExtra() == Options::ProofExtra::FULL)
+  if(env.options->proofExtra() == Options::ProofExtra::FULL || env.options->proofExtra() == Options::ProofExtra::LEAN)
     env.proofExtra.insert(scl, new SATClauseExtra(confl));
 
   confl->setInference(new FOConversionInference(scl));

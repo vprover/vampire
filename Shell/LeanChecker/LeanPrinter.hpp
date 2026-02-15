@@ -8,12 +8,15 @@
 #include "Kernel/Theory.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Lib/Environment.hpp"
+#include "Saturation/Splitter.hpp"
 
 using namespace Kernel;
 using SortMap = DHMap<unsigned, TermList>;
 
 namespace Shell {
 namespace LeanPrinter {
+
+extern bool outputBoolOperators;
 
 template <bool real>
 struct SMTNumeral {
@@ -26,6 +29,22 @@ struct DoSubst {
   Literal *operator()(Literal *l) { return SubstHelper::apply(l, subst); }
   TermList operator()(unsigned int var) { return subst.apply(var); }
 };
+
+template <bool flip = false>
+struct Split {
+  unsigned level;
+  Split(unsigned level) : level(level) {}
+};
+
+template <bool flip>
+static std::ostream &operator<<(std::ostream &out, Split<flip> split)
+{
+  SAT::SATLiteral sat = Saturation::Splitter::getLiteralFromName(split.level);
+  return out
+      << (flip == sat.positive() ? "(¬" : "")
+      << "sA" << sat.var()
+      << (flip == sat.positive() ? ")" : "");
+}
 
 
 template <bool real>
@@ -88,7 +107,7 @@ std::ostream &operator<<(std::ostream &out, SortName<Prefix> name)
     case Signature::REAL_SRT_CON:
       return out << prefix << "ℝ";
   }
-  return out << "«" << prefix << env.signature->getTypeCon(name.functor)->name() << "»";
+  return out << "«_" << prefix << env.signature->getTypeCon(name.functor)->name() << "»";
 }
 
 struct Args {

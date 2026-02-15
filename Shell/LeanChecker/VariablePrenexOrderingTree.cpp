@@ -1,20 +1,22 @@
 #include "VariablePrenexOrderingTree.hpp"
 #include <algorithm>
+#include <string>
+#include <sstream>
 
 bool VariablePrenexOrderingTree::VariableOrderingTreeNode::percolate(VariablePrenexOrderingTree::VariableOrderingTreeNode::ParentDirection dir)
 {
   bool changed = false;
-  if (leftChild) {
-    changed |= leftChild->percolate(dir);
-  }
   if (rightChild) {
     changed |= rightChild->percolate(dir);
+  }
+  if (leftChild) {
+    changed |= leftChild->percolate(dir);
   }
   if (!parent) {
     return changed;
   }
   if (direction == dir) {
-    for (auto x : containedVariables) {
+    for (auto x : containedVariablesOrder) {
       auto test = parent->containedVariables.find(x);
       if (test == parent->containedVariables.end()) {
         changed = true;
@@ -28,25 +30,39 @@ bool VariablePrenexOrderingTree::VariableOrderingTreeNode::percolate(VariablePre
 
 void VariablePrenexOrderingTree::VariableOrderingTreeNode::print(std::ostream &out)
 {
-  out << "( ";
-  out << "[";
-  for (unsigned x : containedVariablesOrder) {
-    out << x << " ";
-  }
-  out << "] ";
+  // Rotated tree printer: root at left, children to the right.
+  std::function<void(const VariableOrderingTreeNode*, const std::string&, bool, bool)> printNode;
 
-  if (leftChild) {
-    ASS(leftChild->direction == LEFT)
-    ASS(leftChild->parent == this)
-    leftChild->print(out);
-  }
-  out << " | ";
-  if (rightChild) {
-    ASS(rightChild->direction == RIGHT)
-    ASS(rightChild->parent == this)
-    rightChild->print(out);
-  }
-  out << ")";
+  printNode = [&](const VariableOrderingTreeNode* node, const std::string& prefix, bool isLeft, bool isRoot){
+    if(!node) return;
+
+    // build label
+    std::ostringstream lbl;
+    lbl << "[";
+    for (size_t i = 0; i < node->containedVariablesOrder.size(); ++i) {
+      if (i) lbl << " ";
+      lbl << node->containedVariablesOrder[i];
+    }
+    lbl << "]";
+
+    if (isRoot) {
+      out << lbl.str() << "\n";
+    } else {
+      out << prefix << (isLeft ? "├── " : "└── ") << lbl.str() << "\n";
+    }
+
+    std::string childPrefix = prefix + (isLeft ? "│   " : "    ");
+
+    // print left then right to have "top" = left child, "bottom" = right child
+    if (node->leftChild) {
+      printNode(node->leftChild.get(), childPrefix, true, false);
+    }
+    if (node->rightChild) {
+      printNode(node->rightChild.get(), childPrefix, false, false);
+    }
+  };
+
+  printNode(this, std::string(), true, true);
 }
 
 std::unique_ptr<VariablePrenexOrderingTree::VariableOrderingTreeNode> VariablePrenexOrderingTree::VariableOrderingTreeNode::buildTreeFromFormula(Formula *f, Connective recordedConnective)
@@ -65,7 +81,7 @@ std::unique_ptr<VariablePrenexOrderingTree::VariableOrderingTreeNode> VariablePr
       if (trees.size() == 1) {
         return std::move(trees[0]);
       }
-      // fold the argument trees into a binary tree, preserving ownership
+      // fold the argument trees into a binary tree
       std::unique_ptr<VariableOrderingTreeNode> node = std::move(trees[0]);
       for (size_t i = 1; i < trees.size(); ++i) {
         std::unique_ptr<VariableOrderingTreeNode> parent(new VariableOrderingTreeNode());
@@ -138,12 +154,19 @@ void VariablePrenexOrderingTree::buildTreeFromFormula(Formula *f, Connective rec
 
 std::vector<unsigned> *VariablePrenexOrderingTree::determineVariableOrdering()
 {
+  
   if (!treeHasBeenShaken) {
+    //root->print(std::cout);
+    //std::cout << "----\n\n";
     bool changing;
     do {
       changing = false;
       changing |= root->percolate(VariableOrderingTreeNode::LEFT);
+      //root->print(std::cout);
+      //std::cout << "----\n\n";
       changing |= root->percolate(VariableOrderingTreeNode::RIGHT);
+      //root->print(std::cout);
+      //std::cout << "----\n\n";
     } while (changing);
     treeHasBeenShaken = true;
   }

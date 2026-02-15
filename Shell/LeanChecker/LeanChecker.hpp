@@ -1,5 +1,6 @@
 
 #include "Forwards.hpp"
+#include "Lib/SharedSet.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/InferenceStore.hpp"
@@ -7,10 +8,13 @@
 #include "LeanPrinter.hpp"
 #include "Shell/InferenceRecorder.hpp"
 #include "Shell/InferenceReplay.hpp"
-#include <map>
+#include "Saturation/Splitter.hpp"
+#include <initializer_list>
 #include <ostream>
 #include <deque>
 #include <queue>
+#include <string>
+#include <map>
 namespace Shell {
 using namespace LeanPrinter;
 class LeanChecker : public InferenceStore::AbstractProofPrinter {
@@ -35,38 +39,17 @@ private:
 
   bool isUncheckedInProof(const InferenceRule &rule);
 
-  bool inferenceNeedsReplayInfromation(const InferenceRule &rule);
+  bool doesOutputSplits(const InferenceRule &rule);
 
-  void outputUnit(std::ostream &out, Kernel::Unit *u, SortMap *conclSorts = nullptr){
-    if(this->alreadyPrintedFormulas.find(u->number()) != this->alreadyPrintedFormulas.end()){
-      out << "φ" << u->number();
-      return;
-    }
-    if(u->isClause()){
-      outputClause(out, u->asClause(), conclSorts, Identity{});
-    } else {
-      outputFormula(out, u->getFormula(), conclSorts, Identity{});
-    }
-  }
-  
-  void outputUnitBeginning(std::ostream &out, Kernel::Unit *u, SortMap *conclSorts = nullptr){
-    auto parents = u->getParents();
-    while(parents.hasNext()){
-      auto parent = parents.next();
-      if(this->alreadyPrintedFormulas.find(parent->number()) == this->alreadyPrintedFormulas.end()){
-         out << "def φ" << parent->number() << " :=";
-         outputUnit(out, parent);
-         out << "\n";
-      }
-      alreadyPrintedFormulas.insert(parent->number());
-    }
-    //if(this->alreadyPrintedFormulas.find(u->number()) == this->alreadyPrintedFormulas.end()){
-    //  out << "def φ" << u->number() << " :=";
-    //  outputUnit(out, u);
-    //  out << "\n";
-    //  alreadyPrintedFormulas.insert(u->number());
-    //}
-  }
+  bool inferenceNeedsReplayInformation(const InferenceRule &rule);
+
+  void outputCumulativeSplits(std::initializer_list<Kernel::Clause *> cl, std::string seperator = " ",std::string splitPrefix = "sA", bool ignoreNegation = false);
+
+  void outputCumulativeSplits(std::set<Kernel::Unit*, CompareUnits> cl, std::string seperator = " ", std::string splitPrefix = "sA", std::string prefix = "", std::string suffix = "");
+
+  void outputUnit(std::ostream &out, Kernel::Unit *u, SortMap *conclSorts = nullptr, bool outputSplits = true);
+
+  void outputUnitBeginning(std::ostream &out, Kernel::Unit *u, SortMap *conclSorts = nullptr);
 
   template <typename Transform = Identity>
   void outputClause(std::ostream &out, Kernel::Clause* cl, SortMap *conclSorts = nullptr, Transform transform = Transform{}){
@@ -80,8 +63,13 @@ private:
     SortHelper::collectVariableSorts(cl, sorts);
     outputSortsWithQuantor(out, sorts);
     for (Literal *l : *cl) {
-      if (!first)
-        out << " ∨ ";
+      if (!first){
+        if(LeanPrinter::outputBoolOperators){
+          out << " || ";
+        } else {
+          out << " ∨ ";
+        }
+      }
       l = transform(l);
       if (conclSorts!=nullptr)
         out << Lit{l, *conclSorts, sorts};
@@ -104,11 +92,24 @@ private:
     //out << ")";
   }
 
-  unsigned outputPremises(std::ostream &out, Unit *u);
-  void outputPremiseAndConclusion(std::ostream &out, Unit *concl);
+  unsigned outputPremises(std::ostream &out, Unit *u, std::string seperator = " →\n");
+  void outputPremiseAndConclusion(std::ostream &out, Unit *concl, std::string separator = " →\n");
   void instantiateConclusionVars(std::ostream &out, SortMap &conclSorts, Unit *concl);
   template <typename Transform = Identity>
   void instantiatePremiseVars(std::ostream &out, SortMap &conclSorts, Unit *premise, Transform transform = Transform{}){
+    if(premise->isClause()){
+      auto cl = premise->asClause();
+      if(!cl->noSplits()){
+        if(cl->splits()->size() > 1){
+          out << "and_constr ⟨";
+        }
+        outputCumulativeSplits({cl}, ", ", "x", true);
+        if(cl->splits()->size() > 1){
+          out << "⟩";
+        } 
+        out << " ";
+      }
+    }
     SortMap premiseSorts;
     SortHelper::collectVariableSorts(premise, premiseSorts);
     VirtualIterator<unsigned> domain = premiseSorts.domain();
@@ -129,6 +130,13 @@ private:
   void              clausify(std::ostream &out, SortMap &conclSorts, Unit *concl);
   void predicateDefinitionIntroduction(std::ostream &out, SortMap &conclSorts, Unit *concl);
   void  functionDefinitionIntroduction(std::ostream &out, SortMap &conclSorts, Unit *concl);
+  void    avatarDefinitionIntroduction(std::ostream &out, SortMap &conclSorts, Unit *concl);
+  void       avatarComponent(std::ostream &out, SortMap &conclSorts, Unit *concl);
+  void outputSatClause(std::ostream &out, std::map<unsigned int, bool> &seen, std::string primed = "'", bool boolSymbols = false);
+  void outputSatFormula(std::ostream &out, std::set<Unit *, CompareUnits> &parents, std::string primed = "'", bool useBoolOperators = false, bool useImplication = false);
+  void avatarRefutation(std::ostream &out, SortMap &conclSorts, Unit *concl);
+  void avatarRefutationProofStep(std::ostream &out, SortMap &conclSorts, Unit *concl);
+  void avatarSplitClause(std::ostream &out, SortMap &conclSorts, Unit *concl);
   void            normalForm(std::ostream &out, SortMap &conclSorts, Unit *concl);
   void             skolemize(std::ostream &out, SortMap &conclSorts, Unit *concl);
   void definitionFoldingTwee(std::ostream &out, SortMap &conclSorts, Clause *concl);
@@ -156,14 +164,18 @@ private:
          "set_option linter.unusedSectionVars false\n"
          "set_option linter.unusedTactic false\n"
          "set_option linter.unusedSimpArgs false\n\n"
-
+         "set_option linter.unreachableTactic false\n\n"
+         "set_option maxRecDepth 100000\n\n"
+         
+ 
          "def inhabit_ℤ : ℤ := default\n"
          "def inhabit_ℝ : ℝ := default\n"
          "def inhabit_Bool : Bool := default\n";
-
-  std::string stepIdent = "step";
-  std::string indent = "  ";
-  std::string intIdent = "i";  
-
+ 
+  const std::string stepIdent = "step";
+  const std::string indent = "  ";
+  const std::string intIdent = "i";
+  const std::string avatarSplitPrefix = "sA";
+ 
 };
 } // namespace Shell

@@ -1,4 +1,6 @@
 #include "LeanPrinter.hpp"
+#include "Kernel/Connective.hpp"
+#include "Kernel/Formula.hpp"
 #include <deque>
 #include <vector>
 #include <algorithm>
@@ -6,9 +8,11 @@
 namespace Shell {
 namespace LeanPrinter {
 
+bool outputBoolOperators = false;
+
 std::ostream &operator<<(std::ostream &out, Escaped escaped)
 {
-  out << "«";
+  out << "«_";
   out << escaped.name;
   out << "»";
   return out;
@@ -422,8 +426,13 @@ void printFormula(std::ostream &out, Formula *f, SortMap &conclSorts, SortMap &o
       auto args = reversedList->iter();
       while (args.hasNext()) {
         printFormula(out, args.next(), conclSorts, otherSorts, variablesAsPattern);
-        if (args.hasNext())
-          out << " ∧ ";
+        if (args.hasNext()){
+          if(outputBoolOperators){
+            out << " && ";
+          } else {
+            out << " ∧ ";
+          }
+        }
       }
       FormulaList::destroy(reversedList);
       out << ")";
@@ -434,8 +443,13 @@ void printFormula(std::ostream &out, Formula *f, SortMap &conclSorts, SortMap &o
       auto args = reversedList->iter();
       while (args.hasNext()) {
         printFormula(out, args.next(), conclSorts, otherSorts, variablesAsPattern);
-        if (args.hasNext())
-          out << " ∨ ";
+        if (args.hasNext()){
+          if(outputBoolOperators){
+            out << " || ";
+          } else {
+            out << " ∨ ";
+          }
+        }
       }
       FormulaList::destroy(reversedList);
       out << ")";
@@ -499,6 +513,9 @@ void printFormula(std::ostream &out, Formula *f, SortMap &conclSorts, SortMap &o
       break;
     case FALSE:
       out << "False";
+      break;
+    case NAME:
+      out << (static_cast<NamedFormula*>(f)->name()).c_str();
       break;
     default:
       ASSERTION_VIOLATION;

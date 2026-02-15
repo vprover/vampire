@@ -14,6 +14,7 @@
 
 #include <algorithm>
 
+#include "Kernel/Substitution.hpp"
 #include "Lib/BinaryHeap.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/DHMap.hpp"
@@ -25,7 +26,11 @@
 #include "Term.hpp"
 #include "Matcher.hpp"
 #include "MLVariant.hpp"
-#include "TermIterators.hpp"
+
+#if VDEBUG
+#include <iostream>
+using namespace std;
+#endif
 
 #define TRACE_LONG_MATCHING 0
 #if TRACE_LONG_MATCHING
@@ -382,7 +387,7 @@ using namespace MLVariant_AUX;
 /**
  *
  */
-bool MLVariant::isVariant(Literal* const * cl1Lits, Clause* cl2, LiteralList** alts)
+bool MLVariant::isVariant(Literal* const * cl1Lits, Clause* cl2, LiteralList** alts, Substitution *map)
 {
   unsigned clen=cl2->length();
 
@@ -390,7 +395,6 @@ bool MLVariant::isVariant(Literal* const * cl1Lits, Clause* cl2, LiteralList** a
   if(!md) {
     return false;
   }
-
   static DArray<unsigned> matchRecord(32);
   unsigned matchRecordLen=clen;
   matchRecord.init(matchRecordLen,0xFFFFFFFF);
@@ -438,11 +442,20 @@ bool MLVariant::isVariant(Literal* const * cl1Lits, Clause* cl2, LiteralList** a
       currBLit--;
     }
   }
+  
+  if(map)
+    for(currBLit = 0; currBLit < matchedLen; currBLit++)
+      for(unsigned i = 0; i < md->varCnts[currBLit]; i++)
+        ALWAYS(map->bind(
+          md->altBindings[currBLit][md->nextAlts[currBLit] - 1][i],
+          TermList(md->boundVarNums[currBLit][i], false)
+        ))
+
   return true;
 }
 
 
-bool MLVariant::isVariant(Literal* const * cl1Lits, Clause* cl2, bool complementary)
+bool MLVariant::isVariant(Literal* const * cl1Lits, Clause* cl2, bool complementary, Substitution *map)
 {
   bool fail=false;
   unsigned clen=cl2->length();
@@ -469,7 +482,7 @@ bool MLVariant::isVariant(Literal* const * cl1Lits, Clause* cl2, bool complement
     }
   }
 
-  fail=!MLVariant::isVariant(cl1Lits,cl2,alts.array());
+  fail=!MLVariant::isVariant(cl1Lits,cl2,alts.array(),map);
 
 fin:
   for(unsigned i=0;i<clen;i++) {

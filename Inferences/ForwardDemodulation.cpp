@@ -217,7 +217,7 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
 
         premises = pvi( getSingletonIterator(qr.data->clause));
         replacement = Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.data->clause));
-        if(env.options->proofExtra() == Options::ProofExtra::FULL){
+        if(env.options->proofExtra() == Options::ProofExtra::FULL || env.options->proofExtra() == Options::ProofExtra::LEAN) {
           env.proofExtra.insert(replacement, new ForwardDemodulationExtra(lhs, trm));
         } 
         if(env.reconstruction){
