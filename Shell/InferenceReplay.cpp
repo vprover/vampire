@@ -7,6 +7,8 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/Superposition.hpp"
 #include "Kernel/Inference.hpp"
+#include "Shell/EqResWithDeletion.hpp"
+#include "Shell/InferenceRecorder.hpp"
 
 namespace Shell {
 void InferenceReplayer::replayInference(Kernel::Unit *u)
@@ -43,6 +45,15 @@ void InferenceReplayer::replayInference(Kernel::Unit *u)
     Inferences::EqualityResolution eq;
     runGenerating(&eq,
                          stack, u->asClause());
+  }
+  else if (u->inference().rule() == InferenceRule::EQUALITY_RESOLUTION_WITH_DELETION) {
+    Inferences::EqResWithDeletion eq;
+    Problem p;
+    auto ul = UnitList::empty();
+    UnitList::pushFromIterator(ClauseStack::Iterator(stack), ul);
+    p.addUnits(ul);
+    env.setMainProblem(&p);
+    eq.apply(p);
   }
   else if (u->inference().rule() == InferenceRule::FACTORING) {
     Inferences::Factoring fact;
@@ -99,15 +110,12 @@ void InferenceReplayer::runForwardsSimp(ForwardSimplificationEngine *rule,
   rule->attach(alg);
 
   ClauseContainer *simplClauseContainer = alg->getSimplifyingClauseContainer();
-
   context[1]->setStore(Clause::ACTIVE);
   simplClauseContainer->add(context[1]);
-
   Clause *clause = context[0];
   Clause *replacement = nullptr;
   Kernel::ClauseIterator clauses;
   rule->perform(clause, replacement, clauses);
-
   removeAllActiveClauses();
   rule->detach();
   Ordering::unsetGlobalOrdering();

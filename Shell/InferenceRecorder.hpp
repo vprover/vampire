@@ -8,6 +8,7 @@
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Kernel/SubstHelper.hpp"
+#include "Shell/EqResWithDeletion.hpp"
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -34,6 +35,8 @@ public:
   void factoring(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const Indexing::RobSubstitution &recordedSubst);
 
   void equalityResolution(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const Indexing::RobSubstitution &recordedSubst);
+  
+  void equalityResolutionDeletion(unsigned int id, Clause *conclusion, EqResWithDeletion *appl);
 
   void forwardDemodulation(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const SubstApplicator *appl, const Indexing::DemodulatorData *data,
                            TermList rhsS);
@@ -63,7 +66,7 @@ public:
   InferenceRecorder &operator=(const InferenceRecorder &) = delete;
   InferenceRecorder(InferenceRecorder &&) = delete;
   InferenceRecorder &operator=(InferenceRecorder &&) = delete;
-
+  
 private:
   InferenceRecorder();
 
