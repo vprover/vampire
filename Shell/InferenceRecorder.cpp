@@ -9,6 +9,7 @@
 #include "Kernel/Substitution.hpp"
 #include "Indexing/ResultSubstitution.hpp"
 #include "Kernel/Term.hpp"
+#include "Shell/EqResWithDeletion.hpp"
 #include <cstddef>
 #include <unordered_map>
 #include <vector>
@@ -105,6 +106,14 @@ void InferenceRecorder::equalityResolution(unsigned int id, Clause *conclusion, 
   recordGenericSubstitutionInference(id, conclusion, premises, recordedSubst);
 }
 
+void InferenceRecorder::equalityResolutionDeletion(unsigned int id, Clause *conclusion, EqResWithDeletion *appl)
+{
+  recordGenericSubstitutionInference<EqResWithDeletion*>(id, conclusion, {conclusion}, appl,
+    [](EqResWithDeletion *subst, const TermList &term, size_t bank) {
+    return subst->apply(term.var());
+  });
+}
+
 bool hasVarSubstAndCompute(TermList &expectedTerm, TermList &haveTerm, Substitution &outVariableSwitch)
 {
   bool haveProperSubst = false;
@@ -122,7 +131,7 @@ bool hasVarSubstAndCompute(TermList &expectedTerm, TermList &haveTerm, Substitut
 
   if (MatchingUtils::matchTerms(expectedTerm, haveTerm)) {
     haveProperSubst = true;
-    MatchingUtils::matchArgs(expectedTerm.term(), haveTerm.term(), outVariableSwitch);
+    MatchingUtils::matchArgs(haveTerm.term(), expectedTerm.term(), outVariableSwitch);
     auto items = outVariableSwitch.items();
     while (items.hasNext()) {
       auto [var, termList] = items.next();
@@ -163,19 +172,19 @@ void InferenceRecorder::forwardDemodulation(unsigned int id, Clause *conclusion,
         }
       }
       if (!haveProperSubst) {
-		varPermut.reset();
+		    varPermut.reset();
         haveProperSubst = hasVarSubstAndCompute(rhsTerm, *(data->clause->literals()[0]->nthArgument(1)), varPermut);
-		// we don't need to check rhsS again, because now it must be the other side
+		    // we don't need to check rhsS again, because now it must be the other side
       }
     } else if (rhsTerm.isVar()) {
       if (data->clause->literals()[0]->nthArgument(0)->isVar()) {
-        varPermut.bind(rhsTerm.var(),
-                            TermList::var(data->clause->literals()[0]->nthArgument(0)->var()));
+        varPermut.bind(data->clause->literals()[0]->nthArgument(0)->var(),
+                            TermList::var(rhsTerm.var()));
         haveProperSubst = true;
       }
       else if (data->clause->literals()[0]->nthArgument(1)->isVar()) {
-        varPermut.bind(rhsTerm.var(),
-                            TermList::var(data->clause->literals()[0]->nthArgument(1)->var()));
+        varPermut.bind(data->clause->literals()[0]->nthArgument(1)->var(),
+                            TermList::var(rhsTerm.var()));
         haveProperSubst = true;
       }
       else {
@@ -211,7 +220,6 @@ void InferenceRecorder::backwardDemodulation(unsigned int id, Clause *conclusion
 
 bool InferenceRecorder::isSameAsProofStep(Clause *clause, Clause *goal, std::unordered_map<unsigned int, unsigned int> &outVarMap)
 {
-
   if (clause->length() != goal->length()) {
     return false;
   }
@@ -253,7 +261,10 @@ bool InferenceRecorder::isSameAsProofStep(Clause *clause, Clause *goal, std::uno
     std::unordered_map<unsigned int, TermList> varToTermMap;
     matcher.getBindings(varToTermMap);
     for (auto [var, term] : varToTermMap) {
-      ASS(term.isVar());
+      if(!term.isVar()){
+        outVarMap.clear();
+        continue;
+      }
       outVarMap[var] = term.var();
     }
     return true;

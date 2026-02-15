@@ -20,6 +20,7 @@
 #include "Kernel/FormulaVarIterator.hpp"
 
 #include "Shell/AnswerLiteralManager.hpp"
+#include "Shell/InferenceRecorder.hpp"
 
 #include "EqResWithDeletion.hpp"
 
@@ -99,6 +100,10 @@ start_applying:
 
   cl = Clause::fromStack(*resLits,
       SimplifyingInference1(InferenceRule::EQUALITY_RESOLUTION_WITH_DELETION, cl));
+    
+  if(env.reconstruction){
+    InferenceRecorder::instance()->equalityResolutionDeletion(cl->number(), cl, this);
+  }
   if(env.options->proofExtra() == Options::ProofExtra::FULL)
     env.proofExtra.insert(cl, new EqResWithDeletionExtra(std::move(resolved)));
   goto start_applying;
