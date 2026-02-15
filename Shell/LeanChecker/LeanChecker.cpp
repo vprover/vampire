@@ -611,7 +611,7 @@ void LeanChecker::predicateDefinitionIntroduction(std::ostream &out, SortMap &co
     outputVariablesGen<VList::RefIterator>(out, fDomainIter, conclSorts, conclSorts, Identity{}, 0, false);
   }
   out << " := Iff.rfl\n" << indent << indent;
-  out << "(first | exact s | exact or_comm.mp (imp_iff_not_or.mp s.mpr) | exact or_assoc.mp (or_comm.mp (imp_iff_not_or.mp s.mpr))| exact imp_iff_not_or.mp s.mp)\n\n";
+  out << "(first | exact s | exact or_comm.mp (imp_iff_not_or.mp s.mpr) | have res := (or_comm.mp (imp_iff_not_or.mp s.mpr)); simp only[or_assoc] at res; trivial | exact imp_iff_not_or.mp s.mp)\n\n";
 }
 
 void LeanChecker::functionDefinitionIntroduction(std::ostream &out, SortMap &conclSorts, Unit *concl){
@@ -904,9 +904,13 @@ void LeanChecker::avatarSplitClause(std::ostream &out, SortMap &conclSorts, Unit
       SortMap map;
       SortHelper::collectVariableSorts(parent,map);
       auto parentVariables = map.domain();
-      out << " ";
+      std::set <unsigned> sortedVars;
       while(parentVariables.hasNext()){
-        auto var = parentVariables.next();
+        unsigned var = parentVariables.next();
+        sortedVars.insert(var);
+      }
+      out << " ";
+      for(unsigned var : sortedVars){
         out << "x" << parentWithNumbering->first << "a" << var << " ";
       }
     }

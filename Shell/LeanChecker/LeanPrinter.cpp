@@ -485,7 +485,12 @@ void printFormula(std::ostream &out, Formula *f, SortMap &conclSorts, SortMap &o
       SortMap map;
       while (vs.hasNext()) {
         auto var = vs.next();
-        map.insert(var, otherSorts.get(var));
+        if(otherSorts.findPtr(var)){
+          map.insert(var, otherSorts.get(var));
+        } else {
+          //This should not happen, but happens sometimes
+          map.insert(var, AtomicSort::defaultSort());
+        }
       }
       out << "(";
       outputSortsWithQuantor(out, map, "∀");
@@ -497,7 +502,12 @@ void printFormula(std::ostream &out, Formula *f, SortMap &conclSorts, SortMap &o
       SortMap map;
       while (vs.hasNext()) {
         auto var = vs.next();
-        map.insert(var, otherSorts.get(var));
+        if(otherSorts.findPtr(var)){
+          map.insert(var, otherSorts.get(var));
+        } else {
+          //This should not happen, but happens sometimes
+          map.insert(var, AtomicSort::defaultSort());
+        }
       }
       out << "(";
       outputSortsWithQuantor(out, map, "∃");

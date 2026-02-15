@@ -97,12 +97,12 @@ start_applying:
   for(unsigned i=0;i<resLits->size();i++) {
     (*resLits)[i] = SubstHelper::apply((*resLits)[i], *this);
   }
-
+  auto premise = cl;
   cl = Clause::fromStack(*resLits,
-      SimplifyingInference1(InferenceRule::EQUALITY_RESOLUTION_WITH_DELETION, cl));
+      SimplifyingInference1(InferenceRule::EQUALITY_RESOLUTION_WITH_DELETION, premise));
     
   if(env.reconstruction){
-    InferenceRecorder::instance()->equalityResolutionDeletion(cl->number(), cl, this);
+    InferenceRecorder::instance()->equalityResolutionDeletion(cl->number(), cl, premise, this);
   }
   if(env.options->proofExtra() == Options::ProofExtra::FULL)
     env.proofExtra.insert(cl, new EqResWithDeletionExtra(std::move(resolved)));

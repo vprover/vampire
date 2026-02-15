@@ -106,9 +106,9 @@ void InferenceRecorder::equalityResolution(unsigned int id, Clause *conclusion, 
   recordGenericSubstitutionInference(id, conclusion, premises, recordedSubst);
 }
 
-void InferenceRecorder::equalityResolutionDeletion(unsigned int id, Clause *conclusion, EqResWithDeletion *appl)
+void InferenceRecorder::equalityResolutionDeletion(unsigned int id, Clause *conclusion, Clause *premise, EqResWithDeletion *appl)
 {
-  recordGenericSubstitutionInference<EqResWithDeletion*>(id, conclusion, {conclusion}, appl,
+  recordGenericSubstitutionInference<EqResWithDeletion*>(id, conclusion, {premise}, appl,
     [](EqResWithDeletion *subst, const TermList &term, size_t bank) {
     return subst->apply(term.var());
   });
