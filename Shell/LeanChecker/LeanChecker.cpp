@@ -15,10 +15,10 @@
 #include "LeanPrinter.hpp"
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
 #include "Saturation/Splitter.hpp"
+#include "Shell/FunctionDefinition.hpp"
 #include "Shell/InferenceRecorder.hpp"
 #include "Shell/InferenceReplay.hpp"
 #include "VariablePrenexOrderingTree.hpp"
-#include <cstddef>
 #include <deque>
 #include <initializer_list>
 #include <map>
@@ -957,17 +957,32 @@ void LeanChecker::definitionUnfolding(std::ostream &out, SortMap &conclSorts, Un
     size++;
   }
   parents = concl->getParents();
+  auto proofExtra = env.proofExtra.get<FunctionDefinitionExtra>(concl);
   instantiateConclusionVars(out, conclSorts, concl);
-  for (unsigned i = 0; i < size; i++) {
-    ASS(parents.hasNext())
-    auto parent = parents.next();
-    ASS(parent->isClause())
-    out << "\n" << indent << "have " << intIdent << i << " := h"<<i<<" ";
-    instantiatePremiseVars(out, conclSorts, parent->asClause());
-  }
+  ASS(parents.hasNext())
+  auto parent = parents.next();
+  ASS(parent->isClause())
+  out << "\n" << indent << "have " << intIdent << 0 << " := h"<<0<<" ";
+  instantiatePremiseVars(out, conclSorts, parent->asClause());
+  
   out << "\n";
-  for (unsigned i = 1; i < size; i++) {
-    out << indent << "rewrite(occs := .pos [1])[" << intIdent << i << "] at i0\n";
+  parents = concl->getParents();
+  for (unsigned i = 0; i < size; i++) {
+    auto parent = parents.next();
+    if(i==0){
+      continue;
+    }
+    
+    auto rw = parent->asClause();
+    ASS(rw->size()==1);
+    auto lit = rw->literals()[0];
+    ASS(lit->isEquality());
+    auto recordedLhs = proofExtra.lhs;
+    if(lit->termArg(0).term() == recordedLhs[i-1]){
+      out << indent << "nth_rewrite 1 [h" << i << "] at i0\n";
+    } else {
+      out << indent << "nth_rewrite 1 [ ← h" << i << "] at i0\n";
+    }
   }
   out << indent << "grind only\n";
 }

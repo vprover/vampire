@@ -708,13 +708,13 @@ Clause* FunctionDefinition::applyDefinitions(Clause* cl)
     Def *def = usedDefs.pop();
     Clause* defCl=def->defCl;
     UnitList::push(defCl, premises);
-    if(env.options->proofExtra() == Options::ProofExtra::FULL)
+    if(env.options->proofExtra() == Options::ProofExtra::FULL || env.options->proofExtra() == Options::ProofExtra::LEAN)
       extra.push_back(def->lhs);
   }
   std::reverse(extra.begin(), extra.end());
   UnitList::push(cl, premises);
   auto res = Clause::fromStack(*resLits, NonspecificInferenceMany(InferenceRule::DEFINITION_UNFOLDING, premises));
-  if(env.options->proofExtra() == Options::ProofExtra::FULL)
+  if(env.options->proofExtra() == Options::ProofExtra::FULL || env.options->proofExtra() == Options::ProofExtra::LEAN)
     env.proofExtra.insert(res, new FunctionDefinitionExtra(std::move(extra)));
   res->setAge(cl->age()); // TODO isn't this dones automatically?
   return res;

@@ -157,6 +157,7 @@ private:
          //"import Mathlib.Order.Basic\n"
          //"import Mathlib.Data.Real.Basic\n"
          "import Lean\n"
+         "import Mathlib.Tactic.NthRewrite\n"
          "import LeanTest.SuperpositionWoMatlib\n"
          "import LeanTest.quantifierChangeWoMatlib\n"
          "open Lean Elab Tactic Meta\n"
