@@ -19,6 +19,7 @@
 #include "Shell/InferenceRecorder.hpp"
 #include "Shell/InferenceReplay.hpp"
 #include "VariablePrenexOrderingTree.hpp"
+#include <cstdlib>
 #include <deque>
 #include <initializer_list>
 #include <map>
@@ -87,8 +88,8 @@ bool LeanChecker::inferenceNeedsReplayInformation(const InferenceRule &rule)
     case InferenceRule::EQUALITY_RESOLUTION:
     case InferenceRule::EQUALITY_RESOLUTION_WITH_DELETION:
     case InferenceRule::SUPERPOSITION:
-    //case InferenceRule::FORWARD_DEMODULATION:
-    //case InferenceRule::BACKWARD_DEMODULATION:
+    case InferenceRule::FORWARD_DEMODULATION:
+    case InferenceRule::BACKWARD_DEMODULATION:
       return true;
     default:
       return false;
@@ -538,22 +539,10 @@ static bool isL2RDemodulatorFor(Literal *demodulator, Clause *rewritten, TermLis
 
 void LeanChecker::demodulation(std::ostream &out, SortMap &conclSorts, Clause *concl, const InferenceRecorder::InferenceInformation *info){
   if(info == nullptr){
-    auto [left, right] = getParents<2>(concl);
-    auto rw = env.proofExtra.get<Inferences::RewriteInferenceExtra>(concl);
-
-    Substitution subst;
-    Literal *rightLit = (*right)[0];
-    TermList target = rw.rewritten;
-    TermList from = rightLit->termArg(!isL2RDemodulatorFor(rightLit, left, target, concl));
-    ASS(rightLit->isEquality())
-    ASS(rightLit->isPositive())
-    ASS(rightLit->termArg(0) == from || rightLit->termArg(1) == from)
-    ALWAYS(MatchingUtils::matchTerms(from, target, subst))
-    //Fallback to old method because unfortunately replay fails sometimes
-    genericNPremiseInference(out, conclSorts, concl, {Substitution(), subst}, "grind only [cases Or]");
-  } else {
-    genericNPremiseInference(out, conclSorts, concl, {Substitution(), info->substitutionForBanksSub[0]}, "grind only [cases Or]");
+    out << "PROBLEM IN DEMODULATION\n";
+    exit(10);
   }
+  genericNPremiseInference(out, conclSorts, concl, {Substitution(), info->substitutionForBanksSub[0]}, "grind only [cases Or]");
 }
 
 void LeanChecker::clausify(std::ostream &out, SortMap &conclSorts, Unit *concl){
@@ -964,7 +953,7 @@ void LeanChecker::definitionUnfolding(std::ostream &out, SortMap &conclSorts, Un
   ASS(parent->isClause())
   out << "\n" << indent << "have " << intIdent << 0 << " := h"<<0<<" ";
   instantiatePremiseVars(out, conclSorts, parent->asClause());
-  
+
   out << "\n";
   parents = concl->getParents();
   for (unsigned i = 0; i < size; i++) {

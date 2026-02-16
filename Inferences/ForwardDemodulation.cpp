@@ -217,7 +217,7 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
 
         premises = pvi( getSingletonIterator(qr.data->clause));
         replacement = Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.data->clause));
-        if(env.options->proofExtra() == Options::ProofExtra::FULL || env.options->proofExtra() == Options::ProofExtra::LEAN) {
+        if(env.options->proofExtra() == Options::ProofExtra::FULL) {
           env.proofExtra.insert(replacement, new ForwardDemodulationExtra(lhs, trm));
         } 
         if(env.reconstruction){
@@ -277,16 +277,22 @@ ClauseIterator ForwardDemodulationReplay::generateClauses(Clause* premise)
         }
 
         RStack<Literal*> resLits;
-        resLits->push(EqHelper::replace(lit,trm,rhsApplied.apply()));
+        auto rhsS = rhsApplied.apply();
+        resLits->push(EqHelper::replace(lit,trm,rhsS));
 
         for (const auto& curr : *premise) {
           if(curr!=lit) {
             resLits->push(curr);
           }
         }
+        
+        auto replacement = Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, premise, qr.data->clause));
+        if(env.reconstruction){
+          Shell::InferenceRecorder::instance()->forwardDemodulation(replacement->number(), replacement, {premise, qr.data->clause}, appl,qr.data, rhsS);
+        }
+        result = pvi(concatIters(std::move(result), getSingletonIterator(replacement)));
 
-        result = pvi(concatIters(std::move(result), getSingletonIterator(
-          Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, premise, qr.data->clause)))));
+        
       }
     }
   }
