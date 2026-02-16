@@ -63,6 +63,7 @@ GEN_INDEX_IMPL(UnitClauseWithALLiteralIndex)
 GEN_INDEX_IMPL(InductionTermIndex)
 GEN_INDEX_IMPL(StructInductionTermIndex)
 GEN_INDEX_IMPL(UnitIntegerComparisonLiteralIndex)
+GEN_INDEX_IMPL(DemodulationLHSIndex)
 
 IndexManager::IndexManager(SaturationAlgorithm& alg)
   : _alg(alg)

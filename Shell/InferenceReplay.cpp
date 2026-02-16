@@ -27,8 +27,8 @@ void InferenceReplayer::replayInference(Kernel::Unit *u)
     runGenerating(&br, stack, u->asClause());
   }
   else if (u->inference().rule() == InferenceRule::FORWARD_DEMODULATION){
-      ForwardDemodulation fd;
-      runForwardsSimp(&fd,
+      ForwardDemodulationReplay fd;
+      runGenerating(&fd,
       stack, u->asClause());
   }
   else if(u->inference().rule() == InferenceRule::BACKWARD_DEMODULATION){
