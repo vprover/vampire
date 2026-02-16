@@ -46,6 +46,18 @@ protected:
   std::shared_ptr<DemodulationLHSIndex> _index;
 };
 
+class ForwardDemodulationReplay
+: public GeneratingInferenceEngine
+{
+public:
+  void attach(SaturationAlgorithm* salg) override;
+  void detach() override;
+  ClauseIterator generateClauses(Clause* premise) override;
+
+private:
+  std::shared_ptr<DemodulationLHSIndex> _index;
+};
+
 using ForwardDemodulationExtra = RewriteInferenceExtra;
 
 };

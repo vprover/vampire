@@ -233,4 +233,65 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
   return false;
 }
 
+void ForwardDemodulationReplay::attach(SaturationAlgorithm* salg)
+{
+  GeneratingInferenceEngine::attach(salg);
+  _index = salg->getGeneratingIndex<DemodulationLHSIndex>();
+}
+
+void ForwardDemodulationReplay::detach()
+{
+  _index = nullptr;
+  GeneratingInferenceEngine::detach();
+}
+
+ClauseIterator ForwardDemodulationReplay::generateClauses(Clause* premise)
+{
+  Ordering& ordering = _salg->getOrdering();
+  auto result = ClauseIterator::getEmpty();
+
+  for(const auto& lit : *premise) {
+    
+    for (TypedTermList trm : iterTraits(NonVariableNonTypeIterator(lit))) {
+
+      for (const auto& qr : iterTraits(_index->getGeneralizations(trm.term(), /* retrieveSubstitutions */ true))) {
+
+        auto lhs = qr.data->term;
+
+        RobSubstitution eqSortSubs;
+        if(lhs.isVar()){
+          if(!eqSortSubs.match(qr.data->term.sort(), 0, trm.sort(), 1)){
+            continue;
+          }
+        }
+
+        auto subs = qr.unifier;
+
+        ApplicatorWithEqSort applWithEqSort(subs.ptr(), eqSortSubs);
+        Applicator applWithoutEqSort(subs.ptr());
+        auto appl = lhs.isVar() ? (SubstApplicator*)&applWithEqSort : (SubstApplicator*)&applWithoutEqSort;
+
+        AppliedTerm rhsApplied(qr.data->rhs,appl,true);
+        if (ordering.compare(trm,rhsApplied) != Ordering::GREATER) {
+          continue;
+        }
+
+        RStack<Literal*> resLits;
+        resLits->push(EqHelper::replace(lit,trm,rhsApplied.apply()));
+
+        for (const auto& curr : *premise) {
+          if(curr!=lit) {
+            resLits->push(curr);
+          }
+        }
+
+        result = pvi(concatIters(std::move(result), getSingletonIterator(
+          Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, premise, qr.data->clause)))));
+      }
+    }
+  }
+
+  return result;
+}
+
 }
