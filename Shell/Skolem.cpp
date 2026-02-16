@@ -332,11 +332,11 @@ Formula* Skolem::skolemise (Formula* f)
 
   case FORALL:
     {
-      if(env.options->proof() == Options::Proof::LEANCHECK){
+      if(env.options->skolemizationType() == Options::SkolemizationType::SYNTACTIC){
         _universalScope.loadFromIterator(f->vars()->iter());
       }
       Formula* g = skolemise(f->qarg());
-      if(env.options->proof() == Options::Proof::LEANCHECK){
+      if(env.options->skolemizationType() == Options::SkolemizationType::SYNTACTIC){
         for(int x =0;x<VList::length(f->vars());x++){
           _universalScope.pop();
         }
@@ -400,7 +400,7 @@ Formula* Skolem::skolemise (Formula* f)
       using IterA = decltype(dep->iter());
       using IterB = decltype(x);
 
-      std::variant<IterA, IterB> vuIt = (env.options->proof() == Options::Proof::LEANCHECK)
+      std::variant<IterA, IterB> vuIt = (env.options->skolemizationType() == Options::SkolemizationType::SYNTACTIC)
         ? std::variant<IterA, IterB>{x}
         : std::variant<IterA, IterB>{dep->iter()};
       

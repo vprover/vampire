@@ -571,6 +571,11 @@ public:
     OFF = 2
   };
 
+  enum class SkolemizationType : unsigned int {
+    STANDARD = 0,
+    SYNTACTIC = 1,
+  };
+
   enum class Proof : unsigned int {
     OFF = 0,
     ON = 1,
@@ -1952,6 +1957,7 @@ public:
   ProofExtra proofExtra() const { return _proofExtra.actualValue; }
   bool traceback() const { return _traceback.actualValue; }
   void setTraceback(bool traceback) { _traceback.actualValue = traceback; }
+  SkolemizationType skolemizationType() const { return _skolemizationType.actualValue; }
   std::string printProofToFile() const { return _printProofToFile.actualValue; }
   int naming() const { return _naming.actualValue; }
 
@@ -2564,6 +2570,7 @@ private:
   BoolOptionValue _minimizeSatProofs;
   ChoiceOptionValue<ProofExtra> _proofExtra;
   BoolOptionValue _traceback;
+  ChoiceOptionValue<SkolemizationType> _skolemizationType;
 
   StringOptionValue _protectedPrefix;
 

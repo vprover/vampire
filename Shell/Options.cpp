@@ -335,8 +335,15 @@ void Options::init()
     _proof.addHardConstraint(If(equal(Proof::SMTCHECK)).then(_proofExtra.is(equal(ProofExtra::FULL))));
     _proof.addHardConstraint(If(equal(Proof::LEANCHECK)).then(_proofExtra.is(equal(ProofExtra::LEAN))));
     _proof.addHardConstraint(If(equal(Proof::LEANCHECK)).then( _shuffleInput.is(equal(false))));
+    _proof.addHardConstraint(If(equal(Proof::LEANCHECK)).then( _skolemizationType.is(equal(SkolemizationType::SYNTACTIC))));
     
-    _minimizeSatProofs = BoolOptionValue("minimize_sat_proofs","msp",true);
+    _skolemizationType = ChoiceOptionValue<SkolemizationType>("skolemization","skt",SkolemizationType::STANDARD,{"standard","syntactic"});
+    _skolemizationType.description=
+      "The method used for skolemisation. The standard method produces the default vampire skolemization implementation, the syntactic method just uses all quantifiers before the subfomula. Note that the syntactic method may produce larger skolem terms.";
+    _lookup.insert(&_skolemizationType);
+    _skolemizationType.tag(OptionTag::PREPROCESSING);
+    
+      _minimizeSatProofs = BoolOptionValue("minimize_sat_proofs","msp",true);
     _minimizeSatProofs.description="Perform premise minimization when a sat solver finds a clause set UNSAT\n"
         "(such as with AVATAR proofs or with global subsumption).";
     _lookup.insert(&_minimizeSatProofs);

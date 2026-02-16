@@ -323,7 +323,7 @@ void LeanChecker::outputInferenceStep(std::ostream &out, Kernel::Unit *u){
       subsumptionResolution(out, conclSorts, u->asClause());
       break;
     case InferenceRule::DEFINITION_UNFOLDING:
-      genericNPremiseInferenceNoSubs(out, conclSorts, u->asClause());
+      definitionUnfolding(out, conclSorts, u);
       break;
     case InferenceRule::DEFINITION_FOLDING_TWEE:
       definitionFoldingTwee(out, conclSorts, u->asClause());
@@ -355,9 +355,9 @@ void LeanChecker::outputInferenceStep(std::ostream &out, Kernel::Unit *u){
       break;
     case Kernel::InferenceRule::AVATAR_CONTRADICTION_CLAUSE:
       genericInference(out, conclSorts, u, "intro h\n" +
-        indent + "apply Not.intro at h\n" +
-        indent + "try simp only [and_iff_not_or_not, not_not] at h\n" +
-        indent + "exact h\n");
+        indent + "have h' := Not.intro h\n" +
+        indent + "try simp only [and_iff_not_or_not, not_not] at h'\n" +
+        indent + "exact h'\n");
       break;
     case InferenceRule::AVATAR_SPLIT_CLAUSE:
       avatarSplitClause(out, conclSorts, u);
@@ -946,6 +946,31 @@ void LeanChecker::definitionFoldingPred(std::ostream &out, SortMap &conclSorts, 
   out << " at " << stepIdent << concl->number() << "\n";
 }
 
+void LeanChecker::definitionUnfolding(std::ostream &out, SortMap &conclSorts, Unit *concl){
+  auto parents = concl->getParents();
+  unsigned size = 0;
+  outputPremiseAndConclusion(out, concl);
+  out << " := by\n" << indent << "intros ";
+  while(parents.hasNext()){
+    parents.next();
+    out << "h" << size << " ";
+    size++;
+  }
+  parents = concl->getParents();
+  instantiateConclusionVars(out, conclSorts, concl);
+  for (unsigned i = 0; i < size; i++) {
+    ASS(parents.hasNext())
+    auto parent = parents.next();
+    ASS(parent->isClause())
+    out << "\n" << indent << "have " << intIdent << i << " := h"<<i<<" ";
+    instantiatePremiseVars(out, conclSorts, parent->asClause());
+  }
+  out << "\n";
+  for (unsigned i = 1; i < size; i++) {
+    out << indent << "rewrite(occs := .pos [1])[" << intIdent << i << "] at i0\n";
+  }
+  out << indent << "grind only\n";
+}
 void LeanChecker::normalForm(std::ostream &out, SortMap &conclSorts, Unit *concl){
   outputPremiseAndConclusion(out, concl);
   out << " := by\n";
@@ -960,13 +985,13 @@ void LeanChecker::normalForm(std::ostream &out, SortMap &conclSorts, Unit *concl
     out << indent << "intro h\n"
         << indent << "flattening at h\n"
         << indent << "try simp only [not_true]\n"
-        << indent << "first | exact h | grind | aesop | sorry\n";
+        << indent << "first | exact h | grind | sorry\n";
   }
   else if (rule == InferenceRule::NNF) {
     out << indent << "intro h\n"
         << indent << "nnf_transformation at h\n"
         << indent << "try simp only [not_true]\n"
-        << indent << "first | exact h | grind | aesop | sorry\n";
+        << indent << "first | exact h | grind | sorry\n";
   }
   else if (rule == Kernel::InferenceRule::RECTIFY) {
     out << indent << "first | exact fun x => x | grind | sorry\n";
@@ -974,12 +999,12 @@ void LeanChecker::normalForm(std::ostream &out, SortMap &conclSorts, Unit *concl
   else if (rule == Kernel::InferenceRule::REDUCE_FALSE_TRUE) {
     out << indent << "intro h\n";
     out << indent << "remove_tauto at h\n";
-    out << indent << "first | exact h | grind | aesop | sorry\n";
-  } else if (rule == InferenceRule::THEORY_NORMALIZATION) {
+    out << indent << "first | exact h | grind | sorry\n";
+  } /*else if (rule == InferenceRule::THEORY_NORMALIZATION) {
     out << indent << "intro h\n";
     out << indent << "try simp only [← not_lt, gt_iff_lt] at h\n";
-    out << indent << "first | exact h | grind | aesop | sorry\n";
-  }
+    out << indent << "first | exact h | grind | sorry\n";
+  }*/
   out << "\n";
 }
 void LeanChecker::skolemize(std::ostream &out, SortMap &conclSorts, Unit *concl){
@@ -1003,11 +1028,11 @@ void LeanChecker::skolemize(std::ostream &out, SortMap &conclSorts, Unit *concl)
   tree.buildTreeFromFormula(parent->getFormula(), Kernel::EXISTS);
   out << indent << "exists_prenex at "<< stepIdent;
   out << parent->number() << "\n";
-  out << indent << "choose ";
+  out << indent << "let ⟨";
   for (unsigned var : *tree.determineVariableOrdering()) {
-    out << FunctionName(replacedVarMap[var]) << " ";
+    out << FunctionName(replacedVarMap[var]) << ",";
   }
-  out << " step" << concl->number() << "' using step" << parent->number() << "\n";
+  out << "step" << concl->number() << "'⟩ := step" << parent->number() << "\n";
   out << indent << "have step" << concl->number() << " : ";
   outputUnit(out, concl);
   out << " := by symm_match using " << stepIdent << concl->number() << "'\n";
