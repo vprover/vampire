@@ -254,20 +254,24 @@ bool InferenceRecorder::isSameAsProofStep(Clause *clause, Clause *goal, std::uno
       return false;
     }
   }
-
+  
   MLMatcher matcher;
   matcher.init(c, simpGoal, alts.data());
   while (matcher.nextMatch()) {
     std::unordered_map<unsigned int, TermList> varToTermMap;
+    bool found = true;
     matcher.getBindings(varToTermMap);
     for (auto [var, term] : varToTermMap) {
       if(!term.isVar()){
         outVarMap.clear();
+        found = false;
         continue;
       }
       outVarMap[var] = term.var();
     }
-    return true;
+    if (found) {
+      return true;
+    }
   }
   return false;
 }
