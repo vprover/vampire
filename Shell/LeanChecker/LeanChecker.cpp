@@ -486,7 +486,7 @@ void LeanChecker::genericNPremiseInferenceNoSubs(std::ostream &out, SortMap &con
 }
 
 void LeanChecker::resolution(std::ostream &out, SortMap &conclSorts, Clause *concl, const Shell::InferenceRecorder::InferenceInformation *info){
-  genericNPremiseInference(out, conclSorts, concl, {info->substitutionForBanksSub[0], info->substitutionForBanksSub[1]}, "exact resolve " + intIdent + "0 " + intIdent + "1");
+  genericNPremiseInference(out, conclSorts, concl, {info->substitutionForBanksSub[0], info->substitutionForBanksSub[1]}, "grind only [cases Or]");
 }
 
 void LeanChecker::subsumptionResolution(std::ostream &out, SortMap &conclSorts, Clause *concl)
@@ -584,12 +584,12 @@ void LeanChecker::clausify(std::ostream &out, SortMap &conclSorts, Unit *concl){
   out << " := by\n" << indent << "intros h ";
   if(countConnectives(parent->getFormula()) < 500){
     instantiateConclusionVars(out, conclSorts, concl);
-    out << "\n" << indent << "prenexify at h \n" << indent << "have h1 := h ";
+    out << "\n" << indent << "prenexify at h<;>\n" << indent << "have h1 := h ";
     VariablePrenexOrderingTree tree; 
     tree.buildTreeFromFormula(parent->getFormula(), Kernel::FORALL);
     auto ordering = tree.determineVariableOrdering();
     outputVariables(out, ordering, conclSorts, parentMap, Identity{}, 0);
-    out << "\n" << indent << "grind only [cases Or]\n\n";
+    out << "<;>\n" << indent << "grind only [cases Or]\n\n";
   } else {
     out << "\n" << indent << "duper [h]\n\n";
   } 
@@ -635,7 +635,7 @@ void LeanChecker::predicateDefinitionIntroduction(std::ostream &out, SortMap &co
     outputVariablesGen<VList::RefIterator>(out, fDomainIter, conclSorts, conclSorts, Identity{}, 0, false);
   }
   out << " := Iff.rfl\n" << indent << indent;
-  out << "(first | exact s | exact or_comm.mp (imp_iff_not_or.mp s.mpr) | have res := (or_comm.mp (imp_iff_not_or.mp s.mpr)); simp only[or_assoc] at res; trivial | exact imp_iff_not_or.mp s.mp)\n\n";
+  out << "(first | exact s | exact or_comm.mp (imp_iff_not_or.mp s.mpr) | have res := (or_comm.mp (imp_iff_not_or.mp s.mpr)); simp only[or_assoc] at res; trivial | exact imp_iff_not_or.mp s.mp)\n";
 }
 
 void LeanChecker::functionDefinitionIntroduction(std::ostream &out, SortMap &conclSorts, Unit *concl){
@@ -1016,20 +1016,17 @@ void LeanChecker::normalForm(std::ostream &out, SortMap &conclSorts, Unit *concl
   auto rule = concl->inference().rule();
   if (rule == InferenceRule::ENNF) {
     out << indent << "intros h\n"
-        << indent << "ennf_transformation at h\n"
-        << indent << "try simp only [not_true]\n"
+        << indent << "ennf_transformation at h<;>\n"
         << indent << "exact h\n";
   }
   else if (rule == InferenceRule::FLATTEN) {
     out << indent << "intro h\n"
-        << indent << "flattening at h\n"
-        << indent << "try simp only [not_true]\n"
+        << indent << "flattening at h<;>\n"
         << indent << "first | exact h | grind | duper[h]\n";
   }
   else if (rule == InferenceRule::NNF) {
     out << indent << "intro h\n"
-        << indent << "nnf_transformation at h\n"
-        << indent << "try simp only [not_true]\n"
+        << indent << "nnf_transformation at h<;>\n"
         << indent << "first | exact h | grind | duper[h]\n";
   }
   else if (rule == Kernel::InferenceRule::RECTIFY) {
@@ -1037,7 +1034,7 @@ void LeanChecker::normalForm(std::ostream &out, SortMap &conclSorts, Unit *concl
   }
   else if (rule == Kernel::InferenceRule::REDUCE_FALSE_TRUE) {
     out << indent << "intro h\n";
-    out << indent << "remove_tauto at h\n";
+    out << indent << "remove_tauto at h<;>\n";
     out << indent << "first | exact h | grind | duper[*]\n";
   } /*else if (rule == InferenceRule::THEORY_NORMALIZATION) {
     out << indent << "intro h\n";
