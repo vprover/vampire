@@ -257,8 +257,6 @@ void LeanChecker::outputInferenceStep(std::ostream &out, Kernel::Unit *u){
   }
   out << "-- step " << u->number() << " " << ruleName(rule) << "\n";
 
-  //outputUnitBeginning(out, u);
-
   SortMap conclSorts;
   SortHelper::collectVariableSorts(u, conclSorts);
 
