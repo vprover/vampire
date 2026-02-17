@@ -2148,6 +2148,12 @@ void Options::init()
     _satFallbackForSMT.onlyUsefulWith(_satSolver.is(equal(SatSolver::Z3)));
 #endif
 
+    _napsatOptions = StringOptionValue("napsat_options","nso","");
+    _napsatOptions.description="A string of options to pass to NAPSAT when it is used as the SAT solver. For example, `-nso \"-gb\"` switch napsat graph backtracking on. See NapSAT documentation for details of available options.";
+    _lookup.insert(&_napsatOptions);
+    _napsatOptions.onlyUsefulWith(_satSolver.is(equal(SatSolver::NAPSAT)));
+    _napsatOptions.tag(OptionTag::SAT);
+
     //*************************************************************
     //*********************** which mode or tag?  ************************
     //*************************************************************

@@ -795,7 +795,7 @@ double Splitter::weightFunction(SATLiteral vlit) const
   double posWeight = 1.0;
   // double negWeight = 0.0;
   if (rec && !rec->active)
-    posWeight = 16.0 * (rec->children.size() - rec->reduced.size());
+    posWeight = 16.0 * (rec->children.size() + rec->reduced.size());
 
   return posWeight;
 }

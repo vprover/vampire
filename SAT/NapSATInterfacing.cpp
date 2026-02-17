@@ -1,5 +1,6 @@
 #include "SAT/NapSATInterfacing.hpp"
 #include "NapSATInterfacing.hpp"
+#include "Lib/Environment.hpp"
 
 #include <iostream>
 
@@ -12,29 +13,26 @@ namespace SAT
   NapSATInterfacing::NapSATInterfacing(std::function<double(SATLiteral)> func)
   {
     std::vector<std::string> env_args;
-    env_args.push_back("--invariant-configuration-folder");
-    env_args.push_back("../NapSAT/invariant-configurations/");
-    env_args.push_back("-sw"); // suppress warnings
-    env::extract_environment_variables(env_args);
+    napsat::env::set_man_page_folder("../NapSAT");
+    napsat::env::set_invariant_configuration_folder("../NapSAT/invariant-configurations/");
+    napsat::env::set_obsidian_template_folder("../NapSAT/obsidian_template/");
+    napsat::env::set_suppress_warning(true);
 
+    // check the options passed by the user
+    std::string options_str = Lib::env.options->napsatOptions();
+    cout << "NapSAT options: " << options_str << endl;
     std::vector<std::string> opt_args;
-    opt_args.push_back("-gb");
-    opt_args.push_back("-lcm");
-    // opt_args.push_back("-bl");
-    // opt_args.push_back("-ecr");
-#if VDEBUG
-    opt_args.push_back("-c"); // enable checking invariants
-    opt_args.push_back("-o"); // enable observer
-#endif
-    // opt_args.push_back("--restarts");
-    // opt_args.push_back("off");
-    opt_args.push_back("-del");
+    if (!options_str.empty()) {
+      std::istringstream iss(options_str);
+      std::string token;
+      while (iss >> token) {
+        opt_args.push_back(token);
+      }
+    }
+
+    opt_args.push_back("--restarts");
     opt_args.push_back("off");
-    opt_args.push_back("-stat");
-    opt_args.push_back("-live-stat");
-    opt_args.push_back("--backtrack-possibilities-limit");
-    opt_args.push_back("100");
-    opt_args.push_back("-approx-max-cost");
+    opt_args.push_back("-sum-approx-cost");
     napsat::options opts(opt_args);
 
     _solver = create_solver(0, 0, opts);

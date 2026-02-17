@@ -2062,6 +2062,7 @@ public:
   unsigned distinctGroupExpansionLimit() const { return _distinctGroupExpansionLimit.actualValue; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval.actualValue = newVal; }
   SatSolver satSolver() const { return _satSolver.actualValue; }
+  std::string const& napsatOptions() const { return _napsatOptions.actualValue; }
   //void setSatSolver(SatSolver newVal) { _satSolver = newVal; }
   SaturationAlgorithm saturationAlgorithm() const { return _saturationAlgorithm.actualValue; }
   void setSaturationAlgorithm(SaturationAlgorithm newVal) { _saturationAlgorithm.actualValue = newVal; }
@@ -2578,6 +2579,7 @@ private:
   IntOptionValue _activationLimit;
 
   ChoiceOptionValue<SatSolver> _satSolver;
+  StringOptionValue _napsatOptions;
   ChoiceOptionValue<SaturationAlgorithm> _saturationAlgorithm;
   BoolOptionValue _showAll;
   BoolOptionValue _showActive;
