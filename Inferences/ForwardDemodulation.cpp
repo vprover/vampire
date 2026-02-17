@@ -247,57 +247,56 @@ void ForwardDemodulationReplay::detach()
 
 ClauseIterator ForwardDemodulationReplay::generateClauses(Clause* premise)
 {
-  Ordering& ordering = _salg->getOrdering();
-  auto result = ClauseIterator::getEmpty();
+  const auto& ordering = _salg->getOrdering();
 
-  for(const auto& lit : *premise) {
-    
-    for (TypedTermList trm : iterTraits(NonVariableNonTypeIterator(lit))) {
+  return pvi(iterTraits(premise->iterLits())
+    .flatMap([](Literal* lit) {
+      return pushPairIntoRightIterator(lit, getUniquePersistentIterator(vi(new NonVariableNonTypeIterator(lit))));
+    })
+    .flatMap([this](const auto& arg) {
+      return pushPairIntoRightIterator(arg, iterTraits(_index->getGeneralizations(arg.second, /* retrieveSubstitutions */ true)));
+    })
+    .map([&ordering,premise](const auto& arg) -> Clause* {
+      auto lit = arg.first.first;
+      TypedTermList trm(arg.first.second);
+      auto qr = arg.second;
+      auto lhs = qr.data->term;
 
-      for (const auto& qr : iterTraits(_index->getGeneralizations(trm.term(), /* retrieveSubstitutions */ true))) {
-
-        auto lhs = qr.data->term;
-
-        RobSubstitution eqSortSubs;
-        if(lhs.isVar()){
-          if(!eqSortSubs.match(qr.data->term.sort(), 0, trm.sort(), 1)){
-            continue;
-          }
+      RobSubstitution eqSortSubs;
+      if(lhs.isVar()){
+        if(!eqSortSubs.match(qr.data->term.sort(), 0, trm.sort(), 1)){
+          return nullptr;
         }
-
-        auto subs = qr.unifier;
-
-        ApplicatorWithEqSort applWithEqSort(subs.ptr(), eqSortSubs);
-        Applicator applWithoutEqSort(subs.ptr());
-        auto appl = lhs.isVar() ? (SubstApplicator*)&applWithEqSort : (SubstApplicator*)&applWithoutEqSort;
-
-        AppliedTerm rhsApplied(qr.data->rhs,appl,true);
-        if (ordering.compare(trm,rhsApplied) != Ordering::GREATER) {
-          continue;
-        }
-
-        RStack<Literal*> resLits;
-        auto rhsS = rhsApplied.apply();
-        resLits->push(EqHelper::replace(lit,trm,rhsS));
-
-        for (const auto& curr : *premise) {
-          if(curr!=lit) {
-            resLits->push(curr);
-          }
-        }
-        
-        auto replacement = Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, premise, qr.data->clause));
-        if(env.reconstruction){
-          Shell::InferenceRecorder::instance()->forwardDemodulation(replacement->number(), replacement, {premise, qr.data->clause}, appl,qr.data, rhsS);
-        }
-        result = pvi(concatIters(std::move(result), getSingletonIterator(replacement)));
-
-        
       }
-    }
-  }
 
-  return result;
+      auto subs = qr.unifier;
+
+      ApplicatorWithEqSort applWithEqSort(subs.ptr(), eqSortSubs);
+      Applicator applWithoutEqSort(subs.ptr());
+      auto appl = lhs.isVar() ? (SubstApplicator*)&applWithEqSort : (SubstApplicator*)&applWithoutEqSort;
+
+      AppliedTerm rhsApplied(qr.data->rhs,appl,true);
+      if (ordering.compare(trm,rhsApplied) != Ordering::GREATER) {
+        return nullptr;
+      }
+
+      RStack<Literal*> resLits;
+      auto rhsS = rhsApplied.apply();
+      resLits->push(EqHelper::replace(lit,trm,rhsS));
+
+      for (const auto& curr : *premise) {
+        if(curr!=lit) {
+          resLits->push(curr);
+        }
+      }
+
+      auto replacement = Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, premise, qr.data->clause));
+      if(env.reconstruction){
+        Shell::InferenceRecorder::instance()->forwardDemodulation(replacement->number(), replacement, {premise, qr.data->clause}, appl,qr.data, rhsS);
+      }
+      return replacement;
+    })
+    .filter(NonzeroFn()));
 }
 
 }
