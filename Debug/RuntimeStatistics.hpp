@@ -84,6 +84,7 @@ square's last digit:
 #include "Lib/Array.hpp"
 #include "Lib/List.hpp"
 #include "Lib/SkipList.hpp"
+#include "Shell/UIHelper.hpp"
 
 namespace Debug {
 
@@ -111,7 +112,10 @@ class RSCounter
 public:
   RSCounter(const char* name) : RSObject(name), _counter(0) {}
 
-  void print(std::ostream& out) { out << "% " << name() << ": " << _counter << std::endl; }
+  void print(std::ostream& out) {
+    Shell::addCommentSignForSZS(out);
+    out << name() << ": " << _counter << std::endl;
+  }
   void inc() { _counter++; }
   void inc(size_t num) { _counter+=num; }
 private:

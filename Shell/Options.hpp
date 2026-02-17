@@ -454,7 +454,8 @@ public:
     SPIDER,
     SZS,
     VAMPIRE,
-    UCORE
+    UCORE,
+    LEAN,
   };
 
   /** Possible values for sat_solver */

@@ -101,6 +101,7 @@
 #include "Debug/TimeProfiling.hpp"
 #include "Shell/Shuffling.hpp"
 
+#include "Shell/UIHelper.hpp"
 #include "Splitter.hpp"
 
 #include "ConsequenceFinder.hpp"
@@ -227,6 +228,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   InferenceStore::instance()->ordering = _ordering;
   if (!Ordering::trySetGlobalOrdering(_ordering)) {
     // this is not an error, it may just lead to lower performance (and most likely not significantly lower)
+    addCommentSignForSZS(cerr);
     cerr << "SaturationAlgorithm cannot set its ordering as global" << endl;
   }
   _selector = LiteralSelector::getSelector(*_ordering, opt, opt.selection());

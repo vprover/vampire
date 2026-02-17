@@ -25,7 +25,8 @@ using namespace std;
 
 void RSMultiCounter::print(std::ostream& out)
 {
-  out << "% " << name() << ":"<< endl;
+  Shell::addCommentSignForSZS(out);
+  out << name() << ":"<< endl;
   for(size_t i=0;i<_counters.size();i++) {
     if(_counters[i]) {
       out << "  " << i << ": " << _counters[i] <<endl;
@@ -42,7 +43,8 @@ RSMultiStatistic::~RSMultiStatistic()
 
 void RSMultiStatistic::print(std::ostream& out)
 {
-  out << "% " << name() << ":"<< endl;
+  Shell::addCommentSignForSZS(out);
+  out << name() << ":" << endl;
   for(size_t i=0;i<_values.size();i++) {
     if(_values[i]) {
 
@@ -94,14 +96,16 @@ RuntimeStatistics::~RuntimeStatistics()
 
 void RuntimeStatistics::print(std::ostream& out)
 {
-  out<<"% ----  Runtime statistics ----"<<endl;
+  Shell::addCommentSignForSZS(out);
+  out<<"----  Runtime statistics ----"<<endl;
 
   ObjSkipList::Iterator it(_objs);
   while(it.hasNext()) {
     it.next()->print(out);
   }
 
-  out<<"% -----------------------------"<<endl;
+  Shell::addCommentSignForSZS(out);
+  out<<"-----------------------------"<<endl;
 }
 
 

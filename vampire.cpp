@@ -655,7 +655,8 @@ int main(int argc, char* argv[])
     cl.interpret(opts);
 
 #if VDEBUG
-    std::cerr << "% WARNING: debug build, do not use in anger\n";
+    addCommentSignForSZS(std::cerr);
+    std::cerr << "WARNING: debug build, do not use in anger\n";
 #endif
 
     if(opts.encodeStrategy()){

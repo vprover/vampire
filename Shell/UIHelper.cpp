@@ -118,6 +118,10 @@ bool szsOutputMode() {
   return (Lib::env.options && Lib::env.options->outputMode() == Shell::Options::Output::SZS);
 }
 
+bool leanOutputMode() {
+  return (Lib::env.options && Lib::env.options->outputMode() == Shell::Options::Output::LEAN);
+}
+
 std::ostream& addCommentSignForSZS(std::ostream& out)
 {
   if (szsOutputMode()) {
@@ -125,6 +129,9 @@ std::ostream& addCommentSignForSZS(std::ostream& out)
     if (Lib::env.options && Lib::env.options->multicore() != 1) {
       out << "(" << getpid() << ")";
     }
+  }
+  if (leanOutputMode()) {
+    out << "-- ";
   }
   return out;
 }
@@ -146,6 +153,9 @@ void UIHelper::outputAllPremises(std::ostream& out, UnitList* units, std::string
 
 void UIHelper::outputSaturatedSet(std::ostream& out, UnitIterator uit)
 {
+  if (leanOutputMode()) {
+    return;
+  }
   if (szsOutputMode()) {
     out << "% SZS output start Saturation." << endl;
   } else {
@@ -164,6 +174,9 @@ void UIHelper::outputSaturatedSet(std::ostream& out, UnitIterator uit)
 
 void UIHelper::outputInterferences(std::ostream& out, const Problem& prob)
 {
+  if (leanOutputMode()) {
+    return;
+  }
   if (szsOutputMode()) {
     out << "% SZS output start Definitions and Model Updates." << endl;
   } else {
@@ -568,6 +581,9 @@ void UIHelper::outputResult(std::ostream& out)
 void UIHelper::outputSatisfiableResult(std::ostream& out)
 {
   //out << "Satisfiable!\n";
+  if (leanOutputMode()) {
+    return;
+  }
   if (szsOutputMode() && !satisfiableStatusWasAlreadyOutput) {
     out << "% SZS status " << ( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
 	  <<" for " << env.options->problemName() << endl;
