@@ -200,11 +200,18 @@ void InferenceRecorder::forwardDemodulation(unsigned int id, Clause *conclusion,
     info->substitutionForBanksSub.resize(1);
     DHMap<unsigned int, TermList> sorts;
     auto dataTerm = data->term;
-    auto term = dataTerm.term();
-    SortHelper::collectVariableSorts(term,sorts);
-    auto iter = sorts.domain();
-    while (iter.hasNext()) {
-      auto var = iter.next();
+    if (dataTerm.isVar()) {
+      if (data->rhs.isTerm()) {
+        ALWAYS(sorts.insert(dataTerm.var(), SortHelper::getResultSort(data->rhs.term())));
+      } else {
+        ALWAYS(sorts.insert(dataTerm.var(), data->clause->literals()[0]->twoVarEqSort()));
+      }
+    } else {
+      auto term = dataTerm.term();
+      SortHelper::collectVariableSorts(term,sorts);
+    }
+
+    for (const auto& [var, sort] : iterTraits(sorts.items())) {
       auto newTerm = SubstHelper::apply((*appl)(var), varPermut);
       info->substitutionForBanksSub[0].bind(varPermut.apply(var).var(), newTerm);
     }
