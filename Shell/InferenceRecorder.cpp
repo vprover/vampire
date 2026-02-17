@@ -5,6 +5,7 @@
 #include "Inferences/InferenceEngine.hpp"
 #include "Kernel/MLMatcher.hpp"
 #include "Kernel/Matcher.hpp"
+#include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Indexing/ResultSubstitution.hpp"
@@ -195,13 +196,17 @@ void InferenceRecorder::forwardDemodulation(unsigned int id, Clause *conclusion,
 
     // we create a custom substitution to apply the substitution only to variables coming from the demodulator
     // otherwise the substitution we get faults
+
     info->substitutionForBanksSub.resize(1);
-    auto iter = data->clause->getVariableIterator();
+    DHMap<unsigned int, TermList> sorts;
+    auto dataTerm = data->term;
+    auto term = dataTerm.term();
+    SortHelper::collectVariableSorts(term,sorts);
+    auto iter = sorts.domain();
     while (iter.hasNext()) {
       auto var = iter.next();
-      TermList mappedVar = varPermut.apply(var);
-      ASS(mappedVar.isVar());
-      info->substitutionForBanksSub[0].bind(var, (*appl)(mappedVar.var()));
+      auto newTerm = SubstHelper::apply((*appl)(var), varPermut);
+      info->substitutionForBanksSub[0].bind(varPermut.apply(var).var(), newTerm);
     }
 
     _inferences[id] = std::move(info);

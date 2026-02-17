@@ -120,7 +120,7 @@ private:
   void genericNPremiseInferenceNoSubs(std::ostream &out, SortMap &conclSorts, Clause *concl, std::string tactic = "grind only");
   void genericNPremiseInferenceNoSubs(std::ostream &out, SortMap &conclSorts, Unit *concl, std::string tactic = "grind only");
 
-  void genericInference(std::ostream &out, SortMap &conclSorts, Unit *concl, std::string tactic = "grind");
+  void genericInference(std::ostream &out, SortMap &conclSorts, Unit *concl, std::string tactic = "duper [*]");
   void subsumptionResolution(std::ostream &out, SortMap &conclSorts, Clause *concl);
   void            resolution(std::ostream &out, SortMap &conclSorts, Clause *concl, const InferenceRecorder::InferenceInformation* info);
   void             factoring(std::ostream &out, SortMap &conclSorts, Clause *concl, const InferenceRecorder::InferenceInformation* info);
@@ -157,6 +157,7 @@ private:
          //"import Mathlib.Order.Basic\n"
          //"import Mathlib.Data.Real.Basic\n"
          "import Lean\n"
+         "import Duper\n"
          "import Mathlib.Tactic.NthRewrite\n"
          "import LeanTest.SuperpositionWoMatlib\n"
          "import LeanTest.quantifierChangeWoMatlib\n"

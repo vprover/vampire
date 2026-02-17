@@ -545,19 +545,54 @@ void LeanChecker::demodulation(std::ostream &out, SortMap &conclSorts, Clause *c
   genericNPremiseInference(out, conclSorts, concl, {Substitution(), info->substitutionForBanksSub[0]}, "grind only [cases Or]");
 }
 
+unsigned countConnectives(Formula *f)
+{
+  switch (f->connective()) {
+    case AND:
+    case OR: {
+      auto args = f->args()->iter();
+      unsigned thisCount=0;
+      while (args.hasNext()) {
+        thisCount += 1+countConnectives(args.next());
+      }
+      return thisCount;
+    }
+    case IMP:
+    case IFF:
+    case XOR: {
+      return 1+countConnectives(f->left()) + countConnectives(f->right());
+    }
+    case NOT: {
+      return 1+countConnectives(f->uarg());
+    }
+    case FORALL:
+    case EXISTS: {
+      return 1+countConnectives(f->qarg());
+      
+    }
+    default:
+      return 0;
+  } 
+}
+
 void LeanChecker::clausify(std::ostream &out, SortMap &conclSorts, Unit *concl){
   auto [parent] = getParents<1>(concl);
+  
   SortMap parentMap;
   SortHelper::collectVariableSorts(parent, parentMap);
   outputPremiseAndConclusion(out, concl);
   out << " := by\n" << indent << "intros h ";
-  instantiateConclusionVars(out, conclSorts, concl);
-  out << "\n" << indent << "prenexify at h \n" << indent << "have h1 := h ";
-  VariablePrenexOrderingTree tree; 
-  tree.buildTreeFromFormula(parent->getFormula(), Kernel::FORALL);
-  auto ordering = tree.determineVariableOrdering();
-  outputVariables(out, ordering, conclSorts, parentMap, Identity{}, 0);
-  out << "\n" << indent << "grind only [cases Or]\n\n";
+  if(countConnectives(parent->getFormula()) < 500){
+    instantiateConclusionVars(out, conclSorts, concl);
+    out << "\n" << indent << "prenexify at h \n" << indent << "have h1 := h ";
+    VariablePrenexOrderingTree tree; 
+    tree.buildTreeFromFormula(parent->getFormula(), Kernel::FORALL);
+    auto ordering = tree.determineVariableOrdering();
+    outputVariables(out, ordering, conclSorts, parentMap, Identity{}, 0);
+    out << "\n" << indent << "grind only [cases Or]\n\n";
+  } else {
+    out << "\n" << indent << "duper [h]\n\n";
+  } 
 }
 
 void LeanChecker::predicateDefinitionIntroduction(std::ostream &out, SortMap &conclSorts, Unit *concl){
@@ -835,7 +870,7 @@ void LeanChecker::avatarSplitClause(std::ostream &out, SortMap &conclSorts, Unit
   for(auto parentNo : parentsThatRewrite){
     out << indent << "try rw[h" << parentNo << "]\n";
   }
-  out << indent << "try simp [imp_iff_not_or] at h0\n"
+  out << indent << "try simp only [imp_iff_not_or] at h0\n"
       << indent << "prenexify\n"
       << indent << "prenexify at h0\n";
 
@@ -989,21 +1024,21 @@ void LeanChecker::normalForm(std::ostream &out, SortMap &conclSorts, Unit *concl
     out << indent << "intro h\n"
         << indent << "flattening at h\n"
         << indent << "try simp only [not_true]\n"
-        << indent << "first | exact h | grind | sorry\n";
+        << indent << "first | exact h | grind | duper[h]\n";
   }
   else if (rule == InferenceRule::NNF) {
     out << indent << "intro h\n"
         << indent << "nnf_transformation at h\n"
         << indent << "try simp only [not_true]\n"
-        << indent << "first | exact h | grind | sorry\n";
+        << indent << "first | exact h | grind | duper[h]\n";
   }
   else if (rule == Kernel::InferenceRule::RECTIFY) {
-    out << indent << "first | exact fun x => x | grind | sorry\n";
+    out << indent << "first | exact fun x => x | duper [*]\n";
   }
   else if (rule == Kernel::InferenceRule::REDUCE_FALSE_TRUE) {
     out << indent << "intro h\n";
     out << indent << "remove_tauto at h\n";
-    out << indent << "first | exact h | grind | sorry\n";
+    out << indent << "first | exact h | grind | duper[*]\n";
   } /*else if (rule == InferenceRule::THEORY_NORMALIZATION) {
     out << indent << "intro h\n";
     out << indent << "try simp only [← not_lt, gt_iff_lt] at h\n";
