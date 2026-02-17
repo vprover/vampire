@@ -20,7 +20,12 @@ using namespace LeanPrinter;
 class LeanChecker : public InferenceStore::AbstractProofPrinter {
 public:
   LeanChecker(std::ostream &out, InferenceStore *is) : AbstractProofPrinter(out, is), _replayer(out) {
+    env.options->set("code_tree_subsumption", "off");
     _replayer.makeInferenceEngine(this->_is->ordering);
+  }
+
+  ~LeanChecker() override {
+    env.options->set("code_tree_subsumption", "on");
   }
 
   void print() override;
