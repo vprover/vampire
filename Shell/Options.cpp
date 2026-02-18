@@ -2194,9 +2194,7 @@ void Options::init()
 #endif
     // _splittingCongruenceClosure.addProblemConstraint(hasEquality()); -- not a good constraint for the minimizer
     _splittingCongruenceClosure.setRandomChoices({"model","off","on"});
-    _splittingCongruenceClosure.addHardConstraint(If(equal(SplittingCongruenceClosure::MODEL)).
-                                                  then(_splittingMinimizeModel.is(notEqual(SplittingMinimizeModel::SCO))));
-    
+
     _ccUnsatCores = ChoiceOptionValue<CCUnsatCores>("cc_unsat_cores","ccuc",CCUnsatCores::ALL,
                                                      {"first", "small_ones", "all"});
     _ccUnsatCores.description="";
@@ -2214,26 +2212,12 @@ void Options::init()
     _splittingLiteralPolarityAdvice.tag(OptionTag::AVATAR);
     _splittingLiteralPolarityAdvice.onlyUsefulWith(_splitting.is(equal(true)));
 
-    _splittingMinimizeModel = ChoiceOptionValue<SplittingMinimizeModel>("avatar_minimize_model","amm",
-                                                                        SplittingMinimizeModel::ALL,{"off","sco","all"});
-    
+    _splittingMinimizeModel = BoolOptionValue("avatar_minimize_model","amm",true);
     _splittingMinimizeModel.description="Minimize the SAT-solver model by replacing concrete values with don't-cares"
-                                        " provided <all> the sat clauses (or only the split clauses with <sco>) remain provably satisfied"
-                                        " by the partial model.";
+                                        " provided the sat clauses remain provably satisfied by the partial model.";
     _lookup.insert(&_splittingMinimizeModel);
     _splittingMinimizeModel.tag(OptionTag::AVATAR);
     _splittingMinimizeModel.onlyUsefulWith(_splitting.is(equal(true)));
-    _splittingMinimizeModel.setRandomChoices({"off","sco","all"});
-
-    _splittingEagerRemoval = BoolOptionValue("avatar_eager_removal","aer",true);
-    _splittingEagerRemoval.description="If a component was in the model and then becomes 'don't care' eagerly remove that component from the first-order solver. Note: only has any impact when amm is used.";
-    _lookup.insert(&_splittingEagerRemoval);
-    _splittingEagerRemoval.tag(OptionTag::AVATAR);
-    _splittingEagerRemoval.onlyUsefulWith(_splitting.is(equal(true)));
-    // if minimize is off then makes no difference
-    // if minimize is sco then we could have a conflict clause added infinitely often
-    _splittingEagerRemoval.onlyUsefulWith(_splittingMinimizeModel.is(equal(SplittingMinimizeModel::ALL)));
-    _splittingEagerRemoval.setRandomChoices({"on","off"});
 
     _splittingFastRestart = BoolOptionValue("avatar_fast_restart","afr",false);
     _splittingFastRestart.description="";

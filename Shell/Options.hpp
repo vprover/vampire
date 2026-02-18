@@ -2403,7 +2403,7 @@ public:
   bool splitAtActivation() const{ return _splitAtActivation.actualValue; }
   SplittingNonsplittableComponents splittingNonsplittableComponents() const { return _splittingNonsplittableComponents.actualValue; }
   SplittingAddComplementary splittingAddComplementary() const { return _splittingAddComplementary.actualValue; }
-  SplittingMinimizeModel splittingMinimizeModel() const { return _splittingMinimizeModel.actualValue; }
+  bool splittingMinimizeModel() const { return _splittingMinimizeModel.actualValue; }
   SplittingLiteralPolarityAdvice splittingLiteralPolarityAdvice() const { return _splittingLiteralPolarityAdvice.actualValue; }
   SplittingDeleteDeactivated splittingDeleteDeactivated() const { return _splittingDeleteDeactivated.actualValue;}
   bool splittingFastRestart() const { return _splittingFastRestart.actualValue; }
@@ -2411,7 +2411,6 @@ public:
   int splittingFlushPeriod() const { return _splittingFlushPeriod.actualValue; }
   float splittingFlushQuotient() const { return _splittingFlushQuotient.actualValue; }
   float splittingAvatimer() const { return _splittingAvatimer.actualValue; }
-  bool splittingEagerRemoval() const { return _splittingEagerRemoval.actualValue; }
   SplittingCongruenceClosure splittingCongruenceClosure() const { return _splittingCongruenceClosure.actualValue; }
   CCUnsatCores ccUnsatCores() const { return _ccUnsatCores.actualValue; }
 
@@ -2825,12 +2824,11 @@ private:
   ChoiceOptionValue<SplittingAddComplementary> _splittingAddComplementary;
   ChoiceOptionValue<SplittingCongruenceClosure> _splittingCongruenceClosure;
   ChoiceOptionValue<CCUnsatCores> _ccUnsatCores;
-  BoolOptionValue _splittingEagerRemoval;
   UnsignedOptionValue _splittingFlushPeriod;
   FloatOptionValue _splittingFlushQuotient;
   FloatOptionValue _splittingAvatimer;
   ChoiceOptionValue<SplittingNonsplittableComponents> _splittingNonsplittableComponents;
-  ChoiceOptionValue<SplittingMinimizeModel> _splittingMinimizeModel;
+  BoolOptionValue _splittingMinimizeModel;
   ChoiceOptionValue<SplittingLiteralPolarityAdvice> _splittingLiteralPolarityAdvice;
   ChoiceOptionValue<SplittingDeleteDeactivated> _splittingDeleteDeactivated;
   BoolOptionValue _splittingFastRestart;
