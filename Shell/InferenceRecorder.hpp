@@ -101,7 +101,7 @@ private:
       }
       for (unsigned v = 0; v <= highestVar; v++) {
         TermList x = applyFunc(recordedSubst, TermList::var(v), bank);
-        substMap[bank].bind(variableSubst.apply(v).var(),
+        substMap[bank].bind(v,
                             SubstHelper::apply(x,
                                                variableSubst));
       }
@@ -135,7 +135,7 @@ private:
     }
     for (unsigned v = 0; v <= highestVar; v++) {
       TermList x = applyFunc(recordedSubst, TermList::var(v), 0);
-      substMap[0].bind(variableSubst.apply(v).var(),
+      substMap[0].bind(v,
                          SubstHelper::apply(x,
                                             variableSubst));
     }
