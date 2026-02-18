@@ -2234,7 +2234,7 @@ void Options::init()
     _splittingBufferedSolver.setRandomChoices({"on","off"});
 
     _splittingDeleteDeactivated = ChoiceOptionValue<SplittingDeleteDeactivated>("avatar_delete_deactivated","add",
-                                                                        SplittingDeleteDeactivated::ON,{"on","large","off"});
+                                                                        SplittingDeleteDeactivated::LARGE_ONLY,{"on","large","off"});
 
     _splittingDeleteDeactivated.description="";
     _lookup.insert(&_splittingDeleteDeactivated);
@@ -2351,7 +2351,7 @@ void Options::init()
     // TODO: if sat then should not use reverse
     _literalComparisonMode.setRandomChoices({"predicate","reverse","standard"});
 
-    _nonGoalWeightCoefficient = NonGoalWeightOptionValue("nongoal_weight_coefficient","nwc",1.0);
+    _nonGoalWeightCoefficient = NonGoalWeightOptionValue("nongoal_weight_coefficient","nwc",10.0);
     _nonGoalWeightCoefficient.description=
              "coefficient that will multiply the weight of theory clauses (those marked as 'axiom' in TPTP)";
     _lookup.insert(&_nonGoalWeightCoefficient);
@@ -2414,7 +2414,7 @@ void Options::init()
     _termOrdering.tag(OptionTag::SATURATION);
     _lookup.insert(&_termOrdering);
 
-    _symbolPrecedence = ChoiceOptionValue<SymbolPrecedence>("symbol_precedence","sp",SymbolPrecedence::ARITY,
+    _symbolPrecedence = ChoiceOptionValue<SymbolPrecedence>("symbol_precedence","sp",SymbolPrecedence::FREQUENCY,
                                                             {"arity","occurrence","reverse_arity","unary_first",
                                                             "const_max", "const_min",
                                                             "scramble","frequency","unary_frequency","const_frequency",
