@@ -87,17 +87,17 @@ class ScopeGuard final
     bool active;
     Callable f;
 
+    /*
     bool stackUnwindingInProgress() const {
       return std::uncaught_exception();
     }
+    */
 
-    /*  C++17 only
     int exception_count = std::uncaught_exceptions();
 
     bool stackUnwindingInProgress() const {
       return exception_count != std::uncaught_exceptions();
     }
-    */
 };
 
 template <typename Callable>
