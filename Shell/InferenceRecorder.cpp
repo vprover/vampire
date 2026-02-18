@@ -213,7 +213,7 @@ void InferenceRecorder::forwardDemodulation(unsigned int id, Clause *conclusion,
 
     for (const auto& [var, sort] : iterTraits(sorts.items())) {
       auto newTerm = SubstHelper::apply((*appl)(var), varPermut);
-      info->substitutionForBanksSub[0].bind(varPermut.apply(var).var(), newTerm);
+      info->substitutionForBanksSub[0].bind(var, newTerm);
     }
 
     _inferences[id] = std::move(info);

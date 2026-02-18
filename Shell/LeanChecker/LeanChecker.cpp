@@ -116,7 +116,9 @@ void LeanChecker::print()
   
   for (Unit *u : proof) {
     if(u->inference().rule() == InferenceRule::INPUT){
-      inputPremises.push_back(u);
+      if (u->inference().inputType() != UnitInputType::CONJECTURE) {
+        inputPremises.push_back(u);
+      }
     } else if (u->inference().rule() == InferenceRule::NEGATED_CONJECTURE){
       negatedConjectures.push_back(u);
     }
