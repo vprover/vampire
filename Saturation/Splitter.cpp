@@ -66,24 +66,23 @@ void SplittingBranchSelector::init()
 {
   CALL("SplittingBranchSelector::init");
 
-  _eagerRemoval = _parent.getOptions().splittingEagerRemoval();
   _literalPolarityAdvice = _parent.getOptions().splittingLiteralPolarityAdvice();
 
   switch(_parent.getOptions().satSolver()){
     case Options::SatSolver::MINISAT:
       _solver = new MinisatInterfacing(_parent.getOptions(),true);
-      break;      
+      break;
 #if VZ3
     case Options::SatSolver::Z3:
       { BYPASSING_ALLOCATOR
-  #if VHOL      
+  #if VHOL
         if(env.property->higherOrder()){
           if (outputAllowed()) {
             env.beginOutput();
             addCommentSignForSZS(env.out());
             env.out() << "WARNING: Z3 as SAT solver not compatible with higher-order. Using Minisat instead" << endl;
             env.endOutput();
-          }          
+          }
           _solver = new MinisatInterfacing(_parent.getOptions(),true);
         } else {
    #endif
@@ -94,7 +93,7 @@ void SplittingBranchSelector::init()
             SATSolver* fallback = new MinisatInterfacing(_parent.getOptions(),true);
             _solver = new FallbackSolverWrapper(_solver.release(),fallback);
           }
-  #if VHOL         
+  #if VHOL
         }
   #endif
       }
@@ -108,18 +107,9 @@ void SplittingBranchSelector::init()
     _solver = new BufferedSolver(_solver.release());
   }
 
-  switch(_parent.getOptions().splittingMinimizeModel()){
-    case Options::SplittingMinimizeModel::OFF:
-      // Do nothing - we don't want to minimise the model
-      break;
-    case Options::SplittingMinimizeModel::ALL:
-    case Options::SplittingMinimizeModel::SCO:
-      _solver = new MinimizingSolver(_solver.release());
-      break;
-    default:
-      ASSERTION_VIOLATION_REP(_parent.getOptions().splittingMinimizeModel());
+  if (_parent.getOptions().splittingMinimizeModel()) {
+    _solver = new MinimizingSolver(_solver.release());
   }
-  _minSCO = _parent.getOptions().splittingMinimizeModel() == Options::SplittingMinimizeModel::SCO;
 
   if(_parent.getOptions().splittingCongruenceClosure() != Options::SplittingCongruenceClosure::OFF) {
     _dp = new DP::SimpleCongruenceClosure(&_parent.getOrdering());
@@ -132,7 +122,7 @@ void SplittingBranchSelector::init()
     if (_ccModel) {
       _dpModel = new DP::SimpleCongruenceClosure(&_parent.getOrdering());
     }
-  }  
+  }
 }
 
 void SplittingBranchSelector::updateVarCnt()
@@ -439,11 +429,7 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
         unsatCore.reset();
         _dp->getUnsatCore(unsatCore, i);
         SATClause* conflCl = s2f.createConflictClause(unsatCore);
-        if (_minSCO) {
-          _solver->addClauseIgnoredInPartialModel(conflCl);
-        } else {
-          _solver->addClause(conflCl);
-        }
+        _solver->addClause(conflCl);
       }
 
       RSTAT_CTR_INC("ssat_dp_conflict");
@@ -453,13 +439,13 @@ SATSolver::Status SplittingBranchSelector::processDPConflicts()
     // there was conflict, so we try looking for a different model
     {
       TIME_TRACE(TimeTrace::AVATAR_SAT_SOLVER);
-      
+
       if (_solver->solve() == SATSolver::UNSATISFIABLE) {
         return SATSolver::UNSATISFIABLE;
       }
     }
   }
-  
+
   // ASS(_solver->getStatus()==SATSolver::SATISFIABLE);
   if (_ccModel) {
     TIME_TRACE("model from congruence closure");
@@ -542,7 +528,7 @@ void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAss
   SplitLevel negLvl = _parent.getNameFromLiteral(SATLiteral(satVar, false));
 
   switch(asgn) {
-  case SATSolver::TRUE: 
+  case SATSolver::TRUE:
     if(!_selected.find(posLvl) && _parent.isUsedName(posLvl)) {
       _selected.insert(posLvl);
       addedComps.push(posLvl);
@@ -552,7 +538,7 @@ void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAss
       removedComps.push(negLvl);
     }
     break;
-  case SATSolver::FALSE:    
+  case SATSolver::FALSE:
     if(!_selected.find(negLvl) && _parent.isUsedName(negLvl)) {
       _selected.insert(negLvl);
       addedComps.push(negLvl);
@@ -563,7 +549,7 @@ void SplittingBranchSelector::updateSelection(unsigned satVar, SATSolver::VarAss
     }
     break;
   case SATSolver::DONT_CARE:
-    if(_eagerRemoval) {
+    {
       if(_selected.find(posLvl)) {
         _selected.remove(posLvl);
         removedComps.push(posLvl);
@@ -591,11 +577,7 @@ void SplittingBranchSelector::addSatClauseToSolver(SATClause* cl, bool branchRef
 
   RSTAT_CTR_INC("ssat_sat_clauses");
 
-  if (branchRefutation && _minSCO) {
-    _solver->addClauseIgnoredInPartialModel(cl);
-  } else {
-    _solver->addClause(cl);
-  }
+  _solver->addClause(cl);
 }
 
 void SplittingBranchSelector::recomputeModel(SplitLevelStack& addedComps, SplitLevelStack& removedComps, bool randomize)
