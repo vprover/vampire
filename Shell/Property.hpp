@@ -12,7 +12,7 @@
  *
  * @since 06/06/2001 Manchester
  * @since 17/07/2003 Manchester, changed to new representation
- * @since 02/12/2003 Manchester, allocation changed to use Allocator
+ * @since 02/12/2003 Manchester, allocation changed to use VAllocator
  * @since 20/05/2007 Manchester, changed to new term representation
  */
 

@@ -24,7 +24,7 @@
 #include "TermIndexingStructure.hpp"
 #include "LiteralIndexingStructure.hpp"
 
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 
 namespace Indexing
 {

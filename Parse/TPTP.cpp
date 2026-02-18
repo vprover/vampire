@@ -2171,7 +2171,7 @@ void TPTP::include()
   _includeDirectory = "";
   vstring fileName(env.options->includeFileName(relativeName));
   {
-    BYPASSING_ALLOCATOR; // we cannot make ifstream allocated via Allocator
+    BYPASSING_ALLOCATOR; // we cannot make ifstream allocated via VAllocator
     _in = new ifstream(fileName.c_str());
   }
   if (!*_in) {

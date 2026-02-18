@@ -24,7 +24,7 @@
 #include "Lib/Stack.hpp"
 #include "Lib/Set.hpp"
 
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 
 #define OUTPUT_LRS_DETAILS 0
 

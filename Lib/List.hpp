@@ -32,7 +32,7 @@
  * @since 30/05/2001 Manchester, split
  * @since 30/05/2001 Manchester, append
  * @since 04/06/2001 Manchester, DelIterator::restore
- * @since 02/12/2003, Manchester, allocation changed to use Allocator
+ * @since 02/12/2003, Manchester, allocation changed to use VAllocator
  */
 
 #ifndef __list__
@@ -43,7 +43,7 @@
 
 #include "Debug/Assertion.hpp"
 
-#include "Allocator.hpp"
+#include "VAllocator.hpp"
 #include "VirtualIterator.hpp"
 
 #if VDEBUG

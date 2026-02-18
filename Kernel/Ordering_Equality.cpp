@@ -16,7 +16,7 @@
 
 #include "Ordering.hpp"
 
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 
 namespace Kernel
 {

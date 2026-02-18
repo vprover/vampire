@@ -33,7 +33,7 @@
 #include "Debug/Assertion.hpp"
 #include "Debug/Tracer.hpp"
 
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 #include "Lib/Portability.hpp"
 #include "Lib/Comparison.hpp"
 #include "Lib/Stack.hpp"

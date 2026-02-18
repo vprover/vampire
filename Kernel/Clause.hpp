@@ -21,7 +21,7 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 #include "Lib/Event.hpp"
 #include "Lib/InverseLookup.hpp"
 #include "Lib/Metaiterators.hpp"

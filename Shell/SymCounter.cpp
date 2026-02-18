@@ -16,7 +16,7 @@
  */
 
 #include <Kernel/TermIterators.hpp>
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"

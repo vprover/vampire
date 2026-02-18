@@ -23,7 +23,7 @@
 
 #include "Lib/ScopedPtr.hpp"
 
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 #include "Lib/Option.hpp"
 
 extern const char* VERSION_STRING;

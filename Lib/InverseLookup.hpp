@@ -19,7 +19,7 @@
 #include "Hash.hpp"
 #include "DHMap.hpp"
 
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 
 namespace Lib {
 

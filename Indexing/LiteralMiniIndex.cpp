@@ -13,7 +13,7 @@
  */
 
 #include <algorithm>
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 
 #include "LiteralMiniIndex.hpp"
 

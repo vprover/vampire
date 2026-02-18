@@ -23,7 +23,7 @@
 #include "Kernel/ClauseQueue.hpp"
 #include "ClauseContainer.hpp"
 
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 
 namespace Saturation {
 

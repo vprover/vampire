@@ -20,7 +20,7 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 #include "Lib/Stack.hpp"
 
 #include "Kernel/Clause.hpp"

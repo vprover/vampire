@@ -46,9 +46,9 @@ bool Tracer::_forced = false;
 
 /** This variable is needed when all changes in the value of an
  *  an address are traced. To make it work one should define
- *  WATCH_ADDRESS in Allocator.cpp to the watched address. When
+ *  WATCH_ADDRESS in VAllocator.cpp to the watched address. When
  *  the allocator discovers that WATCH_ADDRESS gets allocated
- *  it will set canWatch to true. Allocator will also print to
+ *  it will set canWatch to true. VAllocator will also print to
  *  cout all allocations and deallocations relevant to WATCH_ADDRESS.
  *  In order to watch also all changes of the address one should
  *  define WATCH_ADDR in this file. 
@@ -96,9 +96,9 @@ void Tracer::controlPoint (const char* description, ControlPointKind cpk)
 {
 //   AFTER(12339,
 // 	cout << "A: " << *((int*)0x88d84b4) << "\n";);
-//   if (Allocator<10>::_freeList) {
-//     cout << (void*)Allocator<10>::_freeList << " "
-// 	 << (void*)Allocator<10>::_freeList->_next
+//   if (VAllocator<10>::_freeList) {
+//     cout << (void*)VAllocator<10>::_freeList << " "
+// 	 << (void*)VAllocator<10>::_freeList->_next
 // 	 << " (" <<_passedControlPoints << ")\n";
 //   }
 

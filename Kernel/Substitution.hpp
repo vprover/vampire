@@ -23,7 +23,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/VString.hpp"
 
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 
 #include "Term.hpp"
 

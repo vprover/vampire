@@ -14,7 +14,7 @@
 
 #include <algorithm>
 
-#include "Allocator.hpp"
+#include "VAllocator.hpp"
 
 #include "IntUnionFind.hpp"
 

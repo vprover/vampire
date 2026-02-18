@@ -22,7 +22,7 @@
 
 #include "Debug/Assertion.hpp"
 
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/Map.hpp"

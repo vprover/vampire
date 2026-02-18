@@ -54,7 +54,7 @@
 #include "Kernel/ApplicativeHelper.hpp"
 #include "Indexing/ResultSubstitution.hpp"
 
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 
 #include "Index.hpp"
 

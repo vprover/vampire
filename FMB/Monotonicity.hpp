@@ -32,7 +32,7 @@
 #include "SAT/SATLiteral.hpp"
 #include "SAT/SATClause.hpp"
 
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 
 namespace FMB {
   using namespace Kernel;

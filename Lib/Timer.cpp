@@ -71,7 +71,7 @@ unsigned Timer::elapsedMegaInstructions() {
   const char* REACHED[3] = {"","Time limit reached!\n","Instruction limit reached!\n"};
   const char* STATUS[3] = {"","% SZS status Timeout for ","% SZS status InstrOut for "};
 
-  // CAREFUL, we might be in a signal handler and potentially at the same time inside Allocator which is not re-entrant
+  // CAREFUL, we might be in a signal handler and potentially at the same time inside VAllocator which is not re-entrant
   // so any code below that allocates might corrupt the allocator state.
   // Therefore, the printing below should avoid allocations!
 

@@ -19,7 +19,7 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 
 #include "Kernel/MainLoop.hpp"
 #include "Kernel/Problem.hpp"

@@ -17,7 +17,7 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 #include "Lib/Array.hpp"
 #include "Lib/Event.hpp"
 #include "Lib/Int.hpp"

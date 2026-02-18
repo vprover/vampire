@@ -20,7 +20,7 @@
 
 #if CHECK_LEAKS
 
-#include "Allocator.hpp"
+#include "VAllocator.hpp"
 #include "Set.hpp"
 #include "Hash.hpp"
 

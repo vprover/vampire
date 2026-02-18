@@ -116,7 +116,7 @@ set(VAMPIRE_DEBUG_SOURCES
 source_group(debug_source_files FILES ${VAMPIRE_DEBUG_SOURCES})
 
 set(VAMPIRE_LIB_SOURCES
-    Lib/Allocator.cpp
+    Lib/VAllocator.cpp
     Lib/DHMap.cpp
     Lib/Environment.cpp
     Lib/Event.cpp
@@ -132,7 +132,7 @@ set(VAMPIRE_LIB_SOURCES
     Lib/System.cpp
     Lib/Timer.cpp
 
-    Lib/Allocator.hpp
+    Lib/VAllocator.hpp
     Lib/Array.hpp
     Lib/ArrayMap.hpp
     Lib/Backtrackable.hpp

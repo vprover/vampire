@@ -21,7 +21,7 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/DHMultiset.hpp"
 #include "Lib/Stack.hpp"

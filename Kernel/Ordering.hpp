@@ -25,7 +25,7 @@
 #include "Lib/SmartPtr.hpp"
 #include "Lib/DArray.hpp"
 
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 
 namespace Kernel {
 

@@ -16,7 +16,7 @@
 
 #include "Debug/Assertion.hpp"
 
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/System.hpp"
 
@@ -56,7 +56,7 @@ void ResourceLimits::setLimits(size_t memoryInBytes, int timeInDeciseconds)
   CALL("ResourceLimits::setLimits");
 
   env.options->setMemoryLimitOptionValue(memoryInBytes);
-  Allocator::setMemoryLimit(memoryInBytes);
+  VAllocator::setMemoryLimit(memoryInBytes);
 
   env.options->setTimeLimitInDeciseconds(timeInDeciseconds);
 }

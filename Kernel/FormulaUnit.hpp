@@ -17,7 +17,7 @@
 #ifndef __FormulaUnit__
 #define __FormulaUnit__
 
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 
 #include "Unit.hpp"
 

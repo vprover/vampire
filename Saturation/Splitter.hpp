@@ -17,7 +17,7 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 #include "Lib/ArrayMap.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/Stack.hpp"
@@ -36,7 +36,7 @@
 #include "DP/DecisionProcedure.hpp"
 #include "DP/SimpleCongruenceClosure.hpp"
 
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 
 namespace Saturation {
 

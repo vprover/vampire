@@ -50,7 +50,7 @@
 #include "Lib/DArray.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Int.hpp"
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 #include "Lib/Comparison.hpp"
 #include "Lib/STL.hpp"
 

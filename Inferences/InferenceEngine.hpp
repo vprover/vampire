@@ -26,7 +26,7 @@
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/List.hpp"
 
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 #include "Kernel/Inference.hpp"
 #include "Lib/Coproduct.hpp"
 #if VDEBUG
