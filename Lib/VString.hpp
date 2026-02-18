@@ -10,7 +10,7 @@
 /**
  * @file VString.hpp
  * Vampire string is basic_string equipped with STLAllocator,
- * so that it's allocated via vampire's Allocator.
+ * so that it's allocated via vampire's VAllocator.
  * 
  * @since 5/8/2014 Prague.
  * @author Martin Suda
@@ -60,7 +60,7 @@ struct vstringstream : public vstringstream_base {
   using vstringstream_base::vstringstream_base;
 };
 
-// vampire string, a STL string using vampire's Allocator
+// vampire string, a STL string using vampire's VAllocator
 typedef std::basic_string<char,std::char_traits<char>,STLAllocator<char> > vstring;
 
 /* 

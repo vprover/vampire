@@ -29,7 +29,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #include <cerrno>
 #include <cstdlib>
 
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 
 namespace Minisat {
 

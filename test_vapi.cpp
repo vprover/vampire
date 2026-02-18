@@ -261,7 +261,7 @@ void readAndFilterGlobalOpts(Stack<char*>& args) {
 	USER_ERROR("unsigned number expected as value of -m option");
       }
       env.options->setMemoryLimit(memLimit);
-      Allocator::setMemoryLimit(env.options->memoryLimit()*1048576ul);
+      VAllocator::setMemoryLimit(env.options->memoryLimit()*1048576ul);
     }
     else {
       break;

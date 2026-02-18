@@ -22,7 +22,7 @@
 #include "Debug/Assertion.hpp"
 #include "Debug/Tracer.hpp"
 
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 
 namespace Lib
 {

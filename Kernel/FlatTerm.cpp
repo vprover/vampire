@@ -15,7 +15,7 @@
 
 #include <cstring>
 
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 #include "Lib/DArray.hpp"
 
 #include "Term.hpp"

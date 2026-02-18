@@ -9,9 +9,9 @@
  */
 /**
  * @file STLAllocator.hpp
- * Allocator class to be passed as a template argument to STL classes 
- * to make use vampire's Allocator instead of the default one.
- * (see http://www.codeproject.com/Articles/4795/C-Standard-Allocator-An-Introduction-and-Implement)
+ * VAllocator class to be passed as a template argument to STL classes 
+ * to make use vampire's VAllocator instead of the default one.
+ * (see http://www.codeproject.com/Articles/4795/C-Standard-VAllocator-An-Introduction-and-Implement)
  * 
  * @since 1/8/2014 Prague.
  * @author Martin Suda
@@ -24,7 +24,7 @@
 #include <memory>
 #include <utility>
 
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 
 namespace Lib {
 

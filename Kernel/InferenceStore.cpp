@@ -12,7 +12,7 @@
  * Implements class InferenceStore.
  */
 
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"

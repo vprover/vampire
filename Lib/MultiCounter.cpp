@@ -19,7 +19,7 @@
 
 #include "MultiCounter.hpp"
 #include "Int.hpp"
-#include "Allocator.hpp"
+#include "VAllocator.hpp"
 #include "Exception.hpp"
 
 using namespace Lib;

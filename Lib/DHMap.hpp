@@ -24,7 +24,7 @@
 #endif
 
 #include "Debug/Assertion.hpp"
-#include "Allocator.hpp"
+#include "VAllocator.hpp"
 #include "Exception.hpp"
 #include "Hash.hpp"
 #include "VirtualIterator.hpp"

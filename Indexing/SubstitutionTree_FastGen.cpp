@@ -13,7 +13,7 @@
  * and some auxiliary classes.
  */
 
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 #include "Lib/Recycled.hpp"
 
 #include "Kernel/Matcher.hpp"

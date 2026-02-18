@@ -11,7 +11,7 @@
  * @file Formula.hpp
  * Defines class Formula.
  *
- * @since 02/12/2003, Manchester, allocation changed to use Allocator
+ * @since 02/12/2003, Manchester, allocation changed to use VAllocator
  * @since 06/05/2007, Manchester, change to use new kind of Term and Literal
  */
 

@@ -21,7 +21,7 @@
 #include "Forwards.hpp"
 #include "Debug/Assertion.hpp"
 
-#include "Allocator.hpp"
+#include "VAllocator.hpp"
 #include "Comparison.hpp"
 #include "Exception.hpp"
 #include "Random.hpp"

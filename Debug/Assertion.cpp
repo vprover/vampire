@@ -18,7 +18,7 @@
 
 #include "Assertion.hpp"
 #include "Tracer.hpp"
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 #include "Lib/System.hpp"
 
 using namespace Lib;
@@ -74,13 +74,13 @@ void Assertion::violatedStrEquality(const char* file, int line, const char* val1
 void Assertion::checkType(const char* file, int line, const void* ptr, const char* assumed,
                           const char* ptrStr)
 {
-  Allocator::Descriptor* desc = Allocator::Descriptor::find(ptr);
+  VAllocator::Descriptor* desc = VAllocator::Descriptor::find(ptr);
 
   if (!desc) {
     if (outputAllowed(true)) {
       cout << "Type condition in file " << file << ", line " << line
            << " violated:\n"
-           << ptrStr << " was not allocated by Lib::Allocator.\n";
+           << ptrStr << " was not allocated by Lib::VAllocator.\n";
     }
   }
   else if (!USE_PRECISE_CLASS_NAMES && strcmp(assumed, desc->cls)) {
