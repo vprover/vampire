@@ -880,6 +880,14 @@ else ()
 endif()
 
 ################################################################
+# libtorch stuff
+################################################################
+
+find_package(Torch REQUIRED)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
+link_libraries("${TORCH_LIBRARIES}")
+
+################################################################
 # build objects
 ################################################################
 add_library(obj OBJECT ${VAMPIRE_SOURCES})
