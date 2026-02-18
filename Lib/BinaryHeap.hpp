@@ -19,7 +19,7 @@
 #include <limits>
 
 #include "Debug/Assertion.hpp"
-#include "Allocator.hpp"
+#include "VAllocator.hpp"
 #include "Exception.hpp"
 #include "Comparison.hpp"
 #include "Backtrackable.hpp"

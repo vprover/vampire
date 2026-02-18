@@ -25,7 +25,7 @@
 #include "ResultSubstitution.hpp"
 #include "Kernel/MismatchHandler.hpp"
 
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 
 namespace Indexing
 {

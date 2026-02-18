@@ -21,7 +21,7 @@
 #include "Index.hpp"
 #include "Kernel/MismatchHandler.hpp"
 
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 #include "Kernel/MismatchHandler.hpp"
 
 

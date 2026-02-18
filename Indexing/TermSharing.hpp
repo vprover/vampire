@@ -20,7 +20,7 @@
 #include "Lib/Set.hpp"
 #include "Kernel/Term.hpp"
 
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 
 using namespace Lib;
 using namespace Kernel;

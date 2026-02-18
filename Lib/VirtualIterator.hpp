@@ -21,7 +21,7 @@
 #include "Debug/Assertion.hpp"
 #include "Debug/Tracer.hpp"
 
-#include "Allocator.hpp"
+#include "VAllocator.hpp"
 #include "Exception.hpp"
 #include "Reflection.hpp"
 

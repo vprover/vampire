@@ -18,7 +18,7 @@
 
 #include "Debug/RuntimeStatistics.hpp"
 
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"

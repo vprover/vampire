@@ -15,7 +15,7 @@
 
 #include "Debug/Tracer.hpp"
 
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 #include "Lib/Random.hpp"
 #include "Lib/Environment.hpp"
 

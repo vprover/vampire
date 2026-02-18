@@ -14,7 +14,7 @@
  */
 
 #include "Indexing/ResultSubstitution.hpp"
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 #include "Lib/Recycled.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Lib/VirtualIterator.hpp"

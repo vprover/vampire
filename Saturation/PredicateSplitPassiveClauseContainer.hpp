@@ -13,7 +13,7 @@
 
 #include <memory>
 #include <vector>
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 #include "ClauseContainer.hpp"
 #include "AWPassiveClauseContainer.hpp"
 #include "Lib/STL.hpp"

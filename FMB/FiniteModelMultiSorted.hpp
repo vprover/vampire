@@ -18,7 +18,7 @@
 #ifndef __FiniteModelMultiSorted__
 #define __FiniteModelMultiSorted__
 
-#include "Lib/Allocator.hpp"
+#include "Lib/VAllocator.hpp"
 #include "Lib/DHMap.hpp"
 
 #include "Kernel/Unit.hpp"

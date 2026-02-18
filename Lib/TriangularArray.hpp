@@ -16,7 +16,7 @@
 #ifndef __TriangularArray__
 #define __TriangularArray__
 
-#include "Allocator.hpp"
+#include "VAllocator.hpp"
 #include <cstring>
 
 namespace Lib {
