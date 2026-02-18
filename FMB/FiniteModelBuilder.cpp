@@ -1748,8 +1748,6 @@ MainLoopResult FiniteModelBuilder::runImpl()
       return MainLoopResult(Statistics::SATISFIABLE);
     }
 
-    static unsigned numberOfSatCalls = 0;
-    numberOfSatCalls++;
     unsigned clauseSetSize = _clausesToBeAdded.size();
     unsigned weight = clauseSetSize;
 
