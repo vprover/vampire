@@ -119,6 +119,8 @@
 #include "LRS.hpp"
 #include "Otter.hpp"
 
+#include <torch/torch.h>
+
 using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
