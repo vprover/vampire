@@ -76,8 +76,8 @@ public:
   VariableRegion meet(VariableRegion rhs) 
   {
     auto& lhs = *this;
-    if (lhs.isUninit()) return VariableRegion(move(rhs));
-    if (rhs.isUninit()) return VariableRegion(move(lhs));
+    if (lhs.isUninit()) return VariableRegion(std::move(rhs));
+    if (rhs.isUninit()) return VariableRegion(std::move(lhs));
     return VariableRegion(intersectSortedStack(std::move(lhs.unwrap()), std::move(rhs.unwrap())));
   }
 
@@ -142,7 +142,7 @@ struct Preprocess
       if (vars.hasNext())  {
         auto cur = root(vars.next());
 
-        varSet(cur) = std::move(varSet(cur)).meet(move(varStack));
+        varSet(cur) = std::move(varSet(cur)).meet(std::move(varStack));
 
         for (auto var : vars) {
           cur = joinRegions(cur, root(var));
