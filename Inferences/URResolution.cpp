@@ -157,7 +157,6 @@ struct URResolution::Item
     CALL("URResolution::Item::generateClause");
 
     UnitList* premLst = 0;
-    UnitList::push(_orig, premLst);
     Literal* single = 0;
     unsigned clen = _lits.size();
     for(unsigned i=0; i<clen; i++) {
@@ -172,6 +171,7 @@ struct URResolution::Item
         UnitList::push(premise, premLst);
       }
     }
+    UnitList::push(_orig, premLst);
 
     Inference inf(GeneratingInferenceMany(InferenceRule::UNIT_RESULTING_RESOLUTION, premLst));
     Clause* res;
