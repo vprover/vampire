@@ -9,6 +9,7 @@
 #include "Kernel/Substitution.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Shell/EqResWithDeletion.hpp"
+#include <iostream>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -72,7 +73,7 @@ private:
 
   static InferenceRecorder *_inst;
 
-  bool isSameAsProofStep(Kernel::Clause *c, Kernel::Clause *goal, std::unordered_map<unsigned int, unsigned int> &outVarMap);
+  bool isSameAsProofStep(Kernel::Clause *c, Kernel::Clause *goal, const std::vector<Kernel::Clause *> &premises, std::unordered_map<unsigned int, unsigned int> &outVarMap);
 
   template <typename T>
   void populateSubstitutionsGen(std::vector<Kernel::Substitution> &substMap,
@@ -86,24 +87,25 @@ private:
     for (auto [var, mappedVar] : varMap) {
       variableSubst.bind(var, TermList::var(mappedVar));
     }
-
     substMap.resize(premises.size());
+    
     for (size_t bank = 0; bank < premises.size(); bank++) {
       unsigned int highestVar = 0;
+      //std::cout << premises[bank]->toString() << std::endl;
       auto iter = premises[bank]->getVariableIterator();
-
       while (iter.hasNext()) {
-        unsigned int var = iter.next();
+        unsigned int var = variableSubst.apply(iter.next()).var();
         if (var > highestVar) {
           highestVar = var;
         }
       }
       for (unsigned v = 0; v <= highestVar; v++) {
         TermList x = applyFunc(recordedSubst, TermList::var(v), bank);
-        substMap[bank].bind(v,
+        substMap[bank].bind(variableSubst.apply(v).var(),
                             SubstHelper::apply(x,
                                                variableSubst));
       }
+      //std::cout << "Substitution for bank " << bank << ": " << substMap[bank] << std::endl;
     }
   }
 
@@ -133,9 +135,9 @@ private:
     }
     for (unsigned v = 0; v <= highestVar; v++) {
       TermList x = applyFunc(recordedSubst, TermList::var(v), 0);
-      substMap[0].bind(v,
-                       SubstHelper::apply(x,
-                                          variableSubst));
+      substMap[0].bind(variableSubst.apply(v).var(),
+                         SubstHelper::apply(x,
+                                            variableSubst));
     }
   }
 
@@ -158,7 +160,7 @@ private:
   void recordGenericSubstitutionInference(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const T &recordedSubst, std::function<TermList(const T &, const TermList &, size_t)> applyFunc)
   {
     std::unordered_map<unsigned int, unsigned int> varMap;
-    if (isSameAsProofStep(conclusion, _currentGoal, varMap)) {
+    if (isSameAsProofStep(conclusion, _currentGoal, premises, varMap)) {
       std::unique_ptr<InferenceInformation> info = std::make_unique<InferenceInformation>();
       info->conclusion = conclusion;
       info->premises = premises;
@@ -173,7 +175,7 @@ private:
   void recordGenericSubstitutionInference(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const T &recordedSubst)
   {
     std::unordered_map<unsigned int, unsigned int> varMap;
-    if (isSameAsProofStep(conclusion, _currentGoal, varMap)) {
+    if (isSameAsProofStep(conclusion, _currentGoal, premises, varMap)) {
       // std::cout << conclusion->toNiceString() << std::endl;
       // std::cout << _currentGoal->toNiceString() << std::endl;
       std::unique_ptr<InferenceInformation> info = std::make_unique<InferenceInformation>();
@@ -193,7 +195,7 @@ private:
   void recordGenericSubstitutionToOneBank(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const T &recordedSubst, std::function<TermList(const T &, const TermList &, size_t)> applyFunc)
   {
     std::unordered_map<unsigned int, unsigned int> varMap;
-    if (isSameAsProofStep(conclusion, _currentGoal, varMap)) {
+    if (isSameAsProofStep(conclusion, _currentGoal, premises,varMap)) {
       std::unique_ptr<InferenceInformation> info = std::make_unique<InferenceInformation>();
       info->conclusion = conclusion;
       info->premises = premises;

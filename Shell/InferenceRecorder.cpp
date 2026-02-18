@@ -149,7 +149,7 @@ void InferenceRecorder::forwardDemodulation(unsigned int id, Clause *conclusion,
                                             TermList rhsS)
 {
   std::unordered_map<unsigned int, unsigned int> varMap;
-  if (isSameAsProofStep(conclusion, _currentGoal, varMap)) {
+  if (isSameAsProofStep(conclusion, _currentGoal, premises, varMap)) {
     std::unique_ptr<InferenceInformation> info = std::make_unique<InferenceInformation>();
     info->conclusion = conclusion;
     info->premises = premises;
@@ -230,8 +230,18 @@ void InferenceRecorder::backwardDemodulation(unsigned int id, Clause *conclusion
   );
 }
 
-bool InferenceRecorder::isSameAsProofStep(Clause *clause, Clause *goal, std::unordered_map<unsigned int, unsigned int> &outVarMap)
+bool InferenceRecorder::isSameAsProofStep(Clause *clause, Clause *goal, const std::vector<Clause *> &premises, std::unordered_map<unsigned int, unsigned int> &outVarMap)
 {
+  auto parents = goal->getParents();
+  unsigned parentCounter = 0;
+  if(parents.hasNext()) {
+    auto parent = parents.next();
+    if(parent->number() != premises[parentCounter]->number()){
+      return false;
+    }
+    parentCounter++;
+  }
+
   if (clause->length() != goal->length()) {
     return false;
   }
