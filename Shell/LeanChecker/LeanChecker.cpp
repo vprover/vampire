@@ -211,10 +211,14 @@ void LeanChecker::outputFullProofPreamble(std::ostream &out, std::deque<Unit*> p
   if(negatedConjectures.empty()){
     out << "False";
   } 
-  out << " := by\n" << indent << "intros ";
-  for(Unit* input : premises){
-    out << stepIdent << input->number() << " ";
+  out << " := by\n";
+  if(!premises.empty()){
+    out << indent << "intros ";
+    for(Unit* input : premises){
+      out << stepIdent << input->number() << " ";
+    }
   }
+  
   out << "\n";
   for(Unit* negConj : negatedConjectures){
     out << indent << "apply Classical.byContradiction; intro " << stepIdent << negConj->number() << "\n";
