@@ -336,7 +336,8 @@ void Options::init()
     _proof.addHardConstraint(If(equal(Proof::LEANCHECK)).then(_proofExtra.is(equal(ProofExtra::LEAN))));
     _proof.addHardConstraint(If(equal(Proof::LEANCHECK)).then( _shuffleInput.is(equal(false))));
     _proof.addHardConstraint(If(equal(Proof::LEANCHECK)).then( _skolemizationType.is(equal(SkolemizationType::SYNTACTIC))));
-    
+    _proof.addHardConstraint(If(equal(Proof::LEANCHECK)).then( _outputMode.is(equal(Output::LEAN))));
+
     _skolemizationType = ChoiceOptionValue<SkolemizationType>("skolemization","skt",SkolemizationType::STANDARD,{"standard","syntactic"});
     _skolemizationType.description=
       "The method used for skolemisation. The standard method produces the default vampire skolemization implementation, the syntactic method just uses all quantifiers before the subfomula. Note that the syntactic method may produce larger skolem terms.";
