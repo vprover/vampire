@@ -1,6 +1,7 @@
 #include "SAT/NapSATInterfacing.hpp"
 #include "NapSATInterfacing.hpp"
 #include "Lib/Environment.hpp"
+#include "Shell/Statistics.hpp"
 
 #include <iostream>
 
@@ -42,6 +43,10 @@ namespace SAT
         return this->weightFunction(lit);
       });
     }
+
+    Lib::env.statistics->addFinalizationCallback([this]() {
+      this->printStatistics();
+    });
   }
 
   NapSATInterfacing::~NapSATInterfacing() {

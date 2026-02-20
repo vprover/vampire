@@ -63,9 +63,21 @@ void Statistics::explainRefutationNotFound(std::ostream& out)
   }
 }
 
+void Shell::Statistics::addFinalizationCallback(std::function<void()> callback)
+{
+  finalizationCallbacks.push_back(std::move(callback));
+}
+
 void Statistics::print(std::ostream& out)
 {
-  if (env.options->statistics() != Options::Statistics::NONE) {
+  if (env.options->statistics() == Options::Statistics::NONE) {
+#if VTIME_PROFILING
+    if (env.options && env.options->timeStatistics()) {
+      TimeTrace::instance().printPretty(out);
+    }
+#endif // VTIME_PROFILING
+    return;
+  }
 
   SaturationAlgorithm::tryUpdateFinalClauseCount();
 
@@ -124,6 +136,9 @@ void Statistics::print(std::ostream& out)
   }
 
   if (env.options->statistics()==Options::Statistics::FULL) {
+    for (const auto& callback : finalizationCallbacks) {
+      callback();
+    }
 
     struct Entry {
       Entry(string name, string total, string inproof = string())
@@ -329,8 +344,6 @@ void Statistics::print(std::ostream& out)
   RSTAT_PRINT(out);
   addCommentSignForSZS(out);
   out << "------------------------------\n";
-
-  } // if (env.options->statistics()!=Options::Statistics::NONE)
 
 #if VTIME_PROFILING
   if (env.options && env.options->timeStatistics()) {
