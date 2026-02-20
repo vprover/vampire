@@ -63,9 +63,17 @@ void Statistics::explainRefutationNotFound(std::ostream& out)
   }
 }
 
-void Shell::Statistics::addFinalizationCallback(std::function<void()> callback)
+unsigned Shell::Statistics::addFinalizationCallback(std::function<void()> callback)
 {
   finalizationCallbacks.push_back(std::move(callback));
+  return finalizationCallbacks.size() - 1;
+}
+
+void Shell::Statistics::removeFinalizationCallback(unsigned callbackIndex)
+{
+  if (callbackIndex < finalizationCallbacks.size()) {
+    finalizationCallbacks[callbackIndex] = []() {};
+  }
 }
 
 void Statistics::print(std::ostream& out)

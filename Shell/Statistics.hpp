@@ -99,7 +99,9 @@ public:
   enum UnitCountCategory { TOTAL_CNT = 0, INPROOF_CNT = 1 };
 
   std::vector<std::function<void()>> finalizationCallbacks;
-  void addFinalizationCallback(std::function<void()> callback);
+  // return the index of the added callback, which can be used to remove it later
+  unsigned addFinalizationCallback(std::function<void()> callback);
+  void removeFinalizationCallback(unsigned callbackIndex);
 
   void print(std::ostream& out);
   void explainRefutationNotFound(std::ostream& out);

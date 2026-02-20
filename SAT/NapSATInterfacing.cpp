@@ -44,12 +44,14 @@ namespace SAT
       });
     }
 
-    Lib::env.statistics->addFinalizationCallback([this]() {
+    call_back_id = Lib::env.statistics->addFinalizationCallback([this]() {
       this->printStatistics();
     });
   }
 
   NapSATInterfacing::~NapSATInterfacing() {
+    Lib::env.statistics->removeFinalizationCallback(call_back_id);
+    print_statistics(_solver);
     delete_solver(_solver);
   }
 

@@ -90,6 +90,8 @@ private:
   std::vector<SATClause*> _addedClauses;
 
   std::function<double(SATLiteral)> _vampire_weightFunction;
+
+  unsigned call_back_id = 0;
 };
 
 }//end SAT namespace
