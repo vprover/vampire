@@ -21,8 +21,11 @@ namespace SAT
 
     // check the options passed by the user
     std::string options_str = Lib::env.options->napsatOptions();
-    cout << "NapSAT options: " << options_str << endl;
     std::vector<std::string> opt_args;
+    // remove the quotes if they exist
+    if (!options_str.empty() && options_str.front() == '"' && options_str.back() == '"') {
+      options_str = options_str.substr(1, options_str.size() - 2);
+    }
     if (!options_str.empty()) {
       std::istringstream iss(options_str);
       std::string token;
