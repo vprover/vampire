@@ -18,15 +18,11 @@
 #include "Kernel/Clause.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/Options.hpp"
+#include "Lib/ScopedPtr.hpp"
 
 #include "LRS.hpp"
 
-#define DETERMINISE_LRS_SAVE 0
-#define DETERMINISE_LRS_LOAD 0
-
-#if DETERMINISE_LRS_SAVE || DETERMINISE_LRS_LOAD
 #include <fstream>
-#endif
 
 namespace Saturation
 {
@@ -78,14 +74,14 @@ bool LRS::shouldUpdateLimits()
  */
 long long LRS::estimatedReachableCount()
 {
-#if DETERMINISE_LRS_LOAD
-  static std::ifstream infile("lrs_data.txt");
-  long long thing;
-  if (infile >> thing) {
-    cout << "reading " << thing << endl;
-    return thing;
+  static ScopedPtr<std::ifstream> infile((!env.options->lrsLoadTraceFile().empty()) ? new std::ifstream(env.options->lrsLoadTraceFile().c_str()) : 0);
+  if (infile) {
+    long long thing;
+    if (*infile >> thing) {
+      // cout << "reading " << thing << endl;
+      return thing;
+    }
   }
-#endif
 
   long currTime = Timer::elapsedMilliseconds();
   // time spent in saturation (parsing, preprocessing, and the initial loading up of the input into passive are excluded)
@@ -144,10 +140,10 @@ long long LRS::estimatedReachableCount()
 
   finish:
 
-#if DETERMINISE_LRS_SAVE
-  static std::ofstream outfile("lrs_data.txt");
-  outfile << result << endl;
-#endif
+  static ScopedPtr<std::ofstream> outfile((!env.options->lrsSaveTraceFile().empty()) ? new std::ofstream(env.options->lrsSaveTraceFile().c_str()) : 0);
+  if (outfile) {
+    (*outfile) << result << std::endl;
+  }
 
   return result;
 }

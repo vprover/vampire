@@ -1184,6 +1184,18 @@ void Options::init()
     _lrsEstimateCorrectionCoef.addConstraint(greaterThan(0.0f));
     _lrsEstimateCorrectionCoef.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
 
+    _lrsSaveTraceFile = StringOptionValue("lrs_save_trace_file","lstf","");
+    _lrsSaveTraceFile.description = "When set, vampire will output a trace of decistions in the LRS estimate module, which can be used to reproduce a lucky run.";
+    _lookup.insert(&_lrsSaveTraceFile);
+    _lrsSaveTraceFile.tag(OptionTag::LRS);
+    _lrsSaveTraceFile.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
+
+    _lrsLoadTraceFile = StringOptionValue("lrs_load_trace_file","lltf","");
+    _lrsLoadTraceFile.description = "When set, vampire will load a previously saved trace of decistions of the LRS estimate module, which be used insteado fhte modules logic to guide the estimates.";
+    _lookup.insert(&_lrsLoadTraceFile);
+    _lrsLoadTraceFile.tag(OptionTag::LRS);
+    _lrsLoadTraceFile.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
+
   //*********************** Inferences  ***********************
 
 #if VZ3
@@ -3356,6 +3368,10 @@ std::string Options::generateEncodedOptions() const
     forbidden.insert(&_selection);
     forbidden.insert(&_ageWeightRatio);
     forbidden.insert(&_timeLimitInDeciseconds);
+
+    // not filenames, please
+    forbidden.insert(&_lrsSaveTraceFile);
+    forbidden.insert(&_lrsLoadTraceFile);
 
     //things we don't want to output (showHelp etc won't get to here anyway)
     forbidden.insert(&_mode);
