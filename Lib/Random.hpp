@@ -45,27 +45,30 @@ class Random
    * as e.g. uniform_int_distribution is implementation dependent!
    */
 
-  static std::mt19937 _eng; // Standard mersenne_twister_engine
+  static std::mt19937 _eng[2]; // Standard mersenne_twister_engine
+  // the second, invisible engine should be used for in functions that should be side-effect free (such as sorting an array)
+  // the use case is making two different paths trough the code the same if one is only adding effectively read only operations on top of the other
+
   /** the seed we got (last) seeded with */
   static unsigned _seed;
 
 public:
-  static inline int getInteger(int modulus) {
+  static inline int getInteger(int modulus, std::size_t invisible=0) {
     CALL("Random::getInt");
-    return std::uniform_int_distribution<int>(0,modulus-1)(_eng);
+    return std::uniform_int_distribution<int>(0,modulus-1)(_eng[invisible]);
   }
 
-  static double getDouble(double min, double max) {
+  static double getDouble(double min, double max, std::size_t invisible=0) {
     CALL("Random::getDouble");
-    return std::uniform_real_distribution<double>(min,max)(_eng);
+    return std::uniform_real_distribution<double>(min,max)(_eng[invisible]);
   }
   
   /**
    * Return a random bit.
    */
-  static inline bool getBit()
+  static inline bool getBit(std::size_t invisible=0)
   {
-    return std::uniform_int_distribution<int>(0,1)(_eng);
+    return std::uniform_int_distribution<int>(0,1)(_eng[invisible]);
   } // Random::getBit
 
   // sets the random seed to s
@@ -75,7 +78,8 @@ public:
     CALL("Random::setSeed");
 
     _seed = s;
-    _eng.seed(_seed);
+    _eng[0].seed(_seed);
+    _eng[1].seed(_seed);
   }
 
   /** Return the current value of the random seed. */

@@ -20,4 +20,4 @@
 using namespace Lib;
 
 unsigned Random::_seed = 1;
-std::mt19937 Random::_eng(Random::_seed);
+std::mt19937 Random::_eng[2] = { std::mt19937(Random::_seed), std::mt19937(Random::_seed) };
