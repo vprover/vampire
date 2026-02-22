@@ -20,15 +20,11 @@
 #include "Kernel/LiteralSelector.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/Options.hpp"
+#include "Lib/ScopedPtr.hpp"
 
 #include "LRS.hpp"
 
-#define DETERMINISE_LRS_SAVE 0
-#define DETERMINISE_LRS_LOAD 0
-
-#if DETERMINISE_LRS_SAVE || DETERMINISE_LRS_LOAD
 #include <fstream>
-#endif
 
 namespace Saturation
 {
@@ -94,18 +90,18 @@ long long LRS::estimatedReachableCount()
 {
   CALL("LRS::estimatedReachableCount");
 
-#if DETERMINISE_LRS_LOAD
-  static std::ifstream infile("lrs_data.txt");
-  long long thing;
-  if (infile >> thing) {
-    cout << "reading " << thing << endl;
-    return thing;
+  static ScopedPtr<std::ifstream> infile((!env.options->lrsLoadTraceFile().empty()) ? new std::ifstream(env.options->lrsLoadTraceFile().c_str()) : 0);
+  if (infile) {
+    long long thing;
+    if (*infile >> thing) {
+      // cout << "reading " << thing << endl;
+      return thing;
+    }
   }
-#endif
 
   int currTime=env.timer->elapsedMilliseconds();
   // time spent in saturation (preprocessing is excluded)
-  long long timeSpent=currTime-_startTime; // (in milliseconds) 
+  long long timeSpent=currTime-_startTime; // (in milliseconds)
   int opt_timeLimitDeci = _opt.timeLimitInDeciseconds();
   float correction_coef = _opt.lrsEstimateCorrectionCoef();
   int firstCheck=_opt.lrsFirstTimeCheck(); // (in percent)!
@@ -144,10 +140,10 @@ long long LRS::estimatedReachableCount()
 
     // note that result is -1 here already
 
-    if(timeLeft > 0) {      
+    if(timeLeft > 0) {
       result = correction_coef*(processed*timeLeft)/timeSpent;
     } // otherwise, it's somehow past the deadline, or no timilimit set
-    
+
     if (instrsLeft > 0) {
       long long res_by_instr = correction_coef*(processed*instrsLeft)/instrsBurned;
       if (result > 0) {
@@ -160,10 +156,10 @@ long long LRS::estimatedReachableCount()
 
   finish:
 
-#if DETERMINISE_LRS_SAVE
-  static std::ofstream outfile("lrs_data.txt");
-  outfile << result << endl;
-#endif
+  static ScopedPtr<std::ofstream> outfile((!env.options->lrsSaveTraceFile().empty()) ? new std::ofstream(env.options->lrsSaveTraceFile().c_str()) : 0);
+  if (outfile) {
+    (*outfile) << result << std::endl;
+  }
 
   return result;
 }
