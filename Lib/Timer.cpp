@@ -53,7 +53,7 @@ long long last_instruction_count_read = -1;
 long Timer::s_ticksPerSec;
 int Timer::s_initGuarantedMiliseconds;
 
-long long elapsedInstructions() {
+long long Timer::elapsedInstructions() {
 #if VAMPIRE_PERF_EXISTS
   return (LAST_INSTRUCTION_COUNT_READ >= 0) ? LAST_INSTRUCTION_COUNT_READ : 0;
 #else
@@ -290,6 +290,18 @@ void Timer::resetInstructionMeasuring()
   } else {
     ioctl(perf_fd, PERF_EVENT_IOC_RESET, 0);
     ioctl(perf_fd, PERF_EVENT_IOC_ENABLE, 0);
+  }
+#endif
+}
+
+// called by the main process and timer_thread: should be thread-safe
+void Timer::updateInstructionCount()
+{
+#if VAMPIRE_PERF_EXISTS
+  if (PERF_FD >= 0) {
+    // we could also decide not to guard this read by env.options->instructionLimit(),
+    // to get info about instructions burned even when not instruction limiting
+    read(PERF_FD, &LAST_INSTRUCTION_COUNT_READ, sizeof(long long));
   }
 #endif
 }
