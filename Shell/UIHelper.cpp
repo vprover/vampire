@@ -532,7 +532,7 @@ void UIHelper::outputResult(std::ostream& out)
     }
     addCommentSignForSZS(out);
     env.statistics->explainRefutationNotFound(out);
-    if (szsOutputMode()) {
+    if ((env.options->mode() == Options::Mode::VAMPIRE) && szsOutputMode()) {
       out << "% SZS status GaveUp for " << env.options->problemName() << endl;
     }
     break;
