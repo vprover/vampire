@@ -53,6 +53,14 @@ long long last_instruction_count_read = -1;
 long Timer::s_ticksPerSec;
 int Timer::s_initGuarantedMiliseconds;
 
+long long elapsedInstructions() {
+#if VAMPIRE_PERF_EXISTS
+  return (LAST_INSTRUCTION_COUNT_READ >= 0) ? LAST_INSTRUCTION_COUNT_READ : 0;
+#else
+  return 0;
+#endif
+}
+
 unsigned Timer::elapsedMegaInstructions() {
 #ifdef __linux__
   return (last_instruction_count_read >= 0) ? last_instruction_count_read/MEGA : 0;
