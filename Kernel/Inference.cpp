@@ -972,13 +972,13 @@ vstring Kernel::ruleName(InferenceRule rule)
     return "project";
   case InferenceRule::BOOL_INSTANTIATION:
     return "heuristic instantiation";
-  /* these cases are no actual inference rules but only markeres to separatea groups of rules */    
+  /* these cases are no actual inference rules but only markeres to separatea groups of rules */
   case InferenceRule::PROXY_AXIOM:
 #endif
-  case InferenceRule::GENERIC_FORMULA_TRANSFORMATION: 
-  case InferenceRule::INTERNAL_FORMULA_TRANSFORMATION_LAST: 
+  case InferenceRule::GENERIC_FORMULA_TRANSFORMATION:
+  case InferenceRule::INTERNAL_FORMULA_TRANSFORMATION_LAST:
   case InferenceRule::GENERIC_SIMPLIFYING_INFERNCE:
-  case InferenceRule::INTERNAL_SIMPLIFYING_INFERNCE_LAST: 
+  case InferenceRule::INTERNAL_SIMPLIFYING_INFERNCE_LAST:
   case InferenceRule::GENERIC_GENERATING_INFERNCE:
   case InferenceRule::INTERNAL_GENERATING_INFERNCE_LAST:
   case InferenceRule::TERM_ALGEBRA_DIRECT_SUBTERMS_AXIOM:
@@ -986,9 +986,8 @@ vstring Kernel::ruleName(InferenceRule rule)
   case InferenceRule::INTERNAL_THEORY_AXIOM_LAST:
     { /* explicitly ignoring this cases */ }
   }
-  
-  ASSERTION_VIOLATION;
+
   /* moved outside of the case statement to get a compiler warning */
-  return "!UNKNOWN INFERENCE RULE!";
+  return "UNNAMED INFERENCE RULE!";
 } // Inference::name()
 

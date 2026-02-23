@@ -2097,6 +2097,7 @@ public:
   vstring testId() const { return _testId.actualValue; }
   vstring protectedPrefix() const { return _protectedPrefix.actualValue; }
   Statistics statistics() const { return _statistics.actualValue; }
+  bool showInferenceRuleTable() const { return _showInferenceRuleTable.actualValue; }
   void setStatistics(Statistics newVal) { _statistics.actualValue=newVal; }
   Proof proof() const { return _proof.actualValue; }
   bool minimizeSatProofs() const { return _minimizeSatProofs.actualValue; }
@@ -2841,6 +2842,7 @@ private:
   BoolOptionValue _splittingBufferedSolver;
 
   ChoiceOptionValue<Statistics> _statistics;
+  BoolOptionValue _showInferenceRuleTable;
   BoolOptionValue _superpositionFromVariables;
   ChoiceOptionValue<TermOrdering> _termOrdering;
   ChoiceOptionValue<SymbolPrecedence> _symbolPrecedence;
