@@ -1022,6 +1022,320 @@ fin:
   cl->decRefCnt();
 }
 
+void SaturationAlgorithm::runGnnOnInput()
+{
+  TIME_TRACE("gnn-eval");
+
+  Timer::updateInstructionCount();
+  long long gnn_start_instrs = Timer::elapsedInstructions();
+
+  _numPreds = env.signature->predicates();
+  _numFuncs = env.signature->functions();
+  _numSorts = env.signature->typeCons();
+
+  // these guy must survive (in memory) until the gnnPerform call
+  torch::Tensor sort_features = torch::empty({_numSorts,3}, torch::kFloat32);
+  torch::Tensor symbol_features = torch::empty({_numPreds+_numFuncs,11}, torch::kFloat32);
+
+  // sorts
+  {
+    float* sort_features_ptr = sort_features.data_ptr<float>();
+
+    for (unsigned t = 0; t < _numSorts; t++) {
+      Signature::Symbol* symb = env.signature->getTypeCon(t);
+      if (symb->arity() > 0) {
+        USER_ERROR("GNN currently only supports monomorphic FOL.");
+      }
+      (*sort_features_ptr++) = env.signature->isPlainCon(t);
+      (*sort_features_ptr++) = env.signature->isBoolCon(t);
+      (*sort_features_ptr++) = env.signature->isArithCon(t);
+      // cout << "sort: " << t << " " << env.signature->isPlainCon(t) << " " << env.signature->isBoolCon(t) << " " << env.signature->isArithCon(t) << " # " << symb->name() << endl;
+    }
+
+    _neuralModel->gnnNodeKind("sort",sort_features);
+  }
+
+  // symbols
+  {
+    float* symbol_features_ptr = symbol_features.data_ptr<float>();
+
+    vector<int64_t> symb2sort_one; // the symbs
+    vector<int64_t> symb2sort_two; // the sorts
+
+    vector<int64_t> symb2symb_one; // the smaller in prec
+    vector<int64_t> symb2symb_two; // the larger in prec
+
+    auto add_arity_symbol_features = [&symbol_features_ptr](unsigned arity) {
+      (*symbol_features_ptr++) = (arity > 0);
+      (*symbol_features_ptr++) = (arity > 1);
+      (*symbol_features_ptr++) = (arity > 2);
+      (*symbol_features_ptr++) = (arity > 4);
+      (*symbol_features_ptr++) = (arity > 8);
+    };
+
+    for (unsigned p = 0; p < _numPreds; p++) {
+      Signature::Symbol* symb = env.signature->getPredicate(p);
+      (*symbol_features_ptr++) = (unsigned)(p==0);   // isEquality
+      (*symbol_features_ptr++) = 0;                  // isFunction symbol
+      (*symbol_features_ptr++) = symb->introduced();
+      (*symbol_features_ptr++) = symb->skolem();
+      (*symbol_features_ptr++) = symb->interpretedNumber();
+      (*symbol_features_ptr++) = 1; // function symbol (KBO) weight
+      add_arity_symbol_features(symb->arity());
+
+      //cout << "symb: " << p << " " << (unsigned)(p==0) << " 0 " << symb->introduced() << " " << symb->skolem()
+      //    << " " << symb->interpretedNumber() << " " << symb->arity() << " # " << symb->name() << endl;
+      // cout << "symb-to-sort: " << p << " " << env.signature->getBoolSort() << endl;
+      symb2sort_one.push_back(p);
+      symb2sort_two.push_back(env.signature->getBoolSort());
+      // pred-to-sort: predId sortId (which is always 1 == $o)
+    }
+    {
+      DArray<unsigned> predicates;
+      predicates.initFromIterator(getRangeIterator(0u, _numPreds), _numPreds);
+      _ordering->sortArrayByPredicatePrecedence(predicates);
+      unsigned jumpLen = 1;
+      do {
+        unsigned prev = 0; // we hardcode = as the first predicate in the precedence (despite the precedence sometimes claiming otherwise), because = has always the smallest "level" anyway
+        for (unsigned idx = 0; idx < _numPreds; idx += jumpLen) {
+          if (predicates[idx] != 0) {
+            // cout << "symb-prec-next: " << prev << " " << predicates[idx] << endl;
+            symb2symb_one.push_back(prev);
+            symb2symb_two.push_back(predicates[idx]);
+            prev = predicates[idx];
+          }
+        }
+        jumpLen *= 2;
+      } while (jumpLen < _numPreds);
+    }
+    for (unsigned f = 0; f < _numFuncs; f++) {
+      Signature::Symbol* symb = env.signature->getFunction(f);
+
+      (*symbol_features_ptr++) = 0;                  // isEquality
+      (*symbol_features_ptr++) = 1;                  // isFunction symbol
+      (*symbol_features_ptr++) = symb->introduced();
+      (*symbol_features_ptr++) = symb->skolem();
+      (*symbol_features_ptr++) = symb->interpretedNumber();
+      (*symbol_features_ptr++) = _ordering->functionSymbolWeight(f);
+      add_arity_symbol_features(symb->arity());
+
+      //cout << "symb: " << FUNC_TO_SYMB(f) << " 0 1 " << symb->introduced() << " " << symb->skolem()
+      //    << " " << symb->interpretedNumber() << " " << symb->arity() << " # " << symb->name() << endl;
+      // cout << "symb-to-sort: " << FUNC_TO_SYMB(f) << " " << symb->fnType()->result().term()->functor() << endl;
+      symb2sort_one.push_back(funcToSymb(f));
+      symb2sort_two.push_back(symb->fnType()->result().term()->functor());
+      // func-to-sort: funcId sortId --- this is the output sort (input sorts can be inferred from arguments' output sorts)
+    }
+    {
+      DArray<unsigned> functions;
+      functions.initFromIterator(getRangeIterator(0u, _numFuncs), _numFuncs);
+      _ordering->sortArrayByFunctionPrecedence(functions);
+      unsigned jumpLen = 1;
+      do {
+        for (unsigned idx = jumpLen; idx < _numFuncs; idx += jumpLen) {
+          // cout << "symb-prec-next: " << FUNC_TO_SYMB(functions[idx-jumpLen]) << " " << FUNC_TO_SYMB(functions[idx]) << endl;
+          symb2symb_one.push_back(funcToSymb(functions[idx-jumpLen]));
+          symb2symb_two.push_back(funcToSymb(functions[idx]));
+        }
+        jumpLen *= 2;
+      } while (jumpLen < _numFuncs);
+    }
+
+    _neuralModel->gnnNodeKind("symbol",symbol_features);
+    _neuralModel->gnnEdgeKind("symbol","sort",symb2sort_one,symb2sort_two);
+    _neuralModel->gnnEdgeKind("symbol","symbol",symb2symb_one,symb2symb_two); // for the symbol precendence
+  }
+
+  vector<int64_t> cls2trm_one; // clauses
+  vector<int64_t> cls2trm_two; // literals
+
+  vector<int64_t> trm2trm_one; // super-term
+  vector<int64_t> trm2trm_two; // sub-term
+
+  vector<int64_t> cls2var_one; // clauses
+  vector<int64_t> cls2var_two; // variable
+
+  vector<int64_t> var2srt_one; // variable
+  vector<int64_t> var2srt_two; // sort
+
+  vector<int64_t> trm2var_one; // a subterm is a
+  vector<int64_t> trm2var_two; // variable
+
+  vector<int64_t> trm2symb_one; // a (non-var) subterm
+  vector<int64_t> trm2symb_two; // has a symbol
+
+  vector<float> clause_features;
+  vector<float> term_features;
+  vector<float> var_features;
+
+  ClauseIterator toAdd = _prb.clauseIterator();
+  unsigned clauseId = 0;  // zero-based, ever growing
+  unsigned subtermId = 0; // zero-based, ever growing
+  unsigned clVarId = 0;   // zero-based, ever growing, each clause has its own variable nodes
+  DHMap<unsigned,unsigned> clauseVariables; // from clause variables (as TermList::var()) to global variables of the whole CNF (non shared)
+
+  struct TermTodo {
+    Term* trm;        // the term to iterate through
+    unsigned id;      // its id (for reporting edges)
+    OperatorType* ot; // trm's operator type (careful, can't be used for twoVarEquality)
+    unsigned idx = 0; // index into t's own subterms, when idx >= arity, we are done with this Todo
+  };
+
+  auto term_features_for_vars_and_weight = [&term_features](Term* t) {
+    term_features.push_back(t->numVarOccs() > 0);   // non-ground
+    term_features.push_back(t->numVarOccs() > 2);
+    term_features.push_back(t->numVarOccs() > 4);
+    term_features.push_back(t->numVarOccs() > 8);
+    term_features.push_back(t->weight() > 1);       // non-leaf
+    term_features.push_back(t->weight() > 4);
+    term_features.push_back(t->weight() > 16);
+    term_features.push_back(t->weight() > 64);
+  };
+
+  auto term_features_for_vars_and_weight_the_var_case = [&term_features]() {
+    term_features.push_back(1.0);   // non-ground
+    term_features.push_back(0.0);
+    term_features.push_back(0.0);
+    term_features.push_back(0.0);
+    term_features.push_back(0.0);   // non-leaf
+    term_features.push_back(0.0);
+    term_features.push_back(0.0);
+    term_features.push_back(0.0);
+  };
+
+  std::vector<int64_t> clauseNums;
+  clauseNums.reserve(UnitList::length(_prb.units()));
+
+  Stack<TermTodo> subterms;
+  while (toAdd.hasNext()) {
+    Clause* cl = toAdd.next();
+    clauseNums.push_back(cl->number());
+    clauseVariables.reset();
+    unsigned clWeight = 0;
+    for (unsigned i = 0; i < cl->size(); i++) {
+      Literal* lit = (*cl)[i];
+      clWeight += lit->weight();
+
+      cls2trm_one.push_back(clauseId);
+      cls2trm_two.push_back(subtermId);
+      // cout << "cls-trm: " << clauseId << " " << subtermId << endl;
+
+      // each literal is a trm!
+      term_features.push_back((lit->isPositive()) ? 1.0 : -1.0); // only non-zero for literals and encodes polarity
+      term_features.push_back(0.0);                              // position under my parent (here the clause, but for literals positions don't matter)
+      term_features_for_vars_and_weight(lit);
+      // cout << "trm: " << subtermId << " " << ((lit->isPositive()) ? 1.0 : -1.0) << " " << 0.0 << " ... " << lit->toString() << endl;
+
+      trm2symb_one.push_back(subtermId);
+      trm2symb_two.push_back(lit->functor());
+      // cout << "trm-symb: " << subtermId << " " << lit->functor() << endl;
+
+      ASS(subterms.isEmpty());
+      subterms.push({lit,subtermId++,env.signature->getPredicate(lit->functor())->predType()});
+      while (subterms.isNonEmpty()) {
+        TermTodo& top = subterms.top();
+
+        if (top.idx < top.trm->arity()) {
+          term_features.push_back(0.0);   // proper subterms are not literals
+          if ((top.trm->isLiteral() && top.trm->functor() == 0) // our parent was = literal (order does not matter)
+              || top.trm->arity() == 1) { // stick with 0.0 for this case too (to keep the features balanced around 0.0)
+            term_features.push_back(0.0); // subterms of = not distinguishable by idx
+          } else {
+            term_features.push_back(static_cast<float>(top.idx)/(top.trm->arity()-1.0)); // interpolate idx between 0.0 and 1.0
+          }
+          TermList arg = *top.trm->nthArgument(top.idx);
+          // cout << "trm: " << subtermId << " " << 0.0 << " " << term_features.back() << " ... " << arg.toString() << endl;
+          // the rest of term_features will follow, depending on whether arg is a proper term or a var
+
+          // will be only used, if we are a var
+          unsigned varSrt = (top.trm->isTwoVarEquality() ? top.trm->twoVarEqSort() : top.ot->arg(top.idx)).term()->functor();
+          top.idx++; // next time round, will look at the next argument or die
+
+          trm2trm_one.push_back(top.id);
+          trm2trm_two.push_back(subtermId);
+          // cout << "trm-trm: " << top.id << " " << subtermId << endl;
+
+          if (arg.isTerm()) {
+            Term* t = arg.term();
+            term_features_for_vars_and_weight(t);
+
+            trm2symb_one.push_back(subtermId);
+            trm2symb_two.push_back(funcToSymb(t->functor()));
+
+            // cout << "trm-symb: " << subtermId << " " << FUNC_TO_SYMB(t->functor()) << endl;
+            subterms.push({t,subtermId,env.signature->getFunction(t->functor())->fnType()});
+            // don't touch top anymore (push could cause reallocatio)!
+          } else {
+            term_features_for_vars_and_weight_the_var_case();
+
+            ASS(arg.isVar());
+            unsigned var = arg.var();
+            unsigned* normVar;
+            if (clauseVariables.getValuePtr(var,normVar)) {
+              *normVar = clVarId++;
+              // cout << "var: " << *normVar << " " << clauseVariables.size()-1 << endl;
+              var_features.push_back(clauseVariables.size()-1);
+              // cls-var: clauseId varId
+              // cout << "cls-var: " << clauseId << " " << *normVar << endl;       // a clause knows about its variables (and numbers them internally starting from 0)
+              cls2var_one.push_back(clauseId);
+              cls2var_two.push_back(*normVar);
+
+              // cout << "var-srt: " << *normVar << " " << varSrt << endl;          // a variable knows about its sort
+              var2srt_one.push_back(*normVar);
+              var2srt_two.push_back(varSrt);
+            }
+
+            // cout << "trm-var: " << subtermId << " " << *normVar << endl; // this subterm is a variable
+            trm2var_one.push_back(subtermId);
+            trm2var_two.push_back(*normVar);
+          }
+          subtermId++;
+        } else {
+          subterms.pop();
+        }
+      }
+    }
+
+    // just register the clause and connect it with its number()
+    // cout << "cls: " << clauseId << " " << cl->derivedFromGoal() << " " << cl->isTheoryAxiom() << " ... " << cl->toString() << endl;
+    clause_features.push_back(cl->derivedFromGoal());
+    clause_features.push_back(cl->isTheoryAxiom()); // TODO: could be more specific on which theory axiom this is (when it is one) - as was done in Deepire
+    clause_features.push_back(cl->size() > 1);
+    clause_features.push_back(cl->size() > 2);
+    clause_features.push_back(cl->size() > 4);
+    clause_features.push_back(cl->size() > 8);
+    clause_features.push_back(clWeight > 4);
+    clause_features.push_back(clWeight > 16);
+    clause_features.push_back(clWeight > 64);
+    clause_features.push_back(clWeight > 256);
+    clauseId++;
+  }
+
+  // also here we (paranoidly) assume that the script module might not take any ownershipe of these tensors ...
+  auto clause_features_t = torch::tensor(clause_features,torch::TensorOptions().dtype(torch::kFloat32)).reshape({clauseId,10});
+  auto term_features_t = torch::tensor(term_features,torch::TensorOptions().dtype(torch::kFloat32)).reshape({subtermId,10});
+  auto var_features_t = torch::tensor(var_features,torch::TensorOptions().dtype(torch::kFloat32)).reshape({clVarId,1});
+  // ... and so want to have them in scope until the gnnPerform call
+
+  _neuralModel->gnnNodeKind("clause",clause_features_t);
+  _neuralModel->gnnNodeKind("term",term_features_t);
+  _neuralModel->gnnNodeKind("var",var_features_t);
+
+  _neuralModel->gnnEdgeKind("clause","term",cls2trm_one,cls2trm_two);
+  _neuralModel->gnnEdgeKind("term","term",trm2trm_one,trm2trm_two);      // the sub-term (down) edges
+  _neuralModel->gnnEdgeKind("clause","var",cls2var_one,cls2var_two);
+  _neuralModel->gnnEdgeKind("var","sort",var2srt_one,var2srt_two);
+  _neuralModel->gnnEdgeKind("term","var",trm2var_one,trm2var_two);       // some subterms are variables
+  _neuralModel->gnnEdgeKind("term","symbol",trm2symb_one,trm2symb_two);  // and others are proper and thus have a symbol
+
+  {
+    torch::NoGradGuard no_grad; // This disables gradient computation
+    _neuralModel->gnnPerform(clauseNums);
+  }
+
+  Timer::updateInstructionCount();
+  env.statistics->gnnEval += (Timer::elapsedInstructions()-gnn_start_instrs);
+}
 
 /**
  * Insert clauses of the problem into the SaturationAlgorithm object
