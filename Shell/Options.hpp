@@ -1997,6 +1997,20 @@ public:
   bool printClausifierPremises() const { return _printClausifierPremises.actualValue; }
   bool replaceDomainElements() const { return _replaceDomainElements.actualValue; }
 
+  unsigned numClauseFeatures() const { return _numClauseFeatures.actualValue; }
+  unsigned numProblemFeatures() const { return _numProblemFeatures.actualValue; }
+
+  const std::string& neuralClauseEvaluationModel() const { return _neuralClauseEvaluationModel.actualValue; }
+  unsigned neuralClauseEvaluationModelGSD() const { return _neuralClauseEvaluationModelGSD.actualValue; }
+
+  const std::string& neuralActivityRecording() const { return _neuralActivityRecording.actualValue; }
+  const std::string& neuralActivityRecordingModel() const { return _neuralActivityRecordingModel.actualValue; }
+
+  bool neuralPassiveClauseContainer() const { return _neuralPassiveClauseContainer.actualValue; }
+  float npccTemperature() const { return _npccTemperature.actualValue; }
+
+  unsigned reshuffleAt() const { return _reshuffleAt.actualValue; }
+
   // IMPORTANT, if you add a showX command then include showAll
   bool showAll() const { return _showAll.actualValue; }
   bool showActive() const { return showAll() || _showActive.actualValue; }
@@ -2714,6 +2728,19 @@ private:
   IntOptionValue _traceBackward;
   IntOptionValue _traceForward;
 #endif // VAMPIRE_CLAUSE_TRACING
+
+  UnsignedOptionValue _numClauseFeatures;
+  UnsignedOptionValue _numProblemFeatures;
+  StringOptionValue _neuralClauseEvaluationModel;
+  StringOptionValue _neuralActivityRecording;
+  StringOptionValue _neuralActivityRecordingModel;
+
+  BoolOptionValue _neuralPassiveClauseContainer;
+  FloatOptionValue _npccTemperature;
+
+  UnsignedOptionValue _neuralClauseEvaluationModelGSD;
+  UnsignedOptionValue _reshuffleAt;
+
 #if VZ3
   BoolOptionValue _showZ3;
   ChoiceOptionValue<ProblemExportSyntax> _problemExportSyntax;

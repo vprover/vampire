@@ -979,6 +979,65 @@ void Options::init()
     _lookup.insert(&_lookaheadDelay);
     _lookaheadDelay.onlyUsefulWith(_selection.isLookAheadSelection());
 
+    _numClauseFeatures = UnsignedOptionValue("num_clause_features","ncf",12);
+    _numClauseFeatures.description="How many features do we ask a clause to provide? There are at most 15 features currently, the later ones more expensive to compute.";
+    _lookup.insert(&_numClauseFeatures);
+    _numClauseFeatures.tag(OptionTag::SATURATION);
+    _numClauseFeatures.onlyUsefulWith(_neuralClauseEvaluationModel.is(notEqual(string(""))));
+
+    _numProblemFeatures = UnsignedOptionValue("num_problem_features","npf",15);
+    _numProblemFeatures.description="How many features do we ask a problem to provide? TODO: what is the maximum?";
+    _lookup.insert(&_numProblemFeatures);
+    _numProblemFeatures.tag(OptionTag::SATURATION);
+    _numClauseFeatures.onlyUsefulWith(_neuralClauseEvaluationModel.is(notEqual(string(""))));
+
+    _neuralClauseEvaluationModel = StringOptionValue("neural_clause_evaluation_model","ncem","");
+    _neuralClauseEvaluationModel.description="If non-empty, specifies a path to a torch script model that can be used to assing logits to clauses."
+       " (Rule of thumb: the higher the logit value, the better should the clause be for clause selection.)";
+    _lookup.insert(&_neuralClauseEvaluationModel);
+    _neuralClauseEvaluationModel.tag(OptionTag::SATURATION);
+    _neuralClauseEvaluationModel.onlyUsefulWith(ProperSaturationAlgorithm());
+
+    _neuralClauseEvaluationModelGSD = UnsignedOptionValue("neural_clause_evaluation_model_generalized_search_direction","ncem_gsd",0);
+    _neuralClauseEvaluationModelGSD.description= "Generalized search direction model tweaks (will be ignored by the model, if not supported).";
+    _lookup.insert(&_neuralClauseEvaluationModelGSD);
+    _neuralClauseEvaluationModelGSD.setExperimental();
+    _neuralClauseEvaluationModelGSD.tag(OptionTag::SATURATION);
+    _neuralClauseEvaluationModelGSD.onlyUsefulWith(_neuralClauseEvaluationModel.is(notEqual(string(""))));
+
+    _neuralActivityRecording = StringOptionValue("neural_activity_recording","nar","");
+    _neuralActivityRecording.description="If non-empty, specifies a path where to save a torch object which data collected for training (from a successful run).";
+    _lookup.insert(&_neuralActivityRecording);
+    _neuralActivityRecording.tag(OptionTag::SATURATION);
+    _neuralActivityRecording.onlyUsefulWith(ProperSaturationAlgorithm());
+    _neuralPassiveClauseContainer.reliesOn(Or(_neuralActivityRecordingModel.is(notEqual(string(""))), _neuralClauseEvaluationModel.is(notEqual(string("")))));
+
+    _neuralActivityRecordingModel = StringOptionValue("neural_activity_recording_model","narm","");
+    _neuralActivityRecordingModel.description="This torch script model is used to implement nar; if not specified, ncem will be used instead.";
+    _lookup.insert(&_neuralActivityRecordingModel);
+    _neuralActivityRecordingModel.tag(OptionTag::SATURATION);
+    _neuralActivityRecordingModel.reliesOn(_neuralActivityRecording.is(notEqual(string(""))));
+
+    _neuralPassiveClauseContainer = BoolOptionValue("neural_passive_clause_container","npcc",false);
+    _neuralPassiveClauseContainer.description="Use neural clause evaluation model as the sole basis for the main passive container.";
+    _lookup.insert(&_neuralPassiveClauseContainer);
+    _neuralPassiveClauseContainer.reliesOn(_neuralClauseEvaluationModel.is(notEqual(string(""))));
+    _neuralPassiveClauseContainer.tag(OptionTag::SATURATION);
+    _neuralPassiveClauseContainer.onlyUsefulWith(ProperSaturationAlgorithm());
+
+    _npccTemperature = FloatOptionValue("npcc_temperature","npcct",0.0);
+    _npccTemperature.description="Temperature for softmaxing in the neural passive clause container. 1.0 is the std softmax; 0.0 will make it argmax. (Negative values flip everything around.)";
+    _lookup.insert(&_npccTemperature);
+    _npccTemperature.tag(OptionTag::SATURATION);
+    _npccTemperature.onlyUsefulWith(_neuralPassiveClauseContainer.is(equal(true)));
+
+    // highly experimental and ignored in this iteration
+    _reshuffleAt = UnsignedOptionValue("reshuffle_at","ra",0);
+    _reshuffleAt.description="Nonterministically pick a new random seed before the specified-th clause selection from the NeuralPassiveClauseContainer (counter starts from 1, 0 value means 'never do this')";
+    _lookup.insert(&_reshuffleAt);
+    _reshuffleAt.setExperimental();
+    _reshuffleAt.tag(OptionTag::SATURATION);
+
     _ageWeightRatio = RatioOptionValue("age_weight_ratio","awr",1,1,':');
     _ageWeightRatio.description=
     "Ratio in which clauses are being selected for activation i.e. A:W means that for every A clauses selected based on age "
@@ -1128,6 +1187,7 @@ void Options::init()
     _lookup.insert(&_sineToAgeGeneralityThreshold);
     _sineToAgeGeneralityThreshold.tag(OptionTag::SATURATION);
     _sineToAgeGeneralityThreshold.onlyUsefulWith(Or(
+      _neuralClauseEvaluationModel.is(notEqual(string(""))),
       _sineToAge.is(equal(true)),
       _sineToPredLevels.is(notEqual(PredicateSineLevels::OFF)),
       _useSineLevelSplitQueues.is(equal(true))));
@@ -1141,6 +1201,7 @@ void Options::init()
     _sineToAgeTolerance.addConstraint(Or(equal(-1.0f),greaterThanEq(1.0f)));
     // Captures that if the value is not 1.0 then sineSelection must be on
     _sineToAgeTolerance.onlyUsefulWith(Or(
+      _neuralClauseEvaluationModel.is(notEqual(string(""))),
       _sineToAge.is(equal(true)),
       _sineToPredLevels.is(notEqual(PredicateSineLevels::OFF)),
       _useSineLevelSplitQueues.is(equal(true))));
