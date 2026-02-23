@@ -120,8 +120,13 @@ public:
    * LRS specific methods and fields for usage of limits
    */
 public:
-  // bool limitsActive() const override { return _curLimit != MAX_LIMIT; }
-  // bool exceedsAllLimits(Clause* c) const override { return limitsActive() && exceedsLimit(c); };
-}; // class AgeBasedPassiveClauseContainer
+  bool ageLimited() const override { return _curLimit != MAX_LIMIT; }
+  bool weightLimited() const override { return _curLimit != MAX_LIMIT; }
+  bool fulfilsAgeLimit(Clause* c) const override { return !exceedsLimit(c); }
+  bool fulfilsAgeLimit(unsigned, unsigned, const Inference&) const override { return true; }
+  bool fulfilsWeightLimit(Clause* cl) const override { return !exceedsLimit(cl); }
+  bool fulfilsWeightLimit(unsigned, unsigned, const Inference&) const override { return true; }
+  bool childrenPotentiallyFulfilLimits(Clause*, unsigned) const override { return true; }
+}; // class SingleQueuePassiveClauseContainer
 };
 #endif /* __AbstractPassiveClauseContainers__ */
