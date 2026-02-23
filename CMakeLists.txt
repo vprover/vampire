@@ -543,6 +543,9 @@ set(VAMPIRE_SATURATION_SOURCES
     Saturation/Splitter.hpp
     Saturation/SymElOutput.hpp
     Saturation/PredicateSplitPassiveClauseContainer.hpp
+    Saturation/AbstractPassiveClauseContainers.hpp
+    Saturation/NeuralPassiveClauseContainer.hpp
+    Saturation/NeuralPassiveClauseContainer.cpp
     )
 source_group(saturation_source_files FILES ${VAMPIRE_SATURATION_SOURCES})
 
