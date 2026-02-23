@@ -68,6 +68,14 @@ public:
 
   virtual void show(ostream& out) const = 0;
 
+  // Assuming the given array lists pred/func/typeCon ids, sort them by the precedences (if applicable)
+  virtual void sortArrayByPredicatePrecedence(DArray<unsigned>&) const {}
+  virtual void sortArrayByFunctionPrecedence(DArray<unsigned>&) const {}
+  virtual void sortArrayByTypeConPrecedence(DArray<unsigned>&) const {}
+  // PrecedenceOrderings will know how to do this (general Ordering just leaves the given array intact)
+
+  virtual int functionSymbolWeight(unsigned functor) const { return 1; }; // default weight is 1 (even for LPO, for which the concept, strictly speaking, does not make sense)
+
   static bool isGorGEorE(Result r) { return (r == GREATER || r == GREATER_EQ || r == EQUAL); }
 
   void removeNonMaximal(LiteralList*& lits) const;
@@ -134,6 +142,9 @@ public:
   void show(ostream&) const override;
   virtual void showConcrete(ostream&) const = 0;
 
+  void sortArrayByPredicatePrecedence(DArray<unsigned>&) const override;
+  void sortArrayByFunctionPrecedence(DArray<unsigned>&) const override;
+  void sortArrayByTypeConPrecedence(DArray<unsigned>&) const override;
 protected:
   // l1 and l2 are not equalities and have the same predicate
   virtual Result comparePredicates(Literal* l1,Literal* l2) const = 0;
@@ -149,6 +160,7 @@ protected:
   static DArray<int> predPrecFromOpts(Problem& prb, const Options& opt);
   static DArray<int> predLevelsFromOptsAndPrec(Problem& prb, const Options& opt, const DArray<int>& predicatePrecedences);
 
+  Result comparePredicatePrecedences(unsigned pred1, unsigned pred2) const;
   Result compareFunctionPrecedences(unsigned fun1, unsigned fun2) const;
   Result compareTypeConPrecedences(unsigned tyc1, unsigned tyc2) const;
 

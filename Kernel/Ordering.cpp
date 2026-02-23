@@ -360,6 +360,15 @@ int PrecedenceOrdering::predicatePrecedence (unsigned pred) const
   return res;
 } // PrecedenceOrdering::predicatePrecedences
 
+Ordering::Result PrecedenceOrdering::comparePredicatePrecedences(unsigned pred1, unsigned pred2) const
+{
+  if (pred1 == pred2)
+    return EQUAL;
+
+  ASS_NEQ(predicatePrecedence(pred1), predicatePrecedence(pred2)); // precedence should be total
+  return (predicatePrecedence(pred1) > predicatePrecedence(pred2)) ? GREATER : LESS;
+}
+
 /**
  * Compare precedences of two function symbols
  */ //TODO update for HOL>?
@@ -905,6 +914,21 @@ DArray<int> PrecedenceOrdering::predLevelsFromOptsAndPrec(Problem& prb, const Op
 
   }
   return predicateLevels;
+}
+
+void PrecedenceOrdering::sortArrayByPredicatePrecedence(DArray<unsigned>& symbols) const
+{
+  symbols.sort(closureComparator([&](unsigned l, unsigned r){ return intoComparison(comparePredicatePrecedences(l,r)); }));
+}
+
+void PrecedenceOrdering::sortArrayByFunctionPrecedence(DArray<unsigned>& symbols) const
+{
+  symbols.sort(closureComparator([&](unsigned l, unsigned r){ return intoComparison(compareFunctionPrecedences(l,r)); }));
+}
+
+void PrecedenceOrdering::sortArrayByTypeConPrecedence(DArray<unsigned>& symbols) const
+{
+  symbols.sort(closureComparator([&](unsigned l, unsigned r){ return intoComparison(compareTypeConPrecedences(l,r)); }));
 }
 
 void PrecedenceOrdering::show(ostream& out) const 
