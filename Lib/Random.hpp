@@ -58,11 +58,15 @@ public:
     return std::uniform_int_distribution<int>(0,modulus-1)(_eng[invisible]);
   }
 
+  static float getFloat(float min, float max, std::size_t invisible=0) {
+    return std::uniform_real_distribution<float>(min,max)(_eng[invisible]);
+  }
+
   static double getDouble(double min, double max, std::size_t invisible=0) {
     CALL("Random::getDouble");
     return std::uniform_real_distribution<double>(min,max)(_eng[invisible]);
   }
-  
+
   /**
    * Return a random bit.
    */
