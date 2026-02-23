@@ -609,15 +609,19 @@ class Signature
   }
 
   bool isInterpretedNonDefault(unsigned con) const{
-    return con < FIRST_USER_CON && con != DEFAULT_SORT_CON;    
+    return con < FIRST_USER_CON && con != DEFAULT_SORT_CON;
   }
 
   bool isNonDefaultCon(unsigned con) const{
-    return con >= FIRST_USER_CON;    
+    return con >= FIRST_USER_CON;
   }
 
   bool isBoolCon(unsigned con) const{
-    return con == BOOL_SRT_CON;    
+    return con == BOOL_SRT_CON;
+  }
+
+  bool isArithCon(unsigned con) const {
+    return con >= INTEGER_SRT_CON && con <= REAL_SRT_CON;
   }
 
   bool isIntegerCon(unsigned con) const{
@@ -630,6 +634,10 @@ class Signature
 
   bool isRationalCon(unsigned con) const{
     return con == RATIONAL_SRT_CON;
+  }
+
+  bool isPlainCon(unsigned con) const {
+    return con == 0 || con >= FIRST_USER_CON;
   }
 
   bool isTupleCon(unsigned con) {
