@@ -17,7 +17,7 @@ namespace SAT
     napsat::env::set_man_page_folder("../NapSAT");
     napsat::env::set_invariant_configuration_folder("../NapSAT/invariant-configurations/");
     napsat::env::set_obsidian_template_folder("../NapSAT/obsidian_template/");
-    napsat::env::set_suppress_warning(true);
+    // napsat::env::set_suppress_warning(true);
 
     // check the options passed by the user
     std::string options_str = Lib::env.options->napsatOptions();
