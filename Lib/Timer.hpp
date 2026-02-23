@@ -98,6 +98,10 @@ public:
   static void resetInstructionMeasuring();
 
   static std::atomic<bool> s_limitEnforcement;
+
+  // make sure that the instruction data is as up-to-date as possible
+  // otherwise may be (slightly) stale
+  static void updateInstructionCount();
 private:
   /** true if the timer is running */
   bool _running;
