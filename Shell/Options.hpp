@@ -2149,6 +2149,20 @@ public:
   unsigned randomStrategySeed() const { return _randomStrategySeed.actualValue; }
   bool printClausifierPremises() const { return _printClausifierPremises.actualValue; }
 
+  unsigned numClauseFeatures() const { return _numClauseFeatures.actualValue; }
+  unsigned numProblemFeatures() const { return _numProblemFeatures.actualValue; }
+
+  const vstring& neuralClauseEvaluationModel() const { return _neuralClauseEvaluationModel.actualValue; }
+  unsigned neuralClauseEvaluationModelGSD() const { return _neuralClauseEvaluationModelGSD.actualValue; }
+
+  const vstring& neuralActivityRecording() const { return _neuralActivityRecording.actualValue; }
+  const vstring& neuralActivityRecordingModel() const { return _neuralActivityRecordingModel.actualValue; }
+
+  bool neuralPassiveClauseContainer() const { return _neuralPassiveClauseContainer.actualValue; }
+  float npccTemperature() const { return _npccTemperature.actualValue; }
+
+  unsigned reshuffleAt() const { return _reshuffleAt.actualValue; }
+
   // IMPORTANT, if you add a showX command then include showAll
   bool showAll() const { return _showAll.actualValue; }
   bool showActive() const { return showAll() || _showActive.actualValue; }
@@ -2897,6 +2911,19 @@ private:
   BoolOptionValue _showFMBsortInfo;
   BoolOptionValue _showInduction;
   BoolOptionValue _showSimplOrdering;
+
+  UnsignedOptionValue _numClauseFeatures;
+  UnsignedOptionValue _numProblemFeatures;
+  StringOptionValue _neuralClauseEvaluationModel;
+  StringOptionValue _neuralActivityRecording;
+  StringOptionValue _neuralActivityRecordingModel;
+
+  BoolOptionValue _neuralPassiveClauseContainer;
+  FloatOptionValue _npccTemperature;
+
+  UnsignedOptionValue _neuralClauseEvaluationModelGSD;
+  UnsignedOptionValue _reshuffleAt;
+
 #if VZ3
   BoolOptionValue _showZ3;
   StringOptionValue _exportAvatarProblem;
