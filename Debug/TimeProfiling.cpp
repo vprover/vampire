@@ -33,6 +33,7 @@ const char* const TimeTrace::AVATAR_SAT_SOLVER;
 const char* const TimeTrace::SHUFFLING;
 const char* const TimeTrace::SINE_SELECTION;
 const char* const TimeTrace::TERM_SHARING;
+const char* const TimeTrace::DEEP_STUFF;
 
 TimeTrace::TimeTrace() 
   : _root("[root]")
