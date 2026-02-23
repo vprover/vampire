@@ -267,6 +267,57 @@ bool Unit::derivedFromGoalCheck() const
   return false;
 }
 
+bool Unit::minimizeAncestorsAndUpdateSelectedStats(DHSet<Unit*>& done)
+{
+  Stack<std::pair<Unit*,bool>> todo;
+  bool seenInputInference = false;
+
+  todo.push(make_pair(this,false));
+  while(!todo.isEmpty()) {
+    Unit* current;
+    bool collecting;
+    std::tie(current,collecting) = todo.pop();
+    if (collecting) {
+      Inference& inf = current->inference();
+      seenInputInference |= (inf.rule() == InferenceRule::INPUT);
+      Inference::Iterator iit = inf.iterator();
+      if (inf.hasNext(iit)) {
+        UnitInputType uit = UnitInputType::AXIOM; // we compute a maximum, so start from the smallest element
+        bool isPureTheoryDescendant = true; // see also Inference::initMany
+        while(inf.hasNext(iit)) {
+          Unit* premUnit = inf.next(iit);
+          uit = getInputType(uit,premUnit->inputType());
+          isPureTheoryDescendant &= premUnit->isPureTheoryDescendant();
+        }
+        current->setInputType(uit);
+        inf.setPureTheoryDescendant(isPureTheoryDescendant);
+      } else if (inf.rule() == InferenceRule::AVATAR_DEFINITION) {
+        // don't touch _pureTheoryDescendant for AVATAR_DEFINITIONs - in general, they are no longer theory consequences (see Splitter.cpp around l. 1251)
+        current->setInputType(UnitInputType::AXIOM); // AVATAR_DEFINITION might have inherited goaledness from its causal parent, which we want to reset
+      } else {
+        // no premises and not InferenceRule::AVATAR_DEFINITION
+        // we leave input type unchanged and isPureTheoryDescendant is already correctly set to isTheoryAxiom
+        ASS_EQ(inf.isPureTheoryDescendant(),inf.isTheoryAxiom());
+      }
+      inf.updateStatistics(); // in particular, update inductionDepth (which could have decreased, since we might have fewer parents after miniminization)
+      // env.statistics->reportProofStep(current);
+    } else {
+      if (!done.insert(current)) {
+        continue;
+      }
+      todo.push(make_pair(current,true)); // to collect stuff when children done
+      Inference& inf = current->inference();
+      inf.minimizePremises(); // here we do the minimization
+      Inference::Iterator iit = inf.iterator();
+      while(inf.hasNext(iit)) {
+        Unit* premUnit = inf.next(iit);
+        todo.push(make_pair(premUnit,false));
+      }
+    }
+  }
+  return seenInputInference;
+}
+
 std::ostream& Kernel::operator<<(ostream& out, const Unit& u)
 {
   return out << u.toString();
