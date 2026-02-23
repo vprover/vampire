@@ -616,6 +616,8 @@ set(SOURCES
     Saturation/AWPassiveClauseContainers.cpp
     Saturation/AWPassiveClauseContainers.hpp
     Saturation/AbstractPassiveClauseContainers.hpp
+    Saturation/NeuralPassiveClauseContainer.hpp
+    Saturation/NeuralPassiveClauseContainer.cpp
     Saturation/ClauseContainer.cpp
     Saturation/ClauseContainer.hpp
     Saturation/ConsequenceFinder.cpp

@@ -40,6 +40,10 @@ public:
   SingleQueuePassiveClauseContainer(bool isOutermost, const Shell::Options& opt, std::string name)
     : PassiveClauseContainer(isOutermost, opt, name), _queue(opt), _size(0), _simulationIt(_queue) {}
 
+  template<typename... Args>
+  SingleQueuePassiveClauseContainer(bool isOutermost, const Shell::Options& opt, Args&&... args)
+    : PassiveClauseContainer(isOutermost, opt), _queue(std::forward<Args>(args)...), _size(0), _simulationIt(_queue) {}
+
   ~SingleQueuePassiveClauseContainer() override {
     ClauseQueue::Iterator cit(_queue);
     while (cit.hasNext()) {

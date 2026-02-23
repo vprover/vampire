@@ -341,6 +341,7 @@ VSAT_OBJ=SAT/MinimizingSolver.o\
 	 SAT/ProofProducingSATSolver.o
 
 VST_OBJ= Saturation/AWPassiveClauseContainers.o\
+         Saturation/NeuralPassiveClauseContainer.o\
          Saturation/PredicateSplitPassiveClauseContainers.o\
          Saturation/ClauseContainer.o\
          Saturation/ConsequenceFinder.o\
