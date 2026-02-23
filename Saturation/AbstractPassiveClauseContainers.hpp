@@ -1,0 +1,127 @@
+#ifndef __AbstractPassiveClauseContainers__
+#define __AbstractPassiveClauseContainers__
+
+#include "Lib/Environment.hpp"
+#include "Debug/RuntimeStatistics.hpp"
+#include "Debug/Assertion.hpp"
+#include "Shell/Statistics.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/ClauseQueue.hpp"
+
+namespace Saturation {
+using namespace Kernel;
+template<class T>
+class SingleQueuePassiveClauseContainer : public PassiveClauseContainer {
+protected:
+  T _queue;
+  unsigned _size;
+public:
+  SingleQueuePassiveClauseContainer(bool isOutermost, const Shell::Options& opt, vstring name)
+    : PassiveClauseContainer(isOutermost, opt, name), _queue(opt), _size(0), _simulationIt(_queue) {}
+
+  template<typename... Args>
+  SingleQueuePassiveClauseContainer(bool isOutermost, const Shell::Options& opt, Args&&... args)
+    : PassiveClauseContainer(isOutermost, opt), _queue(std::forward<Args>(args)...), _size(0), _simulationIt(_queue) {}
+
+  ~SingleQueuePassiveClauseContainer() override {
+    ClauseQueue::Iterator cit(_queue);
+    while (cit.hasNext()) {
+      Clause* cl=cit.next();
+      ASS(!_isOutermost || cl->store()==Clause::PASSIVE);
+      cl->setStore(Clause::NONE);
+    }
+  }
+  void add(Clause* cl) override {
+    ASS(cl->store() == Clause::PASSIVE);
+    _queue.insert(cl);
+    _size++;
+    if (_isOutermost) {
+      addedEvent.fire(cl);
+    }
+  }
+  void remove(Clause* cl) override {
+    if (_isOutermost) {
+      ASS(cl->store()==Clause::PASSIVE);
+    }
+    if (_queue.remove(cl)) {
+      _size--;
+    }
+    if (_isOutermost) {
+      removedEvent.fire(cl);
+      ASS(cl->store()!=Clause::PASSIVE);
+    }
+  }
+  Clause* popSelected() override {
+    ASS(!isEmpty());
+    _size--;
+    Clause* cl = _queue.pop();
+    if (_isOutermost) {
+      selectedEvent.fire(cl);
+    }
+    return cl;
+  }
+  /** True if there are no passive clauses */
+  bool isEmpty() const override { return _queue.isEmpty(); }
+  unsigned sizeEstimate() const override { return _size; }
+  /*
+   * LRS specific methods and fields for computation of Limits
+   */
+protected:
+  ClauseQueue::Iterator _simulationIt;
+  static constexpr typename T::OrdVal MAX_LIMIT = T::maxOrdVal;
+  typename T::OrdVal _curLimit = MAX_LIMIT;
+  bool setLimit(typename T::OrdVal newLimit) {
+    bool thighened = newLimit < _curLimit;
+    _curLimit = newLimit;
+    return thighened;
+  }
+  bool exceedsLimit(Clause* cl) const {
+    return _curLimit < _queue.getOrdVal(cl);
+  }
+public:
+  void simulationInit() override {
+    _simulationIt = ClauseQueue::Iterator(_queue);
+  }
+  bool simulationHasNext() override {
+    return _simulationIt.hasNext();
+  }
+  void simulationPopSelected() override {
+    _simulationIt.next();
+  }
+  // returns whether at least one of the limits was tightened
+  bool setLimitsToMax() override {
+    return setLimit(MAX_LIMIT);
+  }
+  // returns whether at least one of the limits was tightened
+  bool setLimitsFromSimulation() override {
+    if (_simulationIt.hasNext()) {
+      return setLimit(_queue.getOrdVal(_simulationIt.next()));
+    } else {
+      return setLimitsToMax();
+    }
+  }
+  void onLimitsUpdated() override {
+    Recycled<Stack<Clause*>> toRemove;
+    simulationInit(); // abused to setup fresh _simulationIt
+    while (_simulationIt.hasNext()) {
+      Clause* cl = _simulationIt.next();
+      if (exceedsLimit(cl)) {
+        toRemove->push(cl);
+      }
+    }
+    while (toRemove->isNonEmpty()) {
+      Clause* removed=toRemove->pop();
+      RSTAT_CTR_INC("clauses discarded from passive on limit update");
+      env.statistics->discardedNonRedundantClauses++;
+      remove(removed);
+    }
+  }
+  /*
+   * LRS specific methods and fields for usage of limits
+   */
+public:
+  // bool limitsActive() const override { return _curLimit != MAX_LIMIT; }
+  // bool exceedsAllLimits(Clause* c) const override { return limitsActive() && exceedsLimit(c); };
+}; // class AgeBasedPassiveClauseContainer
+};
+#endif /* __AbstractPassiveClauseContainers__ */
