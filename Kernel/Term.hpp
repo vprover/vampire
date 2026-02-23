@@ -751,6 +751,26 @@ public:
     _maxRedLen = rl;
   } // setWeight
 
+  /** Return sort of the variables in an equality between two variables.
+   * This value is set during insertion into the term sharing structure
+   */
+  TermList twoVarEqSort() const
+  {
+    CALL("Literal::twoVarEqSort");
+    ASS(isTwoVarEquality());
+
+    return _sort;
+  }
+
+  /** Assign sort of the variables in an equality between two variables. */
+  void setTwoVarEqSort(TermList sort)
+  {
+    CALL("Literal::setTwoVarEqSort");
+    ASS(isTwoVarEquality());
+
+    _sort = sort;
+  }
+
   /** Set the number of variable _occurrences_ */
   void setNumVarOccs(unsigned v)
   {
@@ -1250,27 +1270,6 @@ public:
     ASS(nthArgument(1)->isVar() || !nthArgument(1)->term()->shared());
 
     _isTwoVarEquality = true;
-  }
-
-
-  /** Return sort of the variables in an equality between two variables.
-   * This value is set during insertion into the term sharing structure
-   */
-  TermList twoVarEqSort() const
-  {
-    CALL("Literal::twoVarEqSort");
-    ASS(isTwoVarEquality());
-
-    return _sort;
-  }
-
-  /** Assign sort of the variables in an equality between two variables. */
-  void setTwoVarEqSort(TermList sort)
-  {
-    CALL("Literal::setTwoVarEqSort");
-    ASS(isTwoVarEquality());
-
-    _sort = sort;
   }
 
 //   /** Applied @b subst to the literal and return the result */
