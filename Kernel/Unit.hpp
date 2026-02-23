@@ -94,6 +94,18 @@ public:
   /** true if the unit is read from a TPTP included file  */
   bool included() const { return _inference.included(); }
 
+  /**
+   * Recursive minimization of ancestors for sat-based inferences (AVATAR_REFUTATION, GLOBAL_SUMSUPTION) triggered here.
+   *
+   * (Note that with minimizeSatProofs set to off, it's already too late to do this as we did not collect the necessary info,
+   * however, it pays off to call this anyway, to correctly set any required stats in the inference objects.)
+   *
+   * Could be extended further if more stats provided by the inference tree should be found
+   * to require some final touches before proof printing. Currently, we care about the InputType, the induction stats, and _isPureTheoryDescendant.
+   *
+   * returns true if the minimized tree traversal observed an INPUT inference (to facilitate a certain sanity check later).
+  */
+  bool minimizeAncestorsAndUpdateSelectedStats(DHSet<Unit*>&);
 
   /** Return the inherited color of the unit or COLOR_INVALID
    * if there isn't an inherited color.
