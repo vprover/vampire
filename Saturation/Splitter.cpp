@@ -1305,13 +1305,14 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
   compCl->setSplits(SplitSet::getSingleton(name));
   compCl->setComponent(true);
 
+  _causalParents.insert(compCl,orig);
+
   if (_deleteDeactivated != Options::SplittingDeleteDeactivated::ON) {
     // in this mode, compCl is assumed to be a child since the beginning of times
     _db[name]->children.push(compCl);
-    
     // (with _deleteDeactivated on, compCl is always inserted anew on activation)
   }
-  
+
   {
     TIME_TRACE("splitting component index maintenance");
     _componentIdx->insert(compCl);
