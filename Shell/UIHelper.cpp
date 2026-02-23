@@ -532,6 +532,9 @@ void UIHelper::outputResult(std::ostream& out)
     }
     addCommentSignForSZS(out);
     env.statistics->explainRefutationNotFound(out);
+    if (szsOutputMode()) {
+      out << "% SZS status GaveUp for " << env.options->problemName() << endl;
+    }
     break;
   case TerminationReason::SATISFIABLE:
     if(env.options->outputMode() == Options::Output::SMTCOMP){
