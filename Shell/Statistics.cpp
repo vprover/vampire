@@ -454,6 +454,11 @@ void Statistics::print(ostream& out)
   COND_OUT("SMT fallbacks",smtFallbacks);
   SEPARATOR;
 
+  HEADING("Neural Instruction Counts",neuralModelWarmup+gnnEval+bulkEvals);
+  COND_OUT("Neural model warmup", neuralModelWarmup >> 20);
+  COND_OUT("Gnn eval", gnnEval >> 20);
+  COND_OUT("Bulk evals", bulkEvals >> 20);
+
   HEADING("Instance Generation",instGenGeneratedClauses+instGenRedundantClauses+
        instGenKeptClauses+instGenIterations);
   COND_OUT("InstGen generated clauses", instGenGeneratedClauses);

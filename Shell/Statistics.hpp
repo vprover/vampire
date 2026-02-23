@@ -282,6 +282,11 @@ public:
 
   unsigned smtFallbacks;
 
+  /** Neural instruction counts */
+  long long neuralModelWarmup = 0;
+  long long gnnEval = 0;
+  long long bulkEvals = 0;
+
   unsigned instGenGeneratedClauses;
   unsigned instGenRedundantClauses;
   unsigned instGenKeptClauses;
