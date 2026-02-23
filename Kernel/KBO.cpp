@@ -759,6 +759,11 @@ Ordering::Result KBO::compare(TermList tl1, TermList tl2) const
   return res;
 }
 
+int KBO::functionSymbolWeight(unsigned functor) const
+{
+  return _funcWeights.symbolWeight(functor);
+}
+
 int KBO::symbolWeight(Term* t) const
 {
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
