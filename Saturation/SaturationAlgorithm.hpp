@@ -53,6 +53,7 @@ class ConsequenceFinder;
 class LabelFinder;
 class SymElOutput;
 class Splitter;
+class NeuralClauseEvaluationModel;
 
 class SaturationAlgorithm : public MainLoop
 {
@@ -160,6 +161,19 @@ protected:
   virtual bool isComplete();
 
 private:
+  DHSet<unsigned> _predecessorsShown;
+  // void showPredecessors(Clause* c); // left only for documentation purposes
+  void showPredecessorsNR(Clause* cl); // a non-recursive version
+  // we need both as literal have a different counter in term sharing than terms
+  DHSet<unsigned> _subtermsShown;
+  DHSet<unsigned> _literalsShown;
+  // void showSubterms(Term* t); // left only for documentation purposes
+  void showSubtermsNR(Term* t); // a non-recursive version
+  void showClauseLiterals(Clause* c);
+
+  // to remember which clauses have already had their feature vector shown
+  DHSet<unsigned> _shown;
+
   void passiveRemovedHandler(Clause* cl);
   void activeRemovedHandler(Clause* cl);
   void addInputClause(Clause* cl);
@@ -231,8 +245,37 @@ protected:
    */
   ScopedPtr<LiteralSelector> _sosLiteralSelector;
 
+  void runGnnOnInput();
+  void saveNeuralActivity(Clause* refutation);
+  bool makeReadyForEval(Clause* cl);
 
-  // counters
+  bool _neuralActivityRecoring;
+  bool _neuralModelGuidance;
+
+  ScopedPtr<NeuralClauseEvaluationModel> _neuralModel;
+
+  // record the size of the signature at the time of gnn invocation
+  unsigned _numPreds;
+  unsigned _numFuncs;
+  unsigned _numSorts;
+
+  unsigned funcToSymb(unsigned f) {
+    if (f > _numFuncs) {
+      // the idea is that any function symbol that gets created during saturation (for now it's the ari numerals)
+      // gets represented by the final embedding of the respective output sort
+      return _numPreds + _numFuncs + env.signature->getFunction(f)->fnType()->result().term()->functor();
+    } else {
+      // other than that, function symbols are (for the NN) represented as lying "after" the predicate symbols in a single table
+      return _numPreds+f;
+    }
+  }
+
+  unsigned predToSymb(unsigned p) {
+    if (p > _numPreds) {
+      throw InvalidOperationException("Predicate introduced after preprocessing.");
+    }
+    return p;
+  }
 
   /** Number of clauses that entered the unprocessed container */
   unsigned _generatedClauseCount;

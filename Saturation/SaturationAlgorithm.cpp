@@ -119,6 +119,8 @@
 #include "LRS.hpp"
 #include "Otter.hpp"
 
+#include "NeuralPassiveClauseContainer.hpp"
+
 #include <torch/torch.h>
 
 using namespace Lib;
@@ -261,8 +263,39 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
 
   _unprocessed = new UnprocessedClauseContainer();
 
-  if (opt.useManualClauseSelection())
-  {
+  // If we talk to prb.getProperty() here below (both in the NeuralClauseEvaluationModel constructor and when accessing the Property::FeatureIterator), it's OK, but we only get the CNF perspective.
+
+  const vstring& ncem = opt.neuralClauseEvaluationModel();
+  _neuralActivityRecoring = !opt.neuralActivityRecording().empty();
+  _neuralModelGuidance = opt.neuralPassiveClauseContainer();
+  if (!ncem.empty()) {
+    _neuralModel = new NeuralClauseEvaluationModel(ncem.c_str(),
+      std::bind(&SaturationAlgorithm::makeReadyForEval, this, std::placeholders::_1),
+      // opt.neuralClauseEvaluationModelTweaks(),
+      opt.randomSeed(),opt.numClauseFeatures(),opt.npccTemperature());
+
+    if (_neuralActivityRecoring) {
+      _neuralModel->setRecording();
+    }
+
+    if (_neuralModelGuidance) {
+      _neuralModel->setComputing();
+    }
+
+    if (_neuralActivityRecoring || _neuralModelGuidance) {
+      // must be called before setStaticFeatures
+      _neuralModel->setGSD(opt.neuralClauseEvaluationModelGSD());
+      _neuralModel->setStaticFeatures(prb,opt);
+    }
+
+    // will also set the strategy vector here at some point in the feature
+  }
+
+  if (_neuralModelGuidance) {
+    // could also be part of level0, so that neural queues can be combined with splits
+    _passive = std::make_unique<NeuralPassiveClauseContainer>(true, opt, *_neuralModel);
+  }
+  else if (opt.useManualClauseSelection()) {
     _passive = std::make_unique<ManCSPassiveClauseContainer>(true, opt);
   }
   else
@@ -422,6 +455,200 @@ void SaturationAlgorithm::onAllProcessed()
   }
 }
 
+/*
+void SaturationAlgorithm::showPredecessors(Clause* c) {
+  if (c->isFromPreprocessing() ||
+    _predecessorsShown.find(c->number())) return;
+  vector<int64_t> parents;
+  if (c->isComponent()) {
+    Clause* p = _splitter->getCausalParent(c);
+    ASS(p); // CAREFUL: causal parent can be none; for the ccModel thingie (we will not consider that!)
+    showPredecessors(p);
+    parents.push_back(p->number());
+  } else {
+    Inference& inf = c->inference();
+    auto it1 = inf.iterator();
+    while (inf.hasNext(it1)) {
+      Unit* p = inf.next(it1);
+      showPredecessors(p->asClause());
+      parents.push_back(p->number());
+    }
+  }
+  _neuralModel->gageEnqueue(c,parents);
+  ALWAYS(_predecessorsShown.insert(c->number()));
+}
+*/
+
+void SaturationAlgorithm::showPredecessorsNR(Clause* cl) {
+  struct Todo {
+    Clause* c;
+    bool starting;
+  };
+
+  Stack<Todo> todos;
+  todos.push({cl,true});
+  while (todos.isNonEmpty()) {
+    Todo& todo = todos.top();
+    Clause* c = todo.c;
+    if (todo.starting) {
+      if (c->isFromPreprocessing() || _predecessorsShown.find(c->number())) {
+        todos.pop();
+      } else {
+        todo.starting = false;
+        // don't touch todo anymore, after pushing!
+
+        if (c->isComponent()) {
+          Clause* p = _splitter->getCausalParent(c);
+          ASS(p); // CAREFUL: causal parent can be none; for the ccModel thingie (we will not consider that!)
+          todos.push({p,true});
+        } else {
+          Inference& inf = c->inference();
+          auto it1 = inf.iterator();
+          while (inf.hasNext(it1)) {
+            Unit* p = inf.next(it1);
+            todos.push({p->asClause(),true});
+          }
+        }
+      }
+    } else {
+      vector<int64_t> parents;
+      if (c->isComponent()) {
+        Clause* p = _splitter->getCausalParent(c);
+        parents.push_back(p->number());
+      } else {
+        Inference& inf = c->inference();
+        auto it1 = inf.iterator();
+        while (inf.hasNext(it1)) {
+          Unit* p = inf.next(it1);
+          parents.push_back(p->number());
+        }
+      }
+      _neuralModel->gageEnqueue(c,parents);
+      ALWAYS(_predecessorsShown.insert(c->number()));
+      todos.pop();
+    }
+  }
+}
+
+/*
+void SaturationAlgorithm::showSubterms(Term* t) {
+  if (_subtermsShown.find(t->getId())) return;
+  // cout << "showSubterms for " << t->getId() << " " << t->toString() << endl;
+  vector<int64_t> args;
+  for (unsigned n = 0; n < t->arity(); n++) {
+    TermList arg = *t->nthArgument(n);
+    if (arg.isTerm()) {
+      showSubterms(arg.term());
+      args.push_back(arg.term()->getId()+1);
+    } else {
+      args.push_back(0); // all variables are 0
+    }
+  }
+  _neuralModel->gweightEnqueueTerm(
+      t->getId()+1,
+      funcToSymb(t->functor()),
+      0.0,
+      args);
+  ALWAYS(_subtermsShown.insert(t->getId()));
+}
+*/
+
+void SaturationAlgorithm::showSubtermsNR(Term* t) {
+  struct Todo {
+    Term* t;
+    bool starting;
+  };
+
+  Stack<Todo> todos;
+  todos.push({t,true});
+  while (todos.isNonEmpty()) {
+    Todo& todo = todos.top();
+    Term* t = todo.t;
+    if (todo.starting) {
+      if (_subtermsShown.find(t->getId())) {
+        todos.pop();
+      } else {
+        todo.starting = false;
+        // don't touch todo anymore, after pushing!
+        for (unsigned n = 0; n < t->arity(); n++) {
+          TermList arg = *t->nthArgument(n);
+          if (arg.isTerm()) {
+            todos.push({arg.term(),true});
+          }
+        }
+      }
+    } else {
+      vector<int64_t> args;
+      for (unsigned n = 0; n < t->arity(); n++) {
+        TermList arg = *t->nthArgument(n);
+        if (arg.isTerm()) {
+          args.push_back(arg.term()->getId()+1);
+        } else {
+          args.push_back(0); // all variables are 0
+        }
+      }
+      _neuralModel->gweightEnqueueTerm(
+          t->getId()+1,
+          funcToSymb(t->functor()),
+          0.0,
+          args);
+      ALWAYS(_subtermsShown.insert(t->getId()));
+      todos.pop();
+    }
+  }
+}
+
+void SaturationAlgorithm::showClauseLiterals(Clause* c) {
+  vector<int64_t> lits;
+  for (unsigned i = 0; i < c->size(); i++) {
+    Literal* lit = (*c)[i];
+    // using negative indices for literals (otherwise might overlap with term ids!)
+    int64_t litId = -1-(int64_t)lit->getId();
+    lits.push_back(litId);
+
+    if (_literalsShown.find(lit->getId())) // and having a dedicated DHSet form them
+      continue;
+
+    vector<int64_t> args;
+    for (unsigned n = 0; n < lit->arity(); n++) {
+      TermList arg = *lit->nthArgument(n);
+      if (arg.isTerm()) {
+        showSubtermsNR(arg.term());
+        args.push_back(arg.term()->getId()+1);
+      } else {
+        args.push_back(0); // all variables are 0
+      }
+    }
+
+    _neuralModel->gweightEnqueueTerm(
+        litId,
+        predToSymb(lit->functor()),
+        lit->isPositive() ? 1.0 : -1.0,
+        args);
+    ALWAYS(_literalsShown.insert(lit->getId()));
+  }
+
+  _neuralModel->gweightEnqueueClause(c,lits);
+}
+
+/*
+ * Returns true, if the clause was seen for the first time.
+ */
+bool SaturationAlgorithm::makeReadyForEval(Clause* c) {
+  if (!_shown.find(c->number())) {
+    if (_neuralModel->useGage()) {
+      showPredecessorsNR(c);
+    }
+    if (_neuralModel->useGweight()) {
+      showClauseLiterals(c);
+    }
+
+    ALWAYS(_shown.insert(c->number()));
+    return true;
+  }
+  return false;
+}
+
 /**
  * A function that is called when a clause is added to the passive clause container.
  */
@@ -432,7 +659,11 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
     env.out() << "[SA] passive: " << c->toString() << std::endl;
     env.endOutput();
   }
-  
+
+  if (_neuralActivityRecoring) {
+    _neuralModel->journal(NeuralClauseEvaluationModel::JOURNAL_ADD,c);
+  }
+
   //when a clause is added to the passive container,
   //we know it is not redundant
   onNonRedundantClause(c);
@@ -446,6 +677,10 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
 void SaturationAlgorithm::onPassiveRemoved(Clause* c)
 {
   CALL("SaturationAlgorithm::onPassiveRemoved");
+
+  if (_neuralActivityRecoring) {
+    _neuralModel->journal(NeuralClauseEvaluationModel::JOURNAL_REM,c);
+  }
 
   ASS(c->store()==Clause::PASSIVE);
   c->setStore(Clause::NONE);
@@ -461,7 +696,9 @@ void SaturationAlgorithm::onPassiveRemoved(Clause* c)
  */
 void SaturationAlgorithm::onPassiveSelected(Clause* c)
 {
-
+  if (_neuralActivityRecoring) {
+    _neuralModel->journal(NeuralClauseEvaluationModel::JOURNAL_SEL,c);
+  }
 }
 
 /**
