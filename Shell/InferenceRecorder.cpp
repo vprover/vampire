@@ -150,6 +150,10 @@ void InferenceRecorder::forwardDemodulation(unsigned int id, Clause *conclusion,
 {
   std::unordered_map<unsigned int, unsigned int> varMap;
   if (isSameAsProofStep(conclusion, _currentGoal, premises, varMap)) {
+    Substitution variableMap = Substitution();
+    for (auto [var, mappedVar] : varMap) {
+      variableMap.bind(var, TermList::var(mappedVar));
+    }
     std::unique_ptr<InferenceInformation> info = std::make_unique<InferenceInformation>();
     info->conclusion = conclusion;
     info->premises = premises;
@@ -196,7 +200,7 @@ void InferenceRecorder::forwardDemodulation(unsigned int id, Clause *conclusion,
 
     // we create a custom substitution to apply the substitution only to variables coming from the demodulator
     // otherwise the substitution we get faults
-
+  
     info->substitutionForBanksSub.resize(1);
     DHMap<unsigned int, TermList> sorts;
     auto dataTerm = data->term;
@@ -212,8 +216,8 @@ void InferenceRecorder::forwardDemodulation(unsigned int id, Clause *conclusion,
     }
 
     for (const auto& [var, sort] : iterTraits(sorts.items())) {
-      auto newTerm = SubstHelper::apply((*appl)(var), varPermut);
-      info->substitutionForBanksSub[0].bind(var, newTerm);
+      auto newTerm = (*appl)(varPermut.apply(var).var());
+      info->substitutionForBanksSub[0].bind(var, SubstHelper::apply(newTerm, variableMap));
     }
 
     _inferences[id] = std::move(info);
