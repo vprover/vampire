@@ -225,29 +225,45 @@ void FunctionRelationshipInference::addClaimForFunction(TermList x, TermList y, 
                                                TermList arg_srt, TermList ret_srt, VList* existential,
                                                ClauseList*& newClauses)
 {
-    VList* xy = VList::cons(0,VList::cons(1,VList::empty()));
+    VSList* xy = VSList::cons(std::make_pair(0, arg_srt), VSList::cons(std::make_pair(1, arg_srt), VSList::empty()));
 
     Formula* eq_fxfy = new AtomicFormula(Literal::createEquality(true,fx,fy,ret_srt));
     Formula* eq_xy = new AtomicFormula(Literal::createEquality(true,x,y,arg_srt));
 
-    Formula* injective = 
-      new QuantifiedFormula(FORALL,xy,0,new BinaryFormula(IMP,eq_fxfy,eq_xy));
+    Formula* injective =
+      new QuantifiedFormula(FORALL, xy, new BinaryFormula(IMP,eq_fxfy,eq_xy));
 
     Formula* surjective =
-      new QuantifiedFormula(FORALL, VList::singleton(1),0,
-      new QuantifiedFormula(EXISTS, VList::singleton(0),0,
+      new QuantifiedFormula(FORALL, VSList::singleton(std::make_pair(1, ret_srt)),
+      new QuantifiedFormula(EXISTS, VSList::singleton(std::make_pair(0, arg_srt)),
       new AtomicFormula(Literal::createEquality(true,fx,y,ret_srt))));
 
-    Formula* ing_and_nons = new JunctionFormula(AND, 
+    Formula* ing_and_nons = new JunctionFormula(AND,
                             new FormulaList(injective, new FormulaList(new NegatedFormula(surjective))));
-    Formula* sur_and_noni = new JunctionFormula(AND, 
+    Formula* sur_and_noni = new JunctionFormula(AND,
                             new FormulaList(surjective, new FormulaList(new NegatedFormula(injective))));
 
     if(existential){
-      injective  = new QuantifiedFormula(EXISTS, existential, 0, injective);
-      surjective = new QuantifiedFormula(EXISTS, existential, 0, surjective);
-      ing_and_nons = new QuantifiedFormula(EXISTS, existential, 0, ing_and_nons);
-      sur_and_noni = new QuantifiedFormula(EXISTS, existential, 0, sur_and_noni);
+      // Build VSList from existential VList - need to determine sorts from function type
+      // For now, collect from the formulas
+      DHMap<unsigned, TermList> varSorts;
+      SortHelper::collectVariableSorts(injective, varSorts);
+      SortHelper::collectVariableSorts(surjective, varSorts);
+      VSList::FIFO vsfifo;
+      VList::Iterator vit(existential);
+      while (vit.hasNext()) {
+        unsigned v = vit.next();
+        TermList s;
+        if (!varSorts.find(v, s)) {
+          s = AtomicSort::defaultSort();
+        }
+        vsfifo.pushBack(std::make_pair(v, s));
+      }
+      VSList* existentialVS = vsfifo.list();
+      injective  = new QuantifiedFormula(EXISTS, existentialVS, injective);
+      surjective = new QuantifiedFormula(EXISTS, existentialVS, surjective);
+      ing_and_nons = new QuantifiedFormula(EXISTS, existentialVS, ing_and_nons);
+      sur_and_noni = new QuantifiedFormula(EXISTS, existentialVS, sur_and_noni);
     }
     // Add names (true/false relates to being injective or not i.e. surjective)
     injective    = new BinaryFormula(IMP,injective,getName(ret_srt,arg_srt,false));
