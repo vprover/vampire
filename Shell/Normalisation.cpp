@@ -460,8 +460,8 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
       }
 
       case SpecialFunctor::LAMBDA: {
-        comp = compare((int) VList::length(t1->getSpecialData()->getLambdaVars()),
-                       (int) VList::length(t2->getSpecialData()->getLambdaVars()));
+        comp = compare((int) VSList::length(t1->getSpecialData()->getLambdaVars()),
+                       (int) VSList::length(t2->getSpecialData()->getLambdaVars()));
         if (comp != EQUAL) {
           return comp;
         }

@@ -45,7 +45,7 @@ struct CollectTask {
     TermList ts;
     Term* t; // shared by TERM and SPECIALTERM
     Formula* f;
-    VList* vars; // to bind/unbind by BIND/UNBIND
+    VSList* vars; // to bind/unbind by BIND/UNBIND
   };
   TermList contextSort; // only used by TERMLIST and SPECIALTERM
 };
@@ -548,16 +548,16 @@ static void collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermList>&
       } break;
 
       case BIND: {
-        VList::Iterator vit(task.vars);
+        VSList::Iterator vit(task.vars);
         while (vit.hasNext()) {
-          bound[vit.next()]++;
+          bound[vit.next().first]++;
         }
       } break;
 
       case UNBIND: {
-        VList::Iterator vit(task.vars);
+        VSList::Iterator vit(task.vars);
         while (vit.hasNext()) {
-          bound[vit.next()]--;
+          bound[vit.next().first]--;
         }
       } break;
     }

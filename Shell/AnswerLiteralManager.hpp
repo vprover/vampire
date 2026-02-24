@@ -100,7 +100,7 @@ protected:
   virtual std::string postprocessAnswerString(std::string answer) { return answer; };
 
   Clause* getRefutation(Clause* answer);
-  Literal* getAnswerLiteral(VList* vars,SList* srts,Formula* f);
+  Literal* getAnswerLiteral(VSList* varSorts, Formula* f);
 
 private:
   Unit* tryAddingAnswerLiteral(Unit* unit);
