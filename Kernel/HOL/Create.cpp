@@ -100,10 +100,13 @@ Term* HOL::create::lambda(unsigned numArgs, const unsigned* vars, const TermList
   sp->setLambdaExp(body.untyped());
   sp->setLambdaExpSort(body.sort());
 
-  sp->setLambdaVars(VList::fromData(vars, numArgs));
+  VSList* vsList = VSList::empty();
+  for (int i = numArgs - 1; i >= 0; i--) {
+    VSList::push(std::make_pair(vars[i], varSorts[i]), vsList);
+  }
+  sp->setLambdaVars(vsList);
 
   auto lambdaSort = AtomicSort::arrowSort(numArgs, varSorts, body.sort());
-  sp->setLambdaVarSorts(SList::fromData(varSorts, numArgs));
   sp->setLambdaSort(lambdaSort);
   if (resultExprSort != nullptr)
     *resultExprSort = lambdaSort;
