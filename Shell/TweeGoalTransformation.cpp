@@ -124,6 +124,9 @@ class Definizator : public BottomUpTermTransformer {
       Term* t = trm.term();
       if (t->isSort() || t->arity() == 0 || (!t->ground() && _groundOnly)) return trm;
 
+      // let's try tgt (for HOL) which does not name higher-order creatures
+      if (SortHelper::getResultSort(t).isArrowSort()) return trm;
+
 #if VHOL
       if (env.property->higherOrder() && trm.containsLooseIndex())
       { return trm; }
