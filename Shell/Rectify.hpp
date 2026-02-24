@@ -37,9 +37,9 @@ namespace Shell {
  * @since 16/01/2004 Manchester, changed to work with pre-formulas, that is,
  *   formulas in which the same variable may be both free and bound
  * @since 23/01/2004 Manchester, changed to work with non-static objects
- * 
+ *
  */
-class Rectify 
+class Rectify
 {
 public:
   /** Initialise Rectify */
@@ -79,15 +79,14 @@ private:
 
   Formula* rectify(Formula*);
   FormulaList* rectify(FormulaList*);
-  void bindVars(VList*);
-  void unbindVars(VList*);
-  VList* rectifyBoundVars(VList*);
+  void bindVars(VSList*);
+  void unbindVars(VSList*);
+  VSList* rectifyBoundVars(VSList*);
   TermList rectify(TermList);
   Term* rectify(Term* t);
   Term* rectifySpecialTerm(Term* t);
   Literal* rectify(Literal*);
   Literal* rectifyShared(Literal* lit);
-  SList* rectifySortList(SList* from, bool& modified);
   template<class From, class To>
   bool rectify(From from, To to, unsigned cnt);
 
