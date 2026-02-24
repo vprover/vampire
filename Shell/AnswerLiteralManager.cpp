@@ -881,10 +881,10 @@ void SynthesisALManager::printRecursionMappings() {
   }
 }
 
-void SynthesisALManager::registerSkolemSymbols(Term* recTerm, const Substitution& subst, const std::vector<Term*>& functionHeadsByConstruction, vector<SkolemTracker>& incompleteTrackers, const VList* us) {
+void SynthesisALManager::registerSkolemSymbols(Term* recTerm, const Substitution& subst, const std::vector<Term*>& functionHeadsByConstruction, vector<SkolemTracker>& incompleteTrackers, const VSList* us) {
   unsigned recFnId = recTerm->functor();
   unsigned ctorNumber = recTerm->arity()-1;
-  ASS_EQ(ctorNumber, VList::length(us));
+  ASS_EQ(ctorNumber, VSList::length(us));
   ASS_EQ(ctorNumber, functionHeadsByConstruction.size());
   // Find out what is the order of arguments in `recTerm`, and
   // store the function heads in the correct indices in `_functionHeads`.
@@ -893,10 +893,10 @@ void SynthesisALManager::registerSkolemSymbols(Term* recTerm, const Substitution
   // and to the `constructorId` of the SkolemTrackers.
   DArray<unsigned> ctorOrder(ctorNumber);
   vector<Term*> functionHeads(ctorNumber);
-  VList::Iterator vit(us);
+  VSList::Iterator vit(us);
   unsigned i = 0;
   while (vit.hasNext()) {
-    unsigned v = vit.next();
+    unsigned v = vit.next().first;
     DEBUG_CODE(bool found = false;)
     for (unsigned j = 0; j < ctorNumber; ++j) {
       TermList& arg = *(recTerm->nthArgument(j));

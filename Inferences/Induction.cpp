@@ -28,6 +28,7 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Kernel/SortHelper.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Signature.hpp"
 
@@ -42,6 +43,23 @@
 
 using std::pair;
 using std::make_pair;
+
+/**
+ * Convert a VList of variables to a VSList by looking up their sorts
+ * from a formula in which they appear.
+ */
+static VSList* attachSorts(VList* vars, Formula* f)
+{
+  DHMap<unsigned, TermList> varSorts;
+  SortHelper::collectVariableSorts(f, varSorts);
+  VSList* res = VSList::empty();
+  VList::Iterator vit(vars);
+  while (vit.hasNext()) {
+    unsigned v = vit.next();
+    VSList::push(std::make_pair(v, varSorts.get(v)), res);
+  }
+  return res;
+}
 
 #define INDUCTION_CONTEXT_BANK 0
 #define INDUCTION_CLAUSE_BANK 1
@@ -152,7 +170,7 @@ Formula* InductionContext::getFormula(
   auto hypVars = VList::fromIterator(unit.condUnivVars.iterFifo());
   if (hypVars) {
     ASS(left);
-    left = new QuantifiedFormula(Connective::FORALL, hypVars, SList::empty(), left);
+    left = new QuantifiedFormula(Connective::FORALL, attachSorts(hypVars, left), left);
   }
 
   vector<TermList> ts;
@@ -163,7 +181,7 @@ Formula* InductionContext::getFormula(
   auto right = getFormulaWithSquashedSkolems(ts, nextVar, renamedFreeVars, varsReplacingSkolems, subst);
   auto f = left ? new BinaryFormula(Connective::IMP, left, right) : right;
   if (renamedFreeVars) {
-    f = new QuantifiedFormula(Connective::EXISTS, renamedFreeVars, SList::empty(), f);
+    f = new QuantifiedFormula(Connective::EXISTS, attachSorts(renamedFreeVars, f), f);
   }
   return f;
 }
@@ -1234,7 +1252,7 @@ void InductionClauseIterator::performInduction(const InductionContext& context, 
       // hypotheses as condUnivVars in InductionUnit and hypUnivVars in InductionCase,
       // but they are different for each hypothesis, so we quantify them here.
       if (varsReplacingSkolems) {
-        hypF = new QuantifiedFormula(Connective::FORALL, varsReplacingSkolems, SList::empty(), hypF);
+        hypF = new QuantifiedFormula(Connective::FORALL, attachSorts(varsReplacingSkolems, hypF), hypF);
       }
       FormulaList::push(hypF, hyps);
     }
@@ -1242,7 +1260,7 @@ void InductionClauseIterator::performInduction(const InductionContext& context, 
     auto hypVars = VList::fromIterator(c.hypUnivVars.iterFifo());
     if (hypVars) {
       ASS(left);
-      left = new QuantifiedFormula(Connective::FORALL, hypVars, SList::empty(), left);
+      left = new QuantifiedFormula(Connective::FORALL, attachSorts(hypVars, left), left);
     }
     auto right = context.getFormula(c.conclusion, typeBinder, var);
     FormulaList::push(Formula::quantify(left ? new BinaryFormula(Connective::IMP,left,right) : right), formulas);
@@ -1287,9 +1305,12 @@ void InductionClauseIterator::performStructInductionFreeVar(const InductionConte
       var = kv.first->maxVar() + 1;
     }
   }
-  VList* us = VList::empty();
-  VList* ws = VList::empty();
-  VList* ys = VList::empty();
+  // Determine the sort of freeVar from the induction literal
+  TermList freeVarSort = SortHelper::getVariableSort(TermList::var(freeVar), context._cls[0].second[0]);
+
+  VSList* us = VSList::empty();
+  VSList* ws = VSList::empty();
+  VSList* ys = VSList::empty();
   FormulaList* formulas = FormulaList::empty();
 
   // Construct premise as a conjunction of steps.
@@ -1304,10 +1325,10 @@ void InductionClauseIterator::performStructInductionFreeVar(const InductionConte
     for (unsigned j = numTypeArgs; j < arity; j++){
       TermList y(var++, false);
       argTerms.push(y);
-      VList::push(y.var(), ys);
+      VSList::push(std::make_pair(y.var(), con->argSort(j)), ys);
       if (con->argSort(j) == con->rangeSort()){
         unsigned w = var++;
-        VList::push(w, ws);
+        VSList::push(std::make_pair(w, freeVarSort), ws);
         Formula* curLit = context.getFormulaWithFreeVar(y, freeVar, w);
         FormulaList::push(curLit, hyps); // L[y_j, w_j]
         // Synthesis specific:
@@ -1323,7 +1344,7 @@ void InductionClauseIterator::performStructInductionFreeVar(const InductionConte
       }
     }
     unsigned u = var++;
-    VList::push(u, us);
+    VSList::push(std::make_pair(u, freeVarSort), us);
 
     Term* tcons = Term::create(con->functor(), (unsigned)argTerms.size(), argTerms.begin());
 
@@ -1333,7 +1354,7 @@ void InductionClauseIterator::performStructInductionFreeVar(const InductionConte
     }
 
     Formula* consequent = context.getFormulaWithFreeVar({ TermList(tcons) }, freeVar, u);
-    Formula* step = (VList::isEmpty(ws)) ? consequent :
+    Formula* step = (VSList::isEmpty(ws)) ? consequent :
       new BinaryFormula(Connective::IMP, JunctionFormula::generalJunction(Connective::AND, hyps), consequent); // (/\_{j ∈ P_c} L[y_j, w_j]) --> L[cons(y_1, ..., y_n), u_i]
     formulas->push(step, formulas);
   }
@@ -1346,14 +1367,14 @@ void InductionClauseIterator::performStructInductionFreeVar(const InductionConte
   Formula* conclusion = context.getFormulaWithFreeVar(z, freeVar, x, &subst);
   // Put together the whole induction axiom:
   formula = new BinaryFormula(Connective::IMP, formula, conclusion);
-  formula = new QuantifiedFormula(Connective::EXISTS, VList::singleton(x), SList::empty(), formula);
-  formula = new QuantifiedFormula(Connective::FORALL, VList::singleton(z.var()), SList::empty(), formula);
-  formula = new QuantifiedFormula(Connective::FORALL, us, SList::empty(), formula);
-  if (!VList::isEmpty(ws)) {
-    formula = new QuantifiedFormula(Connective::EXISTS, ws, SList::empty(), formula);
+  formula = new QuantifiedFormula(Connective::EXISTS, VSList::singleton(std::make_pair(x, freeVarSort)), formula);
+  formula = new QuantifiedFormula(Connective::FORALL, VSList::singleton(std::make_pair(z.var(), sort)), formula);
+  formula = new QuantifiedFormula(Connective::FORALL, us, formula);
+  if (!VSList::isEmpty(ws)) {
+    formula = new QuantifiedFormula(Connective::EXISTS, ws, formula);
   }
-  if (!VList::isEmpty(ys)) {
-    formula = new QuantifiedFormula(Connective::EXISTS, ys, SList::empty(), formula);
+  if (!VSList::isEmpty(ys)) {
+    formula = new QuantifiedFormula(Connective::EXISTS, ys, formula);
   }
 
   // Produce induction clauses and obtain the skolemization bindings.

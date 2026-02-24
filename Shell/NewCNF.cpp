@@ -664,7 +664,10 @@ TermList NewCNF::eliminateLet(Term* term)
   auto bindingBoundVars = VList::empty();
   Formula* binding = sd->getLetBinding();
   if (binding->connective() == Connective::FORALL) {
-    bindingBoundVars = binding->vars();
+    VSList::Iterator vsi(binding->vars());
+    while (vsi.hasNext()) {
+      VList::push(vsi.next().first, bindingBoundVars);
+    }
     binding = binding->qarg();
   }
 
@@ -1042,9 +1045,9 @@ void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings, BindingList
       processedBindings = nullptr;
       processedFoolBindings = nullptr;
 
-      VList::Iterator vs(g->vars());
+      VSList::Iterator vs(g->vars());
       while (vs.hasNext()) {
-        unsigned var = vs.next();
+        unsigned var = vs.next().first;
 
         Term *skolem = createSkolemTerm(var, unboundFreeVars);
 
