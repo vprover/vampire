@@ -1345,6 +1345,12 @@ void SaturationAlgorithm::init()
 {
   CALL("SaturationAlgorithm::init");
 
+  if (_neuralActivityRecoring || _neuralModelGuidance) {
+    if (_neuralModel->useGage() || _neuralModel->useGweight()) {
+      runGnnOnInput();
+    }
+  }
+
   ClauseIterator toAdd;
 
   if (env.options->randomTraversals()) {
@@ -1747,6 +1753,16 @@ void SaturationAlgorithm::addToPassive(Clause* cl)
   cl->setStore(Clause::PASSIVE);
   env.statistics->passiveClauses++;
 
+  if (_neuralActivityRecoring && !_neuralModelGuidance) {
+    // doing this specifically, for the "IMITATION" pathway
+    makeReadyForEval(cl);
+
+    static Stack<Clause*> singleton;
+    singleton.push(cl);
+    _neuralModel->evalClauses(singleton,/* justRecord = */ true);
+    singleton.reset();
+  }
+
   {
     TIME_TRACE(TimeTrace::PASSIVE_CONTAINER_MAINTENANCE);
     _passive->add(cl);
@@ -1864,38 +1880,38 @@ void SaturationAlgorithm::doUnprocessedLoop()
 {
   CALL("SaturationAlgorithm::doUnprocessedLoop");
 
-start:
-
-  newClausesToUnprocessed();
-
-  while (! _unprocessed->isEmpty()) {
-    Clause* c = _unprocessed->pop();
-    ASS(!isRefutation(c));
-
-    if (forwardSimplify(c)) {
-      onClauseRetained(c);
-      addToPassive(c);
-      ASS_EQ(c->store(), Clause::PASSIVE);
-    }
-    else {
-      ASS_EQ(c->store(), Clause::UNPROCESSED);
-      c->setStore(Clause::NONE);
-    }
-
+  do {
     newClausesToUnprocessed();
-
-    if (env.timeLimitReached()) {
-      throw TimeLimitExceededException();
+    // yes, but don't try LRS with neural guidance anyway!
+    if (_neuralModelGuidance && (_passive->ageLimited() || _passive->weightLimited())) {
+      // so that we can start kicking out the really bad clauses already in forwardSimplify's exceedsAllLimits
+      _neuralModel->bulkEval(*_unprocessed);
     }
-  }
 
-  ASS(clausesFlushed());
-  onAllProcessed();
-  if (!clausesFlushed()) {
-    //there were some new clauses added, so let's process them
-    goto start;
-  }
+    while (! _unprocessed->isEmpty()) {
+      Clause* c = _unprocessed->pop();
+      ASS(!isRefutation(c));
 
+      if (forwardSimplify(c)) {
+        onClauseRetained(c);
+        addToPassive(c);
+        ASS_EQ(c->store(), Clause::PASSIVE);
+      }
+      else {
+        ASS_EQ(c->store(), Clause::UNPROCESSED);
+        c->setStore(Clause::NONE);
+      }
+
+      newClausesToUnprocessed();
+
+      if (env.timeLimitReached()) {
+        throw TimeLimitExceededException();
+      }
+    }
+
+    ASS(clausesFlushed());
+    onAllProcessed(); // in particular, Splitter has now recomputed model which may have triggered deletions and additions
+  } while (!clausesFlushed());
 }
 
 /**
@@ -2006,13 +2022,33 @@ MainLoopResult SaturationAlgorithm::runImpl()
 
       env.statistics->activations = l;
     }
-  }
-  catch(ThrowableBase&)
-  {
+  } catch(const RefutationFoundException& r) {
+    if (_neuralActivityRecoring) {
+      Timer::setLimitEnforcement(false);
+      saveNeuralActivity(r.refutation);
+    }
+
+    throw;
+  } catch (const ThrowableBase&) {
     tryUpdateFinalClauseCount();
     throw;
   }
+}
 
+void SaturationAlgorithm::saveNeuralActivity(Clause* refutation)
+{
+  CALL("SaturationAlgorithm::saveNeuralActivity");
+
+  DHSet<Unit*> done; // will contain the processed proof units
+  refutation->minimizeAncestorsAndUpdateSelectedStats(done);
+
+  std::vector<int64_t> proof_units;
+  auto it = done.iterator();
+  while (it.hasNext()) {
+    proof_units.push_back(it.next()->number());
+  }
+  _neuralModel->setProofUnitsAndSaveRecorded(proof_units,
+    env.options->neuralActivityRecording().c_str());
 }
 
 /**
