@@ -34,7 +34,7 @@ public:
 
   static TermList getEqualityArgumentSort(const Literal* lit);
 
-  // DEPRECATED: this function scans the whole formula to figure out a variable's sort and is very inefficient - moreover, such information is normally carried around (see QuantifiedFormula's sorts())
+  [[deprecated("This function scans the whole formula to figure out a variable's sort and is very inefficient - moreover, such information is normally carried around (see QuantifiedFormula's sorts()")]]
   static bool tryGetVariableSort(unsigned var, Formula* f, TermList& res);
   static TermList getVariableSort(TermList var, Term* t);
 
