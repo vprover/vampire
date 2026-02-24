@@ -636,7 +636,7 @@ private:
   void processLet(Term* term, Occurrences &occurrences);
   TermList eliminateLet(Term* term);
 
-  TermList nameLetBinding(Term* lhs, TermList rhs, TermList body, VList* boundVars);
+  TermList nameLetBinding(Term* lhs, TermList rhs, TermList body, VSList* boundVars);
   TermList inlineLetBinding(Term* lhs, TermList rhs, TermList body);
 
   TermList findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula*> &conditions,
