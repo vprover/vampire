@@ -411,7 +411,20 @@ Formula* Formula::createDefinition(Term* lhs, TermList rhs, VList* uVars)
   auto lit = Literal::create(env.signature->getDefPred(), /*polarity*/true, { sort, TermList(lhs), rhs });
   Formula* res = new AtomicFormula(lit);
   if (uVars) {
-    res = new QuantifiedFormula(Connective::FORALL, uVars, nullptr, res);
+    DHMap<unsigned,TermList> varSortMap;
+    SortHelper::collectVariableSorts(res, varSortMap);
+    VSList::FIFO vsfifo;
+    VList::Iterator vit(uVars);
+    while (vit.hasNext()) {
+      unsigned v = vit.next();
+      TermList s;
+      ASS(varSortMap.find(v, s)) // MS: if this doesn't hold, the code below will cope, if not perfectly
+      if (!varSortMap.find(v, s)) {
+        s = AtomicSort::defaultSort();
+      }
+      vsfifo.pushBack(std::make_pair(v, s));
+    }
+    res = new QuantifiedFormula(Connective::FORALL, vsfifo.list(), res);
   }
   return res;
 }
