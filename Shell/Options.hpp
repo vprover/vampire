@@ -2329,6 +2329,7 @@ public:
   bool skolemReuse() const { return _skolemReuse.actualValue; }
   bool definitionReuse() const { return _definitionReuse.actualValue; }
   TweeGoalTransformation tweeGoalTransformation() const { return _tweeGoalTransformation.actualValue; }
+  bool tweeSkipArrows() const { return _tweeSkipArrows.actualValue; }
   bool outputAxiomNames() const { return _outputAxiomNames.actualValue; }
   void setOutputAxiomNames(bool newVal) { _outputAxiomNames.actualValue = newVal; }
   QuestionAnsweringMode questionAnswering() const { return _questionAnswering.actualValue; }
@@ -2656,7 +2657,8 @@ private:
   BoolOptionValue _skolemReuse;
   BoolOptionValue _definitionReuse;
   ChoiceOptionValue<TweeGoalTransformation> _tweeGoalTransformation;
-  
+  BoolOptionValue _tweeSkipArrows;
+
   BoolOptionValue _generalSplitting;
   BoolOptionValue _globalSubsumption;
   ChoiceOptionValue<GlobalSubsumptionSatSolverPower> _globalSubsumptionSatSolverPower;
