@@ -185,25 +185,16 @@ std::string Formula::toString () const
     case EXISTS:
       {
         res += toString(c) + " [";
-        VList::Iterator vs(f->vars());
-        SList::Iterator ss(f->sorts());
-        bool hasSorts = f->sorts();
+        VSList::Iterator vs(f->vars());
         bool first=true;
         while (vs.hasNext()) {
-          int var = vs.next();
+          auto [var,sort] = vs.next();
           if (!first) {
             res += ",";
           }
           res += Term::variableToString(var);
-          TermList t;
-          if (hasSorts) {
-            ASS(ss.hasNext());
-            t = ss.next();
-            if (t != AtomicSort::defaultSort()) {
-              res += " : " + t.toString();
-            }
-          } else if (SortHelper::tryGetVariableSort(var, const_cast<Formula*>(f),t) && t != AtomicSort::defaultSort()) {
-            res += " : " + t.toString();
+          if (sort != AtomicSort::defaultSort()) {
+            res += " : " + sort.toString();
           }
           first = false;
         }
@@ -271,21 +262,21 @@ bool Formula::parenthesesRequired (Connective outer) const
 } // Formula::parenthesesRequired
 
 /**
- * Return the list of all bound variables of the formula
+ * Return the list of all bound variables (and their sorts) of the formula
  *
  * If a variable is bound multiple times in the formula,
  * it appears in the list the same number of times as well.
  */
-VList* Formula::boundVariables () const
+VSList* Formula::boundVariables () const
 {
-  VList* res = VList::empty();
+  VSList* res = VSList::empty();
   SubformulaIterator sfit(const_cast<Formula*>(this));
   while(sfit.hasNext()) {
     Formula* sf = sfit.next();
     if(sf->connective() == FORALL || sf->connective() == EXISTS) {
-      VList* qvars = sf->vars();
-      VList* qvCopy = VList::copy(qvars);
-      res = VList::concat(qvCopy, res);
+      VSList* qvars = sf->vars();
+      VSList* qvCopy = VSList::copy(qvars);
+      res = VSList::concat(qvCopy, res);
     }
   }
   return res;
@@ -432,8 +423,7 @@ Formula* Formula::quantify(Formula* f)
   SortHelper::collectVariableSorts(f,tMap,/*ignoreBound=*/true);
 
   //we have to quantify the formula
-  VList::FIFO quantifiedVars;
-  SList::FIFO theirSorts;
+  VSList::FIFO quantifiedVarsWithSorts;
 
   DHMap<unsigned,TermList>::Iterator tmit(tMap);
   while(tmit.hasNext()) {
@@ -442,15 +432,13 @@ Formula* Formula::quantify(Formula* f)
     tmit.next(v, s);
     if(s.isTerm() && s.term()->isSuper()){
       // type variable must appear at the start of the list
-      quantifiedVars.pushFront(v);
-      theirSorts.pushFront(s);
+      quantifiedVarsWithSorts.pushFront(std::pair(v,s));
     } else {
-      quantifiedVars.pushBack(v);
-      theirSorts.pushBack(s);
+      quantifiedVarsWithSorts.pushBack(std::pair(v,s));
     }
   }
-  if(!quantifiedVars.empty()) {
-    f = new QuantifiedFormula(FORALL, quantifiedVars.list(), theirSorts.list(), f);
+  if(!quantifiedVarsWithSorts.empty()) {
+    f = new QuantifiedFormula(FORALL, quantifiedVarsWithSorts.list(), f);
   }
   return f;
 }

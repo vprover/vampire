@@ -58,7 +58,9 @@ struct SubstApplicator;
 struct AppliedTerm;
 
 typedef List<unsigned> VList; // a list of variables (which are unsigned)
-typedef List<TermList> SList; // a list of sorts (which are now, with polymorphism, TermLists)
+typedef std::pair<unsigned,TermList> VarSort; // a variable with sort
+typedef List<VarSort> VSList; // a list of variables withg sorts
+
 typedef const SharedSet<unsigned> VarSet;
 
 
