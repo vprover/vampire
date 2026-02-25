@@ -79,9 +79,21 @@ FormulaUnit* Rectify::rectify (FormulaUnit* unit0, bool removeUnusedVars)
     unit = new FormulaUnit(g,FormulaClauseTransformation(InferenceRule::RECTIFY,unit));
   }
 
+  // note that this only kicks in when rectifying formulas with free variables
   if (VList::isNonEmpty(vars)) {
-    //TODO do we know the sorts of vars?
-    unit = new FormulaUnit(new QuantifiedFormula(FORALL,vars,0,g),FormulaClauseTransformation(InferenceRule::CLOSURE,unit));
+    DHMap<unsigned, TermList> varSorts;
+    SortHelper::collectVariableSorts(g, varSorts);
+    VSList::FIFO vsfifo;
+    VList::Iterator vit(vars);
+    while (vit.hasNext()) {
+      unsigned v = vit.next();
+      TermList s;
+      if (!varSorts.find(v, s)) {
+        s = AtomicSort::defaultSort();
+      }
+      vsfifo.pushBack(std::make_pair(v, s));
+    }
+    unit = new FormulaUnit(new QuantifiedFormula(FORALL, vsfifo.list(), g),FormulaClauseTransformation(InferenceRule::CLOSURE,unit));
   }
   return unit;
 } // Rectify::rectify (Unit& unit)
