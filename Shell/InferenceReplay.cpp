@@ -8,7 +8,6 @@
 #include "Inferences/Superposition.hpp"
 #include "Kernel/Inference.hpp"
 #include "Shell/EqResWithDeletion.hpp"
-#include "Shell/InferenceRecorder.hpp"
 
 namespace Shell {
 void InferenceReplayer::replayInference(Kernel::Unit *u)

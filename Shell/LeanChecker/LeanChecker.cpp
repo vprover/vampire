@@ -11,8 +11,8 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/MLVariant.hpp"
-#include "Kernel/EqHelper.hpp"
 #include "LeanPrinter.hpp"
+#include "Lib/Metaiterators.hpp"
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
 #include "Saturation/Splitter.hpp"
 #include "Shell/FunctionDefinition.hpp"
@@ -248,8 +248,7 @@ void LeanChecker::outputProofStep(std::ostream &out, Kernel::Unit *u)
     avatarRefutationProofStep(out, conclSorts, u);
   } else {
     out << indent << "have " << stepIdent << u->number() << " := inf_s" << u->number() << " ";
-    for (auto parents = u->getParents(); parents.hasNext();) {
-      Unit *parent = parents.next();
+    for (auto parent : iterTraits(u->getParents())) {
       out << " " << stepIdent << parent->number();
     }
     out << "\n";
@@ -373,10 +372,9 @@ void LeanChecker::outputInferenceStep(std::ostream &out, Kernel::Unit *u){
 }
 
 unsigned LeanChecker::outputPremises(std::ostream &out, Unit *u, std::string seperator){
-  UnitIterator parents = u->getParents();
+  auto parents = iterTraits(u->getParents());
   unsigned count = 0;
-  while (parents.hasNext()) {
-    Unit *parent = parents.next();
+  for(auto parent : parents) {
     outputUnit(out, parent);
     count++;
     if(parents.hasNext()){
@@ -447,11 +445,11 @@ void LeanChecker::genericNPremiseInferenceNoSubs(std::ostream &out, SortMap &con
   unsigned size = 0;
   outputPremiseAndConclusion(out, concl);
   out << " := by\n" << indent << "intros ";
-  while(parents.hasNext()){
-    parents.next();
+  for([[maybe_unused]] auto _ : iterTraits(concl->getParents())) {
     out << "h" << size << " ";
     size++;
   }
+
   parents = concl->getParents();
   instantiateConclusionVars(out, conclSorts, concl);
   for (unsigned i = 0; i < size; i++) {
@@ -469,16 +467,14 @@ void LeanChecker::genericNPremiseInferenceNoSubs(std::ostream &out, SortMap &con
   //  genericNPremiseInferenceNoSubs(out,conclSorts,concl->asClause(), tactic);
   //  return;
   //}
-  auto parents = concl->getParents();
   unsigned size = 0;
   outputPremiseAndConclusion(out, concl);
   out << " := by\n" << indent << "intros ";
-  while(parents.hasNext()){
-    parents.next();
+  for([[maybe_unused]] auto _ : iterTraits(concl->getParents())) {
     out << "h" << size << " ";
     size++;
   }
-  parents = concl->getParents();
+  UnitIterator parents = concl->getParents();
   instantiateConclusionVars(out, conclSorts, concl);
   for (unsigned i = 0; i < size; i++) {
     ASS(parents.hasNext())
@@ -520,27 +516,6 @@ void LeanChecker::superposition(std::ostream &out, SortMap &conclSorts, Clause *
   genericNPremiseInference(out, conclSorts, concl, {info->substitutionForBanksSub[0], info->substitutionForBanksSub[1]}, "grind only [cases Or]");
 }
 
-// check whether `demodulator` l = r rewrites left-to-right in the context of C[t] -> C[s]
-// TODO copied from Dedukti, merge at some point
-static bool isL2RDemodulatorFor(Literal *demodulator, Clause *rewritten, TermList target, Clause *result)
-{
-  ASS(demodulator->isEquality())
-  ASS(demodulator->isPositive())
-
-  // TODO this is waaay overkill, but it's very hard to work out which way a demodulator was used
-  // consult MH about how best to do this
-  Substitution subst;
-  if (!MatchingUtils::matchTerms(demodulator->termArg(0), target, subst))
-    return false;
-  TermList rhsSubst = SubstHelper::apply(demodulator->termArg(1), subst);
-
-  for (Literal *l : rewritten->iterLits())
-    if (!result->contains(l) && !result->contains(EqHelper::replace(l, target, rhsSubst)))
-      return false;
-
-  return true;
-}
-
 void LeanChecker::demodulation(std::ostream &out, SortMap &conclSorts, Clause *concl, const InferenceRecorder::InferenceInformation *info){
   if(info == nullptr){
     out << "PROBLEM IN DEMODULATION\n";
@@ -554,10 +529,9 @@ unsigned countConnectives(Formula *f)
   switch (f->connective()) {
     case AND:
     case OR: {
-      auto args = f->args()->iter();
       unsigned thisCount=0;
-      while (args.hasNext()) {
-        thisCount += 1+countConnectives(args.next());
+      for(auto arg : iterTraits(f->args()->iter())){
+        thisCount += 1+countConnectives(arg);
       }
       return thisCount;
     }
@@ -735,10 +709,8 @@ void LeanChecker::outputSatFormula(std::ostream &out, std::set<Unit *, CompareUn
   for(auto unitIter = parents.begin(); unitIter != parents.end(); ++unitIter){
     Unit *u = *unitIter;
     auto extras = env.proofExtra.get<Indexing::SATClauseExtra>(u).clause;
-    auto iter = extras->iter();
     std::map<unsigned, bool, std::less<unsigned>> seen;
-    while(iter.hasNext()){
-      SATLiteral l = iter.next();
+    for(auto l : iterTraits(extras->iter())){
       seen.insert(std::make_pair(l.var(), l.positive()));
     }
     outputSatClause(out, seen, primed, boolSymbols);
@@ -778,7 +750,6 @@ void LeanChecker::avatarRefutation(std::ostream &out, SortMap &conclSorts, Unit 
   out << " := by\n" << indent << "intro h\n" <<
   indent << "bv_decide\n\n";
 
-
   out << "set_option maxHeartbeats 200000000 in\n-- this is probably due to a suboptimal encoding\n";
   //Convert the SAT bool refuation proof to prop
   out << "theorem inf_s" << concl->number() << " : ";
@@ -787,18 +758,17 @@ void LeanChecker::avatarRefutation(std::ostream &out, SortMap &conclSorts, Unit 
   outputUnit(out, concl);
   out << " := by\n" 
       << indent << "classical\n" 
-      << indent << "intro h\n" 
       << indent << "have satProof := inf_s" << concl->number() << "' ";
   for(unsigned var : seen){
     out << "(decide sA" << var << ") ";
   }
-  out << "\n" << indent << "simp (config := {maxSteps := 2000000}) only [Bool.or_eq_true, decide_eq_true_eq, Bool.not_eq_eq_eq_not,\n"
-      << indent << indent << "Bool.not_true, decide_eq_false_iff_not, or_assoc, and_assoc] at satProof\n"
-      << indent << "exact satProof h\n\n";
-
-  //out << "\n" << indent << "simp only [decide_eq_true_iff, decide_eq_false_iff_not] at satProof\n" 
-  //    << indent << "exact satProof h\n";
-  out << "\n\n";  
+  out << "\n" << indent << "rewrite_decide_eq [";
+  for(unsigned var : seen){
+    out << "sA" << var << " ";
+  }
+  out << "]\n" << indent << "sat_norm\n"
+      << indent << "exact satProof\n"
+      << "\n";  
 }
 
 void LeanChecker::avatarRefutationProofStep(std::ostream &out, SortMap &conclSorts, Unit *concl){
@@ -827,9 +797,7 @@ void LeanChecker::avatarSplitClause(std::ostream &out, SortMap &conclSorts, Unit
   
   std::set<unsigned> previousSplits;
   if(!parent->noSplits()){
-    auto splits = parent->splits()->iter();
-    while(splits.hasNext()){
-      unsigned split = splits.next();
+    for(unsigned split : iterTraits(parent->splits()->iter())){
       auto s = Splitter::getLiteralFromName(split);
       previousSplits.insert(s.var());
     }
@@ -846,9 +814,12 @@ void LeanChecker::avatarSplitClause(std::ostream &out, SortMap &conclSorts, Unit
   std::unordered_map<unsigned, Clause *> components;
   std::vector<unsigned> parentsThatRewrite;
   std::map<unsigned, std::pair<unsigned,Clause*>> splitToParentMap;
-  unsigned instanceCount = 1;
-  while(parents.hasNext()) {
-    Unit *parent = parents.next();
+  unsigned instanceCount = 0;
+  for(Unit *parent : iterTraits(concl->getParents())){
+    if(instanceCount == 0){
+      instanceCount++;
+      continue;
+    }
     auto dex = env.proofExtra.get<SplitDefinitionExtra>(parent);
     ASS(dex.component->isComponent())
     unsigned component = dex.component->splits()->sval();
@@ -861,11 +832,9 @@ void LeanChecker::avatarSplitClause(std::ostream &out, SortMap &conclSorts, Unit
   }
   
 
-  auto parentsIter = concl->getParents();
   unsigned parentNo = 0;
   out << " := by\n" << indent << "intros ";
-  while(parentsIter.hasNext()){
-    parentsIter.next();
+  for([[maybe_unused]] auto _ : iterTraits(concl->getParents())){
     out << "h" << parentNo << " ";
     parentNo++;
   }
@@ -911,9 +880,7 @@ void LeanChecker::avatarSplitClause(std::ostream &out, SortMap &conclSorts, Unit
           break;
         }
         if(Kernel::MLVariant::isVariant(klass.begin(), component, /*complementary=*/false, &subst)) {
-          auto iter = subst.items();
-          while(iter.hasNext()) {
-            auto [var, term] = iter.next();
+          for(auto [var, term] : iterTraits(subst.items())){
             fullSubst.bind(term.var(), TermList::var(var));
             varToSplitMap.insert({term.var(), Splitter::getLiteralFromName(name).var()});
           }
@@ -931,10 +898,8 @@ void LeanChecker::avatarSplitClause(std::ostream &out, SortMap &conclSorts, Unit
       auto [parNo, parent] = parentWithNumbering->second;
       SortMap map;
       SortHelper::collectVariableSorts(parent,map);
-      auto parentVariables = map.domain();
       std::set <unsigned> sortedVars;
-      while(parentVariables.hasNext()){
-        unsigned var = parentVariables.next();
+      for(unsigned var : iterTraits(map.domain())){
         sortedVars.insert(var);
       }
       out << " ";
@@ -944,10 +909,8 @@ void LeanChecker::avatarSplitClause(std::ostream &out, SortMap &conclSorts, Unit
     }
   }
   out << "\n" << indent << "have newForm := h0 ";
-  auto varDomain = mainParentMap.domain();
   std::set<unsigned> sortedVars;
-  while(varDomain.hasNext()){
-    unsigned var = varDomain.next();
+  for(unsigned var : iterTraits(mainParentMap.domain())){
     sortedVars.insert(var);
   }
 
@@ -1055,11 +1018,8 @@ void LeanChecker::skolemize(std::ostream &out, SortMap &conclSorts, Unit *concl)
   out << indent << "-- step" << concl->number() << " " << concl->inference().name() << "\n";
 
   ASS(_is->hasIntroducedSymbols(concl))
-  auto syms = _is->getIntroducedSymbols(concl).iter();
-  
   std::map<unsigned,Signature::Symbol*> replacedVarMap;
-  while(syms.hasNext()){
-    unsigned symNum = syms.next().second;
+  for(auto [_, symNum] : iterTraits(_is->getIntroducedSymbols(concl).iter())){
     long replacedVar = _is->variableReplacedByIntroducedSymbol(symNum);
     ASS(replacedVar != -1)
     replacedVarMap[replacedVar] = env.signature->getFunction(symNum);
@@ -1172,9 +1132,7 @@ void LeanChecker::outputUnit(std::ostream &out, Kernel::Unit *u, SortMap *conclS
 
 void LeanChecker::outputUnitBeginning(std::ostream &out, Kernel::Unit *u, SortMap *conclSorts)
 {
-  auto parents = u->getParents();
-  while (parents.hasNext()) {
-    auto parent = parents.next();
+  for(auto parent : iterTraits(u->getParents())){
     if (this->alreadyPrintedFormulas.find(parent->number()) == this->alreadyPrintedFormulas.end()) {
       out << "def φ" << parent->number() << " :=";
       outputUnit(out, parent);
