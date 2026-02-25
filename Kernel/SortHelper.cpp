@@ -497,6 +497,16 @@ static void collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermList>&
               CollectTask unbindTask(UNBIND);
               unbindTask.vars = f->vars();
               todo.push(unbindTask);
+            } else {
+              // Pre-insert bound variable sorts from VSList
+              VSList::Iterator vit(f->vars());
+              while (vit.hasNext()) {
+                auto [var, sort] = vit.next();
+                if (!map.insert(var, sort)) {
+                  // Variable already in map - validate consistency
+                  ASS_EQ(sort, map.get(var));
+                }
+              }
             }
 
             CollectTask newTask(COLLECT_FORMULA);
