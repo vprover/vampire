@@ -36,6 +36,7 @@ public:
 
   [[deprecated("This function scans the whole formula to figure out a variable's sort and is very inefficient - moreover, such information is normally carried around (see QuantifiedFormula's sorts()")]]
   static bool tryGetVariableSort(unsigned var, Formula* f, TermList& res);
+  [[deprecated("This function evantually calls the deprecated tryGetVariableSort")]]
   static TermList getVariableSort(TermList var, Term* t);
 
   static void collectVariableSorts(Unit* u, DHMap<unsigned,TermList>& map);
