@@ -31,7 +31,7 @@
 using namespace std;
 using namespace Shell;
 
-bool Rectify::Renaming::tryGetBoundAndMarkUsed (int var,int& boundTo) const
+bool Rectify::Renaming::tryGetBoundAndMarkUsed(unsigned var,unsigned& boundTo) const
 {
   if ((unsigned)var >= _capacity) {
     return false;
@@ -45,7 +45,7 @@ bool Rectify::Renaming::tryGetBoundAndMarkUsed (int var,int& boundTo) const
   return true;
 } // Rectify::bound
 
-Rectify::VarWithUsageInfo Rectify::Renaming::getBoundAndUsage(int var) const
+Rectify::VarWithUsageInfo Rectify::Renaming::getBoundAndUsage(unsigned var) const
 {
   ASS_L((unsigned)var,_capacity);
 
@@ -341,7 +341,7 @@ bool Rectify::rectify(From from, To to, unsigned cnt)
  */
 unsigned Rectify::rectifyVar(unsigned v)
 {
-  int newV;
+  unsigned newV;
   if (! _renaming.tryGetBoundAndMarkUsed(v,newV)) {
     newV = _renaming.bind(v);
     VList::push(newV,_free);

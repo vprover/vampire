@@ -43,9 +43,7 @@ class Rectify
 {
 public:
   /** Initialise Rectify */
-  Rectify()
-    : _free(0), _removeUnusedVars(true)
-  {}
+  Rectify() : _free(0), _removeUnusedVars(true) {}
   static FormulaUnit* rectify(FormulaUnit*, bool removeUnusedVars=true);
   static void rectify(UnitList*& units);
 private:
@@ -57,14 +55,13 @@ private:
   {
   public:
     Renaming()
-      : Array<VarUsageTrackingList*>(15),
-	_nextVar(0)
+      : Array<VarUsageTrackingList*>(15),_nextVar(0)
     {
       fillInterval(0,15);
     }
     ~Renaming() override;
-    bool tryGetBoundAndMarkUsed (int var,int& boundTo) const;
-    VarWithUsageInfo getBoundAndUsage(int var) const;
+    bool tryGetBoundAndMarkUsed (unsigned var,unsigned& boundTo) const;
+    VarWithUsageInfo getBoundAndUsage(unsigned var) const;
     unsigned bind (unsigned v);
     void undoBinding(unsigned v);
   private:
