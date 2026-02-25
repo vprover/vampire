@@ -250,8 +250,8 @@ Comparison Normalisation::compare (Formula* fm1, Formula* fm2)
     case EXISTS:
       // first compare the length of the variable prefix,
       //  and then the immediate subformulas
-      comp = compare((int) VList::length(f1->vars()),
-                     (int) VList::length(f2->vars()));
+      comp = compare((int) VSList::length(f1->vars()),
+                     (int) VSList::length(f2->vars()));
       if (comp != EQUAL) {
         return comp;
       }

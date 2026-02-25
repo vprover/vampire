@@ -593,23 +593,13 @@ Formula* PredicateDefinition::replacePurePredicates(Formula* f)
       //remain valid, but those from arg and result might share some
       //elements, which would lead to trouble e.g. if we were deleting
       //them both.
-      VList* vl=arg->vars();
-      VList::Iterator vit(f->vars());
-      while(vit.hasNext()) {
-        VList::push(vit.next(), vl);
-      }
-      // sl should either be empty or the equivalent concatenation as vl
-      // if the sorts of either arg or f are empty then sl should be empty
-      SList* sl= SList::empty();
-      if(arg->sorts() && f->sorts()){
-        sl=arg->sorts();
-        SList::Iterator sit(f->sorts());
-        while(sit.hasNext()){
-          SList::push(sit.next(),sl);
-        }
+      VSList* vsl=arg->vars();
+      VSList::Iterator vsit(f->vars());
+      while(vsit.hasNext()) {
+        VSList::push(vsit.next(), vsl);
       }
 
-      return new QuantifiedFormula(con,vl,sl,arg->qarg());
+      return new QuantifiedFormula(con, vsl, arg->qarg());
     }
     switch (arg->connective()) {
     case FALSE:
@@ -618,7 +608,7 @@ Formula* PredicateDefinition::replacePurePredicates(Formula* f)
     default:
       return arg == f->qarg()
 	      ? f
-	      : new QuantifiedFormula(con,f->vars(),f->sorts(),arg);
+	      : new QuantifiedFormula(con, f->vars(), arg);
     }
   }
   default:
@@ -676,7 +666,7 @@ FormulaUnit* PredicateDefinition::makeImplFromDef(FormulaUnit* def, unsigned pre
 
   Formula* resf0;
   if(isQuantified) {
-    resf0=new QuantifiedFormula(FORALL, f0->vars(), f0->sorts(), resf);
+    resf0=new QuantifiedFormula(FORALL, f0->vars(), resf);
   } else {
     resf0=resf;
   }
