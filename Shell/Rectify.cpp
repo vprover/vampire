@@ -234,6 +234,11 @@ Term* Rectify::rectify (Term* t)
     return t;
   }
 
+  // cannot "recreate" super below, so let's special-case it
+  if (t->isSuper()) {
+    return t;
+  }
+
   if(t->isSpecial()) {
     return rectifySpecialTerm(t);
   }
