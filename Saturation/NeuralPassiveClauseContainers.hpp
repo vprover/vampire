@@ -37,6 +37,8 @@
 #undef LOG
 #include <torch/script.h>
 
+#define NUM_VAR_EMBEDS 3
+
 namespace Saturation {
 
 using namespace Kernel;
@@ -261,7 +263,7 @@ public:
   void gweightEnqueuOneTerm(int64_t id, unsigned functor, float sign, std::vector<int64_t>& args) {
     unsigned layer_idx = 0;
     for (auto a : args) {
-      if (a > 0) {
+      if (a >= NUM_VAR_EMBEDS) {
         layer_idx = std::max(layer_idx,_gweightTermLayers.get(a));
       }
     }

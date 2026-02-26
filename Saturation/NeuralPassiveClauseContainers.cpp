@@ -124,8 +124,10 @@ NeuralClauseEvaluationModel::NeuralClauseEvaluationModel(const std::string claus
   _gageCombine = _model.attr("gage_combine").toModule();
 
   _gweightEmbeddingSize = (*_model.find_method("gweight_embedding_size"))({}).toInt();
-  auto _gweightVarEmbed = _model.attr("gweight_var_embed").toModule().forward({torch::Tensor()}).toTensor();
-  _gweightTermEmbedStore.insert(0,_gweightVarEmbed);
+  auto _gweightVarEmbed = _model.attr("gweight_var_embed").toModule();
+  _gweightTermEmbedStore.insert(0,_gweightVarEmbed.forward({torch::tensor(0, torch::kLong)}).toTensor());
+  _gweightTermEmbedStore.insert(1,_gweightVarEmbed.forward({torch::tensor(1, torch::kLong)}).toTensor());
+  _gweightTermEmbedStore.insert(2,_gweightVarEmbed.forward({torch::tensor(2, torch::kLong)}).toTensor());
 
   _gweightTermCombine = _model.attr("gweight_term_combine").toModule();
 

@@ -566,13 +566,13 @@ void SaturationAlgorithm::showSubtermsNR(Term* t) {
       for (unsigned n = 0; n < t->arity(); n++) {
         TermList arg = *t->nthArgument(n);
         if (arg.isTerm()) {
-          args.push_back(arg.term()->getId()+1);
+          args.push_back(arg.term()->getId()+NUM_VAR_EMBEDS);
         } else {
-          args.push_back(0); // all variables are 0
+          args.push_back(arg.var() % NUM_VAR_EMBEDS); // all variables reduced mod NUM_VAR_EMBEDS
         }
       }
       _neuralModel->gweightEnqueueTerm(
-          t->getId()+1,
+          t->getId()+NUM_VAR_EMBEDS,
           funcToSymb(t->functor()),
           0.0,
           args);
@@ -597,9 +597,9 @@ void SaturationAlgorithm::showClauseLiterals(Clause* c) {
       TermList arg = *lit->nthArgument(n);
       if (arg.isTerm()) {
         showSubtermsNR(arg.term());
-        args.push_back(arg.term()->getId()+1);
+        args.push_back(arg.term()->getId()+NUM_VAR_EMBEDS);
       } else {
-        args.push_back(0); // all variables are 0
+        args.push_back(arg.var() % NUM_VAR_EMBEDS); // all variables reduced mod NUM_VAR_EMBEDS
       }
     }
 
