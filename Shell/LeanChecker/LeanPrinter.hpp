@@ -3,6 +3,7 @@
 
 #include <ostream>
 #include <vector>
+#include <set>
 #include "Forwards.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Theory.hpp"
@@ -223,6 +224,13 @@ void outputVariables(std::ostream &out, std::vector<unsigned int>* variables, So
 }
 
 } // namespace LeanPrinter
+
+namespace SymbolHelper {
+  enum class SymbolType { FUNCTION, PREDICATE, SORT };
+  void collectUsedSymbols(Term *term, std::set<Signature::Symbol*> &vars, SymbolType type = SymbolType::FUNCTION);
+  void collectUsedSymbols(Clause *clause, std::set<Signature::Symbol*> &vars, SymbolType type = SymbolType::FUNCTION);
+  void collectUsedSymbols(Formula *formula, std::set<Signature::Symbol*> &vars, SymbolType type = SymbolType::FUNCTION);
+}
 } // namespace Shell
 
 #endif // __LEAN__PRINTER__

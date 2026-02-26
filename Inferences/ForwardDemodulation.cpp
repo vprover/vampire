@@ -223,7 +223,7 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
         if(env.reconstruction){
           ASS(qr.data->clause->length()==1);
           ASS(qr.data->clause->literals()[0]->isEquality());
-          Shell::InferenceRecorder::instance()->forwardDemodulation(replacement->number(), replacement, {cl, qr.data->clause}, appl,qr.data, rhsS);
+          Shell::InferenceRecorder::instance()->forwardDemodulation(replacement->number(), replacement, {cl, qr.data->clause}, appl,qr.data, rhsS, trm);
         }
         return true;
       }
@@ -292,7 +292,7 @@ ClauseIterator ForwardDemodulationReplay::generateClauses(Clause* premise)
 
       auto replacement = Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, premise, qr.data->clause));
       if(env.reconstruction){
-        Shell::InferenceRecorder::instance()->forwardDemodulation(replacement->number(), replacement, {premise, qr.data->clause}, appl,qr.data, rhsS);
+        Shell::InferenceRecorder::instance()->forwardDemodulation(replacement->number(), replacement, {premise, qr.data->clause}, appl,qr.data, rhsS, trm);
       }
       return replacement;
     })

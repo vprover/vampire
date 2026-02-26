@@ -4,16 +4,20 @@
 #include "Indexing/Index.hpp"
 #include "Inferences/InferenceEngine.hpp"
 #include "Kernel/MLMatcher.hpp"
+
+#include "Kernel/MLVariant.hpp"
 #include "Kernel/Matcher.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Indexing/ResultSubstitution.hpp"
 #include "Kernel/Term.hpp"
+#include "Lib/Metaiterators.hpp"
 #include "Shell/EqResWithDeletion.hpp"
 #include <cstddef>
 #include <unordered_map>
 #include <vector>
+#include <set>
 
 using namespace Kernel;
 using namespace Indexing;
@@ -146,61 +150,33 @@ bool hasVarSubstAndCompute(TermList &expectedTerm, TermList &haveTerm, Substitut
 }
 
 void InferenceRecorder::forwardDemodulation(unsigned int id, Clause *conclusion, const std::vector<Clause *> &premises, const SubstApplicator *appl, const DemodulatorData *data,
-                                            TermList rhsS)
+                                            TermList rhsS, TypedTermList trm)
 {
   std::unordered_map<unsigned int, unsigned int> varMap;
   if (isSameAsProofStep(conclusion, _currentGoal, premises, varMap)) {
+    std::unique_ptr<InferenceInformation> info = std::make_unique<InferenceInformation>();
     Substitution variableMap = Substitution();
     for (auto [var, mappedVar] : varMap) {
       variableMap.bind(var, TermList::var(mappedVar));
     }
-    std::unique_ptr<InferenceInformation> info = std::make_unique<InferenceInformation>();
     info->conclusion = conclusion;
     info->premises = premises;
     info->substitutionForBanksSub.resize(1);
-    Substitution varPermut;
-    TermList rhsTerm = data->rhs;
+    Substitution variableSwapForClauseR;
 
-    // It seems that qr.data->clause and qr.data->rhs can have different variable namings
+    // qr.data->clause and qr.data->rhs have different variable namings since the demoldulation code normalizes the variables
     // To handle this we check if the rhs is on either side of the equality and then create a
     // variable permuation substitution to map the variables to the ones in the clause
-    bool haveProperSubst = false;
-    if (rhsTerm.isTerm()) {
-      haveProperSubst = hasVarSubstAndCompute(rhsTerm, *(data->clause->literals()[0]->nthArgument(0)), varPermut);
-      // check if this is the same as rhsS
-      if (haveProperSubst) {
-        TermList mappedRhs = SubstHelper::apply(*(data->clause->literals()[0]->nthArgument(0)), varPermut);
-        // now apply real subst and check if it was actually the same
-        mappedRhs = SubstHelper::apply(mappedRhs, *appl);
-        if (!MatchingUtils::matchTerms(rhsS, mappedRhs)) {
-          haveProperSubst = false;
-        }
-      }
-      if (!haveProperSubst) {
-		    varPermut.reset();
-        haveProperSubst = hasVarSubstAndCompute(rhsTerm, *(data->clause->literals()[0]->nthArgument(1)), varPermut);
-		    // we don't need to check rhsS again, because now it must be the other side
-      }
-    } else if (rhsTerm.isVar()) {
-      if (data->clause->literals()[0]->nthArgument(0)->isVar()) {
-        varPermut.bind(data->clause->literals()[0]->nthArgument(0)->var(),
-                            TermList::var(rhsTerm.var()));
-        haveProperSubst = true;
-      }
-      else if (data->clause->literals()[0]->nthArgument(1)->isVar()) {
-        varPermut.bind(data->clause->literals()[0]->nthArgument(1)->var(),
-                            TermList::var(rhsTerm.var()));
-        haveProperSubst = true;
-      }
-      else {
-        haveProperSubst = false;
-      }
-    }
-    ASS(haveProperSubst)
+    auto x = Literal::createEquality(true, data->term, data->rhs, data->term.sort());
+    MLVariant::isVariant(&x, data->clause, false, &variableSwapForClauseR);
 
+    Substitution variableSwapForClause;
+    for(auto [var, term] : iterTraits(variableSwapForClauseR.items())){
+      variableSwapForClause.bind(term.var(), TermList::var(var));
+    }
+  
     // we create a custom substitution to apply the substitution only to variables coming from the demodulator
     // otherwise the substitution we get faults
-  
     info->substitutionForBanksSub.resize(1);
     DHMap<unsigned int, TermList> sorts;
     auto dataTerm = data->term;
@@ -215,9 +191,27 @@ void InferenceRecorder::forwardDemodulation(unsigned int id, Clause *conclusion,
       SortHelper::collectVariableSorts(term,sorts);
     }
 
+    
+    Substitution substFixingNormalization;
+    auto foundTerm = SubstHelper::apply(data->term, *appl);
+    MatchingUtils::matchTerms(foundTerm, trm, substFixingNormalization);
+    //std::cout << data->rhs << std::endl;
+    //std::cout << data->term << std::endl;
+    //std::cout << premises[0]->toString() << std::endl;
+    //std::cout << premises[1]->toString() << std::endl;
+    //std::cout << data->clause->toString() << std::endl;
+    //std::cout << rhsS << std::endl;
+    //std::cout << data->clause->toString() << std::endl;
+    //std::cout << trm << std::endl;
+    //std::cout << foundTerm << std::endl;
+    //std::cout << substFixingNormalization << std::endl;
+    //std::cout << variableSwapForClause << std::endl;
+    //std::cout << variableMap << std::endl;
     for (const auto& [var, sort] : iterTraits(sorts.items())) {
-      auto newTerm = (*appl)(varPermut.apply(var).var());
-      info->substitutionForBanksSub[0].bind(var, SubstHelper::apply(newTerm, variableMap));
+      auto newTerm = (*appl)(var);
+      //std::cout << var << ": " << newTerm << std::endl;
+      info->substitutionForBanksSub[0].bind(variableSwapForClause.apply(var).var(), 
+        SubstHelper::apply(newTerm, substFixingNormalization));
     }
 
     _inferences[id] = std::move(info);
@@ -252,8 +246,20 @@ bool InferenceRecorder::isSameAsProofStep(Clause *clause, Clause *goal, const st
   if (clause->length() == 0) {
     return true;
   }
-
+  
+  
+  //if(!isVariant){
+  //  return false;
+  //}
+  //for (auto [var, term] : iterTraits(subst.items())) {
+  //  if (!term.isVar()) {
+  //    return false;
+  //  }
+  //  outVarMap[var] = term.var();
+  //}
+  //return isVariant;
   //TODO do some simpler preprocessing here to save on runtime,
+  
   //For now it works
   Clause *c = Clause::fromClause(clause);
   Clause *g = Clause::fromClause(goal);
@@ -262,8 +268,8 @@ bool InferenceRecorder::isSameAsProofStep(Clause *clause, Clause *goal, const st
   c = dlr.simplify(c);
   auto simpGoal = dlr.simplify(Clause::fromClause(g));
 
-  static std::vector<LiteralList *> alts;
 
+  static std::vector<LiteralList *> alts;
   alts.clear();
   alts.resize(c->length(), LiteralList::empty());
 
@@ -295,6 +301,23 @@ bool InferenceRecorder::isSameAsProofStep(Clause *clause, Clause *goal, const st
       }
       outVarMap[var] = term.var();
     }
+    if(!found){
+      continue;
+    }
+    std::set<unsigned> inputs;
+    std::set<unsigned> outputs;
+    //Check if we have a permutation
+    for (auto [var, term] : varToTermMap) {
+      inputs.insert(var);
+      outputs.insert(term.var());
+    }
+    if (inputs.size() != outputs.size()) {
+      found = false;
+    }
+    if(outputs.size() != _currentGoal->varCnt()){
+      found = false;
+    }
+
     if (found) {
       return true;
     }

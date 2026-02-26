@@ -1,8 +1,10 @@
 #include "LeanPrinter.hpp"
 #include "Kernel/Connective.hpp"
 #include "Kernel/Formula.hpp"
+#include "Lib/Metaiterators.hpp"
 #include <deque>
 #include <vector>
+#include <set>
 #include <algorithm>
 
 namespace Shell {
@@ -532,5 +534,90 @@ void printFormula(std::ostream &out, Formula *f, SortMap &conclSorts, SortMap &o
   }
 }
 
+
+
 } // namespace LeanPrinter
+
+
+namespace SymbolHelper {
+
+void collectUsedSymbols(Term *term, std::set<Signature::Symbol*> &vars, SymbolType type)
+{
+  auto sym = env.signature->getFunction(term->functor());
+  if (!sym->interpreted() && !sym->linMul() && type == SymbolType::FUNCTION) {
+    vars.insert(sym);
+  }
+  if(term->arity() == 0){
+    return;
+  }
+  auto args = term->termArgs();
+  while (args->isNonEmpty()) {
+    if (args->isTerm()) {
+      collectUsedSymbols(args->term(), vars, type);
+    }
+    args = args->next();
+  }
+}
+
+void collectUsedSymbols(Literal* literal, std::set<Signature::Symbol*> &vars, SymbolType type)
+{
+  auto sym = env.signature->getPredicate(literal->functor());
+  if (!sym->interpreted() && type == SymbolType::PREDICATE) {
+    vars.insert(sym);
+  }
+  if(literal->arity() == 0){
+    return;
+  }
+  auto args = literal->args();
+  while (args->isNonEmpty()) {
+    if (args->isTerm()) {
+      collectUsedSymbols(args->term(), vars, type);
+    }
+    args = args->next();
+  }
+}
+
+void collectUsedSymbols(Clause *clause, std::set<Signature::Symbol*> &vars, SymbolType type)
+{
+  for(auto lit : clause->getLiteralIterator()){
+    collectUsedSymbols(lit, vars, type);
+  }
+}
+
+void collectUsedSymbols(Formula *formula, std::set<Signature::Symbol*> &vars, SymbolType type)
+{
+  switch (formula->connective()) {
+    case LITERAL:
+      collectUsedSymbols(formula->literal(), vars, type);
+      break;
+    case AND:
+    case OR: {
+      for(auto arg : iterTraits(formula->args()->iter())){
+        collectUsedSymbols(arg, vars, type);
+      }
+    } break;
+    case IMP:
+    case IFF:
+    case XOR:
+      collectUsedSymbols(formula->left(), vars, type);
+      collectUsedSymbols(formula->right(), vars, type);
+      break;
+    case NOT:
+      collectUsedSymbols(formula->uarg(), vars, type);
+      break;
+    case FORALL:
+    case EXISTS:
+      collectUsedSymbols(formula->qarg(), vars, type);
+      break;
+    case BOOL_TERM:
+      break;
+    case TRUE:
+    case FALSE:
+    case NAME:
+      break;
+    default:
+      ASSERTION_VIOLATION;
+  }
+}
+}
 } // namespace Shell

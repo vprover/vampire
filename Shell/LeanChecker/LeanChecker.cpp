@@ -19,6 +19,7 @@
 #include "Shell/InferenceRecorder.hpp"
 #include "Shell/InferenceReplay.hpp"
 #include "VariablePrenexOrderingTree.hpp"
+#include <algorithm>
 #include <cstdlib>
 #include <deque>
 #include <initializer_list>
@@ -110,7 +111,38 @@ void LeanChecker::print()
 {
   std::deque<Unit*> inputPremises;
   std::deque<Unit*> negatedConjectures;
-  outputPreamble(out);
+  std::set<Signature::Symbol*> usedFunctionSymbols;
+  std::set<Signature::Symbol*> usedPredicateSymbols;
+  std::set<Signature::Symbol*> functionSymbolsInUsedInput;
+  std::set<Signature::Symbol*> predicateSymbolsInUsedInput;
+
+  //Collect used symbols for the preamble
+  for (Unit *u : proof) {
+
+    if(u->isClause()){
+      SymbolHelper::collectUsedSymbols(u->asClause(), usedFunctionSymbols, SymbolHelper::SymbolType::FUNCTION);
+      SymbolHelper::collectUsedSymbols(u->asClause(), usedPredicateSymbols, SymbolHelper::SymbolType::PREDICATE);
+      if(u->inference().rule() == InferenceRule::INPUT){
+        SymbolHelper::collectUsedSymbols(u->asClause(), functionSymbolsInUsedInput, SymbolHelper::SymbolType::FUNCTION);
+        SymbolHelper::collectUsedSymbols(u->asClause(), predicateSymbolsInUsedInput, SymbolHelper::SymbolType::PREDICATE);
+      }
+    } else {
+      SymbolHelper::collectUsedSymbols(u->getFormula(), usedFunctionSymbols, SymbolHelper::SymbolType::FUNCTION);
+      SymbolHelper::collectUsedSymbols(u->getFormula(), usedPredicateSymbols, SymbolHelper::SymbolType::PREDICATE);
+      if(u->inference().rule() == InferenceRule::INPUT){
+        SymbolHelper::collectUsedSymbols(u->getFormula(), functionSymbolsInUsedInput, SymbolHelper::SymbolType::FUNCTION);
+        SymbolHelper::collectUsedSymbols(u->getFormula(), predicateSymbolsInUsedInput, SymbolHelper::SymbolType::PREDICATE);
+      }
+    }
+  }
+
+  std::set <Signature::Symbol*> unusedFunctionSymbols;
+  std::set <Signature::Symbol*> unusedPredicateSymbols;
+  std::set_difference(usedFunctionSymbols.begin(), usedFunctionSymbols.end(), functionSymbolsInUsedInput.begin(), functionSymbolsInUsedInput.end(), std::inserter(unusedFunctionSymbols, unusedFunctionSymbols.end()));
+  std::set_difference(usedPredicateSymbols.begin(), usedPredicateSymbols.end(), predicateSymbolsInUsedInput.begin(), predicateSymbolsInUsedInput.end(), std::inserter(unusedPredicateSymbols, unusedPredicateSymbols.end()));
+
+
+  outputPreamble(out, usedFunctionSymbols, usedPredicateSymbols);
   outputCumulativeSplits(proof, " ", "sA" ,"variable {", " : Prop}\n");
   //outputCumulativeSplits(proof, "]\n[Decidable ", "sA" ,"[Decidable ", "]\n");
   
@@ -124,14 +156,14 @@ void LeanChecker::print()
     }
     outputInferenceStep(out, u);
   }
-  outputFullProofPreamble(out, inputPremises, negatedConjectures);
+  outputFullProofPreamble(out, inputPremises, negatedConjectures, unusedFunctionSymbols, unusedPredicateSymbols);
   for (Unit *u : proof) {
     outputProofStep(out, u);
   }
   out << indent << "exact " << stepIdent << (*proof.rbegin())->number() << "\n\n";
 }
 
-void LeanChecker::outputPreamble(std::ostream &out)
+void LeanChecker::outputPreamble(std::ostream &out, std::set<Signature::Symbol*> usedFunctionSymbols, std::set<Signature::Symbol*> usedPredicateSymbols)
 {
   out << preambleLean << "\n";
 
@@ -148,13 +180,19 @@ void LeanChecker::outputPreamble(std::ostream &out)
     //out << "[DecidableEq " << SortName(i)<< " ]\n";
   }
 
-  for (unsigned i = 0; i < sig.functions(); i++) {
-    Signature::Symbol *fun = sig.getFunction(i);
+  bool firstVariableDef = true;
+  for (auto fun : usedFunctionSymbols) {
     if (fun->interpreted() || fun->linMul())
       continue;
 
     auto name = FunctionName(fun);
-    out << "variable {" << name;
+    if(firstVariableDef){
+      firstVariableDef = false;
+      out << "variable ";
+    } else {
+      out << indent;
+    }
+    out << "{" << name;
     OperatorType *type = fun->fnType();
     TermList range = type->result();
 
@@ -171,14 +209,17 @@ void LeanChecker::outputPreamble(std::ostream &out)
     }
     out << ")}\n";
   }
-
-  for (unsigned i = 0; i < sig.predicates(); i++) {
-    Signature::Symbol *fun = sig.getPredicate(i);
-    if (fun->interpreted())
+  for (auto pred : usedPredicateSymbols) {
+    if (pred->interpreted())
       continue;
-
-    out << "variable {" << PredicateName(fun);
-    OperatorType *type = fun->fnType();
+    if(firstVariableDef){
+      out << "variable ";
+      firstVariableDef = false;
+    } else {
+      out << indent;
+    }
+    out << "{" << PredicateName(pred);
+    OperatorType *type = pred->fnType();
     TermList resRange = type->result();
 
     // we don't support polymorphism yet
@@ -188,14 +229,14 @@ void LeanChecker::outputPreamble(std::ostream &out)
       out << (i == 0 ? "" : " → ") << Sort{type->arg(i)};
     }
     if(resRange.isNonEmpty()){
-      out <<  (type->arity() == 0 ? "" : " → ") << resRange << ")}\n";
+      out <<  (type->arity() == 0 ? "" : " → ") << Sort{resRange} << ")}\n";
     } else {
       out << (type->arity() == 0 ? "" : " → ") << "Prop)}\n";
     }
   }
 }
 
-void LeanChecker::outputFullProofPreamble(std::ostream &out, std::deque<Unit*> premises, std::deque<Unit*> negatedConjectures){
+void LeanChecker::outputFullProofPreamble(std::ostream &out, std::deque<Unit*> premises, std::deque<Unit*> negatedConjectures, std::set<Signature::Symbol*>& unusedFunctionSymbols, std::set<Signature::Symbol*>& unusedPredicateSymbols){
   out << "theorem fullProof : ";
   for(Unit* input : premises){
     outputUnit(out, input);
@@ -212,6 +253,22 @@ void LeanChecker::outputFullProofPreamble(std::ostream &out, std::deque<Unit*> p
     out << "False";
   } 
   out << " := by\n";
+
+  for(Signature::Symbol* sym : unusedFunctionSymbols){
+    out << indent << "let " << FunctionName(sym) << " := ";
+    for(unsigned i = 0; i < sym->arity(); i++){
+      out << "fun x" << i << " : " << Sort{sym->fnType()->arg(i)} << " => ";
+    }
+    out << "(default : " << Sort{sym->fnType()->result()} << ")\n";
+  }
+  for(Signature::Symbol* sym : unusedPredicateSymbols){
+    out << indent << "let " << PredicateName(sym) << " := ";
+    for(unsigned i = 0; i < sym->arity(); i++){
+      out << "fun x" << i << " : " << Sort{sym->fnType()->arg(i)} << " => ";
+    }
+    out << "False\n";
+  }
+
   if(!premises.empty()){
     out << indent << "intros ";
     for(Unit* input : premises){
@@ -830,7 +887,6 @@ void LeanChecker::avatarSplitClause(std::ostream &out, SortMap &conclSorts, Unit
     }
     instanceCount++;
   }
-  
 
   unsigned parentNo = 0;
   out << " := by\n" << indent << "intros ";

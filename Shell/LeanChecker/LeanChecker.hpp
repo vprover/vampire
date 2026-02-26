@@ -32,7 +32,7 @@ public:
 
   void printStep(Unit *u) override {} // do nothing as we need to call other methods anyway
 
-  void outputPreamble(std::ostream &out);
+  void outputPreamble(std::ostream &out, std::set<Signature::Symbol*> usedFunctionSymbols, std::set<Signature::Symbol*> usedPredicateSymbols);
 
   void outputInferenceStep(std::ostream &out, Kernel::Unit *u);
 
@@ -149,7 +149,7 @@ private:
   void definitionUnfolding(std::ostream &out, SortMap &conclSorts, Unit *concl);
   void                 axiom(std::ostream &out, SortMap &conclSorts, Unit *concl);
 
-  void outputFullProofPreamble(std::ostream &out, std::deque<Unit*> premises, std::deque<Unit*> negatedConjectures);
+  void outputFullProofPreamble(std::ostream &out, std::deque<Unit*> premises, std::deque<Unit*> negatedConjectures,  std::set<Signature::Symbol*>& unusedFunctionSymbols, std::set<Signature::Symbol*>& unusedPredicateSymbols);
 
 
   private:
