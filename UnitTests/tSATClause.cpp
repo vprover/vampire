@@ -8,37 +8,42 @@
  * and in the source directory
  */
 #include "Debug/Assertion.hpp"
-#include "Lib/Stack.hpp"
 #include "SAT/SATClause.hpp"
 #include "SAT/SATLiteral.hpp"
 #include "Test/UnitTesting.hpp"
 
 using namespace SAT;
 
-static SATClause* makeClause(std::initializer_list<SATLiteral> lits)
+#define p SATLiteral(1, true)
+#define q SATLiteral(2, true)
+#define r SATLiteral(3, true)
+
+SATLiteral operator~(const SATLiteral& lit) {
+  return lit.opposite();
+}
+
+static SATClause* satClause(SATLiteralStack lits)
 {
-  SATLiteralStack stack;
-  for (auto l : lits) {
-    stack.push(l);
-  }
-  return SATClause::fromStack(stack);
+  return SATClause::fromStack(lits);
 }
 
 TEST_FUN(removeDuplicateLiterals_no_duplicates)
 {
-  // {1, 2, 3} should be returned as-is
-  SATClause* cl = makeClause({SATLiteral(1, true), SATLiteral(2, false), SATLiteral(3, true)});
-  SATClause* result = SATClause::removeDuplicateLiterals(cl);
-  ASS(result != 0);
+  // {p, ~q, r} should be returned as-is
+  auto cl = satClause({ p, ~q, r });
+  auto result = SATClause::removeDuplicateLiterals(cl);
+
+  ASS(result);
   ASS_EQ(result->length(), 3u);
 }
 
 TEST_FUN(removeDuplicateLiterals_with_duplicates)
 {
-  // {1, 2, 2, 3} should become {1, 2, 3}
-  SATClause* cl = makeClause({SATLiteral(1, false), SATLiteral(2, true), SATLiteral(3, false), SATLiteral(2, true)});
-  SATClause* result = SATClause::removeDuplicateLiterals(cl);
-  ASS(result != 0);
+  // {~p, q, q, ~r} should become {~p, q, ~r}
+  auto cl = satClause({ ~p, q, ~r, q });
+  auto result = SATClause::removeDuplicateLiterals(cl);
+
+  ASS(result);
   ASS_EQ(result->length(), 3u);
   // result is sorted, so we can check order: var 1, var 2, var 3
   ASS_EQ((*result)[0].var(), 1u);
@@ -48,10 +53,11 @@ TEST_FUN(removeDuplicateLiterals_with_duplicates)
 
 TEST_FUN(removeDuplicateLiterals_triple_duplicate)
 {
-  // {1, 1, 1} should become {1}
-  SATClause* cl = makeClause({SATLiteral(1, true), SATLiteral(1, true), SATLiteral(1, true)});
-  SATClause* result = SATClause::removeDuplicateLiterals(cl);
-  ASS(result != 0);
+  // {p, p, p} should become {p}
+  auto cl = satClause({ p, p, p });
+  auto result = SATClause::removeDuplicateLiterals(cl);
+
+  ASS(result);
   ASS_EQ(result->length(), 1u);
   ASS_EQ((*result)[0].var(), 1u);
   ASS((*result)[0].positive());
@@ -59,16 +65,18 @@ TEST_FUN(removeDuplicateLiterals_triple_duplicate)
 
 TEST_FUN(removeDuplicateLiterals_tautology)
 {
-  // {1, -1} is a tautology, should return 0
-  SATClause* cl = makeClause({SATLiteral(1, true), SATLiteral(1, false)});
-  SATClause* result = SATClause::removeDuplicateLiterals(cl);
-  ASS_EQ(result, static_cast<SATClause*>(0));
+  // {p, ~p} is a tautology, should return 0
+  auto cl = satClause({ p, ~p });
+  auto result = SATClause::removeDuplicateLiterals(cl);
+
+  ASS(!result);
 }
 
 TEST_FUN(removeDuplicateLiterals_tautology_among_others)
 {
-  // {2, 1, -1, 3} contains complementary pair on var 1, should return 0
-  SATClause* cl = makeClause({SATLiteral(2, true), SATLiteral(1, true), SATLiteral(3, true), SATLiteral(1, false)});
-  SATClause* result = SATClause::removeDuplicateLiterals(cl);
-  ASS_EQ(result, static_cast<SATClause*>(0));
+  // {p, ~p, q, r} contains complementary pair p and ~p, should return 0
+  auto cl = satClause({ q, p, r, ~p });
+  auto result = SATClause::removeDuplicateLiterals(cl);
+
+  ASS(!result);
 }
