@@ -1153,7 +1153,7 @@ void SaturationAlgorithm::runGnnOnInput()
 
       // each literal is a trm!
       term_features.push_back((lit->isPositive()) ? 1.0 : -1.0); // only non-zero for literals and encodes polarity
-      term_features.push_back(0.0);                              // position under my parent (here the clause, but for literals positions don't matter)
+      // term_features.push_back(0.0);                              // position under my parent (here the clause, but for literals positions don't matter)
       term_features_for_vars_and_weight(lit);
       // cout << "trm: " << subtermId << " " << ((lit->isPositive()) ? 1.0 : -1.0) << " " << 0.0 << " ... " << lit->toString() << endl;
 
@@ -1168,12 +1168,14 @@ void SaturationAlgorithm::runGnnOnInput()
 
         if (top.idx < top.trm->arity()) {
           term_features.push_back(0.0);   // proper subterms are not literals
+          /*
           if ((top.trm->isLiteral() && top.trm->functor() == 0) // our parent was = literal (order does not matter)
               || top.trm->arity() == 1) { // stick with 0.0 for this case too (to keep the features balanced around 0.0)
             term_features.push_back(0.0); // subterms of = not distinguishable by idx
           } else {
             term_features.push_back(static_cast<float>(top.idx)/(top.trm->arity()-1.0)); // interpolate idx between 0.0 and 1.0
           }
+          */
           TermList arg = *top.trm->nthArgument(top.idx);
           // cout << "trm: " << subtermId << " " << 0.0 << " " << term_features.back() << " ... " << arg.toString() << endl;
           // the rest of term_features will follow, depending on whether arg is a proper term or a var
@@ -1244,7 +1246,7 @@ void SaturationAlgorithm::runGnnOnInput()
 
   // also here we (paranoidly) assume that the script module might not take any ownershipe of these tensors ...
   auto clause_features_t = torch::tensor(clause_features,torch::TensorOptions().dtype(torch::kFloat32)).reshape({clauseId,10});
-  auto term_features_t = torch::tensor(term_features,torch::TensorOptions().dtype(torch::kFloat32)).reshape({subtermId,10});
+  auto term_features_t = torch::tensor(term_features,torch::TensorOptions().dtype(torch::kFloat32)).reshape({subtermId,9});
   auto var_features_t = torch::tensor(var_features,torch::TensorOptions().dtype(torch::kFloat32)).reshape({clVarId,1});
   // ... and so want to have them in scope until the gnnPerform call
 
