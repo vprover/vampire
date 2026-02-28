@@ -101,9 +101,7 @@ void BackwardSubsumptionDemodulation::perform(Clause* sideCl, BwSimplificationRe
     return;
   }
 
-  // We use clause aux value to store whether a candidate clause has been checked already
-  Clause::requestAux();
-  ON_SCOPE_EXIT({ Clause::releaseAux(); });
+  _checked.reset();
 
   auto best2 = LiteralByMatchability::find_two_least_matchable_in(sideCl);
   Literal* lmLit1 = best2.first.lit();
@@ -163,10 +161,9 @@ void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Litera
     // (if it triggers, then skip the candidate. SD with twice the same clause is impossible. even if it were, FSD should have dealt with it.)
     ASS_NEQ(sideCl, candidate);
 
-    if (candidate->hasAux()) {
-      continue;  // we've already checked this premise
+    if (!_checked.insert(candidate)) {
+      continue;  // we've already checked this candidate
     }
-    candidate->setAux();
 
     if (!ColorHelper::compatible(sideCl->color(), candidate->color())) {
       continue;

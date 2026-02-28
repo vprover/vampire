@@ -68,7 +68,7 @@ void PassiveClauseContainer::updateLimits(long long estReachableCnt)
     return;
   }
   // otherwise we run the simulation and set the limits accordingly
-  Clause::requestAux();
+  _simulationDeleted.reset();
   simulationInit();
 
   long long remains=estReachableCnt;
@@ -78,7 +78,6 @@ void PassiveClauseContainer::updateLimits(long long estReachableCnt)
     remains--;
   }
   bool atLeastOneLimitTightened = setLimitsFromSimulation();
-  Clause::releaseAux();
 
   if (atLeastOneLimitTightened && env.options->lrsRetroactiveDeletes()) {
     // let's notify ourselves (the PassiveClauseContainer) ...

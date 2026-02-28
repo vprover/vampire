@@ -13,6 +13,7 @@
 
 #include "InferenceEngine.hpp"
 #include "Indexing/LiteralIndex.hpp"
+#include "Lib/DHSet.hpp"
 
 namespace Inferences {
 
@@ -65,6 +66,8 @@ class ForwardSubsumptionDemodulation
 
     bool _doSubsumption;
     const bool _enableOrderingOptimizations;
+
+    DHSet<Clause*> _checked;
 };
 
 

@@ -288,45 +288,6 @@ public:
 
   VirtualIterator<std::string> toSimpleClauseStrings();
 
-  void setAux()
-  {
-    ASS(_auxInUse);
-    _auxTimestamp=_auxCurrTimestamp;
-  }
-
-  bool hasAux()
-  {
-    return _auxTimestamp==_auxCurrTimestamp;
-  }
-
-  /**
-   * Request usage of the auxiliary value in clauses.
-   * All aux. values stored in clauses before are guaranteed
-   * to be discarded.
-   */
-  static void requestAux()
-  {
-#if VDEBUG
-    ASS(!_auxInUse);
-    _auxInUse=true;
-#endif
-    _auxCurrTimestamp++;
-    if(_auxCurrTimestamp==0) {
-      INVALID_OPERATION("Auxiliary clause value timestamp overflow!");
-    }
-  }
-  /**
-   * Announce that the auxiliary value in clauses is no longer
-   * in use and can be used by someone else.
-   */
-  static void releaseAux()
-  {
-#if VDEBUG
-    ASS(_auxInUse);
-    _auxInUse=false;
-#endif
-  }
-
   unsigned splitWeight() const;
   unsigned getNumeralWeight() const;
 
@@ -376,14 +337,6 @@ protected:
   InverseLookup<Literal>* _literalPositions;
 
   int _numActiveSplits;
-
-  size_t _auxTimestamp;
-
-  static size_t _auxCurrTimestamp;
-#if VDEBUG
-  static bool _auxInUse;
-#endif
-
 
   /** Array of literals of this unit */
   Literal* _literals[1];

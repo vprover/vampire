@@ -14,6 +14,7 @@
 
 #include "InferenceEngine.hpp"
 #include "Indexing/LiteralIndex.hpp"
+#include "Lib/DHSet.hpp"
 #include "Kernel/MLMatcherSD.hpp"
 
 namespace Inferences {
@@ -65,6 +66,8 @@ class BackwardSubsumptionDemodulation
     void performWithQueryLit(Clause* premise, Literal* candidateQueryLit, std::vector<BwSimplificationRecord>& simplifications);
     bool simplifyCandidate(Clause* sideCl, Clause* mainCl, std::vector<BwSimplificationRecord>& simplifications);
     bool rewriteCandidate(Clause* sideCl, Clause* mainCl, MLMatcherSD const& matcher, Clause*& replacement);
+
+    DHSet<Clause*> _checked;
 };
 
 };

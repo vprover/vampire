@@ -48,11 +48,6 @@ using namespace Lib;
 using namespace Saturation;
 using namespace Shell;
 
-size_t Clause::_auxCurrTimestamp = 0;
-#if VDEBUG
-bool Clause::_auxInUse = false;
-#endif
-
 /** New clause */
 Clause::Clause(Literal* const* lits, unsigned length, Inference inf)
   : Unit(Unit::CLAUSE, std::move(inf)),
@@ -68,8 +63,7 @@ Clause::Clause(Literal* const* lits, unsigned length, Inference inf)
     _refCnt(0),
     _reductionTimestamp(0),
     _literalPositions(0),
-    _numActiveSplits(0),
-    _auxTimestamp(0)
+    _numActiveSplits(0)
 {
   // MS: TODO: not sure if this belongs here and whether EXTENSIONALITY_AXIOM input types ever appear anywhere (as a vampire-extension TPTP formula role)
   if(inference().inputType() == UnitInputType::EXTENSIONALITY_AXIOM){

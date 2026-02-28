@@ -314,7 +314,7 @@ bool AWPassiveClauseContainer::simulationHasNext()
   // clause which has not been deleted in the simulation or _simulationCurrAgeIt
   // reaches the end of the age-queue
   // establishes invariant: if there is a clause which is not deleted in the simulation, then _simulationCurrAgeCl is not deleted.
-  while (_simulationCurrAgeCl->hasAux() && _simulationCurrAgeIt.hasNext())
+  while (_simulationDeleted.contains(_simulationCurrAgeCl) && _simulationCurrAgeIt.hasNext())
   {
     _simulationCurrAgeCl = _simulationCurrAgeIt.next();
   }
@@ -324,16 +324,16 @@ bool AWPassiveClauseContainer::simulationHasNext()
   // clause which has not been deleted in the simulation or _simulationCurrWeightIt
   // reaches the end of the weight-queue
   // establishes invariant: if there is a clause which is not deleted in the simulation, then _simulationCurrWeightCl is not deleted.
-  while (_simulationCurrWeightCl->hasAux() && _simulationCurrWeightIt.hasNext())
+  while (_simulationDeleted.contains(_simulationCurrWeightCl) && _simulationCurrWeightIt.hasNext())
   {
     _simulationCurrWeightCl = _simulationCurrWeightIt.next();
   }
   ASS(_simulationCurrWeightCl != nullptr);
 
-  ASS(!_simulationCurrAgeCl->hasAux() || _simulationCurrWeightCl->hasAux());
-  ASS(_simulationCurrAgeCl->hasAux() || !_simulationCurrWeightCl->hasAux());
+  ASS(!_simulationDeleted.contains(_simulationCurrAgeCl) || _simulationDeleted.contains(_simulationCurrWeightCl));
+  ASS(_simulationDeleted.contains(_simulationCurrAgeCl) || !_simulationDeleted.contains(_simulationCurrWeightCl));
 
-  return !_simulationCurrAgeCl->hasAux();
+  return !_simulationDeleted.contains(_simulationCurrAgeCl);
 }
 
 // assumes that simulationHasNext() has been called before and returned true,
@@ -341,18 +341,16 @@ bool AWPassiveClauseContainer::simulationHasNext()
 void AWPassiveClauseContainer::simulationPopSelected()
 {
   // invariants:
-  // - both queues share the aux-field which denotes whether a clause was deleted during the simulation
+  // - both queues share _simulationDeleted which tracks whether a clause was deleted during the simulation
   // - both queues contain the same clauses
   if (byWeight(_simulationBalance)) {
     // simulate selection by weight
     _simulationBalance -= _ageRatio;
-    ASS(!_simulationCurrWeightCl->hasAux());
-    _simulationCurrWeightCl->setAux();
+    ALWAYS(_simulationDeleted.insert(_simulationCurrWeightCl))
   } else {
     // simulate selection by age
     _simulationBalance += _weightRatio;
-    ASS(!_simulationCurrAgeCl->hasAux());
-    _simulationCurrAgeCl->setAux();
+    ALWAYS(_simulationDeleted.insert(_simulationCurrAgeCl))
   }
 }
 
@@ -373,8 +371,8 @@ bool AWPassiveClauseContainer::setLimitsFromSimulation()
   }
   else
   {
-    ASS(!_simulationCurrAgeCl->hasAux() || _simulationCurrWeightCl->hasAux());
-    ASS(_simulationCurrAgeCl->hasAux() || !_simulationCurrWeightCl->hasAux());
+    ASS(!_simulationDeleted.contains(_simulationCurrAgeCl) || _simulationDeleted.contains(_simulationCurrWeightCl));
+    ASS(_simulationDeleted.contains(_simulationCurrAgeCl) || !_simulationDeleted.contains(_simulationCurrWeightCl));
   }
 
   unsigned maxAgeQueueAge;

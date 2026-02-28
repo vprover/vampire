@@ -21,6 +21,7 @@
 #include "Lib/Event.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Deque.hpp"
+#include "Lib/DHSet.hpp"
 #include "Kernel/Clause.hpp"
 #include "Lib/Set.hpp"
 
@@ -194,6 +195,10 @@ public:
 protected:
   bool _isOutermost;
   const Shell::Options& _opt;
+
+  /** Used by subclasses (e.g. AWPassiveClauseContainer) to track
+   *  clauses marked as "deleted" during LRS simulation. */
+  DHSet<Clause*> _simulationDeleted;
 
 public:
   std::string _name;
