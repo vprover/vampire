@@ -1105,11 +1105,13 @@ void SaturationAlgorithm::runGnnOnInput()
   unsigned subtermId = 0; // zero-based, ever growing
   unsigned clVarId = 0;   // zero-based, ever growing, each clause has its own variable nodes
   DHMap<unsigned,unsigned> clauseVariables; // from clause variables (as TermList::var()) to global variables of the whole CNF (non shared)
+  DHMap<unsigned,unsigned> termsAlreadyKnown; // from termId to subtermId of the first occurrence
 
   struct TermTodo {
     Term* trm;        // the term to iterate through
     unsigned id;      // its id (for reporting edges)
     OperatorType* ot; // trm's operator type (careful, can't be used for twoVarEquality)
+    bool seenFirst;   // we want to draw an edge exactly when the superterm is seen for the first time (which implies the same for the subters, but not vice versa)
     unsigned idx = 0; // index into t's own subterms, when idx >= arity, we are done with this Todo
   };
 
@@ -1124,17 +1126,6 @@ void SaturationAlgorithm::runGnnOnInput()
     term_features.push_back(t->weight() > 64);
   };
 
-  auto term_features_for_vars_and_weight_the_var_case = [&term_features]() {
-    term_features.push_back(1.0);   // non-ground
-    term_features.push_back(0.0);
-    term_features.push_back(0.0);
-    term_features.push_back(0.0);
-    term_features.push_back(0.0);   // non-leaf
-    term_features.push_back(0.0);
-    term_features.push_back(0.0);
-    term_features.push_back(0.0);
-  };
-
   std::vector<int64_t> clauseNums;
   clauseNums.reserve(UnitList::length(_prb.units()));
 
@@ -1147,59 +1138,66 @@ void SaturationAlgorithm::runGnnOnInput()
     for (Literal* lit : cl->iterLits()) {
       clWeight += lit->weight();
 
+      bool seenFirst = false;
+      unsigned* sharedSubtermId;
+      if (termsAlreadyKnown.getValuePtr(lit->getId(),sharedSubtermId)) {
+        seenFirst = true;
+        *sharedSubtermId = subtermId++;
+
+        // each literal is a trm!
+        term_features.push_back((lit->isPositive()) ? 1.0 : -1.0); // only non-zero for literals and encodes polarity
+        term_features_for_vars_and_weight(lit);
+        // cout << "trm: " << subtermId << " " << ((lit->isPositive()) ? 1.0 : -1.0) << " " << 0.0 << " ... " << lit->toString() << endl;
+
+        trm2symb_one.push_back(*sharedSubtermId);
+        trm2symb_two.push_back(lit->functor());
+        // cout << "trm-symb: " << subtermId << " " << lit->functor() << endl;
+      }
+
+      // we always connect clause to its literal's term node
       cls2trm_one.push_back(clauseId);
-      cls2trm_two.push_back(subtermId);
+      cls2trm_two.push_back(*sharedSubtermId);
       // cout << "cls-trm: " << clauseId << " " << subtermId << endl;
 
-      // each literal is a trm!
-      term_features.push_back((lit->isPositive()) ? 1.0 : -1.0); // only non-zero for literals and encodes polarity
-      // term_features.push_back(0.0);                              // position under my parent (here the clause, but for literals positions don't matter)
-      term_features_for_vars_and_weight(lit);
-      // cout << "trm: " << subtermId << " " << ((lit->isPositive()) ? 1.0 : -1.0) << " " << 0.0 << " ... " << lit->toString() << endl;
-
-      trm2symb_one.push_back(subtermId);
-      trm2symb_two.push_back(lit->functor());
-      // cout << "trm-symb: " << subtermId << " " << lit->functor() << endl;
-
       ASS(subterms.isEmpty());
-      subterms.push({lit,subtermId++,env.signature->getPredicate(lit->functor())->predType()});
+      subterms.push({lit,*sharedSubtermId,env.signature->getPredicate(lit->functor())->predType(),seenFirst});
       while (subterms.isNonEmpty()) {
         TermTodo& top = subterms.top();
 
         if (top.idx < top.trm->arity()) {
-          term_features.push_back(0.0);   // proper subterms are not literals
-          /*
-          if ((top.trm->isLiteral() && top.trm->functor() == 0) // our parent was = literal (order does not matter)
-              || top.trm->arity() == 1) { // stick with 0.0 for this case too (to keep the features balanced around 0.0)
-            term_features.push_back(0.0); // subterms of = not distinguishable by idx
-          } else {
-            term_features.push_back(static_cast<float>(top.idx)/(top.trm->arity()-1.0)); // interpolate idx between 0.0 and 1.0
-          }
-          */
+          // process top.idx-th subterm of top.trm (whose gnn index is top.id)
+
           TermList arg = *top.trm->nthArgument(top.idx);
           // cout << "trm: " << subtermId << " " << 0.0 << " " << term_features.back() << " ... " << arg.toString() << endl;
           // the rest of term_features will follow, depending on whether arg is a proper term or a var
 
-          // will be only used, if we are a var
-          unsigned varSrt = (top.trm->isTwoVarEquality() ? top.trm->twoVarEqSort() : top.ot->arg(top.idx)).term()->functor();
-          top.idx++; // next time round, will look at the next argument or die
-
-          trm2trm_one.push_back(top.id);
-          trm2trm_two.push_back(subtermId);
-          // cout << "trm-trm: " << top.id << " " << subtermId << endl;
-
           if (arg.isTerm()) {
             Term* t = arg.term();
-            term_features_for_vars_and_weight(t);
 
-            trm2symb_one.push_back(subtermId);
-            trm2symb_two.push_back(funcToSymb(t->functor()));
+            // under perfect sharing, we might want to skip this guy, if already exposed
+            bool seenFirst = false;
+            unsigned* sharedSubtermId;
+            if (termsAlreadyKnown.getValuePtr(t->getId(),sharedSubtermId)) {
+              seenFirst = true;
+              *sharedSubtermId = subtermId++;
 
+              term_features.push_back(0.0);   // proper subterms are not literals
+              term_features_for_vars_and_weight(t);
+
+              trm2symb_one.push_back(*sharedSubtermId);
+              trm2symb_two.push_back(funcToSymb(t->functor()));
+            }
+            if (top.seenFirst) {
+              trm2trm_one.push_back(top.id);
+              trm2trm_two.push_back(*sharedSubtermId);
+              // cout << "trm-trm: " << top.id << " " << subtermId << endl;
+            }
             // cout << "trm-symb: " << subtermId << " " << FUNC_TO_SYMB(t->functor()) << endl;
-            subterms.push({t,subtermId,env.signature->getFunction(t->functor())->fnType()});
+            subterms.push({t,*sharedSubtermId,env.signature->getFunction(t->functor())->fnType(),seenFirst});
             // don't touch top anymore (push could cause reallocatio)!
           } else {
-            term_features_for_vars_and_weight_the_var_case();
+            // will be only used, if we are a var
+            unsigned varSrt = (top.trm->isTwoVarEquality() ? top.trm->twoVarEqSort() : top.ot->arg(top.idx)).term()->functor();
 
             ASS(arg.isVar());
             unsigned var = arg.var();
@@ -1207,7 +1205,7 @@ void SaturationAlgorithm::runGnnOnInput()
             if (clauseVariables.getValuePtr(var,normVar)) {
               *normVar = clVarId++;
               // cout << "var: " << *normVar << " " << clauseVariables.size()-1 << endl;
-              var_features.push_back(0.0);
+              var_features.push_back(0.0); // TODO: this should be an embedding lookup
               // cls-var: clauseId varId
               // cout << "cls-var: " << clauseId << " " << *normVar << endl;       // a clause knows about its variables (and numbers them internally starting from 0)
               cls2var_one.push_back(clauseId);
@@ -1218,11 +1216,12 @@ void SaturationAlgorithm::runGnnOnInput()
               var2srt_two.push_back(varSrt);
             }
 
-            // cout << "trm-var: " << subtermId << " " << *normVar << endl; // this subterm is a variable
-            trm2var_one.push_back(subtermId);
+            // cout << "trm-var: " << top.id << " " << *normVar << endl; // this subterm is a variable
+            trm2var_one.push_back(top.id);
             trm2var_two.push_back(*normVar);
           }
-          subtermId++;
+
+          top.idx++; // next time round, will look at the next argument or die
         } else {
           subterms.pop();
         }
