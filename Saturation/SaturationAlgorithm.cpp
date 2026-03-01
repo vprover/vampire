@@ -1207,7 +1207,7 @@ void SaturationAlgorithm::runGnnOnInput()
             if (clauseVariables.getValuePtr(var,normVar)) {
               *normVar = clVarId++;
               // cout << "var: " << *normVar << " " << clauseVariables.size()-1 << endl;
-              var_features.push_back(clauseVariables.size()-1);
+              var_features.push_back(0.0);
               // cls-var: clauseId varId
               // cout << "cls-var: " << clauseId << " " << *normVar << endl;       // a clause knows about its variables (and numbers them internally starting from 0)
               cls2var_one.push_back(clauseId);
