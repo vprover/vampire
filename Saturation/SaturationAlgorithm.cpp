@@ -1034,7 +1034,7 @@ void SaturationAlgorithm::runGnnOnInput()
   _numSorts = env.signature->typeCons();
 
   // these guy must survive (in memory) until the gnnPerform call
-  torch::Tensor sort_features = torch::empty({_numSorts,3}, torch::kFloat32);
+  torch::Tensor sort_features = torch::empty({_numSorts,5}, torch::kFloat32);
   torch::Tensor symbol_features = torch::empty({_numPreds+_numFuncs,11}, torch::kFloat32);
 
   // sorts
@@ -1043,13 +1043,18 @@ void SaturationAlgorithm::runGnnOnInput()
 
     for (unsigned t = 0; t < _numSorts; t++) {
       Signature::Symbol* symb = env.signature->getTypeCon(t);
-      if (symb->arity() > 0) {
+      /*if (symb->arity() > 0) {
         USER_ERROR("GNN currently only supports monomorphic FOL.");
-      }
+      }*/
       (*sort_features_ptr++) = env.signature->isPlainCon(t);
       (*sort_features_ptr++) = env.signature->isBoolCon(t);
       (*sort_features_ptr++) = env.signature->isArithCon(t);
+      (*sort_features_ptr++) = env.signature->isArrowCon(t);
+      (*sort_features_ptr++) = symb->arity();
+      // OperatorType* ot = symb->typeConType();
       // cout << "sort: " << t << " " << env.signature->isPlainCon(t) << " " << env.signature->isBoolCon(t) << " " << env.signature->isArithCon(t) << " # " << symb->name() << endl;
+      // cout << "  " << ot->toString() << " ot->arity " << ot->arity() << " symb->arity " << symb->arity() << endl;
+      // cout << "  env.signature->isArrowCon(t)" << env.signature->isArrowCon(t) << endl;
     }
 
     _neuralModel->gnnNodeKind("sort",sort_features);
