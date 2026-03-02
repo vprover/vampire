@@ -78,6 +78,9 @@ Environment::Environment()
   AtomicSort::intSort();
   AtomicSort::realSort();
   AtomicSort::rationalSort();
+#if VHOL
+  signature->getArrowConstructor(); // let's always have arrow
+#endif
 } // Environment::Environment
 
 Environment::~Environment()
