@@ -15,10 +15,17 @@
 #ifndef __HOLUnifier__
 #define __HOLUnifier__
 
+#include "Forwards.hpp"
+
+using namespace Kernel;
+
 namespace Saturation {
 
 class HOLUnifier {
+public:
+  Clause* handleClause(Clause* cl);
 
+private:
 };
 
 }
