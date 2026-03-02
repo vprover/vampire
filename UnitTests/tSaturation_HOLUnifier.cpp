@@ -49,7 +49,11 @@ HOL_TEST_FUN(constraints_1) {
 
   HOLUnifier unifier;
 
-  auto c1 = clause({ ap(h2,a) != lam(srt, dX) });
+  auto c1 = clause({ ap(h2,y) != lam(srt, dX), y == a });
   auto c2 = unifier.handleClause(c1);
-  ASS_EQ(c1,c2);
+  if (c1 != c2) {
+    std::cout << c1->toString() << std::endl;
+    std::cout << c2->toString() << std::endl;
+    ASSERTION_VIOLATION;
+  }
 }

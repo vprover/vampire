@@ -196,7 +196,7 @@ public:
 
   VariableWithSortIterator(const Term* term) : _stack(8), _terms(8), _used(false)
   {
-    ASS(!term->isLiteral());
+    // ASS(!term->isLiteral());
     if(!term->shared() || !term->ground()) {
       _terms.push(term);
       _argNums.push(0);

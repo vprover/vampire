@@ -420,6 +420,8 @@ enum class InferenceRule : unsigned char {
   /* Finite model not found */
   MODEL_NOT_FOUND,
 
+  HOL_UNIFIER_DEFINITION,
+
   /* Adding sort predicate */
   ADD_SORT_PREDICATES,
   /* Adding sort functions */

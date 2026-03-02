@@ -16,6 +16,7 @@
 #define __HOLUnifier__
 
 #include "Forwards.hpp"
+#include "Lib/Stack.hpp"
 
 using namespace Kernel;
 
@@ -26,6 +27,9 @@ public:
   Clause* handleClause(Clause* cl);
 
 private:
+  Literal* introduceDefinition(Literal* lit);
+
+  Stack<FormulaUnit*> _defs;
 };
 
 }
