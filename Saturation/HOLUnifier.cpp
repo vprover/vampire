@@ -51,7 +51,7 @@ Clause* HOLUnifier::handleClause(Clause* cl)
       lits.push(lit);
     }
   }
-  
+
   if (lits.isNonEmpty()) {
     return Clause::fromStack(lits, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::HOL_UNIFIER_DEFINITION));
   }
@@ -119,8 +119,6 @@ Literal* HOLUnifier::introduceDefinition(Literal* lit)
   auto iff = new BinaryFormula(Connective::IFF, defLhs, defRhs);
   auto quantified = new QuantifiedFormula(Connective::FORALL, vl, sl, iff);
   auto def = new FormulaUnit(quantified, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::HOL_UNIFIER_DEFINITION));
-
-  std::cout << def->toString() << std::endl;
 
   _defs.push(def);
 
