@@ -17,6 +17,7 @@
 
 #include "Forwards.hpp"
 #include "Lib/Stack.hpp"
+#include "Lib/DHMap.hpp"
 
 using namespace Kernel;
 
@@ -30,6 +31,7 @@ private:
   Literal* introduceDefinition(Literal* lit);
 
   Stack<FormulaUnit*> _defs;
+  DHMap<Literal*, unsigned> _defPredMap;
 };
 
 }
