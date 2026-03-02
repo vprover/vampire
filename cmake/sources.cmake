@@ -88,6 +88,7 @@ set(UNIT_TESTS
     UnitTests/tRobSubstitution.cpp
     UnitTests/tSATSolver.cpp
     UnitTests/tSATSubsumptionResolution.cpp
+    UnitTests/tSaturation_HOLUnifier.cpp
     UnitTests/tSet.cpp
     UnitTests/tSkipList.cpp
     UnitTests/tStack.cpp
@@ -624,6 +625,8 @@ set(SOURCES
     Saturation/Discount.hpp
     Saturation/ExtensionalityClauseContainer.cpp
     Saturation/ExtensionalityClauseContainer.hpp
+    Saturation/HOLUnifier.cpp
+    Saturation/HOLUnifier.hpp
     Saturation/LRS.cpp
     Saturation/LRS.hpp
     Saturation/LabelFinder.cpp
