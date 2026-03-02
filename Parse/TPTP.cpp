@@ -1438,19 +1438,23 @@ void TPTP::tff()
         resetToks();
         unsigned arity = getConstructorArity();
         bool added = false;
+        /*
         unsigned fun = arity == 0
             ? addUninterpretedConstant(nm, _overflow, added)
             : env.signature->addFunction(nm, arity, added);
         Signature::Symbol* symbol = env.signature->getFunction(fun);
+        */
+        unsigned typeCon = env.signature->addTypeCon(nm,arity,added);
+        Signature::Symbol* symbol = env.signature->getTypeCon(typeCon);
         OperatorType* ot = OperatorType::getTypeConType(arity);
         if (!added) {
           if(symbol->fnType()!=ot){
             PARSE_ERROR("Type constructor declared with two different types",tok);
           }
         } else{
-          symbol->setType(ot);  
+          symbol->setType(ot);
           _typeConstructorArities.insert(nm, arity);
-        }       
+        }
         //cout << "added type constuctor " + nm + " of type " + symbol->fnType()->toString() << endl;
         while (lpars--) {
           consumeToken(T_RPAR);
