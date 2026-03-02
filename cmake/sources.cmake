@@ -177,6 +177,7 @@ set(SOURCES
     Indexing/SubstitutionTree_FastInst.hpp
     Indexing/SubstitutionTree_Nodes.hpp
     Indexing/SubstitutionTree_impl.hpp
+    Indexing/UnifierTree.hpp
     Indexing/TermCodeTree.cpp
     Indexing/TermCodeTree.hpp
     Indexing/TermIndex.cpp

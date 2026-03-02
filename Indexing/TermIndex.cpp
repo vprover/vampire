@@ -13,6 +13,7 @@
  */
 
 #include "Forwards.hpp"
+#include "Indexing/UnifierTree.hpp"
 #include "Lib/DHSet.hpp"
 
 #include "Inferences/InductionHelper.hpp"
@@ -36,25 +37,19 @@ using namespace Kernel;
 using namespace Inferences;
 
 SuperpositionSubtermIndex::SuperpositionSubtermIndex(SaturationAlgorithm& salg)
-: TermIndex(new TermSubstitutionTree<TermLiteralClause>), _ord(salg.getOrdering()) {}
+: TermIndex(new UnifierTree()), _ord(salg.getOrdering()) {}
 
 void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
 {
-  TIME_TRACE("backward superposition index maintenance");
-
-  unsigned selCnt=c->numSelected();
-  for (unsigned i=0; i<selCnt; i++) {
-    Literal* lit=(*c)[i];
-    auto rsti = EqHelper::getSubtermIterator(lit, _ord);
-    while (rsti.hasNext()) {
-      auto tt = TypedTermList(rsti.next());
-      ((TermSubstitutionTree<TermLiteralClause>*)&*_is)->handle(TermLiteralClause{ tt, lit, c }, adding);
+  for (const auto& lit : c->getSelectedLiteralIterator()) {
+    for (const auto& lhs : iterTraits(EqHelper::getSubtermIterator(lit, _ord))) {
+      _is->handle(TermLiteralClause{ lhs, lit, c }, adding);
     }
   }
 }
 
 SuperpositionLHSIndex::SuperpositionLHSIndex(SaturationAlgorithm& salg)
-: TermIndex(new TermSubstitutionTree<TermLiteralClause>),
+: TermIndex(new UnifierTree()),
   _ord(salg.getOrdering()), _opt(salg.getOptions()) {}
 
 void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)

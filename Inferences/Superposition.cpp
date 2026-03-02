@@ -293,7 +293,7 @@ Clause* Superposition::performSuperposition(
 
   // the first checks the reference and the second checks the stack
   auto subst = ResultSubstitution::fromSubstitution(&unifier->subs(), RetrievalAlgorithms::DefaultVarBanks::query, RetrievalAlgorithms::DefaultVarBanks::internal);
-  TermList eqLHSsort = SortHelper::getEqualityArgumentSort(eqLit);
+  // TermList eqLHSsort = SortHelper::getEqualityArgumentSort(eqLit);
 
   if(eqLHS.isVar()) {
     if(!checkSuperpositionFromVariable(eqClause, eqLit, eqLHS)) {
@@ -337,113 +337,128 @@ Clause* Superposition::performSuperposition(
     }
   }
 
-  const auto& parRedHandler = _salg->parRedHandler();
-  if (!unifier->usesUwa()) {
-    if (!parRedHandler.checkSuperposition(eqClause, eqLit, rwClause, rwLit, eqIsResult, subst.ptr())) {
-      return 0;
-    }
-  }
+  // const auto& parRedHandler = _salg->parRedHandler();
+  // if (!unifier->usesUwa()) {
+  //   if (!parRedHandler.checkSuperposition(eqClause, eqLit, rwClause, rwLit, eqIsResult, subst.ptr())) {
+  //     return 0;
+  //   }
+  // }
 
-  const Ordering& ordering = _salg->getOrdering();
+  // std::cout << "rwTerm " << rwTerm << " rwLit " << *rwLit << " rwClause " << *rwClause << std::endl;
+  // std::cout << "eqTerm " << eqLHS << " eqLit " << *eqLit << " eqClause " << *eqClause << std::endl;
+  // auto newLhs = subst->apply(EqHelper::getOtherEqualitySide(rwLit, rwTerm), !eqIsResult);
+  auto newRhs = subst->apply(EqHelper::getOtherEqualitySide(eqLit, eqLHS), eqIsResult);
+  // if (rwLit->isPositive() && newRhs.isTerm()) {
+  //   auto otherRhs = subst->apply(EqHelper::getOtherEqualitySide(rwLit, rwTerm), !eqIsResult);
+  //   if (otherRhs.isTerm()) {
+  //     return 0;
+  //   }
+  // }
+  // auto newLit = Literal::createEquality(rwLit->polarity(), newLhs, newRhs, SortHelper::getResultSort(rwTerm.term()));
+  auto newLit = EqHelper::replace(subst->apply(rwLit, !eqIsResult), subst->apply(rwTerm, !eqIsResult), newRhs);
 
-  TermList tgtTermS = subst->apply(tgtTerm, eqIsResult);
+  // const Ordering& ordering = _salg->getOrdering();
 
-  Literal* rwLitS = subst->apply(rwLit, !eqIsResult);
-  TermList rwTermS = subst->apply(rwTerm, !eqIsResult);
+  // TermList tgtTermS = subst->apply(tgtTerm, eqIsResult);
+
+  // Literal* rwLitS = subst->apply(rwLit, !eqIsResult);
+  // TermList rwTermS = subst->apply(rwTerm, !eqIsResult);
 
   //cout << "Check ordering on " << tgtTermS.toString() << " and " << rwTermS.toString() << endl;
 
   //check that we're not rewriting smaller subterm with larger
-  auto comp = ordering.compare(tgtTermS,rwTermS);
-  if(Ordering::isGreaterOrEqual(comp)) {
-    return 0;
-  }
+  // auto comp = ordering.compare(tgtTermS,rwTermS);
+  // if(Ordering::isGreaterOrEqual(comp)) {
+  //   return 0;
+  // }
 
-  if(rwLitS->isEquality()) {
-    //check that we're not rewriting only the smaller side of an equality
-    TermList arg0=*rwLitS->nthArgument(0);
-    TermList arg1=*rwLitS->nthArgument(1);
+  // if(rwLitS->isEquality()) {
+  //   //check that we're not rewriting only the smaller side of an equality
+  //   TermList arg0=*rwLitS->nthArgument(0);
+  //   TermList arg1=*rwLitS->nthArgument(1);
 
-    if(!arg0.containsSubterm(rwTermS)) {
-      if(Ordering::isGreaterOrEqual(ordering.getEqualityArgumentOrder(rwLitS))) {
-        return 0;
-      }
-    } else if(!arg1.containsSubterm(rwTermS)) {
-      if(Ordering::isGreaterOrEqual(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
-        return 0;
-      }
-    }
-  }
+  //   if(!arg0.containsSubterm(rwTermS)) {
+  //     if(Ordering::isGreaterOrEqual(ordering.getEqualityArgumentOrder(rwLitS))) {
+  //       return 0;
+  //     }
+  //   } else if(!arg1.containsSubterm(rwTermS)) {
+  //     if(Ordering::isGreaterOrEqual(Ordering::reverse(ordering.getEqualityArgumentOrder(rwLitS)))) {
+  //       return 0;
+  //     }
+  //   }
+  // }
 
-  Literal* tgtLitS = EqHelper::replace(rwLitS,rwTermS,tgtTermS);
+  // Literal* tgtLitS = EqHelper::replace(rwLitS,rwTermS,tgtTermS);
 
-  static bool doSimS = getOptions().simulatenousSuperposition();
+  // static bool doSimS = getOptions().simulatenousSuperposition();
 
   //check we don't create an equational tautology (this happens during self-superposition)
-  if(EqHelper::isEqTautology(tgtLitS)) {
+  // if(EqHelper::isEqTautology(tgtLitS)) {
+  if(EqHelper::isEqTautology(newLit)) {
     // Save this superposition conclusion despite immediately being removed.
-    if (!unifier->usesUwa()) {
-      parRedHandler.insertSuperposition(
-        eqClause, rwClause, rwTerm, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.ptr());
-    }
+    // if (!unifier->usesUwa()) {
+    //   parRedHandler.insertSuperposition(
+    //     eqClause, rwClause, rwTerm, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.ptr());
+    // }
     return 0;
   }
 
-  TermList eqLHSS = subst->apply(eqLHS, eqIsResult);
+  // TermList eqLHSS = subst->apply(eqLHS, eqIsResult);
 
 #if VDEBUG
-  if(!unifier->usesUwa()){
-    ASS_EQ(rwTermS,eqLHSS);
-  }
+  // if(!unifier->usesUwa()){
+  //   ASS_EQ(rwTermS,eqLHSS);
+  // }
 #endif
 
   Recycled<Stack<Literal*>> res;
   res->reserve(rwLength + eqLength - 1 + unifier->maxNumberOfConstraints());
 
-  static bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
+  // static bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
 
-  res->push(tgtLitS);
-  unsigned weight=tgtLitS->weight();
+  // res->push(tgtLitS);
+  res->push(newLit);
+  // unsigned weight=tgtLitS->weight();
   for(unsigned i=0;i<rwLength;i++) {
     Literal* curr=(*rwClause)[i];
     if(curr!=rwLit) {
       Literal* currAfter = subst->apply(curr, !eqIsResult);
 
-      if (doSimS) {
-        currAfter = EqHelper::replace(currAfter,rwTermS,tgtTermS);
-      }
+      // if (doSimS) {
+      //   currAfter = EqHelper::replace(currAfter,rwTermS,tgtTermS);
+      // }
 
       if(EqHelper::isEqTautology(currAfter)) {
         return nullptr;
       }
 
-      if(hasAgeLimitStrike) {
-        weight+=currAfter->weight();
-        if(passiveClauseContainer->exceedsWeightLimit(weight, numPositiveLiteralsLowerBound, inf)) {
-          RSTAT_CTR_INC("superpositions skipped for weight limit while constructing other literals");
-          env.statistics->discardedNonRedundantClauses++;
-          return nullptr;
-        }
-      }
+      // if(hasAgeLimitStrike) {
+      //   weight+=currAfter->weight();
+      //   if(passiveClauseContainer->exceedsWeightLimit(weight, numPositiveLiteralsLowerBound, inf)) {
+      //     RSTAT_CTR_INC("superpositions skipped for weight limit while constructing other literals");
+      //     env.statistics->discardedNonRedundantClauses++;
+      //     return nullptr;
+      //   }
+      // }
 
-      if (afterCheck) {
-        TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK)
-        if (i < rwClause->numSelected() && ordering.compare(currAfter,rwLitS) == Ordering::GREATER) {
-          env.statistics->inferencesBlockedDueToOrderingAftercheck++;
-          return nullptr;
-        }
-      }
+      // if (afterCheck) {
+      //   TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK)
+      //   if (i < rwClause->numSelected() && ordering.compare(currAfter,rwLitS) == Ordering::GREATER) {
+      //     env.statistics->inferencesBlockedDueToOrderingAftercheck++;
+      //     return nullptr;
+      //   }
+      // }
 
       res->push(currAfter);
     }
   }
 
   {
-    Literal* eqLitS = 0;
-    if (afterCheck && eqClause->numSelected() > 1) {
-      TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
-      eqLitS = Literal::createEquality(true,eqLHSS,tgtTermS,eqLHSsort);
-    }
+    // Literal* eqLitS = 0;
+    // if (afterCheck && eqClause->numSelected() > 1) {
+    //   TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
+    //   eqLitS = Literal::createEquality(true,eqLHSS,tgtTermS,eqLHSsort);
+    // }
 
     for(unsigned i=0;i<eqLength;i++) {
       Literal* curr=(*eqClause)[i];
@@ -453,43 +468,49 @@ Clause* Superposition::performSuperposition(
         if(EqHelper::isEqTautology(currAfter)) {
           return nullptr;
         }
-        if(hasAgeLimitStrike) {
-          weight+=currAfter->weight();
-          if(passiveClauseContainer->exceedsWeightLimit(weight, numPositiveLiteralsLowerBound, inf)) {
-            RSTAT_CTR_INC("superpositions skipped for weight limit while constructing other literals");
-            env.statistics->discardedNonRedundantClauses++;
-            return nullptr;
-          }
-        }
+        // if(hasAgeLimitStrike) {
+        //   weight+=currAfter->weight();
+        //   if(passiveClauseContainer->exceedsWeightLimit(weight, numPositiveLiteralsLowerBound, inf)) {
+        //     RSTAT_CTR_INC("superpositions skipped for weight limit while constructing other literals");
+        //     env.statistics->discardedNonRedundantClauses++;
+        //     return nullptr;
+        //   }
+        // }
 
-        if (eqLitS && i < eqClause->numSelected()) {
-          TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
+        // if (eqLitS && i < eqClause->numSelected()) {
+        //   TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
 
-          Ordering::Result o = ordering.compare(currAfter,eqLitS);
+        //   Ordering::Result o = ordering.compare(currAfter,eqLitS);
 
-          if (o == Ordering::GREATER || o == Ordering::EQUAL) {
-            env.statistics->inferencesBlockedDueToOrderingAftercheck++;
-            return nullptr;
-          }
-        }
+        //   if (o == Ordering::GREATER || o == Ordering::EQUAL) {
+        //     env.statistics->inferencesBlockedDueToOrderingAftercheck++;
+        //     return nullptr;
+        //   }
+        // }
 
         res->push(currAfter);
       }
     }
   }
 
-  if (!unifier->usesUwa()) {
-    parRedHandler.insertSuperposition(
-      eqClause, rwClause, rwTerm, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.ptr());
-  }
+  // if (!unifier->usesUwa()) {
+  //   parRedHandler.insertSuperposition(
+  //     eqClause, rwClause, rwTerm, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.ptr());
+  // }
 
   res->loadFromIterator(unifier->computeConstraintLiterals()->iter());
+  // for (unsigned i = 0; i < rwTerm.term()->arity(); i++) {
+  //   res->push(Literal::createEquality(false,
+  //     subst->apply(*rwTerm.term()->nthArgument(i), !eqIsResult),
+  //     subst->apply(*eqLHS.term()->nthArgument(i), eqIsResult),
+  //   SortHelper::getArgSort(rwTerm.term(), i)));
+  // }
 
-  if(hasAgeLimitStrike && passiveClauseContainer->exceedsWeightLimit(weight, numPositiveLiteralsLowerBound, inf)) {
-    RSTAT_CTR_INC("superpositions skipped for weight limit after the clause was built");
-    env.statistics->discardedNonRedundantClauses++;
-    return nullptr;
-  }
+  // if(hasAgeLimitStrike && passiveClauseContainer->exceedsWeightLimit(weight, numPositiveLiteralsLowerBound, inf)) {
+  //   RSTAT_CTR_INC("superpositions skipped for weight limit after the clause was built");
+  //   env.statistics->discardedNonRedundantClauses++;
+  //   return nullptr;
+  // }
 
   inf_destroyer.disable(); // ownership passed to the the clause below
   auto clause = Clause::fromStack(*res, inf);

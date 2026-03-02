@@ -101,6 +101,7 @@ struct TermLiteralClause
   { return std::make_tuple(clause->number(), literal->getId(), term); }
 
   IMPL_COMPARISONS_FROM_TUPLE(TermLiteralClause)
+  IMPL_HASH_FROM_TUPLE(TermLiteralClause)
 
   friend std::ostream& operator<<(std::ostream& out, TermLiteralClause const& self)
   { return out << "("
@@ -172,9 +173,9 @@ struct QueryRes
   friend std::ostream& operator<<(std::ostream& out, QueryRes const& self)
   { 
     return out 
-      << "{ data: " << self.data()
+      << "{ data: " << self.data
       << ", unifier: " << self.unifier
-      << "}";
+      << " }";
   }
 };
 

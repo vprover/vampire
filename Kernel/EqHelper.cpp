@@ -198,6 +198,11 @@ VirtualIterator<ELEMENT_TYPE(SubtermIterator)> EqHelper::getRewritableSubtermIte
     TermList sel;
     switch(ord.getEqualityArgumentOrder(lit)) {
     case Ordering::INCOMPARABLE: {
+      if constexpr (std::is_same_v<ELEMENT_TYPE(SubtermIterator),Term*>) {
+        if (lit->isPositive()) {
+          return pvi(termArgIter(lit).filter([](auto t) { return t.isTerm(); }).map([](auto t) { return t.term(); }));
+        }
+      }
       SubtermIterator si(lit);
       return getUniquePersistentIteratorFromPtr(&si);
     }
@@ -215,6 +220,17 @@ VirtualIterator<ELEMENT_TYPE(SubtermIterator)> EqHelper::getRewritableSubtermIte
     }
     if (!sel.isTerm()) {
       return VirtualIterator<ELEMENT_TYPE(SubtermIterator)>::getEmpty();
+    }
+    if constexpr (std::is_same_v<ELEMENT_TYPE(SubtermIterator),Term*>) {
+      if (lit->isPositive()) {
+        // TODO generalize this to equations with RHSs that do not unify with goal-terms
+        // auto other = getOtherEqualitySide(lit, sel);
+        // if (other.isTerm()) {
+        //   std::cout << "lit " << *lit << " has no relation to goal, switching sides" << std::endl;
+        //   sel = other;
+        // }
+        return pvi(iterItems(sel).filter([](auto t) { return t.isTerm(); }).map([](auto t) { return t.term(); }));
+      }
     }
     return getUniquePersistentIterator(vi(new SubtermIterator(sel.term(), true)));
   }
@@ -239,6 +255,11 @@ VirtualIterator<TypedTermList> EqHelper::getLHSIterator(Literal* lit, const Orde
     }
     TermList t0=*lit->nthArgument(0);
     TermList t1=*lit->nthArgument(1);
+    // // TODO generalize this to equations with RHSs that do not unify with goal-terms
+    if (t0.isTerm() && t1.isTerm()) {
+      // std::cout << "equation " << *lit << " has no relation to goal, skipping it" << std::endl;
+      return VirtualIterator<TypedTermList>::getEmpty();
+    }
     switch(ord.getEqualityArgumentOrder(lit))
     {
     case Ordering::INCOMPARABLE:
