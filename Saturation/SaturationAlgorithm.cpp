@@ -1031,71 +1031,125 @@ void SaturationAlgorithm::runGnnOnInput()
   Timer::updateInstructionCount();
   long long gnn_start_instrs = Timer::elapsedInstructions();
 
+  _numTypeCons = env.signature->typeCons();
   _numPreds = env.signature->predicates();
+  ASS_EQ(_numPreds,1) // only equality in HOL!
   _numFuncs = env.signature->functions();
-  _numSorts = env.signature->typeCons();
+
+  constexpr auto NUM_SYMBOL_FEATURES = 22;
 
   // these guy must survive (in memory) until the gnnPerform call
-  torch::Tensor sort_features = torch::empty({_numSorts,5}, torch::kFloat32);
-  torch::Tensor symbol_features = torch::empty({_numPreds+_numFuncs,11}, torch::kFloat32);
+  torch::Tensor typeCon_features = torch::empty({_numTypeCons,5}, torch::kFloat32);
+  torch::Tensor symbol_features = torch::empty({_numPreds+_numFuncs,NUM_SYMBOL_FEATURES}, torch::kFloat32);
 
-  // sorts
+  // type constructors
   {
-    float* sort_features_ptr = sort_features.data_ptr<float>();
+    float* typeCon_features_ptr = typeCon_features.data_ptr<float>();
 
-    for (unsigned t = 0; t < _numSorts; t++) {
+    for (unsigned t = 0; t < _numTypeCons; t++) {
       Signature::Symbol* symb = env.signature->getTypeCon(t);
-      /*if (symb->arity() > 0) {
-        USER_ERROR("GNN currently only supports monomorphic FOL.");
-      }*/
-      (*sort_features_ptr++) = env.signature->isPlainCon(t);
-      (*sort_features_ptr++) = env.signature->isBoolCon(t);
-      (*sort_features_ptr++) = env.signature->isArithCon(t);
-      (*sort_features_ptr++) = env.signature->isArrowCon(t);
-      (*sort_features_ptr++) = symb->arity();
+      (*typeCon_features_ptr++) = env.signature->isPlainCon(t);
+      (*typeCon_features_ptr++) = env.signature->isBoolCon(t);
+      (*typeCon_features_ptr++) = env.signature->isArithCon(t);
+      (*typeCon_features_ptr++) = env.signature->isArrowCon(t);
+      (*typeCon_features_ptr++) = symb->arity();
       // OperatorType* ot = symb->typeConType();
-      // cout << "sort: " << t << " " << env.signature->isPlainCon(t) << " " << env.signature->isBoolCon(t) << " " << env.signature->isArithCon(t) << " # " << symb->name() << endl;
+      // cout << "typecon: " << t << " " << env.signature->isPlainCon(t) << " " << env.signature->isBoolCon(t) << " " << env.signature->isArithCon(t) << " # " << symb->name() << endl;
       // cout << "  " << ot->toString() << " ot->arity " << ot->arity() << " symb->arity " << symb->arity() << endl;
       // cout << "  env.signature->isArrowCon(t)" << env.signature->isArrowCon(t) << endl;
     }
 
-    _neuralModel->gnnNodeKind("sort",sort_features);
+    _neuralModel->gnnNodeKind("typecon",typeCon_features);
   }
+
+  // sorts correspond to the perfectly shared AtomicSort in Vampire
+  unsigned sortId = 0;  // zero-based, ever growing
+  vector<float> sort_features;
+  DHMap<TermList,unsigned> sortsAlreadyKnown; // from termId to subtermId of the first occurrence
+
+  vector<int64_t> srt2srt_one; // sort super-term
+  vector<int64_t> srt2srt_two; // sort sub-term
+
+  vector<int64_t> srt2typecon_one; // sort to its type constructor (for proper AtomicTerms)
+  vector<int64_t> srt2typecon_two; // and back
+
+  auto add_sort = [&](auto&& self, TermList sort) -> unsigned {
+    // cout << "adding sort " << sort.toString() << endl;
+    unsigned *mySortId;
+    if (sortsAlreadyKnown.getValuePtr(sort,mySortId)) {
+      *mySortId = sortId++;
+      if (sort.isVar()) {
+        // cout << "  " << sort.toString() << " is new var node" << endl;
+
+        sort_features.push_back(1.0);
+        sort_features.push_back(0.0);
+        sort_features.push_back(0.0);
+        sort_features.push_back(0.0);
+        sort_features.push_back(0.0);
+        sort_features.push_back(0.0);
+      } else {
+        Term *t = sort.term();
+        ASS(t->isSort())
+
+        sort_features.push_back(t->numVarOccs() > 0);   // non-ground
+        sort_features.push_back(t->numVarOccs() > 2);
+        sort_features.push_back(t->numVarOccs() > 4);
+        sort_features.push_back(t->weight() > 1);       // non-leaf
+        sort_features.push_back(t->weight() > 2);
+        sort_features.push_back(t->weight() > 4);
+
+        // will have an edge to its typeCon
+        srt2typecon_one.push_back(*mySortId);
+        srt2typecon_two.push_back(t->functor());
+
+        // cout << "  " << sort.toString() << " is new term node linked to typeCon " << t->functor() << endl;
+
+        // will have edges to sort sub-terms
+        for (unsigned i = 0; i < t->arity(); i++) {
+          TermList arg = *t->nthArgument(i);
+          auto argId = self(self,arg);
+
+          srt2srt_one.push_back(*mySortId);
+          srt2srt_one.push_back(argId);
+          // cout << "  adding sort link " << *mySortId << " - " << argId << endl;
+        }
+      }
+    }
+    // cout << "  " << sort.toString() << " is " << *mySortId << endl;
+    return *mySortId;
+  };
 
   // symbols
   {
     float* symbol_features_ptr = symbol_features.data_ptr<float>();
 
     vector<int64_t> symb2sort_one; // the symbs
-    vector<int64_t> symb2sort_two; // the sorts
+    vector<int64_t> symb2sort_two; // their resp. (result) sorts
 
     vector<int64_t> symb2symb_one; // the smaller in prec
     vector<int64_t> symb2symb_two; // the larger in prec
 
-    auto add_arity_symbol_features = [&symbol_features_ptr](unsigned arity) {
-      (*symbol_features_ptr++) = (arity > 0);
-      (*symbol_features_ptr++) = (arity > 1);
-      (*symbol_features_ptr++) = (arity > 2);
-      (*symbol_features_ptr++) = (arity > 4);
-      (*symbol_features_ptr++) = (arity > 8);
-    };
-
     for (unsigned p = 0; p < _numPreds; p++) {
-      Signature::Symbol* symb = env.signature->getPredicate(p);
       (*symbol_features_ptr++) = (unsigned)(p==0);   // isEquality
-      (*symbol_features_ptr++) = 0;                  // isFunction symbol
-      (*symbol_features_ptr++) = symb->introduced();
-      (*symbol_features_ptr++) = symb->skolem();
-      (*symbol_features_ptr++) = symb->interpretedNumber();
       (*symbol_features_ptr++) = 1; // function symbol (KBO) weight
-      add_arity_symbol_features(symb->arity());
 
-      //cout << "symb: " << p << " " << (unsigned)(p==0) << " 0 " << symb->introduced() << " " << symb->skolem()
-      //    << " " << symb->interpretedNumber() << " " << symb->arity() << " # " << symb->name() << endl;
-      // cout << "symb-to-sort: " << p << " " << env.signature->getBoolSort() << endl;
+      (*symbol_features_ptr++) = 1; // (moral) type arity (because = is ad hoc polymorphic over one type variable)
+      (*symbol_features_ptr++) = 2; // (moral) term arity (because = is term-wise binary)
+
+      // all the rest is non-0 only for funcs
+      for (unsigned i = 4; i < NUM_SYMBOL_FEATURES; i++)
+        (*symbol_features_ptr++) = 0;
+
+      // this should be the sort of equality predicate (0) and Ahmed promises there will be no other pred symbol
+      ASS_EQ(p,0) // no other predicates in HOL
+      TermList equalitys_poly_sort = AtomicSort::arrowSort(TermList(0, false), TermList(0, false), AtomicSort::boolSort());
+      unsigned mySortId = add_sort(add_sort,equalitys_poly_sort);
+      // cout << "Eq poly sort was " << equalitys_poly_sort.toString() << endl;
+
+      // cout << "symb: " << p << " 1 1 .." << " # " << env.signature->getPredicate(p)->name() << endl;
+      // cout << "symb-to-sort-for-pred: " << p << " " << mySortId << endl;
       symb2sort_one.push_back(p);
-      symb2sort_two.push_back(env.signature->getBoolSort());
-      // pred-to-sort: predId sortId (which is always 1 == $o)
+      symb2sort_two.push_back(mySortId);
     }
     {
       DArray<unsigned> predicates;
@@ -1115,22 +1169,68 @@ void SaturationAlgorithm::runGnnOnInput()
         jumpLen *= 2;
       } while (jumpLen < _numPreds);
     }
+
+    // cout << endl;
+
+    auto effective_term_arity = [](TermList sort) {
+      unsigned res = 0;
+      while (sort.isTerm() && sort.term()->isArrowSort()) {
+        res += 1;
+        Term* t = sort.term();
+        // cout << "  " << t->toString() << endl;
+        sort = *t->nthArgument(1);
+      }
+      return res;
+    };
+
     for (unsigned f = 0; f < _numFuncs; f++) {
       Signature::Symbol* symb = env.signature->getFunction(f);
+      OperatorType* ot = symb->fnType();
+      unsigned termArity = effective_term_arity(ot->result());
 
-      (*symbol_features_ptr++) = 0;                  // isEquality
-      (*symbol_features_ptr++) = 1;                  // isFunction symbol
+      (*symbol_features_ptr++) = 0;                             // isEquality
+      (*symbol_features_ptr++) = _ordering->functionSymbolWeight(f);
+      (*symbol_features_ptr++) = ot->arity();
+      (*symbol_features_ptr++) = termArity;
+
       (*symbol_features_ptr++) = symb->introduced();
       (*symbol_features_ptr++) = symb->skolem();
-      (*symbol_features_ptr++) = symb->interpretedNumber();
-      (*symbol_features_ptr++) = _ordering->functionSymbolWeight(f);
-      add_arity_symbol_features(symb->arity());
+      auto db = symb->dbIndex();
+      if (db.isSome()) {
+        unsigned idx = db.unwrap();
+        (*symbol_features_ptr++) = (idx == 0);
+        (*symbol_features_ptr++) = (idx == 1);
+        (*symbol_features_ptr++) = (idx == 2);
+        (*symbol_features_ptr++) = (idx > 2);
+      } else {
+        for (unsigned idx = 0; idx < 4; idx++)
+          (*symbol_features_ptr++) = 0;
+      }
+      (*symbol_features_ptr++) = env.signature->isAppFun(f);
+      (*symbol_features_ptr++) = env.signature->isLamFun(f);
+      (*symbol_features_ptr++) = env.signature->isChoiceFun(f);
 
-      //cout << "symb: " << FUNC_TO_SYMB(f) << " 0 1 " << symb->introduced() << " " << symb->skolem()
-      //    << " " << symb->interpretedNumber() << " " << symb->arity() << " # " << symb->name() << endl;
-      // cout << "symb-to-sort: " << FUNC_TO_SYMB(f) << " " << symb->fnType()->result().term()->functor() << endl;
+      for (unsigned proxy = 0; proxy < Signature::NOT_PROXY; proxy++) {
+        (*symbol_features_ptr++) = (symb->proxy() == proxy);
+      }
+      // taking the result is OK everywhere in HOL (except for vAPP and vLAM who use "first-order" types, i.e. not fully curried; and are weird. But then again, they have their own features here)
+      unsigned mySortId = add_sort(add_sort,symb->fnType()->result());
+
+      /*
+      cout << "symb: " << funcToSymb(f) << " e0 w" << _ordering->functionSymbolWeight(f) << " a" << ot->arity() << " ta" << termArity << " # " << symb->name() << endl;
+      cout << "  fnType: " << symb->fnType()->toString() << endl;
+      cout << "  i" << symb->introduced() << " s" << symb->skolem() << " d" << symb->dbIndex() << " a" << env.signature->isAppFun(f) << " l" << env.signature->isLamFun(f) << " c" << env.signature->isChoiceFun(f) << endl;
+      cout << " ";
+      for (unsigned proxy = 0; proxy < Signature::NOT_PROXY; proxy++) {
+        cout << " " << (symb->proxy() == proxy);
+      }
+      cout << endl;
+      cout << "symb-to-sort: " << funcToSymb(f) << " " << mySortId << " # " << symb->fnType()->result().toString() << endl;
+      cout << endl;
+      */
+
       symb2sort_one.push_back(funcToSymb(f));
-      symb2sort_two.push_back(symb->fnType()->result().term()->functor());
+      symb2sort_two.push_back(mySortId);
       // func-to-sort: funcId sortId --- this is the output sort (input sorts can be inferred from arguments' output sorts)
     }
     {
@@ -1140,7 +1240,7 @@ void SaturationAlgorithm::runGnnOnInput()
       unsigned jumpLen = 1;
       do {
         for (unsigned idx = jumpLen; idx < _numFuncs; idx += jumpLen) {
-          // cout << "symb-prec-next: " << FUNC_TO_SYMB(functions[idx-jumpLen]) << " " << FUNC_TO_SYMB(functions[idx]) << endl;
+          // cout << "symb-prec-next: " << funcToSymb(functions[idx-jumpLen]) << " " << funcToSymb(functions[idx]) << endl;
           symb2symb_one.push_back(funcToSymb(functions[idx-jumpLen]));
           symb2symb_two.push_back(funcToSymb(functions[idx]));
         }
@@ -1318,11 +1418,18 @@ void SaturationAlgorithm::runGnnOnInput()
     clauseId++;
   }
 
-  // also here we (paranoidly) assume that the script module might not take any ownershipe of these tensors ...
+  // also here we (paranoidly) assume that the script module might not take any ownership of these tensors ...
+  auto sort_features_t = torch::tensor(sort_features,torch::TensorOptions().dtype(torch::kFloat32)).reshape({sortId,6});
+
   auto clause_features_t = torch::tensor(clause_features,torch::TensorOptions().dtype(torch::kFloat32)).reshape({clauseId,10});
   auto term_features_t = torch::tensor(term_features,torch::TensorOptions().dtype(torch::kFloat32)).reshape({subtermId,10});
   auto var_features_t = torch::tensor(var_features,torch::TensorOptions().dtype(torch::kFloat32)).reshape({clVarId,1});
   // ... and so want to have them in scope until the gnnPerform call
+
+  _neuralModel->gnnNodeKind("sort",sort_features_t);
+
+  _neuralModel->gnnEdgeKind("sort","sort",srt2srt_one,srt2srt_two);
+  _neuralModel->gnnEdgeKind("sort","typecon",srt2typecon_one,srt2typecon_two);
 
   _neuralModel->gnnNodeKind("clause",clause_features_t);
   _neuralModel->gnnNodeKind("term",term_features_t);
