@@ -1026,6 +1026,7 @@ fin:
 
 void SaturationAlgorithm::runGnnOnInput()
 {
+  CALL("SaturationAlgorithm::runGnnOnInput");
   TIME_TRACE("gnn-eval");
 
   Timer::updateInstructionCount();
