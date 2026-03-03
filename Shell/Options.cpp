@@ -1242,7 +1242,7 @@ void Options::init()
 
     _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
                                       UnificationWithAbstraction::AUTO,
-                                      {"auto","off","interpreted_only","one_side_interpreted","one_side_constant","all","ground", "func_ext", "alasca_one_interp", "alasca_can_abstract", "alasca_main", "alasca_main_floor"});
+                                      {"auto","off","interpreted_only","one_side_interpreted","one_side_constant","all","ground", "func_ext", "alasca_one_interp", "alasca_can_abstract", "alasca_main", "alasca_main_floor", "hol"});
     _unificationWithAbstraction.description=
       "During unification, if two terms s and t fail to unify we will introduce a constraint s!=t and carry on. For example, "
       "resolving p(1) \\/ C with ~p(a+2) would produce C \\/ 1 !=a+2. This is controlled by a check on the terms. The expected "
@@ -1256,6 +1256,7 @@ void Options::init()
       "- ground: only if both s and t are ground\n"
       "- alasca_one_interp, alasca_can_abstract, alasca_main: strategies used for the real-arithmetic version of alasca. these are described in  the LPAR2023 paper  \"Refining Unification with Abstraction\""
       "- alasca_main_floor: an extension of the alasca_main strategy to work with mixed integer-real arithmetic. this option is experimental\n"
+      "- hol: introduce constraints for all higher-order parts whose unification is undecidable\n"
       "See Unification with Abstraction and Theory Instantiation in Saturation-Based Reasoning for further details.";
     _unificationWithAbstraction.tag(OptionTag::THEORIES);
     _lookup.insert(&_unificationWithAbstraction);
@@ -2015,6 +2016,12 @@ void Options::init()
     _lookup.insert(&_newTautologyDel);
     // potentially could be useful for FOOL, so am not adding the HOL constraint
     _newTautologyDel.tag(OptionTag::HIGHER_ORDER);
+
+    _holUnifier = BoolOptionValue("hol_unifier", "hun", false);
+    _holUnifier.description = "Enable efficient HOL unification";
+    _lookup.insert(&_holUnifier);
+    _holUnifier.addHardConstraint(If(equal(true)).then(_unificationWithAbstraction.is(equal(UnificationWithAbstraction::HOL))));
+    _holUnifier.tag(OptionTag::HIGHER_ORDER);
 
 //*********************** InstGen  ***********************
 // TODO not really InstGen any more, just global subsumption

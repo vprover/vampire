@@ -206,6 +206,7 @@ public:
     ALASCA_CAN_ABSTRACT,
     ALASCA_MAIN,
     ALASCA_MAIN_FLOOR,
+    HOL,
   };
   friend std::ostream& operator<<(std::ostream& out, UnificationWithAbstraction const& self)
   {
@@ -222,6 +223,7 @@ public:
       case UnificationWithAbstraction::ALASCA_CAN_ABSTRACT: return out << "alasca_can_abstract";
       case UnificationWithAbstraction::ALASCA_MAIN:         return out << "alasca_main";
       case UnificationWithAbstraction::ALASCA_MAIN_FLOOR:   return out << "alasca_floor";
+      case UnificationWithAbstraction::HOL:               return out << "hol";
     }
     ASSERTION_VIOLATION
   }
@@ -2297,6 +2299,8 @@ public:
   bool cases() const { return _cases.actualValue; }
   bool newTautologyDel() const { return _newTautologyDel.actualValue; }
 
+  bool holUnifier() const { return _holUnifier.actualValue; }
+
 private:
 
     /**
@@ -2721,6 +2725,8 @@ private:
   BoolOptionValue _casesSimp;
   BoolOptionValue _cases;
   BoolOptionValue _newTautologyDel;
+
+  BoolOptionValue _holUnifier;
 
 }; // class Options
 

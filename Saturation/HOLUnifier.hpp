@@ -27,6 +27,8 @@ class HOLUnifier {
 public:
   Clause* handleClause(Clause* cl);
 
+  static bool isHolUnifiable(TermList t);
+
 private:
   Literal* introduceDefinition(Literal* lit);
 

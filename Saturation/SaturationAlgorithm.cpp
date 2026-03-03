@@ -92,6 +92,7 @@
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
+#include "Saturation/HOLUnifier.hpp"
 #include "Shell/AnswerLiteralManager.hpp"
 #include "Shell/PartialRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
@@ -259,6 +260,9 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
 
   if (opt.splitting()) {
     _splitter = new Splitter();
+  }
+  if (opt.holUnifier()) {
+    _holUnifier = new HOLUnifier();
   }
 
   _partialRedundancyHandler.reset(PartialRedundancyHandler::create(opt, _ordering.ptr(), _splitter));
@@ -1117,6 +1121,18 @@ void SaturationAlgorithm::activate(Clause* cl)
       if (_splitter->doSplitting(cl)) {
         return removeSelected(cl);
       }
+    }
+  }
+
+  if (_holUnifier) {
+    auto newCl = _holUnifier->handleClause(cl);
+    if (newCl != cl) {
+      if (_opt.showAll()) {
+        std::cout << "[SA] constrained clause " << cl->toString() << " replaced with " << newCl->toString() << std::endl;
+      }
+      addNewClause(newCl);
+      removeSelected(cl);
+      return;
     }
   }
 

@@ -23,7 +23,7 @@
 
 namespace Saturation {
 
-bool isHOLTerm(TermList t)
+bool HOLUnifier::isHolUnifiable(TermList t)
 {
   return t.isLambdaTerm() || (t.isApplication() && t.head().isVar());
 }
@@ -33,7 +33,7 @@ bool isHOLUnificationConstraint(Literal* lit)
   if (!lit->isEquality() || lit->isPositive()) {
     return false;
   }
-  return isHOLTerm(lit->termArg(0)) || isHOLTerm(lit->termArg(1));
+  return HOLUnifier::isHolUnifiable(lit->termArg(0)) || HOLUnifier::isHolUnifiable(lit->termArg(1));
 }
 
 Clause* HOLUnifier::handleClause(Clause* cl)
@@ -69,7 +69,6 @@ Clause* HOLUnifier::handleClause(Clause* cl)
 Literal* HOLUnifier::introduceDefinition(Literal* lit)
 {
   ASS(isHOLUnificationConstraint(lit));
-  ASS(!lit->ground()); // I think ground cases should be handled elsewhere
 
   Renaming r;
   r.normalizeVariables(lit);
@@ -126,15 +125,17 @@ Literal* HOLUnifier::introduceDefinition(Literal* lit)
 
     auto p_lit = Literal::create(p, /*arity=*/p_args.size(), /*polarity=*/true, p_args.begin());
 
-    auto iff = new BinaryFormula(Connective::IFF, new AtomicFormula(p_lit), new AtomicFormula(nlit));
-    auto quantified = new QuantifiedFormula(Connective::FORALL, vl, sl, iff);
-    auto def = new FormulaUnit(quantified, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::HOL_UNIFIER_DEFINITION));
+    Formula* def = new BinaryFormula(Connective::IFF, new AtomicFormula(p_lit), new AtomicFormula(nlit));
+    if (vl) {
+      def = new QuantifiedFormula(Connective::FORALL, vl, sl, def);
+    }
+    auto def_u = new FormulaUnit(def, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::HOL_UNIFIER_DEFINITION));
 
     if (env.options->showAll()) {
       std::cout << "[HOL] introduced definition " << def->toString() << std::endl;
     }
 
-    _defs.push(def);
+    _defs.push(def_u);
     *sym_ptr = p;
   }
 
