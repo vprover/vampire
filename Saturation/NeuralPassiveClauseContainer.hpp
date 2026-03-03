@@ -46,6 +46,10 @@ class NeuralPassiveClauseContainer; // forward
 
 class NeuralClauseEvaluationModel
 {
+public:
+  CLASS_NAME(NeuralClauseEvaluationModel);
+  USE_ALLOCATOR(NeuralClauseEvaluationModel);
+
 private:
   torch::jit::script::Module _model;
 
@@ -517,6 +521,9 @@ class NeuralPassiveClauseContainer
 : public SingleQueuePassiveClauseContainer<NeuralScoreQueue>
 {
 public:
+  CLASS_NAME(NeuralPassiveClauseContainer);
+  USE_ALLOCATOR(NeuralPassiveClauseContainer);
+
   NeuralPassiveClauseContainer(bool isOutermost, const Shell::Options& opt,
     NeuralClauseEvaluationModel& model);
 
