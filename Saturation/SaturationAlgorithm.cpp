@@ -1276,6 +1276,9 @@ void SaturationAlgorithm::runGnnOnInput()
   vector<int64_t> trm2symb_one; // a (non-var) subterm
   vector<int64_t> trm2symb_two; // has a symbol
 
+  vector<int64_t> trm2srt_one; // resolve sort of all term's type arguments (multiple outgoing arrows possible)
+  vector<int64_t> trm2srt_two; // the receiving (perfectly shared) srt id
+
   vector<float> clause_features;
   vector<float> term_features;
   vector<float> var_features;
@@ -1327,18 +1330,25 @@ void SaturationAlgorithm::runGnnOnInput()
 
         // each literal is a trm!
         term_features.push_back((lit->isPositive()) ? 1.0 : -1.0); // only non-zero for literals and encodes polarity
+        // cout << "lit: " << *sharedSubtermId << " " << ((lit->isPositive()) ? 1.0 : -1.0) << " " << 0.0 << " ... " << lit->toString() << endl;
         term_features_for_vars_and_weight(lit);
-        // cout << "trm: " << subtermId << " " << ((lit->isPositive()) ? 1.0 : -1.0) << " " << 0.0 << " ... " << lit->toString() << endl;
 
         trm2symb_one.push_back(*sharedSubtermId);
         trm2symb_two.push_back(lit->functor());
-        // cout << "trm-symb: " << subtermId << " " << lit->functor() << endl;
+        // cout << "trm-symb: " << *sharedSubtermId << " " << lit->functor() << endl;
+
+        ASS_EQ(lit->functor(),0) // always just equality literals
+        TermList mySort = SortHelper::getEqualityArgumentSort(lit);
+        unsigned mySortId = add_sort(add_sort,mySort);
+        trm2srt_one.push_back(*sharedSubtermId);
+        trm2srt_two.push_back(mySortId);
+        // cout << "trm-sort: " << *sharedSubtermId << " " << mySortId << " # " << mySort.toString() << endl;
       }
 
       // we always connect clause to its literal's term node
       cls2trm_one.push_back(clauseId);
       cls2trm_two.push_back(*sharedSubtermId);
-      // cout << "cls-trm: " << clauseId << " " << subtermId << endl;
+      // cout << "cls-trm: " << clauseId << " " << *sharedSubtermId << endl;
 
       ASS(subterms.isEmpty());
       subterms.push({lit,*sharedSubtermId,env.signature->getPredicate(lit->functor())->predType(),seenFirst});
@@ -1349,11 +1359,23 @@ void SaturationAlgorithm::runGnnOnInput()
           // process top.idx-th subterm of top.trm (whose gnn index is top.id)
 
           TermList arg = *top.trm->nthArgument(top.idx);
-          // cout << "trm: " << subtermId << " " << 0.0 << " " << term_features.back() << " ... " << arg.toString() << endl;
+          // cout << "subtrm: " << arg.toString() << endl;
           // the rest of term_features will follow, depending on whether arg is a proper term or a var
+
+          if (top.idx < top.trm->numTypeArguments()) {
+            if (top.seenFirst) {
+              // cout << "only a type arg, seen for the first time, connect superterm to sort and goto next arg" << endl;
+              unsigned mySortId = add_sort(add_sort,arg);
+              trm2srt_one.push_back(top.id);
+              trm2srt_two.push_back(mySortId);
+              // cout << "trm-sort: " << top.id << " " << mySortId << " # " << arg.toString() << endl;
+            }
+            goto next_arg;
+          }
 
           if (arg.isTerm()) {
             Term* t = arg.term();
+            // cout << "considering term arg " << t->toString() << endl;
 
             // under perfect sharing, we might want to skip this guy, if already exposed
             bool seenFirst = false;
@@ -1367,18 +1389,18 @@ void SaturationAlgorithm::runGnnOnInput()
 
               trm2symb_one.push_back(*sharedSubtermId);
               trm2symb_two.push_back(funcToSymb(t->functor()));
+              // cout << "trm-symb: " << *sharedSubtermId << " " << funcToSymb(t->functor()) << endl;
             }
             if (top.seenFirst) {
               trm2trm_one.push_back(top.id);
               trm2trm_two.push_back(*sharedSubtermId);
-              // cout << "trm-trm: " << top.id << " " << subtermId << endl;
+              // cout << "trm-trm: " << top.id << " " << *sharedSubtermId << endl;
             }
-            // cout << "trm-symb: " << subtermId << " " << FUNC_TO_SYMB(t->functor()) << endl;
             subterms.push({t,*sharedSubtermId,env.signature->getFunction(t->functor())->fnType(),seenFirst});
             // don't touch top anymore (push could cause reallocatio)!
           } else {
             // will be only used, if we are a var
-            unsigned varSrt = (top.trm->isTwoVarEquality() ? top.trm->twoVarEqSort() : top.ot->arg(top.idx)).term()->functor();
+            TermList varSort = SortHelper::getArgSort(top.trm,top.idx);
 
             ASS(arg.isVar());
             unsigned var = arg.var();
@@ -1392,9 +1414,10 @@ void SaturationAlgorithm::runGnnOnInput()
               cls2var_one.push_back(clauseId);
               cls2var_two.push_back(*normVar);
 
-              // cout << "var-srt: " << *normVar << " " << varSrt << endl;          // a variable knows about its sort
+              unsigned mySortId = add_sort(add_sort,varSort);
+              // cout << "var-srt: " << *normVar << " " << mySortId << " # " << varSort.toString() << endl;          // a variable knows about its sort
               var2srt_one.push_back(*normVar);
-              var2srt_two.push_back(varSrt);
+              var2srt_two.push_back(mySortId);
             }
 
             // cout << "trm-var: " << top.id << " " << *normVar << endl; // this subterm is a variable
@@ -1402,7 +1425,7 @@ void SaturationAlgorithm::runGnnOnInput()
             trm2var_two.push_back(*normVar);
           }
 
-          top.idx++; // next time round, will look at the next argument or die
+          next_arg: top.idx++; // next time round, will look at the next argument or die
         } else {
           subterms.pop();
         }
@@ -1428,18 +1451,28 @@ void SaturationAlgorithm::runGnnOnInput()
   auto sort_features_t = torch::tensor(sort_features,torch::TensorOptions().dtype(torch::kFloat32)).reshape({sortId,6});
 
   auto clause_features_t = torch::tensor(clause_features,torch::TensorOptions().dtype(torch::kFloat32)).reshape({clauseId,10});
-  auto term_features_t = torch::tensor(term_features,torch::TensorOptions().dtype(torch::kFloat32)).reshape({subtermId,10});
+  auto term_features_t = torch::tensor(term_features,torch::TensorOptions().dtype(torch::kFloat32)).reshape({subtermId,9});
   auto var_features_t = torch::tensor(var_features,torch::TensorOptions().dtype(torch::kFloat32)).reshape({clVarId,1});
   // ... and so want to have them in scope until the gnnPerform call
 
   _neuralModel->gnnNodeKind("sort",sort_features_t);
-
   _neuralModel->gnnEdgeKind("sort","sort",srt2srt_one,srt2srt_two);
   _neuralModel->gnnEdgeKind("sort","typecon",srt2typecon_one,srt2typecon_two);
+
+  /*
+  cout << "sort " << sort_features_t.sizes() << endl;
+  cout << "sort-typecon " << srt2typecon_one.size() << endl;
+  */
 
   _neuralModel->gnnNodeKind("clause",clause_features_t);
   _neuralModel->gnnNodeKind("term",term_features_t);
   _neuralModel->gnnNodeKind("var",var_features_t);
+
+  /*
+  cout << "clause " << clause_features_t.sizes() << endl;
+  cout << "term " << term_features_t.sizes() << endl;
+  cout << "var " << var_features_t.sizes() << endl;
+  */
 
   _neuralModel->gnnEdgeKind("clause","term",cls2trm_one,cls2trm_two);
   _neuralModel->gnnEdgeKind("term","term",trm2trm_one,trm2trm_two);      // the sub-term (down) edges
@@ -1447,6 +1480,17 @@ void SaturationAlgorithm::runGnnOnInput()
   _neuralModel->gnnEdgeKind("var","sort",var2srt_one,var2srt_two);
   _neuralModel->gnnEdgeKind("term","var",trm2var_one,trm2var_two);       // some subterms are variables
   _neuralModel->gnnEdgeKind("term","symbol",trm2symb_one,trm2symb_two);  // and others are proper and thus have a symbol
+  _neuralModel->gnnEdgeKind("term","sort",trm2srt_one,trm2srt_two);      // those proper might also have sort arguments which we resolve
+
+  /*
+  cout << "clause-term " << cls2trm_one.size() << endl;
+  cout << "term-term " << trm2trm_one.size() << endl;
+  cout << "clause-var " << cls2var_one.size() << endl;
+  cout << "var-sort " << var2srt_one.size() << endl;
+  cout << "term-var " << trm2var_one.size() << endl;
+  cout << "term-symbol " << trm2symb_one.size() << endl;
+  cout << "term-sort " << trm2srt_one.size() << endl;
+  */
 
   {
     torch::NoGradGuard no_grad; // This disables gradient computation
