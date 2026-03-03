@@ -250,6 +250,8 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   CALL("SaturationAlgorithm::SaturationAlgorithm");
   ASS_EQ(s_instance, 0);  //there can be only one saturation algorithm at a time
 
+  BYPASSING_ALLOCATOR // because of neural things (all the torch jazz)
+
   _activationLimit = opt.activationLimit();
 
   _ordering = OrderingSP(Ordering::create(prb, opt));
@@ -1352,6 +1354,8 @@ void SaturationAlgorithm::init()
 
   if (_neuralActivityRecoring || _neuralModelGuidance) {
     if (_neuralModel->useGage() || _neuralModel->useGweight()) {
+      BYPASSING_ALLOCATOR
+
       runGnnOnInput();
     }
   }
