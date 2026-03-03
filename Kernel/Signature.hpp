@@ -66,13 +66,11 @@ class Signature
   static const unsigned REAL_SRT_CON=4;
   /** this is not a sort, it is just used to denote the first index of a user-define sort */
   static const unsigned FIRST_USER_CON=5;
-  
+
   enum Proxy {
     AND,
     OR,
     IMP,
-    FORALL,
-    EXISTS,
     IFF,
     XOR,
     NOT,
@@ -80,8 +78,8 @@ class Signature
     SIGMA,
     EQUALS,
     NOT_PROXY
-  };  
-  
+  };
+
   class Symbol {
   
   protected:
