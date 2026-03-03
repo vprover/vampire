@@ -1111,7 +1111,7 @@ void SaturationAlgorithm::runGnnOnInput()
           auto argId = self(self,arg);
 
           srt2srt_one.push_back(*mySortId);
-          srt2srt_one.push_back(argId);
+          srt2srt_two.push_back(argId);
           // cout << "  adding sort link " << *mySortId << " - " << argId << endl;
         }
       }
