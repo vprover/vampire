@@ -1037,7 +1037,7 @@ void SaturationAlgorithm::runGnnOnInput()
   ASS_EQ(_numPreds,1) // only equality in HOL!
   _numFuncs = env.signature->functions();
 
-  constexpr auto NUM_SYMBOL_FEATURES = 22;
+  constexpr auto NUM_SYMBOL_FEATURES = 24;
 
   // these guy must survive (in memory) until the gnnPerform call
   torch::Tensor typeCon_features = torch::empty({_numTypeCons,5}, torch::kFloat32);
@@ -1196,6 +1196,9 @@ void SaturationAlgorithm::runGnnOnInput()
 
       (*symbol_features_ptr++) = symb->introduced();
       (*symbol_features_ptr++) = symb->skolem();
+      (*symbol_features_ptr++) = env.signature->isFoolConstantSymbol(false,f);
+      (*symbol_features_ptr++) = env.signature->isFoolConstantSymbol(true,f);
+
       auto db = symb->dbIndex();
       if (db.isSome()) {
         unsigned idx = db.unwrap();
@@ -1220,7 +1223,8 @@ void SaturationAlgorithm::runGnnOnInput()
       /*
       cout << "symb: " << funcToSymb(f) << " e0 w" << _ordering->functionSymbolWeight(f) << " a" << ot->arity() << " ta" << termArity << " # " << symb->name() << endl;
       cout << "  fnType: " << symb->fnType()->toString() << endl;
-      cout << "  i" << symb->introduced() << " s" << symb->skolem() << " d" << symb->dbIndex() << " a" << env.signature->isAppFun(f) << " l" << env.signature->isLamFun(f) << " c" << env.signature->isChoiceFun(f) << endl;
+      cout << "  i" << symb->introduced() << " s" << symb->skolem() << " f" << env.signature->isFoolConstantSymbol(false,f) << " t" << env.signature->isFoolConstantSymbol(true,f) << endl;
+      cout << "  d" << symb->dbIndex() << " a" << env.signature->isAppFun(f) << " l" << env.signature->isLamFun(f) << " c" << env.signature->isChoiceFun(f) << endl;
       cout << " ";
       for (unsigned proxy = 0; proxy < Signature::NOT_PROXY; proxy++) {
         cout << " " << (symb->proxy() == proxy);
