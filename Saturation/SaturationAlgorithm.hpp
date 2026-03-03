@@ -255,9 +255,9 @@ protected:
   ScopedPtr<NeuralClauseEvaluationModel> _neuralModel;
 
   // record the size of the signature at the time of gnn invocation
+  unsigned _numTypeCons;
   unsigned _numPreds;
   unsigned _numFuncs;
-  unsigned _numSorts;
 
   unsigned funcToSymb(unsigned f) {
     if (f > _numFuncs) {
