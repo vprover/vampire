@@ -36,23 +36,17 @@ Clause* unit(Literal* lit)
 
 static const auto tld = [](auto t) { return TermWithoutValue(TypedTermList(t)); };
 
-
 unique_ptr<TermSubstitutionTree<TermWithoutValue>> getTermIndexHOL()
 { return std::make_unique<TermSubstitutionTree<TermWithoutValue>>(); }
 
 unique_ptr<TermSubstitutionTree<TermWithoutValue>> getTermIndex()
-{ return std::make_unique<TermSubstitutionTree<TermWithoutValue>>();
-}
+{ return std::make_unique<TermSubstitutionTree<TermWithoutValue>>(); }
 
 template<class... Args>
-Stack<Literal*> constraints(Args... args) {
-  Stack<Literal*> lits;
-  lits.loadFromIterator(iterItems<Literal*>(args...));
-  return lits;
-}
+LiteralStack constraints(Args... args)
+{ return LiteralStack::fromIterator(iterItems<Literal*>(args...)); }
 
 inline auto noConstraints() { return constraints(); } 
-
 
 auto getLiteralIndex()
 { return std::make_unique<LiteralSubstitutionTree<LiteralClause>>(); }

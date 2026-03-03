@@ -23,12 +23,17 @@
 
 namespace Saturation {
 
+bool isHOLTerm(TermList t)
+{
+  return t.isLambdaTerm() || (t.isApplication() && t.head().isVar());
+}
+
 bool isHOLUnificationConstraint(Literal* lit)
 {
   if (!lit->isEquality() || lit->isPositive()) {
     return false;
   }
-  return lit->termArg(0).isLambdaTerm() || lit->termArg(1).isLambdaTerm();
+  return isHOLTerm(lit->termArg(0)) || isHOLTerm(lit->termArg(1));
 }
 
 Clause* HOLUnifier::handleClause(Clause* cl)
@@ -41,7 +46,10 @@ Clause* HOLUnifier::handleClause(Clause* cl)
     auto lit = (*cl)[i];
 
     if (isHOLUnificationConstraint(lit)) {
-      for (unsigned j = 0; j < i; j++) { lits.push((*cl)[j]); }
+      // first unification constraint, push all previous literals
+      if (lits.isEmpty()) {
+        for (unsigned j = 0; j < i; j++) { lits.push((*cl)[j]); }
+      }
       lits.push(introduceDefinition(lit));
       continue;
     }
@@ -121,6 +129,10 @@ Literal* HOLUnifier::introduceDefinition(Literal* lit)
     auto iff = new BinaryFormula(Connective::IFF, new AtomicFormula(p_lit), new AtomicFormula(nlit));
     auto quantified = new QuantifiedFormula(Connective::FORALL, vl, sl, iff);
     auto def = new FormulaUnit(quantified, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::HOL_UNIFIER_DEFINITION));
+
+    if (env.options->showAll()) {
+      std::cout << "[HOL] introduced definition " << def->toString() << std::endl;
+    }
 
     _defs.push(def);
     *sym_ptr = p;

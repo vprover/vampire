@@ -16,16 +16,17 @@
 using namespace Saturation;
 using namespace Test;
 
-#define MY_SYNTAX_SUGAR                         \
-  DECL_DEFAULT_VARS                             \
-  DECL_SORT(srt)                                \
-  DECL_FUNC(f, {srt, srt}, srt)                 \
-  DECL_CONST(g, arrow({srt, srt}, srt))         \
-  DECL_CONST(h, arrow({srt, srt, srt}, srt))    \
-  DECL_DE_BRUIJN_INDEX(dX, 0, srt)              \
-  DECL_CONST(a, {srt})                          \
-  DECL_CONST(b, {srt})                          \
-  NEXT_INTRODUCED_PRED(p_hol,0)                 \
+#define MY_SYNTAX_SUGAR                            \
+  DECL_DEFAULT_VARS                                \
+  DECL_SORT(srt)                                   \
+  DECL_VAR_SORTED(xs, 0, arrow({ srt, srt }, srt)) \
+  DECL_FUNC(f, {srt, srt}, srt)                    \
+  DECL_CONST(g, arrow({srt, srt}, srt))            \
+  DECL_CONST(h, arrow({srt, srt, srt}, srt))       \
+  DECL_DE_BRUIJN_INDEX(dX, 0, srt)                 \
+  DECL_CONST(a, {srt})                             \
+  DECL_CONST(b, {srt})                             \
+  NEXT_INTRODUCED_PRED(p_hol,0)                    \
   NEXT_INTRODUCED_PRED(q_hol,1)
 
 #define PREAMBLE                   \
@@ -66,6 +67,22 @@ TEST_FUN(constraints_1) {
   checkEqual(c2, clause({ ~p_hol(y), y == a }));
 }
 
+TEST_FUN(constraints_2) {
+  PREAMBLE;
+  auto c1 = clause({ ap(g,y) != lam(srt, dX), y == a, ap(ap(h,y),z) != lam(srt, dX), f(y,z) != b });
+  auto c2 = unifier.handleClause(c1);
+
+  checkEqual(c2, clause({ ~p_hol(y), y == a, ~q_hol(y,z), f(y,z) != b }));
+}
+
+TEST_FUN(constraints_3) {
+  PREAMBLE;
+  auto c1 = clause({ y == a, ap(ap(h,y),z) != lam(srt, dX), f(y,z) != b });
+  auto c2 = unifier.handleClause(c1);
+
+  checkEqual(c2, clause({ y == a, ~p_hol(y,z), f(y,z) != b }));
+}
+
 TEST_FUN(constraints_different) {
   PREAMBLE;
   auto c1 = clause({ ap(g,y) != lam(srt, dX), y == a });
@@ -90,4 +107,12 @@ TEST_FUN(constraints_same) {
   auto d2 = unifier.handleClause(d1);
 
   checkEqual(d2, clause({ ~p_hol(z), f(y,z) != b }));
+}
+
+TEST_FUN(constraints_iteration) {
+  PREAMBLE;
+  auto c1 = clause({ ap(ap(xs, a), b) != ap(ap(g, b), a) });
+  auto c2 = unifier.handleClause(c1);
+
+  checkEqual(c2, clause({ ~p_hol(xs) }));
 }
