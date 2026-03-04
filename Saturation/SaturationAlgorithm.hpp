@@ -164,11 +164,12 @@ private:
   DHSet<unsigned> _predecessorsShown;
   // void showPredecessors(Clause* c); // left only for documentation purposes
   void showPredecessorsNR(Clause* cl); // a non-recursive version
-  // we need both as literal have a different counter in term sharing than terms
+  // we need all three as literal/sort have a different counter in term sharing than terms
   DHSet<unsigned> _subtermsShown;
   DHSet<unsigned> _literalsShown;
+  DHSet<unsigned> _sortsShown;
   // void showSubterms(Term* t); // left only for documentation purposes
-  void showSubtermsNR(Term* t); // a non-recursive version
+  void showSubtermsNR(Term* t);  // a non-recursive version (works for sorts as well)
   void showClauseLiterals(Clause* c);
 
   // to remember which clauses have already had their feature vector shown
@@ -259,22 +260,29 @@ protected:
   unsigned _numPreds;
   unsigned _numFuncs;
 
+  unsigned predToSymb(unsigned p) {
+    if (p > _numPreds) {
+      throw InvalidOperationException("Predicate introduced after preprocessing.");
+    }
+    return p;
+  }
+
   unsigned funcToSymb(unsigned f) {
     if (f > _numFuncs) {
-      // the idea is that any function symbol that gets created during saturation (for now it's the ari numerals)
-      // gets represented by the final embedding of the respective output sort
-      return _numPreds + _numFuncs + env.signature->getFunction(f)->fnType()->result().term()->functor();
+      // let's have a one slot at the end of the table for symbols introduced on the fly (see also typeConToSymb below)
+      return _numPreds + _numFuncs + _numTypeCons;
     } else {
       // other than that, function symbols are (for the NN) represented as lying "after" the predicate symbols in a single table
       return _numPreds+f;
     }
   }
 
-  unsigned predToSymb(unsigned p) {
-    if (p > _numPreds) {
-      throw InvalidOperationException("Predicate introduced after preprocessing.");
+  // although the GNN treats type constructors separately (for now), when building the trees, we assume the typeCon embeddings are concatenated after the symbols ones
+  unsigned typeConToSymb(unsigned c) {
+    if (c > _numTypeCons) {
+      throw InvalidOperationException("Type constructor introduced after preprocessing.");
     }
-    return p;
+    return _numPreds + _numFuncs + c;
   }
 
   /** Number of clauses that entered the unprocessed container */

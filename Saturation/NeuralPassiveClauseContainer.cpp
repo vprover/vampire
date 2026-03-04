@@ -117,7 +117,9 @@ NeuralClauseEvaluationModel::NeuralClauseEvaluationModel(const std::string claus
 
   _gweightEmbeddingSize = (*_model.find_method("gweight_embedding_size"))({}).toInt();
   auto _gweightVarEmbed = _model.attr("gweight_var_embed").toModule().forward({torch::Tensor()}).toTensor();
+  auto _gweightSVarEmbed = _model.attr("gweight_svar_embed").toModule().forward({torch::Tensor()}).toTensor();
   _gweightTermEmbedStore.insert(0,_gweightVarEmbed);
+  _gweightTermEmbedStore.insert(1,_gweightSVarEmbed);
 
   _gweightTermCombine = _model.attr("gweight_term_combine").toModule();
 
