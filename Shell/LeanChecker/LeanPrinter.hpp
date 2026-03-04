@@ -2,6 +2,7 @@
 #define __LEAN__PRINTER__
 
 #include <ostream>
+#include <string>
 #include <vector>
 #include <set>
 #include "Forwards.hpp"
@@ -9,6 +10,7 @@
 #include "Kernel/Theory.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/Stack.hpp"
 #include "Saturation/Splitter.hpp"
 
 using namespace Kernel;
@@ -157,7 +159,7 @@ struct Identity {
 };
 
 template <typename Transform = Identity>
-void outputVariablesFromStack(std::ostream &out, Kernel::VStack vars, SortMap &conclSorts, SortMap &varSorts, Transform trans = Transform{}, int sort = 1, bool printSorts = false)
+void outputVariablesFromStack(std::ostream &out, Kernel::VStack vars, SortMap &conclSorts, SortMap &varSorts, Transform trans = Transform{}, int sort = 1, bool printSorts = false, std::string seperator = " ") 
 {
   if (sort!=0) {
     vars.sort();
@@ -183,7 +185,7 @@ void outputVariablesFromStack(std::ostream &out, Kernel::VStack vars, SortMap &c
     }
     printArgs(out, Args{&translatedTerm, conclSorts, newVarSorts}, false, true);
     if(x != vars.size() -1){
-      out << " ";
+      out << seperator;
     }
     if (printSorts) {
       if (translatedTerm.isVar()) {
@@ -198,29 +200,29 @@ void outputVariablesFromStack(std::ostream &out, Kernel::VStack vars, SortMap &c
 }
 
 template <typename itertype, typename Transform = Identity>
-void outputVariablesGen(std::ostream &out, itertype &iterator, SortMap &conclSorts, SortMap &varSorts, Transform trans = Transform{}, int sort = true, bool printSorts = false)
+void outputVariablesGen(std::ostream &out, itertype &iterator, SortMap &conclSorts, SortMap &varSorts, Transform trans = Transform{}, int sort = true, bool printSorts = false, std::string seperator = " ")
 {
   Kernel::VStack vars;
   while(iterator.hasNext()) {
     vars.push(iterator.next());
   }
-  outputVariablesFromStack<Transform>(out, vars, conclSorts, varSorts, trans, sort, printSorts);
+  outputVariablesFromStack<Transform>(out, vars, conclSorts, varSorts, trans, sort, printSorts, seperator);
 }
 
 template <typename Transform = Identity>
-void outputVariables(std::ostream &out, VirtualIterator<unsigned int> &iterator , SortMap &conclSorts, SortMap &varSorts, Transform trans = Transform{}, int sort = true, bool printSorts = false)
+void outputVariables(std::ostream &out, VirtualIterator<unsigned int> &iterator , SortMap &conclSorts, SortMap &varSorts, Transform trans = Transform{}, int sort = true, bool printSorts = false, std::string seperator = " ")
 {
-  outputVariablesGen<VirtualIterator<unsigned int>, Transform>(out, iterator, conclSorts, varSorts, trans, sort, printSorts);
+  outputVariablesGen<VirtualIterator<unsigned int>, Transform>(out, iterator, conclSorts, varSorts, trans, sort, printSorts, seperator);
 }
 
 template <typename Transform = Identity>
-void outputVariables(std::ostream &out, std::vector<unsigned int>* variables, SortMap &conclSorts, SortMap &varSorts, Transform trans = Transform{}, int sort = true, bool printSorts = false)
+void outputVariables(std::ostream &out, std::vector<unsigned int>* variables, SortMap &conclSorts, SortMap &varSorts, Transform trans = Transform{}, int sort = true, bool printSorts = false, std::string seperator = " ")
 {
   Kernel::VStack vars;
   for (unsigned int x : *variables) {
     vars.push(x);
   }
-  outputVariablesFromStack(out, vars, conclSorts, varSorts, trans, sort, printSorts);
+  outputVariablesFromStack(out, vars, conclSorts, varSorts, trans, sort, printSorts, seperator);
 }
 
 } // namespace LeanPrinter

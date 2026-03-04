@@ -15,10 +15,14 @@
  */
 
 
+#include "Inferences/ProofExtra.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/FormulaUnit.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/ProofExtra.hpp"
+#include "Shell/Options.hpp"
 #include "CNF.hpp"
 
 using namespace Kernel;
@@ -59,6 +63,9 @@ void CNF::clausify (Unit* unit,Stack<Clause*>& stack)
     return;
   default:
     clausify(f);
+  }
+  if(env.options->proofExtra() == Options::ProofExtra::LEAN){
+    env.proofExtra.insert(unit, new Inferences::CNFTransformationInferenceExtra(_result->size()));
   }
 } // CNF::clausify()
 
@@ -145,7 +152,7 @@ void CNF::clausify(Formula* f)
 
   Stack<std::pair<TodoTag,TodoVal>> todo;
   todo.push(std::make_pair<TodoTag,TodoVal>(MAIN,{.aFla = f}));
-
+  unsigned nthGeneratedClause = 0;
   do {
     ASS(todo.isNonEmpty());
     auto task = todo.pop();
@@ -163,6 +170,9 @@ void CNF::clausify(Formula* f)
             // collect the clause
             _result->push(Clause::fromStack(_literals,
                 FormulaClauseTransformation(InferenceRule::CLAUSIFY,_unit)));
+            if(env.options->proofExtra() == Options::ProofExtra::LEAN){
+              env.proofExtra.insert(_result->top(), new Inferences::CNFTransformationInferenceExtra(nthGeneratedClause++));
+            }
             _literals.pop();
           }
           else {

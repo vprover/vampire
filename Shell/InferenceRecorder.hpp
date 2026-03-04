@@ -9,7 +9,6 @@
 #include "Kernel/Substitution.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Shell/EqResWithDeletion.hpp"
-#include <iostream>
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -17,11 +16,20 @@
 namespace Shell {
 class InferenceRecorder {
 public:
-  class InferenceInformation {
+  class GenericInferenceInformation {
+    public:
+  };
+
+  class InferenceInformation : public GenericInferenceInformation {
   public:
     Kernel::Clause *conclusion;
     std::vector<Kernel::Clause *> premises;
     std::vector<Kernel::Substitution> substitutionForBanksSub;
+  };
+
+  class RectifyInferenceExtra : public GenericInferenceInformation {
+    public:
+      std::vector<std::pair<Kernel::Formula*, Kernel::Substitution>> renamings;
   };
 
   // Returns the singleton instance (lazily initialized, thread-safe)
@@ -44,6 +52,17 @@ public:
 
   void backwardDemodulation(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const SubstApplicator &appl);
 
+  void rectify(Formula* f, VList* vs, Substitution renaming);
+
+  void startRectifyRecording(){
+    _currentRecording = std::make_unique<RectifyInferenceExtra>();
+  }
+
+  void endRectifyRecording(unsigned int id){
+    _lastInferenceId = id;
+    _inferences[id] = std::move(_currentRecording);
+  }
+
   //void unitResultingResolution(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Unit *> &premises, const std::vector<Indexing::ResultSubstitutionSP> &substitutions);
 
   void setCurrentGoal(Kernel::Clause *goal)
@@ -53,6 +72,14 @@ public:
   }
 
   const InferenceInformation *getLastRecordedInferenceInformation() const
+  {
+    auto it = _inferences.find(_lastInferenceId);
+    if (it != _inferences.end())
+      return static_cast<const InferenceInformation *>(it->second.get());
+    return nullptr;
+  }
+
+  const GenericInferenceInformation *getGenericLastInferenceInformation() const
   {
     auto it = _inferences.find(_lastInferenceId);
     if (it != _inferences.end())
@@ -209,8 +236,9 @@ private:
   
 
   Kernel::Clause *_currentGoal = nullptr;
-  std::unordered_map<unsigned int, std::unique_ptr<InferenceInformation>> _inferences;
+  std::unordered_map<unsigned int, std::unique_ptr<GenericInferenceInformation>> _inferences;
   unsigned int _lastInferenceId = 0;
+  std::unique_ptr<GenericInferenceInformation> _currentRecording = nullptr;
 };
 } // namespace Shell
 

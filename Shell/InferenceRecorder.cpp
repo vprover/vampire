@@ -14,6 +14,7 @@
 #include "Kernel/Term.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Shell/EqResWithDeletion.hpp"
+#include "Shell/Rectify.hpp"
 #include <cstddef>
 #include <unordered_map>
 #include <vector>
@@ -226,6 +227,40 @@ void InferenceRecorder::backwardDemodulation(unsigned int id, Clause *conclusion
       return subst(term.var());
     }
   );
+}
+
+void InferenceRecorder::rectify(Formula* f, VList* vs, Substitution renaming)
+{
+  
+  std::unique_ptr<RectifyInferenceExtra> extra = std::make_unique<RectifyInferenceExtra>();
+
+  Kernel::Substitution substVariablesInQuantifier;
+  auto quantifierIter = f->vars()->iter();
+  auto argIter = vs->iter();
+  std::vector<unsigned> originalVars;
+  std::vector<unsigned> rectifiedVars;
+  while(quantifierIter.hasNext() && argIter.hasNext()) {
+    originalVars.push_back(quantifierIter.next());
+    rectifiedVars.push_back(argIter.next());
+  }
+  std::sort(originalVars.begin(), originalVars.end());
+  std::sort(rectifiedVars.begin(), rectifiedVars.end());
+  
+  for(size_t i = 0; i < originalVars.size(); i++) {
+    substVariablesInQuantifier.bind(rectifiedVars[i], TermList::var(originalVars[i]));
+  }
+  //std::cout << substVariablesInFormula << std::endl;
+  //std::cout << substVariablesInQuantifier << std::endl;
+  ASS(!quantifierIter.hasNext());
+  ASS(!argIter.hasNext());
+  Substitution combinedSubst;
+  for(auto v : iterTraits(f->vars()->iter())) {
+    combinedSubst.bind(v, substVariablesInQuantifier.apply(renaming.apply(v).var()));
+  }
+  //std::cout << "Combined" << combinedSubst << std::endl;
+  static_cast<RectifyInferenceExtra*>(_currentRecording.get())->
+    renamings.emplace_back(f, combinedSubst);
+
 }
 
 bool InferenceRecorder::isSameAsProofStep(Clause *clause, Clause *goal, const std::vector<Clause *> &premises, std::unordered_map<unsigned int, unsigned int> &outVarMap)

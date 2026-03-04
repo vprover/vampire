@@ -14,6 +14,7 @@
  * @since 23/01/2004 Manchester, changed to use non-static objects
  */
 
+#include "Kernel/Substitution.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Recycled.hpp"
 
@@ -24,6 +25,9 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
+#include "Shell/InferenceRecorder.hpp"
+#include <cstddef>
+#include <utility>
 
 #include "Rectify.hpp"
 
@@ -70,6 +74,9 @@ FormulaUnit* Rectify::rectify (FormulaUnit* unit0, bool removeUnusedVars)
   Formula* f = unit->formula();
   Rectify rect;
   rect._removeUnusedVars = removeUnusedVars;
+  if(env.reconstruction) {
+    InferenceRecorder::instance()->startRectifyRecording();
+  }
   Formula* g = rect.rectify(f);
 
   VList* vars = rect._free;
@@ -81,6 +88,9 @@ FormulaUnit* Rectify::rectify (FormulaUnit* unit0, bool removeUnusedVars)
   if (VList::isNonEmpty(vars)) {
     //TODO do we know the sorts of vars?
     unit = new FormulaUnit(new QuantifiedFormula(FORALL,vars,0,g),FormulaClauseTransformation(InferenceRule::CLOSURE,unit));
+  }
+  if(unit != NULL && env.reconstruction) {
+    InferenceRecorder::instance()->endRectifyRecording(unit->number());
   }
   return unit;
 } // Rectify::rectify (Unit& unit)
@@ -424,6 +434,13 @@ Formula* Rectify::rectify (Formula* f)
     bindVars(f->vars());
     Formula* arg = rectify(f->qarg());
     VList* vs = rectifyBoundVars(f->vars());
+    if(env.reconstruction) {
+      Kernel::Substitution substVariablesInFormula;
+      for(auto v : iterTraits(f->vars()->iter())) {
+        substVariablesInFormula.bind(v, TermList::var(_renaming.getBoundAndUsage(v).first));
+      }
+      InferenceRecorder::instance()->rectify(f, vs, substVariablesInFormula);
+    }
     unbindVars(f->vars());
     if (vs == f->vars() && arg == f->qarg()) {
       return f;

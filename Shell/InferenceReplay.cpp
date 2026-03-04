@@ -6,8 +6,10 @@
 #include "Inferences/ForwardDemodulation.hpp"
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/Superposition.hpp"
+#include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Shell/EqResWithDeletion.hpp"
+#include "Shell/Rectify.hpp"
 
 namespace Shell {
 void InferenceReplayer::replayInference(Kernel::Unit *u)
@@ -58,6 +60,9 @@ void InferenceReplayer::replayInference(Kernel::Unit *u)
     Inferences::Factoring fact;
     runGenerating(&fact,
                          stack, u->asClause());
+  } else if (u->inference().rule() == InferenceRule::RECTIFY) {
+    FormulaUnit *fu = static_cast<FormulaUnit *>(u->getParents().next());
+    Rectify::rectify(fu);
   }
   else {
     return; // not replayable yet

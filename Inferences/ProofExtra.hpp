@@ -69,6 +69,16 @@ struct RewriteInferenceExtra : public InferenceExtra {
   Kernel::TermList rewritten;
 };
 
+struct CNFTransformationInferenceExtra : public InferenceExtra {
+  CNFTransformationInferenceExtra(unsigned int number)
+    : number(number) {}
+
+  void output(std::ostream &out) const override;
+
+  // the rewrite information for the transformation
+  unsigned number;
+};
+
 struct TwoLiteralRewriteInferenceExtra : public InferenceExtra {
   TwoLiteralRewriteInferenceExtra(
     Kernel::Literal *selected,
