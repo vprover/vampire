@@ -151,7 +151,7 @@ static TermList formulaToNameless(Formula *formula, const VarToIndexMap& map) {
         if (s == AtomicSort::superSort()) {
           USER_ERROR("Vampire does not support full TH1. This benchmark is either outside of the TH1 fragment, or outside of the fragment supported by Vampire");
         }
-        const auto vs = VSList::singleton(std::make_pair(v, s));
+        const auto vs = VSList::singleton({v, s});
         const auto t = TermList(Term::createLambda(form, vs, AtomicSort::boolSort()));
         form = HOL::create::app(conn == Connective::FORALL ? HOL::create::pi(s)
                                                            : HOL::create::sigma(s), t);

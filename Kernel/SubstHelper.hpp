@@ -531,7 +531,7 @@ Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator, bool noShari
       TermList binding = applicator.apply(v);
       ASS(binding.isVar());
       unsigned newVar = binding.var();
-      VSList::push(std::make_pair(newVar, sort), newVars);
+      VSList::push({newVar, sort}, newVars);
       if(newVar!=v) {
         varsModified = true;
       }

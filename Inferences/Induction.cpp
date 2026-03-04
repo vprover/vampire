@@ -151,7 +151,7 @@ Formula* InductionContext::getFormula(
   }
   auto left = hyps ? JunctionFormula::generalJunction(Connective::AND, hyps) : nullptr;
   auto hypVars = VSList::fromIterator(iterTraits(unit.condUnivVars.iterFifo())
-    .map([&typeBinder](auto kv) { return std::make_pair(kv.first, SubstHelper::apply(kv.second, typeBinder)); }));
+    .map([&typeBinder](auto kv) -> VarSort { return {kv.first, SubstHelper::apply(kv.second, typeBinder)}; }));
   if (hypVars) {
     ASS(left);
     left = new QuantifiedFormula(Connective::FORALL, hypVars, left);
@@ -168,7 +168,7 @@ Formula* InductionContext::getFormula(
     DHMap<unsigned, TermList> varSorts;
     SortHelper::collectVariableSorts(f, varSorts);
     auto vs = VSList::fromIterator(iterTraits(VList::Iterator(renamedFreeVars))
-      .map([&varSorts](unsigned v) { return std::make_pair(v, varSorts.get(v)); }));
+      .map([&varSorts](unsigned v) -> VarSort { return {v, varSorts.get(v)}; }));
     f = new QuantifiedFormula(Connective::EXISTS, vs, f);
   }
   return f;
@@ -1246,7 +1246,7 @@ void InductionClauseIterator::performInduction(const InductionContext& context, 
     }
     auto left = hyps ? JunctionFormula::generalJunction(Connective::AND, hyps) : nullptr;
     auto hypVars = VSList::fromIterator(iterTraits(c.hypUnivVars.iterFifo())
-      .map([](auto kv) { return std::make_pair(kv.first, SubstHelper::apply(kv.second, typeBinder)); }));
+      .map([](auto kv) -> VarSort { return {kv.first, SubstHelper::apply(kv.second, typeBinder)}; }));
     if (hypVars) {
       ASS(left);
       left = new QuantifiedFormula(Connective::FORALL, hypVars, left);
@@ -1314,10 +1314,10 @@ void InductionClauseIterator::performStructInductionFreeVar(const InductionConte
     for (unsigned j = numTypeArgs; j < arity; j++){
       TermList y(var++, false);
       argTerms.push(y);
-      VSList::push(std::make_pair(y.var(), con->argSort(j)), ys);
+      VSList::push({y.var(), con->argSort(j)}, ys);
       if (con->argSort(j) == con->rangeSort()){
         unsigned w = var++;
-        VSList::push(std::make_pair(w, freeVarSort), ws);
+        VSList::push({w, freeVarSort}, ws);
         Formula* curLit = context.getFormulaWithFreeVar(y, freeVar, w);
         FormulaList::push(curLit, hyps); // L[y_j, w_j]
         // Synthesis specific:
@@ -1333,7 +1333,7 @@ void InductionClauseIterator::performStructInductionFreeVar(const InductionConte
       }
     }
     unsigned u = var++;
-    VSList::push(std::make_pair(u, freeVarSort), us);
+    VSList::push({u, freeVarSort}, us);
 
     Term* tcons = Term::create(con->functor(), (unsigned)argTerms.size(), argTerms.begin());
 
@@ -1356,8 +1356,8 @@ void InductionClauseIterator::performStructInductionFreeVar(const InductionConte
   Formula* conclusion = context.getFormulaWithFreeVar(z, freeVar, x, &subst);
   // Put together the whole induction axiom:
   formula = new BinaryFormula(Connective::IMP, formula, conclusion);
-  formula = new QuantifiedFormula(Connective::EXISTS, VSList::singleton(std::make_pair(x, freeVarSort)), formula);
-  formula = new QuantifiedFormula(Connective::FORALL, VSList::singleton(std::make_pair(z.var(), sort)), formula);
+  formula = new QuantifiedFormula(Connective::EXISTS, VSList::singleton({x, freeVarSort}), formula);
+  formula = new QuantifiedFormula(Connective::FORALL, VSList::singleton({z.var(), sort}), formula);
   formula = new QuantifiedFormula(Connective::FORALL, us, formula);
   if (!VSList::isEmpty(ws)) {
     formula = new QuantifiedFormula(Connective::EXISTS, ws, formula);

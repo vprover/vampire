@@ -532,7 +532,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
           while (vit.hasNext()) {
             unsigned v = vit.next();
             TermList s = _varSorts.get(v, AtomicSort::defaultSort());
-            vsfifo.pushBack(std::make_pair(v, s));
+            vsfifo.pushBack({v, s});
           }
           thenImplication = new QuantifiedFormula(FORALL, vsfifo.list(), thenImplication);
         }
@@ -551,7 +551,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
           while (vit.hasNext()) {
             unsigned v = vit.next();
             TermList s = _varSorts.get(v, AtomicSort::defaultSort());
-            vsfifo.pushBack(std::make_pair(v, s));
+            vsfifo.pushBack({v, s});
           }
           elseImplication = new QuantifiedFormula(FORALL, vsfifo.list(), elseImplication);
         }
@@ -707,7 +707,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
           while (vit.hasNext()) {
             unsigned v = vit.next();
             TermList s = _varSorts.get(v, AtomicSort::defaultSort());
-            vsfifo.pushBack(std::make_pair(v, s));
+            vsfifo.pushBack({v, s});
           }
           freshSymbolDefinition = new QuantifiedFormula(FORALL, vsfifo.list(), freshSymbolDefinition);
         }
@@ -790,7 +790,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
             while (vit.hasNext()) {
               unsigned v = vit.next();
               TermList s = _varSorts.get(v, AtomicSort::defaultSort());
-              vsfifo.pushBack(std::make_pair(v, s));
+              vsfifo.pushBack({v, s});
             }
             freshSymbolDefinition = new QuantifiedFormula(FORALL, vsfifo.list(), freshSymbolDefinition);
           }
@@ -870,7 +870,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
             while (vit.hasNext()) {
               unsigned v = vit.next();
               TermList s = _varSorts.get(v, AtomicSort::defaultSort());
-              vsfifo.pushBack(std::make_pair(v, s));
+              vsfifo.pushBack({v, s});
             }
             impl = new QuantifiedFormula(FORALL, vsfifo.list(), impl);
           }

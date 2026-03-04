@@ -91,7 +91,7 @@ FormulaUnit* Rectify::rectify (FormulaUnit* unit0, bool removeUnusedVars)
       if (!varSorts.find(v, s)) {
         s = AtomicSort::defaultSort();
       }
-      vsfifo.pushBack(std::make_pair(v, s));
+      vsfifo.pushBack({v, s});
     }
     unit = new FormulaUnit(new QuantifiedFormula(FORALL, vsfifo.list(), g),FormulaClauseTransformation(InferenceRule::CLOSURE,unit));
   }
@@ -538,7 +538,7 @@ VSList* Rectify::rectifyBoundVars(VSList* vs)
       if ((int)v == w && rectifiedSort == sort && vtail == ws) {
         res = vs;
       } else {
-        res = VSList::cons(std::make_pair((unsigned)w, rectifiedSort), ws);
+        res = VSList::cons({(unsigned)w, rectifiedSort}, ws);
       }
     }
   }

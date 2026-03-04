@@ -1184,7 +1184,7 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
       if (!varSorts.find(v, s)) {
         s = AtomicSort::defaultSort();
       }
-      vsfifo.pushBack(std::make_pair(v, s));
+      vsfifo.pushBack({v, s});
     }
     def = new QuantifiedFormula(FORALL, vsfifo.list(), def);
   }

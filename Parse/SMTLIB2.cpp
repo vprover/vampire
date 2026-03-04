@@ -2226,7 +2226,7 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const std::string& id, LExpr* exp)
       VSList::FIFO qvarSorts;
 
       for(Binding binding : _lookups.top().bindings) {
-        qvarSorts.pushBack(std::make_pair(binding.term.var(), binding.sort));
+        qvarSorts.pushBack({binding.term.var(), binding.sort});
       }
       _lookups.pop();
 
@@ -2838,7 +2838,7 @@ void SMTLIB2::readAssertSynth(LExpr* forall, LExpr* exist, LExpr* body)
       auto var = TermList::var(_nextVar++);
       auto sort = parseSort(pRdr.readExpr());
       tryInsertIntoCurrentLookup(name, var, sort);
-      VSList::push(std::make_pair(var.var(),sort),varSorts);
+      VSList::push({var.var(),sort},varSorts);
     }
     return varSorts;
   };

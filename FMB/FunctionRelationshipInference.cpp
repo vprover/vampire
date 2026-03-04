@@ -225,7 +225,7 @@ void FunctionRelationshipInference::addClaimForFunction(TermList x, TermList y, 
                                                TermList arg_srt, TermList ret_srt, VList* existential,
                                                ClauseList*& newClauses)
 {
-    VSList* xy = VSList::cons(std::make_pair(0, arg_srt), VSList::cons(std::make_pair(1, arg_srt), VSList::empty()));
+    VSList* xy = VSList::cons({0, arg_srt}, VSList::cons({1, arg_srt}, VSList::empty()));
 
     Formula* eq_fxfy = new AtomicFormula(Literal::createEquality(true,fx,fy,ret_srt));
     Formula* eq_xy = new AtomicFormula(Literal::createEquality(true,x,y,arg_srt));
@@ -234,8 +234,8 @@ void FunctionRelationshipInference::addClaimForFunction(TermList x, TermList y, 
       new QuantifiedFormula(FORALL, xy, new BinaryFormula(IMP,eq_fxfy,eq_xy));
 
     Formula* surjective =
-      new QuantifiedFormula(FORALL, VSList::singleton(std::make_pair(1, ret_srt)),
-      new QuantifiedFormula(EXISTS, VSList::singleton(std::make_pair(0, arg_srt)),
+      new QuantifiedFormula(FORALL, VSList::singleton({1, ret_srt}),
+      new QuantifiedFormula(EXISTS, VSList::singleton({0, arg_srt}),
       new AtomicFormula(Literal::createEquality(true,fx,y,ret_srt))));
 
     Formula* ing_and_nons = new JunctionFormula(AND,
@@ -257,7 +257,7 @@ void FunctionRelationshipInference::addClaimForFunction(TermList x, TermList y, 
         if (!varSorts.find(v, s)) {
           s = AtomicSort::defaultSort();
         }
-        vsfifo.pushBack(std::make_pair(v, s));
+        vsfifo.pushBack({v, s});
       }
       VSList* existentialVS = vsfifo.list();
       injective  = new QuantifiedFormula(EXISTS, existentialVS, injective);

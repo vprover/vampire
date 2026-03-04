@@ -1151,8 +1151,8 @@ void TheoryAxioms::addExhaustivenessAxiom(TermAlgebra* ta) {
       }
       disjunction = new JunctionFormula(Connective::OR, fl);
     }
-    VSList* vars = VSList::singleton(std::make_pair(x.var(), ta->sort()));
-    auto universal = new QuantifiedFormula(Connective::FORALL, vars, disjunction);
+    auto universal = new QuantifiedFormula(Connective::FORALL, VSList::singleton({x.var(), ta->sort()}),
+      disjunction);
 
     axiom = new FormulaUnit(universal, TheoryAxiom(InferenceRule::TERM_ALGEBRA_EXHAUSTIVENESS_AXIOM));
 

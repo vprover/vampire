@@ -102,7 +102,7 @@ Term* HOL::create::lambda(unsigned numArgs, const unsigned* vars, const TermList
 
   VSList* vsList = VSList::empty();
   for (int i = numArgs - 1; i >= 0; i--) {
-    VSList::push(std::make_pair(vars[i], varSorts[i]), vsList);
+    VSList::push({vars[i], varSorts[i]}, vsList);
   }
   sp->setLambdaVars(vsList);
 

@@ -394,7 +394,7 @@ Formula* Skolem::skolemise (Formula* f)
           TermList var = TermList(uvar, false);
           allVars.push(var);
           typeVars.push(var);
-          vArgs.pushFront(std::make_pair(uvar, sort));
+          vArgs.pushFront({uvar, sort});
         } else {
           //This is a term variable
           if (sort.isVar() || !sort.term()->shared() || !sort.term()->ground()) {
@@ -403,7 +403,7 @@ Formula* Skolem::skolemise (Formula* f)
           }
           termVarSorts.push(sort);
           termVars.push(TermList(uvar, false));
-          vArgs.pushBack(std::make_pair(uvar, sort));
+          vArgs.pushBack({uvar, sort});
         }
         arity++;
       }

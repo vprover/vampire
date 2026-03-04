@@ -52,7 +52,7 @@ static VSList* zipVarsSorts(VList* vars, SList* sorts) {
   SList::Iterator sit(sorts);
   while (vit.hasNext()) {
     ASS(sit.hasNext());
-    fifo.pushBack(std::make_pair(vit.next(), sit.next()));
+    fifo.pushBack({vit.next(), sit.next()});
   }
   return fifo.list();
 }

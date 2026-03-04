@@ -422,7 +422,7 @@ Formula* Formula::createDefinition(Term* lhs, TermList rhs, VList* uVars)
       if (!varSortMap.find(v, s)) {
         s = AtomicSort::defaultSort();
       }
-      vsfifo.pushBack(std::make_pair(v, s));
+      vsfifo.pushBack({v, s});
     }
     res = new QuantifiedFormula(Connective::FORALL, vsfifo.list(), res);
   }
