@@ -2233,7 +2233,9 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const std::string& id, LExpr* exp)
       }
       _lookups.pop();
 
-      Formula* res = new QuantifiedFormula((fs==FS_EXISTS) ? Kernel::EXISTS : Kernel::FORALL, qvars.list(), qsorts.list(), argFla);
+      Formula* res = qvars.empty()
+        ? argFla
+        : new QuantifiedFormula((fs==FS_EXISTS) ? Kernel::EXISTS : Kernel::FORALL, qvars.list(), qsorts.list(), argFla);
 
       _results.push(ParseResult(res));
       return true;
