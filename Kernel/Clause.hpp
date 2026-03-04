@@ -121,11 +121,14 @@ public:
     unsigned _justNeq;
     unsigned _numVarOcc;
 
+    unsigned _avs;
+    unsigned _lms;
+
     float _thAnc;
     float _allAnc;
 
   public:
-    inline static constexpr unsigned NUM_FEATURES = 15;
+    inline static constexpr unsigned NUM_FEATURES = 17;
 
     FeatureIterator(Clause* cl) :
       _cl(cl), _featureId(0),
@@ -146,6 +149,16 @@ public:
       if (_thAnc > 1024.0) { _thAnc = 1024.0; }
       _allAnc = _cl->inference().all_ancestors;
       if (_allAnc > 1024.0) { _allAnc = 1024.0; }
+    }
+
+    void collectNumOfAppVarsAndLambdas() {
+      _avs = 0;
+      _lms = 0;
+      for(unsigned i = 0; i < _cl->size(); i++){
+        auto [avs,lams] = (*_cl)[i]->numOfAppVarsAndLambdas();
+        _avs += avs;
+        _lms += lams;
+      }
     }
 
     bool hasNext() {
@@ -203,13 +216,20 @@ public:
           return _cl->splitWeight();
 
         case 12:
+          collectNumOfAppVarsAndLambdas();
+          return _avs;
+
+        case 13:
+          return _lms;
+
+        case 14:
           collectBoundedThStuff();
           return _thAnc / _allAnc;
 
-        case 13:
+        case 15:
           return _thAnc;
 
-        case 14:
+        case 16:
           return _allAnc;
 
         default:
