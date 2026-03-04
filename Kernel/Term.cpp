@@ -708,43 +708,43 @@ bool TermList::containsLooseIndex() const {
     }
     if(item.t.isApplication()){
       toDo.push(TermListWD { .t = item.t.lhs(), .depth = dep, } );
-      toDo.push(TermListWD { .t = item.t.rhs(), .depth = dep, } );      
+      toDo.push(TermListWD { .t = item.t.rhs(), .depth = dep, } );
     }
   }
   return false;
 }
 
-unsigned TermList::numOfAppVarsAndLambdas() const {
+std::pair<unsigned,unsigned> TermList::numOfAppVarsAndLambdas() const {
   CALL("TermList::numOfAppVarsAndLambdas");
 
   if (isVar()) {
-    return 0;
+    return {0,0};
   }
   const Term* t = term();
 
-  static DHMap<const Term*,unsigned> cache;
-
-  unsigned* cached;
+  static DHMap<const Term*,std::pair<unsigned,unsigned>> cache;
+  std::pair<unsigned,unsigned>* cached;
   if (!cache.getValuePtr(t,cached)) {
     return *cached;
   }
 
   // it's OK that the entry in cache has already been created, will only possibly ask for proper subterms
-
-  unsigned res = 0;
-
+  std::pair<unsigned,unsigned> res = {0,0};
   if (isLambdaTerm()) {
-    res = env.options->hoFeaturesLambdaWeight() + lambdaBody().numOfAppVarsAndLambdas();
+    auto [avs,lms] = lambdaBody().numOfAppVarsAndLambdas();
+    res = {avs,lms + env.options->hoFeaturesLambdaWeight()};
   } else if (isApplication()) {
     TermList head;
     TermStack args;
     ApplicativeHelper::getHeadAndArgs(t, head, args);
     ASS(!head.isLambdaTerm()); // should be beta-reduced
     if(head.isVar()) {
-      res += env.options->hoFeaturesAppVarWeight();
+      res.first += env.options->hoFeaturesAppVarWeight();
     }
     while(!args.isEmpty()){
-      res += args.pop().numOfAppVarsAndLambdas();
+      auto [avs,lms] = args.pop().numOfAppVarsAndLambdas();
+      res.first += avs;
+      res.second += lms;
     }
   }
 
@@ -754,7 +754,7 @@ unsigned TermList::numOfAppVarsAndLambdas() const {
 
 Option<unsigned> TermList::deBruijnIndex() const {
   CALL("TermList::deBruijnIndex");
-  return isVar() ? Option<unsigned>() : term()->deBruijnIndex();  
+  return isVar() ? Option<unsigned>() : term()->deBruijnIndex();
 }
 
 Option<unsigned> Term::deBruijnIndex() const {
@@ -2475,14 +2475,14 @@ bool Literal::isRigidRigid() const
   return lhs.head().isTerm() && rhs.head().isTerm();
 }
 
-unsigned Literal::numOfAppVarsAndLambdas() const 
+std::pair<unsigned,unsigned> Literal::numOfAppVarsAndLambdas() const
 {
   CALL("Literal::numOfAppVarsAndLambdas");
   ASS(isEquality());
 
-  TermList lhs = *nthArgument(0);
-  TermList rhs = *nthArgument(1);
-  return lhs.numOfAppVarsAndLambdas() + rhs.numOfAppVarsAndLambdas();
+  auto [avs0,lms0] = nthArgument(0)->numOfAppVarsAndLambdas();
+  auto [avs1,lms1] = nthArgument(1)->numOfAppVarsAndLambdas();
+  return {avs0+avs1,lms0+lms1};
 }
 
 #endif

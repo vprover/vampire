@@ -518,7 +518,8 @@ float HoFeaturesMultiSplitPassiveClauseContainer::evaluateFeature(Clause* cl) co
   //calculate the number of huigher-order features (applied variable and lambdas) in the clause;
   unsigned res = 0;
   for(unsigned i = 0; i < cl->size(); i++){
-    res = res + (*cl)[i]->numOfAppVarsAndLambdas();
+    auto [avs,lams] = (*cl)[i]->numOfAppVarsAndLambdas();
+    res = res + avs + lams;
   }
   return res;
 }
