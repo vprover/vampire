@@ -54,8 +54,8 @@ long Timer::s_ticksPerSec;
 int Timer::s_initGuarantedMiliseconds;
 
 long long Timer::elapsedInstructions() {
-#if VAMPIRE_PERF_EXISTS
-  return (LAST_INSTRUCTION_COUNT_READ >= 0) ? LAST_INSTRUCTION_COUNT_READ : 0;
+#if __linux__
+  return (last_instruction_count_read >= 0) ? last_instruction_count_read : 0;
 #else
   return 0;
 #endif
@@ -140,7 +140,7 @@ timer_sigalrm_handler (int sig)
       // we could also decide not to guard this read by env.options->instructionLimit(),
       // to get info about instructions burned even when not instruction limiting
       read(perf_fd, &last_instruction_count_read, sizeof(long long));
-      
+
       if (last_instruction_count_read >= MEGA*(long long)env.options->instructionLimit()) {
         Timer::setLimitEnforcement(false);
         if (protectingTimeout) {
@@ -234,7 +234,7 @@ long perf_event_open(struct perf_event_attr *hw_event, pid_t pid, int cpu, int g
 void Timer::ensureTimerInitialized()
 {
   CALL("Timer::ensureTimerInitialized");
-  
+
   // When ensureTimerInitialized is called, env.options->instructionLimit() will not be set yet,
   // so we do this init unconditionally
   resetInstructionMeasuring();
@@ -297,11 +297,11 @@ void Timer::resetInstructionMeasuring()
 // called by the main process and timer_thread: should be thread-safe
 void Timer::updateInstructionCount()
 {
-#if VAMPIRE_PERF_EXISTS
-  if (PERF_FD >= 0) {
+#if __linux__
+  if (perf_fd >= 0) {
     // we could also decide not to guard this read by env.options->instructionLimit(),
     // to get info about instructions burned even when not instruction limiting
-    read(PERF_FD, &LAST_INSTRUCTION_COUNT_READ, sizeof(long long));
+    read(perf_fd, &last_instruction_count_read, sizeof(long long));
   }
 #endif
 }
