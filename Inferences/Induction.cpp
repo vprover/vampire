@@ -44,23 +44,6 @@
 using std::pair;
 using std::make_pair;
 
-/**
- * Convert a VList of variables to a VSList by looking up their sorts
- * from a formula in which they appear.
- */
-static VSList* attachSorts(VList* vars, Formula* f)
-{
-  DHMap<unsigned, TermList> varSorts;
-  SortHelper::collectVariableSorts(f, varSorts);
-  VSList* res = VSList::empty();
-  VList::Iterator vit(vars);
-  while (vit.hasNext()) {
-    unsigned v = vit.next();
-    VSList::push(std::make_pair(v, varSorts.get(v)), res);
-  }
-  return res;
-}
-
 #define INDUCTION_CONTEXT_BANK 0
 #define INDUCTION_CLAUSE_BANK 1
 #define NUM_SPECIAL_BANKS 2
@@ -134,7 +117,7 @@ TermList InductionTermReplacement::transformSubterm(TermList trm)
   }
   unsigned* ptr;
   if (_skolemToVarMap.getValuePtr(t, ptr, _nextVar)) {
-    _varsReplacingSkolems.insert(_nextVar++);
+    _varsReplacingSkolems.insert(_nextVar++, SortHelper::getResultSort(t));
   }
   return TermList::var(*ptr);
 }
@@ -154,23 +137,24 @@ VList* InductionTermReplacement::getRenamedFreeVars() const
   return VList::fromIterator(iterTraits(_renamedFreeVars.iter()));
 }
 
-VList* InductionTermReplacement::getVarsReplacingSkolems() const
+VSList* InductionTermReplacement::getVarsReplacingSkolems() const
 {
-  return VList::fromIterator(iterTraits(_varsReplacingSkolems.iter()));
+  return VSList::fromIterator(iterTraits(_varsReplacingSkolems.items()));
 }
 
 Formula* InductionContext::getFormula(
-  const InductionUnit& unit, const Substitution& typeBinder, unsigned& nextVar, VList** varsReplacingSkolems, RobSubstitution* subst) const
+  const InductionUnit& unit, const Substitution& typeBinder, unsigned& nextVar, VSList** varsReplacingSkolems, RobSubstitution* subst) const
 {
   auto hyps = FormulaList::empty();
   for (const auto& lit : unit.conditions) {
     FormulaList::push(new AtomicFormula(SubstHelper::apply(lit, typeBinder)), hyps);
   }
   auto left = hyps ? JunctionFormula::generalJunction(Connective::AND, hyps) : nullptr;
-  auto hypVars = VList::fromIterator(unit.condUnivVars.iterFifo());
+  auto hypVars = VSList::fromIterator(iterTraits(unit.condUnivVars.iterFifo())
+    .map([&typeBinder](auto kv) { return std::make_pair(kv.first, SubstHelper::apply(kv.second, typeBinder)); }));
   if (hypVars) {
     ASS(left);
-    left = new QuantifiedFormula(Connective::FORALL, attachSorts(hypVars, left), left);
+    left = new QuantifiedFormula(Connective::FORALL, hypVars, left);
   }
 
   vector<TermList> ts;
@@ -181,7 +165,11 @@ Formula* InductionContext::getFormula(
   auto right = getFormulaWithSquashedSkolems(ts, nextVar, renamedFreeVars, varsReplacingSkolems, subst);
   auto f = left ? new BinaryFormula(Connective::IMP, left, right) : right;
   if (renamedFreeVars) {
-    f = new QuantifiedFormula(Connective::EXISTS, attachSorts(renamedFreeVars, f), f);
+    DHMap<unsigned, TermList> varSorts;
+    SortHelper::collectVariableSorts(f, varSorts);
+    auto vs = VSList::fromIterator(iterTraits(VList::Iterator(renamedFreeVars))
+      .map([&varSorts](unsigned v) { return std::make_pair(v, varSorts.get(v)); }));
+    f = new QuantifiedFormula(Connective::EXISTS, vs, f);
   }
   return f;
 }
@@ -218,7 +206,7 @@ Formula* InductionContext::getFormulaWithFreeVar(TermList t, unsigned freeVar, u
 }
 
 Formula* InductionContext::getFormulaWithSquashedSkolems(
-  const std::vector<TermList>& r, unsigned& nextVar, VList*& renamedFreeVars, VList** varsReplacingSkolems, RobSubstitution* subst) const
+  const std::vector<TermList>& r, unsigned& nextVar, VList*& renamedFreeVars, VSList** varsReplacingSkolems, RobSubstitution* subst) const
 {
   // Assuming this object is the result of a ContextReplacement (or similar iterator)
   // we can replace the ith placeholder with the ith term in r.
@@ -1246,21 +1234,22 @@ void InductionClauseIterator::performInduction(const InductionContext& context, 
   for (const auto& c : templ->cases) {
     auto hyps = FormulaList::empty();
     for (const auto& hyp : c.hypotheses) {
-      auto varsReplacingSkolems = VList::empty();
+      auto varsReplacingSkolems = VSList::empty();
       auto hypF = context.getFormula(hyp, typeBinder, var, &varsReplacingSkolems);
       // The variables replacing Skolems are used in a similar manner to strengthen
       // hypotheses as condUnivVars in InductionUnit and hypUnivVars in InductionCase,
       // but they are different for each hypothesis, so we quantify them here.
       if (varsReplacingSkolems) {
-        hypF = new QuantifiedFormula(Connective::FORALL, attachSorts(varsReplacingSkolems, hypF), hypF);
+        hypF = new QuantifiedFormula(Connective::FORALL, varsReplacingSkolems, hypF);
       }
       FormulaList::push(hypF, hyps);
     }
     auto left = hyps ? JunctionFormula::generalJunction(Connective::AND, hyps) : nullptr;
-    auto hypVars = VList::fromIterator(c.hypUnivVars.iterFifo());
+    auto hypVars = VSList::fromIterator(iterTraits(c.hypUnivVars.iterFifo())
+      .map([](auto kv) { return std::make_pair(kv.first, SubstHelper::apply(kv.second, typeBinder)); }));
     if (hypVars) {
       ASS(left);
-      left = new QuantifiedFormula(Connective::FORALL, attachSorts(hypVars, left), left);
+      left = new QuantifiedFormula(Connective::FORALL, hypVars, left);
     }
     auto right = context.getFormula(c.conclusion, typeBinder, var);
     FormulaList::push(Formula::quantify(left ? new BinaryFormula(Connective::IMP,left,right) : right), formulas);
