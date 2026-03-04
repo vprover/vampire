@@ -261,9 +261,11 @@ public:
     self.gweight_todo_layers[eff_layer_idx].append((id,functor,sign,args))
   */
   void gweightEnqueuOneTerm(int64_t id, unsigned functor, float sign, std::vector<int64_t>& args) {
+    // cout << "gweightEnqueuOneTerm " << id << " functor " << functor << " sign " << sign << " args " << args << endl; 
+
     unsigned layer_idx = 0;
     for (auto a : args) {
-      if (a > 0) {
+      if (a > 1) {
         layer_idx = std::max(layer_idx,_gweightTermLayers.get(a));
       }
     }

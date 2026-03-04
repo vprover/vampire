@@ -421,10 +421,10 @@ void SaturationAlgorithm::onActiveAdded(Clause* c)
   CALL("SaturationAlgorithm::onActiveAdded");
 
   if (env.options->showActive()) {
-    env.beginOutput();    
+    env.beginOutput();
     env.out() << "[SA] active: " << c->toString() << std::endl;
-    env.endOutput();             
-  }          
+    env.endOutput();
+  }
 }
 
 /**
@@ -556,41 +556,74 @@ void SaturationAlgorithm::showSubterms(Term* t) {
 */
 
 void SaturationAlgorithm::showSubtermsNR(Term* t) {
+  // cout << "SaturationAlgorithm::showSubtermsNR " << t->toString() << endl;
+
   struct Todo {
     Term* t;
     bool starting;
+    bool isSort;
   };
 
   Stack<Todo> todos;
-  todos.push({t,true});
+  todos.push({t,true,t->isSort()});
   while (todos.isNonEmpty()) {
     Todo& todo = todos.top();
     Term* t = todo.t;
+
+    // cout << "todo for " << t->toString() << " starting " << todo.starting << " isSort " << todo.isSort << endl;
+
     if (todo.starting) {
-      if (_subtermsShown.find(t->getId())) {
+      if ((!todo.isSort && _subtermsShown.find(t->getId())) || (todo.isSort && _sortsShown.find(t->getId()))) {
         todos.pop();
       } else {
         todo.starting = false;
+        unsigned numTypeArgs = t->numTypeArguments();
         // don't touch todo anymore, after pushing!
         for (unsigned n = 0; n < t->arity(); n++) {
           TermList arg = *t->nthArgument(n);
           if (arg.isTerm()) {
-            todos.push({arg.term(),true});
+            todos.push({arg.term(),true,todo.isSort || n < numTypeArgs}); // || because sorts don't have type arguments
           }
         }
       }
-    } else {
+    } else if (todo.isSort) {
       vector<int64_t> args;
       for (unsigned n = 0; n < t->arity(); n++) {
         TermList arg = *t->nthArgument(n);
         if (arg.isTerm()) {
-          args.push_back(arg.term()->getId()+1);
+          args.push_back(2*(arg.term()->getId()+1)+1);
         } else {
-          args.push_back(0); // all variables are 0
+          args.push_back(1); // all sort variables are 1
         }
       }
       _neuralModel->gweightEnqueueTerm(
-          t->getId()+1,
+          2*(t->getId()+1)+1,
+          typeConToSymb(t->functor()),
+          0.0,
+          args);
+      ALWAYS(_sortsShown.insert(t->getId()));
+      todos.pop();
+    } else { // ASS(!todo.isSort)
+      vector<int64_t> args;
+      for (unsigned n = 0; n < t->numTermArguments(); n++) {
+        TermList arg = t->termArg(n);
+        if (arg.isTerm()) {
+          args.push_back(2*(arg.term()->getId()+1));
+        } else {
+          args.push_back(0); // all term variables are 0
+        }
+      }
+      // type arguments go second
+      for (unsigned n = 0; n < t->numTypeArguments(); n++) {
+        TermList arg = t->typeArg(n);
+        if (arg.isTerm()) {
+          args.push_back(2*(arg.term()->getId()+1)+1);
+        } else {
+          args.push_back(1); // all sort variables are 0
+        }
+      }
+      _neuralModel->gweightEnqueueTerm(
+          2*(t->getId()+1),
           funcToSymb(t->functor()),
           0.0,
           args);
@@ -601,6 +634,8 @@ void SaturationAlgorithm::showSubtermsNR(Term* t) {
 }
 
 void SaturationAlgorithm::showClauseLiterals(Clause* c) {
+  // cout << "SaturationAlgorithm::showClauseLiterals " << c->toString() << endl;
+
   vector<int64_t> lits;
   for (unsigned i = 0; i < c->size(); i++) {
     Literal* lit = (*c)[i];
@@ -611,16 +646,23 @@ void SaturationAlgorithm::showClauseLiterals(Clause* c) {
     if (_literalsShown.find(lit->getId())) // and having a dedicated DHSet form them
       continue;
 
+    ASS_EQ(lit->functor(),0) // only equality literals
+
     vector<int64_t> args;
     for (unsigned n = 0; n < lit->arity(); n++) {
       TermList arg = *lit->nthArgument(n);
       if (arg.isTerm()) {
         showSubtermsNR(arg.term());
-        args.push_back(arg.term()->getId()+1);
+        args.push_back(2*(arg.term()->getId()+1));
       } else {
-        args.push_back(0); // all variables are 0
+        args.push_back(0); // all term variables are 0
       }
     }
+
+    ASS_EQ(lit->numTypeArguments(),0) // formally, there are no type arguments of =, but morally ...
+
+    // TODO: if I wanted, I could try fetching the actual sort of the = and embedding it as an extra arg
+    // (convention: type args go after term args as they seem less important)
 
     _neuralModel->gweightEnqueueTerm(
         litId,
