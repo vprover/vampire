@@ -87,11 +87,7 @@ FormulaUnit* Rectify::rectify (FormulaUnit* unit0, bool removeUnusedVars)
     VList::Iterator vit(vars);
     while (vit.hasNext()) {
       unsigned v = vit.next();
-      TermList s;
-      if (!varSorts.find(v, s)) {
-        s = AtomicSort::defaultSort();
-      }
-      vsfifo.pushBack({v, s});
+      vsfifo.pushBack({v, varSorts.get(v)});
     }
     unit = new FormulaUnit(new QuantifiedFormula(FORALL, vsfifo.list(), g),FormulaClauseTransformation(InferenceRule::CLOSURE,unit));
   }
