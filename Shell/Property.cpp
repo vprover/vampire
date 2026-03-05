@@ -82,7 +82,7 @@ Property::Property()
     _hasApp(false),
     _hasLogicalProxy(false),
     _hasLambda(false),
-    _higherOrder(false),
+    _higherOrder(true), // hardcoding the HOL approach (so we can have some nice strong assumptions about what's going on inside the prover)
 #endif
     _hasPolymorphicSym(false),
     _quantifiesOverPolymorphicVar(false),
