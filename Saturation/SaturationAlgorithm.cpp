@@ -570,25 +570,41 @@ void SaturationAlgorithm::showSubtermsNR(Term* t) {
     Todo& todo = todos.top();
     Term* t = todo.t;
 
-    // cout << "todo for " << t->toString() << " starting " << todo.starting << " isSort " << todo.isSort << endl;
-
     if (todo.starting) {
       if ((!todo.isSort && _subtermsShown.find(t->getId())) || (todo.isSort && _sortsShown.find(t->getId()))) {
         todos.pop();
-      } else {
+      } else if (todo.isSort) { // needs special treatment (numTypeArguments not working for sorts)
         todo.starting = false;
-        unsigned numTypeArgs = t->numTypeArguments();
         // don't touch todo anymore, after pushing!
-        for (unsigned n = 0; n < t->arity(); n++) {
+        unsigned numArgsToScan = std::min(t->arity(),2u);
+        for (unsigned n = 0; n < numArgsToScan; n++) {
           TermList arg = *t->nthArgument(n);
           if (arg.isTerm()) {
-            todos.push({arg.term(),true,todo.isSort || n < numTypeArgs}); // || because sorts don't have type arguments
+            todos.push({arg.term(),true,true});
+          }
+        }
+      } else { // ASS(!todo.isSort)
+        todo.starting = false;
+        unsigned typeArgsToScan = std::min(t->numTypeArguments(),2u);
+        for (unsigned n = 0; n < typeArgsToScan; n++) {
+          TermList arg = t->typeArg(n);
+          if (arg.isTerm()) {
+            todos.push({arg.term(),true,true});
+          }
+        }
+        unsigned termArgsToScan = std::min(t->numTermArguments(),2u);
+        for (unsigned n = 0; n < termArgsToScan; n++) {
+          TermList arg = t->termArg(n);
+          if (arg.isTerm()) {
+            todos.push({arg.term(),true,false});
           }
         }
       }
     } else if (todo.isSort) {
       vector<int64_t> args;
-      for (unsigned n = 0; n < t->arity(); n++) {
+      unsigned numArgsToScan = std::min(t->arity(),2u);
+      unsigned n;
+      for (n = 0; n < numArgsToScan; n++) {
         TermList arg = *t->nthArgument(n);
         if (arg.isTerm()) {
           args.push_back(2*(arg.term()->getId()+1)+1);
@@ -596,6 +612,13 @@ void SaturationAlgorithm::showSubtermsNR(Term* t) {
           args.push_back(1); // all sort variables are 1
         }
       }
+      for (; n < 2; n++) {
+        args.push_back(1); // extra sort var as a placeholder
+      }
+      // two extra type vars as placeholders
+      args.push_back(0);
+      args.push_back(0);
+      ASS_EQ(args.size(),4)
       _neuralModel->gweightEnqueueTerm(
           2*(t->getId()+1)+1,
           typeConToSymb(t->functor()),
@@ -605,16 +628,9 @@ void SaturationAlgorithm::showSubtermsNR(Term* t) {
       todos.pop();
     } else { // ASS(!todo.isSort)
       vector<int64_t> args;
-      for (unsigned n = 0; n < t->numTermArguments(); n++) {
-        TermList arg = t->termArg(n);
-        if (arg.isTerm()) {
-          args.push_back(2*(arg.term()->getId()+1));
-        } else {
-          args.push_back(0); // all term variables are 0
-        }
-      }
-      // type arguments go second
-      for (unsigned n = 0; n < t->numTypeArguments(); n++) {
+      unsigned typeArgsToScan = std::min(t->numTypeArguments(),2u);
+      unsigned n;
+      for (n = 0; n < typeArgsToScan; n++) {
         TermList arg = t->typeArg(n);
         if (arg.isTerm()) {
           args.push_back(2*(arg.term()->getId()+1)+1);
@@ -622,6 +638,22 @@ void SaturationAlgorithm::showSubtermsNR(Term* t) {
           args.push_back(1); // all sort variables are 0
         }
       }
+      for (; n < 2; n++) {
+        args.push_back(1); // extra sort var as a placeholder
+      }
+      unsigned termArgsToScan = std::min(t->numTermArguments(),2u);
+      for (n = 0; n < termArgsToScan; n++) {
+        TermList arg = t->termArg(n);
+        if (arg.isTerm()) {
+          args.push_back(2*(arg.term()->getId()+1));
+        } else {
+          args.push_back(0); // all term variables are 0
+        }
+      }
+      for (; n < 2; n++) {
+        args.push_back(0); // extra term var as a placeholder
+      }
+      ASS_EQ(args.size(),4)
       _neuralModel->gweightEnqueueTerm(
           2*(t->getId()+1),
           funcToSymb(t->functor()),
@@ -647,9 +679,24 @@ void SaturationAlgorithm::showClauseLiterals(Clause* c) {
       continue;
 
     ASS_EQ(lit->functor(),0) // only equality literals
-
     vector<int64_t> args;
-    for (unsigned n = 0; n < lit->arity(); n++) {
+    // first two type args
+
+    ASS_EQ(lit->numTypeArguments(),0) // formally, there are no type arguments of =, but morally ...
+    {
+      TermList mySort = SortHelper::getEqualityArgumentSort(lit);
+      if (mySort.isVar()) {
+        args.push_back(1);
+        args.push_back(1);
+      } else {
+        showSubtermsNR(mySort.term());
+        args.push_back(2*(mySort.term()->getId()+1)+1);
+        args.push_back(1);
+      }
+    }
+
+    // now two term args
+    for (unsigned n = 0; n < 2; n++) {
       TermList arg = *lit->nthArgument(n);
       if (arg.isTerm()) {
         showSubtermsNR(arg.term());
@@ -658,12 +705,7 @@ void SaturationAlgorithm::showClauseLiterals(Clause* c) {
         args.push_back(0); // all term variables are 0
       }
     }
-
-    ASS_EQ(lit->numTypeArguments(),0) // formally, there are no type arguments of =, but morally ...
-
-    // TODO: if I wanted, I could try fetching the actual sort of the = and embedding it as an extra arg
-    // (convention: type args go after term args as they seem less important)
-
+    ASS_EQ(args.size(),4)
     _neuralModel->gweightEnqueueTerm(
         litId,
         predToSymb(lit->functor()),
