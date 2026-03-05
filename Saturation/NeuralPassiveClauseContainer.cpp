@@ -265,29 +265,23 @@ void NeuralClauseEvaluationModel::gweightEmbedPending() {
   torch::NoGradGuard no_grad; // TODO: check if this is necessary here
 
   /*
-  # first like what gage does with clause, but here with terms
-  for todos in self.gweight_todo_layers:
-    functors = []
-    signs = []
-    first_args = []
-    other_args = []
+    rows = []
     for id,functor,sign,args in todos:
-      functors.append(self.gweight_symbol_embeds[functor])
-      signs.append(torch.tensor([sign]))
-      if len(args) == 0:
-        first_args.append(torch.zeros(HP.GWEIGHT_EMBEDDING_SIZE))
-        other_args.append(torch.zeros(HP.GWEIGHT_EMBEDDING_SIZE))
-      else:
-        first_args.append(self.get_subterm_embed(args[0]))
-        if len(args) == 1:
-          other_args.append(torch.zeros(HP.GWEIGHT_EMBEDDING_SIZE))
-        else:
-          other_arg = torch.sum(torch.stack([self.get_subterm_embed(a) for a in args[1:]]),dim=0)/(len(args)-1)
-          other_args.append(other_arg)
+      assert len(args) == 4
+      rows.append(torch.cat((
+        self.gweight_symbol_embeds[functor],
+        torch.tensor([sign]),
+        self.gweight_term_embed_store[args[0]],
+        self.gweight_term_embed_store[args[1]],
+        self.gweight_term_embed_store[args[2]],
+        self.gweight_term_embed_store[args[3]],
+      )))
+
+    res = self.gweight_term_combine(torch.stack(rows))
   */
   for (int64_t i = 0; i < static_cast<int64_t>(_gweightTodoLayers.size()); i++) {
     Stack<std::tuple<int64_t,unsigned,float,std::vector<int64_t>>>& todos = _gweightTodoLayers[i];
-    auto rect = torch::empty({static_cast<int64_t>(todos.size()), 1+3*_gweightEmbeddingSize}, torch::TensorOptions().dtype(torch::kFloat32));
+    auto rect = torch::empty({static_cast<int64_t>(todos.size()), 1+5*_gweightEmbeddingSize}, torch::TensorOptions().dtype(torch::kFloat32));
 
     auto it = todos.iterFifo();
     int64_t j = 0;
@@ -295,28 +289,18 @@ void NeuralClauseEvaluationModel::gweightEmbedPending() {
       const auto& [id,functor,sign,args] = it.next();
       rect.index_put_({j, torch::indexing::Slice(0, _gweightEmbeddingSize)}, _gweightSymbolEmbeds.index({(int64_t)functor}));
       rect.index_put_({j, _gweightEmbeddingSize}, sign);
-      if (args.size() == 0) {
-        rect.index_put_({j, torch::indexing::Slice(1+_gweightEmbeddingSize, 1+3*_gweightEmbeddingSize)}, torch::zeros({2*_gweightEmbeddingSize}));
-      } else {
-        rect.index_put_({j, torch::indexing::Slice(1+_gweightEmbeddingSize, 1+2*_gweightEmbeddingSize)}, _gweightTermEmbedStore.get(args[0]));
-        int64_t k = 1;
-        auto remainingArgsEmbedSum = torch::zeros({_gweightEmbeddingSize});
-        while (k < args.size()) {
-          remainingArgsEmbedSum += _gweightTermEmbedStore.get(args[k++]);
-        }
-        k--; // now it reflects the number of args actually summed up in remainingArgsEmbedSum
-        if (k > 1) {
-          rect.index_put_({j, torch::indexing::Slice(1+2*_gweightEmbeddingSize, 1+3*_gweightEmbeddingSize)}, remainingArgsEmbedSum/k);
-        } else {
-          rect.index_put_({j, torch::indexing::Slice(1+2*_gweightEmbeddingSize, 1+3*_gweightEmbeddingSize)}, remainingArgsEmbedSum);
-        }
-      }
+      rect.index_put_({j, torch::indexing::Slice(1+_gweightEmbeddingSize, 1+2*_gweightEmbeddingSize)}, _gweightTermEmbedStore.get(args[0]));
+      rect.index_put_({j, torch::indexing::Slice(1+2*_gweightEmbeddingSize, 1+3*_gweightEmbeddingSize)}, _gweightTermEmbedStore.get(args[1]));
+      rect.index_put_({j, torch::indexing::Slice(1+3*_gweightEmbeddingSize, 1+4*_gweightEmbeddingSize)}, _gweightTermEmbedStore.get(args[2]));
+      rect.index_put_({j, torch::indexing::Slice(1+4*_gweightEmbeddingSize, 1+5*_gweightEmbeddingSize)}, _gweightTermEmbedStore.get(args[3]));
+
       j++;
     }
     /*
-      res = self.gweight_term_combine(torch.cat((torch.stack(functors), torch.stack(signs), torch.stack(first_args), torch.stack(other_args)), dim=1))
+      res = self.gweight_term_combine(torch.stack(rows))
+      res += self.gweight_static_tweak # broadcasting for every line in res
       for j,(id,_,_,_) in enumerate(todos):
-      self.gweight_term_embed_store[id] = res[j]
+        self.gweight_term_embed_store[id] = res[j]
     */
     auto res = _gweightTermCombine.forward({rect}).toTensor();
     res += _gweightStaticTweak;
