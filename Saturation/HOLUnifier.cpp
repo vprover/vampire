@@ -25,6 +25,8 @@
 
 #include "HOLUnifier.hpp"
 
+#define DEBUG(...) DBG(__VA_ARGS__)
+
 namespace Saturation {
 
 bool HOLUnifier::isHolUnifiable(TermList t)
@@ -84,21 +86,26 @@ ClauseStack HOLUnifier::iterate(unsigned num)
     }
     
     auto& curr = _todo[_index];
+    DEBUG("curr ", curr);
 
-    auto next = curr->next();
-    if (!next) {
+    auto nexts = curr->next();
+    if (nexts.isEmpty()) {
+
+      // if curr has a solution, save it
+      auto lit = curr->solution();
+      if (lit) {
+        res.push(Clause::fromLiterals({ lit }, NonspecificInference0(UnitInputType::AXIOM, InferenceRule::HOL_UNIFIER_SOLUTION)));
+      }
+
       // TODO this changes the order
       std::swap(_todo[_index], _todo.top());
+      _todo.pop();
       continue;
     }
 
-    // if n has a solution, save it
-    auto lit = next->solution();
-    if (lit) {
-      // TODO handle
-      ASSERTION_VIOLATION;
+    for (const auto& next : nexts) {
+      _todo.push(next);
     }
-    _todo.push(next);
     _index++;
   }
   return res;
@@ -139,7 +146,7 @@ Literal* HOLUnifier::introduceDefinition(Literal* lit)
     auto p = env.signature->addFreshPredicate(varsSeen.size(), "p_hol");
     auto sym = env.signature->getPredicate(p);
     SortHelper::normaliseArgSorts(typeVars, termVarSorts);
-    auto type = OperatorType::getPredicateType(typeVars.size(), termVarSorts.begin(), termVarSorts.size());
+    auto type = OperatorType::getPredicateType(termVarSorts.size(), termVarSorts.begin(), typeVars.size());
     sym->setType(type);
 
     // 2.2. add definition
@@ -194,7 +201,6 @@ struct HOLUnifier::Constraint
   TermList _rhs;
   TermList _lhead;
   TermList _rhead;
-  bool _normalized = false;
 
   Constraint(TermList lhs, TermList rhs)
     : _lhs(lhs), _rhs(rhs), _lhead(lhs.head()), _rhead(rhs.head())
@@ -208,34 +214,34 @@ struct HOLUnifier::Constraint
   bool rigidRigid() const { return _lhead.isTerm() && _rhead.isTerm(); }
   bool flexRigid()  const { return !flexFlex() && !rigidRigid(); }
 
-  void derefHead(TermList& head, TermList& side, const Substitution& subs)
+  bool derefHead(TermList& head, TermList& side, const Substitution& subs)
   {
     if (head.isVar()) {
       TermList t;
       if (subs.findBinding(head.var(), t)) {
         side = SubstHelper::apply(side, subs);
         head = side.head();
+        return true;
       }
     }
+    return false;
   }
 
   void normalize(const Substitution& subs)
   {
-    if (_normalized) {
-      return;
-    }
+    do {
+      // 1. alpha-eta normalize
+      HOL::normaliseLambdaPrefixes(_lhs, _rhs);
 
-    // 1. alpha-eta normalize
-    HOL::normaliseLambdaPrefixes(_lhs, _rhs);
+      // 2. betaNormalize
+      // TODO this is probably not needed, but maybe easier to do it here lazily
+      _lhs = HOL::reduce::betaNF(_lhs);
+      _lhead = _lhs.head();
+      _rhs = HOL::reduce::betaNF(_rhs);
+      _rhead = _rhs.head();
 
-    // 2. betaNormalize
-    // TODO this is probably not needed, but maybe easier to do it here lazily
-
-    // 3. dereference
-    derefHead(_lhead, _lhs, subs);
-    derefHead(_rhead, _rhs, subs);
-
-    _normalized = true;
+      // 3. dereference
+    } while (derefHead(_lhead, _lhs, subs) || derefHead(_rhead, _rhs, subs));
   }
 };
 
@@ -250,24 +256,48 @@ HOLUnifier::Node::Node(Literal* lit, Literal* def, unsigned nextVar)
   _cons.emplace(lit->termArg(0), lit->termArg(1));
 }
 
-HOLUnifier::Node::Node(const Node* parent, unsigned TODO)
-  : _def(parent->_def)
+HOLUnifier::Node::Node(const Node& parent, unsigned var, TermList binding)
+  : Node(parent)
 {
-  // TODO
-  ASSERTION_VIOLATION;
+  _subs.bindUnbound(var, binding);
+}
+
+HOLUnifier::Node::Node(const Node& parent, Stack<Constraint> cons)
+  : _def(parent._def), _cons(cons), _subs(parent._subs), _freshVar(parent._freshVar)
+{
 }
 
 Literal* HOLUnifier::Node::solution()
 {
-  return nullptr;
+  ASS(_cons.isEmpty());
+
+  struct IdempotentSubs {
+    const Substitution& _subs;
+    IdempotentSubs(const Substitution& subs) : _subs(subs) {}
+    TermList apply(unsigned var) {
+      auto t = _subs.apply(var);
+      if (t.isVar() && t.var() == var) {
+        return t;
+      }
+      return SubstHelper::apply(t, *this);
+    }
+  };
+
+  IdempotentSubs subs(_subs);
+  auto sol = SubstHelper::apply(_def, subs);
+  DEBUG("solution found ", *sol);
+  return sol;
 }
 
-HOLUnifier::Node* HOLUnifier::Node::next()
+Stack<HOLUnifier::Node*> HOLUnifier::Node::next()
 {
-  while (_cons.isNonEmpty()) {
+  Stack<Node*> res;
 
-    auto& curr = _cons.top();
-    std::cout << "trying to solve " << curr << std::endl;
+  for (unsigned i = 0; i < _cons.size();) {
+
+    auto& curr = _cons[i];
+
+    DEBUG("trying to solve ", curr);
 
     // Following the transitions from "Efficient Full Higher-order Unification" from Vukmirovic et al.
 
@@ -275,11 +305,13 @@ HOLUnifier::Node* HOLUnifier::Node::next()
 
     // 4. fail
     if (curr.rigidRigid() && curr._lhead != curr._rhead) {
-      return nullptr;
+      res.reset();
+      return res;
     }
 
     // 5. delete
     if (curr._lhs == curr._rhs) {
+      std::swap(curr, _cons.top());
       _cons.pop();
       continue;
     }
@@ -289,6 +321,24 @@ HOLUnifier::Node* HOLUnifier::Node::next()
     // 7. oracle fail
 
     // 8. decompose
+    if (curr.rigidRigid() && curr._lhead == curr._rhead) {
+      DEBUG("decompose");
+      if (curr._lhs.isApplication()) {
+        ASS(curr._rhs.isApplication());
+        auto [lhead, largs] = HOL::getHeadAndArgs(curr._lhs);
+        auto [rhead, rargs] = HOL::getHeadAndArgs(curr._rhs);
+        ASS_EQ(largs.size(), rargs.size());
+
+        Stack<Constraint> cons;
+        for (unsigned i = 0; i < largs.size(); i++) {
+          cons.emplace(largs[i], rargs[i]);
+        }
+        res.push(new Node(*this, cons));
+        i++;
+        continue;
+      }
+      ASSERTION_VIOLATION;
+    }
 
     if (curr.flexFlex()) {
       ASSERTION_VIOLATION;
@@ -301,12 +351,12 @@ HOLUnifier::Node* HOLUnifier::Node::next()
     TermStack bindings = HOL::getProjAndImitBindings(flexTerm, rigidTerm, _freshVar);
 
     for (const auto& b : bindings) {
-      std::cout << "binding " << flexTerm.head() << " " << b << std::endl;
+      DEBUG("binding ", flexTerm.head(), " ", b);
+      res.push(new Node(*this, flexTerm.head().var(), b));
     }
-
-    ASSERTION_VIOLATION;
+    i++;
   }
-  return nullptr;
+  return res;
 }
 
 std::ostream& operator<<(std::ostream& out, const HOLUnifier::Constraint& con) {

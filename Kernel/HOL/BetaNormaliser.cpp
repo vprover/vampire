@@ -20,8 +20,9 @@ TermList BetaNormaliser::normalise(TermList t) {
 }
 
 TermList BetaNormaliser::transformSubterm(TermList t) {
-  if (t.isLambdaTerm())
+  if (t.isLambdaTerm()) {
     return t;
+  }
 
   auto [head, args] = HOL::getHeadAndArgs(t);
 

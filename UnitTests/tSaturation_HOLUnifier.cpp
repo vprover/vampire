@@ -115,4 +115,8 @@ TEST_FUN(constraints_iteration) {
   auto c2 = unifier.handleClause(c1);
 
   checkEqual(c2, clause({ ~p_hol(xs) }));
+
+  auto cls = unifier.iterate(50);
+  ASS_EQ(cls.size(),1);
+  checkEqual(cls[0], clause({ p_hol() }));
 }

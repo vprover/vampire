@@ -877,6 +877,8 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "definition introduction (finite model building)";
   case InferenceRule::HOL_UNIFIER_DEFINITION:
     return "hol unifier definition";
+  case InferenceRule::HOL_UNIFIER_SOLUTION:
+    return "hol unifier solution";
   case InferenceRule::ADD_SORT_PREDICATES:
     return "add sort predicates";
   case InferenceRule::ADD_SORT_FUNCTIONS:

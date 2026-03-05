@@ -39,10 +39,11 @@ private:
   struct Node
   {
     Node(Literal* lit, Literal* def, unsigned nextVar);
-    Node(const Node* parent, unsigned TODO);
+    Node(const Node& parent, unsigned var, TermList binding);
+    Node(const Node& parent, Stack<Constraint> cons);
 
     Literal* solution();
-    Node* next();
+    Stack<Node*> next();
 
     Literal* _def;
     Stack<Constraint> _cons;
