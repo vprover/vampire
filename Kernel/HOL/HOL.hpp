@@ -50,6 +50,9 @@ TermList getResultAppliedToNArgs(TermList arrowSort, unsigned argNum);
 unsigned getArity(TermList sort);
 TermList getDeBruijnIndex(int index, TermList sort);
 
+void getArgSorts(TermList t, TermStack& sorts);
+TermStack getArgSorts(TermList t);
+
 void getHeadSortAndArgs(TermList term, TermList& head, TermList& headSort, TermStack& args);
 void getHeadArgsAndArgSorts(TermList t, TermList& head, TermStack& args, TermStack& argSorts);
 
@@ -63,6 +66,17 @@ void getMatrixAndPrefSorts(TermList t, TermList& matrix, TermStack& sorts);
 inline bool canHeadReduce(const TermList& head, const TermStack& args) {
   return head.isLambdaTerm() && args.isNonEmpty();
 }
+
+void normaliseLambdaPrefixes(TermList& t1, TermList& t2);
+
+// if flexTerm is of form X t1 t2 : i > i and t1 : int and t2 : tau
+// this function will fill stack with [i, tau, int]
+// Very inelegant at the moment, need to rewrite TODO
+TermStack getFlexHeadSorts(TermList flexTerm, TermList rigidTermSort);
+
+TermStack getProjAndImitBindings(TermList flexTerm, TermList rigidTerm, unsigned& freshVar);
+
+TermList createGeneralBinding(TermList head, TermStack& sorts, unsigned& freshVar);
 
 } // namespace HOL
 

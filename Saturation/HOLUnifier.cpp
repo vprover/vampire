@@ -12,9 +12,13 @@
  * Implements class HOLUnifier.
  */
 
+#include "Debug/Assertion.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/FormulaUnit.hpp"
+#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Renaming.hpp"
+#include "Kernel/Substitution.hpp"
+#include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Lib/Environment.hpp"
@@ -64,6 +68,40 @@ Clause* HOLUnifier::handleClause(Clause* cl)
     return Clause::fromStack(lits, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::HOL_UNIFIER_DEFINITION));
   }
   return cl;
+}
+
+ClauseStack HOLUnifier::iterate(unsigned num)
+{
+  ASS(num);
+  ClauseStack res;
+
+  // do num-many iterations
+  for (unsigned j = 0; j < num; j++) {
+
+    // circulate inside _todos
+    if (_index >= _todo.size()) {
+      _index = 0;
+    }
+    
+    auto& curr = _todo[_index];
+
+    auto next = curr->next();
+    if (!next) {
+      // TODO this changes the order
+      std::swap(_todo[_index], _todo.top());
+      continue;
+    }
+
+    // if n has a solution, save it
+    auto lit = next->solution();
+    if (lit) {
+      // TODO handle
+      ASSERTION_VIOLATION;
+    }
+    _todo.push(next);
+    _index++;
+  }
+  return res;
 }
 
 Literal* HOLUnifier::introduceDefinition(Literal* lit)
@@ -123,9 +161,9 @@ Literal* HOLUnifier::introduceDefinition(Literal* lit)
       SList::push(sr, sl);
     }
 
-    auto p_lit = Literal::create(p, /*arity=*/p_args.size(), /*polarity=*/true, p_args.begin());
+    auto plit = Literal::create(p, /*arity=*/p_args.size(), /*polarity=*/true, p_args.begin());
 
-    Formula* def = new BinaryFormula(Connective::IFF, new AtomicFormula(p_lit), new AtomicFormula(nlit));
+    Formula* def = new BinaryFormula(Connective::IFF, new AtomicFormula(plit), new AtomicFormula(nlit));
     if (vl) {
       def = new QuantifiedFormula(Connective::FORALL, vl, sl, def);
     }
@@ -136,6 +174,9 @@ Literal* HOLUnifier::introduceDefinition(Literal* lit)
     }
 
     _defs.push(def_u);
+    auto node = new Node(nlit, plit, r.nextVar());
+    _roots.push(node);
+    _todo.push(node);
     *sym_ptr = p;
   }
 
@@ -143,6 +184,137 @@ Literal* HOLUnifier::introduceDefinition(Literal* lit)
   auto p_s_args = TermStack::fromIterator(typeVars.iterFifo());
   p_s_args.loadFromIterator(iterTraits(termVars.iterFifo()).map([](auto kv){ return kv.first; }));
   return Literal::create(*sym_ptr, /*arity=*/p_s_args.size(), /*polarity=*/false, p_s_args.begin());
+}
+
+// Constraint
+
+struct HOLUnifier::Constraint
+{
+  TermList _lhs;
+  TermList _rhs;
+  TermList _lhead;
+  TermList _rhead;
+  bool _normalized = false;
+
+  Constraint(TermList lhs, TermList rhs)
+    : _lhs(lhs), _rhs(rhs), _lhead(lhs.head()), _rhead(rhs.head())
+  {
+    // terms must be in whnf
+    ASS(!_lhead.isLambdaTerm());
+    ASS(!_lhead.isLambdaTerm());
+  }
+
+  bool flexFlex()   const { return _lhead.isVar() && _rhead.isVar(); }
+  bool rigidRigid() const { return _lhead.isTerm() && _rhead.isTerm(); }
+  bool flexRigid()  const { return !flexFlex() && !rigidRigid(); }
+
+  void derefHead(TermList& head, TermList& side, const Substitution& subs)
+  {
+    if (head.isVar()) {
+      TermList t;
+      if (subs.findBinding(head.var(), t)) {
+        side = SubstHelper::apply(side, subs);
+        head = side.head();
+      }
+    }
+  }
+
+  void normalize(const Substitution& subs)
+  {
+    if (_normalized) {
+      return;
+    }
+
+    // 1. alpha-eta normalize
+    HOL::normaliseLambdaPrefixes(_lhs, _rhs);
+
+    // 2. betaNormalize
+    // TODO this is probably not needed, but maybe easier to do it here lazily
+
+    // 3. dereference
+    derefHead(_lhead, _lhs, subs);
+    derefHead(_rhead, _rhs, subs);
+
+    _normalized = true;
+  }
+};
+
+// Node
+
+HOLUnifier::Node::Node(Literal* lit, Literal* def, unsigned nextVar)
+  : _def(def), _freshVar(nextVar)
+{
+  ASS(lit->isEquality());
+  ASS(lit->isNegative());
+
+  _cons.emplace(lit->termArg(0), lit->termArg(1));
+}
+
+HOLUnifier::Node::Node(const Node* parent, unsigned TODO)
+  : _def(parent->_def)
+{
+  // TODO
+  ASSERTION_VIOLATION;
+}
+
+Literal* HOLUnifier::Node::solution()
+{
+  return nullptr;
+}
+
+HOLUnifier::Node* HOLUnifier::Node::next()
+{
+  while (_cons.isNonEmpty()) {
+
+    auto& curr = _cons.top();
+    std::cout << "trying to solve " << curr << std::endl;
+
+    // Following the transitions from "Efficient Full Higher-order Unification" from Vukmirovic et al.
+
+    curr.normalize(_subs);
+
+    // 4. fail
+    if (curr.rigidRigid() && curr._lhead != curr._rhead) {
+      return nullptr;
+    }
+
+    // 5. delete
+    if (curr._lhs == curr._rhs) {
+      _cons.pop();
+      continue;
+    }
+
+    // 6. oracle succeed
+
+    // 7. oracle fail
+
+    // 8. decompose
+
+    if (curr.flexFlex()) {
+      ASSERTION_VIOLATION;
+    }
+
+    ASS(curr.flexRigid());
+
+    auto& flexTerm = curr._lhead.isVar() ? curr._lhs : curr._rhs;
+    auto& rigidTerm = curr._lhead.isVar() ? curr._rhs : curr._lhs;
+    TermStack bindings = HOL::getProjAndImitBindings(flexTerm, rigidTerm, _freshVar);
+
+    for (const auto& b : bindings) {
+      std::cout << "binding " << flexTerm.head() << " " << b << std::endl;
+    }
+
+    ASSERTION_VIOLATION;
+  }
+  return nullptr;
+}
+
+std::ostream& operator<<(std::ostream& out, const HOLUnifier::Constraint& con) {
+  return out << con._lhs << " = " << con._rhs;
+}
+
+std::ostream& operator<<(std::ostream& out, const HOLUnifier::Node& node) {
+  return out << node._cons << " " << node._subs;
 }
 
 } // namespace Saturation

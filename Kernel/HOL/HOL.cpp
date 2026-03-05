@@ -14,6 +14,7 @@
 #include "Kernel/HOL/HOL.hpp"
 
 #include "ToPlaceholders.hpp"
+#include "TermShifter.hpp"
 #include "Kernel/Formula.hpp"
 
 using IndexVarStack = Stack<std::pair<unsigned, unsigned>>;
@@ -253,6 +254,26 @@ TermList HOL::matrix(TermList t) {
   return t;
 }
 
+void HOL::getArgSorts(TermList t, TermStack& sorts) {
+  while (t.isArrowSort()) {
+    sorts.push(t.domain());
+    t = t.result();
+  }
+
+  t = matrix(t);
+
+  while (t.isApplication()) {
+    sorts.push(*t.term()->nthArgument(0));
+    t = t.lhs();
+  }
+}
+
+TermStack HOL::getArgSorts(TermList t) {
+  TermStack stack;
+  getArgSorts(t, stack);
+  return stack;
+}
+
 TermList HOL::getHeadAndArgs(TermList term, TermStack& args) {
   args.reset();
 
@@ -376,4 +397,149 @@ void HOL::getMatrixAndPrefSorts(TermList t, TermList& matrix, TermStack& sorts) 
     t = t.lambdaBody();
   }
   matrix = t;
+}
+
+void HOL::normaliseLambdaPrefixes(TermList& t1, TermList& t2)
+{
+  if (t1.isVar() && t2.isVar()) {
+    return;
+  }
+
+  TermList nonVar = t1.isVar() ? t2 : t1;
+  TermList sort = SortHelper::getResultSort(nonVar.term());
+
+  auto etaExpand = [](TermList t, TermList sort, TermStack& sorts, unsigned n){
+    TermStack sorts1; // sorts of new prefix
+
+    t = TermShifter::shift(t, n).first; // lift loose indices by n
+
+    for(int i = n - 1; i >= 0; i--) { // append De Bruijn indices
+      ASS(sort.isArrowSort());
+
+      auto s = sort.domain();
+      t = create::app(sort, t, getDeBruijnIndex(i, s));
+      sort = sort.result();
+      sorts1.push(s);
+    }
+
+    while (!sorts1.isEmpty()) { // wrap in new lambdas
+      t = create::namelessLambda(sorts1.pop(), t);
+    }
+
+    while (!sorts.isEmpty()) { // wrap in original lambdas
+      t = create::namelessLambda(sorts.pop(), t);
+    }
+
+    return t;
+  };
+
+  unsigned m = 0, n = 0;
+  TermList t1_body = t1, t2_body = t2, t1_sort = sort, t2_sort = sort;
+  TermStack prefSorts1, prefSorts2;
+
+  while (t1_body.isLambdaTerm()) {
+    t1_body = t1_body.lambdaBody();
+    prefSorts1.push(t1_sort.domain());
+    t1_sort = t1_sort.result();
+    m++;
+  }
+
+  while (t2_body.isLambdaTerm()) {
+    t2_body = t2_body.lambdaBody();
+    prefSorts2.push(t2_sort.domain());
+    t2_sort = t2_sort.result();
+    n++;
+  }
+
+  if (m > n) {
+    t2 = etaExpand(t2_body, t2_sort, prefSorts2, m - n);
+  } else if (n > m) {
+    t1 = etaExpand(t1_body, t1_sort, prefSorts1, n - m);
+  }
+}
+
+TermStack HOL::getFlexHeadSorts(TermList flexTerm, TermList rigidTermSort)
+{
+  TermList matrixSort;
+  if (flexTerm.isVar()) {
+    matrixSort = rigidTermSort;
+  } else {
+    matrixSort = flexTerm.resultSort();
+    while (flexTerm.isLambdaTerm()) {
+      matrixSort = *flexTerm.term()->nthArgument(1);
+      flexTerm = flexTerm.lambdaBody();
+    }
+  }
+
+  TermStack temp;
+  getArgSorts(matrixSort, temp);
+
+  TermStack sorts;
+  while (temp.isNonEmpty()) {
+    sorts.push(temp.pop());
+  }
+
+  getArgSorts(flexTerm, sorts);
+  return sorts;
+}
+
+TermStack HOL::getProjAndImitBindings(TermList flexTerm, TermList rigidTerm, unsigned& freshVar)
+{
+  // since term is rigid, cannot be a variable
+  TermList sort = finalResult(matrix(rigidTerm).resultSort());
+  TermList headRigid = rigidTerm.head();
+
+  auto [headFlex, argsFlex] = getHeadAndArgs(flexTerm);
+
+  TermStack sortsFlex = getFlexHeadSorts(flexTerm, rigidTerm.resultSort()); // sorts of arguments of flex head
+
+  TermStack res;
+
+  // imitation
+  if (headRigid.deBruijnIndex().isNone()) { // cannot imitate a bound variable
+    res.push(createGeneralBinding(headRigid, sortsFlex, freshVar));
+  }
+
+  ASS_GE(sortsFlex.size(), argsFlex.size());
+  unsigned diff = sortsFlex.size() - argsFlex.size();
+
+  // projections
+  for (unsigned i = 0; i < argsFlex.size(); i++) {
+    // try and project each of the arguments of the flex head in turn
+    TermList arg = argsFlex[i];
+    TermList argSort = sortsFlex[i + diff];
+
+    // sort wrong, cannot project this arg
+    if (finalResult(argSort) != sort) {
+      continue;
+    }
+
+    TermList head = arg.head();
+
+    // argument has a rigid head different to that of rhs. no point projecting
+    if (head.isTerm() && head.deBruijnIndex().isNone() && head != headRigid) {
+      continue;
+    }
+
+    TermList dbi = getDeBruijnIndex(i + diff, sortsFlex[i + diff]);
+    res.push(createGeneralBinding(dbi, sortsFlex, freshVar));
+  }
+  return res;
+}
+
+TermList HOL::createGeneralBinding(TermList head, TermStack& sorts, unsigned& freshVar)
+{
+  ASS(head.isTerm()) // in the future may wish to reconsider this assertion
+
+  auto indices = TermStack::fromIterator(
+    range(0,sorts.size()).map([&](auto i) { return getDeBruijnIndex(i, sorts[i]); }));
+  TermStack argSorts = getArgSorts(head.resultSort());
+  TermStack args;
+
+  while (!argSorts.isEmpty()) {
+    TermList varSort = AtomicSort::arrowSort(sorts, argSorts.pop());
+    args.push(create::app(varSort, TermList::var(freshVar++), indices));
+  }
+
+  return create::surroundWithLambdas(create::app(head, args), sorts);
 }
