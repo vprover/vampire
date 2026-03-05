@@ -32,7 +32,8 @@ using namespace Test;
 #define PREAMBLE                   \
   env.setHigherOrder(true);        \
   __ALLOW_UNUSED(MY_SYNTAX_SUGAR); \
-  HOLUnifier unifier;
+  Options opt;                     \
+  HOLUnifier unifier(opt);
 
 void checkEqual(Clause* actual, Clause* expected) {
   if (!TestUtils::eqModAC(actual, expected)) {
@@ -116,7 +117,7 @@ TEST_FUN(constraints_iteration) {
 
   checkEqual(c2, clause({ ~p_hol(xs) }));
 
-  auto cls = unifier.iterate(50);
+  auto cls = unifier.iterate();
   ASS_EQ(cls.size(),1);
   checkEqual(cls[0], clause({ p_hol() }));
 }

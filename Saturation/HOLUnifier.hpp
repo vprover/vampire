@@ -21,18 +21,21 @@
 #include "Lib/DHMap.hpp"
 
 using namespace Kernel;
+using namespace Shell;
 
 namespace Saturation {
 
 class HOLUnifier {
 public:
+  HOLUnifier(const Options& opt);
+
   Clause* handleClause(Clause* cl);
-  ClauseStack iterate(unsigned num);
+  ClauseStack iterate();
 
   static bool isHolUnifiable(TermList t);
 
 private:
-  Literal* introduceDefinition(Literal* lit);
+  std::pair<Literal*,Unit*> introduceDefinition(Literal* lit);
 
   struct Constraint;
 
@@ -54,11 +57,16 @@ private:
   friend std::ostream& operator<<(std::ostream& out, const Constraint& con);
   friend std::ostream& operator<<(std::ostream& out, const Node& node);
 
-  Stack<FormulaUnit*> _defs;
-  Stack<Node*> _roots;
-  DHMap<Literal*, unsigned> _defPredMap;
+  struct UCDef {
+    unsigned pred;
+    FormulaUnit* def;
+  };
+  DHMap<Literal*, UCDef> _litToDefMap;
 
+  Stack<Node*> _roots;
   Stack<Node*> _todo;
+
+  const unsigned _kNumIter;
   unsigned _index = 0;
 };
 

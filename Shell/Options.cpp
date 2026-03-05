@@ -2023,6 +2023,11 @@ void Options::init()
     _holUnifier.addHardConstraint(If(equal(true)).then(_unificationWithAbstraction.is(equal(UnificationWithAbstraction::HOL))));
     _holUnifier.tag(OptionTag::HIGHER_ORDER);
 
+    _holUnifierIterations = UnsignedOptionValue("hol_unifier_iterations", "huni", 10);
+    _holUnifierIterations.description = "Number of HOL unification iterations to be performed per activation";
+    _lookup.insert(&_holUnifierIterations);
+    _holUnifierIterations.tag(OptionTag::HIGHER_ORDER);
+
 //*********************** InstGen  ***********************
 // TODO not really InstGen any more, just global subsumption
 

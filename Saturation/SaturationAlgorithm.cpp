@@ -262,7 +262,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _splitter = new Splitter();
   }
   if (opt.holUnifier()) {
-    _holUnifier = new HOLUnifier();
+    _holUnifier = new HOLUnifier(_opt);
   }
 
   _partialRedundancyHandler.reset(PartialRedundancyHandler::create(opt, _ordering.ptr(), _splitter));
@@ -1175,6 +1175,14 @@ void SaturationAlgorithm::activate(Clause* cl)
         Clause *premCl = static_cast<Clause *>(premUnit);
         onParenthood(genCl, premCl);
       }
+    }
+  }
+
+  // TODO find a place where this is ideally placed,
+  // where we can iterate regardless of activations
+  if (_holUnifier) {
+    for (const auto& huCl : _holUnifier->iterate()) {
+      addNewClause(huCl);
     }
   }
 

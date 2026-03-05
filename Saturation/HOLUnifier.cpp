@@ -42,11 +42,15 @@ bool isHOLUnificationConstraint(Literal* lit)
   return HOLUnifier::isHolUnifiable(lit->termArg(0)) || HOLUnifier::isHolUnifiable(lit->termArg(1));
 }
 
+HOLUnifier::HOLUnifier(const Options& opt)
+: _kNumIter(opt.holUnifierIterations()) { ASS(_kNumIter); }
+
 Clause* HOLUnifier::handleClause(Clause* cl)
 {
   ASS(cl->length());
 
   LiteralStack lits;
+  auto def_units = UnitList::empty();
 
   for (unsigned i = 0; i < cl->length(); i++) {
     auto lit = (*cl)[i];
@@ -56,7 +60,9 @@ Clause* HOLUnifier::handleClause(Clause* cl)
       if (lits.isEmpty()) {
         for (unsigned j = 0; j < i; j++) { lits.push((*cl)[j]); }
       }
-      lits.push(introduceDefinition(lit));
+      auto [replLit, def] = introduceDefinition(lit);
+      lits.push(replLit);
+      UnitList::push(def, def_units);
       continue;
     }
 
@@ -67,18 +73,19 @@ Clause* HOLUnifier::handleClause(Clause* cl)
   }
 
   if (lits.isNonEmpty()) {
-    return Clause::fromStack(lits, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::HOL_UNIFIER_DEFINITION));
+    ASS(def_units);
+    UnitList::push(cl, def_units);
+    return Clause::fromStack(lits, NonspecificInferenceMany(InferenceRule::HOL_UNIFIER_DEFINITION, def_units));
   }
   return cl;
 }
 
-ClauseStack HOLUnifier::iterate(unsigned num)
+ClauseStack HOLUnifier::iterate()
 {
-  ASS(num);
   ClauseStack res;
 
   // do num-many iterations
-  for (unsigned j = 0; j < num; j++) {
+  for (unsigned j = 0; j < _kNumIter; j++) {
 
     // circulate inside _todos
     if (_index >= _todo.size()) {
@@ -111,7 +118,7 @@ ClauseStack HOLUnifier::iterate(unsigned num)
   return res;
 }
 
-Literal* HOLUnifier::introduceDefinition(Literal* lit)
+std::pair<Literal*,Unit*> HOLUnifier::introduceDefinition(Literal* lit)
 {
   ASS(isHOLUnificationConstraint(lit));
 
@@ -136,11 +143,11 @@ Literal* HOLUnifier::introduceDefinition(Literal* lit)
     }
   }
 
-  unsigned* sym_ptr;
+  UCDef* def_ptr;
 
   // 2. introduce definition if needed
 
-  if (_defPredMap.getValuePtr(nlit, sym_ptr)) {
+  if (_litToDefMap.getValuePtr(nlit, def_ptr)) {
 
     // 2.1. introduce predicate based on variables
     auto p = env.signature->addFreshPredicate(varsSeen.size(), "p_hol");
@@ -180,17 +187,17 @@ Literal* HOLUnifier::introduceDefinition(Literal* lit)
       std::cout << "[HOL] introduced definition " << def->toString() << std::endl;
     }
 
-    _defs.push(def_u);
     auto node = new Node(nlit, plit, r.nextVar());
     _roots.push(node);
     _todo.push(node);
-    *sym_ptr = p;
+
+    *def_ptr = { p, def_u };
   }
 
   // 3. create new literal
   auto p_s_args = TermStack::fromIterator(typeVars.iterFifo());
   p_s_args.loadFromIterator(iterTraits(termVars.iterFifo()).map([](auto kv){ return kv.first; }));
-  return Literal::create(*sym_ptr, /*arity=*/p_s_args.size(), /*polarity=*/false, p_s_args.begin());
+  return { Literal::create(def_ptr->pred, /*arity=*/p_s_args.size(), /*polarity=*/false, p_s_args.begin()), def_ptr->def };
 }
 
 // Constraint

@@ -2300,6 +2300,7 @@ public:
   bool newTautologyDel() const { return _newTautologyDel.actualValue; }
 
   bool holUnifier() const { return _holUnifier.actualValue; }
+  unsigned holUnifierIterations() const { return _holUnifierIterations.actualValue; }
 
 private:
 
@@ -2727,6 +2728,7 @@ private:
   BoolOptionValue _newTautologyDel;
 
   BoolOptionValue _holUnifier;
+  UnsignedOptionValue _holUnifierIterations;
 
 }; // class Options
 
