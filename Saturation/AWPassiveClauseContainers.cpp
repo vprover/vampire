@@ -36,18 +36,6 @@ using namespace Lib;
 using namespace Kernel;
 
 /**
- * Weight comparison of clauses.
- * @return the result of comparison (LESS, EQUAL or GREATER)
- * @warning if the option increased_numeral_weight is on, then each comparison
- *          recomputes the numeral weight of clauses, see Clause::getNumeralWeight(), so it
- *          it can be expensive
- */
-static Comparison compareWeight(Clause* cl1, Clause* cl2, const Options& opt)
-{
-  return Int::compare(cl1->weightForClauseSelection(opt), cl2->weightForClauseSelection(opt));
-}
-
-/**
  * Comparison of clauses. The comparison uses four orders in the
  * following order:
  * <ol><li>by age;</li>
@@ -57,28 +45,15 @@ static Comparison compareWeight(Clause* cl1, Clause* cl2, const Options& opt)
  * </ol>
  * @since 30/12/2007 Manchester
  */
-bool AgeQueue::lessThan(Clause* c1,Clause* c2)
+bool AgeQueue::lessThan(const ClauseInfo& a, const ClauseInfo& b)
 {
-  if (c1->age() < c2->age()) {
-    return true;
-  }
-  if (c2->age() < c1->age()) {
-    return false;
-  }
-
-  Comparison weightCmp=compareWeight(c1, c2, _opt);
-  if (weightCmp!=EQUAL) {
-    return weightCmp==LESS;
-  }
-
-  if (c1->inputType() < c2->inputType()) {
-    return false;
-  }
-  if (c2->inputType() < c1->inputType()) {
-    return true;
-  }
-
-  return c1->number() < c2->number();
+  if (a.age != b.age)
+    return a.age < b.age;
+  if (a.weightForSelection != b.weightForSelection)
+    return a.weightForSelection < b.weightForSelection;
+  if (a.inputType != b.inputType)
+    return a.inputType > b.inputType;
+  return a.number < b.number;
 } // AgeQueue::lessThan
 
 AgeQueue::OrdVal AgeQueue::getOrdVal(Clause* cl) const
@@ -96,26 +71,15 @@ AgeQueue::OrdVal AgeQueue::getOrdVal(Clause* cl) const
  * </ol>
  * @since 30/12/2007 Manchester
  */
-bool WeightQueue::lessThan(Clause* c1,Clause* c2)
+bool WeightQueue::lessThan(const ClauseInfo& a, const ClauseInfo& b)
 {
-  Comparison weightCmp=compareWeight(c1, c2, _opt);
-  if (weightCmp!=EQUAL) {
-    return weightCmp==LESS;
-  }
-
-  if (c1->age() < c2->age()) {
-    return true;
-  }
-  if (c2->age() < c1->age()) {
-    return false;
-  }
-  if (c1->inputType() < c2->inputType()) {
-    return false;
-  }
-  if (c2->inputType() < c1->inputType()) {
-    return true;
-  }
-  return c1->number() < c2->number();
+  if (a.weightForSelection != b.weightForSelection)
+    return a.weightForSelection < b.weightForSelection;
+  if (a.age != b.age)
+    return a.age < b.age;
+  if (a.inputType != b.inputType)
+    return a.inputType > b.inputType;
+  return a.number < b.number;
 } // WeightQueue::lessThan
 
 WeightQueue::OrdVal WeightQueue::getOrdVal(Clause* cl) const

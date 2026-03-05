@@ -23,21 +23,38 @@
 
 #include "Lib/Reflection.hpp"
 
+#include "Kernel/Inference.hpp"
+
 #include "absl/container/btree_set.h"
+
+namespace Shell { class Options; }
 
 namespace Kernel {
 
 class Clause;
 
 /**
+ * Cached comparison fields for a clause, stored directly in the btree
+ * node for cache-local comparisons without dereferencing the Clause pointer.
+ */
+struct ClauseInfo {
+  Clause* clause;
+  unsigned age;
+  unsigned weightForSelection;
+  UnitInputType inputType;
+  unsigned number;
+};
+
+/**
  * A clause priority queue backed by absl::btree_set for cache-locality.
- * The comparison of elements is made using the virtual function lessThan.
+ * The comparison of elements is made using the virtual function lessThan,
+ * which operates on ClauseInfo structs containing cached comparison fields.
  * @since 30/12/2007 Manchester
  */
 class ClauseQueue
 {
 public:
-  ClauseQueue();
+  ClauseQueue(const Shell::Options& opt);
   virtual ~ClauseQueue();
   void insert(Clause*);
   bool remove(Clause*);
@@ -50,18 +67,22 @@ public:
 
   friend class Iterator;
 protected:
-  /** comparison of clauses */
-  virtual bool lessThan(Clause*,Clause*) = 0;
+  /** comparison of clause infos */
+  virtual bool lessThan(const ClauseInfo&, const ClauseInfo&) = 0;
+
+  const Shell::Options& _opt;
 
 private:
+  ClauseInfo makeInfo(Clause* c) const;
+
   struct Comparator {
     ClauseQueue* queue;
-    bool operator()(Clause* a, Clause* b) const {
+    bool operator()(const ClauseInfo& a, const ClauseInfo& b) const {
       return queue->lessThan(a, b);
     }
   };
 
-  using SetType = absl::btree_set<Clause*, Comparator>;
+  using SetType = absl::btree_set<ClauseInfo, Comparator>;
   SetType _set;
 
 public:
@@ -83,7 +104,7 @@ public:
     inline Clause* next()
     {
       ASS(_it != _end);
-      return *_it++;
+      return (_it++)->clause;
     }
   private:
     /** Current position */

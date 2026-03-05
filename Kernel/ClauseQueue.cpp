@@ -19,8 +19,8 @@
 using namespace std;
 using namespace Kernel;
 
-ClauseQueue::ClauseQueue()
-    : _set(Comparator{this})
+ClauseQueue::ClauseQueue(const Shell::Options& opt)
+    : _opt(opt), _set(Comparator{this})
 {
 }
 
@@ -28,14 +28,24 @@ ClauseQueue::~ClauseQueue()
 {
 }
 
+ClauseInfo ClauseQueue::makeInfo(Clause* c) const
+{
+  return {c, c->age(), c->weightForClauseSelection(_opt), c->inputType(), c->number()};
+}
+
 void ClauseQueue::insert(Clause* c)
 {
-  _set.insert(c);
+  _set.insert(makeInfo(c));
 }
 
 bool ClauseQueue::remove(Clause* c)
 {
-  return _set.erase(c) > 0;
+  auto it = _set.find(makeInfo(c));
+  if (it != _set.end()) {
+    _set.erase(it);
+    return true;
+  }
+  return false;
 }
 
 Clause* ClauseQueue::pop()
@@ -43,7 +53,7 @@ Clause* ClauseQueue::pop()
   ASS(!_set.empty());
 
   auto it = _set.begin();
-  Clause* c = *it;
+  Clause* c = it->clause;
   _set.erase(it);
   return c;
 }
@@ -55,7 +65,7 @@ void ClauseQueue::removeAll()
 
 void ClauseQueue::output(std::ostream& str) const
 {
-  for (Clause* c : _set) {
-    str << c->toString() << '\n';
+  for (const auto& info : _set) {
+    str << info.clause->toString() << '\n';
   }
 }
