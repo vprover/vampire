@@ -286,7 +286,7 @@ Literal* HOLUnifier::Node::solution()
       if (t.isVar() && t.var() == var) {
         return t;
       }
-      return SubstHelper::apply(t, *this);
+      return HOL::reduce::betaNF(SubstHelper::apply(t, *this));
     }
   };
 

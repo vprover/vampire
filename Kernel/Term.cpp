@@ -900,7 +900,14 @@ std::string Literal::toString(bool reverseEquality) const
 
   //cerr << "predicate: "<< predicateName()<<endl;
   if (_arity > 0) {
-    s += '(' + args()->asArgsToString(); // will also print the ')'
+    // s += '(' + args()->asArgsToString(); // will also print the ')'
+    s += '(';
+    auto it = args();
+    while (it->isNonEmpty()) {
+      s += it->toString();
+      it = it->next();
+    }
+    s += ')';
   }
   return s;
 } // Literal::toString
