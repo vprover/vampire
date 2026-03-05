@@ -191,6 +191,12 @@ if(NOT HAVE_CLOSEFROM)
 endif()
 
 ################################################################
+# Abseil
+################################################################
+
+add_subdirectory(abseil-cpp EXCLUDE_FROM_ALL)
+
+################################################################
 # Z3
 ################################################################
 
@@ -227,6 +233,7 @@ endif()
 ################################################################
 # wrap up common object files so not built multiple times for each target
 add_library(common OBJECT ${SOURCES})
+target_link_libraries(common PUBLIC absl::btree)
 
 # the actual Vampire executable
 add_executable(vampire vampire.cpp $<TARGET_OBJECTS:common>)
