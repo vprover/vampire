@@ -75,7 +75,7 @@ Clause* HOLUnifier::handleClause(Clause* cl)
   if (lits.isNonEmpty()) {
     ASS(def_units);
     UnitList::push(cl, def_units);
-    return Clause::fromStack(lits, NonspecificInferenceMany(InferenceRule::HOL_UNIFIER_DEFINITION, def_units));
+    return Clause::fromStack(lits, NonspecificInferenceMany(InferenceRule::HOL_UNIFIER_ELIMINATION, def_units));
   }
   return cl;
 }
@@ -124,7 +124,7 @@ std::pair<Literal*,Unit*> HOLUnifier::introduceDefinition(Literal* lit)
 
   Renaming r;
   r.normalizeVariables(lit);
-  auto nlit = r.apply(lit);
+  auto nlit = Literal::complementaryLiteral(r.apply(lit));
 
   // 1. collect variable sorts
   DHSet<unsigned> varsSeen;
@@ -258,7 +258,7 @@ HOLUnifier::Node::Node(Literal* lit, Literal* def, unsigned nextVar)
   : _def(def), _freshVar(nextVar)
 {
   ASS(lit->isEquality());
-  ASS(lit->isNegative());
+  ASS(lit->isPositive());
 
   _cons.emplace(lit->termArg(0), lit->termArg(1));
 }

@@ -421,6 +421,7 @@ enum class InferenceRule : unsigned char {
   MODEL_NOT_FOUND,
 
   HOL_UNIFIER_DEFINITION,
+  HOL_UNIFIER_ELIMINATION,
   HOL_UNIFIER_SOLUTION,
 
   /* Adding sort predicate */
