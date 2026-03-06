@@ -27,6 +27,7 @@
 #include "Kernel/Unit.hpp"
 #include "Shell/InferenceRecorder.hpp"
 #include <cstddef>
+#include <set>
 #include <utility>
 
 #include "Rectify.hpp"
@@ -436,10 +437,15 @@ Formula* Rectify::rectify (Formula* f)
     VList* vs = rectifyBoundVars(f->vars());
     if(env.reconstruction) {
       Kernel::Substitution substVariablesInFormula;
+      std::set<unsigned> unusedVars;
       for(auto v : iterTraits(f->vars()->iter())) {
-        substVariablesInFormula.bind(v, TermList::var(_renaming.getBoundAndUsage(v).first));
+        auto [originalVar, usageInfo] = _renaming.getBoundAndUsage(v);
+        substVariablesInFormula.bind(v, TermList::var(originalVar));
+        if(!usageInfo){
+          unusedVars.insert(v);
+        } 
       }
-      InferenceRecorder::instance()->rectify(f, vs, substVariablesInFormula);
+      InferenceRecorder::instance()->rectify(f, vs, substVariablesInFormula, unusedVars);
     }
     unbindVars(f->vars());
     if (vs == f->vars() && arg == f->qarg()) {

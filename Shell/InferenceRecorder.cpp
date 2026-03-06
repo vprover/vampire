@@ -229,7 +229,7 @@ void InferenceRecorder::backwardDemodulation(unsigned int id, Clause *conclusion
   );
 }
 
-void InferenceRecorder::rectify(Formula* f, VList* vs, Substitution renaming)
+void InferenceRecorder::rectify(Formula* f, VList* vs, Substitution renaming, std::set<unsigned> unusedVars)
 {
   
   std::unique_ptr<RectifyInferenceExtra> extra = std::make_unique<RectifyInferenceExtra>();
@@ -239,10 +239,16 @@ void InferenceRecorder::rectify(Formula* f, VList* vs, Substitution renaming)
   auto argIter = vs->iter();
   std::vector<unsigned> originalVars;
   std::vector<unsigned> rectifiedVars;
-  while(quantifierIter.hasNext() && argIter.hasNext()) {
-    originalVars.push_back(quantifierIter.next());
+  while(quantifierIter.hasNext()) {
+    auto v = quantifierIter.next();
+    if(unusedVars.find(v) == unusedVars.end()){
+      originalVars.push_back(v);
+    }
+  }
+  while(argIter.hasNext()) {
     rectifiedVars.push_back(argIter.next());
   }
+  //ASS(originalVars.size() == rectifiedVars.size());
   std::sort(originalVars.begin(), originalVars.end());
   std::sort(rectifiedVars.begin(), rectifiedVars.end());
   
@@ -251,8 +257,6 @@ void InferenceRecorder::rectify(Formula* f, VList* vs, Substitution renaming)
   }
   //std::cout << substVariablesInFormula << std::endl;
   //std::cout << substVariablesInQuantifier << std::endl;
-  ASS(!quantifierIter.hasNext());
-  ASS(!argIter.hasNext());
   Substitution combinedSubst;
   for(auto v : iterTraits(f->vars()->iter())) {
     combinedSubst.bind(v, substVariablesInQuantifier.apply(renaming.apply(v).var()));
