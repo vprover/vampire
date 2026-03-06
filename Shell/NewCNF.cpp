@@ -661,7 +661,7 @@ TermList NewCNF::eliminateLet(Term* term)
   ASS_EQ(sd->specialFunctor(), SpecialFunctor::LET);
   auto body = term->termArg(0);
 
-  auto bindingBoundVars = VList::empty();
+  VSList* bindingBoundVars = VSList::empty();
   Formula* binding = sd->getLetBinding();
   if (binding->connective() == Connective::FORALL) {
     bindingBoundVars = binding->vars();
@@ -751,11 +751,18 @@ void NewCNF::processLet(Term* term, Occurrences &occurrences)
   enqueue(deletedContentsFormula, occurrences);
 }
 
-TermList NewCNF::nameLetBinding(Term* bindingLhs, TermList bindingRhs, TermList body, VList* bindingBoundVars)
+TermList NewCNF::nameLetBinding(Term* bindingLhs, TermList bindingRhs, TermList body, VSList* bindingBoundVars)
 {
+  // Build a set of bound variable indices for fast membership checks
+  DHSet<unsigned> boundVarSet;
+  VSList::Iterator boundIt(bindingBoundVars);
+  while (boundIt.hasNext()) {
+    boundVarSet.insert(boundIt.next().first);
+  }
+
   DHSet<unsigned> bindingFreeVars;
   for (const auto& var : iterTraits(FormulaVarIterator(bindingRhs))) {
-    if (!VList::member(var, bindingBoundVars)) {
+    if (!boundVarSet.contains(var)) {
       bindingFreeVars.insert(var);
     }
   }
@@ -769,7 +776,7 @@ TermList NewCNF::nameLetBinding(Term* bindingLhs, TermList bindingRhs, TermList 
     bindingLhs = inner->literal();
   }
 
-  unsigned nameArity = VList::length(bindingBoundVars) + bindingFreeVars.size();
+  unsigned nameArity = VSList::length(bindingBoundVars) + bindingFreeVars.size();
   TermList nameSort = isPredicate ? AtomicSort::boolSort() : SortHelper::getResultSort(bindingLhs);
 
   unsigned freshSymbol = bindingLhs->functor();
@@ -780,8 +787,10 @@ TermList NewCNF::nameLetBinding(Term* bindingLhs, TermList bindingRhs, TermList 
     Recycled<TermStack> termVarSorts;
     ensureHavingVarSorts();
 
-    for (const auto& var : iterTraits(VList::Iterator(bindingBoundVars))) {
-      auto sort = getVarSort(var);
+    // Use sorts directly from bindingBoundVars VSList
+    VSList::Iterator vsit(bindingBoundVars);
+    while (vsit.hasNext()) {
+      auto [var, sort] = vsit.next();
       if (sort == AtomicSort::superSort()) {
         typeVars->push(TermList::var(var));
       } else {
@@ -815,8 +824,10 @@ TermList NewCNF::nameLetBinding(Term* bindingLhs, TermList bindingRhs, TermList 
 
   Recycled<TermStack> args;
   Recycled<TermStack> termArgs;
-  for (const auto& var : iterTraits(VList::Iterator(bindingBoundVars))) {
-    auto sort = getVarSort(var);
+  // Use sorts directly from bindingBoundVars VSList
+  VSList::Iterator vsit2(bindingBoundVars);
+  while (vsit2.hasNext()) {
+    auto [var, sort] = vsit2.next();
     if (sort == AtomicSort::superSort()) {
       args->push(TermList::var(var));
     } else {
@@ -1042,9 +1053,9 @@ void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings, BindingList
       processedBindings = nullptr;
       processedFoolBindings = nullptr;
 
-      VList::Iterator vs(g->vars());
+      VSList::Iterator vs(g->vars());
       while (vs.hasNext()) {
-        unsigned var = vs.next();
+        unsigned var = vs.next().first;
 
         Term *skolem = createSkolemTerm(var, unboundFreeVars);
 

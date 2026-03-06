@@ -633,7 +633,7 @@ Formula* Naming::apply_iter(Formula* top_f) {
       }
       ASS(pos <= _threshold || _preserveEpr);
       if (g != f->qarg()) {
-        f = new QuantifiedFormula(f->connective(), f->vars(),f->sorts(), g);
+        f = new QuantifiedFormula(f->connective(), f->vars(), g);
       }
       if (tfe.varFlagSet) {
         _varsInScope = false;
@@ -1033,7 +1033,7 @@ Formula* Naming::apply_sub(Formula* f, Where where, int& pos, int& neg) {
     Formula* g = apply_sub(f->qarg(), where, pos, neg);
     ASS(pos <= _threshold || _preserveEpr);
     if (g != f->qarg()) {
-      f = new QuantifiedFormula(f->connective(), f->vars(),f->sorts(), g);
+      f = new QuantifiedFormula(f->connective(), f->vars(), g);
     }
     if (varFlagSet) {
       _varsInScope = false;
@@ -1174,8 +1174,19 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
     def = new JunctionFormula(OR, fs);
   }
   if (VList::isNonEmpty(vs)) {
-    //TODO do we know the sorts of the free variables vs?
-    def = new QuantifiedFormula(FORALL, vs, 0, def);
+    DHMap<unsigned, TermList> varSorts;
+    SortHelper::collectVariableSorts(def, varSorts);
+    VSList::FIFO vsfifo;
+    VList::Iterator vit(vs);
+    while (vit.hasNext()) {
+      unsigned v = vit.next();
+      TermList s;
+      if (!varSorts.find(v, s)) {
+        s = AtomicSort::defaultSort();
+      }
+      vsfifo.pushBack({v, s});
+    }
+    def = new QuantifiedFormula(FORALL, vsfifo.list(), def);
   }
   Unit* definition = new FormulaUnit(def, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::PREDICATE_DEFINITION));
 

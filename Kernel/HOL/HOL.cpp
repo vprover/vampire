@@ -40,21 +40,19 @@ static bool findVar(unsigned index, const IndexVarStack & st, unsigned& var) {
 
 static std::string lambdaToString(const Term::SpecialTermData* sd, bool pretty)
 {
-  Kernel::VList *vars = sd->getLambdaVars();
-  Kernel::SList * sorts = sd->getLambdaVarSorts();
+  Kernel::VSList *vars = sd->getLambdaVars();
   TermList lambdaExp = sd->getLambdaExp();
 
   std::string varList = pretty ? "" : "[";
 
-  Kernel::VList::Iterator vs(vars);
-  Kernel::SList::Iterator ss(sorts);
+  Kernel::VSList::Iterator vs(vars);
 
   bool first = true;
   while (vs.hasNext()) {
+    auto [v, sort] = vs.next();
     varList += first ? "" : ", ";
     first = false;
-    varList += Term::variableToString(vs.next()) + " : ";
-    varList += ss.next().toString();
+    varList += Term::variableToString(v) + " : " + sort.toString();
   }
   varList += pretty ? "" : "]";
   std::string lambda = pretty ? "λ" : "^";
