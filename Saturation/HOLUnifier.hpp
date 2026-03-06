@@ -45,13 +45,14 @@ private:
     Node(const Node& parent, unsigned var, TermList binding);
     Node(const Node& parent, Stack<Constraint> cons);
 
-    Literal* solution();
-    Stack<Node*> next();
+    std::pair<Stack<Node*>,LiteralStack> solve();
 
     Literal* _def;
     Stack<Constraint> _cons;
     Substitution _subs;
     unsigned _freshVar;
+  private:
+    LiteralStack solution();
   };
 
   friend std::ostream& operator<<(std::ostream& out, const Constraint& con);
@@ -67,7 +68,6 @@ private:
   Stack<Node*> _todo;
 
   const unsigned _kNumIter;
-  unsigned _index = 0;
 };
 
 }

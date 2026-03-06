@@ -88,32 +88,24 @@ ClauseStack HOLUnifier::iterate()
   for (unsigned j = 0; j < _kNumIter; j++) {
 
     // circulate inside _todos
-    if (_index >= _todo.size()) {
-      _index = 0;
+    if (_todo.isEmpty()) {
+      return res;
     }
     
-    auto& curr = _todo[_index];
+    auto curr = _todo.pop();
     DEBUG("curr ", curr);
 
-    auto nexts = curr->next();
-    if (nexts.isEmpty()) {
+    auto [children, solution] = curr->solve();
+    ASS (children.isEmpty() || solution.isEmpty());
 
-      // if curr has a solution, save it
-      auto lit = curr->solution();
-      if (lit) {
-        res.push(Clause::fromLiterals({ lit }, NonspecificInference0(UnitInputType::AXIOM, InferenceRule::HOL_UNIFIER_SOLUTION)));
-      }
-
-      // TODO this changes the order
-      std::swap(_todo[_index], _todo.top());
-      _todo.pop();
+    if (solution.isNonEmpty()) {
+      res.push(Clause::fromStack(solution, NonspecificInference0(UnitInputType::AXIOM, InferenceRule::HOL_UNIFIER_SOLUTION)));
       continue;
     }
 
-    for (const auto& next : nexts) {
-      _todo.push(next);
+    for (const auto& child : children) {
+      _todo.push(child);
     }
-    _index++;
   }
   return res;
 }
@@ -274,10 +266,8 @@ HOLUnifier::Node::Node(const Node& parent, Stack<Constraint> cons)
 {
 }
 
-Literal* HOLUnifier::Node::solution()
+LiteralStack HOLUnifier::Node::solution()
 {
-  ASS(_cons.isEmpty());
-
   struct IdempotentSubs {
     const Substitution& _subs;
     IdempotentSubs(const Substitution& subs) : _subs(subs) {}
@@ -291,12 +281,19 @@ Literal* HOLUnifier::Node::solution()
   };
 
   IdempotentSubs subs(_subs);
-  auto sol = SubstHelper::apply(_def, subs);
-  DEBUG("solution found ", *sol);
-  return sol;
+  LiteralStack res;
+
+  res.push(SubstHelper::apply(_def, subs));
+  for (const auto& con : _cons) {
+    ASS(con.flexFlex());
+    res.push(Literal::createEquality(false,
+      SubstHelper::apply(con._lhs, subs), SubstHelper::apply(con._rhs, subs),
+      SortHelper::getResultSort(con._lhs.term())));
+  }
+  return res;
 }
 
-Stack<HOLUnifier::Node*> HOLUnifier::Node::next()
+std::pair<Stack<HOLUnifier::Node*>,LiteralStack> HOLUnifier::Node::solve()
 {
   Stack<Node*> res;
 
@@ -310,25 +307,19 @@ Stack<HOLUnifier::Node*> HOLUnifier::Node::next()
 
     curr.normalize(_subs);
 
-    // 4. fail
-    if (curr.rigidRigid() && curr._lhead != curr._rhead) {
-      res.reset();
-      return res;
-    }
-
-    // 5. delete
+    // 4. delete
     if (curr._lhs == curr._rhs) {
       std::swap(curr, _cons.top());
       _cons.pop();
       continue;
     }
 
-    // 6. oracle succeed
+    if (curr.rigidRigid()) {
+      if (curr._lhead != curr._rhead) {
+        // fail
+        return { Stack<Node*>(), LiteralStack() };
+      }
 
-    // 7. oracle fail
-
-    // 8. decompose
-    if (curr.rigidRigid() && curr._lhead == curr._rhead) {
       DEBUG("decompose");
       if (curr._lhs.isApplication()) {
         ASS(curr._rhs.isApplication());
@@ -341,29 +332,25 @@ Stack<HOLUnifier::Node*> HOLUnifier::Node::next()
           cons.emplace(largs[i], rargs[i]);
         }
         res.push(new Node(*this, cons));
-        i++;
-        continue;
+      } else {
+        ASSERTION_VIOLATION;
       }
-      ASSERTION_VIOLATION;
-    }
+    } else if (curr.flexRigid()) {
+      auto& flexTerm = curr._lhead.isVar() ? curr._lhs : curr._rhs;
+      auto& rigidTerm = curr._lhead.isVar() ? curr._rhs : curr._lhs;
+      TermStack bindings = HOL::getProjAndImitBindings(flexTerm, rigidTerm, _freshVar);
 
-    if (curr.flexFlex()) {
-      ASSERTION_VIOLATION;
-    }
-
-    ASS(curr.flexRigid());
-
-    auto& flexTerm = curr._lhead.isVar() ? curr._lhs : curr._rhs;
-    auto& rigidTerm = curr._lhead.isVar() ? curr._rhs : curr._lhs;
-    TermStack bindings = HOL::getProjAndImitBindings(flexTerm, rigidTerm, _freshVar);
-
-    for (const auto& b : bindings) {
-      DEBUG("binding ", flexTerm.head(), " ", b);
-      res.push(new Node(*this, flexTerm.head().var(), b));
+      for (const auto& b : bindings) {
+        DEBUG("binding ", flexTerm.head(), " ", b);
+        res.push(new Node(*this, flexTerm.head().var(), b));
+      }
     }
     i++;
   }
-  return res;
+  if (res.isEmpty()) {
+    return { res, solution() };
+  }
+  return { res, LiteralStack() };
 }
 
 std::ostream& operator<<(std::ostream& out, const HOLUnifier::Constraint& con) {
