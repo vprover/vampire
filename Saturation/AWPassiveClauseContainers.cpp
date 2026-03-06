@@ -36,18 +36,6 @@ using namespace Lib;
 using namespace Kernel;
 
 /**
- * Weight comparison of clauses.
- * @return the result of comparison (LESS, EQUAL or GREATER)
- * @warning if the option increased_numeral_weight is on, then each comparison
- *          recomputes the numeral weight of clauses, see Clause::getNumeralWeight(), so it
- *          it can be expensive
- */
-static Comparison compareWeight(Clause* cl1, Clause* cl2, const Options& opt)
-{
-  return Int::compare(cl1->weightForClauseSelection(opt), cl2->weightForClauseSelection(opt));
-}
-
-/**
  * Comparison of clauses. The comparison uses four orders in the
  * following order:
  * <ol><li>by age;</li>
@@ -57,28 +45,15 @@ static Comparison compareWeight(Clause* cl1, Clause* cl2, const Options& opt)
  * </ol>
  * @since 30/12/2007 Manchester
  */
-bool AgeQueue::lessThan(Clause* c1,Clause* c2)
+bool AgeQueue::lessThan(const ClauseInfo& a, const ClauseInfo& b)
 {
-  if (c1->age() < c2->age()) {
-    return true;
-  }
-  if (c2->age() < c1->age()) {
-    return false;
-  }
-
-  Comparison weightCmp=compareWeight(c1, c2, _opt);
-  if (weightCmp!=EQUAL) {
-    return weightCmp==LESS;
-  }
-
-  if (c1->inputType() < c2->inputType()) {
-    return false;
-  }
-  if (c2->inputType() < c1->inputType()) {
-    return true;
-  }
-
-  return c1->number() < c2->number();
+  if (a.age != b.age)
+    return a.age < b.age;
+  if (a.weightForSelection != b.weightForSelection)
+    return a.weightForSelection < b.weightForSelection;
+  if (a.inputType != b.inputType)
+    return a.inputType > b.inputType;
+  return a.number < b.number;
 } // AgeQueue::lessThan
 
 AgeQueue::OrdVal AgeQueue::getOrdVal(Clause* cl) const
@@ -96,26 +71,15 @@ AgeQueue::OrdVal AgeQueue::getOrdVal(Clause* cl) const
  * </ol>
  * @since 30/12/2007 Manchester
  */
-bool WeightQueue::lessThan(Clause* c1,Clause* c2)
+bool WeightQueue::lessThan(const ClauseInfo& a, const ClauseInfo& b)
 {
-  Comparison weightCmp=compareWeight(c1, c2, _opt);
-  if (weightCmp!=EQUAL) {
-    return weightCmp==LESS;
-  }
-
-  if (c1->age() < c2->age()) {
-    return true;
-  }
-  if (c2->age() < c1->age()) {
-    return false;
-  }
-  if (c1->inputType() < c2->inputType()) {
-    return false;
-  }
-  if (c2->inputType() < c1->inputType()) {
-    return true;
-  }
-  return c1->number() < c2->number();
+  if (a.weightForSelection != b.weightForSelection)
+    return a.weightForSelection < b.weightForSelection;
+  if (a.age != b.age)
+    return a.age < b.age;
+  if (a.inputType != b.inputType)
+    return a.inputType > b.inputType;
+  return a.number < b.number;
 } // WeightQueue::lessThan
 
 WeightQueue::OrdVal WeightQueue::getOrdVal(Clause* cl) const
@@ -314,7 +278,7 @@ bool AWPassiveClauseContainer::simulationHasNext()
   // clause which has not been deleted in the simulation or _simulationCurrAgeIt
   // reaches the end of the age-queue
   // establishes invariant: if there is a clause which is not deleted in the simulation, then _simulationCurrAgeCl is not deleted.
-  while (_simulationCurrAgeCl->hasAux() && _simulationCurrAgeIt.hasNext())
+  while (_simulationDeleted.contains(_simulationCurrAgeCl) && _simulationCurrAgeIt.hasNext())
   {
     _simulationCurrAgeCl = _simulationCurrAgeIt.next();
   }
@@ -324,16 +288,16 @@ bool AWPassiveClauseContainer::simulationHasNext()
   // clause which has not been deleted in the simulation or _simulationCurrWeightIt
   // reaches the end of the weight-queue
   // establishes invariant: if there is a clause which is not deleted in the simulation, then _simulationCurrWeightCl is not deleted.
-  while (_simulationCurrWeightCl->hasAux() && _simulationCurrWeightIt.hasNext())
+  while (_simulationDeleted.contains(_simulationCurrWeightCl) && _simulationCurrWeightIt.hasNext())
   {
     _simulationCurrWeightCl = _simulationCurrWeightIt.next();
   }
   ASS(_simulationCurrWeightCl != nullptr);
 
-  ASS(!_simulationCurrAgeCl->hasAux() || _simulationCurrWeightCl->hasAux());
-  ASS(_simulationCurrAgeCl->hasAux() || !_simulationCurrWeightCl->hasAux());
+  ASS(!_simulationDeleted.contains(_simulationCurrAgeCl) || _simulationDeleted.contains(_simulationCurrWeightCl));
+  ASS(_simulationDeleted.contains(_simulationCurrAgeCl) || !_simulationDeleted.contains(_simulationCurrWeightCl));
 
-  return !_simulationCurrAgeCl->hasAux();
+  return !_simulationDeleted.contains(_simulationCurrAgeCl);
 }
 
 // assumes that simulationHasNext() has been called before and returned true,
@@ -341,18 +305,16 @@ bool AWPassiveClauseContainer::simulationHasNext()
 void AWPassiveClauseContainer::simulationPopSelected()
 {
   // invariants:
-  // - both queues share the aux-field which denotes whether a clause was deleted during the simulation
+  // - both queues share _simulationDeleted which tracks whether a clause was deleted during the simulation
   // - both queues contain the same clauses
   if (byWeight(_simulationBalance)) {
     // simulate selection by weight
     _simulationBalance -= _ageRatio;
-    ASS(!_simulationCurrWeightCl->hasAux());
-    _simulationCurrWeightCl->setAux();
+    ALWAYS(_simulationDeleted.insert(_simulationCurrWeightCl))
   } else {
     // simulate selection by age
     _simulationBalance += _weightRatio;
-    ASS(!_simulationCurrAgeCl->hasAux());
-    _simulationCurrAgeCl->setAux();
+    ALWAYS(_simulationDeleted.insert(_simulationCurrAgeCl))
   }
 }
 
@@ -373,8 +335,8 @@ bool AWPassiveClauseContainer::setLimitsFromSimulation()
   }
   else
   {
-    ASS(!_simulationCurrAgeCl->hasAux() || _simulationCurrWeightCl->hasAux());
-    ASS(_simulationCurrAgeCl->hasAux() || !_simulationCurrWeightCl->hasAux());
+    ASS(!_simulationDeleted.contains(_simulationCurrAgeCl) || _simulationDeleted.contains(_simulationCurrWeightCl));
+    ASS(_simulationDeleted.contains(_simulationCurrAgeCl) || !_simulationDeleted.contains(_simulationCurrWeightCl));
   }
 
   unsigned maxAgeQueueAge;

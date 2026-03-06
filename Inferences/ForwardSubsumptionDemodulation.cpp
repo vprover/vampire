@@ -87,9 +87,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
   DEBUG_CODE(static bool isAlascaOrdering = env.options->termOrdering () == Shell::Options::TermOrdering::QKBO
                               || env.options->termOrdering () == Shell::Options::TermOrdering::LAKBO;)
 
-  // Discard all previous aux values (so after this, hasAux() returns false for any clause).
-  Clause::requestAux();
-  ON_SCOPE_EXIT({ Clause::releaseAux(); });
+  _checked.reset();
 
   // Subsumption by unit clauses
   if (_doSubsumption) {
@@ -98,10 +96,9 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
       while (rit.hasNext()) {
         Clause* premise = rit.next().data->clause;
 
-        if (premise->hasAux()) {
+        if (!_checked.insert(premise)) {
           continue;  // we've already checked this premise
         }
-        premise->setAux(nullptr);
 
         if (!ColorHelper::compatible(cl->color(), premise->color())) {
           continue;
@@ -132,11 +129,10 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
       ASS_NEQ(cl, mcl);  // this can't happen because cl isn't in the index yet
 
       // (this check exists only to improve performance and does not affect correctness)
-      if (mcl->hasAux()) {
+      if (!_checked.insert(mcl)) {
         // we've already checked this clause
         continue;
       }
-      mcl->setAux(nullptr);
 
       // No multiset match possible if base is longer than instance
       // (this check exists only to improve performance and does not affect correctness)

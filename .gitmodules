@@ -7,3 +7,6 @@
 [submodule "viras"]
 	path = viras
 	url = https://github.com/joe-hauns/viras
+[submodule "abseil-cpp"]
+	path = abseil-cpp
+	url = https://github.com/abseil/abseil-cpp

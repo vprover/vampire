@@ -31,30 +31,26 @@ class AgeQueue
 : public ClauseQueue
 {
 public:
-  AgeQueue(const Options& opt) : _opt(opt) {}
+  AgeQueue(const Options& opt) : ClauseQueue(opt) {}
 
   typedef std::pair<unsigned,unsigned> OrdVal;
   static constexpr OrdVal maxOrdVal = std::make_pair(UINT_MAX,UINT_MAX);
   OrdVal getOrdVal(Clause* cl) const;
 protected:
-  bool lessThan(Clause*,Clause*) override;
-private:
-  const Shell::Options& _opt;
+  bool lessThan(const ClauseInfo&, const ClauseInfo&) override;
 };
 
 class WeightQueue
   : public ClauseQueue
 {
 public:
-  WeightQueue(const Options& opt) : _opt(opt) {}
+  WeightQueue(const Options& opt) : ClauseQueue(opt) {}
 
   typedef std::pair<unsigned,unsigned> OrdVal;
   static constexpr OrdVal maxOrdVal = std::make_pair(UINT_MAX,UINT_MAX);
   OrdVal getOrdVal(Clause* cl) const;
 protected:
-  bool lessThan(Clause*,Clause*) override;
-private:
-  const Shell::Options& _opt;
+  bool lessThan(const ClauseInfo&, const ClauseInfo&) override;
 };
 
 class AgeBasedPassiveClauseContainer
