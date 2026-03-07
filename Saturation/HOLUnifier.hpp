@@ -17,17 +17,19 @@
 
 #include "Forwards.hpp"
 #include "Kernel/Substitution.hpp"
-#include "Lib/Stack.hpp"
 #include "Lib/DHMap.hpp"
+#include "Lib/Stack.hpp"
 
 using namespace Kernel;
 using namespace Shell;
 
 namespace Saturation {
 
-class HOLUnifier {
+class HOLUnifier;
+
+class HOLUnifierHandler {
 public:
-  HOLUnifier(const Options& opt);
+  HOLUnifierHandler(const Options& opt);
 
   Clause* handleClause(Clause* cl);
   ClauseStack iterate();
@@ -37,6 +39,28 @@ public:
 private:
   std::pair<Literal*,Unit*> introduceDefinition(Literal* lit);
 
+  struct UCDef {
+    unsigned pred;
+    FormulaUnit* def;
+  };
+  DHMap<Literal*, UCDef> _litToDefMap;
+
+  Stack<HOLUnifier> _todo;
+  Stack<HOLUnifier> _solved;
+
+  unsigned _index = 0;
+
+  const unsigned _kNumIter;
+};
+
+class HOLUnifier {
+public:
+  HOLUnifier(Literal* lit, Literal* def, unsigned nextVar);
+
+  // does one iteration, returns true if finished
+  bool iterate(LiteralStack& solution);
+
+private:
   struct Constraint;
 
   struct Node
@@ -58,16 +82,7 @@ private:
   friend std::ostream& operator<<(std::ostream& out, const Constraint& con);
   friend std::ostream& operator<<(std::ostream& out, const Node& node);
 
-  struct UCDef {
-    unsigned pred;
-    FormulaUnit* def;
-  };
-  DHMap<Literal*, UCDef> _litToDefMap;
-
-  Stack<Node*> _roots;
   Stack<Node*> _todo;
-
-  const unsigned _kNumIter;
 };
 
 }

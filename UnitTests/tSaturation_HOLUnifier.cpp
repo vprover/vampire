@@ -33,7 +33,7 @@ using namespace Test;
   env.setHigherOrder(true);        \
   __ALLOW_UNUSED(MY_SYNTAX_SUGAR); \
   Options opt;                     \
-  HOLUnifier unifier(opt);
+  HOLUnifierHandler handler(opt);
 
 void checkEqual(Clause* actual, Clause* expected) {
   if (!TestUtils::eqModAC(actual, expected)) {
@@ -47,7 +47,7 @@ void checkEqual(Clause* actual, Clause* expected) {
 TEST_FUN(no_constraints_1) {
   PREAMBLE;
   auto c1 = clause({ f(a,a) == a });
-  auto c2 = unifier.handleClause(c1);
+  auto c2 = handler.handleClause(c1);
 
   checkEqual(c2, c1);
 }
@@ -55,7 +55,7 @@ TEST_FUN(no_constraints_1) {
 TEST_FUN(no_constraints_2) {
   PREAMBLE;
   auto c1 = clause({ f(x,y) != a, x == a });
-  auto c2 = unifier.handleClause(c1);
+  auto c2 = handler.handleClause(c1);
 
   checkEqual(c2, c1);
 }
@@ -63,7 +63,7 @@ TEST_FUN(no_constraints_2) {
 TEST_FUN(constraints_1) {
   PREAMBLE;
   auto c1 = clause({ ap(g,y) != lam(srt, dX), y == a });
-  auto c2 = unifier.handleClause(c1);
+  auto c2 = handler.handleClause(c1);
 
   checkEqual(c2, clause({ ~p_hol(y), y == a }));
 }
@@ -71,7 +71,7 @@ TEST_FUN(constraints_1) {
 TEST_FUN(constraints_2) {
   PREAMBLE;
   auto c1 = clause({ ap(g,y) != lam(srt, dX), y == a, ap(ap(h,y),z) != lam(srt, dX), f(y,z) != b });
-  auto c2 = unifier.handleClause(c1);
+  auto c2 = handler.handleClause(c1);
 
   checkEqual(c2, clause({ ~p_hol(y), y == a, ~q_hol(y,z), f(y,z) != b }));
 }
@@ -79,7 +79,7 @@ TEST_FUN(constraints_2) {
 TEST_FUN(constraints_3) {
   PREAMBLE;
   auto c1 = clause({ y == a, ap(ap(h,y),z) != lam(srt, dX), f(y,z) != b });
-  auto c2 = unifier.handleClause(c1);
+  auto c2 = handler.handleClause(c1);
 
   checkEqual(c2, clause({ y == a, ~p_hol(y,z), f(y,z) != b }));
 }
@@ -87,12 +87,12 @@ TEST_FUN(constraints_3) {
 TEST_FUN(constraints_different) {
   PREAMBLE;
   auto c1 = clause({ ap(g,y) != lam(srt, dX), y == a });
-  auto c2 = unifier.handleClause(c1);
+  auto c2 = handler.handleClause(c1);
 
   checkEqual(c2, clause({ ~p_hol(y), y == a }));
 
   auto d1 = clause({ ap(ap(h,z),b) != lam(srt, dX), f(y,z) != b });
-  auto d2 = unifier.handleClause(d1);
+  auto d2 = handler.handleClause(d1);
 
   checkEqual(d2, clause({ ~q_hol(z), f(y,z) != b }));
 }
@@ -100,12 +100,12 @@ TEST_FUN(constraints_different) {
 TEST_FUN(constraints_same) {
   PREAMBLE;
   auto c1 = clause({ ap(g,y) != lam(srt, dX), y == a });
-  auto c2 = unifier.handleClause(c1);
+  auto c2 = handler.handleClause(c1);
 
   checkEqual(c2, clause({ ~p_hol(y), y == a }));
 
   auto d1 = clause({ ap(g,z) != lam(srt, dX), f(y,z) != b });
-  auto d2 = unifier.handleClause(d1);
+  auto d2 = handler.handleClause(d1);
 
   checkEqual(d2, clause({ ~p_hol(z), f(y,z) != b }));
 }
@@ -113,11 +113,11 @@ TEST_FUN(constraints_same) {
 TEST_FUN(constraints_iteration) {
   PREAMBLE;
   auto c1 = clause({ ap(ap(xs, a), b) != ap(ap(g, b), a) });
-  auto c2 = unifier.handleClause(c1);
+  auto c2 = handler.handleClause(c1);
 
   checkEqual(c2, clause({ ~p_hol(xs) }));
 
-  auto cls = unifier.iterate();
+  auto cls = handler.iterate();
   ASS_EQ(cls.size(),1);
   checkEqual(cls[0], clause({ p_hol() }));
 }

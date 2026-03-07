@@ -262,7 +262,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _splitter = new Splitter();
   }
   if (opt.holUnifier()) {
-    _holUnifier = new HOLUnifier(_opt);
+    _holUnifierHandler = new HOLUnifierHandler(_opt);
   }
 
   _partialRedundancyHandler.reset(PartialRedundancyHandler::create(opt, _ordering.ptr(), _splitter));
@@ -1124,8 +1124,8 @@ void SaturationAlgorithm::activate(Clause* cl)
     }
   }
 
-  if (_holUnifier) {
-    auto newCl = _holUnifier->handleClause(cl);
+  if (_holUnifierHandler) {
+    auto newCl = _holUnifierHandler->handleClause(cl);
     if (newCl != cl) {
       if (_opt.showAll()) {
         std::cout << "[SA] constrained clause " << cl->toString() << " replaced with " << newCl->toString() << std::endl;
@@ -1180,8 +1180,8 @@ void SaturationAlgorithm::activate(Clause* cl)
 
   // TODO find a place where this is ideally placed,
   // where we can iterate regardless of activations
-  if (_holUnifier) {
-    for (const auto& huCl : _holUnifier->iterate()) {
+  if (_holUnifierHandler) {
+    for (const auto& huCl : _holUnifierHandler->iterate()) {
       addNewClause(huCl);
     }
   }

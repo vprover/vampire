@@ -300,7 +300,7 @@ Option<AbstractionOracle::AbstractionResult> funcExt(
 Option<AbstractionOracle::AbstractionResult> hol(
   AbstractingUnifier* au, TermSpec const& t1, TermSpec const& t2)
 {
-  if (Saturation::HOLUnifier::isHolUnifiable(t1.term) || Saturation::HOLUnifier::isHolUnifiable(t2.term)) {
+  if (Saturation::HOLUnifierHandler::isHolUnifiable(t1.term) || Saturation::HOLUnifierHandler::isHolUnifiable(t2.term)) {
     return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, t1.sort()))));
   }
   return Option<AbstractionOracle::AbstractionResult>();

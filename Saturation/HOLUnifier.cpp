@@ -29,7 +29,9 @@
 
 namespace Saturation {
 
-bool HOLUnifier::isHolUnifiable(TermList t)
+// HOLUnifierHandler
+
+bool HOLUnifierHandler::isHolUnifiable(TermList t)
 {
   return t.isLambdaTerm() || (t.isApplication() && t.head().isVar());
 }
@@ -39,13 +41,13 @@ bool isHOLUnificationConstraint(Literal* lit)
   if (!lit->isEquality() || lit->isPositive()) {
     return false;
   }
-  return HOLUnifier::isHolUnifiable(lit->termArg(0)) || HOLUnifier::isHolUnifiable(lit->termArg(1));
+  return HOLUnifierHandler::isHolUnifiable(lit->termArg(0)) || HOLUnifierHandler::isHolUnifiable(lit->termArg(1));
 }
 
-HOLUnifier::HOLUnifier(const Options& opt)
+HOLUnifierHandler::HOLUnifierHandler(const Options& opt)
 : _kNumIter(opt.holUnifierIterations()) { ASS(_kNumIter); }
 
-Clause* HOLUnifier::handleClause(Clause* cl)
+Clause* HOLUnifierHandler::handleClause(Clause* cl)
 {
   ASS(cl->length());
 
@@ -80,37 +82,39 @@ Clause* HOLUnifier::handleClause(Clause* cl)
   return cl;
 }
 
-ClauseStack HOLUnifier::iterate()
+ClauseStack HOLUnifierHandler::iterate()
 {
   ClauseStack res;
 
   // do num-many iterations
   for (unsigned j = 0; j < _kNumIter; j++) {
 
-    // circulate inside _todos
     if (_todo.isEmpty()) {
       return res;
     }
-    
-    auto curr = _todo.pop();
-    DEBUG("curr ", curr);
 
-    auto [children, solution] = curr->solve();
-    ASS (children.isEmpty() || solution.isEmpty());
+    // circulate inside _todos
+    if (_index >= _todo.size()) {
+      _index = 0;
+    }
+
+    auto& curr = _todo[_index];
+
+    LiteralStack solution;
+    if (curr.iterate(solution)) {
+      _solved.push(_todo.swapRemove(_index));
+    } else {
+      _index++;
+    }
 
     if (solution.isNonEmpty()) {
       res.push(Clause::fromStack(solution, NonspecificInference0(UnitInputType::AXIOM, InferenceRule::HOL_UNIFIER_SOLUTION)));
-      continue;
-    }
-
-    for (const auto& child : children) {
-      _todo.push(child);
     }
   }
   return res;
 }
 
-std::pair<Literal*,Unit*> HOLUnifier::introduceDefinition(Literal* lit)
+std::pair<Literal*,Unit*> HOLUnifierHandler::introduceDefinition(Literal* lit)
 {
   ASS(isHOLUnificationConstraint(lit));
 
@@ -179,9 +183,7 @@ std::pair<Literal*,Unit*> HOLUnifier::introduceDefinition(Literal* lit)
       std::cout << "[HOL] introduced definition " << def->toString() << std::endl;
     }
 
-    auto node = new Node(nlit, plit, r.nextVar());
-    _roots.push(node);
-    _todo.push(node);
+    _todo.emplace(nlit, plit, r.nextVar());
 
     *def_ptr = { p, def_u };
   }
@@ -190,6 +192,34 @@ std::pair<Literal*,Unit*> HOLUnifier::introduceDefinition(Literal* lit)
   auto p_s_args = TermStack::fromIterator(typeVars.iterFifo());
   p_s_args.loadFromIterator(iterTraits(termVars.iterFifo()).map([](auto kv){ return kv.first; }));
   return { Literal::create(def_ptr->pred, /*arity=*/p_s_args.size(), /*polarity=*/false, p_s_args.begin()), def_ptr->def };
+}
+
+// HOLUnifier
+
+HOLUnifier::HOLUnifier(Literal* lit, Literal* def, unsigned nextVar)
+  : _todo({ new Node(lit, def, nextVar )}) {}
+
+bool HOLUnifier::iterate(LiteralStack& solution)
+{
+  ASS(solution.isEmpty());
+
+  if (_todo.isEmpty()) {
+    return true; // finished
+  }
+
+  auto curr = _todo.pop();
+  DEBUG("curr ", curr);
+
+  auto [children, sol] = curr->solve();
+  ASS(children.isEmpty() || sol.isEmpty());
+
+  if (sol.isNonEmpty()) {
+    solution = std::move(sol);
+  }
+  for (const auto& child : children) {
+    _todo.push(child);
+  }
+  return _todo.isEmpty();
 }
 
 // Constraint
