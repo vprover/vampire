@@ -25,7 +25,7 @@
 
 #include "HOLUnifier.hpp"
 
-#define DEBUG(...) DBG(__VA_ARGS__)
+#define DEBUG(...) //DBG(__VA_ARGS__)
 
 namespace Saturation {
 
@@ -208,7 +208,7 @@ bool HOLUnifier::iterate(LiteralStack& solution)
   }
 
   auto curr = _todo.pop();
-  DEBUG("curr ", curr);
+  DEBUG("curr ", *curr);
 
   auto [children, sol] = curr->solve();
   ASS(children.isEmpty() || sol.isEmpty());
@@ -336,6 +336,8 @@ std::pair<Stack<HOLUnifier::Node*>,LiteralStack> HOLUnifier::Node::solve()
     // Following the transitions from "Efficient Full Higher-order Unification" from Vukmirovic et al.
 
     curr.normalize(_subs);
+
+    DEBUG("after normalization ", curr);
 
     // 4. delete
     if (curr._lhs == curr._rhs) {
