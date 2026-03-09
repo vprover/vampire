@@ -1026,6 +1026,11 @@ Literal* Literal::complementaryLiteral(Literal* l)
   return res;
 }
 
+bool Literal::isFlexFlexConstraint() const
+{
+  ASS(isEquality());
+  return isNegative() && termArg(0).head().isVar() && termArg(1).head().isVar();
+}
 
 /** Create a new complex term, copy from @b t its function symbol and
  *  from the array @b args its arguments. Insert it into the sharing

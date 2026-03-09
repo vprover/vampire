@@ -1206,6 +1206,8 @@ public:
     return l->isPositive() ? l : complementaryLiteral(l);
   }
 
+  bool isFlexFlexConstraint() const;
+
   // destructively swap arguments of an equation
   // the term is assumed to be non-shared
   void argSwap() {

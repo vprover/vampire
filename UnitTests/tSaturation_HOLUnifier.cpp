@@ -17,9 +17,13 @@ using namespace Saturation;
 using namespace Test;
 
 #define MY_SYNTAX_SUGAR                            \
-  DECL_DEFAULT_VARS                                \
   DECL_SORT(srt)                                   \
-  DECL_VAR_SORTED(xs, 0, arrow({ srt, srt }, srt)) \
+  DECL_VAR_SORTED(x, 0, srt)                       \
+  DECL_VAR_SORTED(y, 1, srt)                       \
+  DECL_VAR_SORTED(z, 2, srt)                       \
+  DECL_VAR_SORTED(xs, 3, arrow({ srt, srt }, srt)) \
+  DECL_VAR_SORTED(ys, 4, arrow(srt, srt))          \
+  DECL_VAR_SORTED(zs, 5, arrow(srt, srt))          \
   DECL_PRED(p, { arrow({srt, srt}, srt) })         \
   DECL_FUNC(f, {srt, srt}, srt)                    \
   DECL_CONST(g, arrow({srt, srt}, srt))            \
@@ -111,6 +115,14 @@ TEST_FUN(constraints_same) {
   auto d2 = handler.handleClause(d1);
 
   checkEqual(d2, clause({ ~p_hol(z), f(y,z) != b }));
+}
+
+TEST_FUN(constraints_flexflex) {
+  PREAMBLE_HANDLER;
+  auto c1 = clause({ ap(ys,a) != ap(zs,b), lam(srt, zs) != lam(srt, ys), ap(g,y) != lam(srt, db0) });
+  auto c2 = handler.handleClause(c1);
+
+  checkEqual(c2, clause({ ap(ys,a) != ap(zs,b), lam(srt, zs) != lam(srt, ys), ~p_hol(y) }));
 }
 
 void testUnifier(Literal* constraint, Literal* def, unsigned nextVar, Stack<LiteralStack> expected)

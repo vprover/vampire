@@ -38,7 +38,7 @@ bool HOLUnifierHandler::isHolUnifiable(TermList t)
 
 bool isHOLUnificationConstraint(Literal* lit)
 {
-  if (!lit->isEquality() || lit->isPositive()) {
+  if (!lit->isEquality() || lit->isPositive() || lit->isFlexFlexConstraint()) {
     return false;
   }
   return HOLUnifierHandler::isHolUnifiable(lit->termArg(0)) || HOLUnifierHandler::isHolUnifiable(lit->termArg(1));
