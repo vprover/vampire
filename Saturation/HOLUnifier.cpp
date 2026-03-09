@@ -155,27 +155,24 @@ std::pair<Literal*,Unit*> HOLUnifierHandler::introduceDefinition(Literal* lit)
     // 2.2. add definition
 
     TermStack p_args;
-    auto vl = VList::empty();
-    auto sl = SList::empty();
+    auto vl = VSList::empty();
     for (const auto& v : typeVars) {
       auto vr = r.apply(v);
       p_args.push(vr);
-      VList::push(vr.var(), vl);
-      SList::push(AtomicSort::superSort(), sl);
+      VSList::push({ vr.var(), AtomicSort::superSort() }, vl);
     }
     for (const auto& [v,s] : termVars) {
       auto vr = r.apply(v);
       auto sr = r.apply(s);
       p_args.push(vr);
-      VList::push(vr.var(), vl);
-      SList::push(sr, sl);
+      VSList::push({ vr.var(), sr }, vl);
     }
 
     auto plit = Literal::create(p, /*arity=*/p_args.size(), /*polarity=*/true, p_args.begin());
 
     Formula* def = new BinaryFormula(Connective::IFF, new AtomicFormula(plit), new AtomicFormula(nlit));
     if (vl) {
-      def = new QuantifiedFormula(Connective::FORALL, vl, sl, def);
+      def = new QuantifiedFormula(Connective::FORALL, vl, def);
     }
     auto def_u = new FormulaUnit(def, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::HOL_UNIFIER_DEFINITION));
 
