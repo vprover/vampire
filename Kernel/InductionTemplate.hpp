@@ -21,7 +21,7 @@
 
 namespace Kernel {
 
-using VStack = Stack<unsigned>;
+using VStack = Stack<std::pair<unsigned, TermList>>;
 
 /**
  * A formula template corresponding to the unit for building induction formulas,

@@ -433,9 +433,8 @@ public:
       } _formulaData;
       struct {
         TermList lambdaExp;
-        VList* _vars;
-        SList* _sorts;  
-        TermList sort; 
+        VSList* _vars;  // variables with their sorts together
+        TermList sort;
         TermList expSort;//TODO is this needed?
       } _lambdaData;
       struct {
@@ -450,10 +449,8 @@ public:
     { return getTerm()->specialFunctor(); }
 
     Formula* getITECondition() const { ASS_EQ(specialFunctor(), SpecialFunctor::ITE); return _iteData.condition; }
-    VList* getLambdaVars() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData._vars; }
-    void setLambdaVars(VList* vars) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData._vars = vars; }
-    SList* getLambdaVarSorts() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData._sorts; }
-    void setLambdaVarSorts(SList* sorts) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData._sorts = sorts; }
+    VSList* getLambdaVars() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData._vars; }
+    void setLambdaVars(VSList* vars) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData._vars = vars; }
     TermList getLambdaExp() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData.lambdaExp; }
     void setLambdaExp(TermList exp) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData.lambdaExp = exp; }
     void setLambdaExpSort(TermList sort) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData.expSort = sort; }
@@ -502,7 +499,7 @@ public:
   static Term* createConstant(unsigned symbolNumber) { return create(symbolNumber,0,0); }
   static Term* createITE(Formula * condition, TermList thenBranch, TermList elseBranch, TermList branchSort);
   static Term* createLet(Formula* binding, TermList body, TermList bodySort);
-  static Term* createLambda(TermList lambdaExp, VList* vars, SList* sorts, TermList expSort);
+  static Term* createLambda(TermList lambdaExp, VSList* vars, TermList expSort);
   static Term* createFormula(Formula* formula);
   static Term* createMatch(TermList sort, TermList matchedSort, unsigned int arity, TermList* elements);
   static Term* create1(unsigned fn, TermList arg);

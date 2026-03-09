@@ -33,6 +33,9 @@
 
 namespace Parse {
   using namespace Kernel;
+  /** Local typedef: SList is only used internally in the parser for
+   *  per-variable sort binding stacks (_variableSorts) and _sortLists. */
+  typedef Lib::List<TermList> SList;
 
 /**
  * Implements a TPTP parser

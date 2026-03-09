@@ -38,10 +38,10 @@ void reportSpiderFail();
  * Called when an assertion is violated. Simply print the stack and
  * throw an assertion violation exception.
  */
-void Assertion::violated(const char* file, int line, const char* cond)
+void Assertion::violated(Location loc, const char* cond)
 {
   if (outputAllowed(true)) {
-    std::cout << "Condition in file " << file << ", line " << line
+    std::cout << "Condition at location " << loc
          << " violated:\n"
          << cond << "\n"
          << "----- stack dump -----\n";
@@ -51,12 +51,12 @@ void Assertion::violated(const char* file, int line, const char* cond)
   abortAfterViolation();
 } // Assertion::violated
 
-void Assertion::violatedStrEquality(const char* file, int line, const char* val1Str,
+void Assertion::violatedStrEquality(Location loc, const char* val1Str,
                                     const char* val2Str, const char* val1, const char* val2)
 {
   if (outputAllowed(true)) {
     std::cout << "Condition for string equality " << val1Str << " == " << val2Str
-              << " in file " << file << ", line " << line
+              << " at location " << loc
               << " was violated, as:\n"
               << val1Str << " == \"" << val1 << "\"\n"
               << val2Str << " == \"" << val2 << "\"\n"
@@ -71,11 +71,11 @@ void Assertion::violatedStrEquality(const char* file, int line, const char* val1
  * Called when an exception is thrown as part of the ASSERT_VALID call.
  * Simply print the location and argument of the ASSERT_VALID statement.
  */
-void Assertion::reportAssertValidException(const char* file, int line, const char* obj)
+void Assertion::reportAssertValidException(Location loc, const char* obj)
 {
   if (outputAllowed(true)) {
     std::cout << "An exception was thrown by ASSERT_VALID on object " << obj
-         << " in file " << file << ", line " << line << ".\n";
+         << " at location " << loc << ".\n";
   }
   abortAfterViolation();
 } // Assertion::violated

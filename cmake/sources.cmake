@@ -86,6 +86,7 @@ set(UNIT_TESTS
     UnitTests/tQuotientE.cpp
     UnitTests/tRebalance.cpp
     UnitTests/tRobSubstitution.cpp
+    UnitTests/tSATClause.cpp
     UnitTests/tSATSolver.cpp
     UnitTests/tSATSubsumptionResolution.cpp
     UnitTests/tSaturation_HOLUnifier.cpp
