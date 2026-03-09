@@ -728,6 +728,69 @@ inline Stack<Clause*> clauses(std::initializer_list<std::initializer_list<Lit>> 
 inline FormulaUnit* formula(Lit lit)
 { return new FormulaUnit(new AtomicFormula(lit), Inference(Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::INPUT))); }
 
+////////////////////////// helpers for building complex formulas //////////////////////////
+
+/** Wrap a Lit as a Formula* (not a FormulaUnit) */
+inline Formula* atom(Lit l) { return new AtomicFormula(l); }
+
+/** Negation */
+inline Formula* neg(Formula* f) { return new NegatedFormula(f); }
+
+/** Implication */
+inline Formula* imp(Formula* lhs, Formula* rhs) { return new BinaryFormula(IMP, lhs, rhs); }
+
+/** Equivalence */
+inline Formula* iff(Formula* lhs, Formula* rhs) { return new BinaryFormula(IFF, lhs, rhs); }
+
+/** Exclusive or */
+inline Formula* xorf(Formula* lhs, Formula* rhs) { return new BinaryFormula(XOR, lhs, rhs); }
+
+/** Conjunction */
+inline Formula* andf(std::initializer_list<Formula*> fs) {
+  auto args = FormulaList::empty();
+  for (auto f : fs) FormulaList::push(f, args);
+  return new JunctionFormula(AND, args);
+}
+
+/** Disjunction */
+inline Formula* orf(std::initializer_list<Formula*> fs) {
+  auto args = FormulaList::empty();
+  for (auto f : fs) FormulaList::push(f, args);
+  return new JunctionFormula(OR, args);
+}
+
+/** Universal quantification: forall({x, y}, sort, body) */
+inline Formula* forall(std::initializer_list<TermSugar> vars, SortSugar srt, Formula* body) {
+  auto vs = VSList::empty();
+  for (auto v : vars) {
+    ASS(v.sugaredExpr().isVar());
+    VSList::push({v.sugaredExpr().var(), srt.sugaredExpr()}, vs);
+  }
+  return new QuantifiedFormula(FORALL, vs, body);
+}
+
+/** Existential quantification: exists({x, y}, sort, body) */
+inline Formula* exists(std::initializer_list<TermSugar> vars, SortSugar srt, Formula* body) {
+  auto vs = VSList::empty();
+  for (auto v : vars) {
+    ASS(v.sugaredExpr().isVar());
+    VSList::push({v.sugaredExpr().var(), srt.sugaredExpr()}, vs);
+  }
+  return new QuantifiedFormula(EXISTS, vs, body);
+}
+
+/** Constant true formula */
+inline Formula* trueF() { return Formula::trueFormula(); }
+
+/** Constant false formula */
+inline Formula* falseF() { return Formula::falseFormula(); }
+
+/** Wrap a Formula* into a FormulaUnit* */
+inline FormulaUnit* formulaUnit(Formula* f) {
+  return new FormulaUnit(f,
+    Inference(Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::INPUT)));
+}
+
 inline void createTermAlgebra(SortSugar sort, std::initializer_list<FuncSugar> fs) {
   // avoid redeclaration
   if (env.signature->isTermAlgebraSort(sort.sugaredExpr())) {
