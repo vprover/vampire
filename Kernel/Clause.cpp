@@ -425,10 +425,6 @@ std::string Clause::toString() const
     if(env.options->induction() != Shell::Options::Induction::NONE){
       result += std::string(",inD:") + Int::toString(_inference.inductionDepth());
     }
-    result += ",thAx:" + Int::toString((int)(_inference.th_ancestors));
-    result += ",allAx:" + Int::toString((int)(_inference.all_ancestors));
-
-    result += ",thDist:" + Int::toString( _inference.th_ancestors * env.options->theorySplitQueueExpectedRatioDenom() - _inference.all_ancestors);
     result += std::string("}");
   }
 
