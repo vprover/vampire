@@ -304,6 +304,35 @@ private:
   Stack<Term*> _stack;
 };
 
+class FirstOrderSubtermIt
+: public IteratorCore<Term*>
+{
+public:
+  FirstOrderSubtermIt(Term* term, bool includeSelf = false) 
+  : _stack(8), _added(0)
+  {
+    if (term->isLiteral()) {
+      for(unsigned i = 0; i < term->arity(); i++){
+        TermList t = *term->nthArgument(i);
+        if(!t.isVar()){ _stack.push(t.term()); }
+      }      
+      return;      
+    } 
+    _stack.push(term);
+    if (!includeSelf) {
+      FirstOrderSubtermIt::next();
+    }
+  }
+
+  bool hasNext(){ return !_stack.isEmpty(); }
+  Term* next();
+  void right();
+
+private:
+  Stack<Term*> _stack;
+  int _added;
+};
+
 //////////////////////////////////////////////////////////////////////////
 ///                                                                    ///
 ///                    END OF HIGHER-ORDER ITERATORS                   ///

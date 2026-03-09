@@ -29,7 +29,10 @@ using namespace Test;
   DECL_CONST(a, s)                                                                                            \
   DECL_CONST(b, s)                                                                                            \
   DECL_PRED (p, {s})                                                                                          \
-  DECL_PRED (q, {s})
+  DECL_PRED (q, {s})                                                                                          \
+  DECL_CONST(g1, arrow({s, s}, s))                                                                            \
+  DECL_DE_BRUIJN_INDEX(db0, 0, s)                                                                             \
+  DECL_DE_BRUIJN_INDEX(db1, 1, s)
 
 REGISTER_GEN_TESTER(Generation::GenerationTester<Inferences::Superposition>(Superposition()))
 
@@ -257,3 +260,15 @@ TEST_GENERATION(test_20,
       .selfApplications(false)
       .expected(exactly(clause({ f(x,y) != left(left(x)) })))
     )
+
+// superposition not performed inside lambdas
+TEST_GENERATION(test_21,
+    Generation::SymmetricTest()
+      .inputs({
+        clause({ selected(ap(ap(g1,x),y) == x) }),
+        clause({ selected(ap(ap(g1,a),z) != ap(lam(s, ap(ap(g1,db0),y)), b)) }),
+      })
+      .selfApplications(false)
+      .expected(exactly(clause({ a != ap(lam(s, ap(ap(g1,db0),y)), b) })))
+    )
+

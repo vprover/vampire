@@ -37,9 +37,7 @@ public:
 
   ClauseIterator generateClauses(Clause* premise) override;
 
-
 private:
-
   Clause* performSuperposition(
     Clause* rwClause, Literal* rwLiteral, TermList rwTerm,
     Clause* eqClause, Literal* eqLiteral, TermList eqLHS,
@@ -52,12 +50,7 @@ private:
 
   static bool checkSuperpositionFromVariable(Clause* eqClause, Literal* eqLit, TermList eqLHS);
 
-  struct ForwardResultFn;
-
-  struct LHSsFn;
-  struct RewritableResultsFn;
-  struct BackwardResultFn;
-
+  bool _higherOrder;
   std::shared_ptr<SuperpositionSubtermIndex> _subtermIndex;
   std::shared_ptr<SuperpositionLHSIndex> _lhsIndex;
 };

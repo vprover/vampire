@@ -182,6 +182,11 @@ VirtualIterator<Term*> EqHelper::getSubtermIterator(Literal* lit, const Ordering
   return getRewritableSubtermIterator<NonVariableNonTypeIterator>(lit, ord);
 }
 
+VirtualIterator<Term*> EqHelper::getFoSubtermIterator(Literal* lit, const Ordering& ord)
+{
+  return getRewritableSubtermIterator<FirstOrderSubtermIt>(lit, ord);
+}
+
 TermIterator EqHelper::getBooleanSubtermIterator(Literal* lit, const Ordering& ord)
 {
   return getRewritableSubtermIterator<BooleanSubtermIt>(lit, ord);

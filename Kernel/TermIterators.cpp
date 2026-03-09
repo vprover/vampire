@@ -170,6 +170,36 @@ bool BooleanSubtermIt::hasNext()
   return false;
 }
 
+Term* FirstOrderSubtermIt::next()
+{
+  _added = 0;
+  auto t = _stack.pop();
+  if (t->isLambdaTerm()) {
+    return t;
+  }
+
+  auto [head, args] = HOL::getHeadAndArgs(TermList(t));
+  if (!head.isLambdaTerm()) {
+    return t;
+  }
+
+  for (unsigned i = 0; i < args.size(); i++) {
+    if (args[i].isTerm()) {
+      _added++;
+      _stack.push(args[i].term());
+    }
+  }
+  return t;
+}
+
+void FirstOrderSubtermIt::right()
+{
+  while (_added > 0) {
+    _added--;
+    _stack.pop();
+  }
+}
+
 //////////////////////////////////////////////////////////////////////////
 ///                                                                    ///
 ///                    END OF HIGHER-ORDER ITERATORS                   ///
