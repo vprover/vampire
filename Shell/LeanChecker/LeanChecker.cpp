@@ -712,14 +712,14 @@ void LeanChecker::clausify(std::ostream &out, SortMap &conclSorts, Unit *concl){
       }
     }
     out << ") (fun f ";
-    domain = conclSorts.domain();
-    outputVariables(out, domain, conclSorts, conclSorts);
-    out << " => f ";
     for(unsigned var : *variableOrdering){
       if(conclSorts.findPtr(var) != nullptr){
         out << "v" << var << " ";
       }
     }
+    out << " => f ";
+    domain = conclSorts.domain();
+    outputVariables(out, domain, conclSorts, conclSorts);
     out << ")\n"
         << indent << indent << "rw[reorder]\n";
   }
@@ -1242,7 +1242,6 @@ void LeanChecker::rectify(std::ostream &out, SortMap &conclSorts, Unit *concl, c
         sorts.insert(var, allFormulaSorts.get(var));
       }
     }
-
     out << indent << "have r" << counter << " (P :";
     //Todo sort sorts here
     for(auto [var, sort] : iterTraits(sorts.items())){
@@ -1265,28 +1264,18 @@ void LeanChecker::rectify(std::ostream &out, SortMap &conclSorts, Unit *concl, c
         << indent << indent << "Iff.intro (fun f ";
     if(conn == FORALL){
       domain = sorts.domain();
-      outputVariables(out, domain, conclSorts, sorts, DoSubst(subst));
+      outputVariables(out, domain, conclSorts, sorts);
       out << " => f ";
       domain = sorts.domain();
-      outputVariables(out, domain, conclSorts, sorts);
+      outputVariables(out, domain, conclSorts, sorts, DoSubst(subst));
       out << ") (fun f ";
       domain = sorts.domain();
-      outputVariables(out, domain, conclSorts, sorts);
+      outputVariables(out, domain, conclSorts, sorts, DoSubst(subst));
       out << " => f ";
       domain = sorts.domain();
-      outputVariables(out, domain, conclSorts, sorts, DoSubst(subst));
+      outputVariables(out, domain, conclSorts, sorts);
       out << ")\n";
     } else if (conn == EXISTS) {
-      domain = sorts.domain();
-      out << " => " << "let ⟨";
-      outputVariables(out, domain, conclSorts, sorts, DoSubst(subst), true, false, ", ");
-      out << ", hP⟩ := f\n";
-      out << indent << indent << indent << "Exists.intro ";
-      domain = sorts.domain();
-      outputVariables(out, domain, conclSorts, sorts, Identity{}, true, false, " (Exists.intro ");
-      out << " hP";
-      out << std::string(sorts.size(), ')') << "\n"
-          << indent << indent << indent << "(fun f ";
       domain = sorts.domain();
       out << " => " << "let ⟨";
       outputVariables(out, domain, conclSorts, sorts, Identity{}, true, false, ", ");
@@ -1294,6 +1283,16 @@ void LeanChecker::rectify(std::ostream &out, SortMap &conclSorts, Unit *concl, c
       out << indent << indent << indent << "Exists.intro ";
       domain = sorts.domain();
       outputVariables(out, domain, conclSorts, sorts, DoSubst(subst), true, false, " (Exists.intro ");
+      out << " hP";
+      out << std::string(sorts.size(), ')') << "\n"
+          << indent << indent << indent << "(fun f ";
+      domain = sorts.domain();
+      out << " => " << "let ⟨";
+      outputVariables(out, domain, conclSorts, sorts, DoSubst(subst), true, false, ", ");
+      out << ", hP⟩ := f\n";
+      out << indent << indent << indent << "Exists.intro ";
+      domain = sorts.domain();
+      outputVariables(out, domain, conclSorts, sorts, Identity{}, true, false, " (Exists.intro ");
       out << " hP";
       out << std::string(sorts.size(), ')') << "\n";
     }
