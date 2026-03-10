@@ -49,7 +49,7 @@ namespace {
   auto isInteger = [&](auto t) { return t == floor(t); };                                 \
 
 
-#define MY_GEN_RULE     CoherenceNormalization<RealTraits>
+#define MY_GEN_RULE     AlascaSimplRule<CoherenceNormalization<RealTraits>>
 #define MY_GEN_TESTER   AlascaGenerationTester
 #define MY_SYNTAX_SUGAR SUGAR(Real)
 

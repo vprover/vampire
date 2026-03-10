@@ -48,8 +48,8 @@ namespace {
                                                                                           \
   auto isInteger = [&](auto t) { return t == floor(t); };                                 \
 
-#define MY_GEN_RULE AlascaSimplRule<ToSgi<Abstraction<RealTraits>>>
-#define MY_GEN_TESTER AlascaGenerationTester
+#define MY_GEN_RULE     AlascaSimplRule<ToSgi<Abstraction<RealTraits>>>
+#define MY_GEN_TESTER   AlascaGenerationTester
 #define MY_SYNTAX_SUGAR SUGAR(Real)
 
 /////////////////////////////////////////////////////////

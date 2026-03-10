@@ -42,7 +42,7 @@ namespace {
   DECL_PRED(R, {Num,Num})                                                                                     \
   DECL_PRED(P, {Num})                                                                                         \
 
-#define MY_GEN_RULE     VariableElimination
+#define MY_GEN_RULE     AlascaSimplRule<VariableElimination>
 #define MY_GEN_TESTER   AlascaGenerationTester
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 

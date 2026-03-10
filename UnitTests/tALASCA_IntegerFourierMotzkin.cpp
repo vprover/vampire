@@ -85,7 +85,7 @@ namespace {
   DECL_FUNC(ab, {Num}, Num)                                                               \
   DECL_FUNC(skx, {Num}, Num)                                                              \
 
-#define MY_GEN_RULE     IntegerFourierMotzkin<RealTraits>
+#define MY_GEN_RULE     AlascaSimplRule<IntegerFourierMotzkin<RealTraits>>
 #define MY_GEN_TESTER   AlascaGenerationTester
 #define MY_SYNTAX_SUGAR SUGAR(Real)
 

@@ -48,7 +48,7 @@ namespace {
   DECL_PRED(p, {Num})                                                                               \
   DECL_PRED(r, {Num,Num})                                                                           \
 
-#define MY_GEN_RULE     TermFactoring
+#define MY_GEN_RULE     AlascaSimplRule<TermFactoring>
 #define MY_GEN_TESTER   AlascaGenerationTester
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 

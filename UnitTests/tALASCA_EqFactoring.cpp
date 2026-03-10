@@ -48,7 +48,7 @@ namespace {
   DECL_CONST(ba, alpha)                                                                             \
   DECL_FUNC(fn, {alpha}, Num)                                                                       \
 
-#define MY_GEN_RULE     EqFactoring
+#define MY_GEN_RULE     AlascaSimplRule<EqFactoring>
 #define MY_GEN_TESTER   AlascaGenerationTester
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 

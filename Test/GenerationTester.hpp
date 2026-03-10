@@ -199,8 +199,8 @@ public:
   __BUILDER_METHOD(AsymmetricTest, std::function<void(SaturationAlgorithm&)>, setup)
   __BUILDER_METHOD(AsymmetricTest, OptionMap, options)
 
-  template<typename Rule, typename Tester, typename... Args>
-  void run(Args... args) {
+  template<typename Rule, typename Tester>
+  void run() {
 
     Tester tester;
 
@@ -218,7 +218,7 @@ public:
     resetAndFillEnvOptions(_options, p);
     MockedSaturationAlgorithm alg(p, *env.options);
     _setup(alg);
-    Rule rule(alg, args...);
+    Rule rule(alg);
 
     auto container = alg.getActiveClauseContainer();
 
@@ -283,20 +283,20 @@ public:
   __BUILDER_METHOD(SymmetricTest, bool, selfApplications)
   __BUILDER_METHOD(SymmetricTest, OptionMap, options)
 
-  template<typename Rule, typename Tester, typename... Args>
-  void run(Args... args) {
+  template<typename Rule, typename Tester>
+  void run() {
     for (unsigned i = 0; i < _inputs.size(); i++) {
       Stack<Clause*> context;
       auto input = _inputs[i];
       for (unsigned j = 0; j < _inputs.size(); j++) 
         if (i != j) 
           context.push(_inputs[j]);
-      runInner<Rule, Tester, Args...>(input, context, args...);
+      runInner<Rule, Tester>(input, context);
     }
   }
 
-  template<typename Rule, typename Tester, typename... Args>
-  void runInner(Clause* input, Stack<Clause*> context, Args... args) {
+  template<typename Rule, typename Tester>
+  void runInner(Clause* input, Stack<Clause*> context) {
     AsymmetricTest()
       .input(input)
       .context(context)
@@ -304,7 +304,7 @@ public:
       .premiseRedundant(_premiseRedundant)
       .selfApplications(_selfApplications)
       .options(_options)
-      .run<Rule, Tester, Args...>(args...);
+      .run<Rule, Tester>();
   }
 };
 

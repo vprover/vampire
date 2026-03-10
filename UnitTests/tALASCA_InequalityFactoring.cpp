@@ -47,7 +47,7 @@ namespace {
   DECL_FUNC(g1, {Num, Num}, Num)                                                                    \
   DECL_PRED(r, {Num,Num})                                                                           \
 
-#define MY_GEN_RULE     InequalityFactoring
+#define MY_GEN_RULE     AlascaSimplRule<InequalityFactoring>
 #define MY_GEN_TESTER   AlascaGenerationTester
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 

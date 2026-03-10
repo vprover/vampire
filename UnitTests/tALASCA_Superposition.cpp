@@ -81,7 +81,7 @@ namespace {
   DECL_CONST(ba, alpha)                                                                   \
   DECL_FUNC(fn, {alpha}, Num)                                                             \
 
-#define MY_GEN_RULE     Superposition
+#define MY_GEN_RULE     AlascaSimplRule<Superposition>
 #define MY_GEN_TESTER   AlascaGenerationTester
 #define MY_SYNTAX_SUGAR SUGAR(Rat)
 
