@@ -181,7 +181,7 @@ void PredicateDefinition::addBuiltInPredicate(unsigned pred)
 Unit* PredicateDefinition::getReplacement(Unit* u, ReplMap& replacements)
 {
   Unit* tgt;
-  while(replacements.find(u,tgt)) {
+  while(replacements.find(u->number(),tgt)) {
     u=tgt;
   }
   return u;
@@ -246,7 +246,7 @@ void PredicateDefinition::eliminatePredicateDefinition(unsigned pred, ReplMap& r
     count(repl, 1);
   }
   count(def, -1);
-  ALWAYS(replacements.insert(def, repl));
+  ALWAYS(replacements.insert(def->number(), repl));
 
   env.statistics->unusedPredicateDefinitions++;
 }
@@ -263,7 +263,7 @@ void PredicateDefinition::replacePurePred(unsigned pred, ReplMap& replacements)
   Set<Unit*>::Iterator uit(pd.containingUnits);
   while(uit.hasNext()) {
     Unit* u=uit.next();
-    if(replacements.find(u)) {
+    if(replacements.find(u->number())) {
       //The unit has already been replaced.
       continue;
     }
@@ -280,7 +280,7 @@ void PredicateDefinition::replacePurePred(unsigned pred, ReplMap& replacements)
 
     count(v,1);
     count(u,-1);
-    ALWAYS(replacements.insert(u,v));
+    ALWAYS(replacements.insert(u->number(),v));
   }
 
   env.statistics->purePredicates++;
@@ -335,7 +335,7 @@ void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(Problem& prb)
 
 void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(UnitList*& units)
 {
-  static DHMap<Unit*, Unit*> replacements;
+  static DHMap<unsigned, Unit*> replacements;
   replacements.reset();
 
   collectReplacements(units, replacements);

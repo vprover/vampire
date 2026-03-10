@@ -40,7 +40,7 @@ using namespace Kernel;
 class PredicateDefinition
 {
 public:
-  typedef DHMap<Unit*, Unit*> ReplMap;
+  typedef DHMap<unsigned, Unit*> ReplMap;
 
   PredicateDefinition();
   ~PredicateDefinition();

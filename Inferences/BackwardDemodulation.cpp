@@ -91,7 +91,7 @@ struct Applicator : SubstApplicator {
 
 struct BackwardDemodulation::ResultFn
 {
-  typedef DHMultiset<Clause*> ClauseSet;
+  typedef DHMultiset<unsigned> ClauseSet;
 
   ResultFn(Clause* cl, BackwardDemodulation& parent, const DemodulationHelper& helper)
   : _cl(cl), _helper(helper), _ordering(parent._salg->getOrdering())
@@ -115,7 +115,7 @@ struct BackwardDemodulation::ResultFn
       return BwSimplificationRecord(0);
     }
 
-    if(_cl==qr.data->clause || _removed->find(qr.data->clause)) {
+    if(_cl==qr.data->clause || _removed->find(qr.data->clause->number())) {
       //the retrieved clause was already replaced during this
       //backward demodulation
       return BwSimplificationRecord(0);
@@ -150,7 +150,7 @@ struct BackwardDemodulation::ResultFn
     Literal* resLit=EqHelper::replace(qr.data->literal,lhsS,rhsS);
     if(EqHelper::isEqTautology(resLit)) {
       env.statistics->backwardDemodulationsToEqTaut++;
-      _removed->insert(qr.data->clause);
+      _removed->insert(qr.data->clause->number());
       return BwSimplificationRecord(qr.data->clause);
     }
 
@@ -166,7 +166,7 @@ struct BackwardDemodulation::ResultFn
       }
     }
 
-    _removed->insert(qr.data->clause);
+    _removed->insert(qr.data->clause->number());
     Clause *replacement = Clause::fromStack(
       *resLits,
       SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, qr.data->clause, _cl)

@@ -342,24 +342,24 @@ PartialRedundancyHandler* PartialRedundancyHandler::create(const Options& opts, 
 void PartialRedundancyHandler::destroyClauseData(Clause* cl)
 {
   ConstraintIndex* ptr = nullptr;
-  clauseData.pop(cl, ptr);
+  clauseData.pop(cl->number(), ptr);
   delete ptr;
 }
 
 PartialRedundancyHandler::ConstraintIndex** PartialRedundancyHandler::getDataPtr(Clause* cl, bool doAllocate)
 {
   if (!doAllocate) {
-    return clauseData.findPtr(cl);
+    return clauseData.findPtr(cl->number());
   }
   ConstraintIndex** ptr;
-  clauseData.getValuePtr(cl, ptr, nullptr);
+  clauseData.getValuePtr(cl->number(), ptr, nullptr);
   if (!*ptr) {
     *ptr = new ConstraintIndex(cl);
   }
   return ptr;
 }
 
-DHMap<Clause*,typename PartialRedundancyHandler::ConstraintIndex*> PartialRedundancyHandler::clauseData;
+DHMap<unsigned,typename PartialRedundancyHandler::ConstraintIndex*> PartialRedundancyHandler::clauseData;
 
 // PartialRedundancyHandlerImpl
 

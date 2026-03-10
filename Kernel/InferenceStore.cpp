@@ -68,7 +68,7 @@ void InferenceStore::FullInference::increasePremiseRefCounters()
 void InferenceStore::recordSplittingNameLiteral(Unit* us, Literal* lit)
 {
   //each clause is result of a splitting only once
-  ALWAYS(_splittingNameLiterals.insert(us, lit));
+  ALWAYS(_splittingNameLiterals.insert(us->number(), lit));
 }
 
 
@@ -736,7 +736,7 @@ protected:
     ASS(parents.hasNext()); //we always split off at least one component
     while(parents.hasNext()) {
       Unit* comp=parents.next();
-      ASS(_is->_splittingNameLiterals.find(comp));
+      ASS(_is->_splittingNameLiterals.find(comp->number()));
       inferenceStr+=","+tptpDefId(comp);
     }
     inferenceStr+="])";
@@ -752,7 +752,7 @@ protected:
     UnitIterator parents= us->getParents();
     ASS(!parents.hasNext());
 
-    Literal* nameLit=_is->_splittingNameLiterals.get(us); //the name literal must always be stored
+    Literal* nameLit=_is->_splittingNameLiterals.get(us->number()); //the name literal must always be stored
 
     std::string defId=tptpDefId(us);
 

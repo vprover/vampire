@@ -625,7 +625,7 @@ void SineTheorySelector::perform(UnitList*& units)
 
   UnitList* res=0;
   DHSet<SymId> addedSymIds;
-  DHSet<Unit*> selected;
+  DHSet<unsigned> selected;
   Deque<Unit*> newlySelected;
 
   bool sineOnIncluded=_opt.sineSelection()==Options::SineSelection::INCLUDED;
@@ -641,7 +641,7 @@ void SineTheorySelector::perform(UnitList*& units)
       updateDefRelation(u);
     }
     else {
-      selected.insert(u);
+      selected.insert(u->number());
       newlySelected.push_back(u);
       UnitList::push(u,res);
     }
@@ -684,7 +684,7 @@ void SineTheorySelector::perform(UnitList*& units)
       while (defUnits.hasNext()) {
 	DEntry de=defUnits.next();
 
-	if (de.minTolerance>intTolerance || !selected.insert(de.unit)) {
+	if (de.minTolerance>intTolerance || !selected.insert(de.unit->number())) {
 	  continue;
 	}
 	UnitList::push(de.unit,res);
