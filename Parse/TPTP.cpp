@@ -112,8 +112,7 @@ TPTP::TPTP(std::istream &in, UnitList::FIFO unitBuffer)
     _modelDefinition(false),
     _insideEqualityArgument(0),
     _unitSources(0),
-    _filterReserved(false),
-    _seenConjecture(false)
+    _filterReserved(false)
 {
 } // TPTP::TPTP
 
@@ -3734,8 +3733,6 @@ void TPTP::endFof()
   switch (_lastInputType) {
   case UnitInputType::CONJECTURE:
     if(!isFof) USER_ERROR("conjecture is not allowed in cnf");
-    if(_seenConjecture) USER_ERROR("Vampire only supports a single conjecture in a problem");
-    _seenConjecture=true;
     {
       ASS_EQ(freeVariables(f),VList::empty())
       f = new NegatedFormula(f);
