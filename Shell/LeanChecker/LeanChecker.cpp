@@ -662,17 +662,68 @@ void LeanChecker::clausify(std::ostream &out, SortMap &conclSorts, Unit *concl){
   //outputVariables(out, domain, conclSorts, conclSorts);
   //out << "\n";
   out << indent << indent << "try simp only\n";
-  out << indent << indent << "ac_nf0\n";\
   
-  //VariablePrenexOrderingTree prenexTree;
-  //prenexTree.buildTreeFromFormula(parent->getFormula(), Kernel::FORALL);
-  //std::vector<unsigned>* variableOrdering = prenexTree.determineVariableOrdering();
-  //out << indent << indent << "have h' := s" << parent->number() << "c" << cnfParentExtra.number - cnfExtra.number - 1 << " ";
-  //for(unsigned var : *variableOrdering){
-  //  if(conclSorts.findPtr(var) != nullptr){
-  //    out << "v" << var << " ";
-  //  }
-  //}
+  VariablePrenexOrderingTree prenexTree;
+  prenexTree.buildTreeFromFormula(parent->getFormula(), Kernel::FORALL);
+  std::vector<unsigned>* variableOrdering = prenexTree.determineVariableOrdering();
+  //check if reordering is actually needed
+  bool needsReorder = false;
+  unsigned currentMin = 0;
+  for(unsigned var : *variableOrdering){
+    if(conclSorts.findPtr(var) != nullptr){
+      if(var < currentMin){
+        needsReorder = true;
+        break;
+      }
+      currentMin = var;
+    }
+  }
+  if(needsReorder){
+    auto domain = conclSorts.domain();
+    out << indent << indent << "have reorder" << " (P :";
+    //Todo sort sorts here
+    for(auto [var, sort] : iterTraits(conclSorts.items())){
+      out << Sort{sort} << "→";
+    }
+    out << "Prop) : ";
+    out << "( " << "∀ ";
+    domain = conclSorts.domain();
+    outputVariables(out, domain, conclSorts, conclSorts);
+    out << ", P ";
+    domain = conclSorts.domain();
+    outputVariables(out, domain, conclSorts, conclSorts);
+    out << ") ↔ (" << "∀ ";
+    domain = conclSorts.domain();
+    for(unsigned var : *variableOrdering){
+      if(conclSorts.findPtr(var) != nullptr){
+        out << "v" << var << " ";
+      }
+    }
+    out << ", P ";
+    domain = conclSorts.domain();
+    outputVariables(out, domain, conclSorts, conclSorts);
+    out << ") := Iff.intro (fun f ";
+    domain = conclSorts.domain();
+    outputVariables(out, domain, conclSorts, conclSorts);
+    out << " => f ";
+    for(unsigned var : *variableOrdering){
+      if(conclSorts.findPtr(var) != nullptr){
+        out << "v" << var << " ";
+      }
+    }
+    out << ") (fun f ";
+    domain = conclSorts.domain();
+    outputVariables(out, domain, conclSorts, conclSorts);
+    out << " => f ";
+    for(unsigned var : *variableOrdering){
+      if(conclSorts.findPtr(var) != nullptr){
+        out << "v" << var << " ";
+      }
+    }
+    out << ")\n"
+        << indent << indent << "rw[reorder]\n";
+  }
+  out << indent << indent << "ac_nf0\n";
   //out << "\n";
   /*auto clause = concl->asClause();
   if(clause->size()>1){
@@ -688,14 +739,14 @@ void LeanChecker::clausify(std::ostream &out, SortMap &conclSorts, Unit *concl){
   //} else {
   //  out << "\n" << indent << "duper [h]\n\n";
   //}
-  out << indent << indent << "find_assumption using [";
-  for(unsigned i=0 ; i < cnfParentExtra.number ; i++){
-    out << "s" << parent->number() << "c" << i;
-    if(i < cnfParentExtra.number-1){
-      out << ", ";
-    }
-  }
-  out << "]\n\n"; 
+  out << indent << indent << "assumption\n\n";
+  //for(unsigned i=0 ; i < cnfParentExtra.number ; i++){
+  //  out << "s" << parent->number() << "c" << i;
+  //  if(i < cnfParentExtra.number-1){
+  //    out << ", ";
+  //  }
+  //}
+  //out << "]\n\n"; 
 }
 
 void LeanChecker::predicateDefinitionIntroduction(std::ostream &out, SortMap &conclSorts, Unit *concl){
