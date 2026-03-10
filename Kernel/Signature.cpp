@@ -579,7 +579,7 @@ unsigned Signature::getDiff() {
     auto alpha = TermList(0, false);
     auto beta = TermList(1, false);
     auto alphaBeta = AtomicSort::arrowSort(alpha, beta);
-    auto result = AtomicSort::arrowSort(alphaBeta, alphaBeta, alpha);
+    auto result = AtomicSort::arrowSort({alphaBeta, alphaBeta, alpha});
     auto sym = getFunction(diff);
     sym->setType(OperatorType::getConstantsType(result, 2));
   }
@@ -650,12 +650,13 @@ unsigned Signature::getChoice() {
 }
 
 unsigned Signature::getDeBruijnIndex(int index) {
+  ASS(index >= 0)
+
   bool added = false;
   unsigned fun = addFunction("db" + Int::toString(index), 1, added);
   if (added) {
-    auto alpha = TermList(0, false);
     auto sym = getFunction(fun);
-    sym->setType(OperatorType::getConstantsType(alpha, 1));
+    sym->setType(OperatorType::getConstantsType(TermList::var(0), 1));
     sym->setDeBruijnIndex(index);
   }
   return fun;
@@ -665,11 +666,9 @@ unsigned Signature::getPlaceholder() {
   if (_placeholderFun != UINT_MAX)
     return _placeholderFun;
 
-  unsigned fun = addFreshFunction(1,"ph");
+  unsigned fun = addFreshFunction(1, "ph");
   _placeholderFun = fun;
-  auto alpha = TermList(0, false);
-  auto sym = getFunction(fun);
-  sym->setType(OperatorType::getConstantsType(alpha, 1));
+  getFunction(fun)->setType(OperatorType::getConstantsType(TermList::var(0), 1));
   return fun;
 }
 

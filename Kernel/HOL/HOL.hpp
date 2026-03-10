@@ -18,6 +18,8 @@
 #include "Kernel/TypedTermList.hpp"
 #include "Lib/Environment.hpp"
 
+#include <optional>
+
 /**
  * This namespace contains several helper functions to deal with higher-order terms.
  */
@@ -68,7 +70,7 @@ namespace HOL::create {
   TermList app(TermList sort, TermList head, TermList arg);
   TermList app(TermList head, TermList arg);
   TermList app(TermList s1, TermList s2, TermList arg1, TermList arg2, bool shared = true);
-  TermList app(TermList sort, TermList head, const TermStack& terms); // todo const termstack
+  TermList app(TermList sort, TermList head, const TermStack& terms);
   TermList app(TermList head, const TermStack& terms);
 
   inline TermList app2(TermList sort, TermList head, TermList arg1, TermList arg2) {
@@ -78,13 +80,14 @@ namespace HOL::create {
   inline TermList app2(TermList head, TermList arg1, TermList arg2) {
     ASS(head.isTerm())
 
-    return app2(Kernel::SortHelper::getResultSort(head.term()), head, arg1, arg2);
+    return app2(head.resultSort(), head, arg1, arg2);
   }
 
-  inline TermList equality(TermList sort) { return TermList(Term::create1(env.signature->getEqualityProxy(), sort)); }
-  inline TermList neg() { return TermList(Term::createConstant(env.signature->getNotProxy())); }
-  inline TermList pi(TermList sort) { return TermList(Term::create1(env.signature->getPiSigmaProxy("vPI"), sort)); }
-  inline TermList sigma(TermList sort) { return TermList(Term::create1(env.signature->getPiSigmaProxy("vSIGMA"), sort)); }
+  TermList equality(TermList sort);
+  TermList neg();
+  TermList pi(TermList sort);
+  TermList sigma(TermList sort);
+  TermList placeholder(TermList sort);
 
   Term* lambda(unsigned numArgs, const unsigned* vars, const TermList* varSorts, TypedTermList body, TermList* resultExprSort = nullptr);
 
@@ -93,6 +96,8 @@ namespace HOL::create {
 
   TermList surroundWithLambdas(TermList t, TermStack& sorts, bool fromTop = false);
   TermList surroundWithLambdas(TermList t, TermStack& sorts, TermList sort, bool fromTop = false);
+
+  TermList placeholder(TermList sort);
 } // namespace HOL::create
 
 namespace HOL::convert {

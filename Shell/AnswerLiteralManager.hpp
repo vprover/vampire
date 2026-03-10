@@ -100,7 +100,7 @@ protected:
   virtual std::string postprocessAnswerString(std::string answer) { return answer; };
 
   Clause* getRefutation(Clause* answer);
-  Literal* getAnswerLiteral(VList* vars,SList* srts,Formula* f);
+  Literal* getAnswerLiteral(VSList* varSorts, Formula* f);
 
 private:
   Unit* tryAddingAnswerLiteral(Unit* unit);
@@ -177,7 +177,7 @@ public:
   Literal* makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit) override;
 
   // Register the skolem symbol of `recTerm` as rec-symbol, and add information about skolem constants from `binding` into `incompleteTrackers` and store them.
-  void registerSkolemSymbols(Term* recTerm, const Substitution& subst, const std::vector<Term*>& functionHeadsByConstruction, std::vector<SkolemTracker>& incompleteTrackers, const VList* us);
+  void registerSkolemSymbols(Term* recTerm, const Substitution& subst, const std::vector<Term*>& functionHeadsByConstruction, std::vector<SkolemTracker>& incompleteTrackers, const VSList* us);
 
   bool isRecTerm(const Term* t) const;
 

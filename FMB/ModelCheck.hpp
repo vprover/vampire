@@ -65,8 +65,8 @@ static void doCheck(UnitList* units)
         if(formula->connective()!=Connective::FORALL) USER_ERROR("finite_domain is not a domain axiom");
         Formula* subformula = formula->qarg();
 
-        if (VList::length(formula->vars()) != 1) USER_ERROR("finite_domain must start with forall over a single variable");
-        unsigned curSort = (formula->sorts()) ? formula->sorts()->head().term()->functor() : env.signature->getDefaultSort();
+        if (VSList::length(formula->vars()) != 1) USER_ERROR("finite_domain must start with forall over a single variable");
+        unsigned curSort = formula->vars()->head().second.term()->functor();
 
         unsigned curModelSize = 0;
         auto curDomainConstants = std::make_unique<Set<Term*>>();

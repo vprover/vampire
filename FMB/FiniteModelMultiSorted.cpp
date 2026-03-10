@@ -1269,12 +1269,11 @@ bool FiniteModelMultiSorted::evaluateFormula(Formula* formula, DHMap<unsigned,un
       isForall = true;
     case EXISTS:
     {
-      VList* vs = formula->vars();
-      SList* ss = formula->sorts(); // let's assume first these are filled
+      VSList* vs = formula->vars();
 
       // cout << "will do FORALL/EXISTS for " << formula->toString() << endl;
 
-      unsigned arity = VList::length(vs);
+      unsigned arity = VSList::length(vs);
       DArray<unsigned> args;
       DArray<unsigned> old_vals;
       DArray<unsigned> sorts;
@@ -1282,19 +1281,15 @@ bool FiniteModelMultiSorted::evaluateFormula(Formula* formula, DHMap<unsigned,un
       old_vals.ensure(arity);
       sorts.ensure(arity);
 
+      // Collect vars in an array for reuse
+      DArray<unsigned> vars;
+      vars.ensure(arity);
+
       // start with all 1s, update subst, store old_vals, figure out sorts
       for(unsigned i=0;i<arity;i++){
-        unsigned var = vs->head();
+        auto [var, srt] = vs->head();
         vs = vs->tail();
-        TermList srt;
-        if (ss) {
-          srt = ss->head();
-          ss = ss->tail();
-        } else {
-          if(!SortHelper::tryGetVariableSort(var,formula,srt)){
-            USER_ERROR("Failed to get sort of "+Lib::Int::toString(var)+" in "+formula->toString());
-          }
-        }
+        vars[i] = var;
         sorts[i] = srt.term()->functor();
 
         old_vals[i] = subst.get(var,0);
@@ -1317,10 +1312,8 @@ bool FiniteModelMultiSorted::evaluateFormula(Formula* formula, DHMap<unsigned,un
         }
 
         unsigned i;
-        VList* vs = formula->vars();
         for(i=0;i<arity;i++) {
-          unsigned var = vs->head();
-          vs = vs->tail();
+          unsigned var = vars[i];
           args[i]++;
           if(args[i] <= _sizes[sorts[i]]) {
             subst.set(var,args[i]); // update subst with the inc
@@ -1335,12 +1328,8 @@ bool FiniteModelMultiSorted::evaluateFormula(Formula* formula, DHMap<unsigned,un
       }
 
       // undo the bindings in subst
-      vs = formula->vars();
       for(unsigned i=0;i<arity;i++){
-        unsigned var = vs->head();
-        vs = vs->tail();
-
-        subst.set(var,old_vals[i]);
+        subst.set(vars[i],old_vals[i]);
       }
 
       if (early) {
@@ -1430,19 +1419,14 @@ bool FiniteModelMultiSorted::evaluateOld(Formula* formula,unsigned depth)
      isForall = true;
     case EXISTS:
     {
-     VList* vs = formula->vars();
-     int var = vs->head();
+     VSList* vs = formula->vars();
+     auto [var, srt] = vs->head();
 
      //cout << "Quant " << isForall << " with " << var << endl;
 
      Formula* next = 0;
-     if(vs->tail()) next = new QuantifiedFormula(formula->connective(),vs->tail(),0,formula->qarg());
+     if(vs->tail()) next = new QuantifiedFormula(formula->connective(), vs->tail(), formula->qarg());
      else next = formula->qarg();
-
-     TermList srt;
-     if(!SortHelper::tryGetVariableSort(var,formula,srt)){
-       USER_ERROR("Failed to get sort of "+Lib::Int::toString(var)+" in "+formula->toString());
-     }
 
      unsigned srtU = srt.term()->functor();
      for(unsigned c=1;c<=_sizes[srtU];c++){
@@ -1531,10 +1515,10 @@ bool FiniteModelMultiSorted::evaluateOld(Formula* formula,unsigned depth)
                 case FORALL:
                 case EXISTS:
             {
-                VList* vs = formula->vars();
+                VSList* vs = formula->vars();
                 Formula* inner  = formula->qarg();
                 Formula* newInner = partialEvaluate(inner);
-                return new QuantifiedFormula(formula->connective(),vs,0,newInner);
+                return new QuantifiedFormula(formula->connective(), vs, newInner);
             }
             default:
                 USER_ERROR("Cannot evaluate " + formula->toString() + ", not supported");

@@ -76,11 +76,16 @@ void SplittingBranchSelector::init()
 
   SATSolver *inner;
   switch(_parent.getOptions().satSolver()){
-    case Options::SatSolver::MINISAT:
-      inner = new MinisatInterfacing;
+    case Options::SatSolver::MINISAT: {
+      auto minisat = new MinisatInterfacing();
+      minisat->setSeed(Random::seed());
+      minisat->setClauseShuffling(_parent.getOptions().randomTraversals());
+      minisat->setWatchesShuffling(_parent.getOptions().randomTraversals());
+      inner = minisat;
       break;
+    }
     case Options::SatSolver::CADICAL:
-      inner = new CadicalInterfacing;
+      inner = new CadicalInterfacing();
       break;
 #if VZ3
     case Options::SatSolver::Z3:

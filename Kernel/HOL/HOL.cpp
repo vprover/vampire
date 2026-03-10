@@ -13,6 +13,7 @@
 
 #include "Kernel/HOL/HOL.hpp"
 
+#include "ToPlaceholders.hpp"
 #include "Kernel/Formula.hpp"
 
 using IndexVarStack = Stack<std::pair<unsigned, unsigned>>;
@@ -39,21 +40,19 @@ static bool findVar(unsigned index, const IndexVarStack & st, unsigned& var) {
 
 static std::string lambdaToString(const Term::SpecialTermData* sd, bool pretty)
 {
-  Kernel::VList *vars = sd->getLambdaVars();
-  Kernel::SList * sorts = sd->getLambdaVarSorts();
+  Kernel::VSList *vars = sd->getLambdaVars();
   TermList lambdaExp = sd->getLambdaExp();
 
   std::string varList = pretty ? "" : "[";
 
-  Kernel::VList::Iterator vs(vars);
-  Kernel::SList::Iterator ss(sorts);
+  Kernel::VSList::Iterator vs(vars);
 
   bool first = true;
   while (vs.hasNext()) {
+    auto [v, sort] = vs.next();
     varList += first ? "" : ", ";
     first = false;
-    varList += Term::variableToString(vs.next()) + " : ";
-    varList += ss.next().toString();
+    varList += Term::variableToString(v) + " : " + sort.toString();
   }
   varList += pretty ? "" : "]";
   std::string lambda = pretty ? "λ" : "^";
@@ -121,6 +120,10 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
     if (pretty && term.arity() > 0)
       res += "⟩";
     return res;
+  }
+
+  if (term.isPlaceholder()) {
+    return term.functionName() + "⟨" + term.nthArgument(0)->toString(true) + "⟩";
   }
 
   if (term.isLambdaTerm()) {

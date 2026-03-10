@@ -274,10 +274,10 @@ public:
   /** if not var, the inner term must be shared */
   unsigned weight() const;
   /** returns true if this termList is wrapping a higher-order "arrow" sort */
-  bool isArrowSort();
-  bool isBoolSort();
-  bool isArraySort();
-  bool isTupleSort();
+  bool isArrowSort() const;
+  bool isBoolSort() const;
+  bool isArraySort() const;
+  bool isTupleSort() const;
   bool containsSubterm(TermList v) const;
   bool containsAllVariablesOf(TermList t) const;
   bool ground() const;
@@ -289,15 +289,17 @@ public:
   bool isRedex() const;
   bool isProxy(Proxy proxy) const;
   bool isChoice() const;
+  bool isPlaceholder() const;
 
   Option<unsigned> deBruijnIndex() const;
   TermList lhs() const;
   TermList rhs() const;
   TermList lambdaBody() const;
   TermList head() const;
-  std::pair<TermList, TermList> asPair();
-  TermList domain();
-  TermList result();
+  std::pair<TermList, TermList> asPair() const;
+  TermList domain() const;
+  TermList result() const;
+  TermList resultSort() const;
   TermList replaceSubterm(TermList what, TermList by, bool liftFreeIndices = false) const;
   /* End higher-order terms */
 
@@ -431,9 +433,8 @@ public:
       } _formulaData;
       struct {
         TermList lambdaExp;
-        VList* _vars;
-        SList* _sorts;  
-        TermList sort; 
+        VSList* _vars;  // variables with their sorts together
+        TermList sort;
         TermList expSort;//TODO is this needed?
       } _lambdaData;
       struct {
@@ -448,10 +449,8 @@ public:
     { return getTerm()->specialFunctor(); }
 
     Formula* getITECondition() const { ASS_EQ(specialFunctor(), SpecialFunctor::ITE); return _iteData.condition; }
-    VList* getLambdaVars() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData._vars; }
-    void setLambdaVars(VList* vars) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData._vars = vars; }
-    SList* getLambdaVarSorts() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData._sorts; }
-    void setLambdaVarSorts(SList* sorts) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData._sorts = sorts; }
+    VSList* getLambdaVars() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData._vars; }
+    void setLambdaVars(VSList* vars) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData._vars = vars; }
     TermList getLambdaExp() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData.lambdaExp; }
     void setLambdaExp(TermList exp) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData.lambdaExp = exp; }
     void setLambdaExpSort(TermList sort) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData.expSort = sort; }
@@ -500,7 +499,7 @@ public:
   static Term* createConstant(unsigned symbolNumber) { return create(symbolNumber,0,0); }
   static Term* createITE(Formula * condition, TermList thenBranch, TermList elseBranch, TermList branchSort);
   static Term* createLet(Formula* binding, TermList body, TermList bodySort);
-  static Term* createLambda(TermList lambdaExp, VList* vars, SList* sorts, TermList expSort);
+  static Term* createLambda(TermList lambdaExp, VSList* vars, TermList expSort);
   static Term* createFormula(Formula* formula);
   static Term* createMatch(TermList sort, TermList matchedSort, unsigned int arity, TermList* elements);
   static Term* create1(unsigned fn, TermList arg);
@@ -786,6 +785,7 @@ public:
   bool isRedex() const;
   bool isProxy(Proxy proxy) const;
   bool isChoice() const;
+  bool isPlaceholder() const;
 
   TermList lambdaBody() const {
     ASS(isLambdaTerm())
@@ -1049,8 +1049,8 @@ public:
   
   static TermList arrowSort(const TermStack& domSorts, TermList range);
   static TermList arrowSort(TermList s1, TermList s2);
-  static TermList arrowSort(TermList s1, TermList s2, TermList s3);
   static TermList arrowSort(unsigned size, const TermList* types, TermList range);
+  static TermList arrowSort(const std::initializer_list<TermList>& types);
   static TermList arraySort(TermList indexSort, TermList innerSort);
   static TermList tupleSort(unsigned arity, TermList* sorts);
   static TermList defaultSort();
