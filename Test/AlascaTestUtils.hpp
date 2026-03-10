@@ -25,8 +25,9 @@ struct AlascaSimplRule
 {
   Rule _rule;
   ALASCA::Normalization _norm;
-  AlascaSimplRule(SaturationAlgorithm& salg)
-    : _rule(salg)
+  template<class... Args>
+  AlascaSimplRule(SaturationAlgorithm& salg, Args... args)
+    : _rule(salg, std::move(args)...)
     , _norm()
   { }
 
@@ -177,6 +178,7 @@ inline Test::OptionMap alascaTestOptions(const char* uwaMode = "alasca_main") {
   return {
     { "abstracting_linear_arithmetic_superposition_calculus", "on" },
     { "term_ordering", "qkbo" },
+    { "symbol_precedence", "occurrence" },
     { "unification_with_abstraction", uwaMode },
   };
 }
