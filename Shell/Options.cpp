@@ -638,6 +638,11 @@ void Options::init()
     _lookup.insert(&_outputAxiomNames);
     _outputAxiomNames.tag(OptionTag::OUTPUT);
 
+    _formulasTorchFileName = StringOptionValue("formulas_torch_file_name","ftfn","");
+    _formulasTorchFileName.description="During output mode, if specified, we will dump a representation of the parsed formulas digestible by pytorch into the specified file.";
+    _lookup.insert(&_formulasTorchFileName);
+    _formulasTorchFileName.tag(OptionTag::DEVELOPMENT);
+
     _printClausifierPremises = BoolOptionValue("print_clausifier_premises","",false);
     _printClausifierPremises.description="Output how the clausified problem was derived.";
     _lookup.insert(&_printClausifierPremises);

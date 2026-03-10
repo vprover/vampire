@@ -21,6 +21,8 @@
 
 #include <cadical.hpp>
 
+#define USING_LIBTORCH // see Lib/Output.hpp
+
 #include "Forwards.hpp"
 
 #include "Lib/Environment.hpp"
@@ -47,6 +49,8 @@
 #include "SAT/Z3Interfacing.hpp"
 
 #include "Lib/List.hpp"
+
+#include <ATen/core/ivalue.h>
 
 namespace Shell {
 
@@ -693,6 +697,10 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(std::ostream& out, bool funct
     out << ")." << endl;
   }
   //out << ")." << endl;
+}
+
+void UIHelper::outputFormulasToTorch(std::string fileName) {
+
 }
 
 } // namespace Shell

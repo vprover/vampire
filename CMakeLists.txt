@@ -99,8 +99,6 @@ if(GCC_OR_CLANG)
   add_compile_options(-Wall)
   # we don't use multithreaded statics in Vampire
   add_compile_options(-fno-threadsafe-statics)
-  # ...or RTTI
-  add_compile_options(-fno-rtti)
 
   if(CMAKE_BUILD_TYPE STREQUAL Debug)
     add_compile_options(-fsanitize=undefined)
@@ -221,6 +219,14 @@ else ()
   message(STATUS "no Z3 found -- compiling without SMT support")
   add_compile_definitions(VZ3=0)
 endif()
+
+################################################################
+# libtorch stuff
+################################################################
+
+find_package(Torch REQUIRED)
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
+link_libraries("${TORCH_LIBRARIES}")
 
 ################################################################
 # Vampire

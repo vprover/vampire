@@ -250,14 +250,18 @@ void outputMode(Problem* problem)
 {
   ScopedPtr<Problem> prb(problem);
 
-  //outputSymbolDeclarations also deals with sorts for now
-  //UIHelper::outputSortDeclarations(std::cout);
-  UIHelper::outputSymbolDeclarations(std::cout);
-  UnitList::Iterator units(prb->units());
+  if (!env.options->formulasTorchFileName().empty()) {
+    UIHelper::outputFormulasToTorch(env.options->formulasTorchFileName());
+  } else {
+    //outputSymbolDeclarations also deals with sorts for now
+    //UIHelper::outputSortDeclarations(std::cout);
+    UIHelper::outputSymbolDeclarations(std::cout);
+    UnitList::Iterator units(prb->units());
 
-  while (units.hasNext()) {
-    Unit* u = units.next();
-    std::cout << TPTPPrinter::toString(u) << "\n";
+    while (units.hasNext()) {
+      Unit* u = units.next();
+      std::cout << TPTPPrinter::toString(u) << "\n";
+    }
   }
 
   //we have successfully output all clauses, so we'll terminate with zero return value

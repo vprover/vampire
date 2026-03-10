@@ -2189,6 +2189,7 @@ public:
   bool codeTreeSubsumption() const { return _codeTreeSubsumption.actualValue; }
   bool outputAxiomNames() const { return _outputAxiomNames.actualValue; }
   void setOutputAxiomNames(bool newVal) { _outputAxiomNames.actualValue = newVal; }
+  std::string formulasTorchFileName() const { return _formulasTorchFileName.actualValue; }
   QuestionAnsweringMode questionAnswering() const { return _questionAnswering.actualValue; }
   bool questionAnsweringGroundOnly() const { return _questionAnsweringGroundOnly.actualValue; }
   std::string questionAnsweringAvoidThese() const { return _questionAnsweringAvoidThese.actualValue; }
@@ -2553,6 +2554,7 @@ private:
   BoolOptionValue _randomPolarities;
 
   BoolOptionValue _outputAxiomNames;
+  StringOptionValue _formulasTorchFileName;
 
   StringOptionValue _printProofToFile;
   BoolOptionValue _printClausifierPremises;

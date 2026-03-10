@@ -61,6 +61,8 @@ public:
 
   static void outputResult(std::ostream& out);
 
+  static void outputFormulasToTorch(std::string fileName);
+
   /**
    * Return true if there was a conjecture formula among the parsed units
    *
