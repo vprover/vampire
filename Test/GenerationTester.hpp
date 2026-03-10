@@ -270,7 +270,9 @@ public:
     p.addUnits(ul);
     env.setMainProblem(&p);
 
-    resetAndFillEnvOptions(Option<OptionMap>(_options), p);
+    // somehow without this reference _options gets reset
+    const auto& optRef = _options;
+    resetAndFillEnvOptions(Option<OptionMap>(optRef), p);
     MockedSaturationAlgorithm alg(p, *env.options);
     _setup(alg);
     SimplifyingGeneratingInference& rule = *_rule.unwrapOrElse([&](){ return &simpl._rule; });

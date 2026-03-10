@@ -31,6 +31,8 @@ using namespace Test;
   DECL_PRED (p, {s})                                                                                          \
   DECL_PRED (q, {s})                                                                                          \
   DECL_CONST(g1, arrow({s, s}, s))                                                                            \
+  DECL_CONST(g2, arrow({s, s}, s))                                                                            \
+  DECL_CONST(h, arrow({s, s, s}, s))                                                                          \
   DECL_DE_BRUIJN_INDEX(db0, 0, s)                                                                             \
   DECL_DE_BRUIJN_INDEX(db1, 1, s)
 
@@ -265,10 +267,32 @@ TEST_GENERATION(test_20,
 TEST_GENERATION(test_21,
     Generation::SymmetricTest()
       .inputs({
-        clause({ selected(ap(ap(g1,x),y) == x) }),
-        clause({ selected(ap(ap(g1,a),z) != ap(lam(s, ap(ap(g1,db0),y)), b)) }),
+        clause({ selected(ap(ap(h,a),x) != lam(s, ap(ap(ap(h,db0),y),z))) }),
+        clause({ selected(ap(ap(h,x),y) == ap(g1, x)) }),
       })
       .selfApplications(false)
-      .expected(exactly(clause({ a != ap(lam(s, ap(ap(g1,db0),y)), b) })))
+      .options({
+        { "unification_with_abstraction", "hol" },
+        { "unification_with_abstraction_fixed_point_iteration", "on" },
+      })
+      .expected(exactly(
+        clause({ ap(g1,a) != lam(s, ap(ap(ap(h,db0),y),z)) })
+      ))
     )
 
+// superposition performed with lambda LHS
+TEST_GENERATION(test_22,
+    Generation::SymmetricTest()
+      .inputs({
+        clause({ selected(lam(s, ap(g1,db0)) == g1) }),
+        clause({ selected(g1 != g2) }),
+      })
+      .selfApplications(false)
+      .options({
+        { "unification_with_abstraction", "hol" },
+        { "unification_with_abstraction_fixed_point_iteration", "on" },
+      })
+      .expected(exactly(
+        clause({ g1 != g1, lam(s, ap(g1,db0)) != g2 })
+      ))
+    )

@@ -18,7 +18,6 @@
 #include "Lib/Backtrackable.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Recycled.hpp"
-#include "Saturation/HOLUnifier.hpp"
 #include "Shell/Options.hpp"
 #include "Lib/Environment.hpp"
 #include "Kernel/SortHelper.hpp"
@@ -65,7 +64,7 @@ AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec 
   return alasca(au, t1, t2, n, uwa);
 }
 
-bool uncanellableOccursCheck(AbstractingUnifier& au, VarSpec const& v, TermSpec const& t) {
+bool uncancellableOccursCheck(AbstractingUnifier& au, VarSpec const& v, TermSpec const& t) {
   if (t.isSort()) return true; // <- for sorts arguments might never cancel out
   Recycled<Stack<TermSpec>> todo;
   ASS(t.isTerm())
@@ -297,13 +296,55 @@ Option<AbstractionOracle::AbstractionResult> funcExt(
   return Option<AbstractionOracle::AbstractionResult>();
 }
 
+TermSpec appHead(AbstractingUnifier* au, TermSpec t)
+{
+  ASS_EQ(t, au->subs().derefBound(t));
+  while (t.term.isApplication()) {
+    t = au->subs().derefBound(t.termArg(0));
+  }
+  return t;
+}
+
 Option<AbstractionOracle::AbstractionResult> hol(
   AbstractingUnifier* au, TermSpec const& t1, TermSpec const& t2)
 {
-  if (Saturation::HOLUnifierHandler::isHolUnifiable(t1.term) || Saturation::HOLUnifierHandler::isHolUnifiable(t2.term)) {
+  // TODO should we postpone deref to a later point?
+  auto dt1 = au->subs().derefBound(t1);
+  auto dt2 = au->subs().derefBound(t2);
+
+  // if one of them is a lambda, abstract
+  if (dt1.term.isLambdaTerm() || dt2.term.isLambdaTerm()) {
     return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, t1.sort()))));
   }
-  return Option<AbstractionOracle::AbstractionResult>();
+
+  // if one of them is a variable, don't abstract
+  if (dt1.term.isVar() || dt2.term.isVar()) {
+    return Option<AbstractionOracle::AbstractionResult>();
+  }
+
+  auto h1 = appHead(au, dt1);
+  auto h2 = appHead(au, dt2);
+  if (h1.isVar() || h2.isVar() || h1.term.isLambdaTerm() || h2.term.isLambdaTerm()) {
+    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, t1.sort()))));
+  }
+
+  ASS_EQ(h1.term.term()->arity(), 0);
+  ASS_EQ(h2.term.term()->arity(), 0);
+  if (h1 != h2) {
+    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
+  }
+
+  Recycled<Stack<UnificationConstraint>> unify;
+  while (dt1.term.isApplication()) {
+    ASS(dt2.term.isApplication());
+    unify->push(UnificationConstraint(
+      au->subs().derefBound(dt1.termArg(1)),
+      au->subs().derefBound(dt2.termArg(1)),
+      au->subs().derefBound(dt1.termArgSort(1))));
+    dt1 = au->subs().derefBound(dt1.termArg(0));
+    dt2 = au->subs().derefBound(dt2.termArg(0));
+  }
+  return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().unify(std::move(unify))));
 }
 
 TermSpec norm(TermSpec outer, AbstractingUnifier& au) {
@@ -431,7 +472,7 @@ Option<AbstractionOracle::AbstractionResult> uwa_floor(AbstractingUnifier& au, T
     ASS(v.isVar())
     ASS(t.isTerm())
     // we know due to the uwa algorithm that v occurs in t
-    if (uncanellableOccursCheck(au, v.varSpec(), t)) {
+    if (uncancellableOccursCheck(au, v.varSpec(), t)) {
       return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual{}));
     } else {
       // this means all
@@ -488,7 +529,7 @@ Option<AbstractionOracle::AbstractionResult> alasca(AbstractingUnifier& au, Term
     ASS(v.isVar())
     ASS(t.isTerm())
     // we know due to the uwa algorithm that v occurs in t
-    if (uncanellableOccursCheck(au, v.varSpec(), t)) {
+    if (uncancellableOccursCheck(au, v.varSpec(), t)) {
       return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual{}));
     } else {
       // this means all
@@ -652,7 +693,7 @@ AbstractionOracle::AbstractionResult alasca(AbstractingUnifier& au, TermSpec con
        auto  num = diff[0].second;
 
        for (auto i : range(nVars, diff.size())) {
-         if (uncanellableOccursCheck(au, var.varSpec(), diff[i].first)) {
+         if (uncancellableOccursCheck(au, var.varSpec(), diff[i].first)) {
            return AbstractionResult(NeverEqual{});
          }
        }
@@ -1404,6 +1445,7 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
         //     pair.second.isVar() && isUnbound(std::pair.second.varSpec())) {
         //   todo.push(std::pair);
         // } else
+        // TODO could we use just insert here?
         if (!encountered->find(pair)) {
           encountered->insert(pair);
           toDo->push(std::move(pair));

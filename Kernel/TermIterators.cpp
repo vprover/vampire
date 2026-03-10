@@ -174,17 +174,13 @@ Term* FirstOrderSubtermIt::next()
 {
   _added = 0;
   auto t = _stack.pop();
-  if (t->isLambdaTerm()) {
-    return t;
-  }
+  ASS_REP(!t->isLambdaTerm(), *t);
 
   auto [head, args] = HOL::getHeadAndArgs(TermList(t));
-  if (!head.isLambdaTerm()) {
-    return t;
-  }
+  ASS_REP(!head.isLambdaTerm(), *t);
 
   for (unsigned i = 0; i < args.size(); i++) {
-    if (args[i].isTerm()) {
+    if (args[i].isTerm() && !args[i].term()->isLambdaTerm()) {
       _added++;
       _stack.push(args[i].term());
     }
