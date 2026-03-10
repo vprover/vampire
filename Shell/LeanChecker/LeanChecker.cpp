@@ -641,43 +641,61 @@ void LeanChecker::clausify(std::ostream &out, SortMap &conclSorts, Unit *concl){
       }
     }
     out <<(cnfParentExtra.number > 1 ? "⟩" : "")  <<" := " << stepIdent << parent->number() << "'\n";
-  }
 
+    out << indent << "ac_nf0 at ";
+    for(unsigned i=0 ; i<cnfParentExtra.number ; i++){
+      out << "s" << parent->number() << "c" << i;
+      if(i < cnfParentExtra.number-1){
+        out << " ";
+      }
+    }
+    out << "\n";
+  }
   out << indent << "have " << stepIdent << concl->number() << " : ";
   outputUnit(out, concl);
   out << " := by\n";
   //if(conclSorts.size() > 0){
   //  out << indent << indent << "prenexify at s" <<  parent->number() << "c" << cnfParentExtra.number - cnfExtra.number - 1 << "\n";
   //}
-  out << indent << indent << "intros ";
-  auto domain = conclSorts.domain();
-  outputVariables(out, domain, conclSorts, conclSorts);
-  out << "\n";
+  //out << indent << indent << "intros ";
+  //auto domain = conclSorts.domain();
+  //outputVariables(out, domain, conclSorts, conclSorts);
+  //out << "\n";
   out << indent << indent << "try simp only\n";
-  VariablePrenexOrderingTree prenexTree;
-  prenexTree.buildTreeFromFormula(parent->getFormula(), Kernel::FORALL);
-  std::vector<unsigned>* variableOrdering = prenexTree.determineVariableOrdering();
-  out << indent << indent << "have h' := s" << parent->number() << "c" << cnfParentExtra.number - cnfExtra.number - 1 << " ";
-  for(unsigned var : *variableOrdering){
-    if(conclSorts.findPtr(var) != nullptr){
-      out << "v" << var << " ";
-    }
-  }
-  out << "\n";
-  auto clause = concl->asClause();
+  out << indent << indent << "ac_nf0\n";\
+  
+  //VariablePrenexOrderingTree prenexTree;
+  //prenexTree.buildTreeFromFormula(parent->getFormula(), Kernel::FORALL);
+  //std::vector<unsigned>* variableOrdering = prenexTree.determineVariableOrdering();
+  //out << indent << indent << "have h' := s" << parent->number() << "c" << cnfParentExtra.number - cnfExtra.number - 1 << " ";
+  //for(unsigned var : *variableOrdering){
+  //  if(conclSorts.findPtr(var) != nullptr){
+  //    out << "v" << var << " ";
+  //  }
+  //}
+  //out << "\n";
+  /*auto clause = concl->asClause();
   if(clause->size()>1){
     out << indent << indent << "ac_nf0 at h'\n" <<
          indent << indent << "ac_nf\n";
   } else {
     out << indent << indent << "exact h'\n";
-  }
+  }*/
   //out << indent << indent << "grind only []";
   //if(countConnectives(parent->getFormula()) < 500){
     
     //out << "<;>\n" << indent << "grind only [cases Or]\n\n";
   //} else {
   //  out << "\n" << indent << "duper [h]\n\n";
-  //} 
+  //}
+  out << indent << indent << "find_assumption using [";
+  for(unsigned i=0 ; i < cnfParentExtra.number ; i++){
+    out << "s" << parent->number() << "c" << i;
+    if(i < cnfParentExtra.number-1){
+      out << ", ";
+    }
+  }
+  out << "]\n\n"; 
 }
 
 void LeanChecker::predicateDefinitionIntroduction(std::ostream &out, SortMap &conclSorts, Unit *concl){
