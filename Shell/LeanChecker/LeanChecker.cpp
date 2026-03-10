@@ -1264,16 +1264,16 @@ void LeanChecker::rectify(std::ostream &out, SortMap &conclSorts, Unit *concl, c
         << indent << indent << "Iff.intro (fun f ";
     if(conn == FORALL){
       domain = sorts.domain();
-      outputVariables(out, domain, conclSorts, sorts);
+      outputVariables(out, domain, conclSorts, sorts,DoSubst(subst));
       out << " => f ";
       domain = sorts.domain();
-      outputVariables(out, domain, conclSorts, sorts, DoSubst(subst));
+      outputVariables(out, domain, conclSorts, sorts);
       out << ") (fun f ";
       domain = sorts.domain();
-      outputVariables(out, domain, conclSorts, sorts, DoSubst(subst));
+      outputVariables(out, domain, conclSorts, sorts);
       out << " => f ";
       domain = sorts.domain();
-      outputVariables(out, domain, conclSorts, sorts);
+      outputVariables(out, domain, conclSorts, sorts,DoSubst(subst));
       out << ")\n";
     } else if (conn == EXISTS) {
       domain = sorts.domain();
