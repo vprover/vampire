@@ -434,7 +434,9 @@ std::pair<float,float> TheoryMultiSplitPassiveClauseContainer::computeTheoryFeat
   Inference& inf = cl->inference();
   Inference::Iterator it = inf.iterator();
 
-  if (!inf.hasNext(it)) {
+  if (cl->isComponent()) {
+    std::tie(th,all) = computeTheoryFeatures(inf.getCausalParent());
+  } else if (!inf.hasNext(it)) {
     // Leaf: no parents
     th = inf.isTheoryAxiom() ? 1.0f : 0.0f;
     all = 1.0f;
