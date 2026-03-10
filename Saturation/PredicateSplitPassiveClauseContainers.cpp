@@ -427,7 +427,7 @@ PredicateSplitPassiveClauseContainer(isOutermost, opt, name, std::move(queues), 
 
 std::pair<float,float> TheoryMultiSplitPassiveClauseContainer::computeTheoryFeatures(Clause* cl) const
 {
-  auto* cached = _teoryFeatureCache.findPtr(cl);
+  auto* cached = _teoryFeatureCache.findPtr(cl->number());
   if (cached) return *cached;
 
   float th = 0.0f, all = 0.0f;
@@ -461,7 +461,7 @@ std::pair<float,float> TheoryMultiSplitPassiveClauseContainer::computeTheoryFeat
   }
 
   auto result = std::make_pair(th, all);
-  _teoryFeatureCache.insert(cl, result);
+  _teoryFeatureCache.insert(cl->number(), result);
   return result;
 }
 
