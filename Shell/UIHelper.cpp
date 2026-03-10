@@ -50,7 +50,7 @@
 
 #include "Lib/List.hpp"
 
-#include <ATen/core/ivalue.h>
+#include <torch/script.h>
 
 namespace Shell {
 
@@ -700,7 +700,29 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(std::ostream& out, bool funct
 }
 
 void UIHelper::outputFormulasToTorch(std::string fileName) {
+  c10::impl::GenericList typeConsList(c10::AnyType::get());
 
+  unsigned typeCons = env.signature->typeCons();
+  for (unsigned tc=0; tc<typeCons; tc++) {
+    Signature::Symbol* symb = env.signature->getTypeCon(tc);
+
+    auto typecon_tup = c10::ivalue::Tuple::create({
+      symb->name(),
+      (int32_t)symb->arity(),
+      tc == Signature::DEFAULT_SORT_CON,
+      tc == Signature::BOOL_SRT_CON,
+      tc == Signature::INTEGER_SRT_CON || tc == Signature::RATIONAL_SRT_CON || tc == Signature::REAL_SRT_CON, // should never happen; we currently don't support HOL + ARI
+      env.signature->isArrowCon(tc),
+    });
+
+    typeConsList.push_back(typecon_tup);
+  }
+
+  // Serialize
+  auto data = torch::jit::pickle_save(typeConsList);
+  // Write to file
+  std::ofstream f(fileName, std::ios::binary);
+  f.write(data.data(), data.size());
 }
 
 } // namespace Shell
