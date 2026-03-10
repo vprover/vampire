@@ -378,7 +378,7 @@ bool SineSelector::perform(UnitList*& units)
 
   SymId symIdBound=_symExtr.getSymIdBound();
 
-  Set<Unit*> selected;
+  Set<unsigned> selected;
   Stack<Unit*> selectedStack; //on this stack there are Units in the order they were selected
   Deque<Unit*> newlySelected;
 
@@ -395,7 +395,7 @@ bool SineSelector::perform(UnitList*& units)
       updateDefRelation(u);
     }
     else { // goal units are immediately taken (well, non-axiom, to by more precise. Includes ASSUMPTION, which cl->isGoal() does not take into account)
-      selected.insert(u);
+      selected.insert(u->number());
       selectedStack.push(u);
       newlySelected.push_back(u);
 
@@ -454,10 +454,10 @@ bool SineSelector::perform(UnitList*& units)
       UnitList::Iterator defUnits(_def[sym]);
       while (defUnits.hasNext()) {
         Unit* du=defUnits.next();
-        if (selected.contains(du)) {
+        if (selected.contains(du->number())) {
           continue;
         }
-        selected.insert(du);
+        selected.insert(du->number());
         selectedStack.push(du);
         newlySelected.push_back(du);
 

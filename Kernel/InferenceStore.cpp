@@ -1601,11 +1601,11 @@ void InferenceStore::outputUnsatCore(std::ostream& out, Unit* refutation)
 
   Stack<Unit*> todo;
   todo.push(refutation);
-  Set<Unit*> visited;
+  Set<unsigned> visited;
   while(!todo.isEmpty()){
 
     Unit* u = todo.pop();
-    visited.insert(u);
+    visited.insert(u->number());
 
     if(u->inference().rule() ==  InferenceRule::INPUT){
       if(!u->isClause()){
@@ -1632,7 +1632,7 @@ void InferenceStore::outputUnsatCore(std::ostream& out, Unit* refutation)
       UnitIterator parents = u->getParents();
       while(parents.hasNext()){
         Unit* parent = parents.next();
-        if(!visited.contains(parent)){
+        if(!visited.contains(parent->number())){
           todo.push(parent);
         }
       }

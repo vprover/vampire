@@ -16,7 +16,7 @@
 #include "Lib/Int.hpp"
 #include "Lib/ScopedLet.hpp"
 #include "Lib/Stack.hpp"
-#include "Lib/Set.hpp"
+#include "Lib/Map.hpp"
 #include "Lib/Int.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -53,7 +53,7 @@ using namespace Kernel;
 struct PredicateDefinition::PredData
 {
   /** Units that contain the predicate. */
-  Set<Unit*> containingUnits;
+  Map<unsigned, Unit*> containingUnits;
 
   bool builtIn;
   int pred;
@@ -260,9 +260,9 @@ void PredicateDefinition::replacePurePred(unsigned pred, ReplMap& replacements)
   if(_processedPrb) {
     _processedPrb->addTrivialPredicate(pred, pd.nocc==0);
   }
-  Set<Unit*>::Iterator uit(pd.containingUnits);
+  Map<unsigned, Unit*>::Iterator uit(pd.containingUnits);
   while(uit.hasNext()) {
-    Unit* u=uit.next();
+    Unit* u=uit.next().value();
     if(replacements.find(u->number())) {
       //The unit has already been replaced.
       continue;
@@ -741,7 +741,7 @@ void PredicateDefinition::count (Clause* cl, int add)
     int pred = l->functor();
     _preds[pred].add(l->isPositive() ? 1 : -1, add, this);
     if(add==1) {
-	_preds[pred].containingUnits.insert(cl);
+	_preds[pred].containingUnits.insert(cl->number(), cl);
     }
   }
 }
@@ -755,7 +755,7 @@ void PredicateDefinition::count (Formula* f,int polarity,int add, Unit* unit)
       int pred = l->functor();
       _preds[pred].add(l->isPositive() ? polarity : -polarity, add, this);
       if(add==1) {
-        _preds[pred].containingUnits.insert(unit);
+        _preds[pred].containingUnits.insert(unit->number(), unit);
       }
       Term::Iterator args(l);
       while (args.hasNext()) {
