@@ -63,7 +63,8 @@ check_smtcomp_status() {
 }
 
 # HOL problems, move them to a later point when merging
-check_szs_status Theorem -hun on -uwa hol hol1.p
+check_szs_status Theorem -hun on -uwa hol -uwa_fpi on hol1.p
+check_szs_status Theorem -hun on -uwa hol -uwa_fpi on hol2.p
 
 # Some simple problems: fail early!
 check_szs_status Theorem Problems/PUZ/PUZ001+1.p

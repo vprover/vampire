@@ -340,10 +340,10 @@ Option<AbstractionOracle::AbstractionResult> hol(
     if (!dt2.term.isApplication()) {
       return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
     }
-    unify->push(UnificationConstraint(
-      au->subs().derefBound(dt1.termArg(1)),
-      au->subs().derefBound(dt2.termArg(1)),
-      au->subs().derefBound(dt1.termArgSort(1))));
+    unify->emplace(dt1.typeArg(0), dt2.typeArg(0), TermSpec(AtomicSort::superSort(),dt1.index));
+    unify->emplace(dt1.typeArg(1), dt2.typeArg(1), TermSpec(AtomicSort::superSort(),dt1.index));
+    unify->emplace(dt1.termArg(1), dt2.termArg(1), dt1.termArgSort(1));
+
     dt1 = au->subs().derefBound(dt1.termArg(0));
     dt2 = au->subs().derefBound(dt2.termArg(0));
   }
