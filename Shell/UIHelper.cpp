@@ -701,7 +701,6 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(std::ostream& out, bool funct
 
 void UIHelper::outputFormulasToTorch(std::string fileName) {
   c10::impl::GenericList typeConsList(c10::AnyType::get());
-
   unsigned typeCons = env.signature->typeCons();
   for (unsigned tc=0; tc<typeCons; tc++) {
     Signature::Symbol* symb = env.signature->getTypeCon(tc);
@@ -718,8 +717,42 @@ void UIHelper::outputFormulasToTorch(std::string fileName) {
     typeConsList.push_back(typecon_tup);
   }
 
+  c10::impl::GenericList predList(c10::AnyType::get());
+  unsigned preds = env.signature->predicates();
+  for (unsigned p=0; p<preds; p++) {
+    Signature::Symbol* symb = env.signature->getPredicate(p);
+
+    auto pred_tup = c10::ivalue::Tuple::create({
+      symb->name(),
+      (int32_t)symb->arity(),
+      p == 0, // equality is important
+    });
+
+    predList.push_back(pred_tup);
+  }
+
+  c10::impl::GenericList funcList(c10::AnyType::get());
+  unsigned funcs = env.signature->functions();
+  for (unsigned f=0; f<funcs; f++) {
+    Signature::Symbol* symb = env.signature->getFunction(f);
+
+    auto func_tup = c10::ivalue::Tuple::create({
+      symb->name(),
+      (int32_t)symb->arity(),
+      env.signature->isAppFun(f),
+      env.signature->isLamFun(f),
+      env.signature->isChoiceFun(f),
+      env.signature->isFoolConstantSymbol(false,f),
+      env.signature->isFoolConstantSymbol(true,f),
+    });
+
+    funcList.push_back(func_tup);
+  }
+
+  auto root = c10::ivalue::Tuple::create({typeConsList,predList,funcList});
+
   // Serialize
-  auto data = torch::jit::pickle_save(typeConsList);
+  auto data = torch::jit::pickle_save(root);
   // Write to file
   std::ofstream f(fileName, std::ios::binary);
   f.write(data.data(), data.size());
