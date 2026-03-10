@@ -324,6 +324,7 @@ Option<AbstractionOracle::AbstractionResult> hol(
 
   auto h1 = appHead(au, dt1);
   auto h2 = appHead(au, dt2);
+  // can the head be lambda terms when normalized?
   if (h1.isVar() || h2.isVar() || h1.term.isLambdaTerm() || h2.term.isLambdaTerm()) {
     return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, t1.sort()))));
   }
@@ -336,13 +337,18 @@ Option<AbstractionOracle::AbstractionResult> hol(
 
   Recycled<Stack<UnificationConstraint>> unify;
   while (dt1.term.isApplication()) {
-    ASS(dt2.term.isApplication());
+    if (!dt2.term.isApplication()) {
+      return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
+    }
     unify->push(UnificationConstraint(
       au->subs().derefBound(dt1.termArg(1)),
       au->subs().derefBound(dt2.termArg(1)),
       au->subs().derefBound(dt1.termArgSort(1))));
     dt1 = au->subs().derefBound(dt1.termArg(0));
     dt2 = au->subs().derefBound(dt2.termArg(0));
+  }
+  if (dt2.term.isApplication()) {
+    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
   }
   return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().unify(std::move(unify))));
 }

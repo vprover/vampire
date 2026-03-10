@@ -89,6 +89,7 @@
 #include "Inferences/CasesSimp.hpp"
 #include "Inferences/Cases.hpp"
 #include "Inferences/DefinitionIntroduction.hpp"
+#include "Inferences/NegativeExt.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -1498,6 +1499,10 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   else if (opt.unificationWithAbstraction() != Options::UnificationWithAbstraction::OFF) {
     gie->addFront(new EqualityResolution());
+  }
+
+  if (env.higherOrder()){
+    gie->addFront(new NegativeExt());
   }
 
   if (env.options->choiceReasoning()) {
