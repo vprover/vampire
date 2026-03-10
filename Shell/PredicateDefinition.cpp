@@ -182,6 +182,8 @@ Unit* PredicateDefinition::getReplacement(Unit* u, ReplMap& replacements)
 {
   Unit* tgt;
   while(replacements.find(u->number(),tgt)) {
+    if(!tgt)
+      return nullptr;
     u=tgt;
   }
   return u;
