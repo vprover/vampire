@@ -279,6 +279,8 @@ set(SOURCES
     Inferences/Factoring.hpp
     Inferences/FastCondensation.cpp
     Inferences/FastCondensation.hpp
+    Inferences/FlexFlexSimplify.cpp
+    Inferences/FlexFlexSimplify.hpp
     Inferences/ForwardDemodulation.cpp
     Inferences/ForwardDemodulation.hpp
     Inferences/ForwardGroundJoinability.cpp

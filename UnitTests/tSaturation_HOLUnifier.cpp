@@ -67,6 +67,14 @@ TEST_FUN(no_constraints_2) {
   checkEqual(c2, c1);
 }
 
+TEST_FUN(no_constraints_3) {
+  PREAMBLE_HANDLER;
+  auto c1 = clause({ ap(ap(g, x), y) != ap(ap(g, a), b) });
+  auto c2 = handler.handleClause(c1);
+
+  checkEqual(c2, c1);
+}
+
 TEST_FUN(constraints_1) {
   PREAMBLE_HANDLER;
   auto c1 = clause({ ap(g,y) != lam(srt, db0), y == a });

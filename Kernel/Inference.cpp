@@ -963,6 +963,8 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "pi clausification";
   case InferenceRule::HOL_EQUALITY_ELIMINATION:
     return "equality proxy clausification";
+  case InferenceRule::FLEX_FLEX_SIMPLIFY:
+    return "flex-flex simplify";
   case InferenceRule::BOOL_SIMP:
     return "boolean simplification";
   case InferenceRule::EQ_TO_DISEQ:
