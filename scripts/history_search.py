@@ -24,7 +24,7 @@ import tempfile
 import os
 import math
 
-DEVNULL = open('/dev/null', 'w')
+DEVNULL = open(os.devnull, 'w')
 
 revisionRE = re.compile("^Revision: ([0-9]+)$")
 
@@ -106,18 +106,26 @@ def readArgs(args):
     global firstRevision
     global lastRevision
     
-    while True:
+    while args:
         if args[0]=="-f":
+            if len(args)<2:
+                raise Failure("missing value for -f")
             firstRevision = int(args[1])
             args = args[2:]
         elif args[0]=="-l":
+            if len(args)<2:
+                raise Failure("missing value for -l")
             lastRevision = int(args[1])
             args = args[2:]
         elif args[0]=="-d":
+            if len(args)<2:
+                raise Failure("missing value for -d")
             desiredRE = re.compile(args[1])
             args = args[2:]
         else:
             break
+    if not args:
+        raise Failure("missing executable")
     readVampCmdLine(args)
     if lastRevision==None:
         lastRevision = getCurrentRevision()
