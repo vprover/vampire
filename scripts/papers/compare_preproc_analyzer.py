@@ -27,7 +27,7 @@ class Rec:
                 self.distAtomCnt = readInpVal(vals[4])
         
         def display(self):
-                print(self.clauseCnt, self.atomCnt, self.distAtomCnt)
+                print((self.clauseCnt, self.atomCnt, self.distAtomCnt))
 
 def findIdxsWithLowest(arr,fn):
         res = [arr[0].idx]
@@ -46,7 +46,7 @@ class Bench:
                 self.name = name
                 self.recs = []
         def display(self):
-                print self.name
+                print(self.name)
                 for r in self.recs:
                         r.display()
 
@@ -86,26 +86,26 @@ class Observable:
                 if len(winIdxs)==1:
                         self.singleWinners[winIdxs[0]] += 1
         def display(self):
-                print self.name + ":"
+                print(self.name + ":")
                 for i in range(0,strategyCnt):
-                        print i, "\t", self.winners[i],"\tTOs: ",self.TOs[i]
-                print "all eq: ", self.allEqualCnt
-                print "all TO: ", self.allTO
+                        print(i, "\t", self.winners[i],"\tTOs: ",self.TOs[i])
+                print("all eq: ", self.allEqualCnt)
+                print("all TO: ", self.allTO)
         def displayForTable(self):
-                print self.name + "\t",
+                print(self.name + "\t", end=' ')
                 for i in range(0,strategyCnt):
-                        print str(self.winners[i])+"\t",
-                print
+                        print(str(self.winners[i])+"\t", end=' ')
+                print()
         def displaySinglesForTable(self):
-                print self.name + " O\t",
+                print(self.name + " O\t", end=' ')
                 for i in range(0,strategyCnt):
-                        print str(self.singleWinners[i])+"\t",
-                print
+                        print(str(self.singleWinners[i])+"\t", end=' ')
+                print()
         def displayTOsForTable(self):
-                print "TOs\t",
+                print("TOs\t", end=' ')
                 for i in range(0,strategyCnt):
-                        print str(self.TOs[i])+"\t",
-                print
+                        print(str(self.TOs[i])+"\t", end=' ')
+                print()
         
 def getClauseCnt(r):
         return r.clauseCnt

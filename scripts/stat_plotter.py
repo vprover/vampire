@@ -157,7 +157,7 @@ def addDataPoint(lbl, t, v):
     elif type=="hist":
         data[t][idx]=readHistData(idx,v)
     else:
-        raise "not implemented"
+        raise Exception("not implemented")
 
 def outputHistFile(idx,f):
     global data
@@ -170,12 +170,12 @@ def outputHistFile(idx,f):
             if idx not in data[t]:
                 continue
             distr = data[t][idx]
-            dom.update(distr.keys())
+            dom.update(list(distr.keys()))
         domEls = []
         domEls.extend(dom)
         domEls.sort()
     else:
-        domEls = range(0,histMaxKeys[idx]+1)
+        domEls = list(range(0,histMaxKeys[idx]+1))
     
     f.seek(0)
     f.truncate()
@@ -221,7 +221,7 @@ def updateDataFiles():
         outputHistFile(hidx, tf)
         tf.flush()
 
-gnuplotProc = subprocess.Popen(["gnuplot"], bufsize=1, stdin=subprocess.PIPE, shell=True)
+gnuplotProc = subprocess.Popen(["gnuplot"], bufsize=1, stdin=subprocess.PIPE, shell=True, text=True)
 
 if useLogScale:
     gnuplotProc.stdin.write("set logscale y\n")
@@ -330,7 +330,7 @@ def redrawGnuplot():
     gnuplotProc.stdin.write(gpCmd)
     gnuplotProc.stdin.flush()
     
-vampProc = subprocess.Popen(vampCmdLine, bufsize=1, stderr=subprocess.PIPE)
+vampProc = subprocess.Popen(vampCmdLine, bufsize=1, stderr=subprocess.PIPE, text=True)
 
 lastUpdateTime = None
 

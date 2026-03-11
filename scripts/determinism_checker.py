@@ -84,10 +84,10 @@ def createVampProc(isSecond):
         if altExecutable:
             cmdLine[0] = altExecutable
     try:
-        return subprocess.Popen(cmdLine, bufsize=1, stderr=subprocess.PIPE, env=childEnv)
+        return subprocess.Popen(cmdLine, bufsize=1, stderr=subprocess.PIPE, env=childEnv, text=True)
     except OSError:
-        print "Command line giving error:"
-        print cmdLine
+        print("Command line giving error:")
+        print(cmdLine)
         raise 
 
 def trimEOL(str):
@@ -99,13 +99,13 @@ def trimEOL(str):
 def printFollowUp(hdr, firstLine, proc):
     global errFollowUpLines
     
-    print "%s: %s" % (hdr, trimEOL(firstLine))
+    print("%s: %s" % (hdr, trimEOL(firstLine)))
     for i in range(0,errFollowUpLines):
         ln = proc.stderr.readline()
         if not ln:
-            print "%s terminated" % hdr
+            print("%s terminated" % hdr)
             break
-        print "%s: %s" % (hdr, trimEOL(ln))
+        print("%s: %s" % (hdr, trimEOL(ln)))
 
 
 vp1 = createVampProc(False)
@@ -121,7 +121,7 @@ try:
                 raise Finished("Both vampires terminated")
 
             if printTraces:
-                print trimEOL(ln1)
+                print(trimEOL(ln1))
 
             continue
         if not ln1:
@@ -130,29 +130,29 @@ try:
             raise Finished("Second vampire terminated")
         
         if ln2[0:len(ln1)]==ln1 and vp1.poll():
-            print "v1: %s" % trimEOL(ln1)
-            print "v2: %s" % trimEOL(ln2)
+            print("v1: %s" % trimEOL(ln1))
+            print("v2: %s" % trimEOL(ln2))
             raise Finished("First vampire terminated in the middle of a line")
         if ln1[0:len(ln2)]==ln2 and vp2.poll():
-            print "v1: %s" % trimEOL(ln1)
-            print "v2: %s" % trimEOL(ln2)
+            print("v1: %s" % trimEOL(ln1))
+            print("v2: %s" % trimEOL(ln2))
             raise Finished("Second vampire terminated in the middle of a line")
 
         
-        print "Vampire outputs differ:"
-        print
-        print "v1: %s" % trimEOL(ln1)
-        print "v2: %s" % trimEOL(ln2)
+        print("Vampire outputs differ:")
+        print()
+        print("v1: %s" % trimEOL(ln1))
+        print("v2: %s" % trimEOL(ln2))
         
         if errFollowUpLines:
-            print
+            print()
             printFollowUp("v1", ln1, vp1)
-            print
+            print()
             printFollowUp("v2", ln2, vp2)
-        print
+        print()
         raise Finished("Non-determinism detected")
 except Finished as e:
-    print e.msg
+    print(e.msg)
 finally:
     if vp1.poll()==None:
         vp1.kill()
