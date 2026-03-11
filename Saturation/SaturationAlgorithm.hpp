@@ -84,7 +84,6 @@ public:
 
   template<typename Inference> void addForwardSimplifierToFront();
   template<typename Inference> void addExpensiveForwardSimplifierToFront();
-  void addSimplifierToFront(SimplificationEngine* simplifier);
   template<typename Inference> void addBackwardSimplifierToFront();
 
 

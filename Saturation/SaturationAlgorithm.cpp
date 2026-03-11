@@ -1357,11 +1357,6 @@ void SaturationAlgorithm::addExpensiveForwardSimplifierToFront()
   FwSimplList::push(new Inference(*this), _expensiveFwSimplifiers);
 }
 
-void SaturationAlgorithm::addSimplifierToFront(SimplificationEngine *simplifier)
-{
-  SimplList::push(simplifier, _simplifiers);
-}
-
 /**
  * Add a backward simplifier, so that it is applied before the
  * simplifiers that were added before it. The object takes ownership
