@@ -277,6 +277,7 @@ enum class InferenceRule : unsigned char {
   ALASCA_VIRAS_QE,
 
   BOOL_SIMP,
+  FLEX_FLEX_SIMPLIFY,
 
   FUNCTION_DEFINITION_DEMODULATION,
 
@@ -348,7 +349,6 @@ enum class InferenceRule : unsigned char {
   VSIGMA_ELIMINATION,
   VPI_ELIMINATION,
   HOL_EQUALITY_ELIMINATION,
-  FLEX_FLEX_SIMPLIFY,
 
   /** the last generating inference marker --
         inferences between GENERIC_GENERATING_INFERENCE and GENERIC_GENERATING_INFERENCE_LAST will be automatically understood generating

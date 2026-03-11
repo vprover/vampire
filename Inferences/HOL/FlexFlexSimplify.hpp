@@ -15,7 +15,7 @@
 #ifndef __FlexFlexSimplify__
 #define __FlexFlexSimplify__
 
-#include "InferenceEngine.hpp"
+#include "Inferences/InferenceEngine.hpp"
 
 namespace Inferences {
 

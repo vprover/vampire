@@ -65,6 +65,7 @@ set(UNIT_TESTS
     UnitTests/tInferences_ForwardGroundJoinability.cpp
     UnitTests/tInferences_FunctionDefinitionRewriting.cpp
     UnitTests/tInferences_GaussianVariableElimination.cpp
+    UnitTests/tInferences_HOL_FlexFlexSimplify.cpp
     UnitTests/tInferences_Induction.cpp
     UnitTests/tInferences_InferenceEngine.cpp
     UnitTests/tInferences_InnerRewriting.cpp
@@ -279,8 +280,6 @@ set(SOURCES
     Inferences/Factoring.hpp
     Inferences/FastCondensation.cpp
     Inferences/FastCondensation.hpp
-    Inferences/FlexFlexSimplify.cpp
-    Inferences/FlexFlexSimplify.hpp
     Inferences/ForwardDemodulation.cpp
     Inferences/ForwardDemodulation.hpp
     Inferences/ForwardGroundJoinability.cpp
@@ -298,6 +297,8 @@ set(SOURCES
     Inferences/GaussianVariableElimination.hpp
     Inferences/GlobalSubsumption.cpp
     Inferences/GlobalSubsumption.hpp
+    Inferences/HOL/FlexFlexSimplify.cpp
+    Inferences/HOL/FlexFlexSimplify.hpp
     Inferences/Induction.cpp
     Inferences/Induction.hpp
     Inferences/InductionHelper.cpp

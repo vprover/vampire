@@ -27,7 +27,7 @@ Clause* FlexFlexSimplify::simplify(Clause* c)
   if (c->isEmpty()) {
     return c;
   }
-  if (c->iterLits().any([](auto lit) { return !lit->isFlexFlexConstraint(); })) {
+  if (c->iterLits().any([](auto lit) { return !lit->isEquality() || !lit->isFlexFlexConstraint(); })) {
     return c;
   }
   // all flex-flex, return the empty clause
