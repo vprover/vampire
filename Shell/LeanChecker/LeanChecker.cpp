@@ -616,6 +616,7 @@ void LeanChecker::clausify(std::ostream &out, SortMap &conclSorts, Unit *concl){
     out << indent << "have " << stepIdent << concl->number() << " : ";
     outputUnit(out, concl);
     out << " := by\n" << 
+      indent << indent << "prenexify at " << stepIdent << parent->number() << "\n" <<
       indent << indent << "ac_nf0\n" <<
       indent << indent << "ac_nf at " << stepIdent << parent->number() << "\n\n";
     return;
