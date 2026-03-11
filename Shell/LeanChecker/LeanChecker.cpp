@@ -607,51 +607,7 @@ unsigned countConnectives(Formula *f)
   } 
 }
 
-void LeanChecker::clausify(std::ostream &out, SortMap &conclSorts, Unit *concl){
-  auto [parent] = getParents<1>(concl);
-  //auto cnfExtra = env.proofExtra.get<Inferences::CNFTransformationInferenceExtra>(concl);
-  auto cnfParentExtra = env.proofExtra.get<Inferences::CNFTransformationInferenceExtra>(parent);
-  if(cnfParentExtra.number == 1){
-    //we can just use the clausified parent directly
-    out << indent << "have " << stepIdent << concl->number() << " : ";
-    outputUnit(out, concl);
-    out << " := by\n" << 
-      indent << indent << "prenexify at " << stepIdent << parent->number() << "\n" <<
-      indent << indent << "ac_nf0\n" <<
-      indent << indent << "ac_nf at " << stepIdent << parent->number() << "\n\n";
-    return;
-  }
-  //SortMap parentMap;
-  if(clausifiedUnits.find(parent->number()) == clausifiedUnits.end())
-  {
-    clausifiedUnits.insert(parent->number());
-    out << indent << "have " << stepIdent << parent->number() << "' := by\n"
-        << indent << indent << "prenexify at " << stepIdent << parent->number() << "\n"
-        << indent << indent << "cnfify at " << stepIdent << parent->number() << "\n"
-        << indent << indent << "exact " << stepIdent << parent->number() << "\n";
-    out << indent << "let " << (cnfParentExtra.number > 1 ? "⟨" : "");
-    for(unsigned i = 0; i < cnfParentExtra.number; i++){
-      out << "s" << parent->number() << "c" << i;
-      if(i < cnfParentExtra.number-1){
-        out << ", ";
-      }
-    }
-    out <<(cnfParentExtra.number > 1 ? "⟩" : "")  <<" := " << stepIdent << parent->number() << "'\n";
-
-    out << indent << "ac_nf0 at ";
-    for(unsigned i=0 ; i<cnfParentExtra.number ; i++){
-      out << "s" << parent->number() << "c" << i;
-      if(i < cnfParentExtra.number-1){
-        out << " ";
-      }
-    }
-    out << "\n";
-  }
-  out << indent << "have " << stepIdent << concl->number() << " : ";
-  outputUnit(out, concl);
-  out << " := by\n";
-  out << indent << indent << "try simp only\n";
-  
+void outputReorderIfNeeded(std::ostream &out, Unit* parent, SortMap &conclSorts, std::string indent){
   VariablePrenexOrderingTree prenexTree;
   prenexTree.buildTreeFromFormula(parent->getFormula(), Kernel::FORALL);
   std::vector<unsigned>* variableOrdering = prenexTree.determineVariableOrdering();
@@ -712,6 +668,54 @@ void LeanChecker::clausify(std::ostream &out, SortMap &conclSorts, Unit *concl){
     out << ")\n"
         << indent << indent << "rw[reorder]\n";
   }
+}
+
+void LeanChecker::clausify(std::ostream &out, SortMap &conclSorts, Unit *concl){
+  auto [parent] = getParents<1>(concl);
+  //auto cnfExtra = env.proofExtra.get<Inferences::CNFTransformationInferenceExtra>(concl);
+  auto cnfParentExtra = env.proofExtra.get<Inferences::CNFTransformationInferenceExtra>(parent);
+  if(cnfParentExtra.number == 1){
+    //we can just use the clausified parent directly
+    out << indent << "have " << stepIdent << concl->number() << " : ";
+    outputUnit(out, concl);
+    out << " := by\n" << 
+      indent << indent << "prenexify at " << stepIdent << parent->number() << "\n";
+    outputReorderIfNeeded(out, parent, conclSorts, indent);
+    out << indent << indent << "ac_nf0\n" <<
+      indent << indent << "ac_nf at " << stepIdent << parent->number() << "\n\n";
+    return;
+  }
+  //SortMap parentMap;
+  if(clausifiedUnits.find(parent->number()) == clausifiedUnits.end())
+  {
+    clausifiedUnits.insert(parent->number());
+    out << indent << "have " << stepIdent << parent->number() << "' := by\n"
+        << indent << indent << "prenexify at " << stepIdent << parent->number() << "\n"
+        << indent << indent << "cnfify at " << stepIdent << parent->number() << "\n"
+        << indent << indent << "exact " << stepIdent << parent->number() << "\n";
+    out << indent << "let " << (cnfParentExtra.number > 1 ? "⟨" : "");
+    for(unsigned i = 0; i < cnfParentExtra.number; i++){
+      out << "s" << parent->number() << "c" << i;
+      if(i < cnfParentExtra.number-1){
+        out << ", ";
+      }
+    }
+    out <<(cnfParentExtra.number > 1 ? "⟩" : "")  <<" := " << stepIdent << parent->number() << "'\n";
+
+    out << indent << "ac_nf0 at ";
+    for(unsigned i=0 ; i<cnfParentExtra.number ; i++){
+      out << "s" << parent->number() << "c" << i;
+      if(i < cnfParentExtra.number-1){
+        out << " ";
+      }
+    }
+    out << "\n";
+  }
+  out << indent << "have " << stepIdent << concl->number() << " : ";
+  outputUnit(out, concl);
+  out << " := by\n";
+  out << indent << indent << "try simp only\n";
+  outputReorderIfNeeded(out, parent, conclSorts, indent);
   out << indent << indent << "ac_nf0\n";
   out << indent << indent << "assumption\n\n";
 }
