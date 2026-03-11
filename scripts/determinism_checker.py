@@ -45,15 +45,19 @@ def readArgs(args):
     global printTraces
     global altExecutable
     
-    while True:
+    while args:
         if args[0]=="-p":
             printTraces = True
             args = args[1:]
-        if args[0]=="-a":
+        elif args[0]=="-a":
+            if len(args)<2:
+                raise Finished("missing value for -a")
             altExecutable = args[1]
             args = args[2:]
         else:
             break
+    if not args:
+        raise Finished("missing executable")
     vampCmdLine = args
     
 class Finished(Exception):
@@ -87,7 +91,7 @@ def createVampProc(isSecond):
         raise 
 
 def trimEOL(str):
-    if str[-1]=="\n":
+    if str and str[-1]=="\n":
         return str[:-1]
     else:
         return str

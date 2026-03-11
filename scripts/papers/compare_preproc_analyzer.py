@@ -83,8 +83,6 @@ class Observable:
                         for i in range(0,strategyCnt):
                                 if self.getter(bench.recs[i])==intInfty:
                                         self.TOs[i] += 1
-                                self.winners.append(0)
-                                self.TOs.append(0)
                 if len(winIdxs)==1:
                         self.singleWinners[winIdxs[0]] += 1
         def display(self):
@@ -126,7 +124,7 @@ observers.append(Observable(getDistAtomCnt,"distinct atom count"))
 for line in fileinput.input():
         args=line.split()
         if not strategyCnt:
-                strategyCnt = (len(args)-1)/5
+                strategyCnt = (len(args)-1)//5
         if len(args)!=strategyCnt*5+1:
                 #print " faulty benchmark: ", line
                 continue

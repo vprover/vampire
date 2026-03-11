@@ -8,9 +8,10 @@ import tempfile
 
 
 def cpu_count():
+    num = 1
     if sys.platform =="win32": 
         try:
-            num = int(os.environ['NUMBER_OF_PROCESORS'])
+            num = int(os.environ['NUMBER_OF_PROCESSORS'])
         except(ValueError, KeyError):
             pass
     elif sys.platform == 'darwin':
@@ -55,7 +56,7 @@ def execute_commands(cmds):
             #print list2cmdline(task)
             #processes.append(os.system(task))
             processes.append(subprocess.Popen(task, shell=True))
-        for p in processes: 
+        for p in processes[:]: 
             if done(p): 
                 if success(p):
                     processes.remove(p)
