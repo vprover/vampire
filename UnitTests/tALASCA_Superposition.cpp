@@ -534,14 +534,15 @@ TEST_GENERATION(two_var_01,
     )
 
 TEST_GENERATION(bug02,
-    alascaSymmetricTest()
-      .inputs  ({ clause({ x == aa   }) })
+    Generation::AsymmetricTest()
+      .context({ clause({ x > 0 }) }) // This is needed so prb.hasAlascaArithmetic()==true
+      .options(alascaTestOptions())
+      .input(clause({ x == aa }))
       .expected(exactly(
           clause({ sorted(x, alpha) == y })
           /* nothing */
       ))
     )
-
 
 TEST_GENERATION(bug03,
     alascaSymmetricTest()

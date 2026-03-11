@@ -119,8 +119,8 @@ TEST_GENERATION(basic03_different_sorts_d,
 
 TEST_GENERATION(unshielded_variables_01,
     alascaSymmetricTest()
-      .inputs  ({        clause({  x == aa, fa(b) == ba  }) })
-      .expected(exactly( clause({ ba != aa, fa(b) == aa  })  )))
+      .inputs  ({        clause({  x == aa, fa(0) == ba  }) })
+      .expected(exactly( clause({ ba != aa, fa(0) == aa  })  )))
 
 TEST_GENERATION(unshielded_variables_02,
     alascaSymmetricTest()
