@@ -23,19 +23,20 @@ using VarToIndexMap = std::unordered_map<unsigned, IndexSortPair>;
 static TermList termToNameless(TermList term, const VarToIndexMap& map);
 static TermList formulaToNameless(Formula *formula, const VarToIndexMap& map);
 
-static TermList toNamelessAux(VList* vars, SList* sorts, TermList body, TermList bodySort, const VarToIndexMap& map) {
+static TermList toNamelessAux(VSList* vars, TermList body, TermList bodySort, const VarToIndexMap& map) {
   VarToIndexMap newMap;
   for (const auto& [key, val] : map) {
     newMap.insert({key, {val.first + 1, val.second}});
   }
-  newMap[vars->head()] = {0, sorts->head()};
+  auto [var, sort] = vars->head();
+  newMap[var] = {0, sort};
 
   const auto converted =
     vars->tail() == nullptr ? termToNameless(body, newMap)
-                            : toNamelessAux(vars->tail(), sorts->tail(), body, bodySort, newMap);
+                            : toNamelessAux(vars->tail(), body, bodySort, newMap);
 
   bodySort = converted.isVar() ? bodySort : converted.resultSort();
-  return HOL::create::namelessLambda(sorts->head(), bodySort, converted);
+  return HOL::create::namelessLambda(sort, bodySort, converted);
 }
 
 
@@ -58,10 +59,9 @@ static TermList termToNameless(TermList term, const VarToIndexMap& map) {
 
       case SpecialFunctor::LAMBDA: {
         const auto sd = t->getSpecialData();
-        const auto sorts = sd->getLambdaVarSorts();
         const auto vars = sd->getLambdaVars();
 
-        const auto eliminated = toNamelessAux(vars, sorts, sd->getLambdaExp(), sd->getLambdaExpSort(), map);
+        const auto eliminated = toNamelessAux(vars, sd->getLambdaExp(), sd->getLambdaExpSort(), map);
         ASS_REP2(eliminated.isVar() || eliminated.resultSort() == sd->getSort(), t->toString(), eliminated.toString())
         return eliminated;
       }
@@ -143,19 +143,16 @@ static TermList formulaToNameless(Formula *formula, const VarToIndexMap& map) {
 
     case Connective::FORALL:
     case Connective::EXISTS: {
-      Kernel::VList::Iterator vit(formula->vars());
+      Kernel::VSList::Iterator vit(formula->vars());
       auto form = TermList(Term::createFormula(formula->qarg()));
 
-      TermList s;
       while (vit.hasNext()) {
-        const auto v = vit.next();
-        ALWAYS(Kernel::SortHelper::tryGetVariableSort(v, formula->qarg(), s));
+        auto [v, s] = vit.next();
         if (s == AtomicSort::superSort()) {
           USER_ERROR("Vampire does not support full TH1. This benchmark is either outside of the TH1 fragment, or outside of the fragment supported by Vampire");
         }
-        const auto var = VList::singleton(v);
-        const auto sort = SList::singleton(s);
-        const auto t = TermList(Term::createLambda(form, var, sort, AtomicSort::boolSort()));
+        const auto vs = VSList::singleton({v, s});
+        const auto t = TermList(Term::createLambda(form, vs, AtomicSort::boolSort()));
         form = HOL::create::app(conn == Connective::FORALL ? HOL::create::pi(s)
                                                            : HOL::create::sigma(s), t);
       }

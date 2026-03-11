@@ -591,19 +591,15 @@ std::string Term::headToString() const
         return "$ite(" + sd->getITECondition()->toString() + ", ";
       }
       case SpecialFunctor::LAMBDA: {
-        VList* vars = sd->getLambdaVars();
-        SList* sorts = sd->getLambdaVarSorts();
-        ASS_EQ(VList::length(vars), SList::length(sorts))
-
+        VSList* vars = sd->getLambdaVars();
         TermList lambdaExp = sd->getLambdaExp();
 
         std::string varList;
 
-        VList::Iterator vs(vars);
-        SList::Iterator ss(sorts);
+        VSList::Iterator vs(vars);
         while (vs.hasNext()) {
-          varList += variableToString(vs.next()) + " : ";
-          varList += ss.next().toString();
+          auto [v, sort] = vs.next();
+          varList += variableToString(v) + " : " + sort.toString();
           if (vs.hasNext())
             varList += ", ";
         }
@@ -1182,23 +1178,20 @@ Term* Term::createFormula(Formula* formula)
  * Create a lambda term from a list of lambda vars and an
  * expression and returns the resulting term
  */
-Term* Term::createLambda(TermList lambdaExp, VList* vars, SList* sorts, TermList expSort){
+Term* Term::createLambda(TermList lambdaExp, VSList* vars, TermList expSort){
   Term* s = new(0, sizeof(SpecialTermData)) Term;
   s->makeSymbol(toNormalFunctor(SpecialFunctor::LAMBDA), 0);
-  //should store body of lambda in args
   s->getSpecialData()->_lambdaData.lambdaExp = lambdaExp;
   s->getSpecialData()->_lambdaData._vars = vars;
-  s->getSpecialData()->_lambdaData._sorts = sorts;
   s->getSpecialData()->_lambdaData.expSort = expSort;
-  SList::Iterator sit(sorts);
   Stack<TermList> revSorts;
-  TermList lambdaTmSort = expSort;
-  while(sit.hasNext()){
-    revSorts.push(sit.next());
+  VSList::Iterator vit(vars);
+  while(vit.hasNext()){
+    revSorts.push(vit.next().second);
   }
+  TermList lambdaTmSort = expSort;
   while(!revSorts.isEmpty()){
-    TermList varSort = revSorts.pop();
-    lambdaTmSort = AtomicSort::arrowSort(varSort, lambdaTmSort);
+    lambdaTmSort = AtomicSort::arrowSort(revSorts.pop(), lambdaTmSort);
   }
   s->getSpecialData()->_lambdaData.sort = lambdaTmSort;
   return s;

@@ -278,7 +278,7 @@ Formula* FOOLElimination::process(Formula* formula) {
 
     case FORALL:
     case EXISTS:
-      return new QuantifiedFormula(formula->connective(), formula->vars(),formula->sorts(), process(formula->qarg()));
+      return new QuantifiedFormula(formula->connective(), formula->vars(), process(formula->qarg()));
 
     case BOOL_TERM: {
       Formula* processedFormula = processAsFormula(formula->getBooleanTerm());
@@ -527,8 +527,14 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // build ![X1, ..., Xn]: (f => g(Y1, ..., Ym,X1, ..., Xn) == s)
         if (VList::length(freeVars) > 0) {
-          //TODO do we know the sorts of freeVars?
-          thenImplication = new QuantifiedFormula(FORALL, freeVars,0, thenImplication);
+          VSList::FIFO vsfifo;
+          VList::Iterator vit(freeVars);
+          while (vit.hasNext()) {
+            unsigned v = vit.next();
+            TermList s = _varSorts.get(v, AtomicSort::defaultSort());
+            vsfifo.pushBack({v, s});
+          }
+          thenImplication = new QuantifiedFormula(FORALL, vsfifo.list(), thenImplication);
         }
 
         // build g(Y1, ..., Ym, X1, ..., Xn) == t
@@ -540,8 +546,14 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // build ![X1, ..., Xn]: (~f => g(Y1,...,Ym,X1, ..., Xn) == t)
         if (VList::length(freeVars) > 0) {
-          //TODO do we know the sorts of freeVars?
-          elseImplication = new QuantifiedFormula(FORALL, freeVars, 0, elseImplication);
+          VSList::FIFO vsfifo;
+          VList::Iterator vit(freeVars);
+          while (vit.hasNext()) {
+            unsigned v = vit.next();
+            TermList s = _varSorts.get(v, AtomicSort::defaultSort());
+            vsfifo.pushBack({v, s});
+          }
+          elseImplication = new QuantifiedFormula(FORALL, vsfifo.list(), elseImplication);
         }
 
         // conjoin both definitions for Geoff:
@@ -690,7 +702,14 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // build ![X1, ..., Xn, Y1, ..., Yk]: g(A1, ..., Am, B1, ..., Bj,X1, ..., Xn, Y1, ..., Yk) == s
         if (VList::length(vars) > 0) {
-          freshSymbolDefinition = new QuantifiedFormula(FORALL, vars, 0, freshSymbolDefinition);
+          VSList::FIFO vsfifo;
+          VList::Iterator vit(vars);
+          while (vit.hasNext()) {
+            unsigned v = vit.next();
+            TermList s = _varSorts.get(v, AtomicSort::defaultSort());
+            vsfifo.pushBack({v, s});
+          }
+          freshSymbolDefinition = new QuantifiedFormula(FORALL, vsfifo.list(), freshSymbolDefinition);
         }
 
         // add the introduced definition
@@ -766,8 +785,14 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
           // build ![X1, ..., Xn]: (f <=> g(Y1, ..., Ym, X1, ..., Xn) = true)
           if (VList::length(freeVars) > 0) {
-            // TODO do we know the sorts of freeVars?
-            freshSymbolDefinition = new QuantifiedFormula(FORALL, freeVars,0, freshSymbolDefinition);
+            VSList::FIFO vsfifo;
+            VList::Iterator vit(freeVars);
+            while (vit.hasNext()) {
+              unsigned v = vit.next();
+              TermList s = _varSorts.get(v, AtomicSort::defaultSort());
+              vsfifo.pushBack({v, s});
+            }
+            freshSymbolDefinition = new QuantifiedFormula(FORALL, vsfifo.list(), freshSymbolDefinition);
           }
 
           // add the introduced definition
@@ -840,8 +865,14 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
           // build ![X1, ..., Xn]: (f => g(X1, ..., Xn) == s)
           if (VList::length(freeVars) > 0) {
-            //TODO do we know the sorts of freeVars?
-            impl = new QuantifiedFormula(FORALL, freeVars, 0, impl);
+            VSList::FIFO vsfifo;
+            VList::Iterator vit(freeVars);
+            while (vit.hasNext()) {
+              unsigned v = vit.next();
+              TermList s = _varSorts.get(v, AtomicSort::defaultSort());
+              vsfifo.pushBack({v, s});
+            }
+            impl = new QuantifiedFormula(FORALL, vsfifo.list(), impl);
           }
           FormulaUnit* defUnit = new FormulaUnit(impl,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FOOL_MATCH_DEFINITION));
           addDefinition(defUnit);

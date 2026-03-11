@@ -59,6 +59,9 @@ void CNF::clausify (Unit* unit,Stack<Clause*>& stack)
   case FALSE:
     {
       stack.push(Clause::empty(FormulaClauseTransformation(InferenceRule::CLAUSIFY,unit)));
+      if(env.options->proofExtra() == Options::ProofExtra::LEAN){
+        env.proofExtra.insert(unit, new Inferences::CNFTransformationInferenceExtra(1));
+      }
     }
     return;
   default:
@@ -170,9 +173,6 @@ void CNF::clausify(Formula* f)
             // collect the clause
             _result->push(Clause::fromStack(_literals,
                 FormulaClauseTransformation(InferenceRule::CLAUSIFY,_unit)));
-            if(env.options->proofExtra() == Options::ProofExtra::LEAN){
-              env.proofExtra.insert(_result->top(), new Inferences::CNFTransformationInferenceExtra(nthGeneratedClause++));
-            }
             _literals.pop();
           }
           else {

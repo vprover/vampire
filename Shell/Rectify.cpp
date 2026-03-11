@@ -17,6 +17,7 @@
 #include "Kernel/Substitution.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Recycled.hpp"
+#include "Lib/ScopedLet.hpp"
 
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
@@ -35,7 +36,7 @@
 using namespace std;
 using namespace Shell;
 
-bool Rectify::Renaming::tryGetBoundAndMarkUsed (int var,int& boundTo) const
+bool Rectify::Renaming::tryGetBoundAndMarkUsed(unsigned var,unsigned& boundTo) const
 {
   if ((unsigned)var >= _capacity) {
     return false;
@@ -49,7 +50,7 @@ bool Rectify::Renaming::tryGetBoundAndMarkUsed (int var,int& boundTo) const
   return true;
 } // Rectify::bound
 
-Rectify::VarWithUsageInfo Rectify::Renaming::getBoundAndUsage(int var) const
+Rectify::VarWithUsageInfo Rectify::Renaming::getBoundAndUsage(unsigned var) const
 {
   ASS_L((unsigned)var,_capacity);
 
@@ -86,9 +87,17 @@ FormulaUnit* Rectify::rectify (FormulaUnit* unit0, bool removeUnusedVars)
     unit = new FormulaUnit(g,FormulaClauseTransformation(InferenceRule::RECTIFY,unit));
   }
 
+  // note that this only kicks in when rectifying formulas with free variables
   if (VList::isNonEmpty(vars)) {
-    //TODO do we know the sorts of vars?
-    unit = new FormulaUnit(new QuantifiedFormula(FORALL,vars,0,g),FormulaClauseTransformation(InferenceRule::CLOSURE,unit));
+    DHMap<unsigned, TermList> varSorts;
+    SortHelper::collectVariableSorts(g, varSorts);
+    VSList::FIFO vsfifo;
+    VList::Iterator vit(vars);
+    while (vit.hasNext()) {
+      unsigned v = vit.next();
+      vsfifo.pushBack({v, varSorts.get(v)});
+    }
+    unit = new FormulaUnit(new QuantifiedFormula(FORALL, vsfifo.list(), g),FormulaClauseTransformation(InferenceRule::CLOSURE,unit));
   }
   if(unit != NULL && env.reconstruction) {
     InferenceRecorder::instance()->endRectifyRecording(unit->number());
@@ -172,6 +181,15 @@ Term* Rectify::rectifySpecialTerm(Term* t)
   case SpecialFunctor::LAMBDA:
   {
     ASS_EQ(t->arity(),0);
+#if VDEBUG
+    { // removing duplicates from LambdaVars would change its type, so better assert it never happens
+      DHSet<unsigned> seenVars;
+      VSList::Iterator dbgIt(sd->getLambdaVars());
+      while (dbgIt.hasNext()) {
+        ASS(seenVars.insert(dbgIt.next().first));
+      }
+    }
+#endif
     bindVars(sd->getLambdaVars());
     bool modified = false;
     TermList lambdaTerm = rectify(sd->getLambdaExp());
@@ -182,26 +200,16 @@ Term* Rectify::rectifySpecialTerm(Term* t)
      * We don't want to remove unused variables from the variable list,
      * ^[X].exp is not equivalent to exp.
      */
-    bool removeUnusedVars = _removeUnusedVars;
-    _removeUnusedVars = false;
-    VList* vs = rectifyBoundVars(sd->getLambdaVars());
-    SList* sorts = sd->getLambdaVarSorts();
-    SList* rectifiedSorts = SList::empty();
-    SList::Iterator slit(sorts);
-    while(slit.hasNext()){
-      TermList sort = slit.next();
-      TermList rectifiedSort = rectify(sort);    
-      if(sort != rectifiedSort){
-        modified = true;
-      }
-      rectifiedSorts = SList::addLast(rectifiedSorts, rectifiedSort); // careful: quadratic complexity
+    VSList* vs;
+    {
+      ScopedLet<bool> ruv(_removeUnusedVars,false); // set _removeUnusedVars to false, temporarily
+      vs = rectifyBoundVars(sd->getLambdaVars());
     }
-    _removeUnusedVars = removeUnusedVars; // restore the status quo
     unbindVars(sd->getLambdaVars());
     if (vs == sd->getLambdaVars() && !modified) {
       return t;
     }
-    return Term::createLambda(lambdaTerm, vs, rectifiedSorts, lambdaTermS);   
+    return Term::createLambda(lambdaTerm, vs, lambdaTermS);
   }
   case SpecialFunctor::MATCH: {
     DArray<TermList> terms(t->arity());
@@ -233,6 +241,11 @@ Term* Rectify::rectify (Term* t)
     return t;
   }
 
+  // cannot "recreate" super below, so let's special-case it
+  if (t->isSuper()) {
+    return t;
+  }
+
   if(t->isSpecial()) {
     return rectifySpecialTerm(t);
   }
@@ -249,22 +262,6 @@ Term* Rectify::rectify (Term* t)
     return Term::create(t, args->begin());
   }
 } // Rectify::rectify (Term*)
-
-SList* Rectify::rectifySortList(SList* from, bool& modified)
-{
-  modified = false;
-  SList* to = SList::empty();
-  SList::Iterator slit(from);
-  while(slit.hasNext()){
-    TermList sort = slit.next();
-    TermList rectifiedSort = rectify(sort);    
-    if(sort != rectifiedSort){
-      modified = true;
-    }
-    SList::addLast(to, rectifiedSort); // careful: quadratic complexity
-  }
-  return to;
-}
 
 Literal* Rectify::rectifyShared(Literal* lit)
 {
@@ -356,7 +353,7 @@ bool Rectify::rectify(From from, To to, unsigned cnt)
  */
 unsigned Rectify::rectifyVar(unsigned v)
 {
-  int newV;
+  unsigned newV;
   if (! _renaming.tryGetBoundAndMarkUsed(v,newV)) {
     newV = _renaming.bind(v);
     VList::push(newV,_free);
@@ -429,20 +426,20 @@ Formula* Rectify::rectify (Formula* f)
     return new NegatedFormula(arg);
   }
 
-  case FORALL: 
+  case FORALL:
   case EXISTS:
   {
     bindVars(f->vars());
     Formula* arg = rectify(f->qarg());
-    VList* vs = rectifyBoundVars(f->vars());
+    VSList* vs = rectifyBoundVars(f->vars());
     if(env.reconstruction) {
       Kernel::Substitution substVariablesInFormula;
       std::set<unsigned> unusedVars;
       for(auto v : iterTraits(f->vars()->iter())) {
-        auto [originalVar, usageInfo] = _renaming.getBoundAndUsage(v);
-        substVariablesInFormula.bind(v, TermList::var(originalVar));
+        auto [originalVar, usageInfo] = _renaming.getBoundAndUsage(v.first);
+        substVariablesInFormula.bind(v.first, TermList::var(originalVar));
         if(!usageInfo){
-          unusedVars.insert(v);
+          unusedVars.insert(v.first);
         } 
       }
       InferenceRecorder::instance()->rectify(f, vs, substVariablesInFormula, unusedVars);
@@ -451,13 +448,10 @@ Formula* Rectify::rectify (Formula* f)
     if (vs == f->vars() && arg == f->qarg()) {
       return f;
     }
-    if(VList::isEmpty(vs)) {
+    if(VSList::isEmpty(vs)) {
       return arg;
     }
-    //TODO should update the sorts from f->sorts() wrt to updated vs
-    //     or is the rectification just renaming, if so f->sorts can 
-    //     just be reused
-    return new QuantifiedFormula(f->connective(),vs,0,arg);
+    return new QuantifiedFormula(f->connective(),vs,arg);
   }
 
   case TRUE:
@@ -501,78 +495,75 @@ unsigned Rectify::Renaming::bind (unsigned var)
 
 
 /**
- * Add fresh bindings to a list of variables
+ * Add fresh bindings to a list of variables with sorts
  */
-void Rectify::bindVars(VList* vs)
+void Rectify::bindVars(VSList* vs)
 {
-  VList::Iterator vit(vs);
+  VSList::Iterator vit(vs);
   while(vit.hasNext()) {
-    unsigned v = vit.next();
-    _renaming.bind(v);
+    _renaming.bind(vit.next().first);
   }
 }
 
 /**
- * Undo bindings to variables of a list
+ * Undo bindings to variables of a list with sorts
  */
-void Rectify::unbindVars(VList* vs)
+void Rectify::unbindVars(VSList* vs)
 {
-  VList::Iterator vit(vs);
+  VSList::Iterator vit(vs);
   while(vit.hasNext()) {
-    unsigned v = vit.next();
-    _renaming.undoBinding(v);
+    _renaming.undoBinding(vit.next().first);
   }
 }
 
 /**
- * Rectify a list of variables.
- *
- * @param vs the list to rectify
+ * Rectify a list of variables with sorts.
+ * Sorts travel along with variables; sorts themselves are rectified
+ * (they may contain type variables in polymorphic settings).
  */
-VList* Rectify::rectifyBoundVars (VList* vs)
+VSList* Rectify::rectifyBoundVars(VSList* vs)
 {
-  if (VList::isEmpty(vs)) {
+  if (VSList::isEmpty(vs)) {
     return vs;
   }
 
-  Stack<VList*> args;
-  while (VList::isNonEmpty(vs)) {
+  Stack<VSList*> args;
+  while (VSList::isNonEmpty(vs)) {
     args.push(vs);
     vs = vs->tail();
   }
 
-  VList* res = VList::empty();
+  VSList* res = VSList::empty();
 
   DHSet<int> seen;
   while (args.isNonEmpty()) {
     vs = args.pop();
 
-    VList* vtail = vs->tail();
-    VList* ws = res; // = rectifyBoundVars(vtail);
+    VSList* vtail = vs->tail();
+    VSList* ws = res;
 
-    int v = vs->head();
+    auto [v, sort] = vs->head();
 
     // each variable mentioned only once per quantifier!
     if (!seen.insert(v)) {
       continue;
     }
 
-    int w;
     VarWithUsageInfo wWithUsg = _renaming.getBoundAndUsage(v);
     if (wWithUsg.second || !_removeUnusedVars) {
-      w = wWithUsg.first;
+      int w = wWithUsg.first;
+      TermList rectifiedSort = rectify(sort);
 
-      if (v == w && vtail == ws) {
+      if ((int)v == w && rectifiedSort == sort && vtail == ws) {
         res = vs;
       } else {
-        res = VList::cons(w,ws);
+        res = VSList::cons({(unsigned)w, rectifiedSort}, ws);
       }
     }
-    // else nothing, because "else" means dropping the variable from the list and returning ws, but res == ws already ...
   }
 
   return res;
-} // Rectify::rectify(const VarList& ...)
+}
 
 
 /**

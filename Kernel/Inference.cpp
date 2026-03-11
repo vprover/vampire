@@ -272,9 +272,6 @@ std::ostream& Kernel::operator<<(std::ostream& out, Inference const& self)
   out << ", ptd: " << self._isPureTheoryDescendant;
   out << ", sl: " << self._sineLevel;
   out << ", age: " << self._age;
-  out << ", thAx:" << static_cast<int>(self.th_ancestors);
-  out << ", allAx:" << static_cast<int>(self.all_ancestors);
-
   return out;
 }
 
@@ -285,8 +282,6 @@ void Inference::init0(UnitInputType inputType, InferenceRule r)
   _kind = Kind::INFERENCE_012;
   _ptr1 = nullptr;
   _ptr2 = nullptr;
-
-  computeTheoryRunningSums();
 
   _isPureTheoryDescendant = isTheoryAxiom();
 
@@ -304,7 +299,6 @@ void Inference::init1(InferenceRule r, Unit* premise)
 
   premise->incRefCnt();
 
-  computeTheoryRunningSums();
   _isPureTheoryDescendant = premise->isPureTheoryDescendant();
   _sineLevel = premise->getSineLevel();
 
@@ -322,7 +316,6 @@ void Inference::init2(InferenceRule r, Unit* premise1, Unit* premise2)
   premise1->incRefCnt();
   premise2->incRefCnt();
 
-  computeTheoryRunningSums();
   _isPureTheoryDescendant = premise1->isPureTheoryDescendant() && premise2->isPureTheoryDescendant();
   _sineLevel = min(premise1->getSineLevel(),premise2->getSineLevel());
 
@@ -342,8 +335,6 @@ void Inference::initMany(InferenceRule r, UnitList* premises)
     it->head()->incRefCnt();
     it=it->tail();
   }
-
-  computeTheoryRunningSums();
 
   if (premises) {
     _isPureTheoryDescendant = true;
@@ -522,40 +513,6 @@ void Inference::minimizePremises()
   _ptr2 = nullptr;
 }
 
-void Inference::computeTheoryRunningSums()
-{
-  Inference::Iterator parentIt = iterator();
-
-  // inference without parents
-  if (!hasNext(parentIt))
-  {
-    th_ancestors = isTheoryAxiom() ? 1.0 : 0.0;
-    all_ancestors = 1.0;
-  }
-  else
-  {
-    // for simplifying inferences, propagate running sums of main premise
-    if (isSimplifyingInferenceRule(_rule))
-    {
-      // all simplifying inferences save the main premise as first premise
-      Unit* mainPremise = next(parentIt);
-      th_ancestors = mainPremise->inference().th_ancestors;
-      all_ancestors = mainPremise->inference().all_ancestors;
-    }
-    // for non-simplifying inferences, compute running sums as sum over all parents
-    else
-    {
-      th_ancestors = 0.0;
-      all_ancestors = 0.0; // there is going to be at least one, eventually
-      while (hasNext(parentIt))
-      {
-        Unit *parent = next(parentIt);
-        th_ancestors += parent->inference().th_ancestors;
-        all_ancestors += parent->inference().all_ancestors;
-      }
-    }
-  }
-}
 
 std::string Kernel::inputTypeName(UnitInputType type)
 {

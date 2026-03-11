@@ -26,6 +26,8 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 #ifndef Minisat_Solver_h
 #define Minisat_Solver_h
 
+#include <utility>
+
 #include "Minisat/mtl/Vec.h"
 #include "Minisat/mtl/Heap.h"
 #include "Minisat/mtl/Alg.h"

@@ -45,6 +45,18 @@ using namespace Kernel;
 using namespace Shell;
 using namespace Parse;
 
+/** Zip a VList and SList (built in sync) into a VSList */
+static VSList* zipVarsSorts(VList* vars, SList* sorts) {
+  VSList::FIFO fifo;
+  VList::Iterator vit(vars);
+  SList::Iterator sit(sorts);
+  while (vit.hasNext()) {
+    ASS(sit.hasNext());
+    fifo.pushBack({vit.next(), sit.next()});
+  }
+  return fifo.list();
+}
+
 #define DEBUG_SHOW_UNITS 0
 #define DEBUG_SOURCE 0
 DHMap<unsigned, std::string> TPTP::_axiomNames;
@@ -1736,7 +1748,7 @@ void TPTP::endHolFormula()
   case FORALL:
   case EXISTS:
     f = _formulas.pop();
-    _formulas.push(new QuantifiedFormula((Connective)con,_varLists.pop(),_sortLists.pop(),f));
+    _formulas.push(new QuantifiedFormula((Connective)con,zipVarsSorts(_varLists.pop(),_sortLists.pop()),f));
     _lastPushed = FORM;
     _states.push(END_HOL_FORMULA);
     _states.push(UNBIND_VARIABLES);
@@ -1746,7 +1758,7 @@ void TPTP::endHolFormula()
        endFormulaInsideTerm();
      }
      fun = _termLists.pop();
-     TermList ts(Term::createLambda(fun, _varLists.pop(), _sortLists.pop(), sortOf(fun)));
+     TermList ts(Term::createLambda(fun, zipVarsSorts(_varLists.pop(), _sortLists.pop()), sortOf(fun)));
      _termLists.push(ts);
      _lastPushed = TM;
      _states.push(END_HOL_FORMULA);
@@ -3383,7 +3395,7 @@ void TPTP::endFormula()
   case FORALL:
   case EXISTS:
     f = _formulas.pop();
-    _formulas.push(new QuantifiedFormula((Connective)con,_varLists.pop(),_sortLists.pop(),f));
+    _formulas.push(new QuantifiedFormula((Connective)con,zipVarsSorts(_varLists.pop(),_sortLists.pop()),f));
     _states.push(END_FORMULA);
     return;
   case LITERAL:

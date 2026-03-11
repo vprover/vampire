@@ -890,7 +890,6 @@ public:
   void setReductions(unsigned r) { _reductions = r; } 
   void increaseReductions(unsigned n){ _reductions += n; }
 
-  void computeTheoryRunningSums();
 
   SplitSet* splits() const { return _splits; }
   void setSplits(SplitSet* splits) {
@@ -954,11 +953,6 @@ private:
   void* _ptr2;
 
 
-public:
-  // counting the leafs (in the tree rather than dag sense)
-  // which are theory axioms and the total across all leafs
-  float th_ancestors, all_ancestors; // we use floats, because this can grow large (because of the tree understanding of the dag);
-  // CAREFUL: could this lead to platform differences?
 }; // class Inference
 
 } // namespace Kernel

@@ -197,14 +197,14 @@ void Skolem::preskolemise (Formula* f)
 
   case FORALL:
     {
-      VList::Iterator vs(f->vars());
+      VSList::Iterator vs(f->vars());
       while (vs.hasNext()) {
-        ALWAYS(_varOccs.insert(vs.next(),{false /* = universal*/,BoolList::empty()})); // ALWAYS, because we are rectified
+        ALWAYS(_varOccs.insert(vs.next().first,{false /* = universal*/,BoolList::empty()})); // ALWAYS, because we are rectified
       }
       preskolemise(f->qarg());
       vs.reset(f->vars());
       while (vs.hasNext()) {
-        _varOccs.remove(vs.next());
+        _varOccs.remove(vs.next().first);
       }
       return;
     }
@@ -222,9 +222,9 @@ void Skolem::preskolemise (Formula* f)
       }
 
       // add our own variables (for which we are not interested in occurrences)
-      VList::Iterator vs(f->vars());
+      VSList::Iterator vs(f->vars());
       while (vs.hasNext()) {
-        unsigned var = vs.next();
+        unsigned var = vs.next().first;
         ALWAYS(_varOccs.insert(var,{true /* = existential */,BoolList::empty()})); // ALWAYS, because we are rectified
         ALWAYS(_blockLookup.insert(var,f));
       }
@@ -234,7 +234,7 @@ void Skolem::preskolemise (Formula* f)
       // take ours out again
       vs.reset(f->vars());
       while (vs.hasNext()) {
-        _varOccs.remove(vs.next());
+        _varOccs.remove(vs.next().first);
       }
 
       static Stack<unsigned> univ_dep_stack;
@@ -333,18 +333,20 @@ Formula* Skolem::skolemise (Formula* f)
   case FORALL:
     {
       if(env.options->skolemizationType() == Options::SkolemizationType::SYNTACTIC){
-        _universalScope.loadFromIterator(f->vars()->iter());
+        for(auto [v, sort] : iterTraits(f->vars()->iter())){
+          _universalScope.push(v);
+        }
       }
       Formula* g = skolemise(f->qarg());
       if(env.options->skolemizationType() == Options::SkolemizationType::SYNTACTIC){
-        for(int x =0;x<VList::length(f->vars());x++){
+        for(int x =0;x<VSList::length(f->vars());x++){
           _universalScope.pop();
         }
       }
       if (g == f->qarg()) {
         return f;
       }
-      return new QuantifiedFormula(f->connective(),f->vars(),f->sorts(),g);
+      return new QuantifiedFormula(f->connective(), f->vars(), g);
     }
 
   case EXISTS: 
@@ -365,7 +367,7 @@ Formula* Skolem::skolemise (Formula* f)
       // for proof recording purposes, see below
       //We use a FIFO structure since in the polymorphic case
       //a variable list must be of the form [typevars, termvars]
-      VList::FIFO vArgs;
+      VSList::FIFO vArgs;
       Formula* before = SubstHelper::apply(f, _subst);
 
       ExVarDepInfo& depInfo = _varDeps.get(f);
@@ -396,7 +398,7 @@ Formula* Skolem::skolemise (Formula* f)
        * although perhaps only C occurs in "something", it's as if A occurred as well */
       depInfo.univ = dep;
 
-      auto x = VStack::BottomFirstIterator(_universalScope);
+      auto x = Stack<unsigned>::BottomFirstIterator(_universalScope);
       using IterA = decltype(dep->iter());
       using IterB = decltype(x);
 
@@ -412,7 +414,7 @@ Formula* Skolem::skolemise (Formula* f)
           TermList var = TermList(uvar, false);
           allVars.push(var);
           typeVars.push(var);
-          vArgs.pushFront(uvar);
+          vArgs.pushFront({uvar, sort});
         } else {
           //This is a term variable
           if (sort.isVar() || !sort.term()->shared() || !sort.term()->ground()) {
@@ -421,7 +423,7 @@ Formula* Skolem::skolemise (Formula* f)
           }
           termVarSorts.push(sort);
           termVars.push(TermList(uvar, false));
-          vArgs.pushBack(uvar);
+          vArgs.pushBack({uvar, sort});
         }
         arity++;
       }
@@ -431,9 +433,9 @@ Formula* Skolem::skolemise (Formula* f)
       }
       SortHelper::normaliseArgSorts(typeVars, termVarSorts);
 
-      VList::Iterator vs(f->vars());
+      VSList::Iterator vs(f->vars());
       while (vs.hasNext()) {
-        unsigned v = vs.next();
+        unsigned v = vs.next().first;
         TermList rangeSort=_varSorts.get(v, AtomicSort::defaultSort());
 
         bool skolemisingTypeVar = rangeSort == AtomicSort::superSort();
@@ -499,7 +501,7 @@ Formula* Skolem::skolemise (Formula* f)
         Formula* def = new BinaryFormula(IMP, before, after);
 
         if (arity > 0) {
-          def = new QuantifiedFormula(FORALL,vArgs.list(),nullptr,def);
+          def = new QuantifiedFormula(FORALL, vArgs.list(), def);
         }
 
         Unit* defUnit = new FormulaUnit(def,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::SKOLEM_SYMBOL_INTRODUCTION));

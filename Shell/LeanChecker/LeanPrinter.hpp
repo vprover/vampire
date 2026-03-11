@@ -168,7 +168,7 @@ void outputVariablesFromStack(std::ostream &out, Kernel::VStack vars, SortMap &c
     std::reverse(vars.begin(), vars.end());
   }
   for (unsigned x =0; x < vars.size(); x++) {
-    unsigned var = vars[x];
+    unsigned var = vars[x].first;
     TermList translatedTerm = trans(var);
     SortMap newVarSorts;
     if (translatedTerm.isVar()) {
@@ -199,6 +199,7 @@ void outputVariablesFromStack(std::ostream &out, Kernel::VStack vars, SortMap &c
   }
 }
 
+
 template <typename itertype, typename Transform = Identity>
 void outputVariablesGen(std::ostream &out, itertype &iterator, SortMap &conclSorts, SortMap &varSorts, Transform trans = Transform{}, int sort = true, bool printSorts = false, std::string seperator = " ")
 {
@@ -212,7 +213,12 @@ void outputVariablesGen(std::ostream &out, itertype &iterator, SortMap &conclSor
 template <typename Transform = Identity>
 void outputVariables(std::ostream &out, VirtualIterator<unsigned int> &iterator , SortMap &conclSorts, SortMap &varSorts, Transform trans = Transform{}, int sort = true, bool printSorts = false, std::string seperator = " ")
 {
-  outputVariablesGen<VirtualIterator<unsigned int>, Transform>(out, iterator, conclSorts, varSorts, trans, sort, printSorts, seperator);
+  Kernel::VStack vars;
+  while(iterator.hasNext()) {
+    unsigned int x = iterator.next();
+    vars.push(std::make_pair(x, varSorts.get(x)));
+  }
+  outputVariablesFromStack(out, vars, conclSorts, varSorts, trans, sort, printSorts, seperator);
 }
 
 template <typename Transform = Identity>
@@ -220,7 +226,7 @@ void outputVariables(std::ostream &out, std::vector<unsigned int>* variables, So
 {
   Kernel::VStack vars;
   for (unsigned int x : *variables) {
-    vars.push(x);
+    vars.push(std::make_pair(x, varSorts.get(x)));
   }
   outputVariablesFromStack(out, vars, conclSorts, varSorts, trans, sort, printSorts, seperator);
 }

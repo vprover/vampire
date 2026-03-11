@@ -1149,8 +1149,6 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
   //   1) give d certain initial values (since d has no parents), or
   //   2) treat the original clause as parent, and therefore propagate the values from the original clause to d.
   compCl->setAge(orig->age());
-  compCl->inference().th_ancestors = orig->inference().th_ancestors;
-  compCl->inference().all_ancestors = orig->inference().all_ancestors;
   compCl->inference().setSineLevel(orig->inference().getSineLevel());
 
   _db[name] = new SplitRecord(compCl);

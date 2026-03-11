@@ -53,7 +53,7 @@ public:
 
   void backwardDemodulation(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const SubstApplicator &appl);
 
-  void rectify(Formula* f, VList* vs, Substitution renaming, std::set<unsigned> unusedVars);
+  void rectify(Formula* f, VSList* vs, Substitution renaming, std::set<unsigned> unusedVars);
 
   void startRectifyRecording(){
     _currentRecording = std::make_unique<RectifyInferenceExtra>();

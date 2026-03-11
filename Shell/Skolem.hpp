@@ -17,6 +17,7 @@
 #ifndef __Skolem__
 #define __Skolem__
 
+#include "Kernel/InductionTemplate.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/Stack.hpp"
 

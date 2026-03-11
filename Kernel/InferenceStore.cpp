@@ -1402,20 +1402,12 @@ protected:
     };
     auto outputQuant = [&](const char* name) {
       out << "("<< name << "(";
-      VList::Iterator vs(f->vars());
-      SList::Iterator ss(f->sorts());
-      bool hasSorts = f->sorts();
+      VSList::Iterator vs(f->vars());
       while (vs.hasNext()) {
-        int var = vs.next();
+        auto [var, sort] = vs.next();
         out << "(";
         outputVar(out, var);
         out << " ";
-        TermList sort;
-        if (hasSorts) {
-          sort = ss.next();
-        } else {
-          ALWAYS(SortHelper::tryGetVariableSort(var, const_cast<Formula*>(f),sort))
-        }
         outputSort(out, sort);
         out << ")";
       }

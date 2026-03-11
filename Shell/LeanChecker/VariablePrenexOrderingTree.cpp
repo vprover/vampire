@@ -121,10 +121,10 @@ std::unique_ptr<VariablePrenexOrderingTree::VariableOrderingTreeNode> VariablePr
     case EXISTS: {
       auto found = buildTreeFromFormula(f->qarg(), recordedConnective);
       if (f->connective() == recordedConnective) {
-        VList::Iterator vs(f->vars());
+        VSList::Iterator vs(f->vars());
         // SList::Iterator ss(f->sorts());
         while (vs.hasNext()) {
-          unsigned var = vs.next();
+          unsigned var = vs.next().first;
           found->containedVariables.insert(var);
           found->containedVariablesOrder.push_back(var);
         }

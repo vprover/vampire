@@ -118,7 +118,7 @@ private:
     SortMap premiseSorts;
     SortHelper::collectVariableSorts(premise, premiseSorts);
     VirtualIterator<unsigned> domain = premiseSorts.domain();
-    outputVariablesGen(out, domain, conclSorts, premiseSorts, transform);
+    outputVariables(out, domain, conclSorts, premiseSorts, transform);
   }
 
   void genericNPremiseInference(std::ostream &out, SortMap &conclSorts, Clause *concl, std::initializer_list<Substitution> substitutions, std::string tactic = "grind only");

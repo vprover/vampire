@@ -483,10 +483,10 @@ void printFormula(std::ostream &out, Formula *f, SortMap &conclSorts, SortMap &o
       out << ")";
       break;
     case FORALL: {
-      VList::Iterator vs(f->vars());
+      VSList::Iterator vs(f->vars());
       SortMap map;
       while (vs.hasNext()) {
-        auto var = vs.next();
+        auto var = vs.next().first;
         if(otherSorts.findPtr(var)){
           map.insert(var, otherSorts.get(var));
         } else {
@@ -500,10 +500,10 @@ void printFormula(std::ostream &out, Formula *f, SortMap &conclSorts, SortMap &o
       out << ")";
     } break;
     case EXISTS: {
-      VList::Iterator vs(f->vars());
+      VSList::Iterator vs(f->vars());
       SortMap map;
       while (vs.hasNext()) {
-        auto var = vs.next();
+        auto var = vs.next().first;
         if(otherSorts.findPtr(var)){
           map.insert(var, otherSorts.get(var));
         } else {

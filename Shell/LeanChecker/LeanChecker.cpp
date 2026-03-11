@@ -623,7 +623,7 @@ unsigned countConnectives(Formula *f)
 
 void LeanChecker::clausify(std::ostream &out, SortMap &conclSorts, Unit *concl){
   auto [parent] = getParents<1>(concl);
-  auto cnfExtra = env.proofExtra.get<Inferences::CNFTransformationInferenceExtra>(concl);
+  //auto cnfExtra = env.proofExtra.get<Inferences::CNFTransformationInferenceExtra>(concl);
   auto cnfParentExtra = env.proofExtra.get<Inferences::CNFTransformationInferenceExtra>(parent);
   //SortMap parentMap;
   if(clausifiedUnits.find(parent->number()) == clausifiedUnits.end())
@@ -761,12 +761,12 @@ void LeanChecker::predicateDefinitionIntroduction(std::ostream &out, SortMap &co
   ASS(!concl->isClause())
   //ASS(concl->getFormula()->connective()==Kernel::FORALL);
   out << indent << "let " << PredicateName(pred);
-  VList* fDomain;
+  VSList* fDomain;
   if(concl->getFormula()->connective()==Kernel::FORALL){
     fDomain = concl->getFormula()->vars();
-    auto fDomainIter = fDomain->iter();
+    auto fDomainIter = VSList::RefIterator(fDomain->iter());
     out << " ";
-    outputVariablesGen<VList::RefIterator>(out, fDomainIter, conclSorts, conclSorts, Identity{}, 0, true);
+    outputVariablesGen<VSList::RefIterator>(out, fDomainIter, conclSorts, conclSorts, Identity{}, 0, true);
   }
 
   out << " := ";
@@ -776,17 +776,17 @@ void LeanChecker::predicateDefinitionIntroduction(std::ostream &out, SortMap &co
   out << " := by\n";
   if(concl->getFormula()->connective()==Kernel::FORALL){
     out << indent << indent << "intros ";
-    auto fDomainIter = fDomain->iter();
+    auto fDomainIter = VSList::RefIterator(fDomain->iter());
     //This outputs the variable sorted, which relies on the rectification to be sorted
-    outputVariablesGen<VList::RefIterator>(out, fDomainIter, conclSorts, conclSorts, Identity{}, 1, false);
+    outputVariablesGen<VSList::RefIterator>(out, fDomainIter, conclSorts, conclSorts, Identity{}, 1, false);
     out << "\n";
   }
   out << indent << indent << "have s : ";
   outputFormula(out, formula);
   out << " ↔ " << PredicateName(pred) << " ";
   if(concl->getFormula()->connective()==Kernel::FORALL){
-    auto fDomainIter = fDomain ->iter();
-    outputVariablesGen<VList::RefIterator>(out, fDomainIter, conclSorts, conclSorts, Identity{}, 0, false);
+    auto fDomainIter = VSList::RefIterator(fDomain->iter());
+    outputVariablesGen<VSList::RefIterator>(out, fDomainIter, conclSorts, conclSorts, Identity{}, 0, false);
   }
   out << " := Iff.rfl\n" << indent << indent;
   out << "(first | exact s | exact or_comm.mp (imp_iff_not_or.mp s.mpr) | have res := (or_comm.mp (imp_iff_not_or.mp s.mpr)); simp only[or_assoc] at res; trivial | exact imp_iff_not_or.mp s.mp)\n";
@@ -1239,7 +1239,7 @@ void LeanChecker::rectify(std::ostream &out, SortMap &conclSorts, Unit *concl, c
     auto conn = formula->connective();
     if(conn==Kernel::FORALL || conn==Kernel::EXISTS){
       for(auto var : iterTraits(formula->vars()->iter())){
-        sorts.insert(var, allFormulaSorts.get(var));
+        sorts.insert(var.first, allFormulaSorts.get(var.first));
       }
     }
     out << indent << "have r" << counter << " (P :";
