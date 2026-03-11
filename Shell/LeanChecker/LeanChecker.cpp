@@ -146,8 +146,7 @@ void LeanChecker::print()
 
   outputPreamble(out, usedFunctionSymbols, usedPredicateSymbols);
   outputCumulativeSplits(proof, " ", "sA" ,"variable {", " : Prop}\n");
-  //outputCumulativeSplits(proof, "]\n[Decidable ", "sA" ,"[Decidable ", "]\n");
-  
+
   for (Unit *u : proof) {
     if(u->inference().rule() == InferenceRule::INPUT){
       if (u->inference().inputType() != UnitInputType::CONJECTURE) {
@@ -174,12 +173,10 @@ void LeanChecker::outputPreamble(std::ostream &out, std::set<Signature::Symbol*>
   //Default sort
   out << "variable {" << SortName(sig.getDefaultSort()) << " : Type u}\n";
   out << "variable [inst : Inhabited " << SortName(sig.getDefaultSort()) << "]\n";
-  //out << "[DecidableEq " << SortName(sig.getDefaultSort())<< " ]\n";
-  //
+
   for (unsigned i = Signature::FIRST_USER_CON; i < sig.typeCons(); i++) {
     out << "variable {" << SortName(i) << " : Type u}\n";
     out << "variable [inst : Inhabited " << SortName(i) << " ]\n";
-    //out << "[DecidableEq " << SortName(i)<< " ]\n";
   }
 
   bool firstVariableDef = true;
@@ -350,18 +347,6 @@ void LeanChecker::outputInferenceStep(std::ostream &out, Kernel::Unit *u){
       out << "set_option maxHeartbeats 200000000 in\n-- this is probably due to a suboptimal encoding\n";
     }
     out << "theorem inf_s" << u->number();
-    /*std::set<Kernel::Unit*, CompareUnits> clauses;
-    auto parents = u->getParents();
-    while(parents.hasNext()){
-      auto parent = parents.next();
-      if(parent->isClause()){
-        clauses.insert(parent);
-      }
-    }
-    if(u->isClause()){
-      clauses.insert(u);
-    }
-    outputCumulativeSplits(clauses, " ", "sA","{", ": Prop} ");*/
     if(u->inference().rule()!=InferenceRule::AVATAR_REFUTATION
        && u->inference().rule()!=InferenceRule::AVATAR_REFUTATION_SMT){
       out << " : ";
@@ -654,13 +639,6 @@ void LeanChecker::clausify(std::ostream &out, SortMap &conclSorts, Unit *concl){
   out << indent << "have " << stepIdent << concl->number() << " : ";
   outputUnit(out, concl);
   out << " := by\n";
-  //if(conclSorts.size() > 0){
-  //  out << indent << indent << "prenexify at s" <<  parent->number() << "c" << cnfParentExtra.number - cnfExtra.number - 1 << "\n";
-  //}
-  //out << indent << indent << "intros ";
-  //auto domain = conclSorts.domain();
-  //outputVariables(out, domain, conclSorts, conclSorts);
-  //out << "\n";
   out << indent << indent << "try simp only\n";
   
   VariablePrenexOrderingTree prenexTree;
@@ -724,29 +702,7 @@ void LeanChecker::clausify(std::ostream &out, SortMap &conclSorts, Unit *concl){
         << indent << indent << "rw[reorder]\n";
   }
   out << indent << indent << "ac_nf0\n";
-  //out << "\n";
-  /*auto clause = concl->asClause();
-  if(clause->size()>1){
-    out << indent << indent << "ac_nf0 at h'\n" <<
-         indent << indent << "ac_nf\n";
-  } else {
-    out << indent << indent << "exact h'\n";
-  }*/
-  //out << indent << indent << "grind only []";
-  //if(countConnectives(parent->getFormula()) < 500){
-    
-    //out << "<;>\n" << indent << "grind only [cases Or]\n\n";
-  //} else {
-  //  out << "\n" << indent << "duper [h]\n\n";
-  //}
   out << indent << indent << "assumption\n\n";
-  //for(unsigned i=0 ; i < cnfParentExtra.number ; i++){
-  //  out << "s" << parent->number() << "c" << i;
-  //  if(i < cnfParentExtra.number-1){
-  //    out << ", ";
-  //  }
-  //}
-  //out << "]\n\n"; 
 }
 
 void LeanChecker::predicateDefinitionIntroduction(std::ostream &out, SortMap &conclSorts, Unit *concl){
@@ -757,9 +713,7 @@ void LeanChecker::predicateDefinitionIntroduction(std::ostream &out, SortMap &co
   unsigned sym = introducedFunctionSymbols.top().second;
   auto pred = env.signature->getPredicate(sym);
   auto formula = _is->formulaReplacedByIntroducedSymbol(sym);
-  
   ASS(!concl->isClause())
-  //ASS(concl->getFormula()->connective()==Kernel::FORALL);
   out << indent << "let " << PredicateName(pred);
   VSList* fDomain;
   if(concl->getFormula()->connective()==Kernel::FORALL){
@@ -821,10 +775,7 @@ void LeanChecker::functionDefinitionIntroduction(std::ostream &out, SortMap &con
 }
 
 void LeanChecker::avatarDefinitionIntroduction(std::ostream &out, SortMap &conclSorts, Unit *concl){
-  //auto [parent] = getParents<1>(concl);
   out << indent << "-- step" << concl->number() << " " << concl->inference().name() << "\n";
-  //auto introducedFunctionSymbols = _is->getIntroducedSymbols(concl);
-  //outputUnit(out, concl);
   ASS(!concl->isClause())
   ASS(concl->getFormula()->connective()==Kernel::IFF);
   out << indent << "let ";
@@ -1064,8 +1015,6 @@ void LeanChecker::avatarSplitClause(std::ostream &out, SortMap &conclSorts, Unit
       }
     }
   }
-
-  //TODO make this include the variant substitution.
   out << indent << "intros ";
   for(auto iter = currentSplits.begin(); iter != currentSplits.end(); ++iter){
     auto parentWithNumbering = splitToParentMap.find(iter->first);
@@ -1406,11 +1355,5 @@ void LeanChecker::outputUnitBeginning(std::ostream &out, Kernel::Unit *u, SortMa
     }
     alreadyPrintedFormulas.insert(parent->number());
   }
-  // if(this->alreadyPrintedFormulas.find(u->number()) == this->alreadyPrintedFormulas.end()){
-  //   out << "def φ" << u->number() << " :=";
-  //   outputUnit(out, u);
-  //   out << "\n";
-  //   alreadyPrintedFormulas.insert(u->number());
-  // }
 }
 } // namespace Shell
