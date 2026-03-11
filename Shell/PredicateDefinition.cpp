@@ -314,9 +314,13 @@ void PredicateDefinition::collectReplacements(UnitList* units, ReplMap& replacem
       int pred=_eliminable.pop();
       eliminatePredicateDefinition(pred, replacements);
     }
-    while(_pureToReplace.isNonEmpty()) {
-      int pred=_pureToReplace.pop();
-      replacePurePred(pred, replacements);
+    if(env.options->purePredicateRemoval()){
+      while(_pureToReplace.isNonEmpty()) {
+        int pred=_pureToReplace.pop();
+        replacePurePred(pred, replacements);
+      }
+    } else {
+      _pureToReplace.reset();
     }
   }
   if (env.options->showPreprocessing()) {

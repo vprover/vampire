@@ -2276,6 +2276,7 @@ public:
   void setProof(Proof p) { _proof.actualValue = p; }
   bool newCNF() const { return _newCNF.actualValue; }
   bool getIteInlineLet() const { return _inlineLet.actualValue; }
+  bool purePredicateRemoval() const { return _purePredicateRemoval.actualValue; }
 
   bool useManualClauseSelection() const { return _manualClauseSelection.actualValue; }
   bool inequalityNormalization() const { return _inequalityNormalization.actualValue; }
@@ -2703,6 +2704,7 @@ private:
 
   BoolOptionValue _newCNF;
   BoolOptionValue _inlineLet;
+  BoolOptionValue _purePredicateRemoval;
 
   BoolOptionValue _manualClauseSelection;
   // arithmeitc reasoning options

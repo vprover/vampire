@@ -637,6 +637,12 @@ void Options::init()
     _newCNF.addProblemConstraint(onlyFirstOrder());
     _newCNF.tag(OptionTag::PREPROCESSING);
 
+    _purePredicateRemoval = BoolOptionValue("pure_predicate_removal","ppr",true);
+    _purePredicateRemoval.description="Remove pure predicates from formula";
+    _lookup.insert(&_purePredicateRemoval);
+    _purePredicateRemoval.tag(OptionTag::PREPROCESSING);
+    _purePredicateRemoval.addProblemConstraint(hasFormulas()); 
+
     _inlineLet = BoolOptionValue("inline_let","ile",true);
     _inlineLet.description="Always inline let-expressions.";
     _lookup.insert(&_inlineLet);

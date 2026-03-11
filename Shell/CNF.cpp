@@ -155,7 +155,6 @@ void CNF::clausify(Formula* f)
 
   Stack<std::pair<TodoTag,TodoVal>> todo;
   todo.push(std::make_pair<TodoTag,TodoVal>(MAIN,{.aFla = f}));
-  unsigned nthGeneratedClause = 0;
   do {
     ASS(todo.isNonEmpty());
     auto task = todo.pop();
