@@ -231,9 +231,11 @@ void InferenceRecorder::backwardDemodulation(unsigned int id, Clause *conclusion
 
 void InferenceRecorder::rectify(Formula* f, VSList* vs, Substitution renaming, std::set<unsigned> unusedVars)
 {
-  
+  //When there are no remaining variables after rectification, we do not need a renaming.
+  if(vs == nullptr){
+    return;
+  }
   std::unique_ptr<RectifyInferenceExtra> extra = std::make_unique<RectifyInferenceExtra>();
-
   Kernel::Substitution substVariablesInQuantifier;
   auto quantifierIter = f->vars()->iter();
   std::vector<unsigned> originalVars;
@@ -244,12 +246,11 @@ void InferenceRecorder::rectify(Formula* f, VSList* vs, Substitution renaming, s
       originalVars.push_back(v.first);
     }
   }
-  if(vs != nullptr) {
-    auto argIter = vs->iter();
-    while(argIter.hasNext()) {
-      rectifiedVars.push_back(argIter.next().first);
-    }
+  auto argIter = vs->iter();
+  while(argIter.hasNext()) {
+    rectifiedVars.push_back(argIter.next().first);
   }
+  
   //ASS(originalVars.size() == rectifiedVars.size());
   std::sort(originalVars.begin(), originalVars.end());
   std::sort(rectifiedVars.begin(), rectifiedVars.end());
@@ -257,12 +258,12 @@ void InferenceRecorder::rectify(Formula* f, VSList* vs, Substitution renaming, s
   for(size_t i = 0; i < originalVars.size(); i++) {
     substVariablesInQuantifier.bind(rectifiedVars[i], TermList::var(originalVars[i]));
   }
-  //std::cout << substVariablesInFormula << std::endl;
   //std::cout << substVariablesInQuantifier << std::endl;
   Substitution combinedSubst;
   for(auto v : iterTraits(f->vars()->iter())) {
     combinedSubst.bind(v.first, substVariablesInQuantifier.apply(renaming.apply(v.first).var()));
   }
+  //std::cout << f->toString() << std::endl;
   //std::cout << "Combined" << combinedSubst << std::endl;
   static_cast<RectifyInferenceExtra*>(_currentRecording.get())->
     renamings.emplace_back(f, combinedSubst);

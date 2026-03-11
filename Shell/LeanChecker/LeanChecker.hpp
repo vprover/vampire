@@ -1,5 +1,6 @@
 
 #include "Forwards.hpp"
+#include "Kernel/Problem.hpp"
 #include "Lib/SharedSet.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/Inference.hpp"
@@ -164,8 +165,9 @@ private:
          //"import Mathlib.Order.Basic\n"
          //"import Mathlib.Data.Real.Basic\n"
          "import VampLean\n"
+         "section vamproof\n"
          "universe u\n"
-
+         "set_option maxHeartbeats 0\n"
          "set_option linter.all false\n"
          "set_option linter.unusedSectionVars false\n"
          "set_option linter.unusedTactic false\n"
@@ -173,7 +175,7 @@ private:
          "set_option linter.unusedVariables false\n"
          "set_option linter.unnecessarySeqFocus false\n"
          "set_option linter.unreachableTactic false\n"
-         "set_option maxRecDepth 100000\n\n";
+         "set_option maxRecDepth 100000000\n\n";
          //"def inhabit_ℤ : ℤ := default\n"
          //"def inhabit_ℝ : ℝ := default\n"
          //"def inhabit_Bool : Bool := default\n";

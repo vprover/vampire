@@ -162,6 +162,7 @@ void LeanChecker::print()
     outputProofStep(out, u);
   }
   out << indent << "exact " << stepIdent << (*proof.rbegin())->number() << "\n\n";
+  out << "end vamproof" << "\n";
 }
 
 void LeanChecker::outputPreamble(std::ostream &out, std::set<Signature::Symbol*> usedFunctionSymbols, std::set<Signature::Symbol*> usedPredicateSymbols)
@@ -236,7 +237,7 @@ void LeanChecker::outputPreamble(std::ostream &out, std::set<Signature::Symbol*>
 }
 
 void LeanChecker::outputFullProofPreamble(std::ostream &out, std::deque<Unit*> premises, std::deque<Unit*> negatedConjectures, std::set<Signature::Symbol*>& unusedFunctionSymbols, std::set<Signature::Symbol*>& unusedPredicateSymbols){
-  out << "set_option maxHeartbeats 200000000 in\n";
+  //out << "set_option maxHeartbeats 200000000 in\n";
   out << "theorem fullProof : ";
   for(Unit* input : premises){
     outputUnit(out, input);
@@ -610,6 +611,13 @@ void LeanChecker::clausify(std::ostream &out, SortMap &conclSorts, Unit *concl){
   auto [parent] = getParents<1>(concl);
   //auto cnfExtra = env.proofExtra.get<Inferences::CNFTransformationInferenceExtra>(concl);
   auto cnfParentExtra = env.proofExtra.get<Inferences::CNFTransformationInferenceExtra>(parent);
+  if(cnfParentExtra.number == 1){
+    //we can just use the clausified parent directly
+    out << indent << "have " << stepIdent << concl->number() << " : ";
+    outputUnit(out, concl);
+    out << " := by\n" << indent << indent << "exact " << stepIdent << parent->number() << "\n\n";
+    return;
+  }
   //SortMap parentMap;
   if(clausifiedUnits.find(parent->number()) == clausifiedUnits.end())
   {
@@ -877,7 +885,7 @@ void LeanChecker::avatarRefutation(std::ostream &out, SortMap &conclSorts, Unit 
   out << " := by\n" << indent << "intro h\n" <<
   indent << "bv_decide\n\n";
 
-  out << "set_option maxHeartbeats 200000000 in\n-- this is probably due to a suboptimal encoding\n";
+  //out << "set_option maxHeartbeats 0 in\n-- this is probably due to a suboptimal encoding\n";
   //Convert the SAT bool refuation proof to prop
   out << "theorem inf_s" << concl->number() << " : ";
   outputSatFormula(out, sortedParents, "", false, true);
