@@ -308,6 +308,10 @@ TermSpec appHead(AbstractingUnifier* au, TermSpec t)
 Option<AbstractionOracle::AbstractionResult> hol(
   AbstractingUnifier* au, TermSpec const& t1, TermSpec const& t2)
 {
+  if (t1.isSort() || t2.isSort()) {
+    return Option<AbstractionOracle::AbstractionResult>();
+  }
+
   // TODO should we postpone deref to a later point?
   auto dt1 = au->subs().derefBound(t1);
   auto dt2 = au->subs().derefBound(t2);

@@ -31,7 +31,7 @@ Clause* FlexFlexSimplify::simplify(Clause* c)
     return c;
   }
   // all flex-flex, return the empty clause
-  return Clause::empty(SimplifyingInference1(InferenceRule::FLEX_FLEX_SIMPLIFY, c));
+  return Clause::empty(SimplifyingInference1(InferenceRule::FLEX_FLEX_SIMPLIFICATION, c));
 }
 
 }

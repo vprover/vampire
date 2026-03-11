@@ -297,6 +297,8 @@ set(SOURCES
     Inferences/GaussianVariableElimination.hpp
     Inferences/GlobalSubsumption.cpp
     Inferences/GlobalSubsumption.hpp
+    Inferences/HOL/BetaEtaSimplify.cpp
+    Inferences/HOL/BetaEtaSimplify.hpp
     Inferences/HOL/FlexFlexSimplify.cpp
     Inferences/HOL/FlexFlexSimplify.hpp
     Inferences/Induction.cpp

@@ -75,6 +75,8 @@
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
 #include "Inferences/ForwardSubsumptionDemodulation.hpp"
 #include "Inferences/GlobalSubsumption.hpp"
+#include "Inferences/HOL/BetaEtaSimplify.hpp"
+#include "Inferences/HOL/FlexFlexSimplify.hpp"
 #include "Inferences/InnerRewriting.hpp"
 #include "Inferences/TermAlgebraReasoning.hpp"
 #include "Inferences/Superposition.hpp"
@@ -1768,6 +1770,11 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
 
   if (prb.hasFOOL() && opt.casesSimp() && !opt.cases()) {
     resMany.addFront(std::make_unique<CasesSimp>());
+  }
+
+  if (env.higherOrder()) {
+    res->addFront(new BetaEtaSimplify());
+    res->addFront(new FlexFlexSimplify());
   }
 
   // Only add if there are distinct groups

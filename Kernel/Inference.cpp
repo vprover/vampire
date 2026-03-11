@@ -965,8 +965,10 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "equality proxy clausification";
   case InferenceRule::BOOL_SIMP:
     return "boolean simplification";
-  case InferenceRule::FLEX_FLEX_SIMPLIFY:
-    return "flex-flex simplify";
+  case InferenceRule::FLEX_FLEX_SIMPLIFICATION:
+    return "flex-flex simplification";
+  case InferenceRule::BETA_ETA_NORMALIZATION:
+    return "beta-eta normalization";
   case InferenceRule::EQ_TO_DISEQ:
     return "bool equality to disequality";
   case InferenceRule::PRIMITIVE_INSTANTIATION:
