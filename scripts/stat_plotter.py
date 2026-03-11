@@ -20,7 +20,7 @@ lblDeclRE = re.compile("^stat: ([^ ]+) - (.+ t[0-9]+)$")
 histogramSpecRE = re.compile("^[^ ]+@hist:[^ ]+$")
 histSegmentRE = re.compile("^ *([0-9]+): ([0-9]+)")
 
-tmpDataFile = tempfile.NamedTemporaryFile()
+tmpDataFile = tempfile.NamedTemporaryFile(mode="w+")
 tmpHistFiles = []
 
 useLogScale = False
@@ -33,7 +33,7 @@ def readPlotGroups(spec):
     res=[]
     for g in grps:
         idxStrings = g.split(",")
-        gContent = map(int, idxStrings)
+        gContent = list(map(int, idxStrings))
         res.append(gContent)
     return res
 
@@ -43,17 +43,21 @@ def readArgs(args):
     global vampCmdLine
     
     locArgsEnd = False
-    while not locArgsEnd:
+    while args and not locArgsEnd:
         if args[0]=="-log":
             useLogScale = True
             args = args[1:]
         elif args[0]=="-g":
+            if len(args)<2:
+                raise Exception("missing value for -g")
             plotGroups = readPlotGroups(args[1])
             args = args[2:]
         else:
             locArgsEnd = True
+    if not args:
+        raise Exception("missing vampire command line")
     vampCmdLine = args
-    for i in range(0,len(vampCmdLine)):
+    for i in range(0,len(vampCmdLine)-1):
         if vampCmdLine[i]=="-tr":
             vampCmdLine[i+1] = "stat_labels,"+vampCmdLine[i+1]
 
@@ -97,7 +101,7 @@ def addLabel(specStr,lblStr):
     if histogramSpecRE.match(specStr):
         type = "hist"
         histIndexes.append(newIdx)
-        histTmpFiles[newIdx] = tempfile.NamedTemporaryFile()
+        histTmpFiles[newIdx] = tempfile.NamedTemporaryFile(mode="w+")
         #histTmpFiles[newIdx] = open("/work/Dracula/pdata.txt","w")
         histMaxCounts[newIdx] = 0
         histMaxKeys[newIdx] = 0
@@ -126,7 +130,7 @@ def readHistData(histIdx,val):
         key = int(mo.group(1))
         ctr = int(mo.group(2))
         if key in res:
-            raise Exception("duplicate key "+key+" in "+val)
+            raise Exception("duplicate key "+str(key)+" in "+val)
         res[key]=ctr
         if ctr>histMaxCounts[histIdx]:
             histMaxCounts[histIdx] = ctr
@@ -171,7 +175,7 @@ def outputHistFile(idx,f):
         domEls.extend(dom)
         domEls.sort()
     else:
-        domEls = range(0,histMaxKeys[idx])
+        domEls = range(0,histMaxKeys[idx]+1)
     
     f.seek(0)
     f.truncate()
@@ -241,8 +245,8 @@ def buildHistPaletteCmd(idx):
         return ['set palette defined (0 "white", 1 "black")']
     if maxVal<10:
         return ['set palette defined (0 "white", 1 "black", %d "red")' % maxVal]
-    low = math.sqrt(maxVal)
-    high = maxVal/2
+    low = int(math.sqrt(maxVal))
+    high = maxVal//2
     return ['set palette defined (0 "white", 1 "black", %d "purple", %d "red", %d "yellow")' % (low, high, maxVal)]
 
 def buildHistRangeCmd(idx):

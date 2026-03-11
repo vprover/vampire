@@ -17,13 +17,13 @@ with open(read_from,'r') as probs:
 	for line in probs:
 		all_problems.add(line.strip())
 
-problem_set = random.sample(all_problems,N)
+problem_set = random.sample(list(all_problems), min(N,len(all_problems)))
 #problem_set = all_problems
 
 # For each problem generate obligations
 for problem in problem_set:
 
-	if os.path.exists(directory+problem):
+	if os.path.exists(os.path.join(directory, problem)):
 		continue
 
 	print "Dealing with ",problem
