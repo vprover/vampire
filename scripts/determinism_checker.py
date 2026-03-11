@@ -62,6 +62,7 @@ def readArgs(args):
     
 class Finished(Exception):
     def __init__(self, msg):
+        super(Finished, self).__init__(msg)
         self.msg = msg
 
 readArgs(sys.argv[1:])
@@ -129,11 +130,11 @@ try:
         if not ln2:
             raise Finished("Second vampire terminated")
         
-        if ln2[0:len(ln1)]==ln1 and vp1.poll():
+        if ln2[0:len(ln1)]==ln1 and vp1.poll() is not None:
             print("v1: %s" % trimEOL(ln1))
             print("v2: %s" % trimEOL(ln2))
             raise Finished("First vampire terminated in the middle of a line")
-        if ln1[0:len(ln2)]==ln2 and vp2.poll():
+        if ln1[0:len(ln2)]==ln2 and vp2.poll() is not None:
             print("v1: %s" % trimEOL(ln1))
             print("v2: %s" % trimEOL(ln2))
             raise Finished("Second vampire terminated in the middle of a line")

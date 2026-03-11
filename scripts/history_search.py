@@ -64,6 +64,7 @@ def getFirstMatch(linesStr, regex, fullMatch):
 
 class Failure(Exception):
     def __init__(self, msg):
+        super(Failure, self).__init__(msg)
         self.msg = msg
 
 

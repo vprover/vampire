@@ -6,6 +6,11 @@ import argparse
 import insertInv
 import tempfile
 
+def make_temp_path():
+    fd, p = tempfile.mkstemp()
+    os.close(fd)
+    return p
+
 
 def cpu_count():
     num = 1
@@ -131,14 +136,14 @@ def createCom(arg,tempFileName):
             os.system(commandLine)
         else:
             #create temporary file 
-            intermT = tempfile.NamedTemporaryFile(mode="w+")
+            intermT = make_temp_path()
             commandLine = arg.analyzer +" -t " +str(arg.timeLimit)+ " -wno " + str(arg.whileNO) + " -fno "+ str(arg.funcNO)
-            commandLine = commandLine + " " + arg.input +" | grep tff >"+ intermT.name 
+            commandLine = commandLine + " " + arg.input +" | grep tff >"+ intermT 
             os.system(commandLine)
-            intermS = tempfile.NamedTemporaryFile(mode="w+")
+            intermS = make_temp_path()
             #launch vampire with different strategies
-            os.system("./symel.sh "+arg.vampire+" "+intermT.name+" "+intermS.name)
-            commandLine = "cat "+intermS.name+ " | grep \"tff(inv\" | " + \
+            os.system("./symel.sh "+arg.vampire+" "+intermT+" "+intermS)
+            commandLine = "cat "+intermS+ " | grep \"tff(inv\" | " + \
         "sed -e \"s/tff(inv[^,]*,//g\" | sed -e \"s/claim/loop invariant/g\" | sed -e \"s/\\$sum/+/g\" " 
             commandLine = commandLine +" |sed -e \"s/\\$uminus/#/g\" | sed -e \"s/-/#/g\" | sed -e \"s/\\$lesseq/</g\" | sed -e \"s/\\$greatereq/>/g\"" 
     #final step put it in the temporary OutputFile
@@ -146,8 +151,8 @@ def createCom(arg,tempFileName):
             commandLine = commandLine +  ">"+tempFileName
             os.system(commandLine)
             #close all temporary files created - this action also takes care of deleting them 
-            intermT.close()
-            intermS.close()
+            os.unlink(intermT)
+            os.unlink(intermS)
     except Exception as e:
         sys.exit(1)
     return commandLine 
@@ -224,14 +229,14 @@ def workAllWhiles(parsedCmd, funcNO, sourceOrganization, fin,fout, start ):
     
     WN=1
     while not done: 
-        tempF = tempfile.NamedTemporaryFile(mode="w+")
+        tempF = make_temp_path()
         parsedCmd.whileNO = WN
         parsedCmd.funcNO = funcNO
-        command = createCom(parsedCmd, tempF.name)
+        command = createCom(parsedCmd, tempF)
         #os.system(command)
-        tempF.seek(0)
-        invariant = tempF.readlines()
-        tempF.close()
+        with open(tempF, "r") as tf:
+            invariant = tf.readlines()
+        os.unlink(tempF)
         invariantI = insertInv.work(invariant)
         for x in invariantI : 
             fout.write(x)
@@ -258,24 +263,23 @@ def runAccordingToOptions(args):
     if not path.exists(parsedCmd.input) or not path.isfile(parsedCmd.input):
         print("The input does not exist, or is not a file", parsedCmd.input)
         sys.exit(1)
-    with tempfile.NamedTemporaryFile(mode="w+") as tf:
     #in case of analyzing all the functions from the file, get the number of functions
-        p = subprocess.Popen((parsedCmd.analyzer+" -wno -1 "+parsedCmd.input).split(), stdout = subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        outp,err = p.communicate()
-        if err != "":
-            print(err)
-            sys.exit(-1)
-        else:
-            ff = outp.split("\n")
-        if parsedCmd.verbose == True:
-            print(outp)
-        
-        sourceOrganization = []
-        for x in ff : 
-            if "WHILE LOCATION:" in x:
-                sourceOrganization.append(x)
-            elif "Function number:" in x:
-                sourceOrganization.append(x)
+    p = subprocess.Popen((parsedCmd.analyzer+" -wno -1 "+parsedCmd.input).split(), stdout = subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    outp,err = p.communicate()
+    if err != "":
+        print(err)
+        sys.exit(-1)
+    else:
+        ff = outp.split("\n")
+    if parsedCmd.verbose == True:
+        print(outp)
+    
+    sourceOrganization = []
+    for x in ff : 
+        if "WHILE LOCATION:" in x:
+            sourceOrganization.append(x)
+        elif "Function number:" in x:
+            sourceOrganization.append(x)
     #occurrences of while
     noWhiles = getNoOccurance(sourceOrganization, "WHILE")
     #number of functions 
@@ -287,17 +291,17 @@ def runAccordingToOptions(args):
     #store all the information in fin
     #the case when you request a specific function and a specific while loop
     if parsedCmd.whileNO != 0 and parsedCmd.funcNO != 0:
-        tempF = tempfile.NamedTemporaryFile(mode="w+")
-        command = createCom(parsedCmd,tempF.name)
+        tempF = make_temp_path()
+        command = createCom(parsedCmd,tempF)
         #read output and transform it and annotate the code 
         whileLoc = whileLocationInFun(sourceOrganization,parsedCmd.funcNO, parsedCmd.whileNO)
-        tempF.seek(0)
-        invs = tempF.readlines()
+        with open(tempF, "r") as tf:
+            invs = tf.readlines()
         if len(invs) == 0:
             print("Something went wrong... try change the timelimit, or the while number!")
             sys.exit(-1)
         invariant = insertInv.work(invs)
-        tempF.close()
+        os.unlink(tempF)
         fout = open(parsedCmd.outputFile,"w")
         for i in range(0, whileLoc-1):
             fout.write(fin[i])
@@ -349,13 +353,13 @@ def runAccordingToOptions(args):
         for i in range(0, start-1):
             fout.write(fin[i])
         for i in range(1, noFN+1):
-            tempF = tempfile.NamedTemporaryFile(mode="w+")
+            tempF = make_temp_path()
             parsedCmd.funcNO = i
-            command = createCom(parsedCmd, tempF.name)
+            command = createCom(parsedCmd, tempF)
             #os.system(command)
-            tempF.seek(0)
-            inv = tempF.readlines()
-            tempF.close()
+            with open(tempF, "r") as tf:
+                inv = tf.readlines()
+            os.unlink(tempF)
             if len(inv)==0:
                 print("Error: the while you try to analyze does not exist, function: ", i)
                 sys.exit(-1)
