@@ -615,7 +615,9 @@ void LeanChecker::clausify(std::ostream &out, SortMap &conclSorts, Unit *concl){
     //we can just use the clausified parent directly
     out << indent << "have " << stepIdent << concl->number() << " : ";
     outputUnit(out, concl);
-    out << " := by\n" << indent << indent << "exact " << stepIdent << parent->number() << "\n\n";
+    out << " := by\n" << 
+      indent << indent << "ac_nf0\n" <<
+      indent << indent << "ac_nf at " << stepIdent << parent->number() << "\n\n";
     return;
   }
   //SortMap parentMap;
