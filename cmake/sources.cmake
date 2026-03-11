@@ -65,6 +65,8 @@ set(UNIT_TESTS
     UnitTests/tInferences_ForwardGroundJoinability.cpp
     UnitTests/tInferences_FunctionDefinitionRewriting.cpp
     UnitTests/tInferences_GaussianVariableElimination.cpp
+    UnitTests/tInferences_HOL_ArgCong.cpp
+    UnitTests/tInferences_HOL_BetaEtaSimplify.cpp
     UnitTests/tInferences_HOL_FlexFlexSimplify.cpp
     UnitTests/tInferences_Induction.cpp
     UnitTests/tInferences_InferenceEngine.cpp
@@ -222,8 +224,6 @@ set(SOURCES
     Inferences/ALASCA/VirasInterfacing.hpp
     Inferences/AnswerLiteralProcessors.cpp
     Inferences/AnswerLiteralProcessors.hpp
-    Inferences/ArgCong.cpp
-    Inferences/ArgCong.hpp
     Inferences/ArithmeticSubtermGeneralization.cpp
     Inferences/ArithmeticSubtermGeneralization.cpp
     Inferences/ArithmeticSubtermGeneralization.hpp
@@ -297,6 +297,8 @@ set(SOURCES
     Inferences/GaussianVariableElimination.hpp
     Inferences/GlobalSubsumption.cpp
     Inferences/GlobalSubsumption.hpp
+    Inferences/HOL/ArgCong.cpp
+    Inferences/HOL/ArgCong.hpp
     Inferences/HOL/BetaEtaSimplify.cpp
     Inferences/HOL/BetaEtaSimplify.hpp
     Inferences/HOL/FlexFlexSimplify.cpp

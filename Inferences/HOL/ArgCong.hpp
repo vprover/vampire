@@ -8,23 +8,18 @@
  * and in the source directory
  */
 /**
- * @file EqualityResolution.hpp
- * Defines class EqualityResolution.
+ * @file ArgCong.hpp
+ * Defines class ArgCong.
  */
-
 
 #ifndef __ArgCong__
 #define __ArgCong__
 
-#include "Forwards.hpp"
-
-#include "InferenceEngine.hpp"
+#include "Inferences/InferenceEngine.hpp"
 
 namespace Inferences {
 
 using namespace Kernel;
-using namespace Indexing;
-using namespace Saturation;
 
 class ArgCong
 : public GeneratingInferenceEngine
@@ -33,11 +28,8 @@ public:
   ClauseIterator generateClauses(Clause* premise) override;
 private:
   struct ResultFn;
-  struct IsPositiveEqualityFn;
-
 };
 
-
-};
+}
 
 #endif /* __ArgCong__ */
