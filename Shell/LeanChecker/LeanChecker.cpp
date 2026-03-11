@@ -703,23 +703,23 @@ void LeanChecker::clausify(std::ostream &out, SortMap &conclSorts, Unit *concl){
     domain = conclSorts.domain();
     outputVariables(out, domain, conclSorts, conclSorts);
     out << ") := Iff.intro (fun f ";
-    domain = conclSorts.domain();
-    outputVariables(out, domain, conclSorts, conclSorts);
-    out << " => f ";
     for(unsigned var : *variableOrdering){
       if(conclSorts.findPtr(var) != nullptr){
         out << "v" << var << " ";
       }
     }
+    out << " => f ";
+    domain = conclSorts.domain();
+    outputVariables(out, domain, conclSorts, conclSorts);
     out << ") (fun f ";
+    domain = conclSorts.domain();
+    outputVariables(out, domain, conclSorts, conclSorts);
+    out << " => f ";
     for(unsigned var : *variableOrdering){
       if(conclSorts.findPtr(var) != nullptr){
         out << "v" << var << " ";
       }
     }
-    out << " => f ";
-    domain = conclSorts.domain();
-    outputVariables(out, domain, conclSorts, conclSorts);
     out << ")\n"
         << indent << indent << "rw[reorder]\n";
   }
