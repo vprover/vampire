@@ -59,6 +59,7 @@ Environment::Environment()
   AtomicSort::intSort();
   AtomicSort::realSort();
   AtomicSort::rationalSort();
+  signature->getArrowConstructor(); // let's always have arrow
 } // Environment::Environment
 
 Environment::~Environment()

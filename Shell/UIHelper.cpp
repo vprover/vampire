@@ -705,6 +705,8 @@ void UIHelper::outputFormulasToTorch(std::string fileName) {
   for (unsigned tc=0; tc<typeCons; tc++) {
     Signature::Symbol* symb = env.signature->getTypeCon(tc);
 
+    // cout << "typecon " << symb->name() << " / " << symb->arity() << endl;
+
     auto typecon_tup = c10::ivalue::Tuple::create({
       symb->name(),
       (int32_t)symb->arity(),
@@ -717,39 +719,106 @@ void UIHelper::outputFormulasToTorch(std::string fileName) {
     typeConsList.push_back(typecon_tup);
   }
 
-  c10::impl::GenericList predList(c10::AnyType::get());
+  // cout << endl;
+
+  DHMap<TermList,unsigned> sortsAlreadyKnown;
+  c10::impl::GenericList sortList(c10::AnyType::get());
+
+  auto add_sort = [&](auto&& self, TermList sort) -> unsigned {
+    unsigned *mySortId;
+    if (sortsAlreadyKnown.getValuePtr(sort,mySortId)) {
+      if (sort.isVar()) {
+        sortList.push_back(c10::ivalue::Tuple::create({"svar",(int32_t)sort.var()}));
+      } else {
+        Term *t = sort.term();
+        ASS(t->isSort())
+        c10::impl::GenericList args(c10::AnyType::get());
+        for (unsigned i = 0; i < t->arity(); i++) {
+          TermList arg = *t->nthArgument(i);
+          args.push_back((int32_t)self(self,arg));
+        }
+        sortList.push_back(c10::ivalue::Tuple::create({(int32_t)t->functor(),args}));
+      }
+      *mySortId = sortList.size()-1;
+      // cout << "add_sort for " << sort.toString() << " " << *mySortId << endl;
+    }
+    return *mySortId;
+  };
+
+  c10::impl::GenericList symbolList(c10::AnyType::get());
   unsigned preds = env.signature->predicates();
   for (unsigned p=0; p<preds; p++) {
     Signature::Symbol* symb = env.signature->getPredicate(p);
+    OperatorType* ot = symb->predType();
+
+    unsigned typeArity;
+    TermList predSort;
+    if (p == 0) {
+      // fake polymorphic equality
+      typeArity = 1;
+      predSort = AtomicSort::arrowSort({TermList(0, false), TermList(0, false), AtomicSort::boolSort()});
+    } else {
+      // fake an arrow type for first order predicates (higher-order parsing does not lead to p>0 at all)
+      typeArity = ot->numTypeArguments();
+      predSort = AtomicSort::boolSort();
+      auto& key = *ot->key();
+      for (int i = key.length()-2; i >= 0; i--) {
+        predSort = AtomicSort::arrowSort(key[i],predSort);
+      }
+    }
+
+    unsigned predSortId = add_sort(add_sort,predSort);
 
     auto pred_tup = c10::ivalue::Tuple::create({
       symb->name(),
-      (int32_t)symb->arity(),
+      (int32_t)typeArity,
+      (int32_t)predSortId,
       p == 0, // equality is important
     });
 
-    predList.push_back(pred_tup);
+    // cout << symb->name() << endl;
+    // cout << "  myPredType: " << typeArity << " : " << predSort.toString() << endl;
+
+    symbolList.push_back(pred_tup);
   }
 
-  c10::impl::GenericList funcList(c10::AnyType::get());
+  // cout << endl;
+
   unsigned funcs = env.signature->functions();
   for (unsigned f=0; f<funcs; f++) {
     Signature::Symbol* symb = env.signature->getFunction(f);
+    OperatorType* ot = symb->fnType();
+
+    // we'll not treat vampire's app as symbol
+    if (env.signature->isAppFun(f)) {
+      ASS_EQ(f,funcs-1)
+      break;
+    }
+
+    TermList funcSort = ot->result();
+    {
+      // this does nothing in higher-order where everything are constants
+      auto& key = *ot->key();
+      for (int i = key.length()-2; i >= 0; i--) {
+        funcSort = AtomicSort::arrowSort(key[i],funcSort);
+      }
+    }
+    unsigned funcSortId = add_sort(add_sort,funcSort);
 
     auto func_tup = c10::ivalue::Tuple::create({
       symb->name(),
-      (int32_t)symb->arity(),
-      env.signature->isAppFun(f),
-      env.signature->isLamFun(f),
-      env.signature->isChoiceFun(f),
-      env.signature->isFoolConstantSymbol(false,f),
-      env.signature->isFoolConstantSymbol(true,f),
+      (int32_t)ot->numTypeArguments(),
+      (int32_t)funcSortId,
+      false
     });
 
-    funcList.push_back(func_tup);
+    // cout << symb->name() << endl;
+    // cout << "  myFuncType: " << ot->numTypeArguments() << " : " << funcSort.toString() << endl;
+
+    symbolList.push_back(func_tup);
   }
 
-  auto root = c10::ivalue::Tuple::create({typeConsList,predList,funcList});
+  auto root = c10::ivalue::Tuple::create({typeConsList,symbolList});
 
   // Serialize
   auto data = torch::jit::pickle_save(root);
