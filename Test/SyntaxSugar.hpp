@@ -58,6 +58,8 @@
 #define DECL_FUN_DEF(d, t)  auto d = PredSugar(env.signature->getFnDef(t.sugaredExpr().term()->functor()));
 #define DECL_PRED_DEF(d, t) auto d = PredSugar(env.signature->getBoolDef(((Literal*)t)->functor()));
 #define NEXT_INTRODUCED_PRED(s,offset) auto s = PredSugar(env.signature->predicates()+offset);
+#define NEXT_INTRODUCED_FUN(s,offset) auto s = FuncSugar(env.signature->functions()+offset);
+#define TROO auto troo = TermSugar(true);
 #define DECL_ANSWER_PRED(f, ...)                                                          \
   auto f = PredSugar(#f, __VA_ARGS__);                                                    \
   env.signature->getPredicate(f.functor())->markAnswerPredicate();
@@ -504,12 +506,10 @@ inline SortSugar arrow(Stack<TermList> args, TermList res)
 
 class FuncSugar {
   unsigned _functor;
-  unsigned _arity;
 
 public:
   explicit FuncSugar(unsigned functor)
-    : _functor(functor)
-    , _arity(env.signature->getFunction(functor)->arity()) {}
+    : _functor(functor) {}
 
   FuncSugar(std::string const& name, std::initializer_list<SortSugar> as_,
     ExpressionSugar result, unsigned taArity = 0, bool skolem = false, Color c = COLOR_TRANSPARENT)
@@ -520,7 +520,6 @@ public:
 
     bool added = false;
     _functor = env.signature->addFunction(name, as.size() + taArity, added);
-    _arity = as.size();
     if (added){
       TermList res = result.sugaredExpr();
 
@@ -562,7 +561,7 @@ public:
         as.begin()));
   }
   unsigned functor() const { return _functor; }
-  unsigned arity() const { return _arity; }
+  unsigned arity() const { return env.signature->getFunction(_functor)->arity(); }
   Signature::Symbol* symbol() const { return env.signature->getFunction(functor()); }
 
   friend std::ostream& operator<<(std::ostream& out, FuncSugar const& self)

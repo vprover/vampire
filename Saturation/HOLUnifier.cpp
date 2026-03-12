@@ -145,32 +145,32 @@ std::pair<Literal*,Unit*> HOLUnifierHandler::introduceDefinition(Literal* lit)
 
   if (_litToDefMap.getValuePtr(nlit, def_ptr)) {
 
-    // 2.1. introduce predicate based on variables
-    auto p = env.signature->addFreshPredicate(varsSeen.size(), "p_hol");
-    auto sym = env.signature->getPredicate(p);
+    // 2.1. introduce function based on variables
+    auto f = env.signature->addFreshFunction(varsSeen.size(), "hol_unif");
+    auto sym = env.signature->getFunction(f);
     SortHelper::normaliseArgSorts(typeVars, termVarSorts);
-    auto type = OperatorType::getPredicateType(termVarSorts.size(), termVarSorts.begin(), typeVars.size());
+    auto type = OperatorType::getFunctionType(termVarSorts.size(), termVarSorts.begin(), AtomicSort::boolSort(), typeVars.size());
     sym->setType(type);
 
     // 2.2. add definition
 
-    TermStack p_args;
+    TermStack def_args;
     auto vl = VSList::empty();
     for (const auto& v : typeVars) {
       auto vr = r.apply(v);
-      p_args.push(vr);
+      def_args.push(vr);
       VSList::push({ vr.var(), AtomicSort::superSort() }, vl);
     }
     for (const auto& [v,s] : termVars) {
       auto vr = r.apply(v);
-      auto sr = r.apply(s);
-      p_args.push(vr);
-      VSList::push({ vr.var(), sr }, vl);
+      def_args.push(vr);
+      VSList::push({ vr.var(), r.apply(s) }, vl);
     }
 
-    auto plit = Literal::create(p, /*arity=*/p_args.size(), /*polarity=*/true, p_args.begin());
+    TermList lhs(Term::create(f, /*arity=*/def_args.size(), def_args.begin()));
+    auto defeq = Literal::createEquality(/*polarity=*/true, lhs, TermList(Term::foolTrue()), AtomicSort::boolSort());
 
-    Formula* def = new BinaryFormula(Connective::IFF, new AtomicFormula(plit), new AtomicFormula(nlit));
+    Formula* def = new BinaryFormula(Connective::IFF, new AtomicFormula(defeq), new AtomicFormula(nlit));
     if (vl) {
       def = new QuantifiedFormula(Connective::FORALL, vl, def);
     }
@@ -180,15 +180,16 @@ std::pair<Literal*,Unit*> HOLUnifierHandler::introduceDefinition(Literal* lit)
       std::cout << "[HOL] introduced definition " << def->toString() << std::endl;
     }
 
-    _todo.emplace(nlit, plit, r.nextVar());
+    _todo.emplace(nlit, defeq, r.nextVar());
 
-    *def_ptr = { p, def_u };
+    *def_ptr = { f, def_u };
   }
 
   // 3. create new literal
-  auto p_s_args = TermStack::fromIterator(typeVars.iterFifo());
-  p_s_args.loadFromIterator(iterTraits(termVars.iterFifo()).map([](auto kv){ return kv.first; }));
-  return { Literal::create(def_ptr->pred, /*arity=*/p_s_args.size(), /*polarity=*/false, p_s_args.begin()), def_ptr->def };
+  auto def_s_args = TermStack::fromIterator(typeVars.iterFifo());
+  def_s_args.loadFromIterator(iterTraits(termVars.iterFifo()).map([](auto kv){ return kv.first; }));
+  TermList lhs(Term::create(def_ptr->fun, /*arity=*/def_s_args.size(), def_s_args.begin()));
+  return { Literal::createEquality(/*polarity=*/false, lhs, TermList(Term::foolTrue()), AtomicSort::boolSort()), def_ptr->def };
 }
 
 // HOLUnifier

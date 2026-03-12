@@ -40,7 +40,7 @@ private:
   std::pair<Literal*,Unit*> introduceDefinition(Literal* lit);
 
   struct UCDef {
-    unsigned pred;
+    unsigned fun;
     FormulaUnit* def;
   };
   DHMap<Literal*, UCDef> _litToDefMap;

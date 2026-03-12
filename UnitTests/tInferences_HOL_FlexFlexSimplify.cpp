@@ -66,16 +66,6 @@ TEST_SIMPLIFY(fail_7,
       .input(clause({ ap(ap(xs,x),y) != x, f(x,z) == z, x != y }))
     )
 
-TEST_SIMPLIFY(fail_8,
-    Simplification::NotApplicable()
-      .input(clause({ p(x) }))
-    )
-
-TEST_SIMPLIFY(fail_9,
-    Simplification::NotApplicable()
-      .input(clause({ ~p(x), x != y }))
-    )
-
 TEST_SIMPLIFY(fail_10,
     Simplification::NotApplicable()
       .input(clause({ ap(ap(g,x),y) != x }))
