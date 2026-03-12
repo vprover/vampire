@@ -974,7 +974,7 @@ void Options::init()
     _lookup.insert(&_lookaheadDelay);
     _lookaheadDelay.onlyUsefulWith(_selection.isLookAheadSelection());
 
-    _numClauseFeatures = UnsignedOptionValue("num_clause_features","ncf",12);
+    _numClauseFeatures = UnsignedOptionValue("num_clause_features","ncf",14);
     _numClauseFeatures.description="How many features do we ask a clause to provide? There are at most 15 features currently, the later ones more expensive to compute.";
     _lookup.insert(&_numClauseFeatures);
     _numClauseFeatures.tag(OptionTag::SATURATION);
