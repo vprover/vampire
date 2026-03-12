@@ -1372,7 +1372,7 @@ void SaturationAlgorithm::runGnnOnInput()
   unsigned subtermId = 0; // zero-based, ever growing
   unsigned clVarId = 0;   // zero-based, ever growing, each clause has its own variable nodes
   DHMap<unsigned,unsigned> clauseVariables; // from clause variables (as TermList::var()) to global variables of the whole CNF (non shared)
-  DHMap<unsigned,unsigned> termsAlreadyKnown; // from termId to subtermId of the first occurrence
+  DHMap<int64_t,unsigned> termsAlreadyKnown; // from litId(use negative indices)/termId to subtermId of the first occurrence
 
   struct TermTodo {
     Term* trm;        // the term to iterate through
@@ -1408,7 +1408,7 @@ void SaturationAlgorithm::runGnnOnInput()
 
       bool seenFirst = false;
       unsigned* sharedSubtermId;
-      if (termsAlreadyKnown.getValuePtr(lit->getId(),sharedSubtermId)) {
+      if (termsAlreadyKnown.getValuePtr(-1-(int64_t)lit->getId(),sharedSubtermId)) {
         seenFirst = true;
         *sharedSubtermId = subtermId++;
 
