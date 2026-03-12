@@ -5,6 +5,7 @@
 
 #include "Indexing/Index.hpp"
 #include "Kernel/Clause.hpp"
+#include "Kernel/Formula.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Kernel/SubstHelper.hpp"
@@ -30,7 +31,8 @@ public:
 
   class RectifyInferenceExtra : public GenericInferenceInformation {
     public:
-      std::vector<std::pair<Kernel::Formula*, Kernel::Substitution>> renamings;
+      //New formula, original formula, and the renaming from the new formula to the original formula.
+      std::vector<std::pair<Kernel::Formula*, std::pair<Kernel::Formula*, Kernel::Substitution>>> renamings;
   };
 
   // Returns the singleton instance (lazily initialized, thread-safe)
@@ -53,7 +55,7 @@ public:
 
   void backwardDemodulation(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const SubstApplicator &appl);
 
-  void rectify(Formula* f, VSList* vs, Substitution renaming, std::set<unsigned> unusedVars);
+  void rectify(Formula* f, Formula* newFormula, VSList* vs, Substitution renaming, std::set<unsigned> unusedVars);
 
   void startRectifyRecording(){
     _currentRecording = std::make_unique<RectifyInferenceExtra>();

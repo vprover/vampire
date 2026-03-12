@@ -241,16 +241,17 @@ void printArgs(std::ostream &out, Args args, bool variablesAsPattern, bool recur
     return;
   TermList *current = args.start;
   if (current->isVar()) {
-    if (variablesAsPattern) {
-      out << "_";
-      return;
-    }
+    
     unsigned var = current->var();
     if (args.conclSorts.findPtr(var)) {
       out << "v" << var;
     }
     else {
-      out << "default";
+      if (variablesAsPattern) {
+        out << "_";
+      } else {
+        out << "default";
+      }
     }
     return;
   }

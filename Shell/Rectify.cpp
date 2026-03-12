@@ -28,6 +28,7 @@
 #include "Kernel/Unit.hpp"
 #include "Shell/InferenceRecorder.hpp"
 #include <cstddef>
+#include <optional>
 #include <set>
 #include <utility>
 
@@ -432,17 +433,18 @@ Formula* Rectify::rectify (Formula* f)
     bindVars(f->vars());
     Formula* arg = rectify(f->qarg());
     VSList* vs = rectifyBoundVars(f->vars());
+    std::optional<Kernel::Substitution> substVariablesInFormula;
+    std::optional<std::set<unsigned>> unusedVars;
     if(env.reconstruction) {
-      Kernel::Substitution substVariablesInFormula;
-      std::set<unsigned> unusedVars;
+      substVariablesInFormula.emplace();
+      unusedVars.emplace();
       for(auto v : iterTraits(f->vars()->iter())) {
         auto [originalVar, usageInfo] = _renaming.getBoundAndUsage(v.first);
-        substVariablesInFormula.bind(v.first, TermList::var(originalVar));
+        substVariablesInFormula->bind(v.first, TermList::var(originalVar));
         if(!usageInfo){
-          unusedVars.insert(v.first);
+          unusedVars->insert(v.first);
         } 
       }
-      InferenceRecorder::instance()->rectify(f, vs, substVariablesInFormula, unusedVars);
     }
     unbindVars(f->vars());
     if (vs == f->vars() && arg == f->qarg()) {
@@ -451,7 +453,11 @@ Formula* Rectify::rectify (Formula* f)
     if(VSList::isEmpty(vs)) {
       return arg;
     }
-    return new QuantifiedFormula(f->connective(),vs,arg);
+    Formula *newFormula = new QuantifiedFormula(f->connective(), vs, arg);
+    if(env.reconstruction) {
+      InferenceRecorder::instance()->rectify(f, newFormula, vs, *substVariablesInFormula, *unusedVars);
+    }
+    return newFormula;
   }
 
   case TRUE:

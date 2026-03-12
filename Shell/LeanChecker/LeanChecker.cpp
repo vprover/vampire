@@ -49,7 +49,6 @@ bool LeanChecker::isUncheckedInference(const InferenceRule &rule)
 {
   switch (rule) {
     case InferenceRule::INPUT:
-    case InferenceRule::DISTINCTNESS_AXIOM:
     //definitions are handled later
     case InferenceRule::AVATAR_DEFINITION:
     // Skolemization is only handled later in the full proof
@@ -68,12 +67,8 @@ bool LeanChecker::isUncheckedInference(const InferenceRule &rule)
 
 bool LeanChecker::isUncheckedInProof(const InferenceRule &rule)
 {
-  if(isTheoryAxiomRule(rule)){
-    return true;
-  }
   switch (rule) {
     case InferenceRule::INPUT:
-    case InferenceRule::DISTINCTNESS_AXIOM:
     case InferenceRule::SKOLEM_SYMBOL_INTRODUCTION:
     case InferenceRule::NEGATED_CONJECTURE:
       return true;
@@ -210,7 +205,7 @@ void LeanChecker::outputPreamble(std::ostream &out, std::set<Signature::Symbol*>
     out << ")}\n";
   }
   for (auto pred : usedPredicateSymbols) {
-    if (pred->interpreted())
+    if (pred->interpreted() || pred->skolem())
       continue;
     if(firstVariableDef){
       out << "variable ";
@@ -256,6 +251,9 @@ void LeanChecker::outputFullProofPreamble(std::ostream &out, std::deque<Unit*> p
   out << " := by\n";
 
   for(Signature::Symbol* sym : unusedFunctionSymbols){
+    if(sym->introduced()) {
+      continue;
+    }
     out << indent << "let " << FunctionName(sym) << " := ";
     for(unsigned i = 0; i < sym->arity(); i++){
       out << "fun x" << i << " : " << Sort{sym->fnType()->arg(i)} << " => ";
@@ -263,6 +261,9 @@ void LeanChecker::outputFullProofPreamble(std::ostream &out, std::deque<Unit*> p
     out << "(default : " << Sort{sym->fnType()->result()} << ")\n";
   }
   for(Signature::Symbol* sym : unusedPredicateSymbols){
+    if(sym->introduced()) {
+      continue;
+    }
     out << indent << "let " << PredicateName(sym) << " := ";
     for(unsigned i = 0; i < sym->arity(); i++){
       out << "fun x" << i << " : " << Sort{sym->fnType()->arg(i)} << " => ";
@@ -306,6 +307,10 @@ void LeanChecker::outputProofStep(std::ostream &out, Kernel::Unit *u)
     avatarRefutationProofStep(out, conclSorts, u);
   } else if (rule == InferenceRule::CLAUSIFY) {
     clausify(out, conclSorts, u);
+  } else if (isTheoryAxiomRule(rule) || rule == Kernel::InferenceRule::DISTINCTNESS_AXIOM){
+    out << indent << "have " << stepIdent << u->number() << " : ";
+    outputUnit(out, u);
+    out << " := ax" << u->number() << "\n"; 
   } else {
     out << indent << "have " << stepIdent << u->number() << " := inf_s" << u->number() << " ";
     for (auto parent : iterTraits(u->getParents())) {
@@ -338,8 +343,8 @@ void LeanChecker::outputInferenceStep(std::ostream &out, Kernel::Unit *u){
       info = InferenceRecorder::instance()->getLastRecordedInferenceInformation();
     }
   }
-  if(isTheoryAxiomRule(u->inference().rule())){
-    out << "axiom " << stepIdent << u->number() << " : ";
+  if(isTheoryAxiomRule(u->inference().rule()) || u->inference().rule() == Kernel::InferenceRule::DISTINCTNESS_AXIOM){
+    out << "axiom " << "ax" << u->number() << " : ";
     outputUnit(out, u);
     out << "\n\n";
     return;
@@ -679,9 +684,10 @@ void LeanChecker::clausify(std::ostream &out, SortMap &conclSorts, Unit *concl){
     out << indent << "have " << stepIdent << concl->number() << " : ";
     outputUnit(out, concl);
     out << " := by\n" << 
-      indent << indent << "prenexify at " << stepIdent << parent->number() << "\n";
+      indent << indent << "try simp only\n" <<
+      indent << indent << "prenexify at " << stepIdent << parent->number() << "<;>\n";
     outputReorderIfNeeded(out, parent, conclSorts, indent);
-    out << indent << indent << "ac_nf0\n" <<
+    out << indent << indent << "ac_nf0<;>\n" <<
       indent << indent << "ac_nf at " << stepIdent << parent->number() << "\n\n";
     return;
   }
@@ -1183,9 +1189,10 @@ void LeanChecker::rectify(std::ostream &out, SortMap &conclSorts, Unit *concl, c
   outputPremiseAndConclusion(out, concl);
   out << " := by\n";
   out << indent << "intro h\n";
-  out << indent << "try simp only [forall_const, exists_const] at h\n";
+  out << indent << "try simp only [forall_const, exists_const, -iff_self, -eq_self] at h\n";
   unsigned counter = 0;
-  for(auto [formula, subst] : rectifyInfo->renamings) {
+  for(auto [newFormula, formulaAndSubst] : rectifyInfo->renamings) {
+    auto [formula, subst] = formulaAndSubst;
     //check if subst is identity, if so we can skip this formula
     bool identity = true;
     for(auto [var, term] : iterTraits(subst.items())){
@@ -1199,11 +1206,17 @@ void LeanChecker::rectify(std::ostream &out, SortMap &conclSorts, Unit *concl, c
     }
     SortMap allFormulaSorts;
     SortHelper::collectVariableSorts(formula, allFormulaSorts);
+    SortMap allNewFormulaSorts;
+    SortHelper::collectVariableSorts(newFormula, allNewFormulaSorts);
     SortMap sorts;
+    SortMap newFormulaSorts;
     auto conn = formula->connective();
     if(conn==Kernel::FORALL || conn==Kernel::EXISTS){
       for(auto var : iterTraits(formula->vars()->iter())){
         sorts.insert(var.first, allFormulaSorts.get(var.first));
+      }
+      for(auto var : iterTraits(newFormula->vars()->iter())){
+        newFormulaSorts.insert(var.first, allNewFormulaSorts.get(var.first));
       }
     }
     out << indent << "have r" << counter << " (P :";
@@ -1214,56 +1227,58 @@ void LeanChecker::rectify(std::ostream &out, SortMap &conclSorts, Unit *concl, c
     out << "Prop) : ";
     out << "( " << (conn == Kernel::FORALL ? "∀" : "∃") << " ";
     auto domain = sorts.domain();
-    outputVariables(out, domain, conclSorts, sorts);
+    outputVariables(out, domain, sorts, sorts);
     out << ", P ";
     domain = sorts.domain();
-    outputVariables(out, domain, conclSorts, sorts);
+    outputVariables(out, domain, sorts, sorts);
     out << ") ↔ (" << (conn == Kernel::FORALL ? "∀" : "∃") << " ";
     domain = sorts.domain();
-    outputVariables(out, domain, conclSorts, sorts, DoSubst(subst));
+    outputVariables(out, domain, sorts, sorts, DoSubst(subst));
     out << ", P ";
     domain = sorts.domain();
-    outputVariables(out, domain, conclSorts, sorts);
+    outputVariables(out, domain, sorts, sorts);
     out << ") := \n"
         << indent << indent << "Iff.intro (fun f ";
     if(conn == FORALL){
       domain = sorts.domain();
-      outputVariables(out, domain, conclSorts, sorts,DoSubst(subst));
+      outputVariables(out, domain, sorts, sorts,DoSubst(subst));
       out << " => f ";
       domain = sorts.domain();
-      outputVariables(out, domain, conclSorts, sorts);
+      outputVariables(out, domain, sorts, sorts);
       out << ") (fun f ";
       domain = sorts.domain();
-      outputVariables(out, domain, conclSorts, sorts);
+      outputVariables(out, domain, sorts, sorts);
       out << " => f ";
       domain = sorts.domain();
-      outputVariables(out, domain, conclSorts, sorts,DoSubst(subst));
+      outputVariables(out, domain, sorts, sorts,DoSubst(subst));
       out << ")\n";
     } else if (conn == EXISTS) {
       domain = sorts.domain();
       out << " => " << "let ⟨";
-      outputVariables(out, domain, conclSorts, sorts, Identity{}, true, false, ", ");
+      outputVariables(out, domain, sorts, sorts, Identity{}, true, false, ", ");
       out << ", hP⟩ := f\n";
       out << indent << indent << indent << "Exists.intro ";
       domain = sorts.domain();
-      outputVariables(out, domain, conclSorts, sorts, DoSubst(subst), true, false, " (Exists.intro ");
+      outputVariables(out, domain, sorts, sorts, DoSubst(subst), true, false, " (Exists.intro ");
       out << " hP";
       out << std::string(sorts.size(), ')') << "\n"
           << indent << indent << indent << "(fun f ";
       domain = sorts.domain();
       out << " => " << "let ⟨";
-      outputVariables(out, domain, conclSorts, sorts, DoSubst(subst), true, false, ", ");
+      outputVariables(out, domain, sorts, sorts, DoSubst(subst), true, false, ", ");
       out << ", hP⟩ := f\n";
       out << indent << indent << indent << "Exists.intro ";
       domain = sorts.domain();
-      outputVariables(out, domain, conclSorts, sorts, Identity{}, true, false, " (Exists.intro ");
+      outputVariables(out, domain, sorts, sorts, Identity{}, true, false, " (Exists.intro ");
       out << " hP";
       out << std::string(sorts.size(), ')') << "\n";
     }
-    out << indent << "conv at h in ";
-    printFormula(out, formula, conclSorts, sorts, true);
+    out << indent << "conv in ";
+    SortMap newFormulaAllSorts;
+    SortHelper::collectVariableSorts(newFormula, newFormulaAllSorts);
+    printFormula(out, newFormula, newFormulaSorts, newFormulaAllSorts, true);
     out << " =>\n"
-        << indent << indent << "rw [← r" << counter << "]\n";
+        << indent << indent << "rw [r" << counter << "]\n";
     counter++;
   }
   out << indent << "symm_match using h\n\n";
