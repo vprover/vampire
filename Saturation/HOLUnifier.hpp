@@ -72,6 +72,7 @@ private:
     std::pair<Stack<Node*>,LiteralStack> solve();
 
     Literal* _def;
+    Literal* _orig;
     Stack<Constraint> _cons;
     Substitution _subs;
     unsigned _freshVar;

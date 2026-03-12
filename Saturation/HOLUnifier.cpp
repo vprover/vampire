@@ -274,7 +274,7 @@ struct HOLUnifier::Constraint
 // Node
 
 HOLUnifier::Node::Node(Literal* lit, Literal* def, unsigned nextVar)
-  : _def(def), _freshVar(nextVar)
+  : _def(def), _orig(lit), _freshVar(nextVar)
 {
   ASS(lit->isEquality());
   ASS(lit->isPositive());
@@ -289,7 +289,7 @@ HOLUnifier::Node::Node(const Node& parent, unsigned var, TermList binding)
 }
 
 HOLUnifier::Node::Node(const Node& parent, Stack<Constraint> cons)
-  : _def(parent._def), _cons(cons), _subs(parent._subs), _freshVar(parent._freshVar)
+  : _def(parent._def), _orig(parent._orig), _cons(cons), _subs(parent._subs), _freshVar(parent._freshVar)
 {
 }
 
@@ -303,7 +303,7 @@ LiteralStack HOLUnifier::Node::solution()
       if (t.isVar() && t.var() == var) {
         return t;
       }
-      return HOL::reduce::betaNF(SubstHelper::apply(t, *this));
+      return HOL::reduce::betaEtaNF(SubstHelper::apply(t, *this));
     }
   };
 
@@ -317,6 +317,37 @@ LiteralStack HOLUnifier::Node::solution()
       SubstHelper::apply(con._lhs, subs), SubstHelper::apply(con._rhs, subs),
       SortHelper::getResultSort(con._lhs.term())));
   }
+
+#if VDEBUG
+  auto lhs = HOL::reduce::betaEtaNF(SubstHelper::apply(_orig->termArg(0), subs));
+  auto rhs = HOL::reduce::betaEtaNF(SubstHelper::apply(_orig->termArg(1), subs));
+
+  if (res.size()==1) {
+    // if there are no flex-flex pairs, we do a simple check
+    ASS_EQ(lhs, rhs);
+  } else {
+    // otherwise we do a deep check
+    SubtermIterator stil(lhs.term());
+    SubtermIterator stir(rhs.term());
+    while (stil.hasNext()) {
+      ASS(stir.hasNext());
+      auto stl = stil.next();
+      auto str = stir.next();
+      if (stl == str) {
+        stil.right();
+        stir.right();
+        continue;
+      }
+      if (stl.head().isVar() && str.head().isVar()) {
+        ASS(range(1, res.size()).map([&res](unsigned i) { return res[i]; }).any([stl,str](Literal* lit) {
+          return (stl == lit->termArg(0) && str == lit->termArg(1)) || (stl == lit->termArg(1) && str == lit->termArg(0));
+        }));
+      }
+      ASS_EQ(stl.term()->functor(), str.term()->functor());
+    }
+  }
+#endif
+
   return res;
 }
 
