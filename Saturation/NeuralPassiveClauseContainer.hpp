@@ -81,7 +81,6 @@ private:
   List<torch::Tensor>* _gweightResults = nullptr; // just to prevent garbage collector from deleting too early
   unsigned _gweightCurBaseLayer = 1;
   DHMap<unsigned,torch::Tensor> _gweightTermEmbedStore;
-  DHMap<unsigned,torch::Tensor> _gweightTermCellStore;
   DHMap<unsigned,unsigned> _gweightTermLayers;
   Stack<Stack<std::tuple<int64_t,unsigned,float,std::vector<int64_t>>>> _gweightTodoLayers;
 

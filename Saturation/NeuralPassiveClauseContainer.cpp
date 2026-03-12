@@ -119,9 +119,7 @@ NeuralClauseEvaluationModel::NeuralClauseEvaluationModel(const std::string claus
   auto _gweightVarEmbed = _model.attr("gweight_var_embed").toModule().forward({torch::Tensor()}).toTensor();
   auto _gweightSVarEmbed = _model.attr("gweight_svar_embed").toModule().forward({torch::Tensor()}).toTensor();
   _gweightTermEmbedStore.insert(0,_gweightVarEmbed);
-  _gweightTermCellStore.insert(0,torch::zeros_like(_gweightVarEmbed));
   _gweightTermEmbedStore.insert(1,_gweightSVarEmbed);
-  _gweightTermCellStore.insert(1,torch::zeros_like(_gweightSVarEmbed));
 
   _gweightTermCombine = _model.attr("gweight_term_combine").toModule();
 
@@ -283,24 +281,18 @@ void NeuralClauseEvaluationModel::gweightEmbedPending() {
   */
   for (int64_t i = 0; i < static_cast<int64_t>(_gweightTodoLayers.size()); i++) {
     Stack<std::tuple<int64_t,unsigned,float,std::vector<int64_t>>>& todos = _gweightTodoLayers[i];
-    auto x_rows = torch::empty({static_cast<int64_t>(todos.size()), 1+_gweightEmbeddingSize}, torch::TensorOptions().dtype(torch::kFloat32));
-    auto h_rows = torch::empty({static_cast<int64_t>(todos.size()), 4*_gweightEmbeddingSize}, torch::TensorOptions().dtype(torch::kFloat32));
-    auto c_rows = torch::empty({static_cast<int64_t>(todos.size()), 4*_gweightEmbeddingSize}, torch::TensorOptions().dtype(torch::kFloat32));
+    auto rect = torch::empty({static_cast<int64_t>(todos.size()), 1+5*_gweightEmbeddingSize}, torch::TensorOptions().dtype(torch::kFloat32));
 
     auto it = todos.iterFifo();
     int64_t j = 0;
     while (it.hasNext()) {
       const auto& [id,functor,sign,args] = it.next();
-      x_rows.index_put_({j, torch::indexing::Slice(0, _gweightEmbeddingSize)}, _gweightSymbolEmbeds.index({(int64_t)functor}));
-      x_rows.index_put_({j, _gweightEmbeddingSize}, sign);
-      h_rows.index_put_({j, torch::indexing::Slice(0,                       1*_gweightEmbeddingSize)}, _gweightTermEmbedStore.get(args[0]));
-      h_rows.index_put_({j, torch::indexing::Slice(1*_gweightEmbeddingSize, 2*_gweightEmbeddingSize)}, _gweightTermEmbedStore.get(args[1]));
-      h_rows.index_put_({j, torch::indexing::Slice(2*_gweightEmbeddingSize, 3*_gweightEmbeddingSize)}, _gweightTermEmbedStore.get(args[2]));
-      h_rows.index_put_({j, torch::indexing::Slice(3*_gweightEmbeddingSize, 4*_gweightEmbeddingSize)}, _gweightTermEmbedStore.get(args[3]));
-      c_rows.index_put_({j, torch::indexing::Slice(0,                       1*_gweightEmbeddingSize)}, _gweightTermCellStore.get(args[0]));
-      c_rows.index_put_({j, torch::indexing::Slice(1*_gweightEmbeddingSize, 2*_gweightEmbeddingSize)}, _gweightTermCellStore.get(args[1]));
-      c_rows.index_put_({j, torch::indexing::Slice(2*_gweightEmbeddingSize, 3*_gweightEmbeddingSize)}, _gweightTermCellStore.get(args[2]));
-      c_rows.index_put_({j, torch::indexing::Slice(3*_gweightEmbeddingSize, 4*_gweightEmbeddingSize)}, _gweightTermCellStore.get(args[3]));
+      rect.index_put_({j, torch::indexing::Slice(0, _gweightEmbeddingSize)}, _gweightSymbolEmbeds.index({(int64_t)functor}));
+      rect.index_put_({j, _gweightEmbeddingSize}, sign);
+      rect.index_put_({j, torch::indexing::Slice(1+_gweightEmbeddingSize, 1+2*_gweightEmbeddingSize)}, _gweightTermEmbedStore.get(args[0]));
+      rect.index_put_({j, torch::indexing::Slice(1+2*_gweightEmbeddingSize, 1+3*_gweightEmbeddingSize)}, _gweightTermEmbedStore.get(args[1]));
+      rect.index_put_({j, torch::indexing::Slice(1+3*_gweightEmbeddingSize, 1+4*_gweightEmbeddingSize)}, _gweightTermEmbedStore.get(args[2]));
+      rect.index_put_({j, torch::indexing::Slice(1+4*_gweightEmbeddingSize, 1+5*_gweightEmbeddingSize)}, _gweightTermEmbedStore.get(args[3]));
 
       j++;
     }
@@ -310,22 +302,17 @@ void NeuralClauseEvaluationModel::gweightEmbedPending() {
       for j,(id,_,_,_) in enumerate(todos):
         self.gweight_term_embed_store[id] = res[j]
     */
-    auto pair = _gweightTermCombine.forward({x_rows,h_rows,c_rows}).toTuple();
-    auto h_res = pair->elements()[0].toTensor();
-    auto c_res = pair->elements()[1].toTensor();
-    h_res += _gweightStaticTweak;
+    auto res = _gweightTermCombine.forward({rect}).toTensor();
+    res += _gweightStaticTweak;
     {
       auto it = todos.iterFifo();
       int64_t j = 0;
       while (it.hasNext()) {
-        auto idx = std::get<0>(it.next());
-        _gweightTermEmbedStore.insert(idx,h_res.index({j}));
-        _gweightTermCellStore.insert(idx,c_res.index({j}));
+        _gweightTermEmbedStore.insert(std::get<0>(it.next()),res.index({j}));
         j++;
       }
     }
-    List<torch::Tensor>::push(h_res, _gweightResults); // just to prevent garbage collector from deleting too early
-    List<torch::Tensor>::push(c_res, _gweightResults); // just to prevent garbage collector from deleting too early
+    List<torch::Tensor>::push(res, _gweightResults); // just to prevent garbage collector from deleting too early
   }
   /*
     self.gweight_cur_base_layer += len(self.gweight_todo_layers)
