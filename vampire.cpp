@@ -251,7 +251,7 @@ void outputMode(Problem* problem)
   ScopedPtr<Problem> prb(problem);
 
   if (!env.options->formulasTorchFileName().empty()) {
-    UIHelper::outputFormulasToTorch(env.options->formulasTorchFileName());
+    UIHelper::outputFormulasToTorch(env.options->formulasTorchFileName(),prb->units());
   } else {
     //outputSymbolDeclarations also deals with sorts for now
     //UIHelper::outputSortDeclarations(std::cout);

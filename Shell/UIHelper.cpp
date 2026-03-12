@@ -699,7 +699,7 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(std::ostream& out, bool funct
   //out << ")." << endl;
 }
 
-void UIHelper::outputFormulasToTorch(std::string fileName) {
+void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
   c10::impl::GenericList typeConsList(c10::AnyType::get());
   unsigned typeCons = env.signature->typeCons();
   for (unsigned tc=0; tc<typeCons; tc++) {
@@ -746,6 +746,7 @@ void UIHelper::outputFormulasToTorch(std::string fileName) {
   };
 
   c10::impl::GenericList symbolList(c10::AnyType::get());
+
   unsigned preds = env.signature->predicates();
   for (unsigned p=0; p<preds; p++) {
     Signature::Symbol* symb = env.signature->getPredicate(p);
@@ -818,7 +819,332 @@ void UIHelper::outputFormulasToTorch(std::string fileName) {
     symbolList.push_back(func_tup);
   }
 
-  auto root = c10::ivalue::Tuple::create({typeConsList,symbolList});
+  c10::impl::GenericList termList(c10::AnyType::get());
+  c10::impl::GenericList subformulaList(c10::AnyType::get());
+
+  DHMap<TermList,unsigned> termsAlreadyKnown;
+
+  auto func_to_idx = [&](unsigned f) {
+    return preds + f;
+  };
+
+  auto add_term = [&](TermList term) -> unsigned {
+    // cout << "add_term " << " " << term.toString() << endl;
+
+    struct Todo {
+      TermList tl;
+      bool starting;
+      unsigned *myId;
+    };
+    Stack<unsigned> ids;
+    Stack<Todo> todos;
+    todos.push({term,true});
+    while (todos.isNonEmpty()) {
+      Todo& todo = todos.top();
+      TermList tl = todo.tl;
+      if (todo.starting) {
+        if (termsAlreadyKnown.getValuePtr(tl,todo.myId)) {
+          if (tl.isTerm()) {
+            todo.starting = false;
+            Term *t = tl.term();
+            if (t->isLambda()) {
+              todos.push({t->getSpecialData()->getLambdaExp(),true});
+            } else {
+              // reverse order, so that we can pop them in the right order below
+              for (int i = t->numTermArguments()-1; i >= 0; i--) {
+                todos.push({t->termArg(i),true});
+              }
+            }
+            continue;
+          } else { // tl.isVar()
+            *todo.myId = termList.size();
+            termList.push_back(c10::ivalue::Tuple::create({"var",(int32_t)tl.var()}));
+            // cout << "termList.push_back var " << (int32_t)tl.var() << " for " << tl.toString() << endl;
+            // popping later below
+          }
+        }
+        // was in cache; popping later below
+      } else { // not starting
+        ASS(tl.isTerm())
+        Term *t = tl.term();
+
+        if (t->isLambda()) {
+          auto sd = t->getSpecialData();
+
+          c10::impl::GenericList vars(c10::AnyType::get());
+          VSList::Iterator vs(sd->getLambdaVars());
+          while (vs.hasNext()) {
+            auto [var, sort] = vs.next();
+            vars.push_back(c10::ivalue::Tuple::create({"var",(int32_t)var,(int32_t)add_sort(add_sort,sort)}));
+          }
+          auto a = (int32_t)ids.pop();
+          termList.push_back(c10::ivalue::Tuple::create({
+            "lambda",vars,
+            (int32_t)add_sort(add_sort,sd->getLambdaExpSort()),
+            (int32_t)add_sort(add_sort,sd->getSort()),
+            (int32_t)a
+          }));
+
+        } else {
+          c10::impl::GenericList type_args(c10::AnyType::get());
+          c10::impl::GenericList term_args(c10::AnyType::get());
+          for (unsigned i = 0; i < t->arity(); i++) {
+            TermList arg = *t->nthArgument(i);
+            if (i < t->numTypeArguments()) {
+              type_args.push_back((int32_t)add_sort(add_sort,arg));
+            } else {
+              term_args.push_back((int32_t)ids.pop());
+            }
+          }
+          *todo.myId = termList.size();
+          if (t->isApplication()) {
+            termList.push_back(c10::ivalue::Tuple::create({"app",type_args,term_args}));
+            // cout << "termList.push_back app for " << tl.toString() << endl;
+          } else {
+            termList.push_back(c10::ivalue::Tuple::create({(int32_t)func_to_idx(t->functor()),type_args,term_args}));
+            // cout << "termList.push_back term " << (int32_t)func_to_idx(t->functor()) << " for " << tl.toString() << endl;
+          }
+        }
+      }
+      // was in cache, or we are the var case, who does not need the second phase, or we just finished the second phase of the term case
+      ids.push(*todo.myId);
+      todos.pop();
+    }
+
+    ASS_EQ(ids.size(),1)
+    return ids.pop();
+  };
+
+  DHMap<unsigned,unsigned> litsAlreadyKnown; // from litId to subtermId of the first occurrence
+
+  auto add_lit = [&](Literal* lit) -> unsigned {
+    // this should ignore polarity! (negation taken care of by the caller)
+    lit = Literal::positiveLiteral(lit);
+
+    // cout << "add_lit " << lit->toString() << endl;
+
+    unsigned res;
+    unsigned *sharedLitId = nullptr;
+    if (!lit->shared() || litsAlreadyKnown.getValuePtr(lit->getId(),sharedLitId)) {
+      c10::impl::GenericList type_args(c10::AnyType::get());
+      c10::impl::GenericList term_args(c10::AnyType::get());
+      if (lit->functor() == 0) { // that's the only one in HOL
+        TermList mySort = SortHelper::getEqualityArgumentSort(lit);
+        type_args.push_back((int32_t)add_sort(add_sort,mySort));
+
+        term_args.push_back((int32_t)add_term(*lit->nthArgument(0)));
+        term_args.push_back((int32_t)add_term(*lit->nthArgument(1)));
+      } else {
+        for (unsigned i = 0; i < lit->arity(); i++) {
+          if (i < lit->numTypeArguments()) {
+            type_args.push_back((int32_t)add_sort(add_sort,*lit->nthArgument(i)));
+          } else {
+            term_args.push_back((int32_t)add_term(*lit->nthArgument(i)));
+          }
+        }
+      }
+
+      termList.push_back(c10::ivalue::Tuple::create({(int32_t)lit->functor(),type_args,term_args}));
+      res = termList.size()-1;
+      if (sharedLitId) // don't store anything for unshared terms
+        *sharedLitId = res;
+    } else {
+      ASS(sharedLitId)
+      res = *sharedLitId;
+    }
+
+    return res;
+  };
+
+  c10::impl::GenericList formulaList(c10::AnyType::get());
+
+  UnitList::Iterator uit(units);
+  while (uit.hasNext()) {
+    Unit* u = uit.next();
+    // std::cout << TPTPPrinter::toString(u) << "\n";
+
+    if (u->inputType() == UnitInputType::CONJECTURE) {
+      // get to the original formula (before negation), for which findAxiomName will succeed (and which we can call "conjecture" again)
+      Inference& inf = u->inference();
+      auto it = inf.iterator();
+      ASS(inf.hasNext(it))
+      u = inf.next(it);
+    }
+
+    std::string inputType = "???";
+    if (u->inputType() == UnitInputType::AXIOM) {
+      inputType = "axiom";
+    } else if (u->inputType() == UnitInputType::ASSUMPTION) {
+      inputType = "hypothesis";
+    } else if (u->inputType() == UnitInputType::CONJECTURE) {
+      inputType = "conjecture";
+    } else if (u->inputType() == UnitInputType::NEGATED_CONJECTURE) {
+      inputType = "negated_conjecture";
+    }
+
+    std::string unitName;
+    if(!Parse::TPTP::findAxiomName(u,unitName)) {
+      unitName="u" + Int::toString(u->number());
+    }
+
+    Formula* f;
+    if (u->isClause()) {
+      Clause* cl = u->asClause();
+      f = Formula::fromClause(cl);
+    } else {
+      f = static_cast<FormulaUnit*>(u)->formula();
+    }
+
+    Stack<unsigned> ids;
+    { // recurse over subformulas
+      static std::string conNames [] =
+        { "", "and", "or", "imp", "iff", "xor",
+          "not", "forall", "exists", "", "$false", "$true", "", ""};
+      ASS_EQ(sizeof(conNames)/sizeof(std::string), NOCONN+1);
+
+      struct Todo {
+        Formula* f;
+        bool starting;
+      };
+      Stack<Todo> todos;
+      todos.push({f,true});
+      while (todos.isNonEmpty()) {
+        Todo& todo = todos.top();
+        Formula* f = todo.f;
+        Connective con = f->connective();
+
+        if (todo.starting) {
+          todo.starting = false;
+          switch (con) {
+            case LITERAL:
+            case BOOL_TERM:
+            case FALSE:
+            case TRUE:
+              // base cases don't need pre-treatment
+              break;
+            case AND:
+            case OR:
+            {
+              const FormulaList* fs = f->args();
+              // first iter just to claim the memory
+              while (FormulaList::isNonEmpty(fs)) {
+                todos.push({nullptr,true}); // this is fake (see below)
+                fs = fs->tail();
+              }
+              Todo* top = todos.end();
+              fs = f->args();
+              // now write the arguments backwards
+              while (FormulaList::isNonEmpty(fs)) {
+                *(--top) = {fs->head(),true};
+                fs = fs->tail();
+              }
+              break;
+            }
+            case IMP:
+            case IFF:
+            case XOR:
+              // reversing the order
+              todos.push({f->right(),true});
+              todos.push({f->left(),true});
+              break;
+            case NOT:
+              todos.push({f->uarg(),true});
+              break;
+            case FORALL:
+            case EXISTS:
+              todos.push({f->qarg(),true});
+              break;
+            default:
+              ASSERTION_VIOLATION;
+          }
+        } else { // not starting
+          switch (con) {
+            case LITERAL: {
+              Literal* lit = f->literal();
+              // cout << "LITERAL: " << lit->toString() << endl;
+              unsigned posId = subformulaList.size();
+              subformulaList.push_back(c10::ivalue::Tuple::create({"atom",(int32_t)add_lit(lit)}));
+              if (lit->isNegative()) {
+                subformulaList.push_back(c10::ivalue::Tuple::create({"not",(int32_t)posId}));
+                ids.push(posId+1);
+              } else {
+                ids.push(posId);
+              }
+              break;
+            }
+            case BOOL_TERM: {
+              TermList t = f->getBooleanTerm();
+              // cout << "BOOL_TERM: " << t.toString() << endl;
+              ids.push(subformulaList.size());
+              subformulaList.push_back(c10::ivalue::Tuple::create({"atom",(int32_t)add_term(t)}));
+              break;
+            }
+            case AND:
+            case OR:
+            {
+              c10::impl::GenericList args(c10::AnyType::get());
+              const FormulaList* fs = f->args();
+              while (FormulaList::isNonEmpty(fs)) {
+                args.push_back((int32_t)ids.pop());
+                fs = fs->tail();
+              }
+              ids.push(subformulaList.size());
+              subformulaList.push_back(c10::ivalue::Tuple::create({conNames[con],args}));
+              break;
+            }
+            case IMP:
+            case IFF:
+            case XOR:
+            {
+              auto a1 = (int32_t)ids.pop();
+              auto a2 = (int32_t)ids.pop();
+              ids.push(subformulaList.size());
+              subformulaList.push_back(c10::ivalue::Tuple::create({conNames[con],a1,a2}));
+              break;
+            }
+            case NOT: {
+              auto a = (int32_t)ids.pop();
+              ids.push(subformulaList.size());
+              subformulaList.push_back(c10::ivalue::Tuple::create({conNames[con],a}));
+              break;
+            }
+            case FORALL:
+            case EXISTS:
+            {
+              // cout << "FORALL/EXISTS: " << f->toString() << endl;
+              c10::impl::GenericList vars(c10::AnyType::get());
+              VSList::Iterator vs(f->vars());
+              while (vs.hasNext()) {
+                auto [var, sort] = vs.next();
+                if (sort.isTerm() && sort.term()->isSuper()) {
+                  vars.push_back(c10::ivalue::Tuple::create({"svar",(int32_t)var}));
+                } else {
+                  vars.push_back(c10::ivalue::Tuple::create({"var",(int32_t)var,(int32_t)add_sort(add_sort,sort)}));
+                }
+              }
+              auto a = (int32_t)ids.pop();
+              ids.push(subformulaList.size());
+              subformulaList.push_back(c10::ivalue::Tuple::create({conNames[con],vars,a}));
+              break;
+            }
+            case FALSE:
+            case TRUE:
+              ids.push(subformulaList.size());
+              subformulaList.push_back(c10::ivalue::Tuple::create({conNames[con]}));
+              break;
+            default:
+              ASSERTION_VIOLATION;
+          }
+          todos.pop();
+        }
+      }
+    }
+
+    formulaList.push_back(c10::ivalue::Tuple::create({inputType,unitName,(int32_t)ids.pop()}));
+    // cout << inputType << " " << unitName << /* " " << f->toString() << */ endl;
+  }
+
+  auto root = c10::ivalue::Tuple::create({typeConsList,sortList,symbolList,termList,subformulaList,formulaList});
 
   // Serialize
   auto data = torch::jit::pickle_save(root);
