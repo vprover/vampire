@@ -665,6 +665,21 @@ struct InferenceOfASatClause {
   UnitList* premises;
 };
 
+/**
+ * A little hack that will store premises as INFERENCE_MANY does (in the first pointer)
+ * but will keep the AVATAR component's "causal parent" in the second pointer.
+ * Note that causal parent is not a premise logically, but as it is the clause from
+ * which the component clause got split (for the first time), it's sometimes useful
+ * to know who the causal parent was when computing certain heuristics.
+*/
+struct ComponentClauseInference {
+  ComponentClauseInference(InferenceRule r, UnitList* prems, Clause* causalParent)
+    : rule(r), premises(prems), causalParent(causalParent) {}
+  InferenceRule rule;
+  UnitList* premises;
+  Clause* causalParent;
+};
+
 struct NeedsMinimization; // defined in SATInference.hpp
 
 class Inference;
@@ -737,6 +752,7 @@ public:
 
   Inference(const NeedsMinimization& fsr);
   Inference(const InferenceOfASatClause& isc);
+  Inference(const ComponentClauseInference& cci);
 
   Inference(const Inference&) = default;
 
@@ -886,9 +902,14 @@ public:
   void incXXNarrows(){ if(_XXNarrows < 8){ _XXNarrows++; } }
 
   unsigned reductions() const { return _reductions; }
-  void setReductions(unsigned r) { _reductions = r; } 
+  void setReductions(unsigned r) { _reductions = r; }
   void increaseReductions(unsigned n){ _reductions += n; }
 
+  Clause* getCausalParent() const {
+    ASS_EQ((unsigned char)_kind,(unsigned char)Kind::INFERENCE_MANY)
+    ASS_NEQ(_ptr2,0)
+    return static_cast<Clause*>(_ptr2);
+  }
 
   SplitSet* splits() const { return _splits; }
   void setSplits(SplitSet* splits) {

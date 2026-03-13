@@ -122,6 +122,11 @@ Inference::Inference(const InferenceOfASatClause& isc) {
   _ptr2 = isc.clause;
 }
 
+Inference::Inference(const ComponentClauseInference& cci) {
+  initMany(cci.rule, cci.premises);
+  _ptr2 = cci.causalParent;
+}
+
 /**
  * Return an iterator for an inference with zero premises.
  * @since 04/01/2008 Torrevieja
