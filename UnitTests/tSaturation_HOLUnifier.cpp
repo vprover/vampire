@@ -17,6 +17,8 @@ using namespace Saturation;
 using namespace Test;
 
 #define MY_SYNTAX_SUGAR                            \
+  DECL_APP                                         \
+  DECL_LAM                                         \
   DECL_SORT(srt)                                   \
   TROO                                             \
   DECL_VAR_SORTED(x, 0, srt)                       \
@@ -33,7 +35,9 @@ using namespace Test;
   DECL_DE_BRUIJN_INDEX(db0, 0, srt)                \
   DECL_DE_BRUIJN_INDEX(db1, 1, srt)                \
   DECL_CONST(a, srt)                               \
-  DECL_CONST(b, srt)
+  DECL_CONST(b, srt)                               \
+  NEXT_INTRODUCED_FUN(f_hol,0)                     \
+  NEXT_INTRODUCED_FUN(g_hol,1)
 
 #define PREAMBLE_HANDLER           \
   env.setHigherOrder(true);        \
@@ -77,7 +81,6 @@ TEST_FUN(no_constraints_3) {
 TEST_FUN(constraints_1) {
   PREAMBLE_HANDLER;
   auto c1 = clause({ ap(g,y) != lam(srt, db0), y == a });
-  NEXT_INTRODUCED_FUN(f_hol,0);
   auto c2 = handler.handleClause(c1);
 
   checkEqual(c2, clause({ f_hol(y) != troo, y == a }));
@@ -86,8 +89,6 @@ TEST_FUN(constraints_1) {
 TEST_FUN(constraints_2) {
   PREAMBLE_HANDLER;
   auto c1 = clause({ ap(g,y) != lam(srt, db0), y == a, ap(ap(h,y),z) != lam(srt, db0), f(y,z) != b });
-  NEXT_INTRODUCED_FUN(f_hol,0);
-  NEXT_INTRODUCED_FUN(g_hol,1);
   auto c2 = handler.handleClause(c1);
 
   checkEqual(c2, clause({ f_hol(y) != troo, y == a, g_hol(y,z) != troo, f(y,z) != b }));
@@ -96,7 +97,6 @@ TEST_FUN(constraints_2) {
 TEST_FUN(constraints_3) {
   PREAMBLE_HANDLER;
   auto c1 = clause({ y == a, ap(ap(h,y),z) != lam(srt, db0), f(y,z) != b });
-  NEXT_INTRODUCED_FUN(f_hol,0);
   auto c2 = handler.handleClause(c1);
 
   checkEqual(c2, clause({ y == a, f_hol(y,z) != troo, f(y,z) != b }));
@@ -105,13 +105,11 @@ TEST_FUN(constraints_3) {
 TEST_FUN(constraints_different) {
   PREAMBLE_HANDLER;
   auto c1 = clause({ ap(g,y) != lam(srt, db0), y == a });
-  NEXT_INTRODUCED_FUN(f_hol,0);
   auto c2 = handler.handleClause(c1);
 
   checkEqual(c2, clause({ f_hol(y) != troo, y == a }));
 
   auto d1 = clause({ ap(ap(h,z),b) != lam(srt, db0), f(y,z) != b });
-  NEXT_INTRODUCED_FUN(g_hol,0);
   auto d2 = handler.handleClause(d1);
 
   checkEqual(d2, clause({ g_hol(z) != troo, f(y,z) != b }));
@@ -120,7 +118,6 @@ TEST_FUN(constraints_different) {
 TEST_FUN(constraints_same) {
   PREAMBLE_HANDLER;
   auto c1 = clause({ ap(g,y) != lam(srt, db0), y == a });
-  NEXT_INTRODUCED_FUN(f_hol,0);
   auto c2 = handler.handleClause(c1);
 
   checkEqual(c2, clause({ f_hol(y) != troo, y == a }));
@@ -134,7 +131,6 @@ TEST_FUN(constraints_same) {
 TEST_FUN(constraints_flexflex) {
   PREAMBLE_HANDLER;
   auto c1 = clause({ ap(ys,a) != ap(zs,b), lam(srt, zs) != lam(srt, ys), ap(g,y) != lam(srt, db0) });
-  NEXT_INTRODUCED_FUN(f_hol,0);
   auto c2 = handler.handleClause(c1);
 
   checkEqual(c2, clause({ ap(ys,a) != ap(zs,b), lam(srt, zs) != lam(srt, ys), f_hol(y) != troo }));
