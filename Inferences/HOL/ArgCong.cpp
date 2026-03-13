@@ -35,9 +35,9 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-struct ArgCong::ResultFn
+struct ArgCongResultFn
 {
-  ResultFn(Clause* cl, bool afterCheck = false, Ordering* ord = nullptr)
+  ArgCongResultFn(Clause* cl, bool afterCheck = false, Ordering* ord = nullptr)
       : /*_afterCheck(afterCheck), _ord(ord),*/ _cl(cl), _freshVar(cl->maxVar() + 1) {}
 
   Clause* operator() (Literal* lit)
@@ -114,14 +114,9 @@ private:
 
 ClauseIterator ArgCong::generateClauses(Clause* premise)
 {
-  if(premise->isEmpty()) {
-    return ClauseIterator::getEmpty();
-  }
-  ASS_G(premise->numSelected(),0);
-
   return pvi(premise->getSelectedLiteralIterator()
     .filter([](Literal* l) { return l->isEquality() && l->isPositive(); })
-    .map(ResultFn(premise,
+    .map(ArgCongResultFn(premise,
       getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),
       &_salg->getOrdering()))
     .filter(NonzeroFn()));

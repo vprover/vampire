@@ -8,35 +8,28 @@
  * and in the source directory
  */
 /**
- * @file EqualityResolution.hpp
- * Defines class EqualityResolution.
+ * @file PositiveExtensionality.hpp
+ * Defines class PositiveExtensionality.
  */
 
-
-#ifndef __NegativeExt__
-#define __NegativeExt__
+#ifndef __PositiveExtensionality__
+#define __PositiveExtensionality__
 
 #include "Forwards.hpp"
 
-#include "InferenceEngine.hpp"
+#include "Inferences/InferenceEngine.hpp"
 
 namespace Inferences {
 
 using namespace Kernel;
-using namespace Indexing;
-using namespace Saturation;
 
-class NegativeExt
+class PositiveExtensionality
 : public GeneratingInferenceEngine
 {
 public:
   ClauseIterator generateClauses(Clause* premise) override;
-private:
-  struct ResultFn;
-  struct IsNegativeEqualityFn;
 };
-
 
 };
 
-#endif /* __NegativeExt__ */
+#endif /* __PositiveExtensionality__ */

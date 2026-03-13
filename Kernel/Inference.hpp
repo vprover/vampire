@@ -342,7 +342,8 @@ enum class InferenceRule : unsigned char {
   PRIMITIVE_INSTANTIATION,
   LEIBNIZ_ELIMINATION,
   HILBERTS_CHOICE_INSTANCE, // not considered a theory axiom at the moment (it's a HOL creature)
-  NEGATIVE_EXT,
+  NEGATIVE_EXTENSIONALITY,
+  POSITIVE_EXTENSIONALITY,
   EQ_TO_DISEQ,
   /** The next five rules can be either simplifying or generating */
   HOL_NOT_ELIMINATION,

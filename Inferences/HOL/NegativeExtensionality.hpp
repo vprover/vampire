@@ -8,12 +8,14 @@
  * and in the source directory
  */
 /**
- * @file ArgCong.hpp
- * Defines class ArgCong.
+ * @file NegativeExtensionality.hpp
+ * Defines class NegativeExtensionality.
  */
 
-#ifndef __ArgCong__
-#define __ArgCong__
+#ifndef __NegativeExtensionality__
+#define __NegativeExtensionality__
+
+#include "Forwards.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
 
@@ -21,13 +23,13 @@ namespace Inferences {
 
 using namespace Kernel;
 
-class ArgCong
+class NegativeExtensionality
 : public GeneratingInferenceEngine
 {
 public:
   ClauseIterator generateClauses(Clause* premise) override;
 };
 
-}
+};
 
-#endif /* __ArgCong__ */
+#endif /* __NegativeExtensionality__ */

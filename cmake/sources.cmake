@@ -68,6 +68,7 @@ set(UNIT_TESTS
     UnitTests/tInferences_HOL_ArgCong.cpp
     UnitTests/tInferences_HOL_BetaEtaSimplify.cpp
     UnitTests/tInferences_HOL_FlexFlexSimplify.cpp
+    UnitTests/tInferences_HOL_PositiveExtensionality.cpp
     UnitTests/tInferences_Induction.cpp
     UnitTests/tInferences_InferenceEngine.cpp
     UnitTests/tInferences_InnerRewriting.cpp
@@ -303,6 +304,10 @@ set(SOURCES
     Inferences/HOL/BetaEtaSimplify.hpp
     Inferences/HOL/FlexFlexSimplify.cpp
     Inferences/HOL/FlexFlexSimplify.hpp
+    Inferences/HOL/NegativeExtensionality.cpp
+    Inferences/HOL/NegativeExtensionality.hpp
+    Inferences/HOL/PositiveExtensionality.cpp
+    Inferences/HOL/PositiveExtensionality.hpp
     Inferences/Induction.cpp
     Inferences/Induction.hpp
     Inferences/InductionHelper.cpp
@@ -318,8 +323,6 @@ set(SOURCES
     Inferences/InterpretedEvaluation.cpp
     Inferences/InterpretedEvaluation.hpp
     Inferences/LfpRule.hpp
-    Inferences/NegativeExt.cpp
-    Inferences/NegativeExt.hpp
     Inferences/PolynomialEvaluation.cpp
     Inferences/PolynomialEvaluation.hpp
     Inferences/ProofExtra.cpp

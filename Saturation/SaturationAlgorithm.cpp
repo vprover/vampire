@@ -77,6 +77,7 @@
 #include "Inferences/GlobalSubsumption.hpp"
 #include "Inferences/HOL/BetaEtaSimplify.hpp"
 #include "Inferences/HOL/FlexFlexSimplify.hpp"
+#include "Inferences/HOL/NegativeExtensionality.hpp"
 #include "Inferences/InnerRewriting.hpp"
 #include "Inferences/TermAlgebraReasoning.hpp"
 #include "Inferences/Superposition.hpp"
@@ -91,7 +92,6 @@
 #include "Inferences/CasesSimp.hpp"
 #include "Inferences/Cases.hpp"
 #include "Inferences/DefinitionIntroduction.hpp"
-#include "Inferences/NegativeExt.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -1504,7 +1504,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   if (env.higherOrder()){
-    gie->addFront(new NegativeExt());
+    gie->addFront(new NegativeExtensionality());
   }
 
   if (env.options->choiceReasoning()) {
