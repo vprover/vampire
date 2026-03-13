@@ -51,16 +51,16 @@ void BwdDemodulation::perform(Clause* premise, BwSimplificationRecordIterator& s
   for (auto lhs : Lhs::iter(_shared, premise)) {
     DEBUG_CODE(cnt++;)
     Stack<BwSimplificationRecord> simpls;
-    Set<Clause*> simplified;
+    Set<unsigned> simplified;
     for (auto rhs : _index->instances(lhs.biggerSide())) {
         auto toSimpl = rhs.data->clause;
-        if (simplified.contains(toSimpl)) {
+        if (simplified.contains(toSimpl->number())) {
           /* We skip this potential simplification, because we do not simplify the same clause in 
            * two different ways with the same equality.  */
         } else {
           auto maybeSimpl = Demod::apply(_shared, lhs, *rhs.data);
           if (maybeSimpl.isSome()) {
-            simplified.insert(toSimpl);
+            simplified.insert(toSimpl->number());
             simpls.push(BwSimplificationRecord(toSimpl, maybeSimpl.unwrap()));
           }
         }

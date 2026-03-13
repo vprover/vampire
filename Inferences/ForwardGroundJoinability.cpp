@@ -12,7 +12,7 @@
  * Implements class ForwardGroundJoinability.
  */
 
-#include "Lib/DHSet.hpp"
+#include "Lib/DHMap.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/VirtualIterator.hpp"
 
@@ -69,7 +69,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
   if (!lit->isEquality() || lit->isNegative()) {
     return false;
   }
-  DHSet<Clause*> premiseSet;
+  DHMap<unsigned, Clause*> premiseSet;
 
   if (EqHelper::isEqTautology(lit)) {
     premises = ClauseIterator::getEmpty();
@@ -164,7 +164,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
         ASS(next.first != curr || next.second != tpo);
         curr = next.first;
         tpo = next.second;
-        premiseSet.insert(qr.data->clause);
+        premiseSet.insert(qr.data->clause->number(), qr.data->clause);
         goto LOOP_END;
       }
     }
@@ -173,7 +173,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
 LOOP_END:
     continue;
   }
-  premises = pvi(getPersistentIterator(premiseSet.iterator()));
+  premises = pvi(getPersistentIterator(premiseSet.range()));
   replacement = nullptr;
 
   // cout << "forward ground joinable " << *cl << endl;

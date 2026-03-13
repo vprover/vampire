@@ -22,6 +22,7 @@
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Deque.hpp"
 #include "Kernel/Clause.hpp"
+#include "Lib/DHMap.hpp"
 #include "Lib/Set.hpp"
 
 #define OUTPUT_LRS_DETAILS 0
@@ -209,13 +210,13 @@ public:
   void remove(Clause* c) override;
 
   unsigned sizeEstimate() const override { return _clauses.size(); }
-  ClauseIterator clauses() const { return pvi(_clauses.iter()); }
+  ClauseIterator clauses() const { return _clauses.range(); }
 
 protected:
   friend PassiveClauseContainer;
   void onLimitsUpdated(PassiveClauseContainer* limits);
 private:
-  Set<Clause*> _clauses;
+  DHMap<unsigned, Clause*> _clauses;
   // const Shell::Options& _opt;
 };
 

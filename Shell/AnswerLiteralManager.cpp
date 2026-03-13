@@ -448,14 +448,14 @@ std::string PlainALManager::postprocessAnswerString(std::string answer)
 // SynthesisALManager
 //
 
-void SynthesisALManager::getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<Unit*>& allProofUnits)
+void SynthesisALManager::getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<unsigned>& allProofUnitNums)
 {
   Stack<Unit*> toDo;
   toDo.push(refutation);
 
   while(toDo.isNonEmpty()) {
     Unit* curr = toDo.pop();
-    if(!allProofUnits.insert(curr)) {
+    if(!allProofUnitNums.insert(curr->number())) {
       continue;
     }
     Inference& inf = curr->inference();
@@ -495,11 +495,8 @@ bool SynthesisALManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answer
 
   ClauseStack premiseClauses;
   Stack<Unit*> conjectures;
-  DHSet<Unit*> proofUnits;
-  getNeededUnits(refutation, premiseClauses, conjectures, proofUnits);
   DHSet<unsigned> proofNums;
-  DHSet<Unit*>::Iterator puit(proofUnits);
-  while (puit.hasNext()) proofNums.insert(puit.next()->number());
+  getNeededUnits(refutation, premiseClauses, conjectures, proofNums);
 
   // We iterate through the stored _answerPairs. An answer pair p is relevant if:
   // - either it is the _lastAnsLit (i.e., has p.first==0)
