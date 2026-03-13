@@ -32,8 +32,8 @@ using namespace Test;
   DECL_CONST(h, arrow({srt, srt, srt}, srt))       \
   DECL_DE_BRUIJN_INDEX(db0, 0, srt)                \
   DECL_DE_BRUIJN_INDEX(db1, 1, srt)                \
-  DECL_CONST(a, {srt})                             \
-  DECL_CONST(b, {srt})
+  DECL_CONST(a, srt)                               \
+  DECL_CONST(b, srt)
 
 #define PREAMBLE_HANDLER           \
   env.setHigherOrder(true);        \

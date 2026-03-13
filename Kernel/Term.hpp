@@ -1113,6 +1113,7 @@ public:
   { _args[0]._setPolarity(positive); }
 
   TermList eqArgSort() const;
+  std::pair<TermList, TermList> eqArgs() const;
   
   // prevent bugs through implicit bool <-> unsigned conversions
   template<class Iter> static Literal* createFromIter(unsigned predicate, unsigned polarity, Iter iter) = delete;

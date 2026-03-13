@@ -16,20 +16,12 @@ using namespace Test;
 
 #define MY_SYNTAX_SUGAR                            \
   DECL_SORT(srt)                                   \
-  DECL_LAM                                         \
-  DECL_APP                                         \
   DECL_VAR_SORTED(x, 0, srt)                       \
   DECL_VAR_SORTED(y, 1, srt)                       \
   DECL_VAR_SORTED(z, 2, srt)                       \
-  DECL_VAR_SORTED(xs, 3, arrow({ srt, srt }, srt)) \
-  DECL_VAR_SORTED(ys, 4, arrow(srt, srt))          \
-  DECL_VAR_SORTED(zs, 5, arrow(srt, srt))          \
-  DECL_PRED(p, { srt })                            \
   DECL_CONST(f, arrow({srt, srt}, srt))            \
   DECL_CONST(g, arrow(srt, srt))                   \
-  DECL_DE_BRUIJN_INDEX(db0, 0, srt)                \
-  DECL_CONST(a, {srt})                             \
-  DECL_CONST(b, {srt})
+  DECL_DE_BRUIJN_INDEX(db0, 0, srt)
 
 REGISTER_GEN_TESTER(Test::Generation::GenerationTester<PositiveExtensionality>(PositiveExtensionality()))
 

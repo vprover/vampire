@@ -8,7 +8,7 @@
  * and in the source directory
  */
 #include "Test/SyntaxSugar.hpp"
-#include "Inferences/HOL/ArgCong.hpp"
+#include "Inferences/HOL/NegativeExtensionality.hpp"
 
 #include "Test/GenerationTester.hpp"
 
@@ -29,19 +29,19 @@ using namespace Test;
   DECL_CONST(a, srt)                               \
   DECL_CONST(b, srt)
 
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<ArgCong>(ArgCong()))
+REGISTER_GEN_TESTER(Test::Generation::GenerationTester<NegativeExtensionality>(NegativeExtensionality()))
 
 // not done for non-selected literals
 TEST_GENERATION(fail_1,
     Generation::AsymmetricTest()
-      .input( clause({ selected(x == y), g == lam(srt, ap(ap(f, db0), db0)) }))
+      .input( clause({ selected(x == y), g != lam(srt, ap(ap(f, db0), db0)) }))
       .expected(none())
     )
 
-// not done for negative literals
+// not done for positive literals
 TEST_GENERATION(fail_2,
     Generation::AsymmetricTest()
-      .input( clause({ selected(g != lam(srt, ap(ap(f, db0), db0))) }))
+      .input( clause({ selected(g == lam(srt, ap(ap(f, db0), db0))) }))
       .expected(none())
     )
 
@@ -55,18 +55,19 @@ TEST_GENERATION(fail_3,
 // not done for functions already applied
 TEST_GENERATION(fail_4,
     Generation::AsymmetricTest()
-      .input( clause({ selected(a == b) }))
+      .input( clause({ selected(a != b) }))
       .expected(none())
     )
 
-TEST_GENERATION(success_1,
-    Generation::AsymmetricTest()
-      .input( clause({ selected(g == lam(srt, ap(ap(f, x), x))) }))
-      .expected(exactly(clause({ ap(g, y) == ap(lam(srt, ap(ap(f, x), x)), y) })))
-    )
+// TODO find a way to test with Skolems
+// TEST_GENERATION(success_1,
+//     Generation::AsymmetricTest()
+//       .input( clause({ selected(g != lam(srt, ap(ap(f, x), x))) }))
+//       .expected(exactly(clause({ ap(g, sk0()) != ap(lam(srt, ap(ap(f, x), x)), sk0()) })))
+//     )
 
-TEST_GENERATION(success_2,
-    Generation::AsymmetricTest()
-      .input( clause({ selected(g == lam(srt, ap(ap(f, db0), db0))), x == y }))
-      .expected(exactly(clause({ ap(g, x) == ap(lam(srt, ap(ap(f, db0), db0)), x), y == z })))
-    )
+// TEST_GENERATION(success_2,
+//     Generation::AsymmetricTest()
+//       .input( clause({ selected(g != lam(srt, ap(ap(f, db0), db0))), x == y }))
+//       .expected(exactly(clause({ ap(g, sk0()) != ap(lam(srt, ap(ap(f, db0), db0)), sk0()), x == y })))
+//     )

@@ -8,8 +8,8 @@
  * and in the source directory
  */
 /**
- * @file BoolSimp.hpp
- * Defines class BoolSimp.
+ * @file BoolEqToDiseq.hpp
+ * Defines class BoolEqToDiseq.
  */
 
 #ifndef __BoolEqToDiseq__
@@ -17,7 +17,7 @@
 
 #include "Forwards.hpp"
 
-#include "InferenceEngine.hpp"
+#include "Inferences/InferenceEngine.hpp"
 
 namespace Inferences {
 
@@ -25,7 +25,6 @@ class BoolEqToDiseq : public GeneratingInferenceEngine
 {
   public:
     ClauseIterator generateClauses(Clause* premise) override;
-
 };
 
 }

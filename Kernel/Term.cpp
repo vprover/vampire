@@ -811,6 +811,11 @@ TermList Literal::eqArgSort() const {
   return SortHelper::getEqualityArgumentSort(this);
 }
 
+std::pair<TermList,TermList> Literal::eqArgs() const {
+  ASS(isEquality());
+  return { termArg(0), termArg(1) };
+}
+
 /**
  * Return the result of conversion of a literal into a std::string.
  *

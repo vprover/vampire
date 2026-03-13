@@ -76,8 +76,10 @@
 #include "Inferences/ForwardSubsumptionDemodulation.hpp"
 #include "Inferences/GlobalSubsumption.hpp"
 #include "Inferences/HOL/BetaEtaSimplify.hpp"
+#include "Inferences/HOL/BoolEqToDiseq.hpp"
 #include "Inferences/HOL/FlexFlexSimplify.hpp"
 #include "Inferences/HOL/NegativeExtensionality.hpp"
+#include "Inferences/HOL/PositiveExtensionality.hpp"
 #include "Inferences/InnerRewriting.hpp"
 #include "Inferences/TermAlgebraReasoning.hpp"
 #include "Inferences/Superposition.hpp"
@@ -1505,6 +1507,10 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   if (env.higherOrder()){
     gie->addFront(new NegativeExtensionality());
+    gie->addFront(new PositiveExtensionality());
+    if(prb.hasFOOL()/*  && env.options->booleanEqTrick() */){
+      gie->addFront(new BoolEqToDiseq());
+    }
   }
 
   if (env.options->choiceReasoning()) {

@@ -26,8 +26,8 @@ using namespace Test;
   DECL_FUNC(f, {srt, srt}, srt)                    \
   DECL_CONST(g, arrow({srt, srt}, srt))            \
   DECL_DE_BRUIJN_INDEX(db0, 0, srt)                \
-  DECL_CONST(a, {srt})                             \
-  DECL_CONST(b, {srt})
+  DECL_CONST(a, srt)                               \
+  DECL_CONST(b, srt)
 
 REGISTER_SIMPL_TESTER(Simplification::RuleSimplificationTester<FlexFlexSimplify>)
 

@@ -24,8 +24,8 @@ using namespace Test;
   DECL_CONST(g, arrow({srt, srt}, srt))            \
   DECL_DE_BRUIJN_INDEX(db0, 0, srt)                \
   DECL_DE_BRUIJN_INDEX(db1, 1, srt)                \
-  DECL_CONST(a, {srt})                             \
-  DECL_CONST(b, {srt})
+  DECL_CONST(a, srt)                               \
+  DECL_CONST(b, srt)
 
 REGISTER_SIMPL_TESTER(Simplification::RuleSimplificationTester<BetaEtaSimplify>)
 

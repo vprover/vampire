@@ -57,6 +57,7 @@
 #define DECL_DE_BRUIJN_INDEX(x, i, s) auto x = TermSugar(HOL::getDeBruijnIndex(i, s));
 #define DECL_FUN_DEF(d, t)  auto d = PredSugar(env.signature->getFnDef(t.sugaredExpr().term()->functor()));
 #define DECL_PRED_DEF(d, t) auto d = PredSugar(env.signature->getBoolDef(((Literal*)t)->functor()));
+#define DECL_NOT_PROXY auto notP = FuncSugar(env.signature->getNotProxy());
 #define NEXT_INTRODUCED_PRED(s,offset) auto s = PredSugar(env.signature->predicates()+offset);
 #define NEXT_INTRODUCED_FUN(s,offset) auto s = FuncSugar(env.signature->functions()+offset);
 #define TROO auto troo = TermSugar(true);
