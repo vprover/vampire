@@ -36,6 +36,7 @@ using namespace Test;
   DECL_DE_BRUIJN_INDEX(db1, 1, srt)                \
   DECL_CONST(a, srt)                               \
   DECL_CONST(b, srt)                               \
+  DECL_CONST(c, srt)                               \
   NEXT_INTRODUCED_FUN(f_hol,0)                     \
   NEXT_INTRODUCED_FUN(g_hol,1)
 
@@ -203,10 +204,18 @@ TEST_UNIFIER(constraints_iteration_4,
   }
 )
 
-// TODO handle decomposition
-// TEST_UNIFIER(constraints_iteration_5,
-//   lam(srt, ap(g, db0)) == lam(srt, lam(srt, ap(ap(g, db0), db1))), p(xs), 1,
-//   Stack<LiteralStack>{
-//     LiteralStack(),
-//   }
-// )
+TEST_UNIFIER(constraints_iteration_5,
+  a == ap(ap(xs, b), c), p(xs), 1,
+  Stack<LiteralStack>{
+    LiteralStack(),
+    LiteralStack{ p(lam(srt, lam(srt, a))) },
+  }
+)
+
+TEST_UNIFIER(constraints_iteration_6,
+  g() == lam(srt, ap(g, a)), p(xs), 1,
+  Stack<LiteralStack>{
+    LiteralStack(),
+    LiteralStack(),
+  }
+)

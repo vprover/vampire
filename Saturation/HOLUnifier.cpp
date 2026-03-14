@@ -256,19 +256,36 @@ struct HOLUnifier::Constraint
 
   void normalize(const Substitution& subs)
   {
+    // 1. We want to reach a fixed point of applying the substitution
+    // on the head and then beta normalizing it if it's a lambda.
+    //
+    // TODO this is very inefficient now, we only have to beta normalize
+    // any applications on the head.
+    bool changed;
     do {
-      // 1. alpha-eta normalize
-      HOL::normaliseLambdaPrefixes(_lhs, _rhs);
+      changed = false;
+      auto newLhs = HOL::reduce::betaNF(_lhs);
+      if (newLhs != _lhs) {
+        changed = true;
+        _lhs = newLhs;
+        _lhead = _lhs.head();
+      }
+      auto newRhs = HOL::reduce::betaNF(_rhs);
+      if (newRhs != _rhs) {
+        changed = true;
+        _rhs = newRhs;
+        _rhead = _rhs.head();
+      }
+      if (derefHead(_lhead, _lhs, subs)) {
+        changed = true;
+      }
+      if (derefHead(_rhead, _rhs, subs)) {
+        changed = true;
+      }
+    } while (changed);
 
-      // 2. betaNormalize
-      // TODO this is probably not needed, but maybe easier to do it here lazily
-      _lhs = HOL::reduce::betaNF(_lhs);
-      _lhead = _lhs.head();
-      _rhs = HOL::reduce::betaNF(_rhs);
-      _rhead = _rhs.head();
-
-      // 3. dereference
-    } while (derefHead(_lhead, _lhs, subs) || derefHead(_rhead, _rhs, subs));
+    // 2. We then alpha-eta normalize to get the same prefix on both sides.
+    HOL::normaliseLambdaPrefixes(_lhs, _rhs);
   }
 };
 
@@ -382,20 +399,16 @@ std::pair<Stack<HOLUnifier::Node*>,LiteralStack> HOLUnifier::Node::solve()
       }
 
       DEBUG("decompose");
-      if (curr._lhs.isApplication()) {
-        ASS(curr._rhs.isApplication());
-        auto [lhead, largs] = HOL::getHeadAndArgs(curr._lhs);
-        auto [rhead, rargs] = HOL::getHeadAndArgs(curr._rhs);
-        ASS_EQ(largs.size(), rargs.size());
+      auto [lhead, largs] = HOL::getHeadAndArgs(curr._lhs);
+      auto [rhead, rargs] = HOL::getHeadAndArgs(curr._rhs);
+      ASS_EQ(largs.size(), rargs.size());
 
-        Stack<Constraint> cons;
-        for (unsigned i = 0; i < largs.size(); i++) {
-          cons.emplace(largs[i], rargs[i]);
-        }
-        res.push(new Node(*this, cons));
-      } else {
-        ASSERTION_VIOLATION;
+      Stack<Constraint> cons;
+      for (unsigned i = 0; i < largs.size(); i++) {
+        cons.emplace(largs[i], rargs[i]);
       }
+      res.push(new Node(*this, cons));
+
     } else if (curr.flexRigid()) {
       auto& flexTerm = curr._lhead.isVar() ? curr._lhs : curr._rhs;
       auto& rigidTerm = curr._lhead.isVar() ? curr._rhs : curr._lhs;
