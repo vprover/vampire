@@ -95,7 +95,7 @@ struct URResolution<synthesis>::Item
    * substitution is applied to the literals, otherwise the result
    * part is applied.
    */
-  void resolveLiteral(unsigned idx, QueryRes<ResultSubstitutionSP, LiteralClause>& unif, Clause* premise, bool useQuerySubstitution)
+  void resolveLiteral(unsigned idx, ResultSubstitutionSP& unif, Clause* premise, bool useQuerySubstitution)
   {
     Literal* rlit = _lits[idx];
     _lits[idx] = 0;
@@ -104,19 +104,19 @@ struct URResolution<synthesis>::Item
     ASS_NEQ(_color, COLOR_INVALID)
 
     if (_ansLit && !_ansLit->ground()) {
-      _ansLit = unif.unifier->apply(_ansLit, !useQuerySubstitution);
+      _ansLit = unif->apply(_ansLit, !useQuerySubstitution);
     }
     Literal* premAnsLit = nullptr;
     if (synthesis && premise->hasAnswerLiteral()) {
       premAnsLit = premise->getAnswerLiteral();
       if (!premAnsLit->ground()) {
-        premAnsLit = unif.unifier->apply(premAnsLit, useQuerySubstitution);
+        premAnsLit = unif->apply(premAnsLit, useQuerySubstitution);
       }
       if (!_ansLit) {
         _ansLit = premAnsLit;
       } else if (_ansLit != premAnsLit) {
         bool neg = rlit->isNegative();
-        Literal* resolved = unif.unifier->apply(rlit, !useQuerySubstitution);
+        Literal* resolved = unif->apply(rlit, !useQuerySubstitution);
         if (neg) {
           resolved = Literal::complementaryLiteral(resolved);
         }
@@ -135,7 +135,7 @@ struct URResolution<synthesis>::Item
       if(!lit) {
         continue;
       }
-      lit = unif.unifier->apply(lit, !useQuerySubstitution);
+      lit = unif->apply(lit, !useQuerySubstitution);
       if(!lit->ground()) {
         nonGroundCnt++;
       }
@@ -272,7 +272,7 @@ void URResolution<synthesis>::processLiteral(ItemList*& itms, unsigned idx)
       }
 
       Item* itm2 = new Item(*itm);
-      itm2->resolveLiteral(idx, unif, unif.data->clause, true);
+      itm2->resolveLiteral(idx, unif.unifier, unif.data->clause, true);
       iit.insert(itm2);
 
       if(!_full && itm->_atMostOneNonGround && (!synthesis || !unif.data->clause->hasAnswerLiteral())) {
@@ -355,7 +355,7 @@ void URResolution<synthesis>::doBackwardInferences(Clause* cl, ClauseList*& acc)
     }
     ASS(!_selectedOnly || pos<ucl->numSelected());
     swap(itm->_lits[0], itm->_lits[pos]);
-    itm->resolveLiteral(0, unif, cl, /* useQuerySubstitution */ false);
+    itm->resolveLiteral(0, unif.unifier, cl, /* useQuerySubstitution */ false);
 
     processAndGetClauses(itm, 1, acc);
   }

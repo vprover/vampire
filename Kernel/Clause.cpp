@@ -82,6 +82,12 @@ Clause::Clause(Literal* const* lits, unsigned length, Inference inf)
     (*this)[i] = lits[i];
   }
 
+#if VDEBUG
+  // check that the variable sorts are consistent
+  DHMap<unsigned, TermList> temp;
+  SortHelper::collectVariableSorts(this, temp);
+#endif
+
   doUnitTracing();
 }
 

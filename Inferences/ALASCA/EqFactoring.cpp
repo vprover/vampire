@@ -57,17 +57,6 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
   DEBUG("l1: ", l1)
   DEBUG("l2: ", l2)
 
-
-  auto unifySorts = [](auto s1, auto s2) -> Option<TermList> {
-    static RobSubstitution subst;
-    if (!subst.unify(s1, 0, s2, 0)) {
-      return Option<TermList>();
-    } else {
-      ASS_EQ(subst.apply(s1,0), subst.apply(s2,0))
-      return Option<TermList>(subst.apply(s1, 0));
-    }
-  };
-
   auto nothing = [&]() { return Option<Clause*>(); };
 
   auto s1 = l1.biggerSide();
@@ -87,22 +76,20 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
       return nothing();                                                                             \
     }                                                                                               \
 
-  auto srt_ = unifySorts(
-      SortHelper::getEqualityArgumentSort(l1.literal()),
-      SortHelper::getEqualityArgumentSort(l2.literal())
-      );
+  auto srt1 = SortHelper::getEqualityArgumentSort(l1.literal());
+  RobSubstitution ssubst;
   check_side_condition(
-      "s1 and s2 are of unifyable sorts",
-      srt_.isSome())
-  auto& srt = srt_.unwrap();
+      "s1 and s2 are of unifiable sorts",
+      ssubst.unify(srt1, 0, SortHelper::getEqualityArgumentSort(l2.literal()), 0))
 
   auto uwa = _shared->unify(s1, s2);
   check_side_condition(
       "uwa(s1,s2) = ⟨σ,Cnst⟩",
       uwa.isSome())
-  
+
   auto sigma = [&](auto t) { return uwa->subs().apply(t, /* varbank */ 0); };
   auto cnst = uwa->computeConstraintLiterals();
+  auto srt = sigma(srt1);
 
   Stack<Literal*> concl(l1.clause()->size() // <- (C \/ s1 ≈ t1 \/ t1  ̸≈ t2)σ
                       + cnst->size()); // <- Cnstσ

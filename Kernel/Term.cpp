@@ -849,6 +849,9 @@ std::string Literal::toString(bool reverseEquality) const
       res = "(" + res + ")";
     }
 
+    // TODO remove this before merge
+    res += " {" + eqArgSort().toString() + "}";
+
     return res;
   }
 
