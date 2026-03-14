@@ -579,7 +579,7 @@ public:
     * non-emptiness
     * In the monomorphic case, the same as args()
     */
-  TermList* termArgs();
+  const TermList* termArgs() const;
 
   /** Return the 1st type argument for a polymorphic term.
     * returns a nullpointer if the term not polymorphic
@@ -832,7 +832,7 @@ public:
   }
 
   /** Return an index of the argument to which @b arg points */
-  unsigned getArgumentIndex(TermList* arg)
+  unsigned getArgumentIndex(const TermList* arg)
   {
     unsigned res=arity()-(arg-_args);
     ASS_L(res,arity());
