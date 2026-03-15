@@ -32,7 +32,7 @@ public:
   HOLUnifierHandler(const Options& opt);
 
   Clause* handleClause(Clause* cl);
-  ClauseStack iterate();
+  ClauseStack iterate(bool& terminated);
 
   static bool isHolUnifiable(TermList t);
 
@@ -82,7 +82,9 @@ private:
 
   friend std::ostream& operator<<(std::ostream& out, const Constraint& con);
   friend std::ostream& operator<<(std::ostream& out, const Node& node);
+  friend std::ostream& operator<<(std::ostream& out, const HOLUnifier& unif);
 
+  Literal* _lit;
   Stack<Node*> _todo;
 };
 

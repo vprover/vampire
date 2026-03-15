@@ -1183,14 +1183,6 @@ void SaturationAlgorithm::activate(Clause* cl)
     }
   }
 
-  // TODO find a place where this is ideally placed,
-  // where we can iterate regardless of activations
-  if (_holUnifierHandler) {
-    for (const auto& huCl : _holUnifierHandler->iterate()) {
-      addNewClause(huCl);
-    }
-  }
-
   _clauseActivationInProgress = false;
 
   // now we remove clauses that could not be removed during the clause activation process
@@ -1286,9 +1278,18 @@ UnitList *SaturationAlgorithm::collectSaturatedSet()
  */
 void SaturationAlgorithm::doOneAlgorithmStep()
 {
+  bool huhTerminated = true;
+  if (_holUnifierHandler) {
+    for (const auto& huCl : _holUnifierHandler->iterate(huhTerminated)) {
+      addNewClause(huCl);
+    }
+  }
   doUnprocessedLoop();
 
   if (_passive->isEmpty()) {
+    if (!huhTerminated) {
+      return;
+    }
     TerminationReason termReason =
         isComplete() ? TerminationReason::SATISFIABLE : TerminationReason::REFUTATION_NOT_FOUND;
     MainLoopResult res(termReason);

@@ -82,7 +82,7 @@ Clause* HOLUnifierHandler::handleClause(Clause* cl)
   return cl;
 }
 
-ClauseStack HOLUnifierHandler::iterate()
+ClauseStack HOLUnifierHandler::iterate(bool& terminated)
 {
   ClauseStack res;
 
@@ -90,7 +90,7 @@ ClauseStack HOLUnifierHandler::iterate()
   for (unsigned j = 0; j < _kNumIter; j++) {
 
     if (_todo.isEmpty()) {
-      return res;
+      break;
     }
 
     // circulate inside _todos
@@ -102,6 +102,7 @@ ClauseStack HOLUnifierHandler::iterate()
 
     LiteralStack solution;
     if (curr.iterate(solution)) {
+      DEBUG("finished ", curr);
       _solved.push(_todo.swapRemove(_index));
     } else {
       _index++;
@@ -111,6 +112,7 @@ ClauseStack HOLUnifierHandler::iterate()
       res.push(Clause::fromStack(solution, NonspecificInference0(UnitInputType::AXIOM, InferenceRule::HOL_UNIFIER_SOLUTION)));
     }
   }
+  terminated = _todo.isEmpty();
   return res;
 }
 
@@ -195,7 +197,7 @@ std::pair<Literal*,Unit*> HOLUnifierHandler::introduceDefinition(Literal* lit)
 // HOLUnifier
 
 HOLUnifier::HOLUnifier(Literal* lit, Literal* def, unsigned nextVar)
-  : _todo({ new Node(lit, def, nextVar )}) {}
+  : _lit(lit), _todo({ new Node(lit, def, nextVar )}) {}
 
 bool HOLUnifier::iterate(LiteralStack& solution)
 {
@@ -286,6 +288,8 @@ struct HOLUnifier::Constraint
 
     // 2. We then alpha-eta normalize to get the same prefix on both sides.
     HOL::normaliseLambdaPrefixes(_lhs, _rhs);
+    _lhead = _lhs.head();
+    _rhead = _rhs.head();
   }
 };
 
@@ -387,14 +391,17 @@ std::pair<Stack<HOLUnifier::Node*>,LiteralStack> HOLUnifier::Node::solve()
 
     // 4. delete
     if (curr._lhs == curr._rhs) {
+      DEBUG("deleted");
       std::swap(curr, _cons.top());
       _cons.pop();
       continue;
     }
 
     if (curr.rigidRigid()) {
+      DEBUG("rigid-rigid ", curr._lhead, " ", curr._rhead);
       if (curr._lhead != curr._rhead) {
         // fail
+        DEBUG("fail");
         return { Stack<Node*>(), LiteralStack() };
       }
 
@@ -409,7 +416,9 @@ std::pair<Stack<HOLUnifier::Node*>,LiteralStack> HOLUnifier::Node::solve()
       }
       res.push(new Node(*this, cons));
 
-    } else if (curr.flexRigid()) {
+    } else {
+      ASS(curr.flexRigid());
+      DEBUG("flex-rigid ", curr._lhead, " ", curr._rhead);
       auto& flexTerm = curr._lhead.isVar() ? curr._lhs : curr._rhs;
       auto& rigidTerm = curr._lhead.isVar() ? curr._rhs : curr._lhs;
       TermStack bindings = HOL::getProjAndImitBindings(flexTerm, rigidTerm, _freshVar);
@@ -433,6 +442,10 @@ std::ostream& operator<<(std::ostream& out, const HOLUnifier::Constraint& con) {
 
 std::ostream& operator<<(std::ostream& out, const HOLUnifier::Node& node) {
   return out << node._cons << " " << node._subs;
+}
+
+std::ostream& operator<<(std::ostream& out, const HOLUnifier& unif) {
+  return out << unif._lit->termArg(0) << " =?= " << unif._lit->termArg(1);
 }
 
 } // namespace Saturation

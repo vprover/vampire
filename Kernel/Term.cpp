@@ -907,6 +907,9 @@ std::string Literal::toString(bool reverseEquality) const
     while (it->isNonEmpty()) {
       s += it->toString();
       it = it->next();
+      if (it->isNonEmpty()) {
+        s += ',';
+      }
     }
     s += ')';
   }
