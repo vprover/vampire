@@ -296,18 +296,10 @@ SaturationAlgorithm::~SaturationAlgorithm()
   _active->detach();
   _passive->detach();
 
-  while (_fwSimplifiers) {
-    delete FwSimplList::pop(_fwSimplifiers);
-  }
-  while (_expensiveFwSimplifiers) {
-    delete FwSimplList::pop(_expensiveFwSimplifiers);
-  }
-  while (_simplifiers) {
-    delete SimplList::pop(_simplifiers);
-  }
-  while (_bwSimplifiers) {
-    delete BwSimplList::pop(_bwSimplifiers);
-  }
+  FwSimplList::destroyWithDeletion(_fwSimplifiers);
+  FwSimplList::destroyWithDeletion(_expensiveFwSimplifiers);
+  SimplList::destroyWithDeletion(_simplifiers);
+  BwSimplList::destroyWithDeletion(_bwSimplifiers);
 
   delete _unprocessed;
   delete _active;
