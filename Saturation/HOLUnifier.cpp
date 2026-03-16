@@ -230,11 +230,12 @@ struct HOLUnifier::Constraint
 {
   TermList _lhs;
   TermList _rhs;
+  TermList _sort;
   TermList _lhead;
   TermList _rhead;
 
-  Constraint(TermList lhs, TermList rhs)
-    : _lhs(lhs), _rhs(rhs), _lhead(lhs.head()), _rhead(rhs.head())
+  Constraint(TermList lhs, TermList rhs, TermList sort)
+    : _lhs(lhs), _rhs(rhs), _sort(sort), _lhead(lhs.head()), _rhead(rhs.head())
   {
     // terms must be in whnf
     ASS(!_lhead.isLambdaTerm());
@@ -303,7 +304,7 @@ HOLUnifier::Node::Node(Literal* lit, Literal* def, unsigned nextVar)
   ASS(lit->isEquality());
   ASS(lit->isPositive());
 
-  _cons.emplace(lit->termArg(0), lit->termArg(1));
+  _cons.emplace(lit->termArg(0), lit->termArg(1), lit->eqArgSort());
 }
 
 HOLUnifier::Node::Node(const Node& parent, unsigned var, TermList binding)
@@ -339,7 +340,9 @@ LiteralStack HOLUnifier::Node::solution()
     ASS(con.flexFlex());
     res.push(Literal::createEquality(false,
       SubstHelper::apply(con._lhs, subs), SubstHelper::apply(con._rhs, subs),
-      SortHelper::getResultSort(con._lhs.term())));
+      con._sort));
+    // the sort should survive unification without changing
+    ASS_EQ(con._sort, SubstHelper::apply(con._sort, subs));
   }
 
 #if VDEBUG
@@ -350,6 +353,7 @@ LiteralStack HOLUnifier::Node::solution()
     // if there are no flex-flex pairs, we do a simple check
     ASS_EQ(lhs, rhs);
   } else {
+    // TODO this does not work, revise it
     // otherwise we do a deep check
     SubtermIterator stil(lhs.term());
     SubtermIterator stir(rhs.term());
@@ -363,9 +367,9 @@ LiteralStack HOLUnifier::Node::solution()
         continue;
       }
       if (stl.head().isVar() && str.head().isVar()) {
-        ASS(range(1, res.size()).map([&res](unsigned i) { return res[i]; }).any([stl,str](Literal* lit) {
+        ASS_REP(range(1, res.size()).map([&res](unsigned i) { return res[i]; }).any([stl,str](Literal* lit) {
           return (stl == lit->termArg(0) && str == lit->termArg(1)) || (stl == lit->termArg(1) && str == lit->termArg(0));
-        }));
+        }), lhs.toString() + " " + rhs.toString());
       }
       ASS_EQ(stl.term()->functor(), str.term()->functor());
     }
@@ -410,16 +414,18 @@ std::pair<Stack<HOLUnifier::Node*>,LiteralStack> HOLUnifier::Node::solve()
       DEBUG("decompose");
       auto [lhead, largs] = HOL::getHeadAndArgs(curr._lhs);
       auto [rhead, rargs] = HOL::getHeadAndArgs(curr._rhs);
+      auto argSorts = HOL::getArgSorts(curr._lhs);
+      ASS_EQ(argSorts, HOL::getArgSorts(curr._rhs));
       ASS_EQ(largs.size(), rargs.size());
+      ASS_EQ(largs.size(), argSorts.size());
 
       Stack<Constraint> cons;
       for (unsigned i = 0; i < largs.size(); i++) {
-        cons.emplace(largs[i], rargs[i]);
+        cons.emplace(largs[i], rargs[i], argSorts[i]);
       }
       res.push(new Node(*this, cons));
 
-    } else {
-      ASS(curr.flexRigid());
+    } else if (curr.flexRigid()) {
       DEBUG("flex-rigid ", curr._lhead, " ", curr._rhead);
       auto& flexTerm = curr._lhead.isVar() ? curr._lhs : curr._rhs;
       auto& rigidTerm = curr._lhead.isVar() ? curr._rhs : curr._lhs;
@@ -430,6 +436,7 @@ std::pair<Stack<HOLUnifier::Node*>,LiteralStack> HOLUnifier::Node::solve()
         res.push(new Node(*this, flexTerm.head().var(), b));
       }
     }
+    // else flex-flex, which we ignore
     i++;
   }
   if (res.isEmpty()) {
