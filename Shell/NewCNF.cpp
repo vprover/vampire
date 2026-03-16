@@ -1462,7 +1462,7 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
 #endif
 }
 
-bool NewCNF::mapSubstitution(List<GenLit>* clause, Substitution subst, bool onlyFormulaLevel, List<GenLit>* &output)
+bool NewCNF::mapSubstitution(List<GenLit>* clause, const Substitution& subst, bool onlyFormulaLevel, List<GenLit>* &output)
 {
   List<GenLit>::Iterator it(clause);
   while (it.hasNext()) {
