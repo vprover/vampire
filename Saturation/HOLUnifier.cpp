@@ -299,7 +299,7 @@ struct HOLUnifier::Constraint
 // Node
 
 HOLUnifier::Node::Node(Literal* lit, Literal* def, unsigned nextVar)
-  : _def(def), _orig(lit), _freshVar(nextVar)
+  : _parent(nullptr), _def(def), _orig(lit), _freshVar(nextVar)
 {
   ASS(lit->isEquality());
   ASS(lit->isPositive());
@@ -310,11 +310,12 @@ HOLUnifier::Node::Node(Literal* lit, Literal* def, unsigned nextVar)
 HOLUnifier::Node::Node(const Node& parent, unsigned var, TermList binding)
   : Node(parent)
 {
+  _parent = &parent;
   _subs.bindUnbound(var, binding);
 }
 
 HOLUnifier::Node::Node(const Node& parent, Stack<Constraint> cons)
-  : _def(parent._def), _orig(parent._orig), _cons(cons), _subs(parent._subs), _freshVar(parent._freshVar)
+  : _parent(&parent), _def(parent._def), _orig(parent._orig), _cons(cons), _subs(parent._subs), _freshVar(parent._freshVar)
 {
 }
 
@@ -345,7 +346,15 @@ LiteralStack HOLUnifier::Node::solution()
     ASS_EQ(con._sort, SubstHelper::apply(con._sort, subs));
   }
 
-  ASS_REP(checkSolution(res), *this);
+  if (!checkSolution(res)) {
+    const Node* curr = this;
+    DBG("solution check failed");
+    while (curr) {
+      DBG(*curr);
+      curr = curr->_parent;
+    }
+    ASSERTION_VIOLATION;
+  }
 
   // 2. add the unifier predicate instance
   res.push(SubstHelper::apply(_def, subs));
@@ -456,8 +465,13 @@ std::pair<Stack<HOLUnifier::Node*>,LiteralStack> HOLUnifier::Node::solve()
       ASS_EQ(largs.size(), argSorts.size());
 
       Stack<Constraint> cons;
-      for (unsigned i = 0; i < largs.size(); i++) {
-        cons.emplace(largs[i], rargs[i], argSorts[i]);
+      for (unsigned j = 0; j < _cons.size(); j++) {
+        if (i != j) {
+          cons.emplace(_cons[j]);
+        }
+      }
+      for (unsigned j = 0; j < largs.size(); j++) {
+        cons.emplace(largs[j], rargs[j], argSorts[j]);
       }
       res.push(new Node(*this, cons));
 
@@ -486,7 +500,7 @@ std::ostream& operator<<(std::ostream& out, const HOLUnifier::Constraint& con) {
 }
 
 std::ostream& operator<<(std::ostream& out, const HOLUnifier::Node& node) {
-  return out << node._cons << " " << node._subs;
+  return out << "orig: " << *node._orig << ", cons: " << node._cons << ", subs: " << node._subs;
 }
 
 std::ostream& operator<<(std::ostream& out, const HOLUnifier& unif) {

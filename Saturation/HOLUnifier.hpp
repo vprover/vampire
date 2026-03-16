@@ -71,6 +71,7 @@ private:
 
     std::pair<Stack<Node*>,LiteralStack> solve();
 
+    const Node* _parent = nullptr;
     Literal* _def;
     Literal* _orig;
     Stack<Constraint> _cons;
