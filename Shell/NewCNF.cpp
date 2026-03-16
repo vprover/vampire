@@ -1355,24 +1355,25 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
 
     List<List<GenLit>*>* processedGenClauses(0);
 
+    // Lambda to check whether a variable occurs free in any gen literal of a clause.
+    // We might have a predicate skolem binding for a variable that does not
+    // occur in the generalised clause.
+    auto varOccursIn = [](List<GenLit>* gls, unsigned variable) {
+      List<GenLit>::Iterator glsit(gls);
+      while (glsit.hasNext()) {
+        GenLit gl = glsit.next();
+        if (isFreeVariableOf(formula(gl), variable)) {
+          return true;
+        }
+      }
+      return false;
+    };
+
     if (shouldInlineITE(iteCounter)) {
       while (List<List<GenLit>*>::isNonEmpty(genClauses)) {
         List<GenLit>* gls = List<List<GenLit>*>::pop(genClauses);
 
-        bool occurs = false;
-        // We might have a predicate skolem binding for a variable that does not
-        // occur in the generalised clause.
-        // TODO: optimize?
-        List<GenLit>::Iterator glsit(gls);
-        while (glsit.hasNext()) {
-          GenLit gl = glsit.next();
-          if (isFreeVariableOf(formula(gl),variable)) {
-            occurs = true;
-            break;
-          }
-        }
-
-        if (!occurs) {
+        if (!varOccursIn(gls, variable)) {
           List<List<GenLit>*>::push(gls, processedGenClauses);
           continue;
         }
@@ -1401,20 +1402,7 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
       while (List<List<GenLit>*>::isNonEmpty(genClauses)) {
         List<GenLit>* gls = List<List<GenLit>*>::pop(genClauses);
 
-        bool occurs = false;
-        // We might have a predicate skolem binding for a variable that does not
-        // occur in the generalised clause.
-        // TODO: optimize?
-        List<GenLit>::Iterator glsit(gls);
-        while (glsit.hasNext()) {
-          GenLit gl = glsit.next();
-          if (isFreeVariableOf(formula(gl),variable)) {
-            occurs = true;
-            break;
-          }
-        }
-
-        if (!occurs) {
+        if (!varOccursIn(gls, variable)) {
           List<List<GenLit>*>::push(gls, processedGenClauses);
           continue;
         }
