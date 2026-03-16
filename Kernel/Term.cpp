@@ -1036,8 +1036,7 @@ Literal* Literal::complementaryLiteral(Literal* l)
 
 bool Literal::isFlexFlexConstraint() const
 {
-  ASS(isEquality());
-  return isNegative() && termArg(0).head().isVar() && termArg(1).head().isVar();
+  return isEquality() && isNegative() && termArg(0).head().isVar() && termArg(1).head().isVar();
 }
 
 /** Create a new complex term, copy from @b t its function symbol and
