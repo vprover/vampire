@@ -395,7 +395,7 @@ bool HOLUnifier::Node::checkSolution(const LiteralStack& ffPairs)
     bool found = false;
     for (unsigned i = 0; i < ffPairs.size(); i++) {
       auto [lhs, rhs] = ffPairs[i]->eqArgs();
-      if ((lcurr == lhs && rcurr == rhs) || (lcurr == rhs && rcurr == rhs)) {
+      if ((lcurr == lhs && rcurr == rhs) || (lcurr == rhs && rcurr == lhs)) {
         found = true;
         ffTags[i] = true;
         break;
