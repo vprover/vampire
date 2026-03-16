@@ -112,14 +112,10 @@ private:
     unsigned operator()(const Binding& b) { return b.first; }
   };
 
-  #define SIGN bool
-  #define POSITIVE true
-  #define NEGATIVE false
-  #define OPPOSITE(sign) (!(sign))
-
-  #define SIDE unsigned
-  #define LEFT 0u
-  #define RIGHT 1u
+  typedef bool SIGN;
+  static inline constexpr const SIGN POSITIVE = true;
+  static inline constexpr const SIGN NEGATIVE = false;
+  static inline SIGN OPPOSITE(SIGN sign) { return !sign; }
 
   // generalized literal
   typedef std::pair<Formula*, SIGN> GenLit;

@@ -1154,8 +1154,8 @@ void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
     case SpecialFunctor::ITE: {
       Formula* condition = sd->getITECondition();
 
-      Formula* left = BoolTermFormula::create(*term->nthArgument(LEFT));
-      Formula* right = BoolTermFormula::create(*term->nthArgument(RIGHT));
+      Formula* left = BoolTermFormula::create(*term->nthArgument(0));
+      Formula* right = BoolTermFormula::create(*term->nthArgument(1));
       processITE(condition, left, right, occurrences);
       return;
     }
