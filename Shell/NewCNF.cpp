@@ -548,35 +548,22 @@ void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
     Occurrence occ = pop(occurrences);
     SIGN occurrenceSign = (sign == occ.sign()) ? POSITIVE : NEGATIVE;
 
-    bool bound = false;
-    Term* skolem;
-
+    // Look up the skolem term bound to var in either binding list
     // MS: can a non-fool binding ever map a bool var?
-    BindingList::Iterator bit(occ.gc->bindings);
-    while (bit.hasNext()) {
-      Binding binding = bit.next();
-
-      if (binding.first == var) {
-        bound = true;
-        skolem = binding.second;
-        break;
-      }
-    }
-
-    if (!bound) {
-      BindingList::Iterator fbit(occ.gc->foolBindings);
-      while (fbit.hasNext()) {
-        Binding binding = fbit.next();
-
+    Term* skolem = nullptr;
+    for (auto* lst : { occ.gc->bindings, occ.gc->foolBindings }) {
+      BindingList::Iterator it(lst);
+      while (it.hasNext()) {
+        Binding binding = it.next();
         if (binding.first == var) {
-          bound = true;
           skolem = binding.second;
           break;
         }
       }
+      if (skolem) break;
     }
 
-    if (!bound) {
+    if (!skolem) {
       Term* constant = (occurrenceSign == POSITIVE) ? Term::foolFalse() : Term::foolTrue();
       // MS: pushAndRemember is not enough; bindings could already be mentioning var on the rhs!
       // (BTW, scanning bindings for a second time, which is already ugly and potentially quadratic)
