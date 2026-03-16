@@ -432,11 +432,9 @@ private:
     return gc;
   }
 
-  void introduceGenClause(List<GenLit>* gls, BindingList* bindings, BindingList* foolBindings) {
-    SPGenClause gc = makeGenClause(gls, bindings, foolBindings);
-
-    if (gc->size() != List<GenLit>::length(gls)) {
-      LOG4("Eliminated", List<GenLit>::length(gls) - gc->size(), "duplicate literal(s) from", gc->toString());
+  void registerGenClause(SPGenClause gc, unsigned expectedSize) {
+    if (gc->size() != expectedSize) {
+      LOG4("Eliminated", expectedSize - gc->size(), "duplicate literal(s) from", gc->toString());
     }
 
     if (gc->valid) {
@@ -456,6 +454,12 @@ private:
     } else {
       LOG2(gc->toString(), "is eliminated as it contains a tautology");
     }
+  }
+
+  void introduceGenClause(List<GenLit>* gls, BindingList* bindings, BindingList* foolBindings) {
+    unsigned expectedSize = List<GenLit>::length(gls);
+    SPGenClause gc = makeGenClause(gls, bindings, foolBindings);
+    registerGenClause(gc, expectedSize);
   }
 
   void introduceGenClause(GenLit gl, BindingList* bindings=BindingList::empty(), BindingList* foolBindings=BindingList::empty()) {
@@ -494,27 +498,7 @@ private:
     _literalsCache.reset();
     _formulasCache.reset();
 
-    if (newGc->size() != size) {
-      LOG4("Eliminated", size - newGc->size(), "duplicate literal(s) from", newGc->toString());
-    }
-
-    if (newGc->valid) {
-      _genClauses.push_front(newGc);
-      newGc->iter = _genClauses.begin();
-
-      GenClause::Iterator igl = newGc->genLiterals();
-      unsigned position = 0;
-      while (igl.hasNext()) {
-        GenLit gl = igl.next();
-        Occurrences* occurrences = _occurrences.findPtr(formula(gl));
-        if (occurrences) {
-          occurrences->add(Occurrence(newGc, position));
-        }
-        position++;
-      }
-    } else {
-      LOG2(newGc->toString(), "is eliminated as it contains a tautology");
-    }
+    registerGenClause(newGc, size);
   }
 
   void removeGenLit(Occurrence occ) {
