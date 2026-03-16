@@ -125,6 +125,7 @@ std::pair<Literal*,Unit*> HOLUnifierHandler::introduceDefinition(Literal* lit)
   auto nlit = Literal::complementaryLiteral(r.apply(lit));
 
   // 1. collect variable sorts
+
   DHSet<unsigned> varsSeen;
   TermStack typeVars;
   Stack<std::pair<TermList, TermList>> termVars;
@@ -141,36 +142,37 @@ std::pair<Literal*,Unit*> HOLUnifierHandler::introduceDefinition(Literal* lit)
     }
   }
 
-  UCDef* def_ptr;
-
   // 2. introduce definition if needed
+
+  UCDef* def_ptr;
 
   if (_litToDefMap.getValuePtr(nlit, def_ptr)) {
 
     // 2.1. introduce function based on variables
-    auto f = env.signature->addFreshFunction(varsSeen.size(), "hol_unif");
+
+    auto f = env.signature->addFreshFunction(typeVars.size(), "hol_unif");
     auto sym = env.signature->getFunction(f);
     SortHelper::normaliseArgSorts(typeVars, termVarSorts);
-    auto type = OperatorType::getFunctionType(termVarSorts.size(), termVarSorts.begin(), AtomicSort::boolSort(), typeVars.size());
+    auto srt = AtomicSort::arrowSort(termVarSorts, AtomicSort::boolSort());
+    auto type = OperatorType::getConstantsType(srt, typeVars.size());
     sym->setType(type);
 
     // 2.2. add definition
 
-    TermStack def_args;
     auto vl = VSList::empty();
     for (const auto& v : typeVars) {
-      auto vr = r.apply(v);
-      def_args.push(vr);
-      VSList::push({ vr.var(), AtomicSort::superSort() }, vl);
+      VSList::push({ r.apply(v).var(), AtomicSort::superSort() }, vl);
     }
+    TermStack body_args;
     for (const auto& [v,s] : termVars) {
       auto vr = r.apply(v);
-      def_args.push(vr);
+      body_args.push(vr);
       VSList::push({ vr.var(), r.apply(s) }, vl);
     }
 
-    TermList lhs(Term::create(f, /*arity=*/def_args.size(), def_args.begin()));
-    auto defeq = Literal::createEquality(/*polarity=*/true, lhs, TermList(Term::foolTrue()), AtomicSort::boolSort());
+    TermList head(Term::create(f, typeVars.size(), typeVars.begin()));
+    auto defeq = Literal::createEquality(/*polarity=*/true,
+      HOL::create::app(head, body_args), TermList(Term::foolTrue()), AtomicSort::boolSort());
 
     Formula* def = new BinaryFormula(Connective::IFF, new AtomicFormula(defeq), new AtomicFormula(nlit));
     if (vl) {
@@ -188,10 +190,10 @@ std::pair<Literal*,Unit*> HOLUnifierHandler::introduceDefinition(Literal* lit)
   }
 
   // 3. create new literal
-  auto def_s_args = TermStack::fromIterator(typeVars.iterFifo());
-  def_s_args.loadFromIterator(iterTraits(termVars.iterFifo()).map([](auto kv){ return kv.first; }));
-  TermList lhs(Term::create(def_ptr->fun, /*arity=*/def_s_args.size(), def_s_args.begin()));
-  return { Literal::createEquality(/*polarity=*/false, lhs, TermList(Term::foolTrue()), AtomicSort::boolSort()), def_ptr->def };
+
+  auto body_s_args = TermStack::fromIterator(iterTraits(termVars.iterFifo()).map([](auto kv){ return kv.first; }));
+  TermList head(Term::create(def_ptr->fun, typeVars.size(), typeVars.begin()));
+  return { Literal::createEquality(/*polarity=*/false, HOL::create::app(head, body_s_args), TermList(Term::foolTrue()), AtomicSort::boolSort()), def_ptr->def };
 }
 
 // HOLUnifier
