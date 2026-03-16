@@ -205,7 +205,7 @@ private:
   typedef SmartPtr<GenClause> SPGenClause;
 
   void toClauses(SPGenClause gc, Stack<Clause*>& output);
-  bool mapSubstitution(List<GenLit>* gc, Substitution subst, bool onlyFormulaLevel, List<GenLit>* &output);
+  bool mapSubstitution(List<GenLit>* gc, const Substitution& subst, bool onlyFormulaLevel, List<GenLit>* &output);
   Clause* toClause(SPGenClause gc);
 
   typedef std::list<SPGenClause> GenClauses;
