@@ -82,11 +82,6 @@ public:
 
   void setLabelFinder(LabelFinder* finder){ _labelFinder = finder; }
 
-  template<typename Inference> void addForwardSimplifierToFront();
-  template<typename Inference> void addExpensiveForwardSimplifierToFront();
-  template<typename Inference> void addBackwardSimplifierToFront();
-
-
   void addNewClause(Clause* cl);
   bool clausesFlushed();
 
@@ -179,6 +174,10 @@ private:
   void passiveRemovedHandler(Clause* cl);
   void activeRemovedHandler(Clause* cl);
   void addInputClause(Clause* cl);
+
+  template<typename Inference> void addForwardSimplifierToFront();
+  template<typename Inference> void addExpensiveForwardSimplifierToFront();
+  template<typename Inference> void addBackwardSimplifierToFront();
 
   LiteralSelector& getSosLiteralSelector();
 
