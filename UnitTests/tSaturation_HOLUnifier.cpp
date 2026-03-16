@@ -225,6 +225,6 @@ TEST_UNIFIER(constraints_iteration_7,
   lam(srt, ap(g, x)) == lam(srt, ap(g, y)), q(x,y), 2,
   Stack<LiteralStack>{
     LiteralStack(),
-    LiteralStack{ q(x,y), x != y },
+    LiteralStack{ x != y, q(x,y) },
   }
 )

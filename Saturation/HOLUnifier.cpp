@@ -318,24 +318,24 @@ HOLUnifier::Node::Node(const Node& parent, Stack<Constraint> cons)
 {
 }
 
+struct IdempotentSubs {
+  const Substitution& _subs;
+  IdempotentSubs(const Substitution& subs) : _subs(subs) {}
+  TermList apply(unsigned var) const {
+    auto t = _subs.apply(var);
+    if (t.isVar() && t.var() == var) {
+      return t;
+    }
+    return HOL::reduce::betaEtaNF(SubstHelper::apply(t, *this));
+  }
+};
+
 LiteralStack HOLUnifier::Node::solution()
 {
-  struct IdempotentSubs {
-    const Substitution& _subs;
-    IdempotentSubs(const Substitution& subs) : _subs(subs) {}
-    TermList apply(unsigned var) {
-      auto t = _subs.apply(var);
-      if (t.isVar() && t.var() == var) {
-        return t;
-      }
-      return HOL::reduce::betaEtaNF(SubstHelper::apply(t, *this));
-    }
-  };
-
-  IdempotentSubs subs(_subs);
+  const IdempotentSubs subs(_subs);
   LiteralStack res;
 
-  res.push(SubstHelper::apply(_def, subs));
+  // 1. add flex-flex pairs
   for (const auto& con : _cons) {
     ASS(con.flexFlex());
     res.push(Literal::createEquality(false,
@@ -345,38 +345,74 @@ LiteralStack HOLUnifier::Node::solution()
     ASS_EQ(con._sort, SubstHelper::apply(con._sort, subs));
   }
 
-#if VDEBUG
+  ASS_REP(checkSolution(res), *this);
+
+  // 2. add the unifier predicate instance
+  res.push(SubstHelper::apply(_def, subs));
+
+  return res;
+}
+
+bool HOLUnifier::Node::checkSolution(const LiteralStack& ffPairs)
+{
+  const IdempotentSubs subs(_subs);
   auto lhs = HOL::reduce::betaEtaNF(SubstHelper::apply(_orig->termArg(0), subs));
   auto rhs = HOL::reduce::betaEtaNF(SubstHelper::apply(_orig->termArg(1), subs));
 
-  if (res.size()==1) {
+  if (ffPairs.isEmpty()) {
     // if there are no flex-flex pairs, we do a simple check
-    ASS_EQ(lhs, rhs);
-  } else {
-    // TODO this does not work, revise it
-    // otherwise we do a deep check
-    SubtermIterator stil(lhs.term());
-    SubtermIterator stir(rhs.term());
-    while (stil.hasNext()) {
-      ASS(stir.hasNext());
-      auto stl = stil.next();
-      auto str = stir.next();
-      if (stl == str) {
-        stil.right();
-        stir.right();
-        continue;
+    return lhs == rhs;
+  }
+  // we only want to add flex-flex pairs when they are needed to make the terms equal
+  if (lhs == rhs) {
+    return false;
+  }
+  std::vector<bool> ffTags(ffPairs.size(), false);
+  Stack<std::pair<TermList, TermList>> todo;
+  todo.push({ lhs, rhs });
+
+  while (todo.isNonEmpty()) {
+    auto [lcurr, rcurr] = todo.pop();
+    auto [lh,largs] = HOL::getHeadAndArgs(lcurr);
+    auto [rh,rargs] = HOL::getHeadAndArgs(rcurr);
+    // if heads are the same, recurse to the arguments
+    if (lh == rh) {
+      if (largs.size() != rargs.size()) {
+        return false;
       }
-      if (stl.head().isVar() && str.head().isVar()) {
-        ASS_REP(range(1, res.size()).map([&res](unsigned i) { return res[i]; }).any([stl,str](Literal* lit) {
-          return (stl == lit->termArg(0) && str == lit->termArg(1)) || (stl == lit->termArg(1) && str == lit->termArg(0));
-        }), lhs.toString() + " " + rhs.toString());
+      for (unsigned i = 0; i < largs.size(); i++) {
+        if (largs[i] != rargs[i]) {
+          todo.push({ largs[i], rargs[i] });
+        }
       }
-      ASS_EQ(stl.term()->functor(), str.term()->functor());
+      continue;
+    }
+    // otherwise this must be a flex-flex pair
+    if (lh.isTerm() || rh.isTerm()) {
+      return false;
+    }
+
+    bool found = false;
+    for (unsigned i = 0; i < ffPairs.size(); i++) {
+      auto [lhs, rhs] = ffPairs[i]->eqArgs();
+      if ((lcurr == lhs && rcurr == rhs) || (lcurr == rhs && rcurr == rhs)) {
+        found = true;
+        ffTags[i] = true;
+        break;
+      }
+    }
+    if (!found) {
+      return false;
     }
   }
-#endif
 
-  return res;
+  // check that all flex-flex pairs were used
+  for (const auto& ffTag : ffTags) {
+    if (!ffTag) {
+      return false;
+    }
+  }
+  return true;
 }
 
 std::pair<Stack<HOLUnifier::Node*>,LiteralStack> HOLUnifier::Node::solve()

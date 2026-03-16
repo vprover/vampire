@@ -332,14 +332,20 @@ Option<AbstractionOracle::AbstractionResult> hol(
   if (h1.isVar() || h2.isVar() || h1.term.isLambdaTerm() || h2.term.isLambdaTerm()) {
     return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, t1.sort()))));
   }
+  
+  auto h1t = h1.term.term();
+  auto h2t = h2.term.term();
 
-  ASS_EQ(h1.term.term()->arity(), 0);
-  ASS_EQ(h2.term.term()->arity(), 0);
-  if (h1 != h2) {
+  ASS_EQ(h1t->numTermArguments(), 0);
+  ASS_EQ(h2t->numTermArguments(), 0);
+  if (h1t->functor() != h2t->functor()) {
     return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
   }
 
   Recycled<Stack<UnificationConstraint>> unify;
+  for (unsigned i = 0; i < h1t->arity(); i++) {
+    unify->emplace(h1.typeArg(0), h2.typeArg(0), TermSpec(AtomicSort::superSort(),h1.index));
+  }
   while (dt1.term.isApplication()) {
     if (!dt2.term.isApplication()) {
       return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));

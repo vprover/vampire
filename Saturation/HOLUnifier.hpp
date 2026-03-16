@@ -78,6 +78,7 @@ private:
     unsigned _freshVar;
   private:
     LiteralStack solution();
+    bool checkSolution(const LiteralStack& ffPairs);
   };
 
   friend std::ostream& operator<<(std::ostream& out, const Constraint& con);
