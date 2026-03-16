@@ -401,17 +401,17 @@ private:
             _iterator.del();
             continue;
           }
-          _current = SmartPtr<Occurrence>(new Occurrence(occ.gc, occ.position));
+          _current = occ;
           return true;
         }
         return false;
       }
       Occurrence next() {
-        return *_current;
+        return _current;
       }
     private:
       List<Occurrence>::DelIterator _iterator;
-      SmartPtr<Occurrence> _current;
+      Occurrence _current = Occurrence(SPGenClause(),0); // a dummy value to init with (will get overwritten if hasNext returns true)
     };
   };
 
