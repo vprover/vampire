@@ -41,25 +41,34 @@ TermList HOL::create::app(TermList s1, TermList s2, TermList arg1, TermList arg2
                          : Term::createNonShared(app, 4, args.begin()));
 }
 
-TermList HOL::create::app(TermList sort, TermList head, const TermStack& terms) {
+TermList HOL::create::app(TermList sort, TermList head, const TermStack& terms, bool fromTop) {
   ASS(head.isVar() || SortHelper::getResultSort(head.term()) == sort)
 
   TermList res = head;
 
-  for (std::size_t i = terms.size(); i > 0; i--) {
-    TermList s1 = getNthArg(sort, 1);
-    TermList s2 = getResultAppliedToNArgs(sort, 1);
-    res = app(s1, s2, res, terms[i-1]);
-    sort = s2;
+  if (fromTop) {
+    for (const auto& arg : iterTraits(terms.iter())) {
+      TermList s1 = sort.domain();
+      TermList s2 = sort.result();
+      res = app(s1, s2, res, arg);
+      sort = s2;
+    }
+  } else {
+    for (const auto& arg : terms) {
+      TermList s1 = sort.domain();
+      TermList s2 = sort.result();
+      res = app(s1, s2, res, arg);
+      sort = s2;
+    }
   }
 
   return res;
 }
 
-TermList HOL::create::app(TermList head, const TermStack& terms) {
+TermList HOL::create::app(TermList head, const TermStack& terms, bool fromTop) {
   ASS(head.isTerm())
 
-  return app(SortHelper::getResultSort(head.term()), head, terms);
+  return app(SortHelper::getResultSort(head.term()), head, terms, fromTop);
 }
 
 TermList HOL::create::equality(TermList sort) {

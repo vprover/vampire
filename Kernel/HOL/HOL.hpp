@@ -84,8 +84,9 @@ namespace HOL::create {
   TermList app(TermList sort, TermList head, TermList arg);
   TermList app(TermList head, TermList arg);
   TermList app(TermList s1, TermList s2, TermList arg1, TermList arg2, bool shared = true);
-  TermList app(TermList sort, TermList head, const TermStack& terms);
-  TermList app(TermList head, const TermStack& terms);
+  // TODO I think due to the default fromTop==true, some call sites might be wrong, double check
+  TermList app(TermList sort, TermList head, const TermStack& terms, bool fromTop = true);
+  TermList app(TermList head, const TermStack& terms, bool fromTop = true);
 
   inline TermList app2(TermList sort, TermList head, TermList arg1, TermList arg2) {
     return app(app(sort, head, arg1), arg2);

@@ -425,6 +425,9 @@ inline TermSugar ap(SortSugar sort, TermSugar lhs, TermSugar rhs)
 inline TermSugar ap(TermSugar lhs, TermSugar rhs)
 { return ap(lhs.sort(), lhs, rhs); }
 
+inline TermSugar ap(TermList head, TermStack args)
+{ return HOL::create::app(head, args, /*fromTop=*/false); }
+
 inline TermSugar lam(SortSugar varSort, TermSugar body)
 { return HOL::create::namelessLambda(varSort, body.sort(), body); }
 
@@ -503,7 +506,7 @@ inline SortSugar arrow(TermList args, TermList res)
 { return AtomicSort::arrowSort({ args }, res); }
 
 inline SortSugar arrow(Stack<TermList> args, TermList res)
-{ return AtomicSort::arrowSort(args, res); }
+{ return AtomicSort::arrowSort(args, res, /*fromTop=*/true); }
 
 ////////////////////////// Sugar for functions //////////////////////////
 

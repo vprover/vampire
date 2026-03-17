@@ -153,15 +153,18 @@ std::pair<Literal*,Unit*> HOLUnifierHandler::introduceDefinition(Literal* lit)
     auto f = env.signature->addFreshFunction(typeVars.size(), "hol_unif");
     auto sym = env.signature->getFunction(f);
     SortHelper::normaliseArgSorts(typeVars, termVarSorts);
-    auto srt = AtomicSort::arrowSort(termVarSorts, AtomicSort::boolSort());
+    auto srt = AtomicSort::arrowSort(termVarSorts, AtomicSort::boolSort(), /*fromTop=*/true);
     auto type = OperatorType::getConstantsType(srt, typeVars.size());
     sym->setType(type);
 
     // 2.2. add definition
 
     auto vl = VSList::empty();
+    TermStack typeVarsR;
     for (const auto& v : typeVars) {
-      VSList::push({ r.apply(v).var(), AtomicSort::superSort() }, vl);
+      auto vr = r.apply(v);
+      VSList::push({ vr.var(), AtomicSort::superSort() }, vl);
+      typeVarsR.push(vr);
     }
     TermStack body_args;
     for (const auto& [v,s] : termVars) {
@@ -170,9 +173,9 @@ std::pair<Literal*,Unit*> HOLUnifierHandler::introduceDefinition(Literal* lit)
       VSList::push({ vr.var(), r.apply(s) }, vl);
     }
 
-    TermList head(Term::create(f, typeVars.size(), typeVars.begin()));
+    TermList head(Term::create(f, typeVarsR.size(), typeVarsR.begin()));
     auto defeq = Literal::createEquality(/*polarity=*/true,
-      HOL::create::app(head, body_args), TermList(Term::foolTrue()), AtomicSort::boolSort());
+      HOL::create::app(head, body_args, /*fromTop=*/false), TermList(Term::foolTrue()), AtomicSort::boolSort());
 
     Formula* def = new BinaryFormula(Connective::IFF, new AtomicFormula(defeq), new AtomicFormula(nlit));
     if (vl) {
@@ -193,7 +196,7 @@ std::pair<Literal*,Unit*> HOLUnifierHandler::introduceDefinition(Literal* lit)
 
   auto body_s_args = TermStack::fromIterator(iterTraits(termVars.iterFifo()).map([](auto kv){ return kv.first; }));
   TermList head(Term::create(def_ptr->fun, typeVars.size(), typeVars.begin()));
-  return { Literal::createEquality(/*polarity=*/false, HOL::create::app(head, body_s_args), TermList(Term::foolTrue()), AtomicSort::boolSort()), def_ptr->def };
+  return { Literal::createEquality(/*polarity=*/false, HOL::create::app(head, body_s_args, /*fromTop=*/false), TermList(Term::foolTrue()), AtomicSort::boolSort()), def_ptr->def };
 }
 
 // HOLUnifier
@@ -338,9 +341,9 @@ LiteralStack HOLUnifier::Node::solution()
 
   // 1. add flex-flex pairs
   for (const auto& con : _cons) {
-    ASS(con.flexFlex());
-    ASS(!con._lhs.containsLooseDBIndex());
-    ASS(!con._rhs.containsLooseDBIndex());
+    ASS_REP(con.flexFlex(), con);
+    ASS_REP(!con._lhs.containsLooseDBIndex(), con);
+    ASS_REP(!con._rhs.containsLooseDBIndex(), con);
     res.push(Literal::createEquality(false,
       HOL::reduce::betaEtaNF(SubstHelper::apply(con._lhs, subs)),
       HOL::reduce::betaEtaNF(SubstHelper::apply(con._rhs, subs)),
@@ -373,6 +376,7 @@ bool HOLUnifier::Node::checkSolution(const LiteralStack& ffPairs)
   const IdempotentSubs subs(_subs);
   auto lhs = HOL::reduce::betaEtaNF(SubstHelper::apply(_orig->termArg(0), subs));
   auto rhs = HOL::reduce::betaEtaNF(SubstHelper::apply(_orig->termArg(1), subs));
+  HOL::normaliseLambdaPrefixes(lhs, rhs);
 
   if (ffPairs.isEmpty()) {
     // if there are no flex-flex pairs, we do a simple check
@@ -389,12 +393,13 @@ bool HOLUnifier::Node::checkSolution(const LiteralStack& ffPairs)
 
   while (todo.isNonEmpty()) {
     auto [lcurr, rcurr] = todo.pop();
+    HOL::normaliseLambdaPrefixes(lcurr, rcurr);
     auto [lh,largs] = HOL::getHeadAndArgs(lcurr);
     auto [rh,rargs] = HOL::getHeadAndArgs(rcurr);
     // if heads are the same, recurse to the arguments
     if (lh == rh) {
       if (largs.size() != rargs.size()) {
-        DBG("different numer of arguments for ", lcurr, " = ", rcurr);
+        DBG("different number of arguments for ", lcurr, " = ", rcurr);
         return false;
       }
       auto argSorts = HOL::getArgSorts(lcurr);
@@ -480,6 +485,7 @@ std::pair<Stack<HOLUnifier::Node*>,LiteralStack> HOLUnifier::Node::solve()
       auto [rhead, rargs] = HOL::getHeadAndArgs(curr._rhs);
       auto argSorts = HOL::getArgSorts(curr._lhs);
       ASS_EQ(argSorts, HOL::getArgSorts(curr._rhs));
+      ASS_G(largs.size(),0);
       ASS_EQ(largs.size(), rargs.size());
       ASS_EQ(largs.size(), argSorts.size());
 
@@ -510,6 +516,12 @@ std::pair<Stack<HOLUnifier::Node*>,LiteralStack> HOLUnifier::Node::solve()
       auto& flexTerm = curr._lhead.isVar() ? curr._lhs : curr._rhs;
       auto& rigidTerm = curr._lhead.isVar() ? curr._rhs : curr._lhs;
       TermStack bindings = HOL::getProjAndImitBindings(flexTerm, rigidTerm, _freshVar);
+
+      // if there are no bindings for this constraint, fail
+      if (bindings.isEmpty()) {
+        DEBUG("fail");
+        return { Stack<Node*>(), LiteralStack() };
+      }
 
       for (const auto& b : bindings) {
         DEBUG("binding ", flexTerm.head(), " ", b);

@@ -1047,8 +1047,9 @@ public:
   bool isTupleSort() const;
 
   const std::string& typeConName() const;  
-  
-  static TermList arrowSort(const TermStack& domSorts, TermList range);
+
+  // TODO check also this, some call sites might be wrong
+  static TermList arrowSort(const TermStack& domSorts, TermList range, bool fromTop = false);
   static TermList arrowSort(TermList s1, TermList s2);
   static TermList arrowSort(unsigned size, const TermList* types, TermList range);
   static TermList arrowSort(const std::initializer_list<TermList>& types);

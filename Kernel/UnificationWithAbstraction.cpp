@@ -308,22 +308,18 @@ TermSpec appHead(AbstractingUnifier* au, TermSpec t)
 Option<AbstractionOracle::AbstractionResult> hol(
   AbstractingUnifier* au, TermSpec const& t1, TermSpec const& t2)
 {
-  if (t1.isSort() || t2.isSort()) {
-    return Option<AbstractionOracle::AbstractionResult>();
-  }
-
   // TODO should we postpone deref to a later point?
   auto dt1 = au->subs().derefBound(t1);
   auto dt2 = au->subs().derefBound(t2);
 
+  // if one of them is a variable or sort, don't abstract
+  if (dt1.term.isVar() || dt2.term.isVar() || dt1.isSort() || dt2.isSort()) {
+    return Option<AbstractionOracle::AbstractionResult>();
+  }
+
   // if one of them is a lambda, abstract
   if (dt1.term.isLambdaTerm() || dt2.term.isLambdaTerm()) {
     return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, t1.sort()))));
-  }
-
-  // if one of them is a variable, don't abstract
-  if (dt1.term.isVar() || dt2.term.isVar()) {
-    return Option<AbstractionOracle::AbstractionResult>();
   }
 
   auto h1 = appHead(au, dt1);
@@ -332,7 +328,7 @@ Option<AbstractionOracle::AbstractionResult> hol(
   if (h1.isVar() || h2.isVar() || h1.term.isLambdaTerm() || h2.term.isLambdaTerm()) {
     return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, t1.sort()))));
   }
-  
+
   auto h1t = h1.term.term();
   auto h2t = h2.term.term();
 
