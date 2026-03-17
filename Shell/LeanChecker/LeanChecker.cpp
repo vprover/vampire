@@ -175,59 +175,88 @@ void LeanChecker::outputPreamble(std::ostream &out, std::set<Signature::Symbol*>
     out << "variable [inst : Inhabited " << SortName(i) << " ]\n";
   }
 
+  out << "variable {df : Nat → (α : Type u) → (α → ι)}\n"
+      << "variable {dcf : Nat → ι}\n"
+      << "variable {dp : Nat → (α : Type u) → α → Prop}\n"
+      << "variable {dcp : Nat → Prop}\n";
+
+  unsigned variableCounter = 0;
   bool firstVariableDef = true;
   for (auto fun : usedFunctionSymbols) {
     if (fun->interpreted() || fun->linMul())
       continue;
 
-    auto name = FunctionName(fun);
-    if(firstVariableDef){
-      firstVariableDef = false;
-      out << "variable ";
-    } else {
-      out << indent;
-    }
-    out << "{" << name;
     OperatorType *type = fun->fnType();
     TermList range = type->result();
 
     ASS_EQ(type->numTypeArguments(), 0)
-    out << " : (";
-    int arity = 0;
-    // we don't support polymorphism yet
-    arity = type->arity();
-    for (unsigned i = 0; i < arity; i++) {
-      out << (i == 0 ? "" : " → ") << Sort{type->arg(i)};
+    if(type->arity() == 0) {
+      out << "def " << FunctionName(fun) << " := dcf " << variableCounter++ << "\n";
+      continue;
+    }
+
+    out << "def " << FunctionName(fun) << ": (";
+    for (unsigned i = 0; i < type->arity(); i++){
+      out << (i==0 ? " " : " → ") << Sort{type->arg(i)};
     }
     if(range.isNonEmpty()){
-      out << (arity == 0 ? "" : " → ") << Sort{range};
+      out << " → " << Sort{range};
     }
-    out << ")}\n";
+    out << ") ";
+
+    out << " := fun ";
+    for (unsigned i = 0; i < type->arity(); i++){
+      out << "x" << i << " ";
+    }
+    out << " => (df " << variableCounter++;
+    out << " (";
+    for (unsigned i = 0; i < type->arity(); i++) {
+      out << (i == 0 ? "" : " × ") << Sort{type->arg(i)};
+    }
+    out << ") (";
+    for (unsigned i = 0; i < type->arity(); i++){
+      out << (i==0 ? "" : ", ") << "x" << i;
+    }
+    out << "))\n\n";
   }
+  
   for (auto pred : usedPredicateSymbols) {
     if (pred->interpreted() || pred->skolem())
       continue;
-    if(firstVariableDef){
-      out << "variable ";
-      firstVariableDef = false;
-    } else {
-      out << indent;
-    }
-    out << "{" << PredicateName(pred);
+    
+
     OperatorType *type = pred->fnType();
     TermList resRange = type->result();
-
     // we don't support polymorphism yet
     ASS_EQ(type->numTypeArguments(), 0)
-    out << " : (";
+
+    if(type->arity() == 0) {
+      out << "def " << PredicateName(pred) << " := dcp " << variableCounter++ << "\n";
+      continue;
+    }
+    out << "def " << PredicateName(pred) << ": (";
+  
+    for (unsigned i = 0; i < type->arity(); i++){
+      out << (i==0 ? " " : " → ") << Sort{type->arg(i)};
+    }
+    out << " → Prop) ";
+
+    out << " := fun ";
+    for (unsigned i = 0; i < type->arity(); i++){
+      out << "x" << i << " ";
+    }
+    out << " => (dp " << variableCounter++;
+    //output input args
+    out << " (";
     for (unsigned i = 0; i < type->arity(); i++) {
-      out << (i == 0 ? "" : " → ") << Sort{type->arg(i)};
+      out << (i == 0 ? "" : " × ") << Sort{type->arg(i)};
     }
-    if(resRange.isNonEmpty()){
-      out <<  (type->arity() == 0 ? "" : " → ") << Sort{resRange} << ")}\n";
-    } else {
-      out << (type->arity() == 0 ? "" : " → ") << "Prop)}\n";
+    out << ") (";
+    for (unsigned i = 0; i < type->arity(); i++){
+      out << (i==0 ? "" : ", ") << "x" << i;
     }
+    out << "))\n\n";
+    
   }
 }
 
@@ -822,7 +851,7 @@ void LeanChecker::avatarComponent(std::ostream &out, SortMap &conclSorts, Unit *
   }
   varDomain = conclSorts.domain();
   outputVariables(out, varDomain, conclSorts, conclSorts);
-  out << "\n" << indent << "(first | trivial | grind [cases Or])\n\n";
+  out << "\n" << indent << "(first | trivial | ac_nf at new ⊢ | grind [cases Or])\n\n";
 }
 
 void LeanChecker::outputSatClause(std::ostream &out, std::map<unsigned int, bool> &seen, std::string primed, bool boolSymbols)
@@ -1064,7 +1093,7 @@ void LeanChecker::avatarSplitClause(std::ostream &out, SortMap &conclSorts, Unit
     out << "x" << varToSplitMap[var] << "a" << substVar << " ";
 
   }
-  out << "\n" << indent << "grind only [cases Or]\n\n";
+  out << "\n" << indent << "ac_nf at newForm ⊢\n\n";
 }
 
 

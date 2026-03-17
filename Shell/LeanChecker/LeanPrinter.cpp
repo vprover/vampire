@@ -295,7 +295,7 @@ void printArgs(std::ostream &out, Args args, bool variablesAsPattern, bool recur
     }
     if (!printed) {
       if (term->arity()) {
-        out << "(" << name;
+        out << "((" << name << " (ι := ι) (df := df))";
         current = term->termArgs();
         std::deque<TermList *> todo;
         while (!current->isEmpty()) {
@@ -310,7 +310,7 @@ void printArgs(std::ostream &out, Args args, bool variablesAsPattern, bool recur
         out << ")";
       }
       else {
-        out << name;
+        out << "(" << name << " (ι := ι) (dcf := dcf))";
       }
     }
   }
@@ -360,8 +360,8 @@ void printLiteral(std::ostream &out, Lit lit, bool variablesAsPattern)
     }
   }
   else {
-    out << name;
     auto args = literal->args();
+    out << "(" << name << (args->isNonEmpty() ? " (ι := ι) (dp := dp)" : " (dcp := dcp)") << ")";
     while (args->isNonEmpty()) {
       out << " ";
       printArgs(out, Args{args, lit.conclSorts, lit.otherSorts}, variablesAsPattern, true);
@@ -545,7 +545,7 @@ namespace SymbolHelper {
 void collectUsedSymbols(Term *term, std::set<Signature::Symbol*> &vars, SymbolType type)
 {
   auto sym = env.signature->getFunction(term->functor());
-  if (!sym->interpreted() && !sym->linMul() && type == SymbolType::FUNCTION) {
+  if (!sym->interpreted() && !sym->linMul() && type & SymbolType::FUNCTION) {
     vars.insert(sym);
   }
   if(term->arity() == 0){
@@ -563,7 +563,7 @@ void collectUsedSymbols(Term *term, std::set<Signature::Symbol*> &vars, SymbolTy
 void collectUsedSymbols(Literal* literal, std::set<Signature::Symbol*> &vars, SymbolType type)
 {
   auto sym = env.signature->getPredicate(literal->functor());
-  if (!sym->interpreted() && type == SymbolType::PREDICATE) {
+  if (!sym->interpreted() && type & SymbolType::PREDICATE) {
     vars.insert(sym);
   }
   if(literal->arity() == 0){

@@ -234,7 +234,7 @@ void outputVariables(std::ostream &out, std::vector<unsigned int>* variables, So
 } // namespace LeanPrinter
 
 namespace SymbolHelper {
-  enum class SymbolType { FUNCTION, PREDICATE, SORT };
+  enum SymbolType { FUNCTION = 1, PREDICATE = 1<<1, SORT = 1<<2 };
   void collectUsedSymbols(Term *term, std::set<Signature::Symbol*> &vars, SymbolType type = SymbolType::FUNCTION);
   void collectUsedSymbols(Clause *clause, std::set<Signature::Symbol*> &vars, SymbolType type = SymbolType::FUNCTION);
   void collectUsedSymbols(Formula *formula, std::set<Signature::Symbol*> &vars, SymbolType type = SymbolType::FUNCTION);
