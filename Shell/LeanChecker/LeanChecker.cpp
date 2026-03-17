@@ -1093,7 +1093,9 @@ void LeanChecker::avatarSplitClause(std::ostream &out, SortMap &conclSorts, Unit
     out << "x" << varToSplitMap[var] << "a" << substVar << " ";
 
   }
-  out << "\n" << indent << "ac_nf at newForm ⊢\n\n";
+  out << "\n" 
+      << indent << "simp only [not_and_or] at newForm\n"
+      << indent << "ac_nf at newForm ⊢\n\n";
 }
 
 
