@@ -430,7 +430,7 @@ bool HOLUnifier::Node::checkSolution(const LiteralStack& ffPairs)
       if ((lcurr == lhs && rcurr == rhs) || (lcurr == rhs && rcurr == lhs)) {
         found = true;
         ffTags[i] = true;
-        break;
+        // break; // TODO filter out duplicates
       }
     }
     if (!found) {
@@ -440,8 +440,9 @@ bool HOLUnifier::Node::checkSolution(const LiteralStack& ffPairs)
   }
 
   // check that all flex-flex pairs were used
-  for (const auto& ffTag : ffTags) {
-    if (!ffTag) {
+  for (unsigned i = 0; i < ffTags.size(); i++) {
+    if (!ffTags[i]) {
+      DBG("flex-flex pair superfluous ", *ffPairs[i]);
       return false;
     }
   }
