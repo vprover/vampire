@@ -48,24 +48,15 @@ struct Applicator : SubstApplicator {
 
 } // end namespace
 
-void ForwardGroundJoinability::attach(SaturationAlgorithm* salg)
-{
-  ForwardSimplificationEngine::attach(salg);
-  _index = salg->getSimplifyingIndex<DemodulationLHSIndex>();
-}
-
-void ForwardGroundJoinability::detach()
-{
-  _index = nullptr;
-  ForwardSimplificationEngine::detach();
-}
+ForwardGroundJoinability::ForwardGroundJoinability(SaturationAlgorithm& salg)
+  : _ord(salg.getOrdering()),
+    _index(salg.getSimplifyingIndex<DemodulationLHSIndex>())
+{}
 
 #define ITERATION_LIMIT 500
 
 bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
-  Ordering& ordering = _salg->getOrdering();
-
   // cout << "trying " << *cl << endl;
 
   static DHSet<TermList> attempted;
@@ -87,8 +78,8 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
   }
 
   auto curr = lit;
-  RedundancyCheck checker(ordering, curr);
-  auto tpo = TermPartialOrdering::getEmpty(ordering);
+  RedundancyCheck checker(_ord, curr);
+  auto tpo = TermPartialOrdering::getEmpty(_ord);
   unsigned cnt = 0;
 
   while (curr) {
@@ -144,7 +135,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
 #if VDEBUG
         POStruct dpo_struct(tpo);
         TermOrderingDiagram::Traversal<TermOrderingDiagram::NodeIterator,POStruct> dtr(
-          TermOrderingDiagram::createForSingleComparison(ordering, trm, rhsApplied.apply()), nullptr, dpo_struct
+          TermOrderingDiagram::createForSingleComparison(_ord, trm, rhsApplied.apply()), nullptr, dpo_struct
         );
         TermOrderingDiagram::Branch* b;
         bool success = false;

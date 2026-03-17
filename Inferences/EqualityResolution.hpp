@@ -31,11 +31,13 @@ class EqualityResolution
 : public GeneratingInferenceEngine
 {
 public:
+  EqualityResolution(SaturationAlgorithm& salg) : _salg(salg) {}
   ClauseIterator generateClauses(Clause* premise) override;
   static Clause* tryResolveEquality(Clause* cl, Literal* toResolve);
 private:
   struct ResultFn;
   struct IsNegativeEqualityFn;
+  const SaturationAlgorithm& _salg;
 };
 
 using EqualityResolutionExtra = LiteralInferenceExtra;

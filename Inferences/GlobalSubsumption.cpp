@@ -44,21 +44,11 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-GlobalSubsumption::GlobalSubsumption(const Options& opts) :
+GlobalSubsumption::GlobalSubsumption(SaturationAlgorithm& salg) :
   _solver(new ProofProducingSATSolver(new MinisatInterfacing)),
   _grounder(new GlobalSubsumptionGrounder(*_solver)),
-  _randomizeMinim(opts.randomTraversals())
+  _randomizeMinim(salg.getOptions().randomTraversals())
 {}
-
-void GlobalSubsumption::attach(SaturationAlgorithm* salg)
-{
-  ForwardSimplificationEngine::attach(salg);
-}
-
-void GlobalSubsumption::detach()
-{
-  ForwardSimplificationEngine::detach();
-}
 
 /**
  * Perform GS on cl and return the reduced clause,

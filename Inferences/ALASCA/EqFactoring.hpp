@@ -35,18 +35,13 @@ public:
   USE_ALLOCATOR(EqFactoring);
 
   EqFactoring(EqFactoring&&) = default;
-  EqFactoring(std::shared_ptr<AlascaState> shared)
-    : _shared(std::move(shared))
-  {  }
-
-  void attach(SaturationAlgorithm* salg) final ;
-  void detach() final ;
+  EqFactoring(SaturationAlgorithm& salg) : _shared(salg.alascaState()) {}
 
   Option<Clause*> applyRule(SelectedEquality const& e1, SelectedEquality const& e2);
   ClauseIterator generateClauses(Clause* premise) final ;
 
 private:
-  std::shared_ptr<AlascaState> _shared;
+  AlascaState& _shared;
 };
 
 } // namespace ALASCA 

@@ -85,7 +85,7 @@ void check_in_different_contexts(LaKbo& ord, TermList l, LaKbo::Result exp, Term
   check(ord, l != 0, exp, r != 0);
 }
 
-LaKbo& lakbo(bool rand = false) { return *new LaKbo(LAKBO(KBO::testKBO(rand, /* qkboPrec */ true), Lib::make_shared(InequalityNormalizer()))); }
+LaKbo& lakbo(bool rand = false) { return *new LaKbo(LAKBO(KBO::testKBO(rand, /* qkboPrec */ true))); }
 
 
 ////////////////////////////////////////////////////////////////////////////////
