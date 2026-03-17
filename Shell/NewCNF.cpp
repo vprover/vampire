@@ -1339,6 +1339,12 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
 
   List<List<GenLit>*>* genClauses = new List<List<GenLit>*>(initLiterals);
 
+  // Cache free variable sets per clause pointer. Clauses that don't contain
+  // the current variable pass through unchanged, keeping the same pointer,
+  // so subsequent iterations get O(1) membership checks instead of
+  // repeated formula traversals.
+  DHMap<List<GenLit>*, VarSet*> clauseFreeVarCache;
+
   unsigned iteCounter = 0;
   while (variables.isNonEmpty()) {
     unsigned variable = variables.pop();
@@ -1352,18 +1358,25 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
 
     List<List<GenLit>*>* processedGenClauses(0);
 
-    // Lambda to check whether a variable occurs free in any gen literal of a clause.
+    // Check whether a variable occurs free in any gen literal of a clause.
     // We might have a predicate skolem binding for a variable that does not
     // occur in the generalised clause.
-    auto varOccursIn = [](List<GenLit>* gls, unsigned variable) {
-      List<GenLit>::Iterator glsit(gls);
-      while (glsit.hasNext()) {
-        GenLit gl = glsit.next();
-        if (isFreeVariableOf(formula(gl), variable)) {
-          return true;
+    // We cache the free variable set per clause pointer so that clauses
+    // passing through unchanged across outer-loop iterations get O(1) lookups
+    // instead of repeated full formula traversals.
+    auto varOccursIn = [&clauseFreeVarCache](List<GenLit>* gls, unsigned variable) {
+      VarSet* fvs;
+      if (!clauseFreeVarCache.find(gls, fvs)) {
+        fvs = VarSet::getEmpty();
+        List<GenLit>::Iterator glsit(gls);
+        while (glsit.hasNext()) {
+          GenLit gl = glsit.next();
+          FormulaVarIterator fvi(formula(gl));
+          fvs = fvs->getUnion(VarSet::getFromIterator(fvi));
         }
+        clauseFreeVarCache.insert(gls, fvs);
       }
-      return false;
+      return fvs->member(variable);
     };
 
     if (shouldInlineITE(iteCounter)) {
