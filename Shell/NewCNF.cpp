@@ -544,6 +544,11 @@ void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
    * we remove the literal.
    */
 
+  // Cache binding list lookups: many occurrences share the same BindingList*,
+  // so we scan each distinct list at most once for `var`.
+  // A cached value of nullptr means "var not found in this list".
+  DHMap<BindingList*, Term*> lookupCache;
+
   while (occurrences.isNonEmpty()) {
     Occurrence occ = pop(occurrences);
     SIGN occurrenceSign = (sign == occ.sign()) ? POSITIVE : NEGATIVE;
@@ -552,13 +557,19 @@ void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
     // MS: can a non-fool binding ever map a bool var?
     Term* skolem = nullptr;
     for (auto* lst : { occ.gc->bindings, occ.gc->foolBindings }) {
-      BindingList::Iterator it(lst);
-      while (it.hasNext()) {
-        Binding binding = it.next();
-        if (binding.first == var) {
-          skolem = binding.second;
-          break;
+      Term** cached = lookupCache.findPtr(lst);
+      if (cached) {
+        skolem = *cached;
+      } else {
+        BindingList::Iterator it(lst);
+        while (it.hasNext()) {
+          Binding binding = it.next();
+          if (binding.first == var) {
+            skolem = binding.second;
+            break;
+          }
         }
+        lookupCache.insert(lst, skolem);
       }
       if (skolem) break;
     }
@@ -566,7 +577,6 @@ void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
     if (!skolem) {
       Term* constant = (occurrenceSign == POSITIVE) ? Term::foolFalse() : Term::foolTrue();
       // MS: pushAndRemember is not enough; bindings could already be mentioning var on the rhs!
-      // (BTW, scanning bindings for a second time, which is already ugly and potentially quadratic)
       _bindingStore.pushAndRememberWhileApplying(Binding(var, constant), occ.gc->bindings);
       removeGenLit(occ);
       continue;
