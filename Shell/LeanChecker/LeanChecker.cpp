@@ -847,7 +847,7 @@ void LeanChecker::avatarComponent(std::ostream &out, SortMap &conclSorts, Unit *
   if(lit.positive()){
     out << "h.mp component ";
   } else {
-    out << "not_imp_not.mpr h.mpr ";
+    out << "not_imp_not.mpr h.mpr component";
   }
   varDomain = conclSorts.domain();
   outputVariables(out, varDomain, conclSorts, conclSorts);
