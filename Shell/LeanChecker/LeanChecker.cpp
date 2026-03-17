@@ -990,6 +990,7 @@ void LeanChecker::avatarSplitClause(std::ostream &out, SortMap &conclSorts, Unit
 
   std::unordered_map<unsigned, Clause *> components;
   std::vector<unsigned> parentsThatRewrite;
+  std::vector<unsigned> parentsThatDontRewrite;
   std::map<unsigned, std::pair<unsigned,Clause*>> splitToParentMap;
   unsigned instanceCount = 0;
   for(Unit *parent : iterTraits(concl->getParents())){
@@ -1004,6 +1005,8 @@ void LeanChecker::avatarSplitClause(std::ostream &out, SortMap &conclSorts, Unit
     if(previousSplits.find(Splitter::getLiteralFromName(component).var()) == previousSplits.end()){
       splitToParentMap.insert({Splitter::getLiteralFromName(component).var(), {instanceCount,dex.component}});
       parentsThatRewrite.push_back(instanceCount);
+    } else {
+      parentsThatDontRewrite.push_back(instanceCount);
     }
     instanceCount++;
   }
@@ -1016,9 +1019,13 @@ void LeanChecker::avatarSplitClause(std::ostream &out, SortMap &conclSorts, Unit
   }
   out << "\n";
   
+  for(auto parentNo: parentsThatDontRewrite){
+    out << indent << "try rw [← h" << parentNo << "]\n";
+  }
   for(auto parentNo : parentsThatRewrite){
     out << indent << "try rw[h" << parentNo << "]\n";
   }
+  
   out << indent << "try simp only [imp_iff_not_or] at h0\n"
       << indent << "prenexify\n"
       << indent << "prenexify at h0\n";
