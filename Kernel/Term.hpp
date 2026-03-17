@@ -290,6 +290,7 @@ public:
   bool isProxy(Proxy proxy) const;
   bool isChoice() const;
   bool isPlaceholder() const;
+  bool containsLooseDBIndex() const;
 
   Option<unsigned> deBruijnIndex() const;
   TermList lhs() const;

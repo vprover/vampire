@@ -8,6 +8,7 @@
  * and in the source directory
  */
 
+#include "Kernel/TermIterators.hpp"
 #include "Saturation/HOLUnifier.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Test/UnitTesting.hpp"
@@ -138,8 +139,9 @@ TEST_FUN(constraints_flexflex) {
   checkEqual(c2, clause({ ap(ys,a) != ap(zs,b), lam(srt, zs) != lam(srt, ys), ap(f_hol(),y) != troo }));
 }
 
-void testUnifier(Literal* constraint, Literal* def, unsigned nextVar, Stack<LiteralStack> expected)
+void testUnifier(Literal* constraint, Literal* def, Stack<LiteralStack> expected)
 {
+  unsigned nextVar = iterTraits(VariableIterator(constraint)).map([](auto t){ return t.var(); }).max().unwrapOr(0)+1;
   HOLUnifier unifier(constraint, def, nextVar);
 
   for (unsigned i = 0; i < expected.size(); i++) {
@@ -164,7 +166,7 @@ void testUnifier(Literal* constraint, Literal* def, unsigned nextVar, Stack<Lite
   }
 
 TEST_UNIFIER(constraints_iteration_1,
-  ap(ap(xs, a), b) == ap(ap(g, b), a), p(xs), 1,
+  ap(ap(xs, a), b) == ap(ap(g, b), a), p(xs),
   Stack<LiteralStack>{
     LiteralStack(),
     LiteralStack(),
@@ -185,28 +187,28 @@ TEST_UNIFIER(constraints_iteration_1,
 )
 
 TEST_UNIFIER(constraints_iteration_2,
-  g() == g(), p(xs), 1,
+  g() == g(), p(xs),
   Stack<LiteralStack>{
     LiteralStack{ p(xs) },
   }
 )
 
 TEST_UNIFIER(constraints_iteration_3,
-  g() == g1(), p(xs), 1,
+  g() == g1(), p(xs),
   Stack<LiteralStack>{
     LiteralStack(),
   }
 )
 
 TEST_UNIFIER(constraints_iteration_4,
-  g() == lam(srt, ap(g, db0)), p(xs), 1,
+  g() == lam(srt, ap(g, db0)), p(xs),
   Stack<LiteralStack>{
     LiteralStack{ p(xs) },
   }
 )
 
 TEST_UNIFIER(constraints_iteration_5,
-  a == ap(ap(xs, b), c), p(xs), 1,
+  a == ap(ap(xs, b), c), p(xs),
   Stack<LiteralStack>{
     LiteralStack(),
     LiteralStack{ p(lam(srt, lam(srt, a))) },
@@ -214,7 +216,7 @@ TEST_UNIFIER(constraints_iteration_5,
 )
 
 TEST_UNIFIER(constraints_iteration_6,
-  g() == lam(srt, ap(g, a)), p(xs), 1,
+  g() == lam(srt, ap(g, a)), p(xs),
   Stack<LiteralStack>{
     LiteralStack(),
     LiteralStack(),
@@ -222,9 +224,19 @@ TEST_UNIFIER(constraints_iteration_6,
 )
 
 TEST_UNIFIER(constraints_iteration_7,
-  lam(srt, ap(g, x)) == lam(srt, ap(g, y)), q(x,y), 2,
+  lam(srt, ap(g, x)) == lam(srt, ap(g, y)), q(x,y),
   Stack<LiteralStack>{
     LiteralStack(),
-    LiteralStack{ x != y, q(x,y) },
+    LiteralStack{ lam(srt,x) != lam(srt,y), q(x,y) },
+    // TODO we should get rid of unnecessary lambda enclosures in the solutions and get the following:
+    // LiteralStack{ x != y, q(x,y) },
+  }
+)
+
+TEST_UNIFIER(constraints_iteration_8,
+  lam(srt, ap(f, ap(ys, db0))) == lam(srt, ap(f, ap(zs, db0))), q(ys,zs),
+  Stack<LiteralStack>{
+    LiteralStack(),
+    LiteralStack{ ys != zs, q(ys,zs) },
   }
 )

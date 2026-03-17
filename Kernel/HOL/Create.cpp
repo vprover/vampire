@@ -137,26 +137,26 @@ TermList HOL::create::namelessLambda(TermList varSort, TermList term) {
   return namelessLambda(varSort, termSort, term);
 }
 
-TermList HOL::create::surroundWithLambdas(TermList t, TermStack& sorts, bool fromTop) {
-  ASS(t.isTerm())
-
-  TermList sort = SortHelper::getResultSort(t.term());
-  return surroundWithLambdas(t, sorts, sort, fromTop);
+TermList HOL::create::surroundWithLambdas(TermList t, const TermStack& sorts, bool fromTop)
+{
+  ASS(t.isTerm());
+  return surroundWithLambdas(t, sorts, SortHelper::getResultSort(t.term()), fromTop);
 }
 
-TermList HOL::create::surroundWithLambdas(TermList t, TermStack& sorts, TermList sort, bool fromTop) {
-  // TODO fromTop is very hacky. See if can merge these two into one loop
+TermList HOL::create::surroundWithLambdas(TermList t, const TermStack& sorts, TermList sort, bool fromTop)
+{
+  // TODO try to merge the two for loops
   if (fromTop) {
-    for (auto i = sorts.size(); i-- > 0; ) {
-      t = namelessLambda(sorts[i], sort, t);
-      sort = AtomicSort::arrowSort(sorts[i], sort);
+    for (const auto& s : iterTraits(sorts.iter())) {
+      t = namelessLambda(s, sort, t);
+      sort = AtomicSort::arrowSort(s, sort);
     }
     return t;
   }
 
-  for (unsigned i = 0; i < sorts.size(); i++) {
-    t = namelessLambda(sorts[i], sort, t);
-    sort = AtomicSort::arrowSort(sorts[i], sort);
+  for (const auto& s : sorts) {
+    t = namelessLambda(s, sort, t);
+    sort = AtomicSort::arrowSort(s, sort);
   }
   return t;
 }

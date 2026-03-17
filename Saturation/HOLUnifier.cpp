@@ -339,8 +339,11 @@ LiteralStack HOLUnifier::Node::solution()
   // 1. add flex-flex pairs
   for (const auto& con : _cons) {
     ASS(con.flexFlex());
+    ASS(!con._lhs.containsLooseDBIndex());
+    ASS(!con._rhs.containsLooseDBIndex());
     res.push(Literal::createEquality(false,
-      SubstHelper::apply(con._lhs, subs), SubstHelper::apply(con._rhs, subs),
+      HOL::reduce::betaEtaNF(SubstHelper::apply(con._lhs, subs)),
+      HOL::reduce::betaEtaNF(SubstHelper::apply(con._rhs, subs)),
       con._sort));
     // the sort should survive unification without changing
     ASS_EQ(con._sort, SubstHelper::apply(con._sort, subs));
@@ -349,6 +352,9 @@ LiteralStack HOLUnifier::Node::solution()
   if (!checkSolution(res)) {
     const Node* curr = this;
     DBG("solution check failed");
+    DBG("lhs ",HOL::reduce::betaEtaNF(SubstHelper::apply(_orig->termArg(0), subs)));
+    DBG("rhs ",HOL::reduce::betaEtaNF(SubstHelper::apply(_orig->termArg(1), subs)));
+    DBG("flex-flex constraints ",iterTraits(res.iter()).map([](Literal* lit){ return lit->toString(); }).output());
     while (curr) {
       DBG(*curr);
       curr = curr->_parent;
@@ -374,6 +380,7 @@ bool HOLUnifier::Node::checkSolution(const LiteralStack& ffPairs)
   }
   // we only want to add flex-flex pairs when they are needed to make the terms equal
   if (lhs == rhs) {
+    DBG("superfluous constraints for equal solved pair ", lhs, " = ", rhs);
     return false;
   }
   std::vector<bool> ffTags(ffPairs.size(), false);
@@ -387,19 +394,30 @@ bool HOLUnifier::Node::checkSolution(const LiteralStack& ffPairs)
     // if heads are the same, recurse to the arguments
     if (lh == rh) {
       if (largs.size() != rargs.size()) {
+        DBG("different numer of arguments for ", lcurr, " = ", rcurr);
         return false;
       }
+      auto argSorts = HOL::getArgSorts(lcurr);
+      TermList matrix;
+      TermStack lambdaSorts;
+      HOL::getMatrixAndPrefSorts(lcurr, matrix, lambdaSorts);
       for (unsigned i = 0; i < largs.size(); i++) {
         if (largs[i] != rargs[i]) {
-          todo.push({ largs[i], rargs[i] });
+          auto lhs = HOL::create::surroundWithLambdas(largs[i], lambdaSorts, argSorts[i], /*fromTop=*/true);
+          auto rhs = HOL::create::surroundWithLambdas(rargs[i], lambdaSorts, argSorts[i], /*fromTop=*/true);
+          todo.push({ lhs, rhs });
         }
       }
       continue;
     }
     // otherwise this must be a flex-flex pair
     if (lh.isTerm() || rh.isTerm()) {
+      DBG("non-flex-flex pair found ", lcurr, " = ", rcurr);
       return false;
     }
+
+    lcurr = HOL::reduce::betaEtaNF(lcurr);
+    rcurr = HOL::reduce::betaEtaNF(rcurr);
 
     bool found = false;
     for (unsigned i = 0; i < ffPairs.size(); i++) {
@@ -411,6 +429,7 @@ bool HOLUnifier::Node::checkSolution(const LiteralStack& ffPairs)
       }
     }
     if (!found) {
+      DBG("flex-flex pair not found ", lcurr, " = ", rcurr);
       return false;
     }
   }
@@ -470,8 +489,19 @@ std::pair<Stack<HOLUnifier::Node*>,LiteralStack> HOLUnifier::Node::solve()
           cons.emplace(_cons[j]);
         }
       }
+      TermList matrix;
+      TermStack lambdaSorts;
+      HOL::getMatrixAndPrefSorts(curr._lhs, matrix, lambdaSorts);
+#if VDEBUG
+      TermStack otherLambdaSorts;
+      HOL::getMatrixAndPrefSorts(curr._rhs, matrix, otherLambdaSorts);
+      ASS_EQ(lambdaSorts, otherLambdaSorts);
+#endif
       for (unsigned j = 0; j < largs.size(); j++) {
-        cons.emplace(largs[j], rargs[j], argSorts[j]);
+        auto lhs = HOL::create::surroundWithLambdas(largs[j], lambdaSorts, argSorts[j], /*fromTop=*/true);
+        auto rhs = HOL::create::surroundWithLambdas(rargs[j], lambdaSorts, argSorts[j], /*fromTop=*/true);
+        auto sort = lambdaSorts.isEmpty() ? argSorts[j] : SortHelper::getResultSort(lhs.term());
+        cons.emplace(lhs, rhs, sort);
       }
       res.push(new Node(*this, cons));
 
@@ -496,7 +526,7 @@ std::pair<Stack<HOLUnifier::Node*>,LiteralStack> HOLUnifier::Node::solve()
 }
 
 std::ostream& operator<<(std::ostream& out, const HOLUnifier::Constraint& con) {
-  return out << con._lhs << " = " << con._rhs;
+  return out << con._lhs << " =? " << con._rhs;
 }
 
 std::ostream& operator<<(std::ostream& out, const HOLUnifier::Node& node) {
@@ -504,7 +534,7 @@ std::ostream& operator<<(std::ostream& out, const HOLUnifier::Node& node) {
 }
 
 std::ostream& operator<<(std::ostream& out, const HOLUnifier& unif) {
-  return out << unif._lit->termArg(0) << " =?= " << unif._lit->termArg(1);
+  return out << unif._lit->termArg(0) << " =? " << unif._lit->termArg(1);
 }
 
 } // namespace Saturation

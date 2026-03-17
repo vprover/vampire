@@ -29,8 +29,9 @@ TermList BetaNormaliser::transformSubterm(TermList t) {
   while (HOL::canHeadReduce(head, args)) {
     t = RedexReducer().reduce(head, args);
     ++reductions;
-    if (t.isLambdaTerm())
+    if (t.isLambdaTerm()) {
       break;
+    }
 
     head = HOL::getHeadAndArgs(t, args);
   }

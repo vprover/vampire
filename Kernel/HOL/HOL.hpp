@@ -108,8 +108,8 @@ namespace HOL::create {
   TermList namelessLambda(TermList varSort, TermList termSort, TermList term);
   TermList namelessLambda(TermList varSort, TermList term);
 
-  TermList surroundWithLambdas(TermList t, TermStack& sorts, bool fromTop = false);
-  TermList surroundWithLambdas(TermList t, TermStack& sorts, TermList sort, bool fromTop = false);
+  TermList surroundWithLambdas(TermList t, const TermStack& sorts, bool fromTop = false);
+  TermList surroundWithLambdas(TermList t, const TermStack& sorts, TermList sort, bool fromTop = false);
 
   TermList placeholder(TermList sort);
 } // namespace HOL::create
