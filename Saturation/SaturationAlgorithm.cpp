@@ -1297,7 +1297,7 @@ void SaturationAlgorithm::doOneAlgorithmStep()
       if (replacement) {
         addNewClause(replacement);
       }
-      onClauseReduction(cl, nullptr, 0, std::move(premises));
+      onClauseReduction(cl, &replacement, 1, std::move(premises));
       removeSelected(cl);
       return;
     }
@@ -1546,9 +1546,13 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   // create forward simplification engine
   if (opt.globalSubsumption()) {
     res->addForwardSimplifierToFront<GlobalSubsumption>();
+  } else {
+    res->addExpensiveForwardSimplifierToFront<GlobalSubsumption>();
   }
   if (opt.forwardLiteralRewriting()) {
     res->addForwardSimplifierToFront<ForwardLiteralRewriting>();
+  } else {
+    res->addExpensiveForwardSimplifierToFront<ForwardLiteralRewriting>();
   }
   if (mayHaveEquality) {
     // NOTE:
@@ -1556,6 +1560,8 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     // because every successful forward subsumption will lead to a (useless) match in fsd.
     if (opt.forwardSubsumptionDemodulation()) {
       res->addForwardSimplifierToFront<ForwardSubsumptionDemodulation>();
+    } else {
+      res->addExpensiveForwardSimplifierToFront<ForwardSubsumptionDemodulation>();
     }
   }
   if (mayHaveEquality) {
@@ -1568,6 +1574,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
         res->addForwardSimplifierToFront<ForwardDemodulation>();
         break;
       case Options::Demodulation::OFF:
+        res->addExpensiveForwardSimplifierToFront<ForwardDemodulation>();
         break;
 #if VDEBUG
       default:
@@ -1585,6 +1592,12 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   else if (opt.forwardSubsumptionResolution()) {
     USER_ERROR("Forward subsumption resolution requires forward subsumption to be enabled.");
+  } else {
+    if (opt.codeTreeSubsumption()) {
+      res->addExpensiveForwardSimplifierToFront<CodeTreeForwardSubsumptionAndResolution>();
+    } else {
+      res->addExpensiveForwardSimplifierToFront<ForwardSubsumptionAndResolution>();
+    }
   }
 
   // create backward simplification engine
