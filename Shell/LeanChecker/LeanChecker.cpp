@@ -1103,7 +1103,8 @@ void LeanChecker::avatarSplitClause(std::ostream &out, SortMap &conclSorts, Unit
   out << "\n" 
       << indent << "simp (config := {failIfUnchanged := false}) only [not_and_or, not_not, eq_comm] at newForm\n"
       << indent << "simp (config := {failIfUnchanged := false}) only [eq_comm]\n"
-      << indent << "ac_nf at newForm ⊢\n\n";
+      << indent << "ac_nf at newForm ⊢ <;>\n"
+      << indent << "grind only [cases Or]\n\n";
 }
 
 
