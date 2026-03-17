@@ -45,7 +45,7 @@ private:
   /// @brief SAT-based subsumption and subsumption resolution engine
   SATSubsumption::SATSubsumptionAndResolution _satSubs;
   /// @brief Set of clauses that have already been checked for subsumption and/or subsumption resolution
-  Lib::DHSet<Clause*> _checked;
+  Lib::DHSet<unsigned> _checked;
 
 };
 

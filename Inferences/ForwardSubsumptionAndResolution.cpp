@@ -43,7 +43,7 @@ ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution(SaturationAlgor
 {}
 
 /// @brief Set of clauses that were already checked
-static DHSet<Clause *> checkedClauses;
+static DHSet<unsigned> checkedClauses;
 
 bool ForwardSubsumptionAndResolution::perform(Clause *cl,
                                               Clause *&replacement,
@@ -104,7 +104,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
     auto it = _fwIndex->getGeneralizations(lit, false, false);
     while (it.hasNext()) {
       mcl = it.next().data->clause;
-      if (!checkedClauses.insert(mcl)) {
+      if (!checkedClauses.insert(mcl->number())) {
         continue;
       }
 
@@ -180,7 +180,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
     auto it = _fwIndex->getGeneralizations(lit, true, false);
     while (it.hasNext()) {
       mcl = it.next().data->clause;
-      if (!checkedClauses.insert(mcl)) {
+      if (!checkedClauses.insert(mcl->number())) {
         continue;
       }
       if (!_checkLongerClauses && mcl->length() > clen) {
