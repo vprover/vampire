@@ -107,11 +107,6 @@ private:
   BindingStore _bindingStore;
   BindingStore _foolBindingStore;
 
-  struct BindingGetVarFunctor
-  {
-    unsigned operator()(const Binding& b) { return b.first; }
-  };
-
   typedef bool SIGN;
   static inline constexpr const SIGN POSITIVE = true;
   static inline constexpr const SIGN NEGATIVE = false;
