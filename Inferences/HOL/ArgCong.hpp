@@ -25,7 +25,10 @@ class ArgCong
 : public GeneratingInferenceEngine
 {
 public:
+  ArgCong(SaturationAlgorithm& salg) : _salg(salg) {}
   ClauseIterator generateClauses(Clause* premise) override;
+private:
+  const SaturationAlgorithm& _salg;
 };
 
 }

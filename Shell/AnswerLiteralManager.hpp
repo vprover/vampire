@@ -288,7 +288,7 @@ private:
 
   bool computableOrVarHelper(const Term* t, DHMap<unsigned, unsigned>* recAncestors) const;
 
-  void getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<Unit*>& allProofUnits);
+  void getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<unsigned>& allProofUnitNums);
 
   Formula* getConditionFromClause(Clause* cl);
 

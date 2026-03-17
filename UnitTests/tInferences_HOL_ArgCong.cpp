@@ -29,7 +29,8 @@ using namespace Test;
   DECL_CONST(a, srt)                               \
   DECL_CONST(b, srt)
 
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<ArgCong>(ArgCong()))
+#define MY_GEN_RULE   ArgCong
+#define MY_GEN_TESTER Generation::GenerationTester
 
 // not done for non-selected literals
 TEST_GENERATION(fail_1,

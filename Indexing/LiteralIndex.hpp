@@ -139,7 +139,7 @@ public:
   RewriteRuleIndex(SaturationAlgorithm& salg);
 
   Clause* getCounterpart(Clause* c) {
-    return _counterparts.get(c);
+    return _counterparts.get(c->number());
   }
 protected:
   void handleClause(Clause* c, bool adding) override;
@@ -149,7 +149,7 @@ private:
   void handleEquivalence(Clause* c, Literal* cgr, Clause* d, Literal* dgr, bool adding);
 
   LiteralSubstitutionTree<LiteralClause> _partialIndex;
-  DHMap<Clause*,Clause*> _counterparts;
+  DHMap<unsigned,Clause*> _counterparts;
   Ordering& _ordering;
 };
 

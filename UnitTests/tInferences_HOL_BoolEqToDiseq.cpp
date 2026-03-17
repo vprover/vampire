@@ -30,7 +30,8 @@ using namespace Test;
   DECL_CONST(b, Bool)                              \
   DECL_CONST(c, srt)
 
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<BoolEqToDiseq>(BoolEqToDiseq()))
+#define MY_GEN_RULE   BoolEqToDiseq
+#define MY_GEN_TESTER Generation::GenerationTester
 
 // not done for non-bool literals
 TEST_GENERATION(fail_1,

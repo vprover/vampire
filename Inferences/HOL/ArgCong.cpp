@@ -37,7 +37,7 @@ using namespace Saturation;
 
 struct ArgCongResultFn
 {
-  ArgCongResultFn(Clause* cl, bool afterCheck = false, Ordering* ord = nullptr)
+  ArgCongResultFn(Clause* cl, bool afterCheck, const Ordering& ord)
       : /*_afterCheck(afterCheck), _ord(ord),*/ _cl(cl), _freshVar(cl->maxVar() + 1) {}
 
   Clause* operator() (Literal* lit)
@@ -117,8 +117,8 @@ ClauseIterator ArgCong::generateClauses(Clause* premise)
   return pvi(premise->getSelectedLiteralIterator()
     .filter([](Literal* l) { return l->isEquality() && l->isPositive(); })
     .map(ArgCongResultFn(premise,
-      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),
-      &_salg->getOrdering()))
+      _salg.getOptions().literalMaximalityAftercheck() && _salg.getLiteralSelector().isBGComplete(),
+      _salg.getOrdering()))
     .filter(NonzeroFn()));
 }
 

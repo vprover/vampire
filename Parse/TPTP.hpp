@@ -851,7 +851,7 @@ public:
     InferenceSourceRecord(std::string n) : name(n) {}
   };
 
-  void setUnitSourceMap(DHMap<Unit*,SourceRecord*>* m){
+  void setUnitSourceMap(DHMap<unsigned,SourceRecord*>* m){
     _unitSources = m;
   }
   SourceRecord* getSource();
@@ -859,7 +859,7 @@ public:
   void setFilterReserved(){ _filterReserved=true; }
 
 private:
-  DHMap<Unit*,SourceRecord*>* _unitSources;
+  DHMap<unsigned,SourceRecord*>* _unitSources;
 
   /** This field stores names of input units if the
    * output_axiom_names option is enabled */

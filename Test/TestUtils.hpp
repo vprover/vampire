@@ -19,6 +19,7 @@
 #include "Kernel/Theory.hpp"
 
 #include "Lib/Coproduct.hpp"
+#include "Lib/DArray.hpp"
 #include "Lib/Map.hpp"
 #include "Kernel/Clause.hpp"
 

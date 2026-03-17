@@ -14,6 +14,9 @@
 
 using namespace Test;
 
+#define MY_GEN_RULE   Superposition
+#define MY_GEN_TESTER Generation::GenerationTester
+
 /**
  * NECESSARY: We need to tell the tester which syntax sugar to import for creating terms & clauses.
  * See Test/SyntaxSugar.hpp for which kinds of syntax sugar are available
@@ -35,8 +38,6 @@ using namespace Test;
   DECL_CONST(h, arrow({s, s, s}, s))                                                                          \
   DECL_DE_BRUIJN_INDEX(db0, 0, s)                                                                             \
   DECL_DE_BRUIJN_INDEX(db1, 1, s)
-
-REGISTER_GEN_TESTER(Generation::GenerationTester<Inferences::Superposition>(Superposition()))
 
 // no superposition with negative equations
 TEST_GENERATION(test_01,

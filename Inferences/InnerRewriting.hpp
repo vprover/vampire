@@ -29,8 +29,7 @@ class InnerRewriting
 : public ImmediateSimplificationEngine
 {
 public:
-  InnerRewriting(const Ordering& ord) : _ord(ord) {}
-
+  InnerRewriting(SaturationAlgorithm& salg);
   Clause* simplify(Clause* cl) override;
 
 private:

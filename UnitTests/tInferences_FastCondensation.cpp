@@ -8,11 +8,16 @@
  * and in the source directory
  */
 #include "Test/SyntaxSugar.hpp"
-#include "Inferences/Condensation.hpp"
+#include "Inferences/FastCondensation.hpp"
 
 #include "Test/SimplificationTester.hpp"
 
 using namespace Test;
+
+namespace {
+
+#define MY_SIMPL_RULE   FastCondensation
+#define MY_SIMPL_TESTER Simplification::SimplificationTester
 
 #define MY_SYNTAX_SUGAR                                                                                       \
   DECL_DEFAULT_VARS                                                                                           \
@@ -23,8 +28,6 @@ using namespace Test;
   DECL_CONST(b, s)                                                                                            \
   DECL_PRED (p, {s})                                                                                          \
   DECL_PRED (q, {s})
-
-REGISTER_SIMPL_TESTER(Simplification::RuleSimplificationTester<Condensation>)
 
 // nothing happens with one literal
 TEST_SIMPLIFY(test01,
@@ -43,7 +46,7 @@ TEST_SIMPLIFY(test02,
 TEST_SIMPLIFY(test03,
     Simplification::Success()
       .input(clause({  ~p(g(f(x))), q(x), ~p(y), ~p(g(z)), g(x) != x }))
-      .expected(clause({ ~p(g(f(x))), q(x), ~p(g(y)), g(x) != x }))
+      .expected(clause({ ~p(g(f(x))), q(x), ~p(g(z)), g(x) != x }))
     )
 
 // condensation does not happen due to some literal that needs to be instantiated
@@ -58,3 +61,5 @@ TEST_SIMPLIFY(test05,
       .input(clause({  ~p(g(f(x))), ~p(g(y)), ~p(z), q(y) }))
       .expected(clause({ ~p(g(f(x))), ~p(g(y)), q(y) }))
     )
+
+}

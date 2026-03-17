@@ -27,6 +27,7 @@ class PositiveExtensionality
 : public GeneratingInferenceEngine
 {
 public:
+  PositiveExtensionality(SaturationAlgorithm&) {}
   ClauseIterator generateClauses(Clause* premise) override;
 };
 

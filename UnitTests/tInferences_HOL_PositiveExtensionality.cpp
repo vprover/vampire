@@ -23,7 +23,8 @@ using namespace Test;
   DECL_CONST(g, arrow(srt, srt))                   \
   DECL_DE_BRUIJN_INDEX(db0, 0, srt)
 
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<PositiveExtensionality>(PositiveExtensionality()))
+#define MY_GEN_RULE   PositiveExtensionality
+#define MY_GEN_TESTER Generation::GenerationTester
 
 // not done for non-selected literals
 TEST_GENERATION(fail_1,

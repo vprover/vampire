@@ -11,10 +11,13 @@
 #ifndef __PredicateSplitPassiveClauseContainers__
 #define __PredicateSplitPassiveClauseContainers__
 
+#include <limits>
 #include <memory>
+#include <utility>
 #include <vector>
 
 #include "ClauseContainer.hpp"
+#include "Lib/DHMap.hpp"
 
 namespace Saturation {
 class PredicateSplitPassiveClauseContainer
@@ -93,6 +96,14 @@ public:
 private:
   float evaluateFeature(Clause* cl) const override;
   float evaluateFeatureEstimate(unsigned numPositiveLiterals, const Inference& inf) const override;
+
+  std::pair<float,float> computeTheoryFeatures(Clause* cl) const;
+  /**
+   * The below hashmap stores the thAx/allAx theory features for this split's queue, the key is Clause's number()/
+   * The hashamp is populated lazily be recursing to parents as needed in the computeTheoryFeatures method above.
+   * See Bernhard Gleiss, Martin Suda: Layered Clause Selection for Theory Reasoning - (Short Paper). IJCAR (1) 2020: 402-409
+  */
+  mutable DHMap<unsigned, std::pair<float,float>> _teoryFeatureCache;
 };
 
 class AvatarMultiSplitPassiveClauseContainer : public PredicateSplitPassiveClauseContainer

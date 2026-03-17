@@ -27,7 +27,8 @@ using namespace Test;
   DECL_CONST(a, srt)                               \
   DECL_CONST(b, srt)
 
-REGISTER_SIMPL_TESTER(Simplification::RuleSimplificationTester<BetaEtaSimplify>)
+#define MY_SIMPL_RULE   BetaEtaSimplify
+#define MY_SIMPL_TESTER Simplification::SimplificationTester
 
 TEST_SIMPLIFY(fail_1,
     Simplification::NotApplicable()

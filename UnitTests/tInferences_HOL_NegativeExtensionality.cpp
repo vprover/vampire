@@ -29,7 +29,8 @@ using namespace Test;
   DECL_CONST(a, srt)                               \
   DECL_CONST(b, srt)
 
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<NegativeExtensionality>(NegativeExtensionality()))
+#define MY_GEN_RULE   NegativeExtensionality
+#define MY_GEN_TESTER Generation::GenerationTester
 
 // not done for non-selected literals
 TEST_GENERATION(fail_1,

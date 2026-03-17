@@ -24,6 +24,7 @@ namespace Inferences {
 class BoolEqToDiseq : public GeneratingInferenceEngine
 {
   public:
+    BoolEqToDiseq(SaturationAlgorithm&) {}
     ClauseIterator generateClauses(Clause* premise) override;
 };
 

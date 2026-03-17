@@ -53,20 +53,12 @@ using namespace Indexing;
 using namespace Saturation;
 using std::pair;
 
-void Superposition::attach(SaturationAlgorithm* salg)
-{
-  GeneratingInferenceEngine::attach(salg);
-  _higherOrder = env.higherOrder(); // TODO this should be in the constructor, but unit testing does not allow it
-  _subtermIndex = salg->getGeneratingIndex<SuperpositionSubtermIndex>();
-  _lhsIndex = salg->getGeneratingIndex<SuperpositionLHSIndex>();
-}
-
-void Superposition::detach()
-{
-  _subtermIndex = nullptr;
-  _lhsIndex = nullptr;
-  GeneratingInferenceEngine::detach();
-}
+Superposition::Superposition(SaturationAlgorithm& salg)
+  : _higherOrder(env.higherOrder()),
+    _salg(salg),
+    _subtermIndex(salg.getGeneratingIndex<SuperpositionSubtermIndex>()),
+    _lhsIndex(salg.getGeneratingIndex<SuperpositionLHSIndex>())
+{}
 
 ClauseIterator Superposition::generateClauses(Clause* premise)
 {
@@ -77,12 +69,12 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
     .flatMap([this](Literal* lit)
       // returns an iterator over the rewritable subterms
       { return pushPairIntoRightIterator(lit,
-          _higherOrder ? EqHelper::getFoSubtermIterator(lit, _salg->getOrdering()) : EqHelper::getSubtermIterator(lit, _salg->getOrdering())); })
+          _higherOrder ? EqHelper::getFoSubtermIterator(lit, _salg.getOrdering()) : EqHelper::getSubtermIterator(lit, _salg.getOrdering())); })
 
     // Get clauses with a literal whose complement unifies with the rewritable subterm,
     // returns a pair with the original pair and the unification result (includes substitution)
     .flatMap([this](pair<Literal*, TypedTermList> arg)
-      { return pushPairIntoRightIterator(arg, _lhsIndex->getUwa(arg.second, _salg->getOptions().unificationWithAbstraction(), _salg->getOptions().unificationWithAbstractionFixedPointIteration())); })
+      { return pushPairIntoRightIterator(arg, _lhsIndex->getUwa(arg.second, _salg.getOptions().unificationWithAbstraction(), _salg.getOptions().unificationWithAbstractionFixedPointIteration())); })
 
     // Perform forward superposition
     .map([this,premise](pair<pair<Literal*, TypedTermList>, QueryRes<AbstractingUnifier*, TermLiteralClause>> arg)
@@ -95,12 +87,12 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
   auto itb = premise->getSelectedLiteralIterator()
     // Get LHSs of all selected positive literals for superposition
     .flatMap([this](Literal* lit)
-      { return pvi( pushPairIntoRightIterator(lit, EqHelper::getSuperpositionLHSIterator(lit, _salg->getOrdering(), _salg->getOptions())) ); })
+      { return pvi( pushPairIntoRightIterator(lit, EqHelper::getSuperpositionLHSIterator(lit, _salg.getOrdering(), _salg.getOptions())) ); })
 
     // Get clauses that unify with these LHSs, modulo abstraction
     .flatMap([this] (pair<Literal*, TermList> arg)
       { return pushPairIntoRightIterator(arg,
-          _subtermIndex->getUwa(TypedTermList(arg.second, SortHelper::getEqualityArgumentSort(arg.first)), _salg->getOptions().unificationWithAbstraction(), _salg->getOptions().unificationWithAbstractionFixedPointIteration())); })
+          _subtermIndex->getUwa(TypedTermList(arg.second, SortHelper::getEqualityArgumentSort(arg.first)), _salg.getOptions().unificationWithAbstraction(), _salg.getOptions().unificationWithAbstractionFixedPointIteration())); })
 
     // Perform backward superposition
     .map([this,premise](pair<pair<Literal*, TermList>, QueryRes<AbstractingUnifier*, TermLiteralClause>> arg) -> Clause*
@@ -140,7 +132,7 @@ bool Superposition::checkClauseColorCompatibility(Clause* eqClause, Clause* rwCl
   if(ColorHelper::compatible(rwClause->color(), eqClause->color())) {
     return true;
   }
-  if(getOptions().showBlocked()) {
+  if(_salg.getOptions().showBlocked()) {
     std::cout<<"Blocked superposition of "<<eqClause->toString()<<" into "<<rwClause->toString()<<std::endl;
   }
   env.statistics->inferencesSkippedDueToColors++;
@@ -194,9 +186,9 @@ bool Superposition::checkSuperpositionFromVariable(Clause* eqClause, Literal* eq
  * the resulting clause will not be over the weight limit, just that
  * it cannot be cheaply determined at this time.
  */
-bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
+bool earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
       Clause* rwClause, Literal* rwLit, TermList rwTerm, TermList eqLHS, TermList eqRHS,
-      ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer, unsigned numPositiveLiteralsLowerBound, const Inference& inf)
+      ResultSubstitutionSP subst, bool eqIsResult, const PassiveClauseContainer* passiveClauseContainer, unsigned numPositiveLiteralsLowerBound, const Inference& inf)
 {
   unsigned nonInvolvedLiteralWLB=0;//weight lower bound for literals that aren't going to be rewritten
 
@@ -302,7 +294,7 @@ Clause* Superposition::performSuperposition(
   Inference inf(GeneratingInference2(unifier->usesUwa() ? InferenceRule::CONSTRAINED_SUPERPOSITION : InferenceRule::SUPERPOSITION, rwClause, eqClause));
   Inference::Destroyer inf_destroyer(inf);
 
-  auto passiveClauseContainer = _salg->getPassiveClauseContainer();
+  auto passiveClauseContainer = _salg.getPassiveClauseContainer();
   bool andThatsIt = false;
   bool hasAgeLimitStrike = passiveClauseContainer && passiveClauseContainer->mayBeAbleToDiscriminateClausesUnderConstructionOnLimits()
                         && passiveClauseContainer->exceedsAgeLimit(numPositiveLiteralsLowerBound, inf, andThatsIt);
@@ -319,14 +311,14 @@ Clause* Superposition::performSuperposition(
     }
   }
 
-  const auto& parRedHandler = _salg->parRedHandler();
+  const auto& parRedHandler = _salg.parRedHandler();
   if (!unifier->usesUwa()) {
     if (!parRedHandler.checkSuperposition(eqClause, eqLit, rwClause, rwLit, eqIsResult, subst.ptr())) {
       return 0;
     }
   }
 
-  const Ordering& ordering = _salg->getOrdering();
+  const Ordering& ordering = _salg.getOrdering();
 
   TermList tgtTermS = subst->apply(tgtTerm, eqIsResult);
 
@@ -359,7 +351,7 @@ Clause* Superposition::performSuperposition(
 
   Literal* tgtLitS = EqHelper::replace(rwLitS,rwTermS,tgtTermS);
 
-  static bool doSimS = getOptions().simulatenousSuperposition();
+  static bool doSimS = _salg.getOptions().simulatenousSuperposition();
 
   //check we don't create an equational tautology (this happens during self-superposition)
   if(EqHelper::isEqTautology(tgtLitS)) {
@@ -382,7 +374,7 @@ Clause* Superposition::performSuperposition(
   Recycled<Stack<Literal*>> res;
   res->reserve(rwLength + eqLength - 1 + unifier->maxNumberOfConstraints());
 
-  static bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
+  static bool afterCheck = _salg.getOptions().literalMaximalityAftercheck() && _salg.getLiteralSelector().isBGComplete();
 
   res->push(tgtLitS);
   unsigned weight=tgtLitS->weight();
