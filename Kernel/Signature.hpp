@@ -709,15 +709,23 @@ class Signature
   }
 
   bool isInterpretedNonDefault(unsigned con) const{
-    return con < FIRST_USER_CON && con != DEFAULT_SORT_CON;    
+    return con < FIRST_USER_CON && con != DEFAULT_SORT_CON;
   }
 
   bool isNonDefaultCon(unsigned con) const{
-    return con >= FIRST_USER_CON;    
+    return con >= FIRST_USER_CON;
   }
 
   bool isBoolCon(unsigned con) const{
-    return con == BOOL_SRT_CON;    
+    return con == BOOL_SRT_CON;
+  }
+
+  bool isArithCon(unsigned con) const {
+    return con >= INTEGER_SRT_CON && con <= REAL_SRT_CON;
+  }
+
+  bool isPlainCon(unsigned con) const {
+    return con == 0 || con >= FIRST_USER_CON;
   }
 
   bool isTupleCon(unsigned con) {
@@ -733,7 +741,7 @@ class Signature
   bool isArrowCon(unsigned con) const{
     return con == _arrowCon && _arrowCon != UINT_MAX;
   }
-  
+
   bool isAppFun(unsigned fun) const{
     return fun == _appFun && _appFun != UINT_MAX;
   }
@@ -768,7 +776,7 @@ class Signature
   unsigned getPredicateNumber(const std::string& name, unsigned arity) const;
 
   typedef SmartPtr<Stack<unsigned>> DistinctGroupMembers;
-  
+
   Unit* getDistinctGroupPremise(unsigned group);
   unsigned createDistinctGroup(Unit* premise = 0);
   void addToDistinctGroup(unsigned constantSymbol, unsigned groupId);
