@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <iterator>
 #include <limits>
+#include <numeric>
 
 #include "Shell/Options.hpp"
 #include "Kernel/Clause.hpp"
@@ -30,7 +31,7 @@ using namespace Kernel;
 PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, std::string name,
     std::vector<std::unique_ptr<PassiveClauseContainer>> queues,
     std::vector<float> cutoffs, std::vector<int> ratios, bool layeredArrangement)
-  : PassiveClauseContainer(isOutermost, opt, name), _queues(std::move(queues)), _cutoffs(cutoffs), _layeredArrangement(layeredArrangement)
+  : PassiveClauseContainer(isOutermost, opt, name), _queues(std::move(queues)), _cutoffs(std::move(cutoffs)), _layeredArrangement(layeredArrangement)
 {
   _randomize = opt.randomAWR();
 
@@ -44,6 +45,7 @@ PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool 
 
   if (_randomize) {
     _ratioSum = 0;
+    _ratios.reserve(ratios.size());
     for (unsigned i = 0; i < ratios.size(); i++) {
       unsigned ri = ratios[i];
       _ratioSum += ri;
@@ -60,6 +62,8 @@ PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool 
     lcm = std::lcm(lcm, ratios[i]);
   }
   // initialize
+  _invertedRatios.reserve(ratios.size());
+  _balances.reserve(ratios.size());
   for (unsigned i = 0; i < ratios.size(); i++)
   {
     _invertedRatios.push_back(lcm / ratios[i]);
@@ -245,11 +249,7 @@ Clause* PredicateSplitPassiveClauseContainer::popSelected()
 
 void PredicateSplitPassiveClauseContainer::simulationInit()
 {
-  _simulationBalances.clear();
-  for (const auto& balance : _balances)
-  {
-    _simulationBalances.push_back(balance);
-  }
+  _simulationBalances = _balances;
 
   for (const auto& queue : _queues)
   {
@@ -259,13 +259,14 @@ void PredicateSplitPassiveClauseContainer::simulationInit()
 
 bool PredicateSplitPassiveClauseContainer::simulationHasNext()
 {
-  bool hasNext = false;
   for (const auto& queue : _queues)
   {
-    bool currHasNext = queue->simulationHasNext();
-    hasNext = hasNext || currHasNext;
+    if (queue->simulationHasNext())
+    {
+      return true;
+    }
   }
-  return hasNext;
+  return false;
 }
 
 void PredicateSplitPassiveClauseContainer::simulationPopSelected()
@@ -339,9 +340,9 @@ void PredicateSplitPassiveClauseContainer::onLimitsUpdated()
 
 bool PredicateSplitPassiveClauseContainer::mayBeAbleToDiscriminateChildrenOnLimits() const
 {
+  ASS(!_queues.empty());
   // just ask the first queue we have
-  for (const auto& queue : _queues) return queue->mayBeAbleToDiscriminateChildrenOnLimits();
-  return false;
+  return _queues[0]->mayBeAbleToDiscriminateChildrenOnLimits();
 }
 
 bool PredicateSplitPassiveClauseContainer::allChildrenNecessarilyExceedLimits(Clause* cl, unsigned upperBoundNumSelLits) const
@@ -487,7 +488,7 @@ PredicateSplitPassiveClauseContainer(isOutermost, opt, name, std::move(queues), 
 float AvatarMultiSplitPassiveClauseContainer::evaluateFeature(Clause* cl) const
 {
   // heuristically compute likeliness that clause occurs in proof
-  auto inf = cl->inference();
+  const Inference& inf = cl->inference();
   return (inf.splits() == nullptr) ? 0 : inf.splits()->size();
 }
 
