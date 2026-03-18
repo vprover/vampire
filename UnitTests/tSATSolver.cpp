@@ -280,7 +280,7 @@ void testAssumptions(SATSolver &s) {
   for (unsigned i = 0; i < minimized.size(); i++) {
     SATLiteralStack trial = minimized;
     trial.swapRemove(i);
-    ASS_NE(s.solveUnderAssumptions(trial), Status::UNSATISFIABLE);
+    ASS_NEQ(s.solveUnderAssumptions(trial), Status::UNSATISFIABLE);
   }
 }
 
