@@ -47,7 +47,7 @@ private:
   struct InitialLiteralOrderingComparator;
 
   void optimizeLiteralOrder(DArray<Literal*>& lits);
-  void evalSharing(Literal* lit, CodeOp* startOp, size_t& sharedLen, size_t& unsharedLen, CodeOp*& nextOp);
+  void evalSharing(CodeStack& litCode, CodeOp* startOp, size_t& sharedLen, size_t& unsharedLen, CodeOp*& nextOp);
   static void matchCode(CodeStack& code, CodeOp* startOp, size_t& matchedCnt, CodeOp*& nextOp);
 
   //////// removal //////////

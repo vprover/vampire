@@ -13,6 +13,7 @@
  */
 
 #include <utility>
+#include <vector>
 
 #include "Debug/RuntimeStatistics.hpp"
 
@@ -97,7 +98,17 @@ void ClauseCodeTree::optimizeLiteralOrder(DArray<Literal*>& lits)
 
   lits.sort(InitialLiteralOrderingComparator());
 
+  std::vector<CodeStack> literalCodes;
+  literalCodes.reserve(clen);
+  for (unsigned i = 0; i < clen; i++) {
+    CodeStack code;
+    LitCompiler compiler(code);
+    compiler.handleTerm(lits[i]);
+    literalCodes.push_back(std::move(code));
+  }
+
   CodeOp* entry=getEntryPoint();
+  bool stop=false;
   for(unsigned startIndex=0;startIndex<clen-1;startIndex++) {
 //  for(unsigned startIndex=0;startIndex<1;startIndex++) {
 
@@ -106,14 +117,14 @@ void ClauseCodeTree::optimizeLiteralOrder(DArray<Literal*>& lits)
     size_t bestSharedLen;
     bool bestGround=lits[startIndex]->ground();
     CodeOp* nextOp;
-    evalSharing(lits[startIndex], entry, bestSharedLen, unshared, nextOp);
+    evalSharing(literalCodes[startIndex], entry, bestSharedLen, unshared, nextOp);
     if(!unshared) {
       goto have_best;
     }
 
     for(unsigned i=startIndex+1;i<clen;i++) {
       size_t sharedLen;
-      evalSharing(lits[i], entry, sharedLen, unshared, nextOp);
+      evalSharing(literalCodes[i], entry, sharedLen, unshared, nextOp);
       if(!unshared) {
 	bestIndex=i;
         goto have_best;
@@ -129,29 +140,32 @@ void ClauseCodeTree::optimizeLiteralOrder(DArray<Literal*>& lits)
 
   have_best:
     swap(lits[startIndex],lits[bestIndex]);
+    swap(literalCodes[startIndex],literalCodes[bestIndex]);
 
     if(unshared) {
       //we haven't matched the whole literal, so we won't proceed with the next one
-      return;
+      stop=true;
+      break;
     }
     ASS(nextOp);
     entry=nextOp;
   }
+
+  for (auto& code : literalCodes) {
+    ASS(code.top().isLitEnd());
+    delete code.pop().getILS();
+    ASS(code.isEmpty());
+  }
+  if (stop) {
+    return;
+  }
 }
 
-void ClauseCodeTree::evalSharing(Literal* lit, CodeOp* startOp, size_t& sharedLen, size_t& unsharedLen, CodeOp*& nextOp)
+void ClauseCodeTree::evalSharing(CodeStack& code, CodeOp* startOp, size_t& sharedLen, size_t& unsharedLen, CodeOp*& nextOp)
 {
-  CodeStack code;
-  LitCompiler compiler(code);
-
-  compiler.handleTerm(lit);
-
   matchCode(code, startOp, sharedLen, nextOp);
 
   unsharedLen=code.size()-sharedLen;
-
-  ASS(code.top().isLitEnd());
-  delete code.pop().getILS();
 }
 
 /**

@@ -89,11 +89,32 @@ unsigned PredicateSplitPassiveClauseContainer::bestQueue(float featureValue) con
   ASSERTION_VIOLATION;
 }
 
+unsigned PredicateSplitPassiveClauseContainer::getCachedBestQueueIndexOrCompute(Clause* cl) const
+{
+  auto* cached = _bestQueueCache.findPtr(cl->number());
+  if (cached) {
+    return *cached;
+  }
+  return bestQueue(evaluateFeature(cl));
+}
+
+unsigned PredicateSplitPassiveClauseContainer::computeAndCacheBestQueueIndex(Clause* cl)
+{
+  unsigned idx = bestQueue(evaluateFeature(cl));
+  _bestQueueCache.set(cl->number(), idx);
+  return idx;
+}
+
+void PredicateSplitPassiveClauseContainer::eraseCachedBestQueueIndex(Clause* cl)
+{
+  _bestQueueCache.remove(cl->number());
+}
+
 void PredicateSplitPassiveClauseContainer::add(Clause* cl)
 {
   ASS(cl->store() == Clause::PASSIVE);
 
-  auto bestQueueIndex = bestQueue(evaluateFeature(cl));
+  auto bestQueueIndex = computeAndCacheBestQueueIndex(cl);
   if (_layeredArrangement)
   {
     // add clause to all queues starting from best queue for clause
@@ -122,7 +143,7 @@ void PredicateSplitPassiveClauseContainer::remove(Clause* cl)
   {
     ASS(cl->store()==Clause::PASSIVE);
   }
-  auto bestQueueIndex = bestQueue(evaluateFeature(cl));
+  auto bestQueueIndex = getCachedBestQueueIndexOrCompute(cl);
 
   if (_layeredArrangement)
   {
@@ -144,6 +165,8 @@ void PredicateSplitPassiveClauseContainer::remove(Clause* cl)
     removedEvent.fire(cl);
     ASS(cl->store() != Clause::PASSIVE);
   }
+
+  eraseCachedBestQueueIndex(cl);
 }
 
 bool PredicateSplitPassiveClauseContainer::isEmpty() const
@@ -235,13 +258,17 @@ Clause* PredicateSplitPassiveClauseContainer::popSelected()
   // note: for a non-layered arrangement, the clause only occurred in _queues[currIndex] (from which it was just removed using popSelected(), so we don't need any additional clause-removal
   if (_layeredArrangement)
   {
-    // remove clause from all queues
-    for (unsigned i = 0; i < _queues.size(); i++)
+    // remove clause from queues that can contain it
+    auto bestQueueIndex = getCachedBestQueueIndexOrCompute(cl);
+    for (unsigned i = bestQueueIndex; i < _queues.size(); i++)
     {
-      _queues[i]->remove(cl);
+      if (i != currIndex) {
+        _queues[i]->remove(cl);
+      }
     }
   }
 
+  eraseCachedBestQueueIndex(cl);
   selectedEvent.fire(cl);
 
   return cl;
@@ -408,7 +435,7 @@ bool PredicateSplitPassiveClauseContainer::limitsActive() const
 
 bool PredicateSplitPassiveClauseContainer::exceedsAllLimits(Clause* cl) const
 {
-  auto bestQueueIndex = bestQueue(evaluateFeature(cl));
+  auto bestQueueIndex = getCachedBestQueueIndexOrCompute(cl);
   if (_layeredArrangement) {
     // with layered arranegement, all relevant sub-queues should agree that cl exceeds
     for (unsigned i = bestQueueIndex; i < _queues.size(); i++) {
