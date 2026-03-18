@@ -173,10 +173,11 @@ std::string toString(As const&... as) {
 
 namespace std {
 
+#ifndef USING_LIBTORCH
 template<class A, class B>
 std::ostream& operator<<(std::ostream& out, pair<A,B> const& self)
 { return out << "(" << self.first << ", " << self.second << ")"; }
-
+#endif
 
 template<class... As> 
 std::ostream& operator<<(std::ostream& out, tuple<As...> const& self)

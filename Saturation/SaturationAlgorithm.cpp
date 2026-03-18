@@ -12,6 +12,8 @@
  * Implementing SaturationAlgorithm class.
  */
 
+#define USING_LIBTORCH // see Lib/Output.hpp
+
 #include "Debug/Assertion.hpp"
 
 #include "Lib/Environment.hpp"
@@ -112,6 +114,8 @@
 #include "Discount.hpp"
 #include "LRS.hpp"
 #include "Otter.hpp"
+
+#include <torch/torch.h>
 
 using namespace std;
 using namespace Lib;
