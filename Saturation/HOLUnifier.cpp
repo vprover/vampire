@@ -352,6 +352,7 @@ LiteralStack HOLUnifier::Node::solution()
     ASS_EQ(con._sort, SubstHelper::apply(con._sort, subs));
   }
 
+#if VDEBUG
   if (!checkSolution(res)) {
     const Node* curr = this;
     DBG("solution check failed");
@@ -364,6 +365,7 @@ LiteralStack HOLUnifier::Node::solution()
     }
     ASSERTION_VIOLATION;
   }
+#endif
 
   // 2. add the unifier predicate instance
   res.push(SubstHelper::apply(_def, subs));
@@ -417,7 +419,7 @@ bool HOLUnifier::Node::checkSolution(const LiteralStack& ffPairs)
     }
     // otherwise this must be a flex-flex pair
     if (lh.isTerm() || rh.isTerm()) {
-      DBG("non-flex-flex pair found ", lcurr, " = ", rcurr);
+      DBG("non-flex-flex pair found ", lcurr, " = ", rcurr, " with heads ", lh, " and ", rh);
       return false;
     }
 
