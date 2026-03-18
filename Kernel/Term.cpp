@@ -314,6 +314,11 @@ unsigned TermList::weight() const
   return isVar() ? 1 : term()->weight();
 }
 
+unsigned TermList::numVarOccs() const
+{
+  return isVar() ? 1 : term()->numVarOccs();
+}
+
 bool TermList::isArrowSort() const {
   return !isVar() && term()->isSort() &&
          static_cast<const AtomicSort*>(term())->isArrowSort();

@@ -273,6 +273,7 @@ public:
   static TermList var(unsigned var, bool special = false) { return TermList(var, special); }
   /** if not var, the inner term must be shared */
   unsigned weight() const;
+  unsigned numVarOccs() const;
   /** returns true if this termList is wrapping a higher-order "arrow" sort */
   bool isArrowSort() const;
   bool isBoolSort() const;
