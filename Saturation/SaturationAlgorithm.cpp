@@ -1183,10 +1183,10 @@ void SaturationAlgorithm::doUnprocessedLoop()
   do {
     newClausesToUnprocessed();
 
+    unsigned unprocessedPops = 0;
     while (!_unprocessed->isEmpty()) {
+      unprocessedPops++;
       Clause* c = _unprocessed->pop();
-      poppedFromUnprocessed(c); // tells LRS's it might make sense to update limits
-
       ASS(!isRefutation(c));
 
       if (forwardSimplify(c)) {
@@ -1200,7 +1200,11 @@ void SaturationAlgorithm::doUnprocessedLoop()
       }
 
       newClausesToUnprocessed();
+      // It should not matter that much (from the point of view of the NN) that these new clauses are now unevaluated
+      // (the assumption is that reduced good clause is also good)
     }
+
+    afterUnprocessedLoop(unprocessedPops);
 
     ASS(clausesFlushed());
     onAllProcessed(); // in particular, Splitter has now recomputed model which may have triggered deletions and additions

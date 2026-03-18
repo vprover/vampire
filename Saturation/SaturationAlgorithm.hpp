@@ -168,7 +168,12 @@ protected:
   virtual void beforeSelectedRemoved(Clause* cl) {};
   void onAllProcessed();
   virtual bool isComplete();
-  virtual void poppedFromUnprocessed(Clause* cl) {}; // mainly for LRS to inherit and update its estimates there
+  /*
+   * Called at the beginning of doUnprocessedLoop;
+   * will recieve the number of unprocessed pops since last call;
+   * used by LRS to potentially update its estimates.
+  */
+  virtual void afterUnprocessedLoop(unsigned popsElapsed) {};
 
 private:
   void passiveRemovedHandler(Clause* cl);
