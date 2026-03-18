@@ -261,6 +261,12 @@ void testAssumptions(SATSolver &s) {
     }
   }
   cout << endl;
+
+  for (unsigned i = 0; i < minimized.size(); i++) {
+    SATLiteralStack trial = minimized;
+    trial.swapRemove(i);
+    ASS_NE(s.solveUnderAssumptions(trial), Status::UNSATISFIABLE);
+  }
 }
 
 TEST_FUN(testSolvingUnderAssumptions)
