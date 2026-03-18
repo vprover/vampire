@@ -235,10 +235,9 @@ UnitIterator Unit::getParents() const
   return pvi(UnitList::DestructiveIterator(res));
 }
 
-bool Unit::minimizeAncestorsAndUpdateSelectedStats()
+bool Unit::minimizeAncestorsAndUpdateSelectedStats(DHSet<unsigned>& done)
 {
   Stack<std::pair<Unit*,bool>> todo;
-  DHSet<unsigned> done;
   bool seenInputInference = false;
 
   todo.push(make_pair(this,false));
