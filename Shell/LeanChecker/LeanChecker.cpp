@@ -5,6 +5,7 @@
 #include "Kernel/Connective.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/OperatorType.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Substitution.hpp"
@@ -183,18 +184,15 @@ void LeanChecker::outputPreamble(std::ostream &out, std::set<Signature::Symbol*>
   unsigned variableCounter = 0;
   bool firstVariableDef = true;
   for (auto fun : usedFunctionSymbols) {
-    if (fun->interpreted() || fun->linMul())
+    if (fun->interpreted() || fun->linMul() || fun->introduced())
       continue;
-
     OperatorType *type = fun->fnType();
     TermList range = type->result();
-
     ASS_EQ(type->numTypeArguments(), 0)
     if(type->arity() == 0) {
       out << "def " << FunctionName(fun) << " := dcf " << variableCounter++ << "\n";
       continue;
     }
-
     out << "def " << FunctionName(fun) << ": (";
     for (unsigned i = 0; i < type->arity(); i++){
       out << (i==0 ? " " : " → ") << Sort{type->arg(i)};
@@ -217,14 +215,13 @@ void LeanChecker::outputPreamble(std::ostream &out, std::set<Signature::Symbol*>
     for (unsigned i = 0; i < type->arity(); i++){
       out << (i==0 ? "" : ", ") << "x" << i;
     }
-    out << "))\n\n";
+    out << "))\n";
   }
   
+  
   for (auto pred : usedPredicateSymbols) {
-    if (pred->interpreted() || pred->skolem())
+    if (pred->interpreted() || pred->skolem() || pred->introduced())
       continue;
-    
-
     OperatorType *type = pred->fnType();
     TermList resRange = type->result();
     // we don't support polymorphism yet
@@ -255,8 +252,66 @@ void LeanChecker::outputPreamble(std::ostream &out, std::set<Signature::Symbol*>
     for (unsigned i = 0; i < type->arity(); i++){
       out << (i==0 ? "" : ", ") << "x" << i;
     }
-    out << "))\n\n";
-    
+    out << "))\n";
+  }
+  std::map<OperatorType*, std::vector<Signature::Symbol*>> funMap;
+  for(auto fun : usedFunctionSymbols){
+    if(fun->introduced()){
+      if(funMap.find(fun->fnType()) == funMap.end()){
+        funMap.emplace(fun->fnType(), std::vector<Signature::Symbol*>());
+      }
+      funMap[fun->fnType()].push_back(fun);
+    }
+  }
+  for (auto [type, funcs] : funMap){
+    TermList range = type->result();
+    ASS_EQ(type->numTypeArguments(), 0)
+    if(firstVariableDef){
+      out << "variable ";
+      firstVariableDef = false;
+    } else {
+      out << indent;
+    }
+    out << "{";
+    for(auto fun : funcs){
+      out << FunctionName(fun) << " ";
+    }
+    out << ": ";
+    for (unsigned i = 0; i < type->arity(); i++){
+      out << (i==0 ? " " : " → ") << Sort{type->arg(i)};
+    }
+    if(range.isNonEmpty()){
+      out << (type->arity() != 0 ? " → " : "") << Sort{range};
+    }
+    out << "}\n";
+  }
+  std::map<OperatorType*, std::vector<Signature::Symbol*>> predMap;
+  for(auto pred : usedPredicateSymbols){
+    if(pred->introduced()){
+      if(predMap.find(pred->fnType()) == predMap.end()){
+        predMap.emplace(pred->fnType(), std::vector<Signature::Symbol*>());
+      }
+      predMap[pred->fnType()].push_back(pred);
+    }
+  }
+  for (auto [type, preds] : predMap){
+    TermList range = type->result();
+    ASS_EQ(type->numTypeArguments(), 0)
+    if(firstVariableDef){
+      out << "variable ";
+      firstVariableDef = false;
+    } else {
+      out << indent;
+    }
+    out << "{";
+    for(auto pred : preds){
+      out << PredicateName(pred) << " ";
+    }
+    out << ": ";
+    for (unsigned i = 0; i < type->arity(); i++){
+      out << (i==0 ? " " : " → ") << Sort{type->arg(i)};
+    }
+    out << (type->arity() != 0 ? " → " : "") << "Prop}\n";
   }
 }
 

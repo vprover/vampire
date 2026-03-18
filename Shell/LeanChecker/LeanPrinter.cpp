@@ -296,7 +296,11 @@ void printArgs(std::ostream &out, Args args, bool variablesAsPattern, bool recur
     }
     if (!printed) {
       if (term->arity()) {
-        out << "((" << name << " (ι := ι) (df := df))";
+        out << "((" << name;
+        if(!name.symbol->introduced()){
+          out << " (ι := ι) (df := df)";
+        }
+        out << ")";
         current = const_cast<TermList *>(term->termArgs());
         std::deque<TermList *> todo;
         while (!current->isEmpty()) {
@@ -311,7 +315,11 @@ void printArgs(std::ostream &out, Args args, bool variablesAsPattern, bool recur
         out << ")";
       }
       else {
-        out << "(" << name << " (ι := ι) (dcf := dcf))";
+        out << "(" << name; 
+        if(!name.symbol->introduced()){
+          out << " (ι := ι) (dcf := dcf)";
+        }
+        out << ")";
       }
     }
   }
@@ -362,7 +370,11 @@ void printLiteral(std::ostream &out, Lit lit, bool variablesAsPattern)
   }
   else {
     auto args = literal->args();
-    out << "(" << name << (args->isNonEmpty() ? " (ι := ι) (dp := dp)" : " (dcp := dcp)") << ")";
+    out << "(" << name;
+    if(!name.symbol->introduced()){
+      out << (args->isNonEmpty() ? " (ι := ι) (dp := dp)" : " (dcp := dcp)");
+    }
+    out << ")";
     while (args->isNonEmpty()) {
       out << " ";
       printArgs(out, Args{args, lit.conclSorts, lit.otherSorts}, variablesAsPattern, true);
