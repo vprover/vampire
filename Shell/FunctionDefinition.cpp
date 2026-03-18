@@ -366,7 +366,7 @@ void FunctionDefinition::checkDefinitions(Def* def0)
 
   //Next argument of the current-level term to be processed.
   //An empty term means we've processed all arguments of the term.
-  static Stack<TermList*> stack(4);
+  static Stack<const TermList*> stack(4);
   //Definition whose rhs is the current-level term (or zero if none).
   static Stack<Def*> defCheckingStack(4);
   //Definition whose lhs is the current-level term (or zero if none).
@@ -431,7 +431,7 @@ void FunctionDefinition::checkDefinitions(Def* def0)
     if(stack.isEmpty()) {
       break;
     }
-    TermList* ts=stack.pop();
+    const TermList* ts=stack.pop();
     if(ts->isNonEmpty()) {
       Def* argDef=defArgStack.top();
       if(argDef) {

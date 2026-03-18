@@ -30,6 +30,8 @@ namespace Inferences {
 
 using namespace std;
 
+Cases::Cases(SaturationAlgorithm& salg) : _ord(salg.getOrdering()) {}
+
 Clause* Cases::performParamodulation(Clause* premise, Literal* lit, TermList t) {
   ASS(t.isTerm());
 
@@ -77,7 +79,7 @@ private:
 
 struct Cases::RewriteableSubtermsFn
 {
-  RewriteableSubtermsFn(Ordering& ord) : _ord(ord) {}
+  RewriteableSubtermsFn(const Ordering& ord) : _ord(ord) {}
 
   VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
   {
@@ -86,14 +88,14 @@ struct Cases::RewriteableSubtermsFn
   }
 
 private:
-  Ordering& _ord;
+  const Ordering& _ord;
 };
 
 ClauseIterator Cases::generateClauses(Clause* premise)
 {
   auto it1 = premise->getSelectedLiteralIterator();
 
-  auto it2 = getMapAndFlattenIterator(it1,RewriteableSubtermsFn(_salg->getOrdering()));
+  auto it2 = getMapAndFlattenIterator(it1,RewriteableSubtermsFn(_ord));
 
   auto it3 = getMappingIterator(std::move(it2),ResultFn(premise, *this));
 

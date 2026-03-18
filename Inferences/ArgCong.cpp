@@ -43,7 +43,7 @@ struct ArgCong::IsPositiveEqualityFn
 
 struct ArgCong::ResultFn
 {
-  ResultFn(Clause* cl, bool afterCheck = false, Ordering* ord = nullptr)
+  ResultFn(Clause* cl, bool afterCheck, const Ordering& ord)
       : /*_afterCheck(afterCheck), _ord(ord),*/ _cl(cl), _cLen(cl->length()) {
         _freshVar = cl->maxVar() + 1;
       }
@@ -131,8 +131,8 @@ ClauseIterator ArgCong::generateClauses(Clause* premise)
   auto it2 = getFilteredIterator(it1,IsPositiveEqualityFn());
 
   auto it3 = getMappingIterator(it2,ResultFn(premise,
-      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),
-      &_salg->getOrdering()));
+      _salg.getOptions().literalMaximalityAftercheck() && _salg.getLiteralSelector().isBGComplete(),
+      _salg.getOrdering()));
 
   auto it4 = getFilteredIterator(it3,NonzeroFn());
 

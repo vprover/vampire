@@ -3636,7 +3636,7 @@ void TPTP::endFof()
 #if DEBUG_SOURCE
   else{
     // create fake map
-    _unitSources = new DHMap<Unit*,SourceRecord*>();
+    _unitSources = new DHMap<unsigned,SourceRecord*>();
     source = getSource();
   }
 #endif
@@ -3718,7 +3718,7 @@ void TPTP::endFof()
 
   if(source) {
     ASS(_unitSources);
-    _unitSources->insert(original,source);
+    _unitSources->insert(original->number(),source);
   }
 
   if (env.options->outputAxiomNames()) {

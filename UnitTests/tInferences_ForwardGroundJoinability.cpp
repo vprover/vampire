@@ -71,8 +71,7 @@ void joinabilityTest(ClauseStack axioms, Clause* cl, bool joinable, bool useKbo)
   env.options->set("term_ordering", useKbo ? "kbo" : "lpo");
   Test::MockedSaturationAlgorithm salg(p, o);
 
-  ForwardGroundJoinability fgj;
-  fgj.attach(&salg);
+  ForwardGroundJoinability fgj(salg);
 
   auto container = salg.getSimplifyingClauseContainer();
 
@@ -88,9 +87,6 @@ void joinabilityTest(ClauseStack axioms, Clause* cl, bool joinable, bool useKbo)
 
   ASS_EQ(fgj.perform(cl, replacement, premises), joinable);
   ASS(!replacement);
-
-  // tear down saturation algorithm
-  fgj.detach();
 }
 
 #define TEST_AC_KBO_JOINABLE(name, cl, axioms)                 \

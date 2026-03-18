@@ -228,7 +228,7 @@ namespace Inferences {
                                              SortHelper::getArgSort(lit->nthArgument(0)->term(),j));
         for (unsigned k = 0; k < c->length(); k++) {
           if (k != i) {
-            if (_salg->getOrdering().compare((*c)[k], l) != Ordering::GREATER) {
+            if (_ord.compare((*c)[k], l) != Ordering::GREATER) {
               return false;
             }
           }
@@ -275,17 +275,9 @@ namespace Inferences {
     return c;
   }
 
-  void AcyclicityGIE::attach(SaturationAlgorithm* salg)
-  {
-    GeneratingInferenceEngine::attach(salg);
-    _acyclIndex = salg->getGeneratingIndex<AcyclicityIndex>();
-  }
-
-  void AcyclicityGIE::detach()
-  {
-    _acyclIndex = nullptr;
-    GeneratingInferenceEngine::detach();
-  }
+  AcyclicityGIE::AcyclicityGIE(SaturationAlgorithm& salg)
+    : _acyclIndex(salg.getGeneratingIndex<AcyclicityIndex>())
+  {}
 
   struct AcyclicityGIE::AcyclicityGenIterator
   {

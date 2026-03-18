@@ -268,12 +268,11 @@ class Induction
 {
   using TermIndex = Indexing::TermIndex<TermLiteralClause>;
 public:
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
-
+  Induction(SaturationAlgorithm& salg);
   ClauseIterator generateClauses(Clause* premise) override;
 
 private:
+  const SaturationAlgorithm& _salg;
   // The following pointers can be null if int induction is off.
   std::shared_ptr<UnitIntegerComparisonLiteralIndex> _comparisonIndex;
   std::shared_ptr<InductionTermIndex> _inductionTermIndex;
@@ -291,10 +290,10 @@ class InductionClauseIterator
   using TermIndex               = Indexing::TermIndex<TermLiteralClause>;
 public:
   // all the work happens in the constructor!
-  InductionClauseIterator(Clause* premise, InductionHelper helper, SaturationAlgorithm* salg,
+  InductionClauseIterator(Clause* premise, InductionHelper helper, const SaturationAlgorithm& salg,
     TermIndex* structInductionTermIndex, InductionFormulaIndex& formulaIndex)
-      : _helper(helper), _opt(salg->getOptions()), _structInductionTermIndex(structInductionTermIndex),
-      _formulaIndex(formulaIndex), _fnDefHandler(salg->getFunctionDefinitionHandler())
+      : _helper(helper), _opt(salg.getOptions()), _structInductionTermIndex(structInductionTermIndex),
+      _formulaIndex(formulaIndex), _fnDefHandler(salg.getFunctionDefinitionHandler())
   {
     processClause(premise);
   }

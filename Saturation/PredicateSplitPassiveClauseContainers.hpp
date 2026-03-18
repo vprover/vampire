@@ -99,11 +99,11 @@ private:
 
   std::pair<float,float> computeTheoryFeatures(Clause* cl) const;
   /**
-   * The below hashmap stores the thAx/allAx theory features for this split's queue.
+   * The below hashmap stores the thAx/allAx theory features for this split's queue, the key is Clause's number()/
    * The hashamp is populated lazily be recursing to parents as needed in the computeTheoryFeatures method above.
    * See Bernhard Gleiss, Martin Suda: Layered Clause Selection for Theory Reasoning - (Short Paper). IJCAR (1) 2020: 402-409
   */
-  mutable DHMap<Clause*, std::pair<float,float>> _teoryFeatureCache;
+  mutable DHMap<unsigned, std::pair<float,float>> _teoryFeatureCache;
 };
 
 class AvatarMultiSplitPassiveClauseContainer : public PredicateSplitPassiveClauseContainer

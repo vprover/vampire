@@ -360,7 +360,7 @@ unsigned Term::numTypeArguments() const {
       : env.signature->getFunction(_functor)->numTypeArguments();
 }
 
-TermList* Term::termArgs()
+const TermList* Term::termArgs() const
 {
   ASS(!isSort());
 

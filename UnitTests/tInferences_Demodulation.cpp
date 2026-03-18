@@ -39,9 +39,7 @@ using namespace Test;
 namespace {
 
 inline auto tester() {
-  return FwdBwdSimplification::TestCase()
-    .fwd(new ForwardDemodulation())
-    .bwd(new BackwardDemodulation())
+  return FwdBwdSimplification::TestCase<ForwardDemodulation, BackwardDemodulation>()
     .options({ { "term_ordering", "lpo" } }); // use LPO as KBO fails due to caching things in terms
 }
 

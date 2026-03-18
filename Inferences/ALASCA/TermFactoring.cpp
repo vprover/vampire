@@ -21,10 +21,9 @@
 #include "Kernel/Inference.hpp"
 #include "Debug/TimeProfiling.hpp"
 
-#include "Saturation/SaturationAlgorithm.hpp"
-
 #include "TermFactoring.hpp"
 #include "Kernel/RobSubstitution.hpp"
+#include "Saturation/SaturationAlgorithm.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
@@ -36,18 +35,6 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
-
-void TermFactoring::attach(SaturationAlgorithm* salg)
-{
-  GeneratingInferenceEngine::attach(salg);
-}
-
-void TermFactoring::detach()
-{
-  ASS(_salg);
-  GeneratingInferenceEngine::detach();
-}
-
 
 //   C ∨ k₁ s₁ + k₂ s₂  + t <> 0
 // ---------------------------------------
@@ -91,7 +78,7 @@ Option<Clause*> TermFactoring::applyRule(
       "s₁, s₂ are not variables",
       !s1.isVar() && !s2.isVar())
 
-  auto uwa = _shared->unify(s1, s2);
+  auto uwa = _shared.unify(s1, s2);
   if (uwa.isNone())  
     return nothing();
 
@@ -123,12 +110,12 @@ Option<Clause*> TermFactoring::applyRule(
         iterTraits(maxAtoms.iterFifo())
           .all([&](auto a) {
             auto a_sigma = sigma(a);
-            return _shared->notLess(s1_sigma, a_sigma) 
-               &&  _shared->notLess(s2_sigma, a_sigma);
+            return _shared.notLess(s1_sigma, a_sigma) 
+               &&  _shared.notLess(s2_sigma, a_sigma);
             }))
   //
   // {
-  //   auto cmp = _shared->ordering->compare(s1_sigma, s2_sigma);
+  //   auto cmp = _shared.ordering->compare(s1_sigma, s2_sigma);
   //   check_side_condition(
   //       "s₁σ /≺ s₂σ and s₂σ /≺ s₂σ ",
   //       cmp == Ordering::Result::EQUAL || cmp == Ordering::Result::INCOMPARABLE)
@@ -144,8 +131,8 @@ Option<Clause*> TermFactoring::applyRule(
   //           auto ki_ti = sel1.alascaLiteral<NumTraits>().term().summandAt(i);
   //           auto tiσ = sigma(ki_ti.factors->denormalize());
   //           t_sigma.push(NumTraits::mulSimpl(ki_ti.numeral, tiσ));
-  //           return _shared->notLess(s1_sigma, tiσ)
-  //               && _shared->notLess(s2_sigma, tiσ);
+  //           return _shared.notLess(s1_sigma, tiσ)
+  //               && _shared.notLess(s2_sigma, tiσ);
   //         }))
   //
   // auto resSum = NumTraits::sum(concatIters(iterItems(resTerm), t_sigma.iterFifo()));
@@ -192,6 +179,8 @@ Option<Clause*> TermFactoring::applyRule(
 
 #define D(...) std::cout  << __VA_ARGS__ << std::endl;
 
+TermFactoring::TermFactoring(SaturationAlgorithm& salg) : _shared(salg.alascaState()) {}
+
 ClauseIterator TermFactoring::generateClauses(Clause* premise)
 {
   TIME_TRACE("alasca term factoring generate")
@@ -199,7 +188,7 @@ ClauseIterator TermFactoring::generateClauses(Clause* premise)
 
   auto max = Lib::make_shared(Stack<TermList>());
   auto selected = Lib::make_shared(
-        _shared->maxAtoms(premise,
+        _shared.maxAtoms(premise,
           SelectionCriterion::NOT_LESS,
           /* include number vars */ false)
         .inspect([&](auto& sel) { max->push(sel.atom()); })

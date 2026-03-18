@@ -61,9 +61,11 @@ using namespace Test;
 namespace {
 
 inline auto tester() {
-  return FwdBwdSimplification::TestCase()
-    .fwd(new CodeTreeForwardSubsumptionAndResolution(/*subsumptionResolution=*/true))
-    .bwd(new BackwardSubsumptionAndResolution(/*subsumption=*/true, /*subsumptionByUnitsOnly=*/false, /*subsumptionResolution=*/true, /*srByUnitsOnly=*/false));
+  return FwdBwdSimplification::TestCase<CodeTreeForwardSubsumptionAndResolution, BackwardSubsumptionAndResolution>()
+    .options({
+      { "backward_subsumption", "on" },
+      { "backward_subsumption_resolution", "on" }
+    });
 }
 
 // Note: most of these tests were taken from the SAT subsumption test suite

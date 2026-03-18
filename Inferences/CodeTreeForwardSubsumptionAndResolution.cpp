@@ -19,19 +19,11 @@
 
 namespace Inferences {
 
-void CodeTreeForwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
-{
-  ForwardSimplificationEngine::attach(salg);
-  _index = salg->getSimplifyingIndex<CodeTreeSubsumptionIndex>();
-  _ct = _index->getClauseCodeTree();
-}
-
-void CodeTreeForwardSubsumptionAndResolution::detach()
-{
-  _ct = nullptr;
-  _index = nullptr;
-  ForwardSimplificationEngine::detach();
-}
+CodeTreeForwardSubsumptionAndResolution::CodeTreeForwardSubsumptionAndResolution(SaturationAlgorithm& salg)
+  : _subsumptionResolution(salg.getOptions().forwardSubsumptionResolution()),
+    _index(salg.getSimplifyingIndex<CodeTreeSubsumptionIndex>()),
+    _ct(_index->getClauseCodeTree())
+{}
 
 bool CodeTreeForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, ClauseIterator &premises)
 {

@@ -24,6 +24,7 @@
 #include "Forwards.hpp"
 
 #include "DemodulationHelper.hpp"
+#include "InferenceEngine.hpp"
 
 namespace Inferences {
 
@@ -41,10 +42,11 @@ class FunctionDefinitionRewriting
   : public GeneratingInferenceEngine
   {
 public:
-  void attach(SaturationAlgorithm* salg) override;
+  FunctionDefinitionRewriting(SaturationAlgorithm& salg);
   ClauseIterator generateClauses(Clause *premise) override;
 
 private:
+  const SaturationAlgorithm& _salg;
   DemodulationHelper _helper;
 };
 
@@ -56,11 +58,13 @@ class FunctionDefinitionDemodulation
   : public ForwardSimplificationEngine
   {
 public:
-  void attach(SaturationAlgorithm* salg) override;
+  FunctionDefinitionDemodulation(SaturationAlgorithm& salg);
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 
 private:
-  DemodulationHelper _helper;
+  const Ordering& _ord;
+  const DemodulationHelper _helper;
+  FunctionDefinitionHandler& _fnDefHandler;
 };
 
 }; // namespace Inferences

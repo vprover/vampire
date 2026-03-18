@@ -15,6 +15,7 @@
 #define __ALASCA_Preprocessor__
 
 #include "Kernel/ALASCA/Normalization.hpp"
+#include "Kernel/Clause.hpp"
 #include "Kernel/FormulaTransformer.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Formula.hpp"
@@ -25,7 +26,7 @@ namespace Kernel {
 
 class AlascaPreprocessor 
 {
-  std::shared_ptr<InequalityNormalizer> _norm;
+  const InequalityNormalizer& _norm;
   Map<unsigned, unsigned> _preds;
   Map<unsigned, unsigned> _funcs;
   // TODO create option for this
@@ -37,7 +38,7 @@ class AlascaPreprocessor
 
   Literal* integerConversion(Literal* l)
   {
-    auto lit = _norm->normalizedLiteral(l);
+    auto lit = _norm.normalizedLiteral(l);
     // AlascaState::globalState->normalizer->normalizedLiteral()
     auto impl = [&]() { 
       if (lit->isEquality()) {
@@ -229,8 +230,8 @@ class AlascaPreprocessor
 public:
 
 
-  AlascaPreprocessor(std::shared_ptr<InequalityNormalizer> norm) 
-    : _norm(std::move(norm))
+  AlascaPreprocessor(const InequalityNormalizer& norm) 
+    : _norm(norm)
     , _preds()
     , _funcs() {}
 
@@ -257,7 +258,6 @@ public:
         }
       }
     }
-    
   }
 };
 

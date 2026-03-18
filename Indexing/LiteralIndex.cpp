@@ -213,7 +213,7 @@ void RewriteRuleIndex::handleClause(Clause* c, bool adding)
     }
     else {
       Clause* d;
-      if(_counterparts.find(c, d)) {
+      if(_counterparts.find(c->number(), d)) {
 	Literal* dgr=getGreater(d);
 	ASS(MatchingUtils::isVariant(greater, dgr, true))
 	handleEquivalence(c, greater, d, dgr, false);
@@ -235,9 +235,9 @@ void RewriteRuleIndex::handleClause(Clause* c, bool adding)
         handle(LiteralClause{(*c)[1], c}, adding);
       }
       if(adding) {
-        _counterparts.insert(c, c);
+        _counterparts.insert(c->number(), c);
       } else {
-        _counterparts.remove(c);
+        _counterparts.remove(c->number());
       }
     }
 
@@ -305,15 +305,15 @@ void RewriteRuleIndex::handleEquivalence(Clause* c, Literal* cgr, Clause* d, Lit
   }
 
   if(adding) {
-    ALWAYS(_counterparts.insert(c, d));
-    ALWAYS(_counterparts.insert(d, c));
+    ALWAYS(_counterparts.insert(c->number(), d));
+    ALWAYS(_counterparts.insert(d->number(), c));
 
     //we can remove the literal from the index of partial definitions
     _partialIndex.remove(LiteralClause{ dgr, d });
   }
   else {
-    _counterparts.remove(c);
-    _counterparts.remove(d);
+    _counterparts.remove(c->number());
+    _counterparts.remove(d->number());
 
     //we put the remaining counterpart into the index of partial definitions
     _partialIndex.insert(LiteralClause{ dgr, d });

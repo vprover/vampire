@@ -1,6 +1,7 @@
 #include "LeanPrinter.hpp"
 #include "Kernel/Connective.hpp"
 #include "Kernel/Formula.hpp"
+#include "Kernel/Term.hpp"
 #include "Lib/Metaiterators.hpp"
 #include <deque>
 #include <vector>
@@ -263,7 +264,7 @@ void printArgs(std::ostream &out, Args args, bool variablesAsPattern, bool recur
       if (name.symbol->interpreted()) {
         auto interpreted = static_cast<Signature::InterpretedSymbol *>(name.symbol);
         if (isInfix(interpreted) && term->arity() == 2) {
-          current = term->termArgs();
+          current = const_cast<TermList *>(term->termArgs());
           out << "(";
           printArgs(out, Args{current, args.conclSorts, args.otherSorts}, variablesAsPattern, false);
           out << name;
@@ -288,7 +289,7 @@ void printArgs(std::ostream &out, Args args, bool variablesAsPattern, bool recur
         }
         else
           ASSERTION_VIOLATION
-        printArgs(out, Args{term->termArgs(), args.conclSorts, args.otherSorts}, variablesAsPattern, recurse);
+        printArgs(out, Args{const_cast<TermList *>(term->termArgs()), args.conclSorts, args.otherSorts}, variablesAsPattern, recurse);
         out << ")";
         printed = true;
       }
@@ -296,7 +297,7 @@ void printArgs(std::ostream &out, Args args, bool variablesAsPattern, bool recur
     if (!printed) {
       if (term->arity()) {
         out << "((" << name << " (ι := ι) (df := df))";
-        current = term->termArgs();
+        current = const_cast<TermList *>(term->termArgs());
         std::deque<TermList *> todo;
         while (!current->isEmpty()) {
           todo.push_back(current);
@@ -554,7 +555,7 @@ void collectUsedSymbols(Term *term, std::set<Signature::Symbol*> &vars, SymbolTy
   auto args = term->termArgs();
   while (args->isNonEmpty()) {
     if (args->isTerm()) {
-      collectUsedSymbols(args->term(), vars, type);
+      collectUsedSymbols(const_cast<Term*>(args->term()), vars, type);
     }
     args = args->next();
   }

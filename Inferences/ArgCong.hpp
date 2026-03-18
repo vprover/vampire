@@ -30,11 +30,12 @@ class ArgCong
 : public GeneratingInferenceEngine
 {
 public:
+  ArgCong(SaturationAlgorithm& salg) : _salg(salg) {}
   ClauseIterator generateClauses(Clause* premise) override;
 private:
   struct ResultFn;
   struct IsPositiveEqualityFn;
-
+  const SaturationAlgorithm& _salg;
 };
 
 

@@ -396,7 +396,7 @@ TermFunIterator::TermFunIterator (const Term* t)
 {
   _hasNext = true;
   _next = t->functor();
-  _stack.push(t->args());
+  _stack.push(t->termArgs());
 } // TermFunIterator::TermFunIterator
 
 
@@ -422,7 +422,7 @@ bool TermFunIterator::hasNext ()
     _hasNext = true;
     const Term* t = ts->term();
     _next = t->functor();
-    _stack.push(t->args());
+    _stack.push(t->termArgs());
     return true;
   }
   return false;

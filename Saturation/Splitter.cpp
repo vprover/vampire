@@ -1137,7 +1137,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
   }
 
   Clause* compCl = Clause::fromIterator(arrayIter(lits, size),
-          NonspecificInference1(InferenceRule::AVATAR_COMPONENT,def_u));
+          ComponentClauseInference(InferenceRule::AVATAR_COMPONENT,UnitList::singleton(def_u),orig));
 
   if(posName == name && (env.options->proofExtra() == Options::ProofExtra::FULL||env.options->proofExtra() == Options::ProofExtra::LEAN))
     env.proofExtra.insert(def_u, new SplitDefinitionExtra(compCl));
@@ -1671,7 +1671,7 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
  */
 UnitList* Splitter::preprendCurrentlyAssumedComponentClauses(UnitList* clauses)
 {
-  DHSet<Clause*> seen;
+  DHSet<unsigned> seen;
 
   // to keep the nice order
   UnitList::FIFO res;
@@ -1682,7 +1682,7 @@ UnitList* Splitter::preprendCurrentlyAssumedComponentClauses(UnitList* clauses)
     Clause* cl = getComponentClause(level);
 
     //cout << "selected level: " level << " has clause: " << cl->toString() << endl;
-    seen.insert(cl);
+    seen.insert(cl->number());
     res.pushBack(cl);
   }
 
@@ -1692,7 +1692,7 @@ UnitList* Splitter::preprendCurrentlyAssumedComponentClauses(UnitList* clauses)
     Unit* u  = uit.next();
     Clause* cl = u->asClause();
 
-    if (seen.insert(cl)) {
+    if (seen.insert(cl->number())) {
       // cout << "a new guy: " << cl->toString() << endl;
       res.pushBack(cl);
     } else {

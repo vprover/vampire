@@ -32,8 +32,8 @@ std::string output_to_string(T const& t)
 
 using OU = OrderingUtils;
 
-QKbo::QKbo(KBO kbo, std::shared_ptr<InequalityNormalizer> norm) 
-  : _norm(std::move(norm))
+QKbo::QKbo(KBO kbo) 
+  : _norm(InequalityNormalizer::global())
   , _kbo(std::move(kbo))
 {
   ASS(_kbo.usesQkboPrecedence())

@@ -3,6 +3,7 @@
 import fileinput
 import os
 import re
+import functools
 
 
 printLatex = os.getenv("PRINT_LATEX", "ON")=="ON"
@@ -15,7 +16,7 @@ reIgnoredLine = re.compile("(%)|(sh: line 1: .* Alarm clock)|(Unknown reason of 
 benchSep = re.compile("========$")
 
 reName =  re.compile("results for (.*)$")
-reIgnoredName = re.compile(".*\?")
+reIgnoredName = re.compile(r".*\?")
 reKindExtractor = re.compile("../cpa/interpolation/([^/]*)/.*")
 
 reOldItp =  re.compile("Old interpolant:")
@@ -25,7 +26,7 @@ reQuantMinItp =  re.compile("Quantifiers minimized interpolant:")
 
 reSEGV = re.compile("Aborted by signal SIGSEGV")
 
-reTimeOut = re.compile("(External time out \(SIGXCPU\))|(Time limit reached!)|(Aborted by signal SIGXCPU)")
+reTimeOut = re.compile(r"(External time out \(SIGXCPU\))|(Time limit reached!)|(Aborted by signal SIGXCPU)")
 reOutOfMem = re.compile("Memory limit exceeded!")
 
 reSubvampireFailReport = re.compile("(Time limit reached!)|(Memory limit exceeded!)")
@@ -79,21 +80,21 @@ class LookAheadIterator(object):
                 if self.reserve:
                         return True
                 try:
-                        next = self.it.next()
-                        self.reserve.append(next)
+                        nxt = next(self.it)
+                        self.reserve.append(nxt)
                         return True
                 except StopIteration:
                         return False
-        def next(self):
+        def __next__(self):
                 if self.reserve:
                         res = self.reserve[-1]
                         self.reserve = self.reserve[:-1]
                         return res
-                return self.it.next()
+                return next(self.it)
         def peek(self):
                 if self.reserve:
                         return self.reserve[-1]
-                res = self.next()
+                res = next(self)
                 self.reserve.append(res)
                 return res
 
@@ -113,53 +114,53 @@ def updateCounter(ctr,val):
 
 def outputTable(labels,maps,lblCnt,keyLst):
         for i in range(0,lblCnt):
-                print "\t",
+                print("\t", end=' ')
         for k in keyLst:
-                print k, "\t",
-        print
+                print(k, "\t", end=' ')
+        print()
 
         cnt = len(labels)
         for i in range(0,cnt):
-                print labels[i],"\t",
+                print(labels[i],"\t", end=' ')
                 m = maps[i]
                 for k in keyLst:
                         if k in m:
-                                print m[k],
-                        print "\t",
-                print
-        print
+                                print(m[k], end=' ')
+                        print("\t", end=' ')
+                print()
+        print()
 def outputTableLatex(labels,maps,lblCnt,keyLst):
-        print "\\begin{tabular}{",
+        print("\\begin{tabular}{", end=' ')
         for i in range(0,lblCnt):
-                print "l ",
+                print("l ", end=' ')
         for k in keyLst:
-                print "r ",
-        print "}"
+                print("r ", end=' ')
+        print("}")
         
         for i in range(0,lblCnt-1):
-                print "\t&",
+                print("\t&", end=' ')
         for k in keyLst:
-                print "\t&",k,
-        print "\\\\"
+                print("\t&",k, end=' ')
+        print("\\\\")
 
         cnt = len(labels)
         for i in range(0,cnt):
-                print labels[i][0],
+                print(labels[i][0], end=' ')
                 for l in labels[i][1:]:
-                        print "\t&",l,
+                        print("\t&",l, end=' ')
                 m = maps[i]
                 for k in keyLst:
-                        print "\t&",
+                        print("\t&", end=' ')
                         if k in m:
-                                print m[k],
-                print "\\\\"
-        print "\\end{tabular}"
-        print
+                                print(m[k], end=' ')
+                print("\\\\")
+        print("\\end{tabular}")
+        print()
 
 def printTable(labels,maps,lblCnt=1):
         keys = set()
         for m in maps:
-                keys.update(m.keys())
+                keys.update(list(m.keys()))
         keyLst = list(keys)
         
         def getSortKey(k):
@@ -176,10 +177,12 @@ def printTable(labels,maps,lblCnt=1):
                         return v
         
         def keyCmp(k1,k2):
-                return cmp(getSortKey(k1),getSortKey(k2))
+                a = getSortKey(k1)
+                b = getSortKey(k2)
+                return (a > b) - (a < b)
 
         
-        keyLst.sort(keyCmp)
+        keyLst.sort(key=functools.cmp_to_key(keyCmp))
         
         if printLatex:
                 outputTableLatex(labels,maps,lblCnt,keyLst)
@@ -252,7 +255,7 @@ class Bench(object):
                 if not valRegex.match(line):
                         return False
                         #raise ProcError("expected '"+valRegex.pattern+"' line: "+line)
-                iter.next()
+                next(iter)
                 return True
         def readName(self, line):
                 nameMatch = reName.match(line)
@@ -267,13 +270,13 @@ class Bench(object):
         def process(self):
                 try:
                         lineIt = LookAheadIterator(self.lines)
-                        self.readName(lineIt.next())
+                        self.readName(next(lineIt))
 
                         if reIgnoredName.match(self.name):
                                 raise IncompleteBenchmark()
 
                         while lineIt.hasNext() and not reOldItp.match(lineIt.peek()) and not reOrigWeight.match(lineIt.peek()):
-                                lineIt.next()
+                                next(lineIt)
 
                         if not lineIt.hasNext():
                                 raise EarlyRecEnd(trNotSolved)
@@ -377,7 +380,7 @@ class Observer(object):
         def observe(self,bench):
                 pass
         def display(self):
-                print name, " <display not implemented>"
+                print(name, " <display not implemented>")
 
 
 class CountingObserver(Observer):
@@ -393,7 +396,7 @@ class CountingObserver(Observer):
         def display(self):
                 self.postproc(self.ctr)
         
-                print self.name
+                print(self.name)
                 printTable([["all"]],[self.ctr])
                 return
         def getCounter(self):
@@ -499,11 +502,11 @@ class ObserverMaster2(ObserverMaster):
 
 
 def onInvalidBench(bench):
-        print "########### invalid benchmark ###########"
+        print("########### invalid benchmark ###########")
         if bench.error:
-                print bench.error
+                print(bench.error)
         for line in bench.lines:
-                print line
+                print(line)
 
 benchs = []
 
