@@ -33,9 +33,9 @@ using namespace Kernel;
 using namespace Shell;
 
 
-void LRS::poppedFromUnprocessed(Clause* c)
+void LRS::afterUnprocessedLoop(unsigned popsElapsed)
 {
-  if(shouldUpdateLimits()) {
+  if(shouldUpdateLimits(popsElapsed)) {
     TIME_TRACE("LRS limit maintenance");
 
     long long estimatedReachable=estimatedReachableCount();
@@ -52,17 +52,17 @@ void LRS::poppedFromUnprocessed(Clause* c)
  * The time of the limit update is determined by a counter
  * of calls of this method.
  */
-bool LRS::shouldUpdateLimits()
+bool LRS::shouldUpdateLimits(unsigned popsElapsed)
 {
+  static unsigned leftoverPops=0;
+  leftoverPops += popsElapsed;
+
   if (env.statistics->activations <= 10)
     return false;
 
-  static unsigned cnt=0;
-  cnt++;
-
   //when there are limits, we check more frequently so we don't skip too much inferences
-  if(cnt==500 || (_passive->limitsActive() && cnt>50 ) ) {
-    cnt=0;
+  if(leftoverPops>500 || (_passive->limitsActive() && leftoverPops>50 )) {
+    leftoverPops = 0;
     return true;
   }
   return false;
