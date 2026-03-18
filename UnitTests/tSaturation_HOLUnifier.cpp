@@ -259,3 +259,11 @@ TEST_UNIFIER(constraints_iteration_8,
     LiteralStack{ ys != zs, q(ys,zs) },
   }
 )
+
+TEST_UNIFIER(constraints_iteration_9,
+  lam(srt, ap(f, ap(ys, a))) == lam(srt, ap(f, ap(ys, b))), p(ys),
+  Stack<LiteralStack>{
+    LiteralStack(),
+    LiteralStack{ lam(srt,ap(ys, a)) != lam(srt,ap(ys, b)), p(ys) },
+  }
+)

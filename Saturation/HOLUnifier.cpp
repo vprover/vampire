@@ -398,6 +398,34 @@ bool HOLUnifier::Node::checkSolution(const LiteralStack& ffPairs)
     HOL::normaliseLambdaPrefixes(lcurr, rcurr);
     auto [lh,largs] = HOL::getHeadAndArgs(lcurr);
     auto [rh,rargs] = HOL::getHeadAndArgs(rcurr);
+
+    // either it is a flex-flex pair
+    if (lh.isVar() && rh.isVar()) {
+      lcurr = HOL::reduce::betaEtaNF(lcurr);
+      rcurr = HOL::reduce::betaEtaNF(rcurr);
+
+      bool found = false;
+      for (unsigned i = 0; i < ffPairs.size(); i++) {
+        auto [lhs, rhs] = ffPairs[i]->eqArgs();
+        if ((lcurr == lhs && rcurr == rhs) || (lcurr == rhs && rcurr == lhs)) {
+          found = true;
+          ffTags[i] = true;
+          // break; // TODO filter out duplicates
+        }
+      }
+      if (!found) {
+        DBG("flex-flex pair not found ", lcurr, " = ", rcurr);
+        return false;
+      }
+      continue;
+    }
+
+    // or the heads must be the same
+    if (lh != rh) {
+      DBG("non-flex-flex pair found ", lcurr, " = ", rcurr, " with heads ", lh, " and ", rh);
+      return false;
+    }
+
     // if heads are the same, recurse to the arguments
     if (lh == rh) {
       if (largs.size() != rargs.size()) {
@@ -415,29 +443,6 @@ bool HOLUnifier::Node::checkSolution(const LiteralStack& ffPairs)
           todo.push({ lhs, rhs });
         }
       }
-      continue;
-    }
-    // otherwise this must be a flex-flex pair
-    if (lh.isTerm() || rh.isTerm()) {
-      DBG("non-flex-flex pair found ", lcurr, " = ", rcurr, " with heads ", lh, " and ", rh);
-      return false;
-    }
-
-    lcurr = HOL::reduce::betaEtaNF(lcurr);
-    rcurr = HOL::reduce::betaEtaNF(rcurr);
-
-    bool found = false;
-    for (unsigned i = 0; i < ffPairs.size(); i++) {
-      auto [lhs, rhs] = ffPairs[i]->eqArgs();
-      if ((lcurr == lhs && rcurr == rhs) || (lcurr == rhs && rcurr == lhs)) {
-        found = true;
-        ffTags[i] = true;
-        // break; // TODO filter out duplicates
-      }
-    }
-    if (!found) {
-      DBG("flex-flex pair not found ", lcurr, " = ", rcurr);
-      return false;
     }
   }
 
