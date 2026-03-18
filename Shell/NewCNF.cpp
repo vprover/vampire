@@ -561,11 +561,9 @@ void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
       if (cached) {
         skolem = *cached;
       } else {
-        BindingList::Iterator it(lst);
-        while (it.hasNext()) {
-          Binding binding = it.next();
-          if (binding.first == var) {
-            skolem = binding.second;
+        for (auto [ex_var, sk_term] : iterTraits(BindingList::Iterator(lst))) {
+          if (ex_var == var) {
+            skolem = sk_term;
             break;
           }
         }
