@@ -239,6 +239,11 @@ void Statistics::print(std::ostream& out)
     ENTRY("Sat splitting refutations", satSplitRefutations);
     ENTRY("SMT fallbacks",smtFallbacks);
 
+    GROUP("Neural Instruction Counts");
+    ENTRY("Neural model warmup", neuralModelWarmup >> 20);
+    ENTRY("Gnn eval", gnnEval >> 20);
+    ENTRY("Bulk evals", bulkEvals >> 20);
+
     //TODO record statistics for FMB
 
     //TODO record statistics for MiniSAT
