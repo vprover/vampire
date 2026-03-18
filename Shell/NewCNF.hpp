@@ -107,10 +107,10 @@ private:
   BindingStore _bindingStore;
   BindingStore _foolBindingStore;
 
-  typedef bool SIGN;
-  static inline constexpr const SIGN POSITIVE = true;
-  static inline constexpr const SIGN NEGATIVE = false;
-  static inline SIGN OPPOSITE(SIGN sign) { return !sign; }
+  using SIGN = bool;
+  static constexpr SIGN POSITIVE = true;
+  static constexpr SIGN NEGATIVE = false;
+  static SIGN OPPOSITE(SIGN sign) { return !sign; }
 
   // generalized literal
   typedef std::pair<Formula*, SIGN> GenLit;
