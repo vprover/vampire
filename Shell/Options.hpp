@@ -1945,6 +1945,7 @@ public:
   std::string protectedPrefix() const { return _protectedPrefix.actualValue; }
   Statistics statistics() const { return _statistics.actualValue; }
   void setStatistics(Statistics newVal) { _statistics.actualValue=newVal; }
+  bool showInferenceRuleTable() const { return _showInferenceRuleTable.actualValue; }
   Proof proof() const { return _proof.actualValue; }
   bool minimizeSatProofs() const { return _minimizeSatProofs.actualValue; }
   ProofExtra proofExtra() const { return _proofExtra.actualValue; }
@@ -2651,6 +2652,7 @@ private:
   ChoiceOptionValue<SplittingDeleteDeactivated> _splittingDeleteDeactivated;
 
   ChoiceOptionValue<Statistics> _statistics;
+  BoolOptionValue _showInferenceRuleTable;
   BoolOptionValue _superpositionFromVariables;
   ChoiceOptionValue<TermOrdering> _termOrdering;
   ChoiceOptionValue<SymbolPrecedence> _symbolPrecedence;
