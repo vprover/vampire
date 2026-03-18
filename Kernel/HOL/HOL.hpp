@@ -74,7 +74,28 @@ void normaliseLambdaPrefixes(TermList& t1, TermList& t2);
 // Very inelegant at the moment, need to rewrite TODO
 TermStack getFlexHeadSorts(TermList flexTerm, TermList rigidTermSort);
 
-TermStack getProjAndImitBindings(TermList flexTerm, TermList rigidTerm, unsigned& freshVar);
+enum class UnificationInference {
+  DEFINITION,
+  DECOMPOSITION,
+  PROJECTION,
+  IMITATION,
+};
+
+inline std::ostream& operator<<(std::ostream& out, const UnificationInference& inf) {
+  switch (inf) {
+    case UnificationInference::DEFINITION:
+      return out << "definition";
+    case UnificationInference::DECOMPOSITION:
+      return out << "decomposition";
+    case UnificationInference::IMITATION:
+      return out << "imitation";
+    case UnificationInference::PROJECTION:
+      return out << "projection";
+  }
+  ASSERTION_VIOLATION;
+}
+
+Stack<std::pair<TermList, UnificationInference>> getProjAndImitBindings(TermList flexTerm, TermList rigidTerm, unsigned& freshVar);
 
 TermList createGeneralBinding(TermList head, TermStack& sorts, unsigned& freshVar);
 

@@ -16,6 +16,7 @@
 #define __HOLUnifier__
 
 #include "Forwards.hpp"
+#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/Stack.hpp"
@@ -66,12 +67,13 @@ private:
   struct Node
   {
     Node(Literal* lit, Literal* def, unsigned nextVar);
-    Node(const Node& parent, unsigned var, TermList binding);
-    Node(const Node& parent, Stack<Constraint> cons);
+    Node(const Node& parent, HOL::UnificationInference inf, unsigned var, TermList binding);
+    Node(const Node& parent, HOL::UnificationInference inf, Stack<Constraint> cons);
 
     std::pair<Stack<Node*>,LiteralStack> solve();
 
     const Node* _parent = nullptr;
+    HOL::UnificationInference _inf;
     Literal* _def;
     Literal* _orig;
     Stack<Constraint> _cons;

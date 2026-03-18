@@ -481,7 +481,7 @@ TermStack HOL::getFlexHeadSorts(TermList flexTerm, TermList rigidTermSort)
   return sorts;
 }
 
-TermStack HOL::getProjAndImitBindings(TermList flexTerm, TermList rigidTerm, unsigned& freshVar)
+Stack<std::pair<TermList, HOL::UnificationInference>> HOL::getProjAndImitBindings(TermList flexTerm, TermList rigidTerm, unsigned& freshVar)
 {
   // since term is rigid, cannot be a variable
   TermList sort = finalResult(matrix(rigidTerm).resultSort());
@@ -491,11 +491,11 @@ TermStack HOL::getProjAndImitBindings(TermList flexTerm, TermList rigidTerm, uns
 
   TermStack sortsFlex = getFlexHeadSorts(flexTerm, rigidTerm.resultSort()); // sorts of arguments of flex head
 
-  TermStack res;
+  Stack<std::pair<TermList, UnificationInference>> res;
 
   // imitation
   if (headRigid.deBruijnIndex().isNone()) { // cannot imitate a bound variable
-    res.push(createGeneralBinding(headRigid, sortsFlex, freshVar));
+    res.emplace(createGeneralBinding(headRigid, sortsFlex, freshVar), UnificationInference::IMITATION);
   }
 
   ASS_GE(sortsFlex.size(), argsFlex.size());
@@ -520,7 +520,7 @@ TermStack HOL::getProjAndImitBindings(TermList flexTerm, TermList rigidTerm, uns
     }
 
     TermList dbi = getDeBruijnIndex(i + diff, sortsFlex[i + diff]);
-    res.push(createGeneralBinding(dbi, sortsFlex, freshVar));
+    res.emplace(createGeneralBinding(dbi, sortsFlex, freshVar), UnificationInference::PROJECTION);
   }
   return res;
 }

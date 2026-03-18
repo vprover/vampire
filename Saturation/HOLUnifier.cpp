@@ -302,7 +302,7 @@ struct HOLUnifier::Constraint
 // Node
 
 HOLUnifier::Node::Node(Literal* lit, Literal* def, unsigned nextVar)
-  : _parent(nullptr), _def(def), _orig(lit), _freshVar(nextVar)
+  : _parent(nullptr), _inf(HOL::UnificationInference::DEFINITION), _def(def), _orig(lit), _freshVar(nextVar)
 {
   ASS(lit->isEquality());
   ASS(lit->isPositive());
@@ -310,16 +310,19 @@ HOLUnifier::Node::Node(Literal* lit, Literal* def, unsigned nextVar)
   _cons.emplace(lit->termArg(0), lit->termArg(1), lit->eqArgSort());
 }
 
-HOLUnifier::Node::Node(const Node& parent, unsigned var, TermList binding)
+HOLUnifier::Node::Node(const Node& parent, HOL::UnificationInference inf, unsigned var, TermList binding)
   : Node(parent)
 {
+  ASS(inf == HOL::UnificationInference::PROJECTION || inf == HOL::UnificationInference::IMITATION);
   _parent = &parent;
+  _inf = inf;
   _subs.bindUnbound(var, binding);
 }
 
-HOLUnifier::Node::Node(const Node& parent, Stack<Constraint> cons)
-  : _parent(&parent), _def(parent._def), _orig(parent._orig), _cons(cons), _subs(parent._subs), _freshVar(parent._freshVar)
+HOLUnifier::Node::Node(const Node& parent, HOL::UnificationInference inf, Stack<Constraint> cons)
+  : _parent(&parent), _inf(inf), _def(parent._def), _orig(parent._orig), _cons(cons), _subs(parent._subs), _freshVar(parent._freshVar)
 {
+  ASS_EQ(inf, HOL::UnificationInference::DECOMPOSITION);
 }
 
 struct IdempotentSubs {
@@ -517,13 +520,13 @@ std::pair<Stack<HOLUnifier::Node*>,LiteralStack> HOLUnifier::Node::solve()
         auto sort = lambdaSorts.isEmpty() ? argSorts[j] : SortHelper::getResultSort(lhs.term());
         cons.emplace(lhs, rhs, sort);
       }
-      res.push(new Node(*this, cons));
+      res.push(new Node(*this, HOL::UnificationInference::DECOMPOSITION, cons));
 
     } else if (curr.flexRigid()) {
       DEBUG("flex-rigid ", curr._lhead, " ", curr._rhead);
       auto& flexTerm = curr._lhead.isVar() ? curr._lhs : curr._rhs;
       auto& rigidTerm = curr._lhead.isVar() ? curr._rhs : curr._lhs;
-      TermStack bindings = HOL::getProjAndImitBindings(flexTerm, rigidTerm, _freshVar);
+      auto bindings = HOL::getProjAndImitBindings(flexTerm, rigidTerm, _freshVar);
 
       // if there are no bindings for this constraint, fail
       if (bindings.isEmpty()) {
@@ -531,9 +534,9 @@ std::pair<Stack<HOLUnifier::Node*>,LiteralStack> HOLUnifier::Node::solve()
         return { Stack<Node*>(), LiteralStack() };
       }
 
-      for (const auto& b : bindings) {
+      for (const auto& [binding,inf] : bindings) {
         DEBUG("binding ", flexTerm.head(), " ", b);
-        res.push(new Node(*this, flexTerm.head().var(), b));
+        res.push(new Node(*this, inf, flexTerm.head().var(), binding));
       }
     }
     // else flex-flex, which we ignore
@@ -550,7 +553,7 @@ std::ostream& operator<<(std::ostream& out, const HOLUnifier::Constraint& con) {
 }
 
 std::ostream& operator<<(std::ostream& out, const HOLUnifier::Node& node) {
-  return out << "orig: " << *node._orig << ", cons: " << node._cons << ", subs: " << node._subs;
+  return out << *node._def << " <=> {" << node._cons << "} ⋅ σ: " << node._subs << " [" << node._inf << "]";
 }
 
 std::ostream& operator<<(std::ostream& out, const HOLUnifier& unif) {
