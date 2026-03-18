@@ -873,12 +873,17 @@ TermOrderingDiagramUP KBO::createTermOrderingDiagram(bool ground) const
   return make_unique<TermOrderingDiagramKBO>(*this, ground);
 }
 
+int KBO::functionSymbolWeight(unsigned functor) const
+{
+  return _funcWeights.symbolWeight(functor);
+}
+
 int KBO::symbolWeight(const Term* t) const
 {
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
-  if (t->isLiteral()) 
+  if (t->isLiteral())
     return _predWeights.symbolWeight(t);
-  else 
+  else
 #endif
   if (t->isSort()){
     //For now just give all type constructors minimal weight
