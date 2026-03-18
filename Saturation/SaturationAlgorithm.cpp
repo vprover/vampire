@@ -1551,8 +1551,6 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   if (opt.forwardLiteralRewriting()) {
     res->addForwardSimplifierToFront<ForwardLiteralRewriting>();
-  } else {
-    res->addExpensiveForwardSimplifierToFront<ForwardLiteralRewriting>();
   }
   if (mayHaveEquality) {
     // NOTE:
