@@ -80,8 +80,10 @@ private:
     Substitution _subs;
     unsigned _freshVar;
   private:
-    LiteralStack solution();
-    bool checkSolution(const LiteralStack& ffPairs);
+    Stack<Node*> decompose(unsigned index) const;
+
+    LiteralStack solution() const;
+    bool checkSolution(const LiteralStack& ffPairs) const;
   };
 
   friend std::ostream& operator<<(std::ostream& out, const Constraint& con);

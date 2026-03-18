@@ -153,9 +153,8 @@ TEST_FUN(multiple_sorts) {
 
   bool terminated;
   auto cls = handler.iterate(terminated);
-  ASS_EQ(cls.size(),2);
+  ASS_EQ(cls.size(),1);
   checkEqual(cls[0], clause({ ap(f_hol(), {c, d}) == troo }));
-  checkEqual(cls[1], clause({ ap(f_hol(), {c, d}) == troo }));
 }
 
 void testUnifier(Literal* constraint, Literal* def, Stack<LiteralStack> expected)
@@ -190,12 +189,6 @@ TEST_UNIFIER(constraints_iteration_1,
     LiteralStack(),
     LiteralStack(),
     LiteralStack(),
-    LiteralStack(),
-    LiteralStack{ p(lam(srt, lam(srt, ap(g, {db0, db1})))) },
-    LiteralStack{ p(lam(srt, lam(srt, ap(g, {db0, a})))) },
-    LiteralStack(),
-    LiteralStack{ p(lam(srt, lam(srt, ap(g, {b, db1})))) },
-    LiteralStack{ p(lam(srt, lam(srt, ap(g, {b, a})))) },
     LiteralStack(),
     LiteralStack{ p(lam(srt, lam(srt, ap(g, {db0, db1})))) },
     LiteralStack{ p(lam(srt, lam(srt, ap(g, {b, db1})))) },

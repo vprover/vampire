@@ -337,7 +337,7 @@ struct IdempotentSubs {
   }
 };
 
-LiteralStack HOLUnifier::Node::solution()
+LiteralStack HOLUnifier::Node::solution() const
 {
   const IdempotentSubs subs(_subs);
   LiteralStack res;
@@ -376,7 +376,7 @@ LiteralStack HOLUnifier::Node::solution()
   return res;
 }
 
-bool HOLUnifier::Node::checkSolution(const LiteralStack& ffPairs)
+bool HOLUnifier::Node::checkSolution(const LiteralStack& ffPairs) const
 {
   const IdempotentSubs subs(_subs);
   auto lhs = HOL::reduce::betaEtaNF(SubstHelper::apply(_orig->termArg(0), subs));
@@ -430,21 +430,19 @@ bool HOLUnifier::Node::checkSolution(const LiteralStack& ffPairs)
     }
 
     // if heads are the same, recurse to the arguments
-    if (lh == rh) {
-      if (largs.size() != rargs.size()) {
-        DBG("different number of arguments for ", lcurr, " = ", rcurr);
-        return false;
-      }
-      auto argSorts = HOL::getArgSorts(lcurr);
-      TermList matrix;
-      TermStack lambdaSorts;
-      HOL::getMatrixAndPrefSorts(lcurr, matrix, lambdaSorts);
-      for (unsigned i = 0; i < largs.size(); i++) {
-        if (largs[i] != rargs[i]) {
-          auto lhs = HOL::create::surroundWithLambdas(largs[i], lambdaSorts, argSorts[i], /*fromTop=*/true);
-          auto rhs = HOL::create::surroundWithLambdas(rargs[i], lambdaSorts, argSorts[i], /*fromTop=*/true);
-          todo.push({ lhs, rhs });
-        }
+    if (largs.size() != rargs.size()) {
+      DBG("different number of arguments for ", lcurr, " = ", rcurr);
+      return false;
+    }
+    auto argSorts = HOL::getArgSorts(lcurr);
+    TermList matrix;
+    TermStack lambdaSorts;
+    HOL::getMatrixAndPrefSorts(lcurr, matrix, lambdaSorts);
+    for (unsigned i = 0; i < largs.size(); i++) {
+      if (largs[i] != rargs[i]) {
+        auto lhs = HOL::create::surroundWithLambdas(largs[i], lambdaSorts, argSorts[i], /*fromTop=*/true);
+        auto rhs = HOL::create::surroundWithLambdas(rargs[i], lambdaSorts, argSorts[i], /*fromTop=*/true);
+        todo.push({ lhs, rhs });
       }
     }
   }
@@ -461,8 +459,6 @@ bool HOLUnifier::Node::checkSolution(const LiteralStack& ffPairs)
 
 std::pair<Stack<HOLUnifier::Node*>,LiteralStack> HOLUnifier::Node::solve()
 {
-  Stack<Node*> res;
-
   for (unsigned i = 0; i < _cons.size();) {
 
     auto& curr = _cons[i];
@@ -490,37 +486,7 @@ std::pair<Stack<HOLUnifier::Node*>,LiteralStack> HOLUnifier::Node::solve()
         DEBUG("fail");
         return { Stack<Node*>(), LiteralStack() };
       }
-
-      DEBUG("decompose");
-      auto [lhead, largs] = HOL::getHeadAndArgs(curr._lhs);
-      auto [rhead, rargs] = HOL::getHeadAndArgs(curr._rhs);
-      auto argSorts = HOL::getArgSorts(curr._lhs);
-      ASS_EQ(argSorts, HOL::getArgSorts(curr._rhs));
-      ASS_G(largs.size(),0);
-      ASS_EQ(largs.size(), rargs.size());
-      ASS_EQ(largs.size(), argSorts.size());
-
-      Stack<Constraint> cons;
-      for (unsigned j = 0; j < _cons.size(); j++) {
-        if (i != j) {
-          cons.emplace(_cons[j]);
-        }
-      }
-      TermList matrix;
-      TermStack lambdaSorts;
-      HOL::getMatrixAndPrefSorts(curr._lhs, matrix, lambdaSorts);
-#if VDEBUG
-      TermStack otherLambdaSorts;
-      HOL::getMatrixAndPrefSorts(curr._rhs, matrix, otherLambdaSorts);
-      ASS_EQ(lambdaSorts, otherLambdaSorts);
-#endif
-      for (unsigned j = 0; j < largs.size(); j++) {
-        auto lhs = HOL::create::surroundWithLambdas(largs[j], lambdaSorts, argSorts[j], /*fromTop=*/true);
-        auto rhs = HOL::create::surroundWithLambdas(rargs[j], lambdaSorts, argSorts[j], /*fromTop=*/true);
-        auto sort = lambdaSorts.isEmpty() ? argSorts[j] : SortHelper::getResultSort(lhs.term());
-        cons.emplace(lhs, rhs, sort);
-      }
-      res.push(new Node(*this, HOL::UnificationInference::DECOMPOSITION, cons));
+      return { decompose(i), LiteralStack() };
 
     } else if (curr.flexRigid()) {
       DEBUG("flex-rigid ", curr._lhead, " ", curr._rhead);
@@ -534,18 +500,53 @@ std::pair<Stack<HOLUnifier::Node*>,LiteralStack> HOLUnifier::Node::solve()
         return { Stack<Node*>(), LiteralStack() };
       }
 
+      Stack<Node*> res;
       for (const auto& [binding,inf] : bindings) {
         DEBUG("binding ", flexTerm.head(), " ", b);
         res.push(new Node(*this, inf, flexTerm.head().var(), binding));
       }
+      return { res, LiteralStack() };
     }
     // else flex-flex, which we ignore
     i++;
   }
-  if (res.isEmpty()) {
-    return { res, solution() };
+  // we reached this point only if all pairs are flex-flex, so we have a solution
+  return { Stack<Node*>(), solution() };
+}
+
+Stack<HOLUnifier::Node*> HOLUnifier::Node::decompose(unsigned index) const
+{
+  DEBUG("decompose");
+  auto& curr = _cons[index];
+  auto [lhead, largs] = HOL::getHeadAndArgs(curr._lhs);
+  auto [rhead, rargs] = HOL::getHeadAndArgs(curr._rhs);
+  auto argSorts = HOL::getArgSorts(curr._lhs);
+  ASS_EQ(argSorts, HOL::getArgSorts(curr._rhs));
+  ASS_G(largs.size(),0);
+  ASS_EQ(largs.size(), rargs.size());
+  ASS_EQ(largs.size(), argSorts.size());
+
+  Stack<Constraint> cons;
+  for (unsigned j = 0; j < _cons.size(); j++) {
+    if (index != j) {
+      cons.emplace(_cons[j]);
+    }
   }
-  return { res, LiteralStack() };
+  TermList matrix;
+  TermStack lambdaSorts;
+  HOL::getMatrixAndPrefSorts(curr._lhs, matrix, lambdaSorts);
+#if VDEBUG
+  TermStack otherLambdaSorts;
+  HOL::getMatrixAndPrefSorts(curr._rhs, matrix, otherLambdaSorts);
+  ASS_EQ(lambdaSorts, otherLambdaSorts);
+#endif
+  for (unsigned j = 0; j < largs.size(); j++) {
+    auto lhs = HOL::create::surroundWithLambdas(largs[j], lambdaSorts, argSorts[j], /*fromTop=*/true);
+    auto rhs = HOL::create::surroundWithLambdas(rargs[j], lambdaSorts, argSorts[j], /*fromTop=*/true);
+    auto sort = lambdaSorts.isEmpty() ? argSorts[j] : SortHelper::getResultSort(lhs.term());
+    cons.emplace(lhs, rhs, sort);
+  }
+  return { new Node(*this, HOL::UnificationInference::DECOMPOSITION, cons) };
 }
 
 std::ostream& operator<<(std::ostream& out, const HOLUnifier::Constraint& con) {
