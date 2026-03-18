@@ -268,8 +268,8 @@ TEST_GENERATION(test_20,
 TEST_GENERATION(test_21,
     Generation::SymmetricTest()
       .inputs({
-        clause({ selected(ap(ap(h,a),x) != lam(s, ap(ap(ap(h,db0),y),z))) }),
-        clause({ selected(ap(ap(h,x),y) == ap(g1, x)) }),
+        clause({ selected(ap(h, {a, x}) != lam(s, ap(h, {db0, y, z}))) }),
+        clause({ selected(ap(h, {x, y}) == ap(g1, x)) }),
       })
       .selfApplications(false)
       .options({
@@ -277,7 +277,7 @@ TEST_GENERATION(test_21,
         { "unification_with_abstraction_fixed_point_iteration", "on" },
       })
       .expected(exactly(
-        clause({ ap(g1,a) != lam(s, ap(ap(ap(h,db0),y),z)) })
+        clause({ ap(g1,a) != lam(s, ap(h, {db0, y, z})) })
       ))
     )
 

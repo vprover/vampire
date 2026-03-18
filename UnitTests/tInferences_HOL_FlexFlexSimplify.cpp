@@ -74,7 +74,7 @@ TEST_SIMPLIFY(fail_10,
 
 TEST_SIMPLIFY(fail_11,
     Simplification::NotApplicable()
-      .input(clause({ ap(xs, ap(ap(g, x), a)) != ys, g != g, ap(ys, a) != ap(zs, ap(lam(srt, db0), b)) }))
+      .input(clause({ ap(xs, ap(g, {x, a})) != ys, g != g, ap(ys, a) != ap(zs, ap(lam(srt, db0), b)) }))
     )
 
 TEST_SIMPLIFY(fail_12,
@@ -90,13 +90,13 @@ TEST_SIMPLIFY(success_1,
 
 TEST_SIMPLIFY(success_2,
     Simplification::Success()
-      .input(clause({ ap(xs, ap(ap(g, x), a)) != ys, x != y }))
+      .input(clause({ ap(xs, ap(g, {x, a})) != ys, x != y }))
       .expected(clause({ }))
     )
 
 TEST_SIMPLIFY(success_3,
     Simplification::Success()
-      .input(clause({ ap(xs, ap(ap(g, x), a)) != ys, ap(ys, a) != ap(zs, ap(lam(srt, db0), b)) }))
+      .input(clause({ ap(xs, ap(g, {x, a})) != ys, ap(ys, a) != ap(zs, ap(lam(srt, db0), b)) }))
       .expected(clause({ }))
     )
 

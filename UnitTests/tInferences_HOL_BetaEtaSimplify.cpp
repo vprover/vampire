@@ -37,8 +37,8 @@ TEST_SIMPLIFY(fail_1,
 
 TEST_SIMPLIFY(success_1,
     Simplification::Success()
-      .input(clause({ ap(ap(lam(srt, lam(srt, ap(ap(g, db1), db0))),a),b) != ap(ap(lam(srt, ap(g, db0)), f(x,y)), b) }))
-      .expected(clause({ ap(ap(g, a), b) != ap(ap(g, f(x,y)), b) }))
+      .input(clause({ ap(lam(srt, lam(srt, ap(g, {db1, db0}))), {a, b}) != ap(lam(srt, ap(g, db0)), {f(x,y), b}) }))
+      .expected(clause({ ap(g, {a, b}) != ap(g, {f(x,y), b}) }))
     )
 
 TEST_SIMPLIFY(success_2,

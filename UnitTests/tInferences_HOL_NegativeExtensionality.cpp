@@ -35,21 +35,21 @@ using namespace Test;
 // not done for non-selected literals
 TEST_GENERATION(fail_1,
     Generation::AsymmetricTest()
-      .input( clause({ selected(x == y), g != lam(srt, ap(ap(f, db0), db0)) }))
+      .input( clause({ selected(x == y), g != lam(srt, ap(f, {db0, db0})) }))
       .expected(none())
     )
 
 // not done for positive literals
 TEST_GENERATION(fail_2,
     Generation::AsymmetricTest()
-      .input( clause({ selected(g == lam(srt, ap(ap(f, db0), db0))) }))
+      .input( clause({ selected(g == lam(srt, ap(f, {db0, db0}))) }))
       .expected(none())
     )
 
 // not done for functions already applied
 TEST_GENERATION(fail_3,
     Generation::AsymmetricTest()
-      .input( clause({ selected(ap(g, x) == ap(lam(srt, ap(ap(f, db0), db0)), y)), x == y }))
+      .input( clause({ selected(ap(g, x) == ap(lam(srt, ap(f, {db0, db0})), y)), x == y }))
       .expected(none())
     )
 
@@ -69,6 +69,6 @@ TEST_GENERATION(fail_4,
 
 // TEST_GENERATION(success_2,
 //     Generation::AsymmetricTest()
-//       .input( clause({ selected(g != lam(srt, ap(ap(f, db0), db0))), x == y }))
-//       .expected(exactly(clause({ ap(g, sk0()) != ap(lam(srt, ap(ap(f, db0), db0)), sk0()), x == y })))
+//       .input( clause({ selected(g != lam(srt, ap(f, {db0, db0}))), x == y }))
+//       .expected(exactly(clause({ ap(g, sk0()) != ap(lam(srt, ap(f, {db0, db0})), sk0()), x == y })))
 //     )

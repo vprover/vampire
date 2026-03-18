@@ -80,7 +80,7 @@ TEST_FUN(no_constraints_2) {
 
 TEST_FUN(no_constraints_3) {
   PREAMBLE_HANDLER;
-  auto c1 = clause({ ap(ap(g, y), x) != ap(ap(g, a), b) });
+  auto c1 = clause({ ap(g, {y, x}) != ap(g, {a, b}) });
   auto c2 = handler.handleClause(c1);
 
   checkEqual(c2, c1);
@@ -96,18 +96,18 @@ TEST_FUN(constraints_1) {
 
 TEST_FUN(constraints_2) {
   PREAMBLE_HANDLER;
-  auto c1 = clause({ ap(g,y) != lam(srt, db0), y == a, ap(ap(h,y),z) != lam(srt, db0), ap(f,y) != b });
+  auto c1 = clause({ ap(g,y) != lam(srt, db0), y == a, ap(h, {y, z}) != lam(srt, db0), ap(f,y) != b });
   auto c2 = handler.handleClause(c1);
 
-  checkEqual(c2, clause({ ap(f_hol(),y) != troo, y == a, ap(ap(g_hol(),y),z) != troo, ap(f,y) != b }));
+  checkEqual(c2, clause({ ap(f_hol(),y) != troo, y == a, ap(g_hol(), {y, z}) != troo, ap(f,y) != b }));
 }
 
 TEST_FUN(constraints_3) {
   PREAMBLE_HANDLER;
-  auto c1 = clause({ y == a, ap(ap(h,y),z) != lam(srt, db0), ap(f,y) != b });
+  auto c1 = clause({ y == a, ap(h, {y, z}) != lam(srt, db0), ap(f,y) != b });
   auto c2 = handler.handleClause(c1);
 
-  checkEqual(c2, clause({ y == a, ap(ap(f_hol(),y),z) != troo, ap(f,y) != b }));
+  checkEqual(c2, clause({ y == a, ap(f_hol(), {y, z}) != troo, ap(f,y) != b }));
 }
 
 TEST_FUN(constraints_different) {
@@ -117,7 +117,7 @@ TEST_FUN(constraints_different) {
 
   checkEqual(c2, clause({ ap(f_hol(),y) != troo, y == a }));
 
-  auto d1 = clause({ ap(ap(h,z),b) != lam(srt, db0), ap(f,y) != b });
+  auto d1 = clause({ ap(h, {z, b}) != lam(srt, db0), ap(f,y) != b });
   auto d2 = handler.handleClause(d1);
 
   checkEqual(d2, clause({ ap(g_hol(),z) != troo, ap(f,y) != b }));
@@ -146,16 +146,16 @@ TEST_FUN(constraints_flexflex) {
 
 TEST_FUN(multiple_sorts) {
   PREAMBLE_HANDLER;
-  auto c1 = clause({ lam(srt,ap(ap(f2,x),x2)) != lam(srt,ap(ap(f2,c),d)) });
+  auto c1 = clause({ lam(srt,ap(f2, {x, x2})) != lam(srt, ap(f2, {c, d})) });
   auto c2 = handler.handleClause(c1);
 
-  checkEqual(c2, clause({ ap(ap(f_hol(),x),x2) != troo }));
+  checkEqual(c2, clause({ ap(f_hol(), {x, x2}) != troo }));
 
   bool terminated;
   auto cls = handler.iterate(terminated);
   ASS_EQ(cls.size(),2);
-  checkEqual(cls[0], clause({ ap(ap(f_hol(), c), d) == troo }));
-  checkEqual(cls[1], clause({ ap(ap(f_hol(), c), d) == troo }));
+  checkEqual(cls[0], clause({ ap(f_hol(), {c, d}) == troo }));
+  checkEqual(cls[1], clause({ ap(f_hol(), {c, d}) == troo }));
 }
 
 void testUnifier(Literal* constraint, Literal* def, Stack<LiteralStack> expected)
@@ -185,23 +185,23 @@ void testUnifier(Literal* constraint, Literal* def, Stack<LiteralStack> expected
   }
 
 TEST_UNIFIER(constraints_iteration_1,
-  ap(ap(xs, a), b) == ap(ap(g, b), a), p(xs),
+  ap(ap(xs, a), b) == ap(g, {b, a}), p(xs),
   Stack<LiteralStack>{
     LiteralStack(),
     LiteralStack(),
     LiteralStack(),
     LiteralStack(),
-    LiteralStack{ p(lam(srt, lam(srt, ap(ap(g, db0), db1)))) },
-    LiteralStack{ p(lam(srt, lam(srt, ap(ap(g, db0), a)))) },
+    LiteralStack{ p(lam(srt, lam(srt, ap(g, {db0, db1})))) },
+    LiteralStack{ p(lam(srt, lam(srt, ap(g, {db0, a})))) },
     LiteralStack(),
-    LiteralStack{ p(lam(srt, lam(srt, ap(ap(g, b), db1)))) },
-    LiteralStack{ p(lam(srt, lam(srt, ap(ap(g, b), a)))) },
+    LiteralStack{ p(lam(srt, lam(srt, ap(g, {b, db1})))) },
+    LiteralStack{ p(lam(srt, lam(srt, ap(g, {b, a})))) },
     LiteralStack(),
-    LiteralStack{ p(lam(srt, lam(srt, ap(ap(g, db0), db1)))) },
-    LiteralStack{ p(lam(srt, lam(srt, ap(ap(g, b), db1)))) },
+    LiteralStack{ p(lam(srt, lam(srt, ap(g, {db0, db1})))) },
+    LiteralStack{ p(lam(srt, lam(srt, ap(g, {b, db1})))) },
     LiteralStack(),
-    LiteralStack{ p(lam(srt, lam(srt, ap(ap(g, db0), a)))) },
-    LiteralStack{ p(lam(srt, lam(srt, ap(ap(g, b), a)))) },
+    LiteralStack{ p(lam(srt, lam(srt, ap(g, {db0, a})))) },
+    LiteralStack{ p(lam(srt, lam(srt, ap(g, {b, a})))) },
   }
 )
 

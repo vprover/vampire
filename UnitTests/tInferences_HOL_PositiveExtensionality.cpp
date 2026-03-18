@@ -29,40 +29,40 @@ using namespace Test;
 // not done for non-selected literals
 TEST_GENERATION(fail_1,
     Generation::AsymmetricTest()
-      .input( clause({ selected(x == y), ap(g,z) == ap(lam(srt, ap(ap(f, db0), x)),z) }))
+      .input( clause({ selected(x == y), ap(g,z) == ap(lam(srt, ap(f, {db0, x})),z) }))
       .expected(none())
     )
 
 // not done for negative literals
 TEST_GENERATION(fail_2,
     Generation::AsymmetricTest()
-      .input( clause({ selected(ap(g,z) != ap(lam(srt, ap(ap(f, db0), x)),z)) }))
+      .input( clause({ selected(ap(g,z) != ap(lam(srt, ap(f, {db0, x})),z)) }))
       .expected(none())
     )
 
 // not done for functions with different applied vars
 TEST_GENERATION(fail_3,
     Generation::AsymmetricTest()
-      .input( clause({ selected(ap(g,x) == ap(lam(srt, ap(ap(f, db0), x)),y)), ap(ap(f, z), z) == z }))
+      .input( clause({ selected(ap(g,x) == ap(lam(srt, ap(f, {db0, x})),y)), ap(f, {z, z}) == z }))
       .expected(none())
     )
 
 // not done for functions with applied vars that occur in other parts of the literal
 TEST_GENERATION(fail_4,
     Generation::AsymmetricTest()
-      .input( clause({ selected(ap(g,x) == ap(lam(srt, ap(ap(f, db0), x)),x)), ap(ap(f, z), z) == z }))
+      .input( clause({ selected(ap(g,x) == ap(lam(srt, ap(f, {db0, x})),x)), ap(f, {z, z}) == z }))
       .expected(none())
     )
 
 // not done for functions with applied vars that occur in other parts of the clause
 TEST_GENERATION(fail_5,
     Generation::AsymmetricTest()
-      .input( clause({ selected(ap(g,y) == ap(lam(srt, ap(ap(f, db0), x)),y)), ap(ap(f, y), z) == z }))
+      .input( clause({ selected(ap(g,y) == ap(lam(srt, ap(f, {db0, x})),y)), ap(f, {y, z}) == z }))
       .expected(none())
     )
 
 TEST_GENERATION(success_1,
     Generation::AsymmetricTest()
-      .input( clause({ selected(ap(g,y) == ap(lam(srt, ap(ap(f, db0), x)),y)), ap(ap(f, x), z) == x }))
-      .expected(exactly( clause({ g == lam(srt, ap(ap(f, db0), x)), ap(ap(f, x), z) == x })))
+      .input( clause({ selected(ap(g,y) == ap(lam(srt, ap(f, {db0, x})),y)), ap(f, {x, z}) == x }))
+      .expected(exactly( clause({ g == lam(srt, ap(f, {db0, x})), ap(f, {x, z}) == x })))
     )
