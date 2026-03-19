@@ -45,6 +45,7 @@ HOLUnificationHandler::HOLUnificationHandler(const Options& opt)
 Clause* HOLUnificationHandler::handleClause(Clause* cl)
 {
   ASS(cl->length());
+  ASS(cl->numSelected());
 
   LiteralStack lits;
   auto def_units = UnitList::empty();
@@ -52,7 +53,8 @@ Clause* HOLUnificationHandler::handleClause(Clause* cl)
   for (unsigned i = 0; i < cl->length(); i++) {
     auto lit = (*cl)[i];
 
-    if (isHOLUnificationConstraint(lit)) {
+    // only replace selected literals that are HOL unification constraints
+    if (i < cl->numSelected() && isHOLUnificationConstraint(lit)) {
       // first unification constraint, push all previous literals
       if (lits.isEmpty()) {
         for (unsigned j = 0; j < i; j++) { lits.push((*cl)[j]); }

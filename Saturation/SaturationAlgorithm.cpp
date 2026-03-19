@@ -1118,18 +1118,6 @@ void SaturationAlgorithm::activate(Clause* cl)
     }
   }
 
-  if (_holUnificationHandler) {
-    auto newCl = _holUnificationHandler->handleClause(cl);
-    if (newCl != cl) {
-      if (_opt.showAll()) {
-        std::cout << "[SA] constrained clause " << cl->toString() << " replaced with " << newCl->toString() << std::endl;
-      }
-      addNewClause(newCl);
-      removeSelected(cl);
-      return;
-    }
-  }
-
   _clauseActivationInProgress = true;
 
   if (!cl->numSelected()) {
@@ -1143,6 +1131,18 @@ void SaturationAlgorithm::activate(Clause* cl)
     }
 
     _selector->select(cl);
+  }
+
+  if (_holUnificationHandler) {
+    auto newCl = _holUnificationHandler->handleClause(cl);
+    if (newCl != cl) {
+      if (_opt.showAll()) {
+        std::cout << "[SA] constrained clause " << cl->toString() << " replaced with " << newCl->toString() << std::endl;
+      }
+      addNewClause(newCl);
+      removeSelected(cl);
+      return;
+    }
   }
 
   ASS_EQ(cl->store(), Clause::SELECTED);

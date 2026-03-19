@@ -63,7 +63,7 @@ void checkEqual(Clause* actual, Clause* expected) {
 
 TEST_FUN(no_constraints_1) {
   PREAMBLE_HANDLER;
-  auto c1 = clause({ ap(f,a) == a });
+  auto c1 = clause({ selected(ap(f,a) == a) });
   auto c2 = handler.handleClause(c1);
 
   checkEqual(c2, c1);
@@ -71,7 +71,7 @@ TEST_FUN(no_constraints_1) {
 
 TEST_FUN(no_constraints_2) {
   PREAMBLE_HANDLER;
-  auto c1 = clause({ ap(f,x) != a, x == a });
+  auto c1 = clause({ selected(ap(f,x) != a), selected(x == a) });
   auto c2 = handler.handleClause(c1);
 
   checkEqual(c2, c1);
@@ -79,7 +79,15 @@ TEST_FUN(no_constraints_2) {
 
 TEST_FUN(no_constraints_3) {
   PREAMBLE_HANDLER;
-  auto c1 = clause({ ap(g, {y, x}) != ap(g, {a, b}) });
+  auto c1 = clause({ selected(ap(g, {y, x}) != ap(g, {a, b})) });
+  auto c2 = handler.handleClause(c1);
+
+  checkEqual(c2, c1);
+}
+
+TEST_FUN(no_constraints_4) {
+  PREAMBLE_HANDLER;
+  auto c1 = clause({ selected(y == a), ap(g,y) != lam(srt, db0) });
   auto c2 = handler.handleClause(c1);
 
   checkEqual(c2, c1);
@@ -87,7 +95,7 @@ TEST_FUN(no_constraints_3) {
 
 TEST_FUN(constraints_1) {
   PREAMBLE_HANDLER;
-  auto c1 = clause({ ap(g,y) != lam(srt, db0), y == a });
+  auto c1 = clause({ selected(ap(g,y) != lam(srt, db0)), y == a });
   auto c2 = handler.handleClause(c1);
 
   checkEqual(c2, clause({ ap(f_hol(),y) != troo, y == a }));
@@ -95,28 +103,28 @@ TEST_FUN(constraints_1) {
 
 TEST_FUN(constraints_2) {
   PREAMBLE_HANDLER;
-  auto c1 = clause({ ap(g,y) != lam(srt, db0), y == a, ap(h, {y, z}) != lam(srt, db0), ap(f,y) != b });
+  auto c1 = clause({ selected(ap(g,y) != lam(srt, db0)), selected(ap(h, {y, z}) != lam(srt, db0)), y == a, ap(f,y) != b });
   auto c2 = handler.handleClause(c1);
 
-  checkEqual(c2, clause({ ap(f_hol(),y) != troo, y == a, ap(g_hol(), {y, z}) != troo, ap(f,y) != b }));
+  checkEqual(c2, clause({ ap(f_hol(),y) != troo, ap(g_hol(), {y, z}) != troo, y == a, ap(f,y) != b }));
 }
 
 TEST_FUN(constraints_3) {
   PREAMBLE_HANDLER;
-  auto c1 = clause({ y == a, ap(h, {y, z}) != lam(srt, db0), ap(f,y) != b });
+  auto c1 = clause({ selected(ap(h, {y, z}) != lam(srt, db0)), y == a, ap(f,y) != b });
   auto c2 = handler.handleClause(c1);
 
-  checkEqual(c2, clause({ y == a, ap(f_hol(), {y, z}) != troo, ap(f,y) != b }));
+  checkEqual(c2, clause({ ap(f_hol(), {y, z}) != troo, y == a, ap(f,y) != b }));
 }
 
 TEST_FUN(constraints_different) {
   PREAMBLE_HANDLER;
-  auto c1 = clause({ ap(g,y) != lam(srt, db0), y == a });
+  auto c1 = clause({ selected(ap(g,y) != lam(srt, db0)), y == a });
   auto c2 = handler.handleClause(c1);
 
   checkEqual(c2, clause({ ap(f_hol(),y) != troo, y == a }));
 
-  auto d1 = clause({ ap(h, {z, b}) != lam(srt, db0), ap(f,y) != b });
+  auto d1 = clause({ selected(ap(h, {z, b}) != lam(srt, db0)), ap(f,y) != b });
   auto d2 = handler.handleClause(d1);
 
   checkEqual(d2, clause({ ap(g_hol(),z) != troo, ap(f,y) != b }));
@@ -124,20 +132,21 @@ TEST_FUN(constraints_different) {
 
 TEST_FUN(constraints_same) {
   PREAMBLE_HANDLER;
-  auto c1 = clause({ ap(g,y) != lam(srt, db0), y == a });
+  auto c1 = clause({ selected(ap(g,y) != lam(srt, db0)), y == a });
   auto c2 = handler.handleClause(c1);
 
   checkEqual(c2, clause({ ap(f_hol(),y) != troo, y == a }));
 
-  auto d1 = clause({ ap(g,z) != lam(srt, db0), ap(f,y) != b });
+  auto d1 = clause({ selected(ap(g,z) != lam(srt, db0)), ap(f,y) != b });
   auto d2 = handler.handleClause(d1);
 
   checkEqual(d2, clause({ ap(f_hol(),z) != troo, ap(f,y) != b }));
 }
 
+// flex-flex pairs should be never selected, but the test makes sense though
 TEST_FUN(constraints_flexflex) {
   PREAMBLE_HANDLER;
-  auto c1 = clause({ ap(ys,a) != ap(zs,b), lam(srt, zs) != lam(srt, ys), ap(g,y) != lam(srt, db0) });
+  auto c1 = clause({ selected(ap(ys,a) != ap(zs,b)), selected(lam(srt, zs) != lam(srt, ys)), selected(ap(g,y) != lam(srt, db0)) });
   auto c2 = handler.handleClause(c1);
 
   checkEqual(c2, clause({ ap(ys,a) != ap(zs,b), lam(srt, zs) != lam(srt, ys), ap(f_hol(),y) != troo }));
@@ -145,7 +154,7 @@ TEST_FUN(constraints_flexflex) {
 
 TEST_FUN(multiple_sorts) {
   PREAMBLE_HANDLER;
-  auto c1 = clause({ lam(srt,ap(f2, {x, x2})) != lam(srt, ap(f2, {c, d})) });
+  auto c1 = clause({ selected(lam(srt,ap(f2, {x, x2})) != lam(srt, ap(f2, {c, d}))) });
   auto c2 = handler.handleClause(c1);
 
   checkEqual(c2, clause({ ap(f_hol(), {x, x2}) != troo }));
