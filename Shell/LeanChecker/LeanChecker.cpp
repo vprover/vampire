@@ -218,7 +218,6 @@ void LeanChecker::outputPreamble(std::ostream &out, std::set<Signature::Symbol*>
     }
   }
   for (auto [type, preds] : predMap){
-    TermList range = type->result();
     ASS_EQ(type->numTypeArguments(), 0)
     if(firstVariableDef){
       out << "variable ";
@@ -256,7 +255,7 @@ void LeanChecker::outputFullProofPreamble(std::ostream &out, std::deque<Unit*> p
     out << "False";
   } 
   out << " := by\n";
-  /*
+  
   for(Signature::Symbol* sym : unusedFunctionSymbols){
     if(sym->introduced()) {
       continue;
@@ -277,7 +276,6 @@ void LeanChecker::outputFullProofPreamble(std::ostream &out, std::deque<Unit*> p
     }
     out << "False\n";
   }
-  */
   if(!premises.empty()){
     out << indent << "intros ";
     for(Unit* input : premises){
