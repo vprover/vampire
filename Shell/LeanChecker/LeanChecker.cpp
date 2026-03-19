@@ -502,9 +502,8 @@ void LeanChecker::outputInferenceStep(std::ostream &out, Kernel::Unit *u){
       break;
     case Kernel::InferenceRule::AVATAR_CONTRADICTION_CLAUSE:
       genericInference(out, conclSorts, u, "intro h\n" +
-        indent + "have h' := Not.intro h\n" +
-        indent + "try simp only [and_iff_not_or_not, not_not] at h'\n" +
-        indent + "exact h'\n");
+        indent + "try simp only [imp_false, imp_iff_not_or, not_not] at h\n" +
+        indent + "exact h\n");
       break;
     case InferenceRule::AVATAR_SPLIT_CLAUSE:
       avatarSplitClause(out, conclSorts, u);
@@ -545,15 +544,8 @@ void LeanChecker::instantiateConclusionVars(std::ostream &out, SortMap &conclSor
   if(concl->isClause()) {
     auto cl = concl->asClause();
     if(!cl->noSplits()){
-      if(cl->splits()->size() == 1){
-        outputCumulativeSplits({cl}, " ", "x", true);
-        out << " ";
-      } else {
-        if(!cl->noSplits() && cl->splits()->size() > 1){
-          out << "\n" << indent << "";
-          outputCumulativeSplits({cl}, "→", "x", true);
-        }
-      }
+      outputCumulativeSplits({cl}, " ", "x", true);
+      out << " ";
     }
   }
   VirtualIterator<unsigned> domain = conclSorts.domain();

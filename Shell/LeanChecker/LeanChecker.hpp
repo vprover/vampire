@@ -107,11 +107,11 @@ private:
       auto cl = premise->asClause();
       if(!cl->noSplits()){
         if(cl->splits()->size() > 1){
-          out << "and_constr ⟨";
+          //out << "and_constr ⟨";
         }
-        outputCumulativeSplits({cl}, ", ", "x", true);
+        outputCumulativeSplits({cl}, " ", "x", true);
         if(cl->splits()->size() > 1){
-          out << "⟩";
+          //out << "⟩";
         } 
         out << " ";
       }
