@@ -549,20 +549,15 @@ void LeanChecker::instantiateConclusionVars(std::ostream &out, SortMap &conclSor
         outputCumulativeSplits({cl}, " ", "x", true);
         out << " ";
       } else {
-        out << "splits ";
+        if(!cl->noSplits() && cl->splits()->size() > 1){
+          out << "\n" << indent << "";
+          outputCumulativeSplits({cl}, "→", "x", true);
+        }
       }
     }
   }
   VirtualIterator<unsigned> domain = conclSorts.domain();
   outputVariables(out, domain, conclSorts, conclSorts);
-  if(concl->isClause()) {
-    auto cl = concl->asClause();
-    if(!cl->noSplits() && cl->splits()->size() > 1){
-      out << "\n" << indent << "rcases splits with ⟨";
-      outputCumulativeSplits({cl}, ",", "x", true);
-      out << "⟩";
-    }
-  }
 }
 
 void LeanChecker::genericNPremiseInference(std::ostream &out, SortMap &conclSorts, Clause *concl, std::initializer_list<Substitution> substitutions, std::string tactic){
@@ -1456,13 +1451,12 @@ void LeanChecker::outputUnit(std::ostream &out, Kernel::Unit *u, SortMap *conclS
     auto cl = u->asClause();
     if (outputSplits && !cl->noSplits()) {
       out << "("; // closed after printing the whole clause
-      out << "(";
-      outputCumulativeSplits({cl}, "∧");
-      out << ")→";
+      outputCumulativeSplits({cl}, "→");
+      out << "→";
     }
     outputClause(out, cl, conclSorts, Identity{});
-    if (outputSplits && !cl->noSplits()) {
-      out << ")"; // close the one opened before
+    if(outputSplits && !cl->noSplits()){
+      out << ")";
     }
   }
   else {
