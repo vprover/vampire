@@ -97,7 +97,7 @@ inline std::ostream& operator<<(std::ostream& out, const UnificationInference& i
 
 Stack<std::pair<TermList, UnificationInference>> getProjAndImitBindings(TermList flexTerm, TermList rigidTerm, unsigned& freshVar);
 
-TermList createGeneralBinding(TermList head, TermStack& sorts, unsigned& freshVar);
+TermList createGeneralBinding(TermList head, const TermStack& sorts, unsigned& freshVar, bool surround = true);
 
 } // namespace HOL
 
@@ -119,6 +119,12 @@ namespace HOL::create {
     return app2(head.resultSort(), head, arg1, arg2);
   }
 
+
+  TermList top();
+  TermList bottom();
+  TermList conj();
+  TermList disj();
+  TermList imp();  
   TermList equality(TermList sort);
   TermList neg();
   TermList pi(TermList sort);

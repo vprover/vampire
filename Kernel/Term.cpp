@@ -1063,8 +1063,21 @@ Literal* Literal::complementaryLiteral(Literal* l)
 
 bool Literal::isFlexFlexConstraint() const
 {
-  return isEquality() && isNegative() && termArg(0).head().isVar() && termArg(1).head().isVar();
+  ASS(isEquality());
+  return isNegative() && termArg(0).head().isVar() && termArg(1).head().isVar();
 }
+
+bool Literal::isFlexRigid() const
+{
+  ASS(isEquality());
+
+  auto [lhs, rhs] = eqArgs();
+  auto lhsHead = lhs.head();
+  auto rhsHead = rhs.head();
+
+  return (lhsHead.isVar() && !rhsHead.isVar()) || (rhsHead.isVar() && !lhsHead.isVar());
+}
+
 
 /** Create a new complex term, copy from @b t its function symbol and
  *  from the array @b args its arguments. Insert it into the sharing

@@ -71,6 +71,32 @@ TermList HOL::create::app(TermList head, const TermStack& terms, bool fromTop) {
   return app(SortHelper::getResultSort(head.term()), head, terms, fromTop);
 }
 
+TermList HOL::create::top() {
+  return TermList(Term::foolTrue());
+}
+
+TermList HOL::create::bottom() {
+  return TermList(Term::foolTrue());
+}
+
+TermList HOL::create::conj() {
+  static const auto conjProxy = env.signature->getBinaryProxy("vAND");
+
+  return TermList(Term::createConstant(conjProxy));
+}
+
+TermList HOL::create::disj() {
+  static const auto disjProxy = env.signature->getBinaryProxy("vOR");
+
+  return TermList(Term::createConstant(disjProxy));
+}
+
+TermList HOL::create::imp() {
+  static const auto impProxy = env.signature->getBinaryProxy("vIMP");
+
+  return TermList(Term::createConstant(impProxy));
+}
+
 TermList HOL::create::equality(TermList sort) {
   static const auto eqProxy = env.signature->getEqualityProxy();
 

@@ -79,6 +79,7 @@
 #include "Inferences/HOL/FlexFlexSimplify.hpp"
 #include "Inferences/HOL/NegativeExtensionality.hpp"
 #include "Inferences/HOL/PositiveExtensionality.hpp"
+#include "Inferences/HOL/PrimitiveInstantiation.hpp"
 #include "Inferences/InnerRewriting.hpp"
 #include "Inferences/TermAlgebraReasoning.hpp"
 #include "Inferences/Superposition.hpp"
@@ -1487,6 +1488,10 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   if (opt.cases() && prb.hasFOOL() && !opt.casesSimp()) {
     gie->addFront(new Cases(*res));
+  }
+
+  if (/* opt.complexBooleanReasoning() &&  */prb.hasBoolVar() && prb.isHigherOrder()) {
+    gie->addFront(new PrimitiveInstantiation(*res)); //TODO only add in some cases
   }
 
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&

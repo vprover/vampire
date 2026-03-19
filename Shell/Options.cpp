@@ -1985,6 +1985,21 @@ void Options::init()
     _clausificationOnTheFly.addProblemConstraint(hasHigherOrder());
     _clausificationOnTheFly.tag(OptionTag::HIGHER_ORDER);
 
+    _piSet = ChoiceOptionValue<PISet>("prim_inst_set","piset",PISet::PRAGMATIC,
+                                                                        {"all",
+                                                                         "all_but_not_eq",
+                                                                         "not",
+                                                                         "small_set",
+                                                                         "pragmatic",
+                                                                         "and",
+                                                                         "or",
+                                                                         "equals",
+                                                                         "pi_sigma"});
+    _piSet.description="Controls the set of equations to use in primitive instantiation";
+    _lookup.insert(&_piSet);
+    _piSet.addProblemConstraint(hasHigherOrder());     
+    _piSet.tag(OptionTag::HIGHER_ORDER);
+
     _equalityToEquivalence = BoolOptionValue("equality_to_equiv","e2e",false);
     _equalityToEquivalence.description=
       "Equality between boolean terms changed to equivalence \n"

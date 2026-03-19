@@ -525,7 +525,7 @@ Stack<std::pair<TermList, HOL::UnificationInference>> HOL::getProjAndImitBinding
   return res;
 }
 
-TermList HOL::createGeneralBinding(TermList head, TermStack& sorts, unsigned& freshVar)
+TermList HOL::createGeneralBinding(TermList head, const TermStack& sorts, unsigned& freshVar, bool surround)
 {
   ASS(head.isTerm()) // in the future may wish to reconsider this assertion
 
@@ -539,5 +539,6 @@ TermList HOL::createGeneralBinding(TermList head, TermStack& sorts, unsigned& fr
     args.push(create::app(varSort, TermList::var(freshVar++), indices));
   }
 
-  return create::surroundWithLambdas(create::app(head, args), sorts);
+  auto res = create::app(head, args);
+  return surround ? create::surroundWithLambdas(res, sorts) : res;
 }

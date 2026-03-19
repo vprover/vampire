@@ -1210,6 +1210,7 @@ public:
   }
 
   bool isFlexFlexConstraint() const;
+  bool isFlexRigid() const;
 
   // destructively swap arguments of an equation
   // the term is assumed to be non-shared
