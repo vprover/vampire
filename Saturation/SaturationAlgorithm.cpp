@@ -1929,8 +1929,10 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     res=new Discount(prb, opt);
     break;
   case Shell::Options::SaturationAlgorithm::LRS:
-    res=new LRS(prb, opt);
-    break;
+    if (!opt.neuralPassiveClauseContainer()) {
+      res=new LRS(prb, opt);
+      break;
+    } // else falls into Otter
   case Shell::Options::SaturationAlgorithm::OTTER:
     res=new Otter(prb, opt);
     break;
