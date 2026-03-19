@@ -112,6 +112,11 @@ void InferenceRecorder::equalityResolution(unsigned int id, Clause *conclusion, 
   recordGenericSubstitutionInference(id, conclusion, premises, recordedSubst);
 }
 
+void InferenceRecorder::equalityFactoring(unsigned int id, Clause *conclusion, const std::vector<Clause *> &premises, const RobSubstitution &recordedSubst)
+{
+  recordGenericSubstitutionInference(id, conclusion, premises, recordedSubst);
+}
+
 void InferenceRecorder::equalityResolutionDeletion(unsigned int id, Clause *conclusion, Clause *premise, EqResWithDeletion *appl)
 {
   recordGenericSubstitutionInference<EqResWithDeletion*>(id, conclusion, {premise}, appl,

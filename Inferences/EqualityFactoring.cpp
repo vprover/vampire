@@ -28,6 +28,7 @@
 #include "Kernel/LiteralSelector.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
+#include "Shell/InferenceRecorder.hpp"
 
 #include "EqualityFactoring.hpp"
 
@@ -159,6 +160,9 @@ struct EqualityFactoring::ResultFn
     Clause *cl = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, _cl));
     if(env.options->proofExtra() == Options::ProofExtra::FULL)
       env.proofExtra.insert(cl, new EqualityFactoringExtra(sLit, fLit, sLHS, fRHS));
+    if(env.reconstruction){
+      InferenceRecorder::instance()->equalityFactoring(cl->number(), cl, {_cl}, absUnif.subs());
+    }
     return cl;
   }
 private:

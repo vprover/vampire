@@ -85,6 +85,7 @@ bool LeanChecker::inferenceNeedsReplayInformation(const InferenceRule &rule)
     case InferenceRule::FACTORING:
     case InferenceRule::EQUALITY_RESOLUTION:
     case InferenceRule::EQUALITY_RESOLUTION_WITH_DELETION:
+    case InferenceRule::EQUALITY_FACTORING:
     case InferenceRule::SUPERPOSITION:
     case InferenceRule::FORWARD_DEMODULATION:
     case InferenceRule::BACKWARD_DEMODULATION:
@@ -466,6 +467,9 @@ void LeanChecker::outputInferenceStep(std::ostream &out, Kernel::Unit *u){
     case InferenceRule::EQUALITY_RESOLUTION_WITH_DELETION:
       equalityResolution(out, conclSorts, u->asClause(), info);
       break;
+    case InferenceRule::EQUALITY_FACTORING:
+      equalityFactoring(out, conclSorts, u->asClause(), info);
+      break;
     case InferenceRule::FORWARD_SUBSUMPTION_RESOLUTION:
     case InferenceRule::BACKWARD_SUBSUMPTION_RESOLUTION:
       subsumptionResolution(out, conclSorts, u->asClause());
@@ -638,6 +642,11 @@ void LeanChecker::factoring(std::ostream &out, SortMap &conclSorts, Clause *conc
 }
 
 void LeanChecker::equalityResolution(std::ostream &out, SortMap &conclSorts, Clause *concl, const InferenceRecorder::InferenceInformation *info)
+{
+  genericNPremiseInference(out, conclSorts, concl, {info->substitutionForBanksSub[0]}, "grind only [cases Or]");
+}
+
+void LeanChecker::equalityFactoring(std::ostream &out, SortMap &conclSorts, Clause *concl, const InferenceRecorder::InferenceInformation *info)
 {
   genericNPremiseInference(out, conclSorts, concl, {info->substitutionForBanksSub[0]}, "grind only [cases Or]");
 }

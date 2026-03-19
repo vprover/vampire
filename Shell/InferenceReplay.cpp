@@ -1,6 +1,7 @@
 #include "Shell/InferenceReplay.hpp"
 #include "Inferences/BackwardDemodulation.hpp"
 #include "Inferences/BinaryResolution.hpp"
+#include "Inferences/EqualityFactoring.hpp"
 #include "Inferences/EqualityResolution.hpp"
 #include "Inferences/Factoring.hpp"
 #include "Inferences/ForwardDemodulation.hpp"
@@ -55,6 +56,10 @@ void InferenceReplayer::replayInference(Kernel::Unit *u)
     p.addUnits(ul);
     env.setMainProblem(&p);
     eq.apply(p);
+  }
+  else if(u->inference().rule() == InferenceRule::EQUALITY_FACTORING){
+      Inferences::EqualityFactoring eqf(*alg);
+      runGenerating(&eqf, stack, u->asClause());
   }
   else if (u->inference().rule() == InferenceRule::FACTORING) {
     Inferences::Factoring fact(*alg);
