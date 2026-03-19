@@ -218,7 +218,7 @@ void NeuralClauseEvaluationModel::gageEmbedPending()
         rect.index_put_({j, torch::indexing::Slice(0, _gageEmbeddingSize)}, _gageRuleEmbed.index({ruleIdx}));
         rect.index_put_({j, torch::indexing::Slice(1*_gageEmbeddingSize, 2*_gageEmbeddingSize)},
                 (parents.size() == 0) ? torch::zeros({_gageEmbeddingSize}) : _gageEmbedStore.get(parents[0]));
-        int64_t k = 1;
+        unsigned k = 1;
         auto remainingPremisesEmbedSum = torch::zeros({_gageEmbeddingSize});
         while (k < parents.size()) {
           remainingPremisesEmbedSum += _gageEmbedStore.get(parents[k++]);
@@ -298,7 +298,7 @@ void NeuralClauseEvaluationModel::gweightEmbedPending() {
         rect.index_put_({j, torch::indexing::Slice(1+_gweightEmbeddingSize, 1+3*_gweightEmbeddingSize)}, torch::zeros({2*_gweightEmbeddingSize}));
       } else {
         rect.index_put_({j, torch::indexing::Slice(1+_gweightEmbeddingSize, 1+2*_gweightEmbeddingSize)}, _gweightTermEmbedStore.get(args[0]));
-        int64_t k = 1;
+        unsigned k = 1;
         auto remainingArgsEmbedSum = torch::zeros({_gweightEmbeddingSize});
         while (k < args.size()) {
           remainingArgsEmbedSum += _gweightTermEmbedStore.get(args[k++]);
