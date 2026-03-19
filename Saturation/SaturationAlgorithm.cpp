@@ -115,6 +115,8 @@
 #include "LRS.hpp"
 #include "Otter.hpp"
 
+#include "NeuralPassiveClauseContainer.hpp"
+
 #include <torch/torch.h>
 
 using namespace std;
@@ -236,7 +238,39 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
 
   _unprocessed = new UnprocessedClauseContainer();
 
-  if (opt.useManualClauseSelection()) {
+  // If we talk to prb.getProperty() here below (both in the NeuralClauseEvaluationModel constructor and when accessing the Property::FeatureIterator), it's OK, but we only get the CNF perspective.
+
+  const std::string& ncem = opt.neuralClauseEvaluationModel();
+  _neuralActivityRecoring = !opt.neuralActivityRecording().empty();
+  _neuralModelGuidance = opt.neuralPassiveClauseContainer();
+  if (!ncem.empty()) {
+    _neuralModel = new NeuralClauseEvaluationModel(ncem,
+      std::bind(&SaturationAlgorithm::makeReadyForEval, this, std::placeholders::_1),
+      // opt.neuralClauseEvaluationModelTweaks(),
+      opt.randomSeed(),opt.numClauseFeatures(),opt.npccTemperature());
+
+    if (_neuralActivityRecoring) {
+      _neuralModel->setRecording();
+    }
+
+    if (_neuralModelGuidance) {
+      _neuralModel->setComputing();
+    }
+
+    if (_neuralActivityRecoring || _neuralModelGuidance) {
+      // must be called before setStaticFeatures
+      _neuralModel->setGSD(opt.neuralClauseEvaluationModelGSD());
+      _neuralModel->setStaticFeatures(prb,opt);
+    }
+
+    // will also set the strategy vector here at some point in the feature
+  }
+
+  if (_neuralModelGuidance) {
+    // could also be part of level0, so that neural queues can be combined with splits
+    _passive = std::make_unique<NeuralPassiveClauseContainer>(true, opt, *_neuralModel);
+  }
+  else if (opt.useManualClauseSelection()) {
     _passive = std::make_unique<ManCSPassiveClauseContainer>(true, opt);
   }
   else {
@@ -373,6 +407,152 @@ void SaturationAlgorithm::onAllProcessed()
   }
 }
 
+void SaturationAlgorithm::showPredecessors(Clause* cl) {
+  struct Todo {
+    Clause* c;
+    bool starting;
+  };
+
+  Stack<Todo> todos;
+  todos.push({cl,true});
+  while (todos.isNonEmpty()) {
+    Todo& todo = todos.top();
+    Clause* c = todo.c;
+    if (todo.starting) {
+      if (c->isFromPreprocessing() || _predecessorsShown.find(c->number())) {
+        todos.pop();
+      } else {
+        todo.starting = false;
+        // don't touch todo anymore, after pushing!
+
+        if (c->isComponent()) {
+          Clause* p = c->inference().getCausalParent();
+          ASS(p); // CAREFUL: causal parent can be none; for the ccModel thingie (we will not consider that!)
+          todos.push({p,true});
+        } else {
+          Inference& inf = c->inference();
+          auto it1 = inf.iterator();
+          while (inf.hasNext(it1)) {
+            Unit* p = inf.next(it1);
+            todos.push({p->asClause(),true});
+          }
+        }
+      }
+    } else {
+      vector<int64_t> parents;
+      if (c->isComponent()) {
+        Clause* p = c->inference().getCausalParent();
+        parents.push_back(p->number());
+      } else {
+        Inference& inf = c->inference();
+        auto it1 = inf.iterator();
+        while (inf.hasNext(it1)) {
+          Unit* p = inf.next(it1);
+          parents.push_back(p->number());
+        }
+      }
+      _neuralModel->gageEnqueue(c,parents);
+      ALWAYS(_predecessorsShown.insert(c->number()));
+      todos.pop();
+    }
+  }
+}
+
+void SaturationAlgorithm::showSubterms(Term* t) {
+  struct Todo {
+    Term* t;
+    bool starting;
+  };
+
+  Stack<Todo> todos;
+  todos.push({t,true});
+  while (todos.isNonEmpty()) {
+    Todo& todo = todos.top();
+    Term* t = todo.t;
+    if (todo.starting) {
+      if (_subtermsShown.find(t->getId())) {
+        todos.pop();
+      } else {
+        todo.starting = false;
+        // don't touch todo anymore, after pushing!
+        for (unsigned n = 0; n < t->arity(); n++) {
+          TermList arg = *t->nthArgument(n);
+          if (arg.isTerm()) {
+            todos.push({arg.term(),true});
+          }
+        }
+      }
+    } else {
+      vector<int64_t> args;
+      for (unsigned n = 0; n < t->arity(); n++) {
+        TermList arg = *t->nthArgument(n);
+        if (arg.isTerm()) {
+          args.push_back(arg.term()->getId()+1);
+        } else {
+          args.push_back(0); // all variables are 0
+        }
+      }
+      _neuralModel->gweightEnqueueTerm(
+          t->getId()+1,
+          funcToSymb(t->functor()),
+          0.0,
+          args);
+      ALWAYS(_subtermsShown.insert(t->getId()));
+      todos.pop();
+    }
+  }
+}
+
+void SaturationAlgorithm::showClauseLiterals(Clause* c) {
+  vector<int64_t> lits;
+  for (Literal* lit : c->iterLits()) {
+    // using negative indices for literals (otherwise might overlap with term ids!)
+    int64_t litId = -1-(int64_t)lit->getId();
+    lits.push_back(litId);
+
+    if (_literalsShown.find(lit->getId())) // and having a dedicated DHSet form them
+      continue;
+
+    vector<int64_t> args;
+    for (unsigned n = 0; n < lit->arity(); n++) {
+      TermList arg = *lit->nthArgument(n);
+      if (arg.isTerm()) {
+        showSubterms(arg.term());
+        args.push_back(arg.term()->getId()+1);
+      } else {
+        args.push_back(0); // all variables are 0
+      }
+    }
+
+    _neuralModel->gweightEnqueueTerm(
+        litId,
+        predToSymb(lit->functor()),
+        lit->isPositive() ? 1.0 : -1.0,
+        args);
+    ALWAYS(_literalsShown.insert(lit->getId()));
+  }
+
+  _neuralModel->gweightEnqueueClause(c,lits);
+}
+
+/*
+ * Returns true, if the clause was seen for the first time.
+ */
+bool SaturationAlgorithm::makeReadyForEval(Clause* c) {
+  if (!_shown.find(c->number())) {
+    if (_neuralModel->useGage()) {
+      showPredecessors(c);
+    }
+    if (_neuralModel->useGweight()) {
+      showClauseLiterals(c);
+    }
+
+    ALWAYS(_shown.insert(c->number()));
+    return true;
+  }
+  return false;
+}
+
 /**
  * A function that is called when a clause is added to the passive clause container.
  */
@@ -380,6 +560,10 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
 {
   if (env.options->showPassive()) {
     std::cout << "[SA] passive: " << c->toString() << std::endl;
+  }
+
+  if (_neuralActivityRecoring) {
+    _neuralModel->journal(NeuralClauseEvaluationModel::JOURNAL_ADD,c);
   }
 
   //when a clause is added to the passive container,
@@ -394,6 +578,10 @@ void SaturationAlgorithm::onPassiveAdded(Clause* c)
  */
 void SaturationAlgorithm::onPassiveRemoved(Clause* c)
 {
+  if (_neuralActivityRecoring) {
+    _neuralModel->journal(NeuralClauseEvaluationModel::JOURNAL_REM,c);
+  }
+
   ASS(c->store()==Clause::PASSIVE);
   c->setStore(Clause::NONE);
   // at this point the c object can be deleted
@@ -408,6 +596,9 @@ void SaturationAlgorithm::onPassiveRemoved(Clause* c)
  */
 void SaturationAlgorithm::onPassiveSelected(Clause* c)
 {
+  if (_neuralActivityRecoring) {
+    _neuralModel->journal(NeuralClauseEvaluationModel::JOURNAL_SEL,c);
+  }
 }
 
 /**
@@ -684,14 +875,335 @@ fin:
   cl->decRefCnt();
 }
 
+
+void SaturationAlgorithm::runGnnOnInput()
+{
+  TIME_TRACE("gnn-eval");
+
+  Timer::updateInstructionCount();
+  long long gnn_start_instrs = Timer::elapsedInstructions();
+
+  _numPreds = env.signature->predicates();
+  _numFuncs = env.signature->functions();
+  _numSorts = env.signature->typeCons();
+
+  // these guy must survive (in memory) until the gnnPerform call
+  torch::Tensor sort_features = torch::empty({_numSorts,3}, torch::kFloat32);
+  torch::Tensor symbol_features = torch::empty({_numPreds+_numFuncs,11}, torch::kFloat32);
+
+  // sorts
+  {
+    float* sort_features_ptr = sort_features.data_ptr<float>();
+
+    for (unsigned t = 0; t < _numSorts; t++) {
+      Signature::Symbol* symb = env.signature->getTypeCon(t);
+      if (symb->arity() > 0) {
+        USER_ERROR("GNN currently only supports monomorphic FOL.");
+      }
+      (*sort_features_ptr++) = env.signature->isPlainCon(t);
+      (*sort_features_ptr++) = env.signature->isBoolCon(t);
+      (*sort_features_ptr++) = env.signature->isArithCon(t);
+      // cout << "sort: " << t << " " << env.signature->isPlainCon(t) << " " << env.signature->isBoolCon(t) << " " << env.signature->isArithCon(t) << " # " << symb->name() << endl;
+    }
+
+    _neuralModel->gnnNodeKind("sort",sort_features);
+  }
+
+  // symbols
+  {
+    float* symbol_features_ptr = symbol_features.data_ptr<float>();
+
+    vector<int64_t> symb2sort_one; // the symbs
+    vector<int64_t> symb2sort_two; // the sorts
+
+    vector<int64_t> symb2symb_one; // the smaller in prec
+    vector<int64_t> symb2symb_two; // the larger in prec
+
+    auto add_arity_symbol_features = [&symbol_features_ptr](unsigned arity) {
+      (*symbol_features_ptr++) = (arity > 0);
+      (*symbol_features_ptr++) = (arity > 1);
+      (*symbol_features_ptr++) = (arity > 2);
+      (*symbol_features_ptr++) = (arity > 4);
+      (*symbol_features_ptr++) = (arity > 8);
+    };
+
+    for (unsigned p = 0; p < _numPreds; p++) {
+      Signature::Symbol* symb = env.signature->getPredicate(p);
+      (*symbol_features_ptr++) = (unsigned)(p==0);   // isEquality
+      (*symbol_features_ptr++) = 0;                  // isFunction symbol
+      (*symbol_features_ptr++) = symb->introduced();
+      (*symbol_features_ptr++) = symb->skolem();
+      (*symbol_features_ptr++) = symb->interpretedNumber();
+      (*symbol_features_ptr++) = 1; // function symbol (KBO) weight
+      add_arity_symbol_features(symb->arity());
+
+      //cout << "symb: " << p << " " << (unsigned)(p==0) << " 0 " << symb->introduced() << " " << symb->skolem()
+      //    << " " << symb->interpretedNumber() << " " << symb->arity() << " # " << symb->name() << endl;
+      // cout << "symb-to-sort: " << p << " " << env.signature->getBoolSort() << endl;
+      symb2sort_one.push_back(p);
+      symb2sort_two.push_back(env.signature->getBoolSort());
+      // pred-to-sort: predId sortId (which is always 1 == $o)
+    }
+    {
+      DArray<unsigned> predicates;
+      predicates.initFromIterator(getRangeIterator(0u, _numPreds), _numPreds);
+      _ordering->sortArrayByPredicatePrecedence(predicates);
+      unsigned jumpLen = 1;
+      do {
+        unsigned prev = 0; // we hardcode = as the first predicate in the precedence (despite the precedence sometimes claiming otherwise), because = has always the smallest "level" anyway
+        for (unsigned idx = 0; idx < _numPreds; idx += jumpLen) {
+          if (predicates[idx] != 0) {
+            // cout << "symb-prec-next: " << prev << " " << predicates[idx] << endl;
+            symb2symb_one.push_back(prev);
+            symb2symb_two.push_back(predicates[idx]);
+            prev = predicates[idx];
+          }
+        }
+        jumpLen *= 2;
+      } while (jumpLen < _numPreds);
+    }
+    for (unsigned f = 0; f < _numFuncs; f++) {
+      Signature::Symbol* symb = env.signature->getFunction(f);
+
+      (*symbol_features_ptr++) = 0;                  // isEquality
+      (*symbol_features_ptr++) = 1;                  // isFunction symbol
+      (*symbol_features_ptr++) = symb->introduced();
+      (*symbol_features_ptr++) = symb->skolem();
+      (*symbol_features_ptr++) = symb->interpretedNumber();
+      (*symbol_features_ptr++) = _ordering->functionSymbolWeight(f);
+      add_arity_symbol_features(symb->arity());
+
+      //cout << "symb: " << FUNC_TO_SYMB(f) << " 0 1 " << symb->introduced() << " " << symb->skolem()
+      //    << " " << symb->interpretedNumber() << " " << symb->arity() << " # " << symb->name() << endl;
+      // cout << "symb-to-sort: " << FUNC_TO_SYMB(f) << " " << symb->fnType()->result().term()->functor() << endl;
+      symb2sort_one.push_back(funcToSymb(f));
+      symb2sort_two.push_back(symb->fnType()->result().term()->functor());
+      // func-to-sort: funcId sortId --- this is the output sort (input sorts can be inferred from arguments' output sorts)
+    }
+    {
+      DArray<unsigned> functions;
+      functions.initFromIterator(getRangeIterator(0u, _numFuncs), _numFuncs);
+      _ordering->sortArrayByFunctionPrecedence(functions);
+      unsigned jumpLen = 1;
+      do {
+        for (unsigned idx = jumpLen; idx < _numFuncs; idx += jumpLen) {
+          // cout << "symb-prec-next: " << FUNC_TO_SYMB(functions[idx-jumpLen]) << " " << FUNC_TO_SYMB(functions[idx]) << endl;
+          symb2symb_one.push_back(funcToSymb(functions[idx-jumpLen]));
+          symb2symb_two.push_back(funcToSymb(functions[idx]));
+        }
+        jumpLen *= 2;
+      } while (jumpLen < _numFuncs);
+    }
+
+    _neuralModel->gnnNodeKind("symbol",symbol_features);
+    _neuralModel->gnnEdgeKind("symbol","sort",symb2sort_one,symb2sort_two);
+    _neuralModel->gnnEdgeKind("symbol","symbol",symb2symb_one,symb2symb_two); // for the symbol precendence
+  }
+
+  vector<int64_t> cls2trm_one; // clauses
+  vector<int64_t> cls2trm_two; // literals
+
+  vector<int64_t> trm2trm_one; // super-term
+  vector<int64_t> trm2trm_two; // sub-term
+
+  vector<int64_t> cls2var_one; // clauses
+  vector<int64_t> cls2var_two; // variable
+
+  vector<int64_t> var2srt_one; // variable
+  vector<int64_t> var2srt_two; // sort
+
+  vector<int64_t> trm2var_one; // a subterm is a
+  vector<int64_t> trm2var_two; // variable
+
+  vector<int64_t> trm2symb_one; // a (non-var) subterm
+  vector<int64_t> trm2symb_two; // has a symbol
+
+  vector<float> clause_features;
+  vector<float> term_features;
+  vector<float> var_features;
+
+  ClauseIterator toAdd = _prb.clauseIterator();
+  unsigned clauseId = 0;  // zero-based, ever growing
+  unsigned subtermId = 0; // zero-based, ever growing
+  unsigned clVarId = 0;   // zero-based, ever growing, each clause has its own variable nodes
+  DHMap<unsigned,unsigned> clauseVariables; // from clause variables (as TermList::var()) to global variables of the whole CNF (non shared)
+  DHMap<int64_t,unsigned> termsAlreadyKnown; // from litId(use negative indices)/termId to subtermId of the first occurrence
+
+  struct TermTodo {
+    Term* trm;        // the term to iterate through
+    unsigned id;      // its id (for reporting edges)
+    OperatorType* ot; // trm's operator type (careful, can't be used for twoVarEquality)
+    bool seenFirst;   // we want to draw an edge exactly when the superterm is seen for the first time (which implies the same for the subters, but not vice versa)
+    unsigned idx = 0; // index into t's own subterms, when idx >= arity, we are done with this Todo
+  };
+
+  auto term_features_for_vars_and_weight = [&term_features](Term* t) {
+    term_features.push_back(t->numVarOccs() > 0);   // non-ground
+    term_features.push_back(t->numVarOccs() > 2);
+    term_features.push_back(t->numVarOccs() > 4);
+    term_features.push_back(t->numVarOccs() > 8);
+    term_features.push_back(t->weight() > 1);       // non-leaf
+    term_features.push_back(t->weight() > 4);
+    term_features.push_back(t->weight() > 16);
+    term_features.push_back(t->weight() > 64);
+  };
+
+  std::vector<int64_t> clauseNums;
+  clauseNums.reserve(UnitList::length(_prb.units()));
+
+  Stack<TermTodo> subterms;
+  while (toAdd.hasNext()) {
+    Clause* cl = toAdd.next();
+    clauseNums.push_back(cl->number());
+    clauseVariables.reset();
+    unsigned clWeight = 0;
+    for (Literal* lit : cl->iterLits()) {
+      clWeight += lit->weight();
+
+      bool seenFirst = false;
+      unsigned* sharedSubtermId;
+      if (termsAlreadyKnown.getValuePtr(-1-(int64_t)lit->getId(),sharedSubtermId)) {
+        seenFirst = true;
+        *sharedSubtermId = subtermId++;
+
+        // each literal is a trm!
+        term_features.push_back((lit->isPositive()) ? 1.0 : -1.0); // only non-zero for literals and encodes polarity
+        term_features_for_vars_and_weight(lit);
+        // cout << "trm: " << subtermId << " " << ((lit->isPositive()) ? 1.0 : -1.0) << " " << 0.0 << " ... " << lit->toString() << endl;
+
+        trm2symb_one.push_back(*sharedSubtermId);
+        trm2symb_two.push_back(lit->functor());
+        // cout << "trm-symb: " << subtermId << " " << lit->functor() << endl;
+      }
+
+      // we always connect clause to its literal's term node
+      cls2trm_one.push_back(clauseId);
+      cls2trm_two.push_back(*sharedSubtermId);
+      // cout << "cls-trm: " << clauseId << " " << subtermId << endl;
+
+      ASS(subterms.isEmpty());
+      subterms.push({lit,*sharedSubtermId,env.signature->getPredicate(lit->functor())->predType(),seenFirst});
+      while (subterms.isNonEmpty()) {
+        TermTodo& top = subterms.top();
+
+        if (top.idx < top.trm->arity()) {
+          // process top.idx-th subterm of top.trm (whose gnn index is top.id)
+
+          TermList arg = *top.trm->nthArgument(top.idx);
+          // cout << "trm: " << subtermId << " " << 0.0 << " " << term_features.back() << " ... " << arg.toString() << endl;
+          // the rest of term_features will follow, depending on whether arg is a proper term or a var
+
+          if (arg.isTerm()) {
+            Term* t = arg.term();
+
+            // under perfect sharing, we might want to skip this guy, if already exposed
+            bool seenFirst = false;
+            unsigned* sharedSubtermId;
+            if (termsAlreadyKnown.getValuePtr(t->getId(),sharedSubtermId)) {
+              seenFirst = true;
+              *sharedSubtermId = subtermId++;
+
+              term_features.push_back(0.0);   // proper subterms are not literals
+              term_features_for_vars_and_weight(t);
+
+              trm2symb_one.push_back(*sharedSubtermId);
+              trm2symb_two.push_back(funcToSymb(t->functor()));
+            }
+            if (top.seenFirst) {
+              trm2trm_one.push_back(top.id);
+              trm2trm_two.push_back(*sharedSubtermId);
+              // cout << "trm-trm: " << top.id << " " << subtermId << endl;
+            }
+            // cout << "trm-symb: " << subtermId << " " << FUNC_TO_SYMB(t->functor()) << endl;
+            subterms.push({t,*sharedSubtermId,env.signature->getFunction(t->functor())->fnType(),seenFirst});
+            // don't touch top anymore (push could cause reallocatio)!
+          } else {
+            // will be only used, if we are a var
+            unsigned varSrt = (top.trm->isTwoVarEquality() ? static_cast<Literal*>(top.trm)->twoVarEqSort() : top.ot->arg(top.idx)).term()->functor();
+
+            ASS(arg.isVar());
+            unsigned var = arg.var();
+            unsigned* normVar;
+            if (clauseVariables.getValuePtr(var,normVar)) {
+              *normVar = clVarId++;
+              // cout << "var: " << *normVar << " " << clauseVariables.size()-1 << endl;
+              var_features.push_back(0.0); // TODO: this should be an embedding lookup
+              // cls-var: clauseId varId
+              // cout << "cls-var: " << clauseId << " " << *normVar << endl;       // a clause knows about its variables (and numbers them internally starting from 0)
+              cls2var_one.push_back(clauseId);
+              cls2var_two.push_back(*normVar);
+
+              // cout << "var-srt: " << *normVar << " " << varSrt << endl;          // a variable knows about its sort
+              var2srt_one.push_back(*normVar);
+              var2srt_two.push_back(varSrt);
+            }
+
+            // cout << "trm-var: " << top.id << " " << *normVar << endl; // this subterm is a variable
+            trm2var_one.push_back(top.id);
+            trm2var_two.push_back(*normVar);
+          }
+
+          top.idx++; // next time round, will look at the next argument or die
+        } else {
+          subterms.pop();
+        }
+      }
+    }
+
+    // just register the clause and connect it with its number()
+    // cout << "cls: " << clauseId << " " << cl->derivedFromGoal() << " " << cl->isTheoryAxiom() << " ... " << cl->toString() << endl;
+    clause_features.push_back(cl->derivedFromGoal());
+    clause_features.push_back(cl->isTheoryAxiom()); // TODO: could be more specific on which theory axiom this is (when it is one) - as was done in Deepire
+    clause_features.push_back(cl->size() > 1);
+    clause_features.push_back(cl->size() > 2);
+    clause_features.push_back(cl->size() > 4);
+    clause_features.push_back(cl->size() > 8);
+    clause_features.push_back(clWeight > 4);
+    clause_features.push_back(clWeight > 16);
+    clause_features.push_back(clWeight > 64);
+    clause_features.push_back(clWeight > 256);
+    clauseId++;
+  }
+
+  // also here we (paranoidly) assume that the script module might not take any ownershipe of these tensors ...
+  auto clause_features_t = torch::tensor(clause_features,torch::TensorOptions().dtype(torch::kFloat32)).reshape({clauseId,10});
+  auto term_features_t = torch::tensor(term_features,torch::TensorOptions().dtype(torch::kFloat32)).reshape({subtermId,9});
+  auto var_features_t = torch::tensor(var_features,torch::TensorOptions().dtype(torch::kFloat32)).reshape({clVarId,1});
+  // ... and so want to have them in scope until the gnnPerform call
+
+  _neuralModel->gnnNodeKind("clause",clause_features_t);
+  _neuralModel->gnnNodeKind("term",term_features_t);
+  _neuralModel->gnnNodeKind("var",var_features_t);
+
+  _neuralModel->gnnEdgeKind("clause","term",cls2trm_one,cls2trm_two);
+  _neuralModel->gnnEdgeKind("term","term",trm2trm_one,trm2trm_two);      // the sub-term (down) edges
+  _neuralModel->gnnEdgeKind("clause","var",cls2var_one,cls2var_two);
+  _neuralModel->gnnEdgeKind("var","sort",var2srt_one,var2srt_two);
+  _neuralModel->gnnEdgeKind("term","var",trm2var_one,trm2var_two);       // some subterms are variables
+  _neuralModel->gnnEdgeKind("term","symbol",trm2symb_one,trm2symb_two);  // and others are proper and thus have a symbol
+
+  {
+    torch::NoGradGuard no_grad; // This disables gradient computation
+    _neuralModel->gnnPerform(clauseNums);
+  }
+
+  Timer::updateInstructionCount();
+  env.statistics->gnnEval += (Timer::elapsedInstructions()-gnn_start_instrs);
+}
+
 /**
  * Insert clauses of the problem into the SaturationAlgorithm object
  * and initialize some internal structures.
  */
 void SaturationAlgorithm::init()
 {
-  ClauseIterator toAdd;
+  if (_neuralActivityRecoring || _neuralModelGuidance) {
+    if (_neuralModel->useGage() || _neuralModel->useGweight()) {
+      runGnnOnInput();
+    }
+  }
 
+  ClauseIterator toAdd;
   if (env.options->randomTraversals()) {
     TIME_TRACE(TimeTrace::SHUFFLING);
 
@@ -1064,6 +1576,16 @@ void SaturationAlgorithm::addToPassive(Clause* cl)
   cl->setStore(Clause::PASSIVE);
   env.statistics->passiveClauses++;
 
+  if (_neuralActivityRecoring && !_neuralModelGuidance) {
+    // doing this specifically, for the "IMITATION" pathway
+    makeReadyForEval(cl);
+
+    static Stack<Clause*> singleton;
+    singleton.push(cl);
+    _neuralModel->evalClauses(singleton,/* justRecord = */ true);
+    singleton.reset();
+  }
+
   {
     TIME_TRACE(TimeTrace::PASSIVE_CONTAINER_MAINTENANCE);
     _passive->add(cl);
@@ -1182,6 +1704,10 @@ void SaturationAlgorithm::doUnprocessedLoop()
 {
   do {
     newClausesToUnprocessed();
+    if (_neuralModelGuidance && _passive->limitsActive() && env.options->lrsPreemptiveDeletes()) {
+      // so that we can start kicking out the really bad clauses already in forwardSimplify's exceedsAllLimits
+      _neuralModel->bulkEval(*_unprocessed);
+    }
 
     unsigned unprocessedPops = 0;
     while (!_unprocessed->isEmpty()) {
@@ -1334,11 +1860,32 @@ MainLoopResult SaturationAlgorithm::runImpl()
         throw TimeLimitExceededException();
     }
   }
-  catch (ThrowableBase&) {
+  catch(const RefutationFoundException& r) {
+    if (_neuralActivityRecoring) {
+      Timer::disableLimitEnforcement();
+      saveNeuralActivity(r.refutation);
+    }
+
+    throw;
+  } catch (const ThrowableBase&) {
     tryUpdateFinalClauseCount();
     throw;
   }
 }
+
+void SaturationAlgorithm::saveNeuralActivity(Clause* refutation)
+{
+  DHSet<unsigned> done; // will contain the processed proof units
+  refutation->minimizeAncestorsAndUpdateSelectedStats(done);
+
+  std::vector<int64_t> proof_units;
+  auto it = done.iterator();
+  while (it.hasNext()) {
+    proof_units.push_back(it.next());
+  }
+  _neuralModel->setProofUnitsAndSaveRecorded(proof_units,env.options->neuralActivityRecording());
+}
+
 
 /**
  * Add a forward simplifier, so that it is applied before the
