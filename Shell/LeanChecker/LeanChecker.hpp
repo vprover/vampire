@@ -126,7 +126,7 @@ private:
   void genericNPremiseInferenceNoSubs(std::ostream &out, SortMap &conclSorts, Clause *concl, std::string tactic = "grind only");
   void genericNPremiseInferenceNoSubs(std::ostream &out, SortMap &conclSorts, Unit *concl, std::string tactic = "grind only");
 
-  void genericInference(std::ostream &out, SortMap &conclSorts, Unit *concl, std::string tactic = "duper [*]");
+  void genericInference(std::ostream &out, SortMap &conclSorts, Unit *concl, std::string tactic = "grind");
   void subsumptionResolution(std::ostream &out, SortMap &conclSorts, Clause *concl);
   void            resolution(std::ostream &out, SortMap &conclSorts, Clause *concl, const InferenceRecorder::InferenceInformation* info);
   void             factoring(std::ostream &out, SortMap &conclSorts, Clause *concl, const InferenceRecorder::InferenceInformation* info);
@@ -174,8 +174,8 @@ private:
          "set_option linter.unusedTactic false\n"
          "set_option linter.unusedSimpArgs false\n"
          "set_option linter.unusedVariables false\n"
-         "set_option linter.unnecessarySeqFocus false\n"
-         "set_option linter.unreachableTactic false\n"
+         //"set_option linter.unnecessarySeqFocus false\n"
+         //"set_option linter.unreachableTactic false\n"
          "set_option maxRecDepth 100000000\n\n";
          //"def inhabit_ℤ : ℤ := default\n"
          //"def inhabit_ℝ : ℝ := default\n"

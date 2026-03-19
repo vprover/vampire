@@ -22,6 +22,7 @@
 /* this translation unit causes the optimiser to take a very long time,
  * but it's not really performance-critical code:
  * disable optimisation for this file with various compilers */
+#include <iostream>
 #if defined(__clang__)
 #pragma clang optimize off
 #elif defined(__GNUC__)
@@ -2672,12 +2673,14 @@ bool Options::OptionValue<T>::checkProblemConstraints(Property* prop){
 
          if (env.options->mode() == Mode::SPIDER){
            reportSpiderFail();
+           addCommentSignForSZS(std::cout);
            USER_ERROR("% WARNING: " + longName + con->msg());
          }
 
          switch(env.options->getBadOptionChoice()){
          case BadOption::OFF: break;
-         default:
+         default: 
+           addCommentSignForSZS(std::cout);
            cout << "% WARNING: " << longName << con->msg() << endl;
          }
          return false;

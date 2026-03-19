@@ -176,88 +176,10 @@ void LeanChecker::outputPreamble(std::ostream &out, std::set<Signature::Symbol*>
     out << "variable {" << SortName(i) << " : Type u}\n";
     out << "variable [inst : Inhabited " << SortName(i) << " ]\n";
   }
-
-  out << "variable {df : Nat → (α : Type u) → (α → ι)}\n"
-      << "variable {dcf : Nat → ι}\n"
-      << "variable {dp : Nat → (α : Type u) → α → Prop}\n"
-      << "variable {dcp : Nat → Prop}\n";
-
-  unsigned variableCounter = 0;
   bool firstVariableDef = true;
-  for (auto fun : usedFunctionSymbols) {
-    if (fun->interpreted() || fun->linMul() || fun->introduced())
-      continue;
-    OperatorType *type = fun->fnType();
-    TermList range = type->result();
-    ASS_EQ(type->numTypeArguments(), 0)
-    if(type->arity() == 0) {
-      out << "def " << FunctionName(fun) << " := dcf " << variableCounter++ << "\n";
-      continue;
-    }
-    out << "def " << FunctionName(fun) << ": (";
-    for (unsigned i = 0; i < type->arity(); i++){
-      out << (i==0 ? " " : " → ") << Sort{type->arg(i)};
-    }
-    if(range.isNonEmpty()){
-      out << " → " << Sort{range};
-    }
-    out << ") ";
-
-    out << " := fun ";
-    for (unsigned i = 0; i < type->arity(); i++){
-      out << "x" << i << " ";
-    }
-    out << " => (df " << variableCounter++;
-    out << " (";
-    for (unsigned i = 0; i < type->arity(); i++) {
-      out << (i == 0 ? "" : " × ") << Sort{type->arg(i)};
-    }
-    out << ") (";
-    for (unsigned i = 0; i < type->arity(); i++){
-      out << (i==0 ? "" : ", ") << "x" << i;
-    }
-    out << "))\n";
-  }
-  
-  
-  for (auto pred : usedPredicateSymbols) {
-    if (pred->interpreted() || pred->skolem() || pred->introduced())
-      continue;
-    OperatorType *type = pred->fnType();
-    TermList resRange = type->result();
-    // we don't support polymorphism yet
-    ASS_EQ(type->numTypeArguments(), 0)
-
-    if(type->arity() == 0) {
-      out << "def " << PredicateName(pred) << " := dcp " << variableCounter++ << "\n";
-      continue;
-    }
-    out << "def " << PredicateName(pred) << ": (";
-  
-    for (unsigned i = 0; i < type->arity(); i++){
-      out << (i==0 ? " " : " → ") << Sort{type->arg(i)};
-    }
-    out << " → Prop) ";
-
-    out << " := fun ";
-    for (unsigned i = 0; i < type->arity(); i++){
-      out << "x" << i << " ";
-    }
-    out << " => (dp " << variableCounter++;
-    //output input args
-    out << " (";
-    for (unsigned i = 0; i < type->arity(); i++) {
-      out << (i == 0 ? "" : " × ") << Sort{type->arg(i)};
-    }
-    out << ") (";
-    for (unsigned i = 0; i < type->arity(); i++){
-      out << (i==0 ? "" : ", ") << "x" << i;
-    }
-    out << "))\n";
-  }
   std::map<OperatorType*, std::vector<Signature::Symbol*>> funMap;
   for(auto fun : usedFunctionSymbols){
-    if(fun->introduced()){
+    if(!(fun->interpreted() || fun->linMul())){
       if(funMap.find(fun->fnType()) == funMap.end()){
         funMap.emplace(fun->fnType(), std::vector<Signature::Symbol*>());
       }
@@ -288,7 +210,7 @@ void LeanChecker::outputPreamble(std::ostream &out, std::set<Signature::Symbol*>
   }
   std::map<OperatorType*, std::vector<Signature::Symbol*>> predMap;
   for(auto pred : usedPredicateSymbols){
-    if(pred->introduced()){
+    if(!(pred->interpreted() || pred->skolem())){
       if(predMap.find(pred->fnType()) == predMap.end()){
         predMap.emplace(pred->fnType(), std::vector<Signature::Symbol*>());
       }
@@ -1225,20 +1147,20 @@ void LeanChecker::normalForm(std::ostream &out, SortMap &conclSorts, Unit *concl
   else if (rule == InferenceRule::FLATTEN) {
     out << indent << "intro h\n"
         << indent << "flattening at h<;>\n"
-        << indent << "first | exact h | grind | duper[h]\n";
+        << indent << "first | exact h | grind \n";
   }
   else if (rule == InferenceRule::NNF) {
     out << indent << "intro h\n"
         << indent << "nnf_transformation at h<;>\n"
-        << indent << "first | exact h | grind | duper[h]\n";
+        << indent << "first | exact h | grind \n";
   }
   else if (rule == Kernel::InferenceRule::RECTIFY) {
-    out << indent << "first | exact fun x => x | duper [*]\n";
+    out << indent << "first | exact fun x => x\n";
   }
   else if (rule == Kernel::InferenceRule::REDUCE_FALSE_TRUE) {
     out << indent << "intro h\n";
     out << indent << "remove_tauto at h<;>\n";
-    out << indent << "first | exact h | grind | duper[*]\n";
+    out << indent << "first | exact h | grind \n";
   } /*else if (rule == InferenceRule::THEORY_NORMALIZATION) {
     out << indent << "intro h\n";
     out << indent << "try simp only [← not_lt, gt_iff_lt] at h\n";
