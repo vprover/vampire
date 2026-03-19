@@ -41,6 +41,9 @@ SuperpositionSubtermIndex::SuperpositionSubtermIndex(SaturationAlgorithm& salg)
 void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
 {
   TIME_TRACE("backward superposition index maintenance");
+  if (c->inference().rule() == InferenceRule::HOL_UNIFIER_SOLUTION) {
+    return;
+  }
 
   for (const auto& lit : c->getSelectedLiteralIterator()) {
     for (const auto& tt : iterTraits(_higherOrder ? EqHelper::getFoSubtermIterator(lit, _ord) : EqHelper::getSubtermIterator(lit, _ord))) {

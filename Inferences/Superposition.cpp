@@ -66,6 +66,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
     // Get an iterator of pairs of selected literals and rewritable subterms of those literals
     // A subterm is rewritable (see EqHelper) if it is a non-variable subterm of either
     // a maximal side of an equality or of a non-equational literal
+    .filter([premise](Literal*){ return premise->inference().rule() != InferenceRule::HOL_UNIFIER_SOLUTION; }) //TODO factor this out
     .flatMap([this](Literal* lit)
       // returns an iterator over the rewritable subterms
       { return pushPairIntoRightIterator(lit,
