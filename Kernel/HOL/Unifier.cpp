@@ -8,203 +8,27 @@
  * and in the source directory
  */
 /**
- * @file HOLUnifier.cpp
- * Implements class HOLUnifier.
+ * @file Unifier.cpp
+ * Implements class Unifier.
  */
 
-#include "Debug/Assertion.hpp"
-#include "Kernel/Clause.hpp"
-#include "Kernel/FormulaUnit.hpp"
 #include "Kernel/HOL/HOL.hpp"
-#include "Kernel/Renaming.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/TermIterators.hpp"
-#include "Lib/Environment.hpp"
 
-#include "HOLUnifier.hpp"
+#include "Unifier.hpp"
 
 #define DEBUG(...) //DBG(__VA_ARGS__)
 
-namespace Saturation {
+namespace HOL {
 
-// HOLUnifierHandler
+// Unifier
 
-bool HOLUnifierHandler::isHolUnifiable(TermList t)
-{
-  return t.isLambdaTerm() || (t.isApplication() && t.head().isVar());
-}
-
-bool isHOLUnificationConstraint(Literal* lit)
-{
-  if (!lit->isEquality() || lit->isPositive() || lit->isFlexFlexConstraint()) {
-    return false;
-  }
-  return HOLUnifierHandler::isHolUnifiable(lit->termArg(0)) || HOLUnifierHandler::isHolUnifiable(lit->termArg(1));
-}
-
-HOLUnifierHandler::HOLUnifierHandler(const Options& opt)
-: _kNumIter(opt.holUnifierIterations()) { ASS(_kNumIter); }
-
-Clause* HOLUnifierHandler::handleClause(Clause* cl)
-{
-  ASS(cl->length());
-
-  LiteralStack lits;
-  auto def_units = UnitList::empty();
-
-  for (unsigned i = 0; i < cl->length(); i++) {
-    auto lit = (*cl)[i];
-
-    if (isHOLUnificationConstraint(lit)) {
-      // first unification constraint, push all previous literals
-      if (lits.isEmpty()) {
-        for (unsigned j = 0; j < i; j++) { lits.push((*cl)[j]); }
-      }
-      auto [replLit, def] = introduceDefinition(lit);
-      lits.push(replLit);
-      UnitList::push(def, def_units);
-      continue;
-    }
-
-    // We started filling the stack, add all literals to it
-    if (lits.isNonEmpty()) {
-      lits.push(lit);
-    }
-  }
-
-  if (lits.isNonEmpty()) {
-    ASS(def_units);
-    UnitList::push(cl, def_units);
-    return Clause::fromStack(lits, NonspecificInferenceMany(InferenceRule::HOL_UNIFIER_ELIMINATION, def_units));
-  }
-  return cl;
-}
-
-ClauseStack HOLUnifierHandler::iterate(bool& terminated)
-{
-  ClauseStack res;
-
-  // do num-many iterations
-  for (unsigned j = 0; j < _kNumIter; j++) {
-
-    if (_todo.isEmpty()) {
-      break;
-    }
-
-    // circulate inside _todos
-    if (_index >= _todo.size()) {
-      _index = 0;
-    }
-
-    auto& curr = _todo[_index];
-
-    LiteralStack solution;
-    if (curr.iterate(solution)) {
-      DEBUG("finished ", curr);
-      _solved.push(_todo.swapRemove(_index));
-    } else {
-      _index++;
-    }
-
-    if (solution.isNonEmpty()) {
-      res.push(Clause::fromStack(solution, NonspecificInference0(UnitInputType::AXIOM, InferenceRule::HOL_UNIFIER_SOLUTION)));
-    }
-  }
-  terminated = _todo.isEmpty();
-  return res;
-}
-
-std::pair<Literal*,Unit*> HOLUnifierHandler::introduceDefinition(Literal* lit)
-{
-  ASS(isHOLUnificationConstraint(lit));
-
-  Renaming r;
-  r.normalizeVariables(lit);
-  auto nlit = Literal::complementaryLiteral(r.apply(lit));
-
-  // 1. collect variable sorts
-
-  DHSet<unsigned> varsSeen;
-  TermStack typeVars;
-  Stack<std::pair<TermList, TermList>> termVars;
-  TermStack termVarSorts;
-
-  for (const auto& [v,sort] : iterTraits(VariableWithSortIterator(lit))) {
-    if (varsSeen.insert(v.var())) {
-      if (sort.isTerm() && sort.term()->isSuper()) {
-        typeVars.push(v);
-      } else {
-        termVars.push({ v, sort });
-        termVarSorts.push(sort);
-      }
-    }
-  }
-
-  // 2. introduce definition if needed
-
-  UCDef* def_ptr;
-
-  if (_litToDefMap.getValuePtr(nlit, def_ptr)) {
-
-    // 2.1. introduce function based on variables
-
-    auto f = env.signature->addFreshFunction(typeVars.size(), "hol_unif");
-    auto sym = env.signature->getFunction(f);
-    SortHelper::normaliseArgSorts(typeVars, termVarSorts);
-    auto srt = AtomicSort::arrowSort(termVarSorts, AtomicSort::boolSort(), /*fromTop=*/true);
-    auto type = OperatorType::getConstantsType(srt, typeVars.size());
-    sym->setType(type);
-
-    // 2.2. add definition
-
-    auto vl = VSList::empty();
-    TermStack typeVarsR;
-    for (const auto& v : typeVars) {
-      auto vr = r.apply(v);
-      VSList::push({ vr.var(), AtomicSort::superSort() }, vl);
-      typeVarsR.push(vr);
-    }
-    TermStack body_args;
-    for (const auto& [v,s] : termVars) {
-      auto vr = r.apply(v);
-      body_args.push(vr);
-      VSList::push({ vr.var(), r.apply(s) }, vl);
-    }
-
-    TermList head(Term::create(f, typeVarsR.size(), typeVarsR.begin()));
-    auto defeq = Literal::createEquality(/*polarity=*/true,
-      HOL::create::app(head, body_args, /*fromTop=*/false), TermList(Term::foolTrue()), AtomicSort::boolSort());
-
-    Formula* def = new BinaryFormula(Connective::IFF, new AtomicFormula(defeq), new AtomicFormula(nlit));
-    if (vl) {
-      def = new QuantifiedFormula(Connective::FORALL, vl, def);
-    }
-    auto def_u = new FormulaUnit(def, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::HOL_UNIFIER_DEFINITION));
-
-    if (env.options->showAll()) {
-      std::cout << "[HOL] introduced definition " << def->toString() << std::endl;
-    }
-
-    _todo.emplace(nlit, defeq, r.nextVar());
-
-    *def_ptr = { f, def_u };
-  }
-
-  // 3. create new literal
-
-  auto body_s_args = TermStack::fromIterator(iterTraits(termVars.iterFifo()).map([](auto kv){ return kv.first; }));
-  TermList head(Term::create(def_ptr->fun, typeVars.size(), typeVars.begin()));
-  return { Literal::createEquality(/*polarity=*/false, HOL::create::app(head, body_s_args, /*fromTop=*/false), TermList(Term::foolTrue()), AtomicSort::boolSort()), def_ptr->def };
-}
-
-// HOLUnifier
-
-HOLUnifier::HOLUnifier(Literal* lit, Literal* def, unsigned nextVar)
+Unifier::Unifier(Literal* lit, Literal* def, unsigned nextVar)
   : _lit(lit), _todo({ new Node(lit, def, nextVar )}) {}
 
-bool HOLUnifier::iterate(LiteralStack& solution)
+bool Unifier::iterate(LiteralStack& solution)
 {
   ASS(solution.isEmpty());
 
@@ -229,7 +53,7 @@ bool HOLUnifier::iterate(LiteralStack& solution)
 
 // Constraint
 
-struct HOLUnifier::Constraint
+struct Unifier::Constraint
 {
   TermList _lhs;
   TermList _rhs;
@@ -301,7 +125,7 @@ struct HOLUnifier::Constraint
 
 // Node
 
-HOLUnifier::Node::Node(Literal* lit, Literal* def, unsigned nextVar)
+Unifier::Node::Node(Literal* lit, Literal* def, unsigned nextVar)
   : _parent(nullptr), _inf(HOL::UnificationInference::DEFINITION), _def(def), _orig(lit), _freshVar(nextVar)
 {
   ASS(lit->isEquality());
@@ -310,7 +134,7 @@ HOLUnifier::Node::Node(Literal* lit, Literal* def, unsigned nextVar)
   _cons.emplace(lit->termArg(0), lit->termArg(1), lit->eqArgSort());
 }
 
-HOLUnifier::Node::Node(const Node& parent, HOL::UnificationInference inf, unsigned var, TermList binding)
+Unifier::Node::Node(const Node& parent, HOL::UnificationInference inf, unsigned var, TermList binding)
   : Node(parent)
 {
   ASS(inf == HOL::UnificationInference::PROJECTION || inf == HOL::UnificationInference::IMITATION);
@@ -319,7 +143,7 @@ HOLUnifier::Node::Node(const Node& parent, HOL::UnificationInference inf, unsign
   _subs.bindUnbound(var, binding);
 }
 
-HOLUnifier::Node::Node(const Node& parent, HOL::UnificationInference inf, Stack<Constraint> cons)
+Unifier::Node::Node(const Node& parent, HOL::UnificationInference inf, Stack<Constraint> cons)
   : _parent(&parent), _inf(inf), _def(parent._def), _orig(parent._orig), _cons(cons), _subs(parent._subs), _freshVar(parent._freshVar)
 {
   ASS_EQ(inf, HOL::UnificationInference::DECOMPOSITION);
@@ -337,7 +161,7 @@ struct IdempotentSubs {
   }
 };
 
-LiteralStack HOLUnifier::Node::solution() const
+LiteralStack Unifier::Node::solution() const
 {
   const IdempotentSubs subs(_subs);
   LiteralStack res;
@@ -376,7 +200,7 @@ LiteralStack HOLUnifier::Node::solution() const
   return res;
 }
 
-bool HOLUnifier::Node::checkSolution(const LiteralStack& ffPairs) const
+bool Unifier::Node::checkSolution(const LiteralStack& ffPairs) const
 {
   const IdempotentSubs subs(_subs);
   auto lhs = HOL::reduce::betaEtaNF(SubstHelper::apply(_orig->termArg(0), subs));
@@ -457,7 +281,7 @@ bool HOLUnifier::Node::checkSolution(const LiteralStack& ffPairs) const
   return true;
 }
 
-std::pair<Stack<HOLUnifier::Node*>,LiteralStack> HOLUnifier::Node::solve()
+std::pair<Stack<Unifier::Node*>,LiteralStack> Unifier::Node::solve()
 {
   for (unsigned i = 0; i < _cons.size();) {
 
@@ -514,7 +338,7 @@ std::pair<Stack<HOLUnifier::Node*>,LiteralStack> HOLUnifier::Node::solve()
   return { Stack<Node*>(), solution() };
 }
 
-Stack<HOLUnifier::Node*> HOLUnifier::Node::decompose(unsigned index) const
+Stack<Unifier::Node*> Unifier::Node::decompose(unsigned index) const
 {
   DEBUG("decompose");
   auto& curr = _cons[index];
@@ -549,15 +373,15 @@ Stack<HOLUnifier::Node*> HOLUnifier::Node::decompose(unsigned index) const
   return { new Node(*this, HOL::UnificationInference::DECOMPOSITION, cons) };
 }
 
-std::ostream& operator<<(std::ostream& out, const HOLUnifier::Constraint& con) {
+std::ostream& operator<<(std::ostream& out, const Unifier::Constraint& con) {
   return out << con._lhs << " =? " << con._rhs;
 }
 
-std::ostream& operator<<(std::ostream& out, const HOLUnifier::Node& node) {
+std::ostream& operator<<(std::ostream& out, const Unifier::Node& node) {
   return out << *node._def << " <=> {" << node._cons << "} ⋅ σ: " << node._subs << " [" << node._inf << "]";
 }
 
-std::ostream& operator<<(std::ostream& out, const HOLUnifier& unif) {
+std::ostream& operator<<(std::ostream& out, const Unifier& unif) {
   return out << unif._lit->termArg(0) << " =? " << unif._lit->termArg(1);
 }
 

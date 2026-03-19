@@ -8,55 +8,26 @@
  * and in the source directory
  */
 /**
- * @file HOLUnifier.hpp
- * Defines class HOLUnifier for dovetailing of HOL unifiers.
+ * @file Unifier.hpp
+ * Defines class Unifier for HOL unification.
  */
 
-#ifndef __HOLUnifier__
-#define __HOLUnifier__
+#ifndef __HOL_Unifier__
+#define __HOL_Unifier__
 
 #include "Forwards.hpp"
 #include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Substitution.hpp"
-#include "Lib/DHMap.hpp"
 #include "Lib/Stack.hpp"
 
 using namespace Kernel;
 using namespace Shell;
 
-namespace Saturation {
+namespace HOL {
 
-class HOLUnifier;
-
-class HOLUnifierHandler {
+class Unifier {
 public:
-  HOLUnifierHandler(const Options& opt);
-
-  Clause* handleClause(Clause* cl);
-  ClauseStack iterate(bool& terminated);
-
-  static bool isHolUnifiable(TermList t);
-
-private:
-  std::pair<Literal*,Unit*> introduceDefinition(Literal* lit);
-
-  struct UCDef {
-    unsigned fun;
-    FormulaUnit* def;
-  };
-  DHMap<Literal*, UCDef> _litToDefMap;
-
-  Stack<HOLUnifier> _todo;
-  Stack<HOLUnifier> _solved;
-
-  unsigned _index = 0;
-
-  const unsigned _kNumIter;
-};
-
-class HOLUnifier {
-public:
-  HOLUnifier(Literal* lit, Literal* def, unsigned nextVar);
+  Unifier(Literal* lit, Literal* def, unsigned nextVar);
 
   // does one iteration, returns true if finished
   bool iterate(LiteralStack& solution);
@@ -88,7 +59,7 @@ private:
 
   friend std::ostream& operator<<(std::ostream& out, const Constraint& con);
   friend std::ostream& operator<<(std::ostream& out, const Node& node);
-  friend std::ostream& operator<<(std::ostream& out, const HOLUnifier& unif);
+  friend std::ostream& operator<<(std::ostream& out, const Unifier& unif);
 
   Literal* _lit;
   Stack<Node*> _todo;
@@ -96,4 +67,4 @@ private:
 
 }
 
-#endif // __HOLUnifier__
+#endif // __HOL_Unifier__

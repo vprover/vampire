@@ -49,7 +49,6 @@ class ConsequenceFinder;
 class LabelFinder;
 class SymElOutput;
 class Splitter;
-class HOLUnifierHandler;
 
 class SaturationAlgorithm : public MainLoop
 {
@@ -227,7 +226,7 @@ protected:
   ScopedPtr<LiteralSelector> _selector;
 
   Splitter* _splitter;
-  HOLUnifierHandler* _holUnifierHandler = nullptr;
+  HOLUnificationHandler* _holUnificationHandler = nullptr;
 
   std::unique_ptr<AlascaState> _alascaState;
   ConsequenceFinder* _consFinder;

@@ -98,7 +98,7 @@
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
-#include "Saturation/HOLUnifier.hpp"
+#include "Saturation/HOLUnificationHandler.hpp"
 #include "Shell/AnswerLiteralManager.hpp"
 #include "Shell/PartialRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
@@ -276,7 +276,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _splitter = new Splitter();
   }
   if (opt.holUnifier()) {
-    _holUnifierHandler = new HOLUnifierHandler(_opt);
+    _holUnificationHandler = new HOLUnificationHandler(_opt);
   }
 
   _partialRedundancyHandler.reset(PartialRedundancyHandler::create(opt, _ordering.ptr(), _splitter));
@@ -301,6 +301,9 @@ SaturationAlgorithm::~SaturationAlgorithm()
   }
   if (_symEl) {
     delete _symEl;
+  }
+  if (_holUnificationHandler) {
+    delete _holUnificationHandler;
   }
 
   _active->detach();
@@ -1115,8 +1118,8 @@ void SaturationAlgorithm::activate(Clause* cl)
     }
   }
 
-  if (_holUnifierHandler) {
-    auto newCl = _holUnifierHandler->handleClause(cl);
+  if (_holUnificationHandler) {
+    auto newCl = _holUnificationHandler->handleClause(cl);
     if (newCl != cl) {
       if (_opt.showAll()) {
         std::cout << "[SA] constrained clause " << cl->toString() << " replaced with " << newCl->toString() << std::endl;
@@ -1265,8 +1268,8 @@ UnitList *SaturationAlgorithm::collectSaturatedSet()
 void SaturationAlgorithm::doOneAlgorithmStep()
 {
   bool huhTerminated = true;
-  if (_holUnifierHandler) {
-    for (const auto& huCl : _holUnifierHandler->iterate(huhTerminated)) {
+  if (_holUnificationHandler) {
+    for (const auto& huCl : _holUnificationHandler->iterate(huhTerminated)) {
       addNewClause(huCl);
     }
   }

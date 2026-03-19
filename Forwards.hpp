@@ -135,6 +135,11 @@ enum class SymbolType{FUNC, PRED, TYPE_CON};
 
 };
 
+namespace HOL
+{
+class Unifier;
+}
+
 namespace Indexing
 {
 class Index;
@@ -160,6 +165,8 @@ class ClauseContainer;
 class UnprocessedClauseContainer;
 class PassiveClauseContainer;
 class ActiveClauseContainer;
+
+class HOLUnificationHandler;
 }
 
 namespace Inferences

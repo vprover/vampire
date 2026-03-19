@@ -9,7 +9,7 @@
  */
 
 #include "Kernel/TermIterators.hpp"
-#include "Saturation/HOLUnifier.hpp"
+#include "Kernel/HOL/Unifier.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Test/UnitTesting.hpp"
 #include "Test/TestUtils.hpp"
@@ -47,120 +47,10 @@ using namespace Test;
   NEXT_INTRODUCED_FUN(f_hol,0)                     \
   NEXT_INTRODUCED_FUN(g_hol,1)
 
-#define PREAMBLE_HANDLER           \
-  env.setHigherOrder(true);        \
-  __ALLOW_UNUSED(MY_SYNTAX_SUGAR); \
-  Options opt;                     \
-  HOLUnifierHandler handler(opt);
-
-void checkEqual(Clause* actual, Clause* expected) {
-  if (!TestUtils::eqModAC(actual, expected)) {
-    std::cout  << std::endl;
-    std::cout << "[   actual ]: " << pretty(actual) << std::endl;
-    std::cout << "[ expected ]: " << pretty(expected) << std::endl;
-    ASSERTION_VIOLATION;
-  }
-}
-
-TEST_FUN(no_constraints_1) {
-  PREAMBLE_HANDLER;
-  auto c1 = clause({ ap(f,a) == a });
-  auto c2 = handler.handleClause(c1);
-
-  checkEqual(c2, c1);
-}
-
-TEST_FUN(no_constraints_2) {
-  PREAMBLE_HANDLER;
-  auto c1 = clause({ ap(f,x) != a, x == a });
-  auto c2 = handler.handleClause(c1);
-
-  checkEqual(c2, c1);
-}
-
-TEST_FUN(no_constraints_3) {
-  PREAMBLE_HANDLER;
-  auto c1 = clause({ ap(g, {y, x}) != ap(g, {a, b}) });
-  auto c2 = handler.handleClause(c1);
-
-  checkEqual(c2, c1);
-}
-
-TEST_FUN(constraints_1) {
-  PREAMBLE_HANDLER;
-  auto c1 = clause({ ap(g,y) != lam(srt, db0), y == a });
-  auto c2 = handler.handleClause(c1);
-
-  checkEqual(c2, clause({ ap(f_hol(),y) != troo, y == a }));
-}
-
-TEST_FUN(constraints_2) {
-  PREAMBLE_HANDLER;
-  auto c1 = clause({ ap(g,y) != lam(srt, db0), y == a, ap(h, {y, z}) != lam(srt, db0), ap(f,y) != b });
-  auto c2 = handler.handleClause(c1);
-
-  checkEqual(c2, clause({ ap(f_hol(),y) != troo, y == a, ap(g_hol(), {y, z}) != troo, ap(f,y) != b }));
-}
-
-TEST_FUN(constraints_3) {
-  PREAMBLE_HANDLER;
-  auto c1 = clause({ y == a, ap(h, {y, z}) != lam(srt, db0), ap(f,y) != b });
-  auto c2 = handler.handleClause(c1);
-
-  checkEqual(c2, clause({ y == a, ap(f_hol(), {y, z}) != troo, ap(f,y) != b }));
-}
-
-TEST_FUN(constraints_different) {
-  PREAMBLE_HANDLER;
-  auto c1 = clause({ ap(g,y) != lam(srt, db0), y == a });
-  auto c2 = handler.handleClause(c1);
-
-  checkEqual(c2, clause({ ap(f_hol(),y) != troo, y == a }));
-
-  auto d1 = clause({ ap(h, {z, b}) != lam(srt, db0), ap(f,y) != b });
-  auto d2 = handler.handleClause(d1);
-
-  checkEqual(d2, clause({ ap(g_hol(),z) != troo, ap(f,y) != b }));
-}
-
-TEST_FUN(constraints_same) {
-  PREAMBLE_HANDLER;
-  auto c1 = clause({ ap(g,y) != lam(srt, db0), y == a });
-  auto c2 = handler.handleClause(c1);
-
-  checkEqual(c2, clause({ ap(f_hol(),y) != troo, y == a }));
-
-  auto d1 = clause({ ap(g,z) != lam(srt, db0), ap(f,y) != b });
-  auto d2 = handler.handleClause(d1);
-
-  checkEqual(d2, clause({ ap(f_hol(),z) != troo, ap(f,y) != b }));
-}
-
-TEST_FUN(constraints_flexflex) {
-  PREAMBLE_HANDLER;
-  auto c1 = clause({ ap(ys,a) != ap(zs,b), lam(srt, zs) != lam(srt, ys), ap(g,y) != lam(srt, db0) });
-  auto c2 = handler.handleClause(c1);
-
-  checkEqual(c2, clause({ ap(ys,a) != ap(zs,b), lam(srt, zs) != lam(srt, ys), ap(f_hol(),y) != troo }));
-}
-
-TEST_FUN(multiple_sorts) {
-  PREAMBLE_HANDLER;
-  auto c1 = clause({ lam(srt,ap(f2, {x, x2})) != lam(srt, ap(f2, {c, d})) });
-  auto c2 = handler.handleClause(c1);
-
-  checkEqual(c2, clause({ ap(f_hol(), {x, x2}) != troo }));
-
-  bool terminated;
-  auto cls = handler.iterate(terminated);
-  ASS_EQ(cls.size(),1);
-  checkEqual(cls[0], clause({ ap(f_hol(), {c, d}) == troo }));
-}
-
 void testUnifier(Literal* constraint, Literal* def, Stack<LiteralStack> expected)
 {
   unsigned nextVar = iterTraits(VariableIterator(constraint)).map([](auto t){ return t.var(); }).max().unwrapOr(0)+1;
-  HOLUnifier unifier(constraint, def, nextVar);
+  HOL::Unifier unifier(constraint, def, nextVar);
 
   for (unsigned i = 0; i < expected.size(); i++) {
     LiteralStack solution;

@@ -84,6 +84,7 @@ set(UNIT_TESTS
     UnitTests/tInterpretedFunctions.cpp
     UnitTests/tIterator.cpp
     UnitTests/tKBO.cpp
+    UnitTests/tKernel_HOL_Unifier.cpp
     UnitTests/tLPO.cpp
     UnitTests/tList.cpp
     UnitTests/tOption.cpp
@@ -95,7 +96,7 @@ set(UNIT_TESTS
     UnitTests/tSATClause.cpp
     UnitTests/tSATSolver.cpp
     UnitTests/tSATSubsumptionResolution.cpp
-    UnitTests/tSaturation_HOLUnifier.cpp
+    UnitTests/tSaturation_HOLUnificationHandler.cpp
     UnitTests/tSet.cpp
     UnitTests/tSkipList.cpp
     UnitTests/tStack.cpp
@@ -491,6 +492,8 @@ set(SOURCES
     Kernel/HOL/SubtermReplacer.hpp
     Kernel/HOL/ToPlaceholders.cpp
     Kernel/HOL/ToPlaceholders.hpp
+    Kernel/HOL/Unifier.cpp
+    Kernel/HOL/Unifier.hpp
     Lib/Allocator.cpp
     Lib/Allocator.hpp
     Lib/Array.hpp
@@ -637,8 +640,8 @@ set(SOURCES
     Saturation/Discount.hpp
     Saturation/ExtensionalityClauseContainer.cpp
     Saturation/ExtensionalityClauseContainer.hpp
-    Saturation/HOLUnifier.cpp
-    Saturation/HOLUnifier.hpp
+    Saturation/HOLUnificationHandler.cpp
+    Saturation/HOLUnificationHandler.hpp
     Saturation/LRS.cpp
     Saturation/LRS.hpp
     Saturation/LabelFinder.cpp
