@@ -210,9 +210,8 @@ public:
     _input = tester.normalize(_input);
 
     // init problem
-    Problem p;
-    auto ul = UnitList::fromIterator(ClauseStack::Iterator(_context));
-    p.addUnits(ul);
+    Problem p(UnitList::cons(_input,
+      UnitList::fromIterator(ClauseStack::Iterator(_context))));
     env.setMainProblem(&p);
 
     resetAndFillEnvOptions(_options, p);

@@ -82,6 +82,11 @@ TEST_SIMPLIFY(fail_12,
       .input(clause({ lam(srt, db0) != ys }))
     )
 
+TEST_SIMPLIFY(fail_13,
+    Simplification::NotApplicable()
+      .input(clause({ }))
+    )
+
 TEST_SIMPLIFY(success_1,
     Simplification::Success()
       .input(clause({ ap(ap(xs,x),y) != x }))

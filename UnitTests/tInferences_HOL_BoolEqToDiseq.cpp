@@ -17,6 +17,8 @@ using namespace Test;
 #define MY_SYNTAX_SUGAR                            \
   DECL_SORT(srt)                                   \
   DECL_SORT_BOOL                                   \
+  TROO                                             \
+  FOLS                                             \
   DECL_NOT_PROXY                                   \
   DECL_VAR_SORTED(x, 0, srt)                       \
   DECL_VAR_SORTED(y, 1, srt)                       \
@@ -56,14 +58,21 @@ TEST_GENERATION(fail_3,
 // not done for not-proxy terms
 TEST_GENERATION(fail_4,
     Generation::AsymmetricTest()
-      .input( clause({ ap(notP(), a) != ap(notP(), xs) }))
+      .input( clause({ ap(notP(), a) == ap(notP(), xs) }))
       .expected(none())
     )
 
 // not done for variables
 TEST_GENERATION(fail_5,
     Generation::AsymmetricTest()
-      .input( clause({ xs != ys }))
+      .input( clause({ xs == ys }))
+      .expected(none())
+    )
+
+// not done for true or false
+TEST_GENERATION(fail_6,
+    Generation::AsymmetricTest()
+      .input( clause({ troo == ys, ap(f, x) == fols }))
       .expected(none())
     )
 
@@ -86,4 +95,10 @@ TEST_GENERATION(success_3,
     Generation::AsymmetricTest()
       .input( clause({ b == ap(lam(srt, ap(f,db0)),c), a == xs }))
       .expected(exactly(clause({ ap(notP(),b) != ap(lam(srt, ap(f,db0)),c), a == xs })))
+    )
+
+TEST_GENERATION(success_4,
+    Generation::AsymmetricTest()
+      .input( clause({ a != xs, ap(f, x) == fols, b == ap(lam(srt, ap(f,db0)),c), a == xs }))
+      .expected(exactly(clause({ a != xs, ap(f, x) == fols, ap(notP(),b) != ap(lam(srt, ap(f,db0)),c), a == xs })))
     )

@@ -30,9 +30,7 @@ Clause* BetaEtaSimplify::simplify(Clause* c)
   bool modified = false;
 
   for (const auto& lit : *c) {
-    ASS(lit->isEquality());
-    auto lhs = lit->termArg(0);
-    auto rhs = lit->termArg(1);
+    auto [lhs,rhs] = lit->eqArgs();
 
     TermList lhsr = HOL::reduce::betaEtaNF(lhs);
     TermList rhsr = HOL::reduce::betaEtaNF(rhs);

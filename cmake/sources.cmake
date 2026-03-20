@@ -72,6 +72,7 @@ set(UNIT_TESTS
     # UnitTests/tInferences_HOL_Injectivity.cpp
     UnitTests/tInferences_HOL_NegativeExtensionality.cpp
     UnitTests/tInferences_HOL_PositiveExtensionality.cpp
+    UnitTests/tInferences_HOL_PrimitiveInstantiation.cpp
     UnitTests/tInferences_Induction.cpp
     UnitTests/tInferences_InferenceEngine.cpp
     UnitTests/tInferences_InnerRewriting.cpp

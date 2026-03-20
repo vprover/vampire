@@ -113,7 +113,7 @@ struct PrimitiveInstResultFn
     HOL::getHeadArgsAndArgSorts(flexTerm, headFlex, argsFlex, sortsFlex);
     ASS_EQ(argsFlex.size(), sortsFlex.size());
 
-    if (!argsFlex.size()) {
+    if (argsFlex.isEmpty()) {
       // TODO do we really want to do this?
       return ClauseIterator::getEmpty();
     }
