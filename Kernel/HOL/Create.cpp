@@ -76,7 +76,7 @@ TermList HOL::create::top() {
 }
 
 TermList HOL::create::bottom() {
-  return TermList(Term::foolTrue());
+  return TermList(Term::foolFalse());
 }
 
 TermList HOL::create::conj() {

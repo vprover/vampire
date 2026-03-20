@@ -58,7 +58,7 @@ TEST_GENERATION(fail_3,
 // not done for not-proxy terms
 TEST_GENERATION(fail_4,
     Generation::AsymmetricTest()
-      .input( clause({ ap(notP(), a) == ap(notP(), xs) }))
+      .input( clause({ ap(notP, a) == ap(notP, xs) }))
       .expected(none())
     )
 
@@ -80,25 +80,25 @@ TEST_GENERATION(fail_6,
 TEST_GENERATION(success_1,
     Generation::AsymmetricTest()
       .input( clause({ a == b }))
-      .expected(exactly(clause({ ap(notP(),a) != b })))
+      .expected(exactly(clause({ ap(notP,a) != b })))
     )
 
 // only done to rhs when lhs is already a not proxy
 TEST_GENERATION(success_2,
     Generation::AsymmetricTest()
-      .input( clause({ ap(notP(),ap(f,x)) == b }))
-      .expected(exactly(clause({ ap(notP(),ap(f,x)) != ap(notP(),b) })))
+      .input( clause({ ap(notP,ap(f,x)) == b }))
+      .expected(exactly(clause({ ap(notP,ap(f,x)) != ap(notP,b) })))
     )
 
 // only done for the first literal found
 TEST_GENERATION(success_3,
     Generation::AsymmetricTest()
       .input( clause({ b == ap(lam(srt, ap(f,db0)),c), a == xs }))
-      .expected(exactly(clause({ ap(notP(),b) != ap(lam(srt, ap(f,db0)),c), a == xs })))
+      .expected(exactly(clause({ ap(notP,b) != ap(lam(srt, ap(f,db0)),c), a == xs })))
     )
 
 TEST_GENERATION(success_4,
     Generation::AsymmetricTest()
       .input( clause({ a != xs, ap(f, x) == fols, b == ap(lam(srt, ap(f,db0)),c), a == xs }))
-      .expected(exactly(clause({ a != xs, ap(f, x) == fols, ap(notP(),b) != ap(lam(srt, ap(f,db0)),c), a == xs })))
+      .expected(exactly(clause({ a != xs, ap(f, x) == fols, ap(notP,b) != ap(lam(srt, ap(f,db0)),c), a == xs })))
     )

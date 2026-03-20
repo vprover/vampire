@@ -20,13 +20,18 @@ using namespace Test;
   TROO                                             \
   FOLS                                             \
   DECL_NOT_PROXY                                   \
+  DECL_EQ_PROXY(srt)                               \
   DECL_VAR_SORTED(xs, 0, arrow(srt, Bool))         \
   DECL_VAR_SORTED(ys, 1, arrow(srt, srt))          \
   DECL_VAR_SORTED(zs, 2, arrow(srt, Bool))         \
+  DECL_VAR_SORTED(us, 3, arrow({srt, srt}, Bool))  \
+  DECL_VAR_SORTED(vs, 4, arrow(Bool, Bool))        \
+  DECL_VAR_SORTED(ws, 5, arrow({srt, srt}, Bool))  \
   DECL_CONST(f, arrow(srt, Bool))                  \
   DECL_CONST(f1, arrow(srt, Bool))                 \
   DECL_CONST(g, arrow(srt, srt))                   \
   DECL_DE_BRUIJN_INDEX(db0, 0, srt)                \
+  DECL_DE_BRUIJN_INDEX(db1, 1, srt)                \
   DECL_CONST(a, Bool)                              \
   DECL_CONST(b, srt)                               \
   DECL_CONST(c, srt)
@@ -74,7 +79,19 @@ TEST_GENERATION(success_1,
       .input( clause({ selected(ap(f,c) == ap(xs,c)) }))
       .expected(exactly(
         clause({ ap(f,c) == ap(lam(srt,troo),c) }),
-        clause({ ap(f,c) == ap(lam(srt,troo),c) }),
-        clause({ ap(f,c) == ap(lam(srt,ap(notP(),ap(zs,db0))),c) })
+        clause({ ap(f,c) == ap(lam(srt,fols),c) }),
+        clause({ ap(f,c) == ap(lam(srt,ap(notP,ap(zs,db0))),c) })
+      ))
+    )
+
+TEST_GENERATION(success_2,
+    Generation::AsymmetricTest()
+      .input( clause({ selected(ap(f,c) == ap(ap(us,c),b)) }))
+      .expected(exactly(
+        clause({ ap(f,c) == ap(lam(srt, lam(srt, troo)), {c, b}) }),
+        clause({ ap(f,c) == ap(lam(srt, lam(srt, fols)), {c, b}) }),
+        clause({ ap(f,c) == ap(lam(srt, lam(srt, ap(notP, ap(ap(ws,db1),db0)))), {c, b}) }),
+        clause({ ap(f,c) == ap(lam(srt, lam(srt, ap(eqP,{db1,db0}))), {c, b}) }),
+        clause({ ap(f,c) == ap(lam(srt, lam(srt, ap(notP, ap(eqP,{db1,db0})))), {c, b}) })
       ))
     )
