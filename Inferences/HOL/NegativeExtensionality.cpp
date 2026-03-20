@@ -53,7 +53,7 @@ struct NegExtResultFn
   Clause* operator() (Literal* lit)
   {
     ASS(lit->isEquality());
-    ASS(!lit->isPositive());
+    ASS(lit->isNegative());
 
     static DHMap<unsigned,TermList> varSorts;
     varSorts.reset();
@@ -118,7 +118,7 @@ private:
 ClauseIterator NegativeExtensionality::generateClauses(Clause* premise)
 {
   return pvi(premise->getSelectedLiteralIterator()
-    .filter([](Literal* l) { return l->isEquality() && !l->isPositive(); })
+    .filter([](Literal* l) { return l->isEquality() && l->isNegative(); })
     .map(NegExtResultFn(premise))
     .filter(NonzeroFn()));
 }

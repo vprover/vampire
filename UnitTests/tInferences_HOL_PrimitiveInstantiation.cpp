@@ -27,10 +27,12 @@ using namespace Test;
   DECL_VAR_SORTED(us, 3, arrow({srt, srt}, Bool))  \
   DECL_VAR_SORTED(vs, 4, arrow(Bool, Bool))        \
   DECL_VAR_SORTED(ws, 5, arrow({srt, srt}, Bool))  \
+  DECL_VAR_SORTED(ws2, 5, arrow(Bool, Bool))       \
   DECL_CONST(f, arrow(srt, Bool))                  \
   DECL_CONST(f1, arrow(srt, Bool))                 \
   DECL_CONST(g, arrow(srt, srt))                   \
   DECL_DE_BRUIJN_INDEX(db0, 0, srt)                \
+  DECL_DE_BRUIJN_INDEX(db0B, 0, Bool)              \
   DECL_DE_BRUIJN_INDEX(db1, 1, srt)                \
   DECL_CONST(a, Bool)                              \
   DECL_CONST(b, srt)                               \
@@ -93,5 +95,16 @@ TEST_GENERATION(success_2,
         clause({ ap(f,c) == ap(lam(srt, lam(srt, ap(notP, ap(ap(ws,db1),db0)))), {c, b}) }),
         clause({ ap(f,c) == ap(lam(srt, lam(srt, ap(eqP,{db1,db0}))), {c, b}) }),
         clause({ ap(f,c) == ap(lam(srt, lam(srt, ap(notP, ap(eqP,{db1,db0})))), {c, b}) })
+      ))
+    )
+
+TEST_GENERATION(success_3,
+    Generation::AsymmetricTest()
+      .input( clause({ selected(a != ap(vs,a)) }))
+      .expected(exactly(
+        clause({ a != ap(lam(Bool,db0B),a) }),
+        clause({ a != ap(lam(Bool,troo),a) }),
+        clause({ a != ap(lam(Bool,fols),a) }),
+        clause({ a != ap(lam(Bool,ap(notP,ap(ws2,db0B))),a) })
       ))
     )

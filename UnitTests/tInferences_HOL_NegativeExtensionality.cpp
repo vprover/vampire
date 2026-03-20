@@ -16,6 +16,8 @@ using namespace Test;
 
 #define MY_SYNTAX_SUGAR                            \
   DECL_SORT(srt)                                   \
+  DECL_LAM                                         \
+  DECL_APP                                         \
   DECL_VAR_SORTED(x, 0, srt)                       \
   DECL_VAR_SORTED(y, 1, srt)                       \
   DECL_VAR_SORTED(z, 2, srt)                       \
@@ -27,7 +29,8 @@ using namespace Test;
   DECL_CONST(g, arrow(srt, srt))                   \
   DECL_DE_BRUIJN_INDEX(db0, 0, srt)                \
   DECL_CONST(a, srt)                               \
-  DECL_CONST(b, srt)
+  DECL_CONST(b, srt)                               \
+  NEXT_INTRODUCED_FUN(sk0, 0)
 
 #define MY_GEN_RULE   NegativeExtensionality
 #define MY_GEN_TESTER Generation::GenerationTester
@@ -60,12 +63,11 @@ TEST_GENERATION(fail_4,
       .expected(none())
     )
 
-// TODO find a way to test with Skolems
-// TEST_GENERATION(success_1,
-//     Generation::AsymmetricTest()
-//       .input( clause({ selected(g != lam(srt, ap(ap(f, x), x))) }))
-//       .expected(exactly(clause({ ap(g, sk0()) != ap(lam(srt, ap(ap(f, x), x)), sk0()) })))
-//     )
+TEST_GENERATION(success_1,
+    Generation::AsymmetricTest()
+      .input( clause({ selected(g != lam(srt, ap(ap(f, x), x))) }))
+      .EXPECTED(exactly(clause({ ap(g, ap(sk0(), x)) != ap(lam(srt, ap(ap(f, x), x)), ap(sk0(), x)) })))
+    )
 
 // TEST_GENERATION(success_2,
 //     Generation::AsymmetricTest()
