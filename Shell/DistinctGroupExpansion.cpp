@@ -90,41 +90,32 @@ bool DistinctGroupExpansion::apply(UnitList*& units)
 }
 
 /**
- * If a distinct group of constants has 2 members then a single disequality is created
- * Otherwise a conjunction of disequalities is created
+ * The function creates a (possibly empty) conjunction of disequalities
+ * between all pairs of constants in the input stack.
  */
 Formula* DistinctGroupExpansion::expand(Stack<unsigned>& constants)
 {
-  ASS(constants.size()>=2);
-  // If there are 2 just create a disequality
-  if(constants.size()==2){
-    TermList a = TermList(Term::createConstant(constants[0]));
-    TermList b = TermList(Term::createConstant(constants[1]));
-    TermList sort = SortHelper::getResultSort(a.term()); //TODO where is the type of these constants set?
-    return new AtomicFormula(Literal::createEquality(false,a,b,sort));
-  }
-
   // Otherwise create a formula list of disequalities
-  FormulaList* diseqs = 0; 
+  auto diseqs = FormulaList::empty();
 
   for(unsigned i=0;i<constants.size();i++){
-    TermList a = TermList(Term::createConstant(constants[i]));
-    ASS(a.isSafe());
-    TermList sort = SortHelper::getResultSort(a.term());
+    auto a = Term::createConstant(constants[i]);
+    ASS(a->shared());
+    TermList sort = SortHelper::getResultSort(a);
 
     for(unsigned j=0;j<i;j++){
-      TermList b = TermList(Term::createConstant(constants[j]));
-      ASS(b.isSafe());
-      
-      Formula* new_dis = new AtomicFormula(Literal::createEquality(false,a,b,sort));
-      if(diseqs) FormulaList::push(new_dis,diseqs);
-      else diseqs = new FormulaList(new_dis);
+      auto b = Term::createConstant(constants[j]);
+      ASS(b->shared());
+      ASS_EQ(sort, SortHelper::getResultSort(b));
 
+      FormulaList::push(
+        new AtomicFormula(Literal::createEquality(false,TermList(a),TermList(b),sort)),
+        diseqs);
     }
   }
 
   // and create an AND junction of these
-  return new JunctionFormula(Connective::AND, diseqs);
+  return JunctionFormula::generalJunction(Connective::AND, diseqs);
 
 }
 
