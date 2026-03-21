@@ -58,6 +58,8 @@
 #define DECL_FUN_DEF(d, t)  auto d = PredSugar(env.signature->getFnDef(t.sugaredExpr().term()->functor()));
 #define DECL_PRED_DEF(d, t) auto d = PredSugar(env.signature->getBoolDef(((Literal*)t)->functor()));
 #define DECL_NOT_PROXY auto notP = TermSugar(HOL::create::neg());
+#define DECL_AND_PROXY auto andP = TermSugar(HOL::create::conj());
+#define DECL_OR_PROXY auto orP = TermSugar(HOL::create::disj());
 #define DECL_EQ_PROXY(s) auto eqP = TermSugar(HOL::create::equality(s));
 #define DECL_APP env.signature->getApp();
 #define DECL_LAM env.signature->getLam();

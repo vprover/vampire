@@ -20,10 +20,15 @@ using namespace Test;
   TROO                                             \
   FOLS                                             \
   DECL_NOT_PROXY                                   \
+  DECL_AND_PROXY                                   \
+  DECL_OR_PROXY                                    \
   DECL_EQ_PROXY(srt)                               \
   DECL_VAR_SORTED(xs, 0, arrow(srt, Bool))         \
   DECL_VAR_SORTED(ys, 1, arrow(srt, srt))          \
   DECL_VAR_SORTED(zs, 2, arrow(srt, Bool))         \
+  DECL_VAR_SORTED(zs2, 3, arrow(srt, Bool))        \
+  DECL_VAR_SORTED(zs3, 2, arrow(srt, srt))         \
+  DECL_VAR_SORTED(zs4, 3, arrow(srt, srt))         \
   DECL_VAR_SORTED(us, 3, arrow({srt, srt}, Bool))  \
   DECL_VAR_SORTED(vs, 4, arrow(Bool, Bool))        \
   DECL_VAR_SORTED(ws, 5, arrow({srt, srt}, Bool))  \
@@ -108,3 +113,26 @@ TEST_GENERATION(success_3,
         clause({ a != ap(lam(Bool,ap(notP,ap(ws2,db0B))),a) })
       ))
     )
+
+TEST_GENERATION(success_4,
+    Generation::AsymmetricTest()
+      .input( clause({ selected(a == ap(xs,c)) }))
+      .options({ { "prim_inst_set", "and" } })
+      .expected(exactly(
+        clause({ a == ap(lam(srt,troo),c) }),
+        clause({ a == ap(lam(srt,fols),c) }),
+        clause({ a == ap(lam(srt,ap(andP, {ap(zs2,db0), ap(zs,db0)})),c) })
+      ))
+    )
+
+TEST_GENERATION(success_5,
+    Generation::AsymmetricTest()
+      .input( clause({ selected(a == ap(xs,c)) }))
+      .options({ { "prim_inst_set", "or" } })
+      .expected(exactly(
+        clause({ a == ap(lam(srt,troo),c) }),
+        clause({ a == ap(lam(srt,fols),c) }),
+        clause({ a == ap(lam(srt,ap(orP, {ap(zs2,db0), ap(zs,db0)})),c) })
+      ))
+    )
+
