@@ -74,6 +74,12 @@
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
 #include "Inferences/ForwardSubsumptionDemodulation.hpp"
 #include "Inferences/GlobalSubsumption.hpp"
+#include "Inferences/HOL/BetaEtaSimplify.hpp"
+#include "Inferences/HOL/BoolEqToDiseq.hpp"
+#include "Inferences/HOL/FlexFlexSimplify.hpp"
+#include "Inferences/HOL/NegativeExtensionality.hpp"
+#include "Inferences/HOL/PositiveExtensionality.hpp"
+#include "Inferences/HOL/PrimitiveInstantiation.hpp"
 #include "Inferences/InnerRewriting.hpp"
 #include "Inferences/TermAlgebraReasoning.hpp"
 #include "Inferences/Superposition.hpp"
@@ -87,6 +93,7 @@
 #include "Inferences/BoolSimp.hpp"
 #include "Inferences/CasesSimp.hpp"
 #include "Inferences/Cases.hpp"
+#include "Inferences/CNFOnTheFly.hpp"
 #include "Inferences/DefinitionIntroduction.hpp"
 #include "Inferences/LfpRule.hpp"
 
@@ -1360,6 +1367,12 @@ void SaturationAlgorithm::addBackwardSimplifierToFront()
   BwSimplList::push(new Inference(*this), _bwSimplifiers);
 }
 
+template<typename Inference>
+void SaturationAlgorithm::addSimplifierToFront()
+{
+  SimplList::push(new Inference(*this), _simplifiers);
+}
+
 /**
  * @since 05/05/2013 Manchester, splitting changed to new values
  * @author Andrei Voronkov
@@ -1416,6 +1429,14 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new EqualityResolution(*res));
   }
 
+  if (prb.isHigherOrder()){
+    gie->addFront(new NegativeExtensionality(*res));
+    gie->addFront(new PositiveExtensionality(*res));
+    if(prb.hasFOOL()/*  && opt.booleanEqTrick() */){
+      gie->addFront(new BoolEqToDiseq(*res));
+    }
+  }
+
   if (opt.choiceReasoning()) {
     gie->addFront(new Choice());
   }
@@ -1441,8 +1462,19 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new Cases(*res));
   }
 
+  if (/* opt.complexBooleanReasoning() &&  */prb.hasBoolVar() && prb.isHigherOrder()) {
+    gie->addFront(new PrimitiveInstantiation(*res)); //TODO only add in some cases
+  }
 
-  if (opt.injectivityReasoning()) {
+  if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
+      prb.isHigherOrder() && !prb.quantifiesOverPolymorphicVar()){ // TODO why the last condition????
+    if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER && 
+       env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF){
+      gie->addFront(new LazyClausificationGIE(*res));
+    }
+  }
+
+  if (prb.isHigherOrder() && opt.injectivityReasoning()) {
     gie->addFront(new Injectivity());
   }
   if (mayHaveEquality && env.signature->hasTermAlgebras()) {
@@ -1544,6 +1576,13 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   // create simplification engine
 
   // create forward simplification engine
+  if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
+      prb.isHigherOrder() && !prb.quantifiesOverPolymorphicVar()){
+    if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
+       env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF){
+      res->addSimplifierToFront<LazyClausification>();
+    }
+  }
   if (opt.globalSubsumption()) {
     res->addForwardSimplifierToFront<GlobalSubsumption>();
   }
@@ -1663,12 +1702,23 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
     res->addFront(new ChoiceDefinitionISE());
   }
 
-  if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) && prb.isHigherOrder()){
+  if ((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) && prb.isHigherOrder()/*  && !opt.addProxyAxioms() */) {
+    if(env.options->cnfOnTheFly() == Options::CNFOnTheFly::EAGER){
+      resMany.addFront(std::make_unique<EagerClausificationISE>());
+    }
+    // if(env.options->iffXorRewriter()){
+    //   res->addFront(new IFFXORRewriterISE());
+    // }
     res->addFront(new BoolSimp());
   }
 
   if (prb.hasFOOL() && opt.casesSimp() && !opt.cases()) {
     resMany.addFront(std::make_unique<CasesSimp>());
+  }
+
+  if (prb.isHigherOrder()) {
+    res->addFront(new BetaEtaSimplify());
+    res->addFront(new FlexFlexSimplify());
   }
 
   // Only add if there are distinct groups

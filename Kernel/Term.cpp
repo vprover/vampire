@@ -811,6 +811,11 @@ TermList Literal::eqArgSort() const {
   return SortHelper::getEqualityArgumentSort(this);
 }
 
+std::pair<TermList,TermList> Literal::eqArgs() const {
+  ASS(isEquality());
+  return { termArg(0), termArg(1) };
+}
+
 /**
  * Return the result of conversion of a literal into a std::string.
  *
@@ -1017,6 +1022,23 @@ Literal* Literal::complementaryLiteral(Literal* l)
     res=create(l,!l->polarity());
   }
   return res;
+}
+
+bool Literal::isFlexFlexConstraint() const
+{
+  ASS(isEquality());
+  return isNegative() && termArg(0).head().isVar() && termArg(1).head().isVar();
+}
+
+bool Literal::isFlexRigid() const
+{
+  ASS(isEquality());
+
+  auto [lhs, rhs] = eqArgs();
+  auto lhsHead = lhs.head();
+  auto rhsHead = rhs.head();
+
+  return (lhsHead.isVar() && !rhsHead.isVar()) || (rhsHead.isVar() && !lhsHead.isVar());
 }
 
 
@@ -1307,27 +1329,35 @@ TermList AtomicSort::arrowSort(TermList s1, TermList s2) {
 }
 
 TermList AtomicSort::arrowSort(unsigned size, const TermList* types, TermList range) {
-  ASS(size > 0)
+  ASS_G(size, 0);
 
   TermList res = range;
-  for (unsigned i = size; i-- > 0;)
+  for (unsigned i = size; i-- > 0;) {
     res = arrowSort(types[i], res);
+  }
 
   return res;
 }
 
 TermList AtomicSort::arrowSort(const std::initializer_list<TermList>& types) {
   const auto size = types.size();
-  ASS(size >= 2)
+  ASS_G(size, 1);
 
   const TermList* data = std::data(types);
   return arrowSort(size - 1, data, data[size - 1]);
 }
 
-TermList AtomicSort::arrowSort(const TermStack & domSorts, TermList range) {
+TermList AtomicSort::arrowSort(const TermStack& domSorts, TermList range, bool fromTop) {
   TermList res = range;
-  for (auto domSort : domSorts)
-    res = arrowSort(domSort, res);
+  if (fromTop) {
+    for (const auto& domSort : iterTraits(domSorts.iter())) {
+      res = arrowSort(domSort, res);
+    }
+  } else {
+    for (auto domSort : domSorts) {
+      res = arrowSort(domSort, res);
+    }
+  }
 
   return res;
 }

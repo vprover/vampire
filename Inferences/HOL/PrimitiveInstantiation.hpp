@@ -8,37 +8,32 @@
  * and in the source directory
  */
 /**
- * @file EqualityResolution.hpp
- * Defines class EqualityResolution.
+ * @file PrimitiveInstantiation.hpp
+ * Defines class PrimitiveInstantiation.
  */
 
-
-#ifndef __ArgCong__
-#define __ArgCong__
+#ifndef __PrimitiveInstantiation__
+#define __PrimitiveInstantiation__
 
 #include "Forwards.hpp"
 
-#include "InferenceEngine.hpp"
+#include "Inferences/InferenceEngine.hpp"
+#include "Shell/Options.hpp"
 
 namespace Inferences {
 
 using namespace Kernel;
-using namespace Indexing;
-using namespace Saturation;
 
-class ArgCong
+class PrimitiveInstantiation
 : public GeneratingInferenceEngine
 {
 public:
-  ArgCong(SaturationAlgorithm& salg) : _salg(salg) {}
+  PrimitiveInstantiation(SaturationAlgorithm& salg);
   ClauseIterator generateClauses(Clause* premise) override;
 private:
-  struct ResultFn;
-  struct IsPositiveEqualityFn;
-  const SaturationAlgorithm& _salg;
+  const Shell::Options::PISet _piSet;
 };
-
 
 };
 
-#endif /* __ArgCong__ */
+#endif /* __PrimitiveInstantiation__ */

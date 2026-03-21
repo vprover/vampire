@@ -11,7 +11,6 @@
 #include "Kernel/HOL/HOL.hpp"
 #include "Kernel/HOL/ToPlaceholders.hpp"
 #include "Test/HOLUtils.hpp"
-#include "Test/UnitTesting.hpp"
 
 using namespace Test::HOL;
 

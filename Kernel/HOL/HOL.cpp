@@ -251,6 +251,26 @@ TermList HOL::matrix(TermList t) {
   return t;
 }
 
+void HOL::getArgSorts(TermList t, TermStack& sorts) {
+  while (t.isArrowSort()) {
+    sorts.push(t.domain());
+    t = t.result();
+  }
+
+  t = matrix(t);
+
+  while (t.isApplication()) {
+    sorts.push(*t.term()->nthArgument(0));
+    t = t.lhs();
+  }
+}
+
+TermStack HOL::getArgSorts(TermList t) {
+  TermStack stack;
+  getArgSorts(t, stack);
+  return stack;
+}
+
 TermList HOL::getHeadAndArgs(TermList term, TermStack& args) {
   args.reset();
 
@@ -374,4 +394,22 @@ void HOL::getMatrixAndPrefSorts(TermList t, TermList& matrix, TermStack& sorts) 
     t = t.lambdaBody();
   }
   matrix = t;
+}
+
+TermList HOL::createGeneralBinding(TermList head, const TermStack& sorts, unsigned& freshVar, bool surround)
+{
+  ASS(head.isTerm()) // in the future may wish to reconsider this assertion
+
+  auto indices = TermStack::fromIterator(
+    range(0,sorts.size()).map([&](auto i) { return getDeBruijnIndex(i, sorts[i]); }));
+  TermStack argSorts = getArgSorts(head.resultSort());
+  TermStack args;
+
+  while (!argSorts.isEmpty()) {
+    TermList varSort = AtomicSort::arrowSort(sorts, argSorts.pop());
+    args.push(create::app(varSort, TermList::var(freshVar++), indices));
+  }
+
+  auto res = create::app(head, args);
+  return surround ? create::surroundWithLambdas(res, sorts) : res;
 }
