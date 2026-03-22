@@ -93,7 +93,7 @@ struct LookaheadLiteralSelector::GenIteratorIterator
       if(!fsi) { stage++; goto start; }
 
       nextIt=pvi( getMapAndFlattenIterator(
-	       EqHelper::getSubtermIterator(lit, _parent._ord), //TODO update for HO superposition
+	       EqHelper::getSubtermIterator(lit, _parent._ord, /*higherOrder=*/false), //TODO update for HO superposition
 	       TermUnificationRetriever(fsi.get())) );
       break;
     }

@@ -36,37 +36,29 @@ using namespace Kernel;
 using namespace Inferences;
 
 SuperpositionSubtermIndex::SuperpositionSubtermIndex(SaturationAlgorithm& salg)
-: TermIndex(new TermSubstitutionTree<TermLiteralClause>), _ord(salg.getOrdering()) {}
+: TermIndex(new TermSubstitutionTree<TermLiteralClause>), _ord(salg.getOrdering()), _higherOrder(env.higherOrder()) {}
 
 void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
 {
   TIME_TRACE("backward superposition index maintenance");
 
-  unsigned selCnt=c->numSelected();
-  for (unsigned i=0; i<selCnt; i++) {
-    Literal* lit=(*c)[i];
-    auto rsti = EqHelper::getSubtermIterator(lit, _ord);
-    while (rsti.hasNext()) {
-      auto tt = TypedTermList(rsti.next());
-      ((TermSubstitutionTree<TermLiteralClause>*)&*_is)->handle(TermLiteralClause{ tt, lit, c }, adding);
+  for (const auto& lit : c->getSelectedLiteralIterator()) {
+    for (const auto& tt : iterTraits(EqHelper::getSubtermIterator(lit, _ord, _higherOrder))) {
+      _is->handle(TermLiteralClause{ tt, lit, c }, adding);
     }
   }
 }
 
 SuperpositionLHSIndex::SuperpositionLHSIndex(SaturationAlgorithm& salg)
-: TermIndex(new TermSubstitutionTree<TermLiteralClause>),
-  _ord(salg.getOrdering()), _opt(salg.getOptions()) {}
+: TermIndex(new TermSubstitutionTree<TermLiteralClause>), _ord(salg.getOrdering()), _opt(salg.getOptions()) {}
 
 void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
 {
   TIME_TRACE("forward superposition index maintenance");
 
-  unsigned selCnt=c->numSelected();
-  for (unsigned i=0; i<selCnt; i++) {
-    Literal* lit=(*c)[i];
-    auto lhsi = EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt);
-    while (lhsi.hasNext()) {
-	    _is->handle(TermLiteralClause{ lhsi.next(), lit, c }, adding);
+  for (const auto& lit : c->getSelectedLiteralIterator()) {
+    for (const auto& lhs : iterTraits(EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt))) {
+	    _is->handle(TermLiteralClause{ lhs, lit, c }, adding);
     }
   }
 }

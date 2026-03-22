@@ -225,6 +225,8 @@ void TermSharing::computeAndSetSharedLiteralData(Literal* t)
         if(!hasInterpretedConstants && r->hasInterpretedConstants()) {
           hasInterpretedConstants=true;
         }
+        // when creating a literal, there shouldn't be loose DB indices
+        ASS_REP(!tt->containsLooseDBIndex(), *tt);
       }
     }
     t->markShared();

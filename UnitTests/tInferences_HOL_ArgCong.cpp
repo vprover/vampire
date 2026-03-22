@@ -29,8 +29,8 @@ using namespace Test;
   DECL_PRED(p, { srt })                            \
   DECL_CONST(f, arrow({srt, srt}, srt))            \
   DECL_CONST(g, arrow(srt, srt))                   \
-  DECL_POLY_CONST(g2, 1, sx)                               \
-  DECL_POLY_CONST(g3, 1, sx)                               \
+  DECL_POLY_CONST(g2, 1, sx)                       \
+  DECL_POLY_CONST(g3, 1, sx)                       \
   DECL_DE_BRUIJN_INDEX(db0, 0, srt)                \
   DECL_CONST(a, srt)                               \
   DECL_CONST(b, srt)

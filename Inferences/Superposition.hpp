@@ -44,12 +44,7 @@ private:
   bool checkClauseColorCompatibility(Clause* eqClause, Clause* rwClause);
   static bool checkSuperpositionFromVariable(Clause* eqClause, Literal* eqLit, TermList eqLHS);
 
-  struct ForwardResultFn;
-
-  struct LHSsFn;
-  struct RewritableResultsFn;
-  struct BackwardResultFn;
-
+  bool _higherOrder;
   SaturationAlgorithm& _salg;
   std::shared_ptr<SuperpositionSubtermIndex> _subtermIndex;
   std::shared_ptr<SuperpositionLHSIndex> _lhsIndex;

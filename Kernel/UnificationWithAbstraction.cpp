@@ -1466,7 +1466,7 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
         }
         absRes.take();
 
-      } else if(dt1.isTerm() && dt2.isTerm() && dt1.functor() == dt2.functor()) {
+      } else if(dt1.isTerm() && dt2.isTerm() && dt1.functor() == dt2.functor() && !dt1.term.isLambdaTerm()) {
 
         for (auto p : dt1.allArgs().zip(dt2.allArgs())) {
           pushTodo(p);

@@ -304,6 +304,38 @@ private:
   Stack<Term*> _stack;
 };
 
+class FirstOrderSubtermIterator
+: public IteratorCore<Term*>
+{
+public:
+  FirstOrderSubtermIterator(Term* term, bool includeSelf = false)
+  : _stack(8), _added(0)
+  {
+    if (term->isLiteral()) {
+      for (unsigned i = 0; i < term->arity(); i++) {
+        // TODO shouldn't we exclude iterating on types?
+        TermList t = *term->nthArgument(i);
+        if (t.isTerm()) {
+          _stack.push(t.term());
+        }
+      }
+      return;
+    }
+    _stack.push(term);
+    if (!includeSelf) {
+      FirstOrderSubtermIterator::next();
+    }
+  }
+
+  bool hasNext(){ return !_stack.isEmpty(); }
+  Term* next();
+  void right();
+
+private:
+  Stack<Term*> _stack;
+  int _added;
+};
+
 //////////////////////////////////////////////////////////////////////////
 ///                                                                    ///
 ///                    END OF HIGHER-ORDER ITERATORS                   ///

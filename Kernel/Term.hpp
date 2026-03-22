@@ -292,6 +292,7 @@ public:
   bool isPlaceholder() const;
 
   Option<unsigned> deBruijnIndex() const;
+  bool containsLooseDBIndex() const;
   TermList lhs() const;
   TermList rhs() const;
   TermList lambdaBody() const;
