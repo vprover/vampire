@@ -176,10 +176,89 @@ void LeanChecker::outputPreamble(std::ostream &out, std::set<Signature::Symbol*>
     out << "variable {" << SortName(i) << " : Type u}\n";
     out << "variable [inst : Inhabited " << SortName(i) << " ]\n";
   }
+
+  out << "variable {df : Nat → (α : Type u) → (α → ι)}\n"
+      << "variable {dcf : Nat → ι}\n"
+      << "variable {dp : Nat → (α : Type u) → α → Prop}\n"
+      << "variable {dcp : Nat → Prop}\n";
+
+  unsigned variableCounter = 0;
+
+  for (auto fun : usedFunctionSymbols) {
+    if (fun->interpreted() || fun->linMul() || fun->introduced())
+      continue;
+    OperatorType *type = fun->fnType();
+    TermList range = type->result();
+    ASS_EQ(type->numTypeArguments(), 0)
+    if(type->arity() == 0) {
+      out << "def " << FunctionName(fun) << " := dcf " << variableCounter++ << "\n";
+      continue;
+    }
+    out << "def " << FunctionName(fun) << ": (";
+    for (unsigned i = 0; i < type->arity(); i++){
+      out << (i==0 ? " " : " → ") << Sort{type->arg(i)};
+    }
+    if(range.isNonEmpty()){
+      out << " → " << Sort{range};
+    }
+    out << ") ";
+
+    out << " := fun ";
+    for (unsigned i = 0; i < type->arity(); i++){
+      out << "x" << i << " ";
+    }
+    out << " => (df " << variableCounter++;
+    out << " (";
+    for (unsigned i = 0; i < type->arity(); i++) {
+      out << (i == 0 ? "" : " × ") << Sort{type->arg(i)};
+    }
+    out << ") (";
+    for (unsigned i = 0; i < type->arity(); i++){
+      out << (i==0 ? "" : ", ") << "x" << i;
+    }
+    out << "))\n";
+  }
+  
+  for (auto pred : usedPredicateSymbols) {
+    if (pred->interpreted() || pred->skolem() || pred->introduced())
+      continue;
+    OperatorType *type = pred->fnType();
+    TermList resRange = type->result();
+    // we don't support polymorphism yet
+    ASS_EQ(type->numTypeArguments(), 0)
+
+    if(type->arity() == 0) {
+      out << "def " << PredicateName(pred) << " := dcp " << variableCounter++ << "\n";
+      continue;
+    }
+    out << "def " << PredicateName(pred) << ": (";
+  
+    for (unsigned i = 0; i < type->arity(); i++){
+      out << (i==0 ? " " : " → ") << Sort{type->arg(i)};
+    }
+    out << " → Prop) ";
+
+    out << " := fun ";
+    for (unsigned i = 0; i < type->arity(); i++){
+      out << "x" << i << " ";
+    }
+    out << " => (dp " << variableCounter++;
+    //output input args
+    out << " (";
+    for (unsigned i = 0; i < type->arity(); i++) {
+      out << (i == 0 ? "" : " × ") << Sort{type->arg(i)};
+    }
+    out << ") (";
+    for (unsigned i = 0; i < type->arity(); i++){
+      out << (i==0 ? "" : ", ") << "x" << i;
+    }
+    out << "))\n";
+  }
+    
   bool firstVariableDef = true;
   std::map<OperatorType*, std::vector<Signature::Symbol*>> funMap;
   for(auto fun : usedFunctionSymbols){
-    if(!(fun->interpreted() || fun->linMul())){
+    if(fun->introduced()){
       if(funMap.find(fun->fnType()) == funMap.end()){
         funMap.emplace(fun->fnType(), std::vector<Signature::Symbol*>());
       }
@@ -210,7 +289,7 @@ void LeanChecker::outputPreamble(std::ostream &out, std::set<Signature::Symbol*>
   }
   std::map<OperatorType*, std::vector<Signature::Symbol*>> predMap;
   for(auto pred : usedPredicateSymbols){
-    if(!(pred->interpreted() || pred->skolem())){
+    if(pred->introduced()){
       if(predMap.find(pred->fnType()) == predMap.end()){
         predMap.emplace(pred->fnType(), std::vector<Signature::Symbol*>());
       }
@@ -256,7 +335,7 @@ void LeanChecker::outputFullProofPreamble(std::ostream &out, std::deque<Unit*> p
   } 
   out << " := by\n";
   
-  for(Signature::Symbol* sym : unusedFunctionSymbols){
+  /*for(Signature::Symbol* sym : unusedFunctionSymbols){
     if(sym->introduced()) {
       continue;
     }
@@ -275,7 +354,7 @@ void LeanChecker::outputFullProofPreamble(std::ostream &out, std::deque<Unit*> p
       out << "fun x" << i << " : " << Sort{sym->fnType()->arg(i)} << " => ";
     }
     out << "False\n";
-  }
+  }*/
   if(!premises.empty()){
     out << indent << "intros ";
     for(Unit* input : premises){
