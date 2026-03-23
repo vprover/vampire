@@ -1604,7 +1604,11 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     switch (opt.forwardDemodulation()) {
       case Options::Demodulation::ALL:
       case Options::Demodulation::PREORDERED:
-        res->addForwardSimplifierToFront<ForwardDemodulation>();
+        if (prb.isHigherOrder()) {
+          res->addForwardSimplifierToFront<ForwardDemodulation<true>>();
+        } else {
+          res->addForwardSimplifierToFront<ForwardDemodulation<false>>();
+        }
         break;
       case Options::Demodulation::OFF:
         break;
@@ -1631,7 +1635,11 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     switch (opt.backwardDemodulation()) {
       case Options::Demodulation::ALL:
       case Options::Demodulation::PREORDERED:
-        res->addBackwardSimplifierToFront<BackwardDemodulation>();
+        if (prb.isHigherOrder()) {
+          res->addBackwardSimplifierToFront<BackwardDemodulation<true>>();
+        } else {
+          res->addBackwardSimplifierToFront<BackwardDemodulation<false>>();
+        }
         break;
       case Options::Demodulation::OFF:
         break;

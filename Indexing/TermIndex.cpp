@@ -63,11 +63,13 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
   }
 }
 
-DemodulationSubtermIndex::DemodulationSubtermIndex(SaturationAlgorithm& salg)
+template<bool higherOrder>
+DemodulationSubtermIndex<higherOrder>::DemodulationSubtermIndex(SaturationAlgorithm& salg)
 : TermIndex(new TermSubstitutionTree<TermLiteralClause>()),
   _skipNonequationalLiterals(salg.getOptions().demodulationOnlyEquational()) {};
 
-void DemodulationSubtermIndex::handleClause(Clause* c, bool adding)
+template<bool higherOrder>
+void DemodulationSubtermIndex<higherOrder>::handleClause(Clause* c, bool adding)
 {
   TIME_TRACE("backward demodulation index maintenance");
 
@@ -88,7 +90,7 @@ void DemodulationSubtermIndex::handleClause(Clause* c, bool adding)
       continue;
     }
 
-    NonVariableNonTypeIterator it(lit);
+    RewritableSubtermIterator<higherOrder> it(lit);
     while (it.hasNext()) {
       Term* t= it.next();
       if (!inserted.insert(t)) {//TODO existing error? Terms are inserted once per a literal
@@ -106,6 +108,9 @@ void DemodulationSubtermIndex::handleClause(Clause* c, bool adding)
     }
   }
 }
+
+template class DemodulationSubtermIndex<true>;
+template class DemodulationSubtermIndex<false>;
 
 DemodulationLHSIndex::DemodulationLHSIndex(SaturationAlgorithm& salg)
 : TermIndex(new CodeTreeTIS<DemodulatorData>()), _ord(salg.getOrdering()),

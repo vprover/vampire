@@ -30,6 +30,7 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+template<bool higherOrder>
 class ForwardDemodulation
 : public ForwardSimplificationEngine
 {

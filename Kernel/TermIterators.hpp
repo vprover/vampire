@@ -662,6 +662,9 @@ static const auto anyArgIterTyped = [](Term const* term)
 static const auto varRange = [](unsigned i, unsigned j)
   { return range(i,j).map(unsignedToVarFn); };
 
+template<bool higherOrder>
+using RewritableSubtermIterator = std::conditional_t<higherOrder, FirstOrderSubtermIterator, NonVariableNonTypeIterator>;
+
 } // namespace Kernel
 
 #endif // __TermIterators__

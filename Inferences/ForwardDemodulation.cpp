@@ -68,7 +68,8 @@ struct ApplicatorWithEqSort : SubstApplicator {
 
 } // end namespace
 
-ForwardDemodulation::ForwardDemodulation(SaturationAlgorithm& salg)
+template<bool higherOrder>
+ForwardDemodulation<higherOrder>::ForwardDemodulation(SaturationAlgorithm& salg)
   : _preorderedOnly(salg.getOptions().forwardDemodulation()==Options::Demodulation::PREORDERED),
     _encompassing(salg.getOptions().demodulationRedundancyCheck()==Options::DemodulationRedundancyCheck::ENCOMPASS),
     _useTermOrderingDiagrams(salg.getOptions().forwardDemodulationTermOrderingDiagrams()),
@@ -78,7 +79,8 @@ ForwardDemodulation::ForwardDemodulation(SaturationAlgorithm& salg)
     _index(salg.getSimplifyingIndex<DemodulationLHSIndex>())
 {}
 
-bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
+template<bool higherOrder>
+bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   TIME_TRACE("forward demodulation");
 
@@ -98,7 +100,7 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
     if (_skipNonequationalLiterals && !lit->isEquality()) {
       continue;
     }
-    NonVariableNonTypeIterator it(lit);
+    RewritableSubtermIterator<higherOrder> it(lit);
     while(it.hasNext()) {
       TypedTermList trm = it.next();
       if(!attempted.insert(trm)) {
@@ -214,5 +216,8 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
 
   return false;
 }
+
+template class ForwardDemodulation<true>;
+template class ForwardDemodulation<false>;
 
 }
