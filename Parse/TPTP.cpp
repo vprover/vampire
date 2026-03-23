@@ -1554,13 +1554,15 @@ void TPTP::holFormula()
   case T_SIGMA:
     resetToks();
     readTypeArgs(1);
-    _termLists.push(createFunctionApplication("vSIGMA", 1));    
+    _termLists.push(createFunctionApplication("vSIGMA", 1));
+    _lastPushed = TM;
     return;
   
   case T_PI:
     resetToks();
     readTypeArgs(1);
-    _termLists.push(createFunctionApplication("vPI", 1));      
+    _termLists.push(createFunctionApplication("vPI", 1));
+    _lastPushed = TM;
     return;
 
   case T_FORALL:
@@ -1589,6 +1591,7 @@ void TPTP::holFormula()
     ASS(_connectives.top() == NOT);
     _connectives.pop();
     _termLists.push(createFunctionApplication("vNOT", 0));
+    _lastPushed = TM;
     return;
   }
 
