@@ -40,8 +40,7 @@ bool CodeTreeForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&repla
 
   while ((premise = cm.next(resolvedQueryLit))) {
     if (resolvedQueryLit == -1) {
-      // TODO resolve this once higher-order subsumption is implemented
-      ASS(!env.higherOrder() || satSubs.checkSubsumption(premise, cl));
+      ASS(satSubs.checkSubsumption(premise, cl));
       premises = pvi(getSingletonIterator(premise));
       env.statistics->forwardSubsumed++;
       cm.reset();

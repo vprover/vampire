@@ -226,7 +226,11 @@ void TermSharing::computeAndSetSharedLiteralData(Literal* t)
           hasInterpretedConstants=true;
         }
         // when creating a literal, there shouldn't be loose DB indices
-        ASS_REP(!tt->containsLooseDBIndex(), *tt);
+        if (env.higherOrder()) {
+          if (tt->containsLooseDBIndex()) {
+            INVALID_OPERATION("Trying to create shared literal with loose DB index: "+tt->toString());
+          }
+        }
       }
     }
     t->markShared();

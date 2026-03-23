@@ -314,8 +314,7 @@ CodeTree::CodeOp CodeTree::CodeOp::getTermOp(Instruction i, unsigned num)
 
 CodeTree::CodeOp CodeTree::CodeOp::getGroundTermCheck(const Term* trm)
 {
-  // TODO reenable this once HOL matching is implemented
-  // ASS(trm->ground());
+  ASS(trm->ground());
 
   CodeOp res;
   res._setData(trm);
@@ -956,14 +955,6 @@ void CodeTree::Compiler<forLits>::handleTerm(const Term* trm)
   static Stack<unsigned> globalCounterparts;
   globalCounterparts.reset();
 
-  // For now we hijack the ground term check to avoid incorrectly
-  // matching with substitutions involving loose DB indices.
-  // TODO replace this with a proper "HOL matching" instruction
-  if (trm->isLambdaTerm()) {
-    code.push(CodeOp::getGroundTermCheck(trm));
-    return;
-  }
-
   if (GROUND_TERM_CHECK && trm->ground()) {
     code.push(CodeOp::getGroundTermCheck(trm));
     return;
@@ -1032,14 +1023,6 @@ void CodeTree::Compiler<forLits>::handleSubterms(const Term* trm, Stack<unsigned
     }
     ASS(s.isTerm());
     Term* t = s.term();
-
-    // For now we hijack the ground term check to avoid incorrectly
-    // matching with substitutions involving loose DB indices.
-    // TODO replace this with a proper "HOL matching" instruction
-    if (t->isLambdaTerm()) {
-      code.push(CodeOp::getGroundTermCheck(t));
-      return;
-    }
 
     if (GROUND_TERM_CHECK && t->ground()) {
       code.push(CodeOp::getGroundTermCheck(t));
