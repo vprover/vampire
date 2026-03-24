@@ -511,6 +511,11 @@ void LeanChecker::outputInferenceStep(std::ostream &out, Kernel::Unit *u){
     case InferenceRule::AVATAR_SPLIT_CLAUSE:
       avatarSplitClause(out, conclSorts, u);
       break;
+    case InferenceRule::UNUSED_PREDICATE_DEFINITION_REMOVAL:
+      genericInference(out, conclSorts, u, "intro h\n"+
+        indent + "simp only [h, imp_self, implies_true]"
+      );
+      break;
     default:
       genericInference(out, conclSorts, u);
   }
