@@ -252,8 +252,7 @@ av=on > acc ~cat off:100,model:2,on:5
 acc!=off > ccuc ~cat first:1,small_ones:1,all:3
 
 # avatar_minimize_model
-av=on  acc=model > amm ~cat all:600,off:69
-av=on acc!=model > amm ~cat all:600,sco:32,off:69
+av=on > amm ~cat on:600,off:69
 
 # avatar_eager_removal
 av=on amm=all > aer ~cat on:300,off:1
