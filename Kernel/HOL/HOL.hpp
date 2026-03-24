@@ -73,6 +73,8 @@ namespace HOL::create {
   TermList app(TermList sort, TermList head, TermList arg);
   TermList app(TermList head, TermList arg);
   TermList app(TermList s1, TermList s2, TermList arg1, TermList arg2, bool shared = true);
+  // With head h and a stack or arguments (a1,...an) from bottom to top, we get h @ an @ ... @ a1
+  // with fromTop = true, while h @ a1 @ ... @ an with fromTop = false.
   // TODO I think due to the default fromTop==true, some call sites might be wrong, double check
   TermList app(TermList sort, TermList head, const TermStack& terms, bool fromTop = true);
   TermList app(TermList head, const TermStack& terms, bool fromTop = true);
@@ -103,6 +105,8 @@ namespace HOL::create {
   TermList namelessLambda(TermList varSort, TermList termSort, TermList term);
   TermList namelessLambda(TermList varSort, TermList term);
 
+  // With term t and a stack or sorts (s1,...sn) from bottom to top, we get λ_{s1}...λ_{sn}.t
+  // with fromTop = true, while λ_{sn}...λ_{s1}.t with fromTop = false.
   TermList surroundWithLambdas(TermList t, const TermStack& sorts, bool fromTop = false);
   TermList surroundWithLambdas(TermList t, const TermStack& sorts, TermList sort, bool fromTop = false);
 

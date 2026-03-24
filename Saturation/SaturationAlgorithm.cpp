@@ -1466,8 +1466,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new PrimitiveInstantiation(*res)); //TODO only add in some cases
   }
 
-  if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
-      prb.isHigherOrder() && !prb.quantifiesOverPolymorphicVar()){ // TODO why the last condition????
+  if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) && prb.isHigherOrder()){
     if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER && 
        env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF){
       gie->addFront(new LazyClausificationGIE(*res));
@@ -1576,8 +1575,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   // create simplification engine
 
   // create forward simplification engine
-  if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
-      prb.isHigherOrder() && !prb.quantifiesOverPolymorphicVar()){
+  if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) && prb.isHigherOrder()){
     if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
        env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF){
       res->addSimplifierToFront<LazyClausification>();
