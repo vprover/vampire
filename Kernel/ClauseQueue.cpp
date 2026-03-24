@@ -50,7 +50,7 @@ void ClauseQueue::insert(Clause* c)
 {
   // select a random height between 0 and top
   unsigned h = 0;
-  while (h < MAX_HEIGHT && Random::getBit()) {
+  while (h <= _height && h < MAX_HEIGHT && Random::getBit()) {
     h++;
   }
   if (h > _height) {
