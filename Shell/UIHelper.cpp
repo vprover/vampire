@@ -473,9 +473,13 @@ void UIHelper::outputResult(std::ostream& out)
         ASSERTION_VIOLATION;
       }
 
-      out << "Symbol-weight minimized interpolant: " << TPTPPrinter::toString(interpolant) << endl;
-      out << "Actual weight: " << interpolant->weight() << endl;
-      out<<endl;
+      addCommentSignForSZS(out);
+      out << "Interpolant (symbol-weight minimized, weight " << interpolant->weight() << "):" << endl;
+      addCommentSignForSZS(out);
+      out << "SZS output start Interpolant" << endl;
+      out << TPTPPrinter::toString(interpolant) << endl;
+      addCommentSignForSZS(out);
+      out << "SZS output end Interpolant" << endl;
     }
 
     // the following two sanity checks are performed only after the proof printing, so we can also have a look at the proof, when we get a report back
