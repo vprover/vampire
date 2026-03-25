@@ -20,6 +20,7 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/DHMap.hpp"
+#include "Lib/Environment.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Vector.hpp"
 
@@ -326,13 +327,21 @@ public:
    * this one. After use, the @b deinit function should be called (if
    * present). This allows for reuse of a single object.
    */
-  template<bool removing, bool checkRange>
+  template<bool removing, bool checkRange, bool higherOrder>
   struct Matcher
     : public std::conditional<removing, RemovingBase, NonRemovingBase>::type
   {
     // we only want to enable checkRange if
     // removing, which works on variables
     static_assert(removing || !checkRange);
+
+    Matcher() {
+      if constexpr (higherOrder) {
+        ASS(env.higherOrder());
+      } else {
+        ASS(!env.higherOrder());
+      }
+    }
 
     /**
      * Backtracking point for the interpretation of the code tree.

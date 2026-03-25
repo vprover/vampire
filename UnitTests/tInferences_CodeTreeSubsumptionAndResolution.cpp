@@ -61,7 +61,7 @@ using namespace Test;
 namespace {
 
 inline auto tester() {
-  return FwdBwdSimplification::TestCase<CodeTreeForwardSubsumptionAndResolution, BackwardSubsumptionAndResolution>()
+  return FwdBwdSimplification::TestCase<CodeTreeForwardSubsumptionAndResolution</*higherOrder=*/false>, BackwardSubsumptionAndResolution>()
     .options({
       { "backward_subsumption", "on" },
       { "backward_subsumption_resolution", "on" }
