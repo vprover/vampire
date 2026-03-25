@@ -929,7 +929,9 @@ void LeanChecker::definitionFoldingPred(std::ostream &out, SortMap &conclSorts, 
   auto firstParent = parents.next();
   out << indent << "-- step" << concl->number() << " " << concl->inference().name() << "\n";
   out << indent << "have " << stepIdent << concl->number() << " := " << stepIdent << firstParent->number() << "\n";
-  out << indent << "duper [*]\n";
+  out << indent << "change ";
+  outputUnit(out, concl);
+  out << " at " << stepIdent << concl->number() << "\n";
 }
 
 void LeanChecker::definitionUnfolding(std::ostream &out, SortMap &conclSorts, Unit *concl){
