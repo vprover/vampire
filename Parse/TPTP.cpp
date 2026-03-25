@@ -3204,8 +3204,12 @@ Formula* TPTP::createPredicateApplication(std::string name, unsigned arity)
   }
   if (pred == -2){ // distinct
     // TODO check that we are top-level
+
+    // ignore pointless $distinct(x)
+    if(arity < 2)
+      return new Formula(true);
     // If fewer than 5 things are distinct then we add the disequalities
-    if(arity<5){
+    else if(arity < 5){
       static Stack<unsigned> distincts;
       distincts.reset();
       for(int i=arity-1;i >= 0; i--){
