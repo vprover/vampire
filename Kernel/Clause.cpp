@@ -62,14 +62,7 @@ Clause::Clause(Literal* const* lits, unsigned length, Inference inf)
     _extensionalityTag(false),
     _component(false),
     _store(NONE),
-    _numSelected(0),
-    _weight(0),
-    _weightForClauseSelection(0),
-    _refCnt(0),
-    _reductionTimestamp(0),
-    _literalPositions(0),
-    _numActiveSplits(0),
-    _auxTimestamp(0)
+    _numSelected(0)
 {
   // MS: TODO: not sure if this belongs here and whether EXTENSIONALITY_AXIOM input types ever appear anywhere (as a vampire-extension TPTP formula role)
   if(inference().inputType() == UnitInputType::EXTENSIONALITY_AXIOM){
@@ -662,7 +655,7 @@ unsigned Clause::maxVar()
 unsigned Clause::numPositiveLiterals()
 {
   unsigned count = 0;
-  for (int i = 0; i < _length; i++)
+  for (unsigned i = 0; i < _length; i++)
   {
     Literal *lit = (*this)[i];
     if (lit->isPositive())

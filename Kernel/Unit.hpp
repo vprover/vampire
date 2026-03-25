@@ -149,16 +149,16 @@ public:
   static unsigned getLastParsingNumber(){ return _lastParsingNumber;}
 
 protected:
+  /** inference used to obtain the unit */
+  Inference _inference;
+
   /** Number of this unit, used for printing and statistics */
-  unsigned _number;
+  unsigned _number : 29;
   /** Kind  */
   unsigned _kind : 1;
 
   /** used in interpolation to denote parents of what color have been used */
   unsigned _inheritedColor : 2;
-
-  /** inference used to obtain the unit */
-  Inference _inference;
 
   Unit(Kind kind, Inference inf);
 
