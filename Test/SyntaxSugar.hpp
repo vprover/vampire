@@ -60,7 +60,9 @@
 #define DECL_NOT_PROXY auto notP = TermSugar(HOL::create::neg());
 #define DECL_AND_PROXY auto andP = TermSugar(HOL::create::conj());
 #define DECL_OR_PROXY auto orP = TermSugar(HOL::create::disj());
-#define DECL_EQ_PROXY(s) auto eqP = TermSugar(HOL::create::equality(s));
+#define DECL_EQ_PROXY(p) auto p = FuncSugar(env.signature->getEqualityProxy());
+#define DECL_PI_PROXY(p) auto p = FuncSugar(env.signature->getPiSigmaProxy("vPI"));
+#define DECL_SIGMA_PROXY(p) auto p = FuncSugar(env.signature->getPiSigmaProxy("vSIGMA"));
 #define DECL_APP env.signature->getApp();
 #define DECL_LAM env.signature->getLam();
 #define NEXT_INTRODUCED_PRED(s,offset) auto s = PredSugar(env.signature->predicates()+offset);
@@ -434,6 +436,9 @@ inline TermSugar ap(TermList head, TermStack args)
 
 inline TermSugar lam(SortSugar varSort, TermSugar body)
 { return HOL::create::namelessLambda(varSort, body.sort(), body); }
+
+inline TermSugar db(unsigned i, SortSugar srt)
+{ return HOL::getDeBruijnIndex(i, srt); }
 
 inline TermSugar operator+(TermSugar lhs, TermSugar rhs)  { return syntaxSugarGlobals().add(lhs, rhs); }
 inline TermSugar operator-(TermSugar lhs, TermSugar rhs)  { return lhs + -rhs; }
