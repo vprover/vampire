@@ -241,13 +241,14 @@ public:
   bool allNonTheoryClausesGround(){ return _allNonTheoryClausesGround; }
   template<class Numeral>
   bool isNonLinear() const { return isNonLinear((Numeral*)nullptr); }
+ public:
+  static bool hasXEqualsY(const Clause* c);
+  static bool hasXEqualsY(const Formula*);
+
  private:
   bool isNonLinear(IntegerConstantType*) const { return _nonLinearInt; }
   bool isNonLinear(RationalConstantType*) const { return _nonLinearRat; }
   bool isNonLinear(RealConstantType*) const { return _nonLinearReal; }
-
-  static bool hasXEqualsY(const Clause* c);
-  static bool hasXEqualsY(const Formula*);
 
   static bool onlyExistsForallPrefix(UnitList* units);
 
