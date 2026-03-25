@@ -16,7 +16,6 @@ using namespace Test;
 
 #define MY_SYNTAX_SUGAR                            \
   DECL_SORT(srt)                                   \
-  DECL_SORT_VAR(sx, 0)                             \
   DECL_SORT_VAR(sy, 4)                             \
   DECL_SORT_VAR(sz, 5)                             \
   DECL_VAR_SORTED(x, 0, srt)                       \
@@ -29,8 +28,8 @@ using namespace Test;
   DECL_PRED(p, { srt })                            \
   DECL_CONST(f, arrow({srt, srt}, srt))            \
   DECL_CONST(g, arrow(srt, srt))                   \
-  DECL_POLY_CONST(g2, 1, sx)                       \
-  DECL_POLY_CONST(g3, 1, sx)                       \
+  DECL_POLY_CONST(g2, 1, x)                        \
+  DECL_POLY_CONST(g3, 1, x)                        \
   DECL_DE_BRUIJN_INDEX(db0, 0, srt)                \
   DECL_CONST(a, srt)                               \
   DECL_CONST(b, srt)
@@ -80,6 +79,6 @@ TEST_GENERATION(success_2,
 
 TEST_GENERATION(success_3,
     Generation::AsymmetricTest()
-      .input( clause({ selected(g2(sx) == g3(sx)), y == z }))
+      .input( clause({ selected(g2(x) == g3(x)), y == z }))
       .expected(exactly(clause({ ap(g2(arrow(sy, sz)), xs2)  == ap(g3(arrow(sy, sz)), xs2), y == z })))
     )
