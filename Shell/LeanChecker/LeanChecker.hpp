@@ -166,6 +166,7 @@ private:
          //"import Mathlib.Order.Basic\n"
          //"import Mathlib.Data.Real.Basic\n"
          "import VampLean\n"
+         "import Duper\n"
          "section vamproof\n"
          "universe u\n"
          "set_option maxHeartbeats 0\n"

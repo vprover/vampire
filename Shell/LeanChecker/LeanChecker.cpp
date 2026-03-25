@@ -443,59 +443,6 @@ void LeanChecker::outputInferenceStep(std::ostream &out, Kernel::Unit *u){
     }
   }
   switch(u->inference().rule()){
-    case InferenceRule::RESOLUTION: 
-      resolution(out, conclSorts, u->asClause(), info);
-      break;
-    case InferenceRule::SUPERPOSITION:
-      superposition(out, conclSorts, u->asClause(), info);
-      break;
-    case InferenceRule::FORWARD_DEMODULATION:
-    case InferenceRule::BACKWARD_DEMODULATION:
-      demodulation(out, conclSorts, u->asClause(),info);
-      break;
-    case InferenceRule::FACTORING:
-      factoring(out, conclSorts, u->asClause(), info);
-      break;
-    case InferenceRule::REMOVE_DUPLICATE_LITERALS:
-    case InferenceRule::REORIENT_EQUATIONS:
-    case InferenceRule::TRIVIAL_INEQUALITY_REMOVAL:
-    case InferenceRule::REORDER_LITERALS:
-      genericNPremiseInferenceNoSubs(out, conclSorts, u);
-      break;
-    case InferenceRule::EQUALITY_RESOLUTION:
-    case InferenceRule::EQUALITY_RESOLUTION_WITH_DELETION:
-      equalityResolution(out, conclSorts, u->asClause(), info);
-      break;
-    case InferenceRule::EQUALITY_FACTORING:
-      equalityFactoring(out, conclSorts, u->asClause(), info);
-      break;
-    case InferenceRule::FORWARD_SUBSUMPTION_RESOLUTION:
-    case InferenceRule::BACKWARD_SUBSUMPTION_RESOLUTION:
-      subsumptionResolution(out, conclSorts, u->asClause());
-      break;
-    case InferenceRule::DEFINITION_UNFOLDING:
-      definitionUnfolding(out, conclSorts, u);
-      break;
-    case InferenceRule::DEFINITION_FOLDING_TWEE:
-      definitionFoldingTwee(out, conclSorts, u->asClause());
-      break;
-    case InferenceRule::EVALUATION:
-      genericNPremiseInferenceNoSubs(out, conclSorts, u->asClause(), 
-      "norm_num1\n" + 
-      indent +"norm_num1 at "  + intIdent + "0\n" + 
-      indent + "try simp only [our_int_not_lt] at i0\n"+
-      indent + "(first | exact i0 | try grind)\n\n");
-      break;
-    case InferenceRule::NNF:
-    case InferenceRule::ENNF:
-    case InferenceRule::FLATTEN:
-    case InferenceRule::REDUCE_FALSE_TRUE:
-    case InferenceRule::THEORY_NORMALIZATION:
-      normalForm(out, conclSorts, u);
-      break;
-    case InferenceRule::RECTIFY:
-      rectify(out, conclSorts, u, rectifyInfo);
-      break;
     case InferenceRule::AVATAR_COMPONENT:
       avatarComponent(out, conclSorts, u);
       break;
@@ -503,21 +450,11 @@ void LeanChecker::outputInferenceStep(std::ostream &out, Kernel::Unit *u){
     case Kernel::InferenceRule::AVATAR_REFUTATION_SMT:
       avatarRefutation(out, conclSorts, u);
       break;
-    case Kernel::InferenceRule::AVATAR_CONTRADICTION_CLAUSE:
-      genericInference(out, conclSorts, u, "intro h\n" +
-        indent + "try simp only [imp_false, imp_iff_not_or, not_not] at h\n" +
-        indent + "exact h\n");
-      break;
     case InferenceRule::AVATAR_SPLIT_CLAUSE:
       avatarSplitClause(out, conclSorts, u);
       break;
-    case InferenceRule::UNUSED_PREDICATE_DEFINITION_REMOVAL:
-      genericInference(out, conclSorts, u, "intro h\n"+
-        indent + "simp only [h, imp_self, implies_true]"
-      );
-      break;
     default:
-      genericInference(out, conclSorts, u);
+      genericInference(out, conclSorts, u, "duper [*]");
   }
 }
 
@@ -768,46 +705,15 @@ void LeanChecker::clausify(std::ostream &out, SortMap &conclSorts, Unit *concl){
     out << indent << "have " << stepIdent << concl->number() << " : ";
     outputUnit(out, concl);
     out << " := by\n" << 
-      indent << indent << "try simp only\n" <<
-      indent << indent << "prenexify at " << stepIdent << parent->number() << "<;>\n";
-    outputReorderIfNeeded(out, parent, conclSorts, indent);
-    out << indent << indent << "ac_nf0<;>\n" <<
-      indent << indent << "ac_nf at " << stepIdent << parent->number() << "\n\n";
+      indent << indent << "duper [*]\n";
     return;
   }
   //SortMap parentMap;
-  if(clausifiedUnits.find(parent->number()) == clausifiedUnits.end())
-  {
-    clausifiedUnits.insert(parent->number());
-    out << indent << "have " << stepIdent << parent->number() << "' := by\n"
-        << indent << indent << "prenexify at " << stepIdent << parent->number() << "\n"
-        << indent << indent << "cnfify at " << stepIdent << parent->number() << "\n"
-        << indent << indent << "exact " << stepIdent << parent->number() << "\n";
-    out << indent << "let " << (cnfParentExtra.number > 1 ? "⟨" : "");
-    for(unsigned i = 0; i < cnfParentExtra.number; i++){
-      out << "s" << parent->number() << "c" << i;
-      if(i < cnfParentExtra.number-1){
-        out << ", ";
-      }
-    }
-    out <<(cnfParentExtra.number > 1 ? "⟩" : "")  <<" := " << stepIdent << parent->number() << "'\n";
 
-    out << indent << "ac_nf0 at ";
-    for(unsigned i=0 ; i<cnfParentExtra.number ; i++){
-      out << "s" << parent->number() << "c" << i;
-      if(i < cnfParentExtra.number-1){
-        out << " ";
-      }
-    }
-    out << "\n";
-  }
   out << indent << "have " << stepIdent << concl->number() << " : ";
   outputUnit(out, concl);
   out << " := by\n";
-  out << indent << indent << "try simp only\n";
-  outputReorderIfNeeded(out, parent, conclSorts, indent);
-  out << indent << indent << "ac_nf0\n";
-  out << indent << indent << "assumption\n\n";
+  out << indent << indent << "duper [*]\n";
 }
 
 void LeanChecker::predicateDefinitionIntroduction(std::ostream &out, SortMap &conclSorts, Unit *concl){
@@ -962,45 +868,21 @@ void LeanChecker::outputSatFormula(std::ostream &out, std::set<Unit *, CompareUn
 
 void LeanChecker::avatarRefutation(std::ostream &out, SortMap &conclSorts, Unit *concl)
 {
-  out << "' (";
-  std::set<unsigned> seen;
-  for(Unit *u : iterTraits(concl->getParents()))
-    for(SATLiteral l : env.proofExtra.get<Indexing::SATClauseExtra>(u).clause->iter())
-      seen.insert(l.var());
-  
+
   std::set<Unit *, CompareUnits> sortedParents;
   for(Unit *u : iterTraits(concl->getParents())){
     sortedParents.insert(u);
   }
-  for(unsigned var : seen){
-    out << "sA" << var << "' ";
-  }
-  out << ": Bool) : ";
-  outputSatFormula(out, sortedParents, "'", true, true);
-  out << " → ";
-  outputUnit(out, concl);
-  out << " := by\n" << indent << "intro h\n" <<
-  indent << "bv_decide\n\n";
+ 
 
   //out << "set_option maxHeartbeats 0 in\n-- this is probably due to a suboptimal encoding\n";
   //Convert the SAT bool refuation proof to prop
-  out << "theorem inf_s" << concl->number() << " : ";
+  out << " : ";
   outputSatFormula(out, sortedParents, "", false, true);
   out << " → ";
   outputUnit(out, concl);
   out << " := by\n" 
-      << indent << "classical\n" 
-      << indent << "have satProof := inf_s" << concl->number() << "' ";
-  for(unsigned var : seen){
-    out << "(decide sA" << var << ") ";
-  }
-  out << "\n" << indent << "rewrite_decide_eq [";
-  for(unsigned var : seen){
-    out << "sA" << var << " ";
-  }
-  out << "]\n" << indent << "sat_norm\n"
-      << indent << "exact satProof\n"
-      << "\n";  
+      << indent << "duper [*]\n";
 }
 
 void LeanChecker::avatarRefutationProofStep(std::ostream &out, SortMap &conclSorts, Unit *concl){
@@ -1043,123 +925,9 @@ void LeanChecker::avatarSplitClause(std::ostream &out, SortMap &conclSorts, Unit
   out << " → \n"<<indent;
   outputSatClause(out, currentSplits, "", false);
 
-  std::unordered_map<unsigned, Clause *> components;
-  std::vector<unsigned> parentsThatRewrite;
-  std::vector<unsigned> parentsThatDontRewrite;
-  std::map<unsigned, std::pair<unsigned,Clause*>> splitToParentMap;
-  unsigned instanceCount = 0;
-  for(Unit *parent : iterTraits(concl->getParents())){
-    if(instanceCount == 0){
-      instanceCount++;
-      continue;
-    }
-    auto dex = env.proofExtra.get<SplitDefinitionExtra>(parent);
-    ASS(dex.component->isComponent())
-    unsigned component = dex.component->splits()->sval();
-    components.insert({component, dex.component});
-    if(previousSplits.find(Splitter::getLiteralFromName(component).var()) == previousSplits.end()){
-      splitToParentMap.insert({Splitter::getLiteralFromName(component).var(), {instanceCount,dex.component}});
-      parentsThatRewrite.push_back(instanceCount);
-    } else {
-      parentsThatDontRewrite.push_back(instanceCount);
-    }
-    instanceCount++;
-  }
-
   unsigned parentNo = 0;
-  out << " := by\n" << indent << "intros ";
-  for([[maybe_unused]] auto _ : iterTraits(concl->getParents())){
-    out << "h" << parentNo << " ";
-    parentNo++;
-  }
-  out << "\n";
-  
-  for(auto parentNo: parentsThatDontRewrite){
-    out << indent << "try rw [← h" << parentNo << "]\n";
-  }
-  for(auto parentNo : parentsThatRewrite){
-    out << indent << "try rw[h" << parentNo << "]\n";
-  }
-  
-  out << indent << "try simp only [imp_iff_not_or] at h0\n"
-      << indent << "prenexify\n"
-      << indent << "prenexify at h0\n";
+  out << " := by\n" << indent << "duper [*]";
 
-
-  // Copied from dedukti implementation, trying to reconstruct the components of the split, 
-  // so that we can correctly instantiate the variables in the conclusion to match the variables
-  // in the parent splits.
-  Stack<LiteralStack> disjointLiterals;
-  if(!Splitter::getComponents(parent, disjointLiterals)) {
-    disjointLiterals.reset();
-    LiteralStack component;
-    for(Literal *l : parent->iterLits())
-      component.push(l);
-    disjointLiterals.push(std::move(component));
-  }
-  decltype(disjointLiterals)::Iterator classes(disjointLiterals);
-  // map variables in the parent to corresponding variables in the child splits
-  Substitution fullSubst;
-  std::map<unsigned, unsigned> varToSplitMap;
-  while(classes.hasNext()) {
-    LiteralStack klass = classes.next();
-    Substitution subst;
-    for(auto [name, component] : components) {
-      if(klass.size() == component->length()) {
-        subst.reset();
-        if(klass.size() == 1 && klass[0]->ground() && Literal::positiveLiteral(klass[0]) == Literal::positiveLiteral((*component)[0])) {
-          SortMap map;
-          SortHelper::collectVariableSorts(klass[0], map);
-          auto varDomain = map.domain();
-          while(varDomain.hasNext()){
-            unsigned var = varDomain.next();
-            varToSplitMap.insert({var, Splitter::getLiteralFromName(name).var()});
-          }
-          break;
-        }
-        if(Kernel::MLVariant::isVariant(klass.begin(), component, /*complementary=*/false, &subst)) {
-          for(auto [var, term] : iterTraits(subst.items())){
-            fullSubst.bind(term.var(), TermList::var(var));
-            varToSplitMap.insert({term.var(), Splitter::getLiteralFromName(name).var()});
-          }
-          break;
-        }
-      }
-    }
-  }
-  out << indent << "intros ";
-  for(auto iter = currentSplits.begin(); iter != currentSplits.end(); ++iter){
-    auto parentWithNumbering = splitToParentMap.find(iter->first);
-    if(parentWithNumbering != splitToParentMap.end()){
-      auto [parNo, parent] = parentWithNumbering->second;
-      SortMap map;
-      SortHelper::collectVariableSorts(parent,map);
-      std::set <unsigned> sortedVars;
-      for(unsigned var : iterTraits(map.domain())){
-        sortedVars.insert(var);
-      }
-      out << " ";
-      for(unsigned var : sortedVars){
-        out << "x" << parentWithNumbering->first << "a" << var << " ";
-      }
-    }
-  }
-  out << "\n" << indent << "have newForm := h0 ";
-  std::set<unsigned> sortedVars;
-  for(unsigned var : iterTraits(mainParentMap.domain())){
-    sortedVars.insert(var);
-  }
-
-  for(unsigned var : sortedVars){
-    unsigned substVar = fullSubst.apply(var).var();
-    out << "x" << varToSplitMap[var] << "a" << substVar << " ";
-
-  }
-  out << "\n" 
-      << indent << "simp (config := {failIfUnchanged := false}) only [not_and_or, not_not, eq_comm] at newForm\n"
-      << indent << "simp (config := {failIfUnchanged := false}) only [eq_comm]\n"
-      << indent << "ac_nf at newForm ⊢ <;>\n"
-      << indent << "grind only [cases Or]\n\n";
 }
 
 
@@ -1172,9 +940,7 @@ void LeanChecker::definitionFoldingPred(std::ostream &out, SortMap &conclSorts, 
   auto firstParent = parents.next();
   out << indent << "-- step" << concl->number() << " " << concl->inference().name() << "\n";
   out << indent << "have " << stepIdent << concl->number() << " := " << stepIdent << firstParent->number() << "\n";
-  out << indent << "change ";
-  outputUnit(out, concl);
-  out << " at " << stepIdent << concl->number() << "\n";
+  out << indent << "duper [*]\n";
 }
 
 void LeanChecker::definitionUnfolding(std::ostream &out, SortMap &conclSorts, Unit *concl){
