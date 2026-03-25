@@ -801,18 +801,7 @@ void LeanChecker::avatarDefinitionIntroduction(std::ostream &out, SortMap &concl
 void LeanChecker::avatarComponent(std::ostream &out, SortMap &conclSorts, Unit *concl){
   outputPremiseAndConclusion(out, concl);
   auto lit = Saturation::Splitter::getLiteralFromName(concl->asClause()->splits()->sval());
-  out << " := by\n" << indent << "intro h component ";
-  auto varDomain = conclSorts.domain();
-  outputVariables(out, varDomain, conclSorts, conclSorts);
-  out << "\n" << indent << "have new := ";
-  if(lit.positive()){
-    out << "h.mp component ";
-  } else {
-    out << "not_imp_not.mpr h.mpr component";
-  }
-  varDomain = conclSorts.domain();
-  outputVariables(out, varDomain, conclSorts, conclSorts);
-  out << "\n" << indent << "(first | trivial | ac_nf at new ⊢ | grind [cases Or])\n\n";
+  out << " := by\n" << indent << "duper [*]\n";
 }
 
 void LeanChecker::outputSatClause(std::ostream &out, std::map<unsigned int, bool> &seen, std::string primed, bool boolSymbols)
@@ -926,7 +915,7 @@ void LeanChecker::avatarSplitClause(std::ostream &out, SortMap &conclSorts, Unit
   outputSatClause(out, currentSplits, "", false);
 
   unsigned parentNo = 0;
-  out << " := by\n" << indent << "duper [*]";
+  out << " := by\n" << indent << "duper [*]\n";
 
 }
 
