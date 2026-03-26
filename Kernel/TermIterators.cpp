@@ -170,17 +170,18 @@ bool BooleanSubtermIt::hasNext()
   return false;
 }
 
-Term* FirstOrderSubtermIt::next()
+Term* FirstOrderSubtermIterator::next()
 {
   _added = 0;
   auto t = _stack.pop();
-  ASS_REP(!t->isLambdaTerm(), *t);
+  if (t->isLambdaTerm()) {
+    return t;
+  }
 
   auto [head, args] = HOL::getHeadAndArgs(TermList(t));
-  ASS_REP(!head.isLambdaTerm(), *t);
 
   for (unsigned i = 0; i < args.size(); i++) {
-    if (args[i].isTerm() && !args[i].term()->isLambdaTerm()) {
+    if (args[i].isTerm()) {
       _added++;
       _stack.push(args[i].term());
     }
@@ -188,7 +189,7 @@ Term* FirstOrderSubtermIt::next()
   return t;
 }
 
-void FirstOrderSubtermIt::right()
+void FirstOrderSubtermIterator::right()
 {
   while (_added > 0) {
     _added--;

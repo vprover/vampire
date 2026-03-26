@@ -69,7 +69,6 @@ set(UNIT_TESTS
     UnitTests/tInferences_HOL_BoolEqToDiseq.cpp
     UnitTests/tInferences_HOL_BetaEtaSimplify.cpp
     UnitTests/tInferences_HOL_FlexFlexSimplify.cpp
-    # UnitTests/tInferences_HOL_Injectivity.cpp
     UnitTests/tInferences_HOL_NegativeExtensionality.cpp
     UnitTests/tInferences_HOL_PositiveExtensionality.cpp
     UnitTests/tInferences_HOL_PrimitiveInstantiation.cpp

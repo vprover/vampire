@@ -304,29 +304,26 @@ private:
   Stack<Term*> _stack;
 };
 
-class FirstOrderSubtermIt
+class FirstOrderSubtermIterator
 : public IteratorCore<Term*>
 {
 public:
-  FirstOrderSubtermIt(Term* term, bool includeSelf = false)
+  FirstOrderSubtermIterator(Term* term, bool includeSelf = false)
   : _stack(8), _added(0)
   {
     if (term->isLiteral()) {
       for (unsigned i = 0; i < term->arity(); i++) {
         // TODO shouldn't we exclude iterating on types?
         TermList t = *term->nthArgument(i);
-        if (t.isTerm() && !t.term()->isLambdaTerm()) {
+        if (t.isTerm()) {
           _stack.push(t.term());
         }
       }
       return;
     }
-    if (term->isLambdaTerm()) {
-      return;
-    }
     _stack.push(term);
     if (!includeSelf) {
-      FirstOrderSubtermIt::next();
+      FirstOrderSubtermIterator::next();
     }
   }
 
@@ -664,6 +661,9 @@ static const auto anyArgIterTyped = [](Term const* term)
 /** iterator that creates a range of variables */
 static const auto varRange = [](unsigned i, unsigned j)
   { return range(i,j).map(unsignedToVarFn); };
+
+template<bool higherOrder>
+using RewritableSubtermIterator = std::conditional_t<higherOrder, FirstOrderSubtermIterator, NonVariableNonTypeIterator>;
 
 } // namespace Kernel
 

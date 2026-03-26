@@ -224,15 +224,9 @@ void Inference::updateStatistics()
         */
       } else if (_ptr2 == nullptr) {
         _inductionDepth = static_cast<Unit*>(_ptr1)->inference().inductionDepth();
-        _XXNarrows = static_cast<Unit*>(_ptr1)->inference().xxNarrows();
-        _reductions = static_cast<Unit*>(_ptr1)->inference().reductions();
       } else {
         _inductionDepth = max(static_cast<Unit*>(_ptr1)->inference().inductionDepth(),
             static_cast<Unit*>(_ptr2)->inference().inductionDepth());
-        _XXNarrows = max(static_cast<Unit*>(_ptr1)->inference().xxNarrows(),
-            static_cast<Unit*>(_ptr2)->inference().xxNarrows());
-        _reductions = max(static_cast<Unit*>(_ptr1)->inference().reductions(),
-            static_cast<Unit*>(_ptr2)->inference().reductions());
       }
 
       break;
@@ -240,13 +234,9 @@ void Inference::updateStatistics()
     case Kind::SAT:
     case Kind::SAT_NEEDS_MINIMIZATION:
       _inductionDepth = 0;
-      _XXNarrows = 0;
-      _reductions = 0;
       UnitList* it = static_cast<UnitList*>(_ptr1);
       while(it) {
         _inductionDepth = max(_inductionDepth,it->head()->inference().inductionDepth());
-        _XXNarrows = max(_XXNarrows,it->head()->inference().xxNarrows());
-        _reductions = max(_reductions,it->head()->inference().reductions());
         it=it->tail();
       }
       break;

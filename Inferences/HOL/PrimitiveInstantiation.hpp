@@ -32,6 +32,7 @@ public:
   ClauseIterator generateClauses(Clause* premise) override;
 private:
   const Shell::Options::PISet _piSet;
+  TermStack _heads;
 };
 
 };

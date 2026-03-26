@@ -147,6 +147,13 @@ bool TermList::isPlaceholder() const {
   return !isVar() && term()->isPlaceholder();
 }
 
+Option<unsigned> TermList::deBruijnIndex() const {
+  if (isVar())
+    return {};
+
+  return term()->deBruijnIndex();
+}
+
 bool TermList::containsLooseDBIndex() const
 {
   Stack<std::pair<TermList,unsigned>> todo;
@@ -172,13 +179,6 @@ bool TermList::containsLooseDBIndex() const
     }
   }
   return false;
-}
-
-Option<unsigned> TermList::deBruijnIndex() const {
-  if (isVar())
-    return {};
-
-  return term()->deBruijnIndex();
 }
 
 TermList TermList::lhs() const {

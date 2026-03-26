@@ -712,8 +712,6 @@ private:
     _rule = r;
     _included = false;
     _inductionDepth = 0;
-    _XXNarrows = 0;
-    _reductions = 0;
     _sineLevel = std::numeric_limits<decltype(_sineLevel)>::max();
     _splits = nullptr;
     _age = 0;
@@ -903,15 +901,6 @@ public:
   unsigned inductionDepth() const { return _inductionDepth; }
   void setInductionDepth(unsigned d) { _inductionDepth = d; }
 
-  unsigned xxNarrows() const { return _XXNarrows; }
-  /** used to propagate in AVATAR **/
-  void setXXNarrows(unsigned n) { _XXNarrows = n; }
-  void incXXNarrows(){ if(_XXNarrows < 8){ _XXNarrows++; } }
-
-  unsigned reductions() const { return _reductions; }
-  void setReductions(unsigned r) { _reductions = r; }
-  void increaseReductions(unsigned n){ _reductions += n; }
-
   Clause* getCausalParent() const {
     ASS_EQ((unsigned char)_kind,(unsigned char)Kind::INFERENCE_MANY)
     ASS_NEQ(_ptr2,0)
@@ -934,38 +923,6 @@ public:
   void setAge(unsigned a) { _age = a; }
 
 private:
-  Kind _kind : 2;
-
-  UnitInputType _inputType : 3;
-
-  /** The rule used */
-  InferenceRule _rule : 8;
-
-  /** true if the unit is read from a TPTP included file  */
-  bool _included : 1;
-
-  /** track whether all leafs were theory axioms only */
-  bool _isPureTheoryDescendant : 1;
-  /** Induction depth **/
-  unsigned _inductionDepth : 5;
-
-  /** Sine level computed in SineUtils and used in various heuristics.
-   * May stay uninitialized (i.e. always MAX), if not needed
-   **/
-  unsigned char _sineLevel : 8; // updated as the minimum from parents to children
-
-  /** number of XX' narrows carried out on clause */
-  unsigned _XXNarrows : 3;
-  /** number of weak reductions in the history of this clause */
-  unsigned _reductions : 30;
-
-  // aligned to 64 bits
-
-  /** age */
-  unsigned _age;
-
-  SplitSet* _splits;
-
   /**
    * General storage for all Kinds of Inference:
    * INFERENCE_012 - use ptr1 and ptr2 in sequence storing its up to two premises "left to right"
@@ -979,6 +936,29 @@ private:
   void* _ptr1;
   void* _ptr2;
 
+  SplitSet* _splits;
+
+  /** age */
+  unsigned _age;
+
+  /** The rule used */
+  InferenceRule _rule : 8;
+  /** Sine level computed in SineUtils and used in various heuristics.
+   * May stay uninitialized (i.e. always MAX), if not needed
+   **/
+  unsigned char _sineLevel : 8; // updated as the minimum from parents to children
+
+  Kind _kind : 2;
+
+  UnitInputType _inputType : 3;
+
+  /** true if the unit is read from a TPTP included file  */
+  bool _included : 1;
+
+  /** track whether all leafs were theory axioms only */
+  bool _isPureTheoryDescendant : 1;
+  /** Induction depth **/
+  unsigned _inductionDepth : 9;
 
 }; // class Inference
 

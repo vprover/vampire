@@ -290,9 +290,12 @@ public:
   bool isProxy(Proxy proxy) const;
   bool isChoice() const;
   bool isPlaceholder() const;
-  bool containsLooseDBIndex() const;
 
   Option<unsigned> deBruijnIndex() const;
+  /* Checks whether a term contains a loose, or unbound DB index.
+   * In other words, it returns true if there is a db_i in the
+   * term that is not wrapped into i lambda binders. */ 
+  bool containsLooseDBIndex() const;
   TermList lhs() const;
   TermList rhs() const;
   TermList lambdaBody() const;
@@ -1048,6 +1051,8 @@ public:
 
   const std::string& typeConName() const;  
 
+  // With a stack (s1,...sn) from bottom to top, we get s1 -> (... -> sn) with fromTop = true,
+  // while sn -> (... -> s1) with fromTop = false.
   // TODO check also this, some call sites might be wrong
   static TermList arrowSort(const TermStack& domSorts, TermList range, bool fromTop = false);
   static TermList arrowSort(TermList s1, TermList s2);
@@ -1209,7 +1214,9 @@ public:
     return l->isPositive() ? l : complementaryLiteral(l);
   }
 
+  // disequation of the form λ x s ≉ λ y t, where x and y are not lambda-bound variables.
   bool isFlexFlexConstraint() const;
+  // (dis)equation of the form λ x s ≉ λ f t, where x is a variable that not lambda-bound, and f a constant.
   bool isFlexRigid() const;
 
   // destructively swap arguments of an equation

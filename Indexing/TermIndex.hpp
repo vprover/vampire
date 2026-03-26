@@ -75,6 +75,7 @@ private:
 /**
  * Term index for backward demodulation
  */
+template<bool higherOrder>
 class DemodulationSubtermIndex
 : public TermIndex<TermLiteralClause>
 {

@@ -29,53 +29,9 @@ struct PrimitiveInstResultFn
 {
   using IndexPairStack = Stack<std::pair<unsigned, unsigned>>;
 
-  PrimitiveInstResultFn(Clause* cl, const Options::PISet piSet): _cl(cl), _freshVar(cl->maxVar() + 1), _piSet(piSet)
+  PrimitiveInstResultFn(Clause* cl, const Options::PISet piSet, const TermStack& heads)
+    : _cl(cl), _freshVar(cl->maxVar() + 1), _piSet(piSet), _heads(heads)
   {
-    auto sortVar = TermList::var(_freshVar++);
-
-    // TODO rather than constantly recreating this stack
-    // and pushing on the terms every time we run a prim inst inference
-    // another option is to use RobSubstitution and allow it to
-    // rename terms apart. That way, we don't need to worry about freshness
-    // of variables. The potential downside is that the whole RobSubstitution
-    // mechanism is complicated and may add its own overhead. Worth investigating
-    // though
-    _heads.push(top());
-    _heads.push(bottom());
-    switch (_piSet) {
-      case Options::PISet::ALL_EXCEPT_NOT_EQ:
-      case Options::PISet::ALL:
-        _heads.push(conj());
-        _heads.push(disj());
-        _heads.push(neg());
-        _heads.push(equality(sortVar));
-        _heads.push(pi(sortVar));
-        _heads.push(sigma(sortVar));
-        break;
-      case Options::PISet::PRAGMATIC:
-      case Options::PISet::NOT:
-        _heads.push(neg());
-        break;
-      // Equality and Pi and Sigma introduce polymorphism
-      // into monomorphic problem...
-      case Options::PISet::NOT_EQ_NOT_EQ:
-        _heads.push(neg());
-        _heads.push(equality(sortVar));
-        break;
-      case Options::PISet::AND:
-        _heads.push(conj());
-        break;
-      case Options::PISet::OR:
-        _heads.push(disj());
-        break;
-      case Options::PISet::EQUALS:
-        _heads.push(equality(sortVar));
-        break;
-      case Options::PISet::PI_SIGMA:
-        _heads.push(pi(sortVar));
-        _heads.push(sigma(sortVar));
-        break;
-    }
   }
 
   IndexPairStack getSameSortIndices(const TermStack& sorts)
@@ -160,8 +116,18 @@ struct PrimitiveInstResultFn
     // bind head variable to all general bindings produced using heads in _heads
     for (const auto& head : _heads) {
 
-      bool surround = (!head.isProxy(Proxy::EQUALS) || !include_not_eq);
-      TermList gb  = HOL::createGeneralBinding(head,sortsFlex,_freshVar,surround);
+      // A little sieve of hand: we need a fresh variable in place of the potential
+      // single type variable in `head`, and since we are substituting the var of
+      // `headFlex`, we can reuse this variable.
+      auto h = head;
+      if (head.term()->arity()) {
+        ASS_EQ(head.term()->arity(), 1);
+        h = TermList(Term::create1(head.term()->functor(), headFlex));
+      }
+
+      unsigned freshVar = _freshVar;
+      bool surround = (!h.isProxy(Proxy::EQUALS) || !include_not_eq);
+      TermList gb = HOL::createGeneralBinding(h,sortsFlex,freshVar,surround);
       pushResult(surround ? gb : surroundWithLambdas(gb, sortsFlex));
 
       if (!surround) {
@@ -174,20 +140,60 @@ struct PrimitiveInstResultFn
   }
 
 private:
-  TermStack _heads;
   Clause* _cl;
-  unsigned _freshVar;
+  const unsigned _freshVar;
   const Options::PISet _piSet;
+  const TermStack& _heads;
 };
 
-PrimitiveInstantiation::PrimitiveInstantiation(SaturationAlgorithm& salg) : _piSet(salg.getOptions().piSet()) {}
+PrimitiveInstantiation::PrimitiveInstantiation(SaturationAlgorithm& salg) : _piSet(salg.getOptions().piSet())
+{
+  auto sortVar = TermList::var(0);
+
+  _heads.push(top());
+  _heads.push(bottom());
+  switch (_piSet) {
+    case Options::PISet::ALL_EXCEPT_NOT_EQ:
+    case Options::PISet::ALL:
+      _heads.push(conj());
+      _heads.push(disj());
+      _heads.push(neg());
+      _heads.push(equality(sortVar));
+      _heads.push(pi(sortVar));
+      _heads.push(sigma(sortVar));
+      break;
+    case Options::PISet::PRAGMATIC:
+    case Options::PISet::NOT:
+      _heads.push(neg());
+      break;
+    // Equality and Pi and Sigma introduce polymorphism
+    // into monomorphic problem...
+    case Options::PISet::NOT_EQ_NOT_EQ:
+      _heads.push(neg());
+      _heads.push(equality(sortVar));
+      break;
+    case Options::PISet::AND:
+      _heads.push(conj());
+      break;
+    case Options::PISet::OR:
+      _heads.push(disj());
+      break;
+    case Options::PISet::EQUALS:
+      _heads.push(equality(sortVar));
+      break;
+    case Options::PISet::PI_SIGMA:
+      _heads.push(pi(sortVar));
+      _heads.push(sigma(sortVar));
+      break;
+  }
+}
 
 ClauseIterator PrimitiveInstantiation::generateClauses(Clause* premise)
 {
   // TODO is doing this only on selected literals correct?
   return pvi(premise->getSelectedLiteralIterator()
     .filter([](Literal* l) { return l->isFlexRigid() && SortHelper::getEqualityArgumentSort(l).isBoolSort(); })
-    .flatMap(PrimitiveInstResultFn(premise, _piSet)));
+    .flatMap(PrimitiveInstResultFn(premise, _piSet, _heads)));
 }
 
 }

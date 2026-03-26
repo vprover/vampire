@@ -68,9 +68,3 @@ TEST_GENERATION(success_1,
       .input( clause({ selected(g != lam(srt, ap(ap(f, x), x))) }))
       .EXPECTED(exactly(clause({ ap(g, ap(sk0(), x)) != ap(lam(srt, ap(ap(f, x), x)), ap(sk0(), x)) })))
     )
-
-// TEST_GENERATION(success_2,
-//     Generation::AsymmetricTest()
-//       .input( clause({ selected(g != lam(srt, ap(f, {db0, db0}))), x == y }))
-//       .expected(exactly(clause({ ap(g, sk0()) != ap(lam(srt, ap(f, {db0, db0})), sk0()), x == y })))
-//     )

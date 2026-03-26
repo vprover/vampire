@@ -69,8 +69,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
     .filter([premise](Literal*){ return premise->inference().rule() != InferenceRule::HOL_UNIFIER_SOLUTION; }) //TODO factor this out
     .flatMap([this](Literal* lit)
       // returns an iterator over the rewritable subterms
-      { return pushPairIntoRightIterator(lit,
-          _higherOrder ? EqHelper::getFoSubtermIterator(lit, _salg.getOrdering()) : EqHelper::getSubtermIterator(lit, _salg.getOrdering())); })
+      { return pushPairIntoRightIterator(lit, EqHelper::getSubtermIterator(lit, _salg.getOrdering(), _higherOrder)); })
 
     // Get clauses with a literal whose complement unifies with the rewritable subterm,
     // returns a pair with the original pair and the unification result (includes substitution)

@@ -1494,8 +1494,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new PrimitiveInstantiation(*res)); //TODO only add in some cases
   }
 
-  if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
-      prb.isHigherOrder() && !prb.quantifiesOverPolymorphicVar()){ // TODO why the last condition????
+  if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) && prb.isHigherOrder()){
     if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER && 
        env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF){
       gie->addFront(new LazyClausificationGIE(*res));
@@ -1604,8 +1603,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   // create simplification engine
 
   // create forward simplification engine
-  if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) &&
-      prb.isHigherOrder() && !prb.quantifiesOverPolymorphicVar()){
+  if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) && prb.isHigherOrder()){
     if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
        env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF){
       res->addSimplifierToFront<LazyClausification>();
@@ -1632,7 +1630,11 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     switch (opt.forwardDemodulation()) {
       case Options::Demodulation::ALL:
       case Options::Demodulation::PREORDERED:
-        res->addForwardSimplifierToFront<ForwardDemodulation>();
+        if (prb.isHigherOrder()) {
+          res->addForwardSimplifierToFront<ForwardDemodulation<true>>();
+        } else {
+          res->addForwardSimplifierToFront<ForwardDemodulation<false>>();
+        }
         break;
       case Options::Demodulation::OFF:
         break;
@@ -1659,7 +1661,11 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     switch (opt.backwardDemodulation()) {
       case Options::Demodulation::ALL:
       case Options::Demodulation::PREORDERED:
-        res->addBackwardSimplifierToFront<BackwardDemodulation>();
+        if (prb.isHigherOrder()) {
+          res->addBackwardSimplifierToFront<BackwardDemodulation<true>>();
+        } else {
+          res->addBackwardSimplifierToFront<BackwardDemodulation<false>>();
+        }
         break;
       case Options::Demodulation::OFF:
         break;
