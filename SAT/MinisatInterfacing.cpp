@@ -51,6 +51,7 @@ Status MinisatInterfacing<MinisatSolver>::solveUnderAssumptionsLimited(const SAT
 {
   // load assumptions:
   _assumptions.clear();
+  _assumptions.capacity(assumps.size());
   SATLiteralStack::ConstIterator it(assumps);
   while (it.hasNext()) {
     _assumptions.push(vampireLit2Minisat(it.next()));
@@ -116,16 +117,15 @@ void MinisatInterfacing<MinisatSolver>::addClause(SATClause* cl)
 {
   // TODO: consider measuring time
   try {
-    static vec<Lit> mcl;
-    mcl.clear();
+    _clauseBuffer.clear();
+    _clauseBuffer.capacity(cl->length());
 
-    unsigned clen=cl->length();
-    for(unsigned i=0;i<clen;i++) {
-      SATLiteral l = (*cl)[i];
-      mcl.push(vampireLit2Minisat(l));
+    unsigned clen = cl->length();
+    for (unsigned i = 0; i < clen; i++) {
+      _clauseBuffer.push(vampireLit2Minisat((*cl)[i]));
     }
 
-    _solver.addClause(mcl);
+    _solver.addClause(_clauseBuffer);
   } catch(Minisat::OutOfMemoryException&) {
     throw std::bad_alloc();
   }
@@ -168,56 +168,56 @@ SATClauseList* MinisatInterfacing<MinisatSolver>::minimizePremiseList(SATClauseL
 {
   MinisatSolver solver;
 
-  static DHMap<int,SATClause*> var2prem;
-  var2prem.reset();
+  Stack<SATClause*> premiseByVar;
+  premiseByVar.reset();
 
-  static vec<Lit> ass; // assumptions for the final call
+  vec<Lit> ass; // assumptions for the final call
   ass.clear();
 
-  int cl_no = 0;
+  int maxPremVar = 0;
+  SATClauseList* it = premises;
+  while (it) {
+    SATClause* cl = it->head();
+    premiseByVar.push(cl);
+    unsigned clen = cl->length();
+    for (unsigned i = 0; i < clen; i++) {
+      int var = static_cast<int>((*cl)[i].var());
+      if (var > maxPremVar) {
+        maxPremVar = var;
+      }
+    }
+    it = it->tail();
+  }
 
-  SATClauseList* it= premises;
-  while(it) {
-    // store the link for fast lookup
-    var2prem.insert(cl_no,it->head());
+  int premiseCnt = static_cast<int>(premiseByVar.size());
+  ass.capacity(premiseCnt + assumps.size());
 
+  for (int cl_no = 0; cl_no < premiseCnt; cl_no++) {
     // corresponding assumption
     ass.push(mkLit(cl_no)); // posive as the assumption
 
     // allocate the var for the clause
     ALWAYS(solver.newVar() == cl_no);
-
-    cl_no++;
-    it=it->tail();
   }
 
   // from now on, offset will mark the translation of premises' original variables to the ones in solver here
-  int offset = cl_no; // first var in the solver that was not allocated yet
+  int offset = premiseCnt; // first var in the solver that was not allocated yet
+  int maxShiftedVar = offset + maxPremVar;
+  for (int v = premiseCnt; v <= maxShiftedVar; v++) {
+    ALWAYS(solver.newVar() == v);
+  }
 
-  // smallest var not allocated yet
-  int curmax = cl_no;
-
-  // start counting from 0 and traversing from the beginning again
-  cl_no = 0;
-  it= premises;
-  while(it) {
-    SATClause* cl = it->head();
-
-    static vec<Lit> mcl;
+  vec<Lit> mcl;
+  for (int cl_no = 0; cl_no < premiseCnt; cl_no++) {
+    SATClause* cl = premiseByVar[cl_no];
     mcl.clear();
+    mcl.capacity(cl->length() + 1);
 
     // translate the clause to minisat's language (shift vars by offset)
-    unsigned clen=cl->length();
-    for(unsigned i=0;i<clen;i++) {
+    unsigned clen = cl->length();
+    for (unsigned i = 0; i < clen; i++) {
       SATLiteral l = (*cl)[i];
       int var = offset + l.var();
-
-      // make sure vars are allocated
-      while (var >= curmax) {
-        solver.newVar();
-        curmax++;
-      }
-
       mcl.push(mkLit(var,!l.positive()));
     }
 
@@ -225,9 +225,6 @@ SATClauseList* MinisatInterfacing<MinisatSolver>::minimizePremiseList(SATClauseL
     mcl.push(mkLit(cl_no,true)); // negated in the clause
 
     solver.addClause(mcl);
-
-    cl_no++;
-    it=it->tail();
   }
 
   // add assumptions from assumps
@@ -236,7 +233,7 @@ SATClauseList* MinisatInterfacing<MinisatSolver>::minimizePremiseList(SATClauseL
     SATLiteral l = ait.next();
     int var = offset + l.var();
 
-    ASS_L(var,curmax);
+    ASS_L(var, solver.nVars());
 
     ass.push(mkLit(var,!l.positive()));
   }
@@ -250,11 +247,8 @@ SATClauseList* MinisatInterfacing<MinisatSolver>::minimizePremiseList(SATClauseL
   Minisat::LSet& conflict = solver.conflict;
   for (int i = 0; i < conflict.size(); i++) {
     int v = var(conflict[i]);
-
-    SATClause* cl;
-
-    if (var2prem.find(v,cl)) {
-      SATClauseList::push(cl,result);
+    if (v >= 0 && v < premiseCnt) {
+      SATClauseList::push(premiseByVar[v], result);
     } // it could also be one of the "assumps"
   }
   return result;

@@ -97,6 +97,7 @@ void ClauseCodeTree::optimizeLiteralOrder(DArray<Literal*>& lits)
 
   lits.sort(InitialLiteralOrderingComparator());
 
+  Recycled<CodeStack> litCode;
   CodeOp* entry=getEntryPoint();
   for(unsigned startIndex=0;startIndex<clen-1;startIndex++) {
 //  for(unsigned startIndex=0;startIndex<1;startIndex++) {
@@ -106,14 +107,14 @@ void ClauseCodeTree::optimizeLiteralOrder(DArray<Literal*>& lits)
     size_t bestSharedLen;
     bool bestGround=lits[startIndex]->ground();
     CodeOp* nextOp;
-    evalSharing(lits[startIndex], entry, bestSharedLen, unshared, nextOp);
+    evalSharing(lits[startIndex], *litCode, entry, bestSharedLen, unshared, nextOp);
     if(!unshared) {
       goto have_best;
     }
 
     for(unsigned i=startIndex+1;i<clen;i++) {
       size_t sharedLen;
-      evalSharing(lits[i], entry, sharedLen, unshared, nextOp);
+      evalSharing(lits[i], *litCode, entry, sharedLen, unshared, nextOp);
       if(!unshared) {
 	bestIndex=i;
         goto have_best;
@@ -139,11 +140,10 @@ void ClauseCodeTree::optimizeLiteralOrder(DArray<Literal*>& lits)
   }
 }
 
-void ClauseCodeTree::evalSharing(Literal* lit, CodeOp* startOp, size_t& sharedLen, size_t& unsharedLen, CodeOp*& nextOp)
+void ClauseCodeTree::evalSharing(Literal* lit, CodeStack& code, CodeOp* startOp, size_t& sharedLen, size_t& unsharedLen, CodeOp*& nextOp)
 {
-  CodeStack code;
+  ASS(code.isEmpty());
   LitCompiler compiler(code);
-
   compiler.handleTerm(lit);
 
   matchCode(code, startOp, sharedLen, nextOp);
@@ -152,6 +152,7 @@ void ClauseCodeTree::evalSharing(Literal* lit, CodeOp* startOp, size_t& sharedLe
 
   ASS(code.top().isLitEnd());
   delete code.pop().getILS();
+  code.reset();
 }
 
 /**
