@@ -335,14 +335,6 @@ public:
     // removing, which works on variables
     static_assert(removing || !checkRange);
 
-    Matcher() {
-      if constexpr (higherOrder) {
-        ASS(env.higherOrder());
-      } else {
-        ASS(!env.higherOrder());
-      }
-    }
-
     /**
      * Backtracking point for the interpretation of the code tree.
      */

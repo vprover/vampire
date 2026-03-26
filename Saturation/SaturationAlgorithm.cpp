@@ -1381,6 +1381,9 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 {
   bool alascaTakesOver = doesAlascaTakeOver(prb, opt);
 
+  // For the following part, we want these two values to be synced
+  ASS_EQ(env.higherOrder(), prb.isHigherOrder());
+
   SaturationAlgorithm* res;
   switch(opt.saturationAlgorithm()) {
   case Shell::Options::SaturationAlgorithm::DISCOUNT:
