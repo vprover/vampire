@@ -17,10 +17,12 @@
 
 #include "Forwards.hpp"
 
+#include "LiteralCodeTree.hpp"
 #include "TermCodeTree.hpp"
 #include "ClauseCodeTree.hpp"
 
 #include "Index.hpp"
+#include "LiteralIndexingStructure.hpp"
 #include "TermIndexingStructure.hpp"
 
 namespace Indexing
@@ -29,11 +31,9 @@ namespace Indexing
 using namespace Kernel;
 using namespace Lib;
 
-
 /**
  * Term indexing structure using code trees to retrieve generalizations
  */
-
 template<class Data>
 class CodeTreeTIS : public TermIndexingStructure<Data>
 {
@@ -49,9 +49,7 @@ public:
     }
   }
 
-  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true) final ;
-  // TODO use TypedTermList here too
-  bool generalizationExists(TermList t) final ;
+  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true) override;
   // TODO: get rid of NOT_IMPLEMENTED
   VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(TypedTermList t, Options::UnificationWithAbstraction, bool fixedPointIteration) override { NOT_IMPLEMENTED; }
 
@@ -61,6 +59,36 @@ private:
   class ResultIterator;
 
   TermCodeTree<Data> _ct;
+};
+
+/**
+ * Literal indexing structure using code trees to retrieve generalizations
+ */
+template<class Data>
+class CodeTreeLIS : public LiteralIndexingStructure<Data>
+{
+public:
+  /* INFO: we ignore unifying the sort of the keys here */
+  void handle(Data data, bool insert) final
+  {
+    if (insert) {
+      auto ti = new Data(std::move(data));
+      _ct.insert(ti);
+    } else {
+      _ct.remove(data);
+    }
+  }
+
+  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions = true) override;
+  // TODO: get rid of NOT_IMPLEMENTED
+  VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction, bool fixedPointIteration) override { NOT_IMPLEMENTED; }
+
+  void output(std::ostream& out, Option<unsigned> multilineIndent) const override { out << _ct; }
+
+private:
+  class ResultIterator;
+
+  LiteralCodeTree<Data> _ct;
 };
 
 class CodeTreeSubsumptionIndex

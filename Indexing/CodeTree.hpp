@@ -408,7 +408,7 @@ public:
      * Must be initialized by inheritor (either directly or by
      * a call to the @b prepareLiteral function).
      */
-    FlatTerm* ft;
+    FlatTerm* ft = nullptr;
 
     /** the matcher object is initialized but no execution of code was done yet */
     bool fresh;

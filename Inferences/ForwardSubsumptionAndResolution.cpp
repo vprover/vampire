@@ -38,7 +38,7 @@ using namespace Saturation;
 
 ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution(SaturationAlgorithm& salg)
   : _subsumptionResolution(salg.getOptions().forwardSubsumptionResolution()),
-    _unitIndex(salg.getSimplifyingIndex<UnitClauseLiteralIndex>()),
+    _unitIndex(salg.getSimplifyingIndex<UnitClauseLiteralIndex<true>>()),
     _fwIndex(salg.getSimplifyingIndex<FwSubsSimplifyingLiteralIndex>())
 {}
 

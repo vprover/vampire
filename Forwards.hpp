@@ -139,7 +139,7 @@ namespace Indexing
 {
 class Index;
 class IndexManager;
-template<class Data>
+template<class Data, bool generalizing>
 class LiteralIndex;
 template<class Data>
 class TermIndex;

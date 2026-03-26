@@ -46,7 +46,7 @@ private:
   const bool _checkLongerClauses = true;
 
   /// @brief Unit index of the saturation algorithm
-  std::shared_ptr<Indexing::UnitClauseLiteralIndex> _unitIndex;
+  std::shared_ptr<Indexing::UnitClauseLiteralIndex<true>> _unitIndex;
   /// @brief Forward index containing the clauses with which the inference engine can perform forward subsumption and resolution
   std::shared_ptr<Indexing::FwSubsSimplifyingLiteralIndex> _fwIndex;
 

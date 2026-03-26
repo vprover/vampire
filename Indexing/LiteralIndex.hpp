@@ -16,6 +16,7 @@
 #ifndef __LiteralIndex__
 #define __LiteralIndex__
 
+#include "Indexing/CodeTreeInterfaces.hpp"
 #include "Indexing/LiteralSubstitutionTree.hpp"
 #include "Lib/Output.hpp"
 #include "Lib/DHMap.hpp"
@@ -25,7 +26,7 @@
 
 namespace Indexing {
 
-template<class Data>
+template<class Data, bool forGeneralizations>
 class LiteralIndex
 : public Index
 {
@@ -45,14 +46,11 @@ public:
   VirtualIterator<QueryRes<ResultSubstitutionSP, LiteralClause>> getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
   { return _is->getInstances(lit, complementary, retrieveSubstitutions); }
 
-  size_t getUnificationCount(Literal* lit, bool complementary)
-  { return _is->getUnificationCount(lit, complementary); }
-
   friend std::ostream& operator<<(std::ostream& out,                 LiteralIndex const& self) { return out << *self._is; }
   friend std::ostream& operator<<(std::ostream& out, Output::Multiline<LiteralIndex>const& self) { return out << Output::multiline(*self.self._is, self.indent); }
 
 protected:
-  LiteralIndex() : _is(new LiteralSubstitutionTree<LiteralClause>()) {}
+  LiteralIndex() : _is(new std::conditional_t<forGeneralizations, CodeTreeLIS<LiteralClause>, LiteralSubstitutionTree<LiteralClause>>()) {}
 
   void handle(Data data, bool add)
   { _is->handle(std::move(data), add); }
@@ -61,7 +59,7 @@ protected:
 };
 
 class BinaryResolutionIndex
-: public LiteralIndex<LiteralClause>
+: public LiteralIndex<LiteralClause, false>
 {
 public:
   BinaryResolutionIndex(SaturationAlgorithm&) {}
@@ -70,7 +68,7 @@ protected:
 };
 
 class BackwardSubsumptionIndex
-: public LiteralIndex<LiteralClause>
+: public LiteralIndex<LiteralClause, false>
 {
 public:
   BackwardSubsumptionIndex(SaturationAlgorithm&) {}
@@ -79,7 +77,7 @@ protected:
 };
 
 class FwSubsSimplifyingLiteralIndex
-: public LiteralIndex<LiteralClause>
+: public LiteralIndex<LiteralClause, true>
 {
 public:
   FwSubsSimplifyingLiteralIndex(SaturationAlgorithm&) {}
@@ -88,7 +86,7 @@ protected:
 };
 
 class FSDLiteralIndex
-: public LiteralIndex<LiteralClause>
+: public LiteralIndex<LiteralClause, true>
 {
 public:
   FSDLiteralIndex(SaturationAlgorithm&) {}
@@ -96,8 +94,9 @@ protected:
   void handleClause(Clause* c, bool adding) override;
 };
 
+template<bool forGeneralizations>
 class UnitClauseLiteralIndex
-: public LiteralIndex<LiteralClause>
+: public LiteralIndex<LiteralClause, forGeneralizations>
 {
 public:
   UnitClauseLiteralIndex(SaturationAlgorithm&) {}
@@ -106,7 +105,7 @@ protected:
 };
 
 class UnitClauseWithALLiteralIndex
-: public LiteralIndex<LiteralClause>
+: public LiteralIndex<LiteralClause, false>
 {
 public:
   UnitClauseWithALLiteralIndex(SaturationAlgorithm&) {}
@@ -115,7 +114,7 @@ protected:
 };
 
 class NonUnitClauseLiteralIndex
-: public LiteralIndex<LiteralClause>
+: public LiteralIndex<LiteralClause, false>
 {
 public:
   NonUnitClauseLiteralIndex(SaturationAlgorithm&) {}
@@ -124,7 +123,7 @@ protected:
 };
 
 class NonUnitClauseWithALLiteralIndex
-: public LiteralIndex<LiteralClause>
+: public LiteralIndex<LiteralClause, false>
 {
 public:
   NonUnitClauseWithALLiteralIndex(SaturationAlgorithm&) {}
@@ -133,7 +132,7 @@ protected:
 };
 
 class RewriteRuleIndex
-: public LiteralIndex<LiteralClause>
+: public LiteralIndex<LiteralClause, true>
 {
 public:
   RewriteRuleIndex(SaturationAlgorithm& salg);
@@ -154,7 +153,7 @@ private:
 };
 
 class UnitIntegerComparisonLiteralIndex
-: public LiteralIndex<LiteralClause>
+: public LiteralIndex<LiteralClause, false>
 {
 public:
   UnitIntegerComparisonLiteralIndex(SaturationAlgorithm&) {}

@@ -84,7 +84,7 @@ private:
   Renaming* _resultNormalizer;
 };
 
-///////////////////////////////////////
+/////////////////   CodeTreeTIS   //////////////////////
 
 template<class Data>
 class CodeTreeTIS<Data>::ResultIterator
@@ -163,24 +163,89 @@ VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> CodeTreeTIS<Data>::getGene
   return vi( new ResultIterator(this, t, retrieveSubstitutions) );
 }
 
-template<class Data>
-bool CodeTreeTIS<Data>::generalizationExists(TermList t)
-{
-  if(_ct.isEmpty()) {
-    return false;
-  }
-
-  static typename TermCodeTree<Data>::TermMatcher tm;
-  
-  tm.init(&_ct, t);
-  bool res=tm.next();
-  tm.reset();
-  
-  return res;
-}
-
 template class CodeTreeTIS<TermLiteralClause>;
 template class CodeTreeTIS<DemodulatorData>;
+
+/////////////////   CodeTreeLIS   //////////////////////
+
+template<class Data>
+class CodeTreeLIS<Data>::ResultIterator
+: public IteratorCore<QueryRes<ResultSubstitutionSP, Data>>
+{
+public:
+  ResultIterator(CodeTreeLIS* tree, Literal* lit, bool complementary, bool retrieveSubstitutions)
+  : _retrieveSubstitutions(retrieveSubstitutions),
+    _found(0), _finished(false), _tree(tree)
+  {
+    _matcher->init(&_tree->_ct, lit, complementary);
+
+    if(_retrieveSubstitutions) {
+      _subst = new CodeTreeSubstitution<Data>(&_matcher->bindings, &*_resultNormalizer);
+    }
+  }
+
+  ~ResultIterator() override
+  {
+    if(_retrieveSubstitutions) {
+      delete _subst;
+    }
+  }
+
+  USE_ALLOCATOR(ResultIterator);
+
+  bool hasNext() override
+  {
+    if(_found) {
+      return true;
+    }
+    if(_finished) {
+      return false;
+    }
+    _found = _matcher->next();
+    if(!_found) {
+      _finished=true;
+    }
+    return _found;
+  }
+
+  QueryRes<ResultSubstitutionSP, Data> next() override
+  {
+    ASS(_found);
+
+    ResultSubstitutionSP subs;
+    if (_retrieveSubstitutions) {
+      if constexpr (!is_indexed_data_normalized<Data>::value) {
+        _resultNormalizer->reset();
+        _resultNormalizer->normalizeVariables(_found->literal);
+      }
+      subs = ResultSubstitutionSP(_subst, /* nondisposable */ true);
+    }
+    auto out = QueryRes<ResultSubstitutionSP, Data>(subs, _found);
+    _found=0;
+    return out;
+  }
+private:
+
+  CodeTreeSubstitution<Data>* _subst;
+  Recycled<Renaming> _resultNormalizer;
+  bool _retrieveSubstitutions;
+  Data* _found;
+  bool _finished;
+  CodeTreeLIS* _tree;
+  Recycled<typename LiteralCodeTree<Data>::LiteralMatcher> _matcher;
+};
+
+template<class Data>
+VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> CodeTreeLIS<Data>::getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions)
+{
+  if(_ct.isEmpty()) {
+    return VirtualIterator<QueryRes<ResultSubstitutionSP, Data>>::getEmpty();
+  }
+
+  return vi( new ResultIterator(this, lit, complementary, retrieveSubstitutions) );
+}
+
+template class CodeTreeLIS<LiteralClause>;
 
 /////////////////   CodeTreeSubsumptionIndex   //////////////////////
 

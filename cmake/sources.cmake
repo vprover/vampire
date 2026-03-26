@@ -172,6 +172,8 @@ set(SOURCES
     Indexing/IndexManager.hpp
     Indexing/InductionFormulaIndex.cpp
     Indexing/InductionFormulaIndex.hpp
+    Indexing/LiteralCodeTree.cpp
+    Indexing/LiteralCodeTree.hpp
     Indexing/LiteralIndex.cpp
     Indexing/LiteralIndex.hpp
     Indexing/LiteralIndexingStructure.hpp
