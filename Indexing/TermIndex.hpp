@@ -56,7 +56,8 @@ public:
 protected:
   void handleClause(Clause* c, bool adding) override;
 private:
-  Ordering& _ord;
+  const Ordering& _ord;
+  const bool _higherOrder;
 };
 
 class SuperpositionLHSIndex
@@ -67,13 +68,14 @@ public:
 protected:
   void handleClause(Clause* c, bool adding) override;
 private:
-  Ordering& _ord;
+  const Ordering& _ord;
   const Options& _opt;
 };
 
 /**
  * Term index for backward demodulation
  */
+template<bool higherOrder>
 class DemodulationSubtermIndex
 : public TermIndex<TermLiteralClause>
 {

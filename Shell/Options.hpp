@@ -715,8 +715,13 @@ public:
   enum class PISet : unsigned int {
     ALL = 0,
     ALL_EXCEPT_NOT_EQ = 1,
-    FALSE_TRUE_NOT = 2,
-    FALSE_TRUE_NOT_EQ_NOT_EQ = 3
+    NOT = 2,
+    NOT_EQ_NOT_EQ = 3,
+    PRAGMATIC = 4,
+    AND = 5,
+    OR = 6,
+    EQUALS = 7,
+    PI_SIGMA = 8
   };
 
   enum class ProblemExportSyntax : unsigned int {
@@ -2292,6 +2297,7 @@ public:
   bool choiceReasoning() const { return _choiceReasoning.actualValue; }
   FunctionExtensionality functionExtensionality() const { return _functionExtensionality.actualValue; }
   CNFOnTheFly cnfOnTheFly() const { return _clausificationOnTheFly.actualValue; }
+  PISet piSet() const { return _piSet.actualValue; }
   bool equalityToEquivalence () const { return _equalityToEquivalence.actualValue; }
   bool casesSimp() const { return _casesSimp.actualValue; }
   bool cases() const { return _cases.actualValue; }
@@ -2716,6 +2722,7 @@ private:
   BoolOptionValue _choiceReasoning;
   ChoiceOptionValue<FunctionExtensionality> _functionExtensionality;
   ChoiceOptionValue<CNFOnTheFly> _clausificationOnTheFly;
+  ChoiceOptionValue<PISet> _piSet;
   BoolOptionValue _equalityToEquivalence;
   BoolOptionValue _superposition;
   BoolOptionValue _casesSimp;

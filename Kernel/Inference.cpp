@@ -895,8 +895,10 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "gaussian variable elimination";
   case InferenceRule::ARG_CONG:
     return "argument congruence";
-  case InferenceRule::NEGATIVE_EXT:
+  case InferenceRule::NEGATIVE_EXTENSIONALITY:
     return "negative extensionality";
+  case InferenceRule::POSITIVE_EXTENSIONALITY:
+    return "positive extensionality";
   case InferenceRule::INJECTIVITY:
     return "injectivity";
   case InferenceRule::HOL_NOT_ELIMINATION:
@@ -911,6 +913,10 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "equality proxy clausification";
   case InferenceRule::BOOL_SIMP:
     return "boolean simplification";
+  case InferenceRule::FLEX_FLEX_SIMPLIFICATION:
+    return "flex-flex simplification";
+  case InferenceRule::BETA_ETA_NORMALIZATION:
+    return "beta-eta normalization";
   case InferenceRule::EQ_TO_DISEQ:
     return "bool equality to disequality";
   case InferenceRule::PRIMITIVE_INSTANTIATION:

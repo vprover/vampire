@@ -318,6 +318,7 @@ CodeTree::CodeOp CodeTree::CodeOp::getGroundTermCheck(const Term* trm)
 
   CodeOp res;
   res._setData(trm);
+  res._setInstruction(CHECK_GROUND_TERM);
   ASS(res.isCheckGroundTerm());
   return res;
 }
@@ -599,6 +600,9 @@ bool CodeTree::Matcher<removing, checkRange>::execute()
           shouldBacktrack=true;
         }
         break;
+      default: {
+        ASSERTION_VIOLATION;
+      }
     }
     if(shouldBacktrack) {
       if(!backtrack()) {

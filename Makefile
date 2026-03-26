@@ -254,8 +254,6 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/EqualityFactoring.o\
          Inferences/EqualityResolution.o\
          Inferences/ExtensionalityResolution.o\
-         Inferences/ArgCong.o\
-         Inferences/NegativeExt.o\
          Inferences/Factoring.o\
          Inferences/FastCondensation.o\
          Inferences/FunctionDefinitionRewriting.o\
@@ -288,6 +286,13 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/ALASCA/BwdDemodulation.o\
          Inferences/ALASCA/FourierMotzkin.o\
          Inferences/ALASCA/TermFactoring.o\
+         Inferences/HOL/ArgCong.o\
+         Inferences/HOL/BetaEtaSimplify.o\
+         Inferences/HOL/BoolEqToDiseq.o\
+         Inferences/HOL/FlexFlexSimplify.o\
+         Inferences/HOL/NegativeExtensionality.o\
+         Inferences/HOL/PositiveExtensionality.o\
+         Inferences/HOL/PrimitiveInstantiation.o\
          Inferences/AnswerLiteralProcessors.o\
          Inferences/TautologyDeletionISE.o\
          Inferences/TermAlgebraReasoning.o\
@@ -299,7 +304,6 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/Cases.o\
          Inferences/BoolSimp.o\
          Inferences/Choice.o\
-         Inferences/BoolEqToDiseq.o\
          Inferences/GaussianVariableElimination.o\
          Inferences/InterpretedEvaluation.o\
          Inferences/TheoryInstAndSimp.o\

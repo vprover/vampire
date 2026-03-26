@@ -33,12 +33,10 @@ public:
 };
 
 class EagerClausificationISE
-  : public ImmediateSimplificationEngine
+  : public ImmediateSimplificationEngineMany
 {
 public:
-  ClauseIterator simplifyMany(Clause* c);
-  Clause* simplify(Clause* c) override{ NOT_IMPLEMENTED; }
-
+  Option<ClauseIterator> simplifyMany(Clause* c) override;
 };
 
 class LazyClausification
@@ -62,49 +60,6 @@ public:
 private:
   std::shared_ptr<SkolemisingFormulaIndex> _formulaIndex;
 };
-
-/*class NotProxyISE
-  : public ImmediateSimplificationEngine
-{
-public:
-  Kernel::Clause* simplify(Kernel::Clause* c);
-};
-
-
-class EqualsProxyISE
-   : public ImmediateSimplificationEngine
-{
-
-public:
-  Kernel::Clause* simplify(Kernel::Clause* c);        
-};
-
-
-class OrImpAndProxyISE
-  : public ImmediateSimplificationEngine
-{
-
-public:
-  Kernel::Clause* simplify(Kernel::Clause* c);
-};
-
-
-class PiSigmaProxyISE
-   : public ImmediateSimplificationEngine
-{
-  
-public:
-  Kernel::Clause* simplify(Kernel::Clause* c);     
-};
-
-
-class ProxyISE 
-  : public ImmediateSimplificationEngine {
-  public:
-    ClauseIterator simplifyMany(Clause* c);
-    Clause* simplify(Clause* c){ NOT_IMPLEMENTED; }
-};*/
-
 
 }
 
