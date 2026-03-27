@@ -49,7 +49,7 @@ using namespace Kernel;
 CodeTree::LitInfo::LitInfo(Clause* cl, unsigned litIndex)
 : litIndex(litIndex), opposite(false)
 {
-  ft=FlatTerm::createUnexpanded((*cl)[litIndex]);
+  ft=FlatTerm::createUnexpanded(TermList((*cl)[litIndex]));
 }
 
 void CodeTree::LitInfo::dispose()
