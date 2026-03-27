@@ -9,7 +9,6 @@
  */
 /**
  * @file FlatTerm.hpp
-
  * Defines class FlatTerm.
  */
 
@@ -24,15 +23,12 @@ namespace Kernel {
 class FlatTerm
 {
 public:
-  static FlatTerm* create(Term* t);
-  static FlatTerm* create(TermList t);
   /**
    * Similar to @b create but only allocates the flat term,
    * and does not fill out its content. The caller has to
    * make sure @b Entry::expand is called on each flat term
    * entry before traversing its arguments.
    */
-  static FlatTerm* createUnexpanded(Term* t);
   static FlatTerm* createUnexpanded(TermList t);
   static FlatTerm* createUnexpanded(TermStack ts);
   void destroy();
@@ -92,26 +88,32 @@ public:
   { _data[0]._setNumber(_data[0]._number()^1); _data[1]._setTerm(Literal::complementaryLiteral(static_cast<Literal*>(_data[1]._term()))); }
 
 private:
+  template<bool mightBeLiteral>
   static size_t getEntryCount(Term* t);
 
-  static inline void pushVar(FlatTerm* ft, size_t& position, unsigned var) {
-    (*ft)[position++] = Entry(VAR, var);
-  }
-  static inline void pushTerm(FlatTerm* ft, size_t& position, Term* t) {
-    (*ft)[position++] = Entry(FUN, t->functor());
-    (*ft)[position++] = Entry(t);
-    (*ft)[position++] = Entry(FUN_RIGHT_OFS, getEntryCount(t));
-  }
-  static inline void pushTermList(FlatTerm* ft, size_t& position, TermList t) {
+  // pushes a term (as unexpanded if proper term) and adds its entry size to pos
+  template<bool mightBeLiteral>
+  static inline void pushTerm(Entry* e, size_t& pos, TermList t)
+  {
     if (t.isVar()) {
-      pushVar(ft, position, t.var());
-    } else {
-      ASS(t.isTerm());
-      pushTerm(ft, position, t.term());
+      ASS(t.isOrdinaryVar());
+      e[pos++] = Entry(VAR, t.var());
+      return;
     }
+
+    auto trm = t.term();
+    if constexpr (mightBeLiteral) {
+      e[pos] = Entry(FUN_UNEXPANDED, trm->isLiteral() ? static_cast<Literal*>(trm)->header() : trm->functor());
+    } else {
+      ASS(!trm->isLiteral());
+      e[pos] = Entry(FUN_UNEXPANDED, trm->functor());
+    }
+    e[pos+1] = Entry(trm);
+    e[pos+2] = Entry(FUN_RIGHT_OFS, getEntryCount<mightBeLiteral>(trm));
+    pos += e[pos+2]._number();
   }
 
-  FlatTerm(size_t length);
+  FlatTerm(size_t length) : _length(length) {}
   void* operator new(size_t,unsigned length);
 
   /**
