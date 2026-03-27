@@ -90,6 +90,7 @@ private:
 /**
  * Term index for forward demodulation
  */
+template<bool higherOrder>
 class DemodulationLHSIndex
 : public TermIndex<DemodulatorData>
 {

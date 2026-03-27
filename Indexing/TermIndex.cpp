@@ -112,11 +112,13 @@ void DemodulationSubtermIndex<higherOrder>::handleClause(Clause* c, bool adding)
 template class DemodulationSubtermIndex<true>;
 template class DemodulationSubtermIndex<false>;
 
-DemodulationLHSIndex::DemodulationLHSIndex(SaturationAlgorithm& salg)
-: TermIndex(new CodeTreeTIS<DemodulatorData>()), _ord(salg.getOrdering()),
+template<bool higherOrder>
+DemodulationLHSIndex<higherOrder>::DemodulationLHSIndex(SaturationAlgorithm& salg)
+: TermIndex(new CodeTreeTIS<higherOrder, DemodulatorData>()), _ord(salg.getOrdering()),
   _preordered(salg.getOptions().forwardDemodulation()==Options::Demodulation::PREORDERED) {};
 
-void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
+template<bool higherOrder>
+void DemodulationLHSIndex<higherOrder>::handleClause(Clause* c, bool adding)
 {
   if (c->length()!=1) {
     return;
@@ -142,6 +144,9 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
     _is->handle(std::move(dd), adding);
   }
 }
+
+template class DemodulationLHSIndex<true>;
+template class DemodulationLHSIndex<false>;
 
 InductionTermIndex::InductionTermIndex(SaturationAlgorithm& salg)
 : TermIndex(new TermSubstitutionTree<TermLiteralClause>()), _inductionGroundOnly(salg.getOptions().inductionGroundOnly()) {}
