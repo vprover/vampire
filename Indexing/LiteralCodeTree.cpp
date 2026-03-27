@@ -62,7 +62,7 @@ void LiteralCodeTree<Data>::remove(const Data& data)
   static Stack<CodeOp*> firstsInBlocks;
   firstsInBlocks.reset();
 
-  auto ft = FlatTerm::create(data.literal);
+  auto ft = FlatTerm::createUnexpanded(data.literal);
   rtm.init(ft, this, &firstsInBlocks);
 
   Data* dptr = nullptr;
@@ -106,7 +106,7 @@ void LiteralCodeTree<Data>::LiteralMatcher::init(CodeTree* tree, Literal* lit, b
   Matcher::init(tree,tree->getEntryPoint(), 0, 0);
 
   ASS(!ft);
-  ft = FlatTerm::create(lit);
+  ft = FlatTerm::createUnexpanded(lit);
   if (complementary) {
     ft->changeLiteralPolarity();
   }

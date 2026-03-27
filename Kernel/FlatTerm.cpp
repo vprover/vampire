@@ -9,7 +9,6 @@
  */
 /**
  * @file FlatTerm.cpp
-
  * Implements class FlatTerm.
  */
 
@@ -201,6 +200,8 @@ FlatTerm* FlatTerm::copy(const FlatTerm* ft)
 
 void FlatTerm::swapCommutativePredicateArguments()
 {
+  (*this)[0].expand();
+
   ASS_EQ((*this)[0]._tag(), FUN);
   ASS_EQ((*this)[0]._number()|1, 1); //as for now, the only commutative predicate is equality
 
@@ -213,7 +214,7 @@ void FlatTerm::swapCommutativePredicateArguments()
   firstStart += sort.isVar() ? 1 : getEntryCount(sort.term());
 
   size_t firstLen;
-  if((*this)[firstStart]._tag()==FUN) {
+  if((*this)[firstStart]._tag()==FUN || (*this)[firstStart]._tag()==FUN_UNEXPANDED) {
     ASS_EQ((*this)[firstStart+2]._tag(), FUN_RIGHT_OFS);
     firstLen=(*this)[firstStart+2]._number();
   }
@@ -225,7 +226,7 @@ void FlatTerm::swapCommutativePredicateArguments()
   size_t secStart=firstStart+firstLen;
   size_t secLen;
 
-  if((*this)[secStart]._tag()==FUN) {
+  if((*this)[secStart]._tag()==FUN || (*this)[secStart]._tag()==FUN_UNEXPANDED) {
     ASS_EQ((*this)[secStart+2]._tag(), FUN_RIGHT_OFS);
     secLen=(*this)[secStart+2]._number();
   }
@@ -255,11 +256,27 @@ void FlatTerm::Entry::expand()
   if (_tag()==FUN) {
     return;
   }
-  ASS(_tag()==FUN_UNEXPANDED);
-  ASS(this[1]._tag()==FUN_TERM_PTR);
-  ASS(this[2]._tag()==FUN_RIGHT_OFS);
+  ASS_EQ(_tag(), FUN_UNEXPANDED);
+  ASS_EQ(this[1]._tag(), FUN_TERM_PTR);
+  ASS_EQ(this[2]._tag(), FUN_RIGHT_OFS);
   Term* t = this[1]._term();
   size_t p = FlatTerm::FUNCTION_ENTRY_COUNT;
+
+  // If literal is equality, we add a type argument
+  // to properly match with two variable equalities.
+  // This has to be done also in the code tree.
+  if (t->isLiteral() && static_cast<Literal*>(t)->isEquality()) {
+    auto sort = SortHelper::getEqualityArgumentSort(static_cast<Literal*>(t));
+    if (sort.isVar()) {
+      this[p++] = Entry(VAR, sort.var());
+    } else {
+      this[p] = Entry(FUN_UNEXPANDED, sort.term()->functor());
+      this[p+1] = Entry(sort.term());
+      this[p+2] = Entry(FUN_RIGHT_OFS, getEntryCount(sort.term()));
+      p += this[p+2]._number();
+    }
+  }
+
   for (unsigned i = 0; i < t->arity(); i++) {
     auto arg = t->nthArgument(i);
     if (arg->isVar()) {
