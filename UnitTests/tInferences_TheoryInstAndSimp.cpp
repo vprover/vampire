@@ -120,17 +120,16 @@ TEST_GENERATION(test_02,
   DECL_CONST(a, alpha)                                                                                        \
   DECL_PRED(p, {list})                                                                                        \
 
-// TODO fix this test with wrong variable sorts
-// TEST_GENERATION_WITH_SUGAR(test_03,
-//     MY_GEN_RULE, MY_GEN_TESTER, LIST_ALPHA_SUGAR, 
-//     Generation::SymmetricTest()
-//       .options(options("all"))
-//       .inputs({    clause({  cons(a, nil()) != cons(x, nil()), 
-//           p(x)  })   })
-//       .expected(exactly(
-//       ))
-//       .premiseRedundant(false)
-//     )
+TEST_GENERATION_WITH_SUGAR(test_03,
+    MY_GEN_RULE, MY_GEN_TESTER, LIST_ALPHA_SUGAR, 
+    Generation::SymmetricTest()
+      .options(options("all"))
+      .inputs({    clause({  cons(a, nil()) != cons(x, nil()), 
+          p(cons(x, nil()))  })   })
+      .expected(exactly(
+      ))
+      .premiseRedundant(false)
+    )
 
 #define RAT_SYNTAX_SUGAR                                                                                      \
     DECL_VARS                                                                                                 \
