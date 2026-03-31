@@ -51,77 +51,104 @@ bool Unifier::iterate(LiteralStack& solution)
   return _todo.isEmpty();
 }
 
+bool Unifier::simplify(LiteralStack& solution)
+{
+  ASS(solution.isEmpty());
+
+  ASS_EQ(_todo.size(),1);
+
+  auto curr = _todo.pop();
+  DEBUG("curr ", *curr);
+
+  auto [children, sol] = curr->solve();
+  ASS(children.isEmpty() || sol.isEmpty());
+
+  if (sol.isNonEmpty()) {
+    solution = std::move(sol);
+  }
+  for (const auto& child : children) {
+    _todo.push(child);
+  }
+  return _todo.isEmpty();
+}
+
+TermList Unifier::applyTermSpec(TermSpec t, RobSubstitution& subs, DHMap<VarSpec,unsigned>& varMap)
+{
+  return BottomUpEvaluation<AutoDerefTermSpec, TermList>()
+    .function([&subs,&varMap](auto const& orig, TermList* args) -> TermList {
+      if (orig.term.isVar()) {
+        unsigned* ptr;
+        if (varMap.getValuePtr(orig.term.varSpec(), ptr, 0)) {
+          *ptr = subs.introGlueVar(orig.term.varSpec()).var();
+        }
+        return TermList::var(*ptr);
+      }
+      return TermList(orig.term.isSort() ? AtomicSort::create(orig.term.functor(), orig.term.nAllArgs(), args)
+        : Term::create(orig.term.functor(), orig.term.nAllArgs(), args));
+    })
+    .evNonRec([](auto& t) { return someIf(t.term.definitelyGround(), [&]() { return t.term.term; }); })
+    .context(AutoDerefTermSpec::Context { .subs = &subs, })
+    .apply(AutoDerefTermSpec(t, &subs));
+}
+
 // Constraint
 
-struct Unifier::Constraint
+Unifier::Constraint::Constraint(TermList lhs, TermList rhs, TermList sort)
+  : _lhs(lhs), _rhs(rhs), _sort(sort), _lhead(lhs.head()), _rhead(rhs.head())
 {
-  TermList _lhs;
-  TermList _rhs;
-  TermList _sort;
-  TermList _lhead;
-  TermList _rhead;
+  // terms must be in whnf
+  ASS(!_lhead.isLambdaTerm());
+  ASS(!_lhead.isLambdaTerm());
+}
 
-  Constraint(TermList lhs, TermList rhs, TermList sort)
-    : _lhs(lhs), _rhs(rhs), _sort(sort), _lhead(lhs.head()), _rhead(rhs.head())
-  {
-    // terms must be in whnf
-    ASS(!_lhead.isLambdaTerm());
-    ASS(!_lhead.isLambdaTerm());
-  }
-
-  bool flexFlex()   const { return _lhead.isVar() && _rhead.isVar(); }
-  bool rigidRigid() const { return _lhead.isTerm() && _rhead.isTerm(); }
-  bool flexRigid()  const { return !flexFlex() && !rigidRigid(); }
-
-  bool derefHead(TermList& head, TermList& side, const Substitution& subs)
-  {
-    if (head.isVar()) {
-      TermList t;
-      if (subs.findBinding(head.var(), t)) {
-        side = SubstHelper::apply(side, subs);
-        head = side.head();
-        return true;
-      }
+bool Unifier::Constraint::derefHead(TermList& head, TermList& side, const Substitution& subs)
+{
+  if (head.isVar()) {
+    TermList t;
+    if (subs.findBinding(head.var(), t)) {
+      side = SubstHelper::apply(side, subs);
+      head = side.head();
+      return true;
     }
-    return false;
   }
+  return false;
+}
 
-  void normalize(const Substitution& subs)
-  {
-    // 1. We want to reach a fixed point of applying the substitution
-    // on the head and then beta normalizing it if it's a lambda.
-    //
-    // TODO this is very inefficient now, we only have to beta normalize
-    // any applications on the head.
-    bool changed;
-    do {
-      changed = false;
-      auto newLhs = HOL::reduce::betaNF(_lhs);
-      if (newLhs != _lhs) {
-        changed = true;
-        _lhs = newLhs;
-        _lhead = _lhs.head();
-      }
-      auto newRhs = HOL::reduce::betaNF(_rhs);
-      if (newRhs != _rhs) {
-        changed = true;
-        _rhs = newRhs;
-        _rhead = _rhs.head();
-      }
-      if (derefHead(_lhead, _lhs, subs)) {
-        changed = true;
-      }
-      if (derefHead(_rhead, _rhs, subs)) {
-        changed = true;
-      }
-    } while (changed);
+void Unifier::Constraint::normalize(const Substitution& subs)
+{
+  // 1. We want to reach a fixed point of applying the substitution
+  // on the head and then beta normalizing it if it's a lambda.
+  //
+  // TODO this is very inefficient now, we only have to beta normalize
+  // any applications on the head.
+  bool changed;
+  do {
+    changed = false;
+    auto newLhs = HOL::reduce::betaNF(_lhs);
+    if (newLhs != _lhs) {
+      changed = true;
+      _lhs = newLhs;
+      _lhead = _lhs.head();
+    }
+    auto newRhs = HOL::reduce::betaNF(_rhs);
+    if (newRhs != _rhs) {
+      changed = true;
+      _rhs = newRhs;
+      _rhead = _rhs.head();
+    }
+    if (derefHead(_lhead, _lhs, subs)) {
+      changed = true;
+    }
+    if (derefHead(_rhead, _rhs, subs)) {
+      changed = true;
+    }
+  } while (changed);
 
-    // 2. We then alpha-eta normalize to get the same prefix on both sides.
-    HOL::normaliseLambdaPrefixes(_lhs, _rhs);
-    _lhead = _lhs.head();
-    _rhead = _rhs.head();
-  }
-};
+  // 2. We then alpha-eta normalize to get the same prefix on both sides.
+  HOL::normaliseLambdaPrefixes(_lhs, _rhs);
+  _lhead = _lhs.head();
+  _rhead = _rhs.head();
+}
 
 // Node
 
@@ -310,7 +337,7 @@ std::pair<Stack<Unifier::Node*>,LiteralStack> Unifier::Node::solve()
         DEBUG("fail");
         return { Stack<Node*>(), LiteralStack() };
       }
-      return { decompose(i), LiteralStack() };
+      return { { new Node(*this, HOL::UnificationInference::DECOMPOSITION, decompose(i)) }, LiteralStack() };
 
     } else if (curr.flexRigid()) {
       DEBUG("flex-rigid ", curr._lhead, " ", curr._rhead);
@@ -326,7 +353,7 @@ std::pair<Stack<Unifier::Node*>,LiteralStack> Unifier::Node::solve()
 
       Stack<Node*> res;
       for (const auto& [binding,inf] : bindings) {
-        DEBUG("binding ", flexTerm.head(), " ", b);
+        DEBUG("binding ", flexTerm.head(), " ", binding);
         res.push(new Node(*this, inf, flexTerm.head().var(), binding));
       }
       return { res, LiteralStack() };
@@ -338,7 +365,70 @@ std::pair<Stack<Unifier::Node*>,LiteralStack> Unifier::Node::solve()
   return { Stack<Node*>(), solution() };
 }
 
-Stack<Unifier::Node*> Unifier::Node::decompose(unsigned index) const
+bool Unifier::Node::simplify()
+{
+  for (unsigned i = 0; i < _cons.size();) {
+
+    auto& curr = _cons[i];
+
+    DEBUG("trying to solve ", curr);
+
+    // Following the transitions from "Efficient Full Higher-order Unification" from Vukmirovic et al.
+
+    curr.normalize(_subs);
+
+    DEBUG("after normalization ", curr);
+
+    if (curr._lhs == curr._rhs) {
+      DEBUG("deleted");
+      std::swap(curr, _cons.top());
+      _cons.pop();
+      continue;
+    }
+
+    if (curr.rigidRigid()) {
+      DEBUG("rigid-rigid ", curr._lhead, " ", curr._rhead);
+      if (curr._lhead != curr._rhead) {
+        // fail
+        DEBUG("fail");
+        return false;
+      }
+      auto dc = decompose(i);
+      std::swap(curr, _cons.top());
+      _cons.pop();
+      for (auto&& con : std::move(dc)) {
+        _cons.push(con);
+      }
+      continue;
+    }
+    // else ignore flex-flex or flex-rigid
+    i++;
+  }
+  return true;
+}
+
+Recycled<Stack<UnificationConstraint>> Unifier::Node::toUnif() const
+{
+  const IdempotentSubs subs(_subs);
+  Recycled<Stack<UnificationConstraint>> res;
+
+  for (const auto& con : _cons) {
+    ASS_REP(con.flexFlex() || con.flexRigid(), con);
+    ASS_REP(!con._lhs.containsLooseDBIndex(), con);
+    ASS_REP(!con._rhs.containsLooseDBIndex(), con);
+    res->emplace(
+      TermSpec(HOL::reduce::betaEtaNF(SubstHelper::apply(con._lhs, subs)), GLUE_INDEX),
+      TermSpec(HOL::reduce::betaEtaNF(SubstHelper::apply(con._rhs, subs)), GLUE_INDEX),
+      TermSpec(SubstHelper::apply(con._sort, subs), GLUE_INDEX)
+    );
+    // the sort should survive unification without changing
+    ASS_EQ(con._sort, SubstHelper::apply(con._sort, subs));
+  }
+
+  return res;
+}
+
+Stack<Unifier::Constraint> Unifier::Node::decompose(unsigned index) const
 {
   DEBUG("decompose");
   auto& curr = _cons[index];
@@ -370,7 +460,7 @@ Stack<Unifier::Node*> Unifier::Node::decompose(unsigned index) const
     auto sort = lambdaSorts.isEmpty() ? argSorts[j] : SortHelper::getResultSort(lhs.term());
     cons.emplace(lhs, rhs, sort);
   }
-  return { new Node(*this, HOL::UnificationInference::DECOMPOSITION, cons) };
+  return cons;
 }
 
 std::ostream& operator<<(std::ostream& out, const Unifier::Constraint& con) {

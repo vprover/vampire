@@ -14,25 +14,26 @@
  */
 
 #include "Lib/Output.hpp"
-#include "Debug/Assertion.hpp"
 #include "Lib/Backtrackable.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Recycled.hpp"
-#include "Shell/Options.hpp"
 #include "Lib/Environment.hpp"
-#include "Kernel/SortHelper.hpp"
-#include "Debug/TimeProfiling.hpp"
 
+#include "Shell/Options.hpp"
 
 #include "Forwards.hpp"
-#include "Signature.hpp"
-#include "Term.hpp"
+#include "HOL/Unifier.hpp"
+#include "NumTraits.hpp"
 #include "RobSubstitution.hpp"
-#include "Kernel/NumTraits.hpp"
+#include "Signature.hpp"
+#include "SortHelper.hpp"
+#include "Term.hpp"
 
 #include "UnificationWithAbstraction.hpp"
-#include "Kernel/SortHelper.hpp"
-#include "NumTraits.hpp"
+
+
+#include "Debug/Assertion.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Debug/Tracer.hpp"
 #define DEBUG_FINALIZE(LVL, ...) if (LVL < 0) DBG(__VA_ARGS__)
 #define DEBUG_UNIFY(LVL, ...) if (LVL < 0) DBG(__VA_ARGS__)
@@ -308,55 +309,33 @@ TermSpec appHead(AbstractingUnifier* au, TermSpec t)
 Option<AbstractionOracle::AbstractionResult> hol(
   AbstractingUnifier* au, TermSpec const& t1, TermSpec const& t2)
 {
-  // TODO should we postpone deref to a later point?
-  auto dt1 = au->subs().derefBound(t1);
-  auto dt2 = au->subs().derefBound(t2);
-
-  // if one of them is a variable or sort, don't abstract
-  if (dt1.term.isVar() || dt2.term.isVar() || dt1.isSort() || dt2.isSort()) {
+  DEBUG_UNIFY(0, "hol uwa unifying ", t1, " =?= ", t2);
+  // if one of them is a sort, don't abstract
+  if ((t1.term.isTerm() && t1.isSort()) || (t2.term.isTerm() && t2.isSort())) {
     return Option<AbstractionOracle::AbstractionResult>();
   }
 
-  // if one of them is a lambda, abstract
-  if (dt1.term.isLambdaTerm() || dt2.term.isLambdaTerm()) {
-    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, t1.sort()))));
+  ASS(t1.term.isTerm() || t2.term.isTerm());
+
+  DHMap<VarSpec, unsigned int> varMap;
+  auto t1s = HOL::Unifier::applyTermSpec(t1, au->subs(), varMap);
+  auto t2s = HOL::Unifier::applyTermSpec(t2, au->subs(), varMap);
+  auto sort = SortHelper::getResultSort((t1s.isTerm() ? t1s : t2s).term());
+  ASS_REP(t1s.isVar() || t2s.isVar() || SortHelper::getResultSort(t2s.term()) == sort, sort.toString() + " " + SortHelper::getResultSort(t2s.term()).toString());
+
+  DEBUG_UNIFY(0, "hol uwa unifying applied ", t1s, " =?= ", t2s);
+
+  if (t1s.head().isVar() || t2s.head().isVar()) {
+    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf()
+      .constr(UnificationConstraint(TermSpec(t1s, GLUE_INDEX), TermSpec(t2s, GLUE_INDEX), TermSpec(sort, GLUE_INDEX)))));
   }
 
-  auto h1 = appHead(au, dt1);
-  auto h2 = appHead(au, dt2);
-  // can the head be lambda terms when normalized?
-  if (h1.isVar() || h2.isVar() || h1.term.isLambdaTerm() || h2.term.isLambdaTerm()) {
-    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, t1.sort()))));
-  }
-
-  auto h1t = h1.term.term();
-  auto h2t = h2.term.term();
-
-  ASS_EQ(h1t->numTermArguments(), 0);
-  ASS_EQ(h2t->numTermArguments(), 0);
-  if (h1t->functor() != h2t->functor()) {
+  unsigned unused = 0;
+  HOL::Unifier::Node unifier(Literal::createEquality(true, t1s, t2s, sort), nullptr, unused);
+  if (!unifier.simplify()) {
     return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
   }
-
-  Recycled<Stack<UnificationConstraint>> unify;
-  for (unsigned i = 0; i < h1t->arity(); i++) {
-    unify->emplace(h1.typeArg(0), h2.typeArg(0), TermSpec(AtomicSort::superSort(),h1.index));
-  }
-  while (dt1.term.isApplication()) {
-    if (!dt2.term.isApplication()) {
-      return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
-    }
-    unify->emplace(dt1.typeArg(0), dt2.typeArg(0), TermSpec(AtomicSort::superSort(),dt1.index));
-    unify->emplace(dt1.typeArg(1), dt2.typeArg(1), TermSpec(AtomicSort::superSort(),dt1.index));
-    unify->emplace(dt1.termArg(1), dt2.termArg(1), dt1.termArgSort(1));
-
-    dt1 = au->subs().derefBound(dt1.termArg(0));
-    dt2 = au->subs().derefBound(dt2.termArg(0));
-  }
-  if (dt2.term.isApplication()) {
-    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
-  }
-  return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().unify(std::move(unify))));
+  return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().unify(unifier.toUnif())));
 }
 
 TermSpec norm(TermSpec outer, AbstractingUnifier& au) {

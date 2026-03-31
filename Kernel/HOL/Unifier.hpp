@@ -18,6 +18,7 @@
 #include "Forwards.hpp"
 #include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Substitution.hpp"
+#include "Kernel/RobSubstitution.hpp"
 #include "Lib/Stack.hpp"
 
 using namespace Kernel;
@@ -31,9 +32,27 @@ public:
 
   // does one iteration, returns true if finished
   bool iterate(LiteralStack& solution);
+  bool simplify(LiteralStack& solution);
 
-private:
-  struct Constraint;
+  static TermList applyTermSpec(TermSpec t, RobSubstitution& subs, DHMap<VarSpec, unsigned>& varMap);
+
+  struct Constraint
+  {
+    TermList _lhs;
+    TermList _rhs;
+    TermList _sort;
+    TermList _lhead;
+    TermList _rhead;
+
+    Constraint(TermList lhs, TermList rhs, TermList sort);
+
+    inline bool flexFlex() const { return _lhead.isVar() && _rhead.isVar(); }
+    inline bool rigidRigid() const { return _lhead.isTerm() && _rhead.isTerm(); }
+    inline bool flexRigid() const { return !flexFlex() && !rigidRigid(); }
+
+    bool derefHead(TermList& head, TermList& side, const Substitution& subs);
+    void normalize(const Substitution& subs);
+  };
 
   struct Node
   {
@@ -42,6 +61,8 @@ private:
     Node(const Node& parent, HOL::UnificationInference inf, Stack<Constraint> cons);
 
     std::pair<Stack<Node*>,LiteralStack> solve();
+    bool simplify();
+    Recycled<Stack<UnificationConstraint>> toUnif() const;
 
     const Node* _parent = nullptr;
     HOL::UnificationInference _inf;
@@ -51,7 +72,7 @@ private:
     Substitution _subs;
     unsigned _freshVar;
   private:
-    Stack<Node*> decompose(unsigned index) const;
+    Stack<Constraint> decompose(unsigned index) const;
 
     LiteralStack solution() const;
     bool checkSolution(const LiteralStack& ffPairs) const;
@@ -61,6 +82,7 @@ private:
   friend std::ostream& operator<<(std::ostream& out, const Node& node);
   friend std::ostream& operator<<(std::ostream& out, const Unifier& unif);
 
+private:
   Literal* _lit;
   Stack<Node*> _todo;
 };

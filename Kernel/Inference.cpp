@@ -927,6 +927,10 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "bool equality to disequality";
   case InferenceRule::PRIMITIVE_INSTANTIATION:
     return "primitive instantiation";
+  case InferenceRule::IMITATION:
+    return "imitation";
+  case InferenceRule::PROJECTION:
+    return "projection";
   case InferenceRule::LEIBNIZ_ELIMINATION:
     return "leibniz equality elimination";
   case InferenceRule::HILBERTS_CHOICE_INSTANCE:
