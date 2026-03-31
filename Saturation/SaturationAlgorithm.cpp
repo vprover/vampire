@@ -79,6 +79,7 @@
 #include "Inferences/HOL/BoolEqToDiseq.hpp"
 #include "Inferences/HOL/BoolSimp.hpp"
 #include "Inferences/HOL/FlexFlexSimplify.hpp"
+#include "Inferences/HOL/ImitateProject.hpp"
 #include "Inferences/HOL/NegativeExtensionality.hpp"
 #include "Inferences/HOL/PositiveExtensionality.hpp"
 #include "Inferences/HOL/PrimitiveInstantiation.hpp"
@@ -1440,6 +1441,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     if(prb.hasFOOL()/*  && opt.booleanEqTrick() */){
       gie->addFront(new BoolEqToDiseq(*res));
     }
+    gie->addFront(new ImitateProject(*res));
   }
 
   if (opt.choiceReasoning()) {

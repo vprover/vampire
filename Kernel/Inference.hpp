@@ -340,6 +340,8 @@ enum class InferenceRule : unsigned char {
   ARG_CONG,
   INJECTIVITY,
   PRIMITIVE_INSTANTIATION,
+  IMITATION,
+  PROJECTION,
   LEIBNIZ_ELIMINATION,
   HILBERTS_CHOICE_INSTANCE, // not considered a theory axiom at the moment (it's a HOL creature)
   NEGATIVE_EXTENSIONALITY,
