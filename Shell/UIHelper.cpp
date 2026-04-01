@@ -793,10 +793,10 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
     Signature::Symbol* symb = env.signature->getFunction(f);
     OperatorType* ot = symb->fnType();
 
-    // we'll not treat vampire's app as symbol
     if (env.signature->isAppFun(f)) {
-      ASS_EQ(f,funcs-1)
-      break;
+      // ASS_EQ(f,funcs-1)
+      // actually, the App may not be the last (for problems containing includes?)
+      // shouldn't matter much to include it (and never reference it)
     }
 
     TermList funcSort = ot->result();
