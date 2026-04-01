@@ -77,6 +77,7 @@ TermList Unifier::applyTermSpec(TermSpec t, RobSubstitution& subs, DHMap<VarSpec
   return BottomUpEvaluation<AutoDerefTermSpec, TermList>()
     .function([&subs,&varMap](auto const& orig, TermList* args) -> TermList {
       if (orig.term.isVar()) {
+        ASS(!orig.term.varSpec().special());
         unsigned* ptr;
         if (varMap.getValuePtr(orig.term.varSpec(), ptr, 0)) {
           *ptr = subs.introGlueVar(orig.term.varSpec()).var();
@@ -120,7 +121,7 @@ void Unifier::Constraint::normalize(const Substitution& subs)
   // on the head and then beta normalizing it if it's a lambda.
   //
   // TODO this is very inefficient now, we only have to beta normalize
-  // any applications on the head.
+  // any applications on the head. Use WHNF from the HOL branch.
   bool changed;
   do {
     changed = false;

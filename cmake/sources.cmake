@@ -308,6 +308,8 @@ set(SOURCES
     Inferences/HOL/BoolEqToDiseq.hpp
     Inferences/HOL/FlexFlexSimplify.cpp
     Inferences/HOL/FlexFlexSimplify.hpp
+    Inferences/HOL/ImitateProject.cpp
+    Inferences/HOL/ImitateProject.hpp
     Inferences/HOL/NegativeExtensionality.cpp
     Inferences/HOL/NegativeExtensionality.hpp
     Inferences/HOL/PositiveExtensionality.cpp

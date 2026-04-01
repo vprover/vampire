@@ -315,23 +315,59 @@ Option<AbstractionOracle::AbstractionResult> hol(
     return Option<AbstractionOracle::AbstractionResult>();
   }
 
-  ASS(t1.term.isTerm() || t2.term.isTerm());
+  auto hasUnboundSpecialVar = [](const RobSubstitution& subs, TermSpec t) {
+    return BottomUpEvaluation<AutoDerefTermSpec, bool>()
+      .function([](auto const& orig, bool* args) -> bool {
+        if (orig.term.isVar()) {
+          return orig.term.varSpec().special();
+        }
+        for (unsigned i = 0; i < orig.term.nAllArgs(); i++) {
+          if (args[i]) {
+            return true;
+          }
+        }
+        return false;
+      })
+      .evNonRec([](auto& t) { return someIf(t.term.definitelyGround(), []() { return false; }); })
+      .context(AutoDerefTermSpec::Context { .subs = &subs, })
+      .apply(AutoDerefTermSpec(t, &subs));
+  };
+
+  if (hasUnboundSpecialVar(au->subs(), t1) || hasUnboundSpecialVar(au->subs(), t2)) {
+    return Option<AbstractionOracle::AbstractionResult>();
+  }
+
+  // this can happen due to a failing occurs check, abstract
+  // TODO only abstract in certain cases, maybe when the head is a variable?
+  if (t1.term.isVar()) {
+    ASS(t2.term.isTerm());
+    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, t2.sort()))));
+  }
+  if (t2.term.isVar()) {
+    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, t1.sort()))));
+  }
 
   DHMap<VarSpec, unsigned int> varMap;
   auto t1s = HOL::Unifier::applyTermSpec(t1, au->subs(), varMap);
   auto t2s = HOL::Unifier::applyTermSpec(t2, au->subs(), varMap);
-  auto sort = SortHelper::getResultSort((t1s.isTerm() ? t1s : t2s).term());
-  ASS_REP(t1s.isVar() || t2s.isVar() || SortHelper::getResultSort(t2s.term()) == sort, sort.toString() + " " + SortHelper::getResultSort(t2s.term()).toString());
+
+  auto sort1 = SortHelper::getResultSort(t1s.term());
+  auto sort2 = SortHelper::getResultSort(t2s.term());
+  if (sort1 != sort2) {
+    // TODO handle this earlier
+    DBG("sorts not identical ", sort1, " != ", sort2);
+    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
+  }
 
   DEBUG_UNIFY(0, "hol uwa unifying applied ", t1s, " =?= ", t2s);
 
   if (t1s.head().isVar() || t2s.head().isVar()) {
     return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf()
-      .constr(UnificationConstraint(TermSpec(t1s, GLUE_INDEX), TermSpec(t2s, GLUE_INDEX), TermSpec(sort, GLUE_INDEX)))));
+      .constr(UnificationConstraint(TermSpec(t1s, GLUE_INDEX), TermSpec(t2s, GLUE_INDEX), TermSpec(sort1, GLUE_INDEX)))));
   }
 
   unsigned unused = 0;
-  HOL::Unifier::Node unifier(Literal::createEquality(true, t1s, t2s, sort), nullptr, unused);
+  HOL::Unifier::Node unifier(Literal::createEquality(true, t1s, t2s, sort1), nullptr, unused);
   if (!unifier.simplify()) {
     return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
   }
@@ -1544,8 +1580,10 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
           pushTodo(p, TERM);
         }
 
-        for (auto p : dt1.typeArgs().zip(dt2.typeArgs())) {
-          pushTodo(p, SORT);
+        if (s == TERM) {
+          for (auto p : dt1.typeArgs().zip(dt2.typeArgs())) {
+            pushTodo(p, SORT);
+          }
         }
 
       } else {
