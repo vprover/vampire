@@ -44,6 +44,7 @@ using namespace Kernel;
  *
  * This class implements the backward direction.
  */
+template<bool higherOrder>
 class BackwardSubsumptionDemodulation
   : public BackwardSimplificationEngine
 {

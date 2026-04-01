@@ -246,7 +246,7 @@ private:
   }
 
   struct SubstMatcher
-  : public Matcher</*removing*/false,false>
+  : public Matcher</*removing*/false,false,/*higherOrder=*/false>
   {
     void init(CodeTree* tree, const TermStack& ts)
     {
@@ -281,7 +281,7 @@ private:
   };
 
   struct VariantMatcher
-  : public Matcher</*removing*/true,true>
+  : public Matcher</*removing*/true,true,/*higherOrder=*/false>
   {
   public:
     void init(FlatTerm* ft_, CodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_) {
