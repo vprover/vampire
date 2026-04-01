@@ -893,7 +893,8 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
         TermList tl = todo.tl;
         unsigned myId = ~0u; // an ugly value to be rewritten
         if (todo.starting) {
-          if (!termsAlreadyKnown.findPtr(tl)) {
+          unsigned* myIdPtr = termsAlreadyKnown.findPtr(tl);
+          if (!myIdPtr) {
             if (tl.isTerm()) {
               todo.starting = false;
               Term *t = tl.term();
@@ -917,6 +918,8 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
               ALWAYS(termsAlreadyKnown.insert(tl,myId))
               nodeList.push_back(c10::ivalue::Tuple::create({c10::IValue("var"),c10::IValue((int32_t)tl.var())}));
             }
+          } else {
+            myId = *myIdPtr;
           }
           // was in cache; popping later below
         } else { // not starting
@@ -968,6 +971,7 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
             }
           }
         }
+        ASS_NEQ(myId,~0u)
         ids.push(myId);
         todos.pop();
 
