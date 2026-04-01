@@ -150,7 +150,7 @@ void TermCodeTree<Data>::TermMatcher::init(CodeTree* tree, TermList t)
   linfoCnt=0;
 
   ASS(!ft);
-  ft = FlatTerm::createUnexpanded(t);
+  ft = FlatTerm::create(t);
 
   op=entry;
   tp=0;
