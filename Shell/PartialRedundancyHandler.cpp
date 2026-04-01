@@ -91,7 +91,7 @@ private:
       VariantMatcher vm;
       Stack<CodeOp*> firstsInBlocks;
 
-      FlatTerm* ft = FlatTerm::createUnexpanded(ts);
+      FlatTerm* ft = FlatTerm::create(ts);
       vm.init(ft, this, &firstsInBlocks);
 
       if (vm.execute()) {
@@ -252,7 +252,7 @@ private:
     {
       Matcher::init(tree,tree->getEntryPoint());
 
-      ft = FlatTerm::createUnexpanded(ts);
+      ft = FlatTerm::create(ts);
 
       op=entry;
       tp=0;

@@ -85,7 +85,7 @@ size_t FlatTerm::getEntryCount(Term* t)
   return t->weight()*FUNCTION_ENTRY_COUNT-(FUNCTION_ENTRY_COUNT-1)*t->numVarOccs();
 }
 
-FlatTerm* FlatTerm::createUnexpanded(TermList t)
+FlatTerm* FlatTerm::create(TermList t)
 {
   size_t entries = t.isVar() ? 1 : getEntryCount</*mightBeLiteral=*/true>(t.term());
   auto res = new(entries) FlatTerm(entries);
@@ -97,7 +97,7 @@ FlatTerm* FlatTerm::createUnexpanded(TermList t)
   return res;
 }
 
-FlatTerm* FlatTerm::createUnexpanded(TermStack ts)
+FlatTerm* FlatTerm::create(TermStack ts)
 {
   size_t entries=0;
   for (auto& tl : ts) {
