@@ -725,24 +725,27 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
   c10::impl::GenericList sortList(c10::AnyType::get());
 
   auto add_sort = [&](auto&& self, TermList sort) -> unsigned {
-    unsigned *mySortId;
-    if (sortsAlreadyKnown.getValuePtr(sort,mySortId)) {
-      if (sort.isVar()) {
-        sortList.push_back(c10::ivalue::Tuple::create({c10::IValue("svar"),c10::IValue((int32_t)sort.var())}));
-      } else {
-        Term *t = sort.term();
-        ASS(t->isSort())
-        c10::impl::GenericList args(c10::AnyType::get());
-        for (unsigned i = 0; i < t->arity(); i++) {
-          TermList arg = *t->nthArgument(i);
-          args.push_back((int32_t)self(self,arg));
-        }
-        sortList.push_back(c10::ivalue::Tuple::create({c10::IValue((int32_t)t->functor()),c10::IValue(args)}));
-      }
-      *mySortId = sortList.size()-1;
-      // cout << "add_sort for " << sort.toString() << " " << *mySortId << endl;
+    unsigned* mySortId = sortsAlreadyKnown.findPtr(sort);
+    if (mySortId) {
+      return *mySortId;
     }
-    return *mySortId;
+
+    if (sort.isVar()) {
+      sortList.push_back(c10::ivalue::Tuple::create({c10::IValue("svar"),c10::IValue((int32_t)sort.var())}));
+    } else {
+      Term *t = sort.term();
+      ASS(t->isSort())
+      c10::impl::GenericList args(c10::AnyType::get());
+      for (unsigned i = 0; i < t->arity(); i++) {
+        TermList arg = *t->nthArgument(i);
+        args.push_back((int32_t)self(self,arg));
+      }
+      sortList.push_back(c10::ivalue::Tuple::create({c10::IValue((int32_t)t->functor()),c10::IValue(args)}));
+    }
+    unsigned res = sortList.size()-1;
+    ALWAYS(sortsAlreadyKnown.insert(sort,res))
+    // cout << "add_sort for " << sort.toString() << " " << res << endl;
+    return res;
   };
 
   c10::impl::GenericList symbolList(c10::AnyType::get());
@@ -840,7 +843,6 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
     TermList tl;       // valid when kind == TERM
     Literal* lit;      // valid when kind == LIT
     Formula* f;        // valid when kind == FORMULA
-    unsigned *myId;    // for TERM and LIT caching
   };
 
   c10::impl::GenericList formulaList(c10::AnyType::get());
@@ -883,34 +885,36 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
 
     Stack<unsigned> ids;
     Stack<Todo> todos;
-    todos.push({Todo::FORMULA,true,TermList(),nullptr,topFormula,nullptr});
+    todos.push({Todo::FORMULA,true,TermList(),nullptr,topFormula});
     while (todos.isNonEmpty()) {
       Todo& todo = todos.top();
 
       if (todo.kind == Todo::TERM) {
         TermList tl = todo.tl;
+        unsigned myId = ~0u; // an ugly value to be rewritten
         if (todo.starting) {
-          if (termsAlreadyKnown.getValuePtr(tl,todo.myId)) {
+          if (!termsAlreadyKnown.findPtr(tl)) {
             if (tl.isTerm()) {
               todo.starting = false;
               Term *t = tl.term();
               if (t->isSpecial()) {
                 if (t->isLambda()) {
-                  todos.push({Todo::TERM,true,t->getSpecialData()->getLambdaExp(),nullptr,nullptr,nullptr});
+                  todos.push({Todo::TERM,true,t->getSpecialData()->getLambdaExp(),nullptr,nullptr});
                 } else if (t->isFormula()) {
-                  todos.push({Todo::FORMULA,true,TermList(),nullptr,t->getSpecialData()->getFormula(),nullptr});
+                  todos.push({Todo::FORMULA,true,TermList(),nullptr,t->getSpecialData()->getFormula()});
                 } else {
                   USER_ERROR("Unsupported special term: "+t->toString());
                 }
               } else {
                 // reverse order, so that we can pop them in the right order below
                 for (int i = t->numTermArguments()-1; i >= 0; i--) {
-                  todos.push({Todo::TERM,true,t->termArg(i),nullptr,nullptr,nullptr});
+                  todos.push({Todo::TERM,true,t->termArg(i),nullptr,nullptr});
                 }
               }
               continue;
             } else { // tl.isVar()
-              *todo.myId = nodeList.size();
+              myId = nodeList.size();
+              ALWAYS(termsAlreadyKnown.insert(tl,myId))
               nodeList.push_back(c10::ivalue::Tuple::create({c10::IValue("var"),c10::IValue((int32_t)tl.var())}));
             }
           }
@@ -929,7 +933,8 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
               vars.push_back(c10::ivalue::Tuple::create({c10::IValue("var"),c10::IValue((int32_t)var),c10::IValue((int32_t)add_sort(add_sort,sort))}));
             }
             auto a = (int32_t)ids.pop();
-            *todo.myId = nodeList.size();
+            myId = nodeList.size();
+            ALWAYS(termsAlreadyKnown.insert(tl,myId))
             nodeList.push_back(c10::ivalue::Tuple::create({
               c10::IValue("lambda"),c10::IValue(vars),
               c10::IValue((int32_t)add_sort(add_sort,sd->getLambdaExpSort())),
@@ -939,7 +944,8 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
 
           } else if (t->isFormula()) {
             auto a = (int32_t)ids.pop();
-            *todo.myId = nodeList.size();
+            myId = nodeList.size();
+            ALWAYS(termsAlreadyKnown.insert(tl,myId))
             nodeList.push_back(c10::ivalue::Tuple::create({c10::IValue("formula"),c10::IValue(a)}));
 
           } else {
@@ -953,7 +959,8 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
                 term_args.push_back((int32_t)ids.pop());
               }
             }
-            *todo.myId = nodeList.size();
+            myId = nodeList.size();
+            ALWAYS(termsAlreadyKnown.insert(tl,myId))
             if (t->isApplication()) {
               nodeList.push_back(c10::ivalue::Tuple::create({c10::IValue("app"),c10::IValue(type_args),c10::IValue(term_args)}));
             } else {
@@ -961,7 +968,7 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
             }
           }
         }
-        ids.push(*todo.myId);
+        ids.push(myId);
         todos.pop();
 
       } else if (todo.kind == Todo::LIT) {
@@ -971,18 +978,17 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
           lit = Literal::positiveLiteral(lit);
           todo.lit = lit;
 
-          unsigned *sharedLitId = nullptr;
-          if (!lit->shared() || litsAlreadyKnown.getValuePtr(lit->getId(),sharedLitId)) {
+          unsigned* sharedLitId;
+          if (!lit->shared() || !(sharedLitId = litsAlreadyKnown.findPtr(lit->getId()))) {
             todo.starting = false;
-            todo.myId = sharedLitId; // may be null for unshared literals
             if (lit->functor() == 0) { // equality
               // push in reverse order so they pop in forward order
-              todos.push({Todo::TERM,true,*lit->nthArgument(1),nullptr,nullptr,nullptr});
-              todos.push({Todo::TERM,true,*lit->nthArgument(0),nullptr,nullptr,nullptr});
+              todos.push({Todo::TERM,true,*lit->nthArgument(1),nullptr,nullptr});
+              todos.push({Todo::TERM,true,*lit->nthArgument(0),nullptr,nullptr});
             } else {
               // push term arguments in reverse order
               for (int i = lit->arity()-1; i >= (int)lit->numTypeArguments(); i--) {
-                todos.push({Todo::TERM,true,*lit->nthArgument(i),nullptr,nullptr,nullptr});
+                todos.push({Todo::TERM,true,*lit->nthArgument(i),nullptr,nullptr});
               }
             }
             continue;
@@ -1013,8 +1019,9 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
 
           unsigned res = nodeList.size();
           nodeList.push_back(c10::ivalue::Tuple::create({c10::IValue((int32_t)lit->functor()),c10::IValue(type_args),c10::IValue(term_args)}));
-          if (todo.myId) // don't store anything for unshared literals
-            *todo.myId = res;
+          if (lit->shared()) {
+            ALWAYS(litsAlreadyKnown.insert(lit->getId(),res))
+          } // don't store anything for unshared literals
           ids.push(res);
           todos.pop();
         }
@@ -1028,10 +1035,10 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
           todo.starting = false;
           switch (con) {
             case LITERAL:
-              todos.push({Todo::LIT,true,TermList(),f->literal(),nullptr,nullptr});
+              todos.push({Todo::LIT,true,TermList(),f->literal(),nullptr});
               break;
             case BOOL_TERM:
-              todos.push({Todo::TERM,true,f->getBooleanTerm(),nullptr,nullptr,nullptr});
+              todos.push({Todo::TERM,true,f->getBooleanTerm(),nullptr,nullptr});
               break;
             case FALSE:
             case TRUE:
@@ -1043,14 +1050,14 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
               const FormulaList* fs = f->args();
               // first iter just to claim the memory
               while (FormulaList::isNonEmpty(fs)) {
-                todos.push({Todo::FORMULA,true,TermList(),nullptr,nullptr,nullptr}); // placeholder
+                todos.push({Todo::FORMULA,true,TermList(),nullptr,nullptr}); // placeholder
                 fs = fs->tail();
               }
               Todo* top = todos.end();
               fs = f->args();
               // now write the arguments backwards
               while (FormulaList::isNonEmpty(fs)) {
-                *(--top) = {Todo::FORMULA,true,TermList(),nullptr,fs->head(),nullptr};
+                *(--top) = {Todo::FORMULA,true,TermList(),nullptr,fs->head()};
                 fs = fs->tail();
               }
               break;
@@ -1059,15 +1066,15 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
             case IFF:
             case XOR:
               // reversing the order
-              todos.push({Todo::FORMULA,true,TermList(),nullptr,f->right(),nullptr});
-              todos.push({Todo::FORMULA,true,TermList(),nullptr,f->left(),nullptr});
+              todos.push({Todo::FORMULA,true,TermList(),nullptr,f->right()});
+              todos.push({Todo::FORMULA,true,TermList(),nullptr,f->left()});
               break;
             case NOT:
-              todos.push({Todo::FORMULA,true,TermList(),nullptr,f->uarg(),nullptr});
+              todos.push({Todo::FORMULA,true,TermList(),nullptr,f->uarg()});
               break;
             case FORALL:
             case EXISTS:
-              todos.push({Todo::FORMULA,true,TermList(),nullptr,f->qarg(),nullptr});
+              todos.push({Todo::FORMULA,true,TermList(),nullptr,f->qarg()});
               break;
             default:
               ASSERTION_VIOLATION;
