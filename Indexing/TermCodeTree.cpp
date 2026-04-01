@@ -147,7 +147,7 @@ void TermCodeTree<higherOrder, Data>::TermMatcher::init(CodeTree* tree, TermList
   Base::init(tree,tree->getEntryPoint(),/*linfos_=*/0,/*linfoCnt_=*/0);
 
   ASS(!ft);
-  ft = FlatTerm::createUnexpanded(t);
+  ft = FlatTerm::create(t);
 
   Base::op=Base::entry;
   Base::tp=0;
