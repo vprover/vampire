@@ -73,7 +73,7 @@ void TermCodeTree<Data>::remove(const Data& data)
   static Stack<CodeOp*> firstsInBlocks;
   firstsInBlocks.reset();
 
-  FlatTerm* ft=FlatTerm::createUnexpanded(data.term);
+  FlatTerm* ft=FlatTerm::create(data.term);
   rtm.init(ft, this, &firstsInBlocks);
   
   Data* dptr = nullptr;
@@ -150,7 +150,7 @@ void TermCodeTree<Data>::TermMatcher::init(CodeTree* tree, TermList t)
   linfoCnt=0;
 
   ASS(!ft);
-  ft = FlatTerm::createUnexpanded(t);
+  ft = FlatTerm::create(t);
 
   op=entry;
   tp=0;

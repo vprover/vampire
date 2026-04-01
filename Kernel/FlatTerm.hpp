@@ -24,13 +24,12 @@ class FlatTerm
 {
 public:
   /**
-   * Similar to @b create but only allocates the flat term,
-   * and does not fill out its content. The caller has to
-   * make sure @b Entry::expand is called on each flat term
-   * entry before traversing its arguments.
+   * Note: only allocates the flat term, but does not fill out its
+   * content. The caller has to make sure @b Entry::expand is
+   * called on each flat term entry before traversing its arguments.
    */
-  static FlatTerm* createUnexpanded(TermList t);
-  static FlatTerm* createUnexpanded(TermStack ts);
+  static FlatTerm* create(TermList t);
+  static FlatTerm* create(TermStack ts);
   void destroy();
 
   static FlatTerm* copy(const FlatTerm* ft);
