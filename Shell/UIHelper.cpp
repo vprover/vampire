@@ -708,12 +708,12 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
     // cout << "typecon " << symb->name() << " / " << symb->arity() << endl;
 
     auto typecon_tup = c10::ivalue::Tuple::create({
-      symb->name(),
-      (int32_t)symb->arity(),
-      tc == Signature::DEFAULT_SORT_CON,
-      tc == Signature::BOOL_SRT_CON,
-      tc == Signature::INTEGER_SRT_CON || tc == Signature::RATIONAL_SRT_CON || tc == Signature::REAL_SRT_CON, // should never happen; we currently don't support HOL + ARI
-      env.signature->isArrowCon(tc),
+      c10::IValue(symb->name()),
+      c10::IValue((int32_t)symb->arity()),
+      c10::IValue(tc == Signature::DEFAULT_SORT_CON),
+      c10::IValue(tc == Signature::BOOL_SRT_CON),
+      c10::IValue(tc == Signature::INTEGER_SRT_CON || tc == Signature::RATIONAL_SRT_CON || tc == Signature::REAL_SRT_CON), // should never happen; we currently don't support HOL + ARI
+      c10::IValue(env.signature->isArrowCon(tc)),
     });
 
     typeConsList.push_back(typecon_tup);
@@ -728,7 +728,7 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
     unsigned *mySortId;
     if (sortsAlreadyKnown.getValuePtr(sort,mySortId)) {
       if (sort.isVar()) {
-        sortList.push_back(c10::ivalue::Tuple::create({"svar",(int32_t)sort.var()}));
+        sortList.push_back(c10::ivalue::Tuple::create({c10::IValue("svar"),c10::IValue((int32_t)sort.var())}));
       } else {
         Term *t = sort.term();
         ASS(t->isSort())
@@ -737,7 +737,7 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
           TermList arg = *t->nthArgument(i);
           args.push_back((int32_t)self(self,arg));
         }
-        sortList.push_back(c10::ivalue::Tuple::create({(int32_t)t->functor(),args}));
+        sortList.push_back(c10::ivalue::Tuple::create({c10::IValue((int32_t)t->functor()),c10::IValue(args)}));
       }
       *mySortId = sortList.size()-1;
       // cout << "add_sort for " << sort.toString() << " " << *mySortId << endl;
@@ -771,10 +771,10 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
     unsigned predSortId = add_sort(add_sort,predSort);
 
     auto pred_tup = c10::ivalue::Tuple::create({
-      symb->name(),
-      (int32_t)typeArity,
-      (int32_t)predSortId,
-      p == 0, // equality is important
+      c10::IValue(symb->name()),
+      c10::IValue((int32_t)typeArity),
+      c10::IValue((int32_t)predSortId),
+      c10::IValue(p == 0), // equality is important
     });
 
     // cout << symb->name() << endl;
@@ -807,10 +807,10 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
     unsigned funcSortId = add_sort(add_sort,funcSort);
 
     auto func_tup = c10::ivalue::Tuple::create({
-      symb->name(),
-      (int32_t)ot->numTypeArguments(),
-      (int32_t)funcSortId,
-      false
+      c10::IValue(symb->name()),
+      c10::IValue((int32_t)ot->numTypeArguments()),
+      c10::IValue((int32_t)funcSortId),
+      c10::IValue(false)
     });
 
     // cout << symb->name() << endl;
@@ -911,7 +911,7 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
               continue;
             } else { // tl.isVar()
               *todo.myId = nodeList.size();
-              nodeList.push_back(c10::ivalue::Tuple::create({"var",(int32_t)tl.var()}));
+              nodeList.push_back(c10::ivalue::Tuple::create({c10::IValue("var"),c10::IValue((int32_t)tl.var())}));
             }
           }
           // was in cache; popping later below
@@ -926,21 +926,21 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
             VSList::Iterator vs(sd->getLambdaVars());
             while (vs.hasNext()) {
               auto [var, sort] = vs.next();
-              vars.push_back(c10::ivalue::Tuple::create({"var",(int32_t)var,(int32_t)add_sort(add_sort,sort)}));
+              vars.push_back(c10::ivalue::Tuple::create({c10::IValue("var"),c10::IValue((int32_t)var),c10::IValue((int32_t)add_sort(add_sort,sort))}));
             }
             auto a = (int32_t)ids.pop();
             *todo.myId = nodeList.size();
             nodeList.push_back(c10::ivalue::Tuple::create({
-              "lambda",vars,
-              (int32_t)add_sort(add_sort,sd->getLambdaExpSort()),
-              (int32_t)add_sort(add_sort,sd->getSort()),
-              (int32_t)a
+              c10::IValue("lambda"),c10::IValue(vars),
+              c10::IValue((int32_t)add_sort(add_sort,sd->getLambdaExpSort())),
+              c10::IValue((int32_t)add_sort(add_sort,sd->getSort())),
+              c10::IValue((int32_t)a)
             }));
 
           } else if (t->isFormula()) {
             auto a = (int32_t)ids.pop();
             *todo.myId = nodeList.size();
-            nodeList.push_back(c10::ivalue::Tuple::create({"formula",a}));
+            nodeList.push_back(c10::ivalue::Tuple::create({c10::IValue("formula"),c10::IValue(a)}));
 
           } else {
             c10::impl::GenericList type_args(c10::AnyType::get());
@@ -955,9 +955,9 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
             }
             *todo.myId = nodeList.size();
             if (t->isApplication()) {
-              nodeList.push_back(c10::ivalue::Tuple::create({"app",type_args,term_args}));
+              nodeList.push_back(c10::ivalue::Tuple::create({c10::IValue("app"),c10::IValue(type_args),c10::IValue(term_args)}));
             } else {
-              nodeList.push_back(c10::ivalue::Tuple::create({(int32_t)func_to_idx(t->functor()),type_args,term_args}));
+              nodeList.push_back(c10::ivalue::Tuple::create({c10::IValue((int32_t)func_to_idx(t->functor())),c10::IValue(type_args),c10::IValue(term_args)}));
             }
           }
         }
@@ -1012,7 +1012,7 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
           }
 
           unsigned res = nodeList.size();
-          nodeList.push_back(c10::ivalue::Tuple::create({(int32_t)lit->functor(),type_args,term_args}));
+          nodeList.push_back(c10::ivalue::Tuple::create({c10::IValue((int32_t)lit->functor()),c10::IValue(type_args),c10::IValue(term_args)}));
           if (todo.myId) // don't store anything for unshared literals
             *todo.myId = res;
           ids.push(res);
@@ -1077,9 +1077,9 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
             case LITERAL: {
               Literal* lit = f->literal();
               unsigned posId = nodeList.size();
-              nodeList.push_back(c10::ivalue::Tuple::create({"atom",(int32_t)ids.pop()}));
+              nodeList.push_back(c10::ivalue::Tuple::create({c10::IValue("atom"),c10::IValue((int32_t)ids.pop())}));
               if (lit->isNegative()) {
-                nodeList.push_back(c10::ivalue::Tuple::create({"not",(int32_t)posId}));
+                nodeList.push_back(c10::ivalue::Tuple::create({c10::IValue("not"),c10::IValue((int32_t)posId)}));
                 ids.push(posId+1);
               } else {
                 ids.push(posId);
@@ -1088,7 +1088,7 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
             }
             case BOOL_TERM: {
               ids.push(nodeList.size());
-              nodeList.push_back(c10::ivalue::Tuple::create({"atom",(int32_t)ids.pop()}));
+              nodeList.push_back(c10::ivalue::Tuple::create({c10::IValue("atom"),c10::IValue((int32_t)ids.pop())}));
               break;
             }
             case AND:
@@ -1101,7 +1101,7 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
                 fs = fs->tail();
               }
               ids.push(nodeList.size());
-              nodeList.push_back(c10::ivalue::Tuple::create({conNames[con],args}));
+              nodeList.push_back(c10::ivalue::Tuple::create({c10::IValue(conNames[con]),c10::IValue(args)}));
               break;
             }
             case IMP:
@@ -1111,13 +1111,13 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
               auto a1 = (int32_t)ids.pop();
               auto a2 = (int32_t)ids.pop();
               ids.push(nodeList.size());
-              nodeList.push_back(c10::ivalue::Tuple::create({conNames[con],a1,a2}));
+              nodeList.push_back(c10::ivalue::Tuple::create({c10::IValue(conNames[con]),c10::IValue(a1),c10::IValue(a2)}));
               break;
             }
             case NOT: {
               auto a = (int32_t)ids.pop();
               ids.push(nodeList.size());
-              nodeList.push_back(c10::ivalue::Tuple::create({conNames[con],a}));
+              nodeList.push_back(c10::ivalue::Tuple::create({c10::IValue(conNames[con]),c10::IValue(a)}));
               break;
             }
             case FORALL:
@@ -1128,20 +1128,20 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
               while (vs.hasNext()) {
                 auto [var, sort] = vs.next();
                 if (sort.isTerm() && sort.term()->isSuper()) {
-                  vars.push_back(c10::ivalue::Tuple::create({"svar",(int32_t)var}));
+                  vars.push_back(c10::ivalue::Tuple::create({c10::IValue("svar"),c10::IValue((int32_t)var)}));
                 } else {
-                  vars.push_back(c10::ivalue::Tuple::create({"var",(int32_t)var,(int32_t)add_sort(add_sort,sort)}));
+                  vars.push_back(c10::ivalue::Tuple::create({c10::IValue("var"),c10::IValue((int32_t)var),c10::IValue((int32_t)add_sort(add_sort,sort))}));
                 }
               }
               auto a = (int32_t)ids.pop();
               ids.push(nodeList.size());
-              nodeList.push_back(c10::ivalue::Tuple::create({conNames[con],vars,a}));
+              nodeList.push_back(c10::ivalue::Tuple::create({c10::IValue(conNames[con]),c10::IValue(vars),c10::IValue(a)}));
               break;
             }
             case FALSE:
             case TRUE:
               ids.push(nodeList.size());
-              nodeList.push_back(c10::ivalue::Tuple::create({conNames[con]}));
+              nodeList.push_back(c10::ivalue::Tuple::create({c10::IValue(conNames[con])}));
               break;
             default:
               ASSERTION_VIOLATION;
@@ -1151,11 +1151,11 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
       }
     }
 
-    formulaList.push_back(c10::ivalue::Tuple::create({inputType,unitName,(int32_t)ids.pop()}));
+    formulaList.push_back(c10::ivalue::Tuple::create({c10::IValue(inputType),c10::IValue(unitName),c10::IValue((int32_t)ids.pop())}));
     // cout << inputType << " " << unitName << /* " " << f->toString() << */ endl;
   }
 
-  auto root = c10::ivalue::Tuple::create({typeConsList,sortList,symbolList,nodeList,formulaList});
+  auto root = c10::ivalue::Tuple::create({c10::IValue(typeConsList),c10::IValue(sortList),c10::IValue(symbolList),c10::IValue(nodeList),c10::IValue(formulaList)});
 
   // Serialize
   auto data = torch::jit::pickle_save(root);
