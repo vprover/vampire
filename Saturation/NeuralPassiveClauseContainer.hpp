@@ -59,7 +59,6 @@ private:
   int64_t _gageEmbeddingSize;
   torch::Tensor _gageRuleEmbed;
   torch::jit::script::Module _gageCombine;
-  torch::Tensor _gageStaticTweak;
 
   torch::Tensor _initialClauseGage;
   List<torch::Tensor>* _laterGageResults = nullptr; // just to prevent garbage collector from deleting too early
@@ -70,7 +69,6 @@ private:
 
   int64_t _gweightEmbeddingSize;
   torch::jit::script::Module _gweightTermCombine;
-  torch::Tensor _gweightStaticTweak;
 
   torch::Tensor _gweightSymbolEmbeds;
   List<torch::Tensor>* _gweightResults = nullptr; // just to prevent garbage collector from deleting too early
@@ -133,12 +131,6 @@ public:
       (*method)({
       torch::from_blob(staticFeatures.data(), {(unsigned)staticFeatures.size()}, torch::TensorOptions().dtype(torch::kFloat32))
       });
-
-      _gageStaticTweak = _model.attr("gage_static_tweak").toTensor();
-      _gweightStaticTweak = _model.attr("gweight_static_tweak").toTensor();
-    } else {
-      _gageStaticTweak = torch::zeros({}, torch::TensorOptions().dtype(torch::kFloat32));
-      _gweightStaticTweak = torch::zeros({}, torch::TensorOptions().dtype(torch::kFloat32));
     }
   }
 

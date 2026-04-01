@@ -239,8 +239,6 @@ void NeuralClauseEvaluationModel::gageEmbedPending()
         self.gage_embed_store[clNum] = res[j]
     */
     auto res = _gageCombine.forward({rect}).toTensor();
-    // adding the tweak to each column in res
-    res += _gageStaticTweak;
     {
       auto it = todos.iterFifo();
       int64_t j = 0;
@@ -318,7 +316,6 @@ void NeuralClauseEvaluationModel::gweightEmbedPending() {
       self.gweight_term_embed_store[id] = res[j]
     */
     auto res = _gweightTermCombine.forward({rect}).toTensor();
-    res += _gweightStaticTweak;
     {
       auto it = todos.iterFifo();
       int64_t j = 0;
