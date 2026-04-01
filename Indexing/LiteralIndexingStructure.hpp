@@ -21,30 +21,18 @@
 #include "Kernel/UnificationWithAbstraction.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Shell/Options.hpp"
+#include "IndexingStructure.hpp"
 
 namespace Indexing {
 
-template<class LeafData_>
-class LiteralIndexingStructure {
+template<class Data>
+class LiteralIndexingStructure : public IndexingStructure<Data> {
 public:
-  using LeafData = LeafData_;
-  virtual ~LiteralIndexingStructure() {}
-
-  virtual void handle(LeafData ld, bool insert) = 0;
-  void insert(LeafData ld) { handle(std::move(ld), /* insert = */ true ); }
-  void remove(LeafData ld) { handle(std::move(ld), /* insert = */ false); }
-
-  virtual VirtualIterator<LeafData> getAll() { NOT_IMPLEMENTED; }
-  virtual VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
-  virtual VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) = 0;
-  virtual VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
-  virtual VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
-  virtual VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getVariants(Literal* lit, bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
-
-  virtual void output(std::ostream& out, Option<unsigned> multilineIndent) const = 0;
-
-  friend std::ostream& operator<<(std::ostream& out,                 LiteralIndexingStructure const& self) {      self.output(out, {}               ); return out; }
-  friend std::ostream& operator<<(std::ostream& out, Output::Multiline<LiteralIndexingStructure>const& self) { self.self.output(out, some(self.indent)); return out; }
+  virtual VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+  virtual VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) = 0;
+  virtual VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+  virtual VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
+  virtual VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getVariants(Literal* lit, bool complementary, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
 };
 
 };

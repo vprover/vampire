@@ -27,7 +27,7 @@
 
 namespace Indexing {
 
-/** A wrapper class around SubstitutionTree that makes it usable  as a LiteralIndexingStructure */
+/** A wrapper class around SubstitutionTree that makes it usable as a LiteralIndexingStructure */
 template<class LeafData_>
 class LiteralSubstitutionTree
 : public LiteralIndexingStructure<LeafData_>
@@ -37,7 +37,6 @@ class LiteralSubstitutionTree
   using BindingMap                  = typename SubstitutionTree::BindingMap;
   using Node                        = typename SubstitutionTree::Node;
   using FastInstancesIterator       = typename SubstitutionTree::FastInstancesIterator;
-  using FastGeneralizationsIterator = typename SubstitutionTree::FastGeneralizationsIterator;
   using LDIterator                  = typename SubstitutionTree::LDIterator;
   using Leaf                        = typename SubstitutionTree::Leaf;
   using LeafIterator                = typename SubstitutionTree::LeafIterator;
@@ -50,22 +49,8 @@ public:
   void handle(LeafData ld, bool insert) final
   { getTree(ld.key(), /* complementary */ false).handle(std::move(ld), insert); }
 
-  VirtualIterator<LeafData> getAll() final
-  {
-    return pvi(
-          iterTraits(getRangeIterator((unsigned long)0, _trees.size()))
-           .flatMap([this](auto i) { return LeafIterator(_trees[i].get()); })
-           .flatMap([](Leaf* l) { return l->allChildren(); })
-           // TODO get rid of copying data here
-           .map([](LeafData const* ld) { return *ld; })
-        );
-  }
-
   VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData_>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions) final
   { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::RobUnification<RetrievalAlgorithms::DefaultVarBanks>>>(lit, complementary, retrieveSubstitutions)); }
-
-  VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions) final
-  { return pvi(getResultIterator<FastGeneralizationsIterator>(lit, complementary, retrieveSubstitutions)); }
 
   VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions) final
   { return pvi(getResultIterator<FastInstancesIterator>(lit, complementary, retrieveSubstitutions)); }

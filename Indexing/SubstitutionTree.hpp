@@ -673,104 +673,6 @@ public:
       Stack<NodeIterator> _nodeIterators;
     };
 
-
-
-     /**
-     * Class that supports matching operations required by
-     * retrieval of generalizations in substitution trees.
-     */
-    class GenMatcher
-    {
-      static unsigned weight(Literal* l) { return l->weight(); }
-      static unsigned weight(TermList t) { return  t.weight(); }
-    public:
-      GenMatcher(GenMatcher&&) = default;
-      GenMatcher& operator=(GenMatcher&&) = default;
-
-
-
-      template<class TermOrLit>
-      void init(TermOrLit query, unsigned nextSpecVar)
-      {
-        _boundVars.reset();
-        // _specVars->reset(); <- does not need to be reset as we only write before we read 
-        _bindings.reset();
-
-        _maxVar = weight(query) - 1;
-        if(_specVars.size()<nextSpecVar) {
-          //_specVars can get really big, but it was introduced instead of hash table
-          //during optimizations, as it raised performance by about 5%.
-          _specVars.ensure(std::max(static_cast<unsigned>(_specVars.size()*2), nextSpecVar));
-        }
-        _bindings.ensure(weight(query));
-      }
-
-      /**
-       * @b nextSpecVar Number higher than any special variable present in the tree.
-       * 	It's used to determine size of the array that stores bindings of
-       * 	special variables.
-       */
-      template<class TermOrLit>
-      GenMatcher(TermOrLit query, unsigned nextSpecVar)
-      { init(query,nextSpecVar); }
-
-      USE_ALLOCATOR(GenMatcher);
-
-      /**
-       * Bind special variable @b var to @b term. This method
-       * should be called only before any calls to @b matchNext()
-       * and @b backtrack().
-       */
-      void bindSpecialVar(unsigned var, TermList term)
-      {
-        (_specVars)[var]=term;
-      }
-      /**
-       * Return term bound to special variable @b specVar
-       */
-      TermList getSpecVarBinding(unsigned specVar)
-      { return (_specVars)[specVar]; }
-
-      bool matchNext(unsigned specVar, TermList nodeTerm, bool separate=true);
-      bool matchNextAux(TermList queryTerm, TermList nodeTerm, bool separate=true);
-      void backtrack();
-
-      ResultSubstitutionSP getSubstitution(Renaming* resultNormalizer);
-
-      int getBSCnt()
-      {
-        int res=0;
-        VarStack::Iterator vsit(_boundVars);
-        while(vsit.hasNext()) {
-      if(vsit.next()==BACKTRACK_SEPARATOR) {
-        res++;
-      }
-        }
-        return res;
-      }
-
-    protected:
-      static const unsigned BACKTRACK_SEPARATOR=0xFFFFFFFF;
-
-      struct Binder;
-      struct Applicator;
-      class Substitution;
-
-      VarStack _boundVars;
-      DArray<TermList> _specVars;
-      /**
-       * Inheritors must assign the maximal possible number of an ordinary
-       * variable that can be bound during the retrievall process.
-       */
-      unsigned _maxVar;
-
-      /**
-       * Inheritors must ensure that the size of this map will
-       * be at least @b _maxVar+1
-       */
-      ArrayMap<TermList> _bindings;
-    };
-
     /**
      * creates the bindings that need to be set for querying the given `term` from a substitution tree.
      * This means the root special variables of the substitution tree need to be set to the right values.
@@ -810,82 +712,6 @@ public:
         }
       }
     }
-
-    /**
-     * Iterator, that yields generalizations of given term/literal.
-     */
-    class FastGeneralizationsIterator
-    {
-    public:
-
-      FastGeneralizationsIterator(FastGeneralizationsIterator&&) = default;
-      FastGeneralizationsIterator& operator=(FastGeneralizationsIterator&&) = default;
-      DECL_ELEMENT_TYPE(QueryRes<ResultSubstitutionSP, LeafData>);
-      using Unifier = ResultSubstitutionSP;
-
-      void reset() {
-        _iterCntr.reset();
-        _resultNormalizer.reset();
-        _alternatives.reset();
-        _specVarNumbers.reset();
-        _nodeTypes.reset();
-      }
-
-      template<class TermOrLit>
-      void init(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed) {
-        _retrieveSubstitution = retrieveSubstitution;
-        _inLeaf = root->isLeaf();
-        _subst.init(query, parent->_nextVar);
-        _ldIterator = _inLeaf ? static_cast<Leaf*>(root)->allChildren() : LDIterator::getEmpty();
-        _root = root;
-
-        _iterCntr = parent->_iterCnt;
-        ASS(root);
-
-        parent->createBindings(query, reversed,
-            [&](unsigned var, TermList t) { _subst.bindSpecialVar(var, t); });
-      }
-
-      /**
-       * If @b reversed If true, parameters of supplied binary literal are
-       * 	reversed. (useful for retrieval commutative terms)
-       */
-      template<class TermOrLit>
-      FastGeneralizationsIterator(SubstitutionTree* parent, Node* root, TermOrLit query, bool retrieveSubstitution, bool reversed)
-      : _subst(query, parent->_nextVar)
-      { init(parent, root, query, retrieveSubstitution, reversed); }
-
-      QueryRes<ResultSubstitutionSP, LeafData> next();
-      bool hasNext();
-    protected:
-
-      bool findNextLeaf();
-      bool enterNode(Node*& node);
-
-      /** We should include substitutions in the results */
-      bool _retrieveSubstitution;
-      /** The iterator is currently in a leaf
-       *
-       * This is false in the beginning when it is in the root */
-      bool _inLeaf;
-
-      GenMatcher _subst;
-
-      LDIterator _ldIterator;
-
-      Renaming _resultNormalizer;
-
-      Node* _root;
-
-      Stack<void*> _alternatives;
-      Stack<unsigned> _specVarNumbers;
-      Stack<NodeAlgorithm> _nodeTypes;
-      InstanceCntr _iterCntr;
-    public:
-      bool keepRecycled() const 
-      { return _resultNormalizer.keepRecycled() || _alternatives.keepRecycled() || _specVarNumbers.keepRecycled() || _nodeTypes.keepRecycled(); }
-    };
-
 
     /**
      * Class that supports matching operations required by
@@ -1553,7 +1379,6 @@ public:
 
 #include "Indexing/SubstitutionTree_impl.hpp"
 #include "Indexing/SubstitutionTree_Nodes.hpp"
-#include "Indexing/SubstitutionTree_FastGen.hpp"
 #include "Indexing/SubstitutionTree_FastInst.hpp"
 
 #undef DEBUG_ITER

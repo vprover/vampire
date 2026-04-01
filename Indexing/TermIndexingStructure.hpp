@@ -17,27 +17,17 @@
 #define __TermIndexingStructure__
 
 #include "Index.hpp"
+#include "IndexingStructure.hpp"
 
 namespace Indexing {
 
 template<class Data>
-class TermIndexingStructure {
+class TermIndexingStructure : public IndexingStructure<Data> {
 public:
-  virtual ~TermIndexingStructure() {}
-
-  virtual void handle(Data data, bool insert) = 0;
-  void insert(Data data) { handle(std::move(data), /* insert */ true ); }
-  void remove(Data data) { handle(std::move(data), /* insert */ false); }
-
   virtual VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getUnifications(TypedTermList t, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
   virtual VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) = 0;
   virtual VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
   virtual VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getInstances(TypedTermList t, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
-
-  virtual void output(std::ostream& output) const = 0;
-
-  friend std::ostream& operator<<(std::ostream& out, TermIndexingStructure const& self)
-  { self.output(out); return out; }
 };
 
 

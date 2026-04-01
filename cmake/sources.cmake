@@ -168,6 +168,7 @@ set(SOURCES
     Indexing/CodeTreeInterfaces.hpp
     Indexing/Index.cpp
     Indexing/Index.hpp
+    Indexing/IndexingStructure.hpp
     Indexing/IndexManager.cpp
     Indexing/IndexManager.hpp
     Indexing/InductionFormulaIndex.cpp
@@ -183,7 +184,6 @@ set(SOURCES
     Indexing/ResultSubstitution.cpp
     Indexing/ResultSubstitution.hpp
     Indexing/SubstitutionTree.hpp
-    Indexing/SubstitutionTree_FastGen.hpp
     Indexing/SubstitutionTree_FastInst.hpp
     Indexing/SubstitutionTree_Nodes.hpp
     Indexing/SubstitutionTree_impl.hpp
