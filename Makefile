@@ -23,6 +23,18 @@
 #   CHECK_LEAKS      - test for memory leaks (debugging mode only)
 #   VZ3              - compile with Z3
 
+OS = $(shell uname)
+
+# assumes LIBTORCH environment variable to be set to (an absolute path to) whereever you extracted the libtorch files (best set via export in .bash_profile or similar)
+
+ifeq ($(OS),Darwin) # don't forget we need clang for libtorch (not working with gcc on Mac for some reason)
+TORCHLINK= -Wl,-search_paths_first -Wl,-headerpad_max_install_names
+TORCHLIB= -Wl,-rpath,$(LIBTORCH)/lib $(LIBTORCH)/lib/libc10.dylib $(LIBTORCH)/lib/libtorch.dylib $(LIBTORCH)/lib/libtorch_cpu.dylib
+else
+TORCHLINK= -D_GLIBCXX_USE_CXX11_ABI=1 -rdynamic
+TORCHLIB= -Wl,-rpath,$(LIBTORCH)/lib $(LIBTORCH)/lib/libtorch.so $(LIBTORCH)/lib/libc10.so $(LIBTORCH)/lib/libkineto.a -Wl,--no-as-needed,"$(LIBTORCH)/lib/libtorch_cpu.so" -Wl,--as-needed $(LIBTORCH)/lib/libc10.so -lpthread -Wl,--no-as-needed,"$(LIBTORCH)/lib/libtorch.so" -Wl,--as-needed
+endif
+
 COMMON_FLAGS = -DVTIME_PROFILING=0
 
 DBG_FLAGS = $(COMMON_FLAGS) -g  -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging for spider
@@ -78,10 +90,17 @@ XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -g
 
 INCLUDES= -I. -I/opt/local/include -Icadical/src -Imini-gmp-6.3.0 -Iviras/src
+
+ifeq ($(OS),Darwin)
+INCLUDES := $(INCLUDES) -Ilibtorch/include -Ilibtorch/include/torch/csrc/api/include
+else
+INCLUDES := $(INCLUDES) -DUSE_C10D_GLOO -DUSE_DISTRIBUTED -DUSE_RPC -DUSE_TENSORPIPE -isystem $(LIBTORCH)/include -isystem $(LIBTORCH)/include/torch/csrc/api/include  -D_GLIBCXX_USE_CXX11_ABI=1   -D_GLIBCXX_USE_CXX11_ABI=1
+endif
+
 Z3FLAG= -DVZ3=0
 Z3LIB=
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g'))
-INCLUDES= -I. -Imini-gmp-6.3.0 -Iviras/src -Iz3/src/api -Iz3/src/api/c++ -I/opt/local/include -Icadical/src
+INCLUDES := $(INCLUDES) -Iz3/src/api -Iz3/src/api/c++
 # ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*static.*//g'))
 # Z3LIB= -Lz3/build -lz3 -lgomp -pthread  -Wl,--whole-archive -lrt -lpthread -Wl,--no-whole-archive -ldl
 # else
@@ -134,7 +153,7 @@ CXX = g++
 CC = gcc
 endif
 
-CXXFLAGS = $(XFLAGS) -Wall -fno-threadsafe-statics -fno-rtti -std=c++17  $(INCLUDES) # -Wno-unknown-warning-option for clang
+CXXFLAGS = $(XFLAGS) -Wall -fno-threadsafe-statics -std=c++17 $(INCLUDES) # -Wno-unknown-warning-option for clang
 CCFLAGS = -Wall -O3 -DNDBLSCR -DNLGLOG -DNDEBUG -DNCHKSOL -DNLGLPICOSAT
 
 ################################################################
@@ -560,7 +579,7 @@ else
 endif
 
 define COMPILE_CMD
-$(CXX) $(CXXFLAGS) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(Z3LIB) -L/opt/local/lib -Lcadical/build -lcadical
+$(CXX) $(CXXFLAGS) $(TORCHLINK) $(filter -l%, $+) $(filter %.o, $^) -o $@_$(BRANCH)_$(COM_CNT) $(Z3LIB) -L/opt/local/lib -Lcadical/build -lcadical $(TORCHLIB)
 $(RPATH_CMD) $@_$(BRANCH)_$(COM_CNT)
 @#$(CXX) -static $(CXXFLAGS) $(Z3LIB) $(filter %.o, $^) -o $@
 @#strip $@
