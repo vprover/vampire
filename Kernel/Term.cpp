@@ -154,6 +154,33 @@ Option<unsigned> TermList::deBruijnIndex() const {
   return term()->deBruijnIndex();
 }
 
+bool TermList::containsLooseDBIndex() const
+{
+  Stack<std::pair<TermList,unsigned>> todo;
+  todo.emplace(*this, 0);
+
+  while (todo.isNonEmpty()) {
+    auto [curr, dep] = todo.pop();
+
+    if (curr.isVar() || (curr.term()->shared() && !curr.term()->hasDeBruijnIndex())) {
+      continue;
+    }
+
+    if (curr.deBruijnIndex().isSome()) {
+      unsigned idx = curr.deBruijnIndex().unwrap();
+      if (idx >= dep) { return true; }
+    }
+    else if (curr.isLambdaTerm()) {
+      todo.emplace(curr.lambdaBody(), dep + 1);
+    }
+    else if (curr.isApplication()) {
+      todo.emplace(curr.lhs(), dep);
+      todo.emplace(curr.rhs(), dep);
+    }
+  }
+  return false;
+}
+
 TermList TermList::lhs() const {
   ASS(isApplication())
 
@@ -360,7 +387,7 @@ unsigned Term::numTypeArguments() const {
       : env.signature->getFunction(_functor)->numTypeArguments();
 }
 
-TermList* Term::termArgs()
+const TermList* Term::termArgs() const
 {
   ASS(!isSort());
 
@@ -591,19 +618,15 @@ std::string Term::headToString() const
         return "$ite(" + sd->getITECondition()->toString() + ", ";
       }
       case SpecialFunctor::LAMBDA: {
-        VList* vars = sd->getLambdaVars();
-        SList* sorts = sd->getLambdaVarSorts();
-        ASS_EQ(VList::length(vars), SList::length(sorts))
-
+        VSList* vars = sd->getLambdaVars();
         TermList lambdaExp = sd->getLambdaExp();
 
         std::string varList;
 
-        VList::Iterator vs(vars);
-        SList::Iterator ss(sorts);
+        VSList::Iterator vs(vars);
         while (vs.hasNext()) {
-          varList += variableToString(vs.next()) + " : ";
-          varList += ss.next().toString();
+          auto [v, sort] = vs.next();
+          varList += variableToString(v) + " : " + sort.toString();
           if (vs.hasNext())
             varList += ", ";
         }
@@ -815,6 +838,11 @@ TermList Literal::eqArgSort() const {
   return SortHelper::getEqualityArgumentSort(this);
 }
 
+std::pair<TermList,TermList> Literal::eqArgs() const {
+  ASS(isEquality());
+  return { termArg(0), termArg(1) };
+}
+
 /**
  * Return the result of conversion of a literal into a std::string.
  *
@@ -1023,6 +1051,23 @@ Literal* Literal::complementaryLiteral(Literal* l)
   return res;
 }
 
+bool Literal::isFlexFlexConstraint() const
+{
+  ASS(isEquality());
+  return isNegative() && termArg(0).head().isVar() && termArg(1).head().isVar();
+}
+
+bool Literal::isFlexRigid() const
+{
+  ASS(isEquality());
+
+  auto [lhs, rhs] = eqArgs();
+  auto lhsHead = lhs.head();
+  auto rhsHead = rhs.head();
+
+  return (lhsHead.isVar() && !rhsHead.isVar()) || (rhsHead.isVar() && !lhsHead.isVar());
+}
+
 
 /** Create a new complex term, copy from @b t its function symbol and
  *  from the array @b args its arguments. Insert it into the sharing
@@ -1182,23 +1227,20 @@ Term* Term::createFormula(Formula* formula)
  * Create a lambda term from a list of lambda vars and an
  * expression and returns the resulting term
  */
-Term* Term::createLambda(TermList lambdaExp, VList* vars, SList* sorts, TermList expSort){
+Term* Term::createLambda(TermList lambdaExp, VSList* vars, TermList expSort){
   Term* s = new(0, sizeof(SpecialTermData)) Term;
   s->makeSymbol(toNormalFunctor(SpecialFunctor::LAMBDA), 0);
-  //should store body of lambda in args
   s->getSpecialData()->_lambdaData.lambdaExp = lambdaExp;
   s->getSpecialData()->_lambdaData._vars = vars;
-  s->getSpecialData()->_lambdaData._sorts = sorts;
   s->getSpecialData()->_lambdaData.expSort = expSort;
-  SList::Iterator sit(sorts);
   Stack<TermList> revSorts;
-  TermList lambdaTmSort = expSort;
-  while(sit.hasNext()){
-    revSorts.push(sit.next());
+  VSList::Iterator vit(vars);
+  while(vit.hasNext()){
+    revSorts.push(vit.next().second);
   }
+  TermList lambdaTmSort = expSort;
   while(!revSorts.isEmpty()){
-    TermList varSort = revSorts.pop();
-    lambdaTmSort = AtomicSort::arrowSort(varSort, lambdaTmSort);
+    lambdaTmSort = AtomicSort::arrowSort(revSorts.pop(), lambdaTmSort);
   }
   s->getSpecialData()->_lambdaData.sort = lambdaTmSort;
   return s;
@@ -1314,27 +1356,35 @@ TermList AtomicSort::arrowSort(TermList s1, TermList s2) {
 }
 
 TermList AtomicSort::arrowSort(unsigned size, const TermList* types, TermList range) {
-  ASS(size > 0)
+  ASS_G(size, 0);
 
   TermList res = range;
-  for (unsigned i = size; i-- > 0;)
+  for (unsigned i = size; i-- > 0;) {
     res = arrowSort(types[i], res);
+  }
 
   return res;
 }
 
 TermList AtomicSort::arrowSort(const std::initializer_list<TermList>& types) {
   const auto size = types.size();
-  ASS(size >= 2)
+  ASS_G(size, 1);
 
   const TermList* data = std::data(types);
   return arrowSort(size - 1, data, data[size - 1]);
 }
 
-TermList AtomicSort::arrowSort(const TermStack & domSorts, TermList range) {
+TermList AtomicSort::arrowSort(const TermStack& domSorts, TermList range, bool fromTop) {
   TermList res = range;
-  for (auto domSort : domSorts)
-    res = arrowSort(domSort, res);
+  if (fromTop) {
+    for (const auto& domSort : iterTraits(domSorts.iter())) {
+      res = arrowSort(domSort, res);
+    }
+  } else {
+    for (auto domSort : domSorts) {
+      res = arrowSort(domSort, res);
+    }
+  }
 
   return res;
 }

@@ -28,10 +28,6 @@ using namespace Indexing; using namespace Saturation;
 template<class NumTraits>
 struct IntegerFourierMotzkinConf
 {
-  IntegerFourierMotzkinConf(std::shared_ptr<AlascaState> shared) 
-    : _shared(std::move(shared))
-  {  }
-
   using Premise0 = FourierMotzkin::Lhs;
   using Premise1 = FourierMotzkin::Rhs;
 
@@ -151,14 +147,12 @@ struct IntegerFourierMotzkinConf
             )
           )));
   }
-
-  std::shared_ptr<AlascaState> _shared;
 };
 
 template<class NumTraits>
 struct IntegerFourierMotzkin : public TriInf<IntegerFourierMotzkinConf<NumTraits>>  {
-  IntegerFourierMotzkin(std::shared_ptr<AlascaState> state) 
-    : TriInf<IntegerFourierMotzkinConf<NumTraits>>(state, IntegerFourierMotzkinConf<NumTraits>(state)) {}
+  IntegerFourierMotzkin(SaturationAlgorithm& salg) 
+    : TriInf<IntegerFourierMotzkinConf<NumTraits>>(salg, IntegerFourierMotzkinConf<NumTraits>()) {}
 };
 
 } // namespace ALASCA 

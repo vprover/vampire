@@ -277,6 +277,8 @@ enum class InferenceRule : unsigned char {
   ALASCA_VIRAS_QE,
 
   BOOL_SIMP,
+  FLEX_FLEX_SIMPLIFICATION,
+  BETA_ETA_NORMALIZATION,
 
   FUNCTION_DEFINITION_DEMODULATION,
 
@@ -340,7 +342,8 @@ enum class InferenceRule : unsigned char {
   PRIMITIVE_INSTANTIATION,
   LEIBNIZ_ELIMINATION,
   HILBERTS_CHOICE_INSTANCE, // not considered a theory axiom at the moment (it's a HOL creature)
-  NEGATIVE_EXT,
+  NEGATIVE_EXTENSIONALITY,
+  POSITIVE_EXTENSIONALITY,
   EQ_TO_DISEQ,
   /** The next five rules can be either simplifying or generating */
   HOL_NOT_ELIMINATION,
@@ -665,6 +668,21 @@ struct InferenceOfASatClause {
   UnitList* premises;
 };
 
+/**
+ * A little hack that will store premises as INFERENCE_MANY does (in the first pointer)
+ * but will keep the AVATAR component's "causal parent" in the second pointer.
+ * Note that causal parent is not a premise logically, but as it is the clause from
+ * which the component clause got split (for the first time), it's sometimes useful
+ * to know who the causal parent was when computing certain heuristics.
+*/
+struct ComponentClauseInference {
+  ComponentClauseInference(InferenceRule r, UnitList* prems, Clause* causalParent)
+    : rule(r), premises(prems), causalParent(causalParent) {}
+  InferenceRule rule;
+  UnitList* premises;
+  Clause* causalParent;
+};
+
 struct NeedsMinimization; // defined in SATInference.hpp
 
 class Inference;
@@ -690,8 +708,6 @@ private:
     _rule = r;
     _included = false;
     _inductionDepth = 0;
-    _XXNarrows = 0;
-    _reductions = 0;
     _sineLevel = std::numeric_limits<decltype(_sineLevel)>::max();
     _splits = nullptr;
     _age = 0;
@@ -737,6 +753,7 @@ public:
 
   Inference(const NeedsMinimization& fsr);
   Inference(const InferenceOfASatClause& isc);
+  Inference(const ComponentClauseInference& cci);
 
   Inference(const Inference&) = default;
 
@@ -880,16 +897,11 @@ public:
   unsigned inductionDepth() const { return _inductionDepth; }
   void setInductionDepth(unsigned d) { _inductionDepth = d; }
 
-  unsigned xxNarrows() const { return _XXNarrows; }
-  /** used to propagate in AVATAR **/
-  void setXXNarrows(unsigned n) { _XXNarrows = n; }
-  void incXXNarrows(){ if(_XXNarrows < 8){ _XXNarrows++; } }
-
-  unsigned reductions() const { return _reductions; }
-  void setReductions(unsigned r) { _reductions = r; } 
-  void increaseReductions(unsigned n){ _reductions += n; }
-
-  void computeTheoryRunningSums();
+  Clause* getCausalParent() const {
+    ASS_EQ((unsigned char)_kind,(unsigned char)Kind::INFERENCE_MANY)
+    ASS_NEQ(_ptr2,0)
+    return static_cast<Clause*>(_ptr2);
+  }
 
   SplitSet* splits() const { return _splits; }
   void setSplits(SplitSet* splits) {
@@ -907,38 +919,6 @@ public:
   void setAge(unsigned a) { _age = a; }
 
 private:
-  Kind _kind : 2;
-
-  UnitInputType _inputType : 3;
-
-  /** The rule used */
-  InferenceRule _rule : 8;
-
-  /** true if the unit is read from a TPTP included file  */
-  bool _included : 1;
-
-  /** track whether all leafs were theory axioms only */
-  bool _isPureTheoryDescendant : 1;
-  /** Induction depth **/
-  unsigned _inductionDepth : 5;
-
-  /** Sine level computed in SineUtils and used in various heuristics.
-   * May stay uninitialized (i.e. always MAX), if not needed
-   **/
-  unsigned char _sineLevel : 8; // updated as the minimum from parents to children
-
-  /** number of XX' narrows carried out on clause */
-  unsigned _XXNarrows : 3;
-  /** number of weak reductions in the history of this clause */
-  unsigned _reductions : 30;
-
-  // aligned to 64 bits
-
-  /** age */
-  unsigned _age;
-
-  SplitSet* _splits;
-
   /**
    * General storage for all Kinds of Inference:
    * INFERENCE_012 - use ptr1 and ptr2 in sequence storing its up to two premises "left to right"
@@ -952,12 +932,30 @@ private:
   void* _ptr1;
   void* _ptr2;
 
+  SplitSet* _splits;
 
-public:
-  // counting the leafs (in the tree rather than dag sense)
-  // which are theory axioms and the total across all leafs
-  float th_ancestors, all_ancestors; // we use floats, because this can grow large (because of the tree understanding of the dag);
-  // CAREFUL: could this lead to platform differences?
+  /** age */
+  unsigned _age;
+
+  /** The rule used */
+  InferenceRule _rule : 8;
+  /** Sine level computed in SineUtils and used in various heuristics.
+   * May stay uninitialized (i.e. always MAX), if not needed
+   **/
+  unsigned char _sineLevel : 8; // updated as the minimum from parents to children
+
+  Kind _kind : 2;
+
+  UnitInputType _inputType : 3;
+
+  /** true if the unit is read from a TPTP included file  */
+  bool _included : 1;
+
+  /** track whether all leafs were theory axioms only */
+  bool _isPureTheoryDescendant : 1;
+  /** Induction depth **/
+  unsigned _inductionDepth : 9;
+
 }; // class Inference
 
 } // namespace Kernel

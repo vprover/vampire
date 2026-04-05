@@ -33,6 +33,9 @@
 
 namespace Parse {
   using namespace Kernel;
+  /** Local typedef: SList is only used internally in the parser for
+   *  per-variable sort binding stacks (_variableSorts) and _sortLists. */
+  typedef Lib::List<TermList> SList;
 
 /**
  * Implements a TPTP parser
@@ -848,7 +851,7 @@ public:
     InferenceSourceRecord(std::string n) : name(n) {}
   };
 
-  void setUnitSourceMap(DHMap<Unit*,SourceRecord*>* m){
+  void setUnitSourceMap(DHMap<unsigned,SourceRecord*>* m){
     _unitSources = m;
   }
   SourceRecord* getSource();
@@ -856,7 +859,7 @@ public:
   void setFilterReserved(){ _filterReserved=true; }
 
 private:
-  DHMap<Unit*,SourceRecord*>* _unitSources;
+  DHMap<unsigned,SourceRecord*>* _unitSources;
 
   /** This field stores names of input units if the
    * output_axiom_names option is enabled */

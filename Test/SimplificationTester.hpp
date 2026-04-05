@@ -27,23 +27,10 @@ namespace Test {
 
 namespace Simplification {
 
-class SimplificationTester
+struct SimplificationTester : public Generation::GenerationTester
 {
-public:
-  virtual Kernel::Clause* simplify(Kernel::Clause*) = 0;
-
-  virtual bool eq(Kernel::Clause* lhs, Kernel::Clause* rhs) const 
+  bool eq(Kernel::Clause* lhs, Kernel::Clause* rhs) override 
   { return TestUtils::eqModAC(lhs, rhs); }
-};
-
-template<typename T>
-class RuleSimplificationTester
-  : public SimplificationTester
-{
-  T _rule;
-public:
-  Kernel::Clause* simplify(Kernel::Clause* cl) override
-  { return _rule.simplify(cl); }
 };
 
 class Redundant { };
@@ -73,8 +60,22 @@ public:
     return *this;
   }
 
-  void run(SimplificationTester& simpl) {
-    auto res = simpl.simplify(_input);
+  template<typename Rule, typename Tester, bool withSaturation = false>
+  void run() {
+    Problem prb;
+    Options opt;
+    opt.resolveAwayAutoValues(prb);
+    MockedSaturationAlgorithm alg(prb, opt);
+
+    Clause* res;
+    if constexpr (withSaturation) {
+      Rule rule(alg);
+      res = rule.simplify(_input);
+    } else {
+      Rule rule;
+      res = rule.simplify(_input);
+    }
+    Tester tester;
 
     return _expected->match(
         [&](ClausePattern& expected) {
@@ -85,7 +86,7 @@ public:
             std::cout << "[ expected ]: " << pretty(expected) << std::endl;
             exit(-1);
 
-          } else if (!expected.matches(simpl, res)) {
+          } else if (!expected.matches(tester, res)) {
             std::cout  << std::endl;
             std::cout << "[     case ]: " << pretty(*_input) << std::endl;
             std::cout << "[       is ]: " << pretty(*res) << std::endl;
@@ -115,8 +116,21 @@ public:
     return *this;
   }
 
-  void run(SimplificationTester& simpl) {
-    auto res = simpl.simplify(_input);
+  template<typename Rule, typename Tester, bool withSaturation = false>
+  void run() {
+    Problem prb;
+    Options opt;
+    opt.resolveAwayAutoValues(prb);
+    MockedSaturationAlgorithm alg(prb, opt);
+
+    Clause* res;
+    if constexpr (withSaturation) {
+      Rule rule(alg);
+      res = rule.simplify(_input);
+    } else {
+      Rule rule;
+      res = rule.simplify(_input);
+    }
     if (res != _input) {
       std::cout  << std::endl;
       std::cout << "[     case ]: " << pretty(*_input) << std::endl;
@@ -125,17 +139,6 @@ public:
       exit(-1);
     }
   }
-};
-
-template<class Rule>
-class SimplificationManyTester
-  : public Generation::GenerationTester<Rule>
-{
-public:
-  SimplificationManyTester(Rule rule)
-    : Generation::GenerationTester<Rule>(rule)
-  {  }
-  virtual Option<ClauseIterator> simplifyMany(Kernel::Clause*) = 0;
 };
 
 class NotApplicableMany
@@ -148,8 +151,9 @@ public:
     return *this;
   }
 
-  template<class Rule>
-  void run(SimplificationManyTester<Rule>& simpl) {
+  template<typename Rule, typename Tester>
+  void run() {
+    Rule simpl;
     auto resOp = simpl.simplifyMany(_input);
     if (resOp.isSome()) {
       auto res = Stack<Kernel::Clause*>::fromIterator(std::move(*resOp));
@@ -166,7 +170,6 @@ class SuccessMany
 {
   Kernel::Clause* _input = nullptr;
   Option<StackMatcher> _expected;
-
 public:
   SuccessMany input(Kernel::Clause* x)
   {
@@ -180,9 +183,10 @@ public:
     return *this;
   }
 
-  template<class Rule>
-  void run(SimplificationManyTester<Rule>& simpl) {
-    auto resOp = simpl.simplifyMany(_input);
+  template<typename Rule, typename Tester>
+  void run() {
+    Rule rule;
+    auto resOp = rule.simplifyMany(_input);
     auto exp = _expected.unwrap();
     if (resOp.isNone()) {
       std::cout  << std::endl;
@@ -191,8 +195,9 @@ public:
       std::cout << "[ expected ]: " << pretty(exp) << std::endl;
       exit(-1);
     } else {
+      Tester tester;
       auto res = Stack<Kernel::Clause*>::fromIterator(std::move(*resOp));
-      if (!exp.matches(res, simpl)) {
+      if (!exp.matches(res, tester)) {
         std::cout  << std::endl;
         std::cout << "[     case ]: " << pretty(*_input) << std::endl;
         std::cout << "[       is ]: " << pretty(res) << std::endl;
@@ -203,30 +208,28 @@ public:
   }
 };
 
-
-#define REGISTER_SIMPL_TESTER(t) using SimplTester = t;
-
 #define TEST_SIMPLIFY(name, ...)                                                                              \
-        TEST_SIMPLIFY_WITH_SUGAR(name, MY_SYNTAX_SUGAR, __VA_ARGS__) 
+        TEST_SIMPLIFY_WITH_SUGAR(name, MY_SIMPL_RULE, MY_SIMPL_TESTER, MY_SYNTAX_SUGAR, __VA_ARGS__)
 
-#define TEST_SIMPLIFY_WITH_SUGAR(name, syntax_sugar, ...)                                                     \
+#define TEST_SIMPLIFY_WITH_SUGAR(name, rule, tester, syntax_sugar, test, ...)                                 \
   TEST_FUN(name) {                                                                                            \
-    SimplTester simpl;                                                                                        \
     __ALLOW_UNUSED(syntax_sugar)                                                                              \
-    __VA_ARGS__.run(simpl);                                                                                   \
+    test.run<rule, tester>(__VA_ARGS__);                                                                      \
   }                                                                                                           \
 
-
-#define REGISTER_SIMPL_MANY_TESTER(t) using SimplManyTester = t;
+#define TEST_SIMPLIFY_WITH_SATURATION(name, test, ...)                                                        \
+  TEST_FUN(name) {                                                                                            \
+    __ALLOW_UNUSED(MY_SYNTAX_SUGAR)                                                                           \
+    test.run<MY_SIMPL_RULE, MY_SIMPL_TESTER, /* withSaturation=*/ true>(__VA_ARGS__);                         \
+  }                                                                                                           \
 
 #define TEST_SIMPLIFY_MANY(name, ...)                                                                         \
-        TEST_SIMPLIFY_MANY_WITH_SUGAR(name, MY_SYNTAX_SUGAR, __VA_ARGS__)
+        TEST_SIMPLIFY_MANY_WITH_SUGAR(name, MY_SIMPL_RULE, MY_SIMPL_TESTER, MY_SYNTAX_SUGAR, __VA_ARGS__)
 
-#define TEST_SIMPLIFY_MANY_WITH_SUGAR(name, syntax_sugar, ...)                                                \
+#define TEST_SIMPLIFY_MANY_WITH_SUGAR(name, rule, tester, syntax_sugar, test, ...)                            \
   TEST_FUN(name) {                                                                                            \
-    SimplManyTester simpl;                                                                                    \
     __ALLOW_UNUSED(syntax_sugar)                                                                              \
-    __VA_ARGS__.run(simpl);                                                                                   \
+    test.run<rule, tester>(__VA_ARGS__);                                                                      \
   }                                                                                                           \
 
 } // namespace Simplification

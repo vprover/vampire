@@ -62,14 +62,7 @@ Clause::Clause(Literal* const* lits, unsigned length, Inference inf)
     _extensionalityTag(false),
     _component(false),
     _store(NONE),
-    _numSelected(0),
-    _weight(0),
-    _weightForClauseSelection(0),
-    _refCnt(0),
-    _reductionTimestamp(0),
-    _literalPositions(0),
-    _numActiveSplits(0),
-    _auxTimestamp(0)
+    _numSelected(0)
 {
   // MS: TODO: not sure if this belongs here and whether EXTENSIONALITY_AXIOM input types ever appear anywhere (as a vampire-extension TPTP formula role)
   if(inference().inputType() == UnitInputType::EXTENSIONALITY_AXIOM){
@@ -81,6 +74,12 @@ Clause::Clause(Literal* const* lits, unsigned length, Inference inf)
   for(unsigned i = 0; i < length; i++) {
     (*this)[i] = lits[i];
   }
+
+#if VDEBUG
+  // check that the variable sorts are consistent
+  DHMap<unsigned, TermList> temp;
+  SortHelper::collectVariableSorts(this, temp);
+#endif
 
   doUnitTracing();
 }
@@ -425,10 +424,6 @@ std::string Clause::toString() const
     if(env.options->induction() != Shell::Options::Induction::NONE){
       result += std::string(",inD:") + Int::toString(_inference.inductionDepth());
     }
-    result += ",thAx:" + Int::toString((int)(_inference.th_ancestors));
-    result += ",allAx:" + Int::toString((int)(_inference.all_ancestors));
-
-    result += ",thDist:" + Int::toString( _inference.th_ancestors * env.options->theorySplitQueueExpectedRatioDenom() - _inference.all_ancestors);
     result += std::string("}");
   }
 
@@ -666,7 +661,7 @@ unsigned Clause::maxVar()
 unsigned Clause::numPositiveLiterals()
 {
   unsigned count = 0;
-  for (int i = 0; i < _length; i++)
+  for (unsigned i = 0; i < _length; i++)
   {
     Literal *lit = (*this)[i];
     if (lit->isPositive())

@@ -161,7 +161,7 @@ private:
   DArray<unsigned> _fminbound;
   // Record for each clause the sorts of the variables
   // As clauses are normalized variables will be numbered 0,1,...
-  DHMap<Clause*,DArray<unsigned>*> _clauseVariableSorts;
+  DHMap<unsigned,DArray<unsigned>*> _clauseVariableSorts;
 
   // There is a implicit mapping from ground terms to SAT variables
   // These offsets give the SAT variable for the *first* grounding of each function or predicate symbol

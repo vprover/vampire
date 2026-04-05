@@ -87,6 +87,10 @@ public:
   /** True if the clause is empty */
   bool isEmpty() const { return _length == 0; }
 
+  /**
+   * Sort literals in a consistent order that allows easy detection of tautologies,
+   * i.e. first by atom, then by polarity
+   */
   void sort();
 
   void destroy();

@@ -53,7 +53,7 @@ public:
     if (_data.findOrInsert(v, res, _nextVar)) {
       _nextVar++;
       if(v!=res) {
-	_identity = false;
+        _identity = false;
       }
     }
     return res;

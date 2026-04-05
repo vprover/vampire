@@ -95,7 +95,7 @@ void ActiveClauseContainer::add(Clause* c)
   TIME_TRACE("add clause")
 
   ASS(c->store()==Clause::ACTIVE);
-  ALWAYS(_clauses.insert(c));
+  ALWAYS(_clauses.insert(c->number(), c));
   addedEvent.fire(c);
 }
 
@@ -108,7 +108,7 @@ void ActiveClauseContainer::add(Clause* c)
 void ActiveClauseContainer::remove(Clause* c)
 {
   ASS(c->store()==Clause::ACTIVE);
-  ALWAYS(_clauses.remove(c));
+  ALWAYS(_clauses.remove(c->number()));
   removedEvent.fire(c);
 } // Active::ClauseContainer::remove
 
@@ -122,7 +122,7 @@ void ActiveClauseContainer::onLimitsUpdated(PassiveClauseContainer* limits)
   static Stack<Clause*> toRemove(64);
   toRemove.reset();
 
-  auto rit = _clauses.iter();
+  auto rit = _clauses.range();
   while (rit.hasNext()) {
     Clause* cl=rit.next();
     ASS(cl);

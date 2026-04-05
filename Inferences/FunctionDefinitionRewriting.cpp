@@ -48,7 +48,7 @@ struct Applicator : SubstApplicator {
 Clause* performRewriting(
     Clause *rwClause, Literal *rwLit, TermList rwTerm, Clause *eqClause,
     Literal *eqLit, TermList eqLHS, ResultSubstitutionSP subst,
-    DemodulationHelper* helper, bool& isEqTautology, Inference&& inf)
+    const DemodulationHelper* helper, bool& isEqTautology, Inference&& inf)
 {
   ASS(!eqLHS.isVar());
 
@@ -105,11 +105,9 @@ Clause* performRewriting(
   return Clause::fromStack(*resLits, inf);
 }
 
-void FunctionDefinitionRewriting::attach(SaturationAlgorithm* salg)
-{
-  GeneratingInferenceEngine::attach(salg);
-  _helper = DemodulationHelper(salg->getOptions(), &salg->getOrdering());
-}
+FunctionDefinitionRewriting::FunctionDefinitionRewriting(SaturationAlgorithm& salg)
+  : _salg(salg), _helper(DemodulationHelper(salg.getOptions(), &salg.getOrdering()))
+{}
 
 Kernel::ClauseIterator FunctionDefinitionRewriting::generateClauses(Clause *premise)
 {
@@ -120,7 +118,7 @@ Kernel::ClauseIterator FunctionDefinitionRewriting::generateClauses(Clause *prem
     })
     .flatMap([this](std::pair<Literal*, Term*> arg){
       return pvi(pushPairIntoRightIterator(arg,
-        GeneratingInferenceEngine::_salg->getFunctionDefinitionHandler().getGeneralizations(arg.second)));
+        _salg.getFunctionDefinitionHandler().getGeneralizations(arg.second)));
     })
     .map([premise](auto arg) {
       auto &qr = arg.second;
@@ -132,16 +130,12 @@ Kernel::ClauseIterator FunctionDefinitionRewriting::generateClauses(Clause *prem
     .filter(NonzeroFn()));
 }
 
-void FunctionDefinitionDemodulation::attach(SaturationAlgorithm* salg)
-{
-  ForwardSimplificationEngine::attach(salg);
-  _helper = DemodulationHelper(salg->getOptions(), &salg->getOrdering());
-}
+FunctionDefinitionDemodulation::FunctionDefinitionDemodulation(SaturationAlgorithm& salg)
+  : _ord(salg.getOrdering()), _helper(salg.getOptions(), &_ord), _fnDefHandler(salg.getFunctionDefinitionHandler())
+{}
 
 bool FunctionDefinitionDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
-  Ordering& ordering = _salg->getOrdering();
-
   static DHSet<Term*> attempted;
   attempted.reset();
 
@@ -158,7 +152,7 @@ bool FunctionDefinitionDemodulation::perform(Clause* cl, Clause*& replacement, C
 
       bool redundancyCheck = _helper.redundancyCheckNeededForPremise(cl, lit, trm);
 
-      auto git = _salg->getFunctionDefinitionHandler().getGeneralizations(trm);
+      auto git = _fnDefHandler.getGeneralizations(trm);
       while (git.hasNext()) {
         auto qr = git.next();
         if (qr.data->clause->length() != 1) {
@@ -166,7 +160,7 @@ bool FunctionDefinitionDemodulation::perform(Clause* cl, Clause*& replacement, C
         }
         auto rhs = EqHelper::getOtherEqualitySide(qr.data->literal, qr.data->term);
         // TODO shouldn't allow demodulation with incomparables in the non-ground case
-        if (Ordering::isGreaterOrEqual(ordering.compare(rhs,qr.data->term))) {
+        if (Ordering::isGreaterOrEqual(_ord.compare(rhs,qr.data->term))) {
           continue;
         }
         bool isEqTautology = false;

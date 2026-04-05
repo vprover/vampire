@@ -37,40 +37,40 @@ using namespace Kernel;
 using namespace Inferences;
 
 SuperpositionSubtermIndex::SuperpositionSubtermIndex(SaturationAlgorithm& salg)
-: TermIndex(new UnifierTree()), _ord(salg.getOrdering()) {}
+: TermIndex(new UnifierTree()), _ord(salg.getOrdering()), _higherOrder(env.higherOrder()) {}
 
 void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
 {
+  TIME_TRACE("backward superposition index maintenance");
+
   for (const auto& lit : c->getSelectedLiteralIterator()) {
-    for (const auto& lhs : iterTraits(EqHelper::getSubtermIterator(lit, _ord))) {
-      _is->handle(TermLiteralClause{ lhs, lit, c }, adding);
+    for (const auto& tt : iterTraits(EqHelper::getSubtermIterator(lit, _ord, _higherOrder))) {
+      _is->handle(TermLiteralClause{ tt, lit, c }, adding);
     }
   }
 }
 
 SuperpositionLHSIndex::SuperpositionLHSIndex(SaturationAlgorithm& salg)
-: TermIndex(new UnifierTree()),
-  _ord(salg.getOrdering()), _opt(salg.getOptions()) {}
+: TermIndex(new UnifierTree()), _ord(salg.getOrdering()), _opt(salg.getOptions()) {}
 
 void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
 {
   TIME_TRACE("forward superposition index maintenance");
 
-  unsigned selCnt=c->numSelected();
-  for (unsigned i=0; i<selCnt; i++) {
-    Literal* lit=(*c)[i];
-    auto lhsi = EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt);
-    while (lhsi.hasNext()) {
-	    _is->handle(TermLiteralClause{ lhsi.next(), lit, c }, adding);
+  for (const auto& lit : c->getSelectedLiteralIterator()) {
+    for (const auto& lhs : iterTraits(EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt))) {
+	    _is->handle(TermLiteralClause{ lhs, lit, c }, adding);
     }
   }
 }
 
-DemodulationSubtermIndex::DemodulationSubtermIndex(SaturationAlgorithm& salg)
+template<bool higherOrder>
+DemodulationSubtermIndex<higherOrder>::DemodulationSubtermIndex(SaturationAlgorithm& salg)
 : TermIndex(new TermSubstitutionTree<TermLiteralClause>()),
   _skipNonequationalLiterals(salg.getOptions().demodulationOnlyEquational()) {};
 
-void DemodulationSubtermIndex::handleClause(Clause* c, bool adding)
+template<bool higherOrder>
+void DemodulationSubtermIndex<higherOrder>::handleClause(Clause* c, bool adding)
 {
   TIME_TRACE("backward demodulation index maintenance");
 
@@ -91,7 +91,7 @@ void DemodulationSubtermIndex::handleClause(Clause* c, bool adding)
       continue;
     }
 
-    NonVariableNonTypeIterator it(lit);
+    RewritableSubtermIterator<higherOrder> it(lit);
     while (it.hasNext()) {
       Term* t= it.next();
       if (!inserted.insert(t)) {//TODO existing error? Terms are inserted once per a literal
@@ -110,11 +110,16 @@ void DemodulationSubtermIndex::handleClause(Clause* c, bool adding)
   }
 }
 
-DemodulationLHSIndex::DemodulationLHSIndex(SaturationAlgorithm& salg)
-: TermIndex(new CodeTreeTIS<DemodulatorData>()), _ord(salg.getOrdering()),
+template class DemodulationSubtermIndex<true>;
+template class DemodulationSubtermIndex<false>;
+
+template<bool higherOrder>
+DemodulationLHSIndex<higherOrder>::DemodulationLHSIndex(SaturationAlgorithm& salg)
+: TermIndex(new CodeTreeTIS<higherOrder, DemodulatorData>()), _ord(salg.getOrdering()),
   _preordered(salg.getOptions().forwardDemodulation()==Options::Demodulation::PREORDERED) {};
 
-void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
+template<bool higherOrder>
+void DemodulationLHSIndex<higherOrder>::handleClause(Clause* c, bool adding)
 {
   if (c->length()!=1) {
     return;
@@ -140,6 +145,9 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
     _is->handle(std::move(dd), adding);
   }
 }
+
+template class DemodulationLHSIndex<true>;
+template class DemodulationLHSIndex<false>;
 
 InductionTermIndex::InductionTermIndex(SaturationAlgorithm& salg)
 : TermIndex(new TermSubstitutionTree<TermLiteralClause>()), _inductionGroundOnly(salg.getOptions().inductionGroundOnly()) {}

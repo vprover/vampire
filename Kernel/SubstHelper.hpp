@@ -524,14 +524,14 @@ Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator, bool noShari
   case EXISTS:
   {
     bool varsModified = false;
-    VList* newVars = VList::empty();
-    VList::Iterator vit(f->vars());
+    VSList* newVars = VSList::empty();
+    VSList::Iterator vit(f->vars());
     while(vit.hasNext()) {
-      unsigned v = vit.next();
+      auto [v, sort] = vit.next();
       TermList binding = applicator.apply(v);
       ASS(binding.isVar());
       unsigned newVar = binding.var();
-      VList::push(newVar, newVars);
+      VSList::push({newVar, sort}, newVars);
       if(newVar!=v) {
         varsModified = true;
       }
@@ -539,11 +539,10 @@ Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator, bool noShari
 
     Formula* arg = applyImpl<ProcessSpecVars>(f->qarg(), applicator, noSharing);
     if (!varsModified && arg == f->qarg()) {
-      VList::destroy(newVars);
+      VSList::destroy(newVars);
       return f;
     }
-    //TODO compute an updated sorts list
-    return new QuantifiedFormula(f->connective(),newVars,0,arg);
+    return new QuantifiedFormula(f->connective(),newVars,arg);
   }
 
   case BOOL_TERM:

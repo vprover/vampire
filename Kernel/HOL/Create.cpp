@@ -41,25 +41,60 @@ TermList HOL::create::app(TermList s1, TermList s2, TermList arg1, TermList arg2
                          : Term::createNonShared(app, 4, args.begin()));
 }
 
-TermList HOL::create::app(TermList sort, TermList head, const TermStack& terms) {
+TermList HOL::create::app(TermList sort, TermList head, const TermStack& terms, bool fromTop) {
   ASS(head.isVar() || SortHelper::getResultSort(head.term()) == sort)
 
   TermList res = head;
 
-  for (std::size_t i = terms.size(); i > 0; i--) {
-    TermList s1 = getNthArg(sort, 1);
-    TermList s2 = getResultAppliedToNArgs(sort, 1);
-    res = app(s1, s2, res, terms[i-1]);
-    sort = s2;
+  if (fromTop) {
+    for (const auto& arg : iterTraits(terms.iter())) {
+      TermList s1 = sort.domain();
+      TermList s2 = sort.result();
+      res = app(s1, s2, res, arg);
+      sort = s2;
+    }
+  } else {
+    for (const auto& arg : terms) {
+      TermList s1 = sort.domain();
+      TermList s2 = sort.result();
+      res = app(s1, s2, res, arg);
+      sort = s2;
+    }
   }
 
   return res;
 }
 
-TermList HOL::create::app(TermList head, const TermStack& terms) {
+TermList HOL::create::app(TermList head, const TermStack& terms, bool fromTop) {
   ASS(head.isTerm())
 
-  return app(SortHelper::getResultSort(head.term()), head, terms);
+  return app(SortHelper::getResultSort(head.term()), head, terms, fromTop);
+}
+
+TermList HOL::create::top() {
+  return TermList(Term::foolTrue());
+}
+
+TermList HOL::create::bottom() {
+  return TermList(Term::foolFalse());
+}
+
+TermList HOL::create::conj() {
+  static const auto conjProxy = env.signature->getBinaryProxy("vAND");
+
+  return TermList(Term::createConstant(conjProxy));
+}
+
+TermList HOL::create::disj() {
+  static const auto disjProxy = env.signature->getBinaryProxy("vOR");
+
+  return TermList(Term::createConstant(disjProxy));
+}
+
+TermList HOL::create::imp() {
+  static const auto impProxy = env.signature->getBinaryProxy("vIMP");
+
+  return TermList(Term::createConstant(impProxy));
 }
 
 TermList HOL::create::equality(TermList sort) {
@@ -100,10 +135,13 @@ Term* HOL::create::lambda(unsigned numArgs, const unsigned* vars, const TermList
   sp->setLambdaExp(body.untyped());
   sp->setLambdaExpSort(body.sort());
 
-  sp->setLambdaVars(VList::fromData(vars, numArgs));
+  VSList* vsList = VSList::empty();
+  for (int i = numArgs - 1; i >= 0; i--) {
+    VSList::push({vars[i], varSorts[i]}, vsList);
+  }
+  sp->setLambdaVars(vsList);
 
   auto lambdaSort = AtomicSort::arrowSort(numArgs, varSorts, body.sort());
-  sp->setLambdaVarSorts(SList::fromData(varSorts, numArgs));
   sp->setLambdaSort(lambdaSort);
   if (resultExprSort != nullptr)
     *resultExprSort = lambdaSort;
@@ -134,26 +172,26 @@ TermList HOL::create::namelessLambda(TermList varSort, TermList term) {
   return namelessLambda(varSort, termSort, term);
 }
 
-TermList HOL::create::surroundWithLambdas(TermList t, TermStack& sorts, bool fromTop) {
-  ASS(t.isTerm())
-
-  TermList sort = SortHelper::getResultSort(t.term());
-  return surroundWithLambdas(t, sorts, sort, fromTop);
+TermList HOL::create::surroundWithLambdas(TermList t, const TermStack& sorts, bool fromTop)
+{
+  ASS(t.isTerm());
+  return surroundWithLambdas(t, sorts, SortHelper::getResultSort(t.term()), fromTop);
 }
 
-TermList HOL::create::surroundWithLambdas(TermList t, TermStack& sorts, TermList sort, bool fromTop) {
-  // TODO fromTop is very hacky. See if can merge these two into one loop
+TermList HOL::create::surroundWithLambdas(TermList t, const TermStack& sorts, TermList sort, bool fromTop)
+{
+  // TODO try to merge the two for loops
   if (fromTop) {
-    for (auto i = sorts.size(); i-- > 0; ) {
-      t = namelessLambda(sorts[i], sort, t);
-      sort = AtomicSort::arrowSort(sorts[i], sort);
+    for (const auto& s : iterTraits(sorts.iter())) {
+      t = namelessLambda(s, sort, t);
+      sort = AtomicSort::arrowSort(s, sort);
     }
     return t;
   }
 
-  for (unsigned i = 0; i < sorts.size(); i++) {
-    t = namelessLambda(sorts[i], sort, t);
-    sort = AtomicSort::arrowSort(sorts[i], sort);
+  for (const auto& s : sorts) {
+    t = namelessLambda(s, sort, t);
+    sort = AtomicSort::arrowSort(s, sort);
   }
   return t;
 }

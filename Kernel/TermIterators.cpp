@@ -170,6 +170,33 @@ bool BooleanSubtermIt::hasNext()
   return false;
 }
 
+Term* FirstOrderSubtermIterator::next()
+{
+  _added = 0;
+  auto t = _stack.pop();
+  if (t->isLambdaTerm()) {
+    return t;
+  }
+
+  auto [head, args] = HOL::getHeadAndArgs(TermList(t));
+
+  for (unsigned i = 0; i < args.size(); i++) {
+    if (args[i].isTerm()) {
+      _added++;
+      _stack.push(args[i].term());
+    }
+  }
+  return t;
+}
+
+void FirstOrderSubtermIterator::right()
+{
+  while (_added > 0) {
+    _added--;
+    _stack.pop();
+  }
+}
+
 //////////////////////////////////////////////////////////////////////////
 ///                                                                    ///
 ///                    END OF HIGHER-ORDER ITERATORS                   ///
@@ -396,7 +423,7 @@ TermFunIterator::TermFunIterator (const Term* t)
 {
   _hasNext = true;
   _next = t->functor();
-  _stack.push(t->args());
+  _stack.push(t->termArgs());
 } // TermFunIterator::TermFunIterator
 
 
@@ -422,7 +449,7 @@ bool TermFunIterator::hasNext ()
     _hasNext = true;
     const Term* t = ts->term();
     _next = t->functor();
-    _stack.push(t->args());
+    _stack.push(t->termArgs());
     return true;
   }
   return false;
