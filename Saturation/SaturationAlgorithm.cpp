@@ -1160,9 +1160,10 @@ void SaturationAlgorithm::runGnnOnInput()
 
   auto add_sort = [&](auto&& self, TermList sort) -> unsigned {
     // cout << "adding sort " << sort.toString() << endl;
-    unsigned *mySortId;
-    if (sortsAlreadyKnown.getValuePtr(sort,mySortId)) {
-      *mySortId = sortId++;
+    unsigned *mySortIdPtr; // must not read from mySortIdPtr after the recursive call
+    if (sortsAlreadyKnown.getValuePtr(sort,mySortIdPtr)) {
+      unsigned mySortId = sortId++;
+      *mySortIdPtr = mySortId;
       if (sort.isVar()) {
         // cout << "  " << sort.toString() << " is new var node" << endl;
 
@@ -1184,7 +1185,7 @@ void SaturationAlgorithm::runGnnOnInput()
         sort_features.push_back(t->weight() > 4);
 
         // will have an edge to its typeCon
-        srt2typecon_one.push_back(*mySortId);
+        srt2typecon_one.push_back(mySortId);
         srt2typecon_two.push_back(t->functor());
 
         // cout << "  " << sort.toString() << " is new term node linked to typeCon " << t->functor() << endl;
@@ -1194,14 +1195,15 @@ void SaturationAlgorithm::runGnnOnInput()
           TermList arg = *t->nthArgument(i);
           auto argId = self(self,arg);
 
-          srt2srt_one.push_back(*mySortId);
+          srt2srt_one.push_back(mySortId);
           srt2srt_two.push_back(argId);
-          // cout << "  adding sort link " << *mySortId << " - " << argId << endl;
+          // cout << "  adding sort link " << mySortId << " - " << argId << endl;
         }
       }
+      return mySortId;
+    } else {
+      return *mySortIdPtr;
     }
-    // cout << "  " << sort.toString() << " is " << *mySortId << endl;
-    return *mySortId;
   };
 
   // symbols
