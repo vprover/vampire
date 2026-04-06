@@ -37,7 +37,7 @@ bool DemodulationHelper::redundancyCheckNeededForPremise(Clause* rwCl, Literal* 
     return false;
   }
 
-  if (!rwLit->isEquality() || (rwTerm!=*rwLit->nthArgument(0) && rwTerm!=*rwLit->nthArgument(1))) {
+  if (!rwLit->isEquality() || (rwTerm!=rwLit->termArg(0) && rwTerm!=rwLit->termArg(1))) {
     return false;
   }
 
@@ -73,12 +73,11 @@ bool DemodulationHelper::isRenamingOn(const SubstApplicator* applicator, TermLis
 }
 
 bool DemodulationHelper::isPremiseRedundant(Clause* rwCl, Literal* rwLit, TermList rwTerm,
-  TermList tgtTerm, TermList eqLHS, const SubstApplicator* eqApplicator) const
+  AppliedTerm tgtTerm, TermList eqLHS, const SubstApplicator* eqApplicator) const
 {
   ASS(redundancyCheckNeededForPremise(rwCl, rwLit, rwTerm));
 
-  TermList other=EqHelper::getOtherEqualitySide(rwLit, rwTerm);
-  if (_ord->compare(tgtTerm, other) == Ordering::LESS) {
+  if (_ord->compareUnidirectional(EqHelper::getOtherEqualitySide(rwLit, rwTerm), tgtTerm) == Ordering::GREATER) {
     return true;
   }
 
@@ -93,7 +92,7 @@ bool DemodulationHelper::isPremiseRedundant(Clause* rwCl, Literal* rwLit, TermLi
   }
 
   TermList eqSort = SortHelper::getEqualityArgumentSort(rwLit);
-  Literal* eqLitS=Literal::createEquality(true, rwTerm, tgtTerm, eqSort);
+  Literal* eqLitS=Literal::createEquality(true, rwTerm, tgtTerm.apply(), eqSort);
 
   // The demodulation which does not preserve completeness:
   // s = t     s = t1 \/ C

@@ -110,18 +110,19 @@ struct BackwardDemodulation<higherOrder>::ResultFn
     Applicator appl(subs.ptr());
 
     TermList lhsS=qr.data->term;
+    AppliedTerm rhsApplied(rhs,&appl,true);
 
-    if (_ordering.compareUnidirectional(AppliedTerm(lhsS), AppliedTerm(rhs,&appl,true))!=Ordering::GREATER) {
+    if (_ordering.compareUnidirectional(lhsS, rhsApplied)!=Ordering::GREATER) {
+      return BwSimplificationRecord(0);
+    }
+
+    if (_helper.redundancyCheckNeededForPremise(qr.data->clause,qr.data->literal,lhsS) &&
+      !_helper.isPremiseRedundant(qr.data->clause,qr.data->literal,lhsS,rhsApplied,lhs,&appl))
+    {
       return BwSimplificationRecord(0);
     }
 
     TermList rhsS=subs->applyToBoundQuery(rhs);
-
-    if (_helper.redundancyCheckNeededForPremise(qr.data->clause,qr.data->literal,lhsS) &&
-      !_helper.isPremiseRedundant(qr.data->clause,qr.data->literal,lhsS,rhsS,lhs,&appl))
-    {
-      return BwSimplificationRecord(0);
-    }
 
     Literal* resLit=EqHelper::replace(qr.data->literal,lhsS,rhsS);
     if(EqHelper::isEqTautology(resLit)) {

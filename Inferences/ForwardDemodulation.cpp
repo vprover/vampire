@@ -182,11 +182,11 @@ bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement,
           }
         }
 
-        TermList rhsS = rhsApplied.apply();
-
-        if (redundancyCheck && !_helper.isPremiseRedundant(cl, lit, trm, rhsS, lhs, appl)) {
+        if (redundancyCheck && !_helper.isPremiseRedundant(cl, lit, trm, rhsApplied, lhs, appl)) {
           continue;
         }
+
+        TermList rhsS = rhsApplied.apply();
 
         Literal* resLit = EqHelper::replace(lit,trm,rhsS);
         if(EqHelper::isEqTautology(resLit)) {

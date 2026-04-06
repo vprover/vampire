@@ -271,7 +271,7 @@ Ordering::Result PrecedenceOrdering::compare(Literal* l1, Literal* l2) const
   if( (l1->isNegative() ^ l2->isNegative()) && (p1==p2) &&
 	  l1->weight()==l2->weight() && l1->numVarOccs()==l2->numVarOccs() &&  //this line is just optimization, so we don't check whether literals are opposite when they cannot be
 	  l1==env.sharing->tryGetOpposite(l2)) {
-    return l1->isNegative() ? LESS : GREATER;
+    return l1->isNegative() ? GREATER : LESS;
   }
 
   if (p1 != p2) {

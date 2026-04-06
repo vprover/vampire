@@ -86,7 +86,7 @@ TEST_SIMPLIFICATION(test05,
     .justifications({ /* nothing */ })
 )
 
-// drc=ordering fails due to other side being smaller than the terms we demodulate into
+// drc=ordering succeeds
 TEST_SIMPLIFICATION(test06,
   tester()
     .simplifyWith({ clause({ f(a,b) == a }) })
@@ -105,7 +105,7 @@ TEST_SIMPLIFICATION(test07,
     .options({ { "term_ordering", "lpo" }, { "demodulation_redundancy_check", "ordering" } });
 )
 
-// drc=ordering does not care about ordering of equations
+// drc=off does not care about ordering of equations
 TEST_SIMPLIFICATION(test08,
   tester()
     .simplifyWith({ clause({ f(b,a) == f(a,b) }) })
@@ -130,7 +130,7 @@ TEST_SIMPLIFICATION(test09,
 // demodulation with variable equality
 TEST_SIMPLIFICATION(test10,
   tester()
-    .simplifyWith({ clause({ TermSugar(TermList::var(0), s) == y }) })
+    .simplifyWith({ clause({ x.sort(s) == y }) })
     .toSimplify({ clause({ f(b,a) == a }) })
     // .expected({ clause({ x == a }) })
     .expected({ /* nothing */ })
@@ -177,6 +177,23 @@ TEST_SIMPLIFICATION(test15,
     .simplifyWith({ clause({ f(x,y) == left(y) }) })
     .toSimplify({ clause({ g(f(a,b)) == left(a) }) })
     .expected({ clause({ g(left(b)) == left(a) }) })
+)
+
+// demodulation with variable to term equation
+TEST_SIMPLIFICATION(test16,
+  tester()
+    .simplifyWith({ clause({ x.sort(s) == b }) })
+    .toSimplify({ clause({ f(b,a) == a }) })
+    .expected({ clause({ b == a }) })
+)
+
+// demodulation into multi-literal clause having some bigger literal
+TEST_SIMPLIFICATION(test17,
+  tester()
+    .simplifyWith({ clause({ f(a,b) == b }) })
+    .toSimplify({ clause({ f(a,b) == a, f(a,b) != b }) })
+    .expected({ clause({ b == a, f(a,b) != b }) })
+    .options({ { "term_ordering", "lpo" }, { "demodulation_redundancy_check", "ordering" } })
 )
 
 }
