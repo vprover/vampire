@@ -529,12 +529,10 @@ bool PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::compareWithSupe
           case Ordering::GREATER:
             return true;
           case Ordering::EQUAL:
-            env.statistics->generalizedInductionApplication++;
             return rwCl->number() > eqCl->number();
           case Ordering::LESS:
             return false;
           case Ordering::INCOMPARABLE:
-            env.statistics->generalizedInductionApplicationInProof++;
             return rwCl->number() > eqCl->number() || checkOrConstrainGreater(tord, other, tgtTermS, cons);
         }
       }
