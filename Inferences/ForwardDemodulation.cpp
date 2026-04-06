@@ -12,29 +12,22 @@
  * Implements class ForwardDemodulation.
  */
 
-#include "Debug/RuntimeStatistics.hpp"
-
 #include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Debug/TimeProfiling.hpp"
-#include "Lib/Timer.hpp"
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Kernel/Renaming.hpp"
-#include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/ColorHelper.hpp"
 #include "Kernel/RobSubstitution.hpp"
 
 #include "Indexing/Index.hpp"
-#include "Indexing/IndexManager.hpp"
 #include "Indexing/TermIndex.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -75,32 +68,21 @@ struct ApplicatorWithEqSort : SubstApplicator {
 
 } // end namespace
 
-void ForwardDemodulation::attach(SaturationAlgorithm* salg)
-{
-  ForwardSimplificationEngine::attach(salg);
-  _index=static_cast<DemodulationLHSIndex*>(
-	  _salg->getIndexManager()->request(DEMODULATION_LHS_CODE_TREE) );
+template<bool higherOrder>
+ForwardDemodulation<higherOrder>::ForwardDemodulation(SaturationAlgorithm& salg)
+  : _preorderedOnly(salg.getOptions().forwardDemodulation()==Options::Demodulation::PREORDERED),
+    _encompassing(salg.getOptions().demodulationRedundancyCheck()==Options::DemodulationRedundancyCheck::ENCOMPASS),
+    _useTermOrderingDiagrams(salg.getOptions().forwardDemodulationTermOrderingDiagrams()),
+    _skipNonequationalLiterals(salg.getOptions().demodulationOnlyEquational()),
+    _helper(DemodulationHelper(salg.getOptions(), &salg.getOrdering())),
+    _ord(salg.getOrdering()),
+    _index(salg.getSimplifyingIndex<DemodulationLHSIndex<higherOrder>>())
+{}
 
-  auto& opt = getOptions();
-  _preorderedOnly = opt.forwardDemodulation()==Options::Demodulation::PREORDERED;
-  _encompassing = opt.demodulationRedundancyCheck()==Options::DemodulationRedundancyCheck::ENCOMPASS;
-  _useTermOrderingDiagrams = opt.forwardDemodulationTermOrderingDiagrams();
-  _skipNonequationalLiterals = opt.demodulationOnlyEquational();
-  _helper = DemodulationHelper(opt, &_salg->getOrdering());
-}
-
-void ForwardDemodulation::detach()
-{
-  _index=0;
-  _salg->getIndexManager()->release(DEMODULATION_LHS_CODE_TREE);
-  ForwardSimplificationEngine::detach();
-}
-
-bool ForwardDemodulationImpl::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
+template<bool higherOrder>
+bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   TIME_TRACE("forward demodulation");
-
-  Ordering& ordering = _salg->getOrdering();
 
   //Perhaps it might be a good idea to try to
   //replace subterms in some special order, like
@@ -118,7 +100,7 @@ bool ForwardDemodulationImpl::perform(Clause* cl, Clause*& replacement, ClauseIt
     if (_skipNonequationalLiterals && !lit->isEquality()) {
       continue;
     }
-    NonVariableNonTypeIterator it(lit);
+    RewritableSubtermIterator<higherOrder> it(lit);
     while(it.hasNext()) {
       TypedTermList trm = it.next();
       if(!attempted.insert(trm)) {
@@ -170,11 +152,11 @@ bool ForwardDemodulationImpl::perform(Clause* cl, Clause*& replacement, ClauseIt
         AppliedTerm rhsApplied(qr.data->rhs,appl,true);
         bool preordered = qr.data->preordered;
 
-        ASS_EQ(ordering.compare(trm,rhsApplied),Ordering::reverse(ordering.compare(rhsApplied,trm)));
+        ASS_EQ(_ord.compare(trm,rhsApplied),Ordering::reverse(_ord.compare(rhsApplied,trm)));
 
         if (_useTermOrderingDiagrams) {
 #if VDEBUG
-          auto dcomp = ordering.compareUnidirectional(trm,rhsApplied);
+          auto dcomp = _ord.compareUnidirectional(trm,rhsApplied);
 #endif
           qr.data->tod->init(appl);
           if (!preordered && (_preorderedOnly || !qr.data->tod->next())) {
@@ -183,7 +165,7 @@ bool ForwardDemodulationImpl::perform(Clause* cl, Clause*& replacement, ClauseIt
           }
           ASS_EQ(dcomp,Ordering::GREATER);
         } else {
-          if (!preordered && (_preorderedOnly || ordering.compareUnidirectional(trm,rhsApplied)!=Ordering::GREATER)) {
+          if (!preordered && (_preorderedOnly || _ord.compareUnidirectional(trm,rhsApplied)!=Ordering::GREATER)) {
             continue;
           }
         }
@@ -193,7 +175,7 @@ bool ForwardDemodulationImpl::perform(Clause* cl, Clause*& replacement, ClauseIt
           // this will only run at most once;
           // could have been factored out of the getGeneralizations loop,
           // but then it would run exactly once there
-          Ordering::Result litOrder = ordering.getEqualityArgumentOrder(lit);
+          Ordering::Result litOrder = _ord.getEqualityArgumentOrder(lit);
           if ((trm==*lit->nthArgument(0) && litOrder == Ordering::LESS) ||
               (trm==*lit->nthArgument(1) && litOrder == Ordering::GREATER)) {
             redundancyCheck = false;
@@ -223,8 +205,6 @@ bool ForwardDemodulationImpl::perform(Clause* cl, Clause*& replacement, ClauseIt
           }
         }
 
-        env.statistics->forwardDemodulations++;
-
         premises = pvi( getSingletonIterator(qr.data->clause));
         replacement = Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.data->clause));
         if(env.options->proofExtra() == Options::ProofExtra::FULL)
@@ -236,5 +216,8 @@ bool ForwardDemodulationImpl::perform(Clause* cl, Clause*& replacement, ClauseIt
 
   return false;
 }
+
+template class ForwardDemodulation<true>;
+template class ForwardDemodulation<false>;
 
 }

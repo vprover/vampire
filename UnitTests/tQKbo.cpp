@@ -14,7 +14,6 @@
  */
 
 #include "Debug/Assertion.hpp"
-#include "Kernel/ALASCA.hpp"
 #include "Test/AlascaTestUtils.hpp"
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
@@ -107,8 +106,7 @@ QKbo& qkbo(bool rand = false) {
   Problem p;
   env.options->resolveAwayAutoValues0();
   env.options->resolveAwayAutoValues(p);
-  auto n = Lib::make_shared(InequalityNormalizer());
-  return *new QKbo(KBO::testKBO(rand, /* qkboPrec */ true), n);
+  return *new QKbo(KBO::testKBO(rand, /* qkboPrec */ true));
 }
 
 

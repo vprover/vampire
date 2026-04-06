@@ -39,13 +39,13 @@ public:
       _polarity(polarity),
       _rest(rest)
   {}
-  Element (TermList* ts, int polarity, Element* rest)
+  Element (const TermList* ts, int polarity, Element* rest)
     : _tag(TERM_LIST),
       _termList(ts),
       _polarity(polarity),
       _rest(rest)
   {}
-  Element (Term* t, int polarity, Element* rest)
+  Element (const Term* t, int polarity, Element* rest)
     : _tag(TERM),
       _term(t),
       _polarity(polarity),
@@ -61,8 +61,8 @@ public:
   union{
     FormulaList* _formulaList;
     Formula* _formula;
-    TermList* _termList;
-    Term* _term;
+    const TermList* _termList;
+    const Term* _term;
   };
   int _polarity;
   Element* _rest;
@@ -135,7 +135,7 @@ bool SubformulaIterator::hasNext ()
       }
 
       case Element::Tag::TERM_LIST: {
-        TermList* first = _reserve->_termList;
+        const TermList* first = _reserve->_termList;
         if (!first->isTerm()) {
           Element *rest = _reserve->_rest;
           delete _reserve;
@@ -148,7 +148,7 @@ bool SubformulaIterator::hasNext ()
       }
 
       case Element::Tag::TERM: {
-        Term* term = _reserve->_term;
+        const Term* term = _reserve->_term;
         int polarity = _reserve->_polarity;
         Element* rest = new Element(term->termArgs(), polarity, _reserve->_rest);
         if (!term->isSpecial()) {
@@ -157,38 +157,26 @@ bool SubformulaIterator::hasNext ()
           break;
         }
 
+        auto sd = term->getSpecialData();
+
         switch (term->specialFunctor()) {
           case SpecialFunctor::ITE: {
-            _current = term->getSpecialData()->getCondition();
+            _current = sd->getITECondition();
             _currentPolarity = polarity;
             delete _reserve;
             _reserve = rest;
             return true;
           }
           case SpecialFunctor::LET: {
+            _current = sd->getLetBinding();
+            // TODO: should be 1 instead of polarity?
+            _currentPolarity = polarity;
             delete _reserve;
-            TermList binding = term->getSpecialData()->getBinding();
-            if (!binding.isTerm()) {
-              _reserve = rest;
-            } else {
-              // TODO: should be 1 instead of polarity?
-              _reserve = new Element(binding.term(), polarity, rest);
-            }
-            break;
-          }
-          case SpecialFunctor::LET_TUPLE: {
-            delete _reserve;
-            TermList binding = term->getSpecialData()->getBinding();
-            if (!binding.isTerm()) {
-              _reserve = rest;
-            } else {
-              // TODO: should be 1 instead of polarity?
-              _reserve = new Element(binding.term(), polarity, rest);
-            }
+            _reserve = rest;
             break;
           }
           case SpecialFunctor::FORMULA: {
-            _current = term->getSpecialData()->getFormula();
+            _current = sd->getFormula();
             _currentPolarity = polarity;
             delete _reserve;
             _reserve = rest;
@@ -196,20 +184,13 @@ bool SubformulaIterator::hasNext ()
           }
           case SpecialFunctor::LAMBDA: {
             delete _reserve;
-            TermList lambdaExp = term->getSpecialData()->getLambdaExp();
+            TermList lambdaExp = sd->getLambdaExp();
             if (!lambdaExp.isTerm()) {
               _reserve = rest;
             } else {
               // TODO: should be 1 instead of polarity?
               _reserve = new Element(lambdaExp.term(), polarity, rest);
             }
-            break;
-          }
-          case SpecialFunctor::TUPLE: {
-            delete _reserve;
-            Term* tupleTerm = term->getSpecialData()->getTupleTerm();
-            // TODO: should be 1 instead of polarity?
-            _reserve = new Element(tupleTerm, polarity, rest);
             break;
           }
           case SpecialFunctor::MATCH: {

@@ -23,7 +23,6 @@
 
 #include "Allocator.hpp"
 #include "Comparison.hpp"
-#include "Exception.hpp"
 #include "Random.hpp"
 #include "Reflection.hpp"
 #include "VirtualIterator.hpp"

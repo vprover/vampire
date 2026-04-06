@@ -24,6 +24,8 @@
 #include "Exception.hpp"
 #include "Reflection.hpp"
 
+#include <memory>
+
 namespace Lib {
 
 ///@addtogroup Iterators
@@ -41,11 +43,6 @@ template<typename T>
  * @b IteratorCore objects can be used as ordinary stack allocated
  * or static iterators as well, but in that case they must not be
  * passed to a @b VirtualIterator object as an inside.
- *
- * If used as an inside of a @b VirtualIterator object, updating
- * the reference counter @b _refCnt is done by the @b VirtualIterator
- * object, as well as calling the destructor when the counter reaches
- * zero.
  */
 template<typename T>
 class IteratorCore {
@@ -56,10 +53,9 @@ public:
   IteratorCore& operator=(IteratorCore&&) = default;
 
   DECL_ELEMENT_TYPE(T);
-  /** Create new IteratorCore object */
-  IteratorCore() : _refCnt(0) {}
-  /** Destroy IteratorCore object */
-  virtual ~IteratorCore() { ASS(_refCnt==0); }
+  IteratorCore() = default;
+  virtual ~IteratorCore() = default;
+
   /** Return true if there is a next element */
   virtual bool hasNext() = 0;
   /**
@@ -81,14 +77,6 @@ public:
    * returns true.
    */
   virtual size_t size() const { INVALID_OPERATION("This iterator cannot retrieve its size."); }
-
-private:
-  /**
-   * Reference counter field used by the @b VirtualIterator object
-   */
-  mutable int _refCnt;
-
-  friend class VirtualIterator<T>;
 };
 
 /**
@@ -103,10 +91,10 @@ public:
   USE_ALLOCATOR(EmptyIterator);
 
   EmptyIterator() {}
-  bool hasNext() { return false; };
-  T next() { INVALID_OPERATION("next() called on EmptyIterator object"); };
-  bool knowsSize() const { return true; }
-  size_t size() const { return 0; }
+  bool hasNext() override { return false; };
+  T next() override { INVALID_OPERATION("next() called on EmptyIterator object"); };
+  bool knowsSize() const override { return true; }
+  size_t size() const override { return 0; }
 };
 
 /**
@@ -122,104 +110,29 @@ public:
  * @see IteratorCore
  */
 template<typename T>
-class VirtualIterator {
+class VirtualIterator final {
 public:
   USE_ALLOCATOR(VirtualIterator);
 
   DECL_ELEMENT_TYPE(T);
 
-  /** Return an empty iterator */
-  static VirtualIterator getEmpty()
-  {
-    static VirtualIterator inst(new EmptyIterator<T>());
-    return inst;
-  }
-
-  /** Return an invalid iterator */
-  static VirtualIterator getInvalid()
-  {
-    return VirtualIterator();
-  }
-
-  /**
-   * Create an uninitialized object
-   *
-   * When created with this constructor, the object must be assigned
-   * an initialized VirtualIterator object through the @b operator=(),
-   * before any of the @b hasNext(), @b next(), @b knowsSize() or @b size()
-   * functions can be called.
-   */
-  inline
-  VirtualIterator() : _core(0) {}
-
+  VirtualIterator() = default;
   /**
    * Create an object with @b core as its core.
    */
   inline
-  explicit VirtualIterator(IteratorCore<T>* core) : _core(core) { _core->_refCnt++; }
+  explicit VirtualIterator(IteratorCore<T>* core) : _core(core) {}
 
-  IGNORE_MAYBE_UNINITIALIZED(
+  VirtualIterator(const VirtualIterator &) = delete;
+  VirtualIterator &operator=(const VirtualIterator &) = delete;
 
-  inline
-  VirtualIterator(const VirtualIterator& obj) : _core(obj._core)
-  {
-    if(_core) {
-      _core->_refCnt++;
-    }
-  }
+  VirtualIterator(VirtualIterator &&) noexcept = default;
+  VirtualIterator &operator=(VirtualIterator &&other) noexcept = default;
 
-  inline
-  ~VirtualIterator()
+  /** Return an empty iterator */
+  static VirtualIterator getEmpty()
   {
-    if(_core) {
-	_core->_refCnt--;
-	if(!_core->_refCnt) {
-	  delete _core;
-	}
-    }
-  }
-  )
-  VirtualIterator& operator=(const VirtualIterator& obj)
-  {
-    IteratorCore<T>* oldCore=_core;
-    _core=obj._core;
-    if(_core) {
-      _core->_refCnt++;
-    }
-    if(oldCore) {
-      oldCore->_refCnt--;
-      if(!oldCore->_refCnt) {
-	delete oldCore;
-      }
-    }
-    return *this;
-  }
-
-  /**
-   * Remove reference to the iterator core.
-   * Return true iff the the iterator core does not exist
-   * any more after return from this function.
-   *
-   * The returned value can be useful for asserting
-   * that the iterator core (and all resources it
-   * used) was indeed released.
-   */
-  inline
-  bool drop()
-  {
-    if(_core) {
-      _core->_refCnt--;
-      if(_core->_refCnt) {
-	_core=0;
-	return false;
-      }
-      else {
-	delete _core;
-	_core=0;
-      }
-    }
-    _core=0;
-    return true;
+    return VirtualIterator(new EmptyIterator<T>());
   }
 
   /** Return true if there is a next element */
@@ -275,7 +188,7 @@ public:
   bool isInvalid() { return !_core; }
 private:
   /** The polymorphous core of this @b VirtualIterator object */
-  IteratorCore<T>* _core;
+  std::unique_ptr<IteratorCore<T>> _core;
 };
 
 /**
@@ -300,8 +213,8 @@ class ProxyIterator
 public:
   USE_ALLOCATOR(ProxyIterator);
   DEFAULT_CONSTRUCTORS(ProxyIterator)
-  virtual ~ProxyIterator() override {}
-  
+  ~ProxyIterator() override {}
+
   explicit ProxyIterator(Inner inn) : _inn(std::move(inn)) {}
   bool hasNext() override { return _inn.hasNext(); };
   T next() override { return _inn.next(); };
@@ -326,10 +239,7 @@ VirtualIterator<ELEMENT_TYPE(Inner)> pvi(Inner it)
   return VirtualIterator<ELEMENT_TYPE(Inner)>(new ProxyIterator<ELEMENT_TYPE(Inner),Inner>(std::move(it)));
 }
 
-
-
-
-///@}�
+///@}
 
 }
 

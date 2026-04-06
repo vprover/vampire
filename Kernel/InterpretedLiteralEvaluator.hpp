@@ -22,8 +22,6 @@
 
 #include "TermTransformer.hpp"
 #include "Theory.hpp"
-#include "Lib/Coproduct.hpp"
-#include "Shell/Options.hpp"
 
 namespace Kernel {
 
@@ -32,7 +30,7 @@ class InterpretedLiteralEvaluator
 {
 public:
   InterpretedLiteralEvaluator(bool doNormalize = true);
-  ~InterpretedLiteralEvaluator();
+  ~InterpretedLiteralEvaluator() override;
 
   bool evaluate(Literal* lit, bool& isConstant, Literal*& resLit, bool& resConst);
   TermList evaluate(TermList);
@@ -49,7 +47,7 @@ protected:
   class RealEvaluator;
 
   typedef Stack<Evaluator*> EvalStack;
-  virtual TermList transformSubterm(TermList trm);
+  TermList transformSubterm(TermList trm) override;
   Evaluator* getFuncEvaluator(unsigned func);
   Evaluator* getPredEvaluator(unsigned pred);
   EvalStack _evals;

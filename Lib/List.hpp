@@ -40,8 +40,10 @@
 
 #include "Forwards.hpp"
 
+#include <utility>
+
 #include "Allocator.hpp"
-#include "VirtualIterator.hpp"
+#include "Reflection.hpp"
 
 #include "Debug/Assertion.hpp"
 
@@ -233,6 +235,17 @@ public:
   {
     return new List(elem, l);
   } // List::cons
+
+  /**
+   * Create a list of length @b size from the given block of memory @b data
+   */
+  static List* fromData(const C* data, std::size_t size) {
+    List* result = nullptr;
+    for (std::size_t i = size; i-- > 0;)
+      result = cons(data[i], result);
+
+    return result;
+  }
 
   /** return list with one element, the given elem */
   static List* singleton(C elem)

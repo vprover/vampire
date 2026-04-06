@@ -16,7 +16,6 @@
 
 #include "RndLiteralSelector.hpp"
 
-#include "Lib/List.hpp"
 #include "Lib/Random.hpp"
 
 #include "Term.hpp"

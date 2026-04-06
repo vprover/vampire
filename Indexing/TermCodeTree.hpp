@@ -17,18 +17,8 @@
 
 #include "Forwards.hpp"
 
-#include "Indexing/Index.hpp"
 #include "Lib/Allocator.hpp"
-#include "Lib/DArray.hpp"
-#include "Lib/DHMap.hpp"
-#include "Lib/Hash.hpp"
-#include "Lib/List.hpp"
-#include "Lib/Recycled.hpp"
 #include "Lib/Stack.hpp"
-#include "Lib/TriangularArray.hpp"
-#include "Lib/Vector.hpp"
-#include "Lib/VirtualIterator.hpp"
-
 
 #include "CodeTree.hpp"
 
@@ -38,7 +28,7 @@ namespace Indexing {
 using namespace Lib;
 using namespace Kernel;
 
-template<class Data>
+template<bool higherOrder, class Data>
 class TermCodeTree : public CodeTree 
 {
 protected:
@@ -52,18 +42,22 @@ public:
 
 private:
   struct RemovingTermMatcher
-  : public RemovingMatcher<false>
+  : public Matcher</*removing*/true,false,higherOrder>
   {
   public:
-    void init(FlatTerm* ft_, TermCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_);
+    using Base = Matcher</*removing*/true,false,higherOrder>;
 
+    void init(FlatTerm* ft_, TermCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_);
   };
 
 public:
   struct TermMatcher
-  : public Matcher
+  : public Matcher</*removing*/false,false,higherOrder>
   {
     TermMatcher();
+
+    using Base = Matcher</*removing*/false,false,higherOrder>;
+    using Base::ft;
 
     void init(CodeTree* tree, TermList t);
     void reset();

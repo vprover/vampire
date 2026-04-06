@@ -18,8 +18,6 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Array.hpp"
-#include "Lib/List.hpp"
 #include "Lib/DHMap.hpp"
 #include "Indexing/LiteralSubstitutionTree.hpp"
 
@@ -51,9 +49,9 @@ protected:
 class HashingClauseVariantIndex : public ClauseVariantIndex
 {
 public:
-  virtual ~HashingClauseVariantIndex() override;
+  ~HashingClauseVariantIndex() override;
 
-  virtual void insert(Clause* cl) override;
+  void insert(Clause* cl) override;
 
   ClauseIterator retrieveVariants(Literal* const * lits, unsigned length) override;
 

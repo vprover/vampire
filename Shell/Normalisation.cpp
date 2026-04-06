@@ -13,15 +13,12 @@
  * @since 25/12/2003 Manchester
  */
 
-#include "Lib/Sort.hpp"
 #include "Lib/Environment.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/FormulaUnit.hpp"
-#include "Kernel/Inference.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/Signature.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Unit.hpp"
 
@@ -253,8 +250,8 @@ Comparison Normalisation::compare (Formula* fm1, Formula* fm2)
     case EXISTS:
       // first compare the length of the variable prefix,
       //  and then the immediate subformulas
-      comp = compare((int) VList::length(f1->vars()),
-                     (int) VList::length(f2->vars()));
+      comp = compare((int) VSList::length(f1->vars()),
+                     (int) VSList::length(f2->vars()));
       if (comp != EQUAL) {
         return comp;
       }
@@ -447,53 +444,24 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         return compare(t1->getSpecialData()->getFormula(), t2->getSpecialData()->getFormula());
 
       case SpecialFunctor::ITE:
-        comp = compare(t1->getSpecialData()->getCondition(), t2->getSpecialData()->getCondition());
+        comp = compare(t1->getSpecialData()->getITECondition(), t2->getSpecialData()->getITECondition());
         if (comp != EQUAL) {
           return comp;
         }
         break; // compare arguments "then" and "else" as usual below
 
       case SpecialFunctor::LET: {
-        comp = compare((int) VList::length(t1->getSpecialData()->getVariables()),
-                       (int) VList::length(t2->getSpecialData()->getVariables()));
-        if (comp != EQUAL) {
-          return comp;
-        }
-        TermList b1 = t1->getSpecialData()->getBinding();
-        TermList b2 = t2->getSpecialData()->getBinding();
-        comp = compare(b1, b2);
+        comp = compare(t1->getSpecialData()->getLetBinding(),
+                       t2->getSpecialData()->getLetBinding());
         if (comp != EQUAL) {
           return comp;
         }
         break; // compare body of the let as usual below (although 1) what about sorts, 2) what about doing the modulo the bound name?)
       }
 
-      case SpecialFunctor::LET_TUPLE: {
-        comp = compare((int) VList::length(t1->getSpecialData()->getTupleSymbols()),
-                       (int) VList::length(t2->getSpecialData()->getTupleSymbols()));
-        if (comp != EQUAL) {
-          return comp;
-        }
-        TermList b1 = t1->getSpecialData()->getBinding();
-        TermList b2 = t2->getSpecialData()->getBinding();
-        comp = compare(b1, b2);
-        if (comp != EQUAL) {
-          return comp;
-        }
-        break; // compare body of the tuple below
-      }
-
-      case SpecialFunctor::TUPLE: {
-        comp = compare(t1->getSpecialData()->getTupleTerm(), t2->getSpecialData()->getTupleTerm());
-        if (comp != EQUAL) {
-          return comp;
-        }
-        break; // compare body of the tuple below
-      }
-
       case SpecialFunctor::LAMBDA: {
-        comp = compare((int) VList::length(t1->getSpecialData()->getLambdaVars()),
-                       (int) VList::length(t2->getSpecialData()->getLambdaVars()));
+        comp = compare((int) VSList::length(t1->getSpecialData()->getLambdaVars()),
+                       (int) VSList::length(t2->getSpecialData()->getLambdaVars()));
         if (comp != EQUAL) {
           return comp;
         }

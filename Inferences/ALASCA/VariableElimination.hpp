@@ -19,9 +19,7 @@
 #include "Forwards.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
-#include "Kernel/Ordering.hpp"
-#include "Kernel/ALASCA/Index.hpp"
-#include "Shell/Options.hpp"
+#include "Kernel/ALASCA.hpp"
 
 namespace Inferences {
 namespace ALASCA {
@@ -37,14 +35,7 @@ public:
   USE_ALLOCATOR(VariableElimination);
 
   VariableElimination(VariableElimination&&) = default;
-  VariableElimination(std::shared_ptr<AlascaState> shared, bool simplify = true) 
-    : _shared(std::move(shared))
-    , _simplify(simplify)
-  {  }
-
-  void attach(SaturationAlgorithm* salg) final override;
-  void detach() final override;
-
+  VariableElimination(SaturationAlgorithm& salg, bool simplify = true);
 
   template<class NumTraits>
   struct FoundVarInLiteral {
@@ -89,12 +80,7 @@ public:
                             ClauseIterator applyRule(Clause* premise, FoundVariable<IntTraits> found) const { return ClauseIterator::getEmpty(); };
   template<class NumTraits> ClauseIterator applyRule(Clause* premise, FoundVariable<NumTraits> found) const;
 
-  ClauseGenerationResult generateSimplify(Clause* premise)  final override;
-  
-
-#if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const&) final override;
-#endif
+  ClauseGenerationResult generateSimplify(Clause* premise)  final ;
 
 private:
 
@@ -103,7 +89,7 @@ private:
 
   template<class NumTraits> ClauseIterator generateClauses(Clause* clause, Literal* lit) const;
 
-  std::shared_ptr<AlascaState> _shared;
+  const AlascaState& _shared;
   const bool _simplify;
 };
 

@@ -26,8 +26,6 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Shell/Statistics.hpp"
-
 #include "Factoring.hpp"
 
 namespace Inferences
@@ -91,7 +89,7 @@ public:
           TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
 
           if (i < _cl->numSelected() && _ord.compare(currAfter,skippedAfter) == Ordering::GREATER) {
-            env.statistics->inferencesBlockedForOrderingAftercheck++;
+            env.statistics->inferencesBlockedDueToOrderingAftercheck++;
             return nullptr;
           }
         }
@@ -100,7 +98,6 @@ public:
       }
     }
 
-    env.statistics->factoring++;
     Clause *cl = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::FACTORING,_cl));
     if(env.options->proofExtra() == Options::ProofExtra::FULL)
       env.proofExtra.insert(cl, new FactoringExtra(l1, l2));
@@ -138,15 +135,15 @@ ClauseIterator Factoring::generateClauses(Clause* premise)
   if(premise->length()<=1) {
     return ClauseIterator::getEmpty();
   }
-  if(premise->numSelected()==1 && _salg->getLiteralSelector().isNegativeForSelection((*premise)[0])) {
+  if(premise->numSelected()==1 && _salg.getLiteralSelector().isNegativeForSelection((*premise)[0])) {
     return ClauseIterator::getEmpty();
   }
 
   auto it1 = getCombinationIterator(0u,premise->numSelected(),premise->length());
 
   auto it2 = getMappingIterator(it1,ResultsFn(premise,
-      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),
-      _salg->getLiteralSelector(), _salg->getOrdering()));
+      _salg.getOptions().literalMaximalityAftercheck() && _salg.getLiteralSelector().isBGComplete(),
+      _salg.getLiteralSelector(), _salg.getOrdering()));
 
   auto it3 = getFilteredIterator(it2, NonzeroFn());
 

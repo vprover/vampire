@@ -35,7 +35,7 @@
 #include "SAT/SATSolver.hpp"
 #include "SAT/ProofProducingSATSolver.hpp"
 
-#include "DP/DecisionProcedure.hpp"
+#include "DP/ShortConflictMetaDP.hpp"
 
 #include "Lib/Allocator.hpp"
 
@@ -94,12 +94,11 @@ private:
 
   //options
   Options::SplittingLiteralPolarityAdvice _literalPolarityAdvice;
-  bool _ccMultipleCores;
 
   Splitter& _parent;
 
   ProofProducingSATSolver _solver;
-  ScopedPtr<DecisionProcedure> _dp;
+  ScopedPtr<ShortConflictMetaDP> _dp;
 
   /**
    * Contains selected component names (splitlevels)
@@ -189,6 +188,7 @@ public:
   static std::string splitsToString(SplitSet* splits);
   static SATLiteral getLiteralFromName(SplitLevel compName);
   static std::string getFormulaStringFromName(SplitLevel compName, bool negated = false);
+  static std::string getFormulaStringFromLiteral(SATLiteral l);
 
   bool isUsedName(SplitLevel name) const {
     ASS_L(name,_db.size());

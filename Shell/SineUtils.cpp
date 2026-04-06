@@ -17,7 +17,6 @@
 
 #include "Lib/Deque.hpp"
 #include "Lib/DHSet.hpp"
-#include "Lib/DHMultiset.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -29,7 +28,6 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 
@@ -68,22 +66,13 @@ void SineSymbolExtractor::addSymIds(Term* term, DHSet<SymId>& ids)
       switch (sd->specialFunctor()) {
         case SpecialFunctor::FORMULA:
           extractFormulaSymbols(sd->getFormula(), ids);
-              break;
+          break;
         case SpecialFunctor::ITE:
-          extractFormulaSymbols(sd->getCondition(), ids);
-              break;
+          extractFormulaSymbols(sd->getITECondition(), ids);
+          break;
         case SpecialFunctor::LET:
-        case SpecialFunctor::LET_TUPLE: {
-          TermList binding = sd->getBinding();
-          if (binding.isTerm()) {
-            addSymIds(binding.term(), ids);
-          }
+          extractFormulaSymbols(sd->getLetBinding(), ids);
           break;
-        }
-        case SpecialFunctor::TUPLE: {
-          addSymIds(sd->getTupleTerm(), ids);
-          break;
-        }
         case SpecialFunctor::LAMBDA:
           NOT_IMPLEMENTED;
         case SpecialFunctor::MATCH: {
@@ -389,7 +378,7 @@ bool SineSelector::perform(UnitList*& units)
 
   SymId symIdBound=_symExtr.getSymIdBound();
 
-  Set<Unit*> selected;
+  Set<unsigned> selected;
   Stack<Unit*> selectedStack; //on this stack there are Units in the order they were selected
   Deque<Unit*> newlySelected;
 
@@ -406,7 +395,7 @@ bool SineSelector::perform(UnitList*& units)
       updateDefRelation(u);
     }
     else { // goal units are immediately taken (well, non-axiom, to by more precise. Includes ASSUMPTION, which cl->isGoal() does not take into account)
-      selected.insert(u);
+      selected.insert(u->number());
       selectedStack.push(u);
       newlySelected.push_back(u);
 
@@ -465,10 +454,10 @@ bool SineSelector::perform(UnitList*& units)
       UnitList::Iterator defUnits(_def[sym]);
       while (defUnits.hasNext()) {
         Unit* du=defUnits.next();
-        if (selected.contains(du)) {
+        if (selected.contains(du->number())) {
           continue;
         }
-        selected.insert(du);
+        selected.insert(du->number());
         selectedStack.push(du);
         newlySelected.push_back(du);
 
@@ -554,7 +543,7 @@ void SineTheorySelector::updateDefRelation(Unit* u)
 
   static Stack<SymId> symIds;
   symIds.reset();
-  symIds.loadFromIterator(sit0);
+  symIds.loadFromIterator(std::move(sit0));
 
   Stack<SymId>::Iterator sit(symIds);
 
@@ -636,7 +625,7 @@ void SineTheorySelector::perform(UnitList*& units)
 
   UnitList* res=0;
   DHSet<SymId> addedSymIds;
-  DHSet<Unit*> selected;
+  DHSet<unsigned> selected;
   Deque<Unit*> newlySelected;
 
   bool sineOnIncluded=_opt.sineSelection()==Options::SineSelection::INCLUDED;
@@ -652,7 +641,7 @@ void SineTheorySelector::perform(UnitList*& units)
       updateDefRelation(u);
     }
     else {
-      selected.insert(u);
+      selected.insert(u->number());
       newlySelected.push_back(u);
       UnitList::push(u,res);
     }
@@ -695,7 +684,7 @@ void SineTheorySelector::perform(UnitList*& units)
       while (defUnits.hasNext()) {
 	DEntry de=defUnits.next();
 
-	if (de.minTolerance>intTolerance || !selected.insert(de.unit)) {
+	if (de.minTolerance>intTolerance || !selected.insert(de.unit->number())) {
 	  continue;
 	}
 	UnitList::push(de.unit,res);

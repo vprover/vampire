@@ -15,7 +15,6 @@
 #ifndef __UnitTesting__
 #define __UnitTesting__
 
-#include <string.h>
 #include <ostream>
 
 

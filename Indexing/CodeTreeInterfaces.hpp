@@ -22,9 +22,6 @@
 
 #include "Index.hpp"
 #include "TermIndexingStructure.hpp"
-#include "LiteralIndexingStructure.hpp"
-
-#include "Lib/Allocator.hpp"
 
 namespace Indexing
 {
@@ -37,12 +34,12 @@ using namespace Lib;
  * Term indexing structure using code trees to retrieve generalizations
  */
 
-template<class Data>
+template<bool higherOrder, class Data>
 class CodeTreeTIS : public TermIndexingStructure<Data>
 {
 public:
   /* INFO: we ignore unifying the sort of the keys here */
-  void handle(Data data, bool insert) final override
+  void handle(Data data, bool insert) final
   {
     if (insert) {
       auto ti = new Data(std::move(data));
@@ -52,30 +49,32 @@ public:
     }
   }
 
-  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true) final override;
+  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true) final ;
   // TODO use TypedTermList here too
-  bool generalizationExists(TermList t) final override;
+  bool generalizationExists(TermList t) final ;
   // TODO: get rid of NOT_IMPLEMENTED
   VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(TypedTermList t, Options::UnificationWithAbstraction, bool fixedPointIteration) override { NOT_IMPLEMENTED; }
 
-  virtual void output(std::ostream& out) const final override { out << _ct; }
+  void output(std::ostream& out) const final { out << _ct; }
 
 private:
   class ResultIterator;
 
-  TermCodeTree<Data> _ct;
+  TermCodeTree<higherOrder, Data> _ct;
 };
 
+template<bool higherOrder>
 class CodeTreeSubsumptionIndex
 : public Index
 {
 public:
-  ClauseCodeTree* getClauseCodeTree() { return &_ct; }
+  CodeTreeSubsumptionIndex(SaturationAlgorithm&) {}
+  ClauseCodeTree<higherOrder>* getClauseCodeTree() { return &_ct; }
 protected:
   void handleClause(Clause* c, bool adding) override;
 private:
 
-  ClauseCodeTree _ct;
+  ClauseCodeTree<higherOrder> _ct;
 };
 
 };

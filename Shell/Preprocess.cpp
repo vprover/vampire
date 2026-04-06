@@ -43,7 +43,6 @@
 #include "Options.hpp"
 #include "PredicateDefinition.hpp"
 #include "Preprocess.hpp"
-#include "Property.hpp"
 #include "Rectify.hpp"
 #include "Skolem.hpp"
 #include "SimplifyFalseTrue.hpp"
@@ -57,8 +56,6 @@
 
 #include "UIHelper.hpp"
 #include "Lib/List.hpp"
-
-#include "Kernel/TermIterators.hpp"
 
 using namespace std;
 using namespace Shell;
@@ -166,14 +163,6 @@ void Preprocess::preprocess(Problem& prb)
 
       FOOLElimination().apply(prb);
     }
-  }
-
-  if (env.options->functionExtensionality() == Options::FunctionExtensionality::AXIOM){
-    HOL_ERROR;
-  }
-
-  if (env.options->choiceAxiom()) {
-    HOL_ERROR;
   }
 
   (void)prb.getProperty();
@@ -318,10 +307,10 @@ void Preprocess::preprocess(Problem& prb)
 
     if (_options.functionDefinitionElimination() == Options::FunctionDefinitionElimination::ALL) {
       FunctionDefinition fd;
-      fd.removeAllDefinitions(prb,env.getMainProblem()->isHigherOrder());
+      fd.removeAllDefinitions(prb);
     }
     else if (_options.functionDefinitionElimination() == Options::FunctionDefinitionElimination::UNUSED) {
-      FunctionDefinition::removeUnusedDefinitions(prb,env.getMainProblem()->isHigherOrder());
+      FunctionDefinition::removeUnusedDefinitions(prb);
     }
   }
 

@@ -25,7 +25,6 @@
 #include "Lib/Sort.hpp"
 #include "Lib/TypeList.hpp"
 #include "Lib/Option.hpp"
-#include <memory>
 #include <functional>
 #include <type_traits>
 #include <vector>

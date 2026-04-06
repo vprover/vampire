@@ -14,19 +14,12 @@
  */
 
 #include "EqFactoring.hpp"
-#include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
 namespace Inferences {
 namespace ALASCA {
-
-void EqFactoring::attach(SaturationAlgorithm* salg) 
-{ }
-
-void EqFactoring::detach() 
-{ }
 
 //  Integer version
 //
@@ -97,7 +90,7 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
       srt_.isSome())
   auto& srt = srt_.unwrap();
 
-  auto uwa = _shared->unify(s1, s2);
+  auto uwa = _shared.unify(s1, s2);
   check_side_condition(
       "uwa(s1,s2) = ⟨σ,Cnst⟩",
       uwa.isSome())
@@ -115,7 +108,7 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
           .all([&](auto L) {
              auto Lσ = sigma(L);
              concl.push(Lσ);
-             return _shared->notLess(L2σ, Lσ);
+             return _shared.notLess(L2σ, Lσ);
            }))
 
   auto s1σ = sigma(s1);
@@ -123,8 +116,8 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
   auto t1σ = sigma(t1);
   auto t2σ = sigma(t2);
 
-  check_side_condition( "s1σ /⪯ t1σ", _shared->notLeq(s1σ.untyped(), t1σ))
-  check_side_condition( "s2σ /⪯ t2σ", _shared->notLeq(s2σ.untyped(), t1σ))
+  check_side_condition( "s1σ /⪯ t1σ", _shared.notLeq(s1σ.untyped(), t1σ))
+  check_side_condition( "s2σ /⪯ t2σ", _shared.notLeq(s2σ.untyped(), t1σ))
 
 
   auto res = Literal::createEquality(false, t1σ, t2σ, srt);
@@ -148,7 +141,7 @@ ClauseIterator EqFactoring::generateClauses(Clause* premise)
   DEBUG("in: ", *premise)
 
   auto selected = Lib::make_shared(
-      _shared->selectedEqualities(premise, 
+      _shared.selectedEqualities(premise, 
                        /* literal */ SelectionCriterion::NOT_LESS, 
                        /* summand */ SelectionCriterion::NOT_LEQ,
                        /* include number vars */ false)
@@ -157,7 +150,7 @@ ClauseIterator EqFactoring::generateClauses(Clause* premise)
         .template collect<Stack>());
 
   auto rest = Lib::make_shared(
-      _shared->selectedEqualities(premise, 
+      _shared.selectedEqualities(premise, 
                        /* literal */ SelectionCriterion::ANY, 
                        /* summand */ SelectionCriterion::NOT_LEQ,
                        /* include number vars */ false)
@@ -186,16 +179,6 @@ ClauseIterator EqFactoring::generateClauses(Clause* premise)
           });
       }));
 }
-
-
-  
-
-#if VDEBUG
-void EqFactoring::setTestIndices(Stack<Indexing::Index*> const&) 
-{
-
-}
-#endif
 
 } // namespace ALASCA 
 } // namespace Inferences 

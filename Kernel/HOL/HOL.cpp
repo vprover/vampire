@@ -13,6 +13,7 @@
 
 #include "Kernel/HOL/HOL.hpp"
 
+#include "ToPlaceholders.hpp"
 #include "Kernel/Formula.hpp"
 
 using IndexVarStack = Stack<std::pair<unsigned, unsigned>>;
@@ -39,21 +40,19 @@ static bool findVar(unsigned index, const IndexVarStack & st, unsigned& var) {
 
 static std::string lambdaToString(const Term::SpecialTermData* sd, bool pretty)
 {
-  Kernel::VList *vars = sd->getLambdaVars();
-  Kernel::SList * sorts = sd->getLambdaVarSorts();
+  Kernel::VSList *vars = sd->getLambdaVars();
   TermList lambdaExp = sd->getLambdaExp();
 
   std::string varList = pretty ? "" : "[";
 
-  Kernel::VList::Iterator vs(vars);
-  Kernel::SList::Iterator ss(sorts);
+  Kernel::VSList::Iterator vs(vars);
 
   bool first = true;
   while (vs.hasNext()) {
+    auto [v, sort] = vs.next();
     varList += first ? "" : ", ";
     first = false;
-    varList += Term::variableToString(vs.next()) + " : ";
-    varList += ss.next().toString();
+    varList += Term::variableToString(v) + " : " + sort.toString();
   }
   varList += pretty ? "" : "]";
   std::string lambda = pretty ? "λ" : "^";
@@ -123,6 +122,10 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
     return res;
   }
 
+  if (term.isPlaceholder()) {
+    return term.functionName() + "⟨" + term.nthArgument(0)->toString(true) + "⟩";
+  }
+
   if (term.isLambdaTerm()) {
     unsigned v = st.size() ? st.top().second + 1 : 0;
     std::string bvar = (pretty ? "y" : "Y") + Int::toString(v);
@@ -156,9 +159,7 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
     return "db" + Int::toString(db);
   }
 
-  TermList head;
-  TermStack args;
-  HOL::getHeadAndArgs(TermList(&term), head, args);
+  auto [head, args] = HOL::getHeadAndArgs(TermList(&term));
   bool hasArgs = args.size();
 
   std::string headStr;
@@ -223,7 +224,7 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
       Proxy::AND, Proxy::OR, Proxy::IFF, Proxy::EQUALS, Proxy::IMP, Proxy::XOR
   };
 
-  if (std::any_of(proxies.begin(), proxies.end(), [&head](Proxy proxy) { return head.isProxy(proxy); }) &&
+  if (std::any_of(proxies.begin(), proxies.end(), [&term = head](Proxy proxy) { return term.isProxy(proxy); }) &&
       args.size() == 2) {
     res += termToStr(args[1], false, st) + " " + headStr + " " + termToStr(args[0], false, st);
   } else {
@@ -243,8 +244,6 @@ std::string HOL::toString(const Term& term, bool topLevel) {
   return toStringAux(term, topLevel, st);
 }
 
-
-
 TermList HOL::matrix(TermList t) {
   while (t.isLambdaTerm()) {
     t = t.lambdaBody();
@@ -252,7 +251,27 @@ TermList HOL::matrix(TermList t) {
   return t;
 }
 
-void HOL::getHeadAndArgs(TermList term, TermList& head, Kernel::TermStack& args) {
+void HOL::getArgSorts(TermList t, TermStack& sorts) {
+  while (t.isArrowSort()) {
+    sorts.push(t.domain());
+    t = t.result();
+  }
+
+  t = matrix(t);
+
+  while (t.isApplication()) {
+    sorts.push(*t.term()->nthArgument(0));
+    t = t.lhs();
+  }
+}
+
+TermStack HOL::getArgSorts(TermList t) {
+  TermStack stack;
+  getArgSorts(t, stack);
+  return stack;
+}
+
+TermList HOL::getHeadAndArgs(TermList term, TermStack& args) {
   args.reset();
 
   term = matrix(term);
@@ -261,7 +280,15 @@ void HOL::getHeadAndArgs(TermList term, TermList& head, Kernel::TermStack& args)
     args.push(term.rhs());
     term = term.lhs();
   }
-  head = term;
+
+  return term;
+}
+
+std::pair<TermList, TermStack> HOL::getHeadAndArgs(TermList term) {
+  TermStack stack;
+  TermList head = getHeadAndArgs(term, stack);
+
+  return {head, stack};
 }
 
 /** indexed from 1 */
@@ -282,7 +309,7 @@ TermList HOL::getNthArg(TermList arrowSort, unsigned argNum) {
 /** indexed from 1 */
 TermList HOL::getResultAppliedToNArgs(TermList arrowSort, unsigned argNum) {
   while (argNum > 0) {
-    ASS(arrowSort.isArrowSort());
+    ASS(arrowSort.isArrowSort())
     arrowSort = arrowSort.result();
     argNum--;
   }
@@ -301,4 +328,88 @@ unsigned HOL::getArity(TermList sort) {
 TermList HOL::getDeBruijnIndex(int index, TermList sort) {
   unsigned fun = env.signature->getDeBruijnIndex(index);
   return TermList(Term::create1(fun, sort));
+}
+
+void HOL::getHeadSortAndArgs(TermList term, TermList& head, TermList& headSort, TermStack& args) {
+  if (!args.isEmpty())
+    args.reset();
+
+  term = matrix(term);
+  while (term.isApplication()) {
+    args.push(term.rhs());
+    TermList t = term.lhs();
+    if (!t.isApplication())
+      headSort = lhsSort(term);
+
+    term = t;
+  }
+  head = term;
+}
+
+void HOL::getHeadArgsAndArgSorts(TermList t, TermList& head, TermStack& args, TermStack& argSorts) {
+  if (!args.isEmpty())
+    args.reset();
+
+  if (!argSorts.isEmpty())
+    argSorts.reset();
+
+  t = matrix(t);
+
+  while (t.isApplication()) {
+    args.push(t.rhs());
+    argSorts.push(rhsSort(t));
+    t = t.lhs();
+  }
+
+  head = t;
+}
+
+TermList HOL::lhsSort(TermList t) {
+  ASS(t.isApplication())
+
+  return AtomicSort::arrowSort(*t.term()->nthArgument(0),
+                               *t.term()->nthArgument(1));
+}
+
+TermList HOL::rhsSort(TermList t) {
+  ASS(t.isApplication())
+
+  return *t.term()->nthArgument(0);
+}
+
+TermList HOL::finalResult(TermList sort)
+{
+  if (sort.isVar() || !sort.isArrowSort()) {
+    return sort;
+  }
+  while (sort.isArrowSort()) {
+    sort = sort.result();
+  }
+  return sort;
+}
+
+void HOL::getMatrixAndPrefSorts(TermList t, TermList& matrix, TermStack& sorts) {
+  while (t.isLambdaTerm()) {
+    sorts.push(*t.term()->nthArgument(0));
+    t = t.lambdaBody();
+  }
+  matrix = t;
+}
+
+TermList HOL::createGeneralBinding(TermList head, const TermStack& sorts, unsigned& freshVar, bool surround)
+{
+  ASS(head.isTerm()) // in the future may wish to reconsider this assertion
+
+  auto indices = TermStack::fromIterator(
+    range(0,sorts.size()).map([&](auto i) { return getDeBruijnIndex(i, sorts[i]); }));
+  TermStack argSorts = getArgSorts(head.resultSort());
+  TermStack args;
+
+  while (!argSorts.isEmpty()) {
+    TermList varSort = AtomicSort::arrowSort(sorts, argSorts.pop());
+    args.push(create::app(varSort, TermList::var(freshVar++), indices));
+  }
+
+  auto res = create::app(head, args);
+  return surround ? create::surroundWithLambdas(res, sorts) : res;
 }

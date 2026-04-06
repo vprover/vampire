@@ -115,23 +115,23 @@ public:
   _applicator(0)
   {}
 
-  ~Substitution()
+  ~Substitution() override
   {
     if(_applicator) {
       delete _applicator;
     }
   }
 
-  TermList applyToBoundResult(TermList t) final override
+  TermList applyToBoundResult(TermList t) final
   { return SubstHelper::apply(t, *getApplicator()); }
 
-  Literal* applyToBoundResult(Literal* lit) final override
+  Literal* applyToBoundResult(Literal* lit) final
   { return SubstHelper::apply(lit, *getApplicator()); }
 
   bool isIdentityOnQueryWhenResultBound() override
   { return true; }
 
-  virtual void output(std::ostream& out) const final override 
+  void output(std::ostream& out) const final
   { out << "GenMatcher::Substitution(<output unimplemented>)"; }
 private:
   Applicator* getApplicator()

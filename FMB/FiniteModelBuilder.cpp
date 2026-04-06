@@ -16,21 +16,14 @@
  *       so array[arity] is return and array[i] is the ith argument of the function
  */
 
-#include <cmath>
-
 #include "Debug/Tracer.hpp"
 
-#include "Kernel/Ordering.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Problem.hpp"
-#include "Kernel/SubstHelper.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/EqHelper.hpp"
 #include "Kernel/Renaming.hpp"
-#include "Kernel/Substitution.hpp"
-#include "Kernel/FormulaUnit.hpp"
 
 #include "SAT/CadicalInterfacing.hpp"
 #include "SAT/MinisatInterfacing.hpp"
@@ -40,18 +33,13 @@
 #include "Lib/List.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/System.hpp"
-#include "Lib/Random.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/ArrayMap.hpp"
 
 #include "Shell/UIHelper.hpp"
-#include "Shell/TPTPPrinter.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/GeneralSplitting.hpp"
 #include "Shell/Shuffling.hpp"
-
-#include "DP/DecisionProcedure.hpp"
-#include "DP/SimpleCongruenceClosure.hpp"
 
 #include "FiniteModelMultiSorted.hpp"
 #include "ClauseFlattening.hpp"
@@ -261,7 +249,7 @@ bool FiniteModelBuilder::reset(){
       _solver = new MinisatInterfacing;
   }
   else if (env.options->satSolver() == Options::SatSolver::CADICAL) {
-    _solver = new CadicalInterfacing(_opt,true);
+    _solver = new CadicalInterfacing;
   } else {
     USER_ERROR("Finite model builder can only use minisat or cadical as SAT solvers.");
   }
@@ -915,7 +903,7 @@ void FiniteModelBuilder::init()
         ASS_REP(csig_set[i],c->toString());
       }
 #endif
-      _clauseVariableSorts.insert(c,csig);
+      _clauseVariableSorts.insert(c->number(),csig);
       //cout << "done" << endl;
     } 
   }
@@ -962,7 +950,7 @@ unsigned FiniteModelBuilder::estimateInstanceCount()
 
     Clause* c = cit.next();
     unsigned vars = c->varCnt();
-    const DArray<unsigned>* varSorts = _clauseVariableSorts.get(c) ;
+    const DArray<unsigned>* varSorts = _clauseVariableSorts.get(c->number()) ;
     if(!varSorts){
       continue;
     }
@@ -989,7 +977,7 @@ void FiniteModelBuilder::addNewInstances()
 #endif
 
     unsigned vars = c->varCnt();
-    const DArray<unsigned>* varSorts = _clauseVariableSorts.get(c) ;
+    const DArray<unsigned>* varSorts = _clauseVariableSorts.get(c->number()) ;
     static DArray<unsigned> maxVarSize;
     maxVarSize.ensure(vars);
 

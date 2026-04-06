@@ -42,12 +42,9 @@
 #include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/Int.hpp"
-#include "Lib/Random.hpp"
 #include "Lib/Set.hpp"
-#include "Lib/System.hpp"
 
 #include "Shell/UIHelper.hpp"
-#include "Shell/Statistics.hpp"
 #include "Shell/Property.hpp"
 
 #include "Kernel/Problem.hpp"
@@ -635,17 +632,6 @@ void Options::init()
     _inlineLet.tag(OptionTag::PREPROCESSING);
 
 //*********************** Output  ***********************
-
-    _latexOutput = StringOptionValue("latex_output","","off");
-    _latexOutput.description="File that will contain proof in the LaTeX format.";
-    _lookup.insert(&_latexOutput);
-    _latexOutput.tag(OptionTag::OUTPUT);
-
-    _latexUseDefaultSymbols = BoolOptionValue("latex_use_default_symbols","",true);
-    _latexUseDefaultSymbols.description="Interpreted symbols such as product have default LaTeX symbols"
-        " that can be used. They can be overridden in the normal way. This option can turn them off";
-    _latexUseDefaultSymbols.tag(OptionTag::OUTPUT);
-    _lookup.insert(&_latexUseDefaultSymbols);
 
     _outputAxiomNames = BoolOptionValue("output_axiom_names","",false);
     _outputAxiomNames.description="Preserve names of axioms from the problem file in the proof output";
@@ -1276,7 +1262,7 @@ void Options::init()
 
     _unificationWithAbstractionFixedPointIteration = BoolOptionValue("unification_with_abstraction_fixed_point_iteration","uwa_fpi",
                                      false);
-    _unificationWithAbstractionFixedPointIteration.description="The order in which arguments are being processed in unification with absraction can yield different results. i.e. unnecessary unifiers. This can be resolved by applying unification with absraction multiple times. This option enables this fixed point iertation. For details have a look at the paper \"Refining Unification with Abstraction\" from LPAR 2023.";
+    _unificationWithAbstractionFixedPointIteration.description="The order in which arguments are being processed in unification with absraction can yield different results. i.e. unnecessary unifiers. This can be resolved by applying unification with absraction multiple times. This option enables this fixed point iteration. For details have a look at the paper \"Refining Unification with Abstraction\" from LPAR 2023.";
     _unificationWithAbstractionFixedPointIteration.tag(OptionTag::INFERENCES);
     _lookup.insert(&_unificationWithAbstractionFixedPointIteration);
 
@@ -1719,7 +1705,9 @@ void Options::init()
     _lookup.insert(&_demodulationRedundancyCheck);
     _demodulationRedundancyCheck.tag(OptionTag::INFERENCES);
     _demodulationRedundancyCheck.onlyUsefulWith(ProperSaturationAlgorithm());
-    _demodulationRedundancyCheck.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
+    _demodulationRedundancyCheck.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),
+                                                   _backwardDemodulation.is(notEqual(Demodulation::OFF)),
+                                                   _partialRedundancyCheck.is(notEqual(false))));
     _demodulationRedundancyCheck.addProblemConstraint(hasEquality());
 
     _forwardDemodulationTermOrderingDiagrams = BoolOptionValue("forward_demodulation_term_ordering_diagrams","fdtod",true);
@@ -1998,6 +1986,21 @@ void Options::init()
     _clausificationOnTheFly.addProblemConstraint(hasHigherOrder());
     _clausificationOnTheFly.tag(OptionTag::HIGHER_ORDER);
 
+    _piSet = ChoiceOptionValue<PISet>("prim_inst_set","piset",PISet::PRAGMATIC,
+                                                                        {"all",
+                                                                         "all_but_not_eq",
+                                                                         "not",
+                                                                         "small_set",
+                                                                         "pragmatic",
+                                                                         "and",
+                                                                         "or",
+                                                                         "equals",
+                                                                         "pi_sigma"});
+    _piSet.description="Controls the set of equations to use in primitive instantiation";
+    _lookup.insert(&_piSet);
+    _piSet.addProblemConstraint(hasHigherOrder());     
+    _piSet.tag(OptionTag::HIGHER_ORDER);
+
     _equalityToEquivalence = BoolOptionValue("equality_to_equiv","e2e",false);
     _equalityToEquivalence.description=
       "Equality between boolean terms changed to equivalence \n"
@@ -2077,13 +2080,6 @@ void Options::init()
     _splittingCongruenceClosure.onlyUsefulWith(_satSolver.is(notEqual(SatSolver::Z3)));
 #endif
     // _splittingCongruenceClosure.addProblemConstraint(hasEquality()); -- not a good constraint for the minimizer
-
-    _ccUnsatCores = ChoiceOptionValue<CCUnsatCores>("cc_unsat_cores","ccuc",CCUnsatCores::SMALL_ONES,
-                                                     {"first", "small_ones", "all"});
-    _ccUnsatCores.description="";
-    _lookup.insert(&_ccUnsatCores);
-    _ccUnsatCores.tag(OptionTag::AVATAR);
-    _ccUnsatCores.onlyUsefulWith(_splittingCongruenceClosure.is(equal(true)));
 
     _splittingLiteralPolarityAdvice = ChoiceOptionValue<SplittingLiteralPolarityAdvice>(
                                                 "avatar_literal_polarity_advice","alpa",
@@ -2468,7 +2464,7 @@ void Options::set(const char* name,const char* value, bool longOpt)
         (!longOpt && !_lookup.findShort(name)->set(value))) {
       switch (ignoreMissing()) {
       case IgnoreMissing::OFF:
-        USER_ERROR((std::string) value +" is an invalid value for "+(std::string)name+"\nSee help or use explain i.e. vampire -explain mode");
+        USER_ERROR((std::string) value +" is an invalid value for "+(std::string)name+"\nSee vampire -explain "+std::string(name) + " for help.");
         break;
       case IgnoreMissing::WARN:
         if (outputAllowed()) {
@@ -2586,24 +2582,17 @@ void Options::output (std::ostream& str) const
 
   }
 
-  if (showHelp()){
-    str << "=========== Usage ==========\n";
-    str << "Call vampire using\n";
-    str << "  vampire [options] [problem]\n";
-    str << "For example,\n";
-    str << "  vampire --mode casc --include ~/TPTP ~/TPTP/Problems/ALG/ALG150+1.p\n";
-
-    str << "=========== Hints ==========\n";
-
-
-    str << "=========== Options ==========\n";
-    str << "To see a list of all options use\n  --show_options on\n";
-    str << "Options will only be displayed for the current mode (Vampire by default)\n";
-    str << " use --mode to change mode\n";
-    //str << "By default experimental options will not be shown. To show ";
-    //str << "these options use\n  --show_experimental_options on\n";
-    str << "=========== End ==========\n";
-  }
+  if (showHelp())
+    str <<
+      "Usage: vampire [OPTIONS] PROBLEM\n\n"
+      "Supported options:\n\n"
+      "\t--mode portfolio (execute a schedule of many different proof attempts)\n"
+      "\t--schedule <schedule> (in portfolio mode, use the builtin <schedule>)\n"
+      "\t--input_syntax {tptp,smtlib2} (read TPTP or SMT-LIB 2.x input)\n"
+      "\t--proof tptp (use the TSTP proof format)\n"
+      "\t--output_mode {smtcomp,ucore} (output only sat/unsat with an optional core)\n"
+      "\t--time_limit <seconds> (limit Vampire's runtime)\n\n"
+      "Use '--show_options on' to see all available options.\n";
 
   bool normalshow = showOptions();
   bool experimental = showExperimentalOptions();
@@ -3602,8 +3591,8 @@ bool Options::OptionValue<T>::checkConstraints()
     if (!con->check(*this)) {
 
       if (env.options->mode() == Mode::SPIDER) {
-      reportSpiderFail();
-      USER_ERROR("\nBroken Constraint: " + con->msg(*this));
+        reportSpiderFail();
+        USER_ERROR("\nBroken Constraint: " + con->msg(*this));
       }
 
       if (con->isHard()) {

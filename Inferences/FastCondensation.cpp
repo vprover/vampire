@@ -13,7 +13,6 @@
  */
 
 #include "Lib/DHMap.hpp"
-#include "Lib/Int.hpp"
 #include "Debug/TimeProfiling.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -21,9 +20,6 @@
 #include "Kernel/Matcher.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
-
-#include "Lib/Environment.hpp"
-#include "Shell/Statistics.hpp"
 
 #include "FastCondensation.hpp"
 
@@ -118,8 +114,6 @@ Clause* FastCondensation::simplify(Clause* cl)
             resLits->push((*cl)[ci]);
           }
         }
- 
-        env.statistics->condensations++;
  
         return Clause::fromStack(*resLits, SimplifyingInference1(InferenceRule::CONDENSATION, cl));
       }

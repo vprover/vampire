@@ -39,10 +39,10 @@ public:
     _nextVar(firstVar), _identity(true) {
   }
 
-  void reset()
+  void reset(unsigned firstVar = 0)
   {
     _data.reset();
-    _nextVar = 0;
+    _nextVar = firstVar;
     _identity = true;
   }
   bool keepRecycled() const { return _data.keepRecycled() > 0; }
@@ -53,7 +53,7 @@ public:
     if (_data.findOrInsert(v, res, _nextVar)) {
       _nextVar++;
       if(v!=res) {
-	_identity = false;
+        _identity = false;
       }
     }
     return res;

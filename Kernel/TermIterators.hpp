@@ -40,15 +40,15 @@ namespace Kernel {
  *   A comment on the implementation and the member _aux:
  *   iteration is done dfs using a _stack of TermList* which can all be iterated using TermList::next.
  *   This is all fine and easy as long as we want to iterate the arguments of some Term* or Literal*.
- *   But if we want to iterate some `TermList` that is not an argument of a Term* we need to somehow make 
- *   it still conform with the invariants expected by `TermList::next` (i.e. it being a pointer with 
+ *   But if we want to iterate some `TermList` that is not an argument of a Term* we need to somehow make
+ *   it still conform with the invariants expected by `TermList::next` (i.e. it being a pointer with
  *   an address where all the addresses before being TermList s as well and the list of TermLists before
  *   the current address is terminated by an empty TermList).
- *   In order to achieve this the stack _aux is used, which is populated with whatever thing we want to 
- *   iterate that is not an argument to a Term*, and then a pointer to that thing is passed pushed onto 
- *   the _stack.  This means though that stack might contain pointers to TermList s that do not live on 
+ *   In order to achieve this the stack _aux is used, which is populated with whatever thing we want to
+ *   iterate that is not an argument to a Term*, and then a pointer to that thing is passed pushed onto
+ *   the _stack.  This means though that stack might contain pointers to TermList s that do not live on
  *   heap but within this object. Thus we need to account for this in our move constructors.
- */ 
+ */
 class VariableIterator
 : public IteratorCore<TermList>
 {
@@ -77,7 +77,7 @@ public:
       // see #hack 1
       _aux[0] = TermList::empty();
       _aux[1]=static_cast<const Literal*>(term)->twoVarEqSort();
-      _stack.push(&_aux[1]);      
+      _stack.push(&_aux[1]);
     }
     if(!term->shared() || !term->ground()) {
       _stack.push(term->args());
@@ -108,7 +108,7 @@ public:
       // see #hack 1
       _aux[0] = TermList::empty();
       _aux[1]=static_cast<const Literal*>(term)->twoVarEqSort();
-      _stack.push(&_aux[1]);      
+      _stack.push(&_aux[1]);
     }
     if(!term->shared() || !term->ground()) {
       _stack.push(term->args());
@@ -134,10 +134,10 @@ public:
   }
 
 
-  bool hasNext();
+  bool hasNext() override;
   /** Return the next variable
    * @warning hasNext() must have been called before */
-  TermList next()
+  TermList next() override
   {
     ASS(!_used);
     ASS(_stack.top()->isVar());
@@ -180,7 +180,7 @@ struct OrdVarNumberExtractorFn
 
 
 /**
- * Iterator that yields variables of @b term along with the 
+ * Iterator that yields variables of @b term along with the
  * types of the variables. Notes on the use off this iterator:
  *
  * - The iterator is NOT compatible with special terms
@@ -204,10 +204,10 @@ public:
     }
   }
 
-  bool hasNext();
+  bool hasNext() override;
   /** Return the next variable
    * @warning hasNext() must have been called before */
-  std::pair<TermList, TermList> next()
+  std::pair<TermList, TermList> next() override
   {
     ASS(!_used);
     _used=true;
@@ -233,10 +233,10 @@ public:
     pushNext(term->args());
   }
 
-  bool hasNext();
+  bool hasNext() override;
   /** Return next subterm
    * @warning hasNext() must have been called before */
-  TermList next()
+  TermList next() override
   {
     ASS(!_used && !_stack->isEmpty());
     _used=true;
@@ -291,8 +291,8 @@ public:
     _stack.push(term);
   }
 
-  bool hasNext();
-  TermList next(){
+  bool hasNext() override;
+  TermList next() override{
     ASS(!_used);
     _used = true;
     return _next;
@@ -302,6 +302,38 @@ private:
   bool _used;
   TermList _next;
   Stack<Term*> _stack;
+};
+
+class FirstOrderSubtermIterator
+: public IteratorCore<Term*>
+{
+public:
+  FirstOrderSubtermIterator(Term* term, bool includeSelf = false)
+  : _stack(8), _added(0)
+  {
+    if (term->isLiteral()) {
+      for (unsigned i = 0; i < term->arity(); i++) {
+        // TODO shouldn't we exclude iterating on types?
+        TermList t = *term->nthArgument(i);
+        if (t.isTerm()) {
+          _stack.push(t.term());
+        }
+      }
+      return;
+    }
+    _stack.push(term);
+    if (!includeSelf) {
+      FirstOrderSubtermIterator::next();
+    }
+  }
+
+  bool hasNext(){ return !_stack.isEmpty(); }
+  Term* next();
+  void right();
+
+private:
+  Stack<Term*> _stack;
+  int _added;
 };
 
 //////////////////////////////////////////////////////////////////////////
@@ -324,10 +356,10 @@ public:
     pushNext(term->args());
   }
 
-  bool hasNext();
+  bool hasNext() override;
   /** Return next subterm
    * @warning hasNext() must have been called before */
-  TermList next()
+  TermList next() override
   {
     ASS(!_used && !_stack.isEmpty());
     _used=true;
@@ -356,7 +388,7 @@ private:
  * - For polymorphic terms, this iterator returns both type and term subterms
  * - For monomorphic terms, this iterator and the one below behave identically
  * - This iterator should be used in circumstances where all non-variable subterms
- *   are required. 
+ *   are required.
  */
 class NonVariableIterator
   : public IteratorCore<TermList>
@@ -381,8 +413,8 @@ public:
   // NonVariableIterator(TermList ts);
 
   /** true if there exists at least one subterm */
-  bool hasNext() { return !_stack.isEmpty(); }
-  TermList next();
+  bool hasNext() override { return !_stack.isEmpty(); }
+  TermList next() override;
   void right();
 private:
   /** available non-variable subterms */
@@ -400,7 +432,7 @@ private:
  *   Typical usecases are:
  *   - Subterms to be rewritten by an inference. See for example superposition,
  *     backward and forward demodulation.
- *   - Iterating through subterms to see whether a term occurs as a subterm of 
+ *   - Iterating through subterms to see whether a term occurs as a subterm of
  *     another
  */
 class NonVariableNonTypeIterator
@@ -422,8 +454,8 @@ public:
   // NonVariableIterator(TermList ts);
 
   /** true if there exists at least one subterm */
-  bool hasNext() { return !_stack.isEmpty(); }
-  Term* next();
+  bool hasNext() override { return !_stack.isEmpty(); }
+  Term* next() override;
   void right();
 private:
   /** available non-variable subterms */
@@ -513,11 +545,11 @@ public:
     }
   }
 
-  bool hasNext();
+  bool hasNext() override;
 
   /** Return next subterm
    * @warning hasNext() must have been called before */
-  std::pair<TermList, TermList> next()
+  std::pair<TermList, TermList> next() override
   {
     std::pair<TermList, TermList> res(_arg1,_arg2);
     _arg1 = TermList::empty();
@@ -544,8 +576,8 @@ class TermFunIterator
 public:
   TermFunIterator (const Term*);
 
-  bool hasNext();
-  unsigned next();
+  bool hasNext() override;
+  unsigned next() override;
 private:
   /** True if the next symbol is found */
   bool _hasNext;
@@ -568,8 +600,8 @@ public:
   TermVarIterator (const Term*);
   TermVarIterator (const TermList*);
 
-  bool hasNext ();
-  unsigned next ();
+  bool hasNext () override;
+  unsigned next () override;
 private:
   /** True if the next variable is found */
   // bool _hasNext; // MS: unused
@@ -580,7 +612,7 @@ private:
 }; // class TermVarIterator
 
 
-class LiteralArgIterator 
+class LiteralArgIterator
 {
   Literal* _lit;
   unsigned _idx;
@@ -596,36 +628,42 @@ public:
 
 
 /** iterator over all term arguments of @code term */
-static const auto termArgIter = [](Term const* term) 
+static const auto termArgIter = [](Term const* term)
   { return range((unsigned)0, term->numTermArguments())
       .map([=](auto i)
            { return term->termArg(i); }); };
 
 /** iterator over all term arguments of @code term */
-static const auto termArgIterTyped = [](Term const* term) 
+static const auto termArgIterTyped = [](Term const* term)
   { return range((unsigned)0, term->numTermArguments())
       .map([=](auto i)
            { return TypedTermList(term->termArg(i), SortHelper::getArgSort(term, i)); }); };
 
 /** iterator over all type arguments of @code term */
-static const auto typeArgIter = [](Term const* term) 
+static const auto typeArgIter = [](Term const* term)
   { return range((unsigned)0, term->numTypeArguments())
       .map([=](auto i)
            { return term->typeArg(i); }); };
 
 /** iterator over all type and term arguments of @code term */
-static const auto anyArgIter = [](Term const* term) 
+static const auto anyArgIter = [](Term const* term)
   { return iterTraits(getRangeIterator<unsigned>(0, term->arity()))
       .map([=](auto i)
            { return *term->nthArgument(i); }); };
 
 
 /** iterator over all type and term arguments of @code term */
-static const auto anyArgIterTyped = [](Term const* term) 
+static const auto anyArgIterTyped = [](Term const* term)
   { return range(0, term->arity())
       .map([=](auto i)
            { return TypedTermList(*term->nthArgument(i), SortHelper::getArgSort(term, i)); }); };
 
+/** iterator that creates a range of variables */
+static const auto varRange = [](unsigned i, unsigned j)
+  { return range(i,j).map(unsignedToVarFn); };
+
+template<bool higherOrder>
+using RewritableSubtermIterator = std::conditional_t<higherOrder, FirstOrderSubtermIterator, NonVariableNonTypeIterator>;
 
 } // namespace Kernel
 

@@ -11,10 +11,11 @@
 #ifndef __Kernel_TypedTermList__
 #define __Kernel_TypedTermList__
 
-#include "Kernel/SortHelper.hpp"
 #include <tuple>
+
+#include "Term.hpp"
+#include "SortHelper.hpp"
 #include "Lib/Reflection.hpp"
-#include "Lib/Hash.hpp"
 
 namespace Kernel {
 using SortId = Kernel::TermList;

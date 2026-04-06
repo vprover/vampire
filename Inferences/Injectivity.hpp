@@ -23,7 +23,7 @@ namespace Inferences {
 
 class Injectivity : public GeneratingInferenceEngine {
   public:
-    ClauseIterator generateClauses(Clause* premise);
+    ClauseIterator generateClauses(Clause* premise) override;
 
   private:
   	TermList createNewLhs(TermList oldhead, TermStack& termArgs, unsigned index);

@@ -135,8 +135,6 @@ class Signature
     unsigned _skipCongruence : 1;
     /** if tuple sort */
     unsigned _tuple : 1;
-    /** name that is bound by a $let-binder */
-    unsigned _letBound : 1;
     /** proxy type */
     Proxy _prox;
     int _deBruijnIndex;
@@ -173,8 +171,6 @@ class Signature
     void markTermAlgebraDest() { _termAlgebraDest=1; }
     /** mark symbol as a term algebra discriminator */
     void markTermAlgebraDiscriminator() { _termAlgebraDiscriminator=1; }
-    /** mark the symbol as let-bound */
-    void markLetBound() { _letBound = 1; }
 
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() const { return _skip; }
@@ -219,8 +215,6 @@ class Signature
     inline bool termAlgebraDest() const { return _termAlgebraDest; }
     /** Return true iff symbol is a term algebra destructor */
     inline bool termAlgebraDiscriminator() const { return _termAlgebraDiscriminator; }
-    /** if bound by a $let-binder */
-    inline bool letBound() const { return _letBound; }
 
     /** Increase the usage count of this symbol **/
     inline void incUsageCnt(){ _usageCount++; }
@@ -517,6 +511,7 @@ class Signature
   unsigned getChoice();
   unsigned getDeBruijnIndex(int index);
   unsigned getPlaceholder();
+  unsigned getDefPred();
   /**
    * For a function f with result type t, this introduces a predicate
    * $def_f with the type t x t. This is used to track expressions of
@@ -598,36 +593,14 @@ class Signature
     }
   }
 
-
-  unsigned addInterpretedFunction(Interpretation itp, OperatorType* type, const std::string& name);
-  unsigned addInterpretedFunction(Interpretation itp, const std::string& name)
-  {
-    ASS(!Theory::isPolymorphic(itp));
-    return addInterpretedFunction(itp,Theory::getNonpolymorphicOperatorType(itp),name);
-  }
-
-  unsigned addInterpretedPredicate(Interpretation itp, OperatorType* type, const std::string& name);
-  unsigned addInterpretedPredicate(Interpretation itp, const std::string& name)
-  {
-    ASS(!Theory::isPolymorphic(itp));
-    return addInterpretedPredicate(itp,Theory::getNonpolymorphicOperatorType(itp),name);
-  }
-
-  unsigned getInterpretingSymbol(Interpretation interp, OperatorType* type);
-  unsigned getInterpretingSymbol(Interpretation interp)
-  {
-    ASS(!Theory::isPolymorphic(interp));
-    return getInterpretingSymbol(interp,Theory::getNonpolymorphicOperatorType(interp));
-  }
+  unsigned addInterpretedFunction(Interpretation itp, const std::string& name);
+  unsigned addInterpretedPredicate(Interpretation itp, const std::string& name);
+  unsigned getInterpretingSymbol(Interpretation interp);
 
   /** Return true iff there is a symbol interpreted by Interpretation @b interp */
-  bool haveInterpretingSymbol(Interpretation interp, OperatorType* type) const {
-    return _iSymbols.find(std::make_pair(interp,type));
-  }
-  bool haveInterpretingSymbol(Interpretation interp)
+  bool hasInterpretingSymbol(Interpretation interp) const
   {
-    ASS(!Theory::isPolymorphic(interp));
-    return haveInterpretingSymbol(interp,Theory::getNonpolymorphicOperatorType(interp));
+    return _iSymbols.find(interp);
   }
 
   /** return the name of a function with a given number */
@@ -698,18 +671,18 @@ class Signature
   /** Return the function symbol by its number */
   inline Symbol* getFunction(unsigned n)
   {
-    ASS_REP(n < _funs.length(),n);
+    ASS_L(n, _funs.length());
     return _funs[n];
   } // getFunction
   /** Return the predicate symbol by its number */
   inline Symbol* getPredicate(unsigned n)
   {
-    ASS(n < _preds.length());
+    ASS_L(n, _preds.length());
     return _preds[n];
   } // getPredicate
   inline Symbol* getTypeCon(unsigned n)
   {
-    ASS(n < _typeCons.length());
+    ASS_L(n, _typeCons.length());
     return _typeCons[n];
   }
 
@@ -775,6 +748,10 @@ class Signature
 
   bool isPlaceholder(unsigned fun) const{
     return fun == _placeholderFun && _placeholderFun != UINT_MAX;
+  }
+
+  bool isDefPred(unsigned p) const {
+    return p == _defPred && _defPred != UINT_MAX;
   }
 
   bool isFnDefPred(unsigned p) const{
@@ -916,7 +893,7 @@ class Signature
     unsigned eqProxy = addFunction("vEQ",1, added);
     if(added){
       TermList tv = TermList(0, false);
-      TermList result = AtomicSort::arrowSort(tv, tv, AtomicSort::boolSort());
+      TermList result = AtomicSort::arrowSort({tv, tv, AtomicSort::boolSort()});
       Symbol * sym = getFunction(eqProxy);
       sym->setType(OperatorType::getConstantsType(result, 1));
       sym->setProxy(Proxy::EQUALS);
@@ -928,7 +905,7 @@ class Signature
     ASS(name == "vIMP" || name == "vAND" || name == "vOR" || name == "vIFF" || name == "vXOR");
     bool added = false;
     
-    constexpr auto convert = [] (const std::string& name) {
+    static constexpr auto convert = [](const std::string& name) {
       if (name == "vIMP") return Proxy::IMP;
       if (name == "vAND") return Proxy::AND;
       if (name == "vOR") return Proxy::OR;
@@ -939,7 +916,7 @@ class Signature
     unsigned proxy = addFunction(name, 0, added);
     if (added) {
       auto bs = AtomicSort::boolSort();
-      auto result = AtomicSort::arrowSort(bs, bs, bs);
+      auto result = AtomicSort::arrowSort({bs, bs, bs});
       auto sym = getFunction(proxy);
       sym->setType(OperatorType::getConstantsType(result));
       sym->setProxy(convert(name));
@@ -1026,12 +1003,9 @@ private:
   /** Last number used for fresh functions and predicates */
   int _nextFreshSymbolNumber;
 
-  /** Number of Skolem functions (this is just for LaTeX output) */
-  unsigned _skolemFunctionCount;
-
   /** Map from symbol names to variable numbers*/
   SymbolMap _varNames;
-  
+
   // Store the premise of a distinct group for proof printing, if 0 then group is input
   Stack<Unit*> _distinctGroupPremises;
 
@@ -1041,13 +1015,13 @@ private:
   bool _distinctGroupsAddedTo;
 
   /**
-   * Map from MonomorphisedInterpretation values to function and predicate symbols representing them
+   * Map from Interpretation values to function and predicate symbols representing them
    *
    * We mix here function and predicate symbols, but it is not a problem, as
-   * the MonomorphisedInterpretation value already determines whether we deal with a function
+   * the Interpretation value already determines whether we deal with a function
    * or a predicate.
    */
-  DHMap<Theory::MonomorphisedInterpretation, unsigned> _iSymbols;
+  DHMap<Theory::Interpretation, unsigned> _iSymbols;
 
   /** the number of string constants */
   unsigned _strings;
@@ -1064,6 +1038,7 @@ private:
   unsigned _lamFun;
   unsigned _choiceFun;
   unsigned _placeholderFun;
+  unsigned _defPred;
   DHSet<unsigned> _fnDefPreds;
   DHMap<unsigned,unsigned> _boolDefPreds;
 

@@ -15,19 +15,15 @@
 
 #include "InequalityFactoring.hpp"
 #include "Debug/Assertion.hpp"
-#include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
+
+#include "Saturation/SaturationAlgorithm.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 #define FACTOR_NEGATIVE 0
 
 namespace Inferences {
 namespace ALASCA {
-
-void InequalityFactoring::attach(SaturationAlgorithm* salg) { }
-
-void InequalityFactoring::detach() { }
-
 
 #define CHECK_CONDITION(name, condition)                                                            \
   if (!(condition)) {                                                                               \
@@ -50,6 +46,8 @@ void InequalityFactoring::detach() { }
 // • (>3) = if (>1, >2) = (>=, >) then (>=) 
 //                                else (>)
 
+InequalityFactoring::InequalityFactoring(SaturationAlgorithm& salg) : _shared(salg.alascaState()) {}
+
 template<class NumTraits>
 Option<Clause*> InequalityFactoring::applyRule(
     SelectedSummand const& l1,  // +j s1 + t1 >1 0
@@ -65,7 +63,7 @@ Option<Clause*> InequalityFactoring::applyRule(
 
   auto s1 = l1.selectedAtom();
   auto s2 = l2.selectedAtom();
-  auto uwa = _shared->unify(s1, s2);
+  auto uwa = _shared.unify(s1, s2);
 
   CHECK_CONDITION("⟨σ,Cnst⟩ = uwa(s1,s2)",
                   uwa.isSome())
@@ -96,7 +94,7 @@ Option<Clause*> InequalityFactoring::applyRule(
         .all([&](auto ki_ti) {
           auto tiσ = sigma(ki_ti.factors->denormalize());
           t1_sigma.push(NumTraits::mulSimpl(ki_ti.numeral, tiσ));
-          return _shared->notLeq(s1_sigma, tiσ);
+          return _shared.notLeq(s1_sigma, tiσ);
         }));
 
   auto s2_sigma = sigma(s2);
@@ -106,7 +104,7 @@ Option<Clause*> InequalityFactoring::applyRule(
         .all([&](auto ki_ti) {
           auto tiσ = sigma(ki_ti.factors->denormalize());
           t2_sigma.push(NumTraits::mulSimpl(ki_ti.numeral, tiσ));
-          return _shared->notLeq(s2_sigma, tiσ);
+          return _shared.notLeq(s2_sigma, tiσ);
         }));
 
                                   //
@@ -129,11 +127,11 @@ Option<Clause*> InequalityFactoring::applyRule(
   auto L2σ = sigma(l2.literal()); // <- (j s1 + t1 >1 0)σ
   auto cond1 = concatIters(concl.iterCloned(), iterItems(L2σ))
     .all([&](auto Lσ) 
-        { return  _shared->notLess(L1σ, Lσ); });
+        { return  _shared.notLess(L1σ, Lσ); });
 
   auto cond2 = concatIters(concl.iterCloned(), iterItems(L1σ))
     .all([&](auto Lσ) 
-        { return  _shared->notLess(L2σ, Lσ); });
+        { return  _shared.notLess(L2σ, Lσ); });
 
   CHECK_CONDITION(
       "(j s1 + t1 >1 0)σ /≺ (k s2 + t2 >2 0 \\/ C)σ or (k s2 + t2 >2 0)σ /≺ (j s1 + t1 >1 0 \\/ C)σ",
@@ -183,7 +181,7 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* premise)
   DEBUG("in: ", *premise)
 
     auto selected = Lib::make_shared(
-        _shared->selectedSummands(premise, 
+        _shared.selectedSummands(premise, 
                        /* literal */ SelectionCriterion::NOT_LESS, 
                        /* summand */ SelectionCriterion::NOT_LEQ,
                        /* include number vars */ false)
@@ -196,7 +194,7 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* premise)
           .template collect<Stack>());
 
   auto rest = Lib::make_shared(
-      _shared->selectedSummands(premise,  
+      _shared.selectedSummands(premise,  
                     /* literal */ SelectionCriterion::ANY, 
                     /* summand */ SelectionCriterion::NOT_LEQ,
                     /* include number vars */ false)
@@ -246,12 +244,6 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* premise)
           });
       }));
 }
-
-  
-
-#if VDEBUG
-void InequalityFactoring::setTestIndices(Stack<Indexing::Index*> const&) { }
-#endif
 
 } // namespace ALASCA 
 } // namespace Inferences 

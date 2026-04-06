@@ -8,24 +8,11 @@
  * and in the source directory
  */
 
-#include "Inferences/ALASCA/Normalization.hpp"
 #include "Inferences/ALASCA/Abstractions.hpp"
-#include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
-#include "Indexing/TermSharing.hpp"
-#include "Inferences/InterpretedEvaluation.hpp"
-#include "Kernel/Ordering.hpp"
-#include "Inferences/PolynomialEvaluation.hpp"
-#include "Inferences/Cancellation.hpp"
 
 #include "Test/SyntaxSugar.hpp"
-#include "Test/TestUtils.hpp"
-#include "Lib/Coproduct.hpp"
-#include "Test/SimplificationTester.hpp"
 #include "Test/GenerationTester.hpp"
-#include "Kernel/KBO.hpp"
-#include "Indexing/TermSubstitutionTree.hpp" 
-#include "Inferences/PolynomialEvaluation.hpp"
 #include "Test/AlascaTestUtils.hpp"
 
 using namespace std;
@@ -35,6 +22,8 @@ using namespace Test;
 using namespace Indexing;
 using namespace Inferences::ALASCA;
 #define INT_TESTS 0
+
+namespace {
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////// TEST CASES 
@@ -59,20 +48,9 @@ using namespace Inferences::ALASCA;
                                                                                           \
   auto isInteger = [&](auto t) { return t == floor(t); };                                 \
 
-
+#define MY_GEN_RULE     AlascaSimplRule<ToSgi<Abstraction<RealTraits>>>
+#define MY_GEN_TESTER   AlascaGenerationTester
 #define MY_SYNTAX_SUGAR SUGAR(Real)
-
-#define UWA_MODE Options::UnificationWithAbstraction::ALASCA_MAIN
-
-inline auto testAbstraction(Options::UnificationWithAbstraction uwa)
-{ 
-  auto s = testAlascaState(uwa);
-  return alascaSimplRule(s,toSgi(Abstraction<RealTraits>(s)), Normalization(s));
-}
-
-
-
-REGISTER_GEN_TESTER(AlascaGenerationTester<ToSgi<Abstraction<RealTraits>>>(testAbstraction(UWA_MODE)))
 
 /////////////////////////////////////////////////////////
 // Basic tests
@@ -82,7 +60,7 @@ REGISTER_GEN_TESTER(AlascaGenerationTester<ToSgi<Abstraction<RealTraits>>>(testA
 
 #if UNSTABILITY_ABSTRACTION 
 TEST_GENERATION(stabilizing_1,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ 0 != x + f(f2(x,y) - f2(x, a))  }) })
       .premiseRedundant(true)
       .expected(exactly(
@@ -91,7 +69,7 @@ TEST_GENERATION(stabilizing_1,
     )
 
 TEST_GENERATION(stabilizing_2,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ x + a > 0, 0 != f(f2(x,y) - f2(x, a))  }) })
       .premiseRedundant(true)
       .expected(exactly(
@@ -100,7 +78,7 @@ TEST_GENERATION(stabilizing_2,
     )
 
 TEST_GENERATION(stabilizing_3,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ 0 != x + f(f(f2(x,y) - f2(x, a)) - f(x))  }) })
       .premiseRedundant(true)
       .expected(exactly(
@@ -110,7 +88,7 @@ TEST_GENERATION(stabilizing_3,
 #endif // UNSTABILITY_ABSTRACTION
 
 TEST_GENERATION(coherence_1,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ p(floor(y))  }) })
       .premiseRedundant(true)
       .expected(exactly(
@@ -119,7 +97,7 @@ TEST_GENERATION(coherence_1,
     )
 
 TEST_GENERATION(coherence_2,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ p(floor(frac(1,2) * floor(y)))  }) })
       .premiseRedundant(true)
       .expected(exactly(
@@ -128,7 +106,7 @@ TEST_GENERATION(coherence_2,
     )
 
 TEST_GENERATION(coherence_3,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ p(floor(2 * y + a) + b)  }) })
       .premiseRedundant(true)
       .expected(exactly(
@@ -137,10 +115,12 @@ TEST_GENERATION(coherence_3,
     )
 
 TEST_GENERATION(coherence_4,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ p(2 * x + a + b)  }) })
       .premiseRedundant(false)
       .expected(exactly(
           /* nothing */
       ))
     )
+
+}

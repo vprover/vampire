@@ -16,9 +16,6 @@
 #include "Lib/Int.hpp"
 
 #include "Signature.hpp"
-#include "SortHelper.hpp"
-#include "OperatorType.hpp"
-#include "TermIterators.hpp"
 #include "Term.hpp"
 #include "Theory.hpp"
 #include "NumTraits.hpp"
@@ -133,9 +130,9 @@ public:
   ACFunEvaluator() : _fun(env.signature->getInterpretingSymbol(AbelianGroup::interpretation)) { }
   const unsigned _fun; 
 
-  virtual bool canEvaluateFunc(unsigned func) { return func == _fun; }
+  bool canEvaluateFunc(unsigned func) override { return func == _fun; }
 
-  virtual bool tryEvaluateFunc(Term* trm, TermList& res) { 
+  bool tryEvaluateFunc(Term* trm, TermList& res) override { 
     ASS_EQ(trm->functor(), _fun);
     ASS_EQ(trm->numTermArguments(),2);
 
@@ -323,7 +320,7 @@ public:
     return theory->isConversionOperation(theory->interpretFunction(func));
   }
 
-  virtual bool tryEvaluateFunc(Term* trm, TermList& res) override
+  bool tryEvaluateFunc(Term* trm, TermList& res) override
   {
     ASS(theory->isInterpretedFunction(trm));
 
@@ -443,7 +440,7 @@ public:
     return opSort==T::getSort();
   }
 
-  virtual bool tryEvaluateFunc(Term* trm, TermList& res) override
+  bool tryEvaluateFunc(Term* trm, TermList& res) override
   {
     ASS(theory->isInterpretedFunction(trm));
     const auto num = NumTraits<Value>{};
@@ -540,7 +537,7 @@ public:
     }
   }
 
-  virtual PredEvalResult tryEvaluatePred(Literal* lit) override
+  PredEvalResult tryEvaluatePred(Literal* lit) override
   {
     ASS(theory->isInterpretedPredicate(lit->functor()));
     bool res;
@@ -674,12 +671,12 @@ class InterpretedLiteralEvaluator::IntEvaluator : public TypedEvaluator<IntegerC
 {
 protected:
 
-  virtual bool isDivision(Interpretation interp) const { 
+  bool isDivision(Interpretation interp) const override { 
     return interp==Theory::INT_QUOTIENT_E || interp==Theory::INT_QUOTIENT_T || 
            interp==Theory::INT_QUOTIENT_F; 
   }
 
-  virtual bool tryEvaluateUnaryFunc(Interpretation op, const Value& arg, Value& res)
+  bool tryEvaluateUnaryFunc(Interpretation op, const Value& arg, Value& res) override
   {
     switch(op) {
     case Theory::INT_UNARY_MINUS:
@@ -707,8 +704,8 @@ protected:
     }
   }
 
-  virtual bool tryEvaluateBinaryFunc(Interpretation op, const Value& arg1,
-      const Value& arg2, Value& res)
+  bool tryEvaluateBinaryFunc(Interpretation op, const Value& arg1,
+      const Value& arg2, Value& res) override
   {
     switch(op) {
     case Theory::INT_PLUS:
@@ -750,8 +747,8 @@ protected:
     }
   }
 
-  virtual bool tryEvaluateBinaryPred(Interpretation op, const Value& arg1,
-      const Value& arg2, bool& res)
+  bool tryEvaluateBinaryPred(Interpretation op, const Value& arg1,
+      const Value& arg2, bool& res) override
   {
     switch(op) {
     case Theory::INT_GREATER:
@@ -781,12 +778,12 @@ protected:
 class InterpretedLiteralEvaluator::RatEvaluator : public TypedEvaluator<RationalConstantType>
 {
 protected:
-  virtual bool isDivision(Interpretation interp) const { 
+  bool isDivision(Interpretation interp) const override { 
     return interp==Theory::RAT_QUOTIENT || interp==Theory::RAT_QUOTIENT_E || 
            interp==Theory::RAT_QUOTIENT_T || interp==Theory::RAT_QUOTIENT_F;
   }
 
-  virtual bool tryEvaluateUnaryFunc(Interpretation op, const Value& arg, Value& res)
+  bool tryEvaluateUnaryFunc(Interpretation op, const Value& arg, Value& res) override
   {
     switch(op) {
     case Theory::RAT_UNARY_MINUS:
@@ -806,8 +803,8 @@ protected:
     }
   }
 
-  virtual bool tryEvaluateBinaryFunc(Interpretation op, const Value& arg1,
-      const Value& arg2, Value& res)
+  bool tryEvaluateBinaryFunc(Interpretation op, const Value& arg1,
+      const Value& arg2, Value& res) override
   {
     switch(op) {
     case Theory::RAT_PLUS:
@@ -828,8 +825,8 @@ protected:
     }
   }
 
-  virtual bool tryEvaluateBinaryPred(Interpretation op, const Value& arg1,
-      const Value& arg2, bool& res)
+  bool tryEvaluateBinaryPred(Interpretation op, const Value& arg1,
+      const Value& arg2, bool& res) override
   {
     switch(op) {
     case Theory::RAT_GREATER:
@@ -849,8 +846,8 @@ protected:
     }
   }
 
-  virtual bool tryEvaluateUnaryPred(Interpretation op, const Value& arg1,
-      bool& res)
+  bool tryEvaluateUnaryPred(Interpretation op, const Value& arg1,
+      bool& res) override
   {
     switch(op) {
     case Theory::RAT_IS_INT:
@@ -870,12 +867,12 @@ protected:
 class InterpretedLiteralEvaluator::RealEvaluator : public TypedEvaluator<RealConstantType>
 {
 protected:
-  virtual bool isDivision(Interpretation interp) const { 
+  bool isDivision(Interpretation interp) const override { 
     return interp==Theory::REAL_QUOTIENT || interp==Theory::REAL_QUOTIENT_E ||
            interp==Theory::REAL_QUOTIENT_T || interp==Theory::REAL_QUOTIENT_F;
   }
 
-  virtual bool tryEvaluateUnaryFunc(Interpretation op, const Value& arg, Value& res)
+  bool tryEvaluateUnaryFunc(Interpretation op, const Value& arg, Value& res) override
   {
     switch(op) {
     case Theory::REAL_UNARY_MINUS:
@@ -895,8 +892,8 @@ protected:
     }
   }
 
-  virtual bool tryEvaluateBinaryFunc(Interpretation op, const Value& arg1,
-      const Value& arg2, Value& res)
+  bool tryEvaluateBinaryFunc(Interpretation op, const Value& arg1,
+      const Value& arg2, Value& res) override
   {
     switch(op) {
     case Theory::REAL_PLUS:
@@ -917,8 +914,8 @@ protected:
     }
   }
 
-  virtual bool tryEvaluateBinaryPred(Interpretation op, const Value& arg1,
-      const Value& arg2, bool& res)
+  bool tryEvaluateBinaryPred(Interpretation op, const Value& arg1,
+      const Value& arg2, bool& res) override
   {
     switch(op) {
     case Theory::REAL_GREATER:
@@ -938,8 +935,8 @@ protected:
     }
   }
 
-  virtual bool tryEvaluateUnaryPred(Interpretation op, const Value& arg1,
-      bool& res)
+  bool tryEvaluateUnaryPred(Interpretation op, const Value& arg1,
+      bool& res) override
   {
     switch(op) {
     case Theory::REAL_IS_INT:

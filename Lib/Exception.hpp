@@ -16,8 +16,6 @@
 #ifndef __Exception__
 #define __Exception__
 
-#include "Forwards.hpp"
-
 #include <iostream>
 #include <sstream>
 #include <string>
@@ -104,7 +102,7 @@ class UserErrorException
   // input line related to the error: non-zero if set
   unsigned line = 0;
   std::string filename;
-  void cry (std::ostream&) const;
+  void cry (std::ostream&) const override;
 }; // UserErrorException
 
 /**
@@ -159,7 +157,7 @@ class InvalidOperationException
    InvalidOperationException (const std::string msg)
     : Exception(msg)
   {}
-  void cry (std::ostream&) const;
+  void cry (std::ostream&) const override;
 }; // InvalidOperationException
 
 /**
@@ -170,7 +168,7 @@ class SystemFailException
 {
 public:
   SystemFailException (const std::string msg, int err);
-  void cry (std::ostream&) const;
+  void cry (std::ostream&) const override;
 
   int err;
 }; // InvalidOperationException
@@ -185,7 +183,7 @@ class NotImplementedException
    NotImplementedException (const char* file,int line)
     : Exception(""), file(file), line(line)
   {}
-   void cry (std::ostream&) const;
+   void cry (std::ostream&) const override;
  private:
    const char* file;
    int line;
@@ -198,10 +196,6 @@ class NotImplementedException
   throw Lib::Exception(__FILE__,__LINE__)
 #define USER_ERROR(...) \
   throw Lib::UserErrorException(__VA_ARGS__)
-#define HOL_ERROR \
-  USER_ERROR("This version of Vampire is not yet HOLy.\n\n" \
-             "Support for higher-order logic is currently on the ahmed-new-hol branch.\n" \
-             "HOL should be coming to mainline 'soon'.")
 #define INVALID_OPERATION(msg) \
   throw Lib::InvalidOperationException(msg)
 #define SYSTEM_FAIL(msg,err) \

@@ -333,9 +333,6 @@ av=on > aac ~cat none:147,ground:600
 # avatar_congruence_closure
 av=on sas!=z3 > acc ~cat off:600,on:58
 
-# cc_unsat_cores
-acc!=off > ccuc ~cat first:1,small_ones:1,all:3
-
 # avatar_minimize_model
 av=on > amm ~cat on:600,off:69
 

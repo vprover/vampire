@@ -31,8 +31,6 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Clause.hpp"
 
-#include "Shell/Statistics.hpp"
-
 #include "TPTPPrinter.hpp"
 
 #include "Forwards.hpp"
@@ -414,27 +412,17 @@ std::string TPTPPrinter::toString(const Formula* formula)
       {
         std::string result = std::string("(") + names[c] + "[";
         bool needsComma = false;
-        VList::Iterator vs(f->vars());
-        SList::Iterator ss(f->sorts());
-        bool hasSorts = f->sorts();
+        VSList::Iterator vs(f->vars());
 
         while (vs.hasNext()) {
-          unsigned var = vs.next();
+          auto [var, t] = vs.next();
 
           if (needsComma) {
             result += ", ";
           }
           result += 'X';
           result += Int::toString(var);
-          TermList t;
-          if (hasSorts) {
-            ASS(ss.hasNext());
-            t = ss.next();
-            if (t != AtomicSort::defaultSort()) {
-              result += " : " + t.toString();
-            }
-          } else if (SortHelper::tryGetVariableSort(var, const_cast<Formula*>(f),
-              t) && t != AtomicSort::defaultSort()) {
+          if (t != AtomicSort::defaultSort()) {
             result += " : " + t.toString();
           }
           needsComma = true;
@@ -537,7 +525,7 @@ std::string TPTPPrinter::toString (const Unit* unit)
       }
       if(quant!=f) {
 	ASS_EQ(quant->connective(),FORALL);
-        VList::destroy(static_cast<QuantifiedFormula*>(quant)->vars());
+        VSList::destroy(static_cast<QuantifiedFormula*>(quant)->vars());
 	quant->destroy();
       }
     }

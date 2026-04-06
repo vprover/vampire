@@ -20,7 +20,6 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/InferenceStore.hpp"
-#include "Kernel/Ordering.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
@@ -28,8 +27,6 @@
 #include "Kernel/Unit.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
-
-#include "Indexing/TermSharing.hpp"
 
 #include "EqualityProxy.hpp"
 

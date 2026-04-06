@@ -87,6 +87,10 @@ public:
   /** True if the clause is empty */
   bool isEmpty() const { return _length == 0; }
 
+  /**
+   * Sort literals in a consistent order that allows easy detection of tautologies,
+   * i.e. first by atom, then by polarity
+   */
   void sort();
 
   void destroy();
@@ -95,6 +99,7 @@ public:
 
   static SATClause* fromStack(SATLiteralStack& stack);
 
+  unsigned number = 0;
 private:
   /** number of literals */
   unsigned _length : 31;
@@ -105,18 +110,12 @@ private:
 
   /** Array of literals of this unit */
   SATLiteral _literals[1];
+
+  // counter for `number`
+  static unsigned _lastNumber;
 }; // class SATClause
 
-inline std::ostream& operator<<(std::ostream &out, const SAT::SATClause &cl)
-{
-  if (cl.length() == 0) {
-    return out << "#";
-  }
-  out << cl[0];
-  for(unsigned i = 1; i < cl.length(); i++)
-    out << " | " << cl[i];
-  return out;
-}
+std::ostream &operator<<(std::ostream &out, const SATClause &cl);
 
 };
 

@@ -14,7 +14,6 @@
  * @since 25/07/2004 Torrevieja
  */
 
-#include "Forwards.hpp"
 #include "Debug/Assertion.hpp"
 #include "Token.hpp"
 

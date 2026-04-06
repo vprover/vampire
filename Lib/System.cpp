@@ -13,8 +13,6 @@
  * system stuff and don't fit anywhere else (handling signals etc...)
  */
 
-#include "Portability.hpp"
-
 #include <csignal>
 
 #ifdef __linux__

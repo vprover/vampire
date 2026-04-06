@@ -20,12 +20,10 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/Preprocess.hpp"
-#include "Shell/Property.hpp"
+#include "Kernel/MainLoop.hpp"
 #include "Shell/UIHelper.hpp"
 
 #include "Indexing/TermSharing.hpp"
-
-#include "SaturationAlgorithm.hpp"
 
 #include "ProvingHelper.hpp"
 
@@ -134,6 +132,8 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
   //decide whether to use poly or mono well-typedness test
   //after options have been read. Equality Proxy can introduce poly in mono.
   env.sharing->setPoly();
+  // Preprocessing can alter whether a problem is HO, update it here.
+  env.setHigherOrder(env.getMainProblem()->isHigherOrder());
 
   env.options->resolveAwayAutoValues(prb);
 

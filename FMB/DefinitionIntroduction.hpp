@@ -31,7 +31,7 @@ namespace FMB {
   //TODO mark as an actual iterator?
   class DefinitionIntroduction{
   public:
-    DefinitionIntroduction(ClauseIterator cit) : _cit(cit) {
+    DefinitionIntroduction(ClauseIterator cit) : _cit(std::move(cit)) {
       //_ng = env.options->fmbNonGroundDefs();
     }
 

@@ -10,8 +10,6 @@
 
 #include "PartialRedundancyHandler.hpp"
 
-#include "Lib/SharedSet.hpp"
-
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/SortHelper.hpp"
@@ -19,8 +17,6 @@
 
 #include "Indexing/CodeTreeInterfaces.hpp"
 #include "Indexing/ResultSubstitution.hpp"
-
-#include "Inferences/DemodulationHelper.hpp"
 
 #include "Statistics.hpp"
 
@@ -95,10 +91,10 @@ private:
       VariantMatcher vm;
       Stack<CodeOp*> firstsInBlocks;
 
-      FlatTerm* ft = FlatTerm::createUnexpanded(ts);
+      FlatTerm* ft = FlatTerm::create(ts);
       vm.init(ft, this, &firstsInBlocks);
 
-      if (vm.next()) {
+      if (vm.execute()) {
         ASS(vm.op->isSuccess());
         auto container = vm.op->template getSuccessResult<EntryContainer>();
         container->tod->insert(ptr->ordCons, ptr);
@@ -178,13 +174,13 @@ private:
 
         // collect statistics
         if (e->ordCons.isNonEmpty()) {
-          env.statistics->skippedInferencesDueToOrderingConstraints++;
+          env.statistics->inferencesSkippedDueToOrderingConstraints++;
         }
         if (e->lits.size()>0) {
-          env.statistics->skippedInferencesDueToLiteralConstraints++;
+          env.statistics->inferencesSkippedDueToLiteralConstraints++;
         }
         if (!e->splits->isEmpty()) {
-          env.statistics->skippedInferencesDueToAvatarConstraints++;
+          env.statistics->inferencesSkippedDueToAvatarConstraints++;
         }
         matcher.reset();
         return true;
@@ -250,13 +246,13 @@ private:
   }
 
   struct SubstMatcher
-  : public Matcher
+  : public Matcher</*removing*/false,false,/*higherOrder=*/false>
   {
     void init(CodeTree* tree, const TermStack& ts)
     {
       Matcher::init(tree,tree->getEntryPoint());
 
-      ft = FlatTerm::createUnexpanded(ts);
+      ft = FlatTerm::create(ts);
 
       op=entry;
       tp=0;
@@ -285,11 +281,11 @@ private:
   };
 
   struct VariantMatcher
-  : public RemovingMatcher<true>
+  : public Matcher</*removing*/true,true,/*higherOrder=*/false>
   {
   public:
     void init(FlatTerm* ft_, CodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_) {
-      RemovingMatcher::init(tree_->getEntryPoint(), 0, 0, tree_, firstsInBlocks_);
+      Matcher::init(tree_, tree_->getEntryPoint(), 0, 0, firstsInBlocks_);
       ft=ft_;
       tp=0;
       op=entry;
@@ -346,24 +342,24 @@ PartialRedundancyHandler* PartialRedundancyHandler::create(const Options& opts, 
 void PartialRedundancyHandler::destroyClauseData(Clause* cl)
 {
   ConstraintIndex* ptr = nullptr;
-  clauseData.pop(cl, ptr);
+  clauseData.pop(cl->number(), ptr);
   delete ptr;
 }
 
 PartialRedundancyHandler::ConstraintIndex** PartialRedundancyHandler::getDataPtr(Clause* cl, bool doAllocate)
 {
   if (!doAllocate) {
-    return clauseData.findPtr(cl);
+    return clauseData.findPtr(cl->number());
   }
   ConstraintIndex** ptr;
-  clauseData.getValuePtr(cl, ptr, nullptr);
+  clauseData.getValuePtr(cl->number(), ptr, nullptr);
   if (!*ptr) {
     *ptr = new ConstraintIndex(cl);
   }
   return ptr;
 }
 
-DHMap<Clause*,typename PartialRedundancyHandler::ConstraintIndex*> PartialRedundancyHandler::clauseData;
+DHMap<unsigned,typename PartialRedundancyHandler::ConstraintIndex*> PartialRedundancyHandler::clauseData;
 
 // PartialRedundancyHandlerImpl
 

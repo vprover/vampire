@@ -697,20 +697,20 @@ public:
   {
     _items=getUniqueItemList(inn, _size);
   }
-  ~UniquePersistentIterator()
+  ~UniquePersistentIterator() override
   {
     if(_items) {
       ItemList::destroy(_items);
     }
   }
-  inline bool hasNext() { return _items; };
-  inline T next()
+  inline bool hasNext() override { return _items; };
+  inline T next() override
   {
     return ItemList::pop(_items);
   };
 
-  inline bool knowsSize() const { return true; }
-  inline size_t size() const { return _size; }
+  inline bool knowsSize() const override { return true; }
+  inline size_t size() const override { return _size; }
 private:
   typedef DHSet<T> ItemSet;
 
@@ -1417,7 +1417,7 @@ static auto __ifElseIter(Args... args)
         }
       }
   });
-  return coproductIter(out ? *out : Out::template variant<total/2>(tupleGetApplied(Constant<total - 1>{})));
+  return coproductIter(out ? std::move(*out) : Out::template variant<total/2>(tupleGetApplied(Constant<total - 1>{})));
 }
 
 template<class... Args>
@@ -1514,6 +1514,16 @@ public:
   {
     while (hasNext()) {
       f(next());
+    }
+  }
+
+  /** Python-style iteration that yields the index too. */
+  template<class F>
+  void enumerate(F f) 
+  {
+    unsigned i = 0;
+    while (hasNext()) {
+      f(i++, next());
     }
   }
 
@@ -1768,7 +1778,7 @@ template<class Array, class Size>
 auto arrayIter(Array      & a, Size s) { return range(0, s).map([&](auto i) -> decltype(auto) { return a[i]; }); }
 
 template<class Array, class Size>
-auto arrayIter(Array     && a, Size s) { return range(0, s).map([a = std::move(a)](auto i) { return std::move(a[i]); }); }
+auto arrayIter(Array     && a, Size s) { return range(0, s).map([a = std::move(a)](auto i) mutable { return std::move(a[i]); }); }
 
 template<class Array> auto arrayIter(Array const& a) { return arrayIter(          a , a.size()); }
 template<class Array> auto arrayIter(Array     && a) { return arrayIter(std::move(a), a.size()); }
@@ -1828,7 +1838,7 @@ STLIterator<Iterator> getSTLIterator(Iterator begin, Iterator end)
  */
 template<class Inner>
 auto getPersistentIterator(Inner it)
-{ return pvi(arrayIter(iterTraits(it).template collect<Stack>())); }
+{ return pvi(arrayIter(iterTraits(std::move(it)).template collect<Stack>())); }
 
 /* wrapper around an iterator that implements ==, <, > and hash functions.
  * <,> are implemented as lexicographic comparison of the iterator elements */

@@ -25,31 +25,15 @@
 #include "Kernel/Clause.hpp"
 #include "Lib/Coproduct.hpp"
 #include "Test/ClausePattern.hpp"
-#include "Saturation/Otter.hpp"
+#include "Test/BuilderPattern.hpp"
 #include "Kernel/Problem.hpp"
-#include "Shell/Options.hpp"
+#include "UnitTesting.hpp"
 #include "Lib/STL.hpp"
 #include "Test/MockedSaturationAlgorithm.hpp"
-#include "Test/SyntaxSugar.hpp"
 
 namespace Test {
 
-#define TEST_FN_ASS_EQ(VAL1, VAL2)                                                        \
-  [] (std::string& s1, std::string& s2) {                                                 \
-    bool res = (VAL1 == VAL2);                                                            \
-    if (!res) {                                                                           \
-      s1 = Int::toString(VAL1);                                                           \
-      s1.append(" != ");                                                                  \
-      s1.append(Int::toString(VAL2));                                                     \
-      s2 = std::string(#VAL1);                                                            \
-      s2.append(" == ");                                                                  \
-      s2.append(#VAL2);                                                                   \
-    }                                                                                     \
-    return res;                                                                           \
-  }
-
 namespace Generation {
-template<class R>
 class GenerationTester;
 }
 
@@ -59,8 +43,7 @@ class ContainsStackMatcher {
 public:
   ContainsStackMatcher(Stack<ClausePattern> self) : _patterns(self) {}
 
-  template<class Rule>
-  bool matches(Stack<Kernel::Clause*> sRes, Generation::GenerationTester<Rule>& simpl) 
+  bool matches(Stack<Kernel::Clause*> sRes, Generation::GenerationTester& simpl) 
   { 
     return iterTraits(_patterns.iter())
       .all([&](auto& p) {
@@ -95,29 +78,11 @@ public:
         .map([&](auto& c) { return c.mapClauses(fun); })
         .template collect<Stack>()); }
 
-  template<class Rule>
-  bool matches(Stack<Kernel::Clause*> sRes, Generation::GenerationTester<Rule>& simpl) 
+  bool matches(Stack<Kernel::Clause*> sRes, Generation::GenerationTester& simpl) 
   { return TestUtils::permEq(_patterns, sRes, [&](auto exp, auto res) { return exp.matches(simpl, res); }); }
 
   friend std::ostream& operator<<(std::ostream& out, ExactlyStackMatcher const& self)
   { return out << "exactly: " << self._patterns; }
-};
-
-class TodoStackMatcher {
-
-public:
-  TodoStackMatcher() {}
-
-  template<class F>
-  TodoStackMatcher mapClauses(F fun) const 
-  { return TodoStackMatcher(); }
-
-  template<class Rule>
-  bool matches(Stack<Kernel::Clause*> sRes, Generation::GenerationTester<Rule>& simpl) 
-  { return false; }
-
-  friend std::ostream& operator<<(std::ostream& out, TodoStackMatcher const& self)
-  { return out << "TODO"; }
 };
 
 class WithoutDuplicatesMatcher {
@@ -129,8 +94,7 @@ public:
   template<class F>
   WithoutDuplicatesMatcher mapClauses(F fun) const;
 
-  template<class Rule>
-  bool matches(Stack<Kernel::Clause*> sRes, Generation::GenerationTester<Rule>& simpl);
+  bool matches(Stack<Kernel::Clause*> sRes, Generation::GenerationTester& simpl);
 
   friend std::ostream& operator<<(std::ostream& out, WithoutDuplicatesMatcher const& self)
   { return out << "without duplicates: " << *self._inner; }
@@ -139,8 +103,7 @@ public:
 
 using AnyStackMatcher = Coproduct< ContainsStackMatcher
                                  , WithoutDuplicatesMatcher
-                                 , ExactlyStackMatcher
-                                 , TodoStackMatcher>;
+                                 , ExactlyStackMatcher>;
 
 class StackMatcher
   : public AnyStackMatcher {
@@ -152,8 +115,7 @@ public:
   StackMatcher mapClauses(F fun) const 
   { return apply([&](auto x) { return StackMatcher(x.mapClauses(fun)); }); }
 
-  template<class Rule>
-  bool matches(Stack<Kernel::Clause*> sRes, Generation::GenerationTester<Rule>& simpl) 
+  bool matches(Stack<Kernel::Clause*> sRes, Generation::GenerationTester& simpl) 
   { return apply([&](auto& self) { return self.matches(sRes, simpl); }); }
 
   friend std::ostream& operator<<(std::ostream& out, StackMatcher const& self)
@@ -164,9 +126,7 @@ template<class F>
 WithoutDuplicatesMatcher WithoutDuplicatesMatcher::mapClauses(F fun) const 
 { return make_shared(_inner->mapClauses(fun)); }
 
-
-template<class Rule>
-bool WithoutDuplicatesMatcher::matches(Stack<Kernel::Clause*> sRes, Generation::GenerationTester<Rule>& simpl)
+inline bool WithoutDuplicatesMatcher::matches(Stack<Kernel::Clause*> sRes, Generation::GenerationTester& simpl)
 { 
   Stack<Stack<Literal*>> clauses;
   for (auto c : sRes) {
@@ -186,9 +146,6 @@ template<class... As>
 StackMatcher exactly(As... as) 
 { return ExactlyStackMatcher(Stack<ClausePattern>({ as... })); }
 
-inline StackMatcher EXPECTED_TODO()
-{ return TodoStackMatcher(); }
-
 inline StackMatcher withoutDuplicates(StackMatcher inner) 
 { return WithoutDuplicatesMatcher(std::shared_ptr<StackMatcher>(move_to_heap(std::move(inner)))); }
 
@@ -204,44 +161,20 @@ namespace Generation {
 class AsymmetricTest;
 class SymmetricTest;
 
-template<class Rule>
 class GenerationTester
 {
-protected:
-  Rule _rule;
-
 public:
-
-  GenerationTester(Rule rule) 
-    : _rule(std::move(rule)) 
-  {  }
-
+  virtual ~GenerationTester() = default;
   virtual Clause* normalize(Kernel::Clause* c)
   { return c; }
 
   virtual bool eq(Kernel::Clause* lhs, Kernel::Clause* rhs)
   { return TestUtils::eqModACRect(lhs, rhs); }
-
-  friend class AsymmetricTest;
-  friend class SymmetricTest;
 };
 
 class AsymmetricTest
 {
   using Clause = Kernel::Clause;
-  using OptionMap = Stack<std::pair<std::string,std::string>>;
-  using Condition = std::function<bool(std::string&, std::string&)>;
-  Option<SimplifyingGeneratingInference*> _rule;
-  Clause* _input;
-  Option<StackMatcher> _expected;
-  Stack<Clause*> _context;
-  bool _premiseRedundant;
-  Stack<std::function<Indexing::Index*()>> _indices;
-  std::function<void(SaturationAlgorithm&)> _setup = [](SaturationAlgorithm&){};
-  bool _selfApplications;
-  OptionMap _options;
-  Stack<Condition> _preConditions;
-  Stack<Condition> _postConditions;
 
   template<class Is, class Expected>
   void testFail(Is const& is, Expected const& expected) {
@@ -256,97 +189,59 @@ class AsymmetricTest
 
 public:
 
-  AsymmetricTest() : _rule(), _input(NULL), _expected(), _premiseRedundant(false), _selfApplications(true), _options() {}
+  AsymmetricTest() : _input(NULL), _premiseRedundant(false), _selfApplications(true), _setup([](SaturationAlgorithm&){}) {}
 
-  using Self = AsymmetricTest;
-#define __BUILDER_METHOD(type, field)                                                     \
-  Self field(type field)                                                                  \
-  {                                                                                       \
-    this->_##field = decltype(_##field)(std::move(field));                                \
-    return *this;                                                                         \
-  }                                                                                       \
+  __BUILDER_METHOD(AsymmetricTest, Clause*, input)
+  __BUILDER_METHOD(AsymmetricTest, ClauseStack, context)
+  BUILDER_METHOD(AsymmetricTest, StackMatcher, expected)
+  __BUILDER_METHOD(AsymmetricTest, std::function<StackMatcher()>, expectedFn)
+  __BUILDER_METHOD(AsymmetricTest, bool, premiseRedundant)
+  __BUILDER_METHOD(AsymmetricTest, bool, selfApplications)
+  __BUILDER_METHOD(AsymmetricTest, std::function<void(SaturationAlgorithm&)>, setup)
+  __BUILDER_METHOD(AsymmetricTest, OptionMap, options)
 
-  __BUILDER_METHOD(Clause*, input)
-  __BUILDER_METHOD(ClauseStack, context)
-  __BUILDER_METHOD(StackMatcher, expected)
-  __BUILDER_METHOD(bool, premiseRedundant)
-  __BUILDER_METHOD(bool, selfApplications)
-  __BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
-  __BUILDER_METHOD(Stack<std::function<Indexing::Index*()>>, indices)
-  __BUILDER_METHOD(std::function<void(SaturationAlgorithm&)>, setup)
-  __BUILDER_METHOD(OptionMap, options)
-  __BUILDER_METHOD(Stack<Condition>, preConditions)
-  __BUILDER_METHOD(Stack<Condition>, postConditions)
+  template<typename Rule, typename Tester, typename... Args>
+  void run(Args... args) {
 
-#undef __BUILDER_METHOD
-
-  template<class Rule>
-  void run(GenerationTester<Rule>& simpl) {
+    Tester tester;
 
     for (auto& c : _context) {
-      c = simpl.normalize(c);
+      c = tester.normalize(c);
     }
-    _input = simpl.normalize(_input);
-
-    // set up saturation algorithm
-    auto container = ActiveClauseContainer();
+    _input = tester.normalize(_input);
 
     // init problem
-    Problem p;
-    auto ul = UnitList::empty();
-    UnitList::pushFromIterator(ClauseStack::Iterator(_context), ul);
-    p.addUnits(ul);
+    Problem p(UnitList::cons(_input,
+      UnitList::fromIterator(ClauseStack::Iterator(_context))));
     env.setMainProblem(&p);
 
-    delete env.options;
-    env.options = new Options;
-    for (const auto& kv : _options) {
-      env.options->set(kv.first, kv.second);
-    }
-    env.options->resolveAwayAutoValues0();
-    env.options->resolveAwayAutoValues(p);
+    resetAndFillEnvOptions(_options, p);
     MockedSaturationAlgorithm alg(p, *env.options);
     _setup(alg);
-    SimplifyingGeneratingInference& rule = *_rule.unwrapOrElse([&](){ return &simpl._rule; });
-    rule.InferenceEngine::attach(&alg);
-    Stack<Indexing::Index*> indices;
-    for (auto i : _indices) {
-      indices.push(i());
-    }
+    Rule rule(alg, args...);
 
-    rule.setTestIndices(indices);
-    for (auto i : indices) {
-      i->attachContainer(&container);
-    }
+    auto container = alg.getActiveClauseContainer();
 
     // add the clauses to the index
     for (auto c : _context) {
       c->setStore(Clause::ACTIVE);
-      container.add(c);
+      container->add(c);
     }
 
-    // check that the preconditions hold
-    std::string s1, s2;
-    for (auto c : _preConditions) {
-      if (!c(s1, s2)) {
-        s2.append(" (precondition)");
-        testFail(s1, s2);
-      }
-    }
+    _input->setStore(Clause::ACTIVE);
 
     // run rule
     if (_selfApplications) {
-      _input->setStore(Clause::ACTIVE);
-      container.add(_input);
+      container->add(_input);
     }
 
     auto res = rule.generateSimplify(_input);
 
     // run checks
-    auto sExp = this->_expected.unwrap();
-    auto sRes = Stack<Kernel::Clause*>::fromIterator(res.clauses);
+    auto sRes = Stack<Kernel::Clause*>::fromIterator(std::move(res.clauses));
+    auto sExp = this->_expected.unwrapOrInit(_expectedFn);
 
-    if (!sExp.matches(sRes, simpl)) {
+    if (!sExp.matches(sRes, tester)) {
       testFail(sRes, sExp);
     }
 
@@ -355,24 +250,11 @@ public:
       testFail( wrapStr(res.premiseRedundant), wrapStr(_premiseRedundant));
     }
 
-
-    // check that the postconditions hold
-    for (auto c : _postConditions) {
-      if (!c(s1, s2)) {
-        s2.append(" (postcondition)");
-        testFail(s1, s2);
-      }
-    }
-
-
-    // add the clauses to the index
+    // remove the clauses from the index
     for (auto c : _context) {
       // c->setStore(Clause::ACTIVE);
-      container.remove(c);
+      container->remove(c);
     }
-
-    // // tear down saturation algorithm
-    rule.InferenceEngine::detach();
 
     Ordering::unsetGlobalOrdering();
   }
@@ -381,12 +263,6 @@ public:
 class SymmetricTest
 {
   using Clause = Kernel::Clause;
-  Option<SimplifyingGeneratingInference*> _rule;
-  Stack<Clause*> _inputs;
-  Option<StackMatcher> _expected;
-  bool _premiseRedundant;
-  bool _selfApplications;
-  Stack<std::function<Indexing::Index*()>> _indices;
 
   template<class Is, class Expected>
   void testFail(Is const& is, Expected const& expected) {
@@ -399,49 +275,36 @@ class SymmetricTest
 
 public:
 
-  SymmetricTest() : _rule(), _expected(), _premiseRedundant(false), _selfApplications(true) {}
+  SymmetricTest() : _expected(), _premiseRedundant(false), _selfApplications(true) {}
 
-#define __BUILDER_METHOD(type, field)                                                     \
-  SymmetricTest field(type field)                                                         \
-  {                                                                                       \
-    this->_##field = decltype(_##field)(std::move(field));                                \
-    return *this;                                                                         \
-  }                                                                                       \
+  __BUILDER_METHOD(SymmetricTest, Stack<Clause*>, inputs)
+  BUILDER_METHOD(SymmetricTest, StackMatcher, expected)
+  __BUILDER_METHOD(SymmetricTest, bool, premiseRedundant)
+  __BUILDER_METHOD(SymmetricTest, bool, selfApplications)
+  __BUILDER_METHOD(SymmetricTest, OptionMap, options)
 
-  __BUILDER_METHOD(Stack<Clause*>, inputs)
-  __BUILDER_METHOD(StackMatcher, expected)
-  __BUILDER_METHOD(bool, premiseRedundant)
-  __BUILDER_METHOD(bool, selfApplications)
-  __BUILDER_METHOD(SimplifyingGeneratingInference*, rule)
-  __BUILDER_METHOD(Stack<std::function<Indexing::Index*()>>, indices)
-
-#undef __BUILDER_METHOD
-
-
-  template<class Rule>
-  void run(GenerationTester<Rule>& simpl) {
+  template<typename Rule, typename Tester, typename... Args>
+  void run(Args... args) {
     for (unsigned i = 0; i < _inputs.size(); i++) {
       Stack<Clause*> context;
       auto input = _inputs[i];
       for (unsigned j = 0; j < _inputs.size(); j++) 
         if (i != j) 
           context.push(_inputs[j]);
-      run(simpl, input, context);
+      runInner<Rule, Tester, Args...>(input, context, args...);
     }
   }
 
-  template<class Rule>
-  void run(GenerationTester<Rule>& simpl, Clause* input, Stack<Clause*> context) {
-    SimplifyingGeneratingInference* rule = _rule.unwrapOrElse([&](){ return &simpl._rule; });
+  template<typename Rule, typename Tester, typename... Args>
+  void runInner(Clause* input, Stack<Clause*> context, Args... args) {
     AsymmetricTest()
       .input(input)
       .context(context)
       .expected(_expected.unwrap())
       .premiseRedundant(_premiseRedundant)
       .selfApplications(_selfApplications)
-      .rule(rule)
-      .indices(_indices)
-      .run(simpl);
+      .options(_options)
+      .run<Rule, Tester, Args...>(args...);
   }
 };
 
@@ -450,15 +313,18 @@ public:
 #define REGISTER_GEN_TESTER(t) const auto __CREATE_GEN_TESTER = []()  { return t; };
 
 #define TEST_GENERATION(name, ...)                                                        \
-        TEST_GENERATION_WITH_SUGAR(name, MY_SYNTAX_SUGAR, __VA_ARGS__) 
+  TEST_GENERATION_WITH_SUGAR(name, MY_GEN_RULE, MY_GEN_TESTER, MY_SYNTAX_SUGAR, __VA_ARGS__) 
 
-#define TEST_GENERATION_WITH_SUGAR(name, syntax_sugar, ...)                               \
+#define TEST_GENERATION_WITH_SUGAR(name, rule, tester, syntax_sugar, test, ...)           \
   TEST_FUN(name) {                                                                        \
-    auto tester = __CREATE_GEN_TESTER();                                                  \
     __ALLOW_UNUSED(syntax_sugar)                                                          \
-    auto test = __VA_ARGS__;                                                              \
-    test.run(tester);                                                                     \
+    test.run<rule,tester>(__VA_ARGS__);                                                   \
   }                                                                                       \
+
+#define EXPECTED(cls)                                                                     \
+  expectedFn([&]() -> StackMatcher {                                                      \
+    return cls;                                                                           \
+  })
 
 } // namespace Simplification
 

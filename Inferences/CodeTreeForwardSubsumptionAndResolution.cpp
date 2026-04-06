@@ -13,35 +13,27 @@
  */
 
 #include "Saturation/SaturationAlgorithm.hpp"
-#include "Shell/Statistics.hpp"
 
 #include "ProofExtra.hpp"
 #include "CodeTreeForwardSubsumptionAndResolution.hpp"
 
 namespace Inferences {
 
-void CodeTreeForwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
-{
-  ForwardSimplificationEngine::attach(salg);
-  auto index = static_cast<CodeTreeSubsumptionIndex*>(
-    _salg->getIndexManager()->request(FW_SUBSUMPTION_CODE_TREE));
-  _ct = index->getClauseCodeTree();
-}
+template<bool higherOrder>
+CodeTreeForwardSubsumptionAndResolution<higherOrder>::CodeTreeForwardSubsumptionAndResolution(SaturationAlgorithm& salg)
+  : _subsumptionResolution(salg.getOptions().forwardSubsumptionResolution()),
+    _index(salg.getSimplifyingIndex<CodeTreeSubsumptionIndex<higherOrder>>()),
+    _ct(_index->getClauseCodeTree())
+{}
 
-void CodeTreeForwardSubsumptionAndResolution::detach()
-{
-  _ct = nullptr;
-  _salg->getIndexManager()->release(FW_SUBSUMPTION_CODE_TREE);
-  ForwardSimplificationEngine::detach();
-}
-
-bool CodeTreeForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, ClauseIterator &premises)
+template<bool higherOrder>
+bool CodeTreeForwardSubsumptionAndResolution<higherOrder>::perform(Clause *cl, Clause *&replacement, ClauseIterator &premises)
 {
   if (_ct->isEmpty()) {
     return false;
   }
 
-  static ClauseCodeTree::ClauseMatcher cm;
+  static typename ClauseCodeTree<higherOrder>::ClauseMatcher cm;
 
   cm.init(_ct, cl, _subsumptionResolution);
 
@@ -65,11 +57,10 @@ bool CodeTreeForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&repla
       }
       res.push((*cl)[i]);
     }
-    replacement = Clause::fromStack(res, SimplifyingInference2(InferenceRule::SUBSUMPTION_RESOLUTION, cl, premise));
+    replacement = Clause::fromStack(res, SimplifyingInference2(InferenceRule::FORWARD_SUBSUMPTION_RESOLUTION, cl, premise));
     if(env.options->proofExtra() == Options::ProofExtra::FULL)
       env.proofExtra.insert(replacement, new LiteralInferenceExtra((*cl)[resolvedQueryLit]));
     premises = pvi(getSingletonIterator(premise));
-    env.statistics->forwardSubsumptionResolution++;
     cm.reset();
     return true;
   }
@@ -77,5 +68,8 @@ bool CodeTreeForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&repla
   cm.reset();
   return false;
 }
+
+template class CodeTreeForwardSubsumptionAndResolution<false>;
+template class CodeTreeForwardSubsumptionAndResolution<true>;
 
 } // namespace Inferences

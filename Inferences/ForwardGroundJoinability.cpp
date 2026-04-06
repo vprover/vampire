@@ -12,27 +12,19 @@
  * Implements class ForwardGroundJoinability.
  */
 
-#include "Lib/DHSet.hpp"
+#include "Lib/DHMap.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
-#include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/TermOrderingDiagram.hpp"
-#include "Kernel/SortHelper.hpp"
 #include "Kernel/TermIterators.hpp"
-#include "Kernel/ColorHelper.hpp"
-
-#include "Indexing/IndexManager.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
-#include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
-
-#include "DemodulationHelper.hpp"
 
 #include "ForwardGroundJoinability.hpp"
 
@@ -56,26 +48,17 @@ struct Applicator : SubstApplicator {
 
 } // end namespace
 
-void ForwardGroundJoinability::attach(SaturationAlgorithm* salg)
-{
-  ForwardSimplificationEngine::attach(salg);
-  _index=static_cast<DemodulationLHSIndex*>(
-	  _salg->getIndexManager()->request(DEMODULATION_LHS_CODE_TREE) );
-}
-
-void ForwardGroundJoinability::detach()
-{
-  _index=0;
-  _salg->getIndexManager()->release(DEMODULATION_LHS_CODE_TREE);
-  ForwardSimplificationEngine::detach();
-}
+template<bool higherOrder>
+ForwardGroundJoinability<higherOrder>::ForwardGroundJoinability(SaturationAlgorithm& salg)
+  : _ord(salg.getOrdering()),
+    _index(salg.getSimplifyingIndex<DemodulationLHSIndex<higherOrder>>())
+{}
 
 #define ITERATION_LIMIT 500
 
-bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
+template<bool higherOrder>
+bool ForwardGroundJoinability<higherOrder>::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
-  Ordering& ordering = _salg->getOrdering();
-
   // cout << "trying " << *cl << endl;
 
   static DHSet<TermList> attempted;
@@ -88,7 +71,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
   if (!lit->isEquality() || lit->isNegative()) {
     return false;
   }
-  DHSet<Clause*> premiseSet;
+  DHMap<unsigned, Clause*> premiseSet;
 
   if (EqHelper::isEqTautology(lit)) {
     premises = ClauseIterator::getEmpty();
@@ -97,8 +80,8 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
   }
 
   auto curr = lit;
-  RedundancyCheck checker(ordering, curr);
-  auto tpo = TermPartialOrdering::getEmpty(ordering);
+  RedundancyCheck checker(_ord, curr);
+  auto tpo = TermPartialOrdering::getEmpty(_ord);
   unsigned cnt = 0;
 
   while (curr) {
@@ -154,7 +137,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
 #if VDEBUG
         POStruct dpo_struct(tpo);
         TermOrderingDiagram::Traversal<TermOrderingDiagram::NodeIterator,POStruct> dtr(
-          TermOrderingDiagram::createForSingleComparison(ordering, trm, rhsApplied.apply()), nullptr, dpo_struct
+          TermOrderingDiagram::createForSingleComparison(_ord, trm, rhsApplied.apply()), nullptr, dpo_struct
         );
         TermOrderingDiagram::Branch* b;
         bool success = false;
@@ -183,7 +166,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
         ASS(next.first != curr || next.second != tpo);
         curr = next.first;
         tpo = next.second;
-        premiseSet.insert(qr.data->clause);
+        premiseSet.insert(qr.data->clause->number(), qr.data->clause);
         goto LOOP_END;
       }
     }
@@ -192,7 +175,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
 LOOP_END:
     continue;
   }
-  premises = pvi(getPersistentIterator(premiseSet.iterator()));
+  premises = pvi(getPersistentIterator(premiseSet.range()));
   replacement = nullptr;
 
   // cout << "forward ground joinable " << *cl << endl;
@@ -201,7 +184,8 @@ LOOP_END:
   return true;
 }
 
-ForwardGroundJoinability::RedundancyCheck::RedundancyCheck(const Ordering& ord, Literal* data)
+template<bool higherOrder>
+ForwardGroundJoinability<higherOrder>::RedundancyCheck::RedundancyCheck(const Ordering& ord, Literal* data)
   : tod(ord.createTermOrderingDiagram(/*ground=*/true)), traversal(tod.get(), nullptr)
 {
   tod->_source = Branch(data, tod->_sink);
@@ -210,7 +194,8 @@ ForwardGroundJoinability::RedundancyCheck::RedundancyCheck(const Ordering& ord, 
   ASS_EQ(_curr,&tod->_source);
 }
 
-std::pair<Literal*,const TermPartialOrdering*> ForwardGroundJoinability::RedundancyCheck::next(
+template<bool higherOrder>
+std::pair<Literal*,const TermPartialOrdering*> ForwardGroundJoinability<higherOrder>::RedundancyCheck::next(
   Stack<TermOrderingConstraint> ordCons, Literal* data)
 {
   static Ordering::Result ordVals[] = { Ordering::EQUAL, Ordering::GREATER, Ordering::INCOMPARABLE };
@@ -269,7 +254,8 @@ std::pair<Literal*,const TermPartialOrdering*> ForwardGroundJoinability::Redunda
   return { nullptr, nullptr };
 }
 
-bool ForwardGroundJoinability::makeEqual(Literal* lit, Stack<TermOrderingConstraint>& res)
+template<bool higherOrder>
+bool ForwardGroundJoinability<higherOrder>::makeEqual(Literal* lit, Stack<TermOrderingConstraint>& res)
 {
   ASS(lit->isEquality());
   ASS(lit->isPositive());
@@ -309,5 +295,8 @@ bool ForwardGroundJoinability::makeEqual(Literal* lit, Stack<TermOrderingConstra
   }
   return true;
 }
+
+template class ForwardGroundJoinability<false>;
+template class ForwardGroundJoinability<true>;
 
 }

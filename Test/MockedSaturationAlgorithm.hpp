@@ -12,10 +12,21 @@
 #define __TEST__MOCKED_SATURATION_ALGORITHM__
 
 #include "Saturation/Otter.hpp"
-#include "Kernel/Clause.hpp"
-#include "Kernel/KBO.hpp"
 
 namespace Test {
+
+using OptionMap = Stack<std::pair<std::string,std::string>>;
+
+inline void resetAndFillEnvOptions(const OptionMap& opt, const Problem& prb) {
+  delete env.options;
+  env.options = new Options();
+  // env.options->reset();
+  for (const auto& kv : opt) {
+    env.options->set(kv.first, kv.second);
+  }
+  env.options->resolveAwayAutoValues0();
+  env.options->resolveAwayAutoValues(prb);
+}
 
 class MockedSaturationAlgorithm : public Saturation::Otter {
 public:

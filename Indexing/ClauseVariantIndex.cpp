@@ -14,19 +14,15 @@
 
 #include "Lib/List.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/SmartPtr.hpp"
 #include "Debug/TimeProfiling.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/LiteralComparators.hpp"
 #include "Kernel/MLVariant.hpp"
 #include "Kernel/Term.hpp"
 
 #include "LiteralMiniIndex.hpp"
-#include "LiteralSubstitutionTree.hpp"
 
 #include "ClauseVariantIndex.hpp"
-#include "Indexing/IndexManager.hpp"
 
 namespace Indexing
 {
@@ -42,10 +38,6 @@ public:
   : _lits(lits), _length(length), _queryIndex(new LiteralMiniIndex(lits, length))
   {
   }
-  ~ResultClauseToVariantClauseFn()
-  {
-  }
-
 
   Clause* operator()(Clause* mcl)
   {
@@ -101,7 +93,7 @@ public:
 private:
   Literal* const * _lits;
   unsigned _length;
-  SmartPtr<LiteralMiniIndex> _queryIndex;
+  std::unique_ptr<LiteralMiniIndex> _queryIndex;
 };
 
 //-------------------//-------------------//-------------------//-------------------

@@ -15,17 +15,12 @@
 #include "Lib/Environment.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/EqHelper.hpp"
+#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
-#include "Kernel/Signature.hpp"
-#include "Kernel/OperatorType.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/ApplicativeHelper.hpp"
 
-#include "Shell/Statistics.hpp"
 #include "Shell/Skolem.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -41,358 +36,6 @@ static TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt);
 static TermList piRemoval(TermList piTerm, Clause* clause, TermList expsrt);
 static InferenceRule convert(Proxy cnst);
 static ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaIndex* index = 0);
-
-typedef ApplicativeHelper AH;
-
-/*Clause* NotProxyISE::simplify(Clause* c){
-  TermList boolSort = AtomicSort::boolSort();
-  TermList troo = TermList(Term::foolTrue());
-  TermList fols = TermList(Term::foolFalse());
-
-  static TermStack args;
-  TermList head;
- 
-  for(int i = c->length()-1; i>=0; i--){
-    Literal* lit = (*c)[i];
-    TermList lhs = *lit->nthArgument(0);
-    TermList rhs = *lit->nthArgument(1);
-    TermList term;
-    TermList boolVal;
-    if(AH::isBool(lhs)){
-      boolVal = lhs;
-      term = rhs;
-    } else if(AH::isBool(rhs)){
-      boolVal = rhs;
-      term = lhs;
-    } else {
-      continue;
-    }
-
-    bool positive = AH::isTrue(boolVal) == lit->polarity();
-
-    AH::getHeadAndArgs(term, head, args);
-    Signature::Proxy prox = AH::getProxy(head);
-
-    if((prox == Signature::NOT) && (args.size())){
-      TermList rhs = positive ? fols : troo;
-      Literal* l1 = Literal::createEquality(true, args[0], rhs, boolSort);
-      Inference *inf = new Inference1(convert(prox), c);      
-      Clause* res = replaceLits(c, lit, l1, inf);
-      res->setAge(c->age());
-      return res;
-    }
-  }
-
-  return c;
-}
-
-Clause* EqualsProxyISE::simplify(Clause* c){
-  TermList boolSort = AtomicSort::boolSort();
-  TermList troo = TermList(Term::foolTrue());
-  TermList fols = TermList(Term::foolFalse());
-
-  static TermStack args;
-  TermList head;
- 
-  for(int i = c->length()-1; i >=0; i--){
-    Literal* lit = (*c)[i];
-    TermList lhs = *lit->nthArgument(0);
-    TermList rhs = *lit->nthArgument(1);
-    TermList term;
-    TermList boolVal;
-    if(AH::isBool(lhs)){
-      boolVal = lhs;
-      term = rhs;
-    } else if(AH::isBool(rhs)){
-      boolVal = rhs;
-      term = lhs;
-    } else {
-      continue;
-    }
-
-    bool positive = AH::isTrue(boolVal) == lit->polarity();
-
-    AH::getHeadAndArgs(term, head, args);
-    Signature::Proxy prox = AH::getProxy(head);
-
-    if((prox == Signature::EQUALS) && (args.size() == 2)){
-      TermList srt = *SortHelper::getResultSort(head.term()).term()->nthArgument(0);
-      Literal* l1 = Literal::createEquality(positive, args[0], args[1], srt);
-      Inference *inf = new Inference1(convert(prox), c);
-      Clause* res = replaceLits(c, lit, l1, inf);
-      res->setAge(c->age());
-      return res;
-    }
-  }
-
-  return c;
-}
-
-Clause* PiSigmaProxyISE::simplify(Clause* c){
-  TermList boolSort = AtomicSort::boolSort();
-  TermList troo = TermList(Term::foolTrue());
-  TermList fols = TermList(Term::foolFalse());
-
-  static TermStack args;
-  TermList head;
- 
-  for(int i = c->length() - 1 ; i >= 0; i--){
-    Literal* lit = (*c)[i];
-    TermList lhs = *lit->nthArgument(0);
-    TermList rhs = *lit->nthArgument(1);
-    TermList term;
-    TermList boolVal;
-    if(AH::isBool(lhs)){
-      boolVal = lhs;
-      term = rhs;
-    } else if(AH::isBool(rhs)){
-      boolVal = rhs;
-      term = lhs;
-    } else {
-      continue;
-    }
-
-    bool positive = AH::isTrue(boolVal) == lit->polarity();
-
-    AH::getHeadAndArgs(term, head, args);
-    Signature::Proxy prox = AH::getProxy(head);
-
-    if((prox == Signature::PI || prox == Signature::SIGMA ) && (args.size())){
-      TermList rhs = positive ? troo : fols; 
-      TermList srt = *SortHelper::getResultSort(head.term()).term()->nthArgument(0);
-      TermList newTerm;
-      Inference *inf;
-      if((prox == Signature::PI && positive) || 
-         (prox == Signature::SIGMA && !positive)){
-        inf = new Inference1(convert(Signature::PI), c);
-        newTerm = piRemoval(args[0], c, srt);
-      } else {
-        TermList skolemTerm = sigmaRemoval(args[0], srt);
-        newTerm = AH::createAppTerm(srt, args[0], skolemTerm);
-        inf = new Inference1(convert(Signature::SIGMA), c);
-      }
-      Literal* l1 = Literal::createEquality(true, newTerm, rhs, boolSort);
-      Clause* res = replaceLits(c, lit, l1, inf);
-      res->setAge(c->age());
-      return res;
-    }
-  }
-
-  return c;
-}
-
-Clause* OrImpAndProxyISE::simplify(Clause* c){
-  TermList boolSort = AtomicSort::boolSort();
-  TermList troo = TermList(Term::foolTrue());
-  TermList fols = TermList(Term::foolFalse());
-
-  static TermStack args;
-  TermList head;
- 
-  for(int i = c->length() -1; i >=0; i--){
-    Literal* lit = (*c)[i];
-    TermList lhs = *lit->nthArgument(0);
-    TermList rhs = *lit->nthArgument(1);
-    TermList term;
-    TermList boolVal;
-    if(AH::isBool(lhs)){
-      boolVal = lhs;
-      term = rhs;
-    } else if(AH::isBool(rhs)){
-      boolVal = rhs;
-      term = lhs;
-    } else {
-      continue;
-    }
-
-    bool positive = AH::isTrue(boolVal) == lit->polarity();
-
-    AH::getHeadAndArgs(term, head, args);
-    Signature::Proxy prox = AH::getProxy(head);
-
-    if((prox == Signature::OR) && (args.size() == 2)){
-      if(positive){
-        Literal* l1 = Literal::createEquality(true, args[1], troo, boolSort);
-        Literal* l2 = Literal::createEquality(true, args[0], troo, boolSort);
-        Inference *inf = new Inference1(convert(prox), c);   
-        Clause* res = replaceLits(c, lit, l1, inf, l2);
-        res->setAge(c->age());
-        return res;
-      }
-    }
-  
-    if((prox == Signature::AND) && (args.size() == 2)){
-      if(!positive){
-        Literal* l1 = Literal::createEquality(true, args[1], fols, boolSort);
-        Literal* l2 = Literal::createEquality(true, args[0], fols, boolSort);
-        Inference *inf = new Inference1(convert(prox), c);
-        Clause* res = replaceLits(c, lit, l1, inf, l2);
-        res->setAge(c->age());
-        return res;
-      }
-    }
-
-    if((prox == Signature::IMP) && (args.size() == 2)){
-      if(positive){
-        Literal* l1 = Literal::createEquality(true, args[1], fols, boolSort);
-        Literal* l2 = Literal::createEquality(true, args[0], troo, boolSort);
-        Inference *inf = new Inference1(convert(prox), c);   
-        Clause* res = replaceLits(c, lit, l1, inf, l2);
-        res->setAge(c->age());
-        return res;
-      }
-    }
-  }
-
-  return c;
-} 
-
-ClauseIterator ProxyISE::simplifyMany(Clause* c){
-  TermList troo = TermList(Term::foolTrue());
-  TermList fols = TermList(Term::foolFalse());
-  TermList boolSort = AtomicSort::boolSort();
-
-  static TermStack args;
-  TermList head;
- 
-  ClauseStack resultStack;
-  unsigned clength = c->length();
-
-  for(unsigned i = 0; i < clength; i++){
-    Literal* lit = (*c)[i];
-    TermList lhs = *lit->nthArgument(0);
-    TermList rhs = *lit->nthArgument(1);
-    TermList term;
-    TermList boolVal;
-    if(AH::isBool(lhs)){
-      boolVal = lhs;
-      term = rhs;
-    } else if(AH::isBool(rhs)){
-      boolVal = rhs;
-      term = lhs;
-    } else if(SortHelper::getEqualityArgumentSort(lit) == boolSort) {
-      //equality or diseqality between boolean terms
-      Literal* lhsTroo = Literal::createEquality(true, lhs, troo, boolSort);
-      Literal* lhsFols = Literal::createEquality(true, lhs, fols, boolSort);
-      Literal* rhsTroo = Literal::createEquality(true, rhs, troo, boolSort);
-      Literal* rhsFols = Literal::createEquality(true, rhs, fols, boolSort);
-      if(lit->polarity()){
-        Inference* inf1 = new Inference1(convert(Signature::IFF), c);
-        Inference* inf2 = new Inference1(convert(Signature::IFF), c);
-        Clause* res1 = replaceLits(c, lit, lhsTroo, inf1, rhsFols);
-        Clause* res2 = replaceLits(c, lit, lhsFols, inf2, rhsTroo);
-        res1->setAge(c->age()+1);
-        res2->setAge(c->age()+1);
-        resultStack.push(res1);
-        resultStack.push(res2);
-      } else {
-        Inference* inf1 = new Inference1(convert(Signature::XOR), c);
-        Inference* inf2 = new Inference1(convert(Signature::XOR), c);
-        Clause* res1 = replaceLits(c, lit, lhsTroo, inf1, rhsTroo);
-        Clause* res2 = replaceLits(c, lit, lhsFols, inf2, rhsFols);
-        res1->setAge(c->age()+1);
-        res2->setAge(c->age()+1);
-        resultStack.push(res1);
-        resultStack.push(res2);
-      }
-      goto afterLoop;
-    } else {
-      continue;
-    }
-
-    AH::getHeadAndArgs(term, head, args);
-    Signature::Proxy prox = AH::getProxy(head);
-    if(prox == Signature::NOT_PROXY){
-      continue;
-    }
-
-    bool positive = AH::isTrue(boolVal) == lit->polarity();
-
-    if((prox == Signature::OR) && (args.size() == 2)){
-      if(!positive){
-        Literal* l1 = Literal::createEquality(true, args[1], fols, boolSort);
-        Literal* l2 = Literal::createEquality(true, args[0], fols, boolSort);
-        Inference* inf1 = new Inference1(convert(prox), c);
-        Inference* inf2 = new Inference1(convert(prox), c);
-        Clause* res1 = replaceLits(c, lit, l1, inf1);
-        Clause* res2 = replaceLits(c, lit, l2, inf2);
-        res1->setAge(c->age()+1);
-        res2->setAge(c->age()+1);
-        resultStack.push(res1);
-        resultStack.push(res2);
-        goto afterLoop;
-      }
-    }
-  
-    if((prox == Signature::AND) && (args.size() == 2)){
-      if(positive){
-        Literal* l1 = Literal::createEquality(true, args[1], troo, boolSort);
-        Literal* l2 = Literal::createEquality(true, args[0], troo, boolSort);
-        Inference* inf1 = new Inference1(convert(prox), c); 
-        Inference* inf2 = new Inference1(convert(prox), c);     
-        Clause* res1 = replaceLits(c, lit, l1, inf1);
-        Clause* res2 = replaceLits(c, lit, l2, inf2);        
-        res1->setAge(c->age()+1);
-        res2->setAge(c->age()+1);
-        resultStack.push(res1);
-        resultStack.push(res2);
-        goto afterLoop;
-      }
-    }
-
-    if((prox == Signature::IMP) && (args.size() == 2)){
-      if(!positive){
-        Literal* l1 = Literal::createEquality(true, args[1], troo, boolSort);
-        Literal* l2 = Literal::createEquality(true, args[0], fols, boolSort);
-        Inference* inf1 = new Inference1(convert(prox), c);
-        Inference* inf2 = new Inference1(convert(prox), c);
-        Clause* res1 = replaceLits(c, lit, l1, inf1);
-        Clause* res2 = replaceLits(c, lit, l2, inf2);        
-        res1->setAge(c->age()+1);
-        res2->setAge(c->age()+1);
-        resultStack.push(res1);
-        resultStack.push(res2);
-        goto afterLoop;
-      }
-    }
-
-    if((prox == Signature::IFF || prox == Signature::XOR) && (args.size() == 2)){
-      bool polarity = (prox == Signature::IFF) == positive;
-      //equality or diseqality between boolean terms
-      Literal* lhsTroo = Literal::createEquality(true, args[1], troo, boolSort);
-      Literal* lhsFols = Literal::createEquality(true, args[1], fols, boolSort);
-      Literal* rhsTroo = Literal::createEquality(true, args[0], troo, boolSort);
-      Literal* rhsFols = Literal::createEquality(true, args[0], fols, boolSort);
-      if(polarity){
-        Inference* inf1 = new Inference1(convert(Signature::IFF), c);
-        Inference* inf2 = new Inference1(convert(Signature::IFF), c);
-        Clause* res1 = replaceLits(c, lit, lhsTroo, inf1, rhsFols);
-        Clause* res2 = replaceLits(c, lit, lhsFols, inf2, rhsTroo);
-        res1->setAge(c->age()+1);
-        res2->setAge(c->age()+1);
-        resultStack.push(res1);
-        resultStack.push(res2);
-      } else {
-        Inference* inf1 = new Inference1(convert(Signature::XOR), c);
-        Inference* inf2 = new Inference1(convert(Signature::XOR), c);
-        Clause* res1 = replaceLits(c, lit, lhsTroo, inf1, rhsTroo);
-        Clause* res2 = replaceLits(c, lit, lhsFols, inf2, rhsFols);
-        res1->setAge(c->age()+1);
-        res2->setAge(c->age()+1);
-        resultStack.push(res1);
-        resultStack.push(res2);
-      }
-      goto afterLoop;
-    }
-  }
-
-  return ClauseIterator::getEmpty(); 
-
-afterLoop:  
-
-  return pvi(getUniquePersistentIterator(ClauseStack::Iterator(resultStack)));
-
-}*/
 
 ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaIndex* index)
 {
@@ -412,7 +55,6 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
   TermList boolSort = AtomicSort::boolSort();
 
   static TermStack args;
-  TermList head;
  
   ClauseStack resultStack;
   unsigned clength = c->length();
@@ -423,10 +65,10 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
     TermList rhs = *lit->nthArgument(1);
     TermList term;
     TermList boolVal;
-    if(AH::isBool(lhs)){
+    if(HOL::isBool(lhs)){
       boolVal = lhs;
       term = rhs;
-    } else if(AH::isBool(rhs)){
+    } else if(HOL::isBool(rhs)){
       boolVal = rhs;
       term = lhs;
     } else if(SortHelper::getEqualityArgumentSort(lit) == boolSort && !not_be) {
@@ -451,8 +93,11 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
       continue;
     }
 
-    AH::getHeadAndArgs(term, head, args);
-    Proxy prox = AH::getProxy(head);
+    auto head = HOL::getHeadAndArgs(term, args);
+    if (head.isVar()) {
+      continue;
+    }
+    Proxy prox = env.signature->getFunction(head.term()->functor())->proxy();
     if(prox == Proxy::NOT_PROXY || prox == Proxy::IFF ||
        prox == Proxy::XOR){
       continue;
@@ -462,7 +107,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
       continue;
     }
 
-    bool positive = AH::isTrue(boolVal) == lit->polarity();
+    bool positive = HOL::isTrue(boolVal) == lit->polarity();
 
     if((prox == Proxy::OR) && (args.size() == 2)){
       if(positive){
@@ -552,7 +197,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
             auto tqr = results.next();
             TermList skolemTerm = tqr.data->value;
             skolemTerm = tqr.unifier->applyToBoundResult(skolemTerm);
-            newTerm = AH::createAppTerm(srt, args[0], skolemTerm);
+            newTerm = HOL::create::app(srt, args[0], skolemTerm);
             newTermCreated = true;
           }
         }
@@ -561,7 +206,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
           if(index){
             index->insertFormula(TypedTermList(term.term()), skolemTerm);
           }
-          newTerm = AH::createAppTerm(srt, args[0], skolemTerm);
+          newTerm = HOL::create::app(srt, args[0], skolemTerm);
         }
         rule = convert(Proxy::SIGMA);
       }
@@ -665,10 +310,11 @@ TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt){
   SortHelper::normaliseArgSorts(typeVars, termVarSorts);
   SortHelper::normaliseSort(typeVars, resultSort);
 
+  // TODO Double check this arrow sort, as the order changed. By the looks of it, it was also wrong here.
   TermList skSymSort = AtomicSort::arrowSort(termVarSorts, resultSort);
   unsigned fun = Skolem::addSkolemFunction(typeVars.size(), typeVars.size(), 0, skSymSort);
   TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
-  TermList skolemTerm = ApplicativeHelper::createAppTerm(SortHelper::getResultSort(head.term()), head, termVars);
+  TermList skolemTerm = HOL::create::app(head, termVars);
 
   ASS(*expsrt.term()->nthArgument(1) == AtomicSort::boolSort());
   //cout << "OUT OF sigmaRemoval " + sigmaTerm.toString() << endl;
@@ -682,7 +328,7 @@ TermList piRemoval(TermList piTerm, Clause* clause, TermList expsrt){
   do{ 
     maxVar++;
     TermList newVar = TermList(maxVar, false);
-    piTerm = ApplicativeHelper::createAppTerm(expsrt, piTerm, newVar);
+    piTerm = HOL::create::app(expsrt, piTerm, newVar);
     expsrt = *expsrt.term()->nthArgument(1);
   }while(expsrt != AtomicSort::boolSort()); 
   
@@ -694,7 +340,6 @@ Clause* IFFXORRewriterISE::simplify(Clause* c){
   TermList boolSort = AtomicSort::boolSort();
 
   static TermStack args;
-  TermList head;
  
   for(unsigned i = 0; i < c->length(); i++){
     Literal* lit = (*c)[i];
@@ -702,20 +347,23 @@ Clause* IFFXORRewriterISE::simplify(Clause* c){
     TermList rhs = *lit->nthArgument(1);
     TermList term;
     TermList boolVal;
-    if(AH::isBool(lhs)){
+    if(HOL::isBool(lhs)){
       boolVal = lhs;
       term = rhs;
-    } else if(AH::isBool(rhs)){
+    } else if(HOL::isBool(rhs)){
       boolVal = rhs;
       term = lhs;
     } else {
       continue;
     }
 
-    bool positive = AH::isTrue(boolVal) == lit->polarity();
+    bool positive = HOL::isTrue(boolVal) == lit->polarity();
 
-    AH::getHeadAndArgs(term, head, args);
-    Proxy prox = AH::getProxy(head);
+    auto head = HOL::getHeadAndArgs(term, args);
+    if (head.isVar()) {
+      continue;
+    }
+    auto prox = env.signature->getFunction(head.term()->functor())->proxy();
 
     if((prox == Proxy::IFF || prox == Proxy::XOR) && (args.size() == 2)){
       bool polarity = (prox == Proxy::IFF) == positive;
@@ -728,47 +376,31 @@ Clause* IFFXORRewriterISE::simplify(Clause* c){
   return c;
 }
 
-void LazyClausificationGIE::attach(SaturationAlgorithm* salg)
-{
-  GeneratingInferenceEngine::attach(salg);
-  _formulaIndex=static_cast<SkolemisingFormulaIndex*> (
-    _salg->getIndexManager()->request(SKOLEMISING_FORMULA_INDEX) );
-}
+LazyClausificationGIE::LazyClausificationGIE(SaturationAlgorithm& salg)
+  : _formulaIndex(salg.getSimplifyingIndex<SkolemisingFormulaIndex>())
+{}
 
-void LazyClausificationGIE::detach()
-{
-  _formulaIndex=0;
-  _salg->getIndexManager()->release(SKOLEMISING_FORMULA_INDEX);
-  GeneratingInferenceEngine::detach();
-}
+LazyClausification::LazyClausification(SaturationAlgorithm& salg)
+  : _formulaIndex(salg.getSimplifyingIndex<SkolemisingFormulaIndex>())
+{}
 
-void LazyClausification::attach(SaturationAlgorithm* salg)
+Option<ClauseIterator> EagerClausificationISE::simplifyMany(Clause* c)
 {
-  SimplificationEngine::attach(salg);
-  _formulaIndex=static_cast<SkolemisingFormulaIndex*> (
-   _salg->getIndexManager()->request(SKOLEMISING_FORMULA_INDEX) );
-}
-
-void LazyClausification::detach()
-{
-  _formulaIndex=0;
-  _salg->getIndexManager()->release(SKOLEMISING_FORMULA_INDEX);
-  SimplificationEngine::detach();
-}
-
-ClauseIterator EagerClausificationISE::simplifyMany(Clause* c)
-{
-  return produceClauses(c, false);
+  auto it = produceClauses(c, false);
+  if (it.hasNext()) {
+    return some(it);
+  }
+  return none<ClauseIterator>();
 }
 
 ClauseIterator LazyClausificationGIE::generateClauses(Clause* c)
 {
-  return produceClauses(c, true, _formulaIndex);
+  return produceClauses(c, true, _formulaIndex.get());
 }
 
 ClauseIterator LazyClausification::perform(Clause* c)
 {
-  return produceClauses(c, false, _formulaIndex);
+  return produceClauses(c, false, _formulaIndex.get());
 }
 
 

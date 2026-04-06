@@ -12,22 +12,13 @@
 #ifndef __POLYNOMIAL_NORMALIZER_HPP__
 #define __POLYNOMIAL_NORMALIZER_HPP__
 
-#include "Lib/Int.hpp"
 #include "Forwards.hpp"
 
-#include "Signature.hpp" 
-#include "SortHelper.hpp"
-#include "TermIterators.hpp"
 #include "Term.hpp"
-#include "Theory.hpp"
 #include "NumTraits.hpp"
 #include "Lib/Coproduct.hpp"
 #include <algorithm>
 #include <utility>
-#include <type_traits>
-#include <functional>
-#include "Lib/Hash.hpp"
-#include "Lib/Environment.hpp"
 #include "Lib/Option.hpp"
 #include "Kernel/Polynomial.hpp"
 #include "Inferences/InferenceEngine.hpp"

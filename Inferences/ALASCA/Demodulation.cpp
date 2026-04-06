@@ -10,6 +10,7 @@
 
 #include "Demodulation.hpp"
 #include "Kernel/EqHelper.hpp"
+#include "Lib/StringUtils.hpp"
 
 namespace Inferences {
 namespace ALASCA {

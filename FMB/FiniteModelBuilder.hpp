@@ -19,7 +19,6 @@
 
 #if VZ3
 #include "z3++.h"
-#include "z3_api.h"
 #endif
 
 #include "Kernel/MainLoop.hpp"
@@ -59,14 +58,14 @@ using namespace SAT;
 class FiniteModelBuilder : public MainLoop {
 public:
   FiniteModelBuilder(Problem& prb, const Options& opt);
-  ~FiniteModelBuilder();
+  ~FiniteModelBuilder() override;
 
 protected:
   // Sets up everything
-  virtual void init();
+  void init() override;
 
   // Runs the saturation loop
-  virtual MainLoopResult runImpl();
+  MainLoopResult runImpl() override;
 
 private:
 
@@ -162,7 +161,7 @@ private:
   DArray<unsigned> _fminbound;
   // Record for each clause the sorts of the variables
   // As clauses are normalized variables will be numbered 0,1,...
-  DHMap<Clause*,DArray<unsigned>*> _clauseVariableSorts;
+  DHMap<unsigned,DArray<unsigned>*> _clauseVariableSorts;
 
   // There is a implicit mapping from ground terms to SAT variables
   // These offsets give the SAT variable for the *first* grounding of each function or predicate symbol

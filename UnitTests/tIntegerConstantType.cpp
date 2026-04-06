@@ -13,13 +13,21 @@
 #include "Lib/BitUtils.hpp"
 // TODO rename to theory test
 #include "Kernel/Theory.hpp"
-#include "Lib/Int.hpp"
 
 #include "Test/UnitTesting.hpp"
 
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
+
+static unsigned safeAbs(const int num)
+{
+  if(num == std::numeric_limits<int>::min()) { // = -2147483648
+    return (unsigned)num; // = 2147483648
+  }
+  // abs works for all other values
+  return std::abs(num);
+}
 
 TEST_FUN(list_1)
 {
@@ -43,7 +51,7 @@ inline auto rct(int i, int j) -> RationalConstantType { return RationalConstantT
 TEST_FUN(test01) {
 
   for (int i = -512; i <= 512; i++) {
-    auto exp = ict(BitUtils::log2(Int::safeAbs(i)));
+    auto exp = ict(BitUtils::log2(safeAbs(i)));
     auto is = ict(i).abs().log2();
     if (is != exp ) {
       std::cout << "[ fail ] ict(" << i << ").abs().log2()" << std::endl;

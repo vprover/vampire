@@ -27,9 +27,11 @@ class Factoring
 : public GeneratingInferenceEngine
 {
 public:
-  ClauseIterator generateClauses(Kernel::Clause* premise);
+  Factoring(SaturationAlgorithm& salg) : _salg(salg) {}
+  ClauseIterator generateClauses(Kernel::Clause* premise) override;
 private:
   class ResultsFn;
+  const SaturationAlgorithm& _salg;
 };
 
 using FactoringExtra = TwoLiteralInferenceExtra;

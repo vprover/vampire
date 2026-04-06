@@ -22,8 +22,6 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 
-#include "Property.hpp"
-
 #include "GoalGuessing.hpp"
 
 namespace Shell

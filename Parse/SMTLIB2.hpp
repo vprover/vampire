@@ -19,10 +19,7 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Set.hpp"
-
 #include "Kernel/Signature.hpp"
-#include "Kernel/OperatorType.hpp"
 #include "Kernel/Term.hpp"
 
 #include "Shell/LispParser.hpp"
@@ -536,14 +533,6 @@ private:
    * Used for synthesis based on forall-exist formulas.
    */
   void readAssertSynth(LExpr* forall, LExpr* exist, LExpr* body);
-
-  /**
-   * Unofficial command
-   *
-   * Behaves like assert, but marks body clause as external theory axiom.
-   * Assumes that body is already fully simplified (as this is usual the case for theory axioms).
-   */
-  void readAssertTheory(LExpr* body);
 
   /**
    * Helper method: switch on SymbolType and return corresponding Symbol.

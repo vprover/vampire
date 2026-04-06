@@ -88,7 +88,7 @@ class TermTransformingFormulaTransformer : public FormulaTransformer
 public:
   TermTransformingFormulaTransformer(TermTransformer& termTransformer) : _termTransformer(termTransformer) {}
 protected:
-  virtual Formula* applyLiteral(Formula* f);
+  Formula* applyLiteral(Formula* f) override;
 
   TermTransformer& _termTransformer;
 };
@@ -99,7 +99,7 @@ class BottomUpTermTransformerFormulaTransformer : public FormulaTransformer
     BottomUpTermTransformerFormulaTransformer(BottomUpTermTransformer& termTransformer)
       : _termTransformer(termTransformer) {}
   protected:
-    virtual Formula* applyLiteral(Formula* f);
+    Formula* applyLiteral(Formula* f) override;
 
     BottomUpTermTransformer& _termTransformer;
 };
@@ -108,11 +108,11 @@ class PolarityAwareFormulaTransformer : protected FormulaTransformer {
 public:
   virtual Formula* transformWithPolarity(Formula* f, int polarity=1);
 protected:
-  virtual Formula* applyNot(Formula* f);
+  Formula* applyNot(Formula* f) override;
 
-  virtual Formula* applyImp(Formula* f);
+  Formula* applyImp(Formula* f) override;
 
-  virtual Formula* applyBinary(Formula* f);
+  Formula* applyBinary(Formula* f) override;
 
   int polarity() const { return _polarity; }
 
@@ -144,7 +144,7 @@ public:
 
   virtual Formula* transform(Formula* f) = 0;
 
-  virtual FormulaUnit* transform(FormulaUnit* unit);
+  FormulaUnit* transform(FormulaUnit* unit) override;
 
 private:
   InferenceRule _rule;
@@ -159,7 +159,7 @@ public:
 
   using LocalFormulaUnitTransformer::transform;
 
-  virtual Formula* transform(Formula* f)
+  Formula* transform(Formula* f) override
   {
     return _formulaTransformer.transform(f);
   }

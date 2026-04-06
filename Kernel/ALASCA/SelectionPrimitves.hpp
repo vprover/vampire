@@ -32,7 +32,7 @@ namespace Kernel {
     unsigned litIdx;
     Option<AnyAlascaLiteral> interpreted;
 
-    SelectedLiteral(Clause* cl, unsigned litIdx, AlascaState& shared);
+    SelectedLiteral(Clause* cl, unsigned litIdx, const AlascaState& shared);
 
     Literal* literal() const { return (*cl)[litIdx]; }
     Clause* clause() const { return cl; }

@@ -16,7 +16,6 @@
 #include "Index.hpp"
 #include "Forwards.hpp"
 
-
 namespace Indexing
 {
 

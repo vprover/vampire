@@ -12,14 +12,11 @@
  * Implements class EqHelper.
  */
 
-#include "Lib/Environment.hpp"
-
 #include "Shell/Options.hpp"
 
 #include "Ordering.hpp"
 #include "SortHelper.hpp"
 #include "TermIterators.hpp"
-#include "ApplicativeHelper.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Matcher.hpp"
 
@@ -179,9 +176,11 @@ Term* EqHelper::replace(Term* trm0, TermList tSrc, TermList tDest)
   return Term::create(trm0,argLst);
 }
 
-
-VirtualIterator<Term*> EqHelper::getSubtermIterator(Literal* lit, const Ordering& ord)
+VirtualIterator<Term*> EqHelper::getSubtermIterator(Literal* lit, const Ordering& ord, bool higherOrder)
 {
+  if (higherOrder) {
+    return getRewritableSubtermIterator<FirstOrderSubtermIterator>(lit, ord);
+  }
   return getRewritableSubtermIterator<NonVariableNonTypeIterator>(lit, ord);
 }
 

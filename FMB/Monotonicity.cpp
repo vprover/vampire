@@ -20,12 +20,10 @@
 #include "Lib/Environment.hpp"
 #include "Lib/List.hpp"
 
-#include "Kernel/Unit.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/TermTransformer.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
 
 #include "SAT/SATSolver.hpp"

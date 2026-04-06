@@ -14,8 +14,6 @@
 
 
 #include "Lib/Environment.hpp"
-#include "Lib/SmartPtr.hpp"
-#include "Lib/System.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -26,7 +24,6 @@
 #include "Shell/Options.hpp"
 #include "Shell/UIHelper.hpp"
 
-#include "Signature.hpp"
 #include "Clause.hpp"
 #include "Problem.hpp"
 

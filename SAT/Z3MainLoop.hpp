@@ -19,15 +19,10 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Allocator.hpp"
-
 #include "Kernel/MainLoop.hpp"
 #include "Kernel/Problem.hpp"
 
-#include "SAT/Z3Interfacing.hpp"
-
 #include "Shell/Options.hpp"
-#include "Shell/Statistics.hpp"
 
 namespace SAT{
 
@@ -39,11 +34,11 @@ class Z3MainLoop : public MainLoop
 {
 public:
   Z3MainLoop(Problem& prb, const Options& opt);
-  ~Z3MainLoop(){};
+  ~Z3MainLoop() override{};
 
 protected:
-  virtual void init();
-  virtual MainLoopResult runImpl();
+  void init() override;
+  MainLoopResult runImpl() override;
 //private:
 
 };

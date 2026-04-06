@@ -12,14 +12,11 @@
  * Implements class SMTLIB.
  */
 
-#include <climits>
-#include <fstream>
 #include <map>
 
 #include "Lib/Environment.hpp"
 #include "Lib/NameArray.hpp"
 #include "Lib/StringUtils.hpp"
-#include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Matcher.hpp"
@@ -282,16 +279,6 @@ void SMTLIB2::readBenchmark(LExpr* bench)
       auto exist = ibRdr.readList();
       auto body = ibRdr.readExpr();
       readAssertSynth(forall, exist, body);
-
-      ibRdr.acceptEOL();
-
-      continue;
-    }
-
-    if (ibRdr.tryAcceptAtom("assert-theory")) {
-
-      auto body = ibRdr.readExpr();
-      readAssertTheory(body);
 
       ibRdr.acceptEOL();
 
@@ -1511,7 +1498,22 @@ void SMTLIB2::parseLetEnd(LExpr* exp)
       vars.pushBack(_nextVar++);
     }
 
-    let = TermList(Term::createLet(exprT->functor(), vars.list(), SubstHelper::apply(boundExpr,subst), let, letSort));
+    auto varList = vars.list();
+    TermStack args;
+    if (varList) {
+      args.loadFromIterator(iterTraits(varList->iter()).map(unsignedToVarFn));
+    }
+    Term* lhs;
+    if (exprSort == AtomicSort::boolSort()) {
+      // This solution is ugly, but either := has to be special or we have
+      // to wrap this as a formula to preserve the term-formula boundary.
+      lhs = Term::createFormula(new AtomicFormula(Literal::create(exprT->functor(), args.size(), true, args.begin())));
+    } else {
+      lhs = Term::create(exprT->functor(), args);
+    }
+
+    auto binder = Formula::createDefinition(lhs, SubstHelper::apply(boundExpr,subst), varList);
+    let = TermList(Term::createLet(binder, let, letSort));
   }
 
   _results.push(ParseResult(letSort,let));
@@ -2087,7 +2089,8 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const std::string& id, LExpr* exp)
           TermList second;
           firstParseResult.asTerm(first);
           secondParseResult.asTerm(second);
-          lastConjunct = new AtomicFormula(Literal::createEquality(true, first, second, firstParseResult.sort));
+          Literal *l = Literal::createEquality(true, first, second, firstParseResult.sort);
+          lastConjunct = new AtomicFormula(l, first != l->termArg(0));
         }
       } else {
         Interpretation intp = getFormulaSymbolInterpretation(fs,firstParseResult.sort);
@@ -2124,7 +2127,8 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const std::string& id, LExpr* exp)
             TermList second;
             firstParseResult.asTerm(first);
             secondParseResult.asTerm(second);
-            lastConjunct = new AtomicFormula(Literal::createEquality(true, first, second, firstParseResult.sort));
+            Literal *l = Literal::createEquality(true, first, second, firstParseResult.sort);
+            lastConjunct = new AtomicFormula(l, first != l->termArg(0));
           }
         } else {
           Interpretation intp = getFormulaSymbolInterpretation(fs,firstParseResult.sort);
@@ -2219,17 +2223,16 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const std::string& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
-      VList::FIFO qvars;
-      SList::FIFO qsorts;
+      VSList::FIFO qvarSorts;
 
       for(Binding binding : _lookups.top().bindings) {
-        unsigned varIdx = binding.term.var();
-        qvars.pushBack(varIdx);
-        qsorts.pushBack(binding.sort);
+        qvarSorts.pushBack({binding.term.var(), binding.sort});
       }
       _lookups.pop();
 
-      Formula* res = new QuantifiedFormula((fs==FS_EXISTS) ? Kernel::EXISTS : Kernel::FORALL, qvars.list(), qsorts.list(), argFla);
+      Formula* res = qvarSorts.empty()
+        ? argFla
+        : new QuantifiedFormula((fs==FS_EXISTS) ? Kernel::EXISTS : Kernel::FORALL, qvarSorts.list(), argFla);
 
       _results.push(ParseResult(res));
       return true;
@@ -2314,21 +2317,12 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const std::string& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
-      if (SortHelper::getInnerSort(arraySortIdx)== AtomicSort::boolSort()) {
-        OperatorType* predType = Theory::getArrayOperatorType(arraySortIdx,Theory::ARRAY_BOOL_SELECT);
-        unsigned pred = env.signature->getInterpretingSymbol(Theory::ARRAY_BOOL_SELECT,predType);
+      auto indexSort = SortHelper::getIndexSort(arraySortIdx);
+      auto innerSort = SortHelper::getInnerSort(arraySortIdx);
 
-        Formula* res = new AtomicFormula(Literal::create2(pred,true,theArray,theIndex));
-
-        _results.push(ParseResult(res));
-      } else {
-        OperatorType* funType = Theory::getArrayOperatorType(arraySortIdx,Theory::ARRAY_SELECT);
-        unsigned fun = env.signature->getInterpretingSymbol(Theory::ARRAY_SELECT,funType);
-
-        TermList res = TermList(Term::create2(fun,theArray,theIndex));
-
-        _results.push(ParseResult(SortHelper::getInnerSort(arraySortIdx),res));
-      }
+      TermList res(Term::create(env.signature->getInterpretingSymbol(Theory::ARRAY_SELECT),
+        { indexSort, innerSort, theArray, theIndex }));
+      _results.push(ParseResult(innerSort,res));
 
       return true;
     }
@@ -2355,11 +2349,13 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const std::string& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
-      OperatorType* funType = Theory::getArrayOperatorType(arraySortIdx,Theory::ARRAY_STORE);
-      unsigned fun = env.signature->getInterpretingSymbol(Theory::ARRAY_STORE,funType);
+      unsigned fun = env.signature->getInterpretingSymbol(Theory::ARRAY_STORE);
 
-      TermList args[] = {theArray, theIndex, theValue};
-      TermList res = TermList(Term::create(fun, 3, args));
+      auto indexSort = SortHelper::getIndexSort(arraySortIdx);
+      auto innerSort = SortHelper::getInnerSort(arraySortIdx);
+
+      TermList res(Term::create(fun,
+        { indexSort, innerSort, theArray, theIndex, theValue }));
 
       _results.push(ParseResult(arraySortIdx,res));
 
@@ -2836,8 +2832,7 @@ void SMTLIB2::readAssertSynth(LExpr* forall, LExpr* exist, LExpr* body)
   }
 
   auto parseVarList = [this](LExpr* lexp) {
-    auto vars = VList::empty();
-    auto sorts = SList::empty();
+    VSList* varSorts = VSList::empty();
     auto rdr = READER(lexp);
     while (rdr.hasNext()) {
       auto pRdr = READER(rdr.readList());
@@ -2845,14 +2840,13 @@ void SMTLIB2::readAssertSynth(LExpr* forall, LExpr* exist, LExpr* body)
       auto var = TermList::var(_nextVar++);
       auto sort = parseSort(pRdr.readExpr());
       tryInsertIntoCurrentLookup(name, var, sort);
-      VList::push(var.var(), vars);
-      SList::push(sort, sorts);
+      VSList::push({var.var(),sort},varSorts);
     }
-    return make_pair(vars, sorts);
+    return varSorts;
   };
 
-  auto [fvars, fsorts] = parseVarList(forall);
-  auto [evars, esorts] = parseVarList(exist);
+  auto fvarSorts = parseVarList(forall);
+  auto evarSorts = parseVarList(exist);
   ParseResult res = parseTermOrFormula(body,false/*isSort*/);
 
   Formula* fla;
@@ -2861,24 +2855,11 @@ void SMTLIB2::readAssertSynth(LExpr* forall, LExpr* exist, LExpr* body)
   }
   _lookups.pop();
 
-  fla = new QuantifiedFormula(Connective::EXISTS, evars, esorts, fla);
-  fla = new QuantifiedFormula(Connective::FORALL, fvars, fsorts, fla);
+  fla = new QuantifiedFormula(Connective::EXISTS, evarSorts, fla);
+  fla = new QuantifiedFormula(Connective::FORALL, fvarSorts, fla);
   FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::CONJECTURE));
   fu = new FormulaUnit(new NegatedFormula(fla),
                        FormulaClauseTransformation(InferenceRule::NEGATED_CONJECTURE, fu));
-  _formulas.pushBack(fu);
-}
-
-void SMTLIB2::readAssertTheory(LExpr* body)
-{
-  ParseResult res = parseTermOrFormula(body,false/*isSort*/);
-
-  Formula* theoryAxiom;
-  if (!res.asFormula(theoryAxiom)) {
-    USER_ERROR_EXPR("Asserted expression of non-boolean sort "+body->toString());
-  }
-
-  FormulaUnit* fu = new FormulaUnit(theoryAxiom, Inference(TheoryAxiom(InferenceRule::EXTERNAL_THEORY_AXIOM)));
   _formulas.pushBack(fu);
 }
 

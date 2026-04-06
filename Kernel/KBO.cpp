@@ -16,7 +16,6 @@
 
 #include "Lib/Environment.hpp"
 #include "Lib/Comparison.hpp"
-#include "Lib/Set.hpp"
 #include "Shell/Shuffling.hpp"
 
 #include "Shell/Options.hpp"
@@ -26,7 +25,6 @@
 #include "NumTraits.hpp"
 #include "Signature.hpp"
 #include "SubstHelper.hpp"
-#include "TermIterators.hpp"
 #include "Term.hpp"
 
 #include "KBO.hpp"

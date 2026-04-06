@@ -35,25 +35,15 @@ public:
   USE_ALLOCATOR(TermFactoring);
 
   TermFactoring(TermFactoring&&) = default;
-  TermFactoring(std::shared_ptr<AlascaState> shared)
-    : _shared(std::move(shared))
-  {  }
+  TermFactoring(SaturationAlgorithm& salg);
 
-  void attach(SaturationAlgorithm* salg) final override;
-  void detach() final override;
-
-  ClauseIterator generateClauses(Clause* premise) final override;
-
-#if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const&) final override {  }
-#endif
+  ClauseIterator generateClauses(Clause* premise) final;
 
 private:
-
                             Option<Clause*> applyRule(SelectedSummand const& l, SelectedSummand const& r, Stack<TermList> const& maxAtoms);
   template<class NumTraits> Option<Clause*> applyRule(SelectedSummand const& l, SelectedSummand const& r, Stack<TermList> const& maxAtoms);
 
-  std::shared_ptr<AlascaState> _shared;
+  AlascaState& _shared;
 };
 
 } // namespace ALASCA 

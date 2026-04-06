@@ -21,7 +21,6 @@
 #ifndef __FormulaVarIterator__
 #define __FormulaVarIterator__
 
-#include "Lib/MultiCounter.hpp"
 #include "Lib/Stack.hpp"
 
 #include "Kernel/Term.hpp"
@@ -74,9 +73,9 @@ private:
   unsigned _nextVar;
 
   /** Counter used to store bound variables, together with the number of times they are bound */
-  MultiCounter _bound;
+  ZIArray<unsigned> _bound;
   /** To store previously found free variables */
-  MultiCounter _free;
+  ZIArray<bool> _free;
   /** Stack of formulas to be processed */
   Stack<const Formula*> _formulas;
   /** Stack of terms to process */
@@ -86,7 +85,7 @@ private:
   /** Stack of instructions telling what to do next */
   Stack<Instruction> _instructions;
   /** Stack of lists of variables to process */
-  Stack<const VList*> _vars;
+  Stack<const VSList*> _vars;
 }; // class FormulaVarIterator
 
 template<typename T> // a template to work with Term*, TermList*, and Formula*

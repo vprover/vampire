@@ -43,7 +43,10 @@ namespace Shell {
        environment signature. These functions should be called only
        after createSymbols() has been called once */
     unsigned functor() const { return _functor; }
-    unsigned destructorFunctor(unsigned ith) { return _destructors[ith]; }
+    unsigned destructorFunctor(unsigned ith) const {
+      ASS_L(ith,arity()-numTypeArguments());
+      return _destructors[ith];
+    }
 
     bool hasDiscriminator() { return _hasDiscriminator; }
     unsigned discriminator();

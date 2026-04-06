@@ -14,16 +14,11 @@
 
 #include <algorithm>
 
-#include "Lib/Backtrackable.hpp"
-#include "Lib/BacktrackIterators.hpp"
 #include "Lib/BinaryHeap.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/DHMap.hpp"
-#include "Lib/Environment.hpp"
 #include "Lib/Hash.hpp"
 #include "Lib/Int.hpp"
-#include "Lib/PairUtils.hpp"
-#include "Lib/Stack.hpp"
 #include "Lib/TriangularArray.hpp"
 
 #include "Clause.hpp"
@@ -31,11 +26,6 @@
 #include "Matcher.hpp"
 #include "MLVariant.hpp"
 #include "TermIterators.hpp"
-
-#if VDEBUG
-#include <iostream>
-using namespace std;
-#endif
 
 #define TRACE_LONG_MATCHING 0
 #if TRACE_LONG_MATCHING

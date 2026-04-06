@@ -12,11 +12,7 @@
 
 #include "Forwards.hpp"
 
-#include "Kernel/OperatorType.hpp"
-
 #include "Shell/Options.hpp"
-
-#include "Lib/Environment.hpp"
 
 namespace Saturation
 {

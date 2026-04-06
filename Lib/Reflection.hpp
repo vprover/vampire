@@ -16,7 +16,6 @@
 #ifndef __Reflection__
 #define __Reflection__
 
-#include "Lib/Comparison.hpp"
 #include <initializer_list>
 
 

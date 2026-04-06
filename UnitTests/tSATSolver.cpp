@@ -8,17 +8,11 @@
  * and in the source directory
  */
 
-#include "Lib/List.hpp"
-#include "Lib/Stack.hpp"
-#include "Lib/Environment.hpp"
-
 #include "SAT/ProofProducingSATSolver.hpp"
 #include "SAT/SATClause.hpp"
 #include "SAT/SATLiteral.hpp"
-#include "SAT/SATInference.hpp"
 #include "SAT/SATSolver.hpp"
 #include "SAT/MinisatInterfacing.hpp"
-#include "SAT/Z3Interfacing.hpp"
 
 #include "Test/UnitTesting.hpp"
 

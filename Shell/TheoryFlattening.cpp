@@ -14,20 +14,14 @@
 
 #include "TheoryFlattening.hpp"
 
-#include "Lib/DArray.hpp"
-#include "Lib/DHMultiset.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/Set.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/InferenceStore.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/TermIterators.hpp"
-#include "Kernel/Unit.hpp"
 
 namespace Shell
 {

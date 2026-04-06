@@ -19,11 +19,11 @@
 #include "Debug/Assertion.hpp"
 #include "Forwards.hpp"
 
+#include "Kernel/ALASCA/Signature.hpp"
+#include "Kernel/Clause.hpp"
+#include "Kernel/TermIterators.hpp"
+
 #include "Inferences/InferenceEngine.hpp"
-#include "Kernel/Ordering.hpp"
-#include "Kernel/ALASCA/Index.hpp"
-#include "Lib/Exception.hpp"
-#include "Shell/Options.hpp"
 
 #define UNSTABILITY_ABSTRACTION 0
 
@@ -40,7 +40,6 @@ class Abstraction
 : public ImmediateSimplificationEngine
 {
   using ASig = AlascaSignature<NumTraits>;
-  std::shared_ptr<AlascaState> _shared;
 
   struct Path {
 
@@ -285,10 +284,7 @@ class Abstraction
 public:
 
   Abstraction(Abstraction&&) = default;
-
-  explicit Abstraction(std::shared_ptr<AlascaState> shared) 
-    : _shared(std::move(shared))
-  {  }
+  Abstraction(SaturationAlgorithm&) {}
 
   // TODO theory make sure that variables can be shielded or unshielded or not top-level contained
 
@@ -342,7 +338,7 @@ public:
     }
   }
 
-  virtual Clause* simplify(Clause* premise) final override {
+  Clause* simplify(Clause* premise) final {
     if (premise->size() == 0) {
       // TODO why do we ever get the empty clause here?
       return premise;

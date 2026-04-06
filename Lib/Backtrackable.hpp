@@ -15,7 +15,6 @@
 #ifndef __Backtrackable__
 #define __Backtrackable__
 
-#include "List.hpp"
 #include "Int.hpp"
 #include "Lib/Stack.hpp"
 
@@ -72,7 +71,7 @@ public:
   BacktrackClosure& operator=(BacktrackClosure&&) = default;
   
   BacktrackClosure(F fun) : _fun(std::move(fun)) {}
-  void backtrack() { _fun(); }
+  void backtrack() override { _fun(); }
 };
 
 template<class F> 
@@ -222,7 +221,7 @@ private:
   public:
     SetValueBacktrackObject(T* addr, T previousVal)
     : addr(addr), previousVal(previousVal) {}
-    void backtrack()
+    void backtrack() override
     {
       *addr=previousVal;
     }

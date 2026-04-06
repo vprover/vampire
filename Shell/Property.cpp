@@ -16,21 +16,20 @@
  */
 
 
+#include "Kernel/Theory.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Environment.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/FormulaUnit.hpp"
+#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/TermIterators.hpp"
-#include "Kernel/ApplicativeHelper.hpp"
 
 #include "Options.hpp"
-#include "Statistics.hpp"
 #include "FunctionDefinition.hpp"
 #include "Property.hpp"
 #include "SubexpressionIterator.hpp"
@@ -233,7 +232,7 @@ void Property::scan(Unit* unit)
   }
   if (! hasProp(PR_HAS_FUNCTION_DEFINITIONS)) {
     FunctionDefinition::Def* def =
-      FunctionDefinition::isFunctionDefinition(*unit,/*in the old, first-order sense*/false);
+      FunctionDefinition::isFunctionDefinition(*unit);
     if (def) {
       addProp(PR_HAS_FUNCTION_DEFINITIONS);
       FunctionDefinition::deleteDef(def);
@@ -435,11 +434,10 @@ void Property::scan(Formula* f, int polarity)
     }
     case FORALL:
       if(!_quantifiesOverPolymorphicVar){
-        SList* sorts = f->sorts();
-        SList::Iterator sit(sorts);
+        VSList::Iterator vsit(f->vars());
 
-        while(sit.hasNext()){
-          TermList s = sit.next();
+        while(vsit.hasNext()){
+          TermList s = vsit.next().second;
           if(s.isTerm() && s.term()->isSuper()){
             _quantifiesOverPolymorphicVar = true;
             break;
@@ -452,11 +450,10 @@ void Property::scan(Formula* f, int polarity)
       break;
     case EXISTS:
       if(!_quantifiesOverPolymorphicVar){
-        SList* sorts = f->sorts();
-        SList::Iterator sit(sorts);
+        VSList::Iterator vsit(f->vars());
 
-        while(sit.hasNext()){
-          TermList s = sit.next();
+        while(vsit.hasNext()){
+          TermList s = vsit.next().second;
           if(s.isTerm() && s.term()->isSuper()){
             _quantifiesOverPolymorphicVar = true;
             break;
@@ -533,9 +530,8 @@ void Property::scanSort(TermList sort)
     }
     return;
   }
-  
-  TermList resultSort = ApplicativeHelper::getResultSort(sort);
-  if(resultSort == AtomicSort::boolSort()){
+
+  if(HOL::finalResult(sort).isBoolSort()){
     _hasFOOL = true;
   }
 
@@ -655,14 +651,7 @@ void Property::scan(TermList ts,bool unit,bool goal)
         addProp(PR_HAS_ITE);
         break;
 
-      case SpecialFunctor::TUPLE:
-        // TODO something like
-        // _hasFOOL = true
-        // addProp(PR_HAS_TUPLE)
-        // for now, do nothing
-        break;
       case SpecialFunctor::LET:
-      case SpecialFunctor::LET_TUPLE:
         _hasFOOL = true;
         addProp(PR_HAS_LET_IN);
         break;
@@ -698,11 +687,8 @@ void Property::scan(TermList ts,bool unit,bool goal)
     if(t->isApplication()){
       _hasApp = true;
       TermList sort = SortHelper::getResultSort(t);
-      if(ApplicativeHelper::getResultSort(sort) == AtomicSort::boolSort()){
-        TermList head = ApplicativeHelper::getHead(ts);
-        if(head.isVar()){
-          _hasBoolVar = true;
-        }
+      if(HOL::finalResult(sort).isBoolSort() && ts.head().isVar()){
+        _hasBoolVar = true;
       }
     }
 
@@ -710,7 +696,7 @@ void Property::scan(TermList ts,bool unit,bool goal)
       if(func->proxy() == Proxy::PI || func->proxy() == Proxy::SIGMA) {
         ASS(t->arity() == 1);
         TermList sort = *t->nthArgument(0);
-        if(ApplicativeHelper::getResultSort(sort) == AtomicSort::boolSort()){
+        if(HOL::finalResult(sort).isBoolSort()){
           _hasBoolVar = true;
         }
       }
@@ -786,16 +772,19 @@ void Property::scanForInterpreted(Term* t)
     _interpretationPresence[itp] = true;
   }
 
-  if(Theory::isConversionOperation(itp)){
-    addProp(PR_NUMBER_CONVERSION);
+  // TODO check whether this is enough for equality
+  if (itp == Interpretation::EQUAL) {
     return;
   }
 
-  if (Theory::isPolymorphic(itp)) {
-    OperatorType* type = t->isLiteral() ?
-        env.signature->getPredicate(t->functor())->predType() : env.signature->getFunction(t->functor())->fnType();
+  if (itp == Interpretation::ARRAY_SELECT || itp == Interpretation::ARRAY_STORE) {
+    // TODO this could be separated into store and select
+    addProp(PR_HAS_ARRAYS);
+    return;
+  }
 
-    _polymorphicInterpretations.insert(std::make_pair(itp,type));
+  if(Theory::isConversionOperation(itp)){
+    addProp(PR_NUMBER_CONVERSION);
     return;
   }
 
@@ -924,19 +913,17 @@ bool Property::hasXEqualsY(const Clause* c)
     }
     const TermList* ts2 = ts1->next();
     if (ts2->isVar() &&
-	ts1->var() != ts2->var()) {
+      ts1->var() != ts2->var()) {
       return true;
     }
   }
-  return  false;
+  return false;
 } // Property::hasXEqualsY(const Clause*)
 
 /**
  * True if the subformula formula would have a literal X=Y
  * after clausification.
  *
- *
- * @warning Works correctly only with rectified formulas (closed or open)
  * @param f the formula
  * @since 11/12/2004 Manchester, true and false added
  * @since 27/05/2007 flight Frankfurt-Lisbon, changed to new datastructures
@@ -947,105 +934,121 @@ bool Property::hasXEqualsY(const Clause* c)
  */
 bool Property::hasXEqualsY(const Formula* f)
 {
-  MultiCounter posVars; // universally quantified variables in positive subformulas
-  MultiCounter negVars; // universally quantified variables in negative subformulas
+  ZIArray<bool> existVars; // "in the currently processed subformula, marks variables which will clausify only as existential"
 
-  Stack<const Formula*> forms;
-  Stack<int> pols; // polarities
-  forms.push(f);
-  pols.push(1);
-  while (!forms.isEmpty()) {
-    f = forms.pop();
-    int pol = pols.pop();
+  struct Rec {
+    bool cleanup;
+    union {
+      struct {
+        const Formula* form;
+        int pol;
+      } FlaRec;
+      struct {
+        unsigned var;
+        bool origVal;
+      } VarRec;
+    };
+
+    Rec(const Formula* f, int p)
+      : cleanup(false), FlaRec{f, p} {}
+
+    Rec(unsigned v, bool val)
+      : cleanup(true), VarRec{v,val} {}
+  };
+  Stack<Rec> recs;
+
+  recs.push(Rec(f,1));
+
+  while (!recs.isEmpty()) {
+    auto rec = recs.pop();
+
+    if (rec.cleanup) {
+      existVars[rec.VarRec.var] = rec.VarRec.origVal;
+      continue;
+    }
+    auto [f,pol] = rec.FlaRec;
+    int eff_pol = pol; // unless changed in the EXISTS case below
 
     switch (f->connective()) {
     case LITERAL:
       {
-	const Literal* lit = f->literal();
-	if (lit->isNegative()) {
-	  break;
-	}
-	if (!lit->isEquality()) {
-	  break;
-	}
-	const TermList* ts1 = lit->args();
-	if (!ts1->isVar()) {
-	  break;
-	}
-	const TermList* ts2 = ts1->next();
-	if (!ts2->isVar()) {
-	  break;
-	}
-	unsigned v1 = ts1->var();
-	unsigned v2 = ts2->var();
-	if (v1 == v2) {
-	  break;
-	}
-	if (!lit->isPositive()) {
-	  pol = -pol;
-	}
-	if (pol >= 0 && posVars.get(v1) && posVars.get(v2)) {
-	  return true;
-	}
-	if (pol <= 0 && negVars.get(v1) && negVars.get(v2)) {
-	  return true;
-	}
+        const Literal* lit = f->literal();
+
+        if (!lit->isEquality()) {
+          break;
+        }
+        const TermList* ts1 = lit->args();
+        if (!ts1->isVar()) {
+          break;
+        }
+        const TermList* ts2 = ts1->next();
+        if (!ts2->isVar()) {
+          break;
+        }
+        unsigned v1 = ts1->var();
+        unsigned v2 = ts2->var();
+        if (v1 == v2) {
+          break;
+        }
+        if (!lit->isPositive()) {
+          pol = -pol;
+        }
+        if (pol >= 0 && !existVars.get(v1) && !existVars.get(v2)) {
+          return true;
+        }
       }
       break;
 
     case AND:
     case OR:
       {
-	FormulaList::Iterator fs(f->args());
-	while (fs.hasNext()) {
-	  forms.push(fs.next());
-	  pols.push(pol);
-	}
+        FormulaList::Iterator fs(f->args());
+        while (fs.hasNext()) {
+          recs.push(Rec(fs.next(),pol));
+        }
       }
       break;
 
     case IMP:
-      forms.push(f->left());
-      pols.push(-pol);
-      forms.push(f->right());
-      pols.push(pol);
+      recs.push(Rec(f->left(),-pol));
+      recs.push(Rec(f->right(),pol));
       break;
 
     case IFF:
     case XOR:
-      forms.push(f->left());
-      pols.push(0);
-      forms.push(f->right());
-      pols.push(0);
+      recs.push(Rec(f->left(),0));
+      recs.push(Rec(f->right(),0));
       break;
 
     case NOT:
-      forms.push(f->uarg());
-      pols.push(-pol);
+      recs.push(Rec(f->uarg(),-pol));
       break;
 
+    case EXISTS:
+      eff_pol = -pol;
     case FORALL:
-      // remember universally quantified variables
-      if (pol >= 0) {
-        VList::Iterator vs(f->vars());
+      if (eff_pol >= 0) {
+        // will have a universal version
+        VSList::Iterator vs(f->vars());
         while (vs.hasNext()) {
-          posVars.inc(vs.next());
+          unsigned v = vs.next().first;
+          if (existVars[v]) {
+            existVars[v] = false;
+            recs.push(Rec(v,true)); // restore back to true
+          }
+        }
+      } else {
+        // only existential
+        VSList::Iterator vs(f->vars());
+        while (vs.hasNext()) {
+          unsigned v = vs.next().first;
+          if (!existVars[v]) {
+            existVars[v] = true;
+            recs.push(Rec(v,false)); // restore back to false
+          }
         }
       }
-      forms.push(f->qarg());
-      pols.push(pol);
-      break;
-
-  case EXISTS:
-      // remember universally quantified variables
-      if (pol <= 0) {
-        VList::Iterator vs(f->vars());
-        while (vs.hasNext()) {
-          posVars.inc(vs.next());
-        }
-      }
-      forms.push(f->qarg());
-      pols.push(pol);
+      recs.push(Rec(f->qarg(),pol));
       break;
 
     case TRUE:
@@ -1053,7 +1056,7 @@ bool Property::hasXEqualsY(const Formula* f)
       break;
 
     case BOOL_TERM:
-      return true;
+      return true; // MS: Aztek, why this?
 
     case NAME:
     case NOCONN:
@@ -1087,8 +1090,8 @@ bool Property::onlyExistsForallPrefix(UnitList* units)
     recs.push({f,1,0});
 
     while (!recs.isEmpty()) {
-      int eff_pol;
       auto [f,pol,state] = recs.pop();
+      int eff_pol = pol; // unless changed in the EXISTS case below
 
       switch (f->connective()) {
       case LITERAL:
@@ -1123,7 +1126,6 @@ bool Property::onlyExistsForallPrefix(UnitList* units)
       case EXISTS:
         eff_pol = -pol;
       case FORALL:
-        eff_pol = pol;
         if (eff_pol == 1) {
           recs.push({f->qarg(),pol,2}); // in the forall bit now
         } else if (eff_pol == -1) {
@@ -1140,18 +1142,18 @@ bool Property::onlyExistsForallPrefix(UnitList* units)
         }
         break;
 
-        case TRUE:
-        case FALSE:
-          break;
+      case TRUE:
+      case FALSE:
+        break;
 
-        case BOOL_TERM:
-          return false; // FOOL stuff is out
+      case BOOL_TERM:
+        return false; // FOOL stuff is out
 
-        case NAME:
-        case NOCONN:
-          ASSERTION_VIOLATION;
-        }
+      case NAME:
+      case NOCONN:
+        ASSERTION_VIOLATION;
       }
+    }
   }
 
   return true;

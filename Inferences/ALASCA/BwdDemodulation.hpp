@@ -32,23 +32,13 @@ public:
   USE_ALLOCATOR(BwdDemodulation);
 
   BwdDemodulation(BwdDemodulation&&) = default;
-  BwdDemodulation(std::shared_ptr<AlascaState> shared) 
-    : _shared(shared)
-    , _index(nullptr)
-  {  }
+  BwdDemodulation(SaturationAlgorithm& salg);
 
-  void attach(SaturationAlgorithm* salg) final override;
-  void detach() final override;
-
-
-  virtual void perform(Clause* premise, BwSimplificationRecordIterator& simplifications) final override;
-#if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const& indices) override;
-#endif // VDEBUG
+  void perform(Clause* premise, BwSimplificationRecordIterator& simplifications) final;
 
 private:
-  std::shared_ptr<AlascaState> _shared;
-  AlascaIndex<Rhs>* _index;
+  AlascaState& _shared;
+  std::shared_ptr<AlascaIndex<Rhs>> _index;
 };
 
 } // namespaceALASCA 

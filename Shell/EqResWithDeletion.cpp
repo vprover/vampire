@@ -17,7 +17,6 @@
 #include "Kernel/Problem.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/Unit.hpp"
 #include "Kernel/FormulaVarIterator.hpp"
 
 #include "Shell/AnswerLiteralManager.hpp"

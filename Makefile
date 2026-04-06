@@ -177,7 +177,6 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/QKbo.o\
         Kernel/ALASCA/Signature.o\
         Kernel/ALASCA/SelectionPrimitves.o\
-        Kernel/ALASCA/State.o\
         Kernel/LiteralSelector.o\
         Kernel/LookaheadLiteralSelector.o\
         Kernel/LPO.o\
@@ -200,7 +199,6 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/UnificationWithAbstraction.o\
         Kernel/Signature.o\
         Kernel/SortHelper.o\
-        Kernel/ApplicativeHelper.o\
         Kernel/OperatorType.o\
         Kernel/SubformulaIterator.o\
         Kernel/Term.o\
@@ -218,6 +216,12 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/HOL/HOL.o\
         Kernel/HOL/Create.o\
         Kernel/HOL/Convert.o\
+        Kernel/HOL/Reduce.o\
+        Kernel/HOL/BetaNormaliser.o\
+        Kernel/HOL/RedexReducer.o\
+        Kernel/HOL/TermShifter.o\
+        Kernel/HOL/EtaNormaliser.o\
+        Kernel/HOL/SubtermReplacer.o\
         Kernel/InterpretedLiteralEvaluator.o\
         Kernel/Rebalancing.o\
         Kernel/Rebalancing/Inverters.o\
@@ -250,8 +254,6 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/EqualityFactoring.o\
          Inferences/EqualityResolution.o\
          Inferences/ExtensionalityResolution.o\
-         Inferences/ArgCong.o\
-         Inferences/NegativeExt.o\
          Inferences/Factoring.o\
          Inferences/FastCondensation.o\
          Inferences/FunctionDefinitionRewriting.o\
@@ -284,6 +286,13 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/ALASCA/BwdDemodulation.o\
          Inferences/ALASCA/FourierMotzkin.o\
          Inferences/ALASCA/TermFactoring.o\
+         Inferences/HOL/ArgCong.o\
+         Inferences/HOL/BetaEtaSimplify.o\
+         Inferences/HOL/BoolEqToDiseq.o\
+         Inferences/HOL/FlexFlexSimplify.o\
+         Inferences/HOL/NegativeExtensionality.o\
+         Inferences/HOL/PositiveExtensionality.o\
+         Inferences/HOL/PrimitiveInstantiation.o\
          Inferences/AnswerLiteralProcessors.o\
          Inferences/TautologyDeletionISE.o\
          Inferences/TermAlgebraReasoning.o\
@@ -295,7 +304,6 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/Cases.o\
          Inferences/BoolSimp.o\
          Inferences/Choice.o\
-         Inferences/BoolEqToDiseq.o\
          Inferences/GaussianVariableElimination.o\
          Inferences/InterpretedEvaluation.o\
          Inferences/TheoryInstAndSimp.o\
@@ -315,7 +323,8 @@ VSAT_OBJ=SAT/MinimizingSolver.o\
 	 SAT/CadicalInterfacing.o\
 	 SAT/Z3Interfacing.o\
 	 SAT/Z3MainLoop.o\
-	 SAT/FallbackSolverWrapper.o
+	 SAT/FallbackSolverWrapper.o\
+	 SAT/ProofProducingSATSolver.o
 
 VST_OBJ= Saturation/AWPassiveClauseContainers.o\
          Saturation/PredicateSplitPassiveClauseContainers.o\
@@ -351,7 +360,6 @@ VS_OBJ = Shell/AnswerLiteralManager.o\
          Shell/InterpolantMinimizer.o\
          Shell/Interpolants.o\
          Shell/InterpretedNormalizer.o\
-         Shell/LaTeX.o\
          Shell/LispLexer.o\
          Shell/LispParser.o\
          Shell/Naming.o\
@@ -402,7 +410,6 @@ VFMB_OBJ = FMB/ClauseFlattening.o\
            FMB/SortInference.o\
 	   FMB/Monotonicity.o\
 	   FMB/FunctionRelationshipInference.o\
-	   FMB/FiniteModel.o\
 	   FMB/FiniteModelMultiSorted.o\
            FMB/FiniteModelBuilder.o
 
@@ -427,8 +434,7 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Kernel/InferenceStore.o\
 	  Kernel/Problem.o\
 	  Kernel/SortHelper.o\
-      Kernel/ApplicativeHelper.o\
-      Kernel/OperatorType.o\
+	  Kernel/OperatorType.o\
 	  Kernel/Signature.o\
 	  Kernel/SubformulaIterator.o\
 	  Kernel/Term.o\
@@ -489,7 +495,7 @@ all: #default make disabled
 ################################################################
 # automated generation of Vampire revision information
 
-VERSION_NUMBER = 5.0.0
+VERSION_NUMBER = 5.0.1
 
 # We extract the revision number from svn every time the svn meta-data are modified
 # (that's why there is the dependency on .svn/entries) 

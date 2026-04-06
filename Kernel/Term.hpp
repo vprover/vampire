@@ -29,16 +29,13 @@
 #ifndef __Term__
 #define __Term__
 
-#include "Lib/Output.hpp"
 #include "Forwards.hpp"
 #include "Debug/Assertion.hpp"
 
 #include "Lib/BitUtils.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/Portability.hpp"
 #include "Lib/Comparison.hpp"
 #include "Lib/Reflection.hpp"
-#include "Lib/Sort.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Hash.hpp"
 #include "Lib/Coproduct.hpp"
@@ -277,10 +274,10 @@ public:
   /** if not var, the inner term must be shared */
   unsigned weight() const;
   /** returns true if this termList is wrapping a higher-order "arrow" sort */
-  bool isArrowSort();
-  bool isBoolSort();
-  bool isArraySort();
-  bool isTupleSort();
+  bool isArrowSort() const;
+  bool isBoolSort() const;
+  bool isArraySort() const;
+  bool isTupleSort() const;
   bool containsSubterm(TermList v) const;
   bool containsAllVariablesOf(TermList t) const;
   bool ground() const;
@@ -292,15 +289,22 @@ public:
   bool isRedex() const;
   bool isProxy(Proxy proxy) const;
   bool isChoice() const;
+  bool isPlaceholder() const;
 
   Option<unsigned> deBruijnIndex() const;
+  /* Checks whether a term contains a loose, or unbound DB index.
+   * In other words, it returns true if there is a db_i in the
+   * term that is not wrapped into i lambda binders. */ 
+  bool containsLooseDBIndex() const;
   TermList lhs() const;
   TermList rhs() const;
   TermList lambdaBody() const;
   TermList head() const;
-  std::pair<TermList, TermList> asPair();
-  TermList domain();
-  TermList result();
+  std::pair<TermList, TermList> asPair() const;
+  TermList domain() const;
+  TermList result() const;
+  TermList resultSort() const;
+  TermList replaceSubterm(TermList what, TermList by, bool liftFreeIndices = false) const;
   /* End higher-order terms */
 
 #if VDEBUG
@@ -391,8 +395,6 @@ enum class SpecialFunctor {
   ITE,
   LET,
   FORMULA,
-  TUPLE,
-  LET_TUPLE,
   LAMBDA,
   MATCH, // <- keep this one the last, or modify SPECIAL_FUNCTOR_LAST accordingly
 };
@@ -427,28 +429,16 @@ public:
         TermList sort;
       } _iteData;
       struct {
-        unsigned functor;
-        VList* variables;
-        TermList binding;
+        Formula* binding;
         TermList sort;
       } _letData;
       struct {
         Formula * formula;
       } _formulaData;
       struct {
-        Term* term;
-      } _tupleData;
-      struct {
-        unsigned functor;
-        VList* symbols;
-        TermList binding;
-        TermList sort;
-      } _letTupleData;
-      struct {
         TermList lambdaExp;
-        VList* _vars;
-        SList* _sorts;  
-        TermList sort; 
+        VSList* _vars;  // variables with their sorts together
+        TermList sort;
         TermList expSort;//TODO is this needed?
       } _lambdaData;
       struct {
@@ -462,25 +452,14 @@ public:
     SpecialFunctor specialFunctor() const
     { return getTerm()->specialFunctor(); }
 
-    Formula* getCondition() const { ASS_EQ(specialFunctor(), SpecialFunctor::ITE); return _iteData.condition; }
-    unsigned getFunctor() const {
-      ASS_REP(specialFunctor() == SpecialFunctor::LET || specialFunctor() == SpecialFunctor::LET_TUPLE, specialFunctor());
-      return specialFunctor() == SpecialFunctor::LET ? _letData.functor : _letTupleData.functor;
-    }
-    VList* getLambdaVars() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData._vars; }
-    void setLambdaVars(VList* vars) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData._vars = vars; }
-    SList* getLambdaVarSorts() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData._sorts; }
-    void setLambdaVarSorts(SList* sorts) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData._sorts = sorts; }
+    Formula* getITECondition() const { ASS_EQ(specialFunctor(), SpecialFunctor::ITE); return _iteData.condition; }
+    VSList* getLambdaVars() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData._vars; }
+    void setLambdaVars(VSList* vars) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData._vars = vars; }
     TermList getLambdaExp() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData.lambdaExp; }
     void setLambdaExp(TermList exp) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData.lambdaExp = exp; }
     void setLambdaExpSort(TermList sort) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData.expSort = sort; }
     void setLambdaSort(TermList sort) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData.sort = sort; }
-    VList* getVariables() const { ASS_EQ(specialFunctor(), SpecialFunctor::LET); return _letData.variables; }
-    VList* getTupleSymbols() const { return _letTupleData.symbols; }
-    TermList getBinding() const {
-      ASS_REP(specialFunctor() == SpecialFunctor::LET || specialFunctor() == SpecialFunctor::LET_TUPLE, specialFunctor());
-      return TermList(specialFunctor() == SpecialFunctor::LET ? _letData.binding : _letTupleData.binding);
-    }
+    Formula* getLetBinding() const { ASS_EQ(specialFunctor(), SpecialFunctor::LET); return _letData.binding; }
     TermList getLambdaExpSort() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData.expSort; }
     TermList getSort() const {
       switch (specialFunctor()) {
@@ -488,8 +467,6 @@ public:
           return _iteData.sort;
         case SpecialFunctor::LET:
           return _letData.sort;
-        case SpecialFunctor::LET_TUPLE:
-          return _letTupleData.sort;
         case SpecialFunctor::LAMBDA:
           return _lambdaData.sort;
         case SpecialFunctor::MATCH:
@@ -499,7 +476,6 @@ public:
       }
     }
     Formula* getFormula() const { ASS_EQ(specialFunctor(), SpecialFunctor::FORMULA); return _formulaData.formula; }
-    Term* getTupleTerm() const { return _tupleData.term; }
     TermList getMatchedSort() const { return _matchData.matchedSort; }
   };
 
@@ -526,12 +502,9 @@ public:
   /** Create a new constant and insert in into the sharing structure */
   static Term* createConstant(unsigned symbolNumber) { return create(symbolNumber,0,0); }
   static Term* createITE(Formula * condition, TermList thenBranch, TermList elseBranch, TermList branchSort);
-  static Term* createLet(unsigned functor, VList* variables, TermList binding, TermList body, TermList bodySort);
-  static Term* createLambda(TermList lambdaExp, VList* vars, SList* sorts, TermList expSort);
-  static Term* createTupleLet(unsigned functor, VList* symbols, TermList binding, TermList body, TermList bodySort);
+  static Term* createLet(Formula* binding, TermList body, TermList bodySort);
+  static Term* createLambda(TermList lambdaExp, VSList* vars, TermList expSort);
   static Term* createFormula(Formula* formula);
-  static Term* createTuple(unsigned arity, TermList* sorts, TermList* elements);
-  static Term* createTuple(Term* tupleTerm);
   static Term* createMatch(TermList sort, TermList matchedSort, unsigned int arity, TermList* elements);
   static Term* create1(unsigned fn, TermList arg);
   static Term* create2(unsigned fn, TermList arg1, TermList arg2);
@@ -610,7 +583,7 @@ public:
     * non-emptiness
     * In the monomorphic case, the same as args()
     */
-  TermList* termArgs();
+  const TermList* termArgs() const;
 
   /** Return the 1st type argument for a polymorphic term.
     * returns a nullpointer if the term not polymorphic
@@ -816,6 +789,7 @@ public:
   bool isRedex() const;
   bool isProxy(Proxy proxy) const;
   bool isChoice() const;
+  bool isPlaceholder() const;
 
   TermList lambdaBody() const {
     ASS(isLambdaTerm())
@@ -862,7 +836,7 @@ public:
   }
 
   /** Return an index of the argument to which @b arg points */
-  unsigned getArgumentIndex(TermList* arg)
+  unsigned getArgumentIndex(const TermList* arg)
   {
     unsigned res=arity()-(arg-_args);
     ASS_L(res,arity());
@@ -930,8 +904,6 @@ public:
 
   bool isITE()      const { return functor() == toNormalFunctor(SpecialFunctor::ITE); }
   bool isLet()      const { return functor() == toNormalFunctor(SpecialFunctor::LET); }
-  bool isTupleLet() const { return functor() == toNormalFunctor(SpecialFunctor::LET_TUPLE); }
-  bool isTuple()    const { return functor() == toNormalFunctor(SpecialFunctor::TUPLE); }
   bool isFormula()  const { return functor() == toNormalFunctor(SpecialFunctor::FORMULA); }
   bool isLambda()   const { return functor() == toNormalFunctor(SpecialFunctor::LAMBDA); }
   bool isMatch()    const { return functor() == toNormalFunctor(SpecialFunctor::MATCH); }
@@ -1028,7 +1000,7 @@ public:
   {
   public:
     DECL_ELEMENT_TYPE(TermList);
-    Iterator(Term* t) : _next(t->args()) {}
+    Iterator(const Term* t) : _next(t->args()) {}
     bool hasNext() const { return _next->isNonEmpty(); }
     TermList next()
     {
@@ -1038,7 +1010,7 @@ public:
       return res;
     }
   private:
-    TermList* _next;
+    const TermList* _next;
   }; // Term::Iterator
 }; // class Term
 
@@ -1064,6 +1036,7 @@ public:
   static AtomicSort* create(unsigned typeCon, unsigned arity, const TermList* args);
   static AtomicSort* create2(unsigned tc, TermList arg1, TermList arg2);
   static AtomicSort* create(AtomicSort const* t,TermList* args);
+  static AtomicSort* createNonShared(AtomicSort const* sort,TermList* args);
   static AtomicSort* createConstant(unsigned typeCon) { return create(typeCon,0,0); }
   static AtomicSort* createConstant(const std::string& name); 
 
@@ -1077,10 +1050,14 @@ public:
   bool isTupleSort() const;
 
   const std::string& typeConName() const;  
-  
-  static TermList arrowSort(TermStack& domSorts, TermList range);
+
+  // With a stack (s1,...sn) from bottom to top, we get s1 -> (... -> sn) with fromTop = true,
+  // while sn -> (... -> s1) with fromTop = false.
+  // TODO check also this, some call sites might be wrong
+  static TermList arrowSort(const TermStack& domSorts, TermList range, bool fromTop = false);
   static TermList arrowSort(TermList s1, TermList s2);
-  static TermList arrowSort(TermList s1, TermList s2, TermList s3);
+  static TermList arrowSort(unsigned size, const TermList* types, TermList range);
+  static TermList arrowSort(const std::initializer_list<TermList>& types);
   static TermList arraySort(TermList indexSort, TermList innerSort);
   static TermList tupleSort(unsigned arity, TermList* sorts);
   static TermList defaultSort();
@@ -1143,6 +1120,7 @@ public:
   { _args[0]._setPolarity(positive); }
 
   TermList eqArgSort() const;
+  std::pair<TermList, TermList> eqArgs() const;
   
   // prevent bugs through implicit bool <-> unsigned conversions
   template<class Iter> static Literal* createFromIter(unsigned predicate, unsigned polarity, Iter iter) = delete;
@@ -1236,6 +1214,11 @@ public:
     return l->isPositive() ? l : complementaryLiteral(l);
   }
 
+  // disequation of the form λ x s ≉ λ y t, where x and y are not lambda-bound variables.
+  bool isFlexFlexConstraint() const;
+  // (dis)equation of the form λ x s ≉ λ f t, where x is a variable that not lambda-bound, and f a constant.
+  bool isFlexRigid() const;
+
   // destructively swap arguments of an equation
   // the term is assumed to be non-shared
   void argSwap() {
@@ -1312,7 +1295,7 @@ public:
   bool isAnswerLiteral() const;
 
   friend std::ostream& operator<<(std::ostream& out, Kernel::Literal const& tl);
-  std::string toString() const;
+  std::string toString(bool reverseEquality = false) const;
 
   const std::string& predicateName() const;
 
@@ -1333,6 +1316,10 @@ struct SharedTermHash {
   static bool equals(Term* t1, Term* t2) { return t1==t2; }
   static unsigned hash(Term* t) { return t->getId(); }
 };
+
+/** helper lambda that turns a number into a variable */
+static const auto unsignedToVarFn = [](unsigned var)
+  { return TermList::var(var); };
 
 } // namespace Kernel
 

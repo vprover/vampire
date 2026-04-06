@@ -12,7 +12,6 @@ template<Theory::Interpretation inter>
 struct PredicateEvaluator;
 
 template<class C> using Poly = Polynom<NumTraits<C>>;
-#include "Lib/Option.hpp"
 
 using LitSimplResult = Inferences::SimplifyingGeneratingLiteralSimplification::Result;
 

@@ -10,10 +10,7 @@
 
 #include "Inferences/PolynomialEvaluation.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
-#include "Kernel/Clause.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Shell/Statistics.hpp"
-#include "Lib/VirtualIterator.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
@@ -29,7 +26,7 @@ using LitSimplResult = SimplifyingGeneratingLiteralSimplification::Result;
 PolynomialEvaluationRule::~PolynomialEvaluationRule() {}
 
 
-PolynomialEvaluationRule::PolynomialEvaluationRule(Ordering& ordering) 
+PolynomialEvaluationRule::PolynomialEvaluationRule(const Ordering& ordering) 
   : SimplifyingGeneratingLiteralSimplification(InferenceRule::EVALUATION, ordering)
   // TODO we have an additional step of normalization here. simplify!
   , _alwaysEvaluate(env.options->alasca())
@@ -113,8 +110,6 @@ Option<LitSimplResult> PolynomialEvaluation::tryEvalPredicate(Literal* orig, Pol
 
       /* integer predicates */
       HANDLE_CASE(INT_DIVIDES)
-      case Interpretation::ARRAY_BOOL_SELECT:
-        return Option<LitSimplResult>();
 
       case ANY_INTERPRETED_FUNCTION: 
       case Kernel::Theory::INVALID_INTERPRETATION: 

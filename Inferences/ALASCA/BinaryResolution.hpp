@@ -18,16 +18,10 @@
 
 #include "Forwards.hpp"
 
-#include "Indexing/IndexManager.hpp"
 #include "Indexing/SubstitutionTree.hpp"
-#include "Inferences/InferenceEngine.hpp"
-#include "Kernel/NumTraits.hpp"
-#include "Kernel/Ordering.hpp"
-#include "Kernel/ALASCA/Index.hpp"
 #include "Inferences/BinaryResolution.hpp"
 #include "BinInf.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
-#include "Shell/Options.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
@@ -41,11 +35,9 @@ using namespace Saturation;
 
 struct BinaryResolutionConf
 {
-  std::shared_ptr<AlascaState> _shared;
-
   static const char* name() { return "alasca binary resolution"; }
 
-  BinaryResolutionConf(std::shared_ptr<AlascaState> shared) : _shared(shared) {  }
+  BinaryResolutionConf(SaturationAlgorithm& salg) : _salg(salg) {  }
 
   struct Lhs : public SelectedLiteral
   {
@@ -61,8 +53,6 @@ struct BinaryResolutionConf
              .filter([](auto x) { return x.literal()->isPositive(); })
              .map([](auto x) { return Lhs(std::move(x)); });
     }
-
-    static IndexType indexType() { return Indexing::ALASCA_BINARY_RESOLUTION_LHS_SUBST_TREE; }
   };
 
 
@@ -80,8 +70,6 @@ struct BinaryResolutionConf
              .filter([](auto x) { return !x.literal()->isPositive(); })
              .map([](auto x) { return Rhs(std::move(x)); });
     }
-
-    static IndexType indexType() { return Indexing::ALASCA_BINARY_RESOLUTION_RHS_SUBST_TREE; }
   };
 
   auto applyRule(
@@ -101,26 +89,20 @@ struct BinaryResolutionConf
       std::swap(lhs, rhs);
       std::swap(lhsVarBank, rhsVarBank);
     }
-    ASS(_salg)
     auto res = Inferences::BinaryResolution::generateClause(
         lhs->clause(), lhs->literal(), 
         rhs->clause(), rhs->literal(),
-        uwa, *env.options, _salg);
+        uwa, _salg.getOptions(), _salg);
     return res == nullptr ? Option<Clause*>() : some(res);
   }
   // TODO somehow get rid of this field and the hack around it
-  SaturationAlgorithm* _salg = 0;
-  friend void attachToInner(BinaryResolutionIndex& self, SaturationAlgorithm* salg);
+  SaturationAlgorithm& _salg;
 };
-
-inline void attachToInner(BinaryResolutionConf& self, SaturationAlgorithm* salg)  {
-  self._salg = salg;
-}
 
 struct BinaryResolution 
 : public BinInf<BinaryResolutionConf> 
 {
-  BinaryResolution(std::shared_ptr<AlascaState> shared) : BinInf<BinaryResolutionConf>(shared, BinaryResolutionConf(shared)) {}
+  BinaryResolution(SaturationAlgorithm& salg) : BinInf<BinaryResolutionConf>(salg, BinaryResolutionConf(salg)) {}
 };
 
 

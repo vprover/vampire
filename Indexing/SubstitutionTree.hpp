@@ -40,7 +40,6 @@
 #include "Lib/ArrayMap.hpp"
 #include "Lib/Array.hpp"
 #include "Lib/BiMap.hpp"
-#include "Kernel/ApplicativeHelper.hpp"
 #include "Lib/Recycled.hpp"
 
 #include "Kernel/RobSubstitution.hpp"
@@ -334,7 +333,7 @@ public:
       IntermediateNode(TermList ts, unsigned childVar) : Node(ts), childVar(childVar) {}
 
       inline
-      bool isLeaf() const final override { return false; };
+      bool isLeaf() const final { return false; };
 
       virtual NodeIterator allChildren() = 0;
       virtual NodeIterator variableChildren() = 0;
@@ -365,7 +364,7 @@ public:
 
       void destroyChildren();
 
-      void makeEmpty() final override
+      void makeEmpty() final
       {
         Node::makeEmpty();
         removeAllChildren();
@@ -375,7 +374,7 @@ public:
 
       const unsigned childVar;
 
-      virtual void output(std::ostream& out, bool multiline, int indent) const override;
+      void output(std::ostream& out, bool multiline, int indent) const override;
     }; // class SubstitutionTree::IntermediateNode
 
     class Leaf
@@ -391,12 +390,12 @@ public:
       Leaf(TermList ts) : Node(ts) {}
 
       inline
-      bool isLeaf() const final override { return true; };
+      bool isLeaf() const final { return true; };
       virtual LDIterator allChildren() = 0;
       virtual void insert(LeafData ld) = 0;
       virtual void remove(LeafData ld) = 0;
       void loadChildren(LDIterator children);
-      virtual void output(std::ostream& out, bool multiline, int indent) const override;
+      void output(std::ostream& out, bool multiline, int indent) const override;
     };
 
     //These classes and methods are defined in SubstitutionTree_Nodes.cpp
@@ -426,33 +425,33 @@ public:
         _nodes[0]=0;
       }
 
-      ~UArrIntermediateNode()
+      ~UArrIntermediateNode() override
       {
         if(!isEmpty()) {
           IntermediateNode::destroyChildren();
         }
       }
 
-      void removeAllChildren()
+      void removeAllChildren() override
       {
         _size=0;
         _nodes[0]=0;
       }
 
-      NodeAlgorithm algorithm() const { return UNSORTED_LIST; }
-      bool isEmpty() const { return !_size; }
-      int size() const { return _size; }
-      NodeIterator allChildren()
+      NodeAlgorithm algorithm() const override { return UNSORTED_LIST; }
+      bool isEmpty() const override { return !_size; }
+      int size() const override { return _size; }
+      NodeIterator allChildren() override
       { return pvi( arrayIter(_nodes,_size).map([](Node *& n) { return &n; }) ); }
 
-      NodeIterator variableChildren()
+      NodeIterator variableChildren() override
       {
         return pvi( arrayIter(_nodes, _size)
               .filter([](auto& n) { return n->term().isVar(); })
               .map([](Node *& n) { return &n; }));
       }
-      virtual Node** childByTop(TermList::Top t, bool canCreate);
-      void remove(TermList::Top t);
+      Node** childByTop(TermList::Top t, bool canCreate) override;
+      void remove(TermList::Top t) override;
 
       USE_ALLOCATOR(UArrIntermediateNode);
 
@@ -467,14 +466,14 @@ public:
       SListIntermediateNode(unsigned childVar) : IntermediateNode(childVar) {}
       SListIntermediateNode(TermList ts, unsigned childVar) : IntermediateNode(ts, childVar) {}
 
-      ~SListIntermediateNode()
+      ~SListIntermediateNode() override
       {
         if(!isEmpty()) {
           IntermediateNode::destroyChildren();
         }
       }
 
-      void removeAllChildren()
+      void removeAllChildren() override
       {
         while(!_nodes.isEmpty()) {
           _nodes.pop();
@@ -484,23 +483,23 @@ public:
       static IntermediateNode* assimilate(IntermediateNode* orig);
 
       inline
-      NodeAlgorithm algorithm() const { return SKIP_LIST; }
+      NodeAlgorithm algorithm() const override { return SKIP_LIST; }
       inline
-      bool isEmpty() const { return _nodes.isEmpty(); }
-      int size() const { return _nodes.size(); }
+      bool isEmpty() const override { return _nodes.isEmpty(); }
+      int size() const override { return _nodes.size(); }
       inline
-      NodeIterator allChildren()
+      NodeIterator allChildren() override
       {
         return pvi(_nodes.ptrIter());
       }
       inline
-      NodeIterator variableChildren()
+      NodeIterator variableChildren() override
       {
         return pvi( getWhileLimitedIterator(
                       _nodes.ptrIter(),
                       [](auto* n) {return (*n)->term().isVar(); }));
       }
-      virtual Node** childByTop(TermList::Top t, bool canCreate)
+      Node** childByTop(TermList::Top t, bool canCreate) override
       {
         Node** res;
         bool found=_nodes.getPosition(t,res,canCreate);
@@ -514,7 +513,7 @@ public:
         return res;
       }
 
-      inline void remove(TermList::Top t)
+      inline void remove(TermList::Top t) override
       { _nodes.remove(t); }
 
       USE_ALLOCATOR(SListIntermediateNode);
@@ -603,21 +602,21 @@ public:
       Recycled<Renaming> _query;
       Recycled<Renaming> _result;
       RenamingSubstitution(): _query(), _result() {}
-      virtual ~RenamingSubstitution() override {}
-      virtual TermList applyToQuery(TermList t) final override { return _query->apply(t); }
-      virtual Literal* applyToQuery(Literal* l) final override { return _query->apply(l); }
-      virtual TermList applyToResult(TermList t) final override { return _result->apply(t); }
-      virtual Literal* applyToResult(Literal* l) final override { return _result->apply(l); }
+      ~RenamingSubstitution() override {}
+      TermList applyToQuery(TermList t) final { return _query->apply(t); }
+      Literal* applyToQuery(Literal* l) final { return _query->apply(l); }
+      TermList applyToResult(TermList t) final { return _result->apply(t); }
+      Literal* applyToResult(Literal* l) final { return _result->apply(l); }
 
-      virtual TermList applyTo(TermList t, unsigned index) final override { ASSERTION_VIOLATION; }
-      virtual Literal* applyTo(Literal* l, unsigned index) final override { NOT_IMPLEMENTED; }
+      TermList applyTo(TermList t, unsigned index) final { ASSERTION_VIOLATION; }
+      Literal* applyTo(Literal* l, unsigned index) final { NOT_IMPLEMENTED; }
 
-      virtual size_t getQueryApplicationWeight(TermList t) final override { return t.weight(); }
-      virtual size_t getQueryApplicationWeight(Literal* l) final override  { return l->weight(); }
-      virtual size_t getResultApplicationWeight(TermList t) final override { return t.weight(); }
-      virtual size_t getResultApplicationWeight(Literal* l) final override { return l->weight(); }
+      size_t getQueryApplicationWeight(TermList t) final { return t.weight(); }
+      size_t getQueryApplicationWeight(Literal* l) final  { return l->weight(); }
+      size_t getResultApplicationWeight(TermList t) final { return t.weight(); }
+      size_t getResultApplicationWeight(Literal* l) final { return l->weight(); }
 
-      void output(std::ostream& out) const final override
+      void output(std::ostream& out) const final
       { out << "{ _query: " << _query << ", _result: " << _result << " }"; }
     };
 

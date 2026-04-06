@@ -15,7 +15,6 @@
 #ifndef __AnswerLiteralManager__
 #define __AnswerLiteralManager__
 
-#include <map>
 #include <vector>
 
 #include "Forwards.hpp"
@@ -27,8 +26,6 @@
 
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
-#include "Kernel/InferenceStore.hpp"
-#include "Kernel/RCClauseStack.hpp"
 #include "Kernel/TermTransformer.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
@@ -103,7 +100,7 @@ protected:
   virtual std::string postprocessAnswerString(std::string answer) { return answer; };
 
   Clause* getRefutation(Clause* answer);
-  Literal* getAnswerLiteral(VList* vars,SList* srts,Formula* f);
+  Literal* getAnswerLiteral(VSList* varSorts, Formula* f);
 
 private:
   Unit* tryAddingAnswerLiteral(Unit* unit);
@@ -180,7 +177,7 @@ public:
   Literal* makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit) override;
 
   // Register the skolem symbol of `recTerm` as rec-symbol, and add information about skolem constants from `binding` into `incompleteTrackers` and store them.
-  void registerSkolemSymbols(Term* recTerm, const DHMap<unsigned, Term*>& binding, const std::vector<Term*>& functionHeadsByConstruction, std::vector<SkolemTracker>& incompleteTrackers, const VList* us);
+  void registerSkolemSymbols(Term* recTerm, const Substitution& subst, const std::vector<Term*>& functionHeadsByConstruction, std::vector<SkolemTracker>& incompleteTrackers, const VSList* us);
 
   bool isRecTerm(const Term* t) const;
 
@@ -291,7 +288,7 @@ private:
 
   bool computableOrVarHelper(const Term* t, DHMap<unsigned, unsigned>* recAncestors) const;
 
-  void getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<Unit*>& allProofUnits);
+  void getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<unsigned>& allProofUnitNums);
 
   Formula* getConditionFromClause(Clause* cl);
 

@@ -22,8 +22,6 @@
 
 #include "Lib/Exception.hpp"
 #include "Lib/List.hpp"
-#include "Lib/Portability.hpp"
-#include "Lib/Stack.hpp"
 
 namespace Shell {
 
@@ -87,8 +85,8 @@ public:
   {
   public:
     Exception (std::string message,const Token&);
-    void cry (std::ostream&) const;
-    ~Exception () {}
+    void cry (std::ostream&) const override;
+    ~Exception () override {}
   protected:
     std::string _message;
   }; // Exception

@@ -20,8 +20,6 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/List.hpp"
-
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 
@@ -59,19 +57,16 @@ public:
   void leftRightSwap();
   const Formula* qarg() const;
   Formula* qarg();
-  const VList* vars() const;
-  VList* vars();
-  VList** varsPtr();
-  const SList* sorts() const;
-  SList* sorts();
-  SList** sortsPtr();
+  const VSList* vars() const;
+  VSList* vars();
+  VSList** varsPtr();
   const Formula* uarg() const;
   Formula* uarg();
   const Literal* literal() const;
   Literal* literal();
   const TermList getBooleanTerm() const;
   TermList getBooleanTerm();
-  VList* boundVariables () const;
+  VSList* boundVariables () const;
 
   // output
   std::string toString() const;
@@ -97,8 +92,8 @@ public:
   static Formula* falseFormula();
 
   static Formula* createITE(Formula* condition, Formula* thenArg, Formula* elseArg);
-  static Formula* createLet(unsigned functor, VList* variables, TermList body, Formula* contents);
-  static Formula* createLet(unsigned predicate, VList* variables, Formula* body, Formula* contents);
+  static Formula* createLet(Formula* binder, Formula* body);
+  static Formula* createDefinition(Term* lhs, TermList rhs, VList* uVars = VList::empty());
 
 
   // use allocator to (de)allocate objects of this class
@@ -146,11 +141,13 @@ class AtomicFormula
   : public Formula
 {
 public:
-  /** building atomic formula from a literal */
-  explicit AtomicFormula (Literal* lit)
+  /** building atomic formula from a literal
+   * */
+  explicit AtomicFormula (Literal* lit, bool flipForPrinting = false)
     : Formula(LITERAL),
-      _literal(lit)
-  {}
+      flipForPrinting(flipForPrinting),
+      _literal(lit) {}
+
   /** Return the literal of this formula */
   const Literal* getLiteral() const { return _literal; }
   /** Return the literal of this formula */
@@ -164,6 +161,10 @@ public:
 
   // use allocator to (de)allocate objects of this class
   USE_ALLOCATOR(AtomicFormula);
+
+  /** if `_literal` was an input equation and was flipped during parsing,
+   * we should print it in the original orientation -- see TermSharing */
+  bool flipForPrinting = false;
 protected:
   /** The literal of this formula */
   Literal* _literal;
@@ -179,15 +180,13 @@ class QuantifiedFormula
 {
  public:
   /** Build a quantified formula */
-  QuantifiedFormula(Connective con, VList* vs, SList* ss, Formula* arg)
+  QuantifiedFormula(Connective con, VSList* vs, Formula* arg)
     : Formula(con),
       _vars(vs),
-      _sorts(ss),
       _arg(arg)
   {
     ASS(con == FORALL || con == EXISTS);
     ASS(vs);
-    ASS(!ss || VList::length(vs) == SList::length(ss));
   }
 
   /** Return the immediate subformula */
@@ -195,23 +194,16 @@ class QuantifiedFormula
   /** Return the immediate subformula */
   Formula* subformula () { return _arg; }
   /** Return the list of variables */
-  const VList* varList() const { return _vars; }
+  const VSList* varList() const { return _vars; }
   /** Return the list of variables */
-  VList* varList() { return _vars; }
-  VList** varListPtr() { return &_vars; }
-  /** Return the list of sorts */
-  const SList* sortList() const { return _sorts; }
-  /** Return the list of sorts */
-  SList* sortList() { return _sorts; }
-  SList** sortListPtr() { return &_sorts; }
+  VSList* varList() { return _vars; }
+  VSList** varListPtr() { return &_vars; }
 
   // use allocator to (de)allocate objects of this class
   USE_ALLOCATOR(QuantifiedFormula);
  protected:
-  /** list of variables */
-  VList* _vars;
-  /** list of sorts */
-  SList* _sorts;
+  /** list of variables (along with their respective sorts) */
+  VSList* _vars;
   /** argument */
   Formula* _arg;
 }; // class Formula::QuantifiedData
@@ -332,10 +324,10 @@ class BoolTermFormula
     : Formula(BOOL_TERM),
       _ts(ts)
   {
-    // only boolean terms in formula context are expected here
-    ASS_REP(ts.isVar() || ts.term()->isITE() || ts.term()->isLet() ||
-            ts.term()->isTupleLet() || ts.term()->isMatch() ||
-            SortHelper::getResultSort(ts.term()) == AtomicSort::boolSort(), ts.toString());
+    // only boolean terms in formula context that are not formulas are expected here
+    ASS_REP(ts.isVar() ||
+            (!ts.term()->isSpecial() && SortHelper::getResultSort(ts.term()) == AtomicSort::boolSort()) ||
+            (ts.term()->isSpecial() && !ts.term()->isFormula() && ts.term()->getSpecialData()->getSort() == AtomicSort::boolSort()), ts.toString());
   }
 
   static Formula* create(TermList ts);
@@ -355,46 +347,24 @@ class BoolTermFormula
 
 /** Return the list of variables of a quantified formula */
 inline
-const VList* Formula::vars() const
+const VSList* Formula::vars() const
 {
   ASS(_connective == FORALL || _connective == EXISTS);
   return static_cast<const QuantifiedFormula*>(this)->varList();
 }
 /** Return the list of variables of a quantified formula */
 inline
-VList* Formula::vars()
+VSList* Formula::vars()
 {
   ASS(_connective == FORALL || _connective == EXISTS);
   return static_cast<QuantifiedFormula*>(this)->varList();
 }
 
 inline
-VList** Formula::varsPtr()
+VSList** Formula::varsPtr()
 {
   ASS(_connective == FORALL || _connective == EXISTS);
   return static_cast<QuantifiedFormula*>(this)->varListPtr();
-}
-
-/** Return the list of sorts of a quantified formula */
-inline
-const SList* Formula::sorts() const
-{
-  ASS(_connective == FORALL || _connective == EXISTS);
-  return static_cast<const QuantifiedFormula*>(this)->sortList();
-}
-/** Return the list of sorts of a quantified formula */
-inline
-SList* Formula::sorts()
-{
-  ASS(_connective == FORALL || _connective == EXISTS);
-  return static_cast<QuantifiedFormula*>(this)->sortList();
-}
-
-inline
-SList** Formula::sortsPtr()
-{
-  ASS(_connective == FORALL || _connective == EXISTS);
-  return static_cast<QuantifiedFormula*>(this)->sortListPtr();
 }
 
 /** Return the immediate subformula of a quantified formula */

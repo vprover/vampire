@@ -8,6 +8,8 @@
  * and in the source directory
  */
 
+#include "Lib/DArray.hpp"
+
 #include "Test/UnitTesting.hpp"
 #include "Test/TestUtils.hpp"
 #include "Test/SyntaxSugar.hpp"

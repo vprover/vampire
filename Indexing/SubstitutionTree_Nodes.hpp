@@ -39,30 +39,30 @@ public:
   UListLeaf() : _children(0), _size(0) {}
   inline
   UListLeaf(TermList ts) : Leaf(ts), _children(0), _size(0) {}
-  ~UListLeaf()
+  ~UListLeaf() override
   {
     LDList::destroy(_children);
   }
 
   inline
-  NodeAlgorithm algorithm() const final override { return UNSORTED_LIST; }
+  NodeAlgorithm algorithm() const final { return UNSORTED_LIST; }
   inline
-  bool isEmpty() const final override { return !_children; }
+  bool isEmpty() const final { return !_children; }
   inline
-  int size() const final override { return _size; }
+  int size() const final { return _size; }
   inline
-  LDIterator allChildren() final override
+  LDIterator allChildren() final
   {
     return pvi( iterTraits(typename LDList::RefIterator(_children)).map([](auto& x) { return &x; }) );
   }
   inline
-  void insert(LeafData ld) final override
+  void insert(LeafData ld) final
   {
     LDList::push(ld, _children);
     _size++;
   }
   inline
-  void remove(LeafData ld) final override
+  void remove(LeafData ld) final
   {
     _children = LDList::remove(ld, _children);
     _size--;
@@ -87,13 +87,13 @@ public:
   static SListLeaf* assimilate(Leaf* orig);
 
   inline
-  NodeAlgorithm algorithm() const final override { return SKIP_LIST; }
+  NodeAlgorithm algorithm() const final { return SKIP_LIST; }
   inline
-  bool isEmpty() const final override { return _children.isEmpty(); }
+  bool isEmpty() const final { return _children.isEmpty(); }
   inline
-  int size() const final override { return _children.size(); }
+  int size() const final { return _children.size(); }
   inline
-  LDIterator allChildren() final override
+  LDIterator allChildren() final
   {
     return pvi( iterTraits(typename LDSkipList::RefIterator(_children)).map([](auto& x) { return &x; }) );
   }

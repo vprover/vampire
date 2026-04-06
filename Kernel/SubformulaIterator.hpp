@@ -33,10 +33,10 @@ class SubformulaIterator
 public:
   SubformulaIterator (Formula*);
   SubformulaIterator (FormulaList*);
-  ~SubformulaIterator ();
+  ~SubformulaIterator () override;
 
-  bool hasNext ();
-  Formula* next ();
+  bool hasNext () override;
+  Formula* next () override;
   Formula* next (int& polarity);
 private:
   class Element;

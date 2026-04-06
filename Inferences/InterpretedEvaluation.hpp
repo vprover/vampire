@@ -18,10 +18,7 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/DHMap.hpp"
-
 #include "Kernel/InterpretedLiteralEvaluator.hpp"
-#include "Kernel/Theory.hpp"
 
 #include "InferenceEngine.hpp"
 
@@ -31,10 +28,10 @@ class InterpretedEvaluation
 : public ImmediateSimplificationEngine
 {
 public:
-  InterpretedEvaluation(bool doNormalize, Ordering& ordering);
-  virtual ~InterpretedEvaluation();
+  InterpretedEvaluation(bool doNormalize);
+  ~InterpretedEvaluation() override;
 
-  Clause* simplify(Clause* cl);
+  Clause* simplify(Clause* cl) override;
 private:
   bool simplifyLiteral(Literal* lit, bool& constant, Literal*& res, bool& constantTrue);
 

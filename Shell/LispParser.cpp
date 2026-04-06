@@ -14,8 +14,6 @@
  * @since 26/08/2009 Redmond
  */
 
-#include <fstream>
-
 #include "Lib/Stack.hpp"
 #include "Lib/Int.hpp"
 

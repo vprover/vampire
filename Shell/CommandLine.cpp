@@ -16,21 +16,17 @@
 
 #include <cstdlib>
 #include <cstring>
-#include <chrono>
 
 #include <cadical.hpp>
 
 #include "Debug/Assertion.hpp"
 
-#include "Lib/Environment.hpp"
 #include "Lib/Exception.hpp"
 #include "SAT/Z3Interfacing.hpp"
 
 #include "CommandLine.hpp"
 #include "Options.hpp"
 #include "Statistics.hpp"
-
-#include "SATSubsumption/SATSubsumptionAndResolution.hpp"
 
 namespace Shell {
 

@@ -28,7 +28,6 @@
 
 #include "SAT/SATSolver.hpp"
 #include "SAT/SATLiteral.hpp"
-#include "SAT/SATClause.hpp"
 
 namespace FMB {
   using namespace Kernel;

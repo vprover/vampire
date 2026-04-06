@@ -8,25 +8,13 @@
  * and in the source directory
  */
 
-#include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
-#include "Indexing/TermSharing.hpp"
 #include "Inferences/ALASCA/FwdDemodulation.hpp"
 #include "Inferences/ALASCA/BwdDemodulation.hpp"
-#include "Inferences/InterpretedEvaluation.hpp"
-#include "Kernel/Ordering.hpp"
-#include "Inferences/PolynomialEvaluation.hpp"
-#include "Inferences/Cancellation.hpp"
 
 #include "Test/SyntaxSugar.hpp"
-#include "Test/TestUtils.hpp"
-#include "Lib/Coproduct.hpp"
-#include "Test/SimplificationTester.hpp"
 #include "Test/FwdBwdSimplificationTester.hpp"
 #include "Test/AlascaTestUtils.hpp"
-#include "Kernel/KBO.hpp"
-#include "Indexing/TermSubstitutionTree.hpp"
-#include "Inferences/PolynomialEvaluation.hpp"
 
 // TODO rename FwdBwdSimplificationTester to SimplificationTester and SimplificationTester to  ImmediatesSimplificationTester
 
@@ -58,11 +46,8 @@ using namespace Inferences::ALASCA;
 #define UWA_MODE Options::UnificationWithAbstraction::ALASCA_MAIN
 
 inline auto demodTester() {
-    return FwdBwdSimplification::TestCase()
-      .fwd   (   new FwdDemodulation(testAlascaState(UWA_MODE))  )
-      .fwdIdx( { new AlascaIndex<Demodulation::Lhs>() })
-      .bwd   (   new BwdDemodulation(testAlascaState(UWA_MODE))  )
-      .bwdIdx( { new AlascaIndex<Demodulation::Rhs>() });
+    return FwdBwdSimplification::TestCase<FwdDemodulation, BwdDemodulation>()
+      .options(alascaTestOptions());
 }
 // ±ks + t ≈ 0          C[sσ]
 // ============================

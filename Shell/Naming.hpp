@@ -18,8 +18,6 @@
 #define __Naming__
 
 #include "Kernel/Formula.hpp"
-#include "Kernel/Unit.hpp"
-#include "Lib/List.hpp"
 
 using namespace Kernel;
 

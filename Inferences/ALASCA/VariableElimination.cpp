@@ -16,9 +16,10 @@
 #include "VariableElimination.hpp"
 #include "Lib/Map.hpp"
 #include "Lib/Set.hpp"
-#include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Kernel/TermIterators.hpp"
+
+#include "Saturation/SaturationAlgorithm.hpp"
 
 #define TODO ASSERTION_VIOLATION
 #define DEBUG(...) // DBG(__VA_ARGS__)
@@ -27,23 +28,13 @@ namespace Inferences {
 namespace ALASCA {
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// INDEXING STUFF
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  
-void VariableElimination::attach(SaturationAlgorithm* salg) 
-{ }
-
-void VariableElimination::detach() 
-{ }
-
-#if VDEBUG
-void VariableElimination::setTestIndices(Stack<Indexing::Index*> const&) 
-{ }
-#endif
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // ACTUAL RULE
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+VariableElimination::VariableElimination(SaturationAlgorithm& salg, bool simplify)
+  : _shared(salg.alascaState())
+  , _simplify(simplify)
+{}
 
 Option<VariableElimination::AnyFoundVariable> VariableElimination::findUnshieldedVar(Clause* premise) const
 {
@@ -52,7 +43,7 @@ Option<VariableElimination::AnyFoundVariable> VariableElimination::findUnshielde
   Set<Variable, StlHash> shielded;
   for (unsigned i = 0; i < premise->size(); i++) {
     auto lit = (*premise)[i];
-    auto norm = _shared->norm().tryNormalizeInterpreted(lit);
+    auto norm = _shared.norm().tryNormalizeInterpreted(lit);
     if (norm.isSome()) {
       norm.unwrap().apply([&](auto& lit) -> void {
       //                            ^^^-->  t1 + ... + tn <> 0 
@@ -206,13 +197,6 @@ ClauseIterator VariableElimination::applyRule(Clause* premise, FoundVariable<Num
   auto& L = found.neq;
   auto& K = found.eq;
   auto Ksize = K.size();
-
-  if (Ksize > 0) {
-    env.statistics->alascaVarElimKNonZeroCnt++;
-  }
-  env.statistics->alascaVarElimKSum += Ksize;
-  if (Ksize > env.statistics->alascaVarElimKMax)
-    env.statistics->alascaVarElimKMax = Ksize;
 
   auto Csize = premise->size() - Ksize - I.size() - J.size() - L.size();
 

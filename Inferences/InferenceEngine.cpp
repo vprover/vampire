@@ -9,11 +9,11 @@
  */
 /**
  * @file InferenceEngine.cpp
- * Implements class InferenceEngine amd its simple subclasses.
+ * Implements classes for inferences.
  */
 
+#include "Kernel/HOL/HOL.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/Random.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/List.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -22,9 +22,6 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/ApplicativeHelper.hpp"
-
-#include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Shell/Statistics.hpp"
 
@@ -41,21 +38,6 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-typedef ApplicativeHelper AH;
-
-/**
- * Return options that control the inference engine.
- *
- * This function may be called only when attached to the saturation algorithm,
- * unless a child class overrides this function.
- */
-const Options& InferenceEngine::getOptions() const
-{
-  ASS(attached());
-
-  return _salg->getOptions();
-}
-
 CompositeISE::~CompositeISE()
 {
   ISList::destroyWithDeletion(_inners);
@@ -69,7 +51,6 @@ CompositeISE::~CompositeISE()
  */
 void CompositeISE::addFront(ImmediateSimplificationEngine* ise)
 {
-  ASS_EQ(_salg,0);
   ISList::push(ise,_inners);
 }
 Clause* CompositeISE::simplify(Clause* cl)
@@ -85,64 +66,6 @@ Clause* CompositeISE::simplify(Clause* cl)
   }
   return cl;
 }
-void CompositeISE::attach(SaturationAlgorithm* salg)
-{
-  ImmediateSimplificationEngine::attach(salg);
-  ISList::Iterator eit(_inners);
-  while(eit.hasNext()) {
-    eit.next()->attach(salg);
-  }
-}
-void CompositeISE::detach()
-{
-  ISList::Iterator eit(_inners);
-  while(eit.hasNext()) {
-    eit.next()->detach();
-  }
-  ImmediateSimplificationEngine::detach();
-}
-
-
-//CompositeFSE::~CompositeFSE()
-//{
-//  _inners->destroy();
-//}
-//void CompositeFSE::addFront(ForwardSimplificationEngineSP fse)
-//{
-//  ASS_EQ(_salg,0);
-//  FSList::push(fse,_inners);
-//}
-//void CompositeFSE::perform(Clause* cl, bool& keep, ClauseIterator& toAdd, ClauseIterator& premises)
-//{
-//  keep=true;
-//  FSList* eit=_inners;
-//  if(!eit) {
-//    toAdd=ClauseIterator::getEmpty();
-//    return;
-//  }
-//  while(eit && keep) {
-//    eit->head()->perform(cl,keep,toAdd, premises);
-//    eit=eit->tail();
-//  }
-//}
-//void CompositeFSE::attach(SaturationAlgorithm* salg)
-//{
-//  ForwardSimplificationEngine::attach(salg);
-//  FSList* eit=_inners;
-//  while(eit) {
-//    eit->head()->attach(salg);
-//    eit=eit->tail();
-//  }
-//}
-//void CompositeFSE::detach()
-//{
-//  FSList* eit=_inners;
-//  while(eit) {
-//    eit->head()->detach();
-//    eit=eit->tail();
-//  }
-//  ForwardSimplificationEngine::detach();
-//}
 
 struct GeneratingFunctor
 {
@@ -158,52 +81,12 @@ CompositeGIE::~CompositeGIE()
 }
 void CompositeGIE::addFront(GeneratingInferenceEngine* fse)
 {
-  ASS_EQ(_salg,0);
   GIList::push(fse,_inners);
 }
 ClauseIterator CompositeGIE::generateClauses(Clause* premise)
 {
   return pvi( getFlattenedIterator(
 	  getMappingIterator(GIList::Iterator(_inners), GeneratingFunctor(premise))) );
-}
-void CompositeGIE::attach(SaturationAlgorithm* salg)
-{
-  GeneratingInferenceEngine::attach(salg);
-  GIList* eit=_inners;
-  while(eit) {
-    eit->head()->attach(salg);
-    eit=eit->tail();
-  }
-}
-void CompositeGIE::detach()
-{
-  GIList* eit=_inners;
-  while(eit) {
-    eit->head()->detach();
-    eit=eit->tail();
-  }
-  GeneratingInferenceEngine::detach();
-}
-
-void CompositeSGI::detach()
-{ 
-  for (auto g : _generators) {
-    g->detach();
-  }
-  for (auto s : _simplifiers) {
-    s->detach();
-  }
-}
-
-
-void CompositeSGI::attach(SaturationAlgorithm* sa)
-{ 
-  for (auto g : _generators) {
-    g->attach(sa);
-  }
-  for (auto s : _simplifiers) {
-    s->attach(sa);
-  }
 }
 
 void CompositeSGI::push(SimplifyingGeneratingInference* gen)
@@ -219,7 +102,7 @@ CompositeSGI::ClauseGenerationResult CompositeSGI::generateSimplify(Kernel::Clau
   /* apply generations as until a redundancy is discovered */
   for (auto simpl : _simplifiers) {
     auto res = simpl->generateSimplify(cl);
-    clauses.push(res.clauses);
+    clauses.push(std::move(res.clauses));
     if (res.premiseRedundant) {
       redundant = true;
       break;
@@ -274,34 +157,33 @@ Clause* ChoiceDefinitionISE::simplify(Clause* c)
 bool ChoiceDefinitionISE::isPositive(Literal* lit) {
   TermList lhs = *lit->nthArgument(0);
   TermList rhs = *lit->nthArgument(1);
-  if(!AH::isBool(lhs) && !AH::isBool(rhs)){ return false; }
-  if(AH::isBool(lhs) && AH::isBool(rhs)){ return false; }
-  if(AH::isBool(lhs)){ 
-    return lit->polarity() == AH::isTrue(lhs);
+  if(!HOL::isBool(lhs) && !HOL::isBool(rhs)){ return false; }
+  if(HOL::isBool(lhs) && HOL::isBool(rhs)){ return false; }
+  if(HOL::isBool(lhs)){ 
+    return lit->polarity() == HOL::isTrue(lhs);
   }
-  if(AH::isBool(rhs)){ 
-    return lit->polarity() == AH::isTrue(rhs);
+  if(HOL::isBool(rhs)){ 
+    return lit->polarity() == HOL::isTrue(rhs);
   }
   return false;
 };
 
 bool ChoiceDefinitionISE::is_of_form_xy(Literal* lit, TermList& x){
-  TermList term = AH::isBool(*lit->nthArgument(0)) ? *lit->nthArgument(1) : *lit->nthArgument(0);
+  TermList term = HOL::isBool(*lit->nthArgument(0)) ? *lit->nthArgument(1) : *lit->nthArgument(0);
   
   TermStack args;
-  ApplicativeHelper::getHeadAndArgs(term, x, args);
+  x = HOL::getHeadAndArgs(term, args);
   return (x.isVar() && args.size() == 1 && args[0].isVar());
 }
 
 bool ChoiceDefinitionISE::is_of_form_xfx(Literal* lit, TermList x, TermList& f){
-  TermList term = AH::isBool(*lit->nthArgument(0)) ? *lit->nthArgument(1) : *lit->nthArgument(0);
+  TermList term = HOL::isBool(*lit->nthArgument(0)) ? *lit->nthArgument(1) : *lit->nthArgument(0);
   
   TermStack args;
-  TermList head;
-  ApplicativeHelper::getHeadAndArgs(term, head, args);
+  auto head = HOL::getHeadAndArgs(term, args);
   if(head == x && args.size() == 1){
     TermList arg = args[0];
-    ApplicativeHelper::getHeadAndArgs(arg, f, args);
+    f = HOL::getHeadAndArgs(arg, args);
     return (!f.isVar() && args.size() == 1 && args[0] == x);
   }
   return false;
@@ -399,8 +281,6 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
 
 Clause* TautologyDeletionISE2::simplify(Clause* c)
 {
-  typedef ApplicativeHelper AH;
-
   static LiteralStack negLits;
   static LiteralStack posLits;
 
@@ -411,35 +291,35 @@ Clause* TautologyDeletionISE2::simplify(Clause* c)
     Literal* lit = (*c)[i];
     TermList lhs = *lit->nthArgument(0);
     TermList rhs = *lit->nthArgument(1);
-    if(!lit->polarity() && AH::isBool(lhs) && AH::isBool(rhs) &&
-      (AH::isTrue(lhs) != AH::isTrue(rhs))){
+    if(!lit->polarity() && HOL::isBool(lhs) && HOL::isBool(rhs) &&
+      (HOL::isTrue(lhs) != HOL::isTrue(rhs))){
       //false != true
       return 0;
-    } else if(AH::isBool(lhs) && AH::isBool(rhs)){
+    } else if(HOL::isBool(lhs) && HOL::isBool(rhs)){
       continue;
     } 
 
-    if(AH::isBool(lhs)){
-      AH::isTrue(lhs) == lit->polarity() ? posLits.push(lit) : negLits.push(lit); 
-    } else if (AH::isBool(rhs)){
-      AH::isTrue(rhs) == lit->polarity() ? posLits.push(lit) : negLits.push(lit);   
+    if(HOL::isBool(lhs)){
+      HOL::isTrue(lhs) == lit->polarity() ? posLits.push(lit) : negLits.push(lit); 
+    } else if (HOL::isBool(rhs)){
+      HOL::isTrue(rhs) == lit->polarity() ? posLits.push(lit) : negLits.push(lit);   
     }
   }
 
   for(unsigned i =0; i < posLits.size(); i++){
     Literal* posLit = posLits[i];
     TermList posNonBooleanSide = *posLit->nthArgument(0);
-    if(AH::isBool(posNonBooleanSide)){
+    if(HOL::isBool(posNonBooleanSide)){
       posNonBooleanSide = *posLit->nthArgument(1);
     }
-    ASS(!AH::isBool(posNonBooleanSide));
+    ASS(!HOL::isBool(posNonBooleanSide));
     for(unsigned j = 0; j < negLits.size(); j++){
       Literal* negLit = negLits[j];
       TermList negNonBooleanSide = *negLit->nthArgument(0);
-      if(AH::isBool(negNonBooleanSide)){
+      if(HOL::isBool(negNonBooleanSide)){
         negNonBooleanSide = *negLit->nthArgument(1);
       }
-      ASS_REP(!AH::isBool(negNonBooleanSide), negLit->toString());
+      ASS_REP(!HOL::isBool(negNonBooleanSide), negLit->toString());
       if(posNonBooleanSide == negNonBooleanSide){
         //t = true \/ t = false
         //t = true \/ t != true
@@ -455,8 +335,6 @@ Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
 {
   RStack<Literal*> resLits;
 
-  typedef ApplicativeHelper AH;
-
   int found = 0;
   for (auto l : c->iterLits()) {
     if (!l->isEquality()) {
@@ -465,8 +343,8 @@ Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
     }
     TermList* t1 = l->args();
     TermList* t2 = t1->next();
-    if((AH::isTrue(*t1) && AH::isFalse(*t2) && l->polarity()) || 
-       (AH::isTrue(*t2) && AH::isFalse(*t1) && l->polarity())){
+    if((HOL::isTrue(*t1) && HOL::isFalse(*t2) && l->polarity()) || 
+       (HOL::isTrue(*t2) && HOL::isFalse(*t1) && l->polarity())){
       found++;
       continue;
     }
@@ -543,7 +421,6 @@ SimplifyingGeneratingInference1::Result SimplifyingGeneratingLiteralSimplificati
       out.push(orig);
     } else {
       auto simpl = result;
-      env.statistics->evaluationCnt++;
 
       if (simpl.isConstant()) {
 
@@ -564,8 +441,7 @@ SimplifyingGeneratingInference1::Result SimplifyingGeneratingLiteralSimplificati
         out.push(simplLit);
 
         if (doOrderingCheck) {
-          ASS(_ordering)
-          auto cmp = _ordering->compare(simplLit, orig);
+          auto cmp = _ordering.compare(simplLit, orig);
           switch(cmp) {
             case Ordering::Result::LESS:
               oneLess = true;
@@ -575,11 +451,6 @@ SimplifyingGeneratingInference1::Result SimplifyingGeneratingLiteralSimplificati
               break;
             case Ordering::Result::INCOMPARABLE:
             case Ordering::Result::GREATER:
-              if (cmp == Ordering::Result::INCOMPARABLE) {
-                env.statistics->evaluationIncomp++;
-              } else {
-                env.statistics->evaluationGreater++;
-              }
               DEBUG("ordering violated: ", cmp)
               DEBUG("orig: ", *orig)
               DEBUG("simp: ", *simplLit)
@@ -604,7 +475,7 @@ SimplifyingGeneratingInference1::Result SimplifyingGeneratingLiteralSimplificati
   }
 }
 
-SimplifyingGeneratingLiteralSimplification::SimplifyingGeneratingLiteralSimplification(InferenceRule rule, Ordering& ordering): _ordering(&ordering), _rule(rule) {}
+SimplifyingGeneratingLiteralSimplification::SimplifyingGeneratingLiteralSimplification(InferenceRule rule, const Ordering& ordering): _ordering(ordering), _rule(rule) {}
 
 
 

@@ -13,7 +13,6 @@
  * @since 25/12/2003 Manchester
  */
 
-#include "Lib/Sort.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/DArray.hpp"
 
@@ -23,7 +22,6 @@
 #include "Kernel/Problem.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Unit.hpp"
 
 #include "Shuffling.hpp"
@@ -132,6 +130,48 @@ void Shuffling::shuffle(Clause* clause)
   clause->notifyLiteralReorder();
 }
 
+void Shuffling::shuffleVarSort(VSList*& list)
+{
+  unsigned len = VSList::length(list);
+
+  if (len <= 1) {
+    return;
+  }
+
+  // Collect all VarSort pairs into arrays, separating type vars from term vars
+  DArray<VarSort> typeVars(len);
+  DArray<VarSort> termVars(len);
+  unsigned typeCount = 0;
+  unsigned termCount = 0;
+
+  VSList::Iterator vit(list);
+  while (vit.hasNext()) {
+    auto vs = vit.next();
+    if (vs.second == AtomicSort::superSort()) {
+      // Type variable
+      typeVars[typeCount++] = vs;
+    } else {
+      // Term variable
+      termVars[termCount++] = vs;
+    }
+  }
+
+  // Shuffle each partition separately
+  shuffleArray(typeVars, typeCount);
+  shuffleArray(termVars, termCount);
+
+  // Reconstruct the list: type variables first, then term variables
+  VSList* result = VSList::empty();
+  for (int i = termCount - 1; i >= 0; i--) {
+    result = VSList::cons(termVars[i], result);
+  }
+  for (int i = typeCount - 1; i >= 0; i--) {
+    result = VSList::cons(typeVars[i], result);
+  }
+
+  list = result;
+}
+
 // iterative implementation of shuffling Formula* / Literal* / TermList
 void Shuffling::shuffleIter(Shufflable sh) {
   static Stack<Shufflable> todo;
@@ -200,16 +240,9 @@ void Shuffling::shuffleIter(Shufflable sh) {
 
           //cout << "Shuffling FORALL/EXISTS: " << fla->toString() << std::endl;
 
-          // can't naively shuffle variables in the polymorphic case
-          // as we require type variables to come before term variable in the list
-          if(!env.getMainProblem()->hasPolymorphicSym()){
-            // can even shuffle the variables in the quantifier!
-            if (fla->sorts()) { // need to shuffle sorts in sync with vars, if they are there
-              shuffleTwoList(*fla->varsPtr(),*fla->sortsPtr());
-            } else {
-              shuffleList(*fla->varsPtr());
-            }
-          }
+          // Shuffle the variables in the quantifier while maintaining the invariant
+          // that type variables come before term variables (required for polymorphism)
+          shuffleVarSort(*fla->varsPtr());
 
           //cout << "getting: " << fla->toString() << std::endl;
 
@@ -261,7 +294,7 @@ void Shuffling::shuffleIter(Shufflable sh) {
             Term::SpecialTermData* sd = t->getSpecialData();
             switch (sd->specialFunctor()) {
               case SpecialFunctor::ITE:
-                todo.push(Shufflable(sd->getCondition()));
+                todo.push(Shufflable(sd->getITECondition()));
                 todo.push(Shufflable(*t->nthArgument(0)));
                 tl = *t->nthArgument(1);
                 goto tl_updated;
@@ -272,14 +305,8 @@ void Shuffling::shuffleIter(Shufflable sh) {
                 break;
 
               case SpecialFunctor::LET:
-              case SpecialFunctor::LET_TUPLE:
-                todo.push(Shufflable(sd->getBinding()));
+                todo.push(Shufflable(sd->getLetBinding()));
                 tl = *t->nthArgument(0);
-                goto tl_updated;
-                break; // I know, unreachable;
-
-              case SpecialFunctor::TUPLE:
-                tl = TermList(sd->getTupleTerm());
                 goto tl_updated;
                 break; // I know, unreachable;
 

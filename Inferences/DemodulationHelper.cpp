@@ -8,8 +8,6 @@
  * and in the source directory
  */
 
-#include "Indexing/ResultSubstitution.hpp"
-
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/SubstHelper.hpp"

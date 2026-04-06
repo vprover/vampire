@@ -18,7 +18,6 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/Term.hpp"
 
 #include "SymElOutput.hpp"
 
@@ -60,7 +59,7 @@ void SymElOutput::onNonRedundantClause(Clause* c)
     bool notFound=false;
     do {
       src=tgt;
-      if(!_symElRewrites.find(src, tgt)) {
+      if(!_symElRewrites.find(src->number(), tgt)) {
 	ASS_EQ(src, c); //not found can happen only at the first iteration
 	notFound=true;
 	break;
@@ -68,7 +67,7 @@ void SymElOutput::onNonRedundantClause(Clause* c)
     } while(tgt);
     if(!notFound) {
       //if we use src instead of c in the second argument, we can output non-simplified clauses
-      outputSymbolElimination(_symElColors.get(src), c);
+      outputSymbolElimination(_symElColors.get(src->number()), c);
     }
   }
   //if(c->color()==COLOR_TRANSPARENT && c->inputType()!=Clause::AXIOM && !c->skip()) {
@@ -92,14 +91,14 @@ void SymElOutput::onParenthood(Clause* cl, Clause* parent)
   if(pcol!=COLOR_TRANSPARENT && cl->color()==COLOR_TRANSPARENT) {
     onSymbolElimination(parent->color(), cl);
   }
-  if(pcol==COLOR_TRANSPARENT && _symElRewrites.find(parent)) {
+  if(pcol==COLOR_TRANSPARENT && _symElRewrites.find(parent->number())) {
     //Only one of clause's premises can be a clause derived since the
     //previous call to the @b onAllProcessed function, so the insertion
     //should always happen.
     //We don't have an assertion check here, however, as in a rare case
     //the same clause object can be "derived" multiple times due to clause
     //sharing in splitting without backtracking.
-    _symElRewrites.insert(cl, parent);
+    _symElRewrites.insert(cl->number(), parent);
   }
 }
 
@@ -109,7 +108,7 @@ void SymElOutput::onSymbolElimination(Color eliminated,
   ASS_EQ(c->color(),COLOR_TRANSPARENT);
 
   if(!c->skip() && c->noSplits()) {
-    if(!_symElColors.insert(c,eliminated)) {
+    if(!_symElColors.insert(c->number(),eliminated)) {
       //the clause was already reported for symbol elimination
       return;
     }
@@ -117,7 +116,7 @@ void SymElOutput::onSymbolElimination(Color eliminated,
       outputSymbolElimination(eliminated, c);
     }
     else {
-      _symElRewrites.insert(c,0);
+      _symElRewrites.insert(c->number(),nullptr);
     }
   }
 }
@@ -159,7 +158,7 @@ void SymElOutput::checkForPreprocessorSymbolElimination(Clause* cl)
 
   Color inputColor=COLOR_TRANSPARENT;
 
-  static DHMap<Unit*, Color> inputFormulaColors;
+  static DHMap<unsigned, Color> inputFormulaColors;
   static Stack<Unit*> units;
   units.reset();
   units.push(cl);
@@ -173,9 +172,9 @@ void SymElOutput::checkForPreprocessorSymbolElimination(Clause* cl)
       Color uCol;
       if(u->isClause()) {
 	uCol=static_cast<Clause*>(u)->color();
-      } else if(!inputFormulaColors.find(u,uCol)){
+      } else if(!inputFormulaColors.find(u->number(),uCol)){
 	uCol=static_cast<FormulaUnit*>(u)->getColor();
-	inputFormulaColors.insert(u,uCol);
+	inputFormulaColors.insert(u->number(),uCol);
       }
       if(uCol!=COLOR_TRANSPARENT) {
 #if VDEBUG

@@ -28,7 +28,6 @@
 #include "Forwards.hpp"
 
 #include "Lib/DHMap.hpp"
-#include "Lib/MultiCounter.hpp"
 #include "Lib/ProofExtra.hpp"
 #include "Lib/Stack.hpp"
 #include "Kernel/Unit.hpp"
@@ -53,17 +52,16 @@ class FunctionDefinition
 {
 public:
   struct Def;
-  FunctionDefinition();
   ~FunctionDefinition();
 
-  void removeAllDefinitions(Problem& prb, bool inHigherOrder);
-  bool removeAllDefinitions(UnitList*& units, bool inHigherOrder);
+  void removeAllDefinitions(Problem& prb);
+  bool removeAllDefinitions(UnitList*& units);
 
-  static void removeUnusedDefinitions(Problem& prb, bool inHigherOrder);
-  static bool removeUnusedDefinitions(UnitList*& units, Problem* prb, bool inHigherOrder);
+  static void removeUnusedDefinitions(Problem& prb);
+  static bool removeUnusedDefinitions(UnitList*& units, Problem* prb);
 
 
-  static Def* isFunctionDefinition (Unit&, bool inHigherOrder);
+  static Def* isFunctionDefinition (Unit&);
   static void deleteDef(Def* def);
 
 //   int removeAllDefinitions ();
@@ -72,10 +70,10 @@ public:
 //   static bool isFunctionDefinition (const Formula&, Term*& lhs, Term*& rhs);
 
 private:
-  static Def* isFunctionDefinition (Clause*, bool inHigherOrder);
-  static Def* isFunctionDefinition (FormulaUnit&, bool inHigherOrder);
-  static Def* isFunctionDefinition (Literal*, bool inHigherOrder);
-  static Def* defines (Term* lhs, Term* rhs, bool inHigherOrder);
+  static Def* isFunctionDefinition (Clause*);
+  static Def* isFunctionDefinition (FormulaUnit&);
+  static Def* isFunctionDefinition (Literal*);
+  static Def* defines (Term* lhs, Term* rhs);
   static bool occurs (unsigned function, Term&);
   static void reverse(Def*);
 
@@ -105,14 +103,7 @@ private:
   Stack<Def*> _blockedDefs;
 
   Stack<Def*> _safeDefs;
-  /** Counters for occurrences of function symbols */
-  MultiCounter _counter;
-  /** The number of found definitions */
-  int _found;
-  /** The number of removed definitions */
-  int _removed;
-
-  Problem* _processedProblem;
+  Problem* _processedProblem = nullptr;
 }; // class FunctionDefinition
 
 struct FunctionDefinitionExtra : public InferenceExtra {

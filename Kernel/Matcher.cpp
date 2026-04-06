@@ -104,8 +104,8 @@ bool MatchingUtils::haveReversedVariantArgs(Term* l1, Term* l2)
       vi( new DisagreementSetIterator(*l1->nthArgument(1),*l2->nthArgument(0)) ));
 
   VirtualIterator<pair<TermList, TermList> > dsit =
-  sortUsed ? pvi(concatIters(vi(new DisagreementSetIterator(s1,s2)), it1)) :
-             pvi(it1);
+  sortUsed ? pvi(concatIters(vi(new DisagreementSetIterator(s1,s2)), std::move(it1))) :
+             pvi(std::move(it1));
 
   while(dsit.hasNext()) {
     pair<TermList,TermList> dp=dsit.next(); //disagreement pair

@@ -16,10 +16,6 @@
 
 #include <cstring>
 
-#include "Debug/Assertion.hpp"
-
-#include "Lib/Exception.hpp"
-
 #include "LispLexer.hpp"
 
 using namespace std;

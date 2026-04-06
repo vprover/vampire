@@ -24,7 +24,7 @@ namespace Inferences {
 class Choice : public GeneratingInferenceEngine
 {
   public:
-    ClauseIterator generateClauses(Clause* premise);
+    ClauseIterator generateClauses(Clause* premise) override;
 
   private:
     struct SubtermsFn;

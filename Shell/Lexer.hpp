@@ -40,8 +40,8 @@ class LexerException
 {
  public:
   LexerException(std::string message,const Lexer&);
-  void cry(std::ostream&) const;
-  ~LexerException() {}
+  void cry(std::ostream&) const override;
+  ~LexerException() override {}
  protected:
   std::string _message;
 }; // LexerException

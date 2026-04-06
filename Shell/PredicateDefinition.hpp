@@ -18,9 +18,8 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/DArray.hpp"
 #include "Lib/DHMap.hpp"
-#include "Lib/VirtualIterator.hpp"
+#include "Lib/Stack.hpp"
 #include "Kernel/FormulaUnit.hpp"
 
 #include "SymCounter.hpp"
@@ -41,7 +40,7 @@ using namespace Kernel;
 class PredicateDefinition
 {
 public:
-  typedef DHMap<Unit*, Unit*> ReplMap;
+  typedef DHMap<unsigned, Unit*> ReplMap;
 
   PredicateDefinition();
   ~PredicateDefinition();

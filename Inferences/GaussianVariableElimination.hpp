@@ -8,9 +8,7 @@
  * and in the source directory
  */
 #include "InferenceEngine.hpp"
-#include "Lib/Set.hpp"
 #include "Kernel/Clause.hpp"
-#include "LfpRule.hpp"
 
 namespace Inferences {
 

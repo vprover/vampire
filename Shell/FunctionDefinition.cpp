@@ -17,9 +17,7 @@
 
 #include "Debug/Assertion.hpp"
 #include "Lib/Allocator.hpp"
-#include "Lib/DHMultiset.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/Int.hpp"
 #include "Lib/ScopedLet.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -28,7 +26,6 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 
@@ -122,24 +119,9 @@ struct FunctionDefinition::Def
   }
 }; // class FunctionDefintion::Def
 
-
-/**
- * Initialise a function definition.
- * Move all definitions from the problem to _definitions and _map.
- * @since 29/05/2004 Manchester
- */
-FunctionDefinition::FunctionDefinition ()
-  :
-//    _defStore(32),
-    _found(0),
-    _removed(0),
-    _processedProblem(0)
+void FunctionDefinition::removeUnusedDefinitions(Problem& prb)
 {
-} // FunctionDefinition::FunctionDefinition
-
-void FunctionDefinition::removeUnusedDefinitions(Problem& prb, bool inHigherOrder)
-{
-  if(removeUnusedDefinitions(prb.units(), &prb, inHigherOrder)) {
+  if(removeUnusedDefinitions(prb.units(), &prb)) {
     prb.invalidateByRemoval();
   }
 }
@@ -154,7 +136,7 @@ void FunctionDefinition::removeUnusedDefinitions(Problem& prb, bool inHigherOrde
  * only in definition of an other one which is removed, the first definition
  * is removed as well.
  */
-bool FunctionDefinition::removeUnusedDefinitions(UnitList*& units, Problem* prb, bool inHigherOrder)
+bool FunctionDefinition::removeUnusedDefinitions(UnitList*& units, Problem* prb)
 {
   unsigned funs=env.signature->functions();
 
@@ -169,7 +151,7 @@ bool FunctionDefinition::removeUnusedDefinitions(UnitList*& units, Problem* prb,
     Clause* cl=static_cast<Clause*>(scanIterator.next());
     unsigned clen=cl->length();
     ASS(cl->isClause());
-    Def* d=isFunctionDefinition(cl,inHigherOrder);
+    Def* d=isFunctionDefinition(cl);
     if(d) {
       d->defCl=cl;
       if(!def[d->fun]) {
@@ -235,10 +217,10 @@ bool FunctionDefinition::removeUnusedDefinitions(UnitList*& units, Problem* prb,
   return modified;
 }
 
-void FunctionDefinition::removeAllDefinitions(Problem& prb, bool inHigherOrder)
+void FunctionDefinition::removeAllDefinitions(Problem& prb)
 {
   ScopedLet<Problem*> prbLet(_processedProblem, &prb);
-  if(removeAllDefinitions(prb.units(),inHigherOrder)) {
+  if(removeAllDefinitions(prb.units())) {
     prb.invalidateByRemoval();
   }
 }
@@ -257,13 +239,13 @@ void FunctionDefinition::reverse(Def* def){
  * When possible, unfold function definitions in @b units and remove them
  * Return true iff the list of units was modified.
  */
-bool FunctionDefinition::removeAllDefinitions(UnitList*& units, bool inHigherOrder)
+bool FunctionDefinition::removeAllDefinitions(UnitList*& units)
 {
   UnitList::DelIterator scanIterator(units);
   while(scanIterator.hasNext()) {
     Clause* cl=static_cast<Clause*>(scanIterator.next());
     ASS(cl->isClause());
-    Def* d=isFunctionDefinition(cl,inHigherOrder);
+    Def* d=isFunctionDefinition(cl);
     if(d) {
       d->defCl=cl;
       bool inserted = false;
@@ -366,7 +348,6 @@ bool FunctionDefinition::removeAllDefinitions(UnitList*& units, bool inHigherOrd
   while(unfoldIterator.hasNext()) {
     Clause* cl=static_cast<Clause*>(unfoldIterator.next());
     ASS(cl->isClause());
-    if(cl->isProxyAxiomsDescendant()){ continue; }
     Clause* newCl=applyDefinitions(cl);
     if(cl!=newCl) {
 //      cout<<"D- "<<(*cl)<<endl;
@@ -385,7 +366,7 @@ void FunctionDefinition::checkDefinitions(Def* def0)
 
   //Next argument of the current-level term to be processed.
   //An empty term means we've processed all arguments of the term.
-  static Stack<TermList*> stack(4);
+  static Stack<const TermList*> stack(4);
   //Definition whose rhs is the current-level term (or zero if none).
   static Stack<Def*> defCheckingStack(4);
   //Definition whose lhs is the current-level term (or zero if none).
@@ -450,7 +431,7 @@ void FunctionDefinition::checkDefinitions(Def* def0)
     if(stack.isEmpty()) {
       break;
     }
-    TermList* ts=stack.pop();
+    const TermList* ts=stack.pop();
     if(ts->isNonEmpty()) {
       Def* argDef=defArgStack.top();
       if(argDef) {
@@ -758,16 +739,16 @@ FunctionDefinition::~FunctionDefinition ()
  * @since 26/05/2007 Manchester
  */
 FunctionDefinition::Def*
-FunctionDefinition::isFunctionDefinition (Unit& unit, bool inHigherOrder)
+FunctionDefinition::isFunctionDefinition (Unit& unit)
 {
   if(unit.derivedFromGoal() && env.options->ignoreConjectureInPreprocessing()){
     return 0;
   }
 
   if (unit.isClause()) {
-    return isFunctionDefinition(static_cast<Clause*>(&unit), inHigherOrder);
+    return isFunctionDefinition(static_cast<Clause*>(&unit));
   }
-  return isFunctionDefinition(static_cast<FormulaUnit&>(unit), inHigherOrder);
+  return isFunctionDefinition(static_cast<FormulaUnit&>(unit));
 } // Definition::isFunctionDefinition (const Clause& c)
 
 
@@ -778,12 +759,12 @@ FunctionDefinition::isFunctionDefinition (Unit& unit, bool inHigherOrder)
  * @since 26/05/2007 Manchester modified for new data structures
  */
 FunctionDefinition::Def*
-FunctionDefinition::isFunctionDefinition (Clause* clause, bool inHigherOrder)
+FunctionDefinition::isFunctionDefinition (Clause* clause)
 {
   if (clause->length() != 1) {
     return 0;
   }
-  return isFunctionDefinition((*clause)[0],inHigherOrder);
+  return isFunctionDefinition((*clause)[0]);
 } // Definition::isFunctionDefinition (Clause* c)
 
 /**
@@ -791,7 +772,7 @@ FunctionDefinition::isFunctionDefinition (Clause* clause, bool inHigherOrder)
  * return the Def structure representing information about the definition.
  */
 FunctionDefinition::Def*
-FunctionDefinition::isFunctionDefinition (Literal* lit, bool inHigherOrder)
+FunctionDefinition::isFunctionDefinition (Literal* lit)
 {
   if (! lit->isPositive() ||
       ! lit->isEquality() ||
@@ -810,11 +791,11 @@ FunctionDefinition::isFunctionDefinition (Literal* lit, bool inHigherOrder)
     return 0;
   }
   Term* r = args->term();
-  Def* def = defines(l,r,inHigherOrder);
+  Def* def = defines(l,r);
   if (def) {
     return def;
   }
-  def = defines(r,l,inHigherOrder);
+  def = defines(r,l);
   if (def) {
     return def;
   }
@@ -837,7 +818,7 @@ FunctionDefinition::isFunctionDefinition (Literal* lit, bool inHigherOrder)
   *   and check for equality added
   */
 FunctionDefinition::Def*
-FunctionDefinition::defines (Term* lhs, Term* rhs, bool inHigherOrder)
+FunctionDefinition::defines (Term* lhs, Term* rhs)
 {
   if(!lhs->shared() || !rhs->shared()) {
     return 0;
@@ -862,13 +843,14 @@ FunctionDefinition::defines (Term* lhs, Term* rhs, bool inHigherOrder)
       return 0;
     }
     //Higher-order often contains definitions of the form f = ^x^y...
-    if (rhs->arity() && !inHigherOrder) { // c = f(...)
+    auto isArrowSort = SortHelper::getResultSort(lhs).isArrowSort();
+    if (rhs->arity() && !isArrowSort) { // c = f(...)
       return 0;
     }
     if (rhs->functor() == f) {
       return 0;
     }
-    if(!inHigherOrder){
+    if(!isArrowSort){
       return new Def(lhs,rhs,true,true);
     }
   }
@@ -878,16 +860,15 @@ FunctionDefinition::defines (Term* lhs, Term* rhs, bool inHigherOrder)
   // First, iterate subterms in lhs and check that all of them are variables
   // and each of them occurs exactly once. counter will contain variables
   // occurring in lhs
-  MultiCounter counter;
+  ZIArray<unsigned> counter;
   for (const TermList* ts = lhs->args(); ts->isNonEmpty(); ts=ts->next()) {
     if (! ts->isVar()) {
       return 0;
     }
     int w = ts->var();
-    if (counter.get(w) != 0) { // more than one occurrence
+    if (counter[w]++) { // more than one occurrence
       return 0;
     }
-    counter.inc(w);
     vars++;
   }
 
@@ -905,7 +886,7 @@ FunctionDefinition::defines (Term* lhs, Term* rhs, bool inHigherOrder)
       return 0;
 
     case 1: // v occurs in lhs, it is first occurrence in rhs
-      counter.inc(v);
+      counter[v]++;
       vars--;
       break;
 
@@ -950,7 +931,7 @@ bool FunctionDefinition::occurs (unsigned f, Term& t)
  * @since 26/05/2007 Manchester, reimplemented using new datastructures
  */
 FunctionDefinition::Def*
-FunctionDefinition::isFunctionDefinition (FormulaUnit& unit, bool inHigherOrder)
+FunctionDefinition::isFunctionDefinition (FormulaUnit& unit)
 {
   Formula* f = unit.formula();
   // skip all universal quantifiers in front of the formula
@@ -961,7 +942,7 @@ FunctionDefinition::isFunctionDefinition (FormulaUnit& unit, bool inHigherOrder)
   if (f->connective() != LITERAL) {
     return 0;
   }
-  return isFunctionDefinition(f->literal(), inHigherOrder);
+  return isFunctionDefinition(f->literal());
 } // FunctionDefinition::isFunctionDefinition
 
 /**

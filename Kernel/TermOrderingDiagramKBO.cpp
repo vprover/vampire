@@ -9,9 +9,7 @@
  */
 
 #include "KBO.hpp"
-#include "SubstHelper.hpp"
 #include "Term.hpp"
-#include "TermIterators.hpp"
 
 #include "TermOrderingDiagramKBO.hpp"
 

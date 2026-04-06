@@ -9,11 +9,8 @@
  */
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
-#include "Test/TestUtils.hpp"
-#include "Test/GenerationTester.hpp"
 
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
-#include "Kernel/Inference.hpp"
 
 using namespace std;
 using namespace SATSubsumption;
@@ -303,7 +300,7 @@ TEST_FUN(PositiveSubsumptionResolution)
   bool success = true;
 
   for (unsigned i = 0; i < L.size(); i++) {
-    conclusion = subsumption.checkSubsumptionResolution(L[i], M[i]);
+    conclusion = subsumption.checkSubsumptionResolution(L[i], M[i], false, false);
     if (conclusion == nullptr) {
       std::cerr << "Test " << i + 1 << " failed: no conclusion generated" << std::endl;
       success = false;
@@ -381,7 +378,7 @@ TEST_FUN(NegativeSubsumptionResolution)
   bool success = true;
 
   for (unsigned i = 0; i < L.size(); i++) {
-    conclusion = subsumption.checkSubsumptionResolution(L[i], M[i]);
+    conclusion = subsumption.checkSubsumptionResolution(L[i], M[i], false, false);
     if (conclusion != nullptr) {
       std::cerr << "Test " << i + 1 << " failed: conclusion generated" << std::endl;
       std::cerr << "Conclusion: " << conclusion->toString() << std::endl;
@@ -402,14 +399,14 @@ TEST_FUN(UsePreviousSettings)
   Kernel::Clause* L1 = clause({ p(x1), q(x2) });
   Kernel::Clause* M1 = clause({ p(c), q(y1) });
   ASS(subsumption.checkSubsumption(L1, M1, true));
-  conclusion = subsumption.checkSubsumptionResolution(L1, M1, true);
+  conclusion = subsumption.checkSubsumptionResolution(L1, M1, false, true);
   ASS(!conclusion);
 
   // subsumption and SR don't work
   Kernel::Clause* L2 = clause({ p(x1), r(x2) });
   Kernel::Clause* M2 = clause({ p(c), q(y1) });
   ASS(!subsumption.checkSubsumption(L2, M2, true));
-  conclusion = subsumption.checkSubsumptionResolution(L2, M2, true);
+  conclusion = subsumption.checkSubsumptionResolution(L2, M2, false, true);
   ASS(!conclusion);
 
   // SR works but not subsumption
@@ -417,20 +414,20 @@ TEST_FUN(UsePreviousSettings)
   Kernel::Clause* M3 = clause({ p(y1), ~q(c) });
   Kernel::Clause* expected3 = clause({ p(y1) });
   ASS(!subsumption.checkSubsumption(L3, M3, true));
-  conclusion = subsumption.checkSubsumptionResolution(L3, M3, true);
+  conclusion = subsumption.checkSubsumptionResolution(L3, M3, false, true);
   ASS(conclusion);
   ASS(checkClauseEquality(conclusion, expected3));
 
   Kernel::Clause* L4 = clause({ p2(y3, y5), ~q2(x7, y5), ~p2(y3, x7) });
   Kernel::Clause* M4 = clause({ p2(f2(y2, y5), y2), ~p2(y5, y3), ~r2(y2, y3), ~p2(y5, c), ~q2(y2, c), ~q2(y3, c) });
   ASS(!subsumption.checkSubsumption(L4, M4, true));
-  conclusion = subsumption.checkSubsumptionResolution(L4, M4, true);
+  conclusion = subsumption.checkSubsumptionResolution(L4, M4, false, true);
   ASS(conclusion);
 
   Kernel::Clause* L5 = clause({ p3(y1, y5, x7), ~p3(x2, x3, x7), ~p3(y3, y5, x3), ~p3(x2, y3, y1) });
   Kernel::Clause* M5 = clause({ p3(x1, x6, y4), ~p3(y2, x4, y4), ~p3(y6, x4, x6), ~p3(x1, y6, y2) });
   ASS(!subsumption.checkSubsumption(L5, M5, true));
-  conclusion = subsumption.checkSubsumptionResolution(L5, M5, true);
+  conclusion = subsumption.checkSubsumptionResolution(L5, M5, false, true);
   ASS(!conclusion);
 }
 
@@ -452,7 +449,7 @@ TEST_FUN(PaperExample)
   bool success = true;
 
   for (unsigned i = 0; i < L.size(); i++) {
-    conclusion = subsumption.checkSubsumptionResolution(L[i], M[i]);
+    conclusion = subsumption.checkSubsumptionResolution(L[i], M[i], false, false);
     if (conclusion == nullptr) {
       std::cerr << "Test " << i + 1 << " failed: no conclusion generated" << std::endl;
       success = false;

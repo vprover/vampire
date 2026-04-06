@@ -16,7 +16,6 @@
 #ifndef __InverseLookup__
 #define __InverseLookup__
 
-#include "Hash.hpp"
 #include "DHMap.hpp"
 
 #include "Lib/Allocator.hpp"

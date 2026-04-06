@@ -8,24 +8,11 @@
  * and in the source directory
  */
 
-#include "Inferences/ALASCA/Normalization.hpp"
 #include "Inferences/ALASCA/Coherence.hpp"
-#include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
-#include "Indexing/TermSharing.hpp"
-#include "Inferences/InterpretedEvaluation.hpp"
-#include "Kernel/Ordering.hpp"
-#include "Inferences/PolynomialEvaluation.hpp"
-#include "Inferences/Cancellation.hpp"
 
 #include "Test/SyntaxSugar.hpp"
-#include "Test/TestUtils.hpp"
-#include "Lib/Coproduct.hpp"
-#include "Test/SimplificationTester.hpp"
 #include "Test/GenerationTester.hpp"
-#include "Kernel/KBO.hpp"
-#include "Indexing/TermSubstitutionTree.hpp" 
-#include "Inferences/PolynomialEvaluation.hpp"
 #include "Test/AlascaTestUtils.hpp"
 
 using namespace std;
@@ -39,6 +26,8 @@ using namespace Inferences::ALASCA;
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////// TEST CASES 
 /////////////////////////////////////
+
+namespace {
 
 #define SUGAR(Num)                                                                        \
   NUMBER_SUGAR(Num)                                                                       \
@@ -60,82 +49,81 @@ using namespace Inferences::ALASCA;
   auto isInteger = [&](auto t) { return t == floor(t); };                                 \
 
 
+#define MY_GEN_RULE     AlascaSimplRule<CoherenceNormalization<RealTraits>>
+#define MY_GEN_TESTER   AlascaGenerationTester
 #define MY_SYNTAX_SUGAR SUGAR(Real)
 
-REGISTER_GEN_TESTER(AlascaGenerationTester<CoherenceNormalization<RealTraits>>())
+auto tester() {
+  return alascaSymmetricTest()
+    .premiseRedundant(false);
+}
 
 /////////////////////////////////////////////////////////
 // Basic tests
 //////////////////////////////////////
 
 TEST_GENERATION(basic_success01,
-    Generation::SymmetricTest()
+    tester()
       .inputs  ({ clause({ floor(a) == frac(1,2)  }) })
-      .premiseRedundant(false)
       .expected(exactly(
             clause({  })
       ))
     )
 
 TEST_GENERATION(basic_success02,
-    Generation::SymmetricTest()
+    tester()
       .inputs  ({ clause({ floor(a) == frac(-1,2)  }) })
-      .premiseRedundant(false)
       .expected(exactly(
             clause({  })
       ))
     )
 
 TEST_GENERATION(basic_success03,
-    Generation::SymmetricTest()
+    tester()
       .inputs  ({ clause({ 5 * floor(x) == num(4)  }) })
-      .premiseRedundant(false)
       .expected(exactly(
             clause({  })
       ))
     )
 
 TEST_GENERATION(basic_success04,
-    Generation::SymmetricTest()
+    tester()
       .inputs  ({ clause({ 0 == b, 5 * floor(x) == num(4)  }) })
-      .premiseRedundant(false)
       .expected(exactly(
             clause({ 0 == b })
       ))
     )
 
 TEST_GENERATION(basic_fail01,
-    Generation::SymmetricTest()
+    tester()
       .inputs  ({ clause({ floor(a) == frac(1,1)  }) })
-      .premiseRedundant(false)
       .expected(exactly(
             /* nothing */
       ))
     )
 
 TEST_GENERATION(basic_fail02,
-    Generation::SymmetricTest()
+    tester()
       .inputs  ({ clause({ floor(a) == frac(1,1) + b  }) })
-      .premiseRedundant(false)
       .expected(exactly(
             clause({ 0 == -floor(b) + b })
       ))
     )
 
 TEST_GENERATION(basic_fail03,
-    Generation::SymmetricTest()
+    tester()
       .inputs  ({ clause({ 2 *floor(a) == num(4)  }) })
-      .premiseRedundant(false)
       .expected(exactly(
             /* nothing */
       ))
     )
 
 TEST_GENERATION(basic_fail04,
-    Generation::SymmetricTest()
+    tester()
       .inputs  ({ clause({ floor(a) + floor(b) == frac(1,1)  }) })
-      .premiseRedundant(false)
       .expected(exactly(
             /* nothing */
       ))
     )
+
+}

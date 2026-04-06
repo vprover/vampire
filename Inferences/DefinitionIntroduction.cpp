@@ -147,7 +147,6 @@ void DefinitionIntroduction::introduceDefinitionFor(Term *t) {
   auto definition = Clause::fromLiterals({eq}, NonspecificInference0(UnitInputType::AXIOM, InferenceRule::FUNCTION_DEFINITION));
   InferenceStore::instance()->recordIntroducedSymbol(definition, SymbolType::FUNC, functor);
   _definitions.push_back(definition);
-  env.statistics->introducedFunctionDefinitions++;
 }
 
 void DefinitionIntroduction::process(Term *t) {

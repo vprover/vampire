@@ -16,7 +16,6 @@
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Random.hpp"
-#include "Lib/Environment.hpp"
 #include "Clause.hpp"
 #include "ClauseQueue.hpp"
 

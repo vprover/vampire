@@ -21,7 +21,6 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/Connective.hpp"
-#include "Kernel/InferenceStore.hpp"
 
 #include "Shell/Flattening.hpp"
 #include "SimplifyFalseTrue.hpp"
@@ -396,12 +395,12 @@ namespace Shell
     void Interpolants::removeConjectureNodesFromRefutation(Unit* refutation)
     {
         Stack<Unit*> todo;
-        DHSet<Unit*> seen;
+        DHSet<unsigned> seen;
 
         todo.push(refutation);
         while (todo.isNonEmpty()) {
             Unit* cur = todo.pop();
-            if (!seen.insert(cur)) {
+            if (!seen.insert(cur->number())) {
             continue;
             }
 
@@ -432,13 +431,13 @@ namespace Shell
     Unit* Interpolants::formulifyRefutation(Unit* refutation)
     {
     Stack<Unit*> todo;
-    DHMap<Unit*,Unit*> translate; // for caching results (we deal with a DAG in general), but also to distinguish the first call from the next
+    DHMap<unsigned,Unit*> translate; // for caching results (we deal with a DAG in general), but also to distinguish the first call from the next
 
     todo.push(refutation);
     while (todo.isNonEmpty()) {
         Unit* cur = todo.top();
 
-        if (translate.find(cur)) {  // the DAG hit case
+        if (translate.find(cur->number())) {  // the DAG hit case
         todo.pop();
 
         continue;
@@ -447,7 +446,7 @@ namespace Shell
         if (!cur->isClause()) {     // the formula case
         todo.pop();
 
-        translate.insert(cur,cur);
+        translate.insert(cur->number(),cur);
         continue;
         }
 
@@ -457,7 +456,7 @@ namespace Shell
         Inference::Iterator iit = inf.iterator();
         while (inf.hasNext(iit)) {
         Unit* premUnit=inf.next(iit);
-        if (!translate.find(premUnit)) {
+        if (!translate.find(premUnit->number())) {
             allDone = false;
             break;
         }
@@ -472,7 +471,7 @@ namespace Shell
         while (inf.hasNext(iit)) {
             Unit* premUnit=inf.next(iit);
 
-            List<Unit*>::push(translate.get(premUnit), prems);
+            List<Unit*>::push(translate.get(premUnit->number()), prems);
         }
 
         InferenceRule rule=inf.rule();
@@ -485,7 +484,7 @@ namespace Shell
             fu->setInheritedColor(cur->inheritedColor());
         }
 
-        translate.insert(cur,fu);
+        translate.insert(cur->number(),fu);
         } else { // need "recursive" calls first
 
         Inference::Iterator iit = inf.iterator();
@@ -496,7 +495,7 @@ namespace Shell
         }
     }
 
-    return translate.get(refutation);
+    return translate.get(refutation->number());
     }
 
 

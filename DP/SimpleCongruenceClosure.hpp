@@ -50,15 +50,15 @@ class SimpleCongruenceClosure : public DecisionProcedure
 public:
   SimpleCongruenceClosure(Ordering* ord);
 
-  virtual void addLiterals(LiteralIterator lits, bool onlyEqualites) override;
+  void addLiterals(LiteralIterator lits, bool onlyEqualites) override;
 
-  virtual Status getStatus(bool retrieveMultipleCores) override;
-  virtual unsigned getUnsatCoreCount() override { return _unsatEqs.size(); }
-  virtual void getUnsatCore(LiteralStack& res, unsigned coreIndex) override;
+  Status getStatus(bool retrieveMultipleCores) override;
+  unsigned getUnsatCoreCount() override { return _unsatEqs.size(); }
+  void getUnsatCore(LiteralStack& res, unsigned coreIndex) override;
 
   void getModel(LiteralStack& model) override;
   
-  virtual void reset() override;
+  void reset() override;
 
   /**
    * New, more fine-grained way of insertion. The terms may contain variables which are treated as constants.

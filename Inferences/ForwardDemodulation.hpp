@@ -30,28 +30,21 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+template<bool higherOrder>
 class ForwardDemodulation
 : public ForwardSimplificationEngine
 {
 public:
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
-  bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override = 0;
-protected:
-  bool _preorderedOnly;
-  bool _encompassing;
-  bool _useTermOrderingDiagrams;
-  bool _skipNonequationalLiterals;
-  DemodulationHelper _helper;
-  DemodulationLHSIndex* _index;
-};
-
-class ForwardDemodulationImpl
-: public ForwardDemodulation
-{
-public:
+  ForwardDemodulation(SaturationAlgorithm& salg);
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
-private:
+protected:
+  const bool _preorderedOnly;
+  const bool _encompassing;
+  const bool _useTermOrderingDiagrams;
+  const bool _skipNonequationalLiterals;
+  const DemodulationHelper _helper;
+  const Ordering& _ord;
+  std::shared_ptr<DemodulationLHSIndex<higherOrder>> _index;
 };
 
 using ForwardDemodulationExtra = RewriteInferenceExtra;

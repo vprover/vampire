@@ -18,9 +18,7 @@
 
 #include "Forwards.hpp"
 #include "Lib/Set.hpp"
-#include "Kernel/OperatorType.hpp"
 
-#include "Kernel/Theory.hpp"
 #include "InferenceEngine.hpp"
 
 namespace Inferences
@@ -37,7 +35,7 @@ public:
 
   //void init();
 
-  ClauseIterator generateClauses(Clause* premise);
+  ClauseIterator generateClauses(Clause* premise) override;
 
   void registerClause(Clause* cl);
 

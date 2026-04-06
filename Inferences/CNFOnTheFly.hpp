@@ -17,15 +17,10 @@
 
 #include "Forwards.hpp"
 #include "InferenceEngine.hpp"
-#include "Kernel/Term.hpp"
-#include "Kernel/Signature.hpp"
-#include "Kernel/Inference.hpp"
 
 #include "Indexing/TermIndex.hpp"
 
 #include "InferenceEngine.hpp"
-
-#include <memory>
 
 namespace Inferences {
 using namespace Indexing;
@@ -34,94 +29,37 @@ class IFFXORRewriterISE
   : public ImmediateSimplificationEngine
 {
 public:
-  Clause* simplify(Clause* c);
+  Clause* simplify(Clause* c) override;
 };
 
 class EagerClausificationISE
-  : public ImmediateSimplificationEngine
+  : public ImmediateSimplificationEngineMany
 {
 public:
-  ClauseIterator simplifyMany(Clause* c);
-  Clause* simplify(Clause* c){ NOT_IMPLEMENTED; }
-
+  Option<ClauseIterator> simplifyMany(Clause* c) override;
 };
 
 class LazyClausification
   : public SimplificationEngine
 {
 public:
-  LazyClausification(){
-    _formulaIndex = 0;
-  }
+  LazyClausification(SaturationAlgorithm& salg);
 
   ClauseIterator perform(Clause* c) override;
-
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
-
 private:
-  SkolemisingFormulaIndex* _formulaIndex;
+  std::shared_ptr<SkolemisingFormulaIndex> _formulaIndex;
 };
 
 class LazyClausificationGIE
   : public GeneratingInferenceEngine
 {
 public:
-  LazyClausificationGIE(){
-    _formulaIndex = 0;
-  }
-
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
-
+  LazyClausificationGIE(SaturationAlgorithm& salg);
   ClauseIterator generateClauses(Clause* c) override;
 
 private:
-  SkolemisingFormulaIndex* _formulaIndex;
+  std::shared_ptr<SkolemisingFormulaIndex> _formulaIndex;
 };
-
-/*class NotProxyISE
-  : public ImmediateSimplificationEngine
-{
-public:
-  Kernel::Clause* simplify(Kernel::Clause* c);
-};
-
-
-class EqualsProxyISE
-   : public ImmediateSimplificationEngine
-{
-
-public:
-  Kernel::Clause* simplify(Kernel::Clause* c);        
-};
-
-
-class OrImpAndProxyISE
-  : public ImmediateSimplificationEngine
-{
-
-public:
-  Kernel::Clause* simplify(Kernel::Clause* c);
-};
-
-
-class PiSigmaProxyISE
-   : public ImmediateSimplificationEngine
-{
-  
-public:
-  Kernel::Clause* simplify(Kernel::Clause* c);     
-};
-
-
-class ProxyISE 
-  : public ImmediateSimplificationEngine {
-  public:
-    ClauseIterator simplifyMany(Clause* c);
-    Clause* simplify(Clause* c){ NOT_IMPLEMENTED; }
-};*/
-
 
 }
 

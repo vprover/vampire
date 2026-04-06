@@ -15,13 +15,13 @@
 #include "Indexing/SubstitutionTree.hpp"
 #include "Kernel/ALASCA.hpp"
 
-#include "Indexing/IndexManager.hpp"
-#include "Indexing/TermIndex.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Indexing/Index.hpp"
 #include "Indexing/TermSubstitutionTree.hpp"
 #include "Indexing/LiteralSubstitutionTree.hpp"
 #include "Kernel/TypedTermList.hpp"
+
+#include "Saturation/SaturationAlgorithm.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
@@ -44,16 +44,14 @@ class AlascaIndex : public Indexing::Index
 public:
   USE_ALLOCATOR(AlascaIndex);
 
-  AlascaIndex()
+  AlascaIndex(SaturationAlgorithm& salg)
     : _index()
-    , _shared()
+    , _shared(salg.alascaState())
   {}
-
-  void setShared(std::shared_ptr<Kernel::AlascaState> shared) { _shared = std::move(shared); }
 
   template<class VarBanks>
   auto find(AbstractingUnifier* state, KeyType<T> key)
-  { return iterTraits(_index.template getUwa<VarBanks>(state, key, _shared->uwaMode(), _shared->uwaFixedPointIteration))
+  { return iterTraits(_index.template getUwa<VarBanks>(state, key, _shared.uwaMode(), _shared.uwaFixedPointIteration))
       .timeTraced(_lookupStr.c_str()); }
 
 
@@ -63,10 +61,10 @@ public:
   auto instances(TypedTermList key, bool retrieveSubstitutions = true)
   { return iterTraits(_index.getInstances(key, retrieveSubstitutions)); }
 
-  virtual void handleClause(Clause* c, bool adding) final override
+  void handleClause(Clause* c, bool adding) final
   {
     TIME_TRACE(_maintenanceStr.c_str())
-    for (auto appl : T::iter(*_shared, c)) {
+    for (auto appl : T::iter(_shared, c)) {
       if (adding) {
 #if VDEBUG
         auto k = appl.key();
@@ -84,7 +82,7 @@ public:
 
 private:
   GenSubstitutionTree<T> _index;
-  std::shared_ptr<Kernel::AlascaState> _shared;
+  Kernel::AlascaState& _shared;
   static std::string _lookupStr;
   static std::string _maintenanceStr;
 };

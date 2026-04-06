@@ -22,11 +22,8 @@
  * In particular, this file implements the loop optimization described in 2023 and 2024.
  */
 
-#include "Inferences/InferenceEngine.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
-#include "Indexing/LiteralIndex.hpp"
 #include "Kernel/ColorHelper.hpp"
-#include "Lib/Timer.hpp"
 #include "Lib/Environment.hpp"
 #include "Shell/Statistics.hpp"
 
@@ -39,32 +36,14 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution(bool subsumptionResolution)
-    : _subsumptionResolution(subsumptionResolution)
-    , satSubs()
-{
-}
-
-void ForwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
-{
-  ForwardSimplificationEngine::attach(salg);
-  _unitIndex = static_cast<UnitClauseLiteralIndex *>(
-      _salg->getIndexManager()->request(FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE));
-  _fwIndex = static_cast<FwSubsSimplifyingLiteralIndex *>(
-      _salg->getIndexManager()->request(FW_SUBSUMPTION_SUBST_TREE));
-}
-
-void ForwardSubsumptionAndResolution::detach()
-{
-  _unitIndex = 0;
-  _fwIndex = 0;
-  _salg->getIndexManager()->release(FW_SUBSUMPTION_UNIT_CLAUSE_SUBST_TREE);
-  _salg->getIndexManager()->release(FW_SUBSUMPTION_SUBST_TREE);
-  ForwardSimplificationEngine::detach();
-}
+ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution(SaturationAlgorithm& salg)
+  : _subsumptionResolution(salg.getOptions().forwardSubsumptionResolution()),
+    _unitIndex(salg.getSimplifyingIndex<UnitClauseLiteralIndex>()),
+    _fwIndex(salg.getSimplifyingIndex<FwSubsSimplifyingLiteralIndex>())
+{}
 
 /// @brief Set of clauses that were already checked
-static DHSet<Clause *> checkedClauses;
+static DHSet<unsigned> checkedClauses;
 
 bool ForwardSubsumptionAndResolution::perform(Clause *cl,
                                               Clause *&replacement,
@@ -125,7 +104,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
     auto it = _fwIndex->getGeneralizations(lit, false, false);
     while (it.hasNext()) {
       mcl = it.next().data->clause;
-      if (!checkedClauses.insert(mcl)) {
+      if (!checkedClauses.insert(mcl->number())) {
         continue;
       }
 
@@ -147,7 +126,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
         // a low chance of it being resolved. However, in the case where there is no negative match,
         // checkSubsumption resolution is very fast after subsumption, since filling the match set
         // for subsumption will have already detected that subsumption resolution is impossible
-        conclusion = satSubs.checkSubsumptionResolution(mcl, cl, checkS);
+        conclusion = satSubs.checkSubsumptionResolution(mcl, cl, /*forward=*/true, checkS);
         if (conclusion) {
           ASS(premise == nullptr)
           // cannot override the premise since the loop would have ended otherwise
@@ -161,7 +140,6 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
   if (conclusion) {
     premises = pvi(getSingletonIterator(premise));
     replacement = conclusion;
-    env.statistics->forwardSubsumptionResolution++;
     return true;
   }
   else if (!_subsumptionResolution) {
@@ -187,9 +165,8 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
     if (it.hasNext()) {
       mcl = it.next().data->clause;
       ASS(mcl->length() == 1)
-      replacement = SATSubsumption::SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(cl, lit, mcl);
+      replacement = SATSubsumption::SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(cl, lit, mcl, /*forward=*/true);
       premises = pvi(getSingletonIterator(mcl));
-      env.statistics->forwardSubsumptionResolution++;
       return true;
     }
   }
@@ -203,19 +180,18 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
     auto it = _fwIndex->getGeneralizations(lit, true, false);
     while (it.hasNext()) {
       mcl = it.next().data->clause;
-      if (!checkedClauses.insert(mcl)) {
+      if (!checkedClauses.insert(mcl->number())) {
         continue;
       }
       if (!_checkLongerClauses && mcl->length() > clen) {
         continue;
       }
-      conclusion = satSubs.checkSubsumptionResolution(mcl, cl);
+      conclusion = satSubs.checkSubsumptionResolution(mcl, cl, /*forward=*/true, false);
       if (conclusion) {
         ASS(premise == nullptr)
         premise = mcl;
         replacement = conclusion;
         premises = pvi(getSingletonIterator(premise));
-        env.statistics->forwardSubsumptionResolution++;
         return true;
       }
     }

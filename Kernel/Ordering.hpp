@@ -24,12 +24,9 @@
 #include "Debug/Assertion.hpp"
 
 #include "Lib/Comparison.hpp"
-#include "Lib/SmartPtr.hpp"
 #include "Lib/DArray.hpp"
 #include "Kernel/Term.hpp"
 
-#include "Lib/Allocator.hpp"
-#include "Lib/Portability.hpp"
 #include "Kernel/SubstHelper.hpp"
 
 namespace Kernel {

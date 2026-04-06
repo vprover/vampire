@@ -25,22 +25,17 @@ using namespace Inferences;
 
 Key InductionFormulaIndex::represent(const InductionContext& context)
 {
+  // check that the elements in the literal stacks are sorted, for sharing
+  ASS(iterTraits(context._cls.iter()).all([](const auto& e) { return is_sorted(e.second.begin(), e.second.end()); }));
+  ASS(is_sorted(context._cls.begin(), context._cls.end(), [](const auto& e1, const auto& e2) { return e1.second < e2.second; }));
   // all literals are ground and they are unique for
   // a specific induction context, so we order them
   // and index the set of sets of literals
   // TODO: It might be good to specialize for unit literals/clauses/etc.
   Key k;
   for (const auto& kv : context._cls) {
-    LiteralStack lits = kv.second;
-    sort(lits.begin(), lits.end());
-    k.first.push(lits);
+    k.first.push(kv.second);
   }
-  sort(k.first.begin(), k.first.end(), [](const LiteralStack& lhs, const LiteralStack& rhs) {
-    if (lhs.size() != rhs.size()) {
-      return lhs.size() < rhs.size();
-    }
-    return lexicographical_compare(lhs.begin(), lhs.end(), rhs.begin(), rhs.end());
-  });
   return k;
 }
 
@@ -54,7 +49,7 @@ Key InductionFormulaIndex::represent(const InductionContext& context)
  */
 bool InductionFormulaIndex::findOrInsert(const InductionContext& context, Entry*& e, Literal* bound1, Literal* bound2)
 {
-  ASS(!context._cls.empty());
+  ASS(context._cls.isNonEmpty());
   auto k = represent(context);
   k.second.first = bound1;
   k.second.second = bound2;

@@ -10,7 +10,6 @@
 
 #include "PredicateSplitPassiveClauseContainers.hpp"
 
-#include <numeric>
 #include <string>
 #include <algorithm>
 #include <iterator>
@@ -27,10 +26,6 @@ namespace Saturation
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
-
-int computeLCM(int a, int b) {
-  return (a*b)/Int::gcd(a, b);
-}
 
 PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, std::string name,
     std::vector<std::unique_ptr<PassiveClauseContainer>> queues,
@@ -62,7 +57,7 @@ PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool 
   auto lcm = 1;
   for (unsigned i = 0; i < ratios.size(); i++)
   {
-    lcm = computeLCM(lcm, ratios[i]);
+    lcm = std::lcm(lcm, ratios[i]);
   }
   // initialize
   for (unsigned i = 0; i < ratios.size(); i++)
@@ -430,19 +425,60 @@ bool PredicateSplitPassiveClauseContainer::exceedsAllLimits(Clause* cl) const
 TheoryMultiSplitPassiveClauseContainer::TheoryMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, std::string name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues) :
 PredicateSplitPassiveClauseContainer(isOutermost, opt, name, std::move(queues), opt.theorySplitQueueCutoffs(), opt.theorySplitQueueRatios(), opt.theorySplitQueueLayeredArrangement()) {}
 
-float TheoryMultiSplitPassiveClauseContainer::evaluateFeature(Clause* cl) const
+std::pair<float,float> TheoryMultiSplitPassiveClauseContainer::computeTheoryFeatures(Clause* cl) const
 {
-  // heuristically compute likeliness that clause occurs in proof
-  auto inference = cl->inference();
-  auto expectedRatioDenominator = _opt.theorySplitQueueExpectedRatioDenom();
-  return inference.th_ancestors * expectedRatioDenominator - inference.all_ancestors;
+  auto* cached = _teoryFeatureCache.findPtr(cl->number());
+  if (cached) return *cached;
+
+  float th = 0.0f, all = 0.0f;
+  Inference& inf = cl->inference();
+  Inference::Iterator it = inf.iterator();
+
+  if (cl->isComponent()) {
+    std::tie(th,all) = computeTheoryFeatures(inf.getCausalParent());
+  } else if (!inf.hasNext(it)) {
+    // Leaf: no parents
+    th = inf.isTheoryAxiom() ? 1.0f : 0.0f;
+    all = 1.0f;
+  } else if (isSimplifyingInferenceRule(inf.rule())) {
+    // Simplifying: propagate from main (first) premise only
+    Unit* mainPremise = inf.next(it);
+    if (mainPremise->isClause()) {
+      std::tie(th,all) = computeTheoryFeatures(mainPremise->asClause());
+    } else {
+      all = 1.0f;
+    }
+  } else {
+    // Generating/other: sum over all parents
+    while (inf.hasNext(it)) {
+      Unit* parent = inf.next(it);
+      if (parent->isClause()) {
+        auto vals = computeTheoryFeatures(parent->asClause());
+        th += vals.first;
+        all += vals.second;
+      } else {
+        all += 1.0f;
+      }
+    }
+  }
+
+  auto result = std::make_pair(th, all);
+  _teoryFeatureCache.insert(cl->number(), result);
+  return result;
 }
 
-float TheoryMultiSplitPassiveClauseContainer::evaluateFeatureEstimate(unsigned, const Inference& inf) const
+float TheoryMultiSplitPassiveClauseContainer::evaluateFeature(Clause* cl) const
 {
-  // heuristically compute likeliness that clause occurs in proof
-  static int expectedRatioDenominator = _opt.theorySplitQueueExpectedRatioDenom();
-  return inf.th_ancestors * expectedRatioDenominator - inf.all_ancestors;
+  auto [thAx,allAx] = computeTheoryFeatures(cl);
+  auto expectedRatioDenominator = _opt.theorySplitQueueExpectedRatioDenom();
+  return thAx * expectedRatioDenominator - allAx;
+}
+
+float TheoryMultiSplitPassiveClauseContainer::evaluateFeatureEstimate(unsigned, const Inference&) const
+{
+  // No Clause* available during construction; return most-favorable value
+  // so LRS never discards based on theory-split features alone.
+  return -std::numeric_limits<float>::max();
 }
 
 AvatarMultiSplitPassiveClauseContainer::AvatarMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, std::string name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues) :

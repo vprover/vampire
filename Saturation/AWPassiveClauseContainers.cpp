@@ -13,8 +13,6 @@
  * @since 30/12/2007 Manchester
  */
 
-#include <cmath>
-
 #include "Debug/RuntimeStatistics.hpp"
 
 #include "Lib/Environment.hpp"
@@ -22,14 +20,10 @@
 #include "Lib/Random.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
-#include "Kernel/Signature.hpp"
-#include "Kernel/TermIterators.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/Options.hpp"
 
-#include "SaturationAlgorithm.hpp"
-
-#if VDEBUG
+#if OUTPUT_LRS_DETAILS
 #include <iostream>
 #endif
 

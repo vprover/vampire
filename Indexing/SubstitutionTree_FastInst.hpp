@@ -39,7 +39,7 @@ public:
   Substitution(InstMatcher* parent, Renaming* resultDenormalizer)
   : _parent(parent), _resultDenormalizer(resultDenormalizer)
   {}
-  ~Substitution()
+  ~Substitution() override
   {
   }
 
@@ -55,10 +55,10 @@ public:
     return _resultDenormalizer->apply(normalized);
   }
   
-  bool isIdentityOnResultWhenQueryBound() final override
+  bool isIdentityOnResultWhenQueryBound() final
   { return true; }
 
-  virtual void output(std::ostream& out) const final override 
+  void output(std::ostream& out) const final
   { out << "InstMatcher::Substitution(<output unimplemented>)"; }
 private:
   InstMatcher* _parent;

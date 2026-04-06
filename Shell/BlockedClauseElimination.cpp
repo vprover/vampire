@@ -15,14 +15,9 @@
 #include "BlockedClauseElimination.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/Inference.hpp"
-#include "Kernel/InferenceStore.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/SortHelper.hpp"
-#include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/TermIterators.hpp"
 #include "Kernel/TermTransformer.hpp"
 #include "Kernel/Unit.hpp"
 #include "Lib/Environment.hpp"
@@ -30,7 +25,6 @@
 #include "Kernel/EqHelper.hpp"
 #include "Indexing/TermSharing.hpp"
 
-#include "Lib/SmartPtr.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/BinaryHeap.hpp"

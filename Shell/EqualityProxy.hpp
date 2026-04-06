@@ -17,8 +17,6 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Array.hpp"
-
 #include "Kernel/Term.hpp"
 #include "Kernel/OperatorType.hpp"
 

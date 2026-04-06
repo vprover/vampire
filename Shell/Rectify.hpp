@@ -37,15 +37,13 @@ namespace Shell {
  * @since 16/01/2004 Manchester, changed to work with pre-formulas, that is,
  *   formulas in which the same variable may be both free and bound
  * @since 23/01/2004 Manchester, changed to work with non-static objects
- * 
+ *
  */
-class Rectify 
+class Rectify
 {
 public:
   /** Initialise Rectify */
-  Rectify()
-    : _free(0), _removeUnusedVars(true)
-  {}
+  Rectify() : _free(0), _removeUnusedVars(true) {}
   static FormulaUnit* rectify(FormulaUnit*, bool removeUnusedVars=true);
   static void rectify(UnitList*& units);
 private:
@@ -57,18 +55,17 @@ private:
   {
   public:
     Renaming()
-      : Array<VarUsageTrackingList*>(15),
-	_nextVar(0)
+      : Array<VarUsageTrackingList*>(15),_nextVar(0)
     {
       fillInterval(0,15);
     }
-    ~Renaming();
-    bool tryGetBoundAndMarkUsed (int var,int& boundTo) const;
-    VarWithUsageInfo getBoundAndUsage(int var) const;
+    ~Renaming() override;
+    bool tryGetBoundAndMarkUsed (unsigned var,unsigned& boundTo) const;
+    VarWithUsageInfo getBoundAndUsage(unsigned var) const;
     unsigned bind (unsigned v);
     void undoBinding(unsigned v);
   private:
-    virtual void fillInterval (size_t start,size_t end);
+    void fillInterval (size_t start,size_t end) override;
     /** next variable to rename to */
     unsigned _nextVar;
   };
@@ -79,15 +76,14 @@ private:
 
   Formula* rectify(Formula*);
   FormulaList* rectify(FormulaList*);
-  void bindVars(VList*);
-  void unbindVars(VList*);
-  VList* rectifyBoundVars(VList*);
+  void bindVars(VSList*);
+  void unbindVars(VSList*);
+  VSList* rectifyBoundVars(VSList*);
   TermList rectify(TermList);
   Term* rectify(Term* t);
   Term* rectifySpecialTerm(Term* t);
   Literal* rectify(Literal*);
   Literal* rectifyShared(Literal* lit);
-  SList* rectifySortList(SList* from, bool& modified);
   template<class From, class To>
   bool rectify(From from, To to, unsigned cnt);
 

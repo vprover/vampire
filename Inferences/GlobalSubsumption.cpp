@@ -31,10 +31,8 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Shell/Options.hpp"
-#include "Shell/Statistics.hpp"
 
 #include "GlobalSubsumption.hpp"
-#include "Saturation/Splitter.hpp"
 
 #undef LOGGING
 #define LOGGING 0
@@ -46,21 +44,11 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-GlobalSubsumption::GlobalSubsumption(const Options& opts) :
+GlobalSubsumption::GlobalSubsumption(SaturationAlgorithm& salg) :
   _solver(new ProofProducingSATSolver(new MinisatInterfacing)),
   _grounder(new GlobalSubsumptionGrounder(*_solver)),
-  _randomizeMinim(opts.randomTraversals())
+  _randomizeMinim(salg.getOptions().randomTraversals())
 {}
-
-void GlobalSubsumption::attach(SaturationAlgorithm* salg)
-{
-  ForwardSimplificationEngine::attach(salg);
-}
-
-void GlobalSubsumption::detach()
-{
-  ForwardSimplificationEngine::detach();
-}
 
 /**
  * Perform GS on cl and return the reduced clause,
@@ -202,7 +190,6 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
 
         Clause* replacement = Clause::fromIterator(LiteralStack::BottomFirstIterator(survivors),inf);
 
-        env.statistics->globalSubsumption++;
         ASS_L(replacement->length(), clen);
 
         return replacement;

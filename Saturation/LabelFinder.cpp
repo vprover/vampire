@@ -17,8 +17,6 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Signature.hpp"
 
-#include "Shell/Options.hpp"
-
 #include "LabelFinder.hpp"
 #include "SaturationAlgorithm.hpp"
 

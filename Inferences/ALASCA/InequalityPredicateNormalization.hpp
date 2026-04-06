@@ -15,7 +15,6 @@
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Kernel/ALASCA.hpp"
-#include "Debug/Tracer.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
@@ -38,11 +37,7 @@ class InequalityPredicateNormalization
 public:
   USE_ALLOCATOR(InequalityPredicateNormalization);
 
-  InequalityPredicateNormalization(std::shared_ptr<AlascaState> shared) 
-    : _shared(std::move(shared)) {}
-  virtual ~InequalityPredicateNormalization() {}
-
-  virtual Clause* simplify(Clause* premise) override 
+  Clause* simplify(Clause* premise) override 
   {
     RStack<Literal*> res; 
     bool changed = false;
@@ -73,8 +68,6 @@ public:
       return premise;
     }
   }
-private:
-  std::shared_ptr<AlascaState> _shared;
 };
 
 

@@ -14,19 +14,16 @@
 #include <cmath>
 
 #include "Debug/Assertion.hpp"
-#include "Debug/Tracer.hpp"
 
+#include "Kernel/TermIterators.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
-
-#include "Shell/Skolem.hpp"
 
 #include "Signature.hpp"
 #include "SortHelper.hpp"
 #include "OperatorType.hpp"
 #include "Term.hpp"
 #include "Kernel/NumTraits.hpp"
-#include "Lib/StringUtils.hpp"
 #include <cstdio>
 #include <iostream>
 
@@ -423,10 +420,8 @@ namespace Kernel {
 //
 
 Theory Theory::theory_obj;  // to facilitate destructor call at deinitization
-Theory::Tuples Theory::tuples_obj;
 
 Theory* theory = &Theory::theory_obj;
-Theory::Tuples* theory_tuples = &Theory::tuples_obj;
 
 /**
  * Accessor for the singleton instance of the Theory class.
@@ -434,21 +429,6 @@ Theory::Tuples* theory_tuples = &Theory::tuples_obj;
 Theory* Theory::instance()
 {
   return theory;
-}
-
-Theory::Tuples* Theory::tuples()
-{
-  return theory_tuples;
-}
-
-/**
- * Constructor of the Theory object
- *
- * The constructor is private, since Theory is a singleton class.
- */
-Theory::Theory()
-{
-
 }
 
 /**
@@ -553,14 +533,15 @@ unsigned Theory::getArity(Interpretation i)
   case REAL_REMAINDER_T:
   case REAL_REMAINDER_F:
 
-  case ARRAY_SELECT:
-  case ARRAY_BOOL_SELECT:
-
     return 2;
+
+  case ARRAY_SELECT:
+
+    return 4;
 
   case ARRAY_STORE:
 
-    return 3;
+    return 5;
 
   default:
     ASSERTION_VIOLATION_REP(i);
@@ -669,8 +650,6 @@ bool Theory::isFunction(Interpretation i)
   case REAL_IS_RAT:
   case REAL_IS_REAL:
 
-  case ARRAY_BOOL_SELECT:
-
     return false;
 
   default:
@@ -724,7 +703,6 @@ bool Theory::hasSingleSort(Interpretation i)
   case REAL_TO_RAT:
 
   case ARRAY_SELECT:
-  case ARRAY_BOOL_SELECT:
   case ARRAY_STORE:
 
     return false;
@@ -742,7 +720,6 @@ bool Theory::isPolymorphic(Interpretation i)
   switch(i) {
   case EQUAL:
   case ARRAY_SELECT:
-  case ARRAY_BOOL_SELECT:
   case ARRAY_STORE:
 
     return true;
@@ -1018,76 +995,28 @@ bool Theory::partiallyDefinedFunctionUndefinedForArgs(Term* t) {
   }
 }
 
-
-/**
- * Get the number of the skolem function symbol used in the clause form of the
- * array extensionality axiom (of particular sort).
- *
- * select(X,sk(X,Y)) != select(Y,sk(X,Y)) | X = Y
- * 
- * If the symbol does not exist yet, it is added to the signature. We use 0 to
- * represent that the symbol not yet exists, assuming that at call time of this
- * method, at least the array function are already in the signature.
- *
- * We want to have this function available e.g. in simplification rules.
- */
-unsigned Theory::getArrayExtSkolemFunction(TermList sort) {
-  ASS(sort.isArraySort());
-
-  if(_arraySkolemFunctions.find(sort)){
-    return _arraySkolemFunctions.get(sort);
-  }
-
-  TermList indexSort = SortHelper::getIndexSort(sort);
-  TermList params[] = {sort, sort};
-  unsigned skolemFunction = Shell::Skolem::addSkolemFunction(2, 0, params, indexSort, "arrayDiff");
-
-  _arraySkolemFunctions.insert(sort,skolemFunction);
-
-  return skolemFunction; 
+unsigned Theory::getTupleConstructor(unsigned arity)
+{
+  return theory->getTupleTermAlgebra(arity)->constructor(0)->functor();
 }
 
-unsigned Theory::Tuples::getFunctor(unsigned arity, TermList* sorts) {
-  return getFunctor(AtomicSort::tupleSort(arity, sorts));
+bool Theory::isTupleConstructor(Term* t)
+{
+  return !t->isSpecial() && !t->isSort() && SortHelper::getResultSort(t).isTupleSort()
+    && getTupleConstructor(t->numTypeArguments()) == t->functor();
 }
 
-unsigned Theory::Tuples::getFunctor(TermList tupleSort) {
-  ASS_REP(tupleSort.isTupleSort(), tupleSort.toString());
+unsigned Theory::getTupleProjectionFunctor(unsigned arity, unsigned proj)
+{
+  auto c = theory->getTupleTermAlgebra(arity)->constructor(0);
 
-  unsigned  arity = tupleSort.term()->arity();
-  TermList* sorts = tupleSort.term()->args();
-
-  theory->defineTupleTermAlgebra(arity, sorts);
-  ASS(env.signature->isTermAlgebraSort(tupleSort));
-  Shell::TermAlgebra* ta = env.signature->getTermAlgebraOfSort(tupleSort);
-
-  return ta->constructor(0)->functor();
-}
-
-bool Theory::Tuples::isFunctor(unsigned functor) {
-  TermList tupleSort = env.signature->getFunction(functor)->fnType()->result();
-  return tupleSort.isTupleSort();
-}
-
-unsigned Theory::Tuples::getProjectionFunctor(unsigned proj, TermList tupleSort) {
-  ASS_REP(tupleSort.isTupleSort(), tupleSort.toString());
-
-  unsigned  arity = tupleSort.term()->arity();
-  TermList* sorts = tupleSort.term()->args();
-
-  theory->defineTupleTermAlgebra(arity, sorts);
-  ASS(env.signature->isTermAlgebraSort(tupleSort));
-  Shell::TermAlgebra* ta = env.signature->getTermAlgebraOfSort(tupleSort);
-
-  Shell::TermAlgebraConstructor* c = ta->constructor(0);
-
-  ASS_NEQ(proj, c->arity());
+  ASS_L(proj, c->arity());
 
   return c->destructorFunctor(proj);
 }
 
 // TODO: replace with a constant time algorithm
-bool Theory::Tuples::findProjection(unsigned projFunctor, bool isPredicate, unsigned &proj) {
+bool Theory::findTupleProjection(unsigned projFunctor, bool isPredicate, unsigned &proj) {
   OperatorType* projType = isPredicate ? env.signature->getPredicate(projFunctor)->predType()
                                        : env.signature->getFunction(projFunctor)->fnType();
 
@@ -1261,7 +1190,6 @@ std::string Theory::getInterpretationName(Interpretation interp) {
     case REAL_CEILING:
       return "ceiling";
     case ARRAY_SELECT:
-    case ARRAY_BOOL_SELECT:
       return "$select";
     case ARRAY_STORE:
       return "$store";
@@ -1270,33 +1198,30 @@ std::string Theory::getInterpretationName(Interpretation interp) {
   }
 }
 
-OperatorType* Theory::getArrayOperatorType(TermList arraySort, Interpretation i) {
-  ASS(arraySort.isArraySort());
-
-  TermList indexSort = SortHelper::getIndexSort(arraySort);
-  TermList innerSort = SortHelper::getInnerSort(arraySort);
-
-  switch (i) {
-    case Interpretation::ARRAY_SELECT:
-      return OperatorType::getFunctionType({ arraySort, indexSort }, innerSort);
-
-    case Interpretation::ARRAY_BOOL_SELECT:
-      return OperatorType::getPredicateType({ arraySort, indexSort });
-
-    case Interpretation::ARRAY_STORE:
-      return OperatorType::getFunctionType({ arraySort, indexSort, innerSort }, arraySort);
-
-    default:
-      ASSERTION_VIOLATION;
-  }
-}
-
 /**
  * Return type of the function representing interpreted function/predicate @c i.
  */
-OperatorType* Theory::getNonpolymorphicOperatorType(Interpretation i)
+OperatorType* Theory::getOperatorType(Interpretation i)
 {
-  ASS(!isPolymorphic(i));
+  // Equality is of predicate type with two arguments.
+  // Note that equality is treated specially as monomorphic,
+  // as deducing the actual arguments types from the arguments
+  // (except for two variable equalities where the type argument
+  // is stored as an extra in the Literal).
+  if (i == Interpretation::EQUAL) {
+    return OperatorType::getPredicateType(2);
+  }
+
+  // Array operators have two type arguments, index type and element type
+  if (i == Interpretation::ARRAY_SELECT || i == Interpretation::ARRAY_STORE) {
+    auto indexSort = TermList::var(0);
+    auto innerSort = TermList::var(1);
+    TermList arraySort(AtomicSort::create2(env.signature->getArrayConstructor(), indexSort, innerSort));
+    if (i == Interpretation::ARRAY_SELECT) {
+      return OperatorType::getFunctionType({ arraySort, indexSort }, innerSort, /*taArity=*/2);
+    }
+    return OperatorType::getFunctionType({ arraySort, indexSort, innerSort }, arraySort, /*taArity=*/2);
+  }
 
   if (isConversionOperation(i)) {
     return getConversionOperationType(i);
@@ -1317,40 +1242,39 @@ OperatorType* Theory::getNonpolymorphicOperatorType(Interpretation i)
   }
 }
 
-void Theory::defineTupleTermAlgebra(unsigned arity, TermList* sorts) {
-  TermList tupleSort = AtomicSort::tupleSort(arity, sorts);
+TermAlgebra* Theory::getTupleTermAlgebra(unsigned arity)
+{
+  auto typeVars = TermStack::fromIterator(varRange(0, arity));
+
+  auto tupleSort = AtomicSort::tupleSort(arity, typeVars.begin());
 
   if (env.signature->isTermAlgebraSort(tupleSort)) {
-    return;
+    return env.signature->getTermAlgebraOfSort(tupleSort);
   }
 
-  unsigned functor = env.signature->addFreshFunction(arity, "tuple");
-  OperatorType* tupleType = OperatorType::getFunctionType(arity, sorts, tupleSort);
+  auto args = typeVars;
+  args.loadFromIterator(varRange(arity, 2*arity));
+
+  auto functor = env.signature->addFreshFunction(2*arity, "tuple");
+  auto tupleType = OperatorType::getFunctionType(arity, args.begin(), tupleSort, arity);
   env.signature->getFunction(functor)->setType(tupleType);
   env.signature->getFunction(functor)->markTermAlgebraCons();
 
   Array<unsigned> destructors(arity);
   for (unsigned i = 0; i < arity; i++) {
-    TermList projSort = sorts[i];
-    unsigned destructor;
-    Signature::Symbol* destSym;
-    if (projSort == AtomicSort::boolSort()) {
-      destructor = env.signature->addFreshPredicate(1, "proj");
-      destSym = env.signature->getPredicate(destructor);
-      destSym->setType(OperatorType::getPredicateType({ tupleSort }));
-    } else {
-      destructor = env.signature->addFreshFunction(1, "proj");
-      destSym = env.signature->getFunction(destructor);
-      destSym->setType(OperatorType::getFunctionType({ tupleSort }, projSort));
-    }
+    auto destructor = env.signature->addFreshFunction(arity+1, "proj");
+    auto destSym = env.signature->getFunction(destructor);
+    destSym->setType(OperatorType::getFunctionType({ tupleSort }, typeVars[i], arity));
     destSym->markTermAlgebraDest();
     destructors[i] = destructor;
   }
 
-  Shell::TermAlgebraConstructor* constructor = new Shell::TermAlgebraConstructor(functor, destructors);
+  auto constructor = new Shell::TermAlgebraConstructor(functor, destructors);
 
   Shell::TermAlgebraConstructor* constructors[] = { constructor };
-  env.signature->addTermAlgebra(new Shell::TermAlgebra(tupleSort, 1, constructors, false));
+  auto res = new Shell::TermAlgebra(tupleSort, 1, constructors, false);
+  env.signature->addTermAlgebra(res);
+  return res;
 }
 
 bool Theory::isInterpretedConstant(unsigned func)
@@ -1636,27 +1560,6 @@ Term* Theory::representConstant(const RealConstantType& num)
   return Term::create(func, 0, 0);
 }
 
-/**
- * Register that a predicate pred with a given polarity has the given
- * template. See tryGetInterpretedLaTeXName for explanation of templates 
- */
-void Theory::registerLaTeXPredName(unsigned pred, bool polarity, std::string temp)
-{
-  if(polarity){
-    _predLaTeXnamesPos.insert(pred,temp);
-  }else{
-    _predLaTeXnamesNeg.insert(pred,temp); 
-  }
-}
-/**
- * Register that a function has the given template
- * See tryGetInterpretedLaTeXName for explanation of templates 
- */
-void Theory::registerLaTeXFuncName(unsigned func, std::string temp)
-{
-  _funcLaTeXnames.insert(func,temp);
-}
-
 std::ostream& operator<<(std::ostream& out, Kernel::Theory::Interpretation const& self)
 {
   switch(self) {
@@ -1739,7 +1642,6 @@ std::ostream& operator<<(std::ostream& out, Kernel::Theory::Interpretation const
     case Kernel::Theory::REAL_TO_RAT: return out << "REAL_TO_RAT";
     case Kernel::Theory::REAL_TO_REAL: return out << "REAL_TO_REAL";
     case Kernel::Theory::ARRAY_SELECT: return out << "ARRAY_SELECT";
-    case Kernel::Theory::ARRAY_BOOL_SELECT: return out << "ARRAY_BOOL_SELECT";
     case Kernel::Theory::ARRAY_STORE: return out << "ARRAY_STORE";
     case Kernel::Theory::INVALID_INTERPRETATION: return out << "INVALID_INTERPRETATION";
   }
@@ -1759,110 +1661,6 @@ std::ostream& operator<<(std::ostream& out, RationalConstantType const& self)
 
 std::ostream& operator<<(std::ostream& out, RealConstantType const& self)
 { return out << (RationalConstantType const&)self; }
-
-
-/**
- * We try and get a LaTeX special name for an interpreted function/predicate.
- * Note: the functions may not necessarily be interpreted in the sense that we treat
- *       them as interpreted in Vampire. They are just called that here as we have an
- *       interpretation for them. So we can have LaTeX symbols for any predicate or
- *       function if they are recorded e.g. skolem functions are recorded in Signature.
- *
- * See Shell/LaTeX for usage.
- *
- * Polarity only makes sense if pred=true
- *
- * First we look in the recorded templates and if one is not found we fallback to the
- * default templates for known interprted functions. Note that in most cases the known
- * interpreted functions will use these defaults.
- *
- * A template is a string with "ai" representing parameter i. These will be
- * replaced by the actual parameters elsewhere. For example, the template for 
- * not greater or equal to is "a0 \not \geq a1"
- */
-std::string Theory::tryGetInterpretedLaTeXName(unsigned func, bool pred,bool polarity)
-{
-   //cout << "Get LaTeX for " << func << endl;
-
-  // Used if no recorded template is found
-  Interpretation i;
-
-  if(pred){
-    if(polarity){
-      if(_predLaTeXnamesPos.find(func)){ return _predLaTeXnamesPos.get(func); }
-      else if(_predLaTeXnamesNeg.find(func)){ 
-        // If a negative record is found but no positive we negate it
-        return "\neg ("+_predLaTeXnamesNeg.get(func)+")";
-      }
-    }
-    else{ 
-      if(_predLaTeXnamesNeg.find(func)){ return _predLaTeXnamesNeg.get(func); }
-      else if(_predLaTeXnamesPos.find(func)){ 
-        // If a positive record is found but no negative we negate it
-        return "\neg ("+_predLaTeXnamesPos.get(func)+")";
-      }
-    }
-    // We get here if no record is found for a predicate
-    if(!isInterpretedPredicate(func)) return "";
-    i = interpretPredicate(func);
-  }
-  else{
-    if(_funcLaTeXnames.find(func)){ return _funcLaTeXnames.get(func); }
-    // We get here if no record is found for a function
-    if(!isInterpretedFunction(func)) return "";
-    i = interpretFunction(func);
-  }
-
-  // There are some default templates
-  // For predicates these include the notion of polarity
-  std::string pol = polarity ? "" : " \\not ";
-
-  //TODO do we want special symbols for quotient, remainder, floor, ceiling, truncate, round?
-
-  switch(i){
-  case EQUAL:return "a0 "+pol+"= a1";
-
-  case INT_SUCCESSOR: return "a0++"; 
-  case INT_UNARY_MINUS:
-  case RAT_UNARY_MINUS:
-  case REAL_UNARY_MINUS: return "-a0";
-
-  case INT_GREATER: return "a0 "+pol+"> a1";
-  case INT_GREATER_EQUAL: return "a0 "+pol+"\\geq a1";
-  case INT_LESS: return "a0 "+pol+"< a1";
-  case INT_LESS_EQUAL: return "a0 "+pol+"\\leq a1";
-  case INT_DIVIDES: return "a0 "+pol+"\\| a1"; // check?
-
-  case RAT_GREATER: return "a0 "+pol+"> a1";
-  case RAT_GREATER_EQUAL: return "a0 "+pol+"\\geq a1";
-  case RAT_LESS: return "a0 "+pol+"< a1";
-  case RAT_LESS_EQUAL: return "a0 "+pol+"\\leq a1";
-
-  case REAL_GREATER: return "a0 "+pol+"> a1"; 
-  case REAL_GREATER_EQUAL: return "a0 "+pol+"\\geq a1";
-  case REAL_LESS: return "a0 "+pol+"< a1";
-  case REAL_LESS_EQUAL: return "a0 "+pol+"\\leq a1";
-
-  case INT_PLUS: return "a0 + a1";
-  case INT_MINUS: return "a0 - a1";
-  case INT_MULTIPLY: return "a0 \\cdot a1";
-
-  case RAT_PLUS: return "a0 + a1";
-  case RAT_MINUS: return "a0 - a1";
-  case RAT_MULTIPLY: return "a0 \\cdot a1";
-  case RAT_QUOTIENT: return "a0 / a1";
-
-  case REAL_PLUS: return "a0 + a1";
-  case REAL_MINUS: return "a0 - a1";
-  case REAL_MULTIPLY: return "a0 \\cdot a1";
-  case REAL_QUOTIENT: return "a0 / a1";
-
-  default: return "";
-  } 
-
-  return "";
-
-}
 
 
 /**

@@ -10,36 +10,23 @@
 #include "Debug/Assertion.hpp"
 #include "Forwards.hpp"
 #include "Indexing/SubstitutionTree.hpp"
-#include "Kernel/ALASCA.hpp"
-#include "Lib/Environment.hpp"
 
+#include "Kernel/ALASCA/Normalization.hpp"
 #include "Shell/Options.hpp"
 #include "Test/TestUtils.hpp"
 
-#include "Kernel/Unit.hpp"
 #include "Kernel/Clause.hpp"
-#include "Kernel/Inference.hpp"
-#include "Kernel/Problem.hpp"
-#include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/OperatorType.hpp"
-#include "Kernel/SortHelper.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/UnificationWithAbstraction.hpp"
 #include "Test/AlascaTestUtils.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralSubstitutionTree.hpp"
-#include "Indexing/LiteralIndex.hpp"
 #include "Indexing/TermSubstitutionTree.hpp"
-#include "Indexing/TermIndex.hpp"
 
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
-#if VZ3
-#include "z3++.h"
-#endif
-#include <ios>
 
 using namespace std;
 using namespace Kernel;
@@ -50,23 +37,17 @@ Clause* unit(Literal* lit)
 
 static const auto tld = [](auto t) { return TermWithoutValue(TypedTermList(t)); };
 
-
 unique_ptr<TermSubstitutionTree<TermWithoutValue>> getTermIndexHOL()
 { return std::make_unique<TermSubstitutionTree<TermWithoutValue>>(); }
 
 unique_ptr<TermSubstitutionTree<TermWithoutValue>> getTermIndex()
-{ return std::make_unique<TermSubstitutionTree<TermWithoutValue>>();
-}
+{ return std::make_unique<TermSubstitutionTree<TermWithoutValue>>(); }
 
 template<class... Args>
-Stack<Literal*> constraints(Args... args) {
-  Stack<Literal*> lits;
-  lits.loadFromIterator(iterItems<Literal*>(args...));
-  return lits;
-}
+LiteralStack constraints(Args... args)
+{ return LiteralStack::fromIterator(iterItems<Literal*>(args...)); }
 
 inline auto noConstraints() { return constraints(); } 
-
 
 auto getLiteralIndex()
 { return std::make_unique<LiteralSubstitutionTree<LiteralClause>>(); }
@@ -80,9 +61,9 @@ struct UnificationResultSpec {
 
   friend bool operator==(UnificationResultSpec const& l, UnificationResultSpec const& r)
   {
-    static shared_ptr<AlascaState> state = testAlascaState();
+    static InequalityNormalizer norm;
     auto eq = [&](auto t1, auto t2) { 
-      return (l.alascaSimpl || r.alascaSimpl) ? state->norm().equivalent(t1, t2)
+      return (l.alascaSimpl || r.alascaSimpl) ? norm.equivalent(t1, t2)
                                             : Test::TestUtils::eqModAC(t1, t2);
     };
     return eq(l.querySigma, r.querySigma)

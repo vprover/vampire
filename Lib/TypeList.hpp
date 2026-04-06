@@ -11,7 +11,8 @@
 #ifndef __LIB_TYPELIST__H__
 #define __LIB_TYPELIST__H__
 
-#include <functional>
+#include <tuple>
+#include <type_traits>
 
 namespace Lib {
 

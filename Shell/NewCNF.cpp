@@ -23,6 +23,10 @@
 #include "Kernel/Substitution.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/FormulaVarIterator.hpp"
+
+#include "Lib/Metaiterators.hpp"
+#include "Lib/SharedSet.hpp"
+
 #include "Shell/Flattening.hpp"
 #include "Shell/Skolem.hpp"
 #include "Shell/Options.hpp"
@@ -39,7 +43,7 @@ using namespace Kernel;
 
 namespace Shell {
 
-void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output, DHMap<unsigned, Term*>* bindings)
+void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output, Substitution* subst)
 {
   _beingClausified = unit;
 
@@ -104,11 +108,11 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output, DHMap<unsigned, 
 #endif
 
   for (SPGenClause gc : _genClauses) {
-    if (bindings) {
-      BindingList::RefIterator it(gc->bindings);
-      while (it.hasNext()) {
-        Binding& b = it.next();
-        bindings->insert(b.first, b.second);
+    if (subst) {
+      for (const auto& [v,t] : iterTraits(BindingList::RefIterator(gc->bindings))) {
+        // TODO somehow bindings might contain the same binding multiple times,
+        // which prevents us from using bindUnbound, maybe investigate this
+        ALWAYS(subst->bind(v, t));
       }
     }
     toClauses(gc, output);
@@ -325,9 +329,9 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
     }
 
     unsigned proj;
-    if (Theory::tuples()->findProjection(term->functor(), false, proj)) {
+    if (Theory::findTupleProjection(term->functor(), false, proj)) {
       TermList* arg = arguments.begin();
-      if (arg->isTerm() && Theory::tuples()->isFunctor(arg->term()->functor())) {
+      if (arg->isTerm() && Theory::isTupleConstructor(arg->term())) {
         return *arg->term()->nthArgument(proj);
       }
     }
@@ -349,25 +353,18 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
 
     case SpecialFunctor::ITE: {
       sort = sd->getSort();
-      conditions.push(sd->getCondition());
+      conditions.push(sd->getITECondition());
       thenBranches.push(*term->nthArgument(0));
       elseBranches.push(*term->nthArgument(1));
       break;
     }
 
-    case SpecialFunctor::LET:
-    case SpecialFunctor::LET_TUPLE: {
-      TermList contents = *term->nthArgument(0);
-      TermList processedLet = eliminateLet(sd, contents);
+    case SpecialFunctor::LET: {
+      TermList processedLet = eliminateLet(term);
       return findITEs(processedLet, variables, conditions, thenBranches,
         elseBranches, matchVariables, matchConditions, matchBranches);
     }
 
-    case SpecialFunctor::TUPLE: {
-      TermList tupleTerm = TermList(sd->getTupleTerm());
-      return findITEs(tupleTerm, variables, conditions, thenBranches,
-                      elseBranches, matchVariables, matchConditions, matchBranches);
-    }
     case SpecialFunctor::LAMBDA:
       NOT_IMPLEMENTED;
     case SpecialFunctor::MATCH: {
@@ -405,10 +402,9 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
 bool NewCNF::shouldInlineITE(unsigned iteCounter) {
   /*
    * MS : TODO:
-   * Since "_iteInliningThreshold = (unsigned)ceil(log2(namingThreshold))",
-   * which evaluates to 0 for 0, and since "namingThreshold == 0" means
-   * "never name anything", it would make sense to add
-   * "|| _iteInliningThreshold == 0" here.
+   * Since _iteInliningThreshold is 0 when namingThreshold is 0,
+   * and since "namingThreshold == 0" means "never name anything",
+   * it would make sense to add "|| _iteInliningThreshold == 0" here.
    */
   return _forInduction || iteCounter < _iteInliningThreshold;
 }
@@ -548,42 +544,37 @@ void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
    * we remove the literal.
    */
 
+  // Cache binding list lookups: many occurrences share the same BindingList*,
+  // so we scan each distinct list at most once for `var`.
+  // A cached value of nullptr means "var not found in this list".
+  DHMap<BindingList*, Term*> lookupCache;
+
   while (occurrences.isNonEmpty()) {
     Occurrence occ = pop(occurrences);
     SIGN occurrenceSign = (sign == occ.sign()) ? POSITIVE : NEGATIVE;
 
-    bool bound = false;
-    Term* skolem;
-
+    // Look up the skolem term bound to var in either binding list
     // MS: can a non-fool binding ever map a bool var?
-    BindingList::Iterator bit(occ.gc->bindings);
-    while (bit.hasNext()) {
-      Binding binding = bit.next();
-
-      if (binding.first == var) {
-        bound = true;
-        skolem = binding.second;
-        break;
-      }
-    }
-
-    if (!bound) {
-      BindingList::Iterator fbit(occ.gc->foolBindings);
-      while (fbit.hasNext()) {
-        Binding binding = fbit.next();
-
-        if (binding.first == var) {
-          bound = true;
-          skolem = binding.second;
-          break;
+    Term* skolem = nullptr;
+    for (auto* lst : { occ.gc->bindings, occ.gc->foolBindings }) {
+      Term** cached = lookupCache.findPtr(lst);
+      if (cached) {
+        skolem = *cached;
+      } else {
+        for (auto [ex_var, sk_term] : iterTraits(BindingList::Iterator(lst))) {
+          if (ex_var == var) {
+            skolem = sk_term;
+            break;
+          }
         }
+        lookupCache.insert(lst, skolem);
       }
+      if (skolem) break;
     }
 
-    if (!bound) {
+    if (!skolem) {
       Term* constant = (occurrenceSign == POSITIVE) ? Term::foolFalse() : Term::foolTrue();
       // MS: pushAndRemember is not enough; bindings could already be mentioning var on the rhs!
-      // (BTW, scanning bindings for a second time, which is already ugly and potentially quadratic)
       _bindingStore.pushAndRememberWhileApplying(Binding(var, constant), occ.gc->bindings);
       removeGenLit(occ);
       continue;
@@ -658,236 +649,213 @@ void NewCNF::processMatch(Term::SpecialTermData *sd, Term *term, Occurrences &oc
   }
 }
 
-TermList NewCNF::eliminateLet(Term::SpecialTermData *sd, TermList contents)
+TermList NewCNF::eliminateLet(Term* term)
 {
-  ASS((sd->specialFunctor() == SpecialFunctor::LET) || (sd->specialFunctor() == SpecialFunctor::LET_TUPLE));
+  ASS(term->isSpecial());
+  auto sd = term->getSpecialData();
+  ASS_EQ(sd->specialFunctor(), SpecialFunctor::LET);
+  auto body = term->termArg(0);
 
-  unsigned symbol;
-  VList* variables;
-  TermList binding = sd->getBinding();
+  VSList* bindingBoundVars = VSList::empty();
+  Formula* binding = sd->getLetBinding();
+  if (binding->connective() == Connective::FORALL) {
+    bindingBoundVars = binding->vars();
+    binding = binding->qarg();
+  }
 
-  if (sd->specialFunctor() == SpecialFunctor::LET) {
-    symbol = sd->getFunctor();
-    variables = sd->getVariables();
-  } else if (binding.isTerm() && binding.term()->isTuple()) {
-    // binding of the form $let([x, y, z] := [a, b, c], ...) is processed
-    // as $let(x := a, $let(y := b, $let(z := c, ...)))
-    unsigned tupleFunctor = sd->getFunctor();
-    VList* symbols = sd->getTupleSymbols();
+  ASS_EQ(binding->connective(), Connective::LITERAL);
+  ASS(binding->literal()->termArg(0).isTerm());
+  auto bindingLhs = binding->literal()->termArg(0).term();
+  auto bindingRhs = binding->literal()->termArg(1);
+
+  if (Theory::isTupleConstructor(bindingLhs)) {
+
     TermList bodySort = sd->getSort();
 
-    OperatorType* tupleType = env.signature->getFunction(tupleFunctor)->fnType();
+    if (bindingRhs.isTerm() && Theory::isTupleConstructor(bindingRhs.term())) {
+      // binding of the form $let([x, y, z, ...] := [a, b, c, ...], ...) is processed
+      // as $let(x := a, $let(y := b, $let(z := c, ...)))
 
-    Term* bindingTuple = binding.term()->getSpecialData()->getTupleTerm();
-    unsigned arity = VList::length(symbols);
-    VList::Iterator sit(symbols);
-    Term::Iterator bit(bindingTuple);
+      auto lhsit = termArgIter(bindingLhs);
+      auto rhsit = termArgIter(bindingRhs.term());
+      while (lhsit.hasNext()) {
+        ASS_REP(rhsit.hasNext(), binding->toString());
+        bindingLhs = lhsit.next().term();
+        bindingRhs = rhsit.next();
+        ASS_EQ(bindingLhs->numTermArguments(),0);
 
-    TermList processedContents = contents;
-    TermList processedBinding;
-    for (unsigned i = 0; i < arity - 1; i++) {
-      ASS(bit.hasNext());
-      ASS(sit.hasNext());
-      Term* nestedLet = Term::createLet(sit.next(), 0, bit.next(), processedContents, bodySort);
-      processedContents = TermList(nestedLet);
-    }
-    ASS(bit.hasNext());
-    ASS(sit.hasNext());
-    processedBinding = bit.next();
-    symbol = sit.next();
-    ASS(!sit.hasNext());
-    ASS(!bit.hasNext());
-
-    if (env.options->showPreprocessing()) {
-      Term* tupleLet = Term::createTupleLet(tupleFunctor, symbols, binding, contents, tupleType->result());
-      std::cout << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << std::endl;
-      Term* processedLet = Term::createLet(symbol, 0, processedBinding, processedContents, bodySort);
-      std::cout << "[PP] clausify (detuplify let) out: " << processedLet->toString() << std::endl;
-    }
-
-    variables = VList::empty();
-    contents = processedContents;
-    binding = processedBinding;
-  } else {
-    unsigned tupleFunctor = sd->getFunctor();
-    VList* symbols = sd->getTupleSymbols();
-    TermList bodySort = sd->getSort();
-
-    OperatorType* tupleType = env.signature->getFunction(tupleFunctor)->fnType();
-    TermList tupleSort = tupleType->result();
-
-    ASS_EQ(tupleType->arity(), VList::length(symbols));
-
-    unsigned tuple = env.signature->addFreshFunction(0, "tuple");
-    env.signature->getFunction(tuple)->setType(OperatorType::getConstantsType(tupleSort));
-
-    TermList tupleTerm = TermList(Term::createConstant(tuple));
-
-    TermList detupledContents = contents;
-
-    for (unsigned proj = 0; proj < tupleType->arity(); proj++) {
-      unsigned symbol = VList::nth(symbols, proj);
-      bool isPredicate = tupleType->arg(proj) == AtomicSort::boolSort();
-
-      unsigned projFunctor = Theory::tuples()->getProjectionFunctor(proj, tupleSort);
-      Term* projectedArgument;
-      if (isPredicate) {
-        projectedArgument = Term::createFormula(new AtomicFormula(Literal::create1(projFunctor, 1, tupleTerm)));
-      } else {
-        projectedArgument = Term::create1(projFunctor, tupleTerm);
+        if (lhsit.hasNext()) {
+          body = TermList(
+            Term::createLet(Formula::createDefinition(bindingLhs, bindingRhs), body, bodySort));
+        }
       }
+    } else {
+      auto tupleType = env.signature->getFunction(bindingLhs->functor())->fnType();
+      auto arity = bindingLhs->numTypeArguments();
+      unsigned tuple = env.signature->addFreshFunction(arity, "tuple");
+      env.signature->getFunction(tuple)->setType(OperatorType::getConstantsType(tupleType->result(), arity));
+      auto args = TermStack::fromIterator(typeArgIter(bindingLhs));
+      auto tupleTerm = Term::create(tuple, args);
+      args.push(TermList(tupleTerm));
 
-      SymbolDefinitionInlining inlining(symbol, 0, TermList(projectedArgument), 0);
-      detupledContents = inlining.process(detupledContents);
+      iterTraits(termArgIter(bindingLhs))
+        .enumerate([&](unsigned i, TermList arg) {
+          auto lhs = arg.term();
+          ASS_EQ(lhs->numTermArguments(), 0);
+
+          unsigned projFunctor = Theory::getTupleProjectionFunctor(arity, i);
+          Term* projectedArgument = lhs->isBoolean()
+            ? Term::createFormula(new AtomicFormula(Literal::create(projFunctor, args.size(), /*polarity*/true, args.begin())))
+            : Term::create(projFunctor, args);
+
+          SymbolDefinitionInlining inlining(lhs, TermList(projectedArgument), 0);
+          body = inlining.process(body);
+        });
+      bindingLhs = tupleTerm;
     }
-
     if (env.options->showPreprocessing()) {
-      Term* tupleLet = Term::createTupleLet(tupleFunctor, symbols, binding, contents, tupleType->result());
-      std::cout << "[PP] clausify (detuplify let) in:  " << tupleLet->toString() << std::endl;
-      Term* processedLet = Term::createLet(tuple, 0, binding, detupledContents, bodySort);
+      std::cout << "[PP] clausify (detuplify let) in:  " << *term << std::endl;
+      Term* processedLet = Term::createLet(Formula::createDefinition(bindingLhs, bindingRhs), body, bodySort);
       std::cout << "[PP] clausify (detuplify let) out: " << processedLet->toString() << std::endl;
     }
-
-    symbol = tuple;
-    variables = VList::empty();
-    contents = detupledContents;
   }
 
-  bool inlineLet = env.options->getIteInlineLet();
+  bool inlineLet = env.options->getIteInlineLet() || bindingRhs.isVar();
+  TermList processedBody = inlineLet
+    ? inlineLetBinding(bindingLhs, bindingRhs, body)
+    : nameLetBinding(bindingLhs, bindingRhs, body, bindingBoundVars);
 
-  if (binding.isVar()) {
-    inlineLet = true;
-  } else {
-//    Term* term = binding.term();
-//    if (term->isSpecial()) {
-//      Term::SpecialTermData* sd = term->getSpecialData();
-//      if (sd->specialFunctor() == SpecialFunctor::FORMULA) {
-//        inlineLet = true;
-//      }
-//    }
-//    if (term->shared()) {
-//      // TODO: magic
-////      if (term->weight() < 6) {
-//        inlineLet = true;
-////      }
-//    } else if (term->isSpecial()) {
-//      Term::SpecialTermData* sd = term->getSpecialData();
-//      if (sd->specialFunctor() == SpecialFunctor::FORMULA) {
-//        Formula* f = sd->getFormula();
-//        if ((f->connective() == LITERAL) && f->literal()->shared()) {
-//          inlineLet = true;
-//        }
-//      }
-//    }
+  std::string opstr = inlineLet ? "inline" : "name";
+
+  if (env.options->showPreprocessing()) {
+    std::cout << "[PP] clausify (" << opstr << " let) binding: " << *bindingLhs << " := " << bindingRhs << std::endl;
+    std::cout << "[PP] clausify (" << opstr << " let) in:      " << body << std::endl;
+    std::cout << "[PP] clausify (" << opstr << " let) out:     " << processedBody << std::endl;
   }
 
-  TermList processedContents;
-  if (inlineLet) {
-    processedContents = inlineLetBinding(symbol, variables, binding, contents);
-    if (env.options->showPreprocessing()) {
-      std::cout << "[PP] clausify (inline let) binding: " << binding.toString() << std::endl;
-      std::cout << "[PP] clausify (inline let) in:  " << contents.toString() << std::endl;
-      std::cout << "[PP] clausify (inline let) out: " << processedContents.toString() << std::endl;
-    }
-  } else {
-    processedContents = nameLetBinding(symbol, variables, binding, contents);
-    if (env.options->showPreprocessing()) {
-      std::cout << "[PP] clausify (name let) binding: " << binding.toString() << std::endl;
-      std::cout << "[PP] clausify (name let) in:  " << contents.toString() << std::endl;
-      std::cout << "[PP] clausify (name let) out: " << processedContents.toString() << std::endl;
-    }
-  }
-
-  return processedContents;
+  return processedBody;
 }
 
-void NewCNF::processLet(Term::SpecialTermData* sd, TermList contents, Occurrences &occurrences)
+void NewCNF::processLet(Term* term, Occurrences &occurrences)
 {
-  ASS((sd->specialFunctor() == SpecialFunctor::LET) || (sd->specialFunctor() == SpecialFunctor::LET_TUPLE));
-
-  TermList deletedContents = eliminateLet(sd, contents); // should be read "de-let-ed contents"
-  Formula* deletedContentsFormula = BoolTermFormula::create(deletedContents);
+  // should be read "de-let-ed contents"
+  Formula* deletedContentsFormula = BoolTermFormula::create(eliminateLet(term));
 
   occurrences.replaceBy(deletedContentsFormula);
 
   enqueue(deletedContentsFormula, occurrences);
 }
 
-TermList NewCNF::nameLetBinding(unsigned symbol, VList* bindingVariables, TermList binding, TermList contents)
+TermList NewCNF::nameLetBinding(Term* bindingLhs, TermList bindingRhs, TermList body, VSList* bindingBoundVars)
 {
-  VList* bindingFreeVars = VList::empty();
-  FormulaVarIterator bfvi(binding);
-  while (bfvi.hasNext()) {
-    unsigned var = bfvi.next();
-    if (!VList::member(var, bindingVariables)) {
-      VList::push(var,bindingFreeVars);
+  // Build a set of bound variable indices for fast membership checks
+  DHSet<unsigned> boundVarSet;
+  VSList::Iterator boundIt(bindingBoundVars);
+  while (boundIt.hasNext()) {
+    boundVarSet.insert(boundIt.next().first);
+  }
+
+  DHSet<unsigned> bindingFreeVars;
+  for (const auto& var : iterTraits(FormulaVarIterator(bindingRhs))) {
+    if (!boundVarSet.contains(var)) {
+      bindingFreeVars.insert(var);
     }
   }
 
-  bool isPredicate = binding.isTerm() && binding.term()->isBoolean();
-
-  unsigned nameArity = VList::length(bindingVariables) + VList::length(bindingFreeVars);
-  TermList nameSort;
-  if (!isPredicate) {
-    nameSort = env.signature->getFunction(symbol)->fnType()->result();
+  bool isPredicate = bindingLhs->isBoolean();
+  // the symbol that we name must be in the form of a literal
+  if (isPredicate) {
+    ASS(bindingLhs->isFormula());
+    auto inner = bindingLhs->getSpecialData()->getFormula();
+    ASS_EQ(inner->connective(), Connective::LITERAL);
+    bindingLhs = inner->literal();
   }
 
-  unsigned freshSymbol = symbol;
+  unsigned nameArity = VSList::length(bindingBoundVars) + bindingFreeVars.size();
+  TermList nameSort = isPredicate ? AtomicSort::boolSort() : SortHelper::getResultSort(bindingLhs);
 
-  bool renameSymbol = VList::isNonEmpty(bindingFreeVars);
+  unsigned freshSymbol = bindingLhs->functor();
+
+  bool renameSymbol = !bindingFreeVars.isEmpty();
   if (renameSymbol) {
-    static Stack<TermList> sorts;
-    sorts.reset();
-
+    Recycled<TermStack> typeVars;
+    Recycled<TermStack> termVarSorts;
     ensureHavingVarSorts();
 
-    VList::Iterator vit(bindingFreeVars);
-    while (vit.hasNext()) {
-      unsigned var = vit.next();
-      sorts.push(getVarSort(var));
+    // Use sorts directly from bindingBoundVars VSList
+    VSList::Iterator vsit(bindingBoundVars);
+    while (vsit.hasNext()) {
+      auto [var, sort] = vsit.next();
+      if (sort == AtomicSort::superSort()) {
+        typeVars->push(TermList::var(var));
+      } else {
+        termVarSorts->push(sort);
+      }
+    }
+    for (const auto& var : iterTraits(bindingFreeVars.iterator())) {
+      auto sort = getVarSort(var);
+      ASS(sort.isVar() || sort.term()->isSort());
+      if (sort == AtomicSort::superSort()) {
+        typeVars->push(TermList::var(var));
+      } else {
+        termVarSorts->push(sort);
+      }
     }
 
+    auto resultSort = nameSort;
+    SortHelper::normaliseArgSorts(*typeVars, *termVarSorts);
+    SortHelper::normaliseSort(*typeVars, resultSort);
+
     if (isPredicate) {
-      OperatorType* type = OperatorType::getPredicateType(nameArity, sorts.begin());
+      OperatorType* type = OperatorType::getPredicateType(termVarSorts->size(), termVarSorts->begin(), typeVars.size());
       freshSymbol = env.signature->addFreshPredicate(nameArity, "lG");
       env.signature->getPredicate(freshSymbol)->setType(type);
     } else {
-      OperatorType* type = OperatorType::getFunctionType(nameArity, sorts.begin(), nameSort);
+      OperatorType* type = OperatorType::getFunctionType(termVarSorts->size(), termVarSorts->begin(), resultSort, typeVars.size());
       freshSymbol = env.signature->addFreshFunction(nameArity, "lG");
       env.signature->getFunction(freshSymbol)->setType(type);
     }
   }
 
-
-  Stack<TermList> arguments;
-  VList::Iterator bfvit(bindingFreeVars);
-  while (bfvit.hasNext()) {
-    unsigned var = bfvit.next();
-    arguments.push(TermList(var, false));
+  Recycled<TermStack> args;
+  Recycled<TermStack> termArgs;
+  // Use sorts directly from bindingBoundVars VSList
+  VSList::Iterator vsit2(bindingBoundVars);
+  while (vsit2.hasNext()) {
+    auto [var, sort] = vsit2.next();
+    if (sort == AtomicSort::superSort()) {
+      args->push(TermList::var(var));
+    } else {
+      termArgs->push(TermList::var(var));
+    }
   }
-  VList::Iterator vbit(bindingVariables);
-  while (vbit.hasNext()) {
-    unsigned var = vbit.next();
-    arguments.push(TermList(var, false));
+  for (const auto& var : iterTraits(bindingFreeVars.iterator())) {
+    auto sort = getVarSort(var);
+    if (sort == AtomicSort::superSort()) {
+      args->push(TermList::var(var));
+    } else {
+      termArgs->push(TermList::var(var));
+    }
   }
+  args->loadFromIterator(termArgs->iterFifo());
 
   Term* freshApplication;
 
   if (isPredicate) {
-    Literal* name = Literal::create(freshSymbol, nameArity, POSITIVE, arguments.begin());
+    Literal* name = Literal::create(freshSymbol, nameArity, POSITIVE, args->begin());
     freshApplication = name;
     Formula* nameFormula = new AtomicFormula(name);
 
-    Formula* formulaBinding = BoolTermFormula::create(binding);
+    Formula* formulaBinding = BoolTermFormula::create(bindingRhs);
     enqueue(formulaBinding);
 
     for (SIGN sign : { POSITIVE, NEGATIVE }) {
       introduceGenClause(GenLit(nameFormula, sign), GenLit(formulaBinding, OPPOSITE(sign)));
     }
   } else {
-    TermList name = TermList(Term::create(freshSymbol, nameArity, arguments.begin()));
+    TermList name = TermList(Term::create(freshSymbol, nameArity, args->begin()));
     freshApplication = name.term();
-    Formula* nameFormula = new AtomicFormula(Literal::createEquality(POSITIVE, name, binding, nameSort));
+    Formula* nameFormula = new AtomicFormula(Literal::createEquality(POSITIVE, name, bindingRhs, nameSort));
 
     enqueue(nameFormula);
 
@@ -895,18 +863,18 @@ TermList NewCNF::nameLetBinding(unsigned symbol, VList* bindingVariables, TermLi
   }
   
   if (renameSymbol) {
-    SymbolOccurrenceReplacement replacement(isPredicate, freshApplication, symbol, bindingVariables);
-    return replacement.process(contents);
+    SymbolOccurrenceReplacement replacement(bindingLhs, freshApplication);
+    return replacement.process(body);
   }
 
-
-  return contents;
+  return body;
 }
 
-TermList NewCNF::inlineLetBinding(unsigned symbol, VList* bindingVariables, TermList binding, TermList contents) {
+TermList NewCNF::inlineLetBinding(Term* bindingLhs, TermList bindingRhs, TermList body)
+{
   ensureHavingVarSorts();
-  SymbolDefinitionInlining inlining(symbol, bindingVariables, binding, _maxVar);
-  TermList inlinedContents = inlining.process(contents);
+  SymbolDefinitionInlining inlining(bindingLhs, bindingRhs, _maxVar);
+  TermList inlinedContents = inlining.process(body);
 
   List<pair<unsigned, unsigned>>::Iterator renamings(inlining.variableRenamings());
   while (renamings.hasNext()) {
@@ -952,6 +920,12 @@ void NewCNF::ensureHavingVarSorts()
 TermList NewCNF::getVarSort(unsigned var) const
 {
   ASS(_collectedVarSorts);
+  return _varSorts.get(var, AtomicSort::defaultSort());
+}
+
+TermList NewCNF::getInstantiatedVarSort(unsigned var) const
+{
+  ASS(_collectedVarSorts);
   auto sort = _varSorts.get(var, AtomicSort::defaultSort());
   return SubstHelper::apply(sort, _skolemTypeVarSubst);
 }
@@ -961,13 +935,13 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
   unsigned arity = free->size();
 
   ensureHavingVarSorts();
-  TermList rangeSort=getVarSort(var);
+  TermList rangeSort=getInstantiatedVarSort(var);
   Recycled<TermStack> termVarSorts;
   Recycled<TermStack> typeVars;
   Recycled<TermStack> termVars;
 
   for(unsigned uvar : iterTraits(free->iter())) {
-    auto varSort = getVarSort(uvar);
+    auto varSort = getInstantiatedVarSort(uvar);
     if (varSort == AtomicSort::superSort()) {
       typeVars->push(TermList::var(uvar));
     } else {
@@ -1074,9 +1048,9 @@ void NewCNF::skolemise(QuantifiedFormula* g, BindingList*& bindings, BindingList
       processedBindings = nullptr;
       processedFoolBindings = nullptr;
 
-      VList::Iterator vs(g->vars());
+      VSList::Iterator vs(g->vars());
       while (vs.hasNext()) {
-        unsigned var = vs.next();
+        unsigned var = vs.next().first;
 
         Term *skolem = createSkolemTerm(var, unboundFreeVars);
 
@@ -1185,19 +1159,16 @@ void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
     case SpecialFunctor::FORMULA:
       process(sd->getFormula(), occurrences);
       return;
-    case SpecialFunctor::TUPLE:
-      NOT_IMPLEMENTED;
     case SpecialFunctor::ITE: {
-      Formula* condition = sd->getCondition();
+      Formula* condition = sd->getITECondition();
 
-      Formula* left = BoolTermFormula::create(*term->nthArgument(LEFT));
-      Formula* right = BoolTermFormula::create(*term->nthArgument(RIGHT));
+      Formula* left = BoolTermFormula::create(*term->nthArgument(0));
+      Formula* right = BoolTermFormula::create(*term->nthArgument(1));
       processITE(condition, left, right, occurrences);
       return;
     }
     case SpecialFunctor::LET:
-    case SpecialFunctor::LET_TUPLE:
-      processLet(sd, *term->nthArgument(0), occurrences);
+      processLet(term, occurrences);
       return;
     case SpecialFunctor::LAMBDA:
       NOT_IMPLEMENTED;
@@ -1238,7 +1209,8 @@ Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
   ensureHavingVarSorts();
 
   for(unsigned uvar : iterTraits(VList::Iterator(free))) {
-    auto sort = getVarSort(uvar);
+    // TODO find out whether we need getVarSort here instead
+    auto sort = getInstantiatedVarSort(uvar);
     if (sort == AtomicSort::superSort()) {
       typeVars->push(TermList::var(uvar));
     } else {
@@ -1365,6 +1337,12 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
 
   List<List<GenLit>*>* genClauses = new List<List<GenLit>*>(initLiterals);
 
+  // Cache free variable sets per clause pointer. Clauses that don't contain
+  // the current variable pass through unchanged, keeping the same pointer,
+  // so subsequent iterations get O(1) membership checks instead of
+  // repeated formula traversals.
+  DHMap<List<GenLit>*, VarSet*> clauseFreeVarCache;
+
   unsigned iteCounter = 0;
   while (variables.isNonEmpty()) {
     unsigned variable = variables.pop();
@@ -1378,24 +1356,32 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
 
     List<List<GenLit>*>* processedGenClauses(0);
 
+    // Check whether a variable occurs free in any gen literal of a clause.
+    // We might have a predicate skolem binding for a variable that does not
+    // occur in the generalised clause.
+    // We cache the free variable set per clause pointer so that clauses
+    // passing through unchanged across outer-loop iterations get O(1) lookups
+    // instead of repeated full formula traversals.
+    auto varOccursIn = [&clauseFreeVarCache](List<GenLit>* gls, unsigned variable) {
+      VarSet* fvs;
+      if (!clauseFreeVarCache.find(gls, fvs)) {
+        fvs = VarSet::getEmpty();
+        List<GenLit>::Iterator glsit(gls);
+        while (glsit.hasNext()) {
+          GenLit gl = glsit.next();
+          FormulaVarIterator fvi(formula(gl));
+          fvs = fvs->getUnion(VarSet::getFromIterator(fvi));
+        }
+        clauseFreeVarCache.insert(gls, fvs);
+      }
+      return fvs->member(variable);
+    };
+
     if (shouldInlineITE(iteCounter)) {
       while (List<List<GenLit>*>::isNonEmpty(genClauses)) {
         List<GenLit>* gls = List<List<GenLit>*>::pop(genClauses);
 
-        bool occurs = false;
-        // We might have a predicate skolem binding for a variable that does not
-        // occur in the generalised clause.
-        // TODO: optimize?
-        List<GenLit>::Iterator glsit(gls);
-        while (glsit.hasNext()) {
-          GenLit gl = glsit.next();
-          if (isFreeVariableOf(formula(gl),variable)) {
-            occurs = true;
-            break;
-          }
-        }
-
-        if (!occurs) {
+        if (!varOccursIn(gls, variable)) {
           List<List<GenLit>*>::push(gls, processedGenClauses);
           continue;
         }
@@ -1424,20 +1410,7 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
       while (List<List<GenLit>*>::isNonEmpty(genClauses)) {
         List<GenLit>* gls = List<List<GenLit>*>::pop(genClauses);
 
-        bool occurs = false;
-        // We might have a predicate skolem binding for a variable that does not
-        // occur in the generalised clause.
-        // TODO: optimize?
-        List<GenLit>::Iterator glsit(gls);
-        while (glsit.hasNext()) {
-          GenLit gl = glsit.next();
-          if (isFreeVariableOf(formula(gl),variable)) {
-            occurs = true;
-            break;
-          }
-        }
-
-        if (!occurs) {
+        if (!varOccursIn(gls, variable)) {
           List<List<GenLit>*>::push(gls, processedGenClauses);
           continue;
         }
@@ -1485,7 +1458,7 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
 #endif
 }
 
-bool NewCNF::mapSubstitution(List<GenLit>* clause, Substitution subst, bool onlyFormulaLevel, List<GenLit>* &output)
+bool NewCNF::mapSubstitution(List<GenLit>* clause, const Substitution& subst, bool onlyFormulaLevel, List<GenLit>* &output)
 {
   List<GenLit>::Iterator it(clause);
   while (it.hasNext()) {

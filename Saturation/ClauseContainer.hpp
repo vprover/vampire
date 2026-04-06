@@ -21,11 +21,9 @@
 #include "Lib/Event.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Deque.hpp"
-#include "Lib/Stack.hpp"
 #include "Kernel/Clause.hpp"
+#include "Lib/DHMap.hpp"
 #include "Lib/Set.hpp"
-
-#include "Lib/Allocator.hpp"
 
 #define OUTPUT_LRS_DETAILS 0
 
@@ -121,7 +119,7 @@ class UnprocessedClauseContainer
 : public ClauseContainer
 {
 public:
-  virtual ~UnprocessedClauseContainer();
+  ~UnprocessedClauseContainer() override;
   UnprocessedClauseContainer() : _data(64) {}
   void add(Clause* c) override;
   Clause* pop();
@@ -138,12 +136,12 @@ class PassiveClauseContainer
 {
 public:
   PassiveClauseContainer(bool isOutermost, const Shell::Options& opt, std::string name = "") : _isOutermost(isOutermost), _opt(opt), _name(name) {}
-  virtual ~PassiveClauseContainer(){};
+  ~PassiveClauseContainer() override{};
 
   virtual bool isEmpty() const = 0;
   virtual Clause* popSelected() = 0;
 
-  virtual unsigned sizeEstimate() const = 0;
+  unsigned sizeEstimate() const override = 0;
 
   /*
    * LRS specific methods for computation of Limits
@@ -212,13 +210,13 @@ public:
   void remove(Clause* c) override;
 
   unsigned sizeEstimate() const override { return _clauses.size(); }
-  ClauseIterator clauses() const { return pvi(_clauses.iter()); }
+  ClauseIterator clauses() const { return _clauses.range(); }
 
 protected:
   friend PassiveClauseContainer;
   void onLimitsUpdated(PassiveClauseContainer* limits);
 private:
-  Set<Clause*> _clauses;
+  DHMap<unsigned, Clause*> _clauses;
   // const Shell::Options& _opt;
 };
 

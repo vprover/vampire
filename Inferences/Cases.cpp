@@ -17,16 +17,10 @@
  * [1] http://arxiv.org/abs/1505.01682
  */
 
-#include "Lib/Environment.hpp"
-
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/TermIterators.hpp"
-#include "Kernel/Signature.hpp"
-#include "Kernel/OperatorType.hpp"
-#include "Kernel/SortHelper.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -35,6 +29,8 @@
 namespace Inferences {
 
 using namespace std;
+
+Cases::Cases(SaturationAlgorithm& salg) : _ord(salg.getOrdering()) {}
 
 Clause* Cases::performParamodulation(Clause* premise, Literal* lit, TermList t) {
   ASS(t.isTerm());
@@ -83,7 +79,7 @@ private:
 
 struct Cases::RewriteableSubtermsFn
 {
-  RewriteableSubtermsFn(Ordering& ord) : _ord(ord) {}
+  RewriteableSubtermsFn(const Ordering& ord) : _ord(ord) {}
 
   VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
   {
@@ -92,20 +88,20 @@ struct Cases::RewriteableSubtermsFn
   }
 
 private:
-  Ordering& _ord;
+  const Ordering& _ord;
 };
 
 ClauseIterator Cases::generateClauses(Clause* premise)
 {
   auto it1 = premise->getSelectedLiteralIterator();
 
-  auto it2 = getMapAndFlattenIterator(it1,RewriteableSubtermsFn(_salg->getOrdering()));
+  auto it2 = getMapAndFlattenIterator(it1,RewriteableSubtermsFn(_ord));
 
-  auto it3 = getMappingIterator(it2,ResultFn(premise, *this));
+  auto it3 = getMappingIterator(std::move(it2),ResultFn(premise, *this));
 
-  auto it4 = getFilteredIterator(it3,NonzeroFn());
+  auto it4 = getFilteredIterator(std::move(it3),NonzeroFn());
 
-  return pvi( it4 );
+  return pvi( std::move(it4) );
 }
 
 }

@@ -31,12 +31,12 @@ public:
   Discount(Problem& prb, const Options& opt)
     : SaturationAlgorithm(prb, opt) {}
 
-  ClauseContainer* getSimplifyingClauseContainer();
+  ClauseContainer* getSimplifyingClauseContainer() override;
 
 protected:
 
   //overrides SaturationAlgorithm::handleClauseBeforeActivation
-  bool handleClauseBeforeActivation(Clause* cl);
+  bool handleClauseBeforeActivation(Clause* cl) override;
 
 };
 

@@ -24,8 +24,6 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermTransformer.hpp"
 
-#include "Property.hpp"
-
 #include "InterpretedNormalizer.hpp"
 
 namespace Shell
@@ -58,7 +56,7 @@ public:
 
   }
 
-  virtual TermList translate(Term* trm)
+  TermList translate(Term* trm) override
   {
     ASS_EQ(trm->functor(), _origFun);
 
@@ -92,7 +90,7 @@ public:
     _one = TermList(theory->representConstant(IntegerConstantType(1)));
   }
 
-  virtual TermList translate(Term* trm)
+  TermList translate(Term* trm) override
   {
     ASS_EQ(trm->functor(), _succFun);
 
@@ -123,7 +121,7 @@ public:
     _uMinusFun = env.signature->getInterpretingSymbol(uMinus);
   }
 
-  virtual TermList translate(Term* trm)
+  TermList translate(Term* trm) override
   {
     ASS_EQ(trm->functor(), _bMinusFun);
 
@@ -283,7 +281,7 @@ private:
    */
   void addMinusTransformer(Interpretation bMinus, Interpretation plus, Interpretation uMinus)
   {
-    if(!env.signature->haveInterpretingSymbol(bMinus)) {
+    if(!env.signature->hasInterpretingSymbol(bMinus)) {
       return; //the symbol to be transformed doesn't exist, so we don't need to worry
     }
     BinaryMinusTranslator* transl = new BinaryMinusTranslator(bMinus, plus, uMinus);
@@ -297,7 +295,7 @@ private:
    */
   void addSuccessorTransformer()
   {
-    if(!env.signature->haveInterpretingSymbol(Theory::INT_SUCCESSOR)) {
+    if(!env.signature->hasInterpretingSymbol(Theory::INT_SUCCESSOR)) {
       return; //the symbol to be transformed doesn't exist, so we don't need to worry
     }
     SuccessorTranslator* transl = new SuccessorTranslator();
@@ -311,7 +309,7 @@ private:
    */
   void addRoundingFunctionTransformer(Interpretation origF, Interpretation newF, Interpretation roundF)
   {
-    if(!env.signature->haveInterpretingSymbol(origF)) {
+    if(!env.signature->hasInterpretingSymbol(origF)) {
       return; //the symbol to be transformed doesn't exist, so we don't need to worry
     }
     RoundingFunctionTranslator* transl = new RoundingFunctionTranslator(origF,newF,roundF);
@@ -327,7 +325,7 @@ private:
    */
   void addIneqTransformer(Interpretation from, Interpretation to, bool swapArguments, bool reversePolarity)
   {
-    if(!env.signature->haveInterpretingSymbol(from)) {
+    if(!env.signature->hasInterpretingSymbol(from)) {
       return; //the symbol to be transformed doesn't exist, so we don't need to worry
     }
     IneqTranslator* transl = new IneqTranslator(from, to, swapArguments, reversePolarity);
@@ -376,7 +374,7 @@ protected:
    *
    * The rest of transformations is done by the @c FormulaTransformer ancestor.
    */
-  virtual Formula* applyLiteral(Formula* f)
+  Formula* applyLiteral(Formula* f) override
   {
     Literal* lit = f->literal();
     bool isConst;

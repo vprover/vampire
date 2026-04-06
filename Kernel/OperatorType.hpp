@@ -17,14 +17,8 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/DArray.hpp"
-#include "Lib/Map.hpp"
 #include "Lib/Set.hpp"
-#include "Lib/DHSet.hpp"
-#include "Lib/DHMap.hpp"
-#include "Lib/Stack.hpp"
 #include "Lib/Vector.hpp"
-#include "Lib/Allocator.hpp"
 
 #include "Term.hpp"
 

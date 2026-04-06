@@ -10,7 +10,6 @@
 
 
 #include "Test/UnitTesting.hpp"
-#include "Test/TestUtils.hpp"
 #include "Kernel/Theory.hpp"
 
 using namespace std;

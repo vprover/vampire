@@ -14,6 +14,7 @@
 #include "Forwards.hpp"
 
 #include "Kernel/ALASCA.hpp"
+#include "Kernel/ALASCA/Normalization.hpp"
 #include "Kernel/KBO.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/OrderingUtils.hpp"
@@ -75,12 +76,12 @@ struct AlascaOrderingUtils {
 
 struct LAKBO {
   KBO _kbo;
-  std::shared_ptr<InequalityNormalizer> _norm;
+  const InequalityNormalizer& _norm;
 
-  LAKBO(KBO kbo, std::shared_ptr<InequalityNormalizer> norm) : _kbo(std::move(kbo)), _norm(std::move(norm)) {}
-  LAKBO(Problem& prb, const Options& opt) : LAKBO(KBO(prb, opt), InequalityNormalizer::global()) {}
+  LAKBO(KBO kbo) : _kbo(std::move(kbo)), _norm(InequalityNormalizer::global()) {}
+  LAKBO(Problem& prb, const Options& opt) : LAKBO(KBO(prb, opt)) {}
 
-  InequalityNormalizer& norm() const { return *_norm; }
+  const InequalityNormalizer& norm() const { return _norm; }
 
   void show(std::ostream& out) const { return _kbo.show(out); }
 
@@ -396,7 +397,7 @@ public:
   LiteralOrdering(Problem& prb, const Options& opt) 
     : LiteralOrdering(TermOrdering(prb, opt)) { }
 
-  virtual ~LiteralOrdering() {}
+  ~LiteralOrdering() override {}
 
   Result compare(Literal* l1, Literal* l2) const override {
     auto atoms1 = atoms(l1);
@@ -419,10 +420,10 @@ public:
     }
   }
 
-  Result compare(TermList t1, TermList t2) const final override 
+  Result compare(TermList t1, TermList t2) const final
   { return _termOrdering.compare(t1, t2); }
 
-  void show(std::ostream& out) const final override 
+  void show(std::ostream& out) const final
   { _termOrdering.show(out); }
 
 private:

@@ -14,13 +14,9 @@
 
 #include <cstdarg>
 
-
-#include "Lib/List.hpp"
 #include "Kernel/TermIterators.hpp"
 
-#include "Kernel/Formula.hpp"
-#include "Kernel/Unit.hpp"
-
+#include "Lib/Environment.hpp"
 #include "SAT/SATClause.hpp"
 #include "SAT/SATLiteral.hpp"
 
@@ -188,7 +184,8 @@ void __collect(unsigned functor, Term* t, Stack<TermList>& out) {
       out.push(*trm);
     } else {
       ASS(trm->isTerm());
-      if (trm->term()->functor() == functor) {
+      // Note: the input term can be a literal as well, so let's check it
+      if (trm->term()->functor() == functor && trm->term()->isLiteral() == t->isLiteral()) {
         __collect(functor, trm->term(), out);
       } else {
         out.push(*trm);

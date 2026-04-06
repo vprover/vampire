@@ -12,10 +12,7 @@
  * Implements class RuntimeStatistics.
  */
 
-#include "Lib/Comparison.hpp"
 #include "Lib/Int.hpp"
-#include "Lib/Sort.hpp"
-#include "Lib/Stack.hpp"
 
 #include "RuntimeStatistics.hpp"
 

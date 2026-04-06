@@ -7,13 +7,10 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
-#include <iostream>
 
 #include "Forwards.hpp"
-#include "Lib/Environment.hpp"
 
 #include "Kernel/TermIterators.hpp"
-#include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 
 #include "Test/UnitTesting.hpp"

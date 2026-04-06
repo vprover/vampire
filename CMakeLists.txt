@@ -6,7 +6,7 @@ cmake_minimum_required (VERSION 3.14.0)
 project(Vampire)
 
 # version
-set(VAMPIRE_VERSION_NUMBER 5.0.0)
+set(VAMPIRE_VERSION_NUMBER 5.0.1)
 
 include(CheckSymbolExists)
 include(CTest)
@@ -46,9 +46,6 @@ if(CCACHE_PROGRAM)
   set(CMAKE_CXX_COMPILER_LAUNCHER "${CCACHE_PROGRAM}")
   message(STATUS "CCACHE_PROGRAM: " ${CCACHE_PROGRAM})
 endif()
-
-# wrap up common object files so not built multiple times for each target
-add_library(common OBJECT ${SOURCES})
 
 ################################################################
 # compiler configuration
@@ -104,16 +101,38 @@ if(GCC_OR_CLANG)
   add_compile_options(-fno-threadsafe-statics)
   # ...or RTTI
   add_compile_options(-fno-rtti)
+
+  if(CMAKE_BUILD_TYPE STREQUAL Debug)
+    add_compile_options(-fsanitize=undefined)
+    add_link_options(-fsanitize=undefined)
+  endif()
 endif()
 
-# switch on coverage options per-compiler if desired
+################################################################
+# CODE COVERAGE
+################################################################
+
 option(COVERAGE "generate code coverage reports" OFF)
 if(COVERAGE)
-  if(GCC_OR_CLANG)
-    set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} --coverage)
-    set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS} --coverage)
-    set(CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} --coverage)
-  endif()
+  message(STATUS "Coverage is enabled")
+  include(${CMAKE_SOURCE_DIR}/cmake/CodeCoverage.cmake)
+
+  message(STATUS "Removing previous coverage data")
+  file(GLOB_RECURSE GCDA_FILES ${CMAKE_BINARY_DIR}/*.gcda)
+  file(REMOVE ${GCDA_FILES})
+
+  append_coverage_compiler_flags()
+  setup_target_for_coverage_gcovr_html(
+    NAME vcoverage
+    EXECUTABLE ctest
+    EXECUTABLE_ARGS "-j${CMAKE_BUILD_PARALLEL_LEVEL}"
+    EXCLUDE "${PROJECT_SOURCE_DIR}/CASC"
+      "${PROJECT_SOURCE_DIR}/Debug"
+      "${PROJECT_SOURCE_DIR}/UnitTests"
+      "${PROJECT_SOURCE_DIR}/Test"
+      "${PROJECT_SOURCE_DIR}/cadical"
+      "${PROJECT_SOURCE_DIR}/viras"
+      "${PROJECT_SOURCE_DIR}/z3")
 endif()
 
 ################################################################
@@ -204,6 +223,17 @@ else ()
 endif()
 
 ################################################################
+# Vampire
+################################################################
+# wrap up common object files so not built multiple times for each target
+add_library(common OBJECT ${SOURCES})
+
+# the actual Vampire executable
+add_executable(vampire vampire.cpp $<TARGET_OBJECTS:common>)
+
+install(TARGETS vampire)
+
+################################################################
 # UNIT TESTING
 ################################################################
 
@@ -219,7 +249,12 @@ if(CMAKE_BUILD_TYPE STREQUAL Debug)
     )
     # register it with CTest
     add_test(${test_name} ${CMAKE_BINARY_DIR}/vtest run ${test_name})
-    set_tests_properties(${test_name} PROPERTIES TIMEOUT 60)
+    if(COVERAGE)
+      # coverage is a lot slower, so increase the timeout
+      set_tests_properties(${test_name} PROPERTIES TIMEOUT 180)
+    else()
+      set_tests_properties(${test_name} PROPERTIES TIMEOUT 60)
+    endif()
   endforeach()
 
   # build test executable
@@ -246,7 +281,7 @@ if (GIT_IS_REPOSITORY STREQUAL true)
   # VAMPIRE_VERSION_NUMBER and CMAKE_BUILD_TYPE used by version.cpp.in through
   # ConfigureGitVersionCpp.cmake
   add_custom_target(update_git_version ALL
-    COMMAND cmake -DVAMPIRE_SOURCE_DIR=${CMAKE_SOURCE_DIR}
+    COMMAND ${CMAKE_COMMAND} -DVAMPIRE_SOURCE_DIR=${CMAKE_SOURCE_DIR}
                   -DVAMPIRE_VERSION_NUMBER=${VAMPIRE_VERSION_NUMBER}
                   -DCMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE}
                   -P ${CMAKE_SOURCE_DIR}/cmake/ConfigureGitVersionCpp.cmake
@@ -267,8 +302,3 @@ add_executable(subsat
     SATSubsumption/subsat/subsat_main.cpp
     $<TARGET_OBJECTS:common>
 )
-
-################################################################
-# Vampire
-################################################################
-add_executable(vampire vampire.cpp $<TARGET_OBJECTS:common>)
