@@ -60,9 +60,11 @@
 #define DECL_NOT_PROXY auto notP = TermSugar(HOL::create::neg());
 #define DECL_AND_PROXY auto andP = TermSugar(HOL::create::conj());
 #define DECL_OR_PROXY auto orP = TermSugar(HOL::create::disj());
-#define DECL_EQ_PROXY(p) auto p = FuncSugar(env.signature->getEqualityProxy());
-#define DECL_PI_PROXY(p) auto p = FuncSugar(env.signature->getPiSigmaProxy("vPI"));
-#define DECL_SIGMA_PROXY(p) auto p = FuncSugar(env.signature->getPiSigmaProxy("vSIGMA"));
+#define DECL_IMP_PROXY auto impP = TermSugar(HOL::create::imp());
+#define DECL_IFF_PROXY auto iffP = TermSugar(HOL::create::iff());
+#define DECL_EQ_PROXY auto eqP = FuncSugar(env.signature->getEqualityProxy());
+#define DECL_PI_PROXY auto piP = FuncSugar(env.signature->getPiSigmaProxy("vPI"));
+#define DECL_SIGMA_PROXY auto sigmaP = FuncSugar(env.signature->getPiSigmaProxy("vSIGMA"));
 #define DECL_APP env.signature->getApp();
 #define DECL_LAM env.signature->getLam();
 #define NEXT_INTRODUCED_PRED(s,offset) auto s = PredSugar(env.signature->predicates()+offset);
