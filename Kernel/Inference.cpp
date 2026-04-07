@@ -901,15 +901,23 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "positive extensionality";
   case InferenceRule::INJECTIVITY:
     return "injectivity";
-  case InferenceRule::HOL_NOT_ELIMINATION:
+  case InferenceRule::NOT_PROXY_CLAUSIFICATION:
     return "not proxy clausification";
-  case InferenceRule::BINARY_CONN_ELIMINATION:
-    return "binary proxy clausification";
-  case InferenceRule::VSIGMA_ELIMINATION:
-    return "sigma clausification";
-  case InferenceRule::VPI_ELIMINATION:
-    return "pi clausification";
-  case InferenceRule::HOL_EQUALITY_ELIMINATION:
+  case InferenceRule::AND_PROXY_CLAUSIFICATION:
+    return "and proxy clausification";
+  case InferenceRule::OR_PROXY_CLAUSIFICATION:
+    return "or proxy clausification";
+  case InferenceRule::IMP_PROXY_CLAUSIFICATION:
+    return "imp proxy clausification";
+  case InferenceRule::IFF_PROXY_CLAUSIFICATION:
+    return "iff proxy clausification";
+  case InferenceRule::XOR_PROXY_CLAUSIFICATION:
+    return "xor proxy clausification";
+  case InferenceRule::SIGMA_PROXY_CLAUSIFICATION:
+    return "sigma proxy clausification";
+  case InferenceRule::PI_PROXY_CLAUSIFICATION:
+    return "pi proxy clausification";
+  case InferenceRule::EQUALITY_PROXY_CLAUSIFICATION:
     return "equality proxy clausification";
   case InferenceRule::BOOL_SIMP:
     return "boolean simplification";

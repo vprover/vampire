@@ -8,8 +8,8 @@
  * and in the source directory
  */
 /**
- * @file ProxyElimination.cpp
- *
+ * @file CNFOnTheFly.cpp
+ * Defines classes for clausification on the fly.
  */
 
 #include "Lib/Environment.hpp"
@@ -31,64 +31,50 @@ namespace Inferences {
 using namespace std;
 using namespace Indexing;
 
-static Clause* replaceLits(Clause *c, Literal *a, Literal *b, InferenceRule r, bool incAge, Literal *d = 0, Literal* e = 0);
+static Clause* replaceLits(Clause* c, Literal* what, Proxy p, bool incAge, Literal* by1, Literal* by2 = nullptr);
 static TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt);
 static TermList piRemoval(TermList piTerm, Clause* clause, TermList expsrt);
 static InferenceRule convert(Proxy cnst);
 static ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaIndex* index = 0);
 
+Literal* boolEq(TermList lhs, TermList rhs) {
+  return Literal::createEquality(true, lhs, rhs, AtomicSort::boolSort());
+}
+Literal* eqTroo(TermList lhs) { return boolEq(lhs, TermList(Term::foolTrue())); }
+Literal* eqFols(TermList lhs) { return boolEq(lhs, TermList(Term::foolFalse())); }
+
 ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaIndex* index)
 {
-  static bool eager = env.options->cnfOnTheFly() == Options::CNFOnTheFly::EAGER;
-  static bool simp = env.options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_SIMP;
   static bool gen = env.options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_GEN;
   static bool simp_except_not_be_off = env.options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_SIMP_NOT_GEN_BOOL_EQ_OFF;
   static bool simp_except_not_and_be = env.options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_SIMP_NOT_GEN_BOOL_EQ_GEN;
   bool not_be = simp_except_not_be_off || (!generating && simp_except_not_and_be);
 
-
-  if(generating && (eager || simp)){ return ClauseIterator::getEmpty(); }
-  if(!generating && gen){ return ClauseIterator::getEmpty(); }
-
-  TermList troo = TermList(Term::foolTrue());
-  TermList fols = TermList(Term::foolFalse());
-  TermList boolSort = AtomicSort::boolSort();
-
   static TermStack args;
- 
-  ClauseStack resultStack;
-  unsigned clength = c->length();
 
-  for(unsigned i = 0; i < clength; i++){
-    Literal* lit = (*c)[i];
-    TermList lhs = *lit->nthArgument(0);
-    TermList rhs = *lit->nthArgument(1);
+  for (const auto& lit : *c) {
+    auto [lhs, rhs] = lit->eqArgs();
+
     TermList term;
     TermList boolVal;
-    if(HOL::isBool(lhs)){
+    if (HOL::isBool(lhs)) {
       boolVal = lhs;
       term = rhs;
-    } else if(HOL::isBool(rhs)){
+    } else if (HOL::isBool(rhs)) {
       boolVal = rhs;
       term = lhs;
-    } else if(SortHelper::getEqualityArgumentSort(lit) == boolSort && !not_be) {
+    } else if (SortHelper::getEqualityArgumentSort(lit) == AtomicSort::boolSort() && !not_be) {
       //equality or diseqality between boolean terms
-      Literal* lhsTroo = Literal::createEquality(true, lhs, troo, boolSort);
-      Literal* lhsFols = Literal::createEquality(true, lhs, fols, boolSort);
-      Literal* rhsTroo = Literal::createEquality(true, rhs, troo, boolSort);
-      Literal* rhsFols = Literal::createEquality(true, rhs, fols, boolSort);
-      if(lit->polarity()){
-        Clause* res1 = replaceLits(c, lit, lhsTroo, convert(Proxy::IFF), true, rhsFols);
-        Clause* res2 = replaceLits(c, lit, lhsFols, convert(Proxy::IFF), true, rhsTroo);
-        resultStack.push(res1);
-        resultStack.push(res2);
-      } else {
-        Clause* res1 = replaceLits(c, lit, lhsTroo, convert(Proxy::XOR), true, rhsTroo);
-        Clause* res2 = replaceLits(c, lit, lhsFols, convert(Proxy::XOR), true, rhsFols);
-        resultStack.push(res1);
-        resultStack.push(res2);
+      if (lit->isPositive()) {
+        return pvi(iterItems(
+          replaceLits(c, lit, Proxy::IFF, true, eqTroo(lhs), eqFols(rhs)),
+          replaceLits(c, lit, Proxy::IFF, true, eqFols(lhs), eqTroo(rhs))
+        ));
       }
-      goto afterLoop;
+      return pvi(iterItems(
+        replaceLits(c, lit, Proxy::XOR, true, eqTroo(lhs), eqTroo(rhs)),
+        replaceLits(c, lit, Proxy::XOR, true, eqFols(lhs), eqFols(rhs))
+      ));
     } else {
       continue;
     }
@@ -98,8 +84,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
       continue;
     }
     Proxy prox = env.signature->getFunction(head.term()->functor())->proxy();
-    if(prox == Proxy::NOT_PROXY || prox == Proxy::IFF ||
-       prox == Proxy::XOR){
+    if(prox == Proxy::NOT_PROXY || prox == Proxy::IFF || prox == Proxy::XOR){
       continue;
     }
 
@@ -111,82 +96,55 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
 
     if((prox == Proxy::OR) && (args.size() == 2)){
       if(positive){
-        Literal* l1 = Literal::createEquality(true, args[0], troo, boolSort);
-        Literal* l2 = Literal::createEquality(true, args[1], troo, boolSort);
-        Clause* res = replaceLits(c, lit, l1, convert(prox), false, l2);
-        resultStack.push(res);
-        goto afterLoop;
-      } else {
-        Literal* l1 = Literal::createEquality(true, args[0], fols, boolSort);
-        Literal* l2 = Literal::createEquality(true, args[1], fols, boolSort);
-        Clause* res1 = replaceLits(c, lit, l1, convert(prox), true);
-        Clause* res2 = replaceLits(c, lit, l2, convert(prox), true);
-        resultStack.push(res1);
-        resultStack.push(res2);
-        goto afterLoop;
+        return pvi(iterItems(replaceLits(c, lit, prox, false,
+          eqTroo(args[0]), eqTroo(args[1]))));
       }
+      return pvi(iterItems(
+        replaceLits(c, lit, prox, true, eqFols(args[0])),
+        replaceLits(c, lit, prox, true, eqFols(args[1]))
+      ));
     }
-  
+
     if((prox == Proxy::AND) && (args.size() == 2)){
       if(positive){
-        Literal* l1 = Literal::createEquality(true, args[0], troo, boolSort);
-        Literal* l2 = Literal::createEquality(true, args[1], troo, boolSort);
-        Clause* res1 = replaceLits(c, lit, l1, convert(prox), true);
-        Clause* res2 = replaceLits(c, lit, l2, convert(prox), true);
-        resultStack.push(res1);
-        resultStack.push(res2);
-        goto afterLoop;
-      } else {
-        Literal* l1 = Literal::createEquality(true, args[0], fols, boolSort);
-        Literal* l2 = Literal::createEquality(true, args[1], fols, boolSort);
-        Clause* res = replaceLits(c, lit, l1, convert(prox), false, l2);
-        resultStack.push(res);
-        goto afterLoop;
+        return pvi(iterItems(
+          replaceLits(c, lit, prox, true, eqTroo(args[0])),
+          replaceLits(c, lit, prox, true, eqTroo(args[1]))
+        ));
       }
+      return pvi(iterItems(replaceLits(c, lit, prox, false,
+        eqFols(args[0]), eqFols(args[1]))));
     }
 
     if((prox == Proxy::IMP) && (args.size() == 2)){
       if(positive){
-        Literal* l1 = Literal::createEquality(true, args[1], fols, boolSort);
-        Literal* l2 = Literal::createEquality(true, args[0], troo, boolSort);
-        Clause* res = replaceLits(c, lit, l1, convert(prox), false, l2);
-        resultStack.push(res);
-        goto afterLoop;
-      } else {
-        Literal* l2 = Literal::createEquality(true, args[1], troo, boolSort);
-        Literal* l1 = Literal::createEquality(true, args[0], fols, boolSort);
-        Clause* res1 = replaceLits(c, lit, l1, convert(prox), true);
-        Clause* res2 = replaceLits(c, lit, l2, convert(prox), true);        
-        resultStack.push(res1);
-        resultStack.push(res2);
-        goto afterLoop;
+        return pvi(iterItems(replaceLits(c, lit, prox, false,
+          eqFols(args[1]), eqTroo(args[0]))));
       }
+      return pvi(iterItems(
+        replaceLits(c, lit, prox, true, eqFols(args[0])),
+        replaceLits(c, lit, prox, true, eqTroo(args[1]))
+      ));
     }
 
     if((prox == Proxy::EQUALS) && (args.size() == 2)){
       TermList srt = *SortHelper::getResultSort(head.term()).term()->nthArgument(0);
-      Literal* l1 = Literal::createEquality(positive, args[0], args[1], srt);
-      Clause* res = replaceLits(c, lit, l1, convert(prox), false);
-      resultStack.push(res);
-      goto afterLoop;
+      return pvi(iterItems(replaceLits(c, lit, prox, false,
+        Literal::createEquality(positive, args[0], args[1], srt))));
     }
 
     if((prox == Proxy::NOT) && (args.size())){
-      TermList rhs = positive ? fols : troo;
-      Literal* l1 = Literal::createEquality(true, args[0], rhs, boolSort);
-      Clause* res = replaceLits(c, lit, l1, convert(prox), false);
-      resultStack.push(res);
-      goto afterLoop;
+      return pvi(iterItems(replaceLits(c, lit, prox, false,
+        positive ? eqFols(args[0]) : eqTroo(args[0]))));
     }
 
-    if((prox == Proxy::PI || prox == Proxy::SIGMA ) && (args.size())){
-      TermList rhs = positive ? troo : fols; 
+    if((prox == Proxy::PI || prox == Proxy::SIGMA) && (args.size())){
       TermList srt = *SortHelper::getResultSort(head.term()).term()->nthArgument(0);
       TermList newTerm;
-      InferenceRule rule;
+      Proxy proxy;
       if((prox == Proxy::PI && positive) ||
          (prox == Proxy::SIGMA && !positive)){
-        rule = convert(Proxy::PI);
+        proxy = Proxy::PI;
         newTerm = piRemoval(args[0], c, srt);
       } else {
         ASS(term.isTerm());
@@ -208,39 +166,26 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
           }
           newTerm = HOL::create::app(srt, args[0], skolemTerm);
         }
-        rule = convert(Proxy::SIGMA);
+        proxy = Proxy::SIGMA;
       }
-      Literal* l1 = Literal::createEquality(true, newTerm, rhs, boolSort);
-      Clause* res = replaceLits(c, lit, l1, rule, false);
-      resultStack.push(res);
-      goto afterLoop;
+      return pvi(iterItems(replaceLits(c, lit, proxy, false,
+        positive ? eqTroo(newTerm) : eqFols(newTerm))));
     }
-
   }
-  
-  return ClauseIterator::getEmpty(); 
-
-afterLoop:  
-
-  return pvi(getUniquePersistentIterator(ClauseStack::Iterator(resultStack)));
-
+  return ClauseIterator::getEmpty();
 }
 
-
-Clause* replaceLits(Clause *c, Literal *a, Literal *b, InferenceRule r, bool incAge, Literal *d, Literal* e)
+Clause* replaceLits(Clause* c, Literal* what, Proxy p, bool incAge, Literal* by1, Literal* by2)
 {
   RStack<Literal*> lits;
 
-  unsigned i = 0;
-  while ((*c)[i] != a) { i++; }
-  for (auto l : iterTraits(c->iterLits())) {
-    lits->push(l == a ? b : l);
+  for (const auto& lit : *c) {
+    lits->push(lit == what ? by1 : lit);
   }
   // adding new literals at different places...
-  if (d) { lits->push(d); }
-  if (e) { lits->push(e); }
-  
-  auto out = Clause::fromStack(*lits, NonspecificInference1(r, c));
+  if (by2) { lits->push(by2); }
+
+  auto out = Clause::fromStack(*lits, NonspecificInference1(convert(p), c));
   // Can be either generating or simplifying. Therefore use NonspecificInference
   // Age is updated in some instances, but not in others based on empirical evaluation
   out->setAge(incAge? c->age() + 1 : c->age());
@@ -250,15 +195,25 @@ Clause* replaceLits(Clause *c, Literal *a, Literal *b, InferenceRule r, bool inc
 InferenceRule convert(Proxy cnst) {
   switch(cnst){
     case Proxy::PI:
-      return InferenceRule::VPI_ELIMINATION;
+      return InferenceRule::PI_PROXY_CLAUSIFICATION;
     case Proxy::SIGMA:
-      return InferenceRule::VSIGMA_ELIMINATION;
+      return InferenceRule::SIGMA_PROXY_CLAUSIFICATION;
     case Proxy::EQUALS:
-      return InferenceRule::HOL_EQUALITY_ELIMINATION;
+      return InferenceRule::EQUALITY_PROXY_CLAUSIFICATION;
     case Proxy::NOT:
-      return InferenceRule::HOL_NOT_ELIMINATION;
+      return InferenceRule::NOT_PROXY_CLAUSIFICATION;
+    case Proxy::AND:
+      return InferenceRule::AND_PROXY_CLAUSIFICATION;
+    case Proxy::OR:
+      return InferenceRule::OR_PROXY_CLAUSIFICATION;
+    case Proxy::IMP:
+      return InferenceRule::IMP_PROXY_CLAUSIFICATION;
+    case Proxy::IFF:
+      return InferenceRule::IFF_PROXY_CLAUSIFICATION;
+    case Proxy::XOR:
+      return InferenceRule::XOR_PROXY_CLAUSIFICATION;
     default:
-      return InferenceRule::BINARY_CONN_ELIMINATION;   
+      ASSERTION_VIOLATION;
   }
 }
 
@@ -267,18 +222,14 @@ TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt){
   varSorts.reset();
 
   if(sigmaTerm.isTerm()){
-    VariableWithSortIterator vit(sigmaTerm.term());
-    while(vit.hasNext()){
-      pair<TermList, TermList> varTypePair = vit.next();
-      varSorts.insert(varTypePair.first.var(), varTypePair.second);
+    for (const auto& [var, sort] : iterTraits(VariableWithSortIterator(sigmaTerm.term()))) {
+      varSorts.insert(var.var(), sort);
     }
   } else {
     varSorts.insert(sigmaTerm.var(), expsrt);
     if(expsrt.isTerm()){
-      VariableWithSortIterator vit(expsrt.term());
-      while(vit.hasNext()){
-        pair<TermList, TermList> varTypePair = vit.next();
-        varSorts.insert(varTypePair.first.var(), varTypePair.second);
+      for (const auto& [var, sort] : iterTraits(VariableWithSortIterator(expsrt.term()))) {
+        varSorts.insert(var.var(), sort);
       }
     } else {
       varSorts.insert(expsrt.var(), AtomicSort::superSort());
@@ -291,9 +242,9 @@ TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt){
   termVarSorts.reset();
   termVars.reset();
   typeVars.reset();
- 
+
   unsigned var;
-  TermList varSort; 
+  TermList varSort;
   DHMap<unsigned, TermList>::Iterator mapIt(varSorts);
   while(mapIt.hasNext()) {
     mapIt.next(var, varSort);
@@ -323,24 +274,22 @@ TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt){
 }
 
 TermList piRemoval(TermList piTerm, Clause* clause, TermList expsrt){
-  
+
   unsigned maxVar = clause->maxVar();
-  do{ 
+  do {
     maxVar++;
-    TermList newVar = TermList(maxVar, false);
-    piTerm = HOL::create::app(expsrt, piTerm, newVar);
+    piTerm = HOL::create::app(expsrt, piTerm, TermList::var(maxVar));
     expsrt = *expsrt.term()->nthArgument(1);
-  }while(expsrt != AtomicSort::boolSort()); 
-  
+  } while(expsrt != AtomicSort::boolSort());
+
   return piTerm;
 }
-
 
 Clause* IFFXORRewriterISE::simplify(Clause* c){
   TermList boolSort = AtomicSort::boolSort();
 
   static TermStack args;
- 
+
   for(unsigned i = 0; i < c->length(); i++){
     Literal* lit = (*c)[i];
     TermList lhs = *lit->nthArgument(0);
@@ -367,9 +316,8 @@ Clause* IFFXORRewriterISE::simplify(Clause* c){
 
     if((prox == Proxy::IFF || prox == Proxy::XOR) && (args.size() == 2)){
       bool polarity = (prox == Proxy::IFF) == positive;
-      Literal* l1 = Literal::createEquality(polarity, args[0], args[1], boolSort);
-      Clause* res = replaceLits(c, lit, l1, convert(prox), false);
-      return res;
+      auto l1 = Literal::createEquality(polarity, args[0], args[1], boolSort);
+      return replaceLits(c, lit, prox, false, l1);
     }
   }
 
