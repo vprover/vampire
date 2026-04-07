@@ -69,17 +69,19 @@ struct ApplicatorWithEqSort : SubstApplicator {
 
 } // end namespace
 
-ForwardDemodulation::ForwardDemodulation(SaturationAlgorithm& salg)
+template<bool higherOrder>
+ForwardDemodulation<higherOrder>::ForwardDemodulation(SaturationAlgorithm& salg)
   : _preorderedOnly(salg.getOptions().forwardDemodulation()==Options::Demodulation::PREORDERED),
     _encompassing(salg.getOptions().demodulationRedundancyCheck()==Options::DemodulationRedundancyCheck::ENCOMPASS),
     _useTermOrderingDiagrams(salg.getOptions().forwardDemodulationTermOrderingDiagrams()),
     _skipNonequationalLiterals(salg.getOptions().demodulationOnlyEquational()),
     _helper(DemodulationHelper(salg.getOptions(), &salg.getOrdering())),
     _ord(salg.getOrdering()),
-    _index(salg.getSimplifyingIndex<DemodulationLHSIndex>())
+    _index(salg.getSimplifyingIndex<DemodulationLHSIndex<higherOrder>>())
 {}
 
-bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
+template<bool higherOrder>
+bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   TIME_TRACE("forward demodulation");
 
@@ -99,7 +101,7 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
     if (_skipNonequationalLiterals && !lit->isEquality()) {
       continue;
     }
-    NonVariableNonTypeIterator it(lit);
+    RewritableSubtermIterator<higherOrder> it(lit);
     while(it.hasNext()) {
       TypedTermList trm = it.next();
       if(!attempted.insert(trm)) {
@@ -222,13 +224,16 @@ bool ForwardDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterat
   return false;
 }
 
+template class ForwardDemodulation<true>;
+template class ForwardDemodulation<false>;
+
 ForwardDemodulationReplay::ForwardDemodulationReplay(SaturationAlgorithm& salg) : _preorderedOnly(salg.getOptions().forwardDemodulation()==Options::Demodulation::PREORDERED),
     _encompassing(salg.getOptions().demodulationRedundancyCheck()==Options::DemodulationRedundancyCheck::ENCOMPASS),
     _useTermOrderingDiagrams(salg.getOptions().forwardDemodulationTermOrderingDiagrams()),
     _skipNonequationalLiterals(salg.getOptions().demodulationOnlyEquational()),
     _helper(DemodulationHelper(salg.getOptions(), &salg.getOrdering())),
     _ord(salg.getOrdering()),
-    _index(salg.getSimplifyingIndex<DemodulationLHSIndex>())
+    _index(salg.getSimplifyingIndex<DemodulationLHSIndex<false>>())
   {}
 
 ClauseIterator ForwardDemodulationReplay::generateClauses(Clause* premise)

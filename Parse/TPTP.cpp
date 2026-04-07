@@ -1505,13 +1505,15 @@ void TPTP::holFormula()
   case T_SIGMA:
     resetToks();
     readTypeArgs(1);
-    _termLists.push(createFunctionApplication("vSIGMA", 1));    
+    _termLists.push(createFunctionApplication("vSIGMA", 1));
+    _lastPushed = TM;
     return;
   
   case T_PI:
     resetToks();
     readTypeArgs(1);
-    _termLists.push(createFunctionApplication("vPI", 1));      
+    _termLists.push(createFunctionApplication("vPI", 1));
+    _lastPushed = TM;
     return;
 
   case T_FORALL:
@@ -1540,6 +1542,7 @@ void TPTP::holFormula()
     ASS(_connectives.top() == NOT);
     _connectives.pop();
     _termLists.push(createFunctionApplication("vNOT", 0));
+    _lastPushed = TM;
     return;
   }
 
@@ -3201,8 +3204,12 @@ Formula* TPTP::createPredicateApplication(std::string name, unsigned arity)
   }
   if (pred == -2){ // distinct
     // TODO check that we are top-level
+
+    // ignore pointless $distinct(x)
+    if(arity < 2)
+      return new Formula(true);
     // If fewer than 5 things are distinct then we add the disequalities
-    if(arity<5){
+    else if(arity < 5){
       static Stack<unsigned> distincts;
       distincts.reset();
       for(int i=arity-1;i >= 0; i--){
