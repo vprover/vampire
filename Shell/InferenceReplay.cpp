@@ -34,7 +34,7 @@ void InferenceReplayer::replayInference(Kernel::Unit *u)
       stack, u->asClause());
   }
   else if(u->inference().rule() == InferenceRule::BACKWARD_DEMODULATION){
-      BackwardDemodulation bd(*alg);
+      BackwardDemodulation<false> bd(*alg);
       runBackwardsSimp(&bd,
       stack, u->asClause());
   }
@@ -49,15 +49,19 @@ void InferenceReplayer::replayInference(Kernel::Unit *u)
                          stack, u->asClause());
   }
   else if (u->inference().rule() == InferenceRule::EQUALITY_RESOLUTION_WITH_DELETION) {
-    Inferences::EqResWithDeletion eq;
-    Problem p;
+
     auto ul = UnitList::empty();
     UnitList::pushFromIterator(ClauseStack::Iterator(stack), ul);
-    p.addUnits(ul);
+    Problem p(ul);
     env.setMainProblem(&p);
+    Inferences::EqResWithDeletion eq;
     eq.apply(p);
   }
   else if(u->inference().rule() == InferenceRule::EQUALITY_FACTORING){
+      auto ul = UnitList::empty();
+      UnitList::pushFromIterator(ClauseStack::Iterator(stack), ul);
+      Problem p(ul);      
+      env.setMainProblem(&p);
       Inferences::EqualityFactoring eqf(*alg);
       runGenerating(&eqf, stack, u->asClause());
   }
