@@ -403,7 +403,9 @@ sa=fmb > fmbsr ~uf 1.0,2.5
 > cbe ~cat on:100,off:65
 
 # add_proxy_axioms
-> apa ~cat off:100,on:13
+# TODO(HOL)
+#> apa ~cat off:100,on:13
+> apa ~cat off:100
 
 # bool_eq_trick
 > bet ~cat off:100,on:19
@@ -415,7 +417,9 @@ sa=fmb > fmbsr ~uf 1.0,2.5
 c=off > cs ~cat off:100,on:14
 
 # choice_ax
-> cha ~cat off:100,on:16
+# TODO(HOL)
+#> cha ~cat off:100,on:16
+> cha ~cat off:100
 
 # choice_reasoning
 cha=off > chr ~cat off:100,on:15
@@ -435,7 +439,9 @@ apa=off > cnfonf ~cat eager:111,off:43,lazy_gen:29,conj_eager:19,lazy_not_gen_be
 > e2e ~cat off:222,on:64
 
 # func_ext
-> fe ~cat abstraction:172,off:74,axiom:40
+# TODO(HOL)
+#> fe ~cat abstraction:172,off:74,axiom:40
+> fe ~cat abstraction:172,off:74
 
 # hol_unif_depth
 # TODO(HOL)
