@@ -1735,9 +1735,9 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
     if(env.options->cnfOnTheFly() == Options::CNFOnTheFly::EAGER){
       resMany.addFront(std::make_unique<EagerClausificationISE>());
     }
-    // if(env.options->iffXorRewriter()){
-    //   res->addFront(new IFFXORRewriterISE());
-    // }
+    if(env.options->iffXorRewriter()){
+      res->addFront(new IFFXORRewriterISE());
+    }
     res->addFront(new BoolSimp());
   }
 

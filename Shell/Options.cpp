@@ -1998,7 +1998,7 @@ void Options::init()
                                                                          "pi_sigma"});
     _piSet.description="Controls the set of equations to use in primitive instantiation";
     _lookup.insert(&_piSet);
-    _piSet.addProblemConstraint(hasHigherOrder());     
+    _piSet.addProblemConstraint(hasHigherOrder());
     _piSet.tag(OptionTag::HIGHER_ORDER);
 
     _equalityToEquivalence = BoolOptionValue("equality_to_equiv","e2e",false);
@@ -2032,6 +2032,13 @@ void Options::init()
     _lookup.insert(&_newTautologyDel);
     // potentially could be useful for FOOL, so am not adding the HOL constraint
     _newTautologyDel.tag(OptionTag::HIGHER_ORDER);
+
+    _iffXorRewriter = BoolOptionValue("iff_xor_rewriter","ixr",true);
+    _iffXorRewriter.description=
+    "Rewrites p <=> q = $true to p <=> q and the like. It does this as an immediate simplification.";
+    _lookup.insert(&_iffXorRewriter);
+    _iffXorRewriter.addProblemConstraint(hasHigherOrder());
+    _iffXorRewriter.tag(OptionTag::HIGHER_ORDER);
 
 //*********************** InstGen  ***********************
 // TODO not really InstGen any more, just global subsumption
@@ -2551,7 +2558,7 @@ void Options::output (std::ostream& str) const
      try{
        option = _lookup.findLong(name);
      }
-     catch(const ValueNotFoundException&){ 
+     catch(const ValueNotFoundException&){
        try{
          option = _lookup.findShort(name);
        }
@@ -2559,12 +2566,12 @@ void Options::output (std::ostream& str) const
          option = 0;
        }
      }
-     if(!option){ 
+     if(!option){
        str << name << " not a known option" << endl;
        Stack<std::string> sim_s = getSimilarOptionNames(name,true);
        Stack<std::string> sim_l = getSimilarOptionNames(name,false);
        VirtualIterator<std::string> sit = pvi(concatIters(
-           Stack<std::string>::Iterator(sim_s),Stack<std::string>::Iterator(sim_l))); 
+           Stack<std::string>::Iterator(sim_s),Stack<std::string>::Iterator(sim_l)));
         if(sit.hasNext()){
           std::string first = sit.next();
           str << "\tMaybe you meant ";

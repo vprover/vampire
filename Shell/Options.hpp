@@ -2302,6 +2302,7 @@ public:
   bool casesSimp() const { return _casesSimp.actualValue; }
   bool cases() const { return _cases.actualValue; }
   bool newTautologyDel() const { return _newTautologyDel.actualValue; }
+  bool iffXorRewriter() const { return _iffXorRewriter.actualValue; }
 
 private:
 
@@ -2728,6 +2729,7 @@ private:
   BoolOptionValue _casesSimp;
   BoolOptionValue _cases;
   BoolOptionValue _newTautologyDel;
+  BoolOptionValue _iffXorRewriter;
 
 }; // class Options
 
