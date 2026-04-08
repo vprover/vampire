@@ -68,6 +68,7 @@ set(UNIT_TESTS
     UnitTests/tInferences_HOL_ArgCong.cpp
     UnitTests/tInferences_HOL_BoolEqToDiseq.cpp
     UnitTests/tInferences_HOL_BoolSimp.cpp
+    UnitTests/tInferences_HOL_CasesSimp.cpp
     UnitTests/tInferences_HOL_BetaEtaSimplify.cpp
     UnitTests/tInferences_HOL_CNFOnTheFly.cpp
     UnitTests/tInferences_HOL_FlexFlexSimplify.cpp
@@ -246,16 +247,12 @@ set(SOURCES
     Inferences/BackwardSubsumptionDemodulation.hpp
     Inferences/BinaryResolution.cpp
     Inferences/BinaryResolution.hpp
-    Inferences/CNFOnTheFly.cpp
-    Inferences/CNFOnTheFly.hpp
     Inferences/Cancellation.cpp
     Inferences/Cancellation.cpp
     Inferences/Cancellation.hpp
     Inferences/Cancellation.hpp
     Inferences/Cases.cpp
     Inferences/Cases.hpp
-    Inferences/CasesSimp.cpp
-    Inferences/CasesSimp.hpp
     Inferences/Choice.cpp
     Inferences/Choice.hpp
     Inferences/CodeTreeForwardSubsumptionAndResolution.cpp
@@ -307,6 +304,10 @@ set(SOURCES
     Inferences/HOL/BoolEqToDiseq.hpp
     Inferences/HOL/BoolSimp.cpp
     Inferences/HOL/BoolSimp.hpp
+    Inferences/HOL/CasesSimp.cpp
+    Inferences/HOL/CasesSimp.hpp
+    Inferences/HOL/CNFOnTheFly.cpp
+    Inferences/HOL/CNFOnTheFly.hpp
     Inferences/HOL/FlexFlexSimplify.cpp
     Inferences/HOL/FlexFlexSimplify.hpp
     Inferences/HOL/ImitateProject.cpp

@@ -22,7 +22,6 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
-#include "Kernel/TermIterators.hpp"
 
 #include "CasesSimp.hpp"
 
@@ -30,14 +29,13 @@ namespace Inferences {
 
 using namespace std;
 
-
-ClauseIterator CasesSimp::performSimplification(Clause* premise, Literal* lit, TermList t) {
+ClauseIterator performCaseSimp(Clause* premise, Literal* lit, TermList t)
+{
   ASS(t.isTerm());
 
-  TermList lhs = *lit->nthArgument(0);
-  TermList rhs = *lit->nthArgument(1);
+  auto [lhs, rhs] = lit->eqArgs();
 
-  if((t == lhs) || (t == rhs)){
+  if (t == lhs || t == rhs) {
     return ClauseIterator::getEmpty();
   }
 
@@ -47,12 +45,11 @@ ClauseIterator CasesSimp::performSimplification(Clause* premise, Literal* lit, T
   Literal* litFols = Literal::createEquality(true, t, fols, AtomicSort::boolSort());
   Literal* litTroo = Literal::createEquality(true, t, troo, AtomicSort::boolSort());
 
-
   RStack<Literal*> resLits1;
   RStack<Literal*> resLits2;
 
-  // Copy the literals from the premise except for the one at `literalPosition`,
-  // that has the occurrence of `booleanTerm` replaced with false
+  // Copy the literals from the premise except for `lit`,
+  // that has the occurrence of `t` replaced with true and false
   for (auto curr : premise->iterLits()) {
     resLits1->push(curr != lit ? curr : EqHelper::replace(curr, t, troo));
     resLits2->push(curr != lit ? curr : EqHelper::replace(curr, t, fols));
@@ -68,44 +65,20 @@ ClauseIterator CasesSimp::performSimplification(Clause* premise, Literal* lit, T
   ));
 }
 
-
-struct CasesSimp::ResultFn
-{
-  ResultFn(Clause* cl, CasesSimp& parent) : _cl(cl), _parent(parent) {}
-  ClauseIterator operator()(pair<Literal*, TermList> arg)
-  {
-    return _parent.performSimplification(_cl, arg.first, arg.second);
-  }
-private:
-  Clause* _cl;
-  CasesSimp& _parent;
-};
-
-struct CasesSimp::RewriteableSubtermsFn
-{
-  RewriteableSubtermsFn() {}
-
-  VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
-  {
-    return pvi( pushPairIntoRightIterator(lit, 
-                getUniquePersistentIterator(vi(new BooleanSubtermIt(lit)))));
-  }
-
-};
-
-
 Option<ClauseIterator> CasesSimp::simplifyMany(Clause* premise)
 {
-  auto it1 = premise->getLiteralIterator();
-  auto it2 = getFilteredIterator(it1, isEqualityLit()); 
+  auto it = iterTraits(premise->iterLits())
+    // TODO aren't all literals equalities in the HOL setting?
+    .filter([](Literal* lit){ return lit->isEquality(); })
+    .flatMap([](Literal* lit) {
+      return pvi(pushPairIntoRightIterator(lit, getUniquePersistentIterator(vi(new BooleanSubtermIt(lit)))));
+    })
+    .flatMap([premise](pair<Literal*, TermList> arg) {
+      return performCaseSimp(premise, arg.first, arg.second);
+    });
 
-  auto it3 = getMapAndFlattenIterator(it2,RewriteableSubtermsFn());
-
-  //Perform  Narrow
-  auto it4 = getMapAndFlattenIterator(std::move(it3),ResultFn(premise, *this));
-
-  if (it4.hasNext()) {
-    return some(pvi(std::move(it4)));
+  if (it.hasNext()) {
+    return some(pvi(std::move(it)));
   } else {
     return {};
   }
