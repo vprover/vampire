@@ -8,7 +8,7 @@
  * and in the source directory
  */
 #include "Test/SyntaxSugar.hpp"
-#include "Inferences/CNFOnTheFly.hpp"
+#include "Inferences/HOL/CNFOnTheFly.hpp"
 
 #include "Test/SimplificationTester.hpp"
 

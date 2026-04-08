@@ -78,6 +78,7 @@
 #include "Inferences/HOL/BetaEtaSimplify.hpp"
 #include "Inferences/HOL/BoolEqToDiseq.hpp"
 #include "Inferences/HOL/BoolSimp.hpp"
+#include "Inferences/HOL/CNFOnTheFly.hpp"
 #include "Inferences/HOL/FlexFlexSimplify.hpp"
 #include "Inferences/HOL/ImitateProject.hpp"
 #include "Inferences/HOL/NegativeExtensionality.hpp"
@@ -96,7 +97,6 @@
 #include "Inferences/TautologyDeletionISE.hpp"
 #include "Inferences/CasesSimp.hpp"
 #include "Inferences/Cases.hpp"
-#include "Inferences/CNFOnTheFly.hpp"
 #include "Inferences/DefinitionIntroduction.hpp"
 #include "Inferences/LfpRule.hpp"
 
