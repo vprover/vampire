@@ -425,7 +425,8 @@ apa=on  > cnfonf ~cat off:1
 apa=off > cnfonf ~cat eager:111,off:43,lazy_gen:29,conj_eager:19,lazy_not_gen_be_off:15,lazy_pi_sigma_gen:26,lazy_not_be_gen:12,lazy_simp:19,lazy_not_gen:12
 
 # heur_inst
-cnfonf=conj_eager > hi ~cat off:100,on:5
+# TODO(HOL)
+#cnfonf=conj_eager > hi ~cat off:100,on:5
 
 # bool_inst (disable for now)
 # cnfonf!=off > bi ~cat off:1,abs:1,abs_sub:1
@@ -437,7 +438,8 @@ cnfonf=conj_eager > hi ~cat off:100,on:5
 > fe ~cat abstraction:172,off:74,axiom:40
 
 # hol_unif_depth
-> hud ~ui 0,25
+# TODO(HOL)
+#> hud ~ui 0,25
 
 # iff_xor_rewriter
 > ixr ~cat on:100,off:21
@@ -452,22 +454,26 @@ func_ext!=axiom > pe ~cat off:20,on:1
 > piset ~cat pragmatic:214,or:14,equals:19,and:15,not:3,pi_sigma:8,all:3,small_set:7,all_but_not_eq:3
 
 # pragmatic
-hud!=0 > prag ~cat off:1,on:1
+# TODO(HOL)
+#hud!=0 > prag ~cat off:1,on:1
 
 # applicative_unif
-> au ~cat off:10,on:3
+# TODO(HOL)
+#> au ~cat off:10,on:3
 
 # take_n_unifiers
-au=off > tnu ~ui 0,9
+# TODO(HOL)
+#au=off > tnu ~ui 0,9
 
 # injectivity
 > inj ~cat off:4,on:1
 
 # higher order split queue
-> hfsq ~cat off:10,on:1
-hfsq=on > hfsql ~cat off:1,on:4
-hfsq=on > hfsqc ~cat 0:80,1:30,2:20,3:20,4:10,5:5
-hfsq=on > hfsqr ~u2r -5;3;,
+# TODO(HOL)
+#> hfsq ~cat off:10,on:1
+#hfsq=on > hfsql ~cat off:1,on:4
+#hfsq=on > hfsqc ~cat 0:80,1:30,2:20,3:20,4:10,5:5
+#hfsq=on > hfsqr ~u2r -5;3;,
 
-hfsq=on > hflw ~cat 0:1,1:5,2:3,3:2,4:2,5:1
-hfsq=on > hfaw ~cat 0:1,1:5,2:3,3:2,4:2,5:1
+#hfsq=on > hflw ~cat 0:1,1:5,2:3,3:2,4:2,5:1
+#hfsq=on > hfaw ~cat 0:1,1:5,2:3,3:2,4:2,5:1

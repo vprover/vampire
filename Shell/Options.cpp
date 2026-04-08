@@ -1944,6 +1944,12 @@ void Options::init()
     _lookup.insert(&_holPrinting);
     _holPrinting.tag(OptionTag::HIGHER_ORDER);
 
+    _addProxyAxioms = BoolOptionValue("add_proxy_axioms","apa",false);
+    _addProxyAxioms.description="Add logical proxy axioms";
+    _lookup.insert(&_addProxyAxioms);
+    _addProxyAxioms.addProblemConstraint(hasHigherOrder());    
+    _addProxyAxioms.tag(OptionTag::HIGHER_ORDER);
+
     _choiceAxiom = BoolOptionValue("choice_ax","cha",false);
     _choiceAxiom.description="Adds the cnf form of the Hilbert choice axiom";
     _lookup.insert(&_choiceAxiom);
@@ -1975,12 +1981,14 @@ void Options::init()
 
     _clausificationOnTheFly = ChoiceOptionValue<CNFOnTheFly>("cnf_on_the_fly", "cnfonf", CNFOnTheFly::EAGER,
                                                              {"eager",
-                                                              "lazy_gen",
-                                                              "lazy_simp",
-                                                              "lazy_not_gen",
-                                                              "lazy_not_gen_be_off",
-                                                              "lazy_not_be_gen",
-                                                              "off"});
+                                                                "lazy_gen",
+                                                                "lazy_simp",
+                                                                "lazy_not_gen",
+                                                                "lazy_pi_sigma_gen",
+                                                                "lazy_not_gen_be_off",
+                                                                "lazy_not_be_gen",
+                                                                "conj_eager",
+                                                                "off"});
     _clausificationOnTheFly.description = "Various options linked to clausification on the fly";
     _lookup.insert(&_clausificationOnTheFly);
     _clausificationOnTheFly.addProblemConstraint(hasHigherOrder());
@@ -2008,6 +2016,24 @@ void Options::init()
     _lookup.insert(&_equalityToEquivalence);
     // potentially could be useful for FOOL, so am not adding the HOL constraint
 
+    _complexBooleanReasoning = BoolOptionValue("complex_bool_reasoning","cbe",true);
+    _complexBooleanReasoning.description=
+    "Switches on primitive instantiation and elimination of leibniz equality";
+    // TODO add this back to warn users about a suboptimal conf; but actually the two options do something together
+    // _complexBooleanReasoning.addConstraint(If(equal(true)).then(_addProxyAxioms.is(equal(false))));
+    _lookup.insert(&_complexBooleanReasoning);
+    _complexBooleanReasoning.addProblemConstraint(hasHigherOrder());
+    _complexBooleanReasoning.tag(OptionTag::HIGHER_ORDER);
+
+    _booleanEqTrick = BoolOptionValue("bool_eq_trick","bet",false);
+    _booleanEqTrick.description=
+    "Replace an equality between boolean terms such as: "
+    "t = s with a disequality t != vnot(s)"
+    " The theory is that this can help with EqRes";
+    _lookup.insert(&_booleanEqTrick);
+    // potentially could be useful for FOOL, so am not adding the HOL constraint    
+    _booleanEqTrick.tag(OptionTag::HIGHER_ORDER);
+
     _casesSimp = BoolOptionValue("cases_simp","cs",false);
     _casesSimp.description=
     "FOOL Paramodulation with two conclusion as a simplification";
@@ -2032,6 +2058,18 @@ void Options::init()
     _lookup.insert(&_newTautologyDel);
     // potentially could be useful for FOOL, so am not adding the HOL constraint
     _newTautologyDel.tag(OptionTag::HIGHER_ORDER);
+
+    _positiveExt = BoolOptionValue("pos_ext","pe",false);
+    _positiveExt.description=
+    "Enables the following inference\n"
+        "C \\/ t X = s X \n"
+        "----------------\n"
+        "  C \\/ t = s   \n"
+        "where X doesn't occur in t,s or C";
+    _lookup.insert(&_positiveExt);
+    _positiveExt.addProblemConstraint(hasHigherOrder());   
+    _positiveExt.onlyUsefulWith(_functionExtensionality.is(notEqual(FunctionExtensionality::AXIOM)));
+    _positiveExt.tag(OptionTag::HIGHER_ORDER);
 
     _iffXorRewriter = BoolOptionValue("iff_xor_rewriter","ixr",true);
     _iffXorRewriter.description=

@@ -1437,11 +1437,16 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   if (prb.isHigherOrder()){
     gie->addFront(new NegativeExtensionality(*res));
-    gie->addFront(new PositiveExtensionality(*res));
-    if(prb.hasFOOL()/*  && opt.booleanEqTrick() */){
+    if (opt.positiveExtensionality()) {
+      gie->addFront(new PositiveExtensionality(*res));
+    }
+    if(prb.hasFOOL() && opt.booleanEqTrick()){
       gie->addFront(new BoolEqToDiseq(*res));
     }
-    gie->addFront(new ImitateProject(*res));
+    if(true/* !opt.higherOrderUnifDepth() && !opt.applicativeUnify() */){
+      // only add when we are not carrying out higher-order unification
+      gie->addFront(new ImitateProject(*res));
+    }
   }
 
   if (opt.choiceReasoning()) {
@@ -1469,7 +1474,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new Cases(*res));
   }
 
-  if (/* opt.complexBooleanReasoning() &&  */prb.hasBoolVar() && prb.isHigherOrder()) {
+  if (opt.complexBooleanReasoning() && prb.hasBoolVar() && prb.isHigherOrder()) {
     gie->addFront(new PrimitiveInstantiation(*res)); //TODO only add in some cases
   }
 

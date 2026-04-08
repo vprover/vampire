@@ -40,15 +40,29 @@ static ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingForm
 Literal* boolEq(TermList lhs, TermList rhs) {
   return Literal::createEquality(true, lhs, rhs, AtomicSort::boolSort());
 }
-Literal* eqTroo(TermList lhs) { return boolEq(lhs, TermList(Term::foolTrue())); }
-Literal* eqFols(TermList lhs) { return boolEq(lhs, TermList(Term::foolFalse())); }
+Literal* eqTroo(TermList lhs) { return boolEq(lhs, HOL::create::top()); }
+Literal* eqFols(TermList lhs) { return boolEq(lhs, HOL::create::bottom()); }
 
 ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaIndex* index)
 {
+  static bool eager = env.options->cnfOnTheFly() == Options::CNFOnTheFly::EAGER;
+  static bool instantiations = env.options->cnfOnTheFly() == Options::CNFOnTheFly::CONJ_EAGER;
+  static bool simp = env.options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_SIMP || instantiations;
   static bool gen = env.options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_GEN;
   static bool simp_except_not_be_off = env.options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_SIMP_NOT_GEN_BOOL_EQ_OFF;
   static bool simp_except_not_and_be = env.options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_SIMP_NOT_GEN_BOOL_EQ_GEN;
-  bool not_be = simp_except_not_be_off || (!generating && simp_except_not_and_be);
+  static bool simp_except_pi_sigma_gen = env.options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_SIMP_PI_SIGMA_GEN;
+  // if we don't want to simplify <=>, or we want to simplify it as a generating inference, but we have reached here
+  // from a simplification inference, or the opposite
+  bool not_be = simp_except_not_be_off || (!generating && simp_except_not_and_be) ||
+                                          ( generating && simp_except_pi_sigma_gen);
+
+  if(generating && (eager || simp)){ return ClauseIterator::getEmpty(); }
+  if(!generating && gen){ return ClauseIterator::getEmpty(); }
+
+  if (instantiations) {
+    INVALID_OPERATION("Options::CNFOnTheFly::CONJ_EAGER not yet supported");
+  }
 
   static TermStack args;
 
@@ -85,8 +99,22 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
     }
 
     Proxy prox = env.signature->getFunction(head.term()->functor())->proxy();
-    if(generating && !gen && prox != Proxy::NOT){
-      continue;
+    // need to decide whether to continue at this point or not
+    if(simp_except_pi_sigma_gen){
+      if(generating && prox != Proxy::PI && prox != Proxy::SIGMA){
+        continue;
+      }
+      if(!generating && (prox == Proxy::PI || prox == Proxy::SIGMA)){
+        continue;
+      }
+    }
+    if(simp_except_not_be_off || simp_except_not_and_be){
+      if(generating && prox != Proxy::NOT){
+        continue;
+      }
+      if(!generating && prox == Proxy::NOT){
+        continue;
+      }
     }
 
     // Note: at this point we know that one equality argument is either
@@ -98,6 +126,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
       case Proxy::NOT_PROXY:
       case Proxy::IFF:
       case Proxy::XOR: {
+        // iff and xor are dealt with by IFFXORRewriter
         break;
       }
       case Proxy::OR: {
