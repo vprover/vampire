@@ -1406,7 +1406,11 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   CompositeGIE *gie = new CompositeGIE();
 
   if(opt.functionDefinitionIntroduction()) {
-    gie->addFront(new DefinitionIntroduction(*res));
+    if (prb.isHigherOrder()) {
+      gie->addFront(new DefinitionIntroduction<true>(*res));
+    } else {
+      gie->addFront(new DefinitionIntroduction<false>(*res));
+    }
   }
 
   //TODO here induction is last, is that right?
