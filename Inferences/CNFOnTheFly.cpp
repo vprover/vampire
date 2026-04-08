@@ -83,93 +83,102 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
     if (head.isVar()) {
       continue;
     }
-    Proxy prox = env.signature->getFunction(head.term()->functor())->proxy();
-    if(prox == Proxy::NOT_PROXY || prox == Proxy::IFF || prox == Proxy::XOR){
-      continue;
-    }
 
+    Proxy prox = env.signature->getFunction(head.term()->functor())->proxy();
     if(generating && !gen && prox != Proxy::NOT){
       continue;
     }
 
+    // Note: at this point we know that one equality argument is either
+    // troo or fols, so the other side must be a fully applied proxy,
+    // hence assertions about the size of args below suffices.
+  
     bool positive = HOL::isTrue(boolVal) == lit->polarity();
-
-    if((prox == Proxy::OR) && (args.size() == 2)){
-      if(positive){
-        return pvi(iterItems(replaceLits(c, lit, prox, false,
-          eqTroo(args[0]), eqTroo(args[1]))));
+    switch (prox) {
+      case Proxy::NOT_PROXY:
+      case Proxy::IFF:
+      case Proxy::XOR: {
+        break;
       }
-      return pvi(iterItems(
-        replaceLits(c, lit, prox, true, eqFols(args[0])),
-        replaceLits(c, lit, prox, true, eqFols(args[1]))
-      ));
-    }
-
-    if((prox == Proxy::AND) && (args.size() == 2)){
-      if(positive){
+      case Proxy::OR: {
+        ASS_EQ(args.size(),2);
+        if(positive){
+          return pvi(iterItems(replaceLits(c, lit, prox, false,
+            eqTroo(args[0]), eqTroo(args[1]))));
+        }
         return pvi(iterItems(
-          replaceLits(c, lit, prox, true, eqTroo(args[0])),
+          replaceLits(c, lit, prox, true, eqFols(args[0])),
+          replaceLits(c, lit, prox, true, eqFols(args[1]))
+        ));
+      }
+      case Proxy::AND: {
+        ASS_EQ(args.size(),2);
+        if(positive){
+          return pvi(iterItems(
+            replaceLits(c, lit, prox, true, eqTroo(args[0])),
+            replaceLits(c, lit, prox, true, eqTroo(args[1]))
+          ));
+        }
+        return pvi(iterItems(replaceLits(c, lit, prox, false,
+          eqFols(args[0]), eqFols(args[1]))));
+      }
+      case Proxy::IMP: {
+        ASS_EQ(args.size(),2);
+        if(positive){
+          return pvi(iterItems(replaceLits(c, lit, prox, false,
+            eqFols(args[1]), eqTroo(args[0]))));
+        }
+        return pvi(iterItems(
+          replaceLits(c, lit, prox, true, eqFols(args[0])),
           replaceLits(c, lit, prox, true, eqTroo(args[1]))
         ));
       }
-      return pvi(iterItems(replaceLits(c, lit, prox, false,
-        eqFols(args[0]), eqFols(args[1]))));
-    }
-
-    if((prox == Proxy::IMP) && (args.size() == 2)){
-      if(positive){
+      case Proxy::EQUALS: {
+        ASS_EQ(args.size(), 2);
+        TermList srt = *SortHelper::getResultSort(head.term()).term()->nthArgument(0);
         return pvi(iterItems(replaceLits(c, lit, prox, false,
-          eqFols(args[1]), eqTroo(args[0]))));
+          Literal::createEquality(positive, args[0], args[1], srt))));
       }
-      return pvi(iterItems(
-        replaceLits(c, lit, prox, true, eqFols(args[0])),
-        replaceLits(c, lit, prox, true, eqTroo(args[1]))
-      ));
-    }
-
-    if((prox == Proxy::EQUALS) && (args.size() == 2)){
-      TermList srt = *SortHelper::getResultSort(head.term()).term()->nthArgument(0);
-      return pvi(iterItems(replaceLits(c, lit, prox, false,
-        Literal::createEquality(positive, args[0], args[1], srt))));
-    }
-
-    if((prox == Proxy::NOT) && (args.size())){
-      return pvi(iterItems(replaceLits(c, lit, prox, false,
-        positive ? eqFols(args[0]) : eqTroo(args[0]))));
-    }
-
-    if((prox == Proxy::PI || prox == Proxy::SIGMA) && (args.size())){
-      TermList srt = *SortHelper::getResultSort(head.term()).term()->nthArgument(0);
-      TermList newTerm;
-      Proxy proxy;
-      if((prox == Proxy::PI && positive) ||
-         (prox == Proxy::SIGMA && !positive)){
-        proxy = Proxy::PI;
-        newTerm = piRemoval(args[0], c, srt);
-      } else {
-        ASS(term.isTerm());
-        bool newTermCreated = false;
-        if(index){
-          auto results = index->getGeneralizations(TypedTermList(term.term()), true);
-          if(results.hasNext()){
-            auto tqr = results.next();
-            TermList skolemTerm = tqr.data->value;
-            skolemTerm = tqr.unifier->applyToBoundResult(skolemTerm);
-            newTerm = HOL::create::app(srt, args[0], skolemTerm);
-            newTermCreated = true;
-          }
-        }
-        if(!newTermCreated){
-          TermList skolemTerm = sigmaRemoval(args[0], srt);
+      case Proxy::NOT: {
+        ASS_EQ(args.size(), 1);
+        return pvi(iterItems(replaceLits(c, lit, prox, false,
+          positive ? eqFols(args[0]) : eqTroo(args[0]))));
+      }
+      case Proxy::PI:
+      case Proxy::SIGMA: {
+        ASS_EQ(args.size(), 1);
+        TermList srt = *SortHelper::getResultSort(head.term()).term()->nthArgument(0);
+        TermList newTerm;
+        Proxy proxy;
+        if((prox == Proxy::PI && positive) ||
+          (prox == Proxy::SIGMA && !positive)){
+          proxy = Proxy::PI;
+          newTerm = piRemoval(args[0], c, srt);
+        } else {
+          ASS(term.isTerm());
+          bool newTermCreated = false;
           if(index){
-            index->insertFormula(TypedTermList(term.term()), skolemTerm);
+            auto results = index->getGeneralizations(TypedTermList(term.term()), true);
+            if(results.hasNext()){
+              auto tqr = results.next();
+              TermList skolemTerm = tqr.data->value;
+              skolemTerm = tqr.unifier->applyToBoundResult(skolemTerm);
+              newTerm = HOL::create::app(srt, args[0], skolemTerm);
+              newTermCreated = true;
+            }
           }
-          newTerm = HOL::create::app(srt, args[0], skolemTerm);
+          if(!newTermCreated){
+            TermList skolemTerm = sigmaRemoval(args[0], srt);
+            if(index){
+              index->insertFormula(TypedTermList(term.term()), skolemTerm);
+            }
+            newTerm = HOL::create::app(srt, args[0], skolemTerm);
+          }
+          proxy = Proxy::SIGMA;
         }
-        proxy = Proxy::SIGMA;
+        return pvi(iterItems(replaceLits(c, lit, proxy, false,
+          positive ? eqTroo(newTerm) : eqFols(newTerm))));
       }
-      return pvi(iterItems(replaceLits(c, lit, proxy, false,
-        positive ? eqTroo(newTerm) : eqFols(newTerm))));
     }
   }
   return ClauseIterator::getEmpty();
@@ -290,10 +299,8 @@ Clause* IFFXORRewriterISE::simplify(Clause* c){
 
   static TermStack args;
 
-  for(unsigned i = 0; i < c->length(); i++){
-    Literal* lit = (*c)[i];
-    TermList lhs = *lit->nthArgument(0);
-    TermList rhs = *lit->nthArgument(1);
+  for (const auto& lit : *c) {
+    auto [lhs, rhs] = lit->eqArgs();
     TermList term;
     TermList boolVal;
     if(HOL::isBool(lhs)){
@@ -314,10 +321,10 @@ Clause* IFFXORRewriterISE::simplify(Clause* c){
     }
     auto prox = env.signature->getFunction(head.term()->functor())->proxy();
 
-    if((prox == Proxy::IFF || prox == Proxy::XOR) && (args.size() == 2)){
-      bool polarity = (prox == Proxy::IFF) == positive;
-      auto l1 = Literal::createEquality(polarity, args[0], args[1], boolSort);
-      return replaceLits(c, lit, prox, false, l1);
+    if (prox == Proxy::IFF || prox == Proxy::XOR) {
+      ASS_EQ(args.size(),2);
+      return replaceLits(c, lit, prox, false,
+        Literal::createEquality((prox == Proxy::IFF) == positive, args[0], args[1], boolSort));
     }
   }
 

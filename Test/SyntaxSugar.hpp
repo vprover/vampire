@@ -62,6 +62,7 @@
 #define DECL_OR_PROXY auto orP = TermSugar(HOL::create::disj());
 #define DECL_IMP_PROXY auto impP = TermSugar(HOL::create::imp());
 #define DECL_IFF_PROXY auto iffP = TermSugar(HOL::create::iff());
+#define DECL_XOR_PROXY auto xorP = TermSugar(HOL::create::xorP());
 #define DECL_EQ_PROXY auto eqP = FuncSugar(env.signature->getEqualityProxy());
 #define DECL_PI_PROXY auto piP = FuncSugar(env.signature->getPiSigmaProxy("vPI"));
 #define DECL_SIGMA_PROXY auto sigmaP = FuncSugar(env.signature->getPiSigmaProxy("vSIGMA"));

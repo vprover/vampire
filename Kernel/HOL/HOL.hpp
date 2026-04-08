@@ -107,6 +107,7 @@ namespace HOL::create {
   TermList disj();
   TermList imp();
   TermList iff();
+  TermList xorP();
   TermList equality(TermList sort);
   TermList neg();
   TermList pi(TermList sort);
