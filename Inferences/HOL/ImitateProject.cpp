@@ -35,7 +35,7 @@ using namespace Saturation;
 
 struct ImitateProjectFn
 {
-  ImitateProjectFn(Clause* cl) : _cl(cl), _maxVar(cl->maxVar()) {}
+  ImitateProjectFn(Clause* cl) : _cl(cl), _maxVar(cl->maxVar()+1) {}
 
   ClauseIterator operator() (Literal* lit)
   {
