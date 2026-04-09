@@ -9,12 +9,8 @@
  */
 /**
  * @file CasesSimp.cpp
- * Implements the inference rule, that is needed for efficient treatment of
- * boolean terms. The details of why it is needed are in the paper
- * "A First Class Boolean Sort in First-Order Theorem Proving and TPTP"
- * by Kotelnikov, Kovacs and Voronkov [1].
- *
- * [1] http://arxiv.org/abs/1505.01682
+ * Higher-order, simplifying variant of FOOL paramodulation.
+ * @see Cases and FOOLParamodulation classes.
  */
 
 #include "Kernel/Clause.hpp"
@@ -29,52 +25,49 @@ namespace Inferences {
 
 using namespace std;
 
-ClauseIterator performCaseSimp(Clause* premise, Literal* lit, TermList t)
+Clause* performCaseSimp(Clause* premise, Literal* lit, TermList t, bool replaceWithTroo)
 {
   ASS(t.isTerm());
-
-  auto [lhs, rhs] = lit->eqArgs();
-
-  if (t == lhs || t == rhs) {
-    return ClauseIterator::getEmpty();
-  }
 
   static TermList troo(Term::foolTrue());
   static TermList fols(Term::foolFalse());
 
-  Literal* litFols = Literal::createEquality(true, t, fols, AtomicSort::boolSort());
-  Literal* litTroo = Literal::createEquality(true, t, troo, AtomicSort::boolSort());
+  auto newLit = Literal::createEquality(true, t,
+    replaceWithTroo ? fols : troo, AtomicSort::boolSort());
 
-  RStack<Literal*> resLits1;
-  RStack<Literal*> resLits2;
+  RStack<Literal*> resLits;
 
   // Copy the literals from the premise except for `lit`,
-  // that has the occurrence of `t` replaced with true and false
+  // that has the occurrence of `t` replaced with troo or fols
   for (auto curr : premise->iterLits()) {
-    resLits1->push(curr != lit ? curr : EqHelper::replace(curr, t, troo));
-    resLits2->push(curr != lit ? curr : EqHelper::replace(curr, t, fols));
+    resLits->push(curr != lit ? curr : EqHelper::replace(curr, t, replaceWithTroo ? troo : fols));
   }
 
-  // Add s = false to the clause
-  resLits1->push(litFols);
-  resLits2->push(litTroo);
+  // Add new lit to the clause
+  resLits->push(newLit);
 
-  return pvi(iterItems(
-    Clause::fromStack(*resLits1, SimplifyingInference1(InferenceRule::CASES_SIMP, premise)),
-    Clause::fromStack(*resLits2, SimplifyingInference1(InferenceRule::CASES_SIMP, premise))
-  ));
+  return Clause::fromStack(*resLits, SimplifyingInference1(InferenceRule::CASES_SIMP, premise));
 }
 
 Option<ClauseIterator> CasesSimp::simplifyMany(Clause* premise)
 {
+  // TODO if this is a simplification, we shouldn't perform it on all subterms, just on the first we find.
   auto it = iterTraits(premise->iterLits())
     // TODO aren't all literals equalities in the HOL setting?
     .filter([](Literal* lit){ return lit->isEquality(); })
     .flatMap([](Literal* lit) {
       return pvi(pushPairIntoRightIterator(lit, getUniquePersistentIterator(vi(new BooleanSubtermIt(lit)))));
     })
+    // filter out top-level terms
+    .filter([](pair<Literal*, TermList> arg) {
+      auto [lhs, rhs] = arg.first->eqArgs();
+      return lhs != arg.second && rhs != arg.second;
+    })
     .flatMap([premise](pair<Literal*, TermList> arg) {
-      return performCaseSimp(premise, arg.first, arg.second);
+      return pvi(iterItems(
+        performCaseSimp(premise, arg.first, arg.second, true),
+        performCaseSimp(premise, arg.first, arg.second, false)
+      ));
     });
 
   if (it.hasNext()) {

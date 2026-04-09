@@ -7,10 +7,10 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
-#include "Test/SimplificationTester.hpp"
+#include "Test/GenerationTester.hpp"
 #include "Test/SyntaxSugar.hpp"
 
-#include "Inferences/HOL/CasesSimp.hpp"
+#include "Inferences/Cases.hpp"
 
 using namespace Test;
 
@@ -28,44 +28,59 @@ using namespace Test;
   DECL_CONST(f, arrow(Bool,srt))                   \
   DECL_CONST(p, arrow(srt,Bool))
 
-#define MY_SIMPL_TESTER Simplification::SimplificationTester
-#define MY_SIMPL_RULE   CasesSimp
+#define MY_GEN_TESTER Generation::GenerationTester
+#define MY_GEN_RULE   Cases
 
-TEST_SIMPLIFY_MANY(fail_1,
-  Simplification::NotApplicableMany()
-    .input(clause({ ap(andP, fols) == lam(Bool,troo) }))
+// not performed for partially applied Boolean functions
+TEST_GENERATION(fail_1,
+  Generation::AsymmetricTest()
+    .input(clause({ selected(ap(andP, fols) == lam(Bool,troo)) }))
+    .expected(none())
   )
 
-TEST_SIMPLIFY_MANY(fail_2,
-  Simplification::NotApplicableMany()
-    .input(clause({ a == b }))
+// not performed for top-level Booleans
+TEST_GENERATION(fail_2,
+  Generation::AsymmetricTest()
+    .input(clause({ selected(a == b) }))
+    .expected(none())
   )
 
-TEST_SIMPLIFY_MANY(success_1,
-  Simplification::SuccessMany()
+// not performed for non-selected literals
+TEST_GENERATION(fail_3,
+  Generation::AsymmetricTest()
     .input(clause({ ap(f, ap(notP, a)) == c }))
+    .expected(none())
+  )
+
+TEST_GENERATION(success_1,
+  Generation::AsymmetricTest()
+    .input(clause({ selected(ap(f, ap(notP, a)) == c) }))
     .expected({
       clause({ ap(f, ap(notP, troo)) == c, a == fols }),
-      clause({ ap(f, ap(notP, fols)) == c, a == troo }),
       clause({ ap(f, troo) == c, ap(notP, a) == fols }),
-      clause({ ap(f, fols) == c, ap(notP, a) == troo }),
     })
   )
 
-TEST_SIMPLIFY_MANY(success_2,
-  Simplification::SuccessMany()
-    .input(clause({ ap(andP, b) != lam(Bool,a) }))
+TEST_GENERATION(success_2,
+  Generation::AsymmetricTest()
+    .input(clause({ selected(ap(andP, b) != lam(Bool,a)) }))
     .expected({
       clause({ ap(andP, troo) != lam(Bool,a), b == fols }),
-      clause({ ap(andP, fols) != lam(Bool,a), b == troo })
     })
   )
 
-TEST_SIMPLIFY_MANY(success_3,
-  Simplification::SuccessMany()
-    .input(clause({ ap(f, ap(p, x)) == y, ap(p, x) == a }))
+TEST_GENERATION(success_4,
+  Generation::AsymmetricTest()
+    .input(clause({ selected(ap(f, ap(p, x)) == y), ap(p, x) != a }))
+    .expected({
+      clause({ ap(f, troo) == y, ap(p, x) != a, ap(p, x) == fols }),
+    })
+  )
+
+TEST_GENERATION(success_3,
+  Generation::AsymmetricTest()
+    .input(clause({ selected(ap(f, ap(p, x)) == y), selected(ap(p, x) == a) }))
     .expected({
       clause({ ap(f, troo) == y, ap(p, x) == a, ap(p, x) == fols }),
-      clause({ ap(f, fols) == y, ap(p, x) == a, ap(p, x) == troo }),
     })
   )

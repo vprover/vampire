@@ -7,10 +7,10 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
-#include "Test/SyntaxSugar.hpp"
-#include "Inferences/HOL/BoolSimp.hpp"
-
 #include "Test/SimplificationTester.hpp"
+#include "Test/SyntaxSugar.hpp"
+
+#include "Inferences/HOL/BoolSimp.hpp"
 
 using namespace Test;
 
