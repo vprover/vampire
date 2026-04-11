@@ -346,7 +346,7 @@ public:
 
 protected:
   /** number of literals */
-  unsigned _length : 20;
+  unsigned _length;
   /** clause color, or COLOR_INVALID if not determined yet */
   mutable unsigned _color : 2;
   /** Clause was matched as extensionality and is tracked in the extensionality
@@ -361,29 +361,28 @@ protected:
   /** storage class */
   Store _store : 3;
   /** number of selected literals */
-  unsigned _numSelected : 20;
+  unsigned _numSelected : 24;
 
   /** weight */
-  mutable unsigned _weight;
+  mutable unsigned _weight = 0;
   /** weight for clause selection */
-  unsigned _weightForClauseSelection;
+  unsigned _weightForClauseSelection = 0;
 
   /** number of references to this clause */
-  unsigned _refCnt;
+  unsigned _refCnt = 0;
   /** for splitting: timestamp marking when has the clause been reduced or restored by splitting */
-  unsigned _reductionTimestamp;
+  unsigned _reductionTimestamp = 0;
+  int _numActiveSplits = 0;
+
+  size_t _auxTimestamp = 0;
+
   /** a map that translates Literal* to its index in the clause */
-  InverseLookup<Literal>* _literalPositions;
-
-  int _numActiveSplits;
-
-  size_t _auxTimestamp;
+  InverseLookup<Literal>* _literalPositions = nullptr;
 
   static size_t _auxCurrTimestamp;
 #if VDEBUG
   static bool _auxInUse;
 #endif
-
 
   /** Array of literals of this unit */
   Literal* _literals[1];

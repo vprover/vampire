@@ -18,8 +18,6 @@
 #include "Kernel/TypedTermList.hpp"
 #include "Lib/Environment.hpp"
 
-#include <optional>
-
 /**
  * This namespace contains several helper functions to deal with higher-order terms.
  */
@@ -50,6 +48,9 @@ TermList getResultAppliedToNArgs(TermList arrowSort, unsigned argNum);
 unsigned getArity(TermList sort);
 TermList getDeBruijnIndex(int index, TermList sort);
 
+void getArgSorts(TermList t, TermStack& sorts);
+TermStack getArgSorts(TermList t);
+
 void getHeadSortAndArgs(TermList term, TermList& head, TermList& headSort, TermStack& args);
 void getHeadArgsAndArgSorts(TermList t, TermList& head, TermStack& args, TermStack& argSorts);
 
@@ -64,14 +65,19 @@ inline bool canHeadReduce(const TermList& head, const TermStack& args) {
   return head.isLambdaTerm() && args.isNonEmpty();
 }
 
+TermList createGeneralBinding(TermList head, const TermStack& sorts, unsigned& freshVar, bool surround = true);
+
 } // namespace HOL
 
 namespace HOL::create {
   TermList app(TermList sort, TermList head, TermList arg);
   TermList app(TermList head, TermList arg);
   TermList app(TermList s1, TermList s2, TermList arg1, TermList arg2, bool shared = true);
-  TermList app(TermList sort, TermList head, const TermStack& terms);
-  TermList app(TermList head, const TermStack& terms);
+  // With head h and a stack or arguments (a1,...an) from bottom to top, we get h @ an @ ... @ a1
+  // with fromTop = true, while h @ a1 @ ... @ an with fromTop = false.
+  // TODO I think due to the default fromTop==true, some call sites might be wrong, double check
+  TermList app(TermList sort, TermList head, const TermStack& terms, bool fromTop = true);
+  TermList app(TermList head, const TermStack& terms, bool fromTop = true);
 
   inline TermList app2(TermList sort, TermList head, TermList arg1, TermList arg2) {
     return app(app(sort, head, arg1), arg2);
@@ -83,6 +89,11 @@ namespace HOL::create {
     return app2(head.resultSort(), head, arg1, arg2);
   }
 
+  TermList top();
+  TermList bottom();
+  TermList conj();
+  TermList disj();
+  TermList imp();  
   TermList equality(TermList sort);
   TermList neg();
   TermList pi(TermList sort);
@@ -94,8 +105,10 @@ namespace HOL::create {
   TermList namelessLambda(TermList varSort, TermList termSort, TermList term);
   TermList namelessLambda(TermList varSort, TermList term);
 
-  TermList surroundWithLambdas(TermList t, TermStack& sorts, bool fromTop = false);
-  TermList surroundWithLambdas(TermList t, TermStack& sorts, TermList sort, bool fromTop = false);
+  // With term t and a stack or sorts (s1,...sn) from bottom to top, we get λ_{s1}...λ_{sn}.t
+  // with fromTop = true, while λ_{sn}...λ_{s1}.t with fromTop = false.
+  TermList surroundWithLambdas(TermList t, const TermStack& sorts, bool fromTop = false);
+  TermList surroundWithLambdas(TermList t, const TermStack& sorts, TermList sort, bool fromTop = false);
 
   TermList placeholder(TermList sort);
 } // namespace HOL::create

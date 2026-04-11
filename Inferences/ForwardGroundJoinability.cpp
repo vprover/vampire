@@ -48,14 +48,16 @@ struct Applicator : SubstApplicator {
 
 } // end namespace
 
-ForwardGroundJoinability::ForwardGroundJoinability(SaturationAlgorithm& salg)
+template<bool higherOrder>
+ForwardGroundJoinability<higherOrder>::ForwardGroundJoinability(SaturationAlgorithm& salg)
   : _ord(salg.getOrdering()),
-    _index(salg.getSimplifyingIndex<DemodulationLHSIndex>())
+    _index(salg.getSimplifyingIndex<DemodulationLHSIndex<higherOrder>>())
 {}
 
 #define ITERATION_LIMIT 500
 
-bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
+template<bool higherOrder>
+bool ForwardGroundJoinability<higherOrder>::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   // cout << "trying " << *cl << endl;
 
@@ -182,7 +184,8 @@ LOOP_END:
   return true;
 }
 
-ForwardGroundJoinability::RedundancyCheck::RedundancyCheck(const Ordering& ord, Literal* data)
+template<bool higherOrder>
+ForwardGroundJoinability<higherOrder>::RedundancyCheck::RedundancyCheck(const Ordering& ord, Literal* data)
   : tod(ord.createTermOrderingDiagram(/*ground=*/true)), traversal(tod.get(), nullptr)
 {
   tod->_source = Branch(data, tod->_sink);
@@ -191,7 +194,8 @@ ForwardGroundJoinability::RedundancyCheck::RedundancyCheck(const Ordering& ord, 
   ASS_EQ(_curr,&tod->_source);
 }
 
-std::pair<Literal*,const TermPartialOrdering*> ForwardGroundJoinability::RedundancyCheck::next(
+template<bool higherOrder>
+std::pair<Literal*,const TermPartialOrdering*> ForwardGroundJoinability<higherOrder>::RedundancyCheck::next(
   Stack<TermOrderingConstraint> ordCons, Literal* data)
 {
   static Ordering::Result ordVals[] = { Ordering::EQUAL, Ordering::GREATER, Ordering::INCOMPARABLE };
@@ -250,7 +254,8 @@ std::pair<Literal*,const TermPartialOrdering*> ForwardGroundJoinability::Redunda
   return { nullptr, nullptr };
 }
 
-bool ForwardGroundJoinability::makeEqual(Literal* lit, Stack<TermOrderingConstraint>& res)
+template<bool higherOrder>
+bool ForwardGroundJoinability<higherOrder>::makeEqual(Literal* lit, Stack<TermOrderingConstraint>& res)
 {
   ASS(lit->isEquality());
   ASS(lit->isPositive());
@@ -290,5 +295,8 @@ bool ForwardGroundJoinability::makeEqual(Literal* lit, Stack<TermOrderingConstra
   }
   return true;
 }
+
+template class ForwardGroundJoinability<false>;
+template class ForwardGroundJoinability<true>;
 
 }

@@ -544,42 +544,37 @@ void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
    * we remove the literal.
    */
 
+  // Cache binding list lookups: many occurrences share the same BindingList*,
+  // so we scan each distinct list at most once for `var`.
+  // A cached value of nullptr means "var not found in this list".
+  DHMap<BindingList*, Term*> lookupCache;
+
   while (occurrences.isNonEmpty()) {
     Occurrence occ = pop(occurrences);
     SIGN occurrenceSign = (sign == occ.sign()) ? POSITIVE : NEGATIVE;
 
-    bool bound = false;
-    Term* skolem;
-
+    // Look up the skolem term bound to var in either binding list
     // MS: can a non-fool binding ever map a bool var?
-    BindingList::Iterator bit(occ.gc->bindings);
-    while (bit.hasNext()) {
-      Binding binding = bit.next();
-
-      if (binding.first == var) {
-        bound = true;
-        skolem = binding.second;
-        break;
-      }
-    }
-
-    if (!bound) {
-      BindingList::Iterator fbit(occ.gc->foolBindings);
-      while (fbit.hasNext()) {
-        Binding binding = fbit.next();
-
-        if (binding.first == var) {
-          bound = true;
-          skolem = binding.second;
-          break;
+    Term* skolem = nullptr;
+    for (auto* lst : { occ.gc->bindings, occ.gc->foolBindings }) {
+      Term** cached = lookupCache.findPtr(lst);
+      if (cached) {
+        skolem = *cached;
+      } else {
+        for (auto [ex_var, sk_term] : iterTraits(BindingList::Iterator(lst))) {
+          if (ex_var == var) {
+            skolem = sk_term;
+            break;
+          }
         }
+        lookupCache.insert(lst, skolem);
       }
+      if (skolem) break;
     }
 
-    if (!bound) {
+    if (!skolem) {
       Term* constant = (occurrenceSign == POSITIVE) ? Term::foolFalse() : Term::foolTrue();
       // MS: pushAndRemember is not enough; bindings could already be mentioning var on the rhs!
-      // (BTW, scanning bindings for a second time, which is already ugly and potentially quadratic)
       _bindingStore.pushAndRememberWhileApplying(Binding(var, constant), occ.gc->bindings);
       removeGenLit(occ);
       continue;
@@ -1167,8 +1162,8 @@ void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
     case SpecialFunctor::ITE: {
       Formula* condition = sd->getITECondition();
 
-      Formula* left = BoolTermFormula::create(*term->nthArgument(LEFT));
-      Formula* right = BoolTermFormula::create(*term->nthArgument(RIGHT));
+      Formula* left = BoolTermFormula::create(*term->nthArgument(0));
+      Formula* right = BoolTermFormula::create(*term->nthArgument(1));
       processITE(condition, left, right, occurrences);
       return;
     }
@@ -1342,6 +1337,12 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
 
   List<List<GenLit>*>* genClauses = new List<List<GenLit>*>(initLiterals);
 
+  // Cache free variable sets per clause pointer. Clauses that don't contain
+  // the current variable pass through unchanged, keeping the same pointer,
+  // so subsequent iterations get O(1) membership checks instead of
+  // repeated formula traversals.
+  DHMap<List<GenLit>*, VarSet*> clauseFreeVarCache;
+
   unsigned iteCounter = 0;
   while (variables.isNonEmpty()) {
     unsigned variable = variables.pop();
@@ -1355,24 +1356,32 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
 
     List<List<GenLit>*>* processedGenClauses(0);
 
+    // Check whether a variable occurs free in any gen literal of a clause.
+    // We might have a predicate skolem binding for a variable that does not
+    // occur in the generalised clause.
+    // We cache the free variable set per clause pointer so that clauses
+    // passing through unchanged across outer-loop iterations get O(1) lookups
+    // instead of repeated full formula traversals.
+    auto varOccursIn = [&clauseFreeVarCache](List<GenLit>* gls, unsigned variable) {
+      VarSet* fvs;
+      if (!clauseFreeVarCache.find(gls, fvs)) {
+        fvs = VarSet::getEmpty();
+        List<GenLit>::Iterator glsit(gls);
+        while (glsit.hasNext()) {
+          GenLit gl = glsit.next();
+          FormulaVarIterator fvi(formula(gl));
+          fvs = fvs->getUnion(VarSet::getFromIterator(fvi));
+        }
+        clauseFreeVarCache.insert(gls, fvs);
+      }
+      return fvs->member(variable);
+    };
+
     if (shouldInlineITE(iteCounter)) {
       while (List<List<GenLit>*>::isNonEmpty(genClauses)) {
         List<GenLit>* gls = List<List<GenLit>*>::pop(genClauses);
 
-        bool occurs = false;
-        // We might have a predicate skolem binding for a variable that does not
-        // occur in the generalised clause.
-        // TODO: optimize?
-        List<GenLit>::Iterator glsit(gls);
-        while (glsit.hasNext()) {
-          GenLit gl = glsit.next();
-          if (isFreeVariableOf(formula(gl),variable)) {
-            occurs = true;
-            break;
-          }
-        }
-
-        if (!occurs) {
+        if (!varOccursIn(gls, variable)) {
           List<List<GenLit>*>::push(gls, processedGenClauses);
           continue;
         }
@@ -1401,20 +1410,7 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
       while (List<List<GenLit>*>::isNonEmpty(genClauses)) {
         List<GenLit>* gls = List<List<GenLit>*>::pop(genClauses);
 
-        bool occurs = false;
-        // We might have a predicate skolem binding for a variable that does not
-        // occur in the generalised clause.
-        // TODO: optimize?
-        List<GenLit>::Iterator glsit(gls);
-        while (glsit.hasNext()) {
-          GenLit gl = glsit.next();
-          if (isFreeVariableOf(formula(gl),variable)) {
-            occurs = true;
-            break;
-          }
-        }
-
-        if (!occurs) {
+        if (!varOccursIn(gls, variable)) {
           List<List<GenLit>*>::push(gls, processedGenClauses);
           continue;
         }
@@ -1462,7 +1458,7 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
 #endif
 }
 
-bool NewCNF::mapSubstitution(List<GenLit>* clause, Substitution subst, bool onlyFormulaLevel, List<GenLit>* &output)
+bool NewCNF::mapSubstitution(List<GenLit>* clause, const Substitution& subst, bool onlyFormulaLevel, List<GenLit>* &output)
 {
   List<GenLit>::Iterator it(clause);
   while (it.hasNext()) {

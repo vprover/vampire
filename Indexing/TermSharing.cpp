@@ -79,7 +79,7 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
     unsigned weight = 1;
     unsigned vars = 0;
     bool hasInterpretedConstants=t->arity()==0 &&
-	env.signature->getFunction(t->functor())->interpreted();
+      env.signature->getFunction(t->functor())->interpreted();
     bool hasTermVar = false;
     bool hasDeBruijnIndex = t->deBruijnIndex().isSome();
     bool hasRedex = t->isRedex();
@@ -224,6 +224,12 @@ void TermSharing::computeAndSetSharedLiteralData(Literal* t)
         }
         if(!hasInterpretedConstants && r->hasInterpretedConstants()) {
           hasInterpretedConstants=true;
+        }
+        // when creating a literal, there shouldn't be loose DB indices
+        if (env.higherOrder()) {
+          if (tt->containsLooseDBIndex()) {
+            INVALID_OPERATION("Trying to create shared literal with loose DB index: "+tt->toString());
+          }
         }
       }
     }

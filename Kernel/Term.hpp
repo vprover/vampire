@@ -292,6 +292,10 @@ public:
   bool isPlaceholder() const;
 
   Option<unsigned> deBruijnIndex() const;
+  /* Checks whether a term contains a loose, or unbound DB index.
+   * In other words, it returns true if there is a db_i in the
+   * term that is not wrapped into i lambda binders. */ 
+  bool containsLooseDBIndex() const;
   TermList lhs() const;
   TermList rhs() const;
   TermList lambdaBody() const;
@@ -1046,8 +1050,11 @@ public:
   bool isTupleSort() const;
 
   const std::string& typeConName() const;  
-  
-  static TermList arrowSort(const TermStack& domSorts, TermList range);
+
+  // With a stack (s1,...sn) from bottom to top, we get s1 -> (... -> sn) with fromTop = true,
+  // while sn -> (... -> s1) with fromTop = false.
+  // TODO check also this, some call sites might be wrong
+  static TermList arrowSort(const TermStack& domSorts, TermList range, bool fromTop = false);
   static TermList arrowSort(TermList s1, TermList s2);
   static TermList arrowSort(unsigned size, const TermList* types, TermList range);
   static TermList arrowSort(const std::initializer_list<TermList>& types);
@@ -1113,6 +1120,7 @@ public:
   { _args[0]._setPolarity(positive); }
 
   TermList eqArgSort() const;
+  std::pair<TermList, TermList> eqArgs() const;
   
   // prevent bugs through implicit bool <-> unsigned conversions
   template<class Iter> static Literal* createFromIter(unsigned predicate, unsigned polarity, Iter iter) = delete;
@@ -1205,6 +1213,11 @@ public:
   static Literal* positiveLiteral(Literal* l) {
     return l->isPositive() ? l : complementaryLiteral(l);
   }
+
+  // disequation of the form λ x s ≉ λ y t, where x and y are not lambda-bound variables.
+  bool isFlexFlexConstraint() const;
+  // (dis)equation of the form λ x s ≉ λ f t, where x is a variable that not lambda-bound, and f a constant.
+  bool isFlexRigid() const;
 
   // destructively swap arguments of an equation
   // the term is assumed to be non-shared

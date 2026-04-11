@@ -198,8 +198,8 @@ public:
   inline
   C& operator[](size_t n)
   {
-    ASS(n >= 0);
-    ASS(_stack+n < _cursor);
+    ASS_GE(n, 0);
+    ASS_L(_stack+n, _cursor);
 
     return _stack[n];
   } // operator[]
@@ -208,8 +208,8 @@ public:
   inline
   const C& operator[](size_t n) const
   {
-    ASS(n >= 0);
-    ASS(_stack+n < _cursor);
+    ASS_GE(n, 0);
+    ASS_L(_stack+n, _cursor);
 
     return _stack[n];
   }
