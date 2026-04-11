@@ -15,6 +15,25 @@
 
 using namespace Shell;
 
+namespace {
+
+UnitList* unitListOf(std::initializer_list<Unit*> units)
+{
+  auto out = UnitList::empty();
+  for (auto unit : units) {
+    UnitList::push(unit, out);
+  }
+  return out;
+}
+
+bool hasEssentiallyBSR(std::initializer_list<Unit*> units)
+{
+  auto prop = Property::scan(unitListOf(units));
+  return prop->hasProp(Property::PR_ESSENTIALLY_BSR);
+}
+
+}
+
 /**
  * NECESSARY: We need to tell the tester which syntax sugar to import for creating terms & clauses.
  * See Test/SyntaxSugar.hpp for which kinds of syntax sugar are available
@@ -202,4 +221,63 @@ TEST_FUN(hasXEqualsY_true_formula) {
 TEST_FUN(hasXEqualsY_false_formula) {
   __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
   ASS(!Property::hasXEqualsY(falseF()));
+}
+
+// ==================== onlyExistsForallPrefix(UnitList*) / PR_ESSENTIALLY_BSR tests ====================
+
+TEST_FUN(essentiallyBSR_literal_or_clause_only) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
+  ASS(hasEssentiallyBSR({
+    clause({sorted(x, s) == y, ~p(x)}),
+    formulaUnit(atom(sorted(x, s) == y))
+  }));
+}
+
+TEST_FUN(essentiallyBSR_exists_then_forall) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
+  ASS(hasEssentiallyBSR({
+    formulaUnit(exists({x}, s, forall({y}, s, atom(sorted(x, s) == y))))
+  }));
+}
+
+TEST_FUN(essentiallyBSR_negated_forall_then_exists) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
+  ASS(hasEssentiallyBSR({
+    formulaUnit(neg(forall({x}, s, exists({y}, s, atom(sorted(x, s) == y)))))
+  }));
+}
+
+TEST_FUN(essentiallyBSR_iff_single_quantifier) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
+  ASS(hasEssentiallyBSR({
+    formulaUnit(iff(forall({x}, s, atom(p(x))), atom(p(y))))
+  }));
+}
+
+TEST_FUN(essentiallyBSR_forall_then_exists_rejected) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
+  ASS(!hasEssentiallyBSR({
+    formulaUnit(forall({x}, s, exists({y}, s, atom(sorted(x, s) == y))))
+  }));
+}
+
+TEST_FUN(essentiallyBSR_negated_exists_then_forall_rejected) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
+  ASS(!hasEssentiallyBSR({
+    formulaUnit(neg(exists({x}, s, forall({y}, s, atom(sorted(x, s) == y)))))
+  }));
+}
+
+TEST_FUN(essentiallyBSR_iff_nested_quantifier_rejected) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
+  ASS(!hasEssentiallyBSR({
+    formulaUnit(iff(forall({x}, s, exists({y}, s, atom(sorted(x, s) == y))), atom(p(z))))
+  }));
+}
+
+TEST_FUN(essentiallyBSR_blocked_by_function_arity) {
+  __ALLOW_UNUSED(MY_SYNTAX_SUGAR);
+  ASS(!hasEssentiallyBSR({
+    formulaUnit(exists({x}, s, forall({y}, s, atom(f(x) == y))))
+  }));
 }
