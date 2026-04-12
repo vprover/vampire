@@ -69,6 +69,7 @@ set(UNIT_TESTS
     UnitTests/tInferences_HOL_BoolEqToDiseq.cpp
     UnitTests/tInferences_HOL_BetaEtaSimplify.cpp
     UnitTests/tInferences_HOL_FlexFlexSimplify.cpp
+    UnitTests/tInferences_HOL_LeibnizEqualityElimination.cpp
     UnitTests/tInferences_HOL_NegativeExtensionality.cpp
     UnitTests/tInferences_HOL_PositiveExtensionality.cpp
     UnitTests/tInferences_HOL_PrimitiveInstantiation.cpp
@@ -306,6 +307,8 @@ set(SOURCES
     Inferences/HOL/BoolEqToDiseq.hpp
     Inferences/HOL/FlexFlexSimplify.cpp
     Inferences/HOL/FlexFlexSimplify.hpp
+    Inferences/HOL/LeibnizEqualityElimination.cpp
+    Inferences/HOL/LeibnizEqualityElimination.hpp
     Inferences/HOL/NegativeExtensionality.cpp
     Inferences/HOL/NegativeExtensionality.hpp
     Inferences/HOL/PositiveExtensionality.cpp

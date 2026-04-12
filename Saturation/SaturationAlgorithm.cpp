@@ -77,6 +77,7 @@
 #include "Inferences/HOL/BetaEtaSimplify.hpp"
 #include "Inferences/HOL/BoolEqToDiseq.hpp"
 #include "Inferences/HOL/FlexFlexSimplify.hpp"
+#include "Inferences/HOL/LeibnizEqualityElimination.hpp"
 #include "Inferences/HOL/NegativeExtensionality.hpp"
 #include "Inferences/HOL/PositiveExtensionality.hpp"
 #include "Inferences/HOL/PrimitiveInstantiation.hpp"
@@ -1467,6 +1468,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   if (/* opt.complexBooleanReasoning() &&  */prb.hasBoolVar() && prb.isHigherOrder()) {
     gie->addFront(new PrimitiveInstantiation(*res)); //TODO only add in some cases
+    gie->addFront(new LeibnizEqualityElimination(*res));
   }
 
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) && prb.isHigherOrder()){

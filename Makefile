@@ -290,6 +290,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/HOL/BetaEtaSimplify.o\
          Inferences/HOL/BoolEqToDiseq.o\
          Inferences/HOL/FlexFlexSimplify.o\
+				 Inferences/HOL/LeibnizEqualityElimination.o\
          Inferences/HOL/NegativeExtensionality.o\
          Inferences/HOL/PositiveExtensionality.o\
          Inferences/HOL/PrimitiveInstantiation.o\
