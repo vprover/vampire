@@ -23,6 +23,7 @@
 
 namespace Inferences {
 
+template<bool higherOrder>
 class CodeTreeForwardSubsumptionAndResolution
   : public ForwardSimplificationEngine
 {
@@ -35,8 +36,8 @@ public:
 
 private:
   const bool _subsumptionResolution;
-  std::shared_ptr<Indexing::CodeTreeSubsumptionIndex> _index;
-  Indexing::ClauseCodeTree* _ct;
+  std::shared_ptr<Indexing::CodeTreeSubsumptionIndex<higherOrder>> _index;
+  Indexing::ClauseCodeTree<higherOrder>* _ct;
 #if VDEBUG
   SATSubsumption::SATSubsumptionAndResolution satSubs;
 #endif

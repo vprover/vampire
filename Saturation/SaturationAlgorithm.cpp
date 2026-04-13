@@ -1381,6 +1381,9 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 {
   bool alascaTakesOver = doesAlascaTakeOver(prb, opt);
 
+  // For the following part, we want these two values to be synced
+  ASS_EQ(env.higherOrder(), prb.isHigherOrder());
+
   SaturationAlgorithm* res;
   switch(opt.saturationAlgorithm()) {
   case Shell::Options::SaturationAlgorithm::DISCOUNT:
@@ -1592,12 +1595,20 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     // fsd should be performed after forward subsumption,
     // because every successful forward subsumption will lead to a (useless) match in fsd.
     if (opt.forwardSubsumptionDemodulation()) {
-      res->addForwardSimplifierToFront<ForwardSubsumptionDemodulation>();
+      if (prb.isHigherOrder()) {
+        res->addForwardSimplifierToFront<ForwardSubsumptionDemodulation<true>>();
+      } else {
+        res->addForwardSimplifierToFront<ForwardSubsumptionDemodulation<false>>();
+      }
     }
   }
   if (mayHaveEquality) {
     if (opt.forwardGroundJoinability()) {
-      res->addExpensiveForwardSimplifierToFront<ForwardGroundJoinability>();
+      if (prb.isHigherOrder()) {
+        res->addExpensiveForwardSimplifierToFront<ForwardGroundJoinability<true>>();
+      } else {
+        res->addExpensiveForwardSimplifierToFront<ForwardGroundJoinability<false>>();
+      }
     }
     switch (opt.forwardDemodulation()) {
       case Options::Demodulation::ALL:
@@ -1619,7 +1630,11 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   if (opt.forwardSubsumption()) {
     if (opt.codeTreeSubsumption()) {
-      res->addForwardSimplifierToFront<CodeTreeForwardSubsumptionAndResolution>();
+      if (prb.isHigherOrder()) {
+        res->addForwardSimplifierToFront<CodeTreeForwardSubsumptionAndResolution<true>>();
+      } else {
+        res->addForwardSimplifierToFront<CodeTreeForwardSubsumptionAndResolution<false>>();
+      }
     } else {
       res->addForwardSimplifierToFront<ForwardSubsumptionAndResolution>();
     }
@@ -1649,7 +1664,11 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   
   if (mayHaveEquality && opt.backwardSubsumptionDemodulation()) {
-    res->addBackwardSimplifierToFront<BackwardSubsumptionDemodulation>();
+    if (prb.isHigherOrder()) {
+      res->addBackwardSimplifierToFront<BackwardSubsumptionDemodulation<true>>();
+    } else {
+      res->addBackwardSimplifierToFront<BackwardSubsumptionDemodulation<false>>();
+    }
   }
 
   bool backSubsumption = opt.backwardSubsumption() != Options::Subsumption::OFF;

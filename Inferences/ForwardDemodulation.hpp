@@ -44,7 +44,7 @@ protected:
   const bool _skipNonequationalLiterals;
   const DemodulationHelper _helper;
   const Ordering& _ord;
-  std::shared_ptr<DemodulationLHSIndex> _index;
+  std::shared_ptr<DemodulationLHSIndex<higherOrder>> _index;
 };
 
 using ForwardDemodulationExtra = RewriteInferenceExtra;
