@@ -107,7 +107,7 @@ namespace HOL::create {
   TermList namelessLambda(TermList varSort, TermList termSort, TermList term);
   TermList namelessLambda(TermList varSort, TermList term);
 
-  // With term t and a stack or sorts (s1,...sn) from bottom to top, we get λ_{s1}...λ_{sn}.t
+  // With term t and a stack of sorts (s1,...sn) from bottom to top, we get λ_{s1}...λ_{sn}.t
   // with fromTop = true, while λ_{sn}...λ_{s1}.t with fromTop = false.
   TermList surroundWithLambdas(TermList t, const TermStack& sorts, bool fromTop = false);
   TermList surroundWithLambdas(TermList t, const TermStack& sorts, TermList sort, bool fromTop = false);

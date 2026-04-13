@@ -228,33 +228,37 @@ bool MatchingUtils::matchTermsHOL(TypedTermList base, TypedTermList instance, Su
     return false;
   }
 
-  auto baseH = base;
-  auto instH = instance;
-  while (baseH.isLambdaTerm()) {
-    ASS(instH.isLambdaTerm());
-    auto bht = baseH.term();
-    auto iht = instH.term();
+  auto baseM = base;
+  auto instM = instance;
+  while (baseM.isLambdaTerm()) {
+    ASS(instM.isLambdaTerm());
+    auto bt = baseM.term();
+    auto it = instM.term();
 
-    if (!MatchingUtils::matchTerms(bht->typeArg(0), iht->typeArg(0), subst) ||
-        !MatchingUtils::matchTerms(bht->typeArg(1), iht->typeArg(1), subst))
+    if (!MatchingUtils::matchTerms(bt->typeArg(0), it->typeArg(0), subst) ||
+        !MatchingUtils::matchTerms(bt->typeArg(1), it->typeArg(1), subst))
     {
       DBG("type args don't match");
       return false;
     }
 
-    baseH = TypedTermList(bht->termArg(0), bht->typeArg(1));
-    instH = TypedTermList(iht->termArg(0), iht->typeArg(1));
+    instM = TypedTermList(it->termArg(0), it->typeArg(1));
+    baseM = TypedTermList(bt->termArg(0), bt->typeArg(1));
   }
 
+  DBG("matrices ", baseM, " ", instM);
+
+  auto baseH = baseM;
   Stack<TypedTermList> baseArgs;
   while (baseH.isApplication()) {
-    auto bht = baseH.term();
-    baseArgs.emplace(bht->typeArg(0), AtomicSort::superSort());
-    baseArgs.emplace(bht->typeArg(1), AtomicSort::superSort());
-    baseArgs.emplace(bht->termArg(1), bht->typeArg(1));
-    baseH = TypedTermList(bht->termArg(0), bht->typeArg(0));
+    auto bt = baseH.term();
+    baseArgs.emplace(bt->typeArg(0), AtomicSort::superSort());
+    baseArgs.emplace(bt->typeArg(1), AtomicSort::superSort());
+    baseArgs.emplace(bt->termArg(1), bt->typeArg(1));
+    baseH = TypedTermList(bt->termArg(0), bt->typeArg(0));
   }
 
+  auto instH = instM;
   Stack<TypedTermList> instArgs;
   while (instH.isApplication()) {
     auto iht = instH.term();
@@ -265,6 +269,10 @@ bool MatchingUtils::matchTermsHOL(TypedTermList base, TypedTermList instance, Su
   }
 
   DBG("heads ", baseH, " ", instH);
+
+  if (instH.isLambdaTerm()) {
+    INVALID_OPERATION("instance " + instance.toString() + " is not in beta-eta normal form");
+  }
 
   if (baseH.isTerm()) {
     if (instH.isVar()) {
@@ -293,7 +301,23 @@ bool MatchingUtils::matchTermsHOL(TypedTermList base, TypedTermList instance, Su
     }
     return true;
   }
-  ASSERTION_VIOLATION;
+
+  auto varSort = baseH.sort();
+  TermStack sorts;
+  while (varSort.isArrowSort()) {
+    sorts.push(varSort.domain());
+    varSort = varSort.result();
+  }
+  sorts.push(varSort);
+
+  // surround instance matrix in lambdas
+  auto t = HOL::create::surroundWithLambdas(instM, sorts);
+  DBG("try bind ", baseH.var(), " -> ", t);
+
+  if (!subst.bind(baseH.var(), t)) {
+    return false;
+  }
+  return true;
 }
 
 bool MatchingUtils::matchTermsHOL(TypedTermList base, TypedTermList instance)
