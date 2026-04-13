@@ -14,6 +14,7 @@
 #include "Kernel/HOL/HOL.hpp"
 
 #include "ToPlaceholders.hpp"
+#include "TermShifter.hpp"
 #include "Kernel/Formula.hpp"
 
 using IndexVarStack = Stack<std::pair<unsigned, unsigned>>;
@@ -394,6 +395,65 @@ void HOL::getMatrixAndPrefSorts(TermList t, TermList& matrix, TermStack& sorts) 
     t = t.lambdaBody();
   }
   matrix = t;
+}
+
+void HOL::normaliseLambdaPrefixes(TermList& t1, TermList& t2)
+{
+  if (t1.isVar() && t2.isVar()) {
+    return;
+  }
+
+  TermList nonVar = t1.isVar() ? t2 : t1;
+  TermList sort = SortHelper::getResultSort(nonVar.term());
+
+  auto etaExpand = [](TermList t, TermList sort, TermStack& sorts, unsigned n){
+    TermStack sorts1; // sorts of new prefix
+
+    t = TermShifter::shift(t, n).first; // lift loose indices by n
+
+    for(int i = n - 1; i >= 0; i--) { // append De Bruijn indices
+      ASS(sort.isArrowSort());
+
+      auto s = sort.domain();
+      t = create::app(sort, t, getDeBruijnIndex(i, s));
+      sort = sort.result();
+      sorts1.push(s);
+    }
+
+    while (!sorts1.isEmpty()) { // wrap in new lambdas
+      t = create::namelessLambda(sorts1.pop(), t);
+    }
+
+    while (!sorts.isEmpty()) { // wrap in original lambdas
+      t = create::namelessLambda(sorts.pop(), t);
+    }
+
+    return t;
+  };
+
+  unsigned m = 0, n = 0;
+  TermList t1_body = t1, t2_body = t2, t1_sort = sort, t2_sort = sort;
+  TermStack prefSorts1, prefSorts2;
+
+  while (t1_body.isLambdaTerm()) {
+    t1_body = t1_body.lambdaBody();
+    prefSorts1.push(t1_sort.domain());
+    t1_sort = t1_sort.result();
+    m++;
+  }
+
+  while (t2_body.isLambdaTerm()) {
+    t2_body = t2_body.lambdaBody();
+    prefSorts2.push(t2_sort.domain());
+    t2_sort = t2_sort.result();
+    n++;
+  }
+
+  if (m > n) {
+    t2 = etaExpand(t2_body, t2_sort, prefSorts2, m - n);
+  } else if (n > m) {
+    t1 = etaExpand(t1_body, t1_sort, prefSorts1, n - m);
+  }
 }
 
 TermList HOL::createGeneralBinding(TermList head, const TermStack& sorts, unsigned& freshVar, bool surround)

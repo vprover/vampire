@@ -65,6 +65,8 @@ inline bool canHeadReduce(const TermList& head, const TermStack& args) {
   return head.isLambdaTerm() && args.isNonEmpty();
 }
 
+void normaliseLambdaPrefixes(TermList& t1, TermList& t2);
+
 TermList createGeneralBinding(TermList head, const TermStack& sorts, unsigned& freshVar, bool surround = true);
 
 } // namespace HOL

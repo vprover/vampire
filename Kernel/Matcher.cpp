@@ -12,6 +12,7 @@
  * Implements class Matcher.
  */
 
+#include "Kernel/HOL/HOL.hpp"
 #include "Lib/DHMap.hpp"
 
 #include "Matcher.hpp"
@@ -207,6 +208,99 @@ bool MatchingUtils::matchTerms(TermList base, TermList instance)
   } else {
     return true;
   }
+}
+
+// lam: >[X0,X1] : X1 -> (X0 -> X1)
+// app: >[X0,X1] : (X0 -> X1) -> X0 -> X1
+
+bool MatchingUtils::matchTermsHOL(TypedTermList base, TypedTermList instance, Substitution& subst)
+{
+  DBG("matching ", base, " onto ", instance);
+
+  HOL::normaliseLambdaPrefixes(base, instance);
+
+  DBG("normalized ", base, " and ", instance);
+
+  if (base.isVar()) {
+    return true;
+  }
+  if (!instance.isTerm()) {
+    return false;
+  }
+
+  auto baseH = base;
+  auto instH = instance;
+  while (baseH.isLambdaTerm()) {
+    ASS(instH.isLambdaTerm());
+    auto bht = baseH.term();
+    auto iht = instH.term();
+
+    if (!MatchingUtils::matchTerms(bht->typeArg(0), iht->typeArg(0), subst) ||
+        !MatchingUtils::matchTerms(bht->typeArg(1), iht->typeArg(1), subst))
+    {
+      DBG("type args don't match");
+      return false;
+    }
+
+    baseH = TypedTermList(bht->termArg(0), bht->typeArg(1));
+    instH = TypedTermList(iht->termArg(0), iht->typeArg(1));
+  }
+
+  Stack<TypedTermList> baseArgs;
+  while (baseH.isApplication()) {
+    auto bht = baseH.term();
+    baseArgs.emplace(bht->typeArg(0), AtomicSort::superSort());
+    baseArgs.emplace(bht->typeArg(1), AtomicSort::superSort());
+    baseArgs.emplace(bht->termArg(1), bht->typeArg(1));
+    baseH = TypedTermList(bht->termArg(0), bht->typeArg(0));
+  }
+
+  Stack<TypedTermList> instArgs;
+  while (instH.isApplication()) {
+    auto iht = instH.term();
+    instArgs.emplace(iht->typeArg(0), AtomicSort::superSort());
+    instArgs.emplace(iht->typeArg(1), AtomicSort::superSort());
+    instArgs.emplace(iht->termArg(1), iht->typeArg(0));
+    instH = TypedTermList(iht->termArg(0), iht->typeArg(0));
+  }
+
+  DBG("heads ", baseH, " ", instH);
+
+  if (baseH.isTerm()) {
+    if (instH.isVar()) {
+      return false;
+    }
+
+    auto bht = baseH.term();
+    auto iht = instH.term();
+    if (bht->functor() != iht->functor()) {
+      return false;
+    }
+
+    ASS_EQ(baseArgs.size(), instArgs.size());
+    for (unsigned i = 0; i < baseArgs.size(); i++) {
+      if (baseArgs[i].sort() == AtomicSort::boolSort()) {
+        ASS_EQ(instArgs[i].sort(), AtomicSort::boolSort());
+        if (!matchTerms(baseArgs[i], instArgs[i], subst)) {
+          return false;
+        }
+      } else {
+        ASS_NEQ(instArgs[i].sort(), AtomicSort::boolSort());
+        if (!matchTermsHOL(baseArgs[i], instArgs[i], subst)) {
+          return false;
+        }
+      }
+    }
+    return true;
+  }
+  ASSERTION_VIOLATION;
+}
+
+bool MatchingUtils::matchTermsHOL(TypedTermList base, TypedTermList instance)
+{
+  Substitution subst;
+  DBG("MatchingUtils::matchTermsHOL");
+  return matchTermsHOL(base, instance, subst);
 }
 
 }
