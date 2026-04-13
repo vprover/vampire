@@ -90,7 +90,6 @@ template<>
 std::ostream& Pretty<Literal>::prettyPrint(std::ostream& out) const
 {
   const Literal& lit = _self;
-  return out << lit;
   auto print = [&]() -> std::ostream& {
 
     auto func = lit.functor();

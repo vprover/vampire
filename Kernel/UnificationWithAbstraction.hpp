@@ -183,9 +183,7 @@ public:
 
   bool unify(TermList t1, int bank1, TermList t2, int bank2, bool fixedPointIteration)
   {
-    if (!this->unifyOnce(t1, bank1, t2, bank2)) return false;
-    if (!fixedPointIteration || this->fixedPointIteration()) return true;
-    else return false;
+    return this->unifyOnce(t1, bank1, t2, bank2) && (!fixedPointIteration || this->fixedPointIteration());
   }
 
   static Option<AbstractingUnifier> unify(TermList t1, int bank1, TermList t2, int bank2, AbstractionOracle uwa, bool fixedPointIteration)
