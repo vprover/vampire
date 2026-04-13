@@ -222,7 +222,7 @@ bool MatchingUtils::matchTermsHOL(TypedTermList base, TypedTermList instance, Su
   DBG("normalized ", base, " and ", instance);
 
   if (base.isVar()) {
-    return true;
+    return !instance.containsLooseDBIndex();
   }
   if (!instance.isTerm()) {
     return false;
