@@ -308,7 +308,7 @@ bool InferenceRecorder::isSameAsProofStep(Clause *clause, Clause *goal, const st
 
   //This can probably be optimized with an index
   for (unsigned bi = 0; bi < c->length(); ++bi) {
-    Literal *baseLit = (*c)[bi];
+    Literal *baseLit = (c->literals())[bi];
     for (unsigned ii = 0; ii < simpGoal->length(); ++ii) {
       Literal *instLit = (*simpGoal)[ii];
       if (MatchingUtils::isVariant(const_cast<Literal *const>(baseLit), const_cast<Literal *const>(instLit), false)) {
@@ -321,6 +321,9 @@ bool InferenceRecorder::isSameAsProofStep(Clause *clause, Clause *goal, const st
   }
   std::unordered_map<unsigned int, TermList> varToTermMap;
   Substitution varMap;
+  if(c->length() != simpGoal->length()) {
+    return false;
+  }
   bool isMLVariant = MLVariant::isVariant(c->literals(), simpGoal, alts.data(), &varMap);
   if(!isMLVariant) {
     return false;
