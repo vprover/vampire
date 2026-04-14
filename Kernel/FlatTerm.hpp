@@ -59,7 +59,7 @@ public:
   struct Entry
   {
     Entry() = default;
-    Entry(EntryTag tag, unsigned num) { _setTag(tag); _setNumber(num); }
+    Entry(EntryTag tag, unsigned num): _content(0) { _setTag(tag); _setNumber(num); }
     Entry(Term* term) { _setTerm(term); ASS_EQ(_tag(), FUN_TERM_PTR); }
 
     inline bool isVar() const { return _tag()==VAR; }
@@ -86,6 +86,8 @@ public:
 
   inline Entry& operator[](size_t i) { ASS_L(i,_length); return _data[i]; }
   inline const Entry& operator[](size_t i) const { ASS_L(i,_length); return _data[i]; }
+
+  inline size_t size() const { return _length; }
 
   void swapCommutativePredicateArguments();
   void changeLiteralPolarity()

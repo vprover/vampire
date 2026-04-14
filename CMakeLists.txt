@@ -11,6 +11,7 @@ set(VAMPIRE_VERSION_NUMBER 5.0.1)
 include(CheckSymbolExists)
 include(CTest)
 include(cmake/sources.cmake)
+include(FetchContent)
 
 find_package(Git QUIET)
 
@@ -53,6 +54,22 @@ endif()
 
 # add top level directory to the search path of compiler
 include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+
+include(ExternalProject)
+
+set(ASMJIT_DIR ${CMAKE_BINARY_DIR}/asmjit)
+
+ExternalProject_Add(asmjit
+        GIT_REPOSITORY https://github.com/asmjit/asmjit
+        CMAKE_ARGS -DCMAKE_INSTALL_PREFIX=${ASMJIT_DIR} -DASMJIT_STATIC=ON -DASMJIT_NO_BUILDER=OFF -DASMJIT_NO_COMPILER=OFF -DASMJIT_NO_LOGGING=OFF
+)
+
+add_compile_definitions(ASMJIT_STATIC ASMJIT_NO_AARCH32 ASMJIT_NO_AARCH64
+        ASMJIT_NO_DEPRECATED ASMJIT_NO_INTROSPECTION ASMJIT_NO_TEXT ASMJIT_NO_VALIDATION)
+
+include_directories(${ASMJIT_DIR}/include)
+link_directories(${ASMJIT_DIR}/lib)
+link_libraries(asmjit)
 
 add_compile_definitions(ABSOLUTE_SOURCE_DIR="${CMAKE_SOURCE_DIR}")
 
@@ -226,7 +243,9 @@ endif()
 # Vampire
 ################################################################
 # wrap up common object files so not built multiple times for each target
-add_library(common OBJECT ${SOURCES})
+add_library(common OBJECT ${SOURCES}
+        Indexing/Copypatchjit.cpp
+        Indexing/Copypatchjit.hpp)
 
 # the actual Vampire executable
 add_executable(vampire vampire.cpp $<TARGET_OBJECTS:common>)

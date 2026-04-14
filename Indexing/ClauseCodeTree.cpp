@@ -74,6 +74,7 @@ void ClauseCodeTree::insert(Clause* cl)
   compiler.updateCodeTree(this);
 
   incorporate(code);
+  // JIT_DBG(dumpAllOpsWithAddr();)
   ASS(code.isEmpty());
 }
 
@@ -371,7 +372,7 @@ bool ClauseCodeTree::LiteralMatcher::next()
     return false;
   }
 
-  _matched=execute();
+  _matched=executeMachineCode();
   if(!_matched) {
     return false;
   }
@@ -400,7 +401,7 @@ bool ClauseCodeTree::LiteralMatcher::doEagerMatching()
   eagerResultsRevOrder.reset();
   successes.reset();
 
-  while(execute()) {
+  while(executeMachineCode()) {
     if(op->isLitEnd()) {
       recordMatch();
       eagerResultsRevOrder.push(op);
@@ -426,6 +427,7 @@ bool ClauseCodeTree::LiteralMatcher::doEagerMatching()
   _eagerlyMatched=true;
 
   op=currOp; //restore the current op
+  _matched=true;
 
   return eagerResults.isNonEmpty();
 }
@@ -591,6 +593,8 @@ Clause* ClauseCodeTree::ClauseMatcher::next(int& resolvedQueryLit)
 
 inline bool ClauseCodeTree::ClauseMatcher::canEnterLiteral(CodeOp* op)
 {
+  JIT_DBG(fprintf(stderr, "canEnterLiteral ENTER op=%p _content=0x%llx\n",
+        (void*)op, (unsigned long long)op->_content); fflush(stderr);)
   ASS(op->isLitEnd());
   ASS_EQ(lms.top()->op, op);
 
@@ -602,11 +606,20 @@ inline bool ClauseCodeTree::ClauseMatcher::canEnterLiteral(CodeOp* op)
   if(lms.size()>1) {
     //we have already matched and entered some index literals, so we
     //will check for compatibility of variable assignments
+
     if(ils->varCnt && !lms.top()->eagerlyMatched()) {
       lms.top()->doEagerMatching();
       RSTAT_MST_INC("match count", lms.size()-1, lms.top()->getILS()->matchCnt);
     }
     for(size_t ilIndex=0;ilIndex<lms.size()-1;ilIndex++) {
+      JIT_DBG(fprintf(stderr, "canEnterLiteral LOOP ilIndex=%zu prevOp=%p prevContent=0x%llx\n",
+        ilIndex, (void*)lms[ilIndex]->op,
+        (unsigned long long)lms[ilIndex]->op->_content);
+fflush(stderr););
+      JIT_DBG(std::cout << "canEnterLiteral: ilIndex=" << ilIndex
+                << " op=" << (void*)lms[ilIndex]->op
+                << " isLitEnd=" << lms[ilIndex]->op->isLitEnd()
+                << " isSuccess=" << lms[ilIndex]->op->isSuccess() << std::endl;)
       ILStruct* prevILS=lms[ilIndex]->getILS();
       if(prevILS->varCnt && !lms[ilIndex]->eagerlyMatched()) {
 	lms[ilIndex]->doEagerMatching();
@@ -640,6 +653,7 @@ inline bool ClauseCodeTree::ClauseMatcher::canEnterLiteral(CodeOp* op)
  */
 void ClauseCodeTree::ClauseMatcher::enterLiteral(CodeOp* entry, bool seekOnlySuccess)
 {
+  JIT_DBG(std::cout<<"query:"<<query->toString()<<std::endl;)
   if(!seekOnlySuccess) {
     RSTAT_MCTR_INC("enterLiteral levels (non-sos)", lms.size());
   }

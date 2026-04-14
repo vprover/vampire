@@ -13,6 +13,8 @@
  */
 
 #include <utility>
+#include <cstdlib>
+#include <cstring>
 
 #include "Debug/RuntimeStatistics.hpp"
 
@@ -25,11 +27,15 @@
 #include "Kernel/TermIterators.hpp"
 
 #include "CodeTree.hpp"
+#include "CopyPatchJit.hpp"
 
 #define GROUND_TERM_CHECK 0
 
 #undef RSTAT_COLLECTION
 #define RSTAT_COLLECTION 0
+
+static_assert(sizeof(TermList) == 8, "JIT assumes sizeof(TermList) == 8 for bindings indexing");
+static_assert(sizeof(FlatTerm::Entry) == 8, "JIT assumes sizeof(FlatTerm::Entry) == 8 for ft indexing");
 
 namespace Indexing
 {
@@ -347,6 +353,32 @@ bool CodeTree::CodeOp::equalsForOpMatching(const CodeOp& o) const
   }
 }
 
+void CodeTree::dumpAllOpsWithAddr(std::ostream& out) const
+{
+  // out << "==== CodeTree dump @" << (const void*)this << " ====" << std::endl;
+  visitAllOps([&out](const CodeTree::CodeOp* op, unsigned depth) {
+    for (unsigned i = 0; i < depth; i++) { out << "  "; }
+    out << "[op=" << (const void*)op
+        << "] mcode=" << (const void*)op->_mcode;
+    if (op->alternative()) {
+      out << " alt=" << (const void*)op->alternative()
+          << " alt_mcode=" << (const void*)op->alternative()->_mcode;
+    }
+    out << " :: " << *op << std::endl;
+    if (op->isSearchStruct()) {
+      const auto* ss = op->getSearchStruct();
+      for (size_t i = 0; i < ss->targets.size(); i++) {
+        const CodeOp* tgt = ss->targets[i];
+        for (unsigned j = 0; j < depth+1; j++) { out << "  "; }
+        out << "  target[" << i << "]=" << (const void*)tgt;
+        if (tgt) { out << " mcode=" << (const void*)tgt->_mcode << " :: " << *tgt; }
+        out << std::endl;
+      }
+    }
+  });
+  out << "==== end dump ====" << std::endl;
+}
+
 const CodeTree::SearchStruct* CodeTree::CodeOp::getSearchStruct() const
 {
   ASS(isSearchStruct());
@@ -377,6 +409,7 @@ std::ostream& operator<<(std::ostream& out, const CodeTree::CodeOp& op)
       break;
     case CodeTree::CHECK_FUN:
       out << "check fun " << env.signature->getFunction(op._arg())->name();
+      // out << "check fun ";
       break;
     case CodeTree::ASSIGN_VAR:
       out << "assign var X" << op._arg();
@@ -529,9 +562,11 @@ bool CodeTree::Matcher<removing, checkRange>::execute()
   }
   else {
     //we backtrack from what we found in the previous run
-    if(!backtrack()) {
+    if (!fresh && !backtrack()) {
+      _matched = false;
       return false;
     }
+    fresh = false;
   }
 
   bool shouldBacktrack=false;
@@ -618,6 +653,66 @@ bool CodeTree::Matcher<removing, checkRange>::execute()
 }
 
 template<bool removing, bool checkRange>
+bool CodeTree::Matcher<removing, checkRange>::executeMachineCode()
+{
+  if constexpr (removing || checkRange) { return execute(); }
+  // if (!tree->_clauseCodeTree) { return execute(); }
+  if (tree->isEmpty()) { return false; }
+
+  if (!_jitBtBuf) {
+    _jitBtBuf = static_cast<BTPoint*>(malloc(JIT_BT_INIT_CAP * sizeof(BTPoint)));
+    _jitBtEnd = _jitBtBuf + JIT_BT_INIT_CAP;
+    _jitBtCursor = _jitBtBuf;
+  }
+
+  if (fresh) {
+    fresh = false;
+    _jitBtCursor = _jitBtBuf;
+  } else {
+    // Resume after a previous yield.  Set op = nullptr to signal
+    // the trampoline to enter via its backtrack handler, which will
+    // pop {tp, mcode} from the JIT bt stack.  If the stack is empty,
+    // the trampoline advances to the next literal internally (or
+    // returns matched=0 if all literals are exhausted)
+    op = nullptr;
+  }
+
+  ASS(_jitCtx);
+  ASS(_jitFn);
+  auto* ctx = static_cast<JitExecContext*>(_jitCtx);
+  auto jitFn = reinterpret_cast<CopyPatchJit::TrampolineFunc>(_jitFn);
+
+  ctx->ftData   = &(*ft)[0];
+  ctx->tp       = tp;
+  ctx->btCursor = _jitBtCursor;
+  ctx->btBase   = _jitBtBuf;     // may have changed from expand
+  ctx->btEnd    = _jitBtEnd;     // may have changed from expand
+  ctx->curLInfo = curLInfo;
+  ctx->op       = op;
+  ctx->matched  = 0;
+
+  jitFn(ctx);
+
+  // Read back JIT-modified state
+  _jitBtBuf    = static_cast<BTPoint*>(ctx->btBase);
+  _jitBtCursor = static_cast<BTPoint*>(ctx->btCursor);
+  _jitBtEnd    = static_cast<BTPoint*>(ctx->btEnd);
+  tp           = ctx->tp;
+  op           = static_cast<CodeOp*>(ctx->op);
+  curLInfo     = ctx->curLInfo;
+
+  // Keep ft in sync with curLInfo for recordMatch() and other C++ code
+  // that accesses linfos[curLInfo] after we return.
+  if (linfoCnt > 0 && curLInfo < linfoCnt) {
+    ft = linfos[curLInfo].ft;
+  }
+
+  if (ctx->matched) { _matched = true; return true; }
+  _matched = false;
+  return false;
+}
+
+template<bool removing, bool checkRange>
 void CodeTree::Matcher<removing, checkRange>::init(CodeTree* tree_, CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_, Stack<CodeOp*>* firstsInBlocks_)
 {
   tree=tree_;
@@ -638,6 +733,26 @@ void CodeTree::Matcher<removing, checkRange>::init(CodeTree* tree_, CodeOp* entr
 
   bindings.ensure(tree->_maxVarCnt);
   btStack.reset();
+
+  // Reset the JIT backtrack cursor (buffer is kept for reuse)
+  if constexpr (!removing && !checkRange) {
+    _jitBtCursor = _jitBtBuf;
+
+    // constant fields are written once here
+    // only per-call fields are updated in executeMachineCode()
+    if (tree->_clauseCodeTree && !tree->isEmpty()) {
+      if (!_jitCtx) {
+        _jitCtx = malloc(sizeof(JitExecContext));
+      }
+      auto* ctx = static_cast<JitExecContext*>(_jitCtx);
+      tree->_cpJit->initContext(*ctx);
+      ctx->linfos     = static_cast<void*>(linfos);
+      ctx->linfoCnt   = linfoCnt;
+      ctx->bindings   = bindings.array();
+      ctx->entryMcode = entry ? entry->_mcode : nullptr;
+      _jitFn = reinterpret_cast<void*>(tree->_cpJit->trampoline());
+    }
+  }
 }
 
 /**
@@ -676,6 +791,7 @@ bool CodeTree::Matcher<removing, checkRange>::prepareLiteral()
   ft=linfos[curLInfo].ft;
   tp=0;
   op=entry;
+  fresh=true;
   return true;
 }
 
@@ -808,13 +924,13 @@ template struct CodeTree::Matcher<false, false>;
 //////////////// auxiliary ////////////////////
 
 CodeTree::CodeTree()
-: _onCodeOpDestroying(0), _curTimeStamp(0), _maxVarCnt(1), _entryPoint(0)
+: _curTimeStamp(1), _maxVarCnt(1), _entryPoint(0), _cpJit(new CopyPatchJit())
 {
 }
 
 CodeTree::~CodeTree()
 {
-  static Stack<CodeOp*> top_ops; 
+  static Stack<CodeOp*> top_ops;
   // each top_op is either a first op of a Block or a SearchStruct
   // but it cannot be both since SearchStructs don't occur inside blocks
   top_ops.reset();
@@ -828,7 +944,7 @@ CodeTree::~CodeTree()
       if(top_op->alternative()) {
         top_ops.push(top_op->alternative());
       }
-      
+
       auto ss = top_op->getSearchStruct();
       for (size_t i = 0; i < ss->length(); i++) {
         if (ss->targets[i]!=0) { // zeros are allowed as targets (they are holes after removals)
@@ -843,7 +959,7 @@ CodeTree::~CodeTree()
       ASS_EQ(top_op,op);
       for(size_t rem=cb->length(); rem; rem--,op++) {
         if (_onCodeOpDestroying) {
-          (*_onCodeOpDestroying)(op); 
+          (*_onCodeOpDestroying)(op);
         }
         if(op->alternative()) {
           top_ops.push(op->alternative());
@@ -852,6 +968,10 @@ CodeTree::~CodeTree()
       cb->deallocate();
     }
   }
+
+  // Release JIT engine and all its executable memory.
+  delete _cpJit;
+  _cpJit = nullptr;
 }
 
 /**
@@ -867,7 +987,7 @@ CodeTree::CodeBlock* CodeTree::firstOpToCodeBlock(CodeOp* op)
 template<class Visitor>
 void CodeTree::visitAllOps(Visitor visitor) const
 {
-  static Stack<pair<CodeOp*,unsigned>> top_ops;
+  Stack<pair<CodeOp*,unsigned>> top_ops;
   // each top_op is either a first op of a Block or a SearchStruct
   // but it cannot be both since SearchStructs don't occur inside blocks
   top_ops.reset();
@@ -881,11 +1001,11 @@ void CodeTree::visitAllOps(Visitor visitor) const
 
     if (top_op->isSearchStruct()) {
       visitor(top_op, depth); // visit the landingOp inside the SearchStruct
-      
+
       if(top_op->alternative()) {
         top_ops.push(make_pair(top_op->alternative(),depth));
       }
-      
+
       auto ss = top_op->getSearchStruct();
       for (size_t i = 0; i < ss->length(); i++) {
         if (ss->targets[i]!=0) { // zeros are allowed as targets (they are holes after removals)
@@ -1070,6 +1190,7 @@ void CodeTree::incorporate(CodeStack& code)
 
   if(isEmpty()) {
     _entryPoint=buildBlock(code, code.length(), 0);
+    jitBlock(_entryPoint);
     code.reset();
     return;
   }
@@ -1079,8 +1200,10 @@ void CodeTree::incorporate(CodeStack& code)
 
   size_t clen=code.length();
   CodeOp** tailTarget;
+  bool tailIsAlternative = false;
   size_t matchedCnt;
   ILStruct* lastMatchedILS=0;
+  SearchStruct* modifiedSearchStruct = nullptr;  // Bug 6: track SearchStruct modified by insertion
 
   {
     CodeOp* treeOp = getEntryPoint();
@@ -1097,6 +1220,8 @@ void CodeTree::incorporate(CodeStack& code)
           if (ss->getTargetOpPtr<true>(code[i], toPtr)) {
             if (!*toPtr) {
               tailTarget = toPtr;
+              tailIsAlternative = false;
+              modifiedSearchStruct = ss;   // track which struct gained a new target slot
               matchedCnt = i;
               goto matching_done;
             }
@@ -1114,6 +1239,7 @@ void CodeTree::incorporate(CodeStack& code)
         } else {
           //matching failed, we'll add the new branch here
           tailTarget = &treeOp->alternative();
+          tailIsAlternative = true;
           matchedCnt = i;
           goto matching_done;
         }
@@ -1147,7 +1273,7 @@ void CodeTree::incorporate(CodeStack& code)
             continue;
           }
         }
-      } // for(;;) 
+      } // for(;;)
 
       if (treeOp->isLitEnd()) {
         lastMatchedILS = treeOp->getILS();
@@ -1172,6 +1298,7 @@ void CodeTree::incorporate(CodeStack& code)
       treeOp = treeOp->alternative();
     }
     tailTarget = &treeOp->alternative();
+    tailIsAlternative = true;
   }
 matching_done:
 
@@ -1179,7 +1306,19 @@ matching_done:
   RSTAT_MCTR_INC("alt split literal", lastMatchedILS ? (lastMatchedILS->depth+1) : 0);
 
   CodeBlock* rem=buildBlock(code, clen-matchedCnt, lastMatchedILS);
-  *tailTarget=&(*rem)[0];
+  CodeOp* newFirst = &(*rem)[0];
+  *tailTarget = newFirst;
+  // JIT-emit the new block.
+  jitBlock(rem);
+
+  if (modifiedSearchStruct) {
+    jitSearchStruct(modifiedSearchStruct);
+  }
+  // Binary-patch the owner's embedded alternative immediate so pushAlt/jmpAlt pick up the new block
+  if (tailIsAlternative) {
+    CodeOp* owner = reinterpret_cast<CodeOp*>(reinterpret_cast<char*>(tailTarget) - offsetof(CodeOp, _alternative));
+    patchAlternative(owner);
+  }
   LOG_OP(rem->toString()<<" incorporated, mismatch caused by "<<code[matchedCnt].toString());
 
   //truncate the part that was used and thus does not need disposing
@@ -1259,16 +1398,25 @@ void CodeTree::compressCheckOps(CodeOp* chainStart)
     }
     res->targets.push_back(chfOps[i]);
     chfOps[i]->setAlternative(0);
+    patchAlternative(chfOps[i]);
   }
 
+  // Install the new SearchStruct into the chain.
   CodeOp* op=&res->landingOp;
   chainStart->setAlternative(op);
+  patchAlternative(chainStart);
   while(otherOps.isNonEmpty()) {
     CodeOp* next=otherOps.pop();
     op->setAlternative(next);
+    patchAlternative(op);
     op=next;
   }
   op->setAlternative(0);
+  patchAlternative(op);
+
+  // JIT-emit machine code for the SearchStruct landing op so that
+  // subsequent execution can enter it via op->_mcode.
+  jitSearchStruct(res);
 }
 
 //////////// removal //////////////
@@ -1352,12 +1500,13 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp
       if(alt) {
 	ASS( (ss->kind==SearchStruct::FN_STRUCT && alt->isCheckFun()) ||
 	    (ss->kind==SearchStruct::GROUND_TERM_STRUCT && alt->isCheckGroundTerm()) );
+	jitSearchStruct(ss);  // Re-emit JIT: target pointer changed
 	return;
       }
       for(size_t i=0; i<ss->length(); i++) {
 	if(ss->targets[i]!=0) {
 	  //the SearchStruct still contains something, so we won't delete it
-	  //TODO: we might want to compress the SearchStruct, if there are too many zeroes
+	  jitSearchStruct(ss);  // Re-emit JIT: target slot nulled out
 	  return;
 	}
       }
@@ -1390,6 +1539,7 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp
     pointingOp=prevOp;
 
     pointingOp->setAlternative(alt);
+    patchAlternative(pointingOp);
     if(pointingOp->isSuccess()) {
       return;
     }
@@ -1419,6 +1569,28 @@ void CodeTree::incTimeStamp()
     //handle overflow
     NOT_IMPLEMENTED;
   }
+}
+
+
+//////////////// JIT-delegating to CopyPatchJit ////////////////////
+
+void CodeTree::jitBlock(CodeBlock* block)
+{
+  _cpJit->initialize();
+  _cpJit->emitBlock(block);
+}
+
+void CodeTree::jitSearchStruct(SearchStruct* ss)
+{
+  // static int count = 0;
+  // fprintf(stderr, "jitSearchStruct %d\n", ++count);
+  _cpJit->initialize();
+  _cpJit->emitSearchStruct(ss);
+}
+
+void CodeTree::patchAlternative(CodeOp* op)
+{
+  _cpJit->patchAlternative(op);
 }
 
 }

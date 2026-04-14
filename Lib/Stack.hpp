@@ -315,6 +315,10 @@ public:
     return _cursor != _stack;
   } // Stack::nonempty()
 
+  inline
+  size_t capacity() const
+  { return _capacity; }
+
   /**
    * Push new element on the stack.
    * @since 11/03/2006 Bellevue

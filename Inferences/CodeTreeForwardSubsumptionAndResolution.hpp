@@ -17,9 +17,9 @@
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Indexing/CodeTreeInterfaces.hpp"
-#if VDEBUG
+// #if VDEBUG
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
-#endif
+// #endif
 
 namespace Inferences {
 
@@ -40,9 +40,9 @@ private:
   bool _subsumptionResolution;
   std::shared_ptr<Indexing::CodeTreeSubsumptionIndex> _index;
   Indexing::ClauseCodeTree* _ct;
-#if VDEBUG
+// #if VDEBUG
   SATSubsumption::SATSubsumptionAndResolution satSubs;
-#endif
+// #endif
 };
 
 }; // namespace Inferences

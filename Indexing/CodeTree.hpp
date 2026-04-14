@@ -29,10 +29,21 @@
 //#define LOG_OP(x) std::cout<<x<<std::endl
 //#define LOG_OP(x) if(TimeCounter::isBeingMeasured(TC_FORWARD_SUBSUMPTION)) { std::cout<<x<<std::endl; }
 
+#define JIT_LOG 0
+
+#if JIT_LOG
+#define JIT_DBG(x) do { x; } while(0);
+#else
+#define JIT_DBG(x)
+#endif
+
 namespace Indexing {
 
 using namespace Lib;
 using namespace Kernel;
+
+class CopyPatchJit;    // defined in CopyPatchJit.hpp
+struct JitExecContext;  // defined in CopyPatchJit.hpp
 
 class CodeTree
 {
@@ -40,8 +51,8 @@ public:
   struct ILStruct;
   struct SearchStruct;
   struct CodeOp;
-  
-protected:  
+
+protected:
   /**
   * During the destruction of the CodeTree,
   * onCodeOpDestroying is called on each CodeOp
@@ -50,11 +61,13 @@ protected:
   * (the details are expected to be descendant specific)
   */
   void (*_onCodeOpDestroying)(CodeOp* op);
-      
+
 public:
+  void dumpAllOpsWithAddr(std::ostream &out) const;
+  void dumpAllOpsWithAddr() const {dumpAllOpsWithAddr(std::cout); };
   CodeTree();
   ~CodeTree();
-  
+
   struct LitInfo
   {
     LitInfo() {}
@@ -224,7 +237,6 @@ public:
     template<class T>
     BITFIELD_PTR_SET(T, _setData, INSTRUCTION_BITS)
 
-  private:
     // bitfield
     uint64_t _content = 0;
 
@@ -235,6 +247,24 @@ public:
      * a @b CodeBlock or to a @b landingOp of a @b SearchStruct.
      */
     CodeOp* _alternative = 0;
+
+    /**
+     * Entry point of the machine code for this operation.
+     */
+    void* _mcode = nullptr;
+
+    /**
+     * Offsets (from _mcode) to the 8-byte immediates in the JIT code
+     * that hold the alternative CodeOp pointer.  Each jmpAlt/pushAlt
+     * call site embeds the alternative as `mov reg, <imm64>`; when the
+     * alternative changes, patchAlternative() writes the new value at
+     * these offsets — no recompilation needed.
+     *
+     * Max 4 sites per op (CHECK_VAR has 2 jmpAlt + 2 pushAlt).
+     * ALT_PATCH_NONE means the slot is unused.
+     */
+    static constexpr uint16_t ALT_PATCH_NONE = 0xFFFF;
+    uint16_t _altPatchOfs[4] = {ALT_PATCH_NONE, ALT_PATCH_NONE, ALT_PATCH_NONE, ALT_PATCH_NONE};
   };
 
   /**
@@ -362,6 +392,7 @@ public:
     inline bool success() const { return _matched && op->isSuccess(); }
 
     bool execute();
+    bool executeMachineCode();
 
     /**
      * Pointer to the current operation
@@ -379,8 +410,14 @@ public:
         return bindings.keepRecycled() || btStack.keepRecycled()
           || (RemovingBase::firstsInBlocks && RemovingBase::firstsInBlocks->keepRecycled());
       } else {
-        return bindings.keepRecycled() || btStack.keepRecycled();
+        return bindings.keepRecycled() || btStack.keepRecycled()
+          || _jitBtBuf != nullptr || _jitCtx != nullptr;
       }
+    }
+
+    ~Matcher() {
+      if (_jitBtBuf) { free(_jitBtBuf); _jitBtBuf = nullptr; }
+      if (_jitCtx)   { free(_jitCtx);   _jitCtx = nullptr; }
     }
 
   protected:
@@ -416,6 +453,26 @@ public:
 
     /** Stack containing backtracking points */
     Stack<std::conditional_t<removing,BTPointRemoving,BTPoint>> btStack;
+
+    /**
+     * JIT-unified backtrack buffer.  The JIT pushes/pops directly through
+     * r15 (_jitBtCursor) so there is no per-call transfer overhead.
+     * Allocated lazily on first JIT entry; kept across Recycled reuses.
+     */
+    BTPoint* _jitBtBuf = nullptr;
+    BTPoint* _jitBtCursor = nullptr;  // next free slot (grows upward)
+    BTPoint* _jitBtEnd = nullptr;     // past-the-end of allocation
+    static constexpr size_t JIT_BT_INIT_CAP = 4096;
+
+    /**
+     * Persistent JIT execution context.  Constant fields (handler pointers,
+     * linfos, bindings, entryMcode) are set once in init(); only the
+     * per-call fields (op, tp, ftData, btCursor, curLInfo, matched) are
+     * updated in executeMachineCode().  Stored as void* because
+     * JitExecContext is an incomplete type in this header.
+     */
+    void* _jitCtx = nullptr;
+    void* _jitFn  = nullptr;  // cached trampoline function pointer
 
     CodeOp* entry;
     CodeTree* tree;
@@ -478,6 +535,9 @@ public:
   using TermCompiler = Compiler<false>;
 
   static CodeBlock* buildBlock(CodeStack& code, size_t cnt, ILStruct* prev);
+  void jitBlock(CodeBlock* block);
+  void jitSearchStruct(SearchStruct* ss);
+  void patchAlternative(CodeOp* op);
   void incorporate(CodeStack& code);
 
   template<SearchStruct::Kind k>
@@ -499,6 +559,10 @@ public:
   unsigned _maxVarCnt;
 
   CodeBlock* _entryPoint;
+
+  /** Copy-and-patch JIT engine — replaces the old per-block asmjit compilation.
+   *  Pointer because CopyPatchJit is an incomplete type in this header. */
+  CopyPatchJit* _cpJit;
 };
 
 }

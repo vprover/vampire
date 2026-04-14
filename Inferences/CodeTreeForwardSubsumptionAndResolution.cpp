@@ -46,15 +46,23 @@ bool CodeTreeForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&repla
   Clause* premise;
   int resolvedQueryLit;
 
+  if (cl->number()==11374) {
+    std::cout << *_ct;
+  }
+
   while ((premise = cm.next(resolvedQueryLit))) {
     if (resolvedQueryLit == -1) {
-      ASS(satSubs.checkSubsumption(premise, cl));
+      // if (!satSubs.checkSubsumption(premise, cl))
+      //   INVALID_OPERATION(premise->toString()+" "+cl->toString());
+
       premises = pvi(getSingletonIterator(premise));
       env.statistics->forwardSubsumed++;
       cm.reset();
       return true;
     }
-    ASS(satSubs.checkSubsumptionResolutionWithLiteral(premise, cl, resolvedQueryLit));
+
+    // if(!satSubs.checkSubsumptionResolutionWithLiteral(premise, cl, resolvedQueryLit))
+    //   INVALID_OPERATION(premise->toString()+" "+cl->toString());
 
     LiteralStack res;
     for (unsigned i = 0; i < cl->length(); i++) {

@@ -99,6 +99,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
       ASS(ColorHelper::compatible(cl->color(), premise->color()))
       premises = pvi(getSingletonIterator(premise));
       env.statistics->forwardSubsumed++;
+      INVALID_OPERATION(premise->toString()+" "+cl->toString());
       return true;
     }
   }
@@ -134,6 +135,9 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
           ASS(replacement == nullptr)
           premises = pvi(getSingletonIterator(mcl));
           env.statistics->forwardSubsumed++;
+           INVALID_OPERATION(premise->toString()+" "+cl->toString());
+
+
           return true;
         }
       }
@@ -156,6 +160,8 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
   if (conclusion) {
     premises = pvi(getSingletonIterator(premise));
     replacement = conclusion;
+     INVALID_OPERATION(premise->toString()+" "+cl->toString());
+
     return true;
   }
   else if (!_subsumptionResolution) {
@@ -183,6 +189,8 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
       ASS(mcl->length() == 1)
       replacement = SATSubsumption::SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(cl, lit, mcl, /*forward=*/true);
       premises = pvi(getSingletonIterator(mcl));
+       INVALID_OPERATION(premise->toString()+" "+cl->toString());
+
       return true;
     }
   }
@@ -208,6 +216,8 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
         premise = mcl;
         replacement = conclusion;
         premises = pvi(getSingletonIterator(premise));
+         INVALID_OPERATION(premise->toString()+" "+cl->toString());
+
         return true;
       }
     }

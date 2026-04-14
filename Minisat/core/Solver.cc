@@ -24,6 +24,7 @@ OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWA
 **************************************************************************************************/
 
 #include <cmath>
+#include <utility>
 
 #include "Minisat/mtl/Alg.h"
 #include "Minisat/mtl/Sort.h"
