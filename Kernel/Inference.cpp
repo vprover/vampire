@@ -224,15 +224,9 @@ void Inference::updateStatistics()
         */
       } else if (_ptr2 == nullptr) {
         _inductionDepth = static_cast<Unit*>(_ptr1)->inference().inductionDepth();
-        _XXNarrows = static_cast<Unit*>(_ptr1)->inference().xxNarrows();
-        _reductions = static_cast<Unit*>(_ptr1)->inference().reductions();
       } else {
         _inductionDepth = max(static_cast<Unit*>(_ptr1)->inference().inductionDepth(),
             static_cast<Unit*>(_ptr2)->inference().inductionDepth());
-        _XXNarrows = max(static_cast<Unit*>(_ptr1)->inference().xxNarrows(),
-            static_cast<Unit*>(_ptr2)->inference().xxNarrows());
-        _reductions = max(static_cast<Unit*>(_ptr1)->inference().reductions(),
-            static_cast<Unit*>(_ptr2)->inference().reductions());
       }
 
       break;
@@ -240,13 +234,9 @@ void Inference::updateStatistics()
     case Kind::SAT:
     case Kind::SAT_NEEDS_MINIMIZATION:
       _inductionDepth = 0;
-      _XXNarrows = 0;
-      _reductions = 0;
       UnitList* it = static_cast<UnitList*>(_ptr1);
       while(it) {
         _inductionDepth = max(_inductionDepth,it->head()->inference().inductionDepth());
-        _XXNarrows = max(_XXNarrows,it->head()->inference().xxNarrows());
-        _reductions = max(_reductions,it->head()->inference().reductions());
         it=it->tail();
       }
       break;
@@ -907,8 +897,10 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "gaussian variable elimination";
   case InferenceRule::ARG_CONG:
     return "argument congruence";
-  case InferenceRule::NEGATIVE_EXT:
+  case InferenceRule::NEGATIVE_EXTENSIONALITY:
     return "negative extensionality";
+  case InferenceRule::POSITIVE_EXTENSIONALITY:
+    return "positive extensionality";
   case InferenceRule::INJECTIVITY:
     return "injectivity";
   case InferenceRule::HOL_NOT_ELIMINATION:
@@ -923,6 +915,10 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "equality proxy clausification";
   case InferenceRule::BOOL_SIMP:
     return "boolean simplification";
+  case InferenceRule::FLEX_FLEX_SIMPLIFICATION:
+    return "flex-flex simplification";
+  case InferenceRule::BETA_ETA_NORMALIZATION:
+    return "beta-eta normalization";
   case InferenceRule::EQ_TO_DISEQ:
     return "bool equality to disequality";
   case InferenceRule::PRIMITIVE_INSTANTIATION:

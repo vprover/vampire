@@ -28,6 +28,7 @@ namespace Inferences {
 using namespace Indexing;
 using namespace Kernel;
 
+template<bool higherOrder>
 class BackwardDemodulation
 : public BackwardSimplificationEngine
 {
@@ -36,13 +37,11 @@ public:
 
   void perform(Clause* premise, BwSimplificationRecordIterator& simplifications) override;
 private:
-  struct RemovedIsNonzeroFn;
-  struct RewritableClausesFn;
   struct ResultFn;
 
   const Ordering& _ord;
   const bool _preordered;
-  std::shared_ptr<DemodulationSubtermIndex> _index;
+  std::shared_ptr<DemodulationSubtermIndex<higherOrder>> _index;
   DemodulationHelper _helper;
 };
 

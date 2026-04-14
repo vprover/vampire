@@ -1281,7 +1281,7 @@ void Options::init()
 
     _unificationWithAbstractionFixedPointIteration = BoolOptionValue("unification_with_abstraction_fixed_point_iteration","uwa_fpi",
                                      false);
-    _unificationWithAbstractionFixedPointIteration.description="The order in which arguments are being processed in unification with absraction can yield different results. i.e. unnecessary unifiers. This can be resolved by applying unification with absraction multiple times. This option enables this fixed point iertation. For details have a look at the paper \"Refining Unification with Abstraction\" from LPAR 2023.";
+    _unificationWithAbstractionFixedPointIteration.description="The order in which arguments are being processed in unification with absraction can yield different results. i.e. unnecessary unifiers. This can be resolved by applying unification with absraction multiple times. This option enables this fixed point iteration. For details have a look at the paper \"Refining Unification with Abstraction\" from LPAR 2023.";
     _unificationWithAbstractionFixedPointIteration.tag(OptionTag::INFERENCES);
     _lookup.insert(&_unificationWithAbstractionFixedPointIteration);
 
@@ -1724,7 +1724,9 @@ void Options::init()
     _lookup.insert(&_demodulationRedundancyCheck);
     _demodulationRedundancyCheck.tag(OptionTag::INFERENCES);
     _demodulationRedundancyCheck.onlyUsefulWith(ProperSaturationAlgorithm());
-    _demodulationRedundancyCheck.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
+    _demodulationRedundancyCheck.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),
+                                                   _backwardDemodulation.is(notEqual(Demodulation::OFF)),
+                                                   _partialRedundancyCheck.is(notEqual(false))));
     _demodulationRedundancyCheck.addProblemConstraint(hasEquality());
 
     _forwardDemodulationTermOrderingDiagrams = BoolOptionValue("forward_demodulation_term_ordering_diagrams","fdtod",true);
@@ -2002,6 +2004,21 @@ void Options::init()
     _lookup.insert(&_clausificationOnTheFly);
     _clausificationOnTheFly.addProblemConstraint(hasHigherOrder());
     _clausificationOnTheFly.tag(OptionTag::HIGHER_ORDER);
+
+    _piSet = ChoiceOptionValue<PISet>("prim_inst_set","piset",PISet::PRAGMATIC,
+                                                                        {"all",
+                                                                         "all_but_not_eq",
+                                                                         "not",
+                                                                         "small_set",
+                                                                         "pragmatic",
+                                                                         "and",
+                                                                         "or",
+                                                                         "equals",
+                                                                         "pi_sigma"});
+    _piSet.description="Controls the set of equations to use in primitive instantiation";
+    _lookup.insert(&_piSet);
+    _piSet.addProblemConstraint(hasHigherOrder());     
+    _piSet.tag(OptionTag::HIGHER_ORDER);
 
     _equalityToEquivalence = BoolOptionValue("equality_to_equiv","e2e",false);
     _equalityToEquivalence.description=

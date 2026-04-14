@@ -43,6 +43,7 @@ using namespace Saturation;
  *
  * This class implements the forward direction.
  */
+template<bool higherOrder>
 class ForwardSubsumptionDemodulation
   : public ForwardSimplificationEngine
 {

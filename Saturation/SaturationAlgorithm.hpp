@@ -179,6 +179,7 @@ private:
   template<typename Inference> void addForwardSimplifierToFront();
   template<typename Inference> void addExpensiveForwardSimplifierToFront();
   template<typename Inference> void addBackwardSimplifierToFront();
+  template<typename Inference> void addSimplifierToFront();
 
   LiteralSelector& getSosLiteralSelector();
 

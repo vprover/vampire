@@ -115,6 +115,11 @@ class Definizator : public BottomUpTermTransformer {
       Term* t = trm.term();
       if (t->isSort() || t->arity() == 0 || (!t->ground() && _groundOnly)) return trm;
 
+      // TODO(HOL): try to lift this restriction
+      if (env.higherOrder() && trm.containsLooseDBIndex()) {
+        return trm;
+      }
+
       Term* key = t;
       if (!t->ground()) {
         // as we go bottom up, t is never too big (well, it could be wide, but at least not deep)

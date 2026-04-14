@@ -91,7 +91,7 @@ private:
       VariantMatcher vm;
       Stack<CodeOp*> firstsInBlocks;
 
-      FlatTerm* ft = FlatTerm::createUnexpanded(ts);
+      FlatTerm* ft = FlatTerm::create(ts);
       vm.init(ft, this, &firstsInBlocks);
 
       if (vm.execute()) {
@@ -246,13 +246,13 @@ private:
   }
 
   struct SubstMatcher
-  : public Matcher</*removing*/false,false>
+  : public Matcher</*removing*/false,false,/*higherOrder=*/false>
   {
     void init(CodeTree* tree, const TermStack& ts)
     {
       Matcher::init(tree,tree->getEntryPoint());
 
-      ft = FlatTerm::createUnexpanded(ts);
+      ft = FlatTerm::create(ts);
 
       op=entry;
       tp=0;
@@ -281,7 +281,7 @@ private:
   };
 
   struct VariantMatcher
-  : public Matcher</*removing*/true,true>
+  : public Matcher</*removing*/true,true,/*higherOrder=*/false>
   {
   public:
     void init(FlatTerm* ft_, CodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_) {

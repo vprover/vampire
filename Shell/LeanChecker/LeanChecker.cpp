@@ -140,7 +140,6 @@ void LeanChecker::print()
   std::set_difference(usedFunctionSymbols.begin(), usedFunctionSymbols.end(), functionSymbolsInUsedInput.begin(), functionSymbolsInUsedInput.end(), std::inserter(unusedFunctionSymbols, unusedFunctionSymbols.end()));
   std::set_difference(usedPredicateSymbols.begin(), usedPredicateSymbols.end(), predicateSymbolsInUsedInput.begin(), predicateSymbolsInUsedInput.end(), std::inserter(unusedPredicateSymbols, unusedPredicateSymbols.end()));
 
-
   outputPreamble(out, usedFunctionSymbols, usedPredicateSymbols);
   outputCumulativeSplits(proof, " ", "sA" ,"variable {", " : Prop}\n");
 
@@ -177,11 +176,11 @@ void LeanChecker::outputPreamble(std::ostream &out, std::set<Signature::Symbol*>
     out << "variable [inst : Inhabited " << SortName(i) << " ]\n";
   }
 
-  out << "variable {df : Nat → (α : Type u) → (α → ι)}\n"
-      << "variable {dcf : Nat → ι}\n"
-      << "variable {dp : Nat → (α : Type u) → α → Prop}\n"
-      << "variable {dcp : Nat → Prop}\n";
-
+  //out << "variable {df : Nat → (α : Type u) → (α → ι)}\n"
+  //    << "variable {dcf : Nat → ι}\n"
+  //    << "variable {dp : Nat → (α : Type u) → α → Prop}\n"
+  //    << "variable {dcp : Nat → Prop}\n";
+  /*
   unsigned variableCounter = 0;
 
   for (auto fun : usedFunctionSymbols) {
@@ -253,12 +252,12 @@ void LeanChecker::outputPreamble(std::ostream &out, std::set<Signature::Symbol*>
       out << (i==0 ? "" : ", ") << "x" << i;
     }
     out << "))\n";
-  }
+  }*/
     
   bool firstVariableDef = true;
   std::map<OperatorType*, std::vector<Signature::Symbol*>> funMap;
   for(auto fun : usedFunctionSymbols){
-    if(fun->introduced()){
+    if(!fun->interpreted()){
       if(funMap.find(fun->fnType()) == funMap.end()){
         funMap.emplace(fun->fnType(), std::vector<Signature::Symbol*>());
       }
@@ -289,7 +288,7 @@ void LeanChecker::outputPreamble(std::ostream &out, std::set<Signature::Symbol*>
   }
   std::map<OperatorType*, std::vector<Signature::Symbol*>> predMap;
   for(auto pred : usedPredicateSymbols){
-    if(pred->introduced()){
+    if(!pred->interpreted()){
       if(predMap.find(pred->fnType()) == predMap.end()){
         predMap.emplace(pred->fnType(), std::vector<Signature::Symbol*>());
       }
@@ -335,7 +334,7 @@ void LeanChecker::outputFullProofPreamble(std::ostream &out, std::deque<Unit*> p
   } 
   out << " := by\n";
   
-  /*for(Signature::Symbol* sym : unusedFunctionSymbols){
+  for(Signature::Symbol* sym : unusedFunctionSymbols){
     if(sym->introduced()) {
       continue;
     }
@@ -354,7 +353,7 @@ void LeanChecker::outputFullProofPreamble(std::ostream &out, std::deque<Unit*> p
       out << "fun x" << i << " : " << Sort{sym->fnType()->arg(i)} << " => ";
     }
     out << "False\n";
-  }*/
+  }
   if(!premises.empty()){
     out << indent << "intros ";
     for(Unit* input : premises){

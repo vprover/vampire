@@ -189,11 +189,12 @@ class AsymmetricTest
 
 public:
 
-  AsymmetricTest() : _input(NULL), _expected(), _premiseRedundant(false), _selfApplications(true), _setup([](SaturationAlgorithm&){}), _options() {}
+  AsymmetricTest() : _input(NULL), _premiseRedundant(false), _selfApplications(true), _setup([](SaturationAlgorithm&){}) {}
 
   __BUILDER_METHOD(AsymmetricTest, Clause*, input)
   __BUILDER_METHOD(AsymmetricTest, ClauseStack, context)
   BUILDER_METHOD(AsymmetricTest, StackMatcher, expected)
+  __BUILDER_METHOD(AsymmetricTest, std::function<StackMatcher()>, expectedFn)
   __BUILDER_METHOD(AsymmetricTest, bool, premiseRedundant)
   __BUILDER_METHOD(AsymmetricTest, bool, selfApplications)
   __BUILDER_METHOD(AsymmetricTest, std::function<void(SaturationAlgorithm&)>, setup)
@@ -210,9 +211,8 @@ public:
     _input = tester.normalize(_input);
 
     // init problem
-    Problem p;
-    auto ul = UnitList::fromIterator(ClauseStack::Iterator(_context));
-    p.addUnits(ul);
+    Problem p(UnitList::cons(_input,
+      UnitList::fromIterator(ClauseStack::Iterator(_context))));
     env.setMainProblem(&p);
 
     resetAndFillEnvOptions(_options, p);
@@ -238,8 +238,8 @@ public:
     auto res = rule.generateSimplify(_input);
 
     // run checks
-    auto sExp = this->_expected.unwrap();
     auto sRes = Stack<Kernel::Clause*>::fromIterator(std::move(res.clauses));
+    auto sExp = this->_expected.unwrapOrInit(_expectedFn);
 
     if (!sExp.matches(sRes, tester)) {
       testFail(sRes, sExp);
@@ -320,6 +320,11 @@ public:
     __ALLOW_UNUSED(syntax_sugar)                                                          \
     test.run<rule,tester>(__VA_ARGS__);                                                   \
   }                                                                                       \
+
+#define EXPECTED(cls)                                                                     \
+  expectedFn([&]() -> StackMatcher {                                                      \
+    return cls;                                                                           \
+  })
 
 } // namespace Simplification
 

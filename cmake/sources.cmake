@@ -65,6 +65,13 @@ set(UNIT_TESTS
     UnitTests/tInferences_ForwardGroundJoinability.cpp
     UnitTests/tInferences_FunctionDefinitionRewriting.cpp
     UnitTests/tInferences_GaussianVariableElimination.cpp
+    UnitTests/tInferences_HOL_ArgCong.cpp
+    UnitTests/tInferences_HOL_BoolEqToDiseq.cpp
+    UnitTests/tInferences_HOL_BetaEtaSimplify.cpp
+    UnitTests/tInferences_HOL_FlexFlexSimplify.cpp
+    UnitTests/tInferences_HOL_NegativeExtensionality.cpp
+    UnitTests/tInferences_HOL_PositiveExtensionality.cpp
+    UnitTests/tInferences_HOL_PrimitiveInstantiation.cpp
     UnitTests/tInferences_Induction.cpp
     UnitTests/tInferences_InferenceEngine.cpp
     UnitTests/tInferences_InnerRewriting.cpp
@@ -220,8 +227,6 @@ set(SOURCES
     Inferences/ALASCA/VirasInterfacing.hpp
     Inferences/AnswerLiteralProcessors.cpp
     Inferences/AnswerLiteralProcessors.hpp
-    Inferences/ArgCong.cpp
-    Inferences/ArgCong.hpp
     Inferences/ArithmeticSubtermGeneralization.cpp
     Inferences/ArithmeticSubtermGeneralization.cpp
     Inferences/ArithmeticSubtermGeneralization.hpp
@@ -238,8 +243,6 @@ set(SOURCES
     Inferences/BackwardSubsumptionDemodulation.hpp
     Inferences/BinaryResolution.cpp
     Inferences/BinaryResolution.hpp
-    Inferences/BoolEqToDiseq.cpp
-    Inferences/BoolEqToDiseq.hpp
     Inferences/BoolSimp.cpp
     Inferences/BoolSimp.hpp
     Inferences/CNFOnTheFly.cpp
@@ -295,6 +298,20 @@ set(SOURCES
     Inferences/GaussianVariableElimination.hpp
     Inferences/GlobalSubsumption.cpp
     Inferences/GlobalSubsumption.hpp
+    Inferences/HOL/ArgCong.cpp
+    Inferences/HOL/ArgCong.hpp
+    Inferences/HOL/BetaEtaSimplify.cpp
+    Inferences/HOL/BetaEtaSimplify.hpp
+    Inferences/HOL/BoolEqToDiseq.cpp
+    Inferences/HOL/BoolEqToDiseq.hpp
+    Inferences/HOL/FlexFlexSimplify.cpp
+    Inferences/HOL/FlexFlexSimplify.hpp
+    Inferences/HOL/NegativeExtensionality.cpp
+    Inferences/HOL/NegativeExtensionality.hpp
+    Inferences/HOL/PositiveExtensionality.cpp
+    Inferences/HOL/PositiveExtensionality.hpp
+    Inferences/HOL/PrimitiveInstantiation.cpp
+    Inferences/HOL/PrimitiveInstantiation.hpp
     Inferences/Induction.cpp
     Inferences/Induction.hpp
     Inferences/InductionHelper.cpp
@@ -310,8 +327,6 @@ set(SOURCES
     Inferences/InterpretedEvaluation.cpp
     Inferences/InterpretedEvaluation.hpp
     Inferences/LfpRule.hpp
-    Inferences/NegativeExt.cpp
-    Inferences/NegativeExt.hpp
     Inferences/PolynomialEvaluation.cpp
     Inferences/PolynomialEvaluation.hpp
     Inferences/ProofExtra.cpp

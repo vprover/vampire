@@ -3,7 +3,6 @@
 #include "Forwards.hpp"
 #include "Indexing/Index.hpp"
 #include "Inferences/InferenceEngine.hpp"
-#include "Kernel/MLMatcher.hpp"
 
 #include "Kernel/MLVariant.hpp"
 #include "Kernel/Matcher.hpp"
@@ -16,6 +15,7 @@
 #include "Shell/EqResWithDeletion.hpp"
 #include "Shell/Rectify.hpp"
 #include <cstddef>
+
 #include <unordered_map>
 #include <vector>
 #include <set>
@@ -294,19 +294,6 @@ bool InferenceRecorder::isSameAsProofStep(Clause *clause, Clause *goal, const st
     return true;
   }
   
-  
-  //if(!isVariant){
-  //  return false;
-  //}
-  //for (auto [var, term] : iterTraits(subst.items())) {
-  //  if (!term.isVar()) {
-  //    return false;
-  //  }
-  //  outVarMap[var] = term.var();
-  //}
-  //return isVariant;
-  //TODO do some simpler preprocessing here to save on runtime,
-  
   //For now it works
   Clause *c = Clause::fromClause(clause);
   Clause *g = Clause::fromClause(goal);
@@ -315,17 +302,16 @@ bool InferenceRecorder::isSameAsProofStep(Clause *clause, Clause *goal, const st
   c = dlr.simplify(c);
   auto simpGoal = dlr.simplify(Clause::fromClause(g));
 
-
-  static std::vector<LiteralList *> alts;
+  std::vector<LiteralList *> alts;
   alts.clear();
   alts.resize(c->length(), LiteralList::empty());
 
   //This can probably be optimized with an index
   for (unsigned bi = 0; bi < c->length(); ++bi) {
-    Literal *baseLit = (*c)[bi];
+    Literal *baseLit = (c->literals())[bi];
     for (unsigned ii = 0; ii < simpGoal->length(); ++ii) {
       Literal *instLit = (*simpGoal)[ii];
-      if (MatchingUtils::match(baseLit, instLit, false)) {
+      if (MatchingUtils::isVariant(const_cast<Literal *const>(baseLit), const_cast<Literal *const>(instLit), false)) {
         LiteralList::push(instLit, alts[bi]);
       }
     }
@@ -333,43 +319,22 @@ bool InferenceRecorder::isSameAsProofStep(Clause *clause, Clause *goal, const st
       return false;
     }
   }
-  
-  MLMatcher matcher;
-  matcher.init(c, simpGoal, alts.data());
-  while (matcher.nextMatch()) {
-    std::unordered_map<unsigned int, TermList> varToTermMap;
-    bool found = true;
-    matcher.getBindings(varToTermMap);
-    for (auto [var, term] : varToTermMap) {
-      if(!term.isVar()){
-        outVarMap.clear();
-        found = false;
-        continue;
-      }
-      outVarMap[var] = term.var();
-    }
-    if(!found){
-      continue;
-    }
-    std::set<unsigned> inputs;
-    std::set<unsigned> outputs;
-    //Check if we have a permutation
-    for (auto [var, term] : varToTermMap) {
-      inputs.insert(var);
-      outputs.insert(term.var());
-    }
-    if (inputs.size() != outputs.size()) {
-      found = false;
-    }
-    if(outputs.size() != _currentGoal->varCnt()){
-      found = false;
-    }
-
-    if (found) {
-      return true;
-    }
+  std::unordered_map<unsigned int, TermList> varToTermMap;
+  Substitution varMap;
+  if(c->length() != simpGoal->length()) {
+    return false;
   }
-  return false;
+  bool isMLVariant = MLVariant::isVariant(c->literals(), simpGoal, alts.data(), &varMap);
+  if(!isMLVariant) {
+    return false;
+  }
+  for (auto [var, term] : iterTraits(varMap.items())) {
+    if (!term.isVar()) {
+      return false;
+    }
+    outVarMap[var] = term.var();
+  }
+  return true;
 }
 
 InferenceRecorder::InferenceRecorder()
