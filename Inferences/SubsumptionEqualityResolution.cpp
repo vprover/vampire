@@ -49,11 +49,13 @@ Clause* SubsumptionEqualityResolution::simplify(Clause* cl)
     }
 
     RStack<Literal*> resLits;
+    DHSet<unsigned> renamingDomain;
+    DHSet<unsigned> renamingRange;
     for (const auto& curr : *cl) {
       if (lit == curr) {
         continue;
       }
-      if (!DemodulationHelper::isRenamingOn(&unifier, curr)) {
+      if (!DemodulationHelper::isRenamingOn(&unifier, curr, renamingDomain, renamingRange)) {
         goto fail;
       }
       resLits->push(curr);
