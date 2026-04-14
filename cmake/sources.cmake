@@ -335,6 +335,8 @@ set(SOURCES
     Inferences/PushUnaryMinus.hpp
     Inferences/SubsumptionDemodulationHelper.cpp
     Inferences/SubsumptionDemodulationHelper.hpp
+    Inferences/SubsumptionEqualityResolution.cpp
+    Inferences/SubsumptionEqualityResolution.hpp
     Inferences/Superposition.cpp
     Inferences/Superposition.hpp
     Inferences/TautologyDeletionISE.cpp

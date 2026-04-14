@@ -96,6 +96,7 @@
 #include "Inferences/CNFOnTheFly.hpp"
 #include "Inferences/DefinitionIntroduction.hpp"
 #include "Inferences/LfpRule.hpp"
+#include "Inferences/SubsumptionEqualityResolution.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -1701,6 +1702,10 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
   bool mayHaveEquality = couldEqualityArise(prb,opt);
   bool alascaTakesOver = doesAlascaTakeOver(prb, opt);
   auto& ordering = salg.getOrdering();
+
+  if (mayHaveEquality) {
+    res->addFront(new SubsumptionEqualityResolution());
+  }
 
   // InnerRewriting is relatively expensive, so let's insert it first,
   // so that it gets applied as the last ImmediateSimplification

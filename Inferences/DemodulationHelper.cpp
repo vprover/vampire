@@ -46,16 +46,15 @@ bool DemodulationHelper::redundancyCheckNeededForPremise(Clause* rwCl, Literal* 
 }
 
 /**
- * Test whether the @param applicator is a renaming on the variables of @param t.
+ * Test whether the @param applicator is a renaming on the variables of @param object.
  */
-bool DemodulationHelper::isRenamingOn(const SubstApplicator* applicator, TermList t)
+template<typename Object>
+bool DemodulationHelper::isRenamingOn(const SubstApplicator* applicator, Object obj)
 {
   DHSet<TermList> renamingDomain;
   DHSet<TermList> renamingRange;
 
-  VariableIterator it(t);
-  while(it.hasNext()) {
-    TermList v = it.next();
+  for (const auto& v : iterTraits(VariableIterator(obj))) {
     ASS(v.isVar());
     if (!renamingDomain.insert(v)) {
       continue;
@@ -71,6 +70,9 @@ bool DemodulationHelper::isRenamingOn(const SubstApplicator* applicator, TermLis
   }
   return true;
 }
+
+template bool DemodulationHelper::isRenamingOn(const SubstApplicator* applicator, TermList);
+template bool DemodulationHelper::isRenamingOn(const SubstApplicator* applicator, Literal*);
 
 bool DemodulationHelper::isPremiseRedundant(Clause* rwCl, Literal* rwLit, TermList rwTerm,
   TermList tgtTerm, TermList eqLHS, const SubstApplicator* eqApplicator) const
