@@ -484,6 +484,8 @@ set(SOURCES
     Kernel/HOL/Reduce.cpp
     Kernel/HOL/BetaNormaliser.cpp
     Kernel/HOL/BetaNormaliser.hpp
+    Kernel/HOL/Matcher.cpp
+    Kernel/HOL/Matcher.hpp
     Kernel/HOL/RedexReducer.cpp
     Kernel/HOL/RedexReducer.hpp
     Kernel/HOL/TermShifter.cpp

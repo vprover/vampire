@@ -20,7 +20,6 @@
 #include "Lib/Stack.hpp"
 
 #include "Term.hpp"
-#include "TypedTermList.hpp"
 #include "SortHelper.hpp"
 #include "Substitution.hpp"
 
@@ -90,8 +89,6 @@ public:
   static bool matchReversedArgs(Literal* base, Literal* instance);
   static bool matchArgs(Term* base, Term* instance);
   static bool matchTerms(TermList base, TermList instance);
-  static bool matchTermsHOL(TypedTermList base, TypedTermList instance);
-  static bool matchTermsHOL(TypedTermList base, TypedTermList instance, Substitution& subst);
 
   template<class Binder>
   static bool matchTerms(TermList base, TermList instance, Binder& binder)

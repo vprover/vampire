@@ -10,7 +10,7 @@
 
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
-#include "Kernel/Matcher.hpp"
+#include "Kernel/HOL/Matcher.hpp"
 
 using namespace Test;
 using namespace Indexing;
@@ -25,12 +25,12 @@ using namespace Indexing;
 
 void check(TermSugar base, TermSugar instance, bool shouldMatch)
 {
-  if (MatchingUtils::matchTermsHOL(base, instance) == shouldMatch) {
+  if (Kernel::HOL::Matcher::matches(base, instance) == shouldMatch) {
     std::cout << "[  OK  ] " << base << (shouldMatch ? " == " : " != ") << instance << std::endl;
   } else {
     std::cout << std::endl;
     std::cout << "[ FAIL ] " << base << (shouldMatch ? " == " : " != ") << instance << std::endl;
-    ASSERTION_VIOLATION
+    ASSERTION_VIOLATION;
   }
 }
 
