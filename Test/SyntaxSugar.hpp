@@ -361,7 +361,7 @@ public:
 
   SortId sort() const { return _srt; }
 
-  TermSugar sort(SortId s) { _srt = s; return *this; }
+  TermSugar sort(SortId s) { return TermSugar(TermList(*this), s);}
 
   static TermSugar createConstant(const char* name, SortSugar s, bool skolem) {
     unsigned f = env.signature->addFunction(name,0);
