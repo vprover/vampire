@@ -32,8 +32,12 @@ using namespace std;
 using namespace Indexing;
 
 static Clause* replaceLits(Clause* c, Literal* what, Proxy p, bool incAge, Literal* by1, Literal* by2 = nullptr);
+
+// These correspond to elimination of the logical analogues of Pi and Sigma operators from dependent type theory
+// (see https://en.wikipedia.org/wiki/Dependent_type and https://tptp.org/UserDocs/ProblemLibraryManual/TPTPTR.shtml#FormulaeSection)
 static TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt);
 static TermList piRemoval(TermList piTerm, Clause* clause, TermList expsrt);
+
 static InferenceRule convert(Proxy cnst);
 static ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaIndex* index = 0);
 

@@ -67,7 +67,7 @@ inline bool canHeadReduce(const TermList& head, const TermStack& args) {
 
 // if flexTerm is of form X t1 t2 : i > i and t1 : int and t2 : tau
 // this function will fill stack with [i, tau, int]
-// TODO: very inelegant at the moment, need to rewrite
+// TODO(HOL): very inelegant at the moment, need to rewrite
 TermStack getFlexHeadSorts(TermList flexTerm, TermList rigidTermSort);
 
 enum class UnificationInference {
