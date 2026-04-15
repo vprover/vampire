@@ -447,7 +447,8 @@ public:
   template<class Visitor>
   void visitAllOps(Visitor visitor) const;
 
-  void printOp(std::ostream& out, const CodeOp& op) const;
+  void printOp(std::ostream& out, const CodeOp& op, bool litStart) const;
+  void printOps(std::ostream& out, const CodeTree& ct, const CodeStack& st) const;
   friend std::ostream& operator<<(std::ostream& out, const CodeTree& ct);
 
   //////////// insertion //////////////

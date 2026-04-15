@@ -26,6 +26,11 @@
 
 #include "CodeTree.hpp"
 
+#define CRESET "\e[0m"
+#define YELLOW "\e[0;33m"
+#define GREEN  "\e[0;32m"
+#define RED    "\e[0;31m"
+
 #define GROUND_TERM_CHECK 0
 
 #undef RSTAT_COLLECTION
@@ -360,51 +365,60 @@ CodeTree::SearchStruct* CodeTree::CodeOp::getSearchStruct()
   return GET_CONTAINING_OBJECT(CodeTree::SearchStruct,landingOp,this);
 }
 
-void CodeTree::printOp(std::ostream& out, const CodeTree::CodeOp& op) const
+void CodeTree::printOp(std::ostream& out, const CodeTree::CodeOp& op, bool litStart) const
 {
   switch (op._instruction()) {
     case CodeTree::SUCCESS_OR_FAIL:
       if (op.isSuccess()) {
-        out << "success ";
+        out << GREEN << "success " << CRESET;
         printSuccess(out, op);
       } else {
-        out << "fail";
+        out << RED << "fail" << CRESET;
       }
       break;
     case CodeTree::LIT_END:
-      out << "lit end";
+      out << GREEN << "lit end" << CRESET;
       break;
     case CodeTree::CHECK_GROUND_TERM:
       out << "ground " << *op.getTargetTerm();
       break;
     case CodeTree::CHECK_FUN: {
       auto functor = op._arg();
-      // TODO this is currently the least effort without slowing down code trees
-      if (env.signature->functions() <= functor) {
-        out << "check " << (functor % 2 == 1 ? "~" : "")
-            << env.signature->getPredicate(functor / 2)->name();
+      // TODO without slowing code trees down by adding new operations, it's hard to distinguish
+      // between predicates/functions and type constructors, so we just avoid failure now.
+      if (litStart) {
+        if (env.signature->predicates()<=functor) {
+          out << YELLOW << "check " << CRESET << env.signature->getTypeCon(functor)->name();
+        } else {
+          out << YELLOW << "check " << CRESET << (functor % 2 == 0 ? "~" : "")
+              << env.signature->getPredicate(functor / 2)->name();
+        }
       } else {
-        out << "check " << env.signature->getFunction(op._arg())->name();
+        if (env.signature->functions()<=functor) {
+          out << YELLOW << "check " << CRESET << env.signature->getTypeCon(functor)->name();
+        } else {
+          out << YELLOW << "check " << CRESET << env.signature->getFunction(functor)->name();
+        }
       }
       break;
     }
     case CodeTree::ASSIGN_VAR:
-      out << "assign X" << op._arg();
+      out << YELLOW << "assign" << CRESET << " X" << op._arg();
       break;
     case CodeTree::CHECK_VAR:
-      out << "check X" << op._arg();
+      out << YELLOW << "check" << CRESET << " X" << op._arg();
       break;
     case CodeTree::SEARCH_STRUCT:
-      out << "search ";
+      out << YELLOW << "search " << CRESET;
       auto ss = op.getSearchStruct();
       switch(ss->kind) {
         case CodeTree::SearchStruct::FN_STRUCT: {
           auto fn_ss = static_cast<const CodeTree::FnSearchStruct*>(ss);
-          out << "length " << fn_ss->length();
+          out << YELLOW << "length " << CRESET << fn_ss->length();
           for (unsigned i = 0; i < fn_ss->length(); i++) {
             out << " " << fn_ss->values[i] << " ";
             if (fn_ss->targets[i]) {
-              printOp(out, *fn_ss->targets[i]);
+              printOp(out, *fn_ss->targets[i], litStart);
             } else {
               out << "nullptr";
             }
@@ -413,11 +427,11 @@ void CodeTree::printOp(std::ostream& out, const CodeTree::CodeOp& op) const
         }
         case CodeTree::SearchStruct::GROUND_TERM_STRUCT: {
           auto gt_ss = static_cast<const CodeTree::GroundTermSearchStruct*>(ss);
-          out << "length " << gt_ss->length();
+          out << YELLOW << "length " << CRESET << gt_ss->length();
           for (unsigned i = 0; i < gt_ss->length(); i++) {
             out << " " << *gt_ss->values[i] << " ";
             if (gt_ss->targets[i]) {
-              printOp(out, *gt_ss->targets[i]);
+              printOp(out, *gt_ss->targets[i], litStart);
             } else {
               out << "nullptr";
             }
@@ -877,27 +891,28 @@ CodeTree::CodeBlock* CodeTree::firstOpToCodeBlock(CodeOp* op)
 template<class Visitor>
 void CodeTree::visitAllOps(Visitor visitor) const
 {
-  static Stack<pair<CodeOp*,unsigned>> top_ops;
+  // operation, depth, and flag indicating whether the next functor is a predicate
+  static Stack<tuple<CodeOp*,unsigned,bool>> top_ops;
   // each top_op is either a first op of a Block or a SearchStruct
   // but it cannot be both since SearchStructs don't occur inside blocks
   top_ops.reset();
 
-  if(!isEmpty()) { top_ops.emplace(getEntryPoint(),0); }
+  if(!isEmpty()) { top_ops.emplace(getEntryPoint(),0,_clauseCodeTree); }
 
   while(top_ops.isNonEmpty()) {
-    auto [top_op,depth] = top_ops.pop();
+    auto [top_op,depth,litStart] = top_ops.pop();
 
     if (top_op->isSearchStruct()) {
-      visitor(top_op, depth); // visit the landingOp inside the SearchStruct
+      visitor(top_op, depth, litStart); // visit the landingOp inside the SearchStruct
 
       if(top_op->alternative()) {
-        top_ops.emplace(top_op->alternative(),depth);
+        top_ops.emplace(top_op->alternative(),depth,litStart);
       }
 
       auto ss = top_op->getSearchStruct();
       for (size_t i = 0; i < ss->length(); i++) {
         if (ss->targets[i]!=0) { // zeros are allowed as targets (they are holes after removals)
-          top_ops.emplace(ss->targets[i],depth+1);
+          top_ops.emplace(ss->targets[i],depth+1,litStart);
         }
       }
     } else {
@@ -906,22 +921,33 @@ void CodeTree::visitAllOps(Visitor visitor) const
       CodeOp* op=&(*cb)[0];
       ASS_EQ(top_op,op);
       for(size_t rem=cb->length(); rem; rem--,op++) {
-        visitor(op, depth+(cb->length()-rem));
+        visitor(op, depth+(cb->length()-rem), litStart);
         if(op->alternative()) {
-          top_ops.emplace(op->alternative(),depth+(cb->length()-rem));
+          top_ops.emplace(op->alternative(),depth+(cb->length()-rem),litStart);
         }
+        litStart = op->isLitEnd();
       }
     }
   }
 }
 
+void CodeTree::printOps(std::ostream& out, const CodeTree& ct, const CodeTree::CodeStack& st) const
+{
+  bool litStart = _clauseCodeTree;
+  for (const auto& op : st) {
+    printOp(out, op, litStart);
+    out << std::endl;
+    litStart = op.isLitEnd();
+  }
+}
+
 std::ostream& operator<<(std::ostream& out, const CodeTree& ct)
 {
-  ct.visitAllOps([&out,&ct](const CodeTree::CodeOp* op, unsigned depth) {
+  ct.visitAllOps([&out,&ct](const CodeTree::CodeOp* op, unsigned depth, bool litStart) {
     for (unsigned i = 0; i < depth; i++) {
       out << "  ";
     }
-    ct.printOp(out, *op);
+    ct.printOp(out, *op, litStart);
     out << std::endl;
   });
   return out;

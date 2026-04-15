@@ -47,7 +47,7 @@ void ClauseCodeTree<higherOrder>::onCodeOpDestroying(CodeOp* op)
 template<bool higherOrder>
 void ClauseCodeTree<higherOrder>::printSuccess(std::ostream& out, const CodeOp& op) const
 {
-  out << *op.getSuccessResult<Clause>();
+  out << op.getSuccessResult<Clause>()->toString();
 }
 
 template<bool higherOrder>
