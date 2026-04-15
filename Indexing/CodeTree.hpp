@@ -20,7 +20,6 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/DHMap.hpp"
-#include "Lib/Environment.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Vector.hpp"
 
@@ -41,8 +40,8 @@ public:
   struct ILStruct;
   struct SearchStruct;
   struct CodeOp;
-  
-protected:  
+
+protected:
   /**
   * During the destruction of the CodeTree,
   * onCodeOpDestroying is called on each CodeOp
@@ -50,12 +49,12 @@ protected:
   * allocated memory "owned" by the particular CodeOp
   * (the details are expected to be descendant specific)
   */
-  void (*_onCodeOpDestroying)(CodeOp* op);
-      
+  virtual void onCodeOpDestroying(CodeOp* op) {}
+  virtual void printSuccess(std::ostream& out, const CodeOp& op) const {}
+
 public:
-  CodeTree();
-  ~CodeTree();
-  
+  virtual ~CodeTree();
+
   struct LitInfo
   {
     LitInfo() {}
@@ -211,8 +210,6 @@ public:
     inline void setAlternative(CodeOp* op) { ASS_NEQ(op, this); _alternative=op; }
 
     void makeFail() { static_assert(SUCCESS_OR_FAIL==0); _content = 0; }
-
-    friend std::ostream& operator<<(std::ostream& out, const CodeOp& op);
 
     BITFIELD(64,
       BITFIELD_MEMBER(unsigned, _arg, _setArg, CHAR_BIT * sizeof(unsigned) - INSTRUCTION_BITS,
@@ -450,6 +447,7 @@ public:
   template<class Visitor>
   void visitAllOps(Visitor visitor) const;
 
+  void printOp(std::ostream& out, const CodeOp& op) const;
   friend std::ostream& operator<<(std::ostream& out, const CodeTree& ct);
 
   //////////// insertion //////////////
@@ -494,12 +492,12 @@ public:
   //////// member variables //////////
 
   bool _clauseCodeTree;
-  unsigned _curTimeStamp;
+  unsigned _curTimeStamp = 0;
 
   /** maximal number of local variables in a stored term/literal (always at least 1) */
-  unsigned _maxVarCnt;
+  unsigned _maxVarCnt = 1;
 
-  CodeBlock* _entryPoint;
+  CodeBlock* _entryPoint = nullptr;
 };
 
 }

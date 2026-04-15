@@ -140,7 +140,7 @@ CodeTree::ILStruct::ILStruct(const Literal* lit, unsigned varCnt, Stack<unsigned
   if(varCnt) {
     size_t gvnSize=sizeof(unsigned)*varCnt;
     globalVarNumbers=static_cast<unsigned*>(
-	ALLOC_KNOWN(gvnSize, "CodeTree::ILStruct::globalVarNumbers"));
+      ALLOC_KNOWN(gvnSize, "CodeTree::ILStruct::globalVarNumbers"));
     memcpy(globalVarNumbers, gvnStack.begin(), gvnSize);
   }
   else {
@@ -164,14 +164,14 @@ CodeTree::ILStruct::~ILStruct()
   if(globalVarNumbers) {
     size_t gvSize=sizeof(unsigned)*varCnt;
     DEALLOC_KNOWN(globalVarNumbers, gvSize,
-		"CodeTree::ILStruct::globalVarNumbers");
+      "CodeTree::ILStruct::globalVarNumbers");
     if(sortedGlobalVarNumbers) {
       DEALLOC_KNOWN(sortedGlobalVarNumbers, gvSize,
-		  "CodeTree::ILStruct::sortedGlobalVarNumbers");
+        "CodeTree::ILStruct::sortedGlobalVarNumbers");
     }
     if(globalVarPermutation) {
       DEALLOC_KNOWN(globalVarPermutation, gvSize,
-		  "CodeTree::ILStruct::globalVarPermutation");
+        "CodeTree::ILStruct::globalVarPermutation");
     }
   }
 }
@@ -210,9 +210,9 @@ void CodeTree::ILStruct::putIntoSequence(ILStruct* previous_)
 
   size_t gvSize=sizeof(unsigned)*varCnt;
   sortedGlobalVarNumbers=static_cast<unsigned*>(
-	ALLOC_KNOWN(gvSize, "CodeTree::ILStruct::sortedGlobalVarNumbers"));
+    ALLOC_KNOWN(gvSize, "CodeTree::ILStruct::sortedGlobalVarNumbers"));
   globalVarPermutation=static_cast<unsigned*>(
-	ALLOC_KNOWN(gvSize, "CodeTree::ILStruct::globalVarPermutation"));
+    ALLOC_KNOWN(gvSize, "CodeTree::ILStruct::globalVarPermutation"));
 
   for(unsigned i=0;i<varCnt;i++) {
     sortedGlobalVarNumbers[i]=gvArr[i].first;
@@ -360,12 +360,13 @@ CodeTree::SearchStruct* CodeTree::CodeOp::getSearchStruct()
   return GET_CONTAINING_OBJECT(CodeTree::SearchStruct,landingOp,this);
 }
 
-std::ostream& operator<<(std::ostream& out, const CodeTree::CodeOp& op)
+void CodeTree::printOp(std::ostream& out, const CodeTree::CodeOp& op) const
 {
   switch (op._instruction()) {
     case CodeTree::SUCCESS_OR_FAIL:
       if (op.isSuccess()) {
-        out << "success";
+        out << "success ";
+        printSuccess(out, op);
       } else {
         out << "fail";
       }
@@ -374,19 +375,27 @@ std::ostream& operator<<(std::ostream& out, const CodeTree::CodeOp& op)
       out << "lit end";
       break;
     case CodeTree::CHECK_GROUND_TERM:
-      out << "check ground term " << *op.getTargetTerm();
+      out << "ground " << *op.getTargetTerm();
       break;
-    case CodeTree::CHECK_FUN:
-      out << "check fun " << env.signature->getFunction(op._arg())->name();
+    case CodeTree::CHECK_FUN: {
+      auto functor = op._arg();
+      // TODO this is currently the least effort without slowing down code trees
+      if (env.signature->functions() <= functor) {
+        out << "check " << (functor % 2 == 1 ? "~" : "")
+            << env.signature->getPredicate(functor / 2)->name();
+      } else {
+        out << "check " << env.signature->getFunction(op._arg())->name();
+      }
       break;
+    }
     case CodeTree::ASSIGN_VAR:
-      out << "assign var X" << op._arg();
+      out << "assign X" << op._arg();
       break;
     case CodeTree::CHECK_VAR:
-      out << "check var X" << op._arg();
+      out << "check X" << op._arg();
       break;
     case CodeTree::SEARCH_STRUCT:
-      out << "search struct ";
+      out << "search ";
       auto ss = op.getSearchStruct();
       switch(ss->kind) {
         case CodeTree::SearchStruct::FN_STRUCT: {
@@ -395,7 +404,7 @@ std::ostream& operator<<(std::ostream& out, const CodeTree::CodeOp& op)
           for (unsigned i = 0; i < fn_ss->length(); i++) {
             out << " " << fn_ss->values[i] << " ";
             if (fn_ss->targets[i]) {
-              out << *fn_ss->targets[i];
+              printOp(out, *fn_ss->targets[i]);
             } else {
               out << "nullptr";
             }
@@ -408,7 +417,7 @@ std::ostream& operator<<(std::ostream& out, const CodeTree::CodeOp& op)
           for (unsigned i = 0; i < gt_ss->length(); i++) {
             out << " " << *gt_ss->values[i] << " ";
             if (gt_ss->targets[i]) {
-              out << *gt_ss->targets[i];
+              printOp(out, *gt_ss->targets[i]);
             } else {
               out << "nullptr";
             }
@@ -418,7 +427,6 @@ std::ostream& operator<<(std::ostream& out, const CodeTree::CodeOp& op)
       }
       break;
   }
-  return out;
 }
 
 CodeTree::SearchStruct::SearchStruct(Kind kind, size_t length)
@@ -816,14 +824,9 @@ template struct CodeTree::Matcher<false, false, true>;
 
 //////////////// auxiliary ////////////////////
 
-CodeTree::CodeTree()
-: _onCodeOpDestroying(0), _curTimeStamp(0), _maxVarCnt(1), _entryPoint(0)
-{
-}
-
 CodeTree::~CodeTree()
 {
-  static Stack<CodeOp*> top_ops; 
+  static Stack<CodeOp*> top_ops;
   // each top_op is either a first op of a Block or a SearchStruct
   // but it cannot be both since SearchStructs don't occur inside blocks
   top_ops.reset();
@@ -837,7 +840,7 @@ CodeTree::~CodeTree()
       if(top_op->alternative()) {
         top_ops.push(top_op->alternative());
       }
-      
+
       auto ss = top_op->getSearchStruct();
       for (size_t i = 0; i < ss->length(); i++) {
         if (ss->targets[i]!=0) { // zeros are allowed as targets (they are holes after removals)
@@ -851,9 +854,7 @@ CodeTree::~CodeTree()
       CodeOp* op=&(*cb)[0];
       ASS_EQ(top_op,op);
       for(size_t rem=cb->length(); rem; rem--,op++) {
-        if (_onCodeOpDestroying) {
-          (*_onCodeOpDestroying)(op); 
-        }
+        onCodeOpDestroying(op);
         if(op->alternative()) {
           top_ops.push(op->alternative());
         }
@@ -881,24 +882,22 @@ void CodeTree::visitAllOps(Visitor visitor) const
   // but it cannot be both since SearchStructs don't occur inside blocks
   top_ops.reset();
 
-  if(!isEmpty()) { top_ops.push(make_pair(getEntryPoint(),0)); }
+  if(!isEmpty()) { top_ops.emplace(getEntryPoint(),0); }
 
   while(top_ops.isNonEmpty()) {
-    auto kv = top_ops.pop();
-    CodeOp* top_op = kv.first;
-    unsigned depth = kv.second;
+    auto [top_op,depth] = top_ops.pop();
 
     if (top_op->isSearchStruct()) {
       visitor(top_op, depth); // visit the landingOp inside the SearchStruct
-      
+
       if(top_op->alternative()) {
-        top_ops.push(make_pair(top_op->alternative(),depth));
+        top_ops.emplace(top_op->alternative(),depth);
       }
-      
+
       auto ss = top_op->getSearchStruct();
       for (size_t i = 0; i < ss->length(); i++) {
         if (ss->targets[i]!=0) { // zeros are allowed as targets (they are holes after removals)
-          top_ops.push(make_pair(ss->targets[i],depth+1));
+          top_ops.emplace(ss->targets[i],depth+1);
         }
       }
     } else {
@@ -909,7 +908,7 @@ void CodeTree::visitAllOps(Visitor visitor) const
       for(size_t rem=cb->length(); rem; rem--,op++) {
         visitor(op, depth+(cb->length()-rem));
         if(op->alternative()) {
-          top_ops.push(make_pair(op->alternative(),depth+(cb->length()-rem)));
+          top_ops.emplace(op->alternative(),depth+(cb->length()-rem));
         }
       }
     }
@@ -918,11 +917,12 @@ void CodeTree::visitAllOps(Visitor visitor) const
 
 std::ostream& operator<<(std::ostream& out, const CodeTree& ct)
 {
-  ct.visitAllOps([&out](const CodeTree::CodeOp* op, unsigned depth) {
+  ct.visitAllOps([&out,&ct](const CodeTree::CodeOp* op, unsigned depth) {
     for (unsigned i = 0; i < depth; i++) {
       out << "  ";
     }
-    out << *op << std::endl;
+    ct.printOp(out, *op);
+    out << std::endl;
   });
   return out;
 }
@@ -1156,7 +1156,7 @@ void CodeTree::incorporate(CodeStack& code)
             continue;
           }
         }
-      } // for(;;) 
+      } // for(;;)
 
       if (treeOp->isLitEnd()) {
         lastMatchedILS = treeOp->getILS();
@@ -1330,9 +1330,9 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp
       //delete ILStruct objects
       size_t cbLen=cb->length();
       for(size_t i=0;i<cbLen;i++) {
-	if((*cb)[i].isLitEnd()) {
-	  delete (*cb)[i].getILS();
-	}
+        if((*cb)[i].isLitEnd()) {
+          delete (*cb)[i].getILS();
+        }
       }
     }
     cb->deallocate(); //from now on we mustn't dereference firstOp
@@ -1349,9 +1349,9 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp
 
     if(prevFirstOp->isSearchStruct()) {
       if(prevFirstOp->alternative()==firstOp) {
-	//firstOp was an alternative to the SearchStruct
-	prevFirstOp->setAlternative(alt);
-	return;
+        //firstOp was an alternative to the SearchStruct
+        prevFirstOp->setAlternative(alt);
+        return;
       }
       auto ss = prevFirstOp->getSearchStruct();
       CodeOp** tgtPtr;
@@ -1359,16 +1359,16 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp
       ASS_EQ(*tgtPtr, firstOp);
       *tgtPtr=alt;
       if(alt) {
-	ASS( (ss->kind==SearchStruct::FN_STRUCT && alt->isCheckFun()) ||
-	    (ss->kind==SearchStruct::GROUND_TERM_STRUCT && alt->isCheckGroundTerm()) );
-	return;
+        ASS( (ss->kind==SearchStruct::FN_STRUCT && alt->isCheckFun()) ||
+            (ss->kind==SearchStruct::GROUND_TERM_STRUCT && alt->isCheckGroundTerm()) );
+        return;
       }
       for(size_t i=0; i<ss->length(); i++) {
-	if(ss->targets[i]!=0) {
-	  //the SearchStruct still contains something, so we won't delete it
-	  //TODO: we might want to compress the SearchStruct, if there are too many zeroes
-	  return;
-	}
+        if(ss->targets[i]!=0) {
+          //the SearchStruct still contains something, so we won't delete it
+          //TODO: we might want to compress the SearchStruct, if there are too many zeroes
+          return;
+        }
       }
 
       //if we're at this point, the SEARCH_STRUCT will be deleted
@@ -1408,8 +1408,8 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp
       ASS_NEQ(prevOp->alternative(),firstOp);
 
       if(prevOp->alternative() || prevOp->isSuccess()) {
-	//there is an operation after the pointingOp that cannot be lost
-	return;
+        //there is an operation after the pointingOp that cannot be lost
+        return;
       }
       prevOp++;
     }
