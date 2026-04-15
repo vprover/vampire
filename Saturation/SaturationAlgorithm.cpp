@@ -1703,7 +1703,7 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
   bool alascaTakesOver = doesAlascaTakeOver(prb, opt);
   auto& ordering = salg.getOrdering();
 
-  if (mayHaveEquality) {
+  if (mayHaveEquality && opt.subsumptionEqualityResolution()) {
     res->addFront(new SubsumptionEqualityResolution());
   }
 
