@@ -396,6 +396,75 @@ void HOL::getMatrixAndPrefSorts(TermList t, TermList& matrix, TermStack& sorts) 
   matrix = t;
 }
 
+TermStack HOL::getFlexHeadSorts(TermList flexTerm, TermList rigidTermSort)
+{
+  TermList matrixSort;
+  if (flexTerm.isVar()) {
+    matrixSort = rigidTermSort;
+  } else {
+    matrixSort = flexTerm.resultSort();
+    while (flexTerm.isLambdaTerm()) {
+      matrixSort = *flexTerm.term()->nthArgument(1);
+      flexTerm = flexTerm.lambdaBody();
+    }
+  }
+
+  TermStack temp;
+  getArgSorts(matrixSort, temp);
+
+  TermStack sorts;
+  while (temp.isNonEmpty()) {
+    sorts.push(temp.pop());
+  }
+
+  getArgSorts(flexTerm, sorts);
+  return sorts;
+}
+
+Stack<std::pair<TermList, HOL::UnificationInference>> HOL::getProjAndImitBindings(TermList flexTerm, TermList rigidTerm, unsigned& freshVar)
+{
+  // since term is rigid, cannot be a variable
+  TermList sort = finalResult(matrix(rigidTerm).resultSort());
+  TermList headRigid = rigidTerm.head();
+
+  auto [headFlex, argsFlex] = getHeadAndArgs(flexTerm);
+
+  TermStack sortsFlex = getFlexHeadSorts(flexTerm, rigidTerm.resultSort()); // sorts of arguments of flex head
+
+  Stack<std::pair<TermList, UnificationInference>> res;
+
+  // imitation
+  if (headRigid.deBruijnIndex().isNone()) { // cannot imitate a bound variable
+    res.emplace(createGeneralBinding(headRigid, sortsFlex, freshVar), UnificationInference::IMITATION);
+  }
+
+  ASS_GE(sortsFlex.size(), argsFlex.size());
+  unsigned diff = sortsFlex.size() - argsFlex.size();
+
+  // projections
+  for (unsigned i = 0; i < argsFlex.size(); i++) {
+    // try and project each of the arguments of the flex head in turn
+    TermList arg = argsFlex[i];
+    TermList argSort = sortsFlex[i + diff];
+
+    // sort wrong, cannot project this arg
+    if (finalResult(argSort) != sort) {
+      continue;
+    }
+
+    TermList head = arg.head();
+
+    // argument has a rigid head different to that of rhs. no point projecting
+    if (head.isTerm() && head.deBruijnIndex().isNone() && head != headRigid) {
+      continue;
+    }
+
+    TermList dbi = getDeBruijnIndex(i + diff, sortsFlex[i + diff]);
+    res.emplace(createGeneralBinding(dbi, sortsFlex, freshVar), UnificationInference::PROJECTION);
+  }
+  return res;
+}
+
 TermList HOL::createGeneralBinding(TermList head, const TermStack& sorts, unsigned& freshVar, bool surround)
 {
   ASS(head.isTerm()) // in the future may wish to reconsider this assertion

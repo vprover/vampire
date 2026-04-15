@@ -30,23 +30,33 @@ namespace {
 
 #define INT_TESTS 0
 
-#define SUGAR(Num)                                                                                  \
-  NUMBER_SUGAR(Num)                                                                                 \
-  DECL_DEFAULT_VARS                                                                                 \
-  DECL_FUNC(f, {Num}, Num)                                                                          \
-  DECL_FUNC(g, {Num}, Num)                                                                          \
-  DECL_FUNC(g2, {Num, Num}, Num)                                                                    \
-  DECL_CONST(a, Num)                                                                                \
-  DECL_CONST(b, Num)                                                                                \
-  DECL_CONST(c, Num)                                                                                \
-  DECL_PRED(p, {Num})                                                                               \
-  DECL_PRED(r, {Num,Num})                                                                           \
-                                                                                                    \
-  DECL_SORT(alpha)                                                                                  \
-  DECL_FUNC(fa, {Num}, alpha)                                                                       \
-  DECL_CONST(aa, alpha)                                                                             \
-  DECL_CONST(ba, alpha)                                                                             \
-  DECL_FUNC(fn, {alpha}, Num)                                                                       \
+#define SUGAR(Num)                                                                        \
+  NUMBER_SUGAR(Num)                                                                       \
+  DECL_DEFAULT_VARS                                                                       \
+  DECL_FUNC(f, {Num}, Num)                                                                \
+  DECL_FUNC(g, {Num}, Num)                                                                \
+  DECL_FUNC(g2, {Num, Num}, Num)                                                          \
+  DECL_CONST(a, Num)                                                                      \
+  DECL_CONST(b, Num)                                                                      \
+  DECL_CONST(c, Num)                                                                      \
+  DECL_PRED(p, {Num})                                                                     \
+  DECL_PRED(r, {Num,Num})                                                                 \
+                                                                                          \
+  DECL_SORT(alpha)                                                                        \
+  DECL_FUNC(fa, {Num}, alpha)                                                             \
+  DECL_CONST(aa, alpha)                                                                   \
+  DECL_CONST(ba, alpha)                                                                   \
+  DECL_FUNC(fn, {alpha}, Num)                                                             \
+                                                                                          \
+  DECL_VAR(X0, 0)                                                                         \
+  DECL_VAR(X1, 1)                                                                         \
+  DECL_VAR(X2, 2)                                                                         \
+  DECL_VAR(X3, 3)                                                                         \
+  DECL_VAR(X4, 4)                                                                         \
+  DECL_VAR(X5, 5)                                                                         \
+  DECL_VAR(X6, 6)                                                                         \
+  DECL_VAR(X7, 7)                                                                         \
+  DECL_VAR(X8, 8)                                                                         \
 
 #define MY_GEN_RULE     AlascaSimplRule<EqFactoring>
 #define MY_GEN_TESTER   AlascaGenerationTester
@@ -149,6 +159,13 @@ TEST_GENERATION(two_var_01,
     )
 
 
-  // xa == ya \/ xn == yn
+
+TEST_GENERATION(bug01,
+    alascaSymmetricTest(/* uwa */ "off")
+      .inputs  ({  clause({X1 == X3.sort(X0), X2 == X4.sort(X5), 0 != a}), }) 
+      .expected(withoutDuplicates(exactly(
+             clause({X1 == X3.sort(X0), X2 != X3.sort(X0), 0 != a})
+           , clause({X1 == X3.sort(X0), X2 != X1.sort(X0), 0 != a})
+          ))))
 
 }

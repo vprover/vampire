@@ -219,8 +219,7 @@ sa!=fmb > fgj ~cat on:1,off:1
 intent=unsat sa!=fmb > flr ~cat off:8,on:1
 
 # function_definition_introduction
-# TODO fix this
-# sa!=fmb > fdi ~cat 0:100,2:1,4:1,8:1,16:1,32:1,64:1,128:1,256:1,512:1,1024:1
+sa!=fmb > fdi ~cat 0:100,2:1,4:1,8:1,16:1,32:1,64:1,128:1,256:1,512:1,1024:1
 
 # inner_rewriting
 sa!=fmb > irw ~cat off:165,on:6
@@ -398,7 +397,89 @@ sa=fmb > fmbsso ~cat occurrence:22,input_usage:1,preprocessed_usage:1
 # fmb_symmetry_ratio
 sa=fmb > fmbsr ~uf 1.0,2.5
 
-# MISSING:
-# Any theory reasoning options (including term algebras and sa=z3)
-# Any induction options
-# Any higher-order options (Higher-order options section)
+# HIGHER ORDER STUFF
+
+# complex_bool_reasoning
+> cbe ~cat on:100,off:65
+
+# add_proxy_axioms
+# TODO(HOL)
+#> apa ~cat off:100,on:13
+> apa ~cat off:100
+
+# bool_eq_trick
+> bet ~cat off:100,on:19
+
+# cases
+> c ~cat off:100,on:31
+
+# cases_simp
+c=off > cs ~cat off:100,on:14
+
+# choice_ax
+# TODO(HOL)
+#> cha ~cat off:100,on:16
+> cha ~cat off:100
+
+# choice_reasoning
+cha=off > chr ~cat off:100,on:15
+
+# cnf_on_the_fly
+apa=on  > cnfonf ~cat off:1
+apa=off > cnfonf ~cat eager:111,off:43,lazy_gen:29,conj_eager:19,lazy_not_gen_be_off:15,lazy_pi_sigma_gen:26,lazy_not_be_gen:12,lazy_simp:19,lazy_not_gen:12
+
+# heur_inst
+# TODO(HOL)
+#cnfonf=conj_eager > hi ~cat off:100,on:5
+
+# bool_inst (disable for now)
+# cnfonf!=off > bi ~cat off:1,abs:1,abs_sub:1
+
+# equality_to_equiv
+> e2e ~cat off:222,on:64
+
+# func_ext
+# TODO(HOL)
+#> fe ~cat abstraction:172,off:74,axiom:40
+> fe ~cat abstraction:172,off:74
+
+# hol_unif_depth
+# TODO(HOL)
+#> hud ~ui 0,25
+
+# iff_xor_rewriter
+> ixr ~cat on:100,off:21
+
+# new_taut_del
+> ntd ~cat off:100,on:60
+
+# pos_ext
+func_ext!=axiom > pe ~cat off:20,on:1
+
+# prim_inst_set
+> piset ~cat pragmatic:214,or:14,equals:19,and:15,not:3,pi_sigma:8,all:3,small_set:7,all_but_not_eq:3
+
+# pragmatic
+# TODO(HOL)
+#hud!=0 > prag ~cat off:1,on:1
+
+# applicative_unif
+# TODO(HOL)
+#> au ~cat off:10,on:3
+
+# take_n_unifiers
+# TODO(HOL)
+#au=off > tnu ~ui 0,9
+
+# injectivity
+> inj ~cat off:4,on:1
+
+# higher order split queue
+# TODO(HOL)
+#> hfsq ~cat off:10,on:1
+#hfsq=on > hfsql ~cat off:1,on:4
+#hfsq=on > hfsqc ~cat 0:80,1:30,2:20,3:20,4:10,5:5
+#hfsq=on > hfsqr ~u2r -5;3;,
+
+#hfsq=on > hflw ~cat 0:1,1:5,2:3,3:2,4:2,5:1
+#hfsq=on > hfaw ~cat 0:1,1:5,2:3,3:2,4:2,5:1

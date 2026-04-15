@@ -65,6 +65,18 @@ inline bool canHeadReduce(const TermList& head, const TermStack& args) {
   return head.isLambdaTerm() && args.isNonEmpty();
 }
 
+// if flexTerm is of form X t1 t2 : i > i and t1 : int and t2 : tau
+// this function will fill stack with [i, tau, int]
+// TODO(HOL): very inelegant at the moment, need to rewrite
+TermStack getFlexHeadSorts(TermList flexTerm, TermList rigidTermSort);
+
+enum class UnificationInference {
+  PROJECTION,
+  IMITATION,
+};
+
+Stack<std::pair<TermList, UnificationInference>> getProjAndImitBindings(TermList flexTerm, TermList rigidTerm, unsigned& freshVar);
+
 TermList createGeneralBinding(TermList head, const TermStack& sorts, unsigned& freshVar, bool surround = true);
 
 } // namespace HOL
@@ -93,7 +105,9 @@ namespace HOL::create {
   TermList bottom();
   TermList conj();
   TermList disj();
-  TermList imp();  
+  TermList imp();
+  TermList iff();
+  TermList xorP();
   TermList equality(TermList sort);
   TermList neg();
   TermList pi(TermList sort);
