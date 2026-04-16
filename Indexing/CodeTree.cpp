@@ -26,10 +26,18 @@
 
 #include "CodeTree.hpp"
 
+#define ISATTY 1
+#if ISATTY
 #define CRESET "\e[0m"
 #define YELLOW "\e[0;33m"
 #define GREEN  "\e[0;32m"
 #define RED    "\e[0;31m"
+#else
+#define CRESET ""
+#define YELLOW ""
+#define GREEN  ""
+#define RED    ""
+#endif
 
 #define GROUND_TERM_CHECK 0
 
@@ -81,7 +89,7 @@ CodeTree::LitInfo CodeTree::LitInfo::getOpposite(const LitInfo& li)
   ft->changeLiteralPolarity();
 #if GROUND_TERM_CHECK
   ASS_EQ((*ft)[1]._tag(), FlatTerm::FUN_TERM_PTR);
-  (*ft)[1]._ptr=Literal::complementaryLiteral(static_cast<Literal*>((*ft)[1]._term()));
+  (*ft)[1]._setTerm(Literal::complementaryLiteral(static_cast<Literal*>((*ft)[1]._term())));
 #endif
 
   LitInfo res=li;
@@ -365,6 +373,23 @@ CodeTree::SearchStruct* CodeTree::CodeOp::getSearchStruct()
   return GET_CONTAINING_OBJECT(CodeTree::SearchStruct,landingOp,this);
 }
 
+std::string functorStr(unsigned functor, bool litStart)
+{
+  // TODO without slowing code trees down by adding new operations, it's hard to distinguish
+  // between predicates/functions and type constructors, so we just avoid failure now.
+  if (litStart) {
+    if (env.signature->predicates() <= (functor / 2)) {
+      return env.signature->getTypeCon(functor)->name();
+    }
+    return (functor % 2 == 0 ? "~" : "") + env.signature->getPredicate(functor / 2)->name();
+  }
+
+  if (env.signature->functions() <= functor) {
+    return env.signature->getTypeCon(functor)->name();
+  }
+  return env.signature->getFunction(functor)->name();
+}
+
 void CodeTree::printOp(std::ostream& out, const CodeTree::CodeOp& op, bool litStart) const
 {
   switch (op._instruction()) {
@@ -380,26 +405,10 @@ void CodeTree::printOp(std::ostream& out, const CodeTree::CodeOp& op, bool litSt
       out << GREEN << "lit end" << CRESET;
       break;
     case CodeTree::CHECK_GROUND_TERM:
-      out << "ground " << *op.getTargetTerm();
+      out << YELLOW << "ground " << CRESET << *op.getTargetTerm();
       break;
     case CodeTree::CHECK_FUN: {
-      auto functor = op._arg();
-      // TODO without slowing code trees down by adding new operations, it's hard to distinguish
-      // between predicates/functions and type constructors, so we just avoid failure now.
-      if (litStart) {
-        if (env.signature->predicates()<=functor) {
-          out << YELLOW << "check " << CRESET << env.signature->getTypeCon(functor)->name();
-        } else {
-          out << YELLOW << "check " << CRESET << (functor % 2 == 0 ? "~" : "")
-              << env.signature->getPredicate(functor / 2)->name();
-        }
-      } else {
-        if (env.signature->functions()<=functor) {
-          out << YELLOW << "check " << CRESET << env.signature->getTypeCon(functor)->name();
-        } else {
-          out << YELLOW << "check " << CRESET << env.signature->getFunction(functor)->name();
-        }
-      }
+      out << YELLOW << "check " << CRESET << functorStr(op._arg(), litStart);
       break;
     }
     case CodeTree::ASSIGN_VAR:
@@ -408,38 +417,27 @@ void CodeTree::printOp(std::ostream& out, const CodeTree::CodeOp& op, bool litSt
     case CodeTree::CHECK_VAR:
       out << YELLOW << "check" << CRESET << " X" << op._arg();
       break;
-    case CodeTree::SEARCH_STRUCT:
-      out << YELLOW << "search " << CRESET;
+    case CodeTree::SEARCH_STRUCT: {
       auto ss = op.getSearchStruct();
-      switch(ss->kind) {
-        case CodeTree::SearchStruct::FN_STRUCT: {
-          auto fn_ss = static_cast<const CodeTree::FnSearchStruct*>(ss);
-          out << YELLOW << "length " << CRESET << fn_ss->length();
-          for (unsigned i = 0; i < fn_ss->length(); i++) {
-            out << " " << fn_ss->values[i] << " ";
-            if (fn_ss->targets[i]) {
-              printOp(out, *fn_ss->targets[i], litStart);
-            } else {
-              out << "nullptr";
-            }
-          }
-          break;
+      out << YELLOW;
+      if (ss->kind == CodeTree::SearchStruct::FN_STRUCT) {
+        out << "fn";
+      } else {
+        out << "gt";
+      }
+      out << " search: " << CRESET;
+      for (unsigned i = 0; i < ss->length(); i++) {
+        if (ss->kind == CodeTree::SearchStruct::FN_STRUCT) {
+          out << functorStr(static_cast<const CodeTree::FnSearchStruct*>(ss)->values[i], litStart);
+        } else {
+          out << *static_cast<const CodeTree::GroundTermSearchStruct*>(ss)->values[i];
         }
-        case CodeTree::SearchStruct::GROUND_TERM_STRUCT: {
-          auto gt_ss = static_cast<const CodeTree::GroundTermSearchStruct*>(ss);
-          out << YELLOW << "length " << CRESET << gt_ss->length();
-          for (unsigned i = 0; i < gt_ss->length(); i++) {
-            out << " " << *gt_ss->values[i] << " ";
-            if (gt_ss->targets[i]) {
-              printOp(out, *gt_ss->targets[i], litStart);
-            } else {
-              out << "nullptr";
-            }
-          }
-          break;
+        if (i+1 < ss->length()) {
+          out << ", ";
         }
       }
       break;
+    }
   }
 }
 
@@ -986,7 +984,9 @@ void CodeTree::Compiler<forLits>::handleTerm(const Term* trm)
   static Stack<unsigned> globalCounterparts;
   globalCounterparts.reset();
 
-  if (GROUND_TERM_CHECK && trm->ground()) {
+  // TODO add LIT_END for the ground term check, but there is also
+  // some problem with subsumption resolution with ground literals
+  if (GROUND_TERM_CHECK && trm->ground() && !trm->isLiteral()) {
     code.push(CodeOp::getGroundTermCheck(trm));
     return;
   }
