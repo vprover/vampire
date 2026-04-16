@@ -8,13 +8,9 @@
  * and in the source directory
  */
 /**
- * @file FOOLParamodulation.cpp
- * Implements the inference rule, that is needed for efficient treatment of
- * boolean terms. The details of why it is needed are in the paper
- * "A First Class Boolean Sort in First-Order Theorem Proving and TPTP"
- * by Kotelnikov, Kovacs and Voronkov [1].
- *
- * [1] http://arxiv.org/abs/1505.01682
+ * @file Cases.cpp
+ * Higher-order variant of FOOL paramodulation.
+ * @see FOOLParamodulation class.
  */
 
 #include "Kernel/Clause.hpp"
@@ -30,19 +26,14 @@ namespace Inferences {
 
 using namespace std;
 
-Clause* Cases::performParamodulation(Clause* premise, Literal* lit, TermList t) {
+Cases::Cases(SaturationAlgorithm& salg) : _ord(salg.getOrdering()) {}
+
+Clause* performCases(Clause* premise, Literal* lit, TermList t)
+{
   ASS(t.isTerm());
-
-  TermList lhs = *lit->nthArgument(0);
-  TermList rhs = *lit->nthArgument(1);
-
-  if((t == lhs) || (t == rhs)){
-    return 0;
-  }
 
   static TermList troo(Term::foolTrue());
   static TermList fols(Term::foolFalse());
-
 
   // Found a boolean term! Create the C[true] \/ s = false clause
 
@@ -62,44 +53,20 @@ Clause* Cases::performParamodulation(Clause* premise, Literal* lit, TermList t) 
   return Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::FOOL_PARAMODULATION, premise));
 }
 
-
-struct Cases::ResultFn
-{
-  ResultFn(Clause* cl, Cases& parent) : _cl(cl), _parent(parent) {}
-  Clause* operator()(pair<Literal*, TermList> arg)
-  {
-    return _parent.performParamodulation(_cl, arg.first, arg.second);
-  }
-private:
-  Clause* _cl;
-  Cases& _parent;
-};
-
-struct Cases::RewriteableSubtermsFn
-{
-  RewriteableSubtermsFn(Ordering& ord) : _ord(ord) {}
-
-  VirtualIterator<pair<Literal*, TermList> > operator()(Literal* lit)
-  {
-    return pvi( pushPairIntoRightIterator(lit, 
-                EqHelper::getBooleanSubtermIterator(lit, _ord)) );
-  }
-
-private:
-  Ordering& _ord;
-};
-
 ClauseIterator Cases::generateClauses(Clause* premise)
 {
-  auto it1 = premise->getSelectedLiteralIterator();
-
-  auto it2 = getMapAndFlattenIterator(it1,RewriteableSubtermsFn(_salg->getOrdering()));
-
-  auto it3 = getMappingIterator(std::move(it2),ResultFn(premise, *this));
-
-  auto it4 = getFilteredIterator(std::move(it3),NonzeroFn());
-
-  return pvi( std::move(it4) );
+  return pvi(premise->getSelectedLiteralIterator()
+    .flatMap([this](Literal* lit) {
+      return pvi(pushPairIntoRightIterator(lit, EqHelper::getBooleanSubtermIterator(lit, _ord)));
+    })
+    // filter out top-level terms
+    .filter([](pair<Literal*, TermList> arg) {
+      auto [lhs, rhs] = arg.first->eqArgs();
+      return lhs != arg.second && rhs != arg.second;
+    })
+    .map([premise](pair<Literal*, TermList> arg) {
+      return performCases(premise, arg.first, arg.second);
+    }));
 }
 
 }

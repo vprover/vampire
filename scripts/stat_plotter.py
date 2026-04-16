@@ -20,7 +20,12 @@ lblDeclRE = re.compile("^stat: ([^ ]+) - (.+ t[0-9]+)$")
 histogramSpecRE = re.compile("^[^ ]+@hist:[^ ]+$")
 histSegmentRE = re.compile("^ *([0-9]+): ([0-9]+)")
 
-tmpDataFile = tempfile.NamedTemporaryFile()
+def make_temp_path():
+    fd, p = tempfile.mkstemp()
+    os.close(fd)
+    return p
+
+tmpDataFile = make_temp_path()
 tmpHistFiles = []
 
 useLogScale = False
@@ -33,7 +38,7 @@ def readPlotGroups(spec):
     res=[]
     for g in grps:
         idxStrings = g.split(",")
-        gContent = map(int, idxStrings)
+        gContent = list(map(int, idxStrings))
         res.append(gContent)
     return res
 
@@ -43,17 +48,21 @@ def readArgs(args):
     global vampCmdLine
     
     locArgsEnd = False
-    while not locArgsEnd:
+    while args and not locArgsEnd:
         if args[0]=="-log":
             useLogScale = True
             args = args[1:]
         elif args[0]=="-g":
+            if len(args)<2:
+                raise Exception("missing value for -g")
             plotGroups = readPlotGroups(args[1])
             args = args[2:]
         else:
             locArgsEnd = True
+    if not args:
+        raise Exception("missing vampire command line")
     vampCmdLine = args
-    for i in range(0,len(vampCmdLine)):
+    for i in range(0,len(vampCmdLine)-1):
         if vampCmdLine[i]=="-tr":
             vampCmdLine[i+1] = "stat_labels,"+vampCmdLine[i+1]
 
@@ -97,7 +106,7 @@ def addLabel(specStr,lblStr):
     if histogramSpecRE.match(specStr):
         type = "hist"
         histIndexes.append(newIdx)
-        histTmpFiles[newIdx] = tempfile.NamedTemporaryFile()
+        histTmpFiles[newIdx] = make_temp_path()
         #histTmpFiles[newIdx] = open("/work/Dracula/pdata.txt","w")
         histMaxCounts[newIdx] = 0
         histMaxKeys[newIdx] = 0
@@ -126,7 +135,7 @@ def readHistData(histIdx,val):
         key = int(mo.group(1))
         ctr = int(mo.group(2))
         if key in res:
-            raise Exception("duplicate key "+key+" in "+val)
+            raise Exception("duplicate key "+str(key)+" in "+val)
         res[key]=ctr
         if ctr>histMaxCounts[histIdx]:
             histMaxCounts[histIdx] = ctr
@@ -153,9 +162,9 @@ def addDataPoint(lbl, t, v):
     elif type=="hist":
         data[t][idx]=readHistData(idx,v)
     else:
-        raise "not implemented"
+        raise Exception("not implemented")
 
-def outputHistFile(idx,f):
+def outputHistFile(idx,fname):
     global data
     global timePoints
     global histMaxKeys
@@ -166,26 +175,24 @@ def outputHistFile(idx,f):
             if idx not in data[t]:
                 continue
             distr = data[t][idx]
-            dom.update(distr.keys())
+            dom.update(list(distr.keys()))
         domEls = []
         domEls.extend(dom)
         domEls.sort()
     else:
-        domEls = range(0,histMaxKeys[idx])
+        domEls = list(range(0,histMaxKeys[idx]+1))
     
-    f.seek(0)
-    f.truncate()
-    for el in domEls:
-        for t in timePoints:
-            if idx not in data[t]:
-                continue
-            distr = data[t][idx]
-            if el in distr:
-                f.write(str(distr[el])+"\t")
-            else:
-                f.write("0\t")
-        f.write("\n")
-    f.flush()
+    with open(fname, "w") as f:
+        for el in domEls:
+            for t in timePoints:
+                if idx not in data[t]:
+                    continue
+                distr = data[t][idx]
+                if el in distr:
+                    f.write(str(distr[el])+"\t")
+                else:
+                    f.write("0\t")
+            f.write("\n")
 
 def updateDataFiles():
     """populate data files for graphs and histograms"""
@@ -196,28 +203,25 @@ def updateDataFiles():
     global histIndexes
     global histTmpFiles
     global idxTypes
-    tmpDataFile.truncate(0)
-    for t in timePoints:
-        tmpDataFile.write(str(t))
-        dataLine = data[t]
-        for idx in range(0,nextLblIdx):
-            val = None
-            if idxTypes[idx]!="num":
-                val = "?"
-            elif idx not in dataLine:
-                val = "?"
-            else:
-                val = dataLine[idx]
-            tmpDataFile.write("\t"+str(val))
-        tmpDataFile.write("\n")
-    tmpDataFile.flush()
+    with open(tmpDataFile, "w") as tf:
+        for t in timePoints:
+            tf.write(str(t))
+            dataLine = data[t]
+            for idx in range(0,nextLblIdx):
+                val = None
+                if idxTypes[idx]!="num":
+                    val = "?"
+                elif idx not in dataLine:
+                    val = "?"
+                else:
+                    val = dataLine[idx]
+                tf.write("\t"+str(val))
+            tf.write("\n")
     
     for hidx in histIndexes:
-        tf = histTmpFiles[hidx]
-        outputHistFile(hidx, tf)
-        tf.flush()
+        outputHistFile(hidx, histTmpFiles[hidx])
 
-gnuplotProc = subprocess.Popen(["gnuplot"], bufsize=1, stdin=subprocess.PIPE, shell=True)
+gnuplotProc = subprocess.Popen(["gnuplot"], bufsize=1, stdin=subprocess.PIPE, shell=True, text=True)
 
 if useLogScale:
     gnuplotProc.stdin.write("set logscale y\n")
@@ -231,7 +235,7 @@ def getIndexPlotStatement(idx):
     
     dataIdx = str(idx+2)
     title = idx2HumanLabel[idx]
-    return "\""+tmpDataFile.name+"\" using 1:($"+dataIdx+") title \""+title+"\" with linespoints"
+    return "\""+tmpDataFile+"\" using 1:($"+dataIdx+") title \""+title+"\" with linespoints"
     
     
 def buildHistPaletteCmd(idx):
@@ -241,8 +245,8 @@ def buildHistPaletteCmd(idx):
         return ['set palette defined (0 "white", 1 "black")']
     if maxVal<10:
         return ['set palette defined (0 "white", 1 "black", %d "red")' % maxVal]
-    low = math.sqrt(maxVal)
-    high = maxVal/2
+    low = int(math.sqrt(maxVal))
+    high = maxVal//2
     return ['set palette defined (0 "white", 1 "black", %d "purple", %d "red", %d "yellow")' % (low, high, maxVal)]
 
 def buildHistRangeCmd(idx):
@@ -259,7 +263,7 @@ def buildHistPlotCommand(idx):
 
     assert idxTypes[idx]=="hist"
     
-    fname = histTmpFiles[idx].name
+    fname = histTmpFiles[idx]
     title = idx2HumanLabel[idx]
     res = []
     res.extend(buildHistPaletteCmd(idx))
@@ -326,7 +330,7 @@ def redrawGnuplot():
     gnuplotProc.stdin.write(gpCmd)
     gnuplotProc.stdin.flush()
     
-vampProc = subprocess.Popen(vampCmdLine, bufsize=1, stderr=subprocess.PIPE)
+vampProc = subprocess.Popen(vampCmdLine, bufsize=1, stderr=subprocess.PIPE, text=True)
 
 lastUpdateTime = None
 
@@ -364,3 +368,12 @@ if platform.system()=="Linux":
 	sys.stdin.readline()
 
 gnuplotProc.kill()
+try:
+    os.unlink(tmpDataFile)
+except OSError:
+    pass
+for hidx in histIndexes:
+    try:
+        os.unlink(histTmpFiles[hidx])
+    except OSError:
+        pass

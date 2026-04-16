@@ -55,7 +55,7 @@ using namespace Kernel;
 CodeTree::LitInfo::LitInfo(Clause* cl, unsigned litIndex)
 : litIndex(litIndex), opposite(false)
 {
-  ft=FlatTerm::create((*cl)[litIndex]);
+  ft=FlatTerm::create(TermList((*cl)[litIndex]));
 }
 
 void CodeTree::LitInfo::dispose()
@@ -324,6 +324,7 @@ CodeTree::CodeOp CodeTree::CodeOp::getGroundTermCheck(const Term* trm)
 
   CodeOp res;
   res._setData(trm);
+  res._setInstruction(CHECK_GROUND_TERM);
   ASS(res.isCheckGroundTerm());
   return res;
 }
@@ -409,7 +410,6 @@ std::ostream& operator<<(std::ostream& out, const CodeTree::CodeOp& op)
       break;
     case CodeTree::CHECK_FUN:
       out << "check fun " << env.signature->getFunction(op._arg())->name();
-      // out << "check fun ";
       break;
     case CodeTree::ASSIGN_VAR:
       out << "assign var X" << op._arg();
@@ -554,19 +554,17 @@ CodeTree::CodeOp*& CodeTree::SearchStructImpl<k>::targetOp(const T& val)
 
 //////////////// Matcher ////////////////////
 
-template<bool removing, bool checkRange>
-bool CodeTree::Matcher<removing, checkRange>::execute()
+template<bool removing, bool checkRange, bool higherOrder>
+bool CodeTree::Matcher<removing, checkRange, higherOrder>::execute()
 {
   if(fresh) {
     fresh=false;
   }
   else {
     //we backtrack from what we found in the previous run
-    if (!fresh && !backtrack()) {
-      _matched = false;
+    if(!backtrack()) {
       return false;
     }
-    fresh = false;
   }
 
   bool shouldBacktrack=false;
@@ -616,11 +614,7 @@ bool CodeTree::Matcher<removing, checkRange>::execute()
         shouldBacktrack=!doCheckFun();
         break;
       case ASSIGN_VAR:
-        if constexpr (removing) {
-          shouldBacktrack=!doAssignVar();
-        } else {
-          doAssignVar();
-        }
+        shouldBacktrack=!doAssignVar();
         break;
       case CHECK_VAR:
         shouldBacktrack=!doCheckVar();
@@ -634,6 +628,9 @@ bool CodeTree::Matcher<removing, checkRange>::execute()
           shouldBacktrack=true;
         }
         break;
+      default: {
+        ASSERTION_VIOLATION;
+      }
     }
     if(shouldBacktrack) {
       if(!backtrack()) {
@@ -652,8 +649,8 @@ bool CodeTree::Matcher<removing, checkRange>::execute()
   }
 }
 
-template<bool removing, bool checkRange>
-bool CodeTree::Matcher<removing, checkRange>::executeMachineCode()
+template<bool removing, bool checkRange, bool higherOrder>
+bool CodeTree::Matcher<removing, checkRange, higherOrder>::executeMachineCode()
 {
   if constexpr (removing || checkRange) { return execute(); }
   // if (!tree->_clauseCodeTree) { return execute(); }
@@ -712,8 +709,8 @@ bool CodeTree::Matcher<removing, checkRange>::executeMachineCode()
   return false;
 }
 
-template<bool removing, bool checkRange>
-void CodeTree::Matcher<removing, checkRange>::init(CodeTree* tree_, CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_, Stack<CodeOp*>* firstsInBlocks_)
+template<bool removing, bool checkRange,bool higherOrder>
+void CodeTree::Matcher<removing, checkRange, higherOrder>::init(CodeTree* tree_, CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_, Stack<CodeOp*>* firstsInBlocks_)
 {
   tree=tree_;
   entry=entry_;
@@ -762,8 +759,8 @@ void CodeTree::Matcher<removing, checkRange>::init(CodeTree* tree_, CodeOp* entr
  * entry point and starts evaluating new literal info (if there
  * is some left).
  */
-template<bool removing, bool checkRange>
-bool CodeTree::Matcher<removing, checkRange>::backtrack()
+template<bool removing, bool checkRange, bool higherOrder>
+bool CodeTree::Matcher<removing, checkRange, higherOrder>::backtrack()
 {
   if(btStack.isEmpty()) {
     curLInfo++;
@@ -779,8 +776,8 @@ bool CodeTree::Matcher<removing, checkRange>::backtrack()
   return true;
 }
 
-template<bool removing, bool checkRange>
-bool CodeTree::Matcher<removing, checkRange>::prepareLiteral()
+template<bool removing, bool checkRange, bool higherOrder>
+bool CodeTree::Matcher<removing, checkRange, higherOrder>::prepareLiteral()
 {
   if constexpr (removing) {
     RemovingBase::firstsInBlocks->truncate(RemovingBase::initFIBDepth);
@@ -791,12 +788,11 @@ bool CodeTree::Matcher<removing, checkRange>::prepareLiteral()
   ft=linfos[curLInfo].ft;
   tp=0;
   op=entry;
-  fresh=true;
   return true;
 }
 
-template<bool removing, bool checkRange>
-inline bool CodeTree::Matcher<removing, checkRange>::doAssignVar()
+template<bool removing, bool checkRange, bool higherOrder>
+inline bool CodeTree::Matcher<removing, checkRange, higherOrder>::doAssignVar()
 {
   ASS_EQ(op->_instruction(), ASSIGN_VAR);
 
@@ -821,6 +817,13 @@ inline bool CodeTree::Matcher<removing, checkRange>::doAssignVar()
     fte++;
     ASS_EQ(fte->_tag(), FlatTerm::FUN_TERM_PTR);
     ASS(fte->_term());
+    if constexpr (higherOrder) {
+      // When dealing with HOL we want to avoid binding to
+      // any terms that contain loose DB indices.
+      if (TermList(fte->_term()).containsLooseDBIndex()) {
+        return false;
+      }
+    }
     bindings[var]=TermList(fte->_term());
     fte++;
     ASS_EQ(fte->_tag(), FlatTerm::FUN_RIGHT_OFS);
@@ -829,8 +832,8 @@ inline bool CodeTree::Matcher<removing, checkRange>::doAssignVar()
   return true;
 }
 
-template<bool removing, bool checkRange>
-inline bool CodeTree::Matcher<removing, checkRange>::doCheckVar()
+template<bool removing, bool checkRange, bool higherOrder>
+inline bool CodeTree::Matcher<removing, checkRange, higherOrder>::doCheckVar()
 {
   ASS_EQ(op->_instruction(), CHECK_VAR);
 
@@ -861,8 +864,8 @@ inline bool CodeTree::Matcher<removing, checkRange>::doCheckVar()
   return true;
 }
 
-template<bool removing, bool checkRange>
-inline bool CodeTree::Matcher<removing, checkRange>::doCheckFun()
+template<bool removing, bool checkRange, bool higherOrder>
+inline bool CodeTree::Matcher<removing, checkRange, higherOrder>::doCheckFun()
 {
   ASS_EQ(op->_instruction(), CHECK_FUN);
 
@@ -876,8 +879,8 @@ inline bool CodeTree::Matcher<removing, checkRange>::doCheckFun()
   return true;
 }
 
-template<bool removing, bool checkRange>
-inline bool CodeTree::Matcher<removing, checkRange>::doCheckGroundTerm()
+template<bool removing, bool checkRange, bool higherOrder>
+inline bool CodeTree::Matcher<removing, checkRange, higherOrder>::doCheckGroundTerm()
 {
   ASS_EQ(op->_instruction(), CHECK_GROUND_TERM);
 
@@ -900,8 +903,8 @@ inline bool CodeTree::Matcher<removing, checkRange>::doCheckGroundTerm()
   return true;
 }
 
-template<bool removing, bool checkRange>
-inline bool CodeTree::Matcher<removing, checkRange>::doSearchStruct()
+template<bool removing, bool checkRange, bool higherOrder>
+inline bool CodeTree::Matcher<removing, checkRange, higherOrder>::doSearchStruct()
 {
   ASS_EQ(op->_instruction(), SEARCH_STRUCT);
 
@@ -917,14 +920,16 @@ inline bool CodeTree::Matcher<removing, checkRange>::doSearchStruct()
   return true;
 }
 
-template struct CodeTree::Matcher<true, false>;
-template struct CodeTree::Matcher<true, true>;
-template struct CodeTree::Matcher<false, false>;
+template struct CodeTree::Matcher<true, false, false>;
+template struct CodeTree::Matcher<true, false, true>;
+template struct CodeTree::Matcher<true, true, false>;
+template struct CodeTree::Matcher<false, false, false>;
+template struct CodeTree::Matcher<false, false, true>;
 
 //////////////// auxiliary ////////////////////
 
 CodeTree::CodeTree()
-: _curTimeStamp(1), _maxVarCnt(1), _entryPoint(0), _cpJit(new CopyPatchJit())
+: _onCodeOpDestroying(0), _curTimeStamp(0), _maxVarCnt(1), _entryPoint(0), _cpJit(new CopyPatchJit())
 {
 }
 
@@ -944,7 +949,7 @@ CodeTree::~CodeTree()
       if(top_op->alternative()) {
         top_ops.push(top_op->alternative());
       }
-
+      
       auto ss = top_op->getSearchStruct();
       for (size_t i = 0; i < ss->length(); i++) {
         if (ss->targets[i]!=0) { // zeros are allowed as targets (they are holes after removals)
@@ -959,7 +964,7 @@ CodeTree::~CodeTree()
       ASS_EQ(top_op,op);
       for(size_t rem=cb->length(); rem; rem--,op++) {
         if (_onCodeOpDestroying) {
-          (*_onCodeOpDestroying)(op);
+          (*_onCodeOpDestroying)(op); 
         }
         if(op->alternative()) {
           top_ops.push(op->alternative());
@@ -987,7 +992,7 @@ CodeTree::CodeBlock* CodeTree::firstOpToCodeBlock(CodeOp* op)
 template<class Visitor>
 void CodeTree::visitAllOps(Visitor visitor) const
 {
-  Stack<pair<CodeOp*,unsigned>> top_ops;
+  static Stack<pair<CodeOp*,unsigned>> top_ops;
   // each top_op is either a first op of a Block or a SearchStruct
   // but it cannot be both since SearchStructs don't occur inside blocks
   top_ops.reset();
@@ -1001,11 +1006,11 @@ void CodeTree::visitAllOps(Visitor visitor) const
 
     if (top_op->isSearchStruct()) {
       visitor(top_op, depth); // visit the landingOp inside the SearchStruct
-
+      
       if(top_op->alternative()) {
         top_ops.push(make_pair(top_op->alternative(),depth));
       }
-
+      
       auto ss = top_op->getSearchStruct();
       for (size_t i = 0; i < ss->length(); i++) {
         if (ss->targets[i]!=0) { // zeros are allowed as targets (they are holes after removals)
@@ -1273,7 +1278,7 @@ void CodeTree::incorporate(CodeStack& code)
             continue;
           }
         }
-      } // for(;;)
+      } // for(;;) 
 
       if (treeOp->isLitEnd()) {
         lastMatchedILS = treeOp->getILS();

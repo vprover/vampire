@@ -15,7 +15,7 @@ reRedStart = re.compile("Rq:$")
 reBlueStart = re.compile("Bq:$")
 reDerLocal = re.compile("Derivation was already local")
 reDerNonLocal = re.compile("Derivation not local")
-reTimeOut = re.compile("(External time out \(SIGXCPU\))|(Time limit reached!)")
+reTimeOut = re.compile(r"(External time out \(SIGXCPU\))|(Time limit reached!)")
 reOutOfMem = re.compile("Memory limit exceeded!")
 reErrorResult = re.compile("error result code")
 reNonLocalUnit = re.compile("Non-local unit:")
@@ -73,25 +73,25 @@ def updateCounter(ctr,val):
 def printTable(labels,maps):
         keys = set()
         for m in maps:
-                keys.update(m.keys())
+                keys.update(list(m.keys()))
         keyLst = list(keys)
         keyLst.sort()
         
-        print "\t",
+        print("\t", end=' ')
         for k in keyLst:
-                print k, "\t",
-        print
+                print(k, "\t", end=' ')
+        print()
 
         cnt = len(labels)
         for i in range(0,cnt):
-                print labels[i],"\t",
+                print(labels[i],"\t", end=' ')
                 m = maps[i]
                 for k in keyLst:
                         if k in m:
-                                print m[k],
-                        print "\t",
-                print
-        print
+                                print(m[k], end=' ')
+                        print("\t", end=' ')
+                print()
+        print()
 
 class Rec(object):
         def __init__(self):
@@ -142,12 +142,12 @@ class Rec(object):
 
         def process(self):
                 lineIt = self.lines.__iter__()
-                line = lineIt.next()
+                line = next(lineIt)
 
                 try:
                         self.checkForResLimits(line)
                         if reNonLocalUnit.match(line):
-                                line = lineIt.next()
+                                line = next(lineIt)
                                 if not reCannotColorRefutation.match(line):
                                         raise ProcError("non-colorability report expected: "+line)
                                 raise EarlyRecEnd(trCannotColor)
@@ -166,7 +166,7 @@ class Rec(object):
                         self.readValue(lineIt, reOrigQuant, "origQuant")
                         self.readValue(lineIt, reMinQuant, "minQuant")
                         try:
-                                line = lineIt.next()
+                                line = next(lineIt)
                                 raise ProcError("extra line: "+line)
                         except StopIteration:
                                 pass
@@ -190,11 +190,11 @@ class Bench(object):
         def process(self):
                 try:
                         lineIt = self.lines.__iter__()
-                        nameMatch = reName.match(lineIt.next())
+                        nameMatch = reName.match(next(lineIt))
                         if not nameMatch:
                                 raise ProcError("no name match")
                         self.name = nameMatch.group(1)
-                        if not reRedStart.match(lineIt.next()):
+                        if not reRedStart.match(next(lineIt)):
                                 raise ProcError("no red start match")
                         curr = self.redRec = Rec()
                         for line in lineIt:
@@ -203,7 +203,7 @@ class Bench(object):
                                 else:
                                         curr.addLine(line)
 
-                        if not reBlueStart.match(lineIt.next()):
+                        if not reBlueStart.match(next(lineIt)):
                                 raise ProcError("no blue start match")
                         curr = self.blueRec = Rec()
                         for line in lineIt:
@@ -249,7 +249,7 @@ class Observer(object):
         def observe(self,bench):
                 pass
         def display(self):
-                print name, " <display not implemented>"
+                print(name, " <display not implemented>")
 
 
 class CountingObserver(Observer):
@@ -285,13 +285,13 @@ class CountingObserver(Observer):
                 self.postproc(self.blueCtr)
                 self.postproc(self.betterCtr)
         
-                print self.name
+                print(self.name)
                 printTable(["all","red","blue","better"],[self.allCtr,self.redCtr,self.blueCtr,self.betterCtr])
                 return
-                print "  all:    ", self.allCtr
-                print "  red:    ", self.redCtr
-                print "  blue:   ", self.blueCtr
-                print "  better: ", self.betterCtr
+                print("  all:    ", self.allCtr)
+                print("  red:    ", self.redCtr)
+                print("  blue:   ", self.blueCtr)
+                print("  better: ", self.betterCtr)
 
 class ComparingObserver(Observer):
         def __init__(self,name, getter):
@@ -329,11 +329,11 @@ class ComparingObserver(Observer):
                                 updateCounter(self.bothFail,failVal)
 
         def display(self):
-                print self.name
-                print "red\t", self.redBetter
-                print "blue\t", self.blueBetter
-                print "same\t", self.bothSame
-                print "both fail\t", self.bothFail
+                print(self.name)
+                print("red\t", self.redBetter)
+                print("blue\t", self.blueBetter)
+                print("same\t", self.bothSame)
+                print("both fail\t", self.bothFail)
 
 
 class LocGetter(object):
@@ -388,11 +388,11 @@ class MinGate(object):
 
 
 def onInvalidBench(bench):
-        print "########### invalid benchmark ###########"
+        print("########### invalid benchmark ###########")
         if bench.error:
-                print bench.error
+                print(bench.error)
         for line in bench.lines:
-                print line
+                print(line)
 
 
 benchs = []

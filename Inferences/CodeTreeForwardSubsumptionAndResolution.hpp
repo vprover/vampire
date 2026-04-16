@@ -17,32 +17,30 @@
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Indexing/CodeTreeInterfaces.hpp"
-// #if VDEBUG
+#if VDEBUG
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
-// #endif
+#endif
 
 namespace Inferences {
 
+template<bool higherOrder>
 class CodeTreeForwardSubsumptionAndResolution
   : public ForwardSimplificationEngine
 {
 public:
-  CodeTreeForwardSubsumptionAndResolution(bool subsumptionResolution) : _subsumptionResolution(subsumptionResolution) {}
-
-  void attach(Saturation::SaturationAlgorithm *salg) override;
-  void detach() override;
+  CodeTreeForwardSubsumptionAndResolution(SaturationAlgorithm& salg);
 
   bool perform(Kernel::Clause *cl,
                Kernel::Clause *&replacement,
                Kernel::ClauseIterator &premises) override;
 
 private:
-  bool _subsumptionResolution;
-  std::shared_ptr<Indexing::CodeTreeSubsumptionIndex> _index;
-  Indexing::ClauseCodeTree* _ct;
-// #if VDEBUG
+  const bool _subsumptionResolution;
+  std::shared_ptr<Indexing::CodeTreeSubsumptionIndex<higherOrder>> _index;
+  Indexing::ClauseCodeTree<higherOrder>* _ct;
+#if VDEBUG
   SATSubsumption::SATSubsumptionAndResolution satSubs;
-// #endif
+#endif
 };
 
 }; // namespace Inferences

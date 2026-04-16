@@ -168,6 +168,41 @@ void Preprocess::preprocess(Problem& prb)
   (void)prb.getProperty();
 
 
+  if (_options.functionExtensionality() == Options::FunctionExtensionality::AXIOM) {
+    if (!prb.isHigherOrder()) {
+      if (outputAllowed()) {
+        addCommentSignForSZS(std::cout);
+        std::cout << "WARNING: ignoring request to add function extensionality axiom as problem is first-order" << std::endl;
+      }
+    } else {
+      INVALID_OPERATION("function extensionality axiom not yet supported");
+      // LambdaConversion::addFunctionExtensionalityAxiom(prb);
+    }
+  }
+
+  if(env.options->choiceAxiom()){
+    if (!prb.isHigherOrder()) {
+      if (outputAllowed()) {
+        addCommentSignForSZS(std::cout);
+        std::cout << "WARNING: ignoring request to add choice axiom as problem is first-order" << std::endl;
+      }
+    } else {
+      INVALID_OPERATION("choice axiom not yet supported");
+      // LambdaConversion::addChoiceAxiom(prb);
+    }
+  }
+
+  if (env.options->addProxyAxioms()){
+    if (!prb.isHigherOrder()) {
+      if (outputAllowed()) {
+        addCommentSignForSZS(std::cout);
+        std::cout << "WARNING: ignoring request to add logical proxy axioms as problem is first-order" << std::endl;
+      }
+    } else {
+      INVALID_OPERATION("proxy axioms not yet supported");
+      // LambdaConversion::addProxyAxioms(prb);
+    }
+  }
 
   // Expansion of distinct groups happens before other preprocessing
   // If a distinct group is small enough it will add inequality to describe it
@@ -307,10 +342,10 @@ void Preprocess::preprocess(Problem& prb)
 
     if (_options.functionDefinitionElimination() == Options::FunctionDefinitionElimination::ALL) {
       FunctionDefinition fd;
-      fd.removeAllDefinitions(prb,env.getMainProblem()->isHigherOrder());
+      fd.removeAllDefinitions(prb);
     }
     else if (_options.functionDefinitionElimination() == Options::FunctionDefinitionElimination::UNUSED) {
-      FunctionDefinition::removeUnusedDefinitions(prb,env.getMainProblem()->isHigherOrder());
+      FunctionDefinition::removeUnusedDefinitions(prb);
     }
   }
 

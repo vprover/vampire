@@ -1262,7 +1262,7 @@ void Options::init()
 
     _unificationWithAbstractionFixedPointIteration = BoolOptionValue("unification_with_abstraction_fixed_point_iteration","uwa_fpi",
                                      false);
-    _unificationWithAbstractionFixedPointIteration.description="The order in which arguments are being processed in unification with absraction can yield different results. i.e. unnecessary unifiers. This can be resolved by applying unification with absraction multiple times. This option enables this fixed point iertation. For details have a look at the paper \"Refining Unification with Abstraction\" from LPAR 2023.";
+    _unificationWithAbstractionFixedPointIteration.description="The order in which arguments are being processed in unification with absraction can yield different results. i.e. unnecessary unifiers. This can be resolved by applying unification with absraction multiple times. This option enables this fixed point iteration. For details have a look at the paper \"Refining Unification with Abstraction\" from LPAR 2023.";
     _unificationWithAbstractionFixedPointIteration.tag(OptionTag::INFERENCES);
     _lookup.insert(&_unificationWithAbstractionFixedPointIteration);
 
@@ -1705,7 +1705,9 @@ void Options::init()
     _lookup.insert(&_demodulationRedundancyCheck);
     _demodulationRedundancyCheck.tag(OptionTag::INFERENCES);
     _demodulationRedundancyCheck.onlyUsefulWith(ProperSaturationAlgorithm());
-    _demodulationRedundancyCheck.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
+    _demodulationRedundancyCheck.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),
+                                                   _backwardDemodulation.is(notEqual(Demodulation::OFF)),
+                                                   _partialRedundancyCheck.is(notEqual(false))));
     _demodulationRedundancyCheck.addProblemConstraint(hasEquality());
 
     _forwardDemodulationTermOrderingDiagrams = BoolOptionValue("forward_demodulation_term_ordering_diagrams","fdtod",true);
@@ -1942,6 +1944,12 @@ void Options::init()
     _lookup.insert(&_holPrinting);
     _holPrinting.tag(OptionTag::HIGHER_ORDER);
 
+    _addProxyAxioms = BoolOptionValue("add_proxy_axioms","apa",false);
+    _addProxyAxioms.description="Add logical proxy axioms";
+    _lookup.insert(&_addProxyAxioms);
+    _addProxyAxioms.addProblemConstraint(hasHigherOrder());    
+    _addProxyAxioms.tag(OptionTag::HIGHER_ORDER);
+
     _choiceAxiom = BoolOptionValue("choice_ax","cha",false);
     _choiceAxiom.description="Adds the cnf form of the Hilbert choice axiom";
     _lookup.insert(&_choiceAxiom);
@@ -1973,16 +1981,33 @@ void Options::init()
 
     _clausificationOnTheFly = ChoiceOptionValue<CNFOnTheFly>("cnf_on_the_fly", "cnfonf", CNFOnTheFly::EAGER,
                                                              {"eager",
-                                                              "lazy_gen",
-                                                              "lazy_simp",
-                                                              "lazy_not_gen",
-                                                              "lazy_not_gen_be_off",
-                                                              "lazy_not_be_gen",
-                                                              "off"});
+                                                                "lazy_gen",
+                                                                "lazy_simp",
+                                                                "lazy_not_gen",
+                                                                "lazy_pi_sigma_gen",
+                                                                "lazy_not_gen_be_off",
+                                                                "lazy_not_be_gen",
+                                                                "conj_eager",
+                                                                "off"});
     _clausificationOnTheFly.description = "Various options linked to clausification on the fly";
     _lookup.insert(&_clausificationOnTheFly);
     _clausificationOnTheFly.addProblemConstraint(hasHigherOrder());
     _clausificationOnTheFly.tag(OptionTag::HIGHER_ORDER);
+
+    _piSet = ChoiceOptionValue<PISet>("prim_inst_set","piset",PISet::PRAGMATIC,
+                                                                        {"all",
+                                                                         "all_but_not_eq",
+                                                                         "not",
+                                                                         "small_set",
+                                                                         "pragmatic",
+                                                                         "and",
+                                                                         "or",
+                                                                         "equals",
+                                                                         "pi_sigma"});
+    _piSet.description="Controls the set of equations to use in primitive instantiation";
+    _lookup.insert(&_piSet);
+    _piSet.addProblemConstraint(hasHigherOrder());
+    _piSet.tag(OptionTag::HIGHER_ORDER);
 
     _equalityToEquivalence = BoolOptionValue("equality_to_equiv","e2e",false);
     _equalityToEquivalence.description=
@@ -1990,6 +2015,24 @@ void Options::init()
       "t1 : $o = t2 : $o is changed to t1 <=> t2";
     _lookup.insert(&_equalityToEquivalence);
     // potentially could be useful for FOOL, so am not adding the HOL constraint
+
+    _complexBooleanReasoning = BoolOptionValue("complex_bool_reasoning","cbe",true);
+    _complexBooleanReasoning.description=
+    "Switches on primitive instantiation and elimination of leibniz equality";
+    // TODO add this back to warn users about a suboptimal conf; but actually the two options do something together
+    // _complexBooleanReasoning.addConstraint(If(equal(true)).then(_addProxyAxioms.is(equal(false))));
+    _lookup.insert(&_complexBooleanReasoning);
+    _complexBooleanReasoning.addProblemConstraint(hasHigherOrder());
+    _complexBooleanReasoning.tag(OptionTag::HIGHER_ORDER);
+
+    _booleanEqTrick = BoolOptionValue("bool_eq_trick","bet",false);
+    _booleanEqTrick.description=
+    "Replace an equality between boolean terms such as: "
+    "t = s with a disequality t != vnot(s)"
+    " The theory is that this can help with EqRes";
+    _lookup.insert(&_booleanEqTrick);
+    // potentially could be useful for FOOL, so am not adding the HOL constraint    
+    _booleanEqTrick.tag(OptionTag::HIGHER_ORDER);
 
     _casesSimp = BoolOptionValue("cases_simp","cs",false);
     _casesSimp.description=
@@ -2015,6 +2058,25 @@ void Options::init()
     _lookup.insert(&_newTautologyDel);
     // potentially could be useful for FOOL, so am not adding the HOL constraint
     _newTautologyDel.tag(OptionTag::HIGHER_ORDER);
+
+    _positiveExt = BoolOptionValue("pos_ext","pe",false);
+    _positiveExt.description=
+    "Enables the following inference\n"
+        "C \\/ t X = s X \n"
+        "----------------\n"
+        "  C \\/ t = s   \n"
+        "where X doesn't occur in t,s or C";
+    _lookup.insert(&_positiveExt);
+    _positiveExt.addProblemConstraint(hasHigherOrder());   
+    _positiveExt.onlyUsefulWith(_functionExtensionality.is(notEqual(FunctionExtensionality::AXIOM)));
+    _positiveExt.tag(OptionTag::HIGHER_ORDER);
+
+    _iffXorRewriter = BoolOptionValue("iff_xor_rewriter","ixr",true);
+    _iffXorRewriter.description=
+    "Rewrites p <=> q = $true to p <=> q and the like. It does this as an immediate simplification.";
+    _lookup.insert(&_iffXorRewriter);
+    _iffXorRewriter.addProblemConstraint(hasHigherOrder());
+    _iffXorRewriter.tag(OptionTag::HIGHER_ORDER);
 
 //*********************** InstGen  ***********************
 // TODO not really InstGen any more, just global subsumption
@@ -2534,7 +2596,7 @@ void Options::output (std::ostream& str) const
      try{
        option = _lookup.findLong(name);
      }
-     catch(const ValueNotFoundException&){ 
+     catch(const ValueNotFoundException&){
        try{
          option = _lookup.findShort(name);
        }
@@ -2542,12 +2604,12 @@ void Options::output (std::ostream& str) const
          option = 0;
        }
      }
-     if(!option){ 
+     if(!option){
        str << name << " not a known option" << endl;
        Stack<std::string> sim_s = getSimilarOptionNames(name,true);
        Stack<std::string> sim_l = getSimilarOptionNames(name,false);
        VirtualIterator<std::string> sit = pvi(concatIters(
-           Stack<std::string>::Iterator(sim_s),Stack<std::string>::Iterator(sim_l))); 
+           Stack<std::string>::Iterator(sim_s),Stack<std::string>::Iterator(sim_l)));
         if(sit.hasNext()){
           std::string first = sit.next();
           str << "\tMaybe you meant ";

@@ -127,12 +127,11 @@ void SATClause::setInference(SATInference* val)
   }
 }
 
-/**
- * Sort literals in descending order.
- */
 void SATClause::sort()
 {
-  std::sort(_literals, _literals + length());
+  std::sort(_literals, _literals + length(), [](SATLiteral l, SATLiteral k) -> bool {
+    return l.var() < k.var() || (l.var() == k.var() && l.positive() < k.positive());
+  });
 }
 
 SATClause* SATClause::removeDuplicateLiterals(SATClause* cl)

@@ -25,23 +25,23 @@ namespace Indexing
 using namespace Lib;
 using namespace Kernel;
 
-template<class Data>
-void TermCodeTree<Data>::onCodeOpDestroying(CodeOp* op)
+template<bool higherOrder, class Data>
+void TermCodeTree<higherOrder, Data>::onCodeOpDestroying(CodeOp* op)
 {
   if (op->isSuccess()) {
     delete op->getSuccessResult<Data>();
   }
 }
 
-template<class Data>
-TermCodeTree<Data>::TermCodeTree()
+template<bool higherOrder, class Data>
+TermCodeTree<higherOrder, Data>::TermCodeTree()
 {
   _clauseCodeTree=false;
   _onCodeOpDestroying = onCodeOpDestroying;
 }
 
-template<class Data>
-void TermCodeTree<Data>::insert(Data* data)
+template<bool higherOrder, class Data>
+void TermCodeTree<higherOrder, Data>::insert(Data* data)
 {
   static CodeStack code;
   code.reset();
@@ -66,8 +66,8 @@ void TermCodeTree<Data>::insert(Data* data)
 
 //////////////// removal ////////////////////
 
-template<class Data>
-void TermCodeTree<Data>::remove(const Data& data)
+template<bool higherOrder, class Data>
+void TermCodeTree<higherOrder, Data>::remove(const Data& data)
 {
   static RemovingTermMatcher rtm;
   static Stack<CodeOp*> firstsInBlocks;
@@ -118,46 +118,43 @@ void TermCodeTree<Data>::remove(const Data& data)
   */
 } // TermCodeTree::remove
 
-template<class Data>
-void TermCodeTree<Data>::RemovingTermMatcher::init(FlatTerm* ft_,
+template<bool higherOrder, class Data>
+void TermCodeTree<higherOrder, Data>::RemovingTermMatcher::init(FlatTerm* ft_,
 					     TermCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_)
 {
-  Matcher::init(tree_, tree_->getEntryPoint(), 0, 0, firstsInBlocks_);
+  Base::init(tree_, tree_->getEntryPoint(), /*linfos_=*/0, /*linfoCnt_=*/0, firstsInBlocks_);
   
-  firstsInBlocks->push(entry);
+  Base::firstsInBlocks->push(Base::entry);
 
-  ft=ft_;
-  tp=0;
-  op=entry;
+  Base::ft=ft_;
+  Base::tp=0;
+  Base::op=Base::entry;
 }
 
 //////////////// retrieval ////////////////////
 
-template<class Data>
-TermCodeTree<Data>::TermMatcher::TermMatcher()
+template<bool higherOrder, class Data>
+TermCodeTree<higherOrder, Data>::TermMatcher::TermMatcher()
 {
 #if VDEBUG
   ft=0;
 #endif
 }
 
-template<class Data>
-void TermCodeTree<Data>::TermMatcher::init(CodeTree* tree, TermList t)
+template<bool higherOrder, class Data>
+void TermCodeTree<higherOrder, Data>::TermMatcher::init(CodeTree* tree, TermList t)
 {
-  Matcher::init(tree,tree->getEntryPoint());
-
-  linfos=0;
-  linfoCnt=0;
+  Base::init(tree,tree->getEntryPoint(),/*linfos_=*/0,/*linfoCnt_=*/0);
 
   ASS(!ft);
-  ft = FlatTerm::createUnexpanded(t);
+  ft = FlatTerm::create(t);
 
-  op=entry;
-  tp=0;
+  Base::op=Base::entry;
+  Base::tp=0;
 }
 
-template<class Data>
-void TermCodeTree<Data>::TermMatcher::reset()
+template<bool higherOrder, class Data>
+void TermCodeTree<higherOrder, Data>::TermMatcher::reset()
 {
   ft->destroy();
 #if VDEBUG
@@ -165,24 +162,26 @@ void TermCodeTree<Data>::TermMatcher::reset()
 #endif
 }
 
-template<class Data>
-Data* TermCodeTree<Data>::TermMatcher::next()
+template<bool higherOrder, class Data>
+Data* TermCodeTree<higherOrder, Data>::TermMatcher::next()
 {
-  if (finished()) {
+  if (Base::finished()) {
     //all possible matches are exhausted
     return 0;
   }
   
-  _matched=execute();
-  if (!_matched) {
+  Base::_matched=Base::execute();
+  if (!Base::_matched) {
     return 0;
   }
 
-  ASS(op->isSuccess());
-  return op->getSuccessResult<Data>();
+  ASS(Base::op->isSuccess());
+  return Base::op->template getSuccessResult<Data>();
 }
 
-template class TermCodeTree<TermLiteralClause>;
-template class TermCodeTree<DemodulatorData>;
+template class TermCodeTree<false, TermLiteralClause>;
+template class TermCodeTree<true,  TermLiteralClause>;
+template class TermCodeTree<false, DemodulatorData>;
+template class TermCodeTree<true,  DemodulatorData>;
 
 };

@@ -8,36 +8,29 @@
  * and in the source directory
  */
 /**
- * @file EqualityResolution.hpp
- * Defines class EqualityResolution.
+ * @file ImitateProject.hpp
+ * Defines class ImitateProject.
  */
 
-
-#ifndef __ArgCong__
-#define __ArgCong__
+#ifndef __ImitateProject__
+#define __ImitateProject__
 
 #include "Forwards.hpp"
 
-#include "InferenceEngine.hpp"
+#include "Inferences/InferenceEngine.hpp"
 
 namespace Inferences {
 
 using namespace Kernel;
-using namespace Indexing;
-using namespace Saturation;
 
-class ArgCong
+class ImitateProject
 : public GeneratingInferenceEngine
 {
 public:
+  ImitateProject(SaturationAlgorithm&) {}
   ClauseIterator generateClauses(Clause* premise) override;
-private:
-  struct ResultFn;
-  struct IsPositiveEqualityFn;
-
 };
 
+}
 
-};
-
-#endif /* __ArgCong__ */
+#endif /* __ImitateProject__ */

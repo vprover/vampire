@@ -44,23 +44,24 @@ using namespace Kernel;
  *
  * This class implements the backward direction.
  */
+template<bool higherOrder>
 class BackwardSubsumptionDemodulation
   : public BackwardSimplificationEngine
 {
   public:
-    BackwardSubsumptionDemodulation(bool enableOrderingOptimizations);
-
-    void attach(SaturationAlgorithm* salg) override;
-    void detach() override;
+    BackwardSubsumptionDemodulation(SaturationAlgorithm& salg);
 
     void perform(Clause* premise, BwSimplificationRecordIterator& simplifications) override;
 
   private:
+    const Ordering& _ord;
     std::shared_ptr<BackwardSubsumptionIndex> _index;
 
-    bool _preorderedOnly;
-    bool _allowIncompleteness;
+    const bool _preorderedOnly;
+    const bool _allowIncompleteness;
     const bool _enableOrderingOptimizations;
+    const Options::LiteralComparisonMode _literalComparisonMode;
+    const unsigned _backwardSubsumptionDemodulationMaxMatches;
 
     void performWithQueryLit(Clause* premise, Literal* candidateQueryLit, std::vector<BwSimplificationRecord>& simplifications);
     bool simplifyCandidate(Clause* sideCl, Clause* mainCl, std::vector<BwSimplificationRecord>& simplifications);

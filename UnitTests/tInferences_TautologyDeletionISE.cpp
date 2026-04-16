@@ -14,6 +14,11 @@
 
 using namespace Test;
 
+namespace {
+
+#define MY_SIMPL_RULE   TautologyDeletionISE
+#define MY_SIMPL_TESTER Simplification::SimplificationTester
+
 #define MY_SYNTAX_SUGAR                                                                                       \
   DECL_DEFAULT_VARS                                                                                           \
   DECL_SORT(s)                                                                                                \
@@ -23,8 +28,6 @@ using namespace Test;
   DECL_CONST(b, s)                                                                                            \
   DECL_PRED (p, {s})                                                                                          \
   DECL_PRED (q, {s})                                                                                          \
-
-REGISTER_SIMPL_TESTER(Simplification::RuleSimplificationTester<TautologyDeletionISE>)
 
 TEST_SIMPLIFY(test01,
     Simplification::Success()
@@ -55,3 +58,5 @@ TEST_SIMPLIFY(test05,
       .input(clause({ p(x), ~p(x) }))
       .expected(Simplification::Redundant{})
     )
+
+}

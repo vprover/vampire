@@ -8,35 +8,33 @@
  * and in the source directory
  */
 /**
- * @file EqualityResolution.hpp
- * Defines class EqualityResolution.
+ * @file PrimitiveInstantiation.hpp
+ * Defines class PrimitiveInstantiation.
  */
 
-
-#ifndef __NegativeExt__
-#define __NegativeExt__
+#ifndef __PrimitiveInstantiation__
+#define __PrimitiveInstantiation__
 
 #include "Forwards.hpp"
 
-#include "InferenceEngine.hpp"
+#include "Inferences/InferenceEngine.hpp"
+#include "Shell/Options.hpp"
 
 namespace Inferences {
 
 using namespace Kernel;
-using namespace Indexing;
-using namespace Saturation;
 
-class NegativeExt
+class PrimitiveInstantiation
 : public GeneratingInferenceEngine
 {
 public:
+  PrimitiveInstantiation(SaturationAlgorithm& salg);
   ClauseIterator generateClauses(Clause* premise) override;
 private:
-  struct ResultFn;
-  struct IsNegativeEqualityFn;
+  const Shell::Options::PISet _piSet;
+  TermStack _heads;
 };
 
-
 };
 
-#endif /* __NegativeExt__ */
+#endif /* __PrimitiveInstantiation__ */

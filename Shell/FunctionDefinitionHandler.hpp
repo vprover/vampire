@@ -111,7 +111,7 @@ public:
   const InductionTemplate* matchesTerm(Term* t, Stack<Term*>& inductionTerms) const;
 
 private:
-  ScopedPtr<CodeTreeTIS<TermLiteralClause>> _is;
+  ScopedPtr<CodeTreeTIS</*higherOrder=*/false, TermLiteralClause>> _is;
   DHMap<std::pair<unsigned, SymbolType>, RecursionTemplate> _templates;
 };
 

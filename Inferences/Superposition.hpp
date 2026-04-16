@@ -32,32 +32,20 @@ class Superposition
 : public GeneratingInferenceEngine
 {
 public:
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
-
+  Superposition(SaturationAlgorithm& salg);
   ClauseIterator generateClauses(Clause* premise) override;
 
-
 private:
-
   Clause* performSuperposition(
     Clause* rwClause, Literal* rwLiteral, TermList rwTerm,
     Clause* eqClause, Literal* eqLiteral, TermList eqLHS,
     AbstractingUnifier* unifier, bool eqIsResult);
 
   bool checkClauseColorCompatibility(Clause* eqClause, Clause* rwClause);
-  static bool earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
-      Clause* rwClause, Literal* rwLit, TermList rwTerm, TermList eqLHS, TermList eqRHS,
-      ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer, unsigned numPositiveLiteralsLowerBound, const Inference& inf);
-
   static bool checkSuperpositionFromVariable(Clause* eqClause, Literal* eqLit, TermList eqLHS);
 
-  struct ForwardResultFn;
-
-  struct LHSsFn;
-  struct RewritableResultsFn;
-  struct BackwardResultFn;
-
+  const bool _higherOrder;
+  SaturationAlgorithm& _salg;
   std::shared_ptr<SuperpositionSubtermIndex> _subtermIndex;
   std::shared_ptr<SuperpositionLHSIndex> _lhsIndex;
 };

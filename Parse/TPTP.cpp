@@ -45,6 +45,18 @@ using namespace Kernel;
 using namespace Shell;
 using namespace Parse;
 
+/** Zip a VList and SList (built in sync) into a VSList */
+static VSList* zipVarsSorts(VList* vars, SList* sorts) {
+  VSList::FIFO fifo;
+  VList::Iterator vit(vars);
+  SList::Iterator sit(sorts);
+  while (vit.hasNext()) {
+    ASS(sit.hasNext());
+    fifo.pushBack({vit.next(), sit.next()});
+  }
+  return fifo.list();
+}
+
 #define DEBUG_SHOW_UNITS 0
 #define DEBUG_SOURCE 0
 DHMap<unsigned, std::string> TPTP::_axiomNames;
@@ -1493,13 +1505,15 @@ void TPTP::holFormula()
   case T_SIGMA:
     resetToks();
     readTypeArgs(1);
-    _termLists.push(createFunctionApplication("vSIGMA", 1));    
+    _termLists.push(createFunctionApplication("vSIGMA", 1));
+    _lastPushed = TM;
     return;
   
   case T_PI:
     resetToks();
     readTypeArgs(1);
-    _termLists.push(createFunctionApplication("vPI", 1));      
+    _termLists.push(createFunctionApplication("vPI", 1));
+    _lastPushed = TM;
     return;
 
   case T_FORALL:
@@ -1528,6 +1542,7 @@ void TPTP::holFormula()
     ASS(_connectives.top() == NOT);
     _connectives.pop();
     _termLists.push(createFunctionApplication("vNOT", 0));
+    _lastPushed = TM;
     return;
   }
 
@@ -1736,7 +1751,7 @@ void TPTP::endHolFormula()
   case FORALL:
   case EXISTS:
     f = _formulas.pop();
-    _formulas.push(new QuantifiedFormula((Connective)con,_varLists.pop(),_sortLists.pop(),f));
+    _formulas.push(new QuantifiedFormula((Connective)con,zipVarsSorts(_varLists.pop(),_sortLists.pop()),f));
     _lastPushed = FORM;
     _states.push(END_HOL_FORMULA);
     _states.push(UNBIND_VARIABLES);
@@ -1746,7 +1761,7 @@ void TPTP::endHolFormula()
        endFormulaInsideTerm();
      }
      fun = _termLists.pop();
-     TermList ts(Term::createLambda(fun, _varLists.pop(), _sortLists.pop(), sortOf(fun)));
+     TermList ts(Term::createLambda(fun, zipVarsSorts(_varLists.pop(), _sortLists.pop()), sortOf(fun)));
      _termLists.push(ts);
      _lastPushed = TM;
      _states.push(END_HOL_FORMULA);
@@ -3189,8 +3204,12 @@ Formula* TPTP::createPredicateApplication(std::string name, unsigned arity)
   }
   if (pred == -2){ // distinct
     // TODO check that we are top-level
+
+    // ignore pointless $distinct(x)
+    if(arity < 2)
+      return new Formula(true);
     // If fewer than 5 things are distinct then we add the disequalities
-    if(arity<5){
+    else if(arity < 5){
       static Stack<unsigned> distincts;
       distincts.reset();
       for(int i=arity-1;i >= 0; i--){
@@ -3383,7 +3402,7 @@ void TPTP::endFormula()
   case FORALL:
   case EXISTS:
     f = _formulas.pop();
-    _formulas.push(new QuantifiedFormula((Connective)con,_varLists.pop(),_sortLists.pop(),f));
+    _formulas.push(new QuantifiedFormula((Connective)con,zipVarsSorts(_varLists.pop(),_sortLists.pop()),f));
     _states.push(END_FORMULA);
     return;
   case LITERAL:
@@ -3624,7 +3643,7 @@ void TPTP::endFof()
 #if DEBUG_SOURCE
   else{
     // create fake map
-    _unitSources = new DHMap<Unit*,SourceRecord*>();
+    _unitSources = new DHMap<unsigned,SourceRecord*>();
     source = getSource();
   }
 #endif
@@ -3706,7 +3725,7 @@ void TPTP::endFof()
 
   if(source) {
     ASS(_unitSources);
-    _unitSources->insert(original,source);
+    _unitSources->insert(original->number(),source);
   }
 
   if (env.options->outputAxiomNames()) {

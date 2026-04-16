@@ -130,8 +130,6 @@ enum class Proxy {
   AND,
   OR,
   IMP,
-  FORALL,
-  EXISTS,
   IFF,
   XOR,
   NOT,
@@ -292,6 +290,10 @@ public:
   bool isPlaceholder() const;
 
   Option<unsigned> deBruijnIndex() const;
+  /* Checks whether a term contains a loose, or unbound DB index.
+   * In other words, it returns true if there is a db_i in the
+   * term that is not wrapped into i lambda binders. */ 
+  bool containsLooseDBIndex() const;
   TermList lhs() const;
   TermList rhs() const;
   TermList lambdaBody() const;
@@ -433,9 +435,8 @@ public:
       } _formulaData;
       struct {
         TermList lambdaExp;
-        VList* _vars;
-        SList* _sorts;  
-        TermList sort; 
+        VSList* _vars;  // variables with their sorts together
+        TermList sort;
         TermList expSort;//TODO is this needed?
       } _lambdaData;
       struct {
@@ -450,10 +451,8 @@ public:
     { return getTerm()->specialFunctor(); }
 
     Formula* getITECondition() const { ASS_EQ(specialFunctor(), SpecialFunctor::ITE); return _iteData.condition; }
-    VList* getLambdaVars() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData._vars; }
-    void setLambdaVars(VList* vars) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData._vars = vars; }
-    SList* getLambdaVarSorts() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData._sorts; }
-    void setLambdaVarSorts(SList* sorts) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData._sorts = sorts; }
+    VSList* getLambdaVars() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData._vars; }
+    void setLambdaVars(VSList* vars) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData._vars = vars; }
     TermList getLambdaExp() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData.lambdaExp; }
     void setLambdaExp(TermList exp) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData.lambdaExp = exp; }
     void setLambdaExpSort(TermList sort) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData.expSort = sort; }
@@ -502,7 +501,7 @@ public:
   static Term* createConstant(unsigned symbolNumber) { return create(symbolNumber,0,0); }
   static Term* createITE(Formula * condition, TermList thenBranch, TermList elseBranch, TermList branchSort);
   static Term* createLet(Formula* binding, TermList body, TermList bodySort);
-  static Term* createLambda(TermList lambdaExp, VList* vars, SList* sorts, TermList expSort);
+  static Term* createLambda(TermList lambdaExp, VSList* vars, TermList expSort);
   static Term* createFormula(Formula* formula);
   static Term* createMatch(TermList sort, TermList matchedSort, unsigned int arity, TermList* elements);
   static Term* create1(unsigned fn, TermList arg);
@@ -582,7 +581,7 @@ public:
     * non-emptiness
     * In the monomorphic case, the same as args()
     */
-  TermList* termArgs();
+  const TermList* termArgs() const;
 
   /** Return the 1st type argument for a polymorphic term.
     * returns a nullpointer if the term not polymorphic
@@ -835,7 +834,7 @@ public:
   }
 
   /** Return an index of the argument to which @b arg points */
-  unsigned getArgumentIndex(TermList* arg)
+  unsigned getArgumentIndex(const TermList* arg)
   {
     unsigned res=arity()-(arg-_args);
     ASS_L(res,arity());
@@ -1049,8 +1048,11 @@ public:
   bool isTupleSort() const;
 
   const std::string& typeConName() const;  
-  
-  static TermList arrowSort(const TermStack& domSorts, TermList range);
+
+  // With a stack (s1,...sn) from bottom to top, we get s1 -> (... -> sn) with fromTop = true,
+  // while sn -> (... -> s1) with fromTop = false.
+  // TODO check also this, some call sites might be wrong
+  static TermList arrowSort(const TermStack& domSorts, TermList range, bool fromTop = false);
   static TermList arrowSort(TermList s1, TermList s2);
   static TermList arrowSort(unsigned size, const TermList* types, TermList range);
   static TermList arrowSort(const std::initializer_list<TermList>& types);
@@ -1116,6 +1118,7 @@ public:
   { _args[0]._setPolarity(positive); }
 
   TermList eqArgSort() const;
+  std::pair<TermList, TermList> eqArgs() const;
   
   // prevent bugs through implicit bool <-> unsigned conversions
   template<class Iter> static Literal* createFromIter(unsigned predicate, unsigned polarity, Iter iter) = delete;
@@ -1208,6 +1211,11 @@ public:
   static Literal* positiveLiteral(Literal* l) {
     return l->isPositive() ? l : complementaryLiteral(l);
   }
+
+  // disequation of the form λ x s ≉ λ y t, where x and y are not lambda-bound variables.
+  bool isFlexFlexConstraint() const;
+  // (dis)equation of the form λ x s ≉ λ f t, where x is a variable that not lambda-bound, and f a constant.
+  bool isFlexRigid() const;
 
   // destructively swap arguments of an equation
   // the term is assumed to be non-shared

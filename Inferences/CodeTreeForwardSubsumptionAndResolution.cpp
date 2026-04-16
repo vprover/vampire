@@ -19,27 +19,21 @@
 
 namespace Inferences {
 
-void CodeTreeForwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
-{
-  ForwardSimplificationEngine::attach(salg);
-  _index = salg->getSimplifyingIndex<CodeTreeSubsumptionIndex>();
-  _ct = _index->getClauseCodeTree();
-}
+template<bool higherOrder>
+CodeTreeForwardSubsumptionAndResolution<higherOrder>::CodeTreeForwardSubsumptionAndResolution(SaturationAlgorithm& salg)
+  : _subsumptionResolution(salg.getOptions().forwardSubsumptionResolution()),
+    _index(salg.getSimplifyingIndex<CodeTreeSubsumptionIndex<higherOrder>>()),
+    _ct(_index->getClauseCodeTree())
+{}
 
-void CodeTreeForwardSubsumptionAndResolution::detach()
-{
-  _ct = nullptr;
-  _index = nullptr;
-  ForwardSimplificationEngine::detach();
-}
-
-bool CodeTreeForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, ClauseIterator &premises)
+template<bool higherOrder>
+bool CodeTreeForwardSubsumptionAndResolution<higherOrder>::perform(Clause *cl, Clause *&replacement, ClauseIterator &premises)
 {
   if (_ct->isEmpty()) {
     return false;
   }
 
-  static ClauseCodeTree::ClauseMatcher cm;
+  static typename ClauseCodeTree<higherOrder>::ClauseMatcher cm;
 
   cm.init(_ct, cl, _subsumptionResolution);
 
@@ -82,5 +76,8 @@ bool CodeTreeForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&repla
   cm.reset();
   return false;
 }
+
+template class CodeTreeForwardSubsumptionAndResolution<false>;
+template class CodeTreeForwardSubsumptionAndResolution<true>;
 
 } // namespace Inferences

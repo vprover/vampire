@@ -40,25 +40,14 @@ using namespace Indexing;
 using namespace Saturation;
 
 template<bool synthesis>
-void URResolution<synthesis>::attach(SaturationAlgorithm* salg)
+URResolution<synthesis>::URResolution(SaturationAlgorithm& salg)
+: _full(salg.getOptions().unitResultingResolution() == Options::URResolution::FULL),
+  _emptyClauseOnly(salg.getOptions().unitResultingResolution() == Options::URResolution::EC_ONLY),
+  _selectedOnly(false),
+  _unitIndex(salg.getGeneratingIndex<UnitIndexType>()),
+  _nonUnitIndex(salg.getGeneratingIndex<NonUnitIndexType>())
 {
-  GeneratingInferenceEngine::attach(salg);
-
-  _unitIndex = salg->getGeneratingIndex<UnitIndexType>();
-  _nonUnitIndex = salg->getGeneratingIndex<NonUnitIndexType>();
-
-  Options::URResolution optSetting = _salg->getOptions().unitResultingResolution();
-  ASS_NEQ(optSetting,  Options::URResolution::OFF);
-  _full = optSetting==Options::URResolution::FULL;
-  _emptyClauseOnly = optSetting==Options::URResolution::EC_ONLY;
-}
-
-template<bool synthesis>
-void URResolution<synthesis>::detach()
-{
-  _nonUnitIndex = nullptr;
-  _unitIndex = nullptr;
-  GeneratingInferenceEngine::detach();
+  ASS_NEQ(salg.getOptions().unitResultingResolution(),  Options::URResolution::OFF);
 }
 
 template<bool synthesis>
@@ -146,7 +135,6 @@ struct URResolution<synthesis>::Item
   Clause* generateClause() const
   {
     UnitList* premLst = 0;
-    UnitList::push(_orig, premLst);
     Literal* single = 0;
     unsigned clen = _lits.size();
     for(unsigned i=0; i<clen; i++) {
@@ -161,6 +149,7 @@ struct URResolution<synthesis>::Item
         UnitList::push(premise, premLst);
       }
     }
+    UnitList::push(_orig, premLst);
 
     Inference inf(GeneratingInferenceMany(InferenceRule::UNIT_RESULTING_RESOLUTION, premLst));
     Clause* res;
