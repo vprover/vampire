@@ -8,27 +8,24 @@
  * and in the source directory
  */
 /**
- * @file Cases.hpp
- * Defines class Cases.
+ * @file CasesSimp.hpp
+ * Defines class CasesSimp.
  */
 
-#ifndef __Cases__
-#define __Cases__
+#ifndef __CASES_SIMP__
+#define __CASES_SIMP__
 
 #include "Forwards.hpp"
 
-#include "InferenceEngine.hpp"
+#include "Inferences/InferenceEngine.hpp"
 
 namespace Inferences {
 
-class Cases
-  : public GeneratingInferenceEngine
+class CasesSimp
+  : public ImmediateSimplificationEngineMany
 {
 public:
-  Cases(SaturationAlgorithm& salg);
-  ClauseIterator generateClauses(Clause* premise) override;
-private:
-  const Ordering& _ord;
+  Option<ClauseIterator> simplifyMany(Clause* premise) override;
 };
 
 }

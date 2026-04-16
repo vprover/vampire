@@ -8,29 +8,29 @@
  * and in the source directory
  */
 /**
- * @file Cases.hpp
- * Defines class Cases.
+ * @file ImitateProject.hpp
+ * Defines class ImitateProject.
  */
 
-#ifndef __Cases__
-#define __Cases__
+#ifndef __ImitateProject__
+#define __ImitateProject__
 
 #include "Forwards.hpp"
 
-#include "InferenceEngine.hpp"
+#include "Inferences/InferenceEngine.hpp"
 
 namespace Inferences {
 
-class Cases
-  : public GeneratingInferenceEngine
+using namespace Kernel;
+
+class ImitateProject
+: public GeneratingInferenceEngine
 {
 public:
-  Cases(SaturationAlgorithm& salg);
+  ImitateProject(SaturationAlgorithm&) {}
   ClauseIterator generateClauses(Clause* premise) override;
-private:
-  const Ordering& _ord;
 };
 
 }
 
-#endif
+#endif /* __ImitateProject__ */
