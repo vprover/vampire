@@ -497,8 +497,6 @@ public:
 
   /** maximal number of local variables in a stored term/literal (always at least 1) */
   unsigned _maxVarCnt = 1;
-  /** maximum depth as an upper bound for the backtracking stack, making pushing more efficient */
-  size_t _maxDepth = 0;
 
   CodeBlock* _entryPoint = nullptr;
 };

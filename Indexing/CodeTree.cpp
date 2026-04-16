@@ -559,9 +559,9 @@ bool CodeTree::Matcher<removing, checkRange, higherOrder>::execute()
   for(;;) {
     if(op->alternative()) {
       if constexpr (removing) {
-        btStack.pushNoExpand(BTPointRemoving(tp, op->alternative(), RemovingBase::firstsInBlocks->size()));
+        btStack.push(BTPointRemoving(tp, op->alternative(), RemovingBase::firstsInBlocks->size()));
       } else {
-        btStack.pushNoExpand(BTPoint(tp, op->alternative()));
+        btStack.push(BTPoint(tp, op->alternative()));
       }
     }
     switch(op->_instruction()) {
@@ -657,7 +657,6 @@ void CodeTree::Matcher<removing, checkRange, higherOrder>::init(CodeTree* tree_,
   curLInfo=0;
 
   bindings.ensure(tree->_maxVarCnt);
-  btStack.reserve(tree->_maxDepth);
   btStack.reset();
 }
 
@@ -1103,8 +1102,6 @@ CodeTree::CodeBlock* CodeTree::buildBlock(CodeStack& code, size_t cnt, ILStruct*
 void CodeTree::incorporate(CodeStack& code)
 {
   ASS(code.top().isSuccess());
-
-  _maxDepth = std::max(_maxDepth, code.length());
 
   if(isEmpty()) {
     _entryPoint=buildBlock(code, code.length(), 0);

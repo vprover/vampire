@@ -316,18 +316,6 @@ public:
   } // Stack::nonempty()
 
   /**
-   * Push new element onto the
-   * stack without expanding it.
-   */
-  inline
-  void pushNoExpand(C elem)
-  {
-    ASS_L(_cursor, _end);
-    ::new(_cursor) C(std::move(elem));
-    _cursor++;
-  } // Stack::pushNoExpand()
-
-  /**
    * Push new element on the stack.
    * @since 11/03/2006 Bellevue
    */
@@ -337,7 +325,9 @@ public:
     if (_cursor == _end) {
       expand();
     }
-    pushNoExpand(std::move(elem));
+    ASS(_cursor < _end);
+    ::new(_cursor) C(std::move(elem));
+    _cursor++;
   } // Stack::push()
 
   /**
