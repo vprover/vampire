@@ -1612,7 +1612,7 @@ Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, GetA
     for (auto i : range(0, arity)) {
       auto a = normArg(i);
       *l->nthArgument(i) = a;
-      ASS(a.isVar() || predicate != 0 || a.term()->isSpecial() || SortHelper::getResultSort(a.term()) != AtomicSort::superSort())
+      ASS(a.isVar() || predicate != 0 || SortHelper::getResultSort(a.term()) != AtomicSort::superSort())
     }
     if (twoVarEqSort) {
       ASS(*twoVarEqSort != AtomicSort::superSort())
