@@ -15,6 +15,7 @@
 
 #include "Indexing/Index.hpp"
 #include "Indexing/ResultSubstitution.hpp"
+#include "Inferences/ALASCA/Demodulation.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/Recycled.hpp"
 #include "Debug/TimeProfiling.hpp"
@@ -91,11 +92,11 @@ class CodeTreeTIS<higherOrder, Data>::ResultIterator
 : public IteratorCore<QueryRes<ResultSubstitutionSP, Data>>
 {
 public:
-  ResultIterator(CodeTreeTIS* tree, TermList t, bool retrieveSubstitutions)
+  ResultIterator(const CodeTreeTIS& tree, TermList t, bool retrieveSubstitutions)
   : _retrieveSubstitutions(retrieveSubstitutions),
     _found(0), _finished(false), _tree(tree)
   {
-    _matcher->init(&_tree->_ct, t);
+    _matcher->init(&_tree._ct, t);
 
     if(_retrieveSubstitutions) {
       _subst = new CodeTreeSubstitution<Data>(&_matcher->bindings, &*_resultNormalizer);
@@ -134,7 +135,7 @@ public:
     if (_retrieveSubstitutions) {
       if constexpr (!is_indexed_data_normalized<Data>::value) {
         _resultNormalizer->reset();
-        _resultNormalizer->normalizeVariables(_found->term);
+        _resultNormalizer->normalizeVariables(_found->key());
       }
       subs = ResultSubstitutionSP(_subst, /* nondisposable */ true);
     }
@@ -149,40 +150,26 @@ private:
   bool _retrieveSubstitutions;
   Data* _found;
   bool _finished;
-  CodeTreeTIS* _tree;
+  const CodeTreeTIS& _tree;
   Recycled<typename TermCodeTree<higherOrder, Data>::TermMatcher> _matcher;
 };
 
 template<bool higherOrder, class Data>
-VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> CodeTreeTIS<higherOrder, Data>::getGeneralizations(TypedTermList t, bool retrieveSubstitutions)
+VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> CodeTreeTIS<higherOrder, Data>::getGeneralizations(TypedTermList t, bool retrieveSubstitutions) const
 {
   if(_ct.isEmpty()) {
     return VirtualIterator<QueryRes<ResultSubstitutionSP, Data>>::getEmpty();
   }
 
-  return vi( new ResultIterator(this, t, retrieveSubstitutions) );
-}
-
-template<bool higherOrder, class Data>
-bool CodeTreeTIS<higherOrder, Data>::generalizationExists(TermList t)
-{
-  if(_ct.isEmpty()) {
-    return false;
-  }
-
-  static typename TermCodeTree<higherOrder, Data>::TermMatcher tm;
-  
-  tm.init(&_ct, t);
-  bool res=tm.next();
-  tm.reset();
-  
-  return res;
+  return vi( new ResultIterator(*this, t, retrieveSubstitutions) );
 }
 
 template class CodeTreeTIS<false, TermLiteralClause>;
 template class CodeTreeTIS<true,  TermLiteralClause>;
 template class CodeTreeTIS<false, DemodulatorData>;
 template class CodeTreeTIS<true,  DemodulatorData>;
+template class CodeTreeTIS<false, Inferences::ALASCA::Demodulation::Lhs>;
+template class CodeTreeTIS<false, TermWithValue<TermList>>;
 
 /////////////////   CodeTreeSubsumptionIndex   //////////////////////
 

@@ -21,7 +21,6 @@
 #include "ClauseCodeTree.hpp"
 
 #include "Index.hpp"
-#include "TermIndexingStructure.hpp"
 
 namespace Indexing
 {
@@ -29,17 +28,15 @@ namespace Indexing
 using namespace Kernel;
 using namespace Lib;
 
-
 /**
  * Term indexing structure using code trees to retrieve generalizations
  */
-
 template<bool higherOrder, class Data>
-class CodeTreeTIS : public TermIndexingStructure<Data>
+class CodeTreeTIS
 {
 public:
   /* INFO: we ignore unifying the sort of the keys here */
-  void handle(Data data, bool insert) final
+  void handle(Data data, bool insert)
   {
     if (insert) {
       auto ti = new Data(std::move(data));
@@ -49,13 +46,9 @@ public:
     }
   }
 
-  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true) final ;
-  // TODO use TypedTermList here too
-  bool generalizationExists(TermList t) final ;
-  // TODO: get rid of NOT_IMPLEMENTED
-  VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(TypedTermList t, Options::UnificationWithAbstraction, bool fixedPointIteration) override { NOT_IMPLEMENTED; }
+  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true) const;
 
-  void output(std::ostream& out) const final { out << _ct; }
+  void output(std::ostream& out) const { out << _ct; }
 
 private:
   class ResultIterator;

@@ -59,7 +59,7 @@ public:
     using Base = Matcher</*removing*/false,false,higherOrder>;
     using Base::ft;
 
-    void init(CodeTree* tree, TermList t);
+    void init(CodeTree const* tree, TermList t);
     void reset();
     
     Data* next();

@@ -95,7 +95,7 @@ struct TermLiteralClause
   Literal* literal = nullptr;
   Clause* clause = nullptr;
 
-  TypedTermList const& key() const { return term; }
+  TypedTermList key() const { return term; }
 
   auto  asTuple() const
   { return std::make_tuple(clause->number(), literal->getId(), term); }

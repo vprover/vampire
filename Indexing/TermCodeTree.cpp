@@ -12,6 +12,8 @@
  * Implements class TermCodeTree.
  */
 
+#include "Inferences/ALASCA/Demodulation.hpp"
+
 #include "Kernel/FlatTerm.hpp"
 #include "Kernel/Term.hpp"
 
@@ -46,7 +48,7 @@ void TermCodeTree<higherOrder, Data>::insert(Data* data)
   static CodeStack code;
   code.reset();
 
-  TermList t=data->term;
+  TermList t=data->key();
   if (t.isVar()) {
     code.push(CodeOp::getTermOp(ASSIGN_VAR,0));
   }
@@ -73,7 +75,7 @@ void TermCodeTree<higherOrder, Data>::remove(const Data& data)
   static Stack<CodeOp*> firstsInBlocks;
   firstsInBlocks.reset();
 
-  FlatTerm* ft=FlatTerm::create(data.term);
+  FlatTerm* ft=FlatTerm::create(data.key());
   rtm.init(ft, this, &firstsInBlocks);
   
   Data* dptr = nullptr;
@@ -142,7 +144,7 @@ TermCodeTree<higherOrder, Data>::TermMatcher::TermMatcher()
 }
 
 template<bool higherOrder, class Data>
-void TermCodeTree<higherOrder, Data>::TermMatcher::init(CodeTree* tree, TermList t)
+void TermCodeTree<higherOrder, Data>::TermMatcher::init(CodeTree const* tree, TermList t)
 {
   Base::init(tree,tree->getEntryPoint(),/*linfos_=*/0,/*linfoCnt_=*/0);
 
@@ -179,9 +181,11 @@ Data* TermCodeTree<higherOrder, Data>::TermMatcher::next()
   return Base::op->template getSuccessResult<Data>();
 }
 
+template class TermCodeTree<true, TermLiteralClause>;
 template class TermCodeTree<false, TermLiteralClause>;
-template class TermCodeTree<true,  TermLiteralClause>;
 template class TermCodeTree<false, DemodulatorData>;
 template class TermCodeTree<true,  DemodulatorData>;
+template class TermCodeTree<false, Inferences::ALASCA::Demodulation::Lhs>;
+template class TermCodeTree<false, TermWithValue<TermList>>;
 
 };

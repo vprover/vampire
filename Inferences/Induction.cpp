@@ -505,7 +505,7 @@ Induction::Induction(SaturationAlgorithm& salg)
 ClauseIterator Induction::generateClauses(Clause* premise)
 {
   return pvi(InductionClauseIterator(premise, InductionHelper(_comparisonIndex.get(), _inductionTermIndex.get()),
-    _salg, _structInductionTermIndex.get(), _formulaIndex));
+    _salg, *_structInductionTermIndex.get(), _formulaIndex));
 }
 
 void InductionClauseIterator::processClause(Clause* premise)
@@ -731,7 +731,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         .map([this](Stack<Term*> ts) {
           auto res = VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>>::getEmpty();
           for (const auto& t : ts) {
-            res = pvi(concatIters(std::move(res), _structInductionTermIndex->getGeneralizations(t, false)));
+            res = pvi(concatIters(std::move(res), _structInductionTermIndex.getGeneralizations(t, false)));
           }
           return make_pair(ts, std::move(res));
         }));
