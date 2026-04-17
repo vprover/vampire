@@ -74,8 +74,15 @@ Term* TermTransformerCommon::transformSpecial(Term* term)
       }
     }
 
-    case SpecialFunctor::LAMBDA:
-      NOT_IMPLEMENTED;
+    case SpecialFunctor::LAMBDA: {
+      auto lambdaExp = transform(sd->getLambdaExp());
+
+      if (lambdaExp == sd->getLambdaExp()) {
+        return term;
+      }
+      return Term::createLambda(lambdaExp, sd->getLambdaVars(), sd->getLambdaExpSort());
+    }
+
     case SpecialFunctor::MATCH: {
       DArray<TermList> terms(term->arity());
       bool unchanged = true;

@@ -178,10 +178,12 @@ private:
     TS_PLUS,
     TS_MINUS,
     TS_DIVIDE,
+    TS_APP,
     TS_ABS,
     TS_AS,
     TS_DIV,
     TS_ITE,
+    TS_LAMBDA,
     TS_LET,
     TS_MATCH,
     TS_MOD,
@@ -204,6 +206,7 @@ private:
    */
   enum TypeSymbol
   {
+    TS_ARROW,
     TS_ARRAY,
     TS_BOOL,
     TS_INT,
@@ -409,6 +412,8 @@ private:
    */
   Stack<ParseResult> _results;
 
+  TermList popResultAsTerm(TermList& trm, const std::string& symbolClass, LExpr* exp);
+
   /**
    * Possible operations during parsing a term.
    */
@@ -486,15 +491,12 @@ private:
    * Returns the body's value as a ParseResult.
    *
    * Currently unsupported features (see http://smtlib.cs.uiowa.edu/papers/smt-lib-reference-v2.5-r2015-06-28.pdf):
-   * - qualified identifiers "(as f s)"
    * - hexadecimal, binary and string spec_constants
    * - :named expressions "(! (> x y) :named p1)" cause a user error.
    *    They could also be ignored, but smtlib dictates that
    *    1) the named term has to be closed (needs an extra check),
    *    2) the new name can be used elsewhere (also already in the term being parsed in the in-order traversal)
    *   So the proper behavior would be more difficult to support.
-   * - "define-funs-rec" and "define-fun-rec"; syntactically these would be fine,
-   *  but any reasonable use will rely on some well-founded semantics which can only be supported with care
    *
    * Ignored feature:
    * - quantifier patterns: " (forall (( x0 A) (x1 A) (x2 A)) (! (=> (and (r x0 x1) (r x1 x2 )) (r x0 x2 )) : pattern ((r x0 x1) (r x1 x2 )) : pattern ((p x0 a)) ))

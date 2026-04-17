@@ -19,6 +19,7 @@
 #include "Lib/StringUtils.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
+#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Matcher.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Renaming.hpp"
@@ -569,19 +570,22 @@ SMTLIB2::FormulaSymbol SMTLIB2::getBuiltInFormulaSymbol(const std::string& str)
   return static_cast<FormulaSymbol>(res);
 }
 
-static const char* LET = "let";
-static const char* MATCH = "match";
-static const char* AS = "as";
+static const char* LET    = "let";
+static const char* MATCH  = "match";
+static const char* AS     = "as";
+static const char* LAMBDA = "lambda";
 
 const char * SMTLIB2::s_termSymbolNameStrings[] = {
     "*",
     "+",
     "-",
     "/",
+    "_",
     "abs",
     AS,
     "div",
     "ite",
+    LAMBDA,
     LET,
     MATCH,
     "mod",
@@ -604,6 +608,7 @@ SMTLIB2::TermSymbol SMTLIB2::getBuiltInTermSymbol(const std::string& str)
 }
 
 const char *SMTLIB2::s_typeSymbolNameStrings[] = {
+    "->",
     "Array",
     "Bool",
     "Int",
@@ -1320,6 +1325,14 @@ void SMTLIB2::tryInsertIntoCurrentLookup(std::string name, TermList term, TermLi
   }
 }
 
+TermList SMTLIB2::popResultAsTerm(TermList& trm, const std::string& symbolClass, LExpr* exp)
+{
+  if (_results.isEmpty() || _results.top().isSeparator()) {
+    complainAboutArgShortageOrWrongSorts(symbolClass,exp);
+  }
+  return _results.pop().asTerm(trm);
+}
+
 void SMTLIB2::complainAboutArgShortageOrWrongSorts(const std::string& symbolClass, LExpr* exp)
 {
   USER_ERROR("Not enough arguments or wrong sorts at " + exp->getPosition() + "\n" + _topLevelExpr->highlightSubexpression(exp));
@@ -1736,7 +1749,7 @@ void SMTLIB2::parseQuantBegin(LExpr* exp)
 
   // the quant atom
   DEBUG_CODE(const std::string& theQuantAtom =) lRdr.readAtom();
-  ASS(theQuantAtom == FORALL || theQuantAtom == EXISTS);
+  ASS(theQuantAtom == FORALL || theQuantAtom == EXISTS || theQuantAtom == LAMBDA);
   _todo.push(make_pair(PO_QUANT,exp));
 
   // there should next be a list of sorted variables
@@ -1932,7 +1945,7 @@ bool SMTLIB2::parseAsUserDefinedSymbol(const std::string& id,LExpr* exp,bool isS
     auto typeVar = type->quantifiedVar(i).var();
     TermList typeVarS;
     // We require terms to have unambiguous sorts, except for ctor
-    // terms in 'match' blocks which are disambiguated by the sort
+    // terms in 'match' blocks that are disambiguated by the sort
     // of the matched term. We collect type variable instantiations
     // from the arguments recursively, which by assumption already have
     // unambiguous sorts. If any variable remains free after this, it
@@ -2399,10 +2412,7 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const std::string& id, LExpr* exp)
     {
       // read the first argument
       TermList first;
-      if (_results.isEmpty() || _results.top().isSeparator()) {
-        complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
-      }
-      TermList sort = _results.pop().asTerm(first);
+      TermList sort = popResultAsTerm(first,BUILT_IN_SYMBOL,exp);
 
       if (_results.isEmpty() || _results.top().isSeparator()) {
         if (ts == TS_MINUS) { // unary minus
@@ -2440,6 +2450,46 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const std::string& id, LExpr* exp)
 
       return true;
     }
+    case TS_APP: {
+      TermList head;
+      TermList sort = popResultAsTerm(head, "function application",exp);
+
+      // we require at least one argument
+      if (_results.isEmpty() || _results.top().isSeparator()) {
+        complainAboutArgShortageOrWrongSorts("function application",exp);
+      }
+
+      while (_results.isNonEmpty() && !_results.top().isSeparator()) {
+        if (!sort.isArrowSort()) {
+          complainAboutArgShortageOrWrongSorts("function application",exp);
+        }
+
+        TermList arg;
+        if (_results.pop().asTerm(arg) != sort.domain()) {
+          complainAboutArgShortageOrWrongSorts("function application",exp);
+        }
+
+        head = HOL::create::app(sort, head, arg);
+        sort = sort.result();
+      }
+      _results.push(ParseResult(sort,head));
+      return true;
+    }
+    case TS_LAMBDA:
+    {
+      TermList body;
+      TermList bodySort = popResultAsTerm(body,BUILT_IN_SYMBOL,exp);
+
+      TermStack sorts;
+      VSList::FIFO vsList;
+      for(Binding binding : _lookups.top().bindings) {
+        vsList.pushBack({binding.term.var(), binding.sort});
+        sorts.push(binding.sort);
+      }
+      _lookups.pop();
+      _results.emplace(AtomicSort::arrowSort(sorts, bodySort), TermList(Term::createLambda(body, vsList.list(), bodySort)));
+      return true;
+    }
     default:
       ASS_EQ(ts,TS_USER_FUNCTION);
       break;
@@ -2451,16 +2501,19 @@ bool SMTLIB2::parseAsBuiltinTermSymbol(const std::string& id, LExpr* exp)
     case TS_ARRAY:
     {
       TermList indexSort;
-      if (_results.isEmpty() || _results.top().isSeparator()) {
-        complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
-      }
-      ALWAYS(_results.pop().asTerm(indexSort) == AtomicSort::superSort());
+      ALWAYS(popResultAsTerm(indexSort,BUILT_IN_SYMBOL,exp) == AtomicSort::superSort());
       TermList innerSort;
-      if (_results.isEmpty() || _results.top().isSeparator()) {
-        complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
-      }
-      ALWAYS(_results.pop().asTerm(innerSort) == AtomicSort::superSort());
+      ALWAYS(popResultAsTerm(innerSort,BUILT_IN_SYMBOL,exp) == AtomicSort::superSort());
       _results.push(ParseResult(AtomicSort::superSort(),AtomicSort::arraySort(indexSort, innerSort)));
+      return true;
+    }
+    case TS_ARROW:
+    {
+      TermList lhsSort;
+      ALWAYS(popResultAsTerm(lhsSort,BUILT_IN_SYMBOL,exp) == AtomicSort::superSort());
+      TermList rhsSort;
+      ALWAYS(popResultAsTerm(rhsSort,BUILT_IN_SYMBOL,exp) == AtomicSort::superSort());
+      _results.emplace(AtomicSort::superSort(), AtomicSort::arrowSort(lhsSort, rhsSort));
       return true;
     }
     case TS_BOOL:
@@ -2591,7 +2644,7 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body, bool isSort)
           if (fst->isAtom()) {
             std::string& id = fst->str;
 
-            if (id == FORALL || id == EXISTS) {
+            if (id == FORALL || id == EXISTS || id == LAMBDA) {
               parseQuantBegin(exp);
               continue;
             }
@@ -2617,12 +2670,6 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body, bool isSort)
               _todo.push({ PO_PARSE_SORT, lRdr.readExpr() });
               lRdr.acceptEOL();
               continue;
-            }
-
-            if (id == UNDERSCORE) {
-              USER_ERROR_EXPR("Indexed identifiers in general term position are not supported: "+exp->toString());
-
-              // we only support indexed identifiers as functors applied to something (see just below)
             }
           } else {
             // this has to be an UNDERSCORE, otherwise we error later when we PO_PARSE_APPLICATION
