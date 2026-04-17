@@ -21,7 +21,7 @@ using namespace Test;
   TROO                                             \
   FOLS                                             \
   DECL_NOT_PROXY                                   \
-  DECL_EQ_PROXY(eqP)                               \
+  DECL_EQ_PROXY                                    \
   DECL_DE_BRUIJN_INDEX(db0, 0, srt)                \
   DECL_CONST(f, arrow(srt,srt))                    \
   DECL_CONST(b, srt)                               \

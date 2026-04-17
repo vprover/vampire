@@ -2446,8 +2446,8 @@ TEST_FUN(bug05) {
     DECL_POLY_CONST(a, 1, alpha)
     DECL_CONST(b, Rat)
 
-    uwa.unify(x, 2, RatTraits::sort(), 0);
-    uwa.unify(a(x), 2, b + 3, 0);
+    uwa.unifyOnce(x, 2, RatTraits::sort(), 0);
+    uwa.unifyOnce(a(x), 2, b + 3, 0);
   }
 }
 
@@ -2462,6 +2462,6 @@ TEST_FUN(bug06) {
     DECL_POLY_CONST(a, 1, alpha)
     DECL_CONST(b, Rat)
 
-    uwa.unify(a(x), 2, b + 3, 0);
+    uwa.unifyOnce(a(x), 2, b + 3, 0);
   }
 }

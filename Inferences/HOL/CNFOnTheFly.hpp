@@ -16,11 +16,9 @@
 #define __CNFOnTheFly__
 
 #include "Forwards.hpp"
-#include "InferenceEngine.hpp"
+#include "Inferences/InferenceEngine.hpp"
 
 #include "Indexing/TermIndex.hpp"
-
-#include "InferenceEngine.hpp"
 
 namespace Inferences {
 using namespace Indexing;

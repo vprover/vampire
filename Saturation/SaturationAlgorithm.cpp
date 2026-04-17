@@ -74,13 +74,19 @@
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
 #include "Inferences/ForwardSubsumptionDemodulation.hpp"
 #include "Inferences/GlobalSubsumption.hpp"
+
 #include "Inferences/HOL/BetaEtaSimplify.hpp"
 #include "Inferences/HOL/BoolEqToDiseq.hpp"
+#include "Inferences/HOL/BoolSimp.hpp"
+#include "Inferences/HOL/CasesSimp.hpp"
+#include "Inferences/HOL/CNFOnTheFly.hpp"
 #include "Inferences/HOL/FlexFlexSimplify.hpp"
+#include "Inferences/HOL/ImitateProject.hpp"
 #include "Inferences/HOL/LeibnizEqualityElimination.hpp"
 #include "Inferences/HOL/NegativeExtensionality.hpp"
 #include "Inferences/HOL/PositiveExtensionality.hpp"
 #include "Inferences/HOL/PrimitiveInstantiation.hpp"
+
 #include "Inferences/InnerRewriting.hpp"
 #include "Inferences/TermAlgebraReasoning.hpp"
 #include "Inferences/Superposition.hpp"
@@ -91,10 +97,7 @@
 #include "Inferences/Induction.hpp"
 #include "Inferences/ArithmeticSubtermGeneralization.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
-#include "Inferences/BoolSimp.hpp"
-#include "Inferences/CasesSimp.hpp"
 #include "Inferences/Cases.hpp"
-#include "Inferences/CNFOnTheFly.hpp"
 #include "Inferences/DefinitionIntroduction.hpp"
 #include "Inferences/LfpRule.hpp"
 
@@ -1404,7 +1407,11 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   CompositeGIE *gie = new CompositeGIE();
 
   if(opt.functionDefinitionIntroduction()) {
-    gie->addFront(new DefinitionIntroduction(*res));
+    if (prb.isHigherOrder()) {
+      gie->addFront(new DefinitionIntroduction<true>(*res));
+    } else {
+      gie->addFront(new DefinitionIntroduction<false>(*res));
+    }
   }
 
   //TODO here induction is last, is that right?
@@ -1435,9 +1442,15 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   if (prb.isHigherOrder()){
     gie->addFront(new NegativeExtensionality(*res));
-    gie->addFront(new PositiveExtensionality(*res));
-    if(prb.hasFOOL()/*  && opt.booleanEqTrick() */){
+    if (opt.positiveExtensionality()) {
+      gie->addFront(new PositiveExtensionality(*res));
+    }
+    if(prb.hasFOOL() && opt.booleanEqTrick()){
       gie->addFront(new BoolEqToDiseq(*res));
+    }
+    if(true/* !opt.higherOrderUnifDepth() && !opt.applicativeUnify() */){
+      // only add when we are not carrying out higher-order unification
+      gie->addFront(new ImitateProject(*res));
     }
   }
 
@@ -1466,7 +1479,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new Cases(*res));
   }
 
-  if (/* opt.complexBooleanReasoning() &&  */prb.hasBoolVar() && prb.isHigherOrder()) {
+  if (opt.complexBooleanReasoning() && prb.hasBoolVar() && prb.isHigherOrder()) {
     gie->addFront(new PrimitiveInstantiation(*res)); //TODO only add in some cases
     gie->addFront(new LeibnizEqualityElimination(*res));
   }
@@ -1733,9 +1746,9 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
     if(env.options->cnfOnTheFly() == Options::CNFOnTheFly::EAGER){
       resMany.addFront(std::make_unique<EagerClausificationISE>());
     }
-    // if(env.options->iffXorRewriter()){
-    //   res->addFront(new IFFXORRewriterISE());
-    // }
+    if(env.options->iffXorRewriter()){
+      res->addFront(new IFFXORRewriterISE());
+    }
     res->addFront(new BoolSimp());
   }
 
