@@ -14,7 +14,6 @@
  */
 
 #include "Indexing/Index.hpp"
-#include "Indexing/ResultSubstitution.hpp"
 #include "Inferences/ALASCA/Demodulation.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/Recycled.hpp"
@@ -22,7 +21,6 @@
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Renaming.hpp"
-#include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
 
 #include "ClauseCodeTree.hpp"
@@ -36,60 +34,9 @@ namespace Indexing
 using namespace Lib;
 using namespace Kernel;
 
-template<class Data>
-class CodeTreeSubstitution
-: public ResultSubstitution
-{
-public:
-  CodeTreeSubstitution(CodeTree::BindingArray* bindings, Renaming* resultNormalizer)
-  : _bindings(bindings), _resultNormalizer(resultNormalizer)
-  {}
-
-  USE_ALLOCATOR(CodeTreeSubstitution);
-
-  TermList apply(unsigned var)
-  {
-    if constexpr (is_indexed_data_normalized<Data>::value) {
-      return (*_bindings)[var];
-    } else {
-      ASS(_resultNormalizer->contains(var));
-      unsigned nvar=_resultNormalizer->get(var);
-      TermList res=(*_bindings)[nvar];
-      ASS(res.isTerm()||res.isOrdinaryVar());
-      ASSERT_VALID(res);
-      return res;
-    }
-  }
-
-  TermList applyToBoundResult(unsigned v) override
-  {
-    return apply(v);
-  }
-
-  TermList applyToBoundResult(TermList t) override
-  {
-    return SubstHelper::apply(t, *this);
-  }
-
-  Literal* applyToBoundResult(Literal* lit) override
-  {
-    return SubstHelper::apply(lit, *this);
-  }
-
-  bool isIdentityOnQueryWhenResultBound() override {return true;}
-private:
-  void output(std::ostream& out) const final
-  { out << "CodeTreeSubstitution(<output unimplemented>)"; }
-
-  CodeTree::BindingArray* _bindings;
-  Renaming* _resultNormalizer;
-};
-
-///////////////////////////////////////
-
 template<bool higherOrder, class Data>
 class CodeTreeTIS<higherOrder, Data>::ResultIterator
-: public IteratorCore<QueryRes<ResultSubstitutionSP, Data>>
+: public IteratorCore<QueryRes<const GenSubstitution<Data>*, Data>>
 {
 public:
   ResultIterator(const CodeTreeTIS& tree, TermList t, bool retrieveSubstitutions)
@@ -99,7 +46,7 @@ public:
     _matcher->init(&_tree._ct, t);
 
     if(_retrieveSubstitutions) {
-      _subst = new CodeTreeSubstitution<Data>(&_matcher->bindings, &*_resultNormalizer);
+      _subst = new GenSubstitution<Data>(&_matcher->bindings, &*_resultNormalizer);
     }
   }
 
@@ -127,25 +74,22 @@ public:
     return _found;
   }
 
-  QueryRes<ResultSubstitutionSP, Data> next() override
+  QueryRes<const GenSubstitution<Data>*, Data> next() override
   {
     ASS(_found);
 
-    ResultSubstitutionSP subs;
     if (_retrieveSubstitutions) {
       if constexpr (!is_indexed_data_normalized<Data>::value) {
         _resultNormalizer->reset();
         _resultNormalizer->normalizeVariables(_found->key());
       }
-      subs = ResultSubstitutionSP(_subst, /* nondisposable */ true);
     }
-    auto out = QueryRes<ResultSubstitutionSP, Data>(subs, _found);
+    auto out = QueryRes<const GenSubstitution<Data>*, Data>(_subst, _found);
     _found=0;
     return out;
   }
 private:
-
-  CodeTreeSubstitution<Data>* _subst;
+  GenSubstitution<Data>* _subst = nullptr;
   Recycled<Renaming> _resultNormalizer;
   bool _retrieveSubstitutions;
   Data* _found;
@@ -155,10 +99,10 @@ private:
 };
 
 template<bool higherOrder, class Data>
-VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> CodeTreeTIS<higherOrder, Data>::getGeneralizations(TypedTermList t, bool retrieveSubstitutions) const
+VirtualIterator<QueryRes<const GenSubstitution<Data>*, Data>> CodeTreeTIS<higherOrder, Data>::getGeneralizations(TypedTermList t, bool retrieveSubstitutions) const
 {
   if(_ct.isEmpty()) {
-    return VirtualIterator<QueryRes<ResultSubstitutionSP, Data>>::getEmpty();
+    return VirtualIterator<QueryRes<const GenSubstitution<Data>*, Data>>::getEmpty();
   }
 
   return vi( new ResultIterator(*this, t, retrieveSubstitutions) );

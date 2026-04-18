@@ -28,6 +28,40 @@ namespace Indexing
 using namespace Kernel;
 using namespace Lib;
 
+template<class Data>
+class GenSubstitution
+{
+public:
+  GenSubstitution(CodeTree::BindingArray* bindings, Renaming* resultNormalizer)
+  : _bindings(bindings), _resultNormalizer(resultNormalizer) {}
+
+  USE_ALLOCATOR(GenSubstitution);
+
+  TermList apply(unsigned var) const {
+    if constexpr (is_indexed_data_normalized<Data>::value) {
+      return (*_bindings)[var];
+    } else {
+      ASS(_resultNormalizer->contains(var));
+      unsigned nvar=_resultNormalizer->get(var);
+      TermList res=(*_bindings)[nvar];
+      ASS(res.isTerm()||res.isOrdinaryVar());
+      ASSERT_VALID(res);
+      return res;
+    }
+  }
+
+  TermList apply(TermList t) const {
+    return SubstHelper::apply(t, *this);
+  }
+
+  Literal* apply(Literal* lit) const {
+    return SubstHelper::apply(lit, *this);
+  }
+private:
+  CodeTree::BindingArray* _bindings;
+  Renaming* _resultNormalizer;
+};
+
 /**
  * Term indexing structure using code trees to retrieve generalizations
  */
@@ -46,7 +80,7 @@ public:
     }
   }
 
-  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true) const;
+  VirtualIterator<QueryRes<const GenSubstitution<Data>*, Data>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true) const;
 
   void output(std::ostream& out) const { out << _ct; }
 

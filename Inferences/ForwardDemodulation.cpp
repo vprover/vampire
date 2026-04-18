@@ -50,19 +50,19 @@ using namespace Saturation;
 namespace {
 
 struct Applicator : SubstApplicator {
-  Applicator(ResultSubstitution* subst) : subst(subst) {}
+  Applicator(const GenSubstitution<DemodulatorData>* subst) : subst(subst) {}
   TermList operator()(unsigned v) const override {
-    return subst->applyToBoundResult(v);
+    return subst->apply(v);
   }
-  ResultSubstitution* subst;
+  const GenSubstitution<DemodulatorData>* subst;
 };
 
 struct ApplicatorWithEqSort : SubstApplicator {
-  ApplicatorWithEqSort(ResultSubstitution* subst, const RobSubstitution& vSubst) : subst(subst), vSubst(vSubst) {}
+  ApplicatorWithEqSort(const GenSubstitution<DemodulatorData>* subst, const RobSubstitution& vSubst) : subst(subst), vSubst(vSubst) {}
   TermList operator()(unsigned v) const override {
-    return vSubst.apply(subst->applyToBoundResult(v), 0);
+    return vSubst.apply(subst->apply(v), 0);
   }
-  ResultSubstitution* subst;
+  const GenSubstitution<DemodulatorData>* subst;
   const RobSubstitution& vSubst;
 };
 
@@ -143,10 +143,8 @@ bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement,
         }
 
         auto subs = qr.unifier;
-        ASS(subs->isIdentityOnQueryWhenResultBound());
-
-        ApplicatorWithEqSort applWithEqSort(subs.ptr(), eqSortSubs);
-        Applicator applWithoutEqSort(subs.ptr());
+        ApplicatorWithEqSort applWithEqSort(subs, eqSortSubs);
+        Applicator applWithoutEqSort(subs);
         auto appl = lhs.isVar() ? (SubstApplicator*)&applWithEqSort : (SubstApplicator*)&applWithoutEqSort;
 
         AppliedTerm rhsApplied(qr.data->rhs,appl,true);

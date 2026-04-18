@@ -39,11 +39,11 @@ using namespace std;
 namespace {
 
 struct Applicator : SubstApplicator {
-  Applicator(ResultSubstitution* subst) : subst(subst) {}
+  Applicator(const GenSubstitution<DemodulatorData>* subst) : subst(subst) {}
   TermList operator()(unsigned v) const override {
-    return subst->applyToBoundResult(v);
+    return subst->apply(v);
   }
-  ResultSubstitution* subst;
+  const GenSubstitution<DemodulatorData>* subst;
 };
 
 } // end namespace
@@ -128,10 +128,7 @@ bool ForwardGroundJoinability<higherOrder>::perform(Clause* cl, Clause*& replace
 
         TermList rhs = qr.data->rhs;
 
-        auto subs = qr.unifier;
-        ASS(subs->isIdentityOnQueryWhenResultBound());
-        Applicator appl(subs.ptr());
-
+        Applicator appl(qr.unifier);
         AppliedTerm rhsApplied(rhs, &appl, true);
 
 #if VDEBUG

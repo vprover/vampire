@@ -37,17 +37,17 @@ using namespace Saturation;
 
 namespace {
 struct Applicator : SubstApplicator {
-  Applicator(ResultSubstitution* subst) : subst(subst) {}
+  Applicator(const GenSubstitution<TermLiteralClause>* subst) : subst(subst) {}
   TermList operator()(unsigned v) const override {
-    return subst->applyToBoundResult(v);
+    return subst->apply(v);
   }
-  ResultSubstitution* subst;
+  const GenSubstitution<TermLiteralClause>* subst;
 };
 }
 
 Clause* performRewriting(
     Clause *rwClause, Literal *rwLit, TermList rwTerm, Clause *eqClause,
-    Literal *eqLit, TermList eqLHS, ResultSubstitutionSP subst,
+    Literal *eqLit, TermList eqLHS, const GenSubstitution<TermLiteralClause>* subst,
     const DemodulationHelper* helper, bool& isEqTautology, Inference&& inf)
 {
   ASS(!eqLHS.isVar());
@@ -55,10 +55,9 @@ Clause* performRewriting(
   TermList tgtTerm = EqHelper::getOtherEqualitySide(eqLit, eqLHS);
 
   // This should be the case for code trees
-  ASS(subst->isIdentityOnQueryWhenResultBound());
-  TermList tgtTermS = subst->applyToBoundResult(tgtTerm);
+  TermList tgtTermS = subst->apply(tgtTerm);
 
-  Applicator appl(subst.ptr());
+  Applicator appl(subst);
 
   if (helper && !helper->isPremiseRedundant(rwClause,rwLit,rwTerm,tgtTermS,eqLHS,&appl)) {
     return 0;
@@ -92,7 +91,7 @@ Clause* performRewriting(
     if (curr == eqLit) {
       continue;
     }
-    Literal* currAfter = subst->applyToBoundResult(curr);
+    Literal* currAfter = subst->apply(curr);
 
     if (EqHelper::isEqTautology(currAfter)) {
       isEqTautology = true;

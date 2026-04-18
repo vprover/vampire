@@ -543,7 +543,7 @@ struct InductionContextFn
 {
   InductionContextFn(Clause* premise, Literal* lit) : _premise(premise), _lit(lit) {}
 
-  VirtualIterator<InductionContext> operator()(pair<Stack<Term*>, VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>>> arg) {
+  VirtualIterator<InductionContext> operator()(pair<Stack<Term*>, VirtualIterator<QueryRes<const GenSubstitution<TermLiteralClause>*, TermLiteralClause>>> arg) {
     auto indDepth = _premise->inference().inductionDepth();
     // heuristic 2
     if (indDepth) {
@@ -722,14 +722,14 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       }
     }
     // collect term queries for each induction term
-    auto sideLitsIt = VirtualIterator<pair<Stack<Term*>, VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>>>>::getEmpty();
+    auto sideLitsIt = VirtualIterator<pair<Stack<Term*>, VirtualIterator<QueryRes<const GenSubstitution<TermLiteralClause>*, TermLiteralClause>>>>::getEmpty();
     if (_opt.nonUnitInduction()) {
       sideLitsIt = pvi(iterTraits(getSTLIterator(ta_terms.begin(), ta_terms.end()))
         .map([](const auto& kv){
           return kv.first;
         })
         .map([this](Stack<Term*> ts) {
-          auto res = VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>>::getEmpty();
+          auto res = VirtualIterator<QueryRes<const GenSubstitution<TermLiteralClause>*, TermLiteralClause>>::getEmpty();
           for (const auto& t : ts) {
             res = pvi(concatIters(std::move(res), _structInductionTermIndex.getGeneralizations(t, false)));
           }
