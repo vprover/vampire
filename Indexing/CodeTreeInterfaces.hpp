@@ -38,7 +38,7 @@ public:
 
   USE_ALLOCATOR(GenSubstitution);
 
-  TermList operator()(unsigned var) const override {
+  TermList apply(unsigned var) const override {
     if constexpr (is_indexed_data_normalized<Data>::value) {
       return (*_bindings)[var];
     } else {
@@ -49,10 +49,6 @@ public:
       ASSERT_VALID(res);
       return res;
     }
-  }
-
-  TermList apply(unsigned var) const {
-    return (*this)(var);
   }
 
   TermList apply(TermList t) const {

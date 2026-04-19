@@ -61,7 +61,7 @@ bool DemodulationHelper::isRenamingOn(const SubstApplicator* applicator, TermLis
       continue;
     }
 
-    TermList vSubst = (*applicator)(v.var());
+    TermList vSubst = applicator->apply(v.var());
     if (!vSubst.isVar()) {
       return false;
     }
