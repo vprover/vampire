@@ -132,10 +132,11 @@ void DemodulationLHSIndex<higherOrder>::handleClause(Clause* c, bool adding)
     // DemodulatorData expects lhs and rhs to be normalized
     Renaming r;
     r.normalizeVariables(lhs);
+    auto sortR = r.apply(lhs.sort());
 
     DemodulatorData dd(
-      TypedTermList(r.apply(lhs),r.apply(lhs.sort())),
-      r.apply(EqHelper::getOtherEqualitySide(lit, lhs)),
+      TypedTermList(r.apply(lhs),sortR),
+      TypedTermList(r.apply(EqHelper::getOtherEqualitySide(lit, lhs)),sortR),
       c, preordered, _ord
     );
     GeneralizingTermIndex<higherOrder, DemodulatorData>::_ct.handle(std::move(dd), adding);

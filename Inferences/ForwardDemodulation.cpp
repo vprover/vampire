@@ -25,7 +25,6 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/ColorHelper.hpp"
-#include "Kernel/RobSubstitution.hpp"
 
 #include "Indexing/Index.hpp"
 #include "Indexing/TermIndex.hpp"
@@ -46,27 +45,6 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
-
-namespace {
-
-struct Applicator : SubstApplicator {
-  Applicator(const GenSubstitution<DemodulatorData>* subst) : subst(subst) {}
-  TermList operator()(unsigned v) const override {
-    return subst->apply(v);
-  }
-  const GenSubstitution<DemodulatorData>* subst;
-};
-
-struct ApplicatorWithEqSort : SubstApplicator {
-  ApplicatorWithEqSort(const GenSubstitution<DemodulatorData>* subst, const RobSubstitution& vSubst) : subst(subst), vSubst(vSubst) {}
-  TermList operator()(unsigned v) const override {
-    return vSubst.apply(subst->apply(v), 0);
-  }
-  const GenSubstitution<DemodulatorData>* subst;
-  const RobSubstitution& vSubst;
-};
-
-} // end namespace
 
 template<bool higherOrder>
 ForwardDemodulation<higherOrder>::ForwardDemodulation(SaturationAlgorithm& salg)
@@ -124,30 +102,8 @@ bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement,
         }
 
         auto lhs = qr.data->term;
-
-        // TODO:
-        // to deal with polymorphic matching
-        // Ideally, we would like to extend the substitution
-        // returned by the index to carry out the sort match.
-        // However, ForwardDemodulation uses a CodeTree as its
-        // indexing mechanism, and it is not clear how to extend
-        // the substitution returned by a code tree.
-        static RobSubstitution eqSortSubs;
-        if(lhs.isVar()){
-          eqSortSubs.reset();
-          TermList querySort = trm.sort();
-          TermList eqSort = qr.data->term.sort();
-          if(!eqSortSubs.match(eqSort, 0, querySort, 1)){
-            continue;
-          }
-        }
-
         auto subs = qr.unifier;
-        ApplicatorWithEqSort applWithEqSort(subs, eqSortSubs);
-        Applicator applWithoutEqSort(subs);
-        auto appl = lhs.isVar() ? (SubstApplicator*)&applWithEqSort : (SubstApplicator*)&applWithoutEqSort;
-
-        AppliedTerm rhsApplied(qr.data->rhs,appl,true);
+        AppliedTerm rhsApplied(qr.data->rhs,subs,true);
         bool preordered = qr.data->preordered;
 
         ASS_EQ(_ord.compare(trm,rhsApplied),Ordering::reverse(_ord.compare(rhsApplied,trm)));
@@ -156,7 +112,7 @@ bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement,
 #if VDEBUG
           auto dcomp = _ord.compareUnidirectional(trm,rhsApplied);
 #endif
-          qr.data->tod->init(appl);
+          qr.data->tod->init(subs);
           if (!preordered && (_preorderedOnly || !qr.data->tod->next())) {
             ASS_NEQ(dcomp,Ordering::GREATER);
             continue;
@@ -182,7 +138,7 @@ bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement,
 
         TermList rhsS = rhsApplied.apply();
 
-        if (redundancyCheck && !_helper.isPremiseRedundant(cl, lit, trm, rhsS, lhs, appl)) {
+        if (redundancyCheck && !_helper.isPremiseRedundant(cl, lit, trm, rhsS, lhs, subs)) {
           continue;
         }
 

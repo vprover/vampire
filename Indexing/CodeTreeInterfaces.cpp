@@ -39,7 +39,7 @@ class CodeTreeTIS<higherOrder, Data>::ResultIterator
 : public IteratorCore<QueryRes<const GenSubstitution<Data>*, Data>>
 {
 public:
-  ResultIterator(const CodeTreeTIS& tree, TermList t, bool retrieveSubstitutions)
+  ResultIterator(const CodeTreeTIS& tree, TypedTermList t, bool retrieveSubstitutions)
   : _retrieveSubstitutions(retrieveSubstitutions),
     _found(0), _finished(false), _tree(tree)
   {

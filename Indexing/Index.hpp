@@ -114,7 +114,7 @@ struct TermLiteralClause
  * left- and right-hand side normalized and cache preorderedness. */
 struct DemodulatorData
 {
-  DemodulatorData(TypedTermList term, TermList rhs, Clause* clause, bool preordered, const Ordering& ord)
+  DemodulatorData(TypedTermList term, TypedTermList rhs, Clause* clause, bool preordered, const Ordering& ord)
     : term(term), rhs(rhs), clause(clause), preordered(preordered), tod(ord.createTermOrderingDiagram())
   {
     // insert pointer to owner as non-null value representing success

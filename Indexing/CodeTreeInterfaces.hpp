@@ -30,6 +30,7 @@ using namespace Lib;
 
 template<class Data>
 class GenSubstitution
+  : public SubstApplicator
 {
 public:
   GenSubstitution(CodeTree::BindingArray* bindings, Renaming* resultNormalizer)
@@ -37,7 +38,7 @@ public:
 
   USE_ALLOCATOR(GenSubstitution);
 
-  TermList apply(unsigned var) const {
+  TermList operator()(unsigned var) const override {
     if constexpr (is_indexed_data_normalized<Data>::value) {
       return (*_bindings)[var];
     } else {
@@ -48,6 +49,10 @@ public:
       ASSERT_VALID(res);
       return res;
     }
+  }
+
+  TermList apply(unsigned var) const {
+    return (*this)(var);
   }
 
   TermList apply(TermList t) const {

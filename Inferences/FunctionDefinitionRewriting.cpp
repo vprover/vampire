@@ -35,16 +35,6 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Saturation;
 
-namespace {
-struct Applicator : SubstApplicator {
-  Applicator(const GenSubstitution<TermLiteralClause>* subst) : subst(subst) {}
-  TermList operator()(unsigned v) const override {
-    return subst->apply(v);
-  }
-  const GenSubstitution<TermLiteralClause>* subst;
-};
-}
-
 Clause* performRewriting(
     Clause *rwClause, Literal *rwLit, TermList rwTerm, Clause *eqClause,
     Literal *eqLit, TermList eqLHS, const GenSubstitution<TermLiteralClause>* subst,
@@ -57,9 +47,7 @@ Clause* performRewriting(
   // This should be the case for code trees
   TermList tgtTermS = subst->apply(tgtTerm);
 
-  Applicator appl(subst);
-
-  if (helper && !helper->isPremiseRedundant(rwClause,rwLit,rwTerm,tgtTermS,eqLHS,&appl)) {
+  if (helper && !helper->isPremiseRedundant(rwClause,rwLit,rwTerm,tgtTermS,eqLHS,subst)) {
     return 0;
   }
 

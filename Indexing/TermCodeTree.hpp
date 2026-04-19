@@ -20,6 +20,8 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/Stack.hpp"
 
+#include "Kernel/TypedTermList.hpp"
+
 #include "CodeTree.hpp"
 
 
@@ -29,11 +31,11 @@ using namespace Lib;
 using namespace Kernel;
 
 template<bool higherOrder, class Data>
-class TermCodeTree : public CodeTree 
+class TermCodeTree : public CodeTree
 {
 protected:
   static void onCodeOpDestroying(CodeOp* op);
-  
+
 public:
   TermCodeTree();
 
@@ -59,12 +61,14 @@ public:
     using Base = Matcher</*removing*/false,false,higherOrder>;
     using Base::ft;
 
-    void init(CodeTree const* tree, TermList t);
+    void init(CodeTree const* tree, TypedTermList t);
     void reset();
-    
+
     Data* next();
-    
+
     USE_ALLOCATOR(TermMatcher);
+  private:
+    TermList _querySort;
   };
 
 };

@@ -15,6 +15,7 @@
 #include "Inferences/ALASCA/Demodulation.hpp"
 
 #include "Kernel/FlatTerm.hpp"
+#include "Kernel/Matcher.hpp"
 #include "Kernel/Term.hpp"
 
 #include "Index.hpp"
@@ -48,9 +49,14 @@ void TermCodeTree<higherOrder, Data>::insert(Data* data)
   static CodeStack code;
   code.reset();
 
-  TermList t=data->key();
+  auto t = data->key();
   if (t.isVar()) {
     code.push(CodeOp::getTermOp(ASSIGN_VAR,0));
+    // we match the variable sort separately, but the binding array has to be prepared
+    for (const auto& v : iterTraits(VariableIterator(t.sort()))) {
+      ASS_G(v.var(), 0); // X0 is reserved for the term itself
+      if (v.var()+1 > _maxVarCnt) { _maxVarCnt = v.var()+1; }
+    }
   }
   else {
     ASS(t.isTerm());
@@ -61,7 +67,7 @@ void TermCodeTree<higherOrder, Data>::insert(Data* data)
   }
 
   code.push(CodeOp::getSuccess(data));
-  incorporate(code);  
+  incorporate(code);
   //@b incorporate should empty the code stack
   ASS(code.isEmpty());
 }
@@ -77,7 +83,7 @@ void TermCodeTree<higherOrder, Data>::remove(const Data& data)
 
   FlatTerm* ft=FlatTerm::create(data.key());
   rtm.init(ft, this, &firstsInBlocks);
-  
+
   Data* dptr = nullptr;
   for(;;) {
     if (!rtm.execute()) {
@@ -90,34 +96,14 @@ void TermCodeTree<higherOrder, Data>::remove(const Data& data)
       break;
     }
   }
-  
+
   rtm.op->makeFail();
 
   ASS(dptr);
   delete dptr;
   ft->destroy();
-  
+
   optimizeMemoryAfterRemoval(&firstsInBlocks, rtm.op);
-  /*
-  
-  static TermMatcher tm;
-
-  tm.init(this, ti.t);
-
-  for(;;) {
-    TermInfo* found=tm.next();
-    if (!found) {
-      INVALID_OPERATION("term being removed was not found");
-    }
-    if (*found==ti) {
-      tm.op->makeFail();
-      delete found;
-      break;
-    }
-  }
-
-  tm.deinit();
-  */
 } // TermCodeTree::remove
 
 template<bool higherOrder, class Data>
@@ -125,7 +111,7 @@ void TermCodeTree<higherOrder, Data>::RemovingTermMatcher::init(FlatTerm* ft_,
 					     TermCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_)
 {
   Base::init(tree_, tree_->getEntryPoint(), /*linfos_=*/0, /*linfoCnt_=*/0, firstsInBlocks_);
-  
+
   Base::firstsInBlocks->push(Base::entry);
 
   Base::ft=ft_;
@@ -144,12 +130,13 @@ TermCodeTree<higherOrder, Data>::TermMatcher::TermMatcher()
 }
 
 template<bool higherOrder, class Data>
-void TermCodeTree<higherOrder, Data>::TermMatcher::init(CodeTree const* tree, TermList t)
+void TermCodeTree<higherOrder, Data>::TermMatcher::init(CodeTree const* tree, TypedTermList t)
 {
   Base::init(tree,tree->getEntryPoint(),/*linfos_=*/0,/*linfoCnt_=*/0);
 
   ASS(!ft);
   ft = FlatTerm::create(t);
+  _querySort = t.sort();
 
   Base::op=Base::entry;
   Base::tp=0;
@@ -171,14 +158,26 @@ Data* TermCodeTree<higherOrder, Data>::TermMatcher::next()
     //all possible matches are exhausted
     return 0;
   }
-  
+
   Base::_matched=Base::execute();
   if (!Base::_matched) {
     return 0;
   }
 
   ASS(Base::op->isSuccess());
-  return Base::op->template getSuccessResult<Data>();
+  auto res = Base::op->template getSuccessResult<Data>();
+  if (res->key().isVar()) {
+    // match the variable sort separately
+    Substitution subst;
+    if (!MatchingUtils::matchTerms(res->key().sort(), _querySort, subst)) {
+      return nullptr;
+    }
+    for (const auto& [v,t] : iterTraits(subst.items())) {
+      ASS_G(v, 0); // X0 is reserved for the term itself
+      Base::bindings[v] = t;
+    }
+  }
+  return res;
 }
 
 template class TermCodeTree<true, TermLiteralClause>;
