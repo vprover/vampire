@@ -347,6 +347,7 @@ enum class InferenceRule : unsigned char {
   NEGATIVE_EXTENSIONALITY,
   POSITIVE_EXTENSIONALITY,
   EQ_TO_DISEQ,
+  HEURISTIC_INSTANTIATION,
   /** The next five rules can be either simplifying or generating */
   NOT_PROXY_CLAUSIFICATION,
   AND_PROXY_CLAUSIFICATION,

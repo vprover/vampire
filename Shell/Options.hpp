@@ -2304,6 +2304,7 @@ public:
   bool equalityToEquivalence () const { return _equalityToEquivalence.actualValue; }
   bool complexBooleanReasoning () const { return _complexBooleanReasoning.actualValue; }
   bool booleanEqTrick() const { return _booleanEqTrick.actualValue; }
+  bool heuristicInstantiation() const { return _heuristicInstantiation.actualValue; }
   bool casesSimp() const { return _casesSimp.actualValue; }
   bool cases() const { return _cases.actualValue; }
   bool newTautologyDel() const { return _newTautologyDel.actualValue; }
@@ -2430,6 +2431,7 @@ private:
   BoolOptionValue _backwardSubsumptionDemodulation;
   UnsignedOptionValue _backwardSubsumptionDemodulationMaxMatches;
   BoolOptionValue _binaryResolution;
+  BoolOptionValue _superposition;
 
   BoolOptionValue _colorUnblocking;
   ChoiceOptionValue<Condensation> _condensation;
@@ -2734,7 +2736,7 @@ private:
   BoolOptionValue _equalityToEquivalence;
   BoolOptionValue _complexBooleanReasoning;
   BoolOptionValue _booleanEqTrick;
-  BoolOptionValue _superposition;
+  BoolOptionValue _heuristicInstantiation;
   BoolOptionValue _casesSimp;
   BoolOptionValue _cases;
   BoolOptionValue _newTautologyDel;

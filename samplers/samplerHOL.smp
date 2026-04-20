@@ -429,8 +429,7 @@ apa=on  > cnfonf ~cat off:1
 apa=off > cnfonf ~cat eager:111,off:43,lazy_gen:29,conj_eager:19,lazy_not_gen_be_off:15,lazy_pi_sigma_gen:26,lazy_not_be_gen:12,lazy_simp:19,lazy_not_gen:12
 
 # heur_inst
-# TODO(HOL)
-#cnfonf=conj_eager > hi ~cat off:100,on:5
+cnfonf=conj_eager > hi ~cat off:100,on:5
 
 # bool_inst (disable for now)
 # cnfonf!=off > bi ~cat off:1,abs:1,abs_sub:1

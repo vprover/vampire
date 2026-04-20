@@ -79,6 +79,8 @@ Stack<std::pair<TermList, UnificationInference>> getProjAndImitBindings(TermList
 
 TermList createGeneralBinding(TermList head, const TermStack& sorts, unsigned& freshVar, bool surround = true);
 
+TermStack getAbstractionTerms(Literal* lit);
+
 } // namespace HOL
 
 namespace HOL::create {
@@ -130,6 +132,7 @@ namespace HOL::create {
 namespace HOL::convert {
 
 TermList toNameless(TermList term);
+TermList toNameless(Formula* formula);
 
 inline TermList toNameless(Term* term) {
   return toNameless(TermList(term));

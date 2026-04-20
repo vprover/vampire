@@ -927,6 +927,8 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "beta-eta normalization";
   case InferenceRule::EQ_TO_DISEQ:
     return "bool equality to disequality";
+  case InferenceRule::HEURISTIC_INSTANTIATION:
+    return "heuristic instantiation";
   case InferenceRule::PRIMITIVE_INSTANTIATION:
     return "primitive instantiation";
   case InferenceRule::IMITATION:

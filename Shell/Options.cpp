@@ -2034,6 +2034,15 @@ void Options::init()
     // potentially could be useful for FOOL, so am not adding the HOL constraint    
     _booleanEqTrick.tag(OptionTag::HIGHER_ORDER);
 
+    _heuristicInstantiation = BoolOptionValue("heur_inst","hi",false);
+    _heuristicInstantiation.onlyUsefulWith(ProperSaturationAlgorithm());
+    _heuristicInstantiation.addProblemConstraint(hasHigherOrder());   
+    _heuristicInstantiation.addHardConstraint(If(notEqual(false)).then(_clausificationOnTheFly.is(equal(CNFOnTheFly::CONJ_EAGER)))); 
+    _heuristicInstantiation.description =
+      "Heuristically instantiates universally quantified variables with abstractions of literals from negated conjecture";
+    _lookup.insert(&_heuristicInstantiation);
+    _heuristicInstantiation.tag(OptionTag::HIGHER_ORDER);
+
     _casesSimp = BoolOptionValue("cases_simp","cs",false);
     _casesSimp.description=
     "FOOL Paramodulation with two conclusion as a simplification";

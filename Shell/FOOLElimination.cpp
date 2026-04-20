@@ -49,7 +49,23 @@ const char* FOOLElimination::MATCH_PREFIX  = "mG";
 
 FOOLElimination::FOOLElimination() : _defs(0), _currentDefs(0), _higherOrder(0), _polymorphic(0) {}
 
-bool FOOLElimination::needsElimination(FormulaUnit* unit) {
+bool FOOLElimination::needsElimination(FormulaUnit* unit)
+{
+  if (env.higherOrder()) {
+    switch(env.options->cnfOnTheFly()){
+      case Options::CNFOnTheFly::EAGER:
+        break;
+      case Options::CNFOnTheFly::CONJ_EAGER:
+        if (unit->inputType() != UnitInputType::NEGATED_CONJECTURE &&
+            unit->inputType() != UnitInputType::CONJECTURE) {
+          return true;
+        }
+        break;
+      default:
+        return true;
+    }
+  }
+
   /**
    * Be careful with the difference between FOOLElimination::needsElimination
    * and Property::_hasFOOL!
@@ -142,7 +158,19 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
 
   SortHelper::collectVariableSorts(formula, _varSorts);
 
-  Formula* processedFormula = process(formula);
+  bool isConjecture =
+    unit->inputType() == UnitInputType::NEGATED_CONJECTURE ||
+    unit->inputType() == UnitInputType::CONJECTURE;
+
+  // The old implementation (combinator implementation) had a check !_polymorphic
+  // I've removed it here, but if we start seeing issues on polymorphic problems, that
+  // is one place to check immediately
+  bool proxify = env.higherOrder() &&
+    env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
+    env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF   &&
+   (env.options->cnfOnTheFly() != Options::CNFOnTheFly::CONJ_EAGER || !isConjecture);
+
+  Formula* processedFormula = proxify ? convertToProxified(formula) : process(formula);
   if (formula == processedFormula) {
     return rectifiedUnit;
   }
@@ -159,6 +187,29 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
   }
 
   return processedUnit;
+}
+
+Formula* FOOLElimination::convertToProxified(Formula* formula) {
+  Formula* processedFormula;
+  if (formula->connective() == LITERAL) {
+    // don't proxify the equality itself, as this blocks
+    // definition rewriting which really harms performance
+    auto literal = formula->literal();
+    auto [lhs, rhs] = literal->eqArgs();
+    lhs = HOL::convert::toNameless(lhs);
+    rhs = HOL::convert::toNameless(rhs);
+    processedFormula = new AtomicFormula(
+      Literal::createEquality(literal->polarity(), lhs, rhs, SortHelper::getEqualityArgumentSort(literal)));
+  } else {
+    TermList proxifiedFormula = HOL::convert::toNameless(formula);
+    processedFormula = toEquality(proxifiedFormula);
+  }
+
+  if (env.options->showPreprocessing()) {
+    reportProcessed(formula->toString(), processedFormula->toString());
+  }
+
+  return processedFormula;
 }
 
 Formula* FOOLElimination::process(Formula* formula) {
@@ -750,12 +801,12 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         Connective connective = sd->getFormula()->connective();
 
         if (connective == TRUE) {
-          termResult = TermList(Term::foolTrue());
+          termResult = HOL::create::top();
           break;
         }
 
         if (connective == FALSE) {
-          termResult = TermList(Term::foolFalse());
+          termResult = HOL::create::bottom();
           break;
         }
 

@@ -11,8 +11,9 @@
  * @file HOL.cpp
  */
 
-#include "Kernel/HOL/HOL.hpp"
+#include "HOL.hpp"
 
+#include "SubtermReplacer.hpp"
 #include "ToPlaceholders.hpp"
 #include "Kernel/Formula.hpp"
 
@@ -481,4 +482,44 @@ TermList HOL::createGeneralBinding(TermList head, const TermStack& sorts, unsign
 
   auto res = create::app(head, args);
   return surround ? create::surroundWithLambdas(res, sorts) : res;
+}
+
+TermStack HOL::getAbstractionTerms(Literal* lit)
+{
+  auto [lhs, rhs] = lit->eqArgs();
+  TermList eqSort = SortHelper::getEqualityArgumentSort(lit);
+
+  TermStack res;
+  auto dealWithArg = [&](TermList arg, TermList argSort){
+    if (arg.containsLooseDBIndex()) {
+      return;
+    }
+    using namespace create;
+    SubtermReplacer st(arg, getDeBruijnIndex(0,argSort), true);
+    TermList lhsReplaced = st.replace(lhs);
+    TermList rhsReplaced = st.replace(rhs);
+
+    TermList eq = app2(equality(eqSort), lhsReplaced, rhsReplaced);
+    eq = lit->polarity() ? app(neg(),eq) : eq; // reverse the polarity of the literal
+    res.push(namelessLambda(argSort,eq));
+  };
+
+  TermList lhsHead, rhsHead;
+  TermList lhsMatrix, rhsMatrix;
+  static TermStack lhsArgs;
+  static TermStack lhsArgSorts;
+  static TermStack rhsArgs;
+  static TermStack rhsArgSorts;
+
+  getHeadArgsAndArgSorts(lhs, lhsHead, lhsArgs, lhsArgSorts);
+  getHeadArgsAndArgSorts(rhs, rhsHead, rhsArgs, rhsArgSorts);
+  if (lhsHead.isTerm() && lhsHead.deBruijnIndex().isNone() && lhsHead == rhsHead) {
+    for(unsigned i = 0; i < lhsArgs.size(); i++){
+      dealWithArg(lhsArgs[i], lhsArgSorts[i]);
+    }
+    for(unsigned i = 0; i < rhsArgs.size(); i++){
+      dealWithArg(rhsArgs[i], rhsArgSorts[i]);
+    }
+  }
+  return res;
 }
