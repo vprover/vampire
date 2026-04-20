@@ -10,6 +10,7 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Shell/EqResWithDeletion.hpp"
+#include "Shell/InferenceRecorder.hpp"
 #include "Shell/Rectify.hpp"
 
 namespace Shell {
@@ -101,8 +102,11 @@ Clause *InferenceReplayer::runGenerating(GeneratingInferenceEngine *rule,
   auto res = rule->generateSimplify(context[0]);
 
   while(res.clauses.hasNext()){
-    //Iterate through genereation of all clauses
+    //Iterate through generation of all clauses
     res.clauses.next();
+    if(InferenceRecorder::instance()->hasRecordedInference()){
+      break;
+    }
   }
   removeAllActiveClauses();
 

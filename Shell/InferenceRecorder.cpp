@@ -11,6 +11,7 @@
 #include "Kernel/Substitution.hpp"
 #include "Indexing/ResultSubstitution.hpp"
 #include "Kernel/Term.hpp"
+#include "Lib/DHSet.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Shell/EqResWithDeletion.hpp"
 #include "Shell/Rectify.hpp"
@@ -172,7 +173,7 @@ void InferenceRecorder::forwardDemodulation(unsigned int id, Clause *conclusion,
 
     // qr.data->clause and qr.data->rhs have different variable namings since the demoldulation code normalizes the variables
     // To handle this we check if the rhs is on either side of the equality and then create a
-    // variable permuation substitution to map the variables to the ones in the clause
+    // variable permutation substitution to map the variables to the ones in the clause
     auto x = Literal::createEquality(true, data->term, data->rhs, data->term.sort());
     MLVariant::isVariant(&x, data->clause, false, &variableSwapForClauseR);
 
@@ -272,11 +273,19 @@ void InferenceRecorder::rectify(Formula* f, Formula* newFormula, VSList* vs, Sub
   //std::cout << "Combined" << combinedSubst << std::endl;
   static_cast<RectifyInferenceExtra*>(_currentRecording.get())->
     renamings.emplace_back(newFormula, std::make_pair(f, combinedSubst));
-
 }
 
 bool InferenceRecorder::isSameAsProofStep(Clause *clause, Clause *goal, const std::vector<Clause *> &premises, std::unordered_map<unsigned int, unsigned int> &outVarMap)
 {
+  DHSet<unsigned int> clauseVars;
+  clause->collectVars(clauseVars);
+  DHSet<unsigned int> goalVars;
+  goal->collectVars(goalVars);
+  for(auto var : iterTraits(clauseVars.iterator())) {
+    if (!goalVars.contains(var)) {
+      return false;
+    }
+  }
   auto parents = goal->getParents();
   unsigned parentCounter = 0;
   if(parents.hasNext()) {

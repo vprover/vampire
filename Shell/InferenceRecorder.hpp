@@ -76,6 +76,11 @@ public:
     _lastInferenceId = 0;
   }
 
+  bool hasRecordedInference() const
+  {
+    return _lastInferenceId != 0;
+  }
+
   const InferenceInformation *getLastRecordedInferenceInformation() const
   {
     auto it = _inferences.find(_lastInferenceId);
