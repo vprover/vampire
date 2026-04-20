@@ -22,6 +22,18 @@
 
 namespace Inferences {
 
+/**
+ * Using Leibniz's rule, that is, ∀ x,y. (x ≈ y <=> ∀ p. (p x <=> p y)),
+ * implements the following generating inference:
+ *
+ *                     X s ≈ ⊤ v X t ≈ ⊥ v C
+ *             --------------------------------------
+ *                    (s ≈ t v C){ X ↦ (eq s) }
+ *                (s ≈ t v C){ X ↦ λ x. ¬(eq x t) }
+ *
+ * Note that eq denotes the equality proxy in the above rule.
+ * See unit tests for instances of the rule.
+ */
 class LeibnizEqualityElimination
   : public GeneratingInferenceEngine
 {
