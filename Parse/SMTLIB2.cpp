@@ -1637,15 +1637,18 @@ void SMTLIB2::parseMatchCase(LExpr *exp)
       continue;
     }
     auto argExp = tRdr.readExpr();
+    // Underscore is allowed here to indicate an unused variable
+    if (argExp->str == UNDERSCORE) {
+      patternArgs.push(TermList::var(_nextVar++));
+      continue;
+    }
     if (!argExp->isAtom() || isAlreadyKnownFunction(argExp->str)) {
       USER_ERROR_EXPR("Nested ctors ("+argExp->toString()+") in match patterns are disallowed: '" + exp->toString() + "'");
     }
     auto var = TermList::var(_nextVar++);
     patternArgs.push(var);
-    if (argExp->str != UNDERSCORE) {
-      // from the type arguments used in the matched term we instantiate the type of the other variables
-      tryInsertIntoCurrentLookup(argExp->str, var, SubstHelper::apply(type->arg(i), subst));
-    }
+    // from the type arguments used in the matched term we instantiate the type of the other variables
+    tryInsertIntoCurrentLookup(argExp->str, var, SubstHelper::apply(type->arg(i), subst));
   }
   _results.push(ParseResult(matchedTermSort, TermList(Term::create(fn, patternArgs))));
 }
