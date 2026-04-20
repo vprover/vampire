@@ -263,6 +263,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/ForwardLiteralRewriting.o\
          Inferences/ForwardSubsumptionAndResolution.o\
          Inferences/SubsumptionDemodulationHelper.o\
+         Inferences/SubsumptionEqualityResolution.o\
          Inferences/ForwardSubsumptionDemodulation.o\
          Inferences/GlobalSubsumption.o\
          Inferences/InnerRewriting.o\
