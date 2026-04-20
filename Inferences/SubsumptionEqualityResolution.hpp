@@ -19,22 +19,21 @@
 #include "Forwards.hpp"
 
 #include "InferenceEngine.hpp"
-#include "Inferences/ProofExtra.hpp"
 
 namespace Inferences {
 
-using namespace Kernel;
-using namespace Indexing;
-using namespace Saturation;
-
+/**
+ * This inference tries to perform an equality resolution that only
+ * succeeds if the resulting clause subsumes the premise. It is also
+ * similar to subsumption resolution, but performs it with the equation
+ * x = x that is only implicitly present in the search space.
+ */
 class SubsumptionEqualityResolution
 : public ImmediateSimplificationEngine
 {
 public:
   Clause* simplify(Clause* cl) override;
 };
-
-using SubsumptionEqualityResolutionExtra = LiteralInferenceExtra;
 
 };
 
