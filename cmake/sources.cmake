@@ -82,8 +82,9 @@ set(UNIT_TESTS
     UnitTests/tInferences_InferenceEngine.cpp
     UnitTests/tInferences_InnerRewriting.cpp
     UnitTests/tInferences_PushUnaryMinus.cpp
-    UnitTests/tInferences_SubsumptionDemodulation.cpp
     UnitTests/tInferences_SubsumptionAndResolution.cpp
+    UnitTests/tInferences_SubsumptionDemodulation.cpp
+    UnitTests/tInferences_SubsumptionEqualityResolution.cpp
     UnitTests/tInferences_Superposition.cpp
     UnitTests/tInferences_TautologyDeletionISE.cpp
     UnitTests/tInferences_URResolution.cpp
@@ -345,6 +346,8 @@ set(SOURCES
     Inferences/PushUnaryMinus.hpp
     Inferences/SubsumptionDemodulationHelper.cpp
     Inferences/SubsumptionDemodulationHelper.hpp
+    Inferences/SubsumptionEqualityResolution.cpp
+    Inferences/SubsumptionEqualityResolution.hpp
     Inferences/Superposition.cpp
     Inferences/Superposition.hpp
     Inferences/TautologyDeletionISE.cpp
