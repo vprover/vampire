@@ -37,10 +37,15 @@ void TermCodeTree<higherOrder, Data>::onCodeOpDestroying(CodeOp* op)
 }
 
 template<bool higherOrder, class Data>
+void TermCodeTree<higherOrder, Data>::printSuccess(std::ostream& out, const CodeOp& op) const
+{
+  out << *op.getSuccessResult<Data>();
+}
+
+template<bool higherOrder, class Data>
 TermCodeTree<higherOrder, Data>::TermCodeTree()
 {
   _clauseCodeTree=false;
-  _onCodeOpDestroying = onCodeOpDestroying;
 }
 
 template<bool higherOrder, class Data>

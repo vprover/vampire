@@ -34,7 +34,8 @@ template<bool higherOrder, class Data>
 class TermCodeTree : public CodeTree
 {
 protected:
-  static void onCodeOpDestroying(CodeOp* op);
+  void onCodeOpDestroying(CodeOp* op) override;
+  void printSuccess(std::ostream& out, const CodeOp& op) const override;
 
 public:
   TermCodeTree();

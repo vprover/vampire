@@ -74,6 +74,7 @@ set(UNIT_TESTS
     UnitTests/tInferences_HOL_CNFOnTheFly.cpp
     UnitTests/tInferences_HOL_FlexFlexSimplify.cpp
     UnitTests/tInferences_HOL_ImitateProject.cpp
+    UnitTests/tInferences_HOL_LeibnizEqualityElimination.cpp
     UnitTests/tInferences_HOL_NegativeExtensionality.cpp
     UnitTests/tInferences_HOL_PositiveExtensionality.cpp
     UnitTests/tInferences_HOL_PrimitiveInstantiation.cpp
@@ -313,6 +314,8 @@ set(SOURCES
     Inferences/HOL/FlexFlexSimplify.hpp
     Inferences/HOL/ImitateProject.cpp
     Inferences/HOL/ImitateProject.hpp
+    Inferences/HOL/LeibnizEqualityElimination.cpp
+    Inferences/HOL/LeibnizEqualityElimination.hpp
     Inferences/HOL/NegativeExtensionality.cpp
     Inferences/HOL/NegativeExtensionality.hpp
     Inferences/HOL/PositiveExtensionality.cpp
