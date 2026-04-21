@@ -45,10 +45,15 @@ void ClauseCodeTree<higherOrder>::onCodeOpDestroying(CodeOp* op)
 }
 
 template<bool higherOrder>
+void ClauseCodeTree<higherOrder>::printSuccess(std::ostream& out, const CodeOp& op) const
+{
+  out << op.getSuccessResult<Clause>()->toString();
+}
+
+template<bool higherOrder>
 ClauseCodeTree<higherOrder>::ClauseCodeTree()
 {
   _clauseCodeTree=true;
-  _onCodeOpDestroying = onCodeOpDestroying;
 #if VDEBUG
   _clauseMatcherCounter=0;
 #endif
