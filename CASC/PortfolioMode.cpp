@@ -378,6 +378,9 @@ void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule
   }
 }
 
+// a temporary path to a file that is will not clash
+// with any other *currently-running* Vampire:
+// using the PIDs of parent + child prevents this.
 static fs::path proofPath(pid_t parent, pid_t child) {
   std::string file = "vampire-proof-" +
     Int::toString(parent) + "-" +
@@ -388,8 +391,9 @@ static fs::path proofPath(pid_t parent, pid_t child) {
 std::optional<fs::path> PortfolioMode::runSchedule(Schedule schedule) {
   TIME_TRACE("run schedule");
 
-  std::optional<fs::path> result;
+  pid_t me = getpid();
   Schedule::BottomFirstIterator it(schedule);
+  pid_t successful = 0; // PID 0 should be invalid
   Set<pid_t> processes;
   int remainingTime;
   bool scheduleRepeat = false;
@@ -434,7 +438,7 @@ std::optional<fs::path> PortfolioMode::runSchedule(Schedule schedule) {
     if(exited) {
       ALWAYS(processes.remove(process));
       if(!code) {
-        result = proofPath(getpid(), process);
+        successful = process;
         break;
       }
     } else if (signalled) {
@@ -453,9 +457,21 @@ std::optional<fs::path> PortfolioMode::runSchedule(Schedule schedule) {
   // WHY: because we really want to be alone when we later start priting the proof
   // NOTE: an alternative could (maybe) be to just use a SIGKILL above instead of SIGINT
   for(auto process : processes.iter())
-    waitpid(process, NULL, 0);
+    waitpid(process, nullptr, 0);
 
-  return result;
+  // also clean up temporary files
+  // we don't know which processes managed to open their proof file before being killed
+  // so try and remove all of them and ignore failures
+  for(auto process : processes.iter()) {
+    // NB `successful` already removed from `processes`
+    std::error_code ignore;
+    fs::remove(proofPath(me, process), ignore);
+  }
+
+  if(!successful)
+    return {};
+
+  return proofPath(me, successful);
 }
 
 /**
@@ -504,7 +520,9 @@ bool PortfolioMode::runScheduleAndRecoverProof(Schedule schedule)
     }
   }
   // done with the temporary file now
-  fs::remove(path);
+  // don't mind too much if something fails here, so squash errors
+  std::error_code ignore;
+  fs::remove(path, ignore);
   return true;
 }
 
