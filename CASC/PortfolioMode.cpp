@@ -63,7 +63,7 @@ PortfolioMode::PortfolioMode(Problem* problem) : _prb(problem), _slowness(env.op
   unsigned cores = std::max(1u, std::thread::hardware_concurrency());
   _numWorkers = std::min(cores, env.options->multicore());
   if(!_numWorkers) {
-    // TODO this has been around since the ark, is it still worth the weirdness?
+    // only kicks in if the user explicitly sets "--cores 0" which cries "give me all" and it gives you fewer than "all" if you have plenty (i.e. on a server).
     _numWorkers = cores >= 8 ? cores - 2 : cores;
   }
 }
