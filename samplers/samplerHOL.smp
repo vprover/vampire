@@ -474,11 +474,10 @@ func_ext!=axiom > pe ~cat off:20,on:1
 > inj ~cat off:4,on:1
 
 # higher order split queue
-# TODO(HOL)
-#> hfsq ~cat off:10,on:1
-#hfsq=on > hfsql ~cat off:1,on:4
-#hfsq=on > hfsqc ~cat 0:80,1:30,2:20,3:20,4:10,5:5
-#hfsq=on > hfsqr ~u2r -5;3;,
+> hsq ~cat off:10,on:1
+hsq=on > hsql ~cat off:1,on:4
+hsq=on > hsqc ~cat 0:80,1:30,2:20,3:20,4:10,5:5
+hsq=on > hsqr ~u2r -5;3;,
 
-#hfsq=on > hflw ~cat 0:1,1:5,2:3,3:2,4:2,5:1
-#hfsq=on > hfaw ~cat 0:1,1:5,2:3,3:2,4:2,5:1
+hsq=on > hlw ~cat 0:1,1:5,2:3,3:2,4:2,5:1
+hsq=on > haw ~cat 0:1,1:5,2:3,3:2,4:2,5:1

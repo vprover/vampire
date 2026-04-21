@@ -17,6 +17,7 @@
 
 #include "Shell/Options.hpp"
 #include "Kernel/Clause.hpp"
+#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Inference.hpp"
 #include "Lib/SharedSet.hpp"
 #include "Lib/Int.hpp"
@@ -479,6 +480,66 @@ float TheoryMultiSplitPassiveClauseContainer::evaluateFeatureEstimate(unsigned, 
   // No Clause* available during construction; return most-favorable value
   // so LRS never discards based on theory-split features alone.
   return -std::numeric_limits<float>::max();
+}
+
+unsigned numOfAppVarsAndLambdas(TermList t, unsigned lambdaWeight, unsigned appliedVarWeight)
+{
+  if (t.isVar()) {
+    return 0;
+  }
+  const Term* tt = t.term();
+
+  static DHMap<const Term*,unsigned> cache;
+  unsigned* cached;
+  if (!cache.getValuePtr(tt,cached)) {
+    return *cached;
+  }
+
+  // it's OK that the entry in cache has already been created, will only possibly ask for proper subterms
+
+  // TODO(mhajdu): I think this is not okay because the DHMap may reallocate during the recursive call,
+  //               so either remove the cache or put the value into the shared terms. Also remove recursion.
+
+  unsigned res = 0;
+
+  if (tt->isLambdaTerm()) {
+    res = lambdaWeight + numOfAppVarsAndLambdas(tt->lambdaBody(), lambdaWeight, appliedVarWeight);
+  } else if (tt->isApplication()) {
+    TermStack args;
+    auto head = HOL::getHeadAndArgs(t, args);
+    ASS(!head.isLambdaTerm()); // should be beta-reduced
+    if (head.isVar()) {
+      res += appliedVarWeight;
+    }
+    while(!args.isEmpty()){
+      res += numOfAppVarsAndLambdas(args.pop(), lambdaWeight, appliedVarWeight);
+    }
+  }
+
+  *cached = res;
+  return res;
+}
+
+HoFeaturesMultiSplitPassiveClauseContainer::HoFeaturesMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, std::string name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues) :
+PredicateSplitPassiveClauseContainer(isOutermost, opt, name, std::move(queues), opt.hoSplitQueueCutoffs(), opt.hoSplitQueueRatios(), opt.hoSplitQueueLayeredArrangement()),
+_lambdaWeight(opt.hoSplitQueueLambdaWeight()), _appliedVarWeight(opt.hoSplitQueueAppVarWeight()) {}
+
+float HoFeaturesMultiSplitPassiveClauseContainer::evaluateFeature(Clause* cl) const
+{
+  // calculate the number of higher-order features (applied variable and lambdas) in the clause
+  unsigned res = 0;
+  for (const auto& lit : *cl){
+    auto [lhs, rhs] = lit->eqArgs();
+    res = res + numOfAppVarsAndLambdas(lhs, _lambdaWeight, _appliedVarWeight)
+              + numOfAppVarsAndLambdas(rhs, _lambdaWeight, _appliedVarWeight);
+  }
+  return res;
+}
+
+float HoFeaturesMultiSplitPassiveClauseContainer::evaluateFeatureEstimate(unsigned, const Inference& inf) const
+{
+  // from the information provided we cannot estimate the feature sadly...
+  return 0;
 }
 
 AvatarMultiSplitPassiveClauseContainer::AvatarMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, std::string name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues) :

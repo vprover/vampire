@@ -1086,6 +1086,45 @@ void Options::init()
     _positiveLiteralSplitQueueLayeredArrangement.onlyUsefulWith(_usePositiveLiteralSplitQueues.is(equal(true)));
     _positiveLiteralSplitQueueLayeredArrangement.tag(OptionTag::SATURATION);
 
+    _hoSplitQueues = BoolOptionValue("ho_split_queue","hsq",false);
+    _hoSplitQueues.description = "Turn on clause selection using multiple queues containing different clauses (split by amount of higher-order featues)";
+    _hoSplitQueues.onlyUsefulWith(ProperSaturationAlgorithm()); // could be "IncludingInstgen"? (not with theories...)
+    _hoSplitQueues.addProblemConstraint(hasHigherOrder());
+    _lookup.insert(&_hoSplitQueues);
+    _hoSplitQueues.tag(OptionTag::SATURATION);
+
+    _hoSplitQueueLambdaWeight = UnsignedOptionValue("ho_split_queue_lambda_weight","hsqlw",1);
+    _hoSplitQueueLambdaWeight.description = "How much should lambda occurrences count in the HO features";
+    _hoSplitQueueLambdaWeight.onlyUsefulWith(_hoSplitQueues.is(equal(true)));
+    _hoSplitQueueLambdaWeight.addProblemConstraint(hasHigherOrder());
+    _lookup.insert(&_hoSplitQueueLambdaWeight);
+    _hoSplitQueueLambdaWeight.tag(OptionTag::SATURATION);
+
+    _hoSplitQueueAppVarWeight = UnsignedOptionValue("ho_split_queue_appvar_weight","hsqaw",1);
+    _hoSplitQueueAppVarWeight.description = "How much should app-var occurrences count in the HO features";
+    _hoSplitQueueAppVarWeight.onlyUsefulWith(_hoSplitQueues.is(equal(true)));
+    _hoSplitQueueAppVarWeight.addProblemConstraint(hasHigherOrder());
+    _lookup.insert(&_hoSplitQueueAppVarWeight);
+    _hoSplitQueueAppVarWeight.tag(OptionTag::SATURATION);
+
+    _hoSplitQueueCutoffs = StringOptionValue("ho_split_queue_cutoffs", "hsqc", "0");
+    _hoSplitQueueCutoffs.description = "The cutoff-values for the split-queues (the cutoff value for the last queue has to be omitted, as it is always infinity). Any split-queue contains all clauses which are assigned a feature-value less or equal to the cutoff-value of the queue. If no custom value for this option is set, the implementation will use cutoffs 0,4*d,10*d,infinity (where d denotes the theory split queue expected ratio denominator).";
+    _lookup.insert(&_hoSplitQueueCutoffs);
+    _hoSplitQueueCutoffs.onlyUsefulWith(_hoSplitQueues.is(equal(true)));
+    _hoSplitQueueCutoffs.tag(OptionTag::SATURATION);
+
+    _hoSplitQueueRatios = StringOptionValue("ho_split_queue_ratios", "hsqr", "1,1");
+    _hoSplitQueueRatios.description = "The ratios for picking clauses from the split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.";
+    _lookup.insert(&_hoSplitQueueRatios);
+    _hoSplitQueueRatios.onlyUsefulWith(_hoSplitQueues.is(equal(true)));
+    _hoSplitQueueRatios.tag(OptionTag::AVATAR);
+
+    _hoSplitQueueLayeredArrangement = BoolOptionValue("ho_split_queue_layered_arrangement","hsql",true);
+    _hoSplitQueueLayeredArrangement.description = "If turned on, use a layered arrangement to split clauses into queues. Otherwise use a tammet-style-arrangement.";
+    _lookup.insert(&_hoSplitQueueLayeredArrangement);
+    _hoSplitQueueLayeredArrangement.onlyUsefulWith(_hoSplitQueues.is(equal(true)));
+    _hoSplitQueueLayeredArrangement.tag(OptionTag::SATURATION);
+
     _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",true);
     _literalMaximalityAftercheck.description =
                                    "Allows to disable a secondary (literal maximality) ordering check (in the superposition calculus) after a substitution is applied."
@@ -3876,6 +3915,39 @@ std::vector<float> Options::positiveLiteralSplitQueueCutoffs() const
     }
   }
 
+  return cutoffs;
+}
+
+vector<int> Options::hoSplitQueueRatios() const
+{
+  auto inputRatios = parseCommaSeparatedList<int>(_hoSplitQueueRatios.actualValue);
+
+  // sanity checks
+  if (inputRatios.size() < 2) {
+    USER_ERROR("Wrong usage of option '-hfsqr'. Needs to have at least two values (e.g. '10,1')");
+  }
+  for (const auto& r : inputRatios) {
+    if (r <= 0) {
+      USER_ERROR("Each ratio (supplied by option '-hfsqr') needs to be a positive integer");
+    }
+  }
+
+  return inputRatios;
+}
+
+vector<float> Options::hoSplitQueueCutoffs() const
+{
+  // initialize cutoffs and add float-max as last value
+  auto cutoffs = parseCommaSeparatedList<float>(_hoSplitQueueCutoffs.actualValue);
+  cutoffs.push_back(std::numeric_limits<float>::max());
+
+  // sanity checks
+  for (unsigned i = 0; i < cutoffs.size(); i++) {
+    auto cutoff = cutoffs[i];
+    if (i > 0 && cutoff <= cutoffs[i-1]) {
+      USER_ERROR("The cutoff values (supplied by option '-hfsqc') must be strictly increasing");
+    }
+  }
   return cutoffs;
 }
 

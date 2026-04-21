@@ -2159,6 +2159,12 @@ public:
   std::vector<int> positiveLiteralSplitQueueRatios() const;
   std::vector<float> positiveLiteralSplitQueueCutoffs() const;
   bool positiveLiteralSplitQueueLayeredArrangement() const { return _positiveLiteralSplitQueueLayeredArrangement.actualValue; }
+  bool hoSplitQueues() const { return _hoSplitQueues.actualValue; }
+  unsigned hoSplitQueueLambdaWeight() const { return _hoSplitQueueLambdaWeight.actualValue; }
+  unsigned hoSplitQueueAppVarWeight() const { return _hoSplitQueueAppVarWeight.actualValue; }
+  std::vector<int> hoSplitQueueRatios() const;
+  std::vector<float> hoSplitQueueCutoffs() const;
+  bool hoSplitQueueLayeredArrangement() const { return _hoSplitQueueLayeredArrangement.actualValue; }
   void setWeightRatio(int v){ _ageWeightRatio.otherValue = v; }
   bool literalMaximalityAftercheck() const { return _literalMaximalityAftercheck.actualValue; }
   bool superpositionFromVariables() const { return _superpositionFromVariables.actualValue; }
@@ -2418,6 +2424,12 @@ private:
   StringOptionValue _positiveLiteralSplitQueueRatios;
   StringOptionValue _positiveLiteralSplitQueueCutoffs;
   BoolOptionValue _positiveLiteralSplitQueueLayeredArrangement;
+  BoolOptionValue _hoSplitQueues;
+  UnsignedOptionValue _hoSplitQueueLambdaWeight;
+  UnsignedOptionValue _hoSplitQueueAppVarWeight;
+  StringOptionValue _hoSplitQueueRatios;
+  StringOptionValue _hoSplitQueueCutoffs;
+  BoolOptionValue _hoSplitQueueLayeredArrangement;
 	BoolOptionValue _randomAWR;
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
