@@ -225,6 +225,9 @@ intent=unsat sa!=fmb > flr ~cat off:8,on:1
 # inner_rewriting
 sa!=fmb > irw ~cat off:165,on:6
 
+# subsumption_equality_resolution
+sa!=fmb > ser ~cat off:9,on:1
+
 # SINE LEVELS and shit
 
 # sine_to_age
