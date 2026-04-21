@@ -1703,14 +1703,14 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
   bool alascaTakesOver = doesAlascaTakeOver(prb, opt);
   auto& ordering = salg.getOrdering();
 
-  if (mayHaveEquality && opt.subsumptionEqualityResolution()) {
-    res->addFront(new SubsumptionEqualityResolution());
-  }
-
   // InnerRewriting is relatively expensive, so let's insert it first,
   // so that it gets applied as the last ImmediateSimplification
   if (mayHaveEquality && opt.innerRewriting()) {
     res->addFront(new InnerRewriting(salg));
+  }
+
+  if (mayHaveEquality && opt.subsumptionEqualityResolution()) {
+    res->addFront(new SubsumptionEqualityResolution());
   }
 
   if (mayHaveEquality && opt.equationalTautologyRemoval()) {
