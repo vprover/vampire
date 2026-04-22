@@ -33,6 +33,7 @@
 #include "Shell/TheoryFinder.hpp"
 
 #include <limits>
+#include <unistd.h>
 #include <signal.h>
 #include <fstream>
 #include <random>
