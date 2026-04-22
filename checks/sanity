@@ -106,6 +106,10 @@ check_szs_status Unsatisfiable -ind struct -sik recursion -nui on -newcnf on ind
 check_szs_status Unsatisfiable -ind struct -sik recursion -to lpo -newcnf on induction/qreva_len.smt2
 check_szs_status Unsatisfiable -ind struct -sik one -indstrhyp on induction/qreva_len.smt2
 check_szs_status Unsatisfiable -ind struct -nui on -indgo off -newcnf on induction/prefix-given-suffix.smt2
+# Induction + HOL
+# TODO(HOL): these should be enabled once HO problems in SMTLIB2.7 syntax can be properly appified
+#check_szs_status Unsatisfiable -ind struct induction/map_id.smt2
+#check_szs_status Unsatisfiable -ind struct induction/map_append.smt2
 
 # Parser
 check_szs_status Unsatisfiable parse/types-funs.smt2
