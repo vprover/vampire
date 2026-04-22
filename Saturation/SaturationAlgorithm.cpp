@@ -101,6 +101,7 @@
 #include "Inferences/Cases.hpp"
 #include "Inferences/DefinitionIntroduction.hpp"
 #include "Inferences/LfpRule.hpp"
+#include "Inferences/SubsumptionEqualityResolution.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -1731,6 +1732,10 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
   // so that it gets applied as the last ImmediateSimplification
   if (mayHaveEquality && opt.innerRewriting()) {
     res->addFront(new InnerRewriting(salg));
+  }
+
+  if (mayHaveEquality && opt.subsumptionEqualityResolution()) {
+    res->addFront(new SubsumptionEqualityResolution());
   }
 
   if (mayHaveEquality && opt.equationalTautologyRemoval()) {

@@ -1917,6 +1917,12 @@ void Options::init()
     _equationalTautologyRemoval.onlyUsefulWith(ProperSaturationAlgorithm());
     _equationalTautologyRemoval.tag(OptionTag::INFERENCES);
 
+    _subsumptionEqualityResolution = BoolOptionValue("subsumption_equality_resolution","ser",false);
+    _subsumptionEqualityResolution.description="Similar to subsumption resolution but uses the implicit x = x clause to resolve a literal.";
+    _lookup.insert(&_subsumptionEqualityResolution);
+    _subsumptionEqualityResolution.onlyUsefulWith(ProperSaturationAlgorithm());
+    _subsumptionEqualityResolution.tag(OptionTag::INFERENCES);
+
     _partialRedundancyCheck = BoolOptionValue("partial_redundancy_check","prc",false);
     _partialRedundancyCheck.description=
       "Skip generating inferences on clause instances on which we already performed a simplifying inference.";

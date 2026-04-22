@@ -2086,6 +2086,7 @@ public:
   bool simulatenousSuperposition() const { return _simultaneousSuperposition.actualValue; }
   bool innerRewriting() const { return _innerRewriting.actualValue; }
   bool equationalTautologyRemoval() const { return _equationalTautologyRemoval.actualValue; }
+  bool subsumptionEqualityResolution() const { return _subsumptionEqualityResolution.actualValue; }
   bool partialRedundancyCheck() const { return _partialRedundancyCheck.actualValue; }
   bool partialRedundancyOrderingConstraints() const { return _partialRedundancyOrderingConstraints.actualValue; }
   bool partialRedundancyAvatarConstraints() const { return _partialRedundancyAvatarConstraints.actualValue; }
@@ -2504,6 +2505,7 @@ private:
   BoolOptionValue _simultaneousSuperposition;
   BoolOptionValue _innerRewriting;
   BoolOptionValue _equationalTautologyRemoval;
+  BoolOptionValue _subsumptionEqualityResolution;
   BoolOptionValue _partialRedundancyCheck;
   BoolOptionValue _partialRedundancyOrderingConstraints;
   BoolOptionValue _partialRedundancyAvatarConstraints;
