@@ -79,6 +79,7 @@ private:
     using Base::_matched;
     using Base::finished;
     using Base::execute;
+    using Base::executeMachineCode;
 
     void init(CodeTree* tree, CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_, bool seekOnlySuccess=false);
     bool next();

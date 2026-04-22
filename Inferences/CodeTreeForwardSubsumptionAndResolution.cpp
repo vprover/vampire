@@ -40,14 +40,11 @@ bool CodeTreeForwardSubsumptionAndResolution<higherOrder>::perform(Clause *cl, C
   Clause* premise;
   int resolvedQueryLit;
 
-  if (cl->number()==11374) {
-    std::cout << *_ct;
-  }
-
   while ((premise = cm.next(resolvedQueryLit))) {
     if (resolvedQueryLit == -1) {
+      ASS(satSubs.checkSubsumption(premise, cl));
       // if (!satSubs.checkSubsumption(premise, cl))
-      //   INVALID_OPERATION(premise->toString()+" "+cl->toString());
+      //   INVALID_OPERATION(premise->toString()+"sfs "+cl->toString());
 
       premises = pvi(getSingletonIterator(premise));
       env.statistics->forwardSubsumed++;
@@ -55,8 +52,9 @@ bool CodeTreeForwardSubsumptionAndResolution<higherOrder>::perform(Clause *cl, C
       return true;
     }
 
+    ASS(satSubs.checkSubsumptionResolutionWithLiteral(premise, cl, resolvedQueryLit));
     // if(!satSubs.checkSubsumptionResolutionWithLiteral(premise, cl, resolvedQueryLit))
-    //   INVALID_OPERATION(premise->toString()+" "+cl->toString());
+    //   INVALID_OPERATION(premise->toString()+"sfsf "+cl->toString());
 
     LiteralStack res;
     for (unsigned i = 0; i < cl->length(); i++) {

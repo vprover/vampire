@@ -68,7 +68,11 @@ void CopyPatchJit::expandBtBufferHelper(JitExecContext* ctx) {
   ctx->btEnd    = newBuf + newSize;
 }
 
-//  bit patterns used as immediates in stencil compilation.  After compiling a stencil with asmjit, we scan 
+void CopyPatchJit::expandEntryHelper(FlatTerm::Entry* entry) {
+  entry->expand();
+}
+
+//  bit patterns used as immediates in stencil compilation.  After compiling a stencil with asmjit, we scan
 //  for these patterns to locate the holes that need patching at emission.
 //
 //  Every placeholder is chosen so that:
@@ -537,9 +541,13 @@ void CopyPatchJit::compileStencilCheckFun() {
   // Check tag == FUN(1) or FUN_UNEXPANDED(4)
   a.mov(rdx, r11);
   a.and_(rdx, 7);                      // tag
+  Label tagOk = a.new_label();
   Label notFun = a.new_label();
   a.cmp(rdx, FlatTerm::FUN);
+  a.je(tagOk);
+  a.cmp(rdx, FlatTerm::FUN_UNEXPANDED);
   a.jne(notFun);
+  a.bind(tagOk);
 
   // Extract functor number: (content >> 3) & 0x1FFFFFFF
   a.mov(rdx, r11);
@@ -556,16 +564,20 @@ void CopyPatchJit::compileStencilCheckFun() {
   a.bind(notFun);
   emitJmpAlt(&a, s, base);
 
-  // --- Match: pushAlt, advance, fall through ---
+  // --- Match: expand if needed, pushAlt, advance, fall through ---
   a.bind(matched);
+
+  // If tag was FUN_UNEXPANDED, call expand
+  a.test(r11, 4);
+  Label noExpand = a.new_label();
+  a.jz(noExpand);
+  // call expandEntryHelper(&ft[tp])
+  a.mov(rdi, rax);
+  a.call(qword_ptr(rbp, offsetof(JitExecContext, expandEntryFunc)));
+  a.bind(noExpand);
+
   emitPushAlt(&a, s, base);
   a.add(r13, FlatTerm::FUNCTION_ENTRY_COUNT);
-  // Fall through to next stencil (last instruction-no jump needed)
-  // BUT, if this is the last op in a block, we need a jmp to backtrack
-  // We always append a next-jump; if the next stencil is contiguous,
-  // the jump target is the very next byte and a good branch predictor
-  // handles this as a no-op.  At layout time we can optionally elide
-  // this jump if we detect the stencil is NOT the last one in the block.
   emitNextJump(&a, s, base);
 
   // Record the functor hole
@@ -587,9 +599,13 @@ void CopyPatchJit::compileStencilCheckGroundTerm() {
   a.mov(r11, qword_ptr(rax));
   a.mov(rdx, r11);
   a.and_(rdx, 7);
+  Label tagOk = a.new_label();
   Label notFun = a.new_label();
   a.cmp(rdx, FlatTerm::FUN);
+  a.je(tagOk);
+  a.cmp(rdx, FlatTerm::FUN_UNEXPANDED);
   a.jne(notFun);
+  a.bind(tagOk);
 
   // Compare Term* at ft[tp+1] with the target term
   // Target term is an 8-byte immediate, patchable
@@ -1034,6 +1050,8 @@ void CopyPatchJit::emitSearchStruct(CodeTree::SearchStruct* ss) {
   // Shared not-found label
   Label notFoundL = a.new_label();
 
+  uintptr_t landingOpAddr = reinterpret_cast<uintptr_t>(&ss->landingOp);
+
   // Emit binary search over values[]/targets[]
   auto emitBS = [&](auto& self, size_t lo, size_t hi) -> void {
     if (lo >= hi) {
@@ -1065,10 +1083,10 @@ void CopyPatchJit::emitSearchStruct(CodeTree::SearchStruct* ss) {
       Label noPush = a.new_label();
       Label doPush = a.new_label();
 
-      emitMovAbsRcx(a, reinterpret_cast<uintptr_t>(ss->landingOp.alternative()));
+      emitMovAbsRcx(a, landingOpAddr);
+      a.mov(rcx, qword_ptr(rcx, offsetof(CodeTree::CodeOp, _alternative)));
       a.test(rcx, rcx);
       a.jz(noPush);
-      // Dereference _mcode for backtrack stack storage
       a.mov(rcx, qword_ptr(rcx, offsetof(CodeTree::CodeOp, _mcode)));
       a.test(rcx, rcx);
       a.jz(noPush);
@@ -1102,7 +1120,8 @@ void CopyPatchJit::emitSearchStruct(CodeTree::SearchStruct* ss) {
 
   // Not-found: try landingOp's alternative, then backtrack
   a.bind(notFoundL);
-  emitMovAbsRax(a, reinterpret_cast<uintptr_t>(ss->landingOp.alternative()));
+  emitMovAbsRax(a, landingOpAddr);
+  a.mov(rax, qword_ptr(rax, offsetof(CodeTree::CodeOp, _alternative)));
   a.test(rax, rax);
   Label noAlt = a.new_label();
   a.jz(noAlt);

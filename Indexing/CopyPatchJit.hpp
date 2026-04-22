@@ -51,6 +51,7 @@ struct JitExecContext {
   void*            linfos;            // [rbp + 104] (LitInfo* array)
   size_t           linfoCnt;          // [rbp + 112] (number of LitInfos)
   void*            entryMcode;        // [rbp + 120] (entry point _mcode-tree root)
+  void*            expandEntryFunc;   // [rbp + 128] (C helper: expand FUN_UNEXPANDED)
 };
 
 static_assert(offsetof(JitExecContext, ftData)           ==  0, "");
@@ -69,6 +70,7 @@ static_assert(offsetof(JitExecContext, expandStub)       == 96, "");
 static_assert(offsetof(JitExecContext, linfos)           == 104, "");
 static_assert(offsetof(JitExecContext, linfoCnt)         == 112, "");
 static_assert(offsetof(JitExecContext, entryMcode)       == 120, "");
+static_assert(offsetof(JitExecContext, expandEntryFunc)  == 128, "");
 
 
 // --------------------------------------------------------------------------
@@ -128,11 +130,13 @@ public:
     ctx.successHandler   = _successHandler;
     ctx.expandBtFunc     = reinterpret_cast<void*>(&expandBtBufferHelper);
     ctx.expandStub       = _expandStub;
+    ctx.expandEntryFunc  = reinterpret_cast<void*>(&expandEntryHelper);
   }
 
   void releaseAll();
   bool isInitialized() const { return _initialized; }
   static void expandBtBufferHelper(JitExecContext* ctx);
+  static void expandEntryHelper(FlatTerm::Entry* entry);
 
 private:
   void compileTrampoline();
