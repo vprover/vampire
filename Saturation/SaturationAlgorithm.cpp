@@ -82,6 +82,7 @@
 #include "Inferences/HOL/CNFOnTheFly.hpp"
 #include "Inferences/HOL/FlexFlexSimplify.hpp"
 #include "Inferences/HOL/ImitateProject.hpp"
+#include "Inferences/HOL/LeibnizEqualityElimination.hpp"
 #include "Inferences/HOL/NegativeExtensionality.hpp"
 #include "Inferences/HOL/PositiveExtensionality.hpp"
 #include "Inferences/HOL/PrimitiveInstantiation.hpp"
@@ -99,6 +100,7 @@
 #include "Inferences/Cases.hpp"
 #include "Inferences/DefinitionIntroduction.hpp"
 #include "Inferences/LfpRule.hpp"
+#include "Inferences/SubsumptionEqualityResolution.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -1480,6 +1482,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   if (opt.complexBooleanReasoning() && prb.hasBoolVar() && prb.isHigherOrder()) {
     gie->addFront(new PrimitiveInstantiation(*res)); //TODO only add in some cases
+    gie->addFront(new LeibnizEqualityElimination(*res));
   }
 
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) && prb.isHigherOrder()){
@@ -1719,6 +1722,10 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
   // so that it gets applied as the last ImmediateSimplification
   if (mayHaveEquality && opt.innerRewriting()) {
     res->addFront(new InnerRewriting(salg));
+  }
+
+  if (mayHaveEquality && opt.subsumptionEqualityResolution()) {
+    res->addFront(new SubsumptionEqualityResolution());
   }
 
   if (mayHaveEquality && opt.equationalTautologyRemoval()) {

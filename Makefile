@@ -263,6 +263,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/ForwardLiteralRewriting.o\
          Inferences/ForwardSubsumptionAndResolution.o\
          Inferences/SubsumptionDemodulationHelper.o\
+         Inferences/SubsumptionEqualityResolution.o\
          Inferences/ForwardSubsumptionDemodulation.o\
          Inferences/GlobalSubsumption.o\
          Inferences/InnerRewriting.o\
@@ -294,6 +295,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/HOL/CNFOnTheFly.o\
          Inferences/HOL/ImitateProject.o\
          Inferences/HOL/FlexFlexSimplify.o\
+				 Inferences/HOL/LeibnizEqualityElimination.o\
          Inferences/HOL/NegativeExtensionality.o\
          Inferences/HOL/PositiveExtensionality.o\
          Inferences/HOL/PrimitiveInstantiation.o\

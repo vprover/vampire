@@ -54,7 +54,6 @@ public:
   ConstraintIndex(Clause* cl) : _varSorts()
   {
     _clauseCodeTree=false;
-    _onCodeOpDestroying = onCodeOpDestroying;
 #if VDEBUG
     _cl = cl;
 #endif
@@ -292,7 +291,7 @@ private:
     }
   };
 
-  static void onCodeOpDestroying(CodeOp* op) {
+  void onCodeOpDestroying(CodeOp* op) override {
     if (op->isSuccess()) {
       auto es = op->getSuccessResult<EntryContainer>();
       iterTraits(decltype(es->entries)::Iterator(es->entries))

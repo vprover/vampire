@@ -34,10 +34,15 @@ void TermCodeTree<higherOrder, Data>::onCodeOpDestroying(CodeOp* op)
 }
 
 template<bool higherOrder, class Data>
+void TermCodeTree<higherOrder, Data>::printSuccess(std::ostream& out, const CodeOp& op) const
+{
+  out << *op.getSuccessResult<Data>();
+}
+
+template<bool higherOrder, class Data>
 TermCodeTree<higherOrder, Data>::TermCodeTree()
 {
   _clauseCodeTree=false;
-  _onCodeOpDestroying = onCodeOpDestroying;
 }
 
 template<bool higherOrder, class Data>
@@ -96,26 +101,6 @@ void TermCodeTree<higherOrder, Data>::remove(const Data& data)
   ft->destroy();
   
   optimizeMemoryAfterRemoval(&firstsInBlocks, rtm.op);
-  /*
-  
-  static TermMatcher tm;
-
-  tm.init(this, ti.t);
-
-  for(;;) {
-    TermInfo* found=tm.next();
-    if (!found) {
-      INVALID_OPERATION("term being removed was not found");
-    }
-    if (*found==ti) {
-      tm.op->makeFail();
-      delete found;
-      break;
-    }
-  }
-
-  tm.deinit();
-  */
 } // TermCodeTree::remove
 
 template<bool higherOrder, class Data>
