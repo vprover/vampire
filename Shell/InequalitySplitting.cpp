@@ -47,7 +47,7 @@ InequalitySplitting::InequalitySplitting(const Options& opt)
 
 void InequalitySplitting::perform(Problem& prb)
 {
-  _appify = prb.hasApp();
+  _appify = prb.isHigherOrder();
   if(perform(prb.units())) {
     prb.invalidateByRemoval();
   }

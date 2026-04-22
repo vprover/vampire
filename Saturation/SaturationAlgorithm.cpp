@@ -75,6 +75,7 @@
 #include "Inferences/ForwardSubsumptionDemodulation.hpp"
 #include "Inferences/GlobalSubsumption.hpp"
 
+#include "Inferences/HOL/ArgCong.hpp"
 #include "Inferences/HOL/BetaEtaSimplify.hpp"
 #include "Inferences/HOL/BoolEqToDiseq.hpp"
 #include "Inferences/HOL/BoolSimp.hpp"
@@ -1450,6 +1451,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   if (prb.isHigherOrder()){
+    gie->addFront(new ArgCong(*res));
     gie->addFront(new NegativeExtensionality(*res));
     if (opt.positiveExtensionality()) {
       gie->addFront(new PositiveExtensionality(*res));
@@ -1458,13 +1460,12 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
       gie->addFront(new BoolEqToDiseq(*res));
     }
     if(true/* !opt.higherOrderUnifDepth() && !opt.applicativeUnify() */){
-      // only add when we are not carrying out higher-order unification
+      // TODO(HOL): only add when we are not carrying out higher-order unification
       gie->addFront(new ImitateProject(*res));
     }
-  }
-
-  if (opt.choiceReasoning()) {
-    gie->addFront(new Choice());
+    if (opt.choiceReasoning()) {
+      gie->addFront(new Choice());
+    }
   }
 
   gie->addFront(new Factoring(*res));
@@ -1747,7 +1748,7 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
       break;
   }
 
-  if (opt.choiceReasoning()) {
+  if (prb.isHigherOrder() && opt.choiceReasoning()) {
     res->addFront(new ChoiceDefinitionISE());
   }
 
@@ -1819,7 +1820,7 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
     res->addFront(new TrivialInequalitiesRemovalISE());
   }
   res->addFront(new TautologyDeletionISE());
-  if (opt.newTautologyDel()) {
+  if (prb.isHigherOrder() && opt.newTautologyDel()) {
     res->addFront(new TautologyDeletionISE2());
   }
   res->addFront(new DuplicateLiteralRemovalISE());
