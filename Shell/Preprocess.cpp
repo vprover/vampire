@@ -798,9 +798,7 @@ void Preprocess::findAbstractions(UnitList*& units)
     }
 
     ASS(u->isClause());
-    auto c = u->asClause();
-
-    for (const auto& lit : *c) {
+    for (const auto& lit : *u->asClause()) {
       for (const auto& t : HOL::getAbstractionTerms(lit)) {
         env.signature->addInstantiation(t);
       }
