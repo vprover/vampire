@@ -474,7 +474,7 @@ func_ext!=axiom > pe ~cat off:20,on:1
 > inj ~cat off:4,on:1
 
 # higher order split queue
-> hsq ~cat off:10,on:1
+sa!=fmb > hsq ~cat off:10,on:1
 hsq=on > hsql ~cat off:1,on:4
 hsq=on > hsqc ~cat 0:80,1:30,2:20,3:20,4:10,5:5
 hsq=on > hsqr ~u2r -5;3;,
