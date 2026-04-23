@@ -2008,6 +2008,7 @@ public:
 
   bool neuralPassiveClauseContainer() const { return _neuralPassiveClauseContainer.actualValue; }
   float npccTemperature() const { return _npccTemperature.actualValue; }
+  float npccCutoff() const { return _npccCutoff.actualValue; }
 
   unsigned reshuffleAt() const { return _reshuffleAt.actualValue; }
 
@@ -2737,6 +2738,7 @@ private:
 
   BoolOptionValue _neuralPassiveClauseContainer;
   FloatOptionValue _npccTemperature;
+  FloatOptionValue _npccCutoff;
 
   UnsignedOptionValue _neuralClauseEvaluationModelGSD;
   UnsignedOptionValue _reshuffleAt;

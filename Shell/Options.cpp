@@ -1031,6 +1031,12 @@ void Options::init()
     _npccTemperature.tag(OptionTag::SATURATION);
     _npccTemperature.onlyUsefulWith(_neuralPassiveClauseContainer.is(equal(true)));
 
+    _npccCutoff = FloatOptionValue("npcc_cutoff","npccc",-std::numeric_limits<float>::infinity());
+    _npccCutoff.description="Clause with a logit worse than this should not be even inserted to passive (with otter saturation loop, we discard them as soom as we evalaute them; which may be a bit later if the insertion into possive)";
+    _lookup.insert(&_npccCutoff);
+    _npccCutoff.tag(OptionTag::SATURATION);
+    _npccCutoff.onlyUsefulWith(_neuralPassiveClauseContainer.is(equal(true)));
+
     // highly experimental and ignored in this iteration
     _reshuffleAt = UnsignedOptionValue("reshuffle_at","ra",0);
     _reshuffleAt.description="Nonterministically pick a new random seed before the specified-th clause selection from the NeuralPassiveClauseContainer (counter starts from 1, 0 value means 'never do this')";

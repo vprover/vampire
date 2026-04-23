@@ -503,6 +503,7 @@ private:
   Stack<Clause*> _delayedInsertionBuffer;
 
   unsigned _reshuffleAt;
+  float _cutoff;
 };
 
 
