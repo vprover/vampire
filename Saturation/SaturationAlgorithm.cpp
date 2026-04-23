@@ -1456,7 +1456,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   if (opt.choiceReasoning()) {
-    gie->addFront(new Choice());
+    gie->addFront(new Choice(*res));
   }
 
   gie->addFront(new Factoring(*res));

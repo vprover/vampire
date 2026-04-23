@@ -65,13 +65,13 @@ Clause* Choice::createChoiceAxiom(TermList op, TermList set)
 
 struct Choice::AxiomsIterator
 {
-  AxiomsIterator(Term* term)
+  AxiomsIterator(TermList term)
   {
-    _set = *term->nthArgument(3);
-    _headSort = AtomicSort::arrowSort(*term->nthArgument(0),*term->nthArgument(1));
-    _resultSort = HOL::getResultAppliedToNArgs(_headSort, 1);
+    ASS(term.isApplication());
 
-    //cout << "the result sort is " + _resultSort.toString() << endl;
+    _set = term.rhs();
+    _headSort = HOL::lhsSort(term);
+    _resultSort = SortHelper::getResultSort(term.term());
 
     DHSet<unsigned>* ops = env.signature->getChoiceOperators();
     DHSet<unsigned>::Iterator opsIt(*ops);
@@ -132,14 +132,13 @@ private:
 
 struct Choice::ResultFn
 {
-  ResultFn(){}
-
-  VirtualIterator<Clause*> operator() (Term* term){
-    TermList op = *term->nthArgument(2);
+  VirtualIterator<Clause*> operator() (Term* t){
+    TermList term(t);
+    TermList op = term.lhs();
     if(op.isVar()){
       return pvi(AxiomsIterator(term));
     } else {
-      Clause* axiom = createChoiceAxiom(op, *term->nthArgument(3));
+      Clause* axiom = createChoiceAxiom(op, term.rhs());
       return pvi(getSingletonIterator(axiom));
     }
   }
@@ -149,55 +148,35 @@ struct Choice::IsChoiceTerm
 {
   bool operator()(Term* t)
   {
+    if (t->isLambdaTerm()) {
+      return false;
+    }
     auto [head, args] = HOL::getHeadAndArgs(TermList(t));
-    if(args.size() != 1){ return false; }
+    if (args.size() != 1 || args[0].isVar() || args[0].containsLooseDBIndex()) {
+      return false;
+    }
+    TermList headSort = HOL::lhsSort(TermList(t));
 
-    TermList headSort = AtomicSort::arrowSort(*t->nthArgument(0), *t->nthArgument(1));
-
-    TermList tv = TermList(0, false);
+    TermList tv = TermList::var(0); // put on QUERY_BANK to separate in from variables in headSort
     TermList o  = AtomicSort::boolSort();
     TermList sort = AtomicSort::arrowSort(AtomicSort::arrowSort(tv, o), tv);
 
     static RobSubstitution subst;
     subst.reset();
-
-    subst.reset();
     return ((head.isVar() || env.signature->isChoiceOperator(head.term()->functor())) &&
            subst.match(sort,0,headSort,1));
-
-  }
-};
-
-
-struct Choice::SubtermsFn
-{
-  SubtermsFn() {}
-
-  VirtualIterator<Term*> operator()(Literal* lit)
-  {
-    NonVariableNonTypeIterator nvi(lit);
-    return pvi(getUniquePersistentIteratorFromPtr(&nvi));
   }
 };
 
 ClauseIterator Choice::generateClauses(Clause* premise)
 {
-  //cout << "Choice with " << premise->toString() << endl;
-
-  //is this correct?
-  auto it1 = premise->getSelectedLiteralIterator();
-  //filter out literals that are not suitable for narrowing
-  auto it2 = getMapAndFlattenIterator(it1, SubtermsFn());
-
-  //pair of literals and possible rewrites that can be applied to literals
-  auto it3 = getFilteredIterator(std::move(it2), IsChoiceTerm());
-
-  //apply rewrite rules to literals
-  auto it4 = getMapAndFlattenIterator(std::move(it3), ResultFn());
-
-
-  return pvi( std::move(it4) );
-
+  return pvi(premise->getSelectedLiteralIterator()
+    .flatMap([](Literal* lit) {
+      NonVariableNonTypeIterator nvi(lit);
+      return pvi(getUniquePersistentIteratorFromPtr(&nvi));
+    })
+    .filter(IsChoiceTerm())
+    .flatMap(ResultFn()));
 }
 
 }
