@@ -164,25 +164,23 @@ Data* TermCodeTree<higherOrder, Data>::TermMatcher::next()
     return 0;
   }
 
-  Base::_matched=Base::execute();
-  if (!Base::_matched) {
-    return 0;
-  }
-
-  ASS(Base::op->isSuccess());
-  auto res = Base::op->template getSuccessResult<Data>();
-  if (res->key().isVar()) {
-    // match the variable sort separately
-    Substitution subst;
-    if (!MatchingUtils::matchTerms(res->key().sort(), _querySort, subst)) {
-      return nullptr;
+  while ((Base::_matched=Base::execute())) {
+    ASS(Base::op->isSuccess());
+    auto res = Base::op->template getSuccessResult<Data>();
+    if (res->key().isVar()) {
+      // match the variable sort separately
+      Substitution subst;
+      if (!MatchingUtils::matchTerms(res->key().sort(), _querySort, subst)) {
+        continue;
+      }
+      for (const auto& [v,t] : iterTraits(subst.items())) {
+        ASS_G(v, 0); // X0 is reserved for the term itself
+        Base::bindings[v] = t;
+      }
     }
-    for (const auto& [v,t] : iterTraits(subst.items())) {
-      ASS_G(v, 0); // X0 is reserved for the term itself
-      Base::bindings[v] = t;
-    }
+    return res;
   }
-  return res;
+  return nullptr;
 }
 
 template class TermCodeTree<true, TermLiteralClause>;
