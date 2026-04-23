@@ -16,6 +16,7 @@
 #ifndef __InferenceStore__
 #define __InferenceStore__
 
+#include <memory>
 #include <utility>
 #include <ostream>
 
@@ -24,6 +25,7 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/DHMultiset.hpp"
+#include "Lib/DHSet.hpp"
 #include "Lib/Stack.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -69,7 +71,9 @@ public:
 
   void recordSplittingNameLiteral(Unit* us, Literal* lit);
   void recordIntroducedSymbol(Unit* u, SymbolType st, unsigned number);
+  void recordIntroducedSkolemSymbol(Unit* u, SymbolType st, unsigned number, unsigned replacedVar, std::unique_ptr<DHSet<unsigned>> inScopeVars);
   void recordIntroducedSplitName(Unit* u, std::string name);
+  
 
   void outputUnsatCore(std::ostream& out, Unit* refutation);
   void outputProof(std::ostream& out, Unit* refutation);
@@ -94,8 +98,9 @@ private:
   typedef std::pair<SymbolType,unsigned> SymbolId;
   typedef Stack<SymbolId> SymbolStack;
   DHMap<unsigned,SymbolStack> _introducedSymbols;
+  DHMap<unsigned, unsigned> _introducedSymbolReplacedVars;
+  DHMap<unsigned, std::unique_ptr<DHSet<unsigned>>> _introducedSymbolInScopeVars;
   DHMap<unsigned,std::string> _introducedSplitNames;
-
 };
 
 };
