@@ -37,7 +37,6 @@
 #include <unistd.h>
 #include <signal.h>
 #include <fstream>
-#include <cstdio>
 #include <random>
 #include <filesystem>
 //only for detecting number of cores, no threading here!
@@ -57,37 +56,15 @@ using Lib::Sys::Multiprocessing;
 using std::cout;
 using std::cerr;
 using std::endl;
+
 namespace fs = std::filesystem;
 
 PortfolioMode::PortfolioMode(Problem* problem) : _prb(problem), _slowness(env.options->slowness()) {
-  unsigned cores = std::thread::hardware_concurrency();
-  cores = cores < 1 ? 1 : cores;
+  unsigned cores = std::max(1u, std::thread::hardware_concurrency());
   _numWorkers = std::min(cores, env.options->multicore());
-  if(!_numWorkers)
-  {
+  if(!_numWorkers) {
+    // only kicks in if the user explicitly sets "--cores 0" which cries "give me all" and it gives you fewer than "all" if you have plenty (i.e. on a server).
     _numWorkers = cores >= 8 ? cores - 2 : cores;
-  }
-
-  auto pathGiven = env.options->printProofToFile();
-  if(pathGiven.empty())
-    // no collision as we can't have the same PID as another Vampire *simultaneously*
-    _path = fs::temp_directory_path() / ("vampire-proof-" + Int::toString(getpid()));
-  else
-    _path = fs::path(pathGiven);
-
-  // the first Vampire to succeed creates the file
-  // therefore: remove it first
-  try {
-    fs::remove(_path);
-  } catch(const fs::filesystem_error &remove_error) {
-    // this is not good: we can't synchronise on _path
-    // attempt to output to stdout instead
-    std::cerr
-      << "WARNING: could not synchronise on " << _path
-      << " (will output to stdout, but proof may be garbled)\n"
-      << remove_error.what()
-      << std::endl;
-    _path.clear();
   }
 }
 
@@ -401,19 +378,28 @@ void PortfolioMode::getSchedules(const Property& prop, Schedule& quick, Schedule
   }
 }
 
-bool PortfolioMode::runSchedule(Schedule schedule) {
+// a temporary path to a file that is will not clash
+// with any other *currently-running* Vampire:
+// using the PIDs of parent + child prevents this.
+static fs::path proofPath(pid_t parent, pid_t child) {
+  std::string file = "vampire-proof-" +
+    Int::toString(parent) + "-" +
+    Int::toString(child);
+  return fs::temp_directory_path() / file;
+}
+
+std::optional<fs::path> PortfolioMode::runSchedule(Schedule schedule) {
   TIME_TRACE("run schedule");
 
+  pid_t me = getpid();
   Schedule::BottomFirstIterator it(schedule);
+  pid_t successful = 0; // PID 0 should be invalid
   Set<pid_t> processes;
-  bool success = false;
   int remainingTime;
   bool scheduleRepeat = false;
-  while(remainingTime = env.remainingTime() / 100, remainingTime > 0)
-  {
+  while(remainingTime = env.remainingTime() / 100, remainingTime > 0) {
     // running under capacity, wake up more tasks
-    while(processes.size() < _numWorkers)
-    {
+    while(processes.size() < _numWorkers) {
       // after exhaustion we replace the schedule
       // by copies with x2 time limits and do this forever
       if(!it.hasNext()) {
@@ -449,12 +435,10 @@ bool PortfolioMode::runSchedule(Schedule schedule) {
         */
 
     // child died, remove it from the pool and check if succeeded
-    if(exited)
-    {
+    if(exited) {
       ALWAYS(processes.remove(process));
-      if(!code)
-      {
-        success = true;
+      if(!code) {
+        successful = process;
         break;
       }
     } else if (signalled) {
@@ -466,22 +450,28 @@ bool PortfolioMode::runSchedule(Schedule schedule) {
   }
 
   // kill all running processes first
-  {
-    decltype(processes)::Iterator killIt(processes);
-    while(killIt.hasNext())
-      Multiprocessing::instance()->kill(killIt.next(), SIGINT);
-  }
+  for(auto process : processes.iter())
+    Multiprocessing::instance()->kill(process, SIGINT);
+
   // and also wait until the killing is really done
   // WHY: because we really want to be alone when we later start priting the proof
   // NOTE: an alternative could (maybe) be to just use a SIGKILL above instead of SIGINT
-  {
-    decltype(processes)::Iterator killIt(processes);
-    while(killIt.hasNext()) {
-      waitpid(killIt.next(), NULL, 0);
-    }
+  for(auto process : processes.iter())
+    waitpid(process, nullptr, 0);
+
+  // also clean up temporary files
+  // we don't know which processes managed to open their proof file before being killed
+  // so try and remove all of them and ignore failures
+  for(auto process : processes.iter()) {
+    // NB `successful` already removed from `processes`
+    std::error_code ignore;
+    fs::remove(proofPath(me, process), ignore);
   }
 
-  return success;
+  if(!successful)
+    return {};
+
+  return proofPath(me, successful);
 }
 
 /**
@@ -495,34 +485,45 @@ bool PortfolioMode::runScheduleAndRecoverProof(Schedule schedule)
 
   UIHelper::portfolioParent = true; // to report on overall-solving-ended in Timer.cpp
 
-  bool result = runSchedule(std::move(schedule));
+  auto result = runSchedule(std::move(schedule));
+  if(!result)
+    return false;
 
-  //All children have been killed. Now safe to print proof
-  if(result && env.options->printProofToFile().empty()){
-    /*
-     * the user didn't wish a proof in the file, so we printed it to the secret tmp file
-     * now it's time to restore it.
-     */
-    std::ifstream input(_path);
-
-    bool openSucceeded = !input.fail();
-
-    if (openSucceeded) {
+  // path to temporary file with the proof in it
+  auto path = *result;
+  std::string proofToFile = env.options->printProofToFile();
+  if(proofToFile.empty()) {
+    // print proof to stdout
+    std::ifstream input(path);
+    if (input) {
       cout << input.rdbuf();
     } else {
-      if (outputAllowed()) {
-        addCommentSignForSZS(cout) << "Failed to restore proof from tempfile " << _path << endl;
-      }
+      if(outputAllowed())
+        addCommentSignForSZS(cout)
+          << "Failed to restore proof from tempfile "
+          << path << " (?!)" << endl;
+      return false;
     }
-
-    //If for some reason, the proof could not be opened
-    //we don't delete the proof file
-    if(openSucceeded){
-      fs::remove(_path);
+  } else {
+    // move temporary file to desired location
+    try {
+      // NB fs::rename exists but does not work across partitions (!)
+      fs::copy_file(path, proofToFile, fs::copy_options::overwrite_existing);
+    } catch(fs::filesystem_error &error) {
+      if (outputAllowed()) {
+        addCommentSignForSZS(cout)
+          << "Failed to print proof to " << proofToFile
+          << ": " << error.what() << " (proof left in " << path << ")"
+          << endl;
+      }
+      return false;
     }
   }
-
-  return result;
+  // done with the temporary file now
+  // don't mind too much if something fails here, so squash errors
+  std::error_code ignore;
+  fs::remove(path, ignore);
+  return true;
 }
 
 /**
@@ -650,64 +651,20 @@ void PortfolioMode::runSlice(Options& opt)
     exit(EXIT_FAILURE);
   }
 
-  // whether this Vampire should print a proof or not
-  bool outputResult = false;
+  fs::path path = proofPath(getppid(), getpid());
+  addCommentSignForSZS(cout)
+    << " found proof, printing to " << path << "..." << endl;
 
-  // FILE used to synchronise multiple Vampires
-  FILE *checkExists;
-
-  // fall back to stdout if we failed to agree on `_path` above
-  if(_path.empty())
-    outputResult = true;
-  // output to file if we get a lock
-  // NB "wx": if we succeed opening here we're the first Vampire
-  else if((checkExists = std::fopen(_path.c_str(), "wx"))) {
-    std::fclose(checkExists);
-    outputResult = true;
-  }
-  // we're very likely the first but can't write a proof to file for some reason
-  // fall back to stdout, two proofs better than none
-  else if(errno != EEXIST) {
-    std::cerr
-      << "WARNING: could not open proof file << " << _path
-      << " - printing to stdout." << std::endl;
-    _path.clear();
-    outputResult = true;
+  std::ofstream output(path);
+  if(output) {
+    UIHelper::outputResult(output);
+    addCommentSignForSZS(cout) << "...printing done.\n";
+    exit(EXIT_SUCCESS);
   }
 
-  // can conclude we didn't get the lock
-  if(!outputResult) {
-    if (Lib::env.options && Lib::env.options->multicore() != 1)
-      addCommentSignForSZS(cout) << "Also succeeded, but the first one will report." << endl;
-
-    // we succeeded in some sense, but we failed to print a proof
-    // (only because the other Vampire beat us to it)
-    // NB: this really cannot be EXIT_SUCCESS
-    // otherwise, the parent might kill the proof-printing Vampire!
-    exit(EXIT_FAILURE);
-  }
-
-  // at this point, we should be go for launch
-  ASS(succeeded && outputResult)
-  if (outputAllowed() && env.options->multicore() != 1)
-    addCommentSignForSZS(cout) << "First to succeed." << endl;
-
-  if (_path.empty()) {
-    // we already failed above in accessing the file (let's not try opening or reporting the empty name)
-    UIHelper::outputResult(cout);
-  } else {
-    std::ofstream output(_path);
-    if(output.fail()) {
-      // failed to open file, fallback to stdout
-      addCommentSignForSZS(cout) << "Solution printing to a file '" << _path <<  "' failed. Outputting to stdout" << endl;
-      UIHelper::outputResult(cout);
-    } else {
-      UIHelper::outputResult(output);
-      if(outputAllowed())
-        addCommentSignForSZS(cout) << "Solution written to " << _path << endl;
-    }
-  }
-
-  // could be quick_exit if we flush output?
-  exit(EXIT_SUCCESS);
+  addCommentSignForSZS(cout) << "...printing failed.\n";
+  // we succeeded in some sense, but we failed to print a proof somehow
+  // NB: this really cannot be EXIT_SUCCESS
+  // otherwise, the parent might kill the proof-printing Vampire!
+  exit(EXIT_FAILURE);
 } // runSlice

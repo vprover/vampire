@@ -13,8 +13,6 @@
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Kernel/TermIterators.hpp"
-#include "Kernel/Ordering.hpp"
 
 #include "Shell/Options.hpp"
 
@@ -43,33 +41,6 @@ bool DemodulationHelper::redundancyCheckNeededForPremise(Clause* rwCl, Literal* 
 
   // check is needed if encompassment demodulation is off or we demodulate a positive unit
   return !_encompassing || (rwLit->isPositive() && (rwCl->length() == 1));
-}
-
-/**
- * Test whether the @param applicator is a renaming on the variables of @param t.
- */
-bool DemodulationHelper::isRenamingOn(const SubstApplicator* applicator, TermList t)
-{
-  DHSet<TermList> renamingDomain;
-  DHSet<TermList> renamingRange;
-
-  VariableIterator it(t);
-  while(it.hasNext()) {
-    TermList v = it.next();
-    ASS(v.isVar());
-    if (!renamingDomain.insert(v)) {
-      continue;
-    }
-
-    TermList vSubst = applicator->apply(v.var());
-    if (!vSubst.isVar()) {
-      return false;
-    }
-    if (!renamingRange.insert(vSubst)) {
-      return false;
-    }
-  }
-  return true;
 }
 
 bool DemodulationHelper::isPremiseRedundant(Clause* rwCl, Literal* rwLit, TermList rwTerm,
