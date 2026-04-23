@@ -365,17 +365,13 @@ NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, con
   _model(model), _reshuffleAt(opt.reshuffleAt())
 {
   ASS(_isOutermost);
-
-  delete _model._evalAlsoTheseInTheNextBulk; // delete the default one
-  _model._evalAlsoTheseInTheNextBulk = &_delayedInsertionBuffer;
-
-  _model._delayedInsert = std::bind(&NeuralPassiveClauseContainer::delayedInsert, this, std::placeholders::_1);
 }
 
 void NeuralPassiveClauseContainer::add(Clause* cl)
 {
   float dummy;
   if (_model.getScores().find(cl->number(),dummy)) {
+    // std::cout << "ki " << _model.getScores().get(cl->number()) << " " << cl->toString() << std::endl;
     _queue.insert(cl);
   } else {
     _delayedInsertionBuffer.push(cl);
@@ -402,11 +398,23 @@ void NeuralPassiveClauseContainer::remove(Clause* cl)
   ASS(cl->store()!=Clause::PASSIVE);
 }
 
+void NeuralPassiveClauseContainer::consolidate()
+{
+  if (_delayedInsertionBuffer.isNonEmpty()) {
+    _model.bulkEval(_delayedInsertionBuffer);
+    auto it = _delayedInsertionBuffer.iter();
+    while (it.hasNext()) {
+      Clause* cl = it.next();
+      // std::cout << "di " << _model.getScores().get(cl->number()) << " " << cl->toString() << std::endl;
+      _queue.insert(cl);
+    }
+    _delayedInsertionBuffer.reset();
+  }
+}
+
 Clause* NeuralPassiveClauseContainer::popSelected()
 {
   ASS(_size);
-
-  _model.bulkEval(Stack<Clause*>());
 
   static unsigned popCount = 0;
   if (++popCount == _reshuffleAt) {
@@ -416,6 +424,7 @@ Clause* NeuralPassiveClauseContainer::popSelected()
 
   // cout << "About to pop" << endl;
   Clause* cl = _queue.pop();
+  // std::cout << "pop " << _model.getScores().get(cl->number()) << " " << cl->toString() << std::endl;
   // cout << "Got " << cl->number() << endl;
   // cout << "popped from " << _size << " got " << cl->toString() << endl;
   _size--;

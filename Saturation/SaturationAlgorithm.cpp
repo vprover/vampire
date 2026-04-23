@@ -1704,10 +1704,6 @@ void SaturationAlgorithm::doUnprocessedLoop()
 {
   do {
     newClausesToUnprocessed();
-    if (_neuralModelGuidance && _passive->limitsActive() && env.options->lrsPreemptiveDeletes()) {
-      // so that we can start kicking out the really bad clauses already in forwardSimplify's exceedsAllLimits
-      _neuralModel->bulkEval(*_unprocessed);
-    }
 
     unsigned unprocessedPops = 0;
     while (!_unprocessed->isEmpty()) {
@@ -1777,6 +1773,8 @@ UnitList *SaturationAlgorithm::collectSaturatedSet()
 void SaturationAlgorithm::doOneAlgorithmStep()
 {
   doUnprocessedLoop();
+
+  _passive->consolidate();
 
   if (_passive->isEmpty()) {
     TerminationReason termReason =

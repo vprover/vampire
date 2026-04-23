@@ -140,6 +140,7 @@ public:
   ~PassiveClauseContainer() override{};
 
   virtual bool isEmpty() const = 0;
+  virtual void consolidate() {}; // to be called by SA just before popSelected (and after the iterative doUnprocessedLoop), can still drop some clauses here
   virtual Clause* popSelected() = 0;
 
   unsigned sizeEstimate() const override = 0;

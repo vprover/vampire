@@ -332,7 +332,7 @@ public:
 
   template<typename T>
   void evalClauses(const T& clauses, bool justRecord = false) {
-    int64_t sz = clauses.size() + _evalAlsoTheseInTheNextBulk->size();
+    int64_t sz = clauses.size();
     if (sz == 0) return;
 
     // std::cout << "ec for: " << std::endl;
@@ -351,7 +351,7 @@ public:
     {
       int64_t j = 0;
       unsigned idx = 0;
-      auto uIt = concatIters(clauses.iter(),_evalAlsoTheseInTheNextBulk->iter());
+      auto uIt = clauses.iter();
       while (uIt.hasNext()) {
         unsigned i = 0;
         Clause* cl = uIt.next();
@@ -393,7 +393,7 @@ public:
     // cout << "Eval clauses for " << sz << " requires " << logits.requires_grad() << endl;
 
     {
-      auto uIt = concatIters(clauses.iter(),_evalAlsoTheseInTheNextBulk->iter());
+      auto uIt = clauses.iter();
       unsigned idx = 0;
       while (uIt.hasNext()) {
         Clause* cl = uIt.next();
@@ -413,9 +413,7 @@ public:
   }
 
   /*
-   * This will bulk-evaluate all the given clauses!
-   * as well as (if non-null) the _evalAlsoTheseInTheNextBulk
-   * clauses (as secretly agreed with the NeuralPassiveClauseContainer)
+   * Bulk-evaluate all the given clauses, storing their scores in _scores.
    */
   template<typename T>
   void bulkEval(const T& clauses) {
@@ -424,29 +422,16 @@ public:
     Timer::updateInstructionCount(); // TODO: consider leaving this out (more efficient vampire, less precise stats)
     long long bulk_eval_start_instrs = Timer::elapsedInstructions();
 
-    // std::cout << "bE:\n1:" << std::endl;
-
     {
-      auto it = concatIters(clauses.iter(),_evalAlsoTheseInTheNextBulk->iter());
+      auto it = clauses.iter();
       while (it.hasNext()) {
-        Clause* cl = it.next();
-        // std::cout << cl->number() << ", ";
-        _makeReadyForEval(cl);
+        _makeReadyForEval(it.next());
       }
     }
-    // std::cout << std::endl;
 
     gageEmbedPending();
     gweightEmbedPending();
     evalClauses(clauses);
-
-    {
-      auto it = _evalAlsoTheseInTheNextBulk->iter();
-      while (it.hasNext()) {
-        _delayedInsert(it.next());
-      }
-      _evalAlsoTheseInTheNextBulk->reset();
-    }
 
     Timer::updateInstructionCount(); // TODO: consider leaving this out (more efficient vampire, less precise stats)
     env.statistics->bulkEvals += (Timer::elapsedInstructions()-bulk_eval_start_instrs);
@@ -456,11 +441,6 @@ public:
   // namely: if there is no value in the _scores map, it just returns a very optimistic constant
   float tryGetScore(Clause* cl);
 
-private:
-  // some friendship ugliness - just between NeuralClauseEvaluationModel and NeuralPassiveClauseContainer
-  friend class NeuralPassiveClauseContainer;
-  Stack<Clause*>* _evalAlsoTheseInTheNextBulk = new Stack<Clause*>(); // by default, a dummy empty stack
-  std::function<void(Clause*)> _delayedInsert;
 };
 
 class NeuralScoreQueue
@@ -515,6 +495,7 @@ public:
 
   void add(Clause* cl) override;
   void remove(Clause* cl) override;
+  void consolidate() override;
   Clause* popSelected() override;
 
 private:
@@ -522,14 +503,6 @@ private:
   Stack<Clause*> _delayedInsertionBuffer;
 
   unsigned _reshuffleAt;
-
-  void delayedInsert(Clause* cl) { _queue.insert(cl); }
-public:
-  void simulationInit() override {
-    _model.bulkEval(Stack<Clause*>());
-
-    SingleQueuePassiveClauseContainer<NeuralScoreQueue>::simulationInit();
-  }
 };
 
 
