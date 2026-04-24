@@ -20,6 +20,21 @@ using namespace std;
 using namespace Lib;
 using namespace SAT;
 
+namespace {
+
+bool listContainsClause(SATClauseList* lst, SATClause* cl)
+{
+  SATClauseList::Iterator it(lst);
+  while (it.hasNext()) {
+    if (it.next() == cl) {
+      return true;
+    }
+  }
+  return false;
+}
+
+}
+
 /**
  * c is either lower or upper case letter, upper
  * case is positive literals, lower negative.
@@ -261,6 +276,12 @@ void testAssumptions(SATSolver &s) {
     }
   }
   cout << endl;
+
+  for (unsigned i = 0; i < minimized.size(); i++) {
+    SATLiteralStack trial = minimized;
+    trial.swapRemove(i);
+    ASS_NEQ(s.solveUnderAssumptions(trial), Status::UNSATISFIABLE);
+  }
 }
 
 TEST_FUN(testSolvingUnderAssumptions)
@@ -275,4 +296,34 @@ TEST_FUN(testSolvingUnderAssumptions)
     Z3Interfacing sZ3(*env.options,sat2fo,true);
     testAssumptions(sZ3);
   }*/
+}
+
+TEST_FUN(testMinisatMinimizePremiseList)
+{
+  SATClause* conflictLeft = getClause("a");
+  SATClause* conflictRight = getClause("A");
+  SATClause* irrelevant = getClause("b");
+
+  SATClauseList* premises = SATClauseList::empty();
+  SATClauseList::push(irrelevant, premises);
+  SATClauseList::push(conflictRight, premises);
+  SATClauseList::push(conflictLeft, premises);
+
+  SATLiteralStack assumps;
+  SATClauseList* minimized = MinisatInterfacing<>::minimizePremiseList(premises, assumps);
+
+  ASS(listContainsClause(minimized, conflictLeft));
+  ASS(listContainsClause(minimized, conflictRight));
+  ASS(!listContainsClause(minimized, irrelevant));
+
+  MinisatInterfacing checker;
+  ensurePrepared(checker);
+  SATClauseList::Iterator it(minimized);
+  while (it.hasNext()) {
+    checker.addClause(it.next());
+  }
+  ASS_EQ(checker.solveUnderAssumptions(assumps), Status::UNSATISFIABLE);
+
+  SATClauseList::destroy(minimized);
+  SATClauseList::destroy(premises);
 }
