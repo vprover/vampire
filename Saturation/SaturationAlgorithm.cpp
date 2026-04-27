@@ -1646,7 +1646,9 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
       if (prb.isHigherOrder()) {
         res->addForwardSimplifierToFront<CodeTreeForwardSubsumptionAndResolution<true>>();
       } else {
-        // res->addForwardSimplifierToFront<ForwardSubsumptionAndResolution>();
+#if DEBUG_CODE_TREES
+        res->addForwardSimplifierToFront<ForwardSubsumptionAndResolution>();
+#endif
         res->addForwardSimplifierToFront<CodeTreeForwardSubsumptionAndResolution<false>>();
       }
     } else {

@@ -43,8 +43,11 @@ bool CodeTreeForwardSubsumptionAndResolution<higherOrder>::perform(Clause *cl, C
   while ((premise = cm.next(resolvedQueryLit))) {
     if (resolvedQueryLit == -1) {
       ASS(satSubs.checkSubsumption(premise, cl));
-      // if (!satSubs.checkSubsumption(premise, cl))
-      //   INVALID_OPERATION(premise->toString()+"sfs "+cl->toString());
+#if DEBUG_CODE_TREES
+      if (!satSubs.checkSubsumption(premise, cl)) {
+        INVALID_OPERATION(premise->toString()+"sfs "+cl->toString());
+      }
+#endif
 
       premises = pvi(getSingletonIterator(premise));
       env.statistics->forwardSubsumed++;
@@ -53,8 +56,11 @@ bool CodeTreeForwardSubsumptionAndResolution<higherOrder>::perform(Clause *cl, C
     }
 
     ASS(satSubs.checkSubsumptionResolutionWithLiteral(premise, cl, resolvedQueryLit));
-    // if(!satSubs.checkSubsumptionResolutionWithLiteral(premise, cl, resolvedQueryLit))
-    //   INVALID_OPERATION(premise->toString()+"sfsf "+cl->toString());
+#if DEBUG_CODE_TREES
+    if(!satSubs.checkSubsumptionResolutionWithLiteral(premise, cl, resolvedQueryLit)) {
+      INVALID_OPERATION(premise->toString()+"sfsf "+cl->toString());
+    }
+#endif
 
     LiteralStack res;
     for (unsigned i = 0; i < cl->length(); i++) {

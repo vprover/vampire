@@ -243,9 +243,7 @@ endif()
 # Vampire
 ################################################################
 # wrap up common object files so not built multiple times for each target
-add_library(common OBJECT ${SOURCES}
-        Indexing/Copypatchjit.cpp
-        Indexing/Copypatchjit.hpp)
+add_library(common OBJECT ${SOURCES})
 
 # the actual Vampire executable
 add_executable(vampire vampire.cpp $<TARGET_OBJECTS:common>)

@@ -171,6 +171,8 @@ set(SOURCES
     Indexing/CodeTree.hpp
     Indexing/CodeTreeInterfaces.cpp
     Indexing/CodeTreeInterfaces.hpp
+    Indexing/CopyPatchJit.cpp
+    Indexing/CopyPatchJit.hpp
     Indexing/Index.cpp
     Indexing/Index.hpp
     Indexing/IndexManager.cpp
