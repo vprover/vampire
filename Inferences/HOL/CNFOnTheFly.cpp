@@ -199,7 +199,6 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
               auto tS = subst.apply(t, 0);
               auto argS = subst.apply(args[0],1); 
 
-              // can't use replaceLits, as we need to apply the type unifier
               RStack<Literal*> resLits;
               for (const auto& curr : *c) {
                 resLits->push(curr == lit

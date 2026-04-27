@@ -79,6 +79,12 @@ Stack<std::pair<TermList, UnificationInference>> getProjAndImitBindings(TermList
 
 TermList createGeneralBinding(TermList head, const TermStack& sorts, unsigned& freshVar, bool surround = true);
 
+// Creates abstractions of lit as described below to be used for heuristically
+// instantiating Π terms (proxified universal quantification, see CNFOnTheFly).
+//
+// If lit is of the form s ⋈ t, where ⋈ ∈ {=,≠}, s is λ x1,...,xn. f s1,...,sk,
+// and t is λ y1,...,ym. f t1,...,tl, then w.l.o.g. we create an abstracted
+// disequality λ x. s' ≠ t for each 1 ≤ i ≤ k where s' is s with si replaced with x.
 TermStack getAbstractionTerms(Literal* lit);
 
 } // namespace HOL

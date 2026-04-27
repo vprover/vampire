@@ -497,9 +497,6 @@ unsigned numOfAppVarsAndLambdas(TermList t, unsigned lambdaWeight, unsigned appl
 
   // it's OK that the entry in cache has already been created, will only possibly ask for proper subterms
 
-  // TODO(mhajdu): I think this is not okay because the DHMap may reallocate during the recursive call,
-  //               so either remove the cache or put the value into the shared terms. Also remove recursion.
-
   unsigned res = 0;
 
   if (tt->isLambdaTerm()) {
@@ -516,6 +513,8 @@ unsigned numOfAppVarsAndLambdas(TermList t, unsigned lambdaWeight, unsigned appl
     }
   }
 
+  // reallocation may occur in-between, so ask for the pointer again
+  ALWAYS(cached = cache.findPtr(tt));
   *cached = res;
   return res;
 }
