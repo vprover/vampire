@@ -17,7 +17,7 @@
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Indexing/CodeTreeInterfaces.hpp"
-#if VDEBUG
+#if VDEBUG || DEBUG_CODE_TREES
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
 #endif
 
@@ -38,7 +38,7 @@ private:
   const bool _subsumptionResolution;
   std::shared_ptr<Indexing::CodeTreeSubsumptionIndex<higherOrder>> _index;
   Indexing::ClauseCodeTree<higherOrder>* _ct;
-#if VDEBUG
+#if VDEBUG || DEBUG_CODE_TREES
   SATSubsumption::SATSubsumptionAndResolution satSubs;
 #endif
 };
