@@ -25,26 +25,78 @@ using namespace Test;
   FOLS                                             \
   DECL_PRED(p, { srt })                            \
   DECL_CONST(f, arrow(arrow(srt, Bool), srt))      \
-  DECL_POLY_CONST(g2, 1, x)                        \
-  DECL_POLY_CONST(g3, 1, x)                        \
-  DECL_DE_BRUIJN_INDEX(db0, 0, srt)                \
-  DECL_CONST(a, srt)                               \
-  DECL_CONST(b, srt)
+  DECL_CONST(g, arrow(arrow(srt, Bool), srt))      \
+  DECL_CONST(h, arrow({srt, srt}, srt))            \
+  DECL_CONST(a, arrow(srt, Bool))                  \
+  DECL_CONST(b, arrow(srt, Bool))                  \
+  DECL_CONST(c, srt)
 
 #define MY_GEN_RULE   Choice
 #define MY_GEN_TESTER Generation::GenerationTester
 
-// TEST_GENERATION(rule_fail_1,
-//     Generation::AsymmetricTest()
-//       .input( clause({ selected(x == y), g == lam(srt, ap(f, {db0, db0})) }))
-//       .expected(none())
-//     )
+// not done for non-selected literals
+TEST_GENERATION(rule_fail_1,
+    env.signature->addChoiceOperator(f.functor());
+    env.signature->addChoiceOperator(g.functor());
+    Generation::AsymmetricTest()
+      .input( clause({ ap(f, a) == c }))
+      .expected(none())
+    )
 
-// TEST_GENERATION(rule_success_1,
-//     Generation::AsymmetricTest()
-//       .input( clause({ selected(g == lam(srt, ap(f, {x, x}))) }))
-//       .expected(exactly(clause({ ap(g, y) == ap(lam(srt, ap(f, {x, x})), y) })))
-//     )
+// not done for non-choice operators
+TEST_GENERATION(rule_fail_2,
+    env.signature->addChoiceOperator(g.functor());
+    Generation::AsymmetricTest()
+      .input( clause({ selected(ap(f, a) == c) }))
+      .expected(none())
+    )
+
+// not done for variable arguments
+TEST_GENERATION(rule_fail_3,
+    env.signature->addChoiceOperator(f.functor());
+    env.signature->addChoiceOperator(g.functor());
+    Generation::AsymmetricTest()
+      .input( clause({ selected(ap(f, x) == c) }))
+      .expected(none())
+    )
+
+// not done for variable heads with no choice operators
+TEST_GENERATION(rule_fail_4,
+    Generation::AsymmetricTest()
+    .input( clause({ selected(ap(x.sort(arrow(arrow(srt, Bool), srt)), a) == c) }))
+    .expected(none())
+    )
+
+TEST_GENERATION(rule_success_1,
+    env.signature->addChoiceOperator(f.functor());
+    env.signature->addChoiceOperator(g.functor());
+    Generation::AsymmetricTest()
+      .input( clause({ selected(ap(f, a) == c) }))
+      .expected(exactly(clause({ ap(a, y) == fols, ap(a, ap(f, a)) == troo })))
+    )
+
+TEST_GENERATION(rule_success_2,
+    env.signature->addChoiceOperator(f.functor());
+    env.signature->addChoiceOperator(g.functor());
+    Generation::AsymmetricTest()
+      .input( clause({ selected(ap(x.sort(arrow(arrow(srt, Bool), srt)), a) == c) }))
+      .expected(exactly(
+        clause({ ap(a, y) == fols, ap(a, ap(f, a)) == troo }),
+        clause({ ap(a, y) == fols, ap(a, ap(g, a)) == troo })
+      ))
+    )
+
+TEST_GENERATION(rule_success_3,
+    env.signature->addChoiceOperator(f.functor());
+    env.signature->addChoiceOperator(g.functor());
+    Generation::AsymmetricTest()
+      .input( clause({ selected(ap(h, {x, ap(f, a)}) != ap(h, {c, ap(y.sort(arrow(arrow(srt, Bool), srt)), b)})) }))
+      .expected(exactly(
+        clause({ ap(a, y) == fols, ap(a, ap(f, a)) == troo }),
+        clause({ ap(b, y) == fols, ap(b, ap(f, b)) == troo }),
+        clause({ ap(b, y) == fols, ap(b, ap(g, b)) == troo })
+      ))
+    )
 
 #define MY_SIMPL_RULE   ChoiceDefinitionISE
 #define MY_SIMPL_TESTER Simplification::SimplificationTester

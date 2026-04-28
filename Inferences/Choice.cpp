@@ -145,9 +145,8 @@ struct Choice::IsChoiceTerm
     }
     TermList headSort = HOL::lhsSort(TermList(t));
 
-    TermList tv = TermList::var(0); // put on QUERY_BANK to separate in from variables in headSort
-    TermList o  = AtomicSort::boolSort();
-    TermList sort = AtomicSort::arrowSort(AtomicSort::arrowSort(tv, o), tv);
+    TermList tv = TermList::var(0);
+    TermList sort = AtomicSort::arrowSort(AtomicSort::arrowSort(tv, AtomicSort::boolSort()), tv);
 
     static RobSubstitution subst;
     subst.reset();
