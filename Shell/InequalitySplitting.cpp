@@ -47,7 +47,7 @@ InequalitySplitting::InequalitySplitting(const Options& opt)
 
 void InequalitySplitting::perform(Problem& prb)
 {
-  _appify = prb.hasApp();
+  _appify = prb.isHigherOrder();
   if(perform(prb.units())) {
     prb.invalidateByRemoval();
   }
@@ -223,7 +223,7 @@ Literal* InequalitySplitting::makeNameLiteral(unsigned predNum, TermList arg, bo
     vars.push(arg);
     return Literal::create(predNum, vars.size(), polarity, vars.begin());
   } else {
-    TermList boolT = polarity ? TermList(Term::foolTrue()) : TermList(Term::foolFalse());
+    TermList boolT = polarity ? HOL::create::top() : HOL::create::bottom();
     TermList head = TermList(Term::create(predNum, vars.size(), vars.begin()));
     TermList t = HOL::create::app(head, arg);
     return Literal::createEquality(true, t, boolT, AtomicSort::boolSort());

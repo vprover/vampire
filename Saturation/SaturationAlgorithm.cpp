@@ -75,6 +75,7 @@
 #include "Inferences/ForwardSubsumptionDemodulation.hpp"
 #include "Inferences/GlobalSubsumption.hpp"
 
+#include "Inferences/HOL/ArgCong.hpp"
 #include "Inferences/HOL/BetaEtaSimplify.hpp"
 #include "Inferences/HOL/BoolEqToDiseq.hpp"
 #include "Inferences/HOL/BoolSimp.hpp"
@@ -151,8 +152,17 @@ std::unique_ptr<PassiveClauseContainer> makeLevel0(bool isOutermost, const Optio
   return std::make_unique<AWPassiveClauseContainer>(isOutermost, opt, name + "AWQ");
 }
 
-std::unique_ptr<PassiveClauseContainer> makeLevel1(bool isOutermost, const Options& opt, std::string name)
+std::unique_ptr<PassiveClauseContainer> makeLevel1(bool isOutermost, bool forHO, const Options& opt, std::string name)
 {
+  if (opt.hoSplitQueues() && forHO) {
+    vector<std::unique_ptr<PassiveClauseContainer>> queues;
+    auto cutoffs = opt.hoSplitQueueCutoffs();
+    for (const auto& co : cutoffs) {
+      auto queueName = name + "HoSQ" + Int::toString(co) + ":";
+      queues.push_back(makeLevel0(false, opt, queueName));
+    }
+    return std::make_unique<HoFeaturesMultiSplitPassiveClauseContainer>(isOutermost, opt, name + "HoFSQ", std::move(queues));
+  }
   if (opt.useTheorySplitQueues()) {
     std::vector<std::unique_ptr<PassiveClauseContainer>> queues;
     auto cutoffs = opt.theorySplitQueueCutoffs();
@@ -167,51 +177,51 @@ std::unique_ptr<PassiveClauseContainer> makeLevel1(bool isOutermost, const Optio
   }
 }
 
-std::unique_ptr<PassiveClauseContainer> makeLevel2(bool isOutermost, const Options& opt, std::string name)
+std::unique_ptr<PassiveClauseContainer> makeLevel2(bool isOutermost, bool forHO, const Options& opt, std::string name)
 {
   if (opt.useAvatarSplitQueues()) {
     std::vector<std::unique_ptr<PassiveClauseContainer>> queues;
     auto cutoffs = opt.avatarSplitQueueCutoffs();
     for (unsigned i = 0; i < cutoffs.size(); i++) {
       auto queueName = name + "AvSQ" + Int::toString(cutoffs[i]) + ":";
-      queues.push_back(makeLevel1(false, opt, queueName));
+      queues.push_back(makeLevel1(false, forHO, opt, queueName));
     }
     return std::make_unique<AvatarMultiSplitPassiveClauseContainer>(isOutermost, opt, name + "AvSQ", std::move(queues));
   }
   else {
-    return makeLevel1(isOutermost, opt, name);
+    return makeLevel1(isOutermost, forHO, opt, name);
   }
 }
 
-std::unique_ptr<PassiveClauseContainer> makeLevel3(bool isOutermost, const Options& opt, std::string name)
+std::unique_ptr<PassiveClauseContainer> makeLevel3(bool isOutermost, bool forHO, const Options& opt, std::string name)
 {
   if (opt.useSineLevelSplitQueues()) {
     std::vector<std::unique_ptr<PassiveClauseContainer>> queues;
     auto cutoffs = opt.sineLevelSplitQueueCutoffs();
     for (unsigned i = 0; i < cutoffs.size(); i++) {
       auto queueName = name + "SLSQ" + Int::toString(cutoffs[i]) + ":";
-      queues.push_back(makeLevel2(false, opt, queueName));
+      queues.push_back(makeLevel2(false, forHO, opt, queueName));
     }
     return std::make_unique<SineLevelMultiSplitPassiveClauseContainer>(isOutermost, opt, name + "SLSQ", std::move(queues));
   }
   else {
-    return makeLevel2(isOutermost, opt, name);
+    return makeLevel2(isOutermost, forHO, opt, name);
   }
 }
 
-std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, const Options& opt, std::string name)
+std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, bool forHO, const Options& opt, std::string name)
 {
   if (opt.usePositiveLiteralSplitQueues()) {
     std::vector<std::unique_ptr<PassiveClauseContainer>> queues;
     std::vector<float> cutoffs = opt.positiveLiteralSplitQueueCutoffs();
     for (unsigned i = 0; i < cutoffs.size(); i++) {
       auto queueName = name + "PLSQ" + Int::toString(cutoffs[i]) + ":";
-      queues.push_back(makeLevel3(false, opt, queueName));
+      queues.push_back(makeLevel3(false, forHO, opt, queueName));
     }
     return std::make_unique<PositiveLiteralMultiSplitPassiveClauseContainer>(isOutermost, opt, name + "PLSQ", std::move(queues));
   }
   else {
-    return makeLevel3(isOutermost, opt, name);
+    return makeLevel3(isOutermost, forHO, opt, name);
   }
 }
 
@@ -248,7 +258,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _passive = std::make_unique<ManCSPassiveClauseContainer>(true, opt);
   }
   else {
-    _passive = makeLevel4(true, opt, "");
+    _passive = makeLevel4(true, prb.isHigherOrder(), opt, "");
   }
   _active = new ActiveClauseContainer();
 
@@ -1442,6 +1452,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   if (prb.isHigherOrder()){
+    gie->addFront(new ArgCong(*res));
     gie->addFront(new NegativeExtensionality(*res));
     if (opt.positiveExtensionality()) {
       gie->addFront(new PositiveExtensionality(*res));
@@ -1450,13 +1461,12 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
       gie->addFront(new BoolEqToDiseq(*res));
     }
     if(true/* !opt.higherOrderUnifDepth() && !opt.applicativeUnify() */){
-      // only add when we are not carrying out higher-order unification
+      // TODO(HOL): only add when we are not carrying out higher-order unification
       gie->addFront(new ImitateProject(*res));
     }
-  }
-
-  if (opt.choiceReasoning()) {
-    gie->addFront(new Choice(*res));
+    if (opt.choiceReasoning()) {
+      gie->addFront(new Choice(*res));
+    }
   }
 
   gie->addFront(new Factoring(*res));
@@ -1743,7 +1753,7 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
       break;
   }
 
-  if (opt.choiceReasoning()) {
+  if (prb.isHigherOrder() && opt.choiceReasoning()) {
     res->addFront(new ChoiceDefinitionISE());
   }
 
@@ -1815,7 +1825,7 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
     res->addFront(new TrivialInequalitiesRemovalISE());
   }
   res->addFront(new TautologyDeletionISE());
-  if (opt.newTautologyDel()) {
+  if (prb.isHigherOrder() && opt.newTautologyDel()) {
     res->addFront(new TautologyDeletionISE2());
   }
   res->addFront(new DuplicateLiteralRemovalISE());
