@@ -32,7 +32,6 @@
 #include "Shell/Shuffling.hpp"
 #include "Shell/TheoryFinder.hpp"
 
-#include <sys/wait.h>
 #include <limits>
 #include <unistd.h>
 #include <signal.h>
@@ -52,7 +51,6 @@
 
 using namespace Lib;
 using namespace CASC;
-using Lib::Sys::Multiprocessing;
 using std::cout;
 using std::cerr;
 using std::endl;
@@ -412,7 +410,7 @@ std::optional<fs::path> PortfolioMode::runSchedule(Schedule schedule) {
       ALWAYS(it.hasNext());
 
       std::string code = it.next();
-      pid_t process = Multiprocessing::instance()->fork();
+      pid_t process = Sys::fork();
       ASS_NEQ(process, -1);
       if(process == 0)
       {
@@ -423,10 +421,8 @@ std::optional<fs::path> PortfolioMode::runSchedule(Schedule schedule) {
       ALWAYS(processes.insert(process));
     }
 
-    bool exited, signalled;
-    int code;
-    // sleep until process changes state
-    pid_t process = Multiprocessing::instance()->poll_children(exited, signalled, code);
+    // sleep until any child terminates
+    auto [ process, signalled, code ] = Sys::waitForChildTermination(-1);
 
     /*
     cout << "Child " << process
@@ -434,30 +430,30 @@ std::optional<fs::path> PortfolioMode::runSchedule(Schedule schedule) {
         << " sig " << signalled << " code " << code << endl;
         */
 
-    // child died, remove it from the pool and check if succeeded
-    if(exited) {
+    // killed by an external agency (could be e.g. a slurm cluster killing for too much memory allocated)
+    if (signalled) {
+      Shell::addCommentSignForSZS(cout);
+      cout<<"Child killed by signal " << code << endl;
+      ALWAYS(processes.remove(process));
+    } else {
+      // child exited by itself, remove it from the pool and check if succeeded
       ALWAYS(processes.remove(process));
       if(!code) {
         successful = process;
         break;
       }
-    } else if (signalled) {
-      // killed by an external agency (could be e.g. a slurm cluster killing for too much memory allocated)
-      Shell::addCommentSignForSZS(cout);
-      cout<<"Child killed by signal " << code << endl;
-      ALWAYS(processes.remove(process));
     }
   }
 
   // kill all running processes first
   for(auto process : processes.iter())
-    Multiprocessing::instance()->kill(process, SIGINT);
+    Sys::kill(process, SIGINT);
 
   // and also wait until the killing is really done
-  // WHY: because we really want to be alone when we later start priting the proof
+  // WHY: because we really want to be alone when we later start printing the proof
   // NOTE: an alternative could (maybe) be to just use a SIGKILL above instead of SIGINT
   for(auto process : processes.iter())
-    waitpid(process, nullptr, 0);
+    Sys::waitForChildTermination(process);
 
   // also clean up temporary files
   // we don't know which processes managed to open their proof file before being killed
