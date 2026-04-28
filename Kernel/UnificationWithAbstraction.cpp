@@ -1420,7 +1420,7 @@ Option<Recycled<Stack<unsigned>>> AbstractingUnifier::unifiableSymbols(SymbolId 
   ASSERTION_VIOLATION
 }
 
-bool AbstractingUnifier::unify(TermList term1, int bank1, TermList term2, int bank2)
+bool AbstractingUnifier::unifyOnce(TermList term1, int bank1, TermList term2, int bank2)
 {
   if (_uwa._mode == Shell::Options::UnificationWithAbstraction::OFF)
     return _subs->unify(term1, bank1, term2, bank2);

@@ -289,8 +289,7 @@ Clause* TautologyDeletionISE2::simplify(Clause* c)
 
   for(unsigned i = 0; i < c->length(); i++){
     Literal* lit = (*c)[i];
-    TermList lhs = *lit->nthArgument(0);
-    TermList rhs = *lit->nthArgument(1);
+    auto [lhs, rhs] = lit->eqArgs();
     if(!lit->polarity() && HOL::isBool(lhs) && HOL::isBool(rhs) &&
       (HOL::isTrue(lhs) != HOL::isTrue(rhs))){
       //false != true

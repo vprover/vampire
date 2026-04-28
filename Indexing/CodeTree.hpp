@@ -40,8 +40,8 @@ public:
   struct ILStruct;
   struct SearchStruct;
   struct CodeOp;
-  
-protected:  
+
+protected:
   /**
   * During the destruction of the CodeTree,
   * onCodeOpDestroying is called on each CodeOp
@@ -49,12 +49,12 @@ protected:
   * allocated memory "owned" by the particular CodeOp
   * (the details are expected to be descendant specific)
   */
-  void (*_onCodeOpDestroying)(CodeOp* op);
-      
+  virtual void onCodeOpDestroying(CodeOp* op) {}
+  virtual void printSuccess(std::ostream& out, const CodeOp& op) const {}
+
 public:
-  CodeTree();
-  ~CodeTree();
-  
+  virtual ~CodeTree();
+
   struct LitInfo
   {
     LitInfo() {}
@@ -211,8 +211,6 @@ public:
 
     void makeFail() { static_assert(SUCCESS_OR_FAIL==0); _content = 0; }
 
-    friend std::ostream& operator<<(std::ostream& out, const CodeOp& op);
-
     BITFIELD(64,
       BITFIELD_MEMBER(unsigned, _arg, _setArg, CHAR_BIT * sizeof(unsigned) - INSTRUCTION_BITS,
       BITFIELD_MEMBER(unsigned, _instruction, _setInstruction, INSTRUCTION_BITS,
@@ -326,7 +324,7 @@ public:
    * this one. After use, the @b deinit function should be called (if
    * present). This allows for reuse of a single object.
    */
-  template<bool removing, bool checkRange>
+  template<bool removing, bool checkRange, bool higherOrder>
   struct Matcher
     : public std::conditional<removing, RemovingBase, NonRemovingBase>::type
   {
@@ -449,6 +447,8 @@ public:
   template<class Visitor>
   void visitAllOps(Visitor visitor) const;
 
+  void printOp(std::ostream& out, const CodeOp& op, bool litStart) const;
+  void printOps(std::ostream& out, const CodeTree& ct, const CodeStack& st) const;
   friend std::ostream& operator<<(std::ostream& out, const CodeTree& ct);
 
   //////////// insertion //////////////
@@ -493,12 +493,12 @@ public:
   //////// member variables //////////
 
   bool _clauseCodeTree;
-  unsigned _curTimeStamp;
+  unsigned _curTimeStamp = 0;
 
   /** maximal number of local variables in a stored term/literal (always at least 1) */
-  unsigned _maxVarCnt;
+  unsigned _maxVarCnt = 1;
 
-  CodeBlock* _entryPoint;
+  CodeBlock* _entryPoint = nullptr;
 };
 
 }

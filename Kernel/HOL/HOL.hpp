@@ -69,7 +69,7 @@ void normaliseLambdaPrefixes(TermList& t1, TermList& t2);
 
 // if flexTerm is of form X t1 t2 : i > i and t1 : int and t2 : tau
 // this function will fill stack with [i, tau, int]
-// Very inelegant at the moment, need to rewrite TODO
+// TODO(HOL): very inelegant at the moment, need to rewrite
 TermStack getFlexHeadSorts(TermList flexTerm, TermList rigidTermSort);
 
 enum class UnificationInference {
@@ -97,6 +97,14 @@ Stack<std::pair<TermList, UnificationInference>> getProjAndImitBindings(TermList
 
 TermList createGeneralBinding(TermList head, const TermStack& sorts, unsigned& freshVar, bool surround = true);
 
+// Creates abstractions of lit as described below to be used for heuristically
+// instantiating Π terms (proxified universal quantification, see CNFOnTheFly).
+//
+// If lit is of the form s ⋈ t, where ⋈ ∈ {=,≠}, s is λ x1,...,xn. f s1,...,sk,
+// and t is λ y1,...,ym. f t1,...,tl, then w.l.o.g. we create an abstracted
+// disequality λ x. s' ≠ t for each 1 ≤ i ≤ k where s' is s with si replaced with x.
+TermStack getAbstractionTerms(Literal* lit);
+
 } // namespace HOL
 
 namespace HOL::create {
@@ -123,7 +131,9 @@ namespace HOL::create {
   TermList bottom();
   TermList conj();
   TermList disj();
-  TermList imp();  
+  TermList imp();
+  TermList iff();
+  TermList xorP();
   TermList equality(TermList sort);
   TermList neg();
   TermList pi(TermList sort);
@@ -146,6 +156,7 @@ namespace HOL::create {
 namespace HOL::convert {
 
 TermList toNameless(TermList term);
+TermList toNameless(Formula* formula);
 
 inline TermList toNameless(Term* term) {
   return toNameless(TermList(term));

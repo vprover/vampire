@@ -1086,6 +1086,45 @@ void Options::init()
     _positiveLiteralSplitQueueLayeredArrangement.onlyUsefulWith(_usePositiveLiteralSplitQueues.is(equal(true)));
     _positiveLiteralSplitQueueLayeredArrangement.tag(OptionTag::SATURATION);
 
+    _hoSplitQueues = BoolOptionValue("ho_split_queue","hsq",false);
+    _hoSplitQueues.description = "Turn on clause selection using multiple queues containing different clauses (split by amount of higher-order featues)";
+    _hoSplitQueues.onlyUsefulWith(ProperSaturationAlgorithm()); // could be "IncludingInstgen"? (not with theories...)
+    _hoSplitQueues.addProblemConstraint(hasHigherOrder());
+    _lookup.insert(&_hoSplitQueues);
+    _hoSplitQueues.tag(OptionTag::SATURATION);
+
+    _hoSplitQueueLambdaWeight = UnsignedOptionValue("ho_split_queue_lambda_weight","hsqlw",1);
+    _hoSplitQueueLambdaWeight.description = "How much should lambda occurrences count in the HO features";
+    _hoSplitQueueLambdaWeight.onlyUsefulWith(_hoSplitQueues.is(equal(true)));
+    _hoSplitQueueLambdaWeight.addProblemConstraint(hasHigherOrder());
+    _lookup.insert(&_hoSplitQueueLambdaWeight);
+    _hoSplitQueueLambdaWeight.tag(OptionTag::SATURATION);
+
+    _hoSplitQueueAppVarWeight = UnsignedOptionValue("ho_split_queue_appvar_weight","hsqaw",1);
+    _hoSplitQueueAppVarWeight.description = "How much should app-var occurrences count in the HO features";
+    _hoSplitQueueAppVarWeight.onlyUsefulWith(_hoSplitQueues.is(equal(true)));
+    _hoSplitQueueAppVarWeight.addProblemConstraint(hasHigherOrder());
+    _lookup.insert(&_hoSplitQueueAppVarWeight);
+    _hoSplitQueueAppVarWeight.tag(OptionTag::SATURATION);
+
+    _hoSplitQueueCutoffs = StringOptionValue("ho_split_queue_cutoffs", "hsqc", "0");
+    _hoSplitQueueCutoffs.description = "The cutoff-values for the split-queues (the cutoff value for the last queue has to be omitted, as it is always infinity). Any split-queue contains all clauses which are assigned a feature-value less or equal to the cutoff-value of the queue. If no custom value for this option is set, the implementation will use cutoffs 0,4*d,10*d,infinity (where d denotes the theory split queue expected ratio denominator).";
+    _lookup.insert(&_hoSplitQueueCutoffs);
+    _hoSplitQueueCutoffs.onlyUsefulWith(_hoSplitQueues.is(equal(true)));
+    _hoSplitQueueCutoffs.tag(OptionTag::SATURATION);
+
+    _hoSplitQueueRatios = StringOptionValue("ho_split_queue_ratios", "hsqr", "1,1");
+    _hoSplitQueueRatios.description = "The ratios for picking clauses from the split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.";
+    _lookup.insert(&_hoSplitQueueRatios);
+    _hoSplitQueueRatios.onlyUsefulWith(_hoSplitQueues.is(equal(true)));
+    _hoSplitQueueRatios.tag(OptionTag::AVATAR);
+
+    _hoSplitQueueLayeredArrangement = BoolOptionValue("ho_split_queue_layered_arrangement","hsql",true);
+    _hoSplitQueueLayeredArrangement.description = "If turned on, use a layered arrangement to split clauses into queues. Otherwise use a tammet-style-arrangement.";
+    _lookup.insert(&_hoSplitQueueLayeredArrangement);
+    _hoSplitQueueLayeredArrangement.onlyUsefulWith(_hoSplitQueues.is(equal(true)));
+    _hoSplitQueueLayeredArrangement.tag(OptionTag::SATURATION);
+
     _literalMaximalityAftercheck = BoolOptionValue("literal_maximality_aftercheck","lma",true);
     _literalMaximalityAftercheck.description =
                                    "Allows to disable a secondary (literal maximality) ordering check (in the superposition calculus) after a substitution is applied."
@@ -1706,7 +1745,9 @@ void Options::init()
     _lookup.insert(&_demodulationRedundancyCheck);
     _demodulationRedundancyCheck.tag(OptionTag::INFERENCES);
     _demodulationRedundancyCheck.onlyUsefulWith(ProperSaturationAlgorithm());
-    _demodulationRedundancyCheck.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
+    _demodulationRedundancyCheck.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),
+                                                   _backwardDemodulation.is(notEqual(Demodulation::OFF)),
+                                                   _partialRedundancyCheck.is(notEqual(false))));
     _demodulationRedundancyCheck.addProblemConstraint(hasEquality());
 
     _forwardDemodulationTermOrderingDiagrams = BoolOptionValue("forward_demodulation_term_ordering_diagrams","fdtod",true);
@@ -1877,6 +1918,12 @@ void Options::init()
     _equationalTautologyRemoval.onlyUsefulWith(ProperSaturationAlgorithm());
     _equationalTautologyRemoval.tag(OptionTag::INFERENCES);
 
+    _subsumptionEqualityResolution = BoolOptionValue("subsumption_equality_resolution","ser",false);
+    _subsumptionEqualityResolution.description="Similar to subsumption resolution but uses the implicit x = x clause to resolve a literal.";
+    _lookup.insert(&_subsumptionEqualityResolution);
+    _subsumptionEqualityResolution.onlyUsefulWith(ProperSaturationAlgorithm());
+    _subsumptionEqualityResolution.tag(OptionTag::INFERENCES);
+
     _partialRedundancyCheck = BoolOptionValue("partial_redundancy_check","prc",false);
     _partialRedundancyCheck.description=
       "Skip generating inferences on clause instances on which we already performed a simplifying inference.";
@@ -1943,6 +1990,12 @@ void Options::init()
     _lookup.insert(&_holPrinting);
     _holPrinting.tag(OptionTag::HIGHER_ORDER);
 
+    _addProxyAxioms = BoolOptionValue("add_proxy_axioms","apa",false);
+    _addProxyAxioms.description="Add logical proxy axioms";
+    _lookup.insert(&_addProxyAxioms);
+    _addProxyAxioms.addProblemConstraint(hasHigherOrder());    
+    _addProxyAxioms.tag(OptionTag::HIGHER_ORDER);
+
     _choiceAxiom = BoolOptionValue("choice_ax","cha",false);
     _choiceAxiom.description="Adds the cnf form of the Hilbert choice axiom";
     _lookup.insert(&_choiceAxiom);
@@ -1974,12 +2027,14 @@ void Options::init()
 
     _clausificationOnTheFly = ChoiceOptionValue<CNFOnTheFly>("cnf_on_the_fly", "cnfonf", CNFOnTheFly::EAGER,
                                                              {"eager",
-                                                              "lazy_gen",
-                                                              "lazy_simp",
-                                                              "lazy_not_gen",
-                                                              "lazy_not_gen_be_off",
-                                                              "lazy_not_be_gen",
-                                                              "off"});
+                                                                "lazy_gen",
+                                                                "lazy_simp",
+                                                                "lazy_not_gen",
+                                                                "lazy_pi_sigma_gen",
+                                                                "lazy_not_gen_be_off",
+                                                                "lazy_not_be_gen",
+                                                                "conj_eager",
+                                                                "off"});
     _clausificationOnTheFly.description = "Various options linked to clausification on the fly";
     _lookup.insert(&_clausificationOnTheFly);
     _clausificationOnTheFly.addProblemConstraint(hasHigherOrder());
@@ -1997,7 +2052,7 @@ void Options::init()
                                                                          "pi_sigma"});
     _piSet.description="Controls the set of equations to use in primitive instantiation";
     _lookup.insert(&_piSet);
-    _piSet.addProblemConstraint(hasHigherOrder());     
+    _piSet.addProblemConstraint(hasHigherOrder());
     _piSet.tag(OptionTag::HIGHER_ORDER);
 
     _equalityToEquivalence = BoolOptionValue("equality_to_equiv","e2e",false);
@@ -2006,6 +2061,33 @@ void Options::init()
       "t1 : $o = t2 : $o is changed to t1 <=> t2";
     _lookup.insert(&_equalityToEquivalence);
     // potentially could be useful for FOOL, so am not adding the HOL constraint
+
+    _complexBooleanReasoning = BoolOptionValue("complex_bool_reasoning","cbe",true);
+    _complexBooleanReasoning.description=
+    "Switches on primitive instantiation and elimination of leibniz equality";
+    // TODO add this back to warn users about a suboptimal conf; but actually the two options do something together
+    // _complexBooleanReasoning.addConstraint(If(equal(true)).then(_addProxyAxioms.is(equal(false))));
+    _lookup.insert(&_complexBooleanReasoning);
+    _complexBooleanReasoning.addProblemConstraint(hasHigherOrder());
+    _complexBooleanReasoning.tag(OptionTag::HIGHER_ORDER);
+
+    _booleanEqTrick = BoolOptionValue("bool_eq_trick","bet",false);
+    _booleanEqTrick.description=
+    "Replace an equality between boolean terms such as: "
+    "t = s with a disequality t != vnot(s)"
+    " The theory is that this can help with EqRes";
+    _lookup.insert(&_booleanEqTrick);
+    // potentially could be useful for FOOL, so am not adding the HOL constraint    
+    _booleanEqTrick.tag(OptionTag::HIGHER_ORDER);
+
+    _heuristicInstantiation = BoolOptionValue("heur_inst","hi",false);
+    _heuristicInstantiation.onlyUsefulWith(ProperSaturationAlgorithm());
+    _heuristicInstantiation.addProblemConstraint(hasHigherOrder());   
+    _heuristicInstantiation.addHardConstraint(If(notEqual(false)).then(_clausificationOnTheFly.is(equal(CNFOnTheFly::CONJ_EAGER)))); 
+    _heuristicInstantiation.description =
+      "Heuristically instantiates universally quantified variables with abstractions of literals from negated conjecture";
+    _lookup.insert(&_heuristicInstantiation);
+    _heuristicInstantiation.tag(OptionTag::HIGHER_ORDER);
 
     _casesSimp = BoolOptionValue("cases_simp","cs",false);
     _casesSimp.description=
@@ -2031,6 +2113,25 @@ void Options::init()
     _lookup.insert(&_newTautologyDel);
     // potentially could be useful for FOOL, so am not adding the HOL constraint
     _newTautologyDel.tag(OptionTag::HIGHER_ORDER);
+
+    _positiveExt = BoolOptionValue("pos_ext","pe",false);
+    _positiveExt.description=
+    "Enables the following inference\n"
+        "C \\/ t X = s X \n"
+        "----------------\n"
+        "  C \\/ t = s   \n"
+        "where X doesn't occur in t,s or C";
+    _lookup.insert(&_positiveExt);
+    _positiveExt.addProblemConstraint(hasHigherOrder());   
+    _positiveExt.onlyUsefulWith(_functionExtensionality.is(notEqual(FunctionExtensionality::AXIOM)));
+    _positiveExt.tag(OptionTag::HIGHER_ORDER);
+
+    _iffXorRewriter = BoolOptionValue("iff_xor_rewriter","ixr",true);
+    _iffXorRewriter.description=
+    "Rewrites p <=> q = $true to p <=> q and the like. It does this as an immediate simplification.";
+    _lookup.insert(&_iffXorRewriter);
+    _iffXorRewriter.addProblemConstraint(hasHigherOrder());
+    _iffXorRewriter.tag(OptionTag::HIGHER_ORDER);
 
     _holUnifier = BoolOptionValue("hol_unifier", "hun", false);
     _holUnifier.description = "Enable efficient HOL unification";
@@ -2561,7 +2662,7 @@ void Options::output (std::ostream& str) const
      try{
        option = _lookup.findLong(name);
      }
-     catch(const ValueNotFoundException&){ 
+     catch(const ValueNotFoundException&){
        try{
          option = _lookup.findShort(name);
        }
@@ -2569,12 +2670,12 @@ void Options::output (std::ostream& str) const
          option = 0;
        }
      }
-     if(!option){ 
+     if(!option){
        str << name << " not a known option" << endl;
        Stack<std::string> sim_s = getSimilarOptionNames(name,true);
        Stack<std::string> sim_l = getSimilarOptionNames(name,false);
        VirtualIterator<std::string> sit = pvi(concatIters(
-           Stack<std::string>::Iterator(sim_s),Stack<std::string>::Iterator(sim_l))); 
+           Stack<std::string>::Iterator(sim_s),Stack<std::string>::Iterator(sim_l)));
         if(sit.hasNext()){
           std::string first = sit.next();
           str << "\tMaybe you meant ";
@@ -3832,6 +3933,39 @@ std::vector<float> Options::positiveLiteralSplitQueueCutoffs() const
     }
   }
 
+  return cutoffs;
+}
+
+vector<int> Options::hoSplitQueueRatios() const
+{
+  auto inputRatios = parseCommaSeparatedList<int>(_hoSplitQueueRatios.actualValue);
+
+  // sanity checks
+  if (inputRatios.size() < 2) {
+    USER_ERROR("Wrong usage of option '-hfsqr'. Needs to have at least two values (e.g. '10,1')");
+  }
+  for (const auto& r : inputRatios) {
+    if (r <= 0) {
+      USER_ERROR("Each ratio (supplied by option '-hfsqr') needs to be a positive integer");
+    }
+  }
+
+  return inputRatios;
+}
+
+vector<float> Options::hoSplitQueueCutoffs() const
+{
+  // initialize cutoffs and add float-max as last value
+  auto cutoffs = parseCommaSeparatedList<float>(_hoSplitQueueCutoffs.actualValue);
+  cutoffs.push_back(std::numeric_limits<float>::max());
+
+  // sanity checks
+  for (unsigned i = 0; i < cutoffs.size(); i++) {
+    auto cutoff = cutoffs[i];
+    if (i > 0 && cutoff <= cutoffs[i-1]) {
+      USER_ERROR("The cutoff values (supplied by option '-hfsqc') must be strictly increasing");
+    }
+  }
   return cutoffs;
 }
 

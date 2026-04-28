@@ -76,7 +76,7 @@ ForwardDemodulation<higherOrder>::ForwardDemodulation(SaturationAlgorithm& salg)
     _skipNonequationalLiterals(salg.getOptions().demodulationOnlyEquational()),
     _helper(DemodulationHelper(salg.getOptions(), &salg.getOrdering())),
     _ord(salg.getOrdering()),
-    _index(salg.getSimplifyingIndex<DemodulationLHSIndex>())
+    _index(salg.getSimplifyingIndex<DemodulationLHSIndex<higherOrder>>())
 {}
 
 template<bool higherOrder>

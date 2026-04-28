@@ -596,7 +596,7 @@ static void resolution(std::ostream &out, SortMap &conclSorts, Clause *concl)
   Literal *selectedLeft = br.selectedLiteral.selectedLiteral;
   Literal *selectedRight = br.otherLiteral;
   for(unsigned i = 0; i < selectedLeft->arity(); i++)
-    ALWAYS(uwa.unify((*selectedLeft)[i], 0, (*selectedRight)[i], 1))
+    ALWAYS(uwa.unifyOnce((*selectedLeft)[i], 0, (*selectedRight)[i], 1))
   ASS_NEQ(selectedLeft->polarity(), selectedRight->polarity())
   RobSubstitution &subst = uwa.subs();
 
@@ -795,7 +795,7 @@ static void alascaBinInf(std::ostream &out, SortMap &conclSorts, Clause *concl) 
   const auto &fm = env.proofExtra.get<ALASCA::BinInfExtra<Rule>>(concl);
 
   auto uwa = AbstractingUnifier::empty(AbstractionOracle(env.options->unificationWithAbstraction()));
-  ALWAYS(uwa.unify(fm.left.key(), 0, fm.right.key(), 1))
+  ALWAYS(uwa.unifyOnce(fm.left.key(), 0, fm.right.key(), 1))
   RobSubstitution &subst = uwa.subs();
 
   subst.apply(fm.left.literal(), 0);
