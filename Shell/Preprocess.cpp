@@ -17,9 +17,10 @@
 
 #include "Lib/ScopedLet.hpp"
 
-#include "Kernel/Unit.hpp"
 #include "Kernel/Clause.hpp"
+#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Problem.hpp"
+#include "Kernel/Unit.hpp"
 
 #include "GoalGuessing.hpp"
 #include "AnswerLiteralManager.hpp"
@@ -417,6 +418,10 @@ void Preprocess::preprocess(Problem& prb)
      twee.apply(prb,(env.options->tweeGoalTransformation() == Options::TweeGoalTransformation::GROUND));
    }
 
+   if (prb.isHigherOrder() && _options.heuristicInstantiation()) {
+     findAbstractions(prb.units());
+   }
+
    if (!prb.isHigherOrder() && _options.equalityProxy()!=Options::EqualityProxy::OFF && prb.mayHaveEquality()) {
      env.statistics->phase=ExecutionPhase::EQUALITY_PROXY;
      if (env.options->showPreprocessing())
@@ -783,4 +788,20 @@ void Preprocess::clausify(Problem& prb)
     prb.invalidateProperty();
   }
   prb.reportFormulasEliminated();
+}
+
+void Preprocess::findAbstractions(UnitList*& units)
+{
+  for (const auto& u : iterTraits(UnitList::RefIterator(units))) {
+    if (!u->derivedFromGoal()) {
+      continue;
+    }
+
+    ASS(u->isClause());
+    for (const auto& lit : *u->asClause()) {
+      for (const auto& t : HOL::getAbstractionTerms(lit)) {
+        env.signature->addInstantiation(t);
+      }
+    }
+  }
 }

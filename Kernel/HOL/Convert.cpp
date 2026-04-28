@@ -161,9 +161,9 @@ static TermList formulaToNameless(Formula *formula, const VarToIndexMap& map) {
     case Connective::BOOL_TERM:
       return termToNameless(formula->getBooleanTerm(), map);
     case Connective::TRUE:
-      return TermList(Term::foolTrue());
+      return HOL::create::top();
     case Connective::FALSE:
-      return TermList(Term::foolFalse());
+      return HOL::create::bottom();
     default:
       ASSERTION_VIOLATION;
   }
@@ -171,4 +171,20 @@ static TermList formulaToNameless(Formula *formula, const VarToIndexMap& map) {
 
 TermList HOL::convert::toNameless(TermList term) {
   return termToNameless(term, {});
+}
+
+TermList HOL::convert::toNameless(Formula* formula)
+{
+  // remove leading universal type quantifiers
+  if (formula->connective() == FORALL) {
+    auto vars = formula->vars();
+    while (vars && vars->head().second == AtomicSort::superSort()) {
+      vars = vars->tail();
+    }
+    if (vars != formula->vars()) {
+      auto f = formula->qarg();
+      formula = vars ? new QuantifiedFormula(FORALL, vars, f) : f;
+    }
+  }
+  return formulaToNameless(formula, {});
 }

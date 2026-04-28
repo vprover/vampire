@@ -2160,6 +2160,12 @@ public:
   std::vector<int> positiveLiteralSplitQueueRatios() const;
   std::vector<float> positiveLiteralSplitQueueCutoffs() const;
   bool positiveLiteralSplitQueueLayeredArrangement() const { return _positiveLiteralSplitQueueLayeredArrangement.actualValue; }
+  bool hoSplitQueues() const { return _hoSplitQueues.actualValue; }
+  unsigned hoSplitQueueLambdaWeight() const { return _hoSplitQueueLambdaWeight.actualValue; }
+  unsigned hoSplitQueueAppVarWeight() const { return _hoSplitQueueAppVarWeight.actualValue; }
+  std::vector<int> hoSplitQueueRatios() const;
+  std::vector<float> hoSplitQueueCutoffs() const;
+  bool hoSplitQueueLayeredArrangement() const { return _hoSplitQueueLayeredArrangement.actualValue; }
   void setWeightRatio(int v){ _ageWeightRatio.otherValue = v; }
   bool literalMaximalityAftercheck() const { return _literalMaximalityAftercheck.actualValue; }
   bool superpositionFromVariables() const { return _superpositionFromVariables.actualValue; }
@@ -2305,6 +2311,7 @@ public:
   bool equalityToEquivalence () const { return _equalityToEquivalence.actualValue; }
   bool complexBooleanReasoning () const { return _complexBooleanReasoning.actualValue; }
   bool booleanEqTrick() const { return _booleanEqTrick.actualValue; }
+  bool heuristicInstantiation() const { return _heuristicInstantiation.actualValue; }
   bool casesSimp() const { return _casesSimp.actualValue; }
   bool cases() const { return _cases.actualValue; }
   bool newTautologyDel() const { return _newTautologyDel.actualValue; }
@@ -2418,6 +2425,12 @@ private:
   StringOptionValue _positiveLiteralSplitQueueRatios;
   StringOptionValue _positiveLiteralSplitQueueCutoffs;
   BoolOptionValue _positiveLiteralSplitQueueLayeredArrangement;
+  BoolOptionValue _hoSplitQueues;
+  UnsignedOptionValue _hoSplitQueueLambdaWeight;
+  UnsignedOptionValue _hoSplitQueueAppVarWeight;
+  StringOptionValue _hoSplitQueueRatios;
+  StringOptionValue _hoSplitQueueCutoffs;
+  BoolOptionValue _hoSplitQueueLayeredArrangement;
 	BoolOptionValue _randomAWR;
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
@@ -2431,6 +2444,7 @@ private:
   BoolOptionValue _backwardSubsumptionDemodulation;
   UnsignedOptionValue _backwardSubsumptionDemodulationMaxMatches;
   BoolOptionValue _binaryResolution;
+  BoolOptionValue _superposition;
 
   BoolOptionValue _colorUnblocking;
   ChoiceOptionValue<Condensation> _condensation;
@@ -2736,7 +2750,7 @@ private:
   BoolOptionValue _equalityToEquivalence;
   BoolOptionValue _complexBooleanReasoning;
   BoolOptionValue _booleanEqTrick;
-  BoolOptionValue _superposition;
+  BoolOptionValue _heuristicInstantiation;
   BoolOptionValue _casesSimp;
   BoolOptionValue _cases;
   BoolOptionValue _newTautologyDel;

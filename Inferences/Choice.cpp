@@ -57,8 +57,8 @@ Clause* Choice::createChoiceAxiom(TermList op, TermList set)
   t2 =          HC::app(setSort, set, t2);
 
   return Clause::fromLiterals(
-      { Literal::createEquality(true, t1, TermList(Term::foolFalse()), AtomicSort::boolSort()),
-        Literal::createEquality(true, t2, TermList(Term::foolTrue()), AtomicSort::boolSort())},
+      { Literal::createEquality(true, t1, HOL::create::bottom(), AtomicSort::boolSort()),
+        Literal::createEquality(true, t2, HOL::create::top(), AtomicSort::boolSort())},
        NonspecificInference0(UnitInputType::AXIOM, InferenceRule::HILBERTS_CHOICE_INSTANCE)
   );
 }
