@@ -34,13 +34,13 @@ using namespace Test;
 #define MY_GEN_RULE   Choice
 #define MY_GEN_TESTER Generation::GenerationTester
 
-// TEST_GENERATION(fail_1,
+// TEST_GENERATION(rule_fail_1,
 //     Generation::AsymmetricTest()
 //       .input( clause({ selected(x == y), g == lam(srt, ap(f, {db0, db0})) }))
 //       .expected(none())
 //     )
 
-// TEST_GENERATION(success_1,
+// TEST_GENERATION(rule_success_1,
 //     Generation::AsymmetricTest()
 //       .input( clause({ selected(g == lam(srt, ap(f, {x, x}))) }))
 //       .expected(exactly(clause({ ap(g, y) == ap(lam(srt, ap(f, {x, x})), y) })))
