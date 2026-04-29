@@ -33,6 +33,8 @@ public:
   static void getCasc2025Schedule(const Shell::Property& property, Schedule& quick, Schedule& champions);
   static void getCascSat2025Schedule(const Shell::Property& property, Schedule& quick, Schedule& champions);
 
+  static void getCasc2026Schedule(const Shell::Property& property, Schedule& quick, Schedule& champions);
+
   static void getSmtcomp2018Schedule(const Shell::Property& property, Schedule& quick);
 
   static void getLtb2017Hh4Schedule(const Shell::Property& property, Schedule& sched);
@@ -47,7 +49,8 @@ public:
   static void getStructInductionSchedule(const Shell::Property& property, Schedule& quick);
   static void getStructInductionTipSchedule(const Shell::Property& property, Schedule& quick);
 
-  static void getAlascaAwareAriSchedule(const Shell::Property& property, Schedule& quick);
+  static void getAlascaAwareAriSchedule(Schedule& quick);
+  static void get2025EPRSchedule(Schedule& quick, Schedule& champions);
 
   static void getSnakeTptpUnsSchedule(const Shell::Property& property, Schedule& quick);
   static void getSnakeTptpSatSchedule(const Shell::Property& property, Schedule& quick);

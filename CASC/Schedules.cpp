@@ -3925,7 +3925,7 @@ void Schedules::getCasc2024Schedule(const Property& property, Schedule& quick)
   if (property.hasNumerals() || property.hasInterpretedOperations()) {
     // The TFA division: Typed (monomorphic) First-order with Arithmetic theorems (axioms with a provable conjecture).
 
-    getAlascaAwareAriSchedule(property,quick);
+    getAlascaAwareAriSchedule(quick);
 
   } else if (cat == Property::Category::UEQ) {
     // The UEQ division: Unit EQuality clause normal form theo rems (unsatisfiable clause sets)
@@ -5024,7 +5024,7 @@ void Schedules::getCascSat2024Schedule(const Property& property, Schedule& quick
   // len(covered) 1067
 }
 
-void Schedules::getAlascaAwareAriSchedule(const Shell::Property& property, Schedule& quick) {
+void Schedules::getAlascaAwareAriSchedule(Schedule& quick) {
   // alasca/problemsARIuns.txt
   // Sub-schedule for 2000Mi strat cap / 2000Mi overall limit
   quick.push("dis+1002_16:1_alasca=off:doe=on:gtg=exists_top:gve=force:norm_ineq=on:sas=z3:sil=64000:ss=axioms:to=lpo:uwa=one_side_constant:i=12:si=on:rtra=on_0");
@@ -5203,6 +5203,64 @@ void Schedules::getAlascaAwareAriSchedule(const Shell::Property& property, Sched
   // Overall score 1199.1195958042465 probs on average / budget 807745 Mi
 }
 
+void Schedules::get2025EPRSchedule(Schedule& quick, Schedule& champions)
+{
+  champions.push("lrs+1_1:1024_to=lpo:sp=weighted_frequency:amm=off_0");
+  champions.push("fmb+10_1:1_i=150016:sas=cadical_0");
+  champions.push("ott+11_2:1_bsr=on:plsq=on:plsqc=2:plsqr=16065853,524288:spb=goal:sac=on:i=250008:add=on:doe=on:bs=unit_only:bd=all:nm=4:gsp=on:rawr=on:s2a=on:s2at=2.0:lsd=10:prc=on:prac=on_0");
+  // 1631 + 54 + 37 = 1722 pre-covered
+
+  quick.push("ott+21_1:1_sil=128000:fs=off:i=102:av=off:fsr=off:lcm=predicate_0");
+  quick.push("dis+10_1:1_bsr=unit_only:sil=2000:sac=on:i=109:aac=none:avsq=on:avsqc=5:nicw=on_0");
+  quick.push("lrs+35_1:1024_to=lpo:sil=64000:i=235:fsr=off:amm=off_0");
+  quick.push("fmb+10_1:1_sil=16000:sas=cadical:i=102_0");
+  quick.push("lrs+1010_1:8_sil=2000:urr=on:br=off:flr=on:s2a=on:i=181:bsr=unit_only:plsq=on:fsr=off_0");
+  quick.push("lrs+2_1:1_sil=2000:i=1183:kws=precedence_0");
+  quick.push("fmb+10_1:1_sil=256000:updr=off:i=763:fmbss=2_0");
+  quick.push("fmb+10_1:1_sil=16000:sas=cadical:fmbss=17:i=1049:bce=on:fmbas=function_0");
+  quick.push("lrs+10_1:1_sil=2000:sas=z3:i=1329:nm=2_0");
+  quick.push("lrs+4_2:3_slsqr=1,8:to=lpo:sil=2000:tgt=full:plsq=on:plsqr=4,31:sp=const_min:urr=on:flr=on:slsq=on:i=536:nm=0:gs=on:fd=preordered:foolp=on:fsd=on:s2pl=no_0");
+  quick.push("lrs+11_1:128_sil=16000:sp=unary_first:urr=on:lcm=predicate:nwc=0.5:sac=on:i=13848:aac=none_0");
+  quick.push("lrs+11_1:4096_sil=64000:plsq=on:plsqr=32,1:rnwc=on:flr=on:sac=on:i=1572:aac=none:gtg=exists_all:gtgl=5:amm=off_0");
+  quick.push("ott-30_1:1024_drc=ordering:sil=4000:alpa=true:newcnf=on:i=660:bs=unit_only:ins=1:amm=off_0");
+  quick.push("lrs+10_1:1_sil=16000:sp=occurrence:bce=on:st=2.0:i=9833:sd=12:ss=axioms:sgt=16_0");
+  quick.push("dis+10_1:40_sil=8000:urr=on:br=off:i=1065:slsq=on_0");
+  quick.push("fmb+10_1:1_sil=32000:sas=cadical:fmbss=16:i=1570:ins=20_0");
+  quick.push("lrs+2_1:1_sil=16000:i=3419:sd=12:ss=axioms:sgt=32:sp=occurrence_0");
+  quick.push("dis+10_2:13_anc=all_dependent:sfv=off:sil=2000:sos=on:rnwc=on:sac=on:nicw=on:avsq=on:s2a=on:i=1019:aac=none:bs=unit_only:nm=2:doe=on:amm=off:ss=axioms:sd=2:st=2.0_0");
+  quick.push("dis+22_1:128_sil=64000:urr=on:sac=on:i=21694:aac=none:lcm=predicate_0");
+  quick.push("lrs+11_1:32_sil=16000:sos=on:spb=goal_then_units:lsd=100:lcm=predicate:i=1350:gtgl=4:nm=0:av=off:gtg=all:cts=off_0");
+  quick.push("lrs+21_1:16_anc=all:to=lpo:sil=2000:flr=on:nicw=on:i=1507_0");
+  quick.push("lrs+1_16:1_sil=16000:bce=on:lcm=reverse:i=15752:sd=4:kws=frequency:ss=axioms:sgt=90:s2a=on:aac=none:s2agt=16_0");
+  quick.push("dis-1003_6:25_anc=all:sil=32000:plsq=on:plsqc=1:plsqr=1,32:urr=on:br=off:alpa=false:sac=on:nicw=on:avsqc=5:avsq=on:i=26553:fsr=off:amm=off:add=on_0");
+  quick.push("dis-11_1:1_anc=none:sil=16000:i=4811:erd=off:sac=on:sas=z3_0");
+  quick.push("fmb+10_1:1_sil=256000:i=84722:sas=cadical_0");
+  quick.push("lrs+11_1:1024_sil=16000:plsq=on:plsqr=1,32:urr=on:flr=on:s2pl=no:s2a=on:i=10652:gsp=on:gtg=exists_all:gtgl=5_0");
+  quick.push("lrs+11_9:143_anc=all_dependent:bsr=unit_only:sil=16000:prc=on:bce=on:lcm=reverse:rnwc=on:nwc=4.0:alpa=false:flr=on:sac=on:cts=off:s2a=on:i=1884:s2at=8.0:add=on:bs=on:fsr=off:fd=off:proc=on_0");
+  quick.push("ott-22_1:32_sil=16000:sp=weighted_frequency:i=1985:kws=inv_arity:nm=10:alpa=false:fdi=4:avsq=on:avsqr=1,16:tgt=full:ins=9:add=off:rnwc=on:fdtod=off_0");
+  quick.push("ott+11_1:1_sil=16000:i=2251:nm=2:fsd=on:s2a=on:kws=inv_arity_squared:fsr=off:gs=on:s2at=3.0_0");
+  quick.push("lrs+10_1:1_sil=16000:lma=off:i=9136:sd=5:ss=axioms:sgt=32_0");
+  quick.push("lrs+2_1:14_sil=32000:s2agt=16:s2a=on:i=34808:nicw=on:aac=none:fd=off_0");
+  quick.push("lrs+10_1:128_to=lpo:sil=32000:sp=weighted_frequency:spb=goal:s2a=on:i=47668:s2at=3.0:fde=none:amm=off_0");
+  quick.push("dis-10_1:1024_sil=256000:sac=on:cn=on:i=5376:nicw=on_0");
+  quick.push("fmb+10_1:1_sil=16000:sas=cadical:fmbss=72:i=5503:bce=on_0");
+  quick.push("dis+10_1:14_anc=all:sil=16000:tgt=ground:spb=goal:s2a=on:i=7408:fgj=on:drc=ordering:slsq=on:slsqc=2_0");
+  quick.push("lrs+10_1:1024_sil=16000:urr=on:br=off:i=9257:ep=R:av=off:fsr=off:cts=off_0");
+  quick.push("dis+10_1:4_sil=16000:acc=on:urr=full:br=off:flr=on:nicw=on:avsq=on:i=9541:avsqr=8,1:fsr=off:plsq=on:plsqr=32,1_0");
+  quick.push("dis+10_1:1_sil=128000:plsq=on:plsqc=1:plsqr=128,1:i=87927:lcm=reverse:amm=off:alpa=true:gs=on:prc=on:prlc=on:spb=goal:fs=off:fsr=off:etr=on_0");
+  quick.push("dis+10_1:161_sil=128000:gs=on:alpa=true:sac=on:cn=on:i=12070:add=on:rawr=on:slsq=on:plsq=on:plsqr=61199697,1048576_0");
+  quick.push("ott+10_614377:524288_anc=all:bsr=on:sil=16000:plsq=on:plsqr=2225731,262144:avsq=on:i=12528:add=on:avsqr=1472515,1048576:rawr=on_0");
+  quick.push("ott-3_1:8_sil=64000:i=19178:bs=on_0");
+  quick.push("ott-10_1:8_bsr=unit_only:sil=256000:sas=cadical:cn=on:i=51832_0");
+  quick.push("ott+10_1:1_sil=64000:gs=on:i=28120:fsr=off:plsq=on:plsqc=4:bs=on:bsr=unit_only_0");
+  quick.push("lrs+35_1:128_prlc=on:sil=128000:prc=on:sas=cadical:sp=unary_first:fs=off:spb=units:urr=ec_only:bce=on:lcm=predicate:fd=off:nwc=1.0:s2agt=128:st=-1.0:s2a=on:prac=on:i=31289:sd=2:aac=none:fsr=off:amm=off:ss=axioms:kws=frequency:plsq=on:plsqr=128,1:avsq=on:avsqc=3_0");
+  quick.push("lrs+10_1:1_sil=256000:urr=on:br=off:sac=on:i=215231:plsq=on:plsqc=2:plsqr=67919915,1048576_0");
+  quick.push("dis-1010_1:256_sil=64000:sas=cadical:sp=unary_first:spb=intro:lcm=predicate:nwc=16.0:sac=on:cond=fast:i=56658:drc=off:fdi=2:plsq=on:avsq=on:avsqc=2:aac=none:bd=preordered:ss=included_0");
+  quick.push("ott+11_2:1_bsr=on:sil=256000:plsq=on:plsqc=2:plsqr=16065853,524288:spb=goal:sac=on:i=231964:add=on:doe=on:bs=unit_only:bd=all:nm=4:gsp=on:rawr=on:s2a=on:s2at=2.0:lsd=10:prc=on:prac=on_0");
+  quick.push("dis+22_1:128_sil=256000:urr=on:sac=on:i=190827:aac=none:lcm=predicate_0");
+  // total_instr 1278057
+  // len(covered) 1780
+}
 
 void Schedules::getCasc2025Schedule(const Property& property, Schedule& quick, Schedule& champions)
 {
@@ -5213,8 +5271,7 @@ void Schedules::getCasc2025Schedule(const Property& property, Schedule& quick, S
 
     addCommentSignForSZS(std::cout);
     std::cout << "Detected arithmetic, will pick strategies from an ALASCA-aware ARI schedule." << std::endl;
-
-    getAlascaAwareAriSchedule(property,quick);
+    getAlascaAwareAriSchedule(quick);
 
   } else if (cat == Property::Category::UEQ) {
     addCommentSignForSZS(std::cout);
@@ -5321,62 +5378,7 @@ void Schedules::getCasc2025Schedule(const Property& property, Schedule& quick, S
 
     addCommentSignForSZS(std::cout);
     std::cout << "Detected 'Essentially Bernays–Schönfinkel–Ramsey OR Essentially ground' problem, will run a specialized EPR schedule (with support for satisfiability detection)." << std::endl;
-
-    champions.push("lrs+1_1:1024_to=lpo:sp=weighted_frequency:amm=off_0");
-    champions.push("fmb+10_1:1_i=150016:sas=cadical_0");
-    champions.push("ott+11_2:1_bsr=on:plsq=on:plsqc=2:plsqr=16065853,524288:spb=goal:sac=on:i=250008:add=on:doe=on:bs=unit_only:bd=all:nm=4:gsp=on:rawr=on:s2a=on:s2at=2.0:lsd=10:prc=on:prac=on_0");
-    // 1631 + 54 + 37 = 1722 pre-covered
-
-    quick.push("ott+21_1:1_sil=128000:fs=off:i=102:av=off:fsr=off:lcm=predicate_0");
-    quick.push("dis+10_1:1_bsr=unit_only:sil=2000:sac=on:i=109:aac=none:avsq=on:avsqc=5:nicw=on_0");
-    quick.push("lrs+35_1:1024_to=lpo:sil=64000:i=235:fsr=off:amm=off_0");
-    quick.push("fmb+10_1:1_sil=16000:sas=cadical:i=102_0");
-    quick.push("lrs+1010_1:8_sil=2000:urr=on:br=off:flr=on:s2a=on:i=181:bsr=unit_only:plsq=on:fsr=off_0");
-    quick.push("lrs+2_1:1_sil=2000:i=1183:kws=precedence_0");
-    quick.push("fmb+10_1:1_sil=256000:updr=off:i=763:fmbss=2_0");
-    quick.push("fmb+10_1:1_sil=16000:sas=cadical:fmbss=17:i=1049:bce=on:fmbas=function_0");
-    quick.push("lrs+10_1:1_sil=2000:sas=z3:i=1329:nm=2_0");
-    quick.push("lrs+4_2:3_slsqr=1,8:to=lpo:sil=2000:tgt=full:plsq=on:plsqr=4,31:sp=const_min:urr=on:flr=on:slsq=on:i=536:nm=0:gs=on:fd=preordered:foolp=on:fsd=on:s2pl=no_0");
-    quick.push("lrs+11_1:128_sil=16000:sp=unary_first:urr=on:lcm=predicate:nwc=0.5:sac=on:i=13848:aac=none_0");
-    quick.push("lrs+11_1:4096_sil=64000:plsq=on:plsqr=32,1:rnwc=on:flr=on:sac=on:i=1572:aac=none:gtg=exists_all:gtgl=5:amm=off_0");
-    quick.push("ott-30_1:1024_drc=ordering:sil=4000:alpa=true:newcnf=on:i=660:bs=unit_only:ins=1:amm=off_0");
-    quick.push("lrs+10_1:1_sil=16000:sp=occurrence:bce=on:st=2.0:i=9833:sd=12:ss=axioms:sgt=16_0");
-    quick.push("dis+10_1:40_sil=8000:urr=on:br=off:i=1065:slsq=on_0");
-    quick.push("fmb+10_1:1_sil=32000:sas=cadical:fmbss=16:i=1570:ins=20_0");
-    quick.push("lrs+2_1:1_sil=16000:i=3419:sd=12:ss=axioms:sgt=32:sp=occurrence_0");
-    quick.push("dis+10_2:13_anc=all_dependent:sfv=off:sil=2000:sos=on:rnwc=on:sac=on:nicw=on:avsq=on:s2a=on:i=1019:aac=none:bs=unit_only:nm=2:doe=on:amm=off:ss=axioms:sd=2:st=2.0_0");
-    quick.push("dis+22_1:128_sil=64000:urr=on:sac=on:i=21694:aac=none:lcm=predicate_0");
-    quick.push("lrs+11_1:32_sil=16000:sos=on:spb=goal_then_units:lsd=100:lcm=predicate:i=1350:gtgl=4:nm=0:av=off:gtg=all:cts=off_0");
-    quick.push("lrs+21_1:16_anc=all:to=lpo:sil=2000:flr=on:nicw=on:i=1507_0");
-    quick.push("lrs+1_16:1_sil=16000:bce=on:lcm=reverse:i=15752:sd=4:kws=frequency:ss=axioms:sgt=90:s2a=on:aac=none:s2agt=16_0");
-    quick.push("dis-1003_6:25_anc=all:sil=32000:plsq=on:plsqc=1:plsqr=1,32:urr=on:br=off:alpa=false:sac=on:nicw=on:avsqc=5:avsq=on:i=26553:fsr=off:amm=off:add=on_0");
-    quick.push("dis-11_1:1_anc=none:sil=16000:i=4811:erd=off:sac=on:sas=z3_0");
-    quick.push("fmb+10_1:1_sil=256000:i=84722:sas=cadical_0");
-    quick.push("lrs+11_1:1024_sil=16000:plsq=on:plsqr=1,32:urr=on:flr=on:s2pl=no:s2a=on:i=10652:gsp=on:gtg=exists_all:gtgl=5_0");
-    quick.push("lrs+11_9:143_anc=all_dependent:bsr=unit_only:sil=16000:prc=on:bce=on:lcm=reverse:rnwc=on:nwc=4.0:alpa=false:flr=on:sac=on:cts=off:s2a=on:i=1884:s2at=8.0:add=on:bs=on:fsr=off:fd=off:proc=on_0");
-    quick.push("ott-22_1:32_sil=16000:sp=weighted_frequency:i=1985:kws=inv_arity:nm=10:alpa=false:fdi=4:avsq=on:avsqr=1,16:tgt=full:ins=9:add=off:rnwc=on:fdtod=off_0");
-    quick.push("ott+11_1:1_sil=16000:i=2251:nm=2:fsd=on:s2a=on:kws=inv_arity_squared:fsr=off:gs=on:s2at=3.0_0");
-    quick.push("lrs+10_1:1_sil=16000:lma=off:i=9136:sd=5:ss=axioms:sgt=32_0");
-    quick.push("lrs+2_1:14_sil=32000:s2agt=16:s2a=on:i=34808:nicw=on:aac=none:fd=off_0");
-    quick.push("lrs+10_1:128_to=lpo:sil=32000:sp=weighted_frequency:spb=goal:s2a=on:i=47668:s2at=3.0:fde=none:amm=off_0");
-    quick.push("dis-10_1:1024_sil=256000:sac=on:cn=on:i=5376:nicw=on_0");
-    quick.push("fmb+10_1:1_sil=16000:sas=cadical:fmbss=72:i=5503:bce=on_0");
-    quick.push("dis+10_1:14_anc=all:sil=16000:tgt=ground:spb=goal:s2a=on:i=7408:fgj=on:drc=ordering:slsq=on:slsqc=2_0");
-    quick.push("lrs+10_1:1024_sil=16000:urr=on:br=off:i=9257:ep=R:av=off:fsr=off:cts=off_0");
-    quick.push("dis+10_1:4_sil=16000:acc=on:urr=full:br=off:flr=on:nicw=on:avsq=on:i=9541:avsqr=8,1:fsr=off:plsq=on:plsqr=32,1_0");
-    quick.push("dis+10_1:1_sil=128000:plsq=on:plsqc=1:plsqr=128,1:i=87927:lcm=reverse:amm=off:alpa=true:gs=on:prc=on:prlc=on:spb=goal:fs=off:fsr=off:etr=on_0");
-    quick.push("dis+10_1:161_sil=128000:gs=on:alpa=true:sac=on:cn=on:i=12070:add=on:rawr=on:slsq=on:plsq=on:plsqr=61199697,1048576_0");
-    quick.push("ott+10_614377:524288_anc=all:bsr=on:sil=16000:plsq=on:plsqr=2225731,262144:avsq=on:i=12528:add=on:avsqr=1472515,1048576:rawr=on_0");
-    quick.push("ott-3_1:8_sil=64000:i=19178:bs=on_0");
-    quick.push("ott-10_1:8_bsr=unit_only:sil=256000:sas=cadical:cn=on:i=51832_0");
-    quick.push("ott+10_1:1_sil=64000:gs=on:i=28120:fsr=off:plsq=on:plsqc=4:bs=on:bsr=unit_only_0");
-    quick.push("lrs+35_1:128_prlc=on:sil=128000:prc=on:sas=cadical:sp=unary_first:fs=off:spb=units:urr=ec_only:bce=on:lcm=predicate:fd=off:nwc=1.0:s2agt=128:st=-1.0:s2a=on:prac=on:i=31289:sd=2:aac=none:fsr=off:amm=off:ss=axioms:kws=frequency:plsq=on:plsqr=128,1:avsq=on:avsqc=3_0");
-    quick.push("lrs+10_1:1_sil=256000:urr=on:br=off:sac=on:i=215231:plsq=on:plsqc=2:plsqr=67919915,1048576_0");
-    quick.push("dis-1010_1:256_sil=64000:sas=cadical:sp=unary_first:spb=intro:lcm=predicate:nwc=16.0:sac=on:cond=fast:i=56658:drc=off:fdi=2:plsq=on:avsq=on:avsqc=2:aac=none:bd=preordered:ss=included_0");
-    quick.push("ott+11_2:1_bsr=on:sil=256000:plsq=on:plsqc=2:plsqr=16065853,524288:spb=goal:sac=on:i=231964:add=on:doe=on:bs=unit_only:bd=all:nm=4:gsp=on:rawr=on:s2a=on:s2at=2.0:lsd=10:prc=on:prac=on_0");
-    quick.push("dis+22_1:128_sil=256000:urr=on:sac=on:i=190827:aac=none:lcm=predicate_0");
-    // total_instr 1278057
-    // len(covered) 1780
+    get2025EPRSchedule(quick,champions);
 
   } else if (property.formulas() > 0) { // any other FOF
     addCommentSignForSZS(std::cout);
@@ -6076,4 +6078,37 @@ void Schedules::getCascSat2025Schedule(const Property& property, Schedule& quick
   quick.push("fmb+10_1:1_sil=256000:tgt=full:sas=cadical:fmbss=10:fmbsr=2.0:i=185024:ins=7_0");
   // total_instr 1355247
   // len(covered) 2201
+}
+
+void Schedules::getCasc2026Schedule(const Property& property, Schedule& quick, Schedule& champions)
+{
+  Property::Category cat = property.category();
+
+  if (property.hasNumerals() || property.hasInterpretedOperations()) {
+    // The TFA division: Typed (monomorphic) First-order with Arithmetic theorems (axioms with a provable conjecture).
+
+    addCommentSignForSZS(std::cout);
+    std::cout << "Detected arithmetic, will pick strategies from an ALASCA-aware ARI schedule." << std::endl;
+    getAlascaAwareAriSchedule(quick);
+
+  } else if (cat == Property::Category::UEQ) {
+    addCommentSignForSZS(std::cout);
+    std::cout << "Detected a unit-equality problem, will run specialized UEQ schedule." << std::endl;
+
+  } else if (!property.hasFOOL() && // the two checks below assume CNF + FOL, so let's exclude foolish stuff (which won't be at CASC anyway, but for the benefit of our users)
+    (property.hasProp(Property::PR_ESSENTIALLY_BSR) || property.hasProp(Property::PR_ESSENTIALLY_GROUND)) ) { // Geoff's EPR contains UF_QF (the second disjunct)
+
+    addCommentSignForSZS(std::cout);
+    std::cout << "Detected 'Essentially Bernays–Schönfinkel–Ramsey OR Essentially ground' problem, will run a specialized EPR schedule (with support for satisfiability detection)." << std::endl;
+    // TODO: uncomment me ! // get2025EPRSchedule(quick,champions);
+
+  } else if (property.formulas() > 0) { // any other FOF
+    addCommentSignForSZS(std::cout);
+    std::cout << "Detected formulas, will run a generic FOF schedule." << std::endl;
+
+  } else { // any other CNF
+    addCommentSignForSZS(std::cout);
+    std::cout << "Input is clausal, will run a generic CNF schedule." << std::endl;
+
+  }
 }

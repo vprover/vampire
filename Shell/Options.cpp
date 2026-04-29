@@ -172,6 +172,7 @@ void Options::init()
         {"casc",
          "casc_2024",
          "casc_2025",
+         "casc_2026",
          "casc_sat",
          "casc_sat_2024",
          "casc_sat_2025",

@@ -399,6 +399,7 @@ public:
     CASC,
     CASC_2024,
     CASC_2025,
+    CASC_2026,
     CASC_SAT,
     CASC_SAT_2024,
     CASC_SAT_2025,
