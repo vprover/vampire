@@ -47,6 +47,7 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <vector>
 
 //TODO: when we delete clause, we should also delete all its records from the inference store
 
@@ -86,7 +87,7 @@ void InferenceStore::recordIntroducedSymbol(Unit* u, SymbolType st, unsigned num
   pStack->push(SymbolId(st,number));
 }
 
-void InferenceStore::recordIntroducedSkolemSymbol(Unit* u, SymbolType st, unsigned number, unsigned replacedVar, std::unique_ptr<DHSet<unsigned>> inScopeVars)
+void InferenceStore::recordIntroducedSkolemSymbol(Unit* u, SymbolType st, unsigned number, unsigned replacedVar, std::unique_ptr<std::vector<unsigned>> inScopeVars)
 {
   SymbolStack* pStack;
   _introducedSymbols.getValuePtr(u->number(),pStack);
@@ -623,10 +624,11 @@ std::string getSkolemizeMap(It symIt){
     auto inScopeVars = _is->_introducedSymbolInScopeVars.get(a.second).get();
     if(inScopeVars->size() > 0) {
       symsStr << "(";
-      auto iter = inScopeVars->iterator();
-      while(iter.hasNext()){
-        symsStr << "X" << iter.next();
-        if(iter.hasNext()) {
+      auto iter = inScopeVars->begin();
+      while(iter != inScopeVars->end()){
+        symsStr << "X" << *iter;
+        ++iter;
+        if(iter != inScopeVars->end()) {
           symsStr << ",";
         }
       }

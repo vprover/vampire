@@ -33,6 +33,7 @@
 #include "Options.hpp"
 #include "Rectify.hpp"
 #include <memory>
+#include <vector>
 #include "Skolem.hpp"
 
 using namespace std;
@@ -455,9 +456,9 @@ Formula* Skolem::skolemise (Formula* f)
           TermList head = TermList(Term::create(sym, typeVars.size(), typeVars.begin()));
           skolemTerm = HOL::create::app(head, termVars).term();
         }
-        std::unique_ptr<DHSet<unsigned>> inScopeVars = std::unique_ptr<DHSet<unsigned>>(new DHSet<unsigned>());
+        std::unique_ptr<std::vector<unsigned>> inScopeVars = std::unique_ptr<std::vector<unsigned>>(new std::vector <unsigned>());
         for(auto it : dep->iter()){
-          inScopeVars->insert(it);
+          inScopeVars->push_back(it);
         }
         _introducedSkolemSyms.push(std::make_tuple(skolemisingTypeVar, sym, v, std::move(inScopeVars)));
 
@@ -496,8 +497,8 @@ Formula* Skolem::skolemise (Formula* f)
           def = new QuantifiedFormula(FORALL, vArgs.list(), def);
         }
         
-        Unit* defUnit = new FormulaUnit(def,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::SKOLEM_SYMBOL_INTRODUCTION));
-        UnitList::push(defUnit,_skolimizingDefinitions);
+        //Unit* defUnit = new FormulaUnit(def,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::SKOLEM_SYMBOL_INTRODUCTION));
+        //UnitList::push(defUnit,_skolimizingDefinitions);
       }
       
       // drop the existential one:

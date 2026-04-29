@@ -19,6 +19,7 @@
 #include <memory>
 #include <utility>
 #include <ostream>
+#include <vector>
 
 #include "Forwards.hpp"
 
@@ -71,7 +72,7 @@ public:
 
   void recordSplittingNameLiteral(Unit* us, Literal* lit);
   void recordIntroducedSymbol(Unit* u, SymbolType st, unsigned number);
-  void recordIntroducedSkolemSymbol(Unit* u, SymbolType st, unsigned number, unsigned replacedVar, std::unique_ptr<DHSet<unsigned>> inScopeVars);
+  void recordIntroducedSkolemSymbol(Unit* u, SymbolType st, unsigned number, unsigned replacedVar, std::unique_ptr<std::vector<unsigned>> inScopeVars);
   void recordIntroducedSplitName(Unit* u, std::string name);
   
 
@@ -99,7 +100,7 @@ private:
   typedef Stack<SymbolId> SymbolStack;
   DHMap<unsigned,SymbolStack> _introducedSymbols;
   DHMap<unsigned, unsigned> _introducedSymbolReplacedVars;
-  DHMap<unsigned, std::unique_ptr<DHSet<unsigned>>> _introducedSymbolInScopeVars;
+  DHMap<unsigned, std::unique_ptr<std::vector<unsigned>>> _introducedSymbolInScopeVars;
   DHMap<unsigned,std::string> _introducedSplitNames;
 };
 

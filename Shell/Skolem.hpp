@@ -104,7 +104,7 @@ private:
 
   // for some heuristic evaluations after we are done
   // Type, numberOfSymbol, replacedVar, inScopeVars
-  Stack<std::tuple<bool, unsigned, unsigned, std::unique_ptr<DHSet<unsigned>>>> _introducedSkolemSyms;
+  Stack<std::tuple<bool, unsigned, unsigned, std::unique_ptr<std::vector<unsigned>>>> _introducedSkolemSyms;
   
   FormulaUnit* _beingSkolemised;
 
