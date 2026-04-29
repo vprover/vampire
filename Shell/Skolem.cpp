@@ -85,7 +85,6 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
   Formula* f = unit->formula();
   preskolemise(f);
   ASS_EQ(_varOccs.size(),0);
-  _currentFullSkolemisation = f;
   Formula* g = skolemise(f);
 
   _beingSkolemised = 0;
@@ -328,7 +327,6 @@ Formula* Skolem::skolemise (Formula* f)
       if (fs == f->args()) {
         return f;
       }
-      _currentSubformulaOfFullSkolemisation = f;
       return new JunctionFormula(f->connective(),fs);
     }
 
