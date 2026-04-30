@@ -23,6 +23,8 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Lib/DHSet.hpp"
+#include "Lib/Metaiterators.hpp"
 #include "Lib/SharedSet.hpp"
 
 #include "Shell/Statistics.hpp"
@@ -30,6 +32,8 @@
 
 #include "Options.hpp"
 #include "Rectify.hpp"
+#include <memory>
+#include <vector>
 #include "Skolem.hpp"
 
 using namespace std;
@@ -81,7 +85,6 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
   Formula* f = unit->formula();
   preskolemise(f);
   ASS_EQ(_varOccs.size(),0);
-
   Formula* g = skolemise(f);
 
   _beingSkolemised = 0;
@@ -97,18 +100,18 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
   ASS(_introducedSkolemSyms.isNonEmpty());
   while(_introducedSkolemSyms.isNonEmpty()) {
     auto symPair = _introducedSkolemSyms.pop();
-
-    if(symPair.first){
-      InferenceStore::instance()->recordIntroducedSymbol(res,SymbolType::TYPE_CON,symPair.second);
+    
+    if(std::get<0>(symPair)){
+      InferenceStore::instance()->recordIntroducedSkolemSymbol(res,SymbolType::TYPE_CON,std::get<1>(symPair),std::get<2>(symPair), std::move(std::get<3>(symPair)));
     } else {
-      InferenceStore::instance()->recordIntroducedSymbol(res,SymbolType::FUNC,symPair.second);
+      InferenceStore::instance()->recordIntroducedSkolemSymbol(res,SymbolType::FUNC,std::get<1>(symPair),std::get<2>(symPair), std::move(std::get<3>(symPair)));
     }
 
     if(unit->derivedFromGoal()){
-      if(symPair.first){
-        env.signature->getTypeCon(symPair.second)->markInGoal();
+      if(std::get<0>(symPair)){
+        env.signature->getTypeCon(std::get<1>(symPair))->markInGoal();
       } else {
-        env.signature->getFunction(symPair.second)->markInGoal();
+        env.signature->getFunction(std::get<1>(symPair))->markInGoal();
       }
     }
   }
@@ -451,7 +454,11 @@ Formula* Skolem::skolemise (Formula* f)
           TermList head = TermList(Term::create(sym, typeVars.size(), typeVars.begin()));
           skolemTerm = HOL::create::app(head, termVars).term();
         }
-        _introducedSkolemSyms.push(make_pair(skolemisingTypeVar, sym));
+        std::unique_ptr<std::vector<unsigned>> inScopeVars = std::unique_ptr<std::vector<unsigned>>(new std::vector <unsigned>());
+        for(auto it : dep->iter()){
+          inScopeVars->push_back(it);
+        }
+        _introducedSkolemSyms.push(std::make_tuple(skolemisingTypeVar, sym, v, std::move(inScopeVars)));
 
         env.statistics->skolemFunctions++;
 
@@ -487,11 +494,11 @@ Formula* Skolem::skolemise (Formula* f)
         if (arity > 0) {
           def = new QuantifiedFormula(FORALL, vArgs.list(), def);
         }
-
-        Unit* defUnit = new FormulaUnit(def,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::SKOLEM_SYMBOL_INTRODUCTION));
-        UnitList::push(defUnit,_skolimizingDefinitions);
+        
+        //Unit* defUnit = new FormulaUnit(def,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::SKOLEM_SYMBOL_INTRODUCTION));
+        //UnitList::push(defUnit,_skolimizingDefinitions);
       }
-
+      
       // drop the existential one:
       return skolemise(f->qarg());
     }

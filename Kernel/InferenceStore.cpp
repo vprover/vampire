@@ -13,9 +13,11 @@
  */
 
 #include "Kernel/Theory.hpp"
+#include "Kernel/Unit.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
+#include "Lib/Metaiterators.hpp"
 #include "Lib/ScopedPtr.hpp"
 #include "Lib/SharedSet.hpp"
 #include "Lib/Stack.hpp"
@@ -42,7 +44,10 @@
 
 #include "InferenceStore.hpp"
 
+#include <memory>
 #include <set>
+#include <string>
+#include <vector>
 
 //TODO: when we delete clause, we should also delete all its records from the inference store
 
@@ -79,6 +84,15 @@ void InferenceStore::recordIntroducedSymbol(Unit* u, SymbolType st, unsigned num
 {
   SymbolStack* pStack;
   _introducedSymbols.getValuePtr(u->number(),pStack);
+  pStack->push(SymbolId(st,number));
+}
+
+void InferenceStore::recordIntroducedSkolemSymbol(Unit* u, SymbolType st, unsigned number, unsigned replacedVar, std::unique_ptr<std::vector<unsigned>> inScopeVars)
+{
+  SymbolStack* pStack;
+  _introducedSymbols.getValuePtr(u->number(),pStack);
+  _introducedSymbolReplacedVars.insert(number, replacedVar);
+  _introducedSymbolInScopeVars.insert(number, std::move(inScopeVars));
   pStack->push(SymbolId(st,number));
 }
 
@@ -555,19 +569,24 @@ protected:
   std::string getNewSymbols(std::string origin, std::string symStr) {
     return "new_symbols(" + origin + ",[" +symStr + "])";
   }
+
+  std::string getSymbolName(SymbolId sym) {
+    if (sym.first == SymbolType::FUNC ) {
+      return env.signature->functionName(sym.second);
+    } else if (sym.first == SymbolType::PRED){
+      return env.signature->predicateName(sym.second);
+    } else {
+      return env.signature->typeConName(sym.second);
+    }
+  }
+
   /** It is an iterator over SymbolId */
   template<class It>
   std::string getNewSymbols(std::string origin, It symIt) {
     std::ostringstream symsStr;
     while(symIt.hasNext()) {
       SymbolId sym = symIt.next();
-      if (sym.first == SymbolType::FUNC ) {
-        symsStr << env.signature->functionName(sym.second);
-      } else if (sym.first == SymbolType::PRED){
-        symsStr << env.signature->predicateName(sym.second);
-      } else {
-        symsStr << env.signature->typeConName(sym.second);
-      }
+      symsStr << getSymbolName(sym);
       if (symIt.hasNext()) {
         symsStr << ',';
       }
@@ -584,6 +603,44 @@ protected:
     SymbolStack& syms = _is->_introducedSymbols.get(u->number());
     return getNewSymbols(origin, SymbolStack::ConstIterator(syms));
   }
+
+std::string getSkolemizeMap(Unit* u){
+  ASS(hasNewSymbols(u));
+  SymbolStack& syms = _is->_introducedSymbols.get(u->number());
+  return getSkolemizeMap(SymbolStack::ConstIterator(syms));
+}
+
+template<class It>
+std::string getSkolemizeMap(It symIt){
+  std::ostringstream symsStr;
+ 
+  while (symIt.hasNext()) {
+    symsStr << "skolemize(";
+    SymbolId a = symIt.next();
+    auto res = _is->_introducedSymbolReplacedVars.find(a.second);
+    ASS(!res.isNone());
+    symsStr << "X" << *res << ",";
+    symsStr << getSymbolName(a);
+    auto inScopeVars = _is->_introducedSymbolInScopeVars.get(a.second).get();
+    if(inScopeVars->size() > 0) {
+      symsStr << "(";
+      auto iter = inScopeVars->begin();
+      while(iter != inScopeVars->end()){
+        symsStr << "X" << *iter;
+        ++iter;
+        if(iter != inScopeVars->end()) {
+          symsStr << ",";
+        }
+      }
+      symsStr << ")";
+    }
+    symsStr << ")";
+    if(symIt.hasNext()) {
+      symsStr << ",";
+    }
+  }
+  return symsStr.str();
+}
 
   void printStep(Unit* us) override
   {
@@ -646,7 +703,7 @@ protected:
       ASS(parents.hasNext());
       std::string statusStr;
       if (rule==InferenceRule::SKOLEMIZE) {
-	      statusStr="status(esa),"+getNewSymbols("skolem",us);
+	      statusStr="status(esa),"+getNewSymbols("skolem",us) + "," + getSkolemizeMap(us);
       }
       else if(rule==InferenceRule::NEGATED_CONJECTURE) {
 	      statusStr="status(cth)";
