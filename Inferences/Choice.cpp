@@ -159,8 +159,7 @@ ClauseIterator Choice::generateClauses(Clause* premise)
 {
   return pvi(premise->getSelectedLiteralIterator()
     .flatMap([](Literal* lit) {
-      NonVariableNonTypeIterator nvi(lit);
-      return pvi(getUniquePersistentIteratorFromPtr(&nvi));
+      return getUniquePersistentIterator(NonVariableNonTypeIterator(lit));
     })
     .filter(IsChoiceTerm())
     .flatMap(ResultFn()));
