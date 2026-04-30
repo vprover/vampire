@@ -17,7 +17,6 @@
 #include "Indexing/ResultSubstitution.hpp"
 #include "Kernel/UnificationWithAbstraction.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/VirtualIterator.hpp"
 
@@ -28,7 +27,6 @@
 #include "Kernel/RobSubstitution.hpp"
 
 #include "Indexing/LiteralIndex.hpp"
-#include "Indexing/IndexManager.hpp"
 #include "Indexing/SubstitutionTree.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -48,23 +46,9 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-void BinaryResolution::attach(SaturationAlgorithm* salg)
-{
-  ASS(!_index);
-
-  GeneratingInferenceEngine::attach(salg);
-  _index=static_cast<BinaryResolutionIndex*> (
-	  _salg->getIndexManager()->request(BINARY_RESOLUTION_SUBST_TREE) );
-}
-
-void BinaryResolution::detach()
-{
-  ASS(_salg);
-
-  _index=0;
-  _salg->getIndexManager()->release(BINARY_RESOLUTION_SUBST_TREE);
-  GeneratingInferenceEngine::detach();
-}
+BinaryResolution::BinaryResolution(SaturationAlgorithm& salg)
+  : _salg(salg), _index(salg.getGeneratingIndex<BinaryResolutionIndex>())
+{}
 
 /**
  * Ordering aftercheck is performed iff ord is not 0,
@@ -73,7 +57,7 @@ void BinaryResolution::detach()
 template<class ComputeConstraints>
 Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit,
           ResultSubstitutionSP subs, ComputeConstraints computeConstraints, const Options& opts, bool afterCheck,
-          PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls,
+          const PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls,
           PartialRedundancyHandler const* parRedHandler)
 {
   DEBUG_RESOLUTION(0, "lhs: ", *queryLit, " (clause: ", queryCl->number(), ")")
@@ -98,7 +82,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
   // since we have not built the clause yet we compute lower bounds on the weight of the clause after each step and recheck whether the weight-limit can still be fulfilled.
   unsigned wlb=0;//weight lower bound
   unsigned numPositiveLiteralsLowerBound = // lower bound on number of positive literals, don't know at this point whether duplicate positive literals will occur
-      Int::max(queryLit->isPositive() ?  queryCl->numPositiveLiterals()-1 :  queryCl->numPositiveLiterals(),
+      std::max(queryLit->isPositive() ?  queryCl->numPositiveLiterals()-1 :  queryCl->numPositiveLiterals(),
               resultLit->isPositive() ? resultCl->numPositiveLiterals()-1 : resultCl->numPositiveLiterals());
 
   auto constraints = computeConstraints();
@@ -238,14 +222,14 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
 
 Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit,
                                          Clause* resultCl, Literal* resultLit,
-                                         AbstractingUnifier& uwa, const Options& opts, SaturationAlgorithm* salg) {
+                                         AbstractingUnifier& uwa, const Options& opts, SaturationAlgorithm& salg) {
   // perform binary resolution on query results
   auto subs = ResultSubstitution::fromSubstitution(&uwa.subs(), RetrievalAlgorithms::DefaultVarBanks::query, RetrievalAlgorithms::DefaultVarBanks::internal);
-  bool doAfterCheck = opts.literalMaximalityAftercheck() && salg->getLiteralSelector().isBGComplete();
+  bool doAfterCheck = opts.literalMaximalityAftercheck() && salg.getLiteralSelector().isBGComplete();
   return BinaryResolution::generateClause(queryCl, queryLit, resultCl, resultLit, subs,
       [&](){ return uwa.computeConstraintLiterals(); },
-      opts, doAfterCheck, salg->getPassiveClauseContainer(),
-      &salg->getOrdering(), &salg->getLiteralSelector(), &salg->parRedHandler());
+      opts, doAfterCheck, salg.getPassiveClauseContainer(),
+      &salg.getOrdering(), &salg.getLiteralSelector(), &salg.parRedHandler());
 }
 
 ClauseIterator BinaryResolution::generateClauses(Clause* premise)
@@ -257,9 +241,9 @@ ClauseIterator BinaryResolution::generateClauses(Clause* premise)
         .flatMap([this,premise](auto lit) {
             // find query results for literal `lit`
             return iterTraits(_index->getUwa(lit, /* complementary */ true,
-                                             env.options->unificationWithAbstraction(),
-                                             env.options->unificationWithAbstractionFixedPointIteration()))
-                     .map([this,lit,premise](auto qr) { return BinaryResolution::generateClause(premise, lit, qr.data->clause, qr.data->literal, *qr.unifier, this->getOptions(), _salg); });
+                                             _salg.getOptions().unificationWithAbstraction(),
+                                             _salg.getOptions().unificationWithAbstractionFixedPointIteration()))
+                     .map([this,lit,premise](auto qr) { return BinaryResolution::generateClause(premise, lit, qr.data->clause, qr.data->literal, *qr.unifier, _salg.getOptions(), _salg); });
         })
         .filter(NonzeroFn())
   ));

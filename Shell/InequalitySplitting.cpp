@@ -15,13 +15,13 @@
 #include "Lib/Environment.hpp"
 
 #include "Kernel/Clause.hpp"
+#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/InferenceStore.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/ApplicativeHelper.hpp"
 #include "Kernel/TermIterators.hpp"
 
 #include "Options.hpp"
@@ -47,7 +47,7 @@ InequalitySplitting::InequalitySplitting(const Options& opt)
 
 void InequalitySplitting::perform(Problem& prb)
 {
-  _appify = prb.hasApp();
+  _appify = prb.isHigherOrder();
   if(perform(prb.units())) {
     prb.invalidateByRemoval();
   }
@@ -223,10 +223,9 @@ Literal* InequalitySplitting::makeNameLiteral(unsigned predNum, TermList arg, bo
     vars.push(arg);
     return Literal::create(predNum, vars.size(), polarity, vars.begin());
   } else {
-    TermList boolT = polarity ? TermList(Term::foolTrue()) : TermList(Term::foolFalse());
+    TermList boolT = polarity ? HOL::create::top() : HOL::create::bottom();
     TermList head = TermList(Term::create(predNum, vars.size(), vars.begin()));
-    TermList headS = SortHelper::getResultSort(head.term());
-    TermList t = ApplicativeHelper::createAppTerm(headS, head, arg);
+    TermList t = HOL::create::app(head, arg);
     return Literal::createEquality(true, t, boolT, AtomicSort::boolSort());
   }
 

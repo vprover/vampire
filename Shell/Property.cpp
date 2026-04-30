@@ -16,17 +16,18 @@
  */
 
 
+#include "Kernel/Theory.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Environment.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/FormulaUnit.hpp"
+#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/TermIterators.hpp"
-#include "Kernel/ApplicativeHelper.hpp"
 
 #include "Options.hpp"
 #include "FunctionDefinition.hpp"
@@ -231,7 +232,7 @@ void Property::scan(Unit* unit)
   }
   if (! hasProp(PR_HAS_FUNCTION_DEFINITIONS)) {
     FunctionDefinition::Def* def =
-      FunctionDefinition::isFunctionDefinition(*unit,/*in the old, first-order sense*/false);
+      FunctionDefinition::isFunctionDefinition(*unit);
     if (def) {
       addProp(PR_HAS_FUNCTION_DEFINITIONS);
       FunctionDefinition::deleteDef(def);
@@ -433,11 +434,10 @@ void Property::scan(Formula* f, int polarity)
     }
     case FORALL:
       if(!_quantifiesOverPolymorphicVar){
-        SList* sorts = f->sorts();
-        SList::Iterator sit(sorts);
+        VSList::Iterator vsit(f->vars());
 
-        while(sit.hasNext()){
-          TermList s = sit.next();
+        while(vsit.hasNext()){
+          TermList s = vsit.next().second;
           if(s.isTerm() && s.term()->isSuper()){
             _quantifiesOverPolymorphicVar = true;
             break;
@@ -450,11 +450,10 @@ void Property::scan(Formula* f, int polarity)
       break;
     case EXISTS:
       if(!_quantifiesOverPolymorphicVar){
-        SList* sorts = f->sorts();
-        SList::Iterator sit(sorts);
+        VSList::Iterator vsit(f->vars());
 
-        while(sit.hasNext()){
-          TermList s = sit.next();
+        while(vsit.hasNext()){
+          TermList s = vsit.next().second;
           if(s.isTerm() && s.term()->isSuper()){
             _quantifiesOverPolymorphicVar = true;
             break;
@@ -531,9 +530,8 @@ void Property::scanSort(TermList sort)
     }
     return;
   }
-  
-  TermList resultSort = ApplicativeHelper::getResultSort(sort);
-  if(resultSort == AtomicSort::boolSort()){
+
+  if(HOL::finalResult(sort).isBoolSort()){
     _hasFOOL = true;
   }
 
@@ -689,11 +687,8 @@ void Property::scan(TermList ts,bool unit,bool goal)
     if(t->isApplication()){
       _hasApp = true;
       TermList sort = SortHelper::getResultSort(t);
-      if(ApplicativeHelper::getResultSort(sort) == AtomicSort::boolSort()){
-        TermList head = ApplicativeHelper::getHead(ts);
-        if(head.isVar()){
-          _hasBoolVar = true;
-        }
+      if(HOL::finalResult(sort).isBoolSort() && ts.head().isVar()){
+        _hasBoolVar = true;
       }
     }
 
@@ -701,7 +696,7 @@ void Property::scan(TermList ts,bool unit,bool goal)
       if(func->proxy() == Proxy::PI || func->proxy() == Proxy::SIGMA) {
         ASS(t->arity() == 1);
         TermList sort = *t->nthArgument(0);
-        if(ApplicativeHelper::getResultSort(sort) == AtomicSort::boolSort()){
+        if(HOL::finalResult(sort).isBoolSort()){
           _hasBoolVar = true;
         }
       }
@@ -777,16 +772,19 @@ void Property::scanForInterpreted(Term* t)
     _interpretationPresence[itp] = true;
   }
 
-  if(Theory::isConversionOperation(itp)){
-    addProp(PR_NUMBER_CONVERSION);
+  // TODO check whether this is enough for equality
+  if (itp == Interpretation::EQUAL) {
     return;
   }
 
-  if (Theory::isPolymorphic(itp)) {
-    OperatorType* type = t->isLiteral() ?
-        env.signature->getPredicate(t->functor())->predType() : env.signature->getFunction(t->functor())->fnType();
+  if (itp == Interpretation::ARRAY_SELECT || itp == Interpretation::ARRAY_STORE) {
+    // TODO this could be separated into store and select
+    addProp(PR_HAS_ARRAYS);
+    return;
+  }
 
-    _polymorphicInterpretations.insert(std::make_pair(itp,type));
+  if(Theory::isConversionOperation(itp)){
+    addProp(PR_NUMBER_CONVERSION);
     return;
   }
 
@@ -1031,9 +1029,9 @@ bool Property::hasXEqualsY(const Formula* f)
     case FORALL:
       if (eff_pol >= 0) {
         // will have a universal version
-        VList::Iterator vs(f->vars());
+        VSList::Iterator vs(f->vars());
         while (vs.hasNext()) {
-          unsigned v = vs.next();
+          unsigned v = vs.next().first;
           if (existVars[v]) {
             existVars[v] = false;
             recs.push(Rec(v,true)); // restore back to true
@@ -1041,9 +1039,9 @@ bool Property::hasXEqualsY(const Formula* f)
         }
       } else {
         // only existential
-        VList::Iterator vs(f->vars());
+        VSList::Iterator vs(f->vars());
         while (vs.hasNext()) {
-          unsigned v = vs.next();
+          unsigned v = vs.next().first;
           if (!existVars[v]) {
             existVars[v] = true;
             recs.push(Rec(v,false)); // restore back to false

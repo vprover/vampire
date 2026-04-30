@@ -40,8 +40,9 @@ using namespace Indexing;
 using namespace Saturation;
 using std::pair;
 
-EqualityFactoring::EqualityFactoring()
-  : _abstractionOracle(AbstractionOracle::createOnlyHigherOrder())
+EqualityFactoring::EqualityFactoring(SaturationAlgorithm& salg)
+  : _salg(salg)
+  , _abstractionOracle(AbstractionOracle::createOnlyHigherOrder())
   , _uwaFixedPointIteration(env.options->unificationWithAbstractionFixedPointIteration())
 {
 
@@ -72,9 +73,9 @@ struct EqualityFactoring::FactorablePairsFn
 
     auto it3 = getMapAndFlattenIterator(it2,EqHelper::EqualityArgumentIteratorFn());
 
-    auto it4 = pushPairIntoRightIterator(arg,it3);
+    auto it4 = pushPairIntoRightIterator(arg,std::move(it3));
 
-    return pvi( it4 );
+    return pvi( std::move(it4) );
   }
 private:
   Clause* _cl;
@@ -95,7 +96,7 @@ struct EqualityFactoring::ResultFn
 
     TermList srt = SortHelper::getEqualityArgumentSort(sLit);
 
-    if (!absUnif.unify(srt, 0, SortHelper::getEqualityArgumentSort(fLit), 0)) {
+    if (!absUnif.unifyOnce(srt, 0, SortHelper::getEqualityArgumentSort(fLit), 0)) {
       return 0;
     }
 
@@ -106,7 +107,7 @@ struct EqualityFactoring::ResultFn
     TermList fRHS=EqHelper::getOtherEqualitySide(fLit, fLHS);
     ASS_NEQ(sLit, fLit);
 
-    if(!absUnif.unify(sLHS,0,fLHS,0)) {
+    if(!absUnif.unifyOnce(sLHS,0,fLHS,0)) {
       return 0;
     }
 
@@ -180,17 +181,17 @@ ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
 
   auto it2 = getFilteredIterator(it1,IsPositiveEqualityFn());
 
-  auto it3 = getMapAndFlattenIterator(it2,EqHelper::LHSIteratorFn(_salg->getOrdering()));
+  auto it3 = getMapAndFlattenIterator(it2,EqHelper::LHSIteratorFn(_salg.getOrdering()));
 
-  auto it4 = getMapAndFlattenIterator(it3,FactorablePairsFn(premise));
+  auto it4 = getMapAndFlattenIterator(std::move(it3),FactorablePairsFn(premise));
 
-  auto it5 = getMappingIterator(it4,ResultFn(*this, premise,
-      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),
-      _salg->getOrdering(), _uwaFixedPointIteration));
+  auto it5 = getMappingIterator(std::move(it4),ResultFn(*this, premise,
+      _salg.getOptions().literalMaximalityAftercheck() && _salg.getLiteralSelector().isBGComplete(),
+      _salg.getOrdering(), _uwaFixedPointIteration));
 
-  auto it6 = getFilteredIterator(it5,NonzeroFn());
+  auto it6 = getFilteredIterator(std::move(it5),NonzeroFn());
 
-  return pvi( it6 );
+  return pvi( std::move(it6) );
 }
 
 }

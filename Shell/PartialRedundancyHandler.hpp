@@ -116,7 +116,7 @@ protected:
   static ConstraintIndex** getDataPtr(Clause* cl, bool doAllocate);
 
   // this contains the redundancy information associated with each clause
-  static DHMap<Clause*,ConstraintIndex*> clauseData;
+  static DHMap<unsigned,ConstraintIndex*> clauseData;
 };
 
 template<bool enabled, bool orderingConstraints, bool avatarConstraints, bool literalConstraints>

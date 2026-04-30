@@ -78,8 +78,6 @@ Formula* SymbolOccurrenceReplacement::process(Formula* formula) {
     case LITERAL: {
       Literal* literal = formula->literal();
 
-      Literal* processedLiteral;
-
       if (_isPredicate && (literal->functor() == _oldApplication->functor())) {
         Substitution substitution;
         for (unsigned i = 0; i < literal->arity(); i++) {
@@ -118,7 +116,7 @@ Formula* SymbolOccurrenceReplacement::process(Formula* formula) {
 
     case FORALL:
     case EXISTS:
-      return new QuantifiedFormula(formula->connective(), formula->vars(), formula->sorts(), process(formula->qarg()));
+      return new QuantifiedFormula(formula->connective(), formula->vars(), process(formula->qarg()));
 
     case BOOL_TERM:
       return new BoolTermFormula(process(formula->getBooleanTerm()));

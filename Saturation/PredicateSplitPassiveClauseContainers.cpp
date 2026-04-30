@@ -17,6 +17,7 @@
 
 #include "Shell/Options.hpp"
 #include "Kernel/Clause.hpp"
+#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Inference.hpp"
 #include "Lib/SharedSet.hpp"
 #include "Lib/Int.hpp"
@@ -26,10 +27,6 @@ namespace Saturation
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
-
-int computeLCM(int a, int b) {
-  return (a*b)/Int::gcd(a, b);
-}
 
 PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, std::string name,
     std::vector<std::unique_ptr<PassiveClauseContainer>> queues,
@@ -61,7 +58,7 @@ PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool 
   auto lcm = 1;
   for (unsigned i = 0; i < ratios.size(); i++)
   {
-    lcm = computeLCM(lcm, ratios[i]);
+    lcm = std::lcm(lcm, ratios[i]);
   }
   // initialize
   for (unsigned i = 0; i < ratios.size(); i++)
@@ -429,19 +426,119 @@ bool PredicateSplitPassiveClauseContainer::exceedsAllLimits(Clause* cl) const
 TheoryMultiSplitPassiveClauseContainer::TheoryMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, std::string name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues) :
 PredicateSplitPassiveClauseContainer(isOutermost, opt, name, std::move(queues), opt.theorySplitQueueCutoffs(), opt.theorySplitQueueRatios(), opt.theorySplitQueueLayeredArrangement()) {}
 
-float TheoryMultiSplitPassiveClauseContainer::evaluateFeature(Clause* cl) const
+std::pair<float,float> TheoryMultiSplitPassiveClauseContainer::computeTheoryFeatures(Clause* cl) const
 {
-  // heuristically compute likeliness that clause occurs in proof
-  auto inference = cl->inference();
-  auto expectedRatioDenominator = _opt.theorySplitQueueExpectedRatioDenom();
-  return inference.th_ancestors * expectedRatioDenominator - inference.all_ancestors;
+  auto* cached = _teoryFeatureCache.findPtr(cl->number());
+  if (cached) return *cached;
+
+  float th = 0.0f, all = 0.0f;
+  Inference& inf = cl->inference();
+  Inference::Iterator it = inf.iterator();
+
+  if (cl->isComponent()) {
+    std::tie(th,all) = computeTheoryFeatures(inf.getCausalParent());
+  } else if (!inf.hasNext(it)) {
+    // Leaf: no parents
+    th = inf.isTheoryAxiom() ? 1.0f : 0.0f;
+    all = 1.0f;
+  } else if (isSimplifyingInferenceRule(inf.rule())) {
+    // Simplifying: propagate from main (first) premise only
+    Unit* mainPremise = inf.next(it);
+    if (mainPremise->isClause()) {
+      std::tie(th,all) = computeTheoryFeatures(mainPremise->asClause());
+    } else {
+      all = 1.0f;
+    }
+  } else {
+    // Generating/other: sum over all parents
+    while (inf.hasNext(it)) {
+      Unit* parent = inf.next(it);
+      if (parent->isClause()) {
+        auto vals = computeTheoryFeatures(parent->asClause());
+        th += vals.first;
+        all += vals.second;
+      } else {
+        all += 1.0f;
+      }
+    }
+  }
+
+  auto result = std::make_pair(th, all);
+  _teoryFeatureCache.insert(cl->number(), result);
+  return result;
 }
 
-float TheoryMultiSplitPassiveClauseContainer::evaluateFeatureEstimate(unsigned, const Inference& inf) const
+float TheoryMultiSplitPassiveClauseContainer::evaluateFeature(Clause* cl) const
 {
-  // heuristically compute likeliness that clause occurs in proof
-  static int expectedRatioDenominator = _opt.theorySplitQueueExpectedRatioDenom();
-  return inf.th_ancestors * expectedRatioDenominator - inf.all_ancestors;
+  auto [thAx,allAx] = computeTheoryFeatures(cl);
+  auto expectedRatioDenominator = _opt.theorySplitQueueExpectedRatioDenom();
+  return thAx * expectedRatioDenominator - allAx;
+}
+
+float TheoryMultiSplitPassiveClauseContainer::evaluateFeatureEstimate(unsigned, const Inference&) const
+{
+  // No Clause* available during construction; return most-favorable value
+  // so LRS never discards based on theory-split features alone.
+  return -std::numeric_limits<float>::max();
+}
+
+unsigned numOfAppVarsAndLambdas(TermList t, unsigned lambdaWeight, unsigned appliedVarWeight)
+{
+  if (t.isVar()) {
+    return 0;
+  }
+  const Term* tt = t.term();
+
+  static DHMap<const Term*,unsigned> cache;
+  unsigned* cached;
+  if (!cache.getValuePtr(tt,cached)) {
+    return *cached;
+  }
+
+  // it's OK that the entry in cache has already been created, will only possibly ask for proper subterms
+
+  unsigned res = 0;
+
+  if (tt->isLambdaTerm()) {
+    res = lambdaWeight + numOfAppVarsAndLambdas(tt->lambdaBody(), lambdaWeight, appliedVarWeight);
+  } else if (tt->isApplication()) {
+    TermStack args;
+    auto head = HOL::getHeadAndArgs(t, args);
+    ASS(!head.isLambdaTerm()); // should be beta-reduced
+    if (head.isVar()) {
+      res += appliedVarWeight;
+    }
+    while(!args.isEmpty()){
+      res += numOfAppVarsAndLambdas(args.pop(), lambdaWeight, appliedVarWeight);
+    }
+  }
+
+  // reallocation may occur in-between, so ask for the pointer again
+  ALWAYS(cached = cache.findPtr(tt));
+  *cached = res;
+  return res;
+}
+
+HoFeaturesMultiSplitPassiveClauseContainer::HoFeaturesMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, std::string name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues) :
+PredicateSplitPassiveClauseContainer(isOutermost, opt, name, std::move(queues), opt.hoSplitQueueCutoffs(), opt.hoSplitQueueRatios(), opt.hoSplitQueueLayeredArrangement()),
+_lambdaWeight(opt.hoSplitQueueLambdaWeight()), _appliedVarWeight(opt.hoSplitQueueAppVarWeight()) {}
+
+float HoFeaturesMultiSplitPassiveClauseContainer::evaluateFeature(Clause* cl) const
+{
+  // calculate the number of higher-order features (applied variable and lambdas) in the clause
+  unsigned res = 0;
+  for (const auto& lit : *cl){
+    auto [lhs, rhs] = lit->eqArgs();
+    res = res + numOfAppVarsAndLambdas(lhs, _lambdaWeight, _appliedVarWeight)
+              + numOfAppVarsAndLambdas(rhs, _lambdaWeight, _appliedVarWeight);
+  }
+  return res;
+}
+
+float HoFeaturesMultiSplitPassiveClauseContainer::evaluateFeatureEstimate(unsigned, const Inference& inf) const
+{
+  // from the information provided we cannot estimate the feature sadly...
+  return 0;
 }
 
 AvatarMultiSplitPassiveClauseContainer::AvatarMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, std::string name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues) :

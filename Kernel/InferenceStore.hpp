@@ -85,9 +85,9 @@ private:
 
   ProofPrinter* createProofPrinter(std::ostream& out);
 
-  DHMultiset<Clause*> _nextClIds;
+  DHMultiset<unsigned> _nextClIds;
 
-  DHMap<Unit*, Literal*> _splittingNameLiterals;
+  DHMap<unsigned, Literal*> _splittingNameLiterals;
 
 
   /** first records the type of the symbol (PRED,FUNC or TYPE_CON), second is symbol number */

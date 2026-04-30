@@ -51,12 +51,12 @@ void Unit::onPreprocessingEnd()
 
 /** New unit of a given kind */
 Unit::Unit(Kind kind, Inference inf)
-  : _number(++_lastNumber),
+  : _inference(std::move(inf)),
+    _number(++_lastNumber),
     _kind(kind),
-    _inheritedColor(COLOR_INVALID),
-    _inference(std::move(inf))
+    _inheritedColor(COLOR_INVALID)
 {
-  env.statistics->reportUnit(this);
+  env.statistics->reportUnit(this,Statistics::TOTAL_CNT);
 } // Unit::Unit
   //
 
@@ -238,7 +238,7 @@ UnitIterator Unit::getParents() const
 bool Unit::minimizeAncestorsAndUpdateSelectedStats()
 {
   Stack<std::pair<Unit*,bool>> todo;
-  DHSet<Unit*> done;
+  DHSet<unsigned> done;
   bool seenInputInference = false;
 
   todo.push(make_pair(this,false));
@@ -269,10 +269,10 @@ bool Unit::minimizeAncestorsAndUpdateSelectedStats()
         ASS_EQ(inf.isPureTheoryDescendant(),inf.isTheoryAxiom());
       }
       inf.updateStatistics(); // in particular, update inductionDepth (which could have decreased, since we might have fewer parents after miniminization)
-      env.statistics->reportProofStep(current);
+      env.statistics->reportUnit(current,Statistics::INPROOF_CNT);
 
     } else {
-      if (!done.insert(current)) {
+      if (!done.insert(current->number())) {
         continue;
       }
       todo.push(make_pair(current,true)); // to collect stuff when children done

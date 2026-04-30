@@ -68,7 +68,7 @@ void InferenceStore::FullInference::increasePremiseRefCounters()
 void InferenceStore::recordSplittingNameLiteral(Unit* us, Literal* lit)
 {
   //each clause is result of a splitting only once
-  ALWAYS(_splittingNameLiterals.insert(us, lit));
+  ALWAYS(_splittingNameLiterals.insert(us->number(), lit));
 }
 
 
@@ -736,7 +736,7 @@ protected:
     ASS(parents.hasNext()); //we always split off at least one component
     while(parents.hasNext()) {
       Unit* comp=parents.next();
-      ASS(_is->_splittingNameLiterals.find(comp));
+      ASS(_is->_splittingNameLiterals.find(comp->number()));
       inferenceStr+=","+tptpDefId(comp);
     }
     inferenceStr+="])";
@@ -752,7 +752,7 @@ protected:
     UnitIterator parents= us->getParents();
     ASS(!parents.hasNext());
 
-    Literal* nameLit=_is->_splittingNameLiterals.get(us); //the name literal must always be stored
+    Literal* nameLit=_is->_splittingNameLiterals.get(us->number()); //the name literal must always be stored
 
     std::string defId=tptpDefId(us);
 
@@ -1137,7 +1137,6 @@ protected:
       case Theory::REAL_QUOTIENT: out << "/"; return;
 
       // array functions
-      case Theory::ARRAY_BOOL_SELECT:
       case Theory::ARRAY_SELECT: out << "select"; return;
       case Theory::ARRAY_STORE: out << "store"; return;
 
@@ -1240,7 +1239,6 @@ protected:
       case Theory::INT_REMAINDER_E:                                                       \
       case Theory::INT_FLOOR:                                                             \
       case Theory::REAL_QUOTIENT:                                                         \
-      case Theory::ARRAY_BOOL_SELECT:                                                     \
       case Theory::ARRAY_SELECT:                                                          \
       case Theory::ARRAY_STORE
 
@@ -1369,20 +1367,12 @@ protected:
     };
     auto outputQuant = [&](const char* name) {
       out << "("<< name << "(";
-      VList::Iterator vs(f->vars());
-      SList::Iterator ss(f->sorts());
-      bool hasSorts = f->sorts();
+      VSList::Iterator vs(f->vars());
       while (vs.hasNext()) {
-        int var = vs.next();
+        auto [var, sort] = vs.next();
         out << "(";
         outputVar(out, var);
         out << " ";
-        TermList sort;
-        if (hasSorts) {
-          sort = ss.next();
-        } else {
-          ALWAYS(SortHelper::tryGetVariableSort(var, const_cast<Formula*>(f),sort))
-        }
         outputSort(out, sort);
         out << ")";
       }
@@ -1611,11 +1601,11 @@ void InferenceStore::outputUnsatCore(std::ostream& out, Unit* refutation)
 
   Stack<Unit*> todo;
   todo.push(refutation);
-  Set<Unit*> visited;
+  Set<unsigned> visited;
   while(!todo.isEmpty()){
 
     Unit* u = todo.pop();
-    visited.insert(u);
+    visited.insert(u->number());
 
     if(u->inference().rule() ==  InferenceRule::INPUT){
       if(!u->isClause()){
@@ -1642,7 +1632,7 @@ void InferenceStore::outputUnsatCore(std::ostream& out, Unit* refutation)
       UnitIterator parents = u->getParents();
       while(parents.hasNext()){
         Unit* parent = parents.next();
-        if(!visited.contains(parent)){
+        if(!visited.contains(parent->number())){
           todo.push(parent);
         }
       }

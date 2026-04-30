@@ -19,9 +19,6 @@
 #include "Index.hpp"
 #include "TermIndexingStructure.hpp"
 
-#include "Indexing/TermSubstitutionTree.hpp"
-#include "TermIndexingStructure.hpp"
-
 namespace Indexing {
 
 template<class Data>
@@ -55,37 +52,35 @@ class SuperpositionSubtermIndex
 : public TermIndex<TermLiteralClause>
 {
 public:
-  SuperpositionSubtermIndex(Indexing::TermIndexingStructure<TermLiteralClause>* is, Ordering& ord)
-  : TermIndex(is), _ord(ord) {};
+  SuperpositionSubtermIndex(SaturationAlgorithm& salg);
 protected:
   void handleClause(Clause* c, bool adding) override;
 private:
-  Ordering& _ord;
+  const Ordering& _ord;
+  const bool _higherOrder;
 };
 
 class SuperpositionLHSIndex
 : public TermIndex<TermLiteralClause>
 {
 public:
-  SuperpositionLHSIndex(TermSubstitutionTree<TermLiteralClause>* is, Ordering& ord, const Options& opt)
-  : TermIndex(is), _ord(ord), _opt(opt), _tree(is) {};
+  SuperpositionLHSIndex(SaturationAlgorithm& salg);
 protected:
   void handleClause(Clause* c, bool adding) override;
 private:
-  Ordering& _ord;
+  const Ordering& _ord;
   const Options& _opt;
-  TermSubstitutionTree<TermLiteralClause>* _tree;
 };
 
 /**
  * Term index for backward demodulation
  */
+template<bool higherOrder>
 class DemodulationSubtermIndex
 : public TermIndex<TermLiteralClause>
 {
 public:
-  DemodulationSubtermIndex(TermIndexingStructure<TermLiteralClause>* is, const Options& opt)
-  : TermIndex(is), _skipNonequationalLiterals(opt.demodulationOnlyEquational()) {};
+  DemodulationSubtermIndex(SaturationAlgorithm& salg);
 protected:
   void handleClause(Clause* c, bool adding) override;
 private:
@@ -95,12 +90,12 @@ private:
 /**
  * Term index for forward demodulation
  */
+template<bool higherOrder>
 class DemodulationLHSIndex
 : public TermIndex<DemodulatorData>
 {
 public:
-  DemodulationLHSIndex(TermIndexingStructure<DemodulatorData>* is, Ordering& ord, const Options& opt)
-  : TermIndex(is), _ord(ord), _preordered(opt.forwardDemodulation()==Options::Demodulation::PREORDERED) {};
+  DemodulationLHSIndex(SaturationAlgorithm& salg);
 protected:
   void handleClause(Clause* c, bool adding) override;
 private:
@@ -115,9 +110,7 @@ class InductionTermIndex
 : public TermIndex<TermLiteralClause>
 {
 public:
-  InductionTermIndex(TermIndexingStructure<TermLiteralClause>* is, const Options& opt)
-  : TermIndex(is), _inductionGroundOnly(opt.inductionGroundOnly()) {}
-
+  InductionTermIndex(SaturationAlgorithm& salg);
 protected:
   void handleClause(Clause* c, bool adding) override;
 private:
@@ -131,9 +124,7 @@ class StructInductionTermIndex
 : public TermIndex<TermLiteralClause>
 {
 public:
-  StructInductionTermIndex(TermIndexingStructure<TermLiteralClause>* is, const Options& opt)
-  : TermIndex(is), _inductionGroundOnly(opt.inductionGroundOnly()) {}
-
+  StructInductionTermIndex(SaturationAlgorithm& salg);
 protected:
   void handleClause(Clause* c, bool adding) override;
 private:
@@ -144,8 +135,7 @@ class SkolemisingFormulaIndex
 : public TermIndex<TermWithValue<TermList>>
 {
 public:
-  SkolemisingFormulaIndex(TermIndexingStructure<TermWithValue<TermList>>* is) : TermIndex(is)
-  {}
+  SkolemisingFormulaIndex(SaturationAlgorithm&);
   void insertFormula(TermList formula, TermList skolem);
 };
 

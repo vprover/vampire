@@ -17,13 +17,11 @@
 #include "Term.hpp"
 #include "Signature.hpp"
 #include "TermIterators.hpp"
-#include "ApplicativeHelper.hpp"
+#include "Kernel/HOL/HOL.hpp"
 #include "Lib/Environment.hpp"
 
 namespace Kernel
 {
-
-typedef ApplicativeHelper AH;
 
 /**
  * True if there exists next variable
@@ -154,11 +152,15 @@ bool BooleanSubtermIt::hasNext()
   if(!_used){ return true; }
 
   static TermStack args;
-  TermList head;
   while(!_stack.isEmpty()){
     Term* t = _stack.pop();
-    AH::getHeadAndArgs(t, head, args);
-    if(SortHelper::getResultSort(t) == AtomicSort::boolSort() && !AH::isBool(head)){
+    if (t->isLambdaTerm()) {
+      // TODO: strengthen the iterator by returning subterms
+      // underneath lambdas that don't contain loose indices
+      continue;
+    }
+    auto head = HOL::getHeadAndArgs(TermList(t), args);
+    if(SortHelper::getResultSort(t) == AtomicSort::boolSort() && !HOL::isBool(head)){
       _next = TermList(t);
       _used = false;
     }
@@ -171,6 +173,33 @@ bool BooleanSubtermIt::hasNext()
     if(!_used){ return true; }
   }
   return false;
+}
+
+Term* FirstOrderSubtermIterator::next()
+{
+  _added = 0;
+  auto t = _stack.pop();
+  if (t->isLambdaTerm()) {
+    return t;
+  }
+
+  auto [head, args] = HOL::getHeadAndArgs(TermList(t));
+
+  for (unsigned i = 0; i < args.size(); i++) {
+    if (args[i].isTerm()) {
+      _added++;
+      _stack.push(args[i].term());
+    }
+  }
+  return t;
+}
+
+void FirstOrderSubtermIterator::right()
+{
+  while (_added > 0) {
+    _added--;
+    _stack.pop();
+  }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -399,7 +428,7 @@ TermFunIterator::TermFunIterator (const Term* t)
 {
   _hasNext = true;
   _next = t->functor();
-  _stack.push(t->args());
+  _stack.push(t->termArgs());
 } // TermFunIterator::TermFunIterator
 
 
@@ -425,7 +454,7 @@ bool TermFunIterator::hasNext ()
     _hasNext = true;
     const Term* t = ts->term();
     _next = t->functor();
-    _stack.push(t->args());
+    _stack.push(t->termArgs());
     return true;
   }
   return false;

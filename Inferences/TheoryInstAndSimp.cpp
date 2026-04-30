@@ -59,7 +59,11 @@ using namespace SAT;
 
 using SortId = SAT::Z3Interfacing::SortId;
 
-TheoryInstAndSimp::TheoryInstAndSimp(Options& opts) : TheoryInstAndSimp(
+TheoryInstAndSimp::TheoryInstAndSimp(SaturationAlgorithm& salg)
+  : TheoryInstAndSimp(salg.getSplitter(), salg.getOptions()) {}
+
+TheoryInstAndSimp::TheoryInstAndSimp(Splitter* splitter, const Options& opts) : TheoryInstAndSimp(
+    splitter,
     opts.theoryInstAndSimp(),
     opts.thiTautologyDeletion(), 
     opts.showZ3(),  
@@ -83,8 +87,8 @@ Options::TheoryInstSimp manageDeprecations(Options::TheoryInstSimp mode)
   }
 }
 
-TheoryInstAndSimp::TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, std::string const& exportSmtlib, Options::ProblemExportSyntax problemExportSyntax) 
-  : _splitter(0)
+TheoryInstAndSimp::TheoryInstAndSimp(Splitter* splitter, Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, std::string const& exportSmtlib, Options::ProblemExportSyntax problemExportSyntax) 
+  : _splitter(splitter)
   , _mode(manageDeprecations(mode))
   , _thiTautologyDeletion(thiTautologyDeletion)
   , _naming()
@@ -93,15 +97,6 @@ TheoryInstAndSimp::TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTauto
   , _instantiationConstants ("$inst")
   , _generalizationConstants("$inst$gen")
 { }
-
-
-void TheoryInstAndSimp::attach(SaturationAlgorithm* salg)
-{
-  SimplifyingGeneratingInference::attach(salg);
-  _splitter = salg->getSplitter();
-}
-
-
 
 bool TheoryInstAndSimp::calcIsSupportedSort(SortId sort)
 {
@@ -169,7 +164,6 @@ bool TheoryInstAndSimp::isSupportedFunction(Term* trm) {
 
 bool TheoryInstAndSimp::isSupportedFunction(Theory::Interpretation itp) {
   switch (itp) {
-    case Theory::ARRAY_BOOL_SELECT:
     case Theory::ARRAY_SELECT:
     case Theory::ARRAY_STORE:
     case Theory::INT_SUCCESSOR:
@@ -930,10 +924,10 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
     })
     .filter([](Clause* cl) { return cl != nullptr; });
 
-  auto it2 = TIME_TRACE_ITER(THEORY_INST_SIMP, it1);
+  auto it2 = TIME_TRACE_ITER(THEORY_INST_SIMP, std::move(it1));
 
   // we need to strictily evaluate the iterator to
-  auto clauses =  getPersistentIterator(it2);
+  auto clauses =  getPersistentIterator(std::move(it2));
 
   if (premiseRedundant && _thiTautologyDeletion) {
     return ClauseGenerationResult {
@@ -942,7 +936,7 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
     };
   } else {
     return ClauseGenerationResult {
-      .clauses          = clauses,
+      .clauses          = std::move(clauses),
       .premiseRedundant = false,
     };
   }
@@ -950,6 +944,7 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
 
 bool TheoryInstAndSimp::isTheoryLemma(Clause* cl, bool& couldNotCheck) {
   static TheoryInstAndSimp checker(
+    /*splitter=*/ nullptr,
     Options::TheoryInstSimp::ALL,
     /* thiTautologyDeletion */ true,
     /* showZ3 */ false,

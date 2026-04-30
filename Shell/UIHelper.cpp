@@ -368,9 +368,6 @@ Problem* UIHelper::getInputProblem()
   // NB this must happen immediately, as the Property relies on it
   res->setSMTLIBLogic(topPiece._smtLibLogic);
 
-  if(res->isHigherOrder())
-    HOL_ERROR;
-
   env.setMainProblem(res);
   return res;
 }
@@ -535,6 +532,9 @@ void UIHelper::outputResult(std::ostream& out)
     }
     addCommentSignForSZS(out);
     env.statistics->explainRefutationNotFound(out);
+    if ((env.options->mode() == Options::Mode::VAMPIRE) && szsOutputMode()) {
+      out << "% SZS status GaveUp for " << env.options->problemName() << endl;
+    }
     break;
   case TerminationReason::SATISFIABLE:
     if(env.options->outputMode() == Options::Output::SMTCOMP){
@@ -656,7 +656,7 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(std::ostream& out, bool funct
   }
 
   unsigned dummy;
-  if (!typeCon && Theory::tuples()->findProjection(symNumber, !function, dummy)) {
+  if (!typeCon && Theory::findTupleProjection(symNumber, !function, dummy)) {
     return;
   }
 

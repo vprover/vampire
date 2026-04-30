@@ -29,10 +29,12 @@ namespace Indexing {
 using namespace Lib;
 using namespace Kernel;
 
+template<bool higherOrder>
 class ClauseCodeTree : public CodeTree
 {
 protected:
-  static void onCodeOpDestroying(CodeOp* op);
+  void onCodeOpDestroying(CodeOp* op) override;
+  void printSuccess(std::ostream& out, const CodeOp& op) const override;
   
 public:
   ClauseCodeTree();
@@ -55,8 +57,10 @@ private:
   bool removeOneOfAlternatives(CodeOp* op, Clause* cl, Stack<CodeOp*>* firstsInBlocks);
 
   struct RemovingLiteralMatcher
-  : public RemovingMatcher<false>
+  : public Matcher</*removing*/true,false,higherOrder>
   {
+    using Base = Matcher</*removing*/true,false,higherOrder>;
+
     void init(CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_,
 	ClauseCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_);
 
@@ -69,15 +73,21 @@ private:
    *
    * Here the actual execution of the code of the tree takes place */
   struct LiteralMatcher
-  : public Matcher
+  : public Matcher</*removing*/false,false,higherOrder>
   {
+    using Base = Matcher</*removing*/false,false,higherOrder>;
+    using Base::op;
+    using Base::_matched;
+    using Base::finished;
+    using Base::execute;
+
     void init(CodeTree* tree, CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_, bool seekOnlySuccess=false);
     bool next();
     bool doEagerMatching();
 
     inline bool eagerlyMatched() const { return _eagerlyMatched; }
 
-    inline ILStruct* getILS() { ASS(matched()); return op->getILS(); }
+    inline ILStruct* getILS() { ASS(Base::matched()); return op->getILS(); }
 
     USE_ALLOCATOR(LiteralMatcher);
 

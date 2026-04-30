@@ -122,6 +122,11 @@ Inference::Inference(const InferenceOfASatClause& isc) {
   _ptr2 = isc.clause;
 }
 
+Inference::Inference(const ComponentClauseInference& cci) {
+  initMany(cci.rule, cci.premises);
+  _ptr2 = cci.causalParent;
+}
+
 /**
  * Return an iterator for an inference with zero premises.
  * @since 04/01/2008 Torrevieja
@@ -219,15 +224,9 @@ void Inference::updateStatistics()
         */
       } else if (_ptr2 == nullptr) {
         _inductionDepth = static_cast<Unit*>(_ptr1)->inference().inductionDepth();
-        _XXNarrows = static_cast<Unit*>(_ptr1)->inference().xxNarrows();
-        _reductions = static_cast<Unit*>(_ptr1)->inference().reductions();
       } else {
         _inductionDepth = max(static_cast<Unit*>(_ptr1)->inference().inductionDepth(),
             static_cast<Unit*>(_ptr2)->inference().inductionDepth());
-        _XXNarrows = max(static_cast<Unit*>(_ptr1)->inference().xxNarrows(),
-            static_cast<Unit*>(_ptr2)->inference().xxNarrows());
-        _reductions = max(static_cast<Unit*>(_ptr1)->inference().reductions(),
-            static_cast<Unit*>(_ptr2)->inference().reductions());
       }
 
       break;
@@ -235,13 +234,9 @@ void Inference::updateStatistics()
     case Kind::SAT:
     case Kind::SAT_NEEDS_MINIMIZATION:
       _inductionDepth = 0;
-      _XXNarrows = 0;
-      _reductions = 0;
       UnitList* it = static_cast<UnitList*>(_ptr1);
       while(it) {
         _inductionDepth = max(_inductionDepth,it->head()->inference().inductionDepth());
-        _XXNarrows = max(_XXNarrows,it->head()->inference().xxNarrows());
-        _reductions = max(_reductions,it->head()->inference().reductions());
         it=it->tail();
       }
       break;
@@ -272,9 +267,6 @@ std::ostream& Kernel::operator<<(std::ostream& out, Inference const& self)
   out << ", ptd: " << self._isPureTheoryDescendant;
   out << ", sl: " << self._sineLevel;
   out << ", age: " << self._age;
-  out << ", thAx:" << static_cast<int>(self.th_ancestors);
-  out << ", allAx:" << static_cast<int>(self.all_ancestors);
-
   return out;
 }
 
@@ -285,8 +277,6 @@ void Inference::init0(UnitInputType inputType, InferenceRule r)
   _kind = Kind::INFERENCE_012;
   _ptr1 = nullptr;
   _ptr2 = nullptr;
-
-  computeTheoryRunningSums();
 
   _isPureTheoryDescendant = isTheoryAxiom();
 
@@ -304,7 +294,6 @@ void Inference::init1(InferenceRule r, Unit* premise)
 
   premise->incRefCnt();
 
-  computeTheoryRunningSums();
   _isPureTheoryDescendant = premise->isPureTheoryDescendant();
   _sineLevel = premise->getSineLevel();
 
@@ -322,7 +311,6 @@ void Inference::init2(InferenceRule r, Unit* premise1, Unit* premise2)
   premise1->incRefCnt();
   premise2->incRefCnt();
 
-  computeTheoryRunningSums();
   _isPureTheoryDescendant = premise1->isPureTheoryDescendant() && premise2->isPureTheoryDescendant();
   _sineLevel = min(premise1->getSineLevel(),premise2->getSineLevel());
 
@@ -342,8 +330,6 @@ void Inference::initMany(InferenceRule r, UnitList* premises)
     it->head()->incRefCnt();
     it=it->tail();
   }
-
-  computeTheoryRunningSums();
 
   if (premises) {
     _isPureTheoryDescendant = true;
@@ -522,40 +508,6 @@ void Inference::minimizePremises()
   _ptr2 = nullptr;
 }
 
-void Inference::computeTheoryRunningSums()
-{
-  Inference::Iterator parentIt = iterator();
-
-  // inference without parents
-  if (!hasNext(parentIt))
-  {
-    th_ancestors = isTheoryAxiom() ? 1.0 : 0.0;
-    all_ancestors = 1.0;
-  }
-  else
-  {
-    // for simplifying inferences, propagate running sums of main premise
-    if (isSimplifyingInferenceRule(_rule))
-    {
-      // all simplifying inferences save the main premise as first premise
-      Unit* mainPremise = next(parentIt);
-      th_ancestors = mainPremise->inference().th_ancestors;
-      all_ancestors = mainPremise->inference().all_ancestors;
-    }
-    // for non-simplifying inferences, compute running sums as sum over all parents
-    else
-    {
-      th_ancestors = 0.0;
-      all_ancestors = 0.0; // there is going to be at least one, eventually
-      while (hasNext(parentIt))
-      {
-        Unit *parent = next(parentIt);
-        th_ancestors += parent->inference().th_ancestors;
-        all_ancestors += parent->inference().all_ancestors;
-      }
-    }
-  }
-}
 
 std::string Kernel::inputTypeName(UnitInputType type)
 {
@@ -676,6 +628,8 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "forward subsumption resolution";
   case InferenceRule::BACKWARD_SUBSUMPTION_RESOLUTION:
     return "backward subsumption resolution";
+  case InferenceRule::SUBSUMPTION_EQUALITY_RESOLUTION:
+    return "subsumption equality resolution";
   case InferenceRule::SUPERPOSITION:
     return "superposition";
   case InferenceRule::FUNCTION_DEFINITION_REWRITING:
@@ -943,26 +897,46 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "gaussian variable elimination";
   case InferenceRule::ARG_CONG:
     return "argument congruence";
-  case InferenceRule::NEGATIVE_EXT:
+  case InferenceRule::NEGATIVE_EXTENSIONALITY:
     return "negative extensionality";
+  case InferenceRule::POSITIVE_EXTENSIONALITY:
+    return "positive extensionality";
   case InferenceRule::INJECTIVITY:
     return "injectivity";
-  case InferenceRule::HOL_NOT_ELIMINATION:
+  case InferenceRule::NOT_PROXY_CLAUSIFICATION:
     return "not proxy clausification";
-  case InferenceRule::BINARY_CONN_ELIMINATION:
-    return "binary proxy clausification";
-  case InferenceRule::VSIGMA_ELIMINATION:
-    return "sigma clausification";
-  case InferenceRule::VPI_ELIMINATION:
-    return "pi clausification";
-  case InferenceRule::HOL_EQUALITY_ELIMINATION:
+  case InferenceRule::AND_PROXY_CLAUSIFICATION:
+    return "and proxy clausification";
+  case InferenceRule::OR_PROXY_CLAUSIFICATION:
+    return "or proxy clausification";
+  case InferenceRule::IMP_PROXY_CLAUSIFICATION:
+    return "imp proxy clausification";
+  case InferenceRule::IFF_PROXY_CLAUSIFICATION:
+    return "iff proxy clausification";
+  case InferenceRule::XOR_PROXY_CLAUSIFICATION:
+    return "xor proxy clausification";
+  case InferenceRule::SIGMA_PROXY_CLAUSIFICATION:
+    return "sigma proxy clausification";
+  case InferenceRule::PI_PROXY_CLAUSIFICATION:
+    return "pi proxy clausification";
+  case InferenceRule::EQUALITY_PROXY_CLAUSIFICATION:
     return "equality proxy clausification";
   case InferenceRule::BOOL_SIMP:
     return "boolean simplification";
+  case InferenceRule::FLEX_FLEX_SIMPLIFICATION:
+    return "flex-flex simplification";
+  case InferenceRule::BETA_ETA_NORMALIZATION:
+    return "beta-eta normalization";
   case InferenceRule::EQ_TO_DISEQ:
     return "bool equality to disequality";
+  case InferenceRule::HEURISTIC_INSTANTIATION:
+    return "heuristic instantiation";
   case InferenceRule::PRIMITIVE_INSTANTIATION:
     return "primitive instantiation";
+  case InferenceRule::IMITATION:
+    return "imitation";
+  case InferenceRule::PROJECTION:
+    return "projection";
   case InferenceRule::LEIBNIZ_ELIMINATION:
     return "leibniz equality elimination";
   case InferenceRule::HILBERTS_CHOICE_INSTANCE:

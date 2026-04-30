@@ -45,6 +45,18 @@ using namespace Kernel;
 using namespace Shell;
 using namespace Parse;
 
+/** Zip a VList and SList (built in sync) into a VSList */
+static VSList* zipVarsSorts(VList* vars, SList* sorts) {
+  VSList::FIFO fifo;
+  VList::Iterator vit(vars);
+  SList::Iterator sit(sorts);
+  while (vit.hasNext()) {
+    ASS(sit.hasNext());
+    fifo.pushBack({vit.next(), sit.next()});
+  }
+  return fifo.list();
+}
+
 #define DEBUG_SHOW_UNITS 0
 #define DEBUG_SOURCE 0
 DHMap<unsigned, std::string> TPTP::_axiomNames;
@@ -1387,10 +1399,8 @@ void TPTP::tff()
         resetToks();
         unsigned arity = getConstructorArity();
         bool added = false;
-        unsigned fun = arity == 0
-            ? addUninterpretedConstant(nm, added)
-            : env.signature->addFunction(nm, arity, added);
-        Signature::Symbol* symbol = env.signature->getFunction(fun);
+        unsigned fun = env.signature->addTypeCon(nm, arity, added);
+        Signature::Symbol* symbol = env.signature->getTypeCon(fun);
         OperatorType* ot = OperatorType::getTypeConType(arity);
         if (!added) {
           if(symbol->fnType()!=ot){
@@ -1495,13 +1505,15 @@ void TPTP::holFormula()
   case T_SIGMA:
     resetToks();
     readTypeArgs(1);
-    _termLists.push(createFunctionApplication("vSIGMA", 1));    
+    _termLists.push(createFunctionApplication("vSIGMA", 1));
+    _lastPushed = TM;
     return;
   
   case T_PI:
     resetToks();
     readTypeArgs(1);
-    _termLists.push(createFunctionApplication("vPI", 1));      
+    _termLists.push(createFunctionApplication("vPI", 1));
+    _lastPushed = TM;
     return;
 
   case T_FORALL:
@@ -1530,6 +1542,7 @@ void TPTP::holFormula()
     ASS(_connectives.top() == NOT);
     _connectives.pop();
     _termLists.push(createFunctionApplication("vNOT", 0));
+    _lastPushed = TM;
     return;
   }
 
@@ -1738,7 +1751,7 @@ void TPTP::endHolFormula()
   case FORALL:
   case EXISTS:
     f = _formulas.pop();
-    _formulas.push(new QuantifiedFormula((Connective)con,_varLists.pop(),_sortLists.pop(),f));
+    _formulas.push(new QuantifiedFormula((Connective)con,zipVarsSorts(_varLists.pop(),_sortLists.pop()),f));
     _lastPushed = FORM;
     _states.push(END_HOL_FORMULA);
     _states.push(UNBIND_VARIABLES);
@@ -1748,7 +1761,7 @@ void TPTP::endHolFormula()
        endFormulaInsideTerm();
      }
      fun = _termLists.pop();
-     TermList ts(Term::createLambda(fun, _varLists.pop(), _sortLists.pop(), sortOf(fun)));
+     TermList ts(Term::createLambda(fun, zipVarsSorts(_varLists.pop(), _sortLists.pop()), sortOf(fun)));
      _termLists.push(ts);
      _lastPushed = TM;
      _states.push(END_HOL_FORMULA);
@@ -1966,7 +1979,7 @@ void TPTP::endTheoryFunction() {
    */
 
   Theory::Interpretation itp;
-  TermList args[3]; // all theory function use up to 3 arguments as for now
+  TermList args[5]; // all theory function use up to 5 arguments as for now
   TermList arraySort;
 
   TheoryFunction tf = _theoryFunctions.pop();
@@ -1985,14 +1998,12 @@ void TPTP::endTheoryFunction() {
         USER_ERROR("sort of index is not the same as the index sort of the array");
       }
 
-      args[0] = array;
-      args[1] = index;
+      args[0] = indexSort;
+      args[1] = SortHelper::getInnerSort(arraySort);
+      args[2] = array;
+      args[3] = index;
 
-      if (SortHelper::getInnerSort(arraySort) == AtomicSort::boolSort()) {
-        itp = Theory::Interpretation::ARRAY_BOOL_SELECT;
-      } else {
-        itp = Theory::Interpretation::ARRAY_SELECT;
-      }
+      itp = Theory::Interpretation::ARRAY_SELECT;
       break;
     }
     case TF_STORE: {
@@ -2015,20 +2026,20 @@ void TPTP::endTheoryFunction() {
         USER_ERROR("sort of value is not the same as the value sort of the array");
       }
 
-      args[0] = array;
-      args[1] = index;
-      args[2] = value;
+      args[0] = indexSort;
+      args[1] = innerSort;
+      args[2] = array;
+      args[3] = index;
+      args[4] = value;
 
       itp = Theory::Interpretation::ARRAY_STORE;
-
       break;
     }
     default:
       ASSERTION_VIOLATION_REP(tf);
   }
 
-  OperatorType* type = Theory::getArrayOperatorType(arraySort,itp);
-  unsigned symbol = env.signature->getInterpretingSymbol(itp, type);
+  unsigned symbol = env.signature->getInterpretingSymbol(itp);
   unsigned arity = Theory::getArity(itp);
 
   if (Theory::isFunction(itp)) {
@@ -2596,7 +2607,7 @@ void TPTP::tupleDefinition()
     }
   } while (true);
 
-  auto tupleFunctor = Theory::tuples()->getConstructor(sorts.size());
+  auto tupleFunctor = Theory::getTupleConstructor(sorts.size());
 
   LetDefinitions definitions = _letDefinitions.pop();
   // TODO tuple $lets probably also need adjusting with polymorphic (implicit) types
@@ -2730,7 +2741,9 @@ void TPTP::endLet()
         }
       });
     } else {
-      args.loadFromIterator(iterTraits(varList->iter()).map(unsignedToVarFn));
+      if (varList) {
+        args.loadFromIterator(iterTraits(varList->iter()).map(unsignedToVarFn));
+      }
       vars = varList;
     }
     auto binding = Formula::createDefinition(Term::create(symbol, args), body, vars);
@@ -2756,7 +2769,7 @@ void TPTP::endTuple()
     args[i] = sortOf(ts);
   }
 
-  auto t =  Term::create(Theory::tuples()->getConstructor(arity), 2*arity, args.begin());
+  auto t =  Term::create(Theory::getTupleConstructor(arity), 2*arity, args.begin());
   _termLists.push(TermList(t));
 } // endTuple
 
@@ -3191,8 +3204,12 @@ Formula* TPTP::createPredicateApplication(std::string name, unsigned arity)
   }
   if (pred == -2){ // distinct
     // TODO check that we are top-level
+
+    // ignore pointless $distinct(x)
+    if(arity < 2)
+      return new Formula(true);
     // If fewer than 5 things are distinct then we add the disequalities
-    if(arity<5){
+    else if(arity < 5){
       static Stack<unsigned> distincts;
       distincts.reset();
       for(int i=arity-1;i >= 0; i--){
@@ -3385,7 +3402,7 @@ void TPTP::endFormula()
   case FORALL:
   case EXISTS:
     f = _formulas.pop();
-    _formulas.push(new QuantifiedFormula((Connective)con,_varLists.pop(),_sortLists.pop(),f));
+    _formulas.push(new QuantifiedFormula((Connective)con,zipVarsSorts(_varLists.pop(),_sortLists.pop()),f));
     _states.push(END_FORMULA);
     return;
   case LITERAL:
@@ -3626,7 +3643,7 @@ void TPTP::endFof()
 #if DEBUG_SOURCE
   else{
     // create fake map
-    _unitSources = new DHMap<Unit*,SourceRecord*>();
+    _unitSources = new DHMap<unsigned,SourceRecord*>();
     source = getSource();
   }
 #endif
@@ -3708,7 +3725,7 @@ void TPTP::endFof()
 
   if(source) {
     ASS(_unitSources);
-    _unitSources->insert(original,source);
+    _unitSources->insert(original->number(),source);
   }
 
   if (env.options->outputAxiomNames()) {

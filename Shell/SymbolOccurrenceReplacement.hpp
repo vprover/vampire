@@ -31,10 +31,11 @@ class SymbolOccurrenceReplacement {
      * freshApplication = g(A1, ..., Am, B1, ..., Bj,X1, ..., Xn, Y1, ..., Yk)
      */
     SymbolOccurrenceReplacement(Term* oldApplication, Term* freshApplication)
-      : _isPredicate(oldApplication->isBoolean()),
+      : _isPredicate(oldApplication->isLiteral()),
         _oldApplication(oldApplication),
         _freshApplication(freshApplication)
     {
+      ASS(!oldApplication->isSpecial());
         // The implementation of this class doesn't requite argVars to be
         // non-empty, however, its use case expects this constraint
         //ASS(argVars || !env.signature->getFunction(symbol)->introduced());

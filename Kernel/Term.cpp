@@ -143,11 +143,42 @@ bool TermList::isChoice() const {
   return !isVar() && term()->isChoice();
 }
 
+bool TermList::isPlaceholder() const {
+  return !isVar() && term()->isPlaceholder();
+}
+
 Option<unsigned> TermList::deBruijnIndex() const {
   if (isVar())
     return {};
 
   return term()->deBruijnIndex();
+}
+
+bool TermList::containsLooseDBIndex() const
+{
+  Stack<std::pair<TermList,unsigned>> todo;
+  todo.emplace(*this, 0);
+
+  while (todo.isNonEmpty()) {
+    auto [curr, dep] = todo.pop();
+
+    if (curr.isVar() || (curr.term()->shared() && !curr.term()->hasDeBruijnIndex())) {
+      continue;
+    }
+
+    if (curr.deBruijnIndex().isSome()) {
+      unsigned idx = curr.deBruijnIndex().unwrap();
+      if (idx >= dep) { return true; }
+    }
+    else if (curr.isLambdaTerm()) {
+      todo.emplace(curr.lambdaBody(), dep + 1);
+    }
+    else if (curr.isApplication()) {
+      todo.emplace(curr.lhs(), dep);
+      todo.emplace(curr.rhs(), dep);
+    }
+  }
+  return false;
 }
 
 TermList TermList::lhs() const {
@@ -182,22 +213,26 @@ TermList TermList::head() const {
   return trm;
 }
 
-std::pair<TermList, TermList> TermList::asPair() {
+std::pair<TermList, TermList> TermList::asPair() const {
   ASS(isArrowSort())
 
   return {domain(), result()};
 }
 
-TermList TermList::domain() {
+TermList TermList::domain() const {
   ASS(isArrowSort())
 
   return *term()->nthArgument(0);
 }
 
-TermList TermList::result() {
+TermList TermList::result() const {
   ASS(isArrowSort())
 
   return *term()->nthArgument(1);
+}
+
+TermList TermList::resultSort() const {
+  return SortHelper::getResultSort(term());
 }
 
 TermList TermList::replaceSubterm(TermList what, TermList by, bool liftFreeIndices) const {
@@ -306,28 +341,24 @@ unsigned TermList::weight() const
   return isVar() ? 1 : term()->weight();
 }
 
-bool TermList::isArrowSort()
-{
+bool TermList::isArrowSort() const {
   return !isVar() && term()->isSort() &&
-         static_cast<AtomicSort*>(term())->isArrowSort();
+         static_cast<const AtomicSort*>(term())->isArrowSort();
 }
 
-bool TermList::isBoolSort()
-{
+bool TermList::isBoolSort() const {
   return !isVar() && term()->isSort() &&
-         static_cast<AtomicSort*>(term())->isBoolSort();
+         static_cast<const AtomicSort*>(term())->isBoolSort();
 }
 
-bool TermList::isArraySort()
-{
+bool TermList::isArraySort() const {
   return !isVar() && term()->isSort() &&
-         static_cast<AtomicSort*>(term())->isArraySort();
+         static_cast<const AtomicSort*>(term())->isArraySort();
 }
 
-bool TermList::isTupleSort()
-{
+bool TermList::isTupleSort() const {
   return !isVar() && term()->isSort() &&
-         static_cast<AtomicSort*>(term())->isTupleSort();
+         static_cast<const AtomicSort*>(term())->isTupleSort();
 }
 
 bool AtomicSort::isArrowSort() const {
@@ -356,7 +387,7 @@ unsigned Term::numTypeArguments() const {
       : env.signature->getFunction(_functor)->numTypeArguments();
 }
 
-TermList* Term::termArgs()
+const TermList* Term::termArgs() const
 {
   ASS(!isSort());
 
@@ -554,7 +585,7 @@ std::string Term::headToString() const
         auto bindingLhs = binding->literal()->termArg(0).term();
 
         std::string type;
-        if (Theory::tuples()->isConstructor(bindingLhs)) {
+        if (Theory::isTupleConstructor(bindingLhs)) {
           type += "[";
           for (unsigned i = 0; i < bindingLhs->numTermArguments(); i++) {
             auto arg = bindingLhs->termArg(i);
@@ -587,19 +618,15 @@ std::string Term::headToString() const
         return "$ite(" + sd->getITECondition()->toString() + ", ";
       }
       case SpecialFunctor::LAMBDA: {
-        VList* vars = sd->getLambdaVars();
-        SList* sorts = sd->getLambdaVarSorts();
-        ASS_EQ(VList::length(vars), SList::length(sorts))
-
+        VSList* vars = sd->getLambdaVars();
         TermList lambdaExp = sd->getLambdaExp();
 
         std::string varList;
 
-        VList::Iterator vs(vars);
-        SList::Iterator ss(sorts);
+        VSList::Iterator vs(vars);
         while (vs.hasNext()) {
-          varList += variableToString(vs.next()) + " : ";
-          varList += ss.next().toString();
+          auto [v, sort] = vs.next();
+          varList += variableToString(v) + " : " + sort.toString();
           if (vs.hasNext())
             varList += ", ";
         }
@@ -614,7 +641,7 @@ std::string Term::headToString() const
     }
   } else {
     unsigned proj;
-    if (!isSort() && Theory::tuples()->findProjection(functor(), isLiteral(), proj)) {
+    if (!isSort() && Theory::findTupleProjection(functor(), isLiteral(), proj)) {
       return "$proj(" + Int::toString(proj) + ", ";
     }
     std::string name = "";
@@ -811,6 +838,11 @@ TermList Literal::eqArgSort() const {
   return SortHelper::getEqualityArgumentSort(this);
 }
 
+std::pair<TermList,TermList> Literal::eqArgs() const {
+  ASS(isEquality());
+  return { termArg(0), termArg(1) };
+}
+
 /**
  * Return the result of conversion of a literal into a std::string.
  *
@@ -848,6 +880,10 @@ std::string Literal::toString(bool reverseEquality) const
         SortHelper::getEqualityArgumentSort(this).isBoolSort()) {
       res = "(" + res + ")";
     }
+
+#ifdef VPRINT_EQ_SORT
+    res += " {" + eqArgSort().toString() + "}";
+#endif // VAMPIRE_PRINT_EQ_SORT
 
     return res;
   }
@@ -889,7 +925,7 @@ std::string Literal::toString(bool reverseEquality) const
   }
 
   unsigned proj;
-  if (Theory::tuples()->findProjection(functor(), true, proj)) {
+  if (Theory::findTupleProjection(functor(), true, proj)) {
     return s + "$proj(" + Int::toString(proj) + ", " + args()->asArgsToString();
   }
   s += predicateName();
@@ -939,6 +975,10 @@ bool Term::isProxy(Proxy proxy) const {
 
 bool Term::isChoice() const {
   return !isSort() && !isLiteral() && !isSpecial() && env.signature->isChoiceFun(_functor);
+}
+
+bool Term::isPlaceholder() const {
+  return !isSort() && !isLiteral() && !isSpecial() && env.signature->isPlaceholder(_functor);
 }
 
 Option<unsigned> Term::deBruijnIndex() const {
@@ -1013,6 +1053,23 @@ Literal* Literal::complementaryLiteral(Literal* l)
     res=create(l,!l->polarity());
   }
   return res;
+}
+
+bool Literal::isFlexFlexConstraint() const
+{
+  ASS(isEquality());
+  return isNegative() && termArg(0).head().isVar() && termArg(1).head().isVar();
+}
+
+bool Literal::isFlexRigid() const
+{
+  ASS(isEquality());
+
+  auto [lhs, rhs] = eqArgs();
+  auto lhsHead = lhs.head();
+  auto rhsHead = rhs.head();
+
+  return (lhsHead.isVar() && !rhsHead.isVar()) || (rhsHead.isVar() && !lhsHead.isVar());
 }
 
 
@@ -1174,23 +1231,20 @@ Term* Term::createFormula(Formula* formula)
  * Create a lambda term from a list of lambda vars and an
  * expression and returns the resulting term
  */
-Term* Term::createLambda(TermList lambdaExp, VList* vars, SList* sorts, TermList expSort){
+Term* Term::createLambda(TermList lambdaExp, VSList* vars, TermList expSort){
   Term* s = new(0, sizeof(SpecialTermData)) Term;
   s->makeSymbol(toNormalFunctor(SpecialFunctor::LAMBDA), 0);
-  //should store body of lambda in args
   s->getSpecialData()->_lambdaData.lambdaExp = lambdaExp;
   s->getSpecialData()->_lambdaData._vars = vars;
-  s->getSpecialData()->_lambdaData._sorts = sorts;
   s->getSpecialData()->_lambdaData.expSort = expSort;
-  SList::Iterator sit(sorts);
   Stack<TermList> revSorts;
-  TermList lambdaTmSort = expSort;
-  while(sit.hasNext()){
-    revSorts.push(sit.next());
+  VSList::Iterator vit(vars);
+  while(vit.hasNext()){
+    revSorts.push(vit.next().second);
   }
+  TermList lambdaTmSort = expSort;
   while(!revSorts.isEmpty()){
-    TermList varSort = revSorts.pop();
-    lambdaTmSort = AtomicSort::arrowSort(varSort, lambdaTmSort);
+    lambdaTmSort = AtomicSort::arrowSort(revSorts.pop(), lambdaTmSort);
   }
   s->getSpecialData()->_lambdaData.sort = lambdaTmSort;
   return s;
@@ -1305,24 +1359,36 @@ TermList AtomicSort::arrowSort(TermList s1, TermList s2) {
   return TermList(create2(arrow, s1, s2));
 }
 
-TermList AtomicSort::arrowSort(TermList s1, TermList s2, TermList s3) {
-  return arrowSort(s1, arrowSort(s2, s3));
-}
-
 TermList AtomicSort::arrowSort(unsigned size, const TermList* types, TermList range) {
-  ASS(size > 0)
+  ASS_G(size, 0);
 
   TermList res = range;
-  for (unsigned i = size; i-- > 0;)
+  for (unsigned i = size; i-- > 0;) {
     res = arrowSort(types[i], res);
+  }
 
   return res;
 }
 
-TermList AtomicSort::arrowSort(const TermStack & domSorts, TermList range) {
+TermList AtomicSort::arrowSort(const std::initializer_list<TermList>& types) {
+  const auto size = types.size();
+  ASS_G(size, 1);
+
+  const TermList* data = std::data(types);
+  return arrowSort(size - 1, data, data[size - 1]);
+}
+
+TermList AtomicSort::arrowSort(const TermStack& domSorts, TermList range, bool fromTop) {
   TermList res = range;
-  for (auto domSort : domSorts)
-    res = arrowSort(domSort, res);
+  if (fromTop) {
+    for (const auto& domSort : iterTraits(domSorts.iter())) {
+      res = arrowSort(domSort, res);
+    }
+  } else {
+    for (auto domSort : domSorts) {
+      res = arrowSort(domSort, res);
+    }
+  }
 
   return res;
 }
@@ -1544,9 +1610,12 @@ Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, GetA
   auto allocLiteral = [&]() {
     Literal* l = new(arity) Literal(predicate, arity, polarity);
     for (auto i : range(0, arity)) {
-      *l->nthArgument(i) = normArg(i);
+      auto a = normArg(i);
+      *l->nthArgument(i) = a;
+      ASS(a.isVar() || predicate != 0 || a.term()->isSpecial() || SortHelper::getResultSort(a.term()) != AtomicSort::superSort())
     }
     if (twoVarEqSort) {
+      ASS(*twoVarEqSort != AtomicSort::superSort())
       l->markTwoVarEquality();
       l->setTwoVarEqSort(*twoVarEqSort);
     }

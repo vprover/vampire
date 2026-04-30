@@ -34,25 +34,16 @@ class VirasQuantifierElimination
 public:
 
   VirasQuantifierElimination(VirasQuantifierElimination&&) = default;
-  explicit VirasQuantifierElimination(std::shared_ptr<AlascaState> shared) 
-    : _shared(std::move(shared))
-  {  }
+  explicit VirasQuantifierElimination(SaturationAlgorithm& salg);
 
-  void attach(SaturationAlgorithm* salg) final {}
-  void detach() final {}
-
-  ClauseGenerationResult generateSimplify(Clause* premise) final ;
-
-#if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const&) final override {}
-#endif
+  ClauseGenerationResult generateSimplify(Clause* premise) final;
 
 private:
   Option<ClauseGenerationResult> generateSimplify(IntTraits n, Clause* premise);
   template<class NumTraits>
   Option<ClauseGenerationResult> generateSimplify(NumTraits n, Clause* premise);
 
-  std::shared_ptr<AlascaState> _shared;
+  const AlascaState& _shared;
 };
 
 } // namespace ALASCA 

@@ -18,7 +18,6 @@
 
 #include "Forwards.hpp"
 
-#include "Indexing/IndexManager.hpp"
 #include "BinInf.hpp"
 
 namespace Inferences {
@@ -30,8 +29,8 @@ using namespace Saturation;
 
 struct FourierMotzkinConf
 {
-  FourierMotzkinConf(std::shared_ptr<AlascaState> shared) 
-    : _shared(std::move(shared))
+  FourierMotzkinConf(SaturationAlgorithm& salg) 
+    : _shared(salg.alascaState())
   {  }
 
   static const char* name() { return "alasca fourier motzkin"; }
@@ -39,7 +38,6 @@ struct FourierMotzkinConf
   class Lhs : public SelectedSummand { 
   public: 
     static const char* name() { return "alasca fourier motzkin lhs"; }
-    static IndexType indexType() { return Indexing::ALASCA_FOURIER_MOTZKIN_LHS_SUBST_TREE; }
 
     explicit Lhs(Lhs const&) = default;
     Lhs(SelectedSummand s) : SelectedSummand(std::move(s)) {} 
@@ -60,7 +58,6 @@ struct FourierMotzkinConf
   class Rhs : public SelectedSummand { 
   public: 
     static const char* name() { return "alasca fourier motzkin rhs"; }
-    static IndexType indexType() { return Indexing::ALASCA_FOURIER_MOTZKIN_RHS_SUBST_TREE; }
 
     explicit Rhs(Rhs const&) = default;
     Rhs(SelectedSummand s) : SelectedSummand(std::move(s)) {} 
@@ -91,12 +88,12 @@ struct FourierMotzkinConf
       AbstractingUnifier& uwa
       ) const;
 
-  std::shared_ptr<AlascaState> _shared;
+  AlascaState& _shared;
 };
 
 struct FourierMotzkin : public BinInf<FourierMotzkinConf>  {
-  FourierMotzkin(std::shared_ptr<AlascaState> state) 
-    : BinInf<FourierMotzkinConf>(state, FourierMotzkinConf(state)) {}
+  FourierMotzkin(SaturationAlgorithm& salg) 
+    : BinInf<FourierMotzkinConf>(salg, FourierMotzkinConf(salg)) {}
 };
 
 } // namespace ALASCA 

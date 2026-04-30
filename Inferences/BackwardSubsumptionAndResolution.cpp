@@ -27,7 +27,6 @@
 #include "Lib/List.hpp"
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralIndex.hpp"
-#include "Indexing/IndexManager.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Shell/Statistics.hpp"
 #include "BackwardSubsumptionAndResolution.hpp"
@@ -39,21 +38,15 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-void BackwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
+BackwardSubsumptionAndResolution::BackwardSubsumptionAndResolution(SaturationAlgorithm& salg)
+  : _subsumption(salg.getOptions().backwardSubsumption() != Options::Subsumption::OFF),
+    _subsumptionResolution(salg.getOptions().backwardSubsumptionResolution() != Options::Subsumption::OFF),
+    _subsumptionByUnitsOnly(salg.getOptions().backwardSubsumption() == Options::Subsumption::UNIT_ONLY),
+    _srByUnitsOnly(salg.getOptions().backwardSubsumptionResolution() == Options::Subsumption::UNIT_ONLY),
+    _bwIndex(salg.getSimplifyingIndex<BackwardSubsumptionIndex>())
 {
-  BackwardSimplificationEngine::attach(salg);
-  _bwIndex = static_cast<BackwardSubsumptionIndex *>(
-      _salg->getIndexManager()->request(BACKWARD_SUBSUMPTION_SUBST_TREE)
-  );
+  ASS(_subsumption || _subsumptionResolution);
 }
-
-void BackwardSubsumptionAndResolution::detach()
-{
-  _bwIndex = 0;
-  _salg->getIndexManager()->release(BACKWARD_SUBSUMPTION_SUBST_TREE);
-  BackwardSimplificationEngine::detach();
-}
-
 
 void BackwardSubsumptionAndResolution::perform(Clause *cl,
                                                BwSimplificationRecordIterator &simplifications)
@@ -86,7 +79,7 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
       auto it = _bwIndex->getInstances(lit, false, false);
       while (it.hasNext()) {
         Clause *icl = it.next().data->clause;
-        if (!_checked.insert(icl))
+        if (!_checked.insert(icl->number()))
           continue;
         env.statistics->backwardSubsumed++;
         List<BwSimplificationRecord>::push(BwSimplificationRecord(icl), simplificationBuffer);
@@ -100,7 +93,7 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
       while (it.hasNext()) {
         auto res = it.next();
         Clause *icl = res.data->clause;
-        if (!_checked.insert(icl))
+        if (!_checked.insert(icl->number()))
           continue;
         Clause *conclusion = SATSubsumption::SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(icl, res.data->literal, cl, /*forward=*/false);
         ASS(conclusion)
@@ -145,7 +138,7 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
     auto it = _bwIndex->getInstances(lit, false, false);
     while (it.hasNext()) {
       Clause *icl = it.next().data->clause;
-      if (!_checked.insert(icl))
+      if (!_checked.insert(icl->number()))
         continue;
       // check subsumption and setup subsumption resolution at the same time
       bool checkS = _subsumption && !_subsumptionByUnitsOnly;
@@ -177,7 +170,7 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
     auto it = _bwIndex->getInstances(lit, true, false);
     while (it.hasNext()) {
       Clause *icl = it.next().data->clause;
-      if (!_checked.insert(icl))
+      if (!_checked.insert(icl->number()))
         continue;
       // check subsumption resolution
       Clause *conclusion = _satSubs.checkSubsumptionResolution(cl, icl, /*forward=*/false, false);

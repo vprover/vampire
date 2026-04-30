@@ -40,7 +40,6 @@
 #include "Lib/ArrayMap.hpp"
 #include "Lib/Array.hpp"
 #include "Lib/BiMap.hpp"
-#include "Kernel/ApplicativeHelper.hpp"
 #include "Lib/Recycled.hpp"
 
 #include "Kernel/RobSubstitution.hpp"
@@ -1496,7 +1495,7 @@ public:
         using Unifier = AbstractingUnifier*;
 
         bool associate(unsigned specialVar, TermList node)
-        { return unifier()->unify(TermList(specialVar, /* special */ true), VarBanks::normInternal, node, VarBanks::normInternal); }
+        { return unifier()->unifyOnce(TermList(specialVar, /* special */ true), VarBanks::normInternal, node, VarBanks::normInternal); }
 
         AbstractingUnifier const* unifier() const { return unifier(_unif); }
         AbstractingUnifier      * unifier()       { return unifier(_unif); }

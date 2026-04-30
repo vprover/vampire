@@ -27,19 +27,14 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+template<bool higherOrder>
 class ForwardGroundJoinability
 : public ForwardSimplificationEngine
 {
 public:
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
-  bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
+  ForwardGroundJoinability(SaturationAlgorithm& salg);
 
-#if VDEBUG
-  void setTestIndices(const Stack<Index*>& indices) override {
-    _index = static_cast<DemodulationLHSIndex*>(indices[0]);
-  }
-#endif // VDEBUG
+  bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 
   static bool makeEqual(Literal* lit, Stack<TermOrderingConstraint>& res);
 
@@ -59,7 +54,8 @@ private:
     Branch* _curr;
   };
 
-  DemodulationLHSIndex* _index;
+  const Ordering& _ord;
+  std::shared_ptr<DemodulationLHSIndex<higherOrder>> _index;
 };
 
 };

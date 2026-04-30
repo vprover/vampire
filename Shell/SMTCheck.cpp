@@ -197,7 +197,6 @@ static std::ostream &operator<<(std::ostream &out, FunctionName name) {
   case Theory::INT_CEILING:
     ASSERTION_VIOLATION
   case Theory::ARRAY_SELECT:
-  case Theory::ARRAY_BOOL_SELECT:
   case Theory::ARRAY_STORE:
     NOT_IMPLEMENTED;
   case Theory::INVALID_INTERPRETATION:
@@ -308,7 +307,6 @@ static std::ostream &operator<<(std::ostream &out, PredicateName name) {
   case Theory::REAL_TO_RAT:
   case Theory::REAL_TO_REAL:
   case Theory::ARRAY_SELECT:
-  case Theory::ARRAY_BOOL_SELECT:
   case Theory::ARRAY_STORE:
     // should be predicates, not functions
     ASSERTION_VIOLATION
@@ -598,7 +596,7 @@ static void resolution(std::ostream &out, SortMap &conclSorts, Clause *concl)
   Literal *selectedLeft = br.selectedLiteral.selectedLiteral;
   Literal *selectedRight = br.otherLiteral;
   for(unsigned i = 0; i < selectedLeft->arity(); i++)
-    ALWAYS(uwa.unify((*selectedLeft)[i], 0, (*selectedRight)[i], 1))
+    ALWAYS(uwa.unifyOnce((*selectedLeft)[i], 0, (*selectedRight)[i], 1))
   ASS_NEQ(selectedLeft->polarity(), selectedRight->polarity())
   RobSubstitution &subst = uwa.subs();
 
@@ -754,7 +752,7 @@ static void splitClause(std::ostream &out, SortMap &conclSorts, Unit *concl)
   ALWAYS(parents.hasNext())
   Clause *split = parents.next()->asClause();
   outputPremise(out, conclSorts, split);
-  for (Unit *u : iterTraits(parents)) {
+  for (Unit *u : iterTraits(std::move(parents))) {
     Clause *component = env.proofExtra.get<Indexing::SplitDefinitionExtra>(u).component;
     SortMap otherSorts;
     SortHelper::collectVariableSorts(component, otherSorts);
@@ -797,7 +795,7 @@ static void alascaBinInf(std::ostream &out, SortMap &conclSorts, Clause *concl) 
   const auto &fm = env.proofExtra.get<ALASCA::BinInfExtra<Rule>>(concl);
 
   auto uwa = AbstractingUnifier::empty(AbstractionOracle(env.options->unificationWithAbstraction()));
-  ALWAYS(uwa.unify(fm.left.key(), 0, fm.right.key(), 1))
+  ALWAYS(uwa.unifyOnce(fm.left.key(), 0, fm.right.key(), 1))
   RobSubstitution &subst = uwa.subs();
 
   subst.apply(fm.left.literal(), 0);

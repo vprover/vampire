@@ -9,7 +9,6 @@
  */
 #include "InferenceEngine.hpp"
 #include "Kernel/Clause.hpp"
-#include "LfpRule.hpp"
 
 namespace Inferences {
 

@@ -16,7 +16,7 @@
 #include "Lib/Int.hpp"
 #include "Lib/ScopedLet.hpp"
 #include "Lib/Stack.hpp"
-#include "Lib/Set.hpp"
+#include "Lib/Map.hpp"
 #include "Lib/Int.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -53,7 +53,7 @@ using namespace Kernel;
 struct PredicateDefinition::PredData
 {
   /** Units that contain the predicate. */
-  Set<Unit*> containingUnits;
+  Map<unsigned, Unit*> containingUnits;
 
   bool builtIn;
   int pred;
@@ -181,7 +181,9 @@ void PredicateDefinition::addBuiltInPredicate(unsigned pred)
 Unit* PredicateDefinition::getReplacement(Unit* u, ReplMap& replacements)
 {
   Unit* tgt;
-  while(replacements.find(u,tgt)) {
+  while(replacements.find(u->number(),tgt)) {
+    if(!tgt)
+      return nullptr;
     u=tgt;
   }
   return u;
@@ -246,7 +248,7 @@ void PredicateDefinition::eliminatePredicateDefinition(unsigned pred, ReplMap& r
     count(repl, 1);
   }
   count(def, -1);
-  ALWAYS(replacements.insert(def, repl));
+  ALWAYS(replacements.insert(def->number(), repl));
 
   env.statistics->unusedPredicateDefinitions++;
 }
@@ -260,10 +262,10 @@ void PredicateDefinition::replacePurePred(unsigned pred, ReplMap& replacements)
   if(_processedPrb) {
     _processedPrb->addTrivialPredicate(pred, pd.nocc==0);
   }
-  Set<Unit*>::Iterator uit(pd.containingUnits);
+  Map<unsigned, Unit*>::Iterator uit(pd.containingUnits);
   while(uit.hasNext()) {
-    Unit* u=uit.next();
-    if(replacements.find(u)) {
+    Unit* u=uit.next().value();
+    if(replacements.find(u->number())) {
       //The unit has already been replaced.
       continue;
     }
@@ -280,7 +282,7 @@ void PredicateDefinition::replacePurePred(unsigned pred, ReplMap& replacements)
 
     count(v,1);
     count(u,-1);
-    ALWAYS(replacements.insert(u,v));
+    ALWAYS(replacements.insert(u->number(),v));
   }
 
   env.statistics->purePredicates++;
@@ -335,7 +337,7 @@ void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(Problem& prb)
 
 void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(UnitList*& units)
 {
-  static DHMap<Unit*, Unit*> replacements;
+  static DHMap<unsigned, Unit*> replacements;
   replacements.reset();
 
   collectReplacements(units, replacements);
@@ -593,23 +595,13 @@ Formula* PredicateDefinition::replacePurePredicates(Formula* f)
       //remain valid, but those from arg and result might share some
       //elements, which would lead to trouble e.g. if we were deleting
       //them both.
-      VList* vl=arg->vars();
-      VList::Iterator vit(f->vars());
-      while(vit.hasNext()) {
-        VList::push(vit.next(), vl);
-      }
-      // sl should either be empty or the equivalent concatenation as vl
-      // if the sorts of either arg or f are empty then sl should be empty
-      SList* sl= SList::empty();
-      if(arg->sorts() && f->sorts()){
-        sl=arg->sorts();
-        SList::Iterator sit(f->sorts());
-        while(sit.hasNext()){
-          SList::push(sit.next(),sl);
-        }
+      VSList* vsl=arg->vars();
+      VSList::Iterator vsit(f->vars());
+      while(vsit.hasNext()) {
+        VSList::push(vsit.next(), vsl);
       }
 
-      return new QuantifiedFormula(con,vl,sl,arg->qarg());
+      return new QuantifiedFormula(con, vsl, arg->qarg());
     }
     switch (arg->connective()) {
     case FALSE:
@@ -618,7 +610,7 @@ Formula* PredicateDefinition::replacePurePredicates(Formula* f)
     default:
       return arg == f->qarg()
 	      ? f
-	      : new QuantifiedFormula(con,f->vars(),f->sorts(),arg);
+	      : new QuantifiedFormula(con, f->vars(), arg);
     }
   }
   default:
@@ -676,7 +668,7 @@ FormulaUnit* PredicateDefinition::makeImplFromDef(FormulaUnit* def, unsigned pre
 
   Formula* resf0;
   if(isQuantified) {
-    resf0=new QuantifiedFormula(FORALL, f0->vars(), f0->sorts(), resf);
+    resf0=new QuantifiedFormula(FORALL, f0->vars(), resf);
   } else {
     resf0=resf;
   }
@@ -751,7 +743,7 @@ void PredicateDefinition::count (Clause* cl, int add)
     int pred = l->functor();
     _preds[pred].add(l->isPositive() ? 1 : -1, add, this);
     if(add==1) {
-	_preds[pred].containingUnits.insert(cl);
+	_preds[pred].containingUnits.insert(cl->number(), cl);
     }
   }
 }
@@ -765,7 +757,7 @@ void PredicateDefinition::count (Formula* f,int polarity,int add, Unit* unit)
       int pred = l->functor();
       _preds[pred].add(l->isPositive() ? polarity : -polarity, add, this);
       if(add==1) {
-        _preds[pred].containingUnits.insert(unit);
+        _preds[pred].containingUnits.insert(unit->number(), unit);
       }
       Term::Iterator args(l);
       while (args.hasNext()) {

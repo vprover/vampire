@@ -14,6 +14,7 @@
  * @since 08/07/2007 flight Manchester-Cork, changed to new datastructures
  */
 
+#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Inference.hpp"
@@ -22,7 +23,6 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/TermIterators.hpp"
-#include "Kernel/ApplicativeHelper.hpp"
 #include "Lib/SharedSet.hpp"
 
 #include "Shell/Statistics.hpp"
@@ -194,14 +194,14 @@ void Skolem::preskolemise (Formula* f)
 
   case FORALL:
     {
-      VList::Iterator vs(f->vars());
+      VSList::Iterator vs(f->vars());
       while (vs.hasNext()) {
-        ALWAYS(_varOccs.insert(vs.next(),{false /* = universal*/,BoolList::empty()})); // ALWAYS, because we are rectified
+        ALWAYS(_varOccs.insert(vs.next().first,{false /* = universal*/,BoolList::empty()})); // ALWAYS, because we are rectified
       }
       preskolemise(f->qarg());
       vs.reset(f->vars());
       while (vs.hasNext()) {
-        _varOccs.remove(vs.next());
+        _varOccs.remove(vs.next().first);
       }
       return;
     }
@@ -219,9 +219,9 @@ void Skolem::preskolemise (Formula* f)
       }
 
       // add our own variables (for which we are not interested in occurrences)
-      VList::Iterator vs(f->vars());
+      VSList::Iterator vs(f->vars());
       while (vs.hasNext()) {
-        unsigned var = vs.next();
+        unsigned var = vs.next().first;
         ALWAYS(_varOccs.insert(var,{true /* = existential */,BoolList::empty()})); // ALWAYS, because we are rectified
         ALWAYS(_blockLookup.insert(var,f));
       }
@@ -231,7 +231,7 @@ void Skolem::preskolemise (Formula* f)
       // take ours out again
       vs.reset(f->vars());
       while (vs.hasNext()) {
-        _varOccs.remove(vs.next());
+        _varOccs.remove(vs.next().first);
       }
 
       static Stack<unsigned> univ_dep_stack;
@@ -333,7 +333,7 @@ Formula* Skolem::skolemise (Formula* f)
       if (g == f->qarg()) {
         return f;
       }
-      return new QuantifiedFormula(f->connective(),f->vars(),f->sorts(),g);
+      return new QuantifiedFormula(f->connective(), f->vars(), g);
     }
 
   case EXISTS: 
@@ -354,7 +354,7 @@ Formula* Skolem::skolemise (Formula* f)
       // for proof recording purposes, see below
       //We use a FIFO structure since in the polymorphic case
       //a variable list must be of the form [typevars, termvars]
-      VList::FIFO vArgs;
+      VSList::FIFO vArgs;
       Formula* before = SubstHelper::apply(f, _subst);
 
       ExVarDepInfo& depInfo = _varDeps.get(f);
@@ -394,7 +394,7 @@ Formula* Skolem::skolemise (Formula* f)
           TermList var = TermList(uvar, false);
           allVars.push(var);
           typeVars.push(var);
-          vArgs.pushFront(uvar);
+          vArgs.pushFront({uvar, sort});
         } else {
           //This is a term variable
           if (sort.isVar() || !sort.term()->shared() || !sort.term()->ground()) {
@@ -403,7 +403,7 @@ Formula* Skolem::skolemise (Formula* f)
           }
           termVarSorts.push(sort);
           termVars.push(TermList(uvar, false));
-          vArgs.pushBack(uvar);
+          vArgs.pushBack({uvar, sort});
         }
         arity++;
       }
@@ -413,12 +413,16 @@ Formula* Skolem::skolemise (Formula* f)
       }
       SortHelper::normaliseArgSorts(typeVars, termVarSorts);
 
-      VList::Iterator vs(f->vars());
+      VSList::Iterator vs(f->vars());
       while (vs.hasNext()) {
-        unsigned v = vs.next();
+        unsigned v = vs.next().first;
         TermList rangeSort=_varSorts.get(v, AtomicSort::defaultSort());
 
         bool skolemisingTypeVar = rangeSort == AtomicSort::superSort();
+        if (skolemisingTypeVar && termVars.size()) {
+          // TODO maybe do this while parsing TPTP?
+          USER_ERROR("TH1 does not allow an existential type quantifier beneath a universal term quantifier");
+        }
 
         if(rangeSort.isVar() || !rangeSort.term()->shared() || !rangeSort.term()->ground()) {
           //the range sort may include existential type variables that have been skolemised above
@@ -445,8 +449,7 @@ Formula* Skolem::skolemise (Formula* f)
           TermList skSymSort = AtomicSort::arrowSort(termVarSorts, rangeSort);
           sym = addSkolemFunction(typeVars.size(), typeVars.size(), nullptr, skSymSort);
           TermList head = TermList(Term::create(sym, typeVars.size(), typeVars.begin()));
-          skolemTerm = ApplicativeHelper::createAppTerm(
-            SortHelper::getResultSort(head.term()), head, termVars).term();
+          skolemTerm = HOL::create::app(head, termVars).term();
         }
         _introducedSkolemSyms.push(make_pair(skolemisingTypeVar, sym));
 
@@ -482,7 +485,7 @@ Formula* Skolem::skolemise (Formula* f)
         Formula* def = new BinaryFormula(IMP, before, after);
 
         if (arity > 0) {
-          def = new QuantifiedFormula(FORALL,vArgs.list(),nullptr,def);
+          def = new QuantifiedFormula(FORALL, vArgs.list(), def);
         }
 
         Unit* defUnit = new FormulaUnit(def,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::SKOLEM_SYMBOL_INTRODUCTION));

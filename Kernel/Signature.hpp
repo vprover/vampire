@@ -593,36 +593,14 @@ class Signature
     }
   }
 
-
-  unsigned addInterpretedFunction(Interpretation itp, OperatorType* type, const std::string& name);
-  unsigned addInterpretedFunction(Interpretation itp, const std::string& name)
-  {
-    ASS(!Theory::isPolymorphic(itp));
-    return addInterpretedFunction(itp,Theory::getNonpolymorphicOperatorType(itp),name);
-  }
-
-  unsigned addInterpretedPredicate(Interpretation itp, OperatorType* type, const std::string& name);
-  unsigned addInterpretedPredicate(Interpretation itp, const std::string& name)
-  {
-    ASS(!Theory::isPolymorphic(itp));
-    return addInterpretedPredicate(itp,Theory::getNonpolymorphicOperatorType(itp),name);
-  }
-
-  unsigned getInterpretingSymbol(Interpretation interp, OperatorType* type);
-  unsigned getInterpretingSymbol(Interpretation interp)
-  {
-    ASS(!Theory::isPolymorphic(interp));
-    return getInterpretingSymbol(interp,Theory::getNonpolymorphicOperatorType(interp));
-  }
+  unsigned addInterpretedFunction(Interpretation itp, const std::string& name);
+  unsigned addInterpretedPredicate(Interpretation itp, const std::string& name);
+  unsigned getInterpretingSymbol(Interpretation interp);
 
   /** Return true iff there is a symbol interpreted by Interpretation @b interp */
-  bool haveInterpretingSymbol(Interpretation interp, OperatorType* type) const {
-    return _iSymbols.find(std::make_pair(interp,type));
-  }
-  bool haveInterpretingSymbol(Interpretation interp)
+  bool hasInterpretingSymbol(Interpretation interp) const
   {
-    ASS(!Theory::isPolymorphic(interp));
-    return haveInterpretingSymbol(interp,Theory::getNonpolymorphicOperatorType(interp));
+    return _iSymbols.find(interp);
   }
 
   /** return the name of a function with a given number */
@@ -683,6 +661,14 @@ class Signature
     return &_choiceSymbols;
   }
 
+  void addInstantiation(TermList inst) {
+    _instantiations.insert(inst);
+  }
+
+  DHSet<TermList>* getInstantiations() {
+    return &_instantiations;
+  }
+
   /** return the number of functions */
   unsigned functions() const { return _funs.length(); }
   /** return the number of predicates */
@@ -693,18 +679,18 @@ class Signature
   /** Return the function symbol by its number */
   inline Symbol* getFunction(unsigned n)
   {
-    ASS_REP(n < _funs.length(),n);
+    ASS_L(n, _funs.length());
     return _funs[n];
   } // getFunction
   /** Return the predicate symbol by its number */
   inline Symbol* getPredicate(unsigned n)
   {
-    ASS(n < _preds.length());
+    ASS_L(n, _preds.length());
     return _preds[n];
   } // getPredicate
   inline Symbol* getTypeCon(unsigned n)
   {
-    ASS(n < _typeCons.length());
+    ASS_L(n, _typeCons.length());
     return _typeCons[n];
   }
 
@@ -915,7 +901,7 @@ class Signature
     unsigned eqProxy = addFunction("vEQ",1, added);
     if(added){
       TermList tv = TermList(0, false);
-      TermList result = AtomicSort::arrowSort(tv, tv, AtomicSort::boolSort());
+      TermList result = AtomicSort::arrowSort({tv, tv, AtomicSort::boolSort()});
       Symbol * sym = getFunction(eqProxy);
       sym->setType(OperatorType::getConstantsType(result, 1));
       sym->setProxy(Proxy::EQUALS);
@@ -938,7 +924,7 @@ class Signature
     unsigned proxy = addFunction(name, 0, added);
     if (added) {
       auto bs = AtomicSort::boolSort();
-      auto result = AtomicSort::arrowSort(bs, bs, bs);
+      auto result = AtomicSort::arrowSort({bs, bs, bs});
       auto sym = getFunction(proxy);
       sym->setType(OperatorType::getConstantsType(result));
       sym->setProxy(convert(name));
@@ -1015,7 +1001,9 @@ private:
   /** Stack of type constructor symbols */  
   Stack<Symbol*> _typeCons;
 
+  // TODO(HOL): these two don't belong in the signature
   DHSet<unsigned> _choiceSymbols;
+  DHSet<TermList> _instantiations;
 
   SymbolMap _funNames;
   SymbolMap _predNames;
@@ -1037,13 +1025,13 @@ private:
   bool _distinctGroupsAddedTo;
 
   /**
-   * Map from MonomorphisedInterpretation values to function and predicate symbols representing them
+   * Map from Interpretation values to function and predicate symbols representing them
    *
    * We mix here function and predicate symbols, but it is not a problem, as
-   * the MonomorphisedInterpretation value already determines whether we deal with a function
+   * the Interpretation value already determines whether we deal with a function
    * or a predicate.
    */
-  DHMap<Theory::MonomorphisedInterpretation, unsigned> _iSymbols;
+  DHMap<Theory::Interpretation, unsigned> _iSymbols;
 
   /** the number of string constants */
   unsigned _strings;

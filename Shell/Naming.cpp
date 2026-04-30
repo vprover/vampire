@@ -16,8 +16,8 @@
 
 #include "Debug/RuntimeStatistics.hpp"
 
+#include "Kernel/HOL/HOL.hpp"
 #include "Lib/DHMap.hpp"
-#include "Lib/Int.hpp"
 #include "Lib/Environment.hpp"
 #include "Debug/TimeProfiling.hpp"
 
@@ -29,7 +29,6 @@
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/FormulaVarIterator.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/ApplicativeHelper.hpp"
 
 #include "Shell/Statistics.hpp"
 #include "Shell/Options.hpp"
@@ -263,7 +262,7 @@ Formula* Naming::apply_iter(Formula* top_f) {
         FormulaList* currArg = f->args();
         for (unsigned i = 0; i < length; i++) {
           int c = sand.cls[i];
-          sum = Int::min(_threshold, sum + c);
+          sum = std::min(_threshold, sum + c);
           bool canBeDefEvaluated = false;
           bool canBeDef = false;
           if (c > maxPos) {
@@ -276,7 +275,7 @@ Formula* Naming::apply_iter(Formula* top_f) {
           }
           if (tas.where == UNDER_IFF) {
             int d = sand.negCls[i];
-            product = Int::min(_threshold, product * d);
+            product = std::min(_threshold, product * d);
             if (d > maxNeg) {
               if (!canBeDefEvaluated) {
                 canBeDef = canBeInDefinition(currArg->head(), tas.where);
@@ -382,7 +381,7 @@ Formula* Naming::apply_iter(Formula* top_f) {
         FormulaList* currArg = f->args();
         for (unsigned i = 0; i < length; i++) {
           int c = sor.cls[i];
-          product = Int::min(_threshold, product * c);
+          product = std::min(_threshold, product * c);
           bool canBeDefEvaluated = false;
           bool canBeDef = false;
           if (c > maxPos) {
@@ -395,7 +394,7 @@ Formula* Naming::apply_iter(Formula* top_f) {
           }
           if (tas.where == UNDER_IFF) {
             int d = sor.negCls[i];
-            sum = Int::min(_threshold, sum + d);
+            sum = std::min(_threshold, sum + d);
             if (d > maxNeg) {
               if (!canBeDefEvaluated) {
                 canBeDef = canBeInDefinition(currArg->head(), tas.where);
@@ -524,12 +523,12 @@ Formula* Naming::apply_iter(Formula* top_f) {
           f = new BinaryFormula(con, l, r);
         }
 
-        // pos = Int::min(_threshold, Int::max(posl, posr));
+        // pos = std::min(_threshold, std::max(posl, posr));
         // return f;
 
         {
           Result r;
-          r.resSub.pos = Int::min(_threshold, Int::max(posl, posr));
+          r.resSub.pos = std::min(_threshold, std::max(posl, posr));
           r.resSub.res = f;
           result_stack.push(r);
         }
@@ -537,8 +536,8 @@ Formula* Naming::apply_iter(Formula* top_f) {
         todo_stack.pop();  // finished
         break; // case APPLY_SUB_IFFXOR
       }
-      int pos = Int::min(negl * posr + negr * posl, _threshold);
-      int neg = Int::min(posl * posr + negl * negr, _threshold);
+      int pos = std::min(negl * posr + negr * posl, _threshold);
+      int neg = std::min(posl * posr + negl * negr, _threshold);
       bool left; // name left
       if (pos < _threshold) {
         if (tas.where != UNDER_IFF || neg < _threshold) {
@@ -586,12 +585,12 @@ Formula* Naming::apply_iter(Formula* top_f) {
       if (left) {
         Formula* newl = introduceDefinition(l, true);
         f = new BinaryFormula(con, newl, r);
-        // neg = Int::min(posr + negr, _threshold);
+        // neg = std::min(posr + negr, _threshold);
         // pos = neg;
         // return f;
         {
           Result r;
-          r.resSub.neg = Int::min(posr + negr, _threshold);
+          r.resSub.neg = std::min(posr + negr, _threshold);
           r.resSub.pos = neg;
           r.resSub.res = f;
           result_stack.push(r);
@@ -603,12 +602,12 @@ Formula* Naming::apply_iter(Formula* top_f) {
 
       Formula* newr = introduceDefinition(r, true);
       f = new BinaryFormula(con, l, newr);
-      // neg = Int::min(posl + negl, _threshold);
+      // neg = std::min(posl + negl, _threshold);
       // pos = neg;
       // return f;
       {
         Result r;
-        r.resSub.neg = Int::min(posl + negl, _threshold);
+        r.resSub.neg = std::min(posl + negl, _threshold);
         r.resSub.pos = neg;
         r.resSub.res = f;
         result_stack.push(r);
@@ -634,7 +633,7 @@ Formula* Naming::apply_iter(Formula* top_f) {
       }
       ASS(pos <= _threshold || _preserveEpr);
       if (g != f->qarg()) {
-        f = new QuantifiedFormula(f->connective(), f->vars(),f->sorts(), g);
+        f = new QuantifiedFormula(f->connective(), f->vars(), g);
       }
       if (tfe.varFlagSet) {
         _varsInScope = false;
@@ -668,7 +667,9 @@ Formula* Naming::apply_iter(Formula* top_f) {
         // FormulaList* gs = apply_list(fs->tail(), where, results + 1, negResults + 1);
         Task t1;
         t1.fncTag = APPLY_LIST_TOP;
-        t1.taskApplyList = {tal.fs->tail(),tal.where,tal.results+1,tal.negResults+1};
+
+        ASS_EQ(tal.negResults != nullptr, tal.where == UNDER_IFF)
+        t1.taskApplyList = {tal.fs->tail(),tal.where,tal.results+1,tal.negResults ? tal.negResults+1 : nullptr};
 
         // Formula* g = apply_sub(fs->head(), where, results[0], neg);
         Task t2;
@@ -763,7 +764,7 @@ Formula* Naming::apply_sub(Formula* f, Where where, int& pos, int& neg) {
       FormulaList* currArg = f->args();
       for (unsigned i = 0; i < length; i++) {
         int c = cls[i];
-        sum = Int::min(_threshold, sum + c);
+        sum = std::min(_threshold, sum + c);
         bool canBeDefEvaluated = false;
         bool canBeDef;
         if (c > maxPos) {
@@ -776,7 +777,7 @@ Formula* Naming::apply_sub(Formula* f, Where where, int& pos, int& neg) {
         }
         if (where == UNDER_IFF) {
           int d = negCls[i];
-          product = Int::min(_threshold, product * d);
+          product = std::min(_threshold, product * d);
           if (d > maxNeg) {
             if (!canBeDefEvaluated) {
               canBeDef = canBeInDefinition(currArg->head(), where);
@@ -871,7 +872,7 @@ Formula* Naming::apply_sub(Formula* f, Where where, int& pos, int& neg) {
       FormulaList* currArg = f->args();
       for (unsigned i = 0; i < length; i++) {
         int c = cls[i];
-        product = Int::min(_threshold, product * c);
+        product = std::min(_threshold, product * c);
         bool canBeDefEvaluated = false;
         bool canBeDef;
         if (c > maxPos) {
@@ -884,7 +885,7 @@ Formula* Naming::apply_sub(Formula* f, Where where, int& pos, int& neg) {
         }
         if (where == UNDER_IFF) {
           int d = negCls[i];
-          sum = Int::min(_threshold, sum + d);
+          sum = std::min(_threshold, sum + d);
           if (d > maxNeg) {
             if (!canBeDefEvaluated) {
               canBeDef = canBeInDefinition(currArg->head(), where);
@@ -977,11 +978,11 @@ Formula* Naming::apply_sub(Formula* f, Where where, int& pos, int& neg) {
       if (l != f->left() || r != f->right()) {
         f = new BinaryFormula(con, l, r);
       }
-      pos = Int::min(_threshold, Int::max(posl, posr));
+      pos = std::min(_threshold, std::max(posl, posr));
       return f;
     }
-    pos = Int::min(negl * posr + negr * posl, _threshold);
-    neg = Int::min(posl * posr + negl * negr, _threshold);
+    pos = std::min(negl * posr + negr * posl, _threshold);
+    neg = std::min(posl * posr + negl * negr, _threshold);
     bool left; // name left
     if (pos < _threshold) {
       if (where != UNDER_IFF || neg < _threshold) {
@@ -1011,14 +1012,14 @@ Formula* Naming::apply_sub(Formula* f, Where where, int& pos, int& neg) {
     if (left) {
       Formula* newl = introduceDefinition(l, true);
       f = new BinaryFormula(con, newl, r);
-      neg = Int::min(posr + negr, _threshold);
+      neg = std::min(posr + negr, _threshold);
       pos = neg;
       return f;
     }
 
     Formula* newr = introduceDefinition(r, true);
     f = new BinaryFormula(con, l, newr);
-    neg = Int::min(posl + negl, _threshold);
+    neg = std::min(posl + negl, _threshold);
     pos = neg;
     return f;
   }
@@ -1032,7 +1033,7 @@ Formula* Naming::apply_sub(Formula* f, Where where, int& pos, int& neg) {
     Formula* g = apply_sub(f->qarg(), where, pos, neg);
     ASS(pos <= _threshold || _preserveEpr);
     if (g != f->qarg()) {
-      f = new QuantifiedFormula(f->connective(), f->vars(),f->sorts(), g);
+      f = new QuantifiedFormula(f->connective(), f->vars(), g);
     }
     if (varFlagSet) {
       _varsInScope = false;
@@ -1135,9 +1136,8 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
     sym->markSkipCongruence();
     sym->setType(OperatorType::getConstantsType(sort, typeArgArity)); 
     TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
-    TermList t = ApplicativeHelper::createAppTerm(
-                 SortHelper::getResultSort(head.term()), head, termVars);
-    return  Literal::createEquality(true, TermList(t), TermList(Term::foolTrue()), AtomicSort::boolSort());  
+    TermList t = HOL::create::app(head, termVars);
+    return  Literal::createEquality(true, TermList(t), HOL::create::top(), AtomicSort::boolSort());  
   }
 }
 
@@ -1174,8 +1174,19 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
     def = new JunctionFormula(OR, fs);
   }
   if (VList::isNonEmpty(vs)) {
-    //TODO do we know the sorts of the free variables vs?
-    def = new QuantifiedFormula(FORALL, vs, 0, def);
+    DHMap<unsigned, TermList> varSorts;
+    SortHelper::collectVariableSorts(def, varSorts);
+    VSList::FIFO vsfifo;
+    VList::Iterator vit(vs);
+    while (vit.hasNext()) {
+      unsigned v = vit.next();
+      TermList s;
+      if (!varSorts.find(v, s)) {
+        s = AtomicSort::defaultSort();
+      }
+      vsfifo.pushBack({v, s});
+    }
+    def = new QuantifiedFormula(FORALL, vsfifo.list(), def);
   }
   Unit* definition = new FormulaUnit(def, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::PREDICATE_DEFINITION));
 
@@ -1215,7 +1226,7 @@ FormulaList* Naming::apply_list(FormulaList* fs, Where where, int* results,
   if (where == UNDER_IFF) {
     negResults[0] = neg;
   }
-  FormulaList* gs = apply_list(fs->tail(), where, results + 1, negResults + 1);
+  FormulaList* gs = apply_list(fs->tail(), where, results + 1, negResults ? negResults + 1 : nullptr);
 
   if (g != fs->head() || gs != fs->tail()) {
     fs = new FormulaList(g, gs);

@@ -76,11 +76,16 @@ void SplittingBranchSelector::init()
 
   SATSolver *inner;
   switch(_parent.getOptions().satSolver()){
-    case Options::SatSolver::MINISAT:
-      inner = new MinisatInterfacing;
+    case Options::SatSolver::MINISAT: {
+      auto minisat = new MinisatInterfacing();
+      minisat->setSeed(Random::seed());
+      minisat->setClauseShuffling(_parent.getOptions().randomTraversals());
+      minisat->setWatchesShuffling(_parent.getOptions().randomTraversals());
+      inner = minisat;
       break;
+    }
     case Options::SatSolver::CADICAL:
-      inner = new CadicalInterfacing;
+      inner = new CadicalInterfacing();
       break;
 #if VZ3
     case Options::SatSolver::Z3:
@@ -175,8 +180,20 @@ void SplittingBranchSelector::handleSatRefutation()
   SATClause *proof = nullptr;
   SATClauseList *satPremises = nullptr;
 #if VZ3
-  if(_parent.hasSMTSolver)
-    satPremises = _solver.premiseList();
+  if(_parent.hasSMTSolver) {
+    satPremises = _solver.minimizedPremises();
+    // SATClause::removeDuplicateLiterals can insert a single PROP_INF between here and the FO_CONVERSION
+    // replace these cases with the "true" duplicate-literal premise
+    for(SATClause *&cl : iterTraits(satPremises->iter())) {
+      SATInference *inf = cl->inference();
+      if(inf->getType() == SATInference::InfType::PROP_INF) {
+        ASS_EQ(SATClauseList::length(inf->propInf()->getPremises()), 1)
+        // The following (destructively) changes satPremises, as cl is a reference!
+        cl = inf->propInf()->getPremises()->head();
+      }
+      ASS(cl->inference()->getType() == SATInference::InfType::FO_CONVERSION)
+    }
+  }
 #endif
   if(!satPremises) {
     proof = _solver.proof();
@@ -1117,7 +1134,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
   }
 
   Clause* compCl = Clause::fromIterator(arrayIter(lits, size),
-          NonspecificInference1(InferenceRule::AVATAR_COMPONENT,def_u));
+          ComponentClauseInference(InferenceRule::AVATAR_COMPONENT,UnitList::singleton(def_u),orig));
 
   if(posName == name && env.options->proofExtra() == Options::ProofExtra::FULL)
     env.proofExtra.insert(def_u, new SplitDefinitionExtra(compCl));
@@ -1129,8 +1146,6 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
   //   1) give d certain initial values (since d has no parents), or
   //   2) treat the original clause as parent, and therefore propagate the values from the original clause to d.
   compCl->setAge(orig->age());
-  compCl->inference().th_ancestors = orig->inference().th_ancestors;
-  compCl->inference().all_ancestors = orig->inference().all_ancestors;
   compCl->inference().setSineLevel(orig->inference().getSineLevel());
 
   _db[name] = new SplitRecord(compCl);
@@ -1312,7 +1327,7 @@ void Splitter::onClauseReduction(Clause* cl, ClauseIterator premises, Clause* re
   SplitSet* unionAll;
   if(replacement) {
     unionAll = replacement->splits();
-    ASS(forAll(premises, 
+    ASS(forAll(std::move(premises),
             [replacement] (Clause* premise) { 
               //SplitSet* difference = premise->splits()->subtract(replacement->splits());
               //if(difference->isEmpty()) return true; // isSubsetOf true
@@ -1653,7 +1668,7 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
  */
 UnitList* Splitter::preprendCurrentlyAssumedComponentClauses(UnitList* clauses)
 {
-  DHSet<Clause*> seen;
+  DHSet<unsigned> seen;
 
   // to keep the nice order
   UnitList::FIFO res;
@@ -1664,7 +1679,7 @@ UnitList* Splitter::preprendCurrentlyAssumedComponentClauses(UnitList* clauses)
     Clause* cl = getComponentClause(level);
 
     //cout << "selected level: " level << " has clause: " << cl->toString() << endl;
-    seen.insert(cl);
+    seen.insert(cl->number());
     res.pushBack(cl);
   }
 
@@ -1674,7 +1689,7 @@ UnitList* Splitter::preprendCurrentlyAssumedComponentClauses(UnitList* clauses)
     Unit* u  = uit.next();
     Clause* cl = u->asClause();
 
-    if (seen.insert(cl)) {
+    if (seen.insert(cl->number())) {
       // cout << "a new guy: " << cl->toString() << endl;
       res.pushBack(cl);
     } else {

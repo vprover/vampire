@@ -21,12 +21,6 @@
 namespace Inferences {
 namespace ALASCA {
 
-void EqFactoring::attach(SaturationAlgorithm* salg) 
-{ }
-
-void EqFactoring::detach() 
-{ }
-
 //  Integer version
 //
 //  C \/ j s1 ≈ t1 \/ k s2 ≈ t2
@@ -58,16 +52,6 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
   DEBUG("l2: ", l2)
 
 
-  auto unifySorts = [](auto s1, auto s2) -> Option<TermList> {
-    static RobSubstitution subst;
-    if (!subst.unify(s1, 0, s2, 0)) {
-      return Option<TermList>();
-    } else {
-      ASS_EQ(subst.apply(s1,0), subst.apply(s2,0))
-      return Option<TermList>(subst.apply(s1, 0));
-    }
-  };
-
   auto nothing = [&]() { return Option<Clause*>(); };
 
   auto s1 = l1.biggerSide();
@@ -76,8 +60,6 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
   auto t2 = l2.smallerSide();
 
   ASS (l1.positive() && l2.positive())
-  // ASS(!s1.isVar())
-  // ASS(!s2.isVar())
   ASS(!l1.isFracNum() || !l1.biggerSide().isVar())
   ASS(!l2.isFracNum() || !l2.biggerSide().isVar())
 
@@ -87,22 +69,21 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
       return nothing();                                                                             \
     }                                                                                               \
 
-  auto srt_ = unifySorts(
-      SortHelper::getEqualityArgumentSort(l1.literal()),
-      SortHelper::getEqualityArgumentSort(l2.literal())
-      );
+  auto uwa = _shared.createAbstractingUnifier();
+
+  auto srt1 = SortHelper::getEqualityArgumentSort(l1.literal());
+  auto srt2 = SortHelper::getEqualityArgumentSort(l2.literal());
   check_side_condition(
       "s1 and s2 are of unifyable sorts",
-      srt_.isSome())
-  auto& srt = srt_.unwrap();
+      uwa.subs().unify(srt1, 0, srt2, 0))
 
-  auto uwa = _shared->unify(s1, s2);
   check_side_condition(
       "uwa(s1,s2) = ⟨σ,Cnst⟩",
-      uwa.isSome())
-  
-  auto sigma = [&](auto t) { return uwa->subs().apply(t, /* varbank */ 0); };
-  auto cnst = uwa->computeConstraintLiterals();
+      uwa.unify(s1, 0, s2, 0, _shared.uwaFixedPointIteration))
+
+  auto srt = uwa.subs().apply(srt1, 0);
+  auto sigma = [&](auto t) { return uwa.subs().apply(t, /* varbank */ 0); };
+  auto cnst = uwa.computeConstraintLiterals();
 
   Stack<Literal*> concl(l1.clause()->size() // <- (C \/ s1 ≈ t1 \/ t1  ̸≈ t2)σ
                       + cnst->size()); // <- Cnstσ
@@ -114,7 +95,7 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
           .all([&](auto L) {
              auto Lσ = sigma(L);
              concl.push(Lσ);
-             return _shared->notLess(L2σ, Lσ);
+             return _shared.notLess(L2σ, Lσ);
            }))
 
   auto s1σ = sigma(s1);
@@ -122,8 +103,8 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
   auto t1σ = sigma(t1);
   auto t2σ = sigma(t2);
 
-  check_side_condition( "s1σ /⪯ t1σ", _shared->notLeq(s1σ.untyped(), t1σ))
-  check_side_condition( "s2σ /⪯ t2σ", _shared->notLeq(s2σ.untyped(), t1σ))
+  check_side_condition( "s1σ /⪯ t1σ", _shared.notLeq(s1σ.untyped(), t1σ))
+  check_side_condition( "s2σ /⪯ t2σ", _shared.notLeq(s2σ.untyped(), t1σ))
 
 
   auto res = Literal::createEquality(false, t1σ, t2σ, srt);
@@ -147,7 +128,7 @@ ClauseIterator EqFactoring::generateClauses(Clause* premise)
   DEBUG("in: ", *premise)
 
   auto selected = Lib::make_shared(
-      _shared->selectedEqualities(premise, 
+      _shared.selectedEqualities(premise, 
                        /* literal */ SelectionCriterion::NOT_LESS, 
                        /* summand */ SelectionCriterion::NOT_LEQ,
                        /* include number vars */ false)
@@ -156,7 +137,7 @@ ClauseIterator EqFactoring::generateClauses(Clause* premise)
         .template collect<Stack>());
 
   auto rest = Lib::make_shared(
-      _shared->selectedEqualities(premise, 
+      _shared.selectedEqualities(premise, 
                        /* literal */ SelectionCriterion::ANY, 
                        /* summand */ SelectionCriterion::NOT_LEQ,
                        /* include number vars */ false)
@@ -185,16 +166,6 @@ ClauseIterator EqFactoring::generateClauses(Clause* premise)
           });
       }));
 }
-
-
-  
-
-#if VDEBUG
-void EqFactoring::setTestIndices(Stack<Indexing::Index*> const&) 
-{
-
-}
-#endif
 
 } // namespace ALASCA 
 } // namespace Inferences 

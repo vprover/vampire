@@ -109,13 +109,13 @@ public:
   
   void resetRenaming(RobSubstitution* subst, unsigned bank);
   VList* getRenamedFreeVars() const;
-  VList* getVarsReplacingSkolems() const;
+  VSList* getVarsReplacingSkolems() const;
 
   const bool _squashSkolems;
   unsigned& _nextVar; // fresh variable counter supported by caller
 
   DHMap<Term*, unsigned, SharedTermHash> _skolemToVarMap; // maps terms to their variable replacement
-  DHSet<unsigned> _varsReplacingSkolems;
+  DHMap<unsigned,TermList> _varsReplacingSkolems;
 
   DHMap<unsigned,unsigned> _renaming; // for renaming free variables
   DHSet<unsigned> _renamedFreeVars;
@@ -144,7 +144,7 @@ struct InductionContext {
   // replaced with placeholders (e.g. with ContextReplacement).
   Formula* getFormula(
     const InductionUnit& unit, const Substitution& typeBinder, unsigned& nextVar,
-    VList** varsReplacingSkolems = nullptr, RobSubstitution* subst = nullptr) const;
+    VSList** varsReplacingSkolems = nullptr, RobSubstitution* subst = nullptr) const;
   Formula* getFormulaWithFreeVar(TermList t, unsigned freeVar, unsigned freeVarSub, RobSubstitution* subst = nullptr) const;
 
   template<typename Fun>
@@ -180,7 +180,7 @@ struct InductionContext {
   Stack<std::pair<Clause*, LiteralStack>> _cls;
 private:
   Formula* getFormulaWithSquashedSkolems(
-    const std::vector<TermList>& r, unsigned& nextVar, VList*& renamedFreeVars, VList** varsReplacingSkolems, RobSubstitution* subst) const;
+    const std::vector<TermList>& r, unsigned& nextVar, VList*& renamedFreeVars, VSList** varsReplacingSkolems, RobSubstitution* subst) const;
   /**
    * Creates a formula which corresponds to the disjunction of conjunction
    * of opposites of selected literals for each clause in @b _cls, where we
@@ -268,24 +268,15 @@ class Induction
 {
   using TermIndex = Indexing::TermIndex<TermLiteralClause>;
 public:
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
-
+  Induction(SaturationAlgorithm& salg);
   ClauseIterator generateClauses(Clause* premise) override;
 
-#if VDEBUG
-  void setTestIndices(const Stack<Index*>& indices) override {
-    _comparisonIndex = static_cast<LiteralIndex<LiteralClause>*>(indices[0]);
-    _inductionTermIndex = static_cast<TermIndex*>(indices[1]);
-    _structInductionTermIndex = static_cast<TermIndex*>(indices[2]);
-  }
-#endif // VDEBUG
-
 private:
+  const SaturationAlgorithm& _salg;
   // The following pointers can be null if int induction is off.
-  LiteralIndex<LiteralClause>* _comparisonIndex = nullptr;
-  TermIndex* _inductionTermIndex = nullptr;
-  TermIndex* _structInductionTermIndex = nullptr;
+  std::shared_ptr<UnitIntegerComparisonLiteralIndex> _comparisonIndex;
+  std::shared_ptr<InductionTermIndex> _inductionTermIndex;
+  std::shared_ptr<StructInductionTermIndex> _structInductionTermIndex;
   InductionFormulaIndex _formulaIndex;
   InductionFormulaIndex _recFormulaIndex;
 };
@@ -299,10 +290,10 @@ class InductionClauseIterator
   using TermIndex               = Indexing::TermIndex<TermLiteralClause>;
 public:
   // all the work happens in the constructor!
-  InductionClauseIterator(Clause* premise, InductionHelper helper, SaturationAlgorithm* salg,
+  InductionClauseIterator(Clause* premise, InductionHelper helper, const SaturationAlgorithm& salg,
     TermIndex* structInductionTermIndex, InductionFormulaIndex& formulaIndex)
-      : _helper(helper), _opt(salg->getOptions()), _structInductionTermIndex(structInductionTermIndex),
-      _formulaIndex(formulaIndex), _fnDefHandler(salg->getFunctionDefinitionHandler())
+      : _helper(helper), _opt(salg.getOptions()), _structInductionTermIndex(structInductionTermIndex),
+      _formulaIndex(formulaIndex), _fnDefHandler(salg.getFunctionDefinitionHandler())
   {
     processClause(premise);
   }
