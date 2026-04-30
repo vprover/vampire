@@ -43,68 +43,60 @@ Clause* Choice::createChoiceAxiom(TermList op, TermList set)
   TermList setSort = SortHelper::getResultSort(op.term()).domain();
 
   unsigned max = 0;
-  FormulaVarIterator fvi(set);
-  while (fvi.hasNext()) {
-    unsigned var = fvi.next();
+  for (const auto& var : iterTraits(FormulaVarIterator(set))) {
     if (var > max) {
       max = var;
     }
   }
-  TermList freshVar = TermList(max+1, false);
+  auto freshVar = TermList::var(max+1);
 
   TermList t1 = HC::app(setSort, set, freshVar);
   TermList t2 = HC::app(op, set);
   t2 =          HC::app(setSort, set, t2);
 
-  return Clause::fromLiterals(
-      { Literal::createEquality(true, t1, HOL::create::bottom(), AtomicSort::boolSort()),
-        Literal::createEquality(true, t2, HOL::create::top(), AtomicSort::boolSort())},
-       NonspecificInference0(UnitInputType::AXIOM, InferenceRule::HILBERTS_CHOICE_INSTANCE)
-  );
+  return Clause::fromLiterals({
+    Literal::createEquality(true, t1, HOL::create::bottom(), AtomicSort::boolSort()),
+    Literal::createEquality(true, t2, HOL::create::top(), AtomicSort::boolSort())
+  }, NonspecificInference0(UnitInputType::AXIOM, InferenceRule::HILBERTS_CHOICE_INSTANCE));
 }
 
 struct Choice::AxiomsIterator
 {
-  AxiomsIterator(Term* term)
+  AxiomsIterator(TermList term)
   {
-    _set = *term->nthArgument(3);
-    _headSort = AtomicSort::arrowSort(*term->nthArgument(0),*term->nthArgument(1));
-    _resultSort = HOL::getResultAppliedToNArgs(_headSort, 1);
+    ASS(term.isApplication());
 
-    //cout << "the result sort is " + _resultSort.toString() << endl;
-
-    DHSet<unsigned>* ops = env.signature->getChoiceOperators();
-    DHSet<unsigned>::Iterator opsIt(*ops);
-    _choiceOps.loadFromIterator(opsIt);
-    _inBetweenNextandHasNext = false;
+    _set = term.rhs();
+    _headSort = HOL::lhsSort(term);
+    _choiceOps.loadFromIterator(env.signature->getChoiceOperators()->iter());
   }
 
   DECL_ELEMENT_TYPE(Clause*);
 
   bool hasNext() {
-    if(_inBetweenNextandHasNext){ return true; }
+    if (_curr) {
+      return true;
+    }
 
-    while(!_choiceOps.isEmpty()){
-      unsigned op = _choiceOps.getOneKey();
-      _choiceOps.remove(op);
-      OperatorType* type = env.signature->getFunction(op)->fnType();
+    while (_choiceOps.isNonEmpty()) {
+      auto op = _choiceOps.pop();
+      auto type = env.signature->getFunction(op)->fnType();
 
-      static RobSubstitution subst;
       static TermStack typeArgs;
       typeArgs.reset();
+      for (int i = type->numTypeArguments() -1; i >= 0; i--) {
+        typeArgs.push(TermList::var((unsigned)i));
+      }
+
+      auto choiceOp = Term::create(op, typeArgs.size(), typeArgs.begin());
+      static RobSubstitution subst;
       subst.reset();
 
-      for(int i = type->numTypeArguments() -1; i >= 0; i--){
-        TermList typeArg = TermList((unsigned)i, false);
-        typeArgs.push(typeArg);
-      }
-      Term* choiceOp = Term::create(op, typeArgs.size(), typeArgs.begin());
-      TermList choiceOpSort = SortHelper::getResultSort(choiceOp);
-      if(subst.unify(choiceOpSort, 0, _headSort, 1)){
-        _nextChoiceOperator = TermList(choiceOp);
-        _opApplied = subst.apply(_nextChoiceOperator, 0);
-        _setApplied = subst.apply(_set, 1);
-        _inBetweenNextandHasNext = true;
+      if (subst.unify(SortHelper::getResultSort(choiceOp), 0, _headSort, 1)) {
+        _curr = createChoiceAxiom(
+          subst.apply(TermList(choiceOp), 0),
+          subst.apply(_set, 1)
+        );
         return true;
       }
     }
@@ -114,32 +106,27 @@ struct Choice::AxiomsIterator
 
   OWN_ELEMENT_TYPE next()
   {
-    _inBetweenNextandHasNext = false;
-    Clause* c = createChoiceAxiom(_opApplied, _setApplied);
-    return c;
+    Clause* res = nullptr;
+    std::swap(res, _curr);
+    return res;
   }
 
 private:
-  DHSet<unsigned> _choiceOps;
-  TermList _opApplied;
-  TermList _setApplied;
-  TermList _nextChoiceOperator;
-  TermList _resultSort;
+  Stack<unsigned> _choiceOps;
+  Clause* _curr = nullptr;
   TermList _headSort;
   TermList _set;
-  bool _inBetweenNextandHasNext;
 };
 
 struct Choice::ResultFn
 {
-  ResultFn(){}
-
-  VirtualIterator<Clause*> operator() (Term* term){
-    TermList op = *term->nthArgument(2);
+  VirtualIterator<Clause*> operator() (Term* t){
+    TermList term(t);
+    TermList op = term.lhs();
     if(op.isVar()){
       return pvi(AxiomsIterator(term));
     } else {
-      Clause* axiom = createChoiceAxiom(op, *term->nthArgument(3));
+      Clause* axiom = createChoiceAxiom(op, term.rhs());
       return pvi(getSingletonIterator(axiom));
     }
   }
@@ -149,55 +136,33 @@ struct Choice::IsChoiceTerm
 {
   bool operator()(Term* t)
   {
+    if (t->isLambdaTerm()) {
+      return false;
+    }
     auto [head, args] = HOL::getHeadAndArgs(TermList(t));
-    if(args.size() != 1){ return false; }
+    if (args.size() != 1 || args[0].isVar() || args[0].containsLooseDBIndex()) {
+      return false;
+    }
+    TermList headSort = HOL::lhsSort(TermList(t));
 
-    TermList headSort = AtomicSort::arrowSort(*t->nthArgument(0), *t->nthArgument(1));
-
-    TermList tv = TermList(0, false);
-    TermList o  = AtomicSort::boolSort();
-    TermList sort = AtomicSort::arrowSort(AtomicSort::arrowSort(tv, o), tv);
+    TermList tv = TermList::var(0);
+    TermList sort = AtomicSort::arrowSort(AtomicSort::arrowSort(tv, AtomicSort::boolSort()), tv);
 
     static RobSubstitution subst;
     subst.reset();
-
-    subst.reset();
     return ((head.isVar() || env.signature->isChoiceOperator(head.term()->functor())) &&
            subst.match(sort,0,headSort,1));
-
-  }
-};
-
-
-struct Choice::SubtermsFn
-{
-  SubtermsFn() {}
-
-  VirtualIterator<Term*> operator()(Literal* lit)
-  {
-    NonVariableNonTypeIterator nvi(lit);
-    return pvi(getUniquePersistentIteratorFromPtr(&nvi));
   }
 };
 
 ClauseIterator Choice::generateClauses(Clause* premise)
 {
-  //cout << "Choice with " << premise->toString() << endl;
-
-  //is this correct?
-  auto it1 = premise->getSelectedLiteralIterator();
-  //filter out literals that are not suitable for narrowing
-  auto it2 = getMapAndFlattenIterator(it1, SubtermsFn());
-
-  //pair of literals and possible rewrites that can be applied to literals
-  auto it3 = getFilteredIterator(std::move(it2), IsChoiceTerm());
-
-  //apply rewrite rules to literals
-  auto it4 = getMapAndFlattenIterator(std::move(it3), ResultFn());
-
-
-  return pvi( std::move(it4) );
-
+  return pvi(premise->getSelectedLiteralIterator()
+    .flatMap([](Literal* lit) {
+      return getUniquePersistentIterator(NonVariableNonTypeIterator(lit));
+    })
+    .filter(IsChoiceTerm())
+    .flatMap(ResultFn()));
 }
 
 }
