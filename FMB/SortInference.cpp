@@ -126,6 +126,7 @@ void SortInference::doInference()
           unsigned fresh = env.signature->addFreshFunction(0,"fmbFreshConstant");
           TermList sT = TermList(AtomicSort::createConstant(s));
           env.signature->getFunction(fresh)->setType(OperatorType::getConstantsType(sT));
+          env.signature->getFunction(fresh)->markIntroduced();
           _sig->sortedConstants[dsort].push(fresh);
         }
       }
@@ -496,6 +497,7 @@ void SortInference::doInference()
 #endif
     if(_sig->sortedConstants[s].size()==0 && _sig->sortedFunctions[s].size()>0){
       unsigned fresh = env.signature->addFreshFunction(0,"fmbFreshConstant");
+      env.signature->getFunction(fresh)->markIntroduced();
       _sig->sortedConstants[s].push(fresh);
       freshMap.insert(fresh,s);
       if(firstFreshConstant==UINT_MAX) firstFreshConstant=fresh;
