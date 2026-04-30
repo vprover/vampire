@@ -707,9 +707,11 @@ public:
     LAZY_GEN = 1,
     LAZY_SIMP = 2,
     LAZY_SIMP_NOT_GEN = 3,
-    LAZY_SIMP_NOT_GEN_BOOL_EQ_OFF = 4,
-    LAZY_SIMP_NOT_GEN_BOOL_EQ_GEN = 5,
-    OFF = 6
+    LAZY_SIMP_PI_SIGMA_GEN = 4,
+    LAZY_SIMP_NOT_GEN_BOOL_EQ_OFF = 5,
+    LAZY_SIMP_NOT_GEN_BOOL_EQ_GEN = 6,
+    CONJ_EAGER = 7,
+    OFF = 8
   };
 
   enum class PISet : unsigned int {
@@ -2084,6 +2086,7 @@ public:
   bool simulatenousSuperposition() const { return _simultaneousSuperposition.actualValue; }
   bool innerRewriting() const { return _innerRewriting.actualValue; }
   bool equationalTautologyRemoval() const { return _equationalTautologyRemoval.actualValue; }
+  bool subsumptionEqualityResolution() const { return _subsumptionEqualityResolution.actualValue; }
   bool partialRedundancyCheck() const { return _partialRedundancyCheck.actualValue; }
   bool partialRedundancyOrderingConstraints() const { return _partialRedundancyOrderingConstraints.actualValue; }
   bool partialRedundancyAvatarConstraints() const { return _partialRedundancyAvatarConstraints.actualValue; }
@@ -2157,6 +2160,12 @@ public:
   std::vector<int> positiveLiteralSplitQueueRatios() const;
   std::vector<float> positiveLiteralSplitQueueCutoffs() const;
   bool positiveLiteralSplitQueueLayeredArrangement() const { return _positiveLiteralSplitQueueLayeredArrangement.actualValue; }
+  bool hoSplitQueues() const { return _hoSplitQueues.actualValue; }
+  unsigned hoSplitQueueLambdaWeight() const { return _hoSplitQueueLambdaWeight.actualValue; }
+  unsigned hoSplitQueueAppVarWeight() const { return _hoSplitQueueAppVarWeight.actualValue; }
+  std::vector<int> hoSplitQueueRatios() const;
+  std::vector<float> hoSplitQueueCutoffs() const;
+  bool hoSplitQueueLayeredArrangement() const { return _hoSplitQueueLayeredArrangement.actualValue; }
   void setWeightRatio(int v){ _ageWeightRatio.otherValue = v; }
   bool literalMaximalityAftercheck() const { return _literalMaximalityAftercheck.actualValue; }
   bool superpositionFromVariables() const { return _superpositionFromVariables.actualValue; }
@@ -2292,6 +2301,7 @@ public:
   HPrinting holPrinting() const { return _holPrinting.actualValue; }
   void setHolPrinting(HPrinting setting) { _holPrinting.actualValue = setting; }
 
+  bool addProxyAxioms() const { return _addProxyAxioms.actualValue; }
   bool choiceAxiom() const { return _choiceAxiom.actualValue; }
   bool injectivityReasoning() const { return _injectivity.actualValue; }
   bool choiceReasoning() const { return _choiceReasoning.actualValue; }
@@ -2299,9 +2309,14 @@ public:
   CNFOnTheFly cnfOnTheFly() const { return _clausificationOnTheFly.actualValue; }
   PISet piSet() const { return _piSet.actualValue; }
   bool equalityToEquivalence () const { return _equalityToEquivalence.actualValue; }
+  bool complexBooleanReasoning () const { return _complexBooleanReasoning.actualValue; }
+  bool booleanEqTrick() const { return _booleanEqTrick.actualValue; }
+  bool heuristicInstantiation() const { return _heuristicInstantiation.actualValue; }
   bool casesSimp() const { return _casesSimp.actualValue; }
   bool cases() const { return _cases.actualValue; }
   bool newTautologyDel() const { return _newTautologyDel.actualValue; }
+  bool positiveExtensionality() const { return _positiveExt.actualValue; }
+  bool iffXorRewriter() const { return _iffXorRewriter.actualValue; }
 
 private:
 
@@ -2410,6 +2425,12 @@ private:
   StringOptionValue _positiveLiteralSplitQueueRatios;
   StringOptionValue _positiveLiteralSplitQueueCutoffs;
   BoolOptionValue _positiveLiteralSplitQueueLayeredArrangement;
+  BoolOptionValue _hoSplitQueues;
+  UnsignedOptionValue _hoSplitQueueLambdaWeight;
+  UnsignedOptionValue _hoSplitQueueAppVarWeight;
+  StringOptionValue _hoSplitQueueRatios;
+  StringOptionValue _hoSplitQueueCutoffs;
+  BoolOptionValue _hoSplitQueueLayeredArrangement;
 	BoolOptionValue _randomAWR;
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
@@ -2423,6 +2444,7 @@ private:
   BoolOptionValue _backwardSubsumptionDemodulation;
   UnsignedOptionValue _backwardSubsumptionDemodulationMaxMatches;
   BoolOptionValue _binaryResolution;
+  BoolOptionValue _superposition;
 
   BoolOptionValue _colorUnblocking;
   ChoiceOptionValue<Condensation> _condensation;
@@ -2483,6 +2505,7 @@ private:
   BoolOptionValue _simultaneousSuperposition;
   BoolOptionValue _innerRewriting;
   BoolOptionValue _equationalTautologyRemoval;
+  BoolOptionValue _subsumptionEqualityResolution;
   BoolOptionValue _partialRedundancyCheck;
   BoolOptionValue _partialRedundancyOrderingConstraints;
   BoolOptionValue _partialRedundancyAvatarConstraints;
@@ -2717,6 +2740,7 @@ private:
 
   //Higher-order options
   ChoiceOptionValue<HPrinting> _holPrinting;
+  BoolOptionValue _addProxyAxioms;
   BoolOptionValue _choiceAxiom;
   BoolOptionValue _injectivity;
   BoolOptionValue _choiceReasoning;
@@ -2724,10 +2748,14 @@ private:
   ChoiceOptionValue<CNFOnTheFly> _clausificationOnTheFly;
   ChoiceOptionValue<PISet> _piSet;
   BoolOptionValue _equalityToEquivalence;
-  BoolOptionValue _superposition;
+  BoolOptionValue _complexBooleanReasoning;
+  BoolOptionValue _booleanEqTrick;
+  BoolOptionValue _heuristicInstantiation;
   BoolOptionValue _casesSimp;
   BoolOptionValue _cases;
   BoolOptionValue _newTautologyDel;
+  BoolOptionValue _positiveExt;
+  BoolOptionValue _iffXorRewriter;
 
 }; // class Options
 

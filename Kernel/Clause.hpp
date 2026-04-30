@@ -252,8 +252,6 @@ public:
   auto getSelectedLiteralIterator() { return arrayIter(*this,numSelected()); }
   auto iterLits()                   { return arrayIter(*this,size()); }
   auto iterLits() const             { return arrayIter(*this,size()); }
-  // TODO remove this
-  auto getLiteralIterator()         { return arrayIter(*this,size()); }
 
   bool isGround();
   bool isPropositional();

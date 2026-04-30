@@ -17,19 +17,19 @@
 
 #include "Forwards.hpp"
 
-#include "InferenceEngine.hpp"
+#include "Inferences/InferenceEngine.hpp"
 
 namespace Inferences {
 
 class BoolSimp : public ImmediateSimplificationEngine
 {
-  public:
-    Clause* simplify(Clause* premise) override;
+public:
+  Clause* simplify(Clause* premise) override;
 
-  private:
-    TermList boolSimplify(TermList term); 
-    TermList negate(TermList term);
-    bool areComplements(TermList t1, TermList t2);
+private:
+  TermList boolSimplify(Term* term);
+  TermList negate(TermList term);
+  bool complementary(TermStack args);
 };
 
 }

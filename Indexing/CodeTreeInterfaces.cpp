@@ -86,8 +86,8 @@ private:
 
 /////////////////   CodeTreeTIS   //////////////////////
 
-template<class Data>
-class CodeTreeTIS<Data>::ResultIterator
+template<bool higherOrder, class Data>
+class CodeTreeTIS<higherOrder, Data>::ResultIterator
 : public IteratorCore<QueryRes<ResultSubstitutionSP, Data>>
 {
 public:
@@ -150,11 +150,11 @@ private:
   Data* _found;
   bool _finished;
   CodeTreeTIS* _tree;
-  Recycled<typename TermCodeTree<Data>::TermMatcher> _matcher;
+  Recycled<typename TermCodeTree<higherOrder, Data>::TermMatcher> _matcher;
 };
 
-template<class Data>
-VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> CodeTreeTIS<Data>::getGeneralizations(TypedTermList t, bool retrieveSubstitutions)
+template<bool higherOrder, class Data>
+VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> CodeTreeTIS<higherOrder, Data>::getGeneralizations(TypedTermList t, bool retrieveSubstitutions)
 {
   if(_ct.isEmpty()) {
     return VirtualIterator<QueryRes<ResultSubstitutionSP, Data>>::getEmpty();
@@ -163,8 +163,10 @@ VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> CodeTreeTIS<Data>::getGene
   return vi( new ResultIterator(this, t, retrieveSubstitutions) );
 }
 
-template class CodeTreeTIS<TermLiteralClause>;
-template class CodeTreeTIS<DemodulatorData>;
+template class CodeTreeTIS<false, TermLiteralClause>;
+template class CodeTreeTIS<true,  TermLiteralClause>;
+template class CodeTreeTIS<false, DemodulatorData>;
+template class CodeTreeTIS<true,  DemodulatorData>;
 
 /////////////////   CodeTreeLIS   //////////////////////
 
@@ -249,7 +251,8 @@ template class CodeTreeLIS<LiteralClause>;
 
 /////////////////   CodeTreeSubsumptionIndex   //////////////////////
 
-void CodeTreeSubsumptionIndex::handleClause(Clause* cl, bool adding)
+template<bool higherOrder>
+void CodeTreeSubsumptionIndex<higherOrder>::handleClause(Clause* cl, bool adding)
 {
   TIME_TRACE("codetree subsumption index maintenance");
 
@@ -260,5 +263,8 @@ void CodeTreeSubsumptionIndex::handleClause(Clause* cl, bool adding)
     _ct.remove(cl);
   }
 }
+
+template class CodeTreeSubsumptionIndex<false>;
+template class CodeTreeSubsumptionIndex<true>;
 
 }

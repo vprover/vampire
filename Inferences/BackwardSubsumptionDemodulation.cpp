@@ -48,8 +48,8 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-
-BackwardSubsumptionDemodulation::BackwardSubsumptionDemodulation(SaturationAlgorithm& salg)
+template<bool higherOrder>
+BackwardSubsumptionDemodulation<higherOrder>::BackwardSubsumptionDemodulation(SaturationAlgorithm& salg)
   : _ord(salg.getOrdering())
   , _index(salg.getSimplifyingIndex<BackwardSubsumptionIndex>())
   , _preorderedOnly{false}
@@ -61,7 +61,8 @@ BackwardSubsumptionDemodulation::BackwardSubsumptionDemodulation(SaturationAlgor
   , _backwardSubsumptionDemodulationMaxMatches(salg.getOptions().backwardSubsumptionDemodulationMaxMatches())
 { }
 
-void BackwardSubsumptionDemodulation::perform(Clause* sideCl, BwSimplificationRecordIterator& simplifications)
+template<bool higherOrder>
+void BackwardSubsumptionDemodulation<higherOrder>::perform(Clause* sideCl, BwSimplificationRecordIterator& simplifications)
 {
   ASSERT_VALID(*sideCl);
 
@@ -118,8 +119,8 @@ void BackwardSubsumptionDemodulation::perform(Clause* sideCl, BwSimplificationRe
   simplificationsStorage.clear();
 }  // perform
 
-
-void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Literal* candidateQueryLit, std::vector<BwSimplificationRecord>& simplifications)
+template<bool higherOrder>
+void BackwardSubsumptionDemodulation<higherOrder>::performWithQueryLit(Clause* sideCl, Literal* candidateQueryLit, std::vector<BwSimplificationRecord>& simplifications)
 {
   //   sideCl
   // vvvvvvvvvv
@@ -243,7 +244,8 @@ void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Litera
 
 /// Handles the matching part.
 /// Returns true iff the main premise has been simplified.
-bool BackwardSubsumptionDemodulation::simplifyCandidate(Clause* sideCl, Clause* mainCl, std::vector<BwSimplificationRecord>& simplifications)
+template<bool higherOrder>
+bool BackwardSubsumptionDemodulation<higherOrder>::simplifyCandidate(Clause* sideCl, Clause* mainCl, std::vector<BwSimplificationRecord>& simplifications)
 {
     static std::vector<LiteralList*> alts;
 
@@ -337,7 +339,8 @@ bool BackwardSubsumptionDemodulation::simplifyCandidate(Clause* sideCl, Clause* 
 
 /// Handles the rewriting part.
 /// Returns true iff the main premise has been simplified.
-bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* mainCl, MLMatcherSD const& matcher, Clause*& replacement)
+template<bool higherOrder>
+bool BackwardSubsumptionDemodulation<higherOrder>::rewriteCandidate(Clause* sideCl, Clause* mainCl, MLMatcherSD const& matcher, Clause*& replacement)
 {
   // to see why we use this have a look at the respective line in ForwardSubsumptionDemodulation
   DEBUG_CODE(static bool isAlascaOrdering = env.options->termOrdering () == Shell::Options::TermOrdering::QKBO
@@ -435,7 +438,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
       continue;
     }
 
-    NonVariableNonTypeIterator nvi(dlit);
+    RewritableSubtermIterator<higherOrder> nvi(dlit);
     while (nvi.hasNext()) {
       TypedTermList lhsS = nvi.next();  // named 'lhsS' because it will be matched against 'lhs'
 
@@ -663,5 +666,7 @@ isRedundant:
   return false;
 }  // rewriteCandidate
 
+template class BackwardSubsumptionDemodulation<false>;
+template class BackwardSubsumptionDemodulation<true>;
 
 }

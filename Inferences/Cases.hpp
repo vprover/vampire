@@ -8,8 +8,8 @@
  * and in the source directory
  */
 /**
- * @file FOOLParamodulation.hpp
- * Defines class FOOLParamodulation.
+ * @file Cases.hpp
+ * Defines class Cases.
  */
 
 #ifndef __Cases__
@@ -21,14 +21,13 @@
 
 namespace Inferences {
 
-class Cases : public GeneratingInferenceEngine {
+class Cases
+  : public GeneratingInferenceEngine
+{
 public:
   Cases(SaturationAlgorithm& salg);
-  Clause* performParamodulation(Clause* cl, Literal* lit, TermList t);
   ClauseIterator generateClauses(Clause* premise) override;
 private:
-  struct RewriteableSubtermsFn;
-  struct ResultFn;
   const Ordering& _ord;
 };
 

@@ -54,7 +54,6 @@ public:
   ConstraintIndex(Clause* cl) : _varSorts()
   {
     _clauseCodeTree=false;
-    _onCodeOpDestroying = onCodeOpDestroying;
 #if VDEBUG
     _cl = cl;
 #endif
@@ -246,7 +245,7 @@ private:
   }
 
   struct SubstMatcher
-  : public Matcher</*removing*/false,false>
+  : public Matcher</*removing*/false,false,/*higherOrder=*/false>
   {
     void init(CodeTree* tree, const TermStack& ts)
     {
@@ -281,7 +280,7 @@ private:
   };
 
   struct VariantMatcher
-  : public Matcher</*removing*/true,true>
+  : public Matcher</*removing*/true,true,/*higherOrder=*/false>
   {
   public:
     void init(FlatTerm* ft_, CodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_) {
@@ -292,7 +291,7 @@ private:
     }
   };
 
-  static void onCodeOpDestroying(CodeOp* op) {
+  void onCodeOpDestroying(CodeOp* op) override {
     if (op->isSuccess()) {
       auto es = op->getSuccessResult<EntryContainer>();
       iterTraits(decltype(es->entries)::Iterator(es->entries))

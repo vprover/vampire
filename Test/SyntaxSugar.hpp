@@ -60,9 +60,12 @@
 #define DECL_NOT_PROXY auto notP = TermSugar(HOL::create::neg());
 #define DECL_AND_PROXY auto andP = TermSugar(HOL::create::conj());
 #define DECL_OR_PROXY auto orP = TermSugar(HOL::create::disj());
-#define DECL_EQ_PROXY(p) auto p = FuncSugar(env.signature->getEqualityProxy());
-#define DECL_PI_PROXY(p) auto p = FuncSugar(env.signature->getPiSigmaProxy("vPI"));
-#define DECL_SIGMA_PROXY(p) auto p = FuncSugar(env.signature->getPiSigmaProxy("vSIGMA"));
+#define DECL_IMP_PROXY auto impP = TermSugar(HOL::create::imp());
+#define DECL_IFF_PROXY auto iffP = TermSugar(HOL::create::iff());
+#define DECL_XOR_PROXY auto xorP = TermSugar(HOL::create::xorP());
+#define DECL_EQ_PROXY auto eqP = FuncSugar(env.signature->getEqualityProxy());
+#define DECL_PI_PROXY auto piP = FuncSugar(env.signature->getPiSigmaProxy("vPI"));
+#define DECL_SIGMA_PROXY auto sigmaP = FuncSugar(env.signature->getPiSigmaProxy("vSIGMA"));
 #define DECL_APP env.signature->getApp();
 #define DECL_LAM env.signature->getLam();
 #define NEXT_INTRODUCED_PRED(s,offset) auto s = PredSugar(env.signature->predicates()+offset);
@@ -358,7 +361,7 @@ public:
 
   SortId sort() const { return _srt; }
 
-  TermSugar sort(SortId s) { _srt = s; return *this; }
+  TermSugar sort(SortId s) { return TermSugar(TermList(*this), s);}
 
   static TermSugar createConstant(const char* name, SortSugar s, bool skolem) {
     unsigned f = env.signature->addFunction(name,0);

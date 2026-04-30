@@ -52,16 +52,6 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
   DEBUG("l2: ", l2)
 
 
-  auto unifySorts = [](auto s1, auto s2) -> Option<TermList> {
-    static RobSubstitution subst;
-    if (!subst.unify(s1, 0, s2, 0)) {
-      return Option<TermList>();
-    } else {
-      ASS_EQ(subst.apply(s1,0), subst.apply(s2,0))
-      return Option<TermList>(subst.apply(s1, 0));
-    }
-  };
-
   auto nothing = [&]() { return Option<Clause*>(); };
 
   auto s1 = l1.biggerSide();
@@ -70,8 +60,6 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
   auto t2 = l2.smallerSide();
 
   ASS (l1.positive() && l2.positive())
-  // ASS(!s1.isVar())
-  // ASS(!s2.isVar())
   ASS(!l1.isFracNum() || !l1.biggerSide().isVar())
   ASS(!l2.isFracNum() || !l2.biggerSide().isVar())
 
@@ -81,22 +69,21 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
       return nothing();                                                                             \
     }                                                                                               \
 
-  auto srt_ = unifySorts(
-      SortHelper::getEqualityArgumentSort(l1.literal()),
-      SortHelper::getEqualityArgumentSort(l2.literal())
-      );
+  auto uwa = _shared.createAbstractingUnifier();
+
+  auto srt1 = SortHelper::getEqualityArgumentSort(l1.literal());
+  auto srt2 = SortHelper::getEqualityArgumentSort(l2.literal());
   check_side_condition(
       "s1 and s2 are of unifyable sorts",
-      srt_.isSome())
-  auto& srt = srt_.unwrap();
+      uwa.subs().unify(srt1, 0, srt2, 0))
 
-  auto uwa = _shared.unify(s1, s2);
   check_side_condition(
       "uwa(s1,s2) = ⟨σ,Cnst⟩",
-      uwa.isSome())
-  
-  auto sigma = [&](auto t) { return uwa->subs().apply(t, /* varbank */ 0); };
-  auto cnst = uwa->computeConstraintLiterals();
+      uwa.unify(s1, 0, s2, 0, _shared.uwaFixedPointIteration))
+
+  auto srt = uwa.subs().apply(srt1, 0);
+  auto sigma = [&](auto t) { return uwa.subs().apply(t, /* varbank */ 0); };
+  auto cnst = uwa.computeConstraintLiterals();
 
   Stack<Literal*> concl(l1.clause()->size() // <- (C \/ s1 ≈ t1 \/ t1  ̸≈ t2)σ
                       + cnst->size()); // <- Cnstσ

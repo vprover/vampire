@@ -34,7 +34,8 @@ using namespace Lib;
 /**
  * Term indexing structure using code trees to retrieve generalizations
  */
-template<class Data>
+
+template<bool higherOrder, class Data>
 class CodeTreeTIS : public TermIndexingStructure<Data>
 {
 public:
@@ -58,7 +59,7 @@ public:
 private:
   class ResultIterator;
 
-  TermCodeTree<Data> _ct;
+  TermCodeTree<higherOrder, Data> _ct;
 };
 
 /**
@@ -91,17 +92,18 @@ private:
   LiteralCodeTree<Data> _ct;
 };
 
+template<bool higherOrder>
 class CodeTreeSubsumptionIndex
 : public Index
 {
 public:
   CodeTreeSubsumptionIndex(SaturationAlgorithm&) {}
-  ClauseCodeTree* getClauseCodeTree() { return &_ct; }
+  ClauseCodeTree<higherOrder>* getClauseCodeTree() { return &_ct; }
 protected:
   void handleClause(Clause* c, bool adding) override;
 private:
 
-  ClauseCodeTree _ct;
+  ClauseCodeTree<higherOrder> _ct;
 };
 
 };

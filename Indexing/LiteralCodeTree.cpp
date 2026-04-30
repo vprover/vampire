@@ -37,7 +37,6 @@ template<class Data>
 LiteralCodeTree<Data>::LiteralCodeTree()
 {
   _clauseCodeTree = false;
-  _onCodeOpDestroying = onCodeOpDestroying;
 }
 
 template<class Data>

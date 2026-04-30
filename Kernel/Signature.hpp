@@ -661,6 +661,14 @@ class Signature
     return &_choiceSymbols;
   }
 
+  void addInstantiation(TermList inst) {
+    _instantiations.insert(inst);
+  }
+
+  DHSet<TermList>* getInstantiations() {
+    return &_instantiations;
+  }
+
   /** return the number of functions */
   unsigned functions() const { return _funs.length(); }
   /** return the number of predicates */
@@ -993,7 +1001,9 @@ private:
   /** Stack of type constructor symbols */  
   Stack<Symbol*> _typeCons;
 
+  // TODO(HOL): these two don't belong in the signature
   DHSet<unsigned> _choiceSymbols;
+  DHSet<TermList> _instantiations;
 
   SymbolMap _funNames;
   SymbolMap _predNames;

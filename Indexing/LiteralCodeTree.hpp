@@ -38,7 +38,7 @@ public:
   void remove(const Data& data);
 
   struct LiteralMatcher
-  : public Matcher</*removing*/false,false>
+  : public Matcher</*removing=*/false,/*checkRange=*/false,/*higherOrder=*/false>
   {
     void init(CodeTree* tree, Literal* lit, bool complementary);
     void reset();
@@ -50,10 +50,10 @@ public:
   };
 
 private:
-  static void onCodeOpDestroying(CodeOp* op);
+  void onCodeOpDestroying(CodeOp* op) override;
 
   struct RemovingLiteralMatcher
-  : public Matcher</*removing*/true,false>
+  : public Matcher</*removing*/true,/*checkRange=*/false,/*higherOrder=*/false>
   {
   public:
     void init(FlatTerm* ft_, LiteralCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_);

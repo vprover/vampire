@@ -67,8 +67,14 @@ set(UNIT_TESTS
     UnitTests/tInferences_GaussianVariableElimination.cpp
     UnitTests/tInferences_HOL_ArgCong.cpp
     UnitTests/tInferences_HOL_BoolEqToDiseq.cpp
+    UnitTests/tInferences_HOL_BoolSimp.cpp
+    UnitTests/tInferences_HOL_Cases.cpp
+    UnitTests/tInferences_HOL_CasesSimp.cpp
     UnitTests/tInferences_HOL_BetaEtaSimplify.cpp
+    UnitTests/tInferences_HOL_CNFOnTheFly.cpp
     UnitTests/tInferences_HOL_FlexFlexSimplify.cpp
+    UnitTests/tInferences_HOL_ImitateProject.cpp
+    UnitTests/tInferences_HOL_LeibnizEqualityElimination.cpp
     UnitTests/tInferences_HOL_NegativeExtensionality.cpp
     UnitTests/tInferences_HOL_PositiveExtensionality.cpp
     UnitTests/tInferences_HOL_PrimitiveInstantiation.cpp
@@ -76,8 +82,9 @@ set(UNIT_TESTS
     UnitTests/tInferences_InferenceEngine.cpp
     UnitTests/tInferences_InnerRewriting.cpp
     UnitTests/tInferences_PushUnaryMinus.cpp
-    UnitTests/tInferences_SubsumptionDemodulation.cpp
     UnitTests/tInferences_SubsumptionAndResolution.cpp
+    UnitTests/tInferences_SubsumptionDemodulation.cpp
+    UnitTests/tInferences_SubsumptionEqualityResolution.cpp
     UnitTests/tInferences_Superposition.cpp
     UnitTests/tInferences_TautologyDeletionISE.cpp
     UnitTests/tInferences_URResolution.cpp
@@ -245,18 +252,12 @@ set(SOURCES
     Inferences/BackwardSubsumptionDemodulation.hpp
     Inferences/BinaryResolution.cpp
     Inferences/BinaryResolution.hpp
-    Inferences/BoolSimp.cpp
-    Inferences/BoolSimp.hpp
-    Inferences/CNFOnTheFly.cpp
-    Inferences/CNFOnTheFly.hpp
     Inferences/Cancellation.cpp
     Inferences/Cancellation.cpp
     Inferences/Cancellation.hpp
     Inferences/Cancellation.hpp
     Inferences/Cases.cpp
     Inferences/Cases.hpp
-    Inferences/CasesSimp.cpp
-    Inferences/CasesSimp.hpp
     Inferences/Choice.cpp
     Inferences/Choice.hpp
     Inferences/CodeTreeForwardSubsumptionAndResolution.cpp
@@ -306,8 +307,18 @@ set(SOURCES
     Inferences/HOL/BetaEtaSimplify.hpp
     Inferences/HOL/BoolEqToDiseq.cpp
     Inferences/HOL/BoolEqToDiseq.hpp
+    Inferences/HOL/BoolSimp.cpp
+    Inferences/HOL/BoolSimp.hpp
+    Inferences/HOL/CasesSimp.cpp
+    Inferences/HOL/CasesSimp.hpp
+    Inferences/HOL/CNFOnTheFly.cpp
+    Inferences/HOL/CNFOnTheFly.hpp
     Inferences/HOL/FlexFlexSimplify.cpp
     Inferences/HOL/FlexFlexSimplify.hpp
+    Inferences/HOL/ImitateProject.cpp
+    Inferences/HOL/ImitateProject.hpp
+    Inferences/HOL/LeibnizEqualityElimination.cpp
+    Inferences/HOL/LeibnizEqualityElimination.hpp
     Inferences/HOL/NegativeExtensionality.cpp
     Inferences/HOL/NegativeExtensionality.hpp
     Inferences/HOL/PositiveExtensionality.cpp
@@ -337,6 +348,8 @@ set(SOURCES
     Inferences/PushUnaryMinus.hpp
     Inferences/SubsumptionDemodulationHelper.cpp
     Inferences/SubsumptionDemodulationHelper.hpp
+    Inferences/SubsumptionEqualityResolution.cpp
+    Inferences/SubsumptionEqualityResolution.hpp
     Inferences/Superposition.cpp
     Inferences/Superposition.hpp
     Inferences/TautologyDeletionISE.cpp

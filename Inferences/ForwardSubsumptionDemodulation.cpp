@@ -28,10 +28,13 @@
 
 using namespace Kernel;
 using namespace Lib;
-using namespace Inferences;
 using namespace Saturation;
 
-ForwardSubsumptionDemodulation::ForwardSubsumptionDemodulation(SaturationAlgorithm& salg)
+namespace Inferences
+{
+
+template<bool higherOrder>
+ForwardSubsumptionDemodulation<higherOrder>::ForwardSubsumptionDemodulation(SaturationAlgorithm& salg)
   : _preorderedOnly(false),
     _allowIncompleteness(false),
     _enableOrderingOptimizations(
@@ -43,7 +46,8 @@ ForwardSubsumptionDemodulation::ForwardSubsumptionDemodulation(SaturationAlgorit
     _index(salg.getSimplifyingIndex<FSDLiteralIndex>())
 {}
 
-bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
+template<bool higherOrder>
+bool ForwardSubsumptionDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   //                        cl
   //                 vvvvvvvvvvvvvvvv
@@ -361,7 +365,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
             continue;
           }
 
-          NonVariableNonTypeIterator nvi(dlit);
+          RewritableSubtermIterator<higherOrder> nvi(dlit);
           while (nvi.hasNext()) {
             TypedTermList lhsS = nvi.next();  // named 'lhsS' because it will be matched against 'lhs'
 
@@ -636,4 +640,9 @@ isRedundant:
   }  // for (li)
 
   return false;
+}
+
+template class ForwardSubsumptionDemodulation<false>;
+template class ForwardSubsumptionDemodulation<true>;
+
 }
