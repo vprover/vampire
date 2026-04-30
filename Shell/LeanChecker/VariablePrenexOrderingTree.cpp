@@ -152,7 +152,7 @@ void VariablePrenexOrderingTree::buildTreeFromFormula(Formula *f, Connective rec
   root = VariableOrderingTreeNode::buildTreeFromFormula(f, recordedConnective);
 }
 
-std::vector<unsigned> *VariablePrenexOrderingTree::determineVariableOrdering()
+const std::vector<unsigned> &VariablePrenexOrderingTree::determineVariableOrdering()
 {
   
   if (!treeHasBeenShaken) {
@@ -170,5 +170,5 @@ std::vector<unsigned> *VariablePrenexOrderingTree::determineVariableOrdering()
     } while (changing);
     treeHasBeenShaken = true;
   }
-  return &root->containedVariablesOrder;
+  return root->containedVariablesOrder;
 }

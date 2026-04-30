@@ -29,16 +29,13 @@ InferenceRecorder *InferenceRecorder::_inst = nullptr;
 
 InferenceRecorder *InferenceRecorder::instance()
 {
-  if (_inst != nullptr) {
-    return _inst;
-  }
-  _inst = new InferenceRecorder();
-  return _inst;
+  static InferenceRecorder inst;
+  return &inst;
 }
 
 void InferenceRecorder::populateSubstitutions(std::vector<Substitution> &substMap,
                                               const std::unordered_map<unsigned int, unsigned int> &varMap,
-                                              const std::vector<Clause *> premises,
+                                              const std::vector<Clause *> &premises,
                                               const RobSubstitution &recordedSubst)
 {
 
@@ -54,7 +51,7 @@ void InferenceRecorder::populateSubstitutions(std::vector<Substitution> &substMa
 
 void InferenceRecorder::populateSubstitutions(std::vector<Substitution> &substMap,
                                               const std::unordered_map<unsigned int, unsigned int> &varMap,
-                                              const std::vector<Clause *> premises,
+                                              const std::vector<Clause *> &premises,
                                               const ResultSubstitutionSP &recordedSubst)
 {
 
@@ -74,7 +71,7 @@ TermList applyFunc(const SubstApplicator &subst, const TermList &term, size_t ba
 }
 void InferenceRecorder::populateSubstitutions(std::vector<Substitution> &substMap,
                                               const std::unordered_map<unsigned int, unsigned int> &varMap,
-                                              const std::vector<Clause *> premises,
+                                              const std::vector<Clause *> &premises,
                                               const SubstApplicator &recordedSubst)
 {
   return populateSubstitutionsGen<SubstApplicator>(
@@ -124,36 +121,6 @@ void InferenceRecorder::equalityResolutionDeletion(unsigned int id, Clause *conc
     [](EqResWithDeletion *subst, const TermList &term, size_t bank) {
     return subst->apply(term.var());
   });
-}
-
-bool hasVarSubstAndCompute(TermList &expectedTerm, TermList &haveTerm, Substitution &outVariableSwitch)
-{
-  bool haveProperSubst = false;
-  if(expectedTerm.isVar()) {
-    if (haveTerm.isVar()) {
-      outVariableSwitch.bind(expectedTerm.var(), haveTerm);
-      haveProperSubst = true;
-    }
-    return haveProperSubst;
-  }
-  
-  if(haveTerm.isTerm() && expectedTerm.isTerm() && haveTerm.term()->arity()==0 && expectedTerm.term()->arity()==0) {
-    return expectedTerm.term() == haveTerm.term();
-  }
-
-  if (MatchingUtils::matchTerms(expectedTerm, haveTerm)) {
-    haveProperSubst = true;
-    MatchingUtils::matchArgs(haveTerm.term(), expectedTerm.term(), outVariableSwitch);
-    auto items = outVariableSwitch.items();
-    while (items.hasNext()) {
-      auto [var, termList] = items.next();
-      if (!termList.isVar()) {
-        haveProperSubst = false;
-        break;
-      }
-    }
-  }
-  return haveProperSubst;
 }
 
 void InferenceRecorder::forwardDemodulation(unsigned int id, Clause *conclusion, const std::vector<Clause *> &premises, const SubstApplicator *appl, const DemodulatorData *data,

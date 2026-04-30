@@ -161,7 +161,7 @@ void LeanChecker::print()
   out << "end vamproof" << "\n";
 }
 
-void LeanChecker::outputPreamble(std::ostream &out, std::set<Signature::Symbol*> usedFunctionSymbols, std::set<Signature::Symbol*> usedPredicateSymbols)
+void LeanChecker::outputPreamble(std::ostream &out, std::set<Signature::Symbol*>& usedFunctionSymbols, std::set<Signature::Symbol*>& usedPredicateSymbols)
 {
   out << preambleLean << "\n";
 
@@ -258,10 +258,7 @@ void LeanChecker::outputPreamble(std::ostream &out, std::set<Signature::Symbol*>
   std::map<OperatorType*, std::vector<Signature::Symbol*>> funMap;
   for(auto fun : usedFunctionSymbols){
     if(!fun->interpreted()){
-      if(funMap.find(fun->fnType()) == funMap.end()){
-        funMap.emplace(fun->fnType(), std::vector<Signature::Symbol*>());
-      }
-      funMap[fun->fnType()].push_back(fun);
+      funMap.try_emplace(fun->fnType(), std::vector<Signature::Symbol*>()).first->second.push_back(fun);
     }
   }
   for (auto [type, funcs] : funMap){
@@ -289,10 +286,7 @@ void LeanChecker::outputPreamble(std::ostream &out, std::set<Signature::Symbol*>
   std::map<OperatorType*, std::vector<Signature::Symbol*>> predMap;
   for(auto pred : usedPredicateSymbols){
     if(!pred->interpreted()){
-      if(predMap.find(pred->fnType()) == predMap.end()){
-        predMap.emplace(pred->fnType(), std::vector<Signature::Symbol*>());
-      }
-      predMap[pred->fnType()].push_back(pred);
+      predMap.try_emplace(pred->fnType(), std::vector<Signature::Symbol*>()).first->second.push_back(pred);
     }
   }
   for (auto [type, preds] : predMap){
@@ -315,7 +309,7 @@ void LeanChecker::outputPreamble(std::ostream &out, std::set<Signature::Symbol*>
   }
 }
 
-void LeanChecker::outputFullProofPreamble(std::ostream &out, std::deque<Unit*> premises, std::deque<Unit*> negatedConjectures, std::set<Signature::Symbol*>& unusedFunctionSymbols, std::set<Signature::Symbol*>& unusedPredicateSymbols){
+void LeanChecker::outputFullProofPreamble(std::ostream &out, std::deque<Unit*>& premises, std::deque<Unit*>& negatedConjectures, std::set<Signature::Symbol*>& unusedFunctionSymbols, std::set<Signature::Symbol*>& unusedPredicateSymbols){
   //out << "set_option maxHeartbeats 200000000 in\n";
   out << "theorem fullProof : ";
   for(Unit* input : premises){
@@ -551,7 +545,8 @@ void LeanChecker::instantiateConclusionVars(std::ostream &out, SortMap &conclSor
   if(concl->isClause()) {
     auto cl = concl->asClause();
     if(!cl->noSplits()){
-      outputCumulativeSplits({cl}, " ", "x", true);
+      auto cla = {cl};
+      outputCumulativeSplits(cla, " ", "x", true);
       out << " ";
     }
   }
@@ -698,11 +693,11 @@ unsigned countConnectives(Formula *f)
 void outputReorderIfNeeded(std::ostream &out, Unit* parent, SortMap &conclSorts, std::string indent){
   VariablePrenexOrderingTree prenexTree;
   prenexTree.buildTreeFromFormula(parent->getFormula(), Kernel::FORALL);
-  std::vector<unsigned>* variableOrdering = prenexTree.determineVariableOrdering();
+  std::vector<unsigned> variableOrdering = prenexTree.determineVariableOrdering();
   //check if reordering is actually needed
   bool needsReorder = false;
   unsigned currentMin = 0;
-  for(unsigned var : *variableOrdering){
+  for(unsigned var : variableOrdering){
     if(conclSorts.findPtr(var) != nullptr){
       if(var < currentMin){
         needsReorder = true;
@@ -727,7 +722,7 @@ void outputReorderIfNeeded(std::ostream &out, Unit* parent, SortMap &conclSorts,
     outputVariables(out, domain, conclSorts, conclSorts);
     out << ") ↔ (" << "∀ ";
     domain = conclSorts.domain();
-    for(unsigned var : *variableOrdering){
+    for(unsigned var : variableOrdering){
       if(conclSorts.findPtr(var) != nullptr){
         out << "v" << var << " ";
       }
@@ -736,7 +731,7 @@ void outputReorderIfNeeded(std::ostream &out, Unit* parent, SortMap &conclSorts,
     domain = conclSorts.domain();
     outputVariables(out, domain, conclSorts, conclSorts);
     out << ") := Iff.intro (fun f ";
-    for(unsigned var : *variableOrdering){
+    for(unsigned var : variableOrdering){
       if(conclSorts.findPtr(var) != nullptr){
         out << "v" << var << " ";
       }
@@ -748,7 +743,7 @@ void outputReorderIfNeeded(std::ostream &out, Unit* parent, SortMap &conclSorts,
     domain = conclSorts.domain();
     outputVariables(out, domain, conclSorts, conclSorts);
     out << " => f ";
-    for(unsigned var : *variableOrdering){
+    for(unsigned var : variableOrdering){
       if(conclSorts.findPtr(var) != nullptr){
         out << "v" << var << " ";
       }
@@ -1269,7 +1264,7 @@ void LeanChecker::skolemize(std::ostream &out, SortMap &conclSorts, Unit *concl)
   out << indent << "exists_prenex at "<< stepIdent;
   out << parent->number() << "\n";
   out << indent << "let ⟨";
-  for (unsigned var : *tree.determineVariableOrdering()) {
+  for (unsigned var : tree.determineVariableOrdering()) {
     out << FunctionName(replacedVarMap[var]) << ",";
   }
   out << "step" << concl->number() << "'⟩ := step" << parent->number() << "\n";
@@ -1383,7 +1378,7 @@ void LeanChecker::axiom(std::ostream &out, SortMap &conclSorts, Unit *concl)
 }
 
 
-void LeanChecker::outputCumulativeSplits(std::initializer_list<Kernel::Clause *> cl, std::string seperator, std::string splitPrefix, bool ignoreNegation)
+void LeanChecker::outputCumulativeSplits(std::initializer_list<Kernel::Clause *>& cl, std::string seperator, std::string splitPrefix, bool ignoreNegation)
 {
   std::set<unsigned> splits;
   for (Kernel::Clause *c : cl) {
@@ -1413,7 +1408,7 @@ void LeanChecker::outputCumulativeSplits(std::initializer_list<Kernel::Clause *>
   }
 }
 
-void LeanChecker::outputCumulativeSplits(std::set<Kernel::Unit*, CompareUnits> cl, std::string seperator, std::string splitPrefix ,std::string prefix, std::string suffix)
+void LeanChecker::outputCumulativeSplits(std::set<Kernel::Unit*, CompareUnits>& cl, std::string seperator, std::string splitPrefix ,std::string prefix, std::string suffix)
 {
   std::set<unsigned> splits;
   for (Kernel::Unit *c : cl) {
@@ -1455,7 +1450,8 @@ void LeanChecker::outputUnit(std::ostream &out, Kernel::Unit *u, SortMap *conclS
     auto cl = u->asClause();
     if (outputSplits && !cl->noSplits()) {
       out << "("; // closed after printing the whole clause
-      outputCumulativeSplits({cl}, "→");
+      auto cla = {cl};
+      outputCumulativeSplits(cla, "→");
       out << "→";
     }
     outputClause(out, cl, conclSorts, Identity{});

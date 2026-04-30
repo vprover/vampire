@@ -70,7 +70,8 @@ void InferenceReplayer::replayInference(Kernel::Unit *u)
     Inferences::Factoring fact(*alg);
     runGenerating(&fact,
                          stack, u->asClause());
-  } else if (u->inference().rule() == InferenceRule::RECTIFY) {
+  } 
+  else if (u->inference().rule() == InferenceRule::RECTIFY) {
     FormulaUnit *fu = static_cast<FormulaUnit *>(u->getParents().next());
     Rectify::rectify(fu);
   }
@@ -81,7 +82,7 @@ void InferenceReplayer::replayInference(Kernel::Unit *u)
 }
 
 Clause *InferenceReplayer::runGenerating(GeneratingInferenceEngine *rule,
-                                         ClauseStack context, Clause *goal)
+                                         ClauseStack& context, Clause *goal)
 {
   // init problem
   ASS(alg != nullptr);
@@ -114,7 +115,7 @@ Clause *InferenceReplayer::runGenerating(GeneratingInferenceEngine *rule,
 }
 
 void InferenceReplayer::runForwardsSimp(ForwardSimplificationEngine *rule,
-                                        ClauseStack context, Clause *goal)
+                                        ClauseStack& context, Clause *goal)
 {
   Problem p;
   ASS(alg);
@@ -139,7 +140,7 @@ void InferenceReplayer::removeAllActiveClauses()
 }
 
 void InferenceReplayer::runBackwardsSimp(Inferences::BackwardSimplificationEngine *rule,
-                                         ClauseStack context, Clause *goal)
+                                         ClauseStack& context, Clause *goal)
 {
   Problem p;
   ASS(alg != nullptr);

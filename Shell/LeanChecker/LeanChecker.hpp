@@ -33,7 +33,7 @@ public:
 
   void printStep(Unit *u) override {} // do nothing as we need to call other methods anyway
 
-  void outputPreamble(std::ostream &out, std::set<Signature::Symbol*> usedFunctionSymbols, std::set<Signature::Symbol*> usedPredicateSymbols);
+  void outputPreamble(std::ostream &out, std::set<Signature::Symbol*>& usedFunctionSymbols, std::set<Signature::Symbol*>& usedPredicateSymbols);
 
   void outputInferenceStep(std::ostream &out, Kernel::Unit *u);
 
@@ -49,9 +49,9 @@ private:
 
   bool inferenceNeedsReplayInformation(const InferenceRule &rule);
 
-  void outputCumulativeSplits(std::initializer_list<Kernel::Clause *> cl, std::string seperator = " ",std::string splitPrefix = "sA", bool ignoreNegation = false);
+  void outputCumulativeSplits(std::initializer_list<Kernel::Clause *>& cl, std::string seperator = " ",std::string splitPrefix = "sA", bool ignoreNegation = false);
 
-  void outputCumulativeSplits(std::set<Kernel::Unit*, CompareUnits> cl, std::string seperator = " ", std::string splitPrefix = "sA", std::string prefix = "", std::string suffix = "");
+  void outputCumulativeSplits(std::set<Kernel::Unit*, CompareUnits>& cl, std::string seperator = " ", std::string splitPrefix = "sA", std::string prefix = "", std::string suffix = "");
 
   void outputUnit(std::ostream &out, Kernel::Unit *u, SortMap *conclSorts = nullptr, bool outputSplits = true);
 
@@ -109,7 +109,8 @@ private:
         if(cl->splits()->size() > 1){
           //out << "and_constr ⟨";
         }
-        outputCumulativeSplits({cl}, " ", "x", true);
+        auto set = {cl};
+        outputCumulativeSplits(set, " ", "x", true);
         if(cl->splits()->size() > 1){
           //out << "⟩";
         } 
@@ -152,7 +153,7 @@ private:
   void definitionUnfolding(std::ostream &out, SortMap &conclSorts, Unit *concl);
   void                 axiom(std::ostream &out, SortMap &conclSorts, Unit *concl);
 
-  void outputFullProofPreamble(std::ostream &out, std::deque<Unit*> premises, std::deque<Unit*> negatedConjectures,  std::set<Signature::Symbol*>& unusedFunctionSymbols, std::set<Signature::Symbol*>& unusedPredicateSymbols);
+  void outputFullProofPreamble(std::ostream &out, std::deque<Unit*>& premises, std::deque<Unit*>& negatedConjectures,  std::set<Signature::Symbol*>& unusedFunctionSymbols, std::set<Signature::Symbol*>& unusedPredicateSymbols);
 
 
   private:

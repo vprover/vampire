@@ -1,5 +1,4 @@
 #include "Forwards.hpp"
-#include "Forwards.hpp"
 #include "Kernel/Formula.hpp"
 #include <memory>
 #include <set>
@@ -48,5 +47,5 @@ class VariablePrenexOrderingTree {
 public:
   void print(std::ostream &out);
   void buildTreeFromFormula(Formula *f, Connective recordedConnective);
-  std::vector<unsigned> *determineVariableOrdering();
+  const std::vector<unsigned> &determineVariableOrdering();
 };

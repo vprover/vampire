@@ -36,9 +36,9 @@ class InferenceReplayer
     Indexing::SaturationAlgorithm* alg = nullptr;
 
     static bool isClauseRule(const InferenceRule &rule);
-    void runBackwardsSimp(Inferences::BackwardSimplificationEngine* rule, ClauseStack context, Clause* goal);
-    void runForwardsSimp(Inferences::ForwardSimplificationEngine* rule, ClauseStack context, Clause* goal);
-    Clause* runGenerating(Inferences::GeneratingInferenceEngine* rule, ClauseStack context, Clause* goal);
+    void runBackwardsSimp(Inferences::BackwardSimplificationEngine* rule, ClauseStack& context, Clause* goal);
+    void runForwardsSimp(Inferences::ForwardSimplificationEngine* rule, ClauseStack& context, Clause* goal);
+    Clause* runGenerating(Inferences::GeneratingInferenceEngine* rule, ClauseStack& context, Clause* goal);
     void removeAllActiveClauses();
 };
 }

@@ -10,7 +10,9 @@
 #include "Kernel/Substitution.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Shell/EqResWithDeletion.hpp"
+#include <deque>
 #include <memory>
+#include <queue>
 #include <unordered_map>
 #include <vector>
 #include <set>
@@ -20,6 +22,7 @@ class InferenceRecorder {
 public:
   class GenericInferenceInformation {
     public:
+      virtual ~GenericInferenceInformation() = default;
   };
 
   class InferenceInformation : public GenericInferenceInformation {
@@ -35,10 +38,8 @@ public:
       std::vector<std::pair<Kernel::Formula*, std::pair<Kernel::Formula*, Kernel::Substitution>>> renamings;
   };
 
-  // Returns the singleton instance (lazily initialized, thread-safe)
+  // Returns the singleton instance
   static InferenceRecorder *instance();
-  // Optional: destroy the singleton (if you need controlled teardown)
-  // static void destroyInstance();
 
   void resolution(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const Indexing::ResultSubstitutionSP &recordedSubst);
 
@@ -97,7 +98,7 @@ public:
     return nullptr;
   }
 
-  ~InferenceRecorder();
+  virtual ~InferenceRecorder();
 
   // non-copyable, non-movable
   InferenceRecorder(const InferenceRecorder &) = delete;
@@ -115,7 +116,7 @@ private:
   template <typename T>
   void populateSubstitutionsGen(std::vector<Kernel::Substitution> &substMap,
                                 const std::unordered_map<unsigned int, unsigned int> &varMap,
-                                const std::vector<Clause *> premises,
+                                const std::vector<Clause *> &premises,
                                 const T &recordedSubst,
                                 std::function<TermList(const T &, const TermList &, size_t)> applyFunc)
   {
@@ -127,29 +128,26 @@ private:
     substMap.resize(premises.size());
     
     for (size_t bank = 0; bank < premises.size(); bank++) {
-      unsigned int highestVar = 0;
       //std::cout << premises[bank]->toString() << std::endl;
       auto iter = premises[bank]->getVariableIterator();
+      std::deque<unsigned> vars; 
       while (iter.hasNext()) {
         unsigned int var = variableSubst.apply(iter.next()).var();
-        if (var > highestVar) {
-          highestVar = var;
-        }
+        vars.push_back(var);
       }
-      for (unsigned v = 0; v <= highestVar; v++) {
+      for (unsigned v : vars) {
         TermList x = applyFunc(recordedSubst, TermList::var(v), bank);
         substMap[bank].bind(v,
                             SubstHelper::apply(x,
                                                variableSubst));
       }
-      //std::cout << "Substitution for bank " << bank << ": " << substMap[bank] << std::endl;
     }
   }
 
   template <typename T>
   void populateSubstitutionsMergeOneBank(std::vector<Kernel::Substitution> &substMap,
                                      const std::unordered_map<unsigned int, unsigned int> &varMap,
-                                     const std::vector<Clause *> premises,
+                                     const std::vector<Clause *> &premises,
                                      const T &recordedSubst,
                                      std::function<TermList(const T &, const TermList &, size_t)> applyFunc)
   {
@@ -160,17 +158,15 @@ private:
     }
 
     substMap.resize(1);
-    long highestVar = -1;
+    std::deque<unsigned> vars;
     for (size_t bank = 0; bank < premises.size(); bank++) {
       auto iter = premises[bank]->getVariableIterator();
       while (iter.hasNext()) {
-        unsigned int var = iter.next();
-        if (var > highestVar) {
-          highestVar = var;
-        }
+        unsigned int var = variableSubst.apply(iter.next()).var();
+        vars.push_back(var);
       }
     }
-    for (unsigned v = 0; v <= highestVar; v++) {
+    for (unsigned v : vars) {
       TermList x = applyFunc(recordedSubst, TermList::var(v), 0);
       substMap[0].bind(v,
                          SubstHelper::apply(x,
@@ -180,17 +176,17 @@ private:
 
   void populateSubstitutions(std::vector<Kernel::Substitution> &substMap,
                              const std::unordered_map<unsigned int, unsigned int> &varMap,
-                             const std::vector<Kernel::Clause *> premises,
+                             const std::vector<Kernel::Clause *> &premises,
                              const RobSubstitution &recordedSubst);
 
   void populateSubstitutions(std::vector<Kernel::Substitution> &substMap,
                              const std::unordered_map<unsigned int, unsigned int> &varMap,
-                             const std::vector<Kernel::Clause *> premises,
+                             const std::vector<Kernel::Clause *> &premises,
                              const Indexing::ResultSubstitutionSP &recordedSubst);
 
   void populateSubstitutions(std::vector<Kernel::Substitution> &substMap,
                              const std::unordered_map<unsigned int, unsigned int> &varMap,
-                             const std::vector<Kernel::Clause *> premises,
+                             const std::vector<Kernel::Clause *> &premises,
                              const SubstApplicator &recordedSubst);
 
   template <typename T>
