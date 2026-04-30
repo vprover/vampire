@@ -590,28 +590,12 @@ static void trivial(std::ostream &out, SortMap &conclSorts, Clause *concl)
   outputConclusion(out, conclSorts, concl->asClause());
 }
 
-static void resolution(std::ostream &out, SortMap &conclSorts, Clause *concl)
+static void resolution(std::ostream &out, SortMap &conclSorts, Clause *concl, const InferenceRecorder::InferenceInformation* info)
 {
   auto [left, right] = getParents<2>(concl);
-  const auto &br = env.proofExtra.get<Inferences::BinaryResolutionExtra>(concl);
 
-  auto uwa = AbstractingUnifier::empty(AbstractionOracle(env.options->unificationWithAbstraction()));
-  Literal *selectedLeft = br.selectedLiteral.selectedLiteral;
-  Literal *selectedRight = br.otherLiteral;
-  for(unsigned i = 0; i < selectedLeft->arity(); i++)
-    ALWAYS(uwa.unifyOnce((*selectedLeft)[i], 0, (*selectedRight)[i], 1))
-  ASS_NEQ(selectedLeft->polarity(), selectedRight->polarity())
-  RobSubstitution &subst = uwa.subs();
-
-  for (unsigned i = 0; i < left->length(); i++)
-    if ((*left)[i] != selectedLeft)
-      subst.apply((*left)[i], 0);
-  for (unsigned i = 0; i < right->length(); i++)
-    if ((*right)[i] != selectedRight)
-      subst.apply((*right)[i], 1);
-
-  outputPremise(out, conclSorts, left->asClause(), DoRobSubst<0>(subst));
-  outputPremise(out, conclSorts, right->asClause(), DoRobSubst<1>(subst));
+  outputPremise(out, conclSorts, left->asClause(), DoSubst(info->substitutionForBanksSub[0]));
+  outputPremise(out, conclSorts, right->asClause(), DoSubst(info->substitutionForBanksSub[1]));
   outputConclusion(out, conclSorts, concl->asClause());
 }
 

@@ -593,7 +593,7 @@ void collectUsedSymbols(Literal* literal, std::set<Signature::Symbol*> &vars, Sy
 
 void collectUsedSymbols(Clause *clause, std::set<Signature::Symbol*> &vars, SymbolType type)
 {
-  for(auto lit : clause->getLiteralIterator()){
+  for(auto lit : clause->iterLits()){
     collectUsedSymbols(lit, vars, type);
   }
 }

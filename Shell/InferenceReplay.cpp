@@ -104,9 +104,6 @@ Clause *InferenceReplayer::runGenerating(GeneratingInferenceEngine *rule,
   while(res.clauses.hasNext()){
     //Iterate through generation of all clauses
     res.clauses.next();
-    if(InferenceRecorder::instance()->hasRecordedInference()){
-      break;
-    }
   }
   removeAllActiveClauses();
 
