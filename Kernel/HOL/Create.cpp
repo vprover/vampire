@@ -97,6 +97,18 @@ TermList HOL::create::imp() {
   return TermList(Term::createConstant(impProxy));
 }
 
+TermList HOL::create::iff() {
+  static const auto iffProxy = env.signature->getBinaryProxy("vIFF");
+
+  return TermList(Term::createConstant(iffProxy));
+}
+
+TermList HOL::create::xorP() {
+  static const auto xorProxy = env.signature->getBinaryProxy("vXOR");
+
+  return TermList(Term::createConstant(xorProxy));
+}
+
 TermList HOL::create::equality(TermList sort) {
   static const auto eqProxy = env.signature->getEqualityProxy();
 

@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - name: Checkout Tree
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         submodules: true
     - name: Check Copyright Headers
@@ -22,7 +22,7 @@ jobs:
         echo "z3_hash=$(git rev-parse HEAD:z3)" >> $GITHUB_OUTPUT
     - name: Restore Z3 build cache
       id: cache-z3
-      uses: actions/cache@v4
+      uses: actions/cache@v5
       with:
         path: z3/build
         key: z3-build-${{ steps.z3hash.outputs.z3_hash }}

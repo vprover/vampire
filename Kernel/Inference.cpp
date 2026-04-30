@@ -630,6 +630,8 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "forward subsumption resolution";
   case InferenceRule::BACKWARD_SUBSUMPTION_RESOLUTION:
     return "backward subsumption resolution";
+  case InferenceRule::SUBSUMPTION_EQUALITY_RESOLUTION:
+    return "subsumption equality resolution";
   case InferenceRule::SUPERPOSITION:
     return "superposition";
   case InferenceRule::FUNCTION_DEFINITION_REWRITING:
@@ -903,15 +905,23 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "positive extensionality";
   case InferenceRule::INJECTIVITY:
     return "injectivity";
-  case InferenceRule::HOL_NOT_ELIMINATION:
+  case InferenceRule::NOT_PROXY_CLAUSIFICATION:
     return "not proxy clausification";
-  case InferenceRule::BINARY_CONN_ELIMINATION:
-    return "binary proxy clausification";
-  case InferenceRule::VSIGMA_ELIMINATION:
-    return "sigma clausification";
-  case InferenceRule::VPI_ELIMINATION:
-    return "pi clausification";
-  case InferenceRule::HOL_EQUALITY_ELIMINATION:
+  case InferenceRule::AND_PROXY_CLAUSIFICATION:
+    return "and proxy clausification";
+  case InferenceRule::OR_PROXY_CLAUSIFICATION:
+    return "or proxy clausification";
+  case InferenceRule::IMP_PROXY_CLAUSIFICATION:
+    return "imp proxy clausification";
+  case InferenceRule::IFF_PROXY_CLAUSIFICATION:
+    return "iff proxy clausification";
+  case InferenceRule::XOR_PROXY_CLAUSIFICATION:
+    return "xor proxy clausification";
+  case InferenceRule::SIGMA_PROXY_CLAUSIFICATION:
+    return "sigma proxy clausification";
+  case InferenceRule::PI_PROXY_CLAUSIFICATION:
+    return "pi proxy clausification";
+  case InferenceRule::EQUALITY_PROXY_CLAUSIFICATION:
     return "equality proxy clausification";
   case InferenceRule::BOOL_SIMP:
     return "boolean simplification";
@@ -921,8 +931,14 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "beta-eta normalization";
   case InferenceRule::EQ_TO_DISEQ:
     return "bool equality to disequality";
+  case InferenceRule::HEURISTIC_INSTANTIATION:
+    return "heuristic instantiation";
   case InferenceRule::PRIMITIVE_INSTANTIATION:
     return "primitive instantiation";
+  case InferenceRule::IMITATION:
+    return "imitation";
+  case InferenceRule::PROJECTION:
+    return "projection";
   case InferenceRule::LEIBNIZ_ELIMINATION:
     return "leibniz equality elimination";
   case InferenceRule::HILBERTS_CHOICE_INSTANCE:

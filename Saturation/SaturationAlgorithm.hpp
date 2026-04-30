@@ -61,6 +61,7 @@ public:
   static bool couldEqualityArise(const Problem& prb, const Options& opt) {
     // TODO: similar cases of "we might need equational reasoning later" might be relevant to theory reasoning too
     return prb.hasEquality() || (prb.hasFOOL() && opt.FOOLParamodulation()) ||
+      (prb.isHigherOrder() && (opt.cases() || opt.casesSimp())) ||
       (opt.questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
   }
   static bool doesAlascaTakeOver(const Problem& prb, const Options& opt) {

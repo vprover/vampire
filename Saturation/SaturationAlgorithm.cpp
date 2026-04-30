@@ -76,12 +76,20 @@
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
 #include "Inferences/ForwardSubsumptionDemodulation.hpp"
 #include "Inferences/GlobalSubsumption.hpp"
+
+#include "Inferences/HOL/ArgCong.hpp"
 #include "Inferences/HOL/BetaEtaSimplify.hpp"
 #include "Inferences/HOL/BoolEqToDiseq.hpp"
+#include "Inferences/HOL/BoolSimp.hpp"
+#include "Inferences/HOL/CasesSimp.hpp"
+#include "Inferences/HOL/CNFOnTheFly.hpp"
 #include "Inferences/HOL/FlexFlexSimplify.hpp"
+#include "Inferences/HOL/ImitateProject.hpp"
+#include "Inferences/HOL/LeibnizEqualityElimination.hpp"
 #include "Inferences/HOL/NegativeExtensionality.hpp"
 #include "Inferences/HOL/PositiveExtensionality.hpp"
 #include "Inferences/HOL/PrimitiveInstantiation.hpp"
+
 #include "Inferences/InnerRewriting.hpp"
 #include "Inferences/TermAlgebraReasoning.hpp"
 #include "Inferences/Superposition.hpp"
@@ -92,12 +100,10 @@
 #include "Inferences/Induction.hpp"
 #include "Inferences/ArithmeticSubtermGeneralization.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
-#include "Inferences/BoolSimp.hpp"
-#include "Inferences/CasesSimp.hpp"
 #include "Inferences/Cases.hpp"
-#include "Inferences/CNFOnTheFly.hpp"
 #include "Inferences/DefinitionIntroduction.hpp"
 #include "Inferences/LfpRule.hpp"
+#include "Inferences/SubsumptionEqualityResolution.hpp"
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
@@ -149,8 +155,17 @@ std::unique_ptr<PassiveClauseContainer> makeLevel0(bool isOutermost, const Optio
   return std::make_unique<AWPassiveClauseContainer>(isOutermost, opt, name + "AWQ");
 }
 
-std::unique_ptr<PassiveClauseContainer> makeLevel1(bool isOutermost, const Options& opt, std::string name)
+std::unique_ptr<PassiveClauseContainer> makeLevel1(bool isOutermost, bool forHO, const Options& opt, std::string name)
 {
+  if (opt.hoSplitQueues() && forHO) {
+    vector<std::unique_ptr<PassiveClauseContainer>> queues;
+    auto cutoffs = opt.hoSplitQueueCutoffs();
+    for (const auto& co : cutoffs) {
+      auto queueName = name + "HoSQ" + Int::toString(co) + ":";
+      queues.push_back(makeLevel0(false, opt, queueName));
+    }
+    return std::make_unique<HoFeaturesMultiSplitPassiveClauseContainer>(isOutermost, opt, name + "HoFSQ", std::move(queues));
+  }
   if (opt.useTheorySplitQueues()) {
     std::vector<std::unique_ptr<PassiveClauseContainer>> queues;
     auto cutoffs = opt.theorySplitQueueCutoffs();
@@ -165,51 +180,51 @@ std::unique_ptr<PassiveClauseContainer> makeLevel1(bool isOutermost, const Optio
   }
 }
 
-std::unique_ptr<PassiveClauseContainer> makeLevel2(bool isOutermost, const Options& opt, std::string name)
+std::unique_ptr<PassiveClauseContainer> makeLevel2(bool isOutermost, bool forHO, const Options& opt, std::string name)
 {
   if (opt.useAvatarSplitQueues()) {
     std::vector<std::unique_ptr<PassiveClauseContainer>> queues;
     auto cutoffs = opt.avatarSplitQueueCutoffs();
     for (unsigned i = 0; i < cutoffs.size(); i++) {
       auto queueName = name + "AvSQ" + Int::toString(cutoffs[i]) + ":";
-      queues.push_back(makeLevel1(false, opt, queueName));
+      queues.push_back(makeLevel1(false, forHO, opt, queueName));
     }
     return std::make_unique<AvatarMultiSplitPassiveClauseContainer>(isOutermost, opt, name + "AvSQ", std::move(queues));
   }
   else {
-    return makeLevel1(isOutermost, opt, name);
+    return makeLevel1(isOutermost, forHO, opt, name);
   }
 }
 
-std::unique_ptr<PassiveClauseContainer> makeLevel3(bool isOutermost, const Options& opt, std::string name)
+std::unique_ptr<PassiveClauseContainer> makeLevel3(bool isOutermost, bool forHO, const Options& opt, std::string name)
 {
   if (opt.useSineLevelSplitQueues()) {
     std::vector<std::unique_ptr<PassiveClauseContainer>> queues;
     auto cutoffs = opt.sineLevelSplitQueueCutoffs();
     for (unsigned i = 0; i < cutoffs.size(); i++) {
       auto queueName = name + "SLSQ" + Int::toString(cutoffs[i]) + ":";
-      queues.push_back(makeLevel2(false, opt, queueName));
+      queues.push_back(makeLevel2(false, forHO, opt, queueName));
     }
     return std::make_unique<SineLevelMultiSplitPassiveClauseContainer>(isOutermost, opt, name + "SLSQ", std::move(queues));
   }
   else {
-    return makeLevel2(isOutermost, opt, name);
+    return makeLevel2(isOutermost, forHO, opt, name);
   }
 }
 
-std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, const Options& opt, std::string name)
+std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, bool forHO, const Options& opt, std::string name)
 {
   if (opt.usePositiveLiteralSplitQueues()) {
     std::vector<std::unique_ptr<PassiveClauseContainer>> queues;
     std::vector<float> cutoffs = opt.positiveLiteralSplitQueueCutoffs();
     for (unsigned i = 0; i < cutoffs.size(); i++) {
       auto queueName = name + "PLSQ" + Int::toString(cutoffs[i]) + ":";
-      queues.push_back(makeLevel3(false, opt, queueName));
+      queues.push_back(makeLevel3(false, forHO, opt, queueName));
     }
     return std::make_unique<PositiveLiteralMultiSplitPassiveClauseContainer>(isOutermost, opt, name + "PLSQ", std::move(queues));
   }
   else {
-    return makeLevel3(isOutermost, opt, name);
+    return makeLevel3(isOutermost, forHO, opt, name);
   }
 }
 
@@ -248,7 +263,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     _passive = std::make_unique<ManCSPassiveClauseContainer>(true, opt);
   }
   else {
-    _passive = makeLevel4(true, opt, "");
+    _passive = makeLevel4(true, prb.isHigherOrder(), opt, "");
   }
   _active = new ActiveClauseContainer();
 
@@ -1408,7 +1423,11 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   CompositeGIE *gie = new CompositeGIE();
 
   if(opt.functionDefinitionIntroduction()) {
-    gie->addFront(new DefinitionIntroduction(*res));
+    if (prb.isHigherOrder()) {
+      gie->addFront(new DefinitionIntroduction<true>(*res));
+    } else {
+      gie->addFront(new DefinitionIntroduction<false>(*res));
+    }
   }
 
   //TODO here induction is last, is that right?
@@ -1438,15 +1457,21 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   if (prb.isHigherOrder()){
+    gie->addFront(new ArgCong(*res));
     gie->addFront(new NegativeExtensionality(*res));
-    gie->addFront(new PositiveExtensionality(*res));
-    if(prb.hasFOOL()/*  && opt.booleanEqTrick() */){
+    if (opt.positiveExtensionality()) {
+      gie->addFront(new PositiveExtensionality(*res));
+    }
+    if(prb.hasFOOL() && opt.booleanEqTrick()){
       gie->addFront(new BoolEqToDiseq(*res));
     }
-  }
-
-  if (opt.choiceReasoning()) {
-    gie->addFront(new Choice());
+    if(true/* !opt.higherOrderUnifDepth() && !opt.applicativeUnify() */){
+      // TODO(HOL): only add when we are not carrying out higher-order unification
+      gie->addFront(new ImitateProject(*res));
+    }
+    if (opt.choiceReasoning()) {
+      gie->addFront(new Choice());
+    }
   }
 
   gie->addFront(new Factoring(*res));
@@ -1470,8 +1495,9 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new Cases(*res));
   }
 
-  if (/* opt.complexBooleanReasoning() &&  */prb.hasBoolVar() && prb.isHigherOrder()) {
+  if (opt.complexBooleanReasoning() && prb.hasBoolVar() && prb.isHigherOrder()) {
     gie->addFront(new PrimitiveInstantiation(*res)); //TODO only add in some cases
+    gie->addFront(new LeibnizEqualityElimination(*res));
   }
 
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) && prb.isHigherOrder()){
@@ -1713,6 +1739,10 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
     res->addFront(new InnerRewriting(salg));
   }
 
+  if (mayHaveEquality && opt.subsumptionEqualityResolution()) {
+    res->addFront(new SubsumptionEqualityResolution());
+  }
+
   if (mayHaveEquality && opt.equationalTautologyRemoval()) {
     res->addFront(new EquationalTautologyRemoval());
   }
@@ -1728,7 +1758,7 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
       break;
   }
 
-  if (opt.choiceReasoning()) {
+  if (prb.isHigherOrder() && opt.choiceReasoning()) {
     res->addFront(new ChoiceDefinitionISE());
   }
 
@@ -1736,9 +1766,9 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
     if(env.options->cnfOnTheFly() == Options::CNFOnTheFly::EAGER){
       resMany.addFront(std::make_unique<EagerClausificationISE>());
     }
-    // if(env.options->iffXorRewriter()){
-    //   res->addFront(new IFFXORRewriterISE());
-    // }
+    if(env.options->iffXorRewriter()){
+      res->addFront(new IFFXORRewriterISE());
+    }
     res->addFront(new BoolSimp());
   }
 
@@ -1800,7 +1830,7 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
     res->addFront(new TrivialInequalitiesRemovalISE());
   }
   res->addFront(new TautologyDeletionISE());
-  if (opt.newTautologyDel()) {
+  if (prb.isHigherOrder() && opt.newTautologyDel()) {
     res->addFront(new TautologyDeletionISE2());
   }
   res->addFront(new DuplicateLiteralRemovalISE());

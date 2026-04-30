@@ -130,8 +130,6 @@ enum class Proxy {
   AND,
   OR,
   IMP,
-  FORALL,
-  EXISTS,
   IFF,
   XOR,
   NOT,

@@ -881,6 +881,10 @@ std::string Literal::toString(bool reverseEquality) const
       res = "(" + res + ")";
     }
 
+#ifdef VPRINT_EQ_SORT
+    res += " {" + eqArgSort().toString() + "}";
+#endif // VAMPIRE_PRINT_EQ_SORT
+
     return res;
   }
 
@@ -1606,9 +1610,12 @@ Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, GetA
   auto allocLiteral = [&]() {
     Literal* l = new(arity) Literal(predicate, arity, polarity);
     for (auto i : range(0, arity)) {
-      *l->nthArgument(i) = normArg(i);
+      auto a = normArg(i);
+      *l->nthArgument(i) = a;
+      ASS(a.isVar() || predicate != 0 || a.term()->isSpecial() || SortHelper::getResultSort(a.term()) != AtomicSort::superSort())
     }
     if (twoVarEqSort) {
+      ASS(*twoVarEqSort != AtomicSort::superSort())
       l->markTwoVarEquality();
       l->setTwoVarEqSort(*twoVarEqSort);
     }

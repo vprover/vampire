@@ -225,6 +225,7 @@ enum class InferenceRule : unsigned char {
   FORWARD_SUBSUMPTION_RESOLUTION,
   /** backward subsumption resolution simplification rule */
   BACKWARD_SUBSUMPTION_RESOLUTION,
+  SUBSUMPTION_EQUALITY_RESOLUTION,
   /** forward demodulation inference */
   FORWARD_DEMODULATION,
   /** backward demodulation inference */
@@ -341,17 +342,24 @@ enum class InferenceRule : unsigned char {
   ARG_CONG,
   INJECTIVITY,
   PRIMITIVE_INSTANTIATION,
+  IMITATION,
+  PROJECTION,
   LEIBNIZ_ELIMINATION,
   HILBERTS_CHOICE_INSTANCE, // not considered a theory axiom at the moment (it's a HOL creature)
   NEGATIVE_EXTENSIONALITY,
   POSITIVE_EXTENSIONALITY,
   EQ_TO_DISEQ,
+  HEURISTIC_INSTANTIATION,
   /** The next five rules can be either simplifying or generating */
-  HOL_NOT_ELIMINATION,
-  BINARY_CONN_ELIMINATION,
-  VSIGMA_ELIMINATION,
-  VPI_ELIMINATION,
-  HOL_EQUALITY_ELIMINATION,
+  NOT_PROXY_CLAUSIFICATION,
+  AND_PROXY_CLAUSIFICATION,
+  OR_PROXY_CLAUSIFICATION,
+  IMP_PROXY_CLAUSIFICATION,
+  IFF_PROXY_CLAUSIFICATION,
+  XOR_PROXY_CLAUSIFICATION,
+  SIGMA_PROXY_CLAUSIFICATION,
+  PI_PROXY_CLAUSIFICATION,
+  EQUALITY_PROXY_CLAUSIFICATION,
 
   /** the last generating inference marker --
         inferences between GENERIC_GENERATING_INFERENCE and GENERIC_GENERATING_INFERENCE_LAST will be automatically understood generating

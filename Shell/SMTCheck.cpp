@@ -590,10 +590,28 @@ static void trivial(std::ostream &out, SortMap &conclSorts, Clause *concl)
   outputConclusion(out, conclSorts, concl->asClause());
 }
 
-static void resolution(std::ostream &out, SortMap &conclSorts, Clause *concl, const Shell::InferenceRecorder::InferenceInformation* info)
+static void resolution(std::ostream &out, SortMap &conclSorts, Clause *concl)
 {
-  outputPremise(out, conclSorts, info->premises[0]->asClause(), DoSubst(info->substitutionForBanksSub[0]));
-  outputPremise(out, conclSorts, info->premises[1]->asClause(), DoSubst(info->substitutionForBanksSub[1]));
+  auto [left, right] = getParents<2>(concl);
+  const auto &br = env.proofExtra.get<Inferences::BinaryResolutionExtra>(concl);
+
+  auto uwa = AbstractingUnifier::empty(AbstractionOracle(env.options->unificationWithAbstraction()));
+  Literal *selectedLeft = br.selectedLiteral.selectedLiteral;
+  Literal *selectedRight = br.otherLiteral;
+  for(unsigned i = 0; i < selectedLeft->arity(); i++)
+    ALWAYS(uwa.unifyOnce((*selectedLeft)[i], 0, (*selectedRight)[i], 1))
+  ASS_NEQ(selectedLeft->polarity(), selectedRight->polarity())
+  RobSubstitution &subst = uwa.subs();
+
+  for (unsigned i = 0; i < left->length(); i++)
+    if ((*left)[i] != selectedLeft)
+      subst.apply((*left)[i], 0);
+  for (unsigned i = 0; i < right->length(); i++)
+    if ((*right)[i] != selectedRight)
+      subst.apply((*right)[i], 1);
+
+  outputPremise(out, conclSorts, left->asClause(), DoRobSubst<0>(subst));
+  outputPremise(out, conclSorts, right->asClause(), DoRobSubst<1>(subst));
   outputConclusion(out, conclSorts, concl->asClause());
 }
 
@@ -701,7 +719,7 @@ static void alascaBinInf(std::ostream &out, SortMap &conclSorts, Clause *concl) 
   const auto &fm = env.proofExtra.get<ALASCA::BinInfExtra<Rule>>(concl);
 
   auto uwa = AbstractingUnifier::empty(AbstractionOracle(env.options->unificationWithAbstraction()));
-  ALWAYS(uwa.unify(fm.left.key(), 0, fm.right.key(), 1))
+  ALWAYS(uwa.unifyOnce(fm.left.key(), 0, fm.right.key(), 1))
   RobSubstitution &subst = uwa.subs();
 
   subst.apply(fm.left.literal(), 0);
