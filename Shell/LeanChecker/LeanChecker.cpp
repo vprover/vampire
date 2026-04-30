@@ -408,14 +408,14 @@ void LeanChecker::outputInferenceStep(std::ostream &out, Kernel::Unit *u){
   SortHelper::collectVariableSorts(u, conclSorts);
 
   const InferenceRecorder::InferenceInformation* info = nullptr;
-  const InferenceRecorder::RectifyInferenceExtra* rectifyInfo = nullptr;
+  const InferenceRecorder::RectifyInferenceInformation* rectifyInfo = nullptr;
   if(inferenceNeedsReplayInformation(u->inference().rule())){
     if(u->isClause()){
       InferenceRecorder::instance()->setCurrentGoal(u->asClause());
     }
     _replayer.replayInference(u);
     if(u->inference().rule() == InferenceRule::RECTIFY){
-      rectifyInfo = static_cast<const InferenceRecorder::RectifyInferenceExtra*>(InferenceRecorder::instance()->getGenericLastInferenceInformation());
+      rectifyInfo = static_cast<const InferenceRecorder::RectifyInferenceInformation*>(InferenceRecorder::instance()->getGenericLastInferenceInformation());
     } else {
       info = InferenceRecorder::instance()->getLastRecordedInferenceInformation();
     }
@@ -1273,7 +1273,7 @@ void LeanChecker::skolemize(std::ostream &out, SortMap &conclSorts, Unit *concl)
   out << " := by symm_match using " << stepIdent << concl->number() << "'\n";
 }
 
-void LeanChecker::rectify(std::ostream &out, SortMap &conclSorts, Unit *concl, const InferenceRecorder::RectifyInferenceExtra* rectifyInfo)
+void LeanChecker::rectify(std::ostream &out, SortMap &conclSorts, Unit *concl, const InferenceRecorder::RectifyInferenceInformation* rectifyInfo)
 {
   outputPremiseAndConclusion(out, concl);
   out << " := by\n";

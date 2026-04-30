@@ -147,7 +147,7 @@ private:
   void avatarSplitClause(std::ostream &out, SortMap &conclSorts, Unit *concl);
   void            normalForm(std::ostream &out, SortMap &conclSorts, Unit *concl);
   void             skolemize(std::ostream &out, SortMap &conclSorts, Unit *concl);
-  void             rectify(std::ostream &out, SortMap &conclSorts, Unit *concl,const InferenceRecorder::RectifyInferenceExtra* rectifyInfo);
+  void             rectify(std::ostream &out, SortMap &conclSorts, Unit *concl,const InferenceRecorder::RectifyInferenceInformation* rectifyInfo);
   void definitionFoldingTwee(std::ostream &out, SortMap &conclSorts, Clause *concl);
   void definitionFoldingPred(std::ostream &out, SortMap &conclSorts, Unit *concl);
   void definitionUnfolding(std::ostream &out, SortMap &conclSorts, Unit *concl);

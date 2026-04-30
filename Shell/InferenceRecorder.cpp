@@ -33,53 +33,13 @@ InferenceRecorder *InferenceRecorder::instance()
   return &inst;
 }
 
-void InferenceRecorder::populateSubstitutions(std::vector<Substitution> &substMap,
-                                              const std::unordered_map<unsigned int, unsigned int> &varMap,
-                                              const std::vector<Clause *> &premises,
-                                              const RobSubstitution &recordedSubst)
+Substitution InferenceRecorder::buildVariableSubstitutionFromMap(const std::unordered_map<unsigned int, unsigned int> &varMap)
 {
-
-  return populateSubstitutionsGen<RobSubstitution>(
-      substMap,
-      varMap,
-      premises,
-      recordedSubst,
-      [](const RobSubstitution &subst, const TermList &term, size_t bank) {
-        return subst.apply(term, bank);
-      });
-}
-
-void InferenceRecorder::populateSubstitutions(std::vector<Substitution> &substMap,
-                                              const std::unordered_map<unsigned int, unsigned int> &varMap,
-                                              const std::vector<Clause *> &premises,
-                                              const ResultSubstitutionSP &recordedSubst)
-{
-
-  return populateSubstitutionsGen<ResultSubstitutionSP>(
-      substMap,
-      varMap,
-      premises,
-      recordedSubst,
-      [](ResultSubstitutionSP subst, const TermList &term, size_t bank) {
-        return subst->applyTo(term, bank);
-      });
-}
-
-TermList applyFunc(const SubstApplicator &subst, const TermList &term, size_t bank)
-{
-  return SubstHelper::apply(term, subst);
-}
-void InferenceRecorder::populateSubstitutions(std::vector<Substitution> &substMap,
-                                              const std::unordered_map<unsigned int, unsigned int> &varMap,
-                                              const std::vector<Clause *> &premises,
-                                              const SubstApplicator &recordedSubst)
-{
-  return populateSubstitutionsGen<SubstApplicator>(
-      substMap,
-      varMap,
-      premises,
-      recordedSubst,
-      &applyFunc);
+  Substitution variableSubst;
+  for (const auto &[var, mappedVar] : varMap) {
+    variableSubst.bind(var, TermList::var(mappedVar));
+  }
+  return variableSubst;
 }
 
 void InferenceRecorder::resolution(unsigned int id, Clause *conclusion, const std::vector<Clause *> &premises, const ResultSubstitutionSP &recordedSubst)
@@ -208,7 +168,6 @@ void InferenceRecorder::rectify(Formula* f, Formula* newFormula, VSList* vs, Sub
   if(vs == nullptr){
     return;
   }
-  std::unique_ptr<RectifyInferenceExtra> extra = std::make_unique<RectifyInferenceExtra>();
   Kernel::Substitution substVariablesInQuantifier;
   auto quantifierIter = f->vars()->iter();
   std::vector<unsigned> originalVars;
@@ -238,7 +197,7 @@ void InferenceRecorder::rectify(Formula* f, Formula* newFormula, VSList* vs, Sub
   }
   //std::cout << f->toString() << std::endl;
   //std::cout << "Combined" << combinedSubst << std::endl;
-  static_cast<RectifyInferenceExtra*>(_currentRecording.get())->
+  static_cast<RectifyInferenceInformation*>(_currentRecording.get())->
     renamings.emplace_back(newFormula, std::make_pair(f, combinedSubst));
 }
 
