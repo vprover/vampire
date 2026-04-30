@@ -44,7 +44,6 @@ class TermSubstitutionTree
   using BindingMap                  = typename SubstitutionTree::BindingMap;
   using Node                        = typename SubstitutionTree::Node;
   using FastInstancesIterator       = typename SubstitutionTree::FastInstancesIterator;
-  using FastGeneralizationsIterator = typename SubstitutionTree::FastGeneralizationsIterator;
   using LDIterator                  = typename SubstitutionTree::LDIterator;
   using Leaf                        = typename SubstitutionTree::Leaf;
   using LeafIterator                = typename SubstitutionTree::LeafIterator;
@@ -67,9 +66,6 @@ private:
   { return iterTraits(_inner.template iterator<Iterator>(query, retrieveSubstitutions, /* reversed */  false, std::move(args)...))
       ; }
 
-  bool generalizationExists(TermList t) override
-  { return t.isVar() ? false : _inner.generalizationExists(TypedTermList(t.term())); }
-
   void output(std::ostream& out) const final { out << *this; }
 
   friend std::ostream& operator<<(std::ostream& out, TermSubstitutionTree<LeafData_> const& self)
@@ -80,10 +76,6 @@ private:
 public:
   VirtualIterator<Indexing::QueryRes<ResultSubstitutionSP, LeafData_>> getInstances(TypedTermList t, bool retrieveSubstitutions) final
   { return pvi(getResultIterator<FastInstancesIterator>(t, retrieveSubstitutions)); }
-
-  VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions) final
-  { return pvi(getResultIterator<FastGeneralizationsIterator>(t, retrieveSubstitutions)); }
-
 
   VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) final
   { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::UnificationWithAbstraction<AbstractingUnifier, RetrievalAlgorithms::DefaultVarBanks>>>(t, /* retrieveSubstitutions */ true, AbstractingUnifier::empty(AbstractionOracle(uwa)), AbstractionOracle(uwa), fixedPointIteration)); }

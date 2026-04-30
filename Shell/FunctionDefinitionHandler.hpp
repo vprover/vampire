@@ -97,7 +97,7 @@ public:
   auto getGeneralizations(TypedTermList t)
   {
     if (_is.isEmpty()) {
-      return VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>>::getEmpty();
+      return VirtualIterator<QueryRes<const GenSubstitution<TermLiteralClause>*, TermLiteralClause>>::getEmpty();
     }
     return _is->getGeneralizations(t, true);
   }

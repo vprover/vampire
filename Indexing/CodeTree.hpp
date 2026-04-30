@@ -382,7 +382,7 @@ public:
     }
 
   protected:
-    void init(CodeTree* tree_, CodeOp* entry_, LitInfo* linfos_ = 0,
+    void init(CodeTree const* tree_, CodeOp* entry_, LitInfo* linfos_ = 0,
       size_t linfoCnt_ = 0, Stack<CodeOp*>* firstsInBlocks_ = 0);
 
     bool backtrack();
@@ -416,7 +416,7 @@ public:
     Stack<std::conditional_t<removing,BTPointRemoving,BTPoint>> btStack;
 
     CodeOp* entry;
-    CodeTree* tree;
+    CodeTree const* tree;
 
     /**
      * Array of alternative LitInfo objects

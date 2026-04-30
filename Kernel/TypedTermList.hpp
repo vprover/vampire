@@ -16,6 +16,7 @@
 #include "Term.hpp"
 #include "SortHelper.hpp"
 #include "Lib/Reflection.hpp"
+#include "Lib/Set.hpp"
 
 namespace Kernel {
 using SortId = Kernel::TermList;
@@ -39,6 +40,22 @@ public:
     ASS(!sort.isEmpty())
   }
   TypedTermList(Term* t) : TypedTermList(TermList(t), SortHelper::getResultSort(t)) {}
+
+  VirtualIterator<TermList> varIter() const {
+    if (isVar()) {
+      return pvi(concatIters(getSingletonIterator(untyped()), Term::getVariableIterator(_sort)));
+    }
+    return Term::getVariableIterator(untyped());
+  }
+
+  bool containsAllVariablesOf(TypedTermList other) const {
+    Set<TermList> vars;
+    vars.insertFromIterator(varIter());
+
+    return iterTraits(other.varIter()).all([&vars](TermList v) {
+      return vars.contains(v);
+    });
+  }
 
   friend std::ostream& operator<<(std::ostream& out, TypedTermList const& self) 
   { return out << (TermList const&) self << ": " << self._sort; }
