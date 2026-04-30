@@ -166,6 +166,7 @@ std::unique_ptr<PassiveClauseContainer> makeLevel1(bool isOutermost, bool forHO,
   if (opt.useTheorySplitQueues()) {
     std::vector<std::unique_ptr<PassiveClauseContainer>> queues;
     auto cutoffs = opt.theorySplitQueueCutoffs();
+    queues.reserve(cutoffs.size());
     for (unsigned i = 0; i < cutoffs.size(); i++) {
       auto queueName = name + "ThSQ" + Int::toString(cutoffs[i]) + ":";
       queues.push_back(makeLevel0(false, opt, queueName));
@@ -182,6 +183,7 @@ std::unique_ptr<PassiveClauseContainer> makeLevel2(bool isOutermost, bool forHO,
   if (opt.useAvatarSplitQueues()) {
     std::vector<std::unique_ptr<PassiveClauseContainer>> queues;
     auto cutoffs = opt.avatarSplitQueueCutoffs();
+    queues.reserve(cutoffs.size());
     for (unsigned i = 0; i < cutoffs.size(); i++) {
       auto queueName = name + "AvSQ" + Int::toString(cutoffs[i]) + ":";
       queues.push_back(makeLevel1(false, forHO, opt, queueName));
@@ -198,6 +200,7 @@ std::unique_ptr<PassiveClauseContainer> makeLevel3(bool isOutermost, bool forHO,
   if (opt.useSineLevelSplitQueues()) {
     std::vector<std::unique_ptr<PassiveClauseContainer>> queues;
     auto cutoffs = opt.sineLevelSplitQueueCutoffs();
+    queues.reserve(cutoffs.size());
     for (unsigned i = 0; i < cutoffs.size(); i++) {
       auto queueName = name + "SLSQ" + Int::toString(cutoffs[i]) + ":";
       queues.push_back(makeLevel2(false, forHO, opt, queueName));
@@ -214,6 +217,7 @@ std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, bool forHO,
   if (opt.usePositiveLiteralSplitQueues()) {
     std::vector<std::unique_ptr<PassiveClauseContainer>> queues;
     std::vector<float> cutoffs = opt.positiveLiteralSplitQueueCutoffs();
+    queues.reserve(cutoffs.size());
     for (unsigned i = 0; i < cutoffs.size(); i++) {
       auto queueName = name + "PLSQ" + Int::toString(cutoffs[i]) + ":";
       queues.push_back(makeLevel3(false, forHO, opt, queueName));

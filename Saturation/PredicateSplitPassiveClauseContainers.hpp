@@ -43,8 +43,12 @@ private:
   std::vector<unsigned> _invertedRatios;
   std::vector<unsigned> _balances;
   bool _layeredArrangement; // if set to true, queues are arranged as multi-split-queues. if false, queues use a tammet-style arrangement.
+  DHMap<unsigned, unsigned> _bestQueueCache;
 
   unsigned bestQueue(float featureValue) const;
+  unsigned getCachedBestQueueIndexOrCompute(Clause* cl) const;
+  unsigned computeAndCacheBestQueueIndex(Clause* cl);
+  void eraseCachedBestQueueIndex(Clause* cl);
 
   virtual float evaluateFeature(Clause* cl) const = 0;
   virtual float evaluateFeatureEstimate(unsigned numPositiveLiterals, const Inference& inf) const = 0;

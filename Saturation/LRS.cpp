@@ -128,11 +128,11 @@ long long LRS::estimatedReachableCount()
 
     // note that result is -1 here already
 
-    if(timeLeft > 0) {
+    if(timeLeft > 0 && timeSpent > 0) {
       result = correction_coef*(processed*timeLeft)/timeSpent;
     } // otherwise, it's somehow past the deadline, or no timilimit set
 
-    if (instrsLeft > 0) {
+    if (instrsLeft > 0 && instrsBurned > 0) {
       long long res_by_instr = correction_coef*(processed*instrsLeft)/instrsBurned;
       if (result > 0) {
         result = std::min(result,res_by_instr);

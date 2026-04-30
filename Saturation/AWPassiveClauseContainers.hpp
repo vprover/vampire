@@ -207,6 +207,8 @@ private:
   ClauseQueue::Iterator _simulationCurrWeightIt;
   Clause* _simulationCurrAgeCl;
   Clause* _simulationCurrWeightCl;
+  unsigned _simulationRemaining;
+  void syncSimulationCursors();
 
   unsigned _ageSelectionMaxAge;
   unsigned _ageSelectionMaxWeight;
