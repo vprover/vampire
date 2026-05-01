@@ -317,6 +317,7 @@ public:
    * @brief Construct a new TPTP parser.
    *
    * @param in is the stream with the raw input to read
+   * @param path is the path to the file backing the stream (or e.g. '<stdin>', '<string>')
    * @param unitBuffer is FIFO of units to which newly parsed Clauses/Formulas
    *   will be added (via pushBack);
    *
@@ -324,10 +325,9 @@ public:
    *  (use this default behaviour if you do not want to collect formulas
    *   from multiple parser calls)
    */
-  TPTP(std::istream &in, UnitList::FIFO unitBuffer = UnitList::FIFO());
+  TPTP(std::istream &in, std::filesystem::path path, UnitList::FIFO unitBuffer = UnitList::FIFO());
   ~TPTP();
   void parse();
-  static UnitList* parse(std::istream& str);
   static Unit* parseFormulaFromString(const std::string& str);
   /** Return the list of parsed units */
   UnitList* units() const { return _units.list(); }
