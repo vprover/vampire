@@ -189,10 +189,10 @@ static bool hasEnding (std::string const &fullString, std::string const &ending)
   }
 }
 
-void UIHelper::tryParseTPTP(istream& input)
+void UIHelper::tryParseTPTP(istream& input, std::filesystem::path path)
 {
   LoadedPiece& curPiece = _loadedPieces.top();
-  Parse::TPTP parser(input,curPiece._units);
+  Parse::TPTP parser(input,path,curPiece._units);
   try {
     parser.parse();
     curPiece._units = parser.unitBuffer();
@@ -238,9 +238,11 @@ void UIHelper::parseSingleLine(const std::string& lineToParse, Options::InputSyn
   std::istringstream stream(lineToParse);
   try {
     switch (inputSyntax) {
-      case Options::InputSyntax::TPTP:
-        tryParseTPTP(stream);
+      case Options::InputSyntax::TPTP: {
+        std::filesystem::path path(lineToParse);
+        tryParseTPTP(stream, path);
         break;
+      }
       case Options::InputSyntax::SMTLIB2:
         tryParseSMTLIB2(stream);
         break;
@@ -270,7 +272,7 @@ void resetParsing(ParsingRelatedException& exception, istream& input, std::strin
   input.seekg(0);
 }
 
-void UIHelper::parseStream(std::istream& input, Options::InputSyntax inputSyntax, bool verbose, bool preferSMTonAuto)
+void UIHelper::parseStream(std::istream& input, std::filesystem::path path, Options::InputSyntax inputSyntax, bool verbose, bool preferSMTonAuto)
 {
   switch (inputSyntax) {
   case Options::InputSyntax::AUTO:
@@ -283,7 +285,7 @@ void UIHelper::parseStream(std::istream& input, Options::InputSyntax inputSyntax
         tryParseSMTLIB2(input);
       } catch (ParsingRelatedException& exception) {
         resetParsing(exception,input,"TPTP");
-        tryParseTPTP(input);
+        tryParseTPTP(input, path);
       }
     } else {
       if (verbose) {
@@ -291,7 +293,7 @@ void UIHelper::parseStream(std::istream& input, Options::InputSyntax inputSyntax
         std::cout << "Running in auto input_syntax mode. Trying TPTP\n";
       }
       try {
-        tryParseTPTP(input);
+        tryParseTPTP(input, path);
       } catch (ParsingRelatedException& exception) {
         resetParsing(exception,input,"SMTLIB2");
         tryParseSMTLIB2(input);
@@ -299,7 +301,7 @@ void UIHelper::parseStream(std::istream& input, Options::InputSyntax inputSyntax
     }
     break;
   case Options::InputSyntax::TPTP:
-    tryParseTPTP(input);
+    tryParseTPTP(input, path);
     break;
   case Options::InputSyntax::SMTLIB2:
     tryParseSMTLIB2(input);
@@ -320,7 +322,7 @@ void UIHelper::parseStandardInput(Options::InputSyntax inputSyntax)
     inputSyntax = Options::InputSyntax::TPTP;
   }
   try {
-    parseStream(cin,inputSyntax,false,false);
+    parseStream(cin, "<stdin>", inputSyntax,false,false);
   } catch (ParsingRelatedException& exception) {
     _loadedPieces.pop();
     throw;
@@ -342,7 +344,7 @@ void UIHelper::parseFile(const std::string& inputFile, Options::InputSyntax inpu
   }
 
   try {
-    parseStream(input,inputSyntax,verbose,hasEnding(inputFile,"smt") || hasEnding(inputFile,"smt2"));
+    parseStream(input,inputFile,inputSyntax,verbose,hasEnding(inputFile,"smt") || hasEnding(inputFile,"smt2"));
   } catch (ParsingRelatedException& exception) {
     _loadedPieces.pop();
     throw;
