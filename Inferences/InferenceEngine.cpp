@@ -131,7 +131,7 @@ CompositeSGI::~CompositeSGI() {
 
 Clause* ChoiceDefinitionISE::simplify(Clause* c)
 {
-  if (c->length() != 2) {
+  if (c->length() != 2 || !c->noSplits()) {
     return c;
   }
 
@@ -154,9 +154,9 @@ Clause* ChoiceDefinitionISE::simplify(Clause* c)
   return c;
 }
 
-bool ChoiceDefinitionISE::isPositive(Literal* lit) {
-  TermList lhs = *lit->nthArgument(0);
-  TermList rhs = *lit->nthArgument(1);
+bool ChoiceDefinitionISE::isPositive(Literal* lit)
+{
+  auto [lhs, rhs] = lit->eqArgs();
   if(!HOL::isBool(lhs) && !HOL::isBool(rhs)){ return false; }
   if(HOL::isBool(lhs) && HOL::isBool(rhs)){ return false; }
   if(HOL::isBool(lhs)){ 
@@ -166,10 +166,27 @@ bool ChoiceDefinitionISE::isPositive(Literal* lit) {
     return lit->polarity() == HOL::isTrue(rhs);
   }
   return false;
-};
+}
+
+bool ChoiceDefinitionISE::isNegative(Literal* lit)
+{
+  auto [lhs, rhs] = lit->eqArgs();
+  if(!HOL::isBool(lhs) && !HOL::isBool(rhs)){ return false; }
+  if(HOL::isBool(lhs) && HOL::isBool(rhs)){ return false; }
+  
+  if(HOL::isBool(lhs)){ 
+    return lit->polarity() != HOL::isTrue(lhs);
+  }
+  if(HOL::isBool(rhs)){ 
+    return lit->polarity() != HOL::isTrue(rhs);
+  }
+  return false;
+}
 
 bool ChoiceDefinitionISE::is_of_form_xy(Literal* lit, TermList& x){
   TermList term = HOL::isBool(*lit->nthArgument(0)) ? *lit->nthArgument(1) : *lit->nthArgument(0);
+
+  if(term.isLambdaTerm()){ return false; }
   
   TermStack args;
   x = HOL::getHeadAndArgs(term, args);
@@ -178,6 +195,8 @@ bool ChoiceDefinitionISE::is_of_form_xy(Literal* lit, TermList& x){
 
 bool ChoiceDefinitionISE::is_of_form_xfx(Literal* lit, TermList x, TermList& f){
   TermList term = HOL::isBool(*lit->nthArgument(0)) ? *lit->nthArgument(1) : *lit->nthArgument(0);
+
+  if(term.isLambdaTerm()){ return false; }
   
   TermStack args;
   auto head = HOL::getHeadAndArgs(term, args);
