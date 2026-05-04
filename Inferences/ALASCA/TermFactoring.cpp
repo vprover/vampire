@@ -82,7 +82,8 @@ Option<Clause*> TermFactoring::applyRule(
   if (uwa.isNone())  
     return nothing();
 
-  auto cnst = uwa->computeConstraintLiterals();
+  auto [cnst, defs] = uwa->computeConstraintLiterals();
+  ASS(defs->isEmpty());
   auto sigma = [&](auto t) { return uwa->subs().apply(t, /* var bank */ 0); };
 
   // auto pivot_sigma = sigma(sel1.literal());

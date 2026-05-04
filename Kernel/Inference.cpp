@@ -401,7 +401,7 @@ Inference::Inference(const GeneratingInferenceMany& gi) {
   UnitList* it= gi.premises;
   while(it) {
     Unit* prem = it->head();
-    ASS(prem->isClause());
+    // ASS(prem->isClause());
     _age = std::max(_age,prem->inference().age());
     it=it->tail();
   }

@@ -1074,7 +1074,7 @@ Option<TermUnificationResultSpec> runRobUnify(bool diffNamespaces, Options::Unif
     return some(TermUnificationResultSpec { 
      .querySigma  = au->subs().apply(a, n1), 
      .resultSigma = au->subs().apply(b, n2), 
-     .constraints = *au->computeConstraintLiterals(),
+     .constraints = *au->computeConstraintLiterals().first,
     });
 
   } else {

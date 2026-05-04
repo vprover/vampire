@@ -196,17 +196,24 @@ public:
   }
 
   UnificationConstraintStack& constr() { return *_constr; }
-  Recycled<Stack<Literal*>> computeConstraintLiterals() {
+  std::pair<Recycled<Stack<Literal*>>, Recycled<Stack<Unit*>>> computeConstraintLiterals() {
     if (!_holHandler) {
-      return _constr->literals(*_subs);
+      return { _constr->literals(*_subs), Recycled<Stack<Unit*>>() };
     }
     RStack<Literal*> res;
+    RStack<Unit*> res2;
     // TODO for some reason the stack is empty if I use it as an rvalue in the loop
     auto lits = _constr->literals(*_subs);
     for (const auto& lit : *lits) {
-      res->push(_holHandler->introduceDefinition(lit).first);
+      if (lit->isFlexFlexConstraint()) {
+        res->push(lit);
+        continue;
+      }
+      auto [cons, def] = _holHandler->introduceDefinition(lit);
+      res->push(cons);
+      res2->push(def);
     }
-    return res;
+    return { std::move(res), std::move(res2) };
   }
   unsigned maxNumberOfConstraints() { return _constr->maxNumberOfConstraints(); }
 

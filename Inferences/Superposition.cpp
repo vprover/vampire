@@ -290,9 +290,13 @@ Clause* Superposition::performSuperposition(
   // we already know the age here so we can immediately conclude whether the clause fulfils the age limit
   // since we have not built the clause yet we compute lower bounds on the weight of the clause after each step and recheck whether the weight-limit can still be fulfilled.
 
+  auto [cons, defs] = unifier->computeConstraintLiterals();
   unsigned numPositiveLiteralsLowerBound = std::max(eqClause->numPositiveLiterals()-1, rwClause->numPositiveLiterals()); // lower bound on number of positive literals, don't know at this point whether duplicate positive literals will occur
   //TODO update inference rule name AYB
-  Inference inf(GeneratingInference2(unifier->usesUwa() ? InferenceRule::CONSTRAINED_SUPERPOSITION : InferenceRule::SUPERPOSITION, rwClause, eqClause));
+  auto prems = UnitList::fromIterator(defs->iter());
+  UnitList::push(eqClause, prems);
+  UnitList::push(rwClause, prems);
+  Inference inf(GeneratingInferenceMany(unifier->usesUwa() ? InferenceRule::CONSTRAINED_SUPERPOSITION : InferenceRule::SUPERPOSITION, prems));
   Inference::Destroyer inf_destroyer(inf);
 
   auto passiveClauseContainer = _salg.getPassiveClauseContainer();
@@ -373,7 +377,7 @@ Clause* Superposition::performSuperposition(
 #endif
 
   Recycled<Stack<Literal*>> res;
-  res->reserve(rwLength + eqLength - 1 + unifier->maxNumberOfConstraints());
+  res->reserve(rwLength + eqLength - 1 + cons->size());
 
   static bool afterCheck = _salg.getOptions().literalMaximalityAftercheck() && _salg.getLiteralSelector().isBGComplete();
 
@@ -458,7 +462,7 @@ Clause* Superposition::performSuperposition(
       eqClause, rwClause, rwTerm, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.ptr());
   }
 
-  res->loadFromIterator(unifier->computeConstraintLiterals()->iter());
+  res->loadFromIterator(cons->iter());
 
   if(hasAgeLimitStrike && passiveClauseContainer->exceedsWeightLimit(weight, numPositiveLiteralsLowerBound, inf)) {
     RSTAT_CTR_INC("superpositions skipped for weight limit after the clause was built");

@@ -68,7 +68,8 @@ Option<Clause*> InequalityFactoring::applyRule(
   CHECK_CONDITION("⟨σ,Cnst⟩ = uwa(s1,s2)",
                   uwa.isSome())
 
-  auto cnst  = uwa->computeConstraintLiterals();
+  auto [cnst, defs] = uwa->computeConstraintLiterals();
+  ASS(defs->isEmpty());
   auto sigma = [&](auto x){ return uwa->subs().apply(x, /* varbank */ 0); };
   auto j = l1.numeral().unwrap<Numeral>();
   auto k = l2.numeral().unwrap<Numeral>();

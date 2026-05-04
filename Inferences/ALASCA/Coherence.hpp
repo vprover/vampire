@@ -193,7 +193,8 @@ public:
     auto add   = [](auto... as){ return ASig::add(as...); };
     auto floor = [](auto... as){ return ASig::floor(as...); };
     auto mul = [](auto n, auto t){ return ASig::linMul(n, t); };
-    auto cnstr = uwa.computeConstraintLiterals();
+    auto [cnstr, defs] = uwa.computeConstraintLiterals();
+    ASS(defs->isEmpty());
     auto js_u = add(mul(j, lhs.s()), lhs.u());
     auto js_uσ = sigmaL(js_u);
 

@@ -140,7 +140,7 @@ struct IntegerFourierMotzkinConf
             prem0.contextLiterals().map([&](auto l) { return sigma0(l); }),
             prem1.contextLiterals().map([&](auto l) { return sigma1(l); }),
             std::move(c2_s),
-            arrayIter(uwa.computeConstraintLiterals()),
+            arrayIter(uwa.computeConstraintLiterals().first),
             iterItems(
               NumTraits::greater(true, sum(t0_strengthened, t1_strengthened), NumTraits::constantTl(0)),
               NumTraits::eq(true, sum(s_s, t0_strengthened), NumTraits::constantTl(0))

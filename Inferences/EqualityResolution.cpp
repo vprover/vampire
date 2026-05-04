@@ -72,7 +72,7 @@ struct EqualityResolution::ResultFn
       return 0; 
     }
 
-    auto constraints = absUnif->computeConstraintLiterals();
+    auto [constraints, defs] = absUnif->computeConstraintLiterals();
 
     RStack<Literal*> resLits;
 
@@ -103,7 +103,9 @@ struct EqualityResolution::ResultFn
 
     resLits->loadFromIterator(constraints->iterFifo());
 
-    Clause *cl = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION, _cl));
+    auto prems = UnitList::fromIterator(defs->iter());
+    UnitList::push(_cl, prems);
+    Clause *cl = Clause::fromStack(*resLits, GeneratingInferenceMany(InferenceRule::EQUALITY_RESOLUTION, prems));
     if(env.options->proofExtra() == Options::ProofExtra::FULL)
       env.proofExtra.insert(cl, new EqualityResolutionExtra(lit));
     return cl;

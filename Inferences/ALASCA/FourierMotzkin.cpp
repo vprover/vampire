@@ -30,7 +30,8 @@ Option<Clause*> FourierMotzkinConf::applyRule_(
 #define __ALASCA_Inferences_FM_DERIVE_EQUALITIES 1
 
   TIME_TRACE("fourier motzkin")
-  auto cnst = uwa.computeConstraintLiterals();
+  auto [cnst, defs] = uwa.computeConstraintLiterals();
+  ASS(defs->isEmpty());
   auto sigma = [&](auto t, auto bank) { return uwa.subs().apply(t,bank); };
 
 

@@ -85,9 +85,12 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
       std::max(queryLit->isPositive() ?  queryCl->numPositiveLiterals()-1 :  queryCl->numPositiveLiterals(),
               resultLit->isPositive() ? resultCl->numPositiveLiterals()-1 : resultCl->numPositiveLiterals());
 
-  auto constraints = computeConstraints();
+  auto [constraints, defs] = computeConstraints();
   auto nConstraints = constraints->size();
-  Inference inf(GeneratingInference2(nConstraints == 0 ?  InferenceRule::RESOLUTION : InferenceRule::CONSTRAINED_RESOLUTION, queryCl, resultCl));
+  auto prems = UnitList::fromIterator(defs->iter());
+  UnitList::push(resultCl, prems);
+  UnitList::push(queryCl, prems);
+  Inference inf(GeneratingInferenceMany(nConstraints == 0 ?  InferenceRule::RESOLUTION : InferenceRule::CONSTRAINED_RESOLUTION, prems));
   Inference::Destroyer inf_destroyer(inf); // will call destroy on inf when coming out of scope unless disabled
 
   bool andThatsIt = false;

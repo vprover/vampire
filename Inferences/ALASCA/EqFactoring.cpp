@@ -83,7 +83,8 @@ Option<Clause*> EqFactoring::applyRule(SelectedEquality const& l1, SelectedEqual
 
   auto srt = uwa.subs().apply(srt1, 0);
   auto sigma = [&](auto t) { return uwa.subs().apply(t, /* varbank */ 0); };
-  auto cnst = uwa.computeConstraintLiterals();
+  auto [cnst, defs] = uwa.computeConstraintLiterals();
+  ASS(defs->isEmpty());
 
   Stack<Literal*> concl(l1.clause()->size() // <- (C \/ s1 ≈ t1 \/ t1  ̸≈ t2)σ
                       + cnst->size()); // <- Cnstσ
