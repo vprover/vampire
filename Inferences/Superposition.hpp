@@ -48,6 +48,7 @@ private:
   SaturationAlgorithm& _salg;
   std::shared_ptr<SuperpositionSubtermIndex> _subtermIndex;
   std::shared_ptr<SuperpositionLHSIndex> _lhsIndex;
+  HOLUnificationHandler* _holHandler;
 };
 
 using SuperpositionExtra = TwoLiteralRewriteInferenceExtra;

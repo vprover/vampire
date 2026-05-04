@@ -53,7 +53,7 @@ public:
   // TODO use TypedTermList here too
   bool generalizationExists(TermList t) final ;
   // TODO: get rid of NOT_IMPLEMENTED
-  VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(TypedTermList t, Options::UnificationWithAbstraction, bool fixedPointIteration) override { NOT_IMPLEMENTED; }
+  VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(TypedTermList t, Options::UnificationWithAbstraction, bool fixedPointIteration, HOLUnificationHandler* holHandler) override { NOT_IMPLEMENTED; }
 
   void output(std::ostream& out) const final { out << _ct; }
 

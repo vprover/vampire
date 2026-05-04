@@ -592,7 +592,7 @@ static void resolution(std::ostream &out, SortMap &conclSorts, Clause *concl)
   auto [left, right] = getParents<2>(concl);
   const auto &br = env.proofExtra.get<Inferences::BinaryResolutionExtra>(concl);
 
-  auto uwa = AbstractingUnifier::empty(AbstractionOracle(env.options->unificationWithAbstraction()));
+  auto uwa = AbstractingUnifier::empty(AbstractionOracle(env.options->unificationWithAbstraction()), nullptr);
   Literal *selectedLeft = br.selectedLiteral.selectedLiteral;
   Literal *selectedRight = br.otherLiteral;
   for(unsigned i = 0; i < selectedLeft->arity(); i++)
@@ -794,7 +794,7 @@ static void alascaBinInf(std::ostream &out, SortMap &conclSorts, Clause *concl) 
   auto [left, right] = getParents<2>(concl);
   const auto &fm = env.proofExtra.get<ALASCA::BinInfExtra<Rule>>(concl);
 
-  auto uwa = AbstractingUnifier::empty(AbstractionOracle(env.options->unificationWithAbstraction()));
+  auto uwa = AbstractingUnifier::empty(AbstractionOracle(env.options->unificationWithAbstraction()), nullptr);
   ALWAYS(uwa.unifyOnce(fm.left.key(), 0, fm.right.key(), 1))
   RobSubstitution &subst = uwa.subs();
 

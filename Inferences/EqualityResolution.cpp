@@ -45,8 +45,8 @@ struct EqualityResolution::IsNegativeEqualityFn
 
 struct EqualityResolution::ResultFn
 {
-  ResultFn(Clause* cl, bool afterCheck = false, const Ordering* ord = nullptr)
-      : _afterCheck(afterCheck), _ord(ord), _cl(cl), _cLen(cl->length()) {}
+  ResultFn(Clause* cl, bool afterCheck = false, const Ordering* ord = nullptr, HOLUnificationHandler* holHandler = nullptr)
+      : _afterCheck(afterCheck), _ord(ord), _cl(cl), _cLen(cl->length()), _holHandler(holHandler) {}
 
   Clause* operator() (Literal* lit)
   {
@@ -66,7 +66,7 @@ struct EqualityResolution::ResultFn
       abstractionOracle = AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF);
     }
 
-    auto absUnif = AbstractingUnifier::unify(arg0, 0, arg1, 0, abstractionOracle, env.options->unificationWithAbstractionFixedPointIteration());
+    auto absUnif = AbstractingUnifier::unify(arg0, 0, arg1, 0, abstractionOracle, env.options->unificationWithAbstractionFixedPointIteration(), _holHandler);
 
     if(absUnif.isNone()){ 
       return 0; 
@@ -113,6 +113,7 @@ private:
   const Ordering* _ord;
   Clause* _cl;
   unsigned _cLen;
+  HOLUnificationHandler* _holHandler;
 };
 
 ClauseIterator EqualityResolution::generateClauses(Clause* premise)
@@ -128,7 +129,7 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
 
   auto it3 = getMappingIterator(it2,ResultFn(premise,
       _salg.getOptions().literalMaximalityAftercheck() && _salg.getLiteralSelector().isBGComplete(),
-      &_salg.getOrdering()));
+      &_salg.getOrdering(), _salg.holUnificationHandler()));
 
   auto it4 = getFilteredIterator(it3,NonzeroFn());
 

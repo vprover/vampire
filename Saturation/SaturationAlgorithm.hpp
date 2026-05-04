@@ -137,6 +137,7 @@ public:
 
   Splitter* getSplitter() { return _splitter; }
   FunctionDefinitionHandler& getFunctionDefinitionHandler() const { return _fnDefHandler; }
+  HOLUnificationHandler* holUnificationHandler() const { return _holUnificationHandler; }
 
   // set a "soft" time limit to be checked periodically
   // separate to, and not as carefully checked as, Lib::Timer

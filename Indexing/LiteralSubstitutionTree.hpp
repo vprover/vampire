@@ -104,9 +104,9 @@ private:
 
 public:
 
-  VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) final
+  VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration, HOLUnificationHandler* holHandler) final
   { 
-    auto unif = Lib::make_shared(AbstractingUnifier::empty(AbstractionOracle(uwa)));
+    auto unif = Lib::make_shared(AbstractingUnifier::empty(AbstractionOracle(uwa), holHandler));
     return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::UnificationWithAbstraction<AbstractingUnifier*, RetrievalAlgorithms::DefaultVarBanks>>>(lit, complementary, /* retrieveSubstitutions */ true,  unif.get(), AbstractionOracle(uwa), fixedPointIteration)
         .store(std::move(unif))); }
 

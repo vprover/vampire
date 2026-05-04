@@ -31,12 +31,11 @@ public:
 
   Clause* handleClause(Clause* cl);
   ClauseStack iterate(bool& terminated);
+  std::pair<Literal*,Unit*> introduceDefinition(Literal* lit);
 
   static bool isHolUnifiable(TermList t);
 
 private:
-  std::pair<Literal*,Unit*> introduceDefinition(Literal* lit);
-
   struct UCDef {
     unsigned fun;
     FormulaUnit* def;

@@ -17,6 +17,7 @@
 #define __AbstractionOracle__
 
 #include "Forwards.hpp"
+#include "Saturation/HOLUnificationHandler.hpp"
 #include "Term.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Option.hpp"
@@ -151,11 +152,12 @@ class AbstractingUnifier
   Recycled<UnificationConstraintStack> _constr;
   Option<BacktrackData&> _bd;
   AbstractionOracle _uwa;
+  Saturation::HOLUnificationHandler* _holHandler = nullptr;
 
   friend class RobSubstitution;
-  AbstractingUnifier(AbstractionOracle uwa) : _subs(), _constr(), _bd(), _uwa(uwa) { }
+  AbstractingUnifier(AbstractionOracle uwa, Saturation::HOLUnificationHandler* holHandler) : _subs(), _constr(), _bd(), _uwa(uwa), _holHandler(holHandler) { }
 public:
-  AbstractingUnifier() :  AbstractingUnifier(AbstractionOracle()) {}
+  AbstractingUnifier() :  AbstractingUnifier(AbstractionOracle(), nullptr) {}
   void setAo(AbstractionOracle ao)
   { _uwa = std::move(ao); }
 
@@ -170,7 +172,7 @@ public:
   }
   bool isEmpty() const { return _subs->isEmpty() && _constr->isEmpty() && (_bd.isNone() || _bd->isEmpty()); }
 
-  static AbstractingUnifier empty(AbstractionOracle uwa) { return AbstractingUnifier(uwa); }
+  static AbstractingUnifier empty(AbstractionOracle uwa, Saturation::HOLUnificationHandler* holUnifier) { return AbstractingUnifier(uwa, holUnifier); }
 
   bool isRecording() { return _subs->bdIsRecording(); }
 
@@ -186,15 +188,26 @@ public:
     return this->unifyOnce(t1, bank1, t2, bank2) && (!fixedPointIteration || this->fixedPointIteration());
   }
 
-  static Option<AbstractingUnifier> unify(TermList t1, int bank1, TermList t2, int bank2, AbstractionOracle uwa, bool fixedPointIteration)
+  static Option<AbstractingUnifier> unify(TermList t1, int bank1, TermList t2, int bank2, AbstractionOracle uwa, bool fixedPointIteration, Saturation::HOLUnificationHandler* holUnifier = nullptr)
   {
-    auto au = AbstractingUnifier::empty(uwa);
+    auto au = AbstractingUnifier::empty(uwa, holUnifier);
     if (au.unify(t1, bank1, t2, bank2, fixedPointIteration)) return some(std::move(au));
     else return {};
   }
 
   UnificationConstraintStack& constr() { return *_constr; }
-  Recycled<Stack<Literal*>> computeConstraintLiterals() { return _constr->literals(*_subs); }
+  Recycled<Stack<Literal*>> computeConstraintLiterals() {
+    if (!_holHandler) {
+      return _constr->literals(*_subs);
+    }
+    RStack<Literal*> res;
+    // TODO for some reason the stack is empty if I use it as an rvalue in the loop
+    auto lits = _constr->literals(*_subs);
+    for (const auto& lit : *lits) {
+      res->push(_holHandler->introduceDefinition(lit).first);
+    }
+    return res;
+  }
   unsigned maxNumberOfConstraints() { return _constr->maxNumberOfConstraints(); }
 
   RobSubstitution      & subs()       { return *_subs; }

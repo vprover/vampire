@@ -57,7 +57,8 @@ Superposition::Superposition(SaturationAlgorithm& salg)
   : _higherOrder(env.higherOrder()),
     _salg(salg),
     _subtermIndex(salg.getGeneratingIndex<SuperpositionSubtermIndex>()),
-    _lhsIndex(salg.getGeneratingIndex<SuperpositionLHSIndex>())
+    _lhsIndex(salg.getGeneratingIndex<SuperpositionLHSIndex>()),
+    _holHandler(salg.holUnificationHandler())
 {}
 
 ClauseIterator Superposition::generateClauses(Clause* premise)
@@ -74,7 +75,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
     // Get clauses with a literal whose complement unifies with the rewritable subterm,
     // returns a pair with the original pair and the unification result (includes substitution)
     .flatMap([this](pair<Literal*, TypedTermList> arg)
-      { return pushPairIntoRightIterator(arg, _lhsIndex->getUwa(arg.second, _salg.getOptions().unificationWithAbstraction(), _salg.getOptions().unificationWithAbstractionFixedPointIteration())); })
+      { return pushPairIntoRightIterator(arg, _lhsIndex->getUwa(arg.second, _salg.getOptions().unificationWithAbstraction(), _salg.getOptions().unificationWithAbstractionFixedPointIteration(), _holHandler)); })
 
     // Perform forward superposition
     .map([this,premise](pair<pair<Literal*, TypedTermList>, QueryRes<AbstractingUnifier*, TermLiteralClause>> arg)
@@ -92,7 +93,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
     // Get clauses that unify with these LHSs, modulo abstraction
     .flatMap([this] (pair<Literal*, TermList> arg)
       { return pushPairIntoRightIterator(arg,
-          _subtermIndex->getUwa(TypedTermList(arg.second, SortHelper::getEqualityArgumentSort(arg.first)), _salg.getOptions().unificationWithAbstraction(), _salg.getOptions().unificationWithAbstractionFixedPointIteration())); })
+          _subtermIndex->getUwa(TypedTermList(arg.second, SortHelper::getEqualityArgumentSort(arg.first)), _salg.getOptions().unificationWithAbstraction(), _salg.getOptions().unificationWithAbstractionFixedPointIteration(), _holHandler)); })
 
     // Perform backward superposition
     .map([this,premise](pair<pair<Literal*, TermList>, QueryRes<AbstractingUnifier*, TermLiteralClause>> arg) -> Clause*

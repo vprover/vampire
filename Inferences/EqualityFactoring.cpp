@@ -83,11 +83,11 @@ private:
 
 struct EqualityFactoring::ResultFn
 {
-  ResultFn(EqualityFactoring& self, Clause* cl, bool afterCheck, Ordering& ordering, bool fixedPointIteration)
-      : _self(self), _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _ordering(ordering), _fixedPointIteration(fixedPointIteration) {}
+  ResultFn(EqualityFactoring& self, Clause* cl, bool afterCheck, Ordering& ordering, bool fixedPointIteration, HOLUnificationHandler* holHandler)
+      : _self(self), _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _ordering(ordering), _fixedPointIteration(fixedPointIteration), _holHandler(holHandler) {}
   Clause* operator() (pair<pair<Literal*,TermList>,pair<Literal*,TermList> > arg)
   {
-    auto absUnif = AbstractingUnifier::empty(_self._abstractionOracle);
+    auto absUnif = AbstractingUnifier::empty(_self._abstractionOracle, _holHandler);
     Literal* sLit=arg.first.first;  // selected literal ( = factored-out literal )
     Literal* fLit=arg.second.first; // fairly boring side literal
     ASS(sLit->isEquality());
@@ -168,6 +168,7 @@ private:
   bool _afterCheck;
   const Ordering& _ordering;
   bool _fixedPointIteration;
+  HOLUnificationHandler* _holHandler;
 };
 
 ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
@@ -187,7 +188,7 @@ ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
 
   auto it5 = getMappingIterator(std::move(it4),ResultFn(*this, premise,
       _salg.getOptions().literalMaximalityAftercheck() && _salg.getLiteralSelector().isBGComplete(),
-      _salg.getOrdering(), _uwaFixedPointIteration));
+      _salg.getOrdering(), _uwaFixedPointIteration, _salg.holUnificationHandler()));
 
   auto it6 = getFilteredIterator(std::move(it5),NonzeroFn());
 

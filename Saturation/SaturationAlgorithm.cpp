@@ -1149,17 +1149,17 @@ void SaturationAlgorithm::activate(Clause* cl)
     _selector->select(cl);
   }
 
-  if (_holUnificationHandler) {
-    auto newCl = _holUnificationHandler->handleClause(cl);
-    if (newCl != cl) {
-      if (_opt.showAll()) {
-        std::cout << "[SA] constrained clause " << cl->toString() << " replaced with " << newCl->toString() << std::endl;
-      }
-      addNewClause(newCl);
-      removeSelected(cl);
-      return;
-    }
-  }
+  // if (_holUnificationHandler) {
+  //   auto newCl = _holUnificationHandler->handleClause(cl);
+  //   if (newCl != cl) {
+  //     if (_opt.showAll()) {
+  //       std::cout << "[SA] constrained clause " << cl->toString() << " replaced with " << newCl->toString() << std::endl;
+  //     }
+  //     addNewClause(newCl);
+  //     removeSelected(cl);
+  //     return;
+  //   }
+  // }
 
   ASS_EQ(cl->store(), Clause::SELECTED);
   cl->setStore(Clause::ACTIVE);
@@ -1488,7 +1488,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     if(prb.hasFOOL() && opt.booleanEqTrick()){
       gie->addFront(new BoolEqToDiseq(*res));
     }
-    if(true/* !opt.higherOrderUnifDepth() && !opt.applicativeUnify() */){
+    if(!opt.holUnifier()/* !opt.higherOrderUnifDepth() && !opt.applicativeUnify() */){
       // TODO(HOL): only add when we are not carrying out higher-order unification
       gie->addFront(new ImitateProject(*res));
     }

@@ -1454,6 +1454,7 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
 {
   TIME_TRACE("unification with abstraction")
   ASS_NEQ(_uwa._mode, Shell::Options::UnificationWithAbstraction::OFF)
+  ASS(_uwa._mode != Shell::Options::UnificationWithAbstraction::HOL || _holHandler);
   DEBUG_UNIFY(0, *this, ".unify(", t1, ",", t2, ")")
   progress = false;
 

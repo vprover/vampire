@@ -340,7 +340,7 @@ namespace Kernel {
   public:
 
     AbstractingUnifier createAbstractingUnifier() const
-    { return AbstractingUnifier::empty(AbstractionOracle(uwaMode())); }
+    { return AbstractingUnifier::empty(AbstractionOracle(uwaMode()), nullptr); }
 
     Option<AbstractingUnifier> unify(TermList lhs, TermList rhs) const
     { return AbstractingUnifier::unify(lhs, 0, rhs, 0, uwaMode(), uwaFixedPointIteration); }

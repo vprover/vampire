@@ -242,7 +242,7 @@ ClauseIterator BinaryResolution::generateClauses(Clause* premise)
             // find query results for literal `lit`
             return iterTraits(_index->getUwa(lit, /* complementary */ true,
                                              _salg.getOptions().unificationWithAbstraction(),
-                                             _salg.getOptions().unificationWithAbstractionFixedPointIteration()))
+                                             _salg.getOptions().unificationWithAbstractionFixedPointIteration(), _salg.holUnificationHandler()))
                      .map([this,lit,premise](auto qr) { return BinaryResolution::generateClause(premise, lit, qr.data->clause, qr.data->literal, *qr.unifier, _salg.getOptions(), _salg); });
         })
         .filter(NonzeroFn())

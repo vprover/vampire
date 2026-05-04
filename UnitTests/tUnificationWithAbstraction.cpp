@@ -88,7 +88,7 @@ using LiteralUnificationResultSpec = UnificationResultSpec<Literal*>;
 void checkLiteralMatches(LiteralSubstitutionTree<LiteralClause>& index, Options::UnificationWithAbstraction uwa, bool fixedPointIteration, Literal* lit, Stack<LiteralUnificationResultSpec> expected)
 {
   Stack<LiteralUnificationResultSpec> is;
-  for (auto qr : iterTraits(index.getUwa(lit, /* complementary */ false, uwa, fixedPointIteration)) ) {
+  for (auto qr : iterTraits(index.getUwa(lit, /* complementary */ false, uwa, fixedPointIteration, nullptr)) ) {
 
     is.push(LiteralUnificationResultSpec {
         .querySigma = qr.unifier->subs().apply(lit, /* result */ subsTreeQueryBank(0)),
@@ -149,7 +149,7 @@ void checkTermMatchesWithUnifFun(TermSubstitutionTree<TermWithoutValue>& index, 
 void checkTermMatches(TermSubstitutionTree<TermWithoutValue>& index, Options::UnificationWithAbstraction uwa, bool fixedPointIteration, TypedTermList term, Stack<TermUnificationResultSpec> expected)
 {
   return checkTermMatchesWithUnifFun(index, term, expected, 
-      [&](auto& idx, auto t) { return idx.getUwa(term, uwa, fixedPointIteration); });
+      [&](auto& idx, auto t) { return idx.getUwa(term, uwa, fixedPointIteration, nullptr); });
 }
 
 
@@ -2439,7 +2439,7 @@ TEST_FUN(bug05) {
   for (auto mode : {
       Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR
       }) {
-    auto uwa = AbstractingUnifier::empty(AbstractionOracle(mode));
+    auto uwa = AbstractingUnifier::empty(AbstractionOracle(mode), nullptr);
     NUMBER_SUGAR(Rat)
     DECL_DEFAULT_VARS
     DECL_DEFAULT_SORT_VARS
@@ -2455,7 +2455,7 @@ TEST_FUN(bug06) {
   for (auto mode : {
       Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR
       }) {
-    auto uwa = AbstractingUnifier::empty(AbstractionOracle(mode));
+    auto uwa = AbstractingUnifier::empty(AbstractionOracle(mode), nullptr);
     NUMBER_SUGAR(Rat)
     DECL_DEFAULT_VARS
     DECL_DEFAULT_SORT_VARS

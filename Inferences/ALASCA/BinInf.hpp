@@ -80,7 +80,7 @@ public:
     // TODO get rid of stack
     Stack<Clause*> out;
 
-    auto sigma = AbstractingUnifier::empty(AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF));
+    auto sigma = AbstractingUnifier::empty(AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF), nullptr);
     ASS(sigma.isEmpty())
 
     using VarBanks  = Indexing::RetrievalAlgorithms::DefaultVarBanks;
@@ -175,7 +175,7 @@ public:
 
     // TODO get rid of stack
     Stack<Clause*> out;
-    auto sigma = AbstractingUnifier::empty(AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF));
+    auto sigma = AbstractingUnifier::empty(AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF), nullptr);
 
     for (auto const& prem0 : Premise0::iter(_shared, premise)) {
       DEBUG(0, "prem0: ", prem0)

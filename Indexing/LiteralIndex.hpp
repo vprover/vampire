@@ -36,8 +36,8 @@ public:
   VirtualIterator<QueryRes<ResultSubstitutionSP, LiteralClause>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
   { return _is->getUnifications(lit, complementary, retrieveSubstitutions); }
 
-  VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
-  { return _is->getUwa(lit, complementary, uwa, fixedPointIteration); }
+  VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration, HOLUnificationHandler* holHandler)
+  { return _is->getUwa(lit, complementary, uwa, fixedPointIteration, holHandler); }
 
   VirtualIterator<QueryRes<ResultSubstitutionSP, LiteralClause>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
   { return _is->getGeneralizations(lit, complementary, retrieveSubstitutions); }

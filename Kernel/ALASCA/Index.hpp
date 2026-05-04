@@ -71,7 +71,7 @@ public:
 #endif
         _index.insert(std::move(appl));
         DEBUG_CODE(
-        auto state = AbstractingUnifier::empty(AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF));
+        auto state = AbstractingUnifier::empty(AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF), nullptr);
         )
         ASS_REP(find<RetrievalAlgorithms::DefaultVarBanks>(&state, k).hasNext(), Output::cat("key: ", Output::ptr(k), "\nindex: ", Output::multiline(_index)))
       } else {
