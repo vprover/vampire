@@ -1537,7 +1537,7 @@ void Options::init()
     _inductionNonstandardBase = BoolOptionValue("induction_nonstandard_base","indnsb",false);
     _inductionNonstandardBase.description = "Use successor(0) and cons(x, nil) as base cases for natural numbers and lists";
     _inductionNonstandardBase.tag(OptionTag::INDUCTION);
-    _inductionNonstandardBase.onlyUsefulWith(And(Or(_induction.is(equal(Induction::STRUCTURAL)),_induction.is(equal(Induction::BOTH))),_inductionGroundOnly.is(equal(true))));
+    _inductionNonstandardBase.onlyUsefulWith(And(Or(_induction.is(equal(Induction::STRUCTURAL)),_induction.is(equal(Induction::BOTH))),_inductionGroundOnly.is(equal(false))));
     _lookup.insert(&_inductionNonstandardBase);
 
     _functionDefinitionRewriting = BoolOptionValue("function_definition_rewriting","fnrw",false);
