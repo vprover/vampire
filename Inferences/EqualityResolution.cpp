@@ -56,17 +56,16 @@ struct EqualityResolution::ResultFn
     static AbstractionOracle _abstractionOracle = AbstractionOracle::create();
     auto abstractionOracle = _abstractionOracle;
 
-    TermList arg0 = *lit->nthArgument(0);
-    TermList arg1 = *lit->nthArgument(1);
+    auto [lhs, rhs] = lit->eqArgs();
 
     // We only care about non-trivial constraints where the top-sybmol of the two literals are the same
     // and therefore a constraint can be created between arguments
-    if(arg0.isTerm() && arg1.isTerm() &&
-       arg0.term()->functor() != arg1.term()->functor()){
+    if(lhs.isTerm() && rhs.isTerm() &&
+       lhs.term()->functor() != rhs.term()->functor() && env.options->unificationWithAbstraction() != Shell::Options::UnificationWithAbstraction::HOL){
       abstractionOracle = AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF);
     }
 
-    auto absUnif = AbstractingUnifier::unify(arg0, 0, arg1, 0, abstractionOracle, env.options->unificationWithAbstractionFixedPointIteration(), _holHandler);
+    auto absUnif = AbstractingUnifier::unify(lhs, 0, rhs, 0, abstractionOracle, env.options->unificationWithAbstractionFixedPointIteration(), _holHandler);
 
     if(absUnif.isNone()){ 
       return 0; 
@@ -120,22 +119,12 @@ private:
 
 ClauseIterator EqualityResolution::generateClauses(Clause* premise)
 {
-  if(premise->isEmpty()) {
-    return ClauseIterator::getEmpty();
-  }
-  ASS(premise->numSelected()>0);
-
-  auto it1 = premise->getSelectedLiteralIterator();
-
-  auto it2 = getFilteredIterator(it1,IsNegativeEqualityFn());
-
-  auto it3 = getMappingIterator(it2,ResultFn(premise,
+  return pvi(premise->getSelectedLiteralIterator()
+    .filter(IsNegativeEqualityFn())
+    .map(ResultFn(premise,
       _salg.getOptions().literalMaximalityAftercheck() && _salg.getLiteralSelector().isBGComplete(),
-      &_salg.getOrdering(), _salg.holUnificationHandler()));
-
-  auto it4 = getFilteredIterator(it3,NonzeroFn());
-
-  return pvi( it4 );
+      &_salg.getOrdering(), _salg.holUnificationHandler()))
+    .filter(NonzeroFn()));
 }
 
 /**
