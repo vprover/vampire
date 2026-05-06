@@ -1577,12 +1577,15 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
       // TODO remove check for lambda term once HOL unification is properly done
       } else if(dt1.isTerm() && dt2.isTerm() && dt1.functor() == dt2.functor() && !dt1.term.isLambdaTerm()) {
 
-        for (auto p : dt1.termArgs().zip(dt2.termArgs())) {
-          pushTodo(p, TERM);
-        }
-
         if (s == TERM) {
+          for (auto p : dt1.termArgs().zip(dt2.termArgs())) {
+            pushTodo(p, TERM);
+          }
           for (auto p : dt1.typeArgs().zip(dt2.typeArgs())) {
+            pushTodo(p, SORT);
+          }
+        } else {
+          for (auto p : dt1.allArgs().zip(dt2.allArgs())) {
             pushTodo(p, SORT);
           }
         }
