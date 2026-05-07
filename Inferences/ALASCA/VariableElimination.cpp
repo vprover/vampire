@@ -114,7 +114,7 @@ SimplifyingGeneratingInference::ClauseGenerationResult VariableEliminationSGI::g
   if (auto iter = _inner.apply(premise)) {
     return ClauseGenerationResult {
       .clauses          = std::move(*iter),
-      .premiseRedundant = true,
+      .premiseRedundant = _simplify,
     };
   } else {
     return ClauseGenerationResult {

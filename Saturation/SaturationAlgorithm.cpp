@@ -1657,9 +1657,15 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     ise->addFront(new ALASCA::Normalization());
     // TODO check when the other one is better
     if (env.options->viras()) {
-      ise->addFrontMany(new ALASCA::VirasQuantifierEliminationISE(shared));
+      if (env.options->alascaVariableEliminationGenerating())
+        sgi->push(new ALASCA::VirasQuantifierEliminationSGI(shared, /* simplify */ false));
+      else
+        ise->addFrontMany(new ALASCA::VirasQuantifierEliminationISE(shared));
     } else {
-      ise->addFrontMany(new ALASCA::VariableEliminationISE(shared));
+      if (env.options->alascaVariableEliminationGenerating())
+        sgi->push(new ALASCA::VariableEliminationSGI(shared, /* simplify */ false));
+      else
+        ise->addFrontMany(new ALASCA::VariableEliminationISE(shared));
     }
     // TODO remove term distinction between term and subterm factoring (?)
     sgi->push(new ALASCA::TermFactoring(shared)); 

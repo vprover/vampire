@@ -53,11 +53,13 @@ class VirasQuantifierEliminationSGI
 : public SimplifyingGeneratingInference
 {
   VirasQuantifierElimination _self;
+  bool _simplify;
 public:
 
   VirasQuantifierEliminationSGI(VirasQuantifierEliminationSGI&&) = default;
-  explicit VirasQuantifierEliminationSGI(std::shared_ptr<AlascaState> shared) 
+  explicit VirasQuantifierEliminationSGI(std::shared_ptr<AlascaState> shared, bool simpl = true)
     : _self(std::move(shared))
+    , _simplify(simpl)
   {  }
 
   void attach(SaturationAlgorithm* salg) final override {}
@@ -68,7 +70,7 @@ public:
     if (auto res = _self.apply(premise)) {
       return ClauseGenerationResult {
         .clauses = *res,
-        .premiseRedundant = true,
+        .premiseRedundant = _simplify,
       };
     } else {
       return ClauseGenerationResult {

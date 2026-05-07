@@ -107,8 +107,9 @@ public:
 
   VariableEliminationSGI(VariableEliminationSGI&&) = default;
 
-  explicit VariableEliminationSGI(std::shared_ptr<AlascaState> state)
+  explicit VariableEliminationSGI(std::shared_ptr<AlascaState> state, bool simpl = true)
     : _inner(std::move(state))
+    , _simplify(simpl)
   {  }
 
   void attach(SaturationAlgorithm* salg) final override {}
@@ -121,6 +122,7 @@ public:
 
 private:
   VariableElimination _inner;
+  bool _simplify;
 };
 
 class VariableEliminationISE

@@ -2358,6 +2358,7 @@ public:
   bool alascaAbstraction() const { return _alascaAbstraction.actualValue; }
   bool alascaSubtermFactoring() const { return _alascaSubtermFactoring.actualValue; }
   bool alascaVariableEliminationDelay() const { return _alascaVariableEliminationDelay.actualValue; }
+  bool alascaVariableEliminationGenerating() const { return _alascaVariableEliminationGenerating.actualValue; }
   bool pushUnaryMinus() const { return _pushUnaryMinus.actualValue; }
   ArithmeticSimplificationMode cancellation() const { return _cancellation.actualValue; }
   ArithmeticSimplificationMode arithmeticSubtermGeneralizations() const { return _arithmeticSubtermGeneralizations.actualValue; }
@@ -2810,6 +2811,7 @@ private:
   BoolOptionValue _alascaAbstraction;
   BoolOptionValue _alascaSubtermFactoring;
   BoolOptionValue _alascaVariableEliminationDelay;
+  BoolOptionValue _alascaVariableEliminationGenerating;
   ChoiceOptionValue<ArithmeticSimplificationMode> _cancellation;
   ChoiceOptionValue<ArithmeticSimplificationMode> _arithmeticSubtermGeneralizations;
 
