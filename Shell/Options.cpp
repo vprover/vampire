@@ -1423,6 +1423,14 @@ void Options::init()
     _alascaSubtermFactoring.onlyUsefulWith(_alasca.is(equal(true)));
 
 
+    _alascaVariableEliminationGenerating  = BoolOptionValue("alasca_variable_elimination_gen","alasca-ve-gen",false);
+    _alascaVariableEliminationGenerating.description=
+            "makes alasca's variable elimination a generating rule instead of a simpl rule";
+    _lookup.insert(&_alascaVariableEliminationGenerating);
+    _alascaVariableEliminationGenerating.tag(OptionTag::INFERENCES);
+    _alascaVariableEliminationGenerating.setExperimental();
+    _alascaVariableEliminationGenerating.onlyUsefulWith(_alasca.is(equal(true)));
+
     _alascaVariableEliminationDelay  = BoolOptionValue("alasca_variable_elimination_delay","alasca-ve-delay",true);
     _alascaVariableEliminationDelay.description=
             "Enables delaying alasca's varaiable elimination rule application. This means it will not be performed if there is a selected literal.";
