@@ -23,7 +23,6 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/TermIterators.hpp"
-#include "Lib/DHSet.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/SharedSet.hpp"
 
@@ -454,7 +453,7 @@ Formula* Skolem::skolemise (Formula* f)
           TermList head = TermList(Term::create(sym, typeVars.size(), typeVars.begin()));
           skolemTerm = HOL::create::app(head, termVars).term();
         }
-        std::unique_ptr<std::vector<unsigned>> inScopeVars = std::unique_ptr<std::vector<unsigned>>(new std::vector <unsigned>());
+        std::unique_ptr<std::vector<unsigned>> inScopeVars = std::make_unique<std::vector<unsigned>>();
         for(auto it : dep->iter()){
           inScopeVars->push_back(it);
         }

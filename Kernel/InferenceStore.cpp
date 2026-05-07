@@ -12,6 +12,7 @@
  * Implements class InferenceStore.
  */
 
+#include "Debug/Assertion.hpp"
 #include "Kernel/Theory.hpp"
 #include "Kernel/Unit.hpp"
 #include "Lib/Allocator.hpp"
@@ -618,17 +619,18 @@ std::string getSkolemizeMap(It symIt){
     symsStr << "skolemize(";
     SymbolId a = symIt.next();
     auto res = _is->_introducedSymbolReplacedVars.find(a.second);
-    ASS(!res.isNone());
+    NEVER(res.isNone());
     symsStr << "X" << *res << ",";
     symsStr << getSymbolName(a);
-    auto inScopeVars = _is->_introducedSymbolInScopeVars.get(a.second).get();
+    auto inScopeVarsOpt = _is->_introducedSymbolInScopeVars.find(a.second);
+    NEVER(inScopeVarsOpt.isNone());
+    auto inScopeVars = inScopeVarsOpt->get();
     if(inScopeVars->size() > 0) {
       symsStr << "(";
-      auto iter = inScopeVars->begin();
-      while(iter != inScopeVars->end()){
+      
+      for(auto iter = inScopeVars->begin(); iter != inScopeVars->end(); iter++){
         symsStr << "X" << *iter;
-        ++iter;
-        if(iter != inScopeVars->end()) {
+        if(iter+1 != inScopeVars->end()) {
           symsStr << ",";
         }
       }

@@ -26,7 +26,6 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/DHMultiset.hpp"
-#include "Lib/DHSet.hpp"
 #include "Lib/Stack.hpp"
 
 #include "Kernel/Clause.hpp"
