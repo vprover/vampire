@@ -59,6 +59,7 @@ struct SuperpositionConf
         // .flatMap([&shared](auto x) { return iter(shared, x); })
              .filterMap([](auto t) { return SelectedEquality::from(std::move(t)); })
              .filter([](auto& x) { return x.literal()->isPositive(); })
+             .filter([](auto const& t) { return !t.isNumSort() || !t.biggerSide().isVar();; })
              // TODO 4 do we ever select numerals for any inference ???
              .filter([](auto& l) { return !forAnyNumTraits([&](auto n) { return n.isNumeral(l.biggerSide()); }); })
              .map([](auto x) { return Lhs(std::move(x)); });

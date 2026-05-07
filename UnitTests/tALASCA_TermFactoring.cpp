@@ -78,6 +78,7 @@ TEST_GENERATION(basic01a,
       .expected(exactly(
           clause({ 0 * g(a, b) > 0 })
       )))
+
 TEST_GENERATION(basic01b,
     Generation::SymmetricTest()
       .inputs  ({  clause({selected( g(a, x) + g(y, b) > 0 ) }) })
@@ -86,6 +87,18 @@ TEST_GENERATION(basic01b,
       )))
 
 // checking different symbols
+
+TEST_GENERATION(skip_unshielded_vars_0,
+    Generation::SymmetricTest()
+      .inputs  ({  clause({selected( g(a, x) + y > 0 ) }) })
+      .expected(exactly(
+      )))
+
+TEST_GENERATION(skip_unshielded_vars_1,
+    Generation::SymmetricTest()
+      .inputs  ({  clause({selected( f(g(a, x) + y) > 0 ) }) })
+      .expected(exactly(
+      )))
 
 
 #define test_basic03(pred, name)                                                                       \

@@ -132,6 +132,22 @@ TEST_GENERATION(basic01,
       ))
     )
 
+TEST_GENERATION(skip_unshielded_vars_1,
+    Generation::SymmetricTest()
+      .inputs  ({ clause({selected( f(a) > 0 )   }) 
+               ,  clause({selected(-x - b > 0 ) }) })
+      .expected(exactly(
+      ))
+    )
+
+TEST_GENERATION(skip_unshielded_vars_2,
+    Generation::SymmetricTest()
+      .inputs  ({ clause({selected( x > 0 )   }) 
+               ,  clause({selected(-f(a) - b > 0 ) }) })
+      .expected(exactly(
+      ))
+    )
+
 // check whether we apply the rule only for strictly maximal positive
 TEST_GENERATION(basic02,
     Generation::SymmetricTest()

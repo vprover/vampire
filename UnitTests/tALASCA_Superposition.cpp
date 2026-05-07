@@ -112,6 +112,16 @@ REGISTER_GEN_TESTER(AlascaGenerationTester<Superposition>(testSuperposition(UWA_
 // Basic tests
 //////////////////////////////////////
 
+TEST_GENERATION(skip_unshielded_vars_0,
+    Generation::SymmetricTest()
+      .inputs  ({ clause({ selected( y - a == 0 )  }) 
+                , clause({ selected(     f(x) >  0 )  }) })
+      .expected(exactly(
+      ))
+      .selfApplications(false)
+    )
+
+
 TEST_GENERATION(basic01,
     Generation::SymmetricTest()
       .inputs  ({ clause({ selected( 3 * f(x) - 4 - a == 0 )  }) 

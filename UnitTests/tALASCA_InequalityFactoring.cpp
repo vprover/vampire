@@ -95,6 +95,15 @@ TEST_GENERATION(basic00d,
     )
 
 
+TEST_GENERATION(skip_unshielded_vars_0,
+    Generation::SymmetricTest()
+      .inputs  ({  clause({selected(f(a) + a > 0), selected(x + b > 0)   }) })
+      .expected(exactly(
+          //   clause({          f(a) + b > 0 , a - b > 0             })
+          // , clause({          f(a) + a > 0 , b - a > 0             })
+      ))
+    )
+
 TEST_GENERATION(basic02,
     Generation::SymmetricTest()
       .inputs  ({  clause({selected(f(a) + a > 0), selected(f(x) + b > 0)   }) })

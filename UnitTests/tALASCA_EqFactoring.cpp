@@ -67,6 +67,12 @@ REGISTER_GEN_TESTER(AlascaGenerationTester<EqFactoring>())
 //////////////////////////////////////
 
 
+TEST_GENERATION(skip_unshielded_vars_0,
+    Generation::SymmetricTest()
+      .inputs  ({        clause({      selected(f(a) - c == 0), selected(x - b == 0 ),  })  })
+      .expected(exactly(   ))
+    )
+
 TEST_GENERATION(basic01,
     Generation::SymmetricTest()
       .inputs  ({        clause({      selected(f(a) - c == 0), selected(f(a) - b == 0 ),  })  })

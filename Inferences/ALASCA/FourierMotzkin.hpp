@@ -56,6 +56,7 @@ struct FourierMotzkinConf
     static auto iter(AlascaState& shared, __SelectedLiteral const& sel) {
       return SelectedAtomicTermItpAny::iter(shared.ordering, sel, SelectionCriterion::NOT_LESS)
               .filter([&](auto const& selected) { return selected.isInequality(); })
+              .filter([&](auto const& selected) { return !selected.selectedAtomicTerm().isVar(); })
               .filter([&](auto const& selected) { return selected.sign()   == Sign::Pos; })
               .map([&]   (auto selected)        { return Lhs(std::move(selected));     });
     }
@@ -87,6 +88,7 @@ struct FourierMotzkinConf
     static auto iter(AlascaState& shared, __SelectedLiteral const& sel) {
       return SelectedAtomicTermItpAny::iter(shared.ordering, sel, SelectionCriterion::NOT_LESS)
               .filter([&](auto const& selected) { return selected.isInequality(); })
+              .filter([&](auto const& selected) { return !selected.selectedAtomicTerm().isVar(); })
               .filter([&](auto const& selected) { return selected.sign() == Sign::Neg; })
               .map([&]   (auto selected)        { return Rhs(std::move(selected));     });
     }
