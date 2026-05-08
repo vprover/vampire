@@ -88,6 +88,7 @@ public:
   template<class NumTraits> ClauseIterator applyRule(Clause* premise, FoundVariable<NumTraits> found) const;
 
   Option<ClauseIterator> apply(Clause* cl) const;
+  ClauseIterator applyRec(Clause* cl) const;
 
 private:
 
@@ -154,6 +155,7 @@ public:
       return VirtualIterator<Clause*>::getEmpty();
     }
   }
+
   
 private:
   VariableElimination _inner;
