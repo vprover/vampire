@@ -43,6 +43,12 @@ public:
     : _shared(std::move(shared))
   {  }
 
+
+  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) {
+    // TODO wrong
+    return SimplifyingGeneratingInference::lookeaheadResultDoesNotDependOnSelection(); 
+  }
+
   Option<VirtualIterator<Clause*>> applyOnce(Clause* premise) const;
   template<class NumTraits>
   Option<VirtualIterator<Clause*>> applyOnce(NumTraits num, Clause* premise) const;

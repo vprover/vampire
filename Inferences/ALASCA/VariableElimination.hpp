@@ -92,6 +92,9 @@ public:
 
   Option<ClauseIterator> applyRec(Clause* cl) const;
   Option<ClauseIterator> applyOnce(Clause* cl) const;
+  VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) {
+    return SimplifyingGeneratingInference::lookeaheadResultDoesNotDependOnSelection(); 
+  }
 
 private:
 
@@ -152,7 +155,7 @@ public:
   }
   
   virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) override 
-  { return lookeaheadResultDoesNotDependOnSelection(); }
+  { return _inner.lookaheadResultEstimation(selection); }
 
 private:
   VE _inner;
@@ -206,8 +209,6 @@ public:
 private:
   VE _inner;
 };
-
-
 
 class VariableEliminationISE
 : public QuantifierEliminationISE<VariableElimination>
