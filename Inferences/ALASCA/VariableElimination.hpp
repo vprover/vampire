@@ -88,7 +88,8 @@ public:
   template<class NumTraits> ClauseIterator applyRule(Clause* premise, FoundVariable<NumTraits> found) const;
 
   Option<ClauseIterator> apply(Clause* cl) const;
-  ClauseIterator applyRec(Clause* cl) const;
+  Option<ClauseIterator> applyRec(Clause* cl) const;
+  Option<ClauseIterator> applyOnce(Clause* cl) const;
 
 private:
 

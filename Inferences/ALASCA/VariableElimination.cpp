@@ -93,19 +93,33 @@ Option<VariableElimination::AnyFoundVariable> VariableElimination::findUnshielde
   return out;
 }
 
-ClauseIterator VariableElimination::applyRec(Clause* premise) const
+// ClauseIterator VariableElimination::applyRec(Clause* premise) const
+// {
+//   auto simpl = apply(premise);
+//   return pvi(ifElseIter(simpl.isSome(), 
+//         [this,simpl = simpl]() {
+//           return iterTraits(*simpl)
+//             .flatMap([this](auto c) { return applyRec(c); });
+//         },
+//         [premise]() { return iterItems(premise); }));
+// }
+
+Option<ClauseIterator> VariableElimination::applyRec(Clause* premise) const
 {
-  auto simpl = apply(premise);
-  return pvi(ifElseIter(simpl.isSome(), 
-        [this,simpl = simpl]() {
-          return iterTraits(*simpl)
-            .flatMap([this](auto c) { return applyRec(c); });
-        },
-        [premise]() { return iterItems(premise); }));
+  return applyOnce(premise)
+    .map([this](auto simpl) {
+        return pvi(iterTraits(simpl)
+          .flatMap([this](auto c) { 
+              auto rec = applyRec(c);
+              return ifElseIter(rec.isSome(),
+                  [&](){ return std::move(*rec); },
+                  [&]() { return iterItems(c); }); 
+          }));
+    });
 }
 
 
-Option<ClauseIterator> VariableElimination::apply(Clause* premise) const
+Option<ClauseIterator> VariableElimination::applyOnce(Clause* premise) const
 {
   TIME_TRACE("alasca variable elimination apply")
   if (env.options->alascaVariableEliminationDelay()
@@ -120,15 +134,18 @@ Option<ClauseIterator> VariableElimination::apply(Clause* premise) const
   }
 }
 
+Option<ClauseIterator> VariableElimination::apply(Clause* premise) const
+{
+  TIME_TRACE("alasca variable elimination apply")
+  return applyRec(premise);
+}
+
 
 SimplifyingGeneratingInference::ClauseGenerationResult VariableEliminationSGI::generateSimplify(Clause* premise) 
 {
   if (auto iter = _inner.apply(premise)) {
     return ClauseGenerationResult {
-      .clauses          = pvi(iterTraits(std::move(*iter))
-        .flatMap([this](auto c){
-            return _inner.applyRec(c);
-            })),
+      .clauses          = std::move(*iter),
       .premiseRedundant = _simplify,
     };
   } else {
