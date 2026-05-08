@@ -115,6 +115,7 @@ struct QeTools {
             .flatMap([&ve,premise](auto c) { 
                 if (premise->splits())
                   c->setSplits(premise->splits());
+
                 auto rec = applyRec(ve, c);
                 return ifElseIter(rec.isSome(),
                     [&](){ return std::move(*rec); },
