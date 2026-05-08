@@ -20,6 +20,7 @@
 #include "Forwards.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
+#include "Inferences/ALASCA/VariableElimination.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/ALASCA/Index.hpp"
 #include "Lib/Exception.hpp"
@@ -42,76 +43,30 @@ public:
     : _shared(std::move(shared))
   {  }
 
-  Option<VirtualIterator<Clause*>> apply(Clause* premise);
+  Option<VirtualIterator<Clause*>> applyOnce(Clause* premise) const;
   template<class NumTraits>
-  Option<VirtualIterator<Clause*>> apply(NumTraits num, Clause* premise);
-  Option<VirtualIterator<Clause*>> apply(IntTraits num, Clause* premise) { /* TODO impl cooper quantifier elimination (?) */ return {}; }
+  Option<VirtualIterator<Clause*>> applyOnce(NumTraits num, Clause* premise) const;
+  Option<VirtualIterator<Clause*>> applyOnce(IntTraits num, Clause* premise) const { /* TODO impl cooper quantifier elimination (?) */ return {}; }
 };
 
 
 class VirasQuantifierEliminationSGI
-: public SimplifyingGeneratingInference
+: public QuantifierEliminationSGI<VirasQuantifierElimination>
 {
-  VirasQuantifierElimination _self;
-  bool _simplify;
 public:
-
-  VirasQuantifierEliminationSGI(VirasQuantifierEliminationSGI&&) = default;
-  explicit VirasQuantifierEliminationSGI(std::shared_ptr<AlascaState> shared, bool simpl = true)
-    : _self(std::move(shared))
-    , _simplify(simpl)
+  explicit VirasQuantifierEliminationSGI(std::shared_ptr<AlascaState> state, bool simpl = true)
+    : Inferences::ALASCA::QuantifierEliminationSGI<VirasQuantifierElimination>(VirasQuantifierElimination(state), simpl)
   {  }
-
-  void attach(SaturationAlgorithm* salg) final override {}
-  void detach() final override {}
-
-  ClauseGenerationResult generateSimplify(Clause* premise) final override 
-  {
-    if (auto res = _self.apply(premise)) {
-      return ClauseGenerationResult {
-        .clauses = *res,
-        .premiseRedundant = _simplify,
-      };
-    } else {
-      return ClauseGenerationResult {
-        .clauses = VirtualIterator<Clause*>::getEmpty(),
-        .premiseRedundant = false,
-      };
-    }
-  }
-
-  virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) override 
-  { return lookeaheadResultDoesNotDependOnSelection(); }
 };
 
+
 class VirasQuantifierEliminationISE
-: public ImmediateSimplificationEngine
+: public QuantifierEliminationISE<VirasQuantifierElimination>
 {
-  VirasQuantifierElimination _self;
 public:
-
-  VirasQuantifierEliminationISE(VirasQuantifierEliminationISE&&) = default;
-  explicit VirasQuantifierEliminationISE(std::shared_ptr<AlascaState> shared) 
-    : _self(std::move(shared))
+  explicit VirasQuantifierEliminationISE(std::shared_ptr<AlascaState> shared)
+    : QuantifierEliminationISE<VirasQuantifierElimination>(VirasQuantifierElimination(std::move(shared)))
   {  }
-
-  void attach(SaturationAlgorithm* salg) final override {}
-  void detach() final override {}
-
-  // TODO fix class hierarchy so we don't need this ASSERTION_VIOLATION
-  Clause* simplify(Clause* premise) final override { ASSERTION_VIOLATION_REP("should only be used with simplifyMany")  }
-  ClauseIterator simplifyMany(Clause* premise) final override 
-  {
-    if (auto result = _self.apply(premise)) {
-      if (result->hasNext()) {
-        return *result;
-      } else {
-        return pvi(iterItems<Clause*>(nullptr));
-      }
-    } else {
-      return VirtualIterator<Clause*>::getEmpty();
-    }
-  }
 };
 
 } // namespace ALASCA 

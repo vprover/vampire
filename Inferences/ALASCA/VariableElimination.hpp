@@ -31,6 +31,7 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+
 class VariableElimination
 {
 public:
@@ -88,6 +89,7 @@ public:
   template<class NumTraits> ClauseIterator applyRule(Clause* premise, FoundVariable<NumTraits> found) const;
 
   Option<ClauseIterator> apply(Clause* cl) const;
+
   Option<ClauseIterator> applyRec(Clause* cl) const;
   Option<ClauseIterator> applyOnce(Clause* cl) const;
 
@@ -101,41 +103,84 @@ private:
   std::shared_ptr<AlascaState> _shared;
 };
 
-class VariableEliminationSGI
+struct QeTools {
+  template<class VE>
+  static Option<ClauseIterator> applyRec(VE const& ve, Clause* premise) {
+    return ve.applyOnce(premise)
+      .map([&ve](auto simpl) {
+          return pvi(iterTraits(simpl)
+            .flatMap([&ve](auto c) { 
+                auto rec = applyRec(ve, c);
+                return ifElseIter(rec.isSome(),
+                    [&](){ return std::move(*rec); },
+                    [&]() { return iterItems(c); }); 
+            }));
+      });
+  }
+};
+
+template<class VE>
+class QuantifierEliminationSGI
 : public SimplifyingGeneratingInference
 {
 public:
-  USE_ALLOCATOR(VariableEliminationSGI);
+  USE_ALLOCATOR(QuantifierEliminationSGI);
 
-  VariableEliminationSGI(VariableEliminationSGI&&) = default;
+  QuantifierEliminationSGI(QuantifierEliminationSGI&&) = default;
 
-  explicit VariableEliminationSGI(std::shared_ptr<AlascaState> state, bool simpl = true)
-    : _inner(std::move(state))
+  explicit QuantifierEliminationSGI(VE inner, bool simpl = true)
+    : _inner(std::move(inner))
     , _simplify(simpl)
   {  }
 
   void attach(SaturationAlgorithm* salg) final override {}
   void detach() final override {}
 
-  ClauseGenerationResult generateSimplify(Clause* premise)  final override;
+  ClauseGenerationResult generateSimplify(Clause* premise) final override {
+    if (auto iter = QeTools::applyRec(_inner, premise)) {
+      return ClauseGenerationResult {
+        .clauses          = std::move(*iter),
+        .premiseRedundant = _simplify,
+      };
+    } else {
+      return ClauseGenerationResult {
+        .clauses          = ClauseIterator::getEmpty(),
+        .premiseRedundant = false,
+      };
+    }
+
+  }
   
   virtual VirtualIterator<std::tuple<>> lookaheadResultEstimation(__SelectedLiteral const& selection) override 
   { return lookeaheadResultDoesNotDependOnSelection(); }
 
 private:
-  VariableElimination _inner;
+  VE _inner;
   bool _simplify;
 };
 
-class VariableEliminationISE
+class VariableEliminationSGI
+: public QuantifierEliminationSGI<VariableElimination>
+{
+public:
+
+  VariableEliminationSGI(VariableEliminationSGI&&) = default;
+
+  explicit VariableEliminationSGI(std::shared_ptr<AlascaState> state, bool simpl = true)
+    : Inferences::ALASCA::QuantifierEliminationSGI<VariableElimination>(VariableElimination(state), simpl)
+  {  }
+};
+
+template<class VE>
+class QuantifierEliminationISE
 : public ImmediateSimplificationEngine
 {
 public:
-  USE_ALLOCATOR(VariableEliminationISE);
+  USE_ALLOCATOR(QuantifierEliminationISE);
 
-  VariableEliminationISE(VariableEliminationISE&&) = default;
-  VariableEliminationISE(std::shared_ptr<AlascaState> shared)
-    : _inner(std::move(shared))
+  QuantifierEliminationISE(QuantifierEliminationISE&&) = default;
+  QuantifierEliminationISE(VE inner)
+    : _inner(std::move(inner))
   {  }
 
   void attach(SaturationAlgorithm* salg) final override {}
@@ -146,7 +191,7 @@ public:
   Clause* simplify(Clause* premise) final override { ASSERTION_VIOLATION_REP("should only be used with simplifyMany")  }
   ClauseIterator simplifyMany(Clause* premise) final override
   {
-    if (auto result = _inner.apply(premise)) {
+    if (auto result = QeTools::applyRec(_inner, premise)) {
       if (result->hasNext()) {
         return *result;
       } else {
@@ -159,7 +204,18 @@ public:
 
   
 private:
-  VariableElimination _inner;
+  VE _inner;
+};
+
+
+
+class VariableEliminationISE
+: public QuantifierEliminationISE<VariableElimination>
+{
+public:
+  explicit VariableEliminationISE(std::shared_ptr<AlascaState> shared)
+    : QuantifierEliminationISE<VariableElimination>(VariableElimination(std::move(shared)))
+  {  }
 };
 
 } // namespace ALASCA 

@@ -104,6 +104,7 @@ Option<VariableElimination::AnyFoundVariable> VariableElimination::findUnshielde
 //         [premise]() { return iterItems(premise); }));
 // }
 
+
 Option<ClauseIterator> VariableElimination::applyRec(Clause* premise) const
 {
   return applyOnce(premise)
@@ -140,21 +141,6 @@ Option<ClauseIterator> VariableElimination::apply(Clause* premise) const
   return applyRec(premise);
 }
 
-
-SimplifyingGeneratingInference::ClauseGenerationResult VariableEliminationSGI::generateSimplify(Clause* premise) 
-{
-  if (auto iter = _inner.apply(premise)) {
-    return ClauseGenerationResult {
-      .clauses          = std::move(*iter),
-      .premiseRedundant = _simplify,
-    };
-  } else {
-    return ClauseGenerationResult {
-      .clauses          = ClauseIterator::getEmpty(),
-      .premiseRedundant = false,
-    };
-  }
-}
 
 // C \/ { x + bi >i 0 | i ∈ I } \/ { -x + bj >j 0 | j ∈ J } \/ { x + bk == 0 | k ∈ K } \/ { x + bh /= 0 | l ∈ L }
 // ==========================================================================================================================
