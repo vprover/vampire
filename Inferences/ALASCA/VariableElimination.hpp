@@ -110,9 +110,10 @@ struct QeTools {
   template<class VE>
   static Option<ClauseIterator> applyRec(VE const& ve, Clause* premise) {
     return ve.applyOnce(premise)
-      .map([&ve](auto simpl) {
+      .map([&ve,premise](auto simpl) {
           return pvi(iterTraits(simpl)
-            .flatMap([&ve](auto c) { 
+            .flatMap([&ve,premise](auto c) { 
+                c->setSplits(premise->splits());
                 auto rec = applyRec(ve, c);
                 return ifElseIter(rec.isSome(),
                     [&](){ return std::move(*rec); },
