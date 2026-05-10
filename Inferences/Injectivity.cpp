@@ -94,6 +94,9 @@ ClauseIterator Injectivity::generateClauses(Clause* premise)
     }
     if(!differingArgFound){ index++; }
   }
+  if (!differingArgFound) {
+    return ClauseIterator::getEmpty();
+  }
 
   //at this point, we know the clause is of the form f x1 y x2... = f x1 z x2 ... \/ x != y 
   //index holds the index of the different argument
