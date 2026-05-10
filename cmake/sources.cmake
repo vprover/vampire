@@ -75,6 +75,7 @@ set(UNIT_TESTS
     UnitTests/tInferences_HOL_CNFOnTheFly.cpp
     UnitTests/tInferences_HOL_FlexFlexSimplify.cpp
     UnitTests/tInferences_HOL_ImitateProject.cpp
+    UnitTests/tInferences_HOL_Injectivity.cpp
     UnitTests/tInferences_HOL_LeibnizEqualityElimination.cpp
     UnitTests/tInferences_HOL_NegativeExtensionality.cpp
     UnitTests/tInferences_HOL_PositiveExtensionality.cpp

@@ -1503,7 +1503,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   if (prb.isHigherOrder() && opt.injectivityReasoning()) {
-    gie->addFront(new Injectivity());
+    gie->addFront(new Injectivity(*res));
   }
   if (mayHaveEquality && env.signature->hasTermAlgebras()) {
     if (opt.termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULE) {
