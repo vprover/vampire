@@ -188,8 +188,11 @@ void Preprocess::preprocess(Problem& prb)
         std::cout << "WARNING: ignoring request to add choice axiom as problem is first-order" << std::endl;
       }
     } else {
-      INVALID_OPERATION("choice axiom not yet supported");
-      // LambdaConversion::addChoiceAxiom(prb);
+      auto choiceAx = HOL::create::choiceAxiom();
+      UnitList::push(choiceAx, prb.units());
+      if (env.options->showPreprocessing()) {
+        std::cout << "[PP] Added Hilbert choice axiom: " << choiceAx->toString() << std::endl;
+      }
     }
   }
 
