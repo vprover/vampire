@@ -703,7 +703,7 @@ void Property::scan(TermList ts,bool unit,bool goal)
       _hasLogicalProxy = true;
     }
 
-    if(!t->isApplication() && t->numTypeArguments() > 0){
+    if(!t->isApplication() && !t->isLambdaTerm() && t->numTypeArguments() > 0){
       _hasPolymorphicSym = true;
     }
 
