@@ -1747,7 +1747,11 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
       res->addFront(new Condensation());
       break;
     case Options::Condensation::FAST:
-      res->addFront(new FastCondensation());
+      if (prb.isHigherOrder()) {
+        res->addFront(new FastCondensation<true>());
+      } else {
+        res->addFront(new FastCondensation<false>());
+      }
       break;
     case Options::Condensation::OFF:
       break;
