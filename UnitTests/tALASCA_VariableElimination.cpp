@@ -112,6 +112,15 @@ TEST_GENERATION(multi_var_1,
       .premiseRedundant(true)
     )
 
+TEST_GENERATION(multi_var_2,
+    Generation::SymmetricTest()
+      .inputs ({  clause({x + a > 0, -x + y + b > 0, x == 0 }) })
+      .expected(exactly(
+            clause({})
+      ))
+      .premiseRedundant(true)
+    )
+
 
 /////////////////////////////////////////////////////////
 // Only use unshielded variables

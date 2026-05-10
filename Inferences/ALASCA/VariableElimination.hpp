@@ -23,6 +23,7 @@
 #include "Kernel/Ordering.hpp"
 #include "Kernel/ALASCA/Index.hpp"
 #include "Shell/Options.hpp"
+#include <memory>
 
 namespace Inferences {
 namespace ALASCA {
@@ -107,20 +108,35 @@ private:
 };
 
 struct QeTools {
+
   template<class VE>
   static Option<ClauseIterator> applyRec(VE const& ve, Clause* premise) {
     return ve.applyOnce(premise)
       .map([&ve,premise](auto simpl) {
-          return pvi(iterTraits(simpl)
-            .flatMap([&ve,premise](auto c) { 
-                if (premise->splits())
-                  c->setSplits(premise->splits());
+          return pvi(
+              iterTraits(simpl)
+                .flatMap([&ve,premise](auto c) { 
+                    if (premise->splits())
+                      c->setSplits(premise->splits());
 
-                auto rec = applyRec(ve, c);
-                return ifElseIter(rec.isSome(),
-                    [&](){ return std::move(*rec); },
-                    [&]() { return iterItems(c); }); 
-            }));
+                    auto rec = applyRec(ve, c);
+                    return ifElseIter(rec.isSome(),
+                        [&](){ return std::move(*rec); },
+                        [&]() { return iterItems(c); }); 
+                })
+
+                /* stop generating iter results as soon as empty clause was found */
+                .takeWhile([emptyClauseFound = false](auto cl) mutable {
+                    if (emptyClauseFound) {
+                      return false;
+                    } else {
+                      if (cl->isEmpty()) {
+                        emptyClauseFound = true;
+                      }
+                      return true;
+                    }
+                })
+            );
       });
   }
 };
