@@ -351,7 +351,7 @@ bool BackwardSubsumptionDemodulation<higherOrder>::rewriteCandidate(Clause* side
     // i.e., we have subsumption.
 #if VDEBUG && BSD_VDEBUG_REDUNDANCY_ASSERTIONS
     if (_literalComparisonMode != Options::LiteralComparisonMode::REVERSE) {
-      OverlayBinder tmpBinder;
+      OverlayBinder<higherOrder> tmpBinder;
       matcher.getBindings(tmpBinder.base());
       ASS(SDHelper::substClauseIsSmallerOrEqual(sideCl, tmpBinder, mainCl, _ord));
     }
@@ -375,7 +375,7 @@ bool BackwardSubsumptionDemodulation<higherOrder>::rewriteCandidate(Clause* side
   static std::vector<bool> isMatched;
   matcher.getMatchedAltsBitmap(isMatched);
 
-  static OverlayBinder binder;
+  static OverlayBinder<higherOrder> binder;
   binder.clear();
   matcher.getBindings(binder.base());
 
@@ -386,7 +386,7 @@ bool BackwardSubsumptionDemodulation<higherOrder>::rewriteCandidate(Clause* side
     TermList t0 = *eqLit->nthArgument(0);
     TermList t1 = *eqLit->nthArgument(1);
 
-    OverlayBinder::UnboundVariableOffsetApplicator applicator(binder, mainCl->maxVar()+1);
+    typename OverlayBinder<higherOrder>::UnboundVariableOffsetApplicator applicator(binder, mainCl->maxVar()+1);
     switch (eqArgOrder) {
       case Ordering::INCOMPARABLE:
         ASS(!_preorderedOnly);  // would've skipped earlier already

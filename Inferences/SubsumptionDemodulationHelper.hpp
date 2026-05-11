@@ -57,6 +57,7 @@ using namespace Lib;
  * This class implements the Binder interface as described in Kernel/Matcher.hpp,
  * and the Applicator interface as described in Kernel/SubstHelper.hpp.
  */
+template<bool higherOrder>
 class OverlayBinder
 {
   USE_ALLOCATOR(OverlayBinder);
@@ -85,6 +86,11 @@ class OverlayBinder
         return base_it->second == term;
       }
       else {
+        if constexpr (higherOrder) {
+          if (term.containsLooseDBIndex()) {
+            return false;
+          }
+        }
         auto res = m_overlay.insert({var, term});
         auto it = res.first;
         bool inserted = res.second;
@@ -207,9 +213,6 @@ class OverlayBinder
 
     friend std::ostream& operator<<(std::ostream& o, OverlayBinder const& binder);
 };  // class OverlayBinder
-
-std::ostream& operator<<(std::ostream& o, OverlayBinder const& binder);
-
 
 /**
  * Stores an instance of the multi-literal matching problem.
