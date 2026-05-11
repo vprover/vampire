@@ -256,10 +256,6 @@ set(SOURCES
     Inferences/Cancellation.cpp
     Inferences/Cancellation.hpp
     Inferences/Cancellation.hpp
-    Inferences/Cases.cpp
-    Inferences/Cases.hpp
-    Inferences/Choice.cpp
-    Inferences/Choice.hpp
     Inferences/CodeTreeForwardSubsumptionAndResolution.cpp
     Inferences/CodeTreeForwardSubsumptionAndResolution.hpp
     Inferences/Condensation.cpp
@@ -309,8 +305,12 @@ set(SOURCES
     Inferences/HOL/BoolEqToDiseq.hpp
     Inferences/HOL/BoolSimp.cpp
     Inferences/HOL/BoolSimp.hpp
+    Inferences/HOL/Cases.cpp
+    Inferences/HOL/Cases.hpp
     Inferences/HOL/CasesSimp.cpp
     Inferences/HOL/CasesSimp.hpp
+    Inferences/HOL/Choice.cpp
+    Inferences/HOL/Choice.hpp
     Inferences/HOL/CNFOnTheFly.cpp
     Inferences/HOL/CNFOnTheFly.hpp
     Inferences/HOL/FlexFlexSimplify.cpp
