@@ -324,9 +324,9 @@ NeuralPassiveClauseContainer::NeuralPassiveClauseContainer(bool isOutermost, con
 
 void NeuralPassiveClauseContainer::add(Clause* cl)
 {
-  float dummy;
+  ScorePair dummy;
   if (_model.getScores().find(cl->number(),dummy)) {
-    // std::cout << "ki " << _model.getScores().get(cl->number()) << " " << cl->toString() << std::endl;
+    // std::cout << "ki " << _model.getScores().get(cl->number())[0] << " " << cl->toString() << std::endl;
     _queue.insert(cl);
   } else {
     _delayedInsertionBuffer.push(cl);
@@ -360,7 +360,7 @@ void NeuralPassiveClauseContainer::consolidate()
     auto it = _delayedInsertionBuffer.iter();
     while (it.hasNext()) {
       Clause* cl = it.next();
-      float score = _model.getScores().get(cl->number());
+      float score = _model.getScores().get(cl->number())[0];
       // std::cout << "di " << score << " " << cl->toString() << std::endl;
       if (score < _cutoff) {
         ASS(cl->store()==Clause::PASSIVE);
@@ -388,7 +388,7 @@ Clause* NeuralPassiveClauseContainer::popSelected()
 
   // cout << "About to pop" << endl;
   Clause* cl = _queue.pop();
-  // std::cout << "pop " << _model.getScores().get(cl->number()) << " " << cl->toString() << std::endl;
+  // std::cout << "pop " << _model.getScores().get(cl->number())[0] << " " << cl->toString() << std::endl;
   _size--;
 
   if (popCount == _reshuffleAt) {

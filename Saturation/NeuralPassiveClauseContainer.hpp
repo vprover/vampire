@@ -16,6 +16,7 @@
 #ifndef __NeuralPassiveClauseContainer__
 #define __NeuralPassiveClauseContainer__
 
+#include <array>
 #include <memory>
 #include <vector>
 #include "Lib/Comparison.hpp"
@@ -42,6 +43,8 @@ namespace Saturation {
 using namespace Kernel;
 
 class NeuralPassiveClauseContainer; // forward
+
+typedef std::array<float,2> ScorePair;
 
 class NeuralClauseEvaluationModel
 {
@@ -88,8 +91,8 @@ private:
 
   std::function<bool(Clause*)> _makeReadyForEval;
 
-  // this stored the computed logits + _temp * gumbel_noise
-  DHMap<unsigned,float> _scores;
+  // this stores the computed logits + _temp * gumbel_noise (one pair per clause: [warmup, finishoff])
+  DHMap<unsigned,ScorePair> _scores;
 public:
   NeuralClauseEvaluationModel(const std::string clauseEvalModelFilePath, //  const std::string& tweak_str,
     std::function<bool(Clause*)> makeReadyForEval,
@@ -395,16 +398,21 @@ public:
       unsigned idx = 0;
       while (uIt.hasNext()) {
         Clause* cl = uIt.next();
-        float logit = logits[idx++].item().toDouble();
+        float gumbelNoise = 0.0;
         if (_temp > 0.0) {
-          // adding the gumbel noise
-          logit += -_temp*log(-log(Random::getFloat(0.0,1.0)));
+          // same gumbel noise sample for both logits
+          gumbelNoise = -_temp*log(-log(Random::getFloat(0.0,1.0)));
         }
 
-        float* score;
+        ScorePair pair;
+        pair[0] = logits.index({(int64_t)idx, 0}).item().toFloat() + gumbelNoise;
+        pair[1] = logits.index({(int64_t)idx, 1}).item().toFloat() + gumbelNoise;
+        idx++;
+
+        ScorePair* score;
         // only overwrite, if not present
         if (_scores.getValuePtr(cl->number(),score)) {
-          *score = logit;
+          *score = pair;
         }
       }
     }
@@ -434,35 +442,30 @@ public:
     Timer::updateInstructionCount(); // TODO: consider leaving this out (more efficient vampire, less precise stats)
     env.statistics->bulkEvals += (Timer::elapsedInstructions()-bulk_eval_start_instrs);
   }
-
-  // this is a low-effort version of evalClause (used, among other things, for delayedEvaluation deepire-style):
-  // namely: if there is no value in the _scores map, it just returns a very optimistic constant
-  float tryGetScore(Clause* cl);
-
 };
 
 class NeuralScoreQueue
   : public ClauseQueue
 {
 public:
-  NeuralScoreQueue(const DHMap<unsigned,float>& scores) : _scores(scores) {}
+  NeuralScoreQueue(const DHMap<unsigned,ScorePair>& scores) : _scores(scores) {}
 
   typedef float OrdVal;
   static constexpr OrdVal maxOrdVal = std::numeric_limits<float>::max();
   OrdVal getOrdVal(Clause* cl) const {
     // it's responsibility of the surrounding container (here the NeuralPassiveClauseContainer)
     // to make sure clauses are evalauted in time for LRS estimations ...
-    float val;
+    ScorePair val;
     if (_scores.find(cl->number(),val)) {
-      return -val; // negating: NNs think large is good, queues think small is good
+      return -val[0]; // negating: NNs think large is good, queues think small is good
     }
     // .. if not, each such clause is considered "to be kept"
     return -maxOrdVal; // a very optimistic constant (since small is good)
   }
 protected:
   virtual bool lessThan(Clause* c1,Clause* c2) {
-    auto sc1 = _scores.get(c1->number());
-    auto sc2 = _scores.get(c2->number());
+    auto sc1 = _scores.get(c1->number())[0];
+    auto sc2 = _scores.get(c2->number())[0];
 
     // reversing the order here: NNs think large is good, queues think small is good
     if (sc1 > sc2) {
@@ -475,7 +478,7 @@ protected:
     return c1->number() < c2->number();
   }
 private:
-  const DHMap<unsigned,float>& _scores;
+  const DHMap<unsigned,ScorePair>& _scores;
 };
 
 
