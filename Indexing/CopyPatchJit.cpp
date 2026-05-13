@@ -72,6 +72,12 @@ void CopyPatchJit::expandEntryHelper(FlatTerm::Entry* entry) {
   entry->expand();
 }
 
+void* CopyPatchJit::lazyCompileHelper(JitExecContext* ctx, CodeTree::CodeOp* alt) {
+  if (!alt) return nullptr;
+  auto* tree = static_cast<CodeTree*>(ctx->codeTree);
+  return tree->lazyCompileBlock(alt);
+}
+
 //  bit patterns used as immediates in stencil compilation.  After compiling a stencil with asmjit, we scan
 //  for these patterns to locate the holes that need patching at emission.
 //
@@ -181,7 +187,7 @@ void CopyPatchJit::ensureSlabSpace(size_t size) {
     size_t cap = std::max(SLAB_SIZE, size);
     void* p = mapExecPages(cap);
     ASS(p);
-    _slabs.push_back({p, cap, 0});
+    _slabs.push_back({p, cap, 0, 0});
   }
 }
 
@@ -192,16 +198,92 @@ void* CopyPatchJit::slabAlloc(size_t size) {
   ExecSlab& slab = _slabs.back();
   void* ptr = static_cast<char*>(slab.base) + slab.used;
   slab.used += size;
+  slab.liveCount++;
   return ptr;
 }
 
-void* CopyPatchJit::allocExec(size_t size) {
-  return slabAlloc(size);
+size_t CopyPatchJit::sizeClassIndex(size_t totalSize) {
+  // Find the smallest class that fits totalSize
+  for (size_t i = 0; i < NUM_SIZE_CLASSES; i++) {
+    if (totalSize <= SIZE_CLASS_SIZES[i]) return i;
+  }
+  return NUM_SIZE_CLASSES; // oversized
 }
 
-void CopyPatchJit::freeExec(void* /*ptr*/, size_t /*size*/) {
-  // Slab allocator doesn't support individual frees.
-  // Memory is reclaimed when releaseAll() is called.
+size_t CopyPatchJit::sizeClassBucket(size_t classIdx, size_t totalSize) {
+  if (classIdx < NUM_SIZE_CLASSES) return SIZE_CLASS_SIZES[classIdx];
+  // Oversized: round up to 16-byte alignment
+  return (totalSize + 15) & ~15UL;
+}
+
+CopyPatchJit::ExecSlab* CopyPatchJit::findSlab(void* ptr) {
+  auto p = static_cast<char*>(ptr);
+  for (auto& slab : _slabs) {
+    auto base = static_cast<char*>(slab.base);
+    if (p >= base && p < base + slab.capacity) {
+      return &slab;
+    }
+  }
+  return nullptr;
+}
+
+void* CopyPatchJit::allocExec(size_t userSize) {
+  size_t totalSize = userSize + ALLOC_HEADER_SIZE;
+  size_t classIdx  = sizeClassIndex(totalSize);
+  size_t bucket    = sizeClassBucket(classIdx, totalSize);
+
+  uint8_t* raw = nullptr;
+
+  // Try the free list for this size class
+  if (classIdx < NUM_SIZE_CLASSES && _freeLists[classIdx]) {
+    FreeNode* node  = _freeLists[classIdx];
+    _freeLists[classIdx] = node->next;
+    // The node pointer is the user-data region
+    raw = reinterpret_cast<uint8_t*>(node) - ALLOC_HEADER_SIZE;
+    // Re-mark the owning slab as having one more live allocation
+    ExecSlab* slab = findSlab(raw);
+    ASS(slab);
+    slab->liveCount++;
+  } else {
+    // Bump-allocate from slab (slabAlloc increments liveCount)
+    raw = static_cast<uint8_t*>(slabAlloc(bucket));
+  }
+
+  // Write the bucket size into the header so freeExec can find the class
+  size_t headerVal = bucket;
+  memcpy(raw, &headerVal, sizeof(size_t));
+
+  return raw + ALLOC_HEADER_SIZE;
+}
+
+void CopyPatchJit::freeExec(void* userPtr) {
+  if (!userPtr) return;
+
+  uint8_t* raw = static_cast<uint8_t*>(userPtr) - ALLOC_HEADER_SIZE;
+
+  // Read the bucket size from the header
+  size_t bucket;
+  memcpy(&bucket, raw, sizeof(size_t));
+
+  // Decrement the owning slab's live count
+  ExecSlab* slab = findSlab(raw);
+  ASS(slab);
+  ASS(slab->liveCount > 0);
+  slab->liveCount--;
+
+  // If the slab is completely dead, we could madvise it here.
+  // For now we just let it sit-the free lists reclaim the space
+  // for future allocations, and releaseAll() handles final cleanup.
+
+  // Push onto the free list for the matching size class
+  size_t classIdx = sizeClassIndex(bucket);
+  if (classIdx < NUM_SIZE_CLASSES) {
+    FreeNode* node = static_cast<FreeNode*>(userPtr);
+    node->next = _freeLists[classIdx];
+    _freeLists[classIdx] = node;
+  }
+  // Oversized allocations (classIdx == NUM_SIZE_CLASSES) are not
+  // recycled individually-they contribute to slab-level reclamation
 }
 
 CopyPatchJit::CopyPatchJit() = default;
@@ -211,6 +293,11 @@ CopyPatchJit::~CopyPatchJit() {
 }
 
 void CopyPatchJit::releaseAll() {
+  // Clear the free lists first (they point into the slabs we're about to unmap)
+  for (size_t i = 0; i < NUM_SIZE_CLASSES; i++) {
+    _freeLists[i] = nullptr;
+  }
+
   for (auto& slab : _slabs) {
     unmapExecPages(slab.base, slab.capacity);
   }
@@ -227,7 +314,9 @@ void CopyPatchJit::releaseAll() {
   _initialized = false;
 }
 
-
+void CopyPatchJit::freeCode(void* mcodePtr) {
+  freeExec(mcodePtr);
+}
 
 //  ONE-TIME INITIALIZATION
 void CopyPatchJit::initialize() {
@@ -235,6 +324,7 @@ void CopyPatchJit::initialize() {
 
   compileTrampoline();
   compileExpandStub();
+  compileLazyCompileStub();
 
   compileStencilSuccessOrFail();
   compileStencilCheckGroundTerm();
@@ -399,17 +489,22 @@ void CopyPatchJit::compileExpandStub() {
   Assembler a(&code);
 
   // On entry: rsp is 8 mod 16 (from caller's 'call')
-  // push rcx makes rsp 0 mod 16-correct alignment for inner call
-  a.push(rcx);                                                       // stack: 0 mod 16
+  // save rdx, r10 because ASSIGN_VAR/CHECK_GROUND_TERM
+  // keep them live across pushAlt (which contains this call site)
+  a.push(rcx);    // save mcode
+  a.push(rdx);    // save (live in ASSIGN_VAR)
+  a.push(r10);    // save (live in ASSIGN_VAR/CHECK_GROUND_TERM) + align
 
   // store btCursor into ctx so C helper can see it
   a.mov(qword_ptr(rbp, offsetof(JitExecContext, btCursor)), r15);
 
   // call expandBtBufferHelper(ctx)
   a.mov(rdi, rbp);
-  a.call(qword_ptr(rbp, offsetof(JitExecContext, expandBtFunc)));    // stack: 0 mod 16
+  a.call(qword_ptr(rbp, offsetof(JitExecContext, expandBtFunc)));
 
-  a.pop(rcx);                                                        // restore mcode
+  a.pop(r10);     // restore
+  a.pop(rdx);     // restore
+  a.pop(rcx);     // restore
 
   // reload r15, rbx-buffer may have been reallocated
   a.mov(r15, qword_ptr(rbp, offsetof(JitExecContext, btCursor)));
@@ -417,7 +512,6 @@ void CopyPatchJit::compileExpandStub() {
 
   a.ret();
 
-  // Extract into executable memory
   auto bytes = extractCode(code);
   void* dest = allocExec(bytes.size());
   memcpy(dest, bytes.data(), bytes.size());
@@ -426,13 +520,64 @@ void CopyPatchJit::compileExpandStub() {
 }
 
 /*
+ * compileLazyCompileStub- called from stencils when an alternative has null _mcode
+ * Bridges into the C++ lazyCompileHelper
+ *
+ * On entry from stencil:
+ *   rcx = CodeOp* (the uncompiled alternative)
+ *   rsp is 8 mod 16 (from caller's 'call' instruction)
+ *
+ * On return:
+ *   rax = _mcode (non-null if compiled) or nullptr
+ *   rdx, r10, r11 preserved
+ *   rcx clobbered
+ */
+void CopyPatchJit::compileLazyCompileStub() {
+  auto& rt = sharedRuntime();
+  CodeHolder code;
+  code.init(rt.environment(), rt.cpu_features());
+  Assembler a(&code);
+
+  // On entry: rsp is 8 mod 16 (from caller's 'call')
+  // 3 pushes->rsp goes to (8+24) mod 16 = 0 mod 16->aligned for inner call
+  a.push(rcx);     // save CodeOp*
+  a.push(rdx);     // save (live in ASSIGN_VAR)
+  a.push(r10);     // save (live in ASSIGN_VAR/CHECK_GROUND_TERM) + aligns stack
+
+  // Set up args for lazyCompileHelper(ctx, codeOp*)
+  a.mov(rsi, rcx);    // arg2 = CodeOp*
+  a.mov(rdi, rbp);    // arg1 = ctx
+  a.call(qword_ptr(rbp, offsetof(JitExecContext, lazyCompileFunc)));   // stack: 0 mod 16
+
+  a.pop(r10);      // restore
+  a.pop(rdx);      // restore
+  a.pop(rcx);      // restore
+
+  a.ret();
+
+  auto bytes = extractCode(code);
+  void* dest = allocExec(bytes.size());
+  memcpy(dest, bytes.data(), bytes.size());
+  flushICache(dest, bytes.size());
+  _lazyCompileStub = dest;
+}
+
+/*
  * Emits:
  *   movabs rcx, <CodeOp* alt>   ; 10 bytes-patchable
  *   test   rcx, rcx
  *   jz     .noPush
+ *   mov    rdi, rcx             ; save CodeOp* for potential lazy compile
  *   mov    rcx, [rcx + _mcode]  ; dereference to mcode
  *   test   rcx, rcx
+ *   jnz    .haveMcode
+ *   ; _mcode null -> lazy compile via stub
+ *   mov    rcx, rdi             ; pass CodeOp* in rcx (stub convention)
+ *   call   [rbp + lazyCompileStub]
+ *   mov    rcx, rax             ; result in rcx
+ *   test   rcx, rcx
  *   jz     .noPush
+ *   .haveMcode:
  *   cmp    r15, rbx             ; btCursor >= btEnd?
  *   jb     .doPush
  *   call   [rbp + expandStub]   ; cold: expand buffer, reload r15/rbx
@@ -442,7 +587,8 @@ void CopyPatchJit::compileExpandStub() {
  *   add    r15, 16
  *   .noPush:
  *
- * Clobbers: rax, rcx
+ * Hot-path clobbers: rcx, rdi.   rax is UNTOUCHED on hot path.
+ * Cold-path clobbers: rax, rcx, rdi, rsi (via call)
  */
 void CopyPatchJit::emitPushAlt(void* asm_ptr, Stencil& s, size_t base) {
   auto& a = *static_cast<Assembler*>(asm_ptr);
@@ -451,23 +597,29 @@ void CopyPatchJit::emitPushAlt(void* asm_ptr, Stencil& s, size_t base) {
   s.holes.push_back({StencilHole::ALT_PTR_PUSH, static_cast<uint16_t>(immOfs)});
   s.altHoleCount++;
 
-  Label noPush  = a.new_label();
-  Label doPush  = a.new_label();
+  Label noPush = a.new_label();
+  Label doPush = a.new_label();
+  Label haveMcode = a.new_label();
 
   a.test(rcx, rcx);
   a.jz(noPush);
 
-  // Dereference CodeOp* -> _mcode
-  // The bt stack stores mcode directly so the trampoline backtrack loop can jump without a dependent load.
+  a.mov(rdi, rcx);  // save CodeOp* in rdi (for lazy compile path)
   a.mov(rcx, qword_ptr(rcx, offsetof(CodeTree::CodeOp, _mcode)));
   a.test(rcx, rcx);
-  a.jz(noPush);
+  a.jnz(haveMcode);
 
+  // Cold path: _mcode is null->call lazy compile stub
+  a.mov(rcx, rdi);   // pass CodeOp* in rcx (stub convention)
+  a.call(qword_ptr(rbp, offsetof(JitExecContext, lazyCompileStub)));
+  a.mov(rcx, rax);   // result->rcx
+  a.test(rcx, rcx);
+  a.jz(noPush);      // still null->skip
+
+  a.bind(haveMcode);
   a.cmp(r15, rbx);
   a.jb(doPush);
 
-  // call shared expand stub (attempt 3)
-  // The stub preserves rcx, reloads r15/rbx, and returns here
   a.call(qword_ptr(rbp, offsetof(JitExecContext, expandStub)));
 
   a.bind(doPush);
@@ -483,14 +635,22 @@ void CopyPatchJit::emitPushAlt(void* asm_ptr, Stencil& s, size_t base) {
  *   movabs rax, <CodeOp* alt>   ; 10 bytes-patchable CodeOp ptr
  *   test   rax, rax
  *   jz     .bt
+ *   mov    rcx, rax             ; save CodeOp* in rcx
  *   mov    rax, [rax + _mcode]
  *   test   rax, rax
- *   jz     .bt
+ *   jnz    .haveMcode
+ *   ; _mcode null -> lazy compile
+ *   mov    rdi, rbp             ; arg1 = ctx
+ *   mov    rsi, rcx             ; arg2 = CodeOp* (saved)
+ *   call   [rbp + lazyCompileFunc]
+ *   test   rax, rax
+ *   jz     .bt                  ; still null -> backtrack
+ *   .haveMcode:
  *   jmp    rax
  *   .bt:
  *   jmp    [rbp+backtrackHandler]
  *
- * Clobbers: rax
+ * Clobbers: rax, rcx, rdi, rsi
  */
 void CopyPatchJit::emitJmpAlt(void* asm_ptr, Stencil& s, size_t base) {
   auto& a = *static_cast<Assembler*>(asm_ptr);
@@ -500,11 +660,22 @@ void CopyPatchJit::emitJmpAlt(void* asm_ptr, Stencil& s, size_t base) {
   s.altHoleCount++;
 
   Label bt = a.new_label();
+  Label haveMcode = a.new_label();
+
   a.test(rax, rax);
   a.jz(bt);
+  a.mov(rcx, rax);  // save CodeOp* in rcx
   a.mov(rax, qword_ptr(rax, offsetof(CodeTree::CodeOp, _mcode)));
   a.test(rax, rax);
+  a.jnz(haveMcode);
+
+  // _mcode null-call lazy compile stub (rcx already has CodeOp*)
+  a.call(qword_ptr(rbp, offsetof(JitExecContext, lazyCompileStub)));
+  // rax = _mcode or null
+  a.test(rax, rax);
   a.jz(bt);
+
+  a.bind(haveMcode);
   a.jmp(rax);
   a.bind(bt);
   a.jmp(qword_ptr(rbp, offsetof(JitExecContext, backtrackHandler)));
@@ -1027,6 +1198,12 @@ void CopyPatchJit::emitBlock(CodeTree::CodeBlock* block) {
 void CopyPatchJit::emitSearchStruct(CodeTree::SearchStruct* ss) {
   ASS(_initialized);
 
+  // Free the previous JIT buffer if this is a re-emission
+  if (ss->landingOp._mcode) {
+    freeExec(ss->landingOp._mcode);
+    ss->landingOp._mcode = nullptr;
+  }
+
   auto& rt = sharedRuntime();
   CodeHolder code;
   code.init(rt.environment(), rt.cpu_features());
@@ -1077,22 +1254,29 @@ void CopyPatchJit::emitSearchStruct(CodeTree::SearchStruct* ss) {
 
     // Equal-> found the target
     CodeTree::CodeOp* target = ss->targets[mid];
-    if (target && target->_mcode) {
+    if (target) {
       // Push backtrack to landingOp's alternative (if any)
-      // Embed CodeOp* (stable), dereference _mcode for bt stack.
+      // Load alternative from landingOp at runtime, lazy-compile if needed
       Label noPush = a.new_label();
       Label doPush = a.new_label();
+      Label havePushMcode = a.new_label();
 
       emitMovAbsRcx(a, landingOpAddr);
-      a.mov(rcx, qword_ptr(rcx, offsetof(CodeTree::CodeOp, _alternative)));
+      a.mov(rax, qword_ptr(rcx, offsetof(CodeTree::CodeOp, _alternative)));
+      a.test(rax, rax);
+      a.jz(noPush);
+      a.mov(rcx, qword_ptr(rax, offsetof(CodeTree::CodeOp, _mcode)));
+      a.test(rcx, rcx);
+      a.jnz(havePushMcode);
+      // lazy compile the alternative via stub
+      a.mov(rcx, rax);   // pass CodeOp* in rcx
+      a.call(qword_ptr(rbp, offsetof(JitExecContext, lazyCompileStub)));
+      a.mov(rcx, rax);
       a.test(rcx, rcx);
       a.jz(noPush);
-      a.mov(rcx, qword_ptr(rcx, offsetof(CodeTree::CodeOp, _mcode)));
-      a.test(rcx, rcx);
-      a.jz(noPush);
+      a.bind(havePushMcode);
       a.cmp(r15, rbx);
       a.jb(doPush);
-      // Cold-> call shared expand stub
       a.call(qword_ptr(rbp, offsetof(JitExecContext, expandStub)));
       a.bind(doPush);
       a.mov(qword_ptr(r15, 0), r13);
@@ -1100,11 +1284,18 @@ void CopyPatchJit::emitSearchStruct(CodeTree::SearchStruct* ss) {
       a.add(r15, 16);
       a.bind(noPush);
 
-      // Jump to target's _mcode (via CodeOp* dereference)
+      // Jump to target's _mcode (lazy-compile if needed)
+      Label haveTargetMcode = a.new_label();
       emitMovAbsRax(a, reinterpret_cast<uintptr_t>(target));
+      a.mov(rcx, rax);  // save CodeOp*
       a.mov(rax, qword_ptr(rax, offsetof(CodeTree::CodeOp, _mcode)));
       a.test(rax, rax);
+      a.jnz(haveTargetMcode);
+      // rcx already has CodeOp*-call stub
+      a.call(qword_ptr(rbp, offsetof(JitExecContext, lazyCompileStub)));
+      a.test(rax, rax);
       a.jz(notFoundL);
+      a.bind(haveTargetMcode);
       a.jmp(rax);
     } else {
       a.jmp(notFoundL);
@@ -1118,16 +1309,23 @@ void CopyPatchJit::emitSearchStruct(CodeTree::SearchStruct* ss) {
 
   emitBS(emitBS, 0, ss->length());
 
-  // Not-found: try landingOp's alternative, then backtrack
+  // Not-found: try landingOp's alternative (lazy-compile if needed), then backtrack
   a.bind(notFoundL);
   emitMovAbsRax(a, landingOpAddr);
   a.mov(rax, qword_ptr(rax, offsetof(CodeTree::CodeOp, _alternative)));
   a.test(rax, rax);
   Label noAlt = a.new_label();
+  Label haveAltMcode = a.new_label();
   a.jz(noAlt);
+  a.mov(rcx, rax);  // save CodeOp*
   a.mov(rax, qword_ptr(rax, offsetof(CodeTree::CodeOp, _mcode)));
   a.test(rax, rax);
+  a.jnz(haveAltMcode);
+  // lazy compile via stub (rcx already has CodeOp*)
+  a.call(qword_ptr(rbp, offsetof(JitExecContext, lazyCompileStub)));
+  a.test(rax, rax);
   a.jz(noAlt);
+  a.bind(haveAltMcode);
   a.jmp(rax);
   a.bind(noAlt);
   a.jmp(qword_ptr(rbp, offsetof(JitExecContext, backtrackHandler)));

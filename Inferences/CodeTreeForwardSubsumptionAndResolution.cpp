@@ -45,7 +45,7 @@ bool CodeTreeForwardSubsumptionAndResolution<higherOrder>::perform(Clause *cl, C
       ASS(satSubs.checkSubsumption(premise, cl));
 #if DEBUG_CODE_TREES
       if (!satSubs.checkSubsumption(premise, cl)) {
-        INVALID_OPERATION(premise->toString()+"sfs "+cl->toString());
+        INVALID_OPERATION("Soundness bug:" + premise->toString()+" should subsume "+cl->toString());
       }
 #endif
 
@@ -58,7 +58,7 @@ bool CodeTreeForwardSubsumptionAndResolution<higherOrder>::perform(Clause *cl, C
     ASS(satSubs.checkSubsumptionResolutionWithLiteral(premise, cl, resolvedQueryLit));
 #if DEBUG_CODE_TREES
     if(!satSubs.checkSubsumptionResolutionWithLiteral(premise, cl, resolvedQueryLit)) {
-      INVALID_OPERATION(premise->toString()+"sfsf "+cl->toString());
+      INVALID_OPERATION("Soundness bug:" + premise->toString()+" should subsume "+cl->toString());
     }
 #endif
 

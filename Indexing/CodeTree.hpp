@@ -259,7 +259,7 @@ public:
      * that hold the alternative CodeOp pointer.  Each jmpAlt/pushAlt
      * call site embeds the alternative as `mov reg, <imm64>`; when the
      * alternative changes, patchAlternative() writes the new value at
-     * these offsets — no recompilation needed.
+     * these offsets-no recompilation needed.
      *
      * Max 4 sites per op (CHECK_VAR has 2 jmpAlt + 2 pushAlt).
      * ALT_PATCH_NONE means the slot is unused.
@@ -538,6 +538,8 @@ public:
   static CodeBlock* buildBlock(CodeStack& code, size_t cnt, ILStruct* prev);
   void jitBlock(CodeBlock* block);
   void jitSearchStruct(SearchStruct* ss);
+  void freeJitBlock(CodeBlock* block);
+  void freeJitSearchStruct(SearchStruct* ss);
   void patchAlternative(CodeOp* op);
   void incorporate(CodeStack& code);
 
@@ -561,9 +563,16 @@ public:
 
   CodeBlock* _entryPoint;
 
-  /** Copy-and-patch JIT engine — replaces the old per-block asmjit compilation.
+  /** Copy-and-patch JIT engine: replaces the old per-block asmjit compilation.
    *  Pointer because CopyPatchJit is an incomplete type in this header. */
   CopyPatchJit* _cpJit;
+
+  //////// lazy JIT compilation //////////
+
+  /** Called by the JIT lazy-compile stub when an uncompiled block
+   *  is encountered during matching.  Compiles the block immediately
+   *  and returns the fresh _mcode. */
+  void* lazyCompileBlock(CodeOp* firstOp);
 };
 
 }

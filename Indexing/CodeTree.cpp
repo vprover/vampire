@@ -656,34 +656,46 @@ bool CodeTree::Matcher<removing, checkRange, higherOrder>::executeMachineCode()
   // if (!tree->_clauseCodeTree) { return execute(); }
   if (tree->isEmpty()) { return false; }
 
+  // Lazy compilation: compile entry block on first encounter
+  if (!entry->_mcode) {
+    tree->jitBlock(CodeTree::firstOpToCodeBlock(entry));
+  }
   if (!_jitBtBuf) {
     _jitBtBuf = static_cast<BTPoint*>(malloc(JIT_BT_INIT_CAP * sizeof(BTPoint)));
     _jitBtEnd = _jitBtBuf + JIT_BT_INIT_CAP;
     _jitBtCursor = _jitBtBuf;
   }
 
+  if (!_jitCtx) {
+    _jitCtx = malloc(sizeof(JitExecContext));
+  }
+  auto* ctx = static_cast<JitExecContext*>(_jitCtx);
+
+  // Refresh context every call (handles the case where the entry block was just compiled or the trampoline wasn't available at init() time)
+  if (!_jitFn) {
+    tree->_cpJit->initContext(*ctx);
+    ctx->linfos     = static_cast<void*>(linfos);
+    ctx->linfoCnt   = linfoCnt;
+    ctx->codeTree   = static_cast<void*>(tree);
+    _jitFn = reinterpret_cast<void*>(tree->_cpJit->trampoline());
+  }
+  ctx->bindings   = bindings.array();
+  ctx->entryMcode = entry->_mcode;
+
   if (fresh) {
     fresh = false;
     _jitBtCursor = _jitBtBuf;
   } else {
-    // Resume after a previous yield.  Set op = nullptr to signal
-    // the trampoline to enter via its backtrack handler, which will
-    // pop {tp, mcode} from the JIT bt stack.  If the stack is empty,
-    // the trampoline advances to the next literal internally (or
-    // returns matched=0 if all literals are exhausted)
     op = nullptr;
   }
 
-  ASS(_jitCtx);
-  ASS(_jitFn);
-  auto* ctx = static_cast<JitExecContext*>(_jitCtx);
   auto jitFn = reinterpret_cast<CopyPatchJit::TrampolineFunc>(_jitFn);
 
   ctx->ftData   = &(*ft)[0];
   ctx->tp       = tp;
   ctx->btCursor = _jitBtCursor;
-  ctx->btBase   = _jitBtBuf;     // may have changed from expand
-  ctx->btEnd    = _jitBtEnd;     // may have changed from expand
+  ctx->btBase   = _jitBtBuf;
+  ctx->btEnd    = _jitBtEnd;
   ctx->curLInfo = curLInfo;
   ctx->op       = op;
   ctx->matched  = 0;
@@ -698,8 +710,6 @@ bool CodeTree::Matcher<removing, checkRange, higherOrder>::executeMachineCode()
   op           = static_cast<CodeOp*>(ctx->op);
   curLInfo     = ctx->curLInfo;
 
-  // Keep ft in sync with curLInfo for recordMatch() and other C++ code
-  // that accesses linfos[curLInfo] after we return.
   if (linfoCnt > 0 && curLInfo < linfoCnt) {
     ft = linfos[curLInfo].ft;
   }
@@ -734,21 +744,8 @@ void CodeTree::Matcher<removing, checkRange, higherOrder>::init(CodeTree* tree_,
   // Reset the JIT backtrack cursor (buffer is kept for reuse)
   if constexpr (!removing && !checkRange) {
     _jitBtCursor = _jitBtBuf;
-
-    // constant fields are written once here
-    // only per-call fields are updated in executeMachineCode()
-    if (tree->_clauseCodeTree && !tree->isEmpty()) {
-      if (!_jitCtx) {
-        _jitCtx = malloc(sizeof(JitExecContext));
-      }
-      auto* ctx = static_cast<JitExecContext*>(_jitCtx);
-      tree->_cpJit->initContext(*ctx);
-      ctx->linfos     = static_cast<void*>(linfos);
-      ctx->linfoCnt   = linfoCnt;
-      ctx->bindings   = bindings.array();
-      ctx->entryMcode = entry ? entry->_mcode : nullptr;
-      _jitFn = reinterpret_cast<void*>(tree->_cpJit->trampoline());
-    }
+    // Full JIT context setup is deferred to executeMachineCode() so it picks up freshly-compiled _mcode pointers
+    _jitFn = nullptr;  // force re-init on next executeMachineCode() call
   }
 }
 
@@ -964,7 +961,7 @@ CodeTree::~CodeTree()
       ASS_EQ(top_op,op);
       for(size_t rem=cb->length(); rem; rem--,op++) {
         if (_onCodeOpDestroying) {
-          (*_onCodeOpDestroying)(op); 
+          (*_onCodeOpDestroying)(op);
         }
         if(op->alternative()) {
           top_ops.push(op->alternative());
@@ -1006,11 +1003,11 @@ void CodeTree::visitAllOps(Visitor visitor) const
 
     if (top_op->isSearchStruct()) {
       visitor(top_op, depth); // visit the landingOp inside the SearchStruct
-      
+
       if(top_op->alternative()) {
         top_ops.push(make_pair(top_op->alternative(),depth));
       }
-      
+
       auto ss = top_op->getSearchStruct();
       for (size_t i = 0; i < ss->length(); i++) {
         if (ss->targets[i]!=0) { // zeros are allowed as targets (they are holes after removals)
@@ -1195,7 +1192,6 @@ void CodeTree::incorporate(CodeStack& code)
 
   if(isEmpty()) {
     _entryPoint=buildBlock(code, code.length(), 0);
-    jitBlock(_entryPoint);
     code.reset();
     return;
   }
@@ -1313,10 +1309,10 @@ matching_done:
   CodeBlock* rem=buildBlock(code, clen-matchedCnt, lastMatchedILS);
   CodeOp* newFirst = &(*rem)[0];
   *tailTarget = newFirst;
-  // JIT-emit the new block.
-  jitBlock(rem);
 
-  if (modifiedSearchStruct) {
+  if (modifiedSearchStruct && modifiedSearchStruct->landingOp._mcode) {
+    // SearchStruct was already compiled but its target list changed, meaning we
+    // have to re-emit so the compiled binary search picks up the new slot.
     jitSearchStruct(modifiedSearchStruct);
   }
   // Binary-patch the owner's embedded alternative immediate so pushAlt/jmpAlt pick up the new block
@@ -1372,6 +1368,7 @@ void CodeTree::compressCheckOps(CodeOp* chainStart)
             toDo.push(ss->targets[i]);
           }
         }
+        freeJitSearchStruct(ss);
         ss->destroy();
       } else {
         otherOps.push(op);
@@ -1419,9 +1416,6 @@ void CodeTree::compressCheckOps(CodeOp* chainStart)
   op->setAlternative(0);
   patchAlternative(op);
 
-  // JIT-emit machine code for the SearchStruct landing op so that
-  // subsequent execution can enter it via op->_mcode.
-  jitSearchStruct(res);
 }
 
 //////////// removal //////////////
@@ -1431,8 +1425,6 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp
   ASS(removedOp->isFail());
   LOG_OP("Code tree removal memory optimization");
   LOG_OP("firstsInBlocks->size()="<<firstsInBlocks->size());
-
-  //now let us remove unnecessary instructions and the free memory
 
   CodeOp* op=removedOp;
   ASS(firstsInBlocks->isNonEmpty());
@@ -1470,6 +1462,9 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp
 
     CodeOp firstOpCopy= *firstOp;
 
+    // Free the JIT code for this block before deallocation
+    freeJitBlock(cb);
+
     if(_clauseCodeTree) {
       //delete ILStruct objects
       size_t cbLen=cb->length();
@@ -1505,13 +1500,13 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp
       if(alt) {
 	ASS( (ss->kind==SearchStruct::FN_STRUCT && alt->isCheckFun()) ||
 	    (ss->kind==SearchStruct::GROUND_TERM_STRUCT && alt->isCheckGroundTerm()) );
-	jitSearchStruct(ss);  // Re-emit JIT: target pointer changed
+	if (ss->landingOp._mcode) { jitSearchStruct(ss); }  // Re-emit: target pointer changed
 	return;
       }
       for(size_t i=0; i<ss->length(); i++) {
 	if(ss->targets[i]!=0) {
 	  //the SearchStruct still contains something, so we won't delete it
-	  jitSearchStruct(ss);  // Re-emit JIT: target slot nulled out
+	  if (ss->landingOp._mcode) { jitSearchStruct(ss); }  // Re-emit: target slot nulled
 	  return;
 	}
       }
@@ -1519,6 +1514,7 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp
       //if we're at this point, the SEARCH_STRUCT will be deleted
       firstOp=&ss->landingOp;
       alt=ss->landingOp.alternative();
+      freeJitSearchStruct(ss);
       ss->destroy();
 
       //now let's continue as if there wasn't any SEARCH_STRUCT operation:)
@@ -1579,6 +1575,21 @@ void CodeTree::incTimeStamp()
 
 //////////////// JIT-delegating to CopyPatchJit ////////////////////
 
+void* CodeTree::lazyCompileBlock(CodeOp* firstOp)
+{
+  if (!firstOp || firstOp->_mcode) return firstOp ? firstOp->_mcode : nullptr;
+
+  // Compile on first encounter, LLVM-style lazy compilation, inspiration from https://llvm.org/docs/tutorial/BuildingAJIT3.html
+  // The stencil stub detected null _mcode and called this
+  // We compile the block now and the next time the stub dereferences _mcode it will find the compiled code and jump directly
+  if (firstOp->isSearchStruct()) {
+    jitSearchStruct(firstOp->getSearchStruct());
+  } else {
+    jitBlock(firstOpToCodeBlock(firstOp));
+  }
+  return firstOp->_mcode;
+}
+
 void CodeTree::jitBlock(CodeBlock* block)
 {
   _cpJit->initialize();
@@ -1591,6 +1602,29 @@ void CodeTree::jitSearchStruct(SearchStruct* ss)
   // fprintf(stderr, "jitSearchStruct %d\n", ++count);
   _cpJit->initialize();
   _cpJit->emitSearchStruct(ss);
+}
+
+void CodeTree::freeJitBlock(CodeBlock* block)
+{
+  if (!block || block->length() == 0) return;
+  // The entire block shares one contiguous JIT allocation whose base is the first op's _mcode pointer.
+  void* base = (*block)[0]._mcode;
+  if (base) {
+    _cpJit->freeCode(base);
+    // Clear _mcode on all ops so nothing can jump into freed memory
+    for (size_t i = 0; i < block->length(); i++) {
+      (*block)[i]._mcode = nullptr;
+    }
+  }
+}
+
+void CodeTree::freeJitSearchStruct(SearchStruct* ss)
+{
+  if (!ss) return;
+  if (ss->landingOp._mcode) {
+    _cpJit->freeCode(ss->landingOp._mcode);
+    ss->landingOp._mcode = nullptr;
+  }
 }
 
 void CodeTree::patchAlternative(CodeOp* op)

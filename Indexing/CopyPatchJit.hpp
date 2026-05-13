@@ -45,13 +45,16 @@ struct JitExecContext {
   void*            backtrackHandler;  // [rbp + 72]
   void*            successHandler;    // [rbp + 80]
   void*            expandBtFunc;      // [rbp + 88]
-  void*            expandStub;        // [rbp + 96]  (JIT expand stub-called from pushAlt)
+  void*            expandStub;        // [rbp + 96] (JIT expand stub-called from pushAlt)
 
   // Literal iteration fields-used by totalFail handler
   void*            linfos;            // [rbp + 104] (LitInfo* array)
   size_t           linfoCnt;          // [rbp + 112] (number of LitInfos)
   void*            entryMcode;        // [rbp + 120] (entry point _mcode-tree root)
   void*            expandEntryFunc;   // [rbp + 128] (C helper: expand FUN_UNEXPANDED)
+  void*            lazyCompileFunc;   // [rbp + 136] (C helper: lazy-compile uncompiled blocks)
+  void*            codeTree;          // [rbp + 144] (CodeTree* for lazy compilation callbacks)
+  void*            lazyCompileStub;   // [rbp + 152] (JIT stub that calls lazyCompileFunc)
 };
 
 static_assert(offsetof(JitExecContext, ftData)           ==  0, "");
@@ -71,6 +74,9 @@ static_assert(offsetof(JitExecContext, linfos)           == 104, "");
 static_assert(offsetof(JitExecContext, linfoCnt)         == 112, "");
 static_assert(offsetof(JitExecContext, entryMcode)       == 120, "");
 static_assert(offsetof(JitExecContext, expandEntryFunc)  == 128, "");
+static_assert(offsetof(JitExecContext, lazyCompileFunc)  == 136, "");
+static_assert(offsetof(JitExecContext, codeTree)         == 144, "");
+static_assert(offsetof(JitExecContext, lazyCompileStub)  == 152, "");
 
 
 // --------------------------------------------------------------------------
@@ -119,6 +125,11 @@ public:
   void emitSearchStruct(CodeTree::SearchStruct* ss);
   void patchAlternative(CodeTree::CodeOp* op);
 
+  /** Free a JIT allocation previously returned by allocExec.
+   *  Called by CodeTree when a block or SearchStruct is removed from the tree.
+   */
+  void freeCode(void* mcodePtr);
+
   typedef void (*TrampolineFunc)(JitExecContext*);
   TrampolineFunc trampoline() const { return _trampoline; }
 
@@ -131,12 +142,15 @@ public:
     ctx.expandBtFunc     = reinterpret_cast<void*>(&expandBtBufferHelper);
     ctx.expandStub       = _expandStub;
     ctx.expandEntryFunc  = reinterpret_cast<void*>(&expandEntryHelper);
+    ctx.lazyCompileFunc  = reinterpret_cast<void*>(&lazyCompileHelper);
+    ctx.lazyCompileStub  = _lazyCompileStub;
   }
 
   void releaseAll();
   bool isInitialized() const { return _initialized; }
   static void expandBtBufferHelper(JitExecContext* ctx);
   static void expandEntryHelper(FlatTerm::Entry* entry);
+  static void* lazyCompileHelper(JitExecContext* ctx, CodeTree::CodeOp* alt);
 
 private:
   void compileTrampoline();
@@ -147,20 +161,45 @@ private:
   void compileStencilSuccessOrFail();
   void compileStencilLitEnd();
   void compileExpandStub();
+  void compileLazyCompileStub();
 
   void emitPushAlt(void* assembler_ptr, Stencil& s, size_t baseOffset);
   void emitJmpAlt(void* assembler_ptr, Stencil& s, size_t baseOffset);
   void emitNextJump(void* assembler_ptr, Stencil& s, size_t baseOffset);
   void* allocExec(size_t size);
-  void  freeExec(void* ptr, size_t size);
+  void  freeExec(void* ptr);
+
+  // TODO revise this strategy, i feel like this is not optimal
+  // Segregated free-list allocator for executable memory
+  //
+  // Each JIT allocation is prepended with a 16-byte header storing the size-class bucket size.
+  // On free, the header is read to determine the class and the block is pushed onto a per-class single-linked free list.
+  // The next-pointer is stored in the (now-dead) user-data region.
+
+  static constexpr size_t ALLOC_HEADER_SIZE = 16;   // prepended to every alloc
+
+  // Size classes (total bytes including header)
+  static constexpr size_t NUM_SIZE_CLASSES = 8;
+  static constexpr size_t SIZE_CLASS_SIZES[NUM_SIZE_CLASSES] = {
+    64, 128, 256, 512, 1024, 2048, 4096, 8192
+  };
+
+  static size_t sizeClassIndex(size_t totalSize);
+  static size_t sizeClassBucket(size_t classIdx, size_t totalSize);
+
+  struct FreeNode { FreeNode* next; };
+  FreeNode* _freeLists[NUM_SIZE_CLASSES] = {};
 
   struct ExecSlab {
     void*  base;
     size_t capacity;
     size_t used;
+    size_t liveCount;   // number of live (non-freed) allocations in this slab
   };
   std::vector<ExecSlab> _slabs;
   static constexpr size_t SLAB_SIZE = 1024 * 1024;  // 1 MB per slab
+
+  ExecSlab* findSlab(void* ptr);
 
   void* slabAlloc(size_t size);
   void  ensureSlabSpace(size_t size);
@@ -180,6 +219,7 @@ private:
   size_t _trampolineSize = 0;
 
   void* _expandStub = nullptr;
+  void* _lazyCompileStub = nullptr;
 };
 
 } // namespace Indexing

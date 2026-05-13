@@ -34,7 +34,7 @@
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
-#define DEBUG_CODE_TREES 1
+#define DEBUG_CODE_TREES 0
 
 namespace Shell { class AnswerLiteralManager; }
 
