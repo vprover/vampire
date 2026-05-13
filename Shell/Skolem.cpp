@@ -484,8 +484,9 @@ Formula* Skolem::skolemise (Formula* f)
         }
       }
 
-      Formula* after = SubstHelper::apply(f->qarg(), _subst);
-      return skolemise(after);
+      Formula* skolemised = skolemise(f->qarg());
+      //Apply substitution to the entire formula again, after skolemising to fix skolemized sorts.
+      return SubstHelper::apply(skolemised, _subst); 
     }
 
   case BOOL_TERM:
