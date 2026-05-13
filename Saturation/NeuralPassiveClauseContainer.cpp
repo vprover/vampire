@@ -138,51 +138,6 @@ NeuralClauseEvaluationModel::NeuralClauseEvaluationModel(const std::string claus
   env.statistics->neuralModelWarmup += (Timer::elapsedInstructions()-neural_model_start_instrs);
 }
 
-float NeuralClauseEvaluationModel::tryGetScore(Clause* cl) {
-  float* someVal = _scores.findPtr(cl->number());
-  if (someVal) {
-    return *someVal;
-  }
-  // a very optimistic constant (since large is good)
-  return std::numeric_limits<float>::max();
-}
-
-// obsolete - to revive, if we were to compare to ENIGMA-style (classifier) approach to lawa
-float NeuralClauseEvaluationModel::evalClause(Clause* cl) {
-  float* someVal = _scores.findPtr(cl->number());
-  if (someVal) {
-    return *someVal;
-  }
-
-  float logit;
-  {
-    TIME_TRACE("neural model evaluation");
-
-    std::vector<torch::jit::IValue> inputs;
-
-    std::vector<float> features(_numFeatures);
-    unsigned i = 0;
-    Clause::FeatureIterator it(cl);
-    while (i < _numFeatures && it.hasNext()) {
-      features[i] = it.next();
-      i++;
-    }
-    ASS_EQ(features.size(),_numFeatures);
-    inputs.push_back(torch::from_blob(features.data(), {_numFeatures}, torch::TensorOptions().dtype(torch::kFloat32)));
-
-    logit = _model.forward(std::move(inputs)).toTensor().item().toDouble();
-  }
-
-  if (_temp > 0.0) {
-    // adding the gumbel noise
-    logit += -_temp*log(-log(Random::getFloat(0.0,1.0)));
-  }
-
-  // cout << "New clause has " << res << " with number " << cl->number() << endl;
-  _scores.insert(cl->number(),logit);
-  return logit;
-}
-
 void NeuralClauseEvaluationModel::gageEmbedPending()
 {
   torch::NoGradGuard no_grad; // TODO: check if this is necessary here

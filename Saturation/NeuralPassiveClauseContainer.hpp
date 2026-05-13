@@ -326,9 +326,7 @@ public:
     return _gweightEmbeddingSize;
   }
 
-  const DHMap<unsigned,float>& getScores() { return _scores; }
-
-  float evalClause(Clause* cl);
+  const DHMap<unsigned,ScorePair>& getScores() { return _scores; }
 
   template<typename T>
   void evalClauses(const T& clauses, bool justRecord = false) {
