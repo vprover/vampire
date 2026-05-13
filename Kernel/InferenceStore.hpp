@@ -71,7 +71,7 @@ public:
 
   void recordSplittingNameLiteral(Unit* us, Literal* lit);
   void recordIntroducedSymbol(Unit* u, SymbolType st, unsigned number);
-  void recordIntroducedSkolemSymbol(Unit* u, SymbolType st, unsigned number, unsigned replacedVar, std::unique_ptr<std::vector<unsigned>> inScopeVars);
+  void recordIntroducedSkolemSymbol(Unit* u, SymbolType st, unsigned replacedVar, Term* symTerm);
   void recordIntroducedSplitName(Unit* u, std::string name);
   
 
@@ -98,8 +98,10 @@ private:
   typedef std::pair<SymbolType,unsigned> SymbolId;
   typedef Stack<SymbolId> SymbolStack;
   DHMap<unsigned,SymbolStack> _introducedSymbols;
+  // symbol number -> existential variable name (number) that was replaced by the symbol
   DHMap<unsigned, unsigned> _introducedSymbolReplacedVars;
-  DHMap<unsigned, std::unique_ptr<std::vector<unsigned>>> _introducedSymbolInScopeVars;
+  // symbol number -> the term that is introduced when introducing the skolem symbol
+  DHMap<unsigned, Term*> _introducedSkolemSymTerms;
   DHMap<unsigned,std::string> _introducedSplitNames;
 };
 

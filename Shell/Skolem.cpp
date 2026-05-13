@@ -14,8 +14,10 @@
  * @since 08/07/2007 flight Manchester-Cork, changed to new datastructures
  */
 
+#include "Forwards.hpp"
 #include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Signature.hpp"
+#include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/InferenceStore.hpp"
@@ -23,6 +25,7 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/SharedSet.hpp"
 
@@ -71,7 +74,7 @@ FormulaUnit* Skolem::skolemise (FormulaUnit* unit, bool appify)
 FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
 {
   ASS(_introducedSkolemSyms.isEmpty());
-  
+
   _appify = appify;
   _beingSkolemised=unit;
   _skolimizingDefinitions = UnitList::empty();
@@ -99,18 +102,19 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
   ASS(_introducedSkolemSyms.isNonEmpty());
   while(_introducedSkolemSyms.isNonEmpty()) {
     auto symPair = _introducedSkolemSyms.pop();
+    auto symTerm = symPair.second;
     
-    if(std::get<0>(symPair)){
-      InferenceStore::instance()->recordIntroducedSkolemSymbol(res,SymbolType::TYPE_CON,std::get<1>(symPair),std::get<2>(symPair), std::move(std::get<3>(symPair)));
+    if(symTerm->kind()==TermKind::SORT){
+      InferenceStore::instance()->recordIntroducedSkolemSymbol(res, SymbolType::TYPE_CON, symPair.first, symPair.second); 
     } else {
-      InferenceStore::instance()->recordIntroducedSkolemSymbol(res,SymbolType::FUNC,std::get<1>(symPair),std::get<2>(symPair), std::move(std::get<3>(symPair)));
+      InferenceStore::instance()->recordIntroducedSkolemSymbol(res, Kernel::SymbolType::FUNC, symPair.first, symPair.second);
     }
 
     if(unit->derivedFromGoal()){
-      if(std::get<0>(symPair)){
-        env.signature->getTypeCon(std::get<1>(symPair))->markInGoal();
+      if(symTerm->kind()==TermKind::SORT){
+        env.signature->getTypeCon(symPair.second->functor())->markInGoal();
       } else {
-        env.signature->getFunction(std::get<1>(symPair))->markInGoal();
+        env.signature->getFunction(symPair.second->functor())->markInGoal();
       }
     }
   }
@@ -353,11 +357,9 @@ Formula* Skolem::skolemise (Formula* f)
       allVars.reset();
       typeVars.reset();
 
-      // for proof recording purposes, see below
       //We use a FIFO structure since in the polymorphic case
       //a variable list must be of the form [typevars, termvars]
       VSList::FIFO vArgs;
-      Formula* before = SubstHelper::apply(f, _subst);
 
       ExVarDepInfo& depInfo = _varDeps.get(f);
 
@@ -453,11 +455,7 @@ Formula* Skolem::skolemise (Formula* f)
           TermList head = TermList(Term::create(sym, typeVars.size(), typeVars.begin()));
           skolemTerm = HOL::create::app(head, termVars).term();
         }
-        std::unique_ptr<std::vector<unsigned>> inScopeVars = std::make_unique<std::vector<unsigned>>();
-        for(auto it : dep->iter()){
-          inScopeVars->push_back(it);
-        }
-        _introducedSkolemSyms.push(std::make_tuple(skolemisingTypeVar, sym, v, std::move(inScopeVars)));
+        _introducedSkolemSyms.push(std::make_pair(v, skolemTerm));
 
         env.statistics->skolemFunctions++;
 
@@ -486,20 +484,8 @@ Formula* Skolem::skolemise (Formula* f)
         }
       }
 
-      {
-        Formula* after = SubstHelper::apply(f->qarg(), _subst);
-        Formula* def = new BinaryFormula(IMP, before, after);
-
-        if (arity > 0) {
-          def = new QuantifiedFormula(FORALL, vArgs.list(), def);
-        }
-        
-        //Unit* defUnit = new FormulaUnit(def,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::SKOLEM_SYMBOL_INTRODUCTION));
-        //UnitList::push(defUnit,_skolimizingDefinitions);
-      }
-      
-      // drop the existential one:
-      return skolemise(f->qarg());
+      Formula* after = SubstHelper::apply(f->qarg(), _subst);
+      return skolemise(after);
     }
 
   case BOOL_TERM:

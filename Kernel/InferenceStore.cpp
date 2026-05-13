@@ -48,6 +48,7 @@
 #include <memory>
 #include <set>
 #include <string>
+#include <utility>
 #include <vector>
 
 //TODO: when we delete clause, we should also delete all its records from the inference store
@@ -88,13 +89,12 @@ void InferenceStore::recordIntroducedSymbol(Unit* u, SymbolType st, unsigned num
   pStack->push(SymbolId(st,number));
 }
 
-void InferenceStore::recordIntroducedSkolemSymbol(Unit* u, SymbolType st, unsigned number, unsigned replacedVar, std::unique_ptr<std::vector<unsigned>> inScopeVars)
-{
+void InferenceStore::recordIntroducedSkolemSymbol(Unit* u, SymbolType st, unsigned replacedVar, Term* symTerm){
   SymbolStack* pStack;
   _introducedSymbols.getValuePtr(u->number(),pStack);
-  _introducedSymbolReplacedVars.insert(number, replacedVar);
-  _introducedSymbolInScopeVars.insert(number, std::move(inScopeVars));
-  pStack->push(SymbolId(st,number));
+  _introducedSymbolReplacedVars.insert(symTerm->functor(), replacedVar);
+  _introducedSkolemSymTerms.insert(symTerm->functor(), symTerm);
+  pStack->push(SymbolId(st,symTerm->functor()));
 }
 
 /**
@@ -608,36 +608,23 @@ protected:
 std::string getSkolemizeMap(Unit* u){
   ASS(hasNewSymbols(u));
   SymbolStack& syms = _is->_introducedSymbols.get(u->number());
-  return getSkolemizeMap(SymbolStack::ConstIterator(syms));
+  return getSkolemizeMap(u->number(), SymbolStack::ConstIterator(syms));
 }
 
 template<class It>
-std::string getSkolemizeMap(It symIt){
+std::string getSkolemizeMap(unsigned unitNumber, It symIt){
   std::ostringstream symsStr;
- 
-  while (symIt.hasNext()) {
+  bool hasNext = symIt.hasNext();
+  while (hasNext) {
     symsStr << "skolemize(";
     SymbolId a = symIt.next();
-    auto res = _is->_introducedSymbolReplacedVars.find(a.second);
-    NEVER(res.isNone());
-    symsStr << "X" << *res << ",";
-    symsStr << getSymbolName(a);
-    auto inScopeVarsOpt = _is->_introducedSymbolInScopeVars.find(a.second);
-    NEVER(inScopeVarsOpt.isNone());
-    auto inScopeVars = inScopeVarsOpt->get();
-    if(inScopeVars->size() > 0) {
-      symsStr << "(";
-      
-      for(auto iter = inScopeVars->begin(); iter != inScopeVars->end(); iter++){
-        symsStr << "X" << *iter;
-        if(iter+1 != inScopeVars->end()) {
-          symsStr << ",";
-        }
-      }
-      symsStr << ")";
-    }
-    symsStr << ")";
-    if(symIt.hasNext()) {
+    auto skolemTerm = _is->_introducedSkolemSymTerms.find(a.second);
+    NEVER(skolemTerm.isNone());
+    auto skolemizedVariable = _is->_introducedSymbolReplacedVars.find((*skolemTerm)->functor());
+    NEVER(skolemizedVariable.isNone());
+    symsStr << "X" << *skolemizedVariable << "," << (*skolemTerm)->toString() << ")";
+    hasNext = symIt.hasNext();
+    if(hasNext) {
       symsStr << ",";
     }
   }
