@@ -92,8 +92,8 @@ void InferenceStore::recordIntroducedSymbol(Unit* u, SymbolType st, unsigned num
 void InferenceStore::recordIntroducedSkolemSymbol(Unit* u, SymbolType st, unsigned replacedVar, Term* symTerm){
   SymbolStack* pStack;
   _introducedSymbols.getValuePtr(u->number(),pStack);
-  _introducedSymbolReplacedVars.insert(symTerm->functor(), replacedVar);
-  _introducedSkolemSymTerms.insert(symTerm->functor(), symTerm);
+  _introducedSymbolReplacedVars.insert(std::make_pair(st,symTerm->functor()), replacedVar);
+  _introducedSkolemSymTerms.insert(std::make_pair(st,symTerm->functor()), symTerm);
   pStack->push(SymbolId(st,symTerm->functor()));
 }
 
@@ -617,10 +617,10 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
   bool hasNext = symIt.hasNext();
   while (hasNext) {
     symsStr << "skolemize(";
-    SymbolId a = symIt.next();
-    auto skolemTerm = _is->_introducedSkolemSymTerms.find(a.second);
+    SymbolId symbol = symIt.next();
+    auto skolemTerm = _is->_introducedSkolemSymTerms.find(symbol);
     NEVER(skolemTerm.isNone());
-    auto skolemizedVariable = _is->_introducedSymbolReplacedVars.find((*skolemTerm)->functor());
+    auto skolemizedVariable = _is->_introducedSymbolReplacedVars.find(symbol);
     NEVER(skolemizedVariable.isNone());
     symsStr << "X" << *skolemizedVariable << "," << (*skolemTerm)->toString() << ")";
     hasNext = symIt.hasNext();

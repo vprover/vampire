@@ -16,10 +16,8 @@
 #ifndef __InferenceStore__
 #define __InferenceStore__
 
-#include <memory>
 #include <utility>
 #include <ostream>
-#include <vector>
 
 #include "Forwards.hpp"
 
@@ -98,10 +96,10 @@ private:
   typedef std::pair<SymbolType,unsigned> SymbolId;
   typedef Stack<SymbolId> SymbolStack;
   DHMap<unsigned,SymbolStack> _introducedSymbols;
-  // symbol number -> existential variable name (number) that was replaced by the symbol
-  DHMap<unsigned, unsigned> _introducedSymbolReplacedVars;
-  // symbol number -> the term that is introduced when introducing the skolem symbol
-  DHMap<unsigned, Term*> _introducedSkolemSymTerms;
+  // symbol id -> existential variable name (number) that was replaced by the symbol
+  DHMap<SymbolId, unsigned> _introducedSymbolReplacedVars;
+  // symbol id -> the term that is introduced when introducing the skolem symbol
+  DHMap<SymbolId, Term*> _introducedSkolemSymTerms;
   DHMap<unsigned,std::string> _introducedSplitNames;
 };
 

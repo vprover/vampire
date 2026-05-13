@@ -34,8 +34,6 @@
 
 #include "Options.hpp"
 #include "Rectify.hpp"
-#include <memory>
-#include <vector>
 #include "Skolem.hpp"
 
 using namespace std;
