@@ -376,6 +376,26 @@ void NeuralPassiveClauseContainer::consolidate()
   }
 }
 
+void NeuralScoreQueue::bumpStage()
+{
+  Stack<Clause*> clauses;
+  Iterator it(*this);
+  while (it.hasNext()) {
+    clauses.push(it.next());
+  }
+  removeAll();
+  _stageIdx++;
+  auto cit = clauses.iter();
+  while (cit.hasNext()) {
+    insert(cit.next());
+  }
+}
+
+void NeuralPassiveClauseContainer::warmupFinished()
+{
+  _queue.bumpStage();
+}
+
 Clause* NeuralPassiveClauseContainer::popSelected()
 {
   ASS(_size);

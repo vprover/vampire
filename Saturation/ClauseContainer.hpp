@@ -141,6 +141,7 @@ public:
 
   virtual bool isEmpty() const = 0;
   virtual void consolidate() {}; // to be called by SA just before popSelected (and after the iterative doUnprocessedLoop), can still drop some clauses here
+  virtual void warmupFinished() {}; // we have just selected the N-th clause, where N = num_of_initial_clauses; so we are switching to a next stage
   virtual Clause* popSelected() = 0;
 
   unsigned sizeEstimate() const override = 0;

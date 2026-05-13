@@ -456,15 +456,17 @@ public:
     // to make sure clauses are evalauted in time for LRS estimations ...
     ScorePair val;
     if (_scores.find(cl->number(),val)) {
-      return -val[0]; // negating: NNs think large is good, queues think small is good
+      return -val[_stageIdx]; // negating: NNs think large is good, queues think small is good
     }
     // .. if not, each such clause is considered "to be kept"
     return -maxOrdVal; // a very optimistic constant (since small is good)
   }
+
+  void bumpStage();
 protected:
   virtual bool lessThan(Clause* c1,Clause* c2) {
-    auto sc1 = _scores.get(c1->number())[0];
-    auto sc2 = _scores.get(c2->number())[0];
+    auto sc1 = _scores.get(c1->number())[_stageIdx];
+    auto sc2 = _scores.get(c2->number())[_stageIdx];
 
     // reversing the order here: NNs think large is good, queues think small is good
     if (sc1 > sc2) {
@@ -477,6 +479,7 @@ protected:
     return c1->number() < c2->number();
   }
 private:
+  unsigned _stageIdx = 0;
   const DHMap<unsigned,ScorePair>& _scores;
 };
 
@@ -496,6 +499,7 @@ public:
   void add(Clause* cl) override;
   void remove(Clause* cl) override;
   void consolidate() override;
+  void warmupFinished() override;
   Clause* popSelected() override;
 
 private:

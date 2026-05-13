@@ -1816,6 +1816,11 @@ void SaturationAlgorithm::doOneAlgorithmStep()
   // and it should correspond to the number of times _passive->popSelected() was called (for good LRS estimates to work)
   env.statistics->activations++;
 
+  // by convention, this is how we define the warm-up phase
+  if (env.statistics->activations == env.statistics->initialClauses) {
+    _passive->warmupFinished();
+  }
+
   if (!handleClauseBeforeActivation(cl)) {
     return;
   }
