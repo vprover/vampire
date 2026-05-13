@@ -398,22 +398,21 @@ public:
       unsigned idx = 0;
       while (uIt.hasNext()) {
         Clause* cl = uIt.next();
-        float gumbelNoise = 0.0;
-        if (_temp > 0.0) {
-          // same gumbel noise sample for both logits
-          gumbelNoise = -_temp*log(-log(Random::getFloat(0.0,1.0)));
-        }
-
-        ScorePair pair;
-        pair[0] = logits.index({(int64_t)idx, 0}).item().toFloat() + gumbelNoise;
-        pair[1] = logits.index({(int64_t)idx, 1}).item().toFloat() + gumbelNoise;
-        idx++;
 
         ScorePair* score;
         // only overwrite, if not present
         if (_scores.getValuePtr(cl->number(),score)) {
-          *score = pair;
+
+          float gumbelNoise = 0.0;
+          if (_temp > 0.0) {
+            // same gumbel noise sample for both logits
+            gumbelNoise = -_temp*log(-log(Random::getFloat(0.0,1.0)));
+          }
+
+          (*score)[0] = logits.index({(int64_t)idx, 0}).item().toFloat() + gumbelNoise;
+          (*score)[1] = logits.index({(int64_t)idx, 1}).item().toFloat() + gumbelNoise;
         }
+        idx++;
       }
     }
   }
