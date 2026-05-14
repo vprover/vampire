@@ -300,7 +300,7 @@ Option<AbstractionOracle::AbstractionResult> funcExt(
 TermSpec appHead(AbstractingUnifier* au, TermSpec t)
 {
   ASS_EQ(t, au->subs().derefBound(t));
-  while (t.term.isApplication()) {
+  while (t.term.isLambdaTerm() || t.term.isApplication()) {
     t = au->subs().derefBound(t.termArg(0));
   }
   return t;
@@ -345,6 +345,14 @@ Option<AbstractionOracle::AbstractionResult> hol(
   }
   if (t2.term.isVar()) {
     return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, t1.sort()))));
+  }
+
+  auto h1 = appHead(au, t1);
+  auto h2 = appHead(au, t2);
+  if (h1.isTerm() && !h1.term.deBruijnIndex() && h2.isTerm() && !h2.term.deBruijnIndex()
+    && h1.term.term()->functor() != h2.term.term()->functor())
+  {
+    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
   }
 
   DHMap<VarSpec, unsigned int> varMap;
