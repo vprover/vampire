@@ -525,6 +525,18 @@ void Options::init()
     _tweeGoalTransformation.setExperimental();
     _lookup.insert(&_tweeGoalTransformation);
 
+    // At least on higher-order TPTP, tgt with tsa=off sucks badly
+    // TODO(HOL): investigate perhaps less invasive options of restraining
+    // general tgt in HOL, that would still be performant
+    _tweeSkipArrows = BoolOptionValue("twee_skip_arrows","tsa",true);
+    _tweeSkipArrows.description =
+      "During twee_goal_transformation, when in HOL, "
+      "don't introduce definitions for other subterms than those "
+      "whose type is not an arrow type.";
+    _tweeSkipArrows.tag(OptionTag::PREPROCESSING);
+    _tweeSkipArrows.setExperimental();
+    _lookup.insert(&_tweeSkipArrows);
+
     _codeTreeSubsumption = BoolOptionValue("code_tree_subsumption", "cts", true);
     _codeTreeSubsumption.description =
       "Use code tree implementation of forward subsumption and subsumption resolution.";

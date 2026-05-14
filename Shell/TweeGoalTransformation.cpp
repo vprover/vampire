@@ -116,6 +116,10 @@ class Definizator : public BottomUpTermTransformer {
       Term* t = trm.term();
       if (t->isSort() || t->arity() == 0 || (!t->ground() && _groundOnly)) return trm;
 
+      if (env.options->tweeSkipArrows() && SortHelper::getResultSort(t).isArrowSort()) {
+        return trm;
+      }
+
       // TODO(HOL): try to lift this restriction
       if (env.higherOrder() && trm.containsLooseDBIndex()) {
         return trm;
