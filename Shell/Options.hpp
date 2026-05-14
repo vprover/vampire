@@ -344,15 +344,6 @@ public:
   };
 
   /**
-   *
-   *
-   */
-  enum class Instantiation : unsigned int {
-    OFF = 0,
-    ON = 1
-  };
-
-  /**
    * Possible values for the input syntax
    * @since 26/08/2009 Redmond
    */
@@ -2239,7 +2230,7 @@ public:
 
   bool colorUnblocking() const { return _colorUnblocking.actualValue; }
 
-  Instantiation instantiation() const { return _instantiation.actualValue; }
+  bool instantiation() const { return _instantiation.actualValue; }
   bool theoryFlattening() const { return _theoryFlattening.actualValue; }
   bool ignoreUnrecognizedLogic() const { return _ignoreUnrecognizedLogic.actualValue; }
 
@@ -2524,7 +2515,7 @@ private:
 
   IntOptionValue _inequalitySplitting;
   ChoiceOptionValue<InputSyntax> _inputSyntax;
-  ChoiceOptionValue<Instantiation> _instantiation;
+  BoolOptionValue _instantiation;
 
   ChoiceOptionValue<Induction> _induction;
   ChoiceOptionValue<StructuralInductionKind> _structInduction;

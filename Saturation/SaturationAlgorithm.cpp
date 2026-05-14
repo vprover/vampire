@@ -1430,7 +1430,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new Induction(*res));
   }
 
-  if (opt.instantiation() != Options::Instantiation::OFF) {
+  if (opt.instantiation()) {
     res->_instantiation = new Instantiation();
     // res->_instantiation->init();
     gie->addFront(res->_instantiation);

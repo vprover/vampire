@@ -1653,7 +1653,7 @@ void Options::init()
     _inductionOnActiveOccurrences.onlyUsefulWith(_induction.is(notEqual(Induction::NONE)));
     _lookup.insert(&_inductionOnActiveOccurrences);
 
-    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
+    _instantiation = BoolOptionValue("instantiation","inst",false);
     _instantiation.description = "Heuristically instantiate variables. Often wastes a lot of effort. Consider using thi instead.";
     _instantiation.tag(OptionTag::THEORIES);
     _lookup.insert(&_instantiation);
