@@ -77,7 +77,6 @@ Property::Property()
     _hasFOOL(false),
     _hasArrowSort(false),
     _hasApp(false),
-    _hasAppliedVar(false),
     _hasBoolVar(false),
     _hasLogicalProxy(false),
     _hasLambda(false),

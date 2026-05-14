@@ -3584,6 +3584,11 @@ bool Options::complete(const Problem& prb) const
     return false;
   }
 
+  if (prb.hasFOOL() && _casesSimp.actualValue) {
+    // casesSimp is not complete 
+    return false;
+  }
+
   Property& prop = *prb.getProperty();
 
   // general properties causing incompleteness
@@ -3612,12 +3617,6 @@ bool Options::complete(const Problem& prb) const
   bool hasEquality = (prop.equalityAtoms() != 0);
 
   if (hasEquality && !_superposition.actualValue) return false;
-
-  if (prop.hasAppliedVar()) {
-    //TODO make a more complex more precise case here
-    //There are instance where we are complete
-    return false;
-  }
 
   //TODO update once we have another method of dealing with bools
   if (prop.hasLogicalProxy() || prop.hasBoolVar()) {
