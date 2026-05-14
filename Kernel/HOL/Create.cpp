@@ -158,6 +158,24 @@ Clause* HOL::create::choiceAxiom()
   }, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::HILBERTS_CHOICE_INSTANCE));
 }
 
+Clause* HOL::create::functionalExtensionalityAxiom()
+{
+  auto alpha = TermList::var(0);
+  auto beta = TermList::var(1);
+  auto x = TermList::var(2);
+  auto y = TermList::var(3);
+
+  TermList diffT(Term::create2(env.signature->getDiff(), alpha, beta));
+  auto diffTApplied = app2(diffT, x, y);
+  auto lhs = app(alpha, beta, x, diffTApplied);
+  auto rhs = app(alpha, beta, y, diffTApplied);
+
+  return Clause::fromLiterals({
+    Literal::createEquality(false, lhs, rhs, beta),
+    Literal::createEquality(true, x, y, AtomicSort::arrowSort(alpha, beta))
+  }, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FUNCTIONAL_EXTENSIONALITY_AXIOM));
+}
+
 Term* HOL::create::lambda(unsigned numArgs, const unsigned* vars, const TermList* varSorts, TypedTermList body, TermList* resultExprSort) {
   auto s = new (0, sizeof(Term::SpecialTermData)) Term;
   s->makeSymbol(Term::toNormalFunctor(SpecialFunctor::LAMBDA), 0);

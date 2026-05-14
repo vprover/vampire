@@ -135,6 +135,7 @@ namespace HOL::create {
   TermList placeholder(TermList sort);
 
   Clause* choiceAxiom();
+  Clause* functionalExtensionalityAxiom();
 } // namespace HOL::create
 
 namespace HOL::convert {

@@ -176,8 +176,11 @@ void Preprocess::preprocess(Problem& prb)
         std::cout << "WARNING: ignoring request to add function extensionality axiom as problem is first-order" << std::endl;
       }
     } else {
-      INVALID_OPERATION("function extensionality axiom not yet supported");
-      // LambdaConversion::addFunctionExtensionalityAxiom(prb);
+      auto funcExtAx = HOL::create::functionalExtensionalityAxiom();
+      UnitList::push(funcExtAx, prb.units());
+      if (env.options->showPreprocessing()) {
+        std::cout << "Added functional extensionality axiom: " << funcExtAx->toString() << std::endl;       
+      }
     }
   }
 
