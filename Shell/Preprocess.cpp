@@ -193,18 +193,6 @@ void Preprocess::preprocess(Problem& prb)
     }
   }
 
-  if (env.options->addProxyAxioms()){
-    if (!prb.isHigherOrder()) {
-      if (outputAllowed()) {
-        addCommentSignForSZS(std::cout);
-        std::cout << "WARNING: ignoring request to add logical proxy axioms as problem is first-order" << std::endl;
-      }
-    } else {
-      INVALID_OPERATION("proxy axioms not yet supported");
-      // LambdaConversion::addProxyAxioms(prb);
-    }
-  }
-
   // Expansion of distinct groups happens before other preprocessing
   // If a distinct group is small enough it will add inequality to describe it
   if(env.signature->hasDistinctGroups()){

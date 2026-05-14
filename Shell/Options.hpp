@@ -2301,7 +2301,6 @@ public:
   HPrinting holPrinting() const { return _holPrinting.actualValue; }
   void setHolPrinting(HPrinting setting) { _holPrinting.actualValue = setting; }
 
-  bool addProxyAxioms() const { return _addProxyAxioms.actualValue; }
   bool choiceAxiom() const { return _choiceAxiom.actualValue; }
   bool injectivityReasoning() const { return _injectivity.actualValue; }
   bool choiceReasoning() const { return _choiceReasoning.actualValue; }
@@ -2740,7 +2739,6 @@ private:
 
   //Higher-order options
   ChoiceOptionValue<HPrinting> _holPrinting;
-  BoolOptionValue _addProxyAxioms;
   BoolOptionValue _choiceAxiom;
   BoolOptionValue _injectivity;
   BoolOptionValue _choiceReasoning;
