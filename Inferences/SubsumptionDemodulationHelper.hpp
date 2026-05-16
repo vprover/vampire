@@ -210,8 +210,6 @@ class OverlayBinder
   private:
     BindingsMap m_base;
     BindingsMap m_overlay;
-
-    friend std::ostream& operator<<(std::ostream& o, OverlayBinder const& binder);
 };  // class OverlayBinder
 
 /**
