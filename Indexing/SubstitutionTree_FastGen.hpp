@@ -54,6 +54,7 @@ struct SubstitutionTree<LeafData_>::GenMatcher::Binder
     }
     TermList* aux;
     if(_parent->_bindings.getValuePtr(var,aux,term)) {
+      ASS(!term.containsLooseDBIndex());
       _parent->_boundVars.push(var);
       return true;
     } else {

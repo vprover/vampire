@@ -96,7 +96,8 @@ class Problem;
 class Renaming;
 template<bool higherOrder>
 class Substitution_;
-using Substitution = Substitution_</*higherOrder=*/false>;
+// TODO(HOL): for now use HOSubstitution everywhere, change to false when performance is affected
+using Substitution = Substitution_</*higherOrder=*/true>;
 using HOSubstitution = Substitution_</*higherOrder=*/true>;
 
 class RobSubstitution;
