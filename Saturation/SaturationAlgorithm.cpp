@@ -1486,7 +1486,9 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.FOOLParamodulation()) {
     gie->addFront(new FOOLParamodulation());
   }
-  if (opt.cases() && prb.hasFOOL() && !opt.casesSimp()) {
+  // TODO(HOL): Cases only works with HO equalities, but for plain FOOL
+  // problems then we have nothing enabled by default. Maybe FOOLParamodulation?
+  if (opt.cases() && prb.isHigherOrder() && !opt.casesSimp()) {
     gie->addFront(new Cases(*res));
   }
 

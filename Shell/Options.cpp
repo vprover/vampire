@@ -457,6 +457,7 @@ void Options::init()
     "is replaced by C \\/ p(s) with the additional unit clause ~p(t) being added "
     "for fresh predicate p.";
     _inequalitySplitting.addProblemConstraint(hasEquality());
+    _inequalitySplitting.addProblemConstraint(onlyFirstOrder());
     _lookup.insert(&_inequalitySplitting);
     _inequalitySplitting.tag(OptionTag::PREPROCESSING);
 
