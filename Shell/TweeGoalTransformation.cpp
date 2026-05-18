@@ -84,8 +84,6 @@ class Definizator : public BottomUpTermTransformer {
       _typeVars.reset();
       _termVars.reset();
       _allVars.reset();
-      static TermStack termVars;
-      termVars.reset();
       _termVarSorts.reset();
 
       // fake scanVars cheaply
@@ -103,8 +101,8 @@ class Definizator : public BottomUpTermTransformer {
         }
       }
       _typeArity = _allVars.size(); // allVars only collected typeVars until now
-      for(unsigned i = 0; i < termVars.size(); i++){
-        _allVars.push(termVars[i]);
+      for(unsigned i = 0; i < _termVars.size(); i++){
+        _allVars.push(_termVars[i]);
       }
 
       SortHelper::normaliseArgSorts(_typeVars, _termVarSorts);

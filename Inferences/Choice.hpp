@@ -8,8 +8,8 @@
  * and in the source directory
  */
 /**
- * @file BoolSimp.hpp
- * Defines class BoolSimp.
+ * @file Choice.hpp
+ * Defines class Choice.
  */
 
 #ifndef __CHOICE__
@@ -24,10 +24,10 @@ namespace Inferences {
 class Choice : public GeneratingInferenceEngine
 {
   public:
+    Choice(SaturationAlgorithm&) {}
     ClauseIterator generateClauses(Clause* premise) override;
 
   private:
-    struct SubtermsFn;
     struct IsChoiceTerm;
     struct ResultFn;
     struct AxiomsIterator;

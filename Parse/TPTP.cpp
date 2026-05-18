@@ -74,21 +74,10 @@ const int TPTP::PI = 102u;
 /** Sigma function for existential quantification */
 const int TPTP::SIGMA = 103u;
 
-/**
- * Create a parser, parse the input and return the parsed list of units.
- * @since 13/07/2011 Manchester
- */
-UnitList* TPTP::parse(istream& input)
-{
-  Parse::TPTP parser(input);
-  parser.parse();
-  return parser.units();
-}
-
 Unit* TPTP::parseFormulaFromString(const std::string& str)
 {
   std::stringstream input(str+")."); // to fake endFOF, which creates the clause
-  Parse::TPTP parser(input);
+  Parse::TPTP parser(input, "<string>");
   parser._lastInputType = UnitInputType::AXIOM;
   parser._bools.push(true);     // true is what fof/tff normally pushes (but we start "from the middle")
   parser._strings.push("dummy_name");
@@ -101,9 +90,9 @@ Unit* TPTP::parseFormulaFromString(const std::string& str)
  * Initialise a lexer.
  * @since 27/07/2004 Torrevieja
  */
-TPTP::TPTP(std::istream &in, UnitList::FIFO unitBuffer)
+TPTP::TPTP(std::istream &in, std::filesystem::path path, UnitList::FIFO unitBuffer)
   : _containsConjecture(false),
-    currentFile { &in, {}, {}, 1 },
+    currentFile { &in, {}, path, 1 },
     _units(unitBuffer),
     _isThf(false),
     _containsPolymorphism(false),
