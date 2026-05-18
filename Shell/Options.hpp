@@ -2092,6 +2092,7 @@ public:
   bool partialRedundancyAvatarConstraints() const { return _partialRedundancyAvatarConstraints.actualValue; }
   bool partialRedundancyLiteralConstraints() const { return _partialRedundancyLiteralConstraints.actualValue; }
   bool arityCheck() const { return _arityCheck.actualValue; }
+  bool parseGoalAnnotations() const { return _parseGoalAnnotations.actualValue; }
   //void setArityCheck(bool newVal) { _arityCheck=newVal; }
   Demodulation backwardDemodulation() const { return _backwardDemodulation.actualValue; }
   DemodulationRedundancyCheck demodulationRedundancyCheck() const { return _demodulationRedundancyCheck.actualValue; }
@@ -2434,6 +2435,7 @@ private:
 	BoolOptionValue _randomAWR;
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
+  BoolOptionValue _parseGoalAnnotations;
 
   BoolOptionValue _randomTraversals;
 

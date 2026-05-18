@@ -494,6 +494,13 @@ void Options::init()
        "This also ensures a symbol is not used as a function and predicate.";
     _lookup.insert(&_arityCheck);
     _arityCheck.tag(OptionTag::DEVELOPMENT);
+
+    _parseGoalAnnotations = BoolOptionValue("parse_goal_annotations","",true);
+    _parseGoalAnnotations.description="Enable parsing :goal annotations in smtlib problems."
+       "They can be used like this: (assert (! <formula> :goal))";
+    _lookup.insert(&_parseGoalAnnotations);
+    _parseGoalAnnotations.tag(OptionTag::INPUT);
+
     _functionDefinitionElimination = ChoiceOptionValue<FunctionDefinitionElimination>("function_definition_elimination","fde",
                                                                                       FunctionDefinitionElimination::ALL,{"all","none","unused"});
     _functionDefinitionElimination.description=

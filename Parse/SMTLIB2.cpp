@@ -1803,7 +1803,7 @@ void SMTLIB2::parseAnnotatedTerm(LExpr* exp)
     _todo.push(make_pair(PO_LABEL,lRdr.readExpr()));
   }
 
-  if(lRdr.tryAcceptAtom(":goal")){
+  if(env.options->parseGoalAnnotations() && lRdr.tryAcceptAtom(":goal")){
     _todo.push(make_pair(PO_MAKE_GOAL,nullptr));
   }
 
