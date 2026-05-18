@@ -296,6 +296,9 @@ private:
       Formula* frm;
       TermList trm;
     };
+    bool _isGoal = false;
+
+    Option<FormulaUnit*> toFormulaUnit();
 
     /**
      * Try interpreting ParseResult as a formula
@@ -314,6 +317,7 @@ private:
      * resulting from a ":named" SMT-LIB2 annotation.
      */
     void setLabel(std::string l){ label = l; }
+    void mkGoal(){ _isGoal = true; }
     /**
      * Helper that attaches a label to a `Formula`
      * if a label is recorded for this `ParseResult`.
@@ -431,6 +435,7 @@ private:
     PO_QUANT,              // takes LExpr* (the whole quantified expression again)
     PO_POP_LOOKUP,         // takes nothing
     PO_AS_END,             // takes LExpr* (the whole as expression again)
+    PO_MAKE_GOAL,          // takes nullptr
   };
   /**
    * Main smtlib term parsing stack.

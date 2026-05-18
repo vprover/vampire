@@ -1180,6 +1180,16 @@ bool SMTLIB2::ParseResult::asFormula(Formula*& resFrm)
   return false;
 }
 
+Option<FormulaUnit*> SMTLIB2::ParseResult::toFormulaUnit()
+{
+  Formula* fla;
+  if (!asFormula(fla)) {
+    return {};
+  }
+  return some(new FormulaUnit(fla, FromInput(_isGoal ? UnitInputType::NEGATED_CONJECTURE : UnitInputType::ASSUMPTION)));
+}
+
+
 TermList SMTLIB2::ParseResult::asTerm(TermList& resTrm)
 {
   if (formula) {
@@ -1789,9 +1799,12 @@ void SMTLIB2::parseAnnotatedTerm(LExpr* exp)
 
   auto toParse = lRdr.readExpr();
 
-  // we only consider :named annotations
   if(lRdr.tryAcceptAtom(":named")){
     _todo.push(make_pair(PO_LABEL,lRdr.readExpr()));
+  }
+
+  if(lRdr.tryAcceptAtom(":goal")){
+    _todo.push(make_pair(PO_MAKE_GOAL,nullptr));
   }
 
   _todo.push(make_pair(PO_PARSE,toParse));
@@ -2745,6 +2758,13 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body, bool isSort)
         _results.push(res);
         continue;
       }
+      case PO_MAKE_GOAL: {
+        ASS_GE(_results.size(),1);
+        ParseResult res =  _results.pop();
+        res.mkGoal();
+        _results.push(res);
+        continue;
+      }
       case PO_LET_PREPARE_LOOKUP:
         parseLetPrepareLookup(exp);
         continue;
@@ -2783,14 +2803,11 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body, bool isSort)
 void SMTLIB2::readAssert(LExpr* body)
 {
   ParseResult res = parseTermOrFormula(body,false/*isSort*/);
-
-  Formula* fla;
-  if (!res.asFormula(fla)) {
+  if (auto unit = res.toFormulaUnit()) {
+    _formulas.pushBack(unit.unwrap());
+  } else {
     USER_ERROR_EXPR("Asserted expression of non-boolean sort "+body->toString());
   }
-
-  FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
-  _formulas.pushBack(fu);
 }
 
 void SMTLIB2::readAssertClaim(LExpr* body)
