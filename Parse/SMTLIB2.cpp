@@ -1801,9 +1801,8 @@ void SMTLIB2::parseAnnotatedTerm(LExpr* exp)
 
   if(lRdr.tryAcceptAtom(":named")){
     _todo.push(make_pair(PO_LABEL,lRdr.readExpr()));
-  }
-
-  if(env.options->parseGoalAnnotations() && lRdr.tryAcceptAtom(":goal")){
+  } else if(env.options->parseGoalAnnotations() && lRdr.tryAcceptAtom(":goal")){
+    (void) lRdr.readExpr(); /* we ignore the goal name */
     _todo.push(make_pair(PO_MAKE_GOAL,nullptr));
   }
 

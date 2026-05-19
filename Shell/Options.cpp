@@ -497,7 +497,7 @@ void Options::init()
 
     _parseGoalAnnotations = BoolOptionValue("parse_goal_annotations","",true);
     _parseGoalAnnotations.description="Enable parsing :goal annotations in smtlib problems."
-       "They can be used like this: (assert (! <formula> :goal))";
+       "They can be used like this: (assert (! <formula> :goal <goal-name>))";
     _lookup.insert(&_parseGoalAnnotations);
     _parseGoalAnnotations.tag(OptionTag::INPUT);
 
