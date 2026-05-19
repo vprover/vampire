@@ -40,12 +40,6 @@ void TermCodeTree<higherOrder, Data>::printSuccess(std::ostream& out, const Code
 }
 
 template<bool higherOrder, class Data>
-TermCodeTree<higherOrder, Data>::TermCodeTree()
-{
-  _clauseCodeTree=false;
-}
-
-template<bool higherOrder, class Data>
 void TermCodeTree<higherOrder, Data>::insert(Data* data)
 {
   static CodeStack code;

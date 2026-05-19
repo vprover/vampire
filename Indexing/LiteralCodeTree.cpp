@@ -36,7 +36,7 @@ void LiteralCodeTree<Data>::onCodeOpDestroying(CodeOp* op)
 template<class Data>
 LiteralCodeTree<Data>::LiteralCodeTree()
 {
-  _clauseCodeTree = false;
+  _containsLiterals = true;
 }
 
 template<class Data>

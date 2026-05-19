@@ -36,8 +36,6 @@ protected:
   void printSuccess(std::ostream& out, const CodeOp& op) const override;
 
 public:
-  TermCodeTree();
-
   void insert(Data* data);
   void remove(const Data& data);
 

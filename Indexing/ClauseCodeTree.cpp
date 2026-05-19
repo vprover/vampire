@@ -53,7 +53,8 @@ void ClauseCodeTree<higherOrder>::printSuccess(std::ostream& out, const CodeOp& 
 template<bool higherOrder>
 ClauseCodeTree<higherOrder>::ClauseCodeTree()
 {
-  _clauseCodeTree=true;
+  _clauseCodeTree = true;
+  _containsLiterals = true;
 #if VDEBUG
   _clauseMatcherCounter=0;
 #endif

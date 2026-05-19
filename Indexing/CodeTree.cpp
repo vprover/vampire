@@ -895,7 +895,7 @@ void CodeTree::visitAllOps(Visitor visitor) const
   // but it cannot be both since SearchStructs don't occur inside blocks
   top_ops.reset();
 
-  if(!isEmpty()) { top_ops.emplace(getEntryPoint(),0,_clauseCodeTree); }
+  if(!isEmpty()) { top_ops.emplace(getEntryPoint(),0,_containsLiterals); }
 
   while(top_ops.isNonEmpty()) {
     auto [top_op,depth,litStart] = top_ops.pop();
@@ -931,7 +931,7 @@ void CodeTree::visitAllOps(Visitor visitor) const
 
 void CodeTree::printOps(std::ostream& out, const CodeTree& ct, const CodeTree::CodeStack& st) const
 {
-  bool litStart = _clauseCodeTree;
+  bool litStart = _containsLiterals;
   for (const auto& op : st) {
     printOp(out, op, litStart);
     out << std::endl;

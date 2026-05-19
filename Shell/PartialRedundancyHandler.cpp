@@ -53,7 +53,6 @@ class PartialRedundancyHandler::ConstraintIndex
 public:
   ConstraintIndex(Clause* cl) : _varSorts()
   {
-    _clauseCodeTree=false;
 #if VDEBUG
     _cl = cl;
 #endif
