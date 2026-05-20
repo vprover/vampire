@@ -395,17 +395,16 @@ public:
       unsigned idx = 0;
       while (uIt.hasNext()) {
         Clause* cl = uIt.next();
-        float logit = logits[idx++].item().toDouble();
-        if (_temp > 0.0) {
-          // adding the gumbel noise
-          logit += -_temp*log(-log(Random::getFloat(0.0,1.0)));
-        }
-
         float* score;
-        // only overwrite, if not present
-        if (_scores.getValuePtr(cl->number(),score)) {
+        if (_scores.getValuePtr(cl->number(),score)) { // only overwrite, if not present
+          float logit = logits[idx].item().toDouble();
+          if (_temp > 0.0) {
+            // adding the gumbel noise
+            logit += -_temp*log(-log(Random::getFloat(0.0,1.0)));
+          }
           *score = logit;
         }
+        idx++;
       }
     }
   }
