@@ -147,7 +147,7 @@ void SubtermIterator::right()
 ///                                                                    ///
 //////////////////////////////////////////////////////////////////////////
 
-bool BooleanSubtermIt::hasNext()
+bool BooleanSubtermIterator::hasNext()
 {
   if(!_used){ return true; }
 
@@ -175,17 +175,30 @@ bool BooleanSubtermIt::hasNext()
   return false;
 }
 
-Term* FirstOrderSubtermIterator::next()
+template<bool insideLambdasToo>
+Term* FirstOrderSubtermIterator<insideLambdasToo>::next()
 {
   _added = 0;
   auto t = _stack.pop();
-  if (t->isLambdaTerm()) {
-    return t;
+  if constexpr (!insideLambdasToo) {
+    if (t->isLambdaTerm()) {
+      return t;
+    }
   }
 
   auto [head, args] = HOL::getHeadAndArgs(TermList(t));
 
+  // the iterator should be only used after beta-eta normalization
+  ASS(!head.isLambdaTerm());
+
   for (unsigned i = 0; i < args.size(); i++) {
+    if constexpr (insideLambdasToo) {
+      // TODO)HOL): skipping terms that contain loose DB indices is not complete,
+      // as they may still have subterms that don't have loose indices.
+      if (args[i].containsLooseDBIndex()) {
+        continue;
+      }
+    }
     if (args[i].isTerm()) {
       _added++;
       _stack.push(args[i].term());
@@ -194,13 +207,17 @@ Term* FirstOrderSubtermIterator::next()
   return t;
 }
 
-void FirstOrderSubtermIterator::right()
+template<bool insideLambdasToo>
+void FirstOrderSubtermIterator<insideLambdasToo>::right()
 {
   while (_added > 0) {
     _added--;
     _stack.pop();
   }
 }
+
+template class FirstOrderSubtermIterator<false>;
+template class FirstOrderSubtermIterator<true>;
 
 //////////////////////////////////////////////////////////////////////////
 ///                                                                    ///

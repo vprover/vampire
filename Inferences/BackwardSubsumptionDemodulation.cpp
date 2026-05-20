@@ -438,7 +438,7 @@ bool BackwardSubsumptionDemodulation<higherOrder>::rewriteCandidate(Clause* side
       continue;
     }
 
-    RewritableSubtermIterator<higherOrder> nvi(dlit);
+    RewritableSubtermIterator<higherOrder, /*insideLambdasToo=*/true> nvi(dlit);
     while (nvi.hasNext()) {
       TypedTermList lhsS = nvi.next();  // named 'lhsS' because it will be matched against 'lhs'
 

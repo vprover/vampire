@@ -274,11 +274,11 @@ protected:
 /*
  *  Returns Boolean subterms of a term.
  */
-class BooleanSubtermIt
+class BooleanSubtermIterator
 : public IteratorCore<TermList>
 {
 public:
-  BooleanSubtermIt(Term* term, bool includeSelf=false)
+  BooleanSubtermIterator(Term* term, bool = false)
   : _used(true), _stack(8)
   {
     if(term->isLiteral()){
@@ -303,27 +303,21 @@ private:
   Stack<Term*> _stack;
 };
 
+template<bool insideLambdasToo>
 class FirstOrderSubtermIterator
 : public IteratorCore<Term*>
 {
 public:
-  FirstOrderSubtermIterator(Term* term, bool includeSelf = false)
+  FirstOrderSubtermIterator(Term* term, bool = false)
   : _stack(8), _added(0)
   {
     if (term->isLiteral()) {
-      for (unsigned i = 0; i < term->arity(); i++) {
-        // TODO shouldn't we exclude iterating on types?
-        TermList t = *term->nthArgument(i);
-        if (t.isTerm()) {
-          _stack.push(t.term());
-        }
-      }
+      auto [lhs, rhs] = static_cast<Literal*>(term)->eqArgs();
+      if(lhs.isTerm()){ _stack.push(lhs.term()); }
+      if(rhs.isTerm()){ _stack.push(rhs.term()); }
       return;
     }
     _stack.push(term);
-    if (!includeSelf) {
-      FirstOrderSubtermIterator::next();
-    }
   }
 
   bool hasNext(){ return !_stack.isEmpty(); }
@@ -661,8 +655,8 @@ static const auto anyArgIterTyped = [](Term const* term)
 static const auto varRange = [](unsigned i, unsigned j)
   { return range(i,j).map(unsignedToVarFn); };
 
-template<bool higherOrder>
-using RewritableSubtermIterator = std::conditional_t<higherOrder, FirstOrderSubtermIterator, NonVariableNonTypeIterator>;
+template<bool higherOrder, bool insideLambdasToo = false>
+using RewritableSubtermIterator = std::conditional_t<higherOrder, FirstOrderSubtermIterator<insideLambdasToo>, NonVariableNonTypeIterator>;
 
 } // namespace Kernel
 

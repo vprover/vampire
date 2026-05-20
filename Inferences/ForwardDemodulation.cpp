@@ -100,7 +100,7 @@ bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement,
     if (_skipNonequationalLiterals && !lit->isEquality()) {
       continue;
     }
-    RewritableSubtermIterator<higherOrder> it(lit);
+    RewritableSubtermIterator<higherOrder, /*insideLambdasToo=*/true> it(lit);
     while(it.hasNext()) {
       TypedTermList trm = it.next();
       if(!attempted.insert(trm)) {
