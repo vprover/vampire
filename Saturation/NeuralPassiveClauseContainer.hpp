@@ -328,8 +328,6 @@ public:
 
   const DHMap<unsigned,float>& getScores() { return _scores; }
 
-  float evalClause(Clause* cl);
-
   template<typename T>
   void evalClauses(const T& clauses, bool justRecord = false) {
     int64_t sz = clauses.size();
@@ -436,11 +434,6 @@ public:
     Timer::updateInstructionCount(); // TODO: consider leaving this out (more efficient vampire, less precise stats)
     env.statistics->bulkEvals += (Timer::elapsedInstructions()-bulk_eval_start_instrs);
   }
-
-  // this is a low-effort version of evalClause (used, among other things, for delayedEvaluation deepire-style):
-  // namely: if there is no value in the _scores map, it just returns a very optimistic constant
-  float tryGetScore(Clause* cl);
-
 };
 
 class NeuralScoreQueue
