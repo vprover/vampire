@@ -334,10 +334,23 @@ Formula* Skolem::skolemise (Formula* f)
   case FORALL:
     {
       Formula* g = skolemise(f->qarg());
-      if (g == f->qarg()) {
+      // if we have something like
+      // ![X : list(A)]: ...
+      // then we may need to apply the substitution to A
+
+      VSList::FIFO vars;
+      bool changed = g != f->qarg();
+      for(auto [var, sort] : iterTraits(f->vars()->iter())) {
+        TermList sort2 = SubstHelper::apply(sort, _subst);
+        if(sort != sort2)
+          changed = true;
+        vars.pushBack({var, sort2});
+      }
+      if(!changed) {
+        VSList::destroy(vars.list());
         return f;
       }
-      return new QuantifiedFormula(f->connective(), f->vars(), g);
+      return new QuantifiedFormula(FORALL, vars.list(), g);
     }
 
   case EXISTS: 
@@ -484,7 +497,7 @@ Formula* Skolem::skolemise (Formula* f)
 
       Formula* skolemised = skolemise(f->qarg());
       //Apply substitution to the entire formula again, after skolemising to fix skolemized sorts.
-      return SubstHelper::apply(skolemised, _subst); 
+      return skolemised;
     }
 
   case BOOL_TERM:
