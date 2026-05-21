@@ -495,9 +495,7 @@ Formula* Skolem::skolemise (Formula* f)
         }
       }
 
-      Formula* skolemised = skolemise(f->qarg());
-      //Apply substitution to the entire formula again, after skolemising to fix skolemized sorts.
-      return skolemised;
+      return skolemise(f->qarg());
     }
 
   case BOOL_TERM:

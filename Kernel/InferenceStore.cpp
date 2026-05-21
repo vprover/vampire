@@ -45,12 +45,9 @@
 
 #include "InferenceStore.hpp"
 
-#include <memory>
 #include <set>
-#include <string>
-#include <utility>
-#include <vector>
-
+#include<string>
+#include<vector>
 //TODO: when we delete clause, we should also delete all its records from the inference store
 
 namespace Kernel
