@@ -531,9 +531,7 @@ void Options::init()
     // general tgt in HOL, that would still be performant
     _tweeSkipArrows = BoolOptionValue("twee_skip_arrows","tsa",true);
     _tweeSkipArrows.description =
-      "During twee_goal_transformation, when in HOL, "
-      "don't introduce definitions for other subterms than those "
-      "whose type is not an arrow type.";
+      "During twee_goal_transformation, when in HOL, don't introduce definitions for arrow-typed subterms.";
     _tweeSkipArrows.tag(OptionTag::PREPROCESSING);
     _tweeSkipArrows.setExperimental();
     _lookup.insert(&_tweeSkipArrows);
