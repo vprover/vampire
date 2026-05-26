@@ -296,11 +296,7 @@ void printArgs(std::ostream &out, Args args, bool variablesAsPattern, bool recur
     }
     if (!printed) {
       if (term->arity()) {
-        out << "((" << name;
-        //if(!name.symbol->introduced()){
-        //  out << " (ι := ι) (df := df)";
-        //}
-        out << ")";
+        out << "(" << name;
         current = const_cast<TermList *>(term->termArgs());
         std::deque<TermList *> todo;
         while (!current->isEmpty()) {
@@ -316,9 +312,6 @@ void printArgs(std::ostream &out, Args args, bool variablesAsPattern, bool recur
       }
       else {
         out << "(" << name; 
-        //if(!name.symbol->introduced()){
-        //  out << " (ι := ι) (dcf := dcf)";
-        //}
         out << ")";
       }
     }
@@ -370,11 +363,7 @@ void printLiteral(std::ostream &out, Lit lit, bool variablesAsPattern)
   }
   else {
     auto args = literal->args();
-    out << "(" << name;
-    //if(!name.symbol->introduced()){
-    //  out << (args->isNonEmpty() ? " (ι := ι) (dp := dp)" : " (dcp := dcp)");
-    //}
-    out << ")";
+    out << name;
     while (args->isNonEmpty()) {
       out << " ";
       printArgs(out, Args{args, lit.conclSorts, lit.otherSorts}, variablesAsPattern, true);
@@ -436,7 +425,8 @@ void printFormula(std::ostream &out, Formula *f, SortMap &conclSorts, SortMap &o
     case LITERAL:
       printLiteral(out, Lit{f->literal(), conclSorts, otherSorts}, variablesAsPattern);
       break;
-    case AND: {
+    case AND: 
+    case OR: {
       out << "(";
       Kernel::FormulaList *reversedList = FormulaList::reverse(FormulaList::copy(f->args()));
       auto args = reversedList->iter();
@@ -444,26 +434,17 @@ void printFormula(std::ostream &out, Formula *f, SortMap &conclSorts, SortMap &o
         printFormula(out, args.next(), conclSorts, otherSorts, variablesAsPattern);
         if (args.hasNext()){
           if(outputBoolOperators){
-            out << " && ";
+            if(f->connective() == AND){
+              out << " && ";
+            } else {
+              out << " || ";
+            }
           } else {
-            out << " ∧ ";
-          }
-        }
-      }
-      FormulaList::destroy(reversedList);
-      out << ")";
-    } break;
-    case OR: {
-      out << "( ";
-      auto reversedList = FormulaList::reverse(FormulaList::copy(f->args()));
-      auto args = reversedList->iter();
-      while (args.hasNext()) {
-        printFormula(out, args.next(), conclSorts, otherSorts, variablesAsPattern);
-        if (args.hasNext()){
-          if(outputBoolOperators){
-            out << " || ";
-          } else {
-            out << " ∨ ";
+            if(f->connective() == AND){
+              out << " ∧ ";
+            } else {
+              out << " ∨ ";
+            }
           }
         }
       }
@@ -496,23 +477,7 @@ void printFormula(std::ostream &out, Formula *f, SortMap &conclSorts, SortMap &o
       printFormula(out, f->uarg(), conclSorts, otherSorts, variablesAsPattern);
       out << ")";
       break;
-    case FORALL: {
-      VSList::Iterator vs(f->vars());
-      SortMap map;
-      while (vs.hasNext()) {
-        auto var = vs.next().first;
-        if(otherSorts.findPtr(var)){
-          map.insert(var, otherSorts.get(var));
-        } else {
-          //This should not happen, but happens sometimes
-          map.insert(var, AtomicSort::defaultSort());
-        }
-      }
-      out << "(";
-      outputSortsWithQuantor(out, map, "∀");
-      printFormula(out, f->qarg(), conclSorts, otherSorts, variablesAsPattern);
-      out << ")";
-    } break;
+    case FORALL: 
     case EXISTS: {
       VSList::Iterator vs(f->vars());
       SortMap map;
@@ -526,7 +491,11 @@ void printFormula(std::ostream &out, Formula *f, SortMap &conclSorts, SortMap &o
         }
       }
       out << "(";
-      outputSortsWithQuantor(out, map, "∃");
+      if(f->connective() == Kernel::FORALL){
+        outputSortsWithQuantor(out, map, "∀", ",");
+      } else {
+        outputSortsWithQuantor(out, map, "∃", ",");
+      }
       printFormula(out, f->qarg(), conclSorts, otherSorts, variablesAsPattern);
       out << ")";
     } break;
@@ -555,21 +524,24 @@ void printFormula(std::ostream &out, Formula *f, SortMap &conclSorts, SortMap &o
 
 namespace SymbolHelper {
 
+// Helper to recursively collect symbols from TermList children
+inline void collectSymbolsFromTermListChildren(TermList *args, std::set<Signature::Symbol*> &vars, SymbolType type) {
+  while (args->isNonEmpty()) {
+    if (args->isTerm()) {
+      collectUsedSymbols(const_cast<Term*>(args->term()), vars, type);
+    }
+    args = args->next();
+  }
+}
+
 void collectUsedSymbols(Term *term, std::set<Signature::Symbol*> &vars, SymbolType type)
 {
   auto sym = env.signature->getFunction(term->functor());
   if (!sym->interpreted() && !sym->linMul() && type & SymbolType::FUNCTION) {
     vars.insert(sym);
   }
-  if(term->arity() == 0){
-    return;
-  }
-  auto args = term->termArgs();
-  while (args->isNonEmpty()) {
-    if (args->isTerm()) {
-      collectUsedSymbols(const_cast<Term*>(args->term()), vars, type);
-    }
-    args = args->next();
+  if(term->arity() > 0){
+    collectSymbolsFromTermListChildren(const_cast<TermList*>(term->termArgs()), vars, type);
   }
 }
 
@@ -579,15 +551,8 @@ void collectUsedSymbols(Literal* literal, std::set<Signature::Symbol*> &vars, Sy
   if (!sym->interpreted() && type & SymbolType::PREDICATE) {
     vars.insert(sym);
   }
-  if(literal->arity() == 0){
-    return;
-  }
-  auto args = literal->args();
-  while (args->isNonEmpty()) {
-    if (args->isTerm()) {
-      collectUsedSymbols(args->term(), vars, type);
-    }
-    args = args->next();
+  if(literal->arity() > 0){
+    collectSymbolsFromTermListChildren(literal->args(), vars, type);
   }
 }
 

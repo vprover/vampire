@@ -1204,9 +1204,9 @@ void LeanChecker::definitionUnfolding(std::ostream &out, SortMap &conclSorts, Un
     ASS(lit->isEquality());
     auto recordedLhs = proofExtra.lhs;
     if(lit->termArg(0).term() == recordedLhs[i-1]){
-      out << indent << "nth_rewrite 1 [h" << i << "] at i0\n";
+      out << indent << "rewrite (occs := [1]) [h" << i << "] at i0\n";
     } else {
-      out << indent << "nth_rewrite 1 [ ← h" << i << "] at i0\n";
+      out << indent << "rewrite (occs := [1]) [ ← h" << i << "] at i0\n";
     }
   }
   out << indent << "grind only\n";
