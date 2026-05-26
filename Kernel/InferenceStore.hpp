@@ -95,11 +95,13 @@ private:
   /** first records the type of the symbol (PRED,FUNC or TYPE_CON), second is symbol number */
   typedef std::pair<SymbolType,unsigned> SymbolId;
   typedef Stack<SymbolId> SymbolStack;
+  // unit id -> stack of introduced symbols (in order of introduction)
   DHMap<unsigned,SymbolStack> _introducedSymbols;
   // symbol id -> existential variable name (number) that was replaced by the symbol
   DHMap<SymbolId, unsigned> _introducedSymbolReplacedVars;
   // symbol id -> the term that is introduced when introducing the skolem symbol
   DHMap<SymbolId, Term*> _introducedSkolemSymTerms;
+
   DHMap<unsigned,std::string> _introducedSplitNames;
 };
 

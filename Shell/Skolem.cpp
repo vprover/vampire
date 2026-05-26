@@ -75,7 +75,7 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
 
   _appify = appify;
   _beingSkolemised=unit;
-  _skolimizingDefinitions = UnitList::empty();
+  _skolemizingDefinitions = UnitList::empty();
   _varOccs.reset();
   _varSorts.reset();
   _subst.reset();
@@ -93,7 +93,7 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
     return unit;
   }
 
-  UnitList* premiseList = new UnitList(unit,_skolimizingDefinitions); // making sure unit is the last inserted, i.e. first in the list
+  UnitList* premiseList = new UnitList(unit,_skolemizingDefinitions); // making sure unit is the last inserted, i.e. first in the list
 
   FormulaUnit* res = new FormulaUnit(g,FormulaClauseTransformationMany(InferenceRule::SKOLEMIZE,premiseList));
 
