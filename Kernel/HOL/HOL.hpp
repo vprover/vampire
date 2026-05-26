@@ -133,6 +133,9 @@ namespace HOL::create {
   TermList surroundWithLambdas(TermList t, const TermStack& sorts, TermList sort, bool fromTop = false);
 
   TermList placeholder(TermList sort);
+
+  Clause* choiceAxiom();
+  Clause* functionalExtensionalityAxiom();
 } // namespace HOL::create
 
 namespace HOL::convert {

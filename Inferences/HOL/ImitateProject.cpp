@@ -50,7 +50,7 @@ struct ImitateProjectFn
     TermList headFlex = flexTerm.head();
     auto pushResult = [this,headFlex](TermList binding, InferenceRule rule)
     {
-      static Substitution subst;
+      static HOSubstitution subst;
       subst.reset();
       subst.bind(headFlex.var(), binding);
       results.push(Clause::fromIterator(

@@ -19,33 +19,6 @@ using namespace Kernel;
 using namespace Lib;
 
 
-std::ostream& operator<<(std::ostream& o, OverlayBinder const& binder)
-{
-  o << "OverlayBinder { ";
-  bool first = true;
-  for (auto binding : binder.m_base) {
-    if (!first) {
-      o << ", ";
-    } else {
-      first = false;
-    }
-    o << TermList(binding.first, false).toString() << " -> " << binding.second.toString();
-  }
-  o << " / ";
-  first = true;
-  for (auto binding : binder.m_overlay) {
-    if (!first) {
-      o << ", ";
-    } else {
-      first = false;
-    }
-    o << TermList(binding.first, false).toString() << " -> " << binding.second.toString();
-  }
-  o << " }";
-  return o;
-}
-
-
 SDClauseMatches::SDClauseMatches(Clause* base, LiteralMiniIndex const& ixAlts)
   : m_base(base)
   , m_alts(base->length(), LiteralList::empty())

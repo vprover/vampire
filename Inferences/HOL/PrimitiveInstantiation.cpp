@@ -13,7 +13,6 @@
  */
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/Substitution.hpp"
 #include "Kernel/SubstHelper.hpp"
 
 #include "Kernel/HOL/HOL.hpp"
@@ -76,7 +75,7 @@ struct PrimitiveInstResultFn
 
     auto pushResult = [this,headFlex](TermList binding)
     {
-      static Substitution subst;
+      static HOSubstitution subst;
       subst.reset();
       subst.bind(headFlex.var(), binding);
       results.push(Clause::fromIterator(

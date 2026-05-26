@@ -947,6 +947,8 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "term algebra direct subterm axiom";
   case InferenceRule::TERM_ALGEBRA_SUBTERMS_TRANSITIVE_AXIOM:
     return "term algebra subterm transitivity axiom";
+  case InferenceRule::FUNCTIONAL_EXTENSIONALITY_AXIOM:
+    return "functional extensionality axiom";
     /* this cases are no actual inference rules but only markeres to separatea groups of rules */
   case InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION:
   case InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION_LAST:

@@ -8,7 +8,7 @@
  * and in the source directory
  */
 #include "Test/SyntaxSugar.hpp"
-#include "Inferences/Choice.hpp"
+#include "Inferences/HOL/Choice.hpp"
 #include "Inferences/InferenceEngine.hpp"
 
 #include "Test/GenerationTester.hpp"

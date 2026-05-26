@@ -291,21 +291,21 @@ bool SortHelper::tryGetVariableSort(unsigned var, Formula* f, TermList& res)
 
       // first handle the special equality case
       if(lit->isEquality()){
-         TermList* left = lit->nthArgument(0);
-         TermList* right = lit->nthArgument(1);
-         if((left->isVar() && left->var()==var) ||
-            (right->isVar() && right->var()==var)){
+        TermList* left = lit->nthArgument(0);
+        TermList* right = lit->nthArgument(1);
+        if ((left->isVar() && left->var()==var) ||
+            (right->isVar() && right->var()==var)) {
 
-           res = getEqualityArgumentSort(lit); 
-           return true;
-         }
-         if (lit->isTwoVarEquality()) {
-           TermList sort = lit->twoVarEqSort();
-           if (sort.containsSubterm(varTerm)) {
-             res = AtomicSort::superSort();
-             return true;
-           }
-         }
+          res = getEqualityArgumentSort(lit); 
+          return true;
+        }
+        if (lit->isTwoVarEquality()) {
+          TermList sort = lit->twoVarEqSort();
+          if (sort.containsSubterm(varTerm)) {
+            res = AtomicSort::superSort();
+            return true;
+          }
+        }
       }
       if(tryGetVariableSortTerm(varTerm, lit, res, false)){
         return true;

@@ -10,7 +10,7 @@
 #include "Test/GenerationTester.hpp"
 #include "Test/SyntaxSugar.hpp"
 
-#include "Inferences/Cases.hpp"
+#include "Inferences/HOL/Cases.hpp"
 
 using namespace Test;
 

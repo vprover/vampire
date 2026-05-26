@@ -291,7 +291,9 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/HOL/BetaEtaSimplify.o\
          Inferences/HOL/BoolEqToDiseq.o\
          Inferences/HOL/BoolSimp.o\
+         Inferences/HOL/Cases.o\
          Inferences/HOL/CasesSimp.o\
+         Inferences/HOL/Choice.o\
          Inferences/HOL/CNFOnTheFly.o\
          Inferences/HOL/ImitateProject.o\
          Inferences/HOL/FlexFlexSimplify.o\
@@ -305,8 +307,6 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/Induction.o\
          Inferences/InductionHelper.o\
          Inferences/URResolution.o\
-         Inferences/Cases.o\
-         Inferences/Choice.o\
          Inferences/GaussianVariableElimination.o\
          Inferences/InterpretedEvaluation.o\
          Inferences/TheoryInstAndSimp.o\
