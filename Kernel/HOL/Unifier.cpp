@@ -98,8 +98,8 @@ Unifier::Constraint::Constraint(TermList lhs, TermList rhs, TermList sort)
   : _lhs(lhs), _rhs(rhs), _sort(sort), _lhead(lhs.head()), _rhead(rhs.head())
 {
   // terms must be in whnf
-  ASS(!_lhead.isLambdaTerm());
-  ASS(!_lhead.isLambdaTerm());
+  ASS_REP(!_lhead.isLambdaTerm(), _lhead.toString());
+  ASS_REP(!_rhead.isLambdaTerm(), _rhead.toString());
 }
 
 bool Unifier::Constraint::derefHead(TermList& head, TermList& side, const Substitution& subs)

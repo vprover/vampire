@@ -146,10 +146,11 @@ void checkTermMatchesWithUnifFun(TermSubstitutionTree<TermWithoutValue>& index, 
 
 }
 
-void checkTermMatches(TermSubstitutionTree<TermWithoutValue>& index, Options::UnificationWithAbstraction uwa, bool fixedPointIteration, TypedTermList term, Stack<TermUnificationResultSpec> expected)
+void checkTermMatches(TermSubstitutionTree<TermWithoutValue>& index, Options::UnificationWithAbstraction uwa, bool fixedPointIteration,
+  TypedTermList term, Stack<TermUnificationResultSpec> expected, HOLUnificationHandler* holHandler = nullptr)
 {
   return checkTermMatchesWithUnifFun(index, term, expected, 
-      [&](auto& idx, auto t) { return idx.getUwa(term, uwa, fixedPointIteration, nullptr); });
+      [&](auto& idx, auto t) { return idx.getUwa(term, uwa, fixedPointIteration, holHandler); });
 }
 
 
@@ -1059,6 +1060,45 @@ TEST_FUN(higher_order2)
 
   index->insert(tld(ap(ap(f,a),b)));
 
+}
+
+TEST_FUN(hol_new_1)
+{
+  env.setHigherOrder(true);
+  auto index = getTermIndexHOL();
+  Options opt;
+  HOLUnificationHandler holHandler(opt);
+
+  DECL_DEFAULT_VARS
+  DECL_DEFAULT_SORT_VARS
+  NUMBER_SUGAR(Rat)
+  DECL_SORT(srt)
+  DECL_CONST(a, srt)
+  DECL_CONST(b, srt)
+  DECL_CONST(h, arrow({arrow(srt, srt), arrow(srt, srt)}, srt))
+  DECL_CONST(f, arrow({srt, srt}, srt))
+  DECL_CONST(g, arrow({srt, srt}, srt))
+  DECL_DE_BRUIJN_INDEX(x0, 0, srt)
+
+  index->insert(tld(ap(h, {x, lam(srt, ap(x.sort(arrow(srt,srt)), ap(g, {y, x0})))})));
+
+  auto uwa = Options::UnificationWithAbstraction::HOL;
+  auto fixedPointIteration = true;
+
+  checkTermMatches(*index, uwa, fixedPointIteration,
+    ap(h, {lam(srt, ap(f, {x0, z})), ap(f, a)}),
+    Stack<TermUnificationResultSpec>{},
+    &holHandler);
+
+  checkTermMatches(*index, uwa, fixedPointIteration,
+    ap(h, {lam(srt, ap(f, {x0, z})), lam(srt, ap(f, {x0, x0}))}),
+    Stack<TermUnificationResultSpec>{},
+    &holHandler);
+
+  checkTermMatches(*index, uwa, fixedPointIteration,
+    ap(h, {lam(srt, ap(f, {x0, z})), ap(f, ap(g, {a, b}))}),
+    Stack<TermUnificationResultSpec>{},
+    &holHandler);
 }
 
 Option<TermUnificationResultSpec> runRobUnify(bool diffNamespaces, Options::UnificationWithAbstraction opt, bool fixedPointIteration, TermList a, TermList b) {

@@ -299,9 +299,34 @@ Option<AbstractionOracle::AbstractionResult> funcExt(
 
 TermSpec appHead(AbstractingUnifier* au, TermSpec t)
 {
+  // contains the @ arguments, innermost on top
+  Stack<TermSpec> args;
+  // contains the substituted arguments inside lambdas, the innermost on top
+  Stack<TermSpec> subst;
   ASS_EQ(t, au->subs().derefBound(t));
-  while (t.term.isLambdaTerm() || t.term.isApplication()) {
-    t = au->subs().derefBound(t.termArg(0));
+  for (;;) {
+    t = au->subs().derefBound(t);
+    // if term is lambda, substitute one arg and recurse
+    if (t.term.isLambdaTerm()) {
+      if (args.isNonEmpty()) {
+        subst.push(args.pop());
+      }
+      t = t.termArg(0);
+      continue;
+    }
+    // if term is application, save the arg and recurse
+    if (t.term.isApplication()) {
+      args.push(t.termArg(1));
+      t = t.termArg(0);
+      continue;
+    }
+    // if term is ith De Bruijn index, take ith arg and recurse
+    auto dbi = t.term.deBruijnIndex();
+    if (dbi.isSome() && *dbi < subst.size()) {
+      t = subst[subst.size() - *dbi - 1];
+      continue;
+    }
+    break;
   }
   return t;
 }
@@ -349,6 +374,7 @@ Option<AbstractionOracle::AbstractionResult> hol(
 
   auto h1 = appHead(au, t1);
   auto h2 = appHead(au, t2);
+  DEBUG_UNIFY(0, "app heads ", h1, ", ", h2);
   if (h1.isTerm() && !h1.term.deBruijnIndex() && h2.isTerm() && !h2.term.deBruijnIndex()
     && h1.term.term()->functor() != h2.term.term()->functor())
   {
