@@ -174,7 +174,7 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
   else if (HOL::isFalse(head))
     headStr = pretty ? "⊥" : "$false";
   else {
-    using ProxyEntry = std::tuple<Proxy, std::string, std::string>;
+    using ProxyEntry = std::tuple<Proxy, std::string_view, std::string_view>;
 
     auto functorProxy = env.signature->getFunction(head.term()->functor())->proxy();
 
