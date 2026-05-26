@@ -134,7 +134,7 @@ CXX = g++
 CC = gcc
 endif
 
-CXXFLAGS = $(XFLAGS) -Wall -fno-threadsafe-statics -fno-rtti -std=c++17  $(INCLUDES) # -Wno-unknown-warning-option for clang
+CXXFLAGS = $(XFLAGS) -Wall -fno-threadsafe-statics -fno-rtti -std=c++20  $(INCLUDES) # -Wno-unknown-warning-option for clang
 CCFLAGS = -Wall -O3 -DNDBLSCR -DNLGLOG -DNDEBUG -DNCHKSOL -DNLGLPICOSAT
 
 ################################################################
