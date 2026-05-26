@@ -588,7 +588,7 @@ std::string Kernel::ruleName(InferenceRule rule)
   case InferenceRule::REMOVE_DUPLICATE_LITERALS:
     return "duplicate literal removal";
   case InferenceRule::SKOLEMIZE:
-    return "skolemisation";
+    return "skolemize";
   case InferenceRule::SKOLEM_SYMBOL_INTRODUCTION:
     return "skolem symbol introduction";
   case InferenceRule::RESOLUTION:
