@@ -56,7 +56,7 @@ template<class TermOrLit>
 struct UnificationResultSpec {
   TermOrLit querySigma;
   TermOrLit resultSigma;
-  Stack<Literal*> constraints;
+  LiteralStack constraints;
   bool alascaSimpl = false;
 
   friend bool operator==(UnificationResultSpec const& l, UnificationResultSpec const& r)
@@ -1070,8 +1070,6 @@ TEST_FUN(hol_new_1)
   HOLUnificationHandler holHandler(opt);
 
   DECL_DEFAULT_VARS
-  DECL_DEFAULT_SORT_VARS
-  NUMBER_SUGAR(Rat)
   DECL_SORT(srt)
   DECL_CONST(a, srt)
   DECL_CONST(b, srt)
@@ -1098,6 +1096,35 @@ TEST_FUN(hol_new_1)
   checkTermMatches(*index, uwa, fixedPointIteration,
     ap(h, {lam(srt, ap(f, {x0, z})), ap(f, ap(g, {a, b}))}),
     Stack<TermUnificationResultSpec>{},
+    &holHandler);
+}
+
+TEST_FUN(hol_new_2)
+{
+  env.setHigherOrder(true);
+  auto index = getTermIndexHOL();
+  Options opt;
+  HOLUnificationHandler holHandler(opt);
+
+  DECL_SORT(s)
+  DECL_DE_BRUIJN_INDEX(x0, 0, arrow(s,s))
+  DECL_DE_BRUIJN_INDEX(x1, 1, arrow(s,s))
+  DECL_DE_BRUIJN_INDEX(y0, 0, s)
+
+  auto indexed = lam(arrow(s,s), x0);
+  auto queried = lam(arrow(s,s), lam(s, ap(x1, y0)));
+
+  index->insert(tld(indexed));
+
+  checkTermMatches(*index, Options::UnificationWithAbstraction::HOL, true,
+    queried,
+    Stack<TermUnificationResultSpec>{
+      TermUnificationResultSpec {
+        queried,
+        indexed,
+        LiteralStack{}
+      },
+    },
     &holHandler);
 }
 

@@ -389,7 +389,7 @@ Option<AbstractionOracle::AbstractionResult> hol(
   auto sort2 = SortHelper::getResultSort(t2s.term());
   if (sort1 != sort2) {
     // TODO handle this earlier
-    // DBG("sorts not identical ", sort1, " != ", sort2);
+    DEBUG_UNIFY(0, "sorts not identical ", sort1, " != ", sort2);
     return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
   }
 
