@@ -74,7 +74,7 @@ bool Unifier::simplify(LiteralStack& solution)
 
 TermList Unifier::applyTermSpec(TermSpec t, RobSubstitution& subs, DHMap<VarSpec,unsigned>& varMap)
 {
-  return BottomUpEvaluation<AutoDerefTermSpec, TermList>()
+  return HOL::reduce::betaEtaNF(BottomUpEvaluation<AutoDerefTermSpec, TermList>()
     .function([&subs,&varMap](auto const& orig, TermList* args) -> TermList {
       if (orig.term.isVar()) {
         ASS(!orig.term.varSpec().special());
@@ -89,7 +89,7 @@ TermList Unifier::applyTermSpec(TermSpec t, RobSubstitution& subs, DHMap<VarSpec
     })
     .evNonRec([](auto& t) { return someIf(t.term.definitelyGround(), [&]() { return t.term.term; }); })
     .context(AutoDerefTermSpec::Context { .subs = &subs, })
-    .apply(AutoDerefTermSpec(t, &subs));
+    .apply(AutoDerefTermSpec(t, &subs)));
 }
 
 // Constraint

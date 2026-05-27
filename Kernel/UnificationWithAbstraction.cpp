@@ -362,22 +362,17 @@ Option<AbstractionOracle::AbstractionResult> hol(
     return Option<AbstractionOracle::AbstractionResult>();
   }
 
-  // this can happen due to a failing occurs check, abstract
-  // TODO only abstract in certain cases, maybe when the head is a variable?
-  if (t1.term.isVar()) {
-    ASS(t2.term.isTerm());
-    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, t2.sort()))));
-  }
-  if (t2.term.isVar()) {
-    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, t1.sort()))));
-  }
-
   auto h1 = appHead(au, t1);
   auto h2 = appHead(au, t2);
   DEBUG_UNIFY(0, "app heads ", h1, ", ", h2);
-  if (h1.isTerm() && !h1.term.deBruijnIndex() && h2.isTerm() && !h2.term.deBruijnIndex()
-    && h1.term.term()->functor() != h2.term.term()->functor())
-  {
+
+  // we abstract flex-rigid and flex-flex pairs
+  if (h1.isVar() || h2.isVar()) {
+    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, t2.sort()))));
+  }
+
+  // TODO handle DB indices too
+  if (!h1.term.deBruijnIndex() && !h2.term.deBruijnIndex() && h1.term.term()->functor() != h2.term.term()->functor()) {
     return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
   }
 
