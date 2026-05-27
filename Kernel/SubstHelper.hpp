@@ -529,10 +529,11 @@ Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator, bool noShari
     while(vit.hasNext()) {
       auto [v, sort] = vit.next();
       TermList binding = applicator.apply(v);
+      TermList newSort = TermList(applyImpl<ProcessSpecVars>(sort, applicator, noSharing));
       ASS(binding.isVar());
       unsigned newVar = binding.var();
-      VSList::push({newVar, sort}, newVars);
-      if(newVar!=v) {
+      VSList::push({newVar, newSort}, newVars);
+      if(newVar!=v || newSort!=sort) {
         varsModified = true;
       }
     }

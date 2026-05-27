@@ -119,8 +119,6 @@ enum class InferenceRule : unsigned char {
   ANSWER_LITERAL_INPUT_SKOLEMISATION,
   /** claim definition, definition introduced by a claim in the input */
   CLAIM_DEFINITION,
-//     /** choice_axiom (Ax)((Ey)F(x,y) -> F(x,f(x))) */
-//     CHOICE_AXIOM,
 //     /** (Ax)(F(x)->F'(x)), G[F(t)] / G[F'(t)] */
 //     MONOTONE_REPLACEMENT,
 //     /** G[(Ax)F(x)] => G[F(t)] */
@@ -538,6 +536,8 @@ enum class InferenceRule : unsigned char {
   /* Integer induction axioms for infinite interval and the default bound */
   INT_DB_UP_INDUCTION_AXIOM,
   INT_DB_DOWN_INDUCTION_AXIOM,
+
+  FUNCTIONAL_EXTENSIONALITY_AXIOM,
 
   /** the last theory axiom marker --
     axioms between THEORY_AXIOM and GENERIC_THEORY_AXIOM_LAST will be automatically making their respective clauses isTheoryAxiom() true */

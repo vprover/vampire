@@ -79,7 +79,9 @@
 #include "Inferences/HOL/BetaEtaSimplify.hpp"
 #include "Inferences/HOL/BoolEqToDiseq.hpp"
 #include "Inferences/HOL/BoolSimp.hpp"
+#include "Inferences/HOL/Cases.hpp"
 #include "Inferences/HOL/CasesSimp.hpp"
+#include "Inferences/HOL/Choice.hpp"
 #include "Inferences/HOL/CNFOnTheFly.hpp"
 #include "Inferences/HOL/FlexFlexSimplify.hpp"
 #include "Inferences/HOL/ImitateProject.hpp"
@@ -91,14 +93,12 @@
 #include "Inferences/InnerRewriting.hpp"
 #include "Inferences/TermAlgebraReasoning.hpp"
 #include "Inferences/Superposition.hpp"
-#include "Inferences/Choice.hpp"
 #include "Inferences/URResolution.hpp"
 #include "Inferences/Instantiation.hpp"
 #include "Inferences/TheoryInstAndSimp.hpp"
 #include "Inferences/Induction.hpp"
 #include "Inferences/ArithmeticSubtermGeneralization.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
-#include "Inferences/Cases.hpp"
 #include "Inferences/DefinitionIntroduction.hpp"
 #include "Inferences/LfpRule.hpp"
 #include "Inferences/SubsumptionEqualityResolution.hpp"
@@ -1458,7 +1458,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new Induction(*res));
   }
 
-  if (opt.instantiation() != Options::Instantiation::OFF) {
+  if (opt.instantiation()) {
     res->_instantiation = new Instantiation();
     // res->_instantiation->init();
     gie->addFront(res->_instantiation);
@@ -1514,7 +1514,9 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.FOOLParamodulation()) {
     gie->addFront(new FOOLParamodulation());
   }
-  if (opt.cases() && prb.hasFOOL() && !opt.casesSimp()) {
+  // TODO(HOL): Cases only works with HO equalities, but for plain FOOL
+  // problems then we have nothing enabled by default. Maybe FOOLParamodulation?
+  if (opt.cases() && prb.isHigherOrder() && !opt.casesSimp()) {
     gie->addFront(new Cases(*res));
   }
 
@@ -1531,7 +1533,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   if (prb.isHigherOrder() && opt.injectivityReasoning()) {
-    gie->addFront(new Injectivity());
+    gie->addFront(new Injectivity(*res));
   }
   if (mayHaveEquality && env.signature->hasTermAlgebras()) {
     if (opt.termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULE) {
@@ -1775,7 +1777,11 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
       res->addFront(new Condensation());
       break;
     case Options::Condensation::FAST:
-      res->addFront(new FastCondensation());
+      if (prb.isHigherOrder()) {
+        res->addFront(new FastCondensation<true>());
+      } else {
+        res->addFront(new FastCondensation<false>());
+      }
       break;
     case Options::Condensation::OFF:
       break;
@@ -1785,7 +1791,7 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
     res->addFront(new ChoiceDefinitionISE());
   }
 
-  if ((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) && prb.isHigherOrder()/*  && !opt.addProxyAxioms() */) {
+  if ((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) && prb.isHigherOrder()) {
     if(env.options->cnfOnTheFly() == Options::CNFOnTheFly::EAGER){
       resMany.addFront(std::make_unique<EagerClausificationISE>());
     }

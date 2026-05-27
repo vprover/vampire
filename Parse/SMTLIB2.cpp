@@ -221,6 +221,19 @@ void SMTLIB2::readBenchmark(LExpr* bench)
       continue;
     }
 
+    if (ibRdr.tryAcceptAtom("define-const")) {
+
+      auto name = ibRdr.readAtom();
+      auto oSort = ibRdr.readExpr();
+      auto body = ibRdr.readExpr();
+      LExpr iArgs(LispParser::LIST); // dummy list to avoid passing null below
+      readDefineFun(name,&iArgs,oSort,body,/*recursive=*/false);
+
+      ibRdr.acceptEOL();
+
+      continue;
+    }
+
     bool recursive = false;
     if (ibRdr.tryAcceptAtom("define-fun") || (recursive = ibRdr.tryAcceptAtom("define-fun-rec"))) {
 
