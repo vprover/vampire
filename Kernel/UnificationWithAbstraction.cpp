@@ -309,7 +309,9 @@ TermSpec appHead(AbstractingUnifier* au, TermSpec t)
     // if term is lambda, substitute one arg and recurse
     if (t.term.isLambdaTerm()) {
       if (args.isNonEmpty()) {
-        subst.push(args.pop());
+        auto arg = args.pop();
+        ASS(arg.isVar() || arg.sort().deepEqCheck(t.typeArg(0)));
+        subst.push(arg);
       }
       t = t.termArg(0);
       continue;

@@ -439,7 +439,8 @@ std::string TPTP::toString(Tag tag)
 bool TPTP::readToken(Token& tok)
 {
   skipWhiteSpacesAndComments();
-  switch (getChar(0)) {
+  auto c = getChar(0);
+  switch (c) {
   case 0:
     tok.tag = T_EOF;
     return false;
@@ -697,7 +698,7 @@ bool TPTP::readToken(Token& tok)
     tok.tag = readNumber(tok);
     return true;
   default:
-    PARSE_ERROR("Bad character");
+    PARSE_ERROR("Bad character " + std::string(1, c));
   }
 } // TPTP::readToken()
 
