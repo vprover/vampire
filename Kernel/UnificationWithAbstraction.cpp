@@ -370,7 +370,8 @@ Option<AbstractionOracle::AbstractionResult> hol(
 
   // we abstract flex-rigid and flex-flex pairs
   if (h1.isVar() || h2.isVar()) {
-    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, t2.sort()))));
+    auto sort = t1.isVar() ? t2.sort() : t1.sort();
+    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, sort))));
   }
 
   // TODO handle DB indices too
