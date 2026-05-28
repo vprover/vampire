@@ -45,23 +45,23 @@ struct EqualityResolution::IsNegativeEqualityFn
 
 struct EqualityResolution::ResultFn
 {
-  ResultFn(Clause* cl, bool afterCheck = false, const Ordering* ord = nullptr, HOLUnificationHandler* holHandler = nullptr)
-      : _afterCheck(afterCheck), _ord(ord), _cl(cl), _cLen(cl->length()), _holHandler(holHandler) {}
+  ResultFn(Clause* cl, bool afterCheck = false, const Ordering* ord = nullptr,
+    HOLUnificationHandler* holHandler = nullptr, Shell::Options::UnificationWithAbstraction uwa = Shell::Options::UnificationWithAbstraction::OFF)
+      : _afterCheck(afterCheck), _ord(ord), _cl(cl), _cLen(cl->length()), _holHandler(holHandler), _uwa(uwa) {}
 
   Clause* operator() (Literal* lit)
   {
     ASS(lit->isEquality());
     ASS(lit->isNegative());
 
-    static AbstractionOracle _abstractionOracle = AbstractionOracle::create();
-    auto abstractionOracle = _abstractionOracle;
+    AbstractionOracle abstractionOracle(_uwa);
 
     auto [lhs, rhs] = lit->eqArgs();
 
     // We only care about non-trivial constraints where the top-sybmol of the two literals are the same
     // and therefore a constraint can be created between arguments
     if(lhs.isTerm() && rhs.isTerm() &&
-       lhs.term()->functor() != rhs.term()->functor() && env.options->unificationWithAbstraction() != Shell::Options::UnificationWithAbstraction::HOL){
+       lhs.term()->functor() != rhs.term()->functor() && _uwa != Shell::Options::UnificationWithAbstraction::HOL){
       abstractionOracle = AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF);
     }
 
@@ -115,6 +115,7 @@ private:
   Clause* _cl;
   unsigned _cLen;
   HOLUnificationHandler* _holHandler;
+  Shell::Options::UnificationWithAbstraction _uwa;
 };
 
 ClauseIterator EqualityResolution::generateClauses(Clause* premise)
@@ -123,7 +124,7 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
     .filter(IsNegativeEqualityFn())
     .map(ResultFn(premise,
       _salg.getOptions().literalMaximalityAftercheck() && _salg.getLiteralSelector().isBGComplete(),
-      &_salg.getOrdering(), _salg.holUnificationHandler()))
+      &_salg.getOrdering(), _salg.holUnificationHandler(), _salg.getOptions().unificationWithAbstraction()))
     .filter(NonzeroFn()));
 }
 

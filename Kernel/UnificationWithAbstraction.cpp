@@ -153,27 +153,6 @@ auto iterAtoms(TermSpec outer, AbstractingUnifier& au, ASig sig, Action action) 
   }
 };
 
-
-Shell::Options::UnificationWithAbstraction AbstractionOracle::create()
-{
-  if (env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF) {
-    return env.options->unificationWithAbstraction();
-  } else if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.getMainProblem()->getProperty()->higherOrder()) {
-    return Options::UnificationWithAbstraction::FUNC_EXT;
-  } else {
-    return Options::UnificationWithAbstraction::OFF;
-  }
-}
-
-Shell::Options::UnificationWithAbstraction AbstractionOracle::createOnlyHigherOrder()
-{
-  if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.getMainProblem()->getProperty()->higherOrder()) {
-    return Options::UnificationWithAbstraction::FUNC_EXT;
-  } else {
-    return Options::UnificationWithAbstraction::OFF;
-  }
-}
-
 bool AbstractionOracle::isInterpreted(unsigned functor) const
 {
   auto f = env.signature->getFunction(functor);
@@ -1500,7 +1479,6 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
 
     // Recycled<Stack<std::pair<TermSpec, TermSpec>>> toDo;
     TodoStack todo;
-    todo.terms->push(std::make_pair(t1, t2));
 
     // Save encountered unification pairs to avoid
     // recomputing their unification
@@ -1534,6 +1512,17 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
           todo.stack(s).push(std::move(pair));
         }
     };
+
+    auto isSortTerm = [this](auto t) {
+      auto dt = subs().derefBound(t);
+      return dt.isTerm() && dt.isSort();
+    };
+    if (isSortTerm(t1) || isSortTerm(t2)) {
+      pushTodo(std::make_pair(t1, t2), SORT);
+    } else {
+      // if we are unifying variables, the unification goes through trivially anyways
+      pushTodo(std::make_pair(t1, t2), TERM);
+    }
 
     auto occurs = [this](auto& var, auto& term) {
       Recycled<Stack<TermSpec>> todo;
@@ -1595,6 +1584,8 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
           }
           for (auto& x : conditions.unify()) {
             auto pair = std::make_pair(x.lhs(), x.rhs());
+            ASS(pair.first.isVar() || !pair.first.isSort());
+            ASS(pair.second.isVar() || !pair.second.isSort());
             ASS_NEQ(pair, cur)
             pushTodo(pair, TERM);
             DEBUG_UNIFY(3, "uwa adding unify : ", pair)
