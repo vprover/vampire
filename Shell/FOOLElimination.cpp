@@ -49,7 +49,23 @@ const char* FOOLElimination::MATCH_PREFIX  = "mG";
 
 FOOLElimination::FOOLElimination() : _defs(0), _currentDefs(0), _higherOrder(0), _polymorphic(0) {}
 
-bool FOOLElimination::needsElimination(FormulaUnit* unit) {
+bool FOOLElimination::needsElimination(FormulaUnit* unit)
+{
+  if (env.higherOrder()) {
+    switch(env.options->cnfOnTheFly()){
+      case Options::CNFOnTheFly::EAGER:
+        break;
+      case Options::CNFOnTheFly::CONJ_EAGER:
+        if (unit->inputType() != UnitInputType::NEGATED_CONJECTURE &&
+            unit->inputType() != UnitInputType::CONJECTURE) {
+          return true;
+        }
+        break;
+      default:
+        return true;
+    }
+  }
+
   /**
    * Be careful with the difference between FOOLElimination::needsElimination
    * and Property::_hasFOOL!
@@ -142,7 +158,19 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
 
   SortHelper::collectVariableSorts(formula, _varSorts);
 
-  Formula* processedFormula = process(formula);
+  bool isConjecture =
+    unit->inputType() == UnitInputType::NEGATED_CONJECTURE ||
+    unit->inputType() == UnitInputType::CONJECTURE;
+
+  // The old implementation (combinator implementation) had a check !_polymorphic
+  // I've removed it here, but if we start seeing issues on polymorphic problems, that
+  // is one place to check immediately
+  bool proxify = env.higherOrder() &&
+    env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
+    env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF   &&
+   (env.options->cnfOnTheFly() != Options::CNFOnTheFly::CONJ_EAGER || !isConjecture);
+
+  Formula* processedFormula = proxify ? convertToProxified(formula) : process(formula);
   if (formula == processedFormula) {
     return rectifiedUnit;
   }
@@ -161,17 +189,30 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
   return processedUnit;
 }
 
-Formula* FOOLElimination::process(Formula* formula) {
-  if (env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
-      !_polymorphic) {
-    Formula* processedFormula = toEquality(TermList(Term::createFormula(formula)));
-
-    if (env.options->showPreprocessing()) {
-      reportProcessed(formula->toString(), processedFormula->toString());
-    }
-
-    return processedFormula;
+Formula* FOOLElimination::convertToProxified(Formula* formula) {
+  Formula* processedFormula;
+  if (formula->connective() == LITERAL) {
+    // don't proxify the equality itself, as this blocks
+    // definition rewriting which really harms performance
+    auto literal = formula->literal();
+    auto [lhs, rhs] = literal->eqArgs();
+    lhs = HOL::convert::toNameless(lhs);
+    rhs = HOL::convert::toNameless(rhs);
+    processedFormula = new AtomicFormula(
+      Literal::createEquality(literal->polarity(), lhs, rhs, SortHelper::getEqualityArgumentSort(literal)));
+  } else {
+    TermList proxifiedFormula = HOL::convert::toNameless(formula);
+    processedFormula = toEquality(proxifiedFormula);
   }
+
+  if (env.options->showPreprocessing()) {
+    reportProcessed(formula->toString(), processedFormula->toString());
+  }
+
+  return processedFormula;
+}
+
+Formula* FOOLElimination::process(Formula* formula) {
   switch (formula->connective()) {
     case LITERAL: {
       Literal* literal = formula->literal();
@@ -278,7 +319,7 @@ Formula* FOOLElimination::process(Formula* formula) {
 
     case FORALL:
     case EXISTS:
-      return new QuantifiedFormula(formula->connective(), formula->vars(),formula->sorts(), process(formula->qarg()));
+      return new QuantifiedFormula(formula->connective(), formula->vars(), process(formula->qarg()));
 
     case BOOL_TERM: {
       Formula* processedFormula = processAsFormula(formula->getBooleanTerm());
@@ -527,8 +568,14 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // build ![X1, ..., Xn]: (f => g(Y1, ..., Ym,X1, ..., Xn) == s)
         if (VList::length(freeVars) > 0) {
-          //TODO do we know the sorts of freeVars?
-          thenImplication = new QuantifiedFormula(FORALL, freeVars,0, thenImplication);
+          VSList::FIFO vsfifo;
+          VList::Iterator vit(freeVars);
+          while (vit.hasNext()) {
+            unsigned v = vit.next();
+            TermList s = _varSorts.get(v, AtomicSort::defaultSort());
+            vsfifo.pushBack({v, s});
+          }
+          thenImplication = new QuantifiedFormula(FORALL, vsfifo.list(), thenImplication);
         }
 
         // build g(Y1, ..., Ym, X1, ..., Xn) == t
@@ -540,8 +587,14 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // build ![X1, ..., Xn]: (~f => g(Y1,...,Ym,X1, ..., Xn) == t)
         if (VList::length(freeVars) > 0) {
-          //TODO do we know the sorts of freeVars?
-          elseImplication = new QuantifiedFormula(FORALL, freeVars, 0, elseImplication);
+          VSList::FIFO vsfifo;
+          VList::Iterator vit(freeVars);
+          while (vit.hasNext()) {
+            unsigned v = vit.next();
+            TermList s = _varSorts.get(v, AtomicSort::defaultSort());
+            vsfifo.pushBack({v, s});
+          }
+          elseImplication = new QuantifiedFormula(FORALL, vsfifo.list(), elseImplication);
         }
 
         // conjoin both definitions for Geoff:
@@ -690,7 +743,14 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // build ![X1, ..., Xn, Y1, ..., Yk]: g(A1, ..., Am, B1, ..., Bj,X1, ..., Xn, Y1, ..., Yk) == s
         if (VList::length(vars) > 0) {
-          freshSymbolDefinition = new QuantifiedFormula(FORALL, vars, 0, freshSymbolDefinition);
+          VSList::FIFO vsfifo;
+          VList::Iterator vit(vars);
+          while (vit.hasNext()) {
+            unsigned v = vit.next();
+            TermList s = _varSorts.get(v, AtomicSort::defaultSort());
+            vsfifo.pushBack({v, s});
+          }
+          freshSymbolDefinition = new QuantifiedFormula(FORALL, vsfifo.list(), freshSymbolDefinition);
         }
 
         // add the introduced definition
@@ -731,12 +791,12 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         Connective connective = sd->getFormula()->connective();
 
         if (connective == TRUE) {
-          termResult = TermList(Term::foolTrue());
+          termResult = HOL::create::top();
           break;
         }
 
         if (connective == FALSE) {
-          termResult = TermList(Term::foolFalse());
+          termResult = HOL::create::bottom();
           break;
         }
 
@@ -766,8 +826,14 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
           // build ![X1, ..., Xn]: (f <=> g(Y1, ..., Ym, X1, ..., Xn) = true)
           if (VList::length(freeVars) > 0) {
-            // TODO do we know the sorts of freeVars?
-            freshSymbolDefinition = new QuantifiedFormula(FORALL, freeVars,0, freshSymbolDefinition);
+            VSList::FIFO vsfifo;
+            VList::Iterator vit(freeVars);
+            while (vit.hasNext()) {
+              unsigned v = vit.next();
+              TermList s = _varSorts.get(v, AtomicSort::defaultSort());
+              vsfifo.pushBack({v, s});
+            }
+            freshSymbolDefinition = new QuantifiedFormula(FORALL, vsfifo.list(), freshSymbolDefinition);
           }
 
           // add the introduced definition
@@ -840,8 +906,14 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
           // build ![X1, ..., Xn]: (f => g(X1, ..., Xn) == s)
           if (VList::length(freeVars) > 0) {
-            //TODO do we know the sorts of freeVars?
-            impl = new QuantifiedFormula(FORALL, freeVars, 0, impl);
+            VSList::FIFO vsfifo;
+            VList::Iterator vit(freeVars);
+            while (vit.hasNext()) {
+              unsigned v = vit.next();
+              TermList s = _varSorts.get(v, AtomicSort::defaultSort());
+              vsfifo.pushBack({v, s});
+            }
+            impl = new QuantifiedFormula(FORALL, vsfifo.list(), impl);
           }
           FormulaUnit* defUnit = new FormulaUnit(impl,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FOOL_MATCH_DEFINITION));
           addDefinition(defUnit);

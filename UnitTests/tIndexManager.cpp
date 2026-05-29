@@ -19,12 +19,12 @@ struct TestIndex : public Index
 
   void handleClause(Clause* c, bool adding) override {
     if (adding) {
-      ALWAYS(cls.insert(c));
+      ALWAYS(cls.insert(c->number()));
     } else {
-      ALWAYS(cls.remove(c));
+      ALWAYS(cls.remove(c->number()));
     }
   }
-  DHSet<Clause*> cls;
+  DHSet<unsigned> cls;
 };
 
 GEN_INDEX_IMPL(TestIndex)
@@ -77,10 +77,10 @@ TEST_FUN(clause_appears_in_generating_index) {
   auto cl2 = clause({});
   cl->setStore(Clause::ACTIVE);
   alg.getGeneratingClauseContainer()->add(cl);
-  ASS(gindex->cls.contains(cl));
-  ASS(!gindex->cls.contains(cl2));
-  ASS(!sindex->cls.contains(cl));
-  ASS(!sindex->cls.contains(cl2));
+  ASS(gindex->cls.contains(cl->number()));
+  ASS(!gindex->cls.contains(cl2->number()));
+  ASS(!sindex->cls.contains(cl->number()));
+  ASS(!sindex->cls.contains(cl2->number()));
 }
 
 TEST_FUN(clause_appears_in_simplifying_index) {
@@ -96,8 +96,8 @@ TEST_FUN(clause_appears_in_simplifying_index) {
   auto cl = clause({});
   auto cl2 = clause({});
   alg.getSimplifyingClauseContainer()->add(cl);
-  ASS(!gindex->cls.contains(cl));
-  ASS(!gindex->cls.contains(cl2));
-  ASS(sindex->cls.contains(cl));
-  ASS(!sindex->cls.contains(cl2));
+  ASS(!gindex->cls.contains(cl->number()));
+  ASS(!gindex->cls.contains(cl2->number()));
+  ASS(sindex->cls.contains(cl->number()));
+  ASS(!sindex->cls.contains(cl2->number()));
 }

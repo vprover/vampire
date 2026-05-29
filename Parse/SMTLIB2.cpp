@@ -221,6 +221,19 @@ void SMTLIB2::readBenchmark(LExpr* bench)
       continue;
     }
 
+    if (ibRdr.tryAcceptAtom("define-const")) {
+
+      auto name = ibRdr.readAtom();
+      auto oSort = ibRdr.readExpr();
+      auto body = ibRdr.readExpr();
+      LExpr iArgs(LispParser::LIST); // dummy list to avoid passing null below
+      readDefineFun(name,&iArgs,oSort,body,/*recursive=*/false);
+
+      ibRdr.acceptEOL();
+
+      continue;
+    }
+
     bool recursive = false;
     if (ibRdr.tryAcceptAtom("define-fun") || (recursive = ibRdr.tryAcceptAtom("define-fun-rec"))) {
 
@@ -2223,17 +2236,16 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const std::string& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
-      VList::FIFO qvars;
-      SList::FIFO qsorts;
+      VSList::FIFO qvarSorts;
 
       for(Binding binding : _lookups.top().bindings) {
-        unsigned varIdx = binding.term.var();
-        qvars.pushBack(varIdx);
-        qsorts.pushBack(binding.sort);
+        qvarSorts.pushBack({binding.term.var(), binding.sort});
       }
       _lookups.pop();
 
-      Formula* res = new QuantifiedFormula((fs==FS_EXISTS) ? Kernel::EXISTS : Kernel::FORALL, qvars.list(), qsorts.list(), argFla);
+      Formula* res = qvarSorts.empty()
+        ? argFla
+        : new QuantifiedFormula((fs==FS_EXISTS) ? Kernel::EXISTS : Kernel::FORALL, qvarSorts.list(), argFla);
 
       _results.push(ParseResult(res));
       return true;
@@ -2833,8 +2845,7 @@ void SMTLIB2::readAssertSynth(LExpr* forall, LExpr* exist, LExpr* body)
   }
 
   auto parseVarList = [this](LExpr* lexp) {
-    auto vars = VList::empty();
-    auto sorts = SList::empty();
+    VSList* varSorts = VSList::empty();
     auto rdr = READER(lexp);
     while (rdr.hasNext()) {
       auto pRdr = READER(rdr.readList());
@@ -2842,14 +2853,13 @@ void SMTLIB2::readAssertSynth(LExpr* forall, LExpr* exist, LExpr* body)
       auto var = TermList::var(_nextVar++);
       auto sort = parseSort(pRdr.readExpr());
       tryInsertIntoCurrentLookup(name, var, sort);
-      VList::push(var.var(), vars);
-      SList::push(sort, sorts);
+      VSList::push({var.var(),sort},varSorts);
     }
-    return make_pair(vars, sorts);
+    return varSorts;
   };
 
-  auto [fvars, fsorts] = parseVarList(forall);
-  auto [evars, esorts] = parseVarList(exist);
+  auto fvarSorts = parseVarList(forall);
+  auto evarSorts = parseVarList(exist);
   ParseResult res = parseTermOrFormula(body,false/*isSort*/);
 
   Formula* fla;
@@ -2858,8 +2868,8 @@ void SMTLIB2::readAssertSynth(LExpr* forall, LExpr* exist, LExpr* body)
   }
   _lookups.pop();
 
-  fla = new QuantifiedFormula(Connective::EXISTS, evars, esorts, fla);
-  fla = new QuantifiedFormula(Connective::FORALL, fvars, fsorts, fla);
+  fla = new QuantifiedFormula(Connective::EXISTS, evarSorts, fla);
+  fla = new QuantifiedFormula(Connective::FORALL, fvarSorts, fla);
   FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::CONJECTURE));
   fu = new FormulaUnit(new NegatedFormula(fla),
                        FormulaClauseTransformation(InferenceRule::NEGATED_CONJECTURE, fu));

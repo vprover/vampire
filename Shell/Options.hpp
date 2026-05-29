@@ -344,15 +344,6 @@ public:
   };
 
   /**
-   *
-   *
-   */
-  enum class Instantiation : unsigned int {
-    OFF = 0,
-    ON = 1
-  };
-
-  /**
    * Possible values for the input syntax
    * @since 26/08/2009 Redmond
    */
@@ -708,16 +699,23 @@ public:
     LAZY_GEN = 1,
     LAZY_SIMP = 2,
     LAZY_SIMP_NOT_GEN = 3,
-    LAZY_SIMP_NOT_GEN_BOOL_EQ_OFF = 4,
-    LAZY_SIMP_NOT_GEN_BOOL_EQ_GEN = 5,
-    OFF = 6
+    LAZY_SIMP_PI_SIGMA_GEN = 4,
+    LAZY_SIMP_NOT_GEN_BOOL_EQ_OFF = 5,
+    LAZY_SIMP_NOT_GEN_BOOL_EQ_GEN = 6,
+    CONJ_EAGER = 7,
+    OFF = 8
   };
 
   enum class PISet : unsigned int {
     ALL = 0,
     ALL_EXCEPT_NOT_EQ = 1,
-    FALSE_TRUE_NOT = 2,
-    FALSE_TRUE_NOT_EQ_NOT_EQ = 3
+    NOT = 2,
+    NOT_EQ_NOT_EQ = 3,
+    PRAGMATIC = 4,
+    AND = 5,
+    OR = 6,
+    EQUALS = 7,
+    PI_SIGMA = 8
   };
 
   enum class ProblemExportSyntax : unsigned int {
@@ -2081,6 +2079,7 @@ public:
   bool simulatenousSuperposition() const { return _simultaneousSuperposition.actualValue; }
   bool innerRewriting() const { return _innerRewriting.actualValue; }
   bool equationalTautologyRemoval() const { return _equationalTautologyRemoval.actualValue; }
+  bool subsumptionEqualityResolution() const { return _subsumptionEqualityResolution.actualValue; }
   bool partialRedundancyCheck() const { return _partialRedundancyCheck.actualValue; }
   bool partialRedundancyOrderingConstraints() const { return _partialRedundancyOrderingConstraints.actualValue; }
   bool partialRedundancyAvatarConstraints() const { return _partialRedundancyAvatarConstraints.actualValue; }
@@ -2154,6 +2153,12 @@ public:
   std::vector<int> positiveLiteralSplitQueueRatios() const;
   std::vector<float> positiveLiteralSplitQueueCutoffs() const;
   bool positiveLiteralSplitQueueLayeredArrangement() const { return _positiveLiteralSplitQueueLayeredArrangement.actualValue; }
+  bool hoSplitQueues() const { return _hoSplitQueues.actualValue; }
+  unsigned hoSplitQueueLambdaWeight() const { return _hoSplitQueueLambdaWeight.actualValue; }
+  unsigned hoSplitQueueAppVarWeight() const { return _hoSplitQueueAppVarWeight.actualValue; }
+  std::vector<int> hoSplitQueueRatios() const;
+  std::vector<float> hoSplitQueueCutoffs() const;
+  bool hoSplitQueueLayeredArrangement() const { return _hoSplitQueueLayeredArrangement.actualValue; }
   void setWeightRatio(int v){ _ageWeightRatio.otherValue = v; }
   bool literalMaximalityAftercheck() const { return _literalMaximalityAftercheck.actualValue; }
   bool superpositionFromVariables() const { return _superpositionFromVariables.actualValue; }
@@ -2188,6 +2193,7 @@ public:
   FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination.actualValue; }
   unsigned functionDefinitionIntroduction() const { return _functionDefinitionIntroduction.actualValue; }
   TweeGoalTransformation tweeGoalTransformation() const { return _tweeGoalTransformation.actualValue; }
+  bool tweeSkipArrows() const { return _tweeSkipArrows.actualValue; }
   bool codeTreeSubsumption() const { return _codeTreeSubsumption.actualValue; }
   bool outputAxiomNames() const { return _outputAxiomNames.actualValue; }
   void setOutputAxiomNames(bool newVal) { _outputAxiomNames.actualValue = newVal; }
@@ -2227,7 +2233,7 @@ public:
 
   bool colorUnblocking() const { return _colorUnblocking.actualValue; }
 
-  Instantiation instantiation() const { return _instantiation.actualValue; }
+  bool instantiation() const { return _instantiation.actualValue; }
   bool theoryFlattening() const { return _theoryFlattening.actualValue; }
   bool ignoreUnrecognizedLogic() const { return _ignoreUnrecognizedLogic.actualValue; }
 
@@ -2294,10 +2300,16 @@ public:
   bool choiceReasoning() const { return _choiceReasoning.actualValue; }
   FunctionExtensionality functionExtensionality() const { return _functionExtensionality.actualValue; }
   CNFOnTheFly cnfOnTheFly() const { return _clausificationOnTheFly.actualValue; }
+  PISet piSet() const { return _piSet.actualValue; }
   bool equalityToEquivalence () const { return _equalityToEquivalence.actualValue; }
+  bool complexBooleanReasoning () const { return _complexBooleanReasoning.actualValue; }
+  bool booleanEqTrick() const { return _booleanEqTrick.actualValue; }
+  bool heuristicInstantiation() const { return _heuristicInstantiation.actualValue; }
   bool casesSimp() const { return _casesSimp.actualValue; }
   bool cases() const { return _cases.actualValue; }
   bool newTautologyDel() const { return _newTautologyDel.actualValue; }
+  bool positiveExtensionality() const { return _positiveExt.actualValue; }
+  bool iffXorRewriter() const { return _iffXorRewriter.actualValue; }
 
 private:
 
@@ -2406,6 +2418,12 @@ private:
   StringOptionValue _positiveLiteralSplitQueueRatios;
   StringOptionValue _positiveLiteralSplitQueueCutoffs;
   BoolOptionValue _positiveLiteralSplitQueueLayeredArrangement;
+  BoolOptionValue _hoSplitQueues;
+  UnsignedOptionValue _hoSplitQueueLambdaWeight;
+  UnsignedOptionValue _hoSplitQueueAppVarWeight;
+  StringOptionValue _hoSplitQueueRatios;
+  StringOptionValue _hoSplitQueueCutoffs;
+  BoolOptionValue _hoSplitQueueLayeredArrangement;
 	BoolOptionValue _randomAWR;
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
@@ -2419,6 +2437,7 @@ private:
   BoolOptionValue _backwardSubsumptionDemodulation;
   UnsignedOptionValue _backwardSubsumptionDemodulationMaxMatches;
   BoolOptionValue _binaryResolution;
+  BoolOptionValue _superposition;
 
   BoolOptionValue _colorUnblocking;
   ChoiceOptionValue<Condensation> _condensation;
@@ -2468,6 +2487,7 @@ private:
   ChoiceOptionValue<FunctionDefinitionElimination> _functionDefinitionElimination;
   UnsignedOptionValue _functionDefinitionIntroduction;
   ChoiceOptionValue<TweeGoalTransformation> _tweeGoalTransformation;
+  BoolOptionValue _tweeSkipArrows;
   BoolOptionValue _codeTreeSubsumption;
 
   BoolOptionValue _generalSplitting;
@@ -2479,6 +2499,7 @@ private:
   BoolOptionValue _simultaneousSuperposition;
   BoolOptionValue _innerRewriting;
   BoolOptionValue _equationalTautologyRemoval;
+  BoolOptionValue _subsumptionEqualityResolution;
   BoolOptionValue _partialRedundancyCheck;
   BoolOptionValue _partialRedundancyOrderingConstraints;
   BoolOptionValue _partialRedundancyAvatarConstraints;
@@ -2498,7 +2519,7 @@ private:
 
   IntOptionValue _inequalitySplitting;
   ChoiceOptionValue<InputSyntax> _inputSyntax;
-  ChoiceOptionValue<Instantiation> _instantiation;
+  BoolOptionValue _instantiation;
 
   ChoiceOptionValue<Induction> _induction;
   ChoiceOptionValue<StructuralInductionKind> _structInduction;
@@ -2719,11 +2740,16 @@ private:
   BoolOptionValue _choiceReasoning;
   ChoiceOptionValue<FunctionExtensionality> _functionExtensionality;
   ChoiceOptionValue<CNFOnTheFly> _clausificationOnTheFly;
+  ChoiceOptionValue<PISet> _piSet;
   BoolOptionValue _equalityToEquivalence;
-  BoolOptionValue _superposition;
+  BoolOptionValue _complexBooleanReasoning;
+  BoolOptionValue _booleanEqTrick;
+  BoolOptionValue _heuristicInstantiation;
   BoolOptionValue _casesSimp;
   BoolOptionValue _cases;
   BoolOptionValue _newTautologyDel;
+  BoolOptionValue _positiveExt;
+  BoolOptionValue _iffXorRewriter;
 
 }; // class Options
 

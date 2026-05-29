@@ -21,8 +21,8 @@ using namespace Test;
 ////// TEST UNIT INITIALIZATION
 /////////////////////////////////////
 
-REGISTER_SIMPL_TESTER(Simplification::RuleSimplificationTester<PushUnaryMinus>)
-
+#define MY_SIMPL_RULE   PushUnaryMinus
+#define MY_SIMPL_TESTER Test::Simplification::SimplificationTester
 #define MY_SYNTAX_SUGAR                                                                                       \
   NUMBER_SUGAR(Real)                                                                                          \
   DECL_DEFAULT_VARS                                                                                           \

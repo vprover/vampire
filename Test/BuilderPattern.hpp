@@ -27,6 +27,16 @@ struct BuilderInitializer<Stack<A>>
 { using Type = std::initializer_list<A>; };
 
 
+#define __BUILDER_METHOD(Self, type, field)                                               \
+private:                                                                                  \
+  type _##field;                                                                          \
+public:                                                                                   \
+  Self field(type field)                                                                  \
+  {                                                                                       \
+    this->_##field = decltype(_##field)(std::move(field));                                \
+    return *this;                                                                         \
+  }                                                                                       \
+
 #define BUILDER_METHOD(Self, ty, field)                                                   \
 private:                                                                                  \
   Option<ty> _##field;                                                                    \

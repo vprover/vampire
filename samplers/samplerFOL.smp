@@ -224,6 +224,9 @@ sa!=fmb > fdi ~cat 0:100,2:1,4:1,8:1,16:1,32:1,64:1,128:1,256:1,512:1,1024:1
 # inner_rewriting
 sa!=fmb > irw ~cat off:165,on:6
 
+# subsumption_equality_resolution
+sa!=fmb > ser ~cat off:9,on:1
+
 # SINE LEVELS and shit
 
 # sine_to_age

@@ -39,8 +39,8 @@ set(UNIT_TESTS
     UnitTests/tALASCA_Superposition.cpp
     UnitTests/tALASCA_TautologyDeletion.cpp
     UnitTests/tALASCA_TermFactoring.cpp
-    UnitTests/tALASCA_VIRAS.cpp
     UnitTests/tALASCA_VariableElimination.cpp
+    UnitTests/tALASCA_VIRAS.cpp
     UnitTests/tArithCompare.cpp
     UnitTests/tBinaryHeap.cpp
     UnitTests/tBottomUpEvaluation.cpp
@@ -65,12 +65,28 @@ set(UNIT_TESTS
     UnitTests/tInferences_ForwardGroundJoinability.cpp
     UnitTests/tInferences_FunctionDefinitionRewriting.cpp
     UnitTests/tInferences_GaussianVariableElimination.cpp
+    UnitTests/tInferences_HOL_ArgCong.cpp
+    UnitTests/tInferences_HOL_BetaEtaSimplify.cpp
+    UnitTests/tInferences_HOL_BoolEqToDiseq.cpp
+    UnitTests/tInferences_HOL_BoolSimp.cpp
+    UnitTests/tInferences_HOL_Cases.cpp
+    UnitTests/tInferences_HOL_CasesSimp.cpp
+    UnitTests/tInferences_HOL_Choice.cpp
+    UnitTests/tInferences_HOL_CNFOnTheFly.cpp
+    UnitTests/tInferences_HOL_FlexFlexSimplify.cpp
+    UnitTests/tInferences_HOL_ImitateProject.cpp
+    UnitTests/tInferences_HOL_Injectivity.cpp
+    UnitTests/tInferences_HOL_LeibnizEqualityElimination.cpp
+    UnitTests/tInferences_HOL_NegativeExtensionality.cpp
+    UnitTests/tInferences_HOL_PositiveExtensionality.cpp
+    UnitTests/tInferences_HOL_PrimitiveInstantiation.cpp
     UnitTests/tInferences_Induction.cpp
     UnitTests/tInferences_InferenceEngine.cpp
     UnitTests/tInferences_InnerRewriting.cpp
     UnitTests/tInferences_PushUnaryMinus.cpp
-    UnitTests/tInferences_SubsumptionDemodulation.cpp
     UnitTests/tInferences_SubsumptionAndResolution.cpp
+    UnitTests/tInferences_SubsumptionDemodulation.cpp
+    UnitTests/tInferences_SubsumptionEqualityResolution.cpp
     UnitTests/tInferences_Superposition.cpp
     UnitTests/tInferences_TautologyDeletionISE.cpp
     UnitTests/tInferences_URResolution.cpp
@@ -86,6 +102,7 @@ set(UNIT_TESTS
     UnitTests/tQuotientE.cpp
     UnitTests/tRebalance.cpp
     UnitTests/tRobSubstitution.cpp
+    UnitTests/tSATClause.cpp
     UnitTests/tSATSolver.cpp
     UnitTests/tSATSubsumptionResolution.cpp
     UnitTests/tSet.cpp
@@ -97,10 +114,11 @@ set(UNIT_TESTS
     UnitTests/tTimeTrace.cpp
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/HOL/tHOL_Printing.cpp
-    UnitTests/HOL/tBetaReduction.cpp
-    UnitTests/HOL/tEtaReduction.cpp
-    UnitTests/HOL/tTermShifter.cpp
-    UnitTests/HOL/tSubtermReplacer.cpp
+    UnitTests/HOL/tHOL_BetaReduction.cpp
+    UnitTests/HOL/tHOL_EtaReduction.cpp
+    UnitTests/HOL/tHOL_TermShifter.cpp
+    UnitTests/HOL/tHOL_SubtermReplacer.cpp
+    UnitTests/HOL/tHOL_ToPlaceholders.cpp
 )
 
 ################################################################
@@ -218,8 +236,6 @@ set(SOURCES
     Inferences/ALASCA/VirasInterfacing.hpp
     Inferences/AnswerLiteralProcessors.cpp
     Inferences/AnswerLiteralProcessors.hpp
-    Inferences/ArgCong.cpp
-    Inferences/ArgCong.hpp
     Inferences/ArithmeticSubtermGeneralization.cpp
     Inferences/ArithmeticSubtermGeneralization.cpp
     Inferences/ArithmeticSubtermGeneralization.hpp
@@ -236,22 +252,10 @@ set(SOURCES
     Inferences/BackwardSubsumptionDemodulation.hpp
     Inferences/BinaryResolution.cpp
     Inferences/BinaryResolution.hpp
-    Inferences/BoolEqToDiseq.cpp
-    Inferences/BoolEqToDiseq.hpp
-    Inferences/BoolSimp.cpp
-    Inferences/BoolSimp.hpp
-    Inferences/CNFOnTheFly.cpp
-    Inferences/CNFOnTheFly.hpp
     Inferences/Cancellation.cpp
     Inferences/Cancellation.cpp
     Inferences/Cancellation.hpp
     Inferences/Cancellation.hpp
-    Inferences/Cases.cpp
-    Inferences/Cases.hpp
-    Inferences/CasesSimp.cpp
-    Inferences/CasesSimp.hpp
-    Inferences/Choice.cpp
-    Inferences/Choice.hpp
     Inferences/CodeTreeForwardSubsumptionAndResolution.cpp
     Inferences/CodeTreeForwardSubsumptionAndResolution.hpp
     Inferences/Condensation.cpp
@@ -293,6 +297,34 @@ set(SOURCES
     Inferences/GaussianVariableElimination.hpp
     Inferences/GlobalSubsumption.cpp
     Inferences/GlobalSubsumption.hpp
+    Inferences/HOL/ArgCong.cpp
+    Inferences/HOL/ArgCong.hpp
+    Inferences/HOL/BetaEtaSimplify.cpp
+    Inferences/HOL/BetaEtaSimplify.hpp
+    Inferences/HOL/BoolEqToDiseq.cpp
+    Inferences/HOL/BoolEqToDiseq.hpp
+    Inferences/HOL/BoolSimp.cpp
+    Inferences/HOL/BoolSimp.hpp
+    Inferences/HOL/Cases.cpp
+    Inferences/HOL/Cases.hpp
+    Inferences/HOL/CasesSimp.cpp
+    Inferences/HOL/CasesSimp.hpp
+    Inferences/HOL/Choice.cpp
+    Inferences/HOL/Choice.hpp
+    Inferences/HOL/CNFOnTheFly.cpp
+    Inferences/HOL/CNFOnTheFly.hpp
+    Inferences/HOL/FlexFlexSimplify.cpp
+    Inferences/HOL/FlexFlexSimplify.hpp
+    Inferences/HOL/ImitateProject.cpp
+    Inferences/HOL/ImitateProject.hpp
+    Inferences/HOL/LeibnizEqualityElimination.cpp
+    Inferences/HOL/LeibnizEqualityElimination.hpp
+    Inferences/HOL/NegativeExtensionality.cpp
+    Inferences/HOL/NegativeExtensionality.hpp
+    Inferences/HOL/PositiveExtensionality.cpp
+    Inferences/HOL/PositiveExtensionality.hpp
+    Inferences/HOL/PrimitiveInstantiation.cpp
+    Inferences/HOL/PrimitiveInstantiation.hpp
     Inferences/Induction.cpp
     Inferences/Induction.hpp
     Inferences/InductionHelper.cpp
@@ -308,8 +340,6 @@ set(SOURCES
     Inferences/InterpretedEvaluation.cpp
     Inferences/InterpretedEvaluation.hpp
     Inferences/LfpRule.hpp
-    Inferences/NegativeExt.cpp
-    Inferences/NegativeExt.hpp
     Inferences/PolynomialEvaluation.cpp
     Inferences/PolynomialEvaluation.hpp
     Inferences/ProofExtra.cpp
@@ -318,6 +348,8 @@ set(SOURCES
     Inferences/PushUnaryMinus.hpp
     Inferences/SubsumptionDemodulationHelper.cpp
     Inferences/SubsumptionDemodulationHelper.hpp
+    Inferences/SubsumptionEqualityResolution.cpp
+    Inferences/SubsumptionEqualityResolution.hpp
     Inferences/Superposition.cpp
     Inferences/Superposition.hpp
     Inferences/TautologyDeletionISE.cpp
@@ -337,7 +369,6 @@ set(SOURCES
     Kernel/ALASCA/SelectionPrimitves.hpp
     Kernel/ALASCA/Signature.cpp
     Kernel/ALASCA/Signature.hpp
-    Kernel/ALASCA/State.cpp
     Kernel/ALASCA/State.hpp
     Kernel/BestLiteralSelector.hpp
     Kernel/BottomUpEvaluation.hpp
@@ -475,6 +506,8 @@ set(SOURCES
     Kernel/HOL/EtaNormaliser.hpp
     Kernel/HOL/SubtermReplacer.cpp
     Kernel/HOL/SubtermReplacer.hpp
+    Kernel/HOL/ToPlaceholders.cpp
+    Kernel/HOL/ToPlaceholders.hpp
     Lib/Allocator.cpp
     Lib/Allocator.hpp
     Lib/Array.hpp

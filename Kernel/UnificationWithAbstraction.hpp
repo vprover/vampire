@@ -174,18 +174,22 @@ public:
 
   bool isRecording() { return _subs->bdIsRecording(); }
 
-  bool unify(TermList t1, int bank1, TermList t2, int bank2);
+  bool unifyOnce(TermList t1, int bank1, TermList t2, int bank2);
   bool unify(TermSpec l, TermSpec r, bool& progress);
   bool fixedPointIteration();
 
   // TODO document
   Option<Recycled<Stack<unsigned>>> unifiableSymbols(SymbolId f);
 
+  bool unify(TermList t1, int bank1, TermList t2, int bank2, bool fixedPointIteration)
+  {
+    return this->unifyOnce(t1, bank1, t2, bank2) && (!fixedPointIteration || this->fixedPointIteration());
+  }
+
   static Option<AbstractingUnifier> unify(TermList t1, int bank1, TermList t2, int bank2, AbstractionOracle uwa, bool fixedPointIteration)
   {
     auto au = AbstractingUnifier::empty(uwa);
-    if (!au.unify(t1, bank1, t2, bank2)) return {};
-    if (!fixedPointIteration || au.fixedPointIteration()) return some(std::move(au));
+    if (au.unify(t1, bank1, t2, bank2, fixedPointIteration)) return some(std::move(au));
     else return {};
   }
 

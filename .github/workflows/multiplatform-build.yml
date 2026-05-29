@@ -20,7 +20,7 @@ jobs:
     runs-on: ${{ matrix.os }}
     steps:
     - name: Checkout Tree
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         submodules: true
     - name: Install Cygwin
@@ -53,7 +53,7 @@ jobs:
       run: mv ${{ steps.cygwin.outputs.root }}/bin/cygwin1.dll build/cygwin1.dll
       if: runner.os == 'Windows'
     - name: Upload Vampire
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: vampire-${{ runner.os }}-${{ runner.arch }}
         path: |

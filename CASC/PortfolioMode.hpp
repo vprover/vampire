@@ -15,6 +15,7 @@
 #ifndef __PortfolioMode__
 #define __PortfolioMode__
 
+#include <optional>
 #include <filesystem>
 
 #include "Forwards.hpp"
@@ -47,17 +48,13 @@ private:
   bool prepareScheduleAndPerform(const Shell::Property& prop);
   void getSchedules(const Property& prop, Schedule& quick, Schedule& champions);
 
-  bool runSchedule(Schedule schedule);
+  // returns a path to a temporary file with a proof in it on success
+  std::optional<std::filesystem::path> runSchedule(Schedule schedule);
   bool runScheduleAndRecoverProof(Schedule schedule);
   [[noreturn]] void runSlice(std::string sliceCode, int remainingTime, bool scheduleRepeat);
   [[noreturn]] void runSlice(Options& strategyOpt);
 
-#if VDEBUG
-  DHSet<pid_t> childIds;
-#endif
   unsigned _numWorkers;
-  // file that will contain a proof
-  std::filesystem::path _path;
 
   /**
    * Problem that is being solved.

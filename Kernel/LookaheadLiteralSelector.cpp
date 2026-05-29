@@ -93,7 +93,7 @@ struct LookaheadLiteralSelector::GenIteratorIterator
       if(!fsi) { stage++; goto start; }
 
       nextIt=pvi( getMapAndFlattenIterator(
-	       EqHelper::getSubtermIterator(lit, _parent._ord), //TODO update for HO superposition
+	       EqHelper::getSubtermIterator(lit, _parent._ord, /*higherOrder=*/false), //TODO update for HO superposition
 	       TermUnificationRetriever(fsi.get())) );
       break;
     }
@@ -193,10 +193,10 @@ Literal* LookaheadLiteralSelector::pickTheBest(Literal** lits, unsigned cnt)
   do {
     for(unsigned i=0;i<cnt;i++) {
       if(runifs[i].hasNext()) {
-	runifs[i].next();
+	      runifs[i].next();
       }
       else {
-	candidates.push(lits[i]);
+	      candidates.push(lits[i]);
       }
     }
   } while(candidates.isEmpty());
@@ -219,7 +219,7 @@ Literal* LookaheadLiteralSelector::pickTheBest(Literal** lits, unsigned cnt)
   }
 
   for(unsigned i=0;i<cnt;i++) {
-    runifs[i].~VirtualIterator(); //release the iterators
+    runifs[i] = VirtualIterator<std::tuple<>>(); // properly releases _core via move-assign
   }
   return res;
 }

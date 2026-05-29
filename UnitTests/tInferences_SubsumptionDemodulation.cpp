@@ -34,12 +34,10 @@ using namespace Test;
   DECL_PRED (p, {s})                                                                                          \
   DECL_PRED (q, {s})                                                                                          \
 
-namespace SubsumptionDemodulationTester {
+namespace {
 
 inline auto tester() {
-  return FwdBwdSimplification::TestCase()
-    .fwd(new ForwardSubsumptionDemodulation(/*doSubsumption=*/false, /*enableOrderingOptimizations=*/true))
-    .bwd(new BackwardSubsumptionDemodulation(/*enableOrderingOptimizations=*/true));
+  return FwdBwdSimplification::TestCase<ForwardSubsumptionDemodulation<false>, BackwardSubsumptionDemodulation<false>>();
 }
 
 // subsumption demodulation with preordered equation

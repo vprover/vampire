@@ -38,10 +38,9 @@ using namespace Test;
 
 namespace {
 
+// TODO add tests for higher-order case too
 inline auto tester() {
-  return FwdBwdSimplification::TestCase()
-    .fwd(new ForwardDemodulation())
-    .bwd(new BackwardDemodulation())
+  return FwdBwdSimplification::TestCase<ForwardDemodulation<false>, BackwardDemodulation<false>>()
     .options({ { "term_ordering", "lpo" } }); // use LPO as KBO fails due to caching things in terms
 }
 

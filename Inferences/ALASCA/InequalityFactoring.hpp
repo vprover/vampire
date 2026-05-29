@@ -35,12 +35,7 @@ public:
   USE_ALLOCATOR(InequalityFactoring);
 
   InequalityFactoring(InequalityFactoring&&) = default;
-  InequalityFactoring(std::shared_ptr<AlascaState> shared)
-    : _shared(std::move(shared))
-  {  }
-
-  void attach(SaturationAlgorithm* salg) final ;
-  void detach() final ;
+  InequalityFactoring(SaturationAlgorithm& salg);
 
   template<class NumTraits>
   ClauseIterator generateClauses(Clause* premise, 
@@ -58,11 +53,11 @@ public:
       Literal* lit2, AlascaLiteral<NumTraits> L2
     );
 
-  ClauseIterator generateClauses(Clause* premise) final ;
+  ClauseIterator generateClauses(Clause* premise) final;
 
 private:
 
-  std::shared_ptr<AlascaState> _shared;
+  AlascaState& _shared;
 };
 #define _alascaFactoring true
 

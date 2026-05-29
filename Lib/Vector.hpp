@@ -25,7 +25,7 @@
 
 namespace Indexing {
   class CodeTree;
-  class ClauseCodeTree;
+  template<bool> class ClauseCodeTree;
 }
 
 namespace Lib {
@@ -117,7 +117,7 @@ public:
   } // toString
 
   friend class Indexing::CodeTree;
-  friend class Indexing::ClauseCodeTree;
+  template<bool> friend class Indexing::ClauseCodeTree;
 
   /**
    * Iterator that deallocates the vector when it yields the last value.

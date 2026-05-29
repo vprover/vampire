@@ -45,7 +45,7 @@ struct EqualityResolution::IsNegativeEqualityFn
 
 struct EqualityResolution::ResultFn
 {
-  ResultFn(Clause* cl, bool afterCheck = false, Ordering* ord = nullptr)
+  ResultFn(Clause* cl, bool afterCheck = false, const Ordering* ord = nullptr)
       : _afterCheck(afterCheck), _ord(ord), _cl(cl), _cLen(cl->length()) {}
 
   Clause* operator() (Literal* lit)
@@ -127,8 +127,8 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
   auto it2 = getFilteredIterator(it1,IsNegativeEqualityFn());
 
   auto it3 = getMappingIterator(it2,ResultFn(premise,
-      getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete(),
-      &_salg->getOrdering()));
+      _salg.getOptions().literalMaximalityAftercheck() && _salg.getLiteralSelector().isBGComplete(),
+      &_salg.getOrdering()));
 
   auto it4 = getFilteredIterator(it3,NonzeroFn());
 

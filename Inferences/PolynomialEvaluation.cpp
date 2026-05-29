@@ -26,7 +26,7 @@ using LitSimplResult = SimplifyingGeneratingLiteralSimplification::Result;
 PolynomialEvaluationRule::~PolynomialEvaluationRule() {}
 
 
-PolynomialEvaluationRule::PolynomialEvaluationRule(Ordering& ordering) 
+PolynomialEvaluationRule::PolynomialEvaluationRule(const Ordering& ordering) 
   : SimplifyingGeneratingLiteralSimplification(InferenceRule::EVALUATION, ordering)
   // TODO we have an additional step of normalization here. simplify!
   , _alwaysEvaluate(env.options->alasca())

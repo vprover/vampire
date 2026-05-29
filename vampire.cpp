@@ -570,7 +570,7 @@ void interactiveMetamode()
       break;
     } else if (line.rfind("run",0) == 0) {
       // the whole running happens in a child (don't modify our options, don't crash here when parsing option rubbish, etc.)
-      pid_t process = Lib::Sys::Multiprocessing::instance()->fork();
+      pid_t process = Sys::fork();
       ASS_NEQ(process, -1);
       if(process == 0) {
         UIHelper::unsetExpecting(); // probably garbage at this point

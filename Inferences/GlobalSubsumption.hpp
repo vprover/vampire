@@ -16,7 +16,6 @@
 #define __GlobalSubsumption__
 
 #include "Forwards.hpp"
-#include "Shell/Options.hpp"
 #include "Kernel/Grounder.hpp"
 #include "SAT/ProofProducingSATSolver.hpp"
 
@@ -32,13 +31,12 @@ using namespace Indexing;
 using namespace Saturation;
 using namespace SAT;
 
+// TODO consider making this an ImmediateSimplificationEngine if it really doesn't depend on any indices
 class GlobalSubsumption : public ForwardSimplificationEngine
 {
 public:
-  GlobalSubsumption(const Options& opts);
+  GlobalSubsumption(SaturationAlgorithm& salg);
 
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 
   Clause* perform(Clause* cl, Stack<Unit*>& prems);

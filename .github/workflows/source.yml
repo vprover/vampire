@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
     - name: Checkout Tree
-      uses: actions/checkout@v4
+      uses: actions/checkout@v6
       with:
         submodules: true
     - name: Strip Git Information
@@ -16,7 +16,7 @@ jobs:
       working-directory: ${{ runner.workspace }}
       run: tar czf vampire-z3.tar.gz vampire
     - name: Upload Tarball
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: vampire-z3.tar.gz
         path: ${{ runner.workspace }}/vampire-z3.tar.gz
@@ -29,7 +29,7 @@ jobs:
       working-directory: ${{ runner.workspace }}
       run: tar czf vampire.tar.gz vampire
     - name: Upload Vampire (no Z3)
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: vampire.tar.gz
         path: ${{ runner.workspace }}/vampire.tar.gz

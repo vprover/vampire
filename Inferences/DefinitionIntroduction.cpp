@@ -98,7 +98,9 @@ static Term *lgg(Term *left, Term *right) {
 
 namespace Inferences
 {
-void DefinitionIntroduction::introduceDefinitionFor(Term *t) {
+
+template<bool higherOrder>
+void DefinitionIntroduction<higherOrder>::introduceDefinitionFor(Term *t) {
   // check not already inserted
   if(auto [_, inserted] = _defined.insert(t); !inserted)
     return;
@@ -149,7 +151,8 @@ void DefinitionIntroduction::introduceDefinitionFor(Term *t) {
   _definitions.push_back(definition);
 }
 
-void DefinitionIntroduction::process(Term *t) {
+template<bool higherOrder>
+void DefinitionIntroduction<higherOrder>::process(Term *t) {
   std::vector<Entry> &entries = _entries[t->functor()];
   for(Entry &entry : entries) {
     // find the first entry for `t` with a non-trivial lgg
@@ -175,7 +178,8 @@ void DefinitionIntroduction::process(Term *t) {
   entries.push_back({t, t->weight()});
 }
 
-void DefinitionIntroduction::process(Clause *cl) {
+template<bool higherOrder>
+void DefinitionIntroduction<higherOrder>::process(Clause *cl) {
   // don't process our own clauses
   if(cl->inference().rule() == InferenceRule::FUNCTION_DEFINITION)
     return;
@@ -186,9 +190,12 @@ void DefinitionIntroduction::process(Clause *cl) {
 
   // process all the non-trivial terms in the clause
   for(Literal *l : cl->iterLits())
-    for(Term *t : iterTraits(NonVariableNonTypeIterator(l)))
+    for(Term *t : iterTraits(RewritableSubtermIterator<higherOrder>(l)))
       if(!t->allArgumentsAreVariables() || t->getDistinctVars() < t->arity())
         process(t);
 }
+
+template class DefinitionIntroduction<true>;
+template class DefinitionIntroduction<false>;
 
 }

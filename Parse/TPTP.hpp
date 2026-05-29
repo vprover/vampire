@@ -33,6 +33,9 @@
 
 namespace Parse {
   using namespace Kernel;
+  /** Local typedef: SList is only used internally in the parser for
+   *  per-variable sort binding stacks (_variableSorts) and _sortLists. */
+  typedef Lib::List<TermList> SList;
 
 /**
  * Implements a TPTP parser
@@ -314,6 +317,7 @@ public:
    * @brief Construct a new TPTP parser.
    *
    * @param in is the stream with the raw input to read
+   * @param path is the path to the file backing the stream (or e.g. '<stdin>', '<string>')
    * @param unitBuffer is FIFO of units to which newly parsed Clauses/Formulas
    *   will be added (via pushBack);
    *
@@ -321,10 +325,9 @@ public:
    *  (use this default behaviour if you do not want to collect formulas
    *   from multiple parser calls)
    */
-  TPTP(std::istream &in, UnitList::FIFO unitBuffer = UnitList::FIFO());
+  TPTP(std::istream &in, std::filesystem::path path, UnitList::FIFO unitBuffer = UnitList::FIFO());
   ~TPTP();
   void parse();
-  static UnitList* parse(std::istream& str);
   static Unit* parseFormulaFromString(const std::string& str);
   /** Return the list of parsed units */
   UnitList* units() const { return _units.list(); }
@@ -848,7 +851,7 @@ public:
     InferenceSourceRecord(std::string n) : name(n) {}
   };
 
-  void setUnitSourceMap(DHMap<Unit*,SourceRecord*>* m){
+  void setUnitSourceMap(DHMap<unsigned,SourceRecord*>* m){
     _unitSources = m;
   }
   SourceRecord* getSource();
@@ -856,7 +859,7 @@ public:
   void setFilterReserved(){ _filterReserved=true; }
 
 private:
-  DHMap<Unit*,SourceRecord*>* _unitSources;
+  DHMap<unsigned,SourceRecord*>* _unitSources;
 
   /** This field stores names of input units if the
    * output_axiom_names option is enabled */
@@ -878,7 +881,6 @@ private:
   DHMap<std::string, unsigned> _typeConstructorArities;
 
   bool _filterReserved;
-  bool _seenConjecture;
 
 
 #if VDEBUG

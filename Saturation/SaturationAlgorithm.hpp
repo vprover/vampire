@@ -22,6 +22,7 @@
 #include "Lib/List.hpp"
 #include "Lib/ScopedPtr.hpp"
 
+#include "Kernel/ALASCA/State.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/MainLoop.hpp"
 #include "Kernel/RCClauseStack.hpp"
@@ -60,8 +61,14 @@ public:
   static bool couldEqualityArise(const Problem& prb, const Options& opt) {
     // TODO: similar cases of "we might need equational reasoning later" might be relevant to theory reasoning too
     return prb.hasEquality() || (prb.hasFOOL() && opt.FOOLParamodulation()) ||
+      (prb.isHigherOrder() && (opt.cases() || opt.casesSimp())) ||
       (opt.questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
   }
+  static bool doesAlascaTakeOver(const Problem& prb, const Options& opt) {
+    // TODO some unit tests fail because of the second conjunct
+    return opt.alasca() && prb.hasAlascaArithmetic();
+  }
+
   static SaturationAlgorithm* createFromOptions(Problem& prb, const Options& opt);
 
   SaturationAlgorithm(Problem& prb, const Options& opt);
@@ -74,17 +81,7 @@ public:
 
   UnitList* collectSaturatedSet();
 
-  void setGeneratingInferenceEngine(SimplifyingGeneratingInference* generator);
-  void setImmediateSimplificationEngine(ImmediateSimplificationEngine* immediateSimplifier);
-  void setImmediateSimplificationEngineMany(CompositeISEMany ise) { _immediateSimplifierMany = std::move(ise); }
-
   void setLabelFinder(LabelFinder* finder){ _labelFinder = finder; }
-
-  void addForwardSimplifierToFront(ForwardSimplificationEngine* fwSimplifier);
-  void addExpensiveForwardSimplifierToFront(ForwardSimplificationEngine* fwSimplifier);
-  void addSimplifierToFront(SimplificationEngine* simplifier);
-  void addBackwardSimplifierToFront(BackwardSimplificationEngine* bwSimplifier);
-
 
   void addNewClause(Clause* cl);
   bool clausesFlushed();
@@ -123,6 +120,7 @@ public:
   Ordering& getOrdering() const {  return *_ordering; }
   LiteralSelector& getLiteralSelector() const { return *_selector; }
   const PartialRedundancyHandler& parRedHandler() const { return *_partialRedundancyHandler; }
+  AlascaState& alascaState() { return *_alascaState; }
 
   /**
    * if an intermediate clause is derived somewhere, it still needs to be passed to this function
@@ -178,6 +176,11 @@ private:
   void activeRemovedHandler(Clause* cl);
   void addInputClause(Clause* cl);
 
+  template<typename Inference> void addForwardSimplifierToFront();
+  template<typename Inference> void addExpensiveForwardSimplifierToFront();
+  template<typename Inference> void addBackwardSimplifierToFront();
+  template<typename Inference> void addSimplifierToFront();
+
   LiteralSelector& getSosLiteralSelector();
 
   void handleEmptyClause(Clause* cl);
@@ -225,6 +228,7 @@ protected:
 
   Splitter* _splitter;
 
+  std::unique_ptr<AlascaState> _alascaState;
   ConsequenceFinder* _consFinder;
   LabelFinder* _labelFinder;
   SymElOutput* _symEl;
@@ -253,8 +257,7 @@ protected:
   /** Number of clauses that entered the unprocessed container */
   unsigned _activationLimit;
 private:
-  static std::pair<CompositeISE*, CompositeISEMany> createISE(Problem& prb, const Options& opt, Ordering& ordering,
-     bool alascaTakesOver);
+  static std::pair<CompositeISE*, CompositeISEMany> createISE(Problem& prb, const Options& opt, SaturationAlgorithm& salg);
 
   // a "soft" time limit in deciseconds, checked manually: 0 is no limit
   unsigned _softTimeLimit = 0;

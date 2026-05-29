@@ -906,7 +906,7 @@ void FiniteModelBuilder::init()
         ASS_REP(csig_set[i],c->toString());
       }
 #endif
-      _clauseVariableSorts.insert(c,csig);
+      _clauseVariableSorts.insert(c->number(),csig);
       //cout << "done" << endl;
     }
   }
@@ -953,7 +953,7 @@ unsigned FiniteModelBuilder::estimateInstanceCount()
 
     Clause* c = cit.next();
     unsigned vars = c->varCnt();
-    const DArray<unsigned>* varSorts = _clauseVariableSorts.get(c) ;
+    const DArray<unsigned>* varSorts = _clauseVariableSorts.get(c->number()) ;
     if(!varSorts){
       continue;
     }
@@ -980,7 +980,7 @@ void FiniteModelBuilder::addNewInstances()
 #endif
 
     unsigned vars = c->varCnt();
-    const DArray<unsigned>* varSorts = _clauseVariableSorts.get(c) ;
+    const DArray<unsigned>* varSorts = _clauseVariableSorts.get(c->number()) ;
     static DArray<unsigned> maxVarSize;
     maxVarSize.ensure(vars);
 

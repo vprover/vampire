@@ -107,19 +107,10 @@ private:
   BindingStore _bindingStore;
   BindingStore _foolBindingStore;
 
-  struct BindingGetVarFunctor
-  {
-    unsigned operator()(const Binding& b) { return b.first; }
-  };
-
-  #define SIGN bool
-  #define POSITIVE true
-  #define NEGATIVE false
-  #define OPPOSITE(sign) (!(sign))
-
-  #define SIDE unsigned
-  #define LEFT 0u
-  #define RIGHT 1u
+  using SIGN = bool;
+  static constexpr SIGN POSITIVE = true;
+  static constexpr SIGN NEGATIVE = false;
+  static SIGN OPPOSITE(SIGN sign) { return !sign; }
 
   // generalized literal
   typedef std::pair<Formula*, SIGN> GenLit;
@@ -205,7 +196,7 @@ private:
   typedef SmartPtr<GenClause> SPGenClause;
 
   void toClauses(SPGenClause gc, Stack<Clause*>& output);
-  bool mapSubstitution(List<GenLit>* gc, Substitution subst, bool onlyFormulaLevel, List<GenLit>* &output);
+  bool mapSubstitution(List<GenLit>* gc, const Substitution& subst, bool onlyFormulaLevel, List<GenLit>* &output);
   Clause* toClause(SPGenClause gc);
 
   typedef std::list<SPGenClause> GenClauses;
@@ -401,17 +392,17 @@ private:
             _iterator.del();
             continue;
           }
-          _current = SmartPtr<Occurrence>(new Occurrence(occ.gc, occ.position));
+          _current = occ;
           return true;
         }
         return false;
       }
       Occurrence next() {
-        return *_current;
+        return _current;
       }
     private:
       List<Occurrence>::DelIterator _iterator;
-      SmartPtr<Occurrence> _current;
+      Occurrence _current = Occurrence(SPGenClause(),0); // a dummy value to init with (will get overwritten if hasNext returns true)
     };
   };
 
@@ -432,11 +423,9 @@ private:
     return gc;
   }
 
-  void introduceGenClause(List<GenLit>* gls, BindingList* bindings, BindingList* foolBindings) {
-    SPGenClause gc = makeGenClause(gls, bindings, foolBindings);
-
-    if (gc->size() != List<GenLit>::length(gls)) {
-      LOG4("Eliminated", List<GenLit>::length(gls) - gc->size(), "duplicate literal(s) from", gc->toString());
+  void registerGenClause(SPGenClause gc, unsigned expectedSize) {
+    if (gc->size() != expectedSize) {
+      LOG4("Eliminated", expectedSize - gc->size(), "duplicate literal(s) from", gc->toString());
     }
 
     if (gc->valid) {
@@ -456,6 +445,12 @@ private:
     } else {
       LOG2(gc->toString(), "is eliminated as it contains a tautology");
     }
+  }
+
+  void introduceGenClause(List<GenLit>* gls, BindingList* bindings, BindingList* foolBindings) {
+    unsigned expectedSize = List<GenLit>::length(gls);
+    SPGenClause gc = makeGenClause(gls, bindings, foolBindings);
+    registerGenClause(gc, expectedSize);
   }
 
   void introduceGenClause(GenLit gl, BindingList* bindings=BindingList::empty(), BindingList* foolBindings=BindingList::empty()) {
@@ -494,27 +489,7 @@ private:
     _literalsCache.reset();
     _formulasCache.reset();
 
-    if (newGc->size() != size) {
-      LOG4("Eliminated", size - newGc->size(), "duplicate literal(s) from", newGc->toString());
-    }
-
-    if (newGc->valid) {
-      _genClauses.push_front(newGc);
-      newGc->iter = _genClauses.begin();
-
-      GenClause::Iterator igl = newGc->genLiterals();
-      unsigned position = 0;
-      while (igl.hasNext()) {
-        GenLit gl = igl.next();
-        Occurrences* occurrences = _occurrences.findPtr(formula(gl));
-        if (occurrences) {
-          occurrences->add(Occurrence(newGc, position));
-        }
-        position++;
-      }
-    } else {
-      LOG2(newGc->toString(), "is eliminated as it contains a tautology");
-    }
+    registerGenClause(newGc, size);
   }
 
   void removeGenLit(Occurrence occ) {
@@ -636,7 +611,7 @@ private:
   void processLet(Term* term, Occurrences &occurrences);
   TermList eliminateLet(Term* term);
 
-  TermList nameLetBinding(Term* lhs, TermList rhs, TermList body, VList* boundVars);
+  TermList nameLetBinding(Term* lhs, TermList rhs, TermList body, VSList* boundVars);
   TermList inlineLetBinding(Term* lhs, TermList rhs, TermList body);
 
   TermList findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula*> &conditions,

@@ -79,7 +79,7 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
     unsigned weight = 1;
     unsigned vars = 0;
     bool hasInterpretedConstants=t->arity()==0 &&
-	env.signature->getFunction(t->functor())->interpreted();
+      env.signature->getFunction(t->functor())->interpreted();
     bool hasTermVar = false;
     bool hasDeBruijnIndex = t->deBruijnIndex().isSome();
     bool hasRedex = t->isRedex();
@@ -225,6 +225,12 @@ void TermSharing::computeAndSetSharedLiteralData(Literal* t)
         if(!hasInterpretedConstants && r->hasInterpretedConstants()) {
           hasInterpretedConstants=true;
         }
+        // when creating a literal, there shouldn't be loose DB indices
+        if (env.higherOrder()) {
+          if (tt->containsLooseDBIndex()) {
+            INVALID_OPERATION("Trying to create shared literal with loose DB index: "+tt->toString());
+          }
+        }
       }
     }
     t->markShared();
@@ -260,7 +266,7 @@ void TermSharing::computeAndSetSharedVarEqData(Literal* t, TermList sort)
   TermList* ts1 = t->args();
   TermList* ts2 = ts1->next();
   if (argNormGt(*ts1, *ts2)) {
-    std::swap(ts1->_content, ts2->_content);
+    t->argSwap();
   }
 
   //we need these values set during insertion into the sharing set

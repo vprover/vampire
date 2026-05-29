@@ -99,6 +99,10 @@ public:
     list = res;
   }
 
+  // Shuffle a VSList while maintaining the invariant that type variables come before term variables
+  // Type variables have sort AtomicSort::superSort()
+  static void shuffleVarSort(VSList*& list);
+
   // list2 is assumed to be of the same length as list1;
   // get two new lists by shuffling the originals and leaking the old ones
   // they get shuffled "in sync"

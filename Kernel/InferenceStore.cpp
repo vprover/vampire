@@ -12,10 +12,13 @@
  * Implements class InferenceStore.
  */
 
+#include "Debug/Assertion.hpp"
 #include "Kernel/Theory.hpp"
+#include "Kernel/Unit.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
+#include "Lib/Metaiterators.hpp"
 #include "Lib/ScopedPtr.hpp"
 #include "Lib/SharedSet.hpp"
 #include "Lib/Stack.hpp"
@@ -43,7 +46,8 @@
 #include "InferenceStore.hpp"
 
 #include <set>
-
+#include<string>
+#include<vector>
 //TODO: when we delete clause, we should also delete all its records from the inference store
 
 namespace Kernel
@@ -68,7 +72,7 @@ void InferenceStore::FullInference::increasePremiseRefCounters()
 void InferenceStore::recordSplittingNameLiteral(Unit* us, Literal* lit)
 {
   //each clause is result of a splitting only once
-  ALWAYS(_splittingNameLiterals.insert(us, lit));
+  ALWAYS(_splittingNameLiterals.insert(us->number(), lit));
 }
 
 
@@ -80,6 +84,14 @@ void InferenceStore::recordIntroducedSymbol(Unit* u, SymbolType st, unsigned num
   SymbolStack* pStack;
   _introducedSymbols.getValuePtr(u->number(),pStack);
   pStack->push(SymbolId(st,number));
+}
+
+void InferenceStore::recordIntroducedSkolemSymbol(Unit* u, SymbolType st, unsigned replacedVar, Term* symTerm){
+  SymbolStack* pStack;
+  _introducedSymbols.getValuePtr(u->number(),pStack);
+  _introducedSymbolReplacedVars.insert(std::make_pair(st,symTerm->functor()), replacedVar);
+  _introducedSkolemSymTerms.insert(std::make_pair(st,symTerm->functor()), symTerm);
+  pStack->push(SymbolId(st,symTerm->functor()));
 }
 
 /**
@@ -555,19 +567,24 @@ protected:
   std::string getNewSymbols(std::string origin, std::string symStr) {
     return "new_symbols(" + origin + ",[" +symStr + "])";
   }
+
+  std::string getSymbolName(SymbolId sym) {
+    if (sym.first == SymbolType::FUNC ) {
+      return env.signature->functionName(sym.second);
+    } else if (sym.first == SymbolType::PRED){
+      return env.signature->predicateName(sym.second);
+    } else {
+      return env.signature->typeConName(sym.second);
+    }
+  }
+
   /** It is an iterator over SymbolId */
   template<class It>
   std::string getNewSymbols(std::string origin, It symIt) {
     std::ostringstream symsStr;
     while(symIt.hasNext()) {
       SymbolId sym = symIt.next();
-      if (sym.first == SymbolType::FUNC ) {
-        symsStr << env.signature->functionName(sym.second);
-      } else if (sym.first == SymbolType::PRED){
-        symsStr << env.signature->predicateName(sym.second);
-      } else {
-        symsStr << env.signature->typeConName(sym.second);
-      }
+      symsStr << getSymbolName(sym);
       if (symIt.hasNext()) {
         symsStr << ',';
       }
@@ -584,6 +601,32 @@ protected:
     SymbolStack& syms = _is->_introducedSymbols.get(u->number());
     return getNewSymbols(origin, SymbolStack::ConstIterator(syms));
   }
+
+std::string getSkolemizeMap(Unit* u){
+  ASS(hasNewSymbols(u));
+  SymbolStack& syms = _is->_introducedSymbols.get(u->number());
+  return getSkolemizeMap(u->number(), SymbolStack::ConstIterator(syms));
+}
+
+template<class It>
+std::string getSkolemizeMap(unsigned unitNumber, It symIt){
+  std::ostringstream symsStr;
+  bool hasNext = symIt.hasNext();
+  while (hasNext) {
+    symsStr << "skolemize(";
+    SymbolId symbol = symIt.next();
+    auto skolemTerm = _is->_introducedSkolemSymTerms.find(symbol);
+    NEVER(skolemTerm.isNone());
+    auto skolemizedVariable = _is->_introducedSymbolReplacedVars.find(symbol);
+    NEVER(skolemizedVariable.isNone());
+    symsStr << "X" << *skolemizedVariable << "," << (*skolemTerm)->toString() << ")";
+    hasNext = symIt.hasNext();
+    if(hasNext) {
+      symsStr << ",";
+    }
+  }
+  return symsStr.str();
+}
 
   void printStep(Unit* us) override
   {
@@ -646,7 +689,7 @@ protected:
       ASS(parents.hasNext());
       std::string statusStr;
       if (rule==InferenceRule::SKOLEMIZE) {
-	      statusStr="status(esa),"+getNewSymbols("skolem",us);
+	      statusStr="status(esa),"+getNewSymbols("skolem",us) + "," + getSkolemizeMap(us);
       }
       else if(rule==InferenceRule::NEGATED_CONJECTURE) {
 	      statusStr="status(cth)";
@@ -736,7 +779,7 @@ protected:
     ASS(parents.hasNext()); //we always split off at least one component
     while(parents.hasNext()) {
       Unit* comp=parents.next();
-      ASS(_is->_splittingNameLiterals.find(comp));
+      ASS(_is->_splittingNameLiterals.find(comp->number()));
       inferenceStr+=","+tptpDefId(comp);
     }
     inferenceStr+="])";
@@ -752,7 +795,7 @@ protected:
     UnitIterator parents= us->getParents();
     ASS(!parents.hasNext());
 
-    Literal* nameLit=_is->_splittingNameLiterals.get(us); //the name literal must always be stored
+    Literal* nameLit=_is->_splittingNameLiterals.get(us->number()); //the name literal must always be stored
 
     std::string defId=tptpDefId(us);
 
@@ -1367,20 +1410,12 @@ protected:
     };
     auto outputQuant = [&](const char* name) {
       out << "("<< name << "(";
-      VList::Iterator vs(f->vars());
-      SList::Iterator ss(f->sorts());
-      bool hasSorts = f->sorts();
+      VSList::Iterator vs(f->vars());
       while (vs.hasNext()) {
-        int var = vs.next();
+        auto [var, sort] = vs.next();
         out << "(";
         outputVar(out, var);
         out << " ";
-        TermList sort;
-        if (hasSorts) {
-          sort = ss.next();
-        } else {
-          ALWAYS(SortHelper::tryGetVariableSort(var, const_cast<Formula*>(f),sort))
-        }
         outputSort(out, sort);
         out << ")";
       }
@@ -1609,11 +1644,11 @@ void InferenceStore::outputUnsatCore(std::ostream& out, Unit* refutation)
 
   Stack<Unit*> todo;
   todo.push(refutation);
-  Set<Unit*> visited;
+  Set<unsigned> visited;
   while(!todo.isEmpty()){
 
     Unit* u = todo.pop();
-    visited.insert(u);
+    visited.insert(u->number());
 
     if(u->inference().rule() ==  InferenceRule::INPUT){
       if(!u->isClause()){
@@ -1640,7 +1675,7 @@ void InferenceStore::outputUnsatCore(std::ostream& out, Unit* refutation)
       UnitIterator parents = u->getParents();
       while(parents.hasNext()){
         Unit* parent = parents.next();
-        if(!visited.contains(parent)){
+        if(!visited.contains(parent->number())){
           todo.push(parent);
         }
       }

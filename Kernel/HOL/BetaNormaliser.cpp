@@ -20,16 +20,18 @@ TermList BetaNormaliser::normalise(TermList t) {
 }
 
 TermList BetaNormaliser::transformSubterm(TermList t) {
-  if (t.isLambdaTerm())
+  if (t.isLambdaTerm()) {
     return t;
+  }
 
   auto [head, args] = HOL::getHeadAndArgs(t);
 
   while (HOL::canHeadReduce(head, args)) {
     t = RedexReducer().reduce(head, args);
     ++reductions;
-    if (t.isLambdaTerm())
+    if (t.isLambdaTerm()) {
       break;
+    }
 
     head = HOL::getHeadAndArgs(t, args);
   }

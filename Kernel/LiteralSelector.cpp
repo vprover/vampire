@@ -64,7 +64,7 @@ bool LiteralSelector::isPositiveForSelection(Literal* l) const
 int LiteralSelector::getSelectionPriority(Literal* l) const
 {
   Signature::Symbol* psym=env.signature->getPredicate(l->functor());
-  if(psym->label() || psym->answerPredicate()) {
+  if(psym->label() || psym->answerPredicate() || (env.higherOrder() && l->isFlexFlexConstraint())) {
     return -2;
   }
   return 0;

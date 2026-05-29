@@ -15,7 +15,8 @@
 
 using namespace Test;
 
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<Factoring>(Factoring()))
+#define MY_GEN_RULE   Factoring
+#define MY_GEN_TESTER Generation::GenerationTester
 
 /**
  * NECESSARY: We need to tell the tester which syntax sugar to import for creating terms & clauses.

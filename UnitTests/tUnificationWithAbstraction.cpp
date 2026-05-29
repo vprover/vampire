@@ -11,6 +11,7 @@
 #include "Forwards.hpp"
 #include "Indexing/SubstitutionTree.hpp"
 
+#include "Kernel/ALASCA/Normalization.hpp"
 #include "Shell/Options.hpp"
 #include "Test/TestUtils.hpp"
 
@@ -36,23 +37,17 @@ Clause* unit(Literal* lit)
 
 static const auto tld = [](auto t) { return TermWithoutValue(TypedTermList(t)); };
 
-
 unique_ptr<TermSubstitutionTree<TermWithoutValue>> getTermIndexHOL()
 { return std::make_unique<TermSubstitutionTree<TermWithoutValue>>(); }
 
 unique_ptr<TermSubstitutionTree<TermWithoutValue>> getTermIndex()
-{ return std::make_unique<TermSubstitutionTree<TermWithoutValue>>();
-}
+{ return std::make_unique<TermSubstitutionTree<TermWithoutValue>>(); }
 
 template<class... Args>
-Stack<Literal*> constraints(Args... args) {
-  Stack<Literal*> lits;
-  lits.loadFromIterator(iterItems<Literal*>(args...));
-  return lits;
-}
+LiteralStack constraints(Args... args)
+{ return LiteralStack::fromIterator(iterItems<Literal*>(args...)); }
 
 inline auto noConstraints() { return constraints(); } 
-
 
 auto getLiteralIndex()
 { return std::make_unique<LiteralSubstitutionTree<LiteralClause>>(); }
@@ -66,9 +61,9 @@ struct UnificationResultSpec {
 
   friend bool operator==(UnificationResultSpec const& l, UnificationResultSpec const& r)
   {
-    static shared_ptr<AlascaState> state = testAlascaState();
+    static InequalityNormalizer norm;
     auto eq = [&](auto t1, auto t2) { 
-      return (l.alascaSimpl || r.alascaSimpl) ? state->norm().equivalent(t1, t2)
+      return (l.alascaSimpl || r.alascaSimpl) ? norm.equivalent(t1, t2)
                                             : Test::TestUtils::eqModAC(t1, t2);
     };
     return eq(l.querySigma, r.querySigma)
@@ -2451,8 +2446,8 @@ TEST_FUN(bug05) {
     DECL_POLY_CONST(a, 1, alpha)
     DECL_CONST(b, Rat)
 
-    uwa.unify(x, 2, RatTraits::sort(), 0);
-    uwa.unify(a(x), 2, b + 3, 0);
+    uwa.unifyOnce(x, 2, RatTraits::sort(), 0);
+    uwa.unifyOnce(a(x), 2, b + 3, 0);
   }
 }
 
@@ -2467,6 +2462,6 @@ TEST_FUN(bug06) {
     DECL_POLY_CONST(a, 1, alpha)
     DECL_CONST(b, Rat)
 
-    uwa.unify(a(x), 2, b + 3, 0);
+    uwa.unifyOnce(a(x), 2, b + 3, 0);
   }
 }

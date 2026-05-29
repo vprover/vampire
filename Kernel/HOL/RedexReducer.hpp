@@ -20,7 +20,7 @@ using namespace Kernel;
 
 class RedexReducer : public TermTransformer {
 public:
-  RedexReducer() : TermTransformer(false) {}
+  RedexReducer() : TermTransformer(/*transformSorts=*/false) {}
 
   TermList reduce(TermList head, TermStack& args);
   TermList transformSubterm(TermList t) override;

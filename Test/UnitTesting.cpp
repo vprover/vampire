@@ -24,7 +24,6 @@ namespace Test {
 
 using namespace std;
 using namespace Lib;
-using namespace Lib::Sys;
 
 TestUnit::TestUnit(std::string const& name)
 : _tests(), _name(name)
@@ -189,8 +188,7 @@ bool TestUnit::spawnTest(TestProc proc)
     return true;
   }
 
-  auto mp = Multiprocessing::instance();
-  pid_t fres = mp->fork();
+  pid_t fres = Sys::fork();
   if(fres == 0) {
     try {
       proc();
@@ -203,9 +201,7 @@ bool TestUnit::spawnTest(TestProc proc)
     }
     exit(0);
   } else {
-    int childRes;
-    Multiprocessing::instance()->waitForChildTermination(childRes);
-    return childRes == 0;
+    return Sys::waitForChildTermination(-1).code == 0;
   }
 }
 

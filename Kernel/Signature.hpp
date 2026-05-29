@@ -661,6 +661,14 @@ class Signature
     return &_choiceSymbols;
   }
 
+  void addInstantiation(TermList inst) {
+    _instantiations.insert(inst);
+  }
+
+  DHSet<TermList>* getInstantiations() {
+    return &_instantiations;
+  }
+
   /** return the number of functions */
   unsigned functions() const { return _funs.length(); }
   /** return the number of predicates */
@@ -893,7 +901,7 @@ class Signature
     unsigned eqProxy = addFunction("vEQ",1, added);
     if(added){
       TermList tv = TermList(0, false);
-      TermList result = AtomicSort::arrowSort(tv, tv, AtomicSort::boolSort());
+      TermList result = AtomicSort::arrowSort({tv, tv, AtomicSort::boolSort()});
       Symbol * sym = getFunction(eqProxy);
       sym->setType(OperatorType::getConstantsType(result, 1));
       sym->setProxy(Proxy::EQUALS);
@@ -916,7 +924,7 @@ class Signature
     unsigned proxy = addFunction(name, 0, added);
     if (added) {
       auto bs = AtomicSort::boolSort();
-      auto result = AtomicSort::arrowSort(bs, bs, bs);
+      auto result = AtomicSort::arrowSort({bs, bs, bs});
       auto sym = getFunction(proxy);
       sym->setType(OperatorType::getConstantsType(result));
       sym->setProxy(convert(name));
@@ -993,7 +1001,9 @@ private:
   /** Stack of type constructor symbols */  
   Stack<Symbol*> _typeCons;
 
+  // TODO(HOL): these two don't belong in the signature
   DHSet<unsigned> _choiceSymbols;
+  DHSet<TermList> _instantiations;
 
   SymbolMap _funNames;
   SymbolMap _predNames;

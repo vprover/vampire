@@ -35,14 +35,7 @@ public:
   USE_ALLOCATOR(VariableElimination);
 
   VariableElimination(VariableElimination&&) = default;
-  VariableElimination(std::shared_ptr<AlascaState> shared, bool simplify = true) 
-    : _shared(std::move(shared))
-    , _simplify(simplify)
-  {  }
-
-  void attach(SaturationAlgorithm* salg) final ;
-  void detach() final ;
-
+  VariableElimination(SaturationAlgorithm& salg, bool simplify = true);
 
   template<class NumTraits>
   struct FoundVarInLiteral {
@@ -96,7 +89,7 @@ private:
 
   template<class NumTraits> ClauseIterator generateClauses(Clause* clause, Literal* lit) const;
 
-  std::shared_ptr<AlascaState> _shared;
+  const AlascaState& _shared;
   const bool _simplify;
 };
 

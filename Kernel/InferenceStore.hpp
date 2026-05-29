@@ -69,7 +69,9 @@ public:
 
   void recordSplittingNameLiteral(Unit* us, Literal* lit);
   void recordIntroducedSymbol(Unit* u, SymbolType st, unsigned number);
+  void recordIntroducedSkolemSymbol(Unit* u, SymbolType st, unsigned replacedVar, Term* symTerm);
   void recordIntroducedSplitName(Unit* u, std::string name);
+  
 
   void outputUnsatCore(std::ostream& out, Unit* refutation);
   void outputProof(std::ostream& out, Unit* refutation);
@@ -85,17 +87,22 @@ private:
 
   ProofPrinter* createProofPrinter(std::ostream& out);
 
-  DHMultiset<Clause*> _nextClIds;
+  DHMultiset<unsigned> _nextClIds;
 
-  DHMap<Unit*, Literal*> _splittingNameLiterals;
+  DHMap<unsigned, Literal*> _splittingNameLiterals;
 
 
   /** first records the type of the symbol (PRED,FUNC or TYPE_CON), second is symbol number */
   typedef std::pair<SymbolType,unsigned> SymbolId;
   typedef Stack<SymbolId> SymbolStack;
+  // unit id -> stack of introduced symbols (in order of introduction)
   DHMap<unsigned,SymbolStack> _introducedSymbols;
-  DHMap<unsigned,std::string> _introducedSplitNames;
+  // symbol id -> existential variable name (number) that was replaced by the symbol
+  DHMap<SymbolId, unsigned> _introducedSymbolReplacedVars;
+  // symbol id -> the term that is introduced when introducing the skolem symbol
+  DHMap<SymbolId, Term*> _introducedSkolemSymTerms;
 
+  DHMap<unsigned,std::string> _introducedSplitNames;
 };
 
 };

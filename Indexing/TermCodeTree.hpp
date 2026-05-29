@@ -19,7 +19,6 @@
 
 #include "Lib/Allocator.hpp"
 #include "Lib/Stack.hpp"
-#include "Lib/Vector.hpp"
 
 #include "CodeTree.hpp"
 
@@ -29,12 +28,13 @@ namespace Indexing {
 using namespace Lib;
 using namespace Kernel;
 
-template<class Data>
+template<bool higherOrder, class Data>
 class TermCodeTree : public CodeTree 
 {
 protected:
-  static void onCodeOpDestroying(CodeOp* op);
-  
+  void onCodeOpDestroying(CodeOp* op) override;
+  void printSuccess(std::ostream& out, const CodeOp& op) const override;
+
 public:
   TermCodeTree();
 
@@ -43,18 +43,22 @@ public:
 
 private:
   struct RemovingTermMatcher
-  : public Matcher</*removing*/true,false>
+  : public Matcher</*removing*/true,false,higherOrder>
   {
   public:
-    void init(FlatTerm* ft_, TermCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_);
+    using Base = Matcher</*removing*/true,false,higherOrder>;
 
+    void init(FlatTerm* ft_, TermCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_);
   };
 
 public:
   struct TermMatcher
-  : public Matcher</*removing*/false,false>
+  : public Matcher</*removing*/false,false,higherOrder>
   {
     TermMatcher();
+
+    using Base = Matcher</*removing*/false,false,higherOrder>;
+    using Base::ft;
 
     void init(CodeTree* tree, TermList t);
     void reset();

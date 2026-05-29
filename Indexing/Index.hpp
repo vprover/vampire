@@ -144,7 +144,7 @@ struct DemodulatorData
   IMPL_COMPARISONS_FROM_TUPLE(DemodulatorData)
 
   friend std::ostream& operator<<(std::ostream& out, DemodulatorData const& self)
-  { return out << "(" << self.term << " = " << self.rhs << Output::ptr(self.clause) << ")"; }
+  { return out << self.term.untyped() << " = " << self.rhs << ", " << self.clause->toString(); }
 };
 
 template<class T>

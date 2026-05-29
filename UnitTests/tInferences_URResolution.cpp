@@ -30,7 +30,8 @@ using namespace Test;
   DECL_PRED (p, {s})                                                                                          \
   DECL_PRED (q, {s})                                                                                          \
 
-REGISTER_GEN_TESTER(Generation::GenerationTester<URResolution<false>>(URResolution<false>()))
+#define MY_GEN_RULE   URResolution</*synthesis=*/false>
+#define MY_GEN_TESTER Generation::GenerationTester
 
 // simple resolution
 TEST_GENERATION(test01,

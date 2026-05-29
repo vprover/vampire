@@ -55,13 +55,12 @@ struct TestCase
   template<class NumTraits>
   void run() {
     Clause* input = Clause::fromLiterals({ in }, Inference(FromInput(UnitInputType::ASSUMPTION)));
-    auto state = testAlascaState();
 
     Stack<ImmediateSimplificationEngine*> rules;
     if (strong) {
-      rules.pushMany(new Inferences::ALASCA::Normalization(state), new Inferences::ALASCA::InequalityPredicateNormalization(state));
+      rules.pushMany(new Inferences::ALASCA::Normalization(), new Inferences::ALASCA::InequalityPredicateNormalization());
     } else {
-      rules.pushMany(new Inferences::ALASCA::Normalization(state));
+      rules.pushMany(new Inferences::ALASCA::Normalization());
     }
 
     Clause* last = input;

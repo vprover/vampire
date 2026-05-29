@@ -20,7 +20,6 @@
 #include "Test/SimplificationTester.hpp"
 #include "Test/AlascaTestUtils.hpp"
 #include "Kernel/KBO.hpp"
-#include <memory>
 
 using namespace std;
 using namespace Kernel;
@@ -31,18 +30,13 @@ using namespace Test;
 ////// TEST UNIT INITIALIZATION
 /////////////////////////////////////
 
+namespace {
+
 #define PHASE 1
 
-class SimplificationTester : public Test::Simplification::SimplificationTester
+struct SimplificationTester : public ImmediateSimplificationEngine
 {
-  std::shared_ptr<AlascaState> _state;
-public:
-  SimplificationTester() : _state(testAlascaState()) {}
-
-  virtual bool eq(Kernel::Clause* lhs, Kernel::Clause* rhs) const override
-  { return AlascaTestUtil::eq(_state, lhs, rhs); }
-
-  virtual Kernel::Clause* simplify(Kernel::Clause* in) override 
+  Kernel::Clause* simplify(Kernel::Clause* in) override 
   {
     auto ord = KBO::testKBO();
     Ordering::trySetGlobalOrdering(SmartPtr<Ordering>(&ord, true));
@@ -65,7 +59,8 @@ public:
   }
 };
 
-REGISTER_SIMPL_TESTER(SimplificationTester)
+#define MY_SIMPL_RULE   SimplificationTester
+#define MY_SIMPL_TESTER AlascaGenerationTester
 
 #define SIMPL_SUGAR_(num)                                                                 \
   NUMBER_SUGAR(num)                                                                       \
@@ -80,17 +75,17 @@ REGISTER_SIMPL_TESTER(SimplificationTester)
   DECL_FUNC(f,  {num}, num)                                                               \
 
 #define TEST_SIMPLIFY_FRACTIONAL(name, ...)                                               \
-    TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _Real), SIMPL_SUGAR_(Real), __VA_ARGS__)           \
-    TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _Rat ), SIMPL_SUGAR_(Rat ), __VA_ARGS__)           \
+    TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _Real), MY_SIMPL_RULE, MY_SIMPL_TESTER, SIMPL_SUGAR_(Real), __VA_ARGS__)           \
+    TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _Rat ), MY_SIMPL_RULE, MY_SIMPL_TESTER, SIMPL_SUGAR_(Rat ), __VA_ARGS__)           \
 
 #define TEST_SIMPLIFY_RATIONAL(name, ...)                                                 \
-    TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _Rat ), SIMPL_SUGAR_(Rat ), __VA_ARGS__)           \
+    TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _Rat ), MY_SIMPL_RULE, MY_SIMPL_TESTER, SIMPL_SUGAR_(Rat ), __VA_ARGS__)           \
 
 #define TEST_SIMPLIFY_INTEGER(name, ...)                                                  \
-    TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _Int ), SIMPL_SUGAR_(Int ), __VA_ARGS__)           \
+    TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _Int ), MY_SIMPL_RULE, MY_SIMPL_TESTER, SIMPL_SUGAR_(Int ), __VA_ARGS__)           \
 
 #define TEST_SIMPLIFY_REAL(name, ...)                                                     \
-    TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _Real), SIMPL_SUGAR_(Real), __VA_ARGS__)           \
+    TEST_SIMPLIFY_WITH_SUGAR(CAT(name, _Real), MY_SIMPL_RULE, MY_SIMPL_TESTER, SIMPL_SUGAR_(Real), __VA_ARGS__)           \
 
 #define TEST_SIMPLIFY_NUMBER(name, ...)                                                   \
     TEST_SIMPLIFY_FRACTIONAL(name, __VA_ARGS__)                                           \
@@ -673,3 +668,5 @@ TEST_SIMPLIFY_NUMBER(bug_02,
 // TODO: what about { p(f * x) } ===> { p(x) } if f isNonZero
 // TODO: what about { p(f * x) } ===> { p(0) } if f isZero
 // TODO: what about { p(t * x * x) } ===> { p(x) } for REALS only
+
+}

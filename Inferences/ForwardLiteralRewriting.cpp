@@ -23,23 +23,13 @@
 namespace Inferences
 {
 
-void ForwardLiteralRewriting::attach(SaturationAlgorithm* salg)
-{
-  ForwardSimplificationEngine::attach(salg);
-  _index = salg->getSimplifyingIndex<RewriteRuleIndex>();
-}
-
-void ForwardLiteralRewriting::detach()
-{
-  _index = nullptr;
-  ForwardSimplificationEngine::detach();
-}
-
+ForwardLiteralRewriting::ForwardLiteralRewriting(SaturationAlgorithm& salg)
+  : _ord(salg.getOrdering()),
+    _index(salg.getSimplifyingIndex<RewriteRuleIndex>())
+{}
 
 bool ForwardLiteralRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
-  Ordering& ordering = _salg->getOrdering();
-
   TIME_TRACE("forward literal rewriting");
 
   unsigned clen=cl->length();
@@ -71,7 +61,7 @@ bool ForwardLiteralRewriting::perform(Clause* cl, Clause*& replacement, ClauseIt
       ASS(qr.data->literal->containsAllVariablesOf(rhs));
       Literal* rhsS = subs->applyToBoundResult(rhs);
 
-      if(ordering.compare(lit, rhsS)!=Ordering::GREATER) {
+      if(_ord.compare(lit, rhsS)!=Ordering::GREATER) {
   continue;
       }
 

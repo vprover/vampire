@@ -17,8 +17,6 @@
 
 using namespace Test;
 
-REGISTER_GEN_TESTER(Generation::GenerationTester<FunctionDefinitionRewriting>(FunctionDefinitionRewriting()))
-
 namespace {
 
 /**
@@ -35,6 +33,9 @@ namespace {
   DECL_FUNC(f, {s, s}, s)                                                                  \
   DECL_FUNC(g, {s}, s)                                                                     \
   DECL_PRED(p, {s})
+
+#define MY_GEN_RULE   FunctionDefinitionRewriting
+#define MY_GEN_TESTER Generation::GenerationTester
 
 auto setup = [](SaturationAlgorithm& salg) {
   salg.getFunctionDefinitionHandler().initAndPreprocessLate(salg.getProblem(),salg.getOptions());
@@ -129,5 +130,4 @@ TEST_GENERATION(test_06,
       .input( clause({  f(b,b) == b  }))
       .expected(none())
     )
-
 }

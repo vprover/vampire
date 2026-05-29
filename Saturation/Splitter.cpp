@@ -51,6 +51,7 @@
 #include "DP/SimpleCongruenceClosure.hpp"
 
 #include "SaturationAlgorithm.hpp"
+#include "Shell/UIHelper.hpp"
 
 namespace Saturation
 {
@@ -77,11 +78,12 @@ void SplittingBranchSelector::init()
 
   SATSolver *inner;
   switch(_parent.getOptions().satSolver()){
-    case Options::SatSolver::MINISAT:
-      inner = new MinisatInterfacing;
+    case Options::SatSolver::MINISAT: {
+      inner = new MinisatInterfacing(_parent.getOptions());
       break;
+    }
     case Options::SatSolver::CADICAL:
-      inner = new CadicalInterfacing;
+      inner = new CadicalInterfacing();
       break;
     case Options::SatSolver::NAPSAT:
       inner = new NapSATInterfacing(std::function<double(SATLiteral)>(
@@ -91,11 +93,18 @@ void SplittingBranchSelector::init()
 #if VZ3
     case Options::SatSolver::Z3:
       {
-        inner = new Z3Interfacing(_parent.getOptions(),_parent.satNaming(), /* unsat core */ false, _parent.getOptions().exportAvatarProblem(), _parent.getOptions().problemExportSyntax());
-        if(_parent.getOptions().satFallbackForSMT()){
-          // TODO make fallback minimizing?
-          SATSolver* fallback = new MinisatInterfacing;
-          inner = new FallbackSolverWrapper(inner, fallback);
+        if (env.higherOrder()) {
+          if (outputAllowed()) {
+            addCommentSignForSZS(std::cout);
+            std::cout << "WARNING: Z3 as SAT solver not compatible with higher-order. Using Minisat instead" << std::endl;
+          }
+          inner = new MinisatInterfacing(_parent.getOptions());
+        } else {
+          inner = new Z3Interfacing(_parent.getOptions(),_parent.satNaming(), /* unsat core */ false, _parent.getOptions().exportAvatarProblem(), _parent.getOptions().problemExportSyntax());
+          if(_parent.getOptions().satFallbackForSMT()){
+            // TODO make fallback minimizing?
+            inner = new FallbackSolverWrapper(inner, new MinisatInterfacing());
+          }
         }
       }
       break;
@@ -1159,7 +1168,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
   }
 
   Clause* compCl = Clause::fromIterator(arrayIter(lits, size),
-          NonspecificInference1(InferenceRule::AVATAR_COMPONENT,def_u));
+          ComponentClauseInference(InferenceRule::AVATAR_COMPONENT,UnitList::singleton(def_u),orig));
 
   if(posName == name && env.options->proofExtra() == Options::ProofExtra::FULL)
     env.proofExtra.insert(def_u, new SplitDefinitionExtra(compCl));
@@ -1171,8 +1180,6 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
   //   1) give d certain initial values (since d has no parents), or
   //   2) treat the original clause as parent, and therefore propagate the values from the original clause to d.
   compCl->setAge(orig->age());
-  compCl->inference().th_ancestors = orig->inference().th_ancestors;
-  compCl->inference().all_ancestors = orig->inference().all_ancestors;
   compCl->inference().setSineLevel(orig->inference().getSineLevel());
 
   _db[name] = new SplitRecord(compCl);
@@ -1695,7 +1702,7 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
  */
 UnitList* Splitter::preprendCurrentlyAssumedComponentClauses(UnitList* clauses)
 {
-  DHSet<Clause*> seen;
+  DHSet<unsigned> seen;
 
   // to keep the nice order
   UnitList::FIFO res;
@@ -1706,7 +1713,7 @@ UnitList* Splitter::preprendCurrentlyAssumedComponentClauses(UnitList* clauses)
     Clause* cl = getComponentClause(level);
 
     //cout << "selected level: " level << " has clause: " << cl->toString() << endl;
-    seen.insert(cl);
+    seen.insert(cl->number());
     res.pushBack(cl);
   }
 
@@ -1716,7 +1723,7 @@ UnitList* Splitter::preprendCurrentlyAssumedComponentClauses(UnitList* clauses)
     Unit* u  = uit.next();
     Clause* cl = u->asClause();
 
-    if (seen.insert(cl)) {
+    if (seen.insert(cl->number())) {
       // cout << "a new guy: " << cl->toString() << endl;
       res.pushBack(cl);
     } else {

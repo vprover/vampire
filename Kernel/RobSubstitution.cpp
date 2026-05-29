@@ -319,8 +319,9 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t)
     } else if(dt2.isVar() && !occurs(dt2.varSpec(), dt1)) {
       bind(dt2.varSpec(), dt1);
 
+    // TODO remove check for lambda term once HOL unification is properly done
     } else if(dt1.isTerm() && dt2.isTerm() 
-           && dt1.functor() == dt2.functor()) {
+           && dt1.functor() == dt2.functor() && !dt1.term.isLambdaTerm()) {
 
       for (auto c : dt1.allArgs().zip(dt2.allArgs())) {
         pushTodo(make_pair(std::move(c.first), std::move(c.second)));
