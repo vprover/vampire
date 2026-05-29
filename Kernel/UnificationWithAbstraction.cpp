@@ -236,6 +236,69 @@ bool AbstractionOracle::canAbstract(AbstractingUnifier* au, TermSpec const& t1, 
   ASSERTION_VIOLATION;
 }
 
+Option<TermSpec> appHead2(AbstractingUnifier* au, TermSpec t)
+{
+  // contains the @ arguments, innermost on top
+  Stack<TermSpec> args;
+  // contains the substituted arguments inside lambdas, the innermost on top
+  Stack<TermSpec> subst;
+
+  for (;;) {
+    t = au->subs().derefBound(t);
+    // we don't deal with lambdas yet
+    if (t.term.isLambdaTerm()) {
+      return Option<TermSpec>();
+    }
+    // if term is application, recurse
+    if (t.term.isApplication()) {
+      t = t.termArg(0);
+      continue;
+    }
+    break;
+  }
+  return some(t);
+}
+
+Option<AbstractionOracle::AbstractionResult> hol2(
+  AbstractingUnifier* au, TermSpec const& t1, TermSpec const& t2)
+{
+  DEBUG_UNIFY(0, "hol uwa unifying ", t1, " =?= ", t2, " w.r.t. ", *au);
+
+  // these come from failed occurs checks, do not abstract
+  if (t1.isVar() || t2.isVar()) {
+    return Option<AbstractionOracle::AbstractionResult>();
+  }
+
+  // TODO deal with lambdas
+  if (t1.term.isLambdaTerm() || t2.term.isLambdaTerm()) {
+    return Option<AbstractionOracle::AbstractionResult>();
+  }
+
+  auto h1 = appHead2(au, t1);
+  auto h2 = appHead2(au, t2);
+  if (h1.isNone() || h2.isNone()) {
+    return Option<AbstractionOracle::AbstractionResult>();
+  }
+  DEBUG_UNIFY(0, "app heads ", h1, ", ", h2);
+
+  // we abstract flex-rigid and flex-flex pairs
+  if (h1->isVar() || h2->isVar()) {
+    auto sort = t1.isVar() ? t2.sort() : t1.sort();
+    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, sort))));
+  }
+
+  // they cannot be DB indices as we are not dealing with lambdas
+  ASS(!h1->term.deBruijnIndex());
+  ASS(!h2->term.deBruijnIndex());
+
+  // if functors are different, don't abstract
+  if (h1->functor() != h2->functor()) {
+    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
+  }
+  // otherwise simply decompose normally
+  return Option<AbstractionOracle::AbstractionResult>();
+}
+
 Option<AbstractionOracle::AbstractionResult> funcExt(
     AbstractingUnifier* au,
     TermSpec const& t1, TermSpec const& t2)
@@ -1290,13 +1353,16 @@ AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec 
 Option<AbstractionOracle::AbstractionResult> AbstractionOracle::tryAbstract(AbstractingUnifier* au, TermSpec const& t1, TermSpec const& t2) const
 {
   ASS_NEQ(_mode, Shell::Options::UnificationWithAbstraction::OFF);
+  ASS(t1.isVar() || !t1.isSort());
+  ASS(t2.isVar() || !t2.isSort());
 
   switch (_mode) {
     case Shell::Options::UnificationWithAbstraction::FUNC_EXT: {
       return funcExt(au, t1, t2);
     }
     case Shell::Options::UnificationWithAbstraction::HOL: {
-      return hol(au, t1, t2);
+      // return hol(au, t1, t2);
+      return hol2(au, t1, t2);
     }
     case Shell::Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR: {
       return uwa_floor(*au, t1, t2, _mode);
