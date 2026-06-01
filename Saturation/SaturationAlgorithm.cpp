@@ -1484,7 +1484,11 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   if (prb.hasFOOL()) {
     if (opt.FOOLParamodulation()) {
-      gie->addFront(new FOOLParamodulation());
+      if (prb.isHigherOrder()) {
+        gie->addFront(new FOOLParamodulation<true>());
+      } else {
+        gie->addFront(new FOOLParamodulation<false>());
+      }
     }
     if (opt.boolCases() == Options::BoolCases::GENERATING) {
       if (prb.isHigherOrder()) {

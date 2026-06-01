@@ -184,11 +184,6 @@ VirtualIterator<Term*> EqHelper::getSubtermIterator(Literal* lit, const Ordering
   return getRewritableSubtermIterator<NonVariableNonTypeIterator>(lit, ord);
 }
 
-VirtualIterator<Term*> EqHelper::getBooleanSubtermIterator(Literal* lit, const Ordering& ord)
-{
-  return getRewritableSubtermIterator<BooleanSubtermIt>(lit, ord);
-}
-
 /**
  * Return iterator on subterms of a literal, that can be rewritten by
  * superposition.
@@ -226,6 +221,7 @@ VirtualIterator<ELEMENT_TYPE(SubtermIterator)> EqHelper::getRewritableSubtermIte
 
 }
 
+template VirtualIterator<Term*> EqHelper::getRewritableSubtermIterator<BooleanSubtermIt>(Literal*, const Ordering&);
 
 /**
  * Return iterator on sides of the equality @b lit that can be used as an LHS
