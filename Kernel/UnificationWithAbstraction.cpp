@@ -1562,9 +1562,9 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
     };
 
     auto pushTodo = [&](auto pair, SortOrTerm s) {
-        // we unify each subterm pair at most once, to avoid worst-case exponential runtimes
-        // in order to safe memory we do ot do this for variables.
-        // (Note by joe:  didn't make this decision, but just keeping the implemenntation
+        // we unify each subterm pair at most once, to avoid worst-case exponential
+        // runtimes in order to save memory we do not do this for variables.
+        // (Note by joe:  didn't make this decision, but just keeping the implementation
         // working as before. i.e. as described in the paper "Comparing Unification
         // Algorithms in First-Order Theorem Proving", by Krystof and Andrei)
         // TODO restore this branch?
@@ -1572,9 +1572,7 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
         //     pair.second.isVar() && isUnbound(std::pair.second.varSpec())) {
         //   todo.push(std::pair);
         // } else
-        // TODO could we use just insert here?
-        if (!encountered->find(pair)) {
-          encountered->insert(pair);
+        if (encountered->insert(pair)) {
           todo.stack(s).push(std::move(pair));
         }
     };
@@ -1618,12 +1616,12 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
       if (dt1.deepEqCheck(dt2)) {
         progress = true;
 
-      } else if(dt1.isVar() && !occurs(dt1, dt2)) {
+      } else if(dt1.isVar() && !occurs(dt1, dt2) && !dt2.term.containsLooseDBIndex()) {
         progress = true;
         DEBUG_UNIFY(2, "binding: ", dt1, " -> ", dt2)
         subs().bind(dt1.varSpec(), dt2);
 
-      } else if(dt2.isVar() && !occurs(dt2, dt1)) {
+      } else if(dt2.isVar() && !occurs(dt2, dt1) && !dt1.term.containsLooseDBIndex()) {
         progress = true;
         DEBUG_UNIFY(2, "binding: ", dt2, " -> ", dt1)
         subs().bind(dt2.varSpec(), dt1);
@@ -1663,8 +1661,7 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
         }
         absRes.take();
 
-      // TODO remove check for lambda term once HOL unification is properly done
-      } else if(dt1.isTerm() && dt2.isTerm() && dt1.functor() == dt2.functor() && !dt1.term.isLambdaTerm()) {
+      } else if(dt1.isTerm() && dt2.isTerm() && dt1.functor() == dt2.functor()) {
 
         if (s == TERM) {
           for (auto p : dt1.termArgs().zip(dt2.termArgs())) {
