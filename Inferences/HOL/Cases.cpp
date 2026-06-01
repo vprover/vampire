@@ -15,6 +15,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
+#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Term.hpp"
 
@@ -60,6 +61,9 @@ auto casesFilterFn = [](pair<Literal*, Term*> arg) {
   if constexpr (higherOrder) {
     // TODO consider using iterators that only return booleans
     if (SortHelper::getResultSort(arg.second) != AtomicSort::boolSort()) {
+      return false;
+    }
+    if (HOL::isBool(TermList(arg.second))) {
       return false;
     }
   }
