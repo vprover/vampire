@@ -307,8 +307,6 @@ set(SOURCES
     Inferences/HOL/BoolSimp.hpp
     Inferences/HOL/Cases.cpp
     Inferences/HOL/Cases.hpp
-    Inferences/HOL/CasesSimp.cpp
-    Inferences/HOL/CasesSimp.hpp
     Inferences/HOL/Choice.cpp
     Inferences/HOL/Choice.hpp
     Inferences/HOL/CNFOnTheFly.cpp

@@ -408,11 +408,9 @@ sa=fmb > fmbsr ~uf 1.0,2.5
 # bool_eq_trick
 > bet ~cat off:100,on:19
 
-# cases
-> c ~cat off:100,on:31
-
-# cases_simp
-c=off > cs ~cat off:100,on:14
+# TODO(HOL): find good values for this
+# bool_cases
+> bc ~cat axiom:1,generating:1,simplifying:1
 
 # choice_ax
 # TODO(HOL)

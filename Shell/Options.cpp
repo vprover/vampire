@@ -2091,23 +2091,14 @@ void Options::init()
     _lookup.insert(&_heuristicInstantiation);
     _heuristicInstantiation.tag(OptionTag::HIGHER_ORDER);
 
-    _casesSimp = BoolOptionValue("cases_simp","cs",false);
-    _casesSimp.description=
-    "FOOL Paramodulation with two conclusion as a simplification";
-    _casesSimp.onlyUsefulWith(_cases.is(equal(false)));
-    _lookup.insert(&_casesSimp);
-    // potentially could be useful for FOOL, so am not adding the HOL constraint
-    _casesSimp.tag(OptionTag::HIGHER_ORDER);
-
-    //TODO, sort out the mess with cases and FOOLP.
-    //One should be removed. AYB
-    _cases = BoolOptionValue("cases","c",false);
-    _cases.description=
-    "Alternative to FOOL Paramodulation that replaces all Boolean subterms in one step";
-    _cases.onlyUsefulWith(_casesSimp.is(equal(false)));
-    _lookup.insert(&_cases);
-    // potentially could be useful for FOOL, so am not adding the HOL constraint
-    _cases.tag(OptionTag::HIGHER_ORDER);
+    _boolCases = ChoiceOptionValue<BoolCases>("bool_cases","bc",BoolCases::AXIOM,{"axiom","generating","simplifying"});
+    _boolCases.description=
+      "Sets between three ways of dealing with the FOOL exhaustiveness axiom X0 = $true | X0 = $false:\n"
+      "(1) axiom: adds the axiom,\n"
+      "(2) generating: uses FOOL paramodulation as a generating inference rule,\n"
+      "(3) simplifying: a simplifying variant of the FOOL paramodulation inference rule.";
+    _lookup.insert(&_boolCases);
+    _boolCases.tag(OptionTag::INFERENCES);
 
     _newTautologyDel = BoolOptionValue("new_taut_del", "ntd", false);
     _newTautologyDel.description =
@@ -3595,8 +3586,8 @@ bool Options::complete(const Problem& prb) const
     return false;
   }
 
-  if (prb.hasFOOL() && _casesSimp.actualValue) {
-    // casesSimp is not complete 
+  if (prb.hasFOOL() && _boolCases.actualValue == BoolCases::SIMPLIFYING) {
+    // CasesSimp is not complete 
     return false;
   }
 

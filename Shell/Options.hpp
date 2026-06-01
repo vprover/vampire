@@ -717,6 +717,12 @@ public:
     PI_SIGMA = 8
   };
 
+  enum class BoolCases : unsigned int {
+    AXIOM = 0,
+    GENERATING = 1,
+    SIMPLIFYING = 2,
+  };
+
   enum class ProblemExportSyntax : unsigned int {
     SMTLIB = 0,
     API_CALLS = 1,
@@ -2303,8 +2309,7 @@ public:
   bool complexBooleanReasoning () const { return _complexBooleanReasoning.actualValue; }
   bool booleanEqTrick() const { return _booleanEqTrick.actualValue; }
   bool heuristicInstantiation() const { return _heuristicInstantiation.actualValue; }
-  bool casesSimp() const { return _casesSimp.actualValue; }
-  bool cases() const { return _cases.actualValue; }
+  BoolCases boolCases() const { return _boolCases.actualValue; }
   bool newTautologyDel() const { return _newTautologyDel.actualValue; }
   bool positiveExtensionality() const { return _positiveExt.actualValue; }
   bool iffXorRewriter() const { return _iffXorRewriter.actualValue; }
@@ -2742,8 +2747,7 @@ private:
   BoolOptionValue _complexBooleanReasoning;
   BoolOptionValue _booleanEqTrick;
   BoolOptionValue _heuristicInstantiation;
-  BoolOptionValue _casesSimp;
-  BoolOptionValue _cases;
+  ChoiceOptionValue<BoolCases> _boolCases;
   BoolOptionValue _newTautologyDel;
   BoolOptionValue _positiveExt;
   BoolOptionValue _iffXorRewriter;

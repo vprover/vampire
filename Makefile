@@ -292,7 +292,6 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/HOL/BoolEqToDiseq.o\
          Inferences/HOL/BoolSimp.o\
          Inferences/HOL/Cases.o\
-         Inferences/HOL/CasesSimp.o\
          Inferences/HOL/Choice.o\
          Inferences/HOL/CNFOnTheFly.o\
          Inferences/HOL/ImitateProject.o\

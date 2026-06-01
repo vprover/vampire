@@ -570,8 +570,8 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "fool formula definition";
   case InferenceRule::FOOL_MATCH_DEFINITION:
     return "fool match definition";
-  case InferenceRule::FOOL_PARAMODULATION:
-    return "fool paramodulation";
+  case InferenceRule::BOOL_CASES:
+    return "bool cases";
   case InferenceRule::REORDER_LITERALS:
     return "literal reordering";
   case InferenceRule::ENNF:
@@ -941,8 +941,8 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "leibniz equality elimination";
   case InferenceRule::HILBERTS_CHOICE_INSTANCE:
     return "Hilbert's choice axiom instance";
-  case InferenceRule::CASES_SIMP:
-    return "cases simplifying";
+  case InferenceRule::BOOL_CASES_SIMP:
+    return "bool cases simplifying";
   case InferenceRule::TERM_ALGEBRA_DIRECT_SUBTERMS_AXIOM:
     return "term algebra direct subterm axiom";
   case InferenceRule::TERM_ALGEBRA_SUBTERMS_TRANSITIVE_AXIOM:

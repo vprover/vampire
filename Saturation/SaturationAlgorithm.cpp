@@ -80,7 +80,6 @@
 #include "Inferences/HOL/BoolEqToDiseq.hpp"
 #include "Inferences/HOL/BoolSimp.hpp"
 #include "Inferences/HOL/Cases.hpp"
-#include "Inferences/HOL/CasesSimp.hpp"
 #include "Inferences/HOL/Choice.hpp"
 #include "Inferences/HOL/CNFOnTheFly.hpp"
 #include "Inferences/HOL/FlexFlexSimplify.hpp"
@@ -1483,16 +1482,16 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.extensionalityResolution() != Options::ExtensionalityResolution::OFF) {
     gie->addFront(new ExtensionalityResolution(*res));
   }
-  if (opt.FOOLParamodulation()) {
-    gie->addFront(new FOOLParamodulation());
-  }
-  // TODO(HOL): Cases only works with HO equalities, but for plain FOOL
-  // problems then we have nothing enabled by default. Maybe FOOLParamodulation?
-  if (opt.cases() && !opt.casesSimp()) {
-    if (prb.isHigherOrder()) {
-      gie->addFront(new Cases<true>(*res));
-    } else {
-      gie->addFront(new Cases<false>(*res));
+  if (prb.hasFOOL()) {
+    if (opt.FOOLParamodulation()) {
+      gie->addFront(new FOOLParamodulation());
+    }
+    if (opt.boolCases() == Options::BoolCases::GENERATING) {
+      if (prb.isHigherOrder()) {
+        gie->addFront(new Cases<true>(*res));
+      } else {
+        gie->addFront(new Cases<false>(*res));
+      }
     }
   }
 
@@ -1777,8 +1776,12 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
     res->addFront(new BoolSimp());
   }
 
-  if (prb.hasFOOL() && opt.casesSimp() && !opt.cases()) {
-    resMany.addFront(std::make_unique<CasesSimp>());
+  if (prb.hasFOOL() && opt.boolCases() == Options::BoolCases::SIMPLIFYING) {
+    if (prb.isHigherOrder()) {
+      resMany.addFront(std::make_unique<CasesSimp<true>>());
+    } else {
+      resMany.addFront(std::make_unique<CasesSimp<false>>());
+    }
   }
 
   if (prb.isHigherOrder()) {

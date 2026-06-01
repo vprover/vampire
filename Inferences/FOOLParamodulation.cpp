@@ -123,7 +123,7 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
   resLits->push(Literal::createEquality(true, booleanTerm, fols, AtomicSort::boolSort()));
 
   return pvi(getSingletonIterator(Clause::fromStack(*resLits,
-          GeneratingInference1(InferenceRule::FOOL_PARAMODULATION, premise))));
+          GeneratingInference1(InferenceRule::BOOL_CASES, premise))));
 }
 
 }

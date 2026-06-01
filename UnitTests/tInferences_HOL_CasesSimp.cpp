@@ -10,7 +10,7 @@
 #include "Test/SimplificationTester.hpp"
 #include "Test/SyntaxSugar.hpp"
 
-#include "Inferences/HOL/CasesSimp.hpp"
+#include "Inferences/HOL/Cases.hpp"
 
 using namespace Test;
 
@@ -29,7 +29,7 @@ using namespace Test;
   DECL_CONST(p, arrow(srt,Bool))
 
 #define MY_SIMPL_TESTER Simplification::SimplificationTester
-#define MY_SIMPL_RULE   CasesSimp
+#define MY_SIMPL_RULE   CasesSimp<true>
 
 TEST_SIMPLIFY_MANY(fail_1,
   Simplification::NotApplicableMany()
