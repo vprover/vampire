@@ -67,8 +67,7 @@ auto casesFilterFn = [](pair<Literal*, Term*> arg) {
       return false;
     }
   }
-  auto [lhs, rhs] = arg.first->eqArgs();
-  return lhs != TermList(arg.second) && rhs != TermList(arg.second);
+  return true;
 };
 
 template<bool higherOrder>
