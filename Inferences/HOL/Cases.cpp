@@ -26,12 +26,11 @@ namespace Inferences {
 
 using namespace std;
 
-Cases::Cases(SaturationAlgorithm& salg) : _ord(salg.getOrdering()) {}
+template<bool higherOrder>
+Cases<higherOrder>::Cases(SaturationAlgorithm& salg) : _ord(salg.getOrdering()) {}
 
-Clause* performCases(Clause* premise, Literal* lit, TermList t)
+Clause* performCases(Clause* premise, Literal* lit, Term* t)
 {
-  ASS(t.isTerm());
-
   static TermList troo(Term::foolTrue());
   static TermList fols(Term::foolFalse());
 
@@ -44,29 +43,43 @@ Clause* performCases(Clause* premise, Literal* lit, TermList t)
   for (Literal* curr : iterTraits(premise->iterLits())) {
     resLits->push( curr != lit 
         ? curr
-        : EqHelper::replace(curr, t, troo));
+        : EqHelper::replace(curr, TermList(t), troo));
   }
 
   // Add s = false to the clause
-  resLits->push(Literal::createEquality(true, t, fols, AtomicSort::boolSort()));
+  resLits->push(Literal::createEquality(true, TermList(t), fols, AtomicSort::boolSort()));
 
   return Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::FOOL_PARAMODULATION, premise));
 }
 
-ClauseIterator Cases::generateClauses(Clause* premise)
+template<bool higherOrder>
+ClauseIterator Cases<higherOrder>::generateClauses(Clause* premise)
 {
   return pvi(premise->getSelectedLiteralIterator()
     .flatMap([this](Literal* lit) {
-      return pvi(pushPairIntoRightIterator(lit, EqHelper::getBooleanSubtermIterator(lit, _ord)));
+      if constexpr (higherOrder) {
+        return pvi(pushPairIntoRightIterator(lit, EqHelper::getRewritableSubtermIterator<BooleanSubtermIt>(lit, _ord)));
+      } else {
+        return pvi(pushPairIntoRightIterator(lit, EqHelper::getSubtermIterator(lit, _ord, /*higherOrder=*/false)));
+      }
     })
     // filter out top-level terms
-    .filter([](pair<Literal*, TermList> arg) {
+    .filter([](pair<Literal*, Term*> arg) {
+      if constexpr (higherOrder) {
+        // TODO consider using an iterator that only returns booleans
+        if (SortHelper::getResultSort(arg.second) != TermList(AtomicSort::boolSort())) {
+          return false;
+        }
+      }
       auto [lhs, rhs] = arg.first->eqArgs();
-      return lhs != arg.second && rhs != arg.second;
+      return lhs != TermList(arg.second) && rhs != TermList(arg.second);
     })
-    .map([premise](pair<Literal*, TermList> arg) {
+    .map([premise](pair<Literal*, Term*> arg) {
       return performCases(premise, arg.first, arg.second);
     }));
 }
+
+template class Cases<false>;
+template class Cases<true>;
 
 }

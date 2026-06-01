@@ -21,6 +21,7 @@
 
 namespace Inferences {
 
+template<bool higherOrder>
 class Cases
   : public GeneratingInferenceEngine
 {

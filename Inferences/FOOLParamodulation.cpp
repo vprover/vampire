@@ -93,7 +93,7 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
         continue;
       }
 
-      TermList resultType = env.signature->getFunction(functor)->fnType()->result();
+      TermList resultType = SortHelper::getResultSort(subterm);
       if (resultType == AtomicSort::boolSort()) {
         booleanTerm = TermList(subterm);
         goto substitution;

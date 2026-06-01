@@ -29,7 +29,7 @@ using namespace Test;
   DECL_CONST(p, arrow(srt,Bool))
 
 #define MY_GEN_TESTER Generation::GenerationTester
-#define MY_GEN_RULE   Cases
+#define MY_GEN_RULE   Cases<true>
 
 // not performed for partially applied Boolean functions
 TEST_GENERATION(fail_1,

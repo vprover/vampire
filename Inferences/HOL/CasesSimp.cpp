@@ -25,14 +25,12 @@ namespace Inferences {
 
 using namespace std;
 
-Clause* performCaseSimp(Clause* premise, Literal* lit, TermList t, bool replaceWithTroo)
+Clause* performCaseSimp(Clause* premise, Literal* lit, Term* t, bool replaceWithTroo)
 {
-  ASS(t.isTerm());
-
   static TermList troo(Term::foolTrue());
   static TermList fols(Term::foolFalse());
 
-  auto newLit = Literal::createEquality(true, t,
+  auto newLit = Literal::createEquality(true, TermList(t),
     replaceWithTroo ? fols : troo, AtomicSort::boolSort());
 
   RStack<Literal*> resLits;
@@ -40,7 +38,7 @@ Clause* performCaseSimp(Clause* premise, Literal* lit, TermList t, bool replaceW
   // Copy the literals from the premise except for `lit`,
   // that has the occurrence of `t` replaced with troo or fols
   for (auto curr : premise->iterLits()) {
-    resLits->push(curr != lit ? curr : EqHelper::replace(curr, t, replaceWithTroo ? troo : fols));
+    resLits->push(curr != lit ? curr : EqHelper::replace(curr, TermList(t), replaceWithTroo ? troo : fols));
   }
 
   // Add new lit to the clause
@@ -59,11 +57,11 @@ Option<ClauseIterator> CasesSimp::simplifyMany(Clause* premise)
       return pvi(pushPairIntoRightIterator(lit, getUniquePersistentIterator(vi(new BooleanSubtermIt(lit)))));
     })
     // filter out top-level terms
-    .filter([](pair<Literal*, TermList> arg) {
+    .filter([](pair<Literal*, Term*> arg) {
       auto [lhs, rhs] = arg.first->eqArgs();
-      return lhs != arg.second && rhs != arg.second;
+      return lhs != TermList(arg.second) && rhs != TermList(arg.second);
     })
-    .flatMap([premise](pair<Literal*, TermList> arg) {
+    .flatMap([premise](pair<Literal*, Term*> arg) {
       return pvi(iterItems(
         performCaseSimp(premise, arg.first, arg.second, true),
         performCaseSimp(premise, arg.first, arg.second, false)

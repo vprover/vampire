@@ -161,7 +161,7 @@ bool BooleanSubtermIt::hasNext()
     }
     auto head = HOL::getHeadAndArgs(TermList(t), args);
     if(SortHelper::getResultSort(t) == AtomicSort::boolSort() && !HOL::isBool(head)){
-      _next = TermList(t);
+      _next = t;
       _used = false;
     }
     while(!args.isEmpty()){
