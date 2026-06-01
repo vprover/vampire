@@ -350,6 +350,13 @@ public:
   Clause* simplify(Clause* cl) override;
 };
 
+class BooleanEqualityNormalization
+: public ImmediateSimplificationEngine
+{
+public:
+  Clause* simplify(Clause* cl) override;
+};
+
 };
 
 #endif /*__InferenceEngine__*/

@@ -620,6 +620,8 @@ std::string Kernel::ruleName(InferenceRule rule)
 
   case InferenceRule::TRIVIAL_INEQUALITY_REMOVAL:
     return "trivial inequality removal";
+  case InferenceRule::BOOLEAN_EQUALITY_NORMALIZATION:
+    return "boolean equality normalization";
   case InferenceRule::FACTORING:
     return "factoring";
   case InferenceRule::CONSTRAINED_FACTORING:

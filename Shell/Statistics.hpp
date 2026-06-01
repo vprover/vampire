@@ -142,6 +142,8 @@ public:
   unsigned duplicateLiterals = 0;
   /** number of literals s != s deleted */
   unsigned trivialInequalities = 0;
+  /** number of normalized Boolean equalities */
+  unsigned normalizedBooleanEqualities = 0;
   /** number of forward demodulations into equational tautologies */
   unsigned forwardDemodulationsToEqTaut = 0;
   /** number of backward demodulations into equational tautologies */

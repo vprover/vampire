@@ -205,6 +205,7 @@ void Statistics::print(std::ostream& out)
     GROUP("SIMPLIFYING INFERENCES");
     ENTRY("Duplicate literals", duplicateLiterals);
     ENTRY("Trivial inequalities", trivialInequalities);
+    ENTRY("Normalized Boolean equalities", normalizedBooleanEqualities);
 
     GROUP("DELETION INFERENCES");
     ENTRY("Simple tautologies", simpleTautologies);

@@ -1827,6 +1827,9 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
       res->addFront(new PushUnaryMinus());
     }
   }
+  if (prb.hasFOOL()) {
+    res->addFront(new BooleanEqualityNormalization());
+  }
   if (mayHaveEquality) {
     res->addFront(new TrivialInequalitiesRemovalISE());
   }

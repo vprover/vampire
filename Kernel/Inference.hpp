@@ -216,6 +216,8 @@ enum class InferenceRule : unsigned char {
   REMOVE_DUPLICATE_LITERALS,
   /** remove from clause one or more inequalities <i>s != s</i> */
   TRIVIAL_INEQUALITY_REMOVAL,
+  /** normalize Boolean equalities with $false on one side into an (complementary) equality with $true. */
+  BOOLEAN_EQUALITY_NORMALIZATION,
   /** equality resolution as a simplification */
   EQUALITY_RESOLUTION_WITH_DELETION,
   /** forward subsumption resolution simplification rule */

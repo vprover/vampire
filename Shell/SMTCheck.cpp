@@ -938,6 +938,7 @@ void outputStep(std::ostream &out, Unit *u)
   switch (rule) {
     case InferenceRule::REMOVE_DUPLICATE_LITERALS:
     case InferenceRule::TRIVIAL_INEQUALITY_REMOVAL:
+    case InferenceRule::BOOLEAN_EQUALITY_NORMALIZATION:
     case InferenceRule::EVALUATION:
     case InferenceRule::ALASCA_NORMALIZATION:
     //TODO below are trivial but would have to (declare-datatypes ...)

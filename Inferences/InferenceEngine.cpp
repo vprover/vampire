@@ -386,6 +386,39 @@ Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
   return Clause::fromStack(*resLits, SimplifyingInference1(InferenceRule::TRIVIAL_INEQUALITY_REMOVAL,c));
 }
 
+Clause* BooleanEqualityNormalization::simplify(Clause* c)
+{
+  RStack<Literal*> resLits;
+
+  unsigned found = 0;
+  for (const auto& lit : *c) {
+    if (!lit->isEquality()) {
+      resLits->push(lit);
+      continue;
+    }
+    auto [lhs, rhs] = lit->eqArgs();
+
+    // if one side is $false, we normalize it to $true
+    if (HOL::isFalse(lhs)) {
+      // should apply other simplifications before this rule
+      ASS(!HOL::isBool(rhs));
+      std::swap(lhs, rhs);
+    } else if (!HOL::isFalse(rhs)) {
+      resLits->push(lit);
+      continue;
+    }
+    resLits->push(Literal::createEquality(lit->isNegative(), lhs, HOL::create::top(), AtomicSort::boolSort()));
+    found++;
+  }
+
+  if (found == 0) {
+    return c;
+  }
+
+  env.statistics->normalizedBooleanEqualities += found;
+  return Clause::fromStack(*resLits, SimplifyingInference1(InferenceRule::BOOLEAN_EQUALITY_NORMALIZATION,c));
+}
+
 Clause* SimplifyingGeneratingInference1::simplify(Clause* cl) 
 {
   if (cl->isTheoryAxiom()) {
