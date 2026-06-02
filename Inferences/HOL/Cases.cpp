@@ -31,7 +31,7 @@ template<bool higherOrder>
 Cases<higherOrder>::Cases(SaturationAlgorithm& salg) : _ord(salg.getOrdering()) {}
 
 template<bool simplifying>
-Clause* performCases(Clause* premise, Literal* lit, Term* t, bool replaceWithTroo)
+Clause* performCases(Clause* premise, Term* t, bool replaceWithTroo)
 {
   static TermList troo(Term::foolTrue());
   static TermList fols(Term::foolFalse());
@@ -41,12 +41,12 @@ Clause* performCases(Clause* premise, Literal* lit, Term* t, bool replaceWithTro
   RStack<Literal*> resLits;
 
   // Copy the literals from the premise except for `lit`,
-  // that has the occurrence of `t` replaced with troo or fols
+  // that has the occurrence of `t` replaced with `troo` or `fols`
   for (Literal* curr : iterTraits(premise->iterLits())) {
-    resLits->push( curr != lit ? curr : EqHelper::replace(curr, TermList(t), replaceWithTroo ? troo : fols));
+    resLits->push(EqHelper::replace(curr, TermList(t), replaceWithTroo ? troo : fols));
   }
 
-  // Add s = false to the clause
+  // Add `t = fols` (resp. `t = troo`) to the clause
   resLits->push(Literal::createEquality(true, TermList(t), replaceWithTroo ? fols : troo, AtomicSort::boolSort()));
 
   if constexpr (simplifying) {
@@ -57,15 +57,10 @@ Clause* performCases(Clause* premise, Literal* lit, Term* t, bool replaceWithTro
 }
 
 template<bool higherOrder>
-auto casesFilterFn = [](pair<Literal*, Term*> arg) {
-  if constexpr (higherOrder) {
+auto casesFilterFn = [](Term* t) {
+  if constexpr (!higherOrder) {
     // TODO consider using iterators that only return booleans
-    if (SortHelper::getResultSort(arg.second) != AtomicSort::boolSort()) {
-      return false;
-    }
-    if (HOL::isBool(TermList(arg.second))) {
-      return false;
-    }
+    return SortHelper::getResultSort(t) == AtomicSort::boolSort() && !HOL::isBool(TermList(t));
   }
   return true;
 };
@@ -76,15 +71,15 @@ ClauseIterator Cases<higherOrder>::generateClauses(Clause* premise)
   return pvi(premise->getSelectedLiteralIterator()
     .flatMap([this](Literal* lit) {
       if constexpr (higherOrder) {
-        return pvi(pushPairIntoRightIterator(lit, EqHelper::getRewritableSubtermIterator<BooleanSubtermIt>(lit, _ord)));
+        return pvi(EqHelper::getRewritableSubtermIterator<BooleanSubtermIt>(lit, _ord));
       } else {
-        return pvi(pushPairIntoRightIterator(lit, EqHelper::getSubtermIterator(lit, _ord, /*higherOrder=*/false)));
+        return pvi(EqHelper::getSubtermIterator(lit, _ord, /*higherOrder=*/false));
       }
     })
-    // filter out top-level terms
+    .uniquePersistent()
     .filter(casesFilterFn<higherOrder>)
-    .map([premise](pair<Literal*, Term*> arg) {
-      return performCases</*simplifying=*/false>(premise, arg.first, arg.second, /*replaceWithTroo=*/true);
+    .map([premise](Term* t) {
+      return performCases</*simplifying=*/false>(premise, t, /*replaceWithTroo=*/true);
     }));
 }
 
@@ -98,17 +93,17 @@ Option<ClauseIterator> CasesSimp<higherOrder>::simplifyMany(Clause* premise)
   auto it = iterTraits(premise->iterLits())
     .flatMap([](Literal* lit) {
       if constexpr (higherOrder) {
-        return pvi(pushPairIntoRightIterator(lit, getUniquePersistentIterator(vi(new BooleanSubtermIt(lit)))));
+        return pvi(BooleanSubtermIt(lit));
       } else {
-        return pvi(pushPairIntoRightIterator(lit, getUniquePersistentIterator(vi(new NonVariableNonTypeIterator(lit)))));
+        return pvi(NonVariableNonTypeIterator(lit));
       }
     })
-    // filter out top-level terms
+    .uniquePersistent()
     .filter(casesFilterFn<higherOrder>)
-    .flatMap([premise](pair<Literal*, Term*> arg) {
+    .flatMap([premise](Term* t) {
       return pvi(iterItems(
-        performCases</*simplifying=*/true>(premise, arg.first, arg.second, /*replaceWithTroo=*/true),
-        performCases</*simplifying=*/true>(premise, arg.first, arg.second, /*replaceWithTroo=*/false)
+        performCases</*simplifying=*/true>(premise, t, /*replaceWithTroo=*/true),
+        performCases</*simplifying=*/true>(premise, t, /*replaceWithTroo=*/false)
       ));
     });
 

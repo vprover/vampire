@@ -21,17 +21,16 @@
 #include <functional>
 
 #include "Debug/Assertion.hpp"
+#include "Debug/TimeProfiling.hpp"
 #include "Forwards.hpp"
 
 #include "Lib/Recycled.hpp"
-#include "Debug/TimeProfiling.hpp"
 #include "Lib/Reflection.hpp"
 #include "List.hpp"
 #include "DHSet.hpp"
 #include "VirtualIterator.hpp"
 #include "Lib/Option.hpp"
 #include "Lib/Coproduct.hpp"
-#include "Debug/TimeProfiling.hpp"
 
 namespace Lib {
 
@@ -1587,25 +1586,8 @@ public:
   auto takeWhile(Pred p)
   { return iterTraits(TakeWhileIter<Iter, Pred>(std::move(_iter), std::move(p))); }
 
-  auto unique()
-  { 
-    Map<OWN_ELEMENT_TYPE, std::tuple<>> found;
-    return iterTraits(std::move(*this)
-        .filterMap([found = std::move(found)](OWN_ELEMENT_TYPE next) mutable {
-          if (found.tryGet(next).isSome()) {
-            return Option<OWN_ELEMENT_TYPE>();
-          } else {
-            found.insert(next, std::make_tuple());
-            return Option<OWN_ELEMENT_TYPE>(std::move(next));
-          }
-        })); 
-  }
-
-  auto persistent()
-  { 
-    auto stack = collect<Stack>();
-    return iterTraits(arrayIter(std::move(stack)));
-  }
+  auto uniquePersistent()
+  { return iterTraits(getUniquePersistentIterator(std::move(_iter))); }
 
   /** 
    * returns the first minimal element wrt the function `less` 
