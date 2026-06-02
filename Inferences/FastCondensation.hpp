@@ -39,13 +39,12 @@ using namespace Saturation;
  * This condition ensures that matching the two above literals
  * will lead to change only in the literal that is being deleted.
  */
+template<bool higherOrder>
 class FastCondensation
 : public ImmediateSimplificationEngine
 {
 public:
   Clause* simplify(Clause* cl) override;
-private:
-  struct CondensationBinder;
 };
 
 };

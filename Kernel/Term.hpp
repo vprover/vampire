@@ -1221,7 +1221,7 @@ public:
   // the term is assumed to be non-shared
   void argSwap() {
     ASS(isEquality() && !shared());
-    ASS(arity() == 2);
+    ASS_EQ(arity(), 2);
 
     TermList* ts1 = args();
     TermList* ts2 = ts1->next();

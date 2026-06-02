@@ -881,7 +881,6 @@ private:
   DHMap<std::string, unsigned> _typeConstructorArities;
 
   bool _filterReserved;
-  bool _seenConjecture;
 
 
 #if VDEBUG
