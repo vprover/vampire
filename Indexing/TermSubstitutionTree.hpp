@@ -16,8 +16,10 @@
 #ifndef __TermSubstitutionTree__
 #define __TermSubstitutionTree__
 
-
 #include "Forwards.hpp"
+
+#include "Lib/PairUtils.hpp"
+
 #include "Kernel/UnificationWithAbstraction.hpp"
 #include "Kernel/TypedTermList.hpp"
 
@@ -87,6 +89,13 @@ public:
 
   VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration, HOLUnificationHandler* holHandler) final
   { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::UnificationWithAbstraction<AbstractingUnifier, RetrievalAlgorithms::DefaultVarBanks>>>(t, /* retrieveSubstitutions */ true, AbstractingUnifier::empty(AbstractionOracle(uwa), holHandler), AbstractionOracle(uwa), fixedPointIteration)); }
+
+  VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwaHOL(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration, HOLUnificationHandler* holHandler) override
+  {
+    return pvi(iterTraits(getUwa(t, uwa, fixedPointIteration, holHandler))
+      .flatMap([](QueryRes<AbstractingUnifier*, LeafData> qr) { return pvi(pushPairIntoRightIterator(qr, HOL::AbstractingWrapper(qr.unifier))); })
+      .map([](auto arg) { return queryRes(arg.second, arg.first.data); }));
+  }
 
   template<class VarBanks>
   VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(AbstractingUnifier* state, TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)

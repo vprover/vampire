@@ -87,6 +87,20 @@ private:
   Stack<Node*> _todo;
 };
 
+class AbstractingWrapper {
+public:
+  AbstractingWrapper(AbstractingUnifier* unifier) : _unifier(unifier) {}
+
+  DECL_ELEMENT_TYPE(AbstractingUnifier*);
+
+  bool hasNext();
+  AbstractingUnifier* next();
+
+private:
+  AbstractingUnifier* _unifier;
+  bool _fresh = true;
+};
+
 }
 
 #endif // __HOL_Unifier__

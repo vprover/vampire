@@ -37,105 +37,82 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-struct EqualityResolution::IsNegativeEqualityFn
+constexpr unsigned kVarBank = 0;
+
+namespace {
+
+Clause* unifierToClause(Clause* cl, Literal* lit, AbstractingUnifier* unif, const Ordering* ord)
 {
-  bool operator()(Literal* l)
-  { return l->isEquality() && l->isNegative(); }
-};
+  RStack<Literal*> resLits;
+  Literal* litAfter = 0;
 
-struct EqualityResolution::ResultFn
-{
-  ResultFn(Clause* cl, bool afterCheck = false, const Ordering* ord = nullptr,
-    HOLUnificationHandler* holHandler = nullptr, Shell::Options::UnificationWithAbstraction uwa = Shell::Options::UnificationWithAbstraction::OFF)
-      : _afterCheck(afterCheck), _ord(ord), _cl(cl), _cLen(cl->length()), _holHandler(holHandler), _uwa(uwa) {}
+  if (ord && cl->numSelected() > 1) {
+    TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
+    litAfter = unif->subs().apply(lit, kVarBank);
+  }
 
-  Clause* operator() (Literal* lit)
-  {
-    ASS(lit->isEquality());
-    ASS(lit->isNegative());
-
-    AbstractionOracle abstractionOracle(_uwa);
-
-    auto [lhs, rhs] = lit->eqArgs();
-
-    // We only care about non-trivial constraints where the top-sybmol of the two literals are the same
-    // and therefore a constraint can be created between arguments
-    if(lhs.isTerm() && rhs.isTerm() &&
-       lhs.term()->functor() != rhs.term()->functor() && _uwa != Shell::Options::UnificationWithAbstraction::HOL){
-      abstractionOracle = AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF);
+  for (unsigned i = 0; i < cl->length(); i++) {
+    auto curr=(*cl)[i];
+    if (curr == lit) {
+      continue;
     }
+    auto currAfter = unif->subs().apply(curr, kVarBank);
 
-    auto absUnif = AbstractingUnifier::unify(lhs, 0, rhs, 0, abstractionOracle, env.options->unificationWithAbstractionFixedPointIteration(), _holHandler);
-
-    if(absUnif.isNone()){ 
-      return 0; 
-    }
-
-    auto [constraints, defs] = absUnif->computeConstraintLiterals();
-
-    RStack<Literal*> resLits;
-
-    Literal* litAfter = 0;
-
-    if (_afterCheck && _cl->numSelected() > 1) {
+    if (litAfter) {
       TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
-      litAfter = absUnif->subs().apply(lit, 0);
-    }
 
-    for(unsigned i=0;i<_cLen;i++) {
-      Literal* curr=(*_cl)[i];
-      if(curr!=lit) {
-        Literal* currAfter = absUnif->subs().apply(curr, 0);
-
-        if (litAfter) {
-          TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
-
-          if (i < _cl->numSelected() && _ord->compare(currAfter,litAfter) == Ordering::GREATER) {
-            env.statistics->inferencesBlockedDueToOrderingAftercheck++;
-            return nullptr;
-          }
-        }
-
-        resLits->push(currAfter);
+      if (i < cl->numSelected() && ord->compare(currAfter,litAfter) == Ordering::GREATER) {
+        env.statistics->inferencesBlockedDueToOrderingAftercheck++;
+        return nullptr;
       }
     }
 
-    resLits->loadFromIterator(constraints->iterFifo());
-
-    auto prems = UnitList::fromIterator(defs->iter());
-    UnitList::push(_cl, prems);
-    Clause *cl = Clause::fromStack(*resLits, GeneratingInferenceMany(InferenceRule::EQUALITY_RESOLUTION, prems));
-    if(env.options->proofExtra() == Options::ProofExtra::FULL)
-      env.proofExtra.insert(cl, new EqualityResolutionExtra(lit));
-    return cl;
+    resLits->push(currAfter);
   }
-private:
-  bool _afterCheck;
-  const Ordering* _ord;
-  Clause* _cl;
-  unsigned _cLen;
-  HOLUnificationHandler* _holHandler;
-  Shell::Options::UnificationWithAbstraction _uwa;
-};
+
+  auto [constraints, defs] = unif->computeConstraintLiterals();
+  resLits->loadFromIterator(constraints->iterFifo());
+
+  auto prems = UnitList::fromIterator(defs->iter());
+  UnitList::push(cl, prems);
+  auto res = Clause::fromStack(*resLits, GeneratingInferenceMany(InferenceRule::EQUALITY_RESOLUTION, prems));
+  if(env.options->proofExtra() == Options::ProofExtra::FULL)
+    env.proofExtra.insert(res, new EqualityResolutionExtra(lit));
+  return res;
+}
+
+}
 
 ClauseIterator EqualityResolution::generateClauses(Clause* premise)
 {
-  return pvi(premise->getSelectedLiteralIterator()
-    .filter(IsNegativeEqualityFn())
-    .map(ResultFn(premise,
-      _salg.getOptions().literalMaximalityAftercheck() && _salg.getLiteralSelector().isBGComplete(),
-      &_salg.getOrdering(), _salg.holUnificationHandler(), _salg.getOptions().unificationWithAbstraction()))
-    .filter(NonzeroFn()));
-}
+  static AbstractingUnifier unif;
 
-/**
- * @c toResolve must be an negative equality. If it is resolvable,
- * resolve it and return the resulting clause. If it is not resolvable,
- * return 0.
- */
-Clause* EqualityResolution::tryResolveEquality(Clause* cl, Literal* toResolve)
-{
-  return ResultFn(cl)(toResolve);
+  return pvi(premise->getSelectedLiteralIterator()
+    .filter([](Literal* l)  { return l->isEquality() && l->isNegative(); })
+    .flatMap([this,premise](Literal* lit) {
+
+      AbstractionOracle abstractionOracle(_salg.getOptions().unificationWithAbstraction());
+
+      auto [lhs, rhs] = lit->eqArgs();
+
+      // We only care about non-trivial constraints where the top-sybmol of the two literals are the same
+      // and therefore a constraint can be created between arguments
+      if(lhs.isTerm() && rhs.isTerm() &&
+        lhs.term()->functor() != rhs.term()->functor() && _salg.getOptions().unificationWithAbstraction() != Shell::Options::UnificationWithAbstraction::HOL){
+        abstractionOracle = AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF);
+      }
+
+      unif.init(abstractionOracle);
+      if (!unif.unify(lhs, kVarBank, rhs, kVarBank, _salg.getOptions().unificationWithAbstractionFixedPointIteration())) {
+        return ClauseIterator::getEmpty();
+      }
+
+      return pvi(iterTraits(HOL::AbstractingWrapper(&unif))
+        .map([this,premise,lit](AbstractingUnifier* unif) {
+          return unifierToClause(premise, lit, unif, _salg.getOptions().literalMaximalityAftercheck() && _salg.getLiteralSelector().isBGComplete() ? &_salg.getOrdering() : nullptr);
+        }));
+      })
+    .filter(NonzeroFn()));
 }
 
 }

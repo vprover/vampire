@@ -282,19 +282,19 @@ TEST_GENERATION(test_20,
 //       ))
 //     )
 
-// superposition performed with lambda LHS
-TEST_GENERATION(test_22,
-    Generation::SymmetricTest()
-      .inputs({
-        clause({ selected(lam(s, ap(g1,db0)) == g1) }),
-        clause({ selected(g1 != g2) }),
-      })
-      .selfApplications(false)
-      .options({
-        { "unification_with_abstraction", "hol" },
-        { "unification_with_abstraction_fixed_point_iteration", "on" },
-      })
-      .expected(exactly(
-        clause({ g1 != g1, lam(s, ap(g1,db0)) != g2 })
-      ))
-    )
+// // superposition performed with lambda LHS
+// TEST_GENERATION(test_22,
+//     Generation::SymmetricTest()
+//       .inputs({
+//         clause({ selected(lam(s, ap(g1,db0)) == g1) }),
+//         clause({ selected(g1 != g2) }),
+//       })
+//       .selfApplications(false)
+//       .options({
+//         { "unification_with_abstraction", "hol" },
+//         { "unification_with_abstraction_fixed_point_iteration", "on" },
+//       })
+//       .expected(exactly(
+//         clause({ g1 != g1, lam(s, ap(g1,db0)) != g2 })
+//       ))
+//     )

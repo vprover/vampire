@@ -476,4 +476,15 @@ std::ostream& operator<<(std::ostream& out, const Unifier& unif) {
   return out << unif._lit->termArg(0) << " =? " << unif._lit->termArg(1);
 }
 
-} // namespace Saturation
+bool AbstractingWrapper::hasNext()
+{
+  return _fresh;
+}
+
+AbstractingUnifier* AbstractingWrapper::next()
+{
+  _fresh = false;
+  return _unifier;
+}
+
+} // namespace HOL
