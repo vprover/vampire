@@ -284,15 +284,16 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t)
   
 
   auto pushTodo = [&](auto pair) {
-      // we unify each subterm pair at most once, to avoid worst-case exponential
-      // runtimes in order to save memory we do not do this for variables.
-      // (Note by joe:  didn't make this decision, but just keeping the implementation 
+      // we unify each subterm pair at most once, to avoid worst-case exponential runtimes
+      // in order to safe memory we do ot do this for variables.
+      // (Note by joe:  didn't make this decision, but just keeping the implemenntation 
       // working as before. i.e. as described in the paper "Comparing Unification 
       // Algorithms in First-Order Theorem Proving", by Krystof and Andrei)
       if (pair.first.isVar() && isUnbound(pair.first.varSpec()) &&
           pair.second.isVar() && isUnbound(pair.second.varSpec())) {
         toDo.push(std::move(pair));
-      } else if (encountered->insert(pair)) {
+      } else if (!encountered->find(pair)) {
+        encountered->insert(pair);
         toDo.push(std::move(pair));
       }
   };
@@ -309,16 +310,18 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t)
     // If they have the same content then skip
     // (note that sameTermContent is best-effort)
     if (dt1.sameTermContent(dt2)) {
-    // Deal with the case where either are variables
+    // Deal with the case where eithe rare variables
     // Do an occurs-check and note that the variable 
     // cannot be currently bound as we already dereferenced
-    } else if(dt1.isVar() && !occurs(dt1.varSpec(), dt2) && !dt2.term.containsLooseDBIndex()) {
+    } else if(dt1.isVar() && !occurs(dt1.varSpec(), dt2)) {
       bind(dt1.varSpec(), dt2);
 
-    } else if(dt2.isVar() && !occurs(dt2.varSpec(), dt1) && !dt1.term.containsLooseDBIndex()) {
+    } else if(dt2.isVar() && !occurs(dt2.varSpec(), dt1)) {
       bind(dt2.varSpec(), dt1);
 
-    } else if(dt1.isTerm() && dt2.isTerm() && dt1.functor() == dt2.functor()) {
+    // TODO remove check for lambda term once HOL unification is properly done
+    } else if(dt1.isTerm() && dt2.isTerm() 
+           && dt1.functor() == dt2.functor() && !dt1.term.isLambdaTerm()) {
 
       for (auto c : dt1.allArgs().zip(dt2.allArgs())) {
         pushTodo(make_pair(std::move(c.first), std::move(c.second)));
