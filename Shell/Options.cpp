@@ -3583,6 +3583,8 @@ void Options::resolveAwayAutoValues(const Problem& prb)
     if (alasca() && prb.hasAlascaArithmetic() &&
       !partialRedundancyCheck()) { // TODO: Marton is planning a PR that will remove this constraint
       setUWA(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR);
+    } else if (prb.isHigherOrder()) {
+      setUWA(Shell::Options::UnificationWithAbstraction::HOL);
     } else {
       setUWA(Shell::Options::UnificationWithAbstraction::OFF);
     }
