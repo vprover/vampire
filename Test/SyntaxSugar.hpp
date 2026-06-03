@@ -237,6 +237,7 @@ public:
     remainderF = IntTraits::remainderF;
     quotientE = IntTraits::quotientE;
     remainderE = IntTraits::remainderE;
+    divisible = IntTraits::divides;
   }
 
   void setNumTraits(RatTraits)
@@ -252,6 +253,7 @@ public:
   std::function<TermList(TermList, TermList)> add;
   std::function<TermList(TermList, TermList)> mul;
   std::function<TermList(TermList, TermList)> div;
+  std::function<Literal*(bool, TermList, TermList)> divisible;
 
   std::function<TermList(TermList, TermList)> quotientT;
   std::function<TermList(TermList, TermList)> remainderT;
@@ -443,6 +445,7 @@ inline TermSugar lam(SortSugar varSort, TermSugar body)
 inline TermSugar db(unsigned i, SortSugar srt)
 { return HOL::getDeBruijnIndex(i, srt); }
 
+inline Lit divisible(TermSugar lhs, TermSugar rhs)  { return syntaxSugarGlobals().divisible(true, lhs, rhs); }
 inline TermSugar operator+(TermSugar lhs, TermSugar rhs)  { return syntaxSugarGlobals().add(lhs, rhs); }
 inline TermSugar operator-(TermSugar lhs, TermSugar rhs)  { return lhs + -rhs; }
 inline TermSugar operator*(TermSugar lhs, TermSugar rhs)  {
