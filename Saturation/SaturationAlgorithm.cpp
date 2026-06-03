@@ -1490,7 +1490,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
     if(!opt.holUnifier()/* !opt.higherOrderUnifDepth() && !opt.applicativeUnify() */){
       // TODO(HOL): only add when we are not carrying out higher-order unification
-      gie->addFront(new ImitateProject(*res));
+      // gie->addFront(new ImitateProject(*res));
     }
     if (opt.choiceReasoning()) {
       gie->addFront(new Choice(*res));
