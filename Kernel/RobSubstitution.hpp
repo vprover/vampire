@@ -138,6 +138,7 @@ struct TermSpec {
   unsigned functor() const { return term.term()->functor(); }
 
   TermList toTerm(Kernel::RobSubstitution& s) const;
+  TermList toGluedTerm(Kernel::RobSubstitution& s) const;
 
 
   bool isSort() const
@@ -271,6 +272,7 @@ public:
 
   TermSpec const& lhs() const { return _t1; }
   TermSpec const& rhs() const { return _t2; }
+  TermSpec const& sort() const { return _sort; }
 
   friend std::ostream& operator<<(std::ostream& out, UnificationConstraint const& self)
   { return out << self._t1 << " ?= " << self._t2; }
@@ -338,6 +340,7 @@ public:
    * {x -> G0 + G1, G0 -> -f(y)/0, G1 -> f(y)/1}
    */
   VarSpec introGlueVar(TermSpec forTerm);
+  unsigned nextGlueVar() const { return _nextGlueAvailable; }
 
   /* TODO */
   TermSpec createTerm(unsigned functor)
@@ -420,6 +423,7 @@ public:
 
   TermList::Top getSpecialVarTop(unsigned specialVar, unsigned index) const;
   TermList apply(TermList t, int index) const;
+  TermList applyGlue(TermList t, int index);
   Literal* apply(Literal* lit, int index) const;
   TypedTermList apply(TypedTermList t, int index) const { return TypedTermList(apply(TermList(t), index), apply(t.sort(), index)); }
   Stack<Literal*> apply(Stack<Literal*> cl, int index) const;

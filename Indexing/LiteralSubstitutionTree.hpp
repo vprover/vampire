@@ -106,7 +106,7 @@ public:
 
   VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration, HOLUnificationHandler* holHandler) final
   { 
-    auto unif = Lib::make_shared(AbstractingUnifier::empty(AbstractionOracle(uwa), holHandler));
+    auto unif = Lib::make_shared(AbstractingUnifier::empty(AbstractionOracle(uwa)));
     return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::UnificationWithAbstraction<AbstractingUnifier*, RetrievalAlgorithms::DefaultVarBanks>>>(lit, complementary, /* retrieveSubstitutions */ true,  unif.get(), AbstractionOracle(uwa), fixedPointIteration)
         .store(std::move(unif))); }
 

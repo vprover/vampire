@@ -2506,7 +2506,7 @@ TEST_FUN(bug05) {
   for (auto mode : {
       Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR
       }) {
-    auto uwa = AbstractingUnifier::empty(AbstractionOracle(mode), nullptr);
+    auto uwa = AbstractingUnifier::empty(AbstractionOracle(mode));
     NUMBER_SUGAR(Rat)
     DECL_DEFAULT_VARS
     DECL_DEFAULT_SORT_VARS
@@ -2522,7 +2522,7 @@ TEST_FUN(bug06) {
   for (auto mode : {
       Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR
       }) {
-    auto uwa = AbstractingUnifier::empty(AbstractionOracle(mode), nullptr);
+    auto uwa = AbstractingUnifier::empty(AbstractionOracle(mode));
     NUMBER_SUGAR(Rat)
     DECL_DEFAULT_VARS
     DECL_DEFAULT_SORT_VARS

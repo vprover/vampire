@@ -72,7 +72,7 @@ public:
     Substitution _subs;
     unsigned _freshVar;
   private:
-    Stack<Constraint> decompose(unsigned index) const;
+    Stack<Constraint> decompose(unsigned index, bool includeRest) const;
 
     LiteralStack solution() const;
     bool checkSolution(const LiteralStack& ffPairs) const;
@@ -87,9 +87,44 @@ private:
   Stack<Node*> _todo;
 };
 
+struct WrapperConstraint
+{
+  TermList _lhs;
+  TermList _rhs;
+  TermList _sort;
+  TermList _lhead;
+  TermList _rhead;
+
+  WrapperConstraint(TermList lhs, TermList rhs, TermList sort);
+
+  inline bool flexFlex() const { return _lhead.isVar() && _rhead.isVar(); }
+  inline bool rigidRigid() const { return _lhead.isTerm() && _rhead.isTerm(); }
+  inline bool flexRigid() const { return !flexFlex() && !rigidRigid(); }
+
+  bool derefHead(TermList& head, TermList& side, const Substitution& subs);
+  void normalize(const Substitution& subs);
+};
+
+struct WrapperNode
+{
+  WrapperNode(Stack<WrapperConstraint> cons, unsigned nextVar);
+  WrapperNode(const WrapperNode& parent, unsigned var, TermList binding);
+  WrapperNode(const WrapperNode& parent, Stack<WrapperConstraint> cons);
+
+  Option<Stack<WrapperNode*>> solve();
+  bool simplify();
+
+  Stack<WrapperConstraint> _cons;
+  Substitution _subs;
+  unsigned _freshVar;
+private:
+  Stack<WrapperConstraint> decompose(unsigned index, bool includeRest) const;
+};
+
 class AbstractingWrapper {
 public:
-  AbstractingWrapper(AbstractingUnifier* unifier) : _unifier(unifier) {}
+  AbstractingWrapper(AbstractingUnifier* unifier);
+  ~AbstractingWrapper() { delete _next; _localBD.backtrack(); }
 
   DECL_ELEMENT_TYPE(AbstractingUnifier*);
 
@@ -98,7 +133,9 @@ public:
 
 private:
   AbstractingUnifier* _unifier;
-  bool _fresh = true;
+  BacktrackData _localBD;
+  Stack<std::pair<WrapperNode*, unsigned>> _todo;
+  WrapperNode* _next = nullptr;
 };
 
 }

@@ -149,12 +149,11 @@ class AbstractingUnifier
   Recycled<UnificationConstraintStack> _constr;
   Option<BacktrackData&> _bd;
   AbstractionOracle _uwa;
-  Saturation::HOLUnificationHandler* _holHandler = nullptr;
 
   friend class RobSubstitution;
-  AbstractingUnifier(AbstractionOracle uwa, Saturation::HOLUnificationHandler* holHandler) : _subs(), _constr(), _bd(), _uwa(uwa), _holHandler(holHandler) { }
+  AbstractingUnifier(AbstractionOracle uwa) : _subs(), _constr(), _bd(), _uwa(uwa) { }
 public:
-  AbstractingUnifier() :  AbstractingUnifier(AbstractionOracle(), nullptr) {}
+  AbstractingUnifier() :  AbstractingUnifier(AbstractionOracle()) {}
   void setAo(AbstractionOracle ao)
   { _uwa = std::move(ao); }
 
@@ -169,7 +168,7 @@ public:
   }
   bool isEmpty() const { return _subs->isEmpty() && _constr->isEmpty() && (_bd.isNone() || _bd->isEmpty()); }
 
-  static AbstractingUnifier empty(AbstractionOracle uwa, Saturation::HOLUnificationHandler* holUnifier) { return AbstractingUnifier(uwa, holUnifier); }
+  static AbstractingUnifier empty(AbstractionOracle uwa) { return AbstractingUnifier(uwa); }
 
   bool isRecording() { return _subs->bdIsRecording(); }
 
@@ -185,16 +184,16 @@ public:
     return this->unifyOnce(t1, bank1, t2, bank2) && (!fixedPointIteration || this->fixedPointIteration());
   }
 
-  static Option<AbstractingUnifier> unify(TermList t1, int bank1, TermList t2, int bank2, AbstractionOracle uwa, bool fixedPointIteration, Saturation::HOLUnificationHandler* holUnifier = nullptr)
+  static Option<AbstractingUnifier> unify(TermList t1, int bank1, TermList t2, int bank2, AbstractionOracle uwa, bool fixedPointIteration)
   {
-    auto au = AbstractingUnifier::empty(uwa, holUnifier);
+    auto au = AbstractingUnifier::empty(uwa);
     if (au.unify(t1, bank1, t2, bank2, fixedPointIteration)) return some(std::move(au));
     else return {};
   }
 
   UnificationConstraintStack& constr() { return *_constr; }
-  std::pair<Recycled<Stack<Literal*>>, Recycled<Stack<Unit*>>> computeConstraintLiterals() {
-    if (!_holHandler) {
+  std::pair<Recycled<Stack<Literal*>>, Recycled<Stack<Unit*>>> computeConstraintLiterals(Saturation::HOLUnificationHandler* holHandler = nullptr) {
+    if (!holHandler) {
       return { _constr->literals(*_subs), Recycled<Stack<Unit*>>() };
     }
     RStack<Literal*> res;
@@ -206,7 +205,7 @@ public:
         res->push(lit);
         continue;
       }
-      auto [cons, def] = _holHandler->introduceDefinition(lit);
+      auto [cons, def] = holHandler->introduceDefinition(lit);
       res->push(cons);
       res2->push(def);
     }

@@ -16,6 +16,7 @@
 #include "Kernel/Substitution.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
 
 #include "Unifier.hpp"
 
@@ -338,7 +339,7 @@ std::pair<Stack<Unifier::Node*>,LiteralStack> Unifier::Node::solve()
         DEBUG("fail");
         return { Stack<Node*>(), LiteralStack() };
       }
-      return { { new Node(*this, HOL::UnificationInference::DECOMPOSITION, decompose(i)) }, LiteralStack() };
+      return { { new Node(*this, HOL::UnificationInference::DECOMPOSITION, decompose(i, /*includeRest=*/true)) }, LiteralStack() };
 
     } else if (curr.flexRigid()) {
       DEBUG("flex-rigid ", curr._lhead, " ", curr._rhead);
@@ -372,7 +373,7 @@ bool Unifier::Node::simplify()
 
     auto& curr = _cons[i];
 
-    DEBUG("trying to solve ", curr);
+    DEBUG("trying to simplify ", curr);
 
     // Following the transitions from "Efficient Full Higher-order Unification" from Vukmirovic et al.
 
@@ -394,7 +395,7 @@ bool Unifier::Node::simplify()
         DEBUG("fail");
         return false;
       }
-      auto dc = decompose(i);
+      auto dc = decompose(i, /*includeRest=*/false);
       std::swap(curr, _cons.top());
       _cons.pop();
       for (auto&& con : std::move(dc)) {
@@ -429,7 +430,7 @@ Recycled<Stack<UnificationConstraint>> Unifier::Node::toUnif() const
   return res;
 }
 
-Stack<Unifier::Constraint> Unifier::Node::decompose(unsigned index) const
+Stack<Unifier::Constraint> Unifier::Node::decompose(unsigned index, bool includeRest) const
 {
   DEBUG("decompose");
   auto& curr = _cons[index];
@@ -442,9 +443,11 @@ Stack<Unifier::Constraint> Unifier::Node::decompose(unsigned index) const
   ASS_EQ(largs.size(), argSorts.size());
 
   Stack<Constraint> cons;
-  for (unsigned j = 0; j < _cons.size(); j++) {
-    if (index != j) {
-      cons.emplace(_cons[j]);
+  if (includeRest) {
+    for (unsigned j = 0; j < _cons.size(); j++) {
+      if (index != j) {
+        cons.emplace(_cons[j]);
+      }
     }
   }
   TermList matrix;
@@ -476,14 +479,316 @@ std::ostream& operator<<(std::ostream& out, const Unifier& unif) {
   return out << unif._lit->termArg(0) << " =? " << unif._lit->termArg(1);
 }
 
+
+
+//// New stuff
+
+std::ostream& operator<<(std::ostream& out, const WrapperConstraint& con) {
+  return out << con._lhs << " =?= " << con._rhs;
+}
+
+std::ostream& operator<<(std::ostream& out, const WrapperNode& node) {
+  return out << "{" << node._cons << "} ⋅ σ: " << node._subs;
+}
+
+WrapperConstraint::WrapperConstraint(TermList lhs, TermList rhs, TermList sort)
+  : _lhs(lhs), _rhs(rhs), _sort(sort), _lhead(lhs.head()), _rhead(rhs.head())
+{
+  // terms must be in whnf
+  ASS_REP(!_lhead.isLambdaTerm(), _lhead.toString());
+  ASS_REP(!_rhead.isLambdaTerm(), _rhead.toString());
+}
+
+bool WrapperConstraint::derefHead(TermList& head, TermList& side, const Substitution& subs)
+{
+  if (head.isVar()) {
+    TermList t;
+    if (subs.findBinding(head.var(), t)) {
+      side = SubstHelper::apply(side, subs);
+      head = side.head();
+      return true;
+    }
+  }
+  return false;
+}
+
+void WrapperConstraint::normalize(const Substitution& subs)
+{
+  // 1. We want to reach a fixed point of applying the substitution
+  // on the head and then beta normalizing it if it's a lambda.
+  //
+  // TODO this is very inefficient now, we only have to beta normalize
+  // any applications on the head. Use WHNF from the HOL branch.
+  bool changed;
+  do {
+    changed = false;
+    auto newLhs = HOL::reduce::betaNF(_lhs);
+    if (newLhs != _lhs) {
+      changed = true;
+      _lhs = newLhs;
+      _lhead = _lhs.head();
+    }
+    auto newRhs = HOL::reduce::betaNF(_rhs);
+    if (newRhs != _rhs) {
+      changed = true;
+      _rhs = newRhs;
+      _rhead = _rhs.head();
+    }
+    if (derefHead(_lhead, _lhs, subs)) {
+      changed = true;
+    }
+    if (derefHead(_rhead, _rhs, subs)) {
+      changed = true;
+    }
+  } while (changed);
+
+  // 2. We then alpha-eta normalize to get the same prefix on both sides.
+  HOL::normaliseLambdaPrefixes(_lhs, _rhs);
+  _lhead = _lhs.head();
+  _rhead = _rhs.head();
+}
+
+// Node
+
+WrapperNode::WrapperNode(Stack<WrapperConstraint> cons, unsigned nextVar)
+  : _cons(cons), _freshVar(nextVar)
+{}
+
+WrapperNode::WrapperNode(const WrapperNode& parent, unsigned var, TermList binding)
+  : WrapperNode(parent)
+{
+  _subs.bindUnbound(var, binding);
+}
+
+WrapperNode::WrapperNode(const WrapperNode& parent, Stack<WrapperConstraint> cons)
+  : _cons(cons), _subs(parent._subs), _freshVar(parent._freshVar)
+{}
+
+Option<Stack<WrapperNode*>> WrapperNode::solve()
+{
+  for (unsigned i = 0; i < _cons.size();) {
+
+    auto& curr = _cons[i];
+
+    DEBUG("trying to solve ", curr);
+
+    // Following the transitions from "Efficient Full Higher-order Unification" from Vukmirovic et al.
+
+    curr.normalize(_subs);
+
+    DEBUG("after normalization ", curr);
+
+    // 4. delete
+    if (curr._lhs == curr._rhs) {
+      DEBUG("deleted");
+      std::swap(curr, _cons.top());
+      _cons.pop();
+      continue;
+    }
+
+    if (curr.rigidRigid()) {
+      DEBUG("rigid-rigid ", curr._lhead, " ", curr._rhead);
+      if (curr._lhead != curr._rhead) {
+        // fail
+        DEBUG("fail");
+        return none<Stack<WrapperNode*>>();
+      }
+      return some<Stack<WrapperNode*>>({ new WrapperNode(*this, decompose(i, /*includeRest=*/true)) });
+
+    } else if (curr.flexRigid()) {
+      DEBUG("flex-rigid ", curr._lhead, " ", curr._rhead);
+      auto& flexTerm = curr._lhead.isVar() ? curr._lhs : curr._rhs;
+      auto& rigidTerm = curr._lhead.isVar() ? curr._rhs : curr._lhs;
+      auto bindings = HOL::getProjAndImitBindings(flexTerm, rigidTerm, _freshVar);
+
+      // if there are no bindings for this constraint, fail
+      if (bindings.isEmpty()) {
+        DEBUG("fail");
+        return none<Stack<WrapperNode*>>();
+      }
+
+      Stack<WrapperNode*> res;
+      for (const auto& [binding,inf] : bindings) {
+        DEBUG("binding ", flexTerm.head(), " ", binding);
+        res.push(new WrapperNode(*this, flexTerm.head().var(), binding));
+      }
+      return some<Stack<WrapperNode*>>(res);
+    }
+    // else flex-flex, which we ignore
+    i++;
+  }
+  // we reached this point only if all pairs are flex-flex, so we have a solution
+  return some<Stack<WrapperNode*>>(Stack<WrapperNode*>());
+}
+
+bool WrapperNode::simplify()
+{
+  for (unsigned i = 0; i < _cons.size();) {
+
+    auto& curr = _cons[i];
+
+    DEBUG("trying to simplify ", curr);
+
+    // Following the transitions from "Efficient Full Higher-order Unification" from Vukmirovic et al.
+
+    curr.normalize(_subs);
+
+    DEBUG("after normalization ", curr);
+
+    if (curr._lhs == curr._rhs) {
+      DEBUG("deleted");
+      std::swap(curr, _cons.top());
+      _cons.pop();
+      continue;
+    }
+
+    if (curr.rigidRigid()) {
+      DEBUG("rigid-rigid ", curr._lhead, " ", curr._rhead);
+      if (curr._lhead != curr._rhead) {
+        // fail
+        DEBUG("fail");
+        return false;
+      }
+      auto dc = decompose(i, /*includeRest=*/false);
+      std::swap(curr, _cons.top());
+      _cons.pop();
+      for (auto&& con : std::move(dc)) {
+        DEBUG("decomposed ", con);
+        _cons.push(con);
+      }
+      continue;
+    }
+    // else ignore flex-flex or flex-rigid
+    i++;
+  }
+  return true;
+}
+
+Stack<WrapperConstraint> WrapperNode::decompose(unsigned index, bool includeRest) const
+{
+  DEBUG("decompose");
+  auto& curr = _cons[index];
+  auto [lhead, largs] = HOL::getHeadAndArgs(curr._lhs);
+  auto [rhead, rargs] = HOL::getHeadAndArgs(curr._rhs);
+  auto argSorts = HOL::getArgSorts(curr._lhs);
+  ASS_EQ(argSorts, HOL::getArgSorts(curr._rhs));
+  ASS_G(largs.size(),0);
+  ASS_EQ(largs.size(), rargs.size());
+  ASS_EQ(largs.size(), argSorts.size());
+
+  Stack<WrapperConstraint> cons;
+  if (includeRest) {
+    for (unsigned j = 0; j < _cons.size(); j++) {
+      if (index != j) {
+        cons.emplace(_cons[j]);
+      }
+    }
+  }
+  TermList matrix;
+  TermStack lambdaSorts;
+  HOL::getMatrixAndPrefSorts(curr._lhs, matrix, lambdaSorts);
+#if VDEBUG
+  TermStack otherLambdaSorts;
+  HOL::getMatrixAndPrefSorts(curr._rhs, matrix, otherLambdaSorts);
+  ASS_EQ(lambdaSorts, otherLambdaSorts);
+#endif
+  for (unsigned j = 0; j < largs.size(); j++) {
+    auto lhs = HOL::create::surroundWithLambdas(largs[j], lambdaSorts, argSorts[j], /*fromTop=*/true);
+    auto rhs = HOL::create::surroundWithLambdas(rargs[j], lambdaSorts, argSorts[j], /*fromTop=*/true);
+    auto sort = lambdaSorts.isEmpty() ? argSorts[j] : SortHelper::getResultSort(lhs.term());
+    cons.emplace(lhs, rhs, sort);
+  }
+  return cons;
+}
+
+AbstractingWrapper::AbstractingWrapper(AbstractingUnifier* unifier)
+  : _unifier(unifier)
+{
+  Stack<WrapperConstraint> cons;
+  for (const auto c : _unifier->constr().iter()) {
+    cons.emplace(
+      c.lhs().toGluedTerm(_unifier->subs()),
+      c.rhs().toGluedTerm(_unifier->subs()),
+      c.sort().toGluedTerm(_unifier->subs())
+    );
+  }
+  _todo.emplace(new WrapperNode(cons, _unifier->subs().nextGlueVar()), 0);
+}
+
 bool AbstractingWrapper::hasNext()
 {
-  return _fresh;
+  if (_next) {
+    return true;
+  }
+  while (_todo.isNonEmpty()) {
+    auto [node, depth] = _todo.pop();
+
+    DEBUG("curr node at depth ", depth, ": ", *node);
+
+    if (!node->simplify()) {
+      DEBUG("simplification failed");
+      delete node;
+      continue;
+    }
+
+    if (depth == 1) {
+      DEBUG("reached maximal depth");
+      _next = node;
+      return true;
+    }
+
+    auto res = node->solve();
+    if (res.isNone()) {
+      DEBUG("solving failed");
+      delete node;
+      continue;
+    }
+
+    if (res->isEmpty()) {
+      DEBUG("trivially solved");
+      _next = node;
+      return true;
+    }
+
+    DEBUG("has children");
+    for (const auto& n : *res) {
+      _todo.emplace(n, depth+1);
+    }
+    delete node;
+  }
+
+  return false;
 }
 
 AbstractingUnifier* AbstractingWrapper::next()
 {
-  _fresh = false;
+  ASS(_next);
+  DEBUG("about to return extended abstracting unifier ", *_unifier);
+  _localBD.backtrack();
+  DEBUG("backtracked from previous state ", *_unifier);
+
+  _unifier->subs().bdRecord(_localBD);
+  for (const auto& [v, t] : iterTraits(_next->_subs.items())) {
+    ALWAYS(_unifier->subs().unify(TermList::var(v), GLUE_INDEX, t, GLUE_INDEX));
+  }
+  _unifier->subs().bdDone();
+
+  for (const auto& con : _next->_cons) {
+    ASS_REP(con.flexFlex() || con.flexRigid(), con);
+    ASS_REP(!con._lhs.containsLooseDBIndex(), con);
+    ASS_REP(!con._rhs.containsLooseDBIndex(), con);
+    auto sortS = SubstHelper::apply(con._sort, _next->_subs);
+    // the sort should survive unification without changing
+    ASS_EQ(con._sort, sortS);
+
+    TermSpec lhs(HOL::reduce::betaEtaNF(SubstHelper::apply(con._lhs, _next->_subs)), GLUE_INDEX);
+    TermSpec rhs(HOL::reduce::betaEtaNF(SubstHelper::apply(con._rhs, _next->_subs)), GLUE_INDEX);
+    DEBUG("adding constraint ", lhs, " != ", rhs);
+    _unifier->constr().add(UnificationConstraint(lhs, rhs, TermSpec(SubstHelper::apply(con._sort, _next->_subs), GLUE_INDEX)), _localBD);
+  }
+
+  delete _next;
+  _next = nullptr;
   return _unifier;
 }
 

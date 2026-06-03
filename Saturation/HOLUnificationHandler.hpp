@@ -42,6 +42,7 @@ private:
   };
   DHMap<Literal*, UCDef> _litToDefMap;
 
+  // TODO use deque
   Stack<HOL::Unifier> _todo;
   Stack<HOL::Unifier> _solved;
 

@@ -40,6 +40,9 @@ std::ostream& operator<<(std::ostream& out, TermSpec const& self)
 TermList TermSpec::toTerm(RobSubstitution& s) const
 { return s.apply(this->term, this->index); }
 
+TermList TermSpec::toGluedTerm(RobSubstitution& s) const
+{ return s.applyGlue(this->term, this->index); }
+
 /**
  * Unify @b t1 and @b t2, and return true iff it was successful.
  */
@@ -513,6 +516,26 @@ TermList RobSubstitution::apply(TermList trm, int index) const
                                              : Term::create(orig.term.functor(), orig.term.nAllArgs(), args));
         }
         return tout;
+    })
+    .evNonRec([](auto& t) { return someIf(t.term.definitelyGround(), 
+                                          [&]() { return t.term.term; }); })
+    .memo<decltype(_applyMemo)&>(_applyMemo)
+    .context(AutoDerefTermSpec::Context { .subs = this, })
+    .apply(AutoDerefTermSpec(TermSpec(trm, index), this));
+}
+
+TermList RobSubstitution::applyGlue(TermList trm, int index)
+{
+  return BottomUpEvaluation<AutoDerefTermSpec, TermList>()
+    .function([&](auto const& orig, TermList* args) -> TermList {
+        if (orig.term.isVar()) {
+          ASS(!orig.term.varSpec().special());
+          auto vs = introGlueVar(orig.term.varSpec());
+          ASS_EQ(vs.index, GLUE_INDEX);
+          return vs.varAsTermlist();
+        }
+        return TermList(orig.term.isSort() ? AtomicSort::create(orig.term.functor(), orig.term.nAllArgs(), args)
+                                           : Term::create(orig.term.functor(), orig.term.nAllArgs(), args));
     })
     .evNonRec([](auto& t) { return someIf(t.term.definitelyGround(), 
                                           [&]() { return t.term.term; }); })
