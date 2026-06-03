@@ -123,7 +123,7 @@ private:
 
 class AbstractingWrapper {
 public:
-  AbstractingWrapper(AbstractingUnifier* unifier);
+  AbstractingWrapper(AbstractingUnifier* unifier, unsigned hoUnifDepth);
   ~AbstractingWrapper() { delete _next; _localBD.backtrack(); }
 
   DECL_ELEMENT_TYPE(AbstractingUnifier*);
@@ -133,6 +133,7 @@ public:
 
 private:
   AbstractingUnifier* _unifier;
+  const unsigned _hoUnifDepth;
   BacktrackData _localBD;
   Stack<std::pair<WrapperNode*, unsigned>> _todo;
   WrapperNode* _next = nullptr;

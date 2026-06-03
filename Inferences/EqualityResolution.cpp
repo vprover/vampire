@@ -41,7 +41,7 @@ constexpr unsigned kVarBank = 0;
 
 namespace {
 
-Clause* unifierToClause(Clause* cl, Literal* lit, AbstractingUnifier* unif, const Ordering* ord)
+Clause* unifierToClause(Clause* cl, Literal* lit, AbstractingUnifier* unif, const Ordering* ord, HOLUnificationHandler* holHandler)
 {
   RStack<Literal*> resLits;
   Literal* litAfter = 0;
@@ -70,7 +70,7 @@ Clause* unifierToClause(Clause* cl, Literal* lit, AbstractingUnifier* unif, cons
     resLits->push(currAfter);
   }
 
-  auto [constraints, defs] = unif->computeConstraintLiterals();
+  auto [constraints, defs] = unif->computeConstraintLiterals(holHandler);
   resLits->loadFromIterator(constraints->iterFifo());
 
   auto prems = UnitList::fromIterator(defs->iter());
@@ -107,9 +107,9 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
         return ClauseIterator::getEmpty();
       }
 
-      return pvi(iterTraits(HOL::AbstractingWrapper(&unif))
+      return pvi(iterTraits(HOL::AbstractingWrapper(&unif, _salg.getOptions().higherOrderUnifDepth()))
         .map([this,premise,lit](AbstractingUnifier* unif) {
-          return unifierToClause(premise, lit, unif, _salg.getOptions().literalMaximalityAftercheck() && _salg.getLiteralSelector().isBGComplete() ? &_salg.getOrdering() : nullptr);
+          return unifierToClause(premise, lit, unif, _salg.getOptions().literalMaximalityAftercheck() && _salg.getLiteralSelector().isBGComplete() ? &_salg.getOrdering() : nullptr, _salg.holUnificationHandler());
         }));
       })
     .filter(NonzeroFn()));

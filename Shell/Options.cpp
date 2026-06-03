@@ -2092,6 +2092,14 @@ void Options::init()
     _lookup.insert(&_heuristicInstantiation);
     _heuristicInstantiation.tag(OptionTag::HIGHER_ORDER);
 
+    _higherOrderUnifDepth = UnsignedOptionValue("hol_unif_depth","hud",2);
+    _higherOrderUnifDepth.description = "Set the maximum depth (in terms of projections and imitations) that higher-order unification can descend to."
+      "Once limit is reached, remaining pairs are returned as constraints.";
+    _higherOrderUnifDepth.addProblemConstraint(hasHigherOrder());    
+    _higherOrderUnifDepth.addHardConstraint(lessThan(100u));
+    _lookup.insert(&_higherOrderUnifDepth);
+    _higherOrderUnifDepth.tag(OptionTag::HIGHER_ORDER);
+
     _casesSimp = BoolOptionValue("cases_simp","cs",false);
     _casesSimp.description=
     "FOOL Paramodulation with two conclusion as a simplification";

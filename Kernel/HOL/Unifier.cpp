@@ -701,8 +701,8 @@ Stack<WrapperConstraint> WrapperNode::decompose(unsigned index, bool includeRest
   return cons;
 }
 
-AbstractingWrapper::AbstractingWrapper(AbstractingUnifier* unifier)
-  : _unifier(unifier)
+AbstractingWrapper::AbstractingWrapper(AbstractingUnifier* unifier, unsigned hoUnifDepth)
+  : _unifier(unifier), _hoUnifDepth(hoUnifDepth)
 {
   Stack<WrapperConstraint> cons;
   for (const auto c : _unifier->constr().iter()) {
@@ -731,7 +731,7 @@ bool AbstractingWrapper::hasNext()
       continue;
     }
 
-    if (depth == 1) {
+    if (depth >= _hoUnifDepth) {
       DEBUG("reached maximal depth");
       _next = node;
       return true;

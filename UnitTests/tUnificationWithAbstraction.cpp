@@ -147,10 +147,10 @@ void checkTermMatchesWithUnifFun(TermSubstitutionTree<TermWithoutValue>& index, 
 }
 
 void checkTermMatches(TermSubstitutionTree<TermWithoutValue>& index, Options::UnificationWithAbstraction uwa, bool fixedPointIteration,
-  TypedTermList term, Stack<TermUnificationResultSpec> expected, HOLUnificationHandler* holHandler = nullptr)
+  TypedTermList term, Stack<TermUnificationResultSpec> expected)
 {
   return checkTermMatchesWithUnifFun(index, term, expected, 
-      [&](auto& idx, auto t) { return idx.getUwa(term, uwa, fixedPointIteration, holHandler); });
+      [&](auto& idx, auto t) { return idx.getUwa(term, uwa, fixedPointIteration); });
 }
 
 
@@ -1066,8 +1066,6 @@ TEST_FUN(hol_new_1)
 {
   env.setHigherOrder(true);
   auto index = getTermIndexHOL();
-  Options opt;
-  HOLUnificationHandler holHandler(opt);
 
   DECL_DEFAULT_VARS
   DECL_SORT(srt)
@@ -1085,26 +1083,21 @@ TEST_FUN(hol_new_1)
 
   checkTermMatches(*index, uwa, fixedPointIteration,
     ap(h, {lam(srt, ap(f, {x0, z})), ap(f, a)}),
-    Stack<TermUnificationResultSpec>{},
-    &holHandler);
+    Stack<TermUnificationResultSpec>{});
 
   checkTermMatches(*index, uwa, fixedPointIteration,
     ap(h, {lam(srt, ap(f, {x0, z})), lam(srt, ap(f, {x0, x0}))}),
-    Stack<TermUnificationResultSpec>{},
-    &holHandler);
+    Stack<TermUnificationResultSpec>{});
 
   checkTermMatches(*index, uwa, fixedPointIteration,
     ap(h, {lam(srt, ap(f, {x0, z})), ap(f, ap(g, {a, b}))}),
-    Stack<TermUnificationResultSpec>{},
-    &holHandler);
+    Stack<TermUnificationResultSpec>{});
 }
 
 TEST_FUN(hol_new_2)
 {
   env.setHigherOrder(true);
   auto index = getTermIndexHOL();
-  Options opt;
-  HOLUnificationHandler holHandler(opt);
 
   DECL_SORT(s)
   DECL_DE_BRUIJN_INDEX(x0, 0, arrow(s,s))
@@ -1124,8 +1117,7 @@ TEST_FUN(hol_new_2)
         indexed,
         LiteralStack{}
       },
-    },
-    &holHandler);
+    });
 }
 
 Option<TermUnificationResultSpec> runRobUnify(bool diffNamespaces, Options::UnificationWithAbstraction opt, bool fixedPointIteration, TermList a, TermList b) {

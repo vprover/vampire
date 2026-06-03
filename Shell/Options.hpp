@@ -2305,6 +2305,7 @@ public:
   bool complexBooleanReasoning () const { return _complexBooleanReasoning.actualValue; }
   bool booleanEqTrick() const { return _booleanEqTrick.actualValue; }
   bool heuristicInstantiation() const { return _heuristicInstantiation.actualValue; }
+  unsigned higherOrderUnifDepth() const { return _higherOrderUnifDepth.actualValue; }
   bool casesSimp() const { return _casesSimp.actualValue; }
   bool cases() const { return _cases.actualValue; }
   bool newTautologyDel() const { return _newTautologyDel.actualValue; }
@@ -2747,6 +2748,7 @@ private:
   BoolOptionValue _complexBooleanReasoning;
   BoolOptionValue _booleanEqTrick;
   BoolOptionValue _heuristicInstantiation;
+  UnsignedOptionValue _higherOrderUnifDepth;
   BoolOptionValue _casesSimp;
   BoolOptionValue _cases;
   BoolOptionValue _newTautologyDel;

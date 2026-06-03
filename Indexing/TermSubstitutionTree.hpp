@@ -87,13 +87,13 @@ public:
   { return pvi(getResultIterator<FastGeneralizationsIterator>(t, retrieveSubstitutions)); }
 
 
-  VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration, HOLUnificationHandler* holHandler) final
+  VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) final
   { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::UnificationWithAbstraction<AbstractingUnifier, RetrievalAlgorithms::DefaultVarBanks>>>(t, /* retrieveSubstitutions */ true, AbstractingUnifier::empty(AbstractionOracle(uwa)), AbstractionOracle(uwa), fixedPointIteration)); }
 
-  VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwaHOL(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration, HOLUnificationHandler* holHandler) override
+  VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwaHOL(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration, unsigned hoUnifDepth) override
   {
-    return pvi(iterTraits(getUwa(t, uwa, fixedPointIteration, holHandler))
-      .flatMap([](QueryRes<AbstractingUnifier*, LeafData> qr) { return pvi(pushPairIntoRightIterator(qr, HOL::AbstractingWrapper(qr.unifier))); })
+    return pvi(iterTraits(getUwa(t, uwa, fixedPointIteration))
+      .flatMap([hoUnifDepth](QueryRes<AbstractingUnifier*, LeafData> qr) { return pvi(pushPairIntoRightIterator(qr, HOL::AbstractingWrapper(qr.unifier, hoUnifDepth))); })
       .map([](auto arg) { return queryRes(arg.second, arg.first.data); }));
   }
 

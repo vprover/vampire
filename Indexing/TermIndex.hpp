@@ -28,11 +28,11 @@ class TermIndex
 public:
   ~TermIndex() override {}
 
-  VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration, HOLUnificationHandler* holHandler)
-  { return _is->getUwa(t, uwa, fixedPointIteration, holHandler); }
+  VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
+  { return _is->getUwa(t, uwa, fixedPointIteration); }
 
-  VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwaHOL(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration, HOLUnificationHandler* holHandler)
-  { return _is->getUwa(t, uwa, fixedPointIteration, holHandler); }
+  VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwaHOL(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration, unsigned hoUnifDepth)
+  { return _is->getUwaHOL(t, uwa, fixedPointIteration, hoUnifDepth); }
 
   VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getUnifications(TypedTermList t, bool retrieveSubstitutions = true)
   { return _is->getUnifications(t, retrieveSubstitutions); }
