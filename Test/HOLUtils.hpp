@@ -59,12 +59,12 @@ void assertThrows(T f, const std::string& cond = "") {
       msg.append(err.cond);
       msg.append("'");
 
-      Debug::Assertion::violated(err.file, err.line, msg.c_str());
+      Debug::Assertion::violated({err.file, err.line}, msg.c_str());
     }
   }
 
   if (!exceptionThrown)
-    Debug::Assertion::violated(__FILE__, __LINE__, "No exception was thrown");
+    Debug::Assertion::violated({__FILE__, __LINE__}, "No exception was thrown");
 
   ::HOL::catchViolations = originalVal;
 }

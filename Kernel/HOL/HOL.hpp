@@ -40,7 +40,7 @@ struct HOLError {
       if (::HOL::catchViolations)                              \
         throw ::HOL::HOLError{__FILE__, __LINE__, #Cond};      \
       else                                                     \
-        Debug::Assertion::violated(__FILE__, __LINE__, #Cond); \
+        Debug::Assertion::violated({__FILE__, __LINE__}, #Cond); \
     }                                                          \
   } while (0)
 
