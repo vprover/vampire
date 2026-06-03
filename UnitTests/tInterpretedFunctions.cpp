@@ -582,6 +582,11 @@ INT_TEST(divisible_01,
     true
     )
 
+INT_TEST(divisible_01b,
+    ~divisible(num(2), num(6)),
+    false
+    )
+
 INT_TEST(divisible_02,
     divisible(num(2), num(-6)),
     true
@@ -595,6 +600,16 @@ INT_TEST(divisible_03,
 INT_TEST(divisible_04,
     divisible(num(2), a),
     evaluationFail
+    )
+
+INT_TEST(divisible_05,
+    divisible(num(5), num(-6)),
+    false
+    )
+
+INT_TEST(divisible_05b,
+    ~divisible(num(5), num(-6)),
+    true
     )
 
 
