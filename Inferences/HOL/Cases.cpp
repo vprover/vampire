@@ -62,7 +62,7 @@ auto casesFilterFn = [](Term* t) {
     // TODO consider using iterators that only return booleans
     return SortHelper::getResultSort(t) == AtomicSort::boolSort() && !HOL::isBool(TermList(t));
   }
-  return true;
+  return !HOL::isBool(TermList(t));
 };
 
 template<bool higherOrder>
