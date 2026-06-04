@@ -1488,7 +1488,7 @@ public:
         void init(AU unif, AbstractionOracle ao, bool fixedPointIteration) { 
           _unif = std::move(unif);
           // TODO set ao outside (?)
-          unifier()->setAo(ao);
+          unifier()->_uwa = std::move(ao);
           _fixedPointIteration = fixedPointIteration;
         }
 

@@ -702,7 +702,7 @@ Stack<WrapperConstraint> WrapperNode::decompose(unsigned index, bool includeRest
 }
 
 AbstractingWrapper::AbstractingWrapper(AbstractingUnifier* unifier, unsigned hoUnifDepth)
-  : _unifier(new AbstractingUnifier()), _hoUnifDepth(hoUnifDepth)
+  : _unifier(new AbstractingUnifier(unifier->_uwa)), _hoUnifDepth(hoUnifDepth)
 {
   _unifier->subs().copy(unifier->subs());
   Stack<WrapperConstraint> cons;
