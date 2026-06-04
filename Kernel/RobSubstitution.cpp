@@ -539,7 +539,7 @@ TermList RobSubstitution::applyGlue(TermList trm, int index)
     })
     .evNonRec([](auto& t) { return someIf(t.term.definitelyGround(), 
                                           [&]() { return t.term.term; }); })
-    .memo<decltype(_applyMemo)&>(_applyMemo)
+    // .memo<decltype(_applyMemo)&>(_applyMemo)
     .context(AutoDerefTermSpec::Context { .subs = this, })
     .apply(AutoDerefTermSpec(TermSpec(trm, index), this));
 }

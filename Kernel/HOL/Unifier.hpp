@@ -121,10 +121,12 @@ private:
   Stack<WrapperConstraint> decompose(unsigned index, bool includeRest) const;
 };
 
-class AbstractingWrapper {
+class AbstractingWrapper
+  : public IteratorCore<AbstractingUnifier*>
+{
 public:
   AbstractingWrapper(AbstractingUnifier* unifier, unsigned hoUnifDepth);
-  ~AbstractingWrapper() { delete _next; _localBD.backtrack(); }
+  ~AbstractingWrapper();
 
   DECL_ELEMENT_TYPE(AbstractingUnifier*);
 
@@ -134,6 +136,7 @@ public:
 private:
   AbstractingUnifier* _unifier;
   const unsigned _hoUnifDepth;
+  BacktrackData _bd;
   BacktrackData _localBD;
   Stack<std::pair<WrapperNode*, unsigned>> _todo;
   WrapperNode* _next = nullptr;

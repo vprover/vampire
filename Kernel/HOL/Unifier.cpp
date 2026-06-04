@@ -705,6 +705,7 @@ AbstractingWrapper::AbstractingWrapper(AbstractingUnifier* unifier, unsigned hoU
   : _unifier(unifier), _hoUnifDepth(hoUnifDepth)
 {
   Stack<WrapperConstraint> cons;
+  _unifier->subs().bdRecord(_bd);
   for (const auto c : _unifier->constr().iter()) {
     cons.emplace(
       c.lhs().toGluedTerm(_unifier->subs()),
@@ -712,7 +713,13 @@ AbstractingWrapper::AbstractingWrapper(AbstractingUnifier* unifier, unsigned hoU
       c.sort().toGluedTerm(_unifier->subs())
     );
   }
+  _unifier->subs().bdDone();
   _todo.emplace(new WrapperNode(cons, _unifier->subs().nextGlueVar()), 0);
+}
+
+AbstractingWrapper::~AbstractingWrapper()
+{
+  delete _next;
 }
 
 bool AbstractingWrapper::hasNext()
@@ -756,6 +763,10 @@ bool AbstractingWrapper::hasNext()
     }
     delete node;
   }
+
+  // backtrack here as the dtor is called later
+  _localBD.backtrack();
+  _bd.backtrack();
 
   return false;
 }
