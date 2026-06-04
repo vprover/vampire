@@ -62,6 +62,10 @@ Superposition::Superposition(SaturationAlgorithm& salg)
 
 ClauseIterator Superposition::generateClauses(Clause* premise)
 {
+  auto uwa = _salg.getOptions().unificationWithAbstraction();
+  auto uwa_fpi = _salg.getOptions().unificationWithAbstractionFixedPointIteration();
+  auto hol_unif_depth = _salg.getOptions().higherOrderUnifDepth();
+
   auto itf = premise->getSelectedLiteralIterator()
     // Get an iterator of pairs of selected literals and rewritable subterms of those literals
     // A subterm is rewritable (see EqHelper) if it is a non-variable subterm of either
@@ -72,8 +76,8 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
 
     // Get clauses with a literal whose complement unifies with the rewritable subterm,
     // returns a pair with the original pair and the unification result (includes substitution)
-    .flatMap([this](pair<Literal*, TypedTermList> arg)
-      { return pushPairIntoRightIterator(arg, _lhsIndex->getUwa(arg.second, _salg.getOptions().unificationWithAbstraction(), _salg.getOptions().unificationWithAbstractionFixedPointIteration())); })
+    .flatMap([this,uwa,uwa_fpi,hol_unif_depth](pair<Literal*, TypedTermList> arg)
+      { return pushPairIntoRightIterator(arg, _lhsIndex->getUwaHOL(arg.second, uwa, uwa_fpi, hol_unif_depth)); })
 
     // Perform forward superposition
     .map([this,premise](pair<pair<Literal*, TypedTermList>, QueryRes<AbstractingUnifier*, TermLiteralClause>> arg)
@@ -89,9 +93,9 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
       { return pvi( pushPairIntoRightIterator(lit, EqHelper::getSuperpositionLHSIterator(lit, _salg.getOrdering(), _salg.getOptions())) ); })
 
     // Get clauses that unify with these LHSs, modulo abstraction
-    .flatMap([this] (pair<Literal*, TermList> arg)
+    .flatMap([this,uwa,uwa_fpi,hol_unif_depth] (pair<Literal*, TermList> arg)
       { return pushPairIntoRightIterator(arg,
-          _subtermIndex->getUwa(TypedTermList(arg.second, SortHelper::getEqualityArgumentSort(arg.first)), _salg.getOptions().unificationWithAbstraction(), _salg.getOptions().unificationWithAbstractionFixedPointIteration())); })
+          _subtermIndex->getUwaHOL(TypedTermList(arg.second, SortHelper::getEqualityArgumentSort(arg.first)), uwa, uwa_fpi, hol_unif_depth)); })
 
     // Perform backward superposition
     .map([this,premise](pair<pair<Literal*, TermList>, QueryRes<AbstractingUnifier*, TermLiteralClause>> arg) -> Clause*

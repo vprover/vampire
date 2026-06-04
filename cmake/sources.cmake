@@ -508,6 +508,8 @@ set(SOURCES
     Kernel/HOL/SubtermReplacer.hpp
     Kernel/HOL/ToPlaceholders.cpp
     Kernel/HOL/ToPlaceholders.hpp
+    Kernel/HOL/Unifier.cpp
+    Kernel/HOL/Unifier.hpp
     Lib/Allocator.cpp
     Lib/Allocator.hpp
     Lib/Array.hpp

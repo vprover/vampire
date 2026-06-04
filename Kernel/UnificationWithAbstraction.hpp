@@ -133,9 +133,6 @@ public:
       TermSpec const& t1,
       TermSpec const& t2) const;
 
-  static Shell::Options::UnificationWithAbstraction create();
-  static Shell::Options::UnificationWithAbstraction createOnlyHigherOrder();
-
 private:
   // for old non-alasca uwa modes
   bool isInterpreted(unsigned f) const;
@@ -150,14 +147,13 @@ class AbstractingUnifier
   Recycled<RobSubstitution> _subs;
   Recycled<UnificationConstraintStack> _constr;
   Option<BacktrackData&> _bd;
-  AbstractionOracle _uwa;
 
   friend class RobSubstitution;
-  AbstractingUnifier(AbstractionOracle uwa) : _subs(), _constr(), _bd(), _uwa(uwa) { }
 public:
+  AbstractionOracle _uwa;
+
+  AbstractingUnifier(AbstractionOracle uwa) : _subs(), _constr(), _bd(), _uwa(uwa) { }
   AbstractingUnifier() :  AbstractingUnifier(AbstractionOracle()) {}
-  void setAo(AbstractionOracle ao)
-  { _uwa = std::move(ao); }
 
   void init(AbstractionOracle ao) 
   { 

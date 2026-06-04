@@ -65,12 +65,16 @@ inline bool canHeadReduce(const TermList& head, const TermStack& args) {
   return head.isLambdaTerm() && args.isNonEmpty();
 }
 
+void normaliseLambdaPrefixes(TermList& t1, TermList& t2);
+
 // if flexTerm is of form X t1 t2 : i > i and t1 : int and t2 : tau
 // this function will fill stack with [i, tau, int]
 // TODO(HOL): very inelegant at the moment, need to rewrite
 TermStack getFlexHeadSorts(TermList flexTerm, TermList rigidTermSort);
 
 enum class UnificationInference {
+  DEFINITION,
+  DECOMPOSITION,
   PROJECTION,
   IMITATION,
 };
