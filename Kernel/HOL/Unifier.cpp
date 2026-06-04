@@ -702,24 +702,24 @@ Stack<WrapperConstraint> WrapperNode::decompose(unsigned index, bool includeRest
 }
 
 AbstractingWrapper::AbstractingWrapper(AbstractingUnifier* unifier, unsigned hoUnifDepth)
-  : _unifier(unifier), _hoUnifDepth(hoUnifDepth)
+  : _unifier(new AbstractingUnifier()), _hoUnifDepth(hoUnifDepth)
 {
+  _unifier->subs().copy(unifier->subs());
   Stack<WrapperConstraint> cons;
-  _unifier->subs().bdRecord(_bd);
-  for (const auto c : _unifier->constr().iter()) {
+  for (const auto c : unifier->constr().iter()) {
     cons.emplace(
       c.lhs().toGluedTerm(_unifier->subs()),
       c.rhs().toGluedTerm(_unifier->subs()),
       c.sort().toGluedTerm(_unifier->subs())
     );
   }
-  _unifier->subs().bdDone();
   _todo.emplace(new WrapperNode(cons, _unifier->subs().nextGlueVar()), 0);
 }
 
 AbstractingWrapper::~AbstractingWrapper()
 {
   delete _next;
+  delete _unifier;
 }
 
 bool AbstractingWrapper::hasNext()
@@ -763,11 +763,6 @@ bool AbstractingWrapper::hasNext()
     }
     delete node;
   }
-
-  // backtrack here as the dtor is called later
-  _localBD.backtrack();
-  _bd.backtrack();
-
   return false;
 }
 
@@ -784,6 +779,7 @@ AbstractingUnifier* AbstractingWrapper::next()
   }
   _unifier->subs().bdDone();
 
+  _unifier->constr().reset();
   for (const auto& con : _next->_cons) {
     ASS_REP(con.flexFlex() || con.flexRigid(), con);
     ASS_REP(!con._lhs.containsLooseDBIndex(), con);

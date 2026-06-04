@@ -406,6 +406,16 @@ public:
     _applyMemo.reset();
   }
   bool keepRecycled() const { return _bindings.keepRecycled() || _outputVarBindings.keepRecycled(); }
+  void copy(const RobSubstitution& other) {
+    reset();
+    _bindings.loadFromMap(other._bindings);
+    _outputVarBindings.loadFromMap(other._outputVarBindings);
+    _startedBindingOutputVars = other._startedBindingOutputVars;
+    _nextUnboundAvailable = other._nextUnboundAvailable;
+    _nextGlueAvailable = other._nextGlueAvailable;
+    _gluedTerms.loadFromMap(other._gluedTerms);
+    // we are probably ok without _applyMemo
+  }
 
   /**
    * Bind special variable to a specified term
