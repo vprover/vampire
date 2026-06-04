@@ -1436,8 +1436,7 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
         //     pair.second.isVar() && isUnbound(std::pair.second.varSpec())) {
         //   todo.push(std::pair);
         // } else
-        if (!encountered->find(pair)) {
-          encountered->insert(pair);
+        if (encountered->insert(pair)) {
           toDo->push(std::move(pair));
         }
     };

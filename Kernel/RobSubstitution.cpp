@@ -295,8 +295,7 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t)
       if (pair.first.isVar() && isUnbound(pair.first.varSpec()) &&
           pair.second.isVar() && isUnbound(pair.second.varSpec())) {
         toDo.push(std::move(pair));
-      } else if (!encountered->find(pair)) {
-        encountered->insert(pair);
+      } else if (encountered->insert(pair)) {
         toDo.push(std::move(pair));
       }
   };
