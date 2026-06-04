@@ -271,7 +271,8 @@ Option<AbstractionOracle::AbstractionResult> hol2(
 
   // TODO deal with lambdas
   if (t1.term.isLambdaTerm() || t2.term.isLambdaTerm()) {
-    return Option<AbstractionOracle::AbstractionResult>();
+    auto sort = t1.isVar() ? t2.sort() : t1.sort();
+    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, sort))));
   }
 
   auto h1 = appHead2(au, t1);
