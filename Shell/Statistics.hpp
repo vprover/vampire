@@ -207,6 +207,7 @@ public:
   /** Neural instruction counts */
   long long neuralModelWarmup = 0;
   long long gnnEval = 0;
+  long long laplacianPE = 0;
   long long bulkEvals = 0;
 
   friend std::ostream& operator<<(std::ostream& out, TerminationReason const& self)

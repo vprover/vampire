@@ -1183,7 +1183,12 @@ void SaturationAlgorithm::runGnnOnInput()
 
   // Compute Laplacian Positional Encoding on the symbol-clause bipartite incidence graph
   unsigned numSymbols = _numPreds + _numFuncs;
+
+  Timer::updateInstructionCount();
+  long long laplace_start_instrs = Timer::elapsedInstructions();
   auto [symbolPE, clausePE] = computeLapPE(numSymbols, clauseId, incidenceEdges, 8);
+  Timer::updateInstructionCount();
+  env.statistics->laplacianPE += (Timer::elapsedInstructions()-laplace_start_instrs);
 
   // Extend symbol features (11 -> 19) and register with GNN
   auto symbolPE_t = torch::from_blob(symbolPE.data(), {(long)numSymbols, 8}, torch::kFloat32).clone();

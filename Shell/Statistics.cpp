@@ -242,6 +242,7 @@ void Statistics::print(std::ostream& out)
     GROUP("Neural Instruction Counts");
     ENTRY("Neural model warmup", neuralModelWarmup >> 20);
     ENTRY("Gnn eval", gnnEval >> 20);
+    ENTRY("  LaplacianPE", laplacianPE >> 20);
     ENTRY("Bulk evals", bulkEvals >> 20);
 
     //TODO record statistics for FMB
