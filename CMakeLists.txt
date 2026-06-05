@@ -229,6 +229,12 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${TORCH_CXX_FLAGS}")
 link_libraries("${TORCH_LIBRARIES}")
 
 ################################################################
+# Eigen + Spectra (header-only, for LapPE computation)
+################################################################
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/eigen)
+include_directories(${CMAKE_CURRENT_SOURCE_DIR}/spectra/include)
+
+################################################################
 # Vampire
 ################################################################
 # wrap up common object files so not built multiple times for each target

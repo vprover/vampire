@@ -89,7 +89,7 @@ XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -DEFENCE=1 -g -lefence #Electric Fence
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -g
 
-INCLUDES= -I. -I/opt/local/include -Icadical/src -Imini-gmp-6.3.0 -Iviras/src
+INCLUDES= -I. -I/opt/local/include -Icadical/src -Imini-gmp-6.3.0 -Iviras/src -Ieigen -Ispectra/include
 
 ifeq ($(OS),Darwin)
 INCLUDES := $(INCLUDES) -Ilibtorch/include -Ilibtorch/include/torch/csrc/api/include

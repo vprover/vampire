@@ -116,8 +116,10 @@
 #include "Otter.hpp"
 
 #include "NeuralPassiveClauseContainer.hpp"
+#include "LapPE.hpp"
 
 #include <torch/torch.h>
+#include <unordered_set>
 
 using namespace std;
 using namespace Lib;
@@ -995,7 +997,7 @@ void SaturationAlgorithm::runGnnOnInput()
       } while (jumpLen < _numFuncs);
     }
 
-    _neuralModel->gnnNodeKind("symbol",symbol_features);
+    // gnnNodeKind("symbol", ...) is deferred until after LapPE computation below
     _neuralModel->gnnEdgeKind("symbol","sort",symb2sort_one,symb2sort_two);
     _neuralModel->gnnEdgeKind("symbol","symbol",symb2symb_one,symb2symb_two); // for the symbol precendence
   }
@@ -1017,6 +1019,9 @@ void SaturationAlgorithm::runGnnOnInput()
 
   vector<int64_t> trm2symb_one; // a (non-var) subterm
   vector<int64_t> trm2symb_two; // has a symbol
+
+  // For LapPE: symbol-to-clause incidence edges (bipartite graph)
+  std::vector<std::pair<unsigned, unsigned>> incidenceEdges; // (symbolIdx, clauseIdx)
 
   vector<float> clause_features;
   vector<float> term_features;
@@ -1056,9 +1061,13 @@ void SaturationAlgorithm::runGnnOnInput()
     Clause* cl = toAdd.next();
     clauseNums.push_back(cl->number());
     clauseVariables.reset();
+    std::unordered_set<unsigned> clauseSymbols; // for LapPE incidence graph
     unsigned clWeight = 0;
     for (Literal* lit : cl->iterLits()) {
       clWeight += lit->weight();
+
+      // collect predicate symbol for LapPE (regardless of seenFirst)
+      clauseSymbols.insert(lit->functor());
 
       bool seenFirst = false;
       unsigned* sharedSubtermId;
@@ -1095,6 +1104,9 @@ void SaturationAlgorithm::runGnnOnInput()
 
           if (arg.isTerm()) {
             Term* t = arg.term();
+
+            // collect function symbol for LapPE (regardless of seenFirst)
+            clauseSymbols.insert(funcToSymb(t->functor()));
 
             // under perfect sharing, we might want to skip this guy, if already exposed
             bool seenFirst = false;
@@ -1162,11 +1174,28 @@ void SaturationAlgorithm::runGnnOnInput()
     clause_features.push_back(clWeight > 16);
     clause_features.push_back(clWeight > 64);
     clause_features.push_back(clWeight > 256);
+    // flush incidence edges for LapPE
+    for (unsigned sym : clauseSymbols) {
+      incidenceEdges.push_back({sym, clauseId});
+    }
     clauseId++;
   }
 
+  // Compute Laplacian Positional Encoding on the symbol-clause bipartite incidence graph
+  unsigned numSymbols = _numPreds + _numFuncs;
+  auto [symbolPE, clausePE] = computeLapPE(numSymbols, clauseId, incidenceEdges, 8);
+
+  // Extend symbol features (11 -> 19) and register with GNN
+  auto symbolPE_t = torch::from_blob(symbolPE.data(), {(long)numSymbols, 8}, torch::kFloat32).clone();
+  symbol_features = torch::cat({symbol_features, symbolPE_t}, 1);
+  _neuralModel->gnnNodeKind("symbol", symbol_features);
+
   // also here we (paranoidly) assume that the script module might not take any ownershipe of these tensors ...
   auto clause_features_t = torch::tensor(clause_features,torch::TensorOptions().dtype(torch::kFloat32)).reshape({clauseId,10});
+  // Extend clause features (10 -> 18)
+  auto clausePE_t = torch::from_blob(clausePE.data(), {(long)clauseId, 8}, torch::kFloat32).clone();
+  clause_features_t = torch::cat({clause_features_t, clausePE_t}, 1);
+
   auto term_features_t = torch::tensor(term_features,torch::TensorOptions().dtype(torch::kFloat32)).reshape({subtermId,9});
   auto var_features_t = torch::tensor(var_features,torch::TensorOptions().dtype(torch::kFloat32)).reshape({clVarId,1});
   // ... and so want to have them in scope until the gnnPerform call

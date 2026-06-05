@@ -7,3 +7,9 @@
 [submodule "viras"]
 	path = viras
 	url = https://github.com/joe-hauns/viras
+[submodule "eigen"]
+	path = eigen
+	url = https://gitlab.com/libeigen/eigen.git
+[submodule "spectra"]
+	path = spectra
+	url = https://github.com/yixuan/spectra.git
