@@ -311,7 +311,6 @@ bool AbstractingWrapper::hasNext()
 AbstractingUnifier* AbstractingWrapper::next()
 {
   ASS(_next);
-  DEBUG("about to return extended abstracting unifier ", *_unifier);
   _localBD.backtrack();
   DEBUG("backtracked from previous state ", *_unifier);
 
@@ -335,6 +334,7 @@ AbstractingUnifier* AbstractingWrapper::next()
     DEBUG("adding constraint ", lhs, " != ", rhs);
     _unifier->constr().add(UnificationConstraint(lhs, rhs, TermSpec(SubstHelper::apply(con._sort, _next->_subs), GLUE_INDEX)), _localBD);
   }
+  DEBUG("about to return extended abstracting unifier ", *_unifier);
 
   delete _next;
   _next = nullptr;
