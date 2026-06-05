@@ -12,6 +12,7 @@
 #include "Forwards.hpp"
 #include "Kernel/HOL/HOL.hpp"
 #include "Kernel/HOL/Unifier.hpp"
+#include "Kernel/TermIterators.hpp"
 #include "Kernel/UnificationWithAbstraction.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Test/UnitTesting.hpp"
@@ -20,25 +21,24 @@
 using namespace Saturation;
 using namespace Test;
 
-#define MY_SYNTAX_SUGAR                            \
-  DECL_APP                                         \
-  DECL_LAM                                         \
-  DECL_SORT(s)                                     \
-  DECL_SORT(srt2)                                  \
-  DECL_SORT_BOOL                                   \
-  TROO                                             \
-  DECL_DEFAULT_VARS                                \
-  DECL_CONST(f, arrow(s, s))                       \
-  DECL_CONST(g, arrow({s, s}, s))                  \
-  DECL_CONST(g1, arrow({s, s}, s))                 \
-  DECL_CONST(h, arrow({s, s, s}, s))               \
-  DECL_CONST(f2, arrow({s, srt2}, Bool))           \
-  DECL_DE_BRUIJN_INDEX(db0, 0, s)                  \
-  DECL_DE_BRUIJN_INDEX(db1, 1, s)                  \
-  DECL_CONST(a, s)                                 \
-  DECL_CONST(b, s)                                 \
-  DECL_CONST(c, s)                                 \
-  DECL_CONST(d, srt2)                              \
+#define MY_SYNTAX_SUGAR                               \
+  DECL_APP                                            \
+  DECL_LAM                                            \
+  DECL_SORT(s)                                        \
+  DECL_SORT_BOOL                                      \
+  TROO                                                \
+  DECL_DEFAULT_VARS                                   \
+  DECL_CONST(f, arrow(s, s))                          \
+  DECL_CONST(g, arrow({s, s}, s))                     \
+  DECL_CONST(g1, arrow({s, s}, s))                    \
+  DECL_CONST(h, arrow({arrow(s, s), arrow(s, s)}, s)) \
+  DECL_DE_BRUIJN_INDEX(db0, 0, s)                     \
+  DECL_DE_BRUIJN_INDEX(db1, 1, s)                     \
+  DECL_DE_BRUIJN_INDEX(db0_, 0, arrow(s,s))           \
+  DECL_DE_BRUIJN_INDEX(db1_, 1, arrow(s,s))           \
+  DECL_CONST(a, s)                                    \
+  DECL_CONST(b, s)                                    \
+  DECL_CONST(c, s)                                    \
 
 #define LEFT_BANK 0
 #define RIGHT_BANK 1
@@ -48,9 +48,11 @@ struct ResultSpec {
   LiteralStack constraints;
 };
 
-std::pair<VarSpec, TermList> vs(unsigned var, unsigned index, TermList t) {
-  return { VarSpec(TermList::var(var), index), t };
-}
+auto vs(TermList var, unsigned index, TermList t)
+{ return std::make_pair(VarSpec(var, index), t); }
+
+auto vsLeft(TermList var, TermList t) { return vs(var, LEFT_BANK, t); }
+auto vsRight(TermList var, TermList t) { return vs(var, RIGHT_BANK, t); }
 
 void testUnifySuccess(TermList lhs, TermList rhs, Stack<ResultSpec> expected) {
 
@@ -73,6 +75,18 @@ void testUnifySuccess(TermList lhs, TermList rhs, Stack<ResultSpec> expected) {
     auto hoUnif = wrapper.next();
     auto& e = expected[i];
 
+    DHSet<VarSpec> vars;
+    auto loadVars = [&vars](TermList t, unsigned index) {
+      if (t.isVar()) {
+        vars.insert(VarSpec(t, index));
+      } else {
+        vars.loadFromIterator(iterTraits(VariableIterator(t.term()))
+          .map([index](TermList var) {return VarSpec(var, index); }));
+      }
+    };
+    loadVars(lhs, LEFT_BANK);
+    loadVars(rhs, RIGHT_BANK);
+
     for (const auto& [vs, exp] : e.varSpecs) {
       auto act = HOL::reduce::betaEtaNF(hoUnif->subs().apply(vs.varAsTermlist(), vs.index));
       if (act != exp) {
@@ -83,7 +97,9 @@ void testUnifySuccess(TermList lhs, TermList rhs, Stack<ResultSpec> expected) {
         std::cout << "unification " << lhs << " = " << rhs << std::endl;
         ASSERTION_VIOLATION;
       }
+      vars.remove(vs);
     }
+    ASS_REP(vars.isEmpty(), vars);
 
     auto cons = hoUnif->computeConstraintLiterals();
     for (unsigned j = 0; j < e.constraints.size(); j++) {
@@ -101,6 +117,11 @@ void testUnifySuccess(TermList lhs, TermList rhs, Stack<ResultSpec> expected) {
         ASSERTION_VIOLATION;
       }
     }
+    if (cons.size() > e.constraints.size()) {
+      std::cout << std::endl;
+      std::cout << "unexpected constraint: " << *cons[e.constraints.size()] << " (unification " << lhs << " = " << rhs << ")" << std::endl;
+      ASSERTION_VIOLATION;
+    }
   }
   if (wrapper.hasNext()) {
     std::cout << std::endl;
@@ -117,14 +138,14 @@ void testUnifyFail(TermList lhs, TermList rhs) {
   // we require the term to at least FO unify, maybe with abstraction
   if (!unif.unify(lhs, LEFT_BANK, rhs, RIGHT_BANK, /*fixedPointIteration=*/true)) {
     std::cout << std::endl;
-    std::cout << "does not FO unify: " << lhs << " != " << rhs << std::endl;
+    std::cout << "expected to FO unify: " << lhs << " != " << rhs << std::endl;
     ASSERTION_VIOLATION;
   }
 
   HOL::AbstractingWrapper wrapper(&unif, 10);
   if (wrapper.hasNext()) {
     std::cout << std::endl;
-    std::cout << "HO unifies: " << lhs << " == " << rhs << std::endl;
+    std::cout << "expected *not* to HO unify: " << lhs << " == " << rhs << std::endl;
     ASSERTION_VIOLATION;
   }
 }
@@ -148,19 +169,19 @@ TEST_UNIFY_SUCCESS(success_1,
   ap(g, {b, a}),
   {
     {
-      { vs(0, 0, lam(s, lam(s, ap(g, {db0, db1})))) },
+      { vsLeft(x, lam(s, lam(s, ap(g, {db0, db1})))) },
       LiteralStack{},
     },
     {
-      { vs(0, 0, lam(s, lam(s, ap(g, {b, db1})))) },
+      { vsLeft(x, lam(s, lam(s, ap(g, {b, db1})))) },
       LiteralStack{},
     },
     {
-      { vs(0, 0, lam(s, lam(s, ap(g, {db0, a})))) },
+      { vsLeft(x, lam(s, lam(s, ap(g, {db0, a})))) },
       LiteralStack{},
     },
     { 
-      { vs(0, 0, lam(s, lam(s, ap(g, {b, a})))) },
+      { vsLeft(x, lam(s, lam(s, ap(g, {b, a})))) },
       LiteralStack{},
     }
   }
@@ -187,7 +208,7 @@ TEST_UNIFY_SUCCESS(success_4,
   ap(ap(x.sort(arrow({s, s}, s)), b), c),
   {
     ResultSpec{
-      { vs(0, 1, lam(s, lam(s, a))) },
+      { vsRight(x, lam(s, lam(s, a))) },
       LiteralStack{},
     }
   }
@@ -199,8 +220,8 @@ TEST_UNIFY_SUCCESS(success_5,
   {
     ResultSpec{
       {
-        vs(0, 0, x),
-        vs(1, 1, y)
+        vsLeft(x, x),
+        vsRight(y, y)
       },
       { lam(s,x.sort(s)) != lam(s,y.sort(s)) }
     },
@@ -213,8 +234,8 @@ TEST_UNIFY_SUCCESS(success_6,
   {
     ResultSpec{
       {
-        vs(0,0,x),
-        vs(0,1,y)
+        vsLeft(x, x),
+        vsRight(x, y)
       },
       { x.sort(arrow(s, s)) != y } },
   }
@@ -226,10 +247,46 @@ TEST_UNIFY_SUCCESS(success_7,
   {
     ResultSpec{
       {
-        vs(0,0,x),
-        vs(0,1,y)
+        vsLeft(x, x),
+        vsRight(x, y)
       },
       { lam(s,ap(x.sort(arrow(s,s)), a)) != lam(s,ap(y.sort(arrow(s,s)), b)) },
+    }
+  }
+)
+
+TEST_UNIFY_SUCCESS(success_8,
+  lam(s, db0),
+  lam(s, ap(x.sort(arrow(s,s)), db0)),
+  {
+    ResultSpec{
+      {
+        vsRight(x, lam(s, db0))
+      },
+      LiteralStack{},
+    }
+  }
+)
+
+TEST_UNIFY_SUCCESS(success_9,
+  lam(arrow(s,s), db0_),
+  lam(arrow(s,s), lam(s, ap(db1_, db0))),
+  {
+    ResultSpec(),
+  }
+)
+
+TEST_UNIFY_SUCCESS(success_10,
+  ap(h, {x, lam(s, ap(x.sort(arrow(s,s)), ap(g, {y, db0})))}),
+  ap(h, {lam(s, ap(g1, {db0, z})), lam(s, ap(g1, {ap(g, {a, db0}), z}))}),
+  {
+    ResultSpec{
+      {
+        vsLeft(x, lam(s, ap(g1, {db0, x}))),
+        vsLeft(y, a),
+        vsRight(z, x)
+      },
+      LiteralStack(),
     }
   }
 )
@@ -242,4 +299,29 @@ TEST_UNIFY_FAIL(fail_1,
 TEST_UNIFY_FAIL(fail_2,
   g(),
   lam(s, ap(g, a))
+)
+
+TEST_UNIFY_FAIL(fail_3,
+  lam(s, db0),
+  lam(s, x.sort(s))
+)
+
+TEST_UNIFY_FAIL(fail_4,
+  ap(h, {x, lam(s, ap(x.sort(arrow(s,s)), ap(g, {y, db0})))}),
+  ap(h, {lam(s, ap(g1, {db0, z})), ap(g1, a)})
+)
+
+TEST_UNIFY_FAIL(fail_5,
+  ap(h, {x, lam(s, ap(x.sort(arrow(s,s)), ap(g, {y, db0})))}),
+  ap(h, {lam(s, ap(g1, {db0, z})), lam(s, ap(g1, {db0, db0}))})
+)
+
+TEST_UNIFY_FAIL(fail_6,
+  ap(h, {x, lam(s, ap(x.sort(arrow(s,s)), ap(g, {y, db0})))}),
+  ap(h, {lam(s, ap(g1, {db0, z})), ap(g1, ap(g, {a, b}))})
+)
+
+TEST_UNIFY_FAIL(fail_7,
+  ap(h, {x, lam(s, ap(x.sort(arrow(s,s)), ap(g, {y, db0})))}),
+  ap(h, {lam(s, ap(g1, {db0, z})), lam(s, ap(g1, {ap(g, {a, db0}), db0}))})
 )

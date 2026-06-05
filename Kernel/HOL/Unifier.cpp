@@ -34,12 +34,8 @@ std::ostream& operator<<(std::ostream& out, const UnificationNode& node) {
 }
 
 UnificationNode::Constraint::Constraint(TermList lhs, TermList rhs, TermList sort)
-  : _lhs(lhs), _rhs(rhs), _sort(sort), _lhead(lhs.head()), _rhead(rhs.head())
-{
-  // terms must be in whnf
-  ASS_REP(!_lhead.isLambdaTerm(), _lhead.toString());
-  ASS_REP(!_rhead.isLambdaTerm(), _rhead.toString());
-}
+  : _lhs(lhs), _rhs(rhs), _sort(sort)
+{}
 
 bool UnificationNode::Constraint::derefHead(TermList& head, TermList& side, const Substitution& subs)
 {
