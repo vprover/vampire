@@ -328,7 +328,7 @@ AbstractingUnifier* AbstractingWrapper::next()
     TermSpec lhs(HOL::reduce::betaEtaNF(SubstHelper::apply(con._lhs, _next->_subs)), GLUE_INDEX);
     TermSpec rhs(HOL::reduce::betaEtaNF(SubstHelper::apply(con._rhs, _next->_subs)), GLUE_INDEX);
     DEBUG("adding constraint ", lhs, " != ", rhs);
-    _unifier->constr().add(UnificationConstraint(lhs, rhs, TermSpec(SubstHelper::apply(con._sort, _next->_subs), GLUE_INDEX)), _localBD);
+    _unifier->constr().add(UnificationConstraint(lhs, rhs, TermSpec(sortS, GLUE_INDEX)), _localBD);
   }
   DEBUG("about to return extended abstracting unifier ", *_unifier);
 

@@ -96,7 +96,7 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
       // We only care about non-trivial constraints where the top-symbol of the two literals are the same
       // and therefore a constraint can be created between arguments
       if(lhs.isTerm() && rhs.isTerm() &&
-        lhs.term()->functor() != rhs.term()->functor()/*  && _salg.getOptions().unificationWithAbstraction() != Shell::Options::UnificationWithAbstraction::HOL */){
+        lhs.term()->functor() != rhs.term()->functor() && _salg.getOptions().unificationWithAbstraction() != Shell::Options::UnificationWithAbstraction::HOL){
         abstractionOracle = AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF);
       }
 

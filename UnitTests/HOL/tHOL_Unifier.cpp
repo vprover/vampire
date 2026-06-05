@@ -291,6 +291,37 @@ TEST_UNIFY_SUCCESS(success_10,
   }
 )
 
+TEST_UNIFY_SUCCESS(success_11,
+  ap(ap(x.sort(arrow({s, s}, s)), b), a),
+  ap(g, {a, b}),
+  {
+    ResultSpec{
+      {
+        vsLeft(x, lam(s, lam(s, ap(g, {db0, db1}))))
+      },
+      LiteralStack(),
+    },
+    ResultSpec{
+      {
+        vsLeft(x, lam(s, lam(s, ap(g, {a, db1}))))
+      },
+      LiteralStack(),
+    },
+    ResultSpec{
+      {
+        vsLeft(x, lam(s, lam(s, ap(g, {db0, b}))))
+      },
+      LiteralStack(),
+    },
+    ResultSpec{
+      {
+        vsLeft(x, lam(s, lam(s, ap(g, {a, b}))))
+      },
+      LiteralStack(),
+    }
+  }
+)
+
 TEST_UNIFY_FAIL(fail_1,
   lam(s, ap(g, db0)),
   lam(s, ap(g1, db0))
