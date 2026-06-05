@@ -44,12 +44,14 @@ inline std::pair<std::vector<float>, std::vector<float>> computeLapPE(
     unsigned numSymbols,
     unsigned numClauses,
     const std::vector<std::pair<unsigned, unsigned>>& incidenceEdges,
+    char& path_taken, // for statistics purposes
     unsigned k = 8)
 {
   unsigned N = numSymbols + numClauses;
 
   // Edge case: trivial graph
   if (N <= 1 || incidenceEdges.empty()) {
+    path_taken = 0; // trivial case - bailout
     return {std::vector<float>(numSymbols * k, 0.0f),
             std::vector<float>(numClauses * k, 0.0f)};
   }
@@ -95,9 +97,11 @@ inline std::pair<std::vector<float>, std::vector<float>> computeLapPE(
     Eigen::MatrixXf L_dense = Eigen::MatrixXf::Identity(N, N) - A_dense;
     Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> solver(L_dense);
     if (solver.info() != Eigen::Success) {
+      path_taken = 1; // dense failed - bailout
       return {std::vector<float>(numSymbols * k, 0.0f),
               std::vector<float>(numClauses * k, 0.0f)};
     }
+    path_taken = 2; // dense success
     // Eigenvalues are in ascending order by default -- exactly what we want
     eigVecs = solver.eigenvectors();
   } else {
@@ -116,11 +120,14 @@ inline std::pair<std::vector<float>, std::vector<float>> computeLapPE(
         Eigen::MatrixXf L_dense = Eigen::MatrixXf::Identity(N, N) - A_dense;
         Eigen::SelfAdjointEigenSolver<Eigen::MatrixXf> dSolver(L_dense);
         if (dSolver.info() != Eigen::Success) {
+          path_taken = 3; // dense as fallback failed - bailout
           return {std::vector<float>(numSymbols * k, 0.0f),
                   std::vector<float>(numClauses * k, 0.0f)};
         }
+        path_taken = 4; // dense as fallback - success
         eigVecs = dSolver.eigenvectors();
       } else {
+        path_taken = 5; // sparse didn't converge and fallback too risky - bailout
         return {std::vector<float>(numSymbols * k, 0.0f),
                 std::vector<float>(numClauses * k, 0.0f)};
       }
@@ -134,6 +141,8 @@ inline std::pair<std::vector<float>, std::vector<float>> computeLapPE(
 
       // Columns are already in order: first column = largest A_norm eval = smallest L_sym eval (trivial).
       // We just use them directly.
+
+      path_taken = 6; // sparse - success
       eigVecs = evecs;
     }
   }

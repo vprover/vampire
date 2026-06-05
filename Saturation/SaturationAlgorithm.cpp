@@ -1186,9 +1186,46 @@ void SaturationAlgorithm::runGnnOnInput()
 
   Timer::updateInstructionCount();
   long long laplace_start_instrs = Timer::elapsedInstructions();
-  auto [symbolPE, clausePE] = computeLapPE(numSymbols, clauseId, incidenceEdges, 8);
+  char path_taken;
+  auto [symbolPE, clausePE] = computeLapPE(numSymbols, clauseId, incidenceEdges, path_taken, 8);
   Timer::updateInstructionCount();
   env.statistics->laplacianPE += (Timer::elapsedInstructions()-laplace_start_instrs);
+
+  /*
+  cout << "numSymbols " << numSymbols << " numClauses " << clauseId << endl;
+  cout << "path_taken " << (int)path_taken << endl;
+  */
+
+  /*
+  // Debug: print LapPE for symbols
+  for (unsigned s = 0; s < numSymbols; s++) {
+    const char* name;
+    if (s < _numPreds) {
+      name = env.signature->getPredicate(s)->name().c_str();
+    } else {
+      name = env.signature->getFunction(s - _numPreds)->name().c_str();
+    }
+    cout << "LapPE symbol " << s << " (" << name << "):";
+    for (unsigned j = 0; j < 8; j++) {
+      cout << " " << symbolPE[s * 8 + j];
+    }
+    cout << endl;
+  }
+  // Debug: print LapPE for clauses
+  {
+    unsigned ci = 0;
+    ClauseIterator toAddDbg = _prb.clauseIterator();
+    while (toAddDbg.hasNext()) {
+      Clause* cl = toAddDbg.next();
+      cout << "LapPE clause " << ci << " (" << cl->toString() << "):" << endl;
+      for (unsigned j = 0; j < 8; j++) {
+        cout << " " << clausePE[ci * 8 + j];
+      }
+      cout << endl;
+      ci++;
+    }
+  }
+  */
 
   // Extend symbol features (11 -> 19) and register with GNN
   auto symbolPE_t = torch::from_blob(symbolPE.data(), {(long)numSymbols, 8}, torch::kFloat32).clone();
