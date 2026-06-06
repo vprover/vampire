@@ -22,11 +22,7 @@ using namespace Saturation;
 using namespace Test;
 
 #define MY_SYNTAX_SUGAR                               \
-  DECL_APP                                            \
-  DECL_LAM                                            \
   DECL_SORT(s)                                        \
-  DECL_SORT_BOOL                                      \
-  TROO                                                \
   DECL_DEFAULT_VARS                                   \
   DECL_CONST(f, arrow(s, s))                          \
   DECL_CONST(g, arrow({s, s}, s))                     \
