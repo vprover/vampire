@@ -451,6 +451,29 @@ Formula* Formula::quantify(Formula* f)
   return f;
 }
 
+/** removes the leading universal quantifiers from a formula */
+Formula* Formula::removeUniversalTypePrenex(Formula* f)
+{
+  while (f->connective() == FORALL) {
+    auto vars = f->vars();
+    // get rid of current universal type prenex
+    while (vars && vars->head().second == AtomicSort::superSort()) {
+      vars = vars->tail();
+    }
+    // if there was none, return original formula
+    if (vars == f->vars()) {
+      break;
+    }
+    // if there are vars remaining, we return a new formula
+    if (vars) {
+      return new QuantifiedFormula(FORALL, vars, f->qarg());
+    }
+    // otherwise we recurse
+    f = f->qarg();
+  }
+  return f;
+}
+
 
 /**
  * Return formula equal to @b cl
