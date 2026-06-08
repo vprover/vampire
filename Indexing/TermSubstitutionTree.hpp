@@ -67,9 +67,6 @@ private:
   { return iterTraits(_inner.template iterator<Iterator>(query, retrieveSubstitutions, /* reversed */  false, std::move(args)...))
       ; }
 
-  bool generalizationExists(TermList t) override
-  { return t.isVar() ? false : _inner.generalizationExists(TypedTermList(t.term())); }
-
   void output(std::ostream& out) const final { out << *this; }
 
   friend std::ostream& operator<<(std::ostream& out, TermSubstitutionTree<LeafData_> const& self)
