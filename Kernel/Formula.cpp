@@ -451,7 +451,6 @@ Formula* Formula::quantify(Formula* f)
   return f;
 }
 
-/** removes the leading universal quantifiers from a formula */
 Formula* Formula::removeUniversalTypePrenex(Formula* f)
 {
   while (f->connective() == FORALL) {
