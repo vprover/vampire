@@ -38,6 +38,7 @@ using namespace Test;
 
 #define LEFT_BANK 0
 #define RIGHT_BANK 1
+#define UNIF_DEPTH 3
 
 struct ResultSpec {
   Stack<std::pair<VarSpec, TermList>> varSpecs;
@@ -61,7 +62,7 @@ void testUnifySuccess(TermList lhs, TermList rhs, Stack<ResultSpec> expected) {
     ASSERTION_VIOLATION;
   }
 
-  HOL::AbstractingWrapper wrapper(&unif, 10);
+  HOL::AbstractingWrapper wrapper(&unif, UNIF_DEPTH);
   for (unsigned i = 0; i < expected.size(); i++) {
     if (!wrapper.hasNext()) {
       std::cout << std::endl;
@@ -115,7 +116,7 @@ void testUnifySuccess(TermList lhs, TermList rhs, Stack<ResultSpec> expected) {
     }
     if (cons.size() > e.constraints.size()) {
       std::cout << std::endl;
-      std::cout << "unexpected constraint: " << *cons[e.constraints.size()] << " (unification " << lhs << " = " << rhs << ")" << std::endl;
+      std::cout << "unexpected constraint (" << i << "): " << *cons[e.constraints.size()] << " (unification " << lhs << " = " << rhs << ")" << std::endl;
       ASSERTION_VIOLATION;
     }
   }
@@ -312,6 +313,57 @@ TEST_UNIFY_SUCCESS(success_11,
     ResultSpec{
       {
         vsLeft(x, lam(s, lam(s, ap(g, {a, b}))))
+      },
+      LiteralStack(),
+    }
+  }
+)
+
+TEST_UNIFY_SUCCESS(success_12,
+  ap(ap(x.sort(arrow({arrow(s, s), s}, s)), lam(s, db0)), a),
+  a,
+  {
+    ResultSpec{
+      {
+        vsLeft(x, lam(arrow(s,s), lam(s, ap(db1_, ap(db1_, ap(db1_, ap(ap(x.sort(arrow({arrow(s, s), s}, s)), db1_), db0)))))))
+      },
+      LiteralStack{
+        a != ap(ap(x.sort(arrow({arrow(s, s), s}, s)), lam(s, db0)), a)
+      },
+    },
+    ResultSpec{
+      {
+        vsLeft(x, lam(arrow(s,s), lam(s, ap(db1_, ap(db1_, db0)))))
+      },
+      LiteralStack(),
+    },
+    ResultSpec{
+      {
+        vsLeft(x, lam(arrow(s,s), lam(s, ap(db1_, ap(db1_, a)))))
+      },
+      LiteralStack(),
+    },
+    ResultSpec{
+      {
+        vsLeft(x, lam(arrow(s,s), db0_))
+      },
+      LiteralStack(),
+    },
+    ResultSpec{
+      {
+        vsLeft(x, lam(arrow(s,s), lam(s, ap(db1_, a))))
+      },
+      LiteralStack(),
+    },
+    ResultSpec{
+      {
+        vsLeft(x, lam(arrow(s,s), lam(s, db0)))
+      },
+      LiteralStack(),
+    },
+    ResultSpec{
+      {
+        vsLeft(x, lam(arrow(s,s), lam(s, a)))
       },
       LiteralStack(),
     }
