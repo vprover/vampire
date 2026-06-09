@@ -276,7 +276,8 @@ Option<AbstractionOracle::AbstractionResult> hol(AbstractingUnifier* au, TermSpe
   auto h1 = appHead(au, t1);
   auto h2 = appHead(au, t2);
   if (h1.isNone() || h2.isNone()) {
-    return Option<AbstractionOracle::AbstractionResult>();
+    auto sort = t1.isVar() ? t2.sort() : t1.sort();
+    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, sort))));
   }
   DEBUG_UNIFY(0, "app heads ", h1, ", ", h2);
 

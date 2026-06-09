@@ -28,6 +28,7 @@ using namespace Test;
   DECL_CONST(g, arrow({s, s}, s))                     \
   DECL_CONST(g1, arrow({s, s}, s))                    \
   DECL_CONST(h, arrow({arrow(s, s), arrow(s, s)}, s)) \
+  DECL_CONST(h1, arrow({s, arrow(s, s)}, s))          \
   DECL_DE_BRUIJN_INDEX(db0, 0, s)                     \
   DECL_DE_BRUIJN_INDEX(db1, 1, s)                     \
   DECL_DE_BRUIJN_INDEX(db0_, 0, arrow(s,s))           \
@@ -364,6 +365,21 @@ TEST_UNIFY_SUCCESS(success_12,
     ResultSpec{
       {
         vsLeft(x, lam(arrow(s,s), lam(s, a)))
+      },
+      LiteralStack(),
+    }
+  }
+)
+
+TEST_UNIFY_SUCCESS(success_13,
+  ap(h1, {ap(x.sort(arrow(s,s)), ap(g, {y, db0})), x}),
+  ap(h1, {ap(g1, {ap(g, {a, db0}), z}), lam(s, ap(g1, {db0, z}))}),
+  {
+    ResultSpec{
+      {
+        vsLeft(x, lam(s, ap(g1, {db0, x}))),
+        vsLeft(y, a),
+        vsRight(z, x)
       },
       LiteralStack(),
     }
