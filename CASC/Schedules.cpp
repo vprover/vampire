@@ -27,6 +27,7 @@
 
 #include "Shell/Options.hpp"
 #include "Shell/UIHelper.hpp"
+#include "Lib/Environment.hpp"
 
 #include <fstream>
 
@@ -69,7 +70,11 @@ void Schedules::getScheduleFromFile(const std::string& filename, Schedule& quick
 
 void Schedules::getSmtcomp2018Schedule(const Property& property, Schedule& quick)
 {
-  switch (property.getSMTLIBLogic()) {
+  auto logic = property.getSMTLIBLogic();
+  if (logic == SMTLIBLogic::UNDEFINED && env.options->ignoreUnrecognizedLogic()) {
+    logic = SMTLIBLogic::ALL;
+  }
+  switch (logic) {
   case SMTLIBLogic::AUFDTLIA:
   case SMTLIBLogic::AUFDTLIRA: // Add new logic here even though probably not best schedule
   case SMTLIBLogic::AUFDTNIRA: // Add new logic here even though probably not best schedule

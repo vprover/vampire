@@ -469,12 +469,7 @@ void SMTLIB2::readLogic(const std::string& logicStr)
   case SMTLIBLogic::UFBV:
     USER_ERROR_EXPR("unsupported logic "+logicStr);
   case SMTLIBLogic::UNDEFINED:
-    if (env.options->ignoreUnrecognizedLogic()) {
-      _logic = SMTLIBLogic::ALL;
-      break;
-    } else {
-      USER_ERROR_EXPR("unrecognized logic " + logicStr + " ( use `--ignore_unrecognized_logic on` if you want vampire to try proof search anyways)");
-    }
+    USER_ERROR_EXPR("unrecognized logic " + logicStr + " ( use `--ignore_unrecognized_logic on` if you want vampire to try proof search anyways)");
   }
 
 }
