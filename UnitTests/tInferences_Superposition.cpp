@@ -14,7 +14,7 @@
 
 using namespace Test;
 
-#define MY_GEN_RULE   Superposition
+#define MY_GEN_RULE   Superposition<false>
 #define MY_GEN_TESTER Generation::GenerationTester
 
 /**
@@ -262,6 +262,11 @@ TEST_GENERATION(test_20,
       .selfApplications(false)
       .expected(exactly(clause({ f(x,y) != left(left(x)) })))
     )
+
+// HOL tests
+
+#undef  MY_GEN_RULE
+#define MY_GEN_RULE Superposition<true>
 
 // superposition with HO-unification and constraints
 TEST_GENERATION(test_21,

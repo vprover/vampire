@@ -1444,7 +1444,11 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
     gie->addFront(new EqualityResolution(*res));
     if(opt.superposition() && !alascaTakesOver){ // in alasca we have a special superposition rule
-      gie->addFront(new Superposition(*res));
+      if (prb.isHigherOrder()) {
+        gie->addFront(new Superposition<true>(*res));
+      } else {
+        gie->addFront(new Superposition<false>(*res));
+      }
     }
   }
   else if (opt.unificationWithAbstraction() != Options::UnificationWithAbstraction::OFF) {
