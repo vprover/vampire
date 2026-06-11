@@ -183,7 +183,6 @@ set(SOURCES
     Indexing/InductionFormulaIndex.hpp
     Indexing/LiteralIndex.cpp
     Indexing/LiteralIndex.hpp
-    Indexing/LiteralIndexingStructure.hpp
     Indexing/LiteralMiniIndex.cpp
     Indexing/LiteralMiniIndex.hpp
     Indexing/LiteralSubstitutionTree.hpp
