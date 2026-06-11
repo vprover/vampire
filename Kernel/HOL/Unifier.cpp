@@ -52,7 +52,7 @@ bool UnificationNode::Constraint::derefHead(TermList& head, TermList& side, cons
 
 void UnificationNode::Constraint::normalize(const Substitution& subs)
 {
-  // 1. We want to reach a fixed point of applying the substitution
+  // We want to reach a fixed point of applying the substitution
   // on the head and then beta normalizing it if it's a lambda.
   //
   // TODO this is very inefficient now, we only have to beta normalize
@@ -80,7 +80,7 @@ void UnificationNode::Constraint::normalize(const Substitution& subs)
     }
   } while (changed);
 
-  // 2. We then alpha-eta normalize to get the same prefix on both sides.
+  // We then alpha-eta normalize to get the same prefix on both sides.
   HOL::normaliseLambdaPrefixes(_lhs, _rhs);
   _lhead = _lhs.head();
   _rhead = _rhs.head();
@@ -110,17 +110,14 @@ Option<Stack<UnificationNode*>> UnificationNode::solve()
 
     DEBUG("trying to solve ", curr);
 
-    // Following the transitions from "Efficient Full Higher-order Unification" from Vukmirovic et al.
-
     curr.normalize(_subs);
 
     DEBUG("after normalization ", curr);
 
-    // 4. delete
+    // trivial constraint, delete
     if (curr._lhs == curr._rhs) {
       DEBUG("deleted");
-      std::swap(curr, _cons.top());
-      _cons.pop();
+      _cons.swapRemove(i);
       continue;
     }
 
@@ -167,16 +164,13 @@ bool UnificationNode::simplify()
 
     DEBUG("trying to simplify ", curr);
 
-    // Following the transitions from "Efficient Full Higher-order Unification" from Vukmirovic et al.
-
     curr.normalize(_subs);
 
     DEBUG("after normalization ", curr);
 
     if (curr._lhs == curr._rhs) {
       DEBUG("deleted");
-      std::swap(curr, _cons.top());
-      _cons.pop();
+      _cons.swapRemove(i);
       continue;
     }
 
@@ -188,8 +182,7 @@ bool UnificationNode::simplify()
         return false;
       }
       auto dc = decompose(i, /*includeRest=*/false);
-      std::swap(curr, _cons.top());
-      _cons.pop();
+      _cons.swapRemove(i);
       for (auto&& con : std::move(dc)) {
         DEBUG("decomposed ", con);
         _cons.push(con);

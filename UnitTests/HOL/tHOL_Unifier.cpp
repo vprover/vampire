@@ -140,7 +140,7 @@ void testUnifyFail(TermList lhs, TermList rhs) {
     ASSERTION_VIOLATION;
   }
 
-  HOL::AbstractingWrapper wrapper(&unif, 10);
+  HOL::AbstractingWrapper wrapper(&unif, UNIF_DEPTH);
   if (wrapper.hasNext()) {
     std::cout << std::endl;
     std::cout << "expected *not* to HO unify: " << lhs << " == " << rhs << std::endl;

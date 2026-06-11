@@ -25,6 +25,13 @@ using namespace Shell;
 
 namespace HOL {
 
+/**
+ * This class represents a HO unification "state", with some to-be-handled unification constraints,
+ * and a partial unifier. The unifier is extended such that it stays idempotent, the caller has to
+ * ensure this by calling the constructor with a `nextVar` argument that represents a fresh variable
+ * among the constraints, and the substitution. Mostly following the transitions from "Efficient
+ * Full Higher-order Unification" from Vukmirovic et al.
+ */
 struct UnificationNode
 {
   struct Constraint
@@ -46,17 +53,22 @@ struct UnificationNode
   };
 
   UnificationNode(Stack<Constraint> cons, unsigned nextVar);
-  UnificationNode(const UnificationNode& parent, unsigned var, TermList binding);
-  UnificationNode(const UnificationNode& parent, Stack<Constraint> cons);
 
+  /** This function should be called when extending the current unifier is allowed,
+   * i.e. when we haven't reached the maximum allowed unification depth yet. */
   Option<Stack<UnificationNode*>> solve();
+  /** This function should be called when we want to simplify the constraints
+   * as much as possible, possibly before returning an abstraction. */
   bool simplify();
 
   Stack<Constraint> _cons;
   Substitution _subs;
-  unsigned _freshVar;
 private:
+  UnificationNode(const UnificationNode& parent, unsigned var, TermList binding);
+  UnificationNode(const UnificationNode& parent, Stack<Constraint> cons);
   Stack<Constraint> decompose(unsigned index, bool includeRest) const;
+
+  unsigned _freshVar;
 };
 
 class AbstractingWrapper
