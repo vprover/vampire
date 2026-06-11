@@ -1802,9 +1802,11 @@ void SMTLIB2::parseAnnotatedTerm(LExpr* exp)
 
   auto toParse = lRdr.readExpr();
 
-  // we only consider :named annotations
   if(lRdr.tryAcceptAtom(":named")){
     _todo.push(make_pair(PO_LABEL,lRdr.readExpr()));
+  } else if(env.options->parseGoalAnnotations() && lRdr.tryAcceptAtom(":goal")){
+    (void) lRdr.readExpr(); /* we ignore the goal name */
+    _todo.push(make_pair(PO_MAKE_GOAL,nullptr));
   }
 
   _todo.push(make_pair(PO_PARSE,toParse));
@@ -2758,6 +2760,13 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body, bool isSort)
         _results.push(res);
         continue;
       }
+      case PO_MAKE_GOAL: {
+        ASS_GE(_results.size(),1);
+        ParseResult res =  _results.pop();
+        res.isGoal = true;
+        _results.push(res);
+        continue;
+      }
       case PO_LET_PREPARE_LOOKUP:
         parseLetPrepareLookup(exp);
         continue;
@@ -2802,7 +2811,7 @@ void SMTLIB2::readAssert(LExpr* body)
     USER_ERROR_EXPR("Asserted expression of non-boolean sort "+body->toString());
   }
 
-  FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
+  FormulaUnit* fu = new FormulaUnit(fla, FromInput(res.isGoal ? UnitInputType::NEGATED_CONJECTURE : UnitInputType::ASSUMPTION));
   _formulas.pushBack(fu);
 }
 
