@@ -576,6 +576,10 @@ protected:
       }
     case InferenceRule::NEGATED_CONJECTURE:
       return "negated_conjecture";
+    case InferenceRule::AVATAR_DEFINITION:
+    case InferenceRule::FUNCTION_DEFINITION:
+    case InferenceRule::GENERAL_SPLITTING_COMPONENT:
+      return "definition";
     default:
       return "plain";
     }
@@ -722,9 +726,6 @@ protected:
     UnitIterator parents=_is->getParents(us, rule);
 
     switch(rule) {
-    //case Inference::AVATAR_COMPONENT:
-    //  printSplittingComponentIntroduction(us);
-    //  return;
     case InferenceRule::GENERAL_SPLITTING_COMPONENT:
       printGeneralSplittingComponent(us);
       return;
@@ -759,15 +760,27 @@ protected:
     else if (!parents.hasNext()) {
       vstring newSymbolInfo;
       if (hasNewSymbols(us)) {
-	newSymbolInfo = getNewSymbols("naming",us);
+        vstring newSymbOrigin;
+        if (rule == InferenceRule::FUNCTION_DEFINITION) {
+          newSymbOrigin = "definition";
+        } else {
+          newSymbOrigin = "naming";
+        }
+	      newSymbolInfo = getNewSymbols(newSymbOrigin,us);
       }
-      inferenceStr="introduced("+tptpRuleName(rule)+",["+newSymbolInfo+"])";
+      inferenceStr="introduced(definition,["+newSymbolInfo+"],["+tptpRuleName(rule)+"])";
     }
     else {
       ASS(parents.hasNext());
       vstring statusStr;
       if (rule==InferenceRule::SKOLEMIZE) {
 	statusStr="status(esa),"+getNewSymbols("skolem",us);
+      }
+      else if(rule==InferenceRule::NEGATED_CONJECTURE) {
+	statusStr="status(cth)";
+      }
+      else {
+	statusStr="status(thm)";
       }
 
       inferenceStr="inference("+tptpRuleName(rule);
@@ -880,39 +893,12 @@ protected:
 
     SymbolId nameSymbol = SymbolId(SymbolType::PRED,nameLit->functor());
     vostringstream originStm;
-    originStm << "introduced(" << tptpRuleName(rule)
-	      << ",[" << getNewSymbols("naming",getSingletonIterator(nameSymbol))
-	      << "])";
+    originStm << "introduced(definition,["
+	      << getNewSymbols("naming",getSingletonIterator(nameSymbol))
+	      << "],[" << tptpRuleName(rule) << "])";
 
     out<<getFofString(defId, defStr, originStm.str(), rule)<<endl;
   }
-
-  void printSplittingComponentIntroduction(Unit* us)
-  {
-    CALL("InferenceStore::TPTPProofPrinter::printSplittingComponentIntroduction");
-    ASS(us->isClause());
-
-    Clause* cl=us->asClause();
-    ASS(cl->splits());
-    ASS_EQ(cl->splits()->size(),1);
-
-    InferenceRule rule=InferenceRule::AVATAR_COMPONENT;
-
-    vstring defId=tptpDefId(us);
-    vstring splitPred = splitsToString(cl->splits());
-    vstring defStr=getQuantifiedStr(cl)+" <=> ~"+splitPred;
-
-    out<<getFofString(tptpUnitId(us), getFormulaString(us),
-  "inference("+tptpRuleName(InferenceRule::CLAUSIFY)+",[],["+defId+"])", InferenceRule::CLAUSIFY)<<endl;
-
-    vstringstream originStm;
-    originStm << "introduced(" << tptpRuleName(rule)
-        << ",[" << getNewSymbols("naming",splitPred)
-        << "])";
-
-    out<<getFofString(defId, defStr, originStm.str(), rule)<<endl;
-  }
-
 };
 
 struct InferenceStore::ProofCheckPrinter

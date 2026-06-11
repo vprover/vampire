@@ -890,8 +890,6 @@ private:
   DHMap<vstring, unsigned> _typeConstructorArities;
 
   bool _filterReserved;
-  bool _seenConjecture;
-
 
 #if VDEBUG
   void printStates(vstring extra);

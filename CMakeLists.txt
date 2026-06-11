@@ -808,7 +808,7 @@ elseif(CMAKE_BUILD_TYPE STREQUAL Release)
   add_compile_definitions(VDEBUG=0)
 endif()
 
-if(CMAKE_BUILD_HOL STREQUAL On)
+if(CMAKE_BUILD_HOL STREQUAL ON)
   message(STATUS "Building with HOL support")
   add_compile_definitions(VHOL=1)
 else()
