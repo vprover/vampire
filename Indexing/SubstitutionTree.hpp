@@ -621,14 +621,6 @@ public:
     };
 
     template<class Query>
-    bool generalizationExists(Query query)
-    {
-      return _root == nullptr 
-        ? false
-        : FastGeneralizationsIterator(this, _root, query, /* retrieveSubstitutions */ false, /* reversed */ false).hasNext();
-    }
-
-    template<class Query>
     VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getVariants(Query query, bool retrieveSubstitutions)
     {
       auto renaming = retrieveSubstitutions ? std::make_unique<RenamingSubstitution>() : std::unique_ptr<RenamingSubstitution>(nullptr);

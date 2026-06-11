@@ -133,6 +133,8 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
     t->setHasLambda(hasLambda);
     t->setInterpretedConstantsPresence(hasInterpretedConstants);
 
+    ASS_REP(!env.higherOrder() || t->isApplication() || t->isLambdaTerm() || !t->numTermArguments(), "HO term " + t->toString() + " is not appified");
+
     //poly function works for mono as well, but is slow
     //it is fine to use for debug
     ASS_REP(_wellSortednessCheckingDisabled || SortHelper::areImmediateSortsValidPoly(t), t->toString());

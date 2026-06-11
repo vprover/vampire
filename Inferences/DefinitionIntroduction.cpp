@@ -14,6 +14,7 @@
 #include "DefinitionIntroduction.hpp"
 
 #include "Kernel/Clause.hpp"
+#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/InferenceStore.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -111,9 +112,10 @@ void DefinitionIntroduction<higherOrder>::introduceDefinitionFor(Term *t) {
   SortHelper::collectVariableSorts(t, domain_sorts);
 
   // reformat data
-  std::vector<TermList> domain_sort_vector;
-  std::vector<TermList> variables;
-  unsigned term_arity = 0, sort_arity = 0;
+  TermStack domain_sort_vector;
+  std::vector<TermList> variables; // contains type vars when in HOL, otherwise all vars
+  TermStack term_variables; // contains term vars when in HOL, needed by HOL::create::app
+  unsigned term_arity = 0, type_arity = 0;
 
   // OperatorType expects a canonically-renamed type
   Renaming sort_rename;
@@ -121,7 +123,7 @@ void DefinitionIntroduction<higherOrder>::introduceDefinitionFor(Term *t) {
   // first, sort variables
   for(auto [x, sort] : iterTraits(domain_sorts.items()))
     if(sort == AtomicSort::superSort()) {
-      sort_arity++;
+      type_arity++;
       variables.emplace_back(x, false);
       sort_rename.getOrBind(x);
     }
@@ -129,20 +131,38 @@ void DefinitionIntroduction<higherOrder>::introduceDefinitionFor(Term *t) {
   for(auto [x, sort] : iterTraits(domain_sorts.items()))
     if(sort != AtomicSort::superSort()) {
       term_arity++;
-      variables.emplace_back(x, false);
-      domain_sort_vector.push_back(sort_rename.apply(sort));
+      if constexpr (higherOrder) {
+        term_variables.emplace(x, false);
+      } else {
+        variables.emplace_back(x, false);
+      }
+      domain_sort_vector.push(sort_rename.apply(sort));
     }
 
   // create the equation
-  unsigned functor = env.signature->addFreshFunction(term_arity + sort_arity, "sF");
-  OperatorType *type = OperatorType::getFunctionType(
-    term_arity,
-    domain_sort_vector.data(),
-    sort_rename.apply(range_sort),
-    sort_arity
-  );
+  unsigned functor;
+  OperatorType* type;
+  if constexpr (higherOrder) {
+    functor = env.signature->addFreshFunction(type_arity, "sF");
+    auto sort = AtomicSort::arrowSort(domain_sort_vector, sort_rename.apply(range_sort), /*fromTop=*/true);
+    type = OperatorType::getConstantsType(sort, type_arity);
+  } else {
+    functor = env.signature->addFreshFunction(type_arity + term_arity, "sF");
+    type = OperatorType::getFunctionType(
+      term_arity,
+      domain_sort_vector.begin(),
+      sort_rename.apply(range_sort),
+      type_arity
+    );
+  }
   env.signature->getFunction(functor)->setType(type);
-  Term *def = Term::create(functor, sort_arity + term_arity, variables.data());
+  Term *def;
+  if constexpr (higherOrder) {
+    TermList head(Term::create(functor, type_arity, variables.data()));
+    def = HOL::create::app(head, term_variables, /*fromTop=*/false).term();
+  } else {
+    def = Term::create(functor, type_arity + term_arity, variables.data());
+  }
   Literal *eq = Literal::createEquality(true, TermList(def), TermList(t), range_sort);
 
   // record definition

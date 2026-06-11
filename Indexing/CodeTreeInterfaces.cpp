@@ -163,22 +163,6 @@ VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> CodeTreeTIS<higherOrder, D
   return vi( new ResultIterator(this, t, retrieveSubstitutions) );
 }
 
-template<bool higherOrder, class Data>
-bool CodeTreeTIS<higherOrder, Data>::generalizationExists(TermList t)
-{
-  if(_ct.isEmpty()) {
-    return false;
-  }
-
-  static typename TermCodeTree<higherOrder, Data>::TermMatcher tm;
-  
-  tm.init(&_ct, t);
-  bool res=tm.next();
-  tm.reset();
-  
-  return res;
-}
-
 template class CodeTreeTIS<false, TermLiteralClause>;
 template class CodeTreeTIS<true,  TermLiteralClause>;
 template class CodeTreeTIS<false, DemodulatorData>;
