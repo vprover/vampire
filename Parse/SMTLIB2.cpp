@@ -1193,16 +1193,6 @@ bool SMTLIB2::ParseResult::asFormula(Formula*& resFrm)
   return false;
 }
 
-Option<FormulaUnit*> SMTLIB2::ParseResult::toFormulaUnit()
-{
-  Formula* fla;
-  if (!asFormula(fla)) {
-    return {};
-  }
-  return some(new FormulaUnit(fla, FromInput(_isGoal ? UnitInputType::NEGATED_CONJECTURE : UnitInputType::ASSUMPTION)));
-}
-
-
 TermList SMTLIB2::ParseResult::asTerm(TermList& resTrm)
 {
   if (formula) {
@@ -2773,7 +2763,7 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body, bool isSort)
       case PO_MAKE_GOAL: {
         ASS_GE(_results.size(),1);
         ParseResult res =  _results.pop();
-        res.mkGoal();
+        res.isGoal = true;
         _results.push(res);
         continue;
       }
@@ -2815,11 +2805,14 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body, bool isSort)
 void SMTLIB2::readAssert(LExpr* body)
 {
   ParseResult res = parseTermOrFormula(body,false/*isSort*/);
-  if (auto unit = res.toFormulaUnit()) {
-    _formulas.pushBack(unit.unwrap());
-  } else {
+
+  Formula* fla;
+  if (!res.asFormula(fla)) {
     USER_ERROR_EXPR("Asserted expression of non-boolean sort "+body->toString());
   }
+
+  FormulaUnit* fu = new FormulaUnit(fla, FromInput(res.isGoal ? UnitInputType::NEGATED_CONJECTURE : UnitInputType::ASSUMPTION));
+  _formulas.pushBack(fu);
 }
 
 void SMTLIB2::readAssertClaim(LExpr* body)
