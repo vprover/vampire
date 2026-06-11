@@ -1813,10 +1813,16 @@ void SMTLIB2::parseAnnotatedTerm(LExpr* exp)
   auto toParse = lRdr.readExpr();
 
   if(lRdr.tryAcceptAtom(":named")){
-    _todo.push(make_pair(PO_LABEL,lRdr.readExpr()));
+    auto nameExp = lRdr.readExpr();
+    std::string name = nameExp->toString();
+    if (name.starts_with("conjecture")) {
+      _todo.push(make_pair(PO_MAKE_GOAL,nullptr));
+    }
+    _todo.push(make_pair(PO_LABEL,nameExp));
   } else if(env.options->parseGoalAnnotations() && lRdr.tryAcceptAtom(":goal")){
-    (void) lRdr.readExpr(); /* we ignore the goal name */
-    _todo.push(make_pair(PO_MAKE_GOAL,nullptr));
+    auto nameExp = lRdr.readExpr();
+    _todo.push(make_pair(PO_MAKE_GOAL, nullptr));
+    _todo.push(make_pair(PO_LABEL, nameExp));
   }
 
   _todo.push(make_pair(PO_PARSE,toParse));
