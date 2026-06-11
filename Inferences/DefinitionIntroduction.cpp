@@ -113,8 +113,8 @@ void DefinitionIntroduction<higherOrder>::introduceDefinitionFor(Term *t) {
 
   // reformat data
   TermStack domain_sort_vector;
-  std::vector<TermList> variables;
-  TermStack term_variables;
+  std::vector<TermList> variables; // contains type vars when in HOL, otherwise all vars
+  TermStack term_variables; // contains term vars when in HOL, needed by HOL::create::app
   unsigned term_arity = 0, type_arity = 0;
 
   // OperatorType expects a canonically-renamed type
