@@ -21,6 +21,7 @@
 
 namespace Inferences {
 
+template<bool higherOrder>
 class FOOLParamodulation : public GeneratingInferenceEngine {
   public:
     ClauseIterator generateClauses(Clause* premise) override;

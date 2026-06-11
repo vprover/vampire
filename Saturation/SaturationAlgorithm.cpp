@@ -1483,8 +1483,12 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.extensionalityResolution() != Options::ExtensionalityResolution::OFF) {
     gie->addFront(new ExtensionalityResolution(*res));
   }
-  if (opt.FOOLParamodulation()) {
-    gie->addFront(new FOOLParamodulation());
+  if (prb.hasFOOL() && opt.FOOLParamodulation()) {
+    if (prb.isHigherOrder()) {
+      gie->addFront(new FOOLParamodulation<true>());
+    } else {
+      gie->addFront(new FOOLParamodulation<false>());
+    }
   }
   // TODO(HOL): Cases only works with HO equalities, but for plain FOOL
   // problems then we have nothing enabled by default. Maybe FOOLParamodulation?

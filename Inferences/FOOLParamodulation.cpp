@@ -25,13 +25,13 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Signature.hpp"
-#include "Kernel/OperatorType.hpp"
 
 #include "FOOLParamodulation.hpp"
 
 namespace Inferences {
 
-ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
+template<bool higherOrder>
+ClauseIterator FOOLParamodulation<higherOrder>::generateClauses(Clause* premise) {
   /**
    * We are going to implement the following inference rule, taken from the paper:
    *
@@ -83,7 +83,7 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
     }
 
     // we shouldn't replace variables, hence NonVariableIterator (also NonType, to support polymorphism)
-    NonVariableNonTypeIterator nvi(literal);
+    std::conditional_t<higherOrder, BooleanSubtermIt, NonVariableNonTypeIterator> nvi(literal);
     while (nvi.hasNext()) {
       Term* subterm = nvi.next();
       unsigned functor = subterm->functor();
@@ -93,7 +93,7 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
         continue;
       }
 
-      TermList resultType = env.signature->getFunction(functor)->fnType()->result();
+      TermList resultType = SortHelper::getResultSort(subterm);
       if (resultType == AtomicSort::boolSort()) {
         booleanTerm = TermList(subterm);
         goto substitution;
@@ -125,5 +125,8 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
   return pvi(getSingletonIterator(Clause::fromStack(*resLits,
           GeneratingInference1(InferenceRule::FOOL_PARAMODULATION, premise))));
 }
+
+template class FOOLParamodulation<false>;
+template class FOOLParamodulation<true>;
 
 }
