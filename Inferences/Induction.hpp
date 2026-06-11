@@ -63,7 +63,7 @@ private:
 
 struct InductionContext {
   explicit InductionContext(Term* t)
-    : _indTerm(t) {}
+    : _indTerm(t), _cls({}) {}
   InductionContext(Term* t, Literal* l, Clause* cl)
     : InductionContext(t)
   {
