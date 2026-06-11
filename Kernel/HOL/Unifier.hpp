@@ -71,6 +71,12 @@ private:
   unsigned _freshVar;
 };
 
+/**
+ * Wrapper around an abstracting unifier that may contain HO unification constraints.
+ * It takes an abstracting unifier and tries to solves its constraints, or instantiates
+ * variables until a certain limit (this is set by the depth parameter, which is the
+ * number of variables instantiated on a given branch in the HOL unification tree).
+ */
 class AbstractingWrapper
   : public IteratorCore<AbstractingUnifier*>
 {

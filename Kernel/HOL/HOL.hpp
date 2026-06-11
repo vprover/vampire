@@ -73,8 +73,6 @@ void normaliseLambdaPrefixes(TermList& t1, TermList& t2);
 TermStack getFlexHeadSorts(TermList flexTerm, TermList rigidTermSort);
 
 enum class UnificationInference {
-  DEFINITION,
-  DECOMPOSITION,
   PROJECTION,
   IMITATION,
 };
