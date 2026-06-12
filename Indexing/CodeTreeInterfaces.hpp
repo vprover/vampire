@@ -50,8 +50,6 @@ public:
   }
 
   VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true) final ;
-  // TODO use TypedTermList here too
-  bool generalizationExists(TermList t) final ;
   // TODO: get rid of NOT_IMPLEMENTED
   VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(TypedTermList t, Options::UnificationWithAbstraction, bool fixedPointIteration) override { NOT_IMPLEMENTED; }
   VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwaHOL(TypedTermList t, Options::UnificationWithAbstraction, bool fixedPointIteration, unsigned hoUnifDepth) override { NOT_IMPLEMENTED; }

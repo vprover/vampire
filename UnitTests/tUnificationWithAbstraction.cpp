@@ -88,7 +88,7 @@ using LiteralUnificationResultSpec = UnificationResultSpec<Literal*>;
 void checkLiteralMatches(LiteralSubstitutionTree<LiteralClause>& index, Options::UnificationWithAbstraction uwa, bool fixedPointIteration, Literal* lit, Stack<LiteralUnificationResultSpec> expected)
 {
   Stack<LiteralUnificationResultSpec> is;
-  for (auto qr : iterTraits(index.getUwa(lit, /* complementary */ false, uwa, fixedPointIteration, nullptr)) ) {
+  for (auto qr : iterTraits(index.getUwa(lit, /* complementary */ false, uwa, fixedPointIteration)) ) {
 
     is.push(LiteralUnificationResultSpec {
         .querySigma = qr.unifier->subs().apply(lit, /* result */ subsTreeQueryBank(0)),

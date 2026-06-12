@@ -1685,14 +1685,15 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   if (opt.forwardSubsumption()) {
-    if (opt.codeTreeSubsumption()) {
-      if (prb.isHigherOrder()) {
-        res->addForwardSimplifierToFront<CodeTreeForwardSubsumptionAndResolution<true>>();
-      } else {
-        res->addForwardSimplifierToFront<CodeTreeForwardSubsumptionAndResolution<false>>();
-      }
+    if (prb.isHigherOrder()) {
+      // Only use the code trees for HOL, as the other is not yet adapted
+      res->addForwardSimplifierToFront<CodeTreeForwardSubsumptionAndResolution<true>>();
     } else {
-      res->addForwardSimplifierToFront<ForwardSubsumptionAndResolution>();
+      if (opt.codeTreeSubsumption()) {
+        res->addForwardSimplifierToFront<CodeTreeForwardSubsumptionAndResolution<false>>();
+      } else {
+        res->addForwardSimplifierToFront<ForwardSubsumptionAndResolution>();
+      }
     }
   }
   else if (opt.forwardSubsumptionResolution()) {
@@ -1730,7 +1731,11 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   bool backSubsumption = opt.backwardSubsumption() != Options::Subsumption::OFF;
   bool backSR = opt.backwardSubsumptionResolution() != Options::Subsumption::OFF;
   if (backSubsumption || backSR) {
-    res->addBackwardSimplifierToFront<BackwardSubsumptionAndResolution>();
+    if (prb.isHigherOrder()) {
+      res->addBackwardSimplifierToFront<BackwardSubsumptionAndResolution<true>>();
+    } else {
+      res->addBackwardSimplifierToFront<BackwardSubsumptionAndResolution<false>>();
+    }
   }
 
   if (opt.mode() == Options::Mode::CONSEQUENCE_ELIMINATION) {

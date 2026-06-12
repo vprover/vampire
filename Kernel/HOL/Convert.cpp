@@ -175,16 +175,5 @@ TermList HOL::convert::toNameless(TermList term) {
 
 TermList HOL::convert::toNameless(Formula* formula)
 {
-  // remove leading universal type quantifiers
-  if (formula->connective() == FORALL) {
-    auto vars = formula->vars();
-    while (vars && vars->head().second == AtomicSort::superSort()) {
-      vars = vars->tail();
-    }
-    if (vars != formula->vars()) {
-      auto f = formula->qarg();
-      formula = vars ? new QuantifiedFormula(FORALL, vars, f) : f;
-    }
-  }
-  return formulaToNameless(formula, {});
+  return formulaToNameless(Formula::removeUniversalTypePrenex(formula), {});
 }

@@ -353,7 +353,7 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t)
     localBD.drop();
   }
 
-  DEBUG_UNIFY(0, *this)
+  DEBUG_UNIFY(0, *this, " (", mismatch ? "fail" : "success", ")");
   return !mismatch;
 }
 

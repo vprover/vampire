@@ -87,6 +87,7 @@ public:
   static Formula* fromClause(Clause* cl,bool closed = true);
 
   static Formula* quantify(Formula* f);
+  static Formula* removeUniversalTypePrenex(Formula* f);
 
   static Formula* trueFormula();
   static Formula* falseFormula();

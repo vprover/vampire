@@ -38,7 +38,8 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-BackwardSubsumptionAndResolution::BackwardSubsumptionAndResolution(SaturationAlgorithm& salg)
+template<bool higherOrder>
+BackwardSubsumptionAndResolution<higherOrder>::BackwardSubsumptionAndResolution(SaturationAlgorithm& salg)
   : _subsumption(salg.getOptions().backwardSubsumption() != Options::Subsumption::OFF),
     _subsumptionResolution(salg.getOptions().backwardSubsumptionResolution() != Options::Subsumption::OFF),
     _subsumptionByUnitsOnly(salg.getOptions().backwardSubsumption() == Options::Subsumption::UNIT_ONLY),
@@ -48,7 +49,8 @@ BackwardSubsumptionAndResolution::BackwardSubsumptionAndResolution(SaturationAlg
   ASS(_subsumption || _subsumptionResolution);
 }
 
-void BackwardSubsumptionAndResolution::perform(Clause *cl,
+template<bool higherOrder>
+void BackwardSubsumptionAndResolution<higherOrder>::perform(Clause *cl,
                                                BwSimplificationRecordIterator &simplifications)
 {
   ASSERT_VALID(*cl)
@@ -76,7 +78,7 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
       /***************************************************/
       /*            SUBSUMPTION UNIT CLAUSE              */
       /***************************************************/
-      auto it = _bwIndex->getInstances(lit, false, false);
+      auto it = _bwIndex->getInstances<higherOrder>(lit, false, false);
       while (it.hasNext()) {
         Clause *icl = it.next().data->clause;
         if (!_checked.insert(icl->number()))
@@ -89,7 +91,7 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
       /***************************************************/
       /*      SUBSUMPTION RESOLUTION UNIT CLAUSE         */
       /***************************************************/
-      auto it = _bwIndex->getInstances(lit, true, false);
+      auto it = _bwIndex->getInstances<higherOrder>(lit, true, false);
       while (it.hasNext()) {
         auto res = it.next();
         Clause *icl = res.data->clause;
@@ -135,7 +137,7 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
 
   if (!_subsumptionByUnitsOnly) {
     // find the positively matched literals
-    auto it = _bwIndex->getInstances(lit, false, false);
+    auto it = _bwIndex->getInstances<higherOrder>(lit, false, false);
     while (it.hasNext()) {
       Clause *icl = it.next().data->clause;
       if (!_checked.insert(icl->number()))
@@ -167,7 +169,7 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
     // find the negatively matched literals
     // We can use the same least matchable literal as before since our method is agnostic to the
     // flipped literal
-    auto it = _bwIndex->getInstances(lit, true, false);
+    auto it = _bwIndex->getInstances<higherOrder>(lit, true, false);
     while (it.hasNext()) {
       Clause *icl = it.next().data->clause;
       if (!_checked.insert(icl->number()))
@@ -184,5 +186,8 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
     simplifications = pvi(List<BwSimplificationRecord>::Iterator(simplificationBuffer));
   }
 }
+
+template class BackwardSubsumptionAndResolution<false>;
+template class BackwardSubsumptionAndResolution<true>;
 
 } // namespace Inferences
