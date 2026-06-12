@@ -20,6 +20,7 @@
 
 #include "Lib/PairUtils.hpp"
 
+#include "Kernel/HOL/Unifier.hpp"
 #include "Kernel/UnificationWithAbstraction.hpp"
 #include "Kernel/TypedTermList.hpp"
 

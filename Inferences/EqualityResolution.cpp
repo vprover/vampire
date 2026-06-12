@@ -20,6 +20,7 @@
 #include "Shell/Options.hpp"
 
 #include "Kernel/Clause.hpp"
+#include "Kernel/HOL/Unifier.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/Ordering.hpp"
@@ -95,7 +96,7 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
 
       auto [lhs, rhs] = lit->eqArgs();
 
-      // We only care about non-trivial constraints where the top-sybmol of the two literals are the same
+      // We only care about non-trivial constraints where the top-symbol of the two literals are the same
       // and therefore a constraint can be created between arguments
       if(lhs.isTerm() && rhs.isTerm() &&
         lhs.term()->functor() != rhs.term()->functor() && _salg.getOptions().unificationWithAbstraction() != Shell::Options::UnificationWithAbstraction::HOL){

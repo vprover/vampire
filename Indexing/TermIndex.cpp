@@ -35,10 +35,12 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Inferences;
 
-SuperpositionSubtermIndex::SuperpositionSubtermIndex(SaturationAlgorithm& salg)
-: TermIndex(new TermSubstitutionTree<TermLiteralClause>), _ord(salg.getOrdering()), _higherOrder(env.higherOrder()) {}
+template<bool higherOrder>
+SuperpositionSubtermIndex<higherOrder>::SuperpositionSubtermIndex(SaturationAlgorithm& salg)
+: TermIndex(new TermSubstitutionTree<TermLiteralClause>), _ord(salg.getOrdering()) {}
 
-void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
+template<bool higherOrder>
+void SuperpositionSubtermIndex<higherOrder>::handleClause(Clause* c, bool adding)
 {
   TIME_TRACE("backward superposition index maintenance");
   if (c->inference().rule() == InferenceRule::HOL_UNIFIER_SOLUTION) {
@@ -46,11 +48,14 @@ void SuperpositionSubtermIndex::handleClause(Clause* c, bool adding)
   }
 
   for (const auto& lit : c->getSelectedLiteralIterator()) {
-    for (const auto& tt : iterTraits(EqHelper::getSubtermIterator(lit, _ord, _higherOrder))) {
+    for (const auto& tt : iterTraits(EqHelper::getSubtermIterator<higherOrder>(lit, _ord))) {
       _is->handle(TermLiteralClause{ tt, lit, c }, adding);
     }
   }
 }
+
+template class SuperpositionSubtermIndex<false>;
+template class SuperpositionSubtermIndex<true>;
 
 SuperpositionLHSIndex::SuperpositionLHSIndex(SaturationAlgorithm& salg)
 : TermIndex(new TermSubstitutionTree<TermLiteralClause>), _ord(salg.getOrdering()), _opt(salg.getOptions()) {}

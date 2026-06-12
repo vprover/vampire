@@ -14,7 +14,7 @@
 
 using namespace Test;
 
-#define MY_GEN_RULE   Superposition
+#define MY_GEN_RULE   Superposition<false>
 #define MY_GEN_TESTER Generation::GenerationTester
 
 /**
@@ -33,11 +33,10 @@ using namespace Test;
   DECL_CONST(b, s)                                                                                            \
   DECL_PRED (p, {s})                                                                                          \
   DECL_PRED (q, {s})                                                                                          \
-  DECL_CONST(g1, arrow({s, s}, s))                                                                            \
-  DECL_CONST(g2, arrow({s, s}, s))                                                                            \
-  DECL_CONST(h, arrow({s, s, s}, s))                                                                          \
+  DECL_CONST(f_, arrow({s, s}, s))                                                                            \
+  DECL_CONST(g_, arrow(arrow(s, s), s))                                                                       \
   DECL_DE_BRUIJN_INDEX(db0, 0, s)                                                                             \
-  DECL_DE_BRUIJN_INDEX(db1, 1, s)
+  DECL_DE_BRUIJN_INDEX(db1_, 1, arrow(s,s))
 
 // no superposition with negative equations
 TEST_GENERATION(test_01,
@@ -264,37 +263,56 @@ TEST_GENERATION(test_20,
       .expected(exactly(clause({ f(x,y) != left(left(x)) })))
     )
 
-// TODO fix this
-// // superposition not performed inside lambdas
-// TEST_GENERATION(test_21,
-//     Generation::SymmetricTest()
-//       .inputs({
-//         clause({ selected(ap(h, {a, x}) != lam(s, ap(h, {db0, y, z}))) }),
-//         clause({ selected(ap(h, {x, y}) == ap(g1, x)) }),
-//       })
-//       .selfApplications(false)
-//       .options({
-//         { "unification_with_abstraction", "hol" },
-//         { "unification_with_abstraction_fixed_point_iteration", "on" },
-//       })
-//       .expected(exactly(
-//         clause({ ap(g1,a) != lam(s, ap(h, {db0, y, z})) })
-//       ))
-//     )
+// HOL tests
 
-// // superposition performed with lambda LHS
-// TEST_GENERATION(test_22,
-//     Generation::SymmetricTest()
-//       .inputs({
-//         clause({ selected(lam(s, ap(g1,db0)) == g1) }),
-//         clause({ selected(g1 != g2) }),
-//       })
-//       .selfApplications(false)
-//       .options({
-//         { "unification_with_abstraction", "hol" },
-//         { "unification_with_abstraction_fixed_point_iteration", "on" },
-//       })
-//       .expected(exactly(
-//         clause({ g1 != g1, lam(s, ap(g1,db0)) != g2 })
-//       ))
-//     )
+#undef  MY_GEN_RULE
+#define MY_GEN_RULE Superposition<true>
+
+// superposition with HO-unification and constraints
+TEST_GENERATION(test_21,
+    Generation::SymmetricTest()
+      .inputs({
+        clause({ selected(ap(f_, x) == lam(s, a)), x != b }),
+        clause({ selected(ap(g_, lam(s, ap(f_, {y, db0}))) != a) }),
+      })
+      .selfApplications(false)
+      .expected(exactly(clause({ ap(g_, lam(s, a)) != a, y != b, lam(s, x.sort(s)) != lam(s, y.sort(s)) })))
+    )
+
+TEST_GENERATION(test_22,
+    Generation::SymmetricTest()
+      .inputs({
+        clause({ selected(ap(f_, ap(ap(x.sort(arrow({arrow(s, s), s}, s)), lam(s, db0)), a)) == lam(s, a)), x != lam(arrow(s, s), ap(f_(), b)) }),
+        clause({ selected(ap(f_, a) != lam(s, b)) }),
+      })
+      .options({ { "hol_unif_depth", "0" } })
+      .selfApplications(false)
+      .expected(exactly(
+        clause({ lam(s, a) != lam(s, b), x != lam(arrow(s, s), ap(f_(), b)), ap(ap(x.sort(arrow({arrow(s, s), s}, s)), lam(s, db0)), a) != a })
+      ))
+    )
+
+TEST_GENERATION(test_23,
+    Generation::SymmetricTest()
+      .inputs({
+        clause({ selected(ap(f_, ap(ap(x.sort(arrow({arrow(s, s), s}, s)), lam(s, db0)), a)) == lam(s, a)), x != lam(arrow(s, s), ap(f_(), b)) }),
+        clause({ selected(ap(f_, a) != lam(s, b)) }),
+      })
+      .options({ { "hol_unif_depth", "1" } })
+      .selfApplications(false)
+      .expected(exactly(
+        clause({
+          lam(s, a) != lam(s, b),
+          lam(arrow(s,s), lam(s, ap(db1_, ap(ap(x.sort(arrow({arrow(s, s), s}, s)), db1_), db0)))) != lam(arrow(s, s), ap(f_(), b)),
+          ap(ap(x.sort(arrow({arrow(s, s), s}, s)), lam(s, db0)), a) != a
+        }),
+        clause({
+          lam(s, a) != lam(s, b),
+          lam(arrow(s,s), lam(s, db0)) != lam(arrow(s, s), ap(f_(), b))
+        }),
+        clause({
+          lam(s, a) != lam(s, b),
+          lam(arrow(s,s), lam(s, a)) != lam(arrow(s, s), ap(f_(), b))
+        })
+      ))
+    )

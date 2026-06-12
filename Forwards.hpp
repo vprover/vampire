@@ -141,7 +141,7 @@ enum class SymbolType{FUNC, PRED, TYPE_CON};
 
 namespace HOL
 {
-class Unifier;
+struct Unifier;
 }
 
 namespace Indexing

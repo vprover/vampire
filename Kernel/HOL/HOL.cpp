@@ -14,7 +14,6 @@
 #include "HOL.hpp"
 
 #include "SubtermReplacer.hpp"
-#include "ToPlaceholders.hpp"
 #include "TermShifter.hpp"
 #include "Kernel/Formula.hpp"
 

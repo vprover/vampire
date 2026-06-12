@@ -28,6 +28,7 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+template<bool higherOrder>
 class Superposition
 : public GeneratingInferenceEngine
 {
@@ -42,11 +43,9 @@ private:
     AbstractingUnifier* unifier, bool eqIsResult);
 
   bool checkClauseColorCompatibility(Clause* eqClause, Clause* rwClause);
-  static bool checkSuperpositionFromVariable(Clause* eqClause, Literal* eqLit, TermList eqLHS);
 
-  const bool _higherOrder;
   SaturationAlgorithm& _salg;
-  std::shared_ptr<SuperpositionSubtermIndex> _subtermIndex;
+  std::shared_ptr<SuperpositionSubtermIndex<higherOrder>> _subtermIndex;
   std::shared_ptr<SuperpositionLHSIndex> _lhsIndex;
   HOLUnificationHandler* _holHandler;
 };

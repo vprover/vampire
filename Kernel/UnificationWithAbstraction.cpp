@@ -22,7 +22,6 @@
 #include "Shell/Options.hpp"
 
 #include "Forwards.hpp"
-#include "HOL/Unifier.hpp"
 #include "NumTraits.hpp"
 #include "RobSubstitution.hpp"
 #include "Signature.hpp"
@@ -236,7 +235,7 @@ bool AbstractionOracle::canAbstract(AbstractingUnifier* au, TermSpec const& t1, 
   ASSERTION_VIOLATION;
 }
 
-Option<TermSpec> appHead2(AbstractingUnifier* au, TermSpec t)
+Option<TermSpec> appHead(AbstractingUnifier* au, TermSpec t)
 {
   // contains the @ arguments, innermost on top
   Stack<TermSpec> args;
@@ -259,8 +258,7 @@ Option<TermSpec> appHead2(AbstractingUnifier* au, TermSpec t)
   return some(t);
 }
 
-Option<AbstractionOracle::AbstractionResult> hol2(
-  AbstractingUnifier* au, TermSpec const& t1, TermSpec const& t2)
+Option<AbstractionOracle::AbstractionResult> hol(AbstractingUnifier* au, TermSpec const& t1, TermSpec const& t2)
 {
   DEBUG_UNIFY(0, "hol uwa unifying ", t1, " =?= ", t2, " w.r.t. ", *au);
 
@@ -275,10 +273,11 @@ Option<AbstractionOracle::AbstractionResult> hol2(
     return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, sort))));
   }
 
-  auto h1 = appHead2(au, t1);
-  auto h2 = appHead2(au, t2);
+  auto h1 = appHead(au, t1);
+  auto h2 = appHead(au, t2);
   if (h1.isNone() || h2.isNone()) {
-    return Option<AbstractionOracle::AbstractionResult>();
+    auto sort = t1.isVar() ? t2.sort() : t1.sort();
+    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, sort))));
   }
   DEBUG_UNIFY(0, "app heads ", h1, ", ", h2);
 
@@ -338,115 +337,6 @@ Option<AbstractionOracle::AbstractionResult> funcExt(
     }
   }
   return Option<AbstractionOracle::AbstractionResult>();
-}
-
-TermSpec appHead(AbstractingUnifier* au, TermSpec t)
-{
-  // contains the @ arguments, innermost on top
-  Stack<TermSpec> args;
-  // contains the substituted arguments inside lambdas, the innermost on top
-  Stack<TermSpec> subst;
-  ASS_EQ(t, au->subs().derefBound(t));
-  for (;;) {
-    t = au->subs().derefBound(t);
-    // if term is lambda, substitute one arg and recurse
-    if (t.term.isLambdaTerm()) {
-      if (args.isNonEmpty()) {
-        auto arg = args.pop();
-        ASS(arg.isVar() || arg.sort().deepEqCheck(t.typeArg(0)));
-        subst.push(arg);
-      }
-      t = t.termArg(0);
-      continue;
-    }
-    // if term is application, save the arg and recurse
-    if (t.term.isApplication()) {
-      args.push(t.termArg(1));
-      t = t.termArg(0);
-      continue;
-    }
-    // if term is ith De Bruijn index, take ith arg and recurse
-    auto dbi = t.term.deBruijnIndex();
-    if (dbi.isSome() && *dbi < subst.size()) {
-      t = subst[subst.size() - *dbi - 1];
-      continue;
-    }
-    break;
-  }
-  return t;
-}
-
-Option<AbstractionOracle::AbstractionResult> hol(
-  AbstractingUnifier* au, TermSpec const& t1, TermSpec const& t2)
-{
-  DEBUG_UNIFY(0, "hol uwa unifying ", t1, " =?= ", t2);
-  // if one of them is a sort, don't abstract
-  if ((t1.term.isTerm() && t1.isSort()) || (t2.term.isTerm() && t2.isSort())) {
-    return Option<AbstractionOracle::AbstractionResult>();
-  }
-
-  auto hasUnboundSpecialVar = [](const RobSubstitution& subs, TermSpec t) {
-    return BottomUpEvaluation<AutoDerefTermSpec, bool>()
-      .function([](auto const& orig, bool* args) -> bool {
-        if (orig.term.isVar()) {
-          return orig.term.varSpec().special();
-        }
-        for (unsigned i = 0; i < orig.term.nAllArgs(); i++) {
-          if (args[i]) {
-            return true;
-          }
-        }
-        return false;
-      })
-      .evNonRec([](auto& t) { return someIf(t.term.definitelyGround(), []() { return false; }); })
-      .context(AutoDerefTermSpec::Context { .subs = &subs, })
-      .apply(AutoDerefTermSpec(t, &subs));
-  };
-
-  if (hasUnboundSpecialVar(au->subs(), t1) || hasUnboundSpecialVar(au->subs(), t2)) {
-    return Option<AbstractionOracle::AbstractionResult>();
-  }
-
-  auto h1 = appHead(au, t1);
-  auto h2 = appHead(au, t2);
-  DEBUG_UNIFY(0, "app heads ", h1, ", ", h2);
-
-  // we abstract flex-rigid and flex-flex pairs
-  if (h1.isVar() || h2.isVar()) {
-    auto sort = t1.isVar() ? t2.sort() : t1.sort();
-    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, sort))));
-  }
-
-  // TODO handle DB indices too
-  if (!h1.term.deBruijnIndex() && !h2.term.deBruijnIndex() && h1.term.term()->functor() != h2.term.term()->functor()) {
-    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
-  }
-
-  DHMap<VarSpec, unsigned int> varMap;
-  auto t1s = HOL::Unifier::applyTermSpec(t1, au->subs(), varMap);
-  auto t2s = HOL::Unifier::applyTermSpec(t2, au->subs(), varMap);
-
-  auto sort1 = SortHelper::getResultSort(t1s.term());
-  auto sort2 = SortHelper::getResultSort(t2s.term());
-  if (sort1 != sort2) {
-    // TODO handle this earlier
-    DEBUG_UNIFY(0, "sorts not identical ", sort1, " != ", sort2);
-    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
-  }
-
-  DEBUG_UNIFY(0, "hol uwa unifying applied ", t1s, " =?= ", t2s);
-
-  if (t1s.head().isVar() || t2s.head().isVar()) {
-    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf()
-      .constr(UnificationConstraint(TermSpec(t1s, GLUE_INDEX), TermSpec(t2s, GLUE_INDEX), TermSpec(sort1, GLUE_INDEX)))));
-  }
-
-  unsigned unused = 0;
-  HOL::Unifier::Node unifier(Literal::createEquality(true, t1s, t2s, sort1), nullptr, unused);
-  if (!unifier.simplify()) {
-    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
-  }
-  return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().unify(unifier.toUnif())));
 }
 
 TermSpec norm(TermSpec outer, AbstractingUnifier& au) {
@@ -1362,8 +1252,7 @@ Option<AbstractionOracle::AbstractionResult> AbstractionOracle::tryAbstract(Abst
       return funcExt(au, t1, t2);
     }
     case Shell::Options::UnificationWithAbstraction::HOL: {
-      // return hol(au, t1, t2);
-      return hol2(au, t1, t2);
+      return hol(au, t1, t2);
     }
     case Shell::Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR: {
       return uwa_floor(*au, t1, t2, _mode);
@@ -1572,9 +1461,7 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
         //     pair.second.isVar() && isUnbound(std::pair.second.varSpec())) {
         //   todo.push(std::pair);
         // } else
-        // TODO could we use just insert here?
-        if (!encountered->find(pair)) {
-          encountered->insert(pair);
+        if (encountered->insert(pair)) {
           todo.stack(s).push(std::move(pair));
         }
     };

@@ -1472,7 +1472,11 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
     gie->addFront(new EqualityResolution(*res));
     if(opt.superposition() && !alascaTakesOver){ // in alasca we have a special superposition rule
-      gie->addFront(new Superposition(*res));
+      if (prb.isHigherOrder()) {
+        gie->addFront(new Superposition<true>(*res));
+      } else {
+        gie->addFront(new Superposition<false>(*res));
+      }
     }
   }
   else if (opt.unificationWithAbstraction() != Options::UnificationWithAbstraction::OFF) {
@@ -1488,7 +1492,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     if(prb.hasFOOL() && opt.booleanEqTrick()){
       gie->addFront(new BoolEqToDiseq(*res));
     }
-    if(!opt.holUnifier()/* !opt.higherOrderUnifDepth() && !opt.applicativeUnify() */){
+    if(!opt.higherOrderUnifDepth() && !opt.holUnifier()){
       // TODO(HOL): only add when we are not carrying out higher-order unification
       // gie->addFront(new ImitateProject(*res));
     }

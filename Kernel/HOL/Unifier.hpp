@@ -26,16 +26,15 @@ using namespace Shell;
 
 namespace HOL {
 
-class Unifier {
-public:
-  Unifier(Literal* lit, Literal* def, unsigned nextVar);
-
-  // does one iteration, returns true if finished
-  bool iterate(LiteralStack& solution);
-  bool simplify(LiteralStack& solution);
-
-  static TermList applyTermSpec(TermSpec t, RobSubstitution& subs, DHMap<VarSpec, unsigned>& varMap);
-
+/**
+ * This class represents a HO unification "state", with some to-be-handled unification constraints,
+ * and a partial unifier. The unifier is extended such that it stays idempotent, the caller has to
+ * ensure this by calling the constructor with a `nextVar` argument that represents a fresh variable
+ * among the constraints, and the substitution. Mostly following the transitions from "Efficient
+ * Full Higher-order Unification" from Vukmirovic et al.
+ */
+struct UnificationNode
+{
   struct Constraint
   {
     TermList _lhs;
@@ -54,73 +53,49 @@ public:
     void normalize(const Substitution& subs);
   };
 
-  struct Node
-  {
-    Node(Literal* lit, Literal* def, unsigned nextVar);
-    Node(const Node& parent, HOL::UnificationInference inf, unsigned var, TermList binding);
-    Node(const Node& parent, HOL::UnificationInference inf, Stack<Constraint> cons);
+  UnificationNode(Stack<Constraint> cons, unsigned nextVar);
 
-    std::pair<Stack<Node*>,LiteralStack> solve();
-    bool simplify();
-    Recycled<Stack<UnificationConstraint>> toUnif() const;
-
-    const Node* _parent = nullptr;
-    HOL::UnificationInference _inf;
-    Literal* _def;
-    Literal* _orig;
-    Stack<Constraint> _cons;
-    Substitution _subs;
-    unsigned _freshVar;
-  private:
-    Stack<Constraint> decompose(unsigned index, bool includeRest) const;
-
-    LiteralStack solution() const;
-    bool checkSolution(const LiteralStack& ffPairs) const;
-  };
-
-  friend std::ostream& operator<<(std::ostream& out, const Constraint& con);
-  friend std::ostream& operator<<(std::ostream& out, const Node& node);
-  friend std::ostream& operator<<(std::ostream& out, const Unifier& unif);
-
-private:
-  Literal* _lit;
-  Stack<Node*> _todo;
-};
-
-struct WrapperConstraint
-{
-  TermList _lhs;
-  TermList _rhs;
-  TermList _sort;
-  TermList _lhead;
-  TermList _rhead;
-
-  WrapperConstraint(TermList lhs, TermList rhs, TermList sort);
-
-  inline bool flexFlex() const { return _lhead.isVar() && _rhead.isVar(); }
-  inline bool rigidRigid() const { return _lhead.isTerm() && _rhead.isTerm(); }
-  inline bool flexRigid() const { return !flexFlex() && !rigidRigid(); }
-
-  bool derefHead(TermList& head, TermList& side, const Substitution& subs);
-  void normalize(const Substitution& subs);
-};
-
-struct WrapperNode
-{
-  WrapperNode(Stack<WrapperConstraint> cons, unsigned nextVar);
-  WrapperNode(const WrapperNode& parent, unsigned var, TermList binding);
-  WrapperNode(const WrapperNode& parent, Stack<WrapperConstraint> cons);
-
-  Option<Stack<WrapperNode*>> solve();
+  /** This function should be called when extending the current unifier is allowed,
+   * i.e. when we haven't reached the maximum allowed unification depth yet. */
+  Option<Stack<UnificationNode*>> solve();
+  /** This function should be called when we want to simplify the constraints
+   * as much as possible, possibly before returning an abstraction. */
   bool simplify();
+  LiteralStack solution() const;
 
-  Stack<WrapperConstraint> _cons;
+  const UnificationNode* _parent = nullptr;
+  HOL::UnificationInference _inf;
+  Stack<Constraint> _cons;
   Substitution _subs;
-  unsigned _freshVar;
 private:
-  Stack<WrapperConstraint> decompose(unsigned index, bool includeRest) const;
+  UnificationNode(const UnificationNode& parent, HOL::UnificationInference inf, unsigned var, TermList binding);
+  UnificationNode(const UnificationNode& parent, HOL::UnificationInference inf, Stack<Constraint> cons);
+  Stack<Constraint> decompose(unsigned index, bool includeRest) const;
+
+  unsigned _freshVar;
 };
 
+struct Unifier {
+  Unifier(Literal* lit, Literal* def, unsigned nextVar);
+
+  // does one iteration, returns true if finished
+  bool iterate(LiteralStack& solution);
+
+  Literal* _lit;
+  Literal* _def;
+private:
+  LiteralStack extractSolution(const UnificationNode* node) const;
+  bool checkSolution(const UnificationNode* node, const LiteralStack& ffPairs) const;
+
+  Stack<UnificationNode*> _todo;
+};
+
+/**
+ * Wrapper around an abstracting unifier that may contain HO unification constraints.
+ * It takes an abstracting unifier and tries to solves its constraints, or instantiates
+ * variables until a certain limit (this is set by the depth parameter, which is the
+ * number of variables instantiated on a given branch in the HOL unification tree).
+ */
 class AbstractingWrapper
   : public IteratorCore<AbstractingUnifier*>
 {
@@ -139,8 +114,8 @@ private:
   AbstractingUnifier* _unifier;
   const unsigned _hoUnifDepth;
   BacktrackData _localBD;
-  Stack<std::pair<WrapperNode*, unsigned>> _todo;
-  WrapperNode* _next = nullptr;
+  Stack<std::pair<UnificationNode*, unsigned>> _todo;
+  UnificationNode* _next = nullptr;
 };
 
 }
