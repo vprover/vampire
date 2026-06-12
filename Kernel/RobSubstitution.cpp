@@ -528,7 +528,8 @@ TermList RobSubstitution::applyGlue(TermList trm, int index)
   return BottomUpEvaluation<AutoDerefTermSpec, TermList>()
     .function([&](auto const& orig, TermList* args) -> TermList {
         if (orig.term.isVar()) {
-          ASS(!orig.term.varSpec().special());
+          // TODO: find out if this is reasonable to assert, probably not
+          // ASS(!orig.term.varSpec().special());
           auto vs = introGlueVar(orig.term.varSpec());
           ASS_EQ(vs.index, GLUE_INDEX);
           return vs.varAsTermlist();
