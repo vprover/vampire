@@ -14,25 +14,25 @@
  */
 
 #include "Lib/Output.hpp"
+#include "Debug/Assertion.hpp"
 #include "Lib/Backtrackable.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Recycled.hpp"
-#include "Lib/Environment.hpp"
-
 #include "Shell/Options.hpp"
+#include "Lib/Environment.hpp"
+#include "Kernel/SortHelper.hpp"
+#include "Debug/TimeProfiling.hpp"
+
 
 #include "Forwards.hpp"
-#include "NumTraits.hpp"
-#include "RobSubstitution.hpp"
 #include "Signature.hpp"
-#include "SortHelper.hpp"
 #include "Term.hpp"
+#include "RobSubstitution.hpp"
+#include "Kernel/NumTraits.hpp"
 
 #include "UnificationWithAbstraction.hpp"
-
-
-#include "Debug/Assertion.hpp"
-#include "Debug/TimeProfiling.hpp"
+#include "Kernel/SortHelper.hpp"
+#include "NumTraits.hpp"
 #include "Debug/Tracer.hpp"
 #define DEBUG_FINALIZE(LVL, ...) if (LVL < 0) DBG(__VA_ARGS__)
 #define DEBUG_UNIFY(LVL, ...) if (LVL < 0) DBG(__VA_ARGS__)
@@ -1244,8 +1244,6 @@ AbstractionOracle::AbstractionResult uwa_floor(AbstractingUnifier& au, TermSpec 
 Option<AbstractionOracle::AbstractionResult> AbstractionOracle::tryAbstract(AbstractingUnifier* au, TermSpec const& t1, TermSpec const& t2) const
 {
   ASS_NEQ(_mode, Shell::Options::UnificationWithAbstraction::OFF);
-  ASS(t1.isVar() || !t1.isSort());
-  ASS(t2.isVar() || !t2.isSort());
 
   switch (_mode) {
     case Shell::Options::UnificationWithAbstraction::FUNC_EXT: {
@@ -1396,27 +1394,6 @@ bool AbstractingUnifier::unifyOnce(TermList term1, int bank1, TermList term2, in
   return unify(TermSpec(term1, bank1), TermSpec(term2, bank2), progress);
 }
 
-enum SortOrTerm {
-  SORT,
-  TERM,
-};
-struct TodoStack {
-  Recycled<Stack<std::pair<TermSpec, TermSpec>>> sorts;
-  Recycled<Stack<std::pair<TermSpec, TermSpec>>> terms;
-  auto stack(SortOrTerm s) -> decltype(auto) {
-     switch(s) {
-       case SORT: return *sorts;
-       case TERM: return *terms;
-     }
-  }
-
-  bool isNonEmpty() const { return sorts->isNonEmpty() || terms->isNonEmpty(); }
-  auto pop() { return sorts->isNonEmpty() ? std::make_pair(sorts->pop(), SORT) : std::make_pair(terms->pop(), TERM); }
-  friend std::ostream& operator<<(std::ostream& out, TodoStack const& self)
-  { return out << self.sorts << "; " << self.terms; }
-};
-
-
 bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
 {
   TIME_TRACE("unification with abstraction")
@@ -1431,9 +1408,8 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
 
   auto impl = [&]() -> bool {
 
-
-    // Recycled<Stack<std::pair<TermSpec, TermSpec>>> toDo;
-    TodoStack todo;
+    Recycled<Stack<std::pair<TermSpec, TermSpec>>> toDo;
+    toDo->push(std::make_pair(t1, t2));
 
     // Save encountered unification pairs to avoid
     // recomputing their unification
@@ -1450,7 +1426,7 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
       return absRes.isSome();
     };
 
-    auto pushTodo = [&](auto pair, SortOrTerm s) {
+    auto pushTodo = [&](auto pair) {
         // we unify each subterm pair at most once, to avoid worst-case exponential runtimes
         // in order to safe memory we do ot do this for variables.
         // (Note by joe:  didn't make this decision, but just keeping the implemenntation
@@ -1462,20 +1438,9 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
         //   todo.push(std::pair);
         // } else
         if (encountered->insert(pair)) {
-          todo.stack(s).push(std::move(pair));
+          toDo->push(std::move(pair));
         }
     };
-
-    auto isSortTerm = [this](auto t) {
-      auto dt = subs().derefBound(t);
-      return dt.isTerm() && dt.isSort();
-    };
-    if (isSortTerm(t1) || isSortTerm(t2)) {
-      pushTodo(std::make_pair(t1, t2), SORT);
-    } else {
-      // if we are unifying variables, the unification goes through trivially anyways
-      pushTodo(std::make_pair(t1, t2), TERM);
-    }
 
     auto occurs = [this](auto& var, auto& term) {
       Recycled<Stack<TermSpec>> todo;
@@ -1495,9 +1460,9 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
     };
 
 
-    while (todo.isNonEmpty()) {
-      DEBUG_UNIFY(2, "todo:   ", todo);
-      auto [cur, s] = todo.pop();
+    while (toDo->isNonEmpty()) {
+      DEBUG_UNIFY(2, "todo:   ", toDo);
+      auto cur = toDo->pop();
       DEBUG_UNIFY(2, "popped: ", cur)
       auto dt1 = subs().derefBound(cur.first);
       auto dt2 = subs().derefBound(cur.second);
@@ -1515,7 +1480,7 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
         DEBUG_UNIFY(2, "binding: ", dt2, " -> ", dt1)
         subs().bind(dt2.varSpec(), dt1);
 
-      } else if(s != SORT && doAbstract(dt1, dt2)) {
+      } else if(doAbstract(dt1, dt2)) {
 
         ASS(absRes);
         if (absRes->is<AbstractionOracle::NeverEqual>()) {
@@ -1537,10 +1502,8 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
           }
           for (auto& x : conditions.unify()) {
             auto pair = std::make_pair(x.lhs(), x.rhs());
-            ASS(pair.first.isVar() || !pair.first.isSort());
-            ASS(pair.second.isVar() || !pair.second.isSort());
             ASS_NEQ(pair, cur)
-            pushTodo(pair, TERM);
+            pushTodo(pair);
             DEBUG_UNIFY(3, "uwa adding unify : ", pair)
           }
           for (auto& x: conditions.constr()) {
@@ -1553,17 +1516,8 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
       // TODO remove check for lambda term once HOL unification is properly done
       } else if(dt1.isTerm() && dt2.isTerm() && dt1.functor() == dt2.functor() && !dt1.term.isLambdaTerm()) {
 
-        if (s == TERM) {
-          for (auto p : dt1.termArgs().zip(dt2.termArgs())) {
-            pushTodo(p, TERM);
-          }
-          for (auto p : dt1.typeArgs().zip(dt2.typeArgs())) {
-            pushTodo(p, SORT);
-          }
-        } else {
-          for (auto p : dt1.allArgs().zip(dt2.allArgs())) {
-            pushTodo(p, SORT);
-          }
+        for (auto p : dt1.allArgs().zip(dt2.allArgs())) {
+          pushTodo(p);
         }
 
       } else {

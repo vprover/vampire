@@ -21,7 +21,6 @@
 #include "Lib/DHMap.hpp"
 
 #include "Index.hpp"
-#include "Saturation/HOLUnificationHandler.hpp"
 
 namespace Indexing {
 
@@ -33,7 +32,7 @@ public:
   VirtualIterator<QueryRes<ResultSubstitutionSP, LiteralClause>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
   { return _is.getUnifications(lit, complementary, retrieveSubstitutions); }
 
-  VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration, HOLUnificationHandler*)
+  VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
   { return _is.getUwa(lit, complementary, uwa, fixedPointIteration); }
 
   VirtualIterator<QueryRes<ResultSubstitutionSP, LiteralClause>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
