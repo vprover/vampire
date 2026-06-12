@@ -506,6 +506,7 @@ void Inference::minimizePremises()
 
   delete info;
   _ptr2 = nullptr;
+  _kind = Kind::INFERENCE_MANY; // to "survive" repeated calls of minimizePremises
 }
 
 
