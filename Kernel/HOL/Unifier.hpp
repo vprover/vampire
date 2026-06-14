@@ -44,11 +44,11 @@ struct UnificationNode
 
     Constraint(TermList lhs, TermList rhs, TermList sort);
 
-    inline bool flexFlex() const { return _lhead.isVar() && _rhead.isVar(); }
-    inline bool rigidRigid() const { return _lhead.isTerm() && _rhead.isTerm(); }
-    inline bool flexRigid() const { return !flexFlex() && !rigidRigid(); }
+    bool flexFlex() const { return _lhead.isVar() && _rhead.isVar(); }
+    bool rigidRigid() const { return _lhead.isTerm() && _rhead.isTerm(); }
+    bool flexRigid() const { return !flexFlex() && !rigidRigid(); }
 
-    bool derefHead(TermList& head, TermList& side, const Substitution& subs);
+    static bool derefHead(TermList& head, TermList& side, const Substitution& subs);
     void normalize(const Substitution& subs);
   };
 
@@ -82,14 +82,14 @@ class AbstractingWrapper
 {
 public:
   AbstractingWrapper(AbstractingUnifier* unifier, unsigned hoUnifDepth);
-  ~AbstractingWrapper();
+  ~AbstractingWrapper() override;
   AbstractingWrapper(const AbstractingWrapper&) = delete;
   AbstractingWrapper& operator=(const AbstractingWrapper&) = delete;
 
   DECL_ELEMENT_TYPE(AbstractingUnifier*);
 
-  bool hasNext();
-  AbstractingUnifier* next();
+  bool hasNext() override;
+  AbstractingUnifier* next() override;
 
 private:
   AbstractingUnifier* _unifier;
