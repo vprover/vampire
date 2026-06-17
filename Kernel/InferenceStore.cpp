@@ -1159,7 +1159,6 @@ protected:
       case Theory::REAL_FLOOR:     out << "|$floor|";       return;
 
       case Theory::EQUAL: out << "="; return;
-
       case UNSUPPORTED_INTERPRETATIONS:
          throw UserErrorException("divides function ", itp, " does not exist in SMT2");
 
@@ -1353,7 +1352,12 @@ protected:
         if (t->isLiteral()) {
           outputPredicateName(out, t->functor());
         } else {
-          outputFunctionName(out, t->functor());
+          if (theory->isInterpretedFunction(t->functor(), Theory::INT_DIVIDES) 
+              && IntTraits::isNumeral(t->termArg(0) )) {
+            out << "( (_ divisible " << *IntTraits::tryNumeral(t->termArg(0)) << ") " << t->termArg(1) << " )";
+          } else {
+            outputFunctionName(out, t->functor());
+          }
         }
 
         for (unsigned i = 0; i < t->numTermArguments(); i++) {
