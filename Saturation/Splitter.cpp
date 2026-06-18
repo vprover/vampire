@@ -1138,7 +1138,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
   }
 
   Clause* compCl = Clause::fromIterator(arrayIter(lits, size),
-          ComponentClauseInference(InferenceRule::AVATAR_COMPONENT,UnitList::singleton(def_u),orig));
+          ComponentClauseInference(InferenceRule::AVATAR_COMPONENT,UnitList::cons(orig,UnitList::singleton(def_u)),orig));
 
   if(posName == name && env.options->proofExtra() == Options::ProofExtra::FULL)
     env.proofExtra.insert(def_u, new SplitDefinitionExtra(compCl));
