@@ -141,7 +141,7 @@ void BackwardSubsumptionDemodulation<higherOrder>::performWithQueryLit(Clause* s
   bool mustPredActive = false;
   unsigned mustPred;
 
-  auto rit = _index->getInstances(candidateQueryLit, false, false);
+  auto rit = _index->getInstances<higherOrder>(candidateQueryLit, false, false);
   while (rit.hasNext()) {
     auto qr = rit.next();
     Clause* candidate = qr.data->clause;

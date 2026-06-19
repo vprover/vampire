@@ -170,6 +170,22 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
     env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF   &&
    (env.options->cnfOnTheFly() != Options::CNFOnTheFly::CONJ_EAGER || !isConjecture);
 
+  // proxification fails in HOL::convert::toNameless for formulas that contain
+  // non-prenex type quantifiers, so we simply override this decision for them
+  if (env.higherOrder() && proxify) {
+    auto qf = Formula::removeUniversalTypePrenex(formula);
+    if (iterTraits(vi(new SubformulaIterator(qf))).any([](Formula* f) {
+      // quantified formulas with any type variable
+      // TODO remove leading forall block as in HOL::convert::toNameless
+      return (f->connective() == FORALL || f->connective() == EXISTS) &&
+        iterTraits(Kernel::VSList::Iterator(f->vars())).any([](auto kv) {
+          return kv.second == AtomicSort::superSort();
+        });
+    })) {
+      proxify = false;
+    }
+  }
+
   Formula* processedFormula = proxify ? convertToProxified(formula) : process(formula);
   if (formula == processedFormula) {
     return rectifiedUnit;

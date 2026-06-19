@@ -26,8 +26,6 @@ class TermIndex
 : public Index
 {
 public:
-  ~TermIndex() override {}
-
   VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
   { return _is->getUwa(t, uwa, fixedPointIteration); }
 
@@ -37,8 +35,22 @@ public:
   VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true)
   { return _is->getGeneralizations(t, retrieveSubstitutions); }
 
+  template<bool higherOrder>
   VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getInstances(TypedTermList t, bool retrieveSubstitutions = true)
-  { return _is->getInstances(t, retrieveSubstitutions); }
+  {
+    if constexpr (higherOrder) {
+      // TODO(HOL): implement proper higher-order matching here
+      // we override retrieveSubstitutions because we need the substitution for the aftercheck
+      return pvi(iterTraits(_is->getInstances(t, /*retrieveSubstitutions=*/true))
+        .filter([t](auto qr) {
+          return iterTraits(VariableIterator(t)).all([&qr](TermList var) {
+            return !qr.unifier->applyToBoundQuery(var).containsLooseDBIndex();
+          });
+        }));
+    } else {
+      return _is->getInstances(t, retrieveSubstitutions);
+    }
+  }
 
   friend std::ostream& operator<<(std::ostream& out, TermIndex const& self)
   { return out << *self._is; }
