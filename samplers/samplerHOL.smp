@@ -44,6 +44,9 @@ $ins=NZ > ins ~sgd 0.4,1
 # twee_goal_transformation
 > tgt ~cat off:10,ground:6,full:5
 
+# twee_skip_arrows
+tgt!=off > tsa ~cat on:4,off:1
+
 # sine_selection
 intent=unsat > ss ~cat off:1182,included:135,axioms:392
 
@@ -376,9 +379,7 @@ avsq=on > avsqr ~u2r -5;3;,
 c=off > cs ~cat off:100,on:14
 
 # choice_ax
-# TODO(HOL)
-#> cha ~cat off:100,on:16
-> cha ~cat off:100
+> cha ~cat off:100,on:16
 
 # choice_reasoning
 cha=off > chr ~cat off:100,on:15
@@ -396,13 +397,17 @@ cnfonf=conj_eager > hi ~cat off:100,on:5
 > e2e ~cat off:222,on:64
 
 # func_ext
-# TODO(HOL)
-#> fe ~cat abstraction:172,off:74,axiom:40
-> fe ~cat abstraction:172,off:74
+> fe ~cat abstraction:172,off:74,axiom:40
+
+# unification_with_abstraction -- to trigger ho-unif
+# NOTE: rethink hud/uwa_fpi sampling, if you decide that uwa=auto will become part of the sampling
+> uwa ~cat off:1,hol:1
+
+# unification_with_abstraction_fixed_point_iteration
+uwa=hol > uwa_fpi ~cat off:1,on:5
 
 # hol_unif_depth
-# TODO(HOL)
-#> hud ~ui 0,25
+uwa=hol > hud ~ui 0,25
 
 # iff_xor_rewriter
 > ixr ~cat on:100,off:21
