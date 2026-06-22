@@ -318,6 +318,7 @@ Option<Stack<UnificationNode*>> UnificationNode::solve()
       return some<Stack<UnificationNode*>>(res);
     }
     // else flex-flex, which we ignore
+    ASS(curr.flexFlex());
     i++;
   }
   // we reached this point only if all pairs are flex-flex, so we have a solution
@@ -358,6 +359,7 @@ bool UnificationNode::simplify()
       continue;
     }
     // else ignore flex-flex or flex-rigid
+    ASS(curr.flexFlex() || curr.flexRigid());
     i++;
   }
   return true;

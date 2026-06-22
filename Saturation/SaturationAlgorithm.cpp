@@ -1492,9 +1492,9 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     if(prb.hasFOOL() && opt.booleanEqTrick()){
       gie->addFront(new BoolEqToDiseq(*res));
     }
-    if(!opt.higherOrderUnifDepth() && !opt.holUnifier()){
+    if((opt.unificationWithAbstraction() != Options::UnificationWithAbstraction::HOL || opt.higherOrderUnifDepth() == 0) && !opt.holUnifier()) {
       // TODO(HOL): only add when we are not carrying out higher-order unification
-      // gie->addFront(new ImitateProject(*res));
+      gie->addFront(new ImitateProject(*res));
     }
     if (opt.choiceReasoning()) {
       gie->addFront(new Choice(*res));

@@ -153,7 +153,7 @@ class AbstractingUnifier
 public:
   AbstractionOracle _uwa;
 
-  AbstractingUnifier(AbstractionOracle uwa) : _subs(), _constr(), _bd(), _uwa(uwa) { }
+  AbstractingUnifier(AbstractionOracle uwa) : _uwa(uwa) {}
   AbstractingUnifier() :  AbstractingUnifier(AbstractionOracle()) {}
 
   void init(AbstractionOracle ao) 

@@ -36,6 +36,7 @@
 #include "Shell/Options.hpp"
 #include "Shell/DistinctGroupExpansion.hpp"
 #include "Shell/UIHelper.hpp"
+#include "Shell/Rectify.hpp"
 
 #include "Parse/TPTP.hpp"
 
@@ -3768,9 +3769,17 @@ Unit* TPTP::processClaimFormula(Unit* unit, Formula * f, const std::string& nm)
   if (!added) {
     USER_ERROR("Names of claims must be unique: "+nm);
   }
+  if (unit->isClause()) {
+    VList* vars = freeVariables(f);
+    if (VList::isNonEmpty(vars)) {
+      std::tie(f,unit) = Rectify::closeOverGivenVars(vars,f,unit);
+    }
+  } else {
+    // only clauses can have free variables at this point!
+    ASS_EQ(freeVariables(f),VList::empty())
+  }
   env.signature->getPredicate(pred)->markLabel();
   Formula* claim = new AtomicFormula(Literal::create(pred, /* polarity */ true, {}));
-  ASS_EQ(freeVariables(f),VList::empty())
   f = new BinaryFormula(IFF,claim,f);
   return new FormulaUnit(f,
       FormulaClauseTransformation(InferenceRule::CLAIM_DEFINITION,unit));
