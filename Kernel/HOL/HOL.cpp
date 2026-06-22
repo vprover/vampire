@@ -380,9 +380,6 @@ TermList HOL::rhsSort(TermList t) {
 
 TermList HOL::finalResult(TermList sort)
 {
-  if (sort.isVar() || !sort.isArrowSort()) {
-    return sort;
-  }
   while (sort.isArrowSort()) {
     sort = sort.result();
   }

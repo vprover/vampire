@@ -21,6 +21,7 @@
 
 namespace Inferences {
 
+template<bool higherOrder>
 class Cases
   : public GeneratingInferenceEngine
 {
@@ -29,6 +30,14 @@ public:
   ClauseIterator generateClauses(Clause* premise) override;
 private:
   const Ordering& _ord;
+};
+
+template<bool higherOrder>
+class CasesSimp
+  : public ImmediateSimplificationEngineMany
+{
+public:
+  Option<ClauseIterator> simplifyMany(Clause* premise) override;
 };
 
 }

@@ -200,9 +200,6 @@ TermList TermList::lambdaBody() const {
 }
 
 TermList TermList::head() const {
-  if (!isApplication() && !isLambdaTerm())
-    return *this;
-
   TermList trm = *this;
   while (trm.isLambdaTerm()) {
     trm = trm.lambdaBody();

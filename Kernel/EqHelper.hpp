@@ -35,11 +35,13 @@ public:
   static TermList getOtherEqualitySide(Literal* eq, TermList lhs);
   static bool hasGreaterEqualitySide(Literal* eq, const Ordering& ord, TermList& lhs, TermList& rhs);
   static VirtualIterator<Term*> getSubtermIterator(Literal* lit, const Ordering& ord, bool higherOrder);
-  static TermIterator getBooleanSubtermIterator(Literal* lit, const Ordering& ord);
   static VirtualIterator<TypedTermList> getLHSIterator(Literal* lit, const Ordering& ord);
   static VirtualIterator<TypedTermList> getSuperpositionLHSIterator(Literal* lit, const Ordering& ord, const Options& opt);
   static std::pair<VirtualIterator<TypedTermList>,bool> getDemodulationLHSIterator(Literal* lit, bool onlyPreordered, const Ordering& ord);
   static TermIterator getEqualityArgumentIterator(Literal* lit);
+
+  template<class SubtermIterator>
+  static VirtualIterator<ELEMENT_TYPE(SubtermIterator)> getRewritableSubtermIterator(Literal* lit, const Ordering& ord);
 
   //WARNING, this function cannot be used when @param t is a sort.
   static Term* replace(Term* t, TermList what, TermList by);
@@ -74,13 +76,6 @@ public:
   {
     return lit->isEquality() && lit->isPositive() && (*lit->nthArgument(0))==(*lit->nthArgument(1));
   }
-private:
-
-  template<class SubtermIterator>
-  static VirtualIterator<ELEMENT_TYPE(SubtermIterator)> getRewritableSubtermIterator(Literal* lit, const Ordering& ord);
-
-  struct IsNonVariable;
-
 };
 
 };

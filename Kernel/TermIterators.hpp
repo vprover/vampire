@@ -275,7 +275,7 @@ protected:
  *  Returns Boolean subterms of a term.
  */
 class BooleanSubtermIt
-: public IteratorCore<TermList>
+: public IteratorCore<Term*>
 {
 public:
   BooleanSubtermIt(Term* term, bool includeSelf=false)
@@ -291,7 +291,7 @@ public:
   }
 
   bool hasNext() override;
-  TermList next() override{
+  Term* next() override{
     ASS(!_used);
     _used = true;
     return _next;
@@ -299,7 +299,7 @@ public:
 
 private:
   bool _used;
-  TermList _next;
+  Term* _next;
   Stack<Term*> _stack;
 };
 

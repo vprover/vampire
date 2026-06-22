@@ -15,6 +15,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
+#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Term.hpp"
 
@@ -26,12 +27,12 @@ namespace Inferences {
 
 using namespace std;
 
-Cases::Cases(SaturationAlgorithm& salg) : _ord(salg.getOrdering()) {}
+template<bool higherOrder>
+Cases<higherOrder>::Cases(SaturationAlgorithm& salg) : _ord(salg.getOrdering()) {}
 
-Clause* performCases(Clause* premise, Literal* lit, TermList t)
+template<bool simplifying>
+Clause* performCases(Clause* premise, Term* t, bool replaceWithTroo)
 {
-  ASS(t.isTerm());
-
   static TermList troo(Term::foolTrue());
   static TermList fols(Term::foolFalse());
 
@@ -39,34 +40,81 @@ Clause* performCases(Clause* premise, Literal* lit, TermList t)
 
   RStack<Literal*> resLits;
 
-  // Copy the literals from the premise except for the one at `literalPosition`,
-  // that has the occurrence of `booleanTerm` replaced with false
+  // Copy the literals from the premise except for `lit`,
+  // that has the occurrence of `t` replaced with `troo` or `fols`
   for (Literal* curr : iterTraits(premise->iterLits())) {
-    resLits->push( curr != lit 
-        ? curr
-        : EqHelper::replace(curr, t, troo));
+    resLits->push(EqHelper::replace(curr, TermList(t), replaceWithTroo ? troo : fols));
   }
 
-  // Add s = false to the clause
-  resLits->push(Literal::createEquality(true, t, fols, AtomicSort::boolSort()));
+  // Add `t = fols` (resp. `t = troo`) to the clause
+  resLits->push(Literal::createEquality(true, TermList(t), replaceWithTroo ? fols : troo, AtomicSort::boolSort()));
 
-  return Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::FOOL_PARAMODULATION, premise));
+  if constexpr (simplifying) {
+    return Clause::fromStack(*resLits, SimplifyingInference1(InferenceRule::BOOL_CASES_SIMP, premise));
+  } else {
+    return Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::BOOL_CASES, premise));
+  }
 }
 
-ClauseIterator Cases::generateClauses(Clause* premise)
+template<bool higherOrder>
+auto casesFilterFn = [](Term* t) {
+  if constexpr (!higherOrder) {
+    // TODO consider using iterators that only return booleans
+    return SortHelper::getResultSort(t) == AtomicSort::boolSort() && !HOL::isBool(TermList(t));
+  }
+  return !HOL::isBool(TermList(t));
+};
+
+template<bool higherOrder>
+ClauseIterator Cases<higherOrder>::generateClauses(Clause* premise)
 {
   return pvi(premise->getSelectedLiteralIterator()
     .flatMap([this](Literal* lit) {
-      return pvi(pushPairIntoRightIterator(lit, EqHelper::getBooleanSubtermIterator(lit, _ord)));
+      if constexpr (higherOrder) {
+        return pvi(EqHelper::getRewritableSubtermIterator<BooleanSubtermIt>(lit, _ord));
+      } else {
+        return pvi(EqHelper::getSubtermIterator(lit, _ord, /*higherOrder=*/false));
+      }
     })
-    // filter out top-level terms
-    .filter([](pair<Literal*, TermList> arg) {
-      auto [lhs, rhs] = arg.first->eqArgs();
-      return lhs != arg.second && rhs != arg.second;
-    })
-    .map([premise](pair<Literal*, TermList> arg) {
-      return performCases(premise, arg.first, arg.second);
+    .uniquePersistent()
+    .filter(casesFilterFn<higherOrder>)
+    .map([premise](Term* t) {
+      return performCases</*simplifying=*/false>(premise, t, /*replaceWithTroo=*/true);
     }));
 }
+
+template class Cases<false>;
+template class Cases<true>;
+
+template<bool higherOrder>
+Option<ClauseIterator> CasesSimp<higherOrder>::simplifyMany(Clause* premise)
+{
+  // TODO(HOL): if this is a simplification, we shouldn't perform it on all subterms, just on the first we find.
+  auto it = iterTraits(premise->iterLits())
+    .flatMap([](Literal* lit) {
+      if constexpr (higherOrder) {
+        return pvi(BooleanSubtermIt(lit));
+      } else {
+        return pvi(NonVariableNonTypeIterator(lit));
+      }
+    })
+    .uniquePersistent()
+    .filter(casesFilterFn<higherOrder>)
+    .flatMap([premise](Term* t) {
+      return pvi(iterItems(
+        performCases</*simplifying=*/true>(premise, t, /*replaceWithTroo=*/true),
+        performCases</*simplifying=*/true>(premise, t, /*replaceWithTroo=*/false)
+      ));
+    });
+
+  if (it.hasNext()) {
+    return some(pvi(std::move(it)));
+  } else {
+    return {};
+  }
+}
+
+template class CasesSimp<false>;
+template class CasesSimp<true>;
 
 }

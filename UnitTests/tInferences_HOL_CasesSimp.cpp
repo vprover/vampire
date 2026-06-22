@@ -10,7 +10,7 @@
 #include "Test/SimplificationTester.hpp"
 #include "Test/SyntaxSugar.hpp"
 
-#include "Inferences/HOL/CasesSimp.hpp"
+#include "Inferences/HOL/Cases.hpp"
 
 using namespace Test;
 
@@ -29,16 +29,11 @@ using namespace Test;
   DECL_CONST(p, arrow(srt,Bool))
 
 #define MY_SIMPL_TESTER Simplification::SimplificationTester
-#define MY_SIMPL_RULE   CasesSimp
+#define MY_SIMPL_RULE   CasesSimp<true>
 
 TEST_SIMPLIFY_MANY(fail_1,
   Simplification::NotApplicableMany()
     .input(clause({ ap(andP, fols) == lam(Bool,troo) }))
-  )
-
-TEST_SIMPLIFY_MANY(fail_2,
-  Simplification::NotApplicableMany()
-    .input(clause({ a == b }))
   )
 
 TEST_SIMPLIFY_MANY(success_1,
@@ -65,7 +60,20 @@ TEST_SIMPLIFY_MANY(success_3,
   Simplification::SuccessMany()
     .input(clause({ ap(f, ap(p, x)) == y, ap(p, x) == a }))
     .expected({
-      clause({ ap(f, troo) == y, ap(p, x) == a, ap(p, x) == fols }),
-      clause({ ap(f, fols) == y, ap(p, x) == a, ap(p, x) == troo }),
+      clause({ ap(f, troo) == y, troo == a, ap(p, x) == fols }),
+      clause({ ap(f, fols) == y, fols == a, ap(p, x) == troo }),
+      clause({ ap(f, ap(p, x)) == y, ap(p, x) == troo, a == fols }),
+      clause({ ap(f, ap(p, x)) == y, ap(p, x) == fols, a == troo }),
+    })
+  )
+
+TEST_SIMPLIFY_MANY(success_4,
+  Simplification::SuccessMany()
+    .input(clause({ a == b }))
+    .expected({
+      clause({ a == troo, b == fols }),
+      clause({ a == fols, b == troo }),
+      clause({ a == troo, b == fols }),
+      clause({ a == fols, b == troo }),
     })
   )

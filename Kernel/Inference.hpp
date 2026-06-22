@@ -271,10 +271,9 @@ enum class InferenceRule : unsigned char {
   /* clause with literals added from AVATAR assertions of the parent */
   AVATAR_ASSERTION_REINTRODUCTION,
 
-  /* negative extnsionality */
-  CASES_SIMP,
   ALASCA_VIRAS_QE,
 
+  BOOL_CASES_SIMP,
   BOOL_SIMP,
   FLEX_FLEX_SIMPLIFICATION,
   BETA_ETA_NORMALIZATION,
@@ -314,7 +313,7 @@ enum class InferenceRule : unsigned char {
   /** inference rule for term algebras (no cyclic terms)*/
   TERM_ALGEBRA_ACYCLICITY,
   /** Replaces a literal of the form C[s] with C[true] \/ s = false, where s is a boolean non-variable term */
-  FOOL_PARAMODULATION,
+  BOOL_CASES,
   /** unit resulting resolution */
   UNIT_RESULTING_RESOLUTION,
   /* Induction hyperresolution */

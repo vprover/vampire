@@ -184,11 +184,6 @@ VirtualIterator<Term*> EqHelper::getSubtermIterator(Literal* lit, const Ordering
   return getRewritableSubtermIterator<NonVariableNonTypeIterator>(lit, ord);
 }
 
-TermIterator EqHelper::getBooleanSubtermIterator(Literal* lit, const Ordering& ord)
-{
-  return getRewritableSubtermIterator<BooleanSubtermIt>(lit, ord);
-}
-
 /**
  * Return iterator on subterms of a literal, that can be rewritten by
  * superposition.
@@ -226,6 +221,7 @@ VirtualIterator<ELEMENT_TYPE(SubtermIterator)> EqHelper::getRewritableSubtermIte
 
 }
 
+template VirtualIterator<Term*> EqHelper::getRewritableSubtermIterator<BooleanSubtermIt>(Literal*, const Ordering&);
 
 /**
  * Return iterator on sides of the equality @b lit that can be used as an LHS
@@ -260,15 +256,6 @@ VirtualIterator<TypedTermList> EqHelper::getLHSIterator(Literal* lit, const Orde
 }
 
 /**
- * A functor that returns true iff its argument is a non-variable term
- */
-struct EqHelper::IsNonVariable
-{
-  bool operator()(TermList t)
-  { return t.isTerm(); }
-};
-
-/**
  * Return iterator on sides of the equality @b lit that can be used as an LHS
  * for superposition
  *
@@ -280,7 +267,7 @@ VirtualIterator<TypedTermList> EqHelper::getSuperpositionLHSIterator(Literal* li
     return getLHSIterator(lit, ord);
   }
   else {
-    return pvi( getFilteredIterator(getLHSIterator(lit, ord), IsNonVariable()) );
+    return pvi( getFilteredIterator(getLHSIterator(lit, ord), [](TermList t){ return t.isTerm(); }) );
   }
 }
 

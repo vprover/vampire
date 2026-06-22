@@ -29,19 +29,12 @@ using namespace Test;
   DECL_CONST(p, arrow(srt,Bool))
 
 #define MY_GEN_TESTER Generation::GenerationTester
-#define MY_GEN_RULE   Cases
+#define MY_GEN_RULE   Cases<true>
 
 // not performed for partially applied Boolean functions
 TEST_GENERATION(fail_1,
   Generation::AsymmetricTest()
     .input(clause({ selected(ap(andP, fols) == lam(Bool,troo)) }))
-    .expected(none())
-  )
-
-// not performed for top-level Booleans
-TEST_GENERATION(fail_2,
-  Generation::AsymmetricTest()
-    .input(clause({ selected(a == b) }))
     .expected(none())
   )
 
@@ -69,18 +62,26 @@ TEST_GENERATION(success_2,
     })
   )
 
-TEST_GENERATION(success_4,
+TEST_GENERATION(success_3,
   Generation::AsymmetricTest()
     .input(clause({ selected(ap(f, ap(p, x)) == y), ap(p, x) != a }))
     .expected({
-      clause({ ap(f, troo) == y, ap(p, x) != a, ap(p, x) == fols }),
+      clause({ ap(f, troo) == y, troo != a, ap(p, x) == fols }),
     })
   )
 
-TEST_GENERATION(success_3,
+TEST_GENERATION(success_4,
   Generation::AsymmetricTest()
     .input(clause({ selected(ap(f, ap(p, x)) == y), selected(ap(p, x) == a) }))
     .expected({
-      clause({ ap(f, troo) == y, ap(p, x) == a, ap(p, x) == fols }),
+      clause({ ap(f, troo) == y, troo == a, ap(p, x) == fols }),
+    })
+  )
+
+TEST_GENERATION(success_5,
+  Generation::AsymmetricTest()
+    .input(clause({ selected(a == b) }))
+    .expected({
+      clause({ a == troo, b == fols })
     })
   )
