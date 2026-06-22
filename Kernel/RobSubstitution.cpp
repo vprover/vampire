@@ -40,6 +40,9 @@ std::ostream& operator<<(std::ostream& out, TermSpec const& self)
 TermList TermSpec::toTerm(RobSubstitution& s) const
 { return s.apply(this->term, this->index); }
 
+TermList TermSpec::toGluedTerm(RobSubstitution& s) const
+{ return s.applyGlue(this->term, this->index); }
+
 /**
  * Unify @b t1 and @b t2, and return true iff it was successful.
  */
@@ -292,8 +295,7 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t)
       if (pair.first.isVar() && isUnbound(pair.first.varSpec()) &&
           pair.second.isVar() && isUnbound(pair.second.varSpec())) {
         toDo.push(std::move(pair));
-      } else if (!encountered->find(pair)) {
-        encountered->insert(pair);
+      } else if (encountered->insert(pair)) {
         toDo.push(std::move(pair));
       }
   };
@@ -517,6 +519,28 @@ TermList RobSubstitution::apply(TermList trm, int index) const
     .evNonRec([](auto& t) { return someIf(t.term.definitelyGround(), 
                                           [&]() { return t.term.term; }); })
     .memo<decltype(_applyMemo)&>(_applyMemo)
+    .context(AutoDerefTermSpec::Context { .subs = this, })
+    .apply(AutoDerefTermSpec(TermSpec(trm, index), this));
+}
+
+TermList RobSubstitution::applyGlue(TermList trm, int index)
+{
+  return BottomUpEvaluation<AutoDerefTermSpec, TermList>()
+    .function([&](auto const& orig, TermList* args) -> TermList {
+        if (orig.term.isVar()) {
+          // TODO: find out if this is reasonable to assert, probably not
+          // ASS(!orig.term.varSpec().special());
+          auto vs = introGlueVar(orig.term.varSpec());
+          ASS_EQ(vs.index, GLUE_INDEX);
+          return vs.varAsTermlist();
+        }
+        return TermList(orig.term.isSort() ? AtomicSort::create(orig.term.functor(), orig.term.nAllArgs(), args)
+                                           : Term::create(orig.term.functor(), orig.term.nAllArgs(), args));
+    })
+    .evNonRec([](auto& t) { return someIf(t.term.definitelyGround(), 
+                                          [&]() { return t.term.term; }); })
+    // TODO this caused some issues in backtracking
+    // .memo<decltype(_applyMemo)&>(_applyMemo)
     .context(AutoDerefTermSpec::Context { .subs = this, })
     .apply(AutoDerefTermSpec(TermSpec(trm, index), this));
 }

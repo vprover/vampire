@@ -26,8 +26,17 @@ class TermIndex
 : public Index
 {
 public:
-  VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
-  { return _is->getUwa(t, uwa, fixedPointIteration); }
+  template<bool higherOrder>
+  VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(TypedTermList t, const Options& opt)
+  {
+    auto uwa = opt.unificationWithAbstraction();
+    auto fpi = opt.unificationWithAbstractionFixedPointIteration();
+    if constexpr (higherOrder) {
+      return _is->getUwaHOL(t, uwa, fpi, opt.higherOrderUnifDepth());
+    } else {
+      return _is->getUwa(t, uwa, fpi);
+    }
+  }
 
   VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getUnifications(TypedTermList t, bool retrieveSubstitutions = true)
   { return _is->getUnifications(t, retrieveSubstitutions); }
@@ -60,6 +69,7 @@ protected:
   std::unique_ptr<TermIndexingStructure<Data>> _is;
 };
 
+template<bool higherOrder>
 class SuperpositionSubtermIndex
 : public TermIndex<TermLiteralClause>
 {
@@ -69,7 +79,6 @@ protected:
   void handleClause(Clause* c, bool adding) override;
 private:
   const Ordering& _ord;
-  const bool _higherOrder;
 };
 
 class SuperpositionLHSIndex

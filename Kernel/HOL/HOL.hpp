@@ -65,6 +65,10 @@ inline bool canHeadReduce(const TermList& head, const TermStack& args) {
   return head.isLambdaTerm() && args.isNonEmpty();
 }
 
+/** Given two terms of the form λ x_1,...,x_m. s and λ y_1,...,y_n. t and w.l.o.g. m ≥ n,
+ ** applies η-conversion to the second term until they have the same lambda-prefix. */
+void normaliseLambdaPrefixes(TermList& t1, TermList& t2);
+
 // if flexTerm is of form X t1 t2 : i > i and t1 : int and t2 : tau
 // this function will fill stack with [i, tau, int]
 // TODO(HOL): very inelegant at the moment, need to rewrite

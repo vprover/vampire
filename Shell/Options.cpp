@@ -1299,7 +1299,7 @@ void Options::init()
 
     _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
                                       UnificationWithAbstraction::AUTO,
-                                      {"auto","off","interpreted_only","one_side_interpreted","one_side_constant","all","ground", "func_ext", "alasca_one_interp", "alasca_can_abstract", "alasca_main", "alasca_main_floor"});
+                                      {"auto","off","interpreted_only","one_side_interpreted","one_side_constant","all","ground", "func_ext", "alasca_one_interp", "alasca_can_abstract", "alasca_main", "alasca_main_floor", "hol"});
     _unificationWithAbstraction.description=
       "During unification, if two terms s and t fail to unify we will introduce a constraint s!=t and carry on. For example, "
       "resolving p(1) \\/ C with ~p(a+2) would produce C \\/ 1 !=a+2. This is controlled by a check on the terms. The expected "
@@ -1313,6 +1313,7 @@ void Options::init()
       "- ground: only if both s and t are ground\n"
       "- alasca_one_interp, alasca_can_abstract, alasca_main: strategies used for the real-arithmetic version of alasca. these are described in  the LPAR2023 paper  \"Refining Unification with Abstraction\""
       "- alasca_main_floor: an extension of the alasca_main strategy to work with mixed integer-real arithmetic. this option is experimental\n"
+      "- hol: introduce constraints for all higher-order parts whose unification is undecidable\n"
       "See Unification with Abstraction and Theory Instantiation in Saturation-Based Reasoning for further details.";
     _unificationWithAbstraction.tag(OptionTag::THEORIES);
     _lookup.insert(&_unificationWithAbstraction);
@@ -2097,6 +2098,14 @@ void Options::init()
       "Heuristically instantiates universally quantified variables with abstractions of literals from negated conjecture";
     _lookup.insert(&_heuristicInstantiation);
     _heuristicInstantiation.tag(OptionTag::HIGHER_ORDER);
+
+    _higherOrderUnifDepth = UnsignedOptionValue("hol_unif_depth","hud",2);
+    _higherOrderUnifDepth.description = "Set the maximum depth (in terms of projections and imitations) that higher-order unification can descend to."
+      "Once limit is reached, remaining pairs are returned as constraints.";
+    _higherOrderUnifDepth.addProblemConstraint(hasHigherOrder());    
+    _higherOrderUnifDepth.addHardConstraint(lessThan(100u));
+    _lookup.insert(&_higherOrderUnifDepth);
+    _higherOrderUnifDepth.tag(OptionTag::HIGHER_ORDER);
 
     _casesSimp = BoolOptionValue("cases_simp","cs",false);
     _casesSimp.description=
@@ -3570,6 +3579,9 @@ void Options::resolveAwayAutoValues(const Problem& prb)
     if (alasca() && prb.hasAlascaArithmetic() &&
       !partialRedundancyCheck()) { // TODO: Marton is planning a PR that will remove this constraint
       setUWA(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR);
+    } else if (prb.isHigherOrder()) {
+      setUWA(Shell::Options::UnificationWithAbstraction::HOL);
+      setUWAFPI(true);
     } else {
       setUWA(Shell::Options::UnificationWithAbstraction::OFF);
     }
