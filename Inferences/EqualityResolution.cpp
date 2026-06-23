@@ -91,11 +91,7 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
       if (!l->isEquality() || l->isPositive()) {
         return false;
       }
-      if (!funcExt) {
-        return true;
-      }
-      auto sort = l->eqArgSort();
-      return !sort.isArrowSort() && !sort.isBoolSort();
+      return !funcExt || l->eqArgSort().isExtensionalSort();
     })
     .flatMap([this,premise](Literal* lit) {
 

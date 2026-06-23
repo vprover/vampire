@@ -269,7 +269,7 @@ Option<AbstractionOracle::AbstractionResult> hol(AbstractingUnifier* au, TermSpe
 
   if (funcExt) {
     auto sort = t1.sort();
-    if (sort.isVar() || sort.term.isArrowSort() || sort.term.isBoolSort()) {
+    if (t1.sort().term.isExtensionalSort()) {
       return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, sort))));
     }
   }

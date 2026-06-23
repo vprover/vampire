@@ -288,6 +288,7 @@ public:
   bool isProxy(Proxy proxy) const;
   bool isChoice() const;
   bool isPlaceholder() const;
+  bool isExtensionalSort() const;
 
   Option<unsigned> deBruijnIndex() const;
   /* Checks whether a term contains a loose, or unbound DB index.

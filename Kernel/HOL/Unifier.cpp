@@ -123,7 +123,7 @@ Option<Stack<UnificationNode*>> UnificationNode::solve()
 
     if (curr.rigidRigid()) {
       DEBUG("rigid-rigid ", curr._lhead, " ", curr._rhead);
-      if (_funcExt && (curr._sort.isArrowSort() || curr._sort.isBoolSort())) {
+      if (_funcExt && curr._sort.isExtensionalSort()) {
         DEBUG("extensionality with sort ", curr._sort);
         i++;
         continue;
@@ -182,7 +182,7 @@ bool UnificationNode::simplify()
 
     if (curr.rigidRigid()) {
       DEBUG("rigid-rigid ", curr._lhead, " ", curr._rhead);
-      if (_funcExt && (curr._sort.isArrowSort() || curr._sort.isBoolSort())) {
+      if (_funcExt && curr._sort.isExtensionalSort()) {
         DEBUG("extensionality with sort ", curr._sort);
         i++;
         continue;

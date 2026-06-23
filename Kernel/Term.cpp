@@ -147,6 +147,10 @@ bool TermList::isPlaceholder() const {
   return !isVar() && term()->isPlaceholder();
 }
 
+bool TermList::isExtensionalSort() const {
+  return /* isVar() ||  */isArrowSort()/*  || isBoolSort() */;
+}
+
 Option<unsigned> TermList::deBruijnIndex() const {
   if (isVar())
     return {};
