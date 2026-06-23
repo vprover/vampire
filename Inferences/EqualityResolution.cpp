@@ -84,12 +84,22 @@ Clause* unifierToClause(Clause* cl, Literal* lit, AbstractingUnifier* unif, cons
 ClauseIterator EqualityResolution::generateClauses(Clause* premise)
 {
   static AbstractingUnifier unif;
+  static bool funcExt = _salg.getOptions().functionExtensionality()==Options::FunctionExtensionality::ABSTRACTION;
 
   return pvi(premise->getSelectedLiteralIterator()
-    .filter([](Literal* l)  { return l->isEquality() && l->isNegative(); })
+    .filter([](Literal* l)  {
+      if (!l->isEquality() || l->isPositive()) {
+        return false;
+      }
+      if (!funcExt) {
+        return true;
+      }
+      auto sort = l->eqArgSort();
+      return !sort.isArrowSort() && !sort.isBoolSort();
+    })
     .flatMap([this,premise](Literal* lit) {
 
-      AbstractionOracle abstractionOracle(_salg.getOptions().unificationWithAbstraction());
+      AbstractionOracle abstractionOracle(_salg.getOptions().unificationWithAbstraction(), funcExt);
 
       auto [lhs, rhs] = lit->eqArgs();
 
@@ -105,7 +115,7 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
         return ClauseIterator::getEmpty();
       }
 
-      return pvi(iterTraits(vi(new HOL::AbstractingWrapper(&unif, _salg.getOptions().higherOrderUnifDepth())))
+      return pvi(iterTraits(vi(new HOL::AbstractingWrapper(&unif, _salg.getOptions().higherOrderUnifDepth(), funcExt)))
         .map([this,premise,lit](AbstractingUnifier* unif) {
           return unifierToClause(premise, lit, unif, _salg.getOptions().literalMaximalityAftercheck() && _salg.getLiteralSelector().isBGComplete() ? &_salg.getOrdering() : nullptr);
         }));

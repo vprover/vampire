@@ -258,7 +258,7 @@ Option<TermSpec> appHead(AbstractingUnifier* au, TermSpec t)
   return some(t);
 }
 
-Option<AbstractionOracle::AbstractionResult> hol(AbstractingUnifier* au, TermSpec const& t1, TermSpec const& t2)
+Option<AbstractionOracle::AbstractionResult> hol(AbstractingUnifier* au, TermSpec const& t1, TermSpec const& t2, bool funcExt)
 {
   DEBUG_UNIFY(0, "hol uwa unifying ", t1, " =?= ", t2, " w.r.t. ", *au);
 
@@ -267,23 +267,30 @@ Option<AbstractionOracle::AbstractionResult> hol(AbstractingUnifier* au, TermSpe
     return Option<AbstractionOracle::AbstractionResult>();
   }
 
+  if (funcExt) {
+    auto sort = t1.sort();
+    if (sort.isVar() || sort.term.isArrowSort() || sort.term.isBoolSort()) {
+      return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, sort))));
+    }
+  }
+
   // TODO deal with lambdas
   if (t1.term.isLambdaTerm() || t2.term.isLambdaTerm()) {
-    auto sort = t1.isVar() ? t2.sort() : t1.sort();
+    auto sort = t1.sort();
     return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, sort))));
   }
 
   auto h1 = appHead(au, t1);
   auto h2 = appHead(au, t2);
   if (h1.isNone() || h2.isNone()) {
-    auto sort = t1.isVar() ? t2.sort() : t1.sort();
+    auto sort = t1.sort();
     return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, sort))));
   }
   DEBUG_UNIFY(0, "app heads ", h1, ", ", h2);
 
   // we abstract flex-rigid and flex-flex pairs
   if (h1->isVar() || h2->isVar()) {
-    auto sort = t1.isVar() ? t2.sort() : t1.sort();
+    auto sort = t1.sort();
     return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, sort))));
   }
 
@@ -1250,7 +1257,7 @@ Option<AbstractionOracle::AbstractionResult> AbstractionOracle::tryAbstract(Abst
       return funcExt(au, t1, t2);
     }
     case Shell::Options::UnificationWithAbstraction::HOL: {
-      return hol(au, t1, t2);
+      return hol(au, t1, t2, _funcExt);
     }
     case Shell::Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR: {
       return uwa_floor(*au, t1, t2, _mode);

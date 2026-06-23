@@ -52,6 +52,7 @@ auto vs(TermList var, unsigned index, TermList t)
 auto vsLeft(TermList var, TermList t) { return vs(var, LEFT_BANK, t); }
 auto vsRight(TermList var, TermList t) { return vs(var, RIGHT_BANK, t); }
 
+template<bool funcExt>
 void testUnifySuccess(TermList lhs, TermList rhs, Stack<ResultSpec> expected) {
 
   AbstractionOracle oracle(Shell::Options::UnificationWithAbstraction::HOL);
@@ -63,7 +64,7 @@ void testUnifySuccess(TermList lhs, TermList rhs, Stack<ResultSpec> expected) {
     ASSERTION_VIOLATION;
   }
 
-  HOL::AbstractingWrapper wrapper(&unif, UNIF_DEPTH);
+  HOL::AbstractingWrapper wrapper(&unif, UNIF_DEPTH, funcExt);
   for (unsigned i = 0; i < expected.size(); i++) {
     if (!wrapper.hasNext()) {
       std::cout << std::endl;
@@ -128,6 +129,7 @@ void testUnifySuccess(TermList lhs, TermList rhs, Stack<ResultSpec> expected) {
   }
 }
 
+template<bool funcExt>
 void testUnifyFail(TermList lhs, TermList rhs) {
 
   AbstractionOracle oracle(Shell::Options::UnificationWithAbstraction::HOL);
@@ -140,7 +142,7 @@ void testUnifyFail(TermList lhs, TermList rhs) {
     ASSERTION_VIOLATION;
   }
 
-  HOL::AbstractingWrapper wrapper(&unif, UNIF_DEPTH);
+  HOL::AbstractingWrapper wrapper(&unif, UNIF_DEPTH, funcExt);
   if (wrapper.hasNext()) {
     std::cout << std::endl;
     std::cout << "expected *not* to HO unify: " << lhs << " == " << rhs << std::endl;
@@ -148,18 +150,18 @@ void testUnifyFail(TermList lhs, TermList rhs) {
   }
 }
 
-#define TEST_UNIFY_SUCCESS(name, lhs, rhs, ...) \
-  TEST_FUN(name) {                              \
-    env.setHigherOrder(true);                   \
-    __ALLOW_UNUSED(MY_SYNTAX_SUGAR);            \
-    testUnifySuccess(lhs, rhs, __VA_ARGS__);    \
+#define TEST_UNIFY_SUCCESS(name, lhs, rhs, ...)     \
+  TEST_FUN(name) {                                  \
+    env.setHigherOrder(true);                       \
+    __ALLOW_UNUSED(MY_SYNTAX_SUGAR);                \
+    testUnifySuccess<false>(lhs, rhs, __VA_ARGS__); \
   }
 
-#define TEST_UNIFY_FAIL(name, lhs, rhs)         \
-  TEST_FUN(name) {                              \
-    env.setHigherOrder(true);                   \
-    __ALLOW_UNUSED(MY_SYNTAX_SUGAR);            \
-    testUnifyFail(lhs, rhs);                    \
+#define TEST_UNIFY_FAIL(name, lhs, rhs)             \
+  TEST_FUN(name) {                                  \
+    env.setHigherOrder(true);                       \
+    __ALLOW_UNUSED(MY_SYNTAX_SUGAR);                \
+    testUnifyFail<false>(lhs, rhs);                 \
   }
 
 TEST_UNIFY_SUCCESS(success_1,
