@@ -267,7 +267,7 @@ Option<AbstractionOracle::AbstractionResult> hol(AbstractingUnifier* au, TermSpe
     return Option<AbstractionOracle::AbstractionResult>();
   }
 
-  // TODO(HOL): deal with lambdas
+  // TODO deal with lambdas
   if (t1.term.isLambdaTerm() || t2.term.isLambdaTerm()) {
     auto sort = t1.isVar() ? t2.sort() : t1.sort();
     return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, sort))));
@@ -280,11 +280,6 @@ Option<AbstractionOracle::AbstractionResult> hol(AbstractingUnifier* au, TermSpe
     return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, sort))));
   }
   DEBUG_UNIFY(0, "app heads ", h1, ", ", h2);
-
-  // special vars mean we haven't reached a leaf in the substitution tree, so we postpone abstraction
-  if (h1->term.isSpecialVar() || h2->term.isSpecialVar()) {
-    return Option<AbstractionOracle::AbstractionResult>();
-  }
 
   // we abstract flex-rigid and flex-flex pairs
   if (h1->isVar() || h2->isVar()) {

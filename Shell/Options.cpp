@@ -3581,6 +3581,7 @@ void Options::resolveAwayAutoValues(const Problem& prb)
       setUWA(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR);
     } else if (prb.isHigherOrder()) {
       setUWA(Shell::Options::UnificationWithAbstraction::HOL);
+      setUWAFPI(true);
     } else {
       setUWA(Shell::Options::UnificationWithAbstraction::OFF);
     }
