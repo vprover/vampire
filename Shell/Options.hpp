@@ -2053,7 +2053,6 @@ public:
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
   bool unificationWithAbstractionFixedPointIteration() const { return _unificationWithAbstractionFixedPointIteration.actualValue; }
   void setUWA(UnificationWithAbstraction value){ _unificationWithAbstraction.actualValue = value; }
-  void setUWAFPI(bool fpi) { _unificationWithAbstractionFixedPointIteration.actualValue = fpi; }
   // TODO make alasca independent of normal evaluation
   bool useACeval() const { return _useACeval.actualValue; }
 

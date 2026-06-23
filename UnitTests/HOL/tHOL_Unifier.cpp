@@ -57,7 +57,7 @@ void testUnifySuccess(TermList lhs, TermList rhs, Stack<ResultSpec> expected) {
   AbstractionOracle oracle(Shell::Options::UnificationWithAbstraction::HOL);
   AbstractingUnifier unif(oracle);
 
-  if (!unif.unify(lhs, LEFT_BANK, rhs, RIGHT_BANK, /*fixedPointIteration=*/true)) {
+  if (!unif.unify(lhs, LEFT_BANK, rhs, RIGHT_BANK, /*fixedPointIteration=*/false)) {
     std::cout << std::endl;
     std::cout << "does not FO unify: " << lhs << " != " << rhs << std::endl;
     ASSERTION_VIOLATION;
@@ -134,7 +134,7 @@ void testUnifyFail(TermList lhs, TermList rhs) {
   AbstractingUnifier unif(oracle);
 
   // we require the term to at least FO unify, maybe with abstraction
-  if (!unif.unify(lhs, LEFT_BANK, rhs, RIGHT_BANK, /*fixedPointIteration=*/true)) {
+  if (!unif.unify(lhs, LEFT_BANK, rhs, RIGHT_BANK, /*fixedPointIteration=*/false)) {
     std::cout << std::endl;
     std::cout << "expected to FO unify: " << lhs << " != " << rhs << std::endl;
     ASSERTION_VIOLATION;
