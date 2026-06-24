@@ -268,30 +268,26 @@ Option<AbstractionOracle::AbstractionResult> hol(AbstractingUnifier* au, TermSpe
   }
 
   if (funcExt) {
-    auto sort = t1.sort();
-    if (t1.sort().term.isExtensionalSort()) {
-      return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, sort))));
+    if (t1.sort().term.isExtensionalSort() && (t1.term.isLambdaTerm() || t2.term.isLambdaTerm())) {
+      return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, t1.sort()))));
     }
   }
 
   // TODO deal with lambdas
   if (t1.term.isLambdaTerm() || t2.term.isLambdaTerm()) {
-    auto sort = t1.sort();
-    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, sort))));
+    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, t1.sort()))));
   }
 
   auto h1 = appHead(au, t1);
   auto h2 = appHead(au, t2);
   if (h1.isNone() || h2.isNone()) {
-    auto sort = t1.sort();
-    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, sort))));
+    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, t1.sort()))));
   }
   DEBUG_UNIFY(0, "app heads ", h1, ", ", h2);
 
   // we abstract flex-rigid and flex-flex pairs
   if (h1->isVar() || h2->isVar()) {
-    auto sort = t1.sort();
-    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, sort))));
+    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, t1.sort()))));
   }
 
   // they cannot be DB indices as we are not dealing with lambdas
