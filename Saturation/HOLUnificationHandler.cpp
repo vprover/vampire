@@ -42,42 +42,99 @@ bool isHOLUnificationConstraint(Literal* lit)
 HOLUnificationHandler::HOLUnificationHandler(const Options& opt)
 : _kNumIter(opt.holUnifierIterations()) { ASS(_kNumIter); }
 
-Clause* HOLUnificationHandler::handleClause(Clause* cl)
+void HOLUnificationHandler::handleClause(Clause* cl, bool adding)
 {
   ASS(cl->length());
   ASS(cl->numSelected());
 
-  LiteralStack lits;
-  auto def_units = UnitList::empty();
+  for (unsigned i = 0; i < cl->numSelected(); i++) {
 
-  for (unsigned i = 0; i < cl->length(); i++) {
+    // check if definition
     auto lit = (*cl)[i];
-
-    // only replace selected literals that are HOL unification constraints
-    if (i < cl->numSelected() && isHOLUnificationConstraint(lit)) {
-      // first unification constraint, push all previous literals
-      if (lits.isEmpty()) {
-        for (unsigned j = 0; j < i; j++) { lits.push((*cl)[j]); }
-      }
-      auto [replLit, def] = introduceDefinition(lit);
-      lits.push(replLit);
-      UnitList::push(def, def_units);
+    if (lit->isPositive()) {
       continue;
     }
+    auto [lhs,rhs] = lit->eqArgs();
+    auto lhsh = lhs.head();
+    auto rhsh = rhs.head();
+    unsigned fn;
+    unsigned* ptr;
+    if (lhsh.isTerm() && _fnCnts.find(lhsh.term()->functor())) {
+      fn = lhsh.term()->functor();
+      ASS_EQ(rhs, HOL::create::bottom());
+    } else if (rhsh.isTerm() && _fnCnts.find(rhsh.term()->functor())) {
+      fn = rhsh.term()->functor();
+      ASS_EQ(lhs, HOL::create::bottom());
+    } else {
+      continue;
+    }
+    ptr = _fnCnts.findPtr(fn);
+    ASS(ptr);
 
-    // We started filling the stack, add all literals to it
-    if (lits.isNonEmpty()) {
-      lits.push(lit);
+    if (adding) {
+      if (*ptr == 0) {
+        for (unsigned i = 0; i < _frozen.size(); i++) {
+          if (fn != _frozen[i]._fn) {
+            continue;
+          }
+          _todo.push(_frozen.swapRemove(i));
+          break;
+          // TODO maybe check here that there is exactly one such Unifier object
+        }
+      }
+      (*ptr)++;
+    } else {
+      if (*ptr == 1) {
+        for (unsigned i = 0; i < _todo.size(); i++) {
+          if (fn != _todo[i]._fn) {
+            continue;
+          }
+          _frozen.push(_todo.swapRemove(i));
+          break;
+          // TODO maybe check here that there is exactly one such Unifier object
+        }
+      }
+      (*ptr)--;
     }
   }
-
-  if (lits.isNonEmpty()) {
-    ASS(def_units);
-    UnitList::push(cl, def_units);
-    return Clause::fromStack(lits, NonspecificInferenceMany(InferenceRule::HOL_UNIFIER_ELIMINATION, def_units));
-  }
-  return cl;
 }
+
+// Clause* HOLUnificationHandler::handleClause(Clause* cl)
+// {
+//   ASS(cl->length());
+//   ASS(cl->numSelected());
+
+//   LiteralStack lits;
+//   auto def_units = UnitList::empty();
+
+//   for (unsigned i = 0; i < cl->length(); i++) {
+//     auto lit = (*cl)[i];
+
+//     // only replace selected literals that are HOL unification constraints
+//     if (i < cl->numSelected() && isHOLUnificationConstraint(lit)) {
+//       // first unification constraint, push all previous literals
+//       if (lits.isEmpty()) {
+//         for (unsigned j = 0; j < i; j++) { lits.push((*cl)[j]); }
+//       }
+//       auto [replLit, def] = introduceDefinition(lit);
+//       lits.push(replLit);
+//       UnitList::push(def, def_units);
+//       continue;
+//     }
+
+//     // We started filling the stack, add all literals to it
+//     if (lits.isNonEmpty()) {
+//       lits.push(lit);
+//     }
+//   }
+
+//   if (lits.isNonEmpty()) {
+//     ASS(def_units);
+//     UnitList::push(cl, def_units);
+//     return Clause::fromStack(lits, NonspecificInferenceMany(InferenceRule::HOL_UNIFIER_ELIMINATION, def_units));
+//   }
+//   return cl;
+// }
 
 ClauseStack HOLUnificationHandler::iterate(bool& terminated)
 {
@@ -184,7 +241,9 @@ std::pair<Literal*,Unit*> HOLUnificationHandler::introduceDefinition(Literal* li
       std::cout << "[HOL] introduced definition " << def->toString() << std::endl;
     }
 
-    _todo.emplace(nlit, defeq, r.nextVar());
+    ALWAYS(_fnCnts.insert(f, 0));
+
+    _frozen.emplace(f, nlit, defeq, r.nextVar());
 
     *def_ptr = { f, def_u };
   }

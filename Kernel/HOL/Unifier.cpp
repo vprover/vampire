@@ -25,8 +25,8 @@ namespace HOL {
 
 // Unifier
 
-Unifier::Unifier(Literal* lit, Literal* def, unsigned nextVar)
-  : _lit(lit), _def(def), _todo({ new UnificationNode({ UnificationNode::Constraint(lit->termArg(0), lit->termArg(1), lit->eqArgSort()) }, nextVar ) }) {}
+Unifier::Unifier(unsigned fn, Literal* lit, Literal* def, unsigned nextVar)
+  : _fn(fn), _lit(lit), _def(def), _todo({ new UnificationNode({ UnificationNode::Constraint(lit->termArg(0), lit->termArg(1), lit->eqArgSort()) }, nextVar ) }) {}
 
 bool Unifier::iterate(LiteralStack& solution)
 {

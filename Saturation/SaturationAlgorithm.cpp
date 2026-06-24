@@ -293,6 +293,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   }
   if (opt.holUnifier()) {
     _holUnificationHandler = new HOLUnificationHandler(_opt);
+    _holUnificationHandler->attachContainer(_active);
   }
 
   _partialRedundancyHandler.reset(PartialRedundancyHandler::create(opt, _ordering.ptr(), _splitter));

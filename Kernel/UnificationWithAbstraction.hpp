@@ -17,7 +17,6 @@
 #define __AbstractionOracle__
 
 #include "Forwards.hpp"
-#include "Saturation/HOLUnificationHandler.hpp"
 #include "Term.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Option.hpp"
@@ -191,25 +190,7 @@ public:
   }
 
   UnificationConstraintStack& constr() { return *_constr; }
-  std::pair<Recycled<Stack<Literal*>>, Recycled<Stack<Unit*>>> computeConstraintLiterals(Saturation::HOLUnificationHandler* holHandler = nullptr) {
-    if (!holHandler) {
-      return { _constr->literals(*_subs), Recycled<Stack<Unit*>>() };
-    }
-    RStack<Literal*> res;
-    RStack<Unit*> res2;
-    // TODO for some reason the stack is empty if I use it as an rvalue in the loop
-    auto lits = _constr->literals(*_subs);
-    for (const auto& lit : *lits) {
-      if (lit->isFlexFlexConstraint()) {
-        res->push(lit);
-        continue;
-      }
-      auto [cons, def] = holHandler->introduceDefinition(lit);
-      res->push(cons);
-      res2->push(def);
-    }
-    return { std::move(res), std::move(res2) };
-  }
+  std::pair<Recycled<Stack<Literal*>>, Recycled<Stack<Unit*>>> computeConstraintLiterals(Saturation::HOLUnificationHandler* holHandler = nullptr);
   unsigned maxNumberOfConstraints() { return _constr->maxNumberOfConstraints(); }
 
   RobSubstitution      & subs()       { return *_subs; }

@@ -23,6 +23,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Debug/TimeProfiling.hpp"
 
+#include "Saturation/HOLUnificationHandler.hpp"
 
 #include "Forwards.hpp"
 #include "Signature.hpp"
@@ -1546,6 +1547,25 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
   return success;
 }
 
-
+std::pair<Recycled<Stack<Literal*>>, Recycled<Stack<Unit*>>> AbstractingUnifier::computeConstraintLiterals(Saturation::HOLUnificationHandler* holHandler)
+{
+  if (!holHandler) {
+    return { _constr->literals(*_subs), Recycled<Stack<Unit*>>() };
+  }
+  RStack<Literal*> res;
+  RStack<Unit*> res2;
+  // TODO for some reason the stack is empty if I use it as an rvalue in the loop
+  auto lits = _constr->literals(*_subs);
+  for (const auto& lit : *lits) {
+    if (lit->isFlexFlexConstraint()) {
+      res->push(lit);
+      continue;
+    }
+    auto [cons, def] = holHandler->introduceDefinition(lit);
+    res->push(cons);
+    res2->push(def);
+  }
+  return { std::move(res), std::move(res2) };
+}
 
 

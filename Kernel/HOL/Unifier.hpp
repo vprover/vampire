@@ -76,17 +76,19 @@ private:
 };
 
 struct Unifier {
-  Unifier(Literal* lit, Literal* def, unsigned nextVar);
+  Unifier(unsigned fn, Literal* lit, Literal* def, unsigned nextVar);
 
   // does one iteration, returns true if finished
   bool iterate(LiteralStack& solution);
 
+  unsigned _fn;
   Literal* _lit;
   Literal* _def;
 private:
   LiteralStack extractSolution(const UnificationNode* node) const;
   bool checkSolution(const UnificationNode* node, const LiteralStack& ffPairs) const;
 
+  // TODO use deque
   Stack<UnificationNode*> _todo;
 };
 

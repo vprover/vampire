@@ -19,17 +19,19 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/Stack.hpp"
 #include "Kernel/HOL/Unifier.hpp"
+#include "Indexing/Index.hpp"
 
 using namespace Kernel;
 using namespace Shell;
 
 namespace Saturation {
 
-class HOLUnificationHandler {
+class HOLUnificationHandler : public Indexing::Index {
 public:
   HOLUnificationHandler(const Options& opt);
 
-  Clause* handleClause(Clause* cl);
+  // Clause* handleClause(Clause* cl);
+  void handleClause(Clause* cl, bool adding) override;
   ClauseStack iterate(bool& terminated);
   std::pair<Literal*,Unit*> introduceDefinition(Literal* lit);
 
@@ -42,11 +44,13 @@ private:
   };
   DHMap<Literal*, UCDef> _litToDefMap;
 
-  // TODO use deque
   Stack<HOL::Unifier> _todo;
+  Stack<HOL::Unifier> _frozen;
   Stack<HOL::Unifier> _solved;
 
   unsigned _index = 0;
+
+  DHMap<unsigned, unsigned> _fnCnts;
 
   const unsigned _kNumIter;
 };
