@@ -2151,10 +2151,12 @@ void Options::init()
     _iffXorRewriter.addProblemConstraint(hasHigherOrder());
     _iffXorRewriter.tag(OptionTag::HIGHER_ORDER);
 
-    _holUnifier = BoolOptionValue("hol_unifier", "hun", false);
+    _holUnifier = BoolOptionValue("hol_unifier", "hun", true);
     _holUnifier.description = "Enable efficient HOL unification";
     _lookup.insert(&_holUnifier);
-    _holUnifier.addHardConstraint(If(equal(true)).then(_unificationWithAbstraction.is(equal(UnificationWithAbstraction::HOL))));
+    _holUnifier.addHardConstraint(If(equal(true)).then(Or(
+      _unificationWithAbstraction.is(equal(UnificationWithAbstraction::HOL)),
+      _unificationWithAbstraction.is(equal(UnificationWithAbstraction::AUTO)))));
     _holUnifier.tag(OptionTag::HIGHER_ORDER);
 
     _holUnifierIterations = UnsignedOptionValue("hol_unifier_iterations", "huni", 10);
