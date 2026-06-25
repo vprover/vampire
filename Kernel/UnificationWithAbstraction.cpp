@@ -298,6 +298,10 @@ Option<AbstractionOracle::AbstractionResult> hol(AbstractingUnifier* au, TermSpe
   if (h1->functor() != h2->functor()) {
     return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
   }
+  // if they are simple terms, we cannot make progress here, so unify normally
+  if (!t1.term.isApplication() || !t2.term.isApplication()) {
+    return Option<AbstractionOracle::AbstractionResult>();
+  }
   // otherwise decompose application normally
   Stack<UnificationConstraint> unifs;
   unifs.emplace(*h1, *h2, h1->sort());
