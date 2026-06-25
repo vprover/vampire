@@ -50,7 +50,7 @@ using namespace Test;
 void testUnifier(Literal* constraint, Literal* def, Stack<LiteralStack> expected)
 {
   unsigned nextVar = iterTraits(VariableIterator(constraint)).map([](auto t){ return t.var(); }).max().unwrapOr(0)+1;
-  HOL::Unifier unifier(constraint, def, nextVar);
+  HOL::Unifier unifier(def->functor(), constraint, def, nextVar);
 
   for (unsigned i = 0; i < expected.size(); i++) {
     LiteralStack solution;

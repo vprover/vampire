@@ -15,11 +15,12 @@
 #ifndef __HOL_Unifier__
 #define __HOL_Unifier__
 
+#include <deque>
+
 #include "Forwards.hpp"
 #include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Kernel/RobSubstitution.hpp"
-#include "Lib/Stack.hpp"
 
 using namespace Kernel;
 using namespace Shell;
@@ -88,8 +89,7 @@ private:
   LiteralStack extractSolution(const UnificationNode* node) const;
   bool checkSolution(const UnificationNode* node, const LiteralStack& ffPairs) const;
 
-  // TODO use deque
-  Stack<UnificationNode*> _todo;
+  std::deque<UnificationNode*> _todo;
 };
 
 /**

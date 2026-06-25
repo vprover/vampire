@@ -32,27 +32,28 @@ bool Unifier::iterate(LiteralStack& solution)
 {
   ASS(solution.isEmpty());
 
-  if (_todo.isEmpty()) {
+  if (_todo.empty()) {
     return true; // finished
   }
 
-  auto curr = _todo.pop();
+  auto curr = _todo.front();
+  _todo.pop_front();
   DEBUG("curr ", *curr);
 
   auto children = curr->solve();
   if (children.isNone()) {
     // node finished without solution
-    return _todo.isEmpty();
+    return _todo.empty();
   }
 
   if (children->isNonEmpty()) {
     for (const auto& child : *children) {
-      _todo.push(child);
+      _todo.push_back(child);
     }
   } else {
     solution = extractSolution(curr);
   }
-  return _todo.isEmpty();
+  return _todo.empty();
 }
 
 struct IdempotentSubs {
