@@ -258,7 +258,12 @@ Option<AbstractionOracle::AbstractionResult> hol(AbstractingUnifier* au, TermSpe
   DEBUG_UNIFY(0, "hol uwa unifying ", t1, " =?= ", t2, " w.r.t. ", *au);
 
   // these come from failed occurs checks, do not abstract
-  if (t1.isVar() || t2.isVar() || t1.isSort() || t2.isSort()) {
+  if (t1.isVar() || t2.isVar()) {
+    return Option<AbstractionOracle::AbstractionResult>();
+  }
+
+  // sorts should be unified as usual
+  if (t1.isSort() || t2.isSort()) {
     return Option<AbstractionOracle::AbstractionResult>();
   }
 
@@ -296,15 +301,24 @@ Option<AbstractionOracle::AbstractionResult> hol(AbstractingUnifier* au, TermSpe
   // otherwise decompose application normally
   Stack<UnificationConstraint> unifs;
   unifs.emplace(*h1, *h2, h1->sort());
+  DEBUG_UNIFY(0, "decomposing ", t1, " (", t1.sort(), ") ", t2, " (", t2.sort(), ")");
   while (t1.term.isApplication()) {
-    ASS(t2.term.isApplication());
+    // This check imitates normal unification of applications, because for some reason there
+    // can be different number of applications with the same head (i.e. different sorts).
+    // TODO(HOL): find out what causes this and try to eliminate this check
+    if (!t2.term.isApplication()) {
+      return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
+    }
+    unifs.emplace(t1.termArg(1), t2.termArg(1), t1.typeArg(0));
     unifs.emplace(t1.typeArg(0), t2.typeArg(0), TermSpec(AtomicSort::superSort(), 0));
     unifs.emplace(t1.typeArg(1), t2.typeArg(1), TermSpec(AtomicSort::superSort(), 0));
-    unifs.emplace(t1.termArg(1), t2.termArg(1), t1.typeArg(0));
     t1 = au->subs().derefBound(t1.termArg(0));
     t2 = au->subs().derefBound(t2.termArg(0));
   }
-  ASS(!t2.term.isApplication());
+  // TODO(HOL): same as inside the loop
+  if (t2.term.isApplication()) {
+    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
+  }
   ASS_EQ(*h1, t1);
   ASS_EQ(*h2, t2);
   return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().unifyAll(unifs.iter())));
