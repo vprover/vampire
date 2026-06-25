@@ -21,7 +21,10 @@ literal_atom(L, A) => L = A.
 
 % does a formula contain an atom?
 contains_atom(A, !_: F) => contains_atom(A, F).
+contains_atom(A, ?_: F) => contains_atom(A, F).
+contains_atom(A, F & G) => contains_atom(A, F) ; contains_atom(A, G).
 contains_atom(A, F | G) => contains_atom(A, F) ; contains_atom(A, G).
+contains_atom(A, F => G) => contains_atom(A, F) ; contains_atom(A, G).
 contains_atom(A, ~F) => contains_atom(A, F).
 contains_atom(A, L != R) => A = (L = R).
 contains_atom(_, $false) => fail.
@@ -89,11 +92,15 @@ replace_under(From, To, S, T, C) :-
  ********************************************************************************/
 
 lp(~A) => format("¬ ~@", [lp(A)]).
-lp(L = R) => format("~@ = ~@", [lp(L), lp(R)]).
-lp(L != R) => format("π (~@ ≠ ~@)", [lp(L), lp(R)]).
+lp(L != R) => format("(~@ ≠ ~@)", [lp(L), lp(R)]).
+lp(L = R) => format("(~@ = ~@)", [lp(L), lp(R)]).
 lp(L | R) => format("(~@)", [lp_disj(L | R)]).
+lp(L & R) => format("(~@)", [lp_conj(L & R)]).
+lp(L => R) => format("(~@ ⇒ ~@)", [lp(L), lp(R)]).
 lp(![]: F) => lp(F).
 lp(![X|Xs]: F) => format("`∀ ~@, ~@", [lp_binder(X), lp(!Xs: F)]).
+lp(?[]: F) => lp(F).
+lp(?[X|Xs]: F) => format("`∃ ~@, ~@", [lp_binder(X), lp(?Xs: F)]).
 lp(τ(X)) => format("τ ~@", [lp(X)]).
 lp(Domain > Range) => format("~@ → ~@", [lp(Domain), lp(Range)]).
 lp(X * Y) => format("~@ → ~@", [lp(X), lp(Y)]).
@@ -104,6 +111,8 @@ lp('$VAR'(N)) => format("x~d", [N]).
 % named literals
 lp('$LIT'(N)) => format("l~w", [N]).
 lp('$LIT'(N)-_) => format("l~w", [N]).
+% references to input facts
+lp('$INPUT'(Input)) => format("input_~w", [Input]).
 % inference steps that failed to reconstruct for some reason
 lp('$FAILED'(Step)) => format("begin { admit } end; // ~p", [Step]).
 % general terms
@@ -111,6 +120,11 @@ lp(T), nonvar(T) =>
   T =.. [F|Args],
   ( Args == [], !, format("~w", [F])
   ; format("(~w~@)", [F, maplist(space_then_lp, Args)])).
+
+% associative operators
+lp_conj((L1 & L2) & R) => lp_conj(L1 | L2 | R).
+lp_conj(L & R) => format("~@ ∧ ~@", [lp(L), lp_conj(R)]).
+lp_conj(F) => lp(F).
 
 % disjunctions
 lp_disj((L1 | L2) | R) => lp_disj(L1 | L2 | R).
@@ -217,18 +231,6 @@ rewrite_literal_back(From, To, EqTerm, Qs, After, Proof) :-
  * Proof printing
  ********************************************************************************/
 
-prove_clause(_, _, _, input(Input), _), proved(Input) => true.
-prove_clause(Name, _, _, input(Input), Proof) =>
-  assert(proved(Input)),
-  Proof = '$FAILED'(input(Input)), % TODO CNF conversion
-  step(Name, F, _),
-  numbervars(F),
-  format("symbol axiom_~w : π ~@;\n", [Input, lp(F)]).
-prove_clause(_, _, _, Record, Proof) =>
-  Proof = '$FAILED'(Record),
-  Record =.. [_|Parents],
-  maplist(prove_clause, Parents).
-
 % reconstruct and print a single clausal proof step
 prove_clause(Name) :- proved(Name), !.
 prove_clause(Name) :-
@@ -239,12 +241,45 @@ prove_clause(Name) :-
   enumerate_literals(C, Ls),
   prove_clause(Name, Xs, Ls, Record, Proof),
   format("symbol ~w : ~@ ≔ ~@;\n", [Name, lp_clause(Xs, C), lp(Proof)]).
-/*
-  prove(!Xs: Ls, Record, Proof),
-  % fill_remaining_variables(Xs, Proof),
-  % simplify(Proof, Simplified),
-  format("~@;\n", [lp(Proof)]).
-*/
+
+prove_clause(Name, _, _, input(Input), Proof) =>
+  Proof = '$FAILED'(input(Input)), % TODO CNF conversion
+  step(Name, F, _),
+  numbervars(F),
+  format("symbol input_~w : π ~@;\n", [Input, lp(F)]).
+prove_clause(_, _, _, cnf_transformation(Parent), Proof) =>
+  Proof ='$FAILED'(cnf_transformation(Parent)),
+  prove_formula(Parent).
+prove_clause(_, _, _, Record, Proof) =>
+  Proof = '$FAILED'(Record),
+  Record =.. [_|Parents],
+  maplist(prove_clause, Parents).
+
+% reconstruct and print a single non-clausal proof step
+prove_formula(Name) :- proved(Name), !.
+prove_formula(Name) :-
+  assert(proved(Name)),
+  step(Name, F, Record),
+  numbervars(F),
+  prove_formula(Name, F, Record, Proof),
+  format("symbol ~w : π ~@ ≔ ~@;\n", [Name, lp(F), lp(Proof)]).
+
+prove_formula(_, _, input(Input), _), proved(Input) => true.
+prove_formula(Name, _, input(Input), Proof) =>
+  Proof = '$INPUT'(Input),
+  step(Name, F, _),
+  numbervars(F),
+  format("symbol input_~w : π ~@;\n", [Input, lp(F)]).
+prove_formula(_, _, negated_conjecture(Conjecture), Proof) =>
+  step(Conjecture, F, input(Input)),
+  Proof = '$INPUT'(Input),
+  numbervars(F),
+  format("symbol input_~w : π ¬ ~@;\n", [Input, lp(F)]).
+
+prove_formula(_, _, Record, Proof) =>
+  Proof = '$FAILED'(Record),
+  Record =.. [_|Parents],
+  maplist(prove_formula, Parents).
 
 /********************************************************************************
  * Preprocessing and the main loop
@@ -255,8 +290,6 @@ process_inference(file(_, Name), input(Name)).
 process_inference(inference(Rule, _, Premises), Record) :- Record =.. [Rule|Premises].
 
 % insert proof steps into our own records as input(Name, Formula, Record) triples
-% conjectures get ignored as the negated conjecture will show up
-load(_, conjecture, _, _) => true.
 load(Name, _, Formula, Inference) =>
   % clean up a bit
   process_inference(Inference, Record),
@@ -285,6 +318,7 @@ print_prelude :-
 require open Stdlib.Set;
 require open Stdlib.Prop;
 require open Stdlib.FOL;
+require open Stdlib.Eq;
 // TODO should be provided by Set?
 constant symbol ι: Set;
 
