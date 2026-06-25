@@ -237,11 +237,6 @@ bool AbstractionOracle::canAbstract(AbstractingUnifier* au, TermSpec const& t1, 
 
 Option<TermSpec> appHead(AbstractingUnifier* au, TermSpec t)
 {
-  // contains the @ arguments, innermost on top
-  Stack<TermSpec> args;
-  // contains the substituted arguments inside lambdas, the innermost on top
-  Stack<TermSpec> subst;
-
   for (;;) {
     t = au->subs().derefBound(t);
     // we don't deal with lambdas yet
@@ -258,17 +253,17 @@ Option<TermSpec> appHead(AbstractingUnifier* au, TermSpec t)
   return some(t);
 }
 
-Option<AbstractionOracle::AbstractionResult> hol(AbstractingUnifier* au, TermSpec const& t1, TermSpec const& t2, bool funcExt)
+Option<AbstractionOracle::AbstractionResult> hol(AbstractingUnifier* au, TermSpec t1, TermSpec t2, bool funcExt)
 {
   DEBUG_UNIFY(0, "hol uwa unifying ", t1, " =?= ", t2, " w.r.t. ", *au);
 
   // these come from failed occurs checks, do not abstract
-  if (t1.isVar() || t2.isVar()) {
+  if (t1.isVar() || t2.isVar() || t1.isSort() || t2.isSort()) {
     return Option<AbstractionOracle::AbstractionResult>();
   }
 
   if (funcExt) {
-    if (t1.sort().term.isExtensionalSort() && (t1.term.isLambdaTerm() || t2.term.isLambdaTerm())) {
+    if (t1.sort().term.isExtensionalSort()) {
       return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, t1.sort()))));
     }
   }
@@ -298,8 +293,21 @@ Option<AbstractionOracle::AbstractionResult> hol(AbstractingUnifier* au, TermSpe
   if (h1->functor() != h2->functor()) {
     return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
   }
-  // otherwise simply decompose normally
-  return Option<AbstractionOracle::AbstractionResult>();
+  // otherwise decompose application normally
+  Stack<UnificationConstraint> unifs;
+  unifs.emplace(*h1, *h2, h1->sort());
+  while (t1.term.isApplication()) {
+    ASS(t2.term.isApplication());
+    unifs.emplace(t1.typeArg(0), t2.typeArg(0), TermSpec(AtomicSort::superSort(), 0));
+    unifs.emplace(t1.typeArg(1), t2.typeArg(1), TermSpec(AtomicSort::superSort(), 0));
+    unifs.emplace(t1.termArg(1), t2.termArg(1), t1.typeArg(0));
+    t1 = au->subs().derefBound(t1.termArg(0));
+    t2 = au->subs().derefBound(t2.termArg(0));
+  }
+  ASS(!t2.term.isApplication());
+  ASS_EQ(*h1, t1);
+  ASS_EQ(*h2, t2);
+  return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().unifyAll(unifs.iter())));
 }
 
 Option<AbstractionOracle::AbstractionResult> funcExt(
