@@ -45,7 +45,7 @@ static std::ostream &operator<<(std::ostream &out, Split<flip> split)
   SAT::SATLiteral sat = Saturation::Splitter::getLiteralFromName(split.level);
   return out
       << (flip == sat.positive() ? "(¬" : "")
-      << "sA" << sat.var()
+      << env.options->leanProofPrefix() << "sA" << sat.var()
       << (flip == sat.positive() ? ")" : "");
 }
 
@@ -139,7 +139,7 @@ struct Lit {
   SortMap &otherSorts;
 };
 
-void printLiteral(std::ostream &out, Lit lit, bool variablesAsPattern = false);
+void printLiteral(std::ostream &out, Lit lit, bool variablesAsPattern = false, bool flipForPrinting = false);
 
 std::ostream &operator<<(std::ostream &out, Lit lit);
 

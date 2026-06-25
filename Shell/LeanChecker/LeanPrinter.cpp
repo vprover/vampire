@@ -24,8 +24,13 @@ std::ostream &operator<<(std::ostream &out, Escaped escaped)
 std::ostream &operator<<(std::ostream &out, FunctionName name)
 {
   auto f = name.symbol;
-  if (!f->interpreted())
-    return out << Escaped{f->name().c_str()};
+  if (!f->interpreted()){
+    if(f->introduced()){
+      return out << Escaped{(env.options->leanProofPrefix() + f->name()).c_str()};
+    } else { 
+      return out << Escaped{f->name().c_str()};
+    }
+  }
   if (f->integerConstant())
     return out << SMTNumeral<false>{f->integerValue()};
   if (f->rationalConstant()) {
@@ -198,8 +203,13 @@ bool isInfix(const Signature::InterpretedSymbol *sym)
 std::ostream &operator<<(std::ostream &out, PredicateName name)
 {
   auto p = name.symbol;
-  if (!p->interpreted())
-    return out << Escaped{p->name().c_str()};
+  if (!p->interpreted()){
+    if(p->introduced()){
+      return out << Escaped{(env.options->leanProofPrefix() + p->name()).c_str()};
+    } else { 
+      return out << Escaped{p->name().c_str()};
+    }
+  }
   auto *interpreted = static_cast<Signature::InterpretedSymbol *>(p);
   switch (interpreted->getInterpretation()) {
     case Theory::EQUAL:
@@ -264,6 +274,7 @@ void printArgs(std::ostream &out, Args args, bool variablesAsPattern, bool recur
       if (name.symbol->interpreted()) {
         auto interpreted = static_cast<Signature::InterpretedSymbol *>(name.symbol);
         if (isInfix(interpreted) && term->arity() == 2) {
+          
           current = const_cast<TermList *>(term->termArgs());
           out << "(";
           printArgs(out, Args{current, args.conclSorts, args.otherSorts}, variablesAsPattern, false);
@@ -324,7 +335,7 @@ std::ostream &operator<<(std::ostream &out, Args args)
   return out;
 }
 
-void printLiteral(std::ostream &out, Lit lit, bool variablesAsPattern)
+void printLiteral(std::ostream &out, Lit lit, bool variablesAsPattern, bool flipForPrinting)
 {
   Literal *literal = lit.literal;
   PredicateName name(literal);
@@ -347,9 +358,14 @@ void printLiteral(std::ostream &out, Lit lit, bool variablesAsPattern)
     }
     if (isInfix(interpreted) && literal->arity() == 2) {
       TermList *current = literal->args();
-      printArgs(out, Args{current, lit.conclSorts, lit.otherSorts}, variablesAsPattern, true);
+      auto left = *current;
+      auto right = *current->next();
+      if(flipForPrinting){
+        std::swap(left, right);
+      }
+      printArgs(out, Args{&left, lit.conclSorts, lit.otherSorts}, variablesAsPattern, true);
       out << name;
-      printArgs(out, Args{current->next(), lit.conclSorts, lit.otherSorts}, variablesAsPattern, true);
+      printArgs(out, Args{&right, lit.conclSorts, lit.otherSorts}, variablesAsPattern, true);
     }
     else {
       out << name;
@@ -423,8 +439,11 @@ void printFormula(std::ostream &out, Formula *f, SortMap &conclSorts, SortMap &o
 {
   switch (f->connective()) {
     case LITERAL:
-      printLiteral(out, Lit{f->literal(), conclSorts, otherSorts}, variablesAsPattern);
+    {
+      auto af = static_cast<AtomicFormula*>(f);
+      printLiteral(out, Lit{f->literal(), conclSorts, otherSorts}, variablesAsPattern, af->flipForPrinting);
       break;
+    }
     case AND: 
     case OR: {
       out << "(";

@@ -89,15 +89,20 @@ Clause *InferenceReplayer::runGenerating(GeneratingInferenceEngine *rule,
   Problem p;
   auto ul = UnitList::empty();
   UnitList::pushFromIterator(ClauseStack::Iterator(context), ul);
+  
   p.addUnits(ul);
 
   env.setMainProblem(&p);
 
   auto activeContainer = alg->getActiveClauseContainer();
+  std::set<int> addedClauses;
   for (auto c : context) {
     c->setStore(Clause::ACTIVE);
     c->setAge(0);
-    activeContainer->add(c);
+    if(addedClauses.find(c->number()) == addedClauses.end()) {
+      activeContainer->add(c);
+    }
+    addedClauses.insert(c->number());
   }
   auto clauses = activeContainer->clauses();
   auto res = rule->generateSimplify(context[0]);

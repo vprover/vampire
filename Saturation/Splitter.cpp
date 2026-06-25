@@ -624,7 +624,7 @@ std::string Splitter::getFormulaStringFromName(SplitLevel compName, bool negated
 
 std::string Splitter::getFormulaStringFromLiteral(SATLiteral lit) {
   if(env.options->proof()==Options::Proof::LEANCHECK){
-     return std::string((lit.positive() ? "" : "¬")) + "sA" + Lib::Int::toString(lit.var());
+     return std::string((lit.positive() ? "" : "¬")) + env.options->leanProofPrefix() + "sA" + Lib::Int::toString(lit.var());
   }
   if (lit.positive()) {
     return splPrefix+Lib::Int::toString(lit.var());

@@ -11,6 +11,7 @@
  * @file vampire.cpp. Implements the top-level procedures of Vampire.
  */
 
+#include "Shell/LeanChecker/LeanPrinter.hpp"
 #include <iostream>
 #include <ostream>
 
@@ -54,6 +55,7 @@
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
 #include "Shell/SineUtils.hpp"
+#include "Shell/LeanChecker/LeanChecker.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -451,6 +453,35 @@ void axiomSelectionMode(Problem* problem)
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 }
 
+void translateMode(Problem* problem)
+{
+  std::cout << "% BEGIN Variable Declarations\n";
+  LeanChecker::outputSignature(std::cout); 
+  std::cout << "% END Variable Declarations\n"; 
+  SortMap conclSorts;
+  std::cout << "% BEGIN Input Formulas\n"; 
+  for (auto unit : iterTraits(problem->units()->iter())) {
+    conclSorts.reset();
+    auto unitToPrint = unit;
+    if(unit->inference().rule() != InferenceRule::INPUT) {
+      if (unit->inference().rule() == InferenceRule::NEGATED_CONJECTURE) {
+        unitToPrint = unit->getParents().next();
+      }
+      if(unitToPrint->inference().rule() == InferenceRule::REORIENT_EQUATIONS) {
+        unitToPrint = unitToPrint->getParents().next();
+      }
+    }
+    std::string str;
+    Parse::TPTP::findAxiomName(unitToPrint, str); 
+    std::cout << "% " << str << "%" << unitToPrint->inference().name() << "\n";
+    Formula* f = unitToPrint->getFormula();
+    SortHelper::collectVariableSorts(f, conclSorts);
+    LeanPrinter::printFormula(std::cout, f, conclSorts, conclSorts, /*variablesAsPattern=*/false);
+    std::cout << "\n";
+  }
+  std::cout << "% END Input Formulas\n"; 
+}
+
 void dispatchByMode(Problem* problem)
 {
   switch (env.options->mode())
@@ -548,8 +579,13 @@ void dispatchByMode(Problem* problem)
   case Options::Mode::TPREPROCESS:
     preprocessMode(problem,true);
     break;
+  case Options::Mode::TRANSLATE:
+    translateMode(problem);
+    break;
   }
 }
+
+
 
 void interactiveMetamode()
 {

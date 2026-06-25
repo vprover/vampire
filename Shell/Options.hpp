@@ -388,6 +388,7 @@ public:
     SPIDER,
     TCLAUSIFY,
     TPREPROCESS,
+    TRANSLATE,
     VAMPIRE
   };
 
@@ -587,6 +588,16 @@ public:
     SMTCHECK = 6,
     LEANCHECK = 7
   };
+
+  enum class TranslationMode : unsigned int {
+    SIGNATURE = 0,
+  };
+
+  enum class WhichVariablesToOutput : unsigned int {
+    ALL = 0,
+    INTRODUCED_ONLY = 1,
+  };
+
 
   /** Values for --equality_proxy */
   enum class EqualityProxy : unsigned int {
@@ -2328,6 +2339,11 @@ public:
   bool positiveExtensionality() const { return _positiveExt.actualValue; }
   bool iffXorRewriter() const { return _iffXorRewriter.actualValue; }
 
+  std::string leanProofPrefix() const { return _leanProofPrefix.actualValue; }
+  TranslationMode translationMode() const { return _translationMode.actualValue; }
+  WhichVariablesToOutput whichVariablesToOutput() const { return _whichVariablesToOutput.actualValue; }
+
+
 private:
 
     /**
@@ -2768,6 +2784,10 @@ private:
   BoolOptionValue _newTautologyDel;
   BoolOptionValue _positiveExt;
   BoolOptionValue _iffXorRewriter;
+
+  StringOptionValue _leanProofPrefix;
+  ChoiceOptionValue<TranslationMode> _translationMode;
+  ChoiceOptionValue<WhichVariablesToOutput> _whichVariablesToOutput;
 
 }; // class Options
 

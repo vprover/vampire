@@ -134,6 +134,7 @@ void Options::init()
                                         "spider",
                                         "tclausify",
                                         "tpreprocess",
+                                        "translate",
                                         "vampire"});
     _mode.description=
     "Select the mode of operation. Choices are:\n"
@@ -2498,6 +2499,19 @@ void Options::init()
     _symbolPrecedenceBoost.tag(OptionTag::SATURATION);
     _lookup.insert(&_symbolPrecedenceBoost);
 
+    _leanProofPrefix = StringOptionValue("lean_proof_prefix","lpp","");
+    _leanProofPrefix.description = "Prefix for lean theorems in proofs.";
+    _lookup.insert(&_leanProofPrefix);
+
+    _translationMode = ChoiceOptionValue<TranslationMode>("translation_mode","tm",TranslationMode::SIGNATURE,
+                                              {"Signature"});
+    _translationMode.description = "Determines how the input problem is translated to the output format";
+    _lookup.insert(&_translationMode);
+
+    _whichVariablesToOutput = ChoiceOptionValue<WhichVariablesToOutput>("which_variables_to_output","wvo",WhichVariablesToOutput::ALL,
+                                              {"all","introduced_only"});
+    _whichVariablesToOutput.description = "Determines which variables to output in the proof output. all means all variables, introduced_only means only introduced variables.";
+    _lookup.insert(&_whichVariablesToOutput);
 
     //******************************************************************
     //*********************** Vinter???  *******************************

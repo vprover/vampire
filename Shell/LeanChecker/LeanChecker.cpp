@@ -106,10 +106,55 @@ bool LeanChecker::doesOutputSplits(const InferenceRule &rule)
   }
 }
 
+void outputPreambleClass(std::ostream &out, std::set<Signature::Symbol*>& usedFunctionSymbols, std::set<Signature::Symbol*>& usedPredicateSymbols);
+void LeanChecker::outputSignature(std::ostream &out)
+{
+  std::set<Signature::Symbol*> usedFunctionSymbols;
+  std::set<Signature::Symbol*> usedPredicateSymbols;
+
+  for(unsigned int i = 0; i < env.signature->functions(); i++){
+    if(env.signature->getFunction(i)->interpreted() || env.signature->getFunction(i)->linMul() || env.signature->getFunction(i)->introduced())
+      continue;
+    usedFunctionSymbols.insert(env.signature->getFunction(i));
+  }
+  for(unsigned int i = 0; i < env.signature->predicates(); i++){
+    if(env.signature->getPredicate(i)->interpreted() || env.signature->getPredicate(i)->introduced())
+      continue;
+    usedPredicateSymbols.insert(env.signature->getPredicate(i));
+  }
+
+  //outputPreamble(out, usedFunctionSymbols, usedPredicateSymbols);
+  outputPreambleClass(out, usedFunctionSymbols, usedPredicateSymbols);
+  out << "export Data ( ";
+  if(env.options->whichVariablesToOutput() != Options::WhichVariablesToOutput::INTRODUCED_ONLY){
+    out << SortName(env.signature->getDefaultSort()) << " inst ";
+  }
+  for (auto funSym: usedFunctionSymbols){
+    if(env.options->whichVariablesToOutput() == Options::WhichVariablesToOutput::INTRODUCED_ONLY){
+      if(funSym->introduced()){
+        out << FunctionName(funSym) << " ";
+      }
+    } else {
+      out << FunctionName(funSym) << " ";
+    }
+  }
+  for (auto predSym: usedPredicateSymbols){
+    if(env.options->whichVariablesToOutput() == Options::WhichVariablesToOutput::INTRODUCED_ONLY){
+      if(predSym->introduced()){
+        out << PredicateName(predSym) << " ";
+      }
+    } else {
+      out << PredicateName(predSym) << " ";
+    }
+  }
+  out << ")\n\n";
+}
+
 void LeanChecker::print()
 {
   std::deque<Unit*> inputPremises;
   std::deque<Unit*> negatedConjectures;
+  std::set<Unit*> conjectures;
   std::set<Signature::Symbol*> usedFunctionSymbols;
   std::set<Signature::Symbol*> usedPredicateSymbols;
   std::set<Signature::Symbol*> functionSymbolsInUsedInput;
@@ -139,10 +184,21 @@ void LeanChecker::print()
   std::set <Signature::Symbol*> unusedPredicateSymbols;
   std::set_difference(usedFunctionSymbols.begin(), usedFunctionSymbols.end(), functionSymbolsInUsedInput.begin(), functionSymbolsInUsedInput.end(), std::inserter(unusedFunctionSymbols, unusedFunctionSymbols.end()));
   std::set_difference(usedPredicateSymbols.begin(), usedPredicateSymbols.end(), predicateSymbolsInUsedInput.begin(), predicateSymbolsInUsedInput.end(), std::inserter(unusedPredicateSymbols, unusedPredicateSymbols.end()));
-
+  if(env.options->whichVariablesToOutput()!=Options::WhichVariablesToOutput::INTRODUCED_ONLY){
+    out << preambleLean << "\n";
+  }
   outputPreamble(out, usedFunctionSymbols, usedPredicateSymbols);
-  outputCumulativeSplits(proof, " ", "sA" ,"variable {", " : Prop}\n");
-
+  outputCumulativeSplits(proof, " ", env.options->leanProofPrefix() + "sA" ,"variable {", " : Prop}\n");
+  for(auto u : iterTraits(env.getMainProblem()->units()->iter())){
+      Unit* currentUnit = u;
+      if(u->inference().inputType() == UnitInputType::CONJECTURE){
+        //Go back to the original conjecture (before preprocessing)
+        while(currentUnit->getParents().hasNext()){
+          currentUnit = currentUnit->getParents().next();
+        }
+        conjectures.insert(currentUnit);
+    }
+  }
   for (Unit *u : proof) {
     if(u->inference().rule() == InferenceRule::INPUT){
       if (u->inference().inputType() != UnitInputType::CONJECTURE) {
@@ -153,27 +209,125 @@ void LeanChecker::print()
     }
     outputInferenceStep(out, u);
   }
-  outputFullProofPreamble(out, inputPremises, negatedConjectures, unusedFunctionSymbols, unusedPredicateSymbols);
+  outputFullProofPreamble(out, inputPremises, negatedConjectures, conjectures, unusedFunctionSymbols, unusedPredicateSymbols);
   for (Unit *u : proof) {
     outputProofStep(out, u);
   }
+  if(negatedConjectures.empty()){
+    if(!conjectures.empty()){
+      out << indent << "apply False.elim\n";
+    }
+  }
   out << indent << "exact " << stepIdent << (*proof.rbegin())->number() << "\n\n";
-  out << "end vamproof" << "\n";
+  
+  //out << "end vamproof" << "\n";
+}
+
+void outputPreambleClass(std::ostream &out, std::set<Signature::Symbol*>& usedFunctionSymbols, std::set<Signature::Symbol*>& usedPredicateSymbols){
+  Signature &sig = *env.signature;
+  out << "class Data where\n";
+  if(env.options->whichVariablesToOutput() != Options::WhichVariablesToOutput::INTRODUCED_ONLY){
+    out << " {" << SortName(sig.getDefaultSort()) << " : Type u}\n";
+    out << " [inst : Inhabited " << SortName(sig.getDefaultSort()) << "]\n";
+
+    for (unsigned i = Signature::FIRST_USER_CON; i < sig.typeCons(); i++) {
+      out << " {" << SortName(i) << " : Type u}\n";
+      out << " [inst : Inhabited " << SortName(i) << " ]\n";
+    }
+  }
+  std::map<OperatorType*, std::vector<Signature::Symbol*>> funMap;
+  for(auto fun : usedFunctionSymbols){
+    if(!fun->interpreted()){
+      funMap.try_emplace(fun->fnType(), std::vector<Signature::Symbol*>()).first->second.push_back(fun);
+    }
+  }
+  for (auto [type, funcs] : funMap){
+    TermList range = type->result();
+    bool willPrintVariable = false;
+    if(env.options->whichVariablesToOutput() == Options::WhichVariablesToOutput::INTRODUCED_ONLY){
+      for(auto fun : funcs){
+        if(fun->introduced()){
+          willPrintVariable = true;
+          break;
+        }
+      }
+    } else {
+      willPrintVariable = true;
+    }
+    if(willPrintVariable){
+      ASS_EQ(type->numTypeArguments(), 0)
+      out << "  {";
+      for(auto fun : funcs){
+        if(env.options->whichVariablesToOutput() == Options::WhichVariablesToOutput::INTRODUCED_ONLY){
+          if(fun->introduced()){
+            out << FunctionName(fun) << " ";
+          }
+        } else {
+          out << FunctionName(fun) << " ";
+        }
+      }
+      out << ": ";
+      for (unsigned i = 0; i < type->arity(); i++){
+        out << (i==0 ? " " : " → ") << Sort{type->arg(i)};
+      }
+      if(range.isNonEmpty()){
+        out << (type->arity() != 0 ? " → " : "") << Sort{range};
+      }
+      out << "}\n";
+    }
+  }
+
+  std::map<OperatorType*, std::vector<Signature::Symbol*>> predMap;
+  for(auto pred : usedPredicateSymbols){
+    if(!pred->interpreted()){
+      predMap.try_emplace(pred->fnType(), std::vector<Signature::Symbol*>()).first->second.push_back(pred);
+    }
+  }
+  for (auto [type, preds] : predMap){
+    bool willPrintVariable = false;
+    if(env.options->whichVariablesToOutput() == Options::WhichVariablesToOutput::INTRODUCED_ONLY){
+      for(auto pred : preds){
+        if(pred->introduced()){
+          willPrintVariable = true;
+          break;
+        }
+      }
+    } else {
+      willPrintVariable = true;
+    }
+    if(willPrintVariable){
+      ASS_EQ(type->numTypeArguments(), 0)
+      out << "  {";
+      for(auto pred : preds){
+        if(env.options->whichVariablesToOutput() == Options::WhichVariablesToOutput::INTRODUCED_ONLY){
+          if(pred->introduced()){
+            out << PredicateName(pred) << " ";
+          }
+        } else {
+          out << PredicateName(pred) << " ";
+        }
+      }
+      out << ": ";
+      for (unsigned i = 0; i < type->arity(); i++){
+        out << (i==0 ? " " : " → ") << Sort{type->arg(i)};
+      }
+      out << (type->arity() != 0 ? " → " : "") << "Prop}\n";
+    }
+  }
+
 }
 
 void LeanChecker::outputPreamble(std::ostream &out, std::set<Signature::Symbol*>& usedFunctionSymbols, std::set<Signature::Symbol*>& usedPredicateSymbols)
 {
-  out << preambleLean << "\n";
-
   Signature &sig = *env.signature;
+  if(env.options->whichVariablesToOutput() != Options::WhichVariablesToOutput::INTRODUCED_ONLY){
+    out << "variable {" << SortName(sig.getDefaultSort()) << " : Type u}\n";
+    out << "variable [inst : Inhabited " << SortName(sig.getDefaultSort()) << "]\n";
 
-  //Default sort
-  out << "variable {" << SortName(sig.getDefaultSort()) << " : Type u}\n";
-  out << "variable [inst : Inhabited " << SortName(sig.getDefaultSort()) << "]\n";
-
-  for (unsigned i = Signature::FIRST_USER_CON; i < sig.typeCons(); i++) {
-    out << "variable {" << SortName(i) << " : Type u}\n";
-    out << "variable [inst : Inhabited " << SortName(i) << " ]\n";
+    for (unsigned i = Signature::FIRST_USER_CON; i < sig.typeCons(); i++) {
+      out << "variable {" << SortName(i) << " : Type u}\n";
+      out << "variable [inst : Inhabited " << SortName(i) << " ]\n";
+    }
   }
 
   //out << "variable {df : Nat → (α : Type u) → (α → ι)}\n"
@@ -263,26 +417,46 @@ void LeanChecker::outputPreamble(std::ostream &out, std::set<Signature::Symbol*>
   }
   for (auto [type, funcs] : funMap){
     TermList range = type->result();
-    ASS_EQ(type->numTypeArguments(), 0)
-    if(firstVariableDef){
-      out << "variable ";
-      firstVariableDef = false;
+    bool willPrintVariable = false;
+    if(env.options->whichVariablesToOutput() == Options::WhichVariablesToOutput::INTRODUCED_ONLY){
+      for(auto fun : funcs){
+        if(fun->introduced()){
+          willPrintVariable = true;
+          break;
+        }
+      }
     } else {
-      out << indent;
+      willPrintVariable = true;
     }
-    out << "{";
-    for(auto fun : funcs){
-      out << FunctionName(fun) << " ";
+    if(willPrintVariable){
+      ASS_EQ(type->numTypeArguments(), 0)
+      if(firstVariableDef){
+        out << "variable ";
+        firstVariableDef = false;
+      } else {
+        out << indent;
+      }
+      out << "{";
+      for(auto fun : funcs){
+        if(env.options->whichVariablesToOutput() == Options::WhichVariablesToOutput::INTRODUCED_ONLY){
+          if(fun->introduced()){
+            out << FunctionName(fun) << " ";
+          }
+        } else {
+          out << FunctionName(fun) << " ";
+        }
+      }
+      out << ": ";
+      for (unsigned i = 0; i < type->arity(); i++){
+        out << (i==0 ? " " : " → ") << Sort{type->arg(i)};
+      }
+      if(range.isNonEmpty()){
+        out << (type->arity() != 0 ? " → " : "") << Sort{range};
+      }
+      out << "}\n";
     }
-    out << ": ";
-    for (unsigned i = 0; i < type->arity(); i++){
-      out << (i==0 ? " " : " → ") << Sort{type->arg(i)};
-    }
-    if(range.isNonEmpty()){
-      out << (type->arity() != 0 ? " → " : "") << Sort{range};
-    }
-    out << "}\n";
   }
+
   std::map<OperatorType*, std::vector<Signature::Symbol*>> predMap;
   for(auto pred : usedPredicateSymbols){
     if(!pred->interpreted()){
@@ -290,28 +464,52 @@ void LeanChecker::outputPreamble(std::ostream &out, std::set<Signature::Symbol*>
     }
   }
   for (auto [type, preds] : predMap){
-    ASS_EQ(type->numTypeArguments(), 0)
-    if(firstVariableDef){
-      out << "variable ";
-      firstVariableDef = false;
+    bool willPrintVariable = false;
+    if(env.options->whichVariablesToOutput() == Options::WhichVariablesToOutput::INTRODUCED_ONLY){
+      for(auto pred : preds){
+        if(pred->introduced()){
+          willPrintVariable = true;
+          break;
+        }
+      }
     } else {
-      out << indent;
+      willPrintVariable = true;
     }
-    out << "{";
-    for(auto pred : preds){
-      out << PredicateName(pred) << " ";
+    if(willPrintVariable){
+      ASS_EQ(type->numTypeArguments(), 0)
+      if(firstVariableDef){
+        out << "variable ";
+        firstVariableDef = false;
+      } else {
+        out << indent;
+      }
+      out << "{";
+      for(auto pred : preds){
+        if(env.options->whichVariablesToOutput() == Options::WhichVariablesToOutput::INTRODUCED_ONLY){
+          if(pred->introduced()){
+            out << PredicateName(pred) << " ";
+          }
+        } else {
+          out << PredicateName(pred) << " ";
+        }
+      }
+      out << ": ";
+      for (unsigned i = 0; i < type->arity(); i++){
+        out << (i==0 ? " " : " → ") << Sort{type->arg(i)};
+      }
+      out << (type->arity() != 0 ? " → " : "") << "Prop}\n";
     }
-    out << ": ";
-    for (unsigned i = 0; i < type->arity(); i++){
-      out << (i==0 ? " " : " → ") << Sort{type->arg(i)};
-    }
-    out << (type->arity() != 0 ? " → " : "") << "Prop}\n";
   }
 }
 
-void LeanChecker::outputFullProofPreamble(std::ostream &out, std::deque<Unit*>& premises, std::deque<Unit*>& negatedConjectures, std::set<Signature::Symbol*>& unusedFunctionSymbols, std::set<Signature::Symbol*>& unusedPredicateSymbols){
+void LeanChecker::outputFullProofPreamble(std::ostream &out, std::deque<Unit*>& premises, std::deque<Unit*>& negatedConjectures, std::set<Unit*>& conjectures, std::set<Signature::Symbol*>& unusedFunctionSymbols, std::set<Signature::Symbol*>& unusedPredicateSymbols){
   //out << "set_option maxHeartbeats 200000000 in\n";
-  out << "theorem fullProof : ";
+  out << "-- VaLeaDATE info: " ;
+  for(Unit* input : premises){
+    out << input->number() << " ";
+  }
+  out << "\n";
+  out << "theorem " << env.options->leanProofPrefix() << "fullProof : ";
   for(Unit* input : premises){
     outputUnit(out, input);
     out << " → ";
@@ -324,7 +522,16 @@ void LeanChecker::outputFullProofPreamble(std::ostream &out, std::deque<Unit*>& 
     }
   }
   if(negatedConjectures.empty()){
-    out << "False";
+    if(conjectures.empty()){
+      out << "False";
+    } else {
+      for(auto iter = conjectures.begin(); iter != conjectures.end(); ++iter){
+        outputUnit(out, *iter);
+        if(std::next(iter) != conjectures.end()){
+          out << " ∧ ";
+        }
+      }
+    }
   } 
   out << " := by\n";
   
@@ -354,7 +561,6 @@ void LeanChecker::outputFullProofPreamble(std::ostream &out, std::deque<Unit*>& 
       out << stepIdent << input->number() << " ";
     }
   }
-  
   out << "\n";
   for(Unit* negConj : negatedConjectures){
     out << indent << "apply Classical.byContradiction; intro " << stepIdent << negConj->number() << "\n";
@@ -389,7 +595,7 @@ void LeanChecker::outputProofStep(std::ostream &out, Kernel::Unit *u)
     outputUnit(out, u);
     out << " := ax" << u->number() << "\n"; 
   } else {
-    out << indent << "have " << stepIdent << u->number() << " := inf_s" << u->number() << " ";
+    out << indent << "have " << stepIdent << u->number() << " := " << env.options->leanProofPrefix() << "inf_s" << u->number() << " ";
     for (auto parent : iterTraits(u->getParents())) {
       out << " " << stepIdent << parent->number();
     }
@@ -429,7 +635,7 @@ void LeanChecker::outputInferenceStep(std::ostream &out, Kernel::Unit *u){
     if(rule == InferenceRule::AVATAR_REFUTATION){
       out << "set_option maxHeartbeats 200000000 in\n-- this is probably due to a suboptimal encoding\n";
     }
-    out << "theorem inf_s" << u->number();
+    out << "theorem " << env.options->leanProofPrefix() << "inf_s" << u->number();
     if(u->inference().rule()!=InferenceRule::AVATAR_REFUTATION
        && u->inference().rule()!=InferenceRule::AVATAR_REFUTATION_SMT){
       out << " : ";
@@ -765,7 +971,9 @@ void LeanChecker::clausify(std::ostream &out, SortMap &conclSorts, Unit *concl){
       indent << indent << "try simp only\n" <<
       indent << indent << "prenexify at " << stepIdent << parent->number() << "<;>\n";
     outputReorderIfNeeded(out, parent, conclSorts, indent);
-    out << indent << indent << "ac_nf0<;>\n" <<
+    out << 
+      indent << indent << "simp (config := {failIfUnchanged := false}) only [eq_comm] at " << stepIdent << parent->number() << " ⊢ <;>\n" <<
+      indent << indent << "ac_nf<;>\n" <<
       indent << indent << "ac_nf at " << stepIdent << parent->number() << "\n\n";
     return;
   }
@@ -910,11 +1118,11 @@ void LeanChecker::outputSatClause(std::ostream &out, std::map<unsigned int, bool
     auto [var, positive] = *iter;
     if (boolSymbols) {
       out << (positive ? "" : "!")
-          << "sA" << var << primed;
+          << env.options->leanProofPrefix() << "sA" << var << primed;
     }
     else {
       out << (positive ? "" : "(¬")
-          << "sA" << var << primed
+          << env.options->leanProofPrefix() << "sA" << var << primed
           << (positive ? "" : ")");
     }
     if (std::next(iter) != seen.end()) {
@@ -967,7 +1175,7 @@ void LeanChecker::avatarRefutation(std::ostream &out, SortMap &conclSorts, Unit 
     sortedParents.insert(u);
   }
   for(unsigned var : seen){
-    out << "sA" << var << "' ";
+    out << env.options->leanProofPrefix() << "sA" << var << "' ";
   }
   out << ": Bool) : ";
   outputSatFormula(out, sortedParents, "'", true, true);
@@ -978,19 +1186,19 @@ void LeanChecker::avatarRefutation(std::ostream &out, SortMap &conclSorts, Unit 
 
   //out << "set_option maxHeartbeats 0 in\n-- this is probably due to a suboptimal encoding\n";
   //Convert the SAT bool refuation proof to prop
-  out << "theorem inf_s" << concl->number() << " : ";
+  out << "theorem " << env.options->leanProofPrefix() << "inf_s" << concl->number() << " : ";
   outputSatFormula(out, sortedParents, "", false, true);
   out << " → ";
   outputUnit(out, concl);
   out << " := by\n" 
       << indent << "classical\n" 
-      << indent << "have satProof := inf_s" << concl->number() << "' ";
+      << indent << "have satProof := " << env.options->leanProofPrefix() << "inf_s" << concl->number() << "' ";
   for(unsigned var : seen){
-    out << "(decide sA" << var << ") ";
+    out << "(decide " << env.options->leanProofPrefix() << "sA" << var << ") ";
   }
   out << "\n" << indent << "rewrite_decide_eq [";
   for(unsigned var : seen){
-    out << "sA" << var << " ";
+    out << env.options->leanProofPrefix() << "sA" << var << " ";
   }
   out << "]\n" << indent << "sat_norm\n"
       << indent << "exact satProof\n"
@@ -1002,7 +1210,7 @@ void LeanChecker::avatarRefutationProofStep(std::ostream &out, SortMap &conclSor
   for(Unit *u : iterTraits(concl->getParents())){
     sortedParents.insert(u);
   }
-  out << indent << "have " << stepIdent << concl->number() << " := inf_s" << concl->number() << " ";
+  out << indent << "have " << stepIdent << concl->number() << " := " << env.options->leanProofPrefix() << "inf_s" << concl->number() << " ";
   //out << "and_constr ⟨";
   for (auto parents = sortedParents.begin(); parents != sortedParents.end(); ++parents) {
     Unit *parent = *parents;
@@ -1218,29 +1426,26 @@ void LeanChecker::normalForm(std::ostream &out, SortMap &conclSorts, Unit *concl
   if (rule == InferenceRule::ENNF) {
     out << indent << "intros h\n"
         << indent << "ennf_transformation at h<;>\n"
-        << indent << "exact h\n";
+        << indent << "first | exact h | symm_match using h\n";
   }
   else if (rule == InferenceRule::FLATTEN) {
     out << indent << "intro h\n"
         << indent << "flattening at h<;>\n"
-        << indent << "first | exact h | grind \n";
+        << indent << "first | exact h | symm_match using h | grind\n";
   }
   else if (rule == InferenceRule::NNF) {
     out << indent << "intro h\n"
         << indent << "nnf_transformation at h<;>\n"
-        << indent << "first | exact h | grind \n";
-  }
-  else if (rule == Kernel::InferenceRule::RECTIFY) {
-    out << indent << "first | exact fun x => x\n";
+        << indent << "first | exact h | symm_match using h | grind \n";
   }
   else if (rule == Kernel::InferenceRule::REDUCE_FALSE_TRUE) {
     out << indent << "intro h\n";
     out << indent << "remove_tauto at h<;>\n";
-    out << indent << "first | exact h | grind \n";
+    out << indent << "first | exact h | symm_match using h | grind \n";
   } /*else if (rule == InferenceRule::THEORY_NORMALIZATION) {
     out << indent << "intro h\n";
     out << indent << "try simp only [← not_lt, gt_iff_lt] at h\n";
-    out << indent << "first | exact h | grind | sorry\n";
+    out << indent << "first | exact h | symm_match using h | grind | sorry\n";
   }*/
   out << "\n";
 }
@@ -1436,7 +1641,7 @@ void LeanChecker::outputCumulativeSplits(std::set<Kernel::Unit*, CompareUnits>& 
   }
   out << prefix;
   for (unsigned split : splits) {
-    out << "sA" << split;
+    out << env.options->leanProofPrefix() << "sA" << split;
     if (split != *splits.rbegin()) {
       out << seperator;
     }
@@ -1451,7 +1656,7 @@ void LeanChecker::outputUnit(std::ostream &out, Kernel::Unit *u, SortMap *conclS
     if (outputSplits && !cl->noSplits()) {
       out << "("; // closed after printing the whole clause
       auto cla = {cl};
-      outputCumulativeSplits(cla, "→");
+      outputCumulativeSplits(cla, "→", env.options->leanProofPrefix() + "sA");
       out << "→";
     }
     outputClause(out, cl, conclSorts, Identity{});
