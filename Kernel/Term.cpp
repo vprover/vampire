@@ -148,7 +148,7 @@ bool TermList::isPlaceholder() const {
 }
 
 bool TermList::isExtensionalSort() const {
-  return /* isVar() ||  */isArrowSort()/*  || isBoolSort() */;
+  return /* isVar() ||  */isArrowSort() || isBoolSort();
 }
 
 Option<unsigned> TermList::deBruijnIndex() const {
