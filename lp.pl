@@ -175,6 +175,9 @@ match_literals([Q|Qs], Ls, [Term|R], Solve) :-
 % fail to solve a goal
 no_alternative(_, _) :- fail.
 
+% replace don't-care variables with 'el'
+dont_care(el).
+
 % apply instantiation Ts and literal proofs Ls to P for a proof Term
 apply_premise(P, Ts, Ls, Term) :- append(Ts, Ls, Args), Term =.. [P|Args].
 
@@ -248,6 +251,8 @@ prove_clause(Name, F, Record) =>
   formula_clause(F, Xs, C),
   enumerate_literals(C, Ls),
   prove_clause(Xs, Ls, Record, Proof),
+  term_variables(Proof, Remaining),
+  maplist(dont_care, Remaining),
   format("symbol ~w : ~@ ≔ ~@;\n", [Name, lp_clause(Xs, C), lp(Proof)]).
 
 prove_clause(_, _, input(Parent), Proof) =>
@@ -343,7 +348,8 @@ require open Stdlib.Prop;
 require open Stdlib.FOL;
 require open Stdlib.Eq;
 // TODO should be provided by Set?
-constant symbol ι: Set;
+constant symbol ι : Set;
+symbol el [a] : τ a;
 
 symbol neq_sym  [a] [x y : τ a] : π (x ≠ y) → π (y ≠ x) ≔ λ neqxy neqyx, neqxy (eq_sym neqyx);
 
