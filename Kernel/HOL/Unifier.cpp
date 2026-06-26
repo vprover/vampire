@@ -16,6 +16,7 @@
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/UnificationWithAbstraction.hpp"
+#include "Kernel/HOL/EtaNormaliser.hpp"
 
 #include "Unifier.hpp"
 
@@ -50,6 +51,23 @@ bool UnificationNode::Constraint::derefHead(TermList& head, TermList& side, cons
   return false;
 }
 
+void UnificationNode::Constraint::normalize(TermList& head, TermList& side, const Substitution& subs)
+{
+  while (true) {
+    auto newSide = HOL::reduce::betaNF(side);
+    if (newSide != side) {
+      side = newSide;
+      head = side.head();
+      derefHead(head, side, subs);
+      continue;
+    }
+    if (derefHead(head, side, subs)) {
+      continue;
+    }
+    break;
+  }
+}
+
 void UnificationNode::Constraint::normalize(const Substitution& subs)
 {
   // We want to reach a fixed point of applying the substitution
@@ -57,28 +75,8 @@ void UnificationNode::Constraint::normalize(const Substitution& subs)
   //
   // TODO this is very inefficient now, we only have to beta normalize
   // any applications on the head. Use WHNF from the HOL branch.
-  bool changed;
-  do {
-    changed = false;
-    auto newLhs = HOL::reduce::betaNF(_lhs);
-    if (newLhs != _lhs) {
-      changed = true;
-      _lhs = newLhs;
-      _lhead = _lhs.head();
-    }
-    auto newRhs = HOL::reduce::betaNF(_rhs);
-    if (newRhs != _rhs) {
-      changed = true;
-      _rhs = newRhs;
-      _rhead = _rhs.head();
-    }
-    if (derefHead(_lhead, _lhs, subs)) {
-      changed = true;
-    }
-    if (derefHead(_rhead, _rhs, subs)) {
-      changed = true;
-    }
-  } while (changed);
+  normalize(_lhead, _lhs, subs);
+  normalize(_rhead, _rhs, subs);
 
   // We then alpha-eta normalize to get the same prefix on both sides.
   HOL::normaliseLambdaPrefixes(_lhs, _rhs);
@@ -200,6 +198,20 @@ bool UnificationNode::simplify()
       }
       continue;
     }
+
+    if (curr.flexRigid()) {
+      auto res = fixpointUnify(curr);
+      if (res == OracleResult::FAILURE) {
+        DEBUG("oracle fail");
+        return false;
+      } else if (res == OracleResult::SUCCESS) {
+        DEBUG("oracle success");
+        _cons.swapRemove(i);
+        i = 0;
+        continue;
+      }
+    }
+
     // else ignore flex-flex or flex-rigid
     ASS(curr.flexFlex() || curr.flexRigid());
     i++;
@@ -242,6 +254,69 @@ Stack<UnificationNode::Constraint> UnificationNode::decompose(unsigned index, bo
     cons.emplace(lhs, rhs, sort);
   }
   return cons;
+}
+
+// Given unification pair {F ?= t}, if F does not occur in t, {F ↦ t} is an MGU for the problem.
+// If there is a position p in t such that t|p = F u_m and for each prefix q != p of p, t|q has
+// a rigid head and either m = 0 or t is not a λ-abstraction, then F ?= t has no solutions.
+// Otherwise, the fixpoint oracle is not applicable.
+UnificationNode::OracleResult UnificationNode::fixpointUnify(Constraint con)
+{
+  ASS(con.flexRigid());
+  // TODO probably shouldn't normalize again here
+  con.normalize(_subs);
+
+  auto flex = con._lhead.isVar() ? con._lhs : con._rhs;
+  auto rigid = con._lhead.isVar() ? con._rhs : con._lhs;
+  flex = EtaNormaliser::normalise(flex);
+  if (flex.isTerm()) {
+    return OracleResult::OUT_OF_FRAGMENT;
+  }
+
+  bool tIsLambda = rigid.isLambdaTerm();
+  if (rigid.isVar()) {
+    _subs.bind(flex.var(), rigid);
+    return OracleResult::SUCCESS;
+  }
+
+  // stack of <term, underFlex, depth> tuples
+  Recycled<Stack<std::tuple<TermList, bool, unsigned>>> todo;
+  todo->emplace(rigid, false, 0);
+
+  while (todo->isNonEmpty()){
+    auto [t, underFlex, depth] = todo->pop();
+    auto head = t.head();
+    con.normalize(head, t, _subs);
+
+    // TODO consider adding an encountered store similar to first-order occurs check...
+
+    while (t.isLambdaTerm()) {
+      t = t.lambdaBody();
+      depth++;
+    }
+
+    TermStack args;
+    head = HOL::getHeadAndArgs(t, args);
+
+    ASS(!head.isLambdaTerm());
+    if (head.isVar() && head == flex) {
+      return (underFlex || (tIsLambda && args.size())) ? OracleResult::OUT_OF_FRAGMENT : OracleResult::FAILURE;
+    }
+
+    auto dbi = head.deBruijnIndex();
+    if (dbi.isSome() && *dbi >= depth) {
+      // contains a free index, cannot bind
+      return underFlex ? OracleResult::OUT_OF_FRAGMENT : OracleResult::FAILURE;
+    }
+
+    bool argsUnderFlex = head.isVar() || underFlex;
+    for (const auto& arg : args) {
+      todo->emplace(arg, argsUnderFlex, depth);
+    }
+  }
+
+  _subs.bind(flex.var(), rigid);
+  return OracleResult::SUCCESS;
 }
 
 AbstractingWrapper::AbstractingWrapper(AbstractingUnifier* unifier, unsigned hoUnifDepth, bool funcExt)

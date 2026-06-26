@@ -49,6 +49,7 @@ struct UnificationNode
     bool flexRigid() const { return !flexFlex() && !rigidRigid(); }
 
     static bool derefHead(TermList& head, TermList& side, const Substitution& subs);
+    static void normalize(TermList& head, TermList& side, const Substitution& subs);
     void normalize(const Substitution& subs);
   };
 
@@ -67,6 +68,13 @@ private:
   UnificationNode(const UnificationNode& parent, unsigned var, TermList binding);
   UnificationNode(const UnificationNode& parent, Stack<Constraint> cons);
   Stack<Constraint> decompose(unsigned index, bool includeRest) const;
+
+  enum class OracleResult {
+    OUT_OF_FRAGMENT,
+    SUCCESS,
+    FAILURE,
+  };
+  OracleResult fixpointUnify(Constraint con);
 
   unsigned _freshVar;
   const bool _funcExt;
