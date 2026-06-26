@@ -9,10 +9,9 @@
  * utility predicates
  ********************************************************************************/
 
-% a literal is negative with a certain atom
-negation(~P, Q) => Q = P.
-negation(L != R, Q) => Q = (L = R).
-negation(_, _) => fail.
+% a literal is negative
+negative(~_).
+negative(_ != _).
 
 % the atom of a literal has a certain atom
 literal_atom(~P, A) => A = P.
@@ -133,6 +132,7 @@ lp_disj(F) => lp(F).
 
 % clauses
 lp_clause([]) => format("π ⊥").
+lp_clause([L|C]), negative(L) => literal_atom(L, A), format("π ~@ → ~@", [lp(A), lp_clause(C)]).
 lp_clause([L|C]) => format("π ¬ ~@ → ~@", [lp(L), lp_clause(C)]).
 lp_clause([], Lits) => lp_clause(Lits).
 lp_clause([X|Xs], Lits) => format("Π ~@, ~@", [lp_binder(X), lp_clause(Xs, Lits)]).
