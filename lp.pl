@@ -2,6 +2,7 @@
 
 :- consult(tptp).
 :- dynamic(step/3).
+:- dynamic(defined/2).
 :- dynamic(type/2).
 :- dynamic(proved/1).
 
@@ -24,6 +25,7 @@ contains_atom(A, ?_: F) => contains_atom(A, F).
 contains_atom(A, F & G) => contains_atom(A, F) ; contains_atom(A, G).
 contains_atom(A, F | G) => contains_atom(A, F) ; contains_atom(A, G).
 contains_atom(A, F => G) => contains_atom(A, F) ; contains_atom(A, G).
+contains_atom(A, F <=> G) => contains_atom(A, F) ; contains_atom(A, G).
 contains_atom(A, ~F) => contains_atom(A, F).
 contains_atom(A, L != R) => A = (L = R).
 contains_atom(_, $false) => fail.
@@ -54,9 +56,13 @@ literals(L, R) => R = [L].
 formula_clause(!X: F, Y, C) => Y = X, literals(F, C).
 formula_clause(F, Y, C) => Y = [], literals(F, C).
 
+clause_step(Name, Xs, C, Record) :-
+  step(Name, F, Record),
+  formula_clause(F, Xs, C).
+
 % consider both orientations of a literal on backtracking
 symmetric(F, F, Premise, Premise).
-symmetric(L = R, R = L, Premise, sym(Premise)).
+symmetric(L = R, R = L, Premise, neq_sym(Premise)).
 
 /*
 Is it possible to make S into T by rewriting From into To?
@@ -96,6 +102,9 @@ lp(L = R) => format("(~@ = ~@)", [lp(L), lp(R)]).
 lp(L | R) => format("(~@)", [lp_disj(L | R)]).
 lp(L & R) => format("(~@)", [lp_conj(L & R)]).
 lp(L => R) => format("(~@ ⇒ ~@)", [lp(L), lp(R)]).
+lp(L <=> R) => format("(~@ ⇔ ~@)", [lp(L), lp(R)]).
+lp(^[]: F) => lp(F).
+lp(^[X|Xs]: F) => format("(λ ~@, ~@)", [lp(X), lp(^Xs: F)]).
 lp(![]: F) => lp(F).
 lp(![X|Xs]: F) => format("`∀ ~@, ~@", [lp_binder(X), lp(!Xs: F)]).
 lp(?[]: F) => lp(F).
@@ -108,12 +117,12 @@ lp(X : _) => lp(X).
 % variables should be bound with Prolog numbervars first
 lp('$VAR'(N)) => format("x~d", [N]).
 % named literals
-lp('$LIT'(N)) => format("l~w", [N]).
-lp('$LIT'(N)-_) => format("l~w", [N]).
+lp('$LIT'(N)) => format("ℓ~w", [N]).
+lp('$LIT'(N)-_) => format("ℓ~w", [N]).
 % references to input facts
 lp('$INPUT'(Input)) => format("input_~w", [Input]).
 % inference steps that failed to reconstruct for some reason
-lp('$FAILED'(Step)) => format("begin { admit } end; // ~p", [Step]).
+lp('$FAILED'(Step)) => format("begin { admit } end /* ~w */", [Step]).
 % general terms
 lp(T), nonvar(T) =>
   T =.. [F|Args],
@@ -190,29 +199,6 @@ variant(Conclusion, Name, Proof) :-
   instantiation(C, Conclusion, Lits),
   apply_premise(Name, Xs, Lits, Proof).
 
-/*
-% figure out how to use the major premise in a resolution step
-major_resolution([L|Rest], Conclusion, Minor, [LProof|RestProof]) :-
-  member(K, Conclusion),
-  instantiate(K, L, LProof),
-  major_resolution(Rest, Conclusion, Minor, RestProof).
-major_resolution([~L|Rest], Conclusion, Minor, [(^[Pivot]: MinorProof)|RestProof]) :-
-  Pivot = '$LIT'(pivot),
-  step(Minor, !Ys: D, _),
-  instantiation(D, [Pivot-L|Conclusion], MinorLits),
-  apply_premise(Minor, Ys, MinorLits, MinorProof),
-  instantiation(Rest, Conclusion, RestProof).
-
-resolution(Conclusion, Major, Minor, Proof) :-
-  step(Major, !Xs: C, _),
-  major_resolution(C, Conclusion, Minor, Lits),
-  apply_premise(Major, Xs, Lits, Proof).
-
-% consider using either premise as the main premise for resolution
-resolution(D, [P1, P2], Proof) :- resolution(D, P1, P2, Proof).
-resolution(D, [P1, P2], Proof) :- resolution(D, P2, P1, Proof).
-*/
-
 % give a proof term (simplified later) for rewriting:
 % From -> To (justified by EqProof)
 % in LBefore (justified by LProof)
@@ -227,6 +213,25 @@ rewrite_literal_back(From, To, EqTerm, Qs, After, Proof) :-
   symmetric(L, Before, N, BeforeTerm),
   rewrite(To, From, EqTerm, Before, After, BeforeTerm, Proof).
 
+major_resolution([], _, _, []).
+major_resolution([K | Ks], Ls, Minor, [T | Ts]) :-
+  member(L, Ls), instantiate(L, K, T),
+  major_resolution(Ks, Ls, Minor, Ts).
+major_resolution([K | Ks], Ls, Minor, [^[Pivot]: Subproof | Ts]) :-
+  Pivot = '$LIT'(p),
+  \+ negative(K),
+  clause_step(Minor, Zs, Js, _),
+  instantiation(Js, [Pivot-(~K)|Ls], Ss),
+  apply_premise(Minor, Zs, Ss, Subproof),
+  major_resolution(Ks, Ls, Minor, Ts).
+
+resolution(Xs, Ls, Major, Minor, ^Xs: ^Ls: Proof) :-
+  prove_clause(Major),
+  prove_clause(Minor),
+  clause_step(Major, Ys, Ks, _),
+  major_resolution(Ks, Ls, Minor, Ts),
+  apply_premise(Major, Ys, Ts, Proof).
+
 /********************************************************************************
  * Proof printing
  ********************************************************************************/
@@ -234,23 +239,25 @@ rewrite_literal_back(From, To, EqTerm, Qs, After, Proof) :-
 % reconstruct and print a single clausal proof step
 prove_clause(Name) :- proved(Name), !.
 prove_clause(Name) :-
-  assert(proved(Name)),
   step(Name, F, Record),
+  numbervars(F),
+  prove_clause(Name, F, Record),
+  assert(proved(Name)), !. % cut: we only need one proof
+
+prove_clause(Name, F, Record) =>
   formula_clause(F, Xs, C),
-  numbervars(Xs),
   enumerate_literals(C, Ls),
-  prove_clause(Name, Xs, Ls, Record, Proof),
+  prove_clause(Xs, Ls, Record, Proof),
   format("symbol ~w : ~@ ≔ ~@;\n", [Name, lp_clause(Xs, C), lp(Proof)]).
 
-prove_clause(Name, _, _, input(Input), Proof) =>
-  Proof = '$FAILED'(input(Input)), % TODO CNF conversion
-  step(Name, F, _),
-  numbervars(F),
-  format("symbol input_~w : π ~@;\n", [Input, lp(F)]).
-prove_clause(_, _, _, cnf_transformation(Parent), Proof) =>
+prove_clause(_, _, input(Parent), Proof) =>
+  Proof ='$FAILED'(input(Parent)).
+prove_clause(_, _, cnf_transformation(Parent), Proof) =>
   Proof ='$FAILED'(cnf_transformation(Parent)),
   prove_formula(Parent).
-prove_clause(_, _, _, Record, Proof) =>
+prove_clause(Xs, Ls, resolution(P1, P2), Proof) =>
+  resolution(Xs, Ls, P1, P2, Proof) ; resolution(Xs, Ls, P2, P1, Proof).
+prove_clause(_, _, Record, Proof) =>
   Proof = '$FAILED'(Record),
   Record =.. [_|Parents],
   maplist(prove_clause, Parents).
@@ -258,11 +265,11 @@ prove_clause(_, _, _, Record, Proof) =>
 % reconstruct and print a single non-clausal proof step
 prove_formula(Name) :- proved(Name), !.
 prove_formula(Name) :-
-  assert(proved(Name)),
   step(Name, F, Record),
   numbervars(F),
   prove_formula(Name, F, Record, Proof),
-  format("symbol ~w : π ~@ ≔ ~@;\n", [Name, lp(F), lp(Proof)]).
+  format("symbol ~w : π ~@ ≔ ~@;\n", [Name, lp(F), lp(Proof)]),
+  assert(proved(Name)), !. % cut: we only need one proof
 
 prove_formula(_, _, input(Input), _), proved(Input) => true.
 prove_formula(Name, _, input(Input), Proof) =>
@@ -275,6 +282,9 @@ prove_formula(_, _, negated_conjecture(Conjecture), Proof) =>
   Proof = '$INPUT'(Input),
   numbervars(F),
   format("symbol input_~w : π ¬ ~@;\n", [Input, lp(F)]).
+prove_formula(_, _, definition_folding(Parent, _), Proof) =>
+  prove_formula(Parent),
+  Proof = '$FAILED'(definition_folding(Parent, _)).
 
 prove_formula(_, _, Record, Proof) =>
   Proof = '$FAILED'(Record),
@@ -287,10 +297,23 @@ prove_formula(_, _, Record, Proof) =>
 
 % transform various proof records into an appropriate unified record
 process_inference(file(_, Name), input(Name)).
+process_inference(introduced(definition, _, [Record]), Record).
 process_inference(inference(Rule, _, Premises), Record) :- Record =.. [Rule|Premises].
 
+% try and work out how a predicate is defined
+definition(!_: (F | ~D), P, Def) => P = D, Def = F.
+
+% trap definitions, these need to be handled separately
+add_definitions(F, introduced(definition, [new_symbols(naming,[P])], [predicate_definition_introduction])) =>
+  definition(F, Px, Def),
+  Px =.. [P|_],
+  assert(defined(P, Def)).
+add_definitions(_, _) => true.
+
 % insert proof steps into our own records as input(Name, Formula, Record) triples
-load(Name, _, Formula, Inference) =>
+load(Name, Formula, Inference) =>
+  % add any definitions that may be required
+  add_definitions(Formula, Inference),
   % clean up a bit
   process_inference(Inference, Record),
   % insert a step(...) into the database
@@ -303,9 +326,9 @@ load(end_of_file) :- !.
 % type declaration stored in TPTP syntax
 % implicit $i types resolved later
 load(tff(_, type, F : T)) :- !, assert(type(F, T)), load_all.
-load(tff(Name, Role, Formula, Record)) :- load(Name, Role, Formula, Record), load_all.
-load(fof(Name, Role, Formula, Record)) :- load(Name, Role, Formula, Record), load_all.
-load(cnf(Name, Role, Formula, Record)) :- load(Name, Role, Formula, Record), load_all.
+load(tff(Name, _, Formula, Record)) :- load(Name, Formula, Record), load_all.
+load(fof(Name, _, Formula, Record)) :- load(Name, Formula, Record), load_all.
+load(cnf(Name, _, Formula, Record)) :- load(Name, Formula, Record), load_all.
 
 % load everything available from stdin
 load_all :-
@@ -321,6 +344,8 @@ require open Stdlib.FOL;
 require open Stdlib.Eq;
 // TODO should be provided by Set?
 constant symbol ι: Set;
+
+symbol neq_sym  [a] [x y : τ a] : π (x ≠ y) → π (y ≠ x) ≔ λ neqxy neqyx, neqxy (eq_sym neqyx);
 
 "),
   forall(type(Name, Type), format("symbol ~w : ~@;\n", [Name, lp(Type)])),
