@@ -36,7 +36,10 @@ std::ostream& operator<<(std::ostream& out, const UnificationNode& node) {
 
 UnificationNode::Constraint::Constraint(TermList lhs, TermList rhs, TermList sort)
   : _lhs(lhs), _rhs(rhs), _sort(sort)
-{}
+{
+  ASS(_lhs.isVar() || SortHelper::getResultSort(_lhs.term()) == _sort);
+  ASS(_rhs.isVar() || SortHelper::getResultSort(_rhs.term()) == _sort);
+}
 
 bool UnificationNode::Constraint::derefHead(TermList& head, TermList& side, const Substitution& subs)
 {
