@@ -48,8 +48,6 @@ struct UnificationNode
     bool rigidRigid() const { return _lhead.isTerm() && _rhead.isTerm(); }
     bool flexRigid() const { return !flexFlex() && !rigidRigid(); }
 
-    static bool derefHead(TermList& head, TermList& side, const Substitution& subs);
-    static void normalize(TermList& head, TermList& side, const Substitution& subs);
     void normalize(const Substitution& subs);
     bool unifyHeads(Substitution& subs);
   };

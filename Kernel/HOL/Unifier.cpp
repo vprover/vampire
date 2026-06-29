@@ -77,45 +77,16 @@ UnificationNode::Constraint::Constraint(TermList lhs, TermList rhs, TermList sor
   ASS(_rhs.isVar() || SortHelper::getResultSort(_rhs.term()) == _sort);
 }
 
-bool UnificationNode::Constraint::derefHead(TermList& head, TermList& side, const Substitution& subs)
-{
-  if (head.isVar()) {
-    TermList t;
-    if (subs.findBinding(head.var(), t)) {
-      side = SubstHelper::apply(side, subs);
-      head = side.head();
-      return true;
-    }
-  }
-  return false;
-}
-
-void UnificationNode::Constraint::normalize(TermList& head, TermList& side, const Substitution& subs)
-{
-  while (true) {
-    auto newSide = HOL::reduce::betaNF(side);
-    if (newSide != side) {
-      side = newSide;
-      head = side.head();
-      derefHead(head, side, subs);
-      continue;
-    }
-    if (derefHead(head, side, subs)) {
-      continue;
-    }
-    break;
-  }
-}
-
 void UnificationNode::Constraint::normalize(const Substitution& subs)
 {
   // We want to reach a fixed point of applying the substitution
   // on the head and then beta normalizing it if it's a lambda.
   //
   // TODO this is very inefficient now, we only have to beta normalize
-  // any applications on the head. Use WHNF from the HOL branch.
-  normalize(_lhead, _lhs, subs);
-  normalize(_rhead, _rhs, subs);
+  // any applications on the head. Use WHNF from the HOL branch. However,
+  // we have to apply the "type" part of the substitution to avoid typing errors.
+  _lhs = HOL::reduce::betaNF(SubstHelper::apply(_lhs, subs));
+  _rhs = HOL::reduce::betaNF(SubstHelper::apply(_rhs, subs));
 
   // We then alpha-eta normalize to get the same prefix on both sides.
   HOL::normaliseLambdaPrefixes(_lhs, _rhs);
@@ -135,6 +106,7 @@ bool UnificationNode::Constraint::unifyHeads(Substitution& subs)
   todo.emplace(t1, t2);
 
   auto bindAndApply = [&](unsigned v, TermList t){
+    DEBUG("binding type var X", v, " -> ", t);
     subs.bindUnbound(v, t);
     for (auto [v_, t_] : iterTraits(subs.items())) {
       subs.rebind(v_, SubstHelper::apply(t_, subs));
@@ -312,7 +284,6 @@ Stack<UnificationNode::Constraint> UnificationNode::decompose(unsigned index, bo
   auto argSorts = HOL::getArgSorts(curr._lhs);
   // check that the type args are the same modulo current substitution
   ASS_EQ(argSorts, HOL::getArgSorts(curr._rhs));
-  ASS_G(largs.size(),0);
   ASS_EQ(largs.size(), rargs.size());
   ASS_EQ(largs.size(), argSorts.size());
 
@@ -370,8 +341,8 @@ UnificationNode::OracleResult UnificationNode::fixpointUnify(Constraint con)
 
   while (todo->isNonEmpty()){
     auto [t, underFlex, depth] = todo->pop();
+    t = HOL::reduce::betaEtaNF(SubstHelper::apply(t, _subs));
     auto head = t.head();
-    con.normalize(head, t, _subs);
 
     // TODO consider adding an encountered store similar to first-order occurs check...
 
@@ -489,14 +460,11 @@ AbstractingUnifier* AbstractingWrapper::next()
     ASS_REP(con.flexFlex() || con.flexRigid() || (_funcExt && (con._sort.isArrowSort() || con._sort.isBoolSort())), con);
     ASS_REP(!con._lhs.containsLooseDBIndex(), con);
     ASS_REP(!con._rhs.containsLooseDBIndex(), con);
-    auto sortS = SubstHelper::apply(con._sort, _next->_subs);
-    // the sort should survive unification without changing
-    ASS_EQ(con._sort, sortS);
 
     TermSpec lhs(HOL::reduce::betaEtaNF(SubstHelper::apply(con._lhs, _next->_subs)), GLUE_INDEX);
     TermSpec rhs(HOL::reduce::betaEtaNF(SubstHelper::apply(con._rhs, _next->_subs)), GLUE_INDEX);
     DEBUG("adding constraint ", lhs, " != ", rhs);
-    _unifier->constr().add(UnificationConstraint(lhs, rhs, TermSpec(sortS, GLUE_INDEX)), _localBD);
+    _unifier->constr().add(UnificationConstraint(lhs, rhs, TermSpec(SubstHelper::apply(con._sort, _next->_subs), GLUE_INDEX)), _localBD);
   }
   DEBUG("about to return extended abstracting unifier ", *_unifier);
 
