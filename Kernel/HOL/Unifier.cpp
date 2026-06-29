@@ -61,30 +61,22 @@ bool occurs(unsigned var, TermList t, const Substitution& subs)
 bool unifyHeads(Term* t1, Term* t2, Substitution& subs)
 {
   DEBUG("unifying heads ", *t1, " and ", *t2);
-  if (t1->functor() != t2->functor()) {
-    return false;
-  }
-  ASS(!t1->numTermArguments());
+  Stack<std::pair<TermList, TermList>> todo;
+  todo.emplace(t1, t2);
 
-  SubtermIterator stit1(t1);
-  SubtermIterator stit2(t2);
-  while (stit1.hasNext()) {
-    ALWAYS(stit2.hasNext());
-    auto st1 = deref(stit1.next(), subs);
-    auto st2 = deref(stit2.next(), subs);
-    if (st1 == st2) {
-      stit1.right();
-      stit2.right();
+  while (todo.isNonEmpty()) {
+    auto [c1, c2] = todo.pop();
+    c1 = deref(c1, subs);
+    c2 = deref(c2, subs);
+    if (c1 == c2) {
       continue;
     }
-    if (st1.isVar() && !occurs(st1.var(), st2, subs)) {
-      subs.bindUnbound(st1.var(), st2);
-      stit2.right();
-    } else if (st2.isVar() && !occurs(st2.var(), st1, subs)) {
-      subs.bindUnbound(st2.var(), st1);
-      stit1.right();
-    } else if (st1.isTerm() && st2.isTerm() && st1.term()->functor() == st2.term()->functor()) {
-      continue;
+    if (c1.isVar() && !occurs(c1.var(), c2, subs)) {
+      subs.bindUnbound(c1.var(), c2);
+    } else if (c2.isVar() && !occurs(c2.var(), c1, subs)) {
+      subs.bindUnbound(c2.var(), c1);
+    } else if (c1.isTerm() && c2.isTerm() && c1.term()->functor() == c2.term()->functor()) {
+      todo.loadFromIterator(anyArgIter(c1.term()).zip(anyArgIter(c2.term())));
     } else {
       return false;
     }
