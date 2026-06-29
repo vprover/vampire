@@ -312,12 +312,16 @@ Option<AbstractionOracle::AbstractionResult> hol(AbstractingUnifier* au, TermSpe
   Stack<UnificationConstraint> unifs;
   DEBUG_UNIFY(0, "decomposing ", t1, " (", t1.sort(), ") ", t2, " (", t2.sort(), ")");
   while (t1.term.isApplication()) {
-    ASS(t2.term.isApplication());
+    if (!t2.term.isApplication()) {
+      return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
+    }
     unifs.emplace(t1.termArg(1), t2.termArg(1), t1.typeArg(0));
     t1 = au->subs().derefBound(t1.termArg(0));
     t2 = au->subs().derefBound(t2.termArg(0));
   }
-  ASS(!t2.term.isApplication());
+  if (t2.term.isApplication()) {
+    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
+  }
   return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().unifyAll(unifs.iter())));
 }
 
