@@ -298,33 +298,28 @@ Option<AbstractionOracle::AbstractionResult> hol(AbstractingUnifier* au, TermSpe
   if (h1->functor() != h2->functor()) {
     return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
   }
-  // if they are simple terms, we cannot make progress here, so unify normally
-  if (!t1.term.isApplication() || !t2.term.isApplication()) {
-    return Option<AbstractionOracle::AbstractionResult>();
-  }
-  // otherwise decompose application normally
-  Stack<UnificationConstraint> unifs;
-  unifs.emplace(*h1, *h2, h1->sort());
-  DEBUG_UNIFY(0, "decomposing ", t1, " (", t1.sort(), ") ", t2, " (", t2.sort(), ")");
-  while (t1.term.isApplication()) {
-    // This check imitates normal unification of applications, because for some reason there
-    // can be different number of applications with the same head (i.e. different sorts).
-    // TODO(HOL): find out what causes this and try to eliminate this check
-    if (!t2.term.isApplication()) {
+  ASS_EQ(h1->nTermArgs(), 0);
+  // assert that there are no term args, but to be sure unify all args
+  for (unsigned i = 0; i < h1->nAllArgs(); i++) {
+    auto h1s = h1->anyArg(i);
+    auto h2s = h2->anyArg(i);
+    if (!au->subs().unify(h1s.term, h1s.index, h2s.term, h2s.index)) {
       return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
     }
+  }
+
+  // otherwise decompose application normally
+  Stack<UnificationConstraint> unifs;
+  DEBUG_UNIFY(0, "decomposing ", t1, " (", t1.sort(), ") ", t2, " (", t2.sort(), ")");
+  while (t1.term.isApplication()) {
+    ASS(t2.term.isApplication());
     unifs.emplace(t1.termArg(1), t2.termArg(1), t1.typeArg(0));
     unifs.emplace(t1.typeArg(0), t2.typeArg(0), TermSpec(AtomicSort::superSort(), 0));
     unifs.emplace(t1.typeArg(1), t2.typeArg(1), TermSpec(AtomicSort::superSort(), 0));
     t1 = au->subs().derefBound(t1.termArg(0));
     t2 = au->subs().derefBound(t2.termArg(0));
   }
-  // TODO(HOL): same as inside the loop
-  if (t2.term.isApplication()) {
-    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
-  }
-  ASS_EQ(*h1, t1);
-  ASS_EQ(*h2, t2);
+  ASS(!t2.term.isApplication());
   return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().unifyAll(unifs.iter())));
 }
 

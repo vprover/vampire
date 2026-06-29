@@ -29,6 +29,7 @@ using namespace Test;
   DECL_CONST(f, arrow(s, s))                          \
   DECL_POLY_CONST(f1, 1, arrow(alpha, alpha))         \
   DECL_POLY_CONST(f2, 1, arrow(s, s))                 \
+  DECL_POLY_CONST(f3, 1, arrow(alpha, s))             \
   DECL_CONST(g, arrow({s, s}, s))                     \
   DECL_CONST(g1, arrow({s, s}, s))                    \
   DECL_CONST(h, arrow({arrow(s, s), arrow(s, s)}, s)) \
@@ -40,6 +41,7 @@ using namespace Test;
   DECL_CONST(a, s)                                    \
   DECL_CONST(b, s)                                    \
   DECL_CONST(c, s)                                    \
+  DECL_POLY_CONST(d, 1, alpha)                        \
 
 #define LEFT_BANK 0
 #define RIGHT_BANK 1
@@ -436,6 +438,19 @@ TEST_UNIFY_SUCCESS(success_15,
   }
 )
 
+TEST_UNIFY_SUCCESS(success_16,
+  lam(s, ap(f3(x), d(x))),
+  lam(s, ap(f3(s), d(s))),
+  {
+    ResultSpec{
+      {
+        vsLeft(x, s),
+      },
+      LiteralStack()
+    }
+  }
+)
+
 TEST_UNIFY_FAIL(fail_1,
   lam(s, ap(g, db0)),
   lam(s, ap(g1, db0))
@@ -482,13 +497,8 @@ TEST_UNIFY_FAIL(fail_9,
 )
 
 TEST_UNIFY_FAIL(fail_10,
-  f(),
-  ap(f, a)
-)
-
-TEST_UNIFY_FAIL(fail_11,
-  ap(g, a),
-  ap(g, {a, b})
+  lam(s, ap(f1(arrow(s,s)), {f1(s), a})),
+  lam(s, ap(f1(s), a))
 )
 
 // functional extensionality tests
@@ -759,9 +769,9 @@ TEST_UNIFY_FUNCEXT_SUCCESS(funcext_success_17,
   {
     ResultSpec{
       {
-        vsLeft(x, x)
+        vsLeft(x, s)
       },
-      { f2(x) != f2(s) }
+      LiteralStack()
     }
   }
 )
@@ -821,8 +831,19 @@ TEST_UNIFY_FUNCEXT_FAIL(funcext_fail_4,
   ap(h1, {b, f()})
 )
 
-// not sure if these are valid tests, the sorts are not unified so we get ill-typed constraints,
+// TODO: not sure if these are valid tests, the sorts are not unified so we get ill-typed constraints,
 // but this never happens in a substitution tree where top-level sorts are unified separately
+
+// TEST_UNIFY_FAIL(fail_10,
+//   f(),
+//   ap(f, a)
+// )
+
+// TEST_UNIFY_FAIL(fail_11,
+//   ap(g, a),
+//   ap(g, {a, b})
+// )
+
 // TEST_UNIFY_FUNCEXT_SUCCESS(funcext_success_21,
 //   f(),
 //   f1(x),
