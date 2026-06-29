@@ -58,32 +58,6 @@ bool occurs(unsigned var, TermList t, const Substitution& subs)
   return false;
 }
 
-bool unifyHeads(Term* t1, Term* t2, Substitution& subs)
-{
-  DEBUG("unifying heads ", *t1, " and ", *t2);
-  Stack<std::pair<TermList, TermList>> todo;
-  todo.emplace(t1, t2);
-
-  while (todo.isNonEmpty()) {
-    auto [c1, c2] = todo.pop();
-    c1 = deref(c1, subs);
-    c2 = deref(c2, subs);
-    if (c1 == c2) {
-      continue;
-    }
-    if (c1.isVar() && !occurs(c1.var(), c2, subs)) {
-      subs.bindUnbound(c1.var(), c2);
-    } else if (c2.isVar() && !occurs(c2.var(), c1, subs)) {
-      subs.bindUnbound(c2.var(), c1);
-    } else if (c1.isTerm() && c2.isTerm() && c1.term()->functor() == c2.term()->functor()) {
-      todo.loadFromIterator(anyArgIter(c1.term()).zip(anyArgIter(c2.term())));
-    } else {
-      return false;
-    }
-  }
-  return true;
-}
-
 }
 
 // UnifierNode
@@ -149,6 +123,50 @@ void UnificationNode::Constraint::normalize(const Substitution& subs)
   _rhead = _rhs.head();
 }
 
+bool UnificationNode::Constraint::unifyHeads(Substitution& subs)
+{
+  ASS(_lhead.isTerm());
+  ASS(_rhead.isTerm());
+  auto t1 = _lhead.term();
+  auto t2 = _rhead.term();
+
+  DEBUG("unifying heads of ", *this);
+  Stack<std::pair<TermList, TermList>> todo;
+  todo.emplace(t1, t2);
+
+  auto bindAndApply = [&](unsigned v, TermList t){
+    subs.bindUnbound(v, t);
+    for (auto [v_, t_] : iterTraits(subs.items())) {
+      subs.rebind(v_, SubstHelper::apply(t_, subs));
+    }
+  };
+
+  while (todo.isNonEmpty()) {
+    auto [c1, c2] = todo.pop();
+    c1 = deref(c1, subs);
+    c2 = deref(c2, subs);
+    if (c1 == c2) {
+      continue;
+    }
+    if (c1.isVar() && !occurs(c1.var(), c2, subs)) {
+      bindAndApply(c1.var(), c2);
+    } else if (c2.isVar() && !occurs(c2.var(), c1, subs)) {
+      bindAndApply(c2.var(), c1);
+    } else if (c1.isTerm() && c2.isTerm() && c1.term()->functor() == c2.term()->functor()) {
+      todo.loadFromIterator(anyArgIter(c1.term()).zip(anyArgIter(c2.term())));
+    } else {
+      return false;
+    }
+  }
+
+  _lhs = SubstHelper::apply(_lhs, subs);
+  _rhs = SubstHelper::apply(_rhs, subs);
+  _sort = SubstHelper::apply(_sort, subs);
+  _lhead = _lhs.head();
+  _rhead = _rhs.head();
+  return true;
+}
+
 // Node
 
 UnificationNode::UnificationNode(Stack<UnificationNode::Constraint> cons, unsigned nextVar, bool funcExt)
@@ -192,7 +210,7 @@ Option<Stack<UnificationNode*>> UnificationNode::solve()
         i++;
         continue;
       }
-      if (!unifyHeads(curr._lhead.term(), curr._rhead.term(), _subs)) {
+      if (!curr.unifyHeads(_subs)) {
         // fail
         DEBUG("fail");
         return none<Stack<UnificationNode*>>();
@@ -251,7 +269,7 @@ bool UnificationNode::simplify()
         i++;
         continue;
       }
-      if (!unifyHeads(curr._lhead.term(), curr._rhead.term(), _subs)) {
+      if (!curr.unifyHeads(_subs)) {
         // fail
         DEBUG("fail");
         return false;
@@ -293,9 +311,7 @@ Stack<UnificationNode::Constraint> UnificationNode::decompose(unsigned index, bo
   auto [rhead, rargs] = HOL::getHeadAndArgs(curr._rhs);
   auto argSorts = HOL::getArgSorts(curr._lhs);
   // check that the type args are the same modulo current substitution
-  ASS(iterTraits(argSorts.iter()).zip(HOL::getArgSorts(curr._rhs).iter()).all([&](auto arg) {
-    return SubstHelper::apply(arg.first, _subs) == SubstHelper::apply(arg.second, _subs);
-  }));
+  ASS_EQ(argSorts, HOL::getArgSorts(curr._rhs));
   ASS_G(largs.size(),0);
   ASS_EQ(largs.size(), rargs.size());
   ASS_EQ(largs.size(), argSorts.size());
@@ -317,10 +333,9 @@ Stack<UnificationNode::Constraint> UnificationNode::decompose(unsigned index, bo
   ASS_EQ(lambdaSorts, otherLambdaSorts);
 #endif
   for (unsigned j = 0; j < largs.size(); j++) {
-    auto argSort = SubstHelper::apply(argSorts[j], _subs);
-    auto lhs = HOL::create::surroundWithLambdas(SubstHelper::apply(largs[j], _subs), lambdaSorts, argSort, /*fromTop=*/true);
-    auto rhs = HOL::create::surroundWithLambdas(SubstHelper::apply(rargs[j], _subs), lambdaSorts, argSort, /*fromTop=*/true);
-    auto sort = lambdaSorts.isEmpty() ? argSort : SortHelper::getResultSort(lhs.term());
+    auto lhs = HOL::create::surroundWithLambdas(largs[j], lambdaSorts, argSorts[j], /*fromTop=*/true);
+    auto rhs = HOL::create::surroundWithLambdas(rargs[j], lambdaSorts, argSorts[j], /*fromTop=*/true);
+    auto sort = lambdaSorts.isEmpty() ? argSorts[j] : SortHelper::getResultSort(lhs.term());
     cons.emplace(lhs, rhs, sort);
   }
   return cons;

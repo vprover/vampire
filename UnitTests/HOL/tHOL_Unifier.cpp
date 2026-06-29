@@ -451,6 +451,20 @@ TEST_UNIFY_SUCCESS(success_16,
   }
 )
 
+TEST_UNIFY_SUCCESS(success_17,
+  lam(s, ap(f3(x), d(x))),
+  lam(s, ap(f3(y), d(y))),
+  {
+    ResultSpec{
+      {
+        vsLeft(x, x),
+        vsRight(y, x),
+      },
+      LiteralStack()
+    }
+  }
+)
+
 TEST_UNIFY_FAIL(fail_1,
   lam(s, ap(g, db0)),
   lam(s, ap(g1, db0))
