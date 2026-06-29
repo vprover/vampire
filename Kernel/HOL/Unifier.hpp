@@ -103,10 +103,13 @@ public:
 private:
   AbstractingUnifier* _unifier;
   const unsigned _hoUnifDepth;
-  const bool _funcExt;
   BacktrackData _localBD;
   Stack<std::pair<UnificationNode*, unsigned>> _todo;
   UnificationNode* _next = nullptr;
+
+#if VDEBUG
+  const bool _funcExt;
+#endif
 };
 
 }

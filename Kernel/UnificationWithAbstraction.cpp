@@ -314,8 +314,6 @@ Option<AbstractionOracle::AbstractionResult> hol(AbstractingUnifier* au, TermSpe
   while (t1.term.isApplication()) {
     ASS(t2.term.isApplication());
     unifs.emplace(t1.termArg(1), t2.termArg(1), t1.typeArg(0));
-    unifs.emplace(t1.typeArg(0), t2.typeArg(0), TermSpec(AtomicSort::superSort(), 0));
-    unifs.emplace(t1.typeArg(1), t2.typeArg(1), TermSpec(AtomicSort::superSort(), 0));
     t1 = au->subs().derefBound(t1.termArg(0));
     t2 = au->subs().derefBound(t2.termArg(0));
   }

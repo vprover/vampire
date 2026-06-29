@@ -398,7 +398,10 @@ UnificationNode::OracleResult UnificationNode::fixpointUnify(Constraint con)
 }
 
 AbstractingWrapper::AbstractingWrapper(AbstractingUnifier* unifier, unsigned hoUnifDepth, bool funcExt)
-  : _unifier(new AbstractingUnifier(unifier->_uwa)), _hoUnifDepth(hoUnifDepth), _funcExt(funcExt)
+  : _unifier(new AbstractingUnifier(unifier->_uwa)), _hoUnifDepth(hoUnifDepth)
+#if VDEBUG
+  , _funcExt(funcExt)
+#endif
 {
   _unifier->subs().copy(unifier->subs());
   Stack<UnificationNode::Constraint> cons;
