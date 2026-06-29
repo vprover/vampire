@@ -77,7 +77,7 @@ using namespace Kernel;
 
 #define UARR_INTERMEDIATE_NODE_MAX_SIZE 4
 
-#define REORDERING 1
+#define REORDERING 0
 
 namespace Indexing {
 
@@ -780,8 +780,8 @@ public:
     template<class BindingFunction>
     void createBindings(TypedTermList term, bool reversed, BindingFunction bindSpecialVar)
     {
-      bindSpecialVar(1, term);
       bindSpecialVar(0, term.sort());
+      bindSpecialVar(1, term);
     }
 
     /** see createBindings(TypedTermList,...) */
@@ -789,6 +789,8 @@ public:
     void createBindings(Literal* lit, bool reversed, BindingFunction bindSpecialVar)
     {
       if (lit->isEquality()) {
+
+        bindSpecialVar(0, SortHelper::getEqualityArgumentSort(lit));
 
         if (reversed) {
           bindSpecialVar(2,*lit->nthArgument(0));
@@ -798,7 +800,6 @@ public:
           bindSpecialVar(2,*lit->nthArgument(1));
         }
 
-        bindSpecialVar(0, SortHelper::getEqualityArgumentSort(lit));
       } else {
 
         TermList* args=lit->args();
