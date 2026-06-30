@@ -152,13 +152,5 @@ private:
   const bool _inductionGroundOnly;
 };
 
-class SkolemisingFormulaIndex
-: public TermIndex<TermWithValue<TermList>>
-{
-public:
-  SkolemisingFormulaIndex(SaturationAlgorithm&);
-  void insertFormula(TermList formula, TermList skolem);
-};
-
 } // namespace Indexing
 #endif /* __TermIndex__ */

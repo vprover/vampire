@@ -229,12 +229,4 @@ void StructInductionTermIndex::handleClause(Clause* c, bool adding)
   }
 }
 
-SkolemisingFormulaIndex::SkolemisingFormulaIndex(SaturationAlgorithm&)
-  : TermIndex(new TermSubstitutionTree<TermWithValue<TermList>>()) {}
-
-void SkolemisingFormulaIndex::insertFormula(TermList formula, TermList skolem)
-{
-  _is->insert(TermWithValue<TermList>(TypedTermList(formula.term()), skolem));
-}
-
 } // namespace Indexing
