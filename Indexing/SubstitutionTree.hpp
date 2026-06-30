@@ -77,7 +77,7 @@ using namespace Kernel;
 
 #define UARR_INTERMEDIATE_NODE_MAX_SIZE 4
 
-#define REORDERING 1
+#define REORDERING 0
 
 namespace Indexing {
 
