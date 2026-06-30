@@ -1,4 +1,4 @@
-%prolog
+%prolo
 
 :- consult(tptp).
 :- dynamic(step/3).
@@ -35,8 +35,7 @@ contains_atom(A, R) => R = A.
 % does a clause contain a predicate p/n?
 contains_predicate(P/N, Clause) :-
   contains_atom(Atom, Clause),
-  Atom =.. [P|_],
-  P \== (=), P \== (<=>),
+  Atom =.. [P|_], P \== (=),
   functor(Atom, P, N).
 
 % does a clause contain a function f/n?
@@ -103,13 +102,16 @@ lp(L | R) => format("(~@)", [lp_disj(L | R)]).
 lp(L & R) => format("(~@)", [lp_conj(L & R)]).
 lp(L => R) => format("(~@ ⇒ ~@)", [lp(L), lp(R)]).
 lp(L <=> R) => format("(~@ ⇔ ~@)", [lp(L), lp(R)]).
+lp(^Xs: ^Ys: F) => append(Xs, Ys, Zs), lp(^Zs: F).
 lp(^[]: F) => lp(F).
-lp(^[X|Xs]: F) => format("(λ ~@, ~@)", [lp(X), lp(^Xs: F)]).
+lp(^Xs: F) => format("(λ~@, ~@)", [maplist(space_then_lp, Xs), lp(F)]).
 lp(![]: F) => lp(F).
 lp(![X|Xs]: F) => format("`∀ ~@, ~@", [lp_binder(X), lp(!Xs: F)]).
 lp(?[]: F) => lp(F).
 lp(?[X|Xs]: F) => format("`∃ ~@, ~@", [lp_binder(X), lp(?Xs: F)]).
 lp(τ(X)) => format("τ ~@", [lp(X)]).
+lp(ι) => format("ι").
+lp(ο) => format("Prop").
 lp(Domain > Range) => format("~@ → ~@", [lp(Domain), lp(Range)]).
 lp(X * Y) => format("~@ → ~@", [lp(X), lp(Y)]).
 % sort annotations should be discarded in terms
@@ -120,14 +122,19 @@ lp('$VAR'(N)) => format("x~d", [N]).
 lp('$LIT'(N)) => format("ℓ~w", [N]).
 lp('$LIT'(N)-_) => format("ℓ~w", [N]).
 % references to input facts
+lp('$INPUT'(Input)), getenv("GDV", _) => format("F.~w", [Input]).
 lp('$INPUT'(Input)) => format("input_~w", [Input]).
+lp('$CONJECTURE'(Input)) => format("vampire_conjecture_~w", [Input]).
 % inference steps that failed to reconstruct for some reason
 lp('$FAILED'(Step)) => format("begin { admit } end /* ~w */", [Step]).
 % general terms
-lp(T), nonvar(T) =>
-  T =.. [F|Args],
-  ( Args == [], !, format("~w", [F])
-  ; format("(~w~@)", [F, maplist(space_then_lp, Args)])).
+lp(T), nonvar(T) => T =.. [F|Args], lp_app(F, Args).
+
+lp_app(F, []) => format("~@", lp_sym(F)).
+lp_app(F, Args) => format("(~@~@)", [lp_sym(F), maplist(space_then_lp, Args)]).
+
+lp_sym(F), getenv("GDV", _) => format("S.~w", [F]).
+lp_sym(F) => format("~w", [F]).
 
 % associative operators
 lp_conj((L1 & L2) & R) => lp_conj(L1 | L2 | R).
@@ -141,14 +148,16 @@ lp_disj(F) => lp(F).
 
 % clauses
 lp_clause([]) => format("π ⊥").
+lp_clause([($false)|C]) => lp_clause(C).
 lp_clause([L|C]), negative(L) => literal_atom(L, A), format("π ~@ → ~@", [lp(A), lp_clause(C)]).
 lp_clause([L|C]) => format("π ¬ ~@ → ~@", [lp(L), lp_clause(C)]).
 lp_clause([], Lits) => lp_clause(Lits).
 lp_clause([X|Xs], Lits) => format("Π ~@, ~@", [lp_binder(X), lp_clause(Xs, Lits)]).
 
 space_then_lp(T) :- format(" ~@", [lp(T)]).
-lp_binder(X : S) => format("~@ : ~@", [lp(X), lp(S)]).
-lp_binder(X) => format("~@ : τ ι", [lp(X)]).
+
+lp_binder(X : S) => format("(~@ : ~@)", [lp(X), lp(S)]).
+lp_binder(X) => format("(~@ : τ ι)", [lp(X)]).
 
 /********************************************************************************
  * Proof reconstruction
@@ -161,30 +170,16 @@ enumerate_literals([H|T], N, ['$LIT'(N)-H|E]) :-
   enumerate_literals(T, M, E).
 enumerate_literals(Xs, R) :- enumerate_literals(Xs, 0, R).
 
-% try to use available literals to dispatch a list of goals Qi (modulo symmetry)
-% if this fails, call `Solve`
-match_literals([], _, [], _).
-match_literals([Q|Qs], Ls, [Term|R], Solve) :-
-  symmetric(Q, Q2, N, Term),
-  member(N-Q2, Ls),
-  match_literals(Qs, Ls, R, Solve).
-match_literals([Q|Qs], Ls, [Term|R], Solve) :-
-  call(Solve, Q, Term),
-  match_literals(Qs, Ls, R, Solve).
-
-% fail to solve a goal
-no_alternative(_, _) :- fail.
-
 % replace don't-care variables with 'el'
 dont_care(el).
 
 % apply instantiation Ts and literal proofs Ls to P for a proof Term
-apply_premise(P, Ts, Ls, Term) :- append(Ts, Ls, Args), Term =.. [P|Args].
+apply_premise(P, Ts, Ls, Term) :-
+  atom_concat(vampire_, P, F),
+  append(Ts, Ls, Args), Term =.. [F|Args].
 
 % use a literal in a proof, possible instantiating the premise
-instantiate(N-K, L, Proof) :-
-  symmetric(K, KSym, N, Proof),
-  unify_with_occurs_check(L, KSym).
+instantiate(N-K, L, Proof) :- symmetric(K, L, N, Proof).
 
 % instantiation(C, Conclusion, LiteralProofs)
 % can C be instantiated to match a subset of Conclusion modulo symmetry of equality?
@@ -239,6 +234,13 @@ resolution(Xs, Ls, Major, Minor, ^Xs: ^Ls: Proof) :-
  * Proof printing
  ********************************************************************************/
 
+print_input(_, _) :- getenv("GDV", _).
+print_input(Name, Parent) :-
+  \+ getenv("GDV", _),
+  step(Name, F, input(_)),
+  numbervars(F),
+  format("symbol input_~w : π ~@;\n", [Parent, lp(F)]).
+
 % reconstruct and print a single clausal proof step
 prove_clause(Name) :- proved(Name), !.
 prove_clause(Name) :-
@@ -250,19 +252,20 @@ prove_clause(Name) :-
 prove_clause(Name, F, Record) =>
   formula_clause(F, Xs, C),
   enumerate_literals(C, Ls),
-  prove_clause(Xs, Ls, Record, Proof),
+  prove_clause(Name, Xs, Ls, Record, Proof),
   term_variables(Proof, Remaining),
   maplist(dont_care, Remaining),
-  format("symbol ~w : ~@ ≔ ~@;\n", [Name, lp_clause(Xs, C), lp(Proof)]).
+  format("symbol vampire_~w : ~@ ≔ ~@;\n", [Name, lp_clause(Xs, C), lp(Proof)]).
 
-prove_clause(_, _, input(Parent), Proof) =>
-  Proof ='$FAILED'(input(Parent)).
-prove_clause(_, _, cnf_transformation(Parent), Proof) =>
+prove_clause(Name, _, _, input(Parent), Proof) =>
+  Proof ='$FAILED'(input(Parent)), % TODO CNF conversion
+  print_input(Name, Parent).
+prove_clause(_, _, _, cnf_transformation(Parent), Proof) =>
   Proof ='$FAILED'(cnf_transformation(Parent)),
   prove_formula(Parent).
-prove_clause(Xs, Ls, resolution(P1, P2), Proof) =>
+prove_clause(_, Xs, Ls, resolution(P1, P2), Proof) =>
   resolution(Xs, Ls, P1, P2, Proof) ; resolution(Xs, Ls, P2, P1, Proof).
-prove_clause(_, _, Record, Proof) =>
+prove_clause(_, _, _, Record, Proof) =>
   Proof = '$FAILED'(Record),
   Record =.. [_|Parents],
   maplist(prove_clause, Parents).
@@ -273,20 +276,17 @@ prove_formula(Name) :-
   step(Name, F, Record),
   numbervars(F),
   prove_formula(Name, F, Record, Proof),
-  format("symbol ~w : π ~@ ≔ ~@;\n", [Name, lp(F), lp(Proof)]),
+  format("symbol vampire_~w : π ~@ ≔ ~@;\n", [Name, lp(F), lp(Proof)]),
   assert(proved(Name)), !. % cut: we only need one proof
 
-prove_formula(_, _, input(Input), _), proved(Input) => true.
 prove_formula(Name, _, input(Input), Proof) =>
   Proof = '$INPUT'(Input),
-  step(Name, F, _),
+  print_input(Name, Input).
+prove_formula(_, F, negated_conjecture(Conjecture), Proof) =>
+  step(Conjecture, _, input(Input)),
+  Proof = '$CONJECTURE'(Input),
   numbervars(F),
-  format("symbol input_~w : π ~@;\n", [Input, lp(F)]).
-prove_formula(_, _, negated_conjecture(Conjecture), Proof) =>
-  step(Conjecture, F, input(Input)),
-  Proof = '$INPUT'(Input),
-  numbervars(F),
-  format("symbol input_~w : π ¬ ~@;\n", [Input, lp(F)]).
+  format("symbol ~@ : π ~@;\n", [lp('$CONJECTURE'(Input)), lp(F)]).
 prove_formula(_, _, definition_folding(Parent, _), Proof) =>
   prove_formula(Parent),
   Proof = '$FAILED'(definition_folding(Parent, _)).
@@ -315,7 +315,7 @@ add_definitions(F, introduced(definition, [new_symbols(naming,[P])], [predicate_
   assert(defined(P, Def)).
 add_definitions(_, _) => true.
 
-% insert proof steps into our own records as input(Name, Formula, Record) triples
+% insert proof steps into our own records as step(Name, Formula, Record) triples
 load(Name, Formula, Inference) =>
   % add any definitions that may be required
   add_definitions(Formula, Inference),
@@ -325,7 +325,7 @@ load(Name, Formula, Inference) =>
   assert(step(Name, Formula, Record)),
   % for any undeclared symbols in the formula, give them the default type
   forall(contains_function(F/N, Formula), ensure_typed(τ(ι), F, N)),
-  forall(contains_predicate(P/N, Formula), ensure_typed('Prop', P, N)).
+  forall(contains_predicate(P/N, Formula), ensure_typed(ο, P, N)).
 
 load(end_of_file) :- !.
 % type declaration stored in TPTP syntax
@@ -341,21 +341,31 @@ load_all :-
   % load should call load_all again, except on EOF
   load(Atom).
 
-print_prelude :-
+print_lemmas :-
   format("\
-require open Stdlib.Set;
-require open Stdlib.Prop;
-require open Stdlib.FOL;
-require open Stdlib.Eq;
 // TODO should be provided by Set?
 constant symbol ι : Set;
 symbol el [a] : τ a;
 
 symbol neq_sym  [a] [x y : τ a] : π (x ≠ y) → π (y ≠ x) ≔ λ neqxy neqyx, neqxy (eq_sym neqyx);
 
+").
+
+print_prelude :-
+  getenv("GDV", _),
+  print_lemmas.
+print_prelude :-
+  \+ getenv("GDV", _),
+  format("\
+require open Stdlib.Set;
+require open Stdlib.Prop;
+require open Stdlib.FOL;
+require open Stdlib.Eq;
 "),
+  print_lemmas,
   forall(type(Name, Type), format("symbol ~w : ~@;\n", [Name, lp(Type)])),
   nl.
+
 
 % compute the default type for a predicate or function with n arguments
 default_type(Range, 0, Range).
@@ -381,4 +391,4 @@ main :-
   step(Name, $false, _),
   prove_clause(Name).
 
-:-initialization(main, main).
+:- initialization(main, main).
