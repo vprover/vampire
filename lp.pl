@@ -12,12 +12,6 @@
 
 % a literal is negative
 negative(~_).
-negative(_ != _).
-
-% the atom of a literal has a certain atom
-literal_atom(~P, A) => A = P.
-literal_atom(L != R, A) => A = (L = R).
-literal_atom(L, A) => L = A.
 
 % does a formula contain an atom?
 contains_atom(A, !_: F) => contains_atom(A, F).
@@ -48,7 +42,10 @@ contains_function(F/N, Clause) :-
 
 % extract literals of an original clause C:
 literals($false, R) => R = [].
+literals($false | C, R) => literals(C, R).
+literals((S != T) | C, R) => R = [~(S = T)|D], literals(C, D).
 literals(L | C, R) => R = [L | D], literals(C, D).
+literals(S != T, R) => R = [~(S = T)].
 literals(L, R) => R = [L].
 
 % a formula turns out to be a clause
@@ -148,8 +145,7 @@ lp_disj(F) => lp(F).
 
 % clauses
 lp_clause([]) => format("π ⊥").
-lp_clause([($false)|C]) => lp_clause(C).
-lp_clause([L|C]), negative(L) => literal_atom(L, A), format("π ~@ → ~@", [lp(A), lp_clause(C)]).
+lp_clause([~L|C]) => format("π ~@ → ~@", [lp(L), lp_clause(C)]).
 lp_clause([L|C]) => format("π ¬ ~@ → ~@", [lp(L), lp_clause(C)]).
 lp_clause([], Lits) => lp_clause(Lits).
 lp_clause([X|Xs], Lits) => format("Π ~@, ~@", [lp_binder(X), lp_clause(Xs, Lits)]).
@@ -224,11 +220,14 @@ major_resolution([K | Ks], Ls, Minor, [^[Pivot]: Subproof | Ts]) :-
   major_resolution(Ks, Ls, Minor, Ts).
 
 resolution(Xs, Ls, Major, Minor, ^Xs: ^Ls: Proof) :-
-  prove_clause(Major),
-  prove_clause(Minor),
   clause_step(Major, Ys, Ks, _),
   major_resolution(Ks, Ls, Minor, Ts),
   apply_premise(Major, Ys, Ts, Proof).
+
+resolution(Xs, Ls, Premises, Proof) :-
+  maplist(prove_clause, Premises),
+  select(Major, Premises, [Minor]),
+  resolution(Xs, Ls, Major, Minor, Proof).
 
 /********************************************************************************
  * Proof printing
@@ -264,7 +263,9 @@ prove_clause(_, _, _, cnf_transformation(Parent), Proof) =>
   Proof ='$FAILED'(cnf_transformation(Parent)),
   prove_formula(Parent).
 prove_clause(_, Xs, Ls, resolution(P1, P2), Proof) =>
-  resolution(Xs, Ls, P1, P2, Proof) ; resolution(Xs, Ls, P2, P1, Proof).
+  resolution(Xs, Ls, [P1, P2], Proof).
+prove_clause(_, Xs, Ls, forward_subsumption_resolution(P1, P2), Proof) =>
+  resolution(Xs, Ls, [P1, P2], Proof).
 prove_clause(_, _, _, Record, Proof) =>
   Proof = '$FAILED'(Record),
   Record =.. [_|Parents],
