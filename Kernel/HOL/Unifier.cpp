@@ -98,6 +98,9 @@ bool UnificationNode::Constraint::unifyHeads(Substitution& subs)
 {
   ASS(_lhead.isTerm());
   ASS(_rhead.isTerm());
+  ASS_EQ(_lhead.term()->numTermArguments(), 0);
+  ASS_EQ(_rhead.term()->numTermArguments(), 0);
+
   auto t1 = _lhead.term();
   auto t2 = _rhead.term();
 
