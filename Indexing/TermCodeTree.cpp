@@ -168,5 +168,6 @@ template class TermCodeTree<false, TermLiteralClause>;
 template class TermCodeTree<true,  TermLiteralClause>;
 template class TermCodeTree<false, DemodulatorData>;
 template class TermCodeTree<true,  DemodulatorData>;
+template class TermCodeTree<true,  TermWithValue<TermList>>;
 
 };

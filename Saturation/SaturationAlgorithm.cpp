@@ -1504,7 +1504,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) && prb.isHigherOrder()){
     if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER && 
        env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF){
-      gie->addFront(new LazyClausificationGIE(*res));
+      gie->addFront(new LazyClausificationGIE());
     }
   }
 

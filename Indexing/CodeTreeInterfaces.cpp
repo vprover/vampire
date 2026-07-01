@@ -167,6 +167,7 @@ template class CodeTreeTIS<false, TermLiteralClause>;
 template class CodeTreeTIS<true,  TermLiteralClause>;
 template class CodeTreeTIS<false, DemodulatorData>;
 template class CodeTreeTIS<true,  DemodulatorData>;
+template class CodeTreeTIS<true,  TermWithValue<TermList>>;
 
 /////////////////   CodeTreeSubsumptionIndex   //////////////////////
 

@@ -43,7 +43,6 @@ SIMP_INDEX_IMPL(RewriteRuleIndex)
 SIMP_INDEX_IMPL(UnitClauseLiteralIndex)
 SIMP_INDEX_IMPL(DemodulationSubtermIndex<false>)
 SIMP_INDEX_IMPL(DemodulationSubtermIndex<true>)
-SIMP_INDEX_IMPL(SkolemisingFormulaIndex)
 SIMP_INDEX_IMPL(FSDLiteralIndex)
 
 GEN_INDEX_IMPL(AlascaIndex<ALASCA::CoherenceConf<NumTraits<RealConstantType>>::Lhs>)
