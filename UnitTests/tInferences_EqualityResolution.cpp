@@ -85,7 +85,6 @@ TEST_GENERATION(test_07,
   DECL_SORT(s)                                        \
   DECL_DEFAULT_VARS                                   \
   DECL_CONST(f, arrow({s, s}, s))                     \
-  DECL_CONST(g, arrow(arrow(s, s), s))                \
   DECL_DE_BRUIJN_INDEX(db0, 0, s)                     \
   DECL_CONST(a, s)                                    \
   DECL_CONST(b, s)
@@ -98,13 +97,14 @@ TEST_GENERATION(test_hol_01,
       })
       .expected( exactly(
         clause({ lam(s, lam(s, db0)) != f() }),
-        clause({ lam(s, lam(s, b)) != f() })
+        clause({ lam(s, lam(s, b)) != f() }),
+        clause({ ap(f, {a, b}) != b })
       ))
     )
 
 TEST_GENERATION(test_hol_02,
     Generation::AsymmetricTest()
-      .input(clause({ selected(ap(g, lam(s, ap(f, {x, db0}))) != ap(g, lam(s, ap(f, {y, db0})))) }))
+      .input(clause({ selected(lam(s, ap(f, {x, db0})) != lam(s, ap(f, {y, db0}))) }))
       .expected( exactly(
         clause({ lam(s, x.sort(s)) != lam(s, y.sort(s)) })
       ))
