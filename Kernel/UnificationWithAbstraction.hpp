@@ -64,10 +64,11 @@ public:
 class AbstractionOracle final
 {
   Shell::Options::UnificationWithAbstraction _mode;
+  bool _funcExt;
   friend class AbstractingUnifier;
 public:
-  AbstractionOracle(Shell::Options::UnificationWithAbstraction mode) : _mode(mode) {}
-  AbstractionOracle() : AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF) {}
+  AbstractionOracle(Shell::Options::UnificationWithAbstraction mode, bool funcExt = false) : _mode(mode), _funcExt(funcExt) {}
+  AbstractionOracle() : AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF, /*funcExt=*/false) {}
 
   struct EqualIf { 
     Recycled<Stack<UnificationConstraint>> _unify; 

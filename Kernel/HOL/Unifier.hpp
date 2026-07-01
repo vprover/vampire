@@ -52,7 +52,7 @@ struct UnificationNode
     void normalize(const Substitution& subs);
   };
 
-  UnificationNode(Stack<Constraint> cons, unsigned nextVar);
+  UnificationNode(Stack<Constraint> cons, unsigned nextVar, bool funcExt);
 
   /** This function should be called when extending the current unifier is allowed,
    * i.e. when we haven't reached the maximum allowed unification depth yet. */
@@ -69,6 +69,7 @@ private:
   Stack<Constraint> decompose(unsigned index, bool includeRest) const;
 
   unsigned _freshVar;
+  const bool _funcExt;
 };
 
 /**
@@ -81,7 +82,7 @@ class AbstractingWrapper
   : public IteratorCore<AbstractingUnifier*>
 {
 public:
-  AbstractingWrapper(AbstractingUnifier* unifier, unsigned hoUnifDepth);
+  AbstractingWrapper(AbstractingUnifier* unifier, unsigned hoUnifDepth, bool funcExt);
   ~AbstractingWrapper() override;
   AbstractingWrapper(const AbstractingWrapper&) = delete;
   AbstractingWrapper& operator=(const AbstractingWrapper&) = delete;
@@ -97,6 +98,9 @@ private:
   BacktrackData _localBD;
   Stack<std::pair<UnificationNode*, unsigned>> _todo;
   UnificationNode* _next = nullptr;
+#if VDEBUG
+  const bool _funcExt;
+#endif
 };
 
 }
