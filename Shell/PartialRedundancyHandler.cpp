@@ -133,7 +133,7 @@ private:
 
     static SubstMatcher matcher;
     struct Applicator : public SubstApplicator {
-      TermList operator()(unsigned v) const override { return matcher.bindings[v]; }
+      TermList apply(unsigned v) const override { return matcher.bindings[v]; }
     } applicator;
 
     matcher.init(this, ts);

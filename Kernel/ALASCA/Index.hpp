@@ -13,6 +13,7 @@
 
 
 #include "Indexing/SubstitutionTree.hpp"
+#include "Indexing/TermIndex.hpp"
 #include "Kernel/ALASCA.hpp"
 
 #include "Debug/TimeProfiling.hpp"
@@ -54,10 +55,6 @@ public:
   { return iterTraits(_index.template getUwa<VarBanks>(state, key, _shared.uwaMode(), _shared.uwaFixedPointIteration))
       .timeTraced(_lookupStr.c_str()); }
 
-
-  auto generalizations(TypedTermList key, bool retrieveSubstitutions = true)
-  { return iterTraits(_index.getGeneralizations(key, retrieveSubstitutions)); }
-
   auto instances(TypedTermList key, bool retrieveSubstitutions = true)
   { return iterTraits(_index.getInstances(key, retrieveSubstitutions)); }
 
@@ -89,6 +86,21 @@ private:
 
 template<class T> std::string AlascaIndex<T>::_lookupStr = T::name() + std::string(" lookup");
 template<class T> std::string AlascaIndex<T>::_maintenanceStr = T::name() + std::string(" maintenance");
+
+template<class T>
+class GeneralizingAlascaIndex : public Indexing::GeneralizingTermIndex</*higherOrder=*/false, T>
+{
+public:
+  GeneralizingAlascaIndex(SaturationAlgorithm& salg) : _shared(salg.alascaState()) {}
+
+  void handleClause(Clause* c, bool adding) override {
+    for (auto appl : T::iter(_shared, c)) {
+      Indexing::GeneralizingTermIndex<false, T>::_ct.handle(std::move(appl), adding);
+    }
+  }
+private:
+  Kernel::AlascaState& _shared;
+};
 
 } // namespace Indexing
 

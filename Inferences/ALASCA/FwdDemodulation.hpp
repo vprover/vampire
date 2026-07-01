@@ -44,7 +44,7 @@ public:
 
 private:
   AlascaState& _shared;
-  std::shared_ptr<AlascaIndex<Demodulation::Lhs>> _index;
+  std::shared_ptr<GeneralizingAlascaIndex<Demodulation::Lhs>> _index;
 };
 
 } // namespaceALASCA 
