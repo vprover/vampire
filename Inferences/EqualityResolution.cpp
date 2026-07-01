@@ -89,7 +89,7 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
   return pvi(premise->getSelectedLiteralIterator()
     .filter([](Literal* l)  {
       // equalities of arrow sort should be first dealt with by NegativeExtensionality
-      return l->isEquality() && l->isNegative() && !l->eqArgSort().isArrowSort();
+      return l->isEquality() && l->isNegative() && (!funcExt || !l->eqArgSort().isArrowSort());
     })
     .flatMap([this,premise](Literal* lit) {
 
