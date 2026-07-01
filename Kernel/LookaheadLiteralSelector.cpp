@@ -47,7 +47,8 @@ struct LookaheadLiteralSelector::GenIteratorIterator
   using TermIndex = Indexing::TermIndex<TermLiteralClause>;
   DECL_ELEMENT_TYPE(VirtualIterator<std::tuple<>>);
 
-  GenIteratorIterator(Literal* lit, LookaheadLiteralSelector& parent) : stage(0), lit(lit), prepared(false), _parent(parent) {}
+  GenIteratorIterator(Literal* lit, LookaheadLiteralSelector& parent) : stage(0), lit(lit), prepared(false), _parent(parent)
+  { ASS(!env.higherOrder()); }
 
   bool hasNext()
   {
@@ -79,7 +80,7 @@ struct LookaheadLiteralSelector::GenIteratorIterator
     }
     case 1:  //backward superposition
     {
-      auto bsi = salg->tryGetGeneratingIndex<SuperpositionSubtermIndex>();
+      auto bsi = salg->tryGetGeneratingIndex<SuperpositionSubtermIndex</*higherOrder=*/false>>();
       if(!bsi) { stage++; goto start; }
 
       nextIt=pvi( getMapAndFlattenIterator(
@@ -93,7 +94,7 @@ struct LookaheadLiteralSelector::GenIteratorIterator
       if(!fsi) { stage++; goto start; }
 
       nextIt=pvi( getMapAndFlattenIterator(
-	       EqHelper::getSubtermIterator(lit, _parent._ord, /*higherOrder=*/false), //TODO update for HO superposition
+	       EqHelper::getSubtermIterator</*higherOrder=*/false>(lit, _parent._ord), //TODO update for HO superposition
 	       TermUnificationRetriever(fsi.get())) );
       break;
     }

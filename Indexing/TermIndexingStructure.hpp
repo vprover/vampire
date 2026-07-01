@@ -31,6 +31,7 @@ public:
 
   virtual VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getUnifications(TypedTermList t, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
   virtual VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) = 0;
+  virtual VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwaHOL(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration, unsigned hoUnifDepth) = 0;
   virtual VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getInstances(TypedTermList t, bool retrieveSubstitutions = true) { NOT_IMPLEMENTED; }
 
   virtual void output(std::ostream& output) const = 0;

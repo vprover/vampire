@@ -1051,7 +1051,7 @@ public:
 
   // With a stack (s1,...sn) from bottom to top, we get s1 -> (... -> sn) with fromTop = true,
   // while sn -> (... -> s1) with fromTop = false.
-  // TODO check also this, some call sites might be wrong
+  // TODO(HOL): check also this, some call sites might be wrong
   static TermList arrowSort(const TermStack& domSorts, TermList range, bool fromTop = false);
   static TermList arrowSort(TermList s1, TermList s2);
   static TermList arrowSort(unsigned size, const TermList* types, TermList range);
@@ -1221,7 +1221,7 @@ public:
   // the term is assumed to be non-shared
   void argSwap() {
     ASS(isEquality() && !shared());
-    ASS(arity() == 2);
+    ASS_EQ(arity(), 2);
 
     TermList* ts1 = args();
     TermList* ts2 = ts1->next();

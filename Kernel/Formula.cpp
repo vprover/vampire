@@ -177,6 +177,9 @@ std::string Formula::toString () const
         res += toString(c);
 
         const Formula* arg = f->uarg();
+        Connective subc = arg->connective();
+        if(subc == FORALL || subc == EXISTS || subc == NOT)
+          res += " ";
         stack.push({arg->parenthesesRequired(c),NOCONN,arg});
 
         continue;
@@ -447,6 +450,28 @@ Formula* Formula::quantify(Formula* f)
   }
   if(!quantifiedVarsWithSorts.empty()) {
     f = new QuantifiedFormula(FORALL, quantifiedVarsWithSorts.list(), f);
+  }
+  return f;
+}
+
+Formula* Formula::removeUniversalTypePrenex(Formula* f)
+{
+  while (f->connective() == FORALL) {
+    auto vars = f->vars();
+    // get rid of current universal type prenex
+    while (vars && vars->head().second == AtomicSort::superSort()) {
+      vars = vars->tail();
+    }
+    // if there was none, return original formula
+    if (vars == f->vars()) {
+      break;
+    }
+    // if there are vars remaining, we return a new formula
+    if (vars) {
+      return new QuantifiedFormula(FORALL, vars, f->qarg());
+    }
+    // otherwise we recurse
+    f = f->qarg();
   }
   return f;
 }

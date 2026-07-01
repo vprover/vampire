@@ -79,7 +79,9 @@
 #include "Inferences/HOL/BetaEtaSimplify.hpp"
 #include "Inferences/HOL/BoolEqToDiseq.hpp"
 #include "Inferences/HOL/BoolSimp.hpp"
+#include "Inferences/HOL/Cases.hpp"
 #include "Inferences/HOL/CasesSimp.hpp"
+#include "Inferences/HOL/Choice.hpp"
 #include "Inferences/HOL/CNFOnTheFly.hpp"
 #include "Inferences/HOL/FlexFlexSimplify.hpp"
 #include "Inferences/HOL/ImitateProject.hpp"
@@ -91,14 +93,12 @@
 #include "Inferences/InnerRewriting.hpp"
 #include "Inferences/TermAlgebraReasoning.hpp"
 #include "Inferences/Superposition.hpp"
-#include "Inferences/Choice.hpp"
 #include "Inferences/URResolution.hpp"
 #include "Inferences/Instantiation.hpp"
 #include "Inferences/TheoryInstAndSimp.hpp"
 #include "Inferences/Induction.hpp"
 #include "Inferences/ArithmeticSubtermGeneralization.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
-#include "Inferences/Cases.hpp"
 #include "Inferences/DefinitionIntroduction.hpp"
 #include "Inferences/LfpRule.hpp"
 #include "Inferences/SubsumptionEqualityResolution.hpp"
@@ -1430,7 +1430,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new Induction(*res));
   }
 
-  if (opt.instantiation() != Options::Instantiation::OFF) {
+  if (opt.instantiation()) {
     res->_instantiation = new Instantiation();
     // res->_instantiation->init();
     gie->addFront(res->_instantiation);
@@ -1444,7 +1444,11 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
     gie->addFront(new EqualityResolution(*res));
     if(opt.superposition() && !alascaTakesOver){ // in alasca we have a special superposition rule
-      gie->addFront(new Superposition(*res));
+      if (prb.isHigherOrder()) {
+        gie->addFront(new Superposition<true>(*res));
+      } else {
+        gie->addFront(new Superposition<false>(*res));
+      }
     }
   }
   else if (opt.unificationWithAbstraction() != Options::UnificationWithAbstraction::OFF) {
@@ -1460,12 +1464,12 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     if(prb.hasFOOL() && opt.booleanEqTrick()){
       gie->addFront(new BoolEqToDiseq(*res));
     }
-    if(true/* !opt.higherOrderUnifDepth() && !opt.applicativeUnify() */){
+    if(opt.unificationWithAbstraction() != Options::UnificationWithAbstraction::HOL || opt.higherOrderUnifDepth() == 0){
       // TODO(HOL): only add when we are not carrying out higher-order unification
       gie->addFront(new ImitateProject(*res));
     }
     if (opt.choiceReasoning()) {
-      gie->addFront(new Choice());
+      gie->addFront(new Choice(*res));
     }
   }
 
@@ -1486,7 +1490,9 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if (opt.FOOLParamodulation()) {
     gie->addFront(new FOOLParamodulation());
   }
-  if (opt.cases() && prb.hasFOOL() && !opt.casesSimp()) {
+  // TODO(HOL): Cases only works with HO equalities, but for plain FOOL
+  // problems then we have nothing enabled by default. Maybe FOOLParamodulation?
+  if (opt.cases() && prb.isHigherOrder() && !opt.casesSimp()) {
     gie->addFront(new Cases(*res));
   }
 
@@ -1498,12 +1504,12 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) && prb.isHigherOrder()){
     if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER && 
        env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF){
-      gie->addFront(new LazyClausificationGIE(*res));
+      gie->addFront(new LazyClausificationGIE());
     }
   }
 
   if (prb.isHigherOrder() && opt.injectivityReasoning()) {
-    gie->addFront(new Injectivity());
+    gie->addFront(new Injectivity(*res));
   }
   if (mayHaveEquality && env.signature->hasTermAlgebras()) {
     if (opt.termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULE) {
@@ -1655,14 +1661,15 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   if (opt.forwardSubsumption()) {
-    if (opt.codeTreeSubsumption()) {
-      if (prb.isHigherOrder()) {
-        res->addForwardSimplifierToFront<CodeTreeForwardSubsumptionAndResolution<true>>();
-      } else {
-        res->addForwardSimplifierToFront<CodeTreeForwardSubsumptionAndResolution<false>>();
-      }
+    if (prb.isHigherOrder()) {
+      // Only use the code trees for HOL, as the other is not yet adapted
+      res->addForwardSimplifierToFront<CodeTreeForwardSubsumptionAndResolution<true>>();
     } else {
-      res->addForwardSimplifierToFront<ForwardSubsumptionAndResolution>();
+      if (opt.codeTreeSubsumption()) {
+        res->addForwardSimplifierToFront<CodeTreeForwardSubsumptionAndResolution<false>>();
+      } else {
+        res->addForwardSimplifierToFront<ForwardSubsumptionAndResolution>();
+      }
     }
   }
   else if (opt.forwardSubsumptionResolution()) {
@@ -1700,7 +1707,11 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   bool backSubsumption = opt.backwardSubsumption() != Options::Subsumption::OFF;
   bool backSR = opt.backwardSubsumptionResolution() != Options::Subsumption::OFF;
   if (backSubsumption || backSR) {
-    res->addBackwardSimplifierToFront<BackwardSubsumptionAndResolution>();
+    if (prb.isHigherOrder()) {
+      res->addBackwardSimplifierToFront<BackwardSubsumptionAndResolution<true>>();
+    } else {
+      res->addBackwardSimplifierToFront<BackwardSubsumptionAndResolution<false>>();
+    }
   }
 
   if (opt.mode() == Options::Mode::CONSEQUENCE_ELIMINATION) {
@@ -1747,7 +1758,11 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
       res->addFront(new Condensation());
       break;
     case Options::Condensation::FAST:
-      res->addFront(new FastCondensation());
+      if (prb.isHigherOrder()) {
+        res->addFront(new FastCondensation<true>());
+      } else {
+        res->addFront(new FastCondensation<false>());
+      }
       break;
     case Options::Condensation::OFF:
       break;
@@ -1757,7 +1772,7 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
     res->addFront(new ChoiceDefinitionISE());
   }
 
-  if ((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) && prb.isHigherOrder()/*  && !opt.addProxyAxioms() */) {
+  if ((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) && prb.isHigherOrder()) {
     if(env.options->cnfOnTheFly() == Options::CNFOnTheFly::EAGER){
       resMany.addFront(std::make_unique<EagerClausificationISE>());
     }

@@ -245,7 +245,8 @@ private:
   }
 
   struct SubstMatcher
-  : public Matcher</*removing*/false,false,/*higherOrder=*/false>
+  // TODO(HOL): consider turning higherOrder flag off for HOL
+  : public Matcher</*removing*/false,false,/*higherOrder=*/true>
   {
     void init(CodeTree* tree, const TermStack& ts)
     {

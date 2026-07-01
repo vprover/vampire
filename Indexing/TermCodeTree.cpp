@@ -188,6 +188,6 @@ template class TermCodeTree<false, TermLiteralClause>;
 template class TermCodeTree<false, DemodulatorData>;
 template class TermCodeTree<true,  DemodulatorData>;
 template class TermCodeTree<false, Inferences::ALASCA::Demodulation::Lhs>;
-template class TermCodeTree<false, TermWithValue<TermList>>;
+template class TermCodeTree<true,  TermWithValue<TermList>>;
 
 };

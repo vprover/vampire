@@ -115,6 +115,7 @@ check_szs_status Unsatisfiable -newcnf on -t 1 parse/smtlib2-parametric-datatype
 check_szs_status Unsatisfiable parse/smtlib2-mutual-recursion.smt2
 check_szs_status Unsatisfiable -newcnf on parse/let-bind-variable.smt2
 check_szs_status Unsatisfiable -qa synthesis parse/assert-synth-max5.smt2
+check_szs_status Unsatisfiable parse/define-const.smt2
 
 # Arithmetic
 check_szs_status Theorem -t 1d -s 32 -tgt ground -sas z3 -tha some -nm 6 Problems/ANA/ANA135_1.p
@@ -153,3 +154,6 @@ check_szs_status Unsatisfiable -t 5d -fgj on -bd all Problems/SWW/SWW436-1.p
 # Synthesis without and with uncomputables
 check_szs_status Unsatisfiable -qa synthesis synthesis/max2.smt2
 check_szs_status Unsatisfiable -qa synthesis synthesis/ex2-inverse_of_ixopiy.smt2
+
+# Higher-order logic
+check_szs_status Theorem hol/hol1.p

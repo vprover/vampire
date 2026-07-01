@@ -65,6 +65,10 @@ inline bool canHeadReduce(const TermList& head, const TermStack& args) {
   return head.isLambdaTerm() && args.isNonEmpty();
 }
 
+/** Given two terms of the form λ x_1,...,x_m. s and λ y_1,...,y_n. t and w.l.o.g. m ≥ n,
+ ** applies η-conversion to the second term until they have the same lambda-prefix. */
+void normaliseLambdaPrefixes(TermList& t1, TermList& t2);
+
 // if flexTerm is of form X t1 t2 : i > i and t1 : int and t2 : tau
 // this function will fill stack with [i, tau, int]
 // TODO(HOL): very inelegant at the moment, need to rewrite
@@ -95,7 +99,7 @@ namespace HOL::create {
   TermList app(TermList s1, TermList s2, TermList arg1, TermList arg2, bool shared = true);
   // With head h and a stack or arguments (a1,...an) from bottom to top, we get h @ an @ ... @ a1
   // with fromTop = true, while h @ a1 @ ... @ an with fromTop = false.
-  // TODO I think due to the default fromTop==true, some call sites might be wrong, double check
+  // TODO(HOL): I think due to the default fromTop==true, some call sites might be wrong, double check
   TermList app(TermList sort, TermList head, const TermStack& terms, bool fromTop = true);
   TermList app(TermList head, const TermStack& terms, bool fromTop = true);
 
@@ -133,6 +137,9 @@ namespace HOL::create {
   TermList surroundWithLambdas(TermList t, const TermStack& sorts, TermList sort, bool fromTop = false);
 
   TermList placeholder(TermList sort);
+
+  Clause* choiceAxiom();
+  Clause* functionalExtensionalityAxiom();
 } // namespace HOL::create
 
 namespace HOL::convert {

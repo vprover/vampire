@@ -208,7 +208,7 @@ bool ForwardSubsumptionDemodulation<higherOrder>::perform(Clause* cl, Clause*& r
           // because it is a deletion rule; and Forward Subsumption should be performed before FSD.
 #if VDEBUG && FSD_VDEBUG_REDUNDANCY_ASSERTIONS
           if (_literalComparisonMode != Options::LiteralComparisonMode::REVERSE) {
-            OverlayBinder tmpBinder;
+            OverlayBinder<higherOrder> tmpBinder;
             matcher.getBindings(tmpBinder.base());
             ASS(SDHelper::substClauseIsSmallerOrEqual(mcl, tmpBinder, cl, _ord));
           }
@@ -233,7 +233,7 @@ bool ForwardSubsumptionDemodulation<higherOrder>::perform(Clause* cl, Clause*& r
         static std::vector<bool> isMatched;
         matcher.getMatchedAltsBitmap(isMatched);
 
-        static OverlayBinder binder;
+        static OverlayBinder<higherOrder> binder;
         binder.clear();
         matcher.getBindings(binder.base());
 
@@ -315,7 +315,7 @@ bool ForwardSubsumptionDemodulation<higherOrder>::perform(Clause* cl, Clause*& r
           // But note that we still need to compare the variable sets of the substituted terms below.
           Ordering::Result eqArgOrderS = eqArgOrder;
 #endif
-          OverlayBinder::UnboundVariableOffsetApplicator applicator(binder, cl_maxVar+1);
+          typename OverlayBinder<higherOrder>::UnboundVariableOffsetApplicator applicator(binder, cl_maxVar+1);
           switch (eqArgOrderS) {
             case Ordering::INCOMPARABLE:
               ASS(!_preorderedOnly);  // would've skipped earlier already

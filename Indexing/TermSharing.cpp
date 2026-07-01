@@ -133,6 +133,8 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
     t->setHasLambda(hasLambda);
     t->setInterpretedConstantsPresence(hasInterpretedConstants);
 
+    ASS_REP(!env.higherOrder() || t->isApplication() || t->isLambdaTerm() || !t->numTermArguments(), "HO term " + t->toString() + " is not appified");
+
     //poly function works for mono as well, but is slow
     //it is fine to use for debug
     ASS_REP(_wellSortednessCheckingDisabled || SortHelper::areImmediateSortsValidPoly(t), t->toString());
@@ -266,7 +268,7 @@ void TermSharing::computeAndSetSharedVarEqData(Literal* t, TermList sort)
   TermList* ts1 = t->args();
   TermList* ts2 = ts1->next();
   if (argNormGt(*ts1, *ts2)) {
-    std::swap(ts1->_content, ts2->_content);
+    t->argSwap();
   }
 
   //we need these values set during insertion into the sharing set

@@ -113,7 +113,7 @@ template class CodeTreeTIS<true,  TermLiteralClause>;
 template class CodeTreeTIS<false, DemodulatorData>;
 template class CodeTreeTIS<true,  DemodulatorData>;
 template class CodeTreeTIS<false, Inferences::ALASCA::Demodulation::Lhs>;
-template class CodeTreeTIS<false, TermWithValue<TermList>>;
+template class CodeTreeTIS<true,  TermWithValue<TermList>>;
 
 /////////////////   CodeTreeSubsumptionIndex   //////////////////////
 

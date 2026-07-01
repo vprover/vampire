@@ -221,6 +221,19 @@ void SMTLIB2::readBenchmark(LExpr* bench)
       continue;
     }
 
+    if (ibRdr.tryAcceptAtom("define-const")) {
+
+      auto name = ibRdr.readAtom();
+      auto oSort = ibRdr.readExpr();
+      auto body = ibRdr.readExpr();
+      LExpr iArgs(LispParser::LIST); // dummy list to avoid passing null below
+      readDefineFun(name,&iArgs,oSort,body,/*recursive=*/false);
+
+      ibRdr.acceptEOL();
+
+      continue;
+    }
+
     bool recursive = false;
     if (ibRdr.tryAcceptAtom("define-fun") || (recursive = ibRdr.tryAcceptAtom("define-fun-rec"))) {
 
@@ -1789,9 +1802,17 @@ void SMTLIB2::parseAnnotatedTerm(LExpr* exp)
 
   auto toParse = lRdr.readExpr();
 
-  // we only consider :named annotations
   if(lRdr.tryAcceptAtom(":named")){
-    _todo.push(make_pair(PO_LABEL,lRdr.readExpr()));
+    auto nameExp = lRdr.readExpr();
+    std::string name = nameExp->toString();
+    if (name.starts_with("conjecture")) {
+      _todo.push(make_pair(PO_MAKE_GOAL,nullptr));
+    }
+    _todo.push(make_pair(PO_LABEL,nameExp));
+  } else if(env.options->parseGoalAnnotations() && lRdr.tryAcceptAtom(":goal")){
+    auto nameExp = lRdr.readExpr();
+    _todo.push(make_pair(PO_MAKE_GOAL, nullptr));
+    _todo.push(make_pair(PO_LABEL, nameExp));
   }
 
   _todo.push(make_pair(PO_PARSE,toParse));
@@ -2745,6 +2766,13 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body, bool isSort)
         _results.push(res);
         continue;
       }
+      case PO_MAKE_GOAL: {
+        ASS_GE(_results.size(),1);
+        ParseResult res =  _results.pop();
+        res.isGoal = true;
+        _results.push(res);
+        continue;
+      }
       case PO_LET_PREPARE_LOOKUP:
         parseLetPrepareLookup(exp);
         continue;
@@ -2789,7 +2817,7 @@ void SMTLIB2::readAssert(LExpr* body)
     USER_ERROR_EXPR("Asserted expression of non-boolean sort "+body->toString());
   }
 
-  FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
+  FormulaUnit* fu = new FormulaUnit(fla, FromInput(res.isGoal ? UnitInputType::NEGATED_CONJECTURE : UnitInputType::ASSUMPTION));
   _formulas.pushBack(fu);
 }
 

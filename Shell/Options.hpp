@@ -206,6 +206,7 @@ public:
     ALASCA_CAN_ABSTRACT,
     ALASCA_MAIN,
     ALASCA_MAIN_FLOOR,
+    HOL,
   };
   friend std::ostream& operator<<(std::ostream& out, UnificationWithAbstraction const& self)
   {
@@ -222,6 +223,7 @@ public:
       case UnificationWithAbstraction::ALASCA_CAN_ABSTRACT: return out << "alasca_can_abstract";
       case UnificationWithAbstraction::ALASCA_MAIN:         return out << "alasca_main";
       case UnificationWithAbstraction::ALASCA_MAIN_FLOOR:   return out << "alasca_floor";
+      case UnificationWithAbstraction::HOL:               return out << "hol";
     }
     ASSERTION_VIOLATION
   }
@@ -341,15 +343,6 @@ public:
     ALL = 0,
     NONE = 1,
     UNUSED = 2
-  };
-
-  /**
-   *
-   *
-   */
-  enum class Instantiation : unsigned int {
-    OFF = 0,
-    ON = 1
   };
 
   /**
@@ -2060,6 +2053,7 @@ public:
   UnificationWithAbstraction unificationWithAbstraction() const { return _unificationWithAbstraction.actualValue; }
   bool unificationWithAbstractionFixedPointIteration() const { return _unificationWithAbstractionFixedPointIteration.actualValue; }
   void setUWA(UnificationWithAbstraction value){ _unificationWithAbstraction.actualValue = value; }
+  void setUWAFPI(bool fpi) { _unificationWithAbstractionFixedPointIteration.actualValue = fpi; }
   // TODO make alasca independent of normal evaluation
   bool useACeval() const { return _useACeval.actualValue; }
 
@@ -2092,6 +2086,7 @@ public:
   bool partialRedundancyAvatarConstraints() const { return _partialRedundancyAvatarConstraints.actualValue; }
   bool partialRedundancyLiteralConstraints() const { return _partialRedundancyLiteralConstraints.actualValue; }
   bool arityCheck() const { return _arityCheck.actualValue; }
+  bool parseGoalAnnotations() const { return _parseGoalAnnotations.actualValue; }
   //void setArityCheck(bool newVal) { _arityCheck=newVal; }
   Demodulation backwardDemodulation() const { return _backwardDemodulation.actualValue; }
   DemodulationRedundancyCheck demodulationRedundancyCheck() const { return _demodulationRedundancyCheck.actualValue; }
@@ -2200,6 +2195,7 @@ public:
   FunctionDefinitionElimination functionDefinitionElimination() const { return _functionDefinitionElimination.actualValue; }
   unsigned functionDefinitionIntroduction() const { return _functionDefinitionIntroduction.actualValue; }
   TweeGoalTransformation tweeGoalTransformation() const { return _tweeGoalTransformation.actualValue; }
+  bool tweeSkipArrows() const { return _tweeSkipArrows.actualValue; }
   bool codeTreeSubsumption() const { return _codeTreeSubsumption.actualValue; }
   bool outputAxiomNames() const { return _outputAxiomNames.actualValue; }
   void setOutputAxiomNames(bool newVal) { _outputAxiomNames.actualValue = newVal; }
@@ -2239,7 +2235,7 @@ public:
 
   bool colorUnblocking() const { return _colorUnblocking.actualValue; }
 
-  Instantiation instantiation() const { return _instantiation.actualValue; }
+  bool instantiation() const { return _instantiation.actualValue; }
   bool theoryFlattening() const { return _theoryFlattening.actualValue; }
   bool ignoreUnrecognizedLogic() const { return _ignoreUnrecognizedLogic.actualValue; }
 
@@ -2301,7 +2297,6 @@ public:
   HPrinting holPrinting() const { return _holPrinting.actualValue; }
   void setHolPrinting(HPrinting setting) { _holPrinting.actualValue = setting; }
 
-  bool addProxyAxioms() const { return _addProxyAxioms.actualValue; }
   bool choiceAxiom() const { return _choiceAxiom.actualValue; }
   bool injectivityReasoning() const { return _injectivity.actualValue; }
   bool choiceReasoning() const { return _choiceReasoning.actualValue; }
@@ -2312,6 +2307,7 @@ public:
   bool complexBooleanReasoning () const { return _complexBooleanReasoning.actualValue; }
   bool booleanEqTrick() const { return _booleanEqTrick.actualValue; }
   bool heuristicInstantiation() const { return _heuristicInstantiation.actualValue; }
+  unsigned higherOrderUnifDepth() const { return _higherOrderUnifDepth.actualValue; }
   bool casesSimp() const { return _casesSimp.actualValue; }
   bool cases() const { return _cases.actualValue; }
   bool newTautologyDel() const { return _newTautologyDel.actualValue; }
@@ -2434,6 +2430,7 @@ private:
 	BoolOptionValue _randomAWR;
   BoolOptionValue _literalMaximalityAftercheck;
   BoolOptionValue _arityCheck;
+  BoolOptionValue _parseGoalAnnotations;
 
   BoolOptionValue _randomTraversals;
 
@@ -2494,6 +2491,7 @@ private:
   ChoiceOptionValue<FunctionDefinitionElimination> _functionDefinitionElimination;
   UnsignedOptionValue _functionDefinitionIntroduction;
   ChoiceOptionValue<TweeGoalTransformation> _tweeGoalTransformation;
+  BoolOptionValue _tweeSkipArrows;
   BoolOptionValue _codeTreeSubsumption;
 
   BoolOptionValue _generalSplitting;
@@ -2525,7 +2523,7 @@ private:
 
   IntOptionValue _inequalitySplitting;
   ChoiceOptionValue<InputSyntax> _inputSyntax;
-  ChoiceOptionValue<Instantiation> _instantiation;
+  BoolOptionValue _instantiation;
 
   ChoiceOptionValue<Induction> _induction;
   ChoiceOptionValue<StructuralInductionKind> _structInduction;
@@ -2740,7 +2738,6 @@ private:
 
   //Higher-order options
   ChoiceOptionValue<HPrinting> _holPrinting;
-  BoolOptionValue _addProxyAxioms;
   BoolOptionValue _choiceAxiom;
   BoolOptionValue _injectivity;
   BoolOptionValue _choiceReasoning;
@@ -2751,6 +2748,7 @@ private:
   BoolOptionValue _complexBooleanReasoning;
   BoolOptionValue _booleanEqTrick;
   BoolOptionValue _heuristicInstantiation;
+  UnsignedOptionValue _higherOrderUnifDepth;
   BoolOptionValue _casesSimp;
   BoolOptionValue _cases;
   BoolOptionValue _newTautologyDel;

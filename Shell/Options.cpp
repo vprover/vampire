@@ -457,6 +457,7 @@ void Options::init()
     "is replaced by C \\/ p(s) with the additional unit clause ~p(t) being added "
     "for fresh predicate p.";
     _inequalitySplitting.addProblemConstraint(hasEquality());
+    _inequalitySplitting.addProblemConstraint(onlyFirstOrder());
     _lookup.insert(&_inequalitySplitting);
     _inequalitySplitting.tag(OptionTag::PREPROCESSING);
 
@@ -494,6 +495,13 @@ void Options::init()
        "This also ensures a symbol is not used as a function and predicate.";
     _lookup.insert(&_arityCheck);
     _arityCheck.tag(OptionTag::DEVELOPMENT);
+
+    _parseGoalAnnotations = BoolOptionValue("parse_goal_annotations","",true);
+    _parseGoalAnnotations.description="Enable parsing :goal annotations in smtlib problems."
+       "They can be used like this: (assert (! <formula> :goal <goal-name>))";
+    _lookup.insert(&_parseGoalAnnotations);
+    _parseGoalAnnotations.tag(OptionTag::INPUT);
+
     _functionDefinitionElimination = ChoiceOptionValue<FunctionDefinitionElimination>("function_definition_elimination","fde",
                                                                                       FunctionDefinitionElimination::ALL,{"all","none","unused"});
     _functionDefinitionElimination.description=
@@ -524,6 +532,16 @@ void Options::init()
     _tweeGoalTransformation.tag(OptionTag::PREPROCESSING);
     _tweeGoalTransformation.setExperimental();
     _lookup.insert(&_tweeGoalTransformation);
+
+    // At least on higher-order TPTP, tgt with tsa=off sucks badly
+    // TODO(HOL): investigate perhaps less invasive options of restraining
+    // general tgt in HOL, that would still be performant
+    _tweeSkipArrows = BoolOptionValue("twee_skip_arrows","tsa",true);
+    _tweeSkipArrows.description =
+      "During twee_goal_transformation, when in HOL, don't introduce definitions for arrow-typed subterms.";
+    _tweeSkipArrows.tag(OptionTag::PREPROCESSING);
+    _tweeSkipArrows.setExperimental();
+    _lookup.insert(&_tweeSkipArrows);
 
     _codeTreeSubsumption = BoolOptionValue("code_tree_subsumption", "cts", true);
     _codeTreeSubsumption.description =
@@ -1281,7 +1299,7 @@ void Options::init()
 
     _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
                                       UnificationWithAbstraction::AUTO,
-                                      {"auto","off","interpreted_only","one_side_interpreted","one_side_constant","all","ground", "func_ext", "alasca_one_interp", "alasca_can_abstract", "alasca_main", "alasca_main_floor"});
+                                      {"auto","off","interpreted_only","one_side_interpreted","one_side_constant","all","ground", "func_ext", "alasca_one_interp", "alasca_can_abstract", "alasca_main", "alasca_main_floor", "hol"});
     _unificationWithAbstraction.description=
       "During unification, if two terms s and t fail to unify we will introduce a constraint s!=t and carry on. For example, "
       "resolving p(1) \\/ C with ~p(a+2) would produce C \\/ 1 !=a+2. This is controlled by a check on the terms. The expected "
@@ -1295,6 +1313,7 @@ void Options::init()
       "- ground: only if both s and t are ground\n"
       "- alasca_one_interp, alasca_can_abstract, alasca_main: strategies used for the real-arithmetic version of alasca. these are described in  the LPAR2023 paper  \"Refining Unification with Abstraction\""
       "- alasca_main_floor: an extension of the alasca_main strategy to work with mixed integer-real arithmetic. this option is experimental\n"
+      "- hol: introduce constraints for all higher-order parts whose unification is undecidable\n"
       "See Unification with Abstraction and Theory Instantiation in Saturation-Based Reasoning for further details.";
     _unificationWithAbstraction.tag(OptionTag::THEORIES);
     _lookup.insert(&_unificationWithAbstraction);
@@ -1653,7 +1672,7 @@ void Options::init()
     _inductionOnActiveOccurrences.onlyUsefulWith(_induction.is(notEqual(Induction::NONE)));
     _lookup.insert(&_inductionOnActiveOccurrences);
 
-    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
+    _instantiation = BoolOptionValue("instantiation","inst",false);
     _instantiation.description = "Heuristically instantiate variables. Often wastes a lot of effort. Consider using thi instead.";
     _instantiation.tag(OptionTag::THEORIES);
     _lookup.insert(&_instantiation);
@@ -1989,12 +2008,6 @@ void Options::init()
     _lookup.insert(&_holPrinting);
     _holPrinting.tag(OptionTag::HIGHER_ORDER);
 
-    _addProxyAxioms = BoolOptionValue("add_proxy_axioms","apa",false);
-    _addProxyAxioms.description="Add logical proxy axioms";
-    _lookup.insert(&_addProxyAxioms);
-    _addProxyAxioms.addProblemConstraint(hasHigherOrder());    
-    _addProxyAxioms.tag(OptionTag::HIGHER_ORDER);
-
     _choiceAxiom = BoolOptionValue("choice_ax","cha",false);
     _choiceAxiom.description="Adds the cnf form of the Hilbert choice axiom";
     _lookup.insert(&_choiceAxiom);
@@ -2064,8 +2077,6 @@ void Options::init()
     _complexBooleanReasoning = BoolOptionValue("complex_bool_reasoning","cbe",true);
     _complexBooleanReasoning.description=
     "Switches on primitive instantiation and elimination of leibniz equality";
-    // TODO add this back to warn users about a suboptimal conf; but actually the two options do something together
-    // _complexBooleanReasoning.addConstraint(If(equal(true)).then(_addProxyAxioms.is(equal(false))));
     _lookup.insert(&_complexBooleanReasoning);
     _complexBooleanReasoning.addProblemConstraint(hasHigherOrder());
     _complexBooleanReasoning.tag(OptionTag::HIGHER_ORDER);
@@ -2087,6 +2098,14 @@ void Options::init()
       "Heuristically instantiates universally quantified variables with abstractions of literals from negated conjecture";
     _lookup.insert(&_heuristicInstantiation);
     _heuristicInstantiation.tag(OptionTag::HIGHER_ORDER);
+
+    _higherOrderUnifDepth = UnsignedOptionValue("hol_unif_depth","hud",2);
+    _higherOrderUnifDepth.description = "Set the maximum depth (in terms of projections and imitations) that higher-order unification can descend to."
+      "Once limit is reached, remaining pairs are returned as constraints.";
+    _higherOrderUnifDepth.addProblemConstraint(hasHigherOrder());    
+    _higherOrderUnifDepth.addHardConstraint(lessThan(100u));
+    _lookup.insert(&_higherOrderUnifDepth);
+    _higherOrderUnifDepth.tag(OptionTag::HIGHER_ORDER);
 
     _casesSimp = BoolOptionValue("cases_simp","cs",false);
     _casesSimp.description=
@@ -3560,6 +3579,9 @@ void Options::resolveAwayAutoValues(const Problem& prb)
     if (alasca() && prb.hasAlascaArithmetic() &&
       !partialRedundancyCheck()) { // TODO: Marton is planning a PR that will remove this constraint
       setUWA(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR);
+    } else if (prb.isHigherOrder()) {
+      setUWA(Shell::Options::UnificationWithAbstraction::HOL);
+      setUWAFPI(true);
     } else {
       setUWA(Shell::Options::UnificationWithAbstraction::OFF);
     }
@@ -3592,6 +3614,11 @@ bool Options::complete(const Problem& prb) const
     return false;
   }
 
+  if (prb.hasFOOL() && _casesSimp.actualValue) {
+    // casesSimp is not complete 
+    return false;
+  }
+
   Property& prop = *prb.getProperty();
 
   // general properties causing incompleteness
@@ -3620,12 +3647,6 @@ bool Options::complete(const Problem& prb) const
   bool hasEquality = (prop.equalityAtoms() != 0);
 
   if (hasEquality && !_superposition.actualValue) return false;
-
-  if (prop.hasAppliedVar()) {
-    //TODO make a more complex more precise case here
-    //There are instance where we are complete
-    return false;
-  }
 
   //TODO update once we have another method of dealing with bools
   if (prop.hasLogicalProxy() || prop.hasBoolVar()) {
