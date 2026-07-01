@@ -23,8 +23,6 @@
 
 #include "Shell/Skolem.hpp"
 
-#include "Saturation/SaturationAlgorithm.hpp"
-
 #include "CNFOnTheFly.hpp"
 
 namespace Inferences {
@@ -212,7 +210,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
           ASS(term.isTerm());
           bool newTermCreated = false;
           if(index){
-            auto results = index->getGeneralizations(TypedTermList(term.term()), true);
+            auto results = index->getSkolem(term.term());
             if(results.hasNext()){
               auto tqr = results.next();
               TermList skolemTerm = tqr.data->value;
@@ -385,14 +383,6 @@ Clause* IFFXORRewriterISE::simplify(Clause* c){
   return c;
 }
 
-LazyClausificationGIE::LazyClausificationGIE(SaturationAlgorithm& salg)
-  : _formulaIndex(salg.getSimplifyingIndex<SkolemisingFormulaIndex>())
-{}
-
-LazyClausification::LazyClausification(SaturationAlgorithm& salg)
-  : _formulaIndex(salg.getSimplifyingIndex<SkolemisingFormulaIndex>())
-{}
-
 Option<ClauseIterator> EagerClausificationISE::simplifyMany(Clause* c)
 {
   auto it = produceClauses(c, false);
@@ -404,12 +394,12 @@ Option<ClauseIterator> EagerClausificationISE::simplifyMany(Clause* c)
 
 ClauseIterator LazyClausificationGIE::generateClauses(Clause* c)
 {
-  return produceClauses(c, true, _formulaIndex.get());
+  return produceClauses(c, true, &_formulaIndex);
 }
 
 ClauseIterator LazyClausification::perform(Clause* c)
 {
-  return produceClauses(c, false, _formulaIndex.get());
+  return produceClauses(c, false, &_formulaIndex);
 }
 
 

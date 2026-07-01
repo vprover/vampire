@@ -177,6 +177,9 @@ std::string Formula::toString () const
         res += toString(c);
 
         const Formula* arg = f->uarg();
+        Connective subc = arg->connective();
+        if(subc == FORALL || subc == EXISTS || subc == NOT)
+          res += " ";
         stack.push({arg->parenthesesRequired(c),NOCONN,arg});
 
         continue;
