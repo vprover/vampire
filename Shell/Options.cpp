@@ -2030,7 +2030,7 @@ void Options::init()
     // TODO we have two ways of enabling function extensionality abstraction atm:
     // this option, and `-uwa`.
     // We should sort this out before merging into master.
-    _functionExtensionality = ChoiceOptionValue<FunctionExtensionality>("func_ext","fe",FunctionExtensionality::ABSTRACTION,
+    _functionExtensionality = ChoiceOptionValue<FunctionExtensionality>("func_ext","fe",FunctionExtensionality::OFF,
                                                                           {"off", "axiom", "abstraction"});
     _functionExtensionality.description="Deal with extensionality using abstraction, axiom or neither";
     _lookup.insert(&_functionExtensionality);

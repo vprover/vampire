@@ -58,15 +58,13 @@ struct NegExtResultFn
     static DHMap<unsigned,TermList> varSorts;
     varSorts.reset();
 
-    auto eqSort = SortHelper::getEqualityArgumentSort(lit);
+    auto eqSort = lit->eqArgSort();
     if (eqSort.isVar() || !eqSort.isArrowSort()) {
       return nullptr;
     }
 
-    auto lhs = lit->termArg(0);
+    auto [lhs,rhs] = lit->eqArgs();
     getVarSorts(TypedTermList(lhs, eqSort), varSorts);
-
-    auto rhs = lit->termArg(1);
     getVarSorts(TypedTermList(rhs, eqSort), varSorts);
 
     if (lit->isTwoVarEquality()) {
