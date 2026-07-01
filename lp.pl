@@ -95,13 +95,14 @@ replace_under(From, To, S, T, C) :-
 lp(~A) => format("¬ ~@", [lp(A)]).
 lp(L != R) => format("(~@ ≠ ~@)", [lp(L), lp(R)]).
 lp(L = R) => format("(~@ = ~@)", [lp(L), lp(R)]).
-lp(L | R) => format("(~@)", [lp_disj(L | R)]).
-lp(L & R) => format("(~@)", [lp_conj(L & R)]).
+lp(L | R) => format("(~@ ∨ ~@)", [lp(L), lp(R)]).
+lp(L & R) => format("(~@ ∧ ~@)", [lp(L), lp(R)]).
 lp(L => R) => format("(~@ ⇒ ~@)", [lp(L), lp(R)]).
 lp(L <=> R) => format("(~@ ⇔ ~@)", [lp(L), lp(R)]).
 lp(^Xs: ^Ys: F) => append(Xs, Ys, Zs), lp(^Zs: F).
 lp(^[]: F) => lp(F).
 lp(^Xs: F) => format("(λ~@, ~@)", [maplist(space_then_lp, Xs), lp(F)]).
+lp(F @ X) => format("(~@ ~@)", [lp(F), lp(X)]).
 lp(![]: F) => lp(F).
 lp(![X|Xs]: F) => format("`∀ ~@, ~@", [lp_binder(X), lp(!Xs: F)]).
 lp(?[]: F) => lp(F).
@@ -118,9 +119,14 @@ lp('$VAR'(N)) => format("x~d", [N]).
 % named literals
 lp('$LIT'(N)) => format("ℓ~w", [N]).
 lp('$LIT'(N)-_) => format("ℓ~w", [N]).
+% named subformulae
+lp('$FORM'(N)) => format("𝒻~w", [N]).
 % references to input facts
+% TODO clean this up wrt lp_app
 lp('$INPUT'(Input)), getenv("GDV", _) => format("F.~w", [Input]).
 lp('$INPUT'(Input)) => format("input_~w", [Input]).
+lp('$INPUT'(Input, Args)), getenv("GDV", _) => format("(F.~w~@)", [Input, maplist(space_then_lp, Args)]).
+lp('$INPUT'(Input, Args)) => format("(input_~w~@)", [Input, maplist(space_then_lp, Args)]).
 lp('$CONJECTURE'(Input)) => format("vampire_conjecture_~w", [Input]).
 % inference steps that failed to reconstruct for some reason
 lp('$FAILED'(Step)) => format("begin { admit } end /* ~w */", [Step]).
@@ -132,16 +138,6 @@ lp_app(F, Args) => format("(~@~@)", [lp_sym(F), maplist(space_then_lp, Args)]).
 
 lp_sym(F), getenv("GDV", _) => format("S.~w", [F]).
 lp_sym(F) => format("~w", [F]).
-
-% associative operators
-lp_conj((L1 & L2) & R) => lp_conj(L1 | L2 | R).
-lp_conj(L & R) => format("~@ ∧ ~@", [lp(L), lp_conj(R)]).
-lp_conj(F) => lp(F).
-
-% disjunctions
-lp_disj((L1 | L2) | R) => lp_disj(L1 | L2 | R).
-lp_disj(L | R) => format("~@ ∨ ~@", [lp(L), lp_disj(R)]).
-lp_disj(F) => lp(F).
 
 % clauses
 lp_clause([]) => format("π ⊥").
@@ -166,8 +162,8 @@ enumerate_literals([H|T], N, ['$LIT'(N)-H|E]) :-
   enumerate_literals(T, M, E).
 enumerate_literals(Xs, R) :- enumerate_literals(Xs, 0, R).
 
-% replace don't-care variables with 'el'
-dont_care(el).
+% replace don't-care variables with infer_el
+dont_care(infer_el).
 
 % apply instantiation Ts and literal proofs Ls to P for a proof Term
 apply_premise(P, Ts, Ls, Term) :-
@@ -188,10 +184,11 @@ instantiation([L|Rest], Conclusion, [LProof|RestProof]) :-
 
 % trivial Vampire steps where the conclusion is the premise,
 % modulo symmetry, variable renaming and factoring
-variant(Conclusion, Name, Proof) :-
-  step(Name, !Xs: C, _),
-  instantiation(C, Conclusion, Lits),
-  apply_premise(Name, Xs, Lits, Proof).
+variant(Xs, Ls, Premise, ^Xs: ^Ls: Proof) :-
+  prove_clause(Premise),
+  clause_step(Premise, Ys, Ks, _),
+  instantiation(Ks, Ls, Subproofs),
+  apply_premise(Premise, Ys, Subproofs, Proof).
 
 % give a proof term (simplified later) for rewriting:
 % From -> To (justified by EqProof)
@@ -221,13 +218,28 @@ major_resolution([K | Ks], Ls, Minor, [^[Pivot]: Subproof | Ts]) :-
 
 resolution(Xs, Ls, Major, Minor, ^Xs: ^Ls: Proof) :-
   clause_step(Major, Ys, Ks, _),
-  major_resolution(Ks, Ls, Minor, Ts),
-  apply_premise(Major, Ys, Ts, Proof).
+  major_resolution(Ks, Ls, Minor, Subproofs),
+  apply_premise(Major, Ys, Subproofs, Proof).
 
 resolution(Xs, Ls, Premises, Proof) :-
   maplist(prove_clause, Premises),
   select(Major, Premises, [Minor]),
   resolution(Xs, Ls, Major, Minor, Proof).
+
+mate_literal(N-(~_), Proof) => Proof = (^['$LIT'(p)]: ('$LIT'(p) @ N)).
+mate_literal(N-_, Proof) => Proof = N.
+
+disjunction_to_clause(_, [L], Proof) => mate_literal(L, Proof).
+disjunction_to_clause(Fresh, [L|Ls], Proof) =>
+  X = '$FORM'(Fresh),
+  mate_literal(L, LProof),
+  Proof = (^[X]: '∨ₑ'(X, LProof, LsProof)),
+  Fresher is Fresh + 1,
+  disjunction_to_clause(Fresher, Ls, LsProof).
+
+% ∨ₑ (input_butler_hates_poor x) nrxa (λ nlxhbx, ∨ₑ nlxhbx (λ nlx, nlx lx) nhbx);
+disjunction_to_clause(Xs, Ls, Parent, ^Xs: ^Ls: (Subproof @ '$INPUT'(Parent, Xs))) :-
+  disjunction_to_clause(0, Ls, Subproof).
 
 /********************************************************************************
  * Proof printing
@@ -238,7 +250,7 @@ print_input(Name, Parent) :-
   \+ getenv("GDV", _),
   step(Name, F, input(_)),
   numbervars(F),
-  format("symbol input_~w : π ~@;\n", [Parent, lp(F)]).
+  format("constant symbol input_~w : π ~@;\n", [Parent, lp(F)]).
 
 % reconstruct and print a single clausal proof step
 prove_clause(Name) :- proved(Name), !.
@@ -254,14 +266,16 @@ prove_clause(Name, F, Record) =>
   prove_clause(Name, Xs, Ls, Record, Proof),
   term_variables(Proof, Remaining),
   maplist(dont_care, Remaining),
-  format("symbol vampire_~w : ~@ ≔ ~@;\n", [Name, lp_clause(Xs, C), lp(Proof)]).
+  format("opaque   symbol vampire_~w : ~@ ≔ ~@;\n", [Name, lp_clause(Xs, C), lp(Proof)]).
 
-prove_clause(Name, _, _, input(Parent), Proof) =>
-  Proof ='$FAILED'(input(Parent)), % TODO CNF conversion
+prove_clause(Name, Xs, Ls, input(Parent), Proof) =>
+  disjunction_to_clause(Xs, Ls, Parent, Proof),
   print_input(Name, Parent).
 prove_clause(_, _, _, cnf_transformation(Parent), Proof) =>
   Proof ='$FAILED'(cnf_transformation(Parent)),
   prove_formula(Parent).
+prove_clause(_, Xs, Ls, sat_conversion(Parent), Proof) => variant(Xs, Ls, Parent, Proof).
+prove_clause(_, Xs, Ls, avatar_contradiction_clause(Parent), Proof) => variant(Xs, Ls, Parent, Proof).
 prove_clause(_, Xs, Ls, resolution(P1, P2), Proof) =>
   resolution(Xs, Ls, [P1, P2], Proof).
 prove_clause(_, Xs, Ls, forward_subsumption_resolution(P1, P2), Proof) =>
@@ -277,7 +291,7 @@ prove_formula(Name) :-
   step(Name, F, Record),
   numbervars(F),
   prove_formula(Name, F, Record, Proof),
-  format("symbol vampire_~w : π ~@ ≔ ~@;\n", [Name, lp(F), lp(Proof)]),
+  format("opaque   symbol vampire_~w : π ~@ ≔ ~@;\n", [Name, lp(F), lp(Proof)]),
   assert(proved(Name)), !. % cut: we only need one proof
 
 prove_formula(Name, _, input(Input), Proof) =>
@@ -344,11 +358,13 @@ load_all :-
 
 print_lemmas :-
   format("\
-// TODO should be provided by Set?
-constant symbol ι : Set;
-symbol el [a] : τ a;
+require open Stdlib.Set;
+require open Stdlib.Prop;
+require open Stdlib.FOL;
+require open Stdlib.Eq;
 
-symbol neq_sym  [a] [x y : τ a] : π (x ≠ y) → π (y ≠ x) ≔ λ neqxy neqyx, neqxy (eq_sym neqyx);
+opaque   symbol neq_sym  [a] [x y : τ a] : π (x ≠ y) → π (y ≠ x) ≔ λ neqxy neqyx, neqxy (eq_sym neqyx);
+opaque   symbol infer_el [a] : τ a ≔ el a;
 
 ").
 
@@ -357,14 +373,8 @@ print_prelude :-
   print_lemmas.
 print_prelude :-
   \+ getenv("GDV", _),
-  format("\
-require open Stdlib.Set;
-require open Stdlib.Prop;
-require open Stdlib.FOL;
-require open Stdlib.Eq;
-"),
   print_lemmas,
-  forall(type(Name, Type), format("symbol ~w : ~@;\n", [Name, lp(Type)])),
+  forall(type(Name, Type), format("constant symbol ~w : ~@;\n", [Name, lp(Type)])),
   nl.
 
 
@@ -389,7 +399,7 @@ main :-
   % based on this, print a prelude
   print_prelude,
   % then find falsum
-  step(Name, $false, _),
+  step(Name, $false, _), !, % cut: exactly one falsum will do
   prove_clause(Name).
 
 :- initialization(main, main).
