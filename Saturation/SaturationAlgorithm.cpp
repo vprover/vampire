@@ -1661,15 +1661,14 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   if (opt.forwardSubsumption()) {
-    if (prb.isHigherOrder()) {
-      // Only use the code trees for HOL, as the other is not yet adapted
-      res->addForwardSimplifierToFront<CodeTreeForwardSubsumptionAndResolution<true>>();
-    } else {
-      if (opt.codeTreeSubsumption()) {
-        res->addForwardSimplifierToFront<CodeTreeForwardSubsumptionAndResolution<false>>();
+    if (opt.codeTreeSubsumption()) {
+      if (prb.isHigherOrder()) {
+        res->addForwardSimplifierToFront<CodeTreeForwardSubsumptionAndResolution<true>>();
       } else {
-        res->addForwardSimplifierToFront<ForwardSubsumptionAndResolution>();
+        res->addForwardSimplifierToFront<CodeTreeForwardSubsumptionAndResolution<false>>();
       }
+    } else {
+      res->addForwardSimplifierToFront<ForwardSubsumptionAndResolution>();
     }
   }
   else if (opt.forwardSubsumptionResolution()) {
