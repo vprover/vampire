@@ -61,10 +61,10 @@ void HOLUnificationHandler::handleClause(Clause* cl, bool adding)
     unsigned* ptr;
     if (lhsh.isTerm() && _fnCnts.find(lhsh.term()->functor())) {
       fn = lhsh.term()->functor();
-      ASS_EQ(rhs, HOL::create::bottom());
+      ASS_EQ(rhs, HOL::create::top());
     } else if (rhsh.isTerm() && _fnCnts.find(rhsh.term()->functor())) {
       fn = rhsh.term()->functor();
-      ASS_EQ(lhs, HOL::create::bottom());
+      ASS_EQ(lhs, HOL::create::top());
     } else {
       continue;
     }
@@ -163,7 +163,11 @@ ClauseStack HOLUnificationHandler::iterate(bool& terminated)
     }
 
     if (solution.isNonEmpty()) {
-      res.push(Clause::fromStack(solution, NonspecificInference0(UnitInputType::AXIOM, InferenceRule::HOL_UNIFIER_SOLUTION)));
+      if (solution.size()==1 && solution[0]->isNegative()) {
+        res.push(Clause::fromStack(solution, NonspecificInference0(UnitInputType::AXIOM, InferenceRule::STRUCT_INDUCTION_AXIOM_ONE)));
+      } else {
+        res.push(Clause::fromStack(solution, NonspecificInference0(UnitInputType::AXIOM, InferenceRule::HOL_UNIFIER_SOLUTION)));
+      }
     }
   }
   terminated = _todo.isEmpty();

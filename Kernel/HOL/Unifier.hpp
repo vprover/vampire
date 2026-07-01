@@ -87,6 +87,7 @@ struct Unifier {
   Literal* _def;
 private:
   LiteralStack extractSolution(const UnificationNode* node) const;
+  Literal* tryExtractAntiSolution(const UnificationNode* node) const;
   bool checkSolution(const UnificationNode* node, const LiteralStack& ffPairs) const;
 
   std::deque<UnificationNode*> _todo;

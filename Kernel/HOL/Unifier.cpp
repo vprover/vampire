@@ -43,6 +43,7 @@ bool Unifier::iterate(LiteralStack& solution)
   auto children = curr->solve();
   if (children.isNone()) {
     // node finished without solution
+    solution.push(tryExtractAntiSolution(curr));
     return _todo.empty();
   }
 
@@ -105,6 +106,12 @@ LiteralStack Unifier::extractSolution(const UnificationNode* node) const
   res.push(SubstHelper::apply(_def, subs));
 
   return res;
+}
+
+Literal* Unifier::tryExtractAntiSolution(const UnificationNode* node) const
+{
+  const IdempotentSubs subs(node->_subs);
+  return Literal::complementaryLiteral(SubstHelper::apply(_def, subs));
 }
 
 bool Unifier::checkSolution(const UnificationNode* node, const LiteralStack& ffPairs) const
