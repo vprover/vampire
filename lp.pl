@@ -2,6 +2,7 @@
 
 :- consult(tptp).
 :- dynamic(step/3).
+:- dynamic(introduced/1).
 :- dynamic(defined/2).
 :- dynamic(type/2).
 :- dynamic(proved/1).
@@ -136,7 +137,7 @@ lp(T), nonvar(T) => T =.. [F|Args], lp_app(F, Args).
 lp_app(F, []) => format("~@", lp_sym(F)).
 lp_app(F, Args) => format("(~@~@)", [lp_sym(F), maplist(space_then_lp, Args)]).
 
-lp_sym(F), getenv("GDV", _) => format("S.~w", [F]).
+lp_sym(F), getenv("GDV", _), \+ introduced(F) => format("S.~w", [F]).
 lp_sym(F) => format("~w", [F]).
 
 % clauses
@@ -301,7 +302,7 @@ prove_formula(_, F, negated_conjecture(Conjecture), Proof) =>
   step(Conjecture, _, input(Input)),
   Proof = '$CONJECTURE'(Input),
   numbervars(F),
-  format("symbol ~@ : π ~@;\n", [lp('$CONJECTURE'(Input)), lp(F)]).
+  format("constant symbol ~@ : π ~@;\n", [lp('$CONJECTURE'(Input)), lp(F)]).
 prove_formula(_, _, definition_folding(Parent, _), Proof) =>
   prove_formula(Parent),
   Proof = '$FAILED'(definition_folding(Parent, _)).
@@ -320,6 +321,13 @@ process_inference(file(_, Name), input(Name)).
 process_inference(introduced(definition, _, [Record]), Record).
 process_inference(inference(Rule, _, Premises), Record) :- Record =.. [Rule|Premises].
 
+assert_introduced(F) :- assert(introduced(F)).
+
+record_introduced(new_symbols(_, Symbols)) => maplist(assert_introduced, Symbols).
+record_introduced(inference(_, Records, _)) => maplist(record_introduced, Records).
+record_introduced(introduced(_, Records, _)) => maplist(record_introduced, Records).
+record_introduced(_) => true.
+
 % try and work out how a predicate is defined
 definition(!_: (F | ~D), P, Def) => P = D, Def = F.
 
@@ -332,6 +340,8 @@ add_definitions(_, _) => true.
 
 % insert proof steps into our own records as step(Name, Formula, Record) triples
 load(Name, Formula, Inference) =>
+  % record any introduced symbols for this inference
+  record_introduced(Inference),
   % add any definitions that may be required
   add_definitions(Formula, Inference),
   % clean up a bit
@@ -370,7 +380,11 @@ opaque   symbol infer_el [a] : τ a ≔ el a;
 
 print_prelude :-
   getenv("GDV", _),
-  print_lemmas.
+  print_lemmas,
+  forall(
+    introduced(Name),
+    (type(Name, Type), format("constant symbol ~w : ~@;\n", [Name, lp(Type)]))),
+  nl.
 print_prelude :-
   \+ getenv("GDV", _),
   print_lemmas,
