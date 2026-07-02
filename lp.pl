@@ -1,10 +1,11 @@
-%prolo
+%prolog
 
 :- consult(tptp).
 :- dynamic(step/3).
 :- dynamic(introduced/1).
-:- dynamic(defined/2).
 :- dynamic(type/2).
+:- dynamic(defined/2).
+:- dynamic(split/3).
 :- dynamic(proved/1).
 
 /********************************************************************************
@@ -45,11 +46,13 @@ contains_function(F/N, Clause) :-
 literals($false, R) => R = [].
 literals($false | C, R) => literals(C, R).
 literals((S != T) | C, R) => R = [~(S = T)|D], literals(C, D).
+literals((C | D) | E, R) => literals(C | D | E, R).
 literals(L | C, R) => R = [L | D], literals(C, D).
 literals(S != T, R) => R = [~(S = T)].
 literals(L, R) => R = [L].
 
 % a formula turns out to be a clause
+formula_clause(!X: F | Split, Y, C) => formula_clause(!X: (F | Split), Y, C).
 formula_clause(!X: F, Y, C) => Y = X, literals(F, C).
 formula_clause(F, Y, C) => Y = [], literals(F, C).
 
@@ -141,11 +144,11 @@ lp_sym(F), getenv("GDV", _), \+ introduced(F) => format("S.~w", [F]).
 lp_sym(F) => format("~w", [F]).
 
 % clauses
-lp_clause([]) => format("π ⊥").
-lp_clause([~L|C]) => format("π ~@ → ~@", [lp(L), lp_clause(C)]).
-lp_clause([L|C]) => format("π ¬ ~@ → ~@", [lp(L), lp_clause(C)]).
+lp_clause([]) => format("⊥").
+lp_clause([~L|C]) => format("~@ ⇒ ~@", [lp(L), lp_clause(C)]).
+lp_clause([L|C]) => format("¬ ~@ ⇒ ~@", [lp(L), lp_clause(C)]).
 lp_clause([], Lits) => lp_clause(Lits).
-lp_clause([X|Xs], Lits) => format("Π ~@, ~@", [lp_binder(X), lp_clause(Xs, Lits)]).
+lp_clause([X|Xs], Lits) => format("`∀ ~@, ~@", [lp_binder(X), lp_clause(Xs, Lits)]).
 
 space_then_lp(T) :- format(" ~@", [lp(T)]).
 
@@ -253,6 +256,14 @@ print_input(Name, Parent) :-
   numbervars(F),
   format("constant symbol input_~w : π ~@;\n", [Parent, lp(F)]).
 
+avatar_definition(Name) :- proved(Name), !.
+avatar_definition(Name) :-
+  step(Name, Split <=> Component, _),
+  formula_clause(Component, Xs, Ls),
+  format("         symbol ~w ≔ ~@;\n", [Split, lp_clause(Xs, Ls)]),
+  assert(split(Split, Xs, Ls)),
+  assert(proved(Name)).
+
 % reconstruct and print a single clausal proof step
 prove_clause(Name) :- proved(Name), !.
 prove_clause(Name) :-
@@ -267,23 +278,30 @@ prove_clause(Name, F, Record) =>
   prove_clause(Name, Xs, Ls, Record, Proof),
   term_variables(Proof, Remaining),
   maplist(dont_care, Remaining),
-  format("opaque   symbol vampire_~w : ~@ ≔ ~@;\n", [Name, lp_clause(Xs, C), lp(Proof)]).
+  format("opaque   symbol vampire_~w : π (~@) ≔ ~@;\n", [Name, lp_clause(Xs, C), lp(Proof)]).
 
 prove_clause(Name, Xs, Ls, input(Parent), Proof) =>
   disjunction_to_clause(Xs, Ls, Parent, Proof),
   print_input(Name, Parent).
-prove_clause(_, _, _, cnf_transformation(Parent), Proof) =>
+prove_clause(_, _, _, cnf_transformation([Parent]), Proof) =>
   Proof ='$FAILED'(cnf_transformation(Parent)),
   prove_formula(Parent).
-prove_clause(_, Xs, Ls, sat_conversion(Parent), Proof) => variant(Xs, Ls, Parent, Proof).
-prove_clause(_, Xs, Ls, avatar_contradiction_clause(Parent), Proof) => variant(Xs, Ls, Parent, Proof).
-prove_clause(_, Xs, Ls, resolution(P1, P2), Proof) =>
-  resolution(Xs, Ls, [P1, P2], Proof).
-prove_clause(_, Xs, Ls, forward_subsumption_resolution(P1, P2), Proof) =>
-  resolution(Xs, Ls, [P1, P2], Proof).
+prove_clause(_, Xs, Ls, sat_conversion([Parent]), Proof) => variant(Xs, Ls, Parent, Proof).
+prove_clause(_, Xs, Ls, avatar_contradiction_clause([Parent]), Proof) => variant(Xs, Ls, Parent, Proof).
+prove_clause(_, Xs, Ls, resolution(Premises), Proof) =>
+  resolution(Xs, Ls, Premises, Proof).
+prove_clause(_, Xs, Ls, forward_subsumption_resolution(Premises), Proof) =>
+  resolution(Xs, Ls, Premises, Proof).
+prove_clause(_, Xs, Ls, avatar_split_clause([Parent|Definitions]), Proof) =>
+  Proof = '$FAILED'(avatar_split_clause([Parent|Definitions])),
+  prove_clause(Parent),
+  maplist(avatar_definition, Definitions).
+prove_clause(_, Xs, Ls, avatar_component_clause([Definition]), Proof) =>
+  Proof = '$FAILED'(avatar_component_clause([Definition])),
+  avatar_definition(Definition).
 prove_clause(_, _, _, Record, Proof) =>
   Proof = '$FAILED'(Record),
-  Record =.. [_|Parents],
+  Record =.. [_|[Parents]],
   maplist(prove_clause, Parents).
 
 % reconstruct and print a single non-clausal proof step
@@ -298,52 +316,37 @@ prove_formula(Name) :-
 prove_formula(Name, _, input(Input), Proof) =>
   Proof = '$INPUT'(Input),
   print_input(Name, Input).
-prove_formula(_, F, negated_conjecture(Conjecture), Proof) =>
+prove_formula(_, F, negated_conjecture([Conjecture]), Proof) =>
   step(Conjecture, _, input(Input)),
   Proof = '$CONJECTURE'(Input),
   numbervars(F),
   format("constant symbol ~@ : π ~@;\n", [lp('$CONJECTURE'(Input)), lp(F)]).
-prove_formula(_, _, definition_folding(Parent, _), Proof) =>
-  prove_formula(Parent),
-  Proof = '$FAILED'(definition_folding(Parent, _)).
 
 prove_formula(_, _, Record, Proof) =>
   Proof = '$FAILED'(Record),
-  Record =.. [_|Parents],
+  Record =.. [_|[Parents]],
   maplist(prove_formula, Parents).
 
 /********************************************************************************
  * Preprocessing and the main loop
  ********************************************************************************/
 
-% transform various proof records into an appropriate unified record
-process_inference(file(_, Name), input(Name)).
-process_inference(introduced(definition, _, [Record]), Record).
-process_inference(inference(Rule, _, Premises), Record) :- Record =.. [Rule|Premises].
-
+% process new-symbol records
 assert_introduced(F) :- assert(introduced(F)).
-
 record_introduced(new_symbols(_, Symbols)) => maplist(assert_introduced, Symbols).
 record_introduced(inference(_, Records, _)) => maplist(record_introduced, Records).
 record_introduced(introduced(_, Records, _)) => maplist(record_introduced, Records).
 record_introduced(_) => true.
 
-% try and work out how a predicate is defined
-definition(!_: (F | ~D), P, Def) => P = D, Def = F.
-
-% trap definitions, these need to be handled separately
-add_definitions(F, introduced(definition, [new_symbols(naming,[P])], [predicate_definition_introduction])) =>
-  definition(F, Px, Def),
-  Px =.. [P|_],
-  assert(defined(P, Def)).
-add_definitions(_, _) => true.
+% transform various proof records into an appropriate unified record
+process_inference(file(_, Name), input(Name)).
+process_inference(introduced(definition, _, [Record]), Record).
+process_inference(inference(Rule, _, Premises), Record) :- Record =.. [Rule|[Premises]].
 
 % insert proof steps into our own records as step(Name, Formula, Record) triples
 load(Name, Formula, Inference) =>
   % record any introduced symbols for this inference
   record_introduced(Inference),
-  % add any definitions that may be required
-  add_definitions(Formula, Inference),
   % clean up a bit
   process_inference(Inference, Record),
   % insert a step(...) into the database
@@ -378,19 +381,11 @@ opaque   symbol infer_el [a] : τ a ≔ el a;
 
 ").
 
+print_prelude :- getenv("GDV", _), print_lemmas, nl.
 print_prelude :-
-  getenv("GDV", _),
-  print_lemmas,
-  forall(
-    introduced(Name),
-    (type(Name, Type), format("constant symbol ~w : ~@;\n", [Name, lp(Type)]))),
-  nl.
-print_prelude :-
-  \+ getenv("GDV", _),
-  print_lemmas,
-  forall(type(Name, Type), format("constant symbol ~w : ~@;\n", [Name, lp(Type)])),
-  nl.
-
+  \+ getenv("GDV", _), print_lemmas,
+  forall((type(Name, Type), \+ introduced(Name)),
+    format("constant symbol ~w : ~@;\n", [Name, lp(Type)])), nl.
 
 % compute the default type for a predicate or function with n arguments
 default_type(Range, 0, Range).
