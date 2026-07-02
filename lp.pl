@@ -106,6 +106,7 @@ lp(L <=> R) => format("(~@ ⇔ ~@)", [lp(L), lp(R)]).
 lp(^Xs: ^Ys: F) => append(Xs, Ys, Zs), lp(^Zs: F).
 lp(^[]: F) => lp(F).
 lp(^Xs: F) => format("(λ~@, ~@)", [maplist(space_then_lp, Xs), lp(F)]).
+lp(F @ [X|Xs]) => format("(~@~@)", [lp(F), maplist(space_then_lp, [X|Xs])]).
 lp(F @ X) => format("(~@ ~@)", [lp(F), lp(X)]).
 lp(![]: F) => lp(F).
 lp(![X|Xs]: F) => format("`∀ ~@, ~@", [lp_binder(X), lp(!Xs: F)]).
@@ -245,6 +246,13 @@ disjunction_to_clause(Fresh, [L|Ls], Proof) =>
 disjunction_to_clause(Xs, Ls, Parent, ^Xs: ^Ls: (Subproof @ '$INPUT'(Parent, Xs))) :-
   disjunction_to_clause(0, Ls, Subproof).
 
+avatar_component_clause(C, ^C: (SplitL @ Args)) :-
+  select(SplitL-(~Split), C, Ls), split(Split, Ys, Ks),
+  instantiation(Ks, Ls, Subproofs), append(Ys, Subproofs, Args).
+avatar_component_clause(C, ^C: (SplitL @ ^['$LIT'(p)]: ('$LIT'(p) @ L))) :-
+  select(SplitL-Split, C, [L-(~P)]), split(Split, [], [P]).
+  % instantiation(Ks, Ls, Subproofs), append(Ys, Subproofs, Args).
+
 /********************************************************************************
  * Proof printing
  ********************************************************************************/
@@ -296,9 +304,9 @@ prove_clause(_, Xs, Ls, avatar_split_clause([Parent|Definitions]), Proof) =>
   Proof = '$FAILED'(avatar_split_clause([Parent|Definitions])),
   prove_clause(Parent),
   maplist(avatar_definition, Definitions).
-prove_clause(_, Xs, Ls, avatar_component_clause([Definition]), Proof) =>
-  Proof = '$FAILED'(avatar_component_clause([Definition])),
-  avatar_definition(Definition).
+prove_clause(_, _, Ls, avatar_component_clause([Definition]), Proof) =>
+  avatar_definition(Definition),
+  avatar_component_clause(Ls, Proof).
 prove_clause(_, _, _, Record, Proof) =>
   Proof = '$FAILED'(Record),
   Record =.. [_|[Parents]],
