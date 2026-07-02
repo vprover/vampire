@@ -800,11 +800,12 @@ void SaturationAlgorithm::init()
       if (f->connective() == FORALL) {
         f = f->qarg();
       }
-      if (f->connective() != EXISTS || f->qarg()->connective() != LITERAL) {
+
+      if (f->connective() != LITERAL && (f->connective() != EXISTS || f->qarg()->connective() != LITERAL)) {
         USER_ERROR("Wrongly shaped external declaration quantifiers: "+es.f->toString());
       }
       es.f = f; // no need to remember the forall part, if there was one
-      Literal* ext_lit = f->qarg()->literal();
+      Literal* ext_lit = (f->connective() != LITERAL) ? f->qarg()->literal() : f->literal();
       if (ext_lit->isNegative()) {
         USER_ERROR("External declaration qantifiers should nest a positive literal and not "+f->toString());
       }
@@ -1255,11 +1256,17 @@ void SaturationAlgorithm::activate(Clause* cl)
       while (it.hasNext()) {
         ExternalSource& es = it.next();
         Formula* f = es.f;
-        ASS_EQ(f->connective(),EXISTS);
-        VList* exists = f->vars();
-        ASS_EQ(f->qarg()->connective(),LITERAL);
-        Literal* ext_lit = f->qarg()->literal();
-        ASS_EQ(lit->functor(), ext_lit->functor());
+        VList* exists = VList::empty();
+        Literal* ext_lit;
+        if (f->connective() == EXISTS) {
+          exists = f->vars();
+          ASS_EQ(f->qarg()->connective(),LITERAL)
+          ext_lit = f->qarg()->literal();
+        } else {
+          ASS_EQ(f->connective(),LITERAL)
+          ext_lit = f->literal();
+        }
+        ASS_EQ(lit->functor(), ext_lit->functor())
 
         Signature::Symbol* symb = env.signature->getPredicate(lit->functor());
         unsigned j;
