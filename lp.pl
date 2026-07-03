@@ -122,10 +122,10 @@ lp(X : _) => lp(X).
 % variables should be bound with Prolog numbervars first
 lp('$VAR'(N)) => format("x~d", [N]).
 % named literals
-lp('$LIT'(N)) => format("ℓ~w", [N]).
-lp('$LIT'(N)-_) => format("ℓ~w", [N]).
+lp('$LIT'(N)) => format("l~w", [N]).
+lp('$LIT'(N)-_) => format("l~w", [N]).
 % named subformulae
-lp('$FORM'(N)) => format("𝒻~w", [N]).
+lp('$FORM'(N)) => format("f~w", [N]).
 % references to input facts
 % TODO clean this up wrt lp_app
 lp('$INPUT'(Input)), getenv("GDV", _) => format("F.~w", [Input]).
@@ -133,8 +133,8 @@ lp('$INPUT'(Input)) => format("input_~w", [Input]).
 lp('$INPUT'(Input, Args)), getenv("GDV", _) => format("(F.~w~@)", [Input, maplist(space_then_lp, Args)]).
 lp('$INPUT'(Input, Args)) => format("(input_~w~@)", [Input, maplist(space_then_lp, Args)]).
 lp('$CONJECTURE'(Input)) => format("vampire_conjecture_~w", [Input]).
-% inference steps that failed to reconstruct for some reason
-lp('$FAILED'(Step)) => format("begin { admit } end /* ~w */", [Step]).
+% inference steps that we didn't cover yet
+lp('$TODO'(Step)) => format("begin { admit } end /* ~w */", [Step]).
 % general terms
 lp(T), nonvar(T) => T =.. [F|Args], lp_app(F, Args).
 
@@ -246,12 +246,27 @@ disjunction_to_clause(Fresh, [L|Ls], Proof) =>
 disjunction_to_clause(Xs, Ls, Parent, ^Xs: ^Ls: (Subproof @ '$INPUT'(Parent, Xs))) :-
   disjunction_to_clause(0, Ls, Subproof).
 
-avatar_component_clause(C, ^C: (SplitL @ Args)) :-
+avatar_component_clause(Xs, C, ^Xs: ^C: (SplitL @ Args)) :-
   select(SplitL-(~Split), C, Ls), split(Split, Ys, Ks),
   instantiation(Ks, Ls, Subproofs), append(Ys, Subproofs, Args).
-avatar_component_clause(C, ^C: (SplitL @ ^['$LIT'(p)]: ('$LIT'(p) @ L))) :-
+avatar_component_clause([], C, ^C: (SplitL @ ^['$LIT'(p)]: ('$LIT'(p) @ L))) :-
   select(SplitL-Split, C, [L-(~P)]), split(Split, [], [P]).
-  % instantiation(Ks, Ls, Subproofs), append(Ys, Subproofs, Args).
+
+unpack_splits(Premise, _, Bound, [], Proof) :-
+  clause_step(Premise, Xs, Ls, _),
+  instantiation(Ls, Bound, Subproofs),
+  apply_premise(Premise, Xs, Subproofs, Proof).
+unpack_splits(Premise, N, Bound, [(SplitLit-Split)|Rest], SplitLit @ ^Xs: ^Ks: Subproof) :-
+  (split(Split, Xs, Ls) ; (Split = (~Split2), split(Split2, Xs, [L]), Ls = [~L])),
+  length(Ls, SplitLength),
+  enumerate_literals(Ls, N, Ks),
+  append(Ks, Bound, Bound2),
+  N2 is N + SplitLength,
+  unpack_splits(Premise, N2, Bound2, Rest, Subproof).
+
+avatar_split_clause(Splits, Premise, ^Splits: Proof) :-
+  length(Splits, N),
+  unpack_splits(Premise, N, Splits, Splits, Proof).
 
 /********************************************************************************
  * Proof printing
@@ -268,6 +283,7 @@ avatar_definition(Name) :- proved(Name), !.
 avatar_definition(Name) :-
   step(Name, Split <=> Component, _),
   formula_clause(Component, Xs, Ls),
+  numbervars(Xs),
   format("         symbol ~w ≔ ~@;\n", [Split, lp_clause(Xs, Ls)]),
   assert(split(Split, Xs, Ls)),
   assert(proved(Name)).
@@ -292,23 +308,25 @@ prove_clause(Name, Xs, Ls, input(Parent), Proof) =>
   disjunction_to_clause(Xs, Ls, Parent, Proof),
   print_input(Name, Parent).
 prove_clause(_, _, _, cnf_transformation([Parent]), Proof) =>
-  Proof ='$FAILED'(cnf_transformation(Parent)),
+  Proof ='$TODO'(cnf_transformation(Parent)),
   prove_formula(Parent).
 prove_clause(_, Xs, Ls, sat_conversion([Parent]), Proof) => variant(Xs, Ls, Parent, Proof).
 prove_clause(_, Xs, Ls, avatar_contradiction_clause([Parent]), Proof) => variant(Xs, Ls, Parent, Proof).
+prove_clause(_, Xs, Ls, factoring([Parent]), Proof) => variant(Xs, Ls, Parent, Proof).
+prove_clause(_, Xs, Ls, duplicate_literal_removal([Parent]), Proof) => variant(Xs, Ls, Parent, Proof).
 prove_clause(_, Xs, Ls, resolution(Premises), Proof) =>
   resolution(Xs, Ls, Premises, Proof).
 prove_clause(_, Xs, Ls, forward_subsumption_resolution(Premises), Proof) =>
   resolution(Xs, Ls, Premises, Proof).
-prove_clause(_, Xs, Ls, avatar_split_clause([Parent|Definitions]), Proof) =>
-  Proof = '$FAILED'(avatar_split_clause([Parent|Definitions])),
+prove_clause(_, _, Ls, avatar_split_clause([Parent|Definitions]), Proof) =>
   prove_clause(Parent),
-  maplist(avatar_definition, Definitions).
-prove_clause(_, _, Ls, avatar_component_clause([Definition]), Proof) =>
+  maplist(avatar_definition, Definitions),
+  avatar_split_clause(Ls, Parent, Proof).
+prove_clause(_, Xs, Ls, avatar_component_clause([Definition]), Proof) =>
   avatar_definition(Definition),
-  avatar_component_clause(Ls, Proof).
+  avatar_component_clause(Xs, Ls, Proof).
 prove_clause(_, _, _, Record, Proof) =>
-  Proof = '$FAILED'(Record),
+  Proof = '$TODO'(Record),
   Record =.. [_|[Parents]],
   maplist(prove_clause, Parents).
 
@@ -331,7 +349,7 @@ prove_formula(_, F, negated_conjecture([Conjecture]), Proof) =>
   format("constant symbol ~@ : π ~@;\n", [lp('$CONJECTURE'(Input)), lp(F)]).
 
 prove_formula(_, _, Record, Proof) =>
-  Proof = '$FAILED'(Record),
+  Proof = '$TODO'(Record),
   Record =.. [_|[Parents]],
   maplist(prove_formula, Parents).
 
