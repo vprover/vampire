@@ -106,6 +106,7 @@ lp(L <=> R) => format("(~@ ⇔ ~@)", [lp(L), lp(R)]).
 lp(^Xs: ^Ys: F) => append(Xs, Ys, Zs), lp(^Zs: F).
 lp(^[]: F) => lp(F).
 lp(^Xs: F) => format("(λ~@, ~@)", [maplist(space_then_lp, Xs), lp(F)]).
+lp('$LET'(X, T, E)) => format("(let ~@ ≔ ~@ in ~@)", [lp(X), lp(T), lp(E)]).
 lp(F @ [X|Xs]) => format("(~@~@)", [lp(F), maplist(space_then_lp, [X|Xs])]).
 lp(F @ X) => format("(~@ ~@)", [lp(F), lp(X)]).
 lp(![]: F) => lp(F).
@@ -132,9 +133,11 @@ lp('$INPUT'(Input)), getenv("GDV", _) => format("F.~w", [Input]).
 lp('$INPUT'(Input)) => format("input_~w", [Input]).
 lp('$INPUT'(Input, Args)), getenv("GDV", _) => format("(F.~w~@)", [Input, maplist(space_then_lp, Args)]).
 lp('$INPUT'(Input, Args)) => format("(input_~w~@)", [Input, maplist(space_then_lp, Args)]).
+lp('$PREMISE'(Premise, Args)) => format("(vampire_~w~@)", [Premise, maplist(space_then_lp, Args)]).
 lp('$CONJECTURE'(Input)) => format("vampire_conjecture_~w", [Input]).
 % inference steps that we didn't cover yet
 lp('$TODO'(Step)) => format("begin { admit } end /* ~w */", [Step]).
+lp('∨ₑ'(X, LProof, LsProof)) => format("∨ₑ ~@ ~@ ~@", [lp(X), lp(LProof), lp(LsProof)]).
 % general terms
 lp(T), nonvar(T) => T =.. [F|Args], lp_app(F, Args).
 
@@ -171,9 +174,7 @@ enumerate_literals(Xs, R) :- enumerate_literals(Xs, 0, R).
 dont_care(infer_el).
 
 % apply instantiation Ts and literal proofs Ls to P for a proof Term
-apply_premise(P, Ts, Ls, Term) :-
-  atom_concat(vampire_, P, F),
-  append(Ts, Ls, Args), Term =.. [F|Args].
+apply_premise(P, Ts, Ls, '$PREMISE'(P, Args)) :- append(Ts, Ls, Args).
 
 % use a literal in a proof, possible instantiating the premise
 instantiate(N-K, L, Proof) :- symmetric(K, L, N, Proof).
@@ -242,7 +243,6 @@ disjunction_to_clause(Fresh, [L|Ls], Proof) =>
   Fresher is Fresh + 1,
   disjunction_to_clause(Fresher, Ls, LsProof).
 
-% ∨ₑ (input_butler_hates_poor x) nrxa (λ nlxhbx, ∨ₑ nlxhbx (λ nlx, nlx lx) nhbx);
 disjunction_to_clause(Xs, Ls, Parent, ^Xs: ^Ls: (Subproof @ '$INPUT'(Parent, Xs))) :-
   disjunction_to_clause(0, Ls, Subproof).
 
@@ -267,6 +267,37 @@ unpack_splits(Premise, N, Bound, [(SplitLit-Split)|Rest], SplitLit @ ^Xs: ^Ks: S
 avatar_split_clause(Splits, Premise, ^Splits: Proof) :-
   length(Splits, N),
   unpack_splits(Premise, N, Splits, Splits, Proof).
+
+
+unit_propagate(_, [], _, []).
+unit_propagate(Trail, [K|Ks], Propagate, [L|Rest]) :-
+  member(L-K, Trail), !,
+  unit_propagate(Trail, Ks, Propagate, Rest).
+unit_propagate(Trail, [K|Ks], K, ['$LIT'(p)|Rest]) :-
+  unit_propagate(Trail, Ks, K, Rest), !.
+
+propagate(_, _, _, Propagate, SubProof, SubProof) :- var(Propagate).
+propagate(Fresh, Trail, Available, ~Propagate, SubProof, Proof) :-
+  Proof = '$LET'('$LIT'(Fresh), (^['$LIT'(p)]: SubProof), Continuation),
+  Fresh2 is Fresh + 1,
+  rup(Fresh2, ['$LIT'(Fresh)-Propagate|Trail], Available, Continuation), !.
+propagate(Fresh, Trail, Available, Propagate, SubProof, Proof) :-
+  Proof = ((^['$LIT'(p)]: SubProof) @ (^['$LIT'(Fresh)]: Continuation)),
+  Fresh2 is Fresh + 1,
+  rup(Fresh2, ['$LIT'(Fresh)-(~Propagate)|Trail], Available, Continuation), !.
+
+
+rup(Fresh, Trail, Available, Proof) :-
+  select(Premise, Available, Remaining),
+  clause_step(Premise, [], Ls, _),
+  unit_propagate(Trail, Ls, Propagate, SubProofs),
+  apply_premise(Premise, [], SubProofs, SubProof),
+  propagate(Fresh, Trail, Remaining, Propagate, SubProof, Proof).
+
+rup(Ls, Premises, ^Ls: Proof) :-
+  maplist(prove_clause, Premises),
+  length(Ls, N),
+  rup(N, Ls, Premises, Proof).
 
 /********************************************************************************
  * Proof printing
@@ -325,6 +356,7 @@ prove_clause(_, _, Ls, avatar_split_clause([Parent|Definitions]), Proof) =>
 prove_clause(_, Xs, Ls, avatar_component_clause([Definition]), Proof) =>
   avatar_definition(Definition),
   avatar_component_clause(Xs, Ls, Proof).
+prove_clause(_, _, Ls, rat(Premises), Proof) => rup(Ls, Premises, Proof).
 prove_clause(_, _, _, Record, Proof) =>
   Proof = '$TODO'(Record),
   Record =.. [_|[Parents]],
