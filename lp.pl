@@ -1,6 +1,7 @@
 %prolog
 
 :- consult(tptp).
+:- dynamic(option/1).
 :- dynamic(step/3).
 :- dynamic(introduced/1).
 :- dynamic(type/2).
@@ -129,9 +130,9 @@ lp('$LIT'(N)-_) => format("l~w", [N]).
 lp('$FORM'(N)) => format("f~w", [N]).
 % references to input facts
 % TODO clean this up wrt lp_app
-lp('$INPUT'(Input)), getenv("GDV", _) => format("F.~w", [Input]).
+lp('$INPUT'(Input)), option(gdv) => format("F.~w", [Input]).
 lp('$INPUT'(Input)) => format("input_~w", [Input]).
-lp('$INPUT'(Input, Args)), getenv("GDV", _) => format("(F.~w~@)", [Input, maplist(space_then_lp, Args)]).
+lp('$INPUT'(Input, Args)), option(gdv) => format("(F.~w~@)", [Input, maplist(space_then_lp, Args)]).
 lp('$INPUT'(Input, Args)) => format("(input_~w~@)", [Input, maplist(space_then_lp, Args)]).
 lp('$PREMISE'(Premise, Args)) => format("(vampire_~w~@)", [Premise, maplist(space_then_lp, Args)]).
 lp('$CONJECTURE'(Input)) => format("vampire_conjecture_~w", [Input]).
@@ -144,7 +145,7 @@ lp(T), nonvar(T) => T =.. [F|Args], lp_app(F, Args).
 lp_app(F, []) => format("~@", lp_sym(F)).
 lp_app(F, Args) => format("(~@~@)", [lp_sym(F), maplist(space_then_lp, Args)]).
 
-lp_sym(F), getenv("GDV", _), \+ introduced(F) => format("S.~w", [F]).
+lp_sym(F), option(gdv), \+ introduced(F) => format("S.~w", [F]).
 lp_sym(F) => format("~w", [F]).
 
 % clauses
@@ -303,9 +304,9 @@ rup(Ls, Premises, ^Ls: Proof) :-
  * Proof printing
  ********************************************************************************/
 
-print_input(_, _) :- getenv("GDV", _).
+print_input(_, _) :- option(gdv).
 print_input(Name, Parent) :-
-  \+ getenv("GDV", _),
+  \+ option(gdv),
   step(Name, F, input(_)),
   numbervars(F),
   format("constant symbol input_~w : π ~@;\n", [Parent, lp(F)]).
@@ -401,6 +402,20 @@ process_inference(file(_, Name), input(Name)).
 process_inference(introduced(definition, _, [Record]), Record).
 process_inference(inference(Rule, _, Premises), Record) :- Record =.. [Rule|[Premises]].
 
+% compute the default type for a predicate or function with n arguments
+default_type(Range, 0, Range).
+default_type(Range, 1, τ(ι) > Range).
+default_type(Range, N, (τ(ι) * Domain) > Range) :-
+  N > 1,
+  M is N - 1,
+  default_type(Range, M, Domain > Range).
+
+% ensure every symbol is typed, assigning a default type if not
+ensure_typed(_, Symbol, _) :- type(Symbol, _), !.
+ensure_typed(Range, Symbol, Arity) :-
+  default_type(Range, Arity, Type),
+  assert(type(Symbol, Type)).
+
 % insert proof steps into our own records as step(Name, Formula, Record) triples
 load(Name, Formula, Inference) =>
   % record any introduced symbols for this inference
@@ -415,7 +430,7 @@ load(Name, Formula, Inference) =>
 
 load(end_of_file) :- !.
 % type declaration stored in TPTP syntax
-% implicit $i types resolved later
+% implicit $i types resolved when formula is loaded
 load(tff(_, type, F : T)) :- !, assert(type(F, T)), load_all.
 load(tff(Name, _, Formula, Record)) :- load(Name, Formula, Record), load_all.
 load(fof(Name, _, Formula, Record)) :- load(Name, Formula, Record), load_all.
@@ -439,28 +454,18 @@ opaque   symbol infer_el [a] : τ a ≔ el a;
 
 ").
 
-print_prelude :- getenv("GDV", _), print_lemmas, nl.
+print_prelude :- option(gdv), print_lemmas, nl.
 print_prelude :-
-  \+ getenv("GDV", _), print_lemmas,
+  \+ option(gdv), print_lemmas,
   forall((type(Name, Type), \+ introduced(Name)),
     format("constant symbol ~w : ~@;\n", [Name, lp(Type)])), nl.
 
-% compute the default type for a predicate or function with n arguments
-default_type(Range, 0, Range).
-default_type(Range, 1, τ(ι) > Range).
-default_type(Range, N, (τ(ι) * Domain) > Range) :-
-  N > 1,
-  M is N - 1,
-  default_type(Range, M, Domain > Range).
-
-% ensure every symbol is typed, assigning a default type if not
-ensure_typed(_, Symbol, _) :- type(Symbol, _), !.
-ensure_typed(Range, Symbol, Arity) :-
-  default_type(Range, Arity, Type),
-  assert(type(Symbol, Type)).
+read_options :-
+  (getenv("GDV", _), assert(option(gdv))) ; true.
 
 main :-
   set_prolog_flag(occurs_check, true),
+  read_options,
   % load the proof into `input` tuples in the Prolog database
   load_all,
   % based on this, print a prelude
