@@ -130,9 +130,8 @@ lp('$VAR'(N)) => format("x~d", [N]).
 lp($$lit(N)) => format("l~w", [N]).
 lp($$lit(N)-_) => format("l~w", [N]).
 % references to input facts
-lp($$input(Input)) => lp_app($$input(Input), []).
 lp($$input(Input, Args)) => lp_app($$input(Input), Args).
-lp($$premise(Premise, Args)) => lp_app($$lp(Premise), [$$lp(nc)|Args]).
+lp($$premise(Premise, Args)) => lp_app($$lp(Premise), [$$lp(ng),$$lp(nc)|Args]).
 lp($$lp(F)) => lp_sym($$lp(F)).
 lp($$lp(F, Args)) => lp_app($$lp(F), Args).
 % inference steps that we didn't cover yet
@@ -249,7 +248,7 @@ disjunction_to_clause(Fresh, [L|Ls], Proof) =>
   Fresher is Fresh + 1,
   disjunction_to_clause(Fresher, Ls, LsProof).
 
-disjunction_to_clause(Xs, Ls, Parent, ^Xs: ^Ls: (Subproof @ $$input(Parent, Xs))) :-
+disjunction_to_clause(Xs, Ls, Parent, ^Xs: ^Ls: (Subproof @ $$input(Parent, [$$lp(ng)|Xs]))) :-
   length(Ls, Fresh),
   disjunction_to_clause(Fresh, Ls, Subproof).
 
@@ -315,7 +314,7 @@ print_input(Name, Parent) :-
   \+ option(gdv),
   step(Name, F, input(_)),
   numbervars(F),
-  format("constant symbol ~w² : π ~@;\n", [Parent, lp(F)]).
+  format("constant symbol ~w² (ng : π (¬ gconj)) : π ~@;\n", [Parent, lp(F)]).
 
 avatar_definition(Name) :- proved(Name), !.
 avatar_definition(Name) :-
@@ -340,7 +339,7 @@ prove_clause(Name, F, Record) =>
   prove_clause(Name, Xs, Ls, Record, Proof),
   term_variables(Proof, Remaining),
   maplist(dont_care, Remaining),
-  format("opaque   symbol ~w (nc : π (¬ conj)) : π (~@) ≔ ~@;\n", [Name, lp_clause(Xs, C), lp(Proof)]).
+  format("opaque   symbol ~w (ng : π (¬ gconj)) (nc : π (¬ conj)) : π (~@) ≔ ~@;\n", [Name, lp_clause(Xs, C), lp(Proof)]).
 
 prove_clause(Name, Xs, Ls, input(Parent), Proof) =>
   disjunction_to_clause(Xs, Ls, Parent, Proof),
@@ -375,11 +374,11 @@ prove_formula(Name) :-
   step(Name, F, Record),
   numbervars(F),
   prove_formula(Name, F, Record, Proof),
-  format("opaque   symbol ~w (nc : π (¬ conj)) : π ~@ ≔ ~@;\n", [Name, lp(F), lp(Proof)]),
+  format("opaque   symbol ~w (ng : π (¬ gconj)) (nc : π (¬ conj)) : π ~@ ≔ ~@;\n", [Name, lp(F), lp(Proof)]),
   assert(proved(Name)), !. % cut: we only need one proof
 
 prove_formula(Name, _, input(Input), Proof) =>
-  Proof = $$input(Input),
+  Proof = $$input(Input, [$$lp(ng)]),
   print_input(Name, Input).
 prove_formula(_, _, negated_conjecture(_), Proof) => Proof = $$lp(nc).
 
@@ -462,12 +461,20 @@ print_signature :-
 identify_conjecture(F) :- step(_, ~F, negated_conjecture(_)), !.
 identify_conjecture($false).
 
+print_global_conjecture :-
+  option(gdv),
+  format("         symbol gconj ≔ F.lambdapi__conjecture;\n").
+print_global_conjecture :-
+  \+ option(gdv),
+  format("         symbol gconj ≔ ⊥;\n").
+
 print_conjecture :-
   identify_conjecture(F),
-  format("         symbol conj ≔ ~@;\n", [lp(F)]).
+  format("         symbol conj ≔ ~@;\n", [lp(F)]),
+  print_global_conjecture.
 
 print_qed(Falsum) :-
-  format("opaque   symbol qed : π conj ≔ ¬¬ₑ conj ~@;\n", [lp($$lp(Falsum))]).
+  format("opaque   symbol qed (ng : π (¬ gconj)) : π conj ≔ ¬¬ₑ conj (~@ ng);\n", [lp($$lp(Falsum))]).
 
 read_options :-
   (getenv("GDV", _), assert(option(gdv))) ; true.
