@@ -63,7 +63,7 @@ clause_step(Name, Xs, C, Record) :-
 
 % consider both orientations of a literal on backtracking
 symmetric(F, F, Premise, Premise).
-symmetric(L = R, R = L, Premise, neq_sym(Premise)).
+symmetric(L = R, R = L, Premise, $$lp(neq_sym, [Premise])).
 
 /*
 Is it possible to make S into T by rewriting From into To?
@@ -97,6 +97,15 @@ replace_under(From, To, S, T, C) :-
  * printing routines
  ********************************************************************************/
 
+% various lambda-pi terms
+lp(^[]: F) => lp(F).
+lp(^Xs: F) => format("(λ~@, ~@)", [maplist(space_then_lp, Xs), lp(F)]).
+lp($$let(X, T, E)) => format("(let ~@ ≔ ~@ in ~@)", [lp(X), lp(T), lp(E)]).
+lp(F @ [X|Xs]) => format("(~@~@)", [lp(F), maplist(space_then_lp, [X|Xs])]).
+lp(F @ X) => format("(~@ ~@)", [lp(F), lp(X)]).
+
+% special cases: formulae and so on
+lp($false) => format("⊥").
 lp(~A) => format("¬ ~@", [lp(A)]).
 lp(L != R) => format("(~@ ≠ ~@)", [lp(L), lp(R)]).
 lp(L = R) => format("(~@ = ~@)", [lp(L), lp(R)]).
@@ -104,12 +113,6 @@ lp(L | R) => format("(~@ ∨ ~@)", [lp(L), lp(R)]).
 lp(L & R) => format("(~@ ∧ ~@)", [lp(L), lp(R)]).
 lp(L => R) => format("(~@ ⇒ ~@)", [lp(L), lp(R)]).
 lp(L <=> R) => format("(~@ ⇔ ~@)", [lp(L), lp(R)]).
-lp(^Xs: ^Ys: F) => append(Xs, Ys, Zs), lp(^Zs: F).
-lp(^[]: F) => lp(F).
-lp(^Xs: F) => format("(λ~@, ~@)", [maplist(space_then_lp, Xs), lp(F)]).
-lp('$LET'(X, T, E)) => format("(let ~@ ≔ ~@ in ~@)", [lp(X), lp(T), lp(E)]).
-lp(F @ [X|Xs]) => format("(~@~@)", [lp(F), maplist(space_then_lp, [X|Xs])]).
-lp(F @ X) => format("(~@ ~@)", [lp(F), lp(X)]).
 lp(![]: F) => lp(F).
 lp(![X|Xs]: F) => format("`∀ ~@, ~@", [lp_binder(X), lp(!Xs: F)]).
 lp(?[]: F) => lp(F).
@@ -119,34 +122,36 @@ lp(ι) => format("ι").
 lp(ο) => format("Prop").
 lp(Domain > Range) => format("~@ → ~@", [lp(Domain), lp(Range)]).
 lp(X * Y) => format("~@ → ~@", [lp(X), lp(Y)]).
-% sort annotations should be discarded in terms
+% sort annotations discarded _unless_ in a binder
 lp(X : _) => lp(X).
-% variables should be bound with Prolog numbervars first
+% variables bound with Prolog `numbervars`
 lp('$VAR'(N)) => format("x~d", [N]).
 % named literals
-lp('$LIT'(N)) => format("l~w", [N]).
-lp('$LIT'(N)-_) => format("l~w", [N]).
-% named subformulae
-lp('$FORM'(N)) => format("f~w", [N]).
+lp($$lit(N)) => format("l~w", [N]).
+lp($$lit(N)-_) => format("l~w", [N]).
 % references to input facts
-% TODO clean this up wrt lp_app
-lp('$INPUT'(Input)), option(gdv) => format("F.~w", [Input]).
-lp('$INPUT'(Input)) => format("input_~w", [Input]).
-lp('$INPUT'(Input, Args)), option(gdv) => format("(F.~w~@)", [Input, maplist(space_then_lp, Args)]).
-lp('$INPUT'(Input, Args)) => format("(input_~w~@)", [Input, maplist(space_then_lp, Args)]).
-lp('$PREMISE'(Premise, Args)) => format("(vampire_~w~@)", [Premise, maplist(space_then_lp, Args)]).
-lp('$CONJECTURE'(Input)) => format("vampire_conjecture_~w", [Input]).
+lp($$input(Input)) => lp_app($$input(Input), []).
+lp($$input(Input, Args)) => lp_app($$input(Input), Args).
+lp($$premise(Premise, Args)) => lp_app($$lp(Premise), [$$lp(nc)|Args]).
+lp($$lp(F)) => lp_sym($$lp(F)).
+lp($$lp(F, Args)) => lp_app($$lp(F), Args).
 % inference steps that we didn't cover yet
-lp('$TODO'(Step)) => format("begin { admit } end /* ~w */", [Step]).
-lp('∨ₑ'(X, LProof, LsProof)) => format("∨ₑ ~@ ~@ ~@", [lp(X), lp(LProof), lp(LsProof)]).
+lp($$todo(Step)) => format("begin { admit } end /* ~w */", [Step]).
 % general terms
 lp(T), nonvar(T) => T =.. [F|Args], lp_app(F, Args).
 
 lp_app(F, []) => format("~@", lp_sym(F)).
 lp_app(F, Args) => format("(~@~@)", [lp_sym(F), maplist(space_then_lp, Args)]).
 
-lp_sym(F), option(gdv), \+ introduced(F) => format("S.~w", [F]).
-lp_sym(F) => format("~w", [F]).
+% pass-through lambdapi symbols without mangling
+lp_sym($$lp(F)) => format("~w", F).
+% input symbols live in a separate namespace to function symbols
+lp_sym($$input(F)), option(gdv) => format("F.~w", F).
+lp_sym($$input(F)) => format("~w²", F).
+% ...but introduced symbols are lambdapi symbols, no namespacing
+lp_sym(F), introduced(F) => format("~w", [F]).
+lp_sym(F), option(gdv) => format("S.~w", [F]).
+lp_sym(F) => format("~w¹", [F]).
 
 % clauses
 lp_clause([]) => format("⊥").
@@ -166,7 +171,7 @@ lp_binder(X) => format("(~@ : τ ι)", [lp(X)]).
 
 % give each literal in the body of a clause a name
 enumerate_literals([], _, []).
-enumerate_literals([H|T], N, ['$LIT'(N)-H|E]) :-
+enumerate_literals([H|T], N, [$$lit(N)-H|E]) :-
   M is N + 1,
   enumerate_literals(T, M, E).
 enumerate_literals(Xs, R) :- enumerate_literals(Xs, 0, R).
@@ -175,7 +180,7 @@ enumerate_literals(Xs, R) :- enumerate_literals(Xs, 0, R).
 dont_care(infer_el).
 
 % apply instantiation Ts and literal proofs Ls to P for a proof Term
-apply_premise(P, Ts, Ls, '$PREMISE'(P, Args)) :- append(Ts, Ls, Args).
+apply_premise(P, Ts, Ls, $$premise(P, Args)) :- append(Ts, Ls, Args).
 
 % use a literal in a proof, possible instantiating the premise
 instantiate(N-K, L, Proof) :- symmetric(K, L, N, Proof).
@@ -216,7 +221,7 @@ major_resolution([K | Ks], Ls, Minor, [T | Ts]) :-
   member(L, Ls), instantiate(L, K, T),
   major_resolution(Ks, Ls, Minor, Ts).
 major_resolution([K | Ks], Ls, Minor, [^[Pivot]: Subproof | Ts]) :-
-  Pivot = '$LIT'(p),
+  Pivot = $$lit(p),
   \+ negative(K),
   clause_step(Minor, Zs, Js, _),
   instantiation(Js, [Pivot-(~K)|Ls], Ss),
@@ -233,24 +238,25 @@ resolution(Xs, Ls, Premises, Proof) :-
   select(Major, Premises, [Minor]),
   resolution(Xs, Ls, Major, Minor, Proof).
 
-mate_literal(N-(~_), Proof) => Proof = (^['$LIT'(p)]: ('$LIT'(p) @ N)).
+mate_literal(N-(~_), Proof) => Proof = (^[$$lit(p)]: ($$lit(p) @ N)).
 mate_literal(N-_, Proof) => Proof = N.
 
+disjunction_to_clause(_, [], Proof) => Proof = (^[$$lit(p)]: $$lit(p)).
 disjunction_to_clause(_, [L], Proof) => mate_literal(L, Proof).
 disjunction_to_clause(Fresh, [L|Ls], Proof) =>
-  X = '$FORM'(Fresh),
   mate_literal(L, LProof),
-  Proof = (^[X]: '∨ₑ'(X, LProof, LsProof)),
+  Proof = (^[$$lit(Fresh)]: $$lp('∨ₑ', [$$lit(Fresh), LProof, LsProof])),
   Fresher is Fresh + 1,
   disjunction_to_clause(Fresher, Ls, LsProof).
 
-disjunction_to_clause(Xs, Ls, Parent, ^Xs: ^Ls: (Subproof @ '$INPUT'(Parent, Xs))) :-
-  disjunction_to_clause(0, Ls, Subproof).
+disjunction_to_clause(Xs, Ls, Parent, ^Xs: ^Ls: (Subproof @ $$input(Parent, Xs))) :-
+  length(Ls, Fresh),
+  disjunction_to_clause(Fresh, Ls, Subproof).
 
 avatar_component_clause(Xs, C, ^Xs: ^C: (SplitL @ Args)) :-
   select(SplitL-(~Split), C, Ls), split(Split, Ys, Ks),
   instantiation(Ks, Ls, Subproofs), append(Ys, Subproofs, Args).
-avatar_component_clause([], C, ^C: (SplitL @ ^['$LIT'(p)]: ('$LIT'(p) @ L))) :-
+avatar_component_clause([], C, ^C: (SplitL @ ^[$$lit(p)]: ($$lit(p) @ L))) :-
   select(SplitL-Split, C, [L-(~P)]), split(Split, [], [P]).
 
 unpack_splits(Premise, _, Bound, [], Proof) :-
@@ -274,18 +280,18 @@ unit_propagate(_, [], _, []).
 unit_propagate(Trail, [K|Ks], Propagate, [L|Rest]) :-
   member(L-K, Trail), !,
   unit_propagate(Trail, Ks, Propagate, Rest).
-unit_propagate(Trail, [K|Ks], K, ['$LIT'(p)|Rest]) :-
+unit_propagate(Trail, [K|Ks], K, [$$lit(p)|Rest]) :-
   unit_propagate(Trail, Ks, K, Rest), !.
 
 propagate(_, _, _, Propagate, SubProof, SubProof) :- var(Propagate).
 propagate(Fresh, Trail, Available, ~Propagate, SubProof, Proof) :-
-  Proof = '$LET'('$LIT'(Fresh), (^['$LIT'(p)]: SubProof), Continuation),
+  Proof = $$let($$lit(Fresh), (^[$$lit(p)]: SubProof), Continuation),
   Fresh2 is Fresh + 1,
-  rup(Fresh2, ['$LIT'(Fresh)-Propagate|Trail], Available, Continuation), !.
+  rup(Fresh2, [$$lit(Fresh)-Propagate|Trail], Available, Continuation), !.
 propagate(Fresh, Trail, Available, Propagate, SubProof, Proof) :-
-  Proof = ((^['$LIT'(p)]: SubProof) @ (^['$LIT'(Fresh)]: Continuation)),
+  Proof = ((^[$$lit(p)]: SubProof) @ (^[$$lit(Fresh)]: Continuation)),
   Fresh2 is Fresh + 1,
-  rup(Fresh2, ['$LIT'(Fresh)-(~Propagate)|Trail], Available, Continuation), !.
+  rup(Fresh2, [$$lit(Fresh)-(~Propagate)|Trail], Available, Continuation), !.
 
 
 rup(Fresh, Trail, Available, Proof) :-
@@ -309,7 +315,7 @@ print_input(Name, Parent) :-
   \+ option(gdv),
   step(Name, F, input(_)),
   numbervars(F),
-  format("constant symbol input_~w : π ~@;\n", [Parent, lp(F)]).
+  format("constant symbol ~w² : π ~@;\n", [Parent, lp(F)]).
 
 avatar_definition(Name) :- proved(Name), !.
 avatar_definition(Name) :-
@@ -334,13 +340,13 @@ prove_clause(Name, F, Record) =>
   prove_clause(Name, Xs, Ls, Record, Proof),
   term_variables(Proof, Remaining),
   maplist(dont_care, Remaining),
-  format("opaque   symbol vampire_~w : π (~@) ≔ ~@;\n", [Name, lp_clause(Xs, C), lp(Proof)]).
+  format("opaque   symbol ~w (nc : π (¬ conj)) : π (~@) ≔ ~@;\n", [Name, lp_clause(Xs, C), lp(Proof)]).
 
 prove_clause(Name, Xs, Ls, input(Parent), Proof) =>
   disjunction_to_clause(Xs, Ls, Parent, Proof),
   print_input(Name, Parent).
 prove_clause(_, _, _, cnf_transformation([Parent]), Proof) =>
-  Proof ='$TODO'(cnf_transformation(Parent)),
+  Proof = $$todo(cnf_transformation(Parent)),
   prove_formula(Parent).
 prove_clause(_, Xs, Ls, sat_conversion([Parent]), Proof) => variant(Xs, Ls, Parent, Proof).
 prove_clause(_, Xs, Ls, avatar_contradiction_clause([Parent]), Proof) => variant(Xs, Ls, Parent, Proof).
@@ -359,7 +365,7 @@ prove_clause(_, Xs, Ls, avatar_component_clause([Definition]), Proof) =>
   avatar_component_clause(Xs, Ls, Proof).
 prove_clause(_, _, Ls, rat(Premises), Proof) => rup(Ls, Premises, Proof).
 prove_clause(_, _, _, Record, Proof) =>
-  Proof = '$TODO'(Record),
+  Proof = $$todo(Record),
   Record =.. [_|[Parents]],
   maplist(prove_clause, Parents).
 
@@ -369,20 +375,16 @@ prove_formula(Name) :-
   step(Name, F, Record),
   numbervars(F),
   prove_formula(Name, F, Record, Proof),
-  format("opaque   symbol vampire_~w : π ~@ ≔ ~@;\n", [Name, lp(F), lp(Proof)]),
+  format("opaque   symbol ~w (nc : π (¬ conj)) : π ~@ ≔ ~@;\n", [Name, lp(F), lp(Proof)]),
   assert(proved(Name)), !. % cut: we only need one proof
 
 prove_formula(Name, _, input(Input), Proof) =>
-  Proof = '$INPUT'(Input),
+  Proof = $$input(Input),
   print_input(Name, Input).
-prove_formula(_, F, negated_conjecture([Conjecture]), Proof) =>
-  step(Conjecture, _, input(Input)),
-  Proof = '$CONJECTURE'(Input),
-  numbervars(F),
-  format("constant symbol ~@ : π ~@;\n", [lp('$CONJECTURE'(Input)), lp(F)]).
+prove_formula(_, _, negated_conjecture(_), Proof) => Proof = $$lp(nc).
 
 prove_formula(_, _, Record, Proof) =>
-  Proof = '$TODO'(Record),
+  Proof = $$todo(Record),
   Record =.. [_|[Parents]],
   maplist(prove_formula, Parents).
 
@@ -444,21 +446,28 @@ load_all :-
 
 print_lemmas :-
   format("\
-require open Stdlib.Set;
-require open Stdlib.Prop;
-require open Stdlib.FOL;
-require open Stdlib.Eq;
+require open Stdlib.Set Stdlib.Prop Stdlib.FOL Stdlib.Eq Stdlib.Classic;
 
 opaque   symbol neq_sym  [a] [x y : τ a] : π (x ≠ y) → π (y ≠ x) ≔ λ neqxy neqyx, neqxy (eq_sym neqyx);
 opaque   symbol infer_el [a] : τ a ≔ el a;
 
 ").
 
-print_prelude :- option(gdv), print_lemmas, nl.
-print_prelude :-
-  \+ option(gdv), print_lemmas,
+print_signature :- option(gdv).
+print_signature :-
+  \+ option(gdv),
   forall((type(Name, Type), \+ introduced(Name)),
-    format("constant symbol ~w : ~@;\n", [Name, lp(Type)])), nl.
+    format("constant symbol ~w¹ : ~@;\n", [Name, lp(Type)])), nl.
+
+identify_conjecture(F) :- step(_, ~F, negated_conjecture(_)), !.
+identify_conjecture($false).
+
+print_conjecture :-
+  identify_conjecture(F),
+  format("         symbol conj ≔ ~@;\n", [lp(F)]).
+
+print_qed(Falsum) :-
+  format("opaque   symbol qed : π conj ≔ ¬¬ₑ conj ~@;\n", [lp($$lp(Falsum))]).
 
 read_options :-
   (getenv("GDV", _), assert(option(gdv))) ; true.
@@ -469,9 +478,12 @@ main :-
   % load the proof into `input` tuples in the Prolog database
   load_all,
   % based on this, print a prelude
-  print_prelude,
+  print_lemmas,
+  print_signature,
+  print_conjecture,
   % then find falsum
   step(Name, $false, _), !, % cut: exactly one falsum will do
-  prove_clause(Name).
+  prove_clause(Name),
+  print_qed(Name).
 
 :- initialization(main, main).
