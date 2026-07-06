@@ -207,6 +207,7 @@ protected:
 
   ScopedPtr<SimplifyingGeneratingInference> _generator;
   ScopedPtr<ImmediateSimplificationEngine> _immediateSimplifier;
+  ScopedPtr<ImmediateSimplificationEngine> _expensiveImmediateSimplifier;
   CompositeISEMany _immediateSimplifierMany;
 
   typedef List<ForwardSimplificationEngine*> FwSimplList;

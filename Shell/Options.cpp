@@ -1741,7 +1741,7 @@ void Options::init()
     _superposition.description= "Control superposition. Turning off this core inference leads to an incomplete calculus on equational problems.";
     _lookup.insert(&_superposition);
 
-    _condensation = ChoiceOptionValue<Condensation>("condensation","cond",Condensation::FASTER,{"fast","off","on", "faster"});
+    _condensation = ChoiceOptionValue<Condensation>("condensation","cond",Condensation::OFF,{"fast","off","on", "faster"});
     _condensation.description=
        "Perform condensation. If 'fast' is specified, we only perform condensations that are easy to check for.";
     _lookup.insert(&_condensation);

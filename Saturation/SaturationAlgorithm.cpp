@@ -1311,6 +1311,16 @@ void SaturationAlgorithm::doOneAlgorithmStep()
     return;
   }
 
+  Clause *simplCl = _expensiveImmediateSimplifier->simplify(cl);
+  if (simplCl != cl) {
+    if (simplCl) {
+      addNewClause(simplCl);
+    }
+    onClauseReduction(cl, &simplCl, 1, 0);
+    removeSelected(cl);
+    return;
+  }
+
   FwSimplList::Iterator fsit(_expensiveFwSimplifiers);
   while (fsit.hasNext()) {
     ForwardSimplificationEngine *fse = fsit.next();
@@ -1607,6 +1617,8 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   res->_generator = sgi;
   res->_immediateSimplifier = ise;
   res->_immediateSimplifierMany = std::move(iseMany);
+
+  res->_expensiveImmediateSimplifier = new FasterCondensation();
 
   // create simplification engine
 
