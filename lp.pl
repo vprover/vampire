@@ -23,6 +23,7 @@ contains_atom(A, F & G) => contains_atom(A, F) ; contains_atom(A, G).
 contains_atom(A, F | G) => contains_atom(A, F) ; contains_atom(A, G).
 contains_atom(A, F => G) => contains_atom(A, F) ; contains_atom(A, G).
 contains_atom(A, F <=> G) => contains_atom(A, F) ; contains_atom(A, G).
+contains_atom(A, F <~> G) => contains_atom(A, F) ; contains_atom(A, G).
 contains_atom(A, ~F) => contains_atom(A, F).
 contains_atom(A, L != R) => A = (L = R).
 contains_atom(_, $false) => fail.
@@ -63,6 +64,7 @@ clause_step(Name, Xs, C, Record) :-
 
 % consider both orientations of a literal on backtracking
 symmetric(F, F, Premise, Premise).
+symmetric(~L = R, ~R = L, Premise, $$lp(eq_sym, [Premise])).
 symmetric(L = R, R = L, Premise, $$lp(neq_sym, [Premise])).
 
 /*
@@ -113,6 +115,7 @@ lp(L | R) => format("(~@ ∨ ~@)", [lp(L), lp(R)]).
 lp(L & R) => format("(~@ ∧ ~@)", [lp(L), lp(R)]).
 lp(L => R) => format("(~@ ⇒ ~@)", [lp(L), lp(R)]).
 lp(L <=> R) => format("(~@ ⇔ ~@)", [lp(L), lp(R)]).
+lp(L <~> R) => format("(¬ (~@ ⇔ ~@))", [lp(L), lp(R)]).
 lp(![]: F) => lp(F).
 lp(![X|Xs]: F) => format("`∀ ~@, ~@", [lp_binder(X), lp(!Xs: F)]).
 lp(?[]: F) => lp(F).
@@ -146,7 +149,7 @@ lp_app(F, Args) => format("(~@~@)", [lp_sym(F), maplist(space_then_lp, Args)]).
 lp_sym($$lp(F)) => format("~w", F).
 % input symbols live in a separate namespace to function symbols
 lp_sym($$input(F)), option(gdv) => format("F.~w", F).
-lp_sym($$input(F)) => format("~w²", F).
+lp_sym($$input(F)) => format("{|~w²|}", F).
 % ...but introduced symbols are lambdapi symbols, no namespacing
 lp_sym(F), introduced(F) => format("~w", [F]).
 lp_sym(F), option(gdv) => format("S.~w", [F]).
@@ -175,8 +178,8 @@ enumerate_literals([H|T], N, [$$lit(N)-H|E]) :-
   enumerate_literals(T, M, E).
 enumerate_literals(Xs, R) :- enumerate_literals(Xs, 0, R).
 
-% replace don't-care variables with infer_el
-dont_care(infer_el).
+% replace don't-care variables with el
+dont_care($$lp(infer_el)).
 
 % apply instantiation Ts and literal proofs Ls to P for a proof Term
 apply_premise(P, Ts, Ls, $$premise(P, Args)) :- append(Ts, Ls, Args).
@@ -219,11 +222,10 @@ major_resolution([], _, _, []).
 major_resolution([K | Ks], Ls, Minor, [T | Ts]) :-
   member(L, Ls), instantiate(L, K, T),
   major_resolution(Ks, Ls, Minor, Ts).
-major_resolution([K | Ks], Ls, Minor, [^[Pivot]: Subproof | Ts]) :-
-  Pivot = $$lit(p),
+major_resolution([K | Ks], Ls, Minor, [^[$$lit(p)]: Subproof | Ts]) :-
   \+ negative(K),
   clause_step(Minor, Zs, Js, _),
-  instantiation(Js, [Pivot-(~K)|Ls], Ss),
+  instantiation(Js, [$$lit(p)-(~K)|Ls], Ss),
   apply_premise(Minor, Zs, Ss, Subproof),
   major_resolution(Ks, Ls, Minor, Ts).
 
@@ -312,16 +314,16 @@ rup(Ls, Premises, ^Ls: Proof) :-
 print_input(_, _) :- option(gdv).
 print_input(Name, Parent) :-
   \+ option(gdv),
-  step(Name, F, input(_)),
+  step(Name, F, _),
   numbervars(F),
-  format("constant symbol ~w² (ng : π (¬ gconj)) : π ~@;\n", [Parent, lp(F)]).
+  format("constant symbol {|~w²|} (ng : π (¬ gconj)) : π ~@;\n", [Parent, lp(F)]).
 
 avatar_definition(Name) :- proved(Name), !.
 avatar_definition(Name) :-
   step(Name, Split <=> Component, _),
   formula_clause(Component, Xs, Ls),
   numbervars(Xs),
-  format("         symbol ~w ≔ ~@;\n", [Split, lp_clause(Xs, Ls)]),
+  format("         rule ~w ↪ ~@;\n", [Split, lp_clause(Xs, Ls)]),
   assert(split(Split, Xs, Ls)),
   assert(proved(Name)).
 
@@ -341,32 +343,32 @@ prove_clause(Name, F, Record) =>
   maplist(dont_care, Remaining),
   format("opaque   symbol ~w (ng : π (¬ gconj)) (nc : π (¬ conj)) : π (~@) ≔ ~@;\n", [Name, lp_clause(Xs, C), lp(Proof)]).
 
-prove_clause(Name, Xs, Ls, input(Parent), Proof) =>
+prove_clause(Name, Xs, Ls, file(_, Parent), Proof) =>
   disjunction_to_clause(Xs, Ls, Parent, Proof),
   print_input(Name, Parent).
-prove_clause(_, _, _, cnf_transformation([Parent]), Proof) =>
-  Proof = $$todo(cnf_transformation(Parent)),
+prove_clause(_, _, _, inference(cnf_transformation, [], [Parent]), Proof) =>
+  Proof = $$todo(inference(cnf_transformation, [], [Parent])),
   prove_formula(Parent).
-prove_clause(_, Xs, Ls, sat_conversion([Parent]), Proof) => variant(Xs, Ls, Parent, Proof).
-prove_clause(_, Xs, Ls, avatar_contradiction_clause([Parent]), Proof) => variant(Xs, Ls, Parent, Proof).
-prove_clause(_, Xs, Ls, factoring([Parent]), Proof) => variant(Xs, Ls, Parent, Proof).
-prove_clause(_, Xs, Ls, duplicate_literal_removal([Parent]), Proof) => variant(Xs, Ls, Parent, Proof).
-prove_clause(_, Xs, Ls, resolution(Premises), Proof) =>
+prove_clause(_, Xs, Ls, inference(sat_conversion, [], [Parent]), Proof) => variant(Xs, Ls, Parent, Proof).
+prove_clause(_, Xs, Ls, inference(avatar_contradiction_clause, [], [Parent]), Proof) => variant(Xs, Ls, Parent, Proof).
+prove_clause(_, Xs, Ls, inference(factoring, [], [Parent]), Proof) => variant(Xs, Ls, Parent, Proof).
+prove_clause(_, Xs, Ls, inference(duplicate_literal_removal, [], [Parent]), Proof) => variant(Xs, Ls, Parent, Proof).
+prove_clause(_, Xs, Ls, inference(resolution, [], Premises), Proof) =>
   resolution(Xs, Ls, Premises, Proof).
-prove_clause(_, Xs, Ls, forward_subsumption_resolution(Premises), Proof) =>
+prove_clause(_, Xs, Ls, inference(forward_subsumption_resolution, [], Premises), Proof) =>
   resolution(Xs, Ls, Premises, Proof).
-prove_clause(_, _, Ls, avatar_split_clause([Parent|Definitions]), Proof) =>
+prove_clause(_, _, Ls, inference(avatar_split_clause, [], [Parent|Definitions]), Proof) =>
   prove_clause(Parent),
   maplist(avatar_definition, Definitions),
   avatar_split_clause(Ls, Parent, Proof).
-prove_clause(_, Xs, Ls, avatar_component_clause([Definition]), Proof) =>
+prove_clause(_, Xs, Ls, inference(avatar_component_clause, [], [Definition]), Proof) =>
   avatar_definition(Definition),
   avatar_component_clause(Xs, Ls, Proof).
-prove_clause(_, _, Ls, rat(Premises), Proof) => rup(Ls, Premises, Proof).
-prove_clause(_, _, _, Record, Proof) =>
-  Proof = $$todo(Record),
-  Record =.. [_|[Parents]],
+prove_clause(_, _, Ls, inference(rat, [], Premises), Proof) => rup(Ls, Premises, Proof).
+prove_clause(_, _, _, inference(Rule, Other, Parents), Proof) =>
+  Proof = $$todo(inference(Rule, Other, Parents)),
   maplist(prove_clause, Parents).
+prove_clause(_, _, _, Record, Proof) => Proof = $$todo(Record).
 
 % reconstruct and print a single non-clausal proof step
 prove_formula(Name) :- proved(Name), !.
@@ -377,15 +379,15 @@ prove_formula(Name) :-
   format("opaque   symbol ~w (ng : π (¬ gconj)) (nc : π (¬ conj)) : π ~@ ≔ ~@;\n", [Name, lp(F), lp(Proof)]),
   assert(proved(Name)), !. % cut: we only need one proof
 
-prove_formula(Name, _, input(Input), Proof) =>
+prove_formula(Name, _, file(_, Input), Proof) =>
   Proof = $$input(Input, [$$lp(ng)]),
   print_input(Name, Input).
-prove_formula(_, _, negated_conjecture(_), Proof) => Proof = $$lp(nc).
+prove_formula(_, _, inference(negated_conjecture, _, _), Proof) => Proof = $$lp(nc).
 
-prove_formula(_, _, Record, Proof) =>
-  Proof = $$todo(Record),
-  Record =.. [_|[Parents]],
+prove_formula(_, _, inference(Rule, Other, Parents), Proof) =>
+  Proof = $$todo(inference(Rule, Other, Parents)),
   maplist(prove_formula, Parents).
+prove_formula(_, _, Record, Proof) => Proof = $$todo(Record).
 
 /********************************************************************************
  * Preprocessing and the main loop
@@ -397,11 +399,6 @@ record_introduced(new_symbols(_, Symbols)) => maplist(assert_introduced, Symbols
 record_introduced(inference(_, Records, _)) => maplist(record_introduced, Records).
 record_introduced(introduced(_, Records, _)) => maplist(record_introduced, Records).
 record_introduced(_) => true.
-
-% transform various proof records into an appropriate unified record
-process_inference(file(_, Name), input(Name)).
-process_inference(introduced(definition, _, [Record]), Record).
-process_inference(inference(Rule, _, Premises), Record) :- Record =.. [Rule|[Premises]].
 
 % compute the default type for a predicate or function with n arguments
 default_type(Range, 0, Range).
@@ -421,10 +418,8 @@ ensure_typed(Range, Symbol, Arity) :-
 load(Name, Formula, Inference) =>
   % record any introduced symbols for this inference
   record_introduced(Inference),
-  % clean up a bit
-  process_inference(Inference, Record),
   % insert a step(...) into the database
-  assert(step(Name, Formula, Record)),
+  assert(step(Name, Formula, Inference)),
   % for any undeclared symbols in the formula, give them the default type
   forall(contains_function(F/N, Formula), ensure_typed(τ(ι), F, N)),
   forall(contains_predicate(P/N, Formula), ensure_typed(ο, P, N)).
@@ -452,13 +447,18 @@ opaque   symbol infer_el [a] : τ a ≔ el a;
 
 ").
 
-print_signature :- option(gdv).
+print_introduced :-
+  forall((introduced(Name), type(Name, Type)),
+    format("         symbol ~w : ~@;\n", [Name, lp(Type)])), nl.
+
+print_signature :- option(gdv), print_introduced.
 print_signature :-
   \+ option(gdv),
   forall((type(Name, Type), \+ introduced(Name)),
-    format("constant symbol ~w¹ : ~@;\n", [Name, lp(Type)])), nl.
+    format("constant symbol ~w¹ : ~@;\n", [Name, lp(Type)])), nl,
+  print_introduced.
 
-identify_conjecture(F) :- step(_, ~F, negated_conjecture(_)), !.
+identify_conjecture(F) :- step(_, ~F, inference(negated_conjecture, _, _)), !.
 identify_conjecture($false).
 
 print_global_conjecture :-
@@ -470,6 +470,7 @@ print_global_conjecture :-
 
 print_conjecture :-
   identify_conjecture(F),
+  numbervars(F),
   format("         symbol conj ≔ ~@;\n", [lp(F)]),
   print_global_conjecture.
 
