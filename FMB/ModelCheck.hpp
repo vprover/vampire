@@ -54,7 +54,8 @@ static void doCheck(UnitList* units)
       Unit* u = uit.next();
       if(u->inputType()!= UnitInputType::MODEL_DEFINITION) continue;
       std::string name;
-      ALWAYS(Parse::TPTP::findAxiomName(u,name));
+      std::filesystem::path path;
+      ALWAYS(Parse::TPTP::findAxiomName(u,name,path));
       if(StringUtils::starts_with(name,"finite_domain")){
         std::cout << "Finite domain axiom found:" << std::endl << u->toString() << std::endl;
         // Set model size and domainConstants
@@ -141,7 +142,8 @@ static void doCheck(UnitList* units)
       Unit* u = uit.next();
       if(u->inputType()!= UnitInputType::MODEL_DEFINITION) continue;
       std::string name;
-      ALWAYS(Parse::TPTP::findAxiomName(u,name));
+      std::filesystem::path path;
+      ALWAYS(Parse::TPTP::findAxiomName(u,name,path));
       if(StringUtils::starts_with(name,"finite_domain") || StringUtils::starts_with(name,"distinct_domain")) continue;
 
       // All model formulas should be conjunctions of definitions

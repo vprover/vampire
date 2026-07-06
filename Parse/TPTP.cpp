@@ -60,7 +60,7 @@ static VSList* zipVarsSorts(VList* vars, SList* sorts) {
 
 #define DEBUG_SHOW_UNITS 0
 #define DEBUG_SOURCE 0
-DHMap<unsigned, std::string> TPTP::_axiomNames;
+DHMap<unsigned, std::pair<std::string, std::filesystem::path>> TPTP::_axiomNames;
 DHMap<unsigned, Map<unsigned,std::string>> TPTP::_questionVariableNames;
 
 //Numbers chosen to avoid clashing with connectives.
@@ -3719,7 +3719,7 @@ void TPTP::endFof()
   }
 
   if (env.options->outputAxiomNames()) {
-    assignAxiomName(original,nm);
+    ALWAYS(_axiomNames.insert(unit->number(), {nm, currentFile.path}));
   }
 #if DEBUG_SHOW_UNITS
   cout << "Unit: " << unit->toString() << "\n";
@@ -4849,21 +4849,17 @@ unsigned TPTP::addUninterpretedConstant(const std::string& name, bool& added)
 } // TPTP::addUninterpretedConstant
 
 /**
- * Associate name @b name with unit @b unit
- * Each formula can have its name assigned at most once
- */
-void TPTP::assignAxiomName(const Unit* unit, std::string& name)
-{
-  ALWAYS(_axiomNames.insert(unit->number(), name));
-} // TPTP::assignAxiomName
-
-/**
  * If @b unit has a name associated, assign it into @b result,
  * and return true; otherwise return false
  */
-bool TPTP::findAxiomName(const Unit* unit, std::string& result)
+bool TPTP::findAxiomName(const Unit* unit, std::string& name, std::filesystem::path &path)
 {
-  return _axiomNames.find(unit->number(), result);
+  std::pair<std::string, std::filesystem::path> found;
+  if(!_axiomNames.find(unit->number(), found))
+    return false;
+  name = std::move(found.first);
+  path = std::move(found.second);
+  return true;
 } // TPTP::findAxiomName
 
 /**
