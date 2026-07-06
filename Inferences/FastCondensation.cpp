@@ -23,9 +23,6 @@
 
 #include "FastCondensation.hpp"
 
-#undef LOGGING
-#define LOGGING 0
-
 namespace Inferences {
 
 using namespace Lib;
@@ -89,11 +86,9 @@ Clause* FastCondensation<higherOrder>::simplify(Clause* cl)
   varLits.reset();
 
   for(unsigned i=0;i<clen;i++) {
-    VariableIterator vit((*cl)[i]);
-    while(vit.hasNext()) {
-      unsigned var=vit.next().var();
+    for (const auto& var : iterTraits(VariableIterator((*cl)[i]))) { 
       int* pvlit;
-      if(!varLits.getValuePtr(var, pvlit)) {
+      if(!varLits.getValuePtr(var.var(), pvlit)) {
         if(*pvlit!=static_cast<int>(i)) {
           *pvlit=-1;
         }
@@ -110,7 +105,7 @@ Clause* FastCondensation<higherOrder>::simplify(Clause* cl)
   for(unsigned cIndex=0;cIndex<clen;cIndex++) {
     Literal* cLit=(*cl)[cIndex];
     if(cLit->ground()) {
-      //succeeding with ground literal would mean there are duplitace
+      //succeeding with ground literal would mean there are duplicate
       //literals in the clause, which should have already been removed
       continue;
     }

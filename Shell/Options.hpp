@@ -498,7 +498,8 @@ public:
   enum class Condensation : unsigned int {
     FAST = 0,
     OFF = 1,
-    ON = 2
+    ON = 2,
+    FASTER = 3,
   };
 
   enum class Demodulation : unsigned int {

@@ -28,9 +28,6 @@
 
 #include "Problem.hpp"
 
-#undef LOGGING
-#define LOGGING 0
-
 using namespace Kernel;
 
 /**

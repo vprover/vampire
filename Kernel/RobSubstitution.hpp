@@ -307,8 +307,6 @@ public:
     , _gluedTerms() 
   {}
 
-  SubstIterator matches(Literal* base, int baseIndex,
-	  Literal* instance, int instanceIndex, bool complementary);
   SubstIterator unifiers(Literal* l1, int l1Index, Literal* l2, int l2Index, bool complementary);
 
   bool unify(TermList t1,int index1, TermList t2, int index2);

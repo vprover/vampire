@@ -53,6 +53,7 @@
 #include "Inferences/EquationalTautologyRemoval.hpp"
 #include "Inferences/Condensation.hpp"
 #include "Inferences/FastCondensation.hpp"
+#include "Inferences/FasterCondensation.hpp"
 #include "Inferences/DistinctEqualitySimplifier.hpp"
 
 #include "Inferences/AnswerLiteralProcessors.hpp"
@@ -1753,6 +1754,9 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
   }
 
   switch (opt.condensation()) {
+    case Options::Condensation::FASTER:
+      res->addFront(new FasterCondensation());
+      break;
     case Options::Condensation::ON:
       res->addFront(new Condensation());
       break;

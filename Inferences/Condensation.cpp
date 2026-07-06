@@ -66,13 +66,11 @@ Clause* Condensation::simplify(Clause* cl)
 
     newLits.ensure(newLen);
 
-    RobSubstitution subst0;
+    Recycled<RobSubstitution> subst0;
     // For each unifying subst of l1 and l2
     // apply the subst to l1 and search for instances of this in the clause
     // (note that this is symmetric to applying subst to l2)
-    SubstIterator sit=subst0.unifiers(l1,0,l2,0,false);
-    while(sit.hasNext()) {
-      RobSubstitution* subst=sit.next();
+    for (const auto& subst : iterTraits(subst0->unifiers(l1,0,l2,0,false))) {
       alts.init(newLen,0);
       bool success=false;
 
@@ -87,27 +85,24 @@ Clause* Condensation::simplify(Clause* cl)
           goto match_fin;
         }
         // Store all instances in alts (alts[next] is a literal list)
-        while(iit.hasNext()) {
-	    LiteralList::push(iit.next(), alts[next]);
-        }
+        LiteralList::pushFromIterator(iit, alts[next]);
         next++;
       }
 
       // For all literals that are not l1 or l2
       // apply the subst and search for instances of the result as before
-      for(unsigned i=0;i<clen;i++) {
-        if(i!=l1Index && i!=l2Index) {
-          Literal* lit=subst->apply((*cl)[i],0);
-          newLits[next] = lit;
-          LiteralMiniIndex::InstanceIterator iit(cmi, lit, false);
-          if(!iit.hasNext()) {
-            goto match_fin;
-          }
-          while(iit.hasNext()) {
-	    LiteralList::push(iit.next(), alts[next]);
-          }
-          next++;
+      for(const auto& l : *cl) {
+        if (l == l1 || l == l2) {
+          continue;
         }
+        Literal* lit=subst->apply(l,0);
+        newLits[next] = lit;
+        LiteralMiniIndex::InstanceIterator iit(cmi, lit, false);
+        if(!iit.hasNext()) {
+          goto match_fin;
+        }
+        LiteralList::pushFromIterator(iit, alts[next]);
+        next++;
       }
 
       // I think this is asking if there is a substitution that will match

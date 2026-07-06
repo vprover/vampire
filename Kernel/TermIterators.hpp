@@ -610,22 +610,6 @@ private:
   Stack<const TermList*> _stack;
 }; // class TermVarIterator
 
-
-class LiteralArgIterator
-{
-  Literal* _lit;
-  unsigned _idx;
-public:
-  DECL_ELEMENT_TYPE(TypedTermList);
-
-  LiteralArgIterator(Literal* lit) : _lit(lit), _idx(0) {}
-
-  inline bool hasNext() const { return _idx < _lit->arity(); }
-  inline TermList next() { return TypedTermList(*_lit->nthArgument(_idx), SortHelper::getArgSort(_lit, _idx)); _idx++; }
-  unsigned size() const { return _lit->arity(); }
-};
-
-
 /** iterator over all term arguments of @code term */
 static const auto termArgIter = [](Term const* term)
   { return range((unsigned)0, term->numTermArguments())

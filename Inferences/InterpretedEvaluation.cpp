@@ -19,9 +19,6 @@
 
 #include "InterpretedEvaluation.hpp"
 
-#undef LOGGING
-#define LOGGING 0
-
 namespace Inferences
 {
 using namespace std;

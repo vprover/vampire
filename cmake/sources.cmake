@@ -62,6 +62,7 @@ set(UNIT_TESTS
     UnitTests/tInferences_EqualityResolution.cpp
     UnitTests/tInferences_Factoring.cpp
     UnitTests/tInferences_FastCondensation.cpp
+    UnitTests/tInferences_FasterCondensation.cpp
     UnitTests/tInferences_ForwardGroundJoinability.cpp
     UnitTests/tInferences_FunctionDefinitionRewriting.cpp
     UnitTests/tInferences_GaussianVariableElimination.cpp
@@ -280,6 +281,8 @@ set(SOURCES
     Inferences/Factoring.hpp
     Inferences/FastCondensation.cpp
     Inferences/FastCondensation.hpp
+    Inferences/FasterCondensation.cpp
+    Inferences/FasterCondensation.hpp
     Inferences/ForwardDemodulation.cpp
     Inferences/ForwardDemodulation.hpp
     Inferences/ForwardGroundJoinability.cpp
