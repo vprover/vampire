@@ -102,7 +102,19 @@ private:
 
   unsigned outputPremises(std::ostream &out, Unit *u, std::string seperator = " →\n");
   void outputPremiseAndConclusion(std::ostream &out, Unit *concl, std::string separator = " →\n");
-  void instantiateConclusionVars(std::ostream &out, SortMap &conclSorts, Unit *concl);
+  template <typename Transform = Identity>
+  void instantiateConclusionVars(std::ostream &out, SortMap &conclSorts, Unit *concl, Transform transform = Transform{}){
+    if(concl->isClause()) {
+    auto cl = concl->asClause();
+    if(!cl->noSplits()){
+      auto cla = {cl};
+      outputCumulativeSplits(cla, " ", "x", true);
+      out << " ";
+    }
+    }
+    VirtualIterator<unsigned> domain = conclSorts.domain();
+    outputVariables(out, domain, conclSorts, conclSorts, transform);
+  }
   template <typename Transform = Identity>
   void instantiatePremiseVars(std::ostream &out, SortMap &conclSorts, Unit *premise, Transform transform = Transform{}){
     if(premise->isClause()){
@@ -125,7 +137,7 @@ private:
     outputVariables(out, domain, conclSorts, premiseSorts, transform);
   }
 
-  void genericNPremiseInference(std::ostream &out, SortMap &conclSorts, Clause *concl, std::initializer_list<Substitution> substitutions, std::string tactic = "grind only");
+  void genericNPremiseInference(std::ostream &out, SortMap &conclSorts, Clause *concl, std::initializer_list<Substitution> substitutions, Substitution* conclSubst = nullptr, std::string tactic = "grind only");
   void genericNPremiseInferenceNoSubs(std::ostream &out, SortMap &conclSorts, Clause *concl, std::string tactic = "grind only");
   void genericNPremiseInferenceNoSubs(std::ostream &out, SortMap &conclSorts, Unit *concl, std::string tactic = "grind only");
 

@@ -747,27 +747,21 @@ void LeanChecker::genericInference(std::ostream &out, SortMap &conclSorts, Unit 
   out << " := by\n" << indent << tactic << "\n\n";
 }
 
-void LeanChecker::instantiateConclusionVars(std::ostream &out, SortMap &conclSorts, Unit *concl){
-  if(concl->isClause()) {
-    auto cl = concl->asClause();
-    if(!cl->noSplits()){
-      auto cla = {cl};
-      outputCumulativeSplits(cla, " ", "x", true);
-      out << " ";
-    }
-  }
-  VirtualIterator<unsigned> domain = conclSorts.domain();
-  outputVariables(out, domain, conclSorts, conclSorts);
-}
 
-void LeanChecker::genericNPremiseInference(std::ostream &out, SortMap &conclSorts, Clause *concl, std::initializer_list<Substitution> substitutions, std::string tactic){
+
+void LeanChecker::genericNPremiseInference(std::ostream &out, SortMap &conclSorts, Clause *concl, std::initializer_list<Substitution> substitutions, Substitution* conclSubst, std::string tactic){
   auto parents = concl->getParents();
   outputPremiseAndConclusion(out, concl);
   out << " := by\n" << indent << "intros ";
   for(unsigned i = 0; i < substitutions.size(); i++){
     out << "h" << i << " ";
   }
-  instantiateConclusionVars(out, conclSorts, concl);
+  if(conclSubst != nullptr){
+    instantiateConclusionVars(out, conclSorts, concl,DoSubst(*conclSubst));
+  } else {
+    instantiateConclusionVars(out, conclSorts, concl);
+  }
+  
   for (unsigned i = 0; i < substitutions.size(); i++) {
     ASS(parents.hasNext())
     auto parent = parents.next();
@@ -824,7 +818,7 @@ void LeanChecker::genericNPremiseInferenceNoSubs(std::ostream &out, SortMap &con
 }
 
 void LeanChecker::resolution(std::ostream &out, SortMap &conclSorts, Clause *concl, const Shell::InferenceRecorder::InferenceInformation *info){
-  genericNPremiseInference(out, conclSorts, concl, {info->substitutionForBanksSub[0], info->substitutionForBanksSub[1]}, "grind only [cases Or]");
+  genericNPremiseInference(out, conclSorts, concl, {info->substitutionForBanksSub[0], info->substitutionForBanksSub[1]}, info->substitutionForConclusionVars,"grind only [cases Or]");
 }
 
 void LeanChecker::subsumptionResolution(std::ostream &out, SortMap &conclSorts, Clause *concl)
@@ -838,25 +832,25 @@ void LeanChecker::subsumptionResolution(std::ostream &out, SortMap &conclSorts, 
   ALWAYS(satSR.checkSubsumptionResolutionWithLiteral(right, left, left->getLiteralPosition(m)))
   auto subst = satSR.getBindingsForSubsumptionResolutionWithLiteral();
 
-  genericNPremiseInference(out, conclSorts, concl, {Substitution(), subst}, "grind only [cases Or]");
+  genericNPremiseInference(out, conclSorts, concl, {Substitution(), subst}, nullptr ,"grind only [cases Or]");
 }
 
 void LeanChecker::factoring(std::ostream &out, SortMap &conclSorts, Clause *concl, const InferenceRecorder::InferenceInformation *info){
-  genericNPremiseInference(out, conclSorts, concl, {info->substitutionForBanksSub[0]}, "grind only [cases Or]");
+  genericNPremiseInference(out, conclSorts, concl, {info->substitutionForBanksSub[0]}, info->substitutionForConclusionVars,"grind only [cases Or]");
 }
 
 void LeanChecker::equalityResolution(std::ostream &out, SortMap &conclSorts, Clause *concl, const InferenceRecorder::InferenceInformation *info)
 {
-  genericNPremiseInference(out, conclSorts, concl, {info->substitutionForBanksSub[0]}, "grind only [cases Or]");
+  genericNPremiseInference(out, conclSorts, concl, {info->substitutionForBanksSub[0]}, info->substitutionForConclusionVars,"grind only [cases Or]");
 }
 
 void LeanChecker::equalityFactoring(std::ostream &out, SortMap &conclSorts, Clause *concl, const InferenceRecorder::InferenceInformation *info)
 {
-  genericNPremiseInference(out, conclSorts, concl, {info->substitutionForBanksSub[0]}, "grind only [cases Or]");
+  genericNPremiseInference(out, conclSorts, concl, {info->substitutionForBanksSub[0]}, info->substitutionForConclusionVars,"grind only [cases Or]");
 }
 
 void LeanChecker::superposition(std::ostream &out, SortMap &conclSorts, Clause *concl, const InferenceRecorder::InferenceInformation *info){
-  genericNPremiseInference(out, conclSorts, concl, {info->substitutionForBanksSub[0], info->substitutionForBanksSub[1]}, "grind only [cases Or]");
+  genericNPremiseInference(out, conclSorts, concl, {info->substitutionForBanksSub[0], info->substitutionForBanksSub[1]}, info->substitutionForConclusionVars,"grind only [cases Or]");
 }
 
 void LeanChecker::demodulation(std::ostream &out, SortMap &conclSorts, Clause *concl, const InferenceRecorder::InferenceInformation *info){
@@ -864,7 +858,7 @@ void LeanChecker::demodulation(std::ostream &out, SortMap &conclSorts, Clause *c
     out << "PROBLEM IN DEMODULATION\n";
     exit(10);
   }
-  genericNPremiseInference(out, conclSorts, concl, {Substitution(), info->substitutionForBanksSub[0]}, "grind only [cases Or]");
+  genericNPremiseInference(out, conclSorts, concl, {Substitution(), info->substitutionForBanksSub[0]}, info->substitutionForConclusionVars,"grind only [cases Or]");
 }
 
 unsigned countConnectives(Formula *f)

@@ -41,6 +41,7 @@ public:
     Kernel::Clause *conclusion;
     std::vector<Kernel::Clause *> premises;
     std::vector<Kernel::Substitution> substitutionForBanksSub;
+    Kernel::Substitution* substitutionForConclusionVars;
   };
 
   class RectifyInferenceInformation : public GenericInferenceInformation {
@@ -171,7 +172,7 @@ private:
         unsigned int var = variableSubst.apply(iter.next()).var();
         vars.push_back(var);
       }
-      for (unsigned v : vars) {
+      for (unsigned v : iterTraits( premises[bank]->getVariableIterator())) {
         TermList x = applyFunc(recordedSubst, TermList::var(v), bank);
         substMap[bank].bind(v, SubstHelper::apply(x, variableSubst));
       }
@@ -190,12 +191,24 @@ private:
       return;
     }
     if(hasRecordedInference()){
-      return;
+      //check if varMap is not the identity mapping, if so we can skip this inference
+      bool identity = true;
+      for(auto [var, mappedVar] : varMap){
+        if(var != mappedVar){
+          identity = false;
+          break;
+        }
+      }
+      if(!identity){
+        return;
+      }
     }
     std::unique_ptr<InferenceInformation> info = std::make_unique<InferenceInformation>();
     info->conclusion = conclusion;
     info->premises = premises;
     populateFn(*info, varMap);
+    Substitution* variableSubst = new Substitution(buildVariableSubstitutionFromMap(varMap));
+    info->substitutionForConclusionVars = variableSubst;
     _inferences[id] = std::move(info);
     _lastInferenceId = id;
   }

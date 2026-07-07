@@ -96,6 +96,7 @@ void InferenceRecorder::forwardDemodulation(unsigned int id, Clause *conclusion,
     info->conclusion = conclusion;
     info->premises = premises;
     info->substitutionForBanksSub.resize(1);
+    info->substitutionForConclusionVars = nullptr;
     Substitution variableSwapForClauseR;
 
     // qr.data->clause and qr.data->rhs have different variable namings since the demoldulation code normalizes the variables
