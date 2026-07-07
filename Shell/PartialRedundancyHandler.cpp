@@ -98,10 +98,10 @@ private:
         auto container = vm.op->template getSuccessResult<EntryContainer>();
         container->tod->insert(ptr->ordCons, ptr);
         container->entries.push(ptr);
-        ft->destroy();
+        delete ft;
         return;
       }
-      ft->destroy();
+      delete ft;
     }
 
     CodeStack code;
@@ -260,7 +260,7 @@ private:
 
     void reset()
     {
-      ft->destroy();
+      delete ft;
     }
 
     EntryContainer* next()

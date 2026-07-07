@@ -67,13 +67,12 @@ CodeTree::LitInfo::LitInfo(Clause* cl, unsigned litIndex)
 
 void CodeTree::LitInfo::dispose()
 {
-  ft->destroy();
+  delete ft;
 }
 
 CodeTree::LitInfo CodeTree::LitInfo::getReversed(const LitInfo& li)
 {
-  FlatTerm* ft=FlatTerm::copy(li.ft);
-  ft->swapCommutativePredicateArguments();
+  auto ft = FlatTerm::createEqReversed(static_cast<Literal*>((*li.ft)[1]._term()));
 
   LitInfo res=li;
   res.ft=ft;
@@ -85,8 +84,8 @@ CodeTree::LitInfo CodeTree::LitInfo::getReversed(const LitInfo& li)
 
 CodeTree::LitInfo CodeTree::LitInfo::getOpposite(const LitInfo& li)
 {
-  FlatTerm* ft=FlatTerm::copy(li.ft);
-  ft->changeLiteralPolarity();
+  auto lit = Literal::complementaryLiteral(static_cast<Literal*>((*li.ft)[1]._term()));
+  auto ft = FlatTerm::create(TermList(lit));
 #if GROUND_TERM_CHECK
   ASS_EQ((*ft)[1]._tag(), FlatTerm::FUN_TERM_PTR);
   (*ft)[1]._setTerm(Literal::complementaryLiteral(static_cast<Literal*>((*ft)[1]._term())));

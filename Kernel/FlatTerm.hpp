@@ -16,6 +16,7 @@
 #define __FlatTerm__
 
 #include "Forwards.hpp"
+#include "Lib/DArray.hpp"
 #include "Term.hpp"
 
 namespace Kernel {
@@ -30,9 +31,7 @@ public:
    */
   static FlatTerm* create(TermList t);
   static FlatTerm* create(TermStack ts);
-  void destroy();
-
-  static FlatTerm* copy(const FlatTerm* ft);
+  static FlatTerm* createEqReversed(Literal* lit);
 
   static constexpr size_t FUNCTION_ENTRY_COUNT=3;
 
@@ -83,8 +82,6 @@ public:
   inline const Entry& operator[](size_t i) const { ASS_L(i,_length); return _data[i]; }
 
   void swapCommutativePredicateArguments();
-  void changeLiteralPolarity()
-  { _data[0]._setNumber(_data[0]._number()^1); _data[1]._setTerm(Literal::complementaryLiteral(static_cast<Literal*>(_data[1]._term()))); }
 
 private:
   template<bool mightBeLiteral>
@@ -112,17 +109,10 @@ private:
     pos += e[pos+2]._number();
   }
 
-  FlatTerm(size_t length) : _length(length) {}
-  void* operator new(size_t,unsigned length);
-
-  /**
-   * The @b operator @b delete is undefined, FlatTerm objects should
-   * be destroyed by the @b destroy() function
-   */
-  void operator delete(void*);
+  FlatTerm(size_t length) : _length(length) { _data->ensure(length); }
 
   size_t _length;
-  Entry _data[1];
+  Recycled<DArray<Entry>> _data;
 };
 
 };
