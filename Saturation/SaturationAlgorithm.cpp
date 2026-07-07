@@ -797,28 +797,11 @@ void SaturationAlgorithm::init()
     while (it.hasNext()) {
       ExternalSource& es = it.next();
       Formula* f = es.f;
-      if (f->connective() == FORALL) {
-        f = f->qarg();
-      }
-
-      if (f->connective() != LITERAL && (f->connective() != EXISTS || f->qarg()->connective() != LITERAL)) {
-        USER_ERROR("Wrongly shaped external declaration quantifiers: "+es.f->toString());
-      }
-      es.f = f; // no need to remember the forall part, if there was one
+      ASS(f->connective() == LITERAL || (f->connective() == EXISTS && f->qarg()->connective() == LITERAL))
       Literal* ext_lit = (f->connective() != LITERAL) ? f->qarg()->literal() : f->literal();
-      if (ext_lit->isNegative()) {
-        USER_ERROR("External declaration qantifiers should nest a positive literal and not "+f->toString());
-      }
+      ASS(ext_lit->isPositive())
       Signature::Symbol* symb = env.signature->getPredicate(ext_lit->functor());
-      for (unsigned j = 0; j < symb->arity(); j++) {
-        TermList ext_arg = (*ext_lit)[j];
-        if (!ext_arg.isVar()) {
-          Term* t = ext_arg.term();
-          if (!t->ground()) {
-            USER_ERROR("External declaration non-var arguments must be ground but one is "+t->toString());
-          }
-        }
-      }
+
       ESList** bySymbol;
       _indexedExternals.getValuePtr(ext_lit->functor(),bySymbol,ESList::empty());
       ESList::push(es,*bySymbol);

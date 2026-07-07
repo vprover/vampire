@@ -57,6 +57,8 @@
 #include "UIHelper.hpp"
 #include "Lib/List.hpp"
 
+#include "Saturation/SaturationAlgorithm.hpp"
+
 using namespace std;
 using namespace Shell;
 
@@ -73,6 +75,40 @@ using namespace Shell;
 void Preprocess::preprocess(Problem& prb)
 {
   env.options->resolveAwayAutoValues0();
+
+  // prevent elimination of externally declared predicates
+  // (at the same time, check the declarations are well-formed)
+  {
+    ESList::RefIterator it(prb.externals());
+    while (it.hasNext()) {
+      ExternalSource& es = it.next();
+      Formula* f = es.f;
+      if (f->connective() == FORALL) {
+        f = f->qarg();
+      }
+      if (f->connective() != LITERAL && (f->connective() != EXISTS || f->qarg()->connective() != LITERAL)) {
+        USER_ERROR("Wrongly shaped external declaration quantifiers: "+es.f->toString());
+      }
+      es.f = f; // no need to remember the forall part, if there was one
+      Literal* ext_lit = (f->connective() != LITERAL) ? f->qarg()->literal() : f->literal();
+      if (ext_lit->isNegative()) {
+        USER_ERROR("External declaration quantifiers should nest a positive literal and not "+f->toString());
+      }
+      Signature::Symbol* symb = env.signature->getPredicate(ext_lit->functor());
+
+      symb->markProtected(); // prevent future elimination of this guy!
+
+      for (unsigned j = 0; j < symb->arity(); j++) {
+        TermList ext_arg = (*ext_lit)[j];
+        if (!ext_arg.isVar()) {
+          Term* t = ext_arg.term();
+          if (!t->ground()) {
+            USER_ERROR("External declaration non-var arguments must be ground but one is "+t->toString());
+          }
+        }
+      }
+    }
+  }
 
   if (env.options->showPreprocessing()) {
     std::cout << "preprocessing started" << std::endl;
