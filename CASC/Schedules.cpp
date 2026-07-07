@@ -5213,7 +5213,24 @@ void Schedules::getCasc2025Schedule(const Property& property, Schedule& quick, S
 {
   Property::Category cat = property.category();
 
-  if (property.hasNumerals() || property.hasInterpretedOperations()) {
+  if (property.higherOrder()) {
+    addCommentSignForSZS(std::cout);
+    std::cout << "Detected a higher-order problem, will run a greedy HOL sequence." << std::endl;
+
+    champions.push("lrs+1010_4:1_cha=on:chr=on:drc=off:fd=preordered:fe=abstraction:gs=on:inj=on:kmz=on:lcm=predicate:nm=2:nwc=5.0:pe=on:s2agt=32:slsq=on:slsqc=1:slsqr=8,1:sp=arity:to=kbo:updr=off:uwa=off_0");
+    champions.push("dis+1002_4:1_acc=on:add=on:c=on:e2e=on:fd=preordered:fde=none:foolp=on:gtg=position:hsq=on:hsqr=16,1:inj=on:ixr=off:nicw=on:nm=16:ntd=on:plsq=on:rawr=on:s2a=on:s2agt=32:sfv=off:slsq=on:slsqc=1:spb=non_intro:ss=included:to=lpo:uwa=off_0");
+    champions.push("dis+1010_2:1_aac=none:acc=on:avsq=on:cnfonf=lazy_pi_sigma_gen:cond=fast:er=filter:fd=preordered:fgj=on:flr=on:fsr=off:hud=3:pe=on:piset=and:plsq=on:rawr=on:s2a=on:s2agt=16:s2at=1.5:slsq=on:slsqr=2,1:sp=reverse_arity:to=lpo:uwa=hol:uwa_fpi=on_0");
+
+    quick.push("dis+1004_4:1_acc=on:add=off:bd=all:c=on:e2e=on:fd=preordered:fde=unused:gtg=position:hsq=on:hsqr=16,1:nm=64:ntd=on:plsq=on:s2a=on:s2agt=16:si=on:slsq=on:slsqc=1:slsqr=1,2:spb=goal_then_units:to=lpo:urr=on:uwa=off:i=16000_0");
+    quick.push("lrs+1003_3:2_bd=all:bs=unit_only:bsr=unit_only:cnfonf=lazy_gen:flr=on:hud=7:nicw=on:pe=on:piset=and:rawr=on:s2a=on:s2agt=16:slsq=on:slsqr=2,1:sp=reverse_frequency:to=lpo:uwa=hol:uwa_fpi=on:i=16000_0");
+    quick.push("lrs-1002_4:1_acc=on:e2e=on:foolp=on:gtg=exists_top:hsq=on:hsqlw=5:hsqr=16,1:nm=16:plsq=on:prc=on:proc=on:s2a=on:s2agt=16:ser=on:sfv=off:si=on:slsq=on:slsqc=1:spb=goal:to=lpo:uwa=off:i=16000_0");
+    quick.push("dis+1003_3:4_acc=on:e2e=on:er=filter:erml=3:foolp=on:gtg=exists_top:hsq=on:hsqr=16,1:ntd=on:plsq=on:prc=on:s2a=on:s2agt=32:si=on:sims=off:slsq=on:slsqc=3:slsql=off:spb=intro:to=kbo:urr=on:uwa=off:i=16000_0");
+    quick.push("dis+10_4:1_acc=on:c=on:cnfonf=off:e2e=on:fd=preordered:fde=unused:foolp=on:hsq=on:hsqr=16,1:nm=32:piset=or:rawr=on:s2a=on:sas=cadical:sfv=off:sgt=8:si=on:sp=occurrence:ss=axioms:to=kbo:uwa=off:i=16000_0");
+    quick.push("lrs+1010_4:1_fde=none:fdtod=off:lrd=on:nm=2:nwc=5.0:rawr=on:s2agt=32:slsq=on:slsqc=1:to=kbo:uwa=off:i=16000_0");
+    quick.push("dis+1010_1:1_aac=none:avsq=on:avsqr=1,16:cbe=off:cnfonf=lazy_simp:cond=fast:hud=3:nwc=2.0:plsq=on:s2a=on:s2agt=16:sfv=off:slsq=on:slsqr=2,1:to=kbo:uwa=hol:uwa_fpi=on:i=16000_0");
+    quick.push("dis+10_3:2_acc=on:avsq=on:e2e=on:fd=preordered:fde=unused:hsq=on:hsql=off:hsqr=16,1:ins=20:nicw=on:nm=16:ntd=on:pe=on:plsq=on:s2a=on:sfv=off:slsq=on:slsqc=1:sp=reverse_frequency:ss=axioms:to=kbo:uwa=off:i=16000_0");
+
+  } else if (property.hasNumerals() || property.hasInterpretedOperations()) {
     // The TFA division: Typed (monomorphic) First-order with Arithmetic theorems (axioms with a provable conjecture).
 
     addCommentSignForSZS(std::cout);
