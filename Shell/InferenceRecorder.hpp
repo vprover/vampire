@@ -189,7 +189,9 @@ private:
     if (!isSameAsProofStep(conclusion, _currentGoal, premises, varMap)) {
       return;
     }
-
+    if(hasRecordedInference()){
+      return;
+    }
     std::unique_ptr<InferenceInformation> info = std::make_unique<InferenceInformation>();
     info->conclusion = conclusion;
     info->premises = premises;
