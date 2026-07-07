@@ -9,8 +9,8 @@
  */
 
 #include "Test/SyntaxSugar.hpp"
+#include "Inferences/CodeTreeBackwardSubsumptionAndResolution.hpp"
 #include "Inferences/CodeTreeForwardSubsumptionAndResolution.hpp"
-#include "Inferences/BackwardSubsumptionAndResolution.hpp"
 
 #include "Test/FwdBwdSimplificationTester.hpp"
 
@@ -63,7 +63,7 @@ namespace {
 inline auto tester() {
   return FwdBwdSimplification::TestCase<
       CodeTreeForwardSubsumptionAndResolution</*higherOrder=*/false>,
-      BackwardSubsumptionAndResolution</*higherOrder=*/false>
+      CodeTreeBackwardSubsumptionAndResolution</*higherOrder=*/false>
     >()
     .options({
       { "backward_subsumption", "on" },
