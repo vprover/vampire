@@ -59,6 +59,16 @@ void CodeTreeBackwardSubsumptionAndResolution<higherOrder>::perform(Clause* prem
     return;
   }
 
+  auto calcFingerprints = [](Clause* cl) {
+    unsigned predFP = 0;
+    unsigned funFP = 0;
+    for (const auto& lit : *cl) {
+      predFP = predFP | (1 << lit->functor());
+      funFP = funFP | lit->fnFP();
+    }
+    return std::make_pair(predFP, funFP);
+  };
+
   // We take the least matchable literal, heuristically the heaviest literal currently.
   Literal* lit = (*premise)[0];
   unsigned lmVal = lit->weight();
@@ -71,11 +81,23 @@ void CodeTreeBackwardSubsumptionAndResolution<higherOrder>::perform(Clause* prem
     }
   }
 
+  auto [predFP, funFP] = calcFingerprints(premise);
+
   static typename ClauseCodeTree<higherOrder>::ClauseMatcher cm;
 
   auto check = [&](Clause* cl) {
 
     if (!_checked.insert(cl->number())) {
+      return;
+    }
+
+    if (premise->length() > cl->length() || premise->weight() > cl->weight()) {
+      return;
+    }
+
+    auto [clPredFP, clFunFP] = calcFingerprints(cl);
+
+    if ((predFP & (~clPredFP)) || (funFP & (~clFunFP))) {
       return;
     }
 
@@ -87,18 +109,26 @@ void CodeTreeBackwardSubsumptionAndResolution<higherOrder>::perform(Clause* prem
     Clause* temp;
     int resolvedQueryLit;
 
-    while ((temp = cm.next(resolvedQueryLit))) {
+    if ((temp = cm.next(resolvedQueryLit))) {
       ASS_EQ(temp, premise);
       if (resolvedQueryLit == -1) {
         ASS(satSubs.checkSubsumption(premise, cl));
         env.statistics->backwardSubsumed++;
         List<BwSimplificationRecord>::push(BwSimplificationRecord(cl), simplificationBuffer);
-        continue;
+      } else {
+        ASS(satSubs.checkSubsumptionResolutionWithLiteral(premise, cl, resolvedQueryLit));
+
+        LiteralStack res;
+        for (unsigned i = 0; i < cl->length(); i++) {
+          if (i == (unsigned)resolvedQueryLit) {
+            continue;
+          }
+          res.push((*cl)[i]);
+        }
+        auto conclusion = Clause::fromStack(res, SimplifyingInference2(InferenceRule::BACKWARD_SUBSUMPTION_RESOLUTION, cl, premise));
+        ASS(conclusion);
+        List<BwSimplificationRecord>::push(BwSimplificationRecord(cl, conclusion), simplificationBuffer);
       }
-      ASS(satSubs.checkSubsumptionResolutionWithLiteral(premise, cl, resolvedQueryLit));
-      auto conclusion = SATSubsumption::SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(cl, (*cl)[resolvedQueryLit], premise, /*forward=*/false);
-      ASS(conclusion);
-      List<BwSimplificationRecord>::push(BwSimplificationRecord(cl, conclusion), simplificationBuffer);
     }
     cm.reset();
   };

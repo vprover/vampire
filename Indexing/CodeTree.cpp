@@ -594,9 +594,11 @@ bool CodeTree::Matcher<removing, checkRange, higherOrder>::execute()
           ASS(RemovingBase::matchingClauses);
         }
         return true;
+#if GROUND_TERM_CHECK
       case CHECK_GROUND_TERM:
         shouldBacktrack=!doCheckGroundTerm();
         break;
+#endif
       case CHECK_FUN:
         shouldBacktrack=!doCheckFun();
         break;

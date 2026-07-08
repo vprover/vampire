@@ -77,6 +77,7 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
   TIME_TRACE(TimeTrace::TERM_SHARING);
 
     unsigned weight = 1;
+    unsigned fp = (1 << t->functor());
     unsigned vars = 0;
     bool hasInterpretedConstants=t->arity()==0 &&
       env.signature->getFunction(t->functor())->interpreted();
@@ -104,6 +105,7 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
         Term* r = tt->term();
   
         vars += r->numVarOccs();
+        fp = fp | r->fnFP();
         weight += r->weight();
         hasTermVar |= r->hasTermVar();
         hasDeBruijnIndex |= r->hasDeBruijnIndex();
@@ -120,6 +122,7 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
     t->markShared();
     t->setId(_terms.size());
     t->setNumVarOccs(vars);
+    t->setFnFp(fp);
     t->setWeight(weight);
     t->setHasTermVar(hasTermVar);
     if (env.colorUsed) {
@@ -174,6 +177,7 @@ void TermSharing::computeAndSetSharedSortData(AtomicSort* sort)
   }
   sort->markShared();
   sort->setId(_sorts.size());
+  sort->setFnFp(0);
   sort->setNumVarOccs(vars);
   sort->setWeight(weight);
 
@@ -201,6 +205,7 @@ void TermSharing::computeAndSetSharedLiteralData(Literal* t)
 
     unsigned weight = 1;
     unsigned vars = 0;
+    unsigned fp = 0;
     Color color = COLOR_TRANSPARENT;
     bool hasInterpretedConstants=false;
 
@@ -219,6 +224,7 @@ void TermSharing::computeAndSetSharedLiteralData(Literal* t)
         Term* r = tt->term();
         vars += r->numVarOccs();
         weight += r->weight();
+        fp = fp | r->fnFP();
 
         if (env.colorUsed) {
           ASS(color == COLOR_TRANSPARENT || r->color() == COLOR_TRANSPARENT || color == r->color());
@@ -239,6 +245,7 @@ void TermSharing::computeAndSetSharedLiteralData(Literal* t)
     t->setId(_literals.size());
     t->setNumVarOccs(vars);
     t->setWeight(weight);
+    t->setFnFp(fp);
     if (env.colorUsed) {
       Color fcolor = env.signature->getPredicate(t->functor())->color();
       color = static_cast<Color>(color | fcolor);
@@ -288,6 +295,7 @@ void TermSharing::computeAndSetSharedVarEqData(Literal* t, TermList sort)
     // However, we don't want the calculation to depend on _poly
     // which switches from 1 to possibly 0 only after preprocessing.
     t->setWeight(3 + (sort.weight() - 1));
+    t->setFnFp(0);
     if (env.colorUsed) {
       t->setColor(COLOR_TRANSPARENT);
     }
