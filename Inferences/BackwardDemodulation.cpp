@@ -82,74 +82,79 @@ struct BackwardDemodulation<higherOrder>::ResultFn
    * and the second is the clause, that replaces it. If no
    * replacement should occur, return pair of zeroes.
    */
-  BwSimplificationRecord operator() (pair<TermList,QueryRes<ResultSubstitutionSP, TermLiteralClause>> arg)
+  BwSimplificationRecordIterator operator() (pair<TermList,QueryRes<ResultSubstitutionSP, TermLiteralsClauses>> arg)
   {
     auto qr=arg.second;
 
-    if( !ColorHelper::compatible(_cl->color(), qr.data->clause->color()) ) {
-      //colors of premises don't match
-      return BwSimplificationRecord(0);
-    }
+    Stack<BwSimplificationRecord> res;
 
-    if(_cl==qr.data->clause || _removed->find(qr.data->clause->number())) {
-      //the retrieved clause was already replaced during this
-      //backward demodulation
-      return BwSimplificationRecord(0);
-    }
-
-    TermList lhs=arg.first;
-    TermList rhs=EqHelper::getOtherEqualitySide(_eqLit, lhs);
-
-    // AYB there used to be a check here to ensure that the sorts
-    // matched. This is no longer necessary, as sort matching / unification
-    // is handled directly within the tree
-
-    auto subs = qr.unifier;
-    ASS(subs->isIdentityOnResultWhenQueryBound());
-
-    Applicator appl(subs.ptr());
-
-    TermList lhsS=qr.data->term;
-
-    if (_ordering.compareUnidirectional(AppliedTerm(lhsS), AppliedTerm(rhs,&appl,true))!=Ordering::GREATER) {
-      return BwSimplificationRecord(0);
-    }
-
-    TermList rhsS=subs->applyToBoundQuery(rhs);
-
-    if (_helper.redundancyCheckNeededForPremise(qr.data->clause,qr.data->literal,lhsS) &&
-      !_helper.isPremiseRedundant(qr.data->clause,qr.data->literal,lhsS,rhsS,lhs,&appl))
-    {
-      return BwSimplificationRecord(0);
-    }
-
-    Literal* resLit=EqHelper::replace(qr.data->literal,lhsS,rhsS);
-    if(EqHelper::isEqTautology(resLit)) {
-      env.statistics->backwardDemodulationsToEqTaut++;
-      _removed->insert(qr.data->clause->number());
-      return BwSimplificationRecord(qr.data->clause);
-    }
-
-    unsigned cLen=qr.data->clause->length();
-    RStack<Literal*> resLits;
-
-    resLits->push(resLit);
-
-    for(unsigned i=0;i<cLen;i++) {
-      Literal* curr=(*qr.data->clause)[i];
-      if(curr!=qr.data->literal) {
-        resLits->push(curr);
+    for (const auto& [lit, cl] : *qr.data->litsCls) {
+      if( !ColorHelper::compatible(_cl->color(), cl->color()) ) {
+        //colors of premises don't match
+        continue;
       }
-    }
 
-    _removed->insert(qr.data->clause->number());
-    Clause *replacement = Clause::fromStack(
-      *resLits,
-      SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, qr.data->clause, _cl)
-    );
-    if(env.options->proofExtra() == Options::ProofExtra::FULL)
-      env.proofExtra.insert(replacement, new BackwardDemodulationExtra(lhs, lhsS));
-    return BwSimplificationRecord(qr.data->clause, replacement);
+      if(_cl==cl || _removed->find(cl->number())) {
+        //the retrieved clause was already replaced during this
+        //backward demodulation
+        continue;
+      }
+
+      TermList lhs=arg.first;
+      TermList rhs=EqHelper::getOtherEqualitySide(_eqLit, lhs);
+
+      // AYB there used to be a check here to ensure that the sorts
+      // matched. This is no longer necessary, as sort matching / unification
+      // is handled directly within the tree
+
+      auto subs = qr.unifier;
+      ASS(subs->isIdentityOnResultWhenQueryBound());
+
+      Applicator appl(subs.ptr());
+
+      TermList lhsS=qr.data->term;
+
+      if (_ordering.compareUnidirectional(AppliedTerm(lhsS), AppliedTerm(rhs,&appl,true))!=Ordering::GREATER) {
+        continue;
+      }
+
+      TermList rhsS=subs->applyToBoundQuery(rhs);
+
+      if (_helper.redundancyCheckNeededForPremise(cl, lit,lhsS) &&
+        !_helper.isPremiseRedundant(cl,lit,lhsS,rhsS,lhs,&appl))
+      {
+        continue;
+      }
+
+      Literal* resLit=EqHelper::replace(lit,lhsS,rhsS);
+      if(EqHelper::isEqTautology(resLit)) {
+        env.statistics->backwardDemodulationsToEqTaut++;
+        _removed->insert(cl->number());
+        res.emplace(cl);
+      }
+
+      unsigned cLen=cl->length();
+      RStack<Literal*> resLits;
+
+      resLits->push(resLit);
+
+      for(unsigned i=0;i<cLen;i++) {
+        Literal* curr=(*cl)[i];
+        if(curr!=lit) {
+          resLits->push(curr);
+        }
+      }
+
+      _removed->insert(cl->number());
+      Clause *replacement = Clause::fromStack(
+        *resLits,
+        SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, cl, _cl)
+      );
+      if(env.options->proofExtra() == Options::ProofExtra::FULL)
+        env.proofExtra.insert(replacement, new BackwardDemodulationExtra(lhs, lhsS));
+      res.emplace(cl, replacement);
+    }
+    return getPersistentIterator(Stack<BwSimplificationRecord>::Iterator(res));
   }
 private:
   Literal* _eqLit;
@@ -175,7 +180,7 @@ void BackwardDemodulation<higherOrder>::perform(Clause* cl,
 
   BwSimplificationRecordIterator replacementIterator=
     pvi( getFilteredIterator(
-	    getMappingIterator(
+	    getMapAndFlattenIterator(
 		    getMapAndFlattenIterator(
 			    EqHelper::getDemodulationLHSIterator(lit, _preordered, _ord).first,
 			    [this](TypedTermList lhs)

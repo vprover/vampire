@@ -98,7 +98,7 @@ private:
  */
 template<bool higherOrder>
 class DemodulationSubtermIndex
-: public TermIndex<TermLiteralClause>
+: public TermIndex<TermLiteralsClauses>
 {
 public:
   DemodulationSubtermIndex(SaturationAlgorithm& salg);
