@@ -918,6 +918,8 @@ public:
     return reinterpret_cast<SpecialTermData*>(this)-1;
   }
 
+  void*& demEntry() { return _demEntry; }
+
 protected:
   std::string headToString() const;
 
@@ -980,6 +982,7 @@ protected:
      * the sort of the top-level variables */
     TermList _sort;
   };
+  void* _demEntry = nullptr;
 
   /** The list of arguments of size type arity + term arity + 1. The first
    *  argument stores the term weight and the mask (the last two bits are 0).

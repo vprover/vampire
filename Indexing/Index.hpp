@@ -110,6 +110,22 @@ struct TermLiteralClause
                << ")"; }
 };
 
+struct TermLiteralsClauses
+{
+  TypedTermList term;
+  Stack<std::pair<Literal*, Clause*>>* litsCls;
+
+  TypedTermList const& key() const { return term; }
+
+  auto asTuple() const
+  { return term; }
+
+  IMPL_COMPARISONS_FROM_TUPLE(TermLiteralsClauses)
+
+  friend std::ostream& operator<<(std::ostream& out, TermLiteralsClauses const& self)
+  { return out << "(" << self.term << ")"; }
+};
+
 /** Custom leaf data for forward demodulation to store the demodulator
  * left- and right-hand side normalized and cache preorderedness. */
 struct DemodulatorData

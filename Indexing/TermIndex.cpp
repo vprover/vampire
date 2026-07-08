@@ -70,7 +70,7 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
 
 template<bool higherOrder>
 DemodulationSubtermIndex<higherOrder>::DemodulationSubtermIndex(SaturationAlgorithm& salg)
-: TermIndex(new TermSubstitutionTree<TermLiteralClause>()),
+: TermIndex(new TermSubstitutionTree<TermLiteralsClauses>()),
   _skipNonequationalLiterals(salg.getOptions().demodulationOnlyEquational()) {};
 
 template<bool higherOrder>
@@ -80,14 +80,12 @@ void DemodulationSubtermIndex<higherOrder>::handleClause(Clause* c, bool adding)
 
   static DHSet<Term*> inserted;
 
-  unsigned cLen=c->length();
-  for (unsigned i=0; i<cLen; i++) {
+  for (const auto& lit : *c) {
     // it is true (as stated below) that inserting only once per clause would be sufficient
     // however, vampire does not guarantee the order of literals stays the same in a clause (selected literals are moved to front)
     // so if the order changes while a clause is in the index (which can happen with "-sa otter")
     // the removes could be called on different literals than the inserts!
     inserted.reset();
-    Literal* lit=(*c)[i];
     if (lit->isAnswerLiteral()) {
       continue;
     }
@@ -105,10 +103,16 @@ void DemodulationSubtermIndex<higherOrder>::handleClause(Clause* c, bool adding)
         it.right();
         continue;
       }
+      if (!t->demEntry()) {
+        auto entry = new Stack<std::pair<Literal*, Clause*>>();
+        _is->insert(TermLiteralsClauses{ t, entry });
+        t->demEntry() = entry;
+      }
+      auto ptr = t->demEntry();
       if (adding) {
-        _is->insert(TermLiteralClause{ t, lit, c });
+        static_cast<Stack<std::pair<Literal*, Clause*>>*>(ptr)->push({ lit, c });
       } else {
-        _is->remove(TermLiteralClause{ t, lit, c });
+        static_cast<Stack<std::pair<Literal*, Clause*>>*>(ptr)->remove({ lit, c });
       }
     }
   }
