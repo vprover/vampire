@@ -274,8 +274,9 @@ protected:
       if (outputAxiomNames && rule==InferenceRule::INPUT) {
         ASS(!parents.hasNext()); //input clauses don't have parents
         std::string name;
-        if (Parse::TPTP::findAxiomName(cs, name)) {
-          out << " " << name;
+        std::filesystem::path path;
+        if (Parse::TPTP::findAxiomName(cs, name, path)) {
+          out << " " << name << " " << path;
         }
       }
 
@@ -651,23 +652,19 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
 
     std::string inferenceStr;
     if (rule==InferenceRule::INPUT) {
-      std::string fileName;
-      if (env.options->inputFile()=="") {
-	      fileName="unknown";
-      }
-      else {
-	      fileName="'"+env.options->inputFile()+"'";
-      }
       std::string axiomName;
-      if (!outputAxiomNames || !Parse::TPTP::findAxiomName(us, axiomName)) {
+      std::filesystem::path axiomPath;
+      if (!outputAxiomNames || !Parse::TPTP::findAxiomName(us, axiomName, axiomPath)) {
         // Giles' ucore extraction code parses labels from smtlib files, let's try printing these too
         if (!us->isClause() && us->getFormula()->hasLabel()) {
           axiomName = us->getFormula()->getLabel();
+          axiomPath = "unknown";
         } else {
 	        axiomName="unknown";
+          axiomPath = "unknown";
         }
       }
-      inferenceStr="file("+fileName+","+quoteAxiomName(axiomName)+")";
+      inferenceStr="file("+std::string(axiomPath)+","+quoteAxiomName(axiomName)+")";
     }
     else if (!parents.hasNext()) {
       std::string newSymbolInfo;

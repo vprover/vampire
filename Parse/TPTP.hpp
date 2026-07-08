@@ -341,9 +341,7 @@ public:
    * based on this value.
    */
   bool containsConjecture() const { return _containsConjecture; }
-  static bool findAxiomName(const Unit* unit, std::string& result);
-  //this function is used also by the API
-  static void assignAxiomName(const Unit* unit, std::string& name);
+  static bool findAxiomName(const Unit* unit, std::string& name, std::filesystem::path &path);
   unsigned lineNumber(){ return currentFile.lineNumber; }
   std::string currentPath(){ return currentFile.path; }
 
@@ -861,9 +859,9 @@ public:
 private:
   DHMap<unsigned,SourceRecord*>* _unitSources;
 
-  /** This field stores names of input units if the
+  /** This field stores names of input units (and their file names) if the
    * output_axiom_names option is enabled */
-  static DHMap<unsigned, std::string> _axiomNames;
+  static DHMap<unsigned, std::pair<std::string, std::filesystem::path>> _axiomNames;
 
   /**
    * During question parsing, we store the mapping from int variables
