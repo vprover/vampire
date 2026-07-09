@@ -5217,18 +5217,313 @@ void Schedules::getCasc2025Schedule(const Property& property, Schedule& quick, S
     addCommentSignForSZS(std::cout);
     std::cout << "Detected a higher-order problem, will run a greedy HOL sequence." << std::endl;
 
-    champions.push("lrs+1010_4:1_cha=on:chr=on:drc=off:fd=preordered:fe=abstraction:gs=on:inj=on:kmz=on:lcm=predicate:nm=2:nwc=5.0:pe=on:s2agt=32:slsq=on:slsqc=1:slsqr=8,1:sp=arity:to=kbo:updr=off:uwa=off_0");
-    champions.push("dis+1002_4:1_acc=on:add=on:c=on:e2e=on:fd=preordered:fde=none:foolp=on:gtg=position:hsq=on:hsqr=16,1:inj=on:ixr=off:nicw=on:nm=16:ntd=on:plsq=on:rawr=on:s2a=on:s2agt=32:sfv=off:slsq=on:slsqc=1:spb=non_intro:ss=included:to=lpo:uwa=off_0");
-    champions.push("dis+1010_2:1_aac=none:acc=on:avsq=on:cnfonf=lazy_pi_sigma_gen:cond=fast:er=filter:fd=preordered:fgj=on:flr=on:fsr=off:hud=3:pe=on:piset=and:plsq=on:rawr=on:s2a=on:s2agt=16:s2at=1.5:slsq=on:slsqr=2,1:sp=reverse_arity:to=lpo:uwa=hol:uwa_fpi=on_0");
-
-    quick.push("dis+1004_4:1_acc=on:add=off:bd=all:c=on:e2e=on:fd=preordered:fde=unused:gtg=position:hsq=on:hsqr=16,1:nm=64:ntd=on:plsq=on:s2a=on:s2agt=16:si=on:slsq=on:slsqc=1:slsqr=1,2:spb=goal_then_units:to=lpo:urr=on:uwa=off:i=16000_0");
-    quick.push("lrs+1003_3:2_bd=all:bs=unit_only:bsr=unit_only:cnfonf=lazy_gen:flr=on:hud=7:nicw=on:pe=on:piset=and:rawr=on:s2a=on:s2agt=16:slsq=on:slsqr=2,1:sp=reverse_frequency:to=lpo:uwa=hol:uwa_fpi=on:i=16000_0");
-    quick.push("lrs-1002_4:1_acc=on:e2e=on:foolp=on:gtg=exists_top:hsq=on:hsqlw=5:hsqr=16,1:nm=16:plsq=on:prc=on:proc=on:s2a=on:s2agt=16:ser=on:sfv=off:si=on:slsq=on:slsqc=1:spb=goal:to=lpo:uwa=off:i=16000_0");
-    quick.push("dis+1003_3:4_acc=on:e2e=on:er=filter:erml=3:foolp=on:gtg=exists_top:hsq=on:hsqr=16,1:ntd=on:plsq=on:prc=on:s2a=on:s2agt=32:si=on:sims=off:slsq=on:slsqc=3:slsql=off:spb=intro:to=kbo:urr=on:uwa=off:i=16000_0");
-    quick.push("dis+10_4:1_acc=on:c=on:cnfonf=off:e2e=on:fd=preordered:fde=unused:foolp=on:hsq=on:hsqr=16,1:nm=32:piset=or:rawr=on:s2a=on:sas=cadical:sfv=off:sgt=8:si=on:sp=occurrence:ss=axioms:to=kbo:uwa=off:i=16000_0");
-    quick.push("lrs+1010_4:1_fde=none:fdtod=off:lrd=on:nm=2:nwc=5.0:rawr=on:s2agt=32:slsq=on:slsqc=1:to=kbo:uwa=off:i=16000_0");
-    quick.push("dis+1010_1:1_aac=none:avsq=on:avsqr=1,16:cbe=off:cnfonf=lazy_simp:cond=fast:hud=3:nwc=2.0:plsq=on:s2a=on:s2agt=16:sfv=off:slsq=on:slsqr=2,1:to=kbo:uwa=hol:uwa_fpi=on:i=16000_0");
-    quick.push("dis+10_3:2_acc=on:avsq=on:e2e=on:fd=preordered:fde=unused:hsq=on:hsql=off:hsqr=16,1:ins=20:nicw=on:nm=16:ntd=on:pe=on:plsq=on:s2a=on:sfv=off:slsq=on:slsqc=1:sp=reverse_frequency:ss=axioms:to=kbo:uwa=off:i=16000_0");
+    // masterHOL2026/problemsHOL.txt
+    // Sub-schedule for 2000Mi strat cap / 2000Mi overall limit
+    quick.push("dis+1004_4:1_acc=on:add=off:bd=all:c=on:e2e=on:fd=preordered:fde=unused:gtg=position:hsq=on:hsqr=16,1:nm=64:ntd=on:plsq=on:s2a=on:s2agt=16:slsq=on:slsqc=1:slsqr=1,2:spb=goal_then_units:to=lpo:urr=on:uwa=off:i=211:si=on:rtra=on_0");
+    quick.push("dis+1002_1:1_cbe=off:cnfonf=lazy_not_gen_be_off:drc=ordering:lma=off:ntd=on:s2a=on:uwa=off:i=2:si=on:rtra=on_0");
+    quick.push("ott+1002_1:32_acc=on:fe=abstraction:fgj=on:nwc=0.5:piset=pi_sigma:sp=const_max:tgt=ground:i=135:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_aac=none:bd=preordered:e2e=on:fe=abstraction:s2a=on:s2at=3.0:sil=128000:to=lpo:i=23:si=on:rtra=on_0");
+    quick.push("dis+10_1:1024_fd=off:hud=10:sil=128000:sp=unary_first:urr=on:uwa=all:i=2:si=on:rtra=on_0");
+    quick.push("dis+21_1:4_av=off:e2e=on:fde=none:foolp=on:uwa=off:i=22:si=on:rtra=on_0");
+    quick.push("lrs+1010_2:3_av=off:cha=on:fe=axiom:fgj=on:ntd=on:nwc=1.0:uwa=off:i=5:si=on:rtra=on_0");
+    quick.push("dis+1010_1:1_bsr=on:cnfonf=lazy_pi_sigma_gen:e2e=on:lma=off:nwc=1.0:s2a=on:sac=on:sas=cadical:sil=128000:uwa=interpreted_only:i=123:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_cs=on:ntd=on:i=8:si=on:rtra=on_0");
+    quick.push("lrs+1002_1:10_bsr=unit_only:chr=on:cnfonf=lazy_not_gen:to=kbo:uwa=one_side_interpreted:i=12:si=on:rtra=on_0");
+    quick.push("lrs+10_1:40_drc=off:e2e=on:ntd=on:s2a=on:uwa=one_side_interpreted:i=110:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_cnfonf=off:inj=on:ntd=on:uwa=one_side_interpreted:i=3:si=on:rtra=on_0");
+    quick.push("dis+1002_4:1_acc=on:add=on:c=on:e2e=on:fd=preordered:fde=none:foolp=on:gtg=position:hsq=on:hsqr=16,1:inj=on:ixr=off:nicw=on:nm=16:ntd=on:plsq=on:rawr=on:s2a=on:s2agt=32:sfv=off:slsq=on:slsqc=1:spb=non_intro:ss=included:to=lpo:uwa=off:i=694:si=on:rtra=on_0");
+    quick.push("dis+10_4:1_acc=on:c=on:cnfonf=off:e2e=on:fd=preordered:fde=unused:foolp=on:hsq=on:hsqr=16,1:nm=32:piset=or:rawr=on:s2a=on:sas=cadical:sfv=off:sgt=8:sp=occurrence:ss=axioms:to=kbo:uwa=off:i=11:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_cnfonf=lazy_gen:hud=10:sos=on:to=lpo:i=8:si=on:rtra=on_0");
+    quick.push("lrs+1002_1:1_cnfonf=lazy_pi_sigma_gen:ss=axioms:st=1.5:uwa=off:i=289:si=on:rtra=on_0");
+    quick.push("lrs+1002_1:1_sd=1:sil=128000:sos=on:spb=goal_then_units:ss=axioms:st=2.0:to=lpo:uwa=off:i=250:si=on:rtra=on_0");
+    quick.push("dis+1010_1:10_bd=preordered:cnfonf=lazy_gen:foolp=on:nwc=4.0:sil=128000:uwa=off:i=32:si=on:rtra=on_0");
+    quick.push("lrs+1010_1:3_avsq=on:avsqr=8,1:fsr=off:hud=5:ins=1:sil=128000:slsq=on:i=12:si=on:rtra=on_0");
+    quick.push("dis+10_3:2_acc=on:avsq=on:e2e=on:fd=preordered:fde=unused:hsq=on:hsql=off:hsqr=16,1:ins=20:nicw=on:nm=16:ntd=on:pe=on:plsq=on:s2a=on:sfv=off:slsq=on:slsqc=1:sp=reverse_frequency:ss=axioms:to=kbo:uwa=off:i=13:si=on:rtra=on_0");
+    quick.push("dis+10_1:1024_bd=preordered:bet=on:cnfonf=off:fd=off:hud=5:sil=128000:i=7:si=on:rtra=on_0");
+    quick.push("lrs+1010_4:1_cha=on:chr=on:drc=off:fd=preordered:fe=abstraction:gs=on:inj=on:kmz=on:lcm=predicate:nm=2:nwc=5.0:pe=on:s2agt=32:slsq=on:slsqc=1:slsqr=8,1:sp=arity:to=kbo:updr=off:uwa=off:i=24:si=on:rtra=on_0");
+    quick.push("ott+1002_1:3_av=off:cbe=off:cts=off:fsr=off:ntd=on:slsqc=2:sp=weighted_frequency:spb=goal:uwa_fpi=on:i=27:si=on:rtra=on_0");
+    // Improves by expected 2437.447199080944 probs costing 2000 Mi
+    // Sub-schedule for 4000Mi strat cap / 4000Mi overall limit
+    quick.push("dis+1004_4:1_acc=on:add=off:bd=all:c=on:e2e=on:fd=preordered:fde=unused:gtg=position:hsq=on:hsqr=16,1:nm=64:ntd=on:plsq=on:s2a=on:s2agt=16:slsq=on:slsqc=1:slsqr=1,2:spb=goal_then_units:to=lpo:urr=on:uwa=off:i=838:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_sd=1:sil=128000:sos=on:ss=axioms:urr=on:i=239:si=on:rtra=on_0");
+    quick.push("lrs+1010_1:1_fe=abstraction:hsq=on:hsqaw=5:hsqc=4:ntd=on:sil=128000:sos=on:i=44:si=on:rtra=on_0");
+    quick.push("dis+1002_1:1_cbe=off:cnfonf=lazy_not_gen_be_off:drc=ordering:lma=off:ntd=on:s2a=on:uwa=off:i=216:si=on:rtra=on_0");
+    quick.push("dis+1010_2:1_aac=none:acc=on:avsq=on:cnfonf=lazy_pi_sigma_gen:cond=fast:er=filter:fd=preordered:fgj=on:flr=on:fsr=off:hud=3:pe=on:piset=and:plsq=on:rawr=on:s2a=on:s2agt=16:s2at=1.5:slsq=on:slsqr=2,1:sp=reverse_arity:to=lpo:uwa=hol:uwa_fpi=on:i=718:si=on:rtra=on_0");
+    quick.push("ott+1002_1:4_bsr=on:chr=on:gs=on:kws=inv_arity_squared:nwc=11.4:sgt=30:sil=128000:sos=all:to=kbo:uwa=off:i=247:si=on:rtra=on_0");
+    quick.push("dis+10_1:1024_fd=off:hud=10:sil=128000:sp=unary_first:urr=on:uwa=all:i=43:si=on:rtra=on_0");
+    quick.push("dis+1004_1:1_add=on:avsq=on:avsqr=1,16:cnfonf=lazy_pi_sigma_gen:fde=unused:lftc=50:lrd=on:s2at=10.0:sil=128000:slsq=on:slsqr=1,7:uwa=interpreted_only:i=52:si=on:rtra=on_0");
+    quick.push("lrs+21_3:1_bd=preordered:cnfonf=lazy_gen:fgj=on:plsq=on:plsqc=1:plsqr=1070,37:s2a=on:uwa=interpreted_only:i=124:si=on:rtra=on_0");
+    quick.push("dis+10_4:1_acc=on:c=on:cnfonf=off:e2e=on:fd=preordered:fde=unused:foolp=on:hsq=on:hsqr=16,1:nm=32:piset=or:rawr=on:s2a=on:sas=cadical:sfv=off:sgt=8:sp=occurrence:ss=axioms:to=kbo:uwa=off:i=44:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_cnfonf=lazy_gen:hud=10:sos=on:to=lpo:i=8:si=on:rtra=on_0");
+    quick.push("lrs+10_1:16_fe=abstraction:kws=arity_squared:ntd=on:nwc=1.5:i=62:si=on:rtra=on_0");
+    quick.push("dis+10_5:4_bd=preordered:e2e=on:nwc=3.0:s2a=on:urr=on:uwa=interpreted_only:i=103:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_bd=all:kws=inv_frequency:s2at=2.0:sil=128000:slsq=on:slsqc=1:urr=on:i=14:si=on:rtra=on_0");
+    quick.push("lrs+1002_1:1024_cond=on:e2e=on:fde=none:ntd=on:nwc=1.0:sil=128000:tgt=ground:uwa=off:i=59:si=on:rtra=on_0");
+    quick.push("dis+1003_3:4_acc=on:e2e=on:er=filter:erml=3:foolp=on:gtg=exists_top:hsq=on:hsqr=16,1:ntd=on:plsq=on:prc=on:s2a=on:s2agt=32:sims=off:slsq=on:slsqc=3:slsql=off:spb=intro:to=kbo:urr=on:uwa=off:i=150:si=on:rtra=on_0");
+    quick.push("dis+1010_1:1_aac=none:avsq=on:avsqr=1,16:cbe=off:cnfonf=lazy_simp:cond=fast:hud=3:nwc=2.0:plsq=on:s2a=on:s2agt=16:sfv=off:slsq=on:slsqr=2,1:to=kbo:uwa=hol:uwa_fpi=on:i=161:si=on:rtra=on_0");
+    quick.push("lrs+1003_3:2_bd=all:bs=unit_only:bsr=unit_only:cnfonf=lazy_gen:flr=on:hud=7:nicw=on:pe=on:piset=and:rawr=on:s2a=on:s2agt=16:slsq=on:slsqr=2,1:sp=reverse_frequency:to=lpo:uwa=hol:uwa_fpi=on:i=38:si=on:rtra=on_0");
+    quick.push("lrs+1010_4:1_cha=on:chr=on:drc=off:fd=preordered:fe=abstraction:gs=on:inj=on:kmz=on:lcm=predicate:nm=2:nwc=5.0:pe=on:s2agt=32:slsq=on:slsqc=1:slsqr=8,1:sp=arity:to=kbo:updr=off:uwa=off:i=859:si=on:rtra=on_0");
+    // Improves by expected 222.54956944315447 probs costing 4000 Mi
+    // Sub-schedule for 4000Mi strat cap / 4000Mi overall limit
+    quick.push("ott+2_2:1_cbe=off:drc=off:lma=off:lrd=on:nm=0:sil=128000:tgt=full:urr=on:uwa=interpreted_only:i=130:si=on:rtra=on_0");
+    quick.push("ott+1002_1:4_av=off:bd=all:fd=preordered:fde=none:sp=const_max:spb=non_intro:to=lpo:uwa=off:i=87:si=on:rtra=on_0");
+    quick.push("dis+10_1:6_bce=on:cbe=off:doe=on:fdi=1024:fgj=on:ntd=on:piset=and:sil=128000:slsq=on:slsqc=4:slsql=off:sp=arity:uwa=interpreted_only:i=70:si=on:rtra=on_0");
+    quick.push("ott+1002_1:4_fe=abstraction:hud=5:nwc=1.0:piset=or:s2a=on:tgt=ground:tsa=off:i=90:si=on:rtra=on_0");
+    quick.push("ott-1010_1:32_avsqr=2,1:cbe=off:doe=on:fdtod=off:ins=25:ntd=on:sil=128000:to=kbo:uwa=off:i=278:si=on:rtra=on_0");
+    quick.push("dis+1002_4:1_acc=on:add=on:c=on:e2e=on:fd=preordered:fde=none:foolp=on:gtg=position:hsq=on:hsqr=16,1:inj=on:ixr=off:nicw=on:nm=16:ntd=on:plsq=on:rawr=on:s2a=on:s2agt=32:sfv=off:slsq=on:slsqc=1:spb=non_intro:ss=included:to=lpo:uwa=off:i=1433:si=on:rtra=on_0");
+    quick.push("dis+10_1:1024_bd=preordered:cnfonf=lazy_gen:hud=10:plsq=on:plsqc=1:plsqr=32,1:rawr=on:sil=128000:to=lpo:i=131:si=on:rtra=on_0");
+    quick.push("lrs+10_5:1_bd=all:sil=128000:urr=on:uwa=one_side_constant:i=11:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_cnfonf=lazy_gen:hud=10:sos=on:to=lpo:i=8:si=on:rtra=on_0");
+    quick.push("dis+1010_1:16_fe=axiom:nwc=1.0:urr=on:i=59:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_sd=1:sil=128000:ss=axioms:st=3.0:i=32:si=on:rtra=on_0");
+    quick.push("lrs-1002_4:1_acc=on:e2e=on:foolp=on:gtg=exists_top:hsq=on:hsqlw=5:hsqr=16,1:nm=16:plsq=on:prc=on:proc=on:s2a=on:s2agt=16:ser=on:sfv=off:slsq=on:slsqc=1:spb=goal:to=lpo:uwa=off:i=651:si=on:rtra=on_0");
+    quick.push("dis+1002_1:1_c=on:ixr=off:nwc=3.0:sil=128000:uwa=off:i=165:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_bd=all:kws=inv_frequency:s2at=2.0:sil=128000:slsq=on:slsqc=1:urr=on:i=14:si=on:rtra=on_0");
+    quick.push("lrs+10_8:1_cnfonf=lazy_not_be_gen:hud=15:lma=off:i=187:si=on:rtra=on_0");
+    quick.push("lrs+1003_3:2_bd=all:bs=unit_only:bsr=unit_only:cnfonf=lazy_gen:flr=on:hud=7:nicw=on:pe=on:piset=and:rawr=on:s2a=on:s2agt=16:slsq=on:slsqr=2,1:sp=reverse_frequency:to=lpo:uwa=hol:uwa_fpi=on:i=203:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_cnfonf=lazy_not_gen:sgt=8:sil=128000:ss=axioms:uwa=off:i=65:si=on:rtra=on_0");
+    quick.push("dis+1010_1:3_ntd=on:piset=and:uwa=one_side_interpreted:i=251:si=on:rtra=on_0");
+    quick.push("ott+1002_1:3_av=off:cbe=off:cts=off:fsr=off:ntd=on:slsqc=2:sp=weighted_frequency:spb=goal:uwa_fpi=on:i=151:si=on:rtra=on_0");
+    // Improves by expected 79.20864302740455 probs costing 3997 Mi
+    // Sub-schedule for 8000Mi strat cap / 8000Mi overall limit
+    quick.push("lrs+1010_3:1_cnfonf=lazy_gen:fde=none:fsr=off:nm=64:plsq=on:plsqc=1:plsqr=64,1:s2agt=20:s2at=5.0:sas=cadical:sil=128000:sp=unary_first:uwa=off:i=322:si=on:rtra=on_0");
+    quick.push("dis+10_3:1_e2e=on:sil=128000:ss=axioms:st=2.0:urr=ec_only:uwa=one_side_constant:i=328:si=on:rtra=on_0");
+    quick.push("lrs+10_1:64_anc=all_dependent:cbe=off:e2e=on:ep=RSTC:ntd=on:sil=128000:uwa=off:i=157:si=on:rtra=on_0");
+    quick.push("ott+21_1:128_add=on:bd=preordered:cbe=off:cnfonf=lazy_not_be_gen:fd=preordered:fe=abstraction:ins=20:lma=off:sos=all:ss=axioms:st=1.5:uwa_fpi=on:i=515:si=on:rtra=on_0");
+    quick.push("dis+10_4:1_acc=on:c=on:cnfonf=off:e2e=on:fd=preordered:fde=unused:foolp=on:hsq=on:hsqr=16,1:nm=32:piset=or:rawr=on:s2a=on:sas=cadical:sfv=off:sgt=8:sp=occurrence:ss=axioms:to=kbo:uwa=off:i=5656:si=on:rtra=on_0");
+    quick.push("ott+1003_1:1_cbe=off:cnfonf=lazy_pi_sigma_gen:hud=10:ixr=off:sp=weighted_frequency:spb=units:to=kbo:urr=on:uwa_fpi=on:i=60:si=on:rtra=on_0");
+    quick.push("lrs+1002_1:1_cnfonf=lazy_pi_sigma_gen:ss=axioms:st=1.5:uwa=off:i=740:si=on:rtra=on_0");
+    quick.push("dis+10_3:2_acc=on:avsq=on:e2e=on:fd=preordered:fde=unused:hsq=on:hsql=off:hsqr=16,1:ins=20:nicw=on:nm=16:ntd=on:pe=on:plsq=on:s2a=on:sfv=off:slsq=on:slsqc=1:sp=reverse_frequency:ss=axioms:to=kbo:uwa=off:i=203:si=on:rtra=on_0");
+    // Improves by expected 132.3709591787447 probs costing 7973 Mi
+    // Sub-schedule for 20000Mi strat cap / 20000Mi overall limit
+    quick.push("dis+10_1:1024_bd=all:lma=off:sac=on:sil=128000:to=lpo:uwa=interpreted_only:i=122:si=on:rtra=on_0");
+    quick.push("dis+10_1:1_e2e=on:ss=axioms:urr=ec_only:uwa=one_side_constant:i=553:si=on:rtra=on_0");
+    quick.push("lrs+1010_3:1_cnfonf=lazy_gen:fde=none:fsr=off:nm=64:plsq=on:plsqc=1:plsqr=64,1:s2agt=20:s2at=5.0:sas=cadical:sil=128000:sp=unary_first:uwa=off:i=595:si=on:rtra=on_0");
+    quick.push("lrs-1002_1:1_aac=none:cbe=off:cond=on:ep=R:fe=abstraction:lma=off:ntd=on:plsql=on:slsq=on:sp=arity:spb=intro:uwa=off:i=424:si=on:rtra=on_0");
+    quick.push("dis+1002_8:1_e2e=on:sil=128000:uwa=off:i=650:si=on:rtra=on_0");
+    quick.push("dis+2_1:1_bd=preordered:kws=inv_frequency:nm=0:tgt=full:uwa=one_side_interpreted:i=1734:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_aac=none:bd=preordered:e2e=on:fe=abstraction:s2a=on:s2at=3.0:sil=128000:to=lpo:i=427:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_sil=128000:sos=on:urr=on:uwa=one_side_constant:i=509:si=on:rtra=on_0");
+    quick.push("lrs+2_16:1_add=on:cbe=off:fdi=1024:fgj=on:uwa=interpreted_only:i=110:si=on:rtra=on_0");
+    quick.push("dis+21_1:4_av=off:e2e=on:fde=none:foolp=on:uwa=off:i=235:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_cnfonf=conj_eager:fe=abstraction:sil=128000:ss=axioms:i=233:si=on:rtra=on_0");
+    quick.push("dis+1002_4:1_acc=on:add=on:c=on:e2e=on:fd=preordered:fde=none:foolp=on:gtg=position:hsq=on:hsqr=16,1:inj=on:ixr=off:nicw=on:nm=16:ntd=on:plsq=on:rawr=on:s2a=on:s2agt=32:sfv=off:slsq=on:slsqc=1:spb=non_intro:ss=included:to=lpo:uwa=off:i=11428:si=on:rtra=on_0");
+    quick.push("lrs+21_3:1_bd=preordered:cnfonf=lazy_gen:fgj=on:plsq=on:plsqc=1:plsqr=1070,37:s2a=on:uwa=interpreted_only:i=383:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_cnfonf=off:hud=10:ins=1:ntd=on:i=81:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_cnfonf=conj_eager:s2a=on:ss=axioms:st=1.5:i=668:si=on:rtra=on_0");
+    quick.push("ott+1003_1:1_cbe=off:cnfonf=lazy_pi_sigma_gen:hud=10:ixr=off:sp=weighted_frequency:spb=units:to=kbo:urr=on:uwa_fpi=on:i=646:si=on:rtra=on_0");
+    quick.push("lrs+1010_1:3_avsq=on:avsqr=8,1:fsr=off:hud=5:ins=1:sil=128000:slsq=on:i=149:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_bd=all:kws=inv_frequency:s2at=2.0:sil=128000:slsq=on:slsqc=1:urr=on:i=446:si=on:rtra=on_0");
+    quick.push("lrs+1010_1:64_avsq=on:avsql=on:avsqr=1,16:hsq=on:sd=1:sil=128000:ss=axioms:st=3.0:uwa=off:i=130:si=on:rtra=on_0");
+    quick.push("dis+1003_3:4_acc=on:e2e=on:er=filter:erml=3:foolp=on:gtg=exists_top:hsq=on:hsqr=16,1:ntd=on:plsq=on:prc=on:s2a=on:s2agt=32:sims=off:slsq=on:slsqc=3:slsql=off:spb=intro:to=kbo:urr=on:uwa=off:i=475:si=on:rtra=on_0");
+    // Improves by expected 124.67000215837324 probs costing 19978 Mi
+    // Sub-schedule for 40000Mi strat cap / 40000Mi overall limit
+    quick.push("dis+1004_4:1_acc=on:add=off:bd=all:c=on:e2e=on:fd=preordered:fde=unused:gtg=position:hsq=on:hsqr=16,1:nm=64:ntd=on:plsq=on:s2a=on:s2agt=16:slsq=on:slsqc=1:slsqr=1,2:spb=goal_then_units:to=lpo:urr=on:uwa=off:i=1120:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_cnfonf=off:sos=on:ss=axioms:uwa=off:i=210:si=on:rtra=on_0");
+    quick.push("dis+1002_4:1_anc=none:bd=all:sas=cadical:sil=128000:sos=on:sp=weighted_frequency:uwa=one_side_interpreted:i=901:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_sd=1:sil=128000:sos=on:ss=axioms:urr=on:i=708:si=on:rtra=on_0");
+    quick.push("dis+1010_1:32_ntd=on:uwa=off:i=2654:si=on:rtra=on_0");
+    quick.push("lrs+1010_3:1_cnfonf=lazy_gen:fde=none:fsr=off:nm=64:plsq=on:plsqc=1:plsqr=64,1:s2agt=20:s2at=5.0:sas=cadical:sil=128000:sp=unary_first:uwa=off:i=271:si=on:rtra=on_0");
+    quick.push("dis+1002_1:1_cbe=off:cnfonf=lazy_not_gen_be_off:drc=ordering:lma=off:ntd=on:s2a=on:uwa=off:i=429:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_sd=3:sil=128000:ss=axioms:st=4.0:i=766:si=on:rtra=on_0");
+    quick.push("dis+1002_5:4_add=on:cnfonf=lazy_simp:fdi=1024:fe=axiom:lwlo=on:plsq=on:plsqc=1:plsql=on:plsqr=878,253:s2a=on:sil=128000:uwa=interpreted_only:i=334:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_avsqc=4:fe=abstraction:fgj=on:hud=5:ixr=off:nm=16:ntd=on:piset=pi_sigma:sos=on:sp=const_frequency:spb=non_intro:ss=axioms:st=3.0:to=kbo:uwa=hol:uwa_fpi=on:i=955:si=on:rtra=on_0");
+    quick.push("dis+1010_1:1_add=off:c=on:cbe=off:cnfonf=lazy_simp:drc=ordering:fsr=off:irw=on:lwlo=on:nm=10:piset=or:plsq=on:plsqc=4:plsqr=32,1:rp=on:sos=on:sp=reverse_frequency:to=lpo:uwa=off:i=578:si=on:rtra=on_0");
+    quick.push("ott+1002_1:32_acc=on:fe=abstraction:fgj=on:nwc=0.5:piset=pi_sigma:sp=const_max:tgt=ground:i=250:si=on:rtra=on_0");
+    quick.push("dis+1010_2:1_aac=none:acc=on:avsq=on:cnfonf=lazy_pi_sigma_gen:cond=fast:er=filter:fd=preordered:fgj=on:flr=on:fsr=off:hud=3:pe=on:piset=and:plsq=on:rawr=on:s2a=on:s2agt=16:s2at=1.5:slsq=on:slsqr=2,1:sp=reverse_arity:to=lpo:uwa=hol:uwa_fpi=on:i=5638:si=on:rtra=on_0");
+    quick.push("dis+10_1:6_bce=on:cbe=off:doe=on:fdi=1024:fgj=on:ntd=on:piset=and:sil=128000:slsq=on:slsqc=4:slsql=off:sp=arity:uwa=interpreted_only:i=1353:si=on:rtra=on_0");
+    quick.push("dis+10_1:1_bd=all:cnfonf=lazy_not_gen_be_off:ntd=on:s2a=on:s2at=10.0:sil=128000:uwa=off:i=299:si=on:rtra=on_0");
+    quick.push("dis+1010_2:1_fdi=2:fe=abstraction:fgj=on:hud=5:inj=on:ixr=off:rawr=on:s2at=4.0:slsq=on:spb=goal_then_units:ss=included:i=474:si=on:rtra=on_0");
+    quick.push("lrs+1010_2:3_av=off:cha=on:fe=axiom:fgj=on:ntd=on:nwc=1.0:uwa=off:i=696:si=on:rtra=on_0");
+    quick.push("lrs+1010_4:1_fde=none:fdtod=off:lrd=on:nm=2:nwc=5.0:rawr=on:s2agt=32:slsq=on:slsqc=1:to=kbo:uwa=off:i=165:si=on:rtra=on_0");
+    quick.push("dis+1010_1:2_chr=on:sil=128000:uwa=one_side_constant:i=1317:si=on:rtra=on_0");
+    quick.push("ott+1002_1:4_fe=abstraction:hud=5:nwc=1.0:piset=or:s2a=on:tgt=ground:tsa=off:i=90:si=on:rtra=on_0");
+    quick.push("lrs+10_1:64_anc=all_dependent:cbe=off:e2e=on:ep=RSTC:ntd=on:sil=128000:uwa=off:i=86:si=on:rtra=on_0");
+    quick.push("lrs+10_1:40_drc=off:e2e=on:ntd=on:s2a=on:uwa=one_side_interpreted:i=1320:si=on:rtra=on_0");
+    quick.push("dis+1004_1:3_add=off:cbe=off:cnfonf=conj_eager:fgj=on:nm=16:nwc=14.0:sil=128000:sp=reverse_arity:uwa=off:uwa_fpi=on:i=801:si=on:rtra=on_0");
+    quick.push("dis+10_1:1024_bd=preordered:cnfonf=lazy_gen:hud=10:plsq=on:plsqc=1:plsqr=32,1:rawr=on:sil=128000:to=lpo:i=1259:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_cnfonf=off:hud=10:ins=1:ntd=on:i=81:si=on:rtra=on_0");
+    quick.push("lrs+10_5:1_bd=all:sil=128000:urr=on:uwa=one_side_constant:i=1457:si=on:rtra=on_0");
+    quick.push("dis+1010_1:2_cbe=off:cnfonf=off:foolp=on:nwc=1.0:s2at=3.0:s2pl=on:tgt=full:uwa=off:i=1102:si=on:rtra=on_0");
+    quick.push("dis+10_1:16_av=off:bsd=on:cnfonf=conj_eager:cts=off:fe=abstraction:nwc=1.0:ss=axioms:i=803:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_cnfonf=conj_eager:s2a=on:ss=axioms:st=1.5:i=1420:si=on:rtra=on_0");
+    quick.push("ott+1003_1:1_cbe=off:cnfonf=lazy_pi_sigma_gen:hud=10:ixr=off:sp=weighted_frequency:spb=units:to=kbo:urr=on:uwa_fpi=on:i=60:si=on:rtra=on_0");
+    quick.push("lrs+1010_1:1_bd=all:cnfonf=lazy_gen:drc=ordering:fe=abstraction:ntd=on:nwc=2.0:s2a=on:sil=128000:to=lpo:i=280:si=on:rtra=on_0");
+    quick.push("dis+1010_1:10_bd=preordered:cnfonf=lazy_gen:foolp=on:nwc=4.0:sil=128000:uwa=off:i=643:si=on:rtra=on_0");
+    quick.push("lrs+2_1:1_cbe=off:cnfonf=lazy_not_be_gen:fde=none:fe=abstraction:hsq=on:hsqlw=0:hud=5:lsd=20:ntd=on:nwc=1.0:rawr=on:s2at=3.0:sil=128000:st=5.0:uwa=hol:i=435:si=on:rtra=on_0");
+    quick.push("dis+1010_1:1_add=on:cnfonf=lazy_pi_sigma_gen:sac=on:sas=cadical:sil=128000:sos=all:to=lpo:uwa=off:i=1561:si=on:rtra=on_0");
+    quick.push("dis+1002_1:1_bsd=on:cbe=off:drc=ordering:fde=none:flr=on:gsp=on:s2a=on:ser=on:sp=const_min:to=lpo:uwa=off:i=746:si=on:rtra=on_0");
+    quick.push("dis+21_1:1_e2e=on:fde=none:nm=2:s2a=on:s2agt=32:s2at=6.0:sac=on:sil=128000:tgt=full:urr=on:uwa=interpreted_only:i=941:si=on:rtra=on_0");
+    quick.push("dis+1003_3:4_acc=on:e2e=on:er=filter:erml=3:foolp=on:gtg=exists_top:hsq=on:hsqr=16,1:ntd=on:plsq=on:prc=on:s2a=on:s2agt=32:sims=off:slsq=on:slsqc=3:slsql=off:spb=intro:to=kbo:urr=on:uwa=off:i=6206:si=on:rtra=on_0");
+    quick.push("dis+10_8:1_acc=on:bd=all:kws=inv_frequency:nm=0:s2a=on:s2agt=64:uwa=interpreted_only:i=100:si=on:rtra=on_0");
+    quick.push("dis+1010_1:1_aac=none:avsq=on:avsqr=1,16:cbe=off:cnfonf=lazy_simp:cond=fast:hud=3:nwc=2.0:plsq=on:s2a=on:s2agt=16:sfv=off:slsq=on:slsqr=2,1:to=kbo:uwa=hol:uwa_fpi=on:i=94:si=on:rtra=on_0");
+    quick.push("lrs+21_1:6_bd=all:bs=on:cnfonf=lazy_not_gen_be_off:fe=abstraction:hud=1:nwc=3.0:sil=128000:ss=axioms:tgt=ground:urr=on:uwa=hol:uwa_fpi=on:i=384:si=on:rtra=on_0");
+    quick.push("ott+1002_1:3_av=off:cbe=off:cts=off:fsr=off:ntd=on:slsqc=2:sp=weighted_frequency:spb=goal:uwa_fpi=on:i=923:si=on:rtra=on_0");
+    // Improves by expected 111.6917998301732 probs costing 39869 Mi
+    // Sub-schedule for 120000Mi strat cap / 120000Mi overall limit
+    quick.push("dis+1004_4:1_acc=on:add=off:bd=all:c=on:e2e=on:fd=preordered:fde=unused:gtg=position:hsq=on:hsqr=16,1:nm=64:ntd=on:plsq=on:s2a=on:s2agt=16:slsq=on:slsqc=1:slsqr=1,2:spb=goal_then_units:to=lpo:urr=on:uwa=off:i=7818:si=on:rtra=on_0");
+    quick.push("dis+1002_4:1_anc=none:bd=all:sas=cadical:sil=128000:sos=on:sp=weighted_frequency:uwa=one_side_interpreted:i=770:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_sd=1:sil=128000:sos=on:ss=axioms:urr=on:i=8290:si=on:rtra=on_0");
+    quick.push("ott+1002_1:20_add=on:bce=on:cnfonf=lazy_not_gen_be_off:foolp=on:plsqr=1,32:sil=128000:sp=unary_frequency:uwa=interpreted_only:i=1344:si=on:rtra=on_0");
+    quick.push("lrs+1010_3:1_cnfonf=lazy_gen:fde=none:fsr=off:nm=64:plsq=on:plsqc=1:plsqr=64,1:s2agt=20:s2at=5.0:sas=cadical:sil=128000:sp=unary_first:uwa=off:i=552:si=on:rtra=on_0");
+    quick.push("lrs+1010_1:1_fe=abstraction:hsq=on:hsqaw=5:hsqc=4:ntd=on:sil=128000:sos=on:i=1345:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_sd=3:sil=128000:ss=axioms:st=4.0:i=3907:si=on:rtra=on_0");
+    quick.push("dis+1010_1:1_add=off:c=on:cbe=off:cnfonf=lazy_simp:drc=ordering:fsr=off:irw=on:lwlo=on:nm=10:piset=or:plsq=on:plsqc=4:plsqr=32,1:rp=on:sos=on:sp=reverse_frequency:to=lpo:uwa=off:i=503:si=on:rtra=on_0");
+    quick.push("ott+1002_1:32_acc=on:fe=abstraction:fgj=on:nwc=0.5:piset=pi_sigma:sp=const_max:tgt=ground:i=2770:si=on:rtra=on_0");
+    quick.push("dis+1002_8:1_e2e=on:sil=128000:uwa=off:i=865:si=on:rtra=on_0");
+    quick.push("dis+2_1:1_bd=preordered:c=on:e2e=on:kws=inv_arity:nm=64:ntd=on:nwc=2.0:sd=50:sil=128000:sos=on:ss=axioms:tgt=ground:urr=on:uwa=off:i=677:si=on:rtra=on_0");
+    quick.push("lrs+1002_1:1_add=on:bd=all:c=on:cbe=off:cnfonf=lazy_not_be_gen:cond=on:erd=off:hsq=on:lma=off:sil=128000:sos=on:sp=reverse_arity:spb=units:to=lpo:urr=on:uwa=one_side_constant:i=933:si=on:rtra=on_0");
+    quick.push("dis+21_1:4_av=off:e2e=on:fde=none:foolp=on:uwa=off:i=2036:si=on:rtra=on_0");
+    quick.push("dis+1010_1:1_bsr=on:cnfonf=lazy_pi_sigma_gen:e2e=on:lma=off:nwc=1.0:s2a=on:sac=on:sas=cadical:sil=128000:uwa=interpreted_only:i=2639:si=on:rtra=on_0");
+    quick.push("lrs+10_6:13_add=on:anc=all_dependent:bd=all:chr=on:cnfonf=lazy_pi_sigma_gen:cts=off:fd=off:fde=unused:lma=off:ntd=on:nwc=2.0:s2agt=70:sil=128000:slsq=on:slsqc=1:slsql=off:slsqr=2,1:sp=arity:tgt=ground:uwa=interpreted_only:i=964:si=on:rtra=on_0");
+    quick.push("dis+1004_1:1_add=on:avsq=on:avsqr=1,16:cnfonf=lazy_pi_sigma_gen:fde=unused:lftc=50:lrd=on:s2at=10.0:sil=128000:slsq=on:slsqr=1,7:uwa=interpreted_only:i=940:si=on:rtra=on_0");
+    quick.push("lrs-1002_1:1_bsd=on:fde=none:fe=abstraction:kws=arity:nm=0:sgt=4:ss=axioms:tgt=ground:uwa_fpi=on:i=2206:si=on:rtra=on_0");
+    quick.push("lrs+10_1:64_anc=all_dependent:cbe=off:e2e=on:ep=RSTC:ntd=on:sil=128000:uwa=off:i=86:si=on:rtra=on_0");
+    quick.push("dis+1004_1:3_add=off:cbe=off:cnfonf=conj_eager:fgj=on:nm=16:nwc=14.0:sil=128000:sp=reverse_arity:uwa=off:uwa_fpi=on:i=2047:si=on:rtra=on_0");
+    quick.push("lrs+21_3:1_bd=preordered:cnfonf=lazy_gen:fgj=on:plsq=on:plsqc=1:plsqr=1070,37:s2a=on:uwa=interpreted_only:i=4530:si=on:rtra=on_0");
+    quick.push("dis+10_4:1_acc=on:c=on:cnfonf=off:e2e=on:fd=preordered:fde=unused:foolp=on:hsq=on:hsqr=16,1:nm=32:piset=or:rawr=on:s2a=on:sas=cadical:sfv=off:sgt=8:sp=occurrence:ss=axioms:to=kbo:uwa=off:i=15823:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_cnfonf=off:hud=10:ins=1:ntd=on:i=81:si=on:rtra=on_0");
+    quick.push("dis+1010_1:2_cbe=off:cnfonf=off:foolp=on:nwc=1.0:s2at=3.0:s2pl=on:tgt=full:uwa=off:i=3042:si=on:rtra=on_0");
+    quick.push("lrs+21_1:32_amm=off:bd=all:cnfonf=lazy_simp:cond=on:fsr=off:lma=off:plsqr=1,32:sil=128000:slsqc=5:sos=all:to=kbo:i=329:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_cnfonf=conj_eager:s2a=on:ss=axioms:st=1.5:i=1624:si=on:rtra=on_0");
+    quick.push("ott+1003_1:1_cbe=off:cnfonf=lazy_pi_sigma_gen:hud=10:ixr=off:sp=weighted_frequency:spb=units:to=kbo:urr=on:uwa_fpi=on:i=4838:si=on:rtra=on_0");
+    quick.push("lrs+1010_1:1_bd=all:cnfonf=lazy_gen:drc=ordering:fe=abstraction:ntd=on:nwc=2.0:s2a=on:sil=128000:to=lpo:i=280:si=on:rtra=on_0");
+    quick.push("lrs+1002_1:1_sd=1:sil=128000:sos=on:spb=goal_then_units:ss=axioms:st=2.0:to=lpo:uwa=off:i=5259:si=on:rtra=on_0");
+    quick.push("dis+10_5:4_bd=preordered:e2e=on:nwc=3.0:s2a=on:urr=on:uwa=interpreted_only:i=3026:si=on:rtra=on_0");
+    quick.push("lrs+2_1:1_cbe=off:cnfonf=lazy_not_be_gen:fde=none:fe=abstraction:hsq=on:hsqlw=0:hud=5:lsd=20:ntd=on:nwc=1.0:rawr=on:s2at=3.0:sil=128000:st=5.0:uwa=hol:i=435:si=on:rtra=on_0");
+    quick.push("dis+1010_16:1_sil=128000:uwa=off:i=1877:si=on:rtra=on_0");
+    quick.push("lrs+21_1:8_bd=preordered:e2e=on:fde=unused:fe=abstraction:foolp=on:kws=frequency:tgt=ground:to=kbo:uwa=hol:uwa_fpi=on:i=1346:si=on:rtra=on_0");
+    quick.push("dis+1002_1:72_cnfonf=lazy_pi_sigma_gen:cs=on:nwc=1.2:s2a=on:uwa=interpreted_only:i=1710:si=on:rtra=on_0");
+    quick.push("dis+1003_3:4_acc=on:e2e=on:er=filter:erml=3:foolp=on:gtg=exists_top:hsq=on:hsqr=16,1:ntd=on:plsq=on:prc=on:s2a=on:s2agt=32:sims=off:slsq=on:slsqc=3:slsql=off:spb=intro:to=kbo:urr=on:uwa=off:i=16962:si=on:rtra=on_0");
+    quick.push("dis+2_1:1_e2e=on:sd=1:sil=128000:ss=axioms:st=1.2:urr=ec_only:uwa=off:i=4162:si=on:rtra=on_0");
+    quick.push("dis+10_8:1_acc=on:bd=all:kws=inv_frequency:nm=0:s2a=on:s2agt=64:uwa=interpreted_only:i=2250:si=on:rtra=on_0");
+    quick.push("dis+1010_1:1_aac=none:avsq=on:avsqr=1,16:cbe=off:cnfonf=lazy_simp:cond=fast:hud=3:nwc=2.0:plsq=on:s2a=on:s2agt=16:sfv=off:slsq=on:slsqr=2,1:to=kbo:uwa=hol:uwa_fpi=on:i=5668:si=on:rtra=on_0");
+    quick.push("dis+10_1:1_cnfonf=lazy_pi_sigma_gen:s2a=on:s2at=1.5:sil=128000:uwa=off:i=828:si=on:rtra=on_0");
+    quick.push("lrs+10_2:1_fe=abstraction:s2a=on:i=958:si=on:rtra=on_0");
+    quick.push("dis+1010_1:3_ntd=on:piset=and:uwa=one_side_interpreted:i=3663:si=on:rtra=on_0");
+    quick.push("lrs+2_1:1_bd=preordered:bsr=unit_only:cnfonf=lazy_pi_sigma_gen:drc=off:fdtod=off:lma=off:nwc=1.0:sas=cadical:sil=128000:sp=occurrence:st=6.0:i=577:si=on:rtra=on_0");
+    // Improves by expected 101.28814319899314 probs costing 119919 Mi
+    // Sub-schedule for 240000Mi strat cap / 240000Mi overall limit
+    quick.push("lrs+1010_4:7_amm=off:anc=none:cnfonf=lazy_gen:nm=2:ntd=on:s2agt=60:sac=on:sas=cadical:ss=axioms:tgt=ground:uwa=interpreted_only:i=3235:si=on:rtra=on_0");
+    quick.push("dis+1010_1:32_ntd=on:uwa=off:i=3505:si=on:rtra=on_0");
+    quick.push("lrs+1010_3:1_cnfonf=lazy_gen:fde=none:fsr=off:nm=64:plsq=on:plsqc=1:plsqr=64,1:s2agt=20:s2at=5.0:sas=cadical:sil=128000:sp=unary_first:uwa=off:i=552:si=on:rtra=on_0");
+    quick.push("dis+1010_1:1_add=off:c=on:cbe=off:cnfonf=lazy_simp:drc=ordering:fsr=off:irw=on:lwlo=on:nm=10:piset=or:plsq=on:plsqc=4:plsqr=32,1:rp=on:sos=on:sp=reverse_frequency:to=lpo:uwa=off:i=1063:si=on:rtra=on_0");
+    quick.push("dis+1010_2:1_aac=none:acc=on:avsq=on:cnfonf=lazy_pi_sigma_gen:cond=fast:er=filter:fd=preordered:fgj=on:flr=on:fsr=off:hud=3:pe=on:piset=and:plsq=on:rawr=on:s2a=on:s2agt=16:s2at=1.5:slsq=on:slsqr=2,1:sp=reverse_arity:to=lpo:uwa=hol:uwa_fpi=on:i=31889:si=on:rtra=on_0");
+    quick.push("ott+10_1:1_bd=all:cnfonf=lazy_simp:cond=on:drc=ordering:nm=64:rawr=on:sac=on:sd=3:sp=weighted_frequency:ss=axioms:to=kbo:uwa=hol:i=8348:si=on:rtra=on_0");
+    quick.push("dis+1010_1:5_cnfonf=lazy_pi_sigma_gen:e2e=on:fe=abstraction:sd=30:sgt=4:sil=128000:to=lpo:uwa=one_side_interpreted:i=5209:si=on:rtra=on_0");
+    quick.push("dis+1002_8:1_e2e=on:sil=128000:uwa=off:i=865:si=on:rtra=on_0");
+    quick.push("dis+10_1:6_bce=on:cbe=off:doe=on:fdi=1024:fgj=on:ntd=on:piset=and:sil=128000:slsq=on:slsqc=4:slsql=off:sp=arity:uwa=interpreted_only:i=833:si=on:rtra=on_0");
+    quick.push("lrs+1002_1:1_add=on:bd=all:c=on:cbe=off:cnfonf=lazy_not_be_gen:cond=on:erd=off:hsq=on:lma=off:sil=128000:sos=on:sp=reverse_arity:spb=units:to=lpo:urr=on:uwa=one_side_constant:i=933:si=on:rtra=on_0");
+    quick.push("lrs+1010_2:3_av=off:cha=on:fe=axiom:fgj=on:ntd=on:nwc=1.0:uwa=off:i=440:si=on:rtra=on_0");
+    quick.push("lrs+1010_4:1_fde=none:fdtod=off:lrd=on:nm=2:nwc=5.0:rawr=on:s2agt=32:slsq=on:slsqc=1:to=kbo:uwa=off:i=16174:si=on:rtra=on_0");
+    quick.push("dis+1010_1:1_bsr=on:cnfonf=lazy_pi_sigma_gen:e2e=on:lma=off:nwc=1.0:s2a=on:sac=on:sas=cadical:sil=128000:uwa=interpreted_only:i=1227:si=on:rtra=on_0");
+    quick.push("dis+1002_1:1_add=on:chr=on:cnfonf=conj_eager:ep=RSTC:fe=abstraction:gsp=on:lma=off:piset=equals:rp=on:sac=on:sil=128000:sp=reverse_arity:spb=non_intro:i=3270:si=on:rtra=on_0");
+    quick.push("dis+1004_1:1_add=on:avsq=on:avsqr=1,16:cnfonf=lazy_pi_sigma_gen:fde=unused:lftc=50:lrd=on:s2at=10.0:sil=128000:slsq=on:slsqr=1,7:uwa=interpreted_only:i=921:si=on:rtra=on_0");
+    quick.push("lrs-1002_1:1_bsd=on:fde=none:fe=abstraction:kws=arity:nm=0:sgt=4:ss=axioms:tgt=ground:uwa_fpi=on:i=2206:si=on:rtra=on_0");
+    quick.push("lrs+10_1:64_anc=all_dependent:cbe=off:e2e=on:ep=RSTC:ntd=on:sil=128000:uwa=off:i=617:si=on:rtra=on_0");
+    quick.push("dis+1004_1:3_add=off:cbe=off:cnfonf=conj_eager:fgj=on:nm=16:nwc=14.0:sil=128000:sp=reverse_arity:uwa=off:uwa_fpi=on:i=1971:si=on:rtra=on_0");
+    quick.push("dis+1002_4:1_acc=on:add=on:c=on:e2e=on:fd=preordered:fde=none:foolp=on:gtg=position:hsq=on:hsqr=16,1:inj=on:ixr=off:nicw=on:nm=16:ntd=on:plsq=on:rawr=on:s2a=on:s2agt=32:sfv=off:slsq=on:slsqc=1:spb=non_intro:ss=included:to=lpo:uwa=off:i=64786:si=on:rtra=on_0");
+    quick.push("dis+2_1:1_av=off:bd=all:drc=ordering:hud=5:nm=16:ntd=on:sos=on:i=3564:si=on:rtra=on_0");
+    quick.push("dis+10_1:1024_bd=preordered:cnfonf=lazy_gen:hud=10:plsq=on:plsqc=1:plsqr=32,1:rawr=on:sil=128000:to=lpo:i=1097:si=on:rtra=on_0");
+    quick.push("dis+1010_1:2_cbe=off:cnfonf=off:foolp=on:nwc=1.0:s2at=3.0:s2pl=on:tgt=full:uwa=off:i=3042:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_cnfonf=conj_eager:s2a=on:ss=axioms:st=1.5:i=24146:si=on:rtra=on_0");
+    quick.push("ott+1003_1:1_cbe=off:cnfonf=lazy_pi_sigma_gen:hud=10:ixr=off:sp=weighted_frequency:spb=units:to=kbo:urr=on:uwa_fpi=on:i=3113:si=on:rtra=on_0");
+    quick.push("lrs+1010_1:1_bd=all:cnfonf=lazy_gen:drc=ordering:fe=abstraction:ntd=on:nwc=2.0:s2a=on:sil=128000:to=lpo:i=280:si=on:rtra=on_0");
+    quick.push("dis+1010_1:10_bd=preordered:cnfonf=lazy_gen:foolp=on:nwc=4.0:sil=128000:uwa=off:i=2792:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_bd=preordered:cnfonf=off:fd=preordered:fe=abstraction:s2a=on:sil=128000:i=9039:si=on:rtra=on_0");
+    quick.push("dis+1010_16:1_sil=128000:uwa=off:i=5067:si=on:rtra=on_0");
+    quick.push("dis+10_1:1_erd=off:s2a=on:s2at=5.0:sil=128000:uwa=off:i=12444:si=on:rtra=on_0");
+    quick.push("dis+10_3:2_acc=on:avsq=on:e2e=on:fd=preordered:fde=unused:hsq=on:hsql=off:hsqr=16,1:ins=20:nicw=on:nm=16:ntd=on:pe=on:plsq=on:s2a=on:sfv=off:slsq=on:slsqc=1:sp=reverse_frequency:ss=axioms:to=kbo:uwa=off:i=21974:si=on:rtra=on_0");
+    quick.push("dis+1010_1:1_aac=none:avsq=on:avsqr=1,16:cbe=off:cnfonf=lazy_simp:cond=fast:hud=3:nwc=2.0:plsq=on:s2a=on:s2agt=16:sfv=off:slsq=on:slsqr=2,1:to=kbo:uwa=hol:uwa_fpi=on:i=2226:si=on:rtra=on_0");
+    quick.push("dis+1010_1:3_ntd=on:piset=and:uwa=one_side_interpreted:i=2542:si=on:rtra=on_0");
+    quick.push("lrs+2_1:1_bd=preordered:bsr=unit_only:cnfonf=lazy_pi_sigma_gen:drc=off:fdtod=off:lma=off:nwc=1.0:sas=cadical:sil=128000:sp=occurrence:st=6.0:i=577:si=on:rtra=on_0");
+    // Improves by expected 57.43473780064153 probs costing 239914 Mi
+    // Sub-schedule for 480000Mi strat cap / 480000Mi overall limit
+    quick.push("dis+1004_4:1_acc=on:add=off:bd=all:c=on:e2e=on:fd=preordered:fde=unused:gtg=position:hsq=on:hsqr=16,1:nm=64:ntd=on:plsq=on:s2a=on:s2agt=16:slsq=on:slsqc=1:slsqr=1,2:spb=goal_then_units:to=lpo:urr=on:uwa=off:i=92751:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_cnfonf=off:sos=on:ss=axioms:uwa=off:i=13122:si=on:rtra=on_0");
+    quick.push("ott+1002_1:4_av=off:bd=all:fd=preordered:fde=none:sp=const_max:spb=non_intro:to=lpo:uwa=off:i=10327:si=on:rtra=on_0");
+    quick.push("dis+1010_1:32_ntd=on:uwa=off:i=3415:si=on:rtra=on_0");
+    quick.push("lrs+1010_1:1_fe=abstraction:hsq=on:hsqaw=5:hsqc=4:ntd=on:sil=128000:sos=on:i=3012:si=on:rtra=on_0");
+    quick.push("dis+1010_1:1_add=off:c=on:cbe=off:cnfonf=lazy_simp:drc=ordering:fsr=off:irw=on:lwlo=on:nm=10:piset=or:plsq=on:plsqc=4:plsqr=32,1:rp=on:sos=on:sp=reverse_frequency:to=lpo:uwa=off:i=346:si=on:rtra=on_0");
+    quick.push("ott+1002_1:32_acc=on:fe=abstraction:fgj=on:nwc=0.5:piset=pi_sigma:sp=const_max:tgt=ground:i=2770:si=on:rtra=on_0");
+    quick.push("dis+1002_8:1_e2e=on:sil=128000:uwa=off:i=865:si=on:rtra=on_0");
+    quick.push("dis+21_1:4_av=off:e2e=on:fde=none:foolp=on:uwa=off:i=6577:si=on:rtra=on_0");
+    quick.push("dis+1010_1:1_bsr=on:cnfonf=lazy_pi_sigma_gen:e2e=on:lma=off:nwc=1.0:s2a=on:sac=on:sas=cadical:sil=128000:uwa=interpreted_only:i=15791:si=on:rtra=on_0");
+    quick.push("lrs-1002_1:1_bsd=on:fde=none:fe=abstraction:kws=arity:nm=0:sgt=4:ss=axioms:tgt=ground:uwa_fpi=on:i=2206:si=on:rtra=on_0");
+    quick.push("dis+1004_1:3_add=off:cbe=off:cnfonf=conj_eager:fgj=on:nm=16:nwc=14.0:sil=128000:sp=reverse_arity:uwa=off:uwa_fpi=on:i=2047:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_cnfonf=conj_eager:fe=abstraction:sil=128000:ss=axioms:i=13007:si=on:rtra=on_0");
+    quick.push("dis+10_1:1_cnfonf=lazy_simp:ixr=off:plsq=on:plsqc=2:plsqr=64,1:sgt=8:sil=128000:ss=axioms:i=1275:si=on:rtra=on_0");
+    quick.push("dis+10_1:1024_bd=preordered:cnfonf=lazy_gen:hud=10:plsq=on:plsqc=1:plsqr=32,1:rawr=on:sil=128000:to=lpo:i=1097:si=on:rtra=on_0");
+    quick.push("lrs+21_3:1_bd=preordered:cnfonf=lazy_gen:fgj=on:plsq=on:plsqc=1:plsqr=1070,37:s2a=on:uwa=interpreted_only:i=7981:si=on:rtra=on_0");
+    quick.push("dis+10_4:1_acc=on:c=on:cnfonf=off:e2e=on:fd=preordered:fde=unused:foolp=on:hsq=on:hsqr=16,1:nm=32:piset=or:rawr=on:s2a=on:sas=cadical:sfv=off:sgt=8:sp=occurrence:ss=axioms:to=kbo:uwa=off:i=62819:si=on:rtra=on_0");
+    quick.push("dis+1010_1:2_cbe=off:cnfonf=off:foolp=on:nwc=1.0:s2at=3.0:s2pl=on:tgt=full:uwa=off:i=10586:si=on:rtra=on_0");
+    quick.push("dis+21_1:1_bd=preordered:e2e=on:ep=RST:fde=none:piset=small_set:s2pl=no:sac=on:sp=unary_first:spb=units:tgt=ground:uwa=interpreted_only:i=5582:si=on:rtra=on_0");
+    quick.push("ott+1003_1:1_cbe=off:cnfonf=lazy_pi_sigma_gen:hud=10:ixr=off:sp=weighted_frequency:spb=units:to=kbo:urr=on:uwa_fpi=on:i=3113:si=on:rtra=on_0");
+    quick.push("dis+1010_1:16_av=off:cnfonf=lazy_not_gen:fsr=off:ixr=off:lma=off:sil=128000:sp=const_max:uwa=interpreted_only:i=11705:si=on:rtra=on_0");
+    quick.push("lrs+1002_1:1_sd=1:sil=128000:sos=on:spb=goal_then_units:ss=axioms:st=2.0:to=lpo:uwa=off:i=46473:si=on:rtra=on_0");
+    quick.push("dis+1010_1:10_bd=preordered:cnfonf=lazy_gen:foolp=on:nwc=4.0:sil=128000:uwa=off:i=2792:si=on:rtra=on_0");
+    quick.push("dis+10_5:4_bd=preordered:e2e=on:nwc=3.0:s2a=on:urr=on:uwa=interpreted_only:i=3060:si=on:rtra=on_0");
+    quick.push("dis+21_1:1_e2e=on:fde=none:nm=2:s2a=on:s2agt=32:s2at=6.0:sac=on:sil=128000:tgt=full:urr=on:uwa=interpreted_only:i=6427:si=on:rtra=on_0");
+    quick.push("dis+1003_3:4_acc=on:e2e=on:er=filter:erml=3:foolp=on:gtg=exists_top:hsq=on:hsqr=16,1:ntd=on:plsq=on:prc=on:s2a=on:s2agt=32:sims=off:slsq=on:slsqc=3:slsql=off:spb=intro:to=kbo:urr=on:uwa=off:i=115181:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_drc=off:ss=axioms:st=2.0:i=10138:si=on:rtra=on_0");
+    quick.push("dis+1010_1:1_aac=none:avsq=on:avsqr=1,16:cbe=off:cnfonf=lazy_simp:cond=fast:hud=3:nwc=2.0:plsq=on:s2a=on:s2agt=16:sfv=off:slsq=on:slsqr=2,1:to=kbo:uwa=hol:uwa_fpi=on:i=5306:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1024_amm=off:lcm=predicate:lma=off:lrd=on:nicw=on:nwc=0.5:plsq=on:plsqr=64,1:sp=const_frequency:to=lpo:uwa=interpreted_only:i=17224:si=on:rtra=on_0");
+    // Improves by expected 37.50549267474569 probs costing 476966 Mi
+    // Sub-schedule for 960000Mi strat cap / 960000Mi overall limit
+    quick.push("lrs+10_1:1_sd=1:sil=128000:sos=on:ss=axioms:urr=on:i=7752:si=on:rtra=on_0");
+    quick.push("lrs+1010_3:1_cnfonf=lazy_gen:fde=none:fsr=off:nm=64:plsq=on:plsqc=1:plsqr=64,1:s2agt=20:s2at=5.0:sas=cadical:sil=128000:sp=unary_first:uwa=off:i=115893:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_sd=3:sil=128000:ss=axioms:st=4.0:i=87669:si=on:rtra=on_0");
+    quick.push("dis+1010_1:1_add=off:c=on:cbe=off:cnfonf=lazy_simp:drc=ordering:fsr=off:irw=on:lwlo=on:nm=10:piset=or:plsq=on:plsqc=4:plsqr=32,1:rp=on:sos=on:sp=reverse_frequency:to=lpo:uwa=off:i=2102:si=on:rtra=on_0");
+    quick.push("dis+1010_2:1_aac=none:acc=on:avsq=on:cnfonf=lazy_pi_sigma_gen:cond=fast:er=filter:fd=preordered:fgj=on:flr=on:fsr=off:hud=3:pe=on:piset=and:plsq=on:rawr=on:s2a=on:s2agt=16:s2at=1.5:slsq=on:slsqr=2,1:sp=reverse_arity:to=lpo:uwa=hol:uwa_fpi=on:i=77493:si=on:rtra=on_0");
+    quick.push("dis+1010_1:28_bd=preordered:cnfonf=off:nm=16:ntd=on:plsq=on:plsqc=1:plsqr=128,1:s2at=3.0:sac=on:sil=128000:slsq=on:slsqc=2:ss=axioms:st=3.0:tgt=full:uwa=off:i=31230:si=on:rtra=on_0");
+    quick.push("ott+1002_1:4_bsr=on:chr=on:gs=on:kws=inv_arity_squared:nwc=11.4:sgt=30:sil=128000:sos=all:to=kbo:uwa=off:i=90072:si=on:rtra=on_0");
+    quick.push("lrs+1010_4:1_fde=none:fdtod=off:lrd=on:nm=2:nwc=5.0:rawr=on:s2agt=32:slsq=on:slsqc=1:to=kbo:uwa=off:i=59423:si=on:rtra=on_0");
+    quick.push("dis+1010_1:1_bsr=on:cnfonf=lazy_pi_sigma_gen:e2e=on:lma=off:nwc=1.0:s2a=on:sac=on:sas=cadical:sil=128000:uwa=interpreted_only:i=13235:si=on:rtra=on_0");
+    quick.push("dis+1004_1:1_add=on:avsq=on:avsqr=1,16:cnfonf=lazy_pi_sigma_gen:fde=unused:lftc=50:lrd=on:s2at=10.0:sil=128000:slsq=on:slsqr=1,7:uwa=interpreted_only:i=8788:si=on:rtra=on_0");
+    quick.push("lrs+10_1:64_anc=all_dependent:cbe=off:e2e=on:ep=RSTC:ntd=on:sil=128000:uwa=off:i=83476:si=on:rtra=on_0");
+    quick.push("dis+1002_4:1_acc=on:add=on:c=on:e2e=on:fd=preordered:fde=none:foolp=on:gtg=position:hsq=on:hsqr=16,1:inj=on:ixr=off:nicw=on:nm=16:ntd=on:plsq=on:rawr=on:s2a=on:s2agt=32:sfv=off:slsq=on:slsqc=1:spb=non_intro:ss=included:to=lpo:uwa=off:i=58748:si=on:rtra=on_0");
+    quick.push("dis+10_1:1_cnfonf=lazy_simp:ixr=off:plsq=on:plsqc=2:plsqr=64,1:sgt=8:sil=128000:ss=axioms:i=1275:si=on:rtra=on_0");
+    quick.push("dis+10_1:1024_bd=preordered:cnfonf=lazy_gen:hud=10:plsq=on:plsqc=1:plsqr=32,1:rawr=on:sil=128000:to=lpo:i=3115:si=on:rtra=on_0");
+    quick.push("ott+1002_1:128_bd=preordered:drc=ordering:fde=unused:ins=2:kws=arity_squared:sas=cadical:sil=128000:sp=unary_frequency:i=23019:si=on:rtra=on_0");
+    quick.push("dis+21_1:1_bd=preordered:e2e=on:ep=RST:fde=none:piset=small_set:s2pl=no:sac=on:sp=unary_first:spb=units:tgt=ground:uwa=interpreted_only:i=4277:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_cnfonf=conj_eager:s2a=on:ss=axioms:st=1.5:i=22459:si=on:rtra=on_0");
+    quick.push("ott+1003_1:1_cbe=off:cnfonf=lazy_pi_sigma_gen:hud=10:ixr=off:sp=weighted_frequency:spb=units:to=kbo:urr=on:uwa_fpi=on:i=6991:si=on:rtra=on_0");
+    quick.push("lrs+1002_1:1_cnfonf=lazy_pi_sigma_gen:ss=axioms:st=1.5:uwa=off:i=8031:si=on:rtra=on_0");
+    quick.push("lrs+1002_1:1_sd=1:sil=128000:sos=on:spb=goal_then_units:ss=axioms:st=2.0:to=lpo:uwa=off:i=17184:si=on:rtra=on_0");
+    quick.push("lrs-1002_4:1_acc=on:e2e=on:foolp=on:gtg=exists_top:hsq=on:hsqlw=5:hsqr=16,1:nm=16:plsq=on:prc=on:proc=on:s2a=on:s2agt=16:ser=on:sfv=off:slsq=on:slsqc=1:spb=goal:to=lpo:uwa=off:i=68012:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_bd=all:kws=inv_frequency:s2at=2.0:sil=128000:slsq=on:slsqc=1:urr=on:i=23719:si=on:rtra=on_0");
+    quick.push("lrs+21_1:8_bd=preordered:e2e=on:fde=unused:fe=abstraction:foolp=on:kws=frequency:tgt=ground:to=kbo:uwa=hol:uwa_fpi=on:i=25307:si=on:rtra=on_0");
+    quick.push("dis+10_3:2_acc=on:avsq=on:e2e=on:fd=preordered:fde=unused:hsq=on:hsql=off:hsqr=16,1:ins=20:nicw=on:nm=16:ntd=on:pe=on:plsq=on:s2a=on:sfv=off:slsq=on:slsqc=1:sp=reverse_frequency:ss=axioms:to=kbo:uwa=off:i=27595:si=on:rtra=on_0");
+    quick.push("dis+1010_1:1_aac=none:avsq=on:avsqr=1,16:cbe=off:cnfonf=lazy_simp:cond=fast:hud=3:nwc=2.0:plsq=on:s2a=on:s2agt=16:sfv=off:slsq=on:slsqr=2,1:to=kbo:uwa=hol:uwa_fpi=on:i=5306:si=on:rtra=on_0");
+    quick.push("lrs+1010_1:28_add=on:cnfonf=off:fde=unused:ins=1:lma=off:s2pl=no:sil=128000:sos=on:sp=occurrence:ss=axioms:st=10.0:uwa=interpreted_only:i=48777:si=on:rtra=on_0");
+    quick.push("lrs+2_1:1_bd=preordered:bsr=unit_only:cnfonf=lazy_pi_sigma_gen:drc=off:fdtod=off:lma=off:nwc=1.0:sas=cadical:sil=128000:sp=occurrence:st=6.0:i=13093:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1024_amm=off:lcm=predicate:lma=off:lrd=on:nicw=on:nwc=0.5:plsq=on:plsqr=64,1:sp=const_frequency:to=lpo:uwa=interpreted_only:i=17224:si=on:rtra=on_0");
+    // Improves by expected 19.579412915896683 probs costing 951237 Mi
+    // Sub-schedule for 960000Mi strat cap / 960000Mi overall limit
+    quick.push("ott-11_1:1024_bsd=on:cond=on:fdtod=off:gsp=on:lma=off:nm=10:s2a=on:s2at=5.0:s2pl=on:sp=const_min:spb=goal:uwa=interpreted_only:i=62923:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_sd=1:sil=128000:sos=on:ss=axioms:urr=on:i=12421:si=on:rtra=on_0");
+    quick.push("dis+1010_1:28_bd=preordered:cnfonf=off:nm=16:ntd=on:plsq=on:plsqc=1:plsqr=128,1:s2at=3.0:sac=on:sil=128000:slsq=on:slsqc=2:ss=axioms:st=3.0:tgt=full:uwa=off:i=31230:si=on:rtra=on_0");
+    quick.push("dis+1010_1:1_bsr=on:cnfonf=lazy_pi_sigma_gen:e2e=on:lma=off:nwc=1.0:s2a=on:sac=on:sas=cadical:sil=128000:uwa=interpreted_only:i=77875:si=on:rtra=on_0");
+    quick.push("dis+1002_1:1_add=on:chr=on:cnfonf=conj_eager:ep=RSTC:fe=abstraction:gsp=on:lma=off:piset=equals:rp=on:sac=on:sil=128000:sp=reverse_arity:spb=non_intro:i=42336:si=on:rtra=on_0");
+    quick.push("dis+1002_4:1_acc=on:add=on:c=on:e2e=on:fd=preordered:fde=none:foolp=on:gtg=position:hsq=on:hsqr=16,1:inj=on:ixr=off:nicw=on:nm=16:ntd=on:plsq=on:rawr=on:s2a=on:s2agt=32:sfv=off:slsq=on:slsqc=1:spb=non_intro:ss=included:to=lpo:uwa=off:i=58001:si=on:rtra=on_0");
+    quick.push("dis+10_1:1_cnfonf=lazy_simp:ixr=off:plsq=on:plsqc=2:plsqr=64,1:sgt=8:sil=128000:ss=axioms:i=1275:si=on:rtra=on_0");
+    quick.push("ott+1002_1:128_bd=preordered:drc=ordering:fde=unused:ins=2:kws=arity_squared:sas=cadical:sil=128000:sp=unary_frequency:i=23019:si=on:rtra=on_0");
+    quick.push("dis+10_4:1_acc=on:c=on:cnfonf=off:e2e=on:fd=preordered:fde=unused:foolp=on:hsq=on:hsqr=16,1:nm=32:piset=or:rawr=on:s2a=on:sas=cadical:sfv=off:sgt=8:sp=occurrence:ss=axioms:to=kbo:uwa=off:i=120555:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1_cnfonf=conj_eager:s2a=on:ss=axioms:st=1.5:i=24146:si=on:rtra=on_0");
+    quick.push("ott+1003_1:1_cbe=off:cnfonf=lazy_pi_sigma_gen:hud=10:ixr=off:sp=weighted_frequency:spb=units:to=kbo:urr=on:uwa_fpi=on:i=6991:si=on:rtra=on_0");
+    quick.push("lrs+1002_1:1_cnfonf=lazy_pi_sigma_gen:ss=axioms:st=1.5:uwa=off:i=19664:si=on:rtra=on_0");
+    quick.push("lrs+1002_1:1_sd=1:sil=128000:sos=on:spb=goal_then_units:ss=axioms:st=2.0:to=lpo:uwa=off:i=17184:si=on:rtra=on_0");
+    quick.push("lrs+1010_1:3_avsq=on:avsqr=8,1:fsr=off:hud=5:ins=1:sil=128000:slsq=on:i=108096:si=on:rtra=on_0");
+    quick.push("dis+1010_1:1_aac=none:avsq=on:avsqr=1,16:cbe=off:cnfonf=lazy_simp:cond=fast:hud=3:nwc=2.0:plsq=on:s2a=on:s2agt=16:sfv=off:slsq=on:slsqr=2,1:to=kbo:uwa=hol:uwa_fpi=on:i=5306:si=on:rtra=on_0");
+    quick.push("lrs+10_1:1024_amm=off:lcm=predicate:lma=off:lrd=on:nicw=on:nwc=0.5:plsq=on:plsqr=64,1:sp=const_frequency:to=lpo:uwa=interpreted_only:i=17224:si=on:rtra=on_0");
+    // Improves by expected 3.9027682758762565 probs costing 628230 Mi
+    // Sub-schedule for 960000Mi strat cap / 960000Mi overall limit
+    quick.push("dis+1002_1:1_add=on:chr=on:cnfonf=conj_eager:ep=RSTC:fe=abstraction:gsp=on:lma=off:piset=equals:rp=on:sac=on:sil=128000:sp=reverse_arity:spb=non_intro:i=42336:si=on:rtra=on_0");
+    quick.push("dis+10_1:1_cnfonf=lazy_simp:ixr=off:plsq=on:plsqc=2:plsqr=64,1:sgt=8:sil=128000:ss=axioms:i=5271:si=on:rtra=on_0");
+    quick.push("lrs+1002_1:1_cnfonf=lazy_pi_sigma_gen:ss=axioms:st=1.5:uwa=off:i=19664:si=on:rtra=on_0");
+    quick.push("lrs+1002_1:1_sd=1:sil=128000:sos=on:spb=goal_then_units:ss=axioms:st=2.0:to=lpo:uwa=off:i=41804:si=on:rtra=on_0");
+    // Improves by expected 0.5202467240738785 probs costing 109071 Mi
+    // Overall score 3328.1689743090205 probs on average / budget 2603154 Mi
 
   } else if (property.hasNumerals() || property.hasInterpretedOperations()) {
     // The TFA division: Typed (monomorphic) First-order with Arithmetic theorems (axioms with a provable conjecture).
