@@ -36,9 +36,8 @@ namespace SAT
     opt_args.push_back("--restarts");
     opt_args.push_back("off");
     opt_args.push_back("-sum-approx-cost");
-    napsat::options opts(opt_args);
 
-    _solver = create_solver(0, 0, opts);
+    _solver = create_solver(0, 0, new napsat::Options(opt_args));
     if (func) {
       _vampire_weightFunction = func;
       set_weight_function(_solver, [this](Tlit lit) {
