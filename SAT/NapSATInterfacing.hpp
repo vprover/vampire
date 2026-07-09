@@ -60,16 +60,16 @@ protected:
   }
 
   unsigned napSATVar2Vampire(napsat::Tvar nvar) const {
-    return (unsigned)(nvar);
+    return (unsigned)(nvar.value);
   }
 
   const napsat::Tlit vampireLit2NapSAT(SATLiteral vlit) const {
-    return napsat::literal(vampireVar2NapSAT(vlit.var()), vlit.positive());
+    return napsat::Tlit(vampireVar2NapSAT(vlit.var()), vlit.positive());
   }
 
 
   const SATLiteral napSATLit2Vampire(napsat::Tlit nlit) const {
-    return SATLiteral(napSATVar2Vampire(napsat::lit_to_var(nlit)), napsat::lit_pol(nlit) ? 1 : 0);
+    return SATLiteral(napSATVar2Vampire(nlit.var().value), nlit.pol() ? 1 : 0);
   }
 
   double weightFunction(napsat::Tlit lit) const {

@@ -14,7 +14,6 @@ namespace SAT
   NapSATInterfacing::NapSATInterfacing(std::function<double(SATLiteral)> func)
   {
     std::vector<std::string> env_args;
-    napsat::env::set_man_page_folder("../NapSAT");
     napsat::env::set_invariant_configuration_folder("../NapSAT/invariant-configurations/");
     napsat::env::set_obsidian_template_folder("../NapSAT/obsidian_template/");
     // napsat::env::set_suppress_warning(true);
@@ -59,7 +58,7 @@ namespace SAT
   }
 
   unsigned NapSATInterfacing::newVar() {
-    return new_variable(_solver);
+    return new_variable(_solver).value;
   }
 
 
@@ -75,9 +74,9 @@ namespace SAT
       return;
     }
     if (napsat_cl >= _addedClauses.size()) {
-      _addedClauses.resize(napsat_cl + 1, nullptr);
+      _addedClauses.resize(napsat_cl.value + 1, nullptr);
     }
-    _addedClauses[napsat_cl] = cl;
+    _addedClauses[napsat_cl.value] = cl;
   }
 
 
@@ -85,11 +84,11 @@ namespace SAT
   {
     napsat::Tval val = get_variable_value(_solver, vampireVar2NapSAT(var));
     switch (val) {
-    case napsat::VAR_TRUE:
+    case napsat::Tval::TRUE:
       return VarAssignment::TRUE;
-    case napsat::VAR_FALSE:
+    case napsat::Tval::FALSE:
       return VarAssignment::FALSE;
-    case napsat::VAR_UNDEF:
+    case napsat::Tval::UNDEF:
       return VarAssignment::NOT_KNOWN;
     default:
       ASSERTION_VIOLATION;
