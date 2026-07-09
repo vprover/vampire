@@ -10,4 +10,4 @@
 [submodule "NapSAT"]
 	path = NapSAT
 	url = git@github.com:RobCoutel/NapSAT.git
-	branch = assumptions
+	branch = vampire
