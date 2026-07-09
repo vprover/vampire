@@ -334,9 +334,6 @@ bool SubstitutionTree<LeafData_>::FastInstancesIterator::hasNext()
   return _ldIterator.hasNext();
 }
 
-#undef LOGGING
-#define LOGGING 0
-
 template<class LeafData_>
 QueryRes<ResultSubstitutionSP, LeafData_> SubstitutionTree<LeafData_>::FastInstancesIterator::next()
 {
@@ -358,8 +355,6 @@ QueryRes<ResultSubstitutionSP, LeafData_> SubstitutionTree<LeafData_>::FastInsta
     return QueryRes(ResultSubstitutionSP(), ld);
   }
 }
-#undef LOGGING
-#define LOGGING 0
 
 /**
  * Find next leaf that contains instances of the query

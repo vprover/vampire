@@ -57,7 +57,7 @@ public:
 
   struct LitInfo
   {
-    LitInfo() {}
+    LitInfo() = default;
     LitInfo(Clause* cl, unsigned litIndex);
     void dispose();
 

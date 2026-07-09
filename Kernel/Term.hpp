@@ -919,6 +919,8 @@ public:
   }
 
   void*& demEntry() { return _demEntry; }
+  unsigned fnFP() { return _fnFP; }
+  void setFnFp(unsigned fp) { _fnFP = fp; }
 
 protected:
   std::string headToString() const;
@@ -983,6 +985,7 @@ protected:
     TermList _sort;
   };
   void* _demEntry = nullptr;
+  unsigned _fnFP;
 
   /** The list of arguments of size type arity + term arity + 1. The first
    *  argument stores the term weight and the mask (the last two bits are 0).

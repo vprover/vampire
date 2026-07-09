@@ -24,7 +24,6 @@
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
 
-#include "ClauseCodeTree.hpp"
 #include "TermCodeTree.hpp"
 
 #include "CodeTreeInterfaces.hpp"

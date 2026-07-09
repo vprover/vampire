@@ -256,6 +256,8 @@ set(SOURCES
     Inferences/Cancellation.cpp
     Inferences/Cancellation.hpp
     Inferences/Cancellation.hpp
+    Inferences/CodeTreeBackwardSubsumptionAndResolution.cpp
+    Inferences/CodeTreeBackwardSubsumptionAndResolution.hpp
     Inferences/CodeTreeForwardSubsumptionAndResolution.cpp
     Inferences/CodeTreeForwardSubsumptionAndResolution.hpp
     Inferences/Condensation.cpp

@@ -131,6 +131,7 @@ struct BackwardDemodulation<higherOrder>::ResultFn
         env.statistics->backwardDemodulationsToEqTaut++;
         _removed->insert(cl->number());
         res.emplace(cl);
+        continue;
       }
 
       unsigned cLen=cl->length();

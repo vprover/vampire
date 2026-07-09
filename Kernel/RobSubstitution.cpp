@@ -361,7 +361,7 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t)
  * Ordinary variables behave, as one would expect
  * during matching, but special variables aren't
  * being assigned only in the @b base term, but in
- * the instance ass well. (Special variables appear
+ * the instance as well. (Special variables appear
  * only in internal terms of substitution trees and
  * this behavior allows easy instance retrieval.)
  */
@@ -579,20 +579,6 @@ size_t RobSubstitution::getApplicationResultWeight(Literal* lit, int index) cons
     res += argWeight;
   }
   return res;
-}
-
-
-/**
- * Return iterator on matching substitutions of @b l1 and @b l2.
- *
- * For guides on use of the iterator, see the documentation of
- * RobSubstitution::AssocIterator.
- */
-SubstIterator RobSubstitution::matches(Literal* base, int baseIndex,
-	Literal* instance, int instanceIndex, bool complementary)
-{
-  return getAssocIterator<MatchingFn>(this, base, baseIndex,
-	  instance, instanceIndex, complementary);
 }
 
 /**

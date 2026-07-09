@@ -23,9 +23,6 @@
 
 #include "FastCondensation.hpp"
 
-#undef LOGGING
-#define LOGGING 0
-
 namespace Inferences {
 
 using namespace Lib;
