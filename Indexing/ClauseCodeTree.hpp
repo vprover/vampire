@@ -96,7 +96,6 @@ private:
     bool _eagerlyMatched;
 
     Stack<CodeOp*> eagerResults;
-    Stack<CodeOp*> oppositeResults;
 
     void recordMatch();
   };

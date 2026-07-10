@@ -346,7 +346,6 @@ void ClauseCodeTree<higherOrder>::LiteralMatcher::init(CodeTree* tree_, CodeOp* 
 
   _eagerlyMatched=false;
   eagerResults.reset();
-  oppositeResults.reset();
 
   RSTAT_CTR_INC("LiteralMatcher::init");
   if(seekOnlySuccess) {
@@ -376,15 +375,10 @@ template<bool higherOrder>
 bool ClauseCodeTree<higherOrder>::LiteralMatcher::next()
 {
   if(eagerlyMatched()) {
-    if (eagerResults.isEmpty()) {
-      if (oppositeResults.isEmpty()) {
-        _matched = false;
-        return false;
-      }
-      op = oppositeResults.pop();
-      return true;
+    _matched = eagerResults.isNonEmpty();
+    if (!_matched) {
+      return false;
     }
-    _matched=true;
     op=eagerResults.pop();
     return true;
   }
@@ -400,13 +394,13 @@ bool ClauseCodeTree<higherOrder>::LiteralMatcher::next()
       recordMatch();
     }
     if (opposite) {
-      oppositeResults.push(op);
+      eagerResults.push(op);
       continue;
     }
     return true;
   }
-  if (oppositeResults.isNonEmpty()) {
-    op = oppositeResults.pop();
+  if (eagerResults.isNonEmpty()) {
+    op = eagerResults.pop();
     _matched = true;
     return true;
   }
@@ -420,7 +414,6 @@ template<bool higherOrder>
 bool ClauseCodeTree<higherOrder>::LiteralMatcher::doEagerMatching()
 {
   ASS(!eagerlyMatched()); //eager matching can be done only once
-  ASS(eagerResults.isEmpty());
   ASS(!finished());
 
   //backup the current op
@@ -434,7 +427,11 @@ bool ClauseCodeTree<higherOrder>::LiteralMatcher::doEagerMatching()
   while(execute()) {
     if(op->isLitEnd()) {
       recordMatch();
-      eagerResultsRevOrder.push(op);
+      if (opposite) {
+        eagerResults.push(op);
+      } else {
+        eagerResultsRevOrder.push(op);
+      }
     }
     else {
       ASS(op->isSuccess());
