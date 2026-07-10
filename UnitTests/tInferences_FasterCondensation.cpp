@@ -24,8 +24,11 @@ namespace {
   DECL_FUNC(h, {s, s}, s)                                                                                     \
   DECL_CONST(a, s)                                                                                            \
   DECL_CONST(b, s)                                                                                            \
+  DECL_CONST(c, s)                                                                                            \
   DECL_PRED (p, {s})                                                                                          \
-  DECL_PRED (q, {s})
+  DECL_PRED (p1, {s, s, s})                                                                                   \
+  DECL_PRED (q, {s})                                                                                          \
+  DECL_PRED (q1, {s, s})
 
 #define MY_SIMPL_RULE   FasterCondensation
 #define MY_SIMPL_TESTER Simplification::SimplificationTester
@@ -73,6 +76,33 @@ TEST_SIMPLIFY(test06,
 TEST_SIMPLIFY(test07,
     Simplification::NotApplicable()
       .input(clause({  p(h(x,y)), p(h(y,x)) }))
+    )
+
+TEST_SIMPLIFY(test08,
+    Simplification::Success()
+      .input(clause({  p1(a,y,z), p1(a,b,c), p1(x,y,c) }))
+      .expected(clause({ p1(a,b,c) }))
+    )
+
+TEST_SIMPLIFY(test09,
+    Simplification::NotApplicable()
+      .input(clause({  x.sort(s) == y, y.sort(s) == z, x.sort(s) == z }))
+    )
+
+TEST_SIMPLIFY(test10,
+    Simplification::Success()
+      .input(clause({  q1(x,f(x)), q1(x,y) }))
+      .expected(clause({ q1(x,f(x)) }))
+    )
+
+TEST_SIMPLIFY(test11,
+    Simplification::NotApplicable()
+      .input(clause({  q1(x,f(x)), ~q1(x,y), p(z), ~p(g(y)) }))
+    )
+
+TEST_SIMPLIFY(test12,
+    Simplification::NotApplicable()
+      .input(clause({  q1(x,y), q1(y,x) }))
     )
 
 }

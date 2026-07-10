@@ -117,7 +117,12 @@ Clause* Condensation::simplify(Clause* cl)
       }
 
       if(success) {
-        return Clause::fromArray(newLits.begin(), newLen, SimplifyingInference1(InferenceRule::CONDENSATION, cl));
+        auto res = Clause::fromArray(newLits.begin(), newLen, SimplifyingInference1(InferenceRule::CONDENSATION, cl));
+        if (!satSubs.checkSubsumption(res, cl)) {
+          INVALID_OPERATION("incorrect condensation " + res->toString() + " from " + cl->toString());
+        }
+        INVALID_OPERATION("extra condensation found " + res->toString() + " from " + cl->toString());
+        return res;
       }
     }
   }

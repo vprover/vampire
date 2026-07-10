@@ -174,17 +174,6 @@ public:
     return _boList==0;
   }
 
-  /**
-   * Set value of @b *ptr to @b val and store appropriate recrd into
-   * this object, so that the action can later be backtracked
-   */
-  template<typename T>
-  void backtrackableSet(T* ptr, T val)
-  {
-    addBacktrackObject(new SetValueBacktrackObject<T>(ptr,*ptr));
-    *ptr=val;
-  }
-
 #if VDEBUG
   std::string toString()
   {
@@ -209,26 +198,6 @@ public:
    * @b BacktrackObject::_next
    */
   BacktrackObject* _boList;
-private:
-
-  /**
-   * An auxiliary class to support the @b backtrackableSet function
-   */
-  template<typename T>
-  class SetValueBacktrackObject
-  : public BacktrackObject
-  {
-  public:
-    SetValueBacktrackObject(T* addr, T previousVal)
-    : addr(addr), previousVal(previousVal) {}
-    void backtrack() override
-    {
-      *addr=previousVal;
-    }
-  private:
-    T* addr;
-    T previousVal;
-  };
 };
 
 

@@ -19,6 +19,7 @@
 #include "Forwards.hpp"
 
 #include "InferenceEngine.hpp"
+#include "SATSubsumption/SATSubsumptionAndResolution.hpp"
 
 namespace Inferences
 {
@@ -35,6 +36,8 @@ class Condensation
 {
 public:
   Clause* simplify(Clause* cl) override;
+private:
+  SATSubsumption::SATSubsumptionAndResolution satSubs;
 };
 
 };

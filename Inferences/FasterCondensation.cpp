@@ -14,6 +14,8 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Matcher.hpp"
+#include "Kernel/SubstHelper.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
@@ -29,6 +31,47 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
+
+template<typename Binder>
+bool match(TermList base, TermList instance, const DHSet<TermList>& instVars, Binder& binder)
+{
+  Recycled<Stack<std::pair<TermList, TermList>>> todo;
+  todo->emplace(base, instance);
+
+  while (todo->isNonEmpty()) {
+    auto [b, i] = todo->pop();
+
+    if (b.weight() > i.weight()) {
+      return false;
+    }
+    if (b == i) {
+      continue;
+    }
+    if (b.isVar()) {
+      if (instVars.contains(b) || !binder.bind(b.var(), i)) {
+        return false;
+      }
+      continue;
+    }
+    if (i.isVar() || b.term()->functor() != i.term()->functor()) {
+      return false;
+    }
+    todo->loadFromIterator(anyArgIter(b.term()).zip(anyArgIter(i.term())));
+  }
+  return true;
+}
+
+template<typename Binder>
+bool match(Literal* base, Literal* instance, const DHSet<TermList>& instVars, Binder& binder)
+{
+  ASS(Literal::headersMatch(base, instance, /*complementary=*/false));
+  for (unsigned i = 0; i < base->arity(); i++) {
+    if (!match(*base->nthArgument(i), *instance->nthArgument(i), instVars, binder)) {
+      return false;
+    }
+  }
+  return true;
+}
 
 TermList deref(TermList t, const Substitution& subst)
 {
@@ -134,61 +177,253 @@ std::ostream& operator<<(std::ostream& out, const State& state) {
 }
 }
 
+// Clause* FasterCondensation::simplify(Clause* cl)
+// {
+//   if (cl->length() <= 1) {
+//     return cl;
+//   }
+
+//   std::deque<State> states;
+//   for (const auto& lit : *cl) {
+//     states.push_back({ .toEliminate = lit });
+//   }
+
+//   while (!states.empty()) {
+//     auto& curr = states.front();
+//     DEBUG("curr ", curr);
+//     for (const auto& other : *cl) {
+//       if (curr.eliminated.contains(other) || curr.toEliminate == other) {
+//         continue;
+//       }
+//       Substitution subst = curr.subst;
+//       if (!unify(curr.toEliminate, other, subst, !curr.unifiedOnce)) {
+//         continue;
+//       }
+//       DEBUG("unified ", *other, " new subst ", subst);
+
+//       Literal* newToEliminate = nullptr;
+//       DHSet<Literal*> eliminated;
+//       eliminated.loadFromIterator(curr.eliminated.iter());
+//       eliminated.insert(curr.toEliminate);
+//       for (const auto& other2 : *cl) {
+//         if (eliminated.contains(other2)) {
+//           continue;
+//         }
+//         if (instantiated(other2, subst)) {
+//           newToEliminate = other2;
+//           break;
+//         }
+//       }
+//       if (!newToEliminate) {
+//         return Clause::fromIterator(cl->iterLits().filter([&](Literal* lit) {
+//           auto res = !eliminated.contains(lit);
+//           ASS(!res || !instantiated(lit, subst));
+//           return res;
+//         }), SimplifyingInference1(InferenceRule::CONDENSATION, cl));
+//       }
+//       states.push_back({
+//         .toEliminate = newToEliminate,
+//         .eliminated = std::move(eliminated),
+//         .subst = std::move(subst),
+//         .unifiedOnce = true,
+//       });
+//     }
+//     states.pop_front();
+//   }
+
+//   return cl;
+// }
+
+struct Binder
+{
+  bool bind(unsigned v, TermList t) {
+    if (t.isVar()) {
+      return v == t.var() || subst.bind(v, t);
+    }
+    if (occurs(v, t, subst)) {
+      return false;
+    }
+    return subst.bind(v, t);
+  }
+  void specVar(unsigned var, TermList term) { ASSERTION_VIOLATION; }
+
+  Substitution subst;
+};
+
+std::ostream& operator<<(std::ostream& out, const Binder& binder) {
+  return out << binder.subst;
+}
+
+bool tryExtend(Substitution& subst, const Substitution& other) {
+  // in this case we would have duplicate literal removal
+  ASS(!subst.isEmpty());
+  ASS(!other.isEmpty());
+
+  DEBUG("subst ", subst);
+  DEBUG("other ", other);
+
+  DHSet<unsigned> forbidden;
+
+  for (const auto& [v,t] : iterTraits(subst.items())) {
+    TermList tmp;
+    for (const auto& v2 : iterTraits(VariableIterator(t))) {
+      TermList tmp2;
+      if (!subst.findBinding(v2.var(), tmp2)) {
+        DEBUG("forbidden var ", v2);
+        forbidden.insert(v2.var());
+      }
+    }
+    if (other.findBinding(v, tmp) && t != tmp) {
+      return false;
+    }
+  }
+  for (const auto& [v,t] : iterTraits(other.items())) {
+    if (forbidden.contains(v)) {
+      return false;
+    }
+    ALWAYS(subst.bind(v, t));
+  }
+  return true;
+}
+
+bool validateResult(Clause*, Clause*, const Substitution&);
+
 Clause* FasterCondensation::simplify(Clause* cl)
 {
   if (cl->length() <= 1) {
     return cl;
   }
 
-  std::deque<State> states;
+  DEBUG("cl ", *cl);
+
+  Stack<Stack<Binder>> litSubsts;
+  bool hasSubst = false;
   for (const auto& lit : *cl) {
-    states.push_back({ .toEliminate = lit });
-  }
-
-  while (!states.empty()) {
-    auto& curr = states.front();
-    DEBUG("curr ", curr);
+    litSubsts.emplace();
+    // if (lit->isEquality() && lit->isNegative()) {
+    // TODO do equality resolution part too
+    // }
     for (const auto& other : *cl) {
-      if (curr.eliminated.contains(other) || curr.toEliminate == other) {
+      if (lit == other || !Literal::headersMatch(lit, other, /*complementary=*/false)) {
         continue;
       }
-      Substitution subst = curr.subst;
-      if (!unify(curr.toEliminate, other, subst, !curr.unifiedOnce)) {
-        continue;
-      }
-      DEBUG("unified ", *other, " new subst ", subst);
+      DHSet<TermList> otherVars;
+      otherVars.loadFromIterator(VariableIterator(other));
+      Binder subst;
 
-      Literal* newToEliminate = nullptr;
-      DHSet<Literal*> eliminated;
-      eliminated.loadFromIterator(curr.eliminated.iter());
-      eliminated.insert(curr.toEliminate);
-      for (const auto& other2 : *cl) {
-        if (eliminated.contains(other2)) {
+      if (match(lit, other, otherVars, subst)) {
+        hasSubst = true;
+        litSubsts.top().push(std::move(subst));
+      }
+      if (lit->isEquality()) {
+        Binder subst2;
+        if (match(lit->termArg(0), other->termArg(1), otherVars, subst2) &&
+            match(lit->termArg(1), other->termArg(0), otherVars, subst2))
+        {
+          hasSubst = true;
+          litSubsts.top().push(std::move(subst2));
+        }
+      }
+    }
+    DEBUG("substs for ", *lit);
+    DEBUG(litSubsts.top());
+  }
+  // if (hasSubst) {
+  //   for (unsigned i = 0; i < cl->size(); i++) {
+  //     std::cout << litSubsts[i].size() << " ";
+  //   }
+  //   std::cout << std::endl;
+  // }
+
+  struct State {
+    Binder subst;
+    LiteralStack unchanged;
+    unsigned litI = 0;
+    int substI = -1;
+  };
+
+  for (unsigned i = 0; i < cl->size(); i++) {
+
+    for (const auto& s : litSubsts[i]) {
+
+      DEBUG("trying with index ", i, " and subst ", s);
+
+      Stack<State> todo;
+      todo.emplace(s, LiteralStack(), 0, -1);
+
+      while (todo.isNonEmpty()) {
+        auto curr = todo.pop();
+        if (curr.litI == i) {
+          curr.litI++;
+        }
+        DEBUG("current state ", curr.litI, " ", curr.substI, " ", curr.subst, " ", curr.unchanged);
+        // arrived at the end of clause
+        if (curr.litI >= cl->size()) {
+          DEBUG("finalizing");
+          if (iterTraits(curr.unchanged.iter()).any([&curr](auto l) { return instantiated(l, curr.subst.subst); })) {
+            // some earlier literal has been instantiated, fail
+            continue;
+          }
+          auto res = Clause::fromIterator(curr.unchanged.iter(), SimplifyingInference1(InferenceRule::CONDENSATION, cl));
+          if (!validateResult(cl, res, curr.subst.subst)) {
+            INVALID_OPERATION("incorrect faster condensation " + res->toString() + " from " + cl->toString());
+          }
+          return res;
+        }
+        // tried everything on this literal, no more options
+        if (curr.substI >= (int)litSubsts[curr.litI].size()) {
+          DEBUG("fail");
           continue;
         }
-        if (instantiated(other2, subst)) {
-          newToEliminate = other2;
-          break;
+        // one option is to try the next substitution
+        todo.emplace(curr.subst, curr.unchanged, curr.litI, curr.substI+1);
+        // the other option is to move to the next literal
+        if (curr.substI == -1) {
+          if (!instantiated((*cl)[curr.litI], curr.subst.subst)) {
+            DEBUG("unchanged ", (*cl)[curr.litI]);
+            curr.unchanged.push((*cl)[curr.litI]);
+            curr.litI++;
+            curr.substI = -1;
+            todo.push(std::move(curr));
+          }
+        } else if (tryExtend(curr.subst.subst, litSubsts[curr.litI][curr.substI].subst)) {
+          DEBUG("subst extended");
+          curr.litI++;
+          curr.substI = -1;
+          todo.push(std::move(curr));
         }
       }
-      if (!newToEliminate) {
-        return Clause::fromIterator(cl->iterLits().filter([&](Literal* lit) {
-          auto res = !eliminated.contains(lit);
-          ASS(!res || !instantiated(lit, subst));
-          return res;
-        }), SimplifyingInference1(InferenceRule::CONDENSATION, cl));
-      }
-      states.push_back({
-        .toEliminate = newToEliminate,
-        .eliminated = std::move(eliminated),
-        .subst = std::move(subst),
-        .unifiedOnce = true,
-      });
     }
-    states.pop_front();
   }
 
   return cl;
+}
+
+bool validateResult(Clause* premise, Clause* conclusion, const Substitution& subst)
+{
+  DHSet<unsigned> unbound;
+  unbound.loadFromIterator(iterTraits(subst.items())
+    .map([](auto arg) { return arg.second; })
+    .flatMap([](auto t) { return iterTraits(VariableIterator(t)); })
+    .map([](auto v) { return v.var(); }));
+
+  if (iterTraits(subst.items()).any([&](auto arg) { return unbound.contains(arg.first); })) {
+    DEBUG("substitution is not idempotent ", subst);
+    return false;
+  }
+
+  DHSet<Literal*> resLits;
+  resLits.loadFromIterator(conclusion->iterLits());
+
+  for (const auto& lit : *premise) {
+    auto litS = SubstHelper::apply(lit, subst);
+    if (!resLits.contains(litS)) {
+      DEBUG("result does not contain ", *litS);
+      return false;
+    }
+  }
+
+  return true;
 }
 
 }

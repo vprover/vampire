@@ -26,7 +26,9 @@ namespace {
   DECL_FUNC(g, {s}, s)                                                                                        \
   DECL_CONST(a, s)                                                                                            \
   DECL_CONST(b, s)                                                                                            \
+  DECL_CONST(c, s)                                                                                            \
   DECL_PRED (p, {s})                                                                                          \
+  DECL_PRED (p1, {s, s, s})                                                                                   \
   DECL_PRED (q, {s})
 
 // nothing happens with one literal
@@ -60,6 +62,12 @@ TEST_SIMPLIFY(test05,
     Simplification::Success()
       .input(clause({  ~p(g(f(x))), ~p(g(y)), ~p(z), q(y) }))
       .expected(clause({ ~p(g(f(x))), ~p(g(y)), q(y) }))
+    )
+
+TEST_SIMPLIFY(test06,
+    Simplification::Success()
+      .input(clause({  p1(a,y,z), p1(a,b,c), p1(x,y,c) }))
+      .expected(clause({ p1(a,b,c) }))
     )
 
 }

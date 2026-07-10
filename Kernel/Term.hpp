@@ -919,7 +919,7 @@ public:
   }
 
   void*& demEntry() { return _demEntry; }
-  unsigned fnFP() { return _fnFP; }
+  unsigned fnFP() const { return _fnFP; }
   void setFnFp(unsigned fp) { _fnFP = fp; }
 
 protected:

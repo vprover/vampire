@@ -81,7 +81,7 @@ public:
   bool findBinding(unsigned v, TermList &out) const { return _map.find(v, out); }
 
   // variable/term pairs
-  auto items() { return _map.items(); }
+  auto items() const { return _map.items(); }
 
   /**
    * Return result of application of the substitution to variable @c var

@@ -1312,15 +1312,15 @@ void SaturationAlgorithm::doOneAlgorithmStep()
     return;
   }
 
-  Clause *simplCl = _expensiveImmediateSimplifier->simplify(cl);
-  if (simplCl != cl) {
-    if (simplCl) {
-      addNewClause(simplCl);
-    }
-    onClauseReduction(cl, &simplCl, 1, 0);
-    removeSelected(cl);
-    return;
-  }
+  // Clause *simplCl = _expensiveImmediateSimplifier->simplify(cl);
+  // if (simplCl != cl) {
+  //   if (simplCl) {
+  //     addNewClause(simplCl);
+  //   }
+  //   onClauseReduction(cl, &simplCl, 1, 0);
+  //   removeSelected(cl);
+  //   return;
+  // }
 
   FwSimplList::Iterator fsit(_expensiveFwSimplifiers);
   while (fsit.hasNext()) {
@@ -1776,6 +1776,7 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
 
   switch (opt.condensation()) {
     case Options::Condensation::FASTER:
+      res->addFront(new Condensation());
       res->addFront(new FasterCondensation());
       break;
     case Options::Condensation::ON:
