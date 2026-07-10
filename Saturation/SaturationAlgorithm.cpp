@@ -1776,7 +1776,7 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
 
   switch (opt.condensation()) {
     case Options::Condensation::FASTER:
-      res->addFront(new Condensation());
+      // res->addFront(new Condensation());
       res->addFront(new FasterCondensation());
       break;
     case Options::Condensation::ON:

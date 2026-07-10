@@ -121,6 +121,17 @@ bool tryExtend(BacktrackData& bd, Substitution& subst, const DHSet<unsigned>& un
 
 bool validateResult(Clause*, Clause*, const Substitution&);
 
+struct State {
+  State(Substitution subst, unsigned initial) : subst(subst) {
+    unchanged.insert(initial);
+  }
+
+  Substitution subst;
+  DHSet<unsigned> unchanged; // indices of unchanged literals
+  unsigned litI = 0;
+  int substI = -1;
+};
+
 Clause* FasterCondensation::simplify(Clause* cl)
 {
   if (cl->length() <= 1) {
@@ -171,52 +182,39 @@ Clause* FasterCondensation::simplify(Clause* cl)
     DEBUG(litSubsts[i]);
   }
 
-  struct State {
-    Substitution subst;
-    DHSet<unsigned> unchanged; // indices of unchanged literals
-    unsigned litI = 0;
-    int substI = -1;
-  };
-
   for (unsigned i = 0; i < cl->size(); i++) {
 
     for (const auto& [s,j] : litSubsts[i]) {
 
       DEBUG("trying with index ", i, " and subst ", s);
 
-      // Stack<State> todo;
-      // {
-        DHSet<unsigned> unchanged;
-        unchanged.insert(j);
-        State curr(s, std::move(unchanged), 0, -1);
-        // todo.emplace(s, std::move(unchanged), 0, -1);
-      // }
-      Stack<BacktrackData> bds;
+      State state(s, j);
+      static Stack<BacktrackData> bds;
+      ASS(bds.isEmpty());
 
-      while (true) {
-        // auto curr = todo.pop();
-        if (curr.litI == i) {
-          curr.litI++;
+      for (;;) {
+        if (state.litI == i) {
+          state.litI++;
         }
         DEBUG("current state ", curr.litI, " ", curr.substI, " ", curr.subst, " ", curr.unchanged);
         // arrived at the end of clause
-        if (curr.litI >= cl->size()) {
+        if (state.litI >= cl->size()) {
           DEBUG("finalizing");
-          if (iterTraits(curr.unchanged.iter()).any([&curr,&litVars](auto i) { return instantiated(litVars[i], curr.subst); })) {
-            // some earlier literal has been instantiated, fail
-            INVALID_OPERATION("shouldn't happen");
-          }
-          auto res = Clause::fromIterator(iterTraits(curr.unchanged.iter()).map([cl](auto i) { return (*cl)[i]; }), SimplifyingInference1(InferenceRule::CONDENSATION, cl));
-          if (!validateResult(cl, res, curr.subst)) {
-            INVALID_OPERATION("incorrect faster condensation " + res->toString() + " from " + cl->toString());
-          }
+          // if (iterTraits(state.unchanged.iter()).any([&state,&litVars](auto i) { return instantiated(litVars[i], state.subst); })) {
+          //   // some earlier literal has been instantiated, fail
+          //   INVALID_OPERATION("shouldn't happen");
+          // }
+          auto res = Clause::fromIterator(iterTraits(state.unchanged.iter()).map([cl](auto i) { return (*cl)[i]; }), SimplifyingInference1(InferenceRule::CONDENSATION, cl));
+          // if (!validateResult(cl, res, state.subst)) {
+          //   INVALID_OPERATION("incorrect faster condensation " + res->toString() + " from " + cl->toString());
+          // }
           while (bds.isNonEmpty()) {
             bds.pop().drop();
           }
           return res;
         }
         // tried everything on this literal, no more options
-        if (curr.substI >= (int)litSubsts[curr.litI].size()) {
+        if (state.substI >= (int)litSubsts[state.litI].size()) {
           DEBUG("fail");
           if (bds.isNonEmpty()) {
             auto bd = bds.pop();
@@ -225,37 +223,32 @@ Clause* FasterCondensation::simplify(Clause* cl)
           }
           break;
         }
+        // one option is to try the next substitution, this is captured by the backtrack data below
         BacktrackData bd;
-        auto currLitI = curr.litI;
-        auto currSubstI = curr.substI;
-        bd.addClosure([&curr,currLitI,currSubstI](){ curr.litI = currLitI; curr.substI = currSubstI + 1; });
+        auto currLitI = state.litI;
+        auto currSubstI = state.substI;
+        bd.addClosure([&state,currLitI,currSubstI](){ state.litI = currLitI; state.substI = currSubstI + 1; });
 
-        // one option is to try the next substitution
-        DHSet<unsigned> unchanged;
-        unchanged.loadFromIterator(curr.unchanged.iter());
-        // todo.emplace(curr.subst, std::move(unchanged), curr.litI, curr.substI+1);
         // the other option is to move to the next literal
-        if (curr.substI == -1) {
-          if (!instantiated(litVars[curr.litI], curr.subst)) {
+        if (state.substI == -1) {
+          if (!instantiated(litVars[state.litI], state.subst)) {
             DEBUG("unchanged ", (*cl)[curr.litI]);
-            if (curr.unchanged.insert(curr.litI)) {
-              bd.addClosure([&curr,currLitI](){ curr.unchanged.remove(currLitI); });
+            if (state.unchanged.insert(state.litI)) {
+              bd.addClosure([&state,currLitI](){ state.unchanged.remove(currLitI); });
             }
-            curr.litI++;
-            curr.substI = -1;
-            // todo.push(std::move(curr));
+            state.litI++;
+            state.substI = -1;
             bds.push(std::move(bd));
             continue;
           }
-        } else if (tryExtend(bd, curr.subst, curr.unchanged, litVars, litSubsts[curr.litI][curr.substI].first, litVars[litSubsts[curr.litI][curr.substI].second])) {
+        } else if (tryExtend(bd, state.subst, state.unchanged, litVars, litSubsts[state.litI][state.substI].first, litVars[litSubsts[state.litI][state.substI].second])) {
           DEBUG("subst extended");
-          auto v = litSubsts[curr.litI][curr.substI].second;
-          if (curr.unchanged.insert(v)) {
-            bd.addClosure([&curr,v](){ curr.unchanged.remove(v); });
+          auto v = litSubsts[state.litI][state.substI].second;
+          if (state.unchanged.insert(v)) {
+            bd.addClosure([&state,v](){ state.unchanged.remove(v); });
           }
-          curr.litI++;
-          curr.substI = -1;
-          // todo.push(std::move(curr));
+          state.litI++;
+          state.substI = -1;
           bds.push(std::move(bd));
           continue;
         }
