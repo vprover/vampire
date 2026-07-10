@@ -19,6 +19,7 @@ namespace {
 #define MY_SYNTAX_SUGAR                                                                                       \
   DECL_DEFAULT_VARS                                                                                           \
   DECL_SORT(s)                                                                                                \
+  DECL_SORT(s2)                                                                                               \
   DECL_FUNC(f, {s}, s)                                                                                        \
   DECL_FUNC(g, {s}, s)                                                                                        \
   DECL_FUNC(h, {s, s}, s)                                                                                     \
@@ -109,6 +110,11 @@ TEST_SIMPLIFY(test13,
     Simplification::Success()
       .input(clause({  q1(x,y), q1(y,z), q1(a,x), q1(a,a) }))
       .expected(clause({ q1(a,a) }))
+    )
+
+TEST_SIMPLIFY(test14,
+    Simplification::NotApplicable()
+      .input(clause({  x == a, y.sort(s2) == z }))
     )
 
 }

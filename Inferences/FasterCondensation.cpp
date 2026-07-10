@@ -63,6 +63,13 @@ bool match(TermList base, TermList instance, const DHSet<TermList>& instVars, Su
 bool match(Literal* base, Literal* instance, const DHSet<TermList>& instVars, Substitution& subst)
 {
   ASS(Literal::headersMatch(base, instance, /*complementary=*/false));
+
+  if (base->isTwoVarEquality()) {
+    if (!match(base->twoVarEqSort(), SortHelper::getEqualityArgumentSort(instance), instVars, subst)) {
+      return false;
+    }
+  }
+
   for (unsigned i = 0; i < base->arity(); i++) {
     if (!match(*base->nthArgument(i), *instance->nthArgument(i), instVars, subst)) {
       return false;
@@ -300,6 +307,11 @@ Clause* FasterCondensation::simplify(Clause* cl)
         litSubsts[i].push(std::move(subst));
       }
       if (lit->isEquality()) {
+        if (lit->isTwoVarEquality()) {
+          if (!match(lit->twoVarEqSort(), SortHelper::getEqualityArgumentSort(other), litVars[j], subst)) {
+            continue;
+          }
+        }
         Substitution subst2;
         if (match(lit->termArg(0), other->termArg(1), litVars[j], subst2) &&
             match(lit->termArg(1), other->termArg(0), litVars[j], subst2))
