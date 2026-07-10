@@ -142,18 +142,19 @@ Clause* FasterCondensation::simplify(Clause* cl)
       if (lit == other || !Literal::headersMatch(lit, other, /*complementary=*/false)) {
         continue;
       }
-      Substitution subst;
-
-      if (match(lit, other, litVars[j], subst)) {
-        litSubsts[i].emplace(std::move(subst), j);
+      {
+        Substitution subst;
+        if (match(lit, other, litVars[j], subst)) {
+          litSubsts[i].emplace(std::move(subst), j);
+        }
       }
       if (lit->isEquality()) {
+        Substitution subst2;
         if (lit->isTwoVarEquality()) {
-          if (!match(lit->twoVarEqSort(), SortHelper::getEqualityArgumentSort(other), litVars[j], subst)) {
+          if (!match(lit->twoVarEqSort(), SortHelper::getEqualityArgumentSort(other), litVars[j], subst2)) {
             continue;
           }
         }
-        Substitution subst2;
         if (match(lit->termArg(0), other->termArg(1), litVars[j], subst2) &&
             match(lit->termArg(1), other->termArg(0), litVars[j], subst2))
         {
