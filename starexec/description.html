@@ -58,11 +58,15 @@ The most important ones are:
      </UL>
 </UL>
 
+For CACS, we prepared several clause-selection guiding networks trained on the TPTP library. As described in [Suda25], we were independently checking test performance on randomly held-out fraction of the library during the training. The test performance, although lower than the train performance, is greater than that of the baseline, which means that generalization to problems similar to those used in training is achieved.
+
 <H3>Implementation</H3>
 Vampire 5.0.1 is implemented in C++.
 It makes use of fixed versions of Minisat, CaDiCaL, GMP, VIRAS, and Z3.
 See the <A HREF="https://github.com/vprover/vampire/">GitHub repository</A> and associated wiki for more information.
-
+<P>
+The neural clause-selection guidance relies on the LibTorch library (v2.10), which is statically linked into the competition submission so that it can run on StarExec without requiring the library to be installed there.
+</P>
 <H3>Expected Competition Performance</H3>
 Vampire 5.0.1 should be an improvement on the previous version. A reasonably strong performance across all divisions is therefore expected.
 
