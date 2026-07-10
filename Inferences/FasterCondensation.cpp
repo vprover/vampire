@@ -17,6 +17,7 @@
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Lib/Backtrackable.hpp"
 
 #include "FasterCondensation.hpp"
 
@@ -89,7 +90,7 @@ bool instantiated(const DHSet<TermList>& litVars, const Substitution& subst)
   });
 }
 
-bool tryExtend(Substitution& subst, const DHSet<unsigned>& unchanged, const std::vector<DHSet<TermList>>& litVars, const Substitution& other, const DHSet<TermList>& unchanged2) {
+bool tryExtend(BacktrackData& bd, Substitution& subst, const DHSet<unsigned>& unchanged, const std::vector<DHSet<TermList>>& litVars, const Substitution& other, const DHSet<TermList>& unchanged2) {
   // in this case we would have duplicate literal removal
   ASS(!subst.isEmpty());
   ASS(!other.isEmpty());
@@ -109,7 +110,11 @@ bool tryExtend(Substitution& subst, const DHSet<unsigned>& unchanged, const std:
         return false;
       }
     }
-    ALWAYS(subst.bind(v, t));
+    TermList tmp;
+    if (!subst.findBinding(v, tmp)) {
+      ALWAYS(subst.bind(v, t));
+      bd.addClosure([&subst,v](){ subst.unbind(v); });
+    }
   }
   return true;
 }
@@ -179,15 +184,17 @@ Clause* FasterCondensation::simplify(Clause* cl)
 
       DEBUG("trying with index ", i, " and subst ", s);
 
-      Stack<State> todo;
-      {
+      // Stack<State> todo;
+      // {
         DHSet<unsigned> unchanged;
         unchanged.insert(j);
-        todo.emplace(s, std::move(unchanged), 0, -1);
-      }
+        State curr(s, std::move(unchanged), 0, -1);
+        // todo.emplace(s, std::move(unchanged), 0, -1);
+      // }
+      Stack<BacktrackData> bds;
 
-      while (todo.isNonEmpty()) {
-        auto curr = todo.pop();
+      while (true) {
+        // auto curr = todo.pop();
         if (curr.litI == i) {
           curr.litI++;
         }
@@ -203,33 +210,56 @@ Clause* FasterCondensation::simplify(Clause* cl)
           if (!validateResult(cl, res, curr.subst)) {
             INVALID_OPERATION("incorrect faster condensation " + res->toString() + " from " + cl->toString());
           }
+          while (bds.isNonEmpty()) {
+            bds.pop().drop();
+          }
           return res;
         }
         // tried everything on this literal, no more options
         if (curr.substI >= (int)litSubsts[curr.litI].size()) {
           DEBUG("fail");
-          continue;
+          if (bds.isNonEmpty()) {
+            auto bd = bds.pop();
+            bd.backtrack();
+            continue;
+          }
+          break;
         }
+        BacktrackData bd;
+        auto currLitI = curr.litI;
+        auto currSubstI = curr.substI;
+        bd.addClosure([&curr,currLitI,currSubstI](){ curr.litI = currLitI; curr.substI = currSubstI + 1; });
+
         // one option is to try the next substitution
         DHSet<unsigned> unchanged;
         unchanged.loadFromIterator(curr.unchanged.iter());
-        todo.emplace(curr.subst, std::move(unchanged), curr.litI, curr.substI+1);
+        // todo.emplace(curr.subst, std::move(unchanged), curr.litI, curr.substI+1);
         // the other option is to move to the next literal
         if (curr.substI == -1) {
           if (!instantiated(litVars[curr.litI], curr.subst)) {
             DEBUG("unchanged ", (*cl)[curr.litI]);
-            curr.unchanged.insert(curr.litI);
+            if (curr.unchanged.insert(curr.litI)) {
+              bd.addClosure([&curr,currLitI](){ curr.unchanged.remove(currLitI); });
+            }
             curr.litI++;
             curr.substI = -1;
-            todo.push(std::move(curr));
+            // todo.push(std::move(curr));
+            bds.push(std::move(bd));
+            continue;
           }
-        } else if (tryExtend(curr.subst, curr.unchanged, litVars, litSubsts[curr.litI][curr.substI].first, litVars[litSubsts[curr.litI][curr.substI].second])) {
+        } else if (tryExtend(bd, curr.subst, curr.unchanged, litVars, litSubsts[curr.litI][curr.substI].first, litVars[litSubsts[curr.litI][curr.substI].second])) {
           DEBUG("subst extended");
-          curr.unchanged.insert(litSubsts[curr.litI][curr.substI].second);
+          auto v = litSubsts[curr.litI][curr.substI].second;
+          if (curr.unchanged.insert(v)) {
+            bd.addClosure([&curr,v](){ curr.unchanged.remove(v); });
+          }
           curr.litI++;
           curr.substI = -1;
-          todo.push(std::move(curr));
+          // todo.push(std::move(curr));
+          bds.push(std::move(bd));
+          continue;
         }
+        bd.backtrack();
       }
     }
   }
