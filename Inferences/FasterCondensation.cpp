@@ -32,8 +32,7 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-template<typename Binder>
-bool match(TermList base, TermList instance, const DHSet<TermList>& instVars, Binder& binder)
+bool match(TermList base, TermList instance, const DHSet<TermList>& instVars, Substitution& subst)
 {
   Recycled<Stack<std::pair<TermList, TermList>>> todo;
   todo->emplace(base, instance);
@@ -48,7 +47,7 @@ bool match(TermList base, TermList instance, const DHSet<TermList>& instVars, Bi
       continue;
     }
     if (b.isVar()) {
-      if (instVars.contains(b) || !binder.bind(b.var(), i)) {
+      if (instVars.contains(b) || !subst.bind(b.var(), i)) {
         return false;
       }
       continue;
@@ -61,12 +60,11 @@ bool match(TermList base, TermList instance, const DHSet<TermList>& instVars, Bi
   return true;
 }
 
-template<typename Binder>
-bool match(Literal* base, Literal* instance, const DHSet<TermList>& instVars, Binder& binder)
+bool match(Literal* base, Literal* instance, const DHSet<TermList>& instVars, Substitution& subst)
 {
   ASS(Literal::headersMatch(base, instance, /*complementary=*/false));
   for (unsigned i = 0; i < base->arity(); i++) {
-    if (!match(*base->nthArgument(i), *instance->nthArgument(i), instVars, binder)) {
+    if (!match(*base->nthArgument(i), *instance->nthArgument(i), instVars, subst)) {
       return false;
     }
   }
@@ -234,26 +232,6 @@ std::ostream& operator<<(std::ostream& out, const State& state) {
 //   return cl;
 // }
 
-struct Binder
-{
-  bool bind(unsigned v, TermList t) {
-    if (t.isVar()) {
-      return v == t.var() || subst.bind(v, t);
-    }
-    if (occurs(v, t, subst)) {
-      return false;
-    }
-    return subst.bind(v, t);
-  }
-  void specVar(unsigned var, TermList term) { ASSERTION_VIOLATION; }
-
-  Substitution subst;
-};
-
-std::ostream& operator<<(std::ostream& out, const Binder& binder) {
-  return out << binder.subst;
-}
-
 DHSet<TermList> getForbiddenVars(const Substitution& subst)
 {
   DHSet<TermList> res;
@@ -298,47 +276,44 @@ Clause* FasterCondensation::simplify(Clause* cl)
 
   DEBUG("cl ", *cl);
 
-  Stack<Stack<Binder>> litSubsts;
-  bool hasSubst = false;
-  for (const auto& lit : *cl) {
-    litSubsts.emplace();
+  std::vector<DHSet<TermList>> litVars(cl->size());
+  for (unsigned i = 0; i < cl->size(); i++) {
+    auto lit = (*cl)[i];
+    litVars[i].loadFromIterator(VariableIterator(lit));
+  }
+
+  std::vector<Stack<Substitution>> litSubsts(cl->size());
+
+  for (unsigned i = 0; i < cl->size(); i++) {
+    auto lit = (*cl)[i];
     // if (lit->isEquality() && lit->isNegative()) {
     // TODO do equality resolution part too
     // }
-    for (const auto& other : *cl) {
+    for (unsigned j = 0; j < cl->size(); j++) {
+      auto other = (*cl)[j];
       if (lit == other || !Literal::headersMatch(lit, other, /*complementary=*/false)) {
         continue;
       }
-      DHSet<TermList> otherVars;
-      otherVars.loadFromIterator(VariableIterator(other));
-      Binder subst;
+      Substitution subst;
 
-      if (match(lit, other, otherVars, subst)) {
-        hasSubst = true;
-        litSubsts.top().push(std::move(subst));
+      if (match(lit, other, litVars[j], subst)) {
+        litSubsts[i].push(std::move(subst));
       }
       if (lit->isEquality()) {
-        Binder subst2;
-        if (match(lit->termArg(0), other->termArg(1), otherVars, subst2) &&
-            match(lit->termArg(1), other->termArg(0), otherVars, subst2))
+        Substitution subst2;
+        if (match(lit->termArg(0), other->termArg(1), litVars[j], subst2) &&
+            match(lit->termArg(1), other->termArg(0), litVars[j], subst2))
         {
-          hasSubst = true;
-          litSubsts.top().push(std::move(subst2));
+          litSubsts[i].push(std::move(subst2));
         }
       }
     }
     DEBUG("substs for ", *lit);
-    DEBUG(litSubsts.top());
+    DEBUG(litSubsts[i]);
   }
-  // if (hasSubst) {
-  //   for (unsigned i = 0; i < cl->size(); i++) {
-  //     std::cout << litSubsts[i].size() << " ";
-  //   }
-  //   std::cout << std::endl;
-  // }
 
   struct State {
-    Binder subst;
+    Substitution subst;
     LiteralStack unchanged;
     unsigned litI = 0;
     int substI = -1;
@@ -362,12 +337,12 @@ Clause* FasterCondensation::simplify(Clause* cl)
         // arrived at the end of clause
         if (curr.litI >= cl->size()) {
           DEBUG("finalizing");
-          if (iterTraits(curr.unchanged.iter()).any([&curr](auto l) { return instantiated(l, curr.subst.subst); })) {
+          if (iterTraits(curr.unchanged.iter()).any([&curr](auto l) { return instantiated(l, curr.subst); })) {
             // some earlier literal has been instantiated, fail
             continue;
           }
           auto res = Clause::fromIterator(curr.unchanged.iter(), SimplifyingInference1(InferenceRule::CONDENSATION, cl));
-          if (!validateResult(cl, res, curr.subst.subst)) {
+          if (!validateResult(cl, res, curr.subst)) {
             INVALID_OPERATION("incorrect faster condensation " + res->toString() + " from " + cl->toString());
           }
           return res;
@@ -381,14 +356,14 @@ Clause* FasterCondensation::simplify(Clause* cl)
         todo.emplace(curr.subst, curr.unchanged, curr.litI, curr.substI+1);
         // the other option is to move to the next literal
         if (curr.substI == -1) {
-          if (!instantiated((*cl)[curr.litI], curr.subst.subst)) {
+          if (!instantiated((*cl)[curr.litI], curr.subst)) {
             DEBUG("unchanged ", (*cl)[curr.litI]);
             curr.unchanged.push((*cl)[curr.litI]);
             curr.litI++;
             curr.substI = -1;
             todo.push(std::move(curr));
           }
-        } else if (tryExtend(curr.subst.subst, litSubsts[curr.litI][curr.substI].subst)) {
+        } else if (tryExtend(curr.subst, litSubsts[curr.litI][curr.substI])) {
           DEBUG("subst extended");
           curr.litI++;
           curr.substI = -1;
