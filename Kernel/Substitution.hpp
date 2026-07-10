@@ -55,6 +55,7 @@ public:
     return _map.findOrInsert(v, t) == t;
   }
   bool bind(unsigned v, Term *t) { return bind(v, TermList(t)); }
+  void unbind(unsigned v) { _map.remove(v); }
 
   /**
    * Bind `v` to `t`: `v` must not be bound to anything.
