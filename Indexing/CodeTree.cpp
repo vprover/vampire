@@ -132,9 +132,9 @@ void CodeTree::MatchInfo::destroy(unsigned bindCnt)
 }
 
 
-void CodeTree::MatchInfo::init(ILStruct* ils, unsigned liIndex_, DArray<TermList>& bindingArray)
+void CodeTree::MatchInfo::init(ILStruct* ils, unsigned liIndex_, DArray<TermList>& bindingArray, bool opposite)
 {
-  liIndex=liIndex_;
+  liIndex=opposite ? liIndex_ | leftmost_bit : liIndex_;
   size_t bindCnt=ils->varCnt;
   if(bindCnt) {
     unsigned* perm=ils->globalVarPermutation;
@@ -264,7 +264,7 @@ void CodeTree::ILStruct::ensureFreshness(unsigned globalTimestamp)
   }
 }
 
-void CodeTree::ILStruct::addMatch(unsigned liIndex, DArray<TermList>& bindingArray)
+void CodeTree::ILStruct::addMatch(unsigned liIndex, DArray<TermList>& bindingArray, bool opposite)
 {
   if(matchCnt==matches.size()) {
     matches.expand(matchCnt ? (matchCnt*2) : 4);
@@ -277,7 +277,7 @@ void CodeTree::ILStruct::addMatch(unsigned liIndex, DArray<TermList>& bindingArr
   if(!matches[matchCnt]) {
     matches[matchCnt]=MatchInfo::alloc(varCnt);
   }
-  matches[matchCnt]->init(this, liIndex, bindingArray);
+  matches[matchCnt]->init(this, liIndex, bindingArray, opposite);
   matchCnt++;
 }
 
@@ -559,9 +559,9 @@ bool CodeTree::Matcher<removing, checkRange, higherOrder>::execute()
   for(;;) {
     if(op->alternative()) {
       if constexpr (removing) {
-        btStack.push(BTPointRemoving(tp, op->alternative(), RemovingBase::firstsInBlocks->size()));
+        btStack.push(BTPointRemoving(tp, markOp(op->alternative()), RemovingBase::firstsInBlocks->size()));
       } else {
-        btStack.push(BTPoint(tp, op->alternative()));
+        btStack.push(BTPoint(tp, markOp(op->alternative())));
       }
     }
     switch(op->_instruction()) {
@@ -638,10 +638,12 @@ bool CodeTree::Matcher<removing, checkRange, higherOrder>::execute()
 }
 
 template<bool removing, bool checkRange, bool higherOrder>
-void CodeTree::Matcher<removing, checkRange, higherOrder>::init(CodeTree* tree_, CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_, Stack<CodeOp*>* firstsInBlocks_)
+void CodeTree::Matcher<removing, checkRange, higherOrder>::init(CodeTree* tree_, CodeOp* entry_, bool canEnterOpposites_, LitInfo* linfos_, size_t linfoCnt_, Stack<CodeOp*>* firstsInBlocks_)
 {
+  canEnterOpposites=canEnterOpposites_;
   tree=tree_;
   entry=entry_;
+  opposite=false;
 
   linfos=linfos_;
   linfoCnt=linfoCnt_;
@@ -676,7 +678,8 @@ bool CodeTree::Matcher<removing, checkRange, higherOrder>::backtrack()
   }
   auto bp=btStack.pop();
   tp=bp.tp;
-  op=bp.op;
+  op=unmarkOp(bp.op);
+  opposite=getMark(bp.op);
   if constexpr (removing) {
     RemovingBase::firstsInBlocks->truncate(bp.fibDepth);
     RemovingBase::firstsInBlocks->push(op);
@@ -696,6 +699,7 @@ bool CodeTree::Matcher<removing, checkRange, higherOrder>::prepareLiteral()
   ft=linfos[curLInfo].ft;
   tp=0;
   op=entry;
+  opposite=false;
   return true;
 }
 
@@ -780,7 +784,11 @@ inline bool CodeTree::Matcher<removing, checkRange, higherOrder>::doCheckFun()
   unsigned functor=op->_arg();
   FlatTerm::Entry& fte=(*ft)[tp];
   if(!fte.isFun(functor)) {
-    return false;
+    if (canEnterOpposites && tp == 0 && fte.isOppositeFun(functor)) {
+      opposite=true;
+    } else {
+      return false;
+    }
   }
   fte.expand();
   tp+=FlatTerm::FUNCTION_ENTRY_COUNT;

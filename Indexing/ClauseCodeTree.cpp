@@ -300,7 +300,7 @@ template<bool higherOrder>
 void ClauseCodeTree<higherOrder>::RemovingLiteralMatcher::init(CodeOp* entry_, LitInfo* linfos_,
     size_t linfoCnt_, ClauseCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_)
 {
-  Base::init(tree_, entry_, linfos_, linfoCnt_, firstsInBlocks_);
+  Base::init(tree_, entry_, false, linfos_, linfoCnt_, firstsInBlocks_);
 
   ALWAYS(Base::prepareLiteral());
 }
@@ -338,14 +338,15 @@ bool ClauseCodeTree<higherOrder>::removeOneOfAlternatives(CodeOp* op, Clause* cl
 template<bool higherOrder>
 void ClauseCodeTree<higherOrder>::LiteralMatcher::init(CodeTree* tree_, CodeOp* entry_,
 					  LitInfo* linfos_, size_t linfoCnt_,
-					  bool seekOnlySuccess)
+					  bool canEnterOpposites, bool seekOnlySuccess)
 {
   ASS_G(linfoCnt_,0);
 
-  Base::init(tree_,entry_,linfos_,linfoCnt_);
+  Base::init(tree_,entry_,canEnterOpposites, linfos_,linfoCnt_);
 
   _eagerlyMatched=false;
   eagerResults.reset();
+  oppositeResults.reset();
 
   RSTAT_CTR_INC("LiteralMatcher::init");
   if(seekOnlySuccess) {
@@ -375,10 +376,15 @@ template<bool higherOrder>
 bool ClauseCodeTree<higherOrder>::LiteralMatcher::next()
 {
   if(eagerlyMatched()) {
-    _matched=!eagerResults.isEmpty();
-    if(!_matched) {
-      return false;
+    if (eagerResults.isEmpty()) {
+      if (oppositeResults.isEmpty()) {
+        _matched = false;
+        return false;
+      }
+      op = oppositeResults.pop();
+      return true;
     }
+    _matched=true;
     op=eagerResults.pop();
     return true;
   }
@@ -388,16 +394,23 @@ bool ClauseCodeTree<higherOrder>::LiteralMatcher::next()
     return false;
   }
 
-  _matched=execute();
-  if(!_matched) {
-    return false;
+  while ((_matched = execute())) {
+    ASS(op->isLitEnd() || op->isSuccess());
+    if(op->isLitEnd()) {
+      recordMatch();
+    }
+    if (opposite) {
+      oppositeResults.push(op);
+      continue;
+    }
+    return true;
   }
-
-  ASS(op->isLitEnd() || op->isSuccess());
-  if(op->isLitEnd()) {
-    recordMatch();
+  if (oppositeResults.isNonEmpty()) {
+    op = oppositeResults.pop();
+    _matched = true;
+    return true;
   }
-  return true;
+  return false;
 }
 
 /**
@@ -459,11 +472,13 @@ void ClauseCodeTree<higherOrder>::LiteralMatcher::recordMatch()
     //no need to record matches which we already know will not lead to anything
     return;
   }
-  if(!ils->matchCnt && Base::linfos[Base::curLInfo].opposite) {
+  if(!ils->matchCnt && opposite) {
     //if we're matching opposite matches, we have already tried all non-opposite ones
     ils->noNonOppositeMatches=true;
+  } else if (ils->noNonOppositeMatches && !opposite) {
+    ils->noNonOppositeMatches=false;
   }
-  ils->addMatch(Base::linfos[Base::curLInfo].liIndex, Base::bindings);
+  ils->addMatch(Base::linfos[Base::curLInfo].liIndex, Base::bindings, opposite);
 }
 
 
@@ -497,7 +512,7 @@ void ClauseCodeTree<higherOrder>::ClauseMatcher::init(ClauseCodeTree* tree_, Cla
       baseLICnt++;
     }
   }
-  unsigned liCnt=sres ? (baseLICnt*2) : baseLICnt;
+  unsigned liCnt=baseLICnt;
   lInfos.ensure(liCnt);
 
   //we put ground literals first
@@ -529,16 +544,18 @@ void ClauseCodeTree<higherOrder>::ClauseMatcher::init(ClauseCodeTree* tree_, Cla
     }
   }
   if(sres) {
+    /*
     for(unsigned i=0;i<baseLICnt;i++) {
       unsigned newIndex=i+baseLICnt;
       lInfos[newIndex]=LitInfo::getOpposite(lInfos[i]);
       lInfos[newIndex].liIndex=newIndex;
     }
+    */
     sresLiteral=sresNoLiteral;
   }
 
   tree->incTimeStamp();
-  enterLiteral(tree->getEntryPoint(), clen==0);
+  enterLiteral(tree->getEntryPoint(), clen==0, sres);
 }
 
 template<bool higherOrder>
@@ -562,6 +579,7 @@ void ClauseCodeTree<higherOrder>::ClauseMatcher::reset()
 template<bool higherOrder>
 Clause* ClauseCodeTree<higherOrder>::ClauseMatcher::next(int& resolvedQueryLit)
 {
+  TIME_TRACE("Optimized Clause Matcher next");
   if(lms.isEmpty()) {
     return 0;
   }
@@ -606,7 +624,8 @@ Clause* ClauseCodeTree<higherOrder>::ClauseMatcher::next(int& resolvedQueryLit)
       }
 
       bool seekOnlySuccess=lms.size()==query->length();
-      enterLiteral(newLitEntry, seekOnlySuccess);
+      bool canEnterOpposites=sres && sresLiteral == sresNoLiteral;
+      enterLiteral(newLitEntry, seekOnlySuccess, canEnterOpposites);
     }
   }
 }
@@ -662,7 +681,7 @@ inline bool ClauseCodeTree<higherOrder>::ClauseMatcher::canEnterLiteral(CodeOp* 
  *   to see just clauses that end at this point).
  */
 template<bool higherOrder>
-void ClauseCodeTree<higherOrder>::ClauseMatcher::enterLiteral(CodeOp* entry, bool seekOnlySuccess)
+void ClauseCodeTree<higherOrder>::ClauseMatcher::enterLiteral(CodeOp* entry, bool seekOnlySuccess, bool canEnterOpposites)
 {
   if(!seekOnlySuccess) {
     RSTAT_MCTR_INC("enterLiteral levels (non-sos)", lms.size());
@@ -678,6 +697,7 @@ void ClauseCodeTree<higherOrder>::ClauseMatcher::enterLiteral(CodeOp* entry, boo
   }
 
   size_t linfoCnt=lInfos.size();
+  /*
   if(sres && sresLiteral!=sresNoLiteral) {
     ASS_L(sresLiteral,lms.size());
     //we do not need to match index literals with opposite query
@@ -687,9 +707,10 @@ void ClauseCodeTree<higherOrder>::ClauseMatcher::enterLiteral(CodeOp* entry, boo
     ASS_EQ(linfoCnt%2,0);
     linfoCnt/=2;
   }
+  */
 
   Recycled<LiteralMatcher, NoReset> lm;
-  lm->init(tree, entry, lInfos.array(), linfoCnt, seekOnlySuccess);
+  lm->init(tree, entry, lInfos.array(), linfoCnt, canEnterOpposites, seekOnlySuccess);
   lms.push(std::move(lm));
 }
 
@@ -738,8 +759,8 @@ bool ClauseCodeTree<higherOrder>::ClauseMatcher::checkCandidate(Clause* cl, int&
       size_t matchCnt=lms[0]->getILS()->matchCnt;
       for(size_t i=0;i<matchCnt;i++) {
 	MatchInfo* mi=lms[0]->getILS()->getMatch(i);
-	if(lInfos[mi->liIndex].opposite) {
-	  resolvedQueryLit=lInfos[mi->liIndex].litIndex;
+	if(mi->opposite()) {
+	  resolvedQueryLit=lInfos[mi->getLiIndex()].litIndex;
 	}
 	else {
 	  //we prefer subsumption to subsumption resolution
@@ -866,8 +887,8 @@ bool ClauseCodeTree<higherOrder>::ClauseMatcher::matchGlobalVars(int& resolvedQu
     for(unsigned i=0;i<clen;i++) {
       ILStruct* ils=lms[i]->getILS();
       MatchInfo* mi=ils->getMatch(matchIndex[i]);
-      if(lInfos[mi->liIndex].opposite) {
-	resolvedQueryLit=lInfos[mi->liIndex].litIndex;
+      if(mi->opposite()) {
+	resolvedQueryLit=lInfos[mi->getLiIndex()].litIndex;
 	break;
       }
     }
@@ -879,18 +900,18 @@ bool ClauseCodeTree<higherOrder>::ClauseMatcher::matchGlobalVars(int& resolvedQu
 template<bool higherOrder>
 bool ClauseCodeTree<higherOrder>::ClauseMatcher::compatible(ILStruct* bi, MatchInfo* bq, ILStruct* ni, MatchInfo* nq)
 {
-  if( lInfos[bq->liIndex].litIndex==lInfos[nq->liIndex].litIndex ||
-      (lInfos[bq->liIndex].opposite && lInfos[nq->liIndex].opposite) ) {
+  if( lInfos[bq->getLiIndex()].litIndex==lInfos[nq->getLiIndex()].litIndex ||
+      (bq->opposite() && nq->opposite()) ) {
     return false;
   }
 
   unsigned bvars=bi->varCnt;
   unsigned* bgvn=bi->sortedGlobalVarNumbers;
-  TermList* bb=bq->bindings;
+  TermList* bb=bq->getBindings();
 
   unsigned nvars=ni->varCnt;
   unsigned* ngvn=ni->sortedGlobalVarNumbers;
-  TermList* nb=nq->bindings;
+  TermList* nb=nq->getBindings();
 
   while(bvars && nvars) {
     while(bvars && *bgvn<*ngvn) {

@@ -14,6 +14,7 @@
  * @since 18/05/2007 Manchester
  */
 
+#include <cctype>
 #include <ostream>
 
 #include "Debug/RuntimeStatistics.hpp"
@@ -334,6 +335,75 @@ std::string Clause::toNiceString() const
     result += std::string(" {") + splits()->toString() + "}";
   }
 
+  return result;
+}
+
+std::string Clause::toReproducerString() const
+{
+  auto literalStringToReproducerString = [](const std::string& input) {
+    std::string output;
+    output.reserve(input.size());
+
+    for (size_t i = 0; i < input.size();) {
+      const unsigned char ch = static_cast<unsigned char>(input[i]);
+      if (std::isalpha(ch)) {
+        size_t j = i + 1;
+        while (j < input.size()) {
+          const unsigned char c = static_cast<unsigned char>(input[j]);
+          if (!std::isalnum(c) && c != '_') {
+            break;
+          }
+          j++;
+        }
+
+        const std::string tok = input.substr(i, j - i);
+        if (tok == "i") {
+          output += "f2";
+        } else if (tok == "a") {
+          output += "c";
+        } else if (tok == "b") {
+          output += "d";
+        } else if (tok == "c") {
+          output += "e";
+        } else if (tok.size() >= 2 && tok[0] == 'X') {
+          bool allDigits = true;
+          for (size_t k = 1; k < tok.size(); k++) {
+            const unsigned char d = static_cast<unsigned char>(tok[k]);
+            if (!std::isdigit(d)) {
+              allDigits = false;
+              break;
+            }
+          }
+          if (allDigits) {
+            output += "x";
+            output += Int::toString(std::stoul(tok.substr(1)) + 1);
+          } else {
+            output += tok;
+          }
+        } else {
+          output += tok;
+        }
+
+        i = j;
+      } else {
+        output += input[i];
+        i++;
+      }
+    }
+
+    return output;
+  };
+
+  std::string result;
+  if (size() == 0) {
+    return "$false";
+  } else {
+    result += literalStringToReproducerString(_literals[0]->toString());
+    for (unsigned i = 1; i < size(); i++) {
+      result += ", ";
+      result += literalStringToReproducerString(_literals[i]->toString());
+    }
+  }
   return result;
 }
 
