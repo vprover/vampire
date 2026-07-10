@@ -105,4 +105,10 @@ TEST_SIMPLIFY(test12,
       .input(clause({  q1(x,y), q1(y,x) }))
     )
 
+TEST_SIMPLIFY(test13,
+    Simplification::Success()
+      .input(clause({  q1(x,y), q1(y,z), q1(a,x), q1(a,a) }))
+      .expected(clause({ q1(a,a) }))
+    )
+
 }

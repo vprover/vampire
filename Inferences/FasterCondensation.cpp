@@ -254,6 +254,14 @@ std::ostream& operator<<(std::ostream& out, const Binder& binder) {
   return out << binder.subst;
 }
 
+DHSet<TermList> getForbiddenVars(const Substitution& subst)
+{
+  DHSet<TermList> res;
+  res.loadFromIterator(iterTraits(subst.items())
+    .flatMap([](auto arg) { return VariableIterator(arg.second); }));
+  return res;
+}
+
 bool tryExtend(Substitution& subst, const Substitution& other) {
   // in this case we would have duplicate literal removal
   ASS(!subst.isEmpty());
@@ -262,23 +270,17 @@ bool tryExtend(Substitution& subst, const Substitution& other) {
   DEBUG("subst ", subst);
   DEBUG("other ", other);
 
-  DHSet<unsigned> forbidden;
+  auto forbidden1 = getForbiddenVars(subst);
+  auto forbidden2 = getForbiddenVars(other);
 
   for (const auto& [v,t] : iterTraits(subst.items())) {
     TermList tmp;
-    for (const auto& v2 : iterTraits(VariableIterator(t))) {
-      TermList tmp2;
-      if (!subst.findBinding(v2.var(), tmp2)) {
-        DEBUG("forbidden var ", v2);
-        forbidden.insert(v2.var());
-      }
-    }
-    if (other.findBinding(v, tmp) && t != tmp) {
+    if (forbidden2.contains(TermList::var(v)) || (other.findBinding(v, tmp) && t != tmp)) {
       return false;
     }
   }
   for (const auto& [v,t] : iterTraits(other.items())) {
-    if (forbidden.contains(v)) {
+    if (forbidden1.contains(TermList::var(v))) {
       return false;
     }
     ALWAYS(subst.bind(v, t));

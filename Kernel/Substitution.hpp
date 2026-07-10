@@ -108,7 +108,7 @@ public:
       if(!first)
         out << ",";
       first = false;
-      out << x << " -> " << t;
+      out << "X" << x << " -> " << t;
     }
     return out << ']';
   }
