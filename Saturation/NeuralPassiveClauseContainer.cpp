@@ -58,7 +58,7 @@ NeuralClauseEvaluationModel::NeuralClauseEvaluationModel(const std::string claus
   TIME_TRACE("neural model warmup");
 
   Timer::updateInstructionCount();
-  long long neural_model_start_instrs = Timer::elapsedInstructions();
+  env.statistics->neuralModelStartAt = Timer::elapsedInstructions();
 
 #if DEBUG_MODEL
   auto start = env.timer->elapsedMilliseconds();
@@ -135,7 +135,7 @@ NeuralClauseEvaluationModel::NeuralClauseEvaluationModel(const std::string claus
   */
 
   Timer::updateInstructionCount();
-  env.statistics->neuralModelWarmup += (Timer::elapsedInstructions()-neural_model_start_instrs);
+  env.statistics->neuralModelWarmup += (Timer::elapsedInstructions()-env.statistics->neuralModelStartAt);
 }
 
 void NeuralClauseEvaluationModel::gageEmbedPending()

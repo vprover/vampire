@@ -105,8 +105,17 @@ static std::recursive_mutex EXIT_LOCK;
       }
     } else // the actual child
       if (env.statistics) {
+        // capture any in-progress bulkEval interval
+        while (env.statistics->bulkEvalLock.test_and_set(std::memory_order_acquire)) {}
+        if (env.statistics->lastBulkStartAt != 0) {
+          Timer::updateInstructionCount();
+          env.statistics->bulkEvals += (Timer::elapsedInstructions() - env.statistics->lastBulkStartAt);
+          env.statistics->lastBulkStartAt = 0;
+        }
+        env.statistics->bulkEvalLock.clear(std::memory_order_release);
+
         env.statistics->print(std::cout);
-    }
+      }
   }
 
   System::terminateImmediately(1);

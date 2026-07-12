@@ -417,7 +417,7 @@ public:
     TIME_TRACE(TimeTrace::DEEP_STUFF);
 
     Timer::updateInstructionCount(); // TODO: consider leaving this out (more efficient vampire, less precise stats)
-    long long bulk_eval_start_instrs = Timer::elapsedInstructions();
+    env.statistics->lastBulkStartAt = Timer::elapsedInstructions();
 
     {
       auto it = clauses.iter();
@@ -431,7 +431,12 @@ public:
     evalClauses(clauses);
 
     Timer::updateInstructionCount(); // TODO: consider leaving this out (more efficient vampire, less precise stats)
-    env.statistics->bulkEvals += (Timer::elapsedInstructions()-bulk_eval_start_instrs);
+    while (env.statistics->bulkEvalLock.test_and_set(std::memory_order_acquire)) {}
+    if (env.statistics->lastBulkStartAt != 0) {
+      env.statistics->bulkEvals += (Timer::elapsedInstructions() - env.statistics->lastBulkStartAt);
+      env.statistics->lastBulkStartAt = 0;
+    }
+    env.statistics->bulkEvalLock.clear(std::memory_order_release);
   }
 };
 

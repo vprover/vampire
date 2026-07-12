@@ -240,7 +240,9 @@ void Statistics::print(std::ostream& out)
     ENTRY("SMT fallbacks",smtFallbacks);
 
     GROUP("Neural Instruction Counts");
+    ENTRY("Neural warmup startat", neuralModelStartAt >> 20);
     ENTRY("Neural model warmup", neuralModelWarmup >> 20);
+    ENTRY("Gnn startat", gnnEvalStartAt >> 20);
     ENTRY("Gnn eval", gnnEval >> 20);
     ENTRY("Bulk evals", bulkEvals >> 20);
 

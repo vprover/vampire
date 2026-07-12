@@ -881,7 +881,7 @@ void SaturationAlgorithm::runGnnOnInput()
   TIME_TRACE("gnn-eval");
 
   Timer::updateInstructionCount();
-  long long gnn_start_instrs = Timer::elapsedInstructions();
+  env.statistics->gnnEvalStartAt = Timer::elapsedInstructions();
 
   _numPreds = env.signature->predicates();
   _numFuncs = env.signature->functions();
@@ -1188,7 +1188,7 @@ void SaturationAlgorithm::runGnnOnInput()
   }
 
   Timer::updateInstructionCount();
-  env.statistics->gnnEval += (Timer::elapsedInstructions()-gnn_start_instrs);
+  env.statistics->gnnEval += (Timer::elapsedInstructions()-env.statistics->gnnEvalStartAt);
 }
 
 /**

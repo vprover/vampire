@@ -18,6 +18,7 @@
 #define __Statistics__
 
 #include <array>
+#include <atomic>
 #include <ostream>
 
 #include "Forwards.hpp"
@@ -205,8 +206,12 @@ public:
   unsigned smtFallbacks = 0;
 
   /** Neural instruction counts */
+  long long neuralModelStartAt = 0;
   long long neuralModelWarmup = 0;
+  long long gnnEvalStartAt = 0;
   long long gnnEval = 0;
+  std::atomic_flag bulkEvalLock = ATOMIC_FLAG_INIT;
+  long long lastBulkStartAt = 0;
   long long bulkEvals = 0;
 
   friend std::ostream& operator<<(std::ostream& out, TerminationReason const& self)
