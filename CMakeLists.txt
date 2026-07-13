@@ -198,9 +198,6 @@ if (NOT EXISTS "${PROJECT_SOURCE_DIR}/NapSAT/README.md")
   message(FATAL_ERROR "NapSAT not found")
 endif()
 
-find_package(BZip2 REQUIRED)
-find_package(LibLZMA REQUIRED)
-
 include_directories(${CMAKE_CURRENT_SOURCE_DIR}/NapSAT/src)
 include(ExternalProject)
 
@@ -243,11 +240,22 @@ set_target_properties(NapSAT PROPERTIES
 add_custom_target(napsat_always ALL)
 add_dependencies(napsat_always napsat)
 
-target_link_libraries(NapSAT
-    INTERFACE
-        BZip2::BZip2
-        LibLZMA::LibLZMA
-)
+# NapSAT.a bundles SATSentinel's objects, plus static bz2/lzma, directly
+# into the archive (see NapSAT/Makefile), so consumers need no bz2/lzma
+# link declarations at all. GL and glfw can't be bundled the same way
+# (GL is a runtime dispatch shim with no static archive; this distro's
+# glfw3 package ships no static .a), so those two remain regular link
+# dependencies, declared here once rather than by every consumer (i.e.
+# vampire). They're only needed when NapSAT.a bundles SATSentinel's GUI
+# objects (imgui + glfw backend), built with GUI=1 for Debug only (see the
+# ExternalProject_Add above).
+if(CMAKE_BUILD_TYPE STREQUAL Debug)
+  target_link_libraries(NapSAT
+      INTERFACE
+          glfw
+          GL
+  )
+endif()
 
 ################################################################
 # Z3

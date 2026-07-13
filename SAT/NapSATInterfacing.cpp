@@ -35,7 +35,6 @@ namespace SAT
 
     opt_args.push_back("--restarts");
     opt_args.push_back("off");
-    opt_args.push_back("-sum-approx-cost");
 
     _solver = create_solver(0, 0, new napsat::Options(opt_args));
     if (func) {
