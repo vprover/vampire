@@ -98,7 +98,7 @@ void TermCodeTree<higherOrder, Data>::remove(const Data& data)
 
   ASS(dptr);
   delete dptr;
-  delete ft;
+  ft->destroy();
   
   optimizeMemoryAfterRemoval(&firstsInBlocks, rtm.op);
 } // TermCodeTree::remove
@@ -141,7 +141,7 @@ void TermCodeTree<higherOrder, Data>::TermMatcher::init(CodeTree* tree, TermList
 template<bool higherOrder, class Data>
 void TermCodeTree<higherOrder, Data>::TermMatcher::reset()
 {
-  delete ft;
+  ft->destroy();
 #if VDEBUG
   ft=0;
 #endif

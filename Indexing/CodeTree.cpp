@@ -67,12 +67,13 @@ CodeTree::LitInfo::LitInfo(Clause* cl, unsigned litIndex)
 
 void CodeTree::LitInfo::dispose()
 {
-  delete ft;
+  ft->destroy();
 }
 
 CodeTree::LitInfo CodeTree::LitInfo::getReversed(const LitInfo& li)
 {
-  auto ft = FlatTerm::createEqReversed(static_cast<Literal*>((*li.ft)[1]._term()));
+  FlatTerm* ft=FlatTerm::copy(li.ft);
+  ft->swapCommutativePredicateArguments();
 
   LitInfo res=li;
   res.ft=ft;
@@ -84,8 +85,8 @@ CodeTree::LitInfo CodeTree::LitInfo::getReversed(const LitInfo& li)
 
 CodeTree::LitInfo CodeTree::LitInfo::getOpposite(const LitInfo& li)
 {
-  auto lit = Literal::complementaryLiteral(static_cast<Literal*>((*li.ft)[1]._term()));
-  auto ft = FlatTerm::create(TermList(lit));
+  FlatTerm* ft=FlatTerm::copy(li.ft);
+  ft->changeLiteralPolarity();
 #if GROUND_TERM_CHECK
   ASS_EQ((*ft)[1]._tag(), FlatTerm::FUN_TERM_PTR);
   (*ft)[1]._setTerm(Literal::complementaryLiteral(static_cast<Literal*>((*ft)[1]._term())));
@@ -594,11 +595,9 @@ bool CodeTree::Matcher<removing, checkRange, higherOrder>::execute()
           ASS(RemovingBase::matchingClauses);
         }
         return true;
-#if GROUND_TERM_CHECK
       case CHECK_GROUND_TERM:
         shouldBacktrack=!doCheckGroundTerm();
         break;
-#endif
       case CHECK_FUN:
         shouldBacktrack=!doCheckFun();
         break;
