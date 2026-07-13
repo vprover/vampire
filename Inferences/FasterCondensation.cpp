@@ -121,6 +121,48 @@ bool tryExtend(BacktrackData& bd, Substitution& subst, const DHSet<unsigned>& un
 
 bool validateResult(Clause*, Clause*, const Substitution&);
 
+/**
+ * A literal without any substitutions stays in the clause since there is no way to instantiate it
+ * to make it a duplicate literal. All variables of such clauses become 'uninstantiable', and we
+ * can remove all substitutions binding them (assuming they are not bound to themselves). We perform
+ * the fixpoint of finding such uninstantiable variables and removing substitutions.
+ */
+void removeUninstantiable(std::vector<Stack<std::pair<Substitution, unsigned>>>& litSubsts, const std::vector<DHSet<TermList>>& litVars)
+{
+  DHSet<TermList> uninstantiable;
+  bool added = false;
+
+  auto loadUninstantiable = [&](unsigned i) {
+    if (litSubsts[i].isEmpty()) {
+      for (const auto& var : iterTraits(litVars[i].iter())) {
+        added = added || uninstantiable.insert(var);
+      }
+    }
+  };
+
+  for (unsigned i = 0; i < litSubsts.size(); i++) {
+    loadUninstantiable(i);
+  }
+
+  while (added) {
+    added = false;
+    for (unsigned i = 0; i < litSubsts.size(); i++) {
+      for (unsigned j = 0; j < litSubsts[i].size();) {
+        auto& subst = litSubsts[i][j].first;
+        if (iterTraits(uninstantiable.iter()).any([&subst](auto var) {
+          TermList temp;
+          return subst.findBinding(var.var(), temp);
+        })) {
+          litSubsts[i].swapRemove(j);
+          continue;
+        }
+        j++;
+      }
+      loadUninstantiable(i);
+    }
+  }
+}
+
 struct State {
   State(Substitution subst, unsigned initial) : subst(subst) {
     unchanged.insert(initial);
@@ -181,6 +223,8 @@ Clause* FasterCondensation::simplify(Clause* cl)
     DEBUG("substs for ", *lit);
     DEBUG(litSubsts[i]);
   }
+
+  removeUninstantiable(litSubsts, litVars);
 
   for (unsigned i = 0; i < cl->size(); i++) {
 
