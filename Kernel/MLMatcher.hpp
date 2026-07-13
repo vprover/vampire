@@ -55,6 +55,9 @@ struct ArrayStoringBinder final
 
   bool bind(unsigned var, TermList term)
   {
+    if (term.containsLooseDBIndex()) {
+      return false;
+    }
     _arr[_v2pos.get(var)]=term;
     return true;
   }
