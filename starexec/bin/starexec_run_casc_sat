@@ -1,3 +1,3 @@
 #!/bin/sh
 
-exec ./vampire-ho --mode casc --intent sat -m 16384 --cores 7 -t $STAREXEC_WALLCLOCK_LIMIT $1
+exec ./vampire-ho --input_syntax tptp --output_axiom_names on --mode casc --intent sat -m 16384 --cores 7 -t $STAREXEC_WALLCLOCK_LIMIT $1
