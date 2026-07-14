@@ -524,15 +524,6 @@ Splitter::Splitter()
 
 Splitter::~Splitter()
 {
-  // if (getOptions().satSolver() == Options::SatSolver::NAPSAT) {
-  //   NapSATInterfacing* napsatSolver = static_cast<NapSATInterfacing*>(_branchSelector._inner);
-  //   if (napsatSolver) {
-  //     cout << "------------------------\n";
-  //     cout << "   NapSAT statistics:   \n";
-  //     cout << "------------------------\n";
-  //     napsatSolver->printStatistics();
-  //   }
-  // }
   while(_db.isNonEmpty()) {
     if(_db.top()) {
       delete _db.top();
@@ -796,9 +787,9 @@ void Splitter::conjectureSingleton(Literal* theLit, Clause* orig)
 
 double Splitter::weightFunction(SATLiteral vlit) const
 {
-
   SplitLevel lvl = getNameFromLiteral(vlit);
   // SplitLevel neglevel = getNameFromLiteral(vlit.opposite());
+  assert(lvl < _db.size());
   const SplitRecord* rec = _db[lvl];
   // const SplitRecord* negrec = _db[neglevel];
   double posWeight = 1.0;
