@@ -1341,7 +1341,7 @@ MainLoopResult SaturationAlgorithm::runImpl()
     while (true) {
       doOneAlgorithmStep(); // will bump env.statistics->activations by one
 
-      if (_activationLimit && env.statistics->activations > _activationLimit) {
+      if (_activationLimit && env.statistics->activations >= _activationLimit) {
         throw ActivationLimitExceededException();
       }
       if(_softTimeLimit && Timer::elapsedDeciseconds() - startTime > _softTimeLimit)
