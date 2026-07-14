@@ -3,7 +3,7 @@
 input_language=`egrep -om1 "^(thf|tff|tcf|fof|cnf)" $1`
 if test "$input_language" = "thf"
 then
-	exec ./vampire-hol --mode casc -m 16384 --cores 7 -t $STAREXEC_WALLCLOCK_LIMIT --output_axiom_names on $1
+	exec ./vampire-ho --input_syntax tptp --output_axiom_names on --mode casc -m 16384 --cores 7 -t $STAREXEC_WALLCLOCK_LIMIT $1
 else
-	exec ./vampire --mode casc -m 16384 --cores 7 -t $STAREXEC_WALLCLOCK_LIMIT $1
+	exec ./vampire --input_syntax tptp --output_axiom_names on --mode casc -m 16384 --cores 7 -t $STAREXEC_WALLCLOCK_LIMIT $1
 fi
