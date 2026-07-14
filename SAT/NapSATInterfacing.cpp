@@ -51,7 +51,6 @@ namespace SAT
 
   NapSATInterfacing::~NapSATInterfacing() {
     Lib::env.statistics->removeFinalizationCallback(call_back_id);
-    print_statistics(_solver);
     delete_solver(_solver);
   }
 
