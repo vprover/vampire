@@ -664,7 +664,7 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
           axiomPath = "unknown";
         }
       }
-      inferenceStr="file("+std::string(axiomPath)+","+quoteAxiomName(axiomName)+")";
+      inferenceStr="file("+quoteAxiomName(std::string(axiomPath))+","+quoteAxiomName(axiomName)+")";
     }
     else if (!parents.hasNext()) {
       std::string newSymbolInfo;
