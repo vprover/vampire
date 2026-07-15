@@ -150,16 +150,18 @@ class Definizator : public BottomUpTermTransformer {
           // it is correct, because the lhs below is t and not key
           auto equation = Literal::createEquality(true, res, TermList(t), SortHelper::getResultSort(res.term()));
           Inference inference(NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FUNCTION_DEFINITION));
+          Unit* intro;
 
           // unflip equation first if needed to document original orientation for TSTP
           if (res == equation->termArg(0)) {
             newDef = Clause::fromLiterals({ equation }, inference);
+            intro = newDef;
           } else {
-            auto fu = new FormulaUnit(new AtomicFormula(equation, /*flipForPrinting=*/true), inference);
-            newDef = Clause::fromLiterals({ equation }, FormulaClauseTransformation(InferenceRule::REORIENT_EQUATIONS, fu));
+            intro = new FormulaUnit(new AtomicFormula(equation, /*flipForPrinting=*/true), inference);
+            newDef = Clause::fromLiterals({ equation }, FormulaClauseTransformation(InferenceRule::REORIENT_EQUATIONS, intro));
           }
 
-          InferenceStore::instance()->recordIntroducedSymbol(newDef,SymbolType::FUNC,newSym);
+          InferenceStore::instance()->recordIntroducedSymbol(intro,SymbolType::FUNC,newSym);
         } else {
           // linear term, don't replace (and remember it in cache)
           symAndDef.first = 0;

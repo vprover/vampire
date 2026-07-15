@@ -147,16 +147,18 @@ void DefinitionIntroduction::introduceDefinitionFor(Term *t) {
 
   // unflip equation first if needed to document original orientation for TSTP
   Clause* definition;
+  Unit* intro;
   NonspecificInference0 inf(UnitInputType::AXIOM, InferenceRule::FUNCTION_DEFINITION);
   if (TermList(def) == eq->termArg(0)) {
     definition = Clause::fromLiterals({eq}, inf);
+    intro = definition;
   } else {
-    auto fu = new FormulaUnit(new AtomicFormula(eq, /*flipForPrinting=*/true), inf);
-    definition = Clause::fromLiterals({eq}, FormulaClauseTransformation(InferenceRule::REORIENT_EQUATIONS, fu));
+    intro = new FormulaUnit(new AtomicFormula(eq, /*flipForPrinting=*/true), inf);
+    definition = Clause::fromLiterals({eq}, FormulaClauseTransformation(InferenceRule::REORIENT_EQUATIONS, intro));
   }
 
   // record definition
-  InferenceStore::instance()->recordIntroducedSymbol(definition, SymbolType::FUNC, functor);
+  InferenceStore::instance()->recordIntroducedSymbol(intro, SymbolType::FUNC, functor);
 
   _definitions.push_back(definition);
 }
