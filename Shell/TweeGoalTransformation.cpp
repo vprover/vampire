@@ -30,6 +30,7 @@
  */
 
 #include "Kernel/Clause.hpp"
+#include "Kernel/FormulaUnit.hpp"
 #include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/TermIterators.hpp"
@@ -167,9 +168,16 @@ class Definizator : public BottomUpTermTransformer {
 
           // (we don't care the definition is not rectified, as long as it's correct)
           // it is correct, because the lhs below is t and not key
-          auto equation = Literal::createEquality(true, TermList(t), res, SortHelper::getResultSort(res.term()));
+          auto equation = Literal::createEquality(true, res, TermList(t), SortHelper::getResultSort(res.term()));
           Inference inference(NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FUNCTION_DEFINITION));
-          newDef = Clause::fromLiterals({ equation }, inference);
+
+          // unflip equation first if needed to document original orientation for TSTP
+          if (res == equation->termArg(0)) {
+            newDef = Clause::fromLiterals({ equation }, inference);
+          } else {
+            auto fu = new FormulaUnit(new AtomicFormula(equation, /*flipForPrinting=*/true), inference);
+            newDef = Clause::fromLiterals({ equation }, FormulaClauseTransformation(InferenceRule::REORIENT_EQUATIONS, fu));
+          }
 
           InferenceStore::instance()->recordIntroducedSymbol(newDef,SymbolType::FUNC,newSym);
         } else {
