@@ -672,16 +672,7 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
     else if (!parents.hasNext()) {
       std::string newSymbolInfo;
       if (hasNewSymbols(us)) {
-        std::string newSymbOrigin;
-        if (
-          rule == InferenceRule::FUNCTION_DEFINITION ||
-          rule == InferenceRule::FOOL_ITE_DEFINITION || rule == InferenceRule::FOOL_LET_DEFINITION ||
-          rule == InferenceRule::FOOL_FORMULA_DEFINITION || rule == InferenceRule::FOOL_MATCH_DEFINITION) {
-          newSymbOrigin = "definition";
-        } else {
-          newSymbOrigin = "naming";
-        }
-	      newSymbolInfo = getNewSymbols(newSymbOrigin,us);
+        newSymbolInfo = getNewSymbols("definition",us);
       }
       inferenceStr="introduced(definition,["+newSymbolInfo+"],["+tptpRuleName(rule)+"])";
     }
@@ -848,7 +839,7 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
     SymbolId nameSymbol = SymbolId(SymbolType::PRED,nameLit->functor());
     std::ostringstream originStm;
     originStm << "introduced(definition,["
-	      << getNewSymbols("naming",getSingletonIterator(nameSymbol))
+	      << getNewSymbols("definition",getSingletonIterator(nameSymbol))
 	      << "],[" << tptpRuleName(rule) << "])";
 
     out<<getFofString(defId, defStr, originStm.str(), rule)<<endl;
