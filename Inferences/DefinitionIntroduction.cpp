@@ -14,6 +14,8 @@
 #include "DefinitionIntroduction.hpp"
 
 #include "Kernel/Clause.hpp"
+#include "Kernel/FormulaUnit.hpp"
+#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/InferenceStore.hpp"
 #include "Lib/Metaiterators.hpp"
@@ -143,9 +145,19 @@ void DefinitionIntroduction::introduceDefinitionFor(Term *t) {
   Term *def = Term::create(functor, sort_arity + term_arity, variables.data());
   Literal *eq = Literal::createEquality(true, TermList(def), TermList(t), range_sort);
 
+  // unflip equation first if needed to document original orientation for TSTP
+  Clause* definition;
+  NonspecificInference0 inf(UnitInputType::AXIOM, InferenceRule::FUNCTION_DEFINITION);
+  if (TermList(def) == eq->termArg(0)) {
+    definition = Clause::fromLiterals({eq}, inf);
+  } else {
+    auto fu = new FormulaUnit(new AtomicFormula(eq, /*flipForPrinting=*/true), inf);
+    definition = Clause::fromLiterals({eq}, FormulaClauseTransformation(InferenceRule::REORIENT_EQUATIONS, fu));
+  }
+
   // record definition
-  auto definition = Clause::fromLiterals({eq}, NonspecificInference0(UnitInputType::AXIOM, InferenceRule::FUNCTION_DEFINITION));
   InferenceStore::instance()->recordIntroducedSymbol(definition, SymbolType::FUNC, functor);
+
   _definitions.push_back(definition);
 }
 
