@@ -36,14 +36,14 @@ public:
 
 private:
   Clause* trySplitClause(Clause* cl);
-  Literal* splitLiteral(Literal* lit, UnitInputType inpType, Clause*& premise);
+  Literal* splitLiteral(Literal* lit, UnitInputType inpType, Unit*& premise);
 
   Literal* makeNameLiteral(unsigned predNum, TermList arg, bool polarity, TermStack vars);
 
   bool isSplittable(Literal* lit);
   bool isSplittableEqualitySide(TermList t);
 
-  Stack<Clause*> _predDefs;
+  Stack<Unit*> _addedUnits;
   unsigned _splittingTreshold;
   bool _appify; // do it the higher-order way
 };
