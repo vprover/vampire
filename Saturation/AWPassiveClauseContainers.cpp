@@ -138,6 +138,7 @@ AWPassiveClauseContainer::AWPassiveClauseContainer(bool isOutermost, const Shell
   _simulationCurrWeightIt(_weightQueue),
   _simulationCurrAgeCl(nullptr),
   _simulationCurrWeightCl(nullptr),
+  _simulationRemaining(0),
   _ageSelectionMaxAge(UINT_MAX),
   _ageSelectionMaxWeight(UINT_MAX),
   _weightSelectionMaxWeight(UINT_MAX)
@@ -280,6 +281,7 @@ void AWPassiveClauseContainer::onLimitsUpdated()
 void AWPassiveClauseContainer::simulationInit()
 {
   _simulationBalance = _balance;
+  _simulationRemaining = _size;
 
   // initialize iterators
   _simulationCurrAgeIt = ClauseQueue::Iterator(_ageQueue);
@@ -301,45 +303,42 @@ void AWPassiveClauseContainer::simulationInit()
 
 bool AWPassiveClauseContainer::simulationHasNext()
 {
+  return _simulationRemaining > 0;
+}
+
+void AWPassiveClauseContainer::syncSimulationCursors()
+{
+  if (_simulationRemaining == 0) {
+    return;
+  }
+
   ASS(_simulationCurrAgeCl != nullptr || _simulationCurrWeightCl == nullptr);
   ASS(_simulationCurrAgeCl == nullptr || _simulationCurrWeightCl != nullptr);
 
-  if (_simulationCurrAgeCl == nullptr)
-  {
-    // degenerate case: both containers are empty, so return false
-    return false;
-  }
+  ASS(_simulationCurrAgeCl);
+  ASS(_simulationCurrWeightCl);
 
-  // advance _simulationCurrAgeIt, until _simulationCurrAgeCl points to a
-  // clause which has not been deleted in the simulation or _simulationCurrAgeIt
-  // reaches the end of the age-queue
-  // establishes invariant: if there is a clause which is not deleted in the simulation, then _simulationCurrAgeCl is not deleted.
-  while (_simulationCurrAgeCl->hasAux() && _simulationCurrAgeIt.hasNext())
-  {
+  while (_simulationCurrAgeCl->hasAux()) {
+    ASS(_simulationCurrAgeIt.hasNext());
     _simulationCurrAgeCl = _simulationCurrAgeIt.next();
   }
-  ASS(_simulationCurrAgeCl != nullptr);
 
-  // advance _simulationCurrWeightIt, until _simulationCurrWeightCl points to a
-  // clause which has not been deleted in the simulation or _simulationCurrWeightIt
-  // reaches the end of the weight-queue
-  // establishes invariant: if there is a clause which is not deleted in the simulation, then _simulationCurrWeightCl is not deleted.
-  while (_simulationCurrWeightCl->hasAux() && _simulationCurrWeightIt.hasNext())
-  {
+  while (_simulationCurrWeightCl->hasAux()) {
+    ASS(_simulationCurrWeightIt.hasNext());
     _simulationCurrWeightCl = _simulationCurrWeightIt.next();
   }
-  ASS(_simulationCurrWeightCl != nullptr);
 
-  ASS(!_simulationCurrAgeCl->hasAux() || _simulationCurrWeightCl->hasAux());
-  ASS(_simulationCurrAgeCl->hasAux() || !_simulationCurrWeightCl->hasAux());
-
-  return !_simulationCurrAgeCl->hasAux();
+  ASS(!_simulationCurrAgeCl->hasAux());
+  ASS(!_simulationCurrWeightCl->hasAux());
 }
 
 // assumes that simulationHasNext() has been called before and returned true,
 // so each iterator (if used) does point to a clause which is not deleted in the simulation
 void AWPassiveClauseContainer::simulationPopSelected()
 {
+  ASS(simulationHasNext());
+  syncSimulationCursors();
+
   // invariants:
   // - both queues share the aux-field which denotes whether a clause was deleted during the simulation
   // - both queues contain the same clauses
@@ -354,6 +353,7 @@ void AWPassiveClauseContainer::simulationPopSelected()
     ASS(!_simulationCurrAgeCl->hasAux());
     _simulationCurrAgeCl->setAux();
   }
+  _simulationRemaining--;
 }
 
 bool AWPassiveClauseContainer::setLimitsToMax()
@@ -363,19 +363,12 @@ bool AWPassiveClauseContainer::setLimitsToMax()
 
 bool AWPassiveClauseContainer::setLimitsFromSimulation()
 {
-  ASS(_simulationCurrAgeCl != nullptr || _simulationCurrWeightCl == nullptr);
-  ASS(_simulationCurrAgeCl == nullptr || _simulationCurrWeightCl != nullptr);
-
-  if (_simulationCurrAgeCl == nullptr)
-  {
-    // degenerate case: both containers are empty, so set limits to max.
+  if (_simulationRemaining == 0) {
     return setLimitsToMax();
   }
-  else
-  {
-    ASS(!_simulationCurrAgeCl->hasAux() || _simulationCurrWeightCl->hasAux());
-    ASS(_simulationCurrAgeCl->hasAux() || !_simulationCurrWeightCl->hasAux());
-  }
+  syncSimulationCursors();
+  ASS(_simulationCurrAgeCl != nullptr);
+  ASS(_simulationCurrWeightCl != nullptr);
 
   unsigned maxAgeQueueAge;
   unsigned maxAgeQueueWeight;

@@ -30,21 +30,24 @@ SATLiteralStack SATSolver::explicitlyMinimizedFailedAssumptions(unsigned conflic
     Shell::Shuffling::shuffleArray(failed,sz);
   }
 
-  SATLiteralStack assumptions;
+  SATLiteralStack assumptions = failed;
   unsigned i = 0;
   while (i < sz) {
-    assumptions.reset();
-    // load all but i-th
-    for (unsigned j = 0; j < sz; j++) {
-      if (j != i) {
-        assumptions.push(failed[j]);
-      }
-    }
+    ASS_EQ(assumptions.size(), sz);
+
+    // temporarily remove assumption via swap-with-last.
+    SATLiteral removed = assumptions[i];
+    SATLiteral swappedIn = assumptions[sz-1];
+    assumptions[i] = swappedIn;
+    assumptions.pop();
 
     if (solveUnderAssumptionsLimited(assumptions, conflictCountLimit) == Status::UNSATISFIABLE) {
       // leave out forever by overwriting by the last one (buffer shrinks implicitly)
       failed[i] = failed[--sz];
     } else {
+      // restore assumptions to previous
+      assumptions.push(swappedIn);
+      assumptions[i] = removed;
       // move on
       i++;
     }

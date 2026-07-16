@@ -80,3 +80,25 @@ TEST_FUN(removeDuplicateLiterals_tautology_among_others)
 
   ASS(!result);
 }
+
+TEST_FUN(removeDuplicateLiterals_disjoint_duplicate_groups)
+{
+  // {~p, ~p, q, q, ~r} should become {~p, q, ~r}
+  auto cl = satClause({ ~p, q, ~r, q, ~p });
+  auto result = SATClause::removeDuplicateLiterals(cl);
+
+  ASS(result);
+  ASS_EQ(result->length(), 3u);
+  ASS_EQ((*result)[0], ~p);
+  ASS_EQ((*result)[1], q);
+  ASS_EQ((*result)[2], ~r);
+}
+
+TEST_FUN(removeDuplicateLiterals_mixed_duplicate_groups)
+{
+  // {~p, p, p} is a tautology because of (~p, p), even with duplicates
+  auto cl = satClause({ p, p, ~p });
+  auto result = SATClause::removeDuplicateLiterals(cl);
+
+  ASS(!result);
+}
