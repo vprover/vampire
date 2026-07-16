@@ -366,9 +366,9 @@ enum class InferenceRule : unsigned char {
   /** equality proxy replacement */
   EQUALITY_PROXY_REPLACEMENT,
   /** definition of the equality proxy predicate in the form E(x,y) <=> x=y */
-  EQUALITY_PROXY_AXIOM1,
+  EQUALITY_PROXY_DEFINITION,
   /** equality proxy axioms such as E(x,x) or ~E(x,y) \/ x=y */
-  EQUALITY_PROXY_AXIOM2,
+  EQUALITY_PROXY_AXIOM,
   /** unfolding by definitions f(x1,...,xn)=t */
   DEFINITION_UNFOLDING,
 

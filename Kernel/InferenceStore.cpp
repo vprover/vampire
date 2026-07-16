@@ -474,6 +474,7 @@ protected:
     case InferenceRule::FOOL_MATCH_DEFINITION:
     case InferenceRule::GENERAL_SPLITTING_COMPONENT:
     case InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION:
+    case InferenceRule::EQUALITY_PROXY_DEFINITION:
       return "definition";
     default:
       return "plain";
@@ -891,8 +892,8 @@ protected:
     case InferenceRule::SKOLEMIZE:
     case InferenceRule::SKOLEM_SYMBOL_INTRODUCTION:
     case InferenceRule::EQUALITY_PROXY_REPLACEMENT:
-    case InferenceRule::EQUALITY_PROXY_AXIOM1:
-    case InferenceRule::EQUALITY_PROXY_AXIOM2:
+    case InferenceRule::EQUALITY_PROXY_DEFINITION:
+    case InferenceRule::EQUALITY_PROXY_AXIOM:
     case InferenceRule::NEGATED_CONJECTURE:
     case InferenceRule::RECTIFY:
     case InferenceRule::FLATTEN:
@@ -1557,8 +1558,8 @@ protected:
     case InferenceRule::SKOLEMIZE:
     case InferenceRule::SKOLEM_SYMBOL_INTRODUCTION:
     case InferenceRule::EQUALITY_PROXY_REPLACEMENT:
-    case InferenceRule::EQUALITY_PROXY_AXIOM1:
-    case InferenceRule::EQUALITY_PROXY_AXIOM2:
+    case InferenceRule::EQUALITY_PROXY_DEFINITION:
+    case InferenceRule::EQUALITY_PROXY_AXIOM:
     case InferenceRule::NEGATED_CONJECTURE:
     case InferenceRule::RECTIFY:
     case InferenceRule::FLATTEN:
