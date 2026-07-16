@@ -553,6 +553,20 @@ bool SaturationAlgorithm::makeReadyForEval(Clause* c) {
   return false;
 }
 
+void SaturationAlgorithm::notifyNeuralModelOfAvatarBranchChange()
+{
+  if (_neuralActivityRecoring) {
+    _neuralModel->journalSpecial(NeuralClauseEvaluationModel::JOURNAL_AVATAR_BRANCH);
+  }
+}
+
+void SaturationAlgorithm::notifyNeuralModelOfAvatarRefutation()
+{
+  if (_neuralActivityRecoring) {
+    _neuralModel->journalSpecial(NeuralClauseEvaluationModel::JOURNAL_AVATAR_REFUTED);
+  }
+}
+
 /**
  * A function that is called when a clause is added to the passive clause container.
  */

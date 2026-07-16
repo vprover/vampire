@@ -168,6 +168,8 @@ public:
     JOURNAL_ADD = 0,
     JOURNAL_REM = 1,
     JOURNAL_SEL = 2,
+    JOURNAL_AVATAR_BRANCH = 3,
+    JOURNAL_AVATAR_REFUTED = 4,
   };
 
   void journal(JournalEntry tag, Clause* cl) {
@@ -175,6 +177,11 @@ public:
       (int64_t)tag,
       (int64_t)cl->number()
       });
+  }
+
+  void journalSpecial(JournalEntry tag) {
+    ASS(tag == JOURNAL_AVATAR_BRANCH || tag == JOURNAL_AVATAR_REFUTED)
+    (*_journal)({(int64_t)tag,(int64_t)-1});
   }
 
   void setProofUnitsAndSaveRecorded(std::vector<int64_t>& proof_units, const std::string& filename) {

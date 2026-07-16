@@ -208,6 +208,8 @@ void SplittingBranchSelector::handleSatRefutation()
     UnitList::push(satPrem->inference()->foConversion()->getOrigin(), foPremises);
   ASS(foPremises)
 
+  _parent._sa->notifyNeuralModelOfAvatarRefutation();
+
   if (!env.colorUsed) { // color oblivious, simple approach
     Clause *foRef = Clause::empty(
 #if VZ3
@@ -692,6 +694,10 @@ void Splitter::onAllProcessed()
       std::cout << getLiteralFromName(toRemove[i]) << ",";
     }
     std::cout << std::endl;
+  }
+
+  if(toRemove.isNonEmpty()) {
+    _sa->notifyNeuralModelOfAvatarBranchChange();
   }
 
   {

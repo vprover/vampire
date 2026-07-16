@@ -143,6 +143,9 @@ public:
   // used by FMB's FunctionRelationshipInference
   void setSoftTimeLimit(unsigned deciseconds) { _softTimeLimit = deciseconds; }
 
+  void notifyNeuralModelOfAvatarBranchChange();
+  void notifyNeuralModelOfAvatarRefutation();
+
 protected:
   void init() override;
   MainLoopResult runImpl() override;
@@ -175,7 +178,6 @@ protected:
    * used by LRS to potentially update its estimates.
   */
   virtual void afterUnprocessedLoop(unsigned popsElapsed) {};
-
 private:
   DHSet<unsigned> _predecessorsShown;
   void showPredecessors(Clause* cl);
