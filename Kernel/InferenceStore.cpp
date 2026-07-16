@@ -467,6 +467,7 @@ protected:
       return "negated_conjecture";
     case InferenceRule::AVATAR_DEFINITION:
     case InferenceRule::FUNCTION_DEFINITION:
+    case InferenceRule::PREDICATE_DEFINITION:
     case InferenceRule::FOOL_ITE_DEFINITION:
     case InferenceRule::FOOL_LET_DEFINITION:
     case InferenceRule::FOOL_FORMULA_DEFINITION:
