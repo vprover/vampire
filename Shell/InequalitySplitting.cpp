@@ -15,7 +15,6 @@
 #include "Lib/Environment.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/FormulaUnit.hpp"
 #include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/InferenceStore.hpp"
@@ -69,9 +68,9 @@ bool InequalitySplitting::perform(UnitList*& units)
     }
   }
 
-  while(_addedUnits.isNonEmpty()) {
+  while(_predDefs.isNonEmpty()) {
     ASS(modified);
-    uit.insert(_addedUnits.pop());
+    uit.insert(_predDefs.pop());
   }
   return modified;
 }
@@ -105,8 +104,8 @@ Clause* InequalitySplitting::trySplitClause(Clause* cl)
   for(unsigned i=firstSplittable; i<clen; i++) {
     Literal* lit= (*cl)[i];
     if(i==firstSplittable || isSplittable(lit)) {
-      Unit* prem;
-      resLits->push(splitLiteral(lit, inpType, prem));
+      Clause* prem;
+      resLits->push(splitLiteral(lit, inpType , prem));
       UnitList::push(prem, premises);
     } else {
       resLits->push(lit);
@@ -134,7 +133,7 @@ Clause* InequalitySplitting::trySplitClause(Clause* cl)
 
 }
 
-Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, Unit*& premise)
+Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, Clause*& premise)
 {
   ASS(isSplittable(lit));
 
@@ -188,39 +187,22 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, 
     sym->markSkip();
   }
 
-  // create definition formula, p(x) <=> x = s
-  Unit* defUnit;
-  {
-    auto freshVar = 0;
-    auto sMaxVar = iterTraits(VariableIterator(s)).max();
-    if (sMaxVar.isSome()) {
-      freshVar = sMaxVar->var() + 1;
-    }
-    defUnit = new FormulaUnit(new BinaryFormula(IFF,
-      new AtomicFormula(makeNameLiteral(fun, TermList::var(freshVar), true, vars)),
-      new AtomicFormula(Literal::createEquality(true, TermList::var(freshVar), s, srt))
-    ), NonspecificInference0(inpType,InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION));
-  }
-  _addedUnits.push(defUnit);
-
-  // create p(s), that follows from the definition
   RStack<Literal*> resLits;
-  auto posCl = Clause::fromLiterals({makeNameLiteral(fun, s, true, vars)}, 
-      NonspecificInference1(InferenceRule::INEQUALITY_SPLITTING, defUnit));
-  _addedUnits.push(posCl);
+  auto defCl = Clause::fromLiterals({makeNameLiteral(fun, t, false, vars)}, 
+      NonspecificInference0(inpType,InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION));
+  _predDefs.push(defCl);
 
   if(_appify){
-    InferenceStore::instance()->recordIntroducedSymbol(defUnit,SymbolType::FUNC,fun);
+    InferenceStore::instance()->recordIntroducedSymbol(defCl,SymbolType::FUNC,fun);
   } else {
-    InferenceStore::instance()->recordIntroducedSymbol(defUnit,SymbolType::PRED,fun);
+    InferenceStore::instance()->recordIntroducedSymbol(defCl,SymbolType::PRED,fun);
   }
 
-  premise=defUnit;
+  premise=defCl;
 
   env.statistics->splitInequalities++;
 
-  // create literal ~p(t) that replaces s != t in original clause
-  return makeNameLiteral(fun, t, false, vars);
+  return makeNameLiteral(fun, s, true, vars);
 }
 
 bool InequalitySplitting::isSplittable(Literal* lit)
