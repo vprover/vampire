@@ -346,7 +346,7 @@ unsigned EqualityProxyMono::getProxyPredicate(TermList sort)
   Formula* defForm = new BinaryFormula(IFF, new AtomicFormula(proxyLit), new AtomicFormula(eqLit));
   Formula* quantDefForm = Formula::quantify(defForm);
 
-  FormulaUnit* defUnit = new FormulaUnit(quantDefForm,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::EQUALITY_PROXY_AXIOM1));
+  FormulaUnit* defUnit = new FormulaUnit(quantDefForm,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::EQUALITY_PROXY_DEFINITION));
 
   s_proxyPremises.insert(sort, defUnit);
   InferenceStore::instance()->recordIntroducedSymbol(defUnit, SymbolType::PRED, newPred);
@@ -379,7 +379,7 @@ Clause* EqualityProxyMono::createEqProxyAxiom(const LiteralStack& literalStack)
     UnitList::push(prem, prems);
   }
   ASS(prems);
-  Clause* res = Clause::fromStack(literalStack,NonspecificInferenceMany(InferenceRule::EQUALITY_PROXY_AXIOM2,prems));
+  Clause* res = Clause::fromStack(literalStack,NonspecificInferenceMany(InferenceRule::EQUALITY_PROXY_AXIOM,prems));
   return res;
 } // EqualityProxy::createEqProxyAxiom
 
