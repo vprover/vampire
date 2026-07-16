@@ -141,6 +141,7 @@ public:
     MatchInfo*& getMatch(unsigned matchIndex);
 
     unsigned matchCnt;
+    unsigned nonOppositeMatchCnt;
 
     /** all possible lits were tried to match */
     bool visited;

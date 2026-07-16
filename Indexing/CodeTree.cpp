@@ -261,6 +261,7 @@ void CodeTree::ILStruct::ensureFreshness(unsigned globalTimestamp)
     finished=false;
     noNonOppositeMatches=false;
     matchCnt=0;
+    nonOppositeMatchCnt=0;
   }
 }
 
@@ -277,7 +278,16 @@ void CodeTree::ILStruct::addMatch(unsigned liIndex, DArray<TermList>& bindingArr
   if(!matches[matchCnt]) {
     matches[matchCnt]=MatchInfo::alloc(varCnt);
   }
-  matches[matchCnt]->init(this, liIndex, bindingArray, opposite);
+  if(opposite) {
+    matches[matchCnt]->init(this, liIndex, bindingArray, true);
+  }
+  else {
+    if(nonOppositeMatchCnt!=matchCnt) {
+      swap(matches[nonOppositeMatchCnt], matches[matchCnt]);
+    }
+    matches[nonOppositeMatchCnt]->init(this, liIndex, bindingArray, false);
+    nonOppositeMatchCnt++;
+  }
   matchCnt++;
 }
 
@@ -294,7 +304,16 @@ void CodeTree::ILStruct::deleteMatch(unsigned matchIndex)
   ASS_L(matchIndex, matchCnt);
 
   matchCnt--;
-  swap(matches[matchIndex], matches[matchCnt]);
+  if(matchIndex<nonOppositeMatchCnt) {
+    nonOppositeMatchCnt--;
+    swap(matches[matchIndex], matches[nonOppositeMatchCnt]);
+    if(nonOppositeMatchCnt!=matchCnt) {
+      swap(matches[nonOppositeMatchCnt], matches[matchCnt]);
+    }
+  }
+  else {
+    swap(matches[matchIndex], matches[matchCnt]);
+  }
 }
 
 CodeTree::MatchInfo*& CodeTree::ILStruct::getMatch(unsigned matchIndex)
