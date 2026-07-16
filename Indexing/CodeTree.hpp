@@ -262,7 +262,7 @@ public:
      * Returns code op in the structure matching the content
      * of flat term entry @b ftPos.
      */
-    CodeOp* getTargetOp(const FlatTerm::Entry* ftPos);
+    CodeOp* getTargetOp(const FlatTerm::Entry* ftPos, bool opposite);
     inline size_t length() const { return targets.size(); }
 
     enum Kind
@@ -404,6 +404,13 @@ public:
     {
         return reinterpret_cast<CodeOp*>(
             reinterpret_cast<std::uintptr_t>(op) | opposite
+        );
+    }
+
+    inline CodeOp* markOp(CodeOp* op, bool value) const
+    {
+        return reinterpret_cast<CodeOp*>(
+            reinterpret_cast<std::uintptr_t>(op) | value
         );
     }
 

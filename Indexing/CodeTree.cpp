@@ -501,14 +501,18 @@ bool CodeTree::SearchStruct::getTargetOpPtr(const CodeOp& insertedOp, CodeOp**& 
 // expose for ClauseCodeTree.cpp
 template bool CodeTree::SearchStruct::getTargetOpPtr<false>(const CodeOp&, CodeOp**&);
 
-CodeTree::CodeOp* CodeTree::SearchStruct::getTargetOp(const FlatTerm::Entry* ftPos)
+CodeTree::CodeOp* CodeTree::SearchStruct::getTargetOp(const FlatTerm::Entry* ftPos, bool opposite)
 {
   if(!ftPos->isFun()) { return 0; }
   switch(kind) {
   case FN_STRUCT:
+    if (opposite) {
+      return static_cast<FnSearchStruct*>(this)->targetOp<false>(ftPos->_number() ^ 1);
+    }
     return static_cast<FnSearchStruct*>(this)->targetOp<false>(ftPos->_number());
   case GROUND_TERM_STRUCT:
     ftPos++;
+    ASS(!opposite);
     ASS_EQ(ftPos->_tag(), FlatTerm::FUN_TERM_PTR);
     return static_cast<GroundTermSearchStruct*>(this)->targetOp<false>(ftPos->_term());
   default:
@@ -844,7 +848,21 @@ inline bool CodeTree::Matcher<removing, checkRange, higherOrder>::doSearchStruct
   ASS_EQ(op->_instruction(), SEARCH_STRUCT);
 
   const FlatTerm::Entry* fte=&(*ft)[tp];
-  CodeOp* target=op->getSearchStruct()->getTargetOp(fte);
+  CodeOp* target=op->getSearchStruct()->getTargetOp(fte, false);
+  if (tp == 0 && op->getSearchStruct()->kind == SearchStruct::FN_STRUCT) {
+    if (!target) {
+      target = op->getSearchStruct()->getTargetOp(fte, true);
+    } else {
+      CodeOp* alt = op->getSearchStruct()->getTargetOp(fte, true);
+      if (alt) {
+        if constexpr (removing) {
+          btStack.push(BTPointRemoving(tp, markOp(alt, true), RemovingBase::firstsInBlocks->size()));
+        } else {
+          btStack.push(BTPoint(tp, markOp(alt, true)));
+        }
+      }
+    }
+  }
   if(!target) {
     return false;
   }
