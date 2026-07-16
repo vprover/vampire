@@ -471,6 +471,7 @@ protected:
     case InferenceRule::FOOL_FORMULA_DEFINITION:
     case InferenceRule::FOOL_MATCH_DEFINITION:
     case InferenceRule::GENERAL_SPLITTING_COMPONENT:
+    case InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION:
       return "definition";
     default:
       return "plain";
