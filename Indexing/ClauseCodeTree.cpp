@@ -814,29 +814,22 @@ bool ClauseCodeTree<higherOrder>::ClauseMatcher::matchGlobalVars(int& resolvedQu
   //  when we get to binding j-th literal
   //  Matches in ILStruct::matches are reordered, so that we always try
   //  the _first_ remaining[j,j] literals
+  // ILStruct::addMatch/deleteMatch maintain non-opposite matches in the
+  // prefix [0, nonOppositeMatchCnt). Try that prefix first to prefer
+  // subsumption over subsumption resolution.
   static TriangularArray<int> remaining(10);
-  remaining.setSide(clen);
-  for(unsigned j=0;j<clen;j++) {
-    ILStruct* ils=lms[j]->getILS();
-    remaining.set(j,0,ils->matchCnt);
-
-//    VERB_OUT("matches "<<ils->matches.size()<<" index:"<<j<<" vars:"<<ils->varCnt<<" linfos:"<<lInfos.size());
-//    for(unsigned y=0;y<ils->matches.size();y++) {
-//      LitInfo* linf=&lInfos[ils->matches[y]->liIndex];
-//      VERB_OUT(" match "<<y<<" liIndex:"<<ils->matches[y]->liIndex<<" op: "<<linf->opposite);
-//      VERB_OUT(" hdr: "<<(*linf->ft)[0].number());
-//    }
-//    for(unsigned x=0;x<ils->varCnt;x++) {
-//      VERB_OUT(" glob var: "<<ils->sortedGlobalVarNumbers[x]);
-//      for(unsigned y=0;y<ils->matches.size();y++) {
-//	VERB_OUT(" match "<<y<<" binding: "<<ils->matches[y]->bindings[x]);
-//      }
-//    }
-  }
-//  VERB_OUT("secOp:"<<(lms[1]->op-1)->instr()<<" "<<(lms[1]->op-1)->arg());
 
   static DArray<int> matchIndex;
   matchIndex.ensure(clen);
+
+  bool allowOpposites=false;
+search_again:
+  remaining.setSide(clen);
+  for(unsigned j=0;j<clen;j++) {
+    ILStruct* ils=lms[j]->getILS();
+    remaining.set(j,0,allowOpposites ? ils->matchCnt : ils->nonOppositeMatchCnt);
+  }
+
   unsigned failLev=0;
   for(unsigned i=0;i<clen;i++) {
     matchIndex[i]=-1;
@@ -847,6 +840,10 @@ bool ClauseCodeTree<higherOrder>::ClauseMatcher::matchGlobalVars(int& resolvedQu
       //no more choices at this level, so try going up
       if(i==0) {
 	RSTAT_MCTR_INC("zero level fails at", failLev);
+	if(sres && !allowOpposites) {
+	  allowOpposites=true;
+	  goto search_again;
+	}
 	return false;
       }
       i--;
