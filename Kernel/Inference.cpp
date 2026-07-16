@@ -596,9 +596,9 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "constrained resolution";
   case InferenceRule::EQUALITY_PROXY_REPLACEMENT:
     return "equality proxy replacement";
-  case InferenceRule::EQUALITY_PROXY_AXIOM1:
+  case InferenceRule::EQUALITY_PROXY_DEFINITION:
     return "equality proxy definition";
-  case InferenceRule::EQUALITY_PROXY_AXIOM2:
+  case InferenceRule::EQUALITY_PROXY_AXIOM:
     return "equality proxy axiom";
   case InferenceRule::EXTENSIONALITY_RESOLUTION:
     return "extensionality resolution";
