@@ -2342,6 +2342,7 @@ void TPTP::funApp()
     case T_LBRA:
       _states.push(ARGS);
       _ints.push(1); // the arity of the function symbol is at least 1
+      _tags.push(T_RBRA); // the expected closing delimiter, checked in endArgs()
       return;
 
     case T_VAR:
@@ -2353,6 +2354,7 @@ void TPTP::funApp()
         resetToks();
         _states.push(ARGS);
         _ints.push(1); // the arity of the function symbol is at least 1
+        _tags.push(T_RPAR); // the expected closing delimiter, checked in endArgs()
       } else {
         _ints.push(0); // arity
       }
@@ -2819,11 +2821,15 @@ void TPTP::endArgs()
     _states.push(TERM);
     return;
   case T_RPAR:
+  case T_RBRA: {
+    // a function application f(...) must be closed by ')' and a tuple [...] by ']'
+    Tag expected = _tags.pop();
+    if (tok.tag != expected) {
+      PARSE_ERROR_TOK(toString(expected) + " expected after an end of a term",tok);
+    }
     resetToks();
     return;
-  case T_RBRA:
-    resetToks();
-    return;
+  }
   default:
     PARSE_ERROR_TOK(", ) or ] expected after an end of a term",tok);
   }
