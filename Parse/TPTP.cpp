@@ -4394,16 +4394,15 @@ TermList TPTP::readSort()
         arity = _typeConstructorArities.find(fname) ? _typeConstructorArities.get(fname) : 0;
         readTypeArgs(arity);
       } else {
-        int c = getChar(0);
-        //Polymorphic sorts of are of the form 
+        //Polymorphic sorts of are of the form
         //type_con(sort_1, ..., sort_n)
         //the same as standard first-order terms.
         //Code below works, but does not fit the philosophy of
         //this parser. However, recursive calls to readSort are
         //used in for array sorts and tuple sorts, so polymorphism
         //isn't uniquely evil on this front!
-        if(c == '('){
-          consumeToken(T_LPAR);    
+        if(getTok(0).tag == T_LPAR){
+          consumeToken(T_LPAR);
           for(;;){
             arity++;
             _termLists.push(readSort());
@@ -4414,7 +4413,7 @@ TermList TPTP::readSort()
               consumeToken(T_RPAR);
               break;
             } else{
-              ASSERTION_VIOLATION;
+              PARSE_ERROR_TOK(", or ) expected in a sort application",tok);
             }
           }
         }
