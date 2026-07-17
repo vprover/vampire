@@ -1236,7 +1236,7 @@ void TPTP::unitList()
     return;
   }
   if (tok.tag != T_NAME) {
-    PARSE_ERROR_TOK("cnf(), fof(), vampire() or include() expected",tok);
+    PARSE_ERROR_TOK("cnf(), fof(), tff(), thf(), vampire() or include() expected",tok);
   }
   std::string name(tok.content);
   _states.push(UNIT_LIST);
@@ -1270,7 +1270,7 @@ void TPTP::unitList()
     resetToks();
     return;
   }
-  PARSE_ERROR_TOK("cnf(), fof(), vampire() or include() expected",tok);
+  PARSE_ERROR_TOK("cnf(), fof(), tff(), thf(), vampire() or include() expected",tok);
 }
 
 /**
@@ -1304,7 +1304,6 @@ void TPTP::fof(bool fo)
   }
 
   consumeToken(T_COMMA);
-  tok = getTok(0);
   std::string tp = name();
 
   _isQuestion = false;
@@ -1377,7 +1376,6 @@ void TPTP::tff()
   }
 
   consumeToken(T_COMMA);
-  tok = getTok(0);
   std::string tp = name();
   if (tp == "type") {
     // Read a TPTP type declaration.
@@ -1460,7 +1458,7 @@ void TPTP::tff()
   }
   else if (tp == "assumption" || tp == "unknown") {
     // MS: we were silently dropping these until now. I wonder why...
-    USER_ERROR("Unsupported unit type '", tp);
+    USER_ERROR("Unsupported unit type '", tp, "' found");
   }
   else if (tp == "claim") {
     _lastInputType = UnitInputType::CLAIM;
@@ -3229,8 +3227,10 @@ Formula* TPTP::createPredicateApplication(std::string name, unsigned arity)
     // TODO check that we are top-level
 
     // ignore pointless $distinct(x)
-    if(arity < 2)
+    if(arity < 2) {
+      _termLists.pop(arity);
       return new Formula(true);
+    }
     // If fewer than 5 things are distinct then we add the disequalities
     else if(arity < 5){
       static Stack<unsigned> distincts;
@@ -4163,7 +4163,7 @@ void TPTP::skipToRBRA()
     Token tok = getTok(0);
     switch (tok.tag) {
     case T_EOF:
-      PARSE_ERROR_TOK(") not found",tok);
+      PARSE_ERROR_TOK("] not found",tok);
     case T_LBRA:
       resetToks();
       balance++;
