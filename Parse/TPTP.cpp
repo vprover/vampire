@@ -2137,7 +2137,8 @@ void TPTP::include()
     consumeToken(T_LBRA);
     for(;;) {
       tok = getTok(0);
-      if (tok.tag != T_NAME) {
+      // TPTP name ::= atomic_word | integer (cf. the unit name parsing in fof()/tff())
+      if (tok.tag != T_NAME && tok.tag != T_INT) {
         PARSE_ERROR_TOK("formula name expected",tok);
       }
       resetToks();
