@@ -76,11 +76,13 @@ const int TPTP::PI = 102u;
 const int TPTP::SIGMA = 103u;
 
 /** A pseudo-connective for the _connectives stack (cf. -1 for "no pending
- * connective" and -2 for the "finish a THF formula" marker), signaling that
- * the right-hand side of a THF equality is being parsed: it behaves like -1,
- * except that it does not absorb binary logical connectives, since equality
- * binds tighter than all of them (its sides are <thf_unitary_term>s in the
- * TPTP BNF). Applications (@) still bind tighter and are absorbed. */
+ * connective" and -2 for the "finish a THF formula" marker), marking a
+ * context that parses a "tight" subformula: the right-hand side of a THF
+ * equality, or an application chain being absorbed into the argument of a
+ * formula connective or the body of a binder. It behaves like -1, except
+ * that it does not absorb binary logical connectives, since equality and
+ * application bind tighter than all of them (equality sides are
+ * <thf_unitary_term>s in the TPTP BNF). */
 static const int EQ_RHS = -3;
 
 Unit* TPTP::parseFormulaFromString(const std::string& str)
@@ -1752,6 +1754,21 @@ void TPTP::endHolFormula()
       endFormulaInsideTerm();
     }
     return;
+  }
+
+  if (((con < HOL_CONSTANTS_LOWER_BOUND && con != -1 && con != EQ_RHS) || con == LAMBDA) &&
+      (_lastPushed == TM) && (getTok(0).tag == T_APP)) {
+    // an application (@) binds tighter than all formula connectives and
+    // binders: before converting the term just parsed to a formula (or
+    // closing a binder over it), absorb the whole application chain (and a
+    // possible trailing equality) into the term, then reconsider con.
+    // For IMP/AND/OR, the conReverse flag has not been popped yet at this
+    // point and simply stays in _bools for the later reconsideration.
+    _connectives.push(con);
+    _states.push(END_HOL_FORMULA);
+    _connectives.push(EQ_RHS);
+    _states.push(END_HOL_FORMULA);
+    return; // '@' is not consumed: the EQ_RHS context absorbs the application
   }
 
   if ((con < HOL_CONSTANTS_LOWER_BOUND) && (con != -1) && (con != EQ_RHS) && (_lastPushed == TM)){
