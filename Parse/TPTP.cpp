@@ -783,10 +783,13 @@ void TPTP::skipWhiteSpacesAndComments()
 	}
 	// c == '*'
 	c = getChar(0);
-	shiftChars(1);
 	if (c != '/') {
+	  // do not consume: this character must be re-examined from the top
+	  // of the loop (it may be another '*' starting the closing '*/',
+	  // or a newline that needs counting)
 	  continue;
 	}
+	shiftChars(1);
 	break;
       }
       break;
