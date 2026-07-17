@@ -1575,6 +1575,7 @@ void TPTP::holFormula()
   case T_OR:
   case T_IMPLY:
   case T_IFF:
+  case T_XOR:
   case T_NAME:
   case T_VAR:
   case T_ITE:
