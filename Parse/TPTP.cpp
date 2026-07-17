@@ -1815,6 +1815,21 @@ switch (tag) {
   case T_EQUAL:
   case T_NEQ: {
     // not connectives, but we allow formulas to be arguments to = and !=
+    if (con == APP) {
+      // an application binds tighter than equality: finish building it and
+      // reconsider '='/'!=' (not consumed yet) with the enclosing connective
+      _states.push(END_HOL_FORMULA);
+      _states.push(END_APP);
+      return;
+    }
+    // as in endFormula(), restore the pending connective (with its conReverse
+    // flag) and re-push END_HOL_FORMULA, so that once the equality atom is
+    // built, connective parsing resumes as if the atom were a simple formula
+    _connectives.push(con);
+    if (con == IMP || con == AND || con == OR) {
+      _bools.push(conReverse);
+    }
+    _states.push(END_HOL_FORMULA);
     _states.push(END_EQ);
     _connectives.push(-1);
     _states.push(END_HOL_FORMULA);
