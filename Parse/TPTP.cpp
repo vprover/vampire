@@ -2685,10 +2685,11 @@ Substitution TPTP::getTypeSub(const TPTP::LetSymbolReference& ref)
   return subst;
 }
 
-bool TPTP::findLetSymbol(LetSymbolName symbolName, LetSymbolReference& symbolReference) {
-  Stack<LetSymbols>::TopFirstIterator scopes(_letSymbols);
+bool TPTP::findLetSymbol(const LetSymbolName& symbolName, LetSymbolReference& symbolReference) {
+  // ConstRefIterator, as the top-first ConstIterator would deep-copy each scope
+  Stack<LetSymbols>::ConstRefIterator scopes(_letSymbols);
   while (scopes.hasNext()) {
-    LetSymbols scope = scopes.next();
+    const LetSymbols& scope = scopes.next();
     if (findLetSymbol(symbolName, scope, symbolReference)) {
       return true;
     }
@@ -2696,7 +2697,7 @@ bool TPTP::findLetSymbol(LetSymbolName symbolName, LetSymbolReference& symbolRef
   return false;
 } // findLetSymbol(LetSymbolName,LetSymbolReference)
 
-bool TPTP::findLetSymbol(LetSymbolName symbolName, LetSymbols scope, LetSymbolReference& symbolReference) {
+bool TPTP::findLetSymbol(const LetSymbolName& symbolName, const LetSymbols& scope, LetSymbolReference& symbolReference) {
   for (const auto& [name,ref] : scope) {
     if (name == symbolName) {
       symbolReference = ref;

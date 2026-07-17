@@ -624,8 +624,8 @@ private:
   static Substitution getTypeSub(const LetSymbolReference& ref);
 
   /** finds if the symbol has been defined in an enclosing $let */
-  bool findLetSymbol(LetSymbolName symbolName, LetSymbolReference& symbolReference);
-  bool findLetSymbol(LetSymbolName symbolName, LetSymbols scope, LetSymbolReference& symbolReference);
+  bool findLetSymbol(const LetSymbolName& symbolName, LetSymbolReference& symbolReference);
+  bool findLetSymbol(const LetSymbolName& symbolName, const LetSymbols& scope, LetSymbolReference& symbolReference);
 
   typedef Stack<LetSymbolReference> LetDefinitions;
   Stack<LetDefinitions> _letDefinitions;
