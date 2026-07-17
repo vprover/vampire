@@ -1628,7 +1628,6 @@ void TPTP::holTerm()
 
     case T_BOOL_TYPE:
     case T_DEFAULT_TYPE: {
-      resetToks();
       switch (tok.tag) {
         case T_BOOL_TYPE:
           _termLists.push(AtomicSort::boolSort());
@@ -1748,8 +1747,10 @@ void TPTP::endHolFormula()
   }
 
   if ((con < HOL_CONSTANTS_LOWER_BOUND) && (con != -1) && (_lastPushed == TM)){
-    //At the moment, APP and LAMBDA are the only connectives that can take terms of type
-    //Other than $o as arguments.
+    // formula connectives (those below HOL_CONSTANTS_LOWER_BOUND) take
+    // formulas as arguments, so a term body must be converted; the HOL
+    // operators (LAMBDA, APP, PI, SIGMA) and the "no pending connective"
+    // context (-1) may legitimately operate on terms of any sort
     endTermAsFormula();
   }
 
@@ -1766,7 +1767,6 @@ void TPTP::endHolFormula()
   case IFF:
   case XOR:
   case APP:
-  case -2:
   case -1:
     break;
   case NOT:
@@ -4525,7 +4525,9 @@ TermList TPTP::readSort()
 } // readSort
 
 /**
- * True if c1 has a strictly higher priority than c2.
+ * True if c1 has a strictly higher priority than c2 -- except that APP is
+ * also reported as higher than APP itself, which is what makes application
+ * (@) left-associative.
  * @since 07/07/2011 Manchester
  */
 bool TPTP::higherPrecedence(int c1,int c2)
