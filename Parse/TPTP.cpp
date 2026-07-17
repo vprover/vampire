@@ -78,12 +78,18 @@ const int TPTP::SIGMA = 103u;
 /** A pseudo-connective for the _connectives stack (cf. -1 for "no pending
  * connective" and -2 for the "finish a THF formula" marker), marking a
  * context that parses a "tight" subformula: the right-hand side of a THF
- * equality, or an application chain being absorbed into the argument of a
- * formula connective or the body of a binder. It behaves like -1, except
- * that it does not absorb binary logical connectives, since equality and
- * application bind tighter than all of them (equality sides are
- * <thf_unitary_term>s in the TPTP BNF). */
+ * equality. It behaves like -1, except that it does not absorb binary
+ * logical connectives, since equality and application bind tighter than all
+ * of them (equality sides are <thf_unitary_term>s in the TPTP BNF). */
 static const int EQ_RHS = -3;
+/** Like EQ_RHS, but marking the context that absorbs an unparenthesized
+ * application chain into the argument of a formula connective or the body
+ * of a binder (see the T_APP deferral in endHolFormula()). It is
+ * distinguished from EQ_RHS only so that a '=' following the application is
+ * recognized as a first equality rather than a chained one. */
+static const int APP_ABSORB = -4;
+/** true for the two "tight subformula" contexts above */
+static bool tightContext(int con) { return con == EQ_RHS || con == APP_ABSORB; }
 
 Unit* TPTP::parseFormulaFromString(const std::string& str)
 {
@@ -1505,6 +1511,10 @@ void TPTP::holFormula()
   
   switch (tok.tag) {
   case T_NOT:
+    if (!_connectives.isEmpty() && _connectives.top() == EQ_RHS) {
+      nonConformityWarning(NC_NON_UNITARY_EQUALITY_ARGUMENT,
+        "a unary, quantified or lambda formula as an unparenthesized equality argument is not legal THF; reading e.g. 'r = ~ s' as 'r = (~ s)'");
+    }
     resetToks();
     _connectives.push(NOT);
     _states.push(HOL_FORMULA);
@@ -1528,6 +1538,10 @@ void TPTP::holFormula()
   case T_EXISTS:
    // _states.push(UNBIND_VARIABLES);
   case T_LAMBDA:
+    if (!_connectives.isEmpty() && _connectives.top() == EQ_RHS) {
+      nonConformityWarning(NC_NON_UNITARY_EQUALITY_ARGUMENT,
+        "a unary, quantified or lambda formula as an unparenthesized equality argument is not legal THF; reading e.g. 'r = ~ s' as 'r = (~ s)'");
+    }
     resetToks();
     consumeToken(T_LBRA);
     _connectives.push(tok.tag == T_FORALL ? FORALL : (tok.tag == T_LAMBDA ? LAMBDA : EXISTS));
@@ -1725,6 +1739,22 @@ std::string TPTP::convert(Tag t)
   * @author Ahmed Bhayat
   */
 
+/**
+ * Report (at most once per parser run per kind) that Vampire leniently
+ * accepted input that is not legal according to the TPTP BNF, explaining
+ * the reading it chose.
+ */
+void TPTP::nonConformityWarning(NonConformity kind, const std::string& explanation)
+{
+  if (_nonConformityWarned[kind]) {
+    return;
+  }
+  _nonConformityWarned[kind] = true;
+  std::cout << "% WARNING: non-conforming THF input in " << currentFile.path
+            << ", line " << currentFile.lineNumber << ": " << explanation
+            << " (further occurrences of this kind will not be reported in this run)" << endl;
+}
+
 void TPTP::endHolFormula()
 {
   int con = _connectives.pop();
@@ -1746,6 +1776,10 @@ void TPTP::endHolFormula()
     // NOT is treated the same way, so that the (strictly non-conforming)
     // '~ p = q' reads as '~ (p = q)', consistent with the reading the TPTP
     // BNF mandates for the same text in FOF/TFF.
+    if (con == NOT) {
+      nonConformityWarning(NC_NOT_APPLIED_TO_EQUALITY,
+        "'~' applied to an unparenthesized (in)equality is not legal THF; reading '~ s = t' as '~ (s = t)'");
+    }
     _connectives.push(con);
     _states.push(END_HOL_FORMULA);
     _states.push(END_EQ);
@@ -1759,7 +1793,7 @@ void TPTP::endHolFormula()
     return;
   }
 
-  if (((con < HOL_CONSTANTS_LOWER_BOUND && con != -1 && con != EQ_RHS) || con == LAMBDA) &&
+  if (((con < HOL_CONSTANTS_LOWER_BOUND && con != -1 && !tightContext(con)) || con == LAMBDA) &&
       (_lastPushed == TM) && (getTok(0).tag == T_APP)) {
     // an application (@) binds tighter than all formula connectives and
     // binders: before converting the term just parsed to a formula (or
@@ -1767,14 +1801,16 @@ void TPTP::endHolFormula()
     // possible trailing equality) into the term, then reconsider con.
     // For IMP/AND/OR, the conReverse flag has not been popped yet at this
     // point and simply stays in _bools for the later reconsideration.
+    nonConformityWarning(NC_UNPARENTHESIZED_APPLICATION,
+      "an unparenthesized application as a connective argument or binder body is not legal THF; reading e.g. 'p & f @ x' as 'p & (f @ x)'");
     _connectives.push(con);
     _states.push(END_HOL_FORMULA);
-    _connectives.push(EQ_RHS);
+    _connectives.push(APP_ABSORB);
     _states.push(END_HOL_FORMULA);
-    return; // '@' is not consumed: the EQ_RHS context absorbs the application
+    return; // '@' is not consumed: the APP_ABSORB context absorbs the application
   }
 
-  if ((con < HOL_CONSTANTS_LOWER_BOUND) && (con != -1) && (con != EQ_RHS) && (_lastPushed == TM)){
+  if ((con < HOL_CONSTANTS_LOWER_BOUND) && (con != -1) && !tightContext(con) && (_lastPushed == TM)){
     // formula connectives (those below HOL_CONSTANTS_LOWER_BOUND) take
     // formulas as arguments, so a term body must be converted; the HOL
     // operators (LAMBDA, APP, PI, SIGMA), the "no pending connective"
@@ -1797,6 +1833,7 @@ void TPTP::endHolFormula()
   case XOR:
   case APP:
   case EQ_RHS:
+  case APP_ABSORB:
   case -1:
     break;
   case NOT:
@@ -1877,6 +1914,10 @@ switch (tag) {
       _states.push(END_APP);
       return;
     }
+    if (con == EQ_RHS) {
+      nonConformityWarning(NC_CHAINED_EQUALITY,
+        "a chained equality is not legal THF; reading 'r = s = t' right-associatively as 'r = (s = t)'");
+    }
     // as in endFormula(), restore the pending connective (with its conReverse
     // flag) and re-push END_HOL_FORMULA, so that once the equality atom is
     // built, connective parsing resumes as if the atom were a simple formula
@@ -1938,6 +1979,7 @@ switch (tag) {
       return;
 
     case EQ_RHS:
+    case APP_ABSORB:
     case -1:
       return;
     default:
@@ -1945,9 +1987,9 @@ switch (tag) {
     }
   }
 
-  if (con == EQ_RHS && c != APP) {
-    // the right-hand side of an equality ends at a binary logical connective
-    // (equality binds tighter than all of them); do not consume the token
+  if (tightContext(con) && c != APP) {
+    // a tight subformula ends at a binary logical connective (equality and
+    // application bind tighter than all of them); do not consume the token
     // and let the enclosing context deal with it
     return;
   }
@@ -1958,9 +2000,9 @@ switch (tag) {
 
 
   // con and c are binary connectives
-  // (with con == EQ_RHS, only reachable when c == APP, an application on the
-  //  equality's RHS is still absorbed via the push-back below)
-  if (con != EQ_RHS && higherPrecedence(con,c)) {
+  // (with con in a tight context, only reachable when c == APP, an
+  //  application is still absorbed via the push-back below)
+  if (!tightContext(con) && higherPrecedence(con,c)) {
     if (con == APP){
       _states.push(END_HOL_FORMULA);
       _states.push(END_APP);
