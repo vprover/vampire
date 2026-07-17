@@ -3434,7 +3434,15 @@ void TPTP::endFormula()
     break;
   case T_EQUAL:
   case T_NEQ: {
-    // not connectives, but we allow formulas to be arguments to = and !=
+    // not connectives, but we allow formulas to be arguments to = and !=;
+    // the pending connective con (with its conReverse flag) must be restored
+    // and END_FORMULA re-pushed, so that after the equality atom is built
+    // connective parsing resumes as if the atom were a simple formula
+    _connectives.push(con);
+    if (con == IMP || con == AND || con == OR) {
+      _bools.push(conReverse);
+    }
+    _states.push(END_FORMULA);
     _states.push(END_EQ);
     _states.push(TERM);
     _states.push(MID_EQ);
