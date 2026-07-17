@@ -714,8 +714,13 @@ void TPTP::skipWhiteSpacesAndComments()
     case 0: // end-of-file
       return;
 
-    case '\n':
     case '\r':
+      currentFile.lineNumber++;
+      // a CRLF pair is a single line break; a lone \r (old Mac style) also counts as one
+      shiftChars(getChar(1) == '\n' ? 2 : 1);
+      break;
+
+    case '\n':
       currentFile.lineNumber++;
     case ' ':
     case '\t':
@@ -762,17 +767,23 @@ void TPTP::skipWhiteSpacesAndComments()
       // search for the end of this comment
       for (;;) {
 	int c = getChar(0);
-        if( c == '\n' || c == '\r'){ currentFile.lineNumber++; }
+        if( c == '\n' || c == '\r'){
+          currentFile.lineNumber++;
+          if (c == '\r' && getChar(1) == '\n') {
+            shiftChars(1); // count a CRLF line ending only once
+          }
+        }
 	if (!c) {
 	  return;
 	}
-	resetChars();
+	// shiftChars instead of resetChars, as the CRLF check above may have peeked one character ahead
+	shiftChars(1);
 	if (c != '*') {
 	  continue;
 	}
 	// c == '*'
 	c = getChar(0);
-	resetChars();
+	shiftChars(1);
 	if (c != '/') {
 	  continue;
 	}
