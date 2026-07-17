@@ -250,7 +250,7 @@ private:
   {
     void init(CodeTree* tree, const TermStack& ts)
     {
-      Matcher::init(tree,tree->getEntryPoint());
+      Matcher::init(tree,tree->getEntryPoint(), false);
 
       ft = FlatTerm::create(ts);
 
@@ -285,7 +285,7 @@ private:
   {
   public:
     void init(FlatTerm* ft_, CodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_) {
-      Matcher::init(tree_, tree_->getEntryPoint(), 0, 0, firstsInBlocks_);
+      Matcher::init(tree_, tree_->getEntryPoint(), false, 0, 0, firstsInBlocks_);
       ft=ft_;
       tp=0;
       op=entry;

@@ -74,13 +74,19 @@ public:
 
   struct MatchInfo
   {
+    unsigned getLiIndex() const { return liIndex & ~leftmost_bit; }
+    TermList* getBindings() { return &bindings[0]; }
+    bool opposite() const { return liIndex & leftmost_bit; }
+
+  private:
     /** Index of the matched LitInfo in the EContext */
     unsigned liIndex;
     /** array of bindings */
     TermList bindings[1];
 
-  private:
-    void init(ILStruct* ils, unsigned liIndex, DArray<TermList>& bindingArray);
+    static constexpr unsigned int leftmost_bit = 1u << (sizeof(unsigned int) * CHAR_BIT - 1);
+
+    void init(ILStruct* ils, unsigned liIndex, DArray<TermList>& bindingArray, bool opposite);
 
     static MatchInfo* alloc(unsigned bindCnt);
 
@@ -130,11 +136,12 @@ public:
     unsigned timestamp;
     //from here on, the values are valid only if the timestamp is current
 
-    void addMatch(unsigned liIndex, DArray<TermList>& bindingArray);
+    void addMatch(unsigned liIndex, DArray<TermList>& bindingArray, bool opposite);
     void deleteMatch(unsigned matchIndex);
     MatchInfo*& getMatch(unsigned matchIndex);
 
     unsigned matchCnt;
+    unsigned nonOppositeMatchCnt;
 
     /** all possible lits were tried to match */
     bool visited;
@@ -255,7 +262,7 @@ public:
      * Returns code op in the structure matching the content
      * of flat term entry @b ftPos.
      */
-    CodeOp* getTargetOp(const FlatTerm::Entry* ftPos);
+    CodeOp* getTargetOp(const FlatTerm::Entry* ftPos, bool opposite);
     inline size_t length() const { return targets.size(); }
 
     enum Kind
@@ -382,7 +389,7 @@ public:
     }
 
   protected:
-    void init(CodeTree* tree_, CodeOp* entry_, LitInfo* linfos_ = 0,
+    void init(CodeTree* tree_, CodeOp* entry_, bool canEnterOpposites, LitInfo* linfos_ = 0,
       size_t linfoCnt_ = 0, Stack<CodeOp*>* firstsInBlocks_ = 0);
 
     bool backtrack();
@@ -392,6 +399,32 @@ public:
     bool doCheckFun();
     bool doCheckGroundTerm();
     bool doSearchStruct();
+
+    inline CodeOp* markOp(CodeOp* op) const
+    {
+        return reinterpret_cast<CodeOp*>(
+            reinterpret_cast<std::uintptr_t>(op) | opposite
+        );
+    }
+
+    inline CodeOp* markOp(CodeOp* op, bool value) const
+    {
+        return reinterpret_cast<CodeOp*>(
+            reinterpret_cast<std::uintptr_t>(op) | value
+        );
+    }
+
+    inline bool getMark(CodeOp* op) const
+    {
+        return (reinterpret_cast<std::uintptr_t>(op) & 1u) != 0;
+    }
+
+    inline CodeOp* unmarkOp(CodeOp* op) const
+    {
+        return reinterpret_cast<CodeOp*>(
+            reinterpret_cast<std::uintptr_t>(op) & ~std::uintptr_t{1}
+        );
+    }
 
     /**
      * Position in the flat term
@@ -417,6 +450,9 @@ public:
 
     CodeOp* entry;
     CodeTree* tree;
+
+    bool opposite;
+    bool canEnterOpposites;
 
     /**
      * Array of alternative LitInfo objects

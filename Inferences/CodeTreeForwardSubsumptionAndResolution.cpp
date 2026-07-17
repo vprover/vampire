@@ -40,6 +40,7 @@ bool CodeTreeForwardSubsumptionAndResolution<higherOrder>::perform(Clause *cl, C
   Clause* premise;
   int resolvedQueryLit;
 
+  //std::cout << "Execute on " << cl->toReproducerString() << std::endl;
   while ((premise = cm.next(resolvedQueryLit))) {
     if (resolvedQueryLit == -1) {
       ASS(satSubs.checkSubsumption(premise, cl));
