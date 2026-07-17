@@ -1969,13 +1969,13 @@ void TPTP::endIte()
   TermList thenBranch = _termLists.pop();
   Formula* condition = _formulas.pop();
   TermList thenSort = sortOf(thenBranch);
-  TermList ts(Term::createITE(condition,thenBranch,elseBranch,thenSort));
   TermList elseSort = sortOf(elseBranch);
   if (thenSort != elseSort) {
     USER_ERROR("sort mismatch in the if-then-else expression: " +
                thenBranch.toString() + " has the sort " + thenSort.toString() + ", whereas " +
                elseBranch.toString() + " has the sort " + elseSort.toString());
   }
+  TermList ts(Term::createITE(condition,thenBranch,elseBranch,thenSort));
   _termLists.push(ts);
 } // endIte
 
