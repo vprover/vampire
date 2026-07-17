@@ -1736,13 +1736,16 @@ void TPTP::endHolFormula()
     return;
   }
 
-  if ((con == FORALL || con == EXISTS || con == LAMBDA) &&
+  if ((con == FORALL || con == EXISTS || con == LAMBDA || con == NOT) &&
       (getTok(0).tag == T_EQUAL || getTok(0).tag == T_NEQ)) {
     // the body of a quantified/lambda formula is a <thf_unit_formula>, which
     // includes equalities (<thf_defined_infix>): '^[X]: X = y' reads as
     // '^[X]: (X = y)'. Defer building the binder: parse the equality first
     // (with the bound variables still in scope) and reconsider the binder
     // connective once the equality atom is built.
+    // NOT is treated the same way, so that the (strictly non-conforming)
+    // '~ p = q' reads as '~ (p = q)', consistent with the reading the TPTP
+    // BNF mandates for the same text in FOF/TFF.
     _connectives.push(con);
     _states.push(END_HOL_FORMULA);
     _states.push(END_EQ);
