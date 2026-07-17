@@ -75,6 +75,14 @@ const int TPTP::PI = 102u;
 /** Sigma function for existential quantification */
 const int TPTP::SIGMA = 103u;
 
+/** A pseudo-connective for the _connectives stack (cf. -1 for "no pending
+ * connective" and -2 for the "finish a THF formula" marker), signaling that
+ * the right-hand side of a THF equality is being parsed: it behaves like -1,
+ * except that it does not absorb binary logical connectives, since equality
+ * binds tighter than all of them (its sides are <thf_unitary_term>s in the
+ * TPTP BNF). Applications (@) still bind tighter and are absorbed. */
+static const int EQ_RHS = -3;
+
 Unit* TPTP::parseFormulaFromString(const std::string& str)
 {
   std::stringstream input(str+")."); // to fake endFOF, which creates the clause
@@ -1736,7 +1744,7 @@ void TPTP::endHolFormula()
     _connectives.push(con);
     _states.push(END_HOL_FORMULA);
     _states.push(END_EQ);
-    _connectives.push(-1);
+    _connectives.push(EQ_RHS);
     _states.push(END_HOL_FORMULA);
     _states.push(HOL_FORMULA);
     _states.push(MID_EQ);
@@ -1746,11 +1754,12 @@ void TPTP::endHolFormula()
     return;
   }
 
-  if ((con < HOL_CONSTANTS_LOWER_BOUND) && (con != -1) && (_lastPushed == TM)){
+  if ((con < HOL_CONSTANTS_LOWER_BOUND) && (con != -1) && (con != EQ_RHS) && (_lastPushed == TM)){
     // formula connectives (those below HOL_CONSTANTS_LOWER_BOUND) take
     // formulas as arguments, so a term body must be converted; the HOL
-    // operators (LAMBDA, APP, PI, SIGMA) and the "no pending connective"
-    // context (-1) may legitimately operate on terms of any sort
+    // operators (LAMBDA, APP, PI, SIGMA), the "no pending connective"
+    // context (-1) and the equality RHS (which may be of any sort)
+    // legitimately operate on terms
     endTermAsFormula();
   }
 
@@ -1767,6 +1776,7 @@ void TPTP::endHolFormula()
   case IFF:
   case XOR:
   case APP:
+  case EQ_RHS:
   case -1:
     break;
   case NOT:
@@ -1856,7 +1866,7 @@ switch (tag) {
     }
     _states.push(END_HOL_FORMULA);
     _states.push(END_EQ);
-    _connectives.push(-1);
+    _connectives.push(EQ_RHS);
     _states.push(END_HOL_FORMULA);
     _states.push(HOL_FORMULA);
     _states.push(MID_EQ);
@@ -1907,6 +1917,7 @@ switch (tag) {
       _states.push(END_HOL_FORMULA);
       return;
 
+    case EQ_RHS:
     case -1:
       return;
     default:
@@ -1914,13 +1925,22 @@ switch (tag) {
     }
   }
 
+  if (con == EQ_RHS && c != APP) {
+    // the right-hand side of an equality ends at a binary logical connective
+    // (equality binds tighter than all of them); do not consume the token
+    // and let the enclosing context deal with it
+    return;
+  }
+
   if ((c != APP) && (con == -1) && (_lastPushed == TM)){
     endTermAsFormula();
   }
 
-  
+
   // con and c are binary connectives
-  if (higherPrecedence(con,c)) {
+  // (with con == EQ_RHS, only reachable when c == APP, an application on the
+  //  equality's RHS is still absorbed via the push-back below)
+  if (con != EQ_RHS && higherPrecedence(con,c)) {
     if (con == APP){
       _states.push(END_HOL_FORMULA);
       _states.push(END_APP);
