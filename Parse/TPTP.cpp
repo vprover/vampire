@@ -1556,6 +1556,12 @@ void TPTP::holFormula()
     USER_ERROR("At the moment Vampire HOL cannot parse definite and indefinite description operators");
   }
 
+  case T_THF_QUANT_SOME:
+    USER_ERROR("At the moment Vampire HOL cannot parse the ?* quantifier");
+
+  case T_TYPE_QUANT:
+    USER_ERROR("At the moment Vampire HOL only supports type quantification (!>) in type declarations, not in formulas");
+
   case T_STRING:
   case T_INT:
   case T_RAT:
