@@ -1537,7 +1537,11 @@ void TPTP::holFormula()
     
   //higher order syntax weirdly allows (~) @ (...)
   case T_RPAR: {
-    ASS(_connectives.top() == NOT);
+    // only legitimate as the closing of a (~) section; anything else,
+    // e.g. an empty (), must be rejected rather than silently made a vNOT
+    if (_connectives.isEmpty() || _connectives.top() != NOT) {
+      PARSE_ERROR_TOK("formula or term expected",tok);
+    }
     _connectives.pop();
     _termLists.push(createFunctionApplication("vNOT", 0));
     _lastPushed = TM;
