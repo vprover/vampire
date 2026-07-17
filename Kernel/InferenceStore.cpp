@@ -274,8 +274,9 @@ protected:
       if (outputAxiomNames && rule==InferenceRule::INPUT) {
         ASS(!parents.hasNext()); //input clauses don't have parents
         std::string name;
-        if (Parse::TPTP::findAxiomName(cs, name)) {
-          out << " " << name;
+        std::filesystem::path path;
+        if (Parse::TPTP::findAxiomName(cs, name, path)) {
+          out << " " << name << " " << path;
         }
       }
 
@@ -466,11 +467,14 @@ protected:
       return "negated_conjecture";
     case InferenceRule::AVATAR_DEFINITION:
     case InferenceRule::FUNCTION_DEFINITION:
+    case InferenceRule::PREDICATE_DEFINITION:
     case InferenceRule::FOOL_ITE_DEFINITION:
     case InferenceRule::FOOL_LET_DEFINITION:
     case InferenceRule::FOOL_FORMULA_DEFINITION:
     case InferenceRule::FOOL_MATCH_DEFINITION:
     case InferenceRule::GENERAL_SPLITTING_COMPONENT:
+    case InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION:
+    case InferenceRule::EQUALITY_PROXY_DEFINITION:
       return "definition";
     default:
       return "plain";
@@ -651,37 +655,24 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
 
     std::string inferenceStr;
     if (rule==InferenceRule::INPUT) {
-      std::string fileName;
-      if (env.options->inputFile()=="") {
-	      fileName="unknown";
-      }
-      else {
-	      fileName="'"+env.options->inputFile()+"'";
-      }
       std::string axiomName;
-      if (!outputAxiomNames || !Parse::TPTP::findAxiomName(us, axiomName)) {
+      std::filesystem::path axiomPath;
+      if (!outputAxiomNames || !Parse::TPTP::findAxiomName(us, axiomName, axiomPath)) {
         // Giles' ucore extraction code parses labels from smtlib files, let's try printing these too
         if (!us->isClause() && us->getFormula()->hasLabel()) {
           axiomName = us->getFormula()->getLabel();
+          axiomPath = "unknown";
         } else {
 	        axiomName="unknown";
+          axiomPath = "unknown";
         }
       }
-      inferenceStr="file("+fileName+","+quoteAxiomName(axiomName)+")";
+      inferenceStr="file("+quoteAxiomName(std::string(axiomPath))+","+quoteAxiomName(axiomName)+")";
     }
     else if (!parents.hasNext()) {
       std::string newSymbolInfo;
       if (hasNewSymbols(us)) {
-        std::string newSymbOrigin;
-        if (
-          rule == InferenceRule::FUNCTION_DEFINITION ||
-          rule == InferenceRule::FOOL_ITE_DEFINITION || rule == InferenceRule::FOOL_LET_DEFINITION ||
-          rule == InferenceRule::FOOL_FORMULA_DEFINITION || rule == InferenceRule::FOOL_MATCH_DEFINITION) {
-          newSymbOrigin = "definition";
-        } else {
-          newSymbOrigin = "naming";
-        }
-	      newSymbolInfo = getNewSymbols(newSymbOrigin,us);
+        newSymbolInfo = getNewSymbols("definition",us);
       }
       inferenceStr="introduced(definition,["+newSymbolInfo+"],["+tptpRuleName(rule)+"])";
     }
@@ -848,7 +839,7 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
     SymbolId nameSymbol = SymbolId(SymbolType::PRED,nameLit->functor());
     std::ostringstream originStm;
     originStm << "introduced(definition,["
-	      << getNewSymbols("naming",getSingletonIterator(nameSymbol))
+	      << getNewSymbols("definition",getSingletonIterator(nameSymbol))
 	      << "],[" << tptpRuleName(rule) << "])";
 
     out<<getFofString(defId, defStr, originStm.str(), rule)<<endl;
@@ -901,8 +892,8 @@ protected:
     case InferenceRule::SKOLEMIZE:
     case InferenceRule::SKOLEM_SYMBOL_INTRODUCTION:
     case InferenceRule::EQUALITY_PROXY_REPLACEMENT:
-    case InferenceRule::EQUALITY_PROXY_AXIOM1:
-    case InferenceRule::EQUALITY_PROXY_AXIOM2:
+    case InferenceRule::EQUALITY_PROXY_DEFINITION:
+    case InferenceRule::EQUALITY_PROXY_AXIOM:
     case InferenceRule::NEGATED_CONJECTURE:
     case InferenceRule::RECTIFY:
     case InferenceRule::FLATTEN:
@@ -1567,8 +1558,8 @@ protected:
     case InferenceRule::SKOLEMIZE:
     case InferenceRule::SKOLEM_SYMBOL_INTRODUCTION:
     case InferenceRule::EQUALITY_PROXY_REPLACEMENT:
-    case InferenceRule::EQUALITY_PROXY_AXIOM1:
-    case InferenceRule::EQUALITY_PROXY_AXIOM2:
+    case InferenceRule::EQUALITY_PROXY_DEFINITION:
+    case InferenceRule::EQUALITY_PROXY_AXIOM:
     case InferenceRule::NEGATED_CONJECTURE:
     case InferenceRule::RECTIFY:
     case InferenceRule::FLATTEN:

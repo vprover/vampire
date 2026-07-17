@@ -178,7 +178,7 @@ std::string Formula::toString () const
 
         const Formula* arg = f->uarg();
         Connective subc = arg->connective();
-        if(subc == FORALL || subc == EXISTS || subc == NOT)
+        if(subc == FORALL || subc == EXISTS || subc == NOT || subc == LITERAL)
           res += " ";
         stack.push({arg->parenthesesRequired(c),NOCONN,arg});
 
@@ -196,7 +196,7 @@ std::string Formula::toString () const
             res += ",";
           }
           res += Term::variableToString(var);
-          if (sort != AtomicSort::defaultSort()) {
+          if (sort != AtomicSort::defaultSort() || env.getMainProblem()->hasNonDefaultSorts()) {
             res += " : " + sort.toString();
           }
           first = false;
