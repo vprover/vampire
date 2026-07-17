@@ -1714,8 +1714,28 @@ void TPTP::endHolFormula()
       endTermAsFormula();
     }
     return;
-  }  
-  
+  }
+
+  if ((con == FORALL || con == EXISTS || con == LAMBDA) &&
+      (getTok(0).tag == T_EQUAL || getTok(0).tag == T_NEQ)) {
+    // the body of a quantified/lambda formula is a <thf_unit_formula>, which
+    // includes equalities (<thf_defined_infix>): '^[X]: X = y' reads as
+    // '^[X]: (X = y)'. Defer building the binder: parse the equality first
+    // (with the bound variables still in scope) and reconsider the binder
+    // connective once the equality atom is built.
+    _connectives.push(con);
+    _states.push(END_HOL_FORMULA);
+    _states.push(END_EQ);
+    _connectives.push(-1);
+    _states.push(END_HOL_FORMULA);
+    _states.push(HOL_FORMULA);
+    _states.push(MID_EQ);
+    if(_lastPushed == FORM){
+      endFormulaInsideTerm();
+    }
+    return;
+  }
+
   if ((con < HOL_CONSTANTS_LOWER_BOUND) && (con != -1) && (_lastPushed == TM)){
     //At the moment, APP and LAMBDA are the only connectives that can take terms of type
     //Other than $o as arguments.
