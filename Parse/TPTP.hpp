@@ -835,6 +835,7 @@ public:
    */
   struct SourceRecord{
     virtual bool isFile() = 0;
+    virtual ~SourceRecord() = default;
   };
   struct FileSourceRecord : SourceRecord {
     const std::string fileName;

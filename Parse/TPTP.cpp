@@ -1322,12 +1322,10 @@ void TPTP::fof(bool fo)
     _lastInputType = UnitInputType::AXIOM;
   }
   else if (tp == "conjecture") {
-    _containsConjecture = true;
     _lastInputType = UnitInputType::CONJECTURE;
   }
   else if (tp == "question") {
     _isQuestion = true;
-    _containsConjecture = true;
     _lastInputType = UnitInputType::CONJECTURE;
   }
   else if (tp == "negated_conjecture") {
@@ -1448,12 +1446,10 @@ void TPTP::tff()
     _lastInputType = UnitInputType::AXIOM;
   }
   else if (tp == "conjecture") {
-    _containsConjecture = true;
     _lastInputType = UnitInputType::CONJECTURE;
   }
   else if (tp == "question") {
     _isQuestion = true;
-    _containsConjecture = true;
     _lastInputType = UnitInputType::CONJECTURE;
   }
   else if (tp == "negated_conjecture") {
@@ -3690,7 +3686,15 @@ void TPTP::endFof()
   Formula* f = _formulas.pop();
   std::string nm = _strings.pop(); // unit name
   if (!currentFile.allowedNames.empty() && !currentFile.allowedNames.count(nm)) {
+    delete source;
+    _curQuestionVarNames.reset();
     return;
+  }
+  if (_lastInputType == UnitInputType::CONJECTURE) {
+    // count the conjecture only now, once the unit is known not to be
+    // filtered out by an include() formula selection
+    // (containsConjecture() decides between SZS Theorem and Unsatisfiable)
+    _containsConjecture = true;
   }
 
   Unit *unit, *original;
