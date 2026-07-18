@@ -3413,7 +3413,16 @@ TermList TPTP::createFunctionApplication(std::string name, unsigned arity)
     insertImplicitLetTypeArguments(ref, arity);
   } else {
     bool dummy;
-    if (arity > 0) {
+    if (_isThf && (name == "vAND" || name == "vOR" || name == "vIMP" ||
+                   name == "vIFF" || name == "vXOR")) {
+      // names of the internal logical proxy constants, as synthesized by the
+      // THF parsing functions (holTerm/holFormula)
+      // TODO: in THF mode, these still capture identically named constants
+      // coming from the input; make the internal names unique to Vampire (AYB)
+      fun = env.signature->getBinaryProxy(name);
+    } else if (_isThf && name == "vNOT") {
+      fun = env.signature->getNotProxy();
+    } else if (arity > 0) {
       fun = addFunction(name, arity, dummy, _termLists.top());
     } else {
       fun = addUninterpretedConstant(name, dummy);
@@ -4828,8 +4837,9 @@ unsigned TPTP::addFunction(std::string name,int arity,bool& added,TermList& arg)
 				 Theory::RAT_TO_REAL,
 				 Theory::REAL_TO_REAL);
   } 
-  if (name == "vPI"  || name == "vSIGMA"){
-    return env.signature->getPiSigmaProxy(name); 
+  if (_isThf && (name == "vPI" || name == "vSIGMA")){
+    // names of the internal pi/sigma proxies, as synthesized by holFormula()
+    return env.signature->getPiSigmaProxy(name);
   }
   if (arity > 0) {
     return env.signature->addFunction(name,arity,added);
@@ -5000,14 +5010,11 @@ TermList TPTP::sortOf(TermList t)
  */
 unsigned TPTP::addUninterpretedConstant(const std::string& name, bool& added)
 {
-  //TODO make sure Vampire internal names are unique to Vampire
-  //and cannot occur in the input AYB
-  if(name == "vAND" || name == "vOR" || name == "vIMP" ||
-     name == "vIFF" || name == "vXOR"){
-    return env.signature->getBinaryProxy(name);
-  } else if (name == "vNOT"){
-    return env.signature->getNotProxy();
-  }
+  // Note: the routing of the internal HOL proxy names (vAND, vNOT, ...) to
+  // their proxy symbols used to live here, capturing identically named
+  // constants in any input dialect (including FOF and SMT-LIB, which
+  // additionally left `added` uninitialized on that path). It now happens
+  // in createFunctionApplication()/addFunction(), only in THF mode.
   return env.signature->addFunction(name,0,added);
 } // TPTP::addUninterpretedConstant
 
