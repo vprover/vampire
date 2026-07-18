@@ -34,6 +34,51 @@ check_exact_output() {
 	fi
 }
 
+# check that a key substring appears in the output: more robust than
+# check_exact_output (e.g. against drifting symbol-table indices in --mode output)
+check_output_contains() {
+	expected="$1"
+	shift
+	run_vampire $@
+	found=`grep -F "$expected" checks/vampire-stdout`
+	if test -z "$found"
+	then
+		echo "check failed: output should contain: $expected"
+		cat checks/vampire-stdout
+		exit 1
+	fi
+}
+
+# as check_output_contains, but the substring must appear exactly once
+check_output_contains_once() {
+	expected="$1"
+	shift
+	run_vampire $@
+	count=`grep -cF "$expected" checks/vampire-stdout`
+	if test "$count" != 1
+	then
+		echo "check failed: output should contain exactly once (found $count times): $expected"
+		cat checks/vampire-stdout
+		exit 1
+	fi
+}
+
+# check that Vampire rejects the input with a message containing the substring
+# (parse errors and user errors are printed to stdout, so run_vampire's stderr
+# check does not trip on them)
+check_rejected() {
+	expected="$1"
+	shift
+	run_vampire $@
+	found=`grep -F "$expected" checks/vampire-stdout`
+	if test -z "$found"
+	then
+		echo "rejection check failed: expected a message containing: $expected"
+		cat checks/vampire-stdout checks/vampire-stderr
+		exit 1
+	fi
+}
+
 # check SZS status
 check_szs_status() {
 	status=$1
@@ -116,6 +161,46 @@ check_szs_status Unsatisfiable parse/smtlib2-mutual-recursion.smt2
 check_szs_status Unsatisfiable -newcnf on parse/let-bind-variable.smt2
 check_szs_status Unsatisfiable -qa synthesis parse/assert-synth-max5.smt2
 check_szs_status Unsatisfiable parse/define-const.smt2
+
+# TPTP parser regression tests: small inputs documenting expected parser
+# behavior, one or two per fix; see the header comments in the files and the
+# corresponding commit messages for details.
+# (rejection tests pass --input_syntax tptp explicitly, so that the auto mode
+#  does not retry the failing input as SMT-LIB and garble the error message)
+check_output_contains '(p & ((q = r)))' --mode output parse/eq-precedence.p
+check_output_contains '(((p = r)) & s)' --mode output parse/eq-precedence.p
+check_rejected 'crlf-line-numbers.p", line 4: formula or term expected' --input_syntax tptp --mode output parse/crlf-line-numbers.p
+check_output_contains 'second_unit_parsed' --mode output parse/block-comment-star.p
+check_rejected ') expected after an end of a term' --input_syntax tptp --mode output parse/mismatched-brackets.p
+check_output_contains '!>[X0: $tType]:(list(X0))' --mode output parse/sort-app-space.p
+check_output_contains 'twenty_seven' --mode output parse/include-selection.p
+check_output_contains 'named_axiom' --mode output parse/include-selection.p
+check_szs_status Unsatisfiable parse/include-filtered-conjecture.p
+check_rejected 'sort mismatch in the if-then-else' --input_syntax tptp --mode output parse/ite-sort-mismatch.p
+check_rejected 'cnf(), fof(), tff(), thf(), vampire() or include() expected' --input_syntax tptp --mode output parse/bad-unit-kind.p
+check_output_contains 'f0(X0) := $sum(X0,1)' --mode output parse/let-function-parse.p
+check_output_contains '(((q = r)) & p)' --mode output parse/thf-eq-truncation.p
+check_output_contains '((((f @ x)) = y))' --mode output parse/thf-eq-truncation.p
+check_output_contains '(^[X0 : tree_b] : ((X0 = e_b)))' --mode output parse/thf-binder-eq.p
+check_output_contains '(![X0 : $o] : (((X0 = X0))))' --mode output parse/thf-binder-eq.p
+check_output_contains '(s & ((p = r)))' --mode output parse/thf-eq-precedence.p
+check_output_contains '(((p = q)) <=> r)' --mode output parse/thf-eq-precedence.p
+check_output_contains '((p = ((f @ x))))' --mode output parse/thf-eq-precedence.p
+check_output_contains '((f @ x) & p)' --mode output parse/thf-app-absorb.p
+check_output_contains '((g @ x @ y) & p)' --mode output parse/thf-app-absorb.p
+check_output_contains '(^[X0 : tree_b] : ((((fb @ X0)) = e_b)))' --mode output parse/thf-app-absorb.p
+check_output_contains_once 'an unparenthesized application as a connective argument or binder body' --mode output parse/thf-app-absorb.p
+check_output_contains '(~((p = q)))' --mode output parse/thf-not-eq.p
+check_output_contains_once "'~' applied to an unparenthesized (in)equality" --mode output parse/thf-non-conformity-warnings.p
+check_output_contains_once 'an unparenthesized application as a connective argument or binder body' --mode output parse/thf-non-conformity-warnings.p
+check_output_contains_once 'as an unparenthesized equality argument' --mode output parse/thf-non-conformity-warnings.p
+check_output_contains_once 'a chained equality is not legal THF' --mode output parse/thf-non-conformity-warnings.p
+check_output_contains '(g @ <~>)' --mode output parse/thf-xor-section.p
+check_rejected 'formula or term expected' --input_syntax tptp --mode output parse/thf-empty-parens.p
+check_rejected 'cannot parse the ?* quantifier' --input_syntax tptp --mode output parse/thf-quant-some.p
+check_rejected 'only supports type quantification (!>) in type declarations' --input_syntax tptp --mode output parse/thf-type-quant-in-formula.p
+check_output_contains '(p(vAND) & p(vNOT))' --mode output parse/proxy-names.p
+check_output_contains '(c = vPI(c))' --mode output parse/proxy-names.p
 
 # Arithmetic
 check_szs_status Theorem -t 1d -s 32 -tgt ground -sas z3 -tha some -nm 6 Problems/ANA/ANA135_1.p

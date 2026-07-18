@@ -624,8 +624,8 @@ private:
   static Substitution getTypeSub(const LetSymbolReference& ref);
 
   /** finds if the symbol has been defined in an enclosing $let */
-  bool findLetSymbol(LetSymbolName symbolName, LetSymbolReference& symbolReference);
-  bool findLetSymbol(LetSymbolName symbolName, LetSymbols scope, LetSymbolReference& symbolReference);
+  bool findLetSymbol(const LetSymbolName& symbolName, LetSymbolReference& symbolReference);
+  bool findLetSymbol(const LetSymbolName& symbolName, const LetSymbols& scope, LetSymbolReference& symbolReference);
 
   typedef Stack<LetSymbolReference> LetDefinitions;
   Stack<LetDefinitions> _letDefinitions;
@@ -636,6 +636,25 @@ private:
   // A hack to hard-code the precedence of = and != higher than connectives
   // This is needed for implementation of FOOL
   unsigned _insideEqualityArgument;
+
+  /** Kinds of input that are not legal per the TPTP BNF but that we accept
+   * leniently, inventing a reading. Each kind is warned about at most once
+   * per parser run (see nonConformityWarning). */
+  enum NonConformity {
+    /** '~ s = t' read as '~ (s = t)' */
+    NC_NOT_APPLIED_TO_EQUALITY,
+    /** 'p & f @ x' read as 'p & (f @ x)'; '^[X]: f @ X' as '^[X]: (f @ X)' */
+    NC_UNPARENTHESIZED_APPLICATION,
+    /** 'r = ~ s' read as 'r = (~ s)'; 'g = ^[X]: t' as 'g = (^[X]: t)' */
+    NC_NON_UNITARY_EQUALITY_ARGUMENT,
+    /** 'r = s = t' read as 'r = (s = t)' */
+    NC_CHAINED_EQUALITY,
+    /** the number of kinds above */
+    NC_KINDS
+  };
+  /** which non-conformity kinds have already been warned about in this run */
+  bool _nonConformityWarned[NC_KINDS] = {};
+  void nonConformityWarning(NonConformity kind, const std::string& explanation);
 
   /**
    * Get the next characters at the position pos.
@@ -835,6 +854,7 @@ public:
    */
   struct SourceRecord{
     virtual bool isFile() = 0;
+    virtual ~SourceRecord() = default;
   };
   struct FileSourceRecord : SourceRecord {
     const std::string fileName;
@@ -882,8 +902,6 @@ private:
 
 
 #if VDEBUG
-  void printStates(std::string extra);
-  void printInts(std::string extra);
   const char* toString(State s);
 #endif
 #ifdef DEBUG_SHOW_STATE
