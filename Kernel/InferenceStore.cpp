@@ -454,6 +454,9 @@ protected:
 
   std::string getRole(InferenceRule rule, UnitInputType origin)
   {
+    if (isTheoryAxiomRule(rule)) {
+      return "definition";
+    }
     switch(rule) {
     case InferenceRule::INPUT:
       if (origin==UnitInputType::CONJECTURE) {
@@ -475,6 +478,7 @@ protected:
     case InferenceRule::GENERAL_SPLITTING_COMPONENT:
     case InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION:
     case InferenceRule::EQUALITY_PROXY_DEFINITION:
+    case InferenceRule::THEORY_TAUTOLOGY_SAT_CONFLICT:
       return "definition";
     default:
       return "plain";
@@ -673,8 +677,11 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
       std::string newSymbolInfo;
       if (hasNewSymbols(us)) {
         newSymbolInfo = getNewSymbols("definition",us);
+        inferenceStr="introduced(definition,["+newSymbolInfo+"],["+tptpRuleName(rule)+"])";
+      } else {
+        // without introduced symbols we have to claim that the axiom comes from a theory
+        inferenceStr="introduced(theory,["+tptpRuleName(rule)+"])";
       }
-      inferenceStr="introduced(definition,["+newSymbolInfo+"],["+tptpRuleName(rule)+"])";
     }
     else {
       ASS(parents.hasNext());
