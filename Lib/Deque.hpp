@@ -62,7 +62,7 @@ public:
     C* p=_back;
     while(p!=_front) {
       if(p==_data) {
-	p=_end;
+        p=_end;
       }
       (--p)->~C();
     }
@@ -214,7 +214,6 @@ public:
     return *res;
   }
 
-  
   /**
    * Pop an element from the back of the deque
    */
@@ -234,7 +233,6 @@ public:
     return res;
   }
 
-
   /** Empties the deque */
   inline
   void reset()
@@ -242,7 +240,7 @@ public:
     C* p=_back;
     while(p!=_front) {
       if(p==_data) {
-	p=_end;
+        p=_end;
       }
       (--p)->~C();
     }
@@ -293,7 +291,7 @@ public:
     DECL_ELEMENT_TYPE(C);
     /** create an iterator for @b d */
     inline
-    explicit Iterator (Deque& d)
+    explicit Iterator (const Deque& d)
       : _pointer(d._front), _begin(d._data), _end(d._end), _afterLast(d._back)
     {
     }
@@ -313,7 +311,7 @@ public:
       C res=*_pointer;
       _pointer++;
       if(_pointer==_end) {
-	_pointer=_begin;
+        _pointer=_begin;
       }
       return res;
     }
@@ -324,7 +322,7 @@ public:
     C* _end;
     C* _afterLast;
   };
-  
+
     /**
    * Iterator iterates over the elements of a deque from front to back.
    *
@@ -357,7 +355,7 @@ public:
       C* res=_pointer;
       _pointer++;
       if(_pointer==_end) {
-	_pointer=_begin;
+        _pointer=_begin;
       }
       return *res;
     }
@@ -399,7 +397,7 @@ public:
     {
       ASS(hasNext());
       if(_pointer==_begin) {
-	_pointer=_end;
+        _pointer=_end;
       }
       _pointer--;
       return *_pointer;
@@ -453,7 +451,7 @@ protected:
 
       oldPtr++;
       if(oldPtr==_end) {
-	oldPtr=_data;
+        oldPtr=_data;
       }
     }
     ASS_EQ(oldPtr, _back);

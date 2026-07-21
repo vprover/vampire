@@ -473,10 +473,11 @@ void dispatchByMode(Problem* problem)
     } else {
       env.options->setSchedule(Options::Schedule::CASC_SAT);
     }
-    env.options->setInputSyntax(Options::InputSyntax::TPTP);
+    // unfortunatelly, setting these here make not difference (the need to be before during parsing)
+    // env.options->setInputSyntax(Options::InputSyntax::TPTP);
+    // env.options->setOutputAxiomNames(true);
     env.options->setOutputMode(Options::Output::SZS);
     env.options->setProof(Options::Proof::TPTP);
-    env.options->setOutputAxiomNames(true);
 
     // env.options->setNormalize(true);
     // env.options->setRandomizeSeedForPortfolioWorkers(false);
@@ -488,7 +489,7 @@ void dispatchByMode(Problem* problem)
 
   case Options::Mode::SMTCOMP:
     env.options->setIgnoreMissing(Options::IgnoreMissing::OFF);
-    env.options->setInputSyntax(Options::InputSyntax::SMTLIB2);
+    // env.options->setInputSyntax(Options::InputSyntax::SMTLIB2);
     if(env.options->outputMode() != Options::Output::UCORE){
       env.options->setOutputMode(Options::Output::SMTCOMP);
     }
@@ -570,7 +571,7 @@ void interactiveMetamode()
       break;
     } else if (line.rfind("run",0) == 0) {
       // the whole running happens in a child (don't modify our options, don't crash here when parsing option rubbish, etc.)
-      pid_t process = Lib::Sys::Multiprocessing::instance()->fork();
+      pid_t process = Sys::fork();
       ASS_NEQ(process, -1);
       if(process == 0) {
         UIHelper::unsetExpecting(); // probably garbage at this point

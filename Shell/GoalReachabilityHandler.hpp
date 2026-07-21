@@ -18,7 +18,7 @@
 
 #include "Forwards.hpp"
 
-#include "Indexing/CodeTreeInterfaces.hpp"
+#include "Indexing/CodeTree.hpp"
 #include "Indexing/LiteralIndex.hpp"
 #include "Indexing/TermIndex.hpp"
 #include "Indexing/TermSubstitutionTree.hpp"
@@ -101,7 +101,7 @@ private:
   LiteralSubstitutionTree<LiteralChain> _nonLinearGoalLiteralIndex;
 
   std::shared_ptr<SuperpositionLHSIndex> _lhsIndex;
-  std::shared_ptr<SuperpositionSubtermIndex> _subtermIndex;
+  std::shared_ptr<SuperpositionSubtermIndex<false>> _subtermIndex;
   std::shared_ptr<BinaryResolutionIndex> _resolutionIndex;
 };
 
@@ -119,13 +119,13 @@ struct ChainCodeTree : public CodeTree
   void remove(Chain* chain);
 
   struct ChainMatcher
-  : public Matcher
+  : public Matcher</*removing=*/false, /*checkRange=*/false, /*higherOrder=*/false>
   {
     bool check(CodeTree* tree, Chain* t);
   };
 
   struct RemovingChainMatcher
-  : public RemovingMatcher<false>
+  : public Matcher</*removing=*/true, /*checkRange=*/false, /*higherOrder=*/false>
   {
     void init(FlatTerm* ft_, ChainCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_);
   };

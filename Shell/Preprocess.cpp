@@ -17,9 +17,10 @@
 
 #include "Lib/ScopedLet.hpp"
 
-#include "Kernel/Unit.hpp"
 #include "Kernel/Clause.hpp"
+#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Problem.hpp"
+#include "Kernel/Unit.hpp"
 
 #include "GoalGuessing.hpp"
 #include "AnswerLiteralManager.hpp"
@@ -168,6 +169,35 @@ void Preprocess::preprocess(Problem& prb)
   (void)prb.getProperty();
 
 
+  if (_options.functionExtensionality() == Options::FunctionExtensionality::AXIOM) {
+    if (!prb.isHigherOrder()) {
+      if (outputAllowed()) {
+        addCommentSignForSZS(std::cout);
+        std::cout << "WARNING: ignoring request to add function extensionality axiom as problem is first-order" << std::endl;
+      }
+    } else {
+      auto funcExtAx = HOL::create::functionalExtensionalityAxiom();
+      UnitList::push(funcExtAx, prb.units());
+      if (env.options->showPreprocessing()) {
+        std::cout << "Added functional extensionality axiom: " << funcExtAx->toString() << std::endl;       
+      }
+    }
+  }
+
+  if(env.options->choiceAxiom()){
+    if (!prb.isHigherOrder()) {
+      if (outputAllowed()) {
+        addCommentSignForSZS(std::cout);
+        std::cout << "WARNING: ignoring request to add choice axiom as problem is first-order" << std::endl;
+      }
+    } else {
+      auto choiceAx = HOL::create::choiceAxiom();
+      UnitList::push(choiceAx, prb.units());
+      if (env.options->showPreprocessing()) {
+        std::cout << "[PP] Added Hilbert choice axiom: " << choiceAx->toString() << std::endl;
+      }
+    }
+  }
 
   // Expansion of distinct groups happens before other preprocessing
   // If a distinct group is small enough it will add inequality to describe it
@@ -307,10 +337,10 @@ void Preprocess::preprocess(Problem& prb)
 
     if (_options.functionDefinitionElimination() == Options::FunctionDefinitionElimination::ALL) {
       FunctionDefinition fd;
-      fd.removeAllDefinitions(prb,env.getMainProblem()->isHigherOrder());
+      fd.removeAllDefinitions(prb);
     }
     else if (_options.functionDefinitionElimination() == Options::FunctionDefinitionElimination::UNUSED) {
-      FunctionDefinition::removeUnusedDefinitions(prb,env.getMainProblem()->isHigherOrder());
+      FunctionDefinition::removeUnusedDefinitions(prb);
     }
   }
 
@@ -380,6 +410,10 @@ void Preprocess::preprocess(Problem& prb)
 
      TweeGoalTransformation twee;
      twee.apply(prb,(env.options->tweeGoalTransformation() == Options::TweeGoalTransformation::GROUND));
+   }
+
+   if (prb.isHigherOrder() && _options.heuristicInstantiation()) {
+     findAbstractions(prb.units());
    }
 
    if (!prb.isHigherOrder() && _options.equalityProxy()!=Options::EqualityProxy::OFF && prb.mayHaveEquality()) {
@@ -748,4 +782,20 @@ void Preprocess::clausify(Problem& prb)
     prb.invalidateProperty();
   }
   prb.reportFormulasEliminated();
+}
+
+void Preprocess::findAbstractions(UnitList*& units)
+{
+  for (const auto& u : iterTraits(UnitList::RefIterator(units))) {
+    if (!u->derivedFromGoal()) {
+      continue;
+    }
+
+    ASS(u->isClause());
+    for (const auto& lit : *u->asClause()) {
+      for (const auto& t : HOL::getAbstractionTerms(lit)) {
+        env.signature->addInstantiation(t);
+      }
+    }
+  }
 }

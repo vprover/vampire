@@ -573,18 +573,18 @@ struct BoostWrapper : public SymbolComparator
   }
 };
 
-struct OccurenceTiebreak {
-  OccurenceTiebreak(SymbolType, // here the SymbolType is a dummy argument, required by the template recursion convention
+struct OccurrenceTieBreak {
+  OccurrenceTieBreak(SymbolType, // here the SymbolType is a dummy argument, required by the template recursion convention
     bool noTiebreak) : _noTiebreak(noTiebreak) {}
 
-  // normally, OccurenceTiebreak resorts to comparing the plain symbol IDs,
+  // normally, OccurrenceTieBreak resorts to comparing the plain symbol IDs,
   // but under shuffling (=> noTiebreak), we want to ignore this and use whatever was in the array before (which was a random permutation)
   Comparison compare(unsigned s1, unsigned s2) { return _noTiebreak ? Comparison::EQUAL : Int::compare(s1,s2); }
 private:
   bool _noTiebreak;
 };
 
-template<bool revert = false, typename InnerComparator = OccurenceTiebreak>
+template<bool revert = false, typename InnerComparator = OccurrenceTieBreak>
 struct FreqComparator : public SymbolComparator
 {
   FreqComparator(SymbolType symType, bool noTiebreak) : SymbolComparator(symType,noTiebreak) {}
@@ -603,7 +603,7 @@ struct FreqComparator : public SymbolComparator
   }
 };
 
-template<bool revert = false, typename InnerComparator = OccurenceTiebreak>
+template<bool revert = false, typename InnerComparator = OccurrenceTieBreak>
 struct ArityComparator : public SymbolComparator
 {
   ArityComparator(SymbolType symType, bool noTiebreak) : SymbolComparator(symType,noTiebreak) {}
@@ -622,7 +622,7 @@ struct ArityComparator : public SymbolComparator
   }
 };
 
-template<int spc, bool revert = false, typename InnerComparator = OccurenceTiebreak>
+template<int spc, bool revert = false, typename InnerComparator = OccurrenceTieBreak>
 struct SpecAriFirstComparator : public SymbolComparator
 {
   SpecAriFirstComparator(SymbolType symType, bool noTiebreak) : SymbolComparator(symType,noTiebreak) {}
@@ -641,10 +641,10 @@ struct SpecAriFirstComparator : public SymbolComparator
   }
 };
 
-template<bool revert = false, typename InnerComparator = OccurenceTiebreak>
+template<bool revert = false, typename InnerComparator = OccurrenceTieBreak>
 using UnaryFirstComparator = SpecAriFirstComparator<1,revert,InnerComparator>;
 
-template<bool revert = false, typename InnerComparator = OccurenceTiebreak>
+template<bool revert = false, typename InnerComparator = OccurrenceTieBreak>
 using ConstFirstComparator = SpecAriFirstComparator<0,revert,InnerComparator>;
 
 static void loadPermutationFromString(DArray<unsigned>& p, const std::string& str) {

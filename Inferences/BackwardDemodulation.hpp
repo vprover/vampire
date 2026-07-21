@@ -28,20 +28,20 @@ namespace Inferences {
 using namespace Indexing;
 using namespace Kernel;
 
+template<bool higherOrder>
 class BackwardDemodulation
 : public BackwardSimplificationEngine
 {
 public:
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
+  BackwardDemodulation(SaturationAlgorithm& salg);
 
   void perform(Clause* premise, BwSimplificationRecordIterator& simplifications) override;
 private:
-  struct RemovedIsNonzeroFn;
-  struct RewritableClausesFn;
   struct ResultFn;
 
-  std::shared_ptr<DemodulationSubtermIndex> _index;
+  const Ordering& _ord;
+  const bool _preordered;
+  std::shared_ptr<DemodulationSubtermIndex<higherOrder>> _index;
   DemodulationHelper _helper;
 };
 

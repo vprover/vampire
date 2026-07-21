@@ -177,6 +177,9 @@ std::string Formula::toString () const
         res += toString(c);
 
         const Formula* arg = f->uarg();
+        Connective subc = arg->connective();
+        if(subc == FORALL || subc == EXISTS || subc == NOT || subc == LITERAL)
+          res += " ";
         stack.push({arg->parenthesesRequired(c),NOCONN,arg});
 
         continue;
@@ -185,25 +188,16 @@ std::string Formula::toString () const
     case EXISTS:
       {
         res += toString(c) + " [";
-        VList::Iterator vs(f->vars());
-        SList::Iterator ss(f->sorts());
-        bool hasSorts = f->sorts();
+        VSList::Iterator vs(f->vars());
         bool first=true;
         while (vs.hasNext()) {
-          int var = vs.next();
+          auto [var,sort] = vs.next();
           if (!first) {
             res += ",";
           }
           res += Term::variableToString(var);
-          TermList t;
-          if (hasSorts) {
-            ASS(ss.hasNext());
-            t = ss.next();
-            if (t != AtomicSort::defaultSort()) {
-              res += " : " + t.toString();
-            }
-          } else if (SortHelper::tryGetVariableSort(var, const_cast<Formula*>(f),t) && t != AtomicSort::defaultSort()) {
-            res += " : " + t.toString();
+          if (sort != AtomicSort::defaultSort() || env.getMainProblem()->hasNonDefaultSorts()) {
+            res += " : " + sort.toString();
           }
           first = false;
         }
@@ -271,21 +265,21 @@ bool Formula::parenthesesRequired (Connective outer) const
 } // Formula::parenthesesRequired
 
 /**
- * Return the list of all bound variables of the formula
+ * Return the list of all bound variables (and their sorts) of the formula
  *
  * If a variable is bound multiple times in the formula,
  * it appears in the list the same number of times as well.
  */
-VList* Formula::boundVariables () const
+VSList* Formula::boundVariables () const
 {
-  VList* res = VList::empty();
+  VSList* res = VSList::empty();
   SubformulaIterator sfit(const_cast<Formula*>(this));
   while(sfit.hasNext()) {
     Formula* sf = sfit.next();
     if(sf->connective() == FORALL || sf->connective() == EXISTS) {
-      VList* qvars = sf->vars();
-      VList* qvCopy = VList::copy(qvars);
-      res = VList::concat(qvCopy, res);
+      VSList* qvars = sf->vars();
+      VSList* qvCopy = VSList::copy(qvars);
+      res = VSList::concat(qvCopy, res);
     }
   }
   return res;
@@ -420,7 +414,15 @@ Formula* Formula::createDefinition(Term* lhs, TermList rhs, VList* uVars)
   auto lit = Literal::create(env.signature->getDefPred(), /*polarity*/true, { sort, TermList(lhs), rhs });
   Formula* res = new AtomicFormula(lit);
   if (uVars) {
-    res = new QuantifiedFormula(Connective::FORALL, uVars, nullptr, res);
+    DHMap<unsigned,TermList> varSortMap;
+    SortHelper::collectVariableSorts(res, varSortMap);
+    VSList::FIFO vsfifo;
+    VList::Iterator vit(uVars);
+    while (vit.hasNext()) {
+      unsigned v = vit.next();
+      vsfifo.pushBack({v, varSortMap.get(v)});
+    }
+    res = new QuantifiedFormula(Connective::FORALL, vsfifo.list(), res);
   }
   return res;
 }
@@ -432,8 +434,7 @@ Formula* Formula::quantify(Formula* f)
   SortHelper::collectVariableSorts(f,tMap,/*ignoreBound=*/true);
 
   //we have to quantify the formula
-  VList::FIFO quantifiedVars;
-  SList::FIFO theirSorts;
+  VSList::FIFO quantifiedVarsWithSorts;
 
   DHMap<unsigned,TermList>::Iterator tmit(tMap);
   while(tmit.hasNext()) {
@@ -442,15 +443,35 @@ Formula* Formula::quantify(Formula* f)
     tmit.next(v, s);
     if(s.isTerm() && s.term()->isSuper()){
       // type variable must appear at the start of the list
-      quantifiedVars.pushFront(v);
-      theirSorts.pushFront(s);
+      quantifiedVarsWithSorts.pushFront(std::pair(v,s));
     } else {
-      quantifiedVars.pushBack(v);
-      theirSorts.pushBack(s);
+      quantifiedVarsWithSorts.pushBack(std::pair(v,s));
     }
   }
-  if(!quantifiedVars.empty()) {
-    f = new QuantifiedFormula(FORALL, quantifiedVars.list(), theirSorts.list(), f);
+  if(!quantifiedVarsWithSorts.empty()) {
+    f = new QuantifiedFormula(FORALL, quantifiedVarsWithSorts.list(), f);
+  }
+  return f;
+}
+
+Formula* Formula::removeUniversalTypePrenex(Formula* f)
+{
+  while (f->connective() == FORALL) {
+    auto vars = f->vars();
+    // get rid of current universal type prenex
+    while (vars && vars->head().second == AtomicSort::superSort()) {
+      vars = vars->tail();
+    }
+    // if there was none, return original formula
+    if (vars == f->vars()) {
+      break;
+    }
+    // if there are vars remaining, we return a new formula
+    if (vars) {
+      return new QuantifiedFormula(FORALL, vars, f->qarg());
+    }
+    // otherwise we recurse
+    f = f->qarg();
   }
   return f;
 }

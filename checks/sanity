@@ -85,13 +85,17 @@ check_szs_status Unsatisfiable term-algebra/terms_distinct.smt2
 check_szs_status Unsatisfiable -tac axiom term-algebra/terms_acyclic.smt2
 
 # FOOL
-check_szs_status Theorem fool/let-function.p
-check_szs_status Theorem -newcnf on fool/let-function.p
-check_szs_status Theorem -newcnf on fool/let-tuple.p
-check_szs_status Theorem -newcnf on fool/let-tuple-bool.p
-check_szs_status Theorem -newcnf on -ile off fool/let-function.p
-check_szs_status Theorem -newcnf on -ile off fool/let-tuple.p
-check_szs_status Theorem -newcnf on -ile off fool/let-tuple-bool.p
+check_szs_status Theorem theory/let-function.p
+check_szs_status Theorem -newcnf on theory/let-function.p
+check_szs_status Theorem -newcnf on theory/let-tuple.p
+check_szs_status Theorem -newcnf on theory/let-tuple-bool.p
+check_szs_status Theorem -newcnf on -ile off theory/let-function.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-bool.p
+
+# Arrays
+check_szs_status Unsatisfiable theory/arrays.smt2
+check_szs_status Unsatisfiable -newcnf on theory/arrays.smt2
 
 # Integer induction problems
 check_szs_status Unsatisfiable -ind int induction/int_invariant_infinite_geq3_val3.smt2
@@ -118,6 +122,7 @@ check_szs_status Unsatisfiable -newcnf on -t 1 parse/smtlib2-parametric-datatype
 check_szs_status Unsatisfiable parse/smtlib2-mutual-recursion.smt2
 check_szs_status Unsatisfiable -newcnf on parse/let-bind-variable.smt2
 check_szs_status Unsatisfiable -qa synthesis parse/assert-synth-max5.smt2
+check_szs_status Unsatisfiable parse/define-const.smt2
 
 # Arithmetic
 check_szs_status Theorem -t 1d -s 32 -tgt ground -sas z3 -tha some -nm 6 Problems/ANA/ANA135_1.p
@@ -132,7 +137,7 @@ check_szs_status Theorem -t 1d -sas z3 Problems/ARI/ARI724_1.p
 check_szs_status Theorem -t 1d -sas z3 -nwc 5.0 -br off Problems/DAT/DAT005_1.p
 check_szs_status Theorem -t 1d -alasca on -alascai on -thf on Problems/DAT/DAT023_1.p
 check_szs_status Theorem -t 1d -tha off Problems/DAT/DAT042_1.p
-check_szs_status Theorem -t 1d -s 1010 -thsq on -thsqr 8,1 -thsqc 64 -thsqd 64 -canc force Problems/DAT/DAT043_1.p
+check_szs_status Theorem -t 5d -s 1010 -thsq on -thsqr 8,1 -thsqc 64 -thsqd 64 -canc force Problems/DAT/DAT043_1.p
 check_szs_status Theorem -t 10d -sa discount -s 2 -awr 1:32 -to lpo -s2a on -s2agt 20 -bd all Problems/HWV/HWV087_2.p
 check_szs_status Theorem -t 1d -sa discount -awr 1:32 -to lpo -sp const_frequency -sos all -sac on -lma off Problems/ITP/ITP319_1.p
 check_szs_status Theorem -t 1d -sa discount -tha off -nwc 5.0 -gtg exists_sym -gtgl 5 Problems/ITP/ITP320_1.p
@@ -156,3 +161,6 @@ check_szs_status Unsatisfiable -t 5d -fgj on -bd all Problems/SWW/SWW436-1.p
 # Synthesis without and with uncomputables
 check_szs_status Unsatisfiable -qa synthesis synthesis/max2.smt2
 check_szs_status Unsatisfiable -qa synthesis synthesis/ex2-inverse_of_ixopiy.smt2
+
+# Higher-order logic
+check_szs_status Theorem hol/hol1.p

@@ -27,6 +27,8 @@ using namespace Inferences::ALASCA;
 ////// TEST CASES 
 /////////////////////////////////////
 
+namespace {
+
 #define SUGAR(Num)                                                                        \
   NUMBER_SUGAR(Num)                                                                       \
                                                                                           \
@@ -47,28 +49,16 @@ using namespace Inferences::ALASCA;
   auto isInteger = [&](auto t) { return t == floor(t); };                                 \
 
 
+#define MY_GEN_RULE     AlascaSimplRule<ToSgi<FloorElimination>>
+#define MY_GEN_TESTER   AlascaGenerationTester
 #define MY_SYNTAX_SUGAR SUGAR(Real)
-
-#define UWA_MODE Options::UnificationWithAbstraction::ALASCA_MAIN
-
-
-
-inline auto testFloorElimination(Options::UnificationWithAbstraction uwa)
-{ 
-  auto s = testAlascaState(uwa);
-  return alascaSimplRule(s,toSgi(FloorElimination(s)), Normalization(s));
-}
-
-
-
-REGISTER_GEN_TESTER(AlascaGenerationTester<ToSgi<FloorElimination>>(testFloorElimination(UWA_MODE)))
 
 /////////////////////////////////////////////////////////
 // Basic tests
 //////////////////////////////////////
 
 TEST_GENERATION(basic_success01,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ floor(a) == frac(1,2)  }) })
       .premiseRedundant(true)
       .expected(exactly(
@@ -77,7 +67,7 @@ TEST_GENERATION(basic_success01,
     )
 
 TEST_GENERATION(basic_success02,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ floor(a) == frac(-1,2)  }) })
       .premiseRedundant(true)
       .expected(exactly(
@@ -86,7 +76,7 @@ TEST_GENERATION(basic_success02,
     )
 
 TEST_GENERATION(basic_success03,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ 5 * floor(x) == num(4)  }) })
       .premiseRedundant(true)
       .expected(exactly(
@@ -95,7 +85,7 @@ TEST_GENERATION(basic_success03,
     )
 
 TEST_GENERATION(basic_success04,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ p(x), 5 * floor(x) == num(4)  }) })
       .premiseRedundant(true)
       .expected(exactly(
@@ -104,7 +94,7 @@ TEST_GENERATION(basic_success04,
     )
 
 TEST_GENERATION(basic_fail01,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ floor(a) == frac(1,1)  }) })
       .premiseRedundant(false)
       .expected(exactly(
@@ -113,7 +103,7 @@ TEST_GENERATION(basic_fail01,
     )
 
 TEST_GENERATION(basic_fail02,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ floor(a) == frac(1,1) + b  }) })
       .premiseRedundant(false)
       .expected(exactly(
@@ -122,7 +112,7 @@ TEST_GENERATION(basic_fail02,
     )
 
 TEST_GENERATION(basic_fail03,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ 2 *floor(a) == num(4)  }) })
       .premiseRedundant(false)
       .expected(exactly(
@@ -131,10 +121,12 @@ TEST_GENERATION(basic_fail03,
     )
 
 TEST_GENERATION(basic_fail04,
-    Generation::SymmetricTest()
+    alascaSymmetricTest()
       .inputs  ({ clause({ floor(a) + floor(b) == frac(1,1)  }) })
       .premiseRedundant(false)
       .expected(exactly(
             /* nothing */
       ))
     )
+
+}

@@ -37,10 +37,6 @@ class InequalityPredicateNormalization
 public:
   USE_ALLOCATOR(InequalityPredicateNormalization);
 
-  InequalityPredicateNormalization(std::shared_ptr<AlascaState> shared) 
-    : _shared(std::move(shared)) {}
-  ~InequalityPredicateNormalization() override {}
-
   Clause* simplify(Clause* premise) override 
   {
     RStack<Literal*> res; 
@@ -72,8 +68,6 @@ public:
       return premise;
     }
   }
-private:
-  std::shared_ptr<AlascaState> _shared;
 };
 
 

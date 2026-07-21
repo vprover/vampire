@@ -231,6 +231,9 @@ sa!=fmb > fgj ~cat on:1,off:1
 # inner_rewriting
 > irw ~cat off:165,on:6
 
+# subsumption_equality_resolution
+sa!=fmb > ser ~cat off:9,on:1
+
 # SINE LEVELS and shit
 
 # sine_to_age
@@ -252,7 +255,8 @@ slsq=on > slsqr ~u2r -5;2;,
 > alasca ~cat on:1,off:1
 
 # alasca_integer_conversion
-alasca=on > alascai ~cat on:1,off:1
+# alasca=on > alascai ~cat on:1,off:1
+# Joe: -alascai is not in a usable state yet
 
 # alasca_abstraction
 alasca=on > alascaa ~cat on:1,off:1

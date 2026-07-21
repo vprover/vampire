@@ -16,6 +16,7 @@
 #include "Lib/Exception.hpp"
 
 #include "Shell/Options.hpp"
+#include "Shell/UIHelper.hpp"
 
 #include "Clause.hpp"
 #include "Signature.hpp"
@@ -64,7 +65,7 @@ bool LiteralSelector::isPositiveForSelection(Literal* l) const
 int LiteralSelector::getSelectionPriority(Literal* l) const
 {
   Signature::Symbol* psym=env.signature->getPredicate(l->functor());
-  if(psym->label() || psym->answerPredicate()) {
+  if(psym->label() || psym->answerPredicate() || (env.higherOrder() && l->isFlexFlexConstraint())) {
     return -2;
   }
   return 0;
@@ -104,6 +105,12 @@ LiteralSelector* LiteralSelector::getSelector(const Ordering& ordering, const Op
 	    Composite<Negative, LexComparator> > > > Comparator10;
 
   int absNum = abs(selectorNumber);
+
+  if (env.higherOrder() && (absNum == 11 || absNum == 1011)) {
+    addCommentSignForSZS(std::cout);
+    std::cout << "WARNING: Look ahead literal selection is not currently compatible with higher-order. Ignoring request to use" << std::endl;
+    absNum = 10; // set to some arbitrary hopefully good value
+  }
 
   LiteralSelector* res;
   switch(absNum) {

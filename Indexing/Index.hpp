@@ -144,7 +144,7 @@ struct DemodulatorData
   IMPL_COMPARISONS_FROM_TUPLE(DemodulatorData)
 
   friend std::ostream& operator<<(std::ostream& out, DemodulatorData const& self)
-  { return out << "(" << self.term << " = " << self.rhs << Output::ptr(self.clause) << ")"; }
+  { return out << self.term.untyped() << " = " << self.rhs << ", " << self.clause->toString(); }
 };
 
 template<class T>
@@ -189,14 +189,12 @@ public:
 
   void attachContainer(ClauseContainer* cc);
 protected:
-  Index() {}
-
   void onAddedToContainer(Clause* c)
   { handleClause(c, true); }
   void onRemovedFromContainer(Clause* c)
   { handleClause(c, false); }
 
-  virtual void handleClause(Clause* c, bool adding) {}
+  virtual void handleClause(Clause* c, bool adding) = 0;
 
   //TODO: postponing index modifications during iteration (methods isBeingIterated() etc...)
 

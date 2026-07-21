@@ -84,7 +84,7 @@ Option<Clause*> FourierMotzkinConf::applyRule_(
            .all([&](auto L) {
              auto Lσ = sigma(L, lhsVarBank);
              out.push(Lσ);
-             return _shared->notLeq(L1σ, Lσ);
+             return _shared.notLeq(L1σ, Lσ);
            }));
 
 
@@ -95,7 +95,7 @@ Option<Clause*> FourierMotzkinConf::applyRule_(
            .all([&](auto L) {
              auto Lσ = sigma(L, rhsVarBank);
              out.push(Lσ);
-             return _shared->notLess(L2σ, Lσ);
+             return _shared.notLess(L2σ, Lσ);
            }));
 
 
@@ -111,7 +111,7 @@ Option<Clause*> FourierMotzkinConf::applyRule_(
            .all([&](auto ti) {
              auto tiσ = sigma(ti.factors->denormalize(), lhsVarBank);
              t1σ.push(NumTraits::mulSimpl(ti.numeral, tiσ));
-             return _shared->notLeq(s1σ, tiσ);
+             return _shared.notLeq(s1σ, tiσ);
            }))
 
     check_side_condition(
@@ -120,7 +120,7 @@ Option<Clause*> FourierMotzkinConf::applyRule_(
            .all([&](auto ti) {
              auto tiσ = sigma(ti.factors->denormalize(), rhsVarBank);
              t2σ.push(NumTraits::mulSimpl(ti.numeral, tiσ));
-             return _shared->notLeq(s2σ, tiσ);
+             return _shared.notLeq(s2σ, tiσ);
            }))
 
     // DEBUG_FM(1, "(+j s₁ + t₁ >₁ 0)σ = ", *L1σ)

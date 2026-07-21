@@ -28,18 +28,15 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+template<bool higherOrder>
 class Superposition
 : public GeneratingInferenceEngine
 {
 public:
-  Superposition(const bool goalOriented) : _goalOriented(goalOriented) {}
-
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
+  Superposition(SaturationAlgorithm& salg);
 
   ClauseIterator generateClauses(Clause* premise) override;
   ClauseIterator generateClausesWithNonGoalSuperposableTerms(Clause* premise, TypedTermList t);
-
 private:
   ClauseIterator performForwardSuperpositions(Clause* premise);
   ClauseIterator performBackwardSuperpositions(Clause* premise);
@@ -50,22 +47,10 @@ private:
     AbstractingUnifier* unifier, bool eqIsResult);
 
   bool checkClauseColorCompatibility(Clause* eqClause, Clause* rwClause);
-  static bool earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
-      Clause* rwClause, Literal* rwLit, TermList rwTerm, TermList eqLHS, TermList eqRHS,
-      ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer, unsigned numPositiveLiteralsLowerBound, const Inference& inf);
 
-  static bool checkSuperpositionFromVariable(Clause* eqClause, Literal* eqLit, TermList eqLHS);
-
-  struct ForwardResultFn;
-
-  struct LHSsFn;
-  struct RewritableResultsFn;
-  struct BackwardResultFn;
-
-  std::shared_ptr<SuperpositionSubtermIndex> _subtermIndex;
+  SaturationAlgorithm& _salg;
+  std::shared_ptr<SuperpositionSubtermIndex<higherOrder>> _subtermIndex;
   std::shared_ptr<SuperpositionLHSIndex> _lhsIndex;
-
-  const bool _goalOriented;
 };
 
 using SuperpositionExtra = TwoLiteralRewriteInferenceExtra;

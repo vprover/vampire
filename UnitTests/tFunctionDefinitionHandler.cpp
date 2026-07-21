@@ -75,9 +75,9 @@ TEST_FUN(test_01) {
     clause({ def_s(f(r(x), r(y)), f(f(x, r(r(y))), y)) }),
     clause({ def_s(g(r(x)), g(f(x,x))) }),
     clause({ def_u(h(x, y, r1(x, z)), h(y, y, z)) }),
-    clause({ def_u(h(r(x), y, z), h(x, x, r2(y,z))) }),
+    clause({ def_u(h(r(x), y, z), h(x, x, r2(z,y))) }),
     clause({ def_p(r(r(x))), p(y) }),
-    clause({ def_q(r1(x,y),r(z)), q(y,r(z)), g(b) == b, ~q(z,b) }),
+    clause({ def_q(r1(x,y),r(z)), q(y,r(z)), g(b) == b, ~q(b1,b) }),
   });
 
   ASS(!handler.getRecursionTemplate(f(x,y).sugaredExpr().term()));

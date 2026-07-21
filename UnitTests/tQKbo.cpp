@@ -106,8 +106,7 @@ QKbo& qkbo(bool rand = false) {
   Problem p;
   env.options->resolveAwayAutoValues0();
   env.options->resolveAwayAutoValues(p);
-  auto n = Lib::make_shared(InequalityNormalizer());
-  return *new QKbo(KBO::testKBO(rand, /* qkboPrec */ true), n);
+  return *new QKbo(KBO::testKBO(rand, /* qkboPrec */ true));
 }
 
 

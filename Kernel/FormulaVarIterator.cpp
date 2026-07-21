@@ -177,11 +177,11 @@ bool FormulaVarIterator::hasNext()
 
             case SpecialFunctor::LAMBDA:{
               _instructions.push(FVI_UNBIND);
-              SList* sorts = sd->getLambdaVarSorts();
-              while(sorts){
+              VSList* varSorts = sd->getLambdaVars();
+              while(varSorts){
                 _instructions.push(FVI_TERM_LIST);
-                _termLists.push(sorts->head());
-                sorts = sorts->tail();
+                _termLists.push(varSorts->head().second);
+                varSorts = varSorts->tail();
               }
               _instructions.push(FVI_TERM_LIST);
               _termLists.push(sd->getLambdaExpSort());
@@ -228,17 +228,17 @@ bool FormulaVarIterator::hasNext()
       }
 
       case FVI_BIND: {
-        VList::Iterator vs(_vars.top());
+        VSList::Iterator vs(_vars.top());
         while (vs.hasNext()) {
-          _bound[vs.next()]++;
+          _bound[vs.next().first]++;
         }
         break;
       }
 
       case FVI_UNBIND: {
-        VList::Iterator vs(_vars.pop());
+        VSList::Iterator vs(_vars.pop());
         while (vs.hasNext()) {
-          _bound[vs.next()]--;
+          _bound[vs.next().first]--;
         }
         break;
       }

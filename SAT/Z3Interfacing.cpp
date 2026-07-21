@@ -1623,7 +1623,6 @@ z3::expr Z3Interfacing::getRepresentation(Term* trm)
           if (Theory::isPolymorphic(interp)) {
             switch(interp){
               case Theory::ARRAY_SELECT:
-              case Theory::ARRAY_BOOL_SELECT:
                 // select(array,index)
                 return select(args[0],args[1]);
 
@@ -1642,11 +1641,8 @@ z3::expr Z3Interfacing::getRepresentation(Term* trm)
             switch(interp){
             // Numerical operations
             case Theory::INT_DIVIDES:
-              {
-              auto k = getNamingConstantFor(toEval, _context->int_sort());
-              // a divides b <-> k * a ==  b
-              return k * args[0] == args[1];
-              }
+              // a divides b <-> b mod a == 0
+              return z3::mod(args[1], args[0]) == int_zero;
 
             case Theory::INT_UNARY_MINUS:
             case Theory::RAT_UNARY_MINUS:

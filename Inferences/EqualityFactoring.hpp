@@ -18,7 +18,10 @@
 
 #include "Forwards.hpp"
 
+#include "Kernel/UnificationWithAbstraction.hpp"
+
 #include "InferenceEngine.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
 #include "ProofExtra.hpp"
 
 namespace Inferences {
@@ -31,7 +34,7 @@ class EqualityFactoring
 : public GeneratingInferenceEngine
 {
 public:
-  EqualityFactoring();
+  EqualityFactoring(SaturationAlgorithm& salg);
   ClauseIterator generateClauses(Clause* premise) override;
 private:
   struct IsPositiveEqualityFn;
@@ -40,6 +43,7 @@ private:
   struct ResultFn;
   friend struct ResultFn;
 
+  const SaturationAlgorithm& _salg;
   AbstractionOracle _abstractionOracle;
   bool _uwaFixedPointIteration;
 };

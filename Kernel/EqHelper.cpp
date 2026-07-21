@@ -176,11 +176,18 @@ Term* EqHelper::replace(Term* trm0, TermList tSrc, TermList tDest)
   return Term::create(trm0,argLst);
 }
 
-
+template<bool higherOrder>
 VirtualIterator<Term*> EqHelper::getSubtermIterator(Literal* lit, const Ordering& ord)
 {
-  return getRewritableSubtermIterator<NonVariableNonTypeIterator>(lit, ord);
+  if constexpr (higherOrder) {
+    return getRewritableSubtermIterator<FirstOrderSubtermIterator>(lit, ord);
+  } else {
+    return getRewritableSubtermIterator<NonVariableNonTypeIterator>(lit, ord);
+  }
 }
+
+template VirtualIterator<Term*> EqHelper::getSubtermIterator<false>(Literal*, const Ordering&);
+template VirtualIterator<Term*> EqHelper::getSubtermIterator<true>(Literal*, const Ordering&);
 
 TermIterator EqHelper::getBooleanSubtermIterator(Literal* lit, const Ordering& ord)
 {

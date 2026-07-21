@@ -10,9 +10,6 @@
 #ifndef SUBSTITUTIONTHEORY_HPP
 #define SUBSTITUTIONTHEORY_HPP
 
-#include <algorithm>
-#include <type_traits>
-
 #include "./vector_map.hpp"
 #include "./types.hpp"
 #include "./log.hpp"
@@ -95,6 +92,9 @@ public:
           // 'var' is already bound => binding succeeds iff we bind to the same term again
           return (it->second == term);
         }
+      }
+      if (term.containsLooseDBIndex()) {
+        return false;
       }
       // 'var' is not bound yet => store new binding
       m_bindings_storage.emplace_back(var, term);

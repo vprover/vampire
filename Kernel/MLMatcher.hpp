@@ -18,6 +18,7 @@
 
 #include "Forwards.hpp"
 #include "Clause.hpp"
+#include "Term.hpp"
 
 #include <unordered_map>
 
@@ -41,6 +42,32 @@ inline std::ostream& operator<<(std::ostream& os, MLMatchStats const& stats)
   return os;
 }
 
+typedef DHMap<unsigned,unsigned, IdentityHash, DefaultHash> UUMap;
+
+/**
+ * Binder that stores bindings into a specified array. To be used
+ * with MatchingUtils template methods.
+ */
+struct ArrayStoringBinder final
+{
+  ArrayStoringBinder(TermList* arr, UUMap& v2pos)
+    : _arr(arr), _v2pos(v2pos) {}
+
+  bool bind(unsigned var, TermList term)
+  {
+    if (term.containsLooseDBIndex()) {
+      return false;
+    }
+    _arr[_v2pos.get(var)]=term;
+    return true;
+  }
+
+  void specVar(unsigned var, TermList term)
+  { ASSERTION_VIOLATION; }
+private:
+  TermList* _arr;
+  UUMap& _v2pos;  // Maps variable to array position
+};
 
 /**
  * MLMatcher implements a solver for the multi-literal match problem.

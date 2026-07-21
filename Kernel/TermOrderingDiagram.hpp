@@ -21,7 +21,7 @@
 #include "Ordering.hpp"
 
 namespace Inferences {
-  class ForwardGroundJoinability;
+  template<bool higherOrder> class ForwardGroundJoinability;
 }
 
 namespace Kernel {
@@ -195,7 +195,7 @@ protected:
   const SubstApplicator* _appl;
   bool _ground;
 
-  friend class Inferences::ForwardGroundJoinability;
+  template<bool higherOrder> friend class Inferences::ForwardGroundJoinability;
 
 public:
   template<class Iterator, typename ...Args>

@@ -204,9 +204,6 @@ public:
     if(i >= _interpretationPresence.size()){ return false; }
     return _interpretationPresence[i];
   }
-  bool hasInterpretedOperation(Interpretation i, OperatorType* type) const {
-    return _polymorphicInterpretations.find(std::make_pair(i,type));
-  }
 
   /** Problem contains an interpreted symbol excluding equality */
   bool hasInterpretedOperations() const { return _hasInterpreted; }
@@ -217,7 +214,6 @@ public:
   bool hasFOOL() const { return _hasFOOL; }
   bool hasArrowSort() const { return _hasArrowSort; }
   bool hasApp() const { return _hasApp; }
-  bool hasAppliedVar() const { return _hasAppliedVar; }
   bool hasBoolVar() const { return _hasBoolVar; }
   bool hasLogicalProxy() const { return _hasLogicalProxy; }
   bool hasPolymorphicSym() const { return _hasPolymorphicSym; }
@@ -324,15 +320,10 @@ public:
    *  the more precise information about which monomorphisations are present (see below).
    */
   DArray<bool> _interpretationPresence;
-  DHSet<Theory::MonomorphisedInterpretation> _polymorphicInterpretations;
-
-
-
 
   bool _hasFOOL;
   bool _hasArrowSort;
   bool _hasApp;
-  bool _hasAppliedVar;
   bool _hasBoolVar;
   bool _hasLogicalProxy;
   bool _hasLambda;

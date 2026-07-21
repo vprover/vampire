@@ -19,6 +19,7 @@
 #include "Kernel/Theory.hpp"
 
 #include "Lib/Coproduct.hpp"
+#include "Lib/DArray.hpp"
 #include "Lib/Map.hpp"
 #include "Kernel/Clause.hpp"
 
@@ -263,7 +264,7 @@ bool equalFrom(DArray<unsigned>& perm, unsigned idx, P equalAt) {
 template<class L1, class L2, class Eq>
 bool TestUtils::permEq(L1 const& lhs, L2 const& rhs, Eq elemEq) 
 {
-  if (lhs.size() != rhs.size()) 
+  if (lhs.size() != rhs.size())
     return false;
 
   DArray<unsigned> perm(lhs.size());

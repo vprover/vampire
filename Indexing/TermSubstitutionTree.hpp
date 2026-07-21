@@ -18,6 +18,10 @@
 
 
 #include "Forwards.hpp"
+
+#include "Lib/PairUtils.hpp"
+
+#include "Kernel/HOL/Unifier.hpp"
 #include "Kernel/UnificationWithAbstraction.hpp"
 #include "Kernel/TypedTermList.hpp"
 
@@ -67,9 +71,6 @@ private:
   { return iterTraits(_inner.template iterator<Iterator>(query, retrieveSubstitutions, /* reversed */  false, std::move(args)...))
       ; }
 
-  bool generalizationExists(TermList t) override
-  { return t.isVar() ? false : _inner.generalizationExists(TypedTermList(t.term())); }
-
   void output(std::ostream& out) const final { out << *this; }
 
   friend std::ostream& operator<<(std::ostream& out, TermSubstitutionTree<LeafData_> const& self)
@@ -85,8 +86,21 @@ public:
   { return pvi(getResultIterator<FastGeneralizationsIterator>(t, retrieveSubstitutions)); }
 
 
-  VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) final
-  { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::UnificationWithAbstraction<AbstractingUnifier, RetrievalAlgorithms::DefaultVarBanks>>>(t, /* retrieveSubstitutions */ true, AbstractingUnifier::empty(AbstractionOracle(uwa)), AbstractionOracle(uwa), fixedPointIteration)); }
+  VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration, bool funcExt) final
+  {
+    AbstractionOracle oracle(uwa, funcExt);
+    return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::UnificationWithAbstraction<AbstractingUnifier, RetrievalAlgorithms::DefaultVarBanks>>>(t, /* retrieveSubstitutions */ true, AbstractingUnifier::empty(oracle), oracle, fixedPointIteration));
+  }
+
+  // This should be used on HOL problems as it has potential overhead, but it does not necessarily
+  // perform HO-unification, so the `uwa` argument is still meaningful.
+  // TODO(HOL): the difference between getUwa and getUwaHOL is somewhat opaque at the moment, iron this out and make the overhead small when using `uwa!=hol`.
+  VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwaHOL(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration, unsigned hoUnifDepth, bool funcExt) override
+  {
+    return pvi(iterTraits(getUwa(t, uwa, fixedPointIteration, funcExt))
+      .flatMap([hoUnifDepth,funcExt](QueryRes<AbstractingUnifier*, LeafData> qr) { return pvi(pushPairIntoRightIterator(qr, vi(new HOL::AbstractingWrapper(qr.unifier, hoUnifDepth, funcExt)))); })
+      .map([](auto arg) { return queryRes(arg.second, arg.first.data); }));
+  }
 
   template<class VarBanks>
   VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(AbstractingUnifier* state, TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)

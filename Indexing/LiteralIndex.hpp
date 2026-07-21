@@ -21,7 +21,6 @@
 #include "Lib/DHMap.hpp"
 
 #include "Index.hpp"
-#include "LiteralIndexingStructure.hpp"
 
 namespace Indexing {
 
@@ -30,34 +29,40 @@ class LiteralIndex
 : public Index
 {
 public:
-  VirtualIterator<LiteralClause> getAll()
-  { return _is->getAll(); }
-
   VirtualIterator<QueryRes<ResultSubstitutionSP, LiteralClause>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
-  { return _is->getUnifications(lit, complementary, retrieveSubstitutions); }
+  { return _is.getUnifications(lit, complementary, retrieveSubstitutions); }
 
   VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
-  { return _is->getUwa(lit, complementary, uwa, fixedPointIteration); }
+  { return _is.getUwa(lit, complementary, uwa, fixedPointIteration); }
 
   VirtualIterator<QueryRes<ResultSubstitutionSP, LiteralClause>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
-  { return _is->getGeneralizations(lit, complementary, retrieveSubstitutions); }
+  { return _is.getGeneralizations(lit, complementary, retrieveSubstitutions); }
 
+  template<bool higherOrder>
   VirtualIterator<QueryRes<ResultSubstitutionSP, LiteralClause>> getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
-  { return _is->getInstances(lit, complementary, retrieveSubstitutions); }
+  {
+    if constexpr (higherOrder) {
+      // TODO(HOL): implement proper higher-order matching here
+      // we override retrieveSubstitutions because we need the substitution for the aftercheck
+      return pvi(iterTraits(_is.getInstances(lit, complementary, /*retrieveSubstitutions=*/true))
+        .filter([lit](auto qr) {
+          return iterTraits(VariableIterator(lit)).all([&qr](TermList var) {
+            return !qr.unifier->applyToBoundQuery(var).containsLooseDBIndex();
+          });
+        }));
+    } else {
+      return _is.getInstances(lit, complementary, retrieveSubstitutions);
+    }
+  }
 
-  size_t getUnificationCount(Literal* lit, bool complementary)
-  { return _is->getUnificationCount(lit, complementary); }
-
-  friend std::ostream& operator<<(std::ostream& out,                 LiteralIndex const& self) { return out << *self._is; }
-  friend std::ostream& operator<<(std::ostream& out, Output::Multiline<LiteralIndex>const& self) { return out << Output::multiline(*self.self._is, self.indent); }
+  friend std::ostream& operator<<(std::ostream& out,                 LiteralIndex const& self) { return out << self._is; }
+  friend std::ostream& operator<<(std::ostream& out, Output::Multiline<LiteralIndex>const& self) { return out << Output::multiline(self.self._is, self.indent); }
 
 protected:
-  LiteralIndex() : _is(new LiteralSubstitutionTree<LiteralClause>()) {}
-
   void handle(Data data, bool add)
-  { _is->handle(std::move(data), add); }
+  { _is.handle(std::move(data), add); }
 
-  std::unique_ptr<LiteralIndexingStructure<Data>> _is;
+  LiteralSubstitutionTree<LiteralClause> _is;
 };
 
 class BinaryResolutionIndex
@@ -139,7 +144,7 @@ public:
   RewriteRuleIndex(SaturationAlgorithm& salg);
 
   Clause* getCounterpart(Clause* c) {
-    return _counterparts.get(c);
+    return _counterparts.get(c->number());
   }
 protected:
   void handleClause(Clause* c, bool adding) override;
@@ -149,7 +154,7 @@ private:
   void handleEquivalence(Clause* c, Literal* cgr, Clause* d, Literal* dgr, bool adding);
 
   LiteralSubstitutionTree<LiteralClause> _partialIndex;
-  DHMap<Clause*,Clause*> _counterparts;
+  DHMap<unsigned,Clause*> _counterparts;
   Ordering& _ordering;
 };
 

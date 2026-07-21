@@ -19,62 +19,22 @@
  * Don't rely on any part of the interface, but the things contained in the examples,
  * because it's rather unstable.
  */
+#include "TestUtils.hpp"
+#include "ClausePattern.hpp"
+#include "MockedSaturationAlgorithm.hpp"
+#include "BuilderPattern.hpp"
+#include "UnitTesting.hpp"
 
-#include "Test/TestUtils.hpp"
 #include "Kernel/Clause.hpp"
-#include "Test/ClausePattern.hpp"
-#include "Test/MockedSaturationAlgorithm.hpp"
-#include "Test/BuilderPattern.hpp"
 
 namespace Test {
 
-  /** removes consecutive duplicates. instead of the operator== the given predicate is used */
-  template<class A, class Equal>
-  void dedup(Stack<A>& self, Equal eq)
-{ 
-    if (self.size() == 0) return;
-    unsigned offs = 0;
-    for (unsigned i = 1;  i < self.size(); i++) {
-      if (eq(self[offs], self[i])) {
-        /* skip */
-      } else {
-        self[offs++ + 1] = std::move(self[i]);
-      }
-    }
-    self.pop(self.size() - (offs + 1));
-  }
-
-  /** removes consecutive duplicates */
-  template<class A>
-  void dedup(Stack<A>& self)
-  { dedup(self, [](auto const& l, auto const& r) { return l == r; }); }
-
-
 namespace FwdBwdSimplification {
-class TestCase;
 
-template<class Rule>
-class FwdBwdSimplificationTester
-{
-  Rule _rule;
-
-public:
-
-  FwdBwdSimplificationTester(Rule rule) 
-    : _rule(std::move(rule)) 
-  {  }
-
-  virtual bool eq(Kernel::Clause* lhs, Kernel::Clause* rhs) const 
-  { return TestUtils::eqModAC(lhs, rhs); }
-
-  friend class TestCase;
-};
-
+template<typename FwdRule, typename BwdRule>
 class TestCase
 {
   using Clause = Kernel::Clause;
-
-  
 
   void testFail(std::string const& test, Lib::Exception& e) 
   {
@@ -100,25 +60,21 @@ class TestCase
   }
 
 public:
-
   BUILDER_METHOD(TestCase, Stack<Clause*>, simplifyWith)
   BUILDER_METHOD(TestCase, Stack<Clause*>, toSimplify  )
   BUILDER_METHOD(TestCase, Stack<ClausePattern>, expected)
   BUILDER_METHOD(TestCase, Stack<ClausePattern>, justifications)
-  BUILDER_METHOD(TestCase, ForwardSimplificationEngine* , fwd)
-  BUILDER_METHOD(TestCase, BackwardSimplificationEngine*, bwd)
+  __BUILDER_METHOD(TestCase, OptionMap, options)
 
   void runFwd() 
   {
     Problem p;
-    Options o;
-    o.resolveAwayAutoValues(p);
-    MockedSaturationAlgorithm alg(p, o);
+    resetAndFillEnvOptions(_options, p);
+    MockedSaturationAlgorithm alg(p, *env.options);
     // set up clause container and indexing structure
     auto container = alg.getSimplifyingClauseContainer();
 
-    ForwardSimplificationEngine& fwd = *this->fwd().unwrap();
-    fwd.attach(&alg);
+    FwdRule fwd(alg);
 
     // add the clauses to the index
     auto simplifyWith = this->simplifyWith().unwrap();
@@ -140,7 +96,7 @@ public:
         testFail("fwd", e); 
       }
 
-      if (succ ) {
+      if (succ) {
         if (replacement) {
           results.push(replacement);
         }
@@ -149,8 +105,6 @@ public:
     }
     justifications.sort();
     justifications.dedup();
-    // dedup(justifications);
-    fwd.detach();
     Ordering::unsetGlobalOrdering();
 
     // run checks
@@ -172,14 +126,12 @@ public:
   void runBwd() 
   {
     Problem p;
-    Options o;
-    o.resolveAwayAutoValues(p);
-    MockedSaturationAlgorithm alg(p, o);
+    resetAndFillEnvOptions(_options, p);
+    MockedSaturationAlgorithm alg(p, *env.options);
     // set up clause container and indexing structure
     auto container = alg.getSimplifyingClauseContainer();
 
-    BackwardSimplificationEngine& bwd = *this->bwd().unwrap();
-    bwd.attach(&alg);
+    BwdRule bwd(alg);
 
     // add the clauses to the index
     auto toSimpl = toSimplify().unwrap();
@@ -188,7 +140,7 @@ public:
     }
 
     // simplify using every clause in simplifyWith.unwrap()
-    Stack<Clause*> results; //= toSimplify().unwrap();
+    ClauseStack results; //= toSimplify().unwrap();
     auto simplifyWith = this->simplifyWith().unwrap();
     for (auto cl : simplifyWith) {
       Inferences::BwSimplificationRecordIterator simpls;
@@ -198,10 +150,11 @@ public:
         testFail("bwd", e); 
       }
       for (auto simpl : iterTraits(std::move(simpls))) {
-        results.push(simpl.replacement);
+        if (simpl.replacement) {
+          results.push(simpl.replacement);
+        }
       }
     }
-    bwd.detach();
     Ordering::unsetGlobalOrdering();
 
     // run checks
@@ -213,7 +166,6 @@ public:
 
   }
 
-
   void run() 
   {
     runFwd();
@@ -223,7 +175,6 @@ public:
   template<class A>
   bool eq(A* lhs, A* rhs)  const
   { return TestUtils::eqModAC(lhs, rhs); }
-
 };
 
 #define TEST_SIMPLIFICATION(name, ...)                                                    \

@@ -447,14 +447,16 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
       Literal* lit = static_cast<Literal*>(trm);
       result=Literal::create(lit,argLst);
     } else if(trm->isSort()){
-      ASS(!noSharing);
-      result=AtomicSort::create(static_cast<AtomicSort*>(trm),argLst);
+      if(!noSharing){
+        result=AtomicSort::create(static_cast<AtomicSort*>(trm),argLst);
+      } else {
+        result=AtomicSort::createNonShared(static_cast<AtomicSort*>(trm),argLst);
+      }
     } else {
       bool shouldShare=!noSharing && canBeShared(argLst, trm->arity());
       if(shouldShare) {
         result=Term::create(trm,argLst);
       } else {
-        //At the memoent all sorts should be shared.
         result=Term::createNonShared(trm,argLst);
       }
     }
@@ -524,26 +526,26 @@ Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator, bool noShari
   case EXISTS:
   {
     bool varsModified = false;
-    VList* newVars = VList::empty();
-    VList::Iterator vit(f->vars());
+    VSList* newVars = VSList::empty();
+    VSList::Iterator vit(f->vars());
     while(vit.hasNext()) {
-      unsigned v = vit.next();
+      auto [v, sort] = vit.next();
       TermList binding = applicator.apply(v);
+      TermList newSort = TermList(applyImpl<ProcessSpecVars>(sort, applicator, noSharing));
       ASS(binding.isVar());
       unsigned newVar = binding.var();
-      VList::push(newVar, newVars);
-      if(newVar!=v) {
+      VSList::push({newVar, newSort}, newVars);
+      if(newVar!=v || newSort!=sort) {
         varsModified = true;
       }
     }
 
     Formula* arg = applyImpl<ProcessSpecVars>(f->qarg(), applicator, noSharing);
     if (!varsModified && arg == f->qarg()) {
-      VList::destroy(newVars);
+      VSList::destroy(newVars);
       return f;
     }
-    //TODO compute an updated sorts list
-    return new QuantifiedFormula(f->connective(),newVars,0,arg);
+    return new QuantifiedFormula(f->connective(),newVars,arg);
   }
 
   case BOOL_TERM:

@@ -24,7 +24,6 @@ namespace Test {
 
 using namespace std;
 using namespace Lib;
-using namespace Lib::Sys;
 
 TestUnit::TestUnit(std::string const& name)
 : _tests(), _name(name)
@@ -189,8 +188,7 @@ bool TestUnit::spawnTest(TestProc proc)
     return true;
   }
 
-  auto mp = Multiprocessing::instance();
-  pid_t fres = mp->fork();
+  pid_t fres = Sys::fork();
   if(fres == 0) {
     try {
       proc();
@@ -203,9 +201,7 @@ bool TestUnit::spawnTest(TestProc proc)
     }
     exit(0);
   } else {
-    int childRes;
-    Multiprocessing::instance()->waitForChildTermination(childRes);
-    return childRes == 0;
+    return Sys::waitForChildTermination(-1).code == 0;
   }
 }
 
@@ -227,6 +223,8 @@ std::ostream& operator<<(std::ostream& out, TestUnit::Test const& t)
 
 } // namespace Test
 
+constexpr std::string_view SINGLE_THREAD_OPT = "--singlethreaded";
+
 int main(int argc, const char** argv) 
 {
   using namespace Lib;
@@ -240,11 +238,13 @@ int main(int argc, const char** argv)
   auto cmd = std::string(argv[1]);
   auto args = Stack<std::string>(argc - 2);
   for (int i = 2; i < argc; i++) {
-    args.push(std::string(argv[i]));
-  }
-  if (args.top() == "--singlethreaded") {
-    Test::UnitTesting::instance().setSingleThreaded(true);
-    args.pop();
+    if (SINGLE_THREAD_OPT == argv[i]) {
+      std::cout << "Enabled single-threaded testing" << std::endl;
+      Test::UnitTesting::instance().setSingleThreaded(true);
+    }
+    else {
+      args.push(std::string(argv[i]));
+    }
   }
 
   if (cmd == "ls") {

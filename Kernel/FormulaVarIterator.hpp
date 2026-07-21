@@ -85,7 +85,7 @@ private:
   /** Stack of instructions telling what to do next */
   Stack<Instruction> _instructions;
   /** Stack of lists of variables to process */
-  Stack<const VList*> _vars;
+  Stack<const VSList*> _vars;
 }; // class FormulaVarIterator
 
 template<typename T> // a template to work with Term*, TermList*, and Formula*

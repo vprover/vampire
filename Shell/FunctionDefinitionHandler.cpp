@@ -88,7 +88,7 @@ void FunctionDefinitionHandler::initAndPreprocessEarly(Problem& prb)
 void FunctionDefinitionHandler::initAndPreprocessLate(Problem& prb,const Options& opts)
 {
   // reset state
-  _is = new CodeTreeTIS<TermLiteralClause>();
+  _is = new CodeTreeTIS</*higherOrder=*/false, TermLiteralClause>();
   _templates.reset();
 
   UnitList::DelIterator it(prb.units());

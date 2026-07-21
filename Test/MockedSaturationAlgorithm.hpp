@@ -15,6 +15,19 @@
 
 namespace Test {
 
+using OptionMap = Stack<std::pair<std::string,std::string>>;
+
+inline void resetAndFillEnvOptions(const OptionMap& opt, const Problem& prb) {
+  delete env.options;
+  env.options = new Options();
+  // env.options->reset();
+  for (const auto& kv : opt) {
+    env.options->set(kv.first, kv.second);
+  }
+  env.options->resolveAwayAutoValues0();
+  env.options->resolveAwayAutoValues(prb);
+}
+
 class MockedSaturationAlgorithm : public Saturation::Otter {
 public:
   MockedSaturationAlgorithm(Kernel::Problem& p, Shell::Options& o) : Otter(p,o) 

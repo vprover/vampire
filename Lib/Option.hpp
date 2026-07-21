@@ -292,7 +292,7 @@ public:
   }
   /** 
    * returns the value held by this option if there is one, or calls the given function f without arguments, 
-   * initializes the closuer with the returned value, and returns a reference to the value afterwards.
+   * initializes the closure with the returned value, and returns a reference to the value afterwards.
    */ 
   template<class Clsr>
   A& unwrapOrInit(Clsr f) { 

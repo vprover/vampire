@@ -33,11 +33,12 @@ using LitSimplResult = Inferences::SimplifyingGeneratingLiteralSimplification::R
 template<class ConstantType, class EvalGround>
 Option<LitSimplResult> tryEvalConstant2(Literal* orig, PolyNf* evaluatedArgs, EvalGround fun) 
 {
-  using Number = NumTraits<ConstantType>;
-  auto& lhs = *evaluatedArgs[0].downcast<Number>().unwrap();
-  auto& rhs = *evaluatedArgs[1].downcast<Number>().unwrap();
-  if (lhs.isNumber() && rhs.isNumber()) {
-    return Option<LitSimplResult>(LitSimplResult::constant(fun(lhs.unwrapNumber(), rhs.unwrapNumber())));
+  ASS(orig->numTermArguments() == 2);
+  auto lhs = evaluatedArgs[0].template wrapPoly<NumTraits<ConstantType>>();
+  auto rhs = evaluatedArgs[1].template wrapPoly<NumTraits<ConstantType>>();
+  auto polarity = orig->polarity();
+  if (lhs->isNumber() && rhs->isNumber()) {
+    return Option<LitSimplResult>(LitSimplResult::constant(polarity == fun(lhs->unwrapNumber(), rhs->unwrapNumber())));
   } else {
     return Option<LitSimplResult>();
   }
@@ -87,7 +88,6 @@ IMPL_EVALUATE_PRED(Interpretation::EQUAL,
 
 template<class ConstantType, class EvalIneq> Option<LitSimplResult> evaluateInequality(Literal* orig, PolyNf* evaluatedArgs, bool strict, EvalIneq evalIneq) {
   ASS(orig->numTermArguments() == 2);
-
 
   auto lhs = evaluatedArgs[0].template wrapPoly<NumTraits<ConstantType>>();
   auto rhs = evaluatedArgs[1].template wrapPoly<NumTraits<ConstantType>>();

@@ -79,7 +79,7 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
     unsigned weight = 1;
     unsigned vars = 0;
     bool hasInterpretedConstants=t->arity()==0 &&
-	env.signature->getFunction(t->functor())->interpreted();
+      env.signature->getFunction(t->functor())->interpreted();
     bool hasTermVar = false;
     bool hasDeBruijnIndex = t->deBruijnIndex().isSome();
     bool hasRedex = t->isRedex();
@@ -133,6 +133,8 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
     t->setHasLambda(hasLambda);
     t->setInterpretedConstantsPresence(hasInterpretedConstants);
 
+    ASS_REP(!env.higherOrder() || t->isApplication() || t->isLambdaTerm() || !t->numTermArguments(), "HO term " + t->toString() + " is not appified");
+
     //poly function works for mono as well, but is slow
     //it is fine to use for debug
     ASS_REP(_wellSortednessCheckingDisabled || SortHelper::areImmediateSortsValidPoly(t), t->toString());
@@ -152,36 +154,33 @@ void TermSharing::computeAndSetSharedSortData(AtomicSort* sort)
 
   TIME_TRACE("sort sharing");
 
-    if(sort->isArraySort()){
-      _arraySorts.insert(TermList(sort));
-    }
-    unsigned weight = 1;
-    unsigned vars = 0;
+  unsigned weight = 1;
+  unsigned vars = 0;
 
-    for (TermList* tt = sort->args(); ! tt->isEmpty(); tt = tt->next()) {
-      if (tt->isVar()) {
-        ASS(tt->isOrdinaryVar());
-        vars++;
-        weight += 1;
-      }
-      else {
-        ASS_REP(tt->term()->shared(), tt->term()->toString());
-        
-        Term* r = tt->term();
-  
-        vars += r->numVarOccs();
-        weight += r->weight();
-      }
+  for (TermList* tt = sort->args(); ! tt->isEmpty(); tt = tt->next()) {
+    if (tt->isVar()) {
+      ASS(tt->isOrdinaryVar());
+      vars++;
+      weight += 1;
     }
-    sort->markShared();
-    sort->setId(_sorts.size());
-    sort->setNumVarOccs(vars);
-    sort->setWeight(weight);
+    else {
+      ASS_REP(tt->term()->shared(), tt->term()->toString());
+      
+      Term* r = tt->term();
 
-    ASS_REP(SortHelper::allTopLevelArgsAreSorts(sort), sort->toString());
-    if (!SortHelper::allTopLevelArgsAreSorts(sort)){
-      USER_ERROR("Immediate subterms of sort "+sort->toString()+" are not all sorts as mandated in rank-1 polymorphism!");      
+      vars += r->numVarOccs();
+      weight += r->weight();
     }
+  }
+  sort->markShared();
+  sort->setId(_sorts.size());
+  sort->setNumVarOccs(vars);
+  sort->setWeight(weight);
+
+  ASS_REP(SortHelper::allTopLevelArgsAreSorts(sort), sort->toString());
+  if (!SortHelper::allTopLevelArgsAreSorts(sort)){
+    USER_ERROR("Immediate subterms of sort "+sort->toString()+" are not all sorts as mandated in rank-1 polymorphism!");      
+  }
 } // TermSharing::computeAndSetSharedSortData
 
 /** same as `TermSharing::computeAndSetSharedTermData(Term*)` but for literals 
@@ -228,6 +227,12 @@ void TermSharing::computeAndSetSharedLiteralData(Literal* t)
         if(!hasInterpretedConstants && r->hasInterpretedConstants()) {
           hasInterpretedConstants=true;
         }
+        // when creating a literal, there shouldn't be loose DB indices
+        if (env.higherOrder()) {
+          if (tt->containsLooseDBIndex()) {
+            INVALID_OPERATION("Trying to create shared literal with loose DB index: "+tt->toString());
+          }
+        }
       }
     }
     t->markShared();
@@ -263,7 +268,7 @@ void TermSharing::computeAndSetSharedVarEqData(Literal* t, TermList sort)
   TermList* ts1 = t->args();
   TermList* ts2 = ts1->next();
   if (argNormGt(*ts1, *ts2)) {
-    std::swap(ts1->_content, ts2->_content);
+    t->argSwap();
   }
 
   //we need these values set during insertion into the sharing set

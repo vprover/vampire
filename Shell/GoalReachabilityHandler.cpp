@@ -393,6 +393,9 @@ GoalReachabilityHandler::GoalReachabilityHandler(SaturationAlgorithm& salg)
   if (salg.getProblem().hasPolymorphicSym()) {
     INVALID_OPERATION("polymorphism is not yet handled");
   }
+  if (salg.getProblem().isHigherOrder()) {
+    INVALID_OPERATION("HOL is not yet handled");
+  }
 }
 
 void GoalReachabilityHandler::addClause(Clause* cl)
@@ -605,7 +608,7 @@ GoalNonLinearityHandler::GoalNonLinearityHandler(SaturationAlgorithm& salg, Goal
   : ord(salg.getOrdering()),
     handler(handler),
     _lhsIndex(salg.getGeneratingIndex<SuperpositionLHSIndex>()),
-    _subtermIndex(salg.getGeneratingIndex<SuperpositionSubtermIndex>()),
+    _subtermIndex(salg.getGeneratingIndex<SuperpositionSubtermIndex<false>>()),
     _resolutionIndex(salg.getGeneratingIndex<BinaryResolutionIndex>()) {}
 
 void GoalNonLinearityHandler::addNonGoalClause(Clause* cl)
@@ -808,7 +811,7 @@ bool ChainCodeTree::ChainMatcher::check(CodeTree* tree, Chain* chain)
   if (chain->rhs.isNonEmpty()) {
     ts.push(chain->rhs);
   }
-  ft = FlatTerm::createUnexpanded(ts);
+  ft = FlatTerm::create(ts);
 
   op=entry;
   tp=0;
@@ -831,12 +834,12 @@ void ChainCodeTree::remove(Chain* chain)
   if (chain->rhs.isNonEmpty()) {
     ts.push(chain->rhs);
   }
-  FlatTerm* ft=FlatTerm::createUnexpanded(ts);
+  FlatTerm* ft=FlatTerm::create(ts);
   rcm.init(ft, this, &firstsInBlocks);
-  
+
   Chain* ptr = nullptr;
   for(;;) {
-    if (!rcm.next()) {
+    if (!rcm.execute()) {
       ASSERTION_VIOLATION;
       INVALID_OPERATION("chain being removed was not found");
     }
@@ -846,7 +849,7 @@ void ChainCodeTree::remove(Chain* chain)
       break;
     }
   }
-  
+
   rcm.op->makeFail();
   ASS(ptr);
   ft->destroy();
@@ -857,8 +860,8 @@ void ChainCodeTree::remove(Chain* chain)
 void ChainCodeTree::RemovingChainMatcher::init(
   FlatTerm* ft_, ChainCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_)
 {
-  RemovingMatcher::init(tree_->getEntryPoint(), 0, 0, tree_, firstsInBlocks_);
-  
+  Matcher::init(tree_, tree_->getEntryPoint(), 0, 0, firstsInBlocks_);
+
   firstsInBlocks->push(entry);
 
   ft=ft_;

@@ -24,7 +24,7 @@ using namespace Kernel;
  * In contrast to EqHelper::replace free de Bruijn indices of the new subterm can be automatically
  * lifted in order to avoid name capture.
  *
- * See also tSubtermReplacer.cpp for accompanying unit tests of this class.
+ * See also tHOL_SubtermReplacer.cpp for accompanying unit tests of this class.
  */
 class SubtermReplacer : public TermTransformer {
 public:
