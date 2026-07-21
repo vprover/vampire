@@ -71,7 +71,7 @@ TEST_SIMPLIFY_MANY(three_answer_literals,
     )
 
 TEST_SIMPLIFY_MANY(three_answer_literals_binary_resolution,
-    Clause* cl = clause({ p(x), ans(y), ans(x), ans(a) }, Inference(Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::RESOLUTION)));
+    Clause* cl = clause({ p(x), ans(y), ans(x), ans(a) }, Inference(Kernel::GeneratingInferenceMany(InferenceRule::RESOLUTION, UnitList::empty())));
     Simplification::NotApplicableMany()
       .input(cl)
     )
@@ -80,7 +80,7 @@ TEST_SIMPLIFY_MANY(two_answer_literals_binary_resolution,
     Literal *al1 = ~ans(f(x));
     Literal *al2 = ~ans(a);
     Literal *cond = q(a);
-    Clause* cl = clause({ p(x), al1, al2 }, Inference(Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::RESOLUTION)));
+    Clause* cl = clause({ p(x), al1, al2 }, Inference(Kernel::GeneratingInferenceMany(InferenceRule::RESOLUTION, UnitList::empty())));
     env.proofExtra.insert(cl, new Inferences::TwoLiteralInferenceExtra(
       q(a),
       ~q(a),
@@ -100,7 +100,7 @@ TEST_SIMPLIFY_MANY(two_answer_literals_superposition,
     Literal *al1 = ~ans(f(x));
     Literal *al2 = ~ans(a);
     Literal *cond = g(a)==f(x);
-    Clause* cl = clause({ p(g(a)), al1, al2 }, Inference(Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::SUPERPOSITION)));
+    Clause* cl = clause({ p(g(a)), al1, al2 }, Inference(Kernel::GeneratingInferenceMany(InferenceRule::SUPERPOSITION, UnitList::empty())));
     env.proofExtra.insert(cl, new Inferences::TwoLiteralRewriteInferenceExtra(
       p(f(x)),
       cond,
@@ -122,7 +122,7 @@ TEST_SIMPLIFY_MANY(twice_the_same_answer_literal_binary_resolution,
     Literal *al1 = ~ans(f(x));
     Literal *al2 = ~ans(f(x));
     Literal *cond = q(a);
-    Clause* cl = clause({ p(x), al1, al2 }, Inference(Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::RESOLUTION)));
+    Clause* cl = clause({ p(x), al1, al2 }, Inference(Kernel::GeneratingInferenceMany(InferenceRule::RESOLUTION, UnitList::empty())));
     env.proofExtra.insert(cl, new Inferences::TwoLiteralInferenceExtra(
       q(a),
       ~q(a),

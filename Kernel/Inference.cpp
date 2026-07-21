@@ -943,6 +943,24 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "flex-flex simplification";
   case InferenceRule::BETA_ETA_NORMALIZATION:
     return "beta-eta normalization";
+  case InferenceRule::NOT_PROXY_CLAUSIFICATION_SIMPLIFYING:
+    return "not proxy clausification (simplifying)";
+  case InferenceRule::AND_PROXY_CLAUSIFICATION_SIMPLIFYING:
+    return "and proxy clausification (simplifying)";
+  case InferenceRule::OR_PROXY_CLAUSIFICATION_SIMPLIFYING:
+    return "or proxy clausification (simplifying)";
+  case InferenceRule::IMP_PROXY_CLAUSIFICATION_SIMPLIFYING:
+    return "imp proxy clausification (simplifying)";
+  case InferenceRule::IFF_PROXY_CLAUSIFICATION_SIMPLIFYING:
+    return "iff proxy clausification (simplifying)";
+  case InferenceRule::XOR_PROXY_CLAUSIFICATION_SIMPLIFYING:
+    return "xor proxy clausification (simplifying)";
+  case InferenceRule::SIGMA_PROXY_CLAUSIFICATION_SIMPLIFYING:
+    return "sigma proxy clausification (simplifying)";
+  case InferenceRule::PI_PROXY_CLAUSIFICATION_SIMPLIFYING:
+    return "pi proxy clausification (simplifying)";
+  case InferenceRule::EQUALITY_PROXY_CLAUSIFICATION_SIMPLIFYING:
+    return "equality proxy clausification (simplifying)";
   case InferenceRule::EQ_TO_DISEQ:
     return "bool equality to disequality";
   case InferenceRule::HEURISTIC_INSTANTIATION:
