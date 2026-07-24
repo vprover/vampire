@@ -650,12 +650,6 @@ void Options::init()
     _inlineLet.tag(OptionTag::PREPROCESSING);
 
 //*********************** Output  ***********************
-
-    _outputAxiomNames = BoolOptionValue("output_axiom_names","",false);
-    _outputAxiomNames.description="Preserve names of axioms from the problem file in the proof output";
-    _lookup.insert(&_outputAxiomNames);
-    _outputAxiomNames.tag(OptionTag::OUTPUT);
-
     _printClausifierPremises = BoolOptionValue("print_clausifier_premises","",false);
     _printClausifierPremises.description="Output how the clausified problem was derived.";
     _lookup.insert(&_printClausifierPremises);
@@ -3504,7 +3498,6 @@ std::string Options::generateEncodedOptions() const
     forbidden.insert(&_decode);
     forbidden.insert(&_sampleStrategy);
     forbidden.insert(&_normalize);
-    forbidden.insert(&_outputAxiomNames);
     forbidden.insert(&_randomizeSeedForPortfolioWorkers);
     forbidden.insert(&_schedule);
     forbidden.insert(&_scheduleFile);
