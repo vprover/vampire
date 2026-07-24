@@ -2197,8 +2197,6 @@ public:
   TweeGoalTransformation tweeGoalTransformation() const { return _tweeGoalTransformation.actualValue; }
   bool tweeSkipArrows() const { return _tweeSkipArrows.actualValue; }
   bool codeTreeSubsumption() const { return _codeTreeSubsumption.actualValue; }
-  bool outputAxiomNames() const { return _outputAxiomNames.actualValue; }
-  void setOutputAxiomNames(bool newVal) { _outputAxiomNames.actualValue = newVal; }
   QuestionAnsweringMode questionAnswering() const { return _questionAnswering.actualValue; }
   bool questionAnsweringGroundOnly() const { return _questionAnsweringGroundOnly.actualValue; }
   std::string questionAnsweringAvoidThese() const { return _questionAnsweringAvoidThese.actualValue; }
@@ -2578,8 +2576,6 @@ private:
   BoolOptionValue _normalize;
   BoolOptionValue _shuffleInput;
   BoolOptionValue _randomPolarities;
-
-  BoolOptionValue _outputAxiomNames;
 
   StringOptionValue _printProofToFile;
   BoolOptionValue _printClausifierPremises;
