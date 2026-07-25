@@ -849,17 +849,13 @@ inline bool CodeTree::Matcher<removing, checkRange, higherOrder>::doSearchStruct
 
   const FlatTerm::Entry* fte=&(*ft)[tp];
   CodeOp* target=op->getSearchStruct()->getTargetOp(fte, false);
-  if (tp == 0 && op->getSearchStruct()->kind == SearchStruct::FN_STRUCT) {
-    if (!target) {
-      target = op->getSearchStruct()->getTargetOp(fte, true);
-    } else {
-      CodeOp* alt = op->getSearchStruct()->getTargetOp(fte, true);
-      if (alt) {
-        if constexpr (removing) {
-          btStack.push(BTPointRemoving(tp, markOp(alt, true), RemovingBase::firstsInBlocks->size()));
-        } else {
-          btStack.push(BTPoint(tp, markOp(alt, true)));
-        }
+  if (canEnterOpposites && tp == 0 && op->getSearchStruct()->kind == SearchStruct::FN_STRUCT) {
+    CodeOp* alt = op->getSearchStruct()->getTargetOp(fte, true);
+    if (alt && target != alt) {
+      if constexpr (removing) {
+        btStack.push(BTPointRemoving(tp, markOp(alt, false), RemovingBase::firstsInBlocks->size()));
+      } else {
+        btStack.push(BTPoint(tp, markOp(alt, false)));
       }
     }
   }

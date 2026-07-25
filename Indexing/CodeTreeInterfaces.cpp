@@ -13,8 +13,6 @@
  *
  */
 
-#include <fstream>
-
 #include "Indexing/Index.hpp"
 #include "Indexing/ResultSubstitution.hpp"
 #include "Lib/Allocator.hpp"
@@ -36,12 +34,6 @@ namespace Indexing
 
 using namespace Lib;
 using namespace Kernel;
-
-std::ostream& codeTreeDebugLog()
-{
-  static std::ofstream out("wtree.log");
-  return out;
-}
 
 template<class Data>
 class CodeTreeSubstitution
@@ -185,11 +177,9 @@ void CodeTreeSubsumptionIndex<higherOrder>::handleClause(Clause* cl, bool adding
   TIME_TRACE("codetree subsumption index maintenance");
 
   if(adding) {
-    codeTreeDebugLog() << "wtree.insert(clause({" << cl->toReproducerString() << "}));" << std::endl;
     _ct.insert(cl);
   }
   else {
-    codeTreeDebugLog() << "wtree.remove(clause({" << cl->toReproducerString() << "}));" << std::endl;
     _ct.remove(cl);
   }
 }

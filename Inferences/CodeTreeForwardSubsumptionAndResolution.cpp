@@ -12,16 +12,10 @@
  * Implements class CodeTreeForwardSubsumptionAndResolution.
  */
 
-#include <iosfwd>
-
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "ProofExtra.hpp"
 #include "CodeTreeForwardSubsumptionAndResolution.hpp"
-
-namespace Indexing {
-std::ostream& codeTreeDebugLog();
-}
 
 namespace Inferences {
 
@@ -42,15 +36,6 @@ bool CodeTreeForwardSubsumptionAndResolution<higherOrder>::perform(Clause *cl, C
   static typename ClauseCodeTree<higherOrder>::ClauseMatcher cm;
 
   cm.init(_ct, cl, _subsumptionResolution);
-  Indexing::codeTreeDebugLog() << "D = clause({" << cl->toReproducerString() << "});" << std::endl;
-  Indexing::codeTreeDebugLog() << "m.init(&wtree, D, "; 
-  if (_subsumptionResolution) {
-   Indexing::codeTreeDebugLog() << "true);" << std::endl;
-  } else {
-   Indexing::codeTreeDebugLog() << "false);" << std::endl;
-  }
-  Indexing::codeTreeDebugLog() << "m.next(resolvedQueryLit);" << std::endl;
-  Indexing::codeTreeDebugLog() << "m.reset();" << std::endl; 
 
   Clause* premise;
   int resolvedQueryLit;
@@ -64,23 +49,7 @@ bool CodeTreeForwardSubsumptionAndResolution<higherOrder>::perform(Clause *cl, C
       cm.reset();
       return true;
     }
-#if VDEBUG
-    bool subsumptionResolutionChecks =
-      satSubs.checkSubsumptionResolutionWithLiteral(premise, cl, resolvedQueryLit);
-    if(!subsumptionResolutionChecks)  {
-      Indexing::codeTreeDebugLog() << "Tree is:" << std::endl;
-      Indexing::codeTreeDebugLog() << *_ct <<  std::endl;
-      Indexing::codeTreeDebugLog() << "Executed on " << cl->toReproducerString() << std::endl;
-      Indexing::codeTreeDebugLog() << "ResolvedQueryLit " << resolvedQueryLit<< std::endl;
-      Indexing::codeTreeDebugLog() << "_subsumptionResolution is " << _subsumptionResolution << std::endl;
-      if constexpr (higherOrder) {
-        Indexing::codeTreeDebugLog() << "higherOrder is true" << std::endl;
-      } else {
-        Indexing::codeTreeDebugLog() << "higherOrder is false" << std::endl;
-      }
-    }
-    ASS(subsumptionResolutionChecks);
-#endif
+    ASS(satSubs.checkSubsumptionResolutionWithLiteral(premise, cl, resolvedQueryLit));
 
     LiteralStack res;
     for (unsigned i = 0; i < cl->length(); i++) {
