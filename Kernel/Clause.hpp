@@ -148,7 +148,6 @@ public:
   void destroy();
   void destroyExceptInferenceObject();
   std::string literalsOnlyToString() const;
-  std::string toReproducerString() const;
   std::string toString() const;
   std::string toTPTPString() const;
   std::string toNiceString() const;

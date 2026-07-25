@@ -576,7 +576,6 @@ void ClauseCodeTree<higherOrder>::ClauseMatcher::reset()
 template<bool higherOrder>
 Clause* ClauseCodeTree<higherOrder>::ClauseMatcher::next(int& resolvedQueryLit)
 {
-  TIME_TRACE("Optimized Clause Matcher next");
   if(lms.isEmpty()) {
     return 0;
   }
