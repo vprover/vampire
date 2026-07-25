@@ -558,6 +558,16 @@ void Options::init()
     _generalSplitting.tag(OptionTag::PREPROCESSING);
     _generalSplitting.addProblemConstraint(mayHaveNonUnits());
 
+    _miniscoping = BoolOptionValue("miniscoping","mnsc",false);
+    _miniscoping.description=
+    "Push quantifiers inside formulas (after NNF and flattening, before Skolemization), "
+    "so that Skolem functions get fewer arguments. Only affects the traditional "
+    "clausification pipeline, i.e. has no effect with newcnf.";
+    _lookup.insert(&_miniscoping);
+    _miniscoping.tag(OptionTag::PREPROCESSING);
+    _miniscoping.addProblemConstraint(hasFormulas());
+    _miniscoping.onlyUsefulWith(_newCNF.is(equal(false)));
+
     _unusedPredicateDefinitionRemoval = BoolOptionValue("unused_predicate_definition_removal","updr",true);
     _unusedPredicateDefinitionRemoval.description="Attempt to remove predicate definitions. A predicate definition is a formula of the form ![X1,..,Xn] : (p(X1,..,XN) <=> F) where p is not equality and does not occur in F and X1,..,XN are the free variables of F. If p has only positive (negative) occurrences then <=> in the definition can be replaced by => (<=). If p does not occur in the rest of the problem the definition can be removed.";
     _lookup.insert(&_unusedPredicateDefinitionRemoval);

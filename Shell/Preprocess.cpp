@@ -40,6 +40,7 @@
 #include "InequalitySplitting.hpp"
 #include "InterpretedNormalizer.hpp"
 #include "Kernel/ALASCA/Preprocessor.hpp"
+#include "Miniscoping.hpp"
 #include "Naming.hpp"
 #include "Normalisation.hpp"
 #include "Shuffling.hpp"
@@ -725,11 +726,10 @@ Unit* Preprocess::preprocess3 (Unit* u, bool appify /*higher order stuff*/)
   fu = NNF::nnf(fu);
   // flatten it
   fu = Flattening::flatten(fu);
-// (Optional) miniscope the formula
-//     if (_options.miniscope()) {
-//       Miniscope::miniscope(fu);
-//     }
-//   return unit;
+  // (Optional) miniscope the formula
+  if (_options.miniscoping() && !appify && !env.getMainProblem()->hasPolymorphicSym()) {
+    fu = Miniscoping::miniscope(fu);
+  }
   fu = Skolem::skolemise(fu, appify);
   return fu;
 }

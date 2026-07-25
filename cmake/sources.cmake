@@ -96,6 +96,7 @@ set(UNIT_TESTS
     UnitTests/tKBO.cpp
     UnitTests/tLPO.cpp
     UnitTests/tList.cpp
+    UnitTests/tMiniscoping.cpp
     UnitTests/tOption.cpp
     UnitTests/tPredicateElimination.cpp
     UnitTests/tOptionConstraints.cpp
@@ -719,6 +720,8 @@ set(SOURCES
     Shell/LispLexer.hpp
     Shell/LispParser.cpp
     Shell/LispParser.hpp
+    Shell/Miniscoping.cpp
+    Shell/Miniscoping.hpp
     Shell/NNF.cpp
     Shell/NNF.hpp
     Shell/Naming.cpp

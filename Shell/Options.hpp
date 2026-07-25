@@ -2278,6 +2278,7 @@ public:
 
   void setProof(Proof p) { _proof.actualValue = p; }
   bool newCNF() const { return _newCNF.actualValue; }
+  bool miniscoping() const { return _miniscoping.actualValue; }
   bool getIteInlineLet() const { return _inlineLet.actualValue; }
 
   bool useManualClauseSelection() const { return _manualClauseSelection.actualValue; }
@@ -2724,6 +2725,7 @@ private:
 
   BoolOptionValue _newCNF;
   BoolOptionValue _inlineLet;
+  BoolOptionValue _miniscoping;
 
   BoolOptionValue _manualClauseSelection;
   // arithmeitc reasoning options

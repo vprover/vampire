@@ -189,8 +189,8 @@ enum class InferenceRule : unsigned char {
 //      * f <=> ginto an implication f => g or g => f
 //      */
 //     HALF_EQUIV,
-//     /** miniscoping */
-//     MINISCOPE,
+  /** miniscoping: pushing quantifiers inside to minimize their scope */
+  MINISCOPE,
   /** normalizing inference */
   THEORY_NORMALIZATION,
   ALASCA_INTEGER_TRANSFORMATION,

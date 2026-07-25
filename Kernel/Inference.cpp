@@ -560,6 +560,8 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "closure";
   case InferenceRule::FLATTEN:
     return "flattening";
+  case InferenceRule::MINISCOPE:
+    return "miniscoping";
   case InferenceRule::FOOL_ELIMINATION:
     return "fool elimination";
   case InferenceRule::FOOL_ITE_DEFINITION:

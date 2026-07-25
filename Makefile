@@ -366,6 +366,7 @@ VS_OBJ = Shell/AnswerLiteralManager.o\
          Shell/InterpretedNormalizer.o\
          Shell/LispLexer.o\
          Shell/LispParser.o\
+         Shell/Miniscoping.o\
          Shell/Naming.o\
          Shell/NNF.o\
          Shell/Normalisation.o\
