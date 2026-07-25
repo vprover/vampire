@@ -621,6 +621,14 @@ private:
   /** Record whether a formula or term has been pushed more recently */
   LastPushed _lastPushed;
 
+  /** The tag of the most recently consumed token (see resetToks/shiftToks).
+   * Used by endHolFormula to tell whether the argument of a '~' just parsed
+   * ended with a closing parenthesis (making the '~ (...)' a complete
+   * <thf_prefix_unary> per the TPTP BNF), which decides whether a following
+   * '@' may be leniently absorbed into it or belongs to the enclosing
+   * context. */
+  Tag _lastTokenTag = T_EOF;
+
   static Substitution getTypeSub(const LetSymbolReference& ref);
 
   /** finds if the symbol has been defined in an enclosing $let */
@@ -643,7 +651,7 @@ private:
   enum NonConformity {
     /** '~ s = t' read as '~ (s = t)' */
     NC_NOT_APPLIED_TO_EQUALITY,
-    /** 'p & f @ x' read as 'p & (f @ x)'; '^[X]: f @ X' as '^[X]: (f @ X)' */
+    /** 'p & f @ x' read as 'p & (f @ x)' */
     NC_UNPARENTHESIZED_APPLICATION,
     /** 'r = ~ s' read as 'r = (~ s)'; 'g = ^[X]: t' as 'g = (^[X]: t)' */
     NC_NON_UNITARY_EQUALITY_ARGUMENT,
@@ -712,6 +720,7 @@ private:
     ASS(n > 0);
     ASS(n <= _tend);
 
+    _lastTokenTag = _tokens[n-1].tag;
     for (int i = 0;i < _tend-n;i++) {
       _tokens[i] = _tokens[n+i];
     }
@@ -724,6 +733,9 @@ private:
    */
   inline void resetToks()
   {
+    if (_tend > 0) {
+      _lastTokenTag = _tokens[_tend-1].tag;
+    }
     _tend = 0;
   } // resetToks
 

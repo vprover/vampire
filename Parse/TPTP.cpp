@@ -83,10 +83,10 @@ const int TPTP::SIGMA = 103u;
  * of them (equality sides are <thf_unitary_term>s in the TPTP BNF). */
 static const int EQ_RHS = -3;
 /** Like EQ_RHS, but marking the context that absorbs an unparenthesized
- * application chain into the argument of a formula connective or the body
- * of a binder (see the T_APP deferral in endHolFormula()). It is
- * distinguished from EQ_RHS only so that a '=' following the application is
- * recognized as a first equality rather than a chained one. */
+ * application chain into the argument of a formula connective (see the
+ * T_APP deferral in endHolFormula()). It is distinguished from EQ_RHS only
+ * so that a '=' following the application is recognized as a first equality
+ * rather than a chained one. */
 static const int APP_ABSORB = -4;
 /** true for the two "tight subformula" contexts above */
 static bool tightContext(int con) { return con == EQ_RHS || con == APP_ABSORB; }
@@ -1793,16 +1793,42 @@ void TPTP::endHolFormula()
     return;
   }
 
-  if (((con < HOL_CONSTANTS_LOWER_BOUND && con != -1 && !tightContext(con)) || con == LAMBDA) &&
-      (_lastPushed == TM) && (getTok(0).tag == T_APP)) {
-    // an application (@) binds tighter than all formula connectives and
-    // binders: before converting the term just parsed to a formula (or
-    // closing a binder over it), absorb the whole application chain (and a
-    // possible trailing equality) into the term, then reconsider con.
-    // For IMP/AND/OR, the conReverse flag has not been popped yet at this
-    // point and simply stays in _bools for the later reconsideration.
+  // NOT and the binary logical connectives absorb a trailing application
+  // chain into their argument. The binders (FORALL/EXISTS/LAMBDA) are
+  // deliberately not eligible: per the TPTP BNF a binder body is a single
+  // <thf_unit_formula>, so a binder is complete once its body is parsed, and
+  // a following '@' applies the completed binder within the enclosing
+  // context -- '^ [X: a] : ( f @ X ) @ y' is '(^ [X: a] : (f @ X)) @ y'
+  // (HOL4's BETA_THM), not '^ [X: a] : ((f @ X) @ y)'.
+  bool conAbsorbsApplications =
+    con == AND || con == OR || con == IMP || con == IFF || con == XOR || con == NOT;
+  if (conAbsorbsApplications && (getTok(0).tag == T_APP) &&
+      (_lastPushed == TM || (_lastPushed == FORM && con != NOT)) &&
+      (_connectives.top() != APP && _connectives.top() != APP_ABSORB) &&
+      !(con == NOT && _lastTokenTag == T_RPAR)) {
+    // an application (@) binds tighter than all formula connectives: before
+    // converting the item just parsed to a formula, absorb the whole
+    // application chain (and a possible trailing equality) into it, then
+    // reconsider con. For IMP/AND/OR, the conReverse flag has not been
+    // popped yet at this point and simply stays in _bools for the later
+    // reconsideration.
+    // Exceptions, where the TPTP BNF gives the text a legal reading that we
+    // follow instead of absorbing:
+    // - (the _connectives.top() check) con is itself an argument of an
+    //   application chain, as in 'f @ ~ p @ y': any completed unit formula
+    //   ends there and the trailing '@ y' continues the *enclosing* chain,
+    //   '(f @ (~ p)) @ y';
+    // - (the _lastTokenTag check) the argument of '~' already closed by ')'
+    //   makes '~ (...)' a complete <thf_prefix_unary>, so a following '@'
+    //   belongs to the enclosing context: '^ [X: a] : ~ ( p @ X ) @ y'
+    //   applies the lambda (whose body is '~ (p @ X)') to y.
     nonConformityWarning(NC_UNPARENTHESIZED_APPLICATION,
-      "an unparenthesized application as a connective argument or binder body is not legal THF; reading e.g. 'p & f @ x' as 'p & (f @ x)'");
+      "an unparenthesized application as a connective argument is not legal THF; reading e.g. 'p & f @ x' as 'p & (f @ x)'");
+    if (_lastPushed == FORM) {
+      // a parenthesized formula, e.g. '(q | r)' in 'p & (q | r) @ x', becomes
+      // the head of the application chain: wrap it as a term first
+      endFormulaInsideTerm();
+    }
     _connectives.push(con);
     _states.push(END_HOL_FORMULA);
     _connectives.push(APP_ABSORB);
@@ -2006,9 +2032,9 @@ switch (tag) {
     if (con == APP){
       _states.push(END_HOL_FORMULA);
       _states.push(END_APP);
-      return;  
+      return;
     }
-    f = _formulas.pop(); 
+    f = _formulas.pop();
     Formula* g = _formulas.pop();
     if (con == AND || con == OR) {
       f = makeJunction((Connective)con,g,f);
@@ -2017,7 +2043,7 @@ switch (tag) {
       }
     }
     else if (con == IMP && conReverse) {
-      f = new BinaryFormula((Connective)con,f,g); 
+      f = new BinaryFormula((Connective)con,f,g);
     }else {
       f = new BinaryFormula((Connective)con,g,f);
     }
@@ -2056,7 +2082,10 @@ void TPTP::endApp()
   TermList rhs = _termLists.pop();
   TermList lhs = _termLists.pop();
   TermList lhsSort = sortOf(lhs);
-  ASS_REP2(lhsSort.isTerm() && lhsSort.term()->arity() == 2, lhs.toString(), lhsSort.toString());
+  if (!lhsSort.isArrowSort()) {
+    USER_ERROR("sort mismatch in the application " + lhs.toString() + " @ " + rhs.toString() +
+               ": " + lhs.toString() + " has the non-functional sort " + lhsSort.toString());
+  }
   TermList s1 = *(lhsSort.term()->nthArgument(0));
   TermList s2 = *(lhsSort.term()->nthArgument(1));
   args.push(s1);
