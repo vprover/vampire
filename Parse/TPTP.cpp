@@ -3718,9 +3718,7 @@ void TPTP::endFof()
     _unitSources->insert(original->number(),source);
   }
 
-  if (env.options->outputAxiomNames()) {
-    ALWAYS(_axiomNames.insert(original->number(), {nm, currentFile.path}));
-  }
+  ALWAYS(_axiomNames.insert(original->number(), {nm, currentFile.path}));
 #if DEBUG_SHOW_UNITS
   cout << "Unit: " << unit->toString() << "\n";
 #endif
