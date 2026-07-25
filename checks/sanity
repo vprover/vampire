@@ -62,6 +62,19 @@ check_smtcomp_status() {
 	fi
 }
 
+# check the proof output does not fall back to fof, which is wrong as soon as
+# anything typed survives into the proof
+check_no_fof() {
+	run_vampire $@
+	fof=`grep -E '^fof\(' checks/vampire-stdout`
+	if test -n "$fof"
+	then
+		echo "proof output should be tff, not fof: offending lines follow"
+		echo "$fof"
+		exit 1
+	fi
+}
+
 # Some simple problems: fail early!
 check_szs_status Theorem Problems/PUZ/PUZ001+1.p
 
@@ -157,3 +170,12 @@ check_szs_status Unsatisfiable -qa synthesis synthesis/ex2-inverse_of_ixopiy.smt
 
 # Higher-order logic
 check_szs_status Theorem hol/hol1.p
+
+# Proof output language: the arithmetic goes away during preprocessing, so a
+# problem-level "does this need tff?" test gets this wrong
+check_no_fof -p tptp Problems/ARI/ARI496_1.p
+check_no_fof -p proofcheck Problems/ARI/ARI496_1.p
+# a tff type declaration used to be followed by fof formulas in one proof
+check_no_fof -p tptp proof/mixed-language.p
+# untyped problems are output as tff too
+check_no_fof -p tptp Problems/PUZ/PUZ001+1.p

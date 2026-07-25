@@ -117,9 +117,11 @@ std::string getQuantifiedStr(const VarContainer& vars, std::string inner, DHMap<
     std::string ty="";
     TermList t;
 
-    if(t_map.find(var,t) && env.getMainProblem()->hasNonDefaultSorts()){
-      //hasNonDefaultSorts is true if the problem contains a sort
-      //that is not $i and not a variable
+    if(t_map.find(var,t) &&
+       (t != AtomicSort::defaultSort() || env.getMainProblem()->hasNonDefaultSorts())){
+      //a variable of a sort other than $i must always be annotated: relying on
+      //hasNonDefaultSorts alone loses the annotation when preprocessing removes
+      //the last unit mentioning that sort. Same predicate as Formula::toString.
       ty=" : " + t.toString();
     }
     if(ty == " : $tType"){
@@ -530,9 +532,10 @@ protected:
 
   std::string getFofString(std::string id, std::string formula, std::string inference, InferenceRule rule, UnitInputType origin=UnitInputType::AXIOM)
   {
-    std::string kind = "fof";
-    if(env.getMainProblem()->hasNonDefaultSorts()){ kind="tff"; }
-    if(env.getMainProblem()->isHigherOrder()){ kind="thf"; }
+    // always TFF: it subsumes FOF, and choosing between them from
+    // hasNonDefaultSorts() is wrong, because that property is recomputed from
+    // the current unit list and so forgets sorts that preprocessing removed.
+    std::string kind = env.getMainProblem()->isHigherOrder() ? "thf" : "tff";
 
     return kind+"("+id+","+getRole(rule,origin)+",("+"\n"
 	+"  "+formula+"),\n"
@@ -858,9 +861,8 @@ protected:
     //UIHelper::outputSortDeclarations(out);
     UIHelper::outputSymbolDeclarations(out);
 
-    std::string kind = "fof";
-    if(env.getMainProblem()->hasNonDefaultSorts()){ kind="tff"; }
-    if(env.getMainProblem()->isHigherOrder()){ kind="thf"; }
+    // always TFF, see the comment in getFofString
+    std::string kind = env.getMainProblem()->isHigherOrder() ? "thf" : "tff";
 
     out << kind
         << "(r"<< cs->number()
