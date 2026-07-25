@@ -337,7 +337,6 @@ std::string Clause::toNiceString() const
   return result;
 }
 
-
 std::ostream& operator<<(std::ostream& out, Clause const& self)
 {
   if (self.size() == 0) {
