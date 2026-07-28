@@ -673,6 +673,8 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "unused predicate definition removal";
   case InferenceRule::PURE_PREDICATE_REMOVAL:
     return "pure predicate removal";
+  case InferenceRule::PREDICATE_ELIMINATION:
+    return "predicate elimination";
   case InferenceRule::INEQUALITY_SPLITTING:
     return "inequality splitting";
   case InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION:
