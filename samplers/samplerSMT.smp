@@ -36,6 +36,15 @@ $nm=NZ > nm ~sgd 0.07,2
 $ins=Z > ins ~cat 0:1
 $ins=NZ > ins ~sgd 0.4,1
 
+# predicate_elimination
+> pel ~cat off:1,on:1
+
+# predicate_elimination_subsumption
+pel=on > pels ~cat on:4,off:1
+
+# predicate_elimination_total_limit
+pel=on > peltl ~uf 0.9,5.0
+
 # random_polarities
 > rp ~cat off:3,on:1
 

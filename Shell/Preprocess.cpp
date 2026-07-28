@@ -53,6 +53,7 @@
 #include "TheoryFlattening.hpp"
 #include "TweeGoalTransformation.hpp"
 #include "BlockedClauseElimination.hpp"
+#include "PredicateElimination.hpp"
 
 #include "UIHelper.hpp"
 #include "Lib/List.hpp"
@@ -431,6 +432,24 @@ void Preprocess::preprocess(Problem& prb)
 
      BlockedClauseElimination bce(/*force_equationally*/_options.saturationAlgorithm() == Options::SaturationAlgorithm::FINITE_MODEL_BUILDING);
      bce.apply(prb);
+   }
+
+   if (_options.predicateElimination()) {
+     if (prb.isHigherOrder() || prb.hasPolymorphicSym()) { // in both cases, predicates could hide inside terms, breaking the occurrence counting
+       if (outputAllowed()) {
+         addCommentSignForSZS(std::cout);
+         std::cout << "WARNING: Not using PredicateElimination currently not compatible with polymorphic/higher-order inputs." << endl;
+       }
+     } else {
+       env.statistics->phase=ExecutionPhase::PREDICATE_ELIMINATION;
+       if (env.options->showPreprocessing())
+         std::cout << "predicate elimination" << std::endl;
+
+       PredicateElimination pel(/*forceEquationally=*/_options.saturationAlgorithm() == Options::SaturationAlgorithm::FINITE_MODEL_BUILDING,
+                                _options.predicateEliminationTotalLimit(),
+                                _options.predicateEliminationSubsumption());
+       pel.apply(prb);
+     }
    }
 
    if (_options.shuffleInput()) {

@@ -2075,6 +2075,9 @@ public:
 
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   bool blockedClauseElimination() const { return _blockedClauseElimination.actualValue; }
+  bool predicateElimination() const { return _predicateElimination.actualValue; }
+  float predicateEliminationTotalLimit() const { return _predicateEliminationTotalLimit.actualValue; }
+  bool predicateEliminationSubsumption() const { return _predicateEliminationSubsumption.actualValue; }
   unsigned distinctGroupExpansionLimit() const { return _distinctGroupExpansionLimit.actualValue; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval.actualValue = newVal; }
   SatSolver satSolver() const { return _satSolver.actualValue; }
@@ -2816,6 +2819,9 @@ private:
   ChoiceOptionValue<URResolution> _unitResultingResolution;
   BoolOptionValue _unusedPredicateDefinitionRemoval;
   BoolOptionValue _blockedClauseElimination;
+  BoolOptionValue _predicateElimination;
+  FloatOptionValue _predicateEliminationTotalLimit;
+  BoolOptionValue _predicateEliminationSubsumption;
   UnsignedOptionValue _distinctGroupExpansionLimit;
 
   OptionChoiceValues _tagNames;

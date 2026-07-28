@@ -380,6 +380,8 @@ enum class InferenceRule : unsigned char {
   UNUSED_PREDICATE_DEFINITION_REMOVAL,
   /** pure predicate removal */
   PURE_PREDICATE_REMOVAL,
+  /** predicate elimination by exhaustive resolution (preprocessing) */
+  PREDICATE_ELIMINATION,
   /** inequality splitting */
   INEQUALITY_SPLITTING,
   /** inequality splitting name introduction */

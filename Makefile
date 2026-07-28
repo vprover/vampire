@@ -403,6 +403,7 @@ VS_OBJ = Shell/AnswerLiteralManager.o\
          Shell/TheoryFlattening.o\
          Shell/TweeGoalTransformation.o\
          Shell/BlockedClauseElimination.o\
+         Shell/PredicateElimination.o\
          Shell/Token.o\
          Shell/TPTPPrinter.o\
          Shell/UIHelper.o\

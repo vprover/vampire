@@ -131,6 +131,15 @@ $ins=16_115 > ins ~ui 16,25
 @atoms_leq_2^11=1 > bce ~cat off:507,on:493
 @atoms_leq_2^11=0 > bce ~cat off:717,on:283
 
+# predicate_elimination
+> pel ~cat off:1,on:1
+
+# predicate_elimination_subsumption
+pel=on > pels ~cat on:4,off:1
+
+# predicate_elimination_total_limit
+pel=on > peltl ~uf 0.9,5.0
+
 # random_polarities
 # > rp ~cat off:698,on:302
 @cat=HNE > rp ~cat off:49,on:1

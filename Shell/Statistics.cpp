@@ -190,6 +190,10 @@ void Statistics::print(std::ostream& out)
     ENTRY("Selected by SInE selection", selectedBySine);
     ENTRY("SInE iterations", sineIterations);
     ENTRY("Blocked clauses", blockedClauses);
+    ENTRY("Eliminated predicates", eliminatedPredicates);
+    ENTRY("Predicate elimination resolvents", predicateEliminationResolvents);
+    ENTRY("Predicate elimination subsumed", predicateEliminationSubsumed);
+    ENTRY("Predicate elimination subsumption resolutions", predicateEliminationSRs);
     ENTRY("Split inequalities", splitInequalities);
 
     GROUP("SATURATION");
@@ -396,6 +400,8 @@ const char* Statistics::phaseToString(ExecutionPhase p)
     return "Unused predicate definition removal";
   case ExecutionPhase::BLOCKED_CLAUSE_ELIMINATION:
     return "Blocked clause elimination";
+  case ExecutionPhase::PREDICATE_ELIMINATION:
+    return "Predicate elimination";
   case ExecutionPhase::TWEE:
     return "Twee Goal Transformation";
   case ExecutionPhase::ANSWER_LITERAL:
