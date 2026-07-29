@@ -1,6 +1,5 @@
-% Two Boolean symbols bound in one $let, so endLet builds a definition for each.
-% One of them is Boolean and one is not, which used to give a sort error rather
-% than a crash.
+% Two symbols bound in one $let, one Boolean and one not, so endLet builds a
+% definition for each. On master this shape is a sort error, not a crash.
 tff(let_bool_simultaneous,conjecture,
     $let(
       [ b: $o, k: $int ],
