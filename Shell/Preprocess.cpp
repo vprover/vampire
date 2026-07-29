@@ -354,24 +354,6 @@ void Preprocess::preprocess(Problem& prb)
     is.perform(prb);
   }
 
-//   // remove tautologies, duplicate literals, and literals t != t
-//   UnitChain::DelIterator units (_problem.giveUnits());
-//   while (units.hasNext()) {
-//     Unit newUnit;
-//     switch (Tautology::isTautology(units.next(),newUnit)) {
-//     case -1:
-//       units.replace(newUnit);
-//       break;
-
-//     case 0:
-//       break;
-
-//     case 1:
-//       units.del();
-//       break;
-//     }
-//   }
-
    if (_options.equalityResolutionWithDeletion() && prb.mayHaveInequalityResolvableWithDeletion() ) {
      env.statistics->phase=ExecutionPhase::EQUALITY_RESOLUTION_WITH_DELETION;
      if (env.options->showPreprocessing())

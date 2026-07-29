@@ -117,9 +117,10 @@ std::string getQuantifiedStr(const VarContainer& vars, std::string inner, DHMap<
     std::string ty="";
     TermList t;
 
-    if(t_map.find(var,t) && env.getMainProblem()->hasNonDefaultSorts()){
-      //hasNonDefaultSorts is true if the problem contains a sort
-      //that is not $i and not a variable
+    ALWAYS(t_map.find(var,t));
+    if(env.getMainProblem()->hasNonDefaultSorts()){
+      // initiallyHasNonDefaultSorts is true if the problem originally
+      // contains a sort that is not $i and not a variable
       ty=" : " + t.toString();
     }
     if(ty == " : $tType"){
@@ -531,8 +532,8 @@ protected:
   std::string getFofString(std::string id, std::string formula, std::string inference, InferenceRule rule, UnitInputType origin=UnitInputType::AXIOM)
   {
     std::string kind = "fof";
-    if(env.getMainProblem()->hasNonDefaultSorts()){ kind="tff"; }
-    if(env.getMainProblem()->isHigherOrder()){ kind="thf"; }
+    if(env.initiallyHasNonDefaultSorts()){ kind="tff"; }
+    if(env.initiallyHigherOrder()){ kind="thf"; }
 
     return kind+"("+id+","+getRole(rule,origin)+",("+"\n"
 	+"  "+formula+"),\n"
@@ -859,8 +860,8 @@ protected:
     UIHelper::outputSymbolDeclarations(out);
 
     std::string kind = "fof";
-    if(env.getMainProblem()->hasNonDefaultSorts()){ kind="tff"; }
-    if(env.getMainProblem()->isHigherOrder()){ kind="thf"; }
+    if(env.initiallyHasNonDefaultSorts()){ kind="tff"; }
+    if(env.initiallyHigherOrder()){ kind="thf"; }
 
     out << kind
         << "(r"<< cs->number()

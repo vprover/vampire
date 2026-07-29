@@ -67,6 +67,8 @@ public:
   void setMainProblem(Kernel::Problem* p) {
     _problem = p;
     _higherOrder = _problem->isHigherOrder();
+    _initiallyHigherOrder = _higherOrder;
+    _initiallyHasNonDefaultSorts = _problem->hasNonDefaultSorts();
   }
 
   bool higherOrder() const {
@@ -77,9 +79,22 @@ public:
     _higherOrder = value;
   }
 
+  bool initiallyHigherOrder() const {
+    return _initiallyHigherOrder;
+  }
+
+  bool initiallyHasNonDefaultSorts() const {
+    return _initiallyHasNonDefaultSorts;
+  }
+
 private:
   Kernel::Problem* _problem;
   bool _higherOrder;
+  // We save these values in order to use the same
+  // fragment in the output as the unpreprocessed
+  // problem without having to scan the formulas again.
+  bool _initiallyHigherOrder = false;
+  bool _initiallyHasNonDefaultSorts = false;
 }; // class Environment
 
 extern Environment env;
