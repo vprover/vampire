@@ -33,7 +33,10 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-struct FastCondensation::CondensationBinder
+namespace {
+
+template<bool higherOrder>
+struct CondensationBinder
 {
   void init(DHMap<unsigned, int>* varMap_)
   {
@@ -49,6 +52,12 @@ struct FastCondensation::CondensationBinder
       return term.isVar() && var==term.var();
     }
 
+    if constexpr (higherOrder) {
+      if (term.containsLooseDBIndex()) {
+        return false;
+      }
+    }
+
     TermList* binding;
     if(bindings.getValuePtr(var,binding,term)) {
       return true;
@@ -62,7 +71,10 @@ private:
   DHMap<unsigned, TermList> bindings;
 };
 
-Clause* FastCondensation::simplify(Clause* cl)
+}
+
+template<bool higherOrder>
+Clause* FastCondensation<higherOrder>::simplify(Clause* cl)
 {
   TIME_TRACE("fast condensation");
 
@@ -92,7 +104,7 @@ Clause* FastCondensation::simplify(Clause* cl)
     }
   }
 
-  static CondensationBinder cbinder;
+  static CondensationBinder<higherOrder> cbinder;
   cbinder.init(&varLits);
 
   for(unsigned cIndex=0;cIndex<clen;cIndex++) {
@@ -121,5 +133,8 @@ Clause* FastCondensation::simplify(Clause* cl)
   }
   return cl;
 }
+
+template class FastCondensation<false>;
+template class FastCondensation<true>;
 
 }

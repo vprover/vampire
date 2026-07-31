@@ -106,6 +106,19 @@ private:
   mutable DHMap<unsigned, std::pair<float,float>> _teoryFeatureCache;
 };
 
+class HoFeaturesMultiSplitPassiveClauseContainer : public PredicateSplitPassiveClauseContainer
+{
+public:
+  HoFeaturesMultiSplitPassiveClauseContainer(bool isOutermost, const Shell::Options &opt, std::string name, std::vector<std::unique_ptr<PassiveClauseContainer>> queues);
+
+private:
+  float evaluateFeature(Clause* cl) const override;
+  float evaluateFeatureEstimate(unsigned numPositiveLiterals, const Inference& inf) const override;
+
+  const unsigned _lambdaWeight;
+  const unsigned _appliedVarWeight;
+};
+
 class AvatarMultiSplitPassiveClauseContainer : public PredicateSplitPassiveClauseContainer
 {
 public:

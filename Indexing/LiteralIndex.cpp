@@ -21,7 +21,6 @@
 #include "Kernel/MLVariant.hpp"
 #include "Kernel/Ordering.hpp"
 
-#include "LiteralIndexingStructure.hpp"
 #include "LiteralSubstitutionTree.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -332,7 +331,7 @@ void UnitIntegerComparisonLiteralIndex::handleClause(Clause* c, bool adding)
   Literal* lit = (*c)[0];
   ASS(lit != nullptr);
 
-  _is->handle(LiteralClause{ lit, c }, adding);
+  _is.handle(LiteralClause{ lit, c }, adding);
 }
 
 }

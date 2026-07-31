@@ -66,14 +66,16 @@ set(UNIT_TESTS
     UnitTests/tInferences_FunctionDefinitionRewriting.cpp
     UnitTests/tInferences_GaussianVariableElimination.cpp
     UnitTests/tInferences_HOL_ArgCong.cpp
+    UnitTests/tInferences_HOL_BetaEtaSimplify.cpp
     UnitTests/tInferences_HOL_BoolEqToDiseq.cpp
     UnitTests/tInferences_HOL_BoolSimp.cpp
     UnitTests/tInferences_HOL_Cases.cpp
     UnitTests/tInferences_HOL_CasesSimp.cpp
-    UnitTests/tInferences_HOL_BetaEtaSimplify.cpp
+    UnitTests/tInferences_HOL_Choice.cpp
     UnitTests/tInferences_HOL_CNFOnTheFly.cpp
     UnitTests/tInferences_HOL_FlexFlexSimplify.cpp
     UnitTests/tInferences_HOL_ImitateProject.cpp
+    UnitTests/tInferences_HOL_Injectivity.cpp
     UnitTests/tInferences_HOL_LeibnizEqualityElimination.cpp
     UnitTests/tInferences_HOL_NegativeExtensionality.cpp
     UnitTests/tInferences_HOL_PositiveExtensionality.cpp
@@ -117,6 +119,7 @@ set(UNIT_TESTS
     UnitTests/HOL/tHOL_TermShifter.cpp
     UnitTests/HOL/tHOL_SubtermReplacer.cpp
     UnitTests/HOL/tHOL_ToPlaceholders.cpp
+    UnitTests/HOL/tHOL_Unifier.cpp
 )
 
 ################################################################
@@ -181,7 +184,6 @@ set(SOURCES
     Indexing/InductionFormulaIndex.hpp
     Indexing/LiteralIndex.cpp
     Indexing/LiteralIndex.hpp
-    Indexing/LiteralIndexingStructure.hpp
     Indexing/LiteralMiniIndex.cpp
     Indexing/LiteralMiniIndex.hpp
     Indexing/LiteralSubstitutionTree.hpp
@@ -254,10 +256,6 @@ set(SOURCES
     Inferences/Cancellation.cpp
     Inferences/Cancellation.hpp
     Inferences/Cancellation.hpp
-    Inferences/Cases.cpp
-    Inferences/Cases.hpp
-    Inferences/Choice.cpp
-    Inferences/Choice.hpp
     Inferences/CodeTreeForwardSubsumptionAndResolution.cpp
     Inferences/CodeTreeForwardSubsumptionAndResolution.hpp
     Inferences/Condensation.cpp
@@ -307,8 +305,12 @@ set(SOURCES
     Inferences/HOL/BoolEqToDiseq.hpp
     Inferences/HOL/BoolSimp.cpp
     Inferences/HOL/BoolSimp.hpp
+    Inferences/HOL/Cases.cpp
+    Inferences/HOL/Cases.hpp
     Inferences/HOL/CasesSimp.cpp
     Inferences/HOL/CasesSimp.hpp
+    Inferences/HOL/Choice.cpp
+    Inferences/HOL/Choice.hpp
     Inferences/HOL/CNFOnTheFly.cpp
     Inferences/HOL/CNFOnTheFly.hpp
     Inferences/HOL/FlexFlexSimplify.cpp
@@ -506,6 +508,8 @@ set(SOURCES
     Kernel/HOL/SubtermReplacer.hpp
     Kernel/HOL/ToPlaceholders.cpp
     Kernel/HOL/ToPlaceholders.hpp
+    Kernel/HOL/Unifier.cpp
+    Kernel/HOL/Unifier.hpp
     Lib/Allocator.cpp
     Lib/Allocator.hpp
     Lib/Array.hpp

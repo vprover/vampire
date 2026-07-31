@@ -33,29 +33,45 @@ namespace Kernel {
  * This is a simple map from variables to terms.
  * If you want something with 'banks' to implement renaming variables apart, you probably want RobSubstitution.
  */
-class Substitution
+template<bool higherOrder>
+class Substitution_
 {
 public:
-  USE_ALLOCATOR(Substitution)
+  USE_ALLOCATOR(Substitution_)
 
   /**
    * Bind `v` to `t`.
    * Succeeds and returns true if `v` is either not bound or already bound to `t`.
    * Returns false otherwise, leaving the substitution untouched.
    */
-  bool bind(unsigned v, TermList t) { return _map.findOrInsert(v, t) == t; }
+  bool bind(unsigned v, TermList t) {
+    if constexpr (higherOrder) {
+      if (t.containsLooseDBIndex()) {
+        return false;
+      }
+    } else {
+      ASS(!t.containsLooseDBIndex());
+    }
+    return _map.findOrInsert(v, t) == t;
+  }
   bool bind(unsigned v, Term *t) { return bind(v, TermList(t)); }
 
   /**
    * Bind `v` to `t`: `v` must not be bound to anything.
    */
-  void bindUnbound(unsigned v, TermList t) { ALWAYS(_map.insert(v, t)); }
+  void bindUnbound(unsigned v, TermList t) {
+    ASS(!t.containsLooseDBIndex());
+    ALWAYS(_map.insert(v, t));
+  }
   void bindUnbound(unsigned int v, Term *t) { bindUnbound(v, TermList(t)); }
 
   /**
    * Bind `v` to `t`, regardless of what was there before (if anything).
    */
-  void rebind(unsigned v, TermList t) { _map.set(v,t); }
+  void rebind(unsigned v, TermList t) {
+    ASS(!t.containsLooseDBIndex());
+    _map.set(v,t);
+  }
   void rebind(unsigned v, Term *t) { rebind(v, TermList(t)); }
 
   /**
@@ -84,7 +100,7 @@ public:
   bool isEmpty() const { return _map.isEmpty(); }
   unsigned size() const { return _map.size(); }
 
-  friend std::ostream& operator<<(std::ostream& out, Substitution const &self) {
+  friend std::ostream& operator<<(std::ostream& out, Substitution_ const &self) {
     out << '[';
     auto items = self._map.items();
     bool first = true;

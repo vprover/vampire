@@ -11,6 +11,7 @@
  * @file Create.cpp
  */
 
+#include "Kernel/Clause.hpp"
 #include "Kernel/HOL/HOL.hpp"
 
 using Kernel::Term;
@@ -137,6 +138,42 @@ TermList HOL::create::placeholder(TermList sort) {
   static const auto placeholder = env.signature->getPlaceholder();
 
   return TermList(Term::create1(placeholder, sort));
+}
+
+Clause* HOL::create::choiceAxiom()
+{
+  auto alpha = TermList::var(0);
+  auto boolS = AtomicSort::boolSort();
+  auto alphaBool = AtomicSort::arrowSort(alpha, boolS);
+  auto p = TermList::var(1);
+
+  TermList choiceT(Term::create1(env.signature->getChoice(), alpha));
+  auto choiceTApplied = app(alphaBool, alpha, choiceT, p);
+  auto px = app(alpha, boolS, p, TermList::var(2));
+  auto pchoiceT = app(alpha, boolS, p, choiceTApplied);
+
+  return Clause::fromLiterals({
+    Literal::createEquality(true, px, bottom(), boolS),
+    Literal::createEquality(true, pchoiceT, top(), boolS),
+  }, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::HILBERTS_CHOICE_INSTANCE));
+}
+
+Clause* HOL::create::functionalExtensionalityAxiom()
+{
+  auto alpha = TermList::var(0);
+  auto beta = TermList::var(1);
+  auto x = TermList::var(2);
+  auto y = TermList::var(3);
+
+  TermList diffT(Term::create2(env.signature->getDiff(), alpha, beta));
+  auto diffTApplied = app2(diffT, x, y);
+  auto lhs = app(alpha, beta, x, diffTApplied);
+  auto rhs = app(alpha, beta, y, diffTApplied);
+
+  return Clause::fromLiterals({
+    Literal::createEquality(false, lhs, rhs, beta),
+    Literal::createEquality(true, x, y, AtomicSort::arrowSort(alpha, beta))
+  }, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FUNCTIONAL_EXTENSIONALITY_AXIOM));
 }
 
 Term* HOL::create::lambda(unsigned numArgs, const unsigned* vars, const TermList* varSorts, TypedTermList body, TermList* resultExprSort) {

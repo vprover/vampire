@@ -388,7 +388,6 @@ void Problem::readDetailsFromProperty() const
         });
   _hasFOOL = _property->hasFOOL();
   _hasApp = _property->hasApp();
-  _hasAppliedVar = _property->hasAppliedVar();
   _hasLogicalProxy = _property->hasLogicalProxy();
   _hasPolymorphicSym = _property->hasPolymorphicSym();
   _quantifiesOverPolymorphicVar = _property->quantifiesOverPolymorphicVar();
@@ -416,7 +415,6 @@ void Problem::invalidateEverything()
   _hasAlascaArithmetic = MaybeBool::Unknown;
   _hasFOOL = MaybeBool::Unknown;
   _hasApp = MaybeBool::Unknown;
-  _hasAppliedVar = MaybeBool::Unknown;
 
   _mayHaveFormulas = true;
   _mayHaveEquality = true;
@@ -438,7 +436,6 @@ void Problem::invalidateByRemoval()
   _hasNumerals.mightBecameFalse();
   _hasAlascaArithmetic.mightBecameFalse();
   _hasFOOL.mightBecameFalse();
-  _hasAppliedVar.mightBecameFalse();
   _hasLogicalProxy.mightBecameFalse();
   _hasPolymorphicSym.mightBecameFalse();
   _quantifiesOverPolymorphicVar.mightBecameFalse();
@@ -510,12 +507,6 @@ bool Problem::hasApp() const
 {
   if(!_hasApp.known()) { refreshProperty(); }
   return _hasApp.value();
-}
-
-bool Problem::hasAppliedVar() const
-{
-  if(!_hasAppliedVar.known()) { refreshProperty(); }
-  return _hasAppliedVar.value();
 }
 
 bool Problem::hasBoolVar() const

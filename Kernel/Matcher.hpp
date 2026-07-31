@@ -27,14 +27,11 @@ namespace Kernel {
 
 using namespace Lib;
 
+// TODO(HOL): many of these functions must be adapted to
+// HO-matching (at least using HOSubstitution)
 class MatchingUtils
 {
 public:
-  static TermList getInstanceFromMatch(TermList matchedBase,
-      TermList matchedInstance, TermList resultBase);
-  static Formula* getInstanceFromMatch(Literal* matchedBase,
-      Literal* matchedInstance, Formula* resultBase);
-
   static bool isVariant(Literal* l1, Literal* l2, bool complementary=false);
 
   static bool haveReversedVariantArgs(Term* l1, Term* l2);

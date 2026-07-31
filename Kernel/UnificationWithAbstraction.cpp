@@ -152,27 +152,6 @@ auto iterAtoms(TermSpec outer, AbstractingUnifier& au, ASig sig, Action action) 
   }
 };
 
-
-Shell::Options::UnificationWithAbstraction AbstractionOracle::create()
-{
-  if (env.options->unificationWithAbstraction()!=Options::UnificationWithAbstraction::OFF) {
-    return env.options->unificationWithAbstraction();
-  } else if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.getMainProblem()->getProperty()->higherOrder()) {
-    return Options::UnificationWithAbstraction::FUNC_EXT;
-  } else {
-    return Options::UnificationWithAbstraction::OFF;
-  }
-}
-
-Shell::Options::UnificationWithAbstraction AbstractionOracle::createOnlyHigherOrder()
-{
-  if (env.options->functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION && env.getMainProblem()->getProperty()->higherOrder()) {
-    return Options::UnificationWithAbstraction::FUNC_EXT;
-  } else {
-    return Options::UnificationWithAbstraction::OFF;
-  }
-}
-
 bool AbstractionOracle::isInterpreted(unsigned functor) const
 {
   auto f = env.signature->getFunction(functor);
@@ -245,7 +224,8 @@ bool AbstractionOracle::canAbstract(AbstractingUnifier* au, TermSpec const& t1, 
     case Shell::Options::UnificationWithAbstraction::ALASCA_MAIN:
     case Shell::Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR:
     case Shell::Options::UnificationWithAbstraction::ALASCA_ONE_INTERP:
-    case Shell::Options::UnificationWithAbstraction::FUNC_EXT: {
+    case Shell::Options::UnificationWithAbstraction::FUNC_EXT:
+    case Shell::Options::UnificationWithAbstraction::HOL: {
       ASSERTION_VIOLATION_REP(Output::cat(_mode, " should be handled in AbstractionOracle::tryAbstract"))
     }
     case Shell::Options::UnificationWithAbstraction::AUTO: {
@@ -253,6 +233,99 @@ bool AbstractionOracle::canAbstract(AbstractingUnifier* au, TermSpec const& t1, 
     }
   }
   ASSERTION_VIOLATION;
+}
+
+Option<TermSpec> appHead(AbstractingUnifier* au, TermSpec t)
+{
+  for (;;) {
+    t = au->subs().derefBound(t);
+    // we don't deal with lambdas yet
+    if (t.term.isLambdaTerm()) {
+      return Option<TermSpec>();
+    }
+    // if term is application, recurse
+    if (t.term.isApplication()) {
+      t = t.termArg(0);
+      continue;
+    }
+    break;
+  }
+  return some(t);
+}
+
+Option<AbstractionOracle::AbstractionResult> hol(AbstractingUnifier* au, TermSpec t1, TermSpec t2, bool funcExt)
+{
+  DEBUG_UNIFY(0, "hol uwa unifying ", t1, " =?= ", t2, " w.r.t. ", *au);
+
+  // these come from failed occurs checks, do not abstract
+  if (t1.isVar() || t2.isVar()) {
+    return Option<AbstractionOracle::AbstractionResult>();
+  }
+
+  // sorts should be unified as usual
+  if (t1.isSort() || t2.isSort()) {
+    return Option<AbstractionOracle::AbstractionResult>();
+  }
+
+  if (funcExt) {
+    if (t1.sort().term.isArrowSort()) {
+      return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, t1.sort()))));
+    }
+  }
+
+  // TODO deal with lambdas
+  if (t1.term.isLambdaTerm() || t2.term.isLambdaTerm()) {
+    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, t1.sort()))));
+  }
+
+  auto h1 = appHead(au, t1);
+  auto h2 = appHead(au, t2);
+  if (h1.isNone() || h2.isNone()) {
+    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, t1.sort()))));
+  }
+  DEBUG_UNIFY(0, "app heads ", h1, ", ", h2);
+
+  // we abstract flex-rigid and flex-flex pairs
+  if (h1->isVar() || h2->isVar()) {
+    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, t1.sort()))));
+  }
+
+  // they cannot be DB indices as we are not dealing with lambdas
+  ASS(!h1->term.deBruijnIndex());
+  ASS(!h2->term.deBruijnIndex());
+
+  // if functors are different, don't abstract
+  if (h1->functor() != h2->functor()) {
+    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
+  }
+  ASS_EQ(h1->nTermArgs(), 0);
+  // assert that there are no term args, but to be sure unify all args
+  for (unsigned i = 0; i < h1->nAllArgs(); i++) {
+    auto h1s = h1->anyArg(i);
+    auto h2s = h2->anyArg(i);
+    if (!au->subs().unify(h1s.term, h1s.index, h2s.term, h2s.index)) {
+      return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
+    }
+  }
+
+  // otherwise decompose application normally
+  Stack<UnificationConstraint> unifs;
+  DEBUG_UNIFY(0, "decomposing ", t1, " (", t1.sort(), ") ", t2, " (", t2.sort(), ")");
+  while (t1.term.isApplication()) {
+    // It can happen that the substitution tree unifies terms before their sorts
+    // due to reordering. In this case, we may get terms with the same head but
+    // different number of applications, hence the check below and after the loop.
+    if (!t2.term.isApplication()) {
+      return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
+    }
+    unifs.emplace(t1.termArg(1), t2.termArg(1), t1.typeArg(0));
+    t1 = au->subs().derefBound(t1.termArg(0));
+    t2 = au->subs().derefBound(t2.termArg(0));
+  }
+  if (t2.term.isApplication()) {
+    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
+  }
+  return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().unifyAll(unifs.iter())));
 }
 
 Option<AbstractionOracle::AbstractionResult> funcExt(
@@ -1205,6 +1278,9 @@ Option<AbstractionOracle::AbstractionResult> AbstractionOracle::tryAbstract(Abst
     case Shell::Options::UnificationWithAbstraction::FUNC_EXT: {
       return funcExt(au, t1, t2);
     }
+    case Shell::Options::UnificationWithAbstraction::HOL: {
+      return hol(au, t1, t2, _funcExt);
+    }
     case Shell::Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR: {
       return uwa_floor(*au, t1, t2, _mode);
     }
@@ -1322,7 +1398,8 @@ Option<Recycled<Stack<unsigned>>> AbstractingUnifier::unifiableSymbols(SymbolId 
     case Options::UnificationWithAbstraction::ONE_INTERP:
     case Options::UnificationWithAbstraction::ALL:
     case Options::UnificationWithAbstraction::GROUND:
-    case Options::UnificationWithAbstraction::FUNC_EXT: {
+    case Options::UnificationWithAbstraction::FUNC_EXT:
+    case Options::UnificationWithAbstraction::HOL: {
       return anything();
     }
     case Options::UnificationWithAbstraction::ALASCA_CAN_ABSTRACT:
@@ -1389,8 +1466,7 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
         //     pair.second.isVar() && isUnbound(std::pair.second.varSpec())) {
         //   todo.push(std::pair);
         // } else
-        if (!encountered->find(pair)) {
-          encountered->insert(pair);
+        if (encountered->insert(pair)) {
           toDo->push(std::move(pair));
         }
     };

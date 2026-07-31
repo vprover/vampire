@@ -587,7 +587,7 @@ std::string Kernel::ruleName(InferenceRule rule)
   case InferenceRule::REMOVE_DUPLICATE_LITERALS:
     return "duplicate literal removal";
   case InferenceRule::SKOLEMIZE:
-    return "skolemisation";
+    return "skolemize";
   case InferenceRule::SKOLEM_SYMBOL_INTRODUCTION:
     return "skolem symbol introduction";
   case InferenceRule::RESOLUTION:
@@ -596,9 +596,9 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "constrained resolution";
   case InferenceRule::EQUALITY_PROXY_REPLACEMENT:
     return "equality proxy replacement";
-  case InferenceRule::EQUALITY_PROXY_AXIOM1:
+  case InferenceRule::EQUALITY_PROXY_DEFINITION:
     return "equality proxy definition";
-  case InferenceRule::EQUALITY_PROXY_AXIOM2:
+  case InferenceRule::EQUALITY_PROXY_AXIOM:
     return "equality proxy axiom";
   case InferenceRule::EXTENSIONALITY_RESOLUTION:
     return "extensionality resolution";
@@ -929,6 +929,8 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "beta-eta normalization";
   case InferenceRule::EQ_TO_DISEQ:
     return "bool equality to disequality";
+  case InferenceRule::HEURISTIC_INSTANTIATION:
+    return "heuristic instantiation";
   case InferenceRule::PRIMITIVE_INSTANTIATION:
     return "primitive instantiation";
   case InferenceRule::IMITATION:
@@ -945,6 +947,8 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "term algebra direct subterm axiom";
   case InferenceRule::TERM_ALGEBRA_SUBTERMS_TRANSITIVE_AXIOM:
     return "term algebra subterm transitivity axiom";
+  case InferenceRule::FUNCTIONAL_EXTENSIONALITY_AXIOM:
+    return "functional extensionality axiom";
     /* this cases are no actual inference rules but only markeres to separatea groups of rules */
   case InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION:
   case InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION_LAST:

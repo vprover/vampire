@@ -119,8 +119,6 @@ enum class InferenceRule : unsigned char {
   ANSWER_LITERAL_INPUT_SKOLEMISATION,
   /** claim definition, definition introduced by a claim in the input */
   CLAIM_DEFINITION,
-//     /** choice_axiom (Ax)((Ey)F(x,y) -> F(x,f(x))) */
-//     CHOICE_AXIOM,
 //     /** (Ax)(F(x)->F'(x)), G[F(t)] / G[F'(t)] */
 //     MONOTONE_REPLACEMENT,
 //     /** G[(Ax)F(x)] => G[F(t)] */
@@ -348,6 +346,7 @@ enum class InferenceRule : unsigned char {
   NEGATIVE_EXTENSIONALITY,
   POSITIVE_EXTENSIONALITY,
   EQ_TO_DISEQ,
+  HEURISTIC_INSTANTIATION,
   /** The next five rules can be either simplifying or generating */
   NOT_PROXY_CLAUSIFICATION,
   AND_PROXY_CLAUSIFICATION,
@@ -367,9 +366,9 @@ enum class InferenceRule : unsigned char {
   /** equality proxy replacement */
   EQUALITY_PROXY_REPLACEMENT,
   /** definition of the equality proxy predicate in the form E(x,y) <=> x=y */
-  EQUALITY_PROXY_AXIOM1,
+  EQUALITY_PROXY_DEFINITION,
   /** equality proxy axioms such as E(x,x) or ~E(x,y) \/ x=y */
-  EQUALITY_PROXY_AXIOM2,
+  EQUALITY_PROXY_AXIOM,
   /** unfolding by definitions f(x1,...,xn)=t */
   DEFINITION_UNFOLDING,
 
@@ -533,6 +532,8 @@ enum class InferenceRule : unsigned char {
   /* Integer induction axioms for infinite interval and the default bound */
   INT_DB_UP_INDUCTION_AXIOM,
   INT_DB_DOWN_INDUCTION_AXIOM,
+
+  FUNCTIONAL_EXTENSIONALITY_AXIOM,
 
   /** the last theory axiom marker --
     axioms between THEORY_AXIOM and GENERIC_THEORY_AXIOM_LAST will be automatically making their respective clauses isTheoryAxiom() true */

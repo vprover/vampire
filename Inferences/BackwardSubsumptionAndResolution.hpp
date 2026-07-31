@@ -22,6 +22,7 @@
 
 namespace Inferences {
 
+template<bool higherOrder>
 class BackwardSubsumptionAndResolution
     : public BackwardSimplificationEngine {
 

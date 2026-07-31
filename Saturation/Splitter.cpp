@@ -50,6 +50,7 @@
 #include "DP/SimpleCongruenceClosure.hpp"
 
 #include "SaturationAlgorithm.hpp"
+#include "Shell/UIHelper.hpp"
 
 namespace Saturation
 {
@@ -77,11 +78,7 @@ void SplittingBranchSelector::init()
   SATSolver *inner;
   switch(_parent.getOptions().satSolver()){
     case Options::SatSolver::MINISAT: {
-      auto minisat = new MinisatInterfacing();
-      minisat->setSeed(Random::seed());
-      minisat->setClauseShuffling(_parent.getOptions().randomTraversals());
-      minisat->setWatchesShuffling(_parent.getOptions().randomTraversals());
-      inner = minisat;
+      inner = new MinisatInterfacing(_parent.getOptions());
       break;
     }
     case Options::SatSolver::CADICAL:
@@ -90,11 +87,18 @@ void SplittingBranchSelector::init()
 #if VZ3
     case Options::SatSolver::Z3:
       {
-        inner = new Z3Interfacing(_parent.getOptions(),_parent.satNaming(), /* unsat core */ false, _parent.getOptions().exportAvatarProblem(), _parent.getOptions().problemExportSyntax());
-        if(_parent.getOptions().satFallbackForSMT()){
-          // TODO make fallback minimizing?
-          SATSolver* fallback = new MinisatInterfacing;
-          inner = new FallbackSolverWrapper(inner, fallback);
+        if (env.higherOrder()) {
+          if (outputAllowed()) {
+            addCommentSignForSZS(std::cout);
+            std::cout << "WARNING: Z3 as SAT solver not compatible with higher-order. Using Minisat instead" << std::endl;
+          }
+          inner = new MinisatInterfacing(_parent.getOptions());
+        } else {
+          inner = new Z3Interfacing(_parent.getOptions(),_parent.satNaming(), /* unsat core */ false, _parent.getOptions().exportAvatarProblem(), _parent.getOptions().problemExportSyntax());
+          if(_parent.getOptions().satFallbackForSMT()){
+            // TODO make fallback minimizing?
+            inner = new FallbackSolverWrapper(inner, new MinisatInterfacing());
+          }
         }
       }
       break;

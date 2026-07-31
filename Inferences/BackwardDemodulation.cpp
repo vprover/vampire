@@ -178,7 +178,8 @@ void BackwardDemodulation<higherOrder>::perform(Clause* cl,
 	    getMappingIterator(
 		    getMapAndFlattenIterator(
 			    EqHelper::getDemodulationLHSIterator(lit, _preordered, _ord).first,
-			    [this](TypedTermList lhs){ return pvi( pushPairIntoRightIterator(lhs, _index->getInstances(lhs, true)) ); }),
+			    [this](TypedTermList lhs)
+          { return pvi( pushPairIntoRightIterator(lhs, _index->template getInstances<higherOrder>(lhs, true)) ); }),
 		    ResultFn(cl, *this, _helper)),
  	      [](BwSimplificationRecord arg){ return arg.toRemove!=0; }));
 

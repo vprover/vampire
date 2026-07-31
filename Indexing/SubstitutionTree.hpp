@@ -621,14 +621,6 @@ public:
     };
 
     template<class Query>
-    bool generalizationExists(Query query)
-    {
-      return _root == nullptr 
-        ? false
-        : FastGeneralizationsIterator(this, _root, query, /* retrieveSubstitutions */ false, /* reversed */ false).hasNext();
-    }
-
-    template<class Query>
     VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getVariants(Query query, bool retrieveSubstitutions)
     {
       auto renaming = retrieveSubstitutions ? std::make_unique<RenamingSubstitution>() : std::unique_ptr<RenamingSubstitution>(nullptr);
@@ -1488,7 +1480,7 @@ public:
         void init(AU unif, AbstractionOracle ao, bool fixedPointIteration) { 
           _unif = std::move(unif);
           // TODO set ao outside (?)
-          unifier()->setAo(ao);
+          unifier()->_uwa = std::move(ao);
           _fixedPointIteration = fixedPointIteration;
         }
 

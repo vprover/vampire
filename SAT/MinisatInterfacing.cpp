@@ -12,6 +12,8 @@
  * Implements class MinisatInterfacing
  */
 
+#include "Shell/Options.hpp"
+
 #include "MinisatInterfacing.hpp"
 
 #include "Lib/DArray.hpp"
@@ -105,6 +107,16 @@ void MinisatInterfacing<MinisatSolver>::solveModuloAssumptionsAndSetStatus(unsig
   } catch(Minisat::OutOfMemoryException&) {
     throw std::bad_alloc();
   }
+}
+
+template<typename MinisatSolver>
+MinisatInterfacing<MinisatSolver>::MinisatInterfacing(const Options& opts)
+{
+  auto seed = Random::seed();
+  ASS_NEQ(seed,0)
+  _solver.random_seed = seed;
+  _solver.shuffle_clauses = opts.randomTraversals();
+  _solver.shuffle_watches = opts.randomTraversals();
 }
 
 /**

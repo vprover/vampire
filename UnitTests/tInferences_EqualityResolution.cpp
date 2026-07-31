@@ -79,3 +79,33 @@ TEST_GENERATION(test_07,
       .input(     clause({  selected(x != f(a)), selected(x != a)  }))
       .expected( exactly( clause({  f(a) != a  })))
     )
+
+#undef MY_SYNTAX_SUGAR
+#define MY_SYNTAX_SUGAR                               \
+  DECL_SORT(s)                                        \
+  DECL_DEFAULT_VARS                                   \
+  DECL_CONST(f, arrow({s, s}, s))                     \
+  DECL_DE_BRUIJN_INDEX(db0, 0, s)                     \
+  DECL_CONST(a, s)                                    \
+  DECL_CONST(b, s)
+
+TEST_GENERATION(test_hol_01,
+    Generation::AsymmetricTest()
+      .input(clause({ selected(ap(ap(x.sort(arrow({s, s},s)), a), b) != b), selected(x != f()) }))
+      .options({
+        { "literal_maximality_aftercheck", "off" },
+      })
+      .expected( exactly(
+        clause({ lam(s, lam(s, db0)) != f() }),
+        clause({ lam(s, lam(s, b)) != f() }),
+        clause({ ap(f, {a, b}) != b })
+      ))
+    )
+
+TEST_GENERATION(test_hol_02,
+    Generation::AsymmetricTest()
+      .input(clause({ selected(lam(s, ap(f, {x, db0})) != lam(s, ap(f, {y, db0}))) }))
+      .expected( exactly(
+        clause({ lam(s, x.sort(s)) != lam(s, y.sort(s)) })
+      ))
+    )

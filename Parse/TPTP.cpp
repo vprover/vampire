@@ -36,6 +36,7 @@
 #include "Shell/Options.hpp"
 #include "Shell/DistinctGroupExpansion.hpp"
 #include "Shell/UIHelper.hpp"
+#include "Shell/Rectify.hpp"
 
 #include "Parse/TPTP.hpp"
 
@@ -59,7 +60,7 @@ static VSList* zipVarsSorts(VList* vars, SList* sorts) {
 
 #define DEBUG_SHOW_UNITS 0
 #define DEBUG_SOURCE 0
-DHMap<unsigned, std::string> TPTP::_axiomNames;
+DHMap<unsigned, std::pair<std::string, std::filesystem::path>> TPTP::_axiomNames;
 DHMap<unsigned, Map<unsigned,std::string>> TPTP::_questionVariableNames;
 
 //Numbers chosen to avoid clashing with connectives.
@@ -74,21 +75,10 @@ const int TPTP::PI = 102u;
 /** Sigma function for existential quantification */
 const int TPTP::SIGMA = 103u;
 
-/**
- * Create a parser, parse the input and return the parsed list of units.
- * @since 13/07/2011 Manchester
- */
-UnitList* TPTP::parse(istream& input)
-{
-  Parse::TPTP parser(input);
-  parser.parse();
-  return parser.units();
-}
-
 Unit* TPTP::parseFormulaFromString(const std::string& str)
 {
   std::stringstream input(str+")."); // to fake endFOF, which creates the clause
-  Parse::TPTP parser(input);
+  Parse::TPTP parser(input, "<string>");
   parser._lastInputType = UnitInputType::AXIOM;
   parser._bools.push(true);     // true is what fof/tff normally pushes (but we start "from the middle")
   parser._strings.push("dummy_name");
@@ -101,9 +91,9 @@ Unit* TPTP::parseFormulaFromString(const std::string& str)
  * Initialise a lexer.
  * @since 27/07/2004 Torrevieja
  */
-TPTP::TPTP(std::istream &in, UnitList::FIFO unitBuffer)
+TPTP::TPTP(std::istream &in, std::filesystem::path path, UnitList::FIFO unitBuffer)
   : _containsConjecture(false),
-    currentFile { &in, {}, {}, 1 },
+    currentFile { &in, {}, path, 1 },
     _units(unitBuffer),
     _isThf(false),
     _containsPolymorphism(false),
@@ -112,8 +102,7 @@ TPTP::TPTP(std::istream &in, UnitList::FIFO unitBuffer)
     _modelDefinition(false),
     _insideEqualityArgument(0),
     _unitSources(0),
-    _filterReserved(false),
-    _seenConjecture(false)
+    _filterReserved(false)
 {
 } // TPTP::TPTP
 
@@ -451,7 +440,8 @@ std::string TPTP::toString(Tag tag)
 bool TPTP::readToken(Token& tok)
 {
   skipWhiteSpacesAndComments();
-  switch (getChar(0)) {
+  auto c = getChar(0);
+  switch (c) {
   case 0:
     tok.tag = T_EOF;
     return false;
@@ -709,7 +699,7 @@ bool TPTP::readToken(Token& tok)
     tok.tag = readNumber(tok);
     return true;
   default:
-    PARSE_ERROR("Bad character");
+    PARSE_ERROR("Bad character " + std::string(1, c));
   }
 } // TPTP::readToken()
 
@@ -3728,9 +3718,7 @@ void TPTP::endFof()
     _unitSources->insert(original->number(),source);
   }
 
-  if (env.options->outputAxiomNames()) {
-    assignAxiomName(original,nm);
-  }
+  ALWAYS(_axiomNames.insert(original->number(), {nm, currentFile.path}));
 #if DEBUG_SHOW_UNITS
   cout << "Unit: " << unit->toString() << "\n";
 #endif
@@ -3741,8 +3729,6 @@ void TPTP::endFof()
   switch (_lastInputType) {
   case UnitInputType::CONJECTURE:
     if(!isFof) USER_ERROR("conjecture is not allowed in cnf");
-    if(_seenConjecture) USER_ERROR("Vampire only supports a single conjecture in a problem");
-    _seenConjecture=true;
     {
       ASS_EQ(freeVariables(f),VList::empty())
       f = new NegatedFormula(f);
@@ -3781,9 +3767,17 @@ Unit* TPTP::processClaimFormula(Unit* unit, Formula * f, const std::string& nm)
   if (!added) {
     USER_ERROR("Names of claims must be unique: "+nm);
   }
+  if (unit->isClause()) {
+    VList* vars = freeVariables(f);
+    if (VList::isNonEmpty(vars)) {
+      std::tie(f,unit) = Rectify::closeOverGivenVars(vars,f,unit);
+    }
+  } else {
+    // only clauses can have free variables at this point!
+    ASS_EQ(freeVariables(f),VList::empty())
+  }
   env.signature->getPredicate(pred)->markLabel();
   Formula* claim = new AtomicFormula(Literal::create(pred, /* polarity */ true, {}));
-  ASS_EQ(freeVariables(f),VList::empty())
   f = new BinaryFormula(IFF,claim,f);
   return new FormulaUnit(f,
       FormulaClauseTransformation(InferenceRule::CLAIM_DEFINITION,unit));
@@ -4853,21 +4847,17 @@ unsigned TPTP::addUninterpretedConstant(const std::string& name, bool& added)
 } // TPTP::addUninterpretedConstant
 
 /**
- * Associate name @b name with unit @b unit
- * Each formula can have its name assigned at most once
- */
-void TPTP::assignAxiomName(const Unit* unit, std::string& name)
-{
-  ALWAYS(_axiomNames.insert(unit->number(), name));
-} // TPTP::assignAxiomName
-
-/**
  * If @b unit has a name associated, assign it into @b result,
  * and return true; otherwise return false
  */
-bool TPTP::findAxiomName(const Unit* unit, std::string& result)
+bool TPTP::findAxiomName(const Unit* unit, std::string& name, std::filesystem::path &path)
 {
-  return _axiomNames.find(unit->number(), result);
+  std::pair<std::string, std::filesystem::path> found;
+  if(!_axiomNames.find(unit->number(), found))
+    return false;
+  name = std::move(found.first);
+  path = std::move(found.second);
+  return true;
 } // TPTP::findAxiomName
 
 /**

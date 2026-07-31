@@ -189,14 +189,12 @@ public:
 
   void attachContainer(ClauseContainer* cc);
 protected:
-  Index() {}
-
   void onAddedToContainer(Clause* c)
   { handleClause(c, true); }
   void onRemovedFromContainer(Clause* c)
   { handleClause(c, false); }
 
-  virtual void handleClause(Clause* c, bool adding) {}
+  virtual void handleClause(Clause* c, bool adding) = 0;
 
   //TODO: postponing index modifications during iteration (methods isBeingIterated() etc...)
 

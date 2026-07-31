@@ -34,7 +34,7 @@ class EqHelper
 public:
   static TermList getOtherEqualitySide(Literal* eq, TermList lhs);
   static bool hasGreaterEqualitySide(Literal* eq, const Ordering& ord, TermList& lhs, TermList& rhs);
-  static VirtualIterator<Term*> getSubtermIterator(Literal* lit, const Ordering& ord, bool higherOrder);
+  template<bool higherOrder> static VirtualIterator<Term*> getSubtermIterator(Literal* lit, const Ordering& ord);
   static TermIterator getBooleanSubtermIterator(Literal* lit, const Ordering& ord);
   static VirtualIterator<TypedTermList> getLHSIterator(Literal* lit, const Ordering& ord);
   static VirtualIterator<TypedTermList> getSuperpositionLHSIterator(Literal* lit, const Ordering& ord, const Options& opt);

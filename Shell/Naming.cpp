@@ -1137,7 +1137,7 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
     sym->setType(OperatorType::getConstantsType(sort, typeArgArity)); 
     TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
     TermList t = HOL::create::app(head, termVars);
-    return  Literal::createEquality(true, TermList(t), TermList(Term::foolTrue()), AtomicSort::boolSort());  
+    return  Literal::createEquality(true, TermList(t), HOL::create::top(), AtomicSort::boolSort());  
   }
 }
 

@@ -32,7 +32,7 @@ HOL_TEST_FUN(to_placeholders_1) {
     "vAPP(srt,srt,vAPP(srt > srt,srt > srt,h,f),vAPP(srt,srt,X1,X2))"
   )
 
-  auto res = ToPlaceholders::replace(term);
+  auto res = ToPlaceholders::replace(term, Options::FunctionExtensionality::ABSTRACTION);
   ASS_EQ(res, app(D.h, ph(D.fSrt), ph(D.srt)))
   ASS_EQ(termListToString(res, Options::HPrinting::TPTP), "(h @ ph0⟨srt > srt⟩ @ ph0⟨srt⟩)")
   ASS_EQ(termListToString(res, Options::HPrinting::RAW), "vAPP(srt,srt,vAPP(srt > srt,srt > srt,h,ph0(srt > srt)),ph0(srt))")

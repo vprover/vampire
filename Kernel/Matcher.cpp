@@ -15,38 +15,12 @@
 #include "Lib/DHMap.hpp"
 
 #include "Matcher.hpp"
-#include "SubstHelper.hpp"
+#include "TermIterators.hpp"
 
 namespace Kernel
 {
 
 using namespace std;
-
-/**
- * Obtain a substitution by matching @b matchedInstance onto @b matchedBase
- * and return @b resultBase after application of that substitution
- *
- * @b matchedInstance must match onto @b matchedBase.
- */
-TermList MatchingUtils::getInstanceFromMatch(TermList matchedBase,
-    TermList matchedInstance, TermList resultBase)
-{
-  static Substitution subst;
-  subst.reset();
-
-  ALWAYS( matchTerms(matchedBase, matchedInstance, subst) );
-  return SubstHelper::apply(resultBase, subst);
-}
-
-Formula* MatchingUtils::getInstanceFromMatch(Literal* matchedBase,
-      Literal* matchedInstance, Formula* resultBase)
-{
-  static Substitution subst;
-  subst.reset();
-
-  ALWAYS( match(matchedBase, matchedInstance, false, subst) );
-  return SubstHelper::apply(resultBase, subst);
-}
 
 bool MatchingUtils::isVariant(Literal* l1, Literal* l2, bool complementary)
 {

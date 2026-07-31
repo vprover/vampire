@@ -23,8 +23,6 @@
 
 #include "Shell/Skolem.hpp"
 
-#include "Saturation/SaturationAlgorithm.hpp"
-
 #include "CNFOnTheFly.hpp"
 
 namespace Inferences {
@@ -63,10 +61,6 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
 
   if(generating && (eager || simp)){ return ClauseIterator::getEmpty(); }
   if(!generating && gen){ return ClauseIterator::getEmpty(); }
-
-  if (instantiations) {
-    INVALID_OPERATION("Options::CNFOnTheFly::CONJ_EAGER not yet supported");
-  }
 
   static TermStack args;
 
@@ -180,18 +174,43 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
       case Proxy::PI:
       case Proxy::SIGMA: {
         ASS_EQ(args.size(), 1);
+        ClauseStack instCls;
         TermList srt = *SortHelper::getResultSort(head.term()).term()->nthArgument(0);
         TermList newTerm;
         Proxy proxy;
-        if((prox == Proxy::PI && positive) ||
-          (prox == Proxy::SIGMA && !positive)){
+        if ((prox == Proxy::PI && positive) || (prox == Proxy::SIGMA && !positive)) {
           proxy = Proxy::PI;
           newTerm = piRemoval(args[0], c, srt);
+          if (instantiations && !args[0].isVar()) {
+            auto insts = env.signature->getInstantiations();
+            for (const auto& t : iterTraits(insts->iter())) {
+              ASS(t.isTerm());
+              static RobSubstitution subst;
+              subst.reset();
+
+              auto tSort = SortHelper::getResultSort(t.term());
+              auto aSort = srt.domain();
+
+              if (!subst.unify(tSort,0,aSort,1)) {
+                continue;
+              }
+              auto tS = subst.apply(t, 0);
+              auto argS = subst.apply(args[0],1); 
+
+              RStack<Literal*> resLits;
+              for (const auto& curr : *c) {
+                resLits->push(curr == lit
+                  ? boolEq(HOL::create::app(argS, tS), rhs)
+                  : subst.apply(curr, 1));
+              }
+              instCls.push(Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::HEURISTIC_INSTANTIATION, c)));
+            }
+          }
         } else {
           ASS(term.isTerm());
           bool newTermCreated = false;
           if(index){
-            auto results = index->getGeneralizations(TypedTermList(term.term()), true);
+            auto results = index->getSkolem(term.term());
             if(results.hasNext()){
               auto tqr = results.next();
               TermList skolemTerm = tqr.data->value;
@@ -209,8 +228,8 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
           }
           proxy = Proxy::SIGMA;
         }
-        return pvi(iterItems(replaceLits(c, lit, proxy, false,
-          positive ? eqTroo(newTerm) : eqFols(newTerm))));
+        return pvi(concatIters(iterItems(replaceLits(c, lit, proxy, false,
+          positive ? eqTroo(newTerm) : eqFols(newTerm))), getPersistentIterator(ClauseStack::Iterator(instCls))));
       }
     }
   }
@@ -364,14 +383,6 @@ Clause* IFFXORRewriterISE::simplify(Clause* c){
   return c;
 }
 
-LazyClausificationGIE::LazyClausificationGIE(SaturationAlgorithm& salg)
-  : _formulaIndex(salg.getSimplifyingIndex<SkolemisingFormulaIndex>())
-{}
-
-LazyClausification::LazyClausification(SaturationAlgorithm& salg)
-  : _formulaIndex(salg.getSimplifyingIndex<SkolemisingFormulaIndex>())
-{}
-
 Option<ClauseIterator> EagerClausificationISE::simplifyMany(Clause* c)
 {
   auto it = produceClauses(c, false);
@@ -383,12 +394,12 @@ Option<ClauseIterator> EagerClausificationISE::simplifyMany(Clause* c)
 
 ClauseIterator LazyClausificationGIE::generateClauses(Clause* c)
 {
-  return produceClauses(c, true, _formulaIndex.get());
+  return produceClauses(c, true, &_formulaIndex);
 }
 
 ClauseIterator LazyClausification::perform(Clause* c)
 {
-  return produceClauses(c, false, _formulaIndex.get());
+  return produceClauses(c, false, &_formulaIndex);
 }
 
 

@@ -94,7 +94,11 @@ typedef Stack<Clause*> ClauseStack;
 class Problem;
 
 class Renaming;
-class Substitution;
+template<bool higherOrder>
+class Substitution_;
+// TODO(HOL): for now use HOSubstitution everywhere, change to false when performance is affected
+using Substitution = Substitution_</*higherOrder=*/true>;
+using HOSubstitution = Substitution_</*higherOrder=*/true>;
 
 class RobSubstitution;
 typedef VirtualIterator<RobSubstitution*> SubstIterator;

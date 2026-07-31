@@ -444,7 +444,7 @@ void TheoryInstAndSimp::ConstantCache::reset()
 
 Term* TheoryInstAndSimp::ConstantCache::freshConstant(SortId sort) 
 { 
-  auto& cache = _inner.getOrInit(sort, [](){ 
+  auto& cache = _inner.getOrInit(sort, [&](){
       DEBUG("new constant cache for sort ", _inner.size());
       return SortedConstantCache(); 
     });
@@ -967,9 +967,9 @@ bool TheoryInstAndSimp::isTheoryLemma(Clause* cl, bool& couldNotCheck) {
   return !solutions.next().sat;
 }
 
-} // namespace Inferences
-
 std::ostream& operator<<(std::ostream& out, Inferences::Solution const& self)
 { return out << "Solution(" << (self.sat ? "sat" : "unsat") << ", " << self.subst << ")"; }
+
+} // namespace Inferences
 
 #endif

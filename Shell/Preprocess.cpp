@@ -17,9 +17,10 @@
 
 #include "Lib/ScopedLet.hpp"
 
-#include "Kernel/Unit.hpp"
 #include "Kernel/Clause.hpp"
+#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Problem.hpp"
+#include "Kernel/Unit.hpp"
 
 #include "GoalGuessing.hpp"
 #include "AnswerLiteralManager.hpp"
@@ -175,8 +176,11 @@ void Preprocess::preprocess(Problem& prb)
         std::cout << "WARNING: ignoring request to add function extensionality axiom as problem is first-order" << std::endl;
       }
     } else {
-      INVALID_OPERATION("function extensionality axiom not yet supported");
-      // LambdaConversion::addFunctionExtensionalityAxiom(prb);
+      auto funcExtAx = HOL::create::functionalExtensionalityAxiom();
+      UnitList::push(funcExtAx, prb.units());
+      if (env.options->showPreprocessing()) {
+        std::cout << "Added functional extensionality axiom: " << funcExtAx->toString() << std::endl;       
+      }
     }
   }
 
@@ -187,20 +191,11 @@ void Preprocess::preprocess(Problem& prb)
         std::cout << "WARNING: ignoring request to add choice axiom as problem is first-order" << std::endl;
       }
     } else {
-      INVALID_OPERATION("choice axiom not yet supported");
-      // LambdaConversion::addChoiceAxiom(prb);
-    }
-  }
-
-  if (env.options->addProxyAxioms()){
-    if (!prb.isHigherOrder()) {
-      if (outputAllowed()) {
-        addCommentSignForSZS(std::cout);
-        std::cout << "WARNING: ignoring request to add logical proxy axioms as problem is first-order" << std::endl;
+      auto choiceAx = HOL::create::choiceAxiom();
+      UnitList::push(choiceAx, prb.units());
+      if (env.options->showPreprocessing()) {
+        std::cout << "[PP] Added Hilbert choice axiom: " << choiceAx->toString() << std::endl;
       }
-    } else {
-      INVALID_OPERATION("proxy axioms not yet supported");
-      // LambdaConversion::addProxyAxioms(prb);
     }
   }
 
@@ -415,6 +410,10 @@ void Preprocess::preprocess(Problem& prb)
 
      TweeGoalTransformation twee;
      twee.apply(prb,(env.options->tweeGoalTransformation() == Options::TweeGoalTransformation::GROUND));
+   }
+
+   if (prb.isHigherOrder() && _options.heuristicInstantiation()) {
+     findAbstractions(prb.units());
    }
 
    if (!prb.isHigherOrder() && _options.equalityProxy()!=Options::EqualityProxy::OFF && prb.mayHaveEquality()) {
@@ -783,4 +782,20 @@ void Preprocess::clausify(Problem& prb)
     prb.invalidateProperty();
   }
   prb.reportFormulasEliminated();
+}
+
+void Preprocess::findAbstractions(UnitList*& units)
+{
+  for (const auto& u : iterTraits(UnitList::RefIterator(units))) {
+    if (!u->derivedFromGoal()) {
+      continue;
+    }
+
+    ASS(u->isClause());
+    for (const auto& lit : *u->asClause()) {
+      for (const auto& t : HOL::getAbstractionTerms(lit)) {
+        env.signature->addInstantiation(t);
+      }
+    }
+  }
 }
