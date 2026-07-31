@@ -2196,6 +2196,7 @@ public:
 
   bool shuffleInput() const { return _shuffleInput.actualValue; }
   bool randomPolarities() const { return _randomPolarities.actualValue; }
+  bool randomizedPreprocessing() const { return _randomizedPreprocessing.actualValue; }
   bool randomAWR() const { return _randomAWR.actualValue; }
   bool randomTraversals() const { return _randomTraversals.actualValue; }
   bool randomizeSeedForPortfolioWorkers() const { return _randomizeSeedForPortfolioWorkers.actualValue; }
@@ -2673,6 +2674,7 @@ private:
   BoolOptionValue _normalize;
   BoolOptionValue _shuffleInput;
   BoolOptionValue _randomPolarities;
+  BoolOptionValue _randomizedPreprocessing;
 
   BoolOptionValue _outputAxiomNames;
 
