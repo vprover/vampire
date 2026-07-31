@@ -12,6 +12,9 @@
  * Implements class EqResWithDeletion.
  */
 
+#include "Lib/Environment.hpp"
+#include "Lib/Random.hpp"
+
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Problem.hpp"
@@ -120,6 +123,13 @@ bool EqResWithDeletion::scan(Literal* lit)
   static Shell::SynthesisALManager* synthMan = static_cast<Shell::SynthesisALManager*>(Shell::SynthesisALManager::getInstance());
 
   if(lit->isEquality() && lit->isNegative()) {
+    // under randomized preprocessing, each candidate inequality is with this probability
+    // left un-resolved for this pass; a pass in which all candidates get skipped ends
+    // the per-clause fixpoint, so skipped inequalities can survive in the result (to be tuned)
+    constexpr double RPR_SKIP_PROB = 0.5;
+    if(env.options->randomizedPreprocessing() && Random::getDouble(0.0,1.0) < RPR_SKIP_PROB) {
+      return false;
+    }
     TermList t0=*lit->nthArgument(0);
     TermList t1=*lit->nthArgument(1);
     if( t0.isVar() && !t1.containsSubterm(t0) && (!_ansLit || !t1.isTerm() || synthMan->isComputableOrVar(t1.term()) || !isFreeVariableOf(_ansLit,t0.var()))) {
