@@ -516,18 +516,6 @@ protected:
     return res;
   }
 
-  std::string quoteAxiomName(std::string n)
-  {
-    static std::string allowedFirst("0123456789abcdefghijklmnopqrstuvwxyz");
-    const char* allowed="_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz";
-
-    if (n.size()==0 || allowedFirst.find(n[0])==std::string::npos ||
-	n.find_first_not_of(allowed)!=std::string::npos) {
-      n='\''+n+'\'';
-    }
-    return n;
-  }
-
   std::string getFofString(std::string id, std::string formula, std::string inference, InferenceRule rule, UnitInputType origin=UnitInputType::AXIOM)
   {
     std::string kind = "fof";
@@ -663,7 +651,7 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
           axiomPath = "unknown";
         }
       }
-      inferenceStr="file("+quoteAxiomName(std::string(axiomPath))+","+quoteAxiomName(axiomName)+")";
+      inferenceStr="file('"+std::string(axiomPath)+"','"+axiomName+"')";
     }
     else if (!parents.hasNext()) {
       std::string newSymbolInfo;
