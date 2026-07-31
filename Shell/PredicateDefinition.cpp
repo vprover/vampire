@@ -14,6 +14,7 @@
 
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
+#include "Lib/Random.hpp"
 #include "Lib/ScopedLet.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Map.hpp"
@@ -311,13 +312,24 @@ void PredicateDefinition::collectReplacements(UnitList* units, ReplMap& replacem
     _preds[pred].check(this);
   }
 
+  // under randomized preprocessing, each candidate is with this probability left alone
+  // (a skipped predicate is never re-enqueued, so the loss is monotone; to be tuned)
+  constexpr double RPR_SKIP_PROB = 0.5;
+  bool rpr = env.options->randomizedPreprocessing();
+
   while(_eliminable.isNonEmpty() || _pureToReplace.isNonEmpty()) {
     while(_eliminable.isNonEmpty()) {
       int pred=_eliminable.pop();
+      if(rpr && Random::getDouble(0.0,1.0) < RPR_SKIP_PROB) {
+        continue;
+      }
       eliminatePredicateDefinition(pred, replacements);
     }
     while(_pureToReplace.isNonEmpty()) {
       int pred=_pureToReplace.pop();
+      if(rpr && Random::getDouble(0.0,1.0) < RPR_SKIP_PROB) {
+        continue;
+      }
       replacePurePred(pred, replacements);
     }
   }
