@@ -199,10 +199,7 @@ std::string getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
 struct InferenceStore::ProofPrinter
 {
   ProofPrinter(std::ostream& out, InferenceStore* is)
-  : _is(is), out(out)
-  {
-    outputAxiomNames=env.options->outputAxiomNames();
-  }
+  : _is(is), out(out) {}
 
   // compute closure of `us`' ancestors for printing and insert into `proof`
   void scheduleForPrinting(Unit* us)
@@ -271,7 +268,7 @@ protected:
 
       out <<"["<<cs->inference().name();
 
-      if (outputAxiomNames && rule==InferenceRule::INPUT) {
+      if (rule==InferenceRule::INPUT) {
         ASS(!parents.hasNext()); //input clauses don't have parents
         std::string name;
         std::filesystem::path path;
@@ -306,7 +303,6 @@ protected:
 
   InferenceStore *_is = nullptr;
   ostream &out;
-  bool outputAxiomNames;
 
 private:
   struct CompareSATClauses {
@@ -520,18 +516,6 @@ protected:
     return res;
   }
 
-  std::string quoteAxiomName(std::string n)
-  {
-    static std::string allowedFirst("0123456789abcdefghijklmnopqrstuvwxyz");
-    const char* allowed="_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz";
-
-    if (n.size()==0 || allowedFirst.find(n[0])==std::string::npos ||
-	n.find_first_not_of(allowed)!=std::string::npos) {
-      n='\''+n+'\'';
-    }
-    return n;
-  }
-
   std::string getFofString(std::string id, std::string formula, std::string inference, InferenceRule rule, UnitInputType origin=UnitInputType::AXIOM)
   {
     std::string kind = "fof";
@@ -657,7 +641,7 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
     if (rule==InferenceRule::INPUT) {
       std::string axiomName;
       std::filesystem::path axiomPath;
-      if (!outputAxiomNames || !Parse::TPTP::findAxiomName(us, axiomName, axiomPath)) {
+      if (!Parse::TPTP::findAxiomName(us, axiomName, axiomPath)) {
         // Giles' ucore extraction code parses labels from smtlib files, let's try printing these too
         if (!us->isClause() && us->getFormula()->hasLabel()) {
           axiomName = us->getFormula()->getLabel();
@@ -667,7 +651,7 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
           axiomPath = "unknown";
         }
       }
-      inferenceStr="file("+quoteAxiomName(std::string(axiomPath))+","+quoteAxiomName(axiomName)+")";
+      inferenceStr="file('"+std::string(axiomPath)+"','"+axiomName+"')";
     }
     else if (!parents.hasNext()) {
       std::string newSymbolInfo;
