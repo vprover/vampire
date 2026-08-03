@@ -79,9 +79,10 @@ private:
     using Base::op;
     using Base::_matched;
     using Base::finished;
+    using Base::opposite;
     using Base::execute;
 
-    void init(CodeTree* tree, CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_, bool seekOnlySuccess=false);
+    void init(CodeTree* tree, CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_, bool canEnterOpposites, bool seekOnlySuccess);
     bool next();
     bool doEagerMatching();
 
@@ -114,7 +115,7 @@ public:
     USE_ALLOCATOR(ClauseMatcher);
 
   private:
-    void enterLiteral(CodeOp* entry, bool seekOnlySuccess);
+    void enterLiteral(CodeOp* entry, bool seekOnlySuccess, bool canEnterOpposites);
     void leaveLiteral();
     bool canEnterLiteral(CodeOp* op);
 
