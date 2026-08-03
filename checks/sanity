@@ -85,6 +85,16 @@ check_szs_status Theorem -newcnf on theory/let-tuple-bool.p
 check_szs_status Theorem -newcnf on -ile off theory/let-function.p
 check_szs_status Theorem -newcnf on -ile off theory/let-tuple.p
 check_szs_status Theorem -newcnf on -ile off theory/let-tuple-bool.p
+check_szs_status Theorem theory/let-bool.p
+check_szs_status Theorem -newcnf on theory/let-bool.p
+check_szs_status Theorem -ile off theory/let-bool.p
+check_szs_status Theorem -newcnf on -ile off theory/let-bool.p
+check_szs_status Theorem theory/let-bool-pred.p
+check_szs_status Theorem -newcnf on theory/let-bool-pred.p
+check_szs_status Theorem -ile off theory/let-bool-pred.p
+check_szs_status Theorem -newcnf on -ile off theory/let-bool-pred.p
+check_szs_status Theorem theory/let-bool-simultaneous.p
+check_szs_status Theorem -newcnf on theory/let-bool-simultaneous.p
 
 # Arrays
 check_szs_status Unsatisfiable theory/arrays.smt2
