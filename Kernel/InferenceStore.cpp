@@ -13,8 +13,6 @@
  */
 
 #include "Debug/Assertion.hpp"
-#include "Kernel/Theory.hpp"
-#include "Kernel/Unit.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
@@ -33,17 +31,20 @@
 
 #include "Saturation/Splitter.hpp"
 
-#include "Signature.hpp"
+#include "HOL/HOL.hpp"
 #include "Clause.hpp"
 #include "Formula.hpp"
 #include "FormulaUnit.hpp"
 #include "FormulaVarIterator.hpp"
 #include "Inference.hpp"
-#include "Term.hpp"
-#include "TermIterators.hpp"
+#include "Signature.hpp"
 #include "SortHelper.hpp"
 
 #include "InferenceStore.hpp"
+#include "Term.hpp"
+#include "TermIterators.hpp"
+#include "Theory.hpp"
+#include "Unit.hpp"
 
 #include <set>
 #include<string>
@@ -88,10 +89,19 @@ void InferenceStore::recordIntroducedSymbol(Unit* u, SymbolType st, unsigned num
 
 void InferenceStore::recordIntroducedSkolemSymbol(Unit* u, SymbolType st, unsigned replacedVar, Term* symTerm){
   SymbolStack* pStack;
+  TermList t(symTerm);
+  if (env.higherOrder()) {
+    while (t.isApplication()) {
+      t = t.lhs();
+    }
+    ASS(t.isTerm() && !t.isLambdaTerm());
+  }
+  auto sym = t.term()->functor();
+
   _introducedSymbols.getValuePtr(u->number(),pStack);
-  _introducedSymbolReplacedVars.insert(std::make_pair(st,symTerm->functor()), replacedVar);
-  _introducedSkolemSymTerms.insert(std::make_pair(st,symTerm->functor()), symTerm);
-  pStack->push(SymbolId(st,symTerm->functor()));
+  _introducedSymbolReplacedVars.insert({ st, sym }, replacedVar);
+  _introducedSkolemSymTerms.insert({ st, sym }, symTerm);
+  pStack->emplace(st,sym);
 }
 
 /**
@@ -611,7 +621,35 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
     NEVER(skolemTerm.isNone());
     auto skolemizedVariable = _is->_introducedSymbolReplacedVars.find(symbol);
     NEVER(skolemizedVariable.isNone());
-    symsStr << "X" << *skolemizedVariable << "," << (*skolemTerm)->toString() << ")";
+
+    // for now we have to output standard prolog, i.e. f(X1,...,Xn) even in THF
+    // TODO: change this once GDV is updated
+    std::string skolemStr;
+    if (env.higherOrder()) {
+      // we require non-lambda terms
+      ASS(!TermList(*skolemTerm).isLambdaTerm());
+      auto [head, args] = HOL::getHeadAndArgs(TermList(*skolemTerm));
+
+      ASS(!head.isLambdaTerm());
+      skolemStr += head.toString();
+
+      if (args.size()) {
+        skolemStr += "(";
+        for (unsigned i = 0; i < args.size(); i++) {
+          ASS(args[i].isVar());
+          skolemStr += args[i].toString();
+          if (i + 1 < args.size()) {
+            skolemStr += ",";
+          }
+        }
+        skolemStr += ")";
+      }
+
+    } else {
+      skolemStr = (*skolemTerm)->toString();
+    }
+
+    symsStr << "X" << *skolemizedVariable << "," << skolemStr << ")";
     hasNext = symIt.hasNext();
     if(hasNext) {
       symsStr << ",";
