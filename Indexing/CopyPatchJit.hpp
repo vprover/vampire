@@ -55,6 +55,15 @@ struct JitExecContext {
   void*            lazyCompileFunc;   // [rbp + 136] (C helper: lazy-compile uncompiled blocks)
   void*            codeTree;          // [rbp + 144] (CodeTree* for lazy compilation callbacks)
   void*            lazyCompileStub;   // [rbp + 152] (JIT stub that calls lazyCompileFunc)
+
+  // PLT-style binding of jmpAlt sites
+  void*            bindJmpAltFunc;    // [rbp + 160] (C helper: resolve target + patch site to jmp rel32)
+  void*            bindJmpAltStub;    // [rbp + 168] (JIT stub called from initial-form jmpAlt sites)
+  size_t           btPops;            // [rbp + 176] (out: backtrack pops during this invocation)
+
+  // Data-driven SearchStruct dispatch
+  void*            ssLookupFunc;      // [rbp + 184] (C helper: binary search over ss values[]/targets[])
+  void*            ssDispatchStub;    // [rbp + 192] (shared JIT stub entered from 16-byte SS landing stubs)
 };
 
 static_assert(offsetof(JitExecContext, ftData)           ==  0, "");
@@ -77,6 +86,11 @@ static_assert(offsetof(JitExecContext, expandEntryFunc)  == 128, "");
 static_assert(offsetof(JitExecContext, lazyCompileFunc)  == 136, "");
 static_assert(offsetof(JitExecContext, codeTree)         == 144, "");
 static_assert(offsetof(JitExecContext, lazyCompileStub)  == 152, "");
+static_assert(offsetof(JitExecContext, bindJmpAltFunc)   == 160, "");
+static_assert(offsetof(JitExecContext, bindJmpAltStub)   == 168, "");
+static_assert(offsetof(JitExecContext, btPops)           == 176, "");
+static_assert(offsetof(JitExecContext, ssLookupFunc)     == 184, "");
+static_assert(offsetof(JitExecContext, ssDispatchStub)   == 192, "");
 
 
 // --------------------------------------------------------------------------
@@ -84,12 +98,12 @@ static_assert(offsetof(JitExecContext, lazyCompileStub)  == 152, "");
 // --------------------------------------------------------------------------
 struct StencilHole {
   enum Kind : uint8_t {
-    ALT_PTR,         // 8 bytes: CodeOp* alternative (for jmpAlt)
+    ALT_PTR,         // 8 bytes: CodeOp* alternative (for jmpAlt; site head is bindable)
     ALT_PTR_PUSH,    // 8 bytes: CodeOp* alternative (for pushAlt)
     FUNCTOR_IMM32,   // 4 bytes: functor/header number
     VAR_BYTE_OFS,    // 4 bytes: var * sizeof(TermList)  (multiple sites)
     GROUND_TERM_PTR, // 8 bytes: Term* for CHECK_GROUND_TERM
-    OP_IMM_PTR,      // 8 bytes: CodeOp* for reading _content / writing op
+    OP_IMM_PTR,      // 8 bytes: CodeOp* for reading _content/writing op
     NEXT_REL32,      // 4 bytes: rel32 jump to next stencil (patched at layout)
   };
   Kind     kind;
@@ -115,6 +129,11 @@ class CopyPatchJit {
 public:
   CopyPatchJit();
   ~CopyPatchJit();
+  static void printJitStats(std::ostream& out);
+  /** Accumulate the per-invocation backtrack-pop count read back from the
+   *  JitExecContext into the global JITSTATS counters. Called from
+   *  Matcher::executeMachineCode after the trampoline returns. */
+  static void recordBtPops(size_t n);
 
   // Non-copyable
   CopyPatchJit(const CopyPatchJit&) = delete;
@@ -144,6 +163,10 @@ public:
     ctx.expandEntryFunc  = reinterpret_cast<void*>(&expandEntryHelper);
     ctx.lazyCompileFunc  = reinterpret_cast<void*>(&lazyCompileHelper);
     ctx.lazyCompileStub  = _lazyCompileStub;
+    ctx.bindJmpAltFunc   = reinterpret_cast<void*>(&bindJmpAltHelper);
+    ctx.bindJmpAltStub   = _bindJmpAltStub;
+    ctx.ssLookupFunc     = reinterpret_cast<void*>(&ssLookupHelper);
+    ctx.ssDispatchStub   = _ssDispatchStub;
   }
 
   void releaseAll();
@@ -151,6 +174,16 @@ public:
   static void expandBtBufferHelper(JitExecContext* ctx);
   static void expandEntryHelper(FlatTerm::Entry* entry);
   static void* lazyCompileHelper(JitExecContext* ctx, CodeTree::CodeOp* alt);
+  /** Resolve a jmpAlt dispatch: compile the alternative if needed and, when
+   *  safe, patch the calling site into a direct 'jmp rel32' (PLT-style lazy
+   *  binding). Returns the target mcode, or nullptr -> stub backtracks. */
+  static void* bindJmpAltHelper(JitExecContext* ctx, CodeTree::CodeOp* alt, void* retAddr);
+  /** Data-driven SearchStruct lookup: binary search over the (mutable)
+   *  values[]/targets[] vectors. Called from the shared ssDispatchStub with
+   *  the live register-file values of ftData/tp passed as arguments.
+   *  Returns the matching target CodeOp* or nullptr(not found/not a fun). */
+  static CodeTree::CodeOp* ssLookupHelper(JitExecContext* ctx, CodeTree::CodeOp* landingOp,
+                                          FlatTerm::Entry* ftData, size_t tp);
 
 private:
   void compileTrampoline();
@@ -162,6 +195,8 @@ private:
   void compileStencilLitEnd();
   void compileExpandStub();
   void compileLazyCompileStub();
+  void compileBindJmpAltStub();
+  void compileSsDispatchStub();
 
   void emitPushAlt(void* assembler_ptr, Stencil& s, size_t baseOffset);
   void emitJmpAlt(void* assembler_ptr, Stencil& s, size_t baseOffset);
@@ -195,9 +230,23 @@ private:
     size_t capacity;
     size_t used;
     size_t liveCount;   // number of live (non-freed) allocations in this slab
+    bool   inRegion;    // carved from the reserved exec region(not individually unmapped)
   };
   std::vector<ExecSlab> _slabs;
-  static constexpr size_t SLAB_SIZE = 1024 * 1024;  // 1 MB per slab
+  static constexpr size_t SLAB_SIZE = 4 * 1024 * 1024;  // 4 MB per slab (2 MB-multiple for THP)
+
+  // One large reserved RWX mapping (Linux): all slabs are carved from it so
+  // every pair of code addresses is within +-2 GB, guaranteeing that bound
+  // 'jmp rel32' sites can always reach their targets. MAP_NORESERVE: untouched
+  // pages cost nothing. Non-Linux/mmap-failure falls back to per-slab
+  // mappings; the binder then checks reachability per site and simply skips
+  // binding when out of range(correct, just unbound).
+  static constexpr size_t EXEC_REGION_SIZE = size_t(2) << 30;  // 2 GiB
+  char*  _execRegionBase   = nullptr;
+  size_t _execRegionSize   = 0;
+  size_t _execRegionUsed   = 0;
+  bool   _execRegionFailed = false;
+  void ensureExecRegion();
 
   ExecSlab* findSlab(void* ptr);
 
@@ -220,6 +269,8 @@ private:
 
   void* _expandStub = nullptr;
   void* _lazyCompileStub = nullptr;
+  void* _bindJmpAltStub = nullptr;
+  void* _ssDispatchStub = nullptr;
 };
 
 } // namespace Indexing

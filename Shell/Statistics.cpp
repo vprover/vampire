@@ -29,6 +29,7 @@
 
 #include "Options.hpp"
 #include "Statistics.hpp"
+#include "Indexing/CopyPatchJit.hpp"
 #include <cadical.hpp>
 
 using namespace std;
@@ -321,6 +322,7 @@ void Statistics::print(std::ostream& out)
     addCommentSignForSZS(out);
     out << "Instructions burned: " << instr << " (million)";
     out << endl;
+    Indexing::CopyPatchJit::printJitStats(out);
   }
 
   addCommentSignForSZS(out);

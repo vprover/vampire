@@ -36,6 +36,60 @@
   #include <unistd.h>
   #include <libkern/OSCacheControl.h>
 #endif
+//////////////////////////  diagnostics: perf map + JITSTATS counters
+#include <cstdio>
+#include <cstdarg>
+#include <unistd.h>
+#include <ostream>
+
+namespace {
+inline void perfMapAdd(const void* addr, size_t size, const char* fmt, ...)
+{
+  static const bool enabled = std::getenv("JIT_PERF_MAP") != nullptr;
+  if (!enabled) return;
+  static FILE* f = [] {
+    char path[64];
+    std::snprintf(path, sizeof path, "/tmp/perf-%d.map", (int)getpid());
+    return std::fopen(path, "w");
+  }();
+  if (!f) return;
+  char name[128];
+  va_list ap; va_start(ap, fmt);
+  std::vsnprintf(name, sizeof name, fmt, ap);
+  va_end(ap);
+  std::fprintf(f, "%zx %zx %s\n", (size_t)addr, size, name);
+  std::fflush(f);   // vampire may exit via the instruction-limit path
+}
+static unsigned long g_emitGen = 0;
+
+// Distance from the start of a jmpAlt site (the movabs opcode) to the return
+// address pushed by the site's 'call [rbp+bindJmpAltStub]'. All jmpAlt sites
+// share one byte-identical layout, so this is measured once during stencil
+// compilation (emitJmpAlt) and asserted equal on every subsequent emission.
+static size_t s_jmpAltRetOfs = 0;
+
+struct JitStats {
+  size_t emitBlocks = 0, emitBytes = 0, emitOps = 0;
+  size_t ssEmits = 0, ssBytes = 0;
+  size_t ssLookups = 0, ssFound = 0;
+  size_t frees = 0;
+  size_t patchAltCalls = 0, patchAltStores = 0;
+  size_t lazyCompiles = 0;
+  size_t slabsMapped = 0, slabBytes = 0;
+  // PLT-style binding of jmpAlt sites
+  size_t bindCalls = 0;        // trips through the bind stub (once per site per bind epoch)
+  size_t binds = 0;            // sites patched to direct 'jmp rel32'
+  size_t unbinds = 0;          // bound sites restored to initial form by patchAlternative
+  size_t bindUnreachable = 0;  // target outside +-2 GB: left unbound (fallback slabs only)
+  size_t bindBadSite = 0;      // site head bytes unexpected: refused to patch (should stay 0)
+  size_t patchBadSite = 0;     // patchAlternative met unexpected head bytes: refused (should stay 0)
+  size_t execRegionMB = 0;     // size of the reserved exec region actually obtained
+  // trampoline instrumentation
+  size_t btPops = 0;           // backtrack-stack pops resumed by the bt handler
+};
+
+JitStats g_jitStats;
+}
 
 static_assert(sizeof(Kernel::TermList) == 8, "JIT assumes sizeof(TermList) == 8");
 static_assert(sizeof(Kernel::FlatTerm::Entry) == 8, "JIT assumes sizeof(FlatTerm::Entry) == 8");
@@ -53,6 +107,40 @@ namespace Indexing {
 
 using namespace asmjit;
 using namespace asmjit::x86;
+
+void CopyPatchJit::printJitStats(std::ostream& out)
+{
+  const JitStats& s = g_jitStats;
+  if (!s.emitBlocks && !s.ssEmits && !s.slabsMapped) return;  // JIT never ran: stay silent
+  out << "% JITSTATS"
+      << " emit_blocks=" << s.emitBlocks
+      << " emit_bytes=" << s.emitBytes
+      << " emit_ops=" << s.emitOps
+      << " ss_emits=" << s.ssEmits
+      << " ss_bytes=" << s.ssBytes
+      << " ss_lookups=" << s.ssLookups
+      << " ss_found=" << s.ssFound
+      << " frees=" << s.frees
+      << " patch_alt_calls=" << s.patchAltCalls
+      << " patch_alt_stores=" << s.patchAltStores
+      << " lazy_compiles=" << s.lazyCompiles
+      << " slabs=" << s.slabsMapped
+      << " slab_bytes=" << s.slabBytes
+      << " bind_calls=" << s.bindCalls
+      << " binds=" << s.binds
+      << " unbinds=" << s.unbinds
+      << " bind_unreachable=" << s.bindUnreachable
+      << " bind_badsite=" << s.bindBadSite
+      << " patch_badsite=" << s.patchBadSite
+      << " exec_region_mb=" << s.execRegionMB
+      << " bt_pops=" << s.btPops
+      << std::endl;
+}
+
+void CopyPatchJit::recordBtPops(size_t n)
+{
+  g_jitStats.btPops += n;
+}
 
 //  expand the backtrack buffer when full
 void CopyPatchJit::expandBtBufferHelper(JitExecContext* ctx) {
@@ -74,8 +162,74 @@ void CopyPatchJit::expandEntryHelper(FlatTerm::Entry* entry) {
 
 void* CopyPatchJit::lazyCompileHelper(JitExecContext* ctx, CodeTree::CodeOp* alt) {
   if (!alt) return nullptr;
+  g_jitStats.lazyCompiles++;
   auto* tree = static_cast<CodeTree*>(ctx->codeTree);
   return tree->lazyCompileBlock(alt);
+}
+
+/*
+ * bindJmpAltHelper - the resolver behind PLT-style lazy binding of jmpAlt
+ * dispatch sites.
+ *
+ * A jmpAlt site has two states:
+ *
+ *   initial:  movabs rax, <CodeOp*> ; test ; jz .bt ; call [rbp+bindJmpAltStub]
+ *   bound:    jmp rel32 <target mcode>   (overwrites the first 5 movabs bytes;
+ *             bytes +5..+9 become dead, the rest of the site is unreachable
+ *             but intact so patchAlternative can restore the initial form)
+ */
+void* CopyPatchJit::bindJmpAltHelper(JitExecContext* ctx, CodeTree::CodeOp* alt, void* retAddr)
+{
+  g_jitStats.bindCalls++;
+  if (!alt) return nullptr;
+  auto* tree = static_cast<CodeTree*>(ctx->codeTree);
+  void* target = alt->_mcode;
+  if (!target) {
+    g_jitStats.lazyCompiles++;
+    target = tree->lazyCompileBlock(alt);
+  }
+  if (!target) return nullptr;
+  // SearchStruct alternatives are bindable too: the 16-byte landing stub is
+  // emitted once and freed only when the SS is destroyed, and every
+  // destruction path repoints + patchAlternatives the (single) incoming op
+  // before JIT code runs again
+
+  uint8_t* siteHead = static_cast<uint8_t*>(retAddr) - s_jmpAltRetOfs;
+  // Defensive: only patch if the site head is the movabs we emitted.
+  if (siteHead[0] != 0x48 || siteHead[1] != 0xB8) {
+    g_jitStats.bindBadSite++;
+    return target;
+  }
+  intptr_t rel = static_cast<char*>(target) - reinterpret_cast<char*>(siteHead + 5);
+  if (rel < static_cast<intptr_t>(INT32_MIN) || rel > static_cast<intptr_t>(INT32_MAX)) {
+    g_jitStats.bindUnreachable++;
+    return target;
+  }
+  uint8_t patch[5];
+  patch[0] = 0xE9;
+  int32_t r32 = static_cast<int32_t>(rel);
+  memcpy(patch + 1, &r32, 4);
+  memcpy(siteHead, patch, 5);   // single-threaded; x86 I/D caches are coherent
+  g_jitStats.binds++;
+  return target;
+}
+
+/*
+ * ssLookupHelper - the data side of data-driven SearchStructs.
+ * The shared dispatch stub passes the live register-file ftData/tp as
+ * arguments (ctx copies are stale during JIT execution). getTargetOp is the
+ * same routine the interpreter uses: isFun check, then binary search over the
+ * mutable values[] vector. A wrong-slot result is harmless - targets are
+ * CHECK ops that re-verify the functor/term themselves and route to
+ * backtrack on mismatch, exactly as in the interpreter.
+ */
+CodeTree::CodeOp* CopyPatchJit::ssLookupHelper(JitExecContext* /*ctx*/, CodeTree::CodeOp* landingOp,
+                                               FlatTerm::Entry* ftData, size_t tp)
+{
+  g_jitStats.ssLookups++;
+  CodeTree::CodeOp* target = landingOp->getSearchStruct()->getTargetOp(ftData + tp);
+  if (target) g_jitStats.ssFound++;
+  return target;
 }
 
 //  bit patterns used as immediates in stencil compilation.  After compiling a stencil with asmjit, we scan
@@ -145,11 +299,25 @@ static std::vector<uint8_t> extractCode(CodeHolder& code) {
 
 
 //  Executable memory management
+//
+//  Fallback path only: slabs are normally carved from the reserved exec
+//  region (see ensureExecRegion). This is used when the region could not be
+//  mapped or is exhausted; sites binding across mappings then rely on the
+//  rel32 reachability guard in bindJmpAltHelper.
 static void* mapExecPages(size_t size) {
 #ifdef __linux__
-  void* p = mmap(nullptr, size, PROT_READ | PROT_WRITE | PROT_EXEC,
-                 MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-  return (p == MAP_FAILED) ? nullptr : p;
+  const size_t TWO_MB = size_t(2) << 20;
+  ASS((size & (TWO_MB - 1)) == 0);
+  size_t over = size + TWO_MB;
+  char* p = (char*)mmap(nullptr, over, PROT_READ | PROT_WRITE | PROT_EXEC,
+                        MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+  if (p == MAP_FAILED) return nullptr;
+  char* aligned = (char*)(((uintptr_t)p + TWO_MB - 1) & ~(uintptr_t)(TWO_MB - 1));
+  ASS(((uintptr_t)aligned & (TWO_MB - 1)) == 0);
+  if (size_t head = size_t(aligned - p)) munmap(p, head);
+  if (size_t tail = over - size_t(aligned - p) - size) munmap(aligned + size, tail);
+  madvise(aligned, size, MADV_HUGEPAGE);
+  return aligned;
 #elif defined(__APPLE__)
   void* p = mmap(nullptr, size, PROT_READ | PROT_WRITE | PROT_EXEC,
                  MAP_PRIVATE | MAP_ANONYMOUS | MAP_JIT, -1, 0);
@@ -182,13 +350,67 @@ static inline void flushICache(void* /*addr*/, size_t /*size*/) {
 #endif
 }
 
-void CopyPatchJit::ensureSlabSpace(size_t size) {
-  if (_slabs.empty() || _slabs.back().used + size > _slabs.back().capacity) {
-    size_t cap = std::max(SLAB_SIZE, size);
-    void* p = mapExecPages(cap);
-    ASS(p);
-    _slabs.push_back({p, cap, 0, 0});
+/*
+ * Reserve one large RWX mapping up front (Linux). All slabs are carved from
+ * it by bumping, which guarantees any two code addresses are within +-2 GB of
+ * each other - the precondition for binding jmpAlt sites to direct
+ * 'jmp rel32'. MAP_NORESERVE + never touching unused pages keeps the cost of
+ * the reservation at zero. 2 MB-aligned so carved slabs are THP-eligible.
+ * On failure the size is halved down to 256 MB before giving up; without a
+ * region everything still works via per-slab mappings, just with fewer sites
+ * bindable (bind_unreachable counts them).
+ */
+void CopyPatchJit::ensureExecRegion() {
+  if (_execRegionBase || _execRegionFailed) return;
+#ifndef __linux__
+  _execRegionFailed = true;
+  return;
+#else
+  const size_t TWO_MB = size_t(2) << 20;
+  size_t want = EXEC_REGION_SIZE;
+  while (want >= (size_t(256) << 20)) {
+    size_t over = want + TWO_MB;
+    char* p = (char*)mmap(nullptr, over, PROT_READ | PROT_WRITE | PROT_EXEC,
+                          MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE, -1, 0);
+    if (p != MAP_FAILED) {
+      char* aligned = (char*)(((uintptr_t)p + TWO_MB - 1) & ~(uintptr_t)(TWO_MB - 1));
+      if (size_t head = size_t(aligned - p)) munmap(p, head);
+      if (size_t tail = over - size_t(aligned - p) - want) munmap(aligned + want, tail);
+      _execRegionBase = aligned;
+      _execRegionSize = want;
+      _execRegionUsed = 0;
+      g_jitStats.execRegionMB = want >> 20;
+      return;
+    }
+    want >>= 1;
   }
+  _execRegionFailed = true;
+#endif
+}
+
+void CopyPatchJit::ensureSlabSpace(size_t size) {
+  if (!_slabs.empty() && _slabs.back().used + size <= _slabs.back().capacity) return;
+
+  const size_t TWO_MB = size_t(2) << 20;
+  size_t cap = std::max(SLAB_SIZE, size);
+  cap = (cap + TWO_MB - 1) & ~(TWO_MB - 1);   // THP: whole 2 MiB units
+
+  ensureExecRegion();
+  void* p = nullptr;
+  bool inRegion = false;
+  if (_execRegionBase && _execRegionUsed + cap <= _execRegionSize) {
+    p = _execRegionBase + _execRegionUsed;
+    _execRegionUsed += cap;
+    inRegion = true;
+#ifdef __linux__
+    madvise(p, cap, MADV_HUGEPAGE);
+#endif
+  } else {
+    p = mapExecPages(cap);
+  }
+  ASS(p);
+  _slabs.push_back({p, cap, 0, 0, inRegion});
+  g_jitStats.slabsMapped++; g_jitStats.slabBytes += cap;
 }
 
 void* CopyPatchJit::slabAlloc(size_t size) {
@@ -258,6 +480,7 @@ void* CopyPatchJit::allocExec(size_t userSize) {
 
 void CopyPatchJit::freeExec(void* userPtr) {
   if (!userPtr) return;
+  g_jitStats.frees++;
 
   uint8_t* raw = static_cast<uint8_t*>(userPtr) - ALLOC_HEADER_SIZE;
 
@@ -299,9 +522,21 @@ void CopyPatchJit::releaseAll() {
   }
 
   for (auto& slab : _slabs) {
-    unmapExecPages(slab.base, slab.capacity);
+    // Region-carved slabs are released with the region below.
+    if (!slab.inRegion) {
+      unmapExecPages(slab.base, slab.capacity);
+    }
   }
   _slabs.clear();
+  if (_execRegionBase) {
+#ifdef __linux__
+    munmap(_execRegionBase, _execRegionSize);
+#endif
+    _execRegionBase = nullptr;
+    _execRegionSize = 0;
+    _execRegionUsed = 0;
+  }
+  _execRegionFailed = false;
   if (_trampolineBase) {
     sharedRuntime().release(_trampolineBase);
     _trampolineBase = nullptr;
@@ -311,6 +546,9 @@ void CopyPatchJit::releaseAll() {
   _successHandler = nullptr;
   _totalFailHandler = nullptr;
   _expandStub = nullptr;
+  _lazyCompileStub = nullptr;
+  _bindJmpAltStub = nullptr;
+  _ssDispatchStub = nullptr;
   _initialized = false;
 }
 
@@ -325,6 +563,8 @@ void CopyPatchJit::initialize() {
   compileTrampoline();
   compileExpandStub();
   compileLazyCompileStub();
+  compileBindJmpAltStub();
+  compileSsDispatchStub();
 
   compileStencilSuccessOrFail();
   compileStencilCheckGroundTerm();
@@ -408,6 +648,10 @@ void CopyPatchJit::compileTrampoline() {
   a.mov(rax, qword_ptr(r15, 8));    // mcode directly
   a.test(rax, rax);
   a.jz(backtrackL);                  // null mcode -> keep backtracking
+  // Instrumentation: count resumed pops (splits backtrack-dispatch traffic
+  // from jmpAlt-dispatch traffic; ~1 extra instruction per pop, remove the
+  // line for pristine timing runs if desired).
+  a.inc(qword_ptr(rbp, offsetof(JitExecContext, btPops)));
   a.jmp(rax);
 
   // --- Total failure: try next literal or exit ---
@@ -480,6 +724,23 @@ void CopyPatchJit::compileTrampoline() {
   _backtrackHandler = base + code.label_offset(backtrackL);
   _successHandler   = base + code.label_offset(successL);
   _totalFailHandler = base + code.label_offset(totalFailL);
+
+  // perf map: split the trampoline into its four regions so profiles
+  // separate entry glue from backtrack/success/totalFail dispatch.
+  {
+    struct { size_t ofs; const char* name; } regs[] = {
+      { code.label_offset(entryL),     "jit_tramp_entry"        },
+      { code.label_offset(backtrackL), "jit_bt_handler"         },
+      { code.label_offset(successL),   "jit_success_handler"    },
+      { code.label_offset(totalFailL), "jit_totalfail_handler"  },
+    };
+    std::sort(std::begin(regs), std::end(regs),
+              [](auto& x, auto& y) { return x.ofs < y.ofs; });
+    for (size_t i = 0; i < 4; i++) {
+      size_t end = (i + 1 < 4) ? regs[i+1].ofs : _trampolineSize;
+      perfMapAdd(base + regs[i].ofs, end - regs[i].ofs, "%s", regs[i].name);
+    }
+  }
 }
 
 void CopyPatchJit::compileExpandStub() {
@@ -517,11 +778,13 @@ void CopyPatchJit::compileExpandStub() {
   memcpy(dest, bytes.data(), bytes.size());
   flushICache(dest, bytes.size());
   _expandStub = dest;
+  perfMapAdd(dest, bytes.size(), "jit_expand_stub");
 }
 
 /*
- * compileLazyCompileStub- called from stencils when an alternative has null _mcode
- * Bridges into the C++ lazyCompileHelper
+ * compileLazyCompileStub- called from pushAlt and the shared SS dispatch stub
+ * when a CodeOp has null _mcode. Bridges into the C++ lazyCompileHelper.
+ * (jmpAlt sites no longer use this stub, they go through bindJmpAltStub.)
  *
  * On entry from stencil:
  *   rcx = CodeOp* (the uncompiled alternative)
@@ -529,7 +792,7 @@ void CopyPatchJit::compileExpandStub() {
  *
  * On return:
  *   rax = _mcode (non-null if compiled) or nullptr
- *   rdx, r10, r11 preserved
+ *   rdx, r10 preserved
  *   rcx clobbered
  */
 void CopyPatchJit::compileLazyCompileStub() {
@@ -560,6 +823,163 @@ void CopyPatchJit::compileLazyCompileStub() {
   memcpy(dest, bytes.data(), bytes.size());
   flushICache(dest, bytes.size());
   _lazyCompileStub = dest;
+  perfMapAdd(dest, bytes.size(), "jit_lazy_compile_stub");
+}
+
+/*
+ * compileBindJmpAltStub - the PLT-style binder entered from initial-form
+ * jmpAlt sites via 'call [rbp + bindJmpAltStub]'.
+ *
+ * On entry:
+ *   rax   = CodeOp* alternative (non-null; the site's jz filtered null)
+ *   [rsp] = return address = siteHead + s_jmpAltRetOfs (identifies the site)
+ *   rsp is 8 mod 16
+ *
+ * The stub never returns to the site: it calls bindJmpAltHelper (which
+ * compiles the target if needed and patches the site to 'jmp rel32' when
+ * safe), discards the return address, and tail-jumps to the target - or to
+ * the backtrack handler if the helper yields nullptr. rdx/r10 are preserved
+ * for symmetry with lazyCompileStub; nothing else is live across a taken
+ * jmpAlt (the target block rederives everything from the register file).
+ */
+void CopyPatchJit::compileBindJmpAltStub() {
+  auto& rt = sharedRuntime();
+  CodeHolder code;
+  code.init(rt.environment(), rt.cpu_features());
+  Assembler a(&code);
+
+  // 3 pushes: 8 - 24 = -16 == 0 mod 16 -> aligned for the inner call
+  a.push(rcx);
+  a.push(rdx);
+  a.push(r10);
+
+  a.mov(rsi, rax);                       // arg2 = CodeOp* alternative
+  a.mov(rdx, qword_ptr(rsp, 24));        // arg3 = return address (under the 3 pushes)
+  a.mov(rdi, rbp);                       // arg1 = ctx
+  a.call(qword_ptr(rbp, offsetof(JitExecContext, bindJmpAltFunc)));
+
+  a.pop(r10);
+  a.pop(rdx);
+  a.pop(rcx);
+  a.add(rsp, 8);                         // discard return address - we never return
+
+  a.test(rax, rax);
+  Label toBt = a.new_label();
+  a.jz(toBt);
+  a.jmp(rax);
+  a.bind(toBt);
+  a.jmp(qword_ptr(rbp, offsetof(JitExecContext, backtrackHandler)));
+
+  auto bytes = extractCode(code);
+  void* dest = allocExec(bytes.size());
+  memcpy(dest, bytes.data(), bytes.size());
+  flushICache(dest, bytes.size());
+  _bindJmpAltStub = dest;
+  perfMapAdd(dest, bytes.size(), "jit_bind_stub");
+}
+
+/*
+ * compileSsDispatchStub: the shared body of every SearchStruct, compiled
+ * once. Entered by 'jmp' from a 16-byte per-SS landing stub with
+ * rdi = &ss->landingOp and rsp in trampoline steady state (0 mod 16).
+ *
+ * Semantics (net-effect equivalent to the interpreter's SEARCH_STRUCT):
+ *   target = lookup(key at ft[tp])
+ *   found:     push {tp, alt mcode} if landingOp has an alternative,
+ *              then jump to target's code (which re-verifies the key itself)
+ *   not found: jump to the alternative directly (nothing was pushed), or
+ *              backtrack if there is none
+ * The interpreter pushes the alternative first and pops it on failure; the
+ * two orderings are observationally identical and this one skips the
+ * push/pop round trip on the miss path.
+ */
+void CopyPatchJit::compileSsDispatchStub() {
+  auto& rt = sharedRuntime();
+  CodeHolder code;
+  code.init(rt.environment(), rt.cpu_features());
+  Assembler a(&code);
+
+  Label notFound   = a.new_label();
+  Label havePushM  = a.new_label();
+  Label doPush     = a.new_label();
+  Label dispatch   = a.new_label();
+  Label go         = a.new_label();
+  Label goAlt      = a.new_label();
+  Label bt         = a.new_label();
+
+  // --- lookup: rax = ssLookupHelper(ctx, landingOp, ftData, tp) ---
+  // Steady-state rsp is 0 mod 16; two pushes keep it 0 mod 16 at the call.
+  // The second push doubles as the save slot for rdi (landingOp*).
+  a.push(rdi);
+  a.push(rdi);
+  a.mov(rdx, r12);          // arg3 = ftData   (live register, ctx copy is stale)
+  a.mov(rcx, r13);          // arg4 = tp
+  a.mov(rsi, rdi);          // arg2 = landingOp
+  a.mov(rdi, rbp);          // arg1 = ctx
+  a.call(qword_ptr(rbp, offsetof(JitExecContext, ssLookupFunc)));
+  a.pop(rdi);
+  a.pop(rdi);               // rdi = landingOp again
+  a.test(rax, rax);
+  a.jz(notFound);
+
+  // --- FOUND: rax = target CodeOp* ---
+  a.mov(rdx, rax);          // rdx = target (survives lazyCompileStub/expandStub)
+  a.mov(rax, qword_ptr(rdi, offsetof(CodeTree::CodeOp, _alternative)));
+  a.test(rax, rax);
+  a.jz(dispatch);
+  // push {tp, alt mcode}, lazy-compiling the alternative if needed
+  a.mov(rcx, qword_ptr(rax, offsetof(CodeTree::CodeOp, _mcode)));
+  a.test(rcx, rcx);
+  a.jnz(havePushM);
+  a.mov(rcx, rax);          // stub convention: rcx = CodeOp*
+  a.call(qword_ptr(rbp, offsetof(JitExecContext, lazyCompileStub)));
+  a.mov(rcx, rax);
+  a.test(rcx, rcx);
+  a.jz(dispatch);           // uncompilable alternative: skip the push
+  a.bind(havePushM);
+  a.cmp(r15, rbx);
+  a.jb(doPush);
+  a.call(qword_ptr(rbp, offsetof(JitExecContext, expandStub)));
+  a.bind(doPush);
+  a.mov(qword_ptr(r15, 0), r13);
+  a.mov(qword_ptr(r15, 8), rcx);
+  a.add(r15, 16);
+  a.bind(dispatch);
+  // jump to target's code (lazy-compile if needed)
+  a.mov(rax, qword_ptr(rdx, offsetof(CodeTree::CodeOp, _mcode)));
+  a.test(rax, rax);
+  a.jnz(go);
+  a.mov(rcx, rdx);
+  a.call(qword_ptr(rbp, offsetof(JitExecContext, lazyCompileStub)));
+  a.test(rax, rax);
+  a.jz(bt);                 // pushed alt (if any) is popped by backtrack: single visit
+  a.bind(go);
+  a.jmp(rax);
+
+  // --- NOT FOUND: nothing pushed -> alternative directly, or backtrack ---
+  a.bind(notFound);
+  a.mov(rax, qword_ptr(rdi, offsetof(CodeTree::CodeOp, _alternative)));
+  a.test(rax, rax);
+  a.jz(bt);
+  a.mov(rcx, rax);          // CodeOp* for the lazy path
+  a.mov(rax, qword_ptr(rax, offsetof(CodeTree::CodeOp, _mcode)));
+  a.test(rax, rax);
+  a.jnz(goAlt);
+  a.call(qword_ptr(rbp, offsetof(JitExecContext, lazyCompileStub)));
+  a.test(rax, rax);
+  a.jz(bt);
+  a.bind(goAlt);
+  a.jmp(rax);
+
+  a.bind(bt);
+  a.jmp(qword_ptr(rbp, offsetof(JitExecContext, backtrackHandler)));
+
+  auto bytes = extractCode(code);
+  void* dest = allocExec(bytes.size());
+  memcpy(dest, bytes.data(), bytes.size());
+  flushICache(dest, bytes.size());
+  _ssDispatchStub = dest;
+  perfMapAdd(dest, bytes.size(), "jit_ss_dispatch_stub");
 }
 
 /*
@@ -589,6 +1009,10 @@ void CopyPatchJit::compileLazyCompileStub() {
  *
  * Hot-path clobbers: rcx, rdi.   rax is UNTOUCHED on hot path.
  * Cold-path clobbers: rax, rcx, rdi, rsi (via call)
+ *
+ * pushAlt is deliberately NOT bound: it resolves _mcode at push time, and the
+ * pushed value lives only within one trampoline invocation, so it stays
+ * correct under index mutation without any patching protocol.
  */
 void CopyPatchJit::emitPushAlt(void* asm_ptr, Stencil& s, size_t base) {
   auto& a = *static_cast<Assembler*>(asm_ptr);
@@ -631,52 +1055,46 @@ void CopyPatchJit::emitPushAlt(void* asm_ptr, Stencil& s, size_t base) {
 }
 
 /*
- * Emits:
- *   movabs rax, <CodeOp* alt>   ; 10 bytes-patchable CodeOp ptr
- *   test   rax, rax
- *   jz     .bt
- *   mov    rcx, rax             ; save CodeOp* in rcx
- *   mov    rax, [rax + _mcode]
- *   test   rax, rax
- *   jnz    .haveMcode
- *   ; _mcode null -> lazy compile
- *   mov    rdi, rbp             ; arg1 = ctx
- *   mov    rsi, rcx             ; arg2 = CodeOp* (saved)
- *   call   [rbp + lazyCompileFunc]
- *   test   rax, rax
- *   jz     .bt                  ; still null -> backtrack
- *   .haveMcode:
- *   jmp    rax
- *   .bt:
- *   jmp    [rbp+backtrackHandler]
+ * jmpAlt site - PLT-style lazily bound alternative dispatch.
  *
- * Clobbers: rax, rcx, rdi, rsi
+ * INITIAL form (as emitted; site start == movabs start):
+ *   +0   movabs rax, <CodeOp* alt>        ; 10 bytes; ALT_PTR hole at +2
+ *   +10  test   rax, rax
+ *        jz     .bt                        ; null alternative -> backtrack
+ *        call   [rbp + bindJmpAltStub]     ; never returns: binds site, jumps on
+ *   .bt: jmp    [rbp + backtrackHandler]
+ *
+ * BOUND form (installed by bindJmpAltHelper):
+ *   +0   jmp rel32 <target mcode>          ; overwrites the movabs head;
+ *                                          ; resolved at decode - no BTB, no
+ *                                          ; dependent loads, fetch streams on
+ *   (+5..+9 dead imm tail; rest of the site unreachable but intact)
+ *
+ * patchAlternative restores the initial head (48 B8) whenever the op's
+ * alternative changes, so index mutation never reasons about bound sites.
+ *
+ * This replaces the old inline mcode-load + 'jmp rax' sequence; the initial
+ * form is also ~15-19 bytes smaller per site.
+ *
+ * Clobbers (either form/path): rax, rcx, rdi, rsi.
  */
 void CopyPatchJit::emitJmpAlt(void* asm_ptr, Stencil& s, size_t base) {
   auto& a = *static_cast<Assembler*>(asm_ptr);
 
+  size_t siteStart = a.offset();
   size_t immOfs = emitMovAbsRax(a, PH_ALT1) - base;
   s.holes.push_back({StencilHole::ALT_PTR, static_cast<uint16_t>(immOfs)});
   s.altHoleCount++;
 
   Label bt = a.new_label();
-  Label haveMcode = a.new_label();
-
   a.test(rax, rax);
   a.jz(bt);
-  a.mov(rcx, rax);  // save CodeOp* in rcx
-  a.mov(rax, qword_ptr(rax, offsetof(CodeTree::CodeOp, _mcode)));
-  a.test(rax, rax);
-  a.jnz(haveMcode);
-
-  // _mcode null-call lazy compile stub (rcx already has CodeOp*)
-  a.call(qword_ptr(rbp, offsetof(JitExecContext, lazyCompileStub)));
-  // rax = _mcode or null
-  a.test(rax, rax);
-  a.jz(bt);
-
-  a.bind(haveMcode);
-  a.jmp(rax);
+  a.call(qword_ptr(rbp, offsetof(JitExecContext, bindJmpAltStub)));
+  size_t retOfs = a.offset() - siteStart;
+  if (s_jmpAltRetOfs == 0) {
+    s_jmpAltRetOfs = retOfs;
+  }
+  ASS_EQ(s_jmpAltRetOfs, retOfs);   // all sites must share one byte layout
   a.bind(bt);
   a.jmp(qword_ptr(rbp, offsetof(JitExecContext, backtrackHandler)));
 }
@@ -1066,6 +1484,7 @@ void CopyPatchJit::emitBlock(CodeTree::CodeBlock* block) {
   // --- Phase 2: allocate contiguous executable memory ---
   uint8_t* buf = static_cast<uint8_t*>(allocExec(totalSize));
   size_t cursor = 0;
+  g_jitStats.emitBlocks++; g_jitStats.emitBytes += totalSize; g_jitStats.emitOps += nOps;
 
   // --- Phase 3: copy-and-patch each op ---
   for (size_t i = 0; i < nOps; i++) {
@@ -1117,8 +1536,9 @@ void CopyPatchJit::emitBlock(CodeTree::CodeBlock* block) {
         case StencilHole::ALT_PTR:
         case StencilHole::ALT_PTR_PUSH: {
           // Patch with the CodeOp* pointer
-          // jmpAlt dereferences _mcode at runtime
-          // pushAlt dereferences at push time and stores mcode in the backtrack stack
+          // jmpAlt sites are emitted in INITIAL form (movabs head intact) and
+          // bind themselves to a direct jmp rel32 on first execution via the
+          // bind stub; pushAlt dereferences _mcode at push time.
           uintptr_t altVal = reinterpret_cast<uintptr_t>(op.alternative());
           memcpy(target, &altVal, 8);
           // Record for future binary patching
@@ -1181,181 +1601,88 @@ void CopyPatchJit::emitBlock(CodeTree::CodeBlock* block) {
     uint32_t disp = static_cast<uint32_t>(offsetof(JitExecContext, backtrackHandler));
     memcpy(stub + 2, &disp, 4);
   }
+  perfMapAdd(buf, totalSize, "cb_%p_g%lu_n%zu", (void*)block, ++g_emitGen, nOps);
 
   flushICache(buf, totalSize);
 }
 
 
 
-//  SEARCH STRUCT EMISSION
+//  SEARCH STRUCT EMISSION - data-driven design
 //
-//  SearchStructs are compiled individually with asmjit (not via stencils)
-//  because their binary search structure is data-dependent
-//  (thought process is that because they change  infrequently compared to CodeBlocks, they dont need a stencil, but im not so sure)
-// TODO: reconsider searchstructs in machine code
-
+//  The old design asmjit-compiled the binary search INTO instructions:
+//  O(N) code regenerated on every SS mutation, which cannot survive
+//  saturation-time insert/remove traffic. Now the search runs over the
+//  SearchStruct's values[]/targets[] vectors as plain data (ssLookupHelper),
+//  reached through one shared, permanently-hot dispatch stub. The only
+//  per-SS code is this 16-byte landing stub, emitted exactly once for the
+//  SS's lifetime:
+//
+//     movabs rdi, <&ss->landingOp>    ; 48 BF imm64  (stable address)
+//     jmp    [rbp + ssDispatchStub]   ; FF A5 disp32
+//
+//  Insertions and removals mutate the vectors only: no re-emission, no SMC.
+//  Because landing stubs are immutable for the SS lifetime, jmpAlt sites may
+//  back-patch (bind) to them like to any block (see bindJmpAltHelper).
 
 void CopyPatchJit::emitSearchStruct(CodeTree::SearchStruct* ss) {
   ASS(_initialized);
+  if (ss->landingOp._mcode) return;   // one-time; mutation needs no re-emission
 
-  // Free the previous JIT buffer if this is a re-emission
-  if (ss->landingOp._mcode) {
-    freeExec(ss->landingOp._mcode);
-    ss->landingOp._mcode = nullptr;
-  }
-
-  auto& rt = sharedRuntime();
-  CodeHolder code;
-  code.init(rt.environment(), rt.cpu_features());
-  Assembler a(&code);
-
-  Label entry = a.new_label();
-  a.bind(entry);
-
-  // Load the key value from the flat term
-  if (ss->kind == CodeTree::SearchStruct::FN_STRUCT) {
-    // key = ft[tp]._number()  =  (content >> 3) & 0x1FFFFFFF
-    a.mov(rax, qword_ptr(r12, r13, 3));
-    a.shr(rax, 3);
-    a.and_(eax, 0x1FFFFFFFu);
-  } else {
-    // key = ft[tp+1]._term()  =  content & ~7
-    a.mov(rax, qword_ptr(r12, r13, 3, 8));
-    a.and_(rax, ~7ULL);
-  }
-
-  // Shared not-found label
-  Label notFoundL = a.new_label();
-
-  uintptr_t landingOpAddr = reinterpret_cast<uintptr_t>(&ss->landingOp);
-
-  // Emit binary search over values[]/targets[]
-  auto emitBS = [&](auto& self, size_t lo, size_t hi) -> void {
-    if (lo >= hi) {
-      a.jmp(notFoundL);
-      return;
-    }
-
-    size_t mid = lo + (hi - lo) / 2;
-
-    uintptr_t midVal;
-    if (ss->kind == CodeTree::SearchStruct::FN_STRUCT) {
-      midVal = static_cast<const CodeTree::FnSearchStruct*>(ss)->values[mid];
-    } else {
-      midVal = reinterpret_cast<uintptr_t>(
-        static_cast<const CodeTree::GroundTermSearchStruct*>(ss)->values[mid]);
-    }
-
-    emitMovAbsRdx(a, midVal);
-    Label lt = a.new_label(), gt = a.new_label();
-    a.cmp(rax, rdx);
-    a.jl(lt);
-    a.jg(gt);
-
-    // Equal-> found the target
-    CodeTree::CodeOp* target = ss->targets[mid];
-    if (target) {
-      // Push backtrack to landingOp's alternative (if any)
-      // Load alternative from landingOp at runtime, lazy-compile if needed
-      Label noPush = a.new_label();
-      Label doPush = a.new_label();
-      Label havePushMcode = a.new_label();
-
-      emitMovAbsRcx(a, landingOpAddr);
-      a.mov(rax, qword_ptr(rcx, offsetof(CodeTree::CodeOp, _alternative)));
-      a.test(rax, rax);
-      a.jz(noPush);
-      a.mov(rcx, qword_ptr(rax, offsetof(CodeTree::CodeOp, _mcode)));
-      a.test(rcx, rcx);
-      a.jnz(havePushMcode);
-      // lazy compile the alternative via stub
-      a.mov(rcx, rax);   // pass CodeOp* in rcx
-      a.call(qword_ptr(rbp, offsetof(JitExecContext, lazyCompileStub)));
-      a.mov(rcx, rax);
-      a.test(rcx, rcx);
-      a.jz(noPush);
-      a.bind(havePushMcode);
-      a.cmp(r15, rbx);
-      a.jb(doPush);
-      a.call(qword_ptr(rbp, offsetof(JitExecContext, expandStub)));
-      a.bind(doPush);
-      a.mov(qword_ptr(r15, 0), r13);
-      a.mov(qword_ptr(r15, 8), rcx);
-      a.add(r15, 16);
-      a.bind(noPush);
-
-      // Jump to target's _mcode (lazy-compile if needed)
-      Label haveTargetMcode = a.new_label();
-      emitMovAbsRax(a, reinterpret_cast<uintptr_t>(target));
-      a.mov(rcx, rax);  // save CodeOp*
-      a.mov(rax, qword_ptr(rax, offsetof(CodeTree::CodeOp, _mcode)));
-      a.test(rax, rax);
-      a.jnz(haveTargetMcode);
-      // rcx already has CodeOp*-call stub
-      a.call(qword_ptr(rbp, offsetof(JitExecContext, lazyCompileStub)));
-      a.test(rax, rax);
-      a.jz(notFoundL);
-      a.bind(haveTargetMcode);
-      a.jmp(rax);
-    } else {
-      a.jmp(notFoundL);
-    }
-
-    a.bind(lt);
-    self(self, lo, mid);
-    a.bind(gt);
-    self(self, mid + 1, hi);
-  };
-
-  emitBS(emitBS, 0, ss->length());
-
-  // Not-found: try landingOp's alternative (lazy-compile if needed), then backtrack
-  a.bind(notFoundL);
-  emitMovAbsRax(a, landingOpAddr);
-  a.mov(rax, qword_ptr(rax, offsetof(CodeTree::CodeOp, _alternative)));
-  a.test(rax, rax);
-  Label noAlt = a.new_label();
-  Label haveAltMcode = a.new_label();
-  a.jz(noAlt);
-  a.mov(rcx, rax);  // save CodeOp*
-  a.mov(rax, qword_ptr(rax, offsetof(CodeTree::CodeOp, _mcode)));
-  a.test(rax, rax);
-  a.jnz(haveAltMcode);
-  // lazy compile via stub (rcx already has CodeOp*)
-  a.call(qword_ptr(rbp, offsetof(JitExecContext, lazyCompileStub)));
-  a.test(rax, rax);
-  a.jz(noAlt);
-  a.bind(haveAltMcode);
-  a.jmp(rax);
-  a.bind(noAlt);
-  a.jmp(qword_ptr(rbp, offsetof(JitExecContext, backtrackHandler)));
-
-  // Extract and install
-  auto bytes = extractCode(code);
-  size_t sz = bytes.size();
-  void* dest = allocExec(sz);
-  memcpy(dest, bytes.data(), sz);
-  flushICache(dest, sz);
-  ss->landingOp._mcode = static_cast<char*>(dest) + code.label_offset(entry);
+  static constexpr size_t LANDING_STUB_SIZE = 16;
+  uint8_t* dest = static_cast<uint8_t*>(allocExec(LANDING_STUB_SIZE));
+  dest[0] = 0x48; dest[1] = 0xBF;                        // movabs rdi, imm64
+  uintptr_t lp = reinterpret_cast<uintptr_t>(&ss->landingOp);
+  memcpy(dest + 2, &lp, 8);
+  dest[10] = 0xFF; dest[11] = 0xA5;                      // jmp [rbp + disp32]
+  uint32_t disp = static_cast<uint32_t>(offsetof(JitExecContext, ssDispatchStub));
+  memcpy(dest + 12, &disp, 4);
+  flushICache(dest, LANDING_STUB_SIZE);
+  ss->landingOp._mcode = dest;
+  perfMapAdd(dest, LANDING_STUB_SIZE, "ss_%p_n%zu", (void*)ss, ss->length());
+  g_jitStats.ssEmits++; g_jitStats.ssBytes += LANDING_STUB_SIZE;
 }
 
 
-//  When an alternative changes, overwrite the 8-byte immediates embedded
-//  in the movabs instructions.  No recompilation needed.
-//
-//  On x86-64 the icache is coherent with the dcache, so no flush.
-
+/*
+ * patchAlternative - called whenever op->_alternative changes on an op that
+ * has compiled code. Two jobs:
+ *
+ *   1. For jmpAlt sites: restore the INITIAL head (movabs rax = 48 B8),
+ *      undoing any bound 'jmp rel32' - the unbind side of the PLT protocol.
+ *   2. For every ALT hole: overwrite the 8-byte CodeOp* immediate.
+ *
+ * The hole kind is recovered from the SITE'S OWN BYTES at ofs-2, which are
+ * fully determined by our own writers and nothing else:
+ *     48 B8  movabs rax  -> jmpAlt site, initial form
+ *     E9 ..  jmp rel32   -> jmpAlt site, bound form (unbind first)
+ *     48 B9  movabs rcx  -> pushAlt site (immediate rewrite only)
+ * Anything else means the site is not what we think it is: refuse to touch
+ * it and count patch_badsite (must stay 0).
+ */
 void CopyPatchJit::patchAlternative(CodeTree::CodeOp* op) {
   if (!op->_mcode) return;
-  // Embed the CodeOp* pointer (not _mcode)-this is a stable address
-  // that survives SearchStruct re-emission.  The stencil code dereferences
-  // _mcode at runtime (jmpAlt) or at push time (pushAlt -> bt stack).
+  if (op->isSearchStruct()) return;
+  g_jitStats.patchAltCalls++;
   uintptr_t alt = reinterpret_cast<uintptr_t>(op->alternative());
-  auto base = static_cast<char*>(op->_mcode);
+  auto base = static_cast<uint8_t*>(op->_mcode);
   for (int j = 0; j < 4; j++) {
-    if (op->_altPatchOfs[j] != CodeTree::CodeOp::ALT_PATCH_NONE) {
-      memcpy(base + op->_altPatchOfs[j], &alt, sizeof(uintptr_t));
+    auto ofs = op->_altPatchOfs[j];
+    if (ofs == CodeTree::CodeOp::ALT_PATCH_NONE) continue;
+    uint8_t* head = base + ofs - 2;
+    if (head[0] == 0xE9) {
+      // bound jmpAlt site: unbind, then rewrite the immediate
+      g_jitStats.unbinds++;
+      head[0] = 0x48;
+      head[1] = 0xB8;
+    } else if (head[0] == 0x48 && (head[1] == 0xB8 || head[1] == 0xB9)) {
+      // initial jmpAlt (B8) or pushAlt (B9): immediate rewrite only
+    } else {
+      g_jitStats.patchBadSite++;   // unexpected bytes: never touch them
+      continue;
     }
+    memcpy(base + ofs, &alt, sizeof(uintptr_t));
+    g_jitStats.patchAltStores++;
   }
 }
 

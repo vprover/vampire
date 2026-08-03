@@ -699,8 +699,10 @@ bool CodeTree::Matcher<removing, checkRange, higherOrder>::executeMachineCode()
   ctx->curLInfo = curLInfo;
   ctx->op       = op;
   ctx->matched  = 0;
+  ctx->btPops   = 0;
 
   jitFn(ctx);
+  CopyPatchJit::recordBtPops(ctx->btPops);
 
   // Read back JIT-modified state
   _jitBtBuf    = static_cast<BTPoint*>(ctx->btBase);
@@ -1196,15 +1198,20 @@ void CodeTree::incorporate(CodeStack& code)
     return;
   }
 
-  static const unsigned checkFunOpThreshold=5; //must be greater than 1 or it would cause loops
-  static const unsigned checkGroundTermOpThreshold=3; //must be greater than 1 or it would cause loops
+  #ifdef NO_SEARCH_STRUCTS
+    static const unsigned checkFunOpThreshold=UINT16_MAX;
+    static const unsigned checkGroundTermOpThreshold=UINT16_MAX;
+  #else
+    static const unsigned checkFunOpThreshold=5;
+    static const unsigned checkGroundTermOpThreshold=3;
+  #endif
 
   size_t clen=code.length();
   CodeOp** tailTarget;
   bool tailIsAlternative = false;
   size_t matchedCnt;
   ILStruct* lastMatchedILS=0;
-  SearchStruct* modifiedSearchStruct = nullptr;  // Bug 6: track SearchStruct modified by insertion
+  // SearchStruct* modifiedSearchStruct = nullptr;  // Bug 6: track SearchStruct modified by insertion
 
   {
     CodeOp* treeOp = getEntryPoint();
@@ -1222,7 +1229,7 @@ void CodeTree::incorporate(CodeStack& code)
             if (!*toPtr) {
               tailTarget = toPtr;
               tailIsAlternative = false;
-              modifiedSearchStruct = ss;   // track which struct gained a new target slot
+              // modifiedSearchStruct = ss;   // track which struct gained a new target slot
               matchedCnt = i;
               goto matching_done;
             }
@@ -1310,11 +1317,11 @@ matching_done:
   CodeOp* newFirst = &(*rem)[0];
   *tailTarget = newFirst;
 
-  if (modifiedSearchStruct && modifiedSearchStruct->landingOp._mcode) {
-    // SearchStruct was already compiled but its target list changed, meaning we
-    // have to re-emit so the compiled binary search picks up the new slot.
-    jitSearchStruct(modifiedSearchStruct);
-  }
+  // if (modifiedSearchStruct && modifiedSearchStruct->landingOp._mcode) {
+  //   // SearchStruct was already compiled but its target list changed, meaning we
+  //   // have to re-emit so the compiled binary search picks up the new slot.
+  //   jitSearchStruct(modifiedSearchStruct);
+  // }
   // Binary-patch the owner's embedded alternative immediate so pushAlt/jmpAlt pick up the new block
   if (tailIsAlternative) {
     CodeOp* owner = reinterpret_cast<CodeOp*>(reinterpret_cast<char*>(tailTarget) - offsetof(CodeOp, _alternative));
@@ -1500,13 +1507,13 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp
       if(alt) {
 	ASS( (ss->kind==SearchStruct::FN_STRUCT && alt->isCheckFun()) ||
 	    (ss->kind==SearchStruct::GROUND_TERM_STRUCT && alt->isCheckGroundTerm()) );
-	if (ss->landingOp._mcode) { jitSearchStruct(ss); }  // Re-emit: target pointer changed
+	// if (ss->landingOp._mcode) { jitSearchStruct(ss); }  // Re-emit: target pointer changed
 	return;
       }
       for(size_t i=0; i<ss->length(); i++) {
 	if(ss->targets[i]!=0) {
 	  //the SearchStruct still contains something, so we won't delete it
-	  if (ss->landingOp._mcode) { jitSearchStruct(ss); }  // Re-emit: target slot nulled
+	  // if (ss->landingOp._mcode) { jitSearchStruct(ss); }  // Re-emit: target slot nulled
 	  return;
 	}
       }
