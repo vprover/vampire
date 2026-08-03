@@ -1,0 +1,3 @@
+# this parser regression test is specifically about CRLF line endings;
+# never normalize them away
+checks/parse/crlf-line-numbers.p -text
