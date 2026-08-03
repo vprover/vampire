@@ -587,6 +587,22 @@ private:
   Stack<Type*> _types;
   /** various type tags saved during parsing */
   Stack<TypeTag> _typeTags;
+
+  /** one sort belonging to the currently-open contiguous type-datatype group */
+  struct PendingADTSort {
+    unsigned sortFunctor;
+    unsigned arity;
+    /** AtomicSort::create(sortFunctor, arity, fresh vars 0..arity-1) */
+    TermList canonicalSort;
+    std::string name;
+    Stack<Shell::TermAlgebraConstructor*> constructors;
+  };
+  /** sorts of the still-open contiguous type-datatype/type-datatype_constructor group */
+  Stack<PendingADTSort> _pendingADTSorts;
+
+  void addPendingADTSort(unsigned sortFunctor, unsigned arity);
+  void addPendingADTConstructor(unsigned functor, OperatorType* ot);
+  void finalizePendingADTs();
   /**  */
   Stack<TheoryFunction> _theoryFunctions;
   /** bindings of variables to sorts */

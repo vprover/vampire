@@ -62,6 +62,21 @@ check_smtcomp_status() {
 	fi
 }
 
+# check that Vampire aborts with a user error (e.g. malformed ADT input):
+# does NOT use run_vampire, since that treats any "error" in stderr as an
+# unconditional failure, which is exactly what we expect here
+check_user_error() {
+	echo $vampire $@
+	(cd checks; $vampire $@ > vampire-stdout 2> vampire-stderr)
+	errors=`grep -E 'User error' checks/vampire-stdout checks/vampire-stderr`
+	if test -z "$errors"
+	then
+		echo "expected a user error but none was found"
+		cat checks/vampire-stdout checks/vampire-stderr
+		exit 1
+	fi
+}
+
 # Some simple problems: fail early!
 check_szs_status Theorem Problems/PUZ/PUZ001+1.p
 
@@ -123,6 +138,16 @@ check_szs_status Unsatisfiable -newcnf on parse/types-funs.smt2
 check_szs_status Unsatisfiable -t 1 parse/smtlib2-parametric-datatypes.smt2
 check_szs_status Unsatisfiable -newcnf on -t 1 parse/smtlib2-parametric-datatypes.smt2
 check_szs_status Unsatisfiable parse/smtlib2-mutual-recursion.smt2
+
+# TPTP syntax for algebraic data types (type-datatype / type-datatype_constructor)
+check_szs_status Theorem --input_syntax tptp parse/tptp-adt/nat.p
+check_szs_status Theorem --input_syntax tptp parse/tptp-adt/list_poly.p
+check_szs_status Theorem --input_syntax tptp parse/tptp-adt/rbtree_mutual.p
+check_user_error --input_syntax tptp parse/tptp-adt/bad_undeclared.p
+check_user_error --input_syntax tptp parse/tptp-adt/bad_typevar.p
+check_user_error --input_syntax tptp parse/tptp-adt/bad_gadt.p
+check_user_error --input_syntax tptp parse/tptp-adt/bad_empty.p
+check_user_error --input_syntax tptp parse/tptp-adt/bad_noncontig.p
 check_szs_status Unsatisfiable -newcnf on parse/let-bind-variable.smt2
 check_szs_status Unsatisfiable -qa synthesis parse/assert-synth-max5.smt2
 check_szs_status Unsatisfiable parse/define-const.smt2

@@ -201,5 +201,6 @@ class FunctionDefinitionHandler;
 class PartialRedundancyHandler;
 struct PartialRedundancyEntry;
 class TermAlgebra;
+class TermAlgebraConstructor;
 }
 #endif /* __Forwards__ */

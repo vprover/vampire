@@ -37,6 +37,7 @@
 #include "Shell/DistinctGroupExpansion.hpp"
 #include "Shell/UIHelper.hpp"
 #include "Shell/Rectify.hpp"
+#include "Shell/TermAlgebra.hpp"
 
 #include "Parse/TPTP.hpp"
 
@@ -1212,6 +1213,7 @@ void TPTP::unitList()
   if (tok.tag == T_EOF) {
     resetToks();
     if (restoreFiles.empty()) {
+      finalizePendingADTs();
       return;
     }
     resetChars();
@@ -1225,6 +1227,12 @@ void TPTP::unitList()
     PARSE_ERROR_TOK("cnf(), fof(), vampire() or include() expected",tok);
   }
   std::string name(tok.content);
+  // ADT support: a datatype/constructor group must be declared contiguously;
+  // cnf()/fof()/vampire() units can never continue an open ADT group.
+  // include() is deliberately excluded: the group is allowed to span a file boundary.
+  if (name == "cnf" || name == "fof" || name == "vampire") {
+    finalizePendingADTs();
+  }
   _states.push(UNIT_LIST);
   if (name == "cnf") {
     _states.push(CNF);
@@ -1367,7 +1375,24 @@ void TPTP::tff()
   consumeToken(T_COMMA);
   tok = getTok(0);
   std::string tp = name();
-  if (tp == "type") {
+  // ADT support: the tokenizer does not treat '-' as part of a name, so
+  // "type-datatype"/"type-datatype_constructor" do not lex as a single T_NAME.
+  // Glue the subrole onto "type" here instead of generalising the lexer,
+  // to avoid any risk of affecting unrelated identifier/number lexing.
+  // Only the contiguous spelling (no whitespace before '-') is supported,
+  // matching every example in the ADT proposal.
+  if (tp == "type" && getChar(0) == '-') {
+    shiftChars(1);
+    tp += "-" + name();
+  }
+  // ADT support: a datatype/constructor group must be declared contiguously;
+  // finalize any still-open group unless this unit continues it. This must be
+  // checked for every role (not just type-datatype/type-datatype_constructor),
+  // since an ordinary axiom/conjecture/etc. mid-group also closes the group.
+  if (tp != "type-datatype" && tp != "type-datatype_constructor") {
+    finalizePendingADTs();
+  }
+  if (tp == "type" || tp == "type-datatype" || tp == "type-datatype_constructor") {
     // Read a TPTP type declaration.
     consumeToken(T_COMMA);
     // TPTP syntax allows for an arbitrary number of parentheses around a type
@@ -1383,7 +1408,7 @@ void TPTP::tff()
     }
     std::string nm = name();
     consumeToken(T_COLON);
-    if(_isThf){
+    if(_isThf && tp == "type"){
       tok = getTok(0);
       if (tok.tag == T_TTYPE) {
         resetToks();
@@ -1397,9 +1422,9 @@ void TPTP::tff()
             PARSE_ERROR_TOK("Type constructor declared with two different types",tok);
           }
         } else{
-          symbol->setType(ot);  
+          symbol->setType(ot);
           _typeConstructorArities.insert(nm, arity);
-        }       
+        }
         //cout << "added type constructor " + nm + " of type " + symbol->fnType()->toString() << endl;
         while (lpars--) {
           consumeToken(T_RPAR);
@@ -1411,8 +1436,9 @@ void TPTP::tff()
     }
     // the matching number of rpars will be read
     _ints.push(lpars);
-    // remember type name
+    // remember type name and role (plain "type" or an ADT subrole)
     _strings.push(nm);
+    _strings.push(tp);
     _states.push(END_TFF);
     _states.push(TYPE);
     return;
@@ -3821,6 +3847,7 @@ void TPTP::endTff()
   ASS(_types.isEmpty());
 
   OperatorType* ot = constructOperatorType(t);
+  std::string tp = _strings.pop();
   std::string name = _strings.pop();
 
   unsigned arity = ot->arity();
@@ -3830,6 +3857,11 @@ void TPTP::endTff()
   bool added;
   Signature::Symbol* symbol;
   if (isPredicate) {
+    // a predicate ($o-valued) can never be a datatype sort (needs to be $tType-valued)
+    // nor a datatype constructor (needs to build an actual sort-valued term)
+    if (tp == "type-datatype" || tp == "type-datatype_constructor") {
+      USER_ERROR("'" + name + "' declared with role '" + tp + "' must have an ordinary sort as its range, not $o");
+    }
     unsigned pred = env.signature->addPredicate(name, arity, added);
     symbol = env.signature->getPredicate(pred);
     if (!added) {
@@ -3844,9 +3876,16 @@ void TPTP::endTff()
       }
     }
   } else if (isTypeCon){
+    // a datatype constructor must build an actual sort-valued term, never $tType itself
+    if (tp == "type-datatype_constructor") {
+      USER_ERROR("type-datatype_constructor '" + name + "' must have an ordinary sort as its range, not $tType");
+    }
     unsigned typeCon = env.signature->addTypeCon(name, arity, added);
     symbol = env.signature->getTypeCon(typeCon);
     if (!added) {
+      if (tp == "type-datatype") {
+        USER_ERROR("Datatype '" + name + "' redeclares an existing symbol");
+      }
       // GR: Multiple identical type declarations for a symbol are allowed
       if(symbol->typeConType() != ot){
         USER_ERROR("Type constructor type is declared after its use: " + name);
@@ -3855,17 +3894,27 @@ void TPTP::endTff()
     else{
       symbol->setType(ot);
     }
+    if (tp == "type-datatype") {
+      addPendingADTSort(typeCon, arity);
+    }
   } else {
+    // a datatype sort must be $tType-valued, i.e. registered as a type constructor above
+    if (tp == "type-datatype") {
+      USER_ERROR("type-datatype declaration '" + name + "' must declare a sort (a $tType-valued symbol)");
+    }
     unsigned fun = arity == 0
                    ? addUninterpretedConstant(name, added)
                    : env.signature->addFunction(name, arity, added);
     symbol = env.signature->getFunction(fun);
     if (!added) {
+      if (tp == "type-datatype_constructor") {
+        USER_ERROR("Constructor '" + name + "' redeclares an existing symbol");
+      }
       if(symbol->fnType() != ot){
         USER_ERROR("Function symbol type is declared after its use: " + name);
       }
     }
-    else {   
+    else {
       symbol->setType(ot);
       //TODO check whether the below is actually required or not.
       if(_isThf){
@@ -3875,9 +3924,123 @@ void TPTP::endTff()
       }
     }
     //cout << "added: " + symbol->name() + " of type " + ot->toString() + " and functor " << fun << endl;
+    if (tp == "type-datatype_constructor") {
+      addPendingADTConstructor(fun, ot);
+    }
   }
 } // endTff
 
+/**
+ * Register a sort declared by a type-datatype declaration as belonging to the
+ * currently-open contiguous ADT group (see finalizePendingADTs()).
+ */
+void TPTP::addPendingADTSort(unsigned sortFunctor, unsigned arity)
+{
+  const std::string& name = env.signature->getTypeCon(sortFunctor)->name();
+
+  TermStack vars;
+  for (unsigned i = 0; i < arity; i++) {
+    vars.push(TermList(i, false));
+  }
+  TermList canonicalSort(AtomicSort::create(sortFunctor, arity, vars.begin()));
+
+  // Needed so that later THF-style sort application (e.g. `list @ A`) knows this
+  // type constructor's arity: TPTP::readSort() defaults an unrecognised THF type
+  // constructor to arity 0 via this exact map, which is otherwise only populated
+  // by the THF $tType-shortcut in tff() -- a path type-datatype sorts bypass.
+  _typeConstructorArities.insert(name, arity);
+
+  PendingADTSort pending;
+  pending.sortFunctor = sortFunctor;
+  pending.arity = arity;
+  pending.canonicalSort = canonicalSort;
+  pending.name = name;
+  _pendingADTSorts.push(std::move(pending));
+} // addPendingADTSort
+
+/**
+ * Register a constructor declared by a type-datatype_constructor declaration,
+ * validating that its range belongs to a sort pending in the currently-open ADT
+ * group, and auto-generating internal destructor symbols for its arguments (the
+ * TPTP ADT syntax has no destructor syntax of its own -- testers/destructors are
+ * the user's own separate, ordinarily-declared and -axiomatised symbols).
+ */
+void TPTP::addPendingADTConstructor(unsigned functor, OperatorType* ot)
+{
+  const std::string& name = env.signature->getFunction(functor)->name();
+
+  TermList range = ot->result();
+  if (!range.isTerm()) {
+    USER_ERROR("Constructor '" + name + "' has a bare type variable as its range; this is malformed");
+  }
+  unsigned rangeFunctor = range.term()->functor();
+
+  PendingADTSort* pending = nullptr;
+  for (unsigned i = 0; i < _pendingADTSorts.size(); i++) {
+    if (_pendingADTSorts[i].sortFunctor == rangeFunctor) {
+      pending = &_pendingADTSorts[i];
+      break;
+    }
+  }
+  if (!pending) {
+    if (env.signature->isTermAlgebraSort(range)) {
+      USER_ERROR("Constructor '" + name + "' is not declared contiguously with its "
+                 "type-datatype declaration (all constructors of a datatype must "
+                 "immediately follow its type-datatype declaration)");
+    }
+    USER_ERROR("Constructor '" + name + "' range sort is not a previously declared type-datatype sort");
+  }
+  if (range != pending->canonicalSort) {
+    USER_ERROR("Constructor '" + name + "' range " + range.toString() + " does not exactly match "
+               "datatype sort " + pending->canonicalSort.toString() + ": constructors that permute, "
+               "instantiate, or restrict the datatype's own type parameters (GADT-style), or use "
+               "dependent types, are not supported by this implementation");
+  }
+
+  unsigned numTypeArgs = ot->numTypeArguments();
+  unsigned arity = ot->arity();
+  Lib::Array<unsigned> destructors(arity - numTypeArgs);
+  for (unsigned i = numTypeArgs; i < arity; i++) {
+    TermList argSort = ot->arg(i);
+    bool isPred = (argSort == AtomicSort::boolSort());
+    unsigned destructorFunctor;
+    if (isPred) {
+      destructorFunctor = env.signature->addFreshPredicate(numTypeArgs + 1, "$$dest");
+      Signature::Symbol* sym = env.signature->getPredicate(destructorFunctor);
+      sym->setType(OperatorType::getPredicateType(1, &range, numTypeArgs));
+      sym->markTermAlgebraDest();
+    } else {
+      destructorFunctor = env.signature->addFreshFunction(numTypeArgs + 1, "$$dest");
+      Signature::Symbol* sym = env.signature->getFunction(destructorFunctor);
+      sym->setType(OperatorType::getFunctionType(1, &range, argSort, numTypeArgs));
+      sym->markTermAlgebraDest();
+    }
+    destructors[i - numTypeArgs] = destructorFunctor;
+  }
+
+  env.signature->getFunction(functor)->markTermAlgebraCons();
+  pending->constructors.push(new Shell::TermAlgebraConstructor(functor, destructors));
+} // addPendingADTConstructor
+
+/**
+ * Finalize the currently-open contiguous ADT group: build and register one
+ * TermAlgebra per pending sort (checking inhabitation), then clear the group.
+ * Called whenever a unit is read that cannot continue the group, and at the
+ * very end of parsing.
+ */
+void TPTP::finalizePendingADTs()
+{
+  for (unsigned i = 0; i < _pendingADTSorts.size(); i++) {
+    PendingADTSort& p = _pendingADTSorts[i];
+    auto ta = new Shell::TermAlgebra(p.canonicalSort, (unsigned)p.constructors.size(), p.constructors.begin(),
+                                      /*allowsCyclicTerms=*/false);
+    if (ta->emptyDomain()) {
+      USER_ERROR("Datatype '" + p.name + "' defines an empty (uninhabited) sort");
+    }
+    env.signature->addTermAlgebra(ta);
+  }
+  _pendingADTSorts.reset();
+} // finalizePendingADTs
 
 OperatorType* TPTP::constructOperatorType(Type* t, VList* vars, DHSet<unsigned>* ivars)
 {
