@@ -39,7 +39,7 @@ public:
   // DEPRECATED: this function eventually calls tryGetVariableSort above
   static TermList getVariableSort(TermList var, Term* t);
 
-  static void collectVariableSorts(Unit* u, DHMap<unsigned,TermList>& map);
+  static void collectVariableSorts(Unit* u, DHMap<unsigned,TermList>& map, bool ignoreBound = false);
   static void collectVariableSorts(Term* t, DHMap<unsigned,TermList>& map);
   static void collectVariableSorts(Formula* f, DHMap<unsigned,TermList>& map, bool ignoreBound = false);
 

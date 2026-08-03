@@ -165,7 +165,7 @@ std::string getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
   Set<unsigned> vars;
   std::string res;
   DHMap<unsigned,TermList> t_map;
-  SortHelper::collectVariableSorts(u,t_map);
+  SortHelper::collectVariableSorts(u,t_map, /*ignoreBound=*/true);
   if (u->isClause()) {
     Clause* cl=static_cast<Clause*>(u);
     unsigned clen=cl->length();
