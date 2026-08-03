@@ -78,7 +78,7 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
     const auto sd = term.getSpecialData();
 
     if (term.isFormula())
-      return sd->getFormula()->toString();
+      return sd->getFormula()->toString(topLevel);
     if (term.isLambda())
       return lambdaToString(sd, pretty);
 
