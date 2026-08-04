@@ -18,6 +18,9 @@
 
 #include "Forwards.hpp"
 
+#include <limits>
+#include <vector>
+
 #include "Lib/Event.hpp"
 #include "Lib/List.hpp"
 #include "Lib/ScopedPtr.hpp"
@@ -276,22 +279,35 @@ protected:
   unsigned _numFuncs;
   unsigned _numSorts;
 
+  // symbols with usageCnt()==0 at the time of gnn invocation are not exposed to the GNN
+  static constexpr unsigned NOT_EXPOSED = std::numeric_limits<unsigned>::max();
+  std::vector<unsigned> _predNodeIdx; // predicate id -> symbol node idx, or NOT_EXPOSED
+  std::vector<unsigned> _funcNodeIdx; // function id -> symbol node idx, or NOT_EXPOSED
+  unsigned _numSymbNodes;             // the exposed predicates and functions, together
+
   unsigned funcToSymb(unsigned f) {
-    if (f > _numFuncs) {
+    if (f >= _numFuncs) {
       // the idea is that any function symbol that gets created during saturation (for now it's the ari numerals)
       // gets represented by the final embedding of the respective output sort
-      return _numPreds + _numFuncs + env.signature->getFunction(f)->fnType()->result().term()->functor();
-    } else {
-      // other than that, function symbols are (for the NN) represented as lying "after" the predicate symbols in a single table
-      return _numPreds+f;
+      return _numSymbNodes + env.signature->getFunction(f)->fnType()->result().term()->functor();
     }
+    // other than that, function symbols are (for the NN) represented as lying "after" the predicate symbols in a single table
+    unsigned idx = _funcNodeIdx[f];
+    if (idx == NOT_EXPOSED) {
+      throw InvalidOperationException("Function symbol not exposed to the GNN (usageCnt was 0 on input).");
+    }
+    return idx;
   }
 
   unsigned predToSymb(unsigned p) {
-    if (p > _numPreds) {
+    if (p >= _numPreds) {
       throw InvalidOperationException("Predicate introduced after preprocessing.");
     }
-    return p;
+    unsigned idx = _predNodeIdx[p];
+    if (idx == NOT_EXPOSED) {
+      throw InvalidOperationException("Predicate symbol not exposed to the GNN (usageCnt was 0 on input).");
+    }
+    return idx;
   }
 
   // start for the first activation, for the LRS estimate

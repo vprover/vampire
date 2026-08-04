@@ -887,9 +887,24 @@ void SaturationAlgorithm::runGnnOnInput()
   _numFuncs = env.signature->functions();
   _numSorts = env.signature->typeCons();
 
+  // make sure the usageCnt's are fresh (Property::scan resets and recounts them);
+  // symbols with usageCnt()==0 don't occur in the CNF and will not be exposed to the GNN
+  _prb.getProperty();
+
+  _predNodeIdx.resize(_numPreds);
+  _funcNodeIdx.resize(_numFuncs);
+  _numSymbNodes = 0;
+  for (unsigned p = 0; p < _numPreds; p++) {
+    // equality (p==0) is always kept: Property::scan does not count equality literals, so its usageCnt stays 0 even when it occurs
+    _predNodeIdx[p] = (p == 0 || env.signature->getPredicate(p)->usageCnt() > 0) ? _numSymbNodes++ : NOT_EXPOSED;
+  }
+  for (unsigned f = 0; f < _numFuncs; f++) {
+    _funcNodeIdx[f] = (env.signature->getFunction(f)->usageCnt() > 0) ? _numSymbNodes++ : NOT_EXPOSED;
+  }
+
   // these guy must survive (in memory) until the gnnPerform call
   torch::Tensor sort_features = torch::empty({_numSorts,3}, torch::kFloat32);
-  torch::Tensor symbol_features = torch::empty({_numPreds+_numFuncs,11}, torch::kFloat32);
+  torch::Tensor symbol_features = torch::empty({_numSymbNodes,11}, torch::kFloat32);
 
   // sorts
   {
@@ -928,6 +943,9 @@ void SaturationAlgorithm::runGnnOnInput()
     };
 
     for (unsigned p = 0; p < _numPreds; p++) {
+      if (_predNodeIdx[p] == NOT_EXPOSED) {
+        continue;
+      }
       Signature::Symbol* symb = env.signature->getPredicate(p);
       (*symbol_features_ptr++) = (unsigned)(p==0);   // isEquality
       (*symbol_features_ptr++) = 0;                  // isFunction symbol
@@ -939,8 +957,8 @@ void SaturationAlgorithm::runGnnOnInput()
 
       //cout << "symb: " << p << " " << (unsigned)(p==0) << " 0 " << symb->introduced() << " " << symb->skolem()
       //    << " " << symb->interpretedNumber() << " " << symb->arity() << " # " << symb->name() << endl;
-      // cout << "symb-to-sort: " << p << " " << env.signature->getBoolSort() << endl;
-      symb2sort_one.push_back(p);
+      // cout << "symb-to-sort: " << predToSymb(p) << " " << env.signature->getBoolSort() << endl;
+      symb2sort_one.push_back(predToSymb(p));
       symb2sort_two.push_back(env.signature->getBoolSort());
       // pred-to-sort: predId sortId (which is always 1 == $o)
     }
@@ -948,21 +966,31 @@ void SaturationAlgorithm::runGnnOnInput()
       DArray<unsigned> predicates;
       predicates.initFromIterator(getRangeIterator(0u, _numPreds), _numPreds);
       _ordering->sortArrayByPredicatePrecedence(predicates);
+      // drop the non-exposed predicates (keeping the precedence order of the rest)
+      unsigned numKept = 0;
+      for (unsigned idx = 0; idx < _numPreds; idx++) {
+        if (_predNodeIdx[predicates[idx]] != NOT_EXPOSED) {
+          predicates[numKept++] = predicates[idx];
+        }
+      }
       unsigned jumpLen = 1;
       do {
         unsigned prev = 0; // we hardcode = as the first predicate in the precedence (despite the precedence sometimes claiming otherwise), because = has always the smallest "level" anyway
-        for (unsigned idx = 0; idx < _numPreds; idx += jumpLen) {
+        for (unsigned idx = 0; idx < numKept; idx += jumpLen) {
           if (predicates[idx] != 0) {
-            // cout << "symb-prec-next: " << prev << " " << predicates[idx] << endl;
+            // cout << "symb-prec-next: " << prev << " " << predToSymb(predicates[idx]) << endl;
             symb2symb_one.push_back(prev);
-            symb2symb_two.push_back(predicates[idx]);
-            prev = predicates[idx];
+            symb2symb_two.push_back(predToSymb(predicates[idx]));
+            prev = predToSymb(predicates[idx]);
           }
         }
         jumpLen *= 2;
-      } while (jumpLen < _numPreds);
+      } while (jumpLen < numKept);
     }
     for (unsigned f = 0; f < _numFuncs; f++) {
+      if (_funcNodeIdx[f] == NOT_EXPOSED) {
+        continue;
+      }
       Signature::Symbol* symb = env.signature->getFunction(f);
 
       (*symbol_features_ptr++) = 0;                  // isEquality
@@ -984,15 +1012,22 @@ void SaturationAlgorithm::runGnnOnInput()
       DArray<unsigned> functions;
       functions.initFromIterator(getRangeIterator(0u, _numFuncs), _numFuncs);
       _ordering->sortArrayByFunctionPrecedence(functions);
+      // drop the non-exposed functions (keeping the precedence order of the rest)
+      unsigned numKept = 0;
+      for (unsigned idx = 0; idx < _numFuncs; idx++) {
+        if (_funcNodeIdx[functions[idx]] != NOT_EXPOSED) {
+          functions[numKept++] = functions[idx];
+        }
+      }
       unsigned jumpLen = 1;
       do {
-        for (unsigned idx = jumpLen; idx < _numFuncs; idx += jumpLen) {
+        for (unsigned idx = jumpLen; idx < numKept; idx += jumpLen) {
           // cout << "symb-prec-next: " << FUNC_TO_SYMB(functions[idx-jumpLen]) << " " << FUNC_TO_SYMB(functions[idx]) << endl;
           symb2symb_one.push_back(funcToSymb(functions[idx-jumpLen]));
           symb2symb_two.push_back(funcToSymb(functions[idx]));
         }
         jumpLen *= 2;
-      } while (jumpLen < _numFuncs);
+      } while (jumpLen < numKept);
     }
 
     _neuralModel->gnnNodeKind("symbol",symbol_features);
@@ -1072,8 +1107,8 @@ void SaturationAlgorithm::runGnnOnInput()
         // cout << "trm: " << subtermId << " " << ((lit->isPositive()) ? 1.0 : -1.0) << " " << 0.0 << " ... " << lit->toString() << endl;
 
         trm2symb_one.push_back(*sharedSubtermId);
-        trm2symb_two.push_back(lit->functor());
-        // cout << "trm-symb: " << subtermId << " " << lit->functor() << endl;
+        trm2symb_two.push_back(predToSymb(lit->functor()));
+        // cout << "trm-symb: " << subtermId << " " << predToSymb(lit->functor()) << endl;
       }
 
       // we always connect clause to its literal's term node
