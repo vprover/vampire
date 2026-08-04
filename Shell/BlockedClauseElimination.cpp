@@ -102,7 +102,7 @@ void BlockedClauseElimination::apply(Problem& prb)
   // under randomized preprocessing, each discovered blocking is with this probability
   // ignored: the candidate is dropped and never re-enqueued, so the clause can only
   // still get blocked via one of its other literals (the loss is monotone; to be tuned)
-  constexpr double RPR_SKIP_PROB = 0.5;
+  constexpr double RPR_SKIP_PROB = 0.1;
   bool rpr = env.options->randomizedPreprocessing();
 
   while (!queue.isEmpty()) {
