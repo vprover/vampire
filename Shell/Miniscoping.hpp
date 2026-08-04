@@ -20,6 +20,8 @@
 
 #include "Kernel/Formula.hpp"
 
+#include "Lib/DHMap.hpp"
+
 namespace Shell {
 
 using namespace Kernel;
@@ -47,23 +49,35 @@ public:
   static FormulaUnit* miniscope(FormulaUnit* unit);
   static Formula* miniscope(Formula* f)
   {
-    Miniscoping ms(firstFreshVar(f));
+    Miniscoping ms;
+    ms.computeFV(f);
     Formula* res = ms.apply(f);
     res->label(f->getLabel());
     return res;
   }
 
 private:
-  explicit Miniscoping(unsigned firstFreshVar) : _nextVar(firstFreshVar) {}
+  Miniscoping() : _nextVar(0) {}
 
+  VarSet* computeFV(Formula* f);
   Formula* apply(Formula* f);
   Formula* pushBlock(Connective q, VSList* vars, Formula* g);
   Formula* pushVar(Connective q, VarSort vs, Formula* g);
 
+  /** Record the free variables of a newly built formula and return it. */
+  Formula* reg(Formula* f, VarSet* fv)
+  {
+    ALWAYS(_fv.insert(f, fv));
+    return f;
+  }
+
   static Formula* rename(Formula* f, unsigned from, unsigned to);
   static bool sameVarList(const VSList* a, const VSList* b);
-  static unsigned firstFreshVar(Formula* f);
 
+  /** free variables of every (sub)formula node: seeded by computeFV
+      and maintained for the nodes built during the transformation,
+      so that "does x occur in c" is a lookup and not a traversal */
+  DHMap<Formula*, VarSet*> _fv;
   /** the least variable index not occurring (free or bound) in the unit being processed */
   unsigned _nextVar;
 }; // class Miniscoping

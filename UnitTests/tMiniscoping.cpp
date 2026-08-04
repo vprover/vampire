@@ -84,6 +84,8 @@ static void checkResult(Formula* in, Formula* expected)
   DECL_SORT(srt)        \
   DECL_VAR(x, 0)        \
   DECL_VAR(y, 1)        \
+  DECL_VAR(z, 2)        \
+  DECL_VAR(w, 3)        \
   DECL_CONST(a, srt)    \
   DECL_PRED(p, {srt})   \
   DECL_PRED(q, {srt})   \
@@ -194,6 +196,37 @@ TEST_FUN(unit_and_inference)
 
   ASS(freeVarSet(f) == freeVarSet(res->formula()));
   checkRectified(res->formula());
+}
+
+TEST_FUN(rename_into_pushed_copy)
+{
+  MY_SYNTAX_SUGAR
+  // ![X0,X1]: (p2(X0,X1) & p2(X0,X1))
+  //   ---> ![X0,X1]: p2(X0,X1) & ![X3,X2]: p2(X3,X2)
+  // (X1 distributes first, renaming its second copy to X2; then X0
+  //  pushes into both conjuncts, entering the fresh copy renamed to X3)
+  checkResult(quant(FORALL, {0,1}, srt, conj({lit(p2(x,y)), lit(p2(x,y))})),
+              conj({quant(FORALL, {0,1}, srt, lit(p2(x,y))),
+                    quant(FORALL, {3,2}, srt, lit(p2(w,z)))}));
+}
+
+TEST_FUN(deep_chain_descent)
+{
+  MY_SYNTAX_SUGAR
+  // the quantifier sinks through a deep alternating &/| chain
+  // all the way down to the single occurrence of its variable
+  Formula* in = lit(p(x));
+  Formula* expected = quant(FORALL, {0}, srt, lit(p(x)));
+  for (unsigned i = 0; i < 50; i++) {
+    if (i % 2 == 0) {
+      in = disj({lit(r(a)), in});
+      expected = disj({lit(r(a)), expected});
+    } else {
+      in = conj({lit(q(a)), in});
+      expected = conj({lit(q(a)), expected});
+    }
+  }
+  checkResult(quant(FORALL, {0}, srt, in), expected);
 }
 
 TEST_FUN(sort_preservation)

@@ -18,6 +18,7 @@
 #include "Kernel/SubstHelper.hpp"
 
 #include "Lib/Environment.hpp"
+#include "Lib/SharedSet.hpp"
 #include "Lib/Stack.hpp"
 
 #include "Shell/Options.hpp"
@@ -51,29 +52,94 @@ FormulaUnit* Miniscoping::miniscope(FormulaUnit* unit)
   return res;
 } // Miniscoping::miniscope
 
-/**
- * Return the least variable index not occurring (free or bound) in @c f.
- */
-unsigned Miniscoping::firstFreshVar(Formula* f)
+namespace {
+/** The set @c s without the variable @c x. */
+VarSet* minusVar(VarSet* s, unsigned x)
 {
-  bool any = false;
-  unsigned max = 0;
-
-  FormulaVarIterator fvi(f);
-  while (fvi.hasNext()) {
-    unsigned v = fvi.next();
-    if (!any || v > max) { max = v; any = true; }
-  }
-  VSList* bound = f->boundVariables();
-  VSList::Iterator bit(bound);
-  while (bit.hasNext()) {
-    unsigned v = bit.next().first;
-    if (!any || v > max) { max = v; any = true; }
-  }
-  VSList::destroy(bound);
-
-  return any ? max+1 : 0;
+  return s->subtract(VarSet::getSingleton(x));
 }
+}
+
+/**
+ * Compute (and memoize in _fv) the free variables of every node of @c f,
+ * in a single bottom-up pass; the analogue of Skolem::preskolemise.
+ * Along the way, keep _nextVar above every variable index seen
+ * (free at the leaves, or bound at the quantifier nodes).
+ *
+ * Also used to analyse the fresh copies made by rename() during pushing;
+ * the memoization makes revisiting their unchanged shared subformulas free.
+ */
+VarSet* Miniscoping::computeFV(Formula* f)
+{
+  VarSet* res;
+  if (_fv.find(f, res)) {
+    return res;
+  }
+
+  switch (f->connective()) {
+  case TRUE:
+  case FALSE:
+    res = VarSet::getEmpty();
+    break;
+
+  case LITERAL:
+  case BOOL_TERM:
+    {
+      Stack<unsigned> vars(4);
+      FormulaVarIterator fvi(f);
+      while (fvi.hasNext()) {
+        unsigned v = fvi.next();
+        if (v >= _nextVar) { _nextVar = v+1; }
+        vars.push(v);
+      }
+      res = VarSet::getFromIterator(Stack<unsigned>::Iterator(vars));
+      break;
+    }
+
+  // apply() keeps these opaque, but they can still be queried as juncts
+  case NOT:
+    res = computeFV(f->uarg());
+    break;
+  case IMP:
+  case IFF:
+  case XOR:
+    res = computeFV(f->left())->getUnion(computeFV(f->right()));
+    break;
+
+  case AND:
+  case OR:
+    {
+      res = VarSet::getEmpty();
+      FormulaList::Iterator it(f->args());
+      while (it.hasNext()) {
+        res = res->getUnion(computeFV(it.next()));
+      }
+      break;
+    }
+
+  case FORALL:
+  case EXISTS:
+    {
+      VarSet* inner = computeFV(f->qarg());
+      Stack<unsigned> bound(4);
+      VSList::Iterator vit(f->vars());
+      while (vit.hasNext()) {
+        unsigned v = vit.next().first;
+        if (v >= _nextVar) { _nextVar = v+1; }
+        bound.push(v);
+      }
+      res = inner->subtract(VarSet::getFromIterator(Stack<unsigned>::Iterator(bound)));
+      break;
+    }
+
+  case NAME:
+  case NOCONN:
+    ASSERTION_VIOLATION;
+  }
+
+  ALWAYS(_fv.insert(f, res));
+  return res;
+} // Miniscoping::computeFV
 
 namespace {
 /** An applicator for SubstHelper renaming a single variable. */
@@ -159,7 +225,8 @@ Formula* Miniscoping::apply(Formula* f)
       if (!changed) {
         return f;
       }
-      return new JunctionFormula(con, args.list());
+      // miniscoping the juncts does not change their free variables
+      return reg(new JunctionFormula(con, args.list()), _fv.get(f));
     }
 
   case FORALL:
@@ -213,9 +280,12 @@ Formula* Miniscoping::pushVar(Connective q, VarSort vs, Formula* g)
 {
   unsigned x = vs.first;
 
-  if (!isFreeVariableOf(g, x)) {
+  if (!_fv.get(g)->member(x)) {
     return g; // dummy quantifier drop
   }
+
+  // any result built below binds x, so its free variables are these
+  VarSet* resFV = minusVar(_fv.get(g), x);
 
   Connective dist = (q == FORALL) ? AND : OR; // distributive junction
   Connective dual = (q == FORALL) ? OR : AND;
@@ -230,17 +300,19 @@ Formula* Miniscoping::pushVar(Connective q, VarSort vs, Formula* g)
     FormulaList::Iterator it(g->args());
     while (it.hasNext()) {
       Formula* c = it.next();
-      if (!isFreeVariableOf(c, x)) {
+      if (!_fv.get(c)->member(x)) {
         args.pushBack(c);
       } else if (first) {
         first = false;
         args.pushBack(pushVar(q, vs, c));
       } else {
         unsigned x2 = _nextVar++;
-        args.pushBack(pushVar(q, VarSort(x2, vs.second), rename(c, x, x2)));
+        Formula* r = rename(c, x, x2);
+        computeFV(r); // analyse the fresh copy before pushing into it
+        args.pushBack(pushVar(q, VarSort(x2, vs.second), r));
       }
     }
-    return new JunctionFormula(dist, args.list());
+    return reg(new JunctionFormula(dist, args.list()), resFV);
   }
 
   if (con == dual) {
@@ -251,7 +323,7 @@ Formula* Miniscoping::pushVar(Connective q, VarSort vs, Formula* g)
     FormulaList::Iterator it(g->args());
     while (it.hasNext()) {
       Formula* c = it.next();
-      bool occurs = isFreeVariableOf(c, x);
+      bool occurs = _fv.get(c)->member(x);
       juncts.push(c);
       hasX.push(occurs);
       if (occurs) {
@@ -262,7 +334,7 @@ Formula* Miniscoping::pushVar(Connective q, VarSort vs, Formula* g)
 
     if (withXCnt == juncts.size()) {
       // every junct contains x: the quantifier is stuck here
-      return new QuantifiedFormula(q, VSList::singleton(vs), g);
+      return reg(new QuantifiedFormula(q, VSList::singleton(vs), g), resFV);
     }
 
     Formula* core = nullptr;
@@ -277,13 +349,16 @@ Formula* Miniscoping::pushVar(Connective q, VarSort vs, Formula* g)
     } else {
       // several juncts contain x: quantify their junction (provably stuck)
       FormulaList::FIFO withX;
+      VarSet* withXFV = VarSet::getEmpty();
       for (unsigned i = 0; i < juncts.size(); i++) {
         if (hasX[i]) {
           withX.pushBack(juncts[i]);
+          withXFV = withXFV->getUnion(_fv.get(juncts[i]));
         }
       }
-      core = new QuantifiedFormula(q, VSList::singleton(vs),
-                                   new JunctionFormula(dual, withX.list()));
+      Formula* inner = reg(new JunctionFormula(dual, withX.list()), withXFV);
+      core = reg(new QuantifiedFormula(q, VSList::singleton(vs), inner),
+                 minusVar(withXFV, x));
     }
     ASS(core);
 
@@ -301,7 +376,7 @@ Formula* Miniscoping::pushVar(Connective q, VarSort vs, Formula* g)
         args.pushBack(juncts[i]);
       }
     }
-    return new JunctionFormula(dual, args.list());
+    return reg(new JunctionFormula(dual, args.list()), resFV);
   }
 
   if (con == q) {
@@ -311,13 +386,14 @@ Formula* Miniscoping::pushVar(Connective q, VarSort vs, Formula* g)
     if (h->connective() == q) {
       // got stuck right below g's block: merge the blocks,
       // with the pushed variable in front (it came from outside)
-      return new QuantifiedFormula(q, VSList::append(h->vars(), g->vars()), h->qarg());
+      return reg(new QuantifiedFormula(q, VSList::append(h->vars(), g->vars()), h->qarg()),
+                 resFV);
     }
-    return new QuantifiedFormula(q, g->vars(), h);
+    return reg(new QuantifiedFormula(q, g->vars(), h), resFV);
   }
 
   // anything else (a literal, the opposite quantifier, ...): stuck
-  return new QuantifiedFormula(q, VSList::singleton(vs), g);
+  return reg(new QuantifiedFormula(q, VSList::singleton(vs), g), resFV);
 } // Miniscoping::pushVar
 
 }
