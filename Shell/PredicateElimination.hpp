@@ -74,6 +74,7 @@ private:
     Lib::DHSet<Clause *> neg; // S_~P: dtto, negatively
     unsigned blockers = 0;    // number of clauses in which P occurs more than once
     bool eliminated = false;
+    bool rprSkipped = false;  // under randomized preprocessing: picked but skipped, never to be reconsidered
   };
 
   // options
