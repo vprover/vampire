@@ -126,7 +126,7 @@ bool EqResWithDeletion::scan(Literal* lit)
     // under randomized preprocessing, each candidate inequality is with this probability
     // left un-resolved for this pass; a pass in which all candidates get skipped ends
     // the per-clause fixpoint, so skipped inequalities can survive in the result (to be tuned)
-    constexpr double RPR_SKIP_PROB = 0.5;
+    constexpr double RPR_SKIP_PROB = 0.2;
     if(env.options->randomizedPreprocessing() && Random::getDouble(0.0,1.0) < RPR_SKIP_PROB) {
       return false;
     }

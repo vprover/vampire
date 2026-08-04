@@ -314,7 +314,7 @@ void PredicateDefinition::collectReplacements(UnitList* units, ReplMap& replacem
 
   // under randomized preprocessing, each candidate is with this probability left alone
   // (a skipped predicate is never re-enqueued, so the loss is monotone; to be tuned)
-  constexpr double RPR_SKIP_PROB = 0.5;
+  constexpr double RPR_SKIP_PROB = 0.1;
   bool rpr = env.options->randomizedPreprocessing();
 
   while(_eliminable.isNonEmpty() || _pureToReplace.isNonEmpty()) {

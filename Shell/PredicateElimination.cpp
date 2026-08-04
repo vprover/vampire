@@ -132,7 +132,7 @@ void PredicateElimination::apply(Problem &prb)
   // under randomized preprocessing, each picked candidate predicate is with this
   // probability skipped: it gets marked as never-to-be-reconsidered, so it stays
   // in the problem for good (the loss is monotone; to be tuned)
-  constexpr double RPR_SKIP_PROB = 0.2;
+  constexpr double RPR_SKIP_PROB = 0.1;
   bool rpr = env.options->randomizedPreprocessing();
 
   for (;;) {

@@ -185,7 +185,7 @@ bool FunctionDefinition::removeUnusedDefinitions(UnitList*& units, Problem* prb)
 
   // under randomized preprocessing, each unused definition is with this probability
   // kept in the problem instead of being removed (to be tuned)
-  constexpr double RPR_SKIP_PROB = 0.5;
+  constexpr double RPR_SKIP_PROB = 0.5; // unused usually don't matter than much (TPTP eval)
   bool rpr = env.options->randomizedPreprocessing();
 
   while(toDo.isNonEmpty()) {
@@ -252,7 +252,7 @@ bool FunctionDefinition::removeAllDefinitions(UnitList*& units)
 {
   // under randomized preprocessing, each discovered definition is with this probability
   // ignored, i.e. kept in the problem as a plain clause and never unfolded (to be tuned)
-  constexpr double RPR_SKIP_PROB = 0.5;
+  constexpr double RPR_SKIP_PROB = 0.2; // TPTP eval was much more sensitive to these
   bool rpr = env.options->randomizedPreprocessing();
 
   UnitList::DelIterator scanIterator(units);
