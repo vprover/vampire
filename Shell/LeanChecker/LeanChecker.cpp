@@ -966,7 +966,7 @@ void LeanChecker::clausify(std::ostream &out, SortMap &conclSorts, Unit *concl){
       indent << indent << "prenexify at " << stepIdent << parent->number() << "<;>\n";
     outputReorderIfNeeded(out, parent, conclSorts, indent);
     out << 
-      indent << indent << "simp (config := {failIfUnchanged := false}) only [eq_comm] at " << stepIdent << parent->number() << " ⊢ <;>\n" <<
+      indent << indent << "simp (config := {failIfUnchanged := false}) only [eq_comm, ne_comm] at " << stepIdent << parent->number() << " ⊢ <;>\n" <<
       indent << indent << "ac_nf<;>\n" <<
       indent << indent << "ac_nf at " << stepIdent << parent->number() << "\n\n";
     return;
@@ -988,6 +988,15 @@ void LeanChecker::clausify(std::ostream &out, SortMap &conclSorts, Unit *concl){
     }
     out <<(cnfParentExtra.number > 1 ? "⟩" : "")  <<" := " << stepIdent << parent->number() << "'\n";
 
+    out << indent << "try simp only [eq_comm, ne_comm] at ";
+    for(unsigned i=0 ; i<cnfParentExtra.number ; i++){
+      out << "s" << parent->number() << "c" << i;
+      if(i < cnfParentExtra.number-1){
+        out << " ";
+      }
+    }
+    out << "\n";
+    
     out << indent << "ac_nf0 at ";
     for(unsigned i=0 ; i<cnfParentExtra.number ; i++){
       out << "s" << parent->number() << "c" << i;
@@ -996,11 +1005,12 @@ void LeanChecker::clausify(std::ostream &out, SortMap &conclSorts, Unit *concl){
       }
     }
     out << "\n";
+    
   }
   out << indent << "have " << stepIdent << concl->number() << " : ";
   outputUnit(out, concl);
   out << " := by\n";
-  out << indent << indent << "try simp only\n";
+  out << indent << indent << "try simp only [eq_comm, ne_comm]\n";
   outputReorderIfNeeded(out, parent, conclSorts, indent);
   out << indent << indent << "ac_nf0\n";
   out << indent << indent << "assumption\n\n";
@@ -1352,8 +1362,8 @@ void LeanChecker::avatarSplitClause(std::ostream &out, SortMap &conclSorts, Unit
 
   }
   out << "\n" 
-      << indent << "simp (config := {failIfUnchanged := false}) only [not_and_or, not_not, eq_comm] at newForm\n"
-      << indent << "simp (config := {failIfUnchanged := false}) only [eq_comm]\n"
+      << indent << "simp (config := {failIfUnchanged := false}) only [not_and_or, not_not, eq_comm, ne_comm] at newForm\n"
+      << indent << "simp (config := {failIfUnchanged := false}) only [eq_comm, ne_comm]\n"
       << indent << "ac_nf at newForm ⊢ <;>\n"
       << indent << "grind only [cases Or]\n\n";
 }
@@ -1483,10 +1493,11 @@ void LeanChecker::rectify(std::ostream &out, SortMap &conclSorts, Unit *concl, c
     auto [formula, subst] = formulaAndSubst;
     //check if subst is identity, if so we can skip this formula
     bool identity = true;
+    Kernel::Substitution reverseSubst;
     for(auto [var, term] : iterTraits(subst.items())){
       if(term != TermList::var(var)){
         identity = false;
-        break;
+        reverseSubst.bind(term.var(), TermList::var(var));
       }
     }
     if(identity){
@@ -1505,6 +1516,29 @@ void LeanChecker::rectify(std::ostream &out, SortMap &conclSorts, Unit *concl, c
       }
       for(auto var : iterTraits(newFormula->vars()->iter())){
         newFormulaSorts.insert(var.first, allNewFormulaSorts.get(var.first));
+      }
+      if(sorts.size() != newFormulaSorts.size()){
+        if(newFormulaSorts.size() > sorts.size()){
+          throw std::runtime_error("Rectification produced more variables than the original formula");
+        } else {
+          
+          sorts.reset();
+          for(auto var : iterTraits(newFormulaSorts.domain())){
+            auto newVar = reverseSubst.apply(var).var();
+            auto sortPtr = allNewFormulaSorts.findPtr(newVar);
+            sorts.insert(newVar, allNewFormulaSorts.get(newVar));
+          }
+        }
+        //Check identity again
+        identity = true;
+        for(auto var : iterTraits(sorts.domain())){
+          if(var != subst.apply(var).var()){
+            identity = false;
+          }
+        }
+        if(identity){
+          continue;
+        }
       }
     }
     out << indent << "have r" << counter << " (P :";

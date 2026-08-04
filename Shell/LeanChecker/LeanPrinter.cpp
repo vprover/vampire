@@ -339,8 +339,19 @@ void printLiteral(std::ostream &out, Lit lit, bool variablesAsPattern, bool flip
 {
   Literal *literal = lit.literal;
   PredicateName name(literal);
-  if (!literal->polarity())
-    out << "(¬";
+  bool isEquality = false;
+  if(name.symbol->interpreted()){
+    if(static_cast<Signature::InterpretedSymbol *> (name.symbol)->getInterpretation() == Theory::EQUAL){
+      isEquality = true;
+    }
+  }
+  if (!literal->polarity()){
+    if(isEquality){
+      
+    } else {
+      out << "(¬";
+    } 
+  }
   if (literal->arity())
     out << "(";
   if (name.symbol->interpreted()) {
@@ -364,7 +375,15 @@ void printLiteral(std::ostream &out, Lit lit, bool variablesAsPattern, bool flip
         std::swap(left, right);
       }
       printArgs(out, Args{&left, lit.conclSorts, lit.otherSorts}, variablesAsPattern, true);
-      out << name;
+      if(isEquality){
+        if(literal->polarity()){
+          out << "=";
+        } else {
+          out << "≠";
+        }
+      } else {
+        out <<name;
+      }
       printArgs(out, Args{&right, lit.conclSorts, lit.otherSorts}, variablesAsPattern, true);
     }
     else {
@@ -388,8 +407,9 @@ void printLiteral(std::ostream &out, Lit lit, bool variablesAsPattern, bool flip
   }
   if (literal->arity())
     out << ")";
-  if (!literal->polarity())
+  if (!literal->polarity()&& !isEquality) {
     out << ")";
+  }
 }
 
 std::ostream &operator<<(std::ostream &out, Lit lit)

@@ -3391,8 +3391,12 @@ void TPTP::endFormula()
     if(f->connective()==LITERAL){
       auto af = static_cast<AtomicFormula*>(f);
       Literal* oldLit = af->literal();
-      Literal* newLit = Literal::create(oldLit,!oldLit->polarity());
-      _formulas.push(new AtomicFormula(newLit, af->flipForPrinting));
+      if(!oldLit->polarity()){
+        Literal* newLit = Literal::create(oldLit,!oldLit->polarity());
+        _formulas.push(new AtomicFormula(newLit, af->flipForPrinting));
+      } else {
+        _formulas.push(new NegatedFormula(f));
+      }
     }
     else{
       _formulas.push(new NegatedFormula(f));
