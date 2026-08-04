@@ -440,33 +440,25 @@ Inference::Inference(const SimplifyingInferenceMany& si) {
 Inference::Inference(const NonspecificInference0& gi) {
   init0(gi.inputType,gi.rule);
 
-  ASS_REP(!isGeneratingInferenceRule(gi.rule) && !isSimplifyingInferenceRule(gi.rule) &&
-    !isFormulaClauseTransformation(gi.rule) && !isTheoryAxiomRule(gi.rule),
-    ruleName(gi.rule));
+  ASS_REP(isNonSpecificInferenceRule(gi.rule), ruleName(gi.rule));
 }
 
 Inference::Inference(const NonspecificInference1& gi) {
   init1(gi.rule,gi.premise);
 
-  ASS_REP(!isGeneratingInferenceRule(gi.rule) && !isSimplifyingInferenceRule(gi.rule) &&
-    !isFormulaClauseTransformation(gi.rule) && !isTheoryAxiomRule(gi.rule),
-    ruleName(gi.rule));
+  ASS_REP(isNonSpecificInferenceRule(gi.rule), ruleName(gi.rule));
 }
 
 Inference::Inference(const NonspecificInference2& gi) {
   init2(gi.rule,gi.premise1,gi.premise2);
 
-  ASS_REP(!isGeneratingInferenceRule(gi.rule) && !isSimplifyingInferenceRule(gi.rule) &&
-    !isFormulaClauseTransformation(gi.rule) && !isTheoryAxiomRule(gi.rule),
-    ruleName(gi.rule));
+  ASS_REP(isNonSpecificInferenceRule(gi.rule), ruleName(gi.rule));
 }
 
 Inference::Inference(const NonspecificInferenceMany& gi) {
   initMany(gi.rule,gi.premises);
 
-  ASS_REP(!isGeneratingInferenceRule(gi.rule) && !isSimplifyingInferenceRule(gi.rule) &&
-    !isFormulaClauseTransformation(gi.rule) && !isTheoryAxiomRule(gi.rule),
-    ruleName(gi.rule));
+  ASS_REP(isNonSpecificInferenceRule(gi.rule), ruleName(gi.rule));
 }
 
 std::string Inference::name() const {
@@ -974,7 +966,7 @@ std::string Kernel::ruleName(InferenceRule rule)
   case InferenceRule::LEIBNIZ_ELIMINATION:
     return "leibniz equality elimination";
   case InferenceRule::HILBERTS_CHOICE_INSTANCE:
-    return "Hilbert's choice axiom instance";
+    return "Hilbertian choice axiom instance";
   case InferenceRule::CASES_SIMP:
     return "cases simplifying";
   case InferenceRule::TERM_ALGEBRA_DIRECT_SUBTERMS_AXIOM:
@@ -994,6 +986,8 @@ std::string Kernel::ruleName(InferenceRule rule)
   case InferenceRule::GENERIC_AVATAR_INFERENCE_LAST:
   case InferenceRule::GENERIC_THEORY_AXIOM:
   case InferenceRule::GENERIC_THEORY_AXIOM_LAST:
+  case InferenceRule::GENERIC_NONSPECIFIC_INFERENCE:
+  case InferenceRule::GENERIC_NONSPECIFIC_INFERENCE_LAST:
     { /* explicitly ignoring this cases */ }
   }
 
