@@ -354,11 +354,23 @@ private:
       Occurrences::Iterator occit(*this);
 
       bool negateOccurrenceSign = false;
+      if (f->connective() == NOT) {
+        /**
+         * Generalised clauses store formulas without negations (cf. pushLiteral),
+         * so the negation is dropped here and the sign of every occurrence is
+         * flipped instead. Otherwise the stored formula would not match the
+         * formula the occurrences are registered under in _occurrences, and
+         * pushLiteral would flip the sign a second time when the generalised
+         * literal is copied to another generalised clause.
+         */
+        f = f->uarg();
+        negateOccurrenceSign = true;
+      }
       if (f->connective() == LITERAL) {
         Literal* l = f->literal();
         if (l->shared() && ((SIGN)l->polarity() != POSITIVE)) {
           f = new AtomicFormula(Literal::complementaryLiteral(l));
-          negateOccurrenceSign = true;
+          negateOccurrenceSign = !negateOccurrenceSign;
         }
       }
 
@@ -369,15 +381,6 @@ private:
         if (negateOccurrenceSign) {
           sign(gl) = OPPOSITE(sign(gl));
         }
-      }
-    }
-
-    void invert() {
-      Occurrences::Iterator occit(*this);
-      while (occit.hasNext()) {
-        Occurrence occ = occit.next();
-        GenLit& gl = occ.gc->_literals[occ.position];
-        sign(gl) = OPPOSITE(sign(gl));
       }
     }
 
@@ -568,19 +571,19 @@ private:
   void nameSubformula(Formula* g, Occurrences &occurrences);
 
   void enqueue(Formula* formula, Occurrences occurrences = Occurrences()) {
-    if ((formula->connective() == LITERAL) && formula->literal()->shared()) return;
-
     if (formula->connective() == NOT) {
       /**
        * Formulas are always stored without negations in genclauses,
-       * therefore it is safe to drop the negation before queueing,
-       * all the occurrences of the formula won't have it either
+       * therefore it is safe to drop the negation before queueing.
+       * The signs of the occurrences are not touched here: whoever puts
+       * a formula into a generalised clause is responsible for dropping
+       * its negation and flipping the sign of the generalised literal
+       * (cf. pushLiteral and Occurrences::replaceBy).
        */
       formula = formula->uarg();
-      ASS_REP(formula->connective() != LITERAL, formula->toString());
-
-      occurrences.invert();
     }
+
+    if ((formula->connective() == LITERAL) && formula->literal()->shared()) return;
 
     if (_occurrences.find(formula)) {
       Occurrences oldOccurrences;

@@ -95,6 +95,12 @@ check_szs_status Theorem -ile off theory/let-bool-pred.p
 check_szs_status Theorem -newcnf on -ile off theory/let-bool-pred.p
 check_szs_status Theorem theory/let-bool-simultaneous.p
 check_szs_status Theorem -newcnf on theory/let-bool-simultaneous.p
+check_szs_status Theorem theory/let-bool-twice.p
+check_szs_status Theorem -newcnf on theory/let-bool-twice.p
+check_szs_status Theorem -ile off theory/let-bool-twice.p
+check_szs_status Theorem -newcnf on -ile off theory/let-bool-twice.p
+check_szs_status Unsatisfiable theory/let-bool-twice.smt2
+check_szs_status Unsatisfiable -newcnf on theory/let-bool-twice.smt2
 
 # Arrays
 check_szs_status Unsatisfiable theory/arrays.smt2
