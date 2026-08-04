@@ -18,6 +18,7 @@
 #include "Debug/Assertion.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/Random.hpp"
 #include "Lib/ScopedLet.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -182,8 +183,16 @@ bool FunctionDefinition::removeUnusedDefinitions(UnitList*& units, Problem* prb)
     }
   }
 
+  // under randomized preprocessing, each unused definition is with this probability
+  // kept in the problem instead of being removed (to be tuned)
+  constexpr double RPR_SKIP_PROB = 0.5; // unused usually don't matter than much (TPTP eval)
+  bool rpr = env.options->randomizedPreprocessing();
+
   while(toDo.isNonEmpty()) {
     Def* d=toDo.pop();
+    if(rpr && Random::getDouble(0.0,1.0) < RPR_SKIP_PROB) {
+      continue; // d->mark stays UNTOUCHED and the definition gets reinserted below
+    }
     d->mark=Def::REMOVED;
     ASS_EQ(d->defCl->length(), 1);
     ASS_EQ(occCounter[d->fun], 1);
@@ -241,11 +250,20 @@ void FunctionDefinition::reverse(Def* def){
  */
 bool FunctionDefinition::removeAllDefinitions(UnitList*& units)
 {
+  // under randomized preprocessing, each discovered definition is with this probability
+  // ignored, i.e. kept in the problem as a plain clause and never unfolded (to be tuned)
+  constexpr double RPR_SKIP_PROB = 0.2; // TPTP eval was much more sensitive to these
+  bool rpr = env.options->randomizedPreprocessing();
+
   UnitList::DelIterator scanIterator(units);
   while(scanIterator.hasNext()) {
     Clause* cl=static_cast<Clause*>(scanIterator.next());
     ASS(cl->isClause());
     Def* d=isFunctionDefinition(cl);
+    if(d && rpr && Random::getDouble(0.0,1.0) < RPR_SKIP_PROB) {
+      delete d;
+      d = 0;
+    }
     if(d) {
       d->defCl=cl;
       bool inserted = false;

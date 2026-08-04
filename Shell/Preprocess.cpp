@@ -15,7 +15,10 @@
  */
 
 
+#include "Lib/Random.hpp"
 #include "Lib/ScopedLet.hpp"
+
+#include <cmath>
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/HOL/HOL.hpp"
@@ -54,6 +57,7 @@
 #include "TheoryFlattening.hpp"
 #include "TweeGoalTransformation.hpp"
 #include "BlockedClauseElimination.hpp"
+#include "PredicateElimination.hpp"
 
 #include "UIHelper.hpp"
 #include "Lib/List.hpp"
@@ -466,6 +470,24 @@ void Preprocess::preprocess(Problem& prb)
      bce.apply(prb);
    }
 
+   if (_options.predicateElimination()) {
+     if (prb.isHigherOrder() || prb.hasPolymorphicSym()) { // in both cases, predicates could hide inside terms, breaking the occurrence counting
+       if (outputAllowed()) {
+         addCommentSignForSZS(std::cout);
+         std::cout << "WARNING: Not using PredicateElimination currently not compatible with polymorphic/higher-order inputs." << endl;
+       }
+     } else {
+       env.statistics->phase=ExecutionPhase::PREDICATE_ELIMINATION;
+       if (env.options->showPreprocessing())
+         std::cout << "predicate elimination" << std::endl;
+
+       PredicateElimination pel(/*forceEquationally=*/_options.saturationAlgorithm() == Options::SaturationAlgorithm::FINITE_MODEL_BUILDING,
+                                _options.predicateEliminationTotalLimit(),
+                                _options.predicateEliminationSubsumption());
+       pel.apply(prb);
+     }
+   }
+
    if (_options.shuffleInput()) {
      TIME_TRACE(TimeTrace::SHUFFLING);
      env.statistics->phase=ExecutionPhase::SHUFFLING;
@@ -600,14 +622,21 @@ void Preprocess::naming(Problem& prb)
   ASS(_options.naming());
 
   env.statistics->phase=ExecutionPhase::NAMING;
+  int nm = _options.naming();
   UnitList::DelIterator us(prb.units());
-  //TODO fix the below
-  Naming naming(_options.naming(),false, prb.isHigherOrder()); // For now just force eprPreservingNaming to be false, should update Naming
   while (us.hasNext()) {
     Unit* u = us.next();
     if (u->isClause()) {
       continue;
     }
+    int threshold = nm;
+    if (_options.randomizedPreprocessing()) {
+      // log-uniform on [nm/2, 2*nm]: the geometric mean stays nm
+      threshold = (int)std::round(nm * std::pow(2.0, Random::getDouble(-1.0, 1.0)));
+      threshold = std::min(std::max(threshold, 2), 32767); // respect the nm option range {0} ∪ [2, 32767]
+    }
+    //TODO fix the below
+    Naming naming(threshold,false, prb.isHigherOrder()); // For now just force eprPreservingNaming to be false, should update Naming
     UnitList* defs;
     FormulaUnit* fu = static_cast<FormulaUnit*>(u);
     FormulaUnit* v = naming.apply(fu,defs);

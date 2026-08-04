@@ -2059,6 +2059,9 @@ public:
 
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   bool blockedClauseElimination() const { return _blockedClauseElimination.actualValue; }
+  bool predicateElimination() const { return _predicateElimination.actualValue; }
+  float predicateEliminationTotalLimit() const { return _predicateEliminationTotalLimit.actualValue; }
+  bool predicateEliminationSubsumption() const { return _predicateEliminationSubsumption.actualValue; }
   unsigned distinctGroupExpansionLimit() const { return _distinctGroupExpansionLimit.actualValue; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval.actualValue = newVal; }
   SatSolver satSolver() const { return _satSolver.actualValue; }
@@ -2183,6 +2186,7 @@ public:
 
   bool shuffleInput() const { return _shuffleInput.actualValue; }
   bool randomPolarities() const { return _randomPolarities.actualValue; }
+  bool randomizedPreprocessing() const { return _randomizedPreprocessing.actualValue; }
   bool randomAWR() const { return _randomAWR.actualValue; }
   bool randomTraversals() const { return _randomTraversals.actualValue; }
   bool randomizeSeedForPortfolioWorkers() const { return _randomizeSeedForPortfolioWorkers.actualValue; }
@@ -2576,6 +2580,7 @@ private:
   BoolOptionValue _normalize;
   BoolOptionValue _shuffleInput;
   BoolOptionValue _randomPolarities;
+  BoolOptionValue _randomizedPreprocessing;
 
   StringOptionValue _printProofToFile;
   BoolOptionValue _printClausifierPremises;
@@ -2703,6 +2708,9 @@ private:
   ChoiceOptionValue<URResolution> _unitResultingResolution;
   BoolOptionValue _unusedPredicateDefinitionRemoval;
   BoolOptionValue _blockedClauseElimination;
+  BoolOptionValue _predicateElimination;
+  FloatOptionValue _predicateEliminationTotalLimit;
+  BoolOptionValue _predicateEliminationSubsumption;
   UnsignedOptionValue _distinctGroupExpansionLimit;
 
   OptionChoiceValues _tagNames;
