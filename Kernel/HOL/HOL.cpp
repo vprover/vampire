@@ -103,11 +103,11 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
 
     // any non-arrow sort
     if (!pretty && term.arity()) {
-      res += "⟨";
+      res += "(";
     }
     res += sort->typeConName();
     if (pretty && term.arity())
-      res += "⟨";
+      res += "(";
     for (unsigned i = 0; i < term.arity(); i++) {
       if (pretty && i != 0)
         res += ", ";
@@ -119,12 +119,12 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
     }
 
     if (term.arity())
-      res += "⟩";
+      res += ")";
     return res;
   }
 
   if (term.isPlaceholder()) {
-    return term.functionName() + "⟨" + term.nthArgument(0)->toString(true) + "⟩";
+    return term.functionName() + "(" + term.nthArgument(0)->toString(true) + ")";
   }
 
   if (term.isLambdaTerm()) {
@@ -208,13 +208,13 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
       !head.isLambdaTerm() && head.term()->arity() > 0) {
     auto t = head.term();
     if (pretty)
-      headStr += "⟨";
+      headStr += "(";
     for (unsigned i = 0; i < t->arity(); ++i) {
       headStr += pretty && i != 0 ? ", " : "";
       headStr += !pretty ? " @ " : "";
       headStr += termToStr(*t->nthArgument(i),pretty,st);
     }
-    if (pretty) headStr += "⟩";
+    if (pretty) headStr += ")";
   }
 
   if (!topLevel && hasArgs)
