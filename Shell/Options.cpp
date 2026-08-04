@@ -2330,6 +2330,12 @@ void Options::init()
     _lookup.insert(&_randomPolarities);
     _randomPolarities.tag(OptionTag::PREPROCESSING);
 
+    _randomizedSimplifications = BoolOptionValue("randomized_simplifications","rsi",false);
+    _randomizedSimplifications.description="Make selected simplification rules of the saturation loop \"leaky\":"
+       " under a coin toss, some of their candidate simplifications are randomly skipped, as a source of noise injection.";
+    _lookup.insert(&_randomizedSimplifications);
+    _randomizedSimplifications.tag(OptionTag::INFERENCES);
+
     _questionAnswering = ChoiceOptionValue<QuestionAnsweringMode>("question_answering","qa",QuestionAnsweringMode::AUTO,
                                                                   {"auto","plain","synthesis","off"});
     _questionAnswering.description= "Determines whether (and how) we attempt to answer questions:"
