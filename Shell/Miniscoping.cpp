@@ -33,12 +33,12 @@ namespace Shell
  *
  * @warning the unit must contain a rectified, NNF, flattened formula
  */
-FormulaUnit* Miniscoping::miniscope(FormulaUnit* unit)
+FormulaUnit* Miniscoping::miniscope(FormulaUnit* unit, Mode mode)
 {
   ASS(! unit->isClause());
 
   Formula* f = unit->formula();
-  Formula* g = miniscope(f);
+  Formula* g = miniscope(f, mode);
   if (f == g) { // not changed
     return unit;
   }
@@ -291,7 +291,7 @@ Formula* Miniscoping::pushVar(Connective q, VarSort vs, Formula* g)
   Connective dual = (q == FORALL) ? OR : AND;
 
   Connective con = g->connective();
-  if (con == dist) {
+  if (con == dist && maySplit(q)) {
     // full distribution: push into every junct containing x;
     // all but the first copy of the binder get a fresh variable,
     // keeping the result rectified
@@ -315,8 +315,9 @@ Formula* Miniscoping::pushVar(Connective q, VarSort vs, Formula* g)
     return reg(new JunctionFormula(dist, args.list()), resFV);
   }
 
-  if (con == dual) {
+  if (con == dual || con == dist) {
     // partition the juncts by occurrence of x
+    // (for the dist junction we only get here when splitting is forbidden)
     Stack<Formula*> juncts(8);
     Stack<bool> hasX(8);
     unsigned withXCnt = 0;
@@ -347,7 +348,8 @@ Formula* Miniscoping::pushVar(Connective q, VarSort vs, Formula* g)
         }
       }
     } else {
-      // several juncts contain x: quantify their junction (provably stuck)
+      // several juncts contain x: quantify their junction
+      // (provably stuck at the dual junction, stuck by policy at dist)
       FormulaList::FIFO withX;
       VarSet* withXFV = VarSet::getEmpty();
       for (unsigned i = 0; i < juncts.size(); i++) {
@@ -356,7 +358,7 @@ Formula* Miniscoping::pushVar(Connective q, VarSort vs, Formula* g)
           withXFV = withXFV->getUnion(_fv.get(juncts[i]));
         }
       }
-      Formula* inner = reg(new JunctionFormula(dual, withX.list()), withXFV);
+      Formula* inner = reg(new JunctionFormula(con, withX.list()), withXFV);
       core = reg(new QuantifiedFormula(q, VSList::singleton(vs), inner),
                  minusVar(withXFV, x));
     }
@@ -376,7 +378,7 @@ Formula* Miniscoping::pushVar(Connective q, VarSort vs, Formula* g)
         args.pushBack(juncts[i]);
       }
     }
-    return reg(new JunctionFormula(dual, args.list()), resFV);
+    return reg(new JunctionFormula(con, args.list()), resFV);
   }
 
   if (con == q) {

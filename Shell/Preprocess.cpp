@@ -727,8 +727,9 @@ Unit* Preprocess::preprocess3 (Unit* u, bool appify /*higher order stuff*/)
   // flatten it
   fu = Flattening::flatten(fu);
   // (Optional) miniscope the formula
-  if (_options.miniscoping() && !appify && !env.getMainProblem()->hasPolymorphicSym()) {
-    fu = Miniscoping::miniscope(fu);
+  if (_options.miniscoping() != Options::MiniscopingMode::OFF &&
+      !appify && !env.getMainProblem()->hasPolymorphicSym()) {
+    fu = Miniscoping::miniscope(fu, _options.miniscoping());
   }
   fu = Skolem::skolemise(fu, appify);
   return fu;

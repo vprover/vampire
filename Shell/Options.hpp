@@ -297,6 +297,13 @@ public:
     FREE,
     FULL
   };
+  enum class MiniscopingMode : unsigned int {
+    OFF,
+    ON,        // all the rules, incl. binder-duplicating distributions
+    NO_ESPLIT, // never duplicate an existential binder (partition instead);
+               // universals still distribute (skolem-neutral, enables ∃-wins)
+    NO_SPLIT,  // never duplicate any binder
+  };
   enum class FMBWidgetOrders : unsigned int {
     FUNCTION_FIRST, // f(1) f(2) f(3) ... g(1) g(2) ...
     ARGUMENT_FIRST, // f(1) g(1) h(1) ... f(2) g(2) ...
@@ -2278,7 +2285,7 @@ public:
 
   void setProof(Proof p) { _proof.actualValue = p; }
   bool newCNF() const { return _newCNF.actualValue; }
-  bool miniscoping() const { return _miniscoping.actualValue; }
+  MiniscopingMode miniscoping() const { return _miniscoping.actualValue; }
   bool getIteInlineLet() const { return _inlineLet.actualValue; }
 
   bool useManualClauseSelection() const { return _manualClauseSelection.actualValue; }
@@ -2725,7 +2732,7 @@ private:
 
   BoolOptionValue _newCNF;
   BoolOptionValue _inlineLet;
-  BoolOptionValue _miniscoping;
+  ChoiceOptionValue<MiniscopingMode> _miniscoping;
 
   BoolOptionValue _manualClauseSelection;
   // arithmeitc reasoning options

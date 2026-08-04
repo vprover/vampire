@@ -22,6 +22,8 @@
 
 #include "Lib/DHMap.hpp"
 
+#include "Shell/Options.hpp"
+
 namespace Shell {
 
 using namespace Kernel;
@@ -41,15 +43,22 @@ using namespace Kernel;
  * - multi-variable blocks (Q x1,...,xn)F are split and each variable
  *   pushed independently as deep as possible
  *
+ * In the NO_ESPLIT mode the first (binder-duplicating) rule is replaced,
+ * for existential quantifiers, by the second one -- so that the number of
+ * Skolem symbols never grows while their arities can only drop;
+ * NO_SPLIT does the same also for universal quantifiers.
+ *
  * The output is again rectified, NNF and flattened.
  */
 class Miniscoping
 {
 public:
-  static FormulaUnit* miniscope(FormulaUnit* unit);
-  static Formula* miniscope(Formula* f)
+  using Mode = Options::MiniscopingMode;
+
+  static FormulaUnit* miniscope(FormulaUnit* unit, Mode mode = Mode::ON);
+  static Formula* miniscope(Formula* f, Mode mode = Mode::ON)
   {
-    Miniscoping ms;
+    Miniscoping ms(mode);
     ms.computeFV(f);
     Formula* res = ms.apply(f);
     res->label(f->getLabel());
@@ -57,7 +66,11 @@ public:
   }
 
 private:
-  Miniscoping() : _nextVar(0) {}
+  explicit Miniscoping(Mode mode) : _mode(mode), _nextVar(0) { ASS(mode != Mode::OFF); }
+
+  /** May pushing q duplicate its binder (distributing over its junction)? */
+  bool maySplit(Connective q) const
+  { return q == EXISTS ? _mode == Mode::ON : _mode != Mode::NO_SPLIT; }
 
   VarSet* computeFV(Formula* f);
   Formula* apply(Formula* f);
@@ -78,6 +91,8 @@ private:
       and maintained for the nodes built during the transformation,
       so that "does x occur in c" is a lookup and not a traversal */
   DHMap<Formula*, VarSet*> _fv;
+  /** which rules to apply (never OFF here) */
+  Mode _mode;
   /** the least variable index not occurring (free or bound) in the unit being processed */
   unsigned _nextVar;
 }; // class Miniscoping

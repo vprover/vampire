@@ -558,11 +558,16 @@ void Options::init()
     _generalSplitting.tag(OptionTag::PREPROCESSING);
     _generalSplitting.addProblemConstraint(mayHaveNonUnits());
 
-    _miniscoping = BoolOptionValue("miniscoping","mnsc",false);
+    _miniscoping = ChoiceOptionValue<MiniscopingMode>("miniscoping","mnsc",MiniscopingMode::OFF,
+                                                      {"off","on","no_esplit","no_split"});
     _miniscoping.description=
     "Push quantifiers inside formulas (after NNF and flattening, before Skolemization), "
-    "so that Skolem functions get fewer arguments. Only affects the traditional "
-    "clausification pipeline, i.e. has no effect with newcnf.";
+    "so that Skolem functions get fewer arguments. With 'no_esplit', an existential binder "
+    "is never duplicated over a disjunction (its scope only shrinks), so the number of "
+    "Skolem symbols never grows while their arities can only drop; 'no_split' additionally "
+    "forbids duplicating universal binders over conjunctions (which is Skolem-neutral by "
+    "itself, but can enable further existential scope reductions). Only affects the "
+    "traditional clausification pipeline, i.e. has no effect with newcnf.";
     _lookup.insert(&_miniscoping);
     _miniscoping.tag(OptionTag::PREPROCESSING);
     _miniscoping.addProblemConstraint(hasFormulas());

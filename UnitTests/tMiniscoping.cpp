@@ -72,9 +72,10 @@ static std::set<unsigned> freeVarSet(Formula* f)
   return res;
 }
 
-static void checkResult(Formula* in, Formula* expected)
+static void checkResult(Formula* in, Formula* expected,
+                        Miniscoping::Mode mode = Miniscoping::Mode::ON)
 {
-  Formula* out = Miniscoping::miniscope(in);
+  Formula* out = Miniscoping::miniscope(in, mode);
   ASS_EQ(out->toString(), expected->toString());
   ASS(freeVarSet(in) == freeVarSet(out));
   checkRectified(out);
@@ -196,6 +197,53 @@ TEST_FUN(unit_and_inference)
 
   ASS(freeVarSet(f) == freeVarSet(res->formula()));
   checkRectified(res->formula());
+}
+
+TEST_FUN(no_esplit_partitions_instead)
+{
+  MY_SYNTAX_SUGAR
+  // ?[X0]: (p(X0) | q(X0) | r(a)) ---> ?[X0]: (p(X0) | q(X0)) | r(a)
+  // (under no_esplit the binder is not duplicated; the x-free junct still leaves)
+  checkResult(quant(EXISTS, {0}, srt, disj({lit(p(x)), lit(q(x)), lit(r(a))})),
+              disj({quant(EXISTS, {0}, srt, disj({lit(p(x)), lit(q(x))})),
+                    lit(r(a))}),
+              Miniscoping::Mode::NO_ESPLIT);
+}
+
+TEST_FUN(no_esplit_stuck_sharing)
+{
+  MY_SYNTAX_SUGAR
+  // ?[X0]: (p(X0) | q(X0)) cannot move without splitting: same formula returned
+  Formula* f = quant(EXISTS, {0}, srt, disj({lit(p(x)), lit(q(x))}));
+  ASS_EQ(Miniscoping::miniscope(f, Miniscoping::Mode::NO_ESPLIT), f);
+}
+
+TEST_FUN(no_esplit_still_splits_forall)
+{
+  MY_SYNTAX_SUGAR
+  // universal distribution is skolem-neutral and stays on under no_esplit ...
+  Formula* in = quant(FORALL, {0}, srt, conj({lit(p(x)), lit(q(x))}));
+  checkResult(in,
+              conj({quant(FORALL, {0}, srt, lit(p(x))),
+                    quant(FORALL, {1}, srt, lit(q(y)))}),
+              Miniscoping::Mode::NO_ESPLIT);
+  // ... but is off under no_split (the formula reproduces itself)
+  ASS_EQ(Miniscoping::miniscope(in, Miniscoping::Mode::NO_SPLIT), in);
+}
+
+TEST_FUN(no_esplit_usplit_enables_dep_shedding)
+{
+  MY_SYNTAX_SUGAR
+  // ![X0]: ?[X1]: ![X2]: (p2(X2,X1) & p2(X2,X0))
+  //   ---> ?[X1]: ![X2]: p2(X2,X1) & ![X0,X3]: p2(X3,X0)
+  // (only the universal split of X2 lets X1's block shed X0 from below itself,
+  //  making X1's skolem a constant instead of a function of X0)
+  checkResult(quant(FORALL, {0}, srt,
+                    quant(EXISTS, {1}, srt,
+                          quant(FORALL, {2}, srt, conj({lit(p2(z,y)), lit(p2(z,x))})))),
+              conj({quant(EXISTS, {1}, srt, quant(FORALL, {2}, srt, lit(p2(z,y)))),
+                    quant(FORALL, {0,3}, srt, lit(p2(w,x)))}),
+              Miniscoping::Mode::NO_ESPLIT);
 }
 
 TEST_FUN(rename_into_pushed_copy)
