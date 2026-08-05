@@ -15,6 +15,7 @@
 #include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "Lib/Random.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Lib/VirtualIterator.hpp"
 
@@ -84,6 +85,12 @@ bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement,
 {
   TIME_TRACE("forward demodulation");
 
+  // under randomized simplifications, each candidate rewrite is with this probability
+  // dropped as early as possible (saving also the applicability checks), giving a
+  // rewrite by another source (or none) a chance instead (to be tuned)
+  constexpr double RSI_SKIP_PROB = 0.01;
+  bool rsi = env.options->randomizedSimplifications();
+
   //Perhaps it might be a good idea to try to
   //replace subterms in some special order, like
   //the heaviest first...
@@ -118,6 +125,10 @@ bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement,
       while(git.hasNext()) {
         auto qr=git.next();
         ASS_EQ(qr.data->clause->length(),1);
+
+        if(rsi && Random::getDouble(0.0,1.0) < RSI_SKIP_PROB) {
+          continue; // drop this candidate early; the next generalization gets a chance
+        }
 
         if(!ColorHelper::compatible(cl->color(), qr.data->clause->color())) {
           continue;
