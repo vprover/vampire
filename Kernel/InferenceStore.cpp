@@ -149,18 +149,6 @@ std::string getQuantifiedStr(const VarContainer& vars, std::string inner, DHMap<
 }
 
 /**
- * Return @b inner quentified over variables in @b vars
- *
- * It is caller's responsibility to ensure that variables in @b vars are unique.
- */
-template<typename VarContainer>
-std::string getQuantifiedStr(const VarContainer& vars, std::string inner, bool innerParentheses=true)
-{
-  static DHMap<unsigned,TermList> d;
-  return getQuantifiedStr(vars,inner,d,innerParentheses);
-}
-
-/**
  * Return std::string containing quantified unit @b u.
  */
 std::string getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
@@ -442,9 +430,14 @@ struct InferenceStore::TPTPProofPrinter
 
   void print() override
   {
-    //outputSymbolDeclarations also deals with sorts for now
-    //UIHelper::outputSortDeclarations(out);
-    UIHelper::outputSymbolDeclarations(out);
+    //an fof proof needs no type declarations, and the signature can hold a
+    //typed symbol no unit ever used, whose declaration would put a tff line
+    //into an otherwise fof proof
+    if(env.initiallyHasNonDefaultSorts() || env.initiallyHigherOrder()){
+      //outputSymbolDeclarations also deals with sorts for now
+      //UIHelper::outputSortDeclarations(out);
+      UIHelper::outputSymbolDeclarations(out);
+    }
     ProofPrinter::print();
   }
 
@@ -780,6 +773,11 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
 
     Literal* nameLit=_is->_splittingNameLiterals.get(us->number()); //the name literal must always be stored
 
+    //sorts of the clause's variables, so the quantifiers of the definition
+    //below are annotated like every other formula in the proof
+    DHMap<unsigned,TermList> t_map;
+    SortHelper::collectVariableSorts(us, t_map);
+
     std::string defId=tptpDefId(us);
 
     out<<getFofString(tptpUnitId(us), getFormulaString(us),
@@ -821,11 +819,11 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
     }
     ASS(!first);
 
-    compStr=getQuantifiedStr(compOnlyVars, compStr, multiple);
+    compStr=getQuantifiedStr(compOnlyVars, compStr, t_map, multiple);
     List<unsigned>::destroy(compOnlyVars);
 
     std::string defStr=compStr+" <=> "+Literal::complementaryLiteral(nameLit)->toString();
-    defStr=getQuantifiedStr(nameVars, defStr);
+    defStr=getQuantifiedStr(nameVars, defStr, t_map);
     List<unsigned>::destroy(nameVars);
 
     SymbolId nameSymbol = SymbolId(SymbolType::PRED,nameLit->functor());
@@ -850,9 +848,12 @@ protected:
     InferenceRule rule = cs->inference().rule();
     UnitIterator parents= cs->getParents();
 
-    //outputSymbolDeclarations also deals with sorts for now
-    //UIHelper::outputSortDeclarations(out);
-    UIHelper::outputSymbolDeclarations(out);
+    //an fof proof needs no type declarations, see TPTPProofPrinter::print
+    if(env.initiallyHasNonDefaultSorts() || env.initiallyHigherOrder()){
+      //outputSymbolDeclarations also deals with sorts for now
+      //UIHelper::outputSortDeclarations(out);
+      UIHelper::outputSymbolDeclarations(out);
+    }
 
     // fragment of the unpreprocessed input, see the comment in getFofString
     std::string kind = "fof";

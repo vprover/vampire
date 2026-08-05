@@ -75,6 +75,26 @@ check_no_fof() {
 	fi
 }
 
+# check the proof contains a general splitting definition and that its
+# variables carry sort annotations
+check_gsp_defs_typed() {
+	run_vampire $@
+	def=`grep -B1 'general_splitting_component_introduction' checks/vampire-stdout`
+	if test -z "$def"
+	then
+		echo "expected a general splitting definition in the proof"
+		cat checks/vampire-stdout checks/vampire-stderr
+		exit 1
+	fi
+	bare=`echo "$def" | grep -E '[[,]X[0-9]+[],]'`
+	if test -n "$bare"
+	then
+		echo "general splitting definition has unannotated variables:"
+		echo "$bare"
+		exit 1
+	fi
+}
+
 # check the proof of an untyped problem stays in fof: TPTP allows a proof in a
 # weaker fragment than the input, not in a stronger one
 check_fof_only() {
@@ -209,3 +229,7 @@ check_no_fof -p proofcheck Problems/ARI/ARI496_1.p
 check_no_fof -p tptp proof/mixed-language.p
 # untyped problems keep fof
 check_fof_only -p tptp Problems/PUZ/PUZ001+1.p
+# a typed declaration of a symbol that no unit uses must not force tff either
+check_fof_only -p tptp proof/unused-typed-symbol.p
+# general splitting definitions must annotate their variables
+check_gsp_defs_typed -gsp on -p tptp proof/gsp-typed.p
