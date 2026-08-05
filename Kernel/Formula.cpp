@@ -196,7 +196,10 @@ std::string Formula::toString () const
             res += ",";
           }
           res += Term::variableToString(var);
-          if (sort != AtomicSort::defaultSort() || env.getMainProblem()->hasNonDefaultSorts()) {
+          // a variable of a sort other than $i must always be annotated: the
+          // problem's own hasNonDefaultSorts() is recomputed from the current
+          // unit list and forgets sorts that preprocessing removed
+          if (sort != AtomicSort::defaultSort() || env.initiallyHasNonDefaultSorts()) {
             res += " : " + sort.toString();
           }
           first = false;

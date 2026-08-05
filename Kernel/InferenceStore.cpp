@@ -118,10 +118,11 @@ std::string getQuantifiedStr(const VarContainer& vars, std::string inner, DHMap<
     TermList t;
 
     if(t_map.find(var,t) &&
-       (t != AtomicSort::defaultSort() || env.getMainProblem()->hasNonDefaultSorts())){
-      //a variable of a sort other than $i must always be annotated: relying on
-      //hasNonDefaultSorts alone loses the annotation when preprocessing removes
-      //the last unit mentioning that sort. Same predicate as Formula::toString.
+       (t != AtomicSort::defaultSort() || env.initiallyHasNonDefaultSorts())){
+      //a variable of a sort other than $i must always be annotated: the
+      //problem's own hasNonDefaultSorts() loses the annotation when
+      //preprocessing removes the last unit mentioning that sort.
+      //Same predicate as Formula::toString.
       ty=" : " + t.toString();
     }
     if(ty == " : $tType"){
@@ -520,10 +521,14 @@ protected:
 
   std::string getFofString(std::string id, std::string formula, std::string inference, InferenceRule rule, UnitInputType origin=UnitInputType::AXIOM)
   {
-    // always TFF: it subsumes FOF, and choosing between them from
-    // hasNonDefaultSorts() is wrong, because that property is recomputed from
-    // the current unit list and so forgets sorts that preprocessing removed.
-    std::string kind = env.getMainProblem()->isHigherOrder() ? "thf" : "tff";
+    // use the fragment of the unpreprocessed input: the problem's own
+    // hasNonDefaultSorts() and isHigherOrder() are recomputed from the current
+    // unit list, so they forget sorts that preprocessing removed, and TPTP
+    // conventions allow a proof in a weaker fragment than the input but not in
+    // a stronger one
+    std::string kind = "fof";
+    if(env.initiallyHasNonDefaultSorts()){ kind="tff"; }
+    if(env.initiallyHigherOrder()){ kind="thf"; }
 
     return kind+"("+id+","+getRole(rule,origin)+",("+"\n"
 	+"  "+formula+"),\n"
@@ -849,8 +854,10 @@ protected:
     //UIHelper::outputSortDeclarations(out);
     UIHelper::outputSymbolDeclarations(out);
 
-    // always TFF, see the comment in getFofString
-    std::string kind = env.getMainProblem()->isHigherOrder() ? "thf" : "tff";
+    // fragment of the unpreprocessed input, see the comment in getFofString
+    std::string kind = "fof";
+    if(env.initiallyHasNonDefaultSorts()){ kind="tff"; }
+    if(env.initiallyHigherOrder()){ kind="thf"; }
 
     out << kind
         << "(r"<< cs->number()

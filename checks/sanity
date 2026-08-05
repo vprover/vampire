@@ -75,6 +75,26 @@ check_no_fof() {
 	fi
 }
 
+# check the proof of an untyped problem stays in fof: TPTP allows a proof in a
+# weaker fragment than the input, not in a stronger one
+check_fof_only() {
+	run_vampire $@
+	typed=`grep -E '^(tff|thf)\(' checks/vampire-stdout`
+	if test -n "$typed"
+	then
+		echo "proof output should be fof only: offending lines follow"
+		echo "$typed"
+		exit 1
+	fi
+	fof=`grep -E '^fof\(' checks/vampire-stdout`
+	if test -z "$fof"
+	then
+		echo "expected fof formulas in the proof output"
+		cat checks/vampire-stdout checks/vampire-stderr
+		exit 1
+	fi
+}
+
 # Some simple problems: fail early!
 check_szs_status Theorem Problems/PUZ/PUZ001+1.p
 
@@ -182,10 +202,10 @@ check_szs_status Unsatisfiable -qa synthesis synthesis/ex2-inverse_of_ixopiy.smt
 check_szs_status Theorem hol/hol1.p
 
 # Proof output language: the arithmetic goes away during preprocessing, so a
-# problem-level "does this need tff?" test gets this wrong
+# test on the current units gets this wrong
 check_no_fof -p tptp Problems/ARI/ARI496_1.p
 check_no_fof -p proofcheck Problems/ARI/ARI496_1.p
 # a tff type declaration used to be followed by fof formulas in one proof
 check_no_fof -p tptp proof/mixed-language.p
-# untyped problems are output as tff too
-check_no_fof -p tptp Problems/PUZ/PUZ001+1.p
+# untyped problems keep fof
+check_fof_only -p tptp Problems/PUZ/PUZ001+1.p
