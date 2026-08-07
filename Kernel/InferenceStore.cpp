@@ -13,8 +13,6 @@
  */
 
 #include "Debug/Assertion.hpp"
-#include "Kernel/Theory.hpp"
-#include "Kernel/Unit.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
@@ -33,17 +31,20 @@
 
 #include "Saturation/Splitter.hpp"
 
-#include "Signature.hpp"
+#include "HOL/HOL.hpp"
 #include "Clause.hpp"
 #include "Formula.hpp"
 #include "FormulaUnit.hpp"
 #include "FormulaVarIterator.hpp"
 #include "Inference.hpp"
-#include "Term.hpp"
-#include "TermIterators.hpp"
+#include "Signature.hpp"
 #include "SortHelper.hpp"
 
 #include "InferenceStore.hpp"
+#include "Term.hpp"
+#include "TermIterators.hpp"
+#include "Theory.hpp"
+#include "Unit.hpp"
 
 #include <set>
 #include<string>
@@ -79,19 +80,24 @@ void InferenceStore::recordSplittingNameLiteral(Unit* us, Literal* lit)
 /**
  * Record the introduction of a new symbol
  */
-void InferenceStore::recordIntroducedSymbol(Unit* u, SymbolType st, unsigned number)
+void InferenceStore::recordIntroducedSymbol(Unit* u, Signature::Symbol* sym)
 {
+  ASS_REP(sym->introduced(), sym->name());
+
   SymbolStack* pStack;
   _introducedSymbols.getValuePtr(u->number(),pStack);
-  pStack->push(SymbolId(st,number));
+  pStack->push(sym);
 }
 
-void InferenceStore::recordIntroducedSkolemSymbol(Unit* u, SymbolType st, unsigned replacedVar, Term* symTerm){
+void InferenceStore::recordIntroducedSkolemSymbol(Unit* u, Signature::Symbol* sym, unsigned replacedVar, Term* symTerm)
+{
+  ASS_REP(sym->introduced(), sym->name());
+
   SymbolStack* pStack;
   _introducedSymbols.getValuePtr(u->number(),pStack);
-  _introducedSymbolReplacedVars.insert(std::make_pair(st,symTerm->functor()), replacedVar);
-  _introducedSkolemSymTerms.insert(std::make_pair(st,symTerm->functor()), symTerm);
-  pStack->push(SymbolId(st,symTerm->functor()));
+  _introducedSymbolReplacedVars.insert(sym, replacedVar);
+  _introducedSkolemSymTerms.insert(sym, symTerm);
+  pStack->emplace(sym);
 }
 
 /**
@@ -165,7 +171,7 @@ std::string getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
   Set<unsigned> vars;
   std::string res;
   DHMap<unsigned,TermList> t_map;
-  SortHelper::collectVariableSorts(u,t_map);
+  SortHelper::collectVariableSorts(u,t_map, /*ignoreBound=*/true);
   if (u->isClause()) {
     Clause* cl=static_cast<Clause*>(u);
     unsigned clen=cl->length();
@@ -450,6 +456,9 @@ protected:
 
   std::string getRole(InferenceRule rule, UnitInputType origin)
   {
+    if (isTheoryAxiomRule(rule)) {
+      return "definition";
+    }
     switch(rule) {
     case InferenceRule::INPUT:
       if (origin==UnitInputType::CONJECTURE) {
@@ -471,6 +480,7 @@ protected:
     case InferenceRule::GENERAL_SPLITTING_COMPONENT:
     case InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION:
     case InferenceRule::EQUALITY_PROXY_DEFINITION:
+    case InferenceRule::THEORY_TAUTOLOGY_SAT_CONFLICT:
       return "definition";
     default:
       return "plain";
@@ -556,23 +566,13 @@ protected:
     return "new_symbols(" + origin + ",[" +symStr + "])";
   }
 
-  std::string getSymbolName(SymbolId sym) {
-    if (sym.first == SymbolType::FUNC ) {
-      return env.signature->functionName(sym.second);
-    } else if (sym.first == SymbolType::PRED){
-      return env.signature->predicateName(sym.second);
-    } else {
-      return env.signature->typeConName(sym.second);
-    }
-  }
-
   /** It is an iterator over SymbolId */
   template<class It>
   std::string getNewSymbols(std::string origin, It symIt) {
     std::ostringstream symsStr;
     while(symIt.hasNext()) {
-      SymbolId sym = symIt.next();
-      symsStr << getSymbolName(sym);
+      auto sym = symIt.next();
+      symsStr << sym->name();
       if (symIt.hasNext()) {
         symsStr << ',';
       }
@@ -602,12 +602,40 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
   bool hasNext = symIt.hasNext();
   while (hasNext) {
     symsStr << "skolemize(";
-    SymbolId symbol = symIt.next();
+    auto symbol = symIt.next();
     auto skolemTerm = _is->_introducedSkolemSymTerms.find(symbol);
     NEVER(skolemTerm.isNone());
     auto skolemizedVariable = _is->_introducedSymbolReplacedVars.find(symbol);
     NEVER(skolemizedVariable.isNone());
-    symsStr << "X" << *skolemizedVariable << "," << (*skolemTerm)->toString() << ")";
+
+    // for now we have to output standard prolog, i.e. f(X1,...,Xn) even in THF
+    // TODO: change this once GDV is updated
+    std::string skolemStr;
+    if (env.higherOrder()) {
+      // we require non-lambda terms
+      ASS(!TermList(*skolemTerm).isLambdaTerm());
+      auto [head, args] = HOL::getHeadAndArgs(TermList(*skolemTerm));
+
+      ASS(!head.isLambdaTerm());
+      skolemStr += head.toString();
+
+      if (args.size()) {
+        skolemStr += "(";
+        for (unsigned i = 0; i < args.size(); i++) {
+          ASS(args[i].isVar());
+          skolemStr += args[i].toString();
+          if (i + 1 < args.size()) {
+            skolemStr += ",";
+          }
+        }
+        skolemStr += ")";
+      }
+
+    } else {
+      skolemStr = (*skolemTerm)->toString();
+    }
+
+    symsStr << "X" << *skolemizedVariable << "," << skolemStr << ")";
     hasNext = symIt.hasNext();
     if(hasNext) {
       symsStr << ",";
@@ -657,8 +685,11 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
       std::string newSymbolInfo;
       if (hasNewSymbols(us)) {
         newSymbolInfo = getNewSymbols("definition",us);
+        inferenceStr="introduced(definition,["+newSymbolInfo+"],["+tptpRuleName(rule)+"])";
+      } else {
+        // without introduced symbols we have to claim that the axiom comes from a theory
+        inferenceStr="introduced(theory,["+tptpRuleName(rule)+"])";
       }
-      inferenceStr="introduced(definition,["+newSymbolInfo+"],["+tptpRuleName(rule)+"])";
     }
     else {
       ASS(parents.hasNext());
@@ -820,7 +851,7 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
     defStr=getQuantifiedStr(nameVars, defStr);
     List<unsigned>::destroy(nameVars);
 
-    SymbolId nameSymbol = SymbolId(SymbolType::PRED,nameLit->functor());
+    auto nameSymbol = env.signature->getPredicate(nameLit->functor());
     std::ostringstream originStm;
     originStm << "introduced(definition,["
 	      << getNewSymbols("definition",getSingletonIterator(nameSymbol))

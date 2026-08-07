@@ -28,6 +28,7 @@
 #include "Lib/ScopedLet.hpp"
 #include "Lib/Timer.hpp"
 
+#include "Kernel/Clause.hpp"
 #include "Kernel/InferenceStore.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/FormulaUnit.hpp"
@@ -601,7 +602,7 @@ void UIHelper::outputSatisfiableResult(std::ostream& out)
  */
 void UIHelper::outputSymbolDeclarations(std::ostream& out)
 {
-  Signature& sig = *env.signature;
+  const Signature& sig = *env.signature;
 
   unsigned typeCons = sig.typeCons();
   for (unsigned i=0; i<typeCons; ++i) {

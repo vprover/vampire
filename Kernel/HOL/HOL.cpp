@@ -23,10 +23,7 @@ using Kernel::Term;
 static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& st);
 
 static std::string termToStr(TermList t, bool topLevel, IndexVarStack& st){
-  if (t.isVar())
-    return Term::variableToString(t);
-
-  return toStringAux(*t.term(), topLevel, st);
+  return t.isVar() ? Term::variableToString(t) : toStringAux(*t.term(), topLevel, st);
 }
 
 static bool findVar(unsigned index, const IndexVarStack & st, unsigned& var) {
@@ -78,7 +75,7 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
     const auto sd = term.getSpecialData();
 
     if (term.isFormula())
-      return sd->getFormula()->toString();
+      return sd->getFormula()->toString(topLevel);
     if (term.isLambda())
       return lambdaToString(sd, pretty);
 
@@ -105,9 +102,12 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
       return "ι";
 
     // any non-arrow sort
-    res = sort->typeConName();
+    if (!pretty && term.arity()) {
+      res += "(";
+    }
+    res += sort->typeConName();
     if (pretty && term.arity())
-      res += "⟨";
+      res += "(";
     for (unsigned i = 0; i < term.arity(); i++) {
       if (pretty && i != 0)
         res += ", ";
@@ -118,13 +118,13 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
       res += termToStr(*term.nthArgument(i), pretty, st);
     }
 
-    if (pretty && term.arity() > 0)
-      res += "⟩";
+    if (term.arity())
+      res += ")";
     return res;
   }
 
   if (term.isPlaceholder()) {
-    return term.functionName() + "⟨" + term.nthArgument(0)->toString(true) + "⟩";
+    return term.functionName() + "(" + term.nthArgument(0)->toString(true) + ")";
   }
 
   if (term.isLambdaTerm()) {
@@ -146,8 +146,7 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
     std::string lbrac = pretty ? "" : "(";
     std::string rbrac = pretty ? "" : ")";
 
-    res = "(" + lambda + bvar + sep +  lbrac + termToStr(*term.nthArgument(2), !pretty, newSt) + rbrac + ")";
-    return res;
+    return "(" + lambda + bvar + sep +  lbrac + termToStr(*term.nthArgument(2), !pretty, newSt) + rbrac + ")";
   }
 
   auto dbOption = term.deBruijnIndex();
@@ -209,13 +208,13 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
       !head.isLambdaTerm() && head.term()->arity() > 0) {
     auto t = head.term();
     if (pretty)
-      headStr += "⟨";
+      headStr += "(";
     for (unsigned i = 0; i < t->arity(); ++i) {
       headStr += pretty && i != 0 ? ", " : "";
       headStr += !pretty ? " @ " : "";
       headStr += termToStr(*t->nthArgument(i),pretty,st);
     }
-    if (pretty) headStr += "⟩";
+    if (pretty) headStr += ")";
   }
 
   if (!topLevel && hasArgs)
