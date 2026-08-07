@@ -28,6 +28,7 @@
 #include "Lib/ScopedLet.hpp"
 #include "Lib/Timer.hpp"
 
+#include "Kernel/Clause.hpp"
 #include "Kernel/InferenceStore.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/FormulaUnit.hpp"

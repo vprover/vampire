@@ -99,21 +99,12 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
 
   ASS(_introducedSkolemSyms.isNonEmpty());
   while(_introducedSkolemSyms.isNonEmpty()) {
-    auto symPair = _introducedSkolemSyms.pop();
-    auto symTerm = symPair.second;
-    
-    if(symTerm->kind()==TermKind::SORT){
-      InferenceStore::instance()->recordIntroducedSkolemSymbol(res, SymbolType::TYPE_CON, symPair.first, symPair.second); 
-    } else {
-      InferenceStore::instance()->recordIntroducedSkolemSymbol(res, Kernel::SymbolType::FUNC, symPair.first, symPair.second);
-    }
+    auto [v, t, fn] = _introducedSkolemSyms.pop();
+    auto sym = t->kind() == TermKind::SORT ? env.signature->getTypeCon(fn) : env.signature->getFunction(fn);
 
-    if(unit->derivedFromGoal()){
-      if(symTerm->kind()==TermKind::SORT){
-        env.signature->getTypeCon(symPair.second->functor())->markInGoal();
-      } else {
-        env.signature->getFunction(symPair.second->functor())->markInGoal();
-      }
+    InferenceStore::instance()->recordIntroducedSkolemSymbol(res, sym, v, t);
+    if (unit->derivedFromGoal()) {
+      sym->markInGoal();
     }
   }
 
@@ -466,7 +457,7 @@ Formula* Skolem::skolemise (Formula* f)
           TermList head = TermList(Term::create(sym, typeVars.size(), typeVars.begin()));
           skolemTerm = HOL::create::app(head, termVars).term();
         }
-        _introducedSkolemSyms.push(std::make_pair(v, skolemTerm));
+        _introducedSkolemSyms.emplace(v, skolemTerm, sym);
 
         env.statistics->skolemFunctions++;
 

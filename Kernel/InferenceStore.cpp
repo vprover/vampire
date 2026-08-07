@@ -80,28 +80,24 @@ void InferenceStore::recordSplittingNameLiteral(Unit* us, Literal* lit)
 /**
  * Record the introduction of a new symbol
  */
-void InferenceStore::recordIntroducedSymbol(Unit* u, SymbolType st, unsigned number)
+void InferenceStore::recordIntroducedSymbol(Unit* u, Signature::Symbol* sym)
 {
+  ASS_REP(sym->introduced(), sym->name());
+
   SymbolStack* pStack;
   _introducedSymbols.getValuePtr(u->number(),pStack);
-  pStack->push(SymbolId(st,number));
+  pStack->push(sym);
 }
 
-void InferenceStore::recordIntroducedSkolemSymbol(Unit* u, SymbolType st, unsigned replacedVar, Term* symTerm){
-  SymbolStack* pStack;
-  TermList t(symTerm);
-  if (env.higherOrder()) {
-    while (t.isApplication()) {
-      t = t.lhs();
-    }
-    ASS(t.isTerm() && !t.isLambdaTerm());
-  }
-  auto sym = t.term()->functor();
+void InferenceStore::recordIntroducedSkolemSymbol(Unit* u, Signature::Symbol* sym, unsigned replacedVar, Term* symTerm)
+{
+  ASS_REP(sym->introduced(), sym->name());
 
+  SymbolStack* pStack;
   _introducedSymbols.getValuePtr(u->number(),pStack);
-  _introducedSymbolReplacedVars.insert({ st, sym }, replacedVar);
-  _introducedSkolemSymTerms.insert({ st, sym }, symTerm);
-  pStack->emplace(st,sym);
+  _introducedSymbolReplacedVars.insert(sym, replacedVar);
+  _introducedSkolemSymTerms.insert(sym, symTerm);
+  pStack->emplace(sym);
 }
 
 /**
@@ -570,23 +566,13 @@ protected:
     return "new_symbols(" + origin + ",[" +symStr + "])";
   }
 
-  std::string getSymbolName(SymbolId sym) {
-    if (sym.first == SymbolType::FUNC ) {
-      return env.signature->functionName(sym.second);
-    } else if (sym.first == SymbolType::PRED){
-      return env.signature->predicateName(sym.second);
-    } else {
-      return env.signature->typeConName(sym.second);
-    }
-  }
-
   /** It is an iterator over SymbolId */
   template<class It>
   std::string getNewSymbols(std::string origin, It symIt) {
     std::ostringstream symsStr;
     while(symIt.hasNext()) {
-      SymbolId sym = symIt.next();
-      symsStr << getSymbolName(sym);
+      auto sym = symIt.next();
+      symsStr << sym->name();
       if (symIt.hasNext()) {
         symsStr << ',';
       }
@@ -616,7 +602,7 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
   bool hasNext = symIt.hasNext();
   while (hasNext) {
     symsStr << "skolemize(";
-    SymbolId symbol = symIt.next();
+    auto symbol = symIt.next();
     auto skolemTerm = _is->_introducedSkolemSymTerms.find(symbol);
     NEVER(skolemTerm.isNone());
     auto skolemizedVariable = _is->_introducedSymbolReplacedVars.find(symbol);
@@ -865,7 +851,7 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
     defStr=getQuantifiedStr(nameVars, defStr);
     List<unsigned>::destroy(nameVars);
 
-    SymbolId nameSymbol = SymbolId(SymbolType::PRED,nameLit->functor());
+    auto nameSymbol = env.signature->getPredicate(nameLit->functor());
     std::ostringstream originStm;
     originStm << "introduced(definition,["
 	      << getNewSymbols("definition",getSingletonIterator(nameSymbol))
