@@ -42,7 +42,7 @@ using namespace Kernel;
  * respectively, negatively) by all the pairwise resolvents on P. In the presence
  * of equality (or theories), the resolvents need to be computed via (virtual) flattening
  * of the P-literals, i.e. C \/ P(ts) and D \/ ~P(ss) yield C \/ D' \/ t1 != s1' \/ ... \/ tn != sn'
- * (with D renamed apart), simplified by the equality substitution rule
+ * (with D \/ ~P(ss) renamed apart), simplified by the equality substitution rule
  * (x != t \/ C ==> C[t/x], when x not in t). Without equality/theories it is
  * sound (and avoids introducing equality) to use an mgu instead and drop
  * the non-unifiable pairs.
@@ -77,12 +77,12 @@ private:
   };
 
   // options
-  bool _forceEquationally;
-  float _totalLimit;
-  bool _useSubsumption;
+  const bool _forceEquationally;
+  const float _totalLimit;
+  const bool _useSubsumption;
 
   // clause set state
-  Lib::Stack<Clause *> _all;     // all clauses ever seen, in insertion order
+  ClauseStack _all;     // all clauses ever seen, in insertion order
   Lib::DHSet<Clause *> _deleted; // those of _all that have been eliminated
   Lib::DArray<PredInfo> _preds;
   size_t _curTotal = 0;
@@ -110,7 +110,7 @@ private:
   Clause *assembleClause(Lib::Stack<Literal *> &lits, Clause *c, Clause *d);
 
   // model reconstruction
-  void recordElimination(Problem &prb, unsigned pred, Lib::Stack<Clause *> const &posCls, Lib::Stack<Clause *> const &negCls);
+  void recordElimination(Problem &prb, unsigned pred, ClauseStack const &posCls, ClauseStack const &negCls);
 
   // forward subsumption (and subsumption resolution) machinery, only used with _useSubsumption;
   // the backward direction (new clauses simplifying older ones) is left as future work

@@ -52,7 +52,7 @@ using namespace Indexing;
  */
 struct VarShiftApplicator {
   unsigned off;
-  TermList apply(unsigned var) const { return TermList(var + off, false); }
+  TermList apply(unsigned var) const { return TermList::var(var + off); }
 };
 
 /**
@@ -61,7 +61,7 @@ struct VarShiftApplicator {
 struct SingleVarApplicator {
   unsigned var;
   TermList term;
-  TermList apply(unsigned v) const { return v == var ? term : TermList(v, false); }
+  TermList apply(unsigned v) const { return v == var ? term : TermList::var(v); }
 };
 
 void PredicateElimination::apply(Problem &prb)
@@ -88,7 +88,7 @@ void PredicateElimination::apply(Problem &prb)
   // (which in saturation is maintained by running this very simplification on every new clause)
   Inferences::DuplicateLiteralRemovalISE duplicateLiteralRemoval;
 
-  Stack<Clause *> input;
+  ClauseStack input;
   UnitList::Iterator uit(prb.units());
   while (uit.hasNext()) {
     Unit *u = uit.next();
@@ -138,7 +138,7 @@ void PredicateElimination::apply(Problem &prb)
 
   if (_modified) {
     UnitList *res = 0;
-    Stack<Clause *>::Iterator it(_all);
+    ClauseStack::Iterator it(_all);
     while (it.hasNext()) {
       Clause *cl = it.next();
       if (!_deleted.contains(cl)) {
@@ -293,8 +293,8 @@ void PredicateElimination::eliminate(Problem &prb, unsigned pred)
 {
   ASS(eligible(pred));
 
-  Stack<Clause *> posCls;
-  Stack<Clause *> negCls;
+  ClauseStack posCls;
+  ClauseStack negCls;
   {
     DHSet<Clause *>::Iterator pit(_preds[pred].pos);
     while (pit.hasNext()) {
@@ -314,7 +314,7 @@ void PredicateElimination::eliminate(Problem &prb, unsigned pred)
   // record the model-repairing definition while S_P is still at hand
   recordElimination(prb, pred, posCls, negCls);
 
-  Stack<Clause *> resolvents;
+  ClauseStack resolvents;
   for (Clause *c : posCls) {
     Literal *plitC = findPredLiteral(c, pred, true);
     for (Clause *d : negCls) {
@@ -512,7 +512,7 @@ Clause *PredicateElimination::assembleClause(Stack<Literal *> &lits, Clause *c, 
 }
 
 void PredicateElimination::recordElimination(Problem &prb, unsigned pred,
-                                             Stack<Clause *> const &posCls, Stack<Clause *> const &negCls)
+                                             ClauseStack const &posCls, ClauseStack const &negCls)
 {
   if (posCls.isEmpty()) { // P occurs only negatively; setting it to false satisfies all its clauses
     prb.addTrivialPredicate(pred, false);
@@ -538,7 +538,7 @@ void PredicateElimination::recordElimination(Problem &prb, unsigned pred,
   VarShiftApplicator shift{ar}; // clause variables become >= ar, i.e. disjoint from the head's
 
   FormulaList *disjuncts = FormulaList::empty();
-  Stack<Clause *>::ConstIterator cit(posCls);
+  ClauseStack::ConstIterator cit(posCls);
   while (cit.hasNext()) {
     Clause *c = cit.next();
     Literal *plit = findPredLiteral(c, pred, true);
