@@ -31,7 +31,7 @@ const unsigned Signature::STRING_DISTINCT_GROUP = 0;
  * Standard constructor.
  * @author Andrei Voronkov
  */
-Signature::Symbol::Symbol(const std::string& nm, unsigned arity, bool interpreted, bool preventQuoting, bool super)
+Signature::Symbol::Symbol(const std::string& nm, unsigned arity, bool interpreted, bool preventQuoting)
   : _name(nm),
     _arity(arity),
     _typeArgsArity(0),
@@ -215,8 +215,7 @@ Signature::RealSymbol::RealSymbol(const RealConstantType& val)
                                                                        : Output::toString(val),
         /*             arity */ 0,
         /*       interpreted */ true,
-        /*    preventQuoting */ false,
-        /*             super */ false),
+        /*    preventQuoting */ false),
        _realValue(std::move(val))
 {
   setType(OperatorType::getConstantsType(AtomicSort::realSort()));
@@ -503,8 +502,7 @@ unsigned Signature::addFunction (const std::string& name,
   bool super = (name == "$tType");
   _funs.push(new Symbol(name, arity, 
         /*       interpreted */ false, 
-        /*    preventQuoting */ super, 
-                                super));
+        /*    preventQuoting */ super));
   _funNames.insert(symbolKey, result);
   added = true;
   return result;
@@ -530,8 +528,7 @@ unsigned Signature::addStringConstant(const std::string& name)
   Symbol* sym = new Symbol(quotedName,
         /*             arity */ 0, 
         /*       interpreted */ false, 
-        /*    preventQuoting */ true, 
-        /*             super */ false);
+        /*    preventQuoting */ true);
   sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result);
   _funs.push(sym);
   _funNames.insert(symbolKey,result);
@@ -725,7 +722,7 @@ unsigned Signature::addTypeCon (const std::string& name,
   //TODO no arity check. Is this safe?
 
   result = _typeCons.length();
-  auto symbol = new Symbol(name,arity, /* interpreted */ false, /* preventQuoting */ false, /* super */ false);
+  auto symbol = new Symbol(name,arity, /* interpreted */ false, /* preventQuoting */ false);
   _typeCons.push(symbol);
   symbol->setType(OperatorType::getTypeConType(arity));
   _typeConNames.insert(symbolKey,result);
@@ -773,8 +770,7 @@ unsigned Signature::addPredicate (const std::string& name,
   result = _preds.length();
   _preds.push(new Symbol(name, arity, 
         /*       interpreted */ false, 
-        /*    preventQuoting */ false, 
-        /*             super */ false));
+        /*    preventQuoting */ false));
   _predNames.insert(symbolKey,result);
   added = true;
   return result;

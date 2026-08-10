@@ -141,7 +141,7 @@ class Signature
 
   public:
     /** standard constructor */
-    Symbol(const std::string& name, unsigned arity, bool interpreted, bool preventQuoting, bool super);
+    Symbol(const std::string& name, unsigned arity, bool interpreted, bool preventQuoting);
     void destroyFnSymbol();
     void destroyPredSymbol();
     void destroyTypeConSymbol();
@@ -341,8 +341,7 @@ class Signature
     : Symbol(name, 
         /* arity */ Theory::getArity(interp), 
         /*       interpreted */ true, 
-        /*    preventQuoting */ false, 
-        /*             super */ false),
+        /*    preventQuoting */ false),
       _interp(interp)
     {
     }
@@ -394,8 +393,7 @@ class Signature
         name(val),
         /*             arity */ 1, 
         /*       interpreted */ false, 
-        /*    preventQuoting */ true, 
-        /*             super */ false),
+        /*    preventQuoting */ true),
       _value(std::move(val))
     {
       setType(OperatorType::getFunctionType({ AnyLinMulSym::sortOf<Numeral>() } , AnyLinMulSym::sortOf<Numeral>()));
@@ -416,8 +414,7 @@ class Signature
     : Symbol(Output::toString(val),
         /*             arity */ 0, 
         /*       interpreted */ true, 
-        /*    preventQuoting */ false, 
-        /*             super */ false),
+        /*    preventQuoting */ false),
       _intValue(std::move(val))
     {
       setType(OperatorType::getConstantsType(AtomicSort::intSort()));
@@ -437,8 +434,7 @@ class Signature
     : Symbol(Output::toString(val),
         /*             arity */ 0, 
         /*       interpreted */ true, 
-        /*    preventQuoting */ false, 
-        /*             super */ false),
+        /*    preventQuoting */ false),
        _ratValue(std::move(val))
     {
       setType(OperatorType::getConstantsType(AtomicSort::rationalSort()));
