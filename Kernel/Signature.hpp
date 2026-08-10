@@ -141,7 +141,7 @@ class Signature
 
   public:
     /** standard constructor */
-    Symbol(const std::string& name, unsigned arity, bool interpreted, bool preventQuoting);
+    Symbol(const std::string& name, unsigned arity, OperatorType* type, bool interpreted, bool preventQuoting);
     void destroyFnSymbol();
     void destroyPredSymbol();
     void destroyTypeConSymbol();
@@ -339,7 +339,7 @@ class Signature
 
     InterpretedSymbol(const std::string& name, Interpretation interp)
     : Symbol(name, 
-        /* arity */ Theory::getArity(interp), 
+        /* arity */ Theory::getArity(interp), nullptr,
         /*       interpreted */ true, 
         /*    preventQuoting */ false),
       _interp(interp)
@@ -391,12 +391,12 @@ class Signature
     : AnyLinMulSym(
         AnyLinMulSym::typeOf<Numeral>(),
         name(val),
-        /*             arity */ 1, 
+        /*             arity */ 1,
+        /*              type */ OperatorType::getFunctionType({ AnyLinMulSym::sortOf<Numeral>() } , AnyLinMulSym::sortOf<Numeral>()),
         /*       interpreted */ false, 
         /*    preventQuoting */ true),
       _value(std::move(val))
     {
-      setType(OperatorType::getFunctionType({ AnyLinMulSym::sortOf<Numeral>() } , AnyLinMulSym::sortOf<Numeral>()));
     }
   };
 
@@ -412,12 +412,12 @@ class Signature
   public:
     IntegerSymbol(IntegerConstantType val)
     : Symbol(Output::toString(val),
-        /*             arity */ 0, 
+        /*             arity */ 0,
+        /*              type */ OperatorType::getConstantsType(AtomicSort::intSort()),
         /*       interpreted */ true, 
         /*    preventQuoting */ false),
       _intValue(std::move(val))
     {
-      setType(OperatorType::getConstantsType(AtomicSort::intSort()));
     }
   };
 
@@ -432,12 +432,12 @@ class Signature
   public:
     RationalSymbol(RationalConstantType val)
     : Symbol(Output::toString(val),
-        /*             arity */ 0, 
+        /*             arity */ 0,
+        /*              type */ OperatorType::getConstantsType(AtomicSort::rationalSort()),
         /*       interpreted */ true, 
         /*    preventQuoting */ false),
        _ratValue(std::move(val))
     {
-      setType(OperatorType::getConstantsType(AtomicSort::rationalSort()));
     }
   };
 

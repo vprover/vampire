@@ -1068,7 +1068,6 @@ public:
 private:
 
   static AtomicSort* createNonShared(unsigned typeCon, unsigned arity, TermList* arg);
-  static AtomicSort* createNonSharedConstant(unsigned typeCon) { return createNonShared(typeCon,0,0); }
 };
 
 /**
