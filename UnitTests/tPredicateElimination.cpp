@@ -342,9 +342,9 @@ TEST_FUN(duplicate_literals_in_input)
 
   // clauses can still carry duplicate literals when they reach predicate elimination
   // (e.g. created by EqResWithDeletion from p(X) \/ p(a) \/ X != a);
-  // they must be removed on input, since SATSubsumptionAndResolution relies on
-  // premises being duplicate-free -- feeding it {p(a) \/ p(a)} as the main premise
-  // against the side premise {p(x) \/ ~p(y)} used to "conclude" the empty clause!
+  // they must be removed on input, since the multi-literal matching behind our
+  // subsumption relies on clauses being duplicate-free -- feeding {p(a) \/ p(a)}
+  // as the query against the indexed {p(x) \/ ~p(y)} used to "conclude" the empty clause!
   auto res = runPE({clause({p(a), p(a)}), clause({p(x), ~p(y)})},
                    false, 2.0, /*useSubsumption=*/true);
 
@@ -361,7 +361,7 @@ TEST_FUN(sr_multiliteral)
   MY_SYNTAX_SUGAR
 
   // a multi-literal side premise {q(x) \/ ~r(x)} resolves {q(a) \/ r(a) \/ w(a)}
-  // down to {q(a) \/ w(a)} (exercising the SAT-based path, not just the unit shortcut)
+  // down to {q(a) \/ w(a)} (exercising the full multi-literal matching, not just the unit shortcut)
   DECL_PRED(w, {s})
   auto res = runPE({clause({q(x), ~r(x)}), clause({q(y), ~q(f(y))}), clause({w(y), ~w(f(y))}),
                     clause({q(a), r(a), w(a)})},
@@ -371,4 +371,34 @@ TEST_FUN(sr_multiliteral)
   ASS(!containsPredicate(res, r.functor()));
   Clause *conclusion = theSRConclusion(res);
   ASS_EQ(conclusion->length(), 2);
+}
+
+TEST_FUN(empty_resolvent_against_nonempty_index)
+{
+  MY_SYNTAX_SUGAR
+
+  // eliminating p produces the empty clause, which is then handed to forwardSimplify
+  // while the index already holds the q-anchor; the empty clause has nothing to match on,
+  // so it must be passed through rather than fed to the multi-literal matcher
+  auto res = runPE({clause({p(a)}), clause({~p(a)}),
+                    clause({q(y), ~q(f(y))})},
+                   false, 2.0, /*useSubsumption=*/true);
+
+  ASS_EQ(res.size(), 2);
+  ASS(!containsPredicate(res, p.functor()));
+  ASS_EQ(theClauseOfLength(res, 0)->length(), 0);
+}
+
+TEST_FUN(input_tautologies_dropped)
+{
+  MY_SYNTAX_SUGAR
+
+  // tautologies can still reach predicate elimination; they are dropped on input,
+  // both because they are useless and because the multi-literal matching assumes
+  // no clause contains two complementary literals
+  auto res = runPE({clause({p(a), ~p(a)}), clause({q(y), ~q(f(y))})},
+                   false, 2.0, /*useSubsumption=*/true);
+
+  ASS_EQ(res.size(), 1);
+  ASS(!containsPredicate(res, p.functor()));
 }

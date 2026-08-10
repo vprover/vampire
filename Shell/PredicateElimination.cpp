@@ -19,7 +19,6 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
-#include "Kernel/LiteralByMatchability.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/Signature.hpp"
@@ -29,6 +28,7 @@
 #include "Kernel/Unit.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
+#include "Inferences/TautologyDeletionISE.hpp"
 
 #include "Lib/Environment.hpp"
 
@@ -76,17 +76,14 @@ void PredicateElimination::apply(Problem &prb)
   // dropping non-unifiable pairs is only sound if equality and theories don't interfere
   _equational = _forceEquationally || prb.hasEquality() || prb.hasInterpretedOperations() || prb.hasNumerals();
 
-  if (_useSubsumption) {
-    _subsIndex = new LiteralSubstitutionTree<LiteralClause>();
-  }
-
   _preds.ensure(env.signature->predicates());
 
-  // clauses may still contain duplicate literals at this stage of preprocessing;
-  // besides making our occurrence counting needlessly conservative, they would,
-  // more importantly, violate an invariant of SATSubsumptionAndResolution
-  // (which in saturation is maintained by running this very simplification on every new clause)
+  // clauses may still contain duplicate literals (or be tautologies) at this stage of
+  // preprocessing; besides making our occurrence counting needlessly conservative, they would,
+  // more importantly, violate an invariant of the multi-literal matching in ClauseCodeTree
+  // (which in saturation is maintained by running these very simplifications on every new clause)
   Inferences::DuplicateLiteralRemovalISE duplicateLiteralRemoval;
+  Inferences::TautologyDeletionISE tautologyDeletion;
 
   ClauseStack input;
   UnitList::Iterator uit(prb.units());
@@ -94,10 +91,13 @@ void PredicateElimination::apply(Problem &prb)
     Unit *u = uit.next();
     ASS(u->isClause());
     Clause *cl = static_cast<Clause *>(u);
-    Clause *dedup = duplicateLiteralRemoval.simplify(cl);
-    if (dedup != cl) {
+    Clause *simp = tautologyDeletion.simplify(duplicateLiteralRemoval.simplify(cl));
+    if (simp != cl) {
       _modified = true;
-      cl = dedup;
+      if (!simp) {
+        continue; // a tautology, simply dropped
+      }
+      cl = simp;
     }
     input.push(cl);
   }
@@ -151,9 +151,6 @@ void PredicateElimination::apply(Problem &prb)
     }
     prb.invalidateProperty();
   }
-
-  delete _subsIndex;
-  _subsIndex = nullptr;
 }
 
 void PredicateElimination::registerClause(Clause *cl)
@@ -604,69 +601,42 @@ Clause *PredicateElimination::forwardSimplify(Clause *cl)
   }
 }
 
-// a port of ForwardSubsumptionAndResolution::perform to our single-index setting
-// (unit and multi-literal clauses share one tree, distinguished by their length)
+// a port of CodeTreeForwardSubsumptionAndResolution::perform to our preprocessing setting;
+// the code tree indexes whole clauses and performs the multi-literal matching itself
 bool PredicateElimination::forwardSubsumedOrResolved(Clause *cl, Clause *&replacement)
 {
   ASS(_useSubsumption);
   ASS(!replacement);
 
-  static DHSet<Clause *> checked; // shared by both passes below, as in FSAR
-  checked.reset();
-
-  Clause *conclusion = nullptr;
-
-  // pass 1: subsumption (and cheap subsumption resolution setup on the side)
-  for (unsigned i = 0; i < cl->length(); i++) {
-    Literal *lit = (*cl)[i];
-    auto rit = _subsIndex->getGeneralizations(lit, /*complementary=*/false, /*retrieveSubstitutions=*/false);
-    while (rit.hasNext()) {
-      Clause *mcl = rit.next().data->clause;
-      if (!checked.insert(mcl)) {
-        continue;
-      }
-      if (mcl->length() == 1) {
-        return true; // a unit generalization subsumes outright
-      }
-      bool checkS = mcl->length() <= cl->length();
-      bool checkSR = !conclusion;
-      if (checkS && _satSubs.checkSubsumption(mcl, cl, /*setSR=*/checkSR)) {
-        return true;
-      }
-      if (checkSR) {
-        // subsumption is preferred, so just remember the conclusion and keep scanning
-        conclusion = _satSubs.checkSubsumptionResolution(mcl, cl, /*forward=*/true, /*usePreviousSetUp=*/checkS);
-      }
-    }
-  }
-
-  if (conclusion) {
-    replacement = conclusion;
+  // ClauseMatcher::init asserts on both of these
+  if (_ct.isEmpty() || cl->length() == 0) {
     return false;
   }
 
-  // pass 2: subsumption resolution against complementary matches
-  for (unsigned i = 0; i < cl->length(); i++) {
-    Literal *lit = (*cl)[i];
-    auto rit = _subsIndex->getGeneralizations(lit, /*complementary=*/true, /*retrieveSubstitutions=*/false);
-    while (rit.hasNext()) {
-      Clause *mcl = rit.next().data->clause;
-      if (mcl->length() == 1) { // the resolved literal is lit itself, no need to involve the SAT solver
-        replacement = SATSubsumption::SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(cl, lit, mcl, /*forward=*/true);
-        return false;
+  static ClauseCodeTree<false>::ClauseMatcher cm;
+  cm.init(&_ct, cl, /*sres=*/true);
+
+  bool subsumed = false;
+  Clause *premise;
+  int resolvedQueryLit;
+  if ((premise = cm.next(resolvedQueryLit))) {
+    if (resolvedQueryLit == -1) {
+      subsumed = true;
+    }
+    else {
+      LiteralStack res;
+      for (unsigned i = 0; i < cl->length(); i++) {
+        if (i != (unsigned)resolvedQueryLit) {
+          res.push((*cl)[i]);
+        }
       }
-      if (!checked.insert(mcl)) {
-        continue;
-      }
-      conclusion = _satSubs.checkSubsumptionResolution(mcl, cl, /*forward=*/true, /*usePreviousSetUp=*/false);
-      if (conclusion) {
-        replacement = conclusion;
-        return false;
-      }
+      replacement = Clause::fromStack(res,
+          SimplifyingInference2(InferenceRule::FORWARD_SUBSUMPTION_RESOLUTION, cl, premise));
     }
   }
+  cm.reset();
 
-  return false;
+  return subsumed;
 }
 
 void PredicateElimination::indexInsert(Clause *cl)
@@ -676,19 +646,17 @@ void PredicateElimination::indexInsert(Clause *cl)
   if (cl->length() == 0) {
     return; // the empty clause subsumes everything, but saturation will pick it up immediately anyway
   }
-  Literal *key = (cl->length() == 1) ? (*cl)[0] : LiteralByMatchability::find_least_matchable_in(cl).lit();
-  ALWAYS(_indexedKey.insert(cl, key));
-  _subsIndex->insert(LiteralClause{key, cl});
+  _ct.insert(cl);
 }
 
 void PredicateElimination::indexRemove(Clause *cl)
 {
   ASS(_useSubsumption);
 
-  Literal *key;
-  if (_indexedKey.pop(cl, key)) {
-    _subsIndex->remove(LiteralClause{key, cl});
+  if (cl->length() == 0) { // mirrors the guard in indexInsert; the code tree would not find it
+    return;
   }
+  _ct.remove(cl);
 }
 
 } // namespace Shell

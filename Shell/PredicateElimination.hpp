@@ -24,9 +24,7 @@
 #include "Lib/DHSet.hpp"
 #include "Lib/Stack.hpp"
 
-#include "Indexing/Index.hpp"
-#include "Indexing/LiteralSubstitutionTree.hpp"
-#include "SATSubsumption/SATSubsumptionAndResolution.hpp"
+#include "Indexing/ClauseCodeTree.hpp"
 
 namespace Shell {
 
@@ -114,9 +112,8 @@ private:
 
   // forward subsumption (and subsumption resolution) machinery, only used with _useSubsumption;
   // the backward direction (new clauses simplifying older ones) is left as future work
-  Indexing::LiteralSubstitutionTree<Indexing::LiteralClause> *_subsIndex = nullptr;
-  Lib::DHMap<Clause *, Literal *> _indexedKey; // under which literal a clause got indexed
-  SATSubsumption::SATSubsumptionAndResolution _satSubs;
+  // a whole-clause index, which also performs the multi-literal matching for us
+  Indexing::ClauseCodeTree<false> _ct; // only populated when _useSubsumption
   // simplify cl against the indexed clause set (to fixpoint): returns nullptr if cl
   // is subsumed, otherwise cl itself or a subsumption-resolution descendant of it
   Clause *forwardSimplify(Clause *cl);
