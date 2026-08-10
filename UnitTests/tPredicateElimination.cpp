@@ -19,7 +19,6 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Problem.hpp"
-#include "Kernel/Unit.hpp"
 
 #include "Shell/PredicateElimination.hpp"
 
@@ -35,19 +34,16 @@ static Problem *problemFromClauses(std::initializer_list<Clause *> cls)
   return new Problem(units);
 }
 
-static Stack<Clause *> collectClauses(Problem &prb)
+static ClauseStack collectClauses(Problem &prb)
 {
-  Stack<Clause *> res;
-  UnitList::Iterator it(prb.units());
-  while (it.hasNext()) {
-    Unit *u = it.next();
-    ASS(u->isClause());
-    res.push(static_cast<Clause *>(u));
+  ClauseStack res;
+  for (const auto& u : iterTraits(UnitList::Iterator(prb.units()))) {
+    res.push(u->asClause());
   }
   return res;
 }
 
-static bool containsPredicate(const Stack<Clause *> &cls, unsigned pred)
+static bool containsPredicate(const ClauseStack &cls, unsigned pred)
 {
   for (Clause *cl : cls) {
     for (unsigned i = 0; i < cl->length(); i++) {
@@ -60,7 +56,7 @@ static bool containsPredicate(const Stack<Clause *> &cls, unsigned pred)
 }
 
 /** the clause of the given length -- expected to exist and be unique */
-static Clause *theClauseOfLength(const Stack<Clause *> &cls, unsigned len)
+static Clause *theClauseOfLength(const ClauseStack &cls, unsigned len)
 {
   Clause *found = nullptr;
   for (Clause *cl : cls) {
@@ -73,7 +69,7 @@ static Clause *theClauseOfLength(const Stack<Clause *> &cls, unsigned len)
   return found;
 }
 
-static Stack<Clause *> runPE(std::initializer_list<Clause *> cls,
+static ClauseStack runPE(std::initializer_list<Clause *> cls,
                              bool forceEquationally = false,
                              float totalLimit = 2.0,
                              bool useSubsumption = false)
@@ -264,7 +260,7 @@ TEST_FUN(subsumed_resolvents_not_added)
 }
 
 /** the clause concluded by subsumption resolution -- expected to exist and be unique */
-static Clause *theSRConclusion(const Stack<Clause *> &cls)
+static Clause *theSRConclusion(const ClauseStack &cls)
 {
   Clause *found = nullptr;
   for (Clause *cl : cls) {

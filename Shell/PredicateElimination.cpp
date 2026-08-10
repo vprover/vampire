@@ -25,7 +25,6 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/Unit.hpp"
 
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/TautologyDeletionISE.hpp"
@@ -86,11 +85,8 @@ void PredicateElimination::apply(Problem &prb)
   Inferences::TautologyDeletionISE tautologyDeletion;
 
   ClauseStack input;
-  UnitList::Iterator uit(prb.units());
-  while (uit.hasNext()) {
-    Unit *u = uit.next();
-    ASS(u->isClause());
-    Clause *cl = static_cast<Clause *>(u);
+  for (const auto& u : iterTraits(UnitList::Iterator(prb.units()))) {
+    Clause *cl = u->asClause();
     Clause *simp = tautologyDeletion.simplify(duplicateLiteralRemoval.simplify(cl));
     if (simp != cl) {
       _modified = true;
@@ -121,7 +117,7 @@ void PredicateElimination::apply(Problem &prb)
       }
     }
     _all.push(cl);
-    registerClause(cl);
+    handleClause(cl, /*add=*/true);
     if (_useSubsumption) {
       indexInsert(cl);
     }
@@ -138,9 +134,7 @@ void PredicateElimination::apply(Problem &prb)
 
   if (_modified) {
     UnitList *res = 0;
-    ClauseStack::Iterator it(_all);
-    while (it.hasNext()) {
-      Clause *cl = it.next();
+    for (const auto& cl : _all) {
       if (!_deleted.contains(cl)) {
         UnitList::push(cl, res);
       }
@@ -153,52 +147,12 @@ void PredicateElimination::apply(Problem &prb)
   }
 }
 
-void PredicateElimination::registerClause(Clause *cl)
-{
-  // for each tracked predicate of cl: +1/-1 for a single positive/negative occurrence, 2 for more than one
-  static DHMap<unsigned, int> occ;
-  occ.reset();
-
-  for (unsigned i = 0; i < cl->length(); i++) {
-    Literal *lit = (*cl)[i];
-    unsigned pred = lit->functor();
-    if (env.signature->getPredicate(pred)->protectedSymbol()) { // includes equality, interpreted and answer predicates
-      continue;
-    }
-    ASS(pred); // equality predicate is protected
-    int *val;
-    if (occ.getValuePtr(pred, val)) {
-      *val = lit->isPositive() ? 1 : -1;
-    }
-    else {
-      *val = 2;
-    }
-  }
-
-  DHMap<unsigned, int>::Iterator oit(occ);
-  while (oit.hasNext()) {
-    unsigned pred;
-    int val;
-    oit.next(pred, val);
-    if (val == 2) {
-      _preds[pred].blockers++;
-    }
-    else if (val == 1) {
-      _preds[pred].pos.insert(cl);
-    }
-    else {
-      _preds[pred].neg.insert(cl);
-    }
-  }
-}
-
-void PredicateElimination::unregisterClause(Clause *cl)
+void PredicateElimination::handleClause(Clause *cl, bool add)
 {
   static DHMap<unsigned, int> occ;
   occ.reset();
 
-  for (unsigned i = 0; i < cl->length(); i++) {
-    Literal *lit = (*cl)[i];
+  for (const auto& lit : *cl) {
     unsigned pred = lit->functor();
     if (env.signature->getPredicate(pred)->protectedSymbol()) {
       continue;
@@ -212,20 +166,28 @@ void PredicateElimination::unregisterClause(Clause *cl)
     }
   }
 
-  DHMap<unsigned, int>::Iterator oit(occ);
-  while (oit.hasNext()) {
-    unsigned pred;
-    int val;
-    oit.next(pred, val);
-    if (val == 2) {
-      ASS_G(_preds[pred].blockers, 0);
-      _preds[pred].blockers--;
-    }
-    else if (val == 1) {
-      ALWAYS(_preds[pred].pos.remove(cl));
-    }
-    else {
-      ALWAYS(_preds[pred].neg.remove(cl));
+  for (const auto& [pred, val] : iterTraits(occ.items())) {
+    if (add) {
+      if (val == 2) {
+      _preds[pred].blockers++;
+      }
+      else if (val == 1) {
+        _preds[pred].pos.insert(cl);
+      }
+      else {
+        _preds[pred].neg.insert(cl);
+      }
+    } else {
+      if (val == 2) {
+        ASS_G(_preds[pred].blockers, 0);
+        _preds[pred].blockers--;
+      }
+      else if (val == 1) {
+        ALWAYS(_preds[pred].pos.remove(cl));
+      }
+      else {
+        ALWAYS(_preds[pred].neg.remove(cl));
+      }
     }
   }
 }
@@ -276,8 +238,7 @@ int PredicateElimination::pickCandidate() const
 
 Literal *PredicateElimination::findPredLiteral(Clause *cl, unsigned pred, bool polarity) const
 {
-  for (unsigned i = 0; i < cl->length(); i++) {
-    Literal *lit = (*cl)[i];
+  for (const auto& lit : *cl) {
     if (lit->functor() == pred && lit->isPositive() == polarity) {
       return lit;
     }
@@ -293,13 +254,11 @@ void PredicateElimination::eliminate(Problem &prb, unsigned pred)
   ClauseStack posCls;
   ClauseStack negCls;
   {
-    DHSet<Clause *>::Iterator pit(_preds[pred].pos);
-    while (pit.hasNext()) {
-      posCls.push(pit.next());
+    for (const auto& cl : iterTraits(_preds[pred].pos.iter())) {
+      posCls.push(cl);
     }
-    DHSet<Clause *>::Iterator nit(_preds[pred].neg);
-    while (nit.hasNext()) {
-      negCls.push(nit.next());
+    for (const auto& cl : iterTraits(_preds[pred].neg.iter())) {
+      negCls.push(cl);
     }
   }
 
@@ -331,14 +290,14 @@ void PredicateElimination::eliminate(Problem &prb, unsigned pred)
   }
 
   for (Clause *cl : posCls) {
-    unregisterClause(cl);
+    handleClause(cl, /*add=*/false);
     if (_useSubsumption) {
       indexRemove(cl);
     }
     _deleted.insert(cl);
   }
   for (Clause *cl : negCls) {
-    unregisterClause(cl);
+    handleClause(cl, /*add=*/false);
     if (_useSubsumption) {
       indexRemove(cl);
     }
@@ -348,7 +307,7 @@ void PredicateElimination::eliminate(Problem &prb, unsigned pred)
 
   for (Clause *r : resolvents) {
     _all.push(r);
-    registerClause(r);
+    handleClause(r, /*add=*/true);
     if (_useSubsumption) {
       indexInsert(r);
     }
@@ -381,16 +340,14 @@ Clause *PredicateElimination::buildResolventMgu(Clause *c, Literal *plitC, Claus
     return nullptr; // sound to drop, since there is no equality (and no theories) around
   }
 
-  static Stack<Literal *> lits;
+  static LiteralStack lits;
   lits.reset();
-  for (unsigned i = 0; i < c->length(); i++) {
-    Literal *lit = (*c)[i];
+  for (const auto& lit : *c) {
     if (lit != plitC) {
       lits.push(subst.apply(lit, 0));
     }
   }
-  for (unsigned i = 0; i < d->length(); i++) {
-    Literal *lit = (*d)[i];
+  for (const auto& lit : *d) {
     if (lit != plitD) {
       lits.push(subst.apply(lit, 1));
     }
@@ -404,16 +361,14 @@ Clause *PredicateElimination::buildResolventEq(Clause *c, Literal *plitC, Clause
 
   VarShiftApplicator shift{c->maxVar() + 1};
 
-  static Stack<Literal *> lits;
+  static LiteralStack lits;
   lits.reset();
-  for (unsigned i = 0; i < c->length(); i++) {
-    Literal *lit = (*c)[i];
+  for (const auto& lit : *c) {
     if (lit != plitC) {
       lits.push(lit);
     }
   }
-  for (unsigned i = 0; i < d->length(); i++) {
-    Literal *lit = (*d)[i];
+  for (const auto& lit : *d) {
     if (lit != plitD) {
       lits.push(SubstHelper::apply(lit, shift));
     }
@@ -434,11 +389,9 @@ Clause *PredicateElimination::buildResolventEq(Clause *c, Literal *plitC, Clause
       if (!l->isEquality() || l->isPositive()) {
         continue;
       }
-      TermList a0 = *l->nthArgument(0);
-      TermList a1 = *l->nthArgument(1);
+      auto [a0, a1] = l->eqArgs();
       if (a0 == a1) { // t != t is simply false
-        swap(lits[idx], lits.top());
-        lits.pop();
+        lits.swapRemove(idx);
         changed = true;
         break;
       }
@@ -454,11 +407,10 @@ Clause *PredicateElimination::buildResolventEq(Clause *c, Literal *plitC, Clause
       else {
         continue; // a residual disequality (to be kept)
       }
-      swap(lits[idx], lits.top());
-      lits.pop();
+      lits.swapRemove(idx);
       SingleVarApplicator app{var.var(), tgt};
-      for (unsigned j = 0; j < lits.size(); j++) {
-        lits[j] = SubstHelper::apply(lits[j], app);
+      for (auto& lit : lits) {
+        lit = SubstHelper::apply(lit, app);
       }
       changed = true;
       break;
@@ -468,19 +420,18 @@ Clause *PredicateElimination::buildResolventEq(Clause *c, Literal *plitC, Clause
   return assembleClause(lits, c, d);
 }
 
-Clause *PredicateElimination::assembleClause(Stack<Literal *> &lits, Clause *c, Clause *d)
+Clause *PredicateElimination::assembleClause(LiteralStack &lits, Clause *c, Clause *d)
 {
   static DHSet<Literal *> seen;
   seen.reset();
 
-  static Stack<Literal *> out;
+  static LiteralStack out;
   out.reset();
 
   bool keptDiseq = false;
   bool keptVarVarDiseq = false;
 
-  for (unsigned i = 0; i < lits.size(); i++) {
-    Literal *l = lits[i];
+  for (const auto& l : lits) {
     if (EqHelper::isEqTautology(l)) { // s = s
       return nullptr;
     }
@@ -535,9 +486,7 @@ void PredicateElimination::recordElimination(Problem &prb, unsigned pred,
   VarShiftApplicator shift{ar}; // clause variables become >= ar, i.e. disjoint from the head's
 
   FormulaList *disjuncts = FormulaList::empty();
-  ClauseStack::ConstIterator cit(posCls);
-  while (cit.hasNext()) {
-    Clause *c = cit.next();
+  for (const auto& c : posCls) {
     Literal *plit = findPredLiteral(c, pred, true);
 
     FormulaList *conjuncts = FormulaList::empty();
@@ -548,8 +497,7 @@ void PredicateElimination::recordElimination(Problem &prb, unsigned pred,
                                                                   SortHelper::getArgSort(plit, i))),
                         conjuncts);
     }
-    for (unsigned i = 0; i < c->length(); i++) {
-      Literal *lit = (*c)[i];
+    for (const auto& lit : *c) {
       if (lit != plit) {
         FormulaList::push(new AtomicFormula(
                               Literal::complementaryLiteral(SubstHelper::apply(lit, shift))),
@@ -562,11 +510,7 @@ void PredicateElimination::recordElimination(Problem &prb, unsigned pred,
     DHMap<unsigned, TermList> varSorts;
     SortHelper::collectVariableSorts(inner, varSorts);
     VSList *vs = VSList::empty();
-    DHMap<unsigned, TermList>::Iterator vit(varSorts);
-    while (vit.hasNext()) {
-      unsigned var;
-      TermList sort;
-      vit.next(var, sort);
+    for (const auto& [var, sort] : iterTraits(varSorts.items())) {
       if (var >= ar) { // skip the head variables
         VSList::push(VarSort(var, sort), vs);
       }

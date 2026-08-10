@@ -90,8 +90,7 @@ private:
   bool _keptDisequality = false;       // some resolvent kept a residual disequality
   bool _keptVarVarDisequality = false; // ... between two variables
 
-  void registerClause(Clause *cl);
-  void unregisterClause(Clause *cl);
+  void handleClause(Clause *cl, bool add);
 
   bool eligible(unsigned pred) const;
   double estimatedTotalAfter(unsigned pred) const;
@@ -105,7 +104,7 @@ private:
   Clause *buildResolvent(Clause *c, Literal *plitC, Clause *d, Literal *plitD);
   Clause *buildResolventMgu(Clause *c, Literal *plitC, Clause *d, Literal *plitD);
   Clause *buildResolventEq(Clause *c, Literal *plitC, Clause *d, Literal *plitD);
-  Clause *assembleClause(Lib::Stack<Literal *> &lits, Clause *c, Clause *d);
+  Clause *assembleClause(LiteralStack &lits, Clause *c, Clause *d);
 
   // model reconstruction
   void recordElimination(Problem &prb, unsigned pred, ClauseStack const &posCls, ClauseStack const &negCls);
