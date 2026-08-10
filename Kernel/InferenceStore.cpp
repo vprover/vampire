@@ -615,18 +615,30 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
       // we require non-lambda terms
       ASS(!TermList(*skolemTerm).isLambdaTerm());
       auto [head, args] = HOL::getHeadAndArgs(TermList(*skolemTerm));
+      ASS(head.isTerm() && !head.isLambdaTerm());
 
-      ASS(!head.isLambdaTerm());
-      skolemStr += head.toString();
+      auto h = head.term();
+      skolemStr += h->functionName();
 
-      if (args.size()) {
+      if (h->arity() || args.size()) {
         skolemStr += "(";
-        for (unsigned i = 0; i < args.size(); i++) {
-          ASS(args[i].isVar());
-          skolemStr += args[i].toString();
-          if (i + 1 < args.size()) {
+        bool first = true;
+        for (unsigned i = 0; i < h->arity(); i++) {
+          auto v = *h->nthArgument(i);
+          ASS(v.isVar());
+          if (!first) {
             skolemStr += ",";
           }
+          skolemStr += v.toString();
+          first = false;
+        }
+        for (unsigned i = 0; i < args.size(); i++) {
+          ASS(args[i].isVar());
+          if (!first) {
+            skolemStr += ",";
+          }
+          skolemStr += args[i].toString();
+          first = false;
         }
         skolemStr += ")";
       }
