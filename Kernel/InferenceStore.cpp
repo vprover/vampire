@@ -688,7 +688,7 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
         inferenceStr="introduced(definition,["+newSymbolInfo+"],["+tptpRuleName(rule)+"])";
       } else {
         // without introduced symbols we have to claim that the axiom comes from a theory
-        inferenceStr="introduced(theory,["+tptpRuleName(rule)+"])";
+        inferenceStr="introduced(theory,["+tptpRuleName(rule)+"],[])";
       }
     }
     else {
