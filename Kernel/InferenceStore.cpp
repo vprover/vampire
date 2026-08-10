@@ -457,7 +457,7 @@ protected:
   std::string getRole(InferenceRule rule, UnitInputType origin)
   {
     if (isTheoryAxiomRule(rule)) {
-      return "definition";
+      return "axiom";
     }
     switch(rule) {
     case InferenceRule::INPUT:
