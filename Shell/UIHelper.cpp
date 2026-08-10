@@ -642,7 +642,8 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(std::ostream& out, bool funct
   }
 
   if (typeCon && (env.signature->isArrayCon(symNumber) ||
-                  env.signature->isTupleCon(symNumber))){
+                  env.signature->isTupleCon(symNumber) ||
+                  env.signature->isArrowCon(symNumber))){
     return;
   }
 
