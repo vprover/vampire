@@ -1390,14 +1390,11 @@ void TPTP::tff()
         unsigned arity = getConstructorArity();
         bool added = false;
         unsigned fun = env.signature->addTypeCon(nm, arity, added);
-        Signature::Symbol* symbol = env.signature->getTypeCon(fun);
-        OperatorType* ot = OperatorType::getTypeConType(arity);
         if (!added) {
-          if(symbol->fnType()!=ot){
+          if(env.signature->getTypeCon(fun)->fnType() != OperatorType::getTypeConType(arity)){
             PARSE_ERROR_TOK("Type constructor declared with two different types",tok);
           }
-        } else{
-          symbol->setType(ot);  
+        } else {
           _typeConstructorArities.insert(nm, arity);
         }       
         //cout << "added type constructor " + nm + " of type " + symbol->fnType()->toString() << endl;
@@ -3851,9 +3848,6 @@ void TPTP::endTff()
       if(symbol->typeConType() != ot){
         USER_ERROR("Type constructor type is declared after its use: " + name);
       }
-    }
-    else{
-      symbol->setType(ot);
     }
   } else {
     unsigned fun = arity == 0

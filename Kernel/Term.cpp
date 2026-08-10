@@ -1395,13 +1395,7 @@ TermList AtomicSort::arrowSort(const TermStack& domSorts, TermList range, bool f
 
 AtomicSort* AtomicSort::createConstant(const std::string& name)
 {
-  bool added;
-  unsigned newSort = env.signature->addTypeCon(name,0,added);
-  if(added){
-    OperatorType* ot = OperatorType::getConstantsType(superSort());
-    env.signature->getTypeCon(newSort)->setType(ot);
-  }
-  return createConstant(newSort);
+  return createConstant(env.signature->addTypeCon(name,0));
 }
 
 TermList AtomicSort::arraySort(TermList indexSort, TermList innerSort)

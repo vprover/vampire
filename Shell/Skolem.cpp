@@ -135,11 +135,7 @@ unsigned Skolem::addSkolemFunction(unsigned arity, unsigned taArity, TermList* d
 
 unsigned Skolem::addSkolemTypeCon(unsigned arity, const char* suffix)
 {
-  unsigned typeCon = env.signature->addSkolemTypeCon(arity, suffix);
-  Signature::Symbol* tcSym = env.signature->getTypeCon(typeCon);
-  OperatorType* ot = OperatorType::getTypeConType(arity);
-  tcSym->setType(ot);
-  return typeCon;
+  return env.signature->addSkolemTypeCon(arity, suffix);
 }
 
 unsigned Skolem::addSkolemPredicate(unsigned arity, unsigned taArity, TermList* domainSorts, const char* suffix)

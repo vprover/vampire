@@ -191,9 +191,7 @@ OperatorType* Signature::Symbol::fnType() const
  */
 OperatorType* Signature::Symbol::typeConType() const
 {
-  if (!_type) {
-    _type = OperatorType::getTypeConType(arity());
-  }
+  ASS(_type);
   return _type;
 }
 
@@ -727,7 +725,9 @@ unsigned Signature::addTypeCon (const std::string& name,
   //TODO no arity check. Is this safe?
 
   result = _typeCons.length();
-  _typeCons.push(new Symbol(name,arity, /* interpreted */ false, /* preventQuoting */ false, /* super */ false));
+  auto symbol = new Symbol(name,arity, /* interpreted */ false, /* preventQuoting */ false, /* super */ false);
+  _typeCons.push(symbol);
+  symbol->setType(OperatorType::getTypeConType(arity));
   _typeConNames.insert(symbolKey,result);
   added = true;
   return result;

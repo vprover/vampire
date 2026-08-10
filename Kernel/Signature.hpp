@@ -479,6 +479,18 @@ class Signature
     return addPredicate(name,arity,added);
   }
   /**
+   * If a type constructor with this name and arity exists, return its number.
+   * Otherwise, add a new one and return its number.
+   *
+   * @param name name of the symbol
+   * @param arity arity of the symbol
+   */
+  unsigned addTypeCon(const std::string& name,unsigned arity)
+  {
+    bool added;
+    return addTypeCon(name,arity,added);
+  }
+  /**
    * If a function with this name and arity exists, return its number.
    * Otherwise, add a new one and return its number.
    *
@@ -816,48 +828,23 @@ class Signature
   }
 
   unsigned getDefaultSort(){
-    bool added = false;
-    unsigned individualSort = addTypeCon("$i",0, added);
-    if(added){
-      getTypeCon(individualSort)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
-    }
-    return individualSort;
+    return addTypeCon("$i", 0);
   }
 
   unsigned getBoolSort(){
-    bool added = false;
-    unsigned boolSort = addTypeCon("$o",0, added);
-    if(added){
-      getTypeCon(boolSort)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
-    }
-    return boolSort;
+    return addTypeCon("$o", 0);
   }
 
   unsigned getRealSort(){
-    bool added = false;
-    unsigned realSort = addTypeCon("$real",0, added);
-    if(added){
-      getTypeCon(realSort)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
-    }
-    return realSort;
+    return addTypeCon("$real", 0);
   }
 
   unsigned getIntSort(){
-    bool added = false;
-    unsigned intSort = addTypeCon("$int",0, added);
-    if(added){
-      getTypeCon(intSort)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
-    }
-    return intSort;
+    return addTypeCon("$int", 0);
   }  
 
   unsigned getRatSort(){
-    bool added = false;
-    unsigned ratSort = addTypeCon("$rat",0, added);
-    if(added){
-      getTypeCon(ratSort)->setType(OperatorType::getConstantsType(AtomicSort::superSort()));
-    }
-    return ratSort;    
+    return addTypeCon("$rat", 0);
   }
 
   unsigned getArrowConstructor(){
@@ -865,9 +852,6 @@ class Signature
     unsigned arrow = addTypeCon("sTfun",2, added);
     if(added){
       _arrowCon = arrow;
-      TermList ss = AtomicSort::superSort();
-      Symbol* arr = getTypeCon(arrow);
-      arr->setType(OperatorType::getFunctionType({ss, ss}, ss));
     }
     return arrow;    
   }
@@ -877,9 +861,6 @@ class Signature
     unsigned array = addTypeCon("Array",2, added);
     if(added){
       _arrayCon = array;
-      TermList ss = AtomicSort::superSort();
-      Symbol* arr = getTypeCon(array);
-      arr->setType(OperatorType::getFunctionType({ss, ss}, ss));
     }
     return array;    
   }
@@ -890,7 +871,6 @@ class Signature
     unsigned tuple = addTypeCon("Tuple", arity, added);
     if(added){
       Symbol* tup = getTypeCon(tuple);
-      tup->setType(OperatorType::getTypeConType(arity));
       tup->markTuple();
     }
     return tuple;    

@@ -366,11 +366,14 @@ public:
   TermSugar sort(SortId s) { return TermSugar(TermList(*this), s);}
 
   static TermSugar createConstant(const char* name, SortSugar s, bool skolem) {
-    unsigned f = env.signature->addFunction(name,0);
+    bool added;
+    unsigned f = env.signature->addFunction(name,0, added);
 
-    env.signature->getFunction(f)->setType(OperatorType::getFunctionType({}, s.sugaredExpr()));
-    if (skolem) {
-      env.signature->getFunction(f)->markSkolem();
+    if (added) {
+      env.signature->getFunction(f)->setType(OperatorType::getFunctionType({}, s.sugaredExpr()));
+      if (skolem) {
+        env.signature->getFunction(f)->markSkolem();
+      }
     }
     return TermSugar(TermList(Term::createConstant(f)));
   }
@@ -610,12 +613,7 @@ class TypeConSugar {
 public:
   TypeConSugar(const char* name, unsigned arity)
   {
-    bool added = false;
-    _functor = env.signature->addTypeCon(name, arity, added);
-    if (added)
-      env.signature
-        ->getTypeCon(_functor)
-        ->setType(OperatorType::getTypeConType(arity));
+    _functor = env.signature->addTypeCon(name, arity);
   }
 
   template<class... As>
@@ -660,10 +658,13 @@ public:
       SortHelper::normaliseArgSorts(vars, as);
     }
 
-    _functor = env.signature->addPredicate(name, as.size() + taArity);
-    env.signature
-      ->getPredicate(_functor)
-      ->setType(OperatorType::getPredicateType(as.size(), as.begin(), taArity));
+    bool added;
+    _functor = env.signature->addPredicate(name, as.size() + taArity, added);
+    if (added) {
+      env.signature
+        ->getPredicate(_functor)
+        ->setType(OperatorType::getPredicateType(as.size(), as.begin(), taArity));
+    }
   }
 
   template<class... As>

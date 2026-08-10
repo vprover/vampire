@@ -744,12 +744,9 @@ unsigned SMTLIB2::declareTypeCon(const std::string& name, unsigned arity)
   auto symNum = env.signature->addTypeCon(name, arity, added);
   ASS(added);
 
-  auto type = OperatorType::getTypeConType(arity);
-  env.signature->getTypeCon(symNum)->setType(type);
-
   LOG2("declareTypeCon -name ",name);
   LOG2("declareTypeCon -symNum ",symNum);
-  LOG2("declareTypeCon -type ",type->toString());
+  LOG2("declareTypeCon -type ",env.signature->getTypeCon(symNum)->toString());
 
   ALWAYS(_declaredSorts.insert(name, symNum));
   return symNum;
