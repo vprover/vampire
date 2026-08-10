@@ -120,11 +120,9 @@ std::string getQuantifiedStr(const VarContainer& vars, std::string inner, DHMap<
     if(t_map.find(var,t)){
       //a variable of a sort other than $i must always be annotated, and
       //preprocessing is not expected to introduce such a sort into an
-      //initially untyped problem; if that ever happens, debug builds fail
-      //here and release builds still print the sort rather than drop the
-      //annotation. Same predicate as Formula::toString.
+      //initially untyped problem. Same predicate as Formula::toString.
       ASS(t == AtomicSort::defaultSort() || env.initiallyHasNonDefaultSorts());
-      if(t != AtomicSort::defaultSort() || env.initiallyHasNonDefaultSorts()){
+      if(env.initiallyHasNonDefaultSorts()){
         ty=" : " + t.toString();
       }
     }

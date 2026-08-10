@@ -198,11 +198,9 @@ std::string Formula::toString () const
           res += Term::variableToString(var);
           // a variable of a sort other than $i must always be annotated, and
           // preprocessing is not expected to introduce such a sort into an
-          // initially untyped problem; if that ever happens, debug builds fail
-          // here and release builds still print the sort rather than drop the
-          // annotation
+          // initially untyped problem
           ASS(sort == AtomicSort::defaultSort() || env.initiallyHasNonDefaultSorts());
-          if (sort != AtomicSort::defaultSort() || env.initiallyHasNonDefaultSorts()) {
+          if (env.initiallyHasNonDefaultSorts()) {
             res += " : " + sort.toString();
           }
           first = false;

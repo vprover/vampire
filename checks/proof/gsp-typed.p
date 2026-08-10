@@ -1,8 +1,5 @@
-% ax1 chains four literals through single shared variables, so -gsp on names
-% part of it, and the proof contains a general splitting definition whose
-% quantified variables must carry their $int sorts. Keep the predicates at
-% most binary: the sanity check greps the definition for a bare variable, and
-% an argument list with three or more variables would look like one.
+% expected: with -gsp on, the proof contains a general splitting definition
+% whose quantified variables carry their $int sorts.
 tff(pp_decl,type, pp: $int > $o ).
 tff(qq_decl,type, qq: ($int * $int) > $o ).
 tff(rr_decl,type, rr: ($int * $int) > $o ).
