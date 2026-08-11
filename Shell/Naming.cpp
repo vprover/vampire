@@ -1113,7 +1113,7 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
   }
 
   if(!_appify){
-    unsigned pred = env.signature->addNamePredicate(arity);
+    unsigned pred = env.signature->addNamePredicate(OperatorType::getPredicateType(arity - typeArgArity, termVarSorts.begin(), typeArgArity));
     Signature::Symbol* predSym = env.signature->getPredicate(pred);
     predSym->markSkipCongruence();
 
@@ -1127,7 +1127,6 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
       }
     }
 
-    predSym->setType(OperatorType::getPredicateType(arity - typeArgArity, termVarSorts.begin(), typeArgArity));
     return Literal::create(pred, arity, true, allVars.begin());
   } else {
     unsigned fun = env.signature->addNameFunction(typeVars.size());

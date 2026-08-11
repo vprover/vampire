@@ -808,8 +808,7 @@ TermList NewCNF::nameLetBinding(Term* bindingLhs, TermList bindingRhs, TermList 
 
     if (isPredicate) {
       OperatorType* type = OperatorType::getPredicateType(termVarSorts->size(), termVarSorts->begin(), typeVars.size());
-      freshSymbol = env.signature->addFreshPredicate(nameArity, "lG");
-      env.signature->getPredicate(freshSymbol)->setType(type);
+      freshSymbol = env.signature->addFreshPredicate(type, "lG");
     } else {
       OperatorType* type = OperatorType::getFunctionType(termVarSorts->size(), termVarSorts->begin(), resultSort, typeVars.size());
       freshSymbol = env.signature->addFreshFunction(nameArity, "lG");
@@ -1186,21 +1185,6 @@ void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
 Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
 {
   unsigned length = VList::length(free);
-  unsigned pred = env.signature->addNamePredicate(length);
-  env.statistics->formulaNames++;
-
-  Signature::Symbol* predSym = env.signature->getPredicate(pred);
-  predSym->markSkipCongruence();
-
-  if (env.colorUsed) {
-    Color fc = f->getColor();
-    if (fc != COLOR_TRANSPARENT) {
-      predSym->addColor(fc);
-    }
-    if (f->getSkip()) {
-      predSym->markSkip();
-    }
-  }
 
   Recycled<TermStack> termVarSorts;
   Recycled<TermStack> typeVars;
@@ -1222,7 +1206,22 @@ Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
 
   auto taArity = typeVars->size();
   SortHelper::normaliseArgSorts(*typeVars, *termVarSorts);
-  predSym->setType(OperatorType::getPredicateType(length-taArity, termVarSorts->begin(), taArity));
+
+  unsigned pred = env.signature->addNamePredicate(OperatorType::getPredicateType(length-taArity, termVarSorts->begin(), taArity));
+  env.statistics->formulaNames++;
+
+  Signature::Symbol* predSym = env.signature->getPredicate(pred);
+  predSym->markSkipCongruence();
+
+  if (env.colorUsed) {
+    Color fc = f->getColor();
+    if (fc != COLOR_TRANSPARENT) {
+      predSym->addColor(fc);
+    }
+    if (f->getSkip()) {
+      predSym->markSkip();
+    }
+  }
 
   auto args = *typeVars;
   args.loadFromIterator(TermStack::BottomFirstIterator(*termVars));

@@ -150,8 +150,8 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, 
   unsigned fun;
   OperatorType* type;
   if(!_appify){
-    fun=env.signature->addNamePredicate(vars.size() + 1);
     type = OperatorType::getPredicateType({srt}, vars.size());
+    fun=env.signature->addNamePredicate(type);
   } else {
     srt = AtomicSort::arrowSort(srt, AtomicSort::boolSort());
     fun=env.signature->addNameFunction(vars.size());

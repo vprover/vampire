@@ -188,9 +188,6 @@ OperatorType* Signature::Symbol::fnType() const
 
 /**
  * Return the type of a typeConType symbol
- *
- * If the @c setType() function was not called before, the function
- * symbol is assigned a default type.
  */
 OperatorType* Signature::Symbol::typeConType() const
 {
@@ -200,16 +197,10 @@ OperatorType* Signature::Symbol::typeConType() const
 
 /**
  * Return the type of a predicate symbol
- *
- * If the @c setType() function was not called before, the function
- * symbol is assigned a default type.
  */
 OperatorType* Signature::Symbol::predType() const
 {
-  if (!_type) {
-    TermList def = AtomicSort::defaultSort();
-    _type = OperatorType::getPredicateTypeUniformRange(arity(), def);
-  }
+  ASS(_type);
   return _type;
 }
 
@@ -303,14 +294,11 @@ unsigned Signature::addInterpretedFunction(Interpretation interpretation, const 
   ASS_REP(!_funNames.find(symbolKey), name);
 
   unsigned fnNum = _funs.length();
-  InterpretedSymbol* sym = new InterpretedSymbol(name, interpretation);
-  _funs.push(sym);
+  _funs.push(new InterpretedSymbol(name, interpretation, type));
   _funNames.insert(symbolKey, fnNum);
   ALWAYS(_iSymbols.insert(interpretation, fnNum));
 
-  OperatorType* fnType = type;
-  ASS(fnType->isFunctionType());
-  sym->setType(fnType);
+  ASS(type->isFunctionType());
   return fnNum;
 } // Signature::addInterpretedFunction
 
@@ -339,15 +327,10 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, const
   ASS_REP(!_predNames.find(symbolKey), symbolKey);
 
   unsigned predNum = _preds.length();
-  InterpretedSymbol* sym = new InterpretedSymbol(name, interpretation);
-  _preds.push(sym);
+  _preds.push(new InterpretedSymbol(name, interpretation, type));
   _predNames.insert(symbolKey,predNum);
   ALWAYS(_iSymbols.insert(interpretation, predNum));
-  if (predNum!=0) {
-    OperatorType* predType = type;
-    ASS_REP(!predType->isFunctionType(), predType->toString());
-    sym->setType(predType);
-  }
+  ASS_REP(type->isPredicateType(), type->toString());
   return predNum;
 } // Signature::addInterpretedPredicate
 
@@ -587,11 +570,10 @@ unsigned Signature::getDiff() {
 unsigned Signature::getDefPred()
 {
   bool added = false;
-  unsigned def = addPredicate(":=", 3, added);
+  unsigned def = addPredicate(":=",
+    OperatorType::getPredicateType({ TermList::var(0), TermList::var(0) }, /*taArity=*/ 1), added);
   if (added) {
     _defPred = def;
-    getPredicate(def)->setType(
-      OperatorType::getPredicateType({ TermList::var(0), TermList::var(0) }, /*taArity=*/ 1));
   }
   return def;
 }
@@ -602,13 +584,12 @@ unsigned Signature::getFnDef(unsigned fn)
   auto sort = type->result();
   bool added = false;
   auto name = "sFN_"+getFunction(fn)->name();
-  unsigned p = addPredicate(name, 2+type->numTypeArguments(), added);
+  unsigned p = addPredicate(name,
+    OperatorType::getPredicateType({sort, sort}, type->numTypeArguments()), added);
   if (added) {
     ALWAYS(_fnDefPreds.insert(p));
-    OperatorType* ot = OperatorType::getPredicateType({sort, sort}, type->numTypeArguments());
     Symbol* sym = getPredicate(p);
     sym->markProtected();
-    sym->setType(ot);
   }
   return p;
 }
@@ -618,17 +599,17 @@ unsigned Signature::getBoolDef(unsigned fn)
   auto type = getPredicate(fn)->predType();
   auto name = "sPN_"+getPredicate(fn)->name();
   bool added = false;
-  auto p = addPredicate(name, type->arity(), added);
+
+  TermStack sorts;
+  for (unsigned i = type->numTypeArguments(); i < type->arity(); i++) {
+    sorts.push(type->arg(i));
+  }
+  auto p = addPredicate(name,
+    OperatorType::getPredicateType(sorts.size(), sorts.begin(), type->numTypeArguments()), added);
   if (added) {
     ALWAYS(_boolDefPreds.insert(p,fn));
-    TermStack sorts;
-    for (unsigned i = type->numTypeArguments(); i < type->arity(); i++) {
-      sorts.push(type->arg(i));
-    }
-    OperatorType* ot = OperatorType::getPredicateType(sorts.size(), sorts.begin(), type->numTypeArguments());
     Symbol* sym = getPredicate(p);
     sym->markProtected();
-    sym->setType(ot);
   }
   return p;
 }
@@ -747,9 +728,10 @@ unsigned Signature::addTypeCon (const std::string& name,
  * @author Andrei Voronkov
  */
 unsigned Signature::addPredicate (const std::string& name,
-				  unsigned arity,
+				  OperatorType* type,
 				  bool& added)
 {
+  auto arity = type->arity();
   auto symbolKey = key(name,arity);
   unsigned result;
   if (_predNames.find(symbolKey,result)) {
@@ -771,7 +753,7 @@ unsigned Signature::addPredicate (const std::string& name,
   }
 
   result = _preds.length();
-  _preds.push(new Symbol(name, arity, /*type=*/nullptr,
+  _preds.push(new Symbol(name, arity, /*type=*/type,
         /*       interpreted */ false, 
         /*    preventQuoting */ false));
   _predNames.insert(symbolKey,result);
@@ -783,9 +765,9 @@ unsigned Signature::addPredicate (const std::string& name,
  * Create a new name.
  * @since 01/07/2005 Manchester
  */
-unsigned Signature::addNamePredicate(unsigned arity)
+unsigned Signature::addNamePredicate(OperatorType* type)
 {
-  return addFreshPredicate(arity,"sP");
+  return addFreshPredicate(type,"sP");
 } // addNamePredicate
 
 
@@ -854,7 +836,7 @@ unsigned Signature::addFreshTypeCon(unsigned arity, const char* prefix, const ch
  * prefixI_suffix. The new predicate will be marked as skip for the purpose of equality
  * elimination.
  */
-unsigned Signature::addFreshPredicate(unsigned arity, const char* prefix, const char* suffix)
+unsigned Signature::addFreshPredicate(OperatorType* type, const char* prefix, const char* suffix)
 {
   std::string pref(prefix);
   std::string suf(suffix ? std::string("_")+suffix : "");
@@ -868,7 +850,7 @@ unsigned Signature::addFreshPredicate(unsigned arity, const char* prefix, const 
 //  }
 //  if (!added) {
     do {
-      result = addPredicate(pref+Int::toString(_nextFreshSymbolNumber++)+suf,arity,added);
+      result = addPredicate(pref+Int::toString(_nextFreshSymbolNumber++)+suf, type, added);
     }
     while (!added);
 //  }
@@ -909,9 +891,9 @@ unsigned Signature::addSkolemTypeCon (unsigned arity, const char* suffix)
  * into the name of the Skolem function.
  * @since 15/02/2016 Gothenburg
  */
-unsigned Signature::addSkolemPredicate(unsigned arity, const char* suffix)
+unsigned Signature::addSkolemPredicate(OperatorType* type, const char* suffix)
 {
-  unsigned p = addFreshPredicate(arity, "sK", suffix);
+  unsigned p = addFreshPredicate(type, "sK", suffix);
   getPredicate(p)->markSkolem();
   return p;
 } // addSkolemPredicate

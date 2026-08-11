@@ -2354,7 +2354,7 @@ void TPTP::endLetTypes()
   bool isPredicate = type->isPredicateType();
 
   unsigned functor = isPredicate
-                  ? env.signature->addFreshPredicate(arity, name.c_str())
+                  ? env.signature->addFreshPredicate(type, name.c_str())
                   : env.signature->addFreshFunction(arity,  name.c_str());
   Signature::Symbol *symbol = isPredicate
     ? env.signature->getPredicate(functor)
@@ -3189,7 +3189,7 @@ Formula* TPTP::createPredicateApplication(std::string name, unsigned arity)
       bool dummy;
       pred = addPredicate(name, arity, dummy, _termLists.top());
     } else {
-      pred = env.signature->addPredicate(name, 0);
+      pred = env.signature->addPredicate(name, OperatorType::getPredicateType({}, 0));
     }
   }
   if (pred == -1) { // equality
@@ -3769,7 +3769,7 @@ void TPTP::endFof()
 Unit* TPTP::processClaimFormula(Unit* unit, Formula * f, const std::string& nm)
 {
   bool added;
-  unsigned pred = env.signature->addPredicate(nm,0,added);
+  unsigned pred = env.signature->addPredicate(nm,OperatorType::getPredicateType(0, nullptr, 0), added);
   if (!added) {
     USER_ERROR("Names of claims must be unique: "+nm);
   }
@@ -3827,7 +3827,7 @@ void TPTP::endTff()
   bool added;
   Signature::Symbol* symbol;
   if (isPredicate) {
-    unsigned pred = env.signature->addPredicate(name, arity, added);
+    unsigned pred = env.signature->addPredicate(name, ot, added);
     symbol = env.signature->getPredicate(pred);
     if (!added) {
       // GR: Multiple identical type declarations for a symbol are allowed
@@ -4738,7 +4738,7 @@ int TPTP::addPredicate(std::string name,int arity,bool& added,TermList& arg)
     // special case for distinct, dealt with in formulaInfix
     return -2;
   }
-  return env.signature->addPredicate(name,arity,added);
+  return env.signature->addPredicate(name, OperatorType::getPredicateTypeUniformRange(arity, AtomicSort::defaultSort()), added);
 } // addPredicate
 
 
@@ -4935,7 +4935,7 @@ void TPTP::vampire()
     if (!uncomputable) {
       env.colorUsed = true;
     }
-    unsigned f = pred ? env.signature->addPredicate(symb,arity) : env.signature->addFunction(symb,arity);
+    unsigned f = pred ? env.signature->addPredicate(symb, OperatorType::getPredicateTypeUniformRange(arity, AtomicSort::defaultSort())) : env.signature->addFunction(symb,arity);
     Signature::Symbol* sym = pred ? env.signature->getPredicate(f) : env.signature->getFunction(f);
     if (skip) {
       sym->markSkip();

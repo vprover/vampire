@@ -140,11 +140,7 @@ unsigned Skolem::addSkolemTypeCon(unsigned arity, const char* suffix)
 
 unsigned Skolem::addSkolemPredicate(unsigned arity, unsigned taArity, TermList* domainSorts, const char* suffix)
 {
-  unsigned pred = env.signature->addSkolemPredicate(arity, suffix);
-  Signature::Symbol* pSym = env.signature->getPredicate(pred);
-  OperatorType* ot = OperatorType::getPredicateType(arity - taArity, domainSorts, taArity);
-  pSym->setType(ot);
-  return pred;
+  return env.signature->addSkolemPredicate(OperatorType::getPredicateType(arity - taArity, domainSorts, taArity), suffix);
 }
 
 void Skolem::ensureHavingVarSorts()

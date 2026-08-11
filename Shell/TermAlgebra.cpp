@@ -63,9 +63,9 @@ unsigned TermAlgebraConstructor::discriminator()
   if (hasDiscriminator()) {
     return _discriminator;
   } else {
-    auto discr = env.signature->addFreshPredicate(numTypeArguments()+1, discriminatorName().c_str());
+    auto discr = env.signature->addFreshPredicate(
+      OperatorType::getPredicateType({_type->result()},numTypeArguments()), discriminatorName().c_str());
     Signature::Symbol* pred = env.signature->getPredicate(discr);
-    pred->setType(OperatorType::getPredicateType({_type->result()},numTypeArguments()));
     pred->markTermAlgebraDiscriminator();
      _hasDiscriminator = true;
      _discriminator = discr;
@@ -213,17 +213,8 @@ std::string TermAlgebra::getSubtermPredicateName() {
 
 unsigned TermAlgebra::getSubtermPredicate() {
   bool added;
-  unsigned s = env.signature->addPredicate(getSubtermPredicateName(), nTypeArgs()+2, added);
-
-  if (added) {
-    // declare a binary predicate subterm
-    TermStack args;
-    args.push(_sort);
-    args.push(_sort);
-    env.signature->getPredicate(s)->setType(OperatorType::getPredicateType(args.size(),args.begin(),nTypeArgs()));
-  }
-
-  return s;
+  return env.signature->addPredicate(getSubtermPredicateName(),
+    OperatorType::getPredicateType({ _sort, _sort },nTypeArgs()), added);
 }
 
 void TermAlgebra::getTypeSub(Term* sort, Substitution& subst)

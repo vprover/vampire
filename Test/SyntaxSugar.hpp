@@ -658,13 +658,7 @@ public:
       SortHelper::normaliseArgSorts(vars, as);
     }
 
-    bool added;
-    _functor = env.signature->addPredicate(name, as.size() + taArity, added);
-    if (added) {
-      env.signature
-        ->getPredicate(_functor)
-        ->setType(OperatorType::getPredicateType(as.size(), as.begin(), taArity));
-    }
+    _functor = env.signature->addPredicate(name, OperatorType::getPredicateType(as.size(), as.begin(), taArity));
   }
 
   template<class... As>

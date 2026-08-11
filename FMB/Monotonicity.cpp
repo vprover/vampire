@@ -192,8 +192,8 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const D
   for(unsigned s=0;s<env.signature->typeCons();s++){
     if(!isMonotonic[s]){
       std::string name = "sortPredicate_"+env.signature->typeConName(s);
-      unsigned p = env.signature->addFreshPredicate(1,name.c_str());
-      env.signature->getPredicate(p)->setType(OperatorType::getPredicateType({TermList(AtomicSort::createConstant(s))}));
+      unsigned p = env.signature->addFreshPredicate(
+        OperatorType::getPredicateType({TermList(AtomicSort::createConstant(s))}),name.c_str());
       sortPredicates[s] = p;
       sort_predicates.push(p);
 

@@ -224,11 +224,9 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
   }
 
 
-  unsigned namingPred=env.signature->addNamePredicate(minDeg);
+  unsigned namingPred=env.signature->addNamePredicate(OperatorType::getPredicateType(minDeg, argSorts.begin()));
   Signature::Symbol *sym = env.signature->getPredicate(namingPred);
   sym->markSkipCongruence();
-  OperatorType* npredType = OperatorType::getPredicateType(minDeg, argSorts.begin());
-  sym->setType(npredType);
 
   if(mdvColor!=COLOR_TRANSPARENT && otherColor!=COLOR_TRANSPARENT) {
     ASS_EQ(mdvColor, otherColor);

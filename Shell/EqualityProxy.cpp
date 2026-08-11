@@ -294,15 +294,13 @@ unsigned EqualityProxy::getProxyPredicate()
 {
   if(_addedPred){ return _proxyPredicate; }
 
-  unsigned newPred = env.signature->addFreshPredicate(3,"sQ","eqProxy");
+  TermList sort = TermList::var(0);
+  unsigned newPred = env.signature->addFreshPredicate(OperatorType::getPredicateType({sort, sort}, 1),"sQ","eqProxy");
 
-  TermList sort = TermList(0,false);
   TermList var1 = TermList(1,false);
   TermList var2 = TermList(2,false);
 
   Signature::Symbol* predSym = env.signature->getPredicate(newPred);
-  OperatorType* predType = OperatorType::getPredicateType({sort, sort}, 1);
-  predSym->setType(predType);
   predSym->markEqualityProxy();
   // don't need congruence axioms for the equality predicate itself
   predSym->markSkipCongruence();

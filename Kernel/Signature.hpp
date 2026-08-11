@@ -337,9 +337,9 @@ class Signature
 
   public:
 
-    InterpretedSymbol(const std::string& name, Interpretation interp)
+    InterpretedSymbol(const std::string& name, Interpretation interp, OperatorType* type)
     : Symbol(name, 
-        /* arity */ Theory::getArity(interp), nullptr,
+        /* arity */ Theory::getArity(interp), type,
         /*       interpreted */ true, 
         /*    preventQuoting */ false),
       _interp(interp)
@@ -457,8 +457,8 @@ class Signature
   // Uninterpreted symbol declarations
   //
 
-  unsigned addPredicate(const std::string& name,unsigned arity,bool& added);
-  unsigned addTypeCon(const std::string& name,unsigned arity,bool& added);
+  unsigned addPredicate(const std::string& name, OperatorType* type, bool& added);
+  unsigned addTypeCon(const std::string& name, unsigned arity, bool& added);
   unsigned addFunction(const std::string& name,unsigned arity,bool& added);
 
   /**
@@ -469,10 +469,10 @@ class Signature
    * @param arity arity of the symbol
    * @since 07/05/2007 Manchester
    */
-  unsigned addPredicate(const std::string& name,unsigned arity)
+  unsigned addPredicate(const std::string& name, OperatorType* type)
   {
     bool added;
-    return addPredicate(name,arity,added);
+    return addPredicate(name, type, added);
   }
   /**
    * If a type constructor with this name and arity exists, return its number.
@@ -508,9 +508,9 @@ class Signature
   unsigned addSkolemFunction(unsigned arity,const char* suffix = 0);
   unsigned addFreshTypeCon(unsigned arity, const char* prefix, const char* suffix = 0);
   unsigned addSkolemTypeCon(unsigned arity,const char* suffix = 0);
-  unsigned addFreshPredicate(unsigned arity, const char* prefix, const char* suffix = 0);
-  unsigned addSkolemPredicate(unsigned arity,const char* suffix = 0);
-  unsigned addNamePredicate(unsigned arity);
+  unsigned addFreshPredicate(OperatorType* type, const char* prefix, const char* suffix = 0);
+  unsigned addSkolemPredicate(OperatorType* type,const char* suffix = 0);
+  unsigned addNamePredicate(OperatorType* type);
   unsigned addNameFunction(unsigned arity);
   void addEquality();
   unsigned getApp();
