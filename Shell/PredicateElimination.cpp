@@ -117,7 +117,7 @@ void PredicateElimination::apply(Problem &prb)
       }
     }
     _all.push(cl);
-    handleClause(cl, /*add=*/true);
+    handleClause</*add=*/true>(cl);
     if (_useSubsumption) {
       indexInsert(cl);
     }
@@ -134,7 +134,7 @@ void PredicateElimination::apply(Problem &prb)
 
   if (_modified) {
     UnitList *res = 0;
-    for (const auto& cl : _all) {
+    for (const auto& cl : iterTraits(ClauseStack::Iterator(_all))) {
       if (!_deleted.contains(cl)) {
         UnitList::push(cl, res);
       }
@@ -147,7 +147,8 @@ void PredicateElimination::apply(Problem &prb)
   }
 }
 
-void PredicateElimination::handleClause(Clause *cl, bool add)
+template<bool add>
+void PredicateElimination::handleClause(Clause *cl)
 {
   static DHMap<unsigned, int> occ;
   occ.reset();
@@ -167,9 +168,9 @@ void PredicateElimination::handleClause(Clause *cl, bool add)
   }
 
   for (const auto& [pred, val] : iterTraits(occ.items())) {
-    if (add) {
+    if constexpr (add) {
       if (val == 2) {
-      _preds[pred].blockers++;
+        _preds[pred].blockers++;
       }
       else if (val == 1) {
         _preds[pred].pos.insert(cl);
@@ -290,14 +291,14 @@ void PredicateElimination::eliminate(Problem &prb, unsigned pred)
   }
 
   for (Clause *cl : posCls) {
-    handleClause(cl, /*add=*/false);
+    handleClause</*add=*/false>(cl);
     if (_useSubsumption) {
       indexRemove(cl);
     }
     _deleted.insert(cl);
   }
   for (Clause *cl : negCls) {
-    handleClause(cl, /*add=*/false);
+    handleClause</*add=*/false>(cl);
     if (_useSubsumption) {
       indexRemove(cl);
     }
@@ -307,7 +308,7 @@ void PredicateElimination::eliminate(Problem &prb, unsigned pred)
 
   for (Clause *r : resolvents) {
     _all.push(r);
-    handleClause(r, /*add=*/true);
+    handleClause</*add=*/true>(r);
     if (_useSubsumption) {
       indexInsert(r);
     }
@@ -486,7 +487,7 @@ void PredicateElimination::recordElimination(Problem &prb, unsigned pred,
   VarShiftApplicator shift{ar}; // clause variables become >= ar, i.e. disjoint from the head's
 
   FormulaList *disjuncts = FormulaList::empty();
-  for (const auto& c : posCls) {
+  for (const auto& c : iterTraits(ClauseStack::ConstIterator(posCls))) {
     Literal *plit = findPredLiteral(c, pred, true);
 
     FormulaList *conjuncts = FormulaList::empty();

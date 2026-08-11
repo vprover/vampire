@@ -90,7 +90,8 @@ private:
   bool _keptDisequality = false;       // some resolvent kept a residual disequality
   bool _keptVarVarDisequality = false; // ... between two variables
 
-  void handleClause(Clause *cl, bool add);
+  template<bool add>
+  void handleClause(Clause *cl);
 
   bool eligible(unsigned pred) const;
   double estimatedTotalAfter(unsigned pred) const;
