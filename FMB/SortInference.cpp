@@ -495,7 +495,10 @@ void SortInference::doInference()
 #endif
     if(_sig->sortedConstants[s].size()==0 && _sig->sortedFunctions[s].size()>0){
       INVALID_OPERATION("TODO: find out type here");
-      unsigned fresh = env.signature->addFreshFunction(0,"fmbFreshConstant");
+      unsigned dsrt = _sig->parents[s];
+      unsigned vsrt = (*_sig->distinctToVampire.get(dsrt))[0];
+      TermList vsrtT = TermList(AtomicSort::createConstant(vsrt));
+      unsigned fresh = env.signature->addFreshFunction(OperatorType::getConstantsType(vsrtT),"fmbFreshConstant");
       _sig->sortedConstants[s].push(fresh);
       freshMap.insert(fresh,s);
       if(firstFreshConstant==UINT_MAX) firstFreshConstant=fresh;
