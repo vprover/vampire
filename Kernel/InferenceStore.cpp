@@ -480,6 +480,7 @@ protected:
     case InferenceRule::GENERAL_SPLITTING_COMPONENT:
     case InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION:
     case InferenceRule::EQUALITY_PROXY_DEFINITION:
+      return "definition";
     case InferenceRule::THEORY_TAUTOLOGY_SAT_CONFLICT:
     case InferenceRule::HILBERTS_CHOICE_INSTANCE:
       return "axiom";
