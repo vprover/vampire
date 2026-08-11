@@ -275,7 +275,7 @@ InferenceRule convert(Proxy cnst, bool simplifying) {
         return InferenceRule::IFF_PROXY_CLAUSIFICATION_SIMPLIFYING;
       case Proxy::XOR:
         return InferenceRule::XOR_PROXY_CLAUSIFICATION_SIMPLIFYING;
-      default:
+      case Proxy::NOT_PROXY:
         ASSERTION_VIOLATION;
     }
   }
@@ -298,7 +298,7 @@ InferenceRule convert(Proxy cnst, bool simplifying) {
       return InferenceRule::IFF_PROXY_CLAUSIFICATION;
     case Proxy::XOR:
       return InferenceRule::XOR_PROXY_CLAUSIFICATION;
-    default:
+    case Proxy::NOT_PROXY:
       ASSERTION_VIOLATION;
   }
 }

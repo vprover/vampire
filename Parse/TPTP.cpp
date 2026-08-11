@@ -94,7 +94,6 @@ Unit* TPTP::parseFormulaFromString(const std::string& str)
 TPTP::TPTP(std::istream &in, std::filesystem::path path, UnitList::FIFO unitBuffer)
   : _containsConjecture(false),
     currentFile { &in, {}, path, 1 },
-    _inputFile(path),
     _units(unitBuffer),
     _isThf(false),
     _containsPolymorphism(false),
@@ -3728,9 +3727,7 @@ void TPTP::endFof()
     _unitSources->insert(original->number(),source);
   }
 
-  // GDV only reads the first output file, but can dereference included axiom files,
-  // so to make all axioms findable, it's better to output the main file for now.
-  ALWAYS(_axiomNames.insert(original->number(), {nm, _inputFile}));
+  ALWAYS(_axiomNames.insert(original->number(), {nm, currentFile.path}));
 #if DEBUG_SHOW_UNITS
   cout << "Unit: " << unit->toString() << "\n";
 #endif

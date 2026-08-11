@@ -534,7 +534,6 @@ private:
     // current line number for parse errors
     unsigned lineNumber;
   } currentFile;
-  std::filesystem::path _inputFile;
   // stack of states to restore after finishing an include() directive
   std::vector<FileState> restoreFiles;
 
