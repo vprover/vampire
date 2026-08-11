@@ -481,7 +481,8 @@ protected:
     case InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION:
     case InferenceRule::EQUALITY_PROXY_DEFINITION:
     case InferenceRule::THEORY_TAUTOLOGY_SAT_CONFLICT:
-      return "definition";
+    case InferenceRule::HILBERTS_CHOICE_INSTANCE:
+      return "axiom";
     default:
       return "plain";
     }
@@ -618,7 +619,13 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
       ASS(head.isTerm() && !head.isLambdaTerm());
 
       auto h = head.term();
-      skolemStr += h->functionName();
+      if(h->isLiteral()) {
+        skolemStr = static_cast<Literal*>(h)->predicateName();
+      } else if (h->isSort()) {
+        skolemStr = static_cast<AtomicSort*>(h)->typeConName();
+      } else {
+        skolemStr = h->functionName();
+      }
 
       if (h->arity() || args.size()) {
         skolemStr += "(";
