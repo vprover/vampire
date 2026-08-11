@@ -823,6 +823,19 @@ void SaturationAlgorithm::newClausesToUnprocessed()
     Shuffling::shuffleArray(_newClauses.naked().begin(), _newClauses.size());
   }
 
+  {
+    std::stable_sort(_newClauses.naked().begin(), _newClauses.naked().end(),
+                     [](Clause *a, Clause *b) {
+                        auto alen = a->length();
+                        auto blen = b->length();
+                        if (alen > blen)
+                          return true;
+                        if (blen > alen)
+                          return false;
+                        return a->weight() > b->weight();
+                      });
+  }
+
   while (_newClauses.isNonEmpty()) {
     Clause* cl = _newClauses.popWithoutDec();
     switch (cl->store()) {
