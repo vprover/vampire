@@ -483,6 +483,7 @@ protected:
       return "definition";
     case InferenceRule::THEORY_TAUTOLOGY_SAT_CONFLICT:
     case InferenceRule::HILBERTS_CHOICE_INSTANCE:
+    case InferenceRule::DISTINCTNESS_AXIOM:
       return "axiom";
     default:
       return "plain";
