@@ -2355,12 +2355,7 @@ void TPTP::endLetTypes()
 
   unsigned functor = isPredicate
                   ? env.signature->addFreshPredicate(type, name.c_str())
-                  : env.signature->addFreshFunction(arity,  name.c_str());
-  Signature::Symbol *symbol = isPredicate
-    ? env.signature->getPredicate(functor)
-    : env.signature->getFunction(functor);
-
-  symbol->setType(type);
+                  : env.signature->addFreshFunction(type, name.c_str());
 
   auto ivars = TermStack::fromIterator(iterTraits(iTypeVars.iterator())
     .map(unsignedToVarFn));
@@ -2937,11 +2932,8 @@ void TPTP::term()
       unsigned number;
       switch (tok.tag) {
         case T_STRING:
-          number = env.signature->addStringConstant(tok.content);
           // "distinct_object"s are _always_ of sort $i, even in typed contexts
-          env.signature->getFunction(number)->setType(
-            OperatorType::getConstantsType(AtomicSort::defaultSort())
-          );
+          number = env.signature->addStringConstant(tok.content, OperatorType::getConstantsType(AtomicSort::defaultSort()));
           break;
         case T_INT:
           number = addNumeralConstant<IntegerConstantType>(tok.content);
@@ -3835,11 +3827,6 @@ void TPTP::endTff()
         USER_ERROR("Predicate symbol type is declared after its use: " + name);
       }
     }
-    else{
-      if (arity != 0) {
-        symbol->setType(ot);
-      }
-    }
   } else if (isTypeCon){
     unsigned typeCon = env.signature->addTypeCon(name, arity, added);
     symbol = env.signature->getTypeCon(typeCon);
@@ -3850,9 +3837,7 @@ void TPTP::endTff()
       }
     }
   } else {
-    unsigned fun = arity == 0
-                   ? addUninterpretedConstant(name, added)
-                   : env.signature->addFunction(name, arity, added);
+    unsigned fun = env.signature->addFunction(name, ot, added);
     symbol = env.signature->getFunction(fun);
     if (!added) {
       if(symbol->fnType() != ot){
@@ -3860,7 +3845,6 @@ void TPTP::endTff()
       }
     }
     else {   
-      symbol->setType(ot);
       //TODO check whether the below is actually required or not.
       if(_isThf){
         if(!_typeArities.insert(name, ot->numTypeArguments())){
@@ -4670,7 +4654,7 @@ unsigned TPTP::addFunction(std::string name,int arity,bool& added,TermList& arg)
     return env.signature->getPiSigmaProxy(name); 
   }
   if (arity > 0) {
-    return env.signature->addFunction(name,arity,added);
+    return env.signature->addFunction(name,OperatorType::getFunctionTypeUniformRange(arity, AtomicSort::defaultSort(), AtomicSort::defaultSort(), 0), added);
   }
   return addUninterpretedConstant(name,added);
 } // addFunction
@@ -4846,7 +4830,7 @@ unsigned TPTP::addUninterpretedConstant(const std::string& name, bool& added)
   } else if (name == "vNOT"){
     return env.signature->getNotProxy();
   }
-  return env.signature->addFunction(name,0,added);
+  return env.signature->addFunction(name,OperatorType::getConstantsType(AtomicSort::defaultSort(),0),added);
 } // TPTP::addUninterpretedConstant
 
 /**
@@ -4935,7 +4919,9 @@ void TPTP::vampire()
     if (!uncomputable) {
       env.colorUsed = true;
     }
-    unsigned f = pred ? env.signature->addPredicate(symb, OperatorType::getPredicateTypeUniformRange(arity, AtomicSort::defaultSort())) : env.signature->addFunction(symb,arity);
+    unsigned f = pred
+      ? env.signature->addPredicate(symb, OperatorType::getPredicateTypeUniformRange(arity, AtomicSort::defaultSort()))
+      : env.signature->addFunction(symb, OperatorType::getFunctionTypeUniformRange(arity, AtomicSort::defaultSort(), AtomicSort::defaultSort()));
     Signature::Symbol* sym = pred ? env.signature->getPredicate(f) : env.signature->getFunction(f);
     if (skip) {
       sym->markSkip();

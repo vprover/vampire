@@ -166,11 +166,8 @@ class AlascaPreprocessor
       }
       auto res_sort = intConv(ty->result());
       if (sorts_changed) {
-        unsigned nf = env.signature->addFreshFunction(sym->arity(), sym->name().c_str());
-        auto nsym = env.signature->getFunction(nf);
-        auto nty = OperatorType::getFunctionType(sym->arity(), sorts->begin(), res_sort, ty->numTypeArguments());
-        nsym->setType(nty);
-        DEBUG_TRANSLATION(*sym, ": ", ty->toString(), " -> ", *nsym, ": ", nty->toString());
+        unsigned nf = env.signature->addFreshFunction(OperatorType::getFunctionType(sym->arity(), sorts->begin(), res_sort, ty->numTypeArguments()), sym->name().c_str());
+        DEBUG_TRANSLATION(*sym, ": ", ty->toString(), " -> ", *env.signature->getFunction(nf), ": ", nty->toString());
         return nf;
       } else {
         return f;

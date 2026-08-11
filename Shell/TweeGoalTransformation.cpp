@@ -151,16 +151,13 @@ class Definizator : public BottomUpTermTransformer {
           // this is always true in the ground case (where t->weight()>=2 and _allVars.size() == 0)
 
           if (env.higherOrder()) {
-            newSym = env.signature->addFreshFunction(_typeVars.size(), "sF");
             auto sort = AtomicSort::arrowSort(_termVarSorts, outSort);
-            env.signature->getFunction(newSym)->setType(OperatorType::getConstantsType(sort, _typeVars.size()));
+            newSym = env.signature->addFreshFunction(OperatorType::getConstantsType(sort, _typeVars.size()), "sF");
 
             TermList head(Term::create(newSym, _typeVars.size(), _typeVars.begin()));
             res = HOL::create::app(head, _termVars);
           } else {
-            newSym = env.signature->addFreshFunction(_allVars.size(), "sF");
-            auto type = OperatorType::getFunctionType(_termVarSorts.size(),_termVarSorts.begin(),outSort,_typeArity);
-            env.signature->getFunction(newSym)->setType(type);
+            newSym = env.signature->addFreshFunction(OperatorType::getFunctionType(_termVarSorts.size(),_termVarSorts.begin(),outSort,_typeArity), "sF");
 
             // res is used both to replace here, but also in the new definition
             res = TermList(Term::create(newSym,_allVars.size(),_allVars.begin()));

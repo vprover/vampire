@@ -1324,6 +1324,7 @@ Term* Term::foolFalse(){
  * and also is not linked to a symbol in the signature.
  */
 TermList AtomicSort::superSort(){
+  // TODO this can technically collide with any sort term that uses 0 as functor
   static AtomicSort* _super = new(0) AtomicSort(0, 0);
   return TermList(_super);
 }

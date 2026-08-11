@@ -81,6 +81,7 @@ class Signature
     /** print name */
     std::string _name;
 
+    OperatorType* _type;
     // both _arity and _typeArgsArity could be recovered from _type. Storing directly here as well for convenience
 
     /** arity */
@@ -88,8 +89,6 @@ class Signature
     /** arity of type arguments */
     unsigned _typeArgsArity;
 
-    /** Either a FunctionType of a PredicateType object */
-    mutable OperatorType* _type;
     /** List of distinct groups the constant is a member of, all members of a distinct group should be distinct from each other */
     List<unsigned>* _distinctGroups;
     /** number of times it is used in the problem */
@@ -141,7 +140,7 @@ class Signature
 
   public:
     /** standard constructor */
-    Symbol(const std::string& name, unsigned arity, OperatorType* type, bool interpreted, bool preventQuoting);
+    Symbol(const std::string& name, OperatorType* type, bool interpreted, bool preventQuoting);
     void destroyFnSymbol();
     void destroyPredSymbol();
     void destroyTypeConSymbol();
@@ -320,8 +319,6 @@ class Signature
       return out;
     }
 
-    void setType(OperatorType* type);
-    void forceType(OperatorType* type);
     OperatorType* fnType() const;
     OperatorType* predType() const;
     OperatorType* typeConType() const;
@@ -338,8 +335,7 @@ class Signature
   public:
 
     InterpretedSymbol(const std::string& name, Interpretation interp, OperatorType* type)
-    : Symbol(name, 
-        /* arity */ Theory::getArity(interp), type,
+    : Symbol(name, type,
         /*       interpreted */ true, 
         /*    preventQuoting */ false),
       _interp(interp)
@@ -391,7 +387,6 @@ class Signature
     : AnyLinMulSym(
         AnyLinMulSym::typeOf<Numeral>(),
         name(val),
-        /*             arity */ 1,
         /*              type */ OperatorType::getFunctionType({ AnyLinMulSym::sortOf<Numeral>() } , AnyLinMulSym::sortOf<Numeral>()),
         /*       interpreted */ false, 
         /*    preventQuoting */ true),
@@ -412,7 +407,6 @@ class Signature
   public:
     IntegerSymbol(IntegerConstantType val)
     : Symbol(Output::toString(val),
-        /*             arity */ 0,
         /*              type */ OperatorType::getConstantsType(AtomicSort::intSort()),
         /*       interpreted */ true, 
         /*    preventQuoting */ false),
@@ -432,7 +426,6 @@ class Signature
   public:
     RationalSymbol(RationalConstantType val)
     : Symbol(Output::toString(val),
-        /*             arity */ 0,
         /*              type */ OperatorType::getConstantsType(AtomicSort::rationalSort()),
         /*       interpreted */ true, 
         /*    preventQuoting */ false),
@@ -459,7 +452,7 @@ class Signature
 
   unsigned addPredicate(const std::string& name, OperatorType* type, bool& added);
   unsigned addTypeCon(const std::string& name, unsigned arity, bool& added);
-  unsigned addFunction(const std::string& name,unsigned arity,bool& added);
+  unsigned addFunction(const std::string& name, OperatorType* type, bool& added);
 
   /**
    * If a predicate with this name and arity exists, return its number.
@@ -492,10 +485,10 @@ class Signature
    *
    * @since 28/12/2007 Manchester
    */
-  unsigned addFunction(const std::string& name,unsigned arity)
+  unsigned addFunction(const std::string& name, OperatorType* type)
   {
     bool added;
-    return addFunction(name,arity,added);
+    return addFunction(name, type, added);
   }
   /**
    * If a unique string constant with this name and arity exists, return its number.
@@ -503,15 +496,15 @@ class Signature
    *
    * The added constant is of default ($i) sort.
    */
-  unsigned addStringConstant(const std::string& name);
-  unsigned addFreshFunction(unsigned arity, const char* prefix, const char* suffix = 0);
-  unsigned addSkolemFunction(unsigned arity,const char* suffix = 0);
+  unsigned addStringConstant(const std::string& name, OperatorType* type);
+  unsigned addFreshFunction(OperatorType* type, const char* prefix, const char* suffix = 0);
+  unsigned addSkolemFunction(OperatorType* type,const char* suffix = 0);
   unsigned addFreshTypeCon(unsigned arity, const char* prefix, const char* suffix = 0);
   unsigned addSkolemTypeCon(unsigned arity,const char* suffix = 0);
   unsigned addFreshPredicate(OperatorType* type, const char* prefix, const char* suffix = 0);
   unsigned addSkolemPredicate(OperatorType* type,const char* suffix = 0);
   unsigned addNamePredicate(OperatorType* type);
-  unsigned addNameFunction(unsigned arity);
+  unsigned addNameFunction(OperatorType* type);
   void addEquality();
   unsigned getApp();
   unsigned getLam();
@@ -577,10 +570,7 @@ class Signature
     }
     noteOccurrence(number);
     result = _funs.length();
-    Symbol* sym = new LinMulSym<Numeral>(number);
-    auto s = AnyLinMulSym::sortOf<Numeral>();
-    sym->setType(OperatorType::getFunctionType({s}, s));
-    _funs.push(sym);
+    _funs.push(new LinMulSym<Numeral>(number));
     _funNames.insert(key,result);
     return result;
   }
@@ -810,10 +800,8 @@ class Signature
 
   unsigned getFoolConstantSymbol(bool isTrue){ 
     if(!_foolConstantsDefined){
-      _foolFalse = addFunction("$$false",0); 
-      getFunction(_foolFalse)->setType(OperatorType::getConstantsType(AtomicSort::boolSort()));
-      _foolTrue = addFunction("$$true",0);
-      getFunction(_foolTrue)->setType(OperatorType::getConstantsType(AtomicSort::boolSort()));
+      _foolFalse = addFunction("$$false",OperatorType::getConstantsType(AtomicSort::boolSort())); 
+      _foolTrue = addFunction("$$true", OperatorType::getConstantsType(AtomicSort::boolSort()));
       _foolConstantsDefined=true;
     }
     return isTrue ? _foolTrue : _foolFalse;
@@ -873,14 +861,13 @@ class Signature
   }  
 
   unsigned getEqualityProxy(){
+    TermList tv = TermList::var(0);
+    TermList result = AtomicSort::arrowSort({tv, tv, AtomicSort::boolSort()});
+
     bool added = false;
-    unsigned eqProxy = addFunction("vEQ",1, added);
+    unsigned eqProxy = addFunction("vEQ", OperatorType::getConstantsType(result, 1),added);
     if(added){
-      TermList tv = TermList(0, false);
-      TermList result = AtomicSort::arrowSort({tv, tv, AtomicSort::boolSort()});
-      Symbol * sym = getFunction(eqProxy);
-      sym->setType(OperatorType::getConstantsType(result, 1));
-      sym->setProxy(Proxy::EQUALS);
+      getFunction(eqProxy)->setProxy(Proxy::EQUALS);
     }
     return eqProxy;  
   }
@@ -897,41 +884,37 @@ class Signature
       return Proxy::XOR;
     };
 
-    unsigned proxy = addFunction(name, 0, added);
+    auto bs = AtomicSort::boolSort();
+    auto result = AtomicSort::arrowSort({bs, bs, bs});
+
+    unsigned proxy = addFunction(name, OperatorType::getConstantsType(result), added);
     if (added) {
-      auto bs = AtomicSort::boolSort();
-      auto result = AtomicSort::arrowSort({bs, bs, bs});
-      auto sym = getFunction(proxy);
-      sym->setType(OperatorType::getConstantsType(result));
-      sym->setProxy(convert(name));
+      getFunction(proxy)->setProxy(convert(name));
     }
     return proxy;  
   }
 
   unsigned getNotProxy(){
+    TermList bs = AtomicSort::boolSort();
+    TermList result = AtomicSort::arrowSort(bs, bs);
+
     bool added = false;
-    unsigned notProxy = addFunction("vNOT",0, added);
+    unsigned notProxy = addFunction("vNOT", OperatorType::getConstantsType(result), added);
     if(added){
-      TermList bs = AtomicSort::boolSort();
-      TermList result = AtomicSort::arrowSort(bs, bs);
-      Symbol * sym = getFunction(notProxy);
-      sym->setType(OperatorType::getConstantsType(result));
-      sym->setProxy(Proxy::NOT);
+      getFunction(notProxy)->setProxy(Proxy::NOT);
     }
     return notProxy;  
   } //TODO merge with above?
 
 
   unsigned getPiSigmaProxy(std::string name){
+    auto result = AtomicSort::arrowSort(TermList::var(0), AtomicSort::boolSort());
+    result = AtomicSort::arrowSort(result, AtomicSort::boolSort());
+
     bool added = false;
-    unsigned proxy = addFunction(name,1, added);
+    unsigned proxy = addFunction(name, OperatorType::getConstantsType(result, 1), added);
     if (added) {
-      auto tv = TermList(0, false);
-      auto result = AtomicSort::arrowSort(tv, AtomicSort::boolSort());
-      result = AtomicSort::arrowSort(result, AtomicSort::boolSort());
-      auto sym = getFunction(proxy);
-      sym->setType(OperatorType::getConstantsType(result, 1));
-      sym->setProxy(name == "vPI" ? Proxy::PI : Proxy::SIGMA);
+      getFunction(proxy)->setProxy(name == "vPI" ? Proxy::PI : Proxy::SIGMA);
     }
     return proxy;  
   } //TODO merge with above?  

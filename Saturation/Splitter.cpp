@@ -614,6 +614,7 @@ std::string Splitter::getFormulaStringFromName(SplitLevel compName, bool negated
 {
   if (splPrefix.empty()) {
     if(env.options->proof()==Options::Proof::TPTP){
+      INVALID_OPERATION("TODO: find out type here");
       unsigned spl = env.signature->addFreshFunction(0,"spl");
       splPrefix = env.signature->functionName(spl)+"_";
     }

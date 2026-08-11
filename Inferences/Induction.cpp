@@ -73,8 +73,7 @@ Term* getPlaceholderForTerm(const Stack<Term*>& ts, unsigned i)
   TermList srt = SortHelper::getResultSort(ts[i]);
   auto p = make_pair(srt,i);
   if(!placeholders.find(p)){
-    unsigned fresh = env.signature->addFreshFunction(0,(srt.toString() + "_placeholder" + Int::toString(i)).c_str());
-    env.signature->getFunction(fresh)->setType(OperatorType::getConstantsType(srt));
+    unsigned fresh = env.signature->addFreshFunction(OperatorType::getConstantsType(srt),(srt.toString() + "_placeholder" + Int::toString(i)).c_str());
     auto res = Term::createConstant(fresh);
     placeholders.insert(p,res);
     return res;

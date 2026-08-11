@@ -118,7 +118,6 @@ TermList Injectivity::createNewLhs(TermList oldhead, TermStack& termArgs, unsign
 
   Signature::Symbol* func = env.signature->getFunction(oldhead.term()->functor());
   std::string pref = "inv_" + func->name() + "_";
-  unsigned iFunc = env.signature->addFreshFunction(func->arity(), pref.c_str() ); 
 
   OperatorType* funcType = func->fnType();
   TermList type = funcType->result(); 
@@ -138,9 +137,7 @@ TermList Injectivity::createNewLhs(TermList oldhead, TermStack& termArgs, unsign
 
   TermList inverseType = AtomicSort::arrowSort(sorts, newResult);
 
-  OperatorType* invFuncType = OperatorType::getConstantsType(inverseType, funcType->numTypeArguments());
-  Signature::Symbol* invFunc = env.signature->getFunction(iFunc);
-  invFunc->setType(invFuncType);
+  unsigned iFunc = env.signature->addFreshFunction(OperatorType::getConstantsType(inverseType, funcType->numTypeArguments()), pref.c_str() ); 
   TermList invFuncHead = TermList(Term::create(iFunc, func->arity(), typeArgs.begin()));
 
   return HOL::create::app(invFuncHead, termArgs);  

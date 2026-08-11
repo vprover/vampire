@@ -241,8 +241,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const D
     }
 
     // Next the non-empty constraint
-    unsigned skolemConstant = env.signature->addSkolemFunction(0);
-    env.signature->getFunction(skolemConstant)->setType(OperatorType::getConstantsType(sTerm));
+    unsigned skolemConstant = env.signature->addSkolemFunction(OperatorType::getConstantsType(sTerm));
     // Increment usage count so it's not treated as a deleted function later
     env.signature->getFunction(skolemConstant)->incUsageCnt();
     Literal* psk = Literal::create1(p,true,TermList(Term::createConstant(skolemConstant)));
@@ -353,9 +352,8 @@ void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses,
   for(unsigned s=0;s<env.signature->typeCons();s++){
     if(!isMonotonic[s]){
       std::string name = "sortFunction_"+env.signature->typeConName(s);
-      unsigned f = env.signature->addFreshFunction(1,name.c_str());
       TermList sT = TermList(AtomicSort::createConstant(s));
-      env.signature->getFunction(f)->setType(OperatorType::getFunctionType({sT},sT));
+      unsigned f = env.signature->addFreshFunction(OperatorType::getFunctionType({sT},sT),name.c_str());
       // increment usage count so not treated as deleted
       env.signature->getFunction(f)->incUsageCnt();
       sortFunctions[s] = f;

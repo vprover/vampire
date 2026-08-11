@@ -692,8 +692,7 @@ TermList NewCNF::eliminateLet(Term* term)
     } else {
       auto tupleType = env.signature->getFunction(bindingLhs->functor())->fnType();
       auto arity = bindingLhs->numTypeArguments();
-      unsigned tuple = env.signature->addFreshFunction(arity, "tuple");
-      env.signature->getFunction(tuple)->setType(OperatorType::getConstantsType(tupleType->result(), arity));
+      unsigned tuple = env.signature->addFreshFunction(OperatorType::getConstantsType(tupleType->result(), arity), "tuple");
       auto args = TermStack::fromIterator(typeArgIter(bindingLhs));
       auto tupleTerm = Term::create(tuple, args);
       args.push(TermList(tupleTerm));
@@ -807,12 +806,11 @@ TermList NewCNF::nameLetBinding(Term* bindingLhs, TermList bindingRhs, TermList 
     SortHelper::normaliseSort(*typeVars, resultSort);
 
     if (isPredicate) {
-      OperatorType* type = OperatorType::getPredicateType(termVarSorts->size(), termVarSorts->begin(), typeVars.size());
+      auto type = OperatorType::getPredicateType(termVarSorts->size(), termVarSorts->begin(), typeVars.size());
       freshSymbol = env.signature->addFreshPredicate(type, "lG");
     } else {
-      OperatorType* type = OperatorType::getFunctionType(termVarSorts->size(), termVarSorts->begin(), resultSort, typeVars.size());
-      freshSymbol = env.signature->addFreshFunction(nameArity, "lG");
-      env.signature->getFunction(freshSymbol)->setType(type);
+      auto type = OperatorType::getFunctionType(termVarSorts->size(), termVarSorts->begin(), resultSort, typeVars.size());
+      freshSymbol = env.signature->addFreshFunction(type, "lG");
     }
   }
 

@@ -142,21 +142,17 @@ void DefinitionIntroduction<higherOrder>::introduceDefinitionFor(Term *t) {
 
   // create the equation
   unsigned functor;
-  OperatorType* type;
   if constexpr (higherOrder) {
-    functor = env.signature->addFreshFunction(type_arity, "sF");
     auto sort = AtomicSort::arrowSort(domain_sort_vector, sort_rename.apply(range_sort), /*fromTop=*/true);
-    type = OperatorType::getConstantsType(sort, type_arity);
+    functor = env.signature->addFreshFunction(OperatorType::getConstantsType(sort, type_arity), "sF");
   } else {
-    functor = env.signature->addFreshFunction(type_arity + term_arity, "sF");
-    type = OperatorType::getFunctionType(
+    functor = env.signature->addFreshFunction(OperatorType::getFunctionType(
       term_arity,
       domain_sort_vector.begin(),
       sort_rename.apply(range_sort),
       type_arity
-    );
+    ), "sF");
   }
-  env.signature->getFunction(functor)->setType(type);
   Term *def;
   if constexpr (higherOrder) {
     TermList head(Term::create(functor, type_arity, variables.data()));

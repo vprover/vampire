@@ -367,13 +367,10 @@ public:
 
   static TermSugar createConstant(const char* name, SortSugar s, bool skolem) {
     bool added;
-    unsigned f = env.signature->addFunction(name,0, added);
+    unsigned f = env.signature->addFunction(name, OperatorType::getFunctionType({}, s.sugaredExpr()), added);
 
-    if (added) {
-      env.signature->getFunction(f)->setType(OperatorType::getFunctionType({}, s.sugaredExpr()));
-      if (skolem) {
-        env.signature->getFunction(f)->markSkolem();
-      }
+    if (added && skolem) {
+      env.signature->getFunction(f)->markSkolem();
     }
     return TermSugar(TermList(Term::createConstant(f)));
   }
@@ -542,20 +539,17 @@ public:
     for (auto a : as_)
       as.push(a.sugaredExpr());
 
+    TermList res = result.sugaredExpr();
+
+    if(taArity){
+      TermStack vars = {TermList(101, false), TermList(102, false), TermList(103, false)};
+      SortHelper::normaliseArgSorts(vars, as);
+      SortHelper::normaliseSort(vars, res);
+    }
+
     bool added = false;
-    _functor = env.signature->addFunction(name, as.size() + taArity, added);
+    _functor = env.signature->addFunction(name, OperatorType::getFunctionType(as.size(), as.begin(), res, taArity), added);
     if (added){
-      TermList res = result.sugaredExpr();
-
-      if(taArity){
-        TermStack vars = {TermList(101, false), TermList(102, false), TermList(103, false)};
-        SortHelper::normaliseArgSorts(vars, as);
-        SortHelper::normaliseSort(vars, res);
-      }
-
-      env.signature
-        ->getFunction(_functor)
-        ->setType(OperatorType::getFunctionType(as.size(), as.begin(), res, taArity));
       if (skolem) {
         env.signature->getFunction(_functor)->markSkolem();
       }

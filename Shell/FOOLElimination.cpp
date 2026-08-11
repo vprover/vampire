@@ -1106,8 +1106,7 @@ unsigned FOOLElimination::introduceFreshSymbol(Context context, const char* pref
   if (context == FORMULA_CONTEXT) {
     symbol = env.signature->addFreshPredicate(type, prefix);
   } else {
-    symbol = env.signature->addFreshFunction(arity + typeArgsArity, prefix);
-    env.signature->getFunction(symbol)->setType(type);
+    symbol = env.signature->addFreshFunction(type, prefix);
   }
 
   if (env.options->showPreprocessing()) {

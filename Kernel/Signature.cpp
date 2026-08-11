@@ -31,11 +31,11 @@ const unsigned Signature::STRING_DISTINCT_GROUP = 0;
  * Standard constructor.
  * @author Andrei Voronkov
  */
-Signature::Symbol::Symbol(const std::string& nm, unsigned arity, OperatorType* type, bool interpreted, bool preventQuoting)
+Signature::Symbol::Symbol(const std::string& nm, OperatorType* type, bool interpreted, bool preventQuoting)
   : _name(nm),
-    _arity(arity),
-    _typeArgsArity(0),
     _type(type),
+    _arity(type->arity()),
+    _typeArgsArity(type->numTypeArguments()),
     _distinctGroups(0),
     _usageCount(0),
     _unitUsageCount(0),
@@ -61,10 +61,8 @@ Signature::Symbol::Symbol(const std::string& nm, unsigned arity, OperatorType* t
     _prox(Proxy::NOT_PROXY),
     _deBruijnIndex(-1)
 {
-  if (_type) {
-    setType(_type);
-  }
-  if (!preventQuoting && symbolNeedsQuoting(_name, interpreted,arity)) {
+  ASS(_type);
+  if (!preventQuoting && symbolNeedsQuoting(_name, interpreted, _arity)) {
     _name="'"+_name+"'";
   }
   if (_interpreted || isProtectedName(nm)) {
@@ -145,33 +143,6 @@ void Signature::Symbol::addToDistinctGroup(unsigned group,unsigned this_number)
 } // addToDistinctGroup
 
 /**
- * Set type of the symbol
- *
- * The type can be set only once for each symbol, and if the type
- * should be different from the default type, this function must be
- * called before any call to @c fnType(), @c predType() or @c typeConType().
- */
-void Signature::Symbol::setType(OperatorType* type)
-{
-  ASS_REP(!_type || _type == type, _type->toString());
-
-  // this is copied out to the Symbol for convenience
-  _typeArgsArity = type->numTypeArguments(); 
-  _type = type;
-}
-
-/**
- * This force the type to change
- * This can be unsafe so should only be used when you know it is safe to
- * change the type i.e. nothing yet relies on the type of this symbol
- */
-void Signature::Symbol::forceType(OperatorType* type)
-{
-  if(_type){ delete _type; }
-  _type = type;
-}
-
-/**
  * Return the type of a function symbol
  *
  * If the @c setType() function was not called before, the function
@@ -179,10 +150,7 @@ void Signature::Symbol::forceType(OperatorType* type)
  */
 OperatorType* Signature::Symbol::fnType() const
 {
-  if (!_type) {
-    TermList def = AtomicSort::defaultSort();
-    _type = OperatorType::getFunctionTypeUniformRange(arity(), def, def);
-  }
+  ASS(_type);
   return _type;
 }
 
@@ -207,7 +175,6 @@ OperatorType* Signature::Symbol::predType() const
 Signature::RealSymbol::RealSymbol(const RealConstantType& val)
   : Symbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? Output::toString("$to_real(",val,")")
                                                                        : Output::toString(val),
-        /*             arity */ 0,
         /*              type */ OperatorType::getConstantsType(AtomicSort::realSort()),
         /*       interpreted */ true,
         /*    preventQuoting */ false),
@@ -461,9 +428,10 @@ unsigned Signature::getPredicateNumber(const std::string& name, unsigned arity) 
  * @since 07/05/2007 Manchester
  */
 unsigned Signature::addFunction (const std::string& name,
-				 unsigned arity,
+         OperatorType* type,
 				 bool& added)
 {
+  auto arity = type->arity();
   auto symbolKey = key(name,arity);
   unsigned result;
   if (_funNames.find(symbolKey,result)) {
@@ -485,10 +453,9 @@ unsigned Signature::addFunction (const std::string& name,
   }
 
   result = _funs.length();
-  bool super = (name == "$tType");
-  _funs.push(new Symbol(name, arity, /*type=*/nullptr,
+  _funs.push(new Symbol(name, /*type=*/type,
         /*       interpreted */ false, 
-        /*    preventQuoting */ super));
+        /*    preventQuoting */ (name == "$tType")));
   _funNames.insert(symbolKey, result);
   added = true;
   return result;
@@ -499,7 +466,7 @@ unsigned Signature::addFunction (const std::string& name,
  * added to the distinct group STRING_DISTINCT_GROUP.
  * @author Andrei Voronkov
  */
-unsigned Signature::addStringConstant(const std::string& name)
+unsigned Signature::addStringConstant(const std::string& name, OperatorType* type)
 {
   auto symbolKey = SymbolKey(name);
   unsigned result;
@@ -511,8 +478,7 @@ unsigned Signature::addStringConstant(const std::string& name)
   // TODO shouldn't we also quote inside of name?
   std::string quotedName = "\"" + name + "\"";
   result = _funs.length();
-  Symbol* sym = new Symbol(quotedName,
-        /*             arity */ 0, /*type=*/nullptr,
+  Symbol* sym = new Symbol(quotedName, /*type=*/type,
         /*       interpreted */ false, 
         /*    preventQuoting */ true);
   sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result);
@@ -524,47 +490,36 @@ unsigned Signature::addStringConstant(const std::string& name)
 
 unsigned Signature::getApp()
 {
+  auto tv1 = TermList::var(0);
+  auto tv2 = TermList::var(1);
+  auto arrowType = AtomicSort::arrowSort(tv1, tv2);
+
   bool added = false;
-  unsigned app = addFunction("vAPP", 4, added);
+  unsigned app = addFunction("vAPP", OperatorType::getFunctionType({arrowType, tv1}, tv2, 2), added);
   if (added) {
     _appFun = app;
-    auto tv1 = TermList(0, false);
-    auto tv2 = TermList(1, false);
-    auto arrowType = AtomicSort::arrowSort(tv1, tv2);
-    auto ot = OperatorType::getFunctionType({arrowType, tv1}, tv2, 2);
-    auto sym = getFunction(app);
-    sym->setType(ot);
   }
   return app;
 }
 
 unsigned Signature::getLam() {
+  auto tv2 = TermList::var(1);
+  auto arrowType = AtomicSort::arrowSort(TermList::var(0), tv2);
+
   bool added = false;
-  unsigned lam = addFunction("vLAM", 3, added);
+  unsigned lam = addFunction("vLAM", OperatorType::getFunctionType({tv2}, arrowType, 2), added);
   if (added) {
     _lamFun = lam;
-    auto tv1 = TermList(0, false);
-    auto tv2 = TermList(1, false);
-    auto arrowType = AtomicSort::arrowSort(tv1, tv2);
-    auto ot = OperatorType::getFunctionType({tv2}, arrowType, 2);
-    auto sym = getFunction(lam);
-    sym->setType(ot);
   }
   return lam;
 }
 
 unsigned Signature::getDiff() {
-  bool added = false;
-  unsigned diff = addFunction("diff", 2, added);
-  if (added) {
-    auto alpha = TermList(0, false);
-    auto beta = TermList(1, false);
-    auto alphaBeta = AtomicSort::arrowSort(alpha, beta);
-    auto result = AtomicSort::arrowSort({alphaBeta, alphaBeta, alpha});
-    auto sym = getFunction(diff);
-    sym->setType(OperatorType::getConstantsType(result, 2));
-  }
-  return diff;
+  auto alpha = TermList::var(0);
+  auto alphaBeta = AtomicSort::arrowSort(alpha, TermList::var(1));
+  auto result = AtomicSort::arrowSort({alphaBeta, alphaBeta, alpha});
+
+  return addFunction("diff", OperatorType::getConstantsType(result, 2));
 }
 
 unsigned Signature::getDefPred()
@@ -615,28 +570,20 @@ unsigned Signature::getBoolDef(unsigned fn)
 }
 
 unsigned Signature::getChoice() {
-  bool added = false;
-  unsigned choice = addFunction("vEPSILON",1, added);      
-  if (added) {
-    auto alpha = TermList(0, false);
-    auto bs = AtomicSort::boolSort();
-    auto alphaBs = AtomicSort::arrowSort(alpha, bs);
-    auto result = AtomicSort::arrowSort(alphaBs, alpha);
-    auto sym = getFunction(choice);
-    sym->setType(OperatorType::getConstantsType(result, 1));
-  }
-  return choice;
+  auto alpha = TermList::var(0);
+  auto alphaBs = AtomicSort::arrowSort(alpha, AtomicSort::boolSort());
+  auto result = AtomicSort::arrowSort(alphaBs, alpha);
+
+  return addFunction("vEPSILON", OperatorType::getConstantsType(result, 1));
 }
 
 unsigned Signature::getDeBruijnIndex(int index) {
-  ASS(index >= 0)
+  ASS_GE(index, 0);
 
   bool added = false;
-  unsigned fun = addFunction("db" + Int::toString(index), 1, added);
+  unsigned fun = addFunction("db" + Int::toString(index), OperatorType::getConstantsType(TermList::var(0), 1), added);
   if (added) {
-    auto sym = getFunction(fun);
-    sym->setType(OperatorType::getConstantsType(TermList::var(0), 1));
-    sym->setDeBruijnIndex(index);
+    getFunction(fun)->setDeBruijnIndex(index);
   }
   return fun;
 }
@@ -645,9 +592,8 @@ unsigned Signature::getPlaceholder() {
   if (_placeholderFun != UINT_MAX)
     return _placeholderFun;
 
-  unsigned fun = addFreshFunction(1, "ph");
+  unsigned fun = addFreshFunction(OperatorType::getConstantsType(TermList::var(0), 1), "ph");
   _placeholderFun = fun;
-  getFunction(fun)->setType(OperatorType::getConstantsType(TermList::var(0), 1));
   return fun;
 }
 
@@ -706,7 +652,7 @@ unsigned Signature::addTypeCon (const std::string& name,
   //TODO no arity check. Is this safe?
 
   result = _typeCons.length();
-  _typeCons.push(new Symbol(name,arity,
+  _typeCons.push(new Symbol(name,
     OperatorType::getTypeConType(arity),
     /* interpreted */ false, /* preventQuoting */ false));
   _typeConNames.insert(symbolKey,result);
@@ -753,7 +699,7 @@ unsigned Signature::addPredicate (const std::string& name,
   }
 
   result = _preds.length();
-  _preds.push(new Symbol(name, arity, /*type=*/type,
+  _preds.push(new Symbol(name, /*type=*/type,
         /*       interpreted */ false, 
         /*    preventQuoting */ false));
   _predNames.insert(symbolKey,result);
@@ -771,9 +717,9 @@ unsigned Signature::addNamePredicate(OperatorType* type)
 } // addNamePredicate
 
 
-unsigned Signature::addNameFunction(unsigned arity)
+unsigned Signature::addNameFunction(OperatorType* type)
 {
-  return addFreshFunction(arity,"sP");
+  return addFreshFunction(type,"sP");
 } // addNameFunction
 
 /**
@@ -782,7 +728,7 @@ unsigned Signature::addNameFunction(unsigned arity)
  * prefixI_suffix. The new function will be marked as skip for the purpose of equality
  * elimination.
  */
-unsigned Signature::addFreshFunction(unsigned arity, const char* prefix, const char* suffix)
+unsigned Signature::addFreshFunction(OperatorType* type, const char* prefix, const char* suffix)
 {
   std::string pref(prefix);
   std::string suf(suffix ? std::string("_")+suffix : "");
@@ -794,7 +740,7 @@ unsigned Signature::addFreshFunction(unsigned arity, const char* prefix, const c
 //  unsigned result = addFunction(pref+suf,arity,added);
 //  if (!added) {
     do {
-      result = addFunction(pref+Int::toString(_nextFreshSymbolNumber++)+suf,arity,added);
+      result = addFunction(pref+Int::toString(_nextFreshSymbolNumber++)+suf,type,added);
     }
     while (!added);
 //  }
@@ -865,11 +811,10 @@ unsigned Signature::addFreshPredicate(OperatorType* type, const char* prefix, co
  * into the name of the Skolem function.
  * @since 01/07/2005 Manchester
  */
-unsigned Signature::addSkolemFunction (unsigned arity, const char* suffix)
+unsigned Signature::addSkolemFunction (OperatorType* type, const char* suffix)
 {
-  unsigned f = addFreshFunction(arity, "sK", suffix);
-  Symbol* s = getFunction(f);
-  s->markSkolem();
+  unsigned f = addFreshFunction(type, "sK", suffix);
+  getFunction(f)->markSkolem();
   return f;
 } // addSkolemFunction
 

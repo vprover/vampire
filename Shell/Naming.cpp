@@ -1129,11 +1129,9 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
 
     return Literal::create(pred, arity, true, allVars.begin());
   } else {
-    unsigned fun = env.signature->addNameFunction(typeVars.size());
     TermList sort = AtomicSort::arrowSort(termVarSorts, AtomicSort::boolSort());
-    Signature::Symbol* sym = env.signature->getFunction(fun);
-    sym->markSkipCongruence();
-    sym->setType(OperatorType::getConstantsType(sort, typeArgArity)); 
+    unsigned fun = env.signature->addNameFunction(OperatorType::getConstantsType(sort, typeArgArity));
+    env.signature->getFunction(fun)->markSkipCongruence();
     TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
     TermList t = HOL::create::app(head, termVars);
     return  Literal::createEquality(true, TermList(t), HOL::create::top(), AtomicSort::boolSort());  
