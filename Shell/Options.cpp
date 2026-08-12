@@ -600,7 +600,7 @@ void Options::init()
     _predicateEliminationSubsumption.tag(OptionTag::PREPROCESSING);
     _predicateEliminationSubsumption.onlyUsefulWith(_predicateElimination.is(equal(true)));
 
-    _predicateEliminationMultiOccurrence = BoolOptionValue("predicate_elimination_multi_occurrence","pelmo",true);
+    _predicateEliminationMultiOccurrence = BoolOptionValue("predicate_elimination_multi_occurrence","pelmo",false);
     _predicateEliminationMultiOccurrence.description=
       "Also eliminate a predicate P occurring more than once in a clause, provided P never occurs"
       " both positively and negatively in a single clause and the multi-occurrence clauses all sit"

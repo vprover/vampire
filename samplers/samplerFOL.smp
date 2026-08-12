@@ -41,6 +41,9 @@ $ins=NZ > ins ~sgd 0.4,1
 # predicate_elimination
 > pel ~cat off:1,on:1
 
+# predicate_elimination_multi_occurrence
+pel=on > pelmo ~cat off:4,on:1
+
 # predicate_elimination_subsumption
 pel=on > pels ~cat on:4,off:1
 
