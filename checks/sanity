@@ -90,6 +90,29 @@ check_szs_status Theorem -newcnf on -ile off theory/let-tuple-bool-nontuple.p
 # a monomorphic tuple binding with a non-tuple right hand side
 check_szs_status Theorem -newcnf on theory/let-tuple-nontuple.p
 check_szs_status Theorem -newcnf on -ile off theory/let-tuple-nontuple.p
+# tuples on the FOOLElimination pathway (i.e. without newcnf)
+check_szs_status Theorem theory/let-tuple.p
+check_szs_status Theorem theory/let-tuple-bool.p
+check_szs_status Theorem theory/let-tuple-nontuple.p
+check_szs_status Theorem theory/let-tuple-bool-nontuple.p
+check_szs_status Theorem theory/tuple-proj-print.p
+# further tuple problems, on both pathways
+check_szs_status Theorem theory/let-tuple-mono.p
+check_szs_status Theorem -newcnf on theory/let-tuple-mono.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-mono.p
+check_szs_status Theorem theory/let-tuple-var.p
+check_szs_status Theorem -newcnf on theory/let-tuple-var.p
+check_szs_status Theorem theory/let-tuple-nested.p
+check_szs_status Theorem -newcnf on theory/let-tuple-nested.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-nested.p
+check_szs_status Theorem theory/let-tuple-arg.p
+check_szs_status Theorem -newcnf on theory/let-tuple-arg.p
+check_szs_status Theorem theory/let-tuple-shadow.p
+check_szs_status Theorem -newcnf on theory/let-tuple-shadow.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-shadow.p
+check_szs_status Theorem theory/let-tuple-poly-nontuple.p
+check_szs_status Theorem -newcnf on theory/let-tuple-poly-nontuple.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-poly-nontuple.p
 
 # FOOL
 check_szs_status Theorem theory/let-function.p

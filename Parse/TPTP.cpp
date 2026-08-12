@@ -266,7 +266,6 @@ void TPTP::parseImpl(State initialState)
       symbolDefinition();
       break;
     case TUPLE_DEFINITION:
-      if(!env.options->newCNF()){ USER_ERROR("Set --newcnf on if using tuples"); }
       tupleDefinition();
       break;
     case END_LET:
@@ -276,7 +275,6 @@ void TPTP::parseImpl(State initialState)
       endTheoryFunction();
       break;
     case END_TUPLE:
-      if(!env.options->newCNF()){ USER_ERROR("Set --newcnf on if using tuples"); }
       endTuple();
       break;
     default:
