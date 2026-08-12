@@ -279,6 +279,16 @@ enum class InferenceRule : unsigned char {
   FLEX_FLEX_SIMPLIFICATION,
   BETA_ETA_NORMALIZATION,
 
+  NOT_PROXY_CLAUSIFICATION_SIMPLIFYING,
+  AND_PROXY_CLAUSIFICATION_SIMPLIFYING,
+  OR_PROXY_CLAUSIFICATION_SIMPLIFYING,
+  IMP_PROXY_CLAUSIFICATION_SIMPLIFYING,
+  IFF_PROXY_CLAUSIFICATION_SIMPLIFYING,
+  XOR_PROXY_CLAUSIFICATION_SIMPLIFYING,
+  SIGMA_PROXY_CLAUSIFICATION_SIMPLIFYING,
+  PI_PROXY_CLAUSIFICATION_SIMPLIFYING,
+  EQUALITY_PROXY_CLAUSIFICATION_SIMPLIFYING,
+
   FUNCTION_DEFINITION_DEMODULATION,
 
   /** the last simplifying inference marker --
@@ -342,12 +352,10 @@ enum class InferenceRule : unsigned char {
   IMITATION,
   PROJECTION,
   LEIBNIZ_ELIMINATION,
-  HILBERTS_CHOICE_INSTANCE, // not considered a theory axiom at the moment (it's a HOL creature)
   NEGATIVE_EXTENSIONALITY,
   POSITIVE_EXTENSIONALITY,
   EQ_TO_DISEQ,
   HEURISTIC_INSTANTIATION,
-  /** The next five rules can be either simplifying or generating */
   NOT_PROXY_CLAUSIFICATION,
   AND_PROXY_CLAUSIFICATION,
   OR_PROXY_CLAUSIFICATION,
@@ -362,6 +370,11 @@ enum class InferenceRule : unsigned char {
         inferences between GENERIC_GENERATING_INFERENCE and GENERIC_GENERATING_INFERENCE_LAST will be automatically understood generating
         (see also isGeneratingInferenceRule) */
   GENERIC_GENERATING_INFERENCE_LAST,
+
+  /** these inferences are hard to categorize, so we just have them here at the end */
+  GENERIC_NONSPECIFIC_INFERENCE,
+  /** not considered a theory axiom at the moment (it's a HOL creature) */
+  HILBERTS_CHOICE_INSTANCE,
 
   /** equality proxy replacement */
   EQUALITY_PROXY_REPLACEMENT,
@@ -389,6 +402,8 @@ enum class InferenceRule : unsigned char {
   UNUSED_PREDICATE_DEFINITION_REMOVAL,
   /** pure predicate removal */
   PURE_PREDICATE_REMOVAL,
+  /** predicate elimination by exhaustive resolution (preprocessing) */
+  PREDICATE_ELIMINATION,
   /** inequality splitting */
   INEQUALITY_SPLITTING,
   /** inequality splitting name introduction */
@@ -455,6 +470,9 @@ enum class InferenceRule : unsigned char {
   /** sat clause representing FO clause for AVATAR */
   AVATAR_CONTRADICTION_CLAUSE,
   GENERIC_AVATAR_INFERENCE_LAST,
+
+  /** marking the last of non-specific inferences (including AVATAR inferences) */
+  GENERIC_NONSPECIFIC_INFERENCE_LAST,
 
   /** a not further specified theory axiom internally added by the class TheoryAxioms. */
   GENERIC_THEORY_AXIOM, // CAREFUL: adding rules here influences the theory_split_queue heuristic
@@ -573,6 +591,11 @@ inline bool isGeneratingInferenceRule(InferenceRule r) {
 inline bool isTheoryAxiomRule(InferenceRule r) {
   return (toNumber(r) > toNumber(InferenceRule::GENERIC_THEORY_AXIOM) &&
       toNumber(r) < toNumber(InferenceRule::GENERIC_THEORY_AXIOM_LAST));
+}
+
+inline bool isNonSpecificInferenceRule(InferenceRule r) {
+  return (toNumber(r) > toNumber(InferenceRule::GENERIC_NONSPECIFIC_INFERENCE) &&
+      toNumber(r) < toNumber(InferenceRule::GENERIC_NONSPECIFIC_INFERENCE_LAST));
 }
 
 std::string inputTypeName(UnitInputType type);

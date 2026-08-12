@@ -235,7 +235,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const D
 
       Term* fX = Term::create(f,arity,vars.begin());
       Literal* pfX = Literal::create1(p,true,TermList(fX));
-      auto fINs = Clause::fromLiterals({ pfX }, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::INPUT));
+      auto fINs = Clause::fromLiterals({ pfX }, FromInput(UnitInputType::AXIOM));
       ClauseList::push(fINs,newAxioms);
       ASS(SortHelper::areSortsValid(fINs));
     }
@@ -246,7 +246,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const D
     // Increment usage count so it's not treated as a deleted function later
     env.signature->getFunction(skolemConstant)->incUsageCnt();
     Literal* psk = Literal::create1(p,true,TermList(Term::createConstant(skolemConstant)));
-    auto nonEmpty = Clause::fromLiterals({ psk }, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::INPUT));
+    auto nonEmpty = Clause::fromLiterals({ psk }, FromInput(UnitInputType::AXIOM));
     ClauseList::push(nonEmpty,newAxioms);
     ASS(SortHelper::areSortsValid(nonEmpty));
   }

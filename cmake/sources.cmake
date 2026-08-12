@@ -51,6 +51,7 @@ set(UNIT_TESTS
     UnitTests/tDisagreement.cpp
     UnitTests/tDynamicHeap.cpp
     UnitTests/tFunctionDefinitionHandler.cpp
+    UnitTests/tHash.cpp
     UnitTests/tIndexManager.cpp
     UnitTests/tInferences_AnswerLiteralProcessors.cpp
     UnitTests/tInferences_ArithmeticSubtermGeneralization.cpp
@@ -97,6 +98,7 @@ set(UNIT_TESTS
     UnitTests/tLPO.cpp
     UnitTests/tList.cpp
     UnitTests/tOption.cpp
+    UnitTests/tPredicateElimination.cpp
     UnitTests/tOptionConstraints.cpp
     UnitTests/tQKbo.cpp
     UnitTests/tQuotientE.cpp
@@ -732,6 +734,8 @@ set(SOURCES
     Shell/PartialRedundancyHandler.hpp
     Shell/PredicateDefinition.cpp
     Shell/PredicateDefinition.hpp
+    Shell/PredicateElimination.cpp
+    Shell/PredicateElimination.hpp
     Shell/Preprocess.cpp
     Shell/Preprocess.cpp
     Shell/Preprocess.hpp

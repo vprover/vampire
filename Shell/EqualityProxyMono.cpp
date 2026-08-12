@@ -349,7 +349,7 @@ unsigned EqualityProxyMono::getProxyPredicate(TermList sort)
   FormulaUnit* defUnit = new FormulaUnit(quantDefForm,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::EQUALITY_PROXY_DEFINITION));
 
   s_proxyPremises.insert(sort, defUnit);
-  InferenceStore::instance()->recordIntroducedSymbol(defUnit, SymbolType::PRED, newPred);
+  InferenceStore::instance()->recordIntroducedSymbol(defUnit, predSym);
   return newPred;
 }
 

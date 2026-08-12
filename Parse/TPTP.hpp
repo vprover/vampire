@@ -859,8 +859,7 @@ public:
 private:
   DHMap<unsigned,SourceRecord*>* _unitSources;
 
-  /** This field stores names of input units (and their file names) if the
-   * output_axiom_names option is enabled */
+  /** This field stores names of input units (and their file names) */
   static DHMap<unsigned, std::pair<std::string, std::filesystem::path>> _axiomNames;
 
   /**

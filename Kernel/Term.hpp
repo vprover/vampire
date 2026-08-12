@@ -212,7 +212,8 @@ public:
   unsigned defaultHash() const { return DefaultHash::hash(content()); }
   unsigned defaultHash2() const { return content(); }
 
-  std::string toString(bool needsPar = false) const;
+  // TODO this default value is probably the reason we get too many parentheses everywhere
+  std::string toString(bool topLevel = false) const;
 
   friend std::ostream& operator<<(std::ostream& out, Kernel::TermList const& tl);
   /** make the term into an ordinary variable with a given number */

@@ -570,6 +570,34 @@ void Options::init()
     _blockedClauseElimination.tag(OptionTag::PREPROCESSING);
     _blockedClauseElimination.addProblemConstraint(notWithCat(Property::UEQ));
 
+    _predicateElimination = BoolOptionValue("predicate_elimination","pel",false);
+    _predicateElimination.description=
+      "After clausification, eliminate predicates that occur at most once in every clause"
+      " by replacing their clauses with all pairwise resolvents (cf. Khasidashvili and Korovin, SAT 2016)."
+      " On problems without equality and theories, resolvents are computed with an mgu;"
+      " otherwise argument disequalities are introduced via (virtual) flattening,"
+      " which may add equality to a problem previously without it.";
+    _lookup.insert(&_predicateElimination);
+    _predicateElimination.tag(OptionTag::PREPROCESSING);
+    _predicateElimination.addProblemConstraint(notWithCat(Property::UEQ));
+
+    _predicateEliminationTotalLimit = FloatOptionValue("predicate_elimination_total_limit","peltl",2.0);
+    _predicateEliminationTotalLimit.description=
+      "A predicate elimination step is only performed if the estimated number of clauses afterwards"
+      " (current - |S_P| - |S_~P| + |S_P|*|S_~P|) does not exceed the number of clauses"
+      " before predicate elimination started times this factor.";
+    _lookup.insert(&_predicateEliminationTotalLimit);
+    _predicateEliminationTotalLimit.tag(OptionTag::PREPROCESSING);
+    _predicateEliminationTotalLimit.addConstraint(greaterThanEq(0.0f));
+    _predicateEliminationTotalLimit.onlyUsefulWith(_predicateElimination.is(equal(true)));
+
+    _predicateEliminationSubsumption = BoolOptionValue("predicate_elimination_subsumption","pels",true);
+    _predicateEliminationSubsumption.description=
+      "Keep the clause set forward-inter-subsumed and subsumption-resolved during predicate elimination.";
+    _lookup.insert(&_predicateEliminationSubsumption);
+    _predicateEliminationSubsumption.tag(OptionTag::PREPROCESSING);
+    _predicateEliminationSubsumption.onlyUsefulWith(_predicateElimination.is(equal(true)));
+
     _distinctGroupExpansionLimit = UnsignedOptionValue("distinct_group_expansion_limit","dgel",140);
     _distinctGroupExpansionLimit.description = "If a distinct group (defined, e.g., via TPTP's $distinct)"
          " is not larger than this limit, it will be expanded during preprocessing into quadratically many disequalities."
@@ -2335,6 +2363,12 @@ void Options::init()
        " under a coin toss, some of their candidate operations are randomly skipped, as a source of noise injection.";
     _lookup.insert(&_randomizedSimplifications);
     _randomizedSimplifications.tag(OptionTag::INFERENCES);
+
+    _randomizedPreprocessing = BoolOptionValue("randomized_preprocessing","rpr",false);
+    _randomizedPreprocessing.description="Make selected preprocessing steps \"leaky\": under a coin toss, some of their operations are randomly skipped,"
+       " producing a mixture of half-completed (but still sound) results as a source of noise injection.";
+    _lookup.insert(&_randomizedPreprocessing);
+    _randomizedPreprocessing.tag(OptionTag::PREPROCESSING);
 
     _questionAnswering = ChoiceOptionValue<QuestionAnsweringMode>("question_answering","qa",QuestionAnsweringMode::AUTO,
                                                                   {"auto","plain","synthesis","off"});
