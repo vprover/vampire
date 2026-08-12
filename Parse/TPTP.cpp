@@ -2444,7 +2444,17 @@ void TPTP::definition()
           return;
 
         case T_LBRA:
+          // a tuple definition heading a list of simultaneous definitions;
+          // consume the tuple's first name and the comma after it, just like
+          // in the non-simultaneous case above
           resetToks();
+          if (getTok(0).tag != T_NAME) {
+            PARSE_ERROR_TOK("name expected", getTok(0));
+          }
+          _strings.push(name());
+          if (getTok(0).tag == T_COMMA) {
+            resetToks();
+          }
           _bools.push(true); // is a simultaneous definition
           addTagState(T_RBRA);
           _states.push(TUPLE_DEFINITION);
@@ -2469,7 +2479,16 @@ void TPTP::midDefinition()
       break;
 
     case T_LBRA:
+      // a tuple definition inside a list of simultaneous definitions;
+      // TUPLE_DEFINITION expects the first name of the tuple on _strings
       resetToks();
+      if (getTok(0).tag != T_NAME) {
+        PARSE_ERROR_TOK("name expected", getTok(0));
+      }
+      _strings.push(name());
+      if (getTok(0).tag == T_COMMA) {
+        resetToks();
+      }
       _states.push(TUPLE_DEFINITION);
       break;
 

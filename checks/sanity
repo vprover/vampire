@@ -113,6 +113,13 @@ check_szs_status Theorem -newcnf on -ile off theory/let-tuple-shadow.p
 check_szs_status Theorem theory/let-tuple-poly-nontuple.p
 check_szs_status Theorem -newcnf on theory/let-tuple-poly-nontuple.p
 check_szs_status Theorem -newcnf on -ile off theory/let-tuple-poly-nontuple.p
+# a tuple binding inside a simultaneous definition group
+check_szs_status Theorem theory/let-tuple-simultaneous.p
+check_szs_status Theorem -newcnf on theory/let-tuple-simultaneous.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-simultaneous.p
+check_szs_status Theorem theory/let-tuple-simultaneous2.p
+check_szs_status Theorem -newcnf on theory/let-tuple-simultaneous2.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-simultaneous2.p
 
 # FOOL
 check_szs_status Theorem theory/let-function.p
