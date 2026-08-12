@@ -2358,6 +2358,12 @@ void Options::init()
     _lookup.insert(&_randomPolarities);
     _randomPolarities.tag(OptionTag::PREPROCESSING);
 
+    _randomizedSimplifications = BoolOptionValue("randomized_simplifications","rsi",false);
+    _randomizedSimplifications.description="Make selected saturation-loop simplifications (including AVATAR splitting) \"leaky\":"
+       " under a coin toss, some of their candidate operations are randomly skipped, as a source of noise injection.";
+    _lookup.insert(&_randomizedSimplifications);
+    _randomizedSimplifications.tag(OptionTag::INFERENCES);
+
     _randomizedPreprocessing = BoolOptionValue("randomized_preprocessing","rpr",false);
     _randomizedPreprocessing.description="Make selected preprocessing steps \"leaky\": under a coin toss, some of their operations are randomly skipped,"
        " producing a mixture of half-completed (but still sound) results as a source of noise injection.";
