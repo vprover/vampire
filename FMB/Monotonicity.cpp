@@ -225,7 +225,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const D
     for(unsigned f=0; f < function_count; f++){
       if(del_f[f]) continue;
 
-      if(env.signature->getFunction(f)->fnType()->result() != sTerm)
+      if(env.signature->getFunction(f)->type()->result() != sTerm)
         continue;
 
       unsigned arity = env.signature->functionArity(f);

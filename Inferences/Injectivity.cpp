@@ -119,7 +119,7 @@ TermList Injectivity::createNewLhs(TermList oldhead, TermStack& termArgs, unsign
   Signature::Symbol* func = env.signature->getFunction(oldhead.term()->functor());
   std::string pref = "inv_" + func->name() + "_";
 
-  OperatorType* funcType = func->fnType();
+  OperatorType* funcType = func->type();
   TermList type = funcType->result(); 
 
   TermList oldResult = HOL::getResultAppliedToNArgs(type, termArgs.size());

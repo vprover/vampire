@@ -213,7 +213,7 @@ public:
   FuncTerm(FuncId f, PolyNf* args);
 
   template<class NumTraits>
-  bool isSort() const { return _fun.symbol()->fnType()->result() == NumTraits::sort(); }
+  bool isSort() const { return _fun.symbol()->type()->result() == NumTraits::sort(); }
 
   unsigned numTermArguments() const;
   FuncId function() const;

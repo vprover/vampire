@@ -184,17 +184,14 @@ void TPTPPrinter::printTffWrapper(Unit* u, std::string bodyStr)
 void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType symType)
 {
   Signature::Symbol* sym;
-  OperatorType* type;
   if(symType == SymbolType::FUNC){
     sym = env.signature->getFunction(symNumber);
-    type = sym->fnType();
   } else if(symType == SymbolType::PRED){
     sym = env.signature->getPredicate(symNumber);
-    type = sym->predType();
   } else {
     sym = env.signature->getTypeCon(symNumber);
-    type = sym->typeConType();
   }
+  auto type = sym->type();
 
   if(type->isAllDefault()) {
     return;
@@ -256,7 +253,7 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
   for (i = 0; i < env.signature->functions(); i++) {
     if(env.signature->isTypeConOrSup(f)){ continue; }
     sym = env.signature->getFunction(i);
-    type = sym->fnType();
+    type = sym->type();
     unsigned arity = sym->arity();
     // NOTE: for function types, the last entry (i.e., type->arg(arity)) contains the type of the result
     for (unsigned i = 0; i <= arity; i++) {
@@ -267,7 +264,7 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
   //check the sorts of the predicates and collect information about used sorts
   for (i = 0; i < env.signature->predicates(); i++) {
     sym = env.signature->getPredicate(i);
-    type = sym->predType();
+    type = sym->type();
     unsigned arity = sym->arity();
     if (arity > 0) {
       for (unsigned i = 0; i < arity; i++) {

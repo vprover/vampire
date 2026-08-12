@@ -142,36 +142,6 @@ void Signature::Symbol::addToDistinctGroup(unsigned group,unsigned this_number)
   members->push(this_number);
 } // addToDistinctGroup
 
-/**
- * Return the type of a function symbol
- *
- * If the @c setType() function was not called before, the function
- * symbol is assigned a default type.
- */
-OperatorType* Signature::Symbol::fnType() const
-{
-  ASS(_type);
-  return _type;
-}
-
-/**
- * Return the type of a typeConType symbol
- */
-OperatorType* Signature::Symbol::typeConType() const
-{
-  ASS(_type);
-  return _type;
-}
-
-/**
- * Return the type of a predicate symbol
- */
-OperatorType* Signature::Symbol::predType() const
-{
-  ASS(_type);
-  return _type;
-}
-
 Signature::RealSymbol::RealSymbol(const RealConstantType& val)
   : Symbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? Output::toString("$to_real(",val,")")
                                                                        : Output::toString(val),
@@ -535,7 +505,7 @@ unsigned Signature::getDefPred()
 
 unsigned Signature::getFnDef(unsigned fn)
 {
-  auto type = getFunction(fn)->fnType();
+  auto type = getFunction(fn)->type();
   auto sort = type->result();
   bool added = false;
   auto name = "sFN_"+getFunction(fn)->name();
@@ -551,7 +521,7 @@ unsigned Signature::getFnDef(unsigned fn)
 
 unsigned Signature::getBoolDef(unsigned fn)
 {
-  auto type = getPredicate(fn)->predType();
+  auto type = getPredicate(fn)->type();
   auto name = "sPN_"+getPredicate(fn)->name();
   bool added = false;
 
@@ -994,7 +964,7 @@ bool Signature::symbolNeedsQuoting(std::string name, bool interpreted, unsigned 
 TermAlgebraConstructor* Signature::getTermAlgebraConstructor(unsigned functor)
 {
   if (getFunction(functor)->termAlgebraCons()) {
-    TermAlgebra *ta = _termAlgebras.get(getFunction(functor)->fnType()->result().term()->functor());
+    TermAlgebra *ta = _termAlgebras.get(getFunction(functor)->type()->result().term()->functor());
     if (ta) {
       for (unsigned i = 0; i < ta->nConstructors(); i++) {
         TermAlgebraConstructor *c = ta->constructor(i);

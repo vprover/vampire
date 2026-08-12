@@ -1391,13 +1391,13 @@ void TPTP::tff()
         bool added = false;
         unsigned fun = env.signature->addTypeCon(nm, arity, added);
         if (!added) {
-          if(env.signature->getTypeCon(fun)->fnType() != OperatorType::getTypeConType(arity)){
+          if(env.signature->getTypeCon(fun)->type() != OperatorType::getTypeConType(arity)){
             PARSE_ERROR_TOK("Type constructor declared with two different types",tok);
           }
         } else {
           _typeConstructorArities.insert(nm, arity);
         }       
-        //cout << "added type constructor " + nm + " of type " + symbol->fnType()->toString() << endl;
+        //cout << "added type constructor " + nm + " of type " + symbol->type()->toString() << endl;
         while (lpars--) {
           consumeToken(T_RPAR);
         }
@@ -2516,8 +2516,8 @@ void TPTP::symbolDefinition()
 
   if (arity > 0) {
     OperatorType* type = isPredicate
-                       ? env.signature->getPredicate(symbol)->predType()
-                       : env.signature->getFunction(symbol)->fnType();
+                       ? env.signature->getPredicate(symbol)->type()
+                       : env.signature->getFunction(symbol)->type();
 
     // Given a binding f(X1,...,Xn) := t, we now quantify variables X1,...,Xn.
     // However, if the type of f contained implicit type variables Y1,...,Ym,
@@ -2575,7 +2575,7 @@ void TPTP::tupleDefinition()
     symbols.push(symbol);
     TermList sort = isPredicate
                   ? AtomicSort::boolSort()
-                  : env.signature->getFunction(symbol)->fnType()->result();
+                  : env.signature->getFunction(symbol)->type()->result();
     auto subst = getTypeSub(ref);
     sorts.push(SubstHelper::apply(sort, subst));
 
@@ -2617,7 +2617,7 @@ void TPTP::endDefinition()
 
   TermList refSort = isPredicate
                      ? AtomicSort::boolSort()
-                     : env.signature->getFunction(symbol)->fnType()->result();
+                     : env.signature->getFunction(symbol)->type()->result();
 
   // Before checking the argument sorts, we must substitute in implicit type variables.
   auto subst = getTypeSub(ref);
@@ -2693,7 +2693,7 @@ void TPTP::endLet()
 
     bool isTuple = false;
     if (!isPredicate) {
-      TermList resultSort = env.signature->getFunction(symbol)->fnType()->result();
+      TermList resultSort = env.signature->getFunction(symbol)->type()->result();
       isTuple = resultSort.isTupleSort();
     }
 
@@ -2707,7 +2707,7 @@ void TPTP::endLet()
           args.emplace(Term::createFormula(new AtomicFormula(Literal::create(fn, true, {}))));
         } else {
           // otherwise we have to match its result type with the actual sort
-          auto argType = env.signature->getFunction(fn)->fnType();
+          auto argType = env.signature->getFunction(fn)->type();
           ASS_EQ(argType->arity()-argType->numTypeArguments(),0);
           Substitution subst;
           MatchingUtils::matchTerms(argType->result(), ref.iTypeArgs[i], subst);
@@ -3224,7 +3224,7 @@ Formula* TPTP::createPredicateApplication(std::string name, unsigned arity)
   }
   // not equality or distinct
   auto args = nLastTermLists(arity);
-  OperatorType* type = env.signature->getPredicate(pred)->predType();
+  OperatorType* type = env.signature->getPredicate(pred)->type();
   for (auto i : range(0, arity)) {
     TermList sort = type->arg(i);
     TermList ts = args[i];
@@ -3272,7 +3272,7 @@ TermList TPTP::createFunctionApplication(std::string name, unsigned arity)
     }
   }
 
-  OperatorType* type = env.signature->getFunction(fun)->fnType();
+  OperatorType* type = env.signature->getFunction(fun)->type();
   auto args = nLastTermLists(arity);
   for (unsigned i : range(0, arity)) {
     TermList sort = type->arg(i);
@@ -3823,7 +3823,7 @@ void TPTP::endTff()
     symbol = env.signature->getPredicate(pred);
     if (!added) {
       // GR: Multiple identical type declarations for a symbol are allowed
-      if(symbol->predType() != ot){
+      if(symbol->type() != ot){
         USER_ERROR("Predicate symbol type is declared after its use: " + name);
       }
     }
@@ -3832,7 +3832,7 @@ void TPTP::endTff()
     symbol = env.signature->getTypeCon(typeCon);
     if (!added) {
       // GR: Multiple identical type declarations for a symbol are allowed
-      if(symbol->typeConType() != ot){
+      if(symbol->type() != ot){
         USER_ERROR("Type constructor type is declared after its use: " + name);
       }
     }
@@ -3840,7 +3840,7 @@ void TPTP::endTff()
     unsigned fun = env.signature->addFunction(name, ot, added);
     symbol = env.signature->getFunction(fun);
     if (!added) {
-      if(symbol->fnType() != ot){
+      if(symbol->type() != ot){
         USER_ERROR("Function symbol type is declared after its use: " + name);
       }
     }

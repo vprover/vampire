@@ -28,7 +28,7 @@ TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, std::initialize
 TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, Lib::Array<unsigned> destructors)
   : _functor(functor), _hasDiscriminator(false), _destructors(destructors)
 {
-  _type = env.signature->getFunction(_functor)->fnType();
+  _type = env.signature->getFunction(_functor)->type();
 #if VDEBUG
   ASS_REP(env.signature->getFunction(_functor)->termAlgebraCons(), env.signature->functionName(_functor));
   ASS_EQ(arity(), numTypeArguments()+destructors.size());
@@ -44,7 +44,7 @@ TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, Lib::Array<unsi
 TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, unsigned discriminator, Lib::Array<unsigned> destructors)
   : _functor(functor), _hasDiscriminator(true), _discriminator(discriminator), _destructors(destructors)
 {
-  _type = env.signature->getFunction(_functor)->fnType();
+  _type = env.signature->getFunction(_functor)->type();
 #if VDEBUG
   ASS_REP(env.signature->getFunction(_functor)->termAlgebraCons(), env.signature->functionName(_functor));
   ASS_EQ(arity(), numTypeArguments()+destructors.size());

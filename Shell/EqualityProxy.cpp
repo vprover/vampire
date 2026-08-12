@@ -197,7 +197,7 @@ void EqualityProxy::addCongruenceAxioms(UnitList*& units)
     if(!fnSym->usageCnt() || fnSym->skipCongruence())
       continue;
     unsigned arity = fnSym->arity();
-    OperatorType* fnType = fnSym->fnType();
+    OperatorType* fnType = fnSym->type();
     if (arity == 0) {
       continue;
     }
@@ -221,7 +221,7 @@ void EqualityProxy::addCongruenceAxioms(UnitList*& units)
     if (arity == 0) {
       continue;
     }
-    getArgumentEqualityLiterals(arity, lits, vars1, vars2, predSym->predType());
+    getArgumentEqualityLiterals(arity, lits, vars1, vars2, predSym->type());
     lits.push(Literal::create(i, arity, false, vars1.begin()));
     lits.push(Literal::create(i, arity, true, vars2.begin()));
 

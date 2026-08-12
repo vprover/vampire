@@ -1078,8 +1078,8 @@ VarAssignment Z3Interfacing::getAssignment(unsigned var)
 OperatorType* operatorType(Z3Interfacing::FuncOrPredId f)
 {
   return f.isPredicate
-    ? env.signature->getPredicate(f.id)->predType()
-    : env.signature->getFunction (f.id)->fnType();
+    ? env.signature->getPredicate(f.id)->type()
+    : env.signature->getFunction (f.id)->type();
 }
 
 
@@ -1508,7 +1508,7 @@ z3::func_decl Z3Interfacing::z3Function(FuncOrPredId functor)
     // function does not yet exist, create it
     auto symb = functor.isPredicate ? env.signature->getPredicate(functor.id)
                                     : env.signature->getFunction(functor.id);
-    auto type = functor.isPredicate ? symb->predType() : symb->fnType();
+    auto type = symb->type();
 
     // polymorphic symbol application: treat f(<sorts>, ...) as f<sorts>(...) for Z3
     std::string namebuf = symb->name();
@@ -1567,7 +1567,7 @@ z3::expr Z3Interfacing::getRepresentation(Term* trm)
         } else {
           auto actualSort = SortHelper::getResultSort(trm);
           symb = env.signature->getFunction(trm->functor());
-          OperatorType* ftype = symb->fnType();
+          OperatorType* ftype = symb->type();
           range_sort = ftype->result();
           if (env.signature->isTermAlgebraSort(actualSort) &&  !_createdTermAlgebras.contains(actualSort) ) {
             createTermAlgebra(actualSort);

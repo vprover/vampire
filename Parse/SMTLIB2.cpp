@@ -1028,7 +1028,7 @@ void SMTLIB2::readDeclareDatatypes(LExpr* sorts, LExpr* datatypes, bool codataty
     auto fn = dtypeFnIter.next();
     auto sym = env.signature->getTypeCon(fn);
 
-    LOG4("reading datatype ",sym->name()," of type ",sym->typeConType()->toString());
+    LOG4("reading datatype ",sym->name()," of type ",sym->type()->toString());
 
     _lookups.emplace();
     TermStack parSorts;
@@ -1591,7 +1591,7 @@ void SMTLIB2::parseMatchCase(LExpr *exp)
       return;
     }
     auto fn = _declaredSymbols.get(pattern->str).first;
-    auto type = env.signature->getFunction(fn)->fnType();
+    auto type = env.signature->getFunction(fn)->type();
     TermStack patternArgs;
     for (unsigned i = 0; i < type->arity(); i++) {
       ASS_L(i, type->numTypeArguments());
@@ -1607,7 +1607,7 @@ void SMTLIB2::parseMatchCase(LExpr *exp)
     USER_ERROR_EXPR("Unrecognized term algebra constructor "+ctorName+" in match pattern");
   }
   auto fn = _declaredSymbols.get(ctorName).first;
-  auto type = env.signature->getFunction(fn)->fnType();
+  auto type = env.signature->getFunction(fn)->type();
 
   Substitution subst;
   TermStack patternArgs;
@@ -1876,17 +1876,15 @@ bool SMTLIB2::parseAsUserDefinedSymbol(const std::string& id,LExpr* exp,bool isS
   unsigned symbIdx = sym.first;
   bool isPred = sym.second;
   Signature::Symbol* symbol = nullptr;
-  OperatorType* type = nullptr;
   if(isSort) {
     symbol = env.signature->getTypeCon(symbIdx);
-    type = symbol->typeConType();
+    
   } else if(isPred) {
     symbol = env.signature->getPredicate(symbIdx);
-    type = symbol->predType();
   } else {
     symbol = env.signature->getFunction(symbIdx);
-    type = symbol->fnType();
   }
+  auto type = symbol->type();
 
   unsigned numTypeArgs = type->numTypeArguments();
   unsigned arity = symbol->arity();

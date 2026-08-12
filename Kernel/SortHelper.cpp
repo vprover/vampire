@@ -57,12 +57,12 @@ struct CollectTask {
 static OperatorType* getType(Term const* t)
 {
   if (t->isLiteral())
-    return env.signature->getPredicate(t->functor())->predType();
+    return env.signature->getPredicate(t->functor())->type();
 
   if (t->isSort())
-    return env.signature->getTypeCon(t->functor())->typeConType();
+    return env.signature->getTypeCon(t->functor())->type();
 
-  return env.signature->getFunction(t->functor())->fnType();
+  return env.signature->getFunction(t->functor())->type();
 } // getType
 
 bool SortHelper::getTypeSub(const Term* t, Substitution& subst)
@@ -108,7 +108,7 @@ TermList SortHelper::getResultSort(const Term* t)
   Substitution subst;
   bool shared = getTypeSub(t, subst);
   Signature::Symbol* sym = env.signature->getFunction(t->functor());
-  TermList result = sym->fnType()->result();
+  TermList result = sym->type()->result();
 
   // If the substitution is empty, then the result sort must be necessarily ground.
   ASS(
@@ -124,7 +124,7 @@ TermList SortHelper::getResultSortMono(const Term* t)
   ASS(!t->isLiteral());
 
   Signature::Symbol* sym = env.signature->getFunction(t->functor());
-  return sym->fnType()->result();
+  return sym->type()->result();
 }
 
 /**

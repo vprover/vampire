@@ -148,7 +148,7 @@ struct TermSpec {
   { 
     if (!isTerm()) return false;
     auto fun = env.signature->getFunction(functor());
-    auto op = fun->fnType();
+    auto op = fun->type();
     TermList res = op->result();
     return res.isVar() || res == AtomicSort::boolSort();
   }

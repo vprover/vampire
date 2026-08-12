@@ -206,7 +206,7 @@ void EqualityProxyMono::addCongruenceAxioms(UnitList*& units)
     if (arity == 0) {
       continue;
     }
-    OperatorType* fnType = fnSym->fnType();
+    OperatorType* fnType = fnSym->type();
     getArgumentEqualityLiterals(arity, lits, vars1, vars2, fnType, false);
     Term* t1 = Term::create(i, arity, vars1.begin());
     Term* t2 = Term::create(i, arity, vars2.begin());
@@ -226,7 +226,7 @@ void EqualityProxyMono::addCongruenceAxioms(UnitList*& units)
     if (arity == 0) {
       continue;
     }
-    if (!getArgumentEqualityLiterals(arity, lits, vars1, vars2, predSym->predType(), true)) {
+    if (!getArgumentEqualityLiterals(arity, lits, vars1, vars2, predSym->type(), true)) {
       continue;
     }
     lits.push(Literal::create(i, arity, false, vars1.begin()));

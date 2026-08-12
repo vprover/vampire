@@ -1017,8 +1017,8 @@ unsigned Theory::getTupleProjectionFunctor(unsigned arity, unsigned proj)
 
 // TODO: replace with a constant time algorithm
 bool Theory::findTupleProjection(unsigned projFunctor, bool isPredicate, unsigned &proj) {
-  OperatorType* projType = isPredicate ? env.signature->getPredicate(projFunctor)->predType()
-                                       : env.signature->getFunction(projFunctor)->fnType();
+  OperatorType* projType = isPredicate ? env.signature->getPredicate(projFunctor)->type()
+                                       : env.signature->getFunction(projFunctor)->type();
 
   if (projType->arity() != 1) {
     return false;

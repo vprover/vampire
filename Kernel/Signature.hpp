@@ -259,13 +259,13 @@ class Signature
       
     /** Return true if symbol is an integer constant */
     inline bool integerConstant() const
-    { return interpreted() && arity()==0 && fnType()->result()==AtomicSort::intSort(); }
+    { return interpreted() && arity()==0 && type()->result()==AtomicSort::intSort(); }
     /** Return true if symbol is a rational constant */
     inline bool rationalConstant() const
-    { return interpreted() && arity()==0 && fnType()->result()==AtomicSort::rationalSort(); }
+    { return interpreted() && arity()==0 && type()->result()==AtomicSort::rationalSort(); }
     /** Return true if symbol is a real constant */
     inline bool realConstant() const
-    { return interpreted() && arity()==0 && fnType()->result()==AtomicSort::realSort(); }
+    { return interpreted() && arity()==0 && type()->result()==AtomicSort::realSort(); }
 
   private:
     bool numeralConstant(RealConstantType*) const { return realConstant(); }
@@ -319,9 +319,7 @@ class Signature
       return out;
     }
 
-    OperatorType* fnType() const;
-    OperatorType* predType() const;
-    OperatorType* typeConType() const;
+    OperatorType* type() const { return _type; }
   }; // class Symbol
 
   class InterpretedSymbol

@@ -568,8 +568,8 @@ public:
           ->destructorFunctor(i));
   }
 
-  auto result()        const { return symbol()->fnType()->result(); }
-  auto arg(unsigned i) const { return symbol()->fnType()->arg(i); }
+  auto result()        const { return symbol()->type()->result(); }
+  auto arg(unsigned i) const { return symbol()->type()->arg(i); }
 
   template<class... As>
   TermSugar operator()(As... args) const {

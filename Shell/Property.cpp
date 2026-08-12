@@ -592,7 +592,7 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
       pred->markInGoal();
     }
 
-    OperatorType* type = pred->predType();
+    OperatorType* type = pred->type();
     if(type->numTypeArguments()){
       _hasPolymorphicSym = true;
     }

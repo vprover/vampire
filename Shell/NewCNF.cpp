@@ -690,7 +690,7 @@ TermList NewCNF::eliminateLet(Term* term)
         }
       }
     } else {
-      auto tupleType = env.signature->getFunction(bindingLhs->functor())->fnType();
+      auto tupleType = env.signature->getFunction(bindingLhs->functor())->type();
       auto arity = bindingLhs->numTypeArguments();
       unsigned tuple = env.signature->addFreshFunction(OperatorType::getConstantsType(tupleType->result(), arity), "tuple");
       auto args = TermStack::fromIterator(typeArgIter(bindingLhs));

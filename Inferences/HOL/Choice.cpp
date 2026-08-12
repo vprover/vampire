@@ -80,7 +80,7 @@ struct Choice::AxiomsIterator
 
     while (_choiceOps.isNonEmpty()) {
       auto op = _choiceOps.pop();
-      auto type = env.signature->getFunction(op)->fnType();
+      auto type = env.signature->getFunction(op)->type();
 
       static TermStack typeArgs;
       typeArgs.reset();

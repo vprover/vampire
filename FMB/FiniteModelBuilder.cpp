@@ -760,7 +760,7 @@ void FiniteModelBuilder::init()
     if(del_f[f]) continue;
 
     if(env.signature->functionArity(f)==0){
-      TermList vsrtT = env.signature->getFunction(f)->fnType()->result();
+      TermList vsrtT = env.signature->getFunction(f)->type()->result();
       if(!vsrtT.isBoolSort()){
         unsigned vsrt = vsrtT.term()->functor();
         ASS(_sortedSignature->vampireToDistinctParent.find(vsrt));
@@ -1909,7 +1909,7 @@ void FiniteModelBuilder::onModelFound()
     static DArray<unsigned> maxVarSizeBig;
     maxVarSizeBig.ensure(arity);
 
-    OperatorType* tp = sym->fnType();
+    OperatorType* tp = sym->type();
     ASS_EQ(tp->numTypeArguments(),0) // no polymorphic business in FMB
     for(unsigned var=0;var<arity;var++){
       unsigned vamp_srt = tp->arg(var).term()->functor();
@@ -1988,7 +1988,7 @@ void FiniteModelBuilder::onModelFound()
     static DArray<unsigned> maxVarSizeBig;
     maxVarSizeBig.ensure(arity);
 
-    OperatorType* tp = sym->fnType();
+    OperatorType* tp = sym->type();
     ASS_EQ(tp->numTypeArguments(),0) // no polymorphic business in FMB
     for(unsigned var=0;var<arity;var++){
       unsigned vamp_srt = tp->arg(var).term()->functor();

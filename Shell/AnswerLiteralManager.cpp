@@ -509,7 +509,7 @@ bool SynthesisALManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answer
   Stack<TermList> sorts(arity);
   // Initialization: each answer is set to the answer from origLit.
   for (unsigned i = 0; i < arity; i++) {
-    sorts.push(env.signature->getPredicate(origLit->functor())->predType()->arg(i));
+    sorts.push(env.signature->getPredicate(origLit->functor())->type()->arg(i));
     answerArgs.push(_skolemReplacement.transformTermList(*origLit->nthArgument(i), sorts[i]));
   }
   // Go through all other answer pairs and use the relevant ones.
@@ -523,7 +523,7 @@ bool SynthesisALManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answer
     // Create the condition for an if-then-else by negating the clause
     Formula* condition = getConditionFromClause(p.second.first);
     for (unsigned i = 0; i < arity; i++) {
-      ASS_EQ(sorts[i], env.signature->getPredicate(p.second.second->functor())->predType()->arg(i));
+      ASS_EQ(sorts[i], env.signature->getPredicate(p.second.second->functor())->type()->arg(i));
       // Construct the answer using if-then-else
       answerArgs[i] = TermList(Term::createITE(condition, _skolemReplacement.transformTermList(*p.second.second->nthArgument(i), sorts[i]), answerArgs[i], sorts[i]));
     }
@@ -603,7 +603,7 @@ Literal* SynthesisALManager::makeITEAnswerLiteral(Literal* condition, Literal* t
     if (ttl == etl) {
       litArgs.push(*ttl);
     } else {
-      litArgs.push(TermList(createRegularITE(condTerm, *ttl, *etl, predSym->predType()->arg(i))));
+      litArgs.push(TermList(createRegularITE(condTerm, *ttl, *etl, predSym->type()->arg(i))));
     }
   }
   return Literal::create(thenLit->functor(), thenLit->arity(), thenLit->polarity(), litArgs.begin());
@@ -615,7 +615,7 @@ void SynthesisALManager::pushEqualityConstraints(LiteralStack* ls, Literal* then
     TermList& t = *thenLit->nthArgument(i);
     TermList& e = *elseLit->nthArgument(i);
     if (t != e) {
-      ls->push(Literal::createEquality(false, t, e, env.signature->getPredicate(thenLit->functor())->predType()->arg(i)));
+      ls->push(Literal::createEquality(false, t, e, env.signature->getPredicate(thenLit->functor())->type()->arg(i)));
     }
   }
 }
@@ -655,7 +655,7 @@ Term* SynthesisALManager::translateToSynthesisConditionTerm(Literal* l)
     argSorts.push(as);
     argSorts.push(as);
   } else {
-    OperatorType* ot = env.signature->getPredicate(l->functor())->predType();
+    OperatorType* ot = env.signature->getPredicate(l->functor())->type();
     for (unsigned i = 0; i < arity; ++i) {
       argSorts.push(ot->arg(i));
     }
@@ -778,7 +778,7 @@ TermList SynthesisALManager::ConjectureSkolemReplacement::transformSubterm(TermL
       // Replace 'trm' by the function called on the last argument of this 'trm'.
       return TermList(Term::create(rfunctor, {*t->nthArgument(t->arity()-1)}));
     } else if ((t->arity() == 3) && t->nthArgument(0)->isTerm()) {
-      TermList sort = env.signature->getFunction(functor)->fnType()->arg(1);
+      TermList sort = env.signature->getFunction(functor)->type()->arg(1);
       if (t->functor() == static_cast<SynthesisALManager*>(SynthesisALManager::getInstance())->getITEFunctionSymbol(sort)) {
         // Build condition
         Term* tcond = t->nthArgument(0)->term();
@@ -814,7 +814,7 @@ SynthesisALManager::ConjectureSkolemReplacement::Function::Function(unsigned rec
   ASS(_caseHeads);
   _cases.ensure(_caseHeads->size());
   // Add the new function to signature
-  OperatorType* ot = env.signature->getFunction(recFunctor)->fnType();
+  OperatorType* ot = env.signature->getFunction(recFunctor)->type();
   TermList in = ot->arg(ot->arity()-1);
   TermList out = ot->arg(0);
   ASS_EQ(env.signature->getTermAlgebraOfSort(in)->nConstructors(), _caseHeads->size());

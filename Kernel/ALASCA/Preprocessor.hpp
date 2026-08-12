@@ -110,7 +110,7 @@ class AlascaPreprocessor
       // TODO divides
 
       auto sym = env.signature->getPredicate(f);
-      auto ty = sym->predType();
+      auto ty = sym->type();
       auto sorts_changed = false;
       auto intConv= [&](auto x) { 
         auto out = integerConversion(TypedTermList(x, AtomicSort::superSort())); 
@@ -159,7 +159,7 @@ class AlascaPreprocessor
       };
 
       auto sym = env.signature->getFunction(f);
-      auto ty = sym->fnType();
+      auto ty = sym->type();
       Recycled<TermStack> sorts;
       for (auto i : range(0, ty->arity())) {
         sorts->push(intConv(ty->arg(i)));
@@ -242,7 +242,7 @@ public:
             && !R::isLinMul(func.value())
             ) {
           auto sym = env.signature->getFunction(func.value());
-          if (orig_sym->fnType()->result() == Z::sort()) {
+          if (orig_sym->type()->result() == Z::sort()) {
             auto t = TermList(Term::createFromIter(func.value(), range(0, sym->arity()).map([](auto x) { return TermList::var(x); })));
             // TODO use something else than NonspecificInferenceMany
             auto inf = Inference(NonspecificInferenceMany(INF_RULE, nullptr));

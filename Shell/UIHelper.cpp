@@ -661,14 +661,13 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(std::ostream& out, bool funct
   }
 
   if (function) {
-    TermList sort = env.signature->getFunction(symNumber)->fnType()->result();
+    TermList sort = env.signature->getFunction(symNumber)->type()->result();
     if (sort.isTupleSort()) {
       return;
     }
   }
 
-  OperatorType* type = function ? sym->fnType() :
-               (typeCon ? sym->typeConType() : sym->predType());
+  OperatorType* type = sym->type();
 
   if (type->isAllDefault()) {//TODO required
     return;

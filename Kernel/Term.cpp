@@ -609,7 +609,7 @@ std::string Term::headToString() const
           } else {
             sym = env.signature->getFunction(bindingLhs->functor());
           }
-          type = sym->name() + ": " + (isPredicate ? sym->predType() : sym->fnType())->toString();
+          type = sym->name() + ": " + sym->type()->toString();
         }
         return "$let(" + type + ", " + binding->toString() + ", ";
       }
@@ -1444,7 +1444,7 @@ bool Term::isBoolean() const {
         env.signature->isFoolConstantSymbol(false, term->functor())) return true;
     if (!term->isSpecial()){
       bool val = !term->isLiteral() &&
-      env.signature->getFunction(term->functor())->fnType()->result() == AtomicSort::boolSort();
+      env.signature->getFunction(term->functor())->type()->result() == AtomicSort::boolSort();
       return val;
     }
     switch (term->specialFunctor()) {

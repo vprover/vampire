@@ -105,7 +105,7 @@ void SortInference::doInference()
     for(unsigned f=0;f<env.signature->functions();f++){
       if(f < _del_f.size() && _del_f[f]) continue;
       unsigned arity = env.signature->functionArity(f);
-      OperatorType* ftype = env.signature->getFunction(f)->fnType();
+      OperatorType* ftype = env.signature->getFunction(f)->type();
       //cout << env.signature->functionName(f) << " : " << env.sorts->sortName(ftype->result()) << endl;;
       TermList resTypeT = ftype->result();
       unsigned resType = resTypeT.term()->functor();
@@ -140,7 +140,7 @@ void SortInference::doInference()
         continue;
       }
       unsigned arity = env.signature->functionArity(f);
-      OperatorType* ftype = env.signature->getFunction(f)->fnType();
+      OperatorType* ftype = env.signature->getFunction(f)->type();
       _sig->functionSignatures[f].ensure(arity+1);
       for(unsigned i=0;i<arity;i++){
         TermList argTypeT = ftype->arg(i);
@@ -155,7 +155,7 @@ void SortInference::doInference()
     for(unsigned p=1;p<env.signature->predicates();p++){
       if(p < _del_p.size() && _del_p[p]) continue;
       unsigned arity = env.signature->predicateArity(p);
-      OperatorType* ptype = env.signature->getPredicate(p)->predType();
+      OperatorType* ptype = env.signature->getPredicate(p)->type();
       _sig->predicateSignatures[p].ensure(arity);
       for(unsigned i=0;i<arity;i++){
         TermList argTypeT = ptype->arg(i);
@@ -581,7 +581,7 @@ void SortInference::doInference()
     _sig->functionSignatures[f][arity] = rangeSort;
 
     Signature::Symbol* fnSym = env.signature->getFunction(f);
-    OperatorType* fnType = fnSym->fnType();
+    OperatorType* fnType = fnSym->type();
     if(parentSet[rangeSort]){
 #if VDEBUG
       //cout << "FUNCTION " << env.signature->functionName(f) << endl;
@@ -665,7 +665,7 @@ void SortInference::doInference()
     _sig->predicateSignatures[p].ensure(arity);
 
     Signature::Symbol* prSym = env.signature->getPredicate(p);
-    OperatorType* prType = prSym->predType();
+    OperatorType* prType = prSym->type();
 
     for(unsigned i=0;i<arity;i++){
       int argRoot = unionFind.root(offset_p[p]+i);
