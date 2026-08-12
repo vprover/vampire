@@ -483,7 +483,8 @@ void Preprocess::preprocess(Problem& prb)
 
        PredicateElimination pel(/*forceEquationally=*/_options.saturationAlgorithm() == Options::SaturationAlgorithm::FINITE_MODEL_BUILDING,
                                 _options.predicateEliminationTotalLimit(),
-                                _options.predicateEliminationSubsumption());
+                                _options.predicateEliminationSubsumption(),
+                                _options.predicateEliminationMultiOccurrence());
        pel.apply(prb);
      }
    }

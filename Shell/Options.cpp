@@ -574,6 +574,7 @@ void Options::init()
     _predicateElimination.description=
       "After clausification, eliminate predicates that occur at most once in every clause"
       " by replacing their clauses with all pairwise resolvents (cf. Khasidashvili and Korovin, SAT 2016)."
+      " (See also predicate_elimination_multi_occurrence for a relaxation of the at-most-once condition.)"
       " On problems without equality and theories, resolvents are computed with an mgu;"
       " otherwise argument disequalities are introduced via (virtual) flattening,"
       " which may add equality to a problem previously without it.";
@@ -584,7 +585,8 @@ void Options::init()
     _predicateEliminationTotalLimit = FloatOptionValue("predicate_elimination_total_limit","peltl",2.0);
     _predicateEliminationTotalLimit.description=
       "A predicate elimination step is only performed if the estimated number of clauses afterwards"
-      " (current - |S_P| - |S_~P| + |S_P|*|S_~P|) does not exceed the number of clauses"
+      " (current - |S_P| - |S_~P| + the number of resolvents, which is |S_P|*|S_~P| unless"
+      " predicate_elimination_multi_occurrence kicks in) does not exceed the number of clauses"
       " before predicate elimination started times this factor.";
     _lookup.insert(&_predicateEliminationTotalLimit);
     _predicateEliminationTotalLimit.tag(OptionTag::PREPROCESSING);
@@ -597,6 +599,17 @@ void Options::init()
     _lookup.insert(&_predicateEliminationSubsumption);
     _predicateEliminationSubsumption.tag(OptionTag::PREPROCESSING);
     _predicateEliminationSubsumption.onlyUsefulWith(_predicateElimination.is(equal(true)));
+
+    _predicateEliminationMultiOccurrence = BoolOptionValue("predicate_elimination_multi_occurrence","pelmo",true);
+    _predicateEliminationMultiOccurrence.description=
+      "Also eliminate a predicate P occurring more than once in a clause, provided P never occurs"
+      " both positively and negatively in a single clause and the multi-occurrence clauses all sit"
+      " on one polarity side. Instead of pairwise resolvents, the replacement clauses are then all"
+      " the hyper-resolvents, each occurrence of a multi-occurrence clause being resolved against"
+      " its own (variable-disjoint) copy of a single-occurrence clause of the opposite polarity.";
+    _lookup.insert(&_predicateEliminationMultiOccurrence);
+    _predicateEliminationMultiOccurrence.tag(OptionTag::PREPROCESSING);
+    _predicateEliminationMultiOccurrence.onlyUsefulWith(_predicateElimination.is(equal(true)));
 
     _distinctGroupExpansionLimit = UnsignedOptionValue("distinct_group_expansion_limit","dgel",140);
     _distinctGroupExpansionLimit.description = "If a distinct group (defined, e.g., via TPTP's $distinct)"

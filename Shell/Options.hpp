@@ -2062,6 +2062,7 @@ public:
   bool predicateElimination() const { return _predicateElimination.actualValue; }
   float predicateEliminationTotalLimit() const { return _predicateEliminationTotalLimit.actualValue; }
   bool predicateEliminationSubsumption() const { return _predicateEliminationSubsumption.actualValue; }
+  bool predicateEliminationMultiOccurrence() const { return _predicateEliminationMultiOccurrence.actualValue; }
   unsigned distinctGroupExpansionLimit() const { return _distinctGroupExpansionLimit.actualValue; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval.actualValue = newVal; }
   SatSolver satSolver() const { return _satSolver.actualValue; }
@@ -2715,6 +2716,7 @@ private:
   BoolOptionValue _predicateElimination;
   FloatOptionValue _predicateEliminationTotalLimit;
   BoolOptionValue _predicateEliminationSubsumption;
+  BoolOptionValue _predicateEliminationMultiOccurrence;
   UnsignedOptionValue _distinctGroupExpansionLimit;
 
   OptionChoiceValues _tagNames;
