@@ -2933,7 +2933,7 @@ void TPTP::term()
       switch (tok.tag) {
         case T_STRING:
           // "distinct_object"s are _always_ of sort $i, even in typed contexts
-          number = env.signature->addStringConstant(tok.content, OperatorType::getConstantsType(AtomicSort::defaultSort()));
+          number = env.signature->addStringConstant(tok.content, AtomicSort::defaultSort());
           break;
         case T_INT:
           number = addNumeralConstant<IntegerConstantType>(tok.content);
@@ -3761,7 +3761,7 @@ void TPTP::endFof()
 Unit* TPTP::processClaimFormula(Unit* unit, Formula * f, const std::string& nm)
 {
   bool added;
-  unsigned pred = env.signature->addPredicate(nm,OperatorType::getPredicateType(0, nullptr, 0), added);
+  unsigned pred = env.signature->addPredicate(nm,OperatorType::getPredicateType(TermStack(), 0), added);
   if (!added) {
     USER_ERROR("Names of claims must be unique: "+nm);
   }
@@ -3941,7 +3941,6 @@ OperatorType* TPTP::constructOperatorType(Type* t, VList* vars, DHSet<unsigned>*
   }
 
   bool isPredicate = resultSort == AtomicSort::boolSort();
-  unsigned arity = (unsigned)argumentSorts.size();
 
   if(_containsPolymorphism){
     SortHelper::normaliseArgSorts(vars, argumentSorts);
@@ -3949,9 +3948,9 @@ OperatorType* TPTP::constructOperatorType(Type* t, VList* vars, DHSet<unsigned>*
   }
 
   if (isPredicate && !_isThf) { //in THF, we treat predicates and boolean terms the same
-    return OperatorType::getPredicateType(arity, argumentSorts.begin(), VList::length(vars));
+    return OperatorType::getPredicateType(argumentSorts, VList::length(vars));
   } else {
-    return OperatorType::getFunctionType(arity, argumentSorts.begin(), resultSort, VList::length(vars));
+    return OperatorType::getFunctionType(argumentSorts, resultSort, VList::length(vars));
   }
 } // constructOperatorType
 

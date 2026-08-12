@@ -120,25 +120,25 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
   return res;
 }
 
-unsigned Skolem::addSkolemFunction(unsigned arity, unsigned taArity, TermList* domainSorts,
+unsigned Skolem::addSkolemFunction(unsigned taArity, TermStack domainSorts,
     TermList rangeSort, const char* suffix)
 {
   //ASS(arity==0 || domainSorts!=0);
 
-  unsigned fun = env.signature->addSkolemFunction(OperatorType::getFunctionType(arity - taArity, domainSorts, rangeSort, taArity), suffix);
+  unsigned fun = env.signature->addSkolemFunction(OperatorType::getFunctionType(domainSorts, rangeSort, taArity), suffix);
   Signature::Symbol* fnSym = env.signature->getFunction(fun);
   fnSym->markSkipCongruence();
   return fun;
 }
 
-unsigned Skolem::addSkolemTypeCon(unsigned arity, const char* suffix)
+unsigned Skolem::addSkolemTypeCon(unsigned arity)
 {
-  return env.signature->addSkolemTypeCon(arity, suffix);
+  return env.signature->addSkolemTypeCon(arity);
 }
 
-unsigned Skolem::addSkolemPredicate(unsigned arity, unsigned taArity, TermList* domainSorts, const char* suffix)
+unsigned Skolem::addSkolemPredicate(unsigned taArity, TermStack domainSorts, const char* suffix)
 {
-  return env.signature->addSkolemPredicate(OperatorType::getPredicateType(arity - taArity, domainSorts, taArity), suffix);
+  return env.signature->addSkolemPredicate(OperatorType::getPredicateType(domainSorts, taArity), suffix);
 }
 
 void Skolem::ensureHavingVarSorts()
@@ -445,14 +445,14 @@ Formula* Skolem::skolemise (Formula* f)
             sym = addSkolemTypeCon(arity);
             skolemTerm = AtomicSort::create(sym, arity, allVars.begin());
           } else {
-            sym = addSkolemFunction(arity, typeVars.size(), termVarSorts.begin(), rangeSort);
+            sym = addSkolemFunction(typeVars.size(), termVarSorts, rangeSort);
             skolemTerm = Term::create(sym, arity, allVars.begin());
           }
         } else {
           //The higher-order case. Create the term
           //sk(typevars) @ termvar_1 @ termvar_2 @ ... @ termvar_n
           TermList skSymSort = AtomicSort::arrowSort(termVarSorts, rangeSort);
-          sym = addSkolemFunction(typeVars.size(), typeVars.size(), nullptr, skSymSort);
+          sym = addSkolemFunction(typeVars.size(), TermStack(), skSymSort);
           TermList head = TermList(Term::create(sym, typeVars.size(), typeVars.begin()));
           skolemTerm = HOL::create::app(head, termVars).term();
         }

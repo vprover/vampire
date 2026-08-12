@@ -224,7 +224,7 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
   }
 
 
-  unsigned namingPred=env.signature->addNamePredicate(OperatorType::getPredicateType(minDeg, argSorts.begin()));
+  unsigned namingPred=env.signature->addNamePredicate(OperatorType::getPredicateType(argSorts));
   Signature::Symbol *sym = env.signature->getPredicate(namingPred);
   sym->markSkipCongruence();
 

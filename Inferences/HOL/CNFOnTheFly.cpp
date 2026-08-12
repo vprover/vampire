@@ -324,7 +324,7 @@ TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt){
 
   // TODO Double check this arrow sort, as the order changed. By the looks of it, it was also wrong here.
   TermList skSymSort = AtomicSort::arrowSort(termVarSorts, resultSort);
-  unsigned fun = Skolem::addSkolemFunction(typeVars.size(), typeVars.size(), 0, skSymSort);
+  unsigned fun = Skolem::addSkolemFunction(typeVars.size(), TermStack(), skSymSort);
   TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
   TermList skolemTerm = HOL::create::app(head, termVars);
 

@@ -1094,12 +1094,11 @@ Formula* FOOLElimination::toEquality(TermList booleanTerm) {
 
 unsigned FOOLElimination::introduceFreshSymbol(Context context, const char* prefix,
                                                TermStack sorts, TermList resultSort, unsigned typeArgsArity) {
-  unsigned arity = (unsigned)sorts.size();
   OperatorType* type;
   if (context == FORMULA_CONTEXT) {
-    type = OperatorType::getPredicateType(arity, sorts.begin(), typeArgsArity);
+    type = OperatorType::getPredicateType(sorts, typeArgsArity);
   } else {
-    type = OperatorType::getFunctionType(arity, sorts.begin(), resultSort, typeArgsArity);
+    type = OperatorType::getFunctionType(sorts, resultSort, typeArgsArity);
   }
 
   unsigned symbol;

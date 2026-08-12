@@ -21,49 +21,6 @@ using namespace std;
 using namespace Kernel;
 
 /**
- * Pre-initialise an OperatorKey.
- *
- * If @c sorts is is NULL, all arguments will be initialized by the default sort,
- * otherwise, by sorts from the array @c sorts
- * @author Andrei Voronkov
- */
-OperatorType::OperatorKey* OperatorType::setupKey(unsigned arity, const TermList* sorts)
-{
-  OperatorKey* key = OperatorKey::allocate(arity+1);
-
-  if (!sorts) {
-    // initialise all argument types to the default type
-    for (unsigned i=0; i < arity; i++) {
-      (*key)[i] = AtomicSort::defaultSort();
-    }
-  } else {
-    // initialise all the argument types to those taken from sorts
-    for (unsigned i = 0; i < arity; i++) {
-      ASS(sorts[i].isVar() || sorts[i].term()->isSort());
-      (*key)[i] = sorts[i];
-    }
-  }
-  return key;
-}
-
-/**
- * Pre-initialise an OperatorKey from an initializer list of sorts.
- */
-OperatorType::OperatorKey* OperatorType::setupKey(std::initializer_list<TermList> sorts)
-{
-  OperatorKey* key = OperatorKey::allocate(sorts.size()+1);
-
-  // initialise all the argument types to those taken from sorts
-  unsigned i = 0;
-  for (auto sort : sorts) {
-    ASS(sort.isVar() || sort.term()->isSort());
-    (*key)[i++] = sort;
-  }
-
-  return key;
-}
-
-/**
  * Pre-initialise an OperatorKey from using a uniform range.
  */
 OperatorType::OperatorKey* OperatorType::setupKeyUniformRange(unsigned arity, TermList argsSort)

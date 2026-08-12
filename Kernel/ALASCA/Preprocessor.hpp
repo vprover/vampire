@@ -122,7 +122,7 @@ class AlascaPreprocessor
         arg_sorts->push(intConv(ty->arg(i)));
       }
       if (sorts_changed) {
-        unsigned nf = env.signature->addFreshPredicate(OperatorType::getPredicateType(sym->arity(), arg_sorts->begin(), ty->numTypeArguments()), sym->name().c_str());
+        unsigned nf = env.signature->addFreshPredicate(OperatorType::getPredicateType(*arg_sorts, ty->numTypeArguments()), sym->name().c_str());
         DEBUG_TRANSLATION(*sym, ": ", ty->toString(), " -> ", *env.signature->getPredicate(nf), ": ", nty->toString());
         return nf;
       } else {
@@ -160,13 +160,13 @@ class AlascaPreprocessor
 
       auto sym = env.signature->getFunction(f);
       auto ty = sym->fnType();
-      Recycled<Stack<TermList>> sorts;
+      Recycled<TermStack> sorts;
       for (auto i : range(0, ty->arity())) {
         sorts->push(intConv(ty->arg(i)));
       }
       auto res_sort = intConv(ty->result());
       if (sorts_changed) {
-        unsigned nf = env.signature->addFreshFunction(OperatorType::getFunctionType(sym->arity(), sorts->begin(), res_sort, ty->numTypeArguments()), sym->name().c_str());
+        unsigned nf = env.signature->addFreshFunction(OperatorType::getFunctionType(*sorts, res_sort, ty->numTypeArguments()), sym->name().c_str());
         DEBUG_TRANSLATION(*sym, ": ", ty->toString(), " -> ", *env.signature->getFunction(nf), ": ", nty->toString());
         return nf;
       } else {

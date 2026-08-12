@@ -811,7 +811,7 @@ void TheoryAxioms::addArrayExtensionalityAxioms()
 
   TermList arraySort(AtomicSort::create2(env.signature->getArrayConstructor(), indexSort, innerSort));
   TermStack args { arraySort, arraySort };
-  auto skolemFn = Skolem::addSkolemFunction(4, 2, args.begin(), indexSort, "arrayDiff");
+  auto skolemFn = Skolem::addSkolemFunction(/*taArity=*/2, args, indexSort, "arrayDiff");
 
   TermList sk(Term::create(skolemFn, { indexSort, innerSort, x, y })); //sk(x,y)
   TermList sel_x_sk(Term::create(sel, { indexSort, innerSort, x, sk })); //select(x,sk(x,y))

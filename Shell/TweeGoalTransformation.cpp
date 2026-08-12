@@ -157,7 +157,7 @@ class Definizator : public BottomUpTermTransformer {
             TermList head(Term::create(newSym, _typeVars.size(), _typeVars.begin()));
             res = HOL::create::app(head, _termVars);
           } else {
-            newSym = env.signature->addFreshFunction(OperatorType::getFunctionType(_termVarSorts.size(),_termVarSorts.begin(),outSort,_typeArity), "sF");
+            newSym = env.signature->addFreshFunction(OperatorType::getFunctionType(_termVarSorts,outSort,_typeArity), "sF");
 
             // res is used both to replace here, but also in the new definition
             res = TermList(Term::create(newSym,_allVars.size(),_allVars.begin()));

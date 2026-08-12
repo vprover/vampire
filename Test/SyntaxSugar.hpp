@@ -548,7 +548,7 @@ public:
     }
 
     bool added = false;
-    _functor = env.signature->addFunction(name, OperatorType::getFunctionType(as.size(), as.begin(), res, taArity), added);
+    _functor = env.signature->addFunction(name, OperatorType::getFunctionType(as, res, taArity), added);
     if (added){
       if (skolem) {
         env.signature->getFunction(_functor)->markSkolem();
@@ -652,7 +652,7 @@ public:
       SortHelper::normaliseArgSorts(vars, as);
     }
 
-    _functor = env.signature->addPredicate(name, OperatorType::getPredicateType(as.size(), as.begin(), taArity));
+    _functor = env.signature->addPredicate(name, OperatorType::getPredicateType(as, taArity));
   }
 
   template<class... As>

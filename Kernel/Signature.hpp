@@ -496,11 +496,11 @@ class Signature
    *
    * The added constant is of default ($i) sort.
    */
-  unsigned addStringConstant(const std::string& name, OperatorType* type);
+  unsigned addStringConstant(const std::string& name, TermList sort);
   unsigned addFreshFunction(OperatorType* type, const char* prefix, const char* suffix = 0);
   unsigned addSkolemFunction(OperatorType* type,const char* suffix = 0);
-  unsigned addFreshTypeCon(unsigned arity, const char* prefix, const char* suffix = 0);
-  unsigned addSkolemTypeCon(unsigned arity,const char* suffix = 0);
+  unsigned addFreshTypeCon(unsigned arity, const char* prefix);
+  unsigned addSkolemTypeCon(unsigned arity);
   unsigned addFreshPredicate(OperatorType* type, const char* prefix, const char* suffix = 0);
   unsigned addSkolemPredicate(OperatorType* type,const char* suffix = 0);
   unsigned addNamePredicate(OperatorType* type);

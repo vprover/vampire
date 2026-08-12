@@ -466,7 +466,7 @@ unsigned Signature::addFunction (const std::string& name,
  * added to the distinct group STRING_DISTINCT_GROUP.
  * @author Andrei Voronkov
  */
-unsigned Signature::addStringConstant(const std::string& name, OperatorType* type)
+unsigned Signature::addStringConstant(const std::string& name, TermList sort)
 {
   auto symbolKey = SymbolKey(name);
   unsigned result;
@@ -478,7 +478,7 @@ unsigned Signature::addStringConstant(const std::string& name, OperatorType* typ
   // TODO shouldn't we also quote inside of name?
   std::string quotedName = "\"" + name + "\"";
   result = _funs.length();
-  Symbol* sym = new Symbol(quotedName, /*type=*/type,
+  Symbol* sym = new Symbol(quotedName, OperatorType::getConstantsType(sort),
         /*       interpreted */ false, 
         /*    preventQuoting */ true);
   sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result);
@@ -560,7 +560,7 @@ unsigned Signature::getBoolDef(unsigned fn)
     sorts.push(type->arg(i));
   }
   auto p = addPredicate(name,
-    OperatorType::getPredicateType(sorts.size(), sorts.begin(), type->numTypeArguments()), added);
+    OperatorType::getPredicateType(sorts, type->numTypeArguments()), added);
   if (added) {
     ALWAYS(_boolDefPreds.insert(p,fn));
     Symbol* sym = getPredicate(p);
@@ -755,16 +755,16 @@ unsigned Signature::addFreshFunction(OperatorType* type, const char* prefix, con
  * the typeCon name will be prefixI, where I is an integer, otherwise it will be
  * prefixI_suffix. The new function will be marked as skip for the purpose of equality
  * elimination.
+ * TODO update documentation of all functions
  */
-unsigned Signature::addFreshTypeCon(unsigned arity, const char* prefix, const char* suffix)
+unsigned Signature::addFreshTypeCon(unsigned arity, const char* prefix)
 {
   std::string pref(prefix);
-  std::string suf(suffix ? std::string("_")+suffix : "");
   bool added;
   unsigned result;
 
   do {
-    result = addTypeCon(pref+Int::toString(_nextFreshSymbolNumber++)+suf,arity,added);
+    result = addTypeCon(pref+Int::toString(_nextFreshSymbolNumber++),arity,added);
   }
   while (!added);
 
@@ -823,9 +823,9 @@ unsigned Signature::addSkolemFunction (OperatorType* type, const char* suffix)
  * into the name of the Skolem typeCon.
  * @since 01/07/2005 Manchester
  */
-unsigned Signature::addSkolemTypeCon (unsigned arity, const char* suffix)
+unsigned Signature::addSkolemTypeCon (unsigned arity)
 {
-  unsigned tc = addFreshTypeCon(arity, "sK", suffix);
+  unsigned tc = addFreshTypeCon(arity, "sK");
   getTypeCon(tc)->markSkolem();
   return tc;
 } // addSkolemFunction

@@ -147,8 +147,7 @@ void DefinitionIntroduction<higherOrder>::introduceDefinitionFor(Term *t) {
     functor = env.signature->addFreshFunction(OperatorType::getConstantsType(sort, type_arity), "sF");
   } else {
     functor = env.signature->addFreshFunction(OperatorType::getFunctionType(
-      term_arity,
-      domain_sort_vector.begin(),
+      domain_sort_vector,
       sort_rename.apply(range_sort),
       type_arity
     ), "sF");

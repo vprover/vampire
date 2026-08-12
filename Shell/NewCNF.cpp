@@ -806,10 +806,10 @@ TermList NewCNF::nameLetBinding(Term* bindingLhs, TermList bindingRhs, TermList 
     SortHelper::normaliseSort(*typeVars, resultSort);
 
     if (isPredicate) {
-      auto type = OperatorType::getPredicateType(termVarSorts->size(), termVarSorts->begin(), typeVars.size());
+      auto type = OperatorType::getPredicateType(*termVarSorts, typeVars.size());
       freshSymbol = env.signature->addFreshPredicate(type, "lG");
     } else {
-      auto type = OperatorType::getFunctionType(termVarSorts->size(), termVarSorts->begin(), resultSort, typeVars.size());
+      auto type = OperatorType::getFunctionType(*termVarSorts, resultSort, typeVars.size());
       freshSymbol = env.signature->addFreshFunction(type, "lG");
     }
   }
@@ -960,7 +960,7 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
   bool isPredicate = (rangeSort == AtomicSort::boolSort());
   bool isTypeVar = (rangeSort == AtomicSort::superSort());
   if (isPredicate) {
-    unsigned pred = Skolem::addSkolemPredicate(arity, taArity, termVarSorts->begin());
+    unsigned pred = Skolem::addSkolemPredicate(taArity, *termVarSorts);
     sym = env.signature->getPredicate(pred);
     res = Term::createFormula(new AtomicFormula(Literal::create(pred, arity, true, args.begin())));
   } else if (isTypeVar) {
@@ -970,7 +970,7 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
     sym = env.signature->getTypeCon(typeCon);
     res = AtomicSort::create(typeCon, arity, typeVars->begin());
   } else {
-    unsigned fun = Skolem::addSkolemFunction(arity, taArity, termVarSorts->begin(), rangeSort);
+    unsigned fun = Skolem::addSkolemFunction(taArity, *termVarSorts, rangeSort);
     sym = env.signature->getFunction(fun);
     if(_forInduction){
       sym->markInductionSkolem();
@@ -1205,7 +1205,7 @@ Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
   auto taArity = typeVars->size();
   SortHelper::normaliseArgSorts(*typeVars, *termVarSorts);
 
-  unsigned pred = env.signature->addNamePredicate(OperatorType::getPredicateType(length-taArity, termVarSorts->begin(), taArity));
+  unsigned pred = env.signature->addNamePredicate(OperatorType::getPredicateType(*termVarSorts, taArity));
   env.statistics->formulaNames++;
 
   Signature::Symbol* predSym = env.signature->getPredicate(pred);

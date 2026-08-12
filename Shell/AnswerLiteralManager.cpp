@@ -339,7 +339,7 @@ Literal* AnswerLiteralManager::getAnswerLiteral(VSList* varSorts, Formula* f)
   }
 
   unsigned vcnt = litArgs.size();
-  unsigned pred = env.signature->addFreshPredicate(OperatorType::getPredicateType(sorts.size(), sorts.begin()),"ans");
+  unsigned pred = env.signature->addFreshPredicate(OperatorType::getPredicateType(sorts),"ans");
   Signature::Symbol* predSym = env.signature->getPredicate(pred);
   predSym->markAnswerPredicate();
   // don't need equality proxy for answer literals
@@ -661,7 +661,7 @@ Term* SynthesisALManager::translateToSynthesisConditionTerm(Literal* l)
     }
   }
   bool added = false;
-  unsigned fn = env.signature->addFunction(fnName, OperatorType::getFunctionType(arity, argSorts.begin(), AtomicSort::defaultSort()), added);
+  unsigned fn = env.signature->addFunction(fnName, OperatorType::getFunctionType(argSorts, AtomicSort::defaultSort()), added);
   // Store the mapping between the function and predicate symbols
   _skolemReplacement.addCondPair(fn, l->functor());
   if (added && !l->isEquality()) {

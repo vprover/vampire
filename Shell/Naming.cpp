@@ -1113,7 +1113,7 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
   }
 
   if(!_appify){
-    unsigned pred = env.signature->addNamePredicate(OperatorType::getPredicateType(arity - typeArgArity, termVarSorts.begin(), typeArgArity));
+    unsigned pred = env.signature->addNamePredicate(OperatorType::getPredicateType(termVarSorts, typeArgArity));
     Signature::Symbol* predSym = env.signature->getPredicate(pred);
     predSym->markSkipCongruence();
 

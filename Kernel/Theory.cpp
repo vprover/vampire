@@ -1209,7 +1209,7 @@ OperatorType* Theory::getOperatorType(Interpretation i)
   // (except for two variable equalities where the type argument
   // is stored as an extra in the Literal).
   if (i == Interpretation::EQUAL) {
-    return OperatorType::getPredicateType(2);
+    return OperatorType::getPredicateTypeUniformRange(2, AtomicSort::defaultSort());
   }
 
   // Array operators have two type arguments, index type and element type
@@ -1229,16 +1229,12 @@ OperatorType* Theory::getOperatorType(Interpretation i)
 
   ASS(hasSingleSort(i));
   TermList sort = getOperationSort(i);
-
   unsigned arity = getArity(i);
 
-  static DArray<TermList> domainSorts;
-  domainSorts.init(arity, sort);
-
   if (isFunction(i)) {
-    return OperatorType::getFunctionType(arity, domainSorts.array(), sort);
+    return OperatorType::getFunctionTypeUniformRange(arity, sort, sort);
   } else {
-    return OperatorType::getPredicateType(arity, domainSorts.array());
+    return OperatorType::getPredicateTypeUniformRange(arity, sort);
   }
 }
 
@@ -1255,7 +1251,7 @@ TermAlgebra* Theory::getTupleTermAlgebra(unsigned arity)
   auto args = typeVars;
   args.loadFromIterator(varRange(arity, 2*arity));
 
-  auto tupleType = OperatorType::getFunctionType(arity, args.begin(), tupleSort, arity);
+  auto tupleType = OperatorType::getFunctionType(args, tupleSort, arity);
   auto functor = env.signature->addFreshFunction(tupleType, "tuple");
   env.signature->getFunction(functor)->markTermAlgebraCons();
 
