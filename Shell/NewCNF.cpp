@@ -703,10 +703,11 @@ TermList NewCNF::eliminateLet(Term* term)
           auto lhs = arg.term();
           ASS_EQ(lhs->numTermArguments(), 0);
 
+          // note that the projections are always functions, also for a Boolean
+          // component: such a component is a $o-sorted *term* proj_i(...,tuple),
+          // which SymbolDefinitionInlining turns into a formula where needed
           unsigned projFunctor = Theory::getTupleProjectionFunctor(arity, i);
-          Term* projectedArgument = lhs->isBoolean()
-            ? Term::createFormula(new AtomicFormula(Literal::create(projFunctor, args.size(), /*polarity*/true, args.begin())))
-            : Term::create(projFunctor, args);
+          Term* projectedArgument = Term::create(projFunctor, args);
 
           SymbolDefinitionInlining inlining(lhs, TermList(projectedArgument), 0);
           body = inlining.process(body);
