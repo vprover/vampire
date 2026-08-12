@@ -30,6 +30,7 @@
 #include "Inferences/TautologyDeletionISE.hpp"
 
 #include "Lib/Environment.hpp"
+#include "Lib/Random.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/Shuffling.hpp"
@@ -124,10 +125,20 @@ void PredicateElimination::apply(Problem &prb)
   }
   _curTotal = _origTotal = _all.size();
 
+  // under randomized preprocessing, each picked candidate predicate is with this
+  // probability skipped: it gets marked as never-to-be-reconsidered, so it stays
+  // in the problem for good (the loss is monotone; to be tuned)
+  constexpr double RPR_SKIP_PROB = 0.1;
+  bool rpr = env.options->randomizedPreprocessing();
+
   for (;;) {
     int pred = pickCandidate();
     if (pred < 0) {
       break;
+    }
+    if (rpr && Random::getDouble(0.0,1.0) < RPR_SKIP_PROB) {
+      _preds[pred].rprSkipped = true;
+      continue;
     }
     eliminate(prb, (unsigned)pred);
   }
@@ -196,7 +207,7 @@ void PredicateElimination::handleClause(Clause *cl)
 bool PredicateElimination::eligible(unsigned pred) const
 {
   const PredInfo &info = _preds[pred];
-  return !info.eliminated && info.blockers == 0 && (info.pos.size() + info.neg.size() > 0);
+  return !info.eliminated && !info.rprSkipped && info.blockers == 0 && (info.pos.size() + info.neg.size() > 0);
 }
 
 double PredicateElimination::estimatedTotalAfter(unsigned pred) const
