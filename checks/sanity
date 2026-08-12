@@ -80,6 +80,10 @@ check_szs_status Unsatisfiable -tac axiom term-algebra/terms_acyclic.smt2
 # Tuples
 # a unary symbol over a tuple sort must not be mistaken for a tuple projection
 check_exact_output theory/tuple-proj-print.out --mode clausify -newcnf on theory/tuple-proj-print.p
+# an ordinary $let-bound symbol of a tuple sort is not a tuple binding
+check_szs_status Theorem theory/let-tuple-sorted-const.p
+check_szs_status Theorem -newcnf on theory/let-tuple-sorted-const.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-sorted-const.p
 
 # FOOL
 check_szs_status Theorem theory/let-function.p

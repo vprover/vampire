@@ -2601,7 +2601,7 @@ void TPTP::tupleDefinition()
 
   LetDefinitions definitions = _letDefinitions.pop();
   // TODO tuple $lets probably also need adjusting with polymorphic (implicit) types
-  definitions.push(LetSymbolReference{ tupleFunctor, false, std::move(sorts) });
+  definitions.push(LetSymbolReference{ tupleFunctor, false, std::move(sorts), /*isTuple=*/true });
   _letDefinitions.push(definitions);
 
   VList* constants = VList::empty();
@@ -2699,11 +2699,11 @@ void TPTP::endLet()
     VList* varList = _varLists.pop();
     TermList body = _termLists.pop();
 
-    bool isTuple = false;
-    if (!isPredicate) {
-      TermList resultSort = env.signature->getFunction(symbol)->fnType()->result();
-      isTuple = resultSort.isTupleSort();
-    }
+    // note that this cannot be decided by looking at the result sort of symbol:
+    // an ordinary $let-bound symbol may have a tuple sort as well, and then it
+    // is bound as a single symbol and has no list of tuple constants
+    bool isTuple = ref.isTuple;
+    ASS(!isTuple || !isPredicate);
 
     // Implicit type variables come first, then the rest
     TermStack args = ref.iTypeArgs;
