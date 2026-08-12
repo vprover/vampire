@@ -640,10 +640,9 @@ std::string Term::headToString() const
         ASSERTION_VIOLATION;
     }
   } else {
-    unsigned proj;
-    if (!isSort() && Theory::findTupleProjection(functor(), isLiteral(), proj)) {
-      return "$proj(" + Int::toString(proj) + ", ";
-    }
+    // note: tuple projections are printed as ordinary function symbols;
+    // TPTP has no surface syntax for them, so printing "$proj(i, t)"
+    // would produce output that cannot be read back in
     std::string name = "";
     if(isLiteral()) {
       name = static_cast<const Literal *>(this)->predicateName();
@@ -924,10 +923,6 @@ std::string Literal::toString(bool reverseEquality) const
     }
   }
 
-  unsigned proj;
-  if (Theory::findTupleProjection(functor(), true, proj)) {
-    return s + "$proj(" + Int::toString(proj) + ", " + args()->asArgsToString();
-  }
   s += predicateName();
 
   //cerr << "predicate: "<< predicateName()<<endl;

@@ -77,6 +77,10 @@ check_exact_output ucore/test2.out --input_syntax smtlib2 -om ucore ucore/test2.
 check_szs_status Unsatisfiable term-algebra/terms_distinct.smt2
 check_szs_status Unsatisfiable -tac axiom term-algebra/terms_acyclic.smt2
 
+# Tuples
+# a unary symbol over a tuple sort must not be mistaken for a tuple projection
+check_exact_output theory/tuple-proj-print.out --mode clausify -newcnf on theory/tuple-proj-print.p
+
 # FOOL
 check_szs_status Theorem theory/let-function.p
 check_szs_status Theorem -newcnf on theory/let-function.p

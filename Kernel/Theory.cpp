@@ -1010,21 +1010,34 @@ unsigned Theory::getTupleProjectionFunctor(unsigned arity, unsigned proj)
 {
   auto c = theory->getTupleTermAlgebra(arity)->constructor(0);
 
-  ASS_L(proj, c->arity());
+  ASS_L(proj, c->arity() - c->numTypeArguments());
 
   return c->destructorFunctor(proj);
 }
 
 // TODO: replace with a constant time algorithm
 bool Theory::findTupleProjection(unsigned projFunctor, bool isPredicate, unsigned &proj) {
-  OperatorType* projType = isPredicate ? env.signature->getPredicate(projFunctor)->predType()
-                                       : env.signature->getFunction(projFunctor)->fnType();
-
-  if (projType->arity() != 1) {
+  // tuple projections are the destructors of the tuple term algebra,
+  // and destructors are always functions (even for a Boolean component)
+  if (isPredicate) {
     return false;
   }
 
-  TermList tupleSort = projType->arg(0);
+  Signature::Symbol* sym = env.signature->getFunction(projFunctor);
+  if (!sym->termAlgebraDest()) {
+    return false;
+  }
+
+  OperatorType* projType = sym->fnType();
+  unsigned numTypeArgs = projType->numTypeArguments();
+
+  // a projection takes exactly one term argument (the tuple);
+  // note that OperatorType::arity() counts the type arguments as well
+  if (projType->arity() != numTypeArgs + 1) {
+    return false;
+  }
+
+  TermList tupleSort = projType->arg(numTypeArgs);
 
   if (!tupleSort.isTupleSort()) {
     return false;
@@ -1035,7 +1048,7 @@ bool Theory::findTupleProjection(unsigned projFunctor, bool isPredicate, unsigne
   }
 
   Shell::TermAlgebraConstructor* c = env.signature->getTermAlgebraOfSort(tupleSort)->constructor(0);
-  for (unsigned i = 0; i < c->arity(); i++) {
+  for (unsigned i = 0; i < c->arity() - c->numTypeArguments(); i++) {
     if (projFunctor == c->destructorFunctor(i)) {
       proj = i;
       return true;
