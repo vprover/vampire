@@ -1002,8 +1002,27 @@ unsigned Theory::getTupleConstructor(unsigned arity)
 
 bool Theory::isTupleConstructor(Term* t)
 {
-  return !t->isSpecial() && !t->isSort() && SortHelper::getResultSort(t).isTupleSort()
-    && getTupleConstructor(t->numTypeArguments()) == t->functor();
+  if (t->isSpecial() || t->isSort() || t->isLiteral()) {
+    return false;
+  }
+
+  // note that we must not call getTupleConstructor before we know that t is a
+  // term algebra constructor of a tuple sort: getTupleConstructor registers the
+  // tuple term algebra of the given arity as a side effect, and we do not want
+  // merely asking this question to extend the signature
+  if (!env.signature->getFunction(t->functor())->termAlgebraCons()) {
+    return false;
+  }
+
+  TermList sort = SortHelper::getResultSort(t);
+
+  if (!sort.isTupleSort()) {
+    return false;
+  }
+
+  // the arity of the tuple is the arity of its sort, not the number of type
+  // arguments of t (which is 0 for, e.g., a constant of a tuple sort)
+  return getTupleConstructor(sort.term()->arity()) == t->functor();
 }
 
 unsigned Theory::getTupleProjectionFunctor(unsigned arity, unsigned proj)

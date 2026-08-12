@@ -76,3 +76,26 @@ TEST_FUN(findTupleProjection_rejects_plain_symbols_over_tuple_sorts) {
   ASS(!Theory::findTupleProjection(p.functor(), /*isPredicate=*/true, proj));
 }
 
+TEST_FUN(isTupleConstructor_does_not_touch_the_signature) {
+  DECL_SORT(s)
+
+  unsigned arity = 2;
+  unsigned tupleFunctor = Theory::getTupleConstructor(arity);
+  TermList tupleSort = tupleSortOf(arity, s.sugaredExpr());
+
+  DECL_CONST(g, tupleSort) // a plain constant of a tuple sort
+  DECL_CONST(c, s)         // an ordinary term of a non-tuple sort
+
+  unsigned before = countTermAlgebras();
+
+  ASS(!Theory::isTupleConstructor(g().sugaredExpr().term()));
+  ASS(!Theory::isTupleConstructor(c().sugaredExpr().term()));
+
+  // asking whether a term is a tuple constructor must not register anything
+  ASS_EQ(before, countTermAlgebras());
+
+  // a genuine tuple term is still recognised
+  TermStack args = { s.sugaredExpr(), s.sugaredExpr(), c().sugaredExpr(), c().sugaredExpr() };
+  ASS(Theory::isTupleConstructor(Term::create(tupleFunctor, args)));
+}
+
