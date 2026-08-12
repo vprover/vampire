@@ -86,6 +86,10 @@ check_szs_status Theorem -newcnf on theory/let-tuple-sorted-const.p
 check_szs_status Theorem -newcnf on -ile off theory/let-tuple-sorted-const.p
 # a tuple binding with a Boolean component, bound to a projection
 check_szs_status Theorem -newcnf on theory/let-tuple-bool-nontuple.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-bool-nontuple.p
+# a monomorphic tuple binding with a non-tuple right hand side
+check_szs_status Theorem -newcnf on theory/let-tuple-nontuple.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-nontuple.p
 
 # FOOL
 check_szs_status Theorem theory/let-function.p
