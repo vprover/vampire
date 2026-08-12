@@ -99,10 +99,6 @@ private:
     unsigned blockers = 0; // number of clauses in which P occurs both positively and negatively
     unsigned posMulti = 0; // number of clauses of pos with more than one occurrence
     unsigned negMulti = 0; // dtto, for neg
-    // posHist[k] is the number of clauses of pos with exactly k occurrences (index 0 unused);
-    // maintained just to keep estimatedTotalAfter cheap
-    Lib::Stack<unsigned> posHist;
-    Lib::Stack<unsigned> negHist;
     bool eliminated = false;
     bool rprSkipped = false;  // under randomized preprocessing: picked but skipped, never to be reconsidered
   };
@@ -131,7 +127,27 @@ private:
   /** which side carries the (possible) multi-occurrence clauses, i.e. plays the nuclei;
    * the satellites, all with exactly one occurrence, then come from the other side */
   bool posIsNucleus(unsigned pred) const { return _preds[pred].negMulti == 0; }
-  double estimatedTotalAfter(unsigned pred) const;
+
+  /** the number of hyper-resolvents when at least one side does have multiplicities;
+   * out of line, and out of estimatedTotalAfter's body, only to keep that one inlinable */
+  double multiOccurrenceResolvents(PredInfo const &info, double sp, double sn) const;
+  /**
+   * Estimate the clause count after eliminating @b pred. This sits in the innermost loop of
+   * pickCandidate, which rescans the whole signature on every elimination round, so the
+   * overwhelmingly common all-multiplicities-are-1 case must stay just a few loads and a
+   * multiply -- and must stay small enough for the compiler to inline it.
+   */
+  double estimatedTotalAfter(unsigned pred) const
+  {
+    const PredInfo &info = _preds[pred];
+    double sp = info.pos.size();
+    double sn = info.neg.size();
+    // an overflow to infinity below simply makes the step inadmissible, which is what we want
+    double resolvents = (info.posMulti == 0 && info.negMulti == 0)
+                            ? sp * sn
+                            : multiOccurrenceResolvents(info, sp, sn);
+    return (double)_curTotal - sp - sn + resolvents;
+  }
   bool admissible(unsigned pred) const;
   int pickCandidate() const;
 
@@ -141,14 +157,19 @@ private:
   Literal *findPredLiteral(Clause *cl, unsigned pred, bool polarity) const;
 
   // (hyper-)resolvent construction; nullptr means no clause results (tautology / non-unifiable tuple).
-  // satLits[j], the unique pred-literal of sats[j], gets resolved against (*nucleus)[nucIdxs[j]]
+  // choice[j] picks, out of sats/satLits, the satellite whose (unique) pred-literal gets
+  // resolved against (*nucleus)[nucIdxs[j]]; the same satellite may be picked more than once
   Clause *buildResolvent(Clause *nucleus, Lib::Stack<unsigned> const &nucIdxs,
-                         ClauseStack const &sats, LiteralStack const &satLits);
+                         ClauseStack const &sats, LiteralStack const &satLits,
+                         Lib::DArray<unsigned> const &choice);
   Clause *buildResolventMgu(Clause *nucleus, Lib::Stack<unsigned> const &nucIdxs,
-                            ClauseStack const &sats, LiteralStack const &satLits);
+                            ClauseStack const &sats, LiteralStack const &satLits,
+                            Lib::DArray<unsigned> const &choice);
   Clause *buildResolventEq(Clause *nucleus, Lib::Stack<unsigned> const &nucIdxs,
-                           ClauseStack const &sats, LiteralStack const &satLits);
-  Clause *assembleClause(LiteralStack &lits, Clause *nucleus, ClauseStack const &sats);
+                           ClauseStack const &sats, LiteralStack const &satLits,
+                           Lib::DArray<unsigned> const &choice);
+  Clause *assembleClause(LiteralStack &lits, Clause *nucleus,
+                         ClauseStack const &sats, Lib::DArray<unsigned> const &choice);
 
   // model reconstruction
   void recordElimination(Problem &prb, unsigned pred, ClauseStack const &posCls, ClauseStack const &negCls);

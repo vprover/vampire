@@ -39,7 +39,6 @@
 #include "Debug/TimeProfiling.hpp"
 
 #include <algorithm>
-#include <cmath>
 
 namespace Shell {
 
@@ -162,26 +161,19 @@ void PredicateElimination::apply(Problem &prb)
 /**
  * Add (@b add) or remove one clause's worth of occurrences to (from) one side of a PredInfo.
  */
-static void updateSide(bool add, DHMap<Clause *, unsigned> &side, Stack<unsigned> &hist,
+static void updateSide(bool add, DHMap<Clause *, unsigned> &side,
                        unsigned &multi, Clause *cl, unsigned count)
 {
   ASS_G(count, 0);
 
   if (add) {
-    while (hist.size() <= count) {
-      hist.push(0);
-    }
     ALWAYS(side.insert(cl, count));
-    hist[count]++;
     if (count > 1) {
       multi++;
     }
   }
   else {
-    ASS_L(count, hist.size());
     ALWAYS(side.remove(cl).isSome());
-    ASS_G(hist[count], 0);
-    hist[count]--;
     if (count > 1) {
       ASS_G(multi, 0);
       multi--;
@@ -218,10 +210,10 @@ void PredicateElimination::handleClause(Clause *cl)
       }
     }
     else if (p > 0) {
-      updateSide(add, info.pos, info.posHist, info.posMulti, cl, p);
+      updateSide(add, info.pos, info.posMulti, cl, p);
     }
     else {
-      updateSide(add, info.neg, info.negHist, info.negMulti, cl, n);
+      updateSide(add, info.neg, info.negMulti, cl, n);
     }
   }
 }
@@ -238,25 +230,27 @@ bool PredicateElimination::eligible(unsigned pred) const
                           : (info.posMulti == 0 && info.negMulti == 0);
 }
 
-double PredicateElimination::estimatedTotalAfter(unsigned pred) const
+/** @b base to the @b exp-th; cheaper (and more accurate) than std::pow for our small exponents */
+static double dpow(double base, unsigned exp)
 {
-  const PredInfo &info = _preds[pred];
-  double sp = info.pos.size();
-  double sn = info.neg.size();
+  double res = 1.0;
+  while (exp--) {
+    res *= base;
+  }
+  return res;
+}
 
-  // each nucleus with k occurrences spawns |satellites|^k hyper-resolvents
-  bool posNucleus = posIsNucleus(pred);
-  const Stack<unsigned> &hist = posNucleus ? info.posHist : info.negHist;
+// each nucleus with k occurrences spawns |satellites|^k hyper-resolvents
+double PredicateElimination::multiOccurrenceResolvents(PredInfo const &info, double sp, double sn) const
+{
+  bool posNucleus = (info.negMulti == 0);
   double sats = posNucleus ? sn : sp;
 
   double resolvents = 0.0;
-  for (unsigned k = 1; k < hist.size(); k++) { // note: k >= 1, so no 0^0 below
-    if (hist[k] > 0) {
-      resolvents += (double)hist[k] * std::pow(sats, (double)k);
-    }
+  for (const auto& k : iterTraits((posNucleus ? info.pos : info.neg).range())) {
+    resolvents += dpow(sats, k); // note: k >= 1, so no 0^0 here
   }
-  // an overflow to infinity here simply makes the step inadmissible, which is what we want
-  return (double)_curTotal - sp - sn + resolvents;
+  return resolvents;
 }
 
 bool PredicateElimination::admissible(unsigned pred) const
@@ -279,12 +273,18 @@ int PredicateElimination::pickCandidate() const
   int best = -1;
   double bestEst = 0.0;
   for (unsigned pred : order) {
-    if (eligible(pred) && admissible(pred)) {
-      double est = estimatedTotalAfter(pred);
-      if (best < 0 || est < bestEst) {
-        best = pred;
-        bestEst = est;
-      }
+    if (!eligible(pred)) {
+      continue;
+    }
+    // admissible(pred), but sharing the estimate with the comparison below rather
+    // than computing it twice for every candidate of every round
+    double est = estimatedTotalAfter(pred);
+    if (est > (double)_origTotal * _totalLimit) {
+      continue;
+    }
+    if (best < 0 || est < bestEst) {
+      best = pred;
+      bestEst = est;
     }
   }
   return best;
@@ -352,8 +352,6 @@ void PredicateElimination::eliminate(Problem &prb, unsigned pred)
   // and the nuclei (the only clauses pred occurs in) simply go away below
   if (satellites.isNonEmpty()) {
     Stack<unsigned> nucIdxs;
-    ClauseStack tuple;
-    LiteralStack tupleLits;
     DArray<unsigned> choice;
     for (Clause *c : nuclei) {
       nucIdxs.reset();
@@ -363,13 +361,7 @@ void PredicateElimination::eliminate(Problem &prb, unsigned pred)
       // an odometer over all the |satellites|^|nucIdxs| assignments of satellites to occurrences
       choice.init(nucIdxs.size(), 0);
       for (;;) {
-        tuple.reset();
-        tupleLits.reset();
-        for (unsigned j = 0; j < choice.size(); j++) {
-          tuple.push(satellites[choice[j]]);
-          tupleLits.push(satelliteLits[choice[j]]);
-        }
-        Clause *r = buildResolvent(c, nucIdxs, tuple, tupleLits);
+        Clause *r = buildResolvent(c, nucIdxs, satellites, satelliteLits, choice);
         if (r && _useSubsumption) {
           r = forwardSimplify(r);
         }
@@ -429,13 +421,14 @@ void PredicateElimination::eliminate(Problem &prb, unsigned pred)
 }
 
 Clause *PredicateElimination::buildResolvent(Clause *nucleus, Stack<unsigned> const &nucIdxs,
-                                             ClauseStack const &sats, LiteralStack const &satLits)
+                                             ClauseStack const &sats, LiteralStack const &satLits,
+                                             DArray<unsigned> const &choice)
 {
   if (_equational) {
-    return buildResolventEq(nucleus, nucIdxs, sats, satLits);
+    return buildResolventEq(nucleus, nucIdxs, sats, satLits, choice);
   }
   else {
-    return buildResolventMgu(nucleus, nucIdxs, sats, satLits);
+    return buildResolventMgu(nucleus, nucIdxs, sats, satLits, choice);
   }
 }
 
@@ -460,17 +453,18 @@ static void pushNucleusRest(LiteralStack &lits, Clause *nucleus, Stack<unsigned>
 }
 
 Clause *PredicateElimination::buildResolventMgu(Clause *nucleus, Stack<unsigned> const &nucIdxs,
-                                                ClauseStack const &sats, LiteralStack const &satLits)
+                                                ClauseStack const &sats, LiteralStack const &satLits,
+                                                DArray<unsigned> const &choice)
 {
-  ASS_EQ(nucIdxs.size(), sats.size());
+  ASS_EQ(nucIdxs.size(), choice.size());
 
   static RobSubstitution subst;
   subst.reset();
   // variable bank 0 is the nucleus', bank j+1 the j-th satellite's; picking the same satellite
   // twice thus automatically resolves against two variable-disjoint variants of it.
   // Each unification proceeds modulo the bindings accumulated so far, so chaining is correct.
-  for (unsigned j = 0; j < sats.size(); j++) {
-    if (!subst.unifyArgs((*nucleus)[nucIdxs[j]], 0, satLits[j], j + 1)) {
+  for (unsigned j = 0; j < choice.size(); j++) {
+    if (!subst.unifyArgs((*nucleus)[nucIdxs[j]], 0, satLits[choice[j]], j + 1)) {
       return nullptr; // sound to drop, since there is no equality (and no theories) around
     }
   }
@@ -478,20 +472,22 @@ Clause *PredicateElimination::buildResolventMgu(Clause *nucleus, Stack<unsigned>
   static LiteralStack lits;
   lits.reset();
   pushNucleusRest(lits, nucleus, nucIdxs, [&](Literal *lit) { return subst.apply(lit, 0); });
-  for (unsigned j = 0; j < sats.size(); j++) {
-    for (const auto& lit : *sats[j]) {
-      if (lit != satLits[j]) {
+  for (unsigned j = 0; j < choice.size(); j++) {
+    Literal *plit = satLits[choice[j]];
+    for (const auto& lit : *sats[choice[j]]) {
+      if (lit != plit) {
         lits.push(subst.apply(lit, j + 1));
       }
     }
   }
-  return assembleClause(lits, nucleus, sats);
+  return assembleClause(lits, nucleus, sats, choice);
 }
 
 Clause *PredicateElimination::buildResolventEq(Clause *nucleus, Stack<unsigned> const &nucIdxs,
-                                               ClauseStack const &sats, LiteralStack const &satLits)
+                                               ClauseStack const &sats, LiteralStack const &satLits,
+                                               DArray<unsigned> const &choice)
 {
-  ASS_EQ(nucIdxs.size(), sats.size());
+  ASS_EQ(nucIdxs.size(), choice.size());
 
   static LiteralStack lits;
   lits.reset();
@@ -499,24 +495,27 @@ Clause *PredicateElimination::buildResolventEq(Clause *nucleus, Stack<unsigned> 
 
   // each satellite gets a variable range of its own, disjoint from the nucleus's and the others'
   unsigned off = nucleus->maxVar() + 1;
-  for (unsigned j = 0; j < sats.size(); j++) {
-    Literal *plit = (*nucleus)[nucIdxs[j]];
-    ASS_EQ(plit->arity(), satLits[j]->arity());
+  for (unsigned j = 0; j < choice.size(); j++) {
+    Literal *nlit = (*nucleus)[nucIdxs[j]];
+    Literal *plit = satLits[choice[j]];
+    ASS_EQ(nlit->arity(), plit->arity());
 
     VarShiftApplicator shift{off};
-    for (const auto& lit : *sats[j]) {
-      if (lit != satLits[j]) {
+    for (const auto& lit : *sats[choice[j]]) {
+      if (lit != plit) {
         lits.push(SubstHelper::apply(lit, shift));
       }
     }
     // this is where the "virtual flattening" happens
-    for (unsigned i = 0; i < plit->arity(); i++) {
+    for (unsigned i = 0; i < nlit->arity(); i++) {
       lits.push(Literal::createEquality(false,
-                                        *plit->nthArgument(i),
-                                        SubstHelper::apply(*satLits[j]->nthArgument(i), shift),
-                                        SortHelper::getArgSort(plit, i)));
+                                        *nlit->nthArgument(i),
+                                        SubstHelper::apply(*plit->nthArgument(i), shift),
+                                        SortHelper::getArgSort(nlit, i)));
     }
-    off += sats[j]->maxVar() + 1;
+    if (j + 1 < choice.size()) { // the last satellite's successor offset is never used
+      off += sats[choice[j]]->maxVar() + 1;
+    }
   }
 
   // exhaustive equality substitution (note: no decomposition, so this is weaker than unification)
@@ -555,10 +554,11 @@ Clause *PredicateElimination::buildResolventEq(Clause *nucleus, Stack<unsigned> 
     }
   }
 
-  return assembleClause(lits, nucleus, sats);
+  return assembleClause(lits, nucleus, sats, choice);
 }
 
-Clause *PredicateElimination::assembleClause(LiteralStack &lits, Clause *nucleus, ClauseStack const &sats)
+Clause *PredicateElimination::assembleClause(LiteralStack &lits, Clause *nucleus,
+                                             ClauseStack const &sats, DArray<unsigned> const &choice)
 {
   static DHSet<Literal *> seen;
   seen.reset();
@@ -594,16 +594,18 @@ Clause *PredicateElimination::assembleClause(LiteralStack &lits, Clause *nucleus
   _keptDisequality |= keptDiseq;
   _keptVarVarDisequality |= keptVarVarDiseq;
 
-  ASS(sats.isNonEmpty());
-  if (sats.size() == 1) { // the classical binary case; keep its inference binary too
-    return Clause::fromStack(out, NonspecificInference2(InferenceRule::PREDICATE_ELIMINATION, nucleus, sats[0]));
+  ASS_G(choice.size(), 0);
+  if (choice.size() == 1) { // the classical binary case; keep its inference binary too
+    return Clause::fromStack(out,
+        NonspecificInference2(InferenceRule::PREDICATE_ELIMINATION, nucleus, sats[choice[0]]));
   }
 
   // a satellite picked more than once is still just one premise
   static DHSet<Clause *> premiseSeen;
   premiseSeen.reset();
   UnitList *premises = UnitList::empty();
-  for (Clause *d : sats) {
+  for (unsigned j = 0; j < choice.size(); j++) {
+    Clause *d = sats[choice[j]];
     if (premiseSeen.insert(d)) {
       UnitList::push(d, premises);
     }
