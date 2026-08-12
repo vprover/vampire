@@ -535,7 +535,7 @@ bool SynthesisALManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answer
     }
   }
   // just a single literal answer
-  answer.push(Clause::fromLiterals({Literal::create(origLit,answerArgs.begin())}, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::INPUT)));
+  answer.push(Clause::fromLiterals({Literal::create(origLit,answerArgs.begin())}, FromInput(UnitInputType::AXIOM)));
 
   outputRecursiveFunctions();
 

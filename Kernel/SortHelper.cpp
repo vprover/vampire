@@ -499,9 +499,7 @@ static void collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermList>&
               todo.push(unbindTask);
             } else {
               // Pre-insert bound variable sorts from VSList
-              VSList::Iterator vit(f->vars());
-              while (vit.hasNext()) {
-                auto [var, sort] = vit.next();
+              for (const auto& [var, sort] : iterTraits(VSList::Iterator(f->vars()))) {
                 if (!map.insert(var, sort)) {
                   // Variable already in map - validate consistency
                   ASS_EQ(sort, map.get(var));
@@ -608,7 +606,7 @@ void SortHelper::collectVariableSorts(Formula* f, DHMap<unsigned,TermList>& map,
  * is in map already (or appears multiple times), assert that
  * the sorts are equal.
  */
-void SortHelper::collectVariableSorts(Unit* u, DHMap<unsigned,TermList>& map)
+void SortHelper::collectVariableSorts(Unit* u, DHMap<unsigned,TermList>& map, bool ignoreBound)
 {
   if (!u->isClause()) {
     FormulaUnit* fu = static_cast<FormulaUnit*>(u);
@@ -616,7 +614,7 @@ void SortHelper::collectVariableSorts(Unit* u, DHMap<unsigned,TermList>& map)
     CollectTask task(COLLECT_FORMULA);
     task.f = fu->formula();
 
-    collectVariableSortsIter(task,map);
+    collectVariableSortsIter(task,map, ignoreBound);
 
     return;
   }
@@ -627,7 +625,7 @@ void SortHelper::collectVariableSorts(Unit* u, DHMap<unsigned,TermList>& map)
     CollectTask task(COLLECT_TERM);
     task.t = l;
 
-    collectVariableSortsIter(task,map);
+    collectVariableSortsIter(task,map, ignoreBound);
   }
 }
 
