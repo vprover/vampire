@@ -58,6 +58,10 @@ void EqualityProxy::apply(Problem& prb)
   apply(prb.units());
   prb.invalidateByRemoval();
   prb.reportEqualityEliminated();
+  if (_poly && _defUnit) {
+    // the single proxy predicate carries a type argument
+    prb.reportPolymorphicSymAdded();
+  }
 
   if (hadEquality) {
     switch(_opt) {

@@ -426,8 +426,12 @@ void Preprocess::preprocess(Problem& prb)
 
      // refresh symbol usage counts, can skip unused symbols for equality proxy
      prb.getProperty();
-     EqualityProxy proxy(_options.equalityProxy(),
-         /*poly=*/!(_options.useMonoEqualityProxy() && !prb.hasPolymorphicSym()));
+     // only a problem which is polymorphic already gets the polymorphic proxy predicate;
+     // a monomorphic problem must not be turned polymorphic by preprocessing
+     // TODO: hasPolymorphicSym over-approximates; it also holds for a monomorphic problem
+     // with an equality on a non-nullary ground sort, such as list(int), which the
+     // monomorphic variant would handle just fine
+     EqualityProxy proxy(_options.equalityProxy(),/*poly=*/prb.hasPolymorphicSym());
      proxy.apply(prb);
    }
 

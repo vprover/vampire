@@ -472,17 +472,13 @@ void Options::init()
      "     ~E(x1,y1) \\/ ... \\/ ~E(xN,yN) \\/ ~p(x1,...,xN) \\/ p(y1,...,yN)\n"
      "    for non-constant functions f add\n"
      "     ~E(x1,y1) \\/ ... \\/ ~E(xN,yN) \\/ E(f(x1,...,xN),f(y1,...,yN))\n"
-     " R stands for reflexivity";
+     " R stands for reflexivity.\n"
+     " E is a single polymorphic predicate for a polymorphic problem and one predicate"
+     " per sort for a monomorphic one";
     _lookup.insert(&_equalityProxy);
     _equalityProxy.tag(OptionTag::PREPROCESSING);
     _equalityProxy.addProblemConstraint(hasEquality());
     _equalityProxy.addProblemConstraint(onlyFirstOrder());
-
-    _useMonoEqualityProxy = BoolOptionValue("mono_ep","mep",true);
-    _useMonoEqualityProxy.description="Use the monomorphic version of equality proxy transformation.";
-    _lookup.insert(&_useMonoEqualityProxy);
-    _useMonoEqualityProxy.onlyUsefulWith(_equalityProxy.is(notEqual(EqualityProxy::OFF)));
-    _useMonoEqualityProxy.tag(OptionTag::PREPROCESSING);
 
     _equalityResolutionWithDeletion = BoolOptionValue("equality_resolution_with_deletion","erd",true);
     _equalityResolutionWithDeletion.description="Perform equality resolution with deletion.";
