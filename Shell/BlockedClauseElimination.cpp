@@ -336,7 +336,7 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
 
   VarMaxUpdatingNormalizer clNormalizer(replacements,varMax);
 
-  static DHSet<Literal*> norm_lits;
+  static DHSet<Literal*, FnvHash, PtrIdentityHash> norm_lits;
   norm_lits.reset();
 
   for (unsigned i = 0; i < cl->length(); i++) {
@@ -387,7 +387,7 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
   varMap.reset();
   RenanigApartNormalizer pclNormalizer(replacements,varMax,varMap);
 
-  static DHSet<Literal*> pcl_lits;
+  static DHSet<Literal*, FnvHash, PtrIdentityHash> pcl_lits;
   pcl_lits.reset();
 
   for (unsigned i = 0; i < pcl->length(); i++) {
@@ -505,7 +505,7 @@ bool BlockedClauseElimination::resolvesToTautologyUn(Clause* cl, Literal* lit, C
     return true; // since they don't resolve
   }
 
-  static DHSet<Literal*> cl_lits;
+  static DHSet<Literal*, FnvHash, PtrIdentityHash> cl_lits;
   cl_lits.reset();
 
   Literal* opslit = 0;
@@ -531,7 +531,7 @@ bool BlockedClauseElimination::resolvesToTautologyUn(Clause* cl, Literal* lit, C
 
   ASS_NEQ(opslit,0);
 
-  static DHSet<Literal*> pcl_lits;
+  static DHSet<Literal*, FnvHash, PtrIdentityHash> pcl_lits;
   pcl_lits.reset();
 
   static RobSubstitution subst_aux;

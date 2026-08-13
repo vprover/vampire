@@ -215,8 +215,8 @@ private:
    * without it popping the first occurrence of a formula will invalidate the
    * entire generalised clause, and other occurrences will never be seen.
    */
-  DHMap<Literal*, SIGN> _literalsCache;
-  DHMap<Formula*, SIGN> _formulasCache;
+  DHMap<Literal*, SIGN, FnvHash, PtrIdentityHash> _literalsCache;
+  DHMap<Formula*, SIGN, FnvHash, PtrIdentityHash> _formulasCache;
   inline void pushLiteral(SPGenClause gc, GenLit gl) {
     if (formula(gl)->connective() == LITERAL) {
       /**
@@ -527,7 +527,7 @@ private:
     return occ;
   }
 
-  DHMap<Formula*, Occurrences> _occurrences;
+  DHMap<Formula*, Occurrences, FnvHash, PtrIdentityHash> _occurrences;
 
   /** map var --> sort */
   DHMap<unsigned,TermList> _varSorts;
@@ -547,20 +547,20 @@ private:
   bool _forInduction;
 
   // caching of free variables for subformulas
-  DHMap<Formula*,VarSet*> _freeVars;
+  DHMap<Formula*,VarSet*, FnvHash, PtrIdentityHash> _freeVars;
   VarSet* freeVars(Formula* g);
 
   // two level caching scheme for quantifier bindings
   // reset after skolemizing a particular subformula
-  DHMap<BindingList*,BindingList*> _skolemsByBindings;
-  DHMap<VarSet*,BindingList*>      _skolemsByFreeVars;
+  DHMap<BindingList*,BindingList*, FnvHash, PtrIdentityHash> _skolemsByBindings;
+  DHMap<VarSet*,BindingList*, FnvHash, PtrIdentityHash>      _skolemsByFreeVars;
 
-  DHMap<BindingList*,BindingList*> _foolSkolemsByBindings;
-  DHMap<VarSet*,BindingList*>      _foolSkolemsByFreeVars;
+  DHMap<BindingList*,BindingList*, FnvHash, PtrIdentityHash> _foolSkolemsByBindings;
+  DHMap<VarSet*,BindingList*, FnvHash, PtrIdentityHash>      _foolSkolemsByFreeVars;
 
   // caching binding substitutions for the final phase of GenClause -> Clause transformation
   // this saves time, because bindings are potentially shared
-  DHMap<BindingList*,Substitution*> _substitutionsByBindings;
+  DHMap<BindingList*,Substitution*, FnvHash, PtrIdentityHash> _substitutionsByBindings;
 
   void skolemise(QuantifiedFormula* g, BindingList* &bindings, BindingList*& foolBindings);
 

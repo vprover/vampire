@@ -986,7 +986,7 @@ class Signature
 
 private:
   Stack<TermList> _dividesNvalues;
-  DHMap<Term*, int> _formulaCounts;
+  DHMap<Term*, int, FnvHash, PtrIdentityHash> _formulaCounts;
 
   bool _foolConstantsDefined;
   unsigned _foolTrue;

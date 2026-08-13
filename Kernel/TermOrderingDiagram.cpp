@@ -725,7 +725,7 @@ std::ostream& operator<<(std::ostream& str, const TermOrderingDiagram& tod)
   Stack<std::pair<const TermOrderingDiagram::Branch*, unsigned>> stack;
   stack.push(std::make_pair(&tod._source,0));
   // Note: using this set we get a more compact representation
-  DHSet<TermOrderingDiagram::Node*> seen;
+  DHSet<TermOrderingDiagram::Node*, FnvHash, PtrIdentityHash> seen;
 
   while (stack.isNonEmpty()) {
     auto kv = stack.pop();

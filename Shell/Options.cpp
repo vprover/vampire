@@ -3521,7 +3521,7 @@ std::string Options::generateEncodedOptions() const
   Options cur=*this;
 
   // Record options that do not want to be in encoded string
-  static Set<const AbstractOptionValue*> forbidden;
+  static Set<const AbstractOptionValue*, FnvHash> forbidden;
   //we initialize the set if there's nothing inside
   if (forbidden.size()==0) {
     //things we output elsewhere
