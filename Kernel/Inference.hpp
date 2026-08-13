@@ -382,6 +382,10 @@ enum class InferenceRule : unsigned char {
   EQUALITY_PROXY_DEFINITION,
   /** equality proxy axioms such as E(x,x) or ~E(x,y) \/ x=y */
   EQUALITY_PROXY_AXIOM,
+  /** floor(f(X0,...,Xn)) = f(X0,...,Xn), stating that a symbol f introduced by the
+   * ALASCA integer conversion is integer-valued; not a theory axiom, as it is only
+   * valid for the freshly introduced f (a conservative extension) */
+  ALASCA_INTEGRALITY_AXIOM,
   /** unfolding by definitions f(x1,...,xn)=t */
   DEFINITION_UNFOLDING,
 
