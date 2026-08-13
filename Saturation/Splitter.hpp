@@ -281,7 +281,7 @@ private:
    * Definitions of ground components C and ~C are shared and placed at the slot of C.
    * (So the key here is never odd!)
    **/
-  DHMap<SplitLevel,Unit*> _defs;
+  DHMap<SplitLevel,Unit*, FnvHash, IdentityHash> _defs;
 
   /** true if there was a clause added to the SAT solver since last call to onAllProcessed */
   bool _clausesAdded;

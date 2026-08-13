@@ -53,7 +53,7 @@ private:
   void operator delete(void* ptr) { ASSERTION_VIOLATION; }
 
   template<class VarIt>
-  void collectVars2(DHSet<unsigned>& acc);
+  void collectVars2(DHSet<unsigned, FnvHash, IdentityHash>& acc);
 public:
   DECL_ELEMENT_TYPE(Literal*);
 
@@ -332,7 +332,7 @@ public:
   unsigned splitWeight() const;
   unsigned getNumeralWeight() const;
 
-  void collectVars(DHSet<unsigned>& acc);
+  void collectVars(DHSet<unsigned, FnvHash, IdentityHash>& acc);
 
 
   unsigned varCnt();

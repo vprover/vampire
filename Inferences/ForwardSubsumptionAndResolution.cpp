@@ -44,7 +44,7 @@ ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution(SaturationAlgor
 {}
 
 /// @brief Set of clauses that were already checked
-static DHSet<unsigned> checkedClauses;
+static DHSet<unsigned, FnvHash, IdentityHash> checkedClauses;
 
 bool ForwardSubsumptionAndResolution::perform(Clause *cl,
                                               Clause *&replacement,

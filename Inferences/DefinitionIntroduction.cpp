@@ -108,7 +108,7 @@ void DefinitionIntroduction<higherOrder>::introduceDefinitionFor(Term *t) {
     return;
 
   // compute domain and range sorts
-  DHMap<unsigned, TermList> domain_sorts;
+  DHMap<unsigned, TermList, FnvHash, IdentityHash> domain_sorts;
   TermList range_sort = SortHelper::getResultSort(t);
   SortHelper::collectVariableSorts(t, domain_sorts);
 

@@ -83,7 +83,7 @@ std::string TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
 {
   std::ostringstream res;
 
-  typedef DHMap<unsigned,TermList> SortMap;
+  typedef DHMap<unsigned,TermList, FnvHash, IdentityHash> SortMap;
   static SortMap varSorts;
   varSorts.reset();
   SortHelper::collectVariableSorts(u, varSorts);

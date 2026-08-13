@@ -51,7 +51,7 @@ void BwdDemodulation::perform(Clause* premise, BwSimplificationRecordIterator& s
   for (auto lhs : Lhs::iter(_shared, premise)) {
     DEBUG_CODE(cnt++;)
     Stack<BwSimplificationRecord> simpls;
-    Set<unsigned> simplified;
+    Set<unsigned, FnvHash> simplified;
     for (auto rhs : _index->instances(lhs.biggerSide())) {
         auto toSimpl = rhs.data->clause;
         if (simplified.contains(toSimpl->number())) {
