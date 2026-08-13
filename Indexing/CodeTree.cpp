@@ -20,7 +20,10 @@
 
 #include "Lib/Comparison.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/Exception.hpp"
 #include "Lib/Int.hpp"
+
+#include "Shell/Options.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Term.hpp"
@@ -655,6 +658,17 @@ bool CodeTree::Matcher<removing, checkRange, higherOrder>::executeMachineCode()
   if constexpr (removing || checkRange) { return execute(); }
   // if (!tree->_clauseCodeTree) { return execute(); }
   if (tree->isEmpty()) { return false; }
+  // Soft code budget: refuse to enter JIT code once this tree has emitted
+  // enough. Compilation is only ever triggered from inside JIT execution, so
+  // this single check is what bounds the JIT's memory; from here on the tree
+  // runs interpreted and the proof search continues normally.
+  switch (CopyPatchJit::JIT_MODE) {
+    case CopyPatchJit::JitMode::Off:        return execute();
+    case CopyPatchJit::JitMode::ClauseOnly: if (!tree->_clauseCodeTree) { return execute(); } break;
+    case CopyPatchJit::JitMode::TermOnly:   if ( tree->_clauseCodeTree) { return execute(); } break;
+    case CopyPatchJit::JitMode::Both:       break;
+  }
+  if (tree->_cpJit->outOfBudget()) { CopyPatchJit::recordBudgetStop(); return execute(); }
 
   // Lazy compilation: compile entry block on first encounter
   if (!entry->_mcode) {
@@ -700,9 +714,19 @@ bool CodeTree::Matcher<removing, checkRange, higherOrder>::executeMachineCode()
   ctx->op       = op;
   ctx->matched  = 0;
   ctx->btPops   = 0;
+  ctx->bailout  = 0;
 
   jitFn(ctx);
   CopyPatchJit::recordBtPops(ctx->btPops);
+
+  if (ctx->bailout) {
+    // The HARD code budget was hit inside JIT-called code, which cannot throw
+    // (its frames carry no unwind info). The JIT left the match through the
+    // bailout handler; we are now back in ordinary C++ frames, so throwing
+    // here unwinds properly. MainLoop::run turns this into
+    // TerminationReason::MEMORY_LIMIT, exactly as an allocator overrun would.
+    MEMORY_LIMIT_EXCEEDED;
+  }
 
   // Read back JIT-modified state
   _jitBtBuf    = static_cast<BTPoint*>(ctx->btBase);
@@ -930,6 +954,20 @@ template struct CodeTree::Matcher<false, false, true>;
 CodeTree::CodeTree()
 : _onCodeOpDestroying(0), _curTimeStamp(0), _maxVarCnt(1), _entryPoint(0), _cpJit(new CopyPatchJit())
 {
+  // Cap emitted code at a quarter of Vampire's memory limit (-m, in MB).
+  // JIT slabs come straight from mmap and are invisible to the allocator's
+  // own accounting, so without this a pathological code tree can emit
+  // multiple GB and drive the process into the limit. Beyond the cap the
+  // tree simply runs interpreted - see CopyPatchJit::outOfBudget.
+  size_t limitMB = env.options ? env.options->memoryLimit() : 0;
+  if (limitMB) { 
+    size_t budget = (limitMB << 20) / 4;
+    // Never budget past the reserved exec region: code emitted beyond it
+    // lands in fallback mappings that jmp rel32 cannot reach, so those
+    // sites stay permanently unbound (bind_unreachable)
+    if (budget > CopyPatchJit::EXEC_REGION_SIZE) { budget = CopyPatchJit::EXEC_REGION_SIZE; }
+    _cpJit->setCodeBudget(budget);
+  }
 }
 
 CodeTree::~CodeTree()

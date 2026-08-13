@@ -84,6 +84,8 @@ struct JitStats {
   size_t bindBadSite = 0;      // site head bytes unexpected: refused to patch (should stay 0)
   size_t patchBadSite = 0;     // patchAlternative met unexpected head bytes: refused (should stay 0)
   size_t execRegionMB = 0;     // size of the reserved exec region actually obtained
+  size_t budgetStops = 0;      // times the soft code budget refused a JIT entry
+  size_t budgetBailouts = 0;   // times the HARD budget aborted mid-match (should stay 0)
   // trampoline instrumentation
   size_t btPops = 0;           // backtrack-stack pops resumed by the bt handler
 };
@@ -111,7 +113,7 @@ using namespace asmjit::x86;
 void CopyPatchJit::printJitStats(std::ostream& out)
 {
   const JitStats& s = g_jitStats;
-  if (!s.emitBlocks && !s.ssEmits && !s.slabsMapped) return;  // JIT never ran: stay silent
+  if (JIT_MODE == JitMode::Both && !s.emitBlocks && !s.ssEmits && !s.slabsMapped) return;
   out << "% JITSTATS"
       << " emit_blocks=" << s.emitBlocks
       << " emit_bytes=" << s.emitBytes
@@ -133,6 +135,8 @@ void CopyPatchJit::printJitStats(std::ostream& out)
       << " bind_badsite=" << s.bindBadSite
       << " patch_badsite=" << s.patchBadSite
       << " exec_region_mb=" << s.execRegionMB
+      << " budget_stops=" << s.budgetStops
+      << " budget_bailouts=" << s.budgetBailouts
       << " bt_pops=" << s.btPops
       << std::endl;
 }
@@ -140,6 +144,21 @@ void CopyPatchJit::printJitStats(std::ostream& out)
 void CopyPatchJit::recordBtPops(size_t n)
 {
   g_jitStats.btPops += n;
+}
+
+void CopyPatchJit::recordBudgetStop()
+{
+  g_jitStats.budgetStops++;
+}
+
+const char* CopyPatchJit::jitModeName() {
+  switch (JIT_MODE) {
+    case JitMode::Off:        return "off";
+    case JitMode::ClauseOnly: return "clause";
+    case JitMode::TermOnly:   return "term";
+    case JitMode::Both:       return "both";
+  }
+  return "?";
 }
 
 //  expand the backtrack buffer when full
@@ -162,8 +181,18 @@ void CopyPatchJit::expandEntryHelper(FlatTerm::Entry* entry) {
 
 void* CopyPatchJit::lazyCompileHelper(JitExecContext* ctx, CodeTree::CodeOp* alt) {
   if (!alt) return nullptr;
-  g_jitStats.lazyCompiles++;
   auto* tree = static_cast<CodeTree*>(ctx->codeTree);
+  // HARD budget only: the soft limit is enforced at executeMachineCode entry,
+  // so an in-flight match is allowed to finish compiling what it needs. If we
+  // are past even the hard limit, refuse and signal C++ to abort the match -
+  // returning nullptr alone would look like "no alternative" to the caller and
+  // silently drop a branch.
+  if (tree->_cpJit->budgetExhausted()) {
+    g_jitStats.budgetBailouts++;
+    ctx->bailout = 1;
+    return nullptr;
+  }
+  g_jitStats.lazyCompiles++;
   return tree->lazyCompileBlock(alt);
 }
 
@@ -183,6 +212,11 @@ void* CopyPatchJit::bindJmpAltHelper(JitExecContext* ctx, CodeTree::CodeOp* alt,
   g_jitStats.bindCalls++;
   if (!alt) return nullptr;
   auto* tree = static_cast<CodeTree*>(ctx->codeTree);
+  if (tree->_cpJit->budgetExhausted()) {   // see lazyCompileHelper
+    g_jitStats.budgetBailouts++;
+    ctx->bailout = 1;
+    return nullptr;
+  }
   void* target = alt->_mcode;
   if (!target) {
     g_jitStats.lazyCompiles++;
@@ -451,6 +485,10 @@ CopyPatchJit::ExecSlab* CopyPatchJit::findSlab(void* ptr) {
 
 void* CopyPatchJit::allocExec(size_t userSize) {
   size_t totalSize = userSize + ALLOC_HEADER_SIZE;
+  // Budget accounting: counts every allocation, recycled or not. Deliberately
+  // conservative - a tree that frees and re-emits heavily still trips the
+  // budget eventually, which is the safe direction to be wrong in.
+  _emittedTotal += totalSize;
   size_t classIdx  = sizeClassIndex(totalSize);
   size_t bucket    = sizeClassBucket(classIdx, totalSize);
 
@@ -549,6 +587,8 @@ void CopyPatchJit::releaseAll() {
   _lazyCompileStub = nullptr;
   _bindJmpAltStub = nullptr;
   _ssDispatchStub = nullptr;
+  _bailoutHandler = nullptr;
+  _emittedTotal = 0;
   _initialized = false;
 }
 
@@ -600,6 +640,7 @@ void CopyPatchJit::compileTrampoline() {
   Label backtrackL   = a.new_label();
   Label totalFailL   = a.new_label();
   Label exitL        = a.new_label();
+  Label bailoutL     = a.new_label();
 
   // --- Entry ---
   a.bind(entryL);
@@ -641,6 +682,8 @@ void CopyPatchJit::compileTrampoline() {
   // --- Backtrack handler ---
   // Pop a {tp, mcode*} pair from the backtrack stack and resume.
   a.bind(backtrackL);
+  a.cmp(byte_ptr(rbp, offsetof(JitExecContext, bailout)), 0);
+  a.jnz(bailoutL);
   a.cmp(r15, qword_ptr(rbp, offsetof(JitExecContext, btBase)));
   a.je(totalFailL);
   a.sub(r15, 16);
@@ -653,6 +696,13 @@ void CopyPatchJit::compileTrampoline() {
   // line for pristine timing runs if desired).
   a.inc(qword_ptr(rbp, offsetof(JitExecContext, btPops)));
   a.jmp(rax);
+
+  // --- Bailout: the hard code budget was hit mid-match. Report "no match"
+  //     and leave immediately; executeMachineCode sees ctx->bailout and
+  //     throws from C++ frames, which (unlike these) have unwind info. ---
+  a.bind(bailoutL);
+  a.mov(byte_ptr(rbp, offsetof(JitExecContext, matched)), 0);
+  a.jmp(exitL);
 
   // --- Total failure: try next literal or exit ---
   // Layout assumptions (look at static asserts at the start for validation):
@@ -724,6 +774,7 @@ void CopyPatchJit::compileTrampoline() {
   _backtrackHandler = base + code.label_offset(backtrackL);
   _successHandler   = base + code.label_offset(successL);
   _totalFailHandler = base + code.label_offset(totalFailL);
+  _bailoutHandler   = base + code.label_offset(bailoutL);
 
   // perf map: split the trampoline into its four regions so profiles
   // separate entry glue from backtrack/success/totalFail dispatch.

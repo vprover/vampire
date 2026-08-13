@@ -145,6 +145,23 @@ public:
 
 
 /**
+ * Class MemoryLimitExceededException.
+ *
+ * Thrown when a memory budget is exhausted at a point where the ordinary
+ * allocator path cannot report it. Caught in MainLoop::run, which turns it
+ * into TerminationReason::MEMORY_LIMIT - the same outcome as Vampire's own
+ * "Memory limit exceeded!" path.
+ */
+class MemoryLimitExceededException
+: public Exception
+{
+public:
+  MemoryLimitExceededException ()
+  : Exception("The memory limit exceeded")
+  {}
+}; // MemoryLimitExceededException
+
+/**
  * Class InvalidOperationException.
  */
 class InvalidOperationException
@@ -202,8 +219,7 @@ class NotImplementedException
   throw Lib::SystemFailException(msg,err)
 #define NOT_IMPLEMENTED \
   throw Lib::NotImplementedException(__FILE__, __LINE__)
+#define MEMORY_LIMIT_EXCEEDED \
+  throw Lib::MemoryLimitExceededException()
 
 #endif // __Exception__
-
-
-

@@ -70,6 +70,10 @@ MainLoopResult MainLoop::run()
   {
     return e.result;
   }
+  catch(MemoryLimitExceededException&)
+  {
+    return MainLoopResult(TerminationReason::MEMORY_LIMIT);
+  }
 }
 
 /**

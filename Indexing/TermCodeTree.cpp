@@ -170,7 +170,7 @@ Data* TermCodeTree<higherOrder, Data>::TermMatcher::next()
     return 0;
   }
   
-  Base::_matched=Base::execute();
+  Base::_matched=Base::executeMachineCode();
   if (!Base::_matched) {
     return 0;
   }

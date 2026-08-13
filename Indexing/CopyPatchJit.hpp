@@ -64,6 +64,7 @@ struct JitExecContext {
   // Data-driven SearchStruct dispatch
   void*            ssLookupFunc;      // [rbp + 184] (C helper: binary search over ss values[]/targets[])
   void*            ssDispatchStub;    // [rbp + 192] (shared JIT stub entered from 16-byte SS landing stubs)
+  uint8_t          bailout;
 };
 
 static_assert(offsetof(JitExecContext, ftData)           ==  0, "");
@@ -91,6 +92,7 @@ static_assert(offsetof(JitExecContext, bindJmpAltStub)   == 168, "");
 static_assert(offsetof(JitExecContext, btPops)           == 176, "");
 static_assert(offsetof(JitExecContext, ssLookupFunc)     == 184, "");
 static_assert(offsetof(JitExecContext, ssDispatchStub)   == 192, "");
+static_assert(offsetof(JitExecContext, bailout)          == 200, "");
 
 
 // --------------------------------------------------------------------------
@@ -134,6 +136,9 @@ public:
    *  JitExecContext into the global JITSTATS counters. Called from
    *  Matcher::executeMachineCode after the trampoline returns. */
   static void recordBtPops(size_t n);
+  /** Count one soft-budget refusal (a JIT entry declined because this tree
+   *  has emitted its full code budget). Called from CodeTree. */
+  static void recordBudgetStop();
 
   // Non-copyable
   CopyPatchJit(const CopyPatchJit&) = delete;
@@ -167,10 +172,53 @@ public:
     ctx.bindJmpAltStub   = _bindJmpAltStub;
     ctx.ssLookupFunc     = reinterpret_cast<void*>(&ssLookupHelper);
     ctx.ssDispatchStub   = _ssDispatchStub;
+    ctx.bailout          = 0;
   }
 
   void releaseAll();
   bool isInitialized() const { return _initialized; }
+
+  //  ---- emitted-code budget --------------------------------------------
+  //  JIT slabs are mmap'd directly, so they are invisible to Vampire's own
+  //  -m accounting: without a cap, a pathological code tree can emit
+  //  multiple GB (11.3 GB observed on LCL651+1.001) and push the process
+  //  into the memory limit - where an exception thrown through JIT frames
+  //  (which carry no unwind info) crashes instead of unwinding.
+  //
+  //  Two thresholds, both against cumulative bytes handed out by allocExec:
+  //    soft (outOfBudget)     - checked at executeMachineCode entry. Refuses
+  //                             to ENTER JIT code, so no further compilation
+  //                             can be triggered from anywhere; the tree
+  //                             keeps working, interpreted, and the run
+  //                             continues normally.
+  //    hard (budgetExhausted) - checked inside the JIT-called helpers. Only
+  //                             reachable if a single match doubles the
+  //                             whole budget; sets ctx->bailout so that C++
+  //                             (which has unwind info) can throw.
+  //  Set from CodeTree's constructor as a fraction of -m; the default below
+  //  applies when no limit is known.
+  static constexpr size_t CODE_BUDGET_DEFAULT = size_t(1) << 30;   // 1 GiB
+  static constexpr size_t EXEC_REGION_SIZE    = size_t(2) << 30;   // 2 GiB
+  void   setCodeBudget(size_t bytes) { _codeBudget = bytes ? bytes : CODE_BUDGET_DEFAULT; }
+  size_t codeBudget()   const { return _codeBudget; }
+  size_t emittedTotal() const { return _emittedTotal; }
+  bool   outOfBudget()     const { return _emittedTotal >= _codeBudget; }
+  bool   budgetExhausted() const { return _emittedTotal >= 2 * _codeBudget; }
+  void*  bailoutHandler()  const { return _bailoutHandler; }
+  enum class JitMode : uint8_t { Off, ClauseOnly, TermOnly, Both };
+  
+  static constexpr JitMode JIT_MODE =
+  #if   defined(JIT_MODE_OFF)
+        JitMode::Off;          // interpreter everywhere (JIT built but dormant)
+  #elif defined(JIT_MODE_CLAUSE_ONLY)
+        JitMode::ClauseOnly;   // subsumption only  (ClauseCodeTree)
+  #elif defined(JIT_MODE_TERM_ONLY)
+        JitMode::TermOnly;     // demodulation only (TermCodeTree)
+  #else
+        JitMode::Both;
+  #endif
+    static const char* jitModeName();
+
   static void expandBtBufferHelper(JitExecContext* ctx);
   static void expandEntryHelper(FlatTerm::Entry* entry);
   static void* lazyCompileHelper(JitExecContext* ctx, CodeTree::CodeOp* alt);
@@ -241,7 +289,6 @@ private:
   // pages cost nothing. Non-Linux/mmap-failure falls back to per-slab
   // mappings; the binder then checks reachability per site and simply skips
   // binding when out of range(correct, just unbound).
-  static constexpr size_t EXEC_REGION_SIZE = size_t(2) << 30;  // 2 GiB
   char*  _execRegionBase   = nullptr;
   size_t _execRegionSize   = 0;
   size_t _execRegionUsed   = 0;
@@ -271,6 +318,9 @@ private:
   void* _lazyCompileStub = nullptr;
   void* _bindJmpAltStub = nullptr;
   void* _ssDispatchStub = nullptr;
+  void* _bailoutHandler = nullptr;
+  size_t _codeBudget   = CODE_BUDGET_DEFAULT;
+  size_t _emittedTotal = 0;
 };
 
 } // namespace Indexing
