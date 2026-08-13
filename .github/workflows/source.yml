@@ -14,7 +14,7 @@ jobs:
     #  run: rm -rf .git cadical/.git viras/.git z3/.git
     - name: Create Tarball
       working-directory: ${{ runner.workspace }}
-      run: tar czf vampire-z3.tar.gz vampire
+      run: tar czf --exclude='.git' --exclude='*/.git' vampire-z3.tar.gz vampire
     - name: Upload Tarball
       uses: actions/upload-artifact@v7
       with:
