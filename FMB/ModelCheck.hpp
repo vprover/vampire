@@ -45,7 +45,7 @@ static void doCheck(UnitList* units)
   // looking for a domain axiom with a name starting 'finite_domain' (TODO search for something of the right shape)
 
   DHMap<unsigned,unsigned> sortSizes;
-  DHMap<unsigned,std::unique_ptr<Set<Term*>>> domainConstantsPerSort;
+  DHMap<unsigned,std::unique_ptr<Set<Term*, FnvHash>>> domainConstantsPerSort;
 
   // first just search for finite_domain axiom (TODO: do this for every sort!)
   {
@@ -70,7 +70,7 @@ static void doCheck(UnitList* units)
         unsigned curSort = formula->vars()->head().second.term()->functor();
 
         unsigned curModelSize = 0;
-        auto curDomainConstants = std::make_unique<Set<Term*>>();
+        auto curDomainConstants = std::make_unique<Set<Term*, FnvHash>>();
 
         int single_var = -1;
         if (subformula->connective()==Connective::OR) {
@@ -110,8 +110,8 @@ static void doCheck(UnitList* units)
   // TODO can we pass a reference here instead of clone()ing?
   FiniteModelMultiSorted model(sortSizesArray.clone());
 
-  Set<Term*> domainConstants; // union of all the perSort ones
-  DHMap<Term*,unsigned> domainConstantNumber;
+  Set<Term*, FnvHash> domainConstants; // union of all the perSort ones
+  DHMap<Term*,unsigned, FnvHash, PtrIdentityHash> domainConstantNumber;
 
   std::cout << "Detected model with " << sortSizes.size() << " sorts." << std::endl;
   auto it = sortSizes.items();
@@ -124,7 +124,7 @@ static void doCheck(UnitList* units)
     std::cout << ", domain elements are:" << std::endl;
 
     // number the domain constants
-    Set<Term*>::Iterator dit(curDomainConstants);
+    Set<Term*, FnvHash>::Iterator dit(curDomainConstants);
     unsigned count=1;
     while(dit.hasNext()){
       Term* con = dit.next();
@@ -204,7 +204,7 @@ static void doCheck(UnitList* units)
 
 private:
 
-static void checkIsDomainLiteral(Literal* l, int& single_var, Set<Term*>& domainConstants)
+static void checkIsDomainLiteral(Literal* l, int& single_var, Set<Term*, FnvHash>& domainConstants)
 {
   if(!l->isEquality()) USER_ERROR("finite_domain is not a domain axiom");
 
@@ -230,8 +230,8 @@ static void checkIsDomainLiteral(Literal* l, int& single_var, Set<Term*>& domain
 }
 
 static void addDefinition(FiniteModelMultiSorted& model,Literal* lit,bool negated,
-                          Set<Term*>& domainConstants,
-                          DHMap<Term*,unsigned>& domainConstantNumber)
+                          Set<Term*, FnvHash>& domainConstants,
+                          DHMap<Term*,unsigned, FnvHash, PtrIdentityHash>& domainConstantNumber)
 {
   if(lit->isEquality()){
     if(!lit->polarity() || negated) USER_ERROR("Cannot have negated function definition");

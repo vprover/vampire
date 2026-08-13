@@ -136,7 +136,7 @@ FunctionDefinitionDemodulation::FunctionDefinitionDemodulation(SaturationAlgorit
 
 bool FunctionDefinitionDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
-  static DHSet<Term*> attempted;
+  static DHSet<Term*, FnvHash, PtrIdentityHash> attempted;
   attempted.reset();
 
   unsigned cLen = cl->length();

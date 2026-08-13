@@ -434,7 +434,7 @@ Clause *PredicateElimination::buildResolventEq(Clause *c, Literal *plitC, Clause
 
 Clause *PredicateElimination::assembleClause(LiteralStack &lits, Clause *c, Clause *d)
 {
-  static DHSet<Literal *> seen;
+  static DHSet<Literal *, FnvHash, PtrIdentityHash> seen;
   seen.reset();
 
   static LiteralStack out;

@@ -104,10 +104,10 @@ void Instantiation::registerClause(Clause* cl)
         TermList sort;
         if(SortHelper::tryGetResultSort(t,sort)){
           if(sort==AtomicSort::defaultSort()) continue;
-          Set<Term*>* cans_check=0;
+          Set<Term*, FnvHash>* cans_check=0;
           Stack<Term*>* cans=0;
           if(sorted_candidates.isEmpty() || !sorted_candidates.find(sort,cans)){
-            cans_check = new Set<Term*>();
+            cans_check = new Set<Term*, FnvHash>();
             cans = new Stack<Term*>();
             sorted_candidates.insert(sort,cans);
             sorted_candidates_check.insert(sort,cans_check);

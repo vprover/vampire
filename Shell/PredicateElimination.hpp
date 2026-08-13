@@ -68,8 +68,8 @@ public:
 
 private:
   struct PredInfo {
-    Lib::DHSet<Clause *> pos; // S_P: clauses in which P occurs exactly once, positively
-    Lib::DHSet<Clause *> neg; // S_~P: dtto, negatively
+    Lib::DHSet<Clause *, UnitHash, UnitNumberHash> pos; // S_P: clauses in which P occurs exactly once, positively
+    Lib::DHSet<Clause *, UnitHash, UnitNumberHash> neg; // S_~P: dtto, negatively
     unsigned blockers = 0;    // number of clauses in which P occurs more than once
     bool eliminated = false;
     bool rprSkipped = false;  // under randomized preprocessing: picked but skipped, never to be reconsidered
@@ -82,7 +82,7 @@ private:
 
   // clause set state
   ClauseStack _all;     // all clauses ever seen, in insertion order
-  Lib::DHSet<Clause *> _deleted; // those of _all that have been eliminated
+  Lib::DHSet<Clause *, UnitHash, UnitNumberHash> _deleted; // those of _all that have been eliminated
   Lib::DArray<PredInfo> _preds;
   size_t _curTotal = 0;
   size_t _origTotal = 0;

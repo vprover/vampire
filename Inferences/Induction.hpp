@@ -114,7 +114,7 @@ public:
   const bool _squashSkolems;
   unsigned& _nextVar; // fresh variable counter supported by caller
 
-  DHMap<Term*, unsigned, SharedTermHash> _skolemToVarMap; // maps terms to their variable replacement
+  DHMap<Term*, unsigned, SharedTermHash, PtrIdentityHash> _skolemToVarMap; // maps terms to their variable replacement
   DHMap<unsigned,TermList> _varsReplacingSkolems;
 
   DHMap<unsigned,unsigned> _renaming; // for renaming free variables

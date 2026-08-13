@@ -64,7 +64,7 @@ class Definizator : public BottomUpTermTransformer {
     UnitList* premises;
 
     // for each relevant term, cache the introduced symbol and the corresponding definition
-    DHMap<Term*,std::pair<unsigned,Clause*>> _cache;
+    DHMap<Term*,std::pair<unsigned,Clause*>, FnvHash, PtrIdentityHash> _cache;
 
     Definizator(bool groundOnly) : newUnits(UnitList::empty()), _groundOnly(groundOnly) {}
   private:
