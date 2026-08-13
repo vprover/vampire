@@ -258,6 +258,10 @@ public:
         }
       }
     }
+    // the conversion rewrites every unit and adds new ones (in particular equalities,
+    // which the original problem need not have contained), so nothing cached about the
+    // problem survives it
+    prb.invalidateEverything();
   }
 };
 
