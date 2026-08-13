@@ -123,10 +123,14 @@ std::string getQuantifiedStr(const VarContainer& vars, std::string inner, DHMap<
     std::string ty="";
     TermList t;
 
-    if(t_map.find(var,t) && env.getMainProblem()->hasNonDefaultSorts()){
-      //hasNonDefaultSorts is true if the problem contains a sort
-      //that is not $i and not a variable
-      ty=" : " + t.toString();
+    if(t_map.find(var,t)){
+      //a variable of a sort other than $i must always be annotated, and
+      //preprocessing is not expected to introduce such a sort into an
+      //initially untyped problem. Same predicate as Formula::toString.
+      ASS(t == AtomicSort::defaultSort() || env.initiallyHasNonDefaultSorts());
+      if(env.initiallyHasNonDefaultSorts()){
+        ty=" : " + t.toString();
+      }
     }
     if(ty == " : $tType"){
       if (!first) { varStr = "," + varStr; }
@@ -149,18 +153,6 @@ std::string getQuantifiedStr(const VarContainer& vars, std::string inner, DHMap<
   else {
     return "( ! ["+varStr+"] : "+inner+" )";
   }
-}
-
-/**
- * Return @b inner quentified over variables in @b vars
- *
- * It is caller's responsibility to ensure that variables in @b vars are unique.
- */
-template<typename VarContainer>
-std::string getQuantifiedStr(const VarContainer& vars, std::string inner, bool innerParentheses=true)
-{
-  static DHMap<unsigned,TermList> d;
-  return getQuantifiedStr(vars,inner,d,innerParentheses);
 }
 
 /**
@@ -445,9 +437,14 @@ struct InferenceStore::TPTPProofPrinter
 
   void print() override
   {
-    //outputSymbolDeclarations also deals with sorts for now
-    //UIHelper::outputSortDeclarations(out);
-    UIHelper::outputSymbolDeclarations(out);
+    //an fof proof needs no type declarations, and the signature can hold a
+    //typed symbol no unit ever used, whose declaration would put a tff line
+    //into an otherwise fof proof
+    if(env.initiallyHasNonDefaultSorts() || env.initiallyHigherOrder()){
+      //outputSymbolDeclarations also deals with sorts for now
+      //UIHelper::outputSortDeclarations(out);
+      UIHelper::outputSymbolDeclarations(out);
+    }
     ProofPrinter::print();
   }
 
@@ -531,9 +528,14 @@ protected:
 
   std::string getFofString(std::string id, std::string formula, std::string inference, InferenceRule rule, UnitInputType origin=UnitInputType::AXIOM)
   {
+    // use the fragment of the unpreprocessed input: the problem's own
+    // hasNonDefaultSorts() and isHigherOrder() are recomputed from the current
+    // unit list, so they forget sorts that preprocessing removed, and TPTP
+    // conventions allow a proof in a weaker fragment than the input but not in
+    // a stronger one
     std::string kind = "fof";
-    if(env.getMainProblem()->hasNonDefaultSorts()){ kind="tff"; }
-    if(env.getMainProblem()->isHigherOrder()){ kind="thf"; }
+    if(env.initiallyHasNonDefaultSorts()){ kind="tff"; }
+    if(env.initiallyHigherOrder()){ kind="thf"; }
 
     return kind+"("+id+","+getRole(rule,origin)+",("+"\n"
 	+"  "+formula+"),\n"
@@ -824,6 +826,11 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
 
     Literal* nameLit=_is->_splittingNameLiterals.get(us->number()); //the name literal must always be stored
 
+    //sorts of the clause's variables, so the quantifiers of the definition
+    //below are annotated like every other formula in the proof
+    DHMap<unsigned,TermList> t_map;
+    SortHelper::collectVariableSorts(us, t_map);
+
     std::string defId=tptpDefId(us);
 
     out<<getFofString(tptpUnitId(us), getFormulaString(us),
@@ -865,11 +872,11 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
     }
     ASS(!first);
 
-    compStr=getQuantifiedStr(compOnlyVars, compStr, multiple);
+    compStr=getQuantifiedStr(compOnlyVars, compStr, t_map, multiple);
     List<unsigned>::destroy(compOnlyVars);
 
     std::string defStr=compStr+" <=> "+Literal::complementaryLiteral(nameLit)->toString();
-    defStr=getQuantifiedStr(nameVars, defStr);
+    defStr=getQuantifiedStr(nameVars, defStr, t_map);
     List<unsigned>::destroy(nameVars);
 
     auto nameSymbol = env.signature->getPredicate(nameLit->functor());
@@ -894,13 +901,17 @@ protected:
     InferenceRule rule = cs->inference().rule();
     UnitIterator parents= cs->getParents();
 
-    //outputSymbolDeclarations also deals with sorts for now
-    //UIHelper::outputSortDeclarations(out);
-    UIHelper::outputSymbolDeclarations(out);
+    //an fof proof needs no type declarations, see TPTPProofPrinter::print
+    if(env.initiallyHasNonDefaultSorts() || env.initiallyHigherOrder()){
+      //outputSymbolDeclarations also deals with sorts for now
+      //UIHelper::outputSortDeclarations(out);
+      UIHelper::outputSymbolDeclarations(out);
+    }
 
+    // fragment of the unpreprocessed input, see the comment in getFofString
     std::string kind = "fof";
-    if(env.getMainProblem()->hasNonDefaultSorts()){ kind="tff"; }
-    if(env.getMainProblem()->isHigherOrder()){ kind="thf"; }
+    if(env.initiallyHasNonDefaultSorts()){ kind="tff"; }
+    if(env.initiallyHigherOrder()){ kind="thf"; }
 
     out << kind
         << "(r"<< cs->number()

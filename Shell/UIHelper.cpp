@@ -687,7 +687,9 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(std::ostream& out, bool funct
 
   //don't output type of app. It is an internal Vampire thing
   if(!(function && env.signature->isAppFun(symNumber))){
-    out << (env.getMainProblem()->isHigherOrder() ? "thf(" : "tff(")
+    //match the fragment used for the proof steps (see
+    //InferenceStore's getFofString), so one proof does not mix languages
+    out << (env.initiallyHigherOrder() ? "thf(" : "tff(")
         << (function ? "func" : (typeCon ?  "type" : "pred"))
         << "_def_" << symNumber << ", type, "
         << symName << ": ";

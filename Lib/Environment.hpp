@@ -64,9 +64,21 @@ public:
    * be explicitly passed to all the functions interested in knowing...)
    */
   Kernel::Problem* getMainProblem() { return _problem; }
-  void setMainProblem(Kernel::Problem* p) {
+  /**
+   * Set the problem accessed through getMainProblem(). When @b isInputProblem
+   * is true, additionally record which TPTP fragment (fof/tff/thf) the problem
+   * starts out in, so that proof output can keep printing that fragment after
+   * preprocessing has changed the unit list. Pass false when temporarily
+   * swapping in an auxiliary problem (see FunctionRelationshipInference), so
+   * the recorded fragment of the input problem survives the swap.
+   */
+  void setMainProblem(Kernel::Problem* p, bool isInputProblem = true) {
     _problem = p;
     _higherOrder = _problem->isHigherOrder();
+    if (isInputProblem) {
+      _initiallyHigherOrder = _higherOrder;
+      _initiallyHasNonDefaultSorts = _problem->hasNonDefaultSorts();
+    }
   }
 
   bool higherOrder() const {
@@ -77,9 +89,22 @@ public:
     _higherOrder = value;
   }
 
+  bool initiallyHigherOrder() const {
+    return _initiallyHigherOrder;
+  }
+
+  bool initiallyHasNonDefaultSorts() const {
+    return _initiallyHasNonDefaultSorts;
+  }
+
 private:
   Kernel::Problem* _problem;
   bool _higherOrder;
+  // the fragment of the input problem before preprocessing: Problem's own
+  // hasNonDefaultSorts() and isHigherOrder() are recomputed from the current
+  // unit list, so they forget sorts whose last occurrence preprocessing removed
+  bool _initiallyHigherOrder = false;
+  bool _initiallyHasNonDefaultSorts = false;
 }; // class Environment
 
 extern Environment env;
