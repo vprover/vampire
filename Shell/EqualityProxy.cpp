@@ -153,7 +153,7 @@ void EqualityProxy::addAxioms(UnitList*& units)
   if (_poly) {
     addLocalAxioms(units, TermList(0,false));
   } else {
-    DHMap<TermList, unsigned>::Iterator it(_proxyPredicates);
+    decltype(_proxyPredicates)::Iterator it(_proxyPredicates);
     while(it.hasNext()) {
       addLocalAxioms(units, it.nextKey());
     }

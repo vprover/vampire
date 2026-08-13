@@ -95,12 +95,15 @@ private:
   /**
    * Proxy predicate numbers for each sort (which can be a complex term, even in mono - think arrays)
    * but must be ground (and shared).
+   *
+   * The id-based hashes matter: this map gets enumerated to emit the local axioms, and with
+   * the default (address-based) ones the axioms would come out in a different order in every run.
    */
-  DHMap<TermList, unsigned> _proxyPredicates;
+  DHMap<TermList, unsigned, SharedTermListHash, SharedTermListHash2> _proxyPredicates;
   /** equality proxy predicate sorts */
   DHMap<unsigned, TermList> _proxyPredicateSorts;
   /** the definitions E_sigma(x,y) <=> x = y, indexed by the sort sigma */
-  DHMap<TermList, Unit*> _proxyPremises;
+  DHMap<TermList, Unit*, SharedTermListHash, SharedTermListHash2> _proxyPremises;
 };
 
 };
