@@ -530,7 +530,7 @@ private:
   DHMap<Formula*, Occurrences, FnvHash, PtrIdentityHash> _occurrences;
 
   /** map var --> sort */
-  DHMap<unsigned,TermList> _varSorts;
+  DHMap<unsigned,TermList, FnvHash, IdentityHash> _varSorts;
   bool _collectedVarSorts;
   unsigned _maxVar;
 

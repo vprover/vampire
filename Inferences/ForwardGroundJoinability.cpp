@@ -71,7 +71,7 @@ bool ForwardGroundJoinability<higherOrder>::perform(Clause* cl, Clause*& replace
   if (!lit->isEquality() || lit->isNegative()) {
     return false;
   }
-  DHMap<unsigned, Clause*> premiseSet;
+  DHMap<unsigned, Clause*, FnvHash, IdentityHash> premiseSet;
 
   if (EqHelper::isEqTautology(lit)) {
     premises = ClauseIterator::getEmpty();

@@ -304,7 +304,7 @@ InferenceRule convert(Proxy cnst, bool simplifying) {
 }
 
 TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt){
-  static DHMap<unsigned,TermList> varSorts;
+  static DHMap<unsigned,TermList, FnvHash, IdentityHash> varSorts;
   varSorts.reset();
 
   if(sigmaTerm.isTerm()){
@@ -331,7 +331,7 @@ TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt){
 
   unsigned var;
   TermList varSort;
-  DHMap<unsigned, TermList>::Iterator mapIt(varSorts);
+  DHMap<unsigned, TermList, FnvHash, IdentityHash>::Iterator mapIt(varSorts);
   while(mapIt.hasNext()) {
     mapIt.next(var, varSort);
     if(varSort == AtomicSort::superSort()){

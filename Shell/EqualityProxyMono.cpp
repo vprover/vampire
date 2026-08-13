@@ -34,7 +34,7 @@ using namespace Lib;
 using namespace Kernel;
 
 DHMap<TermList, unsigned> EqualityProxyMono::s_proxyPredicates;
-DHMap<unsigned, TermList> EqualityProxyMono::s_proxyPredicateSorts;
+DHMap<unsigned, TermList, FnvHash, IdentityHash> EqualityProxyMono::s_proxyPredicateSorts;
 DHMap<TermList, Unit*> EqualityProxyMono::s_proxyPremises;
 
 /**

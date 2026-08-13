@@ -308,7 +308,7 @@ public:
     Stack<CodeOp*>* firstsInBlocks;
     size_t initFIBDepth;
     bool matchingClauses;
-    DHSet<unsigned> range;
+    DHSet<unsigned, FnvHash, IdentityHash> range;
   };
 
   struct NonRemovingBase {};
@@ -453,7 +453,7 @@ public:
 
   //////////// insertion //////////////
 
-  typedef DHMap<unsigned,unsigned> VarMap;
+  typedef DHMap<unsigned,unsigned, FnvHash, IdentityHash> VarMap;
 
   template<bool forLits>
   struct Compiler

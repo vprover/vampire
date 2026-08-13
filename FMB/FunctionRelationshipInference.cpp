@@ -246,7 +246,7 @@ void FunctionRelationshipInference::addClaimForFunction(TermList x, TermList y, 
     if(existential){
       // Build VSList from existential VList - need to determine sorts from function type
       // For now, collect from the formulas
-      DHMap<unsigned, TermList> varSorts;
+      DHMap<unsigned, TermList, FnvHash, IdentityHash> varSorts;
       SortHelper::collectVariableSorts(injective, varSorts);
       SortHelper::collectVariableSorts(surjective, varSorts);
       VSList::FIFO vsfifo;

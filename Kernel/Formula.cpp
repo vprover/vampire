@@ -418,7 +418,7 @@ Formula* Formula::createDefinition(Term* lhs, TermList rhs, VList* uVars)
   auto lit = Literal::create(env.signature->getDefPred(), /*polarity*/true, { sort, TermList(lhs), rhs });
   Formula* res = new AtomicFormula(lit);
   if (uVars) {
-    DHMap<unsigned,TermList> varSortMap;
+    DHMap<unsigned,TermList, FnvHash, IdentityHash> varSortMap;
     SortHelper::collectVariableSorts(res, varSortMap);
     VSList::FIFO vsfifo;
     VList::Iterator vit(uVars);
@@ -434,13 +434,13 @@ Formula* Formula::createDefinition(Term* lhs, TermList rhs, VList* uVars)
 Formula* Formula::quantify(Formula* f)
 {
 
-  DHMap<unsigned,TermList> tMap;
+  DHMap<unsigned,TermList, FnvHash, IdentityHash> tMap;
   SortHelper::collectVariableSorts(f,tMap,/*ignoreBound=*/true);
 
   //we have to quantify the formula
   VSList::FIFO quantifiedVarsWithSorts;
 
-  DHMap<unsigned,TermList>::Iterator tmit(tMap);
+  DHMap<unsigned,TermList, FnvHash, IdentityHash>::Iterator tmit(tMap);
   while(tmit.hasNext()) {
     unsigned v;
     TermList s;

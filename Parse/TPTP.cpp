@@ -60,8 +60,8 @@ static VSList* zipVarsSorts(VList* vars, SList* sorts) {
 
 #define DEBUG_SHOW_UNITS 0
 #define DEBUG_SOURCE 0
-DHMap<unsigned, std::pair<std::string, std::filesystem::path>> TPTP::_axiomNames;
-DHMap<unsigned, Map<unsigned,std::string>> TPTP::_questionVariableNames;
+DHMap<unsigned, std::pair<std::string, std::filesystem::path>, FnvHash, IdentityHash> TPTP::_axiomNames;
+DHMap<unsigned, Map<unsigned,std::string, FnvHash>, FnvHash, IdentityHash> TPTP::_questionVariableNames;
 
 //Numbers chosen to avoid clashing with connectives.
 //Unlikely to ever have 100 connectives, so this should be ok.
@@ -2350,7 +2350,7 @@ void TPTP::endLetTypes()
   std::string name = _strings.pop();
   Type* t = _types.pop();
   // Implicit type variables may appear in $let declarations, see below.
-  DHSet<unsigned> iTypeVars;
+  DHSet<unsigned, FnvHash, IdentityHash> iTypeVars;
   OperatorType* type = constructOperatorType(t, nullptr, &iTypeVars);
 
   unsigned arity = type->arity();
@@ -3642,7 +3642,7 @@ void TPTP::endFof()
 #if DEBUG_SOURCE
   else{
     // create fake map
-    _unitSources = new DHMap<unsigned,SourceRecord*>();
+    _unitSources = new DHMap<unsigned,SourceRecord*, FnvHash, IdentityHash>();
     source = getSource();
   }
 #endif
@@ -3879,7 +3879,7 @@ void TPTP::endTff()
 } // endTff
 
 
-OperatorType* TPTP::constructOperatorType(Type* t, VList* vars, DHSet<unsigned>* ivars)
+OperatorType* TPTP::constructOperatorType(Type* t, VList* vars, DHSet<unsigned, FnvHash, IdentityHash>* ivars)
 {
   TermList resultSort;
   Stack<TermList> argumentSorts;

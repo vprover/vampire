@@ -44,8 +44,8 @@ static void doCheck(UnitList* units)
   // find model size
   // looking for a domain axiom with a name starting 'finite_domain' (TODO search for something of the right shape)
 
-  DHMap<unsigned,unsigned> sortSizes;
-  DHMap<unsigned,std::unique_ptr<Set<Term*, FnvHash>>> domainConstantsPerSort;
+  DHMap<unsigned,unsigned, FnvHash, IdentityHash> sortSizes;
+  DHMap<unsigned,std::unique_ptr<Set<Term*, FnvHash>>, FnvHash, IdentityHash> domainConstantsPerSort;
 
   // first just search for finite_domain axiom (TODO: do this for every sort!)
   {

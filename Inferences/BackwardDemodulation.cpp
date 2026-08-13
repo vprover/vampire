@@ -68,7 +68,7 @@ struct Applicator : SubstApplicator {
 template<bool higherOrder>
 struct BackwardDemodulation<higherOrder>::ResultFn
 {
-  typedef DHMultiset<unsigned> ClauseSet;
+  typedef DHMultiset<unsigned, FnvHash, IdentityHash> ClauseSet;
 
   ResultFn(Clause* cl, BackwardDemodulation& parent, const DemodulationHelper& helper)
   : _cl(cl), _helper(helper), _ordering(parent._ord)
