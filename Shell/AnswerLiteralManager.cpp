@@ -246,7 +246,7 @@ void AnswerLiteralManager::tryOutputAnswer(Clause* refutation, std::ostream& out
           vss << ',';
         }
         if (questionVars) {
-          vss << questionVars->get(unitAndLiteral.second->nthArgument(i)->var()) << "->";
+          vss << questionVars->get(unitAndLiteral.second->nthArgument(i)->var()) << ":=";
         }
         TermList evalauted = possiblyEvaluateAnswerTerm(*aLit->nthArgument(i));
         if (evalauted.isTerm()){ // just check which Skolems we might have used
@@ -535,7 +535,7 @@ bool SynthesisALManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answer
     }
   }
   // just a single literal answer
-  answer.push(Clause::fromLiterals({Literal::create(origLit,answerArgs.begin())}, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::INPUT)));
+  answer.push(Clause::fromLiterals({Literal::create(origLit,answerArgs.begin())}, FromInput(UnitInputType::AXIOM)));
 
   outputRecursiveFunctions();
 

@@ -2059,6 +2059,9 @@ public:
 
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   bool blockedClauseElimination() const { return _blockedClauseElimination.actualValue; }
+  bool predicateElimination() const { return _predicateElimination.actualValue; }
+  float predicateEliminationTotalLimit() const { return _predicateEliminationTotalLimit.actualValue; }
+  bool predicateEliminationSubsumption() const { return _predicateEliminationSubsumption.actualValue; }
   unsigned distinctGroupExpansionLimit() const { return _distinctGroupExpansionLimit.actualValue; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval.actualValue = newVal; }
   SatSolver satSolver() const { return _satSolver.actualValue; }
@@ -2183,6 +2186,8 @@ public:
 
   bool shuffleInput() const { return _shuffleInput.actualValue; }
   bool randomPolarities() const { return _randomPolarities.actualValue; }
+  bool randomizedSimplifications() const { return _randomizedSimplifications.actualValue; }
+  bool randomizedPreprocessing() const { return _randomizedPreprocessing.actualValue; }
   bool randomAWR() const { return _randomAWR.actualValue; }
   bool randomTraversals() const { return _randomTraversals.actualValue; }
   bool randomizeSeedForPortfolioWorkers() const { return _randomizeSeedForPortfolioWorkers.actualValue; }
@@ -2197,8 +2202,6 @@ public:
   TweeGoalTransformation tweeGoalTransformation() const { return _tweeGoalTransformation.actualValue; }
   bool tweeSkipArrows() const { return _tweeSkipArrows.actualValue; }
   bool codeTreeSubsumption() const { return _codeTreeSubsumption.actualValue; }
-  bool outputAxiomNames() const { return _outputAxiomNames.actualValue; }
-  void setOutputAxiomNames(bool newVal) { _outputAxiomNames.actualValue = newVal; }
   QuestionAnsweringMode questionAnswering() const { return _questionAnswering.actualValue; }
   bool questionAnsweringGroundOnly() const { return _questionAnsweringGroundOnly.actualValue; }
   std::string questionAnsweringAvoidThese() const { return _questionAnsweringAvoidThese.actualValue; }
@@ -2579,7 +2582,9 @@ private:
   BoolOptionValue _shuffleInput;
   BoolOptionValue _randomPolarities;
 
-  BoolOptionValue _outputAxiomNames;
+  BoolOptionValue _randomizedSimplifications;
+  
+  BoolOptionValue _randomizedPreprocessing;
 
   StringOptionValue _printProofToFile;
   BoolOptionValue _printClausifierPremises;
@@ -2707,6 +2712,9 @@ private:
   ChoiceOptionValue<URResolution> _unitResultingResolution;
   BoolOptionValue _unusedPredicateDefinitionRemoval;
   BoolOptionValue _blockedClauseElimination;
+  BoolOptionValue _predicateElimination;
+  FloatOptionValue _predicateEliminationTotalLimit;
+  BoolOptionValue _predicateEliminationSubsumption;
   UnsignedOptionValue _distinctGroupExpansionLimit;
 
   OptionChoiceValues _tagNames;

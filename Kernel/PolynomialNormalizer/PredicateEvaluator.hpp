@@ -34,7 +34,6 @@ template<class ConstantType, class EvalGround>
 Option<LitSimplResult> tryEvalConstant2(Literal* orig, PolyNf* evaluatedArgs, EvalGround fun) 
 {
   ASS(orig->numTermArguments() == 2);
-  using Number = NumTraits<ConstantType>;
   auto lhs = evaluatedArgs[0].template wrapPoly<NumTraits<ConstantType>>();
   auto rhs = evaluatedArgs[1].template wrapPoly<NumTraits<ConstantType>>();
   auto polarity = orig->polarity();

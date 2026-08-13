@@ -12,6 +12,8 @@
  * Implements class CodeTreeForwardSubsumptionAndResolution.
  */
 
+#include "Lib/Random.hpp"
+
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "ProofExtra.hpp"
@@ -33,6 +35,12 @@ bool CodeTreeForwardSubsumptionAndResolution<higherOrder>::perform(Clause *cl, C
     return false;
   }
 
+  // under randomized simplifications, each subsumption resolution match is with this
+  // probability dropped, giving the next match (possibly a proper subsumption, which
+  // is never leaky) a chance instead (to be tuned)
+  constexpr double RSI_SKIP_PROB = 0.02;
+  bool rsi = env.options->randomizedSimplifications();
+
   static typename ClauseCodeTree<higherOrder>::ClauseMatcher cm;
 
   cm.init(_ct, cl, _subsumptionResolution);
@@ -47,6 +55,9 @@ bool CodeTreeForwardSubsumptionAndResolution<higherOrder>::perform(Clause *cl, C
       env.statistics->forwardSubsumed++;
       cm.reset();
       return true;
+    }
+    if (rsi && Random::getDouble(0.0,1.0) < RSI_SKIP_PROB) {
+      continue; // drop this candidate; the next match gets a chance
     }
     ASS(satSubs.checkSubsumptionResolutionWithLiteral(premise, cl, resolvedQueryLit));
 

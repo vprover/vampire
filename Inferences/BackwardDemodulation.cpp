@@ -15,6 +15,7 @@
 #include "Lib/DHMultiset.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "Lib/Random.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Lib/VirtualIterator.hpp"
 
@@ -85,6 +86,14 @@ struct BackwardDemodulation<higherOrder>::ResultFn
   BwSimplificationRecord operator() (pair<TermList,QueryRes<ResultSubstitutionSP, TermLiteralClause>> arg)
   {
     auto qr=arg.second;
+
+    // under randomized simplifications, each candidate rewrite is with this probability
+    // dropped as early as possible (saving also the applicability checks), with the same
+    // probability as in the forward variant (to be tuned)
+    constexpr double RSI_SKIP_PROB = 0.01;
+    if(env.options->randomizedSimplifications() && Random::getDouble(0.0,1.0) < RSI_SKIP_PROB) {
+      return BwSimplificationRecord(0);
+    }
 
     if( !ColorHelper::compatible(_cl->color(), qr.data->clause->color()) ) {
       //colors of premises don't match

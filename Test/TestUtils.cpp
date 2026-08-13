@@ -204,7 +204,9 @@ Stack<TermList> collect(unsigned functor, Term* t) {
 template<class Comparisons>
 bool TestUtils::eqModAC_(TermList lhs, TermList rhs, Comparisons comp)
 {
-  if (lhs == rhs) { return true; }
+  // NB: deliberately no `lhs == rhs` fast path. Two syntactically identical
+  // subterms still have to agree with the renaming `comp` is building up, so
+  // returning early here lets an inconsistent renaming through.
   if (lhs.isVar() && rhs.isVar()) {
     return comp.var(lhs.var(), rhs.var());
   } else if (lhs.isTerm() && rhs.isTerm()) {
@@ -270,7 +272,7 @@ bool TestUtils::eqModACRect(Kernel::TermList lhs, Kernel::TermList rhs)
   auto vl = iterTraits(vi(new VariableIterator(lhs))).collect<Stack>();
   vl.sort();
   vl.dedup();
-  auto vr = iterTraits(vi(new VariableIterator(lhs))).collect<Stack>();
+  auto vr = iterTraits(vi(new VariableIterator(rhs))).collect<Stack>();
   vr.sort();
   vr.dedup();
 

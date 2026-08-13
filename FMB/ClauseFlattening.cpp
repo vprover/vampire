@@ -106,7 +106,7 @@ Clause* ClauseFlattening::resolveNegativeVariableEqualities(Clause* cl)
           resLits->push(subst.isId() ? (*cl)[i] : SubstHelper::apply((*cl)[i],subst));
         }
       }
-      cl = Clause::fromStack(*resLits, NonspecificInference1(InferenceRule::EQUALITY_RESOLUTION,cl));
+      cl = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::EQUALITY_RESOLUTION,cl));
       n--;
       // cout << "Update: " << cl->toString() << endl;
     } else {

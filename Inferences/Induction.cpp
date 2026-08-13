@@ -905,7 +905,7 @@ ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, Inferen
   NewCNF cnf(0);
   cnf.setForInduction();
   ClauseStack hyp_clauses;
-  Inference inf = NonspecificInference0(UnitInputType::AXIOM,rule);
+  Inference inf = TheoryAxiom(rule);
   unsigned maxInductionDepth = 0;
   for (const auto& kv : context._cls) {
     maxInductionDepth = max(maxInductionDepth,kv.first->inference().inductionDepth());

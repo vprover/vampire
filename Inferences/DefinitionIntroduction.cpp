@@ -14,6 +14,7 @@
 #include "DefinitionIntroduction.hpp"
 
 #include "Kernel/Clause.hpp"
+#include "Kernel/FormulaUnit.hpp"
 #include "Kernel/HOL/HOL.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/InferenceStore.hpp"
@@ -155,7 +156,8 @@ void DefinitionIntroduction<higherOrder>::introduceDefinitionFor(Term *t) {
       type_arity
     );
   }
-  env.signature->getFunction(functor)->setType(type);
+  auto sym = env.signature->getFunction(functor);
+  sym->setType(type);
   Term *def;
   if constexpr (higherOrder) {
     TermList head(Term::create(functor, type_arity, variables.data()));
@@ -165,9 +167,21 @@ void DefinitionIntroduction<higherOrder>::introduceDefinitionFor(Term *t) {
   }
   Literal *eq = Literal::createEquality(true, TermList(def), TermList(t), range_sort);
 
+  // unflip equation first if needed to document original orientation for TSTP
+  Clause* definition;
+  Unit* intro;
+  NonspecificInference0 inf(UnitInputType::AXIOM, InferenceRule::FUNCTION_DEFINITION);
+  if (TermList(def) == eq->termArg(0)) {
+    definition = Clause::fromLiterals({eq}, inf);
+    intro = definition;
+  } else {
+    intro = new FormulaUnit(new AtomicFormula(eq, /*flipForPrinting=*/true), inf);
+    definition = Clause::fromLiterals({eq}, FormulaClauseTransformation(InferenceRule::REORIENT_EQUATIONS, intro));
+  }
+
   // record definition
-  auto definition = Clause::fromLiterals({eq}, NonspecificInference0(UnitInputType::AXIOM, InferenceRule::FUNCTION_DEFINITION));
-  InferenceStore::instance()->recordIntroducedSymbol(definition, SymbolType::FUNC, functor);
+  InferenceStore::instance()->recordIntroducedSymbol(intro, sym);
+
   _definitions.push_back(definition);
 }
 

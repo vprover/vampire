@@ -59,7 +59,7 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
   Options opt; // default saturation algorithm options
 
   Problem* inputProblem = env.getMainProblem();
-  env.setMainProblem(&prb);
+  env.setMainProblem(&prb, /* isInputProblem */ false);
   unsigned useTimeLimit = env.options->fmbDetectSortBoundsTimeLimit();
   opt.setSplitting(false);
   opt.resolveAwayAutoValues0();
@@ -76,7 +76,7 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
     // This is expected behaviour
   }
 
-  env.setMainProblem(inputProblem);
+  env.setMainProblem(inputProblem, /* isInputProblem */ false);
 
   Stack<unsigned> foundLabels = labelFinder->getFoundLabels();
 

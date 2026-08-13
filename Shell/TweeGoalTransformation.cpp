@@ -30,6 +30,7 @@
  */
 
 #include "Kernel/Clause.hpp"
+#include "Kernel/FormulaUnit.hpp"
 #include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/TermIterators.hpp"
@@ -138,7 +139,8 @@ class Definizator : public BottomUpTermTransformer {
       TermList res;
       if (!_cache.find(key,symAndDef)) {
         TermList outSort = SortHelper::getResultSort(t);
-        unsigned newSym;
+        unsigned newFn;
+        Signature::Symbol* newSym;
         Clause* newDef;
         scanVars(t);
 
@@ -150,28 +152,39 @@ class Definizator : public BottomUpTermTransformer {
           // this is always true in the ground case (where t->weight()>=2 and _allVars.size() == 0)
 
           if (env.higherOrder()) {
-            newSym = env.signature->addFreshFunction(_typeVars.size(), "sF");
+            newFn = env.signature->addFreshFunction(_typeVars.size(), "sF");
             auto sort = AtomicSort::arrowSort(_termVarSorts, outSort);
-            env.signature->getFunction(newSym)->setType(OperatorType::getConstantsType(sort, _typeVars.size()));
+            newSym = env.signature->getFunction(newFn);
+            newSym->setType(OperatorType::getConstantsType(sort, _typeVars.size()));
 
-            TermList head(Term::create(newSym, _typeVars.size(), _typeVars.begin()));
+            TermList head(Term::create(newFn, _typeVars.size(), _typeVars.begin()));
             res = HOL::create::app(head, _termVars);
           } else {
-            newSym = env.signature->addFreshFunction(_allVars.size(), "sF");
+            newFn = env.signature->addFreshFunction(_allVars.size(), "sF");
             auto type = OperatorType::getFunctionType(_termVarSorts.size(),_termVarSorts.begin(),outSort,_typeArity);
-            env.signature->getFunction(newSym)->setType(type);
+            newSym = env.signature->getFunction(newFn);
+            newSym->setType(type);
 
             // res is used both to replace here, but also in the new definition
-            res = TermList(Term::create(newSym,_allVars.size(),_allVars.begin()));
+            res = TermList(Term::create(newFn,_allVars.size(),_allVars.begin()));
           }
 
           // (we don't care the definition is not rectified, as long as it's correct)
           // it is correct, because the lhs below is t and not key
-          auto equation = Literal::createEquality(true, TermList(t), res, SortHelper::getResultSort(res.term()));
+          auto equation = Literal::createEquality(true, res, TermList(t), SortHelper::getResultSort(res.term()));
           Inference inference(NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FUNCTION_DEFINITION));
-          newDef = Clause::fromLiterals({ equation }, inference);
+          Unit* intro;
 
-          InferenceStore::instance()->recordIntroducedSymbol(newDef,SymbolType::FUNC,newSym);
+          // unflip equation first if needed to document original orientation for TSTP
+          if (res == equation->termArg(0)) {
+            newDef = Clause::fromLiterals({ equation }, inference);
+            intro = newDef;
+          } else {
+            intro = new FormulaUnit(new AtomicFormula(equation, /*flipForPrinting=*/true), inference);
+            newDef = Clause::fromLiterals({ equation }, FormulaClauseTransformation(InferenceRule::REORIENT_EQUATIONS, intro));
+          }
+
+          InferenceStore::instance()->recordIntroducedSymbol(intro, newSym);
         } else {
           // linear term, don't replace (and remember it in cache)
           symAndDef.first = 0;
@@ -185,7 +198,7 @@ class Definizator : public BottomUpTermTransformer {
         if(env.options->showPreprocessing()) {
           std::cout << "[PP] twee: " << newDef->toString() << std::endl;
         }
-        symAndDef.first = newSym;
+        symAndDef.first = newFn;
         symAndDef.second = newDef;
         _cache.insert(key,symAndDef);
       } else {
@@ -236,7 +249,7 @@ void Shell::TweeGoalTransformation::apply(Problem &prb, bool groundOnly)
     if (df.premises) {
       UnitList::push(c,df.premises);
       Clause* nc = Clause::fromStack(newLits,
-        NonspecificInferenceMany(InferenceRule::DEFINITION_FOLDING,df.premises));
+        FormulaClauseTransformationMany(InferenceRule::DEFINITION_FOLDING,df.premises));
       u = nc; // replace the original in the Problem's list
     }
   }

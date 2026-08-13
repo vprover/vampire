@@ -49,14 +49,11 @@ struct SubstitutionTree<LeafData_>::GenMatcher::Binder
    */
   bool bind(unsigned var, TermList term)
   {
-    if(var > _maxVar) {
+    if (var > _maxVar || term.containsLooseDBIndex()) {
       return false;
     }
     TermList* aux;
     if(_parent->_bindings.getValuePtr(var,aux,term)) {
-      if (term.containsLooseDBIndex()) {
-        return false;
-      }
       _parent->_boundVars.push(var);
       return true;
     } else {
