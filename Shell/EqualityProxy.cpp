@@ -235,7 +235,12 @@ void EqualityProxy::addCongruenceAxioms(UnitList*& units)
       continue;
     }
     OperatorType* fnType = fnSym->fnType();
-    getArgumentEqualityLiterals(arity, lits, vars1, vars2, fnType, false);
+    // arity counts the type arguments, so the check above does not catch a polymorphic
+    // constant such as nil : !>[X]: list(X); there is nothing to relate for one of those
+    // and the axiom would just be an instance of reflexivity
+    if (!getArgumentEqualityLiterals(arity, lits, vars1, vars2, fnType, /*skipSortsWithoutEquality=*/false)) {
+      continue;
+    }
     Term* t1 = Term::create(i, arity, vars1.begin());
     Term* t2 = Term::create(i, arity, vars2.begin());
     ALWAYS(SortHelper::tryGetResultSort(t1, srt));
@@ -256,9 +261,9 @@ void EqualityProxy::addCongruenceAxioms(UnitList*& units)
       continue;
     }
     // with a single polymorphic proxy predicate every sort has one, so nothing gets skipped there
-    bool skipSortsWithoutEquality = !_poly;
-    bool haveEqualities = getArgumentEqualityLiterals(arity, lits, vars1, vars2, predSym->predType(), skipSortsWithoutEquality);
-    if (skipSortsWithoutEquality && !haveEqualities) {
+    // (but an all-type-argument predicate still leaves nothing to relate, and its axiom would be
+    // a tautology)
+    if (!getArgumentEqualityLiterals(arity, lits, vars1, vars2, predSym->predType(), /*skipSortsWithoutEquality=*/!_poly)) {
       continue;
     }
     lits.push(Literal::create(i, arity, false, vars1.begin()));
