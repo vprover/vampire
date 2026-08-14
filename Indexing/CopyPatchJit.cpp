@@ -1064,6 +1064,7 @@ void CopyPatchJit::compileSsDispatchStub() {
  * pushAlt is deliberately NOT bound: it resolves _mcode at push time, and the
  * pushed value lives only within one trampoline invocation, so it stays
  * correct under index mutation without any patching protocol.
+ only rcx, rdx, r10 survive; rax and r11 do not
  */
 void CopyPatchJit::emitPushAlt(void* asm_ptr, Stencil& s, size_t base) {
   auto& a = *static_cast<Assembler*>(asm_ptr);
@@ -1289,13 +1290,15 @@ void CopyPatchJit::compileStencilAssignVar() {
   a.jne(funCase);
 
   // ---- Variable case ----
-  emitPushAlt(&a, s, base);
   // Construct TermList for var: (number << 2) | 1
+
   a.mov(rdx, r11);
   a.shr(rdx, 3);
   a.and_(edx, 0x1FFFFFFFu);
   a.shl(rdx, 2);
   a.or_(rdx, 1);
+  
+  emitPushAlt(&a, s, base);
 
   // Store to bindings[var].  The byte offset is a 4-byte immediate.
   // We use 'mov [r14 + disp32], rdx'-the disp32 is patchable.

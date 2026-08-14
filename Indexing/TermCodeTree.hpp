@@ -59,6 +59,18 @@ public:
     using Base = Matcher</*removing*/false,false,higherOrder>;
     using Base::ft;
 
+    #ifdef JIT_VERIFY_MATCHES
+      /** Query term of the current retrieval, kept so verifyMatch can check
+      *  that every returned generalization really instantiates to it. */
+      TermList _query;
+      /** Differential oracle for the term-matching path: check that d->term
+      *  under the bindings the matcher produced equals the query, and print
+      *  "% JITDIFF ..." if not. Build with -DJIT_VERIFY_MATCHES; costs one
+      *  substitution application per result, so it is off by default.
+      *  Caught the ASSIGN_VAR/r11 clobber (see CopyPatchJit emitPushAlt). */
+      void verifyMatch(Data* d);
+    #endif
+
     void init(CodeTree* tree, TermList t);
     void reset();
     

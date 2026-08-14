@@ -19,6 +19,12 @@
 
 #include "TermCodeTree.hpp"
 
+#ifdef JIT_VERIFY_MATCHES
+  #include "Kernel/SubstHelper.hpp"
+  #include "Kernel/Renaming.hpp"
+  #include <iostream>   
+#endif
+
 namespace Indexing
 {
 
@@ -131,6 +137,27 @@ void TermCodeTree<higherOrder, Data>::RemovingTermMatcher::init(FlatTerm* ft_,
   Base::op=Base::entry;
 }
 
+#ifdef JIT_VERIFY_MATCHES
+template<bool higherOrder, class Data>
+void TermCodeTree<higherOrder, Data>::TermMatcher::verifyMatch(Data* d)
+{
+  struct Appl {
+    CodeTree::BindingArray& b; Renaming* n;
+    TermList apply(unsigned v) const { return b[n ? n->get(v) : v]; }
+  };
+  Renaming norm; Renaming* np = nullptr;
+  if constexpr (!is_indexed_data_normalized<Data>::value) {
+    norm.normalizeVariables(d->term); np = &norm;
+  }
+  Appl appl{Base::bindings, np};
+  TermList inst = SubstHelper::apply(d->term, appl);
+  if (inst != _query) {
+    std::cerr << "% JITDIFF query=" << _query << " indexed=" << d->term
+              << " instantiated=" << inst << std::endl;
+  }
+}
+#endif
+
 //////////////// retrieval ////////////////////
 
 template<bool higherOrder, class Data>
@@ -148,6 +175,9 @@ void TermCodeTree<higherOrder, Data>::TermMatcher::init(CodeTree* tree, TermList
 
   ASS(!ft);
   ft = FlatTerm::create(t);
+#ifdef JIT_VERIFY_MATCHES
+  _query = t;
+#endif
 
   Base::op=Base::entry;
   Base::tp=0;
@@ -169,14 +199,18 @@ Data* TermCodeTree<higherOrder, Data>::TermMatcher::next()
     //all possible matches are exhausted
     return 0;
   }
-  
+
   Base::_matched=Base::executeMachineCode();
   if (!Base::_matched) {
     return 0;
   }
 
   ASS(Base::op->isSuccess());
-  return Base::op->template getSuccessResult<Data>();
+  Data* d = Base::op->template getSuccessResult<Data>();
+#ifdef JIT_VERIFY_MATCHES
+  verifyMatch(d);
+#endif
+  return d;
 }
 
 template class TermCodeTree<false, TermLiteralClause>;
