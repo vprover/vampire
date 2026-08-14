@@ -608,6 +608,8 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "equality proxy definition";
   case InferenceRule::EQUALITY_PROXY_AXIOM:
     return "equality proxy axiom";
+  case InferenceRule::ALASCA_INTEGRALITY_AXIOM:
+    return "alasca integrality axiom";
   case InferenceRule::EXTENSIONALITY_RESOLUTION:
     return "extensionality resolution";
   case InferenceRule::DEFINITION_UNFOLDING:
