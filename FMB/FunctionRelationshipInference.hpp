@@ -36,8 +36,8 @@ class FunctionRelationshipInference {
 public:
 
 void findFunctionRelationships(ClauseIterator clauses,
-                               DHSet<std::pair<unsigned,unsigned>>& nonstrict_cons,
-                               DHSet<std::pair<unsigned,unsigned>>& strict_cons);
+                               DHSet<std::pair<unsigned,unsigned>, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>>& nonstrict_cons,
+                               DHSet<std::pair<unsigned,unsigned>, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>>& strict_cons);
 
 private:
 

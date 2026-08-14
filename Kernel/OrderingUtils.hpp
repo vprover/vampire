@@ -253,7 +253,7 @@ namespace Kernel {
     template<class Cmp, class GetElem>
     static auto maxElems(unsigned nElems, Cmp cmp_, GetElem get, SelectionCriterion sel, bool dedup = false)
     {
-      auto cmpCache = Lib::make_shared(Map<std::pair<unsigned, unsigned>, Ordering::Result>());
+      auto cmpCache = Lib::make_shared(Map<std::pair<unsigned, unsigned>, Ordering::Result, PairHash<FnvHash,FnvHash>>());
 
       auto cmp = [=](unsigned l, unsigned r) {
         ASS_NEQ(l, r)

@@ -3069,7 +3069,7 @@ bool Options::TimeLimitOptionValue::setValue(const std::string& value)
  * An optname starting with $ is not meant to be a real option, but a fake one.
  * Fakes get stored in the map fakes and can be referenced later, during the sampling process.
  */
-void Options::strategySamplingAssign(std::string optname, std::string value, DHMap<std::string,std::string>& fakes)
+void Options::strategySamplingAssign(std::string optname, std::string value, DHMap<std::string,std::string, FnvHash, LengthHash>& fakes)
 {
   // dollar sign signifies fake options
   if (optname[0] == '$') {
@@ -3095,7 +3095,7 @@ void Options::strategySamplingAssign(std::string optname, std::string value, DHM
  * An optname starting with $ is not meant to be a real option, but a fake one.
  * Fakes get read from the given map fakes.
  */
-std::string Options::strategySamplingLookup(std::string optname, DHMap<std::string,std::string>& fakes)
+std::string Options::strategySamplingLookup(std::string optname, DHMap<std::string,std::string, FnvHash, LengthHash>& fakes)
 {
   if (optname[0] == '$' || optname[0] == '@') {
     std::string* foundVal = fakes.findPtr(optname);
@@ -3114,7 +3114,7 @@ std::string Options::strategySamplingLookup(std::string optname, DHMap<std::stri
   return "";
 }
 
-void Options::sampleStrategy(const std::string& strategySamplerFilename, DHMap<std::string,std::string> fakes)
+void Options::sampleStrategy(const std::string& strategySamplerFilename, DHMap<std::string,std::string, FnvHash, LengthHash> fakes)
 {
   std::ifstream input(strategySamplerFilename.c_str());
 
