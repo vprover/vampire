@@ -570,11 +570,17 @@ void Options::init()
     _blockedClauseElimination.tag(OptionTag::PREPROCESSING);
     _blockedClauseElimination.addProblemConstraint(notWithCat(Property::UEQ));
 
-    _predicateElimination = BoolOptionValue("predicate_elimination","pel",false);
+    _predicateElimination = ChoiceOptionValue<PredicateElimination>("predicate_elimination","pel",
+                                                                     PredicateElimination::OFF,
+                                                                     {"off","on","multi"});
     _predicateElimination.description=
       "After clausification, eliminate predicates that occur at most once in every clause"
       " by replacing their clauses with all pairwise resolvents (cf. Khasidashvili and Korovin, SAT 2016)."
-      " (See also predicate_elimination_multi_occurrence for a relaxation of the at-most-once condition.)"
+      " With multi, also eliminate a predicate P occurring more than once in a clause, provided P"
+      " never occurs both positively and negatively in a single clause and the multi-occurrence"
+      " clauses all sit on one polarity side. Instead of pairwise resolvents, the replacement clauses"
+      " are then all the hyper-resolvents, each occurrence of a multi-occurrence clause being resolved"
+      " against its own (variable-disjoint) copy of a single-occurrence clause of the opposite polarity."
       " On problems without equality and theories, resolvents are computed with an mgu;"
       " otherwise argument disequalities are introduced via (virtual) flattening,"
       " which may add equality to a problem previously without it.";
@@ -586,30 +592,19 @@ void Options::init()
     _predicateEliminationTotalLimit.description=
       "A predicate elimination step is only performed if the estimated number of clauses afterwards"
       " (current - |S_P| - |S_~P| + the number of resolvents, which is |S_P|*|S_~P| unless"
-      " predicate_elimination_multi_occurrence kicks in) does not exceed the number of clauses"
+      " predicate_elimination is set to multi) does not exceed the number of clauses"
       " before predicate elimination started times this factor.";
     _lookup.insert(&_predicateEliminationTotalLimit);
     _predicateEliminationTotalLimit.tag(OptionTag::PREPROCESSING);
     _predicateEliminationTotalLimit.addConstraint(greaterThanEq(0.0f));
-    _predicateEliminationTotalLimit.onlyUsefulWith(_predicateElimination.is(equal(true)));
+    _predicateEliminationTotalLimit.onlyUsefulWith(_predicateElimination.is(notEqual(PredicateElimination::OFF)));
 
     _predicateEliminationSubsumption = BoolOptionValue("predicate_elimination_subsumption","pels",true);
     _predicateEliminationSubsumption.description=
       "Keep the clause set forward-inter-subsumed and subsumption-resolved during predicate elimination.";
     _lookup.insert(&_predicateEliminationSubsumption);
     _predicateEliminationSubsumption.tag(OptionTag::PREPROCESSING);
-    _predicateEliminationSubsumption.onlyUsefulWith(_predicateElimination.is(equal(true)));
-
-    _predicateEliminationMultiOccurrence = BoolOptionValue("predicate_elimination_multi_occurrence","pelmo",false);
-    _predicateEliminationMultiOccurrence.description=
-      "Also eliminate a predicate P occurring more than once in a clause, provided P never occurs"
-      " both positively and negatively in a single clause and the multi-occurrence clauses all sit"
-      " on one polarity side. Instead of pairwise resolvents, the replacement clauses are then all"
-      " the hyper-resolvents, each occurrence of a multi-occurrence clause being resolved against"
-      " its own (variable-disjoint) copy of a single-occurrence clause of the opposite polarity.";
-    _lookup.insert(&_predicateEliminationMultiOccurrence);
-    _predicateEliminationMultiOccurrence.tag(OptionTag::PREPROCESSING);
-    _predicateEliminationMultiOccurrence.onlyUsefulWith(_predicateElimination.is(equal(true)));
+    _predicateEliminationSubsumption.onlyUsefulWith(_predicateElimination.is(notEqual(PredicateElimination::OFF)));
 
     _distinctGroupExpansionLimit = UnsignedOptionValue("distinct_group_expansion_limit","dgel",140);
     _distinctGroupExpansionLimit.description = "If a distinct group (defined, e.g., via TPTP's $distinct)"

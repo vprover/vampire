@@ -346,6 +346,15 @@ public:
   };
 
   /**
+   * Possible values for predicate_elimination.
+   */
+  enum class PredicateElimination : unsigned int {
+    OFF = 0,
+    ON = 1,
+    MULTI = 2
+  };
+
+  /**
    * Possible values for the input syntax
    * @since 26/08/2009 Redmond
    */
@@ -2059,10 +2068,10 @@ public:
 
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   bool blockedClauseElimination() const { return _blockedClauseElimination.actualValue; }
-  bool predicateElimination() const { return _predicateElimination.actualValue; }
+  PredicateElimination predicateElimination() const { return _predicateElimination.actualValue; }
   float predicateEliminationTotalLimit() const { return _predicateEliminationTotalLimit.actualValue; }
   bool predicateEliminationSubsumption() const { return _predicateEliminationSubsumption.actualValue; }
-  bool predicateEliminationMultiOccurrence() const { return _predicateEliminationMultiOccurrence.actualValue; }
+  bool predicateEliminationMultiOccurrence() const { return _predicateElimination.actualValue == PredicateElimination::MULTI; }
   unsigned distinctGroupExpansionLimit() const { return _distinctGroupExpansionLimit.actualValue; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval.actualValue = newVal; }
   SatSolver satSolver() const { return _satSolver.actualValue; }
@@ -2713,10 +2722,9 @@ private:
   ChoiceOptionValue<URResolution> _unitResultingResolution;
   BoolOptionValue _unusedPredicateDefinitionRemoval;
   BoolOptionValue _blockedClauseElimination;
-  BoolOptionValue _predicateElimination;
+  ChoiceOptionValue<PredicateElimination> _predicateElimination;
   FloatOptionValue _predicateEliminationTotalLimit;
   BoolOptionValue _predicateEliminationSubsumption;
-  BoolOptionValue _predicateEliminationMultiOccurrence;
   UnsignedOptionValue _distinctGroupExpansionLimit;
 
   OptionChoiceValues _tagNames;

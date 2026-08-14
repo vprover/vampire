@@ -470,7 +470,7 @@ void Preprocess::preprocess(Problem& prb)
      bce.apply(prb);
    }
 
-   if (_options.predicateElimination()) {
+   if (_options.predicateElimination() != Options::PredicateElimination::OFF) {
      if (prb.isHigherOrder() || prb.hasPolymorphicSym()) { // in both cases, predicates could hide inside terms, breaking the occurrence counting
        if (outputAllowed()) {
          addCommentSignForSZS(std::cout);
