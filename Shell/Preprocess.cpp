@@ -32,7 +32,6 @@
 #include "DistinctGroupExpansion.hpp"
 #include "EqResWithDeletion.hpp"
 #include "EqualityProxy.hpp"
-#include "EqualityProxyMono.hpp"
 #include "Flattening.hpp"
 #include "FunctionDefinition.hpp"
 #include "GeneralSplitting.hpp"
@@ -427,14 +426,13 @@ void Preprocess::preprocess(Problem& prb)
 
      // refresh symbol usage counts, can skip unused symbols for equality proxy
      prb.getProperty();
-     if(_options.useMonoEqualityProxy() && !prb.hasPolymorphicSym()){
-       EqualityProxyMono proxy(_options.equalityProxy());
-       proxy.apply(prb);
-     } else {
-       //default
-       EqualityProxy proxy(_options.equalityProxy());
-       proxy.apply(prb);
-     }
+     // only a problem which is polymorphic already gets the polymorphic proxy predicate;
+     // a monomorphic problem must not be turned polymorphic by preprocessing
+     // TODO: hasPolymorphicSym over-approximates; it also holds for a monomorphic problem
+     // with an equality on a non-nullary ground sort, such as list(int), which the
+     // monomorphic variant would handle just fine
+     EqualityProxy proxy(_options.equalityProxy(),/*poly=*/prb.hasPolymorphicSym());
+     proxy.apply(prb);
    }
 
 

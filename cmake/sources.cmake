@@ -692,8 +692,6 @@ set(SOURCES
     Shell/EqResWithDeletion.hpp
     Shell/EqualityProxy.cpp
     Shell/EqualityProxy.hpp
-    Shell/EqualityProxyMono.cpp
-    Shell/EqualityProxyMono.hpp
     Shell/FOOLElimination.cpp
     Shell/FOOLElimination.hpp
     Shell/Flattening.cpp
