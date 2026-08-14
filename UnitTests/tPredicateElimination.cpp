@@ -35,7 +35,12 @@ static Problem *problemFromClauses(std::initializer_list<Clause *> cls)
   for (Clause *cl : cls) {
     UnitList::push(cl, units);
   }
-  return new Problem(units);
+  Problem *prb = new Problem(units);
+  // as UIHelper does for a parsed input: without this, env never learns that these
+  // problems are typed, and printing a definition that quantifies over a declared
+  // sort trips the "initially untyped problems stay untyped" assertion in Formula
+  env.setMainProblem(prb);
+  return prb;
 }
 
 static ClauseStack collectClauses(Problem &prb)
