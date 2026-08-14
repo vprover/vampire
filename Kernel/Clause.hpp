@@ -257,7 +257,11 @@ public:
   bool isPropositional();
   bool isHorn();
 
+  /** the clause's variables, each reported exactly once (which costs a set and a
+   * materialised list -- prefer iterVars below when repetitions do no harm) */
   VirtualIterator<unsigned> getVariableIterator() const;
+  /** the clause's variable occurrences, i.e. lazily and with repetitions */
+  VirtualIterator<unsigned> iterVars() const;
 
   bool contains(Literal* lit);
 #if VDEBUG

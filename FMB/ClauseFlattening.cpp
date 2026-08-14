@@ -128,14 +128,7 @@ Clause* ClauseFlattening::flatten(Clause* cl)
   cl = resolveNegativeVariableEqualities(cl);
 
   // new, find the maximal variable number
-  unsigned maxVar = 0;
-  VirtualIterator<unsigned> varIt = cl->getVariableIterator();
-  while (varIt.hasNext()) {
-    unsigned var = varIt.next();
-    if (var > maxVar) {
-      maxVar = var;
-    }
-  }
+  unsigned maxVar = cl->maxVar();
 
   // literals to be processed, start with those in clause
   Stack<Literal*> lits;

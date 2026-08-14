@@ -8,7 +8,10 @@
  * and in the source directory
  */
 
+#include <algorithm>
 #include <initializer_list>
+#include <string>
+#include <vector>
 
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
@@ -17,6 +20,7 @@
 #include "Shell/Statistics.hpp"
 
 #include "Kernel/Clause.hpp"
+#include "Kernel/Formula.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Problem.hpp"
 
@@ -31,7 +35,12 @@ static Problem *problemFromClauses(std::initializer_list<Clause *> cls)
   for (Clause *cl : cls) {
     UnitList::push(cl, units);
   }
-  return new Problem(units);
+  Problem *prb = new Problem(units);
+  // as UIHelper does for a parsed input: without this, env never learns that these
+  // problems are typed, and printing a definition that quantifies over a declared
+  // sort trips the "initially untyped problems stay untyped" assertion in Formula
+  env.setMainProblem(prb);
+  return prb;
 }
 
 static ClauseStack collectClauses(Problem &prb)
@@ -72,12 +81,38 @@ static Clause *theClauseOfLength(const ClauseStack &cls, unsigned len)
 static ClauseStack runPE(std::initializer_list<Clause *> cls,
                              bool forceEquationally = false,
                              float totalLimit = 2.0,
-                             bool useSubsumption = false)
+                             bool useSubsumption = false,
+                             bool multiOccurrence = true)
 {
   Problem *prb = problemFromClauses(cls);
-  PredicateElimination pe(forceEquationally, totalLimit, useSubsumption);
+  PredicateElimination pe(forceEquationally, totalLimit, useSubsumption, multiOccurrence);
   pe.apply(*prb);
   return collectClauses(*prb);
+}
+
+/** the predicate elimination resolvent -- expected to exist and be unique */
+static Clause *theResolvent(const ClauseStack &cls)
+{
+  Clause *found = nullptr;
+  for (Clause *cl : cls) {
+    if (cl->inference().rule() == InferenceRule::PREDICATE_ELIMINATION) {
+      ASS(!found);
+      found = cl;
+    }
+  }
+  ASS(found);
+  return found;
+}
+
+/** the clauses' literals, sorted, so that a test does not depend on the derivation order */
+static std::vector<std::string> clauseStrings(const ClauseStack &cls)
+{
+  std::vector<std::string> res;
+  for (Clause *cl : cls) {
+    res.push_back(cl->literalsOnlyToString());
+  }
+  std::sort(res.begin(), res.end());
+  return res;
 }
 
 /* Note: many tests below include the clause {q(y) \/ ~q(f(y))}, in which q is
@@ -186,11 +221,143 @@ TEST_FUN(self_referential_skipped)
 {
   MY_SYNTAX_SUGAR
 
-  // p occurs twice in the first clause, so it must survive
-  auto res = runPE({clause({p(x), p(f(x))}), clause({~p(a)})});
+  // p occurs twice in the first clause, so without multiOccurrence it must survive
+  auto res = runPE({clause({p(x), p(f(x))}), clause({~p(a)})},
+                   /*forceEquationally=*/false, /*totalLimit=*/2.0,
+                   /*useSubsumption=*/false, /*multiOccurrence=*/false);
 
   ASS_EQ(res.size(), 2);
   ASS(containsPredicate(res, p.functor()));
+}
+
+TEST_FUN(multi_occurrence_nonunifiable_tuple_dropped)
+{
+  MY_SYNTAX_SUGAR
+
+  // with multiOccurrence, p goes: the only tuple (the satellite paired with itself)
+  // would need x = a and f(x) = a at once, so it yields no resolvent -- correctly,
+  // since {p(x) \/ p(f(x))}, {~p(a)} is satisfiable
+  auto res = runPE({clause({p(x), p(f(x))}), clause({~p(a)})});
+
+  ASS_EQ(res.size(), 0);
+}
+
+TEST_FUN(mixed_polarity_still_blocked)
+{
+  MY_SYNTAX_SUGAR
+
+  // p occurs in both polarities in one clause (violating condition 1), so it stays
+  auto res = runPE({clause({p(x), ~p(f(x))}), clause({~p(a)})});
+
+  ASS_EQ(res.size(), 2);
+  ASS(containsPredicate(res, p.functor()));
+}
+
+TEST_FUN(multi_occurrence_on_both_sides_blocked)
+{
+  MY_SYNTAX_SUGAR
+
+  // multi-occurrence on both sides violates condition 2, so p stays
+  auto res = runPE({clause({p(a), p(b)}), clause({~p(x), ~p(y)})});
+
+  ASS_EQ(res.size(), 2);
+  ASS(containsPredicate(res, p.functor()));
+}
+
+TEST_FUN(multi_occurrence_positive_nucleus)
+{
+  MY_SYNTAX_SUGAR
+
+  // {p(a) \/ p(b)} is the nucleus; its two occurrences are resolved against
+  // two variable-disjoint copies of the only satellite ---> {q(a) \/ q(b)}
+  Problem *prb = problemFromClauses({clause({p(a), p(b)}), clause({~p(x), q(x)}),
+                                     clause({q(y), ~q(f(y))})});
+  PredicateElimination pe(false, 2.0, false, true);
+  pe.apply(*prb);
+  auto res = collectClauses(*prb);
+
+  ASS_EQ(res.size(), 2);
+  ASS(!containsPredicate(res, p.functor()));
+  ASS_EQ(theResolvent(res)->literalsOnlyToString(), "q(a) | q(b)");
+
+  // the multiplicity sits on the positive side, so the model-repairing definition of p
+  // must have been recorded in the dual direction, i.e. built from S_~P
+  ASS(prb->interferences.isNonEmpty());
+  auto *pd = static_cast<Problem::PredDef *>(prb->interferences.top());
+  ASS(pd->_kind == Problem::IntereferenceKind::PRED_DEF);
+  ASS_EQ(pd->_head->functor(), p.functor());
+  ASS(pd->_body->connective() == FORALL); // the dual shape (the primal one is EXISTS/OR)
+  ASS(pd->_body->toString().find("p(") == std::string::npos); // and it is p-free
+}
+
+TEST_FUN(multi_occurrence_negative_nucleus)
+{
+  MY_SYNTAX_SUGAR
+
+  // the mirror image: {~p(a) \/ ~p(b)} is the nucleus ---> {q(a) \/ q(b)}
+  auto res = runPE({clause({~p(a), ~p(b)}), clause({p(x), q(x)}),
+                    clause({q(y), ~q(f(y))})});
+
+  ASS_EQ(res.size(), 2);
+  ASS(!containsPredicate(res, p.functor()));
+  ASS_EQ(theResolvent(res)->literalsOnlyToString(), "q(a) | q(b)");
+}
+
+TEST_FUN(multi_occurrence_all_tuples_enumerated)
+{
+  MY_SYNTAX_SUGAR
+
+  // two occurrences against two satellites: all 2^2 assignments are needed
+  auto res = runPE({clause({p(a), p(b)}),
+                    clause({~p(x), q(x)}), clause({~p(y), r(y)}),
+                    clause({q(y), ~q(f(y))}), clause({r(y), ~r(f(y))})});
+
+  ASS_EQ(res.size(), 6); // 4 resolvents plus the two anchors
+  ASS(!containsPredicate(res, p.functor()));
+  auto strs = clauseStrings(res);
+  ASS(std::find(strs.begin(), strs.end(), "q(a) | q(b)") != strs.end());
+  ASS(std::find(strs.begin(), strs.end(), "q(a) | r(b)") != strs.end());
+  ASS(std::find(strs.begin(), strs.end(), "r(a) | q(b)") != strs.end());
+  ASS(std::find(strs.begin(), strs.end(), "r(a) | r(b)") != strs.end());
+}
+
+TEST_FUN(multi_occurrence_copies_are_variable_disjoint)
+{
+  MY_SYNTAX_SUGAR
+
+  // the two copies of the satellite must not share variables, i.e. the resolvent
+  // is {q(X) \/ q(Y)} with X and Y distinct -- and not the collapsed {q(X)}
+  for (bool equationally : {false, true}) {
+    auto res = runPE({clause({p(x), p(y)}), clause({~p(z), q(z)}),
+                      clause({q(y), ~q(f(y))})},
+                     /*forceEquationally=*/equationally);
+
+    ASS_EQ(res.size(), 2);
+    ASS(!containsPredicate(res, p.functor()));
+    Clause *resolvent = theResolvent(res);
+    ASS_EQ(resolvent->length(), 2);
+    ASS_NEQ((*resolvent)[0], (*resolvent)[1]);
+  }
+}
+
+TEST_FUN(multi_occurrence_growth_limits_respected)
+{
+  MY_SYNTAX_SUGAR
+
+  // one nucleus with 2 occurrences and 2 satellites means 2^2 = 4 resolvents
+  // replacing 3 clauses, i.e. 4 - 1 - 2 + 4 = 5 clauses estimated out of 4
+  std::initializer_list<Clause *> cls = {
+      clause({p(a), p(b)}), clause({~p(x), q(x)}), clause({~p(a)}),
+      clause({q(y), ~q(f(y))})};
+
+  auto res = runPE(cls, false, /*totalLimit=*/1.0);
+  ASS_EQ(res.size(), 4);
+  ASS(containsPredicate(res, p.functor()));
+
+  // with a benevolent limit p goes; 2 of the 4 tuples fail to unify
+  auto res2 = runPE(cls, false, /*totalLimit=*/2.0);
+  ASS_EQ(res2.size(), 3);
+  ASS(!containsPredicate(res2, p.functor()));
 }
 
 TEST_FUN(pure_predicate_clauses_deleted)
@@ -199,7 +366,7 @@ TEST_FUN(pure_predicate_clauses_deleted)
 
   // p occurs only positively: its clause can simply be deleted
   Problem *prb = problemFromClauses({clause({p(a), q(b)}), clause({q(y), ~q(f(y))})});
-  PredicateElimination pe(false, 2.0, false);
+  PredicateElimination pe(false, 2.0, false, true);
   pe.apply(*prb);
   auto res = collectClauses(*prb);
 

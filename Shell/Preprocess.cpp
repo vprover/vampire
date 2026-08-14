@@ -470,7 +470,7 @@ void Preprocess::preprocess(Problem& prb)
      bce.apply(prb);
    }
 
-   if (_options.predicateElimination()) {
+   if (_options.predicateElimination() != Options::PredicateElimination::OFF) {
      if (prb.isHigherOrder() || prb.hasPolymorphicSym()) { // in both cases, predicates could hide inside terms, breaking the occurrence counting
        if (outputAllowed()) {
          addCommentSignForSZS(std::cout);
@@ -483,7 +483,8 @@ void Preprocess::preprocess(Problem& prb)
 
        PredicateElimination pel(/*forceEquationally=*/_options.saturationAlgorithm() == Options::SaturationAlgorithm::FINITE_MODEL_BUILDING,
                                 _options.predicateEliminationTotalLimit(),
-                                _options.predicateEliminationSubsumption());
+                                _options.predicateEliminationSubsumption(),
+                                _options.predicateEliminationMultiOccurrence());
        pel.apply(prb);
      }
    }

@@ -408,7 +408,7 @@ bool ForwardSubsumptionDemodulation<higherOrder>::perform(Clause* cl, Clause*& r
                 // There can be no unbound variables at this point;
                 // otherwise we would have excluded the LHS already
                 // in the ordering pre-check above
-                auto mclVarIt = mcl->getVariableIterator();  // includes vars in rhs
+                auto mclVarIt = mcl->iterVars();  // includes vars in rhs
                 while (mclVarIt.hasNext()) {
                   unsigned int var = mclVarIt.next();
                   ASS(binder.isBound(var));
