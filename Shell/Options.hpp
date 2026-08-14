@@ -130,7 +130,7 @@ public:
      * and if $nm is set to NZ, samples from a shifted geometric distribution with p=0.07 and a shift=2. (So 2 gets selected with a probability p,
      * 3 with a probability p(1-p), ... and 2+i with a probability p(1-p)^i).
      */
-    void sampleStrategy(const std::string& samplerFileName, DHMap<std::string,std::string> fakes = DHMap<std::string,std::string>());
+    void sampleStrategy(const std::string& samplerFileName, DHMap<std::string,std::string, FnvHash, LengthHash> fakes = DHMap<std::string,std::string, FnvHash, LengthHash>());
 
     /**
      * Return the problem name
@@ -746,8 +746,8 @@ public:
     // The details are explained in comments below
 private:
     // helper function of sampleStrategy
-    void strategySamplingAssign(std::string optname, std::string value, DHMap<std::string,std::string>& fakes);
-    std::string strategySamplingLookup(std::string optname, DHMap<std::string,std::string>& fakes);
+    void strategySamplingAssign(std::string optname, std::string value, DHMap<std::string,std::string, FnvHash, LengthHash>& fakes);
+    std::string strategySamplingLookup(std::string optname, DHMap<std::string,std::string, FnvHash, LengthHash>& fakes);
 
     /**
      * These store the names of the choices for an option.
@@ -2354,8 +2354,8 @@ private:
         }
 
     private:
-        DHMap<std::string,AbstractOptionValue*> _longMap;
-        DHMap<std::string,AbstractOptionValue*> _shortMap;
+        DHMap<std::string,AbstractOptionValue*, FnvHash, LengthHash> _longMap;
+        DHMap<std::string,AbstractOptionValue*, FnvHash, LengthHash> _shortMap;
     };
 
     LookupWrapper _lookup;

@@ -80,7 +80,7 @@ private:
    */
   static DHMap<TermList, unsigned> s_proxyPredicates;
   /** equality proxy predicate sorts */
-  static DHMap<unsigned,TermList> s_proxyPredicateSorts;
+  static DHMap<unsigned,TermList, FnvHash, IdentityHash> s_proxyPredicateSorts;
   /** array of proxy definitions E(x,y) <=> x = y  */
   static DHMap<TermList, Unit*> s_proxyPremises;
 };

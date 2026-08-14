@@ -161,7 +161,7 @@ void PredicateElimination::apply(Problem &prb)
 template<bool add>
 void PredicateElimination::handleClause(Clause *cl)
 {
-  static DHMap<unsigned, int> occ;
+  static DHMap<unsigned, int, FnvHash, IdentityHash> occ;
   occ.reset();
 
   for (const auto& lit : *cl) {
@@ -434,7 +434,7 @@ Clause *PredicateElimination::buildResolventEq(Clause *c, Literal *plitC, Clause
 
 Clause *PredicateElimination::assembleClause(LiteralStack &lits, Clause *c, Clause *d)
 {
-  static DHSet<Literal *> seen;
+  static DHSet<Literal *, FnvHash, PtrIdentityHash> seen;
   seen.reset();
 
   static LiteralStack out;
@@ -519,7 +519,7 @@ void PredicateElimination::recordElimination(Problem &prb, unsigned pred,
     Formula *inner = JunctionFormula::generalJunction(AND, conjuncts);
 
     // existentially close over the (shifted) clause variables
-    DHMap<unsigned, TermList> varSorts;
+    DHMap<unsigned, TermList, FnvHash, IdentityHash> varSorts;
     SortHelper::collectVariableSorts(inner, varSorts);
     VSList *vs = VSList::empty();
     for (const auto& [var, sort] : iterTraits(varSorts.items())) {

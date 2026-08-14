@@ -77,7 +77,7 @@ Clause::Clause(Literal* const* lits, unsigned length, Inference inf)
 
 #if VDEBUG
   // check that the variable sorts are consistent
-  DHMap<unsigned, TermList> temp;
+  DHMap<unsigned, TermList, FnvHash, IdentityHash> temp;
   SortHelper::collectVariableSorts(this, temp);
 #endif
 
@@ -361,7 +361,7 @@ std::string Clause::toString() const
 {
   std::string quantifier = "";
   if(env.options->proofExtra() != Options::ProofExtra::OFF){
-    DHMap<unsigned,TermList> varSortMap;
+    DHMap<unsigned,TermList, FnvHash, IdentityHash> varSortMap;
     SortHelper::collectVariableSorts(const_cast<Clause*>(this),varSortMap);
     auto vars = Stack<unsigned>::fromIterator(varSortMap.domain());
     vars.sort();
@@ -620,13 +620,13 @@ unsigned Clause::computeWeightForClauseSelection(unsigned w, unsigned splitWeigh
   return w * ( !derivedFromGoal ? nongoalWeightCoeffNum : nongoalWeightCoefDenom);
 }
 
-void Clause::collectVars(DHSet<unsigned>& acc)
+void Clause::collectVars(DHSet<unsigned, FnvHash, IdentityHash>& acc)
 {
   collectVars2<VariableIterator>(acc);
 }
 
 template<class VarIt>
-void Clause::collectVars2(DHSet<unsigned>& acc)
+void Clause::collectVars2(DHSet<unsigned, FnvHash, IdentityHash>& acc)
 {
   for (Literal* lit : iterLits()) {
     VarIt vit(lit);
@@ -640,7 +640,7 @@ void Clause::collectVars2(DHSet<unsigned>& acc)
 
 unsigned Clause::varCnt()
 {
-  static DHSet<unsigned> vars;
+  static DHSet<unsigned, FnvHash, IdentityHash> vars;
   vars.reset();
   collectVars(vars);
   return vars.size();

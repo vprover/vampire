@@ -86,19 +86,19 @@ private:
 
   ProofPrinter* createProofPrinter(std::ostream& out);
 
-  DHMultiset<unsigned> _nextClIds;
+  DHMultiset<unsigned, FnvHash, IdentityHash> _nextClIds;
 
-  DHMap<unsigned, Literal*> _splittingNameLiterals;
+  DHMap<unsigned, Literal*, FnvHash, IdentityHash> _splittingNameLiterals;
 
   typedef Stack<Signature::Symbol*> SymbolStack;
   // unit id -> stack of introduced symbols (in order of introduction)
-  DHMap<unsigned,SymbolStack> _introducedSymbols;
+  DHMap<unsigned,SymbolStack, FnvHash, IdentityHash> _introducedSymbols;
   // symbol id -> existential variable name (number) that was replaced by the symbol
-  DHMap<Signature::Symbol*, unsigned> _introducedSymbolReplacedVars;
+  DHMap<Signature::Symbol*, unsigned, FnvHash, PtrIdentityHash> _introducedSymbolReplacedVars;
   // symbol id -> the term that is introduced when introducing the skolem symbol
-  DHMap<Signature::Symbol*, Term*> _introducedSkolemSymTerms;
+  DHMap<Signature::Symbol*, Term*, FnvHash, PtrIdentityHash> _introducedSkolemSymTerms;
 
-  DHMap<unsigned,std::string> _introducedSplitNames;
+  DHMap<unsigned,std::string, FnvHash, IdentityHash> _introducedSplitNames;
 };
 
 };

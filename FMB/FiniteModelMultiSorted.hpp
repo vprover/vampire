@@ -95,17 +95,17 @@ public:
   std::string toString();
 
 private:
-  unsigned evaluateTerm(TermList, const DHMap<unsigned,unsigned>& subst);
-  bool evaluateLiteral(Literal*, const DHMap<unsigned,unsigned>& subst);
-  bool evaluateFormula(Formula*, DHMap<unsigned,unsigned>& subst);
+  unsigned evaluateTerm(TermList, const DHMap<unsigned,unsigned, FnvHash, IdentityHash>& subst);
+  bool evaluateLiteral(Literal*, const DHMap<unsigned,unsigned, FnvHash, IdentityHash>& subst);
+  bool evaluateFormula(Formula*, DHMap<unsigned,unsigned, FnvHash, IdentityHash>& subst);
 
   // if term evaluation encounters a missing record, it assumes the corresponding symbol has been implicitly eliminated
   // (e.g., eliminated unused function definition f(X) = g(X,c) might have eliminated c, if it did not occur anywhere else)
   // such symbols are restored (just after restoreEliminatedDefinitions; although, formally it should happen before) in the simplest possible way:
   // functions == 1 (the first domain element of the respective sort) everywhere
   // predicates == false everywhere
-  Set<unsigned> _implicitlyEliminatedFunctions;
-  Set<unsigned> _implicitlyEliminatedPredicates;
+  Set<unsigned, FnvHash> _implicitlyEliminatedFunctions;
+  Set<unsigned, FnvHash> _implicitlyEliminatedPredicates;
 
   void restoreEliminatedFunDef(Problem::FunDef*);
   void restoreImplicitlyEliminatedFun(unsigned f);
@@ -119,8 +119,8 @@ private:
   bool evaluateOld(Formula* formula,unsigned depth=0);
 
   // the pairs of <constant number, sort>
-  DHMap<std::pair<unsigned,unsigned>,Term*> _domainConstants;
-  DHMap<Term*,std::pair<unsigned,unsigned>> _domainConstantsRev;
+  DHMap<std::pair<unsigned,unsigned>,Term*, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>> _domainConstants;
+  DHMap<Term*,std::pair<unsigned,unsigned>, FnvHash, PtrIdentityHash> _domainConstantsRev;
 public:
 
 

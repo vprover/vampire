@@ -131,7 +131,7 @@ void BackwardSubsumptionDemodulation<higherOrder>::performWithQueryLit(Clause* s
 
 #if VDEBUG
   // make sure DuplicateLiteralRemovalISE has been run on this
-  DHSet<Literal*> lits;
+  DHSet<Literal*, FnvHash, PtrIdentityHash> lits;
   for (unsigned i = 0; i < sideCl->length(); ++i) {
     ALWAYS(lits.insert((*sideCl)[i]));
   }

@@ -239,7 +239,7 @@ private:
   };
 
   struct ConstOrderingComparator;  
-  typedef DHMap<unsigned,TermList> NFMap;
+  typedef DHMap<unsigned,TermList, FnvHash, IdentityHash> NFMap;
   void computeConstsNormalForm(unsigned c, NFMap& normalForms);
   
 #if VDEBUG
@@ -263,16 +263,16 @@ private:
   /**
    * Map from signature symbols to the local constant numbers.
    */
-  DHMap<std::pair<unsigned,SignatureKind>,unsigned> _sigConsts;
+  DHMap<std::pair<unsigned,SignatureKind>,unsigned, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>> _sigConsts;
 
-  typedef DHMap<CPair,unsigned> PairMap;
+  typedef DHMap<CPair,unsigned, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>> PairMap;
   /** Names of constant pairs (modulo the congruence!)*/
   PairMap _pairNames;
 
   /** Constants corresponding to terms */
   DHMap<TermList,unsigned> _termNames;
   /** Constants corresponding to literals */
-  DHMap<Literal*,unsigned> _litNames;
+  DHMap<Literal*,unsigned, FnvHash, PtrIdentityHash> _litNames;
 
   /**
    * Equality that caused unsatisfiability; if CEq::isInvalid(), there isn't such.

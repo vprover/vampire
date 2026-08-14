@@ -192,7 +192,7 @@ private:
   template<class Applicator>
   TermStack getInstances(Applicator applicator) const
   {
-    DHMap<unsigned,TermList>::Iterator vit(_varSorts);
+    DHMap<unsigned,TermList, FnvHash, IdentityHash>::Iterator vit(_varSorts);
     TermStack res;
     while (vit.hasNext()) {
       auto v = vit.nextKey();
@@ -201,7 +201,7 @@ private:
     return res;
   }
 
-  DHMap<unsigned,TermList> _varSorts;
+  DHMap<unsigned,TermList, FnvHash, IdentityHash> _varSorts;
 
   PartialRedundancyEntry* createEntry(const TermStack& ts, Splitter* splitter, OrderingConstraints&& ordCons, LiteralSet&& lits, SplitSet* splits) const
   {
@@ -359,7 +359,7 @@ PartialRedundancyHandler::ConstraintIndex** PartialRedundancyHandler::getDataPtr
   return ptr;
 }
 
-DHMap<unsigned,typename PartialRedundancyHandler::ConstraintIndex*> PartialRedundancyHandler::clauseData;
+DHMap<unsigned,typename PartialRedundancyHandler::ConstraintIndex*, FnvHash, IdentityHash> PartialRedundancyHandler::clauseData;
 
 // PartialRedundancyHandlerImpl
 

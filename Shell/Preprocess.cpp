@@ -215,7 +215,7 @@ void Preprocess::preprocess(Problem& prb)
     env.statistics->phase=ExecutionPhase::SINE_SELECTION;
 
     if (_options.sineToPredLevels() != Options::PredicateSineLevels::OFF) {
-      env.predicateSineLevels = new DHMap<unsigned,unsigned>();
+      env.predicateSineLevels = new DHMap<unsigned,unsigned, FnvHash, IdentityHash>();
     }
 
     // just to initialize ``env.clauseSineLevels'' or ``env.predicateSineLevels''

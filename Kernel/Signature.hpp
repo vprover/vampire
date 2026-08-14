@@ -657,7 +657,7 @@ class Signature
     return _choiceSymbols.contains(fun);
   }
 
-  DHSet<unsigned>* getChoiceOperators(){
+  DHSet<unsigned, FnvHash, IdentityHash>* getChoiceOperators(){
     return &_choiceSymbols;
   }
 
@@ -986,7 +986,7 @@ class Signature
 
 private:
   Stack<TermList> _dividesNvalues;
-  DHMap<Term*, int> _formulaCounts;
+  DHMap<Term*, int, FnvHash, PtrIdentityHash> _formulaCounts;
 
   bool _foolConstantsDefined;
   unsigned _foolTrue;
@@ -1002,14 +1002,14 @@ private:
   Stack<Symbol*> _typeCons;
 
   // TODO(HOL): these two don't belong in the signature
-  DHSet<unsigned> _choiceSymbols;
+  DHSet<unsigned, FnvHash, IdentityHash> _choiceSymbols;
   DHSet<TermList> _instantiations;
 
   SymbolMap _funNames;
   SymbolMap _predNames;
   SymbolMap _typeConNames;
   /** Map for the arity_check options: maps symbols to their arities */
-  Map<std::string, unsigned> _arityCheck;
+  Map<std::string, unsigned, FnvHash> _arityCheck;
   /** Last number used for fresh functions and predicates */
   int _nextFreshSymbolNumber;
 
@@ -1031,7 +1031,7 @@ private:
    * the Interpretation value already determines whether we deal with a function
    * or a predicate.
    */
-  DHMap<Theory::Interpretation, unsigned> _iSymbols;
+  DHMap<Theory::Interpretation, unsigned, FnvHash, IdentityHash> _iSymbols;
 
   /** the number of string constants */
   unsigned _strings;
@@ -1049,8 +1049,8 @@ private:
   unsigned _choiceFun;
   unsigned _placeholderFun;
   unsigned _defPred;
-  DHSet<unsigned> _fnDefPreds;
-  DHMap<unsigned,unsigned> _boolDefPreds;
+  DHSet<unsigned, FnvHash, IdentityHash> _fnDefPreds;
+  DHMap<unsigned,unsigned, FnvHash, IdentityHash> _boolDefPreds;
 
   /**
    * Map from type constructor functor to the associated term algebra, if applicable for the sort.
@@ -1058,7 +1058,7 @@ private:
    * For a term algebra instance, this map gives the general term algebra based on the top-level
    * functor of its sort, the ctors and dtors still have to be instantiated to the right instances.
    */
-  DHMap<unsigned, Shell::TermAlgebra*> _termAlgebras;
+  DHMap<unsigned, Shell::TermAlgebra*, FnvHash, IdentityHash> _termAlgebras;
 
   //TODO Why are these here? They are not used anywhere. AYB
   //void defineOptionTermAlgebra(unsigned optionSort);

@@ -150,7 +150,7 @@ void FunctionDefinitionHandler::initAndPreprocessLate(Problem& prb,const Options
     }
   }
 
-  DHMap<pair<unsigned,SymbolType>,RecursionTemplate>::DelIterator tIt(_templates);
+  DHMap<pair<unsigned,SymbolType>,RecursionTemplate, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>>::DelIterator tIt(_templates);
   while (tIt.hasNext()) {
     auto k = tIt.nextKey();
     auto ptr = _templates.findPtr(k);
@@ -261,7 +261,7 @@ bool RecursionTemplate::finalize()
   for (const auto& b : _branches) {
     // we need this sophisticated renaming due to
     // already fixed sort variables coming from _type
-    static DHMap<unsigned,unsigned> renaming;
+    static DHMap<unsigned,unsigned, FnvHash, IdentityHash> renaming;
     renaming.reset();
     auto renameTerm = [&](TermList t, TermList sort) {
       if (t.isVar()) {

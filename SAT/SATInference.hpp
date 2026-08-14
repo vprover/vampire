@@ -158,7 +158,7 @@ template<typename Receiver>
 void SATInference::visitFOConversions(SATClause* cl, Receiver receive)
 {
   static Stack<SATClause*> toDo;
-  static DHSet<SATClause*> seen;
+  static DHSet<SATClause*, FnvHash, PtrIdentityHash> seen;
   toDo.reset();
   seen.reset();
 

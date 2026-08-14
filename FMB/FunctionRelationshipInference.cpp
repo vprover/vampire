@@ -46,8 +46,8 @@ using namespace std;
 using namespace Shell;
 
 void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator clauses,
-                 DHSet<std::pair<unsigned,unsigned>>& nonstrict_cons,
-                 DHSet<std::pair<unsigned,unsigned>>& strict_cons)
+                 DHSet<std::pair<unsigned,unsigned>, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>>& nonstrict_cons,
+                 DHSet<std::pair<unsigned,unsigned>, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>>& strict_cons)
 {
   bool print = env.options->showFMBsortInfo();
 
@@ -82,8 +82,8 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
 
   if(foundLabels.size()>0 && print){ cout << "Found constraints:" << endl; }
 
-  DHSet<std::pair<unsigned,unsigned>> nonstrict_constraints;
-  DHSet<std::pair<unsigned,unsigned>> strict_constraints;
+  DHSet<std::pair<unsigned,unsigned>, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>> nonstrict_constraints;
+  DHSet<std::pair<unsigned,unsigned>, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>> strict_constraints;
   Stack<unsigned>::Iterator it(foundLabels);
   while(it.hasNext()){
     unsigned l = it.next();
@@ -102,7 +102,7 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
   // Normalise constraints
   unsigned constraint_count = 0;
   {
-    DHSet<std::pair<unsigned,unsigned>>::Iterator it1(nonstrict_constraints);
+    DHSet<std::pair<unsigned,unsigned>, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>>::Iterator it1(nonstrict_constraints);
     while(it1.hasNext()){ 
       constraint_count++;
       std::pair<unsigned,unsigned> con = it1.next();
@@ -120,7 +120,7 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
   }
   constraint_count = 0;
   {
-    DHSet<std::pair<unsigned,unsigned>>::Iterator it1(strict_constraints);
+    DHSet<std::pair<unsigned,unsigned>, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>>::Iterator it1(strict_constraints);
     while(it1.hasNext()){
       constraint_count++;
       std::pair<unsigned,unsigned> con = it1.next();
@@ -246,7 +246,7 @@ void FunctionRelationshipInference::addClaimForFunction(TermList x, TermList y, 
     if(existential){
       // Build VSList from existential VList - need to determine sorts from function type
       // For now, collect from the formulas
-      DHMap<unsigned, TermList> varSorts;
+      DHMap<unsigned, TermList, FnvHash, IdentityHash> varSorts;
       SortHelper::collectVariableSorts(injective, varSorts);
       SortHelper::collectVariableSorts(surjective, varSorts);
       VSList::FIFO vsfifo;

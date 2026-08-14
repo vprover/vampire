@@ -346,7 +346,7 @@ public:
   std::string currentPath(){ return currentFile.path; }
 
   // careful: the returned pointer will be invalidated if _questionVariableNames is changed
-  static Map<unsigned,std::string>* findQuestionVars(unsigned questionNumber) {
+  static Map<unsigned,std::string, FnvHash>* findQuestionVars(unsigned questionNumber) {
     return _questionVariableNames.findPtr(questionNumber);
   }
   static bool seenQuestions() {
@@ -580,9 +580,9 @@ private:
   /** term lists */
   Stack<TermList> _termLists;
   /** name table for variable names */
-  Map<std::string, unsigned> _vars;
+  Map<std::string, unsigned, FnvHash> _vars;
   /** When parsing a question, make note of the inverse mapping to _vars, i.e. from the ints back to the vstrings, for better user reporting */
-  Map<unsigned,std::string> _curQuestionVarNames;
+  Map<unsigned,std::string, FnvHash> _curQuestionVarNames;
   /** parsed types */
   Stack<Type*> _types;
   /** various type tags saved during parsing */
@@ -590,7 +590,7 @@ private:
   /**  */
   Stack<TheoryFunction> _theoryFunctions;
   /** bindings of variables to sorts */
-  Map<unsigned,SList*> _variableSorts;
+  Map<unsigned,SList*, FnvHash> _variableSorts;
   /** current color, if the input contains colors */
   Color _currentColor;
   /** a robsubstitution object to be used temporarily that is kept around to safe memory allocation time  */
@@ -805,7 +805,7 @@ private:
 
   /* If ivars is non-null, the function collects into it the
    * implicit (non-quantified) type variables (needed in $lets). */
-  OperatorType* constructOperatorType(Type* t, VList* vars = 0, DHSet<unsigned>* ivars = nullptr);
+  OperatorType* constructOperatorType(Type* t, VList* vars = 0, DHSet<unsigned, FnvHash, IdentityHash>* ivars = nullptr);
 
 public:
 
@@ -849,7 +849,7 @@ public:
     InferenceSourceRecord(std::string n) : name(n) {}
   };
 
-  void setUnitSourceMap(DHMap<unsigned,SourceRecord*>* m){
+  void setUnitSourceMap(DHMap<unsigned,SourceRecord*, FnvHash, IdentityHash>* m){
     _unitSources = m;
   }
   SourceRecord* getSource();
@@ -857,10 +857,10 @@ public:
   void setFilterReserved(){ _filterReserved=true; }
 
 private:
-  DHMap<unsigned,SourceRecord*>* _unitSources;
+  DHMap<unsigned,SourceRecord*, FnvHash, IdentityHash>* _unitSources;
 
   /** This field stores names of input units (and their file names) */
-  static DHMap<unsigned, std::pair<std::string, std::filesystem::path>> _axiomNames;
+  static DHMap<unsigned, std::pair<std::string, std::filesystem::path>, FnvHash, IdentityHash> _axiomNames;
 
   /**
    * During question parsing, we store the mapping from int variables
@@ -871,11 +871,11 @@ private:
    *
    * (Can there be more than one question? Yes, e.g., in the interactive mode.)
    */
-  static DHMap<unsigned, Map<unsigned,std::string>> _questionVariableNames;
+  static DHMap<unsigned, Map<unsigned,std::string, FnvHash>, FnvHash, IdentityHash> _questionVariableNames;
 
   /** Stores the type arities of function symbols */
-  DHMap<std::string, unsigned> _typeArities;
-  DHMap<std::string, unsigned> _typeConstructorArities;
+  DHMap<std::string, unsigned, FnvHash, LengthHash> _typeArities;
+  DHMap<std::string, unsigned, FnvHash, LengthHash> _typeConstructorArities;
 
   bool _filterReserved;
 
