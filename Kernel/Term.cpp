@@ -640,9 +640,6 @@ std::string Term::headToString() const
         ASSERTION_VIOLATION;
     }
   } else {
-    // note: tuple projections are printed as ordinary function symbols;
-    // TPTP has no surface syntax for them, so printing "$proj(i, t)"
-    // would produce output that cannot be read back in
     std::string name = "";
     if(isLiteral()) {
       name = static_cast<const Literal *>(this)->predicateName();
