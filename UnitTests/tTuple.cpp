@@ -18,6 +18,7 @@
 #include "Test/SyntaxSugar.hpp"
 
 #include "Kernel/Signature.hpp"
+#include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Theory.hpp"
 
@@ -97,5 +98,53 @@ TEST_FUN(isTupleConstructor_does_not_touch_the_signature) {
   // a genuine tuple term is still recognised
   TermStack args = { s.sugaredExpr(), s.sugaredExpr(), c().sugaredExpr(), c().sugaredExpr() };
   ASS(Theory::isTupleConstructor(Term::create(tupleFunctor, args)));
+}
+
+TEST_FUN(isTupleConstructor_of_a_heterogeneous_tuple) {
+  NUMBER_SUGAR(Int)
+  DECL_SORT(s)
+  DECL_CONST(a, s)
+  DECL_FUNC(f, {s}, s)
+  DECL_CONST(i, Int)
+
+  unsigned tupleFunctor = Theory::getTupleConstructor(2);
+
+  // tuple($int, s, i, f(a)) : Tuple($int, s) -- four arguments, of which the
+  // first two are the type arguments
+  TermStack args = { Int.sugaredExpr(), s.sugaredExpr(), i().sugaredExpr(), f(a).sugaredExpr() };
+  Term* t = Term::create(tupleFunctor, args);
+
+  ASS_EQ(t->arity(), 4u);
+  ASS_EQ(t->numTypeArguments(), 2u);
+
+  // and the sort has exactly the tuple's arity, i.e. half of the term's
+  TermList sort = SortHelper::getResultSort(t);
+  ASS(sort.isTupleSort());
+  ASS_EQ(sort.term()->arity(), 2u);
+
+  ASS(Theory::isTupleConstructor(t));
+}
+
+TEST_FUN(isTupleConstructor_of_a_nested_tuple) {
+  DECL_SORT(s)
+  DECL_CONST(a, s)
+
+  unsigned pairFunctor = Theory::getTupleConstructor(2);
+  unsigned tripleFunctor = Theory::getTupleConstructor(3);
+
+  TermList sSort = s.sugaredExpr();
+  TermList tripleSort = tupleSortOf(3, sSort);
+
+  TermStack tripleArgs = { sSort, sSort, sSort,
+                           a().sugaredExpr(), a().sugaredExpr(), a().sugaredExpr() };
+  Term* triple = Term::create(tripleFunctor, tripleArgs);
+
+  // tuple(Tuple(s,s,s), s, triple, a) : Tuple(Tuple(s,s,s), s) -- a pair whose
+  // first component is a triple: the arity to look for is the outer one
+  TermStack pairArgs = { tripleSort, sSort, TermList(triple), a().sugaredExpr() };
+  Term* pair = Term::create(pairFunctor, pairArgs);
+
+  ASS(Theory::isTupleConstructor(triple));
+  ASS(Theory::isTupleConstructor(pair));
 }
 

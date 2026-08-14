@@ -1020,8 +1020,12 @@ bool Theory::isTupleConstructor(Term* t)
     return false;
   }
 
-  // the arity of the tuple is the arity of its sort, not the number of type
-  // arguments of t (which is 0 for, e.g., a constant of a tuple sort)
+  // an n-tuple constructor has n type arguments and n term arguments, so its
+  // arity as a symbol is 2n; the arity we need here, n, is the arity of the
+  // tuple sort.  (Taking it from t's own type argument count would coincide for
+  // a genuine tuple constructor, but not for the terms we get asked about --
+  // e.g. a plain constant of a tuple sort has no type arguments at all, and
+  // getTupleConstructor(0) would then register a bogus arity-0 tuple algebra.)
   return getTupleConstructor(sort.term()->arity()) == t->functor();
 }
 
