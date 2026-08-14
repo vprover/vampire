@@ -180,7 +180,7 @@ bool StringUtils::readEquality(const char* str, char eqChar, std::string& lhs, s
 /**
  * If str doesn't contain equalities, false is returned and the content of pairs is undefined.
  */
-bool StringUtils::readEqualities(const char* str, char delimiter, char eqChar, DHMap<std::string,std::string>& pairs)
+bool StringUtils::readEqualities(const char* str, char delimiter, char eqChar, DHMap<std::string,std::string, FnvHash, LengthHash>& pairs)
 {
   static Stack<std::string> parts;
   parts.reset();

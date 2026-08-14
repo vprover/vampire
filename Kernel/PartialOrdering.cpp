@@ -171,7 +171,7 @@ const PartialOrdering* PartialOrdering::set(const PartialOrdering* po, size_t x,
     return po;
   }
 
-  static DHMap<std::tuple<const PartialOrdering*, size_t, size_t, PoComp>, const PartialOrdering*> cache;
+  static DHMap<std::tuple<const PartialOrdering*, size_t, size_t, PoComp>, const PartialOrdering*, TupleHash<FnvHash,FnvHash,FnvHash,FnvHash>, TupleHash<PtrIdentityHash,IdentityHash,IdentityHash,IdentityHash>> cache;
 
   const PartialOrdering** ptr;
   if (cache.getValuePtr(make_tuple(po, x, y, v), ptr, nullptr)) {
