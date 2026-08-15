@@ -160,7 +160,7 @@ std::string OperatorType::argsToString() const
 } // OperatorType::argsToString()
 
 /**
- * Return the TPTP string representation of the OpertorType.
+ * Return the TPTP string representation of the OperatorType.
  */
 std::string OperatorType::toString() const
 {

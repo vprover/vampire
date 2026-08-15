@@ -100,14 +100,7 @@ bool TheoryFlattening::apply(ClauseList*& clauses)
 Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
 {
   // Find the max variable. This will be used to introduce new variables.
-  unsigned maxVar = 0;
-  VirtualIterator<unsigned> varIt = cl->getVariableIterator();
-  while (varIt.hasNext()) {
-    unsigned var = varIt.next();
-    if (var > maxVar) {
-      maxVar = var;
-    }
-  }
+  unsigned maxVar = cl->maxVar();
 
   // The resultant lits
   Stack<Literal*> result;
