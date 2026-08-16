@@ -134,7 +134,8 @@ void CodeTree::MatchInfo::destroy(unsigned bindCnt)
 
 void CodeTree::MatchInfo::init(ILStruct* ils, unsigned liIndex_, DArray<TermList>& bindingArray, bool opposite)
 {
-  liIndex=opposite ? liIndex_ | leftmost_bit : liIndex_;
+  /* Pack liIndex and the opposite flag into markedLiIndex (see getLiIndex/opposite) */
+  markedLiIndex=opposite ? liIndex_ | leftmost_bit : liIndex_;
   size_t bindCnt=ils->varCnt;
   if(bindCnt) {
     unsigned* perm=ils->globalVarPermutation;
@@ -278,6 +279,10 @@ void CodeTree::ILStruct::addMatch(unsigned liIndex, DArray<TermList>& bindingArr
   if(!matches[matchCnt]) {
     matches[matchCnt]=MatchInfo::alloc(varCnt);
   }
+  
+  /* Maintain the invariant that non-opposite matches occupy [0, nonOppositeMatchCnt):
+   * an opposite match is simply appended, while a non-opposite match is swapped into
+   * position nonOppositeMatchCnt before that boundary is advanced. */
   if(opposite) {
     matches[matchCnt]->init(this, liIndex, bindingArray, true);
   }
@@ -304,6 +309,7 @@ void CodeTree::ILStruct::deleteMatch(unsigned matchIndex)
   ASS_L(matchIndex, matchCnt);
 
   matchCnt--;
+  /* Removing a non-opposite match must preserve the [0, nonOppositeMatchCnt) invariant */
   if(matchIndex<nonOppositeMatchCnt) {
     nonOppositeMatchCnt--;
     swap(matches[matchIndex], matches[nonOppositeMatchCnt]);
@@ -506,6 +512,7 @@ CodeTree::CodeOp* CodeTree::SearchStruct::getTargetOp(const FlatTerm::Entry* ftP
   if(!ftPos->isFun()) { return 0; }
   switch(kind) {
   case FN_STRUCT:
+    /* if opposite is true, look up the negated predicate symbol instead */
     if (opposite) {
       return static_cast<FnSearchStruct*>(this)->targetOp<false>(ftPos->_number() ^ 1);
     }
@@ -701,8 +708,8 @@ bool CodeTree::Matcher<removing, checkRange, higherOrder>::backtrack()
   }
   auto bp=btStack.pop();
   tp=bp.tp;
-  op=unmarkOp(bp.op);
-  opposite=getMark(bp.op);
+  op=bp.markedOp.getOp();
+  opposite=bp.markedOp.getMark();
   if constexpr (removing) {
     RemovingBase::firstsInBlocks->truncate(bp.fibDepth);
     RemovingBase::firstsInBlocks->push(op);
@@ -807,6 +814,8 @@ inline bool CodeTree::Matcher<removing, checkRange, higherOrder>::doCheckFun()
   unsigned functor=op->_arg();
   FlatTerm::Entry& fte=(*ft)[tp];
   if(!fte.isFun(functor)) {
+    /* the top-level predicate didn't match, so match 
+     * against negation for subsumption resolution */
     if (canEnterOpposites && tp == 0 && fte.isOppositeFun(functor)) {
       opposite=true;
     } else {
@@ -843,19 +852,29 @@ inline bool CodeTree::Matcher<removing, checkRange, higherOrder>::doCheckGroundT
 }
 
 template<bool removing, bool checkRange, bool higherOrder>
+inline typename CodeTree::Matcher<removing, checkRange, higherOrder>::MarkedOp CodeTree::Matcher<removing, checkRange, higherOrder>::markOp(CodeOp *op)
+{
+  return MarkedOp(op, opposite);
+}
+
+template<bool removing, bool checkRange, bool higherOrder>
 inline bool CodeTree::Matcher<removing, checkRange, higherOrder>::doSearchStruct()
 {
   ASS_EQ(op->_instruction(), SEARCH_STRUCT);
 
   const FlatTerm::Entry* fte=&(*ft)[tp];
   CodeOp* target=op->getSearchStruct()->getTargetOp(fte, false);
+  /* look up the branch for the negated predicate, so it
+   * can be tried on backtracking for subsumption resolution */
   if (canEnterOpposites && tp == 0 && op->getSearchStruct()->kind == SearchStruct::FN_STRUCT) {
     CodeOp* alt = op->getSearchStruct()->getTargetOp(fte, true);
     if (alt && target != alt) {
+      /* 'opposite' will be determined by doCheckFun
+       * when this backtracking point is resumed */
       if constexpr (removing) {
-        btStack.push(BTPointRemoving(tp, markOp(alt, false), RemovingBase::firstsInBlocks->size()));
+        btStack.push(BTPointRemoving(tp, MarkedOp(alt, false), RemovingBase::firstsInBlocks->size()));
       } else {
-        btStack.push(BTPoint(tp, markOp(alt, false)));
+        btStack.push(BTPoint(tp, MarkedOp(alt, false)));
       }
     }
   }

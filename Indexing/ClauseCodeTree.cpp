@@ -300,7 +300,7 @@ template<bool higherOrder>
 void ClauseCodeTree<higherOrder>::RemovingLiteralMatcher::init(CodeOp* entry_, LitInfo* linfos_,
     size_t linfoCnt_, ClauseCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_)
 {
-  Base::init(tree_, entry_, false, linfos_, linfoCnt_, firstsInBlocks_);
+  Base::init(tree_, entry_, /*canEnterOpposites*/ false, linfos_, linfoCnt_, firstsInBlocks_);
 
   ALWAYS(Base::prepareLiteral());
 }
@@ -393,12 +393,17 @@ bool ClauseCodeTree<higherOrder>::LiteralMatcher::next()
     if(op->isLitEnd()) {
       recordMatch();
     }
+    
+    /* Defer opposite matches so that non-opposite matches are always returned first */
     if (opposite) {
       eagerResults.push(op);
       continue;
     }
+
     return true;
   }
+
+  /* No non-opposite matches remain, so fall back to the deferred opposite ones */
   if (eagerResults.isNonEmpty()) {
     op = eagerResults.pop();
     _matched = true;
@@ -428,6 +433,7 @@ bool ClauseCodeTree<higherOrder>::LiteralMatcher::doEagerMatching()
     if(op->isLitEnd()) {
       recordMatch();
       if (opposite) {
+        /* push straight to eagerResults so opposite matches end up after all non-opposite ones */
         eagerResults.push(op);
       } else {
         eagerResultsRevOrder.push(op);
@@ -541,13 +547,6 @@ void ClauseCodeTree<higherOrder>::ClauseMatcher::init(ClauseCodeTree* tree_, Cla
     }
   }
   if(sres) {
-    /*
-    for(unsigned i=0;i<baseLICnt;i++) {
-      unsigned newIndex=i+baseLICnt;
-      lInfos[newIndex]=LitInfo::getOpposite(lInfos[i]);
-      lInfos[newIndex].liIndex=newIndex;
-    }
-    */
     sresLiteral=sresNoLiteral;
   }
 
@@ -693,17 +692,6 @@ void ClauseCodeTree<higherOrder>::ClauseMatcher::enterLiteral(CodeOp* entry, boo
   }
 
   size_t linfoCnt=lInfos.size();
-  /*
-  if(sres && sresLiteral!=sresNoLiteral) {
-    ASS_L(sresLiteral,lms.size());
-    //we do not need to match index literals with opposite query
-    //literals, as one of already matched index literals matched only
-    //to opposite literals (and opposite literals cannot be matched
-    //on more than one index literal)
-    ASS_EQ(linfoCnt%2,0);
-    linfoCnt/=2;
-  }
-  */
 
   Recycled<LiteralMatcher, NoReset> lm;
   lm->init(tree, entry, lInfos.array(), linfoCnt, canEnterOpposites, seekOnlySuccess);
@@ -821,6 +809,8 @@ bool ClauseCodeTree<higherOrder>::ClauseMatcher::matchGlobalVars(int& resolvedQu
   static DArray<int> matchIndex;
   matchIndex.ensure(clen);
 
+  /* First pass (allowOpposites=false) restricts remaining to non-opposite matches only.
+   * If that pass fails entirely, we retry allowing opposite matches too. */
   bool allowOpposites=false;
 search_again:
   remaining.setSide(clen);
@@ -838,12 +828,13 @@ search_again:
     if(matchIndex[i]==remaining.get(i,i)) {
       //no more choices at this level, so try going up
       if(i==0) {
-	RSTAT_MCTR_INC("zero level fails at", failLev);
-	if(sres && !allowOpposites) {
-	  allowOpposites=true;
-	  goto search_again;
-	}
-	return false;
+        RSTAT_MCTR_INC("zero level fails at", failLev);
+        if(sres && !allowOpposites) {
+          /* Non-opposite-only pass failed, retry allowing opposite matches */
+          allowOpposites=true;
+          goto search_again;
+        }
+        return false;
       }
       i--;
       goto bind_next_match;
