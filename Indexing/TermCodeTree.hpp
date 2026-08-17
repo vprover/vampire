@@ -50,7 +50,7 @@ private:
   public:
     using Base = Matcher</*removing*/true,false,higherOrder>;
 
-    void init(FlatTerm* ft_, TermCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_);
+    void init(FlatTerm* ft_, const TermCodeTree& tree_, Stack<CodeOp*>* firstsInBlocks_);
   };
 
 public:
@@ -62,7 +62,7 @@ public:
     using Base = Matcher</*removing*/false,false,higherOrder>;
     using Base::ft;
 
-    void init(CodeTree const* tree, TypedTermList t);
+    void init(const CodeTree& tree, TypedTermList t);
     void reset();
 
     Data* next();

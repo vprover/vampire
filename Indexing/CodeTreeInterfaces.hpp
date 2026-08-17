@@ -36,8 +36,6 @@ public:
   GenSubstitution(CodeTree::BindingArray* bindings, Renaming* resultNormalizer)
   : _bindings(bindings), _resultNormalizer(resultNormalizer) {}
 
-  USE_ALLOCATOR(GenSubstitution);
-
   TermList apply(unsigned var) const override {
     if constexpr (is_indexed_data_normalized<Data>::value) {
       return (*_bindings)[var];

@@ -43,7 +43,7 @@ public:
   : _retrieveSubstitutions(retrieveSubstitutions),
     _found(0), _finished(false), _tree(tree)
   {
-    _matcher->init(&_tree._ct, t);
+    _matcher->init(_tree._ct, t);
 
     if(_retrieveSubstitutions) {
       _subst = new GenSubstitution<Data>(&_matcher->bindings, &*_resultNormalizer);

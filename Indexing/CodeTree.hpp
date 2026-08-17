@@ -382,7 +382,7 @@ public:
     }
 
   protected:
-    void init(CodeTree const* tree_, CodeOp* entry_, LitInfo* linfos_ = 0,
+    void init(const CodeTree& tree_, CodeOp* entry_, LitInfo* linfos_ = 0,
       size_t linfoCnt_ = 0, Stack<CodeOp*>* firstsInBlocks_ = 0);
 
     bool backtrack();
