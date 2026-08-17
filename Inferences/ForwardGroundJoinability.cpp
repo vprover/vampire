@@ -36,18 +36,6 @@ using namespace Indexing;
 using namespace Saturation;
 using namespace std;
 
-namespace {
-
-struct Applicator : SubstApplicator {
-  Applicator(ResultSubstitution* subst) : subst(subst) {}
-  TermList operator()(unsigned v) const override {
-    return subst->applyToBoundResult(v);
-  }
-  ResultSubstitution* subst;
-};
-
-} // end namespace
-
 template<bool higherOrder>
 ForwardGroundJoinability<higherOrder>::ForwardGroundJoinability(SaturationAlgorithm& salg)
   : _ord(salg.getOrdering()),
@@ -127,12 +115,7 @@ bool ForwardGroundJoinability<higherOrder>::perform(Clause* cl, Clause*& replace
         }
 
         TermList rhs = qr.data->rhs;
-
-        auto subs = qr.unifier;
-        ASS(subs->isIdentityOnQueryWhenResultBound());
-        Applicator appl(subs.ptr());
-
-        AppliedTerm rhsApplied(rhs, &appl, true);
+        AppliedTerm rhsApplied(rhs, qr.unifier, true);
 
 #if VDEBUG
         POStruct dpo_struct(tpo);
@@ -150,7 +133,7 @@ bool ForwardGroundJoinability<higherOrder>::perform(Clause* cl, Clause*& replace
 #endif
 
         POStruct po_struct(tpo);
-        if (!TermOrderingDiagram::extendVarsGreater(qr.data->tod.get(), &appl, po_struct)) {
+        if (!TermOrderingDiagram::extendVarsGreater(qr.data->tod.get(), qr.unifier, po_struct)) {
           // TODO this check sometimes fails when the debug code can detect the
           // extension to get GREATER due to elimination of linear expressions
           // ASS(!success);

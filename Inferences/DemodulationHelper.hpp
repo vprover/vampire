@@ -43,7 +43,7 @@ public:
         continue;
       }
 
-      TermList vSubst = (*applicator)(v.var());
+      TermList vSubst = applicator->apply(v.var());
       if (!vSubst.isVar() || !range.insert(vSubst.var())) {
         return false;
       }
