@@ -153,6 +153,7 @@ set(SOURCES
     Debug/TimeProfiling.hpp
     Debug/Tracer.cpp
     Debug/Tracer.hpp
+    FMB/ArgsEnumerator.hpp
     FMB/ClauseFlattening.cpp
     FMB/ClauseFlattening.hpp
     FMB/CliqueFinder.hpp

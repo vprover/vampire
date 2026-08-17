@@ -41,6 +41,7 @@
 #include "Shell/GeneralSplitting.hpp"
 #include "Shell/Shuffling.hpp"
 
+#include "ArgsEnumerator.hpp"
 #include "FiniteModelMultiSorted.hpp"
 #include "ClauseFlattening.hpp"
 #include "SortInference.hpp"
@@ -1905,24 +1906,8 @@ void FiniteModelBuilder::onModelFound()
     //cout << "For " << env.signature->getFunction(f)->name() << endl;
     unsigned arity = env.signature->functionArity(f);
 
-    // bounding box for enumerating the arguments
-    static DArray<unsigned> maxVarSizeBig;
-    maxVarSizeBig.ensure(arity);
-
     OperatorType* tp = sym->fnType();
     ASS_EQ(tp->numTypeArguments(),0) // no polymorphic business in FMB
-    for(unsigned var=0;var<arity;var++){
-      unsigned vamp_srt = tp->arg(var).term()->functor();
-      maxVarSizeBig[var] = vampireSortSizes[vamp_srt];
-    }
-
-    // the actual representation of the enumeration
-    static DArray<unsigned> args;
-    args.ensure(arity);
-    // start with all 1s
-    for(unsigned i=0;i<arity;i++){
-       args[i]=1;
-    }
 
     // bounding box for querying the solver
     static DArray<unsigned> maxVarSizeSml;
@@ -1938,11 +1923,14 @@ void FiniteModelBuilder::onModelFound()
     static DArray<unsigned> grounding;
     grounding.ensure(arity+1);
 
-    for(;;) {
+    // enumerate the arguments within the bounding box given by the vampire sort sizes
+    ArgsEnumerator it(vampireSortSizes,tp,arity);
+    do {
+      const DArray<unsigned>& args = it.args();
       DEBUG_CODE(bool found=false;)
       for(unsigned c=1;c<=maxVarSizeSml[arity];c++){
         // create a bounded copy of the changing args in grounding
-        // (while args live within the maxVarSizeBig box,
+        // (while args live within the vampireSortSizes box,
         // grounding must only live in the maxVarSizeSml box,
         // for which the sat solver computed values)
         for(unsigned i=0;i<arity;i++) {
@@ -1959,19 +1947,7 @@ void FiniteModelBuilder::onModelFound()
         }
       }
       ASS(found)
-
-      unsigned i;
-      for(i=0;i<arity;i++) {
-        args[i]++;
-        if(args[i] <= maxVarSizeBig[i]){
-          break;
-        }
-        args[i]=1;
-      }
-      if (i == arity) {
-        break;
-      }
-    }
+    } while (it.next());
   }
 
   //Record interpretation of predicates
@@ -1984,24 +1960,8 @@ void FiniteModelBuilder::onModelFound()
     unsigned arity = env.signature->predicateArity(p);
     //cout << "Record for " << env.signature->getPredicate(p)->name() << "/" << arity << endl;
 
-    // bounding box for enumerating the arguments
-    static DArray<unsigned> maxVarSizeBig;
-    maxVarSizeBig.ensure(arity);
-
     OperatorType* tp = sym->fnType();
     ASS_EQ(tp->numTypeArguments(),0) // no polymorphic business in FMB
-    for(unsigned var=0;var<arity;var++){
-      unsigned vamp_srt = tp->arg(var).term()->functor();
-      maxVarSizeBig[var] = vampireSortSizes[vamp_srt];
-    }
-
-    // the actual representation of the enumeration
-    static DArray<unsigned> args;
-    args.ensure(arity);
-    // start with all 1s
-    for(unsigned i=0;i<arity;i++){
-       args[i]=1;
-    }
 
     // bounding box for querying the solver
     static DArray<unsigned> maxVarSizeSml;
@@ -2031,7 +1991,10 @@ void FiniteModelBuilder::onModelFound()
       }
     }
 
-    for(;;) {
+    // enumerate the arguments within the bounding box given by the vampire sort sizes
+    ArgsEnumerator it(vampireSortSizes,tp,arity);
+    do {
+      const DArray<unsigned>& args = it.args();
       // create a bounded copy of the changing args in grounding
 
       signed char extension_mode = 0; // start as "copy extended" (meaning overshoots go back to 1)
@@ -2057,19 +2020,7 @@ void FiniteModelBuilder::onModelFound()
         res=_solver->trueInAssignment(slit);
       }
       model.addPredicateDefinition(p,args,res);
-
-      unsigned i;
-      for(i=0;i<arity;i++) {
-        args[i]++;
-        if(args[i] <= maxVarSizeBig[i]){
-          break;
-        }
-        args[i]=1;
-      }
-      if (i == arity) {
-        break;
-      }
-    }
+    } while (it.next());
   }
 
   model.eliminateSortFunctionsAndPredicates(_sortFunctions,_sortPredicates);

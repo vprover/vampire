@@ -33,6 +33,7 @@
 #include "Shell/SimplifyFalseTrue.hpp"
 #include "Shell/Flattening.hpp"
 
+#include "ArgsEnumerator.hpp"
 #include "FiniteModelMultiSorted.hpp"
 
 #define DEBUG_MODEL 0
@@ -268,13 +269,10 @@ std::string FiniteModelMultiSorted::toString()
     } else {
       modelStm << "tff("<<prepend("function_", name)<<",axiom,"<<endl;
 
-      static DArray<unsigned> args;
-      args.ensure(arity);
-      // start with all 1s
-      for(unsigned i=0;i<arity;i++) args[i]=1;
       bool first=true;
-
-      for(;;) {
+      ArgsEnumerator it(_sizes,ot,arity);
+      do {
+        const DArray<unsigned>& args = it.args();
         unsigned res = _f_interpretation[args2var(args,_sizes,_f_offsets,f,ot)];
         ASS_G(res,0)
 
@@ -294,20 +292,7 @@ std::string FiniteModelMultiSorted::toString()
         TermList resultSortT = ot->result();
         unsigned resultSort = resultSortT.term()->functor();
         modelStm << ") = " << cnames[resultSort][res] << endl;
-
-        // next one, please ...
-        unsigned i;
-        for(i=0;i<arity;i++) {
-          args[i]++;
-          if(args[i] <= _sizes[ot->arg(i).term()->functor()]) {
-            break;
-          }
-          args[i]=1;
-        }
-        if (i == arity) {
-          break;
-        }
-      }
+      } while (it.next());
       modelStm << ")." << endl << endl;
     }
   }
@@ -374,13 +359,10 @@ std::string FiniteModelMultiSorted::toString()
     } else {
       modelStm << "tff("<<prepend("predicate_", name)<<",axiom,"<<endl;
 
-      static DArray<unsigned> args;
-      args.ensure(arity);
-      // start with all 1s
-      for(unsigned i=0;i<arity;i++) args[i]=1;
       bool first=true;
-
-      for(;;) {
+      ArgsEnumerator it(_sizes,ot,arity);
+      do {
+        const DArray<unsigned>& args = it.args();
         char res = _p_interpretation[args2var(args,_sizes,_p_offsets,p,ot)];
         ASS_NEQ(res,INTP_UNDEF)
 
@@ -401,19 +383,7 @@ std::string FiniteModelMultiSorted::toString()
         }
         modelStm << ")";
         modelStm << endl;
-
-        unsigned i;
-        for(i=0;i<arity;i++) {
-          args[i]++;
-          if(args[i] <= _sizes[ot->arg(i).term()->functor()]) {
-            break;
-          }
-          args[i]=1;
-        }
-        if (i == arity) {
-          break;
-        }
-      }
+      } while (it.next());
       modelStm << ")." << endl << endl;
     }
   }
@@ -541,11 +511,10 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
 
       // cout << "f = " << f << " arity= " << arity << endl;
 
-      DArray<unsigned> args(arity); // ... args will respect the table encoding
       DArray<unsigned> old_args(arity);
-      for(unsigned i=0;i<arity;i++){ args[i]=1; }
-
-      for(;;) {
+      ArgsEnumerator it(_sizes,sig,arity); // ... args will respect the (new) table encoding
+      do {
+        const DArray<unsigned>& args = it.args();
         // encode args into old_args
         for(unsigned i=0;i<arity;i++){
           unsigned i_srt = sig->arg(i).term()->functor();
@@ -568,19 +537,7 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
 
         // move var
         var++;
-        // increase args
-        unsigned i;
-        for(i=0;i<arity;i++) {
-          args[i]++;
-          if(args[i] <= _sizes[sig->arg(i).term()->functor()]){
-            break;
-          }
-          args[i]=1;
-        }
-        if (i == arity) {
-          break;
-        }
-      }
+      } while (it.next());
     }
 
     var = 0; // ... var will fly linearly through all this again (for the predicates)
@@ -596,11 +553,10 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
 
       // cout << "p = " << p << " arity= " << arity << endl;
 
-      DArray<unsigned> args(arity); // ... args will respect the table encoding
       DArray<unsigned> old_args(arity);
-      for(unsigned i=0;i<arity;i++){ args[i]=1; }
-
-      for(;;) {
+      ArgsEnumerator it(_sizes,sig,arity); // ... args will respect the (new) table encoding
+      do {
+        const DArray<unsigned>& args = it.args();
         // encode args into old_args
         for(unsigned i=0;i<arity;i++){
           unsigned i_srt = sig->arg(i).term()->functor();
@@ -612,20 +568,7 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
         char old_res = old_p_interpretation[old_var];
 
         _p_interpretation[var++] = old_res; // no change for predicates
-
-        // increase args
-        unsigned i;
-        for(i=0;i<arity;i++) {
-          args[i]++;
-          if(args[i] <= _sizes[sig->arg(i).term()->functor()]){
-            break;
-          }
-          args[i]=1;
-        }
-        if (i == arity) {
-          break;
-        }
-      }
+      } while (it.next());
     }
   }
 
@@ -691,11 +634,10 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
       OperatorType* sig = symb->fnType();
       unsigned arity = symb->arity();
 
-      DArray<unsigned> args(arity); // ... args will respect the table encoding
       DArray<unsigned> old_args(arity);
-      for(unsigned i=0;i<arity;i++){ args[i]=1; }
-
-      for(;;) {
+      ArgsEnumerator it(_sizes,sig,arity); // ... args will respect the (new) table encoding
+      do {
+        const DArray<unsigned>& args = it.args();
         // encode args into old_args
         for(unsigned i=0;i<arity;i++){
           unsigned i_srt = sig->arg(i).term()->functor();
@@ -717,19 +659,7 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
 
         // move var
         var++;
-        // increase args
-        unsigned i;
-        for(i=0;i<arity;i++) {
-          args[i]++;
-          if(args[i] <= _sizes[sig->arg(i).term()->functor()]){
-            break;
-          }
-          args[i]=1;
-        }
-        if (i == arity) {
-          break;
-        }
-      }
+      } while (it.next());
     }
 
     var = 0; // ... var will fly linearly through all this again (for the predicates)
@@ -745,11 +675,10 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
 
       // cout << "p = " << p << " arity= " << arity << endl;
 
-      DArray<unsigned> args(arity); // ... args will respect the table encoding
       DArray<unsigned> old_args(arity);
-      for(unsigned i=0;i<arity;i++){ args[i]=1; }
-
-      for(;;) {
+      ArgsEnumerator it(_sizes,sig,arity); // ... args will respect the (new) table encoding
+      do {
+        const DArray<unsigned>& args = it.args();
         // encode args into old_args
         for(unsigned i=0;i<arity;i++){
           unsigned i_srt = sig->arg(i).term()->functor();
@@ -761,20 +690,7 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
         unsigned old_res = old_p_interpretation[old_var];
 
         _p_interpretation[var++] = old_res; // no change for predicates
-
-        // increase args
-        unsigned i;
-        for(i=0;i<arity;i++) {
-          args[i]++;
-          if(args[i] <= _sizes[sig->arg(i).term()->functor()]){
-            break;
-          }
-          args[i]=1;
-        }
-        if (i == arity) {
-          break;
-        }
-      }
+      } while (it.next());
     }
   }
 }
@@ -784,68 +700,33 @@ void FiniteModelMultiSorted::restoreEliminatedFunDef(Problem::FunDef* fd)
   unsigned f = fd->_head->functor();
   unsigned arity = env.signature->functionArity(f);
 
-  DArray<int> vars(arity);
+  DArray<unsigned> vars(arity);
   for(unsigned i=0;i<arity;i++){
     ASS(fd->_head->nthArgument(i)->isVar());
     vars[i] = fd->_head->nthArgument(i)->var();
   }
 
-  static DArray<unsigned> args;
-  args.ensure(arity);
   static DHMap<unsigned,unsigned> subst;
   subst.reset();
-  // start with all 1s
-  for(unsigned i=0;i<arity;i++){
-    args[i]=1;
-    subst.set(vars[i],args[i]);
-  }
 
   OperatorType* ot = env.signature->getFunction(f)->fnType();
-  for(;;) {
+  ArgsEnumerator it(_sizes,ot,arity);
+  it.bindAll(vars,subst);
+  do {
     unsigned val = evaluateTerm(TermList(fd->_body),subst);
-    addFunctionDefinition(f,args,val);
-
-    unsigned i;
-    for(i=0;i<arity;i++) {
-      args[i]++;
-      if(args[i] <= _sizes[ot->arg(i).term()->functor()]) {
-        subst.set(vars[i],args[i]); // update subst with the inc
-        break;
-      }
-      args[i]=1;
-      subst.set(vars[i],args[i]); // update subst with the dec
-    }
-    if (i == arity) {
-      break;
-    }
-  }
+    addFunctionDefinition(f,it.args(),val);
+  } while (it.nextAndRebind(vars,subst));
 }
 
 void FiniteModelMultiSorted::restoreImplicitlyEliminatedFun(unsigned f)
 {
   unsigned arity = env.signature->functionArity(f);
 
-  static DArray<unsigned> args;
-  args.ensure(arity);
-  // start with all 1s
-  for(unsigned i=0;i<arity;i++){ args[i]=1; }
-
   OperatorType* ot = env.signature->getFunction(f)->fnType();
-  for(;;) {
-    addFunctionDefinition(f,args,1);
-
-    unsigned i;
-    for(i=0;i<arity;i++) {
-      args[i]++;
-      if(args[i] <= _sizes[ot->arg(i).term()->functor()]) {
-        break;
-      }
-      args[i]=1;
-    }
-    if (i == arity) {
-      break;
-    }
-  }
+  ArgsEnumerator it(_sizes,ot,arity);
+  do {
+    addFunctionDefinition(f,it.args(),1);
+  } while (it.next());
 }
 
 void FiniteModelMultiSorted::restoreEliminatedPredDef(Problem::PredDef* pd)
@@ -853,70 +734,35 @@ void FiniteModelMultiSorted::restoreEliminatedPredDef(Problem::PredDef* pd)
   unsigned p = pd->_head->functor();
   unsigned arity = env.signature->predicateArity(p);
 
-  DArray<int> vars(arity);
+  DArray<unsigned> vars(arity);
   for(unsigned i=0;i<arity;i++){
     ASS(pd->_head->nthArgument(i)->isVar());
     vars[i] = pd->_head->nthArgument(i)->var();
   }
 
-  static DArray<unsigned> args;
-  args.ensure(arity);
   static DHMap<unsigned,unsigned> subst;
   subst.reset();
-  // start with all 1s
-  for(unsigned i=0;i<arity;i++){
-    args[i]=1;
-    subst.set(vars[i],args[i]);
-  }
 
   OperatorType* ot = env.signature->getPredicate(p)->fnType();
-  for(;;) {
+  ArgsEnumerator it(_sizes,ot,arity);
+  it.bindAll(vars,subst);
+  do {
     bool val = (evaluateFormula(pd->_body,subst) == pd->_head->isPositive());
-    addPredicateDefinition(p,args,val);
-
-    unsigned i;
-    for(i=0;i<arity;i++) {
-      args[i]++;
-      if(args[i] <= _sizes[ot->arg(i).term()->functor()]) {
-        subst.set(vars[i],args[i]); // update subst with the inc
-        break;
-      }
-      args[i]=1;
-      subst.set(vars[i],args[i]); // update subst with the dec
-    }
-    if (i == arity) {
-      break;
-    }
-  }
+    addPredicateDefinition(p,it.args(),val);
+  } while (it.nextAndRebind(vars,subst));
 }
 
 void FiniteModelMultiSorted::restoreImplicitlyEliminatedPred(unsigned p)
 {
   unsigned arity = env.signature->predicateArity(p);
 
-  static DArray<unsigned> args;
-  args.ensure(arity);
-  // start with all 1s
-  for(unsigned i=0;i<arity;i++){ args[i]=1;}
-
-  OperatorType* ot = env.signature->getPredicate(p)->fnType();
-  for(;;) {
-    size_t var = args2var(args,_sizes,_p_offsets,p,env.signature->getPredicate(p)->predType());
+  OperatorType* ot = env.signature->getPredicate(p)->predType();
+  ArgsEnumerator it(_sizes,ot,arity);
+  do {
+    size_t var = args2var(it.args(),_sizes,_p_offsets,p,ot);
     if (_p_interpretation[var] == INTP_UNDEF) // default only conditionally (some flips may have already been done)
       _p_interpretation[var] = INTP_FALSE;
-
-    unsigned i;
-    for(i=0;i<arity;i++) {
-      args[i]++;
-      if(args[i] <= _sizes[ot->arg(i).term()->functor()]) {
-        break;
-      }
-      args[i]=1;
-    }
-    if (i == arity) {
-      break;
-    }
-  }
+  } while (it.next());
 }
 
 void FiniteModelMultiSorted::restoreGlobalPredicateFlip(Problem::GlobalFlip* gf)
@@ -924,32 +770,16 @@ void FiniteModelMultiSorted::restoreGlobalPredicateFlip(Problem::GlobalFlip* gf)
   unsigned p = gf->_pred;
   unsigned arity = env.signature->predicateArity(p);
 
-  static DArray<unsigned> args;
-  args.ensure(arity);
-  // start with all 1s
-  for(unsigned i=0;i<arity;i++){ args[i]=1;}
-
-  OperatorType* ot = env.signature->getPredicate(p)->fnType();
-  for(;;) {
-    size_t var = args2var(args,_sizes,_p_offsets,p,env.signature->getPredicate(p)->predType());
+  OperatorType* ot = env.signature->getPredicate(p)->predType();
+  ArgsEnumerator it(_sizes,ot,arity);
+  do {
+    size_t var = args2var(it.args(),_sizes,_p_offsets,p,ot);
     if (_p_interpretation[var] == INTP_TRUE) {
       _p_interpretation[var] = INTP_FALSE;
     } else { // includes INTP_UNDEF, which is implicitly false
       _p_interpretation[var] = INTP_TRUE;
     }
-
-    unsigned i;
-    for(i=0;i<arity;i++) {
-      args[i]++;
-      if(args[i] <= _sizes[ot->arg(i).term()->functor()]) {
-        break;
-      }
-      args[i]=1;
-    }
-    if (i == arity) {
-      break;
-    }
-  }
+  } while (it.next());
 }
 
 void FiniteModelMultiSorted::restoreViaCondFlip(Problem::CondFlip* cf)
@@ -1011,13 +841,6 @@ void FiniteModelMultiSorted::restoreViaCondFlip(Problem::CondFlip* cf)
     flipped = false;
 
     static DHMap<unsigned,unsigned> subst;
-    static DArray<unsigned> args;
-    args.ensure(arity);
-    // start with all 1s
-    for(unsigned i=0;i<arity;i++){
-      args[i]=1;
-      subst.set(vars[i],args[i]);
-    }
 
     unsigned p = cf->_val->functor();
     ASS_NEQ(p,0) // equality cannot be flipped!
@@ -1025,9 +848,12 @@ void FiniteModelMultiSorted::restoreViaCondFlip(Problem::CondFlip* cf)
     static DArray<unsigned> inner_args;
     inner_args.ensure(p_arity);
 
-    for(;;) {
+    DArray<unsigned> bounds(arity);
+    for(unsigned i=0;i<arity;i++){ bounds[i] = _sizes[sorts[i]]; }
+    ArgsEnumerator it(std::move(bounds));
+    it.bindAll(vars,subst);
+    do {
       if (evaluateFormula(cf->_cond,subst) != cf->_neg) {
-        // cout << " do the flip for " << args << endl;
         // do the flip
         for(unsigned j=0;j<p_arity;j++){
           inner_args[j] = evaluateTerm(*cf->_val->nthArgument(j),subst);
@@ -1037,26 +863,10 @@ void FiniteModelMultiSorted::restoreViaCondFlip(Problem::CondFlip* cf)
 
         char before = _p_interpretation[var];
         char after = (cf->_val->isPositive() ? INTP_TRUE : INTP_FALSE);
-        // cout << " before " << (unsigned)_p_interpretation[var] << endl;
         _p_interpretation[var] = after;
-        // cout << "  after " << (unsigned)_p_interpretation[var] << endl;
         flipped |= (before != after);
       }
-
-      unsigned i;
-      for(i=0;i<arity;i++) {
-        args[i]++;
-        if(args[i] <= _sizes[sorts[i]]) {
-          subst.set(vars[i],args[i]); // update subst with the inc
-          break;
-        }
-        args[i]=1;
-        subst.set(vars[i],args[i]); // update subst with the dec
-      }
-      if (i == arity) {
-        break;
-      }
-    }
+    } while (it.nextAndRebind(vars,subst));
   } while (cf->_fixedPoint && flipped);
   // cout << endl;
 }
@@ -1185,58 +995,32 @@ bool FiniteModelMultiSorted::evaluateFormula(Formula* formula, DHMap<unsigned,un
       // cout << "will do FORALL/EXISTS for " << formula->toString() << endl;
 
       unsigned arity = VSList::length(vs);
-      DArray<unsigned> args;
-      DArray<unsigned> old_vals;
-      DArray<unsigned> sorts;
-      args.ensure(arity);
-      old_vals.ensure(arity);
-      sorts.ensure(arity);
+      DArray<unsigned> old_vals(arity);
+      DArray<unsigned> vars(arity);
+      DArray<unsigned> bounds(arity);
 
-      // Collect vars in an array for reuse
-      DArray<unsigned> vars;
-      vars.ensure(arity);
-
-      // start with all 1s, update subst, store old_vals, figure out sorts
+      // store old_vals, figure out bounds
       for(unsigned i=0;i<arity;i++){
         auto [var, srt] = vs->head();
         vs = vs->tail();
         vars[i] = var;
-        sorts[i] = srt.term()->functor();
-
+        bounds[i] = _sizes[srt.term()->functor()];
         old_vals[i] = subst.get(var,0);
-        args[i]=1;
-        subst.set(var,args[i]);
       }
+
+      ArgsEnumerator it(std::move(bounds));
+      it.bindAll(vars,subst);
 
       bool res;
       bool early = false;
-      for(;;) {
+      do {
         res = evaluateFormula(formula->qarg(),subst);
 
         if((isForall && !res) || (!isForall && res)) {
           early = true;
-
-          // cout << "early for " << args << endl;
-          // cout << "subst was " << subst << endl;
-
           break;
         }
-
-        unsigned i;
-        for(i=0;i<arity;i++) {
-          unsigned var = vars[i];
-          args[i]++;
-          if(args[i] <= _sizes[sorts[i]]) {
-            subst.set(var,args[i]); // update subst with the inc
-            break;
-          }
-          args[i]=1;
-          subst.set(var,args[i]); // update subst with the dec
-        }
-        if (i == arity) {
-          break;
-        }
-      }
+      } while (it.nextAndRebind(vars,subst));
 
       // undo the bindings in subst
       for(unsigned i=0;i<arity;i++){
