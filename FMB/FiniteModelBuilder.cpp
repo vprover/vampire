@@ -1903,6 +1903,13 @@ void FiniteModelBuilder::onModelFound()
     Signature::Symbol* sym = env.signature->getFunction(f);
     // if (sym->introduced()) continue; // so that a sort function may enter the model (to be elimintated later)
 
+    // symbols with no recorded usage get no table in the model (see initTables) and their
+    // values cannot matter -- this skips, e.g., fmbFreshConstant-s and fmbdef-s introduced
+    // during FMB's own preprocessing, which postdate the Property scan that counts usage
+    // (Monotonicity, by contrast, bumps the usage of the sort functions/predicates it
+    // introduces, precisely so that they do get a table here)
+    if(sym->usageCnt()==0) continue;
+
     //cout << "For " << env.signature->getFunction(f)->name() << endl;
     unsigned arity = env.signature->functionArity(f);
 
@@ -1956,6 +1963,9 @@ void FiniteModelBuilder::onModelFound()
 
     Signature::Symbol* sym = env.signature->getPredicate(p);
     // if (sym->introduced()) continue; // so that a sort predicate may enter the model (to be elimintated later)
+
+    // see the analogous skip in the function loop above
+    if(sym->usageCnt()==0) continue;
 
     unsigned arity = env.signature->predicateArity(p);
     //cout << "Record for " << env.signature->getPredicate(p)->name() << "/" << arity << endl;
@@ -2028,6 +2038,7 @@ void FiniteModelBuilder::onModelFound()
 
   env.statistics->model = model.toString();
 }
+
 
 void FiniteModelBuilder::HackyDSAE::learnNogood(Constraint_Generator_Vals& nogood, unsigned weight)
 {
