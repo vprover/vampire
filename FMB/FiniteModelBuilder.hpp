@@ -26,6 +26,7 @@
 #include "SAT/SATClause.hpp"
 #include "Lib/ScopedPtr.hpp"
 #include "SortInference.hpp"
+#include "FiniteModelMultiSorted.hpp"
 #include "Lib/BinaryHeap.hpp"
 
 namespace FMB {
@@ -71,6 +72,11 @@ private:
 
   // Creates the model output
   void onModelFound();
+
+#if FMB_CHECK_MODEL_AGAINST_INPUT
+  // the temporary in-run sanity check (see FiniteModelMultiSorted.hpp for the macro)
+  void checkModelAgainstOriginalInput(FiniteModelMultiSorted& model);
+#endif
 
   // Adds constraints from ground clauses (same constraints for each model size)
   void addGroundClauses();

@@ -1010,8 +1010,8 @@ void FiniteModelMultiSorted::restoreEliminatedDefinitions(Kernel::Problem* prob)
 bool FiniteModelMultiSorted::evaluate(Unit* unit)
 {
   Formula* formula = (unit->isClause()) ?
-    Formula::fromClause(unit->asClause()) :
-    static_cast<FormulaUnit*>(unit)->getFormula();
+    Formula::fromClause(unit->asClause()) : // universally closed by default
+    Formula::quantify(static_cast<FormulaUnit*>(unit)->getFormula()); // close over any free variables (a no-op on closed formulas)
 
   _implicitlyEliminatedFunctions.reset();
   _implicitlyEliminatedPredicates.reset();

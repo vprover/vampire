@@ -29,6 +29,12 @@ namespace FMB {
 using namespace Lib;
 using namespace Kernel;
 
+// Temporary, assert-like sanity instrument: when 1, a single-strategy fmb run snapshots the
+// parsed input (see preprocessProblem in vampire.cpp) and, at the end of onModelFound,
+// checks the constructed model against it -- a false original unit raises USER_ERROR.
+// To be set to 0 (or removed) once the symbolic-definitions work has been stress-tested.
+#define FMB_CHECK_MODEL_AGAINST_INPUT 1
+
 /**
  *
  *

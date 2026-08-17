@@ -2036,8 +2036,98 @@ void FiniteModelBuilder::onModelFound()
   model.eliminateSortFunctionsAndPredicates(_sortFunctions,_sortPredicates);
   model.restoreEliminatedDefinitions(env.getMainProblem());
 
+#if FMB_CHECK_MODEL_AGAINST_INPUT
+  checkModelAgainstOriginalInput(model);
+#endif
+
   env.statistics->model = model.toString();
 }
+
+#if FMB_CHECK_MODEL_AGAINST_INPUT
+
+// can our evaluator handle this term / formula?
+// (the original, un-preprocessed input may still contain FOOL constructs)
+static bool evaluableTerm(TermList tl)
+{
+  if (tl.isVar()) return true;
+  Term* t = tl.term();
+  if (t->isSpecial()) return false;
+  for (unsigned i = 0; i < t->arity(); i++) {
+    if (!evaluableTerm(*t->nthArgument(i))) return false;
+  }
+  return true;
+}
+
+static bool evaluableFormula(Formula* f)
+{
+  switch (f->connective()) {
+    case LITERAL: {
+      Literal* l = f->literal();
+      for (unsigned i = 0; i < l->arity(); i++) {
+        if (!evaluableTerm(*l->nthArgument(i))) return false;
+      }
+      return true;
+    }
+    case AND:
+    case OR: {
+      FormulaList::Iterator it(f->args());
+      while (it.hasNext()) {
+        if (!evaluableFormula(it.next())) return false;
+      }
+      return true;
+    }
+    case IMP:
+    case IFF:
+    case XOR:
+      return evaluableFormula(f->left()) && evaluableFormula(f->right());
+    case NOT:
+      return evaluableFormula(f->uarg());
+    case FORALL:
+    case EXISTS:
+      return evaluableFormula(f->qarg());
+    case TRUE:
+    case FALSE:
+      return true;
+    default: // BOOL_TERM and friends
+      return false;
+  }
+}
+
+/**
+ * The temporary in-run sanity check: evaluate every unit of the original (parsed,
+ * un-preprocessed) input in the restored model. Every unit must hold -- note that
+ * the parser negates conjectures on the fly (see the CONJECTURE case in Parse::TPTP::tag),
+ * so the snapshot contains the negated conjecture, which the model witnesses.
+ * A violation raises USER_ERROR (exit code 4).
+ */
+void FiniteModelBuilder::checkModelAgainstOriginalInput(FiniteModelMultiSorted& model)
+{
+  UnitList* original = env.getMainProblem()->originalInputUnits();
+  if (!original) {
+    cout << "% FMB model self-check skipped (no snapshot of the parsed input; not running in single-strategy mode?)" << endl;
+    return;
+  }
+
+  unsigned checked = 0, skipped = 0;
+  UnitList::Iterator uit(original);
+  while (uit.hasNext()) {
+    Unit* u = uit.next();
+    if (!u->isClause() && !evaluableFormula(u->getFormula())) {
+      skipped++;
+      continue;
+    }
+    if (!model.evaluate(u)) {
+      USER_ERROR("FMB model self-check FAILED on: " + u->toString());
+    }
+    checked++;
+  }
+  cout << "% FMB model self-check passed (" << checked << " units checked";
+  if (skipped > 0) {
+    cout << ", " << skipped << " skipped as not evaluable";
+  }
+  cout << ")" << endl;
+}
+#endif
 
 
 void FiniteModelBuilder::HackyDSAE::learnNogood(Constraint_Generator_Vals& nogood, unsigned weight)
