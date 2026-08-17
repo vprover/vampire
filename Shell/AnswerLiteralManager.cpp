@@ -672,6 +672,8 @@ Term* SynthesisALManager::translateToSynthesisConditionTerm(Literal* l)
       }
       if (isPredicateComputable(l->functor())) {
         ALWAYS(_introducedComputable.insert(make_pair(fn, /*isPredicate=*/false)));
+      } else {
+        ALWAYS(_annotatedUncomputable.insert(make_pair(fn, /*isPredicate=*/false)));
       }
     }
     sym->setType(OperatorType::getFunctionType(arity, argSorts.begin(), AtomicSort::defaultSort()));
