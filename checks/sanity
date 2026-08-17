@@ -101,6 +101,12 @@ check_szs_status Theorem -ile off theory/let-bool-twice.p
 check_szs_status Theorem -newcnf on -ile off theory/let-bool-twice.p
 check_szs_status Unsatisfiable theory/let-bool-twice.smt2
 check_szs_status Unsatisfiable -newcnf on theory/let-bool-twice.smt2
+check_szs_status Unsatisfiable theory/let-nested-bool.p
+check_szs_status Unsatisfiable -newcnf on theory/let-nested-bool.p
+check_szs_status Unsatisfiable -ile off theory/let-nested-bool.p
+check_szs_status Unsatisfiable -newcnf on -ile off theory/let-nested-bool.p
+check_szs_status Satisfiable theory/let-nested-bool.smt2
+check_szs_status Satisfiable -newcnf on theory/let-nested-bool.smt2
 
 # Arrays
 check_szs_status Unsatisfiable theory/arrays.smt2

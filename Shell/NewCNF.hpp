@@ -468,6 +468,20 @@ private:
     SPGenClause gc = occ.gc;
     unsigned position = occ.position;
 
+    /**
+     * The formula being expanded can occupy more than one generalised literal
+     * of gc: Occurrences::replaceBy writes into generalised clauses directly
+     * and so bypasses pushLiteral, which normally keeps one formula from being
+     * stored twice. Two distinct subformulas replaced by the same formula are
+     * enough, as happens when a let-bound symbol occurring twice is inlined.
+     * The other generalised literals say the same thing as the one occ points
+     * at, so they are dropped instead of copied over. A copy would stay in the
+     * new clause unprocessed forever, because a formula is out of _occurrences
+     * while it is being processed, so registerGenClause registers nothing
+     * for it.
+     */
+    GenLit expanded = gc->_literals[position];
+
     unsigned size = gc->size() + List<GenLit>::length(gls) - 1;
     SPGenClause newGc = SPGenClause(new GenClause(size, gc->bindings, gc->foolBindings));
 
@@ -482,6 +496,11 @@ private:
         List<GenLit>::Iterator glit(gls);
         while (glit.hasNext()) {
           pushLiteral(newGc, glit.next());
+        }
+      } else if (formula(gl) == formula(expanded)) {
+        if (sign(gl) != sign(expanded)) {
+          // the clause holds both the formula and its negation
+          newGc->valid = false;
         }
       } else {
         pushLiteral(newGc, gl);
@@ -514,8 +533,14 @@ private:
     occ.gc->valid = false;
     _genClauses.erase(occ.gc->iter);
 
+    // the formula whose occurrence was popped can occupy further generalised
+    // literals of the clause (see introduceExtendedGenClause). Those are
+    // counted by `occurrences`, not by an entry of _occurrences: dequeue
+    // removed that when the formula was taken out for processing.
+    Formula* popped = formula(occ.gc->_literals[occ.position]);
+
     GenClause::Iterator glit = occ.gc->genLiterals();
-    while (glit.hasNext()) {
+    for (unsigned position = 0; glit.hasNext(); position++) {
       GenLit gl = glit.next();
       Formula* f = formula(gl);
 
@@ -524,6 +549,8 @@ private:
       Occurrences* fOccurrences = _occurrences.findPtr(f);
       if (fOccurrences) {
         fOccurrences->decrement();
+      } else if (f == popped && position != occ.position) {
+        occurrences.decrement();
       }
     }
 
