@@ -93,6 +93,38 @@ void FiniteModelMultiSorted::initTables()
   }
 }
 
+Problem::FunDef* FiniteModelMultiSorted::symbolicFunDef(unsigned f)
+{
+  Problem::FunDef* fd;
+  if (!_symbolicFuns.find(f,fd)) {
+    // implicitly eliminated symbol (its last occurrence disappeared with some other elimination),
+    // so it can be defined arbitrarily: record a trivial definition --
+    // a linear head f(X0,...,X_{arity-1}) and a null body standing for "the first domain element"
+    TermStack args;
+    for (unsigned v = 0; v < env.signature->functionArity(f); v++) {
+      args.push(TermList::var(v));
+    }
+    fd = new Problem::FunDef(Term::create(f,args.size(),args.begin()),nullptr /* arbitrary value */);
+    _symbolicFuns.insert(f,fd);
+  }
+  return fd;
+}
+
+Problem::PredDef* FiniteModelMultiSorted::symbolicPredDef(unsigned p)
+{
+  Problem::PredDef* pd;
+  if (!_symbolicPreds.find(p,pd)) {
+    // implicitly eliminated symbol; record the trivial definition p(X0,...,X_{arity-1}) <=> $false
+    TermStack args;
+    for (unsigned v = 0; v < env.signature->predicateArity(p); v++) {
+      args.push(TermList::var(v));
+    }
+    pd = new Problem::PredDef(Literal::create(p, args.size(), true, args.begin()),new Formula(false));
+    _symbolicPreds.insert(p,pd);
+  }
+  return pd;
+}
+
 void FiniteModelMultiSorted::addFunctionDefinition(unsigned f, const DArray<unsigned>& args, unsigned res)
 {
   ASS_EQ(env.signature->functionArity(f),args.size());
@@ -203,18 +235,7 @@ std::string FiniteModelMultiSorted::toString()
     modelStm << ot->result().toString() << ")." << endl;
 
     if (!funRepresented(f)) {
-      Problem::FunDef* fd;
-      if (!_symbolicFuns.find(f,fd)) { // implicitly eliminated symbol, let's define trivially
-        // need a linear head and empty body as a place-holder for fmb_$sort_1
-
-        // create linear term f(X0,X1,...X_arity)
-        TermStack args;
-        for (unsigned v = 0; v < arity; v++) {
-          args.push(TermList::var(v));
-        }
-        fd = new Problem::FunDef(Term::create(f,args.size(),args.begin()),nullptr /* arbitrary value */);
-        _symbolicFuns.insert(f,fd);
-      }
+      Problem::FunDef* fd = symbolicFunDef(f);
 
       // print a symbolic definition (the explicit one was missing)
 
@@ -307,16 +328,7 @@ std::string FiniteModelMultiSorted::toString()
     modelStm << "$o )." << endl;
 
     if (!predRepresented(p)) {
-      Problem::PredDef* pd;
-      if (!_symbolicPreds.find(p,pd)) { // implicitly eliminated symbol, let's define as $false
-        // need a linear head and $false for a body
-        TermStack args;
-        for (unsigned v = 0; v < env.signature->getPredicate(p)->arity(); v++) {
-          args.push(TermList::var(v));
-        }
-        pd = new Problem::PredDef(Literal::create(p, args.size(), true, args.begin()),new Formula(false));
-        _symbolicPreds.insert(p,pd);
-      }
+      Problem::PredDef* pd = symbolicPredDef(p);
 
       // print a symbolic definition (the explicit one was missing)
 
@@ -404,6 +416,21 @@ unsigned FiniteModelMultiSorted::evaluateTerm(TermList tl, const DHMap<unsigned,
 
   // cout << "evaluateTerm " << tl.toString() << " under " << subst << endl;
 
+  if (!funRepresented(f)) {
+    // an eliminated symbol: evaluate through its symbolic definition
+    Problem::FunDef* fd = symbolicFunDef(f);
+    if (!fd->_body) {
+      return 1; // "arbitrary value", fixed as the first domain element (as also printed by toString)
+    }
+    // a local substitution here, as the evaluation of the body may recurse into further symbolic definitions
+    DHMap<unsigned,unsigned> inner;
+    for(unsigned i=0;i<arity;i++){
+      ASS(fd->_head->nthArgument(i)->isVar());
+      inner.set(fd->_head->nthArgument(i)->var(),args[i]);
+    }
+    return evaluateTerm(TermList(fd->_body),inner);
+  }
+
   const DArray<unsigned>& tbl = _f_tables[f];
   size_t idx = tableIndex(args,_sizes,env.signature->getFunction(f)->fnType());
   ASS_L(idx, tbl.size());
@@ -427,6 +454,19 @@ bool FiniteModelMultiSorted::evaluateLiteral(Literal* lit, const DHMap<unsigned,
 
   if(lit->isEquality()){
     return (args[0]==args[1]) == lit->polarity();
+  }
+
+  if (!predRepresented(p)) {
+    // an eliminated symbol: evaluate through its symbolic definition
+    Problem::PredDef* pd = symbolicPredDef(p);
+    // a local substitution here, as the evaluation of the body may recurse into further symbolic definitions
+    DHMap<unsigned,unsigned> inner;
+    for(unsigned i=0;i<arity;i++){
+      ASS(pd->_head->nthArgument(i)->isVar());
+      inner.set(pd->_head->nthArgument(i)->var(),args[i]);
+    }
+    bool val = (evaluateFormula(pd->_body,inner) == pd->_head->isPositive());
+    return val == lit->polarity();
   }
 
   const DArray<char>& tbl = _p_tables[p];

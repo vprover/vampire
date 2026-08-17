@@ -52,6 +52,12 @@ class FiniteModelMultiSorted {
   DHMap<unsigned,Problem::FunDef*> _symbolicFuns;
   DHMap<unsigned,Problem::PredDef*> _symbolicPreds;
 
+  // the recorded symbolic definition of an unrepresented symbol;
+  // an implicitly eliminated symbol (no record) gets a trivial definition created
+  // (and remembered) on first demand, so that printing and evaluation agree on it
+  Problem::FunDef* symbolicFunDef(unsigned f);
+  Problem::PredDef* symbolicPredDef(unsigned p);
+
   // uses _sizes to fillup _f_tables and _p_tables from scratch
   // (only symbols with usageCnt()>0 get a table)
   void initTables();
