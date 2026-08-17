@@ -40,34 +40,36 @@ class FiniteModelMultiSorted {
   inline static constexpr char INTP_FALSE = 1;
   inline static constexpr char INTP_TRUE = 2;
 
-  // two big tables waiting to be filled with the intrepreations (of functions and predicates)
-  DArray<size_t> _f_offsets;
-  DArray<size_t> _p_offsets;
-  DArray<unsigned> _f_interpretation;
-  DArray<char> _p_interpretation; // 0 is undef, 1 false, 2 true
+  // per-symbol tables holding the interpretations of functions and predicates;
+  // an empty table means the symbol is not represented explicitly
+  // (it was eliminated during preprocessing, or is simply unused)
+  DArray<DArray<unsigned>> _f_tables;
+  DArray<DArray<char>> _p_tables; // 0 is undef, 1 false, 2 true
+
+  bool funRepresented(unsigned f) const { return _f_tables[f].size() > 0; }
+  bool predRepresented(unsigned p) const { return _p_tables[p].size() > 0; }
 
   DHMap<unsigned,Problem::FunDef*> _symbolicFuns;
   DHMap<unsigned,Problem::PredDef*> _symbolicPreds;
 
-  // uses _sizes to fillup _f/p_offsets and _f/p_interpretation from scratch
+  // uses _sizes to fillup _f_tables and _p_tables from scratch
+  // (only symbols with usageCnt()>0 get a table)
   void initTables();
 
-  // captures the encoding of the functions offsets and predicates in our tables
-  // - offsets are either _f_offsets or _p_offsets
-  // - s is either an f or p index from env->signature
-  // - sig is the symbols corresponding type signature
-  // - var is an index to use into _f_interpretation/_p_interpretation
-  size_t args2var(const DArray<unsigned>& args, const DArray<unsigned>& sizes,
-                    const DArray<size_t>& offsets, unsigned s, OperatorType* sig)
+  // captures the encoding of a symbol's table:
+  // the row index of the tuple args in the table of a symbol of type sig,
+  // under the domain sizes sizes -- the first argument position changing fastest,
+  // i.e. the very order in which ArgsEnumerator enumerates the tuples
+  static size_t tableIndex(const DArray<unsigned>& args, const DArray<unsigned>& sizes, OperatorType* sig)
   {
-    size_t var = offsets[s];
+    size_t idx = 0;
     size_t mult = 1;
     for(unsigned i=0;i<args.size();i++){
-      var += mult*(args[i]-1);
+      idx += mult*(args[i]-1);
       unsigned s = sig->arg(i).term()->functor();
       mult *=sizes[s];
     }
-    return var;
+    return idx;
   }
 
 public:
