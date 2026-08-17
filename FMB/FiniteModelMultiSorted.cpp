@@ -750,13 +750,29 @@ void FiniteModelMultiSorted::restoreEliminatedFunDef(Problem::FunDef* fd)
   } while (it.nextAndRebind(vars,subst));
 }
 
-void FiniteModelMultiSorted::restoreImplicitlyEliminatedFun(unsigned f)
+void FiniteModelMultiSorted::materializeFun(unsigned f)
 {
-  // a full-table pass with a value independent of the arguments -- a linear scan suffices
-  DArray<unsigned>& tbl = _f_tables[f];
-  for(size_t idx = 0; idx < tbl.size(); idx++) {
-    tbl[idx] = 1;
+  ASS(!funRepresented(f));
+
+  Problem::FunDef* fd = symbolicFunDef(f); // creates the trivial definition if there was no record
+
+  // allocate the table ...
+  Signature::Symbol* symb = env.signature->getFunction(f);
+  DArray<unsigned> tbl;
+  tbl.expand(tableSize(symb->fnType(),symb->arity(),_sizes),0);
+  _f_tables[f] = std::move(tbl);
+
+  // ... and fill it by evaluating the definition
+  if (fd->_body) {
+    restoreEliminatedFunDef(fd);
+  } else { // "arbitrary value", fixed as the first domain element
+    DArray<unsigned>& tbl = _f_tables[f];
+    for(size_t idx = 0; idx < tbl.size(); idx++) {
+      tbl[idx] = 1;
+    }
   }
+
+  _symbolicFuns.remove(f); // from now on, the explicit table speaks for f
 }
 
 void FiniteModelMultiSorted::restoreEliminatedPredDef(Problem::PredDef* pd)
@@ -782,14 +798,22 @@ void FiniteModelMultiSorted::restoreEliminatedPredDef(Problem::PredDef* pd)
   } while (it.nextAndRebind(vars,subst));
 }
 
-void FiniteModelMultiSorted::restoreImplicitlyEliminatedPred(unsigned p)
+void FiniteModelMultiSorted::materializePred(unsigned p)
 {
-  // a full-table pass with a value independent of the arguments -- a linear scan suffices
-  DArray<char>& tbl = _p_tables[p];
-  for(size_t idx = 0; idx < tbl.size(); idx++) {
-    if (tbl[idx] == INTP_UNDEF) // default only conditionally (some flips may have already been done)
-      tbl[idx] = INTP_FALSE;
-  }
+  ASS(!predRepresented(p));
+
+  Problem::PredDef* pd = symbolicPredDef(p); // creates the trivial definition if there was no record
+
+  // allocate the table ...
+  Signature::Symbol* symb = env.signature->getPredicate(p);
+  DArray<char> tbl;
+  tbl.expand(tableSize(symb->predType(),symb->arity(),_sizes),0);
+  _p_tables[p] = std::move(tbl);
+
+  // ... and fill it by evaluating the definition
+  restoreEliminatedPredDef(pd);
+
+  _symbolicPreds.remove(p); // from now on, the explicit table speaks for p
 }
 
 void FiniteModelMultiSorted::restoreGlobalPredicateFlip(Problem::GlobalFlip* gf)
@@ -895,6 +919,34 @@ void FiniteModelMultiSorted::restoreViaCondFlip(Problem::CondFlip* cf)
   // cout << endl;
 }
 
+/**
+ * Replay the recorded interferences in reverse (LIFO) order, turning the model of the
+ * fully preprocessed problem into a model of the original one.
+ *
+ * FUN_DEFs and PRED_DEFs are merely *recorded* (into _symbolicFuns/_symbolicPreds) rather
+ * than expanded into explicit tables; evaluation and printing consult the records lazily.
+ * A definition recorded now may reference a predicate q that a flip replayed later still
+ * modifies -- lazy evaluation then reroutes through the post-flip q. Why this is sound:
+ *  - FunDef bodies are terms, so they cannot mention predicates, and function tables are
+ *    never modified after the recording point -- immune;
+ *  - a genuine definition (PredicateDefinition/FunctionDefinition elimination) is a unit of
+ *    the original problem, which pins the defined symbol uniquely given the other symbols;
+ *    the lazy reading satisfies it by construction at every replay stage;
+ *  - a GLOB_FLIP *would* break rerouting (a body recorded from the polarity-flipped problem
+ *    reads q in the wrong convention), but polarity flipping runs as the very last
+ *    preprocessing step, so GLOB_FLIPs are replayed before any definition is recorded --
+ *    the assertion below guards this ordering;
+ *  - the delicate rest are PredicateElimination's synthesized (non-entailed) definitions
+ *    recorded before a BCE COND_FLIP replays: there the argument goes through the flip's
+ *    fixed-point iteration (at the fixed point every blocked-clause grounding holds under
+ *    the final lazy values, and the resolvents are s-free consequences). Should the model
+ *    checking of restored models ever catch this case misbehaving, the fallback is to
+ *    materialize (freeze) the recorded definitions mentioning the flipped predicate before
+ *    the flip.
+ *
+ * Only a flip's *target* must be explicit -- there has to be a table to flip into -- so it
+ * is materialized (from its symbolic definition, or trivially) right before the flip.
+ */
 void FiniteModelMultiSorted::restoreEliminatedDefinitions(Kernel::Problem* prob)
 {
   auto ii = prob->interferences.iter(); // LIFO is the key here!
@@ -912,29 +964,47 @@ void FiniteModelMultiSorted::restoreEliminatedDefinitions(Kernel::Problem* prob)
         break;
       }
       case Problem::IntereferenceKind::GLOB_FLIP:
+        // see above; the flip target, if unrepresented, is legitimately skipped:
+        // flipping an absent symbol's arbitrary-anyway interpretation is a no-op
+        // (and its definition, recorded later in the replay, will simply take over)
+        ASS(_symbolicFuns.isEmpty());
+        ASS(_symbolicPreds.isEmpty());
         restoreGlobalPredicateFlip(static_cast<Problem::GlobalFlip*>(i));
         break;
-      case Problem::IntereferenceKind::COND_FLIP:
-        restoreViaCondFlip(static_cast<Problem::CondFlip*>(i));
+      case Problem::IntereferenceKind::COND_FLIP: {
+        Problem::CondFlip* cf = static_cast<Problem::CondFlip*>(i);
+        unsigned p = cf->_val->functor();
+        if (!predRepresented(p)) {
+          materializePred(p);
+        }
+        restoreViaCondFlip(cf);
         break;
+      }
 
       default:
         ASSERTION_VIOLATION
     }
-
-    // we try to give the implicitlyEliminated proper meaning as soon as possible, so that COND_FLIP's could go and flip the restored defs
-
-    auto iief = _implicitlyEliminatedFunctions.iter();
-    while (iief.hasNext()) {
-      restoreImplicitlyEliminatedFun(iief.next());
-    }
-    _implicitlyEliminatedFunctions.reset();
-    auto iiep = _implicitlyEliminatedPredicates.iter();
-    while (iiep.hasNext()) {
-      restoreImplicitlyEliminatedPred(iiep.next());
-    }
-    _implicitlyEliminatedPredicates.reset();
   }
+
+  // A table cell still undefined at this point was a don't-care throughout the replay
+  // (evaluation consistently read it as the default); make the default explicit,
+  // so that printing and any later evaluation see a total model.
+  for(unsigned f=0; f<env.signature->functions();f++){
+    DArray<unsigned>& tbl = _f_tables[f];
+    for(size_t idx = 0; idx < tbl.size(); idx++) {
+      if (tbl[idx] == 0)
+        tbl[idx] = 1;
+    }
+  }
+  for(unsigned p=1; p<env.signature->predicates();p++){
+    DArray<char>& tbl = _p_tables[p];
+    for(size_t idx = 0; idx < tbl.size(); idx++) {
+      if (tbl[idx] == INTP_UNDEF)
+        tbl[idx] = INTP_FALSE;
+    }
+  }
+  _implicitlyEliminatedFunctions.reset();
+  _implicitlyEliminatedPredicates.reset();
 }
 
 bool FiniteModelMultiSorted::evaluate(Unit* unit)
@@ -943,10 +1013,13 @@ bool FiniteModelMultiSorted::evaluate(Unit* unit)
     Formula::fromClause(unit->asClause()) :
     static_cast<FormulaUnit*>(unit)->getFormula();
 
+  _implicitlyEliminatedFunctions.reset();
+  _implicitlyEliminatedPredicates.reset();
+
   DHMap<unsigned,unsigned> subst;
   bool res = evaluateFormula(formula,subst);
   if (_implicitlyEliminatedFunctions.size() > 0 || _implicitlyEliminatedPredicates.size() > 0) {
-    USER_ERROR("Encountered an undefined symbol while evaluating a Unit");
+    USER_ERROR("Encountered an undefined symbol while evaluating a Unit (a partial model?)");
   }
   return res;
 }

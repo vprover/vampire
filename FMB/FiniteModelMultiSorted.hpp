@@ -103,20 +103,24 @@ private:
   bool evaluateLiteral(Literal*, const DHMap<unsigned,unsigned>& subst);
   bool evaluateFormula(Formula*, DHMap<unsigned,unsigned>& subst);
 
-  // if term evaluation encounters a missing record, it assumes the corresponding symbol has been implicitly eliminated
-  // (e.g., eliminated unused function definition f(X) = g(X,c) might have eliminated c, if it did not occur anywhere else)
-  // such symbols are restored (just after restoreEliminatedDefinitions; although, formally it should happen before) in the simplest possible way:
-  // functions == 1 (the first domain element of the respective sort) everywhere
-  // predicates == false everywhere
+  // symbols whose table entry was still undefined when evaluation read it
+  // (during replay such reads consistently return the default -- function value 1, predicate false --
+  // and the leftover undefined cells are made explicit at the end of restoreEliminatedDefinitions;
+  // in model_check mode, on the other hand, a hit here means the model file was partial,
+  // which evaluate() reports as an error)
   Set<unsigned> _implicitlyEliminatedFunctions;
   Set<unsigned> _implicitlyEliminatedPredicates;
 
   void restoreEliminatedFunDef(Problem::FunDef*);
-  void restoreImplicitlyEliminatedFun(unsigned f);
   void restoreEliminatedPredDef(Problem::PredDef*);
-  void restoreImplicitlyEliminatedPred(unsigned p);
   void restoreGlobalPredicateFlip(Problem::GlobalFlip*);
   void restoreViaCondFlip(Problem::CondFlip*);
+
+  // give an unrepresented symbol an explicit table again, filled by evaluating its
+  // symbolic definition (trivially, if there is no record); needed by the flips,
+  // which cannot operate on a symbolic representation
+  void materializeFun(unsigned f);
+  void materializePred(unsigned p);
 
   std::string prepend(const char* prefix, std::string name) {
     if (name.empty()) {
