@@ -308,8 +308,8 @@ std::string FiniteModelMultiSorted::toString()
           break;
         }
       }
+      modelStm << ")." << endl << endl;
     }
-    modelStm << ")." << endl << endl;
   }
 
   //Predicates (including propositions)
@@ -389,6 +389,7 @@ std::string FiniteModelMultiSorted::toString()
         } else {
           modelStm << "           ";
         }
+        first=false;
 
         if(res==INTP_FALSE) modelStm << "~";
         modelStm << name << "(";
