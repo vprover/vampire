@@ -126,6 +126,8 @@
 #include "LRS.hpp"
 #include "Otter.hpp"
 
+#include "rs.hpp"
+
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
@@ -600,6 +602,7 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
 {
   ASS_LE(toNumber(cl->inputType()),toNumber(UnitInputType::CLAIM)); // larger input types should not appear in proof search
 
+  rsInputClause(cl);
   if (_symEl) {
     _symEl->onInputClause(cl);
   }
@@ -1125,6 +1128,12 @@ void SaturationAlgorithm::activate(Clause* cl)
         return removeSelected(cl);
       }
     }
+  }
+
+  if(Clause *replacement = rsDerivedClause(cl)) {
+    removeSelected(cl);
+    replacement->setStore(Clause::SELECTED);
+    cl = replacement;
   }
 
   _clauseActivationInProgress = true;

@@ -918,6 +918,8 @@ set(SOURCES
     cadical/src/watch.cpp
     cadical/src/watch.hpp
 
+    rs.hpp
+    rs.cpp
     Forwards.hpp
     "${CMAKE_CURRENT_BINARY_DIR}/version.cpp"
 )

@@ -640,6 +640,8 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "backward subsumption resolution";
   case InferenceRule::SUBSUMPTION_EQUALITY_RESOLUTION:
     return "subsumption equality resolution";
+  case InferenceRule::RESOLUTION_SUBSUMPTION:
+    return "resolution subsumption";
   case InferenceRule::SUPERPOSITION:
     return "superposition";
   case InferenceRule::FUNCTION_DEFINITION_REWRITING:
