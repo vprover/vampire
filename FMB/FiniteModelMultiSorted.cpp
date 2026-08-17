@@ -497,7 +497,8 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
 
     // srt's domain is getting reduced to the range of f
     {
-      unsigned var = _f_offsets[elim_f];
+      ASS_NEQ(_f_offsets[elim_f],NOT_REPRESENTED); // Monotonicity bumps usageCnt of the sort functions it introduces
+      size_t var = _f_offsets[elim_f];
       for(unsigned j = 1; j<=origSize; j++) {
         unsigned res = _f_interpretation[var++];
         //cout << "f(" << j << ")=" << res << endl;
@@ -527,8 +528,12 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
     // - arguments of sort srt now iterate over a different (likely smaller domain)
     // - function values of sort srt still need to passed through the ``disappearing'' elim_f
 
-    unsigned var = 0; // ... var will fly linearly through all this
+    size_t var = 0; // ... var will fly linearly through all this
     for(unsigned f=0; f<env.signature->functions();f++){
+      if (_f_offsets[f] == NOT_REPRESENTED) {
+        ASS_EQ(old_f_offsets[f],NOT_REPRESENTED); // usageCnt did not change, so neither did representedness
+        continue;
+      }
       ASS_EQ(var,_f_offsets[f]);
       Signature::Symbol* symb = env.signature->getFunction(f);
       OperatorType* sig = symb->fnType();
@@ -580,6 +585,10 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
 
     var = 0; // ... var will fly linearly through all this again (for the predicates)
     for(unsigned p=1; p<env.signature->predicates();p++){
+      if (_p_offsets[p] == NOT_REPRESENTED) {
+        ASS_EQ(old_p_offsets[p],NOT_REPRESENTED); // usageCnt did not change, so neither did representedness
+        continue;
+      }
       ASS_EQ(var,_p_offsets[p]);
       Signature::Symbol* symb = env.signature->getPredicate(p);
       OperatorType* sig = symb->predType();
@@ -637,7 +646,8 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
 
     // srt's domain is getting reduced to those elements for which p is true
     {
-      unsigned var = _p_offsets[elim_p];
+      ASS_NEQ(_p_offsets[elim_p],NOT_REPRESENTED); // the sort predicates occur in the added sort-predicate axioms
+      size_t var = _p_offsets[elim_p];
       for(unsigned j = 1; j<=origSize; j++) {
         char res = _p_interpretation[var++];
         // cout << "p(" << j << ")=" << (unsigned)res << endl;
@@ -670,8 +680,12 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
     // every function and predicate need to get reencoded
     // - arguments of sort srt now iterate over a different (likely smaller domain)
 
-    unsigned var = 0; // ... var will fly linearly through all this
+    size_t var = 0; // ... var will fly linearly through all this
     for(unsigned f=0; f<env.signature->functions();f++){
+      if (_f_offsets[f] == NOT_REPRESENTED) {
+        ASS_EQ(old_f_offsets[f],NOT_REPRESENTED); // usageCnt did not change, so neither did representedness
+        continue;
+      }
       ASS_EQ(var,_f_offsets[f]);
       Signature::Symbol* symb = env.signature->getFunction(f);
       OperatorType* sig = symb->fnType();
@@ -720,6 +734,10 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
 
     var = 0; // ... var will fly linearly through all this again (for the predicates)
     for(unsigned p=1; p<env.signature->predicates();p++){
+      if (_p_offsets[p] == NOT_REPRESENTED) {
+        ASS_EQ(old_p_offsets[p],NOT_REPRESENTED); // usageCnt did not change, so neither did representedness
+        continue;
+      }
       ASS_EQ(var,_p_offsets[p]);
       Signature::Symbol* symb = env.signature->getPredicate(p);
       OperatorType* sig = symb->predType();
