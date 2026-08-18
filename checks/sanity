@@ -181,6 +181,12 @@ check_szs_status Satisfiable -sa fmb --random_polarities on fmb/sortelim.p
 check_exact_output fmb/sortelim.out --input_syntax tptp --statistics none -sa fmb fmb/sortelim.p
 check_exact_output fmb/sortelim-bce.out --input_syntax tptp --statistics none -sa fmb -updr off -bce on fmb/sortelim.p
 
+# FMB: the size of a CONTOUR model must not be retracted for a monotonic sort
+# (see the comment in fmb/monotonic-contour.p); both SAT solvers must agree,
+# it used to depend on how the unconstrained markers happened to be assigned
+check_exact_output fmb/monotonic-contour.out --input_syntax tptp --statistics none -sa fmb -sas cadical -fmbes contour fmb/monotonic-contour.p
+check_exact_output fmb/monotonic-contour.out --input_syntax tptp --statistics none -sa fmb -sas minisat -fmbes contour fmb/monotonic-contour.p
+
 # Synthesis without and with uncomputables
 check_szs_status Unsatisfiable -qa synthesis synthesis/max2.smt2
 check_szs_status Unsatisfiable -qa synthesis synthesis/ex2-inverse_of_ixopiy.smt2
