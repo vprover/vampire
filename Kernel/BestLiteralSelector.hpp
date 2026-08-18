@@ -172,7 +172,7 @@ protected:
     } else if(!singleSelected) {
       //select multiple maximal literals
       static Stack<Literal*> replaced(16);
-      Set<Literal*> maxSet;
+      Set<Literal*, FnvHash> maxSet;
       unsigned selCnt=0;
 
       for(LiteralList* mit=maximals; mit; mit=mit->tail()) {

@@ -78,7 +78,7 @@ void DemodulationSubtermIndex<higherOrder>::handleClause(Clause* c, bool adding)
 {
   TIME_TRACE("backward demodulation index maintenance");
 
-  static DHSet<Term*> inserted;
+  static DHSet<Term*, FnvHash, PtrIdentityHash> inserted;
 
   unsigned cLen=c->length();
   for (unsigned i=0; i<cLen; i++) {
@@ -172,7 +172,7 @@ void InductionTermIndex::handleClause(Clause* c, bool adding)
       continue;
     }
 
-    DHSet<Term*> done;
+    DHSet<Term*, FnvHash, PtrIdentityHash> done;
     NonVariableNonTypeIterator it(lit);
     while (it.hasNext()) {
       Term* t = it.next();
@@ -207,7 +207,7 @@ void StructInductionTermIndex::handleClause(Clause* c, bool adding)
       continue;
     }
 
-    DHSet<Term*> done;
+    DHSet<Term*, FnvHash, PtrIdentityHash> done;
     NonVariableNonTypeIterator it(lit);
     while (it.hasNext()) {
       Term* t = it.next();

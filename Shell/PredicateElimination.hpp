@@ -94,8 +94,8 @@ private:
   struct PredInfo {
     // S_P: clauses in which P occurs only positively, mapped to the number of occurrences;
     // S_~P: dtto, negatively (clauses with both polarities are counted as blockers instead)
-    Lib::DHMap<Clause *, unsigned> pos;
-    Lib::DHMap<Clause *, unsigned> neg;
+    Lib::DHMap<Clause *, unsigned, UnitHash, UnitNumberHash> pos;
+    Lib::DHMap<Clause *, unsigned, UnitHash, UnitNumberHash> neg;
     unsigned blockers = 0; // number of clauses in which P occurs both positively and negatively
     unsigned posMulti = 0; // number of clauses of pos with more than one occurrence
     unsigned negMulti = 0; // dtto, for neg
@@ -111,7 +111,7 @@ private:
 
   // clause set state
   ClauseStack _all;     // all clauses ever seen, in insertion order
-  Lib::DHSet<Clause *> _deleted; // those of _all that have been eliminated
+  Lib::DHSet<Clause *, UnitHash, UnitNumberHash> _deleted; // those of _all that have been eliminated
   Lib::DArray<PredInfo> _preds;
   size_t _curTotal = 0;
   size_t _origTotal = 0;

@@ -245,7 +245,7 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
     }
   }
   else {
-    static DHSet<Literal*> seen;
+    static DHSet<Literal*, FnvHash, PtrIdentityHash> seen;
     seen.reset();
     //here we rely on the fact that the iterator traverses the clause from
     //the first to the last literal
@@ -283,9 +283,9 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
 
 #if DEBUG_DUPLICATE_LITERALS
   {
-    static DHSet<Literal*> origLits;
+    static DHSet<Literal*, FnvHash, PtrIdentityHash> origLits;
     origLits.reset();
-    static DHSet<Literal*> newLits;
+    static DHSet<Literal*, FnvHash, PtrIdentityHash> newLits;
     newLits.reset();
     origLits.loadFromIterator(c->iterLits());
     newLits.loadFromIterator(d->iterLits());

@@ -489,7 +489,7 @@ unsigned numOfAppVarsAndLambdas(TermList t, unsigned lambdaWeight, unsigned appl
   }
   const Term* tt = t.term();
 
-  static DHMap<const Term*,unsigned> cache;
+  static DHMap<const Term*,unsigned, FnvHash, PtrIdentityHash> cache;
   unsigned* cached;
   if (!cache.getValuePtr(tt,cached)) {
     return *cached;
