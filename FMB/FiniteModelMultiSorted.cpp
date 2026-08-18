@@ -129,8 +129,12 @@ void FiniteModelMultiSorted::addFunctionDefinition(unsigned f, const DArray<unsi
 {
   ASS_EQ(env.signature->functionArity(f),args.size());
 
+  OperatorType* tp = env.signature->getFunction(f)->fnType();
+  // a function's value must be a domain element of its result sort
+  ASS_G(res,0); ASS_LE(res,_sizes[tp->result().term()->functor()]);
+
   DArray<unsigned>& tbl = _f_tables[f];
-  size_t idx = tableIndex(args,_sizes,env.signature->getFunction(f)->fnType());
+  size_t idx = tableIndex(args,_sizes,tp);
 
   ASS_L(idx, tbl.size());
   tbl[idx] = res;

@@ -79,6 +79,7 @@ class FiniteModelMultiSorted {
     for(unsigned i=0;i<args.size();i++){
       idx += mult*(args[i]-1);
       unsigned s = sig->arg(i).term()->functor();
+      ASS_G(args[i],0); ASS_LE(args[i],sizes[s]); // domain elements are 1-based and inside their sort
       mult *=sizes[s];
     }
     return idx;
