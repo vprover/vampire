@@ -1649,6 +1649,16 @@ MainLoopResult FiniteModelBuilder::runImpl()
         // (as the model found may in fact be smaller than the assumed contour in some of the sort dimensions)
 
         for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
+          if (_sortedSignature->monotonicSorts[i]) {
+            // For monotonic sorts the markers carry no information about the size of the model:
+            // instances don't get marked at all (see addNewInstances) and only the weakest version
+            // of a totality clause gets generated (see addNewTotalityDefs), so the markers below
+            // the assumed one only occur in the marker ladder, which "all false" satisfies.
+            // (In other words, all the instances over 1.._distinctSortSizes[i] are asserted
+            // unconditionally here, so the assumed size is the size of the model we found.)
+            continue;
+          }
+
           unsigned j = 0;
           for (; j < _distinctSortSizes[i]; j++) {
             if (_solver->trueInAssignment(SATLiteral(marker_offsets[i]+j,0))) {
