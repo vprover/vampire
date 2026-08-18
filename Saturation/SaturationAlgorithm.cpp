@@ -1130,12 +1130,6 @@ void SaturationAlgorithm::activate(Clause* cl)
     }
   }
 
-  if(Clause *replacement = rsDerivedClause(cl)) {
-    removeSelected(cl);
-    replacement->setStore(Clause::SELECTED);
-    cl = replacement;
-  }
-
   _clauseActivationInProgress = true;
 
   if (!cl->numSelected()) {
@@ -1332,6 +1326,14 @@ void SaturationAlgorithm::doOneAlgorithmStep()
       removeSelected(cl);
       return;
     }
+  }
+
+  // TODO make this part of `_expensiveFwSimplifiers`
+  if(Clause *replacement = rsDerivedClause(cl)) {
+    addNewClause(replacement);
+    onClauseReduction(cl, &replacement, 1, nullptr);
+    removeSelected(cl);
+    return;
   }
 
   activate(cl);

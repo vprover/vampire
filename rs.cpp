@@ -1,6 +1,8 @@
 #include <iostream>
+#include <optional>
 #include <unordered_set>
 
+#include "Kernel/EqHelper.hpp"
 #include "Kernel/Inference.hpp"
 #include "Indexing/LiteralSubstitutionTree.hpp"
 #include "Inferences/InferenceEngine.hpp"
@@ -54,74 +56,124 @@ static bool subsume(Clause *cl, Clause *&additional) {
   return false;
 }
 
-static bool blockedOn(const std::vector<Literal *> &candidate, Literal *on) {
-restart:
-  Clause *additional = nullptr;
-  for(auto result : iterTraits(ACTIVE_INDEX->getUnifications(on, true, true))) {
-    std::unordered_set<Literal *> resolvent_lits;
-    for(Literal *l : candidate)
-      if(l != on)
-        resolvent_lits.insert(result.unifier->applyToQuery(l));
-    for(Literal *l : result.data->clause->iterLits())
-      if(l != result.data->literal)
-        resolvent_lits.insert(result.unifier->applyToResult(l));
+Clause *createResolvent(
+  std::vector<Literal *> candidate,
+  QueryRes<ResultSubstitutionSP, LiteralClause> result,
+  Literal *on
+) {
+  std::unordered_set<Literal *> resolvent_lits;
+  for(Literal *l : candidate)
+    if(l != on)
+      resolvent_lits.insert(result.unifier->applyToQuery(l));
+  for(Literal *l : result.data->clause->iterLits())
+    if(l != result.data->literal)
+      resolvent_lits.insert(result.unifier->applyToResult(l));
 
-    Clause *resolvent = Clause::fromIterator(
-      getSTLIterator(resolvent_lits.begin(), resolvent_lits.end()),
-      FromInput(UnitInputType::AXIOM)
-    );
-    // TODO check tautology
+  // tautology check
+  for(Literal *l : resolvent_lits)
+    if(resolvent_lits.contains(Literal::complementaryLiteral(l)))
+      return nullptr;
 
+  return Clause::fromIterator(
+    getSTLIterator(resolvent_lits.begin(), resolvent_lits.end()),
+    FromInput(UnitInputType::AXIOM)
+  );
+}
+
+static bool blockedOn(
+  const std::vector<Literal *> &candidate,
+  Literal *on,
+  LiteralSubstitutionTree<LiteralClause> &index,
+  std::vector<Clause *> &promoteThese
+) {
+  for(auto result : iterTraits(index.getUnifications(on, true, true))) {
+    Clause *resolvent = createResolvent(candidate, result, on);
+    if(!resolvent)
+      continue;
+
+    Clause *additional = nullptr;
     bool subsumed = subsume(resolvent, additional);
     resolvent->destroy();
     if(!subsumed)
       return false;
 
     if(additional)
-      break;
+      promoteThese.push_back(additional);
   }
+  return true;
+}
 
-  if(additional) {
-    // TODO some more complex logic here, work out which combination of promotions is best?
-    std::cout << "[RS] promote: " << additional->toString() << '\n';
-    // we (potentially) used `additional` to simplify a clause, so now it moves to active
-    removeFromPassive(additional);
-    addToActive(additional);
+static bool blockedOn(const std::vector<Literal *> &candidate, Literal *on, DHSet<Clause *> &promoted) {
+  std::vector<Clause *> promoteThese;
+  if(!blockedOn(candidate, on, *ACTIVE_INDEX, promoteThese))
+    return false;
 
-    // now we might have missed a resolvent on `additional`, so restart
-    goto restart;
+  // `blockedOn` is allowed to promote some clauses `S` to subsume resolvents
+  // but then we must consider the resolvents of `candidate` against `S` until fixed point
+  while(!promoteThese.empty()) {
+    auto promotedIndex = std::make_unique<LiteralSubstitutionTree<LiteralClause>>();
+    for(Clause *cl : promoteThese) {
+      if(!promoted.insert(cl))
+        continue;
+      for(Literal *l : cl->iterLits())
+        promotedIndex->insert({l, cl});
+    }
+    promoteThese.clear();
+    if(!blockedOn(candidate, on, *promotedIndex, promoteThese))
+      return false;
   }
 
   return true;
 }
 
-static bool blocked(const std::vector<Literal *> &candidate) {
-  for(Literal *l : candidate)
-    if(blockedOn(candidate, l))
-      return true;
-  return false;
+static bool blocked(const std::vector<Literal *> &candidate, bool doPromotions = true) {
+  std::vector<std::optional<DHSet<Clause *>>> promotions;
+  for(Literal *l : candidate) {
+    DHSet<Clause *> promoted;
+    if(blockedOn(candidate, l, promoted))
+      // optimisation: empty promotions are immediately best
+      if(promoted.isEmpty())
+        return true;
+      else
+        promotions.emplace_back(std::move(promoted));
+    else
+      promotions.emplace_back();
+  }
+  ASS_EQ(promotions.size(), candidate.size())
+
+  // now select the smallest set of promotions possible
+  std::optional<DHSet<Clause *>> best;
+  for(auto &promote : promotions) {
+    if(!promote)
+      continue;
+    ASS(promote->size())
+    if(!best || best->size() > promote->size())
+      best = std::move(promote);
+  }
+
+  if(best && doPromotions)
+    for(Clause *cl : iterTraits(best->iterator())) {
+      std::cout << "[RS] promote: " << cl->toString() << '\n';
+      // we used `cl` to subsume a resolvent, so now it moves to the active set
+      removeFromPassive(cl);
+      addToActive(cl);
+    }
+
+  return bool(best);
 }
 
-static Clause *create(std::vector<Literal *> candidate) {
+static Clause *createReplacement(const std::vector<Literal *> &candidate) {
   SimplifyingInferenceMany inference(InferenceRule::RESOLUTION_SUBSUMPTION, ACTIVE_LIST);
   Clause *result = Clause::fromIterator(
     getSTLIterator(candidate.begin(), candidate.end()),
     inference
   );
   result->incRefCnt();
+  // success!
+  std::cout << "[RS] replaced: " << result->toString() << '\n';
+  // ...but now we need to record it in the active set
+  addToActive(result);
   return result;
-}
-
-static Clause *tryCandidate(std::vector<Literal *> candidate) {
-  if(blocked(candidate)) {
-    Clause *replacement = create(std::move(candidate));
-    // success!
-    std::cout << "[RS] replaced: " << replacement->toString() << '\n';
-    // ...but now we need to record it in the active set
-    addToActive(replacement);
-    return replacement;
-  }
-  return nullptr;
 }
 
 void rsInputClause(Clause *input) {
@@ -130,33 +182,67 @@ void rsInputClause(Clause *input) {
   addToActive(input);
 }
 
-Clause *rsDerivedClause(Clause *derived) {
-  // should already be simplified, no need to remove duplicate literals
-  std::cout << "[RS] derived: " << derived->toString() << '\n';
+// TODO something about when a clause is removed? AVATAR?
+Clause *rsDerivedClause(Clause *cl) {
+  // at this point cl should already be simplified, no need to remove duplicate literals
 
-  // TODO something more sensible with this case?
-  if(subsume(derived))
+  // TODO this case is weird
+  if(subsume(cl))
     return nullptr;
 
-  std::vector<Literal *> original;
-  for(Literal *l : derived->iterLits())
-    original.push_back(l);
+  // the candidate replacement
+  std::vector<Literal *> candidate;
+  for(Literal *l : cl->iterLits())
+    candidate.push_back(l);
 
-  // try dropping literals
-  for(Literal *l : original) {
-    std::vector<Literal *> candidate;
-    for(Literal *k : original)
-      if(l != k)
-        candidate.push_back(k);
-
-    if(Clause *replacement = tryCandidate(std::move(candidate)))
-      // TODO could consider iterating for more power?
-      return replacement;
+  // if original clause is not blocked, no stronger clause can be blocked
+  if(!blocked(candidate, false)) {
+    addToPassive(cl);
+    return nullptr;
   }
 
-  // TODO try dropping subterms
+  std::cout << "[RS] attempt: " << cl->toString() << '\n';
+
+  bool success = false;
+
+  // try dropping literals
+  // TODO could this be done by inspecting the subsumption?
+  unsigned dropIndex = 0;
+  while(dropIndex < candidate.size()) {
+    Literal *removed = candidate[dropIndex];
+    candidate[dropIndex] = candidate.back();
+    candidate.pop_back();
+
+    if(blocked(candidate)) {
+      std::cout << "[RS] dropped literal\n";
+      success = true;
+    }
+    else {
+      candidate.push_back(candidate[dropIndex]);
+      candidate[dropIndex++] = removed;
+    }
+  }
+
+  // try mapping subterms to a new variable
+  unsigned fresh = cl->isGround() ? 0 : cl->maxVar() + 1;
+  for(Literal *&change : candidate)
+restart_subterms:
+    for(Term *subterm : iterTraits(NonVariableNonTypeIterator(change))) {
+      Literal *before = change;
+      change = EqHelper::replace(change, TermList(subterm), TermList::var(fresh));
+      if(blocked(candidate)) {
+        std::cout << "[RS] replaced subterm\n";
+        success = true;
+        fresh++;
+        goto restart_subterms;
+      }
+      change = before;
+    }
+
+  if(success)
+    return createReplacement(candidate);
 
   // failed to simplify, but can at least use it for possible subsumptions
-  addToPassive(derived);
+  addToPassive(cl);
   return nullptr;
 }
