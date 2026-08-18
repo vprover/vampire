@@ -1935,6 +1935,7 @@ void FiniteModelBuilder::onModelFound()
     do {
       const DArray<unsigned>& args = it.args();
       DEBUG_CODE(bool found=false;)
+      // iterates over possible return values (debug code checks that we find exactly one)
       for(unsigned c=1;c<=maxVarSizeSml[arity];c++){
         // create a bounded copy of the changing args in grounding
         // (while args live within the vampireSortSizes box,

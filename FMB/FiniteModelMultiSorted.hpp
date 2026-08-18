@@ -50,7 +50,7 @@ class FiniteModelMultiSorted {
   // an empty table means the symbol is not represented explicitly
   // (it was eliminated during preprocessing, or is simply unused)
   DArray<DArray<unsigned>> _f_tables;
-  DArray<DArray<char>> _p_tables; // 0 is undef, 1 false, 2 true
+  DArray<DArray<char>> _p_tables; // values INTP_UNDEF / INTP_FALSE / INTP_TRUE
 
   bool funRepresented(unsigned f) const { return _f_tables[f].size() > 0; }
   bool predRepresented(unsigned p) const { return _p_tables[p].size() > 0; }
