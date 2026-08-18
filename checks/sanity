@@ -168,6 +168,19 @@ check_szs_status Theorem -t 1d -to lpo -sos all -doe on Problems/SWW/SWW629_2.p
 check_szs_status Satisfiable -t 5d -fgj on Problems/SWV/SWV021-1.p
 check_szs_status Unsatisfiable -t 5d -fgj on -bd all Problems/SWW/SWW436-1.p
 
+# FMB: model construction with preprocessing-eliminated symbols (see the comment in fmb/sortelim.p)
+check_szs_status Satisfiable -sa fmb --fmb_adjust_sorts function fmb/sortelim.p
+check_szs_status Satisfiable -sa fmb --fmb_adjust_sorts predicate fmb/sortelim.p
+check_szs_status Satisfiable -sa fmb --random_polarities on fmb/sortelim.p
+# the exact-output checks below pin the whole printed model (a symbolic definition for the
+# updr-eliminated q, resp. its table materialized by the blocked-clause flip replay);
+# NB: the "FMB model self-check passed" line in the .out files comes from the temporary
+# FMB_CHECK_MODEL_AGAINST_INPUT instrument (FiniteModelMultiSorted.hpp) -- and it is also
+# what turns a bad model into a diff here, since a "User error" would land after the SZS
+# status line; regenerate the .out files when that macro is retired
+check_exact_output fmb/sortelim.out --input_syntax tptp --statistics none -sa fmb fmb/sortelim.p
+check_exact_output fmb/sortelim-bce.out --input_syntax tptp --statistics none -sa fmb -updr off -bce on fmb/sortelim.p
+
 # Synthesis without and with uncomputables
 check_szs_status Unsatisfiable -qa synthesis synthesis/max2.smt2
 check_szs_status Unsatisfiable -qa synthesis synthesis/ex2-inverse_of_ixopiy.smt2
