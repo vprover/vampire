@@ -88,6 +88,23 @@ static size_t tableSize(OperatorType* sig, unsigned arity, const DArray<unsigned
   return size;
 }
 
+// A table initTables builds is bounded by the domain sizes FMB's own search settled on, but a
+// materialized one is bounded only by the symbol's arity -- a predicate of arity 47 over a
+// two-element domain asks for 2^47 rows. Decide before allocating rather than after: the
+// allocation failing is not something we can reliably report, both because reporting it wants
+// memory of its own, and because with overcommit the allocation may well succeed and the
+// process be killed while DArray::expand writes the rows. Note the memory limit is only
+// advisory anyway -- setMemoryLimit's setrlimit is a silent no-op on macOS -- which is another
+// reason to be explicit here instead of leaving it to the allocator.
+static void checkTableAffordable(Signature::Symbol* symb, size_t rows, size_t entrySize)
+{
+  size_t budget = env.options->memoryLimit()*1048576ul;
+  if (rows > budget/entrySize) {
+    INVALID_OPERATION("Model too large to represent: a table for "+symb->name()+
+      " needs "+Int::toString(rows)+" rows, more than the memory limit allows");
+  }
+}
+
 void FiniteModelMultiSorted::initTables()
 {
   _f_tables.ensure(env.signature->functions());
@@ -849,7 +866,9 @@ void FiniteModelMultiSorted::materializeFun(unsigned f)
   // allocate the table ...
   Signature::Symbol* symb = env.signature->getFunction(f);
   DArray<unsigned> tbl;
-  tbl.expand(tableSize(symb->fnType(),symb->arity(),_sizes),0);
+  size_t rows = tableSize(symb->fnType(),symb->arity(),_sizes);
+  checkTableAffordable(symb,rows,sizeof(unsigned));
+  tbl.expand(rows,0);
   _f_tables[f] = std::move(tbl);
 
   // ... and fill it by evaluating the definition
@@ -897,7 +916,9 @@ void FiniteModelMultiSorted::materializePred(unsigned p)
   // allocate the table ...
   Signature::Symbol* symb = env.signature->getPredicate(p);
   DArray<char> tbl;
-  tbl.expand(tableSize(symb->predType(),symb->arity(),_sizes),0);
+  size_t rows = tableSize(symb->predType(),symb->arity(),_sizes);
+  checkTableAffordable(symb,rows,sizeof(char));
+  tbl.expand(rows,0);
   _p_tables[p] = std::move(tbl);
 
   // ... and fill it by evaluating the definition

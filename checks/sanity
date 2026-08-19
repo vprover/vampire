@@ -198,6 +198,11 @@ check_exact_output fmb/bool.check.out --input_syntax tptp --mode model_check fmb
 # run_vampire can see
 check_exact_output fmb/bceflip.out --input_syntax tptp --statistics none -sa fmb -bce on fmb/bceflip.p
 
+# FMB: ... and when that table is one we cannot afford, say so instead of dying in the
+# allocator (see the comment in fmb/toolarge.p). Exact output because the message lands on
+# stdout after the SZS status line, where check_szs_status cannot see it
+check_exact_output fmb/toolarge.out --input_syntax tptp --statistics none -sa fmb -bce on fmb/toolarge.p
+
 # Synthesis without and with uncomputables
 check_szs_status Unsatisfiable -qa synthesis synthesis/max2.smt2
 check_szs_status Unsatisfiable -qa synthesis synthesis/ex2-inverse_of_ixopiy.smt2
