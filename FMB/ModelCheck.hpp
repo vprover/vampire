@@ -103,6 +103,15 @@ static void doCheck(UnitList* units)
   }
 
   std::cout << "Loading model..." << std::endl;
+
+  // $true and $false may occur in term position, in the model as well as in the units to check,
+  // and are then the two elements of the boolean domain -- so the model needs a table for them.
+  // The parser only ever builds them as special terms (see FiniteModelMultiSorted::deFool), so
+  // their usage goes uncounted; and they have to exist before the model sizes its tables.
+  for (unsigned i = 0; i < 2; i++) {
+    env.signature->getFunction(env.signature->getFoolConstantSymbol(i > 0))->incUsageCnt();
+  }
+
   DArray<unsigned> sortSizesArray;
   // a sort the model file does not mention gets no domain (a well-formed model only
   // describes the sorts it talks about); without the init the entry stayed uninitialised
@@ -221,19 +230,22 @@ static void checkIsDomainLiteral(Literal* l, int& single_var, DomainConstantSet&
   if(!l->isEquality()) USER_ERROR("finite_domain is not a domain axiom");
 
   // put var in left and constant in right
-  TermList* left = l->nthArgument(0);
-  TermList* right = l->nthArgument(1);
-  if(right->isVar()){
-    TermList* temp = left;left=right;right=temp;
+  // (deFool, because the domain of $o is spelled with $true and $false)
+  TermList left = FiniteModelMultiSorted::deFool(*l->nthArgument(0));
+  TermList right = FiniteModelMultiSorted::deFool(*l->nthArgument(1));
+  if(right.isVar()){
+    std::swap(left,right);
   }
-  if(right->isVar()) USER_ERROR("finite_domain is not a domain axiom");
+  // a leftover special term is a FOOL construct we cannot read (deFool covers $true / $false)
+  if(left.isTerm() || right.isVar() || right.term()->isSpecial())
+    USER_ERROR("finite_domain is not a domain axiom:\n"+l->toString());
 
   // store and check the single variable used
-  if(single_var<0) single_var=left->var();
-  if(left->var()!=(unsigned)single_var) USER_ERROR("finite_domain is not a domain axiom");
+  if(single_var<0) single_var=left.var();
+  if(left.var()!=(unsigned)single_var) USER_ERROR("finite_domain is not a domain axiom");
 
   // store and check the ground constant used
-  Term* constant = right->term();
+  Term* constant = right.term();
   unsigned f = constant->functor();
   if(env.signature->functionArity(f)!=0) USER_ERROR("finite_domain is not a domain axiom");
   if(domainConstants.contains(constant)) USER_ERROR("finite_domain is not a domain axiom");
@@ -248,25 +260,31 @@ static void addDefinition(FiniteModelMultiSorted& model,Literal* lit,bool negate
   if(lit->isEquality()){
     if(!lit->polarity() || negated) USER_ERROR("Cannot have negated function definition");
     // Defining a function or constant
-    TermList* left = lit->nthArgument(0);
-    TermList* right = lit->nthArgument(1);
-    if(domainConstants.contains(left->term())){
-      TermList* temp = left; left=right;right=temp;
+    // (deFool, because the elements of $o are spelled with $true and $false)
+    TermList left = FiniteModelMultiSorted::deFool(*lit->nthArgument(0));
+    TermList right = FiniteModelMultiSorted::deFool(*lit->nthArgument(1));
+    if(left.isTerm() && domainConstants.contains(left.term())){
+      std::swap(left,right);
     }
 
-    if(domainConstants.contains(left->term()))
+    if(left.isVar()) USER_ERROR("Expect term on left of definition");
+    // a leftover special term is a FOOL construct we cannot read (deFool covers $true / $false)
+    if(left.term()->isSpecial())
+      USER_ERROR("Cannot read the definition:\n"+lit->toString());
+    if(domainConstants.contains(left.term()))
       USER_ERROR("Cannot have equality between domain elements:\n"+lit->toString());
-    unsigned res = domainConstantNumber.get(right->term());
-    if(left->isVar()) USER_ERROR("Expect term on left of definition");
-    Term* fun = left->term();
+    if(right.isVar() || !domainConstants.contains(right.term()))
+      USER_ERROR("Expect a domain constant on the right of definition:\n"+lit->toString());
+    unsigned res = domainConstantNumber.get(right.term());
+    Term* fun = left.term();
     unsigned f = fun->functor();
     unsigned arity = env.signature->functionArity(f);
     DArray<unsigned> args(arity);
     for(unsigned i=0;i<arity;i++){
-      TermList* arg = fun->nthArgument(i);
-      if(arg->isVar() || !domainConstants.contains(arg->term()))
+      TermList arg = FiniteModelMultiSorted::deFool(*fun->nthArgument(i));
+      if(arg.isVar() || !domainConstants.contains(arg.term()))
         USER_ERROR("Expect term on left of definition to be grounded with domain constants");
-      args[i] = domainConstantNumber.get(arg->term());
+      args[i] = domainConstantNumber.get(arg.term());
     }
     model.addFunctionDefinition(f,args,res);
   }else{
@@ -278,10 +296,10 @@ static void addDefinition(FiniteModelMultiSorted& model,Literal* lit,bool negate
 
     DArray<unsigned> args(arity);
     for(unsigned i=0;i<arity;i++){
-      TermList* arg = lit->nthArgument(i);
-      if(arg->isVar() || !domainConstants.contains(arg->term()))
+      TermList arg = FiniteModelMultiSorted::deFool(*lit->nthArgument(i));
+      if(arg.isVar() || !domainConstants.contains(arg.term()))
         USER_ERROR("Expect term on left of definition to be grounded with domain constants");
-      args[i] = domainConstantNumber.get(arg->term());
+      args[i] = domainConstantNumber.get(arg.term());
     }
     model.addPredicateDefinition(p,args,!negated);
   }

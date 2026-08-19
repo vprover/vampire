@@ -217,10 +217,10 @@ std::string FiniteModelMultiSorted::toString()
       // type declarations to emit for them, they are built-in.
       ASS_EQ(size,2);
       ASS(env.signature->foolConstantsDefined());
-      DHMap<unsigned,unsigned> noSubst;
       for (unsigned i = 0; i < 2; i++) {
-        unsigned c = env.signature->getFoolConstantSymbol(i > 0);
-        cnames[s][evaluateTerm(TermList(Term::createConstant(c)),noSubst)] = env.signature->functionName(c);
+        bool isTrue = (i > 0);
+        cnames[s][boolValue(isTrue)] =
+          env.signature->functionName(env.signature->getFoolConstantSymbol(isTrue));
       }
       ASS_NEQ(cnames[s][1],cnames[s][2]);
     } else {
@@ -238,7 +238,9 @@ std::string FiniteModelMultiSorted::toString()
     modelStm << "      ! [X:" << sortName << "] : (" << endl;
     modelStm << "         ";
     for(unsigned i=1;i<=size;i++){
-      modelStm << "X = " << cnames[s][i];
+      // the parentheses matter for $o: our own parser reads an unbracketed
+      // "X = $false | X = $true" as "X = ($false | X = $true)"
+      modelStm << "(X = " << cnames[s][i] << ")";
       if(i<size) modelStm << " | ";
       if(i==size) modelStm << endl;
       else if(i%5==0) modelStm << endl << "         ";
@@ -449,6 +451,27 @@ std::string FiniteModelMultiSorted::toString()
   return modelStm.str();
 }
 
+TermList FiniteModelMultiSorted::deFool(TermList tl)
+{
+  if (tl.isTerm() && tl.term()->isSpecial() &&
+      tl.term()->specialFunctor() == SpecialFunctor::FORMULA) {
+    Connective con = tl.term()->getSpecialData()->getFormula()->connective();
+    if (con == TRUE || con == FALSE) {
+      return TermList(Term::createConstant(env.signature->getFoolConstantSymbol(con == TRUE)));
+    }
+  }
+  return tl;
+}
+
+unsigned FiniteModelMultiSorted::boolValue(bool isTrue)
+{
+  if (!env.signature->foolConstantsDefined()) {
+    USER_ERROR("Cannot evaluate a boolean term: this model does not have a boolean domain");
+  }
+  DHMap<unsigned,unsigned> noSubst;
+  return evaluateTerm(TermList(Term::createConstant(env.signature->getFoolConstantSymbol(isTrue))),noSubst);
+}
+
 unsigned FiniteModelMultiSorted::evaluateTerm(TermList tl, const DHMap<unsigned,unsigned>& subst)
 {
   if (tl.isVar()) {
@@ -459,6 +482,19 @@ unsigned FiniteModelMultiSorted::evaluateTerm(TermList tl, const DHMap<unsigned,
   }
 
   Term* term = tl.term();
+
+  if (term->isSpecial()) {
+    // A formula in term position; to a model that is just a boolean value, so evaluate it and
+    // return the domain element the corresponding FOOL constant sits on. Both $true / $false at
+    // term level and, say, p(a) for a p declared with an $o result sort (which the parser turns
+    // into a predicate) arrive here. The remaining FOOL constructs we cannot evaluate.
+    if (term->specialFunctor() != SpecialFunctor::FORMULA) {
+      USER_ERROR("Cannot evaluate " + tl.toString() + ", not supported");
+    }
+    DHMap<unsigned,unsigned> inner(subst); // evaluateFormula wants to bind quantified variables
+    return boolValue(evaluateFormula(term->getSpecialData()->getFormula(),inner));
+  }
+
   unsigned f = term->functor();
   unsigned arity = env.signature->functionArity(f);
   DArray<unsigned> args(arity);
@@ -1091,6 +1127,10 @@ bool FiniteModelMultiSorted::evaluateFormula(Formula* formula, DHMap<unsigned,un
 
     case LITERAL:
       return evaluateLiteral(formula->literal(),subst);
+
+    // the dual of the FORMULA special term in evaluateTerm: a boolean term used as a formula
+    case BOOL_TERM:
+      return evaluateTerm(formula->getBooleanTerm(),subst) == boolValue(true);
 
     case NOT:
       return !evaluateFormula(formula->uarg(),subst);

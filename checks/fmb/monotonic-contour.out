@@ -10,7 +10,7 @@ tff('declare_$i1',type,'fmb_$i_1':$i).
 tff('declare_$i2',type,'fmb_$i_2':$i).
 tff('finite_domain_$i',axiom,
       ! [X:$i] : (
-         X = 'fmb_$i_1' | X = 'fmb_$i_2'
+         (X = 'fmb_$i_1') | (X = 'fmb_$i_2')
       ) ).
 
 tff('distinct_domain_$i',axiom,

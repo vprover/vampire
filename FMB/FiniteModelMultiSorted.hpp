@@ -103,6 +103,18 @@ public:
 
   bool evaluate(Unit* unit);
 
+  /**
+   * The parser puts $true / $false in term position into a special FORMULA term (they are
+   * formulas in TPTP, and only FOOL lets them stand as terms), while everything downstream --
+   * this model included -- knows them as the ordinary constants FOOLElimination introduces.
+   * Map the former to the latter; any other term passes through unchanged. Used where a model
+   * is read rather than evaluated, i.e. where we need the constant and not its value.
+   */
+  static TermList deFool(TermList tl);
+
+  // the domain element $true (or $false) sits on in this model
+  unsigned boolValue(bool isTrue);
+
   void eliminateSortFunctionsAndPredicates(const Stack<unsigned>& sortFunctions, const Stack<unsigned>& sortPredicates);
   void restoreEliminatedDefinitions(Kernel::Problem* prob);
 

@@ -2068,11 +2068,18 @@ void FiniteModelBuilder::onModelFound()
 
 // can our evaluator handle this term / formula?
 // (the original, un-preprocessed input may still contain FOOL constructs)
+static bool evaluableFormula(Formula* f);
+
 static bool evaluableTerm(TermList tl)
 {
   if (tl.isVar()) return true;
   Term* t = tl.term();
-  if (t->isSpecial()) return false;
+  if (t->isSpecial()) {
+    // the evaluator does understand a formula in term position -- that is where $true and
+    // $false at term level, and a p(a) for a p declared with an $o result sort, end up
+    return t->specialFunctor() == SpecialFunctor::FORMULA &&
+           evaluableFormula(t->getSpecialData()->getFormula());
+  }
   for (unsigned i = 0; i < t->arity(); i++) {
     if (!evaluableTerm(*t->nthArgument(i))) return false;
   }
@@ -2109,7 +2116,9 @@ static bool evaluableFormula(Formula* f)
     case TRUE:
     case FALSE:
       return true;
-    default: // BOOL_TERM and friends
+    case BOOL_TERM:
+      return evaluableTerm(f->getBooleanTerm());
+    default: // $ite, $let and friends
       return false;
   }
 }
