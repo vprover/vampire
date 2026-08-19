@@ -184,6 +184,13 @@ check_szs_status Satisfiable -sa fmb -updr off -bce on fmb/sortelim.p
 check_exact_output fmb/monotonic-contour.out --input_syntax tptp --statistics none -sa fmb -sas cadical -fmbes contour fmb/monotonic-contour.p
 check_exact_output fmb/monotonic-contour.out --input_syntax tptp --statistics none -sa fmb -sas minisat -fmbes contour fmb/monotonic-contour.p
 
+# FMB: $o as an ordinary modelled sort (see the comment in fmb/bool.p). Exact output,
+# because the point is how the boolean domain and its two elements are printed -- and
+# because the printed model has to be re-readable, which the round-trip below checks
+check_szs_status Satisfiable -sa fmb fmb/bool.p
+check_exact_output fmb/bool.out --input_syntax tptp --statistics none -sa fmb fmb/bool.p
+check_exact_output fmb/bool.check.out --input_syntax tptp --mode model_check fmb/bool.check.p
+
 # Synthesis without and with uncomputables
 check_szs_status Unsatisfiable -qa synthesis synthesis/max2.smt2
 check_szs_status Unsatisfiable -qa synthesis synthesis/ex2-inverse_of_ixopiy.smt2
