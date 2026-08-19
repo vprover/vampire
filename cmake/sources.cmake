@@ -44,6 +44,7 @@ set(UNIT_TESTS
     UnitTests/tArithCompare.cpp
     UnitTests/tBinaryHeap.cpp
     UnitTests/tBottomUpEvaluation.cpp
+    UnitTests/tCliqueFinder.cpp
     UnitTests/tCoproduct.cpp
     UnitTests/tDHMap.cpp
     UnitTests/tDHMultiset.cpp
