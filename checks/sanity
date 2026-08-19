@@ -77,6 +77,50 @@ check_exact_output ucore/test2.out --input_syntax smtlib2 -om ucore ucore/test2.
 check_szs_status Unsatisfiable term-algebra/terms_distinct.smt2
 check_szs_status Unsatisfiable -tac axiom term-algebra/terms_acyclic.smt2
 
+# Tuples
+# a unary symbol over a tuple sort must not be mistaken for a tuple projection
+check_exact_output theory/tuple-proj-print.out --mode clausify -newcnf on theory/tuple-proj-print.p
+# an ordinary $let-bound symbol of a tuple sort is not a tuple binding
+check_szs_status Theorem theory/let-tuple-sorted-const.p
+check_szs_status Theorem -newcnf on theory/let-tuple-sorted-const.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-sorted-const.p
+# a tuple binding with a Boolean component, bound to a projection
+check_szs_status Theorem -newcnf on theory/let-tuple-bool-nontuple.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-bool-nontuple.p
+# a monomorphic tuple binding with a non-tuple right hand side
+check_szs_status Theorem -newcnf on theory/let-tuple-nontuple.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-nontuple.p
+# tuples on the FOOLElimination pathway (i.e. without newcnf)
+check_szs_status Theorem theory/let-tuple.p
+check_szs_status Theorem theory/let-tuple-bool.p
+check_szs_status Theorem theory/let-tuple-nontuple.p
+check_szs_status Theorem theory/let-tuple-bool-nontuple.p
+check_szs_status Theorem theory/tuple-proj-print.p
+# further tuple problems, on both pathways
+check_szs_status Theorem theory/let-tuple-mono.p
+check_szs_status Theorem -newcnf on theory/let-tuple-mono.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-mono.p
+check_szs_status Theorem theory/let-tuple-var.p
+check_szs_status Theorem -newcnf on theory/let-tuple-var.p
+check_szs_status Theorem theory/let-tuple-nested.p
+check_szs_status Theorem -newcnf on theory/let-tuple-nested.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-nested.p
+check_szs_status Theorem theory/let-tuple-arg.p
+check_szs_status Theorem -newcnf on theory/let-tuple-arg.p
+check_szs_status Theorem theory/let-tuple-shadow.p
+check_szs_status Theorem -newcnf on theory/let-tuple-shadow.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-shadow.p
+check_szs_status Theorem theory/let-tuple-poly-nontuple.p
+check_szs_status Theorem -newcnf on theory/let-tuple-poly-nontuple.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-poly-nontuple.p
+# a tuple binding inside a simultaneous definition group
+check_szs_status Theorem theory/let-tuple-simultaneous.p
+check_szs_status Theorem -newcnf on theory/let-tuple-simultaneous.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-simultaneous.p
+check_szs_status Theorem theory/let-tuple-simultaneous2.p
+check_szs_status Theorem -newcnf on theory/let-tuple-simultaneous2.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-simultaneous2.p
+
 # FOOL
 check_szs_status Theorem theory/let-function.p
 check_szs_status Theorem -newcnf on theory/let-function.p

@@ -604,6 +604,11 @@ private:
     unsigned symbol;
     bool isPredicate;
     TermStack iTypeArgs;
+    /** true for the reference standing for a tuple binding [c1,...,cn] := t,
+     *  in which case symbol is the tuple constructor and iTypeArgs holds the
+     *  sorts of c1,...,cn; note that this cannot be recovered from the result
+     *  sort of symbol, as an ordinary symbol may have a tuple sort too */
+    bool isTuple = false;
   };
   #define SYMBOL(ref) (ref.symbol)
   #define IS_PREDICATE(ref) (ref.isPredicate)

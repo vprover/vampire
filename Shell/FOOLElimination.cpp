@@ -665,7 +665,92 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         auto bindingRhs = blit->termArg(1);
 
         if (Theory::isTupleConstructor(bindingLhs)) {
-          NOT_IMPLEMENTED;
+          /**
+           * A tuple binding $let([c1,...,cn] := s, t) is reduced to a nest of
+           * ordinary, single-symbol $let-expressions, which are then processed
+           * by the code below (via the recursive call at the end of this block):
+           *
+           *  - if s is a tuple [s1,...,sn], to
+           *      $let(c1 := s1, ... $let(cn := sn, t) ... )
+           *  - otherwise, to
+           *      $let(g := s, $let(c1 := proj_1(g), ... $let(cn := proj_n(g), t) ... ))
+           *    where g is a fresh symbol of the tuple sort, and proj_i are the
+           *    projections, i.e. the destructors of the tuple term algebra.
+           *
+           * Turning simultaneous definitions into a nest of definitions is
+           * sound here because c1,...,cn cannot occur in s: they only become
+           * visible to the parser (in TPTP::endDefinition) once the whole
+           * definition group has been read, so an occurrence of their name in s
+           * refers to a symbol from an enclosing scope instead.
+           *
+           * Note that a Boolean component ci is a nullary predicate (wrapped as
+           * a formula-inside-term) and the corresponding right hand side is a
+           * $o-sorted term; process() turns the latter into a formula, so the
+           * single-symbol machinery below needs no special case for it.
+           */
+          unsigned tupleArity = bindingLhs->numTermArguments();
+
+          TermList letSort = sd->getSort();
+          TermList letBody = term->termArg(0); // deliberately unprocessed here
+
+          TermStack componentBindings; // the right hand sides for c1,...,cn
+          Term* tupleName = nullptr;   // the fresh g, in the second case below
+
+          if (bindingRhs.isTerm() && Theory::isTupleConstructor(bindingRhs.term())) {
+            ASS_EQ(bindingRhs.term()->numTermArguments(), tupleArity);
+            componentBindings.loadFromIterator(termArgIter(bindingRhs.term()));
+          } else {
+            TermList tupleSort = SortHelper::getResultSort(bindingLhs);
+
+            // g is declared over exactly the type variables of the tuple sort
+            // (typically none), so that its arguments are always variables
+            TermStack tupleTypeArgs;
+            for (auto var : iterTraits(VariableIterator(tupleSort))) {
+              if (!tupleTypeArgs.find(var)) {
+                tupleTypeArgs.push(var);
+              }
+            }
+            TermList tupleResultSort = tupleSort;
+            SortHelper::normaliseSort(tupleTypeArgs, tupleResultSort);
+
+            unsigned tupleSymbol = env.signature->addFreshFunction(tupleTypeArgs.size(), LET_PREFIX);
+            env.signature->getFunction(tupleSymbol)->setType(
+                OperatorType::getConstantsType(tupleResultSort, tupleTypeArgs.size()));
+            TermList tupleTerm = TermList(Term::create(tupleSymbol, tupleTypeArgs));
+
+            // the projections take the tuple's type arguments and the tuple
+            TermStack projArgs = TermStack::fromIterator(typeArgIter(bindingLhs));
+            projArgs.push(tupleTerm);
+
+            for (unsigned i = 0; i < tupleArity; i++) {
+              componentBindings.push(TermList(
+                  Term::create(Theory::getTupleProjectionFunctor(tupleArity, i), projArgs)));
+            }
+
+            tupleName = tupleTerm.term();
+          }
+
+          // build the nest inside out, so that c1 ends up outermost
+          for (unsigned i = tupleArity; i-- > 0; ) {
+            TermList component = bindingLhs->termArg(i);
+            ASS(component.isTerm());
+            letBody = TermList(Term::createLet(
+                Formula::createDefinition(component.term(), componentBindings[i]), letBody, letSort));
+          }
+
+          // g must be bound outside of c1,...,cn, whose bindings mention it
+          if (tupleName) {
+            letBody = TermList(Term::createLet(
+                Formula::createDefinition(tupleName, bindingRhs), letBody, letSort));
+          }
+
+          if (env.options->showPreprocessing()) {
+            std::cout << "[PP] FOOL detuplify in:  " << term->toString() << endl;
+            std::cout << "[PP] FOOL detuplify out: " << letBody.toString() << endl;
+          }
+
+          process(letBody, context, termResult, formulaResult);
+          break;
         }
 
         // The let binder bindingLhs can contain free variables in potentially
