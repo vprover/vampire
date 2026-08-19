@@ -2047,12 +2047,19 @@ void FiniteModelBuilder::onModelFound()
     } while (it.next());
   }
 
-  model.eliminateSortFunctionsAndPredicates(_sortFunctions,_sortPredicates);
-  model.restoreEliminatedDefinitions(env.getMainProblem());
+  // the replay evaluates as it goes (materializing symbols, testing a flip's condition),
+  // and so does the self-check below; unlike a model read from a file, one we built ourselves
+  // has no business being partial, so an undefined value here is a bug on our side
+  try {
+    model.eliminateSortFunctionsAndPredicates(_sortFunctions,_sortPredicates);
+    model.restoreEliminatedDefinitions(env.getMainProblem());
 
 #if FMB_CHECK_MODEL_AGAINST_INPUT
-  checkModelAgainstOriginalInput(model);
+    checkModelAgainstOriginalInput(model);
 #endif
+  } catch (UndefinedValueException& e) {
+    INVALID_OPERATION("FMB constructed a partial model: " + e.msg());
+  }
 
   env.statistics->model = model.toString();
 }

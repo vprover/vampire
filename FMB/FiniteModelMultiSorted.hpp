@@ -19,6 +19,7 @@
 #define __FiniteModelMultiSorted__
 
 #include "Lib/DHMap.hpp"
+#include "Lib/Exception.hpp"
 
 #include "Kernel/Unit.hpp"
 #include "Kernel/Term.hpp"
@@ -28,6 +29,22 @@ namespace FMB {
 
 using namespace Lib;
 using namespace Kernel;
+
+/**
+ * Thrown by the evaluation the moment it needs a value the model does not have.
+ * What that means depends on where the model came from: a model loaded from a file
+ * is simply partial (a user error), while a model we have just built ourselves being
+ * partial is a bug -- so the two callers of evaluate() catch this and say so.
+ */
+class UndefinedValueException : public Lib::Exception {
+public:
+  explicit UndefinedValueException(const std::string& symbolName)
+   : Exception("no value for " + symbolName), _symbolName(symbolName) {}
+
+  const std::string& symbolName() const { return _symbolName; }
+private:
+  std::string _symbolName;
+};
 
 // Temporary, assert-like sanity instrument: when 1, a single-strategy fmb run snapshots the
 // parsed input (see preprocessProblem in vampire.cpp) and, at the end of onModelFound,
@@ -95,14 +112,6 @@ private:
   unsigned evaluateTerm(TermList, const DHMap<unsigned,unsigned>& subst);
   bool evaluateLiteral(Literal*, const DHMap<unsigned,unsigned>& subst);
   bool evaluateFormula(Formula*, DHMap<unsigned,unsigned>& subst);
-
-  // symbols whose table entry was still undefined when evaluation read it
-  // (during replay such reads consistently return the default -- function value 1, predicate false --
-  // and the leftover undefined cells are made explicit at the end of restoreEliminatedDefinitions;
-  // in model_check mode, on the other hand, a hit here means the model file was partial,
-  // which evaluate() reports as an error)
-  Set<unsigned> _implicitlyEliminatedFunctions;
-  Set<unsigned> _implicitlyEliminatedPredicates;
 
   void restoreEliminatedFunDef(Problem::FunDef*);
   void restoreEliminatedPredDef(Problem::PredDef*);

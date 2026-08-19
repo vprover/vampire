@@ -467,8 +467,8 @@ unsigned FiniteModelMultiSorted::evaluateTerm(TermList tl, const DHMap<unsigned,
   ASS_L(idx, tbl.size());
 
   if (tbl[idx] == 0) {
-    _implicitlyEliminatedFunctions.insert(f);
-    return 1;
+    // the model is represented, but does not say what f is on these arguments
+    throw UndefinedValueException(env.signature->functionName(f));
   }
   return tbl[idx];
 }
@@ -507,8 +507,8 @@ bool FiniteModelMultiSorted::evaluateLiteral(Literal* lit, const DHMap<unsigned,
   char res = tbl[idx];
 
   if(res==INTP_UNDEF) {
-    _implicitlyEliminatedPredicates.insert(p);
-    return !lit->polarity();
+    // the model is represented, but does not say what p is on these arguments
+    throw UndefinedValueException(env.signature->predicateName(p));
   }
 
   return (res==INTP_TRUE) == (lit->polarity());
@@ -1017,9 +1017,9 @@ void FiniteModelMultiSorted::restoreEliminatedDefinitions(Kernel::Problem* prob)
     }
   }
 
-  // A table cell still undefined at this point was a don't-care throughout the replay
-  // (evaluation consistently read it as the default); make the default explicit,
-  // so that printing and any later evaluation see a total model.
+  // A table cell still undefined at this point was never asked about during the replay
+  // (a read would have thrown); make the default explicit, so that printing -- which goes
+  // to the cells directly -- and any later evaluation see a total model.
   for(unsigned f=0; f<env.signature->functions();f++){
     DArray<unsigned>& tbl = _f_tables[f];
     for(size_t idx = 0; idx < tbl.size(); idx++) {
@@ -1034,25 +1034,20 @@ void FiniteModelMultiSorted::restoreEliminatedDefinitions(Kernel::Problem* prob)
         tbl[idx] = INTP_FALSE;
     }
   }
-  _implicitlyEliminatedFunctions.reset();
-  _implicitlyEliminatedPredicates.reset();
 }
 
+/**
+ * Evaluate a unit in this model; throws UndefinedValueException as soon as the model
+ * turns out not to say what some symbol is on the arguments at hand.
+ */
 bool FiniteModelMultiSorted::evaluate(Unit* unit)
 {
   Formula* formula = (unit->isClause()) ?
     Formula::fromClause(unit->asClause()) : // universally closed by default
     Formula::quantify(static_cast<FormulaUnit*>(unit)->getFormula()); // close over any free variables (a no-op on closed formulas)
 
-  _implicitlyEliminatedFunctions.reset();
-  _implicitlyEliminatedPredicates.reset();
-
   DHMap<unsigned,unsigned> subst;
-  bool res = evaluateFormula(formula,subst);
-  if (_implicitlyEliminatedFunctions.size() > 0 || _implicitlyEliminatedPredicates.size() > 0) {
-    USER_ERROR("Encountered an undefined symbol while evaluating a Unit (a partial model?)");
-  }
-  return res;
+  return evaluateFormula(formula,subst);
 }
 
 /**

@@ -192,7 +192,12 @@ static void doCheck(UnitList* units)
         if(u->inputType()== UnitInputType::MODEL_DEFINITION) continue;
 
         std::cout << "Checking " << u->toString() << "..." << std::endl;
-        bool res = model.evaluate(u);
+        bool res;
+        try {
+          res = model.evaluate(u);
+        } catch (UndefinedValueException& e) {
+          USER_ERROR("The loaded model is partial: " + e.msg() + " (needed to evaluate the above)");
+        }
         allTrue &= res;
         std::cout << "Evaluates to " << (res ? "True" : "False") << std::endl;
       }
