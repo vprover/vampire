@@ -45,6 +45,16 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
+// the extent of sort s under the domain sizes sizes;
+// a sort with no domain in this model (size 0 -- see the comment on _sizes) behaves as a
+// singleton wherever a value of it is nevertheless called for, which is also what
+// ArgsEnumerator does with a 0 bound (its do/while runs the first tuple in any case)
+static unsigned domainSize(const DArray<unsigned>& sizes, unsigned s)
+{
+  unsigned size = sizes[s];
+  return size > 0 ? size : 1;
+}
+
 // captures the encoding of a symbol's table:
 // the row index of the tuple args in the table of a symbol of type sig,
 // under the domain sizes sizes -- the first argument position changing fastest,
@@ -56,23 +66,23 @@ static size_t tableIndex(const DArray<unsigned>& args, const DArray<unsigned>& s
   for(unsigned i=0;i<args.size();i++){
     idx += mult*(args[i]-1);
     unsigned s = sig->arg(i).term()->functor();
-    ASS_G(args[i],0); ASS_LE(args[i],sizes[s]); // domain elements are 1-based and inside their sort
-    mult *=sizes[s];
+    unsigned dim = domainSize(sizes,s);
+    ASS_G(args[i],0); ASS_LE(args[i],dim); // domain elements are 1-based and inside their sort
+    mult *= dim;
   }
   return idx;
 }
 
 // computes the number of rows of the table of a symbol of type sig under the domain sizes sizes
-// (a 0-sized dimension -- an unused interpreted sort -- counts as 1, matching tableIndex, where such a dimension contributes no stride)
 static size_t tableSize(OperatorType* sig, unsigned arity, const DArray<unsigned>& sizes)
 {
   size_t size = 1;
   for(unsigned i=0;i<arity;i++) {
-    unsigned mult = sizes[sig->arg(i).term()->functor()];
+    unsigned mult = domainSize(sizes,sig->arg(i).term()->functor());
     if (mult > 1 && size > SIZE_MAX / mult) {
       INVALID_OPERATION("Model too large to represent!");
     }
-    size *= (mult>0 ? mult : 1);
+    size *= mult;
   }
   return size;
 }
@@ -148,7 +158,7 @@ void FiniteModelMultiSorted::addFunctionDefinition(unsigned f, const DArray<unsi
 
   OperatorType* tp = env.signature->getFunction(f)->fnType();
   // a function's value must be a domain element of its result sort
-  ASS_G(res,0); ASS_LE(res,_sizes[tp->result().term()->functor()]);
+  ASS_G(res,0); ASS_LE(res,domainSize(_sizes,tp->result().term()->functor()));
 
   DArray<unsigned>& tbl = _f_tables[f];
   size_t idx = tableIndex(args,_sizes,tp);

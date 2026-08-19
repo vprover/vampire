@@ -99,7 +99,10 @@ static void doCheck(UnitList* units)
   }
 
   std::cout << "Loading model..." << std::endl;
-  DArray<unsigned> sortSizesArray(env.signature->typeCons());
+  DArray<unsigned> sortSizesArray;
+  // a sort the model file does not mention gets no domain (a well-formed model only
+  // describes the sorts it talks about); without the init the entry stayed uninitialised
+  sortSizesArray.init(env.signature->typeCons(),0);
   {
     auto it = sortSizes.items();
     while (it.hasNext()) {

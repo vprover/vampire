@@ -1895,8 +1895,11 @@ void FiniteModelBuilder::onModelFound()
   DArray<unsigned> vampireSortSizes;
   vampireSortSizes.ensure(env.signature->typeCons());
   for(unsigned vSort=0;vSort<env.signature->typeCons();vSort++){
-    unsigned size = 1;
-    if(env.signature->isInterpretedNonDefault(vSort) && !env.signature->isBoolCon(vSort)){ size=0;}
+    // a sort we did not model (one sort inference did not give a distinct sort to, because
+    // nothing in the problem uses it) gets no domain in the model, i.e. size 0 -- so that we
+    // don't invent a one-element domain for, say, $i in a problem that only uses declared sorts
+    // ($o is the exception: boolean-sorted terms may still want a domain element)
+    unsigned size = env.signature->isBoolCon(vSort) ? 1 : 0;
     unsigned dsort;
     if(_sortedSignature->vampireToDistinctParent.find(vSort,dsort)){
       size = _distinctSortSizes[dsort];
