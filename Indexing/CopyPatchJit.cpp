@@ -91,6 +91,32 @@ struct JitStats {
 };
 
 JitStats g_jitStats;
+
+//  Process-wide executable-memory state.
+//
+//  Previously these were members of CopyPatchJit, and every CodeTree owns one
+//  - so each index reserved its own region and carried its own budget. Two
+//  live trees therefore charged 2 x EXEC_REGION_SIZE of virtual address space
+//  (Vampire's -m check measures virtual size, so that is charged as if it
+//  were consumed) and allowed 2 x the intended code budget. Both quantities
+//  belong to the process, so they live here.
+//
+//  Not thread-safe. Vampire's portfolio mode forks; if it ever threads the
+//  prover, these need a mutex.
+char*  g_execRegionBase   = nullptr;
+size_t g_execRegionSize   = 0;
+size_t g_execRegionUsed   = 0;
+bool   g_execRegionFailed = false;
+
+//  NOTE: the budget counters themselves are NOT here - they need external
+//  linkage so the inline predicates in the header can see them. See
+//  Indexing::JitBudget below.
+
+//  Slabs released by a destroyed CodeTree, available for reuse. Without this
+//  the region's bump pointer would never rewind and a run that creates and
+//  destroys many trees would exhaust it.
+struct FreeSlabRec { void* base; size_t capacity; };
+std::vector<FreeSlabRec> g_freeSlabs;
 }
 
 static_assert(sizeof(Kernel::TermList) == 8, "JIT assumes sizeof(TermList) == 8");
@@ -109,6 +135,14 @@ namespace Indexing {
 
 using namespace asmjit;
 using namespace asmjit::x86;
+
+//  Process-wide code budget (declared in CopyPatchJit.hpp). Starts at the
+//  default so the inline predicates never have to test for "unset"; the
+//  CodeTree constructor lowers it once the -m limit is known.
+namespace JitBudget {
+  size_t emittedTotal = 0;
+  size_t codeBudget   = CopyPatchJit::CODE_BUDGET_DEFAULT;
+}
 
 void CopyPatchJit::printJitStats(std::ostream& out)
 {
@@ -135,6 +169,8 @@ void CopyPatchJit::printJitStats(std::ostream& out)
       << " bind_badsite=" << s.bindBadSite
       << " patch_badsite=" << s.patchBadSite
       << " exec_region_mb=" << s.execRegionMB
+      << " code_budget_mb=" << (CopyPatchJit::codeBudget() >> 20)
+      << " emitted_total_mb=" << (CopyPatchJit::emittedTotal() >> 20)
       << " budget_stops=" << s.budgetStops
       << " budget_bailouts=" << s.budgetBailouts
       << " bt_pops=" << s.btPops
@@ -149,6 +185,16 @@ void CopyPatchJit::recordBtPops(size_t n)
 void CopyPatchJit::recordBudgetStop()
 {
   g_jitStats.budgetStops++;
+}
+
+void CopyPatchJit::setCodeBudget(size_t bytes)
+{
+  //  Every CodeTree constructor calls this with the same value derived from
+  //  -m; taking the smallest is the safe tie-break if they ever disagree, and
+  //  never raising it keeps the cap a property of the process rather than of
+  //  whichever index happened to be built last.
+  size_t b = bytes ? bytes : CODE_BUDGET_DEFAULT;
+  if (b < JitBudget::codeBudget) { JitBudget::codeBudget = b; }
 }
 
 const char* CopyPatchJit::jitModeName() {
@@ -187,7 +233,7 @@ void* CopyPatchJit::lazyCompileHelper(JitExecContext* ctx, CodeTree::CodeOp* alt
   // are past even the hard limit, refuse and signal C++ to abort the match -
   // returning nullptr alone would look like "no alternative" to the caller and
   // silently drop a branch.
-  if (tree->_cpJit->budgetExhausted()) {
+  if (budgetExhausted()) {
     g_jitStats.budgetBailouts++;
     ctx->bailout = 1;
     return nullptr;
@@ -212,7 +258,7 @@ void* CopyPatchJit::bindJmpAltHelper(JitExecContext* ctx, CodeTree::CodeOp* alt,
   g_jitStats.bindCalls++;
   if (!alt) return nullptr;
   auto* tree = static_cast<CodeTree*>(ctx->codeTree);
-  if (tree->_cpJit->budgetExhausted()) {   // see lazyCompileHelper
+  if (budgetExhausted()) {                 // see lazyCompileHelper
     g_jitStats.budgetBailouts++;
     ctx->bailout = 1;
     return nullptr;
@@ -395,9 +441,9 @@ static inline void flushICache(void* /*addr*/, size_t /*size*/) {
  * bindable (bind_unreachable counts them).
  */
 void CopyPatchJit::ensureExecRegion() {
-  if (_execRegionBase || _execRegionFailed) return;
+  if (g_execRegionBase || g_execRegionFailed) return;
 #ifndef __linux__
-  _execRegionFailed = true;
+  g_execRegionFailed = true;
   return;
 #else
   const size_t TWO_MB = size_t(2) << 20;
@@ -410,15 +456,15 @@ void CopyPatchJit::ensureExecRegion() {
       char* aligned = (char*)(((uintptr_t)p + TWO_MB - 1) & ~(uintptr_t)(TWO_MB - 1));
       if (size_t head = size_t(aligned - p)) munmap(p, head);
       if (size_t tail = over - size_t(aligned - p) - want) munmap(aligned + want, tail);
-      _execRegionBase = aligned;
-      _execRegionSize = want;
-      _execRegionUsed = 0;
+      g_execRegionBase = aligned;
+      g_execRegionSize = want;
+      g_execRegionUsed = 0;
       g_jitStats.execRegionMB = want >> 20;
       return;
     }
     want >>= 1;
   }
-  _execRegionFailed = true;
+  g_execRegionFailed = true;
 #endif
 }
 
@@ -429,17 +475,31 @@ void CopyPatchJit::ensureSlabSpace(size_t size) {
   size_t cap = std::max(SLAB_SIZE, size);
   cap = (cap + TWO_MB - 1) & ~(TWO_MB - 1);   // THP: whole 2 MiB units
 
+  //  Prefer a slab released by a previously destroyed tree over new space.
+  for (size_t i = 0; i < g_freeSlabs.size(); i++) {
+    if (g_freeSlabs[i].capacity >= cap) {
+      ExecSlab s{g_freeSlabs[i].base, g_freeSlabs[i].capacity, 0, 0, true};
+      g_freeSlabs[i] = g_freeSlabs.back();
+      g_freeSlabs.pop_back();
+      _slabs.push_back(s);
+      return;   // already counted in slabsMapped/slabBytes when first mapped
+    }
+  }
+
   ensureExecRegion();
   void* p = nullptr;
   bool inRegion = false;
-  if (_execRegionBase && _execRegionUsed + cap <= _execRegionSize) {
-    p = _execRegionBase + _execRegionUsed;
-    _execRegionUsed += cap;
+  if (g_execRegionBase && g_execRegionUsed + cap <= g_execRegionSize) {
+    p = g_execRegionBase + g_execRegionUsed;
+    g_execRegionUsed += cap;
     inRegion = true;
 #ifdef __linux__
     madvise(p, cap, MADV_HUGEPAGE);
 #endif
   } else {
+    //  Region exhausted (or unavailable): fall back to an individual mapping.
+    //  Correct, but it does add virtual footprint and its sites may be out of
+    //  rel32 range-bind_unreachable counts those.
     p = mapExecPages(cap);
   }
   ASS(p);
@@ -488,7 +548,8 @@ void* CopyPatchJit::allocExec(size_t userSize) {
   // Budget accounting: counts every allocation, recycled or not. Deliberately
   // conservative - a tree that frees and re-emits heavily still trips the
   // budget eventually, which is the safe direction to be wrong in.
-  _emittedTotal += totalSize;
+  // Process-wide, so all trees draw on one budget.
+  JitBudget::emittedTotal += totalSize;
   size_t classIdx  = sizeClassIndex(totalSize);
   size_t bucket    = sizeClassBucket(classIdx, totalSize);
 
@@ -560,21 +621,17 @@ void CopyPatchJit::releaseAll() {
   }
 
   for (auto& slab : _slabs) {
-    // Region-carved slabs are released with the region below.
-    if (!slab.inRegion) {
+    if (slab.inRegion) {
+      //  Hand it back to the shared pool rather than unmapping: the region is
+      //  process-wide and other trees may still be using other parts of it.
+      g_freeSlabs.push_back({slab.base, slab.capacity});
+    } else {
       unmapExecPages(slab.base, slab.capacity);
     }
   }
   _slabs.clear();
-  if (_execRegionBase) {
-#ifdef __linux__
-    munmap(_execRegionBase, _execRegionSize);
-#endif
-    _execRegionBase = nullptr;
-    _execRegionSize = 0;
-    _execRegionUsed = 0;
-  }
-  _execRegionFailed = false;
+  //  The shared region itself is never unmapped - it outlives every
+  //  CopyPatchJit and costs nothing beyond untouched address space.
   if (_trampolineBase) {
     sharedRuntime().release(_trampolineBase);
     _trampolineBase = nullptr;
@@ -588,7 +645,10 @@ void CopyPatchJit::releaseAll() {
   _bindJmpAltStub = nullptr;
   _ssDispatchStub = nullptr;
   _bailoutHandler = nullptr;
-  _emittedTotal = 0;
+  //  JitBudget::emittedTotal is deliberately NOT reset: it is the process-wide budget
+  //  counter, and space handed back here goes to g_freeSlabs rather than
+  //  disappearing. Resetting it would let a run that churns trees emit
+  //  without bound.
   _initialized = false;
 }
 
@@ -1297,7 +1357,7 @@ void CopyPatchJit::compileStencilAssignVar() {
   a.and_(edx, 0x1FFFFFFFu);
   a.shl(rdx, 2);
   a.or_(rdx, 1);
-  
+
   emitPushAlt(&a, s, base);
 
   // Store to bindings[var].  The byte offset is a 4-byte immediate.
@@ -1724,17 +1784,9 @@ void CopyPatchJit::patchAlternative(CodeTree::CodeOp* op) {
     auto ofs = op->_altPatchOfs[j];
     if (ofs == CodeTree::CodeOp::ALT_PATCH_NONE) continue;
     uint8_t* head = base + ofs - 2;
-    if (head[0] == 0xE9) {
-      // bound jmpAlt site: unbind, then rewrite the immediate
-      g_jitStats.unbinds++;
-      head[0] = 0x48;
-      head[1] = 0xB8;
-    } else if (head[0] == 0x48 && (head[1] == 0xB8 || head[1] == 0xB9)) {
-      // initial jmpAlt (B8) or pushAlt (B9): immediate rewrite only
-    } else {
-      g_jitStats.patchBadSite++;   // unexpected bytes: never touch them
-      continue;
-    }
+    if (head[0] == 0xE9) { g_jitStats.unbinds++; head[0] = 0x48; head[1] = 0xB8; }
+    else if (head[0] == 0x48 && (head[1] == 0xB8 || head[1] == 0xB9)) { /* initial form */ }
+    else { g_jitStats.patchBadSite++; continue; }
     memcpy(base + ofs, &alt, sizeof(uintptr_t));
     g_jitStats.patchAltStores++;
   }

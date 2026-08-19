@@ -127,6 +127,13 @@ struct EmittedBlock {
   bool     dirty   = true;      // needs re-emission before next use
 };
 
+//  Process-wide code-budget counters. Declared here (rather than kept in the
+//  .cpp) so the hot predicates above can be inlined at their call sites.
+namespace JitBudget {
+  extern size_t emittedTotal;   // bytes handed out by allocExec, process-wide
+  extern size_t codeBudget;     // cap; see CopyPatchJit::setCodeBudget
+}
+
 class CopyPatchJit {
 public:
   CopyPatchJit();
@@ -197,13 +204,23 @@ public:
   //                             (which has unwind info) can throw.
   //  Set from CodeTree's constructor as a fraction of -m; the default below
   //  applies when no limit is known.
+  //  Both the budget and the exec region are PROCESS-WIDE, not per instance.
+  //  Every CodeTree owns a CopyPatchJit, so per-instance state multiplied the
+  //  cost by the number of live indexes: two trees meant two 2 GiB
+  //  reservations (4 GiB of virtual charge before a single inference) and two
+  //  independent budgets, letting the process emit 2 x the intended cap.
+  //  Sharing them makes both quantities properties of the process, which is
+  //  the unit Vampire's -m limit actually applies to.
   static constexpr size_t CODE_BUDGET_DEFAULT = size_t(1) << 30;   // 1 GiB
-  static constexpr size_t EXEC_REGION_SIZE    = size_t(2) << 30;   // 2 GiB
-  void   setCodeBudget(size_t bytes) { _codeBudget = bytes ? bytes : CODE_BUDGET_DEFAULT; }
-  size_t codeBudget()   const { return _codeBudget; }
-  size_t emittedTotal() const { return _emittedTotal; }
-  bool   outOfBudget()     const { return _emittedTotal >= _codeBudget; }
-  bool   budgetExhausted() const { return _emittedTotal >= 2 * _codeBudget; }
+  static constexpr size_t EXEC_REGION_SIZE    = size_t(1) << 30;   // 1 GiB
+  static void   setCodeBudget(size_t bytes);
+  static size_t codeBudget()   { return JitBudget::codeBudget; }
+  static size_t emittedTotal() { return JitBudget::emittedTotal; }
+  //  These two MUST stay inline and header-visible. executeMachineCode calls
+  //  outOfBudget() on every retrieval; with the definition in the .cpp it
+  //  becomes a cross-TU call that cannot be inlined
+  static bool   outOfBudget()     { return JitBudget::emittedTotal >= JitBudget::codeBudget; }
+  static bool   budgetExhausted() { return JitBudget::emittedTotal >= 2 * JitBudget::codeBudget; }
   void*  bailoutHandler()  const { return _bailoutHandler; }
   enum class JitMode : uint8_t { Off, ClauseOnly, TermOnly, Both };
   
@@ -289,11 +306,11 @@ private:
   // pages cost nothing. Non-Linux/mmap-failure falls back to per-slab
   // mappings; the binder then checks reachability per site and simply skips
   // binding when out of range(correct, just unbound).
-  char*  _execRegionBase   = nullptr;
-  size_t _execRegionSize   = 0;
-  size_t _execRegionUsed   = 0;
-  bool   _execRegionFailed = false;
-  void ensureExecRegion();
+  //  Region state lives in file-scope statics in CopyPatchJit.cpp; these
+  //  helpers just reach it. Not thread-safe: Vampire's portfolio mode forks
+  //  rather than threads, so there is never more than one prover per address
+  //  space. If that ever changes, these need a mutex.
+  static void ensureExecRegion();
 
   ExecSlab* findSlab(void* ptr);
 
@@ -319,8 +336,7 @@ private:
   void* _bindJmpAltStub = nullptr;
   void* _ssDispatchStub = nullptr;
   void* _bailoutHandler = nullptr;
-  size_t _codeBudget   = CODE_BUDGET_DEFAULT;
-  size_t _emittedTotal = 0;
+
 };
 
 } // namespace Indexing
