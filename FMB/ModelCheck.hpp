@@ -38,6 +38,10 @@ using std::endl;
 
 class ModelCheck{
 
+  // hashed by Term::getId(), not by address: the iteration order of this set is what
+  // numbers the domain elements, and so decides the whole output (cf. Kernel/Term.hpp)
+  using DomainConstantSet = Set<Term*,SharedTermHash>;
+
 public:
 static void doCheck(UnitList* units)
 {
@@ -45,7 +49,7 @@ static void doCheck(UnitList* units)
   // looking for a domain axiom with a name starting 'finite_domain' (TODO search for something of the right shape)
 
   DHMap<unsigned,unsigned> sortSizes;
-  DHMap<unsigned,std::unique_ptr<Set<Term*>>> domainConstantsPerSort;
+  DHMap<unsigned,std::unique_ptr<DomainConstantSet>> domainConstantsPerSort;
 
   // first just search for finite_domain axiom (TODO: do this for every sort!)
   {
@@ -70,7 +74,7 @@ static void doCheck(UnitList* units)
         unsigned curSort = formula->vars()->head().second.term()->functor();
 
         unsigned curModelSize = 0;
-        auto curDomainConstants = std::make_unique<Set<Term*>>();
+        auto curDomainConstants = std::make_unique<DomainConstantSet>();
 
         int single_var = -1;
         if (subformula->connective()==Connective::OR) {
@@ -113,7 +117,7 @@ static void doCheck(UnitList* units)
   // TODO can we pass a reference here instead of clone()ing?
   FiniteModelMultiSorted model(sortSizesArray.clone());
 
-  Set<Term*> domainConstants; // union of all the perSort ones
+  DomainConstantSet domainConstants; // union of all the perSort ones
   DHMap<Term*,unsigned> domainConstantNumber;
 
   std::cout << "Detected model with " << sortSizes.size() << " sorts." << std::endl;
@@ -127,7 +131,7 @@ static void doCheck(UnitList* units)
     std::cout << ", domain elements are:" << std::endl;
 
     // number the domain constants
-    Set<Term*>::Iterator dit(curDomainConstants);
+    DomainConstantSet::Iterator dit(curDomainConstants);
     unsigned count=1;
     while(dit.hasNext()){
       Term* con = dit.next();
@@ -212,7 +216,7 @@ static void doCheck(UnitList* units)
 
 private:
 
-static void checkIsDomainLiteral(Literal* l, int& single_var, Set<Term*>& domainConstants)
+static void checkIsDomainLiteral(Literal* l, int& single_var, DomainConstantSet& domainConstants)
 {
   if(!l->isEquality()) USER_ERROR("finite_domain is not a domain axiom");
 
@@ -238,7 +242,7 @@ static void checkIsDomainLiteral(Literal* l, int& single_var, Set<Term*>& domain
 }
 
 static void addDefinition(FiniteModelMultiSorted& model,Literal* lit,bool negated,
-                          Set<Term*>& domainConstants,
+                          DomainConstantSet& domainConstants,
                           DHMap<Term*,unsigned>& domainConstantNumber)
 {
   if(lit->isEquality()){
