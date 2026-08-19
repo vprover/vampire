@@ -1080,7 +1080,7 @@ struct FloorUwaState {
   };
 
   auto buckets() const {
-    Recycled<Map<unsigned, Bucket>> buckets;
+    Recycled<Map<unsigned, Bucket, FnvHash>> buckets;
     ASS(ratVars->isEmpty())
     ASS(intVars->isEmpty())
     ASS(mixVars->isEmpty())

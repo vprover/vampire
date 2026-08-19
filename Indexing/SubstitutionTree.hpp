@@ -539,7 +539,7 @@ public:
       Binding(int v,TermList t) : var(v), term(t) {}
     }; // class SubstitutionTree::Binding
 
-    typedef DHMap<unsigned,TermList,IdentityHash,DefaultHash> BindingMap;
+    typedef DHMap<unsigned,TermList,IdentityHash,FnvHash> BindingMap;
     typedef Stack<unsigned> VarStack;
 
     Leaf* findLeaf(BindingMap& svBindings)

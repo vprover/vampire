@@ -151,7 +151,7 @@ bool SortHelper::tryGetResultSort(const TermList t, TermList& result)
 /**
  * This function works also for special terms
  */
-TermList SortHelper::getResultSort(TermList t, DHMap<unsigned,TermList>& varSorts)
+TermList SortHelper::getResultSort(TermList t, DHMap<unsigned,TermList, FnvHash, IdentityHash>& varSorts)
 {
   TermList res;
   TermList masterVar;
@@ -335,7 +335,7 @@ bool SortHelper::tryGetVariableSort(unsigned var, Formula* f, TermList& res)
  * @since 13/02/2017 Vienna
  * @author Martin Suda
  */
-static void collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermList>& map, bool ignoreBound = false)
+static void collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermList, FnvHash, IdentityHash>& map, bool ignoreBound = false)
 {
   Stack<CollectTask> todo;
   ZIArray<unsigned> bound;
@@ -580,7 +580,7 @@ static void collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermList>&
  * @since 15/05/2015 Gothenburg, FOOL support added
  * @author Andrei Voronkov, Evgeny Kotelnikov
  */
-void SortHelper::collectVariableSorts(Term* term, DHMap<unsigned,TermList>& map)
+void SortHelper::collectVariableSorts(Term* term, DHMap<unsigned,TermList, FnvHash, IdentityHash>& map)
 {
   CollectTask t(term->isSpecial() ? COLLECT_SPECIALTERM : COLLECT_TERM);
   t.t = term;
@@ -593,7 +593,7 @@ void SortHelper::collectVariableSorts(Term* term, DHMap<unsigned,TermList>& map)
  * is in map already (or appears multiple times), assert that
  * the sorts are equal.
  */
-void SortHelper::collectVariableSorts(Formula* f, DHMap<unsigned,TermList>& map, bool ignoreBound)
+void SortHelper::collectVariableSorts(Formula* f, DHMap<unsigned,TermList, FnvHash, IdentityHash>& map, bool ignoreBound)
 {
   CollectTask task(COLLECT_FORMULA);
   task.f = f;
@@ -606,7 +606,7 @@ void SortHelper::collectVariableSorts(Formula* f, DHMap<unsigned,TermList>& map,
  * is in map already (or appears multiple times), assert that
  * the sorts are equal.
  */
-void SortHelper::collectVariableSorts(Unit* u, DHMap<unsigned,TermList>& map, bool ignoreBound)
+void SortHelper::collectVariableSorts(Unit* u, DHMap<unsigned,TermList, FnvHash, IdentityHash>& map, bool ignoreBound)
 {
   if (!u->isClause()) {
     FormulaUnit* fu = static_cast<FormulaUnit*>(u);
@@ -900,7 +900,7 @@ TermList SortHelper::getInnerSort(TermList arraySort)
  */
 bool SortHelper::areSortsValid(Clause* cl)
 {
-  static DHMap<unsigned,TermList> varSorts;
+  static DHMap<unsigned,TermList, FnvHash, IdentityHash> varSorts;
   varSorts.reset();
 
   unsigned clen = cl->length();
@@ -913,7 +913,7 @@ bool SortHelper::areSortsValid(Clause* cl)
 }
 bool SortHelper::areSortsValid(Term* t0)
 {
-  DHMap<unsigned,TermList> varSorts;
+  DHMap<unsigned,TermList, FnvHash, IdentityHash> varSorts;
   return areSortsValid(t0, varSorts);
 }
 
@@ -924,7 +924,7 @@ bool SortHelper::areSortsValid(Term* t0)
  * @since 04/05/2013 Manchester, new NonVariableIterator is used
  * @author Andrei Voronkov
  */
-bool SortHelper::areSortsValid(Term* t0, DHMap<unsigned,TermList>& varSorts)
+bool SortHelper::areSortsValid(Term* t0, DHMap<unsigned,TermList, FnvHash, IdentityHash>& varSorts)
 {
   NonVariableIterator sit(t0,true);
   while (sit.hasNext()) {
