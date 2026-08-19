@@ -1,0 +1,31 @@
+% TRYING [1]
+% Finite Model Found!
+% SZS status Satisfiable for bceflip
+% FMB model self-check passed (7 units checked)
+% SZS output start FiniteModel for bceflip
+tff('declare_$i1',type,'fmb_$i_1':$i).
+tff('finite_domain_$i',axiom,
+      ! [X:$i] : (
+         (X = 'fmb_$i_1')
+      ) ).
+
+tff(declare_meet,type,meet : ( $i * $i ) > $i).
+tff(function_meet,axiom,
+           meet('fmb_$i_1','fmb_$i_1') = 'fmb_$i_1'
+).
+
+tff(declare_join,type,join : ( $i * $i ) > $i).
+tff(function_join,axiom,
+           join('fmb_$i_1','fmb_$i_1') = 'fmb_$i_1'
+).
+
+tff(declare_n0,type,n0 : $i).
+tff(n0_symbolic_definition,axiom,n0 = 'fmb_$i_1').
+tff(declare_n1,type,n1 : $i).
+tff(n1_symbolic_definition,axiom,n1 = 'fmb_$i_1').
+tff(declare_complement,type,complement: ( $i * $i ) > $o ).
+tff(predicate_complement,axiom,
+           complement('fmb_$i_1','fmb_$i_1')
+).
+
+% SZS output end FiniteModel for bceflip

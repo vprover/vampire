@@ -191,6 +191,13 @@ check_szs_status Satisfiable -sa fmb fmb/bool.p
 check_exact_output fmb/bool.out --input_syntax tptp --statistics none -sa fmb fmb/bool.p
 check_exact_output fmb/bool.check.out --input_syntax tptp --mode model_check fmb/bool.check.p
 
+# FMB: a predicate blocked clause elimination removes altogether is described only by the
+# recorded flips, so restoring them must materialize a table for it (see fmb/bceflip.p).
+# Exact output again, for the reason given above and because the defect showed as a crash
+# *after* the SZS status line -- which neither check_szs_status nor the stderr grep in
+# run_vampire can see
+check_exact_output fmb/bceflip.out --input_syntax tptp --statistics none -sa fmb -bce on fmb/bceflip.p
+
 # Synthesis without and with uncomputables
 check_szs_status Unsatisfiable -qa synthesis synthesis/max2.smt2
 check_szs_status Unsatisfiable -qa synthesis synthesis/ex2-inverse_of_ixopiy.smt2

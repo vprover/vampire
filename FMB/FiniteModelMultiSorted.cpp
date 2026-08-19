@@ -920,18 +920,17 @@ static bool mentionsPredicate(Formula* f, unsigned p)
   return false;
 }
 
-bool FiniteModelMultiSorted::prepareForFlip(unsigned p)
+void FiniteModelMultiSorted::prepareForFlip(unsigned p)
 {
-  // there has to be a table to flip into
+  // There has to be a table to flip into, even when nothing has been recorded about p yet:
+  // a flip does not prescribe p's whole behaviour, only the arguments its condition selects,
+  // so it needs something to carve into -- symbolicPredDef's trivial "p <=> $false" will do.
+  // This is not a wasted table for a symbol we know nothing about: blocked clause elimination
+  // can make a predicate disappear entirely (all of its clauses blocked, so usageCnt drops to
+  // zero and no definition is recorded), and then its flips are the only thing the model ever
+  // learns about it. A definition arriving later overrides all of this anyway -- see the
+  // FUN_DEF / PRED_DEF cases of restoreEliminatedDefinitions.
   if (!predRepresented(p)) {
-    if (!_symbolicPreds.find(p)) {
-      // we have not committed to any interpretation of p yet, so flipping it is a no-op --
-      // and the definition still to be recorded (this happens for the GLOB_FLIPs, which are
-      // replayed before any definition) will simply take over. Materializing here would be
-      // actively wrong: symbolicPredDef would invent a trivial "p <=> $false" record, which
-      // the real definition, arriving later, would then find the key already taken by.
-      return false;
-    }
     materializePred(p);
   }
 
@@ -959,7 +958,6 @@ bool FiniteModelMultiSorted::prepareForFlip(unsigned p)
   for (unsigned q : readers) {
     materializePred(q);
   }
-  return true;
 }
 
 void FiniteModelMultiSorted::restoreGlobalPredicateFlip(Problem::GlobalFlip* gf)
@@ -1086,11 +1084,16 @@ void FiniteModelMultiSorted::restoreViaCondFlip(Problem::CondFlip* cf)
  * can reach q through such a definition, making it chase a moving target. So prepareForFlip
  * makes q, and every recorded definition reading q, explicit first; see there.
  *
- * The GLOB_FLIPs are the one kind that needs none of this in practice: polarity flipping runs
- * as the very last preprocessing step, so they are replayed before any definition is recorded,
- * and prepareForFlip finds nothing to freeze -- indeed nothing to flip either, for a target
- * the model does not represent yet. They go through the same path all the same, so that the
- * replay does not silently depend on that ordering.
+ * A flip is therefore free to materialize its target, even one the model knows nothing about
+ * yet, because of the other half of the invariant: *an arriving definition overrides whatever
+ * the model said about its symbol so far*. That is why the FUN_DEF/PRED_DEF cases throw away
+ * a table they find in place. It costs nothing in accuracy: a definition body can only mention
+ * symbols that still occurred at its own elimination step, so any definition mentioning q was
+ * recorded no later than q's own and is thus replayed *after* it -- nothing already materialized
+ * was computed from the values being discarded. By the same argument the discarded table can
+ * only come from a flip's materialization, which in practice means a GLOB_FLIP: polarity
+ * flipping runs as the very last preprocessing step and records a flip for much of the
+ * signature, occurring or not, so those are replayed before any definition is.
  */
 void FiniteModelMultiSorted::restoreEliminatedDefinitions(Kernel::Problem* prob)
 {
@@ -1100,26 +1103,35 @@ void FiniteModelMultiSorted::restoreEliminatedDefinitions(Kernel::Problem* prob)
     switch (i->_kind) {
       case Problem::IntereferenceKind::FUN_DEF: {
         Problem::FunDef* fd = static_cast<Problem::FunDef*>(i);
-        _symbolicFuns.insert(fd->_head->functor(),fd);
+        unsigned f = fd->_head->functor();
+        if (funRepresented(f)) {
+          // only a flip replayed earlier can have put a table here (see below)
+          ASS_EQ(env.signature->getFunction(f)->usageCnt(),0);
+          _f_tables[f] = DArray<unsigned>(); // this definition speaks for f from now on
+        }
+        _symbolicFuns.set(f,fd); // set, not insert: overrides a trivial record invented meanwhile
         break;
       }
       case Problem::IntereferenceKind::PRED_DEF: {
         Problem::PredDef* pd = static_cast<Problem::PredDef*>(i);
-        _symbolicPreds.insert(pd->_head->functor(),pd);
+        unsigned p = pd->_head->functor();
+        if (predRepresented(p)) {
+          ASS_EQ(env.signature->getPredicate(p)->usageCnt(),0);
+          _p_tables[p] = DArray<char>();
+        }
+        _symbolicPreds.set(p,pd);
         break;
       }
       case Problem::IntereferenceKind::GLOB_FLIP: {
         Problem::GlobalFlip* gf = static_cast<Problem::GlobalFlip*>(i);
-        if (prepareForFlip(gf->_pred)) {
-          restoreGlobalPredicateFlip(gf);
-        }
+        prepareForFlip(gf->_pred);
+        restoreGlobalPredicateFlip(gf);
         break;
       }
       case Problem::IntereferenceKind::COND_FLIP: {
         Problem::CondFlip* cf = static_cast<Problem::CondFlip*>(i);
-        if (prepareForFlip(cf->_val->functor())) {
-          restoreViaCondFlip(cf);
-        }
+        prepareForFlip(cf->_val->functor());
+        restoreViaCondFlip(cf);
         break;
       }
 
