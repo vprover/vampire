@@ -45,6 +45,23 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
+// captures the encoding of a symbol's table:
+// the row index of the tuple args in the table of a symbol of type sig,
+// under the domain sizes sizes -- the first argument position changing fastest,
+// i.e. the very order in which ArgsEnumerator enumerates the tuples
+static size_t tableIndex(const DArray<unsigned>& args, const DArray<unsigned>& sizes, OperatorType* sig)
+{
+  size_t idx = 0;
+  size_t mult = 1;
+  for(unsigned i=0;i<args.size();i++){
+    idx += mult*(args[i]-1);
+    unsigned s = sig->arg(i).term()->functor();
+    ASS_G(args[i],0); ASS_LE(args[i],sizes[s]); // domain elements are 1-based and inside their sort
+    mult *=sizes[s];
+  }
+  return idx;
+}
+
 // computes the number of rows of the table of a symbol of type sig under the domain sizes sizes
 // (a 0-sized dimension -- an unused interpreted sort -- counts as 1, matching tableIndex, where such a dimension contributes no stride)
 static size_t tableSize(OperatorType* sig, unsigned arity, const DArray<unsigned>& sizes)

@@ -68,23 +68,6 @@ class FiniteModelMultiSorted {
   // (only symbols with usageCnt()>0 get a table)
   void initTables();
 
-  // captures the encoding of a symbol's table:
-  // the row index of the tuple args in the table of a symbol of type sig,
-  // under the domain sizes sizes -- the first argument position changing fastest,
-  // i.e. the very order in which ArgsEnumerator enumerates the tuples
-  static size_t tableIndex(const DArray<unsigned>& args, const DArray<unsigned>& sizes, OperatorType* sig)
-  {
-    size_t idx = 0;
-    size_t mult = 1;
-    for(unsigned i=0;i<args.size();i++){
-      idx += mult*(args[i]-1);
-      unsigned s = sig->arg(i).term()->functor();
-      ASS_G(args[i],0); ASS_LE(args[i],sizes[s]); // domain elements are 1-based and inside their sort
-      mult *=sizes[s];
-    }
-    return idx;
-  }
-
 public:
 
   // sortSizes is a map from vampire sorts (defined in Kernel/Sorts) to the size of that sort
