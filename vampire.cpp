@@ -411,7 +411,7 @@ void clausifyMode(Problem* problem, bool theory)
         Literal::create(p, /* polarity */ true , {}),
         Literal::create(p, /* polarity */ false, {})
       }, 
-      NonspecificInference0(UnitInputType::NEGATED_CONJECTURE,InferenceRule::INPUT));
+      FromInput(UnitInputType::NEGATED_CONJECTURE));
     std::cout << TPTPPrinter::toString(c) << "\n";
   }
 
