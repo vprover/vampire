@@ -136,6 +136,11 @@ private:
   void materializeFun(unsigned f);
   void materializePred(unsigned p);
 
+  // make p, and everything a recorded definition says about p, explicit, so that the
+  // flip about to be replayed really does change the model on p alone;
+  // false if the model has nothing to say about p yet and the flip should be skipped
+  bool prepareForFlip(unsigned p);
+
   std::string prepend(const char* prefix, std::string name) {
     if (name.empty()) {
       return std::string(prefix);

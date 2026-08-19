@@ -23,6 +23,7 @@
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Signature.hpp"
+#include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Kernel/SubstHelper.hpp"
 
@@ -905,6 +906,62 @@ void FiniteModelMultiSorted::materializePred(unsigned p)
   _symbolicPreds.remove(p); // from now on, the explicit table speaks for p
 }
 
+// does p occur anywhere in f? SubformulaIterator descends into the arguments of a literal
+// too, so a predicate hiding inside a formula in term position is found as well
+static bool mentionsPredicate(Formula* f, unsigned p)
+{
+  SubformulaIterator sfit(f);
+  while (sfit.hasNext()) {
+    Formula* sf = sfit.next();
+    if (sf->connective() == LITERAL && sf->literal()->functor() == p) {
+      return true;
+    }
+  }
+  return false;
+}
+
+bool FiniteModelMultiSorted::prepareForFlip(unsigned p)
+{
+  // there has to be a table to flip into
+  if (!predRepresented(p)) {
+    if (!_symbolicPreds.find(p)) {
+      // we have not committed to any interpretation of p yet, so flipping it is a no-op --
+      // and the definition still to be recorded (this happens for the GLOB_FLIPs, which are
+      // replayed before any definition) will simply take over. Materializing here would be
+      // actively wrong: symbolicPredDef would invent a trivial "p <=> $false" record, which
+      // the real definition, arriving later, would then find the key already taken by.
+      return false;
+    }
+    materializePred(p);
+  }
+
+  // A flip's soundness argument reads: the model that differs from this one *only on p*, as
+  // prescribed, is a model of the problem as it was before the flip's own preprocessing step.
+  // A symbolic definition whose body reads p breaks that "only": it silently moves along as
+  // soon as p's table is written -- during the flip's own loop, when it can also reach the
+  // condition being tested, and after it. So freeze such definitions here; materializing does
+  // not change what the model says, it only stops it from shifting under the flip.
+  // Direct readers are enough: once a reader is explicit, a definition that reads *it* no
+  // longer moves either. _symbolicFuns need no treatment -- their bodies are terms, produced
+  // by function definition elimination, so they cannot mention a predicate at all.
+  Stack<unsigned> readers;
+  DHMap<unsigned,Problem::PredDef*>::Iterator it(_symbolicPreds);
+  while (it.hasNext()) {
+    unsigned q;
+    Problem::PredDef* pd;
+    it.next(q,pd);
+    if (mentionsPredicate(pd->_body,p)) {
+      readers.push(q);
+    }
+  }
+  // collected first, as materializePred both removes from _symbolicPreds and,
+  // through symbolicPredDef, may insert into it
+  for (unsigned q : readers) {
+    materializePred(q);
+  }
+  return true;
+}
+
 void FiniteModelMultiSorted::restoreGlobalPredicateFlip(Problem::GlobalFlip* gf)
 {
   // a full-table pass with a value independent of the arguments -- a linear scan suffices
@@ -1015,26 +1072,25 @@ void FiniteModelMultiSorted::restoreViaCondFlip(Problem::CondFlip* cf)
  * FUN_DEFs and PRED_DEFs are merely *recorded* (into _symbolicFuns/_symbolicPreds) rather
  * than expanded into explicit tables; evaluation and printing consult the records lazily.
  * A definition recorded now may reference a predicate q that a flip replayed later still
- * modifies -- lazy evaluation then reroutes through the post-flip q. Why this is sound:
+ * modifies -- lazy evaluation then reroutes through the post-flip q. Where that is sound:
  *  - FunDef bodies are terms, so they cannot mention predicates, and function tables are
  *    never modified after the recording point -- immune;
  *  - a genuine definition (PredicateDefinition/FunctionDefinition elimination) is a unit of
  *    the original problem, which pins the defined symbol uniquely given the other symbols;
- *    the lazy reading satisfies it by construction at every replay stage;
- *  - a GLOB_FLIP *would* break rerouting (a body recorded from the polarity-flipped problem
- *    reads q in the wrong convention), but polarity flipping runs as the very last
- *    preprocessing step, so GLOB_FLIPs are replayed before any definition is recorded --
- *    the assertion below guards this ordering;
- *  - the delicate rest are PredicateElimination's synthesized (non-entailed) definitions
- *    recorded before a BCE COND_FLIP replays: there the argument goes through the flip's
- *    fixed-point iteration (at the fixed point every blocked-clause grounding holds under
- *    the final lazy values, and the resolvents are s-free consequences). Should the model
- *    checking of restored models ever catch this case misbehaving, the fallback is to
- *    materialize (freeze) the recorded definitions mentioning the flipped predicate before
- *    the flip.
+ *    the lazy reading satisfies it by construction at every replay stage.
  *
- * Only a flip's *target* must be explicit -- there has to be a table to flip into -- so it
- * is materialized (from its symbolic definition, or trivially) right before the flip.
+ * Where it is not sound is a flip: its argument reads "the model that differs from this one
+ * *only on q* is a model of the problem as it was before this step", and a lazy definition
+ * reading q silently moves along, so that hypothesis fails. It fails inside the flip's own
+ * loop too -- restoreViaCondFlip re-evaluates the condition per grounding, and the condition
+ * can reach q through such a definition, making it chase a moving target. So prepareForFlip
+ * makes q, and every recorded definition reading q, explicit first; see there.
+ *
+ * The GLOB_FLIPs are the one kind that needs none of this in practice: polarity flipping runs
+ * as the very last preprocessing step, so they are replayed before any definition is recorded,
+ * and prepareForFlip finds nothing to freeze -- indeed nothing to flip either, for a target
+ * the model does not represent yet. They go through the same path all the same, so that the
+ * replay does not silently depend on that ordering.
  */
 void FiniteModelMultiSorted::restoreEliminatedDefinitions(Kernel::Problem* prob)
 {
@@ -1052,21 +1108,18 @@ void FiniteModelMultiSorted::restoreEliminatedDefinitions(Kernel::Problem* prob)
         _symbolicPreds.insert(pd->_head->functor(),pd);
         break;
       }
-      case Problem::IntereferenceKind::GLOB_FLIP:
-        // see above; the flip target, if unrepresented, is legitimately skipped:
-        // flipping an absent symbol's arbitrary-anyway interpretation is a no-op
-        // (and its definition, recorded later in the replay, will simply take over)
-        ASS(_symbolicFuns.isEmpty());
-        ASS(_symbolicPreds.isEmpty());
-        restoreGlobalPredicateFlip(static_cast<Problem::GlobalFlip*>(i));
+      case Problem::IntereferenceKind::GLOB_FLIP: {
+        Problem::GlobalFlip* gf = static_cast<Problem::GlobalFlip*>(i);
+        if (prepareForFlip(gf->_pred)) {
+          restoreGlobalPredicateFlip(gf);
+        }
         break;
+      }
       case Problem::IntereferenceKind::COND_FLIP: {
         Problem::CondFlip* cf = static_cast<Problem::CondFlip*>(i);
-        unsigned p = cf->_val->functor();
-        if (!predRepresented(p)) {
-          materializePred(p);
+        if (prepareForFlip(cf->_val->functor())) {
+          restoreViaCondFlip(cf);
         }
-        restoreViaCondFlip(cf);
         break;
       }
 
