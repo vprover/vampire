@@ -1848,6 +1848,11 @@ void Options::init()
       "treatment of boolean terms.";
     _lookup.insert(&_FOOLParamodulation);
     _FOOLParamodulation.tag(OptionTag::INFERENCES);
+    // TheoryAxioms::applyFOOL leaves out the boolean domain axiom when this is on, relying on
+    // the rule to do that job instead. FMB has no such rule, so it would happily build a
+    // boolean domain of three or more elements.
+    _FOOLParamodulation.addHardConstraint(If(equal(true)).then(
+      _saturationAlgorithm.is(notEqual(SaturationAlgorithm::FINITE_MODEL_BUILDING))));
 
     _termAlgebraInferences = BoolOptionValue("term_algebra_rules","tar",true);
     _termAlgebraInferences.description=
