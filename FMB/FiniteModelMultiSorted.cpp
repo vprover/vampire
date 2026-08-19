@@ -193,25 +193,44 @@ std::string FiniteModelMultiSorted::toString()
     if(size==0) continue;
 
     // don't output interpreted sorts at all, we know what they are
-    if(env.signature->isInterpretedNonDefault(s))
+    // ($o is the exception: FMB models it like any other sort -- FOOL elimination and
+    // TheoryAxioms::applyFOOL turn the booleans into ordinary terms and axioms -- only its
+    // two domain elements are built-in and already named, see below)
+    if(env.signature->isInterpretedNonDefault(s) && !env.signature->isBoolCon(s))
       continue;
 
     std::string sortName = env.signature->typeConName(s);
     std::string sortNameLabel = (env.signature->isBoolCon(s)) ? "bool" : sortName;
 
-    // skip declaring $i, we know what it is
+    // skip declaring $i and $o, we know what they are
     if(!env.signature->isDefaultSortCon(s))
       // Sort declaration
       modelStm << "tff(" << prepend("declare_", sortNameLabel) << ",type,"<<sortName<<":$tType)." <<endl;
 
     cnames[s].ensure(size+1);
 
-    // Domain constant declarations
-    for(unsigned i=1;i<=size;i++){
-      modelStm << "tff(" << append(prepend("declare_", sortNameLabel), Int::toString(i).c_str()) << ",type,";
-      std::string cname = append(prepend("fmb_", sortNameLabel),(std::string("_")+Lib::Int::toString(i)).c_str());
-      cnames[s][i]=cname;
-      modelStm << cname << ":" << sortName << ")." << endl;
+    if(env.signature->isBoolCon(s)){
+      // The two boolean domain elements are FOOL's term-level booleans, printed as $true and
+      // $false (or, under -show_fool on, as the internal $$true / $$false -- which the parser
+      // does not accept in term position, so such a model is for reading only).
+      // Which element is which is what this model says about the two constants; there are no
+      // type declarations to emit for them, they are built-in.
+      ASS_EQ(size,2);
+      ASS(env.signature->foolConstantsDefined());
+      DHMap<unsigned,unsigned> noSubst;
+      for (unsigned i = 0; i < 2; i++) {
+        unsigned c = env.signature->getFoolConstantSymbol(i > 0);
+        cnames[s][evaluateTerm(TermList(Term::createConstant(c)),noSubst)] = env.signature->functionName(c);
+      }
+      ASS_NEQ(cnames[s][1],cnames[s][2]);
+    } else {
+      // Domain constant declarations
+      for(unsigned i=1;i<=size;i++){
+        modelStm << "tff(" << append(prepend("declare_", sortNameLabel), Int::toString(i).c_str()) << ",type,";
+        std::string cname = append(prepend("fmb_", sortNameLabel),(std::string("_")+Lib::Int::toString(i)).c_str());
+        cnames[s][i]=cname;
+        modelStm << cname << ":" << sortName << ")." << endl;
+      }
     }
 
     //Output domain
@@ -251,6 +270,9 @@ std::string FiniteModelMultiSorted::toString()
     Signature::Symbol* symb = env.signature->getFunction(f);
     unsigned arity = symb->arity();
     if(!printIntroduced && symb->introduced()) continue;
+    // the boolean domain elements are named after these two, so their definitions
+    // would just be the tautologies $true = $true and $false = $false
+    if(env.signature->isFoolConstantSymbol(true,f) || env.signature->isFoolConstantSymbol(false,f)) continue;
     std::string name = symb->name();
 
     OperatorType* ot = symb->fnType();

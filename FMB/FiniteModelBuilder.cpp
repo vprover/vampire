@@ -1898,8 +1898,7 @@ void FiniteModelBuilder::onModelFound()
     // a sort we did not model (one sort inference did not give a distinct sort to, because
     // nothing in the problem uses it) gets no domain in the model, i.e. size 0 -- so that we
     // don't invent a one-element domain for, say, $i in a problem that only uses declared sorts
-    // ($o is the exception: boolean-sorted terms may still want a domain element)
-    unsigned size = env.signature->isBoolCon(vSort) ? 1 : 0;
+    unsigned size = 0;
     unsigned dsort;
     if(_sortedSignature->vampireToDistinctParent.find(vSort,dsort)){
       size = _distinctSortSizes[dsort];
@@ -2048,8 +2047,9 @@ void FiniteModelBuilder::onModelFound()
   }
 
   // the replay evaluates as it goes (materializing symbols, testing a flip's condition),
-  // and so does the self-check below; unlike a model read from a file, one we built ourselves
-  // has no business being partial, so an undefined value here is a bug on our side
+  // and so do the self-check and the printing below (which asks about the fool constants);
+  // unlike a model read from a file, one we built ourselves has no business being partial,
+  // so an undefined value here is a bug on our side
   try {
     model.eliminateSortFunctionsAndPredicates(_sortFunctions,_sortPredicates);
     model.restoreEliminatedDefinitions(env.getMainProblem());
@@ -2057,11 +2057,11 @@ void FiniteModelBuilder::onModelFound()
 #if FMB_CHECK_MODEL_AGAINST_INPUT
     checkModelAgainstOriginalInput(model);
 #endif
+
+    env.statistics->model = model.toString();
   } catch (UndefinedValueException& e) {
     INVALID_OPERATION("FMB constructed a partial model: " + e.msg());
   }
-
-  env.statistics->model = model.toString();
 }
 
 #if FMB_CHECK_MODEL_AGAINST_INPUT
