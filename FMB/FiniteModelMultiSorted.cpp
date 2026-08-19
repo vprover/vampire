@@ -988,9 +988,12 @@ void FiniteModelMultiSorted::restoreGlobalPredicateFlip(Problem::GlobalFlip* gf)
   for(size_t idx = 0; idx < tbl.size(); idx++) {
     if (tbl[idx] == INTP_TRUE) {
       tbl[idx] = INTP_FALSE;
-    } else { // includes INTP_UNDEF, which is implicitly false
+    } else if (tbl[idx] == INTP_FALSE) {
       tbl[idx] = INTP_TRUE;
     }
+    // INTP_UNDEF stays undefined: flipping "we don't know" leaves us not knowing. Resolving it
+    // here would both decide too early -- a cell nobody reads is defaulted, once, at the end of
+    // restoreEliminatedDefinitions -- and decide the other way than that default does.
   }
 }
 
