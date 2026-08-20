@@ -75,6 +75,22 @@ const int TPTP::PI = 102u;
 /** Sigma function for existential quantification */
 const int TPTP::SIGMA = 103u;
 
+/** A pseudo-connective for the _connectives stack (cf. -1 for "no pending
+ * connective" and -2 for the "finish a THF formula" marker), marking a
+ * context that parses a "tight" subformula: the right-hand side of a THF
+ * equality. It behaves like -1, except that it does not absorb binary
+ * logical connectives, since equality and application bind tighter than all
+ * of them (equality sides are <thf_unitary_term>s in the TPTP BNF). */
+static const int EQ_RHS = -3;
+/** Like EQ_RHS, but marking the context that absorbs an unparenthesized
+ * application chain into the argument of a formula connective (see the
+ * T_APP deferral in endHolFormula()). It is distinguished from EQ_RHS only
+ * so that a '=' following the application is recognized as a first equality
+ * rather than a chained one. */
+static const int APP_ABSORB = -4;
+/** true for the two "tight subformula" contexts above */
+static bool tightContext(int con) { return con == EQ_RHS || con == APP_ABSORB; }
+
 Unit* TPTP::parseFormulaFromString(const std::string& str)
 {
   std::stringstream input(str+")."); // to fake endFOF, which creates the clause
@@ -714,8 +730,13 @@ void TPTP::skipWhiteSpacesAndComments()
     case 0: // end-of-file
       return;
 
-    case '\n':
     case '\r':
+      currentFile.lineNumber++;
+      // a CRLF pair is a single line break; a lone \r (old Mac style) also counts as one
+      shiftChars(getChar(1) == '\n' ? 2 : 1);
+      break;
+
+    case '\n':
       currentFile.lineNumber++;
     case ' ':
     case '\t':
@@ -762,20 +783,29 @@ void TPTP::skipWhiteSpacesAndComments()
       // search for the end of this comment
       for (;;) {
 	int c = getChar(0);
-        if( c == '\n' || c == '\r'){ currentFile.lineNumber++; }
+        if( c == '\n' || c == '\r'){
+          currentFile.lineNumber++;
+          if (c == '\r' && getChar(1) == '\n') {
+            shiftChars(1); // count a CRLF line ending only once
+          }
+        }
 	if (!c) {
 	  return;
 	}
-	resetChars();
+	// shiftChars instead of resetChars, as the CRLF check above may have peeked one character ahead
+	shiftChars(1);
 	if (c != '*') {
 	  continue;
 	}
 	// c == '*'
 	c = getChar(0);
-	resetChars();
 	if (c != '/') {
+	  // do not consume: this character must be re-examined from the top
+	  // of the loop (it may be another '*' starting the closing '*/',
+	  // or a newline that needs counting)
 	  continue;
 	}
+	shiftChars(1);
 	break;
       }
       break;
@@ -1222,7 +1252,7 @@ void TPTP::unitList()
     return;
   }
   if (tok.tag != T_NAME) {
-    PARSE_ERROR_TOK("cnf(), fof(), vampire() or include() expected",tok);
+    PARSE_ERROR_TOK("cnf(), fof(), tff(), thf(), vampire() or include() expected",tok);
   }
   std::string name(tok.content);
   _states.push(UNIT_LIST);
@@ -1256,7 +1286,7 @@ void TPTP::unitList()
     resetToks();
     return;
   }
-  PARSE_ERROR_TOK("cnf(), fof(), vampire() or include() expected",tok);
+  PARSE_ERROR_TOK("cnf(), fof(), tff(), thf(), vampire() or include() expected",tok);
 }
 
 /**
@@ -1290,7 +1320,6 @@ void TPTP::fof(bool fo)
   }
 
   consumeToken(T_COMMA);
-  tok = getTok(0);
   std::string tp = name();
 
   _isQuestion = false;
@@ -1308,12 +1337,10 @@ void TPTP::fof(bool fo)
     _lastInputType = UnitInputType::AXIOM;
   }
   else if (tp == "conjecture") {
-    _containsConjecture = true;
     _lastInputType = UnitInputType::CONJECTURE;
   }
   else if (tp == "question") {
     _isQuestion = true;
-    _containsConjecture = true;
     _lastInputType = UnitInputType::CONJECTURE;
   }
   else if (tp == "negated_conjecture") {
@@ -1365,7 +1392,6 @@ void TPTP::tff()
   }
 
   consumeToken(T_COMMA);
-  tok = getTok(0);
   std::string tp = name();
   if (tp == "type") {
     // Read a TPTP type declaration.
@@ -1434,12 +1460,10 @@ void TPTP::tff()
     _lastInputType = UnitInputType::AXIOM;
   }
   else if (tp == "conjecture") {
-    _containsConjecture = true;
     _lastInputType = UnitInputType::CONJECTURE;
   }
   else if (tp == "question") {
     _isQuestion = true;
-    _containsConjecture = true;
     _lastInputType = UnitInputType::CONJECTURE;
   }
   else if (tp == "negated_conjecture") {
@@ -1450,7 +1474,7 @@ void TPTP::tff()
   }
   else if (tp == "assumption" || tp == "unknown") {
     // MS: we were silently dropping these until now. I wonder why...
-    USER_ERROR("Unsupported unit type '", tp);
+    USER_ERROR("Unsupported unit type '", tp, "' found");
   }
   else if (tp == "claim") {
     _lastInputType = UnitInputType::CLAIM;
@@ -1487,6 +1511,10 @@ void TPTP::holFormula()
   
   switch (tok.tag) {
   case T_NOT:
+    if (!_connectives.isEmpty() && _connectives.top() == EQ_RHS) {
+      nonConformityWarning(NC_NON_UNITARY_EQUALITY_ARGUMENT,
+        "a unary, quantified or lambda formula as an unparenthesized equality argument is not legal THF; reading e.g. 'r = ~ s' as 'r = (~ s)'");
+    }
     resetToks();
     _connectives.push(NOT);
     _states.push(HOL_FORMULA);
@@ -1510,6 +1538,10 @@ void TPTP::holFormula()
   case T_EXISTS:
    // _states.push(UNBIND_VARIABLES);
   case T_LAMBDA:
+    if (!_connectives.isEmpty() && _connectives.top() == EQ_RHS) {
+      nonConformityWarning(NC_NON_UNITARY_EQUALITY_ARGUMENT,
+        "a unary, quantified or lambda formula as an unparenthesized equality argument is not legal THF; reading e.g. 'r = ~ s' as 'r = (~ s)'");
+    }
     resetToks();
     consumeToken(T_LBRA);
     _connectives.push(tok.tag == T_FORALL ? FORALL : (tok.tag == T_LAMBDA ? LAMBDA : EXISTS));
@@ -1529,7 +1561,11 @@ void TPTP::holFormula()
     
   //higher order syntax weirdly allows (~) @ (...)
   case T_RPAR: {
-    ASS(_connectives.top() == NOT);
+    // only legitimate as the closing of a (~) section; anything else,
+    // e.g. an empty (), must be rejected rather than silently made a vNOT
+    if (_connectives.isEmpty() || _connectives.top() != NOT) {
+      PARSE_ERROR_TOK("formula or term expected",tok);
+    }
     _connectives.pop();
     _termLists.push(createFunctionApplication("vNOT", 0));
     _lastPushed = TM;
@@ -1543,6 +1579,12 @@ void TPTP::holFormula()
   {
     USER_ERROR("At the moment Vampire HOL cannot parse definite and indefinite description operators");
   }
+
+  case T_THF_QUANT_SOME:
+    USER_ERROR("At the moment Vampire HOL cannot parse the ?* quantifier");
+
+  case T_TYPE_QUANT:
+    USER_ERROR("At the moment Vampire HOL only supports type quantification (!>) in type declarations, not in formulas");
 
   case T_STRING:
   case T_INT:
@@ -1567,6 +1609,7 @@ void TPTP::holFormula()
   case T_OR:
   case T_IMPLY:
   case T_IFF:
+  case T_XOR:
   case T_NAME:
   case T_VAR:
   case T_ITE:
@@ -1609,7 +1652,6 @@ void TPTP::holTerm()
 
     case T_BOOL_TYPE:
     case T_DEFAULT_TYPE: {
-      resetToks();
       switch (tok.tag) {
         case T_BOOL_TYPE:
           _termLists.push(AtomicSort::boolSort());
@@ -1697,6 +1739,22 @@ std::string TPTP::convert(Tag t)
   * @author Ahmed Bhayat
   */
 
+/**
+ * Report (at most once per parser run per kind) that Vampire leniently
+ * accepted input that is not legal according to the TPTP BNF, explaining
+ * the reading it chose.
+ */
+void TPTP::nonConformityWarning(NonConformity kind, const std::string& explanation)
+{
+  if (_nonConformityWarned[kind]) {
+    return;
+  }
+  _nonConformityWarned[kind] = true;
+  std::cout << "% WARNING: non-conforming THF input in " << currentFile.path
+            << ", line " << currentFile.lineNumber << ": " << explanation
+            << " (further occurrences of this kind will not be reported in this run)" << endl;
+}
+
 void TPTP::endHolFormula()
 {
   int con = _connectives.pop();
@@ -1706,11 +1764,84 @@ void TPTP::endHolFormula()
       endTermAsFormula();
     }
     return;
-  }  
-  
-  if ((con < HOL_CONSTANTS_LOWER_BOUND) && (con != -1) && (_lastPushed == TM)){
-    //At the moment, APP and LAMBDA are the only connectives that can take terms of type
-    //Other than $o as arguments.
+  }
+
+  if ((con == FORALL || con == EXISTS || con == LAMBDA || con == NOT) &&
+      (getTok(0).tag == T_EQUAL || getTok(0).tag == T_NEQ)) {
+    // the body of a quantified/lambda formula is a <thf_unit_formula>, which
+    // includes equalities (<thf_defined_infix>): '^[X]: X = y' reads as
+    // '^[X]: (X = y)'. Defer building the binder: parse the equality first
+    // (with the bound variables still in scope) and reconsider the binder
+    // connective once the equality atom is built.
+    // NOT is treated the same way, so that the (strictly non-conforming)
+    // '~ p = q' reads as '~ (p = q)', consistent with the reading the TPTP
+    // BNF mandates for the same text in FOF/TFF.
+    if (con == NOT) {
+      nonConformityWarning(NC_NOT_APPLIED_TO_EQUALITY,
+        "'~' applied to an unparenthesized (in)equality is not legal THF; reading '~ s = t' as '~ (s = t)'");
+    }
+    _connectives.push(con);
+    _states.push(END_HOL_FORMULA);
+    _states.push(END_EQ);
+    _connectives.push(EQ_RHS);
+    _states.push(END_HOL_FORMULA);
+    _states.push(HOL_FORMULA);
+    _states.push(MID_EQ);
+    if(_lastPushed == FORM){
+      endFormulaInsideTerm();
+    }
+    return;
+  }
+
+  // NOT and the binary logical connectives absorb a trailing application
+  // chain into their argument. The binders (FORALL/EXISTS/LAMBDA) are
+  // deliberately not eligible: per the TPTP BNF a binder body is a single
+  // <thf_unit_formula>, so a binder is complete once its body is parsed, and
+  // a following '@' applies the completed binder within the enclosing
+  // context -- '^ [X: a] : ( f @ X ) @ y' is '(^ [X: a] : (f @ X)) @ y'
+  // (HOL4's BETA_THM), not '^ [X: a] : ((f @ X) @ y)'.
+  bool conAbsorbsApplications =
+    con == AND || con == OR || con == IMP || con == IFF || con == XOR || con == NOT;
+  if (conAbsorbsApplications && (getTok(0).tag == T_APP) &&
+      (_lastPushed == TM || (_lastPushed == FORM && con != NOT)) &&
+      (_connectives.top() != APP && _connectives.top() != APP_ABSORB) &&
+      !(con == NOT && _lastTokenTag == T_RPAR)) {
+    // an application (@) binds tighter than all formula connectives: before
+    // converting the item just parsed to a formula, absorb the whole
+    // application chain (and a possible trailing equality) into it, then
+    // reconsider con. For IMP/AND/OR, the conReverse flag has not been
+    // popped yet at this point and simply stays in _bools for the later
+    // reconsideration.
+    // Exceptions, where the TPTP BNF gives the text a legal reading that we
+    // follow instead of absorbing:
+    // - (the _connectives.top() check) con is itself an argument of an
+    //   application chain, as in 'f @ ~ p @ y': any completed unit formula
+    //   ends there and the trailing '@ y' continues the *enclosing* chain,
+    //   '(f @ (~ p)) @ y';
+    // - (the _lastTokenTag check) the argument of '~' already closed by ')'
+    //   makes '~ (...)' a complete <thf_prefix_unary>, so a following '@'
+    //   belongs to the enclosing context: '^ [X: a] : ~ ( p @ X ) @ y'
+    //   applies the lambda (whose body is '~ (p @ X)') to y.
+    nonConformityWarning(NC_UNPARENTHESIZED_APPLICATION,
+      "an unparenthesized application as a connective argument is not legal THF; reading e.g. 'p & f @ x' as 'p & (f @ x)'");
+    if (_lastPushed == FORM) {
+      // a parenthesized formula, e.g. '(q | r)' in 'p & (q | r) @ x', becomes
+      // the head of the application chain: wrap it as a term first
+      endFormulaInsideTerm();
+    }
+    _connectives.push(con);
+    _states.push(END_HOL_FORMULA);
+    _connectives.push(APP_ABSORB);
+    _states.push(END_HOL_FORMULA);
+    return; // '@' is not consumed: the APP_ABSORB context absorbs the application
+  }
+
+  if ((con < HOL_CONSTANTS_LOWER_BOUND) && (con != -1) && !tightContext(con) && (_lastPushed == TM)){
+    // formula connectives (those below HOL_CONSTANTS_LOWER_BOUND) take
+    // formulas as arguments, so a term body must be converted; the HOL
+    // operators (LAMBDA, APP, PI, SIGMA), the "no pending connective"
+    // context (-1) and the equality RHS (which may be of any sort)
+    // legitimately operate on terms
     endTermAsFormula();
   }
 
@@ -1727,7 +1858,8 @@ void TPTP::endHolFormula()
   case IFF:
   case XOR:
   case APP:
-  case -2:
+  case EQ_RHS:
+  case APP_ABSORB:
   case -1:
     break;
   case NOT:
@@ -1801,8 +1933,27 @@ switch (tag) {
   case T_EQUAL:
   case T_NEQ: {
     // not connectives, but we allow formulas to be arguments to = and !=
+    if (con == APP) {
+      // an application binds tighter than equality: finish building it and
+      // reconsider '='/'!=' (not consumed yet) with the enclosing connective
+      _states.push(END_HOL_FORMULA);
+      _states.push(END_APP);
+      return;
+    }
+    if (con == EQ_RHS) {
+      nonConformityWarning(NC_CHAINED_EQUALITY,
+        "a chained equality is not legal THF; reading 'r = s = t' right-associatively as 'r = (s = t)'");
+    }
+    // as in endFormula(), restore the pending connective (with its conReverse
+    // flag) and re-push END_HOL_FORMULA, so that once the equality atom is
+    // built, connective parsing resumes as if the atom were a simple formula
+    _connectives.push(con);
+    if (con == IMP || con == AND || con == OR) {
+      _bools.push(conReverse);
+    }
+    _states.push(END_HOL_FORMULA);
     _states.push(END_EQ);
-    _connectives.push(-1);
+    _connectives.push(EQ_RHS);
     _states.push(END_HOL_FORMULA);
     _states.push(HOL_FORMULA);
     _states.push(MID_EQ);
@@ -1853,6 +2004,8 @@ switch (tag) {
       _states.push(END_HOL_FORMULA);
       return;
 
+    case EQ_RHS:
+    case APP_ABSORB:
     case -1:
       return;
     default:
@@ -1860,19 +2013,28 @@ switch (tag) {
     }
   }
 
+  if (tightContext(con) && c != APP) {
+    // a tight subformula ends at a binary logical connective (equality and
+    // application bind tighter than all of them); do not consume the token
+    // and let the enclosing context deal with it
+    return;
+  }
+
   if ((c != APP) && (con == -1) && (_lastPushed == TM)){
     endTermAsFormula();
   }
 
-  
+
   // con and c are binary connectives
-  if (higherPrecedence(con,c)) {
+  // (with con in a tight context, only reachable when c == APP, an
+  //  application is still absorbed via the push-back below)
+  if (!tightContext(con) && higherPrecedence(con,c)) {
     if (con == APP){
       _states.push(END_HOL_FORMULA);
       _states.push(END_APP);
-      return;  
+      return;
     }
-    f = _formulas.pop(); 
+    f = _formulas.pop();
     Formula* g = _formulas.pop();
     if (con == AND || con == OR) {
       f = makeJunction((Connective)con,g,f);
@@ -1881,7 +2043,7 @@ switch (tag) {
       }
     }
     else if (con == IMP && conReverse) {
-      f = new BinaryFormula((Connective)con,f,g); 
+      f = new BinaryFormula((Connective)con,f,g);
     }else {
       f = new BinaryFormula((Connective)con,g,f);
     }
@@ -1920,7 +2082,10 @@ void TPTP::endApp()
   TermList rhs = _termLists.pop();
   TermList lhs = _termLists.pop();
   TermList lhsSort = sortOf(lhs);
-  ASS_REP2(lhsSort.isTerm() && lhsSort.term()->arity() == 2, lhs.toString(), lhsSort.toString());
+  if (!lhsSort.isArrowSort()) {
+    USER_ERROR("sort mismatch in the application " + lhs.toString() + " @ " + rhs.toString() +
+               ": " + lhs.toString() + " has the non-functional sort " + lhsSort.toString());
+  }
   TermList s1 = *(lhsSort.term()->nthArgument(0));
   TermList s2 = *(lhsSort.term()->nthArgument(1));
   args.push(s1);
@@ -1944,13 +2109,13 @@ void TPTP::endIte()
   TermList thenBranch = _termLists.pop();
   Formula* condition = _formulas.pop();
   TermList thenSort = sortOf(thenBranch);
-  TermList ts(Term::createITE(condition,thenBranch,elseBranch,thenSort));
   TermList elseSort = sortOf(elseBranch);
   if (thenSort != elseSort) {
     USER_ERROR("sort mismatch in the if-then-else expression: " +
                thenBranch.toString() + " has the sort " + thenSort.toString() + ", whereas " +
                elseBranch.toString() + " has the sort " + elseSort.toString());
   }
+  TermList ts(Term::createITE(condition,thenBranch,elseBranch,thenSort));
   _termLists.push(ts);
 } // endIte
 
@@ -2108,7 +2273,8 @@ void TPTP::include()
     consumeToken(T_LBRA);
     for(;;) {
       tok = getTok(0);
-      if (tok.tag != T_NAME) {
+      // TPTP name ::= atomic_word | integer (cf. the unit name parsing in fof()/tff())
+      if (tok.tag != T_NAME && tok.tag != T_INT) {
         PARSE_ERROR_TOK("formula name expected",tok);
       }
       resetToks();
@@ -2313,6 +2479,7 @@ void TPTP::funApp()
     case T_LBRA:
       _states.push(ARGS);
       _ints.push(1); // the arity of the function symbol is at least 1
+      _tags.push(T_RBRA); // the expected closing delimiter, checked in endArgs()
       return;
 
     case T_VAR:
@@ -2324,6 +2491,7 @@ void TPTP::funApp()
         resetToks();
         _states.push(ARGS);
         _ints.push(1); // the arity of the function symbol is at least 1
+        _tags.push(T_RPAR); // the expected closing delimiter, checked in endArgs()
       } else {
         _ints.push(0); // arity
       }
@@ -2657,10 +2825,11 @@ Substitution TPTP::getTypeSub(const TPTP::LetSymbolReference& ref)
   return subst;
 }
 
-bool TPTP::findLetSymbol(LetSymbolName symbolName, LetSymbolReference& symbolReference) {
-  Stack<LetSymbols>::TopFirstIterator scopes(_letSymbols);
+bool TPTP::findLetSymbol(const LetSymbolName& symbolName, LetSymbolReference& symbolReference) {
+  // ConstRefIterator, as the top-first ConstIterator would deep-copy each scope
+  Stack<LetSymbols>::ConstRefIterator scopes(_letSymbols);
   while (scopes.hasNext()) {
-    LetSymbols scope = scopes.next();
+    const LetSymbols& scope = scopes.next();
     if (findLetSymbol(symbolName, scope, symbolReference)) {
       return true;
     }
@@ -2668,7 +2837,7 @@ bool TPTP::findLetSymbol(LetSymbolName symbolName, LetSymbolReference& symbolRef
   return false;
 } // findLetSymbol(LetSymbolName,LetSymbolReference)
 
-bool TPTP::findLetSymbol(LetSymbolName symbolName, LetSymbols scope, LetSymbolReference& symbolReference) {
+bool TPTP::findLetSymbol(const LetSymbolName& symbolName, const LetSymbols& scope, LetSymbolReference& symbolReference) {
   for (const auto& [name,ref] : scope) {
     if (name == symbolName) {
       symbolReference = ref;
@@ -2799,11 +2968,15 @@ void TPTP::endArgs()
     _states.push(TERM);
     return;
   case T_RPAR:
+  case T_RBRA: {
+    // a function application f(...) must be closed by ')' and a tuple [...] by ']'
+    Tag expected = _tags.pop();
+    if (tok.tag != expected) {
+      PARSE_ERROR_TOK(toString(expected) + " expected after an end of a term",tok);
+    }
     resetToks();
     return;
-  case T_RBRA:
-    resetToks();
-    return;
+  }
   default:
     PARSE_ERROR_TOK(", ) or ] expected after an end of a term",tok);
   }
@@ -3205,8 +3378,10 @@ Formula* TPTP::createPredicateApplication(std::string name, unsigned arity)
     // TODO check that we are top-level
 
     // ignore pointless $distinct(x)
-    if(arity < 2)
+    if(arity < 2) {
+      _termLists.pop(arity);
       return new Formula(true);
+    }
     // If fewer than 5 things are distinct then we add the disequalities
     else if(arity < 5){
       static Stack<unsigned> distincts;
@@ -3276,7 +3451,16 @@ TermList TPTP::createFunctionApplication(std::string name, unsigned arity)
     insertImplicitLetTypeArguments(ref, arity);
   } else {
     bool dummy;
-    if (arity > 0) {
+    if (_isThf && (name == "vAND" || name == "vOR" || name == "vIMP" ||
+                   name == "vIFF" || name == "vXOR")) {
+      // names of the internal logical proxy constants, as synthesized by the
+      // THF parsing functions (holTerm/holFormula)
+      // TODO: in THF mode, these still capture identically named constants
+      // coming from the input; make the internal names unique to Vampire (AYB)
+      fun = env.signature->getBinaryProxy(name);
+    } else if (_isThf && name == "vNOT") {
+      fun = env.signature->getNotProxy();
+    } else if (arity > 0) {
       fun = addFunction(name, arity, dummy, _termLists.top());
     } else {
       fun = addUninterpretedConstant(name, dummy);
@@ -3443,7 +3627,15 @@ void TPTP::endFormula()
     break;
   case T_EQUAL:
   case T_NEQ: {
-    // not connectives, but we allow formulas to be arguments to = and !=
+    // not connectives, but we allow formulas to be arguments to = and !=;
+    // the pending connective con (with its conReverse flag) must be restored
+    // and END_FORMULA re-pushed, so that after the equality atom is built
+    // connective parsing resumes as if the atom were a simple formula
+    _connectives.push(con);
+    if (con == IMP || con == AND || con == OR) {
+      _bools.push(conReverse);
+    }
+    _states.push(END_FORMULA);
     _states.push(END_EQ);
     _states.push(TERM);
     _states.push(MID_EQ);
@@ -3655,7 +3847,15 @@ void TPTP::endFof()
   Formula* f = _formulas.pop();
   std::string nm = _strings.pop(); // unit name
   if (!currentFile.allowedNames.empty() && !currentFile.allowedNames.count(nm)) {
+    delete source;
+    _curQuestionVarNames.reset();
     return;
+  }
+  if (_lastInputType == UnitInputType::CONJECTURE) {
+    // count the conjecture only now, once the unit is known not to be
+    // filtered out by an include() formula selection
+    // (containsConjecture() decides between SZS Theorem and Unsatisfiable)
+    _containsConjecture = true;
   }
 
   Unit *unit, *original;
@@ -4121,7 +4321,7 @@ void TPTP::skipToRBRA()
     Token tok = getTok(0);
     switch (tok.tag) {
     case T_EOF:
-      PARSE_ERROR_TOK(") not found",tok);
+      PARSE_ERROR_TOK("] not found",tok);
     case T_LBRA:
       resetToks();
       balance++;
@@ -4358,16 +4558,15 @@ TermList TPTP::readSort()
         arity = _typeConstructorArities.find(fname) ? _typeConstructorArities.get(fname) : 0;
         readTypeArgs(arity);
       } else {
-        int c = getChar(0);
-        //Polymorphic sorts of are of the form 
+        //Polymorphic sorts of are of the form
         //type_con(sort_1, ..., sort_n)
         //the same as standard first-order terms.
         //Code below works, but does not fit the philosophy of
         //this parser. However, recursive calls to readSort are
         //used in for array sorts and tuple sorts, so polymorphism
         //isn't uniquely evil on this front!
-        if(c == '('){
-          consumeToken(T_LPAR);    
+        if(getTok(0).tag == T_LPAR){
+          consumeToken(T_LPAR);
           for(;;){
             arity++;
             _termLists.push(readSort());
@@ -4378,7 +4577,7 @@ TermList TPTP::readSort()
               consumeToken(T_RPAR);
               break;
             } else{
-              ASSERTION_VIOLATION;
+              PARSE_ERROR_TOK(", or ) expected in a sort application",tok);
             }
           }
         }
@@ -4453,7 +4652,9 @@ TermList TPTP::readSort()
 } // readSort
 
 /**
- * True if c1 has a strictly higher priority than c2.
+ * True if c1 has a strictly higher priority than c2 -- except that APP is
+ * also reported as higher than APP itself, which is what makes application
+ * (@) left-associative.
  * @since 07/07/2011 Manchester
  */
 bool TPTP::higherPrecedence(int c1,int c2)
@@ -4672,8 +4873,9 @@ unsigned TPTP::addFunction(std::string name,int arity,bool& added,TermList& arg)
 				 Theory::RAT_TO_REAL,
 				 Theory::REAL_TO_REAL);
   } 
-  if (name == "vPI"  || name == "vSIGMA"){
-    return env.signature->getPiSigmaProxy(name); 
+  if (_isThf && (name == "vPI" || name == "vSIGMA")){
+    // names of the internal pi/sigma proxies, as synthesized by holFormula()
+    return env.signature->getPiSigmaProxy(name);
   }
   if (arity > 0) {
     return env.signature->addFunction(name,arity,added);
@@ -4844,14 +5046,11 @@ TermList TPTP::sortOf(TermList t)
  */
 unsigned TPTP::addUninterpretedConstant(const std::string& name, bool& added)
 {
-  //TODO make sure Vampire internal names are unique to Vampire
-  //and cannot occur in the input AYB
-  if(name == "vAND" || name == "vOR" || name == "vIMP" ||
-     name == "vIFF" || name == "vXOR"){
-    return env.signature->getBinaryProxy(name);
-  } else if (name == "vNOT"){
-    return env.signature->getNotProxy();
-  }
+  // Note: the routing of the internal HOL proxy names (vAND, vNOT, ...) to
+  // their proxy symbols used to live here, capturing identically named
+  // constants in any input dialect (including FOF and SMT-LIB, which
+  // additionally left `added` uninitialized on that path). It now happens
+  // in createFunctionApplication()/addFunction(), only in THF mode.
   return env.signature->addFunction(name,0,added);
 } // TPTP::addUninterpretedConstant
 
