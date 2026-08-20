@@ -110,6 +110,7 @@ protected:
 private:
   Status _status = Status::SATISFIABLE;
   Minisat::vec<Minisat::Lit> _assumptions;
+  Minisat::vec<Minisat::Lit> _clauseBuffer;
   MinisatSolver _solver;
 };
 

@@ -140,29 +140,35 @@ SATClause* SATClause::removeDuplicateLiterals(SATClause* cl)
 
   cl->sort();
 
-  unsigned duplicate=0;
-  for(unsigned i=1;i<clen;i++) {
-    if((*cl)[i-1].var()==(*cl)[i].var()) {
-      if((*cl)[i-1].positive()==(*cl)[i].positive()) {
-        //We must get rid of the first occurrence of the duplicate (at i-1). Removing
-        //the second would make us miss the case when there are three duplicates.
-        std::swap((*cl)[duplicate], (*cl)[i-1]);
-        duplicate++;
-      } else {
-        //delete tautology clauses
-        cl->destroy();
-        return 0;
-      }
+  unsigned write = 0;
+  for (unsigned read = 0; read < clen; read++) {
+    SATLiteral lit = (*cl)[read];
+    if (write == 0) {
+      (*cl)[write++] = lit;
+      continue;
     }
+
+    SATLiteral prev = (*cl)[write - 1];
+    if (prev.var() != lit.var()) {
+      (*cl)[write++] = lit;
+      continue;
+    }
+
+    if (prev.positive() != lit.positive()) {
+      // delete tautology clauses
+      cl->destroy();
+      return 0;
+    }
+    // duplicate literal, skip
   }
-  if(duplicate) {
-    unsigned newLen=clen-duplicate;
+
+  if (write < clen) {
+    unsigned newLen = write;
     SATClause* cl2=new(newLen) SATClause(newLen);
 
-    for(unsigned i=0;i<newLen;i++) {
-      (*cl2)[i]=(*cl)[duplicate+i];
+    for (unsigned i = 0; i < newLen; i++) {
+      (*cl2)[i] = (*cl)[i];
     }
-    cl2->sort();
     if(cl->inference()) {
       SATInference* cl2Inf = new PropInference(cl);
       cl2->setInference(cl2Inf);

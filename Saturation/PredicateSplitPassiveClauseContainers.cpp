@@ -14,6 +14,7 @@
 #include <algorithm>
 #include <iterator>
 #include <limits>
+#include <numeric>
 
 #include "Shell/Options.hpp"
 #include "Kernel/Clause.hpp"
@@ -31,7 +32,7 @@ using namespace Kernel;
 PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool isOutermost, const Shell::Options& opt, std::string name,
     std::vector<std::unique_ptr<PassiveClauseContainer>> queues,
     std::vector<float> cutoffs, std::vector<int> ratios, bool layeredArrangement)
-  : PassiveClauseContainer(isOutermost, opt, name), _queues(std::move(queues)), _cutoffs(cutoffs), _layeredArrangement(layeredArrangement)
+  : PassiveClauseContainer(isOutermost, opt, name), _queues(std::move(queues)), _cutoffs(std::move(cutoffs)), _layeredArrangement(layeredArrangement)
 {
   _randomize = opt.randomAWR();
 
@@ -45,6 +46,7 @@ PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool 
 
   if (_randomize) {
     _ratioSum = 0;
+    _ratios.reserve(ratios.size());
     for (unsigned i = 0; i < ratios.size(); i++) {
       unsigned ri = ratios[i];
       _ratioSum += ri;
@@ -61,6 +63,8 @@ PredicateSplitPassiveClauseContainer::PredicateSplitPassiveClauseContainer(bool 
     lcm = std::lcm(lcm, ratios[i]);
   }
   // initialize
+  _invertedRatios.reserve(ratios.size());
+  _balances.reserve(ratios.size());
   for (unsigned i = 0; i < ratios.size(); i++)
   {
     _invertedRatios.push_back(lcm / ratios[i]);
@@ -86,11 +90,32 @@ unsigned PredicateSplitPassiveClauseContainer::bestQueue(float featureValue) con
   ASSERTION_VIOLATION;
 }
 
+unsigned PredicateSplitPassiveClauseContainer::getCachedBestQueueIndexOrCompute(Clause* cl) const
+{
+  auto* cached = _bestQueueCache.findPtr(cl->number());
+  if (cached) {
+    return *cached;
+  }
+  return bestQueue(evaluateFeature(cl));
+}
+
+unsigned PredicateSplitPassiveClauseContainer::computeAndCacheBestQueueIndex(Clause* cl)
+{
+  unsigned idx = bestQueue(evaluateFeature(cl));
+  _bestQueueCache.set(cl->number(), idx);
+  return idx;
+}
+
+void PredicateSplitPassiveClauseContainer::eraseCachedBestQueueIndex(Clause* cl)
+{
+  _bestQueueCache.remove(cl->number());
+}
+
 void PredicateSplitPassiveClauseContainer::add(Clause* cl)
 {
   ASS(cl->store() == Clause::PASSIVE);
 
-  auto bestQueueIndex = bestQueue(evaluateFeature(cl));
+  auto bestQueueIndex = computeAndCacheBestQueueIndex(cl);
   if (_layeredArrangement)
   {
     // add clause to all queues starting from best queue for clause
@@ -119,7 +144,7 @@ void PredicateSplitPassiveClauseContainer::remove(Clause* cl)
   {
     ASS(cl->store()==Clause::PASSIVE);
   }
-  auto bestQueueIndex = bestQueue(evaluateFeature(cl));
+  auto bestQueueIndex = getCachedBestQueueIndexOrCompute(cl);
 
   if (_layeredArrangement)
   {
@@ -141,6 +166,8 @@ void PredicateSplitPassiveClauseContainer::remove(Clause* cl)
     removedEvent.fire(cl);
     ASS(cl->store() != Clause::PASSIVE);
   }
+
+  eraseCachedBestQueueIndex(cl);
 }
 
 bool PredicateSplitPassiveClauseContainer::isEmpty() const
@@ -232,13 +259,17 @@ Clause* PredicateSplitPassiveClauseContainer::popSelected()
   // note: for a non-layered arrangement, the clause only occurred in _queues[currIndex] (from which it was just removed using popSelected(), so we don't need any additional clause-removal
   if (_layeredArrangement)
   {
-    // remove clause from all queues
-    for (unsigned i = 0; i < _queues.size(); i++)
+    // remove clause from queues that can contain it
+    auto bestQueueIndex = getCachedBestQueueIndexOrCompute(cl);
+    for (unsigned i = bestQueueIndex; i < _queues.size(); i++)
     {
-      _queues[i]->remove(cl);
+      if (i != currIndex) {
+        _queues[i]->remove(cl);
+      }
     }
   }
 
+  eraseCachedBestQueueIndex(cl);
   selectedEvent.fire(cl);
 
   return cl;
@@ -246,11 +277,7 @@ Clause* PredicateSplitPassiveClauseContainer::popSelected()
 
 void PredicateSplitPassiveClauseContainer::simulationInit()
 {
-  _simulationBalances.clear();
-  for (const auto& balance : _balances)
-  {
-    _simulationBalances.push_back(balance);
-  }
+  _simulationBalances = _balances;
 
   for (const auto& queue : _queues)
   {
@@ -260,13 +287,14 @@ void PredicateSplitPassiveClauseContainer::simulationInit()
 
 bool PredicateSplitPassiveClauseContainer::simulationHasNext()
 {
-  bool hasNext = false;
   for (const auto& queue : _queues)
   {
-    bool currHasNext = queue->simulationHasNext();
-    hasNext = hasNext || currHasNext;
+    if (queue->simulationHasNext())
+    {
+      return true;
+    }
   }
-  return hasNext;
+  return false;
 }
 
 void PredicateSplitPassiveClauseContainer::simulationPopSelected()
@@ -340,9 +368,9 @@ void PredicateSplitPassiveClauseContainer::onLimitsUpdated()
 
 bool PredicateSplitPassiveClauseContainer::mayBeAbleToDiscriminateChildrenOnLimits() const
 {
+  ASS(!_queues.empty());
   // just ask the first queue we have
-  for (const auto& queue : _queues) return queue->mayBeAbleToDiscriminateChildrenOnLimits();
-  return false;
+  return _queues[0]->mayBeAbleToDiscriminateChildrenOnLimits();
 }
 
 bool PredicateSplitPassiveClauseContainer::allChildrenNecessarilyExceedLimits(Clause* cl, unsigned upperBoundNumSelLits) const
@@ -408,7 +436,7 @@ bool PredicateSplitPassiveClauseContainer::limitsActive() const
 
 bool PredicateSplitPassiveClauseContainer::exceedsAllLimits(Clause* cl) const
 {
-  auto bestQueueIndex = bestQueue(evaluateFeature(cl));
+  auto bestQueueIndex = getCachedBestQueueIndexOrCompute(cl);
   if (_layeredArrangement) {
     // with layered arranegement, all relevant sub-queues should agree that cl exceeds
     for (unsigned i = bestQueueIndex; i < _queues.size(); i++) {
@@ -547,7 +575,7 @@ PredicateSplitPassiveClauseContainer(isOutermost, opt, name, std::move(queues), 
 float AvatarMultiSplitPassiveClauseContainer::evaluateFeature(Clause* cl) const
 {
   // heuristically compute likeliness that clause occurs in proof
-  auto inf = cl->inference();
+  const Inference& inf = cl->inference();
   return (inf.splits() == nullptr) ? 0 : inf.splits()->size();
 }
 
