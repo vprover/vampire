@@ -91,7 +91,7 @@ private:
       Stack<CodeOp*> firstsInBlocks;
 
       FlatTerm* ft = FlatTerm::create(ts);
-      vm.init(ft, this, &firstsInBlocks);
+      vm.init(ft, *this, &firstsInBlocks);
 
       if (vm.execute()) {
         ASS(vm.op->isSuccess());
@@ -133,10 +133,10 @@ private:
 
     static SubstMatcher matcher;
     struct Applicator : public SubstApplicator {
-      TermList operator()(unsigned v) const override { return matcher.bindings[v]; }
+      TermList apply(unsigned v) const override { return matcher.bindings[v]; }
     } applicator;
 
-    matcher.init(this, ts);
+    matcher.init(*this, ts);
     EntryContainer* ec;
     while ((ec = matcher.next()))
     {
@@ -248,9 +248,9 @@ private:
   // TODO(HOL): consider turning higherOrder flag off for HOL
   : public Matcher</*removing*/false,false,/*higherOrder=*/true>
   {
-    void init(CodeTree* tree, const TermStack& ts)
+    void init(const CodeTree& tree, const TermStack& ts)
     {
-      Matcher::init(tree,tree->getEntryPoint(), /*canEnterOpposites_=*/false);
+      Matcher::init(tree, tree.getEntryPoint(), /*canEnterOpposites_=*/false);
 
       ft = FlatTerm::create(ts);
 
@@ -284,8 +284,8 @@ private:
   : public Matcher</*removing*/true,true,/*higherOrder=*/false>
   {
   public:
-    void init(FlatTerm* ft_, CodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_) {
-      Matcher::init(tree_, tree_->getEntryPoint(), /*canEnterOpposites_=*/false, 0, 0, firstsInBlocks_);
+    void init(FlatTerm* ft_, const CodeTree& tree_, Stack<CodeOp*>* firstsInBlocks_) {
+      Matcher::init(tree_, tree_.getEntryPoint(), /*canEnterOpposites_=*/false, 0, 0, firstsInBlocks_);
       ft=ft_;
       tp=0;
       op=entry;

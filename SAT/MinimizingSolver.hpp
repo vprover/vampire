@@ -172,7 +172,7 @@ private:
    * _unsClCnt, when there is more than one way to make clause
    * satisfied.
    */  
-  DHSet<SATClause*> _satisfiedClauses;
+  DHSet<SATClause*, FnvHash, PtrIdentityHash> _satisfiedClauses;
   
 };
 

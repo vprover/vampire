@@ -253,7 +253,7 @@ void ClauseCodeTree<higherOrder>::remove(Clause* cl)
     {
       Recycled<RemovingLiteralMatcher, NoReset> rrlm; // take rlm out of recycling
       rlm = &*rrlm; // get the actual content (also to use after this initialization block)
-      rlm->init(op, lInfos.array(), lInfos.size(), this, &*firstsInBlocks); // init it
+      rlm->init(op, lInfos.array(), lInfos.size(), *this, &*firstsInBlocks); // init it
       rlms->push(std::move(rrlm)); // store it in rlms (along with the obligation to return to recycling when no longer used)
     }
 
@@ -298,7 +298,7 @@ void ClauseCodeTree<higherOrder>::remove(Clause* cl)
 
 template<bool higherOrder>
 void ClauseCodeTree<higherOrder>::RemovingLiteralMatcher::init(CodeOp* entry_, LitInfo* linfos_,
-    size_t linfoCnt_, ClauseCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_)
+    size_t linfoCnt_, const ClauseCodeTree& tree_, Stack<CodeOp*>* firstsInBlocks_)
 {
   Base::init(tree_, entry_, /*canEnterOpposites*/ false, linfos_, linfoCnt_, firstsInBlocks_);
 
@@ -336,7 +336,7 @@ bool ClauseCodeTree<higherOrder>::removeOneOfAlternatives(CodeOp* op, Clause* cl
  *  and fail if there isn't any at the beginning (possibly also among alternatives).
  */
 template<bool higherOrder>
-void ClauseCodeTree<higherOrder>::LiteralMatcher::init(CodeTree* tree_, CodeOp* entry_,
+void ClauseCodeTree<higherOrder>::LiteralMatcher::init(const CodeTree& tree_, CodeOp* entry_,
 					  LitInfo* linfos_, size_t linfoCnt_,
 					  bool canEnterOpposites, bool seekOnlySuccess)
 {
@@ -694,7 +694,7 @@ void ClauseCodeTree<higherOrder>::ClauseMatcher::enterLiteral(CodeOp* entry, boo
   size_t linfoCnt=lInfos.size();
 
   Recycled<LiteralMatcher, NoReset> lm;
-  lm->init(tree, entry, lInfos.array(), linfoCnt, canEnterOpposites, seekOnlySuccess);
+  lm->init(*tree, entry, lInfos.array(), linfoCnt, canEnterOpposites, seekOnlySuccess);
   lms.push(std::move(lm));
 }
 

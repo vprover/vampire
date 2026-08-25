@@ -672,6 +672,8 @@ Term* SynthesisALManager::translateToSynthesisConditionTerm(Literal* l)
       }
       if (isPredicateComputable(l->functor())) {
         ALWAYS(_introducedComputable.insert(make_pair(fn, /*isPredicate=*/false)));
+      } else {
+        ALWAYS(_annotatedUncomputable.insert(make_pair(fn, /*isPredicate=*/false)));
       }
     }
     sym->setType(OperatorType::getFunctionType(arity, argSorts.begin(), AtomicSort::defaultSort()));
@@ -762,7 +764,7 @@ TermList SynthesisALManager::ConjectureSkolemReplacement::transformSubterm(TermL
       for (unsigned i = 0; i < transformed->arity()-1; ++i) {
         // Iterate over cases and replace only the associated skolems in each.
         TermList* narg = transformed->nthArgument(i);
-        DHMap<Term*, TermList>* m = recf->_skolemToTermListForCase.findPtr(i);
+        DHMap<Term*, TermList, FnvHash, PtrIdentityHash>* m = recf->_skolemToTermListForCase.findPtr(i);
         if (narg->isTerm() && m) {
           ssr.setMap(m);
           NonVariableIterator it(narg->term());
@@ -831,7 +833,7 @@ SynthesisALManager::ConjectureSkolemReplacement::Function::Function(unsigned rec
   f->setType(OperatorType::getFunctionType({in}, out));
   // Process SkolemTrackers corresponding to this function:
   // populate the maps mapping skolems to terms they represent.
-  DHMap<Term*, TermList>* caseMap;
+  DHMap<Term*, TermList, FnvHash, PtrIdentityHash>* caseMap;
   const DHMap<unsigned, SkolemTracker>& mapping = replacement->_recursionMappings->get(recFunctor);
   DHMap<unsigned, SkolemTracker>::Iterator it(mapping);
   while (it.hasNext()) {

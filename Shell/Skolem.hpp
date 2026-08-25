@@ -93,7 +93,7 @@ private:
     VarSet* exist;
   };
   // stored by the blocks, i.e. those Formulas* with the EXISTS connective
-  typedef DHMap<Formula*,ExVarDepInfo> ExVarDepInfos; 
+  typedef DHMap<Formula*,ExVarDepInfo, FnvHash, PtrIdentityHash> ExVarDepInfos; 
   ExVarDepInfos _varDeps;
 
   // map from an existential variable to its quantified formula (= block of quantifiers)

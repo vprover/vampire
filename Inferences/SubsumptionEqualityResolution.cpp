@@ -38,7 +38,7 @@ Clause* SubsumptionEqualityResolution::simplify(Clause* cl)
       bool unify(TermList lhs, TermList rhs) {
         return subst.unify(lhs, 0, rhs, 0);
       }
-      TermList operator()(unsigned v) const override {
+      TermList apply(unsigned v) const override {
         return subst.apply(TermList::var(v), 0);
       }
       RobSubstitution subst;

@@ -120,7 +120,7 @@ private:
 
   // the pairs of <constant number, sort>
   DHMap<std::pair<unsigned,unsigned>,Term*> _domainConstants;
-  DHMap<Term*,std::pair<unsigned,unsigned>> _domainConstantsRev;
+  DHMap<Term*,std::pair<unsigned,unsigned>, FnvHash, PtrIdentityHash> _domainConstantsRev;
 public:
 
 

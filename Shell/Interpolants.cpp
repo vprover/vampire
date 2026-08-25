@@ -421,7 +421,7 @@ namespace Shell
             ASS(!pars.hasNext()); // negating a conjecture should have exactly one parent
 
             cur->inference().destroy();
-            cur->inference() = Inference(NonspecificInference0(UnitInputType::NEGATED_CONJECTURE,InferenceRule::NEGATED_CONJECTURE)); // negated conjecture without a parent (non-standard, but nobody will see it)
+            cur->inference() = FromInput(UnitInputType::NEGATED_CONJECTURE); // negated conjecture without a parent (non-standard, but nobody will see it)
             }
 
             todo.loadFromIterator(cur->getParents());

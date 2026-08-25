@@ -668,10 +668,10 @@ bool CodeTree::Matcher<removing, checkRange, higherOrder>::execute()
 }
 
 template<bool removing, bool checkRange, bool higherOrder>
-void CodeTree::Matcher<removing, checkRange, higherOrder>::init(CodeTree* tree_, CodeOp* entry_, bool canEnterOpposites_, LitInfo* linfos_, size_t linfoCnt_, Stack<CodeOp*>* firstsInBlocks_)
+void CodeTree::Matcher<removing, checkRange, higherOrder>::init(const CodeTree& tree_, CodeOp* entry_, bool canEnterOpposites_, LitInfo* linfos_, size_t linfoCnt_, Stack<CodeOp*>* firstsInBlocks_)
 {
+  tree=&tree_;
   canEnterOpposites=canEnterOpposites_;
-  tree=tree_;
   entry=entry_;
   opposite=false;
 

@@ -114,7 +114,7 @@ public:
   const bool _squashSkolems;
   unsigned& _nextVar; // fresh variable counter supported by caller
 
-  DHMap<Term*, unsigned, SharedTermHash> _skolemToVarMap; // maps terms to their variable replacement
+  DHMap<Term*, unsigned, SharedTermHash, PtrIdentityHash> _skolemToVarMap; // maps terms to their variable replacement
   DHMap<unsigned,TermList> _varsReplacingSkolems;
 
   DHMap<unsigned,unsigned> _renaming; // for renaming free variables
@@ -291,7 +291,7 @@ class InductionClauseIterator
 public:
   // all the work happens in the constructor!
   InductionClauseIterator(Clause* premise, InductionHelper helper, const SaturationAlgorithm& salg,
-    TermIndex* structInductionTermIndex, InductionFormulaIndex& formulaIndex)
+    const StructInductionTermIndex* structInductionTermIndex, InductionFormulaIndex& formulaIndex)
       : _helper(helper), _opt(salg.getOptions()), _structInductionTermIndex(structInductionTermIndex),
       _formulaIndex(formulaIndex), _fnDefHandler(salg.getFunctionDefinitionHandler())
   {
@@ -355,7 +355,7 @@ private:
   Stack<Clause*> _clauses;
   InductionHelper _helper;
   const Options& _opt;
-  TermIndex* _structInductionTermIndex;
+  const StructInductionTermIndex* _structInductionTermIndex;
   InductionFormulaIndex& _formulaIndex;
   FunctionDefinitionHandler& _fnDefHandler;
 };
