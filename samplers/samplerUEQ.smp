@@ -5,8 +5,6 @@
 
 # equality_proxy
 > ep ~cat off:70,RST:2,R:3,RSTC:2,RS:3
-# mono_ep
-ep!=off > mep ~cat on:10,off:1
 
 # equality_resolution_with_deletion
 > erd ~cat on:10,off:1

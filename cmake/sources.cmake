@@ -52,6 +52,7 @@ set(UNIT_TESTS
     UnitTests/tDynamicHeap.cpp
     UnitTests/tFunctionDefinitionHandler.cpp
     UnitTests/tGoalReachabilityHandler.cpp
+    UnitTests/tHash.cpp
     UnitTests/tIndexManager.cpp
     UnitTests/tInferences_AnswerLiteralProcessors.cpp
     UnitTests/tInferences_ArithmeticSubtermGeneralization.cpp
@@ -98,6 +99,7 @@ set(UNIT_TESTS
     UnitTests/tLPO.cpp
     UnitTests/tList.cpp
     UnitTests/tOption.cpp
+    UnitTests/tPredicateElimination.cpp
     UnitTests/tOptionConstraints.cpp
     UnitTests/tQKbo.cpp
     UnitTests/tQuotientE.cpp
@@ -691,8 +693,6 @@ set(SOURCES
     Shell/EqResWithDeletion.hpp
     Shell/EqualityProxy.cpp
     Shell/EqualityProxy.hpp
-    Shell/EqualityProxyMono.cpp
-    Shell/EqualityProxyMono.hpp
     Shell/FOOLElimination.cpp
     Shell/FOOLElimination.hpp
     Shell/Flattening.cpp
@@ -735,6 +735,8 @@ set(SOURCES
     Shell/PartialRedundancyHandler.hpp
     Shell/PredicateDefinition.cpp
     Shell/PredicateDefinition.hpp
+    Shell/PredicateElimination.cpp
+    Shell/PredicateElimination.hpp
     Shell/Preprocess.cpp
     Shell/Preprocess.cpp
     Shell/Preprocess.hpp

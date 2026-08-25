@@ -272,16 +272,26 @@ bool Clause::isHorn()
 }
 
 /**
- * Return iterator over clause variables
+ * Return iterator over clause variables, each reported exactly once
+ *
+ * Deduplicating means collecting the variables into a set and materialising the result,
+ * so prefer iterVars() (or maxVar()) whenever repetitions do not actually hurt.
  */
 VirtualIterator<unsigned> Clause::getVariableIterator() const
 {
-  return pvi( getUniquePersistentIterator(
-      getMappingIterator(
-	  getMapAndFlattenIterator(
-	      iterLits(),
-	      VariableIteratorFn()),
-	  OrdVarNumberExtractorFn())));
+  return pvi( getUniquePersistentIterator(iterVars()) );
+}
+
+/**
+ * Return iterator over the clause's variable occurrences, i.e. with repetitions
+ */
+VirtualIterator<unsigned> Clause::iterVars() const
+{
+  return pvi( getMappingIterator(
+      getMapAndFlattenIterator(
+	  iterLits(),
+	  VariableIteratorFn()),
+      OrdVarNumberExtractorFn()));
 }
 
 /**
@@ -648,12 +658,16 @@ unsigned Clause::varCnt()
 
 unsigned Clause::maxVar()
 {
+  // a plain scan: a maximum does not care about repetitions, so there is no point
+  // paying for the deduplication (and materialisation) getVariableIterator does
   unsigned max = 0;
-  VirtualIterator<unsigned> it = getVariableIterator();
-
-  while (it.hasNext()) {
-    unsigned n = it.next();
-    max = n > max ? n : max;
+  for (Literal* lit : iterLits()) {
+    VariableIterator vit(lit);
+    while (vit.hasNext()) {
+      TermList var = vit.next();
+      ASS(var.isOrdinaryVar());
+      max = var.var() > max ? var.var() : max;
+    }
   }
   return max;
 }

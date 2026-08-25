@@ -862,7 +862,7 @@ class Signature
 
   unsigned getArrowConstructor(){
     bool added = false;
-    unsigned arrow = addTypeCon("sTfun",2, added);
+    unsigned arrow = addTypeCon("vARROW",2, added);
     if(added){
       _arrowCon = arrow;
       TermList ss = AtomicSort::superSort();
@@ -986,7 +986,7 @@ class Signature
 
 private:
   Stack<TermList> _dividesNvalues;
-  DHMap<Term*, int> _formulaCounts;
+  DHMap<Term*, int, FnvHash, PtrIdentityHash> _formulaCounts;
 
   bool _foolConstantsDefined;
   unsigned _foolTrue;

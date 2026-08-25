@@ -78,7 +78,7 @@ void DemodulationSubtermIndex<higherOrder>::handleClause(Clause* c, bool adding)
 {
   TIME_TRACE("backward demodulation index maintenance");
 
-  static DHSet<Term*> inserted;
+  static DHSet<Term*, FnvHash, PtrIdentityHash> inserted;
 
   unsigned cLen=c->length();
   for (unsigned i=0; i<cLen; i++) {
@@ -119,8 +119,7 @@ template class DemodulationSubtermIndex<false>;
 
 template<bool higherOrder>
 DemodulationLHSIndex<higherOrder>::DemodulationLHSIndex(SaturationAlgorithm& salg)
-: TermIndex(new CodeTreeTIS<higherOrder, DemodulatorData>()), _ord(salg.getOrdering()),
-  _preordered(salg.getOptions().forwardDemodulation()==Options::Demodulation::PREORDERED) {};
+: _ord(salg.getOrdering()), _preordered(salg.getOptions().forwardDemodulation()==Options::Demodulation::PREORDERED) {}
 
 template<bool higherOrder>
 void DemodulationLHSIndex<higherOrder>::handleClause(Clause* c, bool adding)
@@ -134,19 +133,18 @@ void DemodulationLHSIndex<higherOrder>::handleClause(Clause* c, bool adding)
   Literal* lit=(*c)[0];
   auto [lhsi, preordered] = EqHelper::getDemodulationLHSIterator(lit, _preordered, _ord);
 
-  while (lhsi.hasNext()) {
-    auto lhs = lhsi.next();
-
+  for (const auto& lhs : iterTraits(std::move(lhsi))) {
     // DemodulatorData expects lhs and rhs to be normalized
     Renaming r;
     r.normalizeVariables(lhs);
+    auto sortR = r.apply(lhs.sort());
 
     DemodulatorData dd(
-      TypedTermList(r.apply(lhs),r.apply(lhs.sort())),
-      r.apply(EqHelper::getOtherEqualitySide(lit, lhs)),
+      TypedTermList(r.apply(lhs),sortR),
+      TypedTermList(r.apply(EqHelper::getOtherEqualitySide(lit, lhs)),sortR),
       c, preordered, _ord
     );
-    _is->handle(std::move(dd), adding);
+    GeneralizingTermIndex<higherOrder, DemodulatorData>::_ct.handle(std::move(dd), adding);
   }
 }
 
@@ -174,7 +172,7 @@ void InductionTermIndex::handleClause(Clause* c, bool adding)
       continue;
     }
 
-    DHSet<Term*> done;
+    DHSet<Term*, FnvHash, PtrIdentityHash> done;
     NonVariableNonTypeIterator it(lit);
     while (it.hasNext()) {
       Term* t = it.next();
@@ -195,7 +193,7 @@ void InductionTermIndex::handleClause(Clause* c, bool adding)
 }
 
 StructInductionTermIndex::StructInductionTermIndex(SaturationAlgorithm& salg)
-: TermIndex(new TermSubstitutionTree<TermLiteralClause>()), _inductionGroundOnly(salg.getOptions().inductionGroundOnly()) {}
+: _inductionGroundOnly(salg.getOptions().inductionGroundOnly()) {}
 
 void StructInductionTermIndex::handleClause(Clause* c, bool adding)
 {
@@ -209,7 +207,7 @@ void StructInductionTermIndex::handleClause(Clause* c, bool adding)
       continue;
     }
 
-    DHSet<Term*> done;
+    DHSet<Term*, FnvHash, PtrIdentityHash> done;
     NonVariableNonTypeIterator it(lit);
     while (it.hasNext()) {
       Term* t = it.next();
@@ -219,11 +217,7 @@ void StructInductionTermIndex::handleClause(Clause* c, bool adding)
       }
       if (InductionHelper::isInductionTerm(t) &&
           InductionHelper::isStructInductionTerm(t)) {
-        if (adding) {
-          _is->insert(TermLiteralClause{ t, lit, c });
-        } else {
-          _is->remove(TermLiteralClause{ t, lit, c });
-        }
+        _ct.handle(TermLiteralClause{ t, lit, c }, adding);
       }
     }
   }

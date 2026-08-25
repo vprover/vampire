@@ -1077,7 +1077,7 @@ bool Naming::canBeInDefinition(Formula* f, Where where) {
   return true;
 }
 
-Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
+std::pair<Literal*, Signature::Symbol*> Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
   unsigned arity = VList::length(freeVars);
 
   static TermStack termVarSorts;
@@ -1128,7 +1128,7 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
     }
 
     predSym->setType(OperatorType::getPredicateType(arity - typeArgArity, termVarSorts.begin(), typeArgArity));
-    return Literal::create(pred, arity, true, allVars.begin());
+    return { Literal::create(pred, arity, true, allVars.begin()), predSym };
   } else {
     unsigned fun = env.signature->addNameFunction(typeVars.size());
     TermList sort = AtomicSort::arrowSort(termVarSorts, AtomicSort::boolSort());
@@ -1137,7 +1137,7 @@ Literal* Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
     sym->setType(OperatorType::getConstantsType(sort, typeArgArity)); 
     TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
     TermList t = HOL::create::app(head, termVars);
-    return  Literal::createEquality(true, TermList(t), HOL::create::top(), AtomicSort::boolSort());  
+    return { Literal::createEquality(true, TermList(t), HOL::create::top(), AtomicSort::boolSort()), sym };
   }
 }
 
@@ -1159,7 +1159,7 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
   RSTAT_CTR_INC("naming_introduced_defs");
 
   VList* vs = freeVariables(f);
-  Literal* atom = getDefinitionLiteral(f, vs);
+  auto [atom, sym] = getDefinitionLiteral(f, vs);
   Formula* name = new AtomicFormula(atom);
 
   Formula* def;
@@ -1190,8 +1190,7 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
   }
   Unit* definition = new FormulaUnit(def, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::PREDICATE_DEFINITION));
 
-  InferenceStore::instance()->recordIntroducedSymbol(definition, SymbolType::PRED,
-      atom->functor());
+  InferenceStore::instance()->recordIntroducedSymbol(definition, sym);
 
   env.statistics->formulaNames++;
   UnitList::push(definition, _defs);

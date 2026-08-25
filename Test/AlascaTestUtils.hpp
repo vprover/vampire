@@ -121,7 +121,7 @@ struct AlascaTestUtil {
                       .apply(t);
                     }));
               }),
-            Inference(NonspecificInference1(InferenceRule::RECTIFY, rhs)));
+            Inference(FormulaClauseTransformation(InferenceRule::RECTIFY, rhs)));
         auto r = norm.simplify(renamed);
         return Test::TestUtils::eqModAC(lhs, r); 
     });

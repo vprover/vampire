@@ -2736,7 +2736,16 @@ void TPTP::endLet()
       }
       vars = varList;
     }
-    auto binding = Formula::createDefinition(Term::create(symbol, args), body, vars);
+    Term* lhs;
+    if (isPredicate) {
+      // symbol is a predicate number, so it cannot go through Term::create.
+      // Wrap it as a formula to preserve the term-formula boundary, the same
+      // way SMTLIB2::parseLet does.
+      lhs = Term::createFormula(new AtomicFormula(Literal::create(symbol, args.size(), true, args.begin())));
+    } else {
+      lhs = Term::create(symbol, args);
+    }
+    auto binding = Formula::createDefinition(lhs, body, vars);
     let = TermList(Term::createLet(binding, let, sort));
   }
   _termLists.push(let);
@@ -3718,9 +3727,7 @@ void TPTP::endFof()
     _unitSources->insert(original->number(),source);
   }
 
-  if (env.options->outputAxiomNames()) {
-    ALWAYS(_axiomNames.insert(original->number(), {nm, currentFile.path}));
-  }
+  ALWAYS(_axiomNames.insert(original->number(), {nm, currentFile.path}));
 #if DEBUG_SHOW_UNITS
   cout << "Unit: " << unit->toString() << "\n";
 #endif

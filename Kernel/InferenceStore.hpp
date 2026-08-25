@@ -16,7 +16,6 @@
 #ifndef __InferenceStore__
 #define __InferenceStore__
 
-#include <utility>
 #include <ostream>
 
 #include "Forwards.hpp"
@@ -26,8 +25,8 @@
 #include "Lib/DHMultiset.hpp"
 #include "Lib/Stack.hpp"
 
-#include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Signature.hpp"
 
 namespace Kernel {
 
@@ -68,8 +67,8 @@ public:
   };
 
   void recordSplittingNameLiteral(Unit* us, Literal* lit);
-  void recordIntroducedSymbol(Unit* u, SymbolType st, unsigned number);
-  void recordIntroducedSkolemSymbol(Unit* u, SymbolType st, unsigned replacedVar, Term* symTerm);
+  void recordIntroducedSymbol(Unit* u, Signature::Symbol* sym);
+  void recordIntroducedSkolemSymbol(Unit* u, Signature::Symbol* sym, unsigned replacedVar, Term* symTerm);
   void recordIntroducedSplitName(Unit* u, std::string name);
   
 
@@ -91,16 +90,13 @@ private:
 
   DHMap<unsigned, Literal*> _splittingNameLiterals;
 
-
-  /** first records the type of the symbol (PRED,FUNC or TYPE_CON), second is symbol number */
-  typedef std::pair<SymbolType,unsigned> SymbolId;
-  typedef Stack<SymbolId> SymbolStack;
+  typedef Stack<Signature::Symbol*> SymbolStack;
   // unit id -> stack of introduced symbols (in order of introduction)
   DHMap<unsigned,SymbolStack> _introducedSymbols;
   // symbol id -> existential variable name (number) that was replaced by the symbol
-  DHMap<SymbolId, unsigned> _introducedSymbolReplacedVars;
+  DHMap<Signature::Symbol*, unsigned, FnvHash, PtrIdentityHash> _introducedSymbolReplacedVars;
   // symbol id -> the term that is introduced when introducing the skolem symbol
-  DHMap<SymbolId, Term*> _introducedSkolemSymTerms;
+  DHMap<Signature::Symbol*, Term*, FnvHash, PtrIdentityHash> _introducedSkolemSymTerms;
 
   DHMap<unsigned,std::string> _introducedSplitNames;
 };

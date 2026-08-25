@@ -96,7 +96,7 @@ std::string Formula::toString (Connective c)
  * @since 09/12/2003 Manchester
  * @since 11/12/2004 Manchester, true and false added
  */
-std::string Formula::toString () const
+std::string Formula::toString (bool topLevel) const
 {
   std::string res;
 
@@ -108,7 +108,7 @@ std::string Formula::toString () const
   } Todo;
 
   Stack<Todo> stack;
-  stack.push({false,NOCONN,this});
+  stack.push({!topLevel,NOCONN,this});
 
   while (stack.isNonEmpty()) {
     Todo todo = stack.pop();
@@ -196,7 +196,11 @@ std::string Formula::toString () const
             res += ",";
           }
           res += Term::variableToString(var);
-          if (sort != AtomicSort::defaultSort() || env.getMainProblem()->hasNonDefaultSorts()) {
+          // a variable of a sort other than $i must always be annotated, and
+          // preprocessing is not expected to introduce such a sort into an
+          // initially untyped problem
+          ASS(sort == AtomicSort::defaultSort() || env.initiallyHasNonDefaultSorts());
+          if (env.initiallyHasNonDefaultSorts()) {
             res += " : " + sort.toString();
           }
           first = false;

@@ -411,7 +411,7 @@ void clausifyMode(Problem* problem, bool theory)
         Literal::create(p, /* polarity */ true , {}),
         Literal::create(p, /* polarity */ false, {})
       }, 
-      NonspecificInference0(UnitInputType::NEGATED_CONJECTURE,InferenceRule::INPUT));
+      FromInput(UnitInputType::NEGATED_CONJECTURE));
     std::cout << TPTPPrinter::toString(c) << "\n";
   }
 
@@ -675,10 +675,6 @@ int main(int argc, char* argv[])
     }
 
     Lib::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
-
-    if (opts.mode() == Options::Mode::MODEL_CHECK) {
-      opts.setOutputAxiomNames(true);
-    }
 
     if (opts.interactive()) {
       interactiveMetamode();

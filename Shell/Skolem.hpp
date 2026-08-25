@@ -93,7 +93,7 @@ private:
     VarSet* exist;
   };
   // stored by the blocks, i.e. those Formulas* with the EXISTS connective
-  typedef DHMap<Formula*,ExVarDepInfo> ExVarDepInfos; 
+  typedef DHMap<Formula*,ExVarDepInfo, FnvHash, PtrIdentityHash> ExVarDepInfos; 
   ExVarDepInfos _varDeps;
 
   // map from an existential variable to its quantified formula (= block of quantifiers)
@@ -104,8 +104,8 @@ private:
 
   // for some heuristic evaluations after we are done
   
-  // Pair: <variable that was replaced by the new skolem symbol, the new skolem symbol (with args)>
-  Stack<std::pair<unsigned, Term*>> _introducedSkolemSyms;
+  // (variable, new skolem term replacing the variable, new skolem functor)
+  Stack<std::tuple<unsigned, Term*, unsigned>> _introducedSkolemSyms;
 
   FormulaUnit* _beingSkolemised;
 

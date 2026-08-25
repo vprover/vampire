@@ -184,6 +184,18 @@ public:
     _hasFOOL = true;
   }
 
+  /**
+   * Report that a symbol with type arguments was introduced into the problem.
+   *
+   * Note that invalidateByRemoval() alone would not do: it leaves an already
+   * known false alone, so the problem would keep claiming to be monomorphic.
+   */
+  void reportPolymorphicSymAdded()
+  {
+    invalidateProperty();
+    _hasPolymorphicSym = true;
+  }
+
   void reportFormulasAdded()
   {
     invalidateProperty();

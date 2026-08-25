@@ -238,9 +238,9 @@ private:
       DArray<TermList> _cases;
       std::vector<Term*>* _caseHeads;
       // Mappings of skolems to terms they should be replaced with then construcing the functions for each case.
-      DHMap<unsigned, DHMap<Term*, TermList>> _skolemToTermListForCase;
+      DHMap<unsigned, DHMap<Term*, TermList, FnvHash, PtrIdentityHash>> _skolemToTermListForCase;
       // A union of replacements for all cases (for convenience).
-      DHMap<Term*, TermList> _skolemToTermList;
+      DHMap<Term*, TermList, FnvHash, PtrIdentityHash> _skolemToTermList;
     };
 
     void bindSkolemToTermList(Term* t, TermList&& tl);
@@ -259,7 +259,7 @@ private:
    private:
     unsigned _numInputSkolems = 0;
     // Mapping of input skolems to input variables.
-    DHMap<Term*, TermList> _skolemToTermList;
+    DHMap<Term*, TermList, FnvHash, PtrIdentityHash> _skolemToTermList;
     // Map from functions to predicates they represent in answer literal conditions
     DHMap<unsigned, unsigned> _condFnToPred;
     // Recursive functions indexed by their function symbol number.
@@ -268,8 +268,8 @@ private:
     // Term replacement based on a simple mapping with no additional logic.
     class SimpleSkolemReplacement : public TermTransformer {
      public:
-      SimpleSkolemReplacement(DHMap<Term*, TermList>* m) : _skolemToTermList(m) {}
-      void setMap(DHMap<Term*, TermList>* m) { _skolemToTermList = m; }
+      SimpleSkolemReplacement(DHMap<Term*, TermList, FnvHash, PtrIdentityHash>* m) : _skolemToTermList(m) {}
+      void setMap(DHMap<Term*, TermList, FnvHash, PtrIdentityHash>* m) { _skolemToTermList = m; }
      protected:
       TermList transformSubterm(TermList trm) override {
         if (trm.isTerm()) {
@@ -281,7 +281,7 @@ private:
         return trm;
       }
      private:
-      DHMap<Term*, TermList>* _skolemToTermList;
+      DHMap<Term*, TermList, FnvHash, PtrIdentityHash>* _skolemToTermList;
     };
 
   };
