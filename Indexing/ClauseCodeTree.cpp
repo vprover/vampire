@@ -476,7 +476,6 @@ void ClauseCodeTree<higherOrder>::LiteralMatcher::recordMatch()
     return;
   }
   if(!ils->matchCnt && opposite) {
-    //if we're matching opposite matches, we have already tried all non-opposite ones
     ils->noNonOppositeMatches=true;
   } else if (ils->noNonOppositeMatches && !opposite) {
     ils->noNonOppositeMatches=false;
@@ -619,7 +618,7 @@ Clause* ClauseCodeTree<higherOrder>::ClauseMatcher::next(int& resolvedQueryLit)
       }
 
       bool seekOnlySuccess=lms.size()==query->length();
-      bool canEnterOpposites=sres && sresLiteral == sresNoLiteral;
+      bool canEnterOpposites=sres && (sresLiteral == sresNoLiteral);
       enterLiteral(newLitEntry, seekOnlySuccess, canEnterOpposites);
     }
   }

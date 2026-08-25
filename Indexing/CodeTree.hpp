@@ -18,6 +18,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/Allocator.hpp"
+#include "Lib/BitUtils.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/Stack.hpp"
@@ -74,19 +75,21 @@ public:
 
   struct MatchInfo
   {
-    inline unsigned getLiIndex() const { return markedLiIndex & ~leftmost_bit; }
+    inline unsigned getLiIndex() const { return _liIndex(); }
     inline TermList* getBindings() { return &bindings[0]; }
-    inline bool opposite() const { return markedLiIndex & leftmost_bit; }
+    inline bool opposite() const { return _opposite(); }
 
   private:
+    BITFIELD(64,
+      BITFIELD_MEMBER(bool, _opposite, _setOpposite, 1,
+      BITFIELD_MEMBER(unsigned, _liIndex, _setLiIndex, CHAR_BIT * sizeof(unsigned) - 1,
+      END_BITFIELD
+    )))
     /** Index of the matched LitInfo in the EContext, with the opposite flag packed
-     * into the leftmost bit. Use getLiIndex()/opposite() above rather than reading
-     * this field directly. */
-    unsigned markedLiIndex;
+     * in alongside it. */
+    uint64_t _content = 0;
     /** array of bindings */
     TermList bindings[1];
-
-    static constexpr unsigned int leftmost_bit = 1u << (sizeof(unsigned int) * CHAR_BIT - 1);
 
     void init(ILStruct* ils, unsigned liIndex, DArray<TermList>& bindingArray, bool opposite);
 
@@ -351,20 +354,20 @@ public:
     class MarkedOp
     {
       static_assert(alignof(CodeOp) >= 2, "CodeOp must be at least 2-byte aligned so its lowest bit is free for the mark");
-      CodeOp* raw;
     public:
-      MarkedOp(CodeOp* op, bool mark) :
-        raw(reinterpret_cast<CodeOp*>(reinterpret_cast<std::uintptr_t>(op) | mark)) {}
-      
-      inline bool getMark() const {
-        return (reinterpret_cast<std::uintptr_t>(raw) & 1u) != 0;
-      }
+      MarkedOp(CodeOp* op, bool mark) { _setOp(op); _setMark(mark); }
 
-      inline CodeOp* getOp() const {
-        return reinterpret_cast<CodeOp*>(
-            reinterpret_cast<std::uintptr_t>(raw) & ~std::uintptr_t{1}
-        );
-      }
+      BITFIELD(64,
+        BITFIELD_MEMBER(bool, getMark, _setMark, 1,
+        END_BITFIELD
+      ))
+      static_assert(sizeof(void *) <= sizeof(uint64_t), "must be able to fit a pointer into a 64-bit integer");
+      BITFIELD_PTR_GET(CodeOp, getOp, 1)
+      BITFIELD_PTR_SET(CodeOp, _setOp, 1)
+
+    private:
+      // bitfield
+      uint64_t _content = 0;
     };
 
     /**
