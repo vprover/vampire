@@ -2091,6 +2091,8 @@ public:
   bool superposition() const {return _superposition.actualValue; }
   URResolution unitResultingResolution() const { return _unitResultingResolution.actualValue; }
   bool simulatenousSuperposition() const { return _simultaneousSuperposition.actualValue; }
+  bool goalOrientedSuperposition() const { return _goalOrientedSuperposition.actualValue; }
+  unsigned goalOrientedChainLimit() const { return _goalOrientedChainLimit.actualValue; }
   bool innerRewriting() const { return _innerRewriting.actualValue; }
   bool equationalTautologyRemoval() const { return _equationalTautologyRemoval.actualValue; }
   bool subsumptionEqualityResolution() const { return _subsumptionEqualityResolution.actualValue; }
@@ -2512,6 +2514,8 @@ private:
   UnsignedOptionValue _guessTheGoalLimit;
 
   BoolOptionValue _simultaneousSuperposition;
+  BoolOptionValue _goalOrientedSuperposition;
+  UnsignedOptionValue _goalOrientedChainLimit;
   BoolOptionValue _innerRewriting;
   BoolOptionValue _equationalTautologyRemoval;
   BoolOptionValue _subsumptionEqualityResolution;

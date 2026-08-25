@@ -704,6 +704,8 @@ set(SOURCES
     Shell/GeneralSplitting.hpp
     Shell/GoalGuessing.cpp
     Shell/GoalGuessing.hpp
+    Shell/GoalReachabilityHandler.cpp
+    Shell/GoalReachabilityHandler.hpp
     Shell/InequalitySplitting.cpp
     Shell/InequalitySplitting.hpp
     Shell/InterpolantMinimizer.cpp
