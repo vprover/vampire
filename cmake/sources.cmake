@@ -50,6 +50,7 @@ set(UNIT_TESTS
     UnitTests/tDeque.cpp
     UnitTests/tDisagreement.cpp
     UnitTests/tDynamicHeap.cpp
+    UnitTests/tFlatTerm.cpp
     UnitTests/tFunctionDefinitionHandler.cpp
     UnitTests/tHash.cpp
     UnitTests/tIndexManager.cpp

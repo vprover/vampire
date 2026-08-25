@@ -39,6 +39,7 @@
 #define RED    ""
 #endif
 
+// If re-enabled, see the ASSERTION_VIOLATION in Matcher::init: opposite-literal matching doesn't support it yet.
 #define GROUND_TERM_CHECK 0
 
 #undef RSTAT_COLLECTION
@@ -674,6 +675,12 @@ void CodeTree::Matcher<removing, checkRange, higherOrder>::init(const CodeTree& 
 {
   tree=&tree_;
   canEnterOpposites=canEnterOpposites_;
+#if GROUND_TERM_CHECK
+  if (canEnterOpposites) {
+    // TODO: GROUND_TERM_CHECK is currently incompatible with opposite matching
+    ASSERTION_VIOLATION;
+  }
+#endif
   entry=entry_;
   opposite=false;
 
