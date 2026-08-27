@@ -168,6 +168,12 @@ check_szs_status Theorem -t 1d -to lpo -sos all -doe on Problems/SWW/SWW629_2.p
 check_szs_status Satisfiable -t 5d -fgj on Problems/SWV/SWV021-1.p
 check_szs_status Unsatisfiable -t 5d -fgj on -bd all Problems/SWW/SWW436-1.p
 
+# Unused function definitions must be recorded in the order they are eliminated, so that a
+# model reconstruction replaying them backwards restores a definition's dependencies before
+# the definition itself (see the comment in fmb/chaindef.p). Exact output, because the thing
+# under test is the order the recorded definitions come back out in.
+check_exact_output fmb/chaindef.out --input_syntax tptp --statistics none -fde unused fmb/chaindef.p
+
 # FMB: model construction with preprocessing-eliminated symbols (see the comment in fmb/sortelim.p)
 check_szs_status Satisfiable -sa fmb --fmb_adjust_sorts function fmb/sortelim.p
 check_szs_status Satisfiable -sa fmb --fmb_adjust_sorts predicate fmb/sortelim.p
