@@ -731,7 +731,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
           }
 
           // build the nest inside out, so that c1 ends up outermost
-          for (unsigned i = tupleArity; i-- > 0; ) {
+          for (int i = tupleArity - 1; i >= 0; i--) {
             TermList component = bindingLhs->termArg(i);
             ASS(component.isTerm());
             letBody = TermList(Term::createLet(
