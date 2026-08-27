@@ -152,14 +152,11 @@ private:
 
   void restoreViaCondFlip(Problem::CondFlip*);
 
-  // snapshot what the model currently says about an unrepresented predicate into an explicit
-  // table; needed by the flips, which write values and so cannot operate on a symbolic layer
-  void materializePred(unsigned p);
-
-  // make p, and everything a recorded definition says about p, explicit, so that the
-  // flip about to be replayed really does change the model on p alone;
-  // false if the model has nothing to say about p yet and the flip should be skipped
-  void prepareForFlip(unsigned p);
+  // may a definition born at born be *printed* as it stands? Only if every symbol its body
+  // mentions still means at the top of its stack what it meant when the definition was born
+  bool bodyStillCurrent(Term* body, Timestamp born);
+  bool bodyStillCurrent(Formula* body, Timestamp born);
+  bool symbolStillCurrent(const Stack<FunLayer*>& st, Timestamp born) const;
 
   std::string prepend(const char* prefix, std::string name) {
     if (name.empty()) {

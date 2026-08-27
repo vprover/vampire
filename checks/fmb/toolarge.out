@@ -1,6 +1,0 @@
-% Detected minimum model sizes of [2]
-% Detected maximum model sizes of [2]
-% TRYING [2]
-% Finite Model Found!
-% SZS status Satisfiable for toolarge
-Invalid operation: Model too large to represent: a table for big needs 1099511627776 rows, more than the memory limit allows

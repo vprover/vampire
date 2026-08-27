@@ -24,6 +24,7 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SubformulaIterator.hpp"
+#include "Kernel/TermIterators.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Kernel/SubstHelper.hpp"
 
@@ -88,23 +89,6 @@ static size_t tableSize(OperatorType* sig, unsigned arity, const DArray<unsigned
   return size;
 }
 
-// A table initTables builds is bounded by the domain sizes FMB's own search settled on, but a
-// materialized one is bounded only by the symbol's arity -- a predicate of arity 47 over a
-// two-element domain asks for 2^47 rows. Decide before allocating rather than after: the
-// allocation failing is not something we can reliably report, both because reporting it wants
-// memory of its own, and because with overcommit the allocation may well succeed and the
-// process be killed while DArray::expand writes the rows. Note the memory limit is only
-// advisory anyway -- setMemoryLimit's setrlimit is a silent no-op on macOS -- which is another
-// reason to be explicit here instead of leaving it to the allocator.
-static void checkTableAffordable(Signature::Symbol* symb, size_t rows, size_t entrySize)
-{
-  size_t budget = env.options->memoryLimit()*1048576ul;
-  if (rows > budget/entrySize) {
-    INVALID_OPERATION("Model too large to represent: a table for "+symb->name()+
-      " needs "+Int::toString(rows)+" rows, more than the memory limit allows");
-  }
-}
-
 // the layers of a symbol are owned by the model, so a stack that goes away has to be emptied
 // by hand; both the destructor and the wholesale rebuilds in eliminateSortFunctionsAndPredicates
 // go through here
@@ -125,22 +109,25 @@ void FiniteModelMultiSorted::deleteAllLayers()
   deleteLayersIn(_f_layers,_p_layers);
 }
 
-// the explicit table currently speaking for a symbol, or nullptr if the model does not have
-// one for it. A table is always the topmost layer when there is one -- it is what a symbol
-// starts out with, and what materialization gives one that started out without; anything
-// below it is only reached where the table has a hole
+// the explicit table of a symbol, i.e. what the SAT assignment was copied into, or nullptr
+// for a symbol that never got one. It is always the *bottom* layer: initTables is the only
+// thing that builds a table, and it does so before anything else exists. (It was briefly the
+// top layer instead, while materializePred could stack one over a trivial or definition
+// layer; nothing does that any more.) Note this is a question about where the model's
+// information came from, not about what currently speaks for the symbol -- for the latter,
+// ask the topmost layer's kind, as toString does
 static TableFunLayer* funTableIn(const DArray<Stack<FunLayer*>>& f_layers, unsigned f)
 {
   const Stack<FunLayer*>& st = f_layers[f];
-  return (st.isNonEmpty() && st.top()->_kind == LayerKind::TABLE) ?
-    static_cast<TableFunLayer*>(st.top()) : nullptr;
+  return (st.isNonEmpty() && st[0]->_kind == LayerKind::TABLE) ?
+    static_cast<TableFunLayer*>(st[0]) : nullptr;
 }
 
 static TablePredLayer* predTableIn(const DArray<Stack<PredLayer*>>& p_layers, unsigned p)
 {
   const Stack<PredLayer*>& st = p_layers[p];
-  return (st.isNonEmpty() && st.top()->_kind == LayerKind::TABLE) ?
-    static_cast<TablePredLayer*>(st.top()) : nullptr;
+  return (st.isNonEmpty() && st[0]->_kind == LayerKind::TABLE) ?
+    static_cast<TablePredLayer*>(st[0]) : nullptr;
 }
 
 TableFunLayer* FiniteModelMultiSorted::funTable(unsigned f) const
@@ -307,6 +294,68 @@ static std::string linearHead(const std::string& name, unsigned arity)
   return res+")";
 }
 
+/**
+ * A definition layer computes its value from the model as it stood when the definition
+ * arrived, which is what makes it right. Printing its body as it stands, though, says
+ * something about the model as *printed* -- the topmost version of every symbol. The two
+ * agree unless some symbol in the body has acquired a layer since, which in practice means a
+ * flip replayed after this definition. Where they disagree, the body must not be printed; the
+ * extensional rendering, which reads through the whole stack, is right in every case.
+ *
+ * (The eventual fix is to print the older version under a name of its own, rather than to
+ * fall back on spelling the extension out. Until then this is at least no coarser than the
+ * freezing it replaces, which flattened every direct reader of every flip target.)
+ */
+bool FiniteModelMultiSorted::bodyStillCurrent(Term* body, Timestamp born)
+{
+  NonVariableNonTypeIterator it(body,true);
+  while (it.hasNext()) {
+    Term* t = it.next();
+    if (t->isSpecial()) {
+      // a formula in term position; the special data is not walked by the iterator
+      if (t->specialFunctor() != SpecialFunctor::FORMULA ||
+          !bodyStillCurrent(t->getSpecialData()->getFormula(),born)) {
+        return false;
+      }
+      continue;
+    }
+    if (!symbolStillCurrent(_f_layers[t->functor()],born)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool FiniteModelMultiSorted::bodyStillCurrent(Formula* body, Timestamp born)
+{
+  SubformulaIterator sfit(body);
+  while (sfit.hasNext()) {
+    Formula* sf = sfit.next();
+    if (sf->connective() != LITERAL) {
+      continue;
+    }
+    Literal* lit = sf->literal();
+    if (!lit->isEquality()) { // equality is not in the model
+      const Stack<PredLayer*>& st = _p_layers[lit->functor()];
+      if (st.isNonEmpty() && st.top()->_born >= born) {
+        return false;
+      }
+    }
+    for (unsigned i = 0; i < lit->arity(); i++) {
+      TermList arg = *lit->nthArgument(i);
+      if (arg.isTerm() && !bodyStillCurrent(arg.term(),born)) {
+        return false;
+      }
+    }
+  }
+  return true;
+}
+
+bool FiniteModelMultiSorted::symbolStillCurrent(const Stack<FunLayer*>& st, Timestamp born) const
+{
+  return st.isEmpty() || st.top()->_born < born;
+}
+
 std::string FiniteModelMultiSorted::toString()
 {
   std::ostringstream modelStm;
@@ -424,6 +473,10 @@ std::string FiniteModelMultiSorted::toString()
     // has no shorter rendering either.
     Stack<FunLayer*>& st = _f_layers[f];
     LayerKind topKind = st.isNonEmpty() ? st.top()->_kind : LayerKind::TRIVIAL;
+    if (topKind == LayerKind::DEF &&
+        !bodyStillCurrent(static_cast<DefFunLayer*>(st.top())->def()->_body,st.top()->_born)) {
+      topKind = LayerKind::TABLE; // the body no longer describes the printed model; spell it out
+    }
     if (topKind == LayerKind::DEF || topKind == LayerKind::TRIVIAL) {
       // either a recorded definition speaks for f, or nothing does and the trivial layer's
       // value has to be spelled out
@@ -514,6 +567,10 @@ std::string FiniteModelMultiSorted::toString()
 
     Stack<PredLayer*>& st = _p_layers[p];
     LayerKind topKind = st.isNonEmpty() ? st.top()->_kind : LayerKind::TRIVIAL;
+    if (topKind == LayerKind::DEF &&
+        !bodyStillCurrent(static_cast<DefPredLayer*>(st.top())->def()->_body,st.top()->_born)) {
+      topKind = LayerKind::TABLE;
+    }
     if (topKind == LayerKind::DEF || topKind == LayerKind::TRIVIAL) {
       Problem::PredDef* pd = (topKind == LayerKind::DEF) ?
         static_cast<DefPredLayer*>(st.top())->def() : nullptr;
@@ -931,90 +988,26 @@ bool FiniteModelMultiSorted::applyPredDef(Problem::PredDef* pd, const DArray<uns
 
 unsigned DefFunLayer::value(const DArray<unsigned>& args, FiniteModelMultiSorted& m)
 {
-  return m.applyFunDef(_fd,args,_born); // the model as it stood when this definition arrived
+  ArgsKey key(args);
+  unsigned v;
+  if (_memo.find(key,v)) {
+    return v;
+  }
+  v = m.applyFunDef(_fd,args,_born); // the model as it stood when this definition arrived
+  _memo.set(key,v); // set, not insert: the evaluation above may have come back round here
+  return v;
 }
 
 char DefPredLayer::value(const DArray<unsigned>& args, FiniteModelMultiSorted& m)
 {
-  return m.applyPredDef(_pd,args,_born) ? INTP_TRUE : INTP_FALSE;
-}
-
-/**
- * Freeze what the model currently says about p into an explicit table, on top of the layers
- * that said it. The values do not change; what changes is that they stop depending on
- * anything else, which is what a flip needs -- it writes cells, so it cannot carve into a
- * layer that computes its value from other symbols.
- */
-void FiniteModelMultiSorted::materializePred(unsigned p)
-{
-  ASS(!predRepresented(p));
-
-  Signature::Symbol* symb = env.signature->getPredicate(p);
-  OperatorType* sig = symb->predType();
-  unsigned arity = symb->arity();
-  size_t rows = tableSize(sig,arity,_sizes);
-  checkTableAffordable(symb,rows,sizeof(char));
-
-  // read everything out first: once the table is pushed it shadows what we are reading
-  DArray<char> vals;
-  vals.expand(rows,INTP_UNDEF);
-  size_t idx = 0;
-  ArgsEnumerator it(_sizes,sig,arity);
-  do {
-    ASS_EQ(idx,tableIndex(it.args(),_sizes,sig));
-    vals[idx++] = evalPred(p,it.args(),_now);
-  } while (it.next());
-  ASS_EQ(idx,rows);
-
-  TablePredLayer* tl = new TablePredLayer(sig,rows,MODEL_ZERO);
-  tl->raw() = std::move(vals);
-  _p_layers[p].push(tl);
-}
-
-// does p occur anywhere in f? SubformulaIterator descends into the arguments of a literal
-// too, so a predicate hiding inside a formula in term position is found as well
-static bool mentionsPredicate(Formula* f, unsigned p)
-{
-  SubformulaIterator sfit(f);
-  while (sfit.hasNext()) {
-    Formula* sf = sfit.next();
-    if (sf->connective() == LITERAL && sf->literal()->functor() == p) {
-      return true;
-    }
+  ArgsKey key(args);
+  char v;
+  if (_memo.find(key,v)) {
+    return v;
   }
-  return false;
-}
-
-void FiniteModelMultiSorted::prepareForFlip(unsigned p)
-{
-  // There has to be a table to flip into, even when nothing has been recorded about p yet: a
-  // flip does not prescribe p's whole behaviour, only the arguments its condition selects, so
-  // it needs something to carve into. This is not a wasted table for a symbol we know nothing
-  // about: blocked clause elimination can make a predicate disappear entirely (all of its
-  // clauses blocked, so usageCnt drops to zero and no definition is recorded), and then its
-  // flips are the only thing the model ever learns about it.
-  if (!predRepresented(p)) {
-    materializePred(p);
-  }
-
-  // A flip's soundness argument reads: the model that differs from this one *only on p*, as
-  // prescribed, is a model of the problem as it was before the flip's own preprocessing step.
-  // A definition layer whose body reads p would break that "only" -- but only because a
-  // conditional flip writes into a table born at model_0, where a read as of any later time
-  // still sees the change. Freeze the direct readers for as long as that is true; a global
-  // flip needs none of this already, being a layer born at its own replay step.
-  Stack<unsigned> readers;
-  for(unsigned q=1; q<env.signature->predicates(); q++) {
-    Stack<PredLayer*>& st = _p_layers[q];
-    if (st.isNonEmpty() && st.top()->_kind == LayerKind::DEF &&
-        mentionsPredicate(static_cast<DefPredLayer*>(st.top())->def()->_body,p)) {
-      readers.push(q);
-    }
-  }
-  // collected first, as materializePred pushes a layer of its own
-  for (unsigned q : readers) {
-    materializePred(q);
-  }
+  v = m.applyPredDef(_pd,args,_born) ? INTP_TRUE : INTP_FALSE;
+  _memo.set(key,v);
+  return v;
 }
 
 char GlobalFlipPredLayer::value(const DArray<unsigned>& args, FiniteModelMultiSorted& m)
@@ -1032,34 +1025,17 @@ void FiniteModelMultiSorted::restoreViaCondFlip(Problem::CondFlip* cf)
   SortHelper::collectVariableSorts(cf->_cond,sortMap); // in bce, cond can have extra variables; we could treat them existentially, but this may be wrong for _fixedPoint-ers
   unsigned arity = sortMap.size();
 
-  // cout << "arity: " << arity << " " << sortMap << endl;
 
-  /*
-  // we need to existentially close cond for all variables except those of _val
-  VList* freeVars = freeVariables(cf->_cond);
-
-  // cout << "freeVars: " << *freeVars << endl;
-
-  {
-    // now filter freeVars and drop all mentioned by _val
-    VList** l = &freeVars;
-    while (*l) {
-      unsigned var = (*l)->head();
-      if (sortMap.findPtr(var)) { // drop this one
-        VList* dead = *l;
-        *l = (*l)->tail(); // keep l where it is, but reconnect *l
-        delete dead;
-      } else { // simply move on with l
-        l = (*l)->tailPtr();
-      }
-    }
-  }
-  // cout << "filtered: " << *freeVars << endl;
-
-  Formula* closedCond = freeVars ? new QuantifiedFormula(EXISTS,freeVars,0,cf->_cond) : cf->_cond;
-
-  // cout << "closedCond: " << closedCond->toString() << endl;
-  */
+  // The layer goes on before it is filled, and everything below is read as of _now + 1 --
+  // i.e. as of the model this step transforms, *plus this layer itself*. That self-read is
+  // deliberate and is what the old code got from writing into the table as it went: the
+  // repair a blocked clause asks for ("while the clause is falsified, make its blocking
+  // literal true") reads the model it is updating, and for a _fixedPoint flip, whose clause
+  // carries both polarities of the predicate, iterating against a frozen model would reach no
+  // repair at all. Nothing else can be affected: only this layer is born at _now.
+  CondFlipPredLayer* layer = new CondFlipPredLayer(_now);
+  _p_layers[cf->_val->functor()].push(layer);
+  const Timestamp asOf = _now + 1;
 
   static DArray<unsigned> vars;
   vars.ensure(arity);
@@ -1094,18 +1070,14 @@ void FiniteModelMultiSorted::restoreViaCondFlip(Problem::CondFlip* cf)
     ArgsEnumerator it(std::move(bounds));
     it.bindAll(vars,subst);
     do {
-      if (evaluateFormula(cf->_cond,subst,_now) != cf->_neg) {
+      if (evaluateFormula(cf->_cond,subst,asOf) != cf->_neg) {
         // do the flip
         for(unsigned j=0;j<p_arity;j++){
-          inner_args[j] = evaluateTerm(*cf->_val->nthArgument(j),subst,_now);
+          inner_args[j] = evaluateTerm(*cf->_val->nthArgument(j),subst,asOf);
         }
-        DArray<char>& tbl = predTable(p)->raw();
-        size_t idx = tableIndex(inner_args,_sizes,env.signature->getPredicate(p)->predType());
-        ASS_L(idx, tbl.size());
-
-        char before = tbl[idx];
+        char before = evalPred(p,inner_args,asOf);
         char after = (cf->_val->isPositive() ? INTP_TRUE : INTP_FALSE);
-        tbl[idx] = after;
+        layer->prescribe(inner_args,after);
         flipped |= (before != after);
       }
     } while (it.nextAndRebind(vars,subst));
@@ -1114,36 +1086,28 @@ void FiniteModelMultiSorted::restoreViaCondFlip(Problem::CondFlip* cf)
 }
 
 /**
- * Replay the recorded interferences in reverse (LIFO) order, turning the model of the
- * fully preprocessed problem into a model of the original one.
+ * Replay the recorded interferences in reverse (LIFO) order, turning the model of the fully
+ * preprocessed problem into a model of the original one.
  *
- * FUN_DEFs and PRED_DEFs are merely *recorded* (into _symbolicFuns/_symbolicPreds) rather
- * than expanded into explicit tables; evaluation and printing consult the records lazily.
- * A definition recorded now may reference a predicate q that a flip replayed later still
- * modifies -- lazy evaluation then reroutes through the post-flip q. Where that is sound:
- *  - FunDef bodies are terms, so they cannot mention predicates, and function tables are
- *    never modified after the recording point -- immune;
- *  - a genuine definition (PredicateDefinition/FunctionDefinition elimination) is a unit of
- *    the original problem, which pins the defined symbol uniquely given the other symbols;
- *    the lazy reading satisfies it by construction at every replay stage.
+ * Each step pushes one layer, so the sequence of models the replay walks through is the
+ * sequence of stack heights: model_j is model_{j-1} plus whatever the layer born at j says.
+ * Nothing is overwritten, and no step has to know what the steps after it will do.
  *
- * Where it is not sound is a flip: its argument reads "the model that differs from this one
- * *only on q* is a model of the problem as it was before this step", and a lazy definition
- * reading q silently moves along, so that hypothesis fails. It fails inside the flip's own
- * loop too -- restoreViaCondFlip re-evaluates the condition per grounding, and the condition
- * can reach q through such a definition, making it chase a moving target. So prepareForFlip
- * makes q, and every recorded definition reading q, explicit first; see there.
+ * The LIFO order is what makes reading "as of the layer's own birth" the right thing. Birth
+ * order is the *reverse* of preprocessing order, so for a definition recorded at preprocessing
+ * step T and born at replay step j, and any symbol q in its body:
  *
- * A flip is therefore free to materialize its target, even one the model knows nothing about
- * yet, because of the other half of the invariant: *an arriving definition overrides whatever
- * the model said about its symbol so far*. That is why the FUN_DEF/PRED_DEF cases throw away
- * a table they find in place. It costs nothing in accuracy: a definition body can only mention
- * symbols that still occurred at its own elimination step, so any definition mentioning q was
- * recorded no later than q's own and is thus replayed *after* it -- nothing already materialized
- * was computed from the values being discarded. By the same argument the discarded table can
- * only come from a flip's materialization, which in practice means a GLOB_FLIP: polarity
- * flipping runs as the very last preprocessing step and records a flip for much of the
- * signature, occurring or not, so those are replayed before any definition is.
+ *  - q was still live at T, so if q is eliminated at all it is eliminated after T, hence
+ *    replayed before j: its layer is born earlier and the definition sees it;
+ *  - a flip on q recorded after T is likewise born before j and visible, correctly -- by the
+ *    time we are rebuilding the state before T, that flip has already been undone;
+ *  - a flip on q recorded before T is born after j and invisible, also correctly -- in the
+ *    state before T it has not been undone yet. This is the case that used to need a
+ *    definition to be frozen into a table before a flip could be replayed.
+ *
+ * Shuffling::polarityFlip runs last in preprocessing and so replays first; it records a flip
+ * for much of the signature whether or not the predicate still occurs, and a definition
+ * arriving later simply covers such a vacuous flip up.
  */
 void FiniteModelMultiSorted::restoreEliminatedDefinitions(Kernel::Problem* prob)
 {
@@ -1178,7 +1142,6 @@ void FiniteModelMultiSorted::restoreEliminatedDefinitions(Kernel::Problem* prob)
       }
       case Problem::IntereferenceKind::COND_FLIP: {
         Problem::CondFlip* cf = static_cast<Problem::CondFlip*>(i);
-        prepareForFlip(cf->_val->functor());
         restoreViaCondFlip(cf);
         break;
       }

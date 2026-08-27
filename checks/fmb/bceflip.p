@@ -3,9 +3,9 @@
 % complement's usageCnt drops to zero -- the finite model gets no table for it, and BCE
 % records no definition for it either, only three conditional flips. Those flips are then
 % the only thing the model ever learns about complement, and unlike a definition they
-% prescribe its value just on the arguments their condition selects. So the model must
-% materialize a table to carve them into; a replay that skips a flip whose target it does
-% not represent yet leaves complement trivially false and violates meet_join_complement.
+% prescribe its value just on the arguments their condition selects, leaving it alone
+% everywhere else. A replay that skips a flip whose target the model does not represent yet
+% leaves complement trivially false and violates meet_join_complement.
 %
 % The lattice axioms are here only to keep the clause set non-empty after elimination, so
 % that finite model building actually runs.
