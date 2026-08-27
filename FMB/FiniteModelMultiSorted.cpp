@@ -105,37 +105,131 @@ static void checkTableAffordable(Signature::Symbol* symb, size_t rows, size_t en
   }
 }
 
+// the layers of a symbol are owned by the model, so a stack that goes away has to be emptied
+// by hand; both the destructor and the wholesale rebuilds in eliminateSortFunctionsAndPredicates
+// go through here
+static void deleteLayersIn(DArray<Stack<FunLayer*>>& f_layers, DArray<Stack<PredLayer*>>& p_layers)
+{
+  for(unsigned f=0; f<f_layers.size(); f++) {
+    Stack<FunLayer*>& st = f_layers[f];
+    while (st.isNonEmpty()) { delete st.pop(); }
+  }
+  for(unsigned p=0; p<p_layers.size(); p++) {
+    Stack<PredLayer*>& st = p_layers[p];
+    while (st.isNonEmpty()) { delete st.pop(); }
+  }
+}
+
+void FiniteModelMultiSorted::deleteAllLayers()
+{
+  deleteLayersIn(_f_layers,_p_layers);
+}
+
+// the base explicit table of a symbol in the given layer arrays, or nullptr if there is none;
+// a table, when a symbol has one, is always the bottom layer -- everything pushed later is a
+// correction to what it says
+static TableFunLayer* funTableIn(const DArray<Stack<FunLayer*>>& f_layers, unsigned f)
+{
+  const Stack<FunLayer*>& st = f_layers[f];
+  return (st.isNonEmpty() && st[0]->_kind == LayerKind::TABLE) ?
+    static_cast<TableFunLayer*>(st[0]) : nullptr;
+}
+
+static TablePredLayer* predTableIn(const DArray<Stack<PredLayer*>>& p_layers, unsigned p)
+{
+  const Stack<PredLayer*>& st = p_layers[p];
+  return (st.isNonEmpty() && st[0]->_kind == LayerKind::TABLE) ?
+    static_cast<TablePredLayer*>(st[0]) : nullptr;
+}
+
+TableFunLayer* FiniteModelMultiSorted::funTable(unsigned f) const
+{
+  return funTableIn(_f_layers,f);
+}
+
+TablePredLayer* FiniteModelMultiSorted::predTable(unsigned p) const
+{
+  return predTableIn(_p_layers,p);
+}
+
+unsigned FiniteModelMultiSorted::domainSizeOf(unsigned sort) const
+{
+  return domainSize(_sizes,sort);
+}
+
+size_t FiniteModelMultiSorted::tableIndexOf(OperatorType* sig, const DArray<unsigned>& args) const
+{
+  return tableIndex(args,_sizes,sig);
+}
+
+unsigned TableFunLayer::value(const DArray<unsigned>& args, FiniteModelMultiSorted& m)
+{
+  size_t idx = m.tableIndexOf(_sig,args);
+  ASS_L(idx,_tbl.size());
+  return _tbl[idx]; // FUNV_UNDEF here means the model does not say, and falls through
+}
+
+char TablePredLayer::value(const DArray<unsigned>& args, FiniteModelMultiSorted& m)
+{
+  size_t idx = m.tableIndexOf(_sig,args);
+  ASS_L(idx,_tbl.size());
+  return _tbl[idx]; // INTP_UNDEF here means the model does not say, and falls through
+}
+
 void FiniteModelMultiSorted::initTables()
 {
-  _f_tables.ensure(env.signature->functions());
-  _p_tables.ensure(env.signature->predicates());
+  deleteAllLayers();
+
+  _f_layers.ensure(env.signature->functions());
+  _p_layers.ensure(env.signature->predicates());
 
   for(unsigned f=0; f<env.signature->functions();f++){
     Signature::Symbol* symb = env.signature->getFunction(f);
     if (symb->usageCnt()==0) {
       // the SAT solver skipped some functions as they are eliminated
       // (the model, on the other hand, should be prepared to give them values later)
-      _f_tables[f] = DArray<unsigned>(); // not represented
-      continue;
+      continue; // not represented: no layers at all
     }
 
-    DArray<unsigned> tbl;
-    tbl.expand(tableSize(symb->fnType(),symb->arity(),_sizes),0);
-    _f_tables[f] = std::move(tbl);
+    OperatorType* sig = symb->fnType();
+    _f_layers[f].push(new TableFunLayer(sig,tableSize(sig,symb->arity(),_sizes)));
   }
 
-  _p_tables[0] = DArray<char>(); // equality is never tabulated
+  // equality is never tabulated, so predicate 0 keeps an empty stack
   for(unsigned p=1; p<env.signature->predicates();p++){
     Signature::Symbol* symb = env.signature->getPredicate(p);
     if (symb->usageCnt()==0) {
-      _p_tables[p] = DArray<char>(); // not represented
-      continue;
+      continue; // not represented
     }
 
-    DArray<char> tbl;
-    tbl.expand(tableSize(symb->predType(),symb->arity(),_sizes),0);
-    _p_tables[p] = std::move(tbl);
+    OperatorType* sig = symb->predType();
+    _p_layers[p].push(new TablePredLayer(sig,tableSize(sig,symb->arity(),_sizes)));
   }
+}
+
+unsigned FiniteModelMultiSorted::evalFun(unsigned f, const DArray<unsigned>& args)
+{
+  Stack<FunLayer*>& st = _f_layers[f];
+  for (unsigned i = st.size(); i > 0; i--) {
+    unsigned v = st[i-1]->value(args,*this);
+    if (v != FUNV_UNDEF) {
+      return v;
+    }
+  }
+  // the model has nothing to say about f on these arguments
+  throw UndefinedValueException(env.signature->functionName(f));
+}
+
+char FiniteModelMultiSorted::evalPred(unsigned p, const DArray<unsigned>& args)
+{
+  Stack<PredLayer*>& st = _p_layers[p];
+  for (unsigned i = st.size(); i > 0; i--) {
+    char v = st[i-1]->value(args,*this);
+    if (v != INTP_UNDEF) {
+      return v;
+    }
+  }
+  throw UndefinedValueException(env.signature->predicateName(p));
 }
 
 Problem::FunDef* FiniteModelMultiSorted::symbolicFunDef(unsigned f)
@@ -178,7 +272,7 @@ void FiniteModelMultiSorted::addFunctionDefinition(unsigned f, const DArray<unsi
   // a function's value must be a domain element of its result sort
   ASS_G(res,0); ASS_LE(res,domainSize(_sizes,tp->result().term()->functor()));
 
-  DArray<unsigned>& tbl = _f_tables[f];
+  DArray<unsigned>& tbl = funTable(f)->raw();
   size_t idx = tableIndex(args,_sizes,tp);
 
   ASS_L(idx, tbl.size());
@@ -189,7 +283,7 @@ void FiniteModelMultiSorted::addPredicateDefinition(unsigned p, const DArray<uns
 {
   ASS_EQ(env.signature->predicateArity(p),args.size());
 
-  DArray<char>& tbl = _p_tables[p];
+  DArray<char>& tbl = predTable(p)->raw();
   size_t idx = tableIndex(args,_sizes,env.signature->getPredicate(p)->predType());
 
   ASS_L(idx, tbl.size());
@@ -337,7 +431,7 @@ std::string FiniteModelMultiSorted::toString()
     }
 
     if (arity == 0) {
-      unsigned res = _f_tables[f][0];
+      unsigned res = funTable(f)->raw()[0];
       ASS_G(res,0)
 
       TermList srtT = ot->result();
@@ -349,7 +443,7 @@ std::string FiniteModelMultiSorted::toString()
       modelStm << "tff("<<prepend("function_", name)<<",axiom,"<<endl;
 
       bool first=true;
-      const DArray<unsigned>& tbl = _f_tables[f];
+      const DArray<unsigned>& tbl = funTable(f)->raw();
       size_t idx = 0; // the enumeration visits the table rows in order
       ArgsEnumerator it(_sizes,ot,arity);
       do {
@@ -424,7 +518,7 @@ std::string FiniteModelMultiSorted::toString()
     }
 
     if (arity==0) {
-      char res = _p_tables[p][0];
+      char res = predTable(p)->raw()[0];
       if(res==INTP_TRUE){
         modelStm << "tff("<<append(name,"_definition")<<",axiom,"<<name<< ")."<<endl;
       } else { // covers (res==INTP_FALSE) as well as undefined, which defaults to false
@@ -434,7 +528,7 @@ std::string FiniteModelMultiSorted::toString()
       modelStm << "tff("<<prepend("predicate_", name)<<",axiom,"<<endl;
 
       bool first=true;
-      const DArray<char>& tbl = _p_tables[p];
+      const DArray<char>& tbl = predTable(p)->raw();
       size_t idx = 0; // the enumeration visits the table rows in order
       ArgsEnumerator it(_sizes,ot,arity);
       do {
@@ -538,15 +632,8 @@ unsigned FiniteModelMultiSorted::evaluateTerm(TermList tl, const DHMap<unsigned,
     return evaluateTerm(TermList(fd->_body),inner);
   }
 
-  const DArray<unsigned>& tbl = _f_tables[f];
-  size_t idx = tableIndex(args,_sizes,env.signature->getFunction(f)->fnType());
-  ASS_L(idx, tbl.size());
-
-  if (tbl[idx] == 0) {
-    // the model is represented, but does not say what f is on these arguments
-    throw UndefinedValueException(env.signature->functionName(f));
-  }
-  return tbl[idx];
+  // throws if the model does not say what f is on these arguments
+  return evalFun(f,args);
 }
 
 bool FiniteModelMultiSorted::evaluateLiteral(Literal* lit, const DHMap<unsigned,unsigned>& subst)
@@ -576,18 +663,8 @@ bool FiniteModelMultiSorted::evaluateLiteral(Literal* lit, const DHMap<unsigned,
     return val == lit->polarity();
   }
 
-  const DArray<char>& tbl = _p_tables[p];
-  size_t idx = tableIndex(args,_sizes,env.signature->getPredicate(p)->predType());
-
-  ASS_L(idx, tbl.size());
-  char res = tbl[idx];
-
-  if(res==INTP_UNDEF) {
-    // the model is represented, but does not say what p is on these arguments
-    throw UndefinedValueException(env.signature->predicateName(p));
-  }
-
-  return (res==INTP_TRUE) == (lit->polarity());
+  // throws if the model does not say what p is on these arguments
+  return (evalPred(p,args)==INTP_TRUE) == (lit->polarity());
 }
 
 void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<unsigned> &sortFunctions, const Stack<unsigned> &sortPredicates)
@@ -609,7 +686,7 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
     // srt's domain is getting reduced to the range of f
     {
       ASS(funRepresented(elim_f)); // Monotonicity bumps usageCnt of the sort functions it introduces
-      const DArray<unsigned>& elim_tbl = _f_tables[elim_f];
+      const DArray<unsigned>& elim_tbl = funTable(elim_f)->raw();
       for(unsigned j = 1; j<=origSize; j++) {
         unsigned res = elim_tbl[j-1];
         //cout << "f(" << j << ")=" << res << endl;
@@ -623,9 +700,10 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
 
     // we will need to reencode everything
 
-    // save the old stuff
-    auto old_f_tables = std::move(_f_tables);
-    auto old_p_tables = std::move(_p_tables);
+    // save the old stuff (the moved-from arrays are left empty, so initTables below
+    // starts from scratch and the old layers stay ours to read from -- and to delete)
+    auto old_f_layers = std::move(_f_layers);
+    auto old_p_layers = std::move(_p_layers);
     auto old_sizes = _sizes.clone();
 
     // update size of the affected sort
@@ -639,7 +717,7 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
 
     for(unsigned f=0; f<env.signature->functions();f++){
       if (!funRepresented(f)) {
-        ASS_EQ(old_f_tables[f].size(),0); // usageCnt did not change, so neither did representedness
+        ASS(!funTableIn(old_f_layers,f)); // usageCnt did not change, so neither did representedness
         continue;
       }
       Signature::Symbol* symb = env.signature->getFunction(f);
@@ -648,8 +726,8 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
 
       // cout << "f = " << f << " arity= " << arity << endl;
 
-      DArray<unsigned>& tbl = _f_tables[f];
-      const DArray<unsigned>& old_tbl = old_f_tables[f];
+      DArray<unsigned>& tbl = funTable(f)->raw();
+      const DArray<unsigned>& old_tbl = funTableIn(old_f_layers,f)->raw();
 
       DArray<unsigned> old_args(arity);
       size_t idx = 0; // ... will fly linearly through the new table
@@ -669,7 +747,7 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
           unsigned res_srt = sig->result().term()->functor();
           unsigned res = (res_srt == srt) ?
                             // need to first pass old_res through elim_f, before mapping to the new domain
-                            old_to_new.get(old_f_tables[elim_f][old_res-1]) :
+                            old_to_new.get(funTableIn(old_f_layers,elim_f)->raw()[old_res-1]) :
                             old_res;
 
           tbl[idx] = res;
@@ -682,7 +760,7 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
 
     for(unsigned p=1; p<env.signature->predicates();p++){
       if (!predRepresented(p)) {
-        ASS_EQ(old_p_tables[p].size(),0); // usageCnt did not change, so neither did representedness
+        ASS(!predTableIn(old_p_layers,p)); // usageCnt did not change, so neither did representedness
         continue;
       }
       Signature::Symbol* symb = env.signature->getPredicate(p);
@@ -691,8 +769,8 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
 
       // cout << "p = " << p << " arity= " << arity << endl;
 
-      DArray<char>& tbl = _p_tables[p];
-      const DArray<char>& old_tbl = old_p_tables[p];
+      DArray<char>& tbl = predTable(p)->raw();
+      const DArray<char>& old_tbl = predTableIn(old_p_layers,p)->raw();
 
       DArray<unsigned> old_args(arity);
       size_t idx = 0; // ... will fly linearly through the new table
@@ -710,6 +788,8 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
       } while (it.next());
       ASS_EQ(idx,tbl.size());
     }
+
+    deleteLayersIn(old_f_layers,old_p_layers); // the reencoding is done; the old layers can go
   }
 
   // let's do predicates now
@@ -730,7 +810,7 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
     // srt's domain is getting reduced to those elements for which p is true
     {
       ASS(predRepresented(elim_p)); // the sort predicates occur in the added sort-predicate axioms
-      const DArray<char>& elim_tbl = _p_tables[elim_p];
+      const DArray<char>& elim_tbl = predTable(elim_p)->raw();
       for(unsigned j = 1; j<=origSize; j++) {
         char res = elim_tbl[j-1];
         // cout << "p(" << j << ")=" << (unsigned)res << endl;
@@ -747,9 +827,10 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
 
     // we will need to reencode everything
 
-    // save the old stuff
-    auto old_f_tables = std::move(_f_tables);
-    auto old_p_tables = std::move(_p_tables);
+    // save the old stuff (the moved-from arrays are left empty, so initTables below
+    // starts from scratch and the old layers stay ours to read from -- and to delete)
+    auto old_f_layers = std::move(_f_layers);
+    auto old_p_layers = std::move(_p_layers);
     auto old_sizes = _sizes.clone();
 
     // update size of the affected sort
@@ -763,15 +844,15 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
 
     for(unsigned f=0; f<env.signature->functions();f++){
       if (!funRepresented(f)) {
-        ASS_EQ(old_f_tables[f].size(),0); // usageCnt did not change, so neither did representedness
+        ASS(!funTableIn(old_f_layers,f)); // usageCnt did not change, so neither did representedness
         continue;
       }
       Signature::Symbol* symb = env.signature->getFunction(f);
       OperatorType* sig = symb->fnType();
       unsigned arity = symb->arity();
 
-      DArray<unsigned>& tbl = _f_tables[f];
-      const DArray<unsigned>& old_tbl = old_f_tables[f];
+      DArray<unsigned>& tbl = funTable(f)->raw();
+      const DArray<unsigned>& old_tbl = funTableIn(old_f_layers,f)->raw();
 
       DArray<unsigned> old_args(arity);
       size_t idx = 0; // ... will fly linearly through the new table
@@ -790,7 +871,7 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
         if (old_res) { // eliminated symbols don't have reasonable values
           unsigned res_srt = sig->result().term()->functor();
           // this should be stipulated by the extra sort-predicate axioms
-          ASS(res_srt != srt || old_p_tables[elim_p][old_res-1] == INTP_TRUE)
+          ASS(res_srt != srt || predTableIn(old_p_layers,elim_p)->raw()[old_res-1] == INTP_TRUE)
 
           unsigned res = (res_srt == srt) ? old_to_new.get(old_res) : old_res;
           tbl[idx] = res;
@@ -803,7 +884,7 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
 
     for(unsigned p=1; p<env.signature->predicates();p++){
       if (!predRepresented(p)) {
-        ASS_EQ(old_p_tables[p].size(),0); // usageCnt did not change, so neither did representedness
+        ASS(!predTableIn(old_p_layers,p)); // usageCnt did not change, so neither did representedness
         continue;
       }
       Signature::Symbol* symb = env.signature->getPredicate(p);
@@ -812,8 +893,8 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
 
       // cout << "p = " << p << " arity= " << arity << endl;
 
-      DArray<char>& tbl = _p_tables[p];
-      const DArray<char>& old_tbl = old_p_tables[p];
+      DArray<char>& tbl = predTable(p)->raw();
+      const DArray<char>& old_tbl = predTableIn(old_p_layers,p)->raw();
 
       DArray<unsigned> old_args(arity);
       size_t idx = 0; // ... will fly linearly through the new table
@@ -831,6 +912,8 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
       } while (it.next());
       ASS_EQ(idx,tbl.size());
     }
+
+    deleteLayersIn(old_f_layers,old_p_layers); // the reencoding is done; the old layers can go
   }
 }
 
@@ -865,17 +948,17 @@ void FiniteModelMultiSorted::materializeFun(unsigned f)
 
   // allocate the table ...
   Signature::Symbol* symb = env.signature->getFunction(f);
-  DArray<unsigned> tbl;
-  size_t rows = tableSize(symb->fnType(),symb->arity(),_sizes);
+  OperatorType* sig = symb->fnType();
+  size_t rows = tableSize(sig,symb->arity(),_sizes);
   checkTableAffordable(symb,rows,sizeof(unsigned));
-  tbl.expand(rows,0);
-  _f_tables[f] = std::move(tbl);
+  ASS(_f_layers[f].isEmpty());
+  _f_layers[f].push(new TableFunLayer(sig,rows));
 
   // ... and fill it by evaluating the definition
   if (fd->_body) {
     restoreEliminatedFunDef(fd);
   } else { // "arbitrary value", fixed as the first domain element
-    DArray<unsigned>& tbl = _f_tables[f];
+    DArray<unsigned>& tbl = funTable(f)->raw();
     for(size_t idx = 0; idx < tbl.size(); idx++) {
       tbl[idx] = 1;
     }
@@ -915,11 +998,11 @@ void FiniteModelMultiSorted::materializePred(unsigned p)
 
   // allocate the table ...
   Signature::Symbol* symb = env.signature->getPredicate(p);
-  DArray<char> tbl;
-  size_t rows = tableSize(symb->predType(),symb->arity(),_sizes);
+  OperatorType* sig = symb->predType();
+  size_t rows = tableSize(sig,symb->arity(),_sizes);
   checkTableAffordable(symb,rows,sizeof(char));
-  tbl.expand(rows,0);
-  _p_tables[p] = std::move(tbl);
+  ASS(_p_layers[p].isEmpty());
+  _p_layers[p].push(new TablePredLayer(sig,rows));
 
   // ... and fill it by evaluating the definition
   restoreEliminatedPredDef(pd);
@@ -984,7 +1067,7 @@ void FiniteModelMultiSorted::prepareForFlip(unsigned p)
 void FiniteModelMultiSorted::restoreGlobalPredicateFlip(Problem::GlobalFlip* gf)
 {
   // a full-table pass with a value independent of the arguments -- a linear scan suffices
-  DArray<char>& tbl = _p_tables[gf->_pred];
+  DArray<char>& tbl = predTable(gf->_pred)->raw();
   for(size_t idx = 0; idx < tbl.size(); idx++) {
     if (tbl[idx] == INTP_TRUE) {
       tbl[idx] = INTP_FALSE;
@@ -1073,7 +1156,7 @@ void FiniteModelMultiSorted::restoreViaCondFlip(Problem::CondFlip* cf)
         for(unsigned j=0;j<p_arity;j++){
           inner_args[j] = evaluateTerm(*cf->_val->nthArgument(j),subst);
         }
-        DArray<char>& tbl = _p_tables[p];
+        DArray<char>& tbl = predTable(p)->raw();
         size_t idx = tableIndex(inner_args,_sizes,env.signature->getPredicate(p)->predType());
         ASS_L(idx, tbl.size());
 
@@ -1131,7 +1214,8 @@ void FiniteModelMultiSorted::restoreEliminatedDefinitions(Kernel::Problem* prob)
         if (funRepresented(f)) {
           // only a flip replayed earlier can have put a table here (see below)
           ASS_EQ(env.signature->getFunction(f)->usageCnt(),0);
-          _f_tables[f] = DArray<unsigned>(); // this definition speaks for f from now on
+          delete _f_layers[f].pop(); // this definition speaks for f from now on
+          ASS(_f_layers[f].isEmpty());
         }
         _symbolicFuns.set(f,fd); // set, not insert: overrides a trivial record invented meanwhile
         break;
@@ -1141,7 +1225,8 @@ void FiniteModelMultiSorted::restoreEliminatedDefinitions(Kernel::Problem* prob)
         unsigned p = pd->_head->functor();
         if (predRepresented(p)) {
           ASS_EQ(env.signature->getPredicate(p)->usageCnt(),0);
-          _p_tables[p] = DArray<char>();
+          delete _p_layers[p].pop();
+          ASS(_p_layers[p].isEmpty());
         }
         _symbolicPreds.set(p,pd);
         break;
@@ -1168,14 +1253,18 @@ void FiniteModelMultiSorted::restoreEliminatedDefinitions(Kernel::Problem* prob)
   // (a read would have thrown); make the default explicit, so that printing -- which goes
   // to the cells directly -- and any later evaluation see a total model.
   for(unsigned f=0; f<env.signature->functions();f++){
-    DArray<unsigned>& tbl = _f_tables[f];
+    TableFunLayer* tl = funTable(f);
+    if (!tl) continue;
+    DArray<unsigned>& tbl = tl->raw();
     for(size_t idx = 0; idx < tbl.size(); idx++) {
-      if (tbl[idx] == 0)
+      if (tbl[idx] == FUNV_UNDEF)
         tbl[idx] = 1;
     }
   }
   for(unsigned p=1; p<env.signature->predicates();p++){
-    DArray<char>& tbl = _p_tables[p];
+    TablePredLayer* tl = predTable(p);
+    if (!tl) continue;
+    DArray<char>& tbl = tl->raw();
     for(size_t idx = 0; idx < tbl.size(); idx++) {
       if (tbl[idx] == INTP_UNDEF)
         tbl[idx] = INTP_FALSE;

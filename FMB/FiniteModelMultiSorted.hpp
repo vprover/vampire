@@ -20,9 +20,12 @@
 
 #include "Lib/DHMap.hpp"
 #include "Lib/Exception.hpp"
+#include "Lib/Stack.hpp"
 
 #include "Kernel/Unit.hpp"
 #include "Kernel/Term.hpp"
+
+#include "ModelLayer.hpp"
 
 
 namespace FMB {
@@ -62,18 +65,20 @@ class FiniteModelMultiSorted {
   // a sort is nevertheless called for, it behaves as a one-element domain (cf. domainSize)
   DArray<unsigned> _sizes;
 
-  inline static constexpr char INTP_UNDEF = 0;
-  inline static constexpr char INTP_FALSE = 1;
-  inline static constexpr char INTP_TRUE = 2;
+  // per-symbol stacks of interpretation layers, bottom-up (see ModelLayer.hpp); the model
+  // owns them. An empty stack means the symbol is not represented explicitly (it was
+  // eliminated during preprocessing, or is simply unused)
+  DArray<Stack<FunLayer*>> _f_layers;
+  DArray<Stack<PredLayer*>> _p_layers;
 
-  // per-symbol tables holding the interpretations of functions and predicates;
-  // an empty table means the symbol is not represented explicitly
-  // (it was eliminated during preprocessing, or is simply unused)
-  DArray<DArray<unsigned>> _f_tables;
-  DArray<DArray<char>> _p_tables; // values INTP_UNDEF / INTP_FALSE / INTP_TRUE
+  // the base explicit table of a symbol, or nullptr if it does not have one
+  TableFunLayer* funTable(unsigned f) const;
+  TablePredLayer* predTable(unsigned p) const;
 
-  bool funRepresented(unsigned f) const { return _f_tables[f].size() > 0; }
-  bool predRepresented(unsigned p) const { return _p_tables[p].size() > 0; }
+  bool funRepresented(unsigned f) const { return funTable(f) != nullptr; }
+  bool predRepresented(unsigned p) const { return predTable(p) != nullptr; }
+
+  void deleteAllLayers();
 
   DHMap<unsigned,Problem::FunDef*> _symbolicFuns;
   DHMap<unsigned,Problem::PredDef*> _symbolicPreds;
@@ -84,8 +89,8 @@ class FiniteModelMultiSorted {
   Problem::FunDef* symbolicFunDef(unsigned f);
   Problem::PredDef* symbolicPredDef(unsigned p);
 
-  // uses _sizes to fillup _f_tables and _p_tables from scratch
-  // (only symbols with usageCnt()>0 get a table)
+  // uses _sizes to fillup _f_layers and _p_layers from scratch, giving each represented
+  // symbol a single base table layer (only symbols with usageCnt()>0 get one)
   void initTables();
 
 public:
@@ -94,6 +99,12 @@ public:
   FiniteModelMultiSorted(DArray<unsigned> sortSizes) : _sizes(std::move(sortSizes)) {
     initTables();
   }
+
+  ~FiniteModelMultiSorted() { deleteAllLayers(); }
+
+  // the layers call these back while computing their own value
+  unsigned domainSizeOf(unsigned sort) const;
+  size_t tableIndexOf(OperatorType* sig, const DArray<unsigned>& args) const;
 
   // Assume def is an equality literal with a
   // function application on lhs and constant on rhs
@@ -121,6 +132,12 @@ public:
   std::string toString();
 
 private:
+  // walk a symbol's layer stack from the top, taking the first layer that has a value for
+  // args; a layer with nothing to say falls through to the one below. Falling off the
+  // bottom means the model does not say what the symbol is here
+  unsigned evalFun(unsigned f, const DArray<unsigned>& args);
+  char evalPred(unsigned p, const DArray<unsigned>& args);
+
   unsigned evaluateTerm(TermList, const DHMap<unsigned,unsigned>& subst);
   bool evaluateLiteral(Literal*, const DHMap<unsigned,unsigned>& subst);
   bool evaluateFormula(Formula*, DHMap<unsigned,unsigned>& subst);
