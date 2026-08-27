@@ -133,6 +133,15 @@ check_szs_status Unsatisfiable -newcnf on parse/let-bind-variable.smt2
 check_szs_status Unsatisfiable -qa synthesis parse/assert-synth-max5.smt2
 check_szs_status Unsatisfiable parse/define-const.smt2
 
+# TPTP tcf (typed clause form), read and written. parse/SYN000-3.p is the TPTP
+# sample exercising every tcf construct; exact output, because what is under test
+# is that all of it parses and that --mode tclausify prints legal tcf.
+check_exact_output parse/SYN000-3.out --input_syntax tptp --statistics none --mode tclausify parse/SYN000-3.p
+# and the round trip: the printed clauses have to be re-readable, and mean the same
+check_szs_status Unsatisfiable --input_syntax tptp parse/tcf.p
+check_exact_output parse/tcf.out --input_syntax tptp --statistics none --mode tclausify parse/tcf.p
+check_szs_status Unsatisfiable --input_syntax tptp parse/tcf.out
+
 # Arithmetic
 check_szs_status Theorem -t 1d -s 32 -tgt ground -sas z3 -tha some -nm 6 Problems/ANA/ANA135_1.p
 check_szs_status Theorem -t 1d Problems/ARI/ARI045_1.p # alasca can't!
