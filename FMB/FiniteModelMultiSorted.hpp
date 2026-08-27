@@ -71,6 +71,10 @@ class FiniteModelMultiSorted {
   DArray<Stack<FunLayer*>> _f_layers;
   DArray<Stack<PredLayer*>> _p_layers;
 
+  // the replay step we are at; layers built by initTables belong to model_0, so the first
+  // step of restoreEliminatedDefinitions is 1 and a read as of 1 sees exactly model_0
+  Timestamp _now = MODEL_ZERO+1;
+
   // the base explicit table of a symbol, or nullptr if it does not have one
   TableFunLayer* funTable(unsigned f) const;
   TablePredLayer* predTable(unsigned p) const;
@@ -124,7 +128,7 @@ public:
   static TermList deFool(TermList tl);
 
   // the domain element $true (or $false) sits on in this model
-  unsigned boolValue(bool isTrue);
+  unsigned boolValue(bool isTrue) { return boolValue(isTrue,_now); }
 
   void eliminateSortFunctionsAndPredicates(const Stack<unsigned>& sortFunctions, const Stack<unsigned>& sortPredicates);
   void restoreEliminatedDefinitions(Kernel::Problem* prob);
@@ -135,12 +139,17 @@ private:
   // walk a symbol's layer stack from the top, taking the first layer that has a value for
   // args; a layer with nothing to say falls through to the one below. Falling off the
   // bottom means the model does not say what the symbol is here
-  unsigned evalFun(unsigned f, const DArray<unsigned>& args);
-  char evalPred(unsigned p, const DArray<unsigned>& args);
+  // asOf restricts the walk to the layers born strictly before it, i.e. to the model as it
+  // stood at that replay step; everything reads as of _now unless it is a layer computing
+  // its own value, which reads as of its own birth
+  unsigned evalFun(unsigned f, const DArray<unsigned>& args, Timestamp asOf);
+  char evalPred(unsigned p, const DArray<unsigned>& args, Timestamp asOf);
 
-  unsigned evaluateTerm(TermList, const DHMap<unsigned,unsigned>& subst);
-  bool evaluateLiteral(Literal*, const DHMap<unsigned,unsigned>& subst);
-  bool evaluateFormula(Formula*, DHMap<unsigned,unsigned>& subst);
+  unsigned boolValue(bool isTrue, Timestamp asOf);
+
+  unsigned evaluateTerm(TermList, const DHMap<unsigned,unsigned>& subst, Timestamp asOf);
+  bool evaluateLiteral(Literal*, const DHMap<unsigned,unsigned>& subst, Timestamp asOf);
+  bool evaluateFormula(Formula*, DHMap<unsigned,unsigned>& subst, Timestamp asOf);
 
   void restoreEliminatedFunDef(Problem::FunDef*);
   void restoreEliminatedPredDef(Problem::PredDef*);

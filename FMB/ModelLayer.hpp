@@ -37,6 +37,16 @@ using namespace Kernel;
 
 class FiniteModelMultiSorted;
 
+/**
+ * When a layer was created: the replay step that pushed it, counting model_0 as 0. A layer
+ * reads the model *as of* a timestamp -- it sees exactly the layers born strictly earlier --
+ * which is what keeps model_j defined in terms of model_{j-1} and nothing later.
+ */
+using Timestamp = unsigned;
+
+// the timestamp of model_0, the model the replay starts from
+inline constexpr Timestamp MODEL_ZERO = 0;
+
 // what a predicate table cell holds; INTP_UNDEF doubles as "ask the layer below"
 inline constexpr char INTP_UNDEF = 0;
 inline constexpr char INTP_FALSE = 1;
@@ -56,7 +66,8 @@ enum class LayerKind : unsigned char {
 
 struct FunLayer {
   const LayerKind _kind;
-  explicit FunLayer(LayerKind kind) : _kind(kind) {}
+  const Timestamp _born;
+  FunLayer(LayerKind kind, Timestamp born) : _kind(kind), _born(born) {}
   virtual ~FunLayer() {}
 
   /** the value at args, or FUNV_UNDEF to mean "nothing to say here; ask the layer below" */
@@ -65,7 +76,8 @@ struct FunLayer {
 
 struct PredLayer {
   const LayerKind _kind;
-  explicit PredLayer(LayerKind kind) : _kind(kind) {}
+  const Timestamp _born;
+  PredLayer(LayerKind kind, Timestamp born) : _kind(kind), _born(born) {}
   virtual ~PredLayer() {}
 
   /** the value at args, or INTP_UNDEF to mean "nothing to say here; ask the layer below" */
@@ -80,7 +92,8 @@ class TableFunLayer : public FunLayer {
   OperatorType* _sig;
   DArray<unsigned> _tbl;
 public:
-  TableFunLayer(OperatorType* sig, size_t rows) : FunLayer(LayerKind::TABLE), _sig(sig)
+  TableFunLayer(OperatorType* sig, size_t rows, Timestamp born)
+   : FunLayer(LayerKind::TABLE,born), _sig(sig)
   { _tbl.expand(rows,FUNV_UNDEF); }
 
   OperatorType* sig() const { return _sig; }
@@ -93,7 +106,8 @@ class TablePredLayer : public PredLayer {
   OperatorType* _sig;
   DArray<char> _tbl;
 public:
-  TablePredLayer(OperatorType* sig, size_t rows) : PredLayer(LayerKind::TABLE), _sig(sig)
+  TablePredLayer(OperatorType* sig, size_t rows, Timestamp born)
+   : PredLayer(LayerKind::TABLE,born), _sig(sig)
   { _tbl.expand(rows,INTP_UNDEF); }
 
   OperatorType* sig() const { return _sig; }

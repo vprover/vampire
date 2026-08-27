@@ -192,7 +192,7 @@ void FiniteModelMultiSorted::initTables()
     }
 
     OperatorType* sig = symb->fnType();
-    _f_layers[f].push(new TableFunLayer(sig,tableSize(sig,symb->arity(),_sizes)));
+    _f_layers[f].push(new TableFunLayer(sig,tableSize(sig,symb->arity(),_sizes),MODEL_ZERO));
   }
 
   // equality is never tabulated, so predicate 0 keeps an empty stack
@@ -203,14 +203,15 @@ void FiniteModelMultiSorted::initTables()
     }
 
     OperatorType* sig = symb->predType();
-    _p_layers[p].push(new TablePredLayer(sig,tableSize(sig,symb->arity(),_sizes)));
+    _p_layers[p].push(new TablePredLayer(sig,tableSize(sig,symb->arity(),_sizes),MODEL_ZERO));
   }
 }
 
-unsigned FiniteModelMultiSorted::evalFun(unsigned f, const DArray<unsigned>& args)
+unsigned FiniteModelMultiSorted::evalFun(unsigned f, const DArray<unsigned>& args, Timestamp asOf)
 {
   Stack<FunLayer*>& st = _f_layers[f];
   for (unsigned i = st.size(); i > 0; i--) {
+    if (st[i-1]->_born >= asOf) continue; // born after our reader; invisible to it
     unsigned v = st[i-1]->value(args,*this);
     if (v != FUNV_UNDEF) {
       return v;
@@ -220,10 +221,11 @@ unsigned FiniteModelMultiSorted::evalFun(unsigned f, const DArray<unsigned>& arg
   throw UndefinedValueException(env.signature->functionName(f));
 }
 
-char FiniteModelMultiSorted::evalPred(unsigned p, const DArray<unsigned>& args)
+char FiniteModelMultiSorted::evalPred(unsigned p, const DArray<unsigned>& args, Timestamp asOf)
 {
   Stack<PredLayer*>& st = _p_layers[p];
   for (unsigned i = st.size(); i > 0; i--) {
+    if (st[i-1]->_born >= asOf) continue; // born after our reader; invisible to it
     char v = st[i-1]->value(args,*this);
     if (v != INTP_UNDEF) {
       return v;
@@ -575,16 +577,16 @@ TermList FiniteModelMultiSorted::deFool(TermList tl)
   return tl;
 }
 
-unsigned FiniteModelMultiSorted::boolValue(bool isTrue)
+unsigned FiniteModelMultiSorted::boolValue(bool isTrue, Timestamp asOf)
 {
   if (!env.signature->foolConstantsDefined()) {
     USER_ERROR("Cannot evaluate a boolean term: this model does not have a boolean domain");
   }
   DHMap<unsigned,unsigned> noSubst;
-  return evaluateTerm(TermList(Term::createConstant(env.signature->getFoolConstantSymbol(isTrue))),noSubst);
+  return evaluateTerm(TermList(Term::createConstant(env.signature->getFoolConstantSymbol(isTrue))),noSubst,asOf);
 }
 
-unsigned FiniteModelMultiSorted::evaluateTerm(TermList tl, const DHMap<unsigned,unsigned>& subst)
+unsigned FiniteModelMultiSorted::evaluateTerm(TermList tl, const DHMap<unsigned,unsigned>& subst, Timestamp asOf)
 {
   if (tl.isVar()) {
     // TODO: maybe error, if the variable is not in the map?
@@ -604,14 +606,14 @@ unsigned FiniteModelMultiSorted::evaluateTerm(TermList tl, const DHMap<unsigned,
       USER_ERROR("Cannot evaluate " + tl.toString() + ", not supported");
     }
     DHMap<unsigned,unsigned> inner(subst); // evaluateFormula wants to bind quantified variables
-    return boolValue(evaluateFormula(term->getSpecialData()->getFormula(),inner));
+    return boolValue(evaluateFormula(term->getSpecialData()->getFormula(),inner,asOf),asOf);
   }
 
   unsigned f = term->functor();
   unsigned arity = env.signature->functionArity(f);
   DArray<unsigned> args(arity);
   for(unsigned i=0;i<arity;i++){
-    args[i] = evaluateTerm(*term->nthArgument(i),subst);
+    args[i] = evaluateTerm(*term->nthArgument(i),subst,asOf);
     ASS_G(args[i],0)
   }
 
@@ -629,20 +631,20 @@ unsigned FiniteModelMultiSorted::evaluateTerm(TermList tl, const DHMap<unsigned,
       ASS(fd->_head->nthArgument(i)->isVar());
       inner.set(fd->_head->nthArgument(i)->var(),args[i]);
     }
-    return evaluateTerm(TermList(fd->_body),inner);
+    return evaluateTerm(TermList(fd->_body),inner,asOf);
   }
 
   // throws if the model does not say what f is on these arguments
-  return evalFun(f,args);
+  return evalFun(f,args,asOf);
 }
 
-bool FiniteModelMultiSorted::evaluateLiteral(Literal* lit, const DHMap<unsigned,unsigned>& subst)
+bool FiniteModelMultiSorted::evaluateLiteral(Literal* lit, const DHMap<unsigned,unsigned>& subst, Timestamp asOf)
 {
   unsigned p = lit->functor();
   unsigned arity = env.signature->predicateArity(p);
   DArray<unsigned> args(arity);
   for(unsigned i=0;i<arity;i++){
-    args[i] = evaluateTerm(*lit->nthArgument(i),subst);
+    args[i] = evaluateTerm(*lit->nthArgument(i),subst,asOf);
     ASS_G(args[i],0)
   }
 
@@ -659,12 +661,12 @@ bool FiniteModelMultiSorted::evaluateLiteral(Literal* lit, const DHMap<unsigned,
       ASS(pd->_head->nthArgument(i)->isVar());
       inner.set(pd->_head->nthArgument(i)->var(),args[i]);
     }
-    bool val = (evaluateFormula(pd->_body,inner) == pd->_head->isPositive());
+    bool val = (evaluateFormula(pd->_body,inner,asOf) == pd->_head->isPositive());
     return val == lit->polarity();
   }
 
   // throws if the model does not say what p is on these arguments
-  return (evalPred(p,args)==INTP_TRUE) == (lit->polarity());
+  return (evalPred(p,args,asOf)==INTP_TRUE) == (lit->polarity());
 }
 
 void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<unsigned> &sortFunctions, const Stack<unsigned> &sortPredicates)
@@ -935,7 +937,7 @@ void FiniteModelMultiSorted::restoreEliminatedFunDef(Problem::FunDef* fd)
   ArgsEnumerator it(_sizes,ot,arity);
   it.bindAll(vars,subst);
   do {
-    unsigned val = evaluateTerm(TermList(fd->_body),subst);
+    unsigned val = evaluateTerm(TermList(fd->_body),subst,_now);
     addFunctionDefinition(f,it.args(),val);
   } while (it.nextAndRebind(vars,subst));
 }
@@ -952,7 +954,7 @@ void FiniteModelMultiSorted::materializeFun(unsigned f)
   size_t rows = tableSize(sig,symb->arity(),_sizes);
   checkTableAffordable(symb,rows,sizeof(unsigned));
   ASS(_f_layers[f].isEmpty());
-  _f_layers[f].push(new TableFunLayer(sig,rows));
+  _f_layers[f].push(new TableFunLayer(sig,rows,MODEL_ZERO));
 
   // ... and fill it by evaluating the definition
   if (fd->_body) {
@@ -985,7 +987,7 @@ void FiniteModelMultiSorted::restoreEliminatedPredDef(Problem::PredDef* pd)
   ArgsEnumerator it(_sizes,ot,arity);
   it.bindAll(vars,subst);
   do {
-    bool val = (evaluateFormula(pd->_body,subst) == pd->_head->isPositive());
+    bool val = (evaluateFormula(pd->_body,subst,_now) == pd->_head->isPositive());
     addPredicateDefinition(p,it.args(),val);
   } while (it.nextAndRebind(vars,subst));
 }
@@ -1002,7 +1004,7 @@ void FiniteModelMultiSorted::materializePred(unsigned p)
   size_t rows = tableSize(sig,symb->arity(),_sizes);
   checkTableAffordable(symb,rows,sizeof(char));
   ASS(_p_layers[p].isEmpty());
-  _p_layers[p].push(new TablePredLayer(sig,rows));
+  _p_layers[p].push(new TablePredLayer(sig,rows,MODEL_ZERO));
 
   // ... and fill it by evaluating the definition
   restoreEliminatedPredDef(pd);
@@ -1151,10 +1153,10 @@ void FiniteModelMultiSorted::restoreViaCondFlip(Problem::CondFlip* cf)
     ArgsEnumerator it(std::move(bounds));
     it.bindAll(vars,subst);
     do {
-      if (evaluateFormula(cf->_cond,subst) != cf->_neg) {
+      if (evaluateFormula(cf->_cond,subst,_now) != cf->_neg) {
         // do the flip
         for(unsigned j=0;j<p_arity;j++){
-          inner_args[j] = evaluateTerm(*cf->_val->nthArgument(j),subst);
+          inner_args[j] = evaluateTerm(*cf->_val->nthArgument(j),subst,_now);
         }
         DArray<char>& tbl = predTable(p)->raw();
         size_t idx = tableIndex(inner_args,_sizes,env.signature->getPredicate(p)->predType());
@@ -1207,6 +1209,9 @@ void FiniteModelMultiSorted::restoreEliminatedDefinitions(Kernel::Problem* prob)
   auto ii = prob->interferences.iter(); // LIFO is the key here!
   while (ii.hasNext()) {
     Problem::Interference* i = ii.next();
+    // one tick of the replay clock per step: whatever this step pushes belongs to model__now,
+    // and reads as of _now therefore see model_{_now-1}, which is what this step transforms
+    ASS_G(_now,MODEL_ZERO);
     switch (i->_kind) {
       case Problem::IntereferenceKind::FUN_DEF: {
         Problem::FunDef* fd = static_cast<Problem::FunDef*>(i);
@@ -1247,6 +1252,7 @@ void FiniteModelMultiSorted::restoreEliminatedDefinitions(Kernel::Problem* prob)
       default:
         ASSERTION_VIOLATION
     }
+    _now++;
   }
 
   // A table cell still undefined at this point was never asked about during the replay
@@ -1283,7 +1289,7 @@ bool FiniteModelMultiSorted::evaluate(Unit* unit)
     Formula::quantify(static_cast<FormulaUnit*>(unit)->getFormula()); // close over any free variables (a no-op on closed formulas)
 
   DHMap<unsigned,unsigned> subst;
-  return evaluateFormula(formula,subst);
+  return evaluateFormula(formula,subst,_now);
 }
 
 /**
@@ -1291,7 +1297,7 @@ bool FiniteModelMultiSorted::evaluate(Unit* unit)
  * TODO: This is recursive, which could be problematic in the long run
  *
  */
-bool FiniteModelMultiSorted::evaluateFormula(Formula* formula, DHMap<unsigned,unsigned>& subst)
+bool FiniteModelMultiSorted::evaluateFormula(Formula* formula, DHMap<unsigned,unsigned>& subst, Timestamp asOf)
 {
   bool isAnd = false;
   bool isImp = false;
@@ -1304,14 +1310,14 @@ bool FiniteModelMultiSorted::evaluateFormula(Formula* formula, DHMap<unsigned,un
       return true;
 
     case LITERAL:
-      return evaluateLiteral(formula->literal(),subst);
+      return evaluateLiteral(formula->literal(),subst,asOf);
 
     // the dual of the FORMULA special term in evaluateTerm: a boolean term used as a formula
     case BOOL_TERM:
-      return evaluateTerm(formula->getBooleanTerm(),subst) == boolValue(true);
+      return evaluateTerm(formula->getBooleanTerm(),subst,asOf) == boolValue(true,asOf);
 
     case NOT:
-      return !evaluateFormula(formula->uarg(),subst);
+      return !evaluateFormula(formula->uarg(),subst,asOf);
     case AND:
       isAnd=true;
     case OR:
@@ -1320,7 +1326,7 @@ bool FiniteModelMultiSorted::evaluateFormula(Formula* formula, DHMap<unsigned,un
         FormulaList::Iterator fit(args);
         while(fit.hasNext()){
           Formula* arg = fit.next();
-          bool res = evaluateFormula(arg,subst);
+          bool res = evaluateFormula(arg,subst,asOf);
           if(isAnd && !res) return false;
           if(!isAnd && res) return true;
         }
@@ -1335,9 +1341,9 @@ bool FiniteModelMultiSorted::evaluateFormula(Formula* formula, DHMap<unsigned,un
     {
       Formula* left = formula->left();
       Formula* right = formula->right();
-      bool left_res = evaluateFormula(left,subst);
+      bool left_res = evaluateFormula(left,subst,asOf);
       if(isImp && !left_res) return true;
-      bool right_res = evaluateFormula(right,subst);
+      bool right_res = evaluateFormula(right,subst,asOf);
       if(isImp) return right_res;
 
 #if DEBUG_MODEL
@@ -1377,7 +1383,7 @@ bool FiniteModelMultiSorted::evaluateFormula(Formula* formula, DHMap<unsigned,un
       bool res;
       bool early = false;
       do {
-        res = evaluateFormula(formula->qarg(),subst);
+        res = evaluateFormula(formula->qarg(),subst,asOf);
 
         if((isForall && !res) || (!isForall && res)) {
           early = true;
