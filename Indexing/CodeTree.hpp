@@ -18,6 +18,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/Allocator.hpp"
+#include "Lib/BitUtils.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/Stack.hpp"
@@ -74,13 +75,23 @@ public:
 
   struct MatchInfo
   {
-    /** Index of the matched LitInfo in the EContext */
-    unsigned liIndex;
+    inline unsigned getLiIndex() const { return _liIndex(); }
+    inline TermList* getBindings() { return &bindings[0]; }
+    inline bool opposite() const { return _opposite(); }
+
+  private:
+    BITFIELD(64,
+      BITFIELD_MEMBER(bool, _opposite, _setOpposite, 1,
+      BITFIELD_MEMBER(unsigned, _liIndex, _setLiIndex, CHAR_BIT * sizeof(unsigned) - 1,
+      END_BITFIELD
+    )))
+    /** Index of the matched LitInfo in the EContext, with the opposite flag packed
+     * in alongside it. */
+    uint64_t _content = 0;
     /** array of bindings */
     TermList bindings[1];
 
-  private:
-    void init(ILStruct* ils, unsigned liIndex, DArray<TermList>& bindingArray);
+    void init(ILStruct* ils, unsigned liIndex, DArray<TermList>& bindingArray, bool opposite);
 
     static MatchInfo* alloc(unsigned bindCnt);
 
@@ -130,11 +141,16 @@ public:
     unsigned timestamp;
     //from here on, the values are valid only if the timestamp is current
 
-    void addMatch(unsigned liIndex, DArray<TermList>& bindingArray);
+    void addMatch(unsigned liIndex, DArray<TermList>& bindingArray, bool opposite);
     void deleteMatch(unsigned matchIndex);
     MatchInfo*& getMatch(unsigned matchIndex);
 
     unsigned matchCnt;
+    /**
+    * non-opposite matches are stored first in [0, nonOppositeMatchCnt)
+    * opposite matches are stored after in [nonOppositeMatchCnt, matchCnt)
+    */
+    unsigned nonOppositeMatchCnt;
 
     /** all possible lits were tried to match */
     bool visited;
@@ -255,7 +271,7 @@ public:
      * Returns code op in the structure matching the content
      * of flat term entry @b ftPos.
      */
-    CodeOp* getTargetOp(const FlatTerm::Entry* ftPos);
+    CodeOp* getTargetOp(const FlatTerm::Entry* ftPos, bool opposite);
     inline size_t length() const { return targets.size(); }
 
     enum Kind
@@ -333,25 +349,47 @@ public:
     static_assert(removing || !checkRange);
 
     /**
+     * A CodeOp* tagged in its lowest bit with the 'opposite' flag 
+     */
+    class MarkedOp
+    {
+      static_assert(alignof(CodeOp) >= 2, "CodeOp must be at least 2-byte aligned so its lowest bit is free for the mark");
+    public:
+      MarkedOp(CodeOp* op, bool mark) { _setOp(op); _setMark(mark); }
+
+      BITFIELD(64,
+        BITFIELD_MEMBER(bool, getMark, _setMark, 1,
+        END_BITFIELD
+      ))
+      static_assert(sizeof(void *) <= sizeof(uint64_t), "must be able to fit a pointer into a 64-bit integer");
+      BITFIELD_PTR_GET(CodeOp, getOp, 1)
+      BITFIELD_PTR_SET(CodeOp, _setOp, 1)
+
+    private:
+      // bitfield
+      uint64_t _content = 0;
+    };
+
+    /**
      * Backtracking point for the interpretation of the code tree.
      */
     struct BTPoint
     {
-      BTPoint(size_t tp, CodeOp* op) : tp(tp), op(op) {}
+      BTPoint(size_t tp, MarkedOp markedOp) : tp(tp), markedOp(markedOp) {}
 
       /** Position in the flat term */
       size_t tp;
-      /** Pointer to the next operation */
-      CodeOp* op;
+      /** Pointer to the next operation and mark encoding whether this is an opposite branch */
+      MarkedOp markedOp;
     };
 
     struct BTPointRemoving
     {
-      BTPointRemoving(size_t tp, CodeOp* op, size_t fibDepth)
-      : tp(tp), op(op), fibDepth(fibDepth) {}
+      BTPointRemoving(size_t tp, MarkedOp markedOp, size_t fibDepth)
+      : tp(tp), markedOp(markedOp), fibDepth(fibDepth) {}
 
       size_t tp;
-      CodeOp* op;
+      MarkedOp markedOp;
       size_t fibDepth;
     };
 
@@ -382,7 +420,7 @@ public:
     }
 
   protected:
-    void init(const CodeTree& tree_, CodeOp* entry_, LitInfo* linfos_ = 0,
+    void init(const CodeTree& tree_, CodeOp* entry_, bool canEnterOpposites, LitInfo* linfos_ = 0,
       size_t linfoCnt_ = 0, Stack<CodeOp*>* firstsInBlocks_ = 0);
 
     bool backtrack();
@@ -392,6 +430,7 @@ public:
     bool doCheckFun();
     bool doCheckGroundTerm();
     bool doSearchStruct();
+    MarkedOp markOp(CodeOp*);
 
     /**
      * Position in the flat term
@@ -417,6 +456,15 @@ public:
 
     CodeOp* entry;
     CodeTree const* tree;
+
+    /** Whether the current execution branch matched via the opposite (negated) predicate */
+    bool opposite;
+
+    /**
+     * Whether this matcher is allowed to match a query literal against its opposite.
+     * False for e.g. RemovingLiteralMatcher, where subsumption resolution does not apply.
+     */
+    bool canEnterOpposites;
 
     /**
      * Array of alternative LitInfo objects
