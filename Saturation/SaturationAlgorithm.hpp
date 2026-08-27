@@ -156,6 +156,7 @@ protected:
   void backwardSimplify(Clause* c);
   void addToPassive(Clause* c);
   void activate(Clause* c);
+  [[nodiscard]] bool iterateGoalReachability();
   void removeSelected(Clause*);
   virtual void onSOSClauseAdded(Clause* c) {}
   void onActiveAdded(Clause* c);
@@ -236,6 +237,7 @@ protected:
   Instantiation* _instantiation;
   FunctionDefinitionHandler& _fnDefHandler;
   std::unique_ptr<PartialRedundancyHandler> _partialRedundancyHandler;
+  std::unique_ptr<GoalReachabilityHandler> _goalReachabilityHandler;
 
   SubscriptionData _passiveContRemovalSData;
   SubscriptionData _activeContRemovalSData;

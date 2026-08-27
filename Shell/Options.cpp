@@ -1953,7 +1953,6 @@ void Options::init()
     _goalOrientedSuperposition.description="New calculus, to be described.";
     _lookup.insert(&_goalOrientedSuperposition);
     _goalOrientedSuperposition.onlyUsefulWith(ProperSaturationAlgorithm());
-    _goalOrientedSuperposition.addHardConstraint(If(equal(true)).then(_demodulationRedundancyCheck.is(notEqual(DemodulationRedundancyCheck::ENCOMPASS))));
     _goalOrientedSuperposition.tag(OptionTag::INFERENCES);
 
     _goalOrientedChainLimit = UnsignedOptionValue("goal_oriented_chain_limit","gocl",3);

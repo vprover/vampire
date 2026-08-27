@@ -106,6 +106,7 @@
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
 #include "Shell/AnswerLiteralManager.hpp"
+#include "Shell/GoalReachabilityHandler.hpp"
 #include "Shell/PartialRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
@@ -234,7 +235,8 @@ std::unique_ptr<PassiveClauseContainer> makeLevel4(bool isOutermost, bool forHO,
 SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   : MainLoop(prb, opt), _imgr(*this),
     _clauseActivationInProgress(false),
-    _fwSimplifiers(0), _expensiveFwSimplifiers(0), _simplifiers(0), _bwSimplifiers(0), _splitter(0),
+    _fwSimplifiers(0), _expensiveFwSimplifiers(0), _simplifiers(0), _bwSimplifiers(0),
+    _splitter(opt.splitting() ? new Splitter() : nullptr),
     _consFinder(0), _labelFinder(0), _symEl(0), _answerLiteralManager(0),
     _instantiation(0), _fnDefHandler(prb.getFunctionDefinitionHandler()),
     _partialRedundancyHandler(), _activationLimit(0)
@@ -249,6 +251,8 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
     cerr << "SaturationAlgorithm cannot set its ordering as global" << endl;
   }
   _selector = LiteralSelector::getSelector(*_ordering, opt, opt.selection());
+
+  _partialRedundancyHandler.reset(PartialRedundancyHandler::create(opt, _ordering.ptr(), _splitter));
 
   _completeOptionSettings = opt.complete(prb);
 
@@ -278,6 +282,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   else {
     _extensionality = 0;
   }
+  _goalReachabilityHandler.reset(new GoalReachabilityHandler(*this));
 
   if (doesAlascaTakeOver(_prb, _opt)) {
     _alascaState = std::make_unique<AlascaState>(
@@ -1065,6 +1070,7 @@ void SaturationAlgorithm::removeActiveOrPassiveClause(Clause* cl)
     }
     case Clause::ACTIVE:
       _active->remove(cl);
+      _goalReachabilityHandler->removeClause(cl);
       break;
     default:
       ASS_REP2(false, cl->store(), *cl);
@@ -1109,38 +1115,11 @@ void SaturationAlgorithm::removeSelected(Clause* cl)
  */
 void SaturationAlgorithm::activate(Clause* cl)
 {
-      TIME_TRACE("activation")
-
-  {
-    TIME_TRACE("redundancy check")
-    if (_consFinder && _consFinder->isRedundant(cl)) {
-      return removeSelected(cl);
-    }
-  }
-
-  {
-    TIME_TRACE("splitting")
-    if (_splitter && _opt.splitAtActivation()) {
-      if (_splitter->doSplitting(cl)) {
-        return removeSelected(cl);
-      }
-    }
-  }
+  TIME_TRACE("activation")
 
   _clauseActivationInProgress = true;
 
-  if (!cl->numSelected()) {
-    TIME_TRACE("clause selection")
-    TIME_TRACE("literal selection");
-
-    if (env.options->randomTraversals()) {
-      TIME_TRACE(TimeTrace::SHUFFLING);
-
-      Shuffling::shuffle(cl);
-    }
-
-    _selector->select(cl);
-  }
+  cl->setStore(Clause::SELECTED);
 
   ASS_EQ(cl->store(), Clause::SELECTED);
   cl->setStore(Clause::ACTIVE);
@@ -1189,8 +1168,27 @@ void SaturationAlgorithm::activate(Clause* cl)
   if (generated.premiseRedundant) {
     _active->remove(cl);
   }
+}
 
-  return;
+bool SaturationAlgorithm::iterateGoalReachability()
+{
+  if (!_opt.goalOrientedSuperposition()) {
+    return true;
+  }
+  auto terminated = _goalReachabilityHandler->iterate();
+
+  for (const auto& cl : _goalReachabilityHandler->goalClauses()) {
+
+    if (env.options->showAll()) {
+      std::cout << "[SA] goal clause: " << cl->toString() << endl;
+    }
+
+    activate(cl);
+  }
+
+  ASS(_postponedClauseRemovals.isEmpty()); // TODO is this even possible to be non-empty?
+
+  return terminated;
 }
 
 /**
@@ -1264,9 +1262,13 @@ UnitList *SaturationAlgorithm::collectSaturatedSet()
  */
 void SaturationAlgorithm::doOneAlgorithmStep()
 {
+  bool goalReachabilityTerminated = iterateGoalReachability();
   doUnprocessedLoop();
 
   if (_passive->isEmpty()) {
+    if (!goalReachabilityTerminated) {
+      return;
+    }
     TerminationReason termReason =
         isComplete() ? TerminationReason::SATISFIABLE : TerminationReason::REFUTATION_NOT_FOUND;
     MainLoopResult res(termReason);
@@ -1325,7 +1327,43 @@ void SaturationAlgorithm::doOneAlgorithmStep()
     }
   }
 
-  activate(cl);
+  {
+    TIME_TRACE("redundancy check")
+    if (_consFinder && _consFinder->isRedundant(cl)) {
+      removeSelected(cl);
+      return;
+    }
+  }
+
+  {
+    TIME_TRACE("splitting")
+    if (_splitter && _opt.splitAtActivation()) {
+      if (_splitter->doSplitting(cl)) {
+        removeSelected(cl);
+        return;
+      }
+    }
+  }
+
+  if (!cl->numSelected()) {
+    TIME_TRACE("clause selection")
+    TIME_TRACE("literal selection");
+
+    if (env.options->randomTraversals()) {
+      TIME_TRACE(TimeTrace::SHUFFLING);
+
+      Shuffling::shuffle(cl);
+    }
+
+    _selector->select(cl);
+  }
+  cl->setStore(Clause::PASSIVE);
+
+  if (_opt.goalOrientedSuperposition()) {
+    _goalReachabilityHandler->addClause(cl);
+  } else {
+    activate(cl);
+  }
 }
 
 /**
