@@ -2052,6 +2052,10 @@ void FiniteModelBuilder::onModelFound()
   // so an undefined value here is a bug on our side
   try {
     model.eliminateSortFunctionsAndPredicates(_sortFunctions,_sortPredicates);
+    // sort elimination renumbers the domain elements, so it has to happen while the model is
+    // still nothing but the tables copied above; only then is model_0 -- the model the replay
+    // starts from -- fixed, and only then is it worth completing
+    model.installTrivialLayers();
     model.restoreEliminatedDefinitions(env.getMainProblem());
 
 #if FMB_CHECK_MODEL_AGAINST_INPUT

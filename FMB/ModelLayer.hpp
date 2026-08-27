@@ -116,5 +116,31 @@ public:
   char value(const DArray<unsigned>& args, FiniteModelMultiSorted& m) override;
 };
 
+/**
+ * A symbol nothing in the model constrains: it disappeared during preprocessing without any
+ * step recording what it should be (its last occurrence went away with some other
+ * elimination), so it is free to take any value at all. Taking the first domain element for a
+ * function and $false for a predicate is as good a choice as any.
+ *
+ * Every symbol without an explicit table gets one of these at the bottom of its stack, which
+ * is what makes model_0 total -- and hence what lets a later step be a *correction* to a
+ * model that already says something everywhere, rather than a definition of a partial one.
+ */
+class TrivialFunLayer : public FunLayer {
+public:
+  explicit TrivialFunLayer(Timestamp born) : FunLayer(LayerKind::TRIVIAL,born) {}
+
+  unsigned value(const DArray<unsigned>& args, FiniteModelMultiSorted& m) override
+  { return 1; }
+};
+
+class TrivialPredLayer : public PredLayer {
+public:
+  explicit TrivialPredLayer(Timestamp born) : PredLayer(LayerKind::TRIVIAL,born) {}
+
+  char value(const DArray<unsigned>& args, FiniteModelMultiSorted& m) override
+  { return INTP_FALSE; }
+};
+
 } // namespace FMB
 #endif

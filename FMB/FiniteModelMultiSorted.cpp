@@ -125,21 +125,22 @@ void FiniteModelMultiSorted::deleteAllLayers()
   deleteLayersIn(_f_layers,_p_layers);
 }
 
-// the base explicit table of a symbol in the given layer arrays, or nullptr if there is none;
-// a table, when a symbol has one, is always the bottom layer -- everything pushed later is a
-// correction to what it says
+// the explicit table currently speaking for a symbol, or nullptr if the model does not have
+// one for it. A table is always the topmost layer when there is one -- it is what a symbol
+// starts out with, and what materialization gives one that started out without; anything
+// below it is only reached where the table has a hole
 static TableFunLayer* funTableIn(const DArray<Stack<FunLayer*>>& f_layers, unsigned f)
 {
   const Stack<FunLayer*>& st = f_layers[f];
-  return (st.isNonEmpty() && st[0]->_kind == LayerKind::TABLE) ?
-    static_cast<TableFunLayer*>(st[0]) : nullptr;
+  return (st.isNonEmpty() && st.top()->_kind == LayerKind::TABLE) ?
+    static_cast<TableFunLayer*>(st.top()) : nullptr;
 }
 
 static TablePredLayer* predTableIn(const DArray<Stack<PredLayer*>>& p_layers, unsigned p)
 {
   const Stack<PredLayer*>& st = p_layers[p];
-  return (st.isNonEmpty() && st[0]->_kind == LayerKind::TABLE) ?
-    static_cast<TablePredLayer*>(st[0]) : nullptr;
+  return (st.isNonEmpty() && st.top()->_kind == LayerKind::TABLE) ?
+    static_cast<TablePredLayer*>(st.top()) : nullptr;
 }
 
 TableFunLayer* FiniteModelMultiSorted::funTable(unsigned f) const
@@ -205,6 +206,32 @@ void FiniteModelMultiSorted::initTables()
     OperatorType* sig = symb->predType();
     _p_layers[p].push(new TablePredLayer(sig,tableSize(sig,symb->arity(),_sizes),MODEL_ZERO));
   }
+}
+
+void FiniteModelMultiSorted::installTrivialLayers()
+{
+  ASS_EQ(_now,MODEL_ZERO+1); // model_0 has to be complete before the replay touches it
+
+  for(unsigned f=0; f<env.signature->functions();f++){
+    if (_f_layers[f].isEmpty()) {
+      _f_layers[f].push(new TrivialFunLayer(MODEL_ZERO));
+    }
+  }
+  // predicate 0 is equality, which evaluateLiteral answers without consulting the model
+  for(unsigned p=1; p<env.signature->predicates();p++){
+    if (_p_layers[p].isEmpty()) {
+      _p_layers[p].push(new TrivialPredLayer(MODEL_ZERO));
+    }
+  }
+
+  // The two boolean domain elements have to be genuinely represented, and are: FOOL
+  // elimination puts them in the problem, so they have a usage count and hence a table. A
+  // trivial layer would give both the same value, collapsing $true and $false onto one
+  // element -- boolValue would stop distinguishing them and toString's domain print would
+  // name the same element twice.
+  ASS(!env.signature->foolConstantsDefined() ||
+      (funRepresented(env.signature->getFoolConstantSymbol(true)) &&
+       funRepresented(env.signature->getFoolConstantSymbol(false))));
 }
 
 unsigned FiniteModelMultiSorted::evalFun(unsigned f, const DArray<unsigned>& args, Timestamp asOf)
@@ -433,7 +460,7 @@ std::string FiniteModelMultiSorted::toString()
     }
 
     if (arity == 0) {
-      unsigned res = funTable(f)->raw()[0];
+      unsigned res = evalFun(f,DArray<unsigned>(0),_now);
       ASS_G(res,0)
 
       TermList srtT = ot->result();
@@ -445,13 +472,10 @@ std::string FiniteModelMultiSorted::toString()
       modelStm << "tff("<<prepend("function_", name)<<",axiom,"<<endl;
 
       bool first=true;
-      const DArray<unsigned>& tbl = funTable(f)->raw();
-      size_t idx = 0; // the enumeration visits the table rows in order
       ArgsEnumerator it(_sizes,ot,arity);
       do {
         const DArray<unsigned>& args = it.args();
-        ASS_EQ(idx,tableIndex(args,_sizes,ot));
-        unsigned res = tbl[idx++];
+        unsigned res = evalFun(f,args,_now);
         ASS_G(res,0)
 
         if (!first) {
@@ -471,7 +495,6 @@ std::string FiniteModelMultiSorted::toString()
         unsigned resultSort = resultSortT.term()->functor();
         modelStm << ") = " << cnames[resultSort][res] << endl;
       } while (it.next());
-      ASS_EQ(idx,tbl.size());
       modelStm << ")." << endl << endl;
     }
   }
@@ -520,7 +543,7 @@ std::string FiniteModelMultiSorted::toString()
     }
 
     if (arity==0) {
-      char res = predTable(p)->raw()[0];
+      char res = evalPred(p,DArray<unsigned>(0),_now);
       if(res==INTP_TRUE){
         modelStm << "tff("<<append(name,"_definition")<<",axiom,"<<name<< ")."<<endl;
       } else { // covers (res==INTP_FALSE) as well as undefined, which defaults to false
@@ -530,13 +553,10 @@ std::string FiniteModelMultiSorted::toString()
       modelStm << "tff("<<prepend("predicate_", name)<<",axiom,"<<endl;
 
       bool first=true;
-      const DArray<char>& tbl = predTable(p)->raw();
-      size_t idx = 0; // the enumeration visits the table rows in order
       ArgsEnumerator it(_sizes,ot,arity);
       do {
         const DArray<unsigned>& args = it.args();
-        ASS_EQ(idx,tableIndex(args,_sizes,ot));
-        char res = tbl[idx++];
+        char res = evalPred(p,args,_now);
         ASS_NEQ(res,INTP_UNDEF)
 
         if (!first){
@@ -557,7 +577,6 @@ std::string FiniteModelMultiSorted::toString()
         modelStm << ")";
         modelStm << endl;
       } while (it.next());
-      ASS_EQ(idx,tbl.size());
       modelStm << ")." << endl << endl;
     }
   }
@@ -953,7 +972,6 @@ void FiniteModelMultiSorted::materializeFun(unsigned f)
   OperatorType* sig = symb->fnType();
   size_t rows = tableSize(sig,symb->arity(),_sizes);
   checkTableAffordable(symb,rows,sizeof(unsigned));
-  ASS(_f_layers[f].isEmpty());
   _f_layers[f].push(new TableFunLayer(sig,rows,MODEL_ZERO));
 
   // ... and fill it by evaluating the definition
@@ -1003,7 +1021,6 @@ void FiniteModelMultiSorted::materializePred(unsigned p)
   OperatorType* sig = symb->predType();
   size_t rows = tableSize(sig,symb->arity(),_sizes);
   checkTableAffordable(symb,rows,sizeof(char));
-  ASS(_p_layers[p].isEmpty());
   _p_layers[p].push(new TablePredLayer(sig,rows,MODEL_ZERO));
 
   // ... and fill it by evaluating the definition
@@ -1220,7 +1237,7 @@ void FiniteModelMultiSorted::restoreEliminatedDefinitions(Kernel::Problem* prob)
           // only a flip replayed earlier can have put a table here (see below)
           ASS_EQ(env.signature->getFunction(f)->usageCnt(),0);
           delete _f_layers[f].pop(); // this definition speaks for f from now on
-          ASS(_f_layers[f].isEmpty());
+          ASS(!funRepresented(f));
         }
         _symbolicFuns.set(f,fd); // set, not insert: overrides a trivial record invented meanwhile
         break;
@@ -1231,7 +1248,7 @@ void FiniteModelMultiSorted::restoreEliminatedDefinitions(Kernel::Problem* prob)
         if (predRepresented(p)) {
           ASS_EQ(env.signature->getPredicate(p)->usageCnt(),0);
           delete _p_layers[p].pop();
-          ASS(_p_layers[p].isEmpty());
+          ASS(!predRepresented(p));
         }
         _symbolicPreds.set(p,pd);
         break;
@@ -1255,27 +1272,6 @@ void FiniteModelMultiSorted::restoreEliminatedDefinitions(Kernel::Problem* prob)
     _now++;
   }
 
-  // A table cell still undefined at this point was never asked about during the replay
-  // (a read would have thrown); make the default explicit, so that printing -- which goes
-  // to the cells directly -- and any later evaluation see a total model.
-  for(unsigned f=0; f<env.signature->functions();f++){
-    TableFunLayer* tl = funTable(f);
-    if (!tl) continue;
-    DArray<unsigned>& tbl = tl->raw();
-    for(size_t idx = 0; idx < tbl.size(); idx++) {
-      if (tbl[idx] == FUNV_UNDEF)
-        tbl[idx] = 1;
-    }
-  }
-  for(unsigned p=1; p<env.signature->predicates();p++){
-    TablePredLayer* tl = predTable(p);
-    if (!tl) continue;
-    DArray<char>& tbl = tl->raw();
-    for(size_t idx = 0; idx < tbl.size(); idx++) {
-      if (tbl[idx] == INTP_UNDEF)
-        tbl[idx] = INTP_FALSE;
-    }
-  }
 }
 
 /**

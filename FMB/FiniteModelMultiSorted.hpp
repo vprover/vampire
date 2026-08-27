@@ -130,6 +130,14 @@ public:
   // the domain element $true (or $false) sits on in this model
   unsigned boolValue(bool isTrue) { return boolValue(isTrue,_now); }
 
+  /**
+   * Give every symbol the model has no explicit table for a trivial layer, so that model_0 --
+   * the model the replay starts from -- says something about every symbol on every argument
+   * tuple. Only a model we built ourselves gets this: one loaded from a file is legitimately
+   * partial, and there the absence of any layer is the UndefinedValueException to report.
+   */
+  void installTrivialLayers();
+
   void eliminateSortFunctionsAndPredicates(const Stack<unsigned>& sortFunctions, const Stack<unsigned>& sortPredicates);
   void restoreEliminatedDefinitions(Kernel::Problem* prob);
 
