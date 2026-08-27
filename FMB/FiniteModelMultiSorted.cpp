@@ -418,11 +418,16 @@ std::string FiniteModelMultiSorted::toString()
     }
     modelStm << ot->result().toString() << ")." << endl;
 
-    if (!funRepresented(f)) {
-      // no explicit table to print: either a recorded definition speaks for f, or nothing
-      // does and the trivial layer's value has to be spelled out
-      Stack<FunLayer*>& st = _f_layers[f];
-      Problem::FunDef* fd = (st.isNonEmpty() && st.top()->_kind == LayerKind::DEF) ?
+    // A definition or a trivial value prints as a formula; anything else -- a table, or a
+    // flip stacked on one -- has to be spelled out cell by cell. Note this is not the same
+    // question as funRepresented: a flip layer has no table of its own, but what it computes
+    // has no shorter rendering either.
+    Stack<FunLayer*>& st = _f_layers[f];
+    LayerKind topKind = st.isNonEmpty() ? st.top()->_kind : LayerKind::TRIVIAL;
+    if (topKind == LayerKind::DEF || topKind == LayerKind::TRIVIAL) {
+      // either a recorded definition speaks for f, or nothing does and the trivial layer's
+      // value has to be spelled out
+      Problem::FunDef* fd = (topKind == LayerKind::DEF) ?
         static_cast<DefFunLayer*>(st.top())->def() : nullptr;
 
       modelStm << "tff("<<append(name,"_symbolic_definition")<<",axiom,";
@@ -507,9 +512,10 @@ std::string FiniteModelMultiSorted::toString()
     }
     modelStm << "$o )." << endl;
 
-    if (!predRepresented(p)) {
-      Stack<PredLayer*>& st = _p_layers[p];
-      Problem::PredDef* pd = (st.isNonEmpty() && st.top()->_kind == LayerKind::DEF) ?
+    Stack<PredLayer*>& st = _p_layers[p];
+    LayerKind topKind = st.isNonEmpty() ? st.top()->_kind : LayerKind::TRIVIAL;
+    if (topKind == LayerKind::DEF || topKind == LayerKind::TRIVIAL) {
+      Problem::PredDef* pd = (topKind == LayerKind::DEF) ?
         static_cast<DefPredLayer*>(st.top())->def() : nullptr;
 
       modelStm << "tff("<<append(name,"_symbolic_definition")<<",axiom,";
@@ -993,10 +999,10 @@ void FiniteModelMultiSorted::prepareForFlip(unsigned p)
 
   // A flip's soundness argument reads: the model that differs from this one *only on p*, as
   // prescribed, is a model of the problem as it was before the flip's own preprocessing step.
-  // A definition layer whose body reads p would break that "only" -- but only because the flip
-  // writes into a table born at model_0, where a read as of any later time still sees the
-  // change. Freeze the direct readers for as long as that is true; once the flips are layers
-  // of their own, born at the replay step that pushed them, the timestamps do it instead.
+  // A definition layer whose body reads p would break that "only" -- but only because a
+  // conditional flip writes into a table born at model_0, where a read as of any later time
+  // still sees the change. Freeze the direct readers for as long as that is true; a global
+  // flip needs none of this already, being a layer born at its own replay step.
   Stack<unsigned> readers;
   for(unsigned q=1; q<env.signature->predicates(); q++) {
     Stack<PredLayer*>& st = _p_layers[q];
@@ -1011,20 +1017,10 @@ void FiniteModelMultiSorted::prepareForFlip(unsigned p)
   }
 }
 
-void FiniteModelMultiSorted::restoreGlobalPredicateFlip(Problem::GlobalFlip* gf)
+char GlobalFlipPredLayer::value(const DArray<unsigned>& args, FiniteModelMultiSorted& m)
 {
-  // a full-table pass with a value independent of the arguments -- a linear scan suffices
-  DArray<char>& tbl = predTable(gf->_pred)->raw();
-  for(size_t idx = 0; idx < tbl.size(); idx++) {
-    if (tbl[idx] == INTP_TRUE) {
-      tbl[idx] = INTP_FALSE;
-    } else if (tbl[idx] == INTP_FALSE) {
-      tbl[idx] = INTP_TRUE;
-    }
-    // INTP_UNDEF stays undefined: flipping "we don't know" leaves us not knowing. Resolving it
-    // here would both decide too early -- a cell nobody reads is defaulted, once, at the end of
-    // restoreEliminatedDefinitions -- and decide the other way than that default does.
-  }
+  // exactly the opposite of what stood below us, and nothing else changes anywhere
+  return (m.evalPred(_pred,args,_born) == INTP_TRUE) ? INTP_FALSE : INTP_TRUE;
 }
 
 void FiniteModelMultiSorted::restoreViaCondFlip(Problem::CondFlip* cf)
@@ -1176,8 +1172,8 @@ void FiniteModelMultiSorted::restoreEliminatedDefinitions(Kernel::Problem* prob)
       }
       case Problem::IntereferenceKind::GLOB_FLIP: {
         Problem::GlobalFlip* gf = static_cast<Problem::GlobalFlip*>(i);
-        prepareForFlip(gf->_pred);
-        restoreGlobalPredicateFlip(gf);
+        ASS_NEQ(gf->_pred,0) // equality is protected from flipping
+        _p_layers[gf->_pred].push(new GlobalFlipPredLayer(gf->_pred,_now));
         break;
       }
       case Problem::IntereferenceKind::COND_FLIP: {

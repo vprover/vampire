@@ -97,7 +97,10 @@ public:
 
   ~FiniteModelMultiSorted() { deleteAllLayers(); }
 
-  // the layers call these back while computing their own value
+  // the layers call these back while computing their own value; a layer reads as of its own
+  // birth, so that it sees the model its own replay step transforms and nothing later
+  unsigned evalFun(unsigned f, const DArray<unsigned>& args, Timestamp asOf);
+  char evalPred(unsigned p, const DArray<unsigned>& args, Timestamp asOf);
   unsigned domainSizeOf(unsigned sort) const;
   size_t tableIndexOf(OperatorType* sig, const DArray<unsigned>& args) const;
   // evaluate a recorded definition's body with its head's variables bound to args
@@ -141,19 +144,12 @@ private:
   // walk a symbol's layer stack from the top, taking the first layer that has a value for
   // args; a layer with nothing to say falls through to the one below. Falling off the
   // bottom means the model does not say what the symbol is here
-  // asOf restricts the walk to the layers born strictly before it, i.e. to the model as it
-  // stood at that replay step; everything reads as of _now unless it is a layer computing
-  // its own value, which reads as of its own birth
-  unsigned evalFun(unsigned f, const DArray<unsigned>& args, Timestamp asOf);
-  char evalPred(unsigned p, const DArray<unsigned>& args, Timestamp asOf);
-
   unsigned boolValue(bool isTrue, Timestamp asOf);
 
   unsigned evaluateTerm(TermList, const DHMap<unsigned,unsigned>& subst, Timestamp asOf);
   bool evaluateLiteral(Literal*, const DHMap<unsigned,unsigned>& subst, Timestamp asOf);
   bool evaluateFormula(Formula*, DHMap<unsigned,unsigned>& subst, Timestamp asOf);
 
-  void restoreGlobalPredicateFlip(Problem::GlobalFlip*);
   void restoreViaCondFlip(Problem::CondFlip*);
 
   // snapshot what the model currently says about an unrepresented predicate into an explicit

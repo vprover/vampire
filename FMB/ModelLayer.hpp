@@ -176,5 +176,24 @@ public:
   char value(const DArray<unsigned>& args, FiniteModelMultiSorted& m) override;
 };
 
+/**
+ * Polarity flipping (Shuffling::polarityFlip, under -random_polarities) replaced a predicate
+ * by its negation throughout the problem, so undoing it means negating the model on that
+ * predicate -- and on nothing else. As a layer that is literally what it says: read the layer
+ * below and return the opposite.
+ *
+ * "Below" is as of this layer's own birth, which is what confines the change to this symbol.
+ * A definition elsewhere whose body reads the flipped predicate was born earlier and so
+ * cannot see this layer at all; one born later is meant to see it.
+ */
+class GlobalFlipPredLayer : public PredLayer {
+  unsigned _pred;
+public:
+  GlobalFlipPredLayer(unsigned pred, Timestamp born)
+   : PredLayer(LayerKind::GLOBAL_FLIP,born), _pred(pred) {}
+
+  char value(const DArray<unsigned>& args, FiniteModelMultiSorted& m) override;
+};
+
 } // namespace FMB
 #endif
