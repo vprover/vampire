@@ -17,6 +17,8 @@
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 
+#include "Lib/Metaiterators.hpp"
+
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
@@ -32,17 +34,6 @@ static TermList tupleSortOf(unsigned arity, TermList sort)
     components.push(sort);
   }
   return AtomicSort::tupleSort(arity, components.begin());
-}
-
-static unsigned countTermAlgebras()
-{
-  unsigned count = 0;
-  auto it = env.signature->termAlgebrasIterator();
-  while (it.hasNext()) {
-    it.next();
-    count++;
-  }
-  return count;
 }
 
 TEST_FUN(findTupleProjection_finds_every_destructor) {
@@ -87,13 +78,13 @@ TEST_FUN(isTupleConstructor_does_not_touch_the_signature) {
   DECL_CONST(g, tupleSort) // a plain constant of a tuple sort
   DECL_CONST(c, s)         // an ordinary term of a non-tuple sort
 
-  unsigned before = countTermAlgebras();
+  size_t before = countIteratorElements(env.signature->termAlgebrasIterator());
 
   ASS(!Theory::isTupleConstructor(g().sugaredExpr().term()));
   ASS(!Theory::isTupleConstructor(c().sugaredExpr().term()));
 
   // asking whether a term is a tuple constructor must not register anything
-  ASS_EQ(before, countTermAlgebras());
+  ASS_EQ(before, countIteratorElements(env.signature->termAlgebrasIterator()));
 
   // a genuine tuple term is still recognised
   TermStack args = { s.sugaredExpr(), s.sugaredExpr(), c().sugaredExpr(), c().sugaredExpr() };
