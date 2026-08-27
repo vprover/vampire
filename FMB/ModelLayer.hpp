@@ -33,6 +33,14 @@
 #include "Kernel/OperatorType.hpp"
 #include "Kernel/Problem.hpp"
 
+// Temporary, assert-like sanity instrument: when 1, a single-strategy fmb run snapshots the
+// parsed input (see preprocessProblem in vampire.cpp) and, at the end of onModelFound,
+// checks the constructed model against it -- a false original unit raises USER_ERROR.
+// It also makes the trivial layers below pick pseudo-random values rather than a fixed one.
+// To be set to 0 (or removed) once the symbolic-definitions work has been stress-tested;
+// it lives here because this is the lowest header that has to see it.
+#define FMB_CHECK_MODEL_AGAINST_INPUT 1
+
 namespace FMB {
 
 using namespace Lib;
@@ -130,19 +138,37 @@ public:
  * model that already says something everywhere, rather than a definition of a partial one.
  */
 class TrivialFunLayer : public FunLayer {
+#if FMB_CHECK_MODEL_AGAINST_INPUT
+  // Under the self-check the arbitrary value is deliberately *not* a constant: "arbitrary"
+  // is a claim about the model being free here, and picking the same element everywhere is
+  // the one choice least likely to expose a symbol that is not in fact free. The salt makes
+  // it pseudo-random junk instead, reproducible for a given -random_seed. Everything about
+  // this is compiled out when the self-check is; the layer is then simply "the first element".
+  unsigned _resultSort;
+  unsigned _salt;
+public:
+  TrivialFunLayer(unsigned resultSort, unsigned salt, Timestamp born)
+   : FunLayer(LayerKind::TRIVIAL,born), _resultSort(resultSort), _salt(salt) {}
+#else
 public:
   explicit TrivialFunLayer(Timestamp born) : FunLayer(LayerKind::TRIVIAL,born) {}
+#endif
 
-  unsigned value(const DArray<unsigned>& args, FiniteModelMultiSorted& m) override
-  { return 1; }
+  unsigned value(const DArray<unsigned>& args, FiniteModelMultiSorted& m) override;
 };
 
 class TrivialPredLayer : public PredLayer {
+#if FMB_CHECK_MODEL_AGAINST_INPUT
+  unsigned _salt; // see TrivialFunLayer
+public:
+  TrivialPredLayer(unsigned salt, Timestamp born)
+   : PredLayer(LayerKind::TRIVIAL,born), _salt(salt) {}
+#else
 public:
   explicit TrivialPredLayer(Timestamp born) : PredLayer(LayerKind::TRIVIAL,born) {}
+#endif
 
-  char value(const DArray<unsigned>& args, FiniteModelMultiSorted& m) override
-  { return INTP_FALSE; }
+  char value(const DArray<unsigned>& args, FiniteModelMultiSorted& m) override;
 };
 
 /**

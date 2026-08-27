@@ -29,6 +29,7 @@
 #include "Kernel/SubstHelper.hpp"
 
 #include "Lib/Environment.hpp"
+#include "Lib/Random.hpp"
 #include "Lib/DHMap.hpp"
 
 #include "Shell/Rectify.hpp"
@@ -195,19 +196,75 @@ void FiniteModelMultiSorted::initTables()
   }
 }
 
+#if FMB_CHECK_MODEL_AGAINST_INPUT
+
+// splitmix64's finalizer: cheap, stateless, and it scatters the low bits well enough that
+// taking the result modulo a small domain size is not obviously biased
+static uint64_t mix(uint64_t x)
+{
+  x += 0x9e3779b97f4a7c15ull;
+  x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ull;
+  x = (x ^ (x >> 27)) * 0x94d049bb133111ebull;
+  return x ^ (x >> 31);
+}
+
+// a value determined by the arguments and the symbol's own salt, and by nothing else --
+// a trivial layer has to be a function of its arguments like any other interpretation
+static uint64_t tupleHash(const DArray<unsigned>& args, unsigned salt)
+{
+  uint64_t h = salt;
+  for(unsigned i=0;i<args.size();i++) {
+    h = mix(h ^ args[i]);
+  }
+  return mix(h);
+}
+
+unsigned TrivialFunLayer::value(const DArray<unsigned>& args, FiniteModelMultiSorted& m)
+{
+  return 1 + tupleHash(args,_salt) % m.domainSizeOf(_resultSort);
+}
+
+char TrivialPredLayer::value(const DArray<unsigned>& args, FiniteModelMultiSorted& m)
+{
+  return (tupleHash(args,_salt) & 1) ? INTP_TRUE : INTP_FALSE;
+}
+
+#else
+
+unsigned TrivialFunLayer::value(const DArray<unsigned>& args, FiniteModelMultiSorted& m)
+{
+  return 1; // an unconstrained symbol may take any value; take the first domain element
+}
+
+char TrivialPredLayer::value(const DArray<unsigned>& args, FiniteModelMultiSorted& m)
+{
+  return INTP_FALSE;
+}
+
+#endif
+
 void FiniteModelMultiSorted::installTrivialLayers()
 {
   ASS_EQ(_now,MODEL_ZERO+1); // model_0 has to be complete before the replay touches it
 
   for(unsigned f=0; f<env.signature->functions();f++){
     if (_f_layers[f].isEmpty()) {
+#if FMB_CHECK_MODEL_AGAINST_INPUT
+      unsigned srt = env.signature->getFunction(f)->fnType()->result().term()->functor();
+      _f_layers[f].push(new TrivialFunLayer(srt,Random::getInteger(INT_MAX),MODEL_ZERO));
+#else
       _f_layers[f].push(new TrivialFunLayer(MODEL_ZERO));
+#endif
     }
   }
   // predicate 0 is equality, which evaluateLiteral answers without consulting the model
   for(unsigned p=1; p<env.signature->predicates();p++){
     if (_p_layers[p].isEmpty()) {
+#if FMB_CHECK_MODEL_AGAINST_INPUT
+      _p_layers[p].push(new TrivialPredLayer(Random::getInteger(INT_MAX),MODEL_ZERO));
+#else
       _p_layers[p].push(new TrivialPredLayer(MODEL_ZERO));
+#endif
     }
   }
 
@@ -477,6 +534,13 @@ std::string FiniteModelMultiSorted::toString()
         !bodyStillCurrent(static_cast<DefFunLayer*>(st.top())->def()->_body,st.top()->_born)) {
       topKind = LayerKind::TABLE; // the body no longer describes the printed model; spell it out
     }
+    // A trivial value has a formula rendering only while it is a constant; under the
+    // self-check it is pseudo-random junk instead. A symbol of arity 0 goes the same way
+    // regardless: it has a single value, and printing that *is* the formula, so its rendering
+    // does not move when the self-check is switched off.
+    if (topKind == LayerKind::TRIVIAL && (FMB_CHECK_MODEL_AGAINST_INPUT || arity == 0)) {
+      topKind = LayerKind::TABLE;
+    }
     if (topKind == LayerKind::DEF || topKind == LayerKind::TRIVIAL) {
       // either a recorded definition speaks for f, or nothing does and the trivial layer's
       // value has to be spelled out
@@ -570,6 +634,9 @@ std::string FiniteModelMultiSorted::toString()
     if (topKind == LayerKind::DEF &&
         !bodyStillCurrent(static_cast<DefPredLayer*>(st.top())->def()->_body,st.top()->_born)) {
       topKind = LayerKind::TABLE;
+    }
+    if (topKind == LayerKind::TRIVIAL && (FMB_CHECK_MODEL_AGAINST_INPUT || arity == 0)) {
+      topKind = LayerKind::TABLE; // see the function loop above
     }
     if (topKind == LayerKind::DEF || topKind == LayerKind::TRIVIAL) {
       Problem::PredDef* pd = (topKind == LayerKind::DEF) ?

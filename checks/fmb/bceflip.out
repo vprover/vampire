@@ -20,9 +20,9 @@ tff(function_join,axiom,
 ).
 
 tff(declare_n0,type,n0 : $i).
-tff(n0_symbolic_definition,axiom,n0 = 'fmb_$i_1').
+tff(n0_definition,axiom,n0 = 'fmb_$i_1').
 tff(declare_n1,type,n1 : $i).
-tff(n1_symbolic_definition,axiom,n1 = 'fmb_$i_1').
+tff(n1_definition,axiom,n1 = 'fmb_$i_1').
 tff(declare_complement,type,complement: ( $i * $i ) > $o ).
 tff(predicate_complement,axiom,
            complement('fmb_$i_1','fmb_$i_1')
