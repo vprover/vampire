@@ -238,7 +238,7 @@ void Property::scan(Unit* unit)
     }
   }
 
-  DHSet<int>::Iterator it(_symbolsInFormula);
+  DHSet<int, FnvHash, IdentityHash>::Iterator it(_symbolsInFormula);
   while(it.hasNext()){
     int symbol = it.next();
     if(symbol >= 0){

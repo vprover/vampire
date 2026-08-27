@@ -239,7 +239,7 @@ private:
   };
 
   struct ConstOrderingComparator;  
-  typedef DHMap<unsigned,TermList> NFMap;
+  typedef DHMap<unsigned,TermList, FnvHash, IdentityHash> NFMap;
   void computeConstsNormalForm(unsigned c, NFMap& normalForms);
   
 #if VDEBUG

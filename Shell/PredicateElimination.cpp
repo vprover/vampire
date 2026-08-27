@@ -184,7 +184,7 @@ static void updateSide(bool add, DHMap<Clause *, unsigned, UnitHash, UnitNumberH
 template<bool add>
 void PredicateElimination::handleClause(Clause *cl)
 {
-  static DHMap<unsigned, std::pair<unsigned, unsigned>> occ; // pred -> (positive, negative) count
+  static DHMap<unsigned, std::pair<unsigned, unsigned>, FnvHash, IdentityHash> occ; // pred -> (positive, negative) count
   occ.reset();
 
   for (const auto& lit : *cl) {
@@ -682,7 +682,7 @@ Formula *PredicateElimination::definitionBody(unsigned pred, ClauseStack const &
     Formula *junct = JunctionFormula::generalJunction(fromPos ? AND : OR, inner);
 
     // existentially (resp. universally) close over the (shifted) clause variables
-    DHMap<unsigned, TermList> varSorts;
+    DHMap<unsigned, TermList, FnvHash, IdentityHash> varSorts;
     SortHelper::collectVariableSorts(junct, varSorts);
     VSList *vs = VSList::empty();
     for (const auto& [var, sort] : iterTraits(varSorts.items())) {

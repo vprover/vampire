@@ -79,7 +79,7 @@ class Definizator : public BottomUpTermTransformer {
     // a helper function to collect terms variables and their sorts
     // all stored in the above private fields to be looked up by transformSubterm
     void scanVars(Term* t) {
-      static DHSet<unsigned> varSeen;
+      static DHSet<unsigned, FnvHash, IdentityHash> varSeen;
       varSeen.reset();
       _typeArity = 0;
       _typeVars.reset();

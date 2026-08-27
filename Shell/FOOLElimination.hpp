@@ -56,7 +56,7 @@ private:
   void addDefinition(FormulaUnit* unit);
 
   /** Lexical scope of the current unit */
-  DHMap<unsigned,TermList> _varSorts;
+  DHMap<unsigned,TermList, FnvHash, IdentityHash> _varSorts;
 
   /** Process a given part of the unit */
   FormulaList* process(FormulaList* fs);

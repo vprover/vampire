@@ -915,7 +915,7 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc, bool shuffle)
 
   //Master literal of an variable is the literal
   //with lowest index, in which it appears.
-  static DHMap<unsigned, unsigned, IdentityHash, DefaultHash> varMasters;
+  static DHMap<unsigned, unsigned, IdentityHash, FnvHash> varMasters;
   varMasters.reset();
   IntUnionFind components(clen);
 
@@ -1681,7 +1681,7 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
  */
 UnitList* Splitter::preprendCurrentlyAssumedComponentClauses(UnitList* clauses)
 {
-  DHSet<unsigned> seen;
+  DHSet<unsigned, FnvHash, IdentityHash> seen;
 
   // to keep the nice order
   UnitList::FIFO res;

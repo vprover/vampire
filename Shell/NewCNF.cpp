@@ -749,13 +749,13 @@ void NewCNF::processLet(Term* term, Occurrences &occurrences)
 TermList NewCNF::nameLetBinding(Term* bindingLhs, TermList bindingRhs, TermList body, VSList* bindingBoundVars)
 {
   // Build a set of bound variable indices for fast membership checks
-  DHSet<unsigned> boundVarSet;
+  DHSet<unsigned, FnvHash, IdentityHash> boundVarSet;
   VSList::Iterator boundIt(bindingBoundVars);
   while (boundIt.hasNext()) {
     boundVarSet.insert(boundIt.next().first);
   }
 
-  DHSet<unsigned> bindingFreeVars;
+  DHSet<unsigned, FnvHash, IdentityHash> bindingFreeVars;
   for (const auto& var : iterTraits(FormulaVarIterator(bindingRhs))) {
     if (!boundVarSet.contains(var)) {
       bindingFreeVars.insert(var);
