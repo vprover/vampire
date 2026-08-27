@@ -261,38 +261,6 @@ char FiniteModelMultiSorted::evalPred(unsigned p, const DArray<unsigned>& args, 
   throw UndefinedValueException(env.signature->predicateName(p));
 }
 
-Problem::FunDef* FiniteModelMultiSorted::symbolicFunDef(unsigned f)
-{
-  Problem::FunDef* fd;
-  if (!_symbolicFuns.find(f,fd)) {
-    // implicitly eliminated symbol (its last occurrence disappeared with some other elimination),
-    // so it can be defined arbitrarily: record a trivial definition --
-    // a linear head f(X0,...,X_{arity-1}) and a null body standing for "the first domain element"
-    TermStack args;
-    for (unsigned v = 0; v < env.signature->functionArity(f); v++) {
-      args.push(TermList::var(v));
-    }
-    fd = new Problem::FunDef(Term::create(f,args.size(),args.begin()),nullptr /* arbitrary value */);
-    _symbolicFuns.insert(f,fd);
-  }
-  return fd;
-}
-
-Problem::PredDef* FiniteModelMultiSorted::symbolicPredDef(unsigned p)
-{
-  Problem::PredDef* pd;
-  if (!_symbolicPreds.find(p,pd)) {
-    // implicitly eliminated symbol; record the trivial definition p(X0,...,X_{arity-1}) <=> $false
-    TermStack args;
-    for (unsigned v = 0; v < env.signature->predicateArity(p); v++) {
-      args.push(TermList::var(v));
-    }
-    pd = new Problem::PredDef(Literal::create(p, args.size(), true, args.begin()),new Formula(false));
-    _symbolicPreds.insert(p,pd);
-  }
-  return pd;
-}
-
 void FiniteModelMultiSorted::addFunctionDefinition(unsigned f, const DArray<unsigned>& args, unsigned res)
 {
   ASS_EQ(env.signature->functionArity(f),args.size());
@@ -317,6 +285,26 @@ void FiniteModelMultiSorted::addPredicateDefinition(unsigned p, const DArray<uns
 
   ASS_L(idx, tbl.size());
   tbl[idx] = (res ? INTP_TRUE : INTP_FALSE);
+}
+
+// how Vampire spells the i-th variable, matching TermList::var(i).toString()
+static std::string varName(unsigned i)
+{
+  return "X"+Int::toString(i);
+}
+
+// "name(X0,...,X_{arity-1})", or just "name" for a constant or proposition
+static std::string linearHead(const std::string& name, unsigned arity)
+{
+  if (arity == 0) {
+    return name;
+  }
+  std::string res = name+"(";
+  for(unsigned i=0;i<arity;i++){
+    if (i) res += ",";
+    res += varName(i);
+  }
+  return res+")";
 }
 
 std::string FiniteModelMultiSorted::toString()
@@ -431,28 +419,28 @@ std::string FiniteModelMultiSorted::toString()
     modelStm << ot->result().toString() << ")." << endl;
 
     if (!funRepresented(f)) {
-      Problem::FunDef* fd = symbolicFunDef(f);
-
-      // print a symbolic definition (the explicit one was missing)
+      // no explicit table to print: either a recorded definition speaks for f, or nothing
+      // does and the trivial layer's value has to be spelled out
+      Stack<FunLayer*>& st = _f_layers[f];
+      Problem::FunDef* fd = (st.isNonEmpty() && st.top()->_kind == LayerKind::DEF) ?
+        static_cast<DefFunLayer*>(st.top())->def() : nullptr;
 
       modelStm << "tff("<<append(name,"_symbolic_definition")<<",axiom,";
       if (arity>0) { // quantify
         modelStm << "![";
         for(unsigned i=0;i<arity;i++){
-          modelStm << fd->_head->nthArgument(i)->toString();
+          modelStm << (fd ? fd->_head->nthArgument(i)->toString() : varName(i));
           modelStm << ":" << ot->arg(i).toString();
           if(i+1 < arity) modelStm << ", ";
         }
         modelStm << "]: ";
       }
-      modelStm << fd->_head->toString() << " = ";
-      if (fd->_body) {
-        modelStm << fd->_body->toString();
+      if (fd) {
+        modelStm << fd->_head->toString() << " = " << fd->_body->toString();
       } else {
-        TermList srtT = ot->result();
-        unsigned srt = srtT.term()->functor();
-        std::string cname = cnames[srt][1]; // using 1 as an abitrary value
-        modelStm << cname;
+        modelStm << linearHead(name,arity) << " = ";
+        unsigned srt = ot->result().term()->functor();
+        modelStm << cnames[srt][1]; // the trivial layer's value
       }
 
       modelStm << ")." <<endl;
@@ -520,21 +508,25 @@ std::string FiniteModelMultiSorted::toString()
     modelStm << "$o )." << endl;
 
     if (!predRepresented(p)) {
-      Problem::PredDef* pd = symbolicPredDef(p);
-
-      // print a symbolic definition (the explicit one was missing)
+      Stack<PredLayer*>& st = _p_layers[p];
+      Problem::PredDef* pd = (st.isNonEmpty() && st.top()->_kind == LayerKind::DEF) ?
+        static_cast<DefPredLayer*>(st.top())->def() : nullptr;
 
       modelStm << "tff("<<append(name,"_symbolic_definition")<<",axiom,";
       if (arity>0) { // quantify
         modelStm << "![";
         for(unsigned i=0;i<arity;i++){
-          modelStm << pd->_head->nthArgument(i)->toString();
+          modelStm << (pd ? pd->_head->nthArgument(i)->toString() : varName(i));
           modelStm << ":" << ot->arg(i).toString();
           if(i+1 < arity) modelStm << ", ";
         }
         modelStm << "]: (";
       }
-      modelStm << pd->_head->toString() << " <=> " << pd->_body->toString();
+      if (pd) {
+        modelStm << pd->_head->toString() << " <=> " << pd->_body->toString();
+      } else {
+        modelStm << linearHead(name,arity) << " <=> $false"; // the trivial layer's value
+      }
       if (arity>0)
         modelStm << ")";
       modelStm << ")." <<endl;
@@ -638,21 +630,6 @@ unsigned FiniteModelMultiSorted::evaluateTerm(TermList tl, const DHMap<unsigned,
 
   // cout << "evaluateTerm " << tl.toString() << " under " << subst << endl;
 
-  if (!funRepresented(f)) {
-    // an eliminated symbol: evaluate through its symbolic definition
-    Problem::FunDef* fd = symbolicFunDef(f);
-    if (!fd->_body) {
-      return 1; // "arbitrary value", fixed as the first domain element (as also printed by toString)
-    }
-    // a local substitution here, as the evaluation of the body may recurse into further symbolic definitions
-    DHMap<unsigned,unsigned> inner;
-    for(unsigned i=0;i<arity;i++){
-      ASS(fd->_head->nthArgument(i)->isVar());
-      inner.set(fd->_head->nthArgument(i)->var(),args[i]);
-    }
-    return evaluateTerm(TermList(fd->_body),inner,asOf);
-  }
-
   // throws if the model does not say what f is on these arguments
   return evalFun(f,args,asOf);
 }
@@ -669,19 +646,6 @@ bool FiniteModelMultiSorted::evaluateLiteral(Literal* lit, const DHMap<unsigned,
 
   if(lit->isEquality()){
     return (args[0]==args[1]) == lit->polarity();
-  }
-
-  if (!predRepresented(p)) {
-    // an eliminated symbol: evaluate through its symbolic definition
-    Problem::PredDef* pd = symbolicPredDef(p);
-    // a local substitution here, as the evaluation of the body may recurse into further symbolic definitions
-    DHMap<unsigned,unsigned> inner;
-    for(unsigned i=0;i<arity;i++){
-      ASS(pd->_head->nthArgument(i)->isVar());
-      inner.set(pd->_head->nthArgument(i)->var(),args[i]);
-    }
-    bool val = (evaluateFormula(pd->_body,inner,asOf) == pd->_head->isPositive());
-    return val == lit->polarity();
   }
 
   // throws if the model does not say what p is on these arguments
@@ -938,95 +902,67 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
   }
 }
 
-void FiniteModelMultiSorted::restoreEliminatedFunDef(Problem::FunDef* fd)
+unsigned FiniteModelMultiSorted::applyFunDef(Problem::FunDef* fd, const DArray<unsigned>& args, Timestamp asOf)
 {
-  unsigned f = fd->_head->functor();
-  unsigned arity = env.signature->functionArity(f);
-
-  DArray<unsigned> vars(arity);
-  for(unsigned i=0;i<arity;i++){
+  // a local substitution: evaluating the body may recurse into further definitions
+  DHMap<unsigned,unsigned> inner;
+  for(unsigned i=0;i<args.size();i++){
     ASS(fd->_head->nthArgument(i)->isVar());
-    vars[i] = fd->_head->nthArgument(i)->var();
+    inner.set(fd->_head->nthArgument(i)->var(),args[i]);
   }
-
-  static DHMap<unsigned,unsigned> subst;
-  subst.reset();
-
-  OperatorType* ot = env.signature->getFunction(f)->fnType();
-  ArgsEnumerator it(_sizes,ot,arity);
-  it.bindAll(vars,subst);
-  do {
-    unsigned val = evaluateTerm(TermList(fd->_body),subst,_now);
-    addFunctionDefinition(f,it.args(),val);
-  } while (it.nextAndRebind(vars,subst));
+  return evaluateTerm(TermList(fd->_body),inner,asOf);
 }
 
-void FiniteModelMultiSorted::materializeFun(unsigned f)
+bool FiniteModelMultiSorted::applyPredDef(Problem::PredDef* pd, const DArray<unsigned>& args, Timestamp asOf)
 {
-  ASS(!funRepresented(f));
-
-  Problem::FunDef* fd = symbolicFunDef(f); // creates the trivial definition if there was no record
-
-  // allocate the table ...
-  Signature::Symbol* symb = env.signature->getFunction(f);
-  OperatorType* sig = symb->fnType();
-  size_t rows = tableSize(sig,symb->arity(),_sizes);
-  checkTableAffordable(symb,rows,sizeof(unsigned));
-  _f_layers[f].push(new TableFunLayer(sig,rows,MODEL_ZERO));
-
-  // ... and fill it by evaluating the definition
-  if (fd->_body) {
-    restoreEliminatedFunDef(fd);
-  } else { // "arbitrary value", fixed as the first domain element
-    DArray<unsigned>& tbl = funTable(f)->raw();
-    for(size_t idx = 0; idx < tbl.size(); idx++) {
-      tbl[idx] = 1;
-    }
-  }
-
-  _symbolicFuns.remove(f); // from now on, the explicit table speaks for f
-}
-
-void FiniteModelMultiSorted::restoreEliminatedPredDef(Problem::PredDef* pd)
-{
-  unsigned p = pd->_head->functor();
-  unsigned arity = env.signature->predicateArity(p);
-
-  DArray<unsigned> vars(arity);
-  for(unsigned i=0;i<arity;i++){
+  DHMap<unsigned,unsigned> inner;
+  for(unsigned i=0;i<args.size();i++){
     ASS(pd->_head->nthArgument(i)->isVar());
-    vars[i] = pd->_head->nthArgument(i)->var();
+    inner.set(pd->_head->nthArgument(i)->var(),args[i]);
   }
-
-  static DHMap<unsigned,unsigned> subst;
-  subst.reset();
-
-  OperatorType* ot = env.signature->getPredicate(p)->fnType();
-  ArgsEnumerator it(_sizes,ot,arity);
-  it.bindAll(vars,subst);
-  do {
-    bool val = (evaluateFormula(pd->_body,subst,_now) == pd->_head->isPositive());
-    addPredicateDefinition(p,it.args(),val);
-  } while (it.nextAndRebind(vars,subst));
+  return evaluateFormula(pd->_body,inner,asOf) == pd->_head->isPositive();
 }
 
+unsigned DefFunLayer::value(const DArray<unsigned>& args, FiniteModelMultiSorted& m)
+{
+  return m.applyFunDef(_fd,args,_born); // the model as it stood when this definition arrived
+}
+
+char DefPredLayer::value(const DArray<unsigned>& args, FiniteModelMultiSorted& m)
+{
+  return m.applyPredDef(_pd,args,_born) ? INTP_TRUE : INTP_FALSE;
+}
+
+/**
+ * Freeze what the model currently says about p into an explicit table, on top of the layers
+ * that said it. The values do not change; what changes is that they stop depending on
+ * anything else, which is what a flip needs -- it writes cells, so it cannot carve into a
+ * layer that computes its value from other symbols.
+ */
 void FiniteModelMultiSorted::materializePred(unsigned p)
 {
   ASS(!predRepresented(p));
 
-  Problem::PredDef* pd = symbolicPredDef(p); // creates the trivial definition if there was no record
-
-  // allocate the table ...
   Signature::Symbol* symb = env.signature->getPredicate(p);
   OperatorType* sig = symb->predType();
-  size_t rows = tableSize(sig,symb->arity(),_sizes);
+  unsigned arity = symb->arity();
+  size_t rows = tableSize(sig,arity,_sizes);
   checkTableAffordable(symb,rows,sizeof(char));
-  _p_layers[p].push(new TablePredLayer(sig,rows,MODEL_ZERO));
 
-  // ... and fill it by evaluating the definition
-  restoreEliminatedPredDef(pd);
+  // read everything out first: once the table is pushed it shadows what we are reading
+  DArray<char> vals;
+  vals.expand(rows,INTP_UNDEF);
+  size_t idx = 0;
+  ArgsEnumerator it(_sizes,sig,arity);
+  do {
+    ASS_EQ(idx,tableIndex(it.args(),_sizes,sig));
+    vals[idx++] = evalPred(p,it.args(),_now);
+  } while (it.next());
+  ASS_EQ(idx,rows);
 
-  _symbolicPreds.remove(p); // from now on, the explicit table speaks for p
+  TablePredLayer* tl = new TablePredLayer(sig,rows,MODEL_ZERO);
+  tl->raw() = std::move(vals);
+  _p_layers[p].push(tl);
 }
 
 // does p occur anywhere in f? SubformulaIterator descends into the arguments of a literal
@@ -1045,39 +981,31 @@ static bool mentionsPredicate(Formula* f, unsigned p)
 
 void FiniteModelMultiSorted::prepareForFlip(unsigned p)
 {
-  // There has to be a table to flip into, even when nothing has been recorded about p yet:
-  // a flip does not prescribe p's whole behaviour, only the arguments its condition selects,
-  // so it needs something to carve into -- symbolicPredDef's trivial "p <=> $false" will do.
-  // This is not a wasted table for a symbol we know nothing about: blocked clause elimination
-  // can make a predicate disappear entirely (all of its clauses blocked, so usageCnt drops to
-  // zero and no definition is recorded), and then its flips are the only thing the model ever
-  // learns about it. A definition arriving later overrides all of this anyway -- see the
-  // FUN_DEF / PRED_DEF cases of restoreEliminatedDefinitions.
+  // There has to be a table to flip into, even when nothing has been recorded about p yet: a
+  // flip does not prescribe p's whole behaviour, only the arguments its condition selects, so
+  // it needs something to carve into. This is not a wasted table for a symbol we know nothing
+  // about: blocked clause elimination can make a predicate disappear entirely (all of its
+  // clauses blocked, so usageCnt drops to zero and no definition is recorded), and then its
+  // flips are the only thing the model ever learns about it.
   if (!predRepresented(p)) {
     materializePred(p);
   }
 
   // A flip's soundness argument reads: the model that differs from this one *only on p*, as
   // prescribed, is a model of the problem as it was before the flip's own preprocessing step.
-  // A symbolic definition whose body reads p breaks that "only": it silently moves along as
-  // soon as p's table is written -- during the flip's own loop, when it can also reach the
-  // condition being tested, and after it. So freeze such definitions here; materializing does
-  // not change what the model says, it only stops it from shifting under the flip.
-  // Direct readers are enough: once a reader is explicit, a definition that reads *it* no
-  // longer moves either. _symbolicFuns need no treatment -- their bodies are terms, produced
-  // by function definition elimination, so they cannot mention a predicate at all.
+  // A definition layer whose body reads p would break that "only" -- but only because the flip
+  // writes into a table born at model_0, where a read as of any later time still sees the
+  // change. Freeze the direct readers for as long as that is true; once the flips are layers
+  // of their own, born at the replay step that pushed them, the timestamps do it instead.
   Stack<unsigned> readers;
-  DHMap<unsigned,Problem::PredDef*>::Iterator it(_symbolicPreds);
-  while (it.hasNext()) {
-    unsigned q;
-    Problem::PredDef* pd;
-    it.next(q,pd);
-    if (mentionsPredicate(pd->_body,p)) {
+  for(unsigned q=1; q<env.signature->predicates(); q++) {
+    Stack<PredLayer*>& st = _p_layers[q];
+    if (st.isNonEmpty() && st.top()->_kind == LayerKind::DEF &&
+        mentionsPredicate(static_cast<DefPredLayer*>(st.top())->def()->_body,p)) {
       readers.push(q);
     }
   }
-  // collected first, as materializePred both removes from _symbolicPreds and,
-  // through symbolicPredDef, may insert into it
+  // collected first, as materializePred pushes a layer of its own
   for (unsigned q : readers) {
     materializePred(q);
   }
@@ -1233,24 +1161,17 @@ void FiniteModelMultiSorted::restoreEliminatedDefinitions(Kernel::Problem* prob)
       case Problem::IntereferenceKind::FUN_DEF: {
         Problem::FunDef* fd = static_cast<Problem::FunDef*>(i);
         unsigned f = fd->_head->functor();
-        if (funRepresented(f)) {
-          // only a flip replayed earlier can have put a table here (see below)
-          ASS_EQ(env.signature->getFunction(f)->usageCnt(),0);
-          delete _f_layers[f].pop(); // this definition speaks for f from now on
-          ASS(!funRepresented(f));
-        }
-        _symbolicFuns.set(f,fd); // set, not insert: overrides a trivial record invented meanwhile
+        // a definition is total, so pushing it hides everything the model said about f so far;
+        // only a flip replayed earlier can have put a table underneath
+        ASS(!funRepresented(f) || env.signature->getFunction(f)->usageCnt()==0);
+        _f_layers[f].push(new DefFunLayer(fd,_now));
         break;
       }
       case Problem::IntereferenceKind::PRED_DEF: {
         Problem::PredDef* pd = static_cast<Problem::PredDef*>(i);
         unsigned p = pd->_head->functor();
-        if (predRepresented(p)) {
-          ASS_EQ(env.signature->getPredicate(p)->usageCnt(),0);
-          delete _p_layers[p].pop();
-          ASS(!predRepresented(p));
-        }
-        _symbolicPreds.set(p,pd);
+        ASS(!predRepresented(p) || env.signature->getPredicate(p)->usageCnt()==0);
+        _p_layers[p].push(new DefPredLayer(pd,_now));
         break;
       }
       case Problem::IntereferenceKind::GLOB_FLIP: {

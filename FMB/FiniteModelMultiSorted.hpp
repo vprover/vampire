@@ -84,15 +84,6 @@ class FiniteModelMultiSorted {
 
   void deleteAllLayers();
 
-  DHMap<unsigned,Problem::FunDef*> _symbolicFuns;
-  DHMap<unsigned,Problem::PredDef*> _symbolicPreds;
-
-  // the recorded symbolic definition of an unrepresented symbol;
-  // an implicitly eliminated symbol (no record) gets a trivial definition created
-  // (and remembered) on first demand, so that printing and evaluation agree on it
-  Problem::FunDef* symbolicFunDef(unsigned f);
-  Problem::PredDef* symbolicPredDef(unsigned p);
-
   // uses _sizes to fillup _f_layers and _p_layers from scratch, giving each represented
   // symbol a single base table layer (only symbols with usageCnt()>0 get one)
   void initTables();
@@ -109,6 +100,9 @@ public:
   // the layers call these back while computing their own value
   unsigned domainSizeOf(unsigned sort) const;
   size_t tableIndexOf(OperatorType* sig, const DArray<unsigned>& args) const;
+  // evaluate a recorded definition's body with its head's variables bound to args
+  unsigned applyFunDef(Problem::FunDef* fd, const DArray<unsigned>& args, Timestamp asOf);
+  bool applyPredDef(Problem::PredDef* pd, const DArray<unsigned>& args, Timestamp asOf);
 
   // Assume def is an equality literal with a
   // function application on lhs and constant on rhs
@@ -159,15 +153,11 @@ private:
   bool evaluateLiteral(Literal*, const DHMap<unsigned,unsigned>& subst, Timestamp asOf);
   bool evaluateFormula(Formula*, DHMap<unsigned,unsigned>& subst, Timestamp asOf);
 
-  void restoreEliminatedFunDef(Problem::FunDef*);
-  void restoreEliminatedPredDef(Problem::PredDef*);
   void restoreGlobalPredicateFlip(Problem::GlobalFlip*);
   void restoreViaCondFlip(Problem::CondFlip*);
 
-  // give an unrepresented symbol an explicit table again, filled by evaluating its
-  // symbolic definition (trivially, if there is no record); needed by the flips,
-  // which cannot operate on a symbolic representation
-  void materializeFun(unsigned f);
+  // snapshot what the model currently says about an unrepresented predicate into an explicit
+  // table; needed by the flips, which write values and so cannot operate on a symbolic layer
   void materializePred(unsigned p);
 
   // make p, and everything a recorded definition says about p, explicit, so that the

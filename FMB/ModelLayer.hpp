@@ -29,6 +29,7 @@
 #include "Lib/DArray.hpp"
 
 #include "Kernel/OperatorType.hpp"
+#include "Kernel/Problem.hpp"
 
 namespace FMB {
 
@@ -140,6 +141,39 @@ public:
 
   char value(const DArray<unsigned>& args, FiniteModelMultiSorted& m) override
   { return INTP_FALSE; }
+};
+
+/**
+ * A definition recorded when preprocessing eliminated the symbol: the head is linear in its
+ * variables, and the body is a term (or formula) over the symbols that were still live at
+ * that point.
+ *
+ * The body is evaluated as of the layer's own birth, i.e. in the model this replay step
+ * transforms -- never in the model as it ends up. That is what the timestamps are for. It is
+ * also what makes the definition agree with the problem it came from: the body's symbols are
+ * the ones that step saw, and a flip replayed afterwards is undoing a *later* preprocessing
+ * step, whose effect the body's own problem still had.
+ *
+ * The definition object belongs to Problem::interferences; the layer only points at it.
+ */
+class DefFunLayer : public FunLayer {
+  Problem::FunDef* _fd;
+public:
+  DefFunLayer(Problem::FunDef* fd, Timestamp born) : FunLayer(LayerKind::DEF,born), _fd(fd) {}
+
+  Problem::FunDef* def() const { return _fd; }
+
+  unsigned value(const DArray<unsigned>& args, FiniteModelMultiSorted& m) override;
+};
+
+class DefPredLayer : public PredLayer {
+  Problem::PredDef* _pd;
+public:
+  DefPredLayer(Problem::PredDef* pd, Timestamp born) : PredLayer(LayerKind::DEF,born), _pd(pd) {}
+
+  Problem::PredDef* def() const { return _pd; }
+
+  char value(const DArray<unsigned>& args, FiniteModelMultiSorted& m) override;
 };
 
 } // namespace FMB

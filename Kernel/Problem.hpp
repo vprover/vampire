@@ -92,7 +92,7 @@ public:
 
   struct FunDef : public Interference {
     Term* _head;
-    Term* _body; // may be null - to signal "arbitrary" (but only used internally by FiniteModelMultiSorted)
+    Term* _body;
     FunDef(Term* head, Term* body) : Interference(IntereferenceKind::FUN_DEF), _head(head), _body(body) {}
 
     void outputDefinition(std::ostream&) override;
