@@ -24,7 +24,7 @@ namespace FMB {
 
   class CliqueFinder {
   public:
-    static unsigned findMaxCliqueSize(DHMap<unsigned,DHSet<unsigned>*>* Ngraph)
+    static unsigned findMaxCliqueSize(DHMap<unsigned,DHSet<unsigned, FnvHash, IdentityHash>*, FnvHash, IdentityHash>* Ngraph)
     {
       //std::cout << "findMaxCliqueSize with " << Ngraph->size() << std::endl;
 
@@ -32,10 +32,10 @@ namespace FMB {
       DArray<Stack<unsigned>> atleast;
       atleast.ensure(Ngraph->size()+1); // the +1 is to protect against a self-loop sneaking in
 
-      DHMap<unsigned,DHSet<unsigned>*>::Iterator miter(*Ngraph);
+      DHMap<unsigned,DHSet<unsigned, FnvHash, IdentityHash>*, FnvHash, IdentityHash>::Iterator miter(*Ngraph);
       while(miter.hasNext()){
         unsigned c;
-        DHSet<unsigned>* nbs;
+        DHSet<unsigned, FnvHash, IdentityHash>* nbs;
         miter.next(c,nbs);
         unsigned size = nbs->size();
         //std::cout << ">> " << c << ": " << size << std::endl;
@@ -94,7 +94,7 @@ namespace FMB {
   private:
 
     // check if a clique is a clique
-    static bool checkClique(DHMap<unsigned,DHSet<unsigned>*>* Ngraph, Stack<unsigned>& clique)
+    static bool checkClique(DHMap<unsigned,DHSet<unsigned, FnvHash, IdentityHash>*, FnvHash, IdentityHash>* Ngraph, Stack<unsigned>& clique)
     {
       //std::cout << "CHECK "; for(unsigned j=0;j<clique.size();j++){ std::cout << clique[j] << " ";}; std::cout << std::endl;
 

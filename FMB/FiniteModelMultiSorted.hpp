@@ -140,10 +140,10 @@ private:
   // bottom means the model does not say what the symbol is here
   unsigned boolValue(bool isTrue, Timestamp asOf);
 
-  unsigned evaluateTerm(TermList, const DHMap<unsigned,unsigned>& subst, Timestamp asOf);
-  bool evaluateBooleanTerm(TermList, const DHMap<unsigned,unsigned>& subst, Timestamp asOf);
-  bool evaluateLiteral(Literal*, const DHMap<unsigned,unsigned>& subst, Timestamp asOf);
-  bool evaluateFormula(Formula*, DHMap<unsigned,unsigned>& subst, Timestamp asOf);
+  unsigned evaluateTerm(TermList, const DHMap<unsigned,unsigned, FnvHash, IdentityHash>& subst, Timestamp asOf);
+  bool evaluateBooleanTerm(TermList, const DHMap<unsigned,unsigned, FnvHash, IdentityHash>& subst, Timestamp asOf);
+  bool evaluateLiteral(Literal*, const DHMap<unsigned,unsigned, FnvHash, IdentityHash>& subst, Timestamp asOf);
+  bool evaluateFormula(Formula*, DHMap<unsigned,unsigned, FnvHash, IdentityHash>& subst, Timestamp asOf);
 
   void restoreViaCondFlip(Problem::CondFlip*);
 

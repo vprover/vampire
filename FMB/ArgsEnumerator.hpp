@@ -78,7 +78,7 @@ public:
   }
 
   /** like next(), but also keep subst up to date: subst[vars[i]] == args[i] at every changed position */
-  bool nextAndRebind(const DArray<unsigned>& vars, DHMap<unsigned,unsigned>& subst) {
+  bool nextAndRebind(const DArray<unsigned>& vars, DHMap<unsigned,unsigned, FnvHash, IdentityHash>& subst) {
     unsigned i;
     for(i=0;i<_args.size();i++) {
       _args[i]++;
@@ -93,7 +93,7 @@ public:
   }
 
   /** set subst[vars[i]] = args[i] for all positions (the initial binding for the nextAndRebind protocol) */
-  void bindAll(const DArray<unsigned>& vars, DHMap<unsigned,unsigned>& subst) const {
+  void bindAll(const DArray<unsigned>& vars, DHMap<unsigned,unsigned, FnvHash, IdentityHash>& subst) const {
     for(unsigned i=0;i<_args.size();i++) {
       subst.set(vars[i],_args[i]);
     }

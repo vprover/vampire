@@ -161,7 +161,7 @@ void PredicateElimination::apply(Problem &prb)
 /**
  * Add (@b add) or remove one clause's worth of occurrences to (from) one side of a PredInfo.
  */
-static void updateSide(bool add, DHMap<Clause *, unsigned> &side,
+static void updateSide(bool add, DHMap<Clause *, unsigned, UnitHash, UnitNumberHash> &side,
                        unsigned &multi, Clause *cl, unsigned count)
 {
   ASS_G(count, 0);
@@ -184,7 +184,7 @@ static void updateSide(bool add, DHMap<Clause *, unsigned> &side,
 template<bool add>
 void PredicateElimination::handleClause(Clause *cl)
 {
-  static DHMap<unsigned, std::pair<unsigned, unsigned>> occ; // pred -> (positive, negative) count
+  static DHMap<unsigned, std::pair<unsigned, unsigned>, FnvHash, IdentityHash> occ; // pred -> (positive, negative) count
   occ.reset();
 
   for (const auto& lit : *cl) {
@@ -560,7 +560,7 @@ Clause *PredicateElimination::buildResolventEq(Clause *nucleus, Stack<unsigned> 
 Clause *PredicateElimination::assembleClause(LiteralStack &lits, Clause *nucleus,
                                              ClauseStack const &sats, DArray<unsigned> const &choice)
 {
-  static DHSet<Literal *> seen;
+  static DHSet<Literal *, FnvHash, PtrIdentityHash> seen;
   seen.reset();
 
   static LiteralStack out;
@@ -601,7 +601,7 @@ Clause *PredicateElimination::assembleClause(LiteralStack &lits, Clause *nucleus
   }
 
   // a satellite picked more than once is still just one premise
-  static DHSet<Clause *> premiseSeen;
+  static DHSet<Clause *, UnitHash, UnitNumberHash> premiseSeen;
   premiseSeen.reset();
   UnitList *premises = UnitList::empty();
   for (unsigned j = 0; j < choice.size(); j++) {
@@ -682,7 +682,7 @@ Formula *PredicateElimination::definitionBody(unsigned pred, ClauseStack const &
     Formula *junct = JunctionFormula::generalJunction(fromPos ? AND : OR, inner);
 
     // existentially (resp. universally) close over the (shifted) clause variables
-    DHMap<unsigned, TermList> varSorts;
+    DHMap<unsigned, TermList, FnvHash, IdentityHash> varSorts;
     SortHelper::collectVariableSorts(junct, varSorts);
     VSList *vs = VSList::empty();
     for (const auto& [var, sort] : iterTraits(varSorts.items())) {

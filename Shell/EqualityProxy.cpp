@@ -448,7 +448,7 @@ Clause* EqualityProxy::createEqProxyAxiom(const LiteralStack& literalStack)
     return Clause::fromStack(literalStack, NonspecificInference1(InferenceRule::EQUALITY_PROXY_AXIOM,_defUnit));
   }
 
-  DHSet<Unit*> seen;
+  DHSet<Unit*, UnitHash, UnitNumberHash> seen;
   UnitList* prems = 0;
 
   LiteralStack::ConstIterator it(literalStack);

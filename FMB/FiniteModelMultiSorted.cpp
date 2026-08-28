@@ -723,11 +723,11 @@ unsigned FiniteModelMultiSorted::boolValue(bool isTrue, Timestamp asOf)
   if (!env.signature->foolConstantsDefined()) {
     USER_ERROR("Cannot evaluate a boolean term: this model does not have a boolean domain");
   }
-  DHMap<unsigned,unsigned> noSubst;
+  DHMap<unsigned,unsigned, FnvHash, IdentityHash> noSubst;
   return evaluateTerm(TermList(Term::createConstant(env.signature->getFoolConstantSymbol(isTrue))),noSubst,asOf);
 }
 
-unsigned FiniteModelMultiSorted::evaluateTerm(TermList tl, const DHMap<unsigned,unsigned>& subst, Timestamp asOf)
+unsigned FiniteModelMultiSorted::evaluateTerm(TermList tl, const DHMap<unsigned,unsigned, FnvHash, IdentityHash>& subst, Timestamp asOf)
 {
   if (tl.isVar()) {
     // TODO: maybe error, if the variable is not in the map?
@@ -745,12 +745,12 @@ unsigned FiniteModelMultiSorted::evaluateTerm(TermList tl, const DHMap<unsigned,
       // term level and, say, p(a) for a p declared with an $o result sort (which the parser turns
       // into a predicate) arrive here.
       case SpecialFunctor::FORMULA: {
-        DHMap<unsigned,unsigned> inner(subst); // evaluateFormula wants to bind quantified variables
+        DHMap<unsigned,unsigned, FnvHash, IdentityHash> inner(subst); // evaluateFormula wants to bind quantified variables
         return boolValue(evaluateFormula(term->getSpecialData()->getFormula(),inner,asOf),asOf);
       }
 
       case SpecialFunctor::ITE: {
-        DHMap<unsigned,unsigned> inner(subst);
+        DHMap<unsigned,unsigned, FnvHash, IdentityHash> inner(subst);
         bool cond = evaluateFormula(term->getSpecialData()->getITECondition(),inner,asOf);
         return evaluateTerm(*term->nthArgument(cond ? 0 : 1),subst,asOf);
       }
@@ -795,17 +795,17 @@ unsigned FiniteModelMultiSorted::evaluateTerm(TermList tl, const DHMap<unsigned,
  * FOOL problem gives $o a domain. So peel off the special terms whose truth value we
  * can decide without one, which is every shape the parser actually builds here.
  */
-bool FiniteModelMultiSorted::evaluateBooleanTerm(TermList tl, const DHMap<unsigned,unsigned>& subst, Timestamp asOf)
+bool FiniteModelMultiSorted::evaluateBooleanTerm(TermList tl, const DHMap<unsigned,unsigned, FnvHash, IdentityHash>& subst, Timestamp asOf)
 {
   if (tl.isTerm() && tl.term()->isSpecial()) {
     Term* t = tl.term();
     switch (t->specialFunctor()) {
       case SpecialFunctor::FORMULA: {
-        DHMap<unsigned,unsigned> inner(subst);
+        DHMap<unsigned,unsigned, FnvHash, IdentityHash> inner(subst);
         return evaluateFormula(t->getSpecialData()->getFormula(),inner,asOf);
       }
       case SpecialFunctor::ITE: {
-        DHMap<unsigned,unsigned> inner(subst);
+        DHMap<unsigned,unsigned, FnvHash, IdentityHash> inner(subst);
         bool cond = evaluateFormula(t->getSpecialData()->getITECondition(),inner,asOf);
         return evaluateBooleanTerm(*t->nthArgument(cond ? 0 : 1),subst,asOf);
       }
@@ -825,7 +825,7 @@ bool FiniteModelMultiSorted::evaluateBooleanTerm(TermList tl, const DHMap<unsign
   return evaluateTerm(tl,subst,asOf) == boolValue(true,asOf);
 }
 
-bool FiniteModelMultiSorted::evaluateLiteral(Literal* lit, const DHMap<unsigned,unsigned>& subst, Timestamp asOf)
+bool FiniteModelMultiSorted::evaluateLiteral(Literal* lit, const DHMap<unsigned,unsigned, FnvHash, IdentityHash>& subst, Timestamp asOf)
 {
   unsigned p = lit->functor();
   unsigned arity = env.signature->predicateArity(p);
@@ -852,9 +852,9 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
     ASS_EQ(elim_symb->arity(),1)
     unsigned srt = elim_symb->fnType()->result().term()->functor();
 
-    DHSet<unsigned> f_range;
-    DHMap<unsigned,unsigned> new_to_old;
-    DHMap<unsigned,unsigned> old_to_new;
+    DHSet<unsigned, FnvHash, IdentityHash> f_range;
+    DHMap<unsigned,unsigned, FnvHash, IdentityHash> new_to_old;
+    DHMap<unsigned,unsigned, FnvHash, IdentityHash> old_to_new;
 
     unsigned origSize = _sizes[srt];
     unsigned newSize = 0;
@@ -977,8 +977,8 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
 
     // cout << "Eliminate p = " << elim_p << endl;
 
-    DHMap<unsigned,unsigned> new_to_old;
-    DHMap<unsigned,unsigned> old_to_new;
+    DHMap<unsigned,unsigned, FnvHash, IdentityHash> new_to_old;
+    DHMap<unsigned,unsigned, FnvHash, IdentityHash> old_to_new;
 
     unsigned origSize = _sizes[srt];
     unsigned newSize = 0;
@@ -1096,7 +1096,7 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
 unsigned FiniteModelMultiSorted::applyFunDef(Problem::FunDef* fd, const DArray<unsigned>& args, Timestamp asOf)
 {
   // a local substitution: evaluating the body may recurse into further definitions
-  DHMap<unsigned,unsigned> inner;
+  DHMap<unsigned,unsigned, FnvHash, IdentityHash> inner;
   for(unsigned i=0;i<args.size();i++){
     ASS(fd->_head->nthArgument(i)->isVar());
     inner.set(fd->_head->nthArgument(i)->var(),args[i]);
@@ -1106,7 +1106,7 @@ unsigned FiniteModelMultiSorted::applyFunDef(Problem::FunDef* fd, const DArray<u
 
 bool FiniteModelMultiSorted::applyPredDef(Problem::PredDef* pd, const DArray<unsigned>& args, Timestamp asOf)
 {
-  DHMap<unsigned,unsigned> inner;
+  DHMap<unsigned,unsigned, FnvHash, IdentityHash> inner;
   for(unsigned i=0;i<args.size();i++){
     ASS(pd->_head->nthArgument(i)->isVar());
     inner.set(pd->_head->nthArgument(i)->var(),args[i]);
@@ -1148,7 +1148,7 @@ void FiniteModelMultiSorted::restoreViaCondFlip(Problem::CondFlip* cf)
 {
   // cf->outputDefinition(cout);
 
-  DHMap<unsigned,TermList> sortMap;
+  DHMap<unsigned,TermList, FnvHash, IdentityHash> sortMap;
   SortHelper::collectVariableSorts(cf->_val,sortMap);
   SortHelper::collectVariableSorts(cf->_cond,sortMap); // in bce, cond can have extra variables; we could treat them existentially, but this may be wrong for _fixedPoint-ers
   unsigned arity = sortMap.size();
@@ -1171,7 +1171,7 @@ void FiniteModelMultiSorted::restoreViaCondFlip(Problem::CondFlip* cf)
   sorts.ensure(arity);
 
   unsigned i = 0;
-  DHMap<unsigned,TermList>::Iterator it(sortMap); // non-deterministic order OK?
+  DHMap<unsigned,TermList, FnvHash, IdentityHash>::Iterator it(sortMap); // non-deterministic order OK?
   while (it.hasNext()) {
     unsigned var;
     TermList srt;
@@ -1185,7 +1185,7 @@ void FiniteModelMultiSorted::restoreViaCondFlip(Problem::CondFlip* cf)
   do {
     flipped = false;
 
-    static DHMap<unsigned,unsigned> subst;
+    static DHMap<unsigned,unsigned, FnvHash, IdentityHash> subst;
 
     unsigned p = cf->_val->functor();
     ASS_NEQ(p,0) // equality cannot be flipped!
@@ -1292,7 +1292,7 @@ bool FiniteModelMultiSorted::evaluate(Unit* unit)
     Formula::fromClause(unit->asClause()) : // universally closed by default
     Formula::quantify(static_cast<FormulaUnit*>(unit)->getFormula()); // close over any free variables (a no-op on closed formulas)
 
-  DHMap<unsigned,unsigned> subst;
+  DHMap<unsigned,unsigned, FnvHash, IdentityHash> subst;
   return evaluateFormula(formula,subst,_now);
 }
 
@@ -1301,7 +1301,7 @@ bool FiniteModelMultiSorted::evaluate(Unit* unit)
  * TODO: This is recursive, which could be problematic in the long run
  *
  */
-bool FiniteModelMultiSorted::evaluateFormula(Formula* formula, DHMap<unsigned,unsigned>& subst, Timestamp asOf)
+bool FiniteModelMultiSorted::evaluateFormula(Formula* formula, DHMap<unsigned,unsigned, FnvHash, IdentityHash>& subst, Timestamp asOf)
 {
   bool isAnd = false;
   bool isImp = false;

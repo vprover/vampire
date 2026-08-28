@@ -36,7 +36,7 @@ public:
 
   ~Graph()
   {
-    DHMap<unsigned,DHSet<unsigned>*>::Iterator it(_map);
+    DHMap<unsigned,DHSet<unsigned, FnvHash, IdentityHash>*, FnvHash, IdentityHash>::Iterator it(_map);
     while (it.hasNext()) {
       delete it.next();
     }
@@ -45,15 +45,15 @@ public:
 private:
   void halfEdge(unsigned a, unsigned b)
   {
-    DHSet<unsigned>* nbs;
+    DHSet<unsigned, FnvHash, IdentityHash>* nbs;
     if (!_map.find(a,nbs)) {
-      nbs = new DHSet<unsigned>();
+      nbs = new DHSet<unsigned, FnvHash, IdentityHash>();
       _map.insert(a,nbs);
     }
     nbs->insert(b);
   }
 
-  DHMap<unsigned,DHSet<unsigned>*> _map;
+  DHMap<unsigned,DHSet<unsigned, FnvHash, IdentityHash>*, FnvHash, IdentityHash> _map;
 };
 
 // a single edge: the smallest interesting case, and the one FMB meets for a pair of

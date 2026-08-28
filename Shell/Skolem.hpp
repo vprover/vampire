@@ -80,7 +80,7 @@ private:
     BoolList* occurs_below;
   };
   // from vars to their VarOccInfo
-  typedef DHMap<unsigned,VarOccInfo> VarOccInfos;
+  typedef DHMap<unsigned,VarOccInfo, FnvHash, IdentityHash> VarOccInfos;
   /* starts empty at the top level, and fininshes also empty 
      after bubbling up from the recursion;
      Only used temporarily during preskolemise! */
@@ -93,14 +93,14 @@ private:
     VarSet* exist;
   };
   // stored by the blocks, i.e. those Formulas* with the EXISTS connective
-  typedef DHMap<Formula*,ExVarDepInfo> ExVarDepInfos; 
+  typedef DHMap<Formula*,ExVarDepInfo, FnvHash, PtrIdentityHash> ExVarDepInfos; 
   ExVarDepInfos _varDeps;
 
   // map from an existential variable to its quantified formula (= block of quantifiers)
-  DHMap<unsigned, Formula*> _blockLookup;
+  DHMap<unsigned, Formula*, FnvHash, IdentityHash> _blockLookup;
 
   /** map var --> sort */
-  DHMap<unsigned,TermList> _varSorts;
+  DHMap<unsigned,TermList, FnvHash, IdentityHash> _varSorts;
 
   // for some heuristic evaluations after we are done
   

@@ -228,7 +228,7 @@ private:
 
 class RenanigApartNormalizer : public TermTransformer {
 public:
-  RenanigApartNormalizer(const Lib::DHMap<TermList, TermList>& replacements, int varMax, Lib::DHMap<unsigned, unsigned>& varMap)
+  RenanigApartNormalizer(const Lib::DHMap<TermList, TermList>& replacements, int varMax, Lib::DHMap<unsigned, unsigned, FnvHash, IdentityHash>& varMap)
     : _repls(replacements), _varMax(varMax), _varMap(varMap) {}
 protected:
   TermList transformSubterm(TermList trm) override {
@@ -249,7 +249,7 @@ protected:
 private:
   const Lib::DHMap<TermList, TermList>& _repls;
   int _varMax;
-  Lib::DHMap<unsigned, unsigned>& _varMap;
+  Lib::DHMap<unsigned, unsigned, FnvHash, IdentityHash>& _varMap;
 };
 
 
@@ -336,7 +336,7 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
 
   VarMaxUpdatingNormalizer clNormalizer(replacements,varMax);
 
-  static DHSet<Literal*> norm_lits;
+  static DHSet<Literal*, FnvHash, PtrIdentityHash> norm_lits;
   norm_lits.reset();
 
   for (unsigned i = 0; i < cl->length(); i++) {
@@ -383,11 +383,11 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
     }
   }
 
-  static Lib::DHMap<unsigned, unsigned> varMap;
+  static Lib::DHMap<unsigned, unsigned, FnvHash, IdentityHash> varMap;
   varMap.reset();
   RenanigApartNormalizer pclNormalizer(replacements,varMax,varMap);
 
-  static DHSet<Literal*> pcl_lits;
+  static DHSet<Literal*, FnvHash, PtrIdentityHash> pcl_lits;
   pcl_lits.reset();
 
   for (unsigned i = 0; i < pcl->length(); i++) {
@@ -505,7 +505,7 @@ bool BlockedClauseElimination::resolvesToTautologyUn(Clause* cl, Literal* lit, C
     return true; // since they don't resolve
   }
 
-  static DHSet<Literal*> cl_lits;
+  static DHSet<Literal*, FnvHash, PtrIdentityHash> cl_lits;
   cl_lits.reset();
 
   Literal* opslit = 0;
@@ -531,7 +531,7 @@ bool BlockedClauseElimination::resolvesToTautologyUn(Clause* cl, Literal* lit, C
 
   ASS_NEQ(opslit,0);
 
-  static DHSet<Literal*> pcl_lits;
+  static DHSet<Literal*, FnvHash, PtrIdentityHash> pcl_lits;
   pcl_lits.reset();
 
   static RobSubstitution subst_aux;

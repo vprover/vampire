@@ -64,7 +64,7 @@ class Definizator : public BottomUpTermTransformer {
     UnitList* premises;
 
     // for each relevant term, cache the introduced symbol and the corresponding definition
-    DHMap<Term*,std::pair<unsigned,Clause*>> _cache;
+    DHMap<Term*,std::pair<unsigned,Clause*>, FnvHash, PtrIdentityHash> _cache;
 
     Definizator(bool groundOnly) : newUnits(UnitList::empty()), _groundOnly(groundOnly) {}
   private:
@@ -79,7 +79,7 @@ class Definizator : public BottomUpTermTransformer {
     // a helper function to collect terms variables and their sorts
     // all stored in the above private fields to be looked up by transformSubterm
     void scanVars(Term* t) {
-      static DHSet<unsigned> varSeen;
+      static DHSet<unsigned, FnvHash, IdentityHash> varSeen;
       varSeen.reset();
       _typeArity = 0;
       _typeVars.reset();

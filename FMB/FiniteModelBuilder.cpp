@@ -423,7 +423,7 @@ void FiniteModelBuilder::init()
   );
 
   // Store distinct constants by type
-  DArray<DHMap<unsigned,DHSet<unsigned>*>*> _distinctConstants;
+  DArray<DHMap<unsigned,DHSet<unsigned, FnvHash, IdentityHash>*, FnvHash, IdentityHash>*> _distinctConstants;
   _distinctConstants.ensure(env.signature->typeCons());
   for(unsigned i=0;i<env.signature->typeCons();i++){ _distinctConstants[i]=0; }
 
@@ -450,23 +450,23 @@ void FiniteModelBuilder::init()
           unsigned srt = srtT.term()->functor();
           auto map = _distinctConstants[srt];
           if(map==0){
-            map = new DHMap<unsigned,DHSet<unsigned>*>();
+            map = new DHMap<unsigned,DHSet<unsigned, FnvHash, IdentityHash>*, FnvHash, IdentityHash>();
             _distinctConstants[srt]=map;
           }
           unsigned lnum = left->term()->functor();
           unsigned rnum = right->term()->functor();
           {
-            DHSet<unsigned>* set;
+            DHSet<unsigned, FnvHash, IdentityHash>* set;
             if(!map->find(lnum,set)){
-              set = new DHSet<unsigned>();
+              set = new DHSet<unsigned, FnvHash, IdentityHash>();
               map->insert(lnum,set);
             }
             set->insert(rnum);
           }
           {
-            DHSet<unsigned>* set;
+            DHSet<unsigned, FnvHash, IdentityHash>* set;
             if(!map->find(rnum,set)){
-              set = new DHSet<unsigned>();
+              set = new DHSet<unsigned, FnvHash, IdentityHash>();
               map->insert(rnum,set);
             }
             set->insert(lnum);

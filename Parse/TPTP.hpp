@@ -350,7 +350,7 @@ public:
   std::string currentPath(){ return currentFile.path; }
 
   // careful: the returned pointer will be invalidated if _questionVariableNames is changed
-  static Map<unsigned,std::string>* findQuestionVars(unsigned questionNumber) {
+  static Map<unsigned,std::string, FnvHash>* findQuestionVars(unsigned questionNumber) {
     return _questionVariableNames.findPtr(questionNumber);
   }
   static bool seenQuestions() {
@@ -586,7 +586,7 @@ private:
   /** name table for variable names */
   Map<std::string, unsigned> _vars;
   /** When parsing a question, make note of the inverse mapping to _vars, i.e. from the ints back to the vstrings, for better user reporting */
-  Map<unsigned,std::string> _curQuestionVarNames;
+  Map<unsigned,std::string, FnvHash> _curQuestionVarNames;
   /** parsed types */
   Stack<Type*> _types;
   /** various type tags saved during parsing */
@@ -594,7 +594,7 @@ private:
   /**  */
   Stack<TheoryFunction> _theoryFunctions;
   /** bindings of variables to sorts */
-  Map<unsigned,SList*> _variableSorts;
+  Map<unsigned,SList*, FnvHash> _variableSorts;
   /** current color, if the input contains colors */
   Color _currentColor;
   /** a robsubstitution object to be used temporarily that is kept around to safe memory allocation time  */
@@ -625,11 +625,19 @@ private:
   /** Record whether a formula or term has been pushed more recently */
   LastPushed _lastPushed;
 
+  /** The tag of the most recently consumed token (see resetToks/shiftToks).
+   * Used by endHolFormula to tell whether the argument of a '~' just parsed
+   * ended with a closing parenthesis (making the '~ (...)' a complete
+   * <thf_prefix_unary> per the TPTP BNF), which decides whether a following
+   * '@' may be leniently absorbed into it or belongs to the enclosing
+   * context. */
+  Tag _lastTokenTag = T_EOF;
+
   static Substitution getTypeSub(const LetSymbolReference& ref);
 
   /** finds if the symbol has been defined in an enclosing $let */
-  bool findLetSymbol(LetSymbolName symbolName, LetSymbolReference& symbolReference);
-  bool findLetSymbol(LetSymbolName symbolName, LetSymbols scope, LetSymbolReference& symbolReference);
+  bool findLetSymbol(const LetSymbolName& symbolName, LetSymbolReference& symbolReference);
+  bool findLetSymbol(const LetSymbolName& symbolName, const LetSymbols& scope, LetSymbolReference& symbolReference);
 
   typedef Stack<LetSymbolReference> LetDefinitions;
   Stack<LetDefinitions> _letDefinitions;
@@ -640,6 +648,28 @@ private:
   // A hack to hard-code the precedence of = and != higher than connectives
   // This is needed for implementation of FOOL
   unsigned _insideEqualityArgument;
+  /** _insideEqualityArgument as it stood outside each argument list currently open;
+   * pushed by openArgumentList(), restored by endArgs() */
+  Stack<unsigned> _savedInsideEqualityArgument;
+
+  /** Kinds of input that are not legal per the TPTP BNF but that we accept
+   * leniently, inventing a reading. Each kind is warned about at most once
+   * per parser run (see nonConformityWarning). */
+  enum NonConformity {
+    /** '~ s = t' read as '~ (s = t)' */
+    NC_NOT_APPLIED_TO_EQUALITY,
+    /** 'p & f @ x' read as 'p & (f @ x)' */
+    NC_UNPARENTHESIZED_APPLICATION,
+    /** 'r = ~ s' read as 'r = (~ s)'; 'g = ^[X]: t' as 'g = (^[X]: t)' */
+    NC_NON_UNITARY_EQUALITY_ARGUMENT,
+    /** 'r = s = t' read as 'r = (s = t)' */
+    NC_CHAINED_EQUALITY,
+    /** the number of kinds above */
+    NC_KINDS
+  };
+  /** which non-conformity kinds have already been warned about in this run */
+  bool _nonConformityWarned[NC_KINDS] = {};
+  void nonConformityWarning(NonConformity kind, const std::string& explanation);
 
   /**
    * Get the next characters at the position pos.
@@ -697,6 +727,7 @@ private:
     ASS(n > 0);
     ASS(n <= _tend);
 
+    _lastTokenTag = _tokens[n-1].tag;
     for (int i = 0;i < _tend-n;i++) {
       _tokens[i] = _tokens[n+i];
     }
@@ -709,6 +740,9 @@ private:
    */
   inline void resetToks()
   {
+    if (_tend > 0) {
+      _lastTokenTag = _tokens[_tend-1].tag;
+    }
     _tend = 0;
   } // resetToks
 
@@ -763,6 +797,7 @@ private:
   std::filesystem::path resolveInclude(const std::filesystem::path included);
   void include();
   void type();
+  void openArgumentList(Tag closer);
   void endIte();
   void endCond();
   void letType();
@@ -810,7 +845,7 @@ private:
 
   /* If ivars is non-null, the function collects into it the
    * implicit (non-quantified) type variables (needed in $lets). */
-  OperatorType* constructOperatorType(Type* t, VList* vars = 0, DHSet<unsigned>* ivars = nullptr);
+  OperatorType* constructOperatorType(Type* t, VList* vars = 0, DHSet<unsigned, FnvHash, IdentityHash>* ivars = nullptr);
 
 public:
 
@@ -840,6 +875,7 @@ public:
    */
   struct SourceRecord{
     virtual bool isFile() = 0;
+    virtual ~SourceRecord() = default;
   };
   struct FileSourceRecord : SourceRecord {
     const std::string fileName;
@@ -854,7 +890,7 @@ public:
     InferenceSourceRecord(std::string n) : name(n) {}
   };
 
-  void setUnitSourceMap(DHMap<unsigned,SourceRecord*>* m){
+  void setUnitSourceMap(DHMap<unsigned,SourceRecord*, FnvHash, IdentityHash>* m){
     _unitSources = m;
   }
   SourceRecord* getSource();
@@ -862,10 +898,10 @@ public:
   void setFilterReserved(){ _filterReserved=true; }
 
 private:
-  DHMap<unsigned,SourceRecord*>* _unitSources;
+  DHMap<unsigned,SourceRecord*, FnvHash, IdentityHash>* _unitSources;
 
   /** This field stores names of input units (and their file names) */
-  static DHMap<unsigned, std::pair<std::string, std::filesystem::path>> _axiomNames;
+  static DHMap<unsigned, std::pair<std::string, std::filesystem::path>, FnvHash, IdentityHash> _axiomNames;
 
   /**
    * During question parsing, we store the mapping from int variables
@@ -876,7 +912,7 @@ private:
    *
    * (Can there be more than one question? Yes, e.g., in the interactive mode.)
    */
-  static DHMap<unsigned, Map<unsigned,std::string>> _questionVariableNames;
+  static DHMap<unsigned, Map<unsigned,std::string, FnvHash>, FnvHash, IdentityHash> _questionVariableNames;
 
   /** Stores the type arities of function symbols */
   DHMap<std::string, unsigned> _typeArities;
@@ -886,8 +922,6 @@ private:
 
 
 #if VDEBUG
-  void printStates(std::string extra);
-  void printInts(std::string extra);
   const char* toString(State s);
 #endif
 #ifdef DEBUG_SHOW_STATE

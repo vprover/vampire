@@ -155,7 +155,7 @@ void SATSubsumptionAndResolution::loadProblem(Clause* sidePremise,
   ASS(mainPremise)
 #if VDEBUG
   // Check that two literals are not the same in sidePremise and mainPremise
-  static DHSet<Literal*> lits;
+  static DHSet<Literal*, FnvHash, PtrIdentityHash> lits;
   lits.reset();
   for (unsigned i = 0; i < sidePremise->length(); i++)
     if (!lits.insert((*sidePremise)[i]))

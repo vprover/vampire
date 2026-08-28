@@ -39,7 +39,9 @@ using std::endl;
 class ModelCheck{
 
   // hashed by Term::getId(), not by address: the iteration order of this set is what
-  // numbers the domain elements, and so decides the whole output (cf. Kernel/Term.hpp)
+  // numbers the domain elements, and so decides the whole output (cf. Kernel/Term.hpp).
+  // Deliberately not FnvHash, which is what the rest of FMB spells out for a Term* key:
+  // that one hashes the pointer, which is the reproducibility hazard this avoids
   using DomainConstantSet = Set<Term*,SharedTermHash>;
 
 public:
@@ -48,8 +50,8 @@ static void doCheck(UnitList* units)
   // find model size
   // looking for a domain axiom with a name starting 'finite_domain' (TODO search for something of the right shape)
 
-  DHMap<unsigned,unsigned> sortSizes;
-  DHMap<unsigned,std::unique_ptr<DomainConstantSet>> domainConstantsPerSort;
+  DHMap<unsigned,unsigned, FnvHash, IdentityHash> sortSizes;
+  DHMap<unsigned,std::unique_ptr<DomainConstantSet>, FnvHash, IdentityHash> domainConstantsPerSort;
 
   // first just search for finite_domain axiom (TODO: do this for every sort!)
   {
@@ -127,7 +129,8 @@ static void doCheck(UnitList* units)
   FiniteModelMultiSorted model(sortSizesArray.clone());
 
   DomainConstantSet domainConstants; // union of all the perSort ones
-  DHMap<Term*,unsigned> domainConstantNumber;
+  // a pure lookup, never enumerated, so hashing it by address is harmless here
+  DHMap<Term*,unsigned, FnvHash, PtrIdentityHash> domainConstantNumber;
 
   std::cout << "Detected model with " << sortSizes.size() << " sorts." << std::endl;
   auto it = sortSizes.items();
@@ -255,7 +258,7 @@ static void checkIsDomainLiteral(Literal* l, int& single_var, DomainConstantSet&
 
 static void addDefinition(FiniteModelMultiSorted& model,Literal* lit,bool negated,
                           DomainConstantSet& domainConstants,
-                          DHMap<Term*,unsigned>& domainConstantNumber)
+                          DHMap<Term*,unsigned, FnvHash, PtrIdentityHash>& domainConstantNumber)
 {
   if(lit->isEquality()){
     if(!lit->polarity() || negated) USER_ERROR("Cannot have negated function definition");

@@ -141,7 +141,7 @@ private:
   DArray<bool> del_p;
 
   // Store monotonicity_info (see Monotonicity::check) for every sort detected (or made) monotonic
-  DHMap<unsigned,DArray<signed char>*> _monotonic_vampire_sorts;
+  DHMap<unsigned,DArray<signed char>*, FnvHash, IdentityHash> _monotonic_vampire_sorts;
   Stack<unsigned> _sortFunctions; // sort functions to remember - need to be eliminated from the model in the end
   Stack<unsigned> _sortPredicates; // sort predicates to remember - need to be eliminated from the model in the end
 
@@ -167,7 +167,7 @@ private:
   DArray<unsigned> _fminbound;
   // Record for each clause the sorts of the variables
   // As clauses are normalized variables will be numbered 0,1,...
-  DHMap<unsigned,DArray<unsigned>*> _clauseVariableSorts;
+  DHMap<unsigned,DArray<unsigned>*, FnvHash, IdentityHash> _clauseVariableSorts;
 
   // There is a implicit mapping from ground terms to SAT variables
   // These offsets give the SAT variable for the *first* grounding of each function or predicate symbol

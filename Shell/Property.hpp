@@ -298,7 +298,7 @@ public:
   /** Symbols in this formula, used during counting
       Functions are positive, predicates stored in the negative part
   **/
-  DHSet<int> _symbolsInFormula;
+  DHSet<int, FnvHash, IdentityHash> _symbolsInFormula;
 
   /** Bitwise OR of all properties of this problem */
   uint64_t _props;

@@ -63,7 +63,7 @@ std::pair<Formula*,FormulaUnit*> Rectify::closeOverGivenVars(VList* vars, Formul
 {
   ASS(VList::isNonEmpty(vars))
 
-  DHMap<unsigned, TermList> varSorts;
+  DHMap<unsigned, TermList, FnvHash, IdentityHash> varSorts;
   SortHelper::collectVariableSorts(f, varSorts);
   VSList::FIFO vsfifo;
   VList::Iterator vit(vars);
@@ -185,7 +185,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     ASS_EQ(t->arity(),0);
 #if VDEBUG
     { // removing duplicates from LambdaVars would change its type, so better assert it never happens
-      DHSet<unsigned> seenVars;
+      DHSet<unsigned, FnvHash, IdentityHash> seenVars;
       VSList::Iterator dbgIt(sd->getLambdaVars());
       while (dbgIt.hasNext()) {
         ASS(seenVars.insert(dbgIt.next().first));
@@ -536,7 +536,7 @@ VSList* Rectify::rectifyBoundVars(VSList* vs)
 
   VSList* res = VSList::empty();
 
-  DHSet<int> seen;
+  DHSet<int, FnvHash, IdentityHash> seen;
   while (args.isNonEmpty()) {
     vs = args.pop();
 

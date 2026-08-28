@@ -1464,7 +1464,7 @@ TermList AtomicSort::tupleSort(unsigned arity, TermList* sorts)
 
 unsigned Term::computeDistinctVars() const
 {
-  Set<unsigned> vars;
+  Set<unsigned, FnvHash> vars;
   VariableIterator vit(this);
   while (vit.hasNext()) {
     vars.insert(vit.next().var());

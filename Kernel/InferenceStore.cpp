@@ -114,7 +114,7 @@ void InferenceStore::recordIntroducedSplitName(Unit* u, std::string name)
  * It is caller's responsibility to ensure that variables in @b vars are unique.
  */
 template<typename VarContainer>
-std::string getQuantifiedStr(const VarContainer& vars, std::string inner, DHMap<unsigned,TermList>& t_map, bool innerParentheses=true){
+std::string getQuantifiedStr(const VarContainer& vars, std::string inner, DHMap<unsigned,TermList, FnvHash, IdentityHash>& t_map, bool innerParentheses=true){
   VirtualIterator<unsigned> vit=pvi( getContentIterator(vars) );
   std::string varStr;
   bool first=true;
@@ -160,9 +160,9 @@ std::string getQuantifiedStr(const VarContainer& vars, std::string inner, DHMap<
  */
 std::string getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
 {
-  Set<unsigned> vars;
+  Set<unsigned, FnvHash> vars;
   std::string res;
-  DHMap<unsigned,TermList> t_map;
+  DHMap<unsigned,TermList, FnvHash, IdentityHash> t_map;
   SortHelper::collectVariableSorts(u,t_map, /*ignoreBound=*/true);
   if (u->isClause()) {
     Clause* cl=static_cast<Clause*>(u);
@@ -828,7 +828,7 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
 
     //sorts of the clause's variables, so the quantifiers of the definition
     //below are annotated like every other formula in the proof
-    DHMap<unsigned,TermList> t_map;
+    DHMap<unsigned,TermList, FnvHash, IdentityHash> t_map;
     SortHelper::collectVariableSorts(us, t_map);
 
     std::string defId=tptpDefId(us);
@@ -1533,7 +1533,7 @@ protected:
   static void output(std::ostream& out, Unit* unit)
   {
     using Sort = TermList;
-    DHMap<unsigned, Sort> vars;
+    DHMap<unsigned, Sort, FnvHash, IdentityHash> vars;
     SortHelper::collectVariableSorts(unit, vars);
     decltype(vars)::Iterator iter(vars);
     if (vars.size() != 0) {
@@ -1689,7 +1689,7 @@ void InferenceStore::outputUnsatCore(std::ostream& out, Unit* refutation)
 
   Stack<Unit*> todo;
   todo.push(refutation);
-  Set<unsigned> visited;
+  Set<unsigned, FnvHash> visited;
   while(!todo.isEmpty()){
 
     Unit* u = todo.pop();
