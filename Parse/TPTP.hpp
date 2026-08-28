@@ -644,6 +644,9 @@ private:
   // A hack to hard-code the precedence of = and != higher than connectives
   // This is needed for implementation of FOOL
   unsigned _insideEqualityArgument;
+  /** _insideEqualityArgument as it stood outside each argument list currently open;
+   * pushed by openArgumentList(), restored by endArgs() */
+  Stack<unsigned> _savedInsideEqualityArgument;
 
   /** Kinds of input that are not legal per the TPTP BNF but that we accept
    * leniently, inventing a reading. Each kind is warned about at most once
@@ -790,6 +793,7 @@ private:
   std::filesystem::path resolveInclude(const std::filesystem::path included);
   void include();
   void type();
+  void openArgumentList(Tag closer);
   void endIte();
   void letType();
   void endLetTypes();

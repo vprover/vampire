@@ -2366,13 +2366,14 @@ void TPTP::termInfix()
       // The connective cases below continue parsing after the formula they build, by
       // pushing a pending -1 connective and an END_FORMULA under it. Do the same here,
       // or a connective following the equality has nothing to resume it and is reported
-      // as an unexpected token: "r(X = a & p(X))" used to fail at the '&', while the
-      // same thing with the connective first, "r(p(X) & X = a)", parsed. This is the
+      // as an unexpected token: "f(X = a & Y = b)" used to fail at the '&', while the
+      // same thing with the connective first, "f(p(X) & X = a)", parsed. This is the
       // term-level counterpart of the endFormula() fix for "p & (q) = r".
       //
-      // Guarded exactly like the connectives: at the top level of an equality's
-      // right-hand side a connective *ends* the term, so that "a = b & c" reads as
-      // "(a = b) & c", and an equality there must keep stopping too.
+      // Guarded exactly like the connectives: inside an equality argument a connective
+      // *ends* the term, so that "a = b & c" reads as "(a = b) & c", and an equality
+      // there must keep stopping too or "d = X = a & b" would start reading as
+      // "d = (X = (a & b))".
       if (_insideEqualityArgument == 0) {
         _connectives.push(-1);
         _states.push(END_FORMULA_INSIDE_TERM);
@@ -2494,9 +2495,7 @@ void TPTP::funApp()
     }
 
     case T_LBRA:
-      _states.push(ARGS);
-      _ints.push(1); // the arity of the function symbol is at least 1
-      _tags.push(T_RBRA); // the expected closing delimiter, checked in endArgs()
+      openArgumentList(T_RBRA);
       return;
 
     case T_VAR:
@@ -2506,9 +2505,7 @@ void TPTP::funApp()
     case T_NAME:
       if (getTok(0).tag == T_LPAR) {
         resetToks();
-        _states.push(ARGS);
-        _ints.push(1); // the arity of the function symbol is at least 1
-        _tags.push(T_RPAR); // the expected closing delimiter, checked in endArgs()
+        openArgumentList(T_RPAR);
       } else {
         _ints.push(0); // arity
       }
@@ -2959,6 +2956,26 @@ void TPTP::endTuple()
 } // endTuple
 
 /**
+ * Begin a parenthesised argument list closed by @b closer, which endArgs() will
+ * finish. Everything an argument list needs on entry lives here, so that a new
+ * kind of application cannot join in and forget half of it.
+ *
+ * The equality-argument guard is suspended for the duration. It makes a connective
+ * *end* the term, so that "a = b & c" reads as "(a = b) & c" -- but it was never
+ * cleared on the way into a nested argument list, where the parentheses settle the
+ * question already, so "d = h(p(X) & p(a))" failed at the '&' while the identical
+ * "h(p(X) & p(a))" on its own parsed.
+ */
+void TPTP::openArgumentList(Tag closer)
+{
+  _states.push(ARGS);
+  _ints.push(1); // the arity of the function symbol is at least 1
+  _tags.push(closer); // the expected closing delimiter, checked in endArgs()
+  _savedInsideEqualityArgument.push(_insideEqualityArgument);
+  _insideEqualityArgument = 0;
+} // openArgumentList
+
+/**
  * Read a non-empty sequence of arguments, including the right parentheses
  * and save the resulting sequence of TermList and their number
  * @since 10/04/2011 Manchester
@@ -2991,6 +3008,7 @@ void TPTP::endArgs()
     if (tok.tag != expected) {
       PARSE_ERROR_TOK(toString(expected) + " expected after an end of a term",tok);
     }
+    _insideEqualityArgument = _savedInsideEqualityArgument.pop(); // see openArgumentList()
     resetToks();
     return;
   }

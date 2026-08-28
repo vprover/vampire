@@ -186,9 +186,12 @@ check_szs_status Unsatisfiable parse/define-const.smt2
 check_output_contains '(p & ((q = r)))' --mode output parse/eq-precedence.p
 check_output_contains '(((p = r)) & s)' --mode output parse/eq-precedence.p
 # the same thing one level down, inside an argument list: an equality now resumes
-# connective parsing after itself. a1/a3/a4 of the file are three spellings of one
+# connective parsing after itself, and the equality-argument guard no longer leaks
+# into a nested argument list. a1/a3/a6 of the file are three spellings of one
 # formula, and the single expectation below covers all three
 check_output_contains 'r(X0 = a & p(X0))' --mode output parse/term-eq-connective.p
+check_output_contains 'd = h(p(X0) & p(a))' --mode output parse/term-eq-connective.p
+check_output_contains 'd = h(X0 = a & p(X0))' --mode output parse/term-eq-connective.p
 check_output_contains '((d = X0) & p(X0))' --mode output parse/term-eq-connective.p
 check_rejected 'crlf-line-numbers.p", line 4: formula or term expected' --input_syntax tptp --mode output parse/crlf-line-numbers.p
 check_output_contains 'second_unit_parsed' --mode output parse/block-comment-star.p
