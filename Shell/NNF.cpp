@@ -301,7 +301,8 @@ TermList NNF::ennf(TermList ts, bool polarity)
 
       case SpecialFunctor::LAMBDA:
         NOT_IMPLEMENTED;
-      case SpecialFunctor::MATCH: {
+      case SpecialFunctor::MATCH:
+      case SpecialFunctor::COND: {
         DArray<TermList> terms(term->arity());
         bool unchanged = true;
         for (unsigned i = 0; i < term->arity(); i++) {
@@ -312,7 +313,7 @@ TermList NNF::ennf(TermList ts, bool polarity)
         if (unchanged) {
           return ts;
         }
-        return TermList(Term::createMatch(sd->getSort(), sd->getMatchedSort(), term->arity(), terms.begin()));
+        return TermList(Term::createMatchOrCond(term, sd->getSort(), term->arity(), terms.begin()));
       }
 
     }

@@ -167,7 +167,9 @@ public:
     /** $ite: FOOL level-polymorphic if-then-else */
     T_ITE,
     /** $let: FOOL level-polymorphic let-in */
-    T_LET
+    T_LET,
+    /** $cond: a flat chain of if/elif/.../else */
+    T_COND
   };
 
   /** parser state, numbers are just temporarily for debugging */
@@ -238,6 +240,8 @@ public:
     UNBIND_VARIABLES,
     /** end of an if-then-else expression */
     END_ITE,
+    /** end of a $cond expression */
+    END_COND,
     /** read tuple */
     END_TUPLE,
     /** check the end of arguments */
@@ -621,11 +625,19 @@ private:
   /** Record whether a formula or term has been pushed more recently */
   LastPushed _lastPushed;
 
+  /** The tag of the most recently consumed token (see resetToks/shiftToks).
+   * Used by endHolFormula to tell whether the argument of a '~' just parsed
+   * ended with a closing parenthesis (making the '~ (...)' a complete
+   * <thf_prefix_unary> per the TPTP BNF), which decides whether a following
+   * '@' may be leniently absorbed into it or belongs to the enclosing
+   * context. */
+  Tag _lastTokenTag = T_EOF;
+
   static Substitution getTypeSub(const LetSymbolReference& ref);
 
   /** finds if the symbol has been defined in an enclosing $let */
-  bool findLetSymbol(LetSymbolName symbolName, LetSymbolReference& symbolReference);
-  bool findLetSymbol(LetSymbolName symbolName, LetSymbols scope, LetSymbolReference& symbolReference);
+  bool findLetSymbol(const LetSymbolName& symbolName, LetSymbolReference& symbolReference);
+  bool findLetSymbol(const LetSymbolName& symbolName, const LetSymbols& scope, LetSymbolReference& symbolReference);
 
   typedef Stack<LetSymbolReference> LetDefinitions;
   Stack<LetDefinitions> _letDefinitions;
@@ -636,6 +648,28 @@ private:
   // A hack to hard-code the precedence of = and != higher than connectives
   // This is needed for implementation of FOOL
   unsigned _insideEqualityArgument;
+  /** _insideEqualityArgument as it stood outside each argument list currently open;
+   * pushed by openArgumentList(), restored by endArgs() */
+  Stack<unsigned> _savedInsideEqualityArgument;
+
+  /** Kinds of input that are not legal per the TPTP BNF but that we accept
+   * leniently, inventing a reading. Each kind is warned about at most once
+   * per parser run (see nonConformityWarning). */
+  enum NonConformity {
+    /** '~ s = t' read as '~ (s = t)' */
+    NC_NOT_APPLIED_TO_EQUALITY,
+    /** 'p & f @ x' read as 'p & (f @ x)' */
+    NC_UNPARENTHESIZED_APPLICATION,
+    /** 'r = ~ s' read as 'r = (~ s)'; 'g = ^[X]: t' as 'g = (^[X]: t)' */
+    NC_NON_UNITARY_EQUALITY_ARGUMENT,
+    /** 'r = s = t' read as 'r = (s = t)' */
+    NC_CHAINED_EQUALITY,
+    /** the number of kinds above */
+    NC_KINDS
+  };
+  /** which non-conformity kinds have already been warned about in this run */
+  bool _nonConformityWarned[NC_KINDS] = {};
+  void nonConformityWarning(NonConformity kind, const std::string& explanation);
 
   /**
    * Get the next characters at the position pos.
@@ -693,6 +727,7 @@ private:
     ASS(n > 0);
     ASS(n <= _tend);
 
+    _lastTokenTag = _tokens[n-1].tag;
     for (int i = 0;i < _tend-n;i++) {
       _tokens[i] = _tokens[n+i];
     }
@@ -705,6 +740,9 @@ private:
    */
   inline void resetToks()
   {
+    if (_tend > 0) {
+      _lastTokenTag = _tokens[_tend-1].tag;
+    }
     _tend = 0;
   } // resetToks
 
@@ -759,7 +797,9 @@ private:
   std::filesystem::path resolveInclude(const std::filesystem::path included);
   void include();
   void type();
+  void openArgumentList(Tag closer);
   void endIte();
+  void endCond();
   void letType();
   void endLetTypes();
   void definition();
@@ -835,6 +875,7 @@ public:
    */
   struct SourceRecord{
     virtual bool isFile() = 0;
+    virtual ~SourceRecord() = default;
   };
   struct FileSourceRecord : SourceRecord {
     const std::string fileName;
@@ -881,8 +922,6 @@ private:
 
 
 #if VDEBUG
-  void printStates(std::string extra);
-  void printInts(std::string extra);
   const char* toString(State s);
 #endif
 #ifdef DEBUG_SHOW_STATE

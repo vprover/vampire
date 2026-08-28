@@ -19,9 +19,13 @@
 #define __FiniteModelMultiSorted__
 
 #include "Lib/DHMap.hpp"
+#include "Lib/Exception.hpp"
+#include "Lib/Stack.hpp"
 
 #include "Kernel/Unit.hpp"
 #include "Kernel/Term.hpp"
+
+#include "ModelLayer.hpp"
 
 
 namespace FMB {
@@ -30,47 +34,53 @@ using namespace Lib;
 using namespace Kernel;
 
 /**
+ * Thrown by the evaluation the moment it needs a value the model does not have.
+ * What that means depends on where the model came from: a model loaded from a file
+ * is simply partial (a user error), while a model we have just built ourselves being
+ * partial is a bug -- so the two callers of evaluate() catch this and say so.
+ */
+class UndefinedValueException : public Lib::Exception {
+public:
+  explicit UndefinedValueException(const std::string& symbolName)
+   : Exception("no value for " + symbolName), _symbolName(symbolName) {}
+
+  const std::string& symbolName() const { return _symbolName; }
+private:
+  std::string _symbolName;
+};
+
+/**
  *
  *
  */
 class FiniteModelMultiSorted {
+  // the domain size of each vampire sort; 0 means this model has nothing to say about that
+  // sort (it is not printed, and no represented symbol mentions it) -- where a value of such
+  // a sort is nevertheless called for, it behaves as a one-element domain (cf. domainSize)
   DArray<unsigned> _sizes;
 
-  static const char INTP_UNDEF = 0;
-  static const char INTP_FALSE = 1;
-  static const char INTP_TRUE = 2;
+  // per-symbol stacks of interpretation layers, bottom-up (see ModelLayer.hpp); the model
+  // owns them. An empty stack means the symbol is not represented explicitly (it was
+  // eliminated during preprocessing, or is simply unused)
+  DArray<Stack<FunLayer*>> _f_layers;
+  DArray<Stack<PredLayer*>> _p_layers;
 
-  // two big tables waiting to be filled with the intrepreations (of functions and predicates)
-  DArray<unsigned> _f_offsets;
-  DArray<unsigned> _p_offsets;
-  DArray<unsigned> _f_interpretation;
-  DArray<char> _p_interpretation; // 0 is undef, 1 false, 2 true
+  // the replay step we are at; layers built by initTables belong to model_0, so the first
+  // step of restoreEliminatedDefinitions is 1 and a read as of 1 sees exactly model_0
+  Timestamp _now = MODEL_ZERO+1;
 
-  // candidates for the domain constants in the model printed (we use existing constants of the respective sort, but introduce a new symbol, if there is none)
-  // this is not the same thing (although, maybe, these could be unified?) as _domainConstants, which are used for evaluation
-  DArray<DArray<int>> sortRepr;
+  // the base explicit table of a symbol, or nullptr if it does not have one
+  TableFunLayer* funTable(unsigned f) const;
+  TablePredLayer* predTable(unsigned p) const;
 
-  // uses _sizes to fillup _f/p_offsets and _f/p_interpretation from scratch
-  // also cleans sortRepr (to be filled up from scratch)
+  bool funRepresented(unsigned f) const { return funTable(f) != nullptr; }
+  bool predRepresented(unsigned p) const { return predTable(p) != nullptr; }
+
+  void deleteAllLayers();
+
+  // uses _sizes to fillup _f_layers and _p_layers from scratch, giving each represented
+  // symbol a single base table layer (only symbols with usageCnt()>0 get one)
   void initTables();
-
-  // captures the encoding of the functions offsets and predicates in our tables
-  // - offsets are either _f_offsets or _p_offsets
-  // - s is either an f or p index from env->signature
-  // - sig is the symbols corresponding type signature
-  // - var is an index to use into _f_interpretation/_p_interpretation
-  unsigned args2var(const DArray<unsigned>& args, const DArray<unsigned>& sizes,
-                    const DArray<unsigned>& offsets, unsigned s, OperatorType* sig)
-  {
-    unsigned var = offsets[s];
-    unsigned mult = 1;
-    for(unsigned i=0;i<args.size();i++){
-      var += mult*(args[i]-1);
-      unsigned s = sig->arg(i).term()->functor();
-      mult *=sizes[s];
-    }
-    return var;
-  }
 
 public:
 
@@ -79,15 +89,45 @@ public:
     initTables();
   }
 
+  ~FiniteModelMultiSorted() { deleteAllLayers(); }
+
+  // the layers call these back while computing their own value; a layer reads as of its own
+  // birth, so that it sees the model its own replay step transforms and nothing later
+  unsigned evalFun(unsigned f, const DArray<unsigned>& args, Timestamp asOf);
+  char evalPred(unsigned p, const DArray<unsigned>& args, Timestamp asOf);
+  unsigned domainSizeOf(unsigned sort) const;
+  size_t tableIndexOf(OperatorType* sig, const DArray<unsigned>& args) const;
+  // evaluate a recorded definition's body with its head's variables bound to args
+  unsigned applyFunDef(Problem::FunDef* fd, const DArray<unsigned>& args, Timestamp asOf);
+  bool applyPredDef(Problem::PredDef* pd, const DArray<unsigned>& args, Timestamp asOf);
+
   // Assume def is an equality literal with a
   // function application on lhs and constant on rhs
   void addFunctionDefinition(unsigned f, const DArray<unsigned>& args, unsigned res);
   // Assume def is non-equality ground literal
   void addPredicateDefinition(unsigned f, const DArray<unsigned>& args, bool res);
 
-  bool evaluate(Unit* unit, bool expectingPartial = false);
-  unsigned evaluateGroundTerm(Term* term);
-  bool evaluateGroundLiteral(Literal* literal);
+  bool evaluate(Unit* unit);
+
+  /**
+   * The parser puts $true / $false in term position into a special FORMULA term (they are
+   * formulas in TPTP, and only FOOL lets them stand as terms), while everything downstream --
+   * this model included -- knows them as the ordinary constants FOOLElimination introduces.
+   * Map the former to the latter; any other term passes through unchanged. Used where a model
+   * is read rather than evaluated, i.e. where we need the constant and not its value.
+   */
+  static TermList deFool(TermList tl);
+
+  // the domain element $true (or $false) sits on in this model
+  unsigned boolValue(bool isTrue) { return boolValue(isTrue,_now); }
+
+  /**
+   * Give every symbol the model has no explicit table for a trivial layer, so that model_0 --
+   * the model the replay starts from -- says something about every symbol on every argument
+   * tuple. Only a model we built ourselves gets this: one loaded from a file is legitimately
+   * partial, and there the absence of any layer is the UndefinedValueException to report.
+   */
+  void installTrivialLayers();
 
   void eliminateSortFunctionsAndPredicates(const Stack<unsigned>& sortFunctions, const Stack<unsigned>& sortPredicates);
   void restoreEliminatedDefinitions(Kernel::Problem* prob);
@@ -95,63 +135,23 @@ public:
   std::string toString();
 
 private:
-  unsigned evaluateTerm(TermList, const DHMap<unsigned,unsigned, FnvHash, IdentityHash>& subst);
-  bool evaluateLiteral(Literal*, const DHMap<unsigned,unsigned, FnvHash, IdentityHash>& subst);
-  bool evaluateFormula(Formula*, DHMap<unsigned,unsigned, FnvHash, IdentityHash>& subst);
+  // walk a symbol's layer stack from the top, taking the first layer that has a value for
+  // args; a layer with nothing to say falls through to the one below. Falling off the
+  // bottom means the model does not say what the symbol is here
+  unsigned boolValue(bool isTrue, Timestamp asOf);
 
-  // if term evaluation encounters a missing record, it assumes the corresponding symbol has been implicitly eliminated
-  // (e.g., eliminated unused function definition f(X) = g(X,c) might have eliminated c, if it did not occur anywhere else)
-  // such symbols are restored (just after restoreEliminatedDefinitions; although, formally it should happen before) in the simplest possible way:
-  // functions == 1 (the first domain element of the respective sort) everywhere
-  // predicates == false everywhere
-  Set<unsigned, FnvHash> _implicitlyEliminatedFunctions;
-  Set<unsigned, FnvHash> _implicitlyEliminatedPredicates;
+  unsigned evaluateTerm(TermList, const DHMap<unsigned,unsigned, FnvHash, IdentityHash>& subst, Timestamp asOf);
+  bool evaluateBooleanTerm(TermList, const DHMap<unsigned,unsigned, FnvHash, IdentityHash>& subst, Timestamp asOf);
+  bool evaluateLiteral(Literal*, const DHMap<unsigned,unsigned, FnvHash, IdentityHash>& subst, Timestamp asOf);
+  bool evaluateFormula(Formula*, DHMap<unsigned,unsigned, FnvHash, IdentityHash>& subst, Timestamp asOf);
 
-  void restoreEliminatedFunDef(Problem::FunDef*);
-  void restoreImplicitlyEliminatedFun(unsigned f);
-  void restoreEliminatedPredDef(Problem::PredDef*);
-  void restoreImplicitlyEliminatedPred(unsigned p);
-  void restoreGlobalPredicateFlip(Problem::GlobalFlip*);
   void restoreViaCondFlip(Problem::CondFlip*);
 
-  Formula* partialEvaluate(Formula* formula);
-  // currently private as requires formula to be rectified
-  bool evaluateOld(Formula* formula,unsigned depth=0);
-
-  // the pairs of <constant number, sort>
-  DHMap<std::pair<unsigned,unsigned>,Term*> _domainConstants;
-  DHMap<Term*,std::pair<unsigned,unsigned>, FnvHash, PtrIdentityHash> _domainConstantsRev;
-public:
-
-
-
-  Term* getDomainConstant(unsigned c, unsigned srt)
-  {
-    Term* t;
-    std::pair<unsigned,unsigned> pair = std::make_pair(c,srt);
-    if(_domainConstants.find(pair,t)) return t;
-    std::string name = "domCon_"+env.signature->typeConName(srt)+"_"+Lib::Int::toString(c);
-    unsigned f = env.signature->addFreshFunction(0,name.c_str());
-    TermList srtT = TermList(AtomicSort::createConstant(srt));
-    env.signature->getFunction(f)->setType(OperatorType::getConstantsType(srtT));
-    t = Term::createConstant(f);
-    _domainConstants.insert(pair,t);
-    _domainConstantsRev.insert(t,pair);
-
-    return t;
-  }
-  std::pair<unsigned,unsigned> getDomainConstant(Term* t)
-  {
-    std::pair<unsigned,unsigned> pair;
-    if(_domainConstantsRev.find(t,pair)) return pair;
-    USER_ERROR("Evaluated to "+t->toString()+" when expected a domain constant, probably a partial model");
-  }
-  bool isDomainConstant(Term* t)
-  {
-    return _domainConstantsRev.find(t);
-  }
-
-
+  // may a definition born at born be *printed* as it stands? Only if every symbol its body
+  // mentions still means at the top of its stack what it meant when the definition was born
+  bool bodyStillCurrent(Term* body, Timestamp born);
+  bool bodyStillCurrent(Formula* body, Timestamp born);
+  bool symbolStillCurrent(const Stack<FunLayer*>& st, Timestamp born) const;
 
   std::string prepend(const char* prefix, std::string name) {
     if (name.empty()) {

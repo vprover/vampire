@@ -573,8 +573,77 @@ std::string Term::headToString() const
         std::string formula = sd->getFormula()->toString();
         return env.options->showFOOL() ? "$term{" + formula + "}" : formula;
       }
-      case SpecialFunctor::LET: {
+      case SpecialFunctor::LET:
         ASS_EQ(arity(), 1);
+        return "$let"; // the type and the binding come from argsPrefixToString
+      case SpecialFunctor::ITE:
+        ASS_EQ(arity(),2);
+        return "$ite"; // the condition comes from argsPrefixToString
+      case SpecialFunctor::LAMBDA: {
+        VSList* vars = sd->getLambdaVars();
+        TermList lambdaExp = sd->getLambdaExp();
+
+        std::string varList;
+
+        VSList::Iterator vs(vars);
+        while (vs.hasNext()) {
+          auto [v, sort] = vs.next();
+          varList += variableToString(v) + " : " + sort.toString();
+          if (vs.hasNext())
+            varList += ", ";
+        }
+        return "(^[" + varList + "] : (" + lambdaExp.toString() + "))";
+      }
+      case SpecialFunctor::MATCH:
+        return "$match"; // everything it prints is an ordinary argument
+      case SpecialFunctor::COND:
+        return "$cond";  // likewise
+      default:
+        ASSERTION_VIOLATION;
+    }
+  } else {
+    unsigned proj;
+    if (!isSort() && Theory::findTupleProjection(functor(), isLiteral(), proj)) {
+      return "$proj"; // the index comes from argsPrefixToString
+    }
+    std::string name = "";
+    if(isLiteral()) {
+      name = static_cast<const Literal *>(this)->predicateName();
+    } else if (isSort()) {
+      const AtomicSort* asSort = static_cast<const AtomicSort *>(this);
+      if(env.options->showFOOL() && asSort->isBoolSort()){
+        name = "$bool";
+      } else {
+        name = asSort->typeConName();
+      }
+    } else {
+      name = functionName();
+    }
+    return name;
+  }
+}
+
+/**
+ * The material a head prints inside its parentheses *before* args(): $ite's condition,
+ * $let's type and binding, $proj's index. Each piece already carries its trailing
+ * separator, so a caller emits this straight after '(' and then the arguments as usual.
+ *
+ * It is empty -- and the caller therefore unchanged -- for every ordinary term, which is
+ * what keeps this out of the way of the vast majority of printing, HOL applications
+ * included. Heads used to open the parenthesis and print this material themselves, which
+ * both callers then followed with a '(' of their own, so "$ite(p(a), a, b)" came out as
+ * "$ite(p(a), (a,b)": one parenthesis too many and one too few.
+ */
+std::string Term::argsPrefixToString() const
+{
+  if (isSpecial()) {
+    const Term::SpecialTermData* sd = getSpecialData();
+
+    switch (specialFunctor()) {
+      case SpecialFunctor::ITE:
+        return sd->getITECondition()->toString() + ",";
+
+      case SpecialFunctor::LET: {
         Formula* binding = sd->getLetBinding();
         if (binding->connective() == Connective::FORALL) {
           binding = binding->qarg();
@@ -611,54 +680,19 @@ std::string Term::headToString() const
           }
           type = sym->name() + ": " + (isPredicate ? sym->predType() : sym->fnType())->toString();
         }
-        return "$let(" + type + ", " + binding->toString() + ", ";
+        return type + "," + binding->toString() + ",";
       }
-      case SpecialFunctor::ITE: {
-        ASS_EQ(arity(),2);
-        return "$ite(" + sd->getITECondition()->toString() + ", ";
-      }
-      case SpecialFunctor::LAMBDA: {
-        VSList* vars = sd->getLambdaVars();
-        TermList lambdaExp = sd->getLambdaExp();
 
-        std::string varList;
-
-        VSList::Iterator vs(vars);
-        while (vs.hasNext()) {
-          auto [v, sort] = vs.next();
-          varList += variableToString(v) + " : " + sort.toString();
-          if (vs.hasNext())
-            varList += ", ";
-        }
-        return "(^[" + varList + "] : (" + lambdaExp.toString() + "))";
-      }
-      case SpecialFunctor::MATCH: {
-        // we simply let the arguments be written out
-        return "$match(";
-      }
       default:
-        ASSERTION_VIOLATION;
+        return "";
     }
-  } else {
-    unsigned proj;
-    if (!isSort() && Theory::findTupleProjection(functor(), isLiteral(), proj)) {
-      return "$proj(" + Int::toString(proj) + ", ";
-    }
-    std::string name = "";
-    if(isLiteral()) {
-      name = static_cast<const Literal *>(this)->predicateName();
-    } else if (isSort()) {
-      const AtomicSort* asSort = static_cast<const AtomicSort *>(this);
-      if(env.options->showFOOL() && asSort->isBoolSort()){
-        name = "$bool";
-      } else {
-        name = asSort->typeConName();
-      }
-    } else {
-      name = functionName();
-    }
-    return name;
   }
+
+  unsigned proj;
+  if (!isSort() && Theory::findTupleProjection(functor(), isLiteral(), proj)) {
+    return Int::toString(proj) + ",";
+  }
+  return "";
 }
 
 /**
@@ -706,6 +740,7 @@ std::string TermList::asArgsToString() const
 
     if (t->arity()) {
       res += '(';
+      res += t->argsPrefixToString();
 
       stack.push(t->args());
     }
@@ -826,9 +861,11 @@ std::string Term::toString(bool topLevel) const
 
   std::stringstream out;
   out << headToString();
-  
+
   if (_arity) {
-    out << "(" << Output::interleaved(',', anyArgIter(this)) << ")";
+    out << "(" << argsPrefixToString() << Output::interleaved(',', anyArgIter(this)) << ")";
+  } else {
+    ASS(argsPrefixToString().empty()); // nowhere to put it
   }
   return out.str();
 } // Term::toString
@@ -1234,6 +1271,50 @@ Term *Term::createMatch(TermList sort, TermList matchedSort, unsigned int arity,
   return s;
 }
 
+Term *Term::createCond(TermList sort, unsigned int arity, TermList *elements) {
+  ASS_GE(arity,3);      // at least one (condition,value) pair
+  ASS(arity % 2 == 1);  // ... and the else
+
+  Term *s = new (arity, sizeof(SpecialTermData)) Term;
+  s->makeSymbol(toNormalFunctor(SpecialFunctor::COND), arity);
+  TermList *ss = s->args();
+  s->getSpecialData()->_condData.sort = sort;
+
+  for (unsigned i = 0; i < arity; i++) {
+    ASS(!elements[i].isEmpty());
+    *ss = elements[i];
+    ss = ss->next();
+  }
+  ASS(ss->isEmpty());
+
+  return s;
+}
+
+Term *Term::createMatchOrCond(Term *orig, TermList sort, unsigned int arity, TermList *elements) {
+  if (orig->isCond()) {
+    return createCond(sort, arity, elements);
+  }
+  ASS(orig->isMatch());
+  return createMatch(sort, orig->getSpecialData()->getMatchedSort(), arity, elements);
+}
+
+TermList Term::condToITE(Term *t)
+{
+  ASS_EQ(t->specialFunctor(), SpecialFunctor::COND);
+
+  TermList sort = t->getSpecialData()->getSort();
+  unsigned arity = t->arity();
+
+  TermList res = *t->nthArgument(arity-1); // the else
+  // fold the (condition,value) pairs in from the right, so that the leftmost
+  // condition ends up outermost and therefore wins
+  for (unsigned i = arity-1; i > 0; i -= 2) {
+    Formula *cond = BoolTermFormula::create(*t->nthArgument(i-2));
+    res = TermList(Term::createITE(cond,*t->nthArgument(i-1),res,sort));
+  }
+  return res;
+}
+
 /** Create a new complex term, copy from @b t its function symbol and arity.
  *  Initialize its arguments by a dummy special variable.
  */
@@ -1446,6 +1527,15 @@ bool Term::isBoolean() const {
       }
       case SpecialFunctor::MATCH: {
         const TermList *ts = term->nthArgument(2);
+        if (!ts->isTerm()) {
+          return false;
+        } else {
+          term = ts->term();
+          break;
+        }
+      }
+      case SpecialFunctor::COND: {
+        const TermList *ts = term->nthArgument(1); // the first value
         if (!ts->isTerm()) {
           return false;
         } else {
@@ -1887,7 +1977,8 @@ std::ostream& Kernel::operator<<(std::ostream& out, SpecialFunctor const& self)
     case SpecialFunctor::LET: return out << "LET";
     case SpecialFunctor::FORMULA: return out << "FORMULA";
     case SpecialFunctor::LAMBDA: return out << "LAMBDA";
-    case SpecialFunctor::MATCH: return out << "SPECIAL_FUNCTOR_LAST ";
+    case SpecialFunctor::COND: return out << "COND";
+    case SpecialFunctor::MATCH: return out << "MATCH";
   }
   ASSERTION_VIOLATION
 }

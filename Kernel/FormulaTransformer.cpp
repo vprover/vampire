@@ -111,12 +111,13 @@ TermList FormulaTransformer::apply(TermList ts) {
                                         sd->getSort()));
       case SpecialFunctor::LAMBDA:
         NOT_IMPLEMENTED;
-      case SpecialFunctor::MATCH: {
+      case SpecialFunctor::MATCH:
+      case SpecialFunctor::COND: {
         DArray<TermList> terms(term->arity());
         for (unsigned i = 0; i < term->arity(); i++) {
           terms[i] = apply(*term->nthArgument(i));
         }
-        return TermList(Term::createMatch(sd->getSort(), sd->getMatchedSort(), term->arity(), terms.begin()));
+        return TermList(Term::createMatchOrCond(term, sd->getSort(), term->arity(), terms.begin()));
       }
 
     }

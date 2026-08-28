@@ -196,6 +196,15 @@ bool FunctionDefinition::removeUnusedDefinitions(UnitList*& units, Problem* prb)
     d->mark=Def::REMOVED;
     ASS_EQ(d->defCl->length(), 1);
     ASS_EQ(occCounter[d->fun], 1);
+    // record here, and not in the defStack loop below, because this loop is the one that
+    // proceeds in dependency order: d is removed first, and only the occurrences that drop
+    // away with it can make a further definition unused and push it. A model reconstruction
+    // replaying the recorded interferences backwards therefore restores d's dependencies
+    // before d itself, which is what lets d's body be evaluated in the model as it stood
+    // when d was eliminated. defStack, by contrast, is in the order the clauses were scanned.
+    if(prb) {
+      prb->addEliminatedFunction(d->fun, (*d->defCl)[0]);
+    }
     NonVariableNonTypeIterator nvit((*d->defCl)[0]);
     while(nvit.hasNext()) {
       unsigned fn=nvit.next()->functor();
@@ -211,11 +220,7 @@ bool FunctionDefinition::removeUnusedDefinitions(UnitList*& units, Problem* prb)
   while(defStack.isNonEmpty()) {
     Def* d=defStack.pop();
     if(d->mark==Def::REMOVED) {
-      modified = true;
-      if(prb) {
-	ASS_EQ(d->defCl->length(), 1);
-	prb->addEliminatedFunction(d->fun, (*d->defCl)[0]);
-      }
+      modified = true; // the recording already happened, in the loop above
     }
     else {
       ASS_EQ(d->mark, Def::UNTOUCHED);

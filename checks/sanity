@@ -34,6 +34,51 @@ check_exact_output() {
 	fi
 }
 
+# check that a key substring appears in the output: more robust than
+# check_exact_output (e.g. against drifting symbol-table indices in --mode output)
+check_output_contains() {
+	expected="$1"
+	shift
+	run_vampire $@
+	found=`grep -F "$expected" checks/vampire-stdout`
+	if test -z "$found"
+	then
+		echo "check failed: output should contain: $expected"
+		cat checks/vampire-stdout
+		exit 1
+	fi
+}
+
+# as check_output_contains, but the substring must appear exactly once
+check_output_contains_once() {
+	expected="$1"
+	shift
+	run_vampire $@
+	count=`grep -cF "$expected" checks/vampire-stdout`
+	if test "$count" != 1
+	then
+		echo "check failed: output should contain exactly once (found $count times): $expected"
+		cat checks/vampire-stdout
+		exit 1
+	fi
+}
+
+# check that Vampire rejects the input with a message containing the substring
+# (parse errors and user errors are printed to stdout, so run_vampire's stderr
+# check does not trip on them)
+check_rejected() {
+	expected="$1"
+	shift
+	run_vampire $@
+	found=`grep -F "$expected" checks/vampire-stdout`
+	if test -z "$found"
+	then
+		echo "rejection check failed: expected a message containing: $expected"
+		cat checks/vampire-stdout checks/vampire-stderr
+		exit 1
+	fi
+}
+
 # check SZS status
 check_szs_status() {
 	status=$1
@@ -132,6 +177,62 @@ check_szs_status Unsatisfiable parse/smtlib2-mutual-recursion.smt2
 check_szs_status Unsatisfiable -newcnf on parse/let-bind-variable.smt2
 check_szs_status Unsatisfiable -qa synthesis parse/assert-synth-max5.smt2
 check_szs_status Unsatisfiable parse/define-const.smt2
+check_szs_status Theorem parse/cond.p
+check_szs_status Theorem -newcnf on parse/cond.p
+
+# TPTP parser regression tests: small inputs documenting expected parser
+# behavior, one or two per fix; see the header comments in the files and the
+# corresponding commit messages for details.
+# (rejection tests pass --input_syntax tptp explicitly, so that the auto mode
+#  does not retry the failing input as SMT-LIB and garble the error message)
+check_output_contains '(p & ((q = r)))' --mode output parse/eq-precedence.p
+check_output_contains '(((p = r)) & s)' --mode output parse/eq-precedence.p
+# the same thing one level down, inside an argument list: an equality now resumes
+# connective parsing after itself, and the equality-argument guard no longer leaks
+# into a nested argument list. a1/a3/a6 of the file are three spellings of one
+# formula, and the single expectation below covers all three
+check_output_contains 'r(X0 = a & p(X0))' --mode output parse/term-eq-connective.p
+check_output_contains 'd = h(p(X0) & p(a))' --mode output parse/term-eq-connective.p
+check_output_contains 'd = h(X0 = a & p(X0))' --mode output parse/term-eq-connective.p
+check_output_contains '((d = X0) & p(X0))' --mode output parse/term-eq-connective.p
+check_rejected 'crlf-line-numbers.p", line 4: formula or term expected' --input_syntax tptp --mode output parse/crlf-line-numbers.p
+check_output_contains 'second_unit_parsed' --mode output parse/block-comment-star.p
+check_rejected ') expected after an end of a term' --input_syntax tptp --mode output parse/mismatched-brackets.p
+check_output_contains '!>[X0: $tType]:(list(X0))' --mode output parse/sort-app-space.p
+check_output_contains 'twenty_seven' --mode output parse/include-selection.p
+check_output_contains 'named_axiom' --mode output parse/include-selection.p
+check_szs_status Unsatisfiable parse/include-filtered-conjecture.p
+check_rejected 'sort mismatch in the if-then-else' --input_syntax tptp --mode output parse/ite-sort-mismatch.p
+check_rejected 'cnf(), fof(), tff(), thf(), vampire() or include() expected' --input_syntax tptp --mode output parse/bad-unit-kind.p
+check_output_contains 'f0(X0) := $sum(X0,1)' --mode output parse/let-function-parse.p
+check_output_contains '((((q) = r)) & p)' --mode output parse/thf-eq-truncation.p
+check_output_contains '((((f @ x)) = y))' --mode output parse/thf-eq-truncation.p
+check_output_contains '(^[X0 : tree_b] : (((X0 = e_b))))' --mode output parse/thf-binder-eq.p
+check_output_contains '(![X0 : $o] : (((X0 = X0))))' --mode output parse/thf-binder-eq.p
+check_output_contains '(s & ((p = r)))' --mode output parse/thf-eq-precedence.p
+check_output_contains '(((p = q)) <=> r)' --mode output parse/thf-eq-precedence.p
+check_output_contains '((p = ((f @ x))))' --mode output parse/thf-eq-precedence.p
+check_output_contains '((f @ x) & p)' --mode output parse/thf-app-absorb.p
+check_output_contains '((g @ x @ y) & p)' --mode output parse/thf-app-absorb.p
+check_output_contains_once 'an unparenthesized application as a connective argument' --mode output parse/thf-app-absorb.p
+check_output_contains '(f @ (^[X0 : a] : (X0)) @ (^[X1 : b] : (X1)))' --mode output parse/thf-lambda-in-app-chain.p
+check_output_contains '(^[X0 : a] : ((g @ X0))) @ y' --mode output parse/thf-lambda-in-app-chain.p
+check_output_contains '(ev @ (^[X0 : a] : ((? [X1 : b] : (r @ X0 @ X1)))) @ q)' --mode output parse/thf-lambda-in-app-chain.p
+check_output_contains '(((((^[X0 : b] : (y)) @ w)) = y))' --mode output parse/thf-lambda-in-app-chain.p
+check_output_contains '(fl @ (^[X0 : a] : ((~(r @ X0 @ w)))) @ q)' --mode output parse/thf-lambda-in-app-chain.p
+check_rejected 'sort mismatch in the application x @ y' --input_syntax tptp --mode output parse/thf-ill-typed-app.p
+check_rejected 'sort mismatch in the application r | q @ x' --input_syntax tptp --mode output parse/thf-app-to-formula.p
+check_output_contains '(~((p = q)))' --mode output parse/thf-not-eq.p
+check_output_contains_once "'~' applied to an unparenthesized (in)equality" --mode output parse/thf-non-conformity-warnings.p
+check_output_contains_once 'an unparenthesized application as a connective argument' --mode output parse/thf-non-conformity-warnings.p
+check_output_contains_once 'as an unparenthesized equality argument' --mode output parse/thf-non-conformity-warnings.p
+check_output_contains_once 'a chained equality is not legal THF' --mode output parse/thf-non-conformity-warnings.p
+check_output_contains '(g @ <~>)' --mode output parse/thf-xor-section.p
+check_rejected 'formula or term expected' --input_syntax tptp --mode output parse/thf-empty-parens.p
+check_rejected 'cannot parse the ?* quantifier' --input_syntax tptp --mode output parse/thf-quant-some.p
+check_rejected 'only supports type quantification (!>) in type declarations' --input_syntax tptp --mode output parse/thf-type-quant-in-formula.p
+check_output_contains '(p(vAND) & p(vNOT))' --mode output parse/proxy-names.p
+check_output_contains '(c = vPI(c))' --mode output parse/proxy-names.p
 
 # Arithmetic
 check_szs_status Theorem -t 1d -s 32 -tgt ground -sas z3 -tha some -nm 6 Problems/ANA/ANA135_1.p
@@ -167,6 +268,51 @@ check_szs_status Theorem -t 1d -to lpo -sos all -doe on Problems/SWW/SWW629_2.p
 # Forward ground joinability
 check_szs_status Satisfiable -t 5d -fgj on Problems/SWV/SWV021-1.p
 check_szs_status Unsatisfiable -t 5d -fgj on -bd all Problems/SWW/SWW436-1.p
+
+# Unused function definitions must be recorded in the order they are eliminated, so that a
+# model reconstruction replaying them backwards restores a definition's dependencies before
+# the definition itself (see the comment in fmb/chaindef.p). Exact output, because the thing
+# under test is the order the recorded definitions come back out in.
+check_exact_output fmb/chaindef.out --input_syntax tptp --statistics none -fde unused fmb/chaindef.p
+
+# FMB: model construction with preprocessing-eliminated symbols (see the comment in fmb/sortelim.p)
+check_szs_status Satisfiable -sa fmb --fmb_adjust_sorts function fmb/sortelim.p
+check_szs_status Satisfiable -sa fmb --fmb_adjust_sorts predicate fmb/sortelim.p
+check_szs_status Satisfiable -sa fmb --random_polarities on fmb/sortelim.p
+check_szs_status Satisfiable -sa fmb -updr off -bce on fmb/sortelim.p
+
+# FMB: the size of a CONTOUR model must not be retracted for a monotonic sort
+# (see the comment in fmb/monotonic-contour.p); both SAT solvers must agree,
+# it used to depend on how the unconstrained markers happened to be assigned.
+# NB: unlike above, check_szs_status cannot see this defect -- a model of the wrong
+# size still reports Satisfiable -- hence the exact output. The "FMB model self-check
+# passed" line in the .out file comes from the temporary FMB_CHECK_MODEL_AGAINST_INPUT
+# instrument (FiniteModelMultiSorted.hpp); regenerate it when that macro is retired
+check_exact_output fmb/monotonic-contour.out --input_syntax tptp --statistics none -sa fmb -sas cadical -fmbes contour fmb/monotonic-contour.p
+check_exact_output fmb/monotonic-contour.out --input_syntax tptp --statistics none -sa fmb -sas minisat -fmbes contour fmb/monotonic-contour.p
+
+# FMB: $o as an ordinary modelled sort (see the comment in fmb/bool.p). Exact output,
+# because the point is how the boolean domain and its two elements are printed -- and
+# because the printed model has to be re-readable, which the round-trip below checks
+check_szs_status Satisfiable -sa fmb fmb/bool.p
+check_exact_output fmb/bool.out --input_syntax tptp --statistics none -sa fmb fmb/bool.p
+check_exact_output fmb/bool.check.out --input_syntax tptp --mode model_check fmb/bool.check.p
+
+# FMB: a predicate blocked clause elimination removes altogether is described only by the
+# recorded flips, so restoring them must materialize a table for it (see fmb/bceflip.p).
+# Exact output again, for the reason given above and because the defect showed as a crash
+# *after* the SZS status line -- which neither check_szs_status nor the stderr grep in
+# run_vampire can see
+check_exact_output fmb/bceflip.out --input_syntax tptp --statistics none -sa fmb -bce on fmb/bceflip.p
+
+# FMB: $cond in what the model is checked against (see the comments in the two problems).
+# The self-check reads the un-preprocessed input, so it meets the $cond that FOOLElimination
+# has long since compiled away; model_check evaluates it against a loaded model.
+# Exact output for the first, because a self-check failure raises USER_ERROR only *after*
+# the SZS status line, so check_szs_status alone would not notice it
+check_exact_output fmb/cond.out --input_syntax tptp --statistics none -sa fmb fmb/cond.p
+check_exact_output fmb/cond.check.out --input_syntax tptp --mode model_check fmb/cond.check.p
+
 
 # Synthesis without and with uncomputables
 check_szs_status Unsatisfiable -qa synthesis synthesis/max2.smt2
