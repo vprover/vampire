@@ -62,7 +62,7 @@ private:
     using Base = Matcher</*removing*/true,false,higherOrder>;
 
     void init(CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_,
-	ClauseCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_);
+	    const ClauseCodeTree& tree_, Stack<CodeOp*>* firstsInBlocks_);
 
     USE_ALLOCATOR(RemovingLiteralMatcher);
   };
@@ -81,7 +81,7 @@ private:
     using Base::finished;
     using Base::execute;
 
-    void init(CodeTree* tree, CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_, bool seekOnlySuccess=false);
+    void init(const CodeTree& tree, CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_, bool seekOnlySuccess=false);
     bool next();
     bool doEagerMatching();
 

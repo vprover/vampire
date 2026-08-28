@@ -131,7 +131,7 @@ void BackwardSubsumptionDemodulation<higherOrder>::performWithQueryLit(Clause* s
 
 #if VDEBUG
   // make sure DuplicateLiteralRemovalISE has been run on this
-  DHSet<Literal*> lits;
+  DHSet<Literal*, FnvHash, PtrIdentityHash> lits;
   for (unsigned i = 0; i < sideCl->length(); ++i) {
     ALWAYS(lits.insert((*sideCl)[i]));
   }
@@ -481,7 +481,7 @@ bool BackwardSubsumptionDemodulation<higherOrder>::rewriteCandidate(Clause* side
           // There can be no unbound variables at this point;
           // otherwise we would have excluded the LHS already
           // in the ordering pre-check above
-          auto mclVarIt = sideCl->getVariableIterator();  // includes vars in rhs
+          auto mclVarIt = sideCl->iterVars();  // includes vars in rhs
           while (mclVarIt.hasNext()) {
             unsigned int var = mclVarIt.next();
             ASS(binder.isBound(var));

@@ -28,6 +28,7 @@
 #include "Lib/ScopedLet.hpp"
 #include "Lib/Timer.hpp"
 
+#include "Kernel/Clause.hpp"
 #include "Kernel/InferenceStore.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/FormulaUnit.hpp"
@@ -601,7 +602,7 @@ void UIHelper::outputSatisfiableResult(std::ostream& out)
  */
 void UIHelper::outputSymbolDeclarations(std::ostream& out)
 {
-  Signature& sig = *env.signature;
+  const Signature& sig = *env.signature;
 
   unsigned typeCons = sig.typeCons();
   for (unsigned i=0; i<typeCons; ++i) {
@@ -641,7 +642,8 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(std::ostream& out, bool funct
   }
 
   if (typeCon && (env.signature->isArrayCon(symNumber) ||
-                  env.signature->isTupleCon(symNumber))){
+                  env.signature->isTupleCon(symNumber) ||
+                  env.signature->isArrowCon(symNumber))){
     return;
   }
 
@@ -685,7 +687,9 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(std::ostream& out, bool funct
 
   //don't output type of app. It is an internal Vampire thing
   if(!(function && env.signature->isAppFun(symNumber))){
-    out << (env.getMainProblem()->isHigherOrder() ? "thf(" : "tff(")
+    //match the fragment used for the proof steps (see
+    //InferenceStore's getFofString), so one proof does not mix languages
+    out << (env.initiallyHigherOrder() ? "thf(" : "tff(")
         << (function ? "func" : (typeCon ?  "type" : "pred"))
         << "_def_" << symNumber << ", type, "
         << symName << ": ";

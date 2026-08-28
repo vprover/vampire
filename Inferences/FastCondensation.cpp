@@ -38,7 +38,7 @@ namespace {
 template<bool higherOrder>
 struct CondensationBinder
 {
-  void init(DHMap<unsigned, int>* varMap_)
+  void init(DHMap<unsigned, int, FnvHash, IdentityHash>* varMap_)
   {
     varMap=varMap_;
   }
@@ -67,8 +67,8 @@ struct CondensationBinder
   void specVar(unsigned var, TermList term)
   { ASSERTION_VIOLATION; }
 private:
-  DHMap<unsigned, int>* varMap;
-  DHMap<unsigned, TermList> bindings;
+  DHMap<unsigned, int, FnvHash, IdentityHash>* varMap;
+  DHMap<unsigned, TermList, FnvHash, IdentityHash> bindings;
 };
 
 }
@@ -85,7 +85,7 @@ Clause* FastCondensation<higherOrder>::simplify(Clause* cl)
 
   //if variable is present in only one literal, the map contains its index,
   //otherwise it contains -1
-  static DHMap<unsigned, int> varLits;
+  static DHMap<unsigned, int, FnvHash, IdentityHash> varLits;
   varLits.reset();
 
   for(unsigned i=0;i<clen;i++) {

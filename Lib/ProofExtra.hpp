@@ -43,7 +43,7 @@ inline std::ostream &operator<<(std::ostream &out, const InferenceExtra &extra) 
 
 // container for extras
 class ProofExtra {
-  DHMap<Kernel::Unit *, std::unique_ptr<InferenceExtra>> extras;
+  DHMap<Kernel::Unit *, std::unique_ptr<InferenceExtra>, UnitHash, UnitNumberHash> extras;
 
 public:
   // associate `extra` with `unit`, taking ownership of `extra`

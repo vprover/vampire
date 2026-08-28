@@ -28,6 +28,7 @@
 #include "Lib/DHSet.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/BinaryHeap.hpp"
+#include "Lib/Random.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Lib/IntUnionFind.hpp"
 
@@ -98,6 +99,12 @@ void BlockedClauseElimination::apply(Problem& prb)
 
   // cout << "Queue initialized" << endl;
 
+  // under randomized preprocessing, each discovered blocking is with this probability
+  // ignored: the candidate is dropped and never re-enqueued, so the clause can only
+  // still get blocked via one of its other literals (the loss is monotone; to be tuned)
+  constexpr double RPR_SKIP_PROB = 0.1;
+  bool rpr = env.options->randomizedPreprocessing();
+
   while (!queue.isEmpty()) {
     Candidate* cand = queue.pop();
     ClWrapper* clw = cand->clw;
@@ -137,6 +144,9 @@ void BlockedClauseElimination::apply(Problem& prb)
     }
 
     // resolves to tautology with all partners -- blocked!
+    if (rpr && Random::getDouble(0.0,1.0) < RPR_SKIP_PROB) {
+      goto next_candidate;
+    }
     if (env.options->showPreprocessing()) {
       cout << "[PP] Blocked clause[" << cand->litIdx << "]: " << cl->toString() << endl;
     }
@@ -218,7 +228,7 @@ private:
 
 class RenanigApartNormalizer : public TermTransformer {
 public:
-  RenanigApartNormalizer(const Lib::DHMap<TermList, TermList>& replacements, int varMax, Lib::DHMap<unsigned, unsigned>& varMap)
+  RenanigApartNormalizer(const Lib::DHMap<TermList, TermList>& replacements, int varMax, Lib::DHMap<unsigned, unsigned, FnvHash, IdentityHash>& varMap)
     : _repls(replacements), _varMax(varMax), _varMap(varMap) {}
 protected:
   TermList transformSubterm(TermList trm) override {
@@ -239,7 +249,7 @@ protected:
 private:
   const Lib::DHMap<TermList, TermList>& _repls;
   int _varMax;
-  Lib::DHMap<unsigned, unsigned>& _varMap;
+  Lib::DHMap<unsigned, unsigned, FnvHash, IdentityHash>& _varMap;
 };
 
 
@@ -326,7 +336,7 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
 
   VarMaxUpdatingNormalizer clNormalizer(replacements,varMax);
 
-  static DHSet<Literal*> norm_lits;
+  static DHSet<Literal*, FnvHash, PtrIdentityHash> norm_lits;
   norm_lits.reset();
 
   for (unsigned i = 0; i < cl->length(); i++) {
@@ -373,11 +383,11 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
     }
   }
 
-  static Lib::DHMap<unsigned, unsigned> varMap;
+  static Lib::DHMap<unsigned, unsigned, FnvHash, IdentityHash> varMap;
   varMap.reset();
   RenanigApartNormalizer pclNormalizer(replacements,varMax,varMap);
 
-  static DHSet<Literal*> pcl_lits;
+  static DHSet<Literal*, FnvHash, PtrIdentityHash> pcl_lits;
   pcl_lits.reset();
 
   for (unsigned i = 0; i < pcl->length(); i++) {
@@ -495,7 +505,7 @@ bool BlockedClauseElimination::resolvesToTautologyUn(Clause* cl, Literal* lit, C
     return true; // since they don't resolve
   }
 
-  static DHSet<Literal*> cl_lits;
+  static DHSet<Literal*, FnvHash, PtrIdentityHash> cl_lits;
   cl_lits.reset();
 
   Literal* opslit = 0;
@@ -521,7 +531,7 @@ bool BlockedClauseElimination::resolvesToTautologyUn(Clause* cl, Literal* lit, C
 
   ASS_NEQ(opslit,0);
 
-  static DHSet<Literal*> pcl_lits;
+  static DHSet<Literal*, FnvHash, PtrIdentityHash> pcl_lits;
   pcl_lits.reset();
 
   static RobSubstitution subst_aux;

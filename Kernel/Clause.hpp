@@ -53,7 +53,7 @@ private:
   void operator delete(void* ptr) { ASSERTION_VIOLATION; }
 
   template<class VarIt>
-  void collectVars2(DHSet<unsigned>& acc);
+  void collectVars2(DHSet<unsigned, FnvHash, IdentityHash>& acc);
 public:
   DECL_ELEMENT_TYPE(Literal*);
 
@@ -257,7 +257,11 @@ public:
   bool isPropositional();
   bool isHorn();
 
+  /** the clause's variables, each reported exactly once (which costs a set and a
+   * materialised list -- prefer iterVars below when repetitions do no harm) */
   VirtualIterator<unsigned> getVariableIterator() const;
+  /** the clause's variable occurrences, i.e. lazily and with repetitions */
+  VirtualIterator<unsigned> iterVars() const;
 
   bool contains(Literal* lit);
 #if VDEBUG
@@ -328,7 +332,7 @@ public:
   unsigned splitWeight() const;
   unsigned getNumeralWeight() const;
 
-  void collectVars(DHSet<unsigned>& acc);
+  void collectVars(DHSet<unsigned, FnvHash, IdentityHash>& acc);
 
 
   unsigned varCnt();

@@ -212,7 +212,8 @@ public:
   unsigned defaultHash() const { return DefaultHash::hash(content()); }
   unsigned defaultHash2() const { return content(); }
 
-  std::string toString(bool needsPar = false) const;
+  // TODO this default value is probably the reason we get too many parentheses everywhere
+  std::string toString(bool topLevel = false) const;
 
   friend std::ostream& operator<<(std::ostream& out, Kernel::TermList const& tl);
   /** make the term into an ordinary variable with a given number */
@@ -1036,7 +1037,7 @@ public:
   static AtomicSort* create(AtomicSort const* t,TermList* args);
   static AtomicSort* createNonShared(AtomicSort const* sort,TermList* args);
   static AtomicSort* createConstant(unsigned typeCon) { return create(typeCon,0,0); }
-  static AtomicSort* createConstant(const std::string& name); 
+  static AtomicSort* createConstant(const std::string& name);
 
   /** True if the sort is a higher-order arrow sort */
   bool isArrowSort() const;
@@ -1047,7 +1048,7 @@ public:
   /** true if sort is the sort of an tuple */
   bool isTupleSort() const;
 
-  const std::string& typeConName() const;  
+  const std::string& typeConName() const;
 
   // With a stack (s1,...sn) from bottom to top, we get s1 -> (... -> sn) with fromTop = true,
   // while sn -> (... -> s1) with fromTop = false.
@@ -1315,6 +1316,22 @@ struct SharedTermHash {
   static unsigned hash(Term* t) { return t->getId(); }
 };
 
+/**
+ * Hashes to make hashing over shared terms wrapped in a TermList (typically sorts)
+ * deterministic. The default hashes go through TermList::content(), i.e. the address of
+ * the term, so a container using them gets enumerated in an order which differs between
+ * runs. Both are needed: DHMap takes the bucket from Hash1 and the probing step from Hash2.
+ */
+struct SharedTermListHash {
+  static bool equals(TermList t1, TermList t2) { return t1==t2; }
+  static unsigned hash(TermList t)
+  { ASS(t.isTerm() && t.term()->shared()); return DefaultHash::hash(t.term()->getId()); }
+};
+struct SharedTermListHash2 {
+  static unsigned hash(TermList t)
+  { ASS(t.isTerm() && t.term()->shared()); return DefaultHash2::hash(t.term()->getId()); }
+};
+
 /** helper lambda that turns a number into a variable */
 static const auto unsignedToVarFn = [](unsigned var)
   { return TermList::var(var); };
@@ -1323,7 +1340,7 @@ static const auto unsignedToVarFn = [](unsigned var)
 
 template<>
 struct std::hash<Kernel::TermList> {
-  size_t operator()(Kernel::TermList const& t) const 
+  size_t operator()(Kernel::TermList const& t) const
   { return t.defaultHash(); }
 };
 

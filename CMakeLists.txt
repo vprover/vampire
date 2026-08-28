@@ -6,7 +6,7 @@ cmake_minimum_required (VERSION 3.14.0)
 project(Vampire)
 
 # version
-set(VAMPIRE_VERSION_NUMBER 5.0.1)
+set(VAMPIRE_VERSION_NUMBER 5.1.0)
 
 include(CheckSymbolExists)
 include(CTest)

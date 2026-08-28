@@ -126,7 +126,7 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output, Substitution* su
   _freeVars.reset();
 
   { // destroy the cached substitution entries
-    DHMap<BindingList*,Substitution*>::DelIterator dIt(_substitutionsByBindings);
+    DHMap<BindingList*,Substitution*, FnvHash, PtrIdentityHash>::DelIterator dIt(_substitutionsByBindings);
     while (dIt.hasNext()) {
       delete dIt.next();
       dIt.del();
@@ -547,7 +547,7 @@ void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
   // Cache binding list lookups: many occurrences share the same BindingList*,
   // so we scan each distinct list at most once for `var`.
   // A cached value of nullptr means "var not found in this list".
-  DHMap<BindingList*, Term*> lookupCache;
+  DHMap<BindingList*, Term*, FnvHash, PtrIdentityHash> lookupCache;
 
   while (occurrences.isNonEmpty()) {
     Occurrence occ = pop(occurrences);
@@ -749,13 +749,13 @@ void NewCNF::processLet(Term* term, Occurrences &occurrences)
 TermList NewCNF::nameLetBinding(Term* bindingLhs, TermList bindingRhs, TermList body, VSList* bindingBoundVars)
 {
   // Build a set of bound variable indices for fast membership checks
-  DHSet<unsigned> boundVarSet;
+  DHSet<unsigned, FnvHash, IdentityHash> boundVarSet;
   VSList::Iterator boundIt(bindingBoundVars);
   while (boundIt.hasNext()) {
     boundVarSet.insert(boundIt.next().first);
   }
 
-  DHSet<unsigned> bindingFreeVars;
+  DHSet<unsigned, FnvHash, IdentityHash> bindingFreeVars;
   for (const auto& var : iterTraits(FormulaVarIterator(bindingRhs))) {
     if (!boundVarSet.contains(var)) {
       bindingFreeVars.insert(var);
@@ -1108,7 +1108,7 @@ void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
 
   // empty the skolem caches
   _skolemsByBindings.reset();
-  DHMap<VarSet*,BindingList*>::DelIterator dIt(_skolemsByFreeVars);
+  DHMap<VarSet*,BindingList*, FnvHash, PtrIdentityHash>::DelIterator dIt(_skolemsByFreeVars);
   while (dIt.hasNext()) {
     VarSet* vars;
     BindingList* bindings;
@@ -1118,7 +1118,7 @@ void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
   }
 
   _foolSkolemsByBindings.reset();
-  DHMap<VarSet*,BindingList*>::DelIterator fdit(_foolSkolemsByFreeVars);
+  DHMap<VarSet*,BindingList*, FnvHash, PtrIdentityHash>::DelIterator fdit(_foolSkolemsByFreeVars);
   while (fdit.hasNext()) {
     VarSet* vars;
     BindingList* bindings;
@@ -1341,7 +1341,7 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
   // the current variable pass through unchanged, keeping the same pointer,
   // so subsequent iterations get O(1) membership checks instead of
   // repeated formula traversals.
-  DHMap<List<GenLit>*, VarSet*> clauseFreeVarCache;
+  DHMap<List<GenLit>*, VarSet*, FnvHash, PtrIdentityHash> clauseFreeVarCache;
 
   unsigned iteCounter = 0;
   while (variables.isNonEmpty()) {

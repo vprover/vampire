@@ -108,7 +108,7 @@ void DefinitionIntroduction<higherOrder>::introduceDefinitionFor(Term *t) {
     return;
 
   // compute domain and range sorts
-  DHMap<unsigned, TermList> domain_sorts;
+  DHMap<unsigned, TermList, FnvHash, IdentityHash> domain_sorts;
   TermList range_sort = SortHelper::getResultSort(t);
   SortHelper::collectVariableSorts(t, domain_sorts);
 
@@ -156,7 +156,8 @@ void DefinitionIntroduction<higherOrder>::introduceDefinitionFor(Term *t) {
       type_arity
     );
   }
-  env.signature->getFunction(functor)->setType(type);
+  auto sym = env.signature->getFunction(functor);
+  sym->setType(type);
   Term *def;
   if constexpr (higherOrder) {
     TermList head(Term::create(functor, type_arity, variables.data()));
@@ -179,7 +180,7 @@ void DefinitionIntroduction<higherOrder>::introduceDefinitionFor(Term *t) {
   }
 
   // record definition
-  InferenceStore::instance()->recordIntroducedSymbol(intro, SymbolType::FUNC, functor);
+  InferenceStore::instance()->recordIntroducedSymbol(intro, sym);
 
   _definitions.push_back(definition);
 }
