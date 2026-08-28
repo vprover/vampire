@@ -2363,6 +2363,23 @@ void TPTP::termInfix()
   switch (tok.tag) {
     case T_EQUAL:
     case T_NEQ:
+      // The connective cases below continue parsing after the formula they build, by
+      // pushing a pending -1 connective and an END_FORMULA under it. Do the same here,
+      // or a connective following the equality has nothing to resume it and is reported
+      // as an unexpected token: "r(X = a & p(X))" used to fail at the '&', while the
+      // same thing with the connective first, "r(p(X) & X = a)", parsed. This is the
+      // term-level counterpart of the endFormula() fix for "p & (q) = r".
+      //
+      // Guarded exactly like the connectives: at the top level of an equality's
+      // right-hand side a connective *ends* the term, so that "a = b & c" reads as
+      // "(a = b) & c", and an equality there must keep stopping too.
+      if (_insideEqualityArgument == 0) {
+        _connectives.push(-1);
+        _states.push(END_FORMULA_INSIDE_TERM);
+        _states.push(END_FORMULA);
+        _states.push(FORMULA_INFIX);
+        return;
+      }
       _states.push(END_FORMULA_INSIDE_TERM);
       _states.push(FORMULA_INFIX);
       return;
