@@ -12,7 +12,6 @@
 #include "VIRAS.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/NumTraits.hpp"
-#include "Lib/Reflection.hpp"
 #include "Lib/Option.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -34,7 +33,7 @@ class IntoVampireIter {
 public:
   IntoVampireIter(VirasIter iter) : _iter(std::move(iter)), _next() {}
 
-  DECL_ELEMENT_TYPE(viras::iter::value_type<VirasIter>);
+  using ElementType = viras::iter::value_type<VirasIter>;
   void loadNext() {
     if (_next.isNone()) {
       _next = some(_iter.next());

@@ -56,7 +56,7 @@ namespace Shell {
       TermAlgebraConstructor& _self;
       unsigned _idx;
     public:
-      DECL_ELEMENT_TYPE(TermList);
+      using ElementType = TermList;
 
       IterArgSorts(TermAlgebraConstructor& ta) : _self(ta), _idx(0) {}
 
@@ -112,7 +112,7 @@ namespace Shell {
       TermAlgebra& _ta;
       unsigned _idx;
     public:
-      DECL_ELEMENT_TYPE(TermAlgebraConstructor*);
+      using ElementType = TermAlgebraConstructor*;
 
       IterCons(TermAlgebra& ta) : _ta(ta), _idx(0) {}
 

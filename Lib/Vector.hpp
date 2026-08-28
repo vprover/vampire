@@ -125,7 +125,7 @@ public:
   class DestructiveIterator
   {
   public:
-    DECL_ELEMENT_TYPE(C);
+    using ElementType = C;
 
     DestructiveIterator(Vector& v)
     : cur(v._array), afterLast(v._array+v.length()), vec(&v)

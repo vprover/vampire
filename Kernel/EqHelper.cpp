@@ -199,7 +199,7 @@ TermIterator EqHelper::getBooleanSubtermIterator(Literal* lit, const Ordering& o
  * superposition.
  */
 template<class SubtermIterator>
-VirtualIterator<ELEMENT_TYPE(SubtermIterator)> EqHelper::getRewritableSubtermIterator(Literal* lit, const Ordering& ord)
+VirtualIterator<typename SubtermIterator::ElementType> EqHelper::getRewritableSubtermIterator(Literal* lit, const Ordering& ord)
 {
   if (lit->isEquality()) {
     TermList sel;
@@ -221,7 +221,7 @@ VirtualIterator<ELEMENT_TYPE(SubtermIterator)> EqHelper::getRewritableSubtermIte
 #endif
     }
     if (!sel.isTerm()) {
-      return VirtualIterator<ELEMENT_TYPE(SubtermIterator)>::getEmpty();
+      return VirtualIterator<typename SubtermIterator::ElementType>::getEmpty();
     }
     return getUniquePersistentIterator(vi(new SubtermIterator(sel.term(), true)));
   }
