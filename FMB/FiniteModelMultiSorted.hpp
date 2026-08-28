@@ -141,6 +141,7 @@ private:
   unsigned boolValue(bool isTrue, Timestamp asOf);
 
   unsigned evaluateTerm(TermList, const DHMap<unsigned,unsigned>& subst, Timestamp asOf);
+  bool evaluateBooleanTerm(TermList, const DHMap<unsigned,unsigned>& subst, Timestamp asOf);
   bool evaluateLiteral(Literal*, const DHMap<unsigned,unsigned>& subst, Timestamp asOf);
   bool evaluateFormula(Formula*, DHMap<unsigned,unsigned>& subst, Timestamp asOf);
 

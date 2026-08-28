@@ -739,15 +739,37 @@ unsigned FiniteModelMultiSorted::evaluateTerm(TermList tl, const DHMap<unsigned,
   Term* term = tl.term();
 
   if (term->isSpecial()) {
-    // A formula in term position; to a model that is just a boolean value, so evaluate it and
-    // return the domain element the corresponding FOOL constant sits on. Both $true / $false at
-    // term level and, say, p(a) for a p declared with an $o result sort (which the parser turns
-    // into a predicate) arrive here. The remaining FOOL constructs we cannot evaluate.
-    if (term->specialFunctor() != SpecialFunctor::FORMULA) {
-      USER_ERROR("Cannot evaluate " + tl.toString() + ", not supported");
+    switch (term->specialFunctor()) {
+      // A formula in term position; to a model that is just a boolean value, so evaluate it and
+      // return the domain element the corresponding FOOL constant sits on. Both $true / $false at
+      // term level and, say, p(a) for a p declared with an $o result sort (which the parser turns
+      // into a predicate) arrive here.
+      case SpecialFunctor::FORMULA: {
+        DHMap<unsigned,unsigned> inner(subst); // evaluateFormula wants to bind quantified variables
+        return boolValue(evaluateFormula(term->getSpecialData()->getFormula(),inner,asOf),asOf);
+      }
+
+      case SpecialFunctor::ITE: {
+        DHMap<unsigned,unsigned> inner(subst);
+        bool cond = evaluateFormula(term->getSpecialData()->getITECondition(),inner,asOf);
+        return evaluateTerm(*term->nthArgument(cond ? 0 : 1),subst,asOf);
+      }
+
+      // first match wins, and only the branch that wins is evaluated
+      case SpecialFunctor::COND: {
+        unsigned arity = term->arity();
+        for (unsigned i = 0; i+1 < arity; i += 2) {
+          if (evaluateBooleanTerm(*term->nthArgument(i),subst,asOf)) {
+            return evaluateTerm(*term->nthArgument(i+1),subst,asOf);
+          }
+        }
+        return evaluateTerm(*term->nthArgument(arity-1),subst,asOf); // the else
+      }
+
+      // the remaining FOOL constructs we cannot evaluate
+      default:
+        USER_ERROR("Cannot evaluate " + tl.toString() + ", not supported");
     }
-    DHMap<unsigned,unsigned> inner(subst); // evaluateFormula wants to bind quantified variables
-    return boolValue(evaluateFormula(term->getSpecialData()->getFormula(),inner,asOf),asOf);
   }
 
   unsigned f = term->functor();
@@ -762,6 +784,45 @@ unsigned FiniteModelMultiSorted::evaluateTerm(TermList tl, const DHMap<unsigned,
 
   // throws if the model does not say what f is on these arguments
   return evalFun(f,args,asOf);
+}
+
+/**
+ * Evaluate an $o-sorted term as a truth value: a $cond condition, or a boolean term
+ * standing where a formula is expected.
+ *
+ * The fallback asks boolValue for the domain element $true sits on, which a model
+ * without a boolean domain does not have -- and most models have none, since only a
+ * FOOL problem gives $o a domain. So peel off the special terms whose truth value we
+ * can decide without one, which is every shape the parser actually builds here.
+ */
+bool FiniteModelMultiSorted::evaluateBooleanTerm(TermList tl, const DHMap<unsigned,unsigned>& subst, Timestamp asOf)
+{
+  if (tl.isTerm() && tl.term()->isSpecial()) {
+    Term* t = tl.term();
+    switch (t->specialFunctor()) {
+      case SpecialFunctor::FORMULA: {
+        DHMap<unsigned,unsigned> inner(subst);
+        return evaluateFormula(t->getSpecialData()->getFormula(),inner,asOf);
+      }
+      case SpecialFunctor::ITE: {
+        DHMap<unsigned,unsigned> inner(subst);
+        bool cond = evaluateFormula(t->getSpecialData()->getITECondition(),inner,asOf);
+        return evaluateBooleanTerm(*t->nthArgument(cond ? 0 : 1),subst,asOf);
+      }
+      case SpecialFunctor::COND: {
+        unsigned arity = t->arity();
+        for (unsigned i = 0; i+1 < arity; i += 2) {
+          if (evaluateBooleanTerm(*t->nthArgument(i),subst,asOf)) {
+            return evaluateBooleanTerm(*t->nthArgument(i+1),subst,asOf);
+          }
+        }
+        return evaluateBooleanTerm(*t->nthArgument(arity-1),subst,asOf); // the else
+      }
+      default:
+        break;
+    }
+  }
+  return evaluateTerm(tl,subst,asOf) == boolValue(true,asOf);
 }
 
 bool FiniteModelMultiSorted::evaluateLiteral(Literal* lit, const DHMap<unsigned,unsigned>& subst, Timestamp asOf)
@@ -1257,7 +1318,7 @@ bool FiniteModelMultiSorted::evaluateFormula(Formula* formula, DHMap<unsigned,un
 
     // the dual of the FORMULA special term in evaluateTerm: a boolean term used as a formula
     case BOOL_TERM:
-      return evaluateTerm(formula->getBooleanTerm(),subst,asOf) == boolValue(true,asOf);
+      return evaluateBooleanTerm(formula->getBooleanTerm(),subst,asOf);
 
     case NOT:
       return !evaluateFormula(formula->uarg(),subst,asOf);

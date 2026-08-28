@@ -206,6 +206,14 @@ check_exact_output fmb/bool.check.out --input_syntax tptp --mode model_check fmb
 # run_vampire can see
 check_exact_output fmb/bceflip.out --input_syntax tptp --statistics none -sa fmb -bce on fmb/bceflip.p
 
+# FMB: $cond in what the model is checked against (see the comments in the two problems).
+# The self-check reads the un-preprocessed input, so it meets the $cond that FOOLElimination
+# has long since compiled away; model_check evaluates it against a loaded model.
+# Exact output for the first, because a self-check failure raises USER_ERROR only *after*
+# the SZS status line, so check_szs_status alone would not notice it
+check_exact_output fmb/cond.out --input_syntax tptp --statistics none -sa fmb fmb/cond.p
+check_exact_output fmb/cond.check.out --input_syntax tptp --mode model_check fmb/cond.check.p
+
 
 # Synthesis without and with uncomputables
 check_szs_status Unsatisfiable -qa synthesis synthesis/max2.smt2

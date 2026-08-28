@@ -2079,10 +2079,24 @@ static bool evaluableTerm(TermList tl)
   if (tl.isVar()) return true;
   Term* t = tl.term();
   if (t->isSpecial()) {
-    // the evaluator does understand a formula in term position -- that is where $true and
-    // $false at term level, and a p(a) for a p declared with an $o result sort, end up
-    return t->specialFunctor() == SpecialFunctor::FORMULA &&
-           evaluableFormula(t->getSpecialData()->getFormula());
+    // keep this in step with the special-term switch in evaluateTerm: anything admitted
+    // here must be evaluable there, and anything evaluable there is worth admitting here,
+    // or the self-check silently skips the unit instead of checking it
+    switch (t->specialFunctor()) {
+      // a formula in term position -- that is where $true and $false at term level, and a
+      // p(a) for a p declared with an $o result sort, end up
+      case SpecialFunctor::FORMULA:
+        return evaluableFormula(t->getSpecialData()->getFormula());
+      case SpecialFunctor::ITE:
+        // the condition is off to the side; the branches are checked with the arguments below
+        if (!evaluableFormula(t->getSpecialData()->getITECondition())) return false;
+        break;
+      case SpecialFunctor::COND:
+        // conditions and branches alike are ordinary arguments
+        break;
+      default: // $let and friends
+        return false;
+    }
   }
   for (unsigned i = 0; i < t->arity(); i++) {
     if (!evaluableTerm(*t->nthArgument(i))) return false;
