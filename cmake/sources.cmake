@@ -113,6 +113,7 @@ set(UNIT_TESTS
     UnitTests/tSkipList.cpp
     UnitTests/tStack.cpp
     UnitTests/tSyntaxSugar.cpp
+    UnitTests/tTermPrinting.cpp
     UnitTests/tTermAlgebra.cpp
     UnitTests/tTermIndex.cpp
     UnitTests/tTimeTrace.cpp

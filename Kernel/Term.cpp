@@ -573,8 +573,77 @@ std::string Term::headToString() const
         std::string formula = sd->getFormula()->toString();
         return env.options->showFOOL() ? "$term{" + formula + "}" : formula;
       }
-      case SpecialFunctor::LET: {
+      case SpecialFunctor::LET:
         ASS_EQ(arity(), 1);
+        return "$let"; // the type and the binding come from argsPrefixToString
+      case SpecialFunctor::ITE:
+        ASS_EQ(arity(),2);
+        return "$ite"; // the condition comes from argsPrefixToString
+      case SpecialFunctor::LAMBDA: {
+        VSList* vars = sd->getLambdaVars();
+        TermList lambdaExp = sd->getLambdaExp();
+
+        std::string varList;
+
+        VSList::Iterator vs(vars);
+        while (vs.hasNext()) {
+          auto [v, sort] = vs.next();
+          varList += variableToString(v) + " : " + sort.toString();
+          if (vs.hasNext())
+            varList += ", ";
+        }
+        return "(^[" + varList + "] : (" + lambdaExp.toString() + "))";
+      }
+      case SpecialFunctor::MATCH:
+        return "$match"; // everything it prints is an ordinary argument
+      case SpecialFunctor::COND:
+        return "$cond";  // likewise
+      default:
+        ASSERTION_VIOLATION;
+    }
+  } else {
+    unsigned proj;
+    if (!isSort() && Theory::findTupleProjection(functor(), isLiteral(), proj)) {
+      return "$proj"; // the index comes from argsPrefixToString
+    }
+    std::string name = "";
+    if(isLiteral()) {
+      name = static_cast<const Literal *>(this)->predicateName();
+    } else if (isSort()) {
+      const AtomicSort* asSort = static_cast<const AtomicSort *>(this);
+      if(env.options->showFOOL() && asSort->isBoolSort()){
+        name = "$bool";
+      } else {
+        name = asSort->typeConName();
+      }
+    } else {
+      name = functionName();
+    }
+    return name;
+  }
+}
+
+/**
+ * The material a head prints inside its parentheses *before* args(): $ite's condition,
+ * $let's type and binding, $proj's index. Each piece already carries its trailing
+ * separator, so a caller emits this straight after '(' and then the arguments as usual.
+ *
+ * It is empty -- and the caller therefore unchanged -- for every ordinary term, which is
+ * what keeps this out of the way of the vast majority of printing, HOL applications
+ * included. Heads used to open the parenthesis and print this material themselves, which
+ * both callers then followed with a '(' of their own, so "$ite(p(a), a, b)" came out as
+ * "$ite(p(a), (a,b)": one parenthesis too many and one too few.
+ */
+std::string Term::argsPrefixToString() const
+{
+  if (isSpecial()) {
+    const Term::SpecialTermData* sd = getSpecialData();
+
+    switch (specialFunctor()) {
+      case SpecialFunctor::ITE:
+        return sd->getITECondition()->toString() + ",";
+
+      case SpecialFunctor::LET: {
         Formula* binding = sd->getLetBinding();
         if (binding->connective() == Connective::FORALL) {
           binding = binding->qarg();
@@ -611,61 +680,19 @@ std::string Term::headToString() const
           }
           type = sym->name() + ": " + (isPredicate ? sym->predType() : sym->fnType())->toString();
         }
-        return "$let(" + type + ", " + binding->toString() + ", ";
+        return type + "," + binding->toString() + ",";
       }
-      case SpecialFunctor::ITE: {
-        ASS_EQ(arity(),2);
-        return "$ite(" + sd->getITECondition()->toString() + ", ";
-      }
-      case SpecialFunctor::LAMBDA: {
-        VSList* vars = sd->getLambdaVars();
-        TermList lambdaExp = sd->getLambdaExp();
 
-        std::string varList;
-
-        VSList::Iterator vs(vars);
-        while (vs.hasNext()) {
-          auto [v, sort] = vs.next();
-          varList += variableToString(v) + " : " + sort.toString();
-          if (vs.hasNext())
-            varList += ", ";
-        }
-        return "(^[" + varList + "] : (" + lambdaExp.toString() + "))";
-      }
-      case SpecialFunctor::MATCH: {
-        // we simply let the arguments be written out
-        return "$match(";
-      }
-      case SpecialFunctor::COND: {
-        // unlike the heads above, this one does not open the parenthesis itself:
-        // all of $cond's arguments sit in args(), so the ordinary application
-        // path prints it correctly, and it stays correct if the heads that do
-        // open it are ever cleaned up
-        return "$cond";
-      }
       default:
-        ASSERTION_VIOLATION;
+        return "";
     }
-  } else {
-    unsigned proj;
-    if (!isSort() && Theory::findTupleProjection(functor(), isLiteral(), proj)) {
-      return "$proj(" + Int::toString(proj) + ", ";
-    }
-    std::string name = "";
-    if(isLiteral()) {
-      name = static_cast<const Literal *>(this)->predicateName();
-    } else if (isSort()) {
-      const AtomicSort* asSort = static_cast<const AtomicSort *>(this);
-      if(env.options->showFOOL() && asSort->isBoolSort()){
-        name = "$bool";
-      } else {
-        name = asSort->typeConName();
-      }
-    } else {
-      name = functionName();
-    }
-    return name;
   }
+
+  unsigned proj;
+  if (!isSort() && Theory::findTupleProjection(functor(), isLiteral(), proj)) {
+    return Int::toString(proj) + ",";
+  }
+  return "";
 }
 
 /**
@@ -713,6 +740,7 @@ std::string TermList::asArgsToString() const
 
     if (t->arity()) {
       res += '(';
+      res += t->argsPrefixToString();
 
       stack.push(t->args());
     }
@@ -833,9 +861,11 @@ std::string Term::toString(bool topLevel) const
 
   std::stringstream out;
   out << headToString();
-  
+
   if (_arity) {
-    out << "(" << Output::interleaved(',', anyArgIter(this)) << ")";
+    out << "(" << argsPrefixToString() << Output::interleaved(',', anyArgIter(this)) << ")";
+  } else {
+    ASS(argsPrefixToString().empty()); // nowhere to put it
   }
   return out.str();
 } // Term::toString

@@ -945,6 +945,7 @@ public:
 
 protected:
   std::string headToString() const;
+  std::string argsPrefixToString() const;
 
   unsigned computeDistinctVars() const;
 
