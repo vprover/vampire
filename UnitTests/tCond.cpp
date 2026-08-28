@@ -184,15 +184,30 @@ TEST_FUN(cond_parses_a_compound_condition)
 
 TEST_FUN(cond_parses_conditions_of_argument_equalities)
 {
-  // the shape FMB model printing will emit for a conditional-flip layer. The
-  // parentheses are needed -- a bare "X = a & Y = b" ends at the & -- but that is
-  // how any term argument behaves, r(X = a & p(X)) included, and not special to $cond
+  // the shape FMB model printing will emit for a conditional-flip layer, and no
+  // parentheses needed around the conditions any more: the parser no longer ends a
+  // term at a connective that follows an equality, nor carries the equality-argument
+  // guard into a nested argument list (checks/parse/term-eq-connective.p covers both
+  // in their own right). The parenthesized spelling must read the same, so both are here
   // (kept ground: printing a sorted quantifier needs env.initiallyHasNonDefaultSorts(),
   // which only real input sets -- checks/parse/cond.p covers the quantified version)
-  UnitList* us = parseTPTP(
+  UnitList* bare = parseTPTP(
+    "tff(g_type,type,g: ( alpha * alpha ) > alpha).\n"
+    "tff(t,axiom, g(d,d) = $cond(d = a & d = b, c, d = a, b, a)).\n");
+  ASS_EQ(lastFormula(bare), "g(d,d) = $cond(d = a & d = b,c,d = a,b,a)");
+
+  UnitList* parens = parseTPTP(
     "tff(g_type,type,g: ( alpha * alpha ) > alpha).\n"
     "tff(t,axiom, g(d,d) = $cond((d = a & d = b), c, (d = a), b, a)).\n");
-  ASS_EQ(lastFormula(us), "g(d,d) = $cond(d = a & d = b,c,d = a,b,a)");
+  ASS_EQ(lastFormula(parens), "g(d,d) = $cond(d = a & d = b,c,d = a,b,a)");
+}
+
+TEST_FUN(cond_keeps_a_conjunct_before_an_equality)
+{
+  // "A & B = C" as a condition used to lose its "A &" silently -- a formula-level bug
+  // that the guard suspension exposed inside $cond, fixed on the parser side
+  UnitList* us = parseTPTP("tff(t,axiom, $cond(p(d) & q(d) = $true, p(d), $true)).\n");
+  ASS_EQ(lastFormula(us), "$cond(p(d) & (q(d) = $true),p(d),$true)");
 }
 
 /** did parsing @b body fail with a user error? */

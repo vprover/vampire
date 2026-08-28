@@ -30,11 +30,16 @@ tff(h_def,axiom,
 
 % The shape FMB model printing will emit for a conditional-flip layer: conditions
 % that are conjunctions of argument equalities, sitting inside an equality argument.
-% They need the parentheses -- a bare "X = a & Y = b" ends at the & -- but that is
-% how any term argument behaves, "r(X = a & p(X))" included, and not special to $cond.
+% Written without parentheses, which only became possible once the parser stopped
+% ending a term at a connective that follows an equality, and stopped carrying the
+% equality-argument guard into a nested argument list (see parse/term-eq-connective.p).
 tff(g_def,axiom,
     ! [X: alpha,Y: alpha] :
-      g(X,Y) = $cond((X = a & Y = b), c, (X = a), b, a) ).
+      g(X,Y) = $cond(X = a & Y = b, c, X = a, b, a) ).
+
+% a condition of the form "A & B = C" keeps its A: it used to be read as just "B = C"
+tff(k_def,axiom,
+    $cond(p(d) & q(d) = $true, p(d), $true) ).
 
 tff(goal,conjecture,
     f(d) = a & g(a,b) = c & g(a,a) = b ).
