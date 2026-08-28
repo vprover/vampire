@@ -247,6 +247,9 @@ void TPTP::parseImpl(State initialState)
     case END_ITE:
       endIte();
       break;
+    case END_COND:
+      endCond();
+      break;
     case LET_TYPE:
       letType();
       break;
@@ -420,6 +423,8 @@ std::string TPTP::toString(Tag tag)
     return "$ite";
   case T_LET:
     return "$let";
+  case T_COND:
+    return "$cond";
   case T_NAME:
   case T_REAL:
   case T_RAT:
@@ -960,6 +965,9 @@ void TPTP::readReserved(Token& tok)
     tok.tag = T_ITE;
     // $ite_t and $ite_f are left for compatibility, $ite is a generalisation of them
     tok.content = "$ite";
+  }
+  else if (tok.content == "$cond") {
+    tok.tag = T_COND;
   }
   else if (tok.content == "$let_tt" || tok.content == "$let_tf" || tok.content == "$let_ft" || tok.content == "$let_ff" || tok.content == "$let") {
     tok.tag = T_LET;
@@ -1955,6 +1963,46 @@ void TPTP::endIte()
 } // endIte
 
 /**
+ * Process the end of a $cond expression.
+ *
+ * The arguments were read as a flat list, so this is where the shape
+ * $cond(c1,v1,...,cn,vn,e) is imposed on them: an odd number, at least three,
+ * with the conditions at the even indices.
+ */
+void TPTP::endCond()
+{
+  int argCnt = _ints.pop();
+  _insideEqualityArgument = _ints.pop(); // suspended in funApp(), see there
+
+  if (argCnt < 3 || argCnt % 2 == 0) {
+    USER_ERROR("a $cond expression takes an odd number of at least three arguments "
+               "-- one or more (condition, value) pairs followed by the else branch -- but got " +
+               Int::toString(argCnt));
+  }
+
+  unsigned arity = (unsigned)argCnt;
+  DArray<TermList> args(arity);
+  for (unsigned i = arity; i > 0; i--) {
+    args[i-1] = _termLists.pop();
+  }
+
+  TermList sort = sortOf(args[1]); // the first value fixes the sort of the whole thing
+
+  for (unsigned i = 0; i < arity; i++) {
+    bool isCondition = (i % 2 == 0) && (i + 1 < arity); // the last argument is the else, not a condition
+    TermList expected = isCondition ? AtomicSort::boolSort() : sort;
+    TermList actual = sortOf(args[i]);
+    if (actual != expected) {
+      USER_ERROR((isCondition ? "the condition " : "the branch ") + args[i].toString() +
+                 " of a $cond expression has the sort " + actual.toString() +
+                 ", whereas " + expected.toString() + " was expected");
+    }
+  }
+
+  _termLists.push(TermList(Term::createCond(sort,arity,args.begin())));
+} // endCond
+
+/**
  *
  */
 void TPTP::endTheoryFunction() {
@@ -2285,6 +2333,24 @@ void TPTP::funApp()
       _states.push(TERM);
       addTagState(T_COMMA);
       _states.push(FORMULA);
+      return;
+
+    case T_COND:
+      // $cond's arity is not known until the closing parenthesis, so read a flat
+      // argument list with the ordinary machinery and sort it out in endCond().
+      // Conditions need no sub-grammar of their own: TERM_INFIX routes &, |, =>,
+      // ~, quantifiers and equalities through FORMULA_INSIDE_TERM, which yields
+      // exactly the $o-sorted term $cond wants.
+      consumeToken(T_LPAR);
+      // ... but only once the equality-argument guard is out of the way. It makes a
+      // connective *end* the term, so that "a = b & c" reads as "(a = b) & c"; inside
+      // $cond's parentheses there is no such ambiguity -- the argument ends at a comma
+      // or the closing parenthesis -- and a condition really does want its connectives.
+      // endCond() restores it.
+      _ints.push(_insideEqualityArgument);
+      _insideEqualityArgument = 0;
+      _states.push(ARGS);
+      _ints.push(1); // at least one argument
       return;
 
     case T_LET: {
@@ -2897,6 +2963,7 @@ void TPTP::term()
     case T_THEORY_FUNCTION:
     case T_VAR:
     case T_ITE:
+    case T_COND:
     case T_LET:
     case T_LBRA:
       _states.push(TERM_INFIX);
@@ -2981,6 +3048,12 @@ void TPTP::endTerm()
     return;
   }
 
+  if (name == toString(T_COND)) {
+    // the argument count stays on _ints for endCond()
+    _states.push(END_COND);
+    return;
+  }
+
   if (name == toString(T_LET)) {
     _states.push(END_LET);
     return;
@@ -3048,6 +3121,12 @@ void TPTP::formulaInfix()
   if (name == toString(T_ITE)) {
     _states.push(END_TERM_AS_FORMULA);
     _states.push(END_ITE);
+    return;
+  }
+
+  if (name == toString(T_COND)) {
+    _states.push(END_TERM_AS_FORMULA);
+    _states.push(END_COND);
     return;
   }
 
@@ -4200,6 +4279,7 @@ void TPTP::simpleFormula()
   case T_NAME:
   case T_VAR:
   case T_ITE:
+  case T_COND:
   case T_THEORY_FUNCTION:
   case T_LET:
   case T_LBRA:
@@ -5083,6 +5163,8 @@ const char* TPTP::toString(State s)
     return "UNBIND_VARIABLES";
   case END_ITE:
     return "END_ITE";
+  case END_COND:
+    return "END_COND";
   case END_TUPLE:
     return "END_TUPLE";
   default:

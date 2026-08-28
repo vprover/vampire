@@ -11,12 +11,17 @@
  * Tests for $cond, the flat chained if/elif/.../else term.
  */
 
+#include <sstream>
+
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 
 #include "Kernel/Formula.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/Unit.hpp"
+#include "Lib/Exception.hpp"
+#include "Parse/TPTP.hpp"
 
 using namespace Kernel;
 
@@ -122,4 +127,102 @@ TEST_FUN(cond_to_ite_nests_leftmost_outermost)
   ASS_EQ(inner.term()->getSpecialData()->getITECondition()->toString(), "q(X0)");
   ASS_EQ(*inner.term()->nthArgument(0), b.sugaredExpr());
   ASS_EQ(*inner.term()->nthArgument(1), c.sugaredExpr());
+}
+
+// ----------------------------------------------------------------------------
+// the TPTP frontend
+
+/** the type declarations the $cond snippets below are read against */
+static const char* PREAMBLE =
+  "tff(alpha_type,type,alpha: $tType).\n"
+  "tff(a_type,type,a: alpha).\n"
+  "tff(b_type,type,b: alpha).\n"
+  "tff(c_type,type,c: alpha).\n"
+  "tff(d_type,type,d: alpha).\n"
+  "tff(p_type,type,p: alpha > $o).\n"
+  "tff(q_type,type,q: alpha > $o).\n";
+
+static UnitList* parseTPTP(const std::string& body)
+{
+  std::istringstream in(std::string(PREAMBLE) + body);
+  Parse::TPTP parser(in, "tCond");
+  parser.parse();
+  return parser.units();
+}
+
+/** the last unit parsed, printed */
+static std::string lastFormula(UnitList* us)
+{
+  Unit* last = nullptr;
+  UnitList::Iterator it(us);
+  while (it.hasNext()) { last = it.next(); }
+  ASS(last);
+  return last->getFormula()->toString();
+}
+
+TEST_FUN(cond_parses_and_prints_back)
+{
+  // what the printer emits must be what the parser accepts -- that round trip is
+  // the whole point of having a flat form, since --mode model_check reads it back
+  UnitList* us = parseTPTP("tff(t,axiom, d = $cond(p(d), a, q(d), b, c)).\n");
+  ASS_EQ(lastFormula(us), "d = $cond(p(d),a,q(d),b,c)");
+}
+
+TEST_FUN(cond_parses_in_formula_position)
+{
+  UnitList* us = parseTPTP("tff(t,axiom, $cond(p(d), q(d), $false)).\n");
+  ASS_EQ(lastFormula(us), "$cond(p(d),q(d),$false)");
+}
+
+TEST_FUN(cond_parses_a_compound_condition)
+{
+  // a condition needs no sub-grammar of its own: TERM_INFIX routes the connectives
+  // through FORMULA_INSIDE_TERM, which is exactly the $o-sorted term $cond wants
+  UnitList* us = parseTPTP("tff(t,axiom, d = $cond(p(d) & ~q(d), a, b)).\n");
+  ASS_EQ(lastFormula(us), "d = $cond(p(d) & ~q(d),a,b)");
+}
+
+TEST_FUN(cond_parses_conditions_of_argument_equalities)
+{
+  // the shape FMB model printing will emit for a conditional-flip layer. The
+  // parentheses are needed -- a bare "X = a & Y = b" ends at the & -- but that is
+  // how any term argument behaves, r(X = a & p(X)) included, and not special to $cond
+  // (kept ground: printing a sorted quantifier needs env.initiallyHasNonDefaultSorts(),
+  // which only real input sets -- checks/parse/cond.p covers the quantified version)
+  UnitList* us = parseTPTP(
+    "tff(g_type,type,g: ( alpha * alpha ) > alpha).\n"
+    "tff(t,axiom, g(d,d) = $cond((d = a & d = b), c, (d = a), b, a)).\n");
+  ASS_EQ(lastFormula(us), "g(d,d) = $cond(d = a & d = b,c,d = a,b,a)");
+}
+
+/** did parsing @b body fail with a user error? */
+static bool rejected(const std::string& body)
+{
+  try {
+    parseTPTP(body);
+    return false;
+  } catch (UserErrorException&) {
+    return true;
+  }
+}
+
+TEST_FUN(cond_rejects_an_even_number_of_arguments)
+{
+  // no else branch
+  ASS(rejected("tff(t,axiom, d = $cond(p(d), a, q(d), b)).\n"));
+}
+
+TEST_FUN(cond_rejects_too_few_arguments)
+{
+  ASS(rejected("tff(t,axiom, d = $cond(a)).\n"));
+}
+
+TEST_FUN(cond_rejects_a_non_boolean_condition)
+{
+  ASS(rejected("tff(t,axiom, d = $cond(a, b, c)).\n"));
+}
+
+TEST_FUN(cond_rejects_mismatched_branch_sorts)
+{
+  ASS(rejected("tff(t,axiom, d = $cond(p(d), a, $true)).\n"));
 }
