@@ -424,7 +424,8 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
       }
       case SpecialFunctor::LAMBDA:
         NOT_IMPLEMENTED;
-      case SpecialFunctor::MATCH: {
+      case SpecialFunctor::MATCH:
+      case SpecialFunctor::COND: {
         DArray<TermList> terms(term->arity());
         bool unchanged = true;
         for (unsigned i = 0; i < term->arity(); i++) {
@@ -435,7 +436,7 @@ TermList SimplifyFalseTrue::simplify(TermList ts)
         if (unchanged) {
           return ts;
         }
-        return TermList(Term::createMatch(sd->getSort(), sd->getMatchedSort(), term->arity(), terms.begin()));
+        return TermList(Term::createMatchOrCond(term, sd->getSort(), term->arity(), terms.begin()));
       }
     }
     ASSERTION_VIOLATION_REP(term->toString());

@@ -183,6 +183,7 @@ bool SortHelper::getResultSortOrMasterVariable(const Term* t, TermList& resultSo
     case SpecialFunctor::LET:
     case SpecialFunctor::ITE:
     case SpecialFunctor::MATCH:
+    case SpecialFunctor::COND:
       resultSort = t->getSpecialData()->getSort();
       return true;
     case SpecialFunctor::FORMULA:
@@ -445,6 +446,20 @@ static void collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermList>&
 
               newTask.ts = *term->nthArgument(i + 1);
               newTask.contextSort = sd->getSort();
+              todo.push(newTask);
+            }
+            break;
+          }
+
+          case SpecialFunctor::COND: {
+            CollectTask newTask(COLLECT_TERMLIST);
+
+            // the conditions, at the even indices, are $o-sorted; the values at
+            // the odd ones and the final else all have the sort of the whole term
+            for (unsigned int i = 0; i < term->arity(); i++) {
+              newTask.ts = *term->nthArgument(i);
+              newTask.contextSort = (i % 2 == 0 && i + 1 < term->arity())
+                                  ? AtomicSort::boolSort() : sd->getSort();
               todo.push(newTask);
             }
             break;

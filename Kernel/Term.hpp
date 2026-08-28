@@ -395,6 +395,7 @@ enum class SpecialFunctor {
   LET,
   FORMULA,
   LAMBDA,
+  COND,
   MATCH, // <- keep this one the last, or modify SPECIAL_FUNCTOR_LAST accordingly
 };
 static constexpr SpecialFunctor SPECIAL_FUNCTOR_LAST = SpecialFunctor::MATCH;
@@ -444,6 +445,9 @@ public:
         TermList sort;
         TermList matchedSort;
       } _matchData;
+      struct {
+        TermList sort; // the sort of every value argument, and of the final else
+      } _condData;
     };
     /** Return pointer to the term to which this object is attached */
     const Term* getTerm() const { return reinterpret_cast<const Term*>(this+1); }
@@ -470,12 +474,14 @@ public:
           return _lambdaData.sort;
         case SpecialFunctor::MATCH:
           return _matchData.sort;
+        case SpecialFunctor::COND:
+          return _condData.sort;
         default:
           ASSERTION_VIOLATION_REP(specialFunctor());
       }
     }
     Formula* getFormula() const { ASS_EQ(specialFunctor(), SpecialFunctor::FORMULA); return _formulaData.formula; }
-    TermList getMatchedSort() const { return _matchData.matchedSort; }
+    TermList getMatchedSort() const { ASS_EQ(specialFunctor(), SpecialFunctor::MATCH); return _matchData.matchedSort; }
   };
 
 
@@ -505,6 +511,23 @@ public:
   static Term* createLambda(TermList lambdaExp, VSList* vars, TermList expSort);
   static Term* createFormula(Formula* formula);
   static Term* createMatch(TermList sort, TermList matchedSort, unsigned int arity, TermList* elements);
+  /**
+   * Create $cond(c1,v1,...,cn,vn,e), a chained if/elif/.../else with n > 0 cases.
+   * @b elements are the 2n+1 arguments in that order: the conditions sit at the even
+   * indices and are $o-sorted terms, the values at the odd ones, and the final element
+   * is the else. First match wins.
+   */
+  static Term* createCond(TermList sort, unsigned int arity, TermList* elements);
+  /**
+   * Rebuild @b orig -- a $match or a $cond -- over @b elements and the (possibly
+   * transformed) @b sort. These are the only two variadic special terms, and every
+   * generic transformation treats them alike: map over args(), then rebuild. This
+   * spares each of those the case split (and stops it reaching for the matched sort,
+   * which a $cond does not have).
+   */
+  static Term* createMatchOrCond(Term* orig, TermList sort, unsigned int arity, TermList* elements);
+  /** Unfold a $cond into the nested $ite it abbreviates */
+  static TermList condToITE(Term* t);
   static Term* create1(unsigned fn, TermList arg);
   static Term* create2(unsigned fn, TermList arg1, TermList arg2);
 
@@ -906,6 +929,7 @@ public:
   bool isFormula()  const { return functor() == toNormalFunctor(SpecialFunctor::FORMULA); }
   bool isLambda()   const { return functor() == toNormalFunctor(SpecialFunctor::LAMBDA); }
   bool isMatch()    const { return functor() == toNormalFunctor(SpecialFunctor::MATCH); }
+  bool isCond()     const { return functor() == toNormalFunctor(SpecialFunctor::COND); }
   bool isBoolean() const;
   bool isSuper() const; 
   

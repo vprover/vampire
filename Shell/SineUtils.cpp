@@ -75,7 +75,8 @@ void SineSymbolExtractor::addSymIds(Term* term, DHSet<SymId>& ids)
           break;
         case SpecialFunctor::LAMBDA:
           NOT_IMPLEMENTED;
-        case SpecialFunctor::MATCH: {
+        case SpecialFunctor::MATCH:
+        case SpecialFunctor::COND: {
           // args are handled below
           break;
         }

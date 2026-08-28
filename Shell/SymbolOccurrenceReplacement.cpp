@@ -35,12 +35,13 @@ Term* SymbolOccurrenceReplacement::process(Term* term) {
 
       case SpecialFunctor::LAMBDA:
         NOT_IMPLEMENTED;
-      case SpecialFunctor::MATCH: {
+      case SpecialFunctor::MATCH:
+      case SpecialFunctor::COND: {
         DArray<TermList> terms(term->arity());
         for (unsigned i = 0; i < term->arity(); i++) {
           terms[i] = process(*term->nthArgument(i));
         }
-        return Term::createMatch(sd->getSort(), sd->getMatchedSort(), term->arity(), terms.begin());
+        return Term::createMatchOrCond(term, sd->getSort(), term->arity(), terms.begin());
       }
     }
     ASSERTION_VIOLATION;

@@ -869,6 +869,13 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         break;
       }
 
+      case SpecialFunctor::COND: {
+        // $cond is an abbreviation for the nested $ite below it, so unfold it and
+        // let the $ite case above do the work
+        process(Term::condToITE(term), context, termResult, formulaResult);
+        break;
+      }
+
       case SpecialFunctor::MATCH: {
         /**
          * Having a term of the form $match(v, p1, b1, ..., pm, bm) and the list

@@ -213,7 +213,8 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     }
     return Term::createLambda(lambdaTerm, vs, lambdaTermS);
   }
-  case SpecialFunctor::MATCH: {
+  case SpecialFunctor::MATCH:
+  case SpecialFunctor::COND: {
     DArray<TermList> terms(t->arity());
     bool unchanged = true;
     for (unsigned i = 0; i < t->arity(); i++) {
@@ -221,6 +222,16 @@ Term* Rectify::rectifySpecialTerm(Term* t)
       unchanged = unchanged && (terms[i] == *t->nthArgument(i));
     }
     auto sort = rectify(sd->getSort());
+
+    // unlike the other rebuilding transformations, this one also rectifies the sorts,
+    // so it cannot go through createMatchOrCond (a $cond has no matched sort to rectify)
+    if (t->isCond()) {
+      if (unchanged && sort == sd->getSort()) {
+        return t;
+      }
+      return Term::createCond(sort, t->arity(), terms.begin());
+    }
+
     auto matchedSort = rectify(sd->getMatchedSort());
 
     if (unchanged && sort == sd->getSort() && matchedSort == sd->getMatchedSort()) {
