@@ -256,6 +256,21 @@ static void checkIsDomainLiteral(Literal* l, int& single_var, DomainConstantSet&
   domainConstants.insert(constant);
 }
 
+/**
+ * Is @b t one of the model's domain constants?
+ *
+ * Ask this rather than domainConstants.contains(t.term()) directly. That set hashes a term
+ * by Term::getId(), which only a shared term has, and the terms reaching addDefinition need
+ * not be shared: deFool only rewrites the top of a term, so a definition's left-hand side is
+ * still unshared whenever an argument is a FOOL special term -- "g($false,'fmb_$i_1')" in
+ * checks/fmb/bool.check.p, whose arguments are deFooled only further down. Nothing is lost
+ * by answering no: every domain constant is an ordinary shared constant.
+ */
+static bool isDomainConstant(const DomainConstantSet& domainConstants, TermList t)
+{
+  return t.isTerm() && t.term()->shared() && domainConstants.contains(t.term());
+}
+
 static void addDefinition(FiniteModelMultiSorted& model,Literal* lit,bool negated,
                           DomainConstantSet& domainConstants,
                           DHMap<Term*,unsigned, FnvHash, PtrIdentityHash>& domainConstantNumber)
@@ -266,7 +281,7 @@ static void addDefinition(FiniteModelMultiSorted& model,Literal* lit,bool negate
     // (deFool, because the elements of $o are spelled with $true and $false)
     TermList left = FiniteModelMultiSorted::deFool(*lit->nthArgument(0));
     TermList right = FiniteModelMultiSorted::deFool(*lit->nthArgument(1));
-    if(left.isTerm() && domainConstants.contains(left.term())){
+    if(isDomainConstant(domainConstants,left)){
       std::swap(left,right);
     }
 
@@ -274,9 +289,9 @@ static void addDefinition(FiniteModelMultiSorted& model,Literal* lit,bool negate
     // a leftover special term is a FOOL construct we cannot read (deFool covers $true / $false)
     if(left.term()->isSpecial())
       USER_ERROR("Cannot read the definition:\n"+lit->toString());
-    if(domainConstants.contains(left.term()))
+    if(isDomainConstant(domainConstants,left))
       USER_ERROR("Cannot have equality between domain elements:\n"+lit->toString());
-    if(right.isVar() || !domainConstants.contains(right.term()))
+    if(!isDomainConstant(domainConstants,right))
       USER_ERROR("Expect a domain constant on the right of definition:\n"+lit->toString());
     unsigned res = domainConstantNumber.get(right.term());
     Term* fun = left.term();
@@ -285,7 +300,7 @@ static void addDefinition(FiniteModelMultiSorted& model,Literal* lit,bool negate
     DArray<unsigned> args(arity);
     for(unsigned i=0;i<arity;i++){
       TermList arg = FiniteModelMultiSorted::deFool(*fun->nthArgument(i));
-      if(arg.isVar() || !domainConstants.contains(arg.term()))
+      if(!isDomainConstant(domainConstants,arg))
         USER_ERROR("Expect term on left of definition to be grounded with domain constants");
       args[i] = domainConstantNumber.get(arg.term());
     }
@@ -300,7 +315,7 @@ static void addDefinition(FiniteModelMultiSorted& model,Literal* lit,bool negate
     DArray<unsigned> args(arity);
     for(unsigned i=0;i<arity;i++){
       TermList arg = FiniteModelMultiSorted::deFool(*lit->nthArgument(i));
-      if(arg.isVar() || !domainConstants.contains(arg.term()))
+      if(!isDomainConstant(domainConstants,arg))
         USER_ERROR("Expect term on left of definition to be grounded with domain constants");
       args[i] = domainConstantNumber.get(arg.term());
     }
