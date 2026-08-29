@@ -235,19 +235,21 @@ public:
       container->add(_input);
     }
 
-    auto res = rule.generateSimplify(_input);
+    Stack<Kernel::Clause *> sRes;
+    bool premiseWasRedundant = rule.generateSimplify(_input, [&sRes](Clause *cl) {
+      sRes.push(cl);
+    });
 
     // run checks
-    auto sRes = Stack<Kernel::Clause*>::fromIterator(std::move(res.clauses));
     auto sExp = this->_expected.unwrapOrInit(_expectedFn);
 
     if (!sExp.matches(sRes, tester)) {
       testFail(sRes, sExp);
     }
 
-    if (_premiseRedundant != res.premiseRedundant) {
+    if (_premiseRedundant != premiseWasRedundant) {
       auto wrapStr = [](bool b) -> std::string { return b ? "premise is redundant" : "premise is not redundant"; };
-      testFail( wrapStr(res.premiseRedundant), wrapStr(_premiseRedundant));
+      testFail( wrapStr(premiseWasRedundant), wrapStr(_premiseRedundant));
     }
 
     // remove the clauses from the index

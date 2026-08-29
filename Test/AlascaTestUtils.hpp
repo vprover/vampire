@@ -41,6 +41,7 @@ struct AlascaSimplRule
       .premiseRedundant = res.premiseRedundant,
     };
   }
+  using SimplifyingGeneratingInferenceEngine::generateSimplify;
 };
 
 template<class ISE>
