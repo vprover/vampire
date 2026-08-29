@@ -7,6 +7,9 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
+
+#include "Lib/Environment.hpp"
+
 #include "Kernel/Formula.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Matcher.hpp"

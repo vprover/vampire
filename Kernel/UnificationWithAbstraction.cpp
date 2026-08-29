@@ -29,6 +29,7 @@
 #include "Term.hpp"
 #include "RobSubstitution.hpp"
 #include "Kernel/NumTraits.hpp"
+#include "Kernel/ALASCA/Signature.hpp"
 
 #include "UnificationWithAbstraction.hpp"
 #include "Kernel/SortHelper.hpp"

@@ -12,6 +12,7 @@
 #define __TEST_ALASCA_SIMPL_RULE__
 
 #include "Kernel/BottomUpEvaluation.hpp"
+#include "Kernel/Renaming.hpp"
 #include "Kernel/Inference.hpp"
 #include "Test/TestUtils.hpp"
 #include "Test/UnitTesting.hpp"

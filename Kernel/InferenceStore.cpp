@@ -37,6 +37,7 @@
 #include "FormulaUnit.hpp"
 #include "FormulaVarIterator.hpp"
 #include "Inference.hpp"
+#include "NumTraits.hpp"
 #include "Signature.hpp"
 #include "SortHelper.hpp"
 

@@ -28,7 +28,7 @@
 #include "Kernel/ColorHelper.hpp"
 
 #include "Indexing/Index.hpp"
-#include "Indexing/TermIndex.hpp"
+#include "Indexing/DemodulationIndex.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
