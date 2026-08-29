@@ -19,7 +19,7 @@ namespace Inferences {
 
 using Balancer = Kernel::Rebalancing::Balancer<Kernel::Rebalancing::Inverters::NumberTheoryInverter>;
 
-SimplifyingGeneratingInference1::Result GaussianVariableElimination::simplify(Clause* in, bool doCheckOrdering) 
+SimplifyingGeneratingInferenceEngine1::Result GaussianVariableElimination::simplify(Clause* in, bool doCheckOrdering) 
 {
   ASS(in)
 
@@ -45,10 +45,10 @@ SimplifyingGeneratingInference1::Result GaussianVariableElimination::simplify(Cl
     }
   }
 
-  return SimplifyingGeneratingInference1::Result{in, false};
+  return SimplifyingGeneratingInferenceEngine1::Result{in, false};
 }
 
-SimplifyingGeneratingInference1::Result GaussianVariableElimination::rewrite(Clause& cl, TermList find, TermList replace, unsigned skipLiteral, bool doCheckOrdering) const 
+SimplifyingGeneratingInferenceEngine1::Result GaussianVariableElimination::rewrite(Clause& cl, TermList find, TermList replace, unsigned skipLiteral, bool doCheckOrdering) const 
 {
   Inference inf(SimplifyingInference1(Kernel::InferenceRule::GAUSSIAN_VARIABLE_ELIMINIATION, &cl));
 
@@ -74,7 +74,7 @@ SimplifyingGeneratingInference1::Result GaussianVariableElimination::rewrite(Cla
     }
   }
 
-  return SimplifyingGeneratingInference1::Result{Clause::fromStack(*resLits, inf), premiseRedundant};
+  return SimplifyingGeneratingInferenceEngine1::Result{Clause::fromStack(*resLits, inf), premiseRedundant};
 }
 
 } // namespace Inferences 

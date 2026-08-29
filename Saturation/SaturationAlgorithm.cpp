@@ -1149,11 +1149,8 @@ void SaturationAlgorithm::activate(Clause* cl)
 
   _partialRedundancyHandler->checkEquations(cl);
 
-  auto generated = TIME_TRACE_EXPR(TimeTrace::CLAUSE_GENERATION, _generator->generateSimplify(cl));
-  auto toAdd = TIME_TRACE_ITER(TimeTrace::CLAUSE_GENERATION, std::move(generated.clauses));
-
-  while (toAdd.hasNext()) {
-    Clause *genCl = toAdd.next();
+  // TODO time tracing
+  bool premiseRedundant = _generator->generateSimplify(cl, [this](Clause *genCl) {
     addNewClause(genCl);
 
     Inference::Iterator iit = genCl->inference().iterator();
@@ -1167,7 +1164,8 @@ void SaturationAlgorithm::activate(Clause* cl)
         onParenthood(genCl, premCl);
       }
     }
-  }
+    return true;
+  });
 
   _clauseActivationInProgress = false;
 
@@ -1186,7 +1184,7 @@ void SaturationAlgorithm::activate(Clause* cl)
     removeActiveOrPassiveClause(cl);
   }
 
-  if (generated.premiseRedundant) {
+  if (premiseRedundant) {
     _active->remove(cl);
   }
 

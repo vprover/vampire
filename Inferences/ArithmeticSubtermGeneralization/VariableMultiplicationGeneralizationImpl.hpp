@@ -225,7 +225,7 @@ struct Generalize
 /** 
  * applies the rule
  */ 
-SimplifyingGeneratingInference1::Result applyRule(Clause* cl, bool doOrderingCheck) 
+SimplifyingGeneratingInferenceEngine1::Result applyRule(Clause* cl, bool doOrderingCheck) 
 {
   DEBUG("input clause: ", *cl);
   IntMap<Variable> varMap;
@@ -236,7 +236,7 @@ SimplifyingGeneratingInference1::Result applyRule(Clause* cl, bool doOrderingChe
   }
   if (varMap.size() == 0) {
     DEBUG("no variables. generalization not applicable");
-    return SimplifyingGeneratingInference1::Result::nop(cl);
+    return SimplifyingGeneratingInferenceEngine1::Result::nop(cl);
   }
 
   IntUnionFind components(varMap.size());
@@ -280,7 +280,7 @@ SimplifyingGeneratingInference1::Result applyRule(Clause* cl, bool doOrderingChe
   /* apply the substitution `X0 ⋅ X1 ⋅ ... ⋅ Xn ==> X0`  */
   DEBUG("removing variables: ", remove)
   if (remove.isEmpty()) {
-    return SimplifyingGeneratingInference1::Result::nop(cl);
+    return SimplifyingGeneratingInferenceEngine1::Result::nop(cl);
   } else {
     std::sort(remove.begin(), remove.end());
     Generalize gen { remove, doOrderingCheck };

@@ -29,7 +29,7 @@ using namespace Indexing;
 using namespace Saturation;
 
 class VirasQuantifierElimination
-: public SimplifyingGeneratingInference
+: public SimplifyingGeneratingInferenceEngine
 {
 public:
 
@@ -37,6 +37,7 @@ public:
   explicit VirasQuantifierElimination(SaturationAlgorithm& salg);
 
   ClauseGenerationResult generateSimplify(Clause* premise) final;
+  using SimplifyingGeneratingInferenceEngine::generateSimplify; // https://isocpp.org/wiki/faq/strange-inheritance#hiding-rule
 
 private:
   Option<ClauseGenerationResult> generateSimplify(IntTraits n, Clause* premise);

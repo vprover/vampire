@@ -44,7 +44,7 @@ private:
 
 
 class TheoryInstAndSimp
-: public SimplifyingGeneratingInference
+: public SimplifyingGeneratingInferenceEngine
 {
 public:
   using SortId = SAT::Z3Interfacing::SortId;

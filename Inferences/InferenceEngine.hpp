@@ -34,7 +34,7 @@ using namespace Saturation;
 using namespace Shell;
 
 /** A generating inference that might make its major premise redundant. */
-class SimplifyingGeneratingInference
+class SimplifyingGeneratingInferenceEngine
 {
 public:
 
@@ -49,25 +49,42 @@ public:
     }
   };
 
-  virtual ~SimplifyingGeneratingInference() = default;
+  virtual ~SimplifyingGeneratingInferenceEngine() = default;
   /**
    * Applies this rule to the clause, and returns an iterator over the resulting clauses, 
    * as well as the information whether the premise was made redundant.
    */
   virtual ClauseGenerationResult generateSimplify(Clause* premise)  = 0;
+
+  using ClauseReceiver = std::function<void(Clause *)>;
+  virtual bool generateSimplify(Clause *premise, ClauseReceiver receive) {
+    auto result = generateSimplify(premise);
+    for(Clause *cl : iterTraits(std::move(result.clauses)))
+      receive(cl);
+    return result.premiseRedundant;
+  }
 };
 
 
 class GeneratingInferenceEngine
-: public SimplifyingGeneratingInference
+: public SimplifyingGeneratingInferenceEngine
 {
 
 public:
   virtual ClauseIterator generateClauses(Clause* premise) = 0;
+  virtual void generateClauses(Clause* premise, ClauseReceiver receive) {
+    for(Clause *cl : iterTraits(generateClauses(premise)))
+      receive(cl);
+  }
 
   ClauseGenerationResult generateSimplify(Clause* premise) override
-  { return { .clauses = generateClauses(premise), 
+  { return { .clauses = generateClauses(premise),
              .premiseRedundant = false, }; }
+
+  bool generateSimplify(Clause *premise, ClauseReceiver receive) override {
+    generateClauses(premise, receive);
+    return false;
+  }
 };
 
 class ImmediateSimplificationEngine
@@ -100,8 +117,8 @@ public:
  * Such an inference can be used as ImmediateSimplificationEngine, by calling asISE(). 
  * @warning When used as ISE non-redundant clauses might be deleted from the search space. Therefore completeness might be lost!
  */
-class SimplifyingGeneratingInference1
-: public SimplifyingGeneratingInference
+class SimplifyingGeneratingInferenceEngine1
+: public SimplifyingGeneratingInferenceEngine
 , ImmediateSimplificationEngine
 {
 public:
@@ -119,6 +136,7 @@ public:
   };
 
   ClauseGenerationResult generateSimplify(Clause* cl) override;
+  bool generateSimplify(Clause* cl, ClauseReceiver receive) override;
 
   /** 
    * Turns this SimplifyingGeneratingInference1 into and ImmediateSimplificationEngine. 
@@ -146,7 +164,7 @@ private:
  * A SimplifyingGeneratingInference1 that is applied literal by literal
  */
 class SimplifyingGeneratingLiteralSimplification
-: public SimplifyingGeneratingInference1
+: public SimplifyingGeneratingInferenceEngine1
 {
 
 public:
@@ -170,7 +188,7 @@ public:
 protected:
   SimplifyingGeneratingLiteralSimplification(InferenceRule rule, const Ordering& ordering);
   virtual Result simplifyLiteral(Literal* l) = 0;
-  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck) override;
+  SimplifyingGeneratingInferenceEngine1::Result simplify(Clause* cl, bool doOrderingCheck) override;
 
 private:
   const Ordering& _ordering;
@@ -295,6 +313,7 @@ public:
   ~CompositeGIE() override;
   void addFront(GeneratingInferenceEngine* fse);
   ClauseIterator generateClauses(Clause* premise) override;
+  void generateClauses(Clause* premise, ClauseReceiver receive) override;
 private:
   typedef List<GeneratingInferenceEngine*> GIList;
   GIList* _inners;
@@ -302,16 +321,17 @@ private:
 
 
 class CompositeSGI
-: public SimplifyingGeneratingInference
+: public SimplifyingGeneratingInferenceEngine
 {
 public:
   CompositeSGI() : _simplifiers(), _generators() {}
   ~CompositeSGI() override;
-  void push(SimplifyingGeneratingInference*);
+  void push(SimplifyingGeneratingInferenceEngine*);
   void push(GeneratingInferenceEngine*);
   ClauseGenerationResult generateSimplify(Clause* premise) override;
+  bool generateSimplify(Clause* premise, ClauseReceiver receive) override;
 private:
-  Stack<SimplifyingGeneratingInference*> _simplifiers;
+  Stack<SimplifyingGeneratingInferenceEngine*> _simplifiers;
   Stack<GeneratingInferenceEngine*> _generators;
 };
 
