@@ -12,11 +12,7 @@
  * Implements class Factoring.
  */
 
-#include <utility>
-
 #include "Lib/Environment.hpp"
-#include "Lib/Metaiterators.hpp"
-#include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
@@ -28,94 +24,83 @@
 
 #include "Factoring.hpp"
 
+static RobSubstitution subst;
+
 namespace Inferences
 {
 
 /**
- * This functor given a pair of literal indices
+ * Given a pair of literal indices
  * removes the second literal from the clause specified in constructor,
  * applies the substitution, and returns resulting clause.
  * (Also it records this to statistics as factoring.)
  */
-class Factoring::ResultsFn
-{
-public:
-  ResultsFn(Clause* cl, bool afterCheck, LiteralSelector &sel, Ordering& ord)
-  : _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _sel(sel), _ord(ord) {}
-  Clause* operator() (std::pair<unsigned,unsigned> nums)
-  {
-    Literal* l1 = (*_cl)[nums.first];
-    Literal* l2 = (*_cl)[nums.second];
+Clause *Factoring::attemptFactor(Clause *cl, unsigned i, unsigned j) {
+  Literal* l1 = (*cl)[i];
+  Literal* l2 = (*cl)[j];
 
-    //we assume there are no duplicate literals
-    ASS(l1!=l2);
+  //we assume there are no duplicate literals
+  ASS(l1!=l2);
 
-    if(l1->isEquality())
-      //We don't perform factoring with equalities
-      return nullptr;
+  if(l1->isEquality())
+    //We don't perform factoring with equalities
+    return nullptr;
 
-    // check polarity and functor matches
-    if(!Literal::headersMatch(l1, l2, false))
-      return nullptr;
+  // check polarity and functor matches
+  if(!Literal::headersMatch(l1, l2, false))
+    return nullptr;
 
-    if(_sel.isNegativeForSelection(l1)) {
-      //We don't perform factoring on negative literals
-      // (this check only becomes relevant, when there is more than one literal selected
-      // and yet the selected ones are not all positive -- see the check in generateClauses)
-      return nullptr;
-    }
-
-    subst.reset();
-    if(!subst.unify(TermList(l1), 0, TermList(l2), 0))
-      return nullptr;
-
-    RStack<Literal*> resLits;
-
-    Literal *skipped = l2;
-
-    Literal* skippedAfter = 0;
-    if (_afterCheck && _cl->numSelected() > 1) {
-      TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
-
-      skippedAfter = subst.apply(skipped, 0);
-    }
-
-    for(unsigned i=0;i<_cLen;i++) {
-      Literal* curr=(*_cl)[i];
-      if(curr!=skipped) {
-        Literal* currAfter = subst.apply(curr, 0);
-
-        if (skippedAfter) {
-          TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
-
-          if (i < _cl->numSelected() && _ord.compare(currAfter,skippedAfter) == Ordering::GREATER) {
-            env.statistics->inferencesBlockedDueToOrderingAftercheck++;
-            return nullptr;
-          }
-        }
-
-        resLits->push(currAfter);
-      }
-    }
-
-    Clause *cl = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::FACTORING,_cl));
-    if(env.options->proofExtra() == Options::ProofExtra::FULL)
-      env.proofExtra.insert(cl, new FactoringExtra(l1, l2));
-    return cl;
+  const auto &sel = _salg.getLiteralSelector();
+  if(sel.isNegativeForSelection(l1)) {
+    //We don't perform factoring on negative literals
+    // (this check only becomes relevant, when there is more than one literal selected
+    // and yet the selected ones are not all positive -- see the check in generateClauses)
+    return nullptr;
   }
-private:
-  static RobSubstitution subst;
-  Clause* _cl;
-  ///length of the premise clause
-  unsigned _cLen;
-  bool _afterCheck;
-  LiteralSelector& _sel;
-  Ordering& _ord;
-};
-RobSubstitution Factoring::ResultsFn::subst;
+
+  subst.reset();
+  if(!subst.unify(TermList(l1), 0, TermList(l2), 0))
+    return nullptr;
+
+  bool afterCheck = _salg.getOptions().literalMaximalityAftercheck() && _salg.getLiteralSelector().isBGComplete();
+  RStack<Literal*> resLits;
+
+  Literal *skipped = l2;
+
+  Literal* skippedAfter = nullptr;
+  if (afterCheck && cl->numSelected() > 1) {
+    TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
+
+    skippedAfter = subst.apply(skipped, 0);
+  }
+
+  const auto &ord = _salg.getOrdering();
+  for(unsigned i=0;i<cl->length();i++) {
+    Literal* curr=(*cl)[i];
+    if(curr!=skipped) {
+      Literal* currAfter = subst.apply(curr, 0);
+
+      if (skippedAfter) {
+        TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
+
+        if (i < cl->numSelected() && ord.compare(currAfter,skippedAfter) == Ordering::GREATER) {
+          env.statistics->inferencesBlockedDueToOrderingAftercheck++;
+          return nullptr;
+        }
+      }
+
+      resLits->push(currAfter);
+    }
+  }
+
+  Clause *genCl = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::FACTORING,cl));
+  if(env.options->proofExtra() == Options::ProofExtra::FULL)
+    env.proofExtra.insert(genCl, new FactoringExtra(l1, l2));
+  return genCl;
+}
 
 /**
- * Return ClauseIterator, that yields clauses generated from
+ * Produces clauses generated from
  * @b premise by the factoring inference rule.
  *
  * Nothing is generated, when the premise contains only one
@@ -130,24 +115,19 @@ RobSubstitution Factoring::ResultsFn::subst;
  * as when two literals are unifiable, one cannot be maximal and the
  * other non-maximal in the literal ordering.
  */
-ClauseIterator Factoring::generateClauses(Clause* premise)
+void Factoring::generateClauses(Clause *premise, ClauseReceiver receive)
 {
   if(premise->length()<=1) {
-    return ClauseIterator::getEmpty();
+    return;
   }
   if(premise->numSelected()==1 && _salg.getLiteralSelector().isNegativeForSelection((*premise)[0])) {
-    return ClauseIterator::getEmpty();
+    return;
   }
 
-  auto it1 = getCombinationIterator(0u,premise->numSelected(),premise->length());
-
-  auto it2 = getMappingIterator(it1,ResultsFn(premise,
-      _salg.getOptions().literalMaximalityAftercheck() && _salg.getLiteralSelector().isBGComplete(),
-      _salg.getLiteralSelector(), _salg.getOrdering()));
-
-  auto it3 = getFilteredIterator(it2, NonzeroFn());
-
-  return pvi( it3 );
+  for(unsigned i = 0; i < premise->numSelected(); i++)
+    for(unsigned j = i + 1; j < premise->length(); j++)
+      if(Clause *cl = attemptFactor(premise, i, j))
+        receive(cl);
 }
 
 }
