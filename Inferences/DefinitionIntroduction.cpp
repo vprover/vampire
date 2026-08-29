@@ -36,7 +36,7 @@ static Term *lgg(Term *left, Term *right) {
   // remaining parts of the term that should be created
   std::vector<IncompleteFunction> skeleton;
   // map from left-right pairs of subterms to their variables
-  DHMap<std::pair<TermList, TermList>, unsigned> substitution;
+  DHMap<std::pair<TermList, TermList>, unsigned, PairHash<TermListHash,TermListHash>, PairHash<TermListHash2,TermListHash2>> substitution;
 
   // fresh variable where necessary
   unsigned fresh = 0;

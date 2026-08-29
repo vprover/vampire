@@ -1255,7 +1255,7 @@ void Z3Interfacing::createTermAlgebra(TermList sort)
   if (_createdTermAlgebras.contains(sort)) return;
 
   Stack<TermList> taSorts;        // <- stack of term algebra sorts
-  Map<SortId, unsigned> recSorts; // <- mapping term algeba -> index
+  Map<SortId, unsigned, TermListHash> recSorts; // <- mapping term algeba -> index
 
   auto subsorts = TermAlgebra::subSorts(sort);
   for (auto s : subsorts.iter()) {

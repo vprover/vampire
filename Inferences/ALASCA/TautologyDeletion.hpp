@@ -37,7 +37,7 @@ public:
 
   Clause* simplify(Clause* premise) override 
   {
-    Map<AnyAlascaLiteral, bool> lits;
+    Map<AnyAlascaLiteral, bool, CoproductHash> lits;
     TIME_TRACE("alasca tautology detection")
     for (auto lit : iterTraits(premise->iterLits())) {
       auto norm_ = _norm.tryNormalizeInterpreted(lit);

@@ -73,7 +73,7 @@ bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement,
   //replace subterms in some special order, like
   //the heaviest first...
 
-  static DHSet<TermList> attempted;
+  static DHSet<TermList, TermListHash, TermListHash2> attempted;
   attempted.reset();
 
   unsigned cLen=cl->length();

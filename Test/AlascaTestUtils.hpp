@@ -94,7 +94,7 @@ struct AlascaTestUtil {
     auto vl = vars(lhs);
     auto vr = vars(rhs);
 
-    Map<TermList, unsigned> rVarIdx;
+    Map<TermList, unsigned, TermListHash> rVarIdx;
     unsigned i = 0;
     for (auto v : vr) {
       rVarIdx.insert(v, i++);

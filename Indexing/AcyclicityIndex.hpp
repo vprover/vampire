@@ -72,7 +72,7 @@ private:
   typedef std::pair<Kernel::Literal*, Kernel::Clause*> ULit;
   typedef Lib::DHMap<ULit, IndexEntry*, Lib::PairHash<Lib::FnvHash, Lib::UnitHash>, Lib::PairHash<Lib::PtrIdentityHash, Lib::UnitNumberHash>> SIndex;
 
-  Lib::DHMap<TermList, SIndex*> _sIndexes;
+  Lib::DHMap<TermList, SIndex*, TermListHash, TermListHash2> _sIndexes;
   TermIndexingStructure* _tis;
 };
 

@@ -354,7 +354,7 @@ bool ForwardSubsumptionDemodulation<higherOrder>::perform(Clause* cl, Clause*& r
           continue;
         }
 
-        static DHSet<TermList> attempted;  // Terms we already attempted to demodulate
+        static DHSet<TermList, TermListHash, TermListHash2> attempted;  // Terms we already attempted to demodulate
         attempted.reset();
 
         for (unsigned dli = 0; dli < cl->length(); ++dli) {

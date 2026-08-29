@@ -209,8 +209,8 @@ public:
   /** set the content manually - hazardous, such terms should then only be used as integers */
   void setContent(uint64_t content) { _content = content; }
   /** default hash is to hash the content */
-  unsigned defaultHash() const { return DefaultHash::hash(content()); }
-  unsigned defaultHash2() const { return content(); }
+  unsigned defaultHash() const;
+  unsigned defaultHash2() const;
 
   // TODO this default value is probably the reason we get too many parentheses everywhere
   std::string toString(bool topLevel = false) const;
@@ -1325,12 +1325,26 @@ struct SharedTermHash {
 struct SharedTermListHash {
   static bool equals(TermList t1, TermList t2) { return t1==t2; }
   static unsigned hash(TermList t)
-  { ASS(t.isTerm() && t.term()->shared()); return DefaultHash::hash(t.term()->getId()); }
+  { ASS(t.isTerm() && t.term()->shared()); return FnvHash::hash(t.term()->getId()); }
 };
 struct SharedTermListHash2 {
   static unsigned hash(TermList t)
-  { ASS(t.isTerm() && t.term()->shared()); return DefaultHash2::hash(t.term()->getId()); }
+  { ASS(t.isTerm() && t.term()->shared()); return IdentityHash::hash(t.term()->getId()); }
 };
+
+// hash a TermList by FNV-1a of its content word
+struct TermListHash {
+  static bool equals(TermList t1, TermList t2) { return t1 == t2; }
+  static unsigned hash(TermList t) { return FnvHash::hash(t.content()); }
+};
+
+// cheap secondary hash: the content word itself
+struct TermListHash2 {
+  static unsigned hash(TermList t) { return t.content(); }
+};
+
+inline unsigned TermList::defaultHash() const { return TermListHash::hash(*this); }
+inline unsigned TermList::defaultHash2() const { return TermListHash2::hash(*this); }
 
 /** helper lambda that turns a number into a variable */
 static const auto unsignedToVarFn = [](unsigned var)
@@ -1341,7 +1355,7 @@ static const auto unsignedToVarFn = [](unsigned var)
 template<>
 struct std::hash<Kernel::TermList> {
   size_t operator()(Kernel::TermList const& t) const
-  { return t.defaultHash(); }
+  { return Kernel::TermListHash::hash(t); }
 };
 
 #endif

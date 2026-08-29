@@ -533,7 +533,7 @@ TermList SMTLIB2::parseSort(LExpr* sExpr)
 
 TermStack SMTLIB2::normalizeFunctionSorts(TermStack& argSorts, TermList& resSort)
 {
-  DHSet<TermList> varsSeen;
+  DHSet<TermList, TermListHash, TermListHash2> varsSeen;
   for (auto sort : argSorts) {
     varsSeen.loadFromIterator(VariableIterator(sort));
   }

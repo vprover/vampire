@@ -173,7 +173,8 @@ protected:
 
     auto asTuple() const { return std::make_tuple(constant, varCoeffPairs); }
 
-    IMPL_HASH_FROM_TUPLE(Polynomial);
+    unsigned defaultHash () const;
+    unsigned defaultHash2() const;
     IMPL_COMPARISONS_FROM_TUPLE(Polynomial);
 
     int constant;
@@ -181,6 +182,18 @@ protected:
     // (positive first), and then by variable
     // e.g. X1 + 2 ⋅ X4 - 5 ⋅ X0 - X3
     Stack<VarCoeffPair> varCoeffPairs;
+  };
+
+  // hash a Polynomial by its constant and its variable-coefficient pairs
+  struct PolynomialHash {
+    static bool equals(Polynomial const& p1, Polynomial const& p2) { return p1 == p2; }
+    static unsigned hash(Polynomial const& p)
+    { return TupleHash<FnvHash, StackHash<PairHash<FnvHash,FnvHash>>>::hash(p.asTuple()); }
+  };
+
+  struct PolynomialHash2 {
+    static unsigned hash(Polynomial const& p)
+    { return TupleHash<IdentityHash, LengthHash>::hash(p.asTuple()); }
   };
 
   friend std::ostream& operator<<(std::ostream& out, const Node::Tag& t);
@@ -260,6 +273,11 @@ public:
     Traversal<NodeIterator,POStruct> traversal;
   };
 };
+
+inline unsigned TermOrderingDiagram::Polynomial::defaultHash () const
+{ return TermOrderingDiagram::PolynomialHash ::hash(*this); }
+inline unsigned TermOrderingDiagram::Polynomial::defaultHash2() const
+{ return TermOrderingDiagram::PolynomialHash2::hash(*this); }
 
 } // namespace Kernel
 

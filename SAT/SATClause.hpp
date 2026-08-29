@@ -50,12 +50,7 @@ public:
   void* operator new(size_t,unsigned length);
   void operator delete(void *, size_t);
 
-  unsigned defaultHash() const {
-    unsigned hash = 0;
-    for(unsigned i = 0; i < length(); i++)
-      hash ^= DefaultHash::hash(_literals[i]);
-    return hash;
-  }
+  unsigned defaultHash() const;
 
   bool operator==(const SATClause &other) const {
     if(length() != other.length())
@@ -114,6 +109,25 @@ private:
   // counter for `number`
   static unsigned _lastNumber;
 }; // class SATClause
+
+// hash a SATClause by the exclusive or of its literals' hashes, so a permutation
+// of the same literals hashes alike. The literals are read through a pointer:
+// _literals is declared with one element while a clause holds length() of them,
+// and indexing the array lvalue past its bound lets -O3 compute a different
+// value at different call sites.
+struct SATClauseHash {
+  static bool equals(SATClause const& c1, SATClause const& c2) { return c1 == c2; }
+
+  static unsigned hash(SATClause const& c) {
+    const SATLiteral* lits = &c[0];
+    unsigned hash = 0;
+    for(unsigned i = 0; i < c.length(); i++)
+      hash ^= SATLiteralHash::hash(lits[i]);
+    return hash;
+  }
+};
+
+inline unsigned SATClause::defaultHash() const { return SATClauseHash::hash(*this); }
 
 std::ostream &operator<<(std::ostream &out, const SATClause &cl);
 

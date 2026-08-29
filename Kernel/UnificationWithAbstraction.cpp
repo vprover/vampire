@@ -667,7 +667,7 @@ AbstractionOracle::AbstractionResult alasca(AbstractingUnifier& au, TermSpec con
     return AbstractionResult(equalIf());
 
   } else if (nVars > 0) {
-     Recycled<DHSet<TermSpec>> shieldedVars;
+     Recycled<DHSet<TermSpec, TermSpecHash, TermSpecHash2>> shieldedVars;
      for (auto i : range(nVars, diff.size())) {
        Recycled<Stack<TermSpec>> todo;
        todo->push(diff[i].first);
@@ -793,10 +793,10 @@ struct FloorUwaState {
   RStack<Monom> mixVars;
   RStack<Monom> ratAtoms;
   RStack<Monom> intAtoms;
-  Recycled<DHSet<VarSpec>> ratVarSet;
-  Recycled<DHSet<VarSpec>> mixVarSet;
-  Recycled<DHSet<VarSpec>> intVarSet;
-  Recycled<DHSet<VarSpec>> shieldedVars;
+  Recycled<DHSet<VarSpec, VarSpecHash, VarSpecHash2>> ratVarSet;
+  Recycled<DHSet<VarSpec, VarSpecHash, VarSpecHash2>> mixVarSet;
+  Recycled<DHSet<VarSpec, VarSpecHash, VarSpecHash2>> intVarSet;
+  Recycled<DHSet<VarSpec, VarSpecHash, VarSpecHash2>> shieldedVars;
 
   bool isShielded(TermSpec t) const { return shieldedVars->find(t.varSpec()); }
   bool isMixVar(VarSpec v) const { return mixVarSet->find(v) || (intVarSet->find(v) && ratVarSet->find(v)); }
@@ -1442,7 +1442,7 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
 
     // Save encountered unification pairs to avoid
     // recomputing their unification
-    Recycled<DHSet<std::pair<TermSpec,TermSpec>>> encountered;
+    Recycled<DHSet<std::pair<TermSpec,TermSpec>, PairHash<TermSpecHash,TermSpecHash>, PairHash<TermSpecHash2,TermSpecHash2>>> encountered;
 
     Option<AbstractionOracle::AbstractionResult> absRes;
     auto doAbstract = [&](auto& l, auto& r) -> bool
