@@ -56,8 +56,8 @@ struct VarSpec
   auto asTuple() const { return std::tie(_self, index); }
   IMPL_COMPARISONS_FROM_TUPLE(VarSpec)
 
-  unsigned defaultHash () const { return HashUtils::combine(_self.content(), index); }
-  unsigned defaultHash2() const { return HashUtils::combine(index, _self.content()); }
+  unsigned defaultHash () const;
+  unsigned defaultHash2() const;
 };
 
 struct TermSpec {
@@ -68,7 +68,8 @@ struct TermSpec {
 
   auto asTuple() const -> decltype(auto) { return std::tie(term, index); }
   IMPL_COMPARISONS_FROM_TUPLE(TermSpec)
-  IMPL_HASH_FROM_TUPLE(TermSpec)
+  unsigned defaultHash () const;
+  unsigned defaultHash2() const;
 
   TermList term;
   int index;
@@ -199,6 +200,34 @@ struct TermSpec {
   }
 };
 
+// hash a VarSpec by combining the variable's content word with its bank index
+struct VarSpecHash {
+  static bool equals(VarSpec v1, VarSpec v2) { return v1 == v2; }
+  static unsigned hash(VarSpec v) { return HashUtils::combine(v._self.content(), v.index); }
+};
+
+// secondary hash: the same two words the other way round
+struct VarSpecHash2 {
+  static unsigned hash(VarSpec v) { return HashUtils::combine(v.index, v._self.content()); }
+};
+
+// hash a TermSpec by its term and its bank index
+struct TermSpecHash {
+  static bool equals(TermSpec const& s1, TermSpec const& s2) { return s1 == s2; }
+  static unsigned hash(TermSpec const& s)
+  { return TupleHash<TermListHash, FnvHash>::hash(s.asTuple()); }
+};
+
+struct TermSpecHash2 {
+  static unsigned hash(TermSpec const& s)
+  { return TupleHash<TermListHash2, IdentityHash>::hash(s.asTuple()); }
+};
+
+inline unsigned VarSpec::defaultHash () const { return VarSpecHash ::hash(*this); }
+inline unsigned VarSpec::defaultHash2() const { return VarSpecHash2::hash(*this); }
+inline unsigned TermSpec::defaultHash () const { return TermSpecHash ::hash(*this); }
+inline unsigned TermSpec::defaultHash2() const { return TermSpecHash2::hash(*this); }
+
 /** A wrapper around TermSpec that automatically dereferences the TermSpec with respect to some RobSubstition when 
  * used with BottomUpEvaluation.  This means for example if we evaluate some TermSpec * `g(X, Y)` in a context 
  * `{ X -> a, Y -> f(X) }` it behaves as if we would evaluate `g(a,f(a))`.  */
@@ -219,7 +248,7 @@ struct AutoDerefTermSpec
 template<class Result>
 class OnlyMemorizeNonVar 
 {
-  Map<TermSpec, Result> _memo;
+  Map<TermSpec, Result, TermSpecHash> _memo;
 public:
   OnlyMemorizeNonVar(OnlyMemorizeNonVar &&) = default;
   OnlyMemorizeNonVar& operator=(OnlyMemorizeNonVar &&) = default;
@@ -288,12 +317,12 @@ class RobSubstitution
   friend class AbstractingUnifier;
   friend class UnificationConstraint;
  
-  DHMap<VarSpec, TermSpec> _bindings;
-  mutable DHMap<VarSpec, unsigned> _outputVarBindings;
+  DHMap<VarSpec, TermSpec, VarSpecHash, VarSpecHash2> _bindings;
+  mutable DHMap<VarSpec, unsigned, VarSpecHash, VarSpecHash2> _outputVarBindings;
   mutable bool _startedBindingOutputVars;
   mutable unsigned _nextUnboundAvailable;
   mutable unsigned _nextGlueAvailable;
-  DHMap<TermSpec, unsigned> _gluedTerms;
+  DHMap<TermSpec, unsigned, TermSpecHash, TermSpecHash2> _gluedTerms;
   mutable OnlyMemorizeNonVar<TermList> _applyMemo;
 
 public:

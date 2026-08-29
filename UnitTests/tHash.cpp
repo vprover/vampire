@@ -43,6 +43,10 @@ TEST_FUN(namedFunctorsMatchDefaultHash)
   ASS_EQ(FnvHash::hash(i), DefaultHash::hash(i));
   ASS_EQ(FnvHash::hash(d), DefaultHash::hash(d));
   ASS_EQ(FnvHash::hash(GREEN), DefaultHash::hash(GREEN));
+  // TermList hashes its 64-bit content word, and the secondary hash narrows it
+  uint64_t w = 0x0123456789abcdefULL;
+  ASS_EQ(FnvHash::hash(w), DefaultHash::hash(w));
+  ASS_EQ(IdentityHash::hash(w), DefaultHash2::hash(w));
   ASS_EQ(IdentityHash::hash(u), DefaultHash2::hash(u));
   ASS_EQ(IdentityHash::hash(i), DefaultHash2::hash(i));
   ASS_EQ(IdentityHash::hash(GREEN), DefaultHash2::hash(GREEN));

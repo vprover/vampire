@@ -472,7 +472,7 @@ size_t Term::countSubtermOccurrences(TermList subterm) {
 
 bool TermList::containsAllVariablesOf(TermList t) const
 {
-  Set<TermList> vars;
+  Set<TermList, TermListHash> vars;
   TermIterator oldVars=Term::getVariableIterator(*this);
   while (oldVars.hasNext()) {
     vars.insert(oldVars.next());
@@ -488,7 +488,7 @@ bool TermList::containsAllVariablesOf(TermList t) const
 
 bool Term::containsAllVariablesOf(Term* t)
 {
-  static DHSet<TermList> vars;
+  static DHSet<TermList, TermListHash, TermListHash2> vars;
   vars.reset();
 
   static VariableIterator vit;

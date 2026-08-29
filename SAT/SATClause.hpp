@@ -49,12 +49,7 @@ public:
   void* operator new(size_t,unsigned length);
   void operator delete(void *, size_t);
 
-  unsigned defaultHash() const {
-    unsigned hash = 0;
-    for(unsigned i = 0; i < length(); i++)
-      hash ^= DefaultHash::hash(_literals[i]);
-    return hash;
-  }
+  unsigned defaultHash() const;
 
   bool operator==(const SATClause &other) const {
     if(length() != other.length())
@@ -113,6 +108,23 @@ private:
   // counter for `number`
   static unsigned _lastNumber;
 }; // class SATClause
+
+// Hash a SATClause by XOR of its literals' hashes. Keep the pointer traversal:
+// _literals is declared with one element, and indexing it directly produced
+// different hash values in optimized builds when this loop was moved.
+struct SATClauseHash {
+  static bool equals(SATClause const& c1, SATClause const& c2) { return c1 == c2; }
+
+  static unsigned hash(SATClause const& c) {
+    const SATLiteral* lits = &c[0];
+    unsigned hash = 0;
+    for(unsigned i = 0; i < c.length(); i++)
+      hash ^= SATLiteralHash::hash(lits[i]);
+    return hash;
+  }
+};
+
+inline unsigned SATClause::defaultHash() const { return SATClauseHash::hash(*this); }
 
 std::ostream &operator<<(std::ostream &out, const SATClause &cl);
 
