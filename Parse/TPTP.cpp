@@ -91,6 +91,49 @@ static const int APP_ABSORB = -4;
 /** true for the two "tight subformula" contexts above */
 static bool tightContext(int con) { return con == EQ_RHS || con == APP_ABSORB; }
 
+/** Kinds of input that are not legal per the TPTP BNF but that we accept
+ * leniently, inventing a reading (see nonConformityWarning). */
+enum NonConformity {
+  /** '~ s = t' read as '~ (s = t)' */
+  NC_NOT_APPLIED_TO_EQUALITY,
+  /** 'p & f @ x' read as 'p & (f @ x)' */
+  NC_UNPARENTHESIZED_APPLICATION,
+  /** 'r = ~ s' read as 'r = (~ s)'; 'g = ^[X]: t' as 'g = (^[X]: t)' */
+  NC_NON_UNITARY_EQUALITY_ARGUMENT,
+  /** 'r = s = t' read as 'r = (s = t)' */
+  NC_CHAINED_EQUALITY,
+  /** the number of kinds above */
+  NC_KINDS
+};
+
+/** the reading invented for each kind, as reported to the user */
+static const char* const NON_CONFORMITY_EXPLANATION[NC_KINDS] = {
+  "'~' applied to an unparenthesized (in)equality is not legal THF; reading '~ s = t' as '~ (s = t)'",
+  "an unparenthesized application as a connective argument is not legal THF; reading e.g. 'p & f @ x' as 'p & (f @ x)'",
+  "a unary, quantified or lambda formula as an unparenthesized equality argument is not legal THF; reading e.g. 'r = ~ s' as 'r = (~ s)'",
+  "a chained equality is not legal THF; reading 'r = s = t' right-associatively as 'r = (s = t)'"
+};
+
+/** which non-conformity kinds have already been warned about in this run
+ * (a run may parse several pieces of input, each with its own parser) */
+static bool nonConformityWarned[NC_KINDS] = {};
+
+/**
+ * Report (at most once per kind and run) that Vampire leniently accepted
+ * input that is not legal according to the TPTP BNF, explaining the reading
+ * it chose.
+ */
+static void nonConformityWarning(NonConformity kind, const std::filesystem::path& path, unsigned lineNumber)
+{
+  if (nonConformityWarned[kind]) {
+    return;
+  }
+  nonConformityWarned[kind] = true;
+  std::cout << "% WARNING: non-conforming THF input in " << path
+            << ", line " << lineNumber << ": " << NON_CONFORMITY_EXPLANATION[kind]
+            << " (further occurrences of this kind will not be reported in this run)" << endl;
+}
+
 Unit* TPTP::parseFormulaFromString(const std::string& str)
 {
   std::stringstream input(str+")."); // to fake endFOF, which creates the clause
@@ -1512,8 +1555,7 @@ void TPTP::holFormula()
   switch (tok.tag) {
   case T_NOT:
     if (!_connectives.isEmpty() && _connectives.top() == EQ_RHS) {
-      nonConformityWarning(NC_NON_UNITARY_EQUALITY_ARGUMENT,
-        "a unary, quantified or lambda formula as an unparenthesized equality argument is not legal THF; reading e.g. 'r = ~ s' as 'r = (~ s)'");
+      nonConformityWarning(NC_NON_UNITARY_EQUALITY_ARGUMENT, currentFile.path, currentFile.lineNumber);
     }
     resetToks();
     _connectives.push(NOT);
@@ -1539,8 +1581,7 @@ void TPTP::holFormula()
    // _states.push(UNBIND_VARIABLES);
   case T_LAMBDA:
     if (!_connectives.isEmpty() && _connectives.top() == EQ_RHS) {
-      nonConformityWarning(NC_NON_UNITARY_EQUALITY_ARGUMENT,
-        "a unary, quantified or lambda formula as an unparenthesized equality argument is not legal THF; reading e.g. 'r = ~ s' as 'r = (~ s)'");
+      nonConformityWarning(NC_NON_UNITARY_EQUALITY_ARGUMENT, currentFile.path, currentFile.lineNumber);
     }
     resetToks();
     consumeToken(T_LBRA);
@@ -1739,22 +1780,6 @@ std::string TPTP::convert(Tag t)
   * @author Ahmed Bhayat
   */
 
-/**
- * Report (at most once per parser run per kind) that Vampire leniently
- * accepted input that is not legal according to the TPTP BNF, explaining
- * the reading it chose.
- */
-void TPTP::nonConformityWarning(NonConformity kind, const std::string& explanation)
-{
-  if (_nonConformityWarned[kind]) {
-    return;
-  }
-  _nonConformityWarned[kind] = true;
-  std::cout << "% WARNING: non-conforming THF input in " << currentFile.path
-            << ", line " << currentFile.lineNumber << ": " << explanation
-            << " (further occurrences of this kind will not be reported in this run)" << endl;
-}
-
 void TPTP::endHolFormula()
 {
   int con = _connectives.pop();
@@ -1777,8 +1802,7 @@ void TPTP::endHolFormula()
     // '~ p = q' reads as '~ (p = q)', consistent with the reading the TPTP
     // BNF mandates for the same text in FOF/TFF.
     if (con == NOT) {
-      nonConformityWarning(NC_NOT_APPLIED_TO_EQUALITY,
-        "'~' applied to an unparenthesized (in)equality is not legal THF; reading '~ s = t' as '~ (s = t)'");
+      nonConformityWarning(NC_NOT_APPLIED_TO_EQUALITY, currentFile.path, currentFile.lineNumber);
     }
     _connectives.push(con);
     _states.push(END_HOL_FORMULA);
@@ -1822,8 +1846,7 @@ void TPTP::endHolFormula()
     //   makes '~ (...)' a complete <thf_prefix_unary>, so a following '@'
     //   belongs to the enclosing context: '^ [X: a] : ~ ( p @ X ) @ y'
     //   applies the lambda (whose body is '~ (p @ X)') to y.
-    nonConformityWarning(NC_UNPARENTHESIZED_APPLICATION,
-      "an unparenthesized application as a connective argument is not legal THF; reading e.g. 'p & f @ x' as 'p & (f @ x)'");
+    nonConformityWarning(NC_UNPARENTHESIZED_APPLICATION, currentFile.path, currentFile.lineNumber);
     if (_lastPushed == FORM) {
       // a parenthesized formula, e.g. '(q | r)' in 'p & (q | r) @ x', becomes
       // the head of the application chain: wrap it as a term first
@@ -1941,8 +1964,7 @@ switch (tag) {
       return;
     }
     if (con == EQ_RHS) {
-      nonConformityWarning(NC_CHAINED_EQUALITY,
-        "a chained equality is not legal THF; reading 'r = s = t' right-associatively as 'r = (s = t)'");
+      nonConformityWarning(NC_CHAINED_EQUALITY, currentFile.path, currentFile.lineNumber);
     }
     // as in endFormula(), restore the pending connective (with its conReverse
     // flag) and re-push END_HOL_FORMULA, so that once the equality atom is
