@@ -1713,7 +1713,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
   }
 
-  if (opt.mode() == Options::Mode::CONSEQUENCE_ELIMINATION) {
+  if (opt.mode() == Mode::CONSEQUENCE_ELIMINATION) {
     res->_consFinder = new ConsequenceFinder();
   }
   if (opt.showSymbolElimination()) {

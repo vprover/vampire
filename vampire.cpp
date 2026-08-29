@@ -102,7 +102,7 @@ Problem* preprocessProblem(Problem* prb)
   TIME_TRACE(TimeTrace::PREPROCESSING);
 
   // this will provide warning if options don't make sense for problem
-  if (env.options->mode() != Options::Mode::SPIDER) {
+  if (env.options->mode() != Mode::SPIDER) {
     env.options->checkProblemOptionConstraints(prb->getProperty(), /*before_preprocessing = */ true);
   }
 
@@ -137,7 +137,7 @@ Problem *doProving(Problem* problem)
   Problem *prb = preprocessProblem(problem);
 
   // this will provide warning if options don't make sense for problem
-  if (env.options->mode() != Options::Mode::SPIDER) {
+  if (env.options->mode() != Mode::SPIDER) {
     env.options->checkProblemOptionConstraints(prb->getProperty(), /*before_preprocessing = */ false);
   }
 
@@ -187,7 +187,7 @@ void preprocessMode(Problem* problem, bool theory)
   // preprocess without clausification
   Shell::Preprocess prepro(*env.options);
   prepro.turnClausifierOff();
-  if(env.options->mode() == Options::Mode::PREPROCESS2){
+  if(env.options->mode() == Mode::PREPROCESS2){
     prepro.keepSimplifyStep();
   }
   prepro.preprocess(*prb);
@@ -266,7 +266,7 @@ void outputMode(Problem* problem)
 
 void vampireMode(Problem* problem)
 {
-  if (env.options->mode() == Options::Mode::CONSEQUENCE_ELIMINATION) {
+  if (env.options->mode() == Mode::CONSEQUENCE_ELIMINATION) {
     env.options->setUnusedPredicateDefinitionRemoval(false);
   }
 
@@ -443,18 +443,18 @@ void dispatchByMode(Problem* problem)
 {
   switch (env.options->mode())
   {
-  case Options::Mode::AXIOM_SELECTION:
+  case Mode::AXIOM_SELECTION:
     axiomSelectionMode(problem);
     break;
-  case Options::Mode::SPIDER:
+  case Mode::SPIDER:
     spiderMode(problem);
     break;
-  case Options::Mode::CONSEQUENCE_ELIMINATION:
-  case Options::Mode::VAMPIRE:
+  case Mode::CONSEQUENCE_ELIMINATION:
+  case Mode::VAMPIRE:
     vampireMode(problem);
     break;
 
-  case Options::Mode::CASC:
+  case Mode::CASC:
     env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
     if (env.options->intent() == Options::Intent::UNSAT) {
       env.options->setSchedule(Options::Schedule::CASC);
@@ -475,7 +475,7 @@ void dispatchByMode(Problem* problem)
     }
     break;
 
-  case Options::Mode::SMTCOMP:
+  case Mode::SMTCOMP:
     env.options->setIgnoreMissing(Options::IgnoreMissing::OFF);
     // env.options->setInputSyntax(Options::InputSyntax::SMTLIB2);
     if(env.options->outputMode() != Options::Output::UCORE){
@@ -502,39 +502,39 @@ void dispatchByMode(Problem* problem)
     }
     break;
 
-  case Options::Mode::PORTFOLIO:
+  case Mode::PORTFOLIO:
     env.options->setIgnoreMissing(Options::IgnoreMissing::WARN);
 
     if (CASC::PortfolioMode::perform(problem)) {
       vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
     }
     break;
-  case Options::Mode::MODEL_CHECK:
+  case Mode::MODEL_CHECK:
     modelCheckMode(problem);
     break;
 
-  case Options::Mode::CLAUSIFY:
+  case Mode::CLAUSIFY:
     clausifyMode(problem,false);
     break;
 
-  case Options::Mode::TCLAUSIFY:
+  case Mode::TCLAUSIFY:
     clausifyMode(problem,true);
     break;
 
-  case Options::Mode::OUTPUT:
+  case Mode::OUTPUT:
     outputMode(problem);
     break;
 
-  case Options::Mode::PROFILE:
+  case Mode::PROFILE:
     profileMode(problem);
     break;
 
-  case Options::Mode::PREPROCESS:
-  case Options::Mode::PREPROCESS2:
+  case Mode::PREPROCESS:
+  case Mode::PREPROCESS2:
     preprocessMode(problem,false);
     break;
 
-  case Options::Mode::TPREPROCESS:
+  case Mode::TPREPROCESS:
     preprocessMode(problem,true);
     break;
   }
@@ -681,7 +681,7 @@ int main(int argc, char* argv[])
         UIHelper::parseStandardInput(opts.inputSyntax());
       } else {
         UIHelper::parseFile(opts.inputFile(),opts.inputSyntax(),
-                            opts.mode() != Options::Mode::SPIDER && opts.mode() != Options::Mode::PROFILE);
+                            opts.mode() != Mode::SPIDER && opts.mode() != Mode::PROFILE);
       }
 
 #if VAMPIRE_PERF_EXISTS
