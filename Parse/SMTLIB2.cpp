@@ -379,7 +379,7 @@ void SMTLIB2::readBenchmark(LExpr* bench)
       
       // can't read anything else (and it does not make sense to read get-unsat-core more than once)
       // so let's just warn and exit
-      if(env.options->mode()!=Options::Mode::SPIDER) {
+      if(env.options->mode()!=Mode::SPIDER) {
         std::cout << "% Warning: check-sat is not the last entry. Skipping the rest!" << endl;
       }
       break;
