@@ -47,7 +47,6 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Int.hpp"
-#include "Lib/Comparison.hpp"
 #include "Lib/Portability.hpp"
 
 #include "Property.hpp"
@@ -125,16 +124,20 @@ enum class Mode : unsigned int {
  * be emitted if an option is used for an inappropriate problem.
  *
  * TODO - this element of Options is still under development
+ * TODO consider merging problem and value constraints?
  */
-
-struct OptionProblemConstraint{
+struct OptionProblemConstraint {
   virtual bool check(Property* p) = 0;
   virtual std::string msg() = 0;
-  virtual ~OptionProblemConstraint() {};
+  virtual ~OptionProblemConstraint() = default;
 };
+
 using OptionProblemConstraintUP = std::unique_ptr<OptionProblemConstraint>;
 
+// break cycle: OptionValueConstraint has methods which take an OptionValue<T> &
+// ...but also OptionValue keep some constraints around
 template<typename T> struct OptionValue;
+
 /**
 * NOTE on OptionValueConstraints
 *
@@ -177,17 +180,14 @@ template<typename T> struct OptionValue;
 
 template<typename T>
 struct OptionValueConstraint {
-  virtual ~OptionValueConstraint() {} // virtual methods present -> there should be virtual destructor
+  virtual ~OptionValueConstraint() = default;
 
   virtual bool check(const OptionValue<T>& value) = 0;
   virtual std::string msg(const OptionValue<T>& value) = 0;
 
   // By default cannot force constraint
   virtual bool force(OptionValue<T>* value){ return false;}
-  // TODO - allow for hard constraints
-  bool isHard(){ return _hard; }
-  void setHard(){ _hard=true;}
-  bool _hard = false;
+  bool hard = false;
 };
 
 template<typename T>
@@ -195,6 +195,7 @@ using OptionValueConstraintUP = std::unique_ptr<OptionValueConstraint<T>>;
 
 // A Wrapped Constraint takes an OptionValue and a Constraint
 // It allows us to supply a constraint on another OptionValue in an If constraint for example
+// TODO can this just be typecast to a different OptionValueConstraint<T>?
 struct AbstractWrappedConstraint {
   virtual bool check() = 0;
   virtual std::string msg() = 0;
@@ -214,8 +215,8 @@ using AbstractWrappedConstraintUP = std::unique_ptr<AbstractWrappedConstraint>;
  */
 struct AbstractOptionValue {
     AbstractOptionValue(){}
-    AbstractOptionValue(std::string l,std::string s) :
-    longName(l), shortName(s), experimental(false), is_set(false),_should_copy(true), _tag(OptionTag::LAST_TAG) {}
+    AbstractOptionValue(std::string_view l,std::string_view s)
+        : longName(l), shortName(s) {}
 
     // Never copy an OptionValue... the Constraint system would break
     AbstractOptionValue(const AbstractOptionValue&) = delete;
@@ -239,29 +240,14 @@ struct AbstractOptionValue {
       return okay;
     }
 
-    // Experimental options are not included in help
-    void setExperimental(){experimental=true;}
-
-    // Meta-data
-    std::string longName;
-    std::string shortName;
-    std::string description;
-    bool experimental;
-    bool is_set;
-
     // Checking constraints
     virtual bool checkConstraints() = 0;
     virtual bool checkProblemConstraints(Property* prop) = 0;
 
-    // Tagging: options can be filtered by mode and are organised by Tag in showOptions
-    void tag(OptionTag tag){ ASS(_tag==OptionTag::LAST_TAG);_tag=tag; }
-    void tag(Mode mode){ _modes.push(mode); }
-
-    OptionTag getTag(){ return _tag;}
-    bool inMode(Mode mode){
-        if(_modes.isEmpty()) return true;
-        else return _modes.find(mode);
-    }
+    // Used to determine whether the value of an option should be copied when
+    // the Options object is copied.
+    // currently only false for `decode` for some reason?
+    virtual bool shouldCopy() { return true; }
 
     // This allows us to get the actual value in string form
     virtual std::string getStringOfActual() const = 0;
@@ -269,52 +255,16 @@ struct AbstractOptionValue {
     virtual bool isDefault() const = 0;
 
     // For use in showOptions and explainOption
-    virtual void output(std::ostream& out,bool linewrap) const {
-        out << "--" << longName;
-        if(!shortName.empty()){ out << " (-"<<shortName<<")"; }
-        out << std::endl;
+    virtual void output(std::ostream &out, bool linewrap) const;
 
-        if (experimental) {
-          out << "\t[experimental]" << std::endl;
-        }
+    std::string_view longName;
+    std::string_view shortName;
+    std::string_view description;
+    bool experimental = false;
+    bool is_set = false;
 
-
-        if(!description.empty()){
-            // Break a the description into lines where there have been at least 70 characters
-            // on the line at the next space
-            out << "\t";
-            int count=0;
-            for(const char* p = description.c_str();*p;p++){
-                out << *p;
-                count++;
-                if(linewrap && count>70 && *p==' '){
-                    out << std::endl << '\t';
-                    count=0;
-                }
-                if(*p=='\n'){ count=0; out << '\t'; }
-            }
-            out << std::endl;
-        }
-        else{ out << "\tno description provided!" << std::endl; }
-    }
-
-    // Used to determine whether the value of an option should be copied when
-    // the Options object is copied.
-    bool _should_copy;
-    bool shouldCopy() const { return _should_copy; }
-
-private:
-    // Tag state
-    OptionTag _tag;
-    Lib::Stack<Mode> _modes;
-};
-
-struct AbstractOptionValueCompatator{
-  Comparison compare(AbstractOptionValue* o1, AbstractOptionValue* o2)
-  {
-    int value = strcmp(o1->longName.c_str(),o2->longName.c_str());
-    return value < 0 ? LESS : (value==0 ? EQUAL : GREATER);
-  }
+    // Tagging: options can be filtered by mode and are organised by Tag in showOptions
+    OptionTag tag = OptionTag::LAST_TAG;
 };
 
 /**
@@ -329,6 +279,7 @@ struct OptionValue : public AbstractOptionValue {
     // We need to include an empty constructor as all the OptionValue objects need to be initialized
     // with something when the Options object is created. They should then all be reconstructed
     // This is annoying but preferable to the alternative in my opinion
+    // TODO could actually be done if Options::init() becomes the Options constructor?
     OptionValue(){}
     OptionValue(std::string l, std::string s,T def) : AbstractOptionValue(l,s),
     defaultValue(def), actualValue(def){}
@@ -347,7 +298,7 @@ struct OptionValue : public AbstractOptionValue {
     // By default constraints are soft and reaction to them is controlled by the bad_option option
     // But a constraint can be added as Hard, meaning that it always causes a UserError
     void addConstraint(OptionValueConstraintUP<T> c){ _constraints.push(std::move(c)); }
-    void addHardConstraint(OptionValueConstraintUP<T> c){ c->setHard();addConstraint(std::move(c)); }
+    void addHardConstraint(OptionValueConstraintUP<T> c){ c->hard = true; addConstraint(std::move(c)); }
 
     // A onlyUsefulWith constraint gives a constraint that must be true if this option's value is set
     // For example, split_at_activation is only useful with splitting being on
@@ -358,10 +309,9 @@ struct OptionValue : public AbstractOptionValue {
     // similar to onlyUsefulWith, except the trigger is a non-default value
     // (as opposed to the explicitly-set flag)
     // we use it for selection and awr which cannot be not set via the decode string
+    // TODO why not? ott+11_5:1_.... seems alright to me
     void onlyUsefulWith2(AbstractWrappedConstraintUP c);
     void onlyUsefulWith2(OptionValueConstraintUP<T> c);
-
-    virtual OptionValueConstraintUP<T> getNotDefault();
 
     // similar to onlyUsefulWith2, except its a hard constraint,
     // so that the user is strongly aware of situations when changing the
@@ -459,15 +409,13 @@ public:
      *
      * The problem name is computed from the input file name in
      * the @b setInputFile function. If the input file is not set,
-     * the problem name is equal to "unknown". The problem name can
-     * be set to a specific value using setProblemName().
+     * the problem name is equal to "unknown".
      */
-    const std::string& problemName () const { return _problemName.actualValue; }
-    void setProblemName(std::string str) { _problemName.actualValue = str; }
+    std::string problemName = "unknown";
 
     void setInputFile(const std::string& newVal){ _inputFile.set(newVal); }
 
-    // standard ways of creating options
+    // standard ways of setting options
     void set(const std::string& name, const std::string& value); // implicitly the long version used here
     void set(const char* name, const char* value, bool longOpt);
 
@@ -1284,14 +1232,17 @@ private:
 Options* parent;
 
 };
+
 /**
 * We need to decode the encoded option string
 * @author Giles
+*
+* TODO this isn't really an option, more like a series of options?
 */
 struct DecodeOptionValue : public OptionValue<std::string>{
-DecodeOptionValue(){ AbstractOptionValue::_should_copy=false;}
-DecodeOptionValue(std::string l,std::string s,Options* p):
-OptionValue(l,s,""), parent(p){ AbstractOptionValue::_should_copy=false;}
+    DecodeOptionValue() = default;
+    DecodeOptionValue(std::string l,std::string s,Options* p)
+        : OptionValue(l,s,""), parent(p){}
 
 bool setValue(const std::string& value) override{
     parent->readFromEncodedOptions(value);
@@ -1300,7 +1251,7 @@ bool setValue(const std::string& value) override{
 std::string getStringOfValue(std::string value) const override{ return value; }
 
 private:
-Options* parent;
+Options* parent = nullptr;
 
 };
 /**
@@ -1322,7 +1273,6 @@ void output(std::ostream& out,bool linewrap) const override {
 std::string getStringOfValue(int value) const override{ return Lib::Int::toString(value)+"d"; }
 };
 
-private:
   //==========================================================
   // Getter functions
   // -currently disabled all unnecessary setter functions
@@ -1715,12 +1665,9 @@ private:
      * A LookupWrapper is used to wrap up two maps for long and short names and query them
      */
     struct LookupWrapper {
-
-        LookupWrapper() {}
-
-        private:
-          LookupWrapper operator=(const LookupWrapper&){ NOT_IMPLEMENTED;}
-        public:
+        LookupWrapper() = default;
+        LookupWrapper(const LookupWrapper &) = delete;
+        LookupWrapper &operator=(const LookupWrapper &) = delete;
 
         void insert(AbstractOptionValue* option_value){
             ASS(!option_value->longName.empty());
@@ -1732,11 +1679,11 @@ private:
             if(!new_long || !new_short){ std::cout << "Bad " << option_value->longName << std::endl; }
             ASS(new_long && new_short);
         }
-        AbstractOptionValue* findLong(std::string longName) const{
+        AbstractOptionValue* findLong(std::string_view longName) const{
             if(!_longMap.find(longName)){ throw ValueNotFoundException(); }
             return _longMap.get(longName);
         }
-        AbstractOptionValue* findShort(std::string shortName) const{
+        AbstractOptionValue* findShort(std::string_view shortName) const{
             if(!_shortMap.find(shortName)){ throw ValueNotFoundException(); }
             return _shortMap.get(shortName);
         }
@@ -1746,14 +1693,12 @@ private:
         }
 
     private:
-        DHMap<std::string,AbstractOptionValue*> _longMap;
-        DHMap<std::string,AbstractOptionValue*> _shortMap;
-    };
-
-    LookupWrapper _lookup;
+        DHMap<std::string_view,AbstractOptionValue*> _longMap;
+        DHMap<std::string_view,AbstractOptionValue*> _shortMap;
+    } _lookup;
 
     // The const is a lie - we can alter the resulting OptionValue
-    AbstractOptionValue* getOptionValueByName(std::string name) const{
+    AbstractOptionValue* getOptionValueByName(std::string_view name) const{
         try{
           return _lookup.findLong(name);
         }
@@ -1766,8 +1711,8 @@ private:
           }
         }
     }
-  
-    Stack<std::string> getSimilarOptionNames(std::string name, bool is_short) const;
+
+    Stack<std::string_view> getSimilarOptionNames(std::string_view name, bool is_short) const;
 
     //==========================================================
     // Variables holding option values
@@ -1980,7 +1925,6 @@ private:
   StringOptionValue _printProofToFile;
   BoolOptionValue _printClausifierPremises;
   BoolOptionValue _replaceDomainElements;
-  StringOptionValue _problemName;
   ChoiceOptionValue<Proof> _proof;
   BoolOptionValue _minimizeSatProofs;
   ChoiceOptionValue<ProofExtra> _proofExtra;
