@@ -477,7 +477,7 @@ std::string TPTPPrinter::universalPrefix(const Unit* unit)
   vars.sort([&varSorts](unsigned v1, unsigned v2) {
     bool t1 = varSorts.get(v1).isTerm() && varSorts.get(v1).term()->isSuper();
     bool t2 = varSorts.get(v2).isTerm() && varSorts.get(v2).term()->isSuper();
-    return t1 != t2 ? t1 : v1 < v2;
+    return (t1 != t2) ? t1 : (v1 < v2);
   });
 
   std::ostringstream res;
