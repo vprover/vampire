@@ -38,132 +38,65 @@ using namespace Indexing;
 using namespace Saturation;
 
 /**
- * Iterator that yields the same number of elements as there are inferences
- * that can be performed with a clause that has the literal passed to
- * the constructor selected
- */
-struct LookaheadLiteralSelector::GenIteratorIterator
-{
-  using TermIndex = Indexing::TermIndex<TermLiteralClause>;
-  DECL_ELEMENT_TYPE(VirtualIterator<std::tuple<>>);
-
-  GenIteratorIterator(Literal* lit, LookaheadLiteralSelector& parent) : stage(0), lit(lit), prepared(false), _parent(parent)
-  { ASS(!env.higherOrder()); }
-
-  bool hasNext()
-  {
-    if(prepared) {
-      return true;
-    }
-
-    SaturationAlgorithm* salg=SaturationAlgorithm::tryGetInstance();
-    if(!salg) {
-      static bool errAnnounced = false;
-      if(!errAnnounced) {
-	errAnnounced = true;
-  std::cout<<"Using LookaheadLiteralSelector without having an SaturationAlgorithm object\n";
-      }
-      //we are too early, there's no saturation algorithm and therefore no generating inferences
-      prepared=false;
-      return false;
-    }
-
-  start:
-    switch(stage) {
-    case 0:  //resolution
-    {
-      auto gli = salg->tryGetGeneratingIndex<BinaryResolutionIndex>();
-      if(!gli) { stage++; goto start; }
-
-      nextIt=pvi( dropElementType(gli->getUnifications(lit,true,false)) );
-      break;
-    }
-    case 1:  //backward superposition
-    {
-      auto bsi = salg->tryGetGeneratingIndex<SuperpositionSubtermIndex</*higherOrder=*/false>>();
-      if(!bsi) { stage++; goto start; }
-
-      nextIt=pvi( getMapAndFlattenIterator(
-	       EqHelper::getLHSIterator(lit, _parent._ord),
-	       TermUnificationRetriever(bsi.get())) );
-      break;
-    }
-    case 2:  //forward superposition
-    {
-      auto fsi=salg->tryGetGeneratingIndex<SuperpositionLHSIndex>();
-      if(!fsi) { stage++; goto start; }
-
-      nextIt=pvi( getMapAndFlattenIterator(
-	       EqHelper::getSubtermIterator</*higherOrder=*/false>(lit, _parent._ord), //TODO update for HO superposition
-	       TermUnificationRetriever(fsi.get())) );
-      break;
-    }
-    case 3:  //equality resolution
-    {
-      bool haveEqRes=false;
-      if(lit->isNegative() && lit->isEquality()) {
-	RobSubstitution rs;
-	if(rs.unify(*lit->nthArgument(0), 0, *lit->nthArgument(1), 0)) {
-	  haveEqRes=true;
-	  nextIt=pvi( dropElementType(getSingletonIterator(0)) );
-	}
-      }
-      if(!haveEqRes) {
-	stage++;
-	goto start;
-      }
-      break;
-    }
-    default:
-      ASSERTION_VIOLATION;
-    case 4:  //finish
-    {
-      prepared=false;
-      return false;
-    }
-    }
-    prepared=true;
-    return true;
-  }
-
-  VirtualIterator<std::tuple<>> next()
-  {
-    if(!prepared) {
-      ALWAYS(hasNext());
-    }
-    ASS(prepared);
-    prepared=false;
-    stage++;
-    return std::move(nextIt);
-  }
-private:
-
-  struct TermUnificationRetriever
-  {
-    TermUnificationRetriever(TermIndex* index) : _index(index) {}
-    VirtualIterator<std::tuple<>> operator()(TypedTermList trm)
-    {
-      return pvi(dropElementType(_index->getUnifications(trm, /* retrieveSubst */ false)));
-    }
-  private:
-    TermIndex* _index;
-  };
-
-  int stage;
-  Literal* lit;
-  bool prepared;
-  VirtualIterator<std::tuple<>> nextIt;
-
-  LookaheadLiteralSelector& _parent;
-};
-
-/**
  * Return iterator with the same number of elements as there are inferences
  * that can be performed with @b lit literal selected
  */
 VirtualIterator<std::tuple<>> LookaheadLiteralSelector::getGeneraingInferenceIterator(Literal* lit)
 {
-  return pvi( getFlattenedIterator(GenIteratorIterator(lit, *this)) );
+  return pvi(generatingInferences(lit));
+}
+
+/**
+ * Yield one (empty) element for each inference that could be performed with a clause
+ * that has @b lit selected. Only the *number* of elements matters -- see pickTheBest,
+ * which races these iterators against each other and stops as soon as one runs dry, so
+ * the elements themselves are never inspected and the substitutions are not retrieved.
+ *
+ * Being a coroutine matters here beyond readability: the index handles below are frame
+ * locals, so each stays alive for exactly as long as the query walking into it. In the
+ * hand-written state machine they were locals of hasNext() that died at the end of their
+ * case block, while the iterator they had been queried from lived on -- which only
+ * worked because the IndexManager keeps the index alive independently.
+ */
+Generator<std::tuple<>> LookaheadLiteralSelector::generatingInferences(Literal* lit)
+{
+  ASS(!env.higherOrder());
+
+  SaturationAlgorithm* salg=SaturationAlgorithm::tryGetInstance();
+  if(!salg) {
+    static bool errAnnounced = false;
+    if(!errAnnounced) {
+      errAnnounced = true;
+      std::cout<<"Using LookaheadLiteralSelector without having an SaturationAlgorithm object\n";
+    }
+    //we are too early, there's no saturation algorithm and therefore no generating inferences
+    co_return;
+  }
+
+  //resolution
+  if(auto gli = salg->tryGetGeneratingIndex<BinaryResolutionIndex>())
+    for([[maybe_unused]] auto qr : iterTraits(gli->getUnifications(lit, /* complementary */ true, /* retrieveSubst */ false)))
+      co_yield {};
+
+  //backward superposition
+  if(auto bsi = salg->tryGetGeneratingIndex<SuperpositionSubtermIndex</*higherOrder=*/false>>())
+    for(TypedTermList lhs : iterTraits(EqHelper::getLHSIterator(lit, _ord)))
+      for([[maybe_unused]] auto qr : iterTraits(bsi->getUnifications(lhs, /* retrieveSubst */ false)))
+        co_yield {};
+
+  //forward superposition
+  if(auto fsi = salg->tryGetGeneratingIndex<SuperpositionLHSIndex>())
+    //TODO update for HO superposition
+    for(Term* trm : iterTraits(EqHelper::getSubtermIterator</*higherOrder=*/false>(lit, _ord)))
+      for([[maybe_unused]] auto qr : iterTraits(fsi->getUnifications(TypedTermList(trm), /* retrieveSubst */ false)))
+        co_yield {};
+
+  //equality resolution
+  if(lit->isNegative() && lit->isEquality()) {
+    RobSubstitution rs;
+    if(rs.unify(*lit->nthArgument(0), 0, *lit->nthArgument(1), 0))
+      co_yield {};
+  }
 }
 
 /**

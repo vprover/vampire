@@ -16,6 +16,7 @@
 #define __LookaheadLiteralSelector__
 
 #include "Forwards.hpp"
+#include "Lib/Generator.hpp"
 #include "Shell/Options.hpp"
 #include "LiteralSelector.hpp"
 
@@ -47,8 +48,7 @@ private:
   Literal* pickTheBest(Literal** lits, unsigned cnt);
   void removeVariants(LiteralStack& lits);
   VirtualIterator<std::tuple<>> getGeneraingInferenceIterator(Literal* lit);
-
-  struct GenIteratorIterator;
+  Lib::Generator<std::tuple<>> generatingInferences(Literal* lit);
 
   bool _completeSelection;
   LiteralSelector* _startupSelector;
