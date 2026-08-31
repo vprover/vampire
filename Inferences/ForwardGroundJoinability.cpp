@@ -99,7 +99,7 @@ bool ForwardGroundJoinability<higherOrder>::perform(Clause* cl, Clause*& replace
         continue;
       }
 
-      auto git = _index->getGeneralizations(trm.term(), /* retrieveSubstitutions */ true);
+      auto git = _index->getGeneralizations(trm.term());
       while(git.hasNext()) {
         auto qr=git.next();
         ASS_EQ(qr.data->clause->length(),1);
@@ -115,7 +115,7 @@ bool ForwardGroundJoinability<higherOrder>::perform(Clause* cl, Clause*& replace
         }
 
         TermList rhs = qr.data->rhs;
-        AppliedTerm rhsApplied(rhs, qr.unifier, true);
+        AppliedTerm rhsApplied(rhs, &qr.unifier, true);
 
 #if VDEBUG
         POStruct dpo_struct(tpo);
@@ -133,7 +133,7 @@ bool ForwardGroundJoinability<higherOrder>::perform(Clause* cl, Clause*& replace
 #endif
 
         POStruct po_struct(tpo);
-        if (!TermOrderingDiagram::extendVarsGreater(qr.data->tod.get(), qr.unifier, po_struct)) {
+        if (!TermOrderingDiagram::extendVarsGreater(qr.data->tod.get(), &qr.unifier, po_struct)) {
           // TODO this check sometimes fails when the debug code can detect the
           // extension to get GREATER due to elimination of linear expressions
           // ASS(!success);

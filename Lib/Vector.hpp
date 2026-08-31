@@ -22,6 +22,7 @@
 
 #include "Debug/Assertion.hpp"
 #include "Allocator.hpp"
+#include "Reflection.hpp"
 
 namespace Indexing {
   class CodeTree;

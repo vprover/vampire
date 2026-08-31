@@ -36,7 +36,7 @@ bool ForwardLiteralRewriting::perform(Clause* cl, Clause*& replacement, ClauseIt
 
   for(unsigned i=0;i<clen;i++) {
     Literal* lit=(*cl)[i];
-    auto git = _index->getGeneralizations(lit, lit->isNegative(), true);
+    auto git = _index->getGeneralizations(lit, lit->isNegative());
     while(git.hasNext()) {
       auto qr = git.next();
       Clause* counterpart=_index->getCounterpart(qr.data->clause);
@@ -57,7 +57,7 @@ bool ForwardLiteralRewriting::perform(Clause* cl, Clause*& replacement, ClauseIt
       //Due to the way we build the _index, we know that rhs contains only
       //variables present in qr.data->literal
       ASS(qr.data->literal->containsAllVariablesOf(rhs));
-      auto rhsS = subs->apply(rhs);
+      auto rhsS = subs.apply(rhs);
 
       if(_ord.compare(lit, rhsS)!=Ordering::GREATER) {
   continue;

@@ -99,7 +99,7 @@ bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement,
 
       bool redundancyCheck = _helper.redundancyCheckNeededForPremise(cl, lit, trm);
 
-      auto git = _index->getGeneralizations(trm.term(), /* retrieveSubstitutions */ true);
+      auto git = _index->getGeneralizations(trm.term());
       while(git.hasNext()) {
         auto qr=git.next();
         ASS_EQ(qr.data->clause->length(),1);
@@ -114,7 +114,7 @@ bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement,
 
         auto lhs = qr.data->term;
         auto subs = qr.unifier;
-        AppliedTerm rhsApplied(qr.data->rhs,subs,true);
+        AppliedTerm rhsApplied(qr.data->rhs,&subs,true);
         bool preordered = qr.data->preordered;
 
         ASS_EQ(_ord.compare(trm,rhsApplied),Ordering::reverse(_ord.compare(rhsApplied,trm)));
@@ -123,7 +123,7 @@ bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement,
 #if VDEBUG
           auto dcomp = _ord.compareUnidirectional(trm,rhsApplied);
 #endif
-          qr.data->tod->init(subs);
+          qr.data->tod->init(&subs);
           if (!preordered && (_preorderedOnly || !qr.data->tod->next())) {
             ASS_NEQ(dcomp,Ordering::GREATER);
             continue;
@@ -149,7 +149,7 @@ bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement,
 
         TermList rhsS = rhsApplied.apply();
 
-        if (redundancyCheck && !_helper.isPremiseRedundant(cl, lit, trm, rhsS, lhs, subs)) {
+        if (redundancyCheck && !_helper.isPremiseRedundant(cl, lit, trm, rhsS, lhs, &subs)) {
           continue;
         }
 

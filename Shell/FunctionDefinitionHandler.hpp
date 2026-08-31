@@ -101,7 +101,7 @@ public:
     if (_is.isEmpty()) {
       return VirtualIterator<GenSubstitutionQR<TermLiteralClause>>::getEmpty();
     }
-    return _is->getGeneralizations(t, true);
+    return _is->getGeneralizations(t);
   }
 
   const RecursionTemplate* getRecursionTemplate(Term* t) const {

@@ -9,7 +9,6 @@
  */
 
 #include "Indexing/CodeTreeInterfaces.hpp"
-#include "Lib/DArray.hpp"
 
 #include "Test/UnitTesting.hpp"
 #include "Test/TestUtils.hpp"
@@ -66,9 +65,9 @@ void check_inst(LiteralSubstitutionTree<Data>& tree, Literal* key, Stack<Data> e
       { return tree.getInstances(key, complementary, /* retrieveSubstitutions */ true); }); }
 
 template<class Data>
-void check_gen(CodeTreeLIS<Data>& tree, Literal* key, Stack<Data> expected)
+void check_gen(CodeTreeLIS</*higherOrder=*/false, Data>& tree, Literal* key, Stack<Data> expected)
 { return check_lit("getGen", tree, key, expected, [&](Literal* key, bool complementary) 
-      { return tree.getGeneralizations(key, complementary, /* retrieveSubstitutions */ true); }); }
+      { return tree.getGeneralizations(key, complementary); }); }
 
 
 template<class Data>
@@ -294,8 +293,6 @@ TEST_FUN(zero_arity_predicate) {
   check_unify(tree, a != a, Stack<Data>{});
 }
 
-// template class Indexing::LiteralCodeTree<MyData<Kernel::Literal*>>;
-
 // TEST_FUN(zero_arity_predicate_gen) {
 
 //   DECL_DEFAULT_VARS
@@ -306,7 +303,7 @@ TEST_FUN(zero_arity_predicate) {
 //   DECL_PRED(p1, {srt})
 
 //   using Data = MyData<Literal*>;
-//   CodeTreeLIS<Data> tree;
+//   CodeTreeLIS</*higherOrder=*/false, Data> tree;
 //   auto dat = [](Literal* k,std::string s) { return Data(k, std::move(s)); };
 //   tree.handle(dat( p0() , " p0()"), /*insert=*/true);
 //   tree.handle(dat( p1(a), " p1(a)"), /*insert=*/true);

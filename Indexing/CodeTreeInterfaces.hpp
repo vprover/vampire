@@ -36,36 +36,75 @@ class GenSubstitution
   : public SubstApplicator
 {
 public:
-  GenSubstitution(CodeTree::BindingArray* bindings, Renaming* resultNormalizer)
+  GenSubstitution(const CodeTree::BindingArray& bindings, const Renaming& resultNormalizer)
   : _bindings(bindings), _resultNormalizer(resultNormalizer) {}
 
   TermList apply(unsigned var) const override {
-    if constexpr (is_indexed_data_normalized<Data>::value) {
-      return (*_bindings)[var];
-    } else {
-      ASS(_resultNormalizer->contains(var));
-      unsigned nvar=_resultNormalizer->get(var);
-      TermList res=(*_bindings)[nvar];
-      ASS(res.isTerm()||res.isOrdinaryVar());
-      ASSERT_VALID(res);
-      return res;
+    if constexpr (!is_indexed_data_normalized<Data>::value) {
+      ASS(_resultNormalizer.contains(var));
+      var = _resultNormalizer.get(var);
     }
+    return _bindings[var];
   }
 
-  TermList apply(TermList t) const {
-    return SubstHelper::apply(t, *this);
-  }
+  template<typename Val> Val apply(Val v) const
+  { return SubstHelper::apply(v, *this); }
 
-  Literal* apply(Literal* lit) const {
-    return SubstHelper::apply(lit, *this);
-  }
 private:
-  CodeTree::BindingArray* _bindings;
-  Renaming* _resultNormalizer;
+  const CodeTree::BindingArray& _bindings;
+  const Renaming& _resultNormalizer;
 };
 
 template<typename Data>
-using GenSubstitutionQR = QueryRes<const GenSubstitution<Data>*, Data>;
+using GenSubstitutionQR = QueryRes<const GenSubstitution<Data>&, Data>;
+
+template<typename Data, typename Matcher>
+class ResultIterator
+  : public IteratorCore<GenSubstitutionQR<Data>>
+{
+public:
+  template<typename ...Args>
+  ResultIterator(const CodeTree& tree, Args... args)
+  : _subst(_matcher->bindings, *_resultNormalizer)
+  {
+    _matcher->init(tree, args...);
+  }
+
+  USE_ALLOCATOR(ResultIterator);
+
+  bool hasNext() override
+  {
+    if(_found) {
+      return true;
+    }
+    if(_finished) {
+      return false;
+    }
+    _found = _matcher->next();
+    if(!_found) {
+      _finished=true;
+    }
+    return _found;
+  }
+
+  GenSubstitutionQR<Data> next() override
+  {
+    ASS(_found);
+    if constexpr (!is_indexed_data_normalized<Data>::value) {
+      _resultNormalizer->reset();
+      _resultNormalizer->normalizeVariables(_found->key());
+    }
+    auto out = GenSubstitutionQR<Data>(_subst, _found);
+    _found = nullptr;
+    return out;
+  }
+private:
+  Recycled<Renaming> _resultNormalizer;
+  Data* _found = nullptr;
+  bool _finished = false;
+  Recycled<Matcher> _matcher;
+  GenSubstitution<Data> _subst;
+};
 
 /**
  * Term indexing structure using code trees to retrieve generalizations
@@ -85,18 +124,22 @@ public:
     }
   }
 
-  VirtualIterator<GenSubstitutionQR<Data>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true) const;
+  VirtualIterator<GenSubstitutionQR<Data>> getGeneralizations(TypedTermList t) const {
+    if(_ct.isEmpty()) {
+      return VirtualIterator<GenSubstitutionQR<Data>>::getEmpty();
+    }
+
+    return vi( new ResultIterator<Data, typename TermCodeTree<higherOrder, Data>::TermMatcher>(_ct, t) );
+  }
 
 private:
-  class ResultIterator;
-
   TermCodeTree<higherOrder, Data> _ct;
 };
 
 /**
  * Literal indexing structure using code trees to retrieve generalizations
  */
-template<class Data>
+template<bool higherOrder, class Data>
 class CodeTreeLIS
 {
 public:
@@ -111,15 +154,19 @@ public:
     }
   }
 
-  VirtualIterator<GenSubstitutionQR<Data>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions = true) const;
+  auto getGeneralizations(Literal* lit, bool complementary) const
+  {
+    if(_ct.isEmpty()) {
+      return VirtualIterator<GenSubstitutionQR<Data>>::getEmpty();
+    }
+    return vi( new ResultIterator<Data, typename LiteralCodeTree<higherOrder, Data>::LiteralMatcher>(_ct, lit, complementary) );
+  }
 
-  friend std::ostream& operator<<(std::ostream& out, Output::Multiline<CodeTreeLIS<Data>> const& self)
+  friend std::ostream& operator<<(std::ostream& out, Output::Multiline<CodeTreeLIS<higherOrder, Data>> const& self)
   { return out << self.self._ct; }
 
 private:
-  class ResultIterator;
-
-  LiteralCodeTree<Data> _ct;
+  LiteralCodeTree<higherOrder, Data> _ct;
 };
 
 template<bool higherOrder>
@@ -130,9 +177,17 @@ public:
   CodeTreeSubsumptionIndex(SaturationAlgorithm&) {}
   ClauseCodeTree<higherOrder>* getClauseCodeTree() { return &_ct; }
 protected:
-  void handleClause(Clause* c, bool adding) override;
-private:
+  void handleClause(Clause* c, bool adding) override {
+    TIME_TRACE("codetree subsumption index maintenance");
 
+    if(adding) {
+      _ct.insert(c);
+    }
+    else {
+      _ct.remove(c);
+    }
+  }
+private:
   ClauseCodeTree<higherOrder> _ct;
 };
 

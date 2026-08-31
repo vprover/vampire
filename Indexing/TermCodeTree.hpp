@@ -18,7 +18,6 @@
 #include "Forwards.hpp"
 
 #include "Lib/Allocator.hpp"
-#include "Lib/Stack.hpp"
 
 #include "Kernel/TypedTermList.hpp"
 
@@ -40,16 +39,6 @@ protected:
 public:
   void insert(Data* data);
   void remove(const Data& data);
-
-private:
-  struct RemovingTermMatcher
-  : public Matcher</*removing*/true,false,higherOrder>
-  {
-  public:
-    using Base = Matcher</*removing*/true,false,higherOrder>;
-
-    void init(FlatTerm* ft_, const TermCodeTree& tree_, Stack<CodeOp*>* firstsInBlocks_);
-  };
 
 public:
   struct TermMatcher

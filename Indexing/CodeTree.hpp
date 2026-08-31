@@ -438,6 +438,22 @@ public:
     size_t curLInfo;
   };
 
+  template<bool higherOrder>
+  struct RemovingMatcher
+  : public Matcher</*removing=*/true,/*checkRange=*/false,higherOrder>
+  {
+  public:
+    using Base = Matcher</*removing*/true,false,higherOrder>;
+
+    void init(FlatTerm* ft_, const CodeTree& tree_, Stack<CodeOp*>* firstsInBlocks_) {
+      Base::init(tree_, tree_.getEntryPoint(), /*linfos_=*/0, /*linfoCnt_=*/0, firstsInBlocks_);
+      Base::firstsInBlocks->push(Base::entry);
+      Base::ft=ft_;
+      Base::tp=0;
+      Base::op=Base::entry;
+    }
+  };
+
   //////// auxiliary methods //////////
 
   inline bool isEmpty() const { return !_entryPoint; }

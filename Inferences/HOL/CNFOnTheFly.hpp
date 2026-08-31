@@ -30,7 +30,7 @@ public:
     _ct.handle(TermWithValue<TermList>(TypedTermList(formula.term()), skolem), /*insert=*/true);
   }
   auto getSkolem(Term* forTerm) {
-    return _ct.getGeneralizations(TypedTermList(forTerm), true);
+    return _ct.getGeneralizations(TypedTermList(forTerm));
   }
 private:
   CodeTreeTIS<true, TermWithValue<TermList>> _ct;

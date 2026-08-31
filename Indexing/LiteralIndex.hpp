@@ -18,7 +18,6 @@
 
 #include "Indexing/CodeTreeInterfaces.hpp"
 #include "Indexing/LiteralSubstitutionTree.hpp"
-#include "Lib/Output.hpp"
 #include "Lib/DHMap.hpp"
 
 #include "Index.hpp"
@@ -29,14 +28,14 @@ class NonGeneralizingLiteralIndex
 : public Index
 {
 public:
-  VirtualIterator<QueryRes<ResultSubstitutionSP, LiteralClause>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
+  auto getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
   { return _is.getUnifications(lit, complementary, retrieveSubstitutions); }
 
-  VirtualIterator<QueryRes<AbstractingUnifier*, LiteralClause>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
+  auto getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
   { return _is.getUwa(lit, complementary, uwa, fixedPointIteration); }
 
   template<bool higherOrder>
-  VirtualIterator<QueryRes<ResultSubstitutionSP, LiteralClause>> getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
+  auto getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
   {
     if constexpr (higherOrder) {
       // TODO(HOL): implement proper higher-order matching here
@@ -52,9 +51,6 @@ public:
     }
   }
 
-  friend std::ostream& operator<<(std::ostream& out, NonGeneralizingLiteralIndex const& self) { return out << self._is; }
-  friend std::ostream& operator<<(std::ostream& out, Output::Multiline<NonGeneralizingLiteralIndex>const& self) { return out << Output::multiline(self.self._is, self.indent); }
-
 protected:
   void handle(LiteralClause data, bool add)
   { _is.handle(std::move(data), add); }
@@ -66,14 +62,15 @@ class GeneralizingLiteralIndex
 : public Index
 {
 public:
-  VirtualIterator<GenSubstitutionQR<LiteralClause>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions = true) const
-  { return _is.getGeneralizations(lit, complementary, retrieveSubstitutions); }
+  auto getGeneralizations(Literal* lit, bool complementary) const
+  { return _is.getGeneralizations(lit, complementary); }
 
 protected:
   void handle(LiteralClause data, bool add)
   { _is.handle(std::move(data), add); }
 
-  CodeTreeLIS<LiteralClause> _is;
+  // TODO make this work for higher order too
+  CodeTreeLIS</*higherOrder=*/false, LiteralClause> _is;
 };
 
 class BinaryResolutionIndex

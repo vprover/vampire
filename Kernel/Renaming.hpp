@@ -60,7 +60,7 @@ public:
   }
   unsigned get(unsigned v) const
   { return _data.get(v); }
-  bool contains(unsigned v)
+  bool contains(unsigned v) const
   { return _data.find(v); }
 
   Literal* apply(Literal* l);

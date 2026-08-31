@@ -25,22 +25,22 @@ namespace Indexing
 using namespace Lib;
 using namespace Kernel;
 
-template<class Data>
-void LiteralCodeTree<Data>::onCodeOpDestroying(CodeOp* op)
+template<bool higherOrder, class Data>
+void LiteralCodeTree<higherOrder, Data>::onCodeOpDestroying(CodeOp* op)
 {
   if (op->isSuccess()) {
     delete op->getSuccessResult<Data>();
   }
 }
 
-template<class Data>
-LiteralCodeTree<Data>::LiteralCodeTree()
+template<bool higherOrder, class Data>
+LiteralCodeTree<higherOrder, Data>::LiteralCodeTree()
 {
   _containsLiterals = true;
 }
 
-template<class Data>
-void LiteralCodeTree<Data>::insert(Data* data)
+template<bool higherOrder, class Data>
+void LiteralCodeTree<higherOrder, Data>::insert(Data* data)
 {
   Recycled<CodeStack> code;
 
@@ -54,15 +54,15 @@ void LiteralCodeTree<Data>::insert(Data* data)
   ASS(code->isEmpty());
 }
 
-template<class Data>
-void LiteralCodeTree<Data>::remove(const Data& data)
+template<bool higherOrder, class Data>
+void LiteralCodeTree<higherOrder, Data>::remove(const Data& data)
 {
-  static RemovingLiteralMatcher rtm;
+  static RemovingMatcher<higherOrder> rtm;
   static Stack<CodeOp*> firstsInBlocks;
   firstsInBlocks.reset();
 
   auto ft = FlatTerm::create(TermList(data.literal));
-  rtm.init(ft, this, &firstsInBlocks);
+  rtm.init(ft, *this, &firstsInBlocks);
 
   Data* dptr = nullptr;
   for(;;) {
@@ -86,21 +86,8 @@ void LiteralCodeTree<Data>::remove(const Data& data)
   optimizeMemoryAfterRemoval(&firstsInBlocks, rtm.op);
 }
 
-template<class Data>
-void LiteralCodeTree<Data>::RemovingLiteralMatcher::init(FlatTerm* ft_,
-					     LiteralCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_)
-{
-  Matcher::init(*tree_, tree_->getEntryPoint(), 0, 0, firstsInBlocks_);
-
-  firstsInBlocks->push(entry);
-
-  ft = ft_;
-  tp = 0;
-  op = entry;
-}
-
-template<class Data>
-void LiteralCodeTree<Data>::LiteralMatcher::init(const CodeTree& tree, Literal* lit, bool complementary)
+template<bool higherOrder, class Data>
+void LiteralCodeTree<higherOrder, Data>::LiteralMatcher::init(const CodeTree& tree, Literal* lit, bool complementary)
 {
   Matcher::init(tree,tree.getEntryPoint(), 0, 0);
 
@@ -114,15 +101,15 @@ void LiteralCodeTree<Data>::LiteralMatcher::init(const CodeTree& tree, Literal* 
   _checkEqReversed = lit->isEquality();
 }
 
-template<class Data>
-void LiteralCodeTree<Data>::LiteralMatcher::reset()
+template<bool higherOrder, class Data>
+void LiteralCodeTree<higherOrder, Data>::LiteralMatcher::reset()
 {
   ft->destroy();
   ft = nullptr;
 }
 
-template<class Data>
-Data* LiteralCodeTree<Data>::LiteralMatcher::next()
+template<bool higherOrder, class Data>
+Data* LiteralCodeTree<higherOrder, Data>::LiteralMatcher::next()
 {
   if (finished()) {
     //all possible matches are exhausted
@@ -147,6 +134,7 @@ MATCH:
   return op->getSuccessResult<Data>();
 }
 
-template class LiteralCodeTree<LiteralClause>;
+template class LiteralCodeTree<false, LiteralClause>;
+template class LiteralCodeTree<true, LiteralClause>;
 
 };

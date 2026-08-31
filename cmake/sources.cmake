@@ -177,7 +177,6 @@ set(SOURCES
     Indexing/ClauseVariantIndex.hpp
     Indexing/CodeTree.cpp
     Indexing/CodeTree.hpp
-    Indexing/CodeTreeInterfaces.cpp
     Indexing/CodeTreeInterfaces.hpp
     Indexing/DemodulationIndex.hpp
     Indexing/DemodulationIndex.cpp

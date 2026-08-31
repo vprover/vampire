@@ -70,8 +70,8 @@ class GeneralizingTermIndex
 : public Index
 {
 public:
-  auto getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true) const
-  { return iterTraits(_ct.getGeneralizations(t, retrieveSubstitutions)); }
+  auto getGeneralizations(TypedTermList t) const
+  { return iterTraits(_ct.getGeneralizations(t)); }
 
   friend std::ostream& operator<<(std::ostream& out, GeneralizingTermIndex const& self)
   { return out << self._ct; }

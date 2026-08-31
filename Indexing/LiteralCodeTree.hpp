@@ -17,7 +17,6 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Stack.hpp"
 #include "Lib/Vector.hpp"
 
 #include "CodeTree.hpp"
@@ -28,7 +27,7 @@ namespace Indexing {
 using namespace Lib;
 using namespace Kernel;
 
-template<class Data>
+template<bool higherOrder, class Data>
 class LiteralCodeTree : public CodeTree
 {
 public:
@@ -51,13 +50,6 @@ public:
 
 private:
   void onCodeOpDestroying(CodeOp* op) override;
-
-  struct RemovingLiteralMatcher
-  : public Matcher</*removing*/true,/*checkRange=*/false,/*higherOrder=*/false>
-  {
-  public:
-    void init(FlatTerm* ft_, LiteralCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_);
-  };
 };
 
 };

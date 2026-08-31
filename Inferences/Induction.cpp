@@ -731,7 +731,7 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
         .map([this](Stack<Term*> ts) {
           auto res = VirtualIterator<GenSubstitutionQR<TermLiteralClause>>::getEmpty();
           for (const auto& t : ts) {
-            res = pvi(concatIters(std::move(res), _structInductionTermIndex->getGeneralizations(t, false)));
+            res = pvi(concatIters(std::move(res), _structInductionTermIndex->getGeneralizations(t)));
           }
           return make_pair(ts, std::move(res));
         }));

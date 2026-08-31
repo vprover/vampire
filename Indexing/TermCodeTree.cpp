@@ -77,7 +77,7 @@ void TermCodeTree<higherOrder, Data>::insert(Data* data)
 template<bool higherOrder, class Data>
 void TermCodeTree<higherOrder, Data>::remove(const Data& data)
 {
-  static RemovingTermMatcher rtm;
+  static RemovingMatcher<higherOrder> rtm;
   static Stack<CodeOp*> firstsInBlocks;
   firstsInBlocks.reset();
 
@@ -105,19 +105,6 @@ void TermCodeTree<higherOrder, Data>::remove(const Data& data)
 
   optimizeMemoryAfterRemoval(&firstsInBlocks, rtm.op);
 } // TermCodeTree::remove
-
-template<bool higherOrder, class Data>
-void TermCodeTree<higherOrder, Data>::RemovingTermMatcher::init(FlatTerm* ft_,
-					     const TermCodeTree& tree_, Stack<CodeOp*>* firstsInBlocks_)
-{
-  Base::init(tree_, tree_.getEntryPoint(), /*linfos_=*/0, /*linfoCnt_=*/0, firstsInBlocks_);
-
-  Base::firstsInBlocks->push(Base::entry);
-
-  Base::ft=ft_;
-  Base::tp=0;
-  Base::op=Base::entry;
-}
 
 //////////////// retrieval ////////////////////
 
