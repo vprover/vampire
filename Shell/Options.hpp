@@ -158,24 +158,7 @@ template<typename T> struct OptionValue;
 *
 *  If(equals(0)).then(_otherOption.is(lessThan(5)))
 *
-* Note that the equals(0) will apply to the OptionValue that the constraint belongs to
-*
-* WrappedConstraints are produced by OptionValue.is and are used to provide constraints
-* on other OptionValues, as seen in the example above. Most functions work with both
-* OptionValueConstraint and WrappedConstraint but in some cases one of these options
-* may need to be added. In this case see examples from AndWrapper below.
-*
-* MS: While OptionValueConstraints are expressions which wait for a concrete value to be evaluated against:
-* as in λ value. expression(value),
-* WrappedConstraints have already been "closed" by providing a concrete value:
-* as in (λ value. expression(value))[concrete_value]
-* Finally, we can at anytime "unwrap" a WrappedConstraint by providing a "fake" lambda again on top, to turn it into a OptionValueConstraints again:
-* as in λ value. expression_ignoring_value
-*
-* The tricky part (C++-technology-wise) here is that unwrapping needs to get a type for the value
-* and this type is independent form the expression_ignoring_value for obvious reasons.
-* So various overloads of things are needed until we get to the point, where the type is known and can be supplied.
-* (e.g. there needs to be a separate hierarchy of Wrapped expressions along the one for OptionValueConstraint ones).
+* Note that the equals(0) will apply to the OptionValue that the constraint belongs to (!!)
 */
 
 template<typename T>
@@ -192,9 +175,6 @@ struct OptionValueConstraint {
 
 template<typename T>
 using OptionValueConstraintUP = std::unique_ptr<OptionValueConstraint<T>>;
-
-struct AbstractWrappedConstraint;
-using AbstractWrappedConstraintUP = std::unique_ptr<AbstractWrappedConstraint>;
 
 /**
  * An AbstractOptionValue includes all the information and functionality that does not
@@ -1230,8 +1210,6 @@ Options* parent;
 /**
 * We need to decode the encoded option string
 * @author Giles
-*
-* TODO this isn't really an option, more like a series of options?
 */
 struct DecodeOptionValue : public OptionValue<std::string>{
     DecodeOptionValue() = default;
@@ -1664,23 +1642,25 @@ private:
         LookupWrapper(const LookupWrapper &) = delete;
         LookupWrapper &operator=(const LookupWrapper &) = delete;
 
-        void insert(AbstractOptionValue* option_value){
-            ASS(option_value->longName);
-            bool new_long =  _longMap.insert(option_value->longName,option_value);
+        void insert(AbstractOptionValue &option_value){
+            ASS(option_value.longName);
+            bool new_long =  _longMap.insert(option_value.longName,&option_value);
             bool new_short = true;
-            if(option_value->shortName){
-                new_short = _shortMap.insert(option_value->shortName,option_value);
+            if(option_value.shortName){
+                new_short = _shortMap.insert(option_value.shortName,&option_value);
             }
-            if(!new_long || !new_short){ std::cout << "Bad " << option_value->longName << std::endl; }
+            if(!new_long || !new_short){ std::cout << "Bad " << option_value.longName << std::endl; }
             ASS(new_long && new_short);
         }
-        AbstractOptionValue* findLong(const char *longName) const{
-            if(!_longMap.find(longName)){ throw ValueNotFoundException(); }
-            return _longMap.get(longName);
+        AbstractOptionValue *findLong(const char *longName) const {
+            AbstractOptionValue *value = nullptr;
+            _longMap.find(longName, value);
+            return value;
         }
         AbstractOptionValue* findShort(const char *shortName) const{
-            if(!_shortMap.find(shortName)){ throw ValueNotFoundException(); }
-            return _shortMap.get(shortName);
+            AbstractOptionValue *value = nullptr;
+            _shortMap.find(shortName, value);
+            return value;
         }
 
         VirtualIterator<AbstractOptionValue*> values() const {
@@ -1692,21 +1672,7 @@ private:
         DHMap<std::string_view,AbstractOptionValue*> _shortMap;
     } _lookup;
 
-    // The const is a lie - we can alter the resulting OptionValue
-    AbstractOptionValue* getOptionValueByName(const char *name) const{
-        try{
-          return _lookup.findLong(name);
-        }
-        catch(ValueNotFoundException&){
-          try{
-            return _lookup.findShort(name);
-          }
-          catch(ValueNotFoundException&){
-            return 0;
-          }
-        }
-    }
-
+    AbstractOptionValue *getOptionValueByName(const char *name) const;
     Stack<const char *> getSimilarOptionNames(const char *name, bool is_short) const;
 
     //==========================================================
@@ -2096,6 +2062,7 @@ private:
 }; // class Options
 
 // Allow printing of enums
+// TODO move this elsewhere
 template<typename T,
          typename = typename std::enable_if<std::is_enum<T>::value>::type>
 std::ostream& operator<< (std::ostream& str,const T& val)
