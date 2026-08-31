@@ -65,8 +65,8 @@ public:
       return nullptr;
     }
 
-    subst.reset();
-    if(!subst.unify(TermList(l1), 0, TermList(l2), 0))
+    _subst.reset();
+    if(!_subst.unify(TermList(l1), 0, TermList(l2), 0))
       return nullptr;
 
     RStack<Literal*> resLits;
@@ -77,13 +77,13 @@ public:
     if (_afterCheck && _cl->numSelected() > 1) {
       TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
 
-      skippedAfter = subst.apply(skipped, 0);
+      skippedAfter = _subst.apply(skipped, 0);
     }
 
     for(unsigned i=0;i<_cLen;i++) {
       Literal* curr=(*_cl)[i];
       if(curr!=skipped) {
-        Literal* currAfter = subst.apply(curr, 0);
+        Literal* currAfter = _subst.apply(curr, 0);
 
         if (skippedAfter) {
           TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
@@ -104,7 +104,7 @@ public:
     return cl;
   }
 private:
-  static RobSubstitution subst;
+  RobSubstitution _subst;
   Clause* _cl;
   ///length of the premise clause
   unsigned _cLen;
@@ -112,7 +112,6 @@ private:
   LiteralSelector& _sel;
   Ordering& _ord;
 };
-RobSubstitution Factoring::ResultsFn::subst;
 
 /**
  * Return ClauseIterator, that yields clauses generated from
@@ -141,13 +140,14 @@ ClauseIterator Factoring::generateClauses(Clause* premise)
 
   auto it1 = getCombinationIterator(0u,premise->numSelected(),premise->length());
 
-  auto it2 = getMappingIterator(it1,ResultsFn(premise,
+  // the substitution now lives in the ResultsFn, so move rather than copy it along
+  auto it2 = getMappingIterator(std::move(it1),ResultsFn(premise,
       _salg.getOptions().literalMaximalityAftercheck() && _salg.getLiteralSelector().isBGComplete(),
       _salg.getLiteralSelector(), _salg.getOrdering()));
 
-  auto it3 = getFilteredIterator(it2, NonzeroFn());
+  auto it3 = getFilteredIterator(std::move(it2), NonzeroFn());
 
-  return pvi( it3 );
+  return pvi( std::move(it3) );
 }
 
 }
