@@ -8,6 +8,9 @@
 # blocked_clause_elimination
 > bce ~cat off:5,on:1
 
+# blocked_clause_elimination_subsumption
+bce=on > bces ~cat on:1,off:1
+
 # equality_resolution_with_deletion
 > erd ~cat on:10,off:1
 

@@ -566,6 +566,16 @@ void Options::init()
     _blockedClauseElimination.tag(OptionTag::PREPROCESSING);
     _blockedClauseElimination.addProblemConstraint(notWithCat(Property::UEQ));
 
+    _blockedClauseEliminationSubsumption = BoolOptionValue("blocked_clause_elimination_subsumption","bces",false);
+    _blockedClauseEliminationSubsumption.description=
+      "During blocked clause elimination, also accept a resolvent which is not a tautology,"
+      " provided it is subsumed by another clause of the current clause set."
+      " Only applies to the non-equational tautologyhood check, i.e. it has no effect"
+      " on problems with positive equality atoms (nor under finite model building).";
+    _lookup.insert(&_blockedClauseEliminationSubsumption);
+    _blockedClauseEliminationSubsumption.tag(OptionTag::PREPROCESSING);
+    _blockedClauseEliminationSubsumption.reliesOn(_blockedClauseElimination.is(equal(true)));
+
     _predicateElimination = ChoiceOptionValue<PredicateElimination>("predicate_elimination","pel",
                                                                      PredicateElimination::OFF,
                                                                      {"off","on","multi"});

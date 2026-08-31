@@ -43,6 +43,7 @@ set(UNIT_TESTS
     UnitTests/tALASCA_VIRAS.cpp
     UnitTests/tArithCompare.cpp
     UnitTests/tBinaryHeap.cpp
+    UnitTests/tBlockedClauseElimination.cpp
     UnitTests/tBottomUpEvaluation.cpp
     UnitTests/tCoproduct.cpp
     UnitTests/tDHMap.cpp

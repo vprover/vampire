@@ -124,6 +124,8 @@ public:
   unsigned sineIterations = 0;
   /** number of detected blocked clauses */
   unsigned blockedClauses = 0;
+  /** of those, the ones which needed at least one resolvent discharged by subsumption */
+  unsigned blockedClausesBySubsumption = 0;
   /** number of predicates eliminated by predicate elimination */
   unsigned eliminatedPredicates = 0;
   /** number of resolvents kept during predicate elimination */

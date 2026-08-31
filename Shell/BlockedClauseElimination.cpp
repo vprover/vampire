@@ -15,6 +15,7 @@
 #include "BlockedClauseElimination.hpp"
 
 #include "Kernel/Clause.hpp"
+#include "Kernel/Inference.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
@@ -66,13 +67,17 @@ void BlockedClauseElimination::apply(Problem& prb)
     ClWrapper* clw = new ClWrapper(cl);
     wrappers.push(clw);
 
+    if (_useSubsumption && !equationally) {
+      indexInsert(clw);
+    }
+
     for(unsigned i=0; i<cl->length(); i++) {
       Literal* lit = (*cl)[i];
       unsigned pred = lit->functor();
       if (!env.signature->getPredicate(pred)->protectedSymbol()) { // don't index on interpreted or otherwise protected predicates (=> the cannot be ``flipped'')
         ASS(pred); // equality predicate is protected
 
-        (lit->isPositive() ? positive : negative)[pred].push(new Candidate {clw,i,0,0});
+        (lit->isPositive() ? positive : negative)[pred].push(new Candidate(clw,i));
       }
     }
   }
@@ -105,6 +110,8 @@ void BlockedClauseElimination::apply(Problem& prb)
   constexpr double RPR_SKIP_PROB = 0.1;
   bool rpr = env.options->randomizedPreprocessing();
 
+  RobSubstitution substMain; // holds the mgu of the two resolved literals, for buildResolvent to reuse
+
   while (!queue.isEmpty()) {
     Candidate* cand = queue.pop();
     ClWrapper* clw = cand->clw;
@@ -119,6 +126,15 @@ void BlockedClauseElimination::apply(Problem& prb)
     unsigned pred = lit->functor();
     Stack<Candidate*>& partners = (lit->isPositive() ? negative : positive)[pred];
 
+    // The clause set only ever shrinks, and it only changes at the very end of a successful
+    // scan. So a partner cleared by tautologyhood (or by already being blocked) stays cleared
+    // forever, while one cleared by its resolvent being subsumed stays cleared only as long as
+    // the subsumer is around. Hence the scan may not skip, via contFrom, over a partner cleared
+    // by subsumption in an earlier, interrupted scan -- it has to redo those checks against the
+    // current clause set. Conversely, a scan which does run to the end has just now, without
+    // anything getting blocked in between, verified every one of its subsumption clearings.
+    unsigned firstBySubsumption = partners.size();
+
     for (unsigned i = cand->contFrom; i < partners.size(); i++) {
       Candidate* partner = partners[i];
       ClWrapper* pclw = partner->clw;
@@ -128,22 +144,24 @@ void BlockedClauseElimination::apply(Problem& prb)
         continue;
       }
 
-      Clause* pcl = pclw->cl;
-
       if (pclw->blocked) {
         continue;
       }
 
-      if (!resolvesToTautology(equationally,cl,lit,pcl,(*pcl)[partner->litIdx])) {
+      bool bySubsumption;
+      if (!clearedBy(equationally,substMain,cand,partner,bySubsumption)) {
         // cand does not work, because of partner; need to wait for the partner to die
-        cand->contFrom = i+1;
+        cand->contFrom = min(i+1,firstBySubsumption);
         cand->weight = partners.size() - cand->contFrom;
         pclw->toResurrect.push(cand);
         goto next_candidate;
       }
+      if (bySubsumption && i < firstBySubsumption) {
+        firstBySubsumption = i;
+      }
     }
 
-    // resolves to tautology with all partners -- blocked!
+    // resolves to tautology (or something subsumed) with all partners -- blocked!
     if (rpr && Random::getDouble(0.0,1.0) < RPR_SKIP_PROB) {
       goto next_candidate;
     }
@@ -153,9 +171,15 @@ void BlockedClauseElimination::apply(Problem& prb)
     prb.addEliminatedBlockedClause(cl,cand->litIdx);
 
     env.statistics->blockedClauses++;
+    if (firstBySubsumption < partners.size()) {
+      env.statistics->blockedClausesBySubsumption++;
+    }
     modified = true;
 
     clw->blocked = true;
+    if (clw->indexed) {
+      indexRemove(clw);
+    }
     for (unsigned i = 0; i< clw->toResurrect.size(); i++) {
       queue.insert(clw->toResurrect[i]);
     }
@@ -194,13 +218,161 @@ void BlockedClauseElimination::apply(Problem& prb)
   }
 }
 
-bool BlockedClauseElimination::resolvesToTautology(bool equationally, Clause* cl, Literal* lit, Clause* pcl, Literal* plit)
+bool BlockedClauseElimination::resolvesToTautology(bool equationally, RobSubstitution& subst, Clause* cl, Literal* lit, Clause* pcl, Literal* plit)
 {
   if (equationally) {
     return resolvesToTautologyEq(cl,lit,pcl,plit);
   } else {
-    return resolvesToTautologyUn(cl,lit,pcl,plit);
+    return resolvesToTautologyUn(subst,cl,lit,pcl,plit);
   }
+}
+
+bool BlockedClauseElimination::clearedBy(bool equationally, RobSubstitution& subst, Candidate* cand, Candidate* partner, bool& bySubsumption)
+{
+  bySubsumption = false;
+
+  Clause* cl = cand->clw->cl;
+  Literal* lit = (*cl)[cand->litIdx];
+  Clause* pcl = partner->clw->cl;
+  Literal* plit = (*pcl)[partner->litIdx];
+
+  if (resolvesToTautology(equationally,subst,cl,lit,pcl,plit)) {
+    return true;
+  }
+
+  // the equational check does not work with the mgu (there need not be one), so there is
+  // no first-order resolvent to hand to the index; c.f. the comment at resolvesToTautologyEq
+  if (!_useSubsumption || equationally) {
+    return false;
+  }
+
+  TIME_TRACE("bce subsumption");
+
+  bool tautology = false;
+  Clause* resolvent = buildResolvent(subst,cl,cand->litIdx,pcl,partner->litIdx,tautology);
+  if (!resolvent) {
+    return tautology;
+  }
+
+  // cl is the clause we are about to remove, so it may not justify its own removal
+  // (any other clause of the set will do, the partner pcl included)
+  bool subsumed = subsumedBy(resolvent,cl);
+  resolvent->destroy();
+
+  bySubsumption = subsumed;
+  return subsumed;
+}
+
+Clause* BlockedClauseElimination::buildResolvent(RobSubstitution& subst, Clause* cl, unsigned litIdx, Clause* pcl, unsigned plitIdx, bool& tautology)
+{
+  ASS(!tautology);
+
+  static DHSet<Literal*, FnvHash, PtrIdentityHash> seen;
+  seen.reset();
+
+  LiteralStack lits;
+
+  for (unsigned bank = 0; bank < 2; bank++) {
+    Clause* c = bank ? pcl : cl;
+    unsigned skip = bank ? plitIdx : litIdx;
+
+    for (unsigned i = 0; i < c->length(); i++) {
+      if (i == skip) {
+        continue;
+      }
+      Literal* l = subst.apply((*c)[i],bank);
+      // the complementary pair conditions in resolvesToTautologyUn are deliberately
+      // conservative (c.f. the opslit business there), so this can genuinely fire
+      if (seen.find(Literal::complementaryLiteral(l))) {
+        tautology = true;
+        return nullptr;
+      }
+      if (seen.insert(l)) {
+        lits.push(l);
+      }
+    }
+  }
+
+  if (lits.isEmpty()) {
+    // ClauseMatcher::init asserts on a zero-length query; also, only the empty clause
+    // could subsume this, in which case the problem is refuted anyway
+    return nullptr;
+  }
+
+  // the clause is a throwaway query for the index, so it does not record its actual parents
+  // (which would make destroying it decrease their reference counts)
+  return Clause::fromStack(lits,FromInput(UnitInputType::AXIOM));
+}
+
+// a cousin of PredicateElimination::forwardSubsumedOrResolved: the code tree indexes whole
+// clauses and performs the multi-literal matching for us. Subsumption resolution is off here:
+// we need a clause implying the resolvent, not a way of strengthening it.
+bool BlockedClauseElimination::subsumedBy(Clause* resolvent, Clause* exclude)
+{
+  ASS(_useSubsumption);
+  ASS(resolvent->length() > 0);
+
+  if (_ct.isEmpty()) { // ClauseMatcher::init asserts on this
+    return false;
+  }
+
+  static ClauseCodeTree<false>::ClauseMatcher cm;
+  cm.init(&_ct,resolvent,/*sres=*/false);
+
+  bool res = false;
+  Clause* premise;
+  int resolvedQueryLit;
+  while ((premise = cm.next(resolvedQueryLit))) {
+    ASS_EQ(resolvedQueryLit,-1); // sres is off
+    if (premise != exclude) {
+      res = true;
+      break;
+    }
+  }
+  cm.reset();
+
+  return res;
+}
+
+void BlockedClauseElimination::indexInsert(ClWrapper* clw)
+{
+  ASS(_useSubsumption);
+  ASS(!clw->indexed);
+
+  Clause* cl = clw->cl;
+
+  if (cl->length() == 0) {
+    return; // the empty clause subsumes everything, but then the problem is refuted anyway
+  }
+
+  // a duplicate literal would violate an invariant of the multi-literal matching in
+  // ClauseCodeTree (in saturation, maintained by simplifying every new clause); a tautology
+  // can never be a useful subsumer, as the resolvent would then be a tautology too
+  static DHSet<Literal*, FnvHash, PtrIdentityHash> seen;
+  seen.reset();
+  for (unsigned i = 0; i < cl->length(); i++) {
+    Literal* l = (*cl)[i];
+    if (EqHelper::isEqTautology(l) || seen.find(Literal::complementaryLiteral(l)) || !seen.insert(l)) {
+      return;
+    }
+  }
+
+  if (!_indexed.insert(cl)) {
+    return; // the same clause object listed twice; the index must stay a set
+  }
+
+  _ct.insert(cl);
+  clw->indexed = true;
+}
+
+void BlockedClauseElimination::indexRemove(ClWrapper* clw)
+{
+  ASS(_useSubsumption);
+  ASS(clw->indexed);
+
+  _ct.remove(clw->cl);
+  _indexed.remove(clw->cl);
+  clw->indexed = false;
 }
 
 class VarMaxUpdatingNormalizer : public TermTransformer {
@@ -492,14 +664,15 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
 }
 */
 
-bool BlockedClauseElimination::resolvesToTautologyUn(Clause* cl, Literal* lit, Clause* pcl, Literal* plit)
+// when this returns false, subst_main is left holding the mgu of lit and plit,
+// which buildResolvent then uses to assemble the resolvent for the subsumption check
+bool BlockedClauseElimination::resolvesToTautologyUn(RobSubstitution& subst_main, Clause* cl, Literal* lit, Clause* pcl, Literal* plit)
 {
   // cout << "cl: " << cl->toString() << endl;
   // cout << "pcl: " << pcl->toString() << endl;
   // cout << "lit: " << lit->toString() << endl;
   // cout << "plit: " << plit->toString() << endl;
 
-  static RobSubstitution subst_main;
   subst_main.reset();
   if(!subst_main.unifyArgs(lit,0,plit,1)) {
     return true; // since they don't resolve

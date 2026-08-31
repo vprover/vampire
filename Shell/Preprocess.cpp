@@ -464,7 +464,10 @@ void Preprocess::preprocess(Problem& prb)
      if(env.options->showPreprocessing())
        std::cout << "blocked clause elimination" << std::endl;
 
-     BlockedClauseElimination bce(/*force_equationally*/_options.saturationAlgorithm() == Options::SaturationAlgorithm::FINITE_MODEL_BUILDING);
+     BlockedClauseElimination bce(/*force_equationally*/_options.saturationAlgorithm() == Options::SaturationAlgorithm::FINITE_MODEL_BUILDING,
+                                  // ClauseCodeTree<false>, the subsumption index, is first-order only
+                                  /*useSubsumption=*/_options.blockedClauseEliminationSubsumption()
+                                    && !prb.isHigherOrder() && !prb.hasPolymorphicSym());
      bce.apply(prb);
    }
 
