@@ -20,6 +20,7 @@
 
 #include "Forwards.hpp"
 #include "Options.hpp"
+#include "SMTLIBLogic.hpp"
 
 #include "Lib/Stack.hpp"
 

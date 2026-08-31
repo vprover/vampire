@@ -14,6 +14,7 @@
 
 #include "Lib/Environment.hpp"
 #include "Debug/TimeProfiling.hpp"
+#include "Lib/Random.hpp"
 #include "Lib/Timer.hpp"
 
 #include "Kernel/Problem.hpp"

@@ -17,6 +17,7 @@
  */
 
 #include "Shell/Options.hpp"
+#include "Shell/Property.hpp"
 
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
