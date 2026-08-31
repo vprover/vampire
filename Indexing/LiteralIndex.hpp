@@ -22,44 +22,62 @@
 #include "Lib/DHMap.hpp"
 
 #include "Index.hpp"
-#include "LiteralIndexingStructure.hpp"
 
 namespace Indexing {
 
-template<class Data, bool forGeneralizations>
-class LiteralIndex
+class NonGeneralizingLiteralIndex
 : public Index
 {
 public:
-  VirtualIterator<LiteralClause> getAll()
-  { return _is->getAll(); }
-
   VirtualIterator<QueryRes<ResultSubstitutionSP, LiteralClause>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
-  { return _is->getUnifications(lit, complementary, retrieveSubstitutions); }
+  { return _is.getUnifications(lit, complementary, retrieveSubstitutions); }
 
-  VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
-  { return _is->getUwa(lit, complementary, uwa, fixedPointIteration); }
+  VirtualIterator<QueryRes<AbstractingUnifier*, LiteralClause>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
+  { return _is.getUwa(lit, complementary, uwa, fixedPointIteration); }
 
-  VirtualIterator<QueryRes<ResultSubstitutionSP, LiteralClause>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
-  { return _is->getGeneralizations(lit, complementary, retrieveSubstitutions); }
-
+  template<bool higherOrder>
   VirtualIterator<QueryRes<ResultSubstitutionSP, LiteralClause>> getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
-  { return _is->getInstances(lit, complementary, retrieveSubstitutions); }
+  {
+    if constexpr (higherOrder) {
+      // TODO(HOL): implement proper higher-order matching here
+      // we override retrieveSubstitutions because we need the substitution for the aftercheck
+      return pvi(iterTraits(_is.getInstances(lit, complementary, /*retrieveSubstitutions=*/true))
+        .filter([lit](auto qr) {
+          return iterTraits(VariableIterator(lit)).all([&qr](TermList var) {
+            return !qr.unifier->applyToBoundQuery(var).containsLooseDBIndex();
+          });
+        }));
+    } else {
+      return _is.getInstances(lit, complementary, retrieveSubstitutions);
+    }
+  }
 
-  friend std::ostream& operator<<(std::ostream& out,                 LiteralIndex const& self) { return out << *self._is; }
-  friend std::ostream& operator<<(std::ostream& out, Output::Multiline<LiteralIndex>const& self) { return out << Output::multiline(*self.self._is, self.indent); }
+  friend std::ostream& operator<<(std::ostream& out, NonGeneralizingLiteralIndex const& self) { return out << self._is; }
+  friend std::ostream& operator<<(std::ostream& out, Output::Multiline<NonGeneralizingLiteralIndex>const& self) { return out << Output::multiline(self.self._is, self.indent); }
 
 protected:
-  LiteralIndex() : _is(new std::conditional_t<forGeneralizations, CodeTreeLIS<LiteralClause>, LiteralSubstitutionTree<LiteralClause>>()) {}
+  void handle(LiteralClause data, bool add)
+  { _is.handle(std::move(data), add); }
 
-  void handle(Data data, bool add)
-  { _is->handle(std::move(data), add); }
+  LiteralSubstitutionTree<LiteralClause> _is;
+};
 
-  std::unique_ptr<LiteralIndexingStructure<Data>> _is;
+class GeneralizingLiteralIndex
+: public Index
+{
+public:
+  VirtualIterator<GenSubstitutionQR<LiteralClause>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions = true) const
+  { return _is.getGeneralizations(lit, complementary, retrieveSubstitutions); }
+
+protected:
+  void handle(LiteralClause data, bool add)
+  { _is.handle(std::move(data), add); }
+
+  CodeTreeLIS<LiteralClause> _is;
 };
 
 class BinaryResolutionIndex
-: public LiteralIndex<LiteralClause, false>
+: public NonGeneralizingLiteralIndex
 {
 public:
   BinaryResolutionIndex(SaturationAlgorithm&) {}
@@ -68,7 +86,7 @@ protected:
 };
 
 class BackwardSubsumptionIndex
-: public LiteralIndex<LiteralClause, false>
+: public NonGeneralizingLiteralIndex
 {
 public:
   BackwardSubsumptionIndex(SaturationAlgorithm&) {}
@@ -77,7 +95,7 @@ protected:
 };
 
 class FwSubsSimplifyingLiteralIndex
-: public LiteralIndex<LiteralClause, true>
+: public GeneralizingLiteralIndex
 {
 public:
   FwSubsSimplifyingLiteralIndex(SaturationAlgorithm&) {}
@@ -86,7 +104,7 @@ protected:
 };
 
 class FSDLiteralIndex
-: public LiteralIndex<LiteralClause, true>
+: public GeneralizingLiteralIndex
 {
 public:
   FSDLiteralIndex(SaturationAlgorithm&) {}
@@ -96,7 +114,7 @@ protected:
 
 template<bool forGeneralizations>
 class UnitClauseLiteralIndex
-: public LiteralIndex<LiteralClause, forGeneralizations>
+: public std::conditional_t<forGeneralizations, GeneralizingLiteralIndex, NonGeneralizingLiteralIndex>
 {
 public:
   UnitClauseLiteralIndex(SaturationAlgorithm&) {}
@@ -105,7 +123,7 @@ protected:
 };
 
 class UnitClauseWithALLiteralIndex
-: public LiteralIndex<LiteralClause, false>
+: public NonGeneralizingLiteralIndex
 {
 public:
   UnitClauseWithALLiteralIndex(SaturationAlgorithm&) {}
@@ -114,7 +132,7 @@ protected:
 };
 
 class NonUnitClauseLiteralIndex
-: public LiteralIndex<LiteralClause, false>
+: public NonGeneralizingLiteralIndex
 {
 public:
   NonUnitClauseLiteralIndex(SaturationAlgorithm&) {}
@@ -123,7 +141,7 @@ protected:
 };
 
 class NonUnitClauseWithALLiteralIndex
-: public LiteralIndex<LiteralClause, false>
+: public NonGeneralizingLiteralIndex
 {
 public:
   NonUnitClauseWithALLiteralIndex(SaturationAlgorithm&) {}
@@ -132,7 +150,7 @@ protected:
 };
 
 class RewriteRuleIndex
-: public LiteralIndex<LiteralClause, true>
+: public GeneralizingLiteralIndex
 {
 public:
   RewriteRuleIndex(SaturationAlgorithm& salg);
@@ -148,12 +166,12 @@ private:
   void handleEquivalence(Clause* c, Literal* cgr, Clause* d, Literal* dgr, bool adding);
 
   LiteralSubstitutionTree<LiteralClause> _partialIndex;
-  DHMap<unsigned,Clause*> _counterparts;
+  DHMap<unsigned,Clause*, FnvHash, IdentityHash> _counterparts;
   Ordering& _ordering;
 };
 
 class UnitIntegerComparisonLiteralIndex
-: public LiteralIndex<LiteralClause, false>
+: public NonGeneralizingLiteralIndex
 {
 public:
   UnitIntegerComparisonLiteralIndex(SaturationAlgorithm&) {}

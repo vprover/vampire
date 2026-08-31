@@ -77,7 +77,6 @@ Property::Property()
     _hasFOOL(false),
     _hasArrowSort(false),
     _hasApp(false),
-    _hasAppliedVar(false),
     _hasBoolVar(false),
     _hasLogicalProxy(false),
     _hasLambda(false),
@@ -239,7 +238,7 @@ void Property::scan(Unit* unit)
     }
   }
 
-  DHSet<int>::Iterator it(_symbolsInFormula);
+  DHSet<int, FnvHash, IdentityHash>::Iterator it(_symbolsInFormula);
   while(it.hasNext()){
     int symbol = it.next();
     if(symbol >= 0){
@@ -703,7 +702,7 @@ void Property::scan(TermList ts,bool unit,bool goal)
       _hasLogicalProxy = true;
     }
 
-    if(!t->isApplication() && t->numTypeArguments() > 0){
+    if(!t->isApplication() && !t->isLambdaTerm() && t->numTypeArguments() > 0){
       _hasPolymorphicSym = true;
     }
 

@@ -457,6 +457,7 @@ void Options::init()
     "is replaced by C \\/ p(s) with the additional unit clause ~p(t) being added "
     "for fresh predicate p.";
     _inequalitySplitting.addProblemConstraint(hasEquality());
+    _inequalitySplitting.addProblemConstraint(onlyFirstOrder());
     _lookup.insert(&_inequalitySplitting);
     _inequalitySplitting.tag(OptionTag::PREPROCESSING);
 
@@ -471,17 +472,13 @@ void Options::init()
      "     ~E(x1,y1) \\/ ... \\/ ~E(xN,yN) \\/ ~p(x1,...,xN) \\/ p(y1,...,yN)\n"
      "    for non-constant functions f add\n"
      "     ~E(x1,y1) \\/ ... \\/ ~E(xN,yN) \\/ E(f(x1,...,xN),f(y1,...,yN))\n"
-     " R stands for reflexivity";
+     " R stands for reflexivity.\n"
+     " E is a single polymorphic predicate for a polymorphic problem and one predicate"
+     " per sort for a monomorphic one";
     _lookup.insert(&_equalityProxy);
     _equalityProxy.tag(OptionTag::PREPROCESSING);
     _equalityProxy.addProblemConstraint(hasEquality());
     _equalityProxy.addProblemConstraint(onlyFirstOrder());
-
-    _useMonoEqualityProxy = BoolOptionValue("mono_ep","mep",true);
-    _useMonoEqualityProxy.description="Use the monomorphic version of equality proxy transformation.";
-    _lookup.insert(&_useMonoEqualityProxy);
-    _useMonoEqualityProxy.onlyUsefulWith(_equalityProxy.is(notEqual(EqualityProxy::OFF)));
-    _useMonoEqualityProxy.tag(OptionTag::PREPROCESSING);
 
     _equalityResolutionWithDeletion = BoolOptionValue("equality_resolution_with_deletion","erd",true);
     _equalityResolutionWithDeletion.description="Perform equality resolution with deletion.";
@@ -494,6 +491,13 @@ void Options::init()
        "This also ensures a symbol is not used as a function and predicate.";
     _lookup.insert(&_arityCheck);
     _arityCheck.tag(OptionTag::DEVELOPMENT);
+
+    _parseGoalAnnotations = BoolOptionValue("parse_goal_annotations","",true);
+    _parseGoalAnnotations.description="Enable parsing :goal annotations in smtlib problems."
+       "They can be used like this: (assert (! <formula> :goal <goal-name>))";
+    _lookup.insert(&_parseGoalAnnotations);
+    _parseGoalAnnotations.tag(OptionTag::INPUT);
+
     _functionDefinitionElimination = ChoiceOptionValue<FunctionDefinitionElimination>("function_definition_elimination","fde",
                                                                                       FunctionDefinitionElimination::ALL,{"all","none","unused"});
     _functionDefinitionElimination.description=
@@ -525,6 +529,16 @@ void Options::init()
     _tweeGoalTransformation.setExperimental();
     _lookup.insert(&_tweeGoalTransformation);
 
+    // At least on higher-order TPTP, tgt with tsa=off sucks badly
+    // TODO(HOL): investigate perhaps less invasive options of restraining
+    // general tgt in HOL, that would still be performant
+    _tweeSkipArrows = BoolOptionValue("twee_skip_arrows","tsa",true);
+    _tweeSkipArrows.description =
+      "During twee_goal_transformation, when in HOL, don't introduce definitions for arrow-typed subterms.";
+    _tweeSkipArrows.tag(OptionTag::PREPROCESSING);
+    _tweeSkipArrows.setExperimental();
+    _lookup.insert(&_tweeSkipArrows);
+
     _codeTreeSubsumption = BoolOptionValue("code_tree_subsumption", "cts", true);
     _codeTreeSubsumption.description =
       "Use code tree implementation of forward subsumption and subsumption resolution.";
@@ -551,6 +565,42 @@ void Options::init()
     _lookup.insert(&_blockedClauseElimination);
     _blockedClauseElimination.tag(OptionTag::PREPROCESSING);
     _blockedClauseElimination.addProblemConstraint(notWithCat(Property::UEQ));
+
+    _predicateElimination = ChoiceOptionValue<PredicateElimination>("predicate_elimination","pel",
+                                                                     PredicateElimination::OFF,
+                                                                     {"off","on","multi"});
+    _predicateElimination.description=
+      "After clausification, eliminate predicates that occur at most once in every clause"
+      " by replacing their clauses with all pairwise resolvents (cf. Khasidashvili and Korovin, SAT 2016)."
+      " With multi, also eliminate a predicate P occurring more than once in a clause, provided P"
+      " never occurs both positively and negatively in a single clause and the multi-occurrence"
+      " clauses all sit on one polarity side. Instead of pairwise resolvents, the replacement clauses"
+      " are then all the hyper-resolvents, each occurrence of a multi-occurrence clause being resolved"
+      " against its own (variable-disjoint) copy of a single-occurrence clause of the opposite polarity."
+      " On problems without equality and theories, resolvents are computed with an mgu;"
+      " otherwise argument disequalities are introduced via (virtual) flattening,"
+      " which may add equality to a problem previously without it.";
+    _lookup.insert(&_predicateElimination);
+    _predicateElimination.tag(OptionTag::PREPROCESSING);
+    _predicateElimination.addProblemConstraint(notWithCat(Property::UEQ));
+
+    _predicateEliminationTotalLimit = FloatOptionValue("predicate_elimination_total_limit","peltl",2.0);
+    _predicateEliminationTotalLimit.description=
+      "A predicate elimination step is only performed if the estimated number of clauses afterwards"
+      " (current - |S_P| - |S_~P| + the number of resolvents, which is |S_P|*|S_~P| unless"
+      " predicate_elimination is set to multi) does not exceed the number of clauses"
+      " before predicate elimination started times this factor.";
+    _lookup.insert(&_predicateEliminationTotalLimit);
+    _predicateEliminationTotalLimit.tag(OptionTag::PREPROCESSING);
+    _predicateEliminationTotalLimit.addConstraint(greaterThanEq(0.0f));
+    _predicateEliminationTotalLimit.onlyUsefulWith(_predicateElimination.is(notEqual(PredicateElimination::OFF)));
+
+    _predicateEliminationSubsumption = BoolOptionValue("predicate_elimination_subsumption","pels",true);
+    _predicateEliminationSubsumption.description=
+      "Keep the clause set forward-inter-subsumed and subsumption-resolved during predicate elimination.";
+    _lookup.insert(&_predicateEliminationSubsumption);
+    _predicateEliminationSubsumption.tag(OptionTag::PREPROCESSING);
+    _predicateEliminationSubsumption.onlyUsefulWith(_predicateElimination.is(notEqual(PredicateElimination::OFF)));
 
     _distinctGroupExpansionLimit = UnsignedOptionValue("distinct_group_expansion_limit","dgel",140);
     _distinctGroupExpansionLimit.description = "If a distinct group (defined, e.g., via TPTP's $distinct)"
@@ -632,12 +682,6 @@ void Options::init()
     _inlineLet.tag(OptionTag::PREPROCESSING);
 
 //*********************** Output  ***********************
-
-    _outputAxiomNames = BoolOptionValue("output_axiom_names","",false);
-    _outputAxiomNames.description="Preserve names of axioms from the problem file in the proof output";
-    _lookup.insert(&_outputAxiomNames);
-    _outputAxiomNames.tag(OptionTag::OUTPUT);
-
     _printClausifierPremises = BoolOptionValue("print_clausifier_premises","",false);
     _printClausifierPremises.description="Output how the clausified problem was derived.";
     _lookup.insert(&_printClausifierPremises);
@@ -1281,7 +1325,7 @@ void Options::init()
 
     _unificationWithAbstraction = ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
                                       UnificationWithAbstraction::AUTO,
-                                      {"auto","off","interpreted_only","one_side_interpreted","one_side_constant","all","ground", "func_ext", "alasca_one_interp", "alasca_can_abstract", "alasca_main", "alasca_main_floor"});
+                                      {"auto","off","interpreted_only","one_side_interpreted","one_side_constant","all","ground", "func_ext", "alasca_one_interp", "alasca_can_abstract", "alasca_main", "alasca_main_floor", "hol"});
     _unificationWithAbstraction.description=
       "During unification, if two terms s and t fail to unify we will introduce a constraint s!=t and carry on. For example, "
       "resolving p(1) \\/ C with ~p(a+2) would produce C \\/ 1 !=a+2. This is controlled by a check on the terms. The expected "
@@ -1295,6 +1339,7 @@ void Options::init()
       "- ground: only if both s and t are ground\n"
       "- alasca_one_interp, alasca_can_abstract, alasca_main: strategies used for the real-arithmetic version of alasca. these are described in  the LPAR2023 paper  \"Refining Unification with Abstraction\""
       "- alasca_main_floor: an extension of the alasca_main strategy to work with mixed integer-real arithmetic. this option is experimental\n"
+      "- hol: introduce constraints for all higher-order parts whose unification is undecidable\n"
       "See Unification with Abstraction and Theory Instantiation in Saturation-Based Reasoning for further details.";
     _unificationWithAbstraction.tag(OptionTag::THEORIES);
     _lookup.insert(&_unificationWithAbstraction);
@@ -1653,7 +1698,7 @@ void Options::init()
     _inductionOnActiveOccurrences.onlyUsefulWith(_induction.is(notEqual(Induction::NONE)));
     _lookup.insert(&_inductionOnActiveOccurrences);
 
-    _instantiation = ChoiceOptionValue<Instantiation>("instantiation","inst",Instantiation::OFF,{"off","on"});
+    _instantiation = BoolOptionValue("instantiation","inst",false);
     _instantiation.description = "Heuristically instantiate variables. Often wastes a lot of effort. Consider using thi instead.";
     _instantiation.tag(OptionTag::THEORIES);
     _lookup.insert(&_instantiation);
@@ -1989,12 +2034,6 @@ void Options::init()
     _lookup.insert(&_holPrinting);
     _holPrinting.tag(OptionTag::HIGHER_ORDER);
 
-    _addProxyAxioms = BoolOptionValue("add_proxy_axioms","apa",false);
-    _addProxyAxioms.description="Add logical proxy axioms";
-    _lookup.insert(&_addProxyAxioms);
-    _addProxyAxioms.addProblemConstraint(hasHigherOrder());    
-    _addProxyAxioms.tag(OptionTag::HIGHER_ORDER);
-
     _choiceAxiom = BoolOptionValue("choice_ax","cha",false);
     _choiceAxiom.description="Adds the cnf form of the Hilbert choice axiom";
     _lookup.insert(&_choiceAxiom);
@@ -2017,7 +2056,7 @@ void Options::init()
     // TODO we have two ways of enabling function extensionality abstraction atm:
     // this option, and `-uwa`.
     // We should sort this out before merging into master.
-    _functionExtensionality = ChoiceOptionValue<FunctionExtensionality>("func_ext","fe",FunctionExtensionality::ABSTRACTION,
+    _functionExtensionality = ChoiceOptionValue<FunctionExtensionality>("func_ext","fe",FunctionExtensionality::OFF,
                                                                           {"off", "axiom", "abstraction"});
     _functionExtensionality.description="Deal with extensionality using abstraction, axiom or neither";
     _lookup.insert(&_functionExtensionality);
@@ -2064,8 +2103,6 @@ void Options::init()
     _complexBooleanReasoning = BoolOptionValue("complex_bool_reasoning","cbe",true);
     _complexBooleanReasoning.description=
     "Switches on primitive instantiation and elimination of leibniz equality";
-    // TODO add this back to warn users about a suboptimal conf; but actually the two options do something together
-    // _complexBooleanReasoning.addConstraint(If(equal(true)).then(_addProxyAxioms.is(equal(false))));
     _lookup.insert(&_complexBooleanReasoning);
     _complexBooleanReasoning.addProblemConstraint(hasHigherOrder());
     _complexBooleanReasoning.tag(OptionTag::HIGHER_ORDER);
@@ -2087,6 +2124,14 @@ void Options::init()
       "Heuristically instantiates universally quantified variables with abstractions of literals from negated conjecture";
     _lookup.insert(&_heuristicInstantiation);
     _heuristicInstantiation.tag(OptionTag::HIGHER_ORDER);
+
+    _higherOrderUnifDepth = UnsignedOptionValue("hol_unif_depth","hud",2);
+    _higherOrderUnifDepth.description = "Set the maximum depth (in terms of projections and imitations) that higher-order unification can descend to."
+      "Once limit is reached, remaining pairs are returned as constraints.";
+    _higherOrderUnifDepth.addProblemConstraint(hasHigherOrder());    
+    _higherOrderUnifDepth.addHardConstraint(lessThan(100u));
+    _lookup.insert(&_higherOrderUnifDepth);
+    _higherOrderUnifDepth.tag(OptionTag::HIGHER_ORDER);
 
     _casesSimp = BoolOptionValue("cases_simp","cs",false);
     _casesSimp.description=
@@ -2316,6 +2361,18 @@ void Options::init()
     _randomPolarities.description="As part of preprocessing, randomly (though consistently) flip polarities of non-equality predicates in the whole CNF.";
     _lookup.insert(&_randomPolarities);
     _randomPolarities.tag(OptionTag::PREPROCESSING);
+
+    _randomizedSimplifications = BoolOptionValue("randomized_simplifications","rsi",false);
+    _randomizedSimplifications.description="Make selected saturation-loop simplifications (including AVATAR splitting) \"leaky\":"
+       " under a coin toss, some of their candidate operations are randomly skipped, as a source of noise injection.";
+    _lookup.insert(&_randomizedSimplifications);
+    _randomizedSimplifications.tag(OptionTag::INFERENCES);
+
+    _randomizedPreprocessing = BoolOptionValue("randomized_preprocessing","rpr",false);
+    _randomizedPreprocessing.description="Make selected preprocessing steps \"leaky\": under a coin toss, some of their operations are randomly skipped,"
+       " producing a mixture of half-completed (but still sound) results as a source of noise injection.";
+    _lookup.insert(&_randomizedPreprocessing);
+    _randomizedPreprocessing.tag(OptionTag::PREPROCESSING);
 
     _questionAnswering = ChoiceOptionValue<QuestionAnsweringMode>("question_answering","qa",QuestionAnsweringMode::AUTO,
                                                                   {"auto","plain","synthesis","off"});
@@ -3464,7 +3521,7 @@ std::string Options::generateEncodedOptions() const
   Options cur=*this;
 
   // Record options that do not want to be in encoded string
-  static Set<const AbstractOptionValue*> forbidden;
+  static Set<const AbstractOptionValue*, FnvHash> forbidden;
   //we initialize the set if there's nothing inside
   if (forbidden.size()==0) {
     //things we output elsewhere
@@ -3485,7 +3542,6 @@ std::string Options::generateEncodedOptions() const
     forbidden.insert(&_decode);
     forbidden.insert(&_sampleStrategy);
     forbidden.insert(&_normalize);
-    forbidden.insert(&_outputAxiomNames);
     forbidden.insert(&_randomizeSeedForPortfolioWorkers);
     forbidden.insert(&_schedule);
     forbidden.insert(&_scheduleFile);
@@ -3560,6 +3616,9 @@ void Options::resolveAwayAutoValues(const Problem& prb)
     if (alasca() && prb.hasAlascaArithmetic() &&
       !partialRedundancyCheck()) { // TODO: Marton is planning a PR that will remove this constraint
       setUWA(Shell::Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR);
+    } else if (prb.isHigherOrder()) {
+      setUWA(Shell::Options::UnificationWithAbstraction::HOL);
+      setUWAFPI(true);
     } else {
       setUWA(Shell::Options::UnificationWithAbstraction::OFF);
     }
@@ -3592,6 +3651,11 @@ bool Options::complete(const Problem& prb) const
     return false;
   }
 
+  if (prb.hasFOOL() && _casesSimp.actualValue) {
+    // casesSimp is not complete 
+    return false;
+  }
+
   Property& prop = *prb.getProperty();
 
   // general properties causing incompleteness
@@ -3620,12 +3684,6 @@ bool Options::complete(const Problem& prb) const
   bool hasEquality = (prop.equalityAtoms() != 0);
 
   if (hasEquality && !_superposition.actualValue) return false;
-
-  if (prop.hasAppliedVar()) {
-    //TODO make a more complex more precise case here
-    //There are instance where we are complete
-    return false;
-  }
 
   //TODO update once we have another method of dealing with bools
   if (prop.hasLogicalProxy() || prop.hasBoolVar()) {

@@ -444,7 +444,7 @@ void TheoryInstAndSimp::ConstantCache::reset()
 
 Term* TheoryInstAndSimp::ConstantCache::freshConstant(SortId sort) 
 { 
-  auto& cache = _inner.getOrInit(sort, [](){ 
+  auto& cache = _inner.getOrInit(sort, [&](){
       DEBUG("new constant cache for sort ", _inner.size());
       return SortedConstantCache(); 
     });
@@ -599,7 +599,7 @@ template<class IterLits> TheoryInstAndSimp::SkolemizedLiterals TheoryInstAndSimp
   _instantiationConstants.reset();
   for (auto lit : lits) {
     // replace variables consistently by fresh constants
-    DHMap<unsigned, SortId> srtMap;
+    DHMap<unsigned, SortId, FnvHash, IdentityHash> srtMap;
     SortHelper::collectVariableSorts(lit,srtMap);
     TermVarIterator vit(lit);
     while(vit.hasNext()){
@@ -835,7 +835,7 @@ Stack<Literal*> filterLiterals(Stack<Literal*> lits, Options::TheoryInstSimp mod
 
     case Options::TheoryInstSimp::OVERLAP:
       {
-        Set<unsigned> strongVars;
+        Set<unsigned, FnvHash> strongVars;
 
         for (auto l : lits) {
           if (isStrong(l)) {
@@ -967,9 +967,9 @@ bool TheoryInstAndSimp::isTheoryLemma(Clause* cl, bool& couldNotCheck) {
   return !solutions.next().sat;
 }
 
-} // namespace Inferences
-
 std::ostream& operator<<(std::ostream& out, Inferences::Solution const& self)
 { return out << "Solution(" << (self.sat ? "sat" : "unsat") << ", " << self.subst << ")"; }
+
+} // namespace Inferences
 
 #endif

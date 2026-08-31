@@ -119,8 +119,6 @@ enum class InferenceRule : unsigned char {
   ANSWER_LITERAL_INPUT_SKOLEMISATION,
   /** claim definition, definition introduced by a claim in the input */
   CLAIM_DEFINITION,
-//     /** choice_axiom (Ax)((Ey)F(x,y) -> F(x,f(x))) */
-//     CHOICE_AXIOM,
 //     /** (Ax)(F(x)->F'(x)), G[F(t)] / G[F'(t)] */
 //     MONOTONE_REPLACEMENT,
 //     /** G[(Ax)F(x)] => G[F(t)] */
@@ -281,6 +279,16 @@ enum class InferenceRule : unsigned char {
   FLEX_FLEX_SIMPLIFICATION,
   BETA_ETA_NORMALIZATION,
 
+  NOT_PROXY_CLAUSIFICATION_SIMPLIFYING,
+  AND_PROXY_CLAUSIFICATION_SIMPLIFYING,
+  OR_PROXY_CLAUSIFICATION_SIMPLIFYING,
+  IMP_PROXY_CLAUSIFICATION_SIMPLIFYING,
+  IFF_PROXY_CLAUSIFICATION_SIMPLIFYING,
+  XOR_PROXY_CLAUSIFICATION_SIMPLIFYING,
+  SIGMA_PROXY_CLAUSIFICATION_SIMPLIFYING,
+  PI_PROXY_CLAUSIFICATION_SIMPLIFYING,
+  EQUALITY_PROXY_CLAUSIFICATION_SIMPLIFYING,
+
   FUNCTION_DEFINITION_DEMODULATION,
 
   /** the last simplifying inference marker --
@@ -344,12 +352,10 @@ enum class InferenceRule : unsigned char {
   IMITATION,
   PROJECTION,
   LEIBNIZ_ELIMINATION,
-  HILBERTS_CHOICE_INSTANCE, // not considered a theory axiom at the moment (it's a HOL creature)
   NEGATIVE_EXTENSIONALITY,
   POSITIVE_EXTENSIONALITY,
   EQ_TO_DISEQ,
   HEURISTIC_INSTANTIATION,
-  /** The next five rules can be either simplifying or generating */
   NOT_PROXY_CLAUSIFICATION,
   AND_PROXY_CLAUSIFICATION,
   OR_PROXY_CLAUSIFICATION,
@@ -365,12 +371,21 @@ enum class InferenceRule : unsigned char {
         (see also isGeneratingInferenceRule) */
   GENERIC_GENERATING_INFERENCE_LAST,
 
+  /** these inferences are hard to categorize, so we just have them here at the end */
+  GENERIC_NONSPECIFIC_INFERENCE,
+  /** not considered a theory axiom at the moment (it's a HOL creature) */
+  HILBERTS_CHOICE_INSTANCE,
+
   /** equality proxy replacement */
   EQUALITY_PROXY_REPLACEMENT,
   /** definition of the equality proxy predicate in the form E(x,y) <=> x=y */
-  EQUALITY_PROXY_AXIOM1,
+  EQUALITY_PROXY_DEFINITION,
   /** equality proxy axioms such as E(x,x) or ~E(x,y) \/ x=y */
-  EQUALITY_PROXY_AXIOM2,
+  EQUALITY_PROXY_AXIOM,
+  /** floor(f(X0,...,Xn)) = f(X0,...,Xn), stating that a symbol f introduced by the
+   * ALASCA integer conversion is integer-valued; not a theory axiom, as it is only
+   * valid for the freshly introduced f (a conservative extension) */
+  ALASCA_INTEGRALITY_AXIOM,
   /** unfolding by definitions f(x1,...,xn)=t */
   DEFINITION_UNFOLDING,
 
@@ -391,6 +406,8 @@ enum class InferenceRule : unsigned char {
   UNUSED_PREDICATE_DEFINITION_REMOVAL,
   /** pure predicate removal */
   PURE_PREDICATE_REMOVAL,
+  /** predicate elimination by exhaustive resolution (preprocessing) */
+  PREDICATE_ELIMINATION,
   /** inequality splitting */
   INEQUALITY_SPLITTING,
   /** inequality splitting name introduction */
@@ -457,6 +474,9 @@ enum class InferenceRule : unsigned char {
   /** sat clause representing FO clause for AVATAR */
   AVATAR_CONTRADICTION_CLAUSE,
   GENERIC_AVATAR_INFERENCE_LAST,
+
+  /** marking the last of non-specific inferences (including AVATAR inferences) */
+  GENERIC_NONSPECIFIC_INFERENCE_LAST,
 
   /** a not further specified theory axiom internally added by the class TheoryAxioms. */
   GENERIC_THEORY_AXIOM, // CAREFUL: adding rules here influences the theory_split_queue heuristic
@@ -535,6 +555,8 @@ enum class InferenceRule : unsigned char {
   INT_DB_UP_INDUCTION_AXIOM,
   INT_DB_DOWN_INDUCTION_AXIOM,
 
+  FUNCTIONAL_EXTENSIONALITY_AXIOM,
+
   /** the last theory axiom marker --
     axioms between THEORY_AXIOM and GENERIC_THEORY_AXIOM_LAST will be automatically making their respective clauses isTheoryAxiom() true */
   GENERIC_THEORY_AXIOM_LAST
@@ -573,6 +595,11 @@ inline bool isGeneratingInferenceRule(InferenceRule r) {
 inline bool isTheoryAxiomRule(InferenceRule r) {
   return (toNumber(r) > toNumber(InferenceRule::GENERIC_THEORY_AXIOM) &&
       toNumber(r) < toNumber(InferenceRule::GENERIC_THEORY_AXIOM_LAST));
+}
+
+inline bool isNonSpecificInferenceRule(InferenceRule r) {
+  return (toNumber(r) > toNumber(InferenceRule::GENERIC_NONSPECIFIC_INFERENCE) &&
+      toNumber(r) < toNumber(InferenceRule::GENERIC_NONSPECIFIC_INFERENCE_LAST));
 }
 
 std::string inputTypeName(UnitInputType type);

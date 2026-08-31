@@ -29,7 +29,7 @@
 #include "Kernel/OperatorType.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
-#include "Kernel/BottomUpEvaluation.hpp"
+#include "Kernel/PolynomialBottomUpEvaluation.hpp"
 #include "Lib/Coproduct.hpp"
 
 #include "Shell/UIHelper.hpp"
@@ -1641,11 +1641,8 @@ z3::expr Z3Interfacing::getRepresentation(Term* trm)
             switch(interp){
             // Numerical operations
             case Theory::INT_DIVIDES:
-              {
-              auto k = getNamingConstantFor(toEval, _context->int_sort());
-              // a divides b <-> k * a ==  b
-              return k * args[0] == args[1];
-              }
+              // a divides b <-> b mod a == 0
+              return z3::mod(args[1], args[0]) == int_zero;
 
             case Theory::INT_UNARY_MINUS:
             case Theory::RAT_UNARY_MINUS:

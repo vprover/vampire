@@ -640,10 +640,6 @@ std::string Term::headToString() const
         ASSERTION_VIOLATION;
     }
   } else {
-    unsigned proj;
-    if (!isSort() && Theory::findTupleProjection(functor(), isLiteral(), proj)) {
-      return "$proj(" + Int::toString(proj) + ", ";
-    }
     std::string name = "";
     if(isLiteral()) {
       name = static_cast<const Literal *>(this)->predicateName();
@@ -924,10 +920,6 @@ std::string Literal::toString(bool reverseEquality) const
     }
   }
 
-  unsigned proj;
-  if (Theory::findTupleProjection(functor(), true, proj)) {
-    return s + "$proj(" + Int::toString(proj) + ", " + args()->asArgsToString();
-  }
   s += predicateName();
 
   //cerr << "predicate: "<< predicateName()<<endl;
@@ -937,21 +929,10 @@ std::string Literal::toString(bool reverseEquality) const
   return s;
 } // Literal::toString
 
-/**
- * Return the print name of the function symbol of this term.
- * @since 18/05/2007 Manchester
- */
 const std::string& Term::functionName() const
 {
-#if VDEBUG
-  static std::string nonexisting("<function does not exists>");
-  if (_functor >= env.signature->functions()) {
-    return nonexisting;
-  }
-#endif
-
   return env.signature->functionName(_functor);
-} // Term::functionName
+}
 
 bool Term::isArrowSort() const {
   return isSort() && env.signature->isArrowCon(_functor);
@@ -987,37 +968,15 @@ Option<unsigned> Term::deBruijnIndex() const {
   return env.signature->getFunction(_functor)->deBruijnIndex();
 }
 
-/**
- * Return the print name of the type constructor symbol of this sort.
- */
 const std::string& AtomicSort::typeConName() const
 {
-#if VDEBUG
-  static std::string nonexisting("<type constructor does not exists>");
-  if (_functor >= env.signature->typeCons()) {
-    return nonexisting;
-  }
-#endif
-
   return env.signature->typeConName(_functor);
-} // Term::functionName
+}
 
-/**
- * Return the print name of the function symbol of this literal.
- * @since 18/05/2007 Manchester
- */
 const std::string& Literal::predicateName() const
 {
-#if VDEBUG
-  static std::string nonexisting("<predicate does not exists>");
-  if (_functor >= env.signature->predicates()) {
-    return nonexisting;
-  }
-#endif
-
   return env.signature->predicateName(_functor);
-} // Literal::predicateName
-
+}
 
 bool Literal::isAnswerLiteral() const {
   return isNegative() && env.signature->getPredicate(functor())->answerPredicate();
@@ -1416,7 +1375,7 @@ TermList AtomicSort::tupleSort(unsigned arity, TermList* sorts)
 
 unsigned Term::computeDistinctVars() const
 {
-  Set<unsigned> vars;
+  Set<unsigned, FnvHash> vars;
   VariableIterator vit(this);
   while (vit.hasNext()) {
     vars.insert(vit.next().var());

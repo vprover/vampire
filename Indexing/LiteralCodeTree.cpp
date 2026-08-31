@@ -90,7 +90,7 @@ template<class Data>
 void LiteralCodeTree<Data>::RemovingLiteralMatcher::init(FlatTerm* ft_,
 					     LiteralCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_)
 {
-  Matcher::init(tree_, tree_->getEntryPoint(), 0, 0, firstsInBlocks_);
+  Matcher::init(*tree_, tree_->getEntryPoint(), 0, 0, firstsInBlocks_);
 
   firstsInBlocks->push(entry);
 
@@ -100,9 +100,9 @@ void LiteralCodeTree<Data>::RemovingLiteralMatcher::init(FlatTerm* ft_,
 }
 
 template<class Data>
-void LiteralCodeTree<Data>::LiteralMatcher::init(CodeTree* tree, Literal* lit, bool complementary)
+void LiteralCodeTree<Data>::LiteralMatcher::init(const CodeTree& tree, Literal* lit, bool complementary)
 {
-  Matcher::init(tree,tree->getEntryPoint(), 0, 0);
+  Matcher::init(tree,tree.getEntryPoint(), 0, 0);
 
   ASS(!ft);
   ft = FlatTerm::create(TermList(lit));
@@ -134,7 +134,7 @@ MATCH:
   if (!_matched) {
     if (_checkEqReversed) {
       ft->swapCommutativePredicateArguments();
-      Matcher::init(tree,tree->getEntryPoint(), 0, 0);
+      Matcher::init(*tree,tree->getEntryPoint(), 0, 0);
       tp = 0;
       op = entry;
       _checkEqReversed = false;

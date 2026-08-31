@@ -213,8 +213,7 @@ OperatorType* Signature::Symbol::predType() const
 }
 
 Signature::RealSymbol::RealSymbol(const RealConstantType& val)
-  : Symbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? Output::toString("$to_real(",val,")")
-                                                                       : Output::toString(val),
+  : Symbol(Output::toString("$to_real(",val,")"),
         /*             arity */ 0,
         /*       interpreted */ true,
         /*    preventQuoting */ false,

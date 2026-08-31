@@ -14,7 +14,7 @@
 #include "HOL.hpp"
 
 #include "SubtermReplacer.hpp"
-#include "ToPlaceholders.hpp"
+#include "TermShifter.hpp"
 #include "Kernel/Formula.hpp"
 
 using IndexVarStack = Stack<std::pair<unsigned, unsigned>>;
@@ -23,10 +23,7 @@ using Kernel::Term;
 static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& st);
 
 static std::string termToStr(TermList t, bool topLevel, IndexVarStack& st){
-  if (t.isVar())
-    return Term::variableToString(t);
-
-  return toStringAux(*t.term(), topLevel, st);
+  return t.isVar() ? Term::variableToString(t) : toStringAux(*t.term(), topLevel, st);
 }
 
 static bool findVar(unsigned index, const IndexVarStack & st, unsigned& var) {
@@ -78,7 +75,7 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
     const auto sd = term.getSpecialData();
 
     if (term.isFormula())
-      return sd->getFormula()->toString();
+      return sd->getFormula()->toString(topLevel);
     if (term.isLambda())
       return lambdaToString(sd, pretty);
 
@@ -105,9 +102,12 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
       return "ι";
 
     // any non-arrow sort
-    res = sort->typeConName();
+    if (!pretty && term.arity()) {
+      res += "(";
+    }
+    res += sort->typeConName();
     if (pretty && term.arity())
-      res += "⟨";
+      res += "(";
     for (unsigned i = 0; i < term.arity(); i++) {
       if (pretty && i != 0)
         res += ", ";
@@ -118,13 +118,13 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
       res += termToStr(*term.nthArgument(i), pretty, st);
     }
 
-    if (pretty && term.arity() > 0)
-      res += "⟩";
+    if (term.arity())
+      res += ")";
     return res;
   }
 
   if (term.isPlaceholder()) {
-    return term.functionName() + "⟨" + term.nthArgument(0)->toString(true) + "⟩";
+    return term.functionName() + "(" + term.nthArgument(0)->toString(true) + ")";
   }
 
   if (term.isLambdaTerm()) {
@@ -146,8 +146,7 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
     std::string lbrac = pretty ? "" : "(";
     std::string rbrac = pretty ? "" : ")";
 
-    res = "(" + lambda + bvar + sep +  lbrac + termToStr(*term.nthArgument(2), !pretty, newSt) + rbrac + ")";
-    return res;
+    return "(" + lambda + bvar + sep +  lbrac + termToStr(*term.nthArgument(2), !pretty, newSt) + rbrac + ")";
   }
 
   auto dbOption = term.deBruijnIndex();
@@ -173,7 +172,7 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
   else if (HOL::isFalse(head))
     headStr = pretty ? "⊥" : "$false";
   else {
-    using ProxyEntry = std::tuple<Proxy, std::string, std::string>;
+    using ProxyEntry = std::tuple<Proxy, std::string_view, std::string_view>;
 
     auto functorProxy = env.signature->getFunction(head.term()->functor())->proxy();
 
@@ -209,13 +208,13 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
       !head.isLambdaTerm() && head.term()->arity() > 0) {
     auto t = head.term();
     if (pretty)
-      headStr += "⟨";
+      headStr += "(";
     for (unsigned i = 0; i < t->arity(); ++i) {
       headStr += pretty && i != 0 ? ", " : "";
       headStr += !pretty ? " @ " : "";
       headStr += termToStr(*t->nthArgument(i),pretty,st);
     }
-    if (pretty) headStr += "⟩";
+    if (pretty) headStr += ")";
   }
 
   if (!topLevel && hasArgs)
@@ -395,6 +394,65 @@ void HOL::getMatrixAndPrefSorts(TermList t, TermList& matrix, TermStack& sorts) 
     t = t.lambdaBody();
   }
   matrix = t;
+}
+
+void HOL::normaliseLambdaPrefixes(TermList& t1, TermList& t2)
+{
+  if (t1.isVar() && t2.isVar()) {
+    return;
+  }
+
+  TermList nonVar = t1.isVar() ? t2 : t1;
+  TermList sort = SortHelper::getResultSort(nonVar.term());
+
+  auto etaExpand = [](TermList t, TermList sort, TermStack& sorts, unsigned n){
+    TermStack sorts1; // sorts of new prefix
+
+    t = TermShifter::shift(t, n).first; // lift loose indices by n
+
+    for(int i = n - 1; i >= 0; i--) { // append De Bruijn indices
+      ASS(sort.isArrowSort());
+
+      auto s = sort.domain();
+      t = create::app(sort, t, getDeBruijnIndex(i, s));
+      sort = sort.result();
+      sorts1.push(s);
+    }
+
+    while (!sorts1.isEmpty()) { // wrap in new lambdas
+      t = create::namelessLambda(sorts1.pop(), t);
+    }
+
+    while (!sorts.isEmpty()) { // wrap in original lambdas
+      t = create::namelessLambda(sorts.pop(), t);
+    }
+
+    return t;
+  };
+
+  unsigned m = 0, n = 0;
+  TermList t1_body = t1, t2_body = t2, t1_sort = sort, t2_sort = sort;
+  TermStack prefSorts1, prefSorts2;
+
+  while (t1_body.isLambdaTerm()) {
+    t1_body = t1_body.lambdaBody();
+    prefSorts1.push(t1_sort.domain());
+    t1_sort = t1_sort.result();
+    m++;
+  }
+
+  while (t2_body.isLambdaTerm()) {
+    t2_body = t2_body.lambdaBody();
+    prefSorts2.push(t2_sort.domain());
+    t2_sort = t2_sort.result();
+    n++;
+  }
+
+  if (m > n) {
+    t2 = etaExpand(t2_body, t2_sort, prefSorts2, m - n);
+  } else if (n > m) {
+    t1 = etaExpand(t1_body, t1_sort, prefSorts1, n - m);
+  }
 }
 
 TermStack HOL::getFlexHeadSorts(TermList flexTerm, TermList rigidTermSort)

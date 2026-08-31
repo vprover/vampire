@@ -24,6 +24,7 @@
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/FormulaVarIterator.hpp"
 
+#include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/SharedSet.hpp"
 
@@ -126,7 +127,7 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output, Substitution* su
   _freeVars.reset();
 
   { // destroy the cached substitution entries
-    DHMap<BindingList*,Substitution*>::DelIterator dIt(_substitutionsByBindings);
+    DHMap<BindingList*,Substitution*, FnvHash, PtrIdentityHash>::DelIterator dIt(_substitutionsByBindings);
     while (dIt.hasNext()) {
       delete dIt.next();
       dIt.del();
@@ -547,7 +548,7 @@ void NewCNF::processBoolVar(SIGN sign, unsigned var, Occurrences &occurrences)
   // Cache binding list lookups: many occurrences share the same BindingList*,
   // so we scan each distinct list at most once for `var`.
   // A cached value of nullptr means "var not found in this list".
-  DHMap<BindingList*, Term*> lookupCache;
+  DHMap<BindingList*, Term*, FnvHash, PtrIdentityHash> lookupCache;
 
   while (occurrences.isNonEmpty()) {
     Occurrence occ = pop(occurrences);
@@ -690,12 +691,30 @@ TermList NewCNF::eliminateLet(Term* term)
         }
       }
     } else {
-      auto tupleType = env.signature->getFunction(bindingLhs->functor())->fnType();
       auto arity = bindingLhs->numTypeArguments();
-      unsigned tuple = env.signature->addFreshFunction(arity, "tuple");
-      env.signature->getFunction(tuple)->setType(OperatorType::getConstantsType(tupleType->result(), arity));
+      TermList tupleSort = SortHelper::getResultSort(bindingLhs);
+
+      // The fresh constant standing for the whole tuple is declared over
+      // exactly the type variables occurring in the tuple sort (typically
+      // none). Declaring it over the tuple's arity instead would make it
+      // polymorphic in the monomorphic case, and its arity would then no
+      // longer agree with the arguments nameLetBinding applies it to.
+      TermStack tupleTypeArgs;
+      for (auto var : iterTraits(VariableIterator(tupleSort))) {
+        if (!tupleTypeArgs.find(var)) {
+          tupleTypeArgs.push(var);
+        }
+      }
+      TermList tupleResultSort = tupleSort;
+      SortHelper::normaliseSort(tupleTypeArgs, tupleResultSort);
+
+      unsigned tuple = env.signature->addFreshFunction(tupleTypeArgs.size(), "tuple");
+      env.signature->getFunction(tuple)->setType(
+          OperatorType::getConstantsType(tupleResultSort, tupleTypeArgs.size()));
+      auto tupleTerm = Term::create(tuple, tupleTypeArgs);
+
+      // the projections take the tuple's type arguments and the tuple itself
       auto args = TermStack::fromIterator(typeArgIter(bindingLhs));
-      auto tupleTerm = Term::create(tuple, args);
       args.push(TermList(tupleTerm));
 
       iterTraits(termArgIter(bindingLhs))
@@ -703,10 +722,11 @@ TermList NewCNF::eliminateLet(Term* term)
           auto lhs = arg.term();
           ASS_EQ(lhs->numTermArguments(), 0);
 
+          // note that the projections are always functions, also for a Boolean
+          // component: such a component is a $o-sorted *term* proj_i(...,tuple),
+          // which SymbolDefinitionInlining turns into a formula where needed
           unsigned projFunctor = Theory::getTupleProjectionFunctor(arity, i);
-          Term* projectedArgument = lhs->isBoolean()
-            ? Term::createFormula(new AtomicFormula(Literal::create(projFunctor, args.size(), /*polarity*/true, args.begin())))
-            : Term::create(projFunctor, args);
+          Term* projectedArgument = Term::create(projFunctor, args);
 
           SymbolDefinitionInlining inlining(lhs, TermList(projectedArgument), 0);
           body = inlining.process(body);
@@ -749,13 +769,13 @@ void NewCNF::processLet(Term* term, Occurrences &occurrences)
 TermList NewCNF::nameLetBinding(Term* bindingLhs, TermList bindingRhs, TermList body, VSList* bindingBoundVars)
 {
   // Build a set of bound variable indices for fast membership checks
-  DHSet<unsigned> boundVarSet;
+  DHSet<unsigned, FnvHash, IdentityHash> boundVarSet;
   VSList::Iterator boundIt(bindingBoundVars);
   while (boundIt.hasNext()) {
     boundVarSet.insert(boundIt.next().first);
   }
 
-  DHSet<unsigned> bindingFreeVars;
+  DHSet<unsigned, FnvHash, IdentityHash> bindingFreeVars;
   for (const auto& var : iterTraits(FormulaVarIterator(bindingRhs))) {
     if (!boundVarSet.contains(var)) {
       bindingFreeVars.insert(var);
@@ -818,31 +838,39 @@ TermList NewCNF::nameLetBinding(Term* bindingLhs, TermList bindingRhs, TermList 
   }
 
   Recycled<TermStack> args;
-  Recycled<TermStack> termArgs;
-  // Use sorts directly from bindingBoundVars VSList
-  VSList::Iterator vsit2(bindingBoundVars);
-  while (vsit2.hasNext()) {
-    auto [var, sort] = vsit2.next();
-    if (sort == AtomicSort::superSort()) {
-      args->push(TermList::var(var));
-    } else {
-      termArgs->push(TermList::var(var));
+  if (!renameSymbol) {
+    // we keep the bound symbol itself, so we must apply it to its own
+    // arguments; these need not be the bound variables (the symbol may, e.g.,
+    // be a fresh constant introduced when de-tuplifying a tuple binding)
+    args->loadFromIterator(anyArgIter(bindingLhs));
+  } else {
+    Recycled<TermStack> termArgs;
+    // Use sorts directly from bindingBoundVars VSList
+    VSList::Iterator vsit2(bindingBoundVars);
+    while (vsit2.hasNext()) {
+      auto [var, sort] = vsit2.next();
+      if (sort == AtomicSort::superSort()) {
+        args->push(TermList::var(var));
+      } else {
+        termArgs->push(TermList::var(var));
+      }
     }
-  }
-  for (const auto& var : iterTraits(bindingFreeVars.iterator())) {
-    auto sort = getVarSort(var);
-    if (sort == AtomicSort::superSort()) {
-      args->push(TermList::var(var));
-    } else {
-      termArgs->push(TermList::var(var));
+    for (const auto& var : iterTraits(bindingFreeVars.iterator())) {
+      auto sort = getVarSort(var);
+      if (sort == AtomicSort::superSort()) {
+        args->push(TermList::var(var));
+      } else {
+        termArgs->push(TermList::var(var));
+      }
     }
+    args->loadFromIterator(termArgs->iterFifo());
+    ASS_EQ(args->size(), nameArity);
   }
-  args->loadFromIterator(termArgs->iterFifo());
 
   Term* freshApplication;
 
   if (isPredicate) {
-    Literal* name = Literal::create(freshSymbol, nameArity, POSITIVE, args->begin());
+    Literal* name = Literal::create(freshSymbol, args->size(), POSITIVE, args->begin());
     freshApplication = name;
     Formula* nameFormula = new AtomicFormula(name);
 
@@ -853,7 +881,7 @@ TermList NewCNF::nameLetBinding(Term* bindingLhs, TermList bindingRhs, TermList 
       introduceGenClause(GenLit(nameFormula, sign), GenLit(formulaBinding, OPPOSITE(sign)));
     }
   } else {
-    TermList name = TermList(Term::create(freshSymbol, nameArity, args->begin()));
+    TermList name = TermList(Term::create(freshSymbol, args->size(), args->begin()));
     freshApplication = name.term();
     Formula* nameFormula = new AtomicFormula(Literal::createEquality(POSITIVE, name, bindingRhs, nameSort));
 
@@ -1108,7 +1136,7 @@ void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
 
   // empty the skolem caches
   _skolemsByBindings.reset();
-  DHMap<VarSet*,BindingList*>::DelIterator dIt(_skolemsByFreeVars);
+  DHMap<VarSet*,BindingList*, FnvHash, PtrIdentityHash>::DelIterator dIt(_skolemsByFreeVars);
   while (dIt.hasNext()) {
     VarSet* vars;
     BindingList* bindings;
@@ -1118,7 +1146,7 @@ void NewCNF::process(QuantifiedFormula* g, Occurrences &occurrences)
   }
 
   _foolSkolemsByBindings.reset();
-  DHMap<VarSet*,BindingList*>::DelIterator fdit(_foolSkolemsByFreeVars);
+  DHMap<VarSet*,BindingList*, FnvHash, PtrIdentityHash>::DelIterator fdit(_foolSkolemsByFreeVars);
   while (fdit.hasNext()) {
     VarSet* vars;
     BindingList* bindings;
@@ -1341,7 +1369,7 @@ void NewCNF::toClauses(SPGenClause gc, Stack<Clause*>& output)
   // the current variable pass through unchanged, keeping the same pointer,
   // so subsequent iterations get O(1) membership checks instead of
   // repeated formula traversals.
-  DHMap<List<GenLit>*, VarSet*> clauseFreeVarCache;
+  DHMap<List<GenLit>*, VarSet*, FnvHash, PtrIdentityHash> clauseFreeVarCache;
 
   unsigned iteCounter = 0;
   while (variables.isNonEmpty()) {

@@ -411,7 +411,7 @@ void clausifyMode(Problem* problem, bool theory)
         Literal::create(p, /* polarity */ true , {}),
         Literal::create(p, /* polarity */ false, {})
       }, 
-      NonspecificInference0(UnitInputType::NEGATED_CONJECTURE,InferenceRule::INPUT));
+      FromInput(UnitInputType::NEGATED_CONJECTURE));
     std::cout << TPTPPrinter::toString(c) << "\n";
   }
 
@@ -473,10 +473,11 @@ void dispatchByMode(Problem* problem)
     } else {
       env.options->setSchedule(Options::Schedule::CASC_SAT);
     }
-    env.options->setInputSyntax(Options::InputSyntax::TPTP);
+    // unfortunatelly, setting these here make not difference (the need to be before during parsing)
+    // env.options->setInputSyntax(Options::InputSyntax::TPTP);
+    // env.options->setOutputAxiomNames(true);
     env.options->setOutputMode(Options::Output::SZS);
     env.options->setProof(Options::Proof::TPTP);
-    env.options->setOutputAxiomNames(true);
 
     // env.options->setNormalize(true);
     // env.options->setRandomizeSeedForPortfolioWorkers(false);
@@ -488,7 +489,7 @@ void dispatchByMode(Problem* problem)
 
   case Options::Mode::SMTCOMP:
     env.options->setIgnoreMissing(Options::IgnoreMissing::OFF);
-    env.options->setInputSyntax(Options::InputSyntax::SMTLIB2);
+    // env.options->setInputSyntax(Options::InputSyntax::SMTLIB2);
     if(env.options->outputMode() != Options::Output::UCORE){
       env.options->setOutputMode(Options::Output::SMTCOMP);
     }
@@ -674,10 +675,6 @@ int main(int argc, char* argv[])
     }
 
     Lib::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
-
-    if (opts.mode() == Options::Mode::MODEL_CHECK) {
-      opts.setOutputAxiomNames(true);
-    }
 
     if (opts.interactive()) {
       interactiveMetamode();

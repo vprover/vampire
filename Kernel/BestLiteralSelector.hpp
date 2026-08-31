@@ -121,7 +121,7 @@ protected:
     ASS_G(eligible, 1); //trivial cases should be taken care of by the base LiteralSelector
 
     static DArray<Literal*> litArr(64);
-    static Set<unsigned> maxTermHeads;
+    static Set<unsigned, FnvHash> maxTermHeads;
     maxTermHeads.reset();
     litArr.initFromArray(eligible,*c);
     litArr.sortInversed(_comp);
@@ -172,7 +172,7 @@ protected:
     } else if(!singleSelected) {
       //select multiple maximal literals
       static Stack<Literal*> replaced(16);
-      Set<Literal*> maxSet;
+      Set<Literal*, FnvHash> maxSet;
       unsigned selCnt=0;
 
       for(LiteralList* mit=maximals; mit; mit=mit->tail()) {

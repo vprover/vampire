@@ -15,6 +15,7 @@
 #include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "Lib/Random.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Lib/VirtualIterator.hpp"
 
@@ -25,10 +26,9 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/ColorHelper.hpp"
-#include "Kernel/RobSubstitution.hpp"
 
 #include "Indexing/Index.hpp"
-#include "Indexing/TermIndex.hpp"
+#include "Indexing/DemodulationIndex.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -47,27 +47,6 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-namespace {
-
-struct Applicator : SubstApplicator {
-  Applicator(ResultSubstitution* subst) : subst(subst) {}
-  TermList operator()(unsigned v) const override {
-    return subst->applyToBoundResult(v);
-  }
-  ResultSubstitution* subst;
-};
-
-struct ApplicatorWithEqSort : SubstApplicator {
-  ApplicatorWithEqSort(ResultSubstitution* subst, const RobSubstitution& vSubst) : subst(subst), vSubst(vSubst) {}
-  TermList operator()(unsigned v) const override {
-    return vSubst.apply(subst->applyToBoundResult(v), 0);
-  }
-  ResultSubstitution* subst;
-  const RobSubstitution& vSubst;
-};
-
-} // end namespace
-
 template<bool higherOrder>
 ForwardDemodulation<higherOrder>::ForwardDemodulation(SaturationAlgorithm& salg)
   : _preorderedOnly(salg.getOptions().forwardDemodulation()==Options::Demodulation::PREORDERED),
@@ -83,6 +62,12 @@ template<bool higherOrder>
 bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   TIME_TRACE("forward demodulation");
+
+  // under randomized simplifications, each candidate rewrite is with this probability
+  // dropped as early as possible (saving also the applicability checks), giving a
+  // rewrite by another source (or none) a chance instead (to be tuned)
+  constexpr double RSI_SKIP_PROB = 0.01;
+  bool rsi = env.options->randomizedSimplifications();
 
   //Perhaps it might be a good idea to try to
   //replace subterms in some special order, like
@@ -119,37 +104,17 @@ bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement,
         auto qr=git.next();
         ASS_EQ(qr.data->clause->length(),1);
 
+        if(rsi && Random::getDouble(0.0,1.0) < RSI_SKIP_PROB) {
+          continue; // drop this candidate early; the next generalization gets a chance
+        }
+
         if(!ColorHelper::compatible(cl->color(), qr.data->clause->color())) {
           continue;
         }
 
         auto lhs = qr.data->term;
-
-        // TODO:
-        // to deal with polymorphic matching
-        // Ideally, we would like to extend the substitution
-        // returned by the index to carry out the sort match.
-        // However, ForwardDemodulation uses a CodeTree as its
-        // indexing mechanism, and it is not clear how to extend
-        // the substitution returned by a code tree.
-        static RobSubstitution eqSortSubs;
-        if(lhs.isVar()){
-          eqSortSubs.reset();
-          TermList querySort = trm.sort();
-          TermList eqSort = qr.data->term.sort();
-          if(!eqSortSubs.match(eqSort, 0, querySort, 1)){
-            continue;
-          }
-        }
-
         auto subs = qr.unifier;
-        ASS(subs->isIdentityOnQueryWhenResultBound());
-
-        ApplicatorWithEqSort applWithEqSort(subs.ptr(), eqSortSubs);
-        Applicator applWithoutEqSort(subs.ptr());
-        auto appl = lhs.isVar() ? (SubstApplicator*)&applWithEqSort : (SubstApplicator*)&applWithoutEqSort;
-
-        AppliedTerm rhsApplied(qr.data->rhs,appl,true);
+        AppliedTerm rhsApplied(qr.data->rhs,subs,true);
         bool preordered = qr.data->preordered;
 
         ASS_EQ(_ord.compare(trm,rhsApplied),Ordering::reverse(_ord.compare(rhsApplied,trm)));
@@ -158,7 +123,7 @@ bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement,
 #if VDEBUG
           auto dcomp = _ord.compareUnidirectional(trm,rhsApplied);
 #endif
-          qr.data->tod->init(appl);
+          qr.data->tod->init(subs);
           if (!preordered && (_preorderedOnly || !qr.data->tod->next())) {
             ASS_NEQ(dcomp,Ordering::GREATER);
             continue;
@@ -184,7 +149,7 @@ bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement,
 
         TermList rhsS = rhsApplied.apply();
 
-        if (redundancyCheck && !_helper.isPremiseRedundant(cl, lit, trm, rhsS, lhs, appl)) {
+        if (redundancyCheck && !_helper.isPremiseRedundant(cl, lit, trm, rhsS, lhs, subs)) {
           continue;
         }
 

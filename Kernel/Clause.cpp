@@ -77,7 +77,7 @@ Clause::Clause(Literal* const* lits, unsigned length, Inference inf)
 
 #if VDEBUG
   // check that the variable sorts are consistent
-  DHMap<unsigned, TermList> temp;
+  DHMap<unsigned, TermList, FnvHash, IdentityHash> temp;
   SortHelper::collectVariableSorts(this, temp);
 #endif
 
@@ -272,16 +272,26 @@ bool Clause::isHorn()
 }
 
 /**
- * Return iterator over clause variables
+ * Return iterator over clause variables, each reported exactly once
+ *
+ * Deduplicating means collecting the variables into a set and materialising the result,
+ * so prefer iterVars() (or maxVar()) whenever repetitions do not actually hurt.
  */
 VirtualIterator<unsigned> Clause::getVariableIterator() const
 {
-  return pvi( getUniquePersistentIterator(
-      getMappingIterator(
-	  getMapAndFlattenIterator(
-	      iterLits(),
-	      VariableIteratorFn()),
-	  OrdVarNumberExtractorFn())));
+  return pvi( getUniquePersistentIterator(iterVars()) );
+}
+
+/**
+ * Return iterator over the clause's variable occurrences, i.e. with repetitions
+ */
+VirtualIterator<unsigned> Clause::iterVars() const
+{
+  return pvi( getMappingIterator(
+      getMapAndFlattenIterator(
+	  iterLits(),
+	  VariableIteratorFn()),
+      OrdVarNumberExtractorFn()));
 }
 
 /**
@@ -361,7 +371,7 @@ std::string Clause::toString() const
 {
   std::string quantifier = "";
   if(env.options->proofExtra() != Options::ProofExtra::OFF){
-    DHMap<unsigned,TermList> varSortMap;
+    DHMap<unsigned,TermList, FnvHash, IdentityHash> varSortMap;
     SortHelper::collectVariableSorts(const_cast<Clause*>(this),varSortMap);
     auto vars = Stack<unsigned>::fromIterator(varSortMap.domain());
     vars.sort();
@@ -620,13 +630,13 @@ unsigned Clause::computeWeightForClauseSelection(unsigned w, unsigned splitWeigh
   return w * ( !derivedFromGoal ? nongoalWeightCoeffNum : nongoalWeightCoefDenom);
 }
 
-void Clause::collectVars(DHSet<unsigned>& acc)
+void Clause::collectVars(DHSet<unsigned, FnvHash, IdentityHash>& acc)
 {
   collectVars2<VariableIterator>(acc);
 }
 
 template<class VarIt>
-void Clause::collectVars2(DHSet<unsigned>& acc)
+void Clause::collectVars2(DHSet<unsigned, FnvHash, IdentityHash>& acc)
 {
   for (Literal* lit : iterLits()) {
     VarIt vit(lit);
@@ -640,7 +650,7 @@ void Clause::collectVars2(DHSet<unsigned>& acc)
 
 unsigned Clause::varCnt()
 {
-  static DHSet<unsigned> vars;
+  static DHSet<unsigned, FnvHash, IdentityHash> vars;
   vars.reset();
   collectVars(vars);
   return vars.size();
@@ -648,12 +658,16 @@ unsigned Clause::varCnt()
 
 unsigned Clause::maxVar()
 {
+  // a plain scan: a maximum does not care about repetitions, so there is no point
+  // paying for the deduplication (and materialisation) getVariableIterator does
   unsigned max = 0;
-  VirtualIterator<unsigned> it = getVariableIterator();
-
-  while (it.hasNext()) {
-    unsigned n = it.next();
-    max = n > max ? n : max;
+  for (Literal* lit : iterLits()) {
+    VariableIterator vit(lit);
+    while (vit.hasNext()) {
+      TermList var = vit.next();
+      ASS(var.isOrdinaryVar());
+      max = var.var() > max ? var.var() : max;
+    }
   }
   return max;
 }

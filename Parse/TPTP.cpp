@@ -36,6 +36,7 @@
 #include "Shell/Options.hpp"
 #include "Shell/DistinctGroupExpansion.hpp"
 #include "Shell/UIHelper.hpp"
+#include "Shell/Rectify.hpp"
 
 #include "Parse/TPTP.hpp"
 
@@ -59,8 +60,8 @@ static VSList* zipVarsSorts(VList* vars, SList* sorts) {
 
 #define DEBUG_SHOW_UNITS 0
 #define DEBUG_SOURCE 0
-DHMap<unsigned, std::string> TPTP::_axiomNames;
-DHMap<unsigned, Map<unsigned,std::string>> TPTP::_questionVariableNames;
+DHMap<unsigned, std::pair<std::string, std::filesystem::path>, FnvHash, IdentityHash> TPTP::_axiomNames;
+DHMap<unsigned, Map<unsigned,std::string, FnvHash>, FnvHash, IdentityHash> TPTP::_questionVariableNames;
 
 //Numbers chosen to avoid clashing with connectives.
 //Unlikely to ever have 100 connectives, so this should be ok.
@@ -101,8 +102,7 @@ TPTP::TPTP(std::istream &in, std::filesystem::path path, UnitList::FIFO unitBuff
     _modelDefinition(false),
     _insideEqualityArgument(0),
     _unitSources(0),
-    _filterReserved(false),
-    _seenConjecture(false)
+    _filterReserved(false)
 {
 } // TPTP::TPTP
 
@@ -266,7 +266,6 @@ void TPTP::parseImpl(State initialState)
       symbolDefinition();
       break;
     case TUPLE_DEFINITION:
-      if(!env.options->newCNF()){ USER_ERROR("Set --newcnf on if using tuples"); }
       tupleDefinition();
       break;
     case END_LET:
@@ -276,7 +275,6 @@ void TPTP::parseImpl(State initialState)
       endTheoryFunction();
       break;
     case END_TUPLE:
-      if(!env.options->newCNF()){ USER_ERROR("Set --newcnf on if using tuples"); }
       endTuple();
       break;
     default:
@@ -440,7 +438,8 @@ std::string TPTP::toString(Tag tag)
 bool TPTP::readToken(Token& tok)
 {
   skipWhiteSpacesAndComments();
-  switch (getChar(0)) {
+  auto c = getChar(0);
+  switch (c) {
   case 0:
     tok.tag = T_EOF;
     return false;
@@ -698,7 +697,7 @@ bool TPTP::readToken(Token& tok)
     tok.tag = readNumber(tok);
     return true;
   default:
-    PARSE_ERROR("Bad character");
+    PARSE_ERROR("Bad character " + std::string(1, c));
   }
 } // TPTP::readToken()
 
@@ -2349,7 +2348,7 @@ void TPTP::endLetTypes()
   std::string name = _strings.pop();
   Type* t = _types.pop();
   // Implicit type variables may appear in $let declarations, see below.
-  DHSet<unsigned> iTypeVars;
+  DHSet<unsigned, FnvHash, IdentityHash> iTypeVars;
   OperatorType* type = constructOperatorType(t, nullptr, &iTypeVars);
 
   unsigned arity = type->arity();
@@ -2445,7 +2444,17 @@ void TPTP::definition()
           return;
 
         case T_LBRA:
+          // a tuple definition heading a list of simultaneous definitions;
+          // consume the tuple's first name and the comma after it, just like
+          // in the non-simultaneous case above
           resetToks();
+          if (getTok(0).tag != T_NAME) {
+            PARSE_ERROR_TOK("name expected", getTok(0));
+          }
+          _strings.push(name());
+          if (getTok(0).tag == T_COMMA) {
+            resetToks();
+          }
           _bools.push(true); // is a simultaneous definition
           addTagState(T_RBRA);
           _states.push(TUPLE_DEFINITION);
@@ -2470,7 +2479,16 @@ void TPTP::midDefinition()
       break;
 
     case T_LBRA:
+      // a tuple definition inside a list of simultaneous definitions;
+      // TUPLE_DEFINITION expects the first name of the tuple on _strings
       resetToks();
+      if (getTok(0).tag != T_NAME) {
+        PARSE_ERROR_TOK("name expected", getTok(0));
+      }
+      _strings.push(name());
+      if (getTok(0).tag == T_COMMA) {
+        resetToks();
+      }
       _states.push(TUPLE_DEFINITION);
       break;
 
@@ -2600,7 +2618,7 @@ void TPTP::tupleDefinition()
 
   LetDefinitions definitions = _letDefinitions.pop();
   // TODO tuple $lets probably also need adjusting with polymorphic (implicit) types
-  definitions.push(LetSymbolReference{ tupleFunctor, false, std::move(sorts) });
+  definitions.push(LetSymbolReference{ tupleFunctor, false, std::move(sorts), /*isTuple=*/true });
   _letDefinitions.push(definitions);
 
   VList* constants = VList::empty();
@@ -2698,11 +2716,11 @@ void TPTP::endLet()
     VList* varList = _varLists.pop();
     TermList body = _termLists.pop();
 
-    bool isTuple = false;
-    if (!isPredicate) {
-      TermList resultSort = env.signature->getFunction(symbol)->fnType()->result();
-      isTuple = resultSort.isTupleSort();
-    }
+    // note that this cannot be decided by looking at the result sort of symbol:
+    // an ordinary $let-bound symbol may have a tuple sort as well, and then it
+    // is bound as a single symbol and has no list of tuple constants
+    bool isTuple = ref.isTuple;
+    ASS(!isTuple || !isPredicate);
 
     // Implicit type variables come first, then the rest
     TermStack args = ref.iTypeArgs;
@@ -2735,7 +2753,16 @@ void TPTP::endLet()
       }
       vars = varList;
     }
-    auto binding = Formula::createDefinition(Term::create(symbol, args), body, vars);
+    Term* lhs;
+    if (isPredicate) {
+      // symbol is a predicate number, so it cannot go through Term::create.
+      // Wrap it as a formula to preserve the term-formula boundary, the same
+      // way SMTLIB2::parseLet does.
+      lhs = Term::createFormula(new AtomicFormula(Literal::create(symbol, args.size(), true, args.begin())));
+    } else {
+      lhs = Term::create(symbol, args);
+    }
+    auto binding = Formula::createDefinition(lhs, body, vars);
     let = TermList(Term::createLet(binding, let, sort));
   }
   _termLists.push(let);
@@ -3632,7 +3659,7 @@ void TPTP::endFof()
 #if DEBUG_SOURCE
   else{
     // create fake map
-    _unitSources = new DHMap<unsigned,SourceRecord*>();
+    _unitSources = new DHMap<unsigned,SourceRecord*, FnvHash, IdentityHash>();
     source = getSource();
   }
 #endif
@@ -3717,9 +3744,7 @@ void TPTP::endFof()
     _unitSources->insert(original->number(),source);
   }
 
-  if (env.options->outputAxiomNames()) {
-    assignAxiomName(original,nm);
-  }
+  ALWAYS(_axiomNames.insert(original->number(), {nm, currentFile.path}));
 #if DEBUG_SHOW_UNITS
   cout << "Unit: " << unit->toString() << "\n";
 #endif
@@ -3730,8 +3755,6 @@ void TPTP::endFof()
   switch (_lastInputType) {
   case UnitInputType::CONJECTURE:
     if(!isFof) USER_ERROR("conjecture is not allowed in cnf");
-    if(_seenConjecture) USER_ERROR("Vampire only supports a single conjecture in a problem");
-    _seenConjecture=true;
     {
       ASS_EQ(freeVariables(f),VList::empty())
       f = new NegatedFormula(f);
@@ -3770,9 +3793,17 @@ Unit* TPTP::processClaimFormula(Unit* unit, Formula * f, const std::string& nm)
   if (!added) {
     USER_ERROR("Names of claims must be unique: "+nm);
   }
+  if (unit->isClause()) {
+    VList* vars = freeVariables(f);
+    if (VList::isNonEmpty(vars)) {
+      std::tie(f,unit) = Rectify::closeOverGivenVars(vars,f,unit);
+    }
+  } else {
+    // only clauses can have free variables at this point!
+    ASS_EQ(freeVariables(f),VList::empty())
+  }
   env.signature->getPredicate(pred)->markLabel();
   Formula* claim = new AtomicFormula(Literal::create(pred, /* polarity */ true, {}));
-  ASS_EQ(freeVariables(f),VList::empty())
   f = new BinaryFormula(IFF,claim,f);
   return new FormulaUnit(f,
       FormulaClauseTransformation(InferenceRule::CLAIM_DEFINITION,unit));
@@ -3865,7 +3896,7 @@ void TPTP::endTff()
 } // endTff
 
 
-OperatorType* TPTP::constructOperatorType(Type* t, VList* vars, DHSet<unsigned>* ivars)
+OperatorType* TPTP::constructOperatorType(Type* t, VList* vars, DHSet<unsigned, FnvHash, IdentityHash>* ivars)
 {
   TermList resultSort;
   Stack<TermList> argumentSorts;
@@ -4842,21 +4873,17 @@ unsigned TPTP::addUninterpretedConstant(const std::string& name, bool& added)
 } // TPTP::addUninterpretedConstant
 
 /**
- * Associate name @b name with unit @b unit
- * Each formula can have its name assigned at most once
- */
-void TPTP::assignAxiomName(const Unit* unit, std::string& name)
-{
-  ALWAYS(_axiomNames.insert(unit->number(), name));
-} // TPTP::assignAxiomName
-
-/**
  * If @b unit has a name associated, assign it into @b result,
  * and return true; otherwise return false
  */
-bool TPTP::findAxiomName(const Unit* unit, std::string& result)
+bool TPTP::findAxiomName(const Unit* unit, std::string& name, std::filesystem::path &path)
 {
-  return _axiomNames.find(unit->number(), result);
+  std::pair<std::string, std::filesystem::path> found;
+  if(!_axiomNames.find(unit->number(), found))
+    return false;
+  name = std::move(found.first);
+  path = std::move(found.second);
+  return true;
 } // TPTP::findAxiomName
 
 /**

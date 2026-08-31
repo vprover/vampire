@@ -56,6 +56,7 @@
 #include "Lib/Allocator.hpp"
 
 #include "Index.hpp"
+#include "ResultSubstitution.hpp"
 
 #if VDEBUG
 #include <iostream>
@@ -539,7 +540,7 @@ public:
       Binding(int v,TermList t) : var(v), term(t) {}
     }; // class SubstitutionTree::Binding
 
-    typedef DHMap<unsigned,TermList,IdentityHash,DefaultHash> BindingMap;
+    typedef DHMap<unsigned,TermList,IdentityHash,FnvHash> BindingMap;
     typedef Stack<unsigned> VarStack;
 
     Leaf* findLeaf(BindingMap& svBindings)
@@ -1306,7 +1307,7 @@ public:
         void init(AU unif, AbstractionOracle ao, bool fixedPointIteration) { 
           _unif = std::move(unif);
           // TODO set ao outside (?)
-          unifier()->setAo(ao);
+          unifier()->_uwa = std::move(ao);
           _fixedPointIteration = fixedPointIteration;
         }
 

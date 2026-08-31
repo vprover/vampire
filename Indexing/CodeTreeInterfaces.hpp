@@ -16,14 +16,14 @@
 #define __CodeTreeInterfaces__
 
 #include "Forwards.hpp"
+#include "Kernel/SubstHelper.hpp"
+#include "Kernel/Renaming.hpp"
 
 #include "LiteralCodeTree.hpp"
 #include "TermCodeTree.hpp"
 #include "ClauseCodeTree.hpp"
 
 #include "Index.hpp"
-#include "LiteralIndexingStructure.hpp"
-#include "TermIndexingStructure.hpp"
 
 namespace Indexing
 {
@@ -31,16 +31,51 @@ namespace Indexing
 using namespace Kernel;
 using namespace Lib;
 
+template<class Data>
+class GenSubstitution
+  : public SubstApplicator
+{
+public:
+  GenSubstitution(CodeTree::BindingArray* bindings, Renaming* resultNormalizer)
+  : _bindings(bindings), _resultNormalizer(resultNormalizer) {}
+
+  TermList apply(unsigned var) const override {
+    if constexpr (is_indexed_data_normalized<Data>::value) {
+      return (*_bindings)[var];
+    } else {
+      ASS(_resultNormalizer->contains(var));
+      unsigned nvar=_resultNormalizer->get(var);
+      TermList res=(*_bindings)[nvar];
+      ASS(res.isTerm()||res.isOrdinaryVar());
+      ASSERT_VALID(res);
+      return res;
+    }
+  }
+
+  TermList apply(TermList t) const {
+    return SubstHelper::apply(t, *this);
+  }
+
+  Literal* apply(Literal* lit) const {
+    return SubstHelper::apply(lit, *this);
+  }
+private:
+  CodeTree::BindingArray* _bindings;
+  Renaming* _resultNormalizer;
+};
+
+template<typename Data>
+using GenSubstitutionQR = QueryRes<const GenSubstitution<Data>*, Data>;
+
 /**
  * Term indexing structure using code trees to retrieve generalizations
  */
-
 template<bool higherOrder, class Data>
-class CodeTreeTIS : public TermIndexingStructure<Data>
+class CodeTreeTIS
 {
 public:
   /* INFO: we ignore unifying the sort of the keys here */
-  void handle(Data data, bool insert) final
+  void handle(Data data, bool insert)
   {
     if (insert) {
       auto ti = new Data(std::move(data));
@@ -50,11 +85,7 @@ public:
     }
   }
 
-  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true) override;
-  // TODO: get rid of NOT_IMPLEMENTED
-  VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(TypedTermList t, Options::UnificationWithAbstraction, bool fixedPointIteration) override { NOT_IMPLEMENTED; }
-
-  void output(std::ostream& out, Lib::Option<unsigned> multilineIndent) const final { out << _ct; }
+  VirtualIterator<GenSubstitutionQR<Data>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true) const;
 
 private:
   class ResultIterator;
@@ -66,11 +97,11 @@ private:
  * Literal indexing structure using code trees to retrieve generalizations
  */
 template<class Data>
-class CodeTreeLIS : public LiteralIndexingStructure<Data>
+class CodeTreeLIS
 {
 public:
   /* INFO: we ignore unifying the sort of the keys here */
-  void handle(Data data, bool insert) final
+  void handle(Data data, bool insert)
   {
     if (insert) {
       auto ti = new Data(std::move(data));
@@ -80,11 +111,10 @@ public:
     }
   }
 
-  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions = true) override;
-  // TODO: get rid of NOT_IMPLEMENTED
-  VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction, bool fixedPointIteration) override { NOT_IMPLEMENTED; }
+  VirtualIterator<GenSubstitutionQR<Data>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions = true) const;
 
-  void output(std::ostream& out, Option<unsigned> multilineIndent) const override { out << _ct; }
+  friend std::ostream& operator<<(std::ostream& out, Output::Multiline<CodeTreeLIS<Data>> const& self)
+  { return out << self.self._ct; }
 
 private:
   class ResultIterator;

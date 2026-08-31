@@ -22,6 +22,7 @@
 
 namespace Inferences {
 
+template<bool higherOrder>
 class BackwardSubsumptionAndResolution
     : public BackwardSimplificationEngine {
 
@@ -45,7 +46,7 @@ private:
   /// @brief SAT-based subsumption and subsumption resolution engine
   SATSubsumption::SATSubsumptionAndResolution _satSubs;
   /// @brief Set of clauses that have already been checked for subsumption and/or subsumption resolution
-  Lib::DHSet<unsigned> _checked;
+  Lib::DHSet<unsigned, FnvHash, IdentityHash> _checked;
 
 };
 

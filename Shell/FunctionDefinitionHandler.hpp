@@ -17,6 +17,8 @@
 
 #include "Forwards.hpp"
 
+#include "Lib/ScopedPtr.hpp"
+
 #include "Indexing/CodeTreeInterfaces.hpp"
 
 #include "Kernel/InductionTemplate.hpp"
@@ -97,7 +99,7 @@ public:
   auto getGeneralizations(TypedTermList t)
   {
     if (_is.isEmpty()) {
-      return VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>>::getEmpty();
+      return VirtualIterator<GenSubstitutionQR<TermLiteralClause>>::getEmpty();
     }
     return _is->getGeneralizations(t, true);
   }

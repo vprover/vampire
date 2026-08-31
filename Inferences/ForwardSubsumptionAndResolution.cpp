@@ -25,6 +25,7 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Kernel/ColorHelper.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/Random.hpp"
 #include "Shell/Statistics.hpp"
 
 #include "Inferences/ForwardSubsumptionAndResolution.hpp"
@@ -43,13 +44,19 @@ ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution(SaturationAlgor
 {}
 
 /// @brief Set of clauses that were already checked
-static DHSet<unsigned> checkedClauses;
+static DHSet<unsigned, FnvHash, IdentityHash> checkedClauses;
 
 bool ForwardSubsumptionAndResolution::perform(Clause *cl,
                                               Clause *&replacement,
                                               ClauseIterator &premises)
 {
   TIME_TRACE("forward subsumption");
+
+  // under randomized simplifications, each subsumption resolution candidate is with this
+  // probability dropped as early as possible (saving also the SR checks); proper
+  // subsumptions are never leaky (to be tuned)
+  constexpr double RSI_SKIP_PROB = 0.02;
+  bool rsi = env.options->randomizedSimplifications();
 
   ASS(replacement == nullptr)
 
@@ -109,7 +116,8 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
       }
 
       bool checkSR = _subsumptionResolution && !conclusion &&
-                    (_checkLongerClauses || mcl->length() <= clen);
+                    (_checkLongerClauses || mcl->length() <= clen) &&
+                    !(rsi && Random::getDouble(0.0,1.0) < RSI_SKIP_PROB);
 
       // if mcl is longer than cl, then it cannot subsume cl but still could be resolved
       bool checkS = mcl->length() <= clen;
@@ -163,6 +171,9 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
     Literal *lit = (*cl)[li];
     auto it = _unitIndex->getGeneralizations(lit, true, false);
     if (it.hasNext()) {
+      if (rsi && Random::getDouble(0.0,1.0) < RSI_SKIP_PROB) {
+        continue; // drop this candidate early; another literal may still get resolved
+      }
       mcl = it.next().data->clause;
       ASS(mcl->length() == 1)
       replacement = SATSubsumption::SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(cl, lit, mcl, /*forward=*/true);
@@ -185,6 +196,9 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
       }
       if (!_checkLongerClauses && mcl->length() > clen) {
         continue;
+      }
+      if (rsi && Random::getDouble(0.0,1.0) < RSI_SKIP_PROB) {
+        continue; // drop this candidate early; the next one gets a chance
       }
       conclusion = satSubs.checkSubsumptionResolution(mcl, cl, /*forward=*/true, false);
       if (conclusion) {

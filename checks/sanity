@@ -77,6 +77,48 @@ check_exact_output ucore/test2.out --input_syntax smtlib2 -om ucore ucore/test2.
 check_szs_status Unsatisfiable term-algebra/terms_distinct.smt2
 check_szs_status Unsatisfiable -tac axiom term-algebra/terms_acyclic.smt2
 
+# Tuples
+# an ordinary $let-bound symbol of a tuple sort is not a tuple binding
+check_szs_status Theorem theory/let-tuple-sorted-const.p
+check_szs_status Theorem -newcnf on theory/let-tuple-sorted-const.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-sorted-const.p
+# a tuple binding with a Boolean component, bound to a projection
+check_szs_status Theorem -newcnf on theory/let-tuple-bool-nontuple.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-bool-nontuple.p
+# a monomorphic tuple binding with a non-tuple right hand side
+check_szs_status Theorem -newcnf on theory/let-tuple-nontuple.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-nontuple.p
+# tuples on the FOOLElimination pathway (i.e. without newcnf)
+check_szs_status Theorem theory/let-tuple.p
+check_szs_status Theorem theory/let-tuple-bool.p
+check_szs_status Theorem theory/let-tuple-nontuple.p
+check_szs_status Theorem theory/let-tuple-bool-nontuple.p
+check_szs_status Theorem theory/tuple-proj-print.p
+# further tuple problems, on both pathways
+check_szs_status Theorem theory/let-tuple-mono.p
+check_szs_status Theorem -newcnf on theory/let-tuple-mono.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-mono.p
+check_szs_status Theorem theory/let-tuple-var.p
+check_szs_status Theorem -newcnf on theory/let-tuple-var.p
+check_szs_status Theorem theory/let-tuple-nested.p
+check_szs_status Theorem -newcnf on theory/let-tuple-nested.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-nested.p
+check_szs_status Theorem theory/let-tuple-arg.p
+check_szs_status Theorem -newcnf on theory/let-tuple-arg.p
+check_szs_status Theorem theory/let-tuple-shadow.p
+check_szs_status Theorem -newcnf on theory/let-tuple-shadow.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-shadow.p
+check_szs_status Theorem theory/let-tuple-poly-nontuple.p
+check_szs_status Theorem -newcnf on theory/let-tuple-poly-nontuple.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-poly-nontuple.p
+# a tuple binding inside a simultaneous definition group
+check_szs_status Theorem theory/let-tuple-simultaneous.p
+check_szs_status Theorem -newcnf on theory/let-tuple-simultaneous.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-simultaneous.p
+check_szs_status Theorem theory/let-tuple-simultaneous2.p
+check_szs_status Theorem -newcnf on theory/let-tuple-simultaneous2.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-simultaneous2.p
+
 # FOOL
 check_szs_status Theorem theory/let-function.p
 check_szs_status Theorem -newcnf on theory/let-function.p
@@ -85,6 +127,22 @@ check_szs_status Theorem -newcnf on theory/let-tuple-bool.p
 check_szs_status Theorem -newcnf on -ile off theory/let-function.p
 check_szs_status Theorem -newcnf on -ile off theory/let-tuple.p
 check_szs_status Theorem -newcnf on -ile off theory/let-tuple-bool.p
+check_szs_status Theorem theory/let-bool.p
+check_szs_status Theorem -newcnf on theory/let-bool.p
+check_szs_status Theorem -ile off theory/let-bool.p
+check_szs_status Theorem -newcnf on -ile off theory/let-bool.p
+check_szs_status Theorem theory/let-bool-pred.p
+check_szs_status Theorem -newcnf on theory/let-bool-pred.p
+check_szs_status Theorem -ile off theory/let-bool-pred.p
+check_szs_status Theorem -newcnf on -ile off theory/let-bool-pred.p
+check_szs_status Theorem theory/let-bool-simultaneous.p
+check_szs_status Theorem -newcnf on theory/let-bool-simultaneous.p
+check_szs_status Theorem theory/let-bool-twice.p
+check_szs_status Theorem -newcnf on theory/let-bool-twice.p
+check_szs_status Theorem -ile off theory/let-bool-twice.p
+check_szs_status Theorem -newcnf on -ile off theory/let-bool-twice.p
+check_szs_status Unsatisfiable theory/let-bool-twice.smt2
+check_szs_status Unsatisfiable -newcnf on theory/let-bool-twice.smt2
 
 # Arrays
 check_szs_status Unsatisfiable theory/arrays.smt2
@@ -115,6 +173,7 @@ check_szs_status Unsatisfiable -newcnf on -t 1 parse/smtlib2-parametric-datatype
 check_szs_status Unsatisfiable parse/smtlib2-mutual-recursion.smt2
 check_szs_status Unsatisfiable -newcnf on parse/let-bind-variable.smt2
 check_szs_status Unsatisfiable -qa synthesis parse/assert-synth-max5.smt2
+check_szs_status Unsatisfiable parse/define-const.smt2
 
 # Arithmetic
 check_szs_status Theorem -t 1d -s 32 -tgt ground -sas z3 -tha some -nm 6 Problems/ANA/ANA135_1.p
@@ -127,6 +186,7 @@ check_szs_status Theorem -t 1d -to lpo -sas z3 Problems/ARI/ARI637_1.p
 check_szs_status Theorem -t 1d -sas z3 Problems/ARI/ARI700_1.p
 check_szs_status Theorem -t 1d -sas z3 Problems/ARI/ARI724_1.p
 check_szs_status Theorem -t 1d -sas z3 -nwc 5.0 -br off Problems/DAT/DAT005_1.p
+check_szs_status Unsatisfiable -t 1d -alasca on -alascai on theory/alasca-integer-conversion.p
 check_szs_status Theorem -t 1d -alasca on -alascai on -thf on Problems/DAT/DAT023_1.p
 check_szs_status Theorem -t 1d -tha off Problems/DAT/DAT042_1.p
 check_szs_status Theorem -t 5d -s 1010 -thsq on -thsqr 8,1 -thsqc 64 -thsqd 64 -canc force Problems/DAT/DAT043_1.p
@@ -153,3 +213,6 @@ check_szs_status Unsatisfiable -t 5d -fgj on -bd all Problems/SWW/SWW436-1.p
 # Synthesis without and with uncomputables
 check_szs_status Unsatisfiable -qa synthesis synthesis/max2.smt2
 check_szs_status Unsatisfiable -qa synthesis synthesis/ex2-inverse_of_ixopiy.smt2
+
+# Higher-order logic
+check_szs_status Theorem hol/hol1.p

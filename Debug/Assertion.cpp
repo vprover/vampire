@@ -30,6 +30,10 @@ void reportSpiderFail();
 
 [[noreturn]] void Assertion::abortAfterViolation()
 {
+  // terminateImmediately calls std::_Exit, which does not flush stdio buffers.
+  // Without this, the report above is lost whenever stdout is not a terminal
+  // (a pipe -- as under CI or ctest -- is fully buffered), leaving a bare failure.
+  std::cout.flush();
   Shell::reportSpiderFail();
   System::terminateImmediately(VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION);
 }

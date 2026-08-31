@@ -19,7 +19,6 @@
 #include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/SubstHelper.hpp"
-#include "Kernel/Substitution.hpp"
 #include "Kernel/SortHelper.hpp"
 
 #include "ArgCong.hpp"
@@ -41,7 +40,7 @@ struct ArgCongResultFn
     ASS(lit->isEquality());
     ASS(lit->isPositive());
 
-    static Substitution subst;
+    static HOSubstitution subst;
 
     auto eqSort = SortHelper::getEqualityArgumentSort(lit);
     bool sortIsVar = eqSort.isVar();

@@ -346,9 +346,9 @@ private:
 
   BiMap<SATLiteral, z3::expr, DefaultHash, Z3Hash> _assumptionLookup;
   Option<std::ofstream> _out;
-  Map<unsigned, z3::expr> _varNames;
+  Map<unsigned, z3::expr, FnvHash> _varNames;
   Map<TermList, z3::expr> _termIndexedConstants;
-  Map<Signature::Symbol*, z3::expr> _constantNames;
+  Map<Signature::Symbol*, z3::expr, FnvHash> _constantNames;
 
   bool     isNamedExpr(unsigned var) const;
   z3::expr getNameExpr(unsigned var);

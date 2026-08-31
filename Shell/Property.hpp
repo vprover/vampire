@@ -214,7 +214,6 @@ public:
   bool hasFOOL() const { return _hasFOOL; }
   bool hasArrowSort() const { return _hasArrowSort; }
   bool hasApp() const { return _hasApp; }
-  bool hasAppliedVar() const { return _hasAppliedVar; }
   bool hasBoolVar() const { return _hasBoolVar; }
   bool hasLogicalProxy() const { return _hasLogicalProxy; }
   bool hasPolymorphicSym() const { return _hasPolymorphicSym; }
@@ -299,7 +298,7 @@ public:
   /** Symbols in this formula, used during counting
       Functions are positive, predicates stored in the negative part
   **/
-  DHSet<int> _symbolsInFormula;
+  DHSet<int, FnvHash, IdentityHash> _symbolsInFormula;
 
   /** Bitwise OR of all properties of this problem */
   uint64_t _props;
@@ -325,7 +324,6 @@ public:
   bool _hasFOOL;
   bool _hasArrowSort;
   bool _hasApp;
-  bool _hasAppliedVar;
   bool _hasBoolVar;
   bool _hasLogicalProxy;
   bool _hasLambda;

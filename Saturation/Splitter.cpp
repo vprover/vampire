@@ -20,6 +20,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/IntUnionFind.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "Lib/Random.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Lib/Timer.hpp"
 
@@ -50,6 +51,7 @@
 #include "DP/SimpleCongruenceClosure.hpp"
 
 #include "SaturationAlgorithm.hpp"
+#include "Shell/UIHelper.hpp"
 
 namespace Saturation
 {
@@ -77,11 +79,7 @@ void SplittingBranchSelector::init()
   SATSolver *inner;
   switch(_parent.getOptions().satSolver()){
     case Options::SatSolver::MINISAT: {
-      auto minisat = new MinisatInterfacing();
-      minisat->setSeed(Random::seed());
-      minisat->setClauseShuffling(_parent.getOptions().randomTraversals());
-      minisat->setWatchesShuffling(_parent.getOptions().randomTraversals());
-      inner = minisat;
+      inner = new MinisatInterfacing(_parent.getOptions());
       break;
     }
     case Options::SatSolver::CADICAL:
@@ -90,11 +88,18 @@ void SplittingBranchSelector::init()
 #if VZ3
     case Options::SatSolver::Z3:
       {
-        inner = new Z3Interfacing(_parent.getOptions(),_parent.satNaming(), /* unsat core */ false, _parent.getOptions().exportAvatarProblem(), _parent.getOptions().problemExportSyntax());
-        if(_parent.getOptions().satFallbackForSMT()){
-          // TODO make fallback minimizing?
-          SATSolver* fallback = new MinisatInterfacing;
-          inner = new FallbackSolverWrapper(inner, fallback);
+        if (env.higherOrder()) {
+          if (outputAllowed()) {
+            addCommentSignForSZS(std::cout);
+            std::cout << "WARNING: Z3 as SAT solver not compatible with higher-order. Using Minisat instead" << std::endl;
+          }
+          inner = new MinisatInterfacing(_parent.getOptions());
+        } else {
+          inner = new Z3Interfacing(_parent.getOptions(),_parent.satNaming(), /* unsat core */ false, _parent.getOptions().exportAvatarProblem(), _parent.getOptions().problemExportSyntax());
+          if(_parent.getOptions().satFallbackForSMT()){
+            // TODO make fallback minimizing?
+            inner = new FallbackSolverWrapper(inner, new MinisatInterfacing());
+          }
         }
       }
       break;
@@ -910,7 +915,7 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc, bool shuffle)
 
   //Master literal of an variable is the literal
   //with lowest index, in which it appears.
-  static DHMap<unsigned, unsigned, IdentityHash, DefaultHash> varMasters;
+  static DHMap<unsigned, unsigned, IdentityHash, FnvHash> varMasters;
   varMasters.reset();
   IntUnionFind components(clen);
 
@@ -994,6 +999,14 @@ bool Splitter::doSplitting(Clause* cl)
   // fills comps with components, returning if not splittable
   if(!getComponents(cl, comps, _shuffleComponents)) {
     return handleNonSplittable(cl);
+  }
+
+  // under randomized simplifications, each splitting opportunity is with this probability
+  // skipped: the clause stays in the FO loop unsplit, as if splitting was never attempted
+  // (properly non-splittable clauses are still handled above, never leaky) (to be tuned)
+  constexpr double RSI_SKIP_PROB = 0.03;
+  if(env.options->randomizedSimplifications() && Random::getDouble(0.0,1.0) < RSI_SKIP_PROB) {
+    return false;
   }
 
   static SATLiteralStack satClauseLits;
@@ -1668,7 +1681,7 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
  */
 UnitList* Splitter::preprendCurrentlyAssumedComponentClauses(UnitList* clauses)
 {
-  DHSet<unsigned> seen;
+  DHSet<unsigned, FnvHash, IdentityHash> seen;
 
   // to keep the nice order
   UnitList::FIFO res;

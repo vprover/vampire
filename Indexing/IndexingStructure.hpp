@@ -28,11 +28,6 @@ public:
   virtual void handle(Data data, bool insert) = 0;
   void insert(Data data) { handle(std::move(data), /* insert */ true ); }
   void remove(Data data) { handle(std::move(data), /* insert */ false); }
-
-  virtual void output(std::ostream& out, Lib::Option<unsigned> multilineIndent) const = 0;
-
-  friend std::ostream& operator<<(std::ostream& out, IndexingStructure const& self) { self.output(out, {}); return out; }
-  friend std::ostream& operator<<(std::ostream& out, Lib::Output::Multiline<IndexingStructure> const& self) { self.self.output(out, some(self.indent)); return out; }
 };
 
 }

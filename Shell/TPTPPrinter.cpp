@@ -83,7 +83,7 @@ std::string TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
 {
   std::ostringstream res;
 
-  typedef DHMap<unsigned,TermList> SortMap;
+  typedef DHMap<unsigned,TermList, FnvHash, IdentityHash> SortMap;
   static SortMap varSorts;
   varSorts.reset();
   SortHelper::collectVariableSorts(u, varSorts);
@@ -149,7 +149,8 @@ void TPTPPrinter::printTffWrapper(Unit* u, std::string bodyStr)
 {
   tgt() << "tff(";
   std::string unitName;
-  if(Parse::TPTP::findAxiomName(u, unitName)) {
+  std::filesystem::path unitPath;
+  if(Parse::TPTP::findAxiomName(u, unitName, unitPath)) {
     tgt() << unitName;
   }
   else {
@@ -535,7 +536,8 @@ std::string TPTPPrinter::toString (const Unit* unit)
   }
 
   std::string unitName;
-  if(!Parse::TPTP::findAxiomName(unit, unitName)) {
+  std::filesystem::path unitPath;
+  if(!Parse::TPTP::findAxiomName(unit, unitName, unitPath)) {
     unitName="u" + Int::toString(unit->number());
   }
 

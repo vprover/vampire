@@ -18,10 +18,23 @@
 #include "Forwards.hpp"
 #include "Inferences/InferenceEngine.hpp"
 
-#include "Indexing/TermIndex.hpp"
+#include "Indexing/CodeTreeInterfaces.hpp"
+using namespace Indexing;
 
 namespace Inferences {
-using namespace Indexing;
+
+class SkolemisingFormulaIndex
+{
+public:
+  void insertFormula(TermList formula, TermList skolem) {
+    _ct.handle(TermWithValue<TermList>(TypedTermList(formula.term()), skolem), /*insert=*/true);
+  }
+  auto getSkolem(Term* forTerm) {
+    return _ct.getGeneralizations(TypedTermList(forTerm), true);
+  }
+private:
+  CodeTreeTIS<true, TermWithValue<TermList>> _ct;
+};
 
 class IFFXORRewriterISE
   : public ImmediateSimplificationEngine
@@ -41,22 +54,20 @@ class LazyClausification
   : public SimplificationEngine
 {
 public:
-  LazyClausification(SaturationAlgorithm& salg);
-
+  LazyClausification(SaturationAlgorithm&) {}
   ClauseIterator perform(Clause* c) override;
 private:
-  std::shared_ptr<SkolemisingFormulaIndex> _formulaIndex;
+  SkolemisingFormulaIndex _formulaIndex;
 };
 
 class LazyClausificationGIE
   : public GeneratingInferenceEngine
 {
 public:
-  LazyClausificationGIE(SaturationAlgorithm& salg);
   ClauseIterator generateClauses(Clause* c) override;
 
 private:
-  std::shared_ptr<SkolemisingFormulaIndex> _formulaIndex;
+  SkolemisingFormulaIndex _formulaIndex;
 };
 
 }

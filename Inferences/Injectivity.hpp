@@ -23,6 +23,7 @@ namespace Inferences {
 
 class Injectivity : public GeneratingInferenceEngine {
   public:
+    Injectivity(SaturationAlgorithm&) {}
     ClauseIterator generateClauses(Clause* premise) override;
 
   private:

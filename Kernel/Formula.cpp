@@ -96,7 +96,7 @@ std::string Formula::toString (Connective c)
  * @since 09/12/2003 Manchester
  * @since 11/12/2004 Manchester, true and false added
  */
-std::string Formula::toString () const
+std::string Formula::toString (bool topLevel) const
 {
   std::string res;
 
@@ -108,7 +108,7 @@ std::string Formula::toString () const
   } Todo;
 
   Stack<Todo> stack;
-  stack.push({false,NOCONN,this});
+  stack.push({!topLevel,NOCONN,this});
 
   while (stack.isNonEmpty()) {
     Todo todo = stack.pop();
@@ -177,6 +177,9 @@ std::string Formula::toString () const
         res += toString(c);
 
         const Formula* arg = f->uarg();
+        Connective subc = arg->connective();
+        if(subc == FORALL || subc == EXISTS || subc == NOT || subc == LITERAL)
+          res += " ";
         stack.push({arg->parenthesesRequired(c),NOCONN,arg});
 
         continue;
@@ -193,7 +196,11 @@ std::string Formula::toString () const
             res += ",";
           }
           res += Term::variableToString(var);
-          if (sort != AtomicSort::defaultSort()) {
+          // a variable of a sort other than $i must always be annotated, and
+          // preprocessing is not expected to introduce such a sort into an
+          // initially untyped problem
+          ASS(sort == AtomicSort::defaultSort() || env.initiallyHasNonDefaultSorts());
+          if (env.initiallyHasNonDefaultSorts()) {
             res += " : " + sort.toString();
           }
           first = false;
@@ -411,7 +418,7 @@ Formula* Formula::createDefinition(Term* lhs, TermList rhs, VList* uVars)
   auto lit = Literal::create(env.signature->getDefPred(), /*polarity*/true, { sort, TermList(lhs), rhs });
   Formula* res = new AtomicFormula(lit);
   if (uVars) {
-    DHMap<unsigned,TermList> varSortMap;
+    DHMap<unsigned,TermList, FnvHash, IdentityHash> varSortMap;
     SortHelper::collectVariableSorts(res, varSortMap);
     VSList::FIFO vsfifo;
     VList::Iterator vit(uVars);
@@ -427,13 +434,13 @@ Formula* Formula::createDefinition(Term* lhs, TermList rhs, VList* uVars)
 Formula* Formula::quantify(Formula* f)
 {
 
-  DHMap<unsigned,TermList> tMap;
+  DHMap<unsigned,TermList, FnvHash, IdentityHash> tMap;
   SortHelper::collectVariableSorts(f,tMap,/*ignoreBound=*/true);
 
   //we have to quantify the formula
   VSList::FIFO quantifiedVarsWithSorts;
 
-  DHMap<unsigned,TermList>::Iterator tmit(tMap);
+  DHMap<unsigned,TermList, FnvHash, IdentityHash>::Iterator tmit(tMap);
   while(tmit.hasNext()) {
     unsigned v;
     TermList s;
@@ -447,6 +454,28 @@ Formula* Formula::quantify(Formula* f)
   }
   if(!quantifiedVarsWithSorts.empty()) {
     f = new QuantifiedFormula(FORALL, quantifiedVarsWithSorts.list(), f);
+  }
+  return f;
+}
+
+Formula* Formula::removeUniversalTypePrenex(Formula* f)
+{
+  while (f->connective() == FORALL) {
+    auto vars = f->vars();
+    // get rid of current universal type prenex
+    while (vars && vars->head().second == AtomicSort::superSort()) {
+      vars = vars->tail();
+    }
+    // if there was none, return original formula
+    if (vars == f->vars()) {
+      break;
+    }
+    // if there are vars remaining, we return a new formula
+    if (vars) {
+      return new QuantifiedFormula(FORALL, vars, f->qarg());
+    }
+    // otherwise we recurse
+    f = f->qarg();
   }
   return f;
 }

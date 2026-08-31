@@ -35,7 +35,7 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-void getVarSorts(TypedTermList t, DHMap<unsigned,TermList>& varSorts)
+void getVarSorts(TypedTermList t, DHMap<unsigned,TermList, FnvHash, IdentityHash>& varSorts)
 {
   if (t.isVar()) {
     varSorts.insert(t.var(), t.sort());
@@ -55,18 +55,16 @@ struct NegExtResultFn
     ASS(lit->isEquality());
     ASS(lit->isNegative());
 
-    static DHMap<unsigned,TermList> varSorts;
+    static DHMap<unsigned,TermList, FnvHash, IdentityHash> varSorts;
     varSorts.reset();
 
-    auto eqSort = SortHelper::getEqualityArgumentSort(lit);
+    auto eqSort = lit->eqArgSort();
     if (eqSort.isVar() || !eqSort.isArrowSort()) {
       return nullptr;
     }
 
-    auto lhs = lit->termArg(0);
+    auto [lhs,rhs] = lit->eqArgs();
     getVarSorts(TypedTermList(lhs, eqSort), varSorts);
-
-    auto rhs = lit->termArg(1);
     getVarSorts(TypedTermList(rhs, eqSort), varSorts);
 
     if (lit->isTwoVarEquality()) {

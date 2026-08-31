@@ -15,7 +15,10 @@
  */
 
 
+#include "Lib/Random.hpp"
 #include "Lib/ScopedLet.hpp"
+
+#include <cmath>
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/HOL/HOL.hpp"
@@ -29,7 +32,6 @@
 #include "DistinctGroupExpansion.hpp"
 #include "EqResWithDeletion.hpp"
 #include "EqualityProxy.hpp"
-#include "EqualityProxyMono.hpp"
 #include "Flattening.hpp"
 #include "FunctionDefinition.hpp"
 #include "GeneralSplitting.hpp"
@@ -54,6 +56,7 @@
 #include "TheoryFlattening.hpp"
 #include "TweeGoalTransformation.hpp"
 #include "BlockedClauseElimination.hpp"
+#include "PredicateElimination.hpp"
 
 #include "UIHelper.hpp"
 #include "Lib/List.hpp"
@@ -176,8 +179,11 @@ void Preprocess::preprocess(Problem& prb)
         std::cout << "WARNING: ignoring request to add function extensionality axiom as problem is first-order" << std::endl;
       }
     } else {
-      INVALID_OPERATION("function extensionality axiom not yet supported");
-      // LambdaConversion::addFunctionExtensionalityAxiom(prb);
+      auto funcExtAx = HOL::create::functionalExtensionalityAxiom();
+      UnitList::push(funcExtAx, prb.units());
+      if (env.options->showPreprocessing()) {
+        std::cout << "Added functional extensionality axiom: " << funcExtAx->toString() << std::endl;       
+      }
     }
   }
 
@@ -188,20 +194,11 @@ void Preprocess::preprocess(Problem& prb)
         std::cout << "WARNING: ignoring request to add choice axiom as problem is first-order" << std::endl;
       }
     } else {
-      INVALID_OPERATION("choice axiom not yet supported");
-      // LambdaConversion::addChoiceAxiom(prb);
-    }
-  }
-
-  if (env.options->addProxyAxioms()){
-    if (!prb.isHigherOrder()) {
-      if (outputAllowed()) {
-        addCommentSignForSZS(std::cout);
-        std::cout << "WARNING: ignoring request to add logical proxy axioms as problem is first-order" << std::endl;
+      auto choiceAx = HOL::create::choiceAxiom();
+      UnitList::push(choiceAx, prb.units());
+      if (env.options->showPreprocessing()) {
+        std::cout << "[PP] Added Hilbert choice axiom: " << choiceAx->toString() << std::endl;
       }
-    } else {
-      INVALID_OPERATION("proxy axioms not yet supported");
-      // LambdaConversion::addProxyAxioms(prb);
     }
   }
 
@@ -217,7 +214,7 @@ void Preprocess::preprocess(Problem& prb)
     env.statistics->phase=ExecutionPhase::SINE_SELECTION;
 
     if (_options.sineToPredLevels() != Options::PredicateSineLevels::OFF) {
-      env.predicateSineLevels = new DHMap<unsigned,unsigned>();
+      env.predicateSineLevels = new DHMap<unsigned,unsigned, FnvHash, IdentityHash>();
     }
 
     // just to initialize ``env.clauseSineLevels'' or ``env.predicateSineLevels''
@@ -429,14 +426,13 @@ void Preprocess::preprocess(Problem& prb)
 
      // refresh symbol usage counts, can skip unused symbols for equality proxy
      prb.getProperty();
-     if(_options.useMonoEqualityProxy() && !prb.hasPolymorphicSym()){
-       EqualityProxyMono proxy(_options.equalityProxy());
-       proxy.apply(prb);
-     } else {
-       //default
-       EqualityProxy proxy(_options.equalityProxy());
-       proxy.apply(prb);
-     }
+     // only a problem which is polymorphic already gets the polymorphic proxy predicate;
+     // a monomorphic problem must not be turned polymorphic by preprocessing
+     // TODO: hasPolymorphicSym over-approximates; it also holds for a monomorphic problem
+     // with an equality on a non-nullary ground sort, such as list(int), which the
+     // monomorphic variant would handle just fine
+     EqualityProxy proxy(_options.equalityProxy(),/*poly=*/prb.hasPolymorphicSym());
+     proxy.apply(prb);
    }
 
 
@@ -470,6 +466,25 @@ void Preprocess::preprocess(Problem& prb)
 
      BlockedClauseElimination bce(/*force_equationally*/_options.saturationAlgorithm() == Options::SaturationAlgorithm::FINITE_MODEL_BUILDING);
      bce.apply(prb);
+   }
+
+   if (_options.predicateElimination() != Options::PredicateElimination::OFF) {
+     if (prb.isHigherOrder() || prb.hasPolymorphicSym()) { // in both cases, predicates could hide inside terms, breaking the occurrence counting
+       if (outputAllowed()) {
+         addCommentSignForSZS(std::cout);
+         std::cout << "WARNING: Not using PredicateElimination currently not compatible with polymorphic/higher-order inputs." << endl;
+       }
+     } else {
+       env.statistics->phase=ExecutionPhase::PREDICATE_ELIMINATION;
+       if (env.options->showPreprocessing())
+         std::cout << "predicate elimination" << std::endl;
+
+       PredicateElimination pel(/*forceEquationally=*/_options.saturationAlgorithm() == Options::SaturationAlgorithm::FINITE_MODEL_BUILDING,
+                                _options.predicateEliminationTotalLimit(),
+                                _options.predicateEliminationSubsumption(),
+                                _options.predicateEliminationMultiOccurrence());
+       pel.apply(prb);
+     }
    }
 
    if (_options.shuffleInput()) {
@@ -606,14 +621,21 @@ void Preprocess::naming(Problem& prb)
   ASS(_options.naming());
 
   env.statistics->phase=ExecutionPhase::NAMING;
+  int nm = _options.naming();
   UnitList::DelIterator us(prb.units());
-  //TODO fix the below
-  Naming naming(_options.naming(),false, prb.isHigherOrder()); // For now just force eprPreservingNaming to be false, should update Naming
   while (us.hasNext()) {
     Unit* u = us.next();
     if (u->isClause()) {
       continue;
     }
+    int threshold = nm;
+    if (_options.randomizedPreprocessing()) {
+      // log-uniform on [nm/2, 2*nm]: the geometric mean stays nm
+      threshold = (int)std::round(nm * std::pow(2.0, Random::getDouble(-1.0, 1.0)));
+      threshold = std::min(std::max(threshold, 2), 32767); // respect the nm option range {0} ∪ [2, 32767]
+    }
+    //TODO fix the below
+    Naming naming(threshold,false, prb.isHigherOrder()); // For now just force eprPreservingNaming to be false, should update Naming
     UnitList* defs;
     FormulaUnit* fu = static_cast<FormulaUnit*>(u);
     FormulaUnit* v = naming.apply(fu,defs);

@@ -16,7 +16,6 @@
 #ifndef __InferenceStore__
 #define __InferenceStore__
 
-#include <utility>
 #include <ostream>
 
 #include "Forwards.hpp"
@@ -26,8 +25,8 @@
 #include "Lib/DHMultiset.hpp"
 #include "Lib/Stack.hpp"
 
-#include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Signature.hpp"
 
 namespace Kernel {
 
@@ -68,8 +67,10 @@ public:
   };
 
   void recordSplittingNameLiteral(Unit* us, Literal* lit);
-  void recordIntroducedSymbol(Unit* u, SymbolType st, unsigned number);
+  void recordIntroducedSymbol(Unit* u, Signature::Symbol* sym);
+  void recordIntroducedSkolemSymbol(Unit* u, Signature::Symbol* sym, unsigned replacedVar, Term* symTerm);
   void recordIntroducedSplitName(Unit* u, std::string name);
+  
 
   void outputUnsatCore(std::ostream& out, Unit* refutation);
   void outputProof(std::ostream& out, Unit* refutation);
@@ -85,17 +86,19 @@ private:
 
   ProofPrinter* createProofPrinter(std::ostream& out);
 
-  DHMultiset<unsigned> _nextClIds;
+  DHMultiset<unsigned, FnvHash, IdentityHash> _nextClIds;
 
-  DHMap<unsigned, Literal*> _splittingNameLiterals;
+  DHMap<unsigned, Literal*, FnvHash, IdentityHash> _splittingNameLiterals;
 
+  typedef Stack<Signature::Symbol*> SymbolStack;
+  // unit id -> stack of introduced symbols (in order of introduction)
+  DHMap<unsigned,SymbolStack, FnvHash, IdentityHash> _introducedSymbols;
+  // symbol id -> existential variable name (number) that was replaced by the symbol
+  DHMap<Signature::Symbol*, unsigned, FnvHash, PtrIdentityHash> _introducedSymbolReplacedVars;
+  // symbol id -> the term that is introduced when introducing the skolem symbol
+  DHMap<Signature::Symbol*, Term*, FnvHash, PtrIdentityHash> _introducedSkolemSymTerms;
 
-  /** first records the type of the symbol (PRED,FUNC or TYPE_CON), second is symbol number */
-  typedef std::pair<SymbolType,unsigned> SymbolId;
-  typedef Stack<SymbolId> SymbolStack;
-  DHMap<unsigned,SymbolStack> _introducedSymbols;
-  DHMap<unsigned,std::string> _introducedSplitNames;
-
+  DHMap<unsigned,std::string, FnvHash, IdentityHash> _introducedSplitNames;
 };
 
 };

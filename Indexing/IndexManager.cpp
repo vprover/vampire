@@ -16,6 +16,7 @@
 #include "AcyclicityIndex.hpp"
 #include "LiteralIndex.hpp"
 #include "TermIndex.hpp"
+#include "DemodulationIndex.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -31,7 +32,7 @@
 using namespace Lib;
 using namespace Indexing;
 
-SIMP_INDEX_IMPL(AlascaIndex<ALASCA::Demodulation::Lhs>)
+SIMP_INDEX_IMPL(GeneralizingAlascaIndex<ALASCA::Demodulation::Lhs>)
 SIMP_INDEX_IMPL(AlascaIndex<ALASCA::Demodulation::Rhs>)
 SIMP_INDEX_IMPL(DemodulationLHSIndex<false>)
 SIMP_INDEX_IMPL(DemodulationLHSIndex<true>)
@@ -44,7 +45,6 @@ SIMP_INDEX_IMPL(UnitClauseLiteralIndex<false>)
 SIMP_INDEX_IMPL(UnitClauseLiteralIndex<true>)
 SIMP_INDEX_IMPL(DemodulationSubtermIndex<false>)
 SIMP_INDEX_IMPL(DemodulationSubtermIndex<true>)
-SIMP_INDEX_IMPL(SkolemisingFormulaIndex)
 SIMP_INDEX_IMPL(FSDLiteralIndex)
 
 GEN_INDEX_IMPL(AlascaIndex<ALASCA::CoherenceConf<NumTraits<RealConstantType>>::Lhs>)
@@ -56,7 +56,8 @@ GEN_INDEX_IMPL(AlascaIndex<ALASCA::FourierMotzkinConf::Lhs>)
 GEN_INDEX_IMPL(AlascaIndex<ALASCA::FourierMotzkinConf::Rhs>)
 GEN_INDEX_IMPL(AlascaIndex<ALASCA::BinaryResolutionConf::Lhs>)
 GEN_INDEX_IMPL(AlascaIndex<ALASCA::BinaryResolutionConf::Rhs>)
-GEN_INDEX_IMPL(SuperpositionSubtermIndex)
+GEN_INDEX_IMPL(SuperpositionSubtermIndex<false>)
+GEN_INDEX_IMPL(SuperpositionSubtermIndex<true>)
 GEN_INDEX_IMPL(SuperpositionLHSIndex)
 GEN_INDEX_IMPL(AcyclicityIndex)
 GEN_INDEX_IMPL(BinaryResolutionIndex)

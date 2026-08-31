@@ -63,8 +63,7 @@ TermSharing::~TermSharing()
 void TermSharing::setPoly()
 {
   // higher-order superposition can introduce polymorphism into a monomorphic problem
-  _poly = env.higherOrder() || env.getMainProblem()->hasPolymorphicSym() ||
-    (env.options->equalityProxy() != Options::EqualityProxy::OFF && !env.options->useMonoEqualityProxy());
+  _poly = env.higherOrder() || env.getMainProblem()->hasPolymorphicSym();
 }
 
 /**
@@ -132,6 +131,8 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
     t->setHasDeBruijnIndex(hasDeBruijnIndex);
     t->setHasLambda(hasLambda);
     t->setInterpretedConstantsPresence(hasInterpretedConstants);
+
+    ASS_REP(!env.higherOrder() || t->isApplication() || t->isLambdaTerm() || !t->numTermArguments(), "HO term " + t->toString() + " is not appified");
 
     //poly function works for mono as well, but is slow
     //it is fine to use for debug
@@ -266,7 +267,7 @@ void TermSharing::computeAndSetSharedVarEqData(Literal* t, TermList sort)
   TermList* ts1 = t->args();
   TermList* ts2 = ts1->next();
   if (argNormGt(*ts1, *ts2)) {
-    std::swap(ts1->_content, ts2->_content);
+    t->argSwap();
   }
 
   //we need these values set during insertion into the sharing set

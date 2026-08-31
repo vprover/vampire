@@ -296,6 +296,7 @@ private:
       Formula* frm;
       TermList trm;
     };
+    bool isGoal = false;
 
     /**
      * Try interpreting ParseResult as a formula
@@ -431,6 +432,7 @@ private:
     PO_QUANT,              // takes LExpr* (the whole quantified expression again)
     PO_POP_LOOKUP,         // takes nothing
     PO_AS_END,             // takes LExpr* (the whole as expression again)
+    PO_MAKE_GOAL,          // takes nullptr
   };
   /**
    * Main smtlib term parsing stack.

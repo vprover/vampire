@@ -36,6 +36,8 @@ typedef List<int> IntList;
 
 class DefaultHash;
 class DefaultHash2;
+struct FnvHash;
+struct IdentityHash;
 template <typename Key, typename Val,class Hash=DefaultHash> class Map;
 template<class A, class B, class HashA=DefaultHash, class HashB=DefaultHash> class BiMap;
 template <typename Key, typename Val, class Hash1=DefaultHash, class Hash2=DefaultHash2> class DHMap;
@@ -94,7 +96,11 @@ typedef Stack<Clause*> ClauseStack;
 class Problem;
 
 class Renaming;
-class Substitution;
+template<bool higherOrder>
+class Substitution_;
+// TODO(HOL): for now use HOSubstitution everywhere, change to false when performance is affected
+using Substitution = Substitution_</*higherOrder=*/true>;
+using HOSubstitution = Substitution_</*higherOrder=*/true>;
 
 class RobSubstitution;
 typedef VirtualIterator<RobSubstitution*> SubstIterator;
@@ -143,8 +149,6 @@ template<class Data, bool generalizing>
 class LiteralIndex;
 template<class Data>
 class TermIndex;
-template<class Data>
-class TermIndexingStructure;
 
 class TermSharing;
 

@@ -40,7 +40,7 @@ public:
   struct LiteralMatcher
   : public Matcher</*removing=*/false,/*checkRange=*/false,/*higherOrder=*/false>
   {
-    void init(CodeTree* tree, Literal* lit, bool complementary);
+    void init(const CodeTree& tree, Literal* lit, bool complementary);
     void reset();
 
     Data* next();

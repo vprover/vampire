@@ -51,6 +51,7 @@ set(UNIT_TESTS
     UnitTests/tDisagreement.cpp
     UnitTests/tDynamicHeap.cpp
     UnitTests/tFunctionDefinitionHandler.cpp
+    UnitTests/tHash.cpp
     UnitTests/tIndexManager.cpp
     UnitTests/tInferences_AnswerLiteralProcessors.cpp
     UnitTests/tInferences_ArithmeticSubtermGeneralization.cpp
@@ -75,6 +76,7 @@ set(UNIT_TESTS
     UnitTests/tInferences_HOL_CNFOnTheFly.cpp
     UnitTests/tInferences_HOL_FlexFlexSimplify.cpp
     UnitTests/tInferences_HOL_ImitateProject.cpp
+    UnitTests/tInferences_HOL_Injectivity.cpp
     UnitTests/tInferences_HOL_LeibnizEqualityElimination.cpp
     UnitTests/tInferences_HOL_NegativeExtensionality.cpp
     UnitTests/tInferences_HOL_PositiveExtensionality.cpp
@@ -96,6 +98,7 @@ set(UNIT_TESTS
     UnitTests/tLPO.cpp
     UnitTests/tList.cpp
     UnitTests/tOption.cpp
+    UnitTests/tPredicateElimination.cpp
     UnitTests/tOptionConstraints.cpp
     UnitTests/tQKbo.cpp
     UnitTests/tQuotientE.cpp
@@ -111,6 +114,7 @@ set(UNIT_TESTS
     UnitTests/tTermAlgebra.cpp
     UnitTests/tTermIndex.cpp
     UnitTests/tTimeTrace.cpp
+    UnitTests/tTuple.cpp
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/HOL/tHOL_Printing.cpp
     UnitTests/HOL/tHOL_BetaReduction.cpp
@@ -118,6 +122,7 @@ set(UNIT_TESTS
     UnitTests/HOL/tHOL_TermShifter.cpp
     UnitTests/HOL/tHOL_SubtermReplacer.cpp
     UnitTests/HOL/tHOL_ToPlaceholders.cpp
+    UnitTests/HOL/tHOL_Unifier.cpp
 )
 
 ################################################################
@@ -174,6 +179,8 @@ set(SOURCES
     Indexing/CodeTree.hpp
     Indexing/CodeTreeInterfaces.cpp
     Indexing/CodeTreeInterfaces.hpp
+    Indexing/DemodulationIndex.hpp
+    Indexing/DemodulationIndex.cpp
     Indexing/Index.cpp
     Indexing/Index.hpp
     Indexing/IndexingStructure.hpp
@@ -185,7 +192,6 @@ set(SOURCES
     Indexing/LiteralCodeTree.hpp
     Indexing/LiteralIndex.cpp
     Indexing/LiteralIndex.hpp
-    Indexing/LiteralIndexingStructure.hpp
     Indexing/LiteralMiniIndex.cpp
     Indexing/LiteralMiniIndex.hpp
     Indexing/LiteralSubstitutionTree.hpp
@@ -199,7 +205,6 @@ set(SOURCES
     Indexing/TermCodeTree.hpp
     Indexing/TermIndex.cpp
     Indexing/TermIndex.hpp
-    Indexing/TermIndexingStructure.hpp
     Indexing/TermSharing.cpp
     Indexing/TermSharing.hpp
     Indexing/TermSubstitutionTree.hpp
@@ -257,10 +262,6 @@ set(SOURCES
     Inferences/Cancellation.cpp
     Inferences/Cancellation.hpp
     Inferences/Cancellation.hpp
-    Inferences/Cases.cpp
-    Inferences/Cases.hpp
-    Inferences/Choice.cpp
-    Inferences/Choice.hpp
     Inferences/CodeTreeForwardSubsumptionAndResolution.cpp
     Inferences/CodeTreeForwardSubsumptionAndResolution.hpp
     Inferences/Condensation.cpp
@@ -310,8 +311,12 @@ set(SOURCES
     Inferences/HOL/BoolEqToDiseq.hpp
     Inferences/HOL/BoolSimp.cpp
     Inferences/HOL/BoolSimp.hpp
+    Inferences/HOL/Cases.cpp
+    Inferences/HOL/Cases.hpp
     Inferences/HOL/CasesSimp.cpp
     Inferences/HOL/CasesSimp.hpp
+    Inferences/HOL/Choice.cpp
+    Inferences/HOL/Choice.hpp
     Inferences/HOL/CNFOnTheFly.cpp
     Inferences/HOL/CNFOnTheFly.hpp
     Inferences/HOL/FlexFlexSimplify.cpp
@@ -438,6 +443,7 @@ set(SOURCES
     Kernel/PartialOrdering.hpp
     Kernel/Polynomial.cpp
     Kernel/Polynomial.hpp
+    Kernel/PolynomialBottomUpEvaluation.hpp
     Kernel/PolynomialNormalizer.cpp
     Kernel/PolynomialNormalizer.hpp
     Kernel/PolynomialNormalizer/PredicateEvaluator.hpp
@@ -509,6 +515,8 @@ set(SOURCES
     Kernel/HOL/SubtermReplacer.hpp
     Kernel/HOL/ToPlaceholders.cpp
     Kernel/HOL/ToPlaceholders.hpp
+    Kernel/HOL/Unifier.cpp
+    Kernel/HOL/Unifier.hpp
     Lib/Allocator.cpp
     Lib/Allocator.hpp
     Lib/Array.hpp
@@ -689,8 +697,6 @@ set(SOURCES
     Shell/EqResWithDeletion.hpp
     Shell/EqualityProxy.cpp
     Shell/EqualityProxy.hpp
-    Shell/EqualityProxyMono.cpp
-    Shell/EqualityProxyMono.hpp
     Shell/FOOLElimination.cpp
     Shell/FOOLElimination.hpp
     Shell/Flattening.cpp
@@ -731,6 +737,8 @@ set(SOURCES
     Shell/PartialRedundancyHandler.hpp
     Shell/PredicateDefinition.cpp
     Shell/PredicateDefinition.hpp
+    Shell/PredicateElimination.cpp
+    Shell/PredicateElimination.hpp
     Shell/Preprocess.cpp
     Shell/Preprocess.cpp
     Shell/Preprocess.hpp

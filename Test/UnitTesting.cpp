@@ -223,6 +223,8 @@ std::ostream& operator<<(std::ostream& out, TestUnit::Test const& t)
 
 } // namespace Test
 
+constexpr std::string_view SINGLE_THREAD_OPT = "--singlethreaded";
+
 int main(int argc, const char** argv) 
 {
   using namespace Lib;
@@ -236,11 +238,13 @@ int main(int argc, const char** argv)
   auto cmd = std::string(argv[1]);
   auto args = Stack<std::string>(argc - 2);
   for (int i = 2; i < argc; i++) {
-    args.push(std::string(argv[i]));
-  }
-  if (args.top() == "--singlethreaded") {
-    Test::UnitTesting::instance().setSingleThreaded(true);
-    args.pop();
+    if (SINGLE_THREAD_OPT == argv[i]) {
+      std::cout << "Enabled single-threaded testing" << std::endl;
+      Test::UnitTesting::instance().setSingleThreaded(true);
+    }
+    else {
+      args.push(std::string(argv[i]));
+    }
   }
 
   if (cmd == "ls") {

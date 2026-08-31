@@ -18,7 +18,7 @@
 #include <vector>
 
 #include "Forwards.hpp"
-#include "Indexing/Index.hpp"
+#include "Indexing/CodeTreeInterfaces.hpp"
 
 #include "Lib/DHSet.hpp"
 #include "Lib/IntUnionFind.hpp"
@@ -165,7 +165,7 @@ Formula* InductionContext::getFormula(
   auto right = getFormulaWithSquashedSkolems(ts, nextVar, renamedFreeVars, varsReplacingSkolems, subst);
   auto f = left ? new BinaryFormula(Connective::IMP, left, right) : right;
   if (renamedFreeVars) {
-    DHMap<unsigned, TermList> varSorts;
+    DHMap<unsigned, TermList, FnvHash, IdentityHash> varSorts;
     SortHelper::collectVariableSorts(f, varSorts);
     auto vs = VSList::fromIterator(iterTraits(VList::Iterator(renamedFreeVars))
       .map([&varSorts](unsigned v) -> VarSort { return {v, varSorts.get(v)}; }));
@@ -543,7 +543,7 @@ struct InductionContextFn
 {
   InductionContextFn(Clause* premise, Literal* lit) : _premise(premise), _lit(lit) {}
 
-  VirtualIterator<InductionContext> operator()(pair<Stack<Term*>, VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>>> arg) {
+  VirtualIterator<InductionContext> operator()(pair<Stack<Term*>, VirtualIterator<GenSubstitutionQR<TermLiteralClause>>> arg) {
     auto indDepth = _premise->inference().inductionDepth();
     // heuristic 2
     if (indDepth) {
@@ -722,14 +722,14 @@ void InductionClauseIterator::processLiteral(Clause* premise, Literal* lit)
       }
     }
     // collect term queries for each induction term
-    auto sideLitsIt = VirtualIterator<pair<Stack<Term*>, VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>>>>::getEmpty();
+    auto sideLitsIt = VirtualIterator<pair<Stack<Term*>, VirtualIterator<GenSubstitutionQR<TermLiteralClause>>>>::getEmpty();
     if (_opt.nonUnitInduction()) {
       sideLitsIt = pvi(iterTraits(getSTLIterator(ta_terms.begin(), ta_terms.end()))
         .map([](const auto& kv){
           return kv.first;
         })
         .map([this](Stack<Term*> ts) {
-          auto res = VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>>::getEmpty();
+          auto res = VirtualIterator<GenSubstitutionQR<TermLiteralClause>>::getEmpty();
           for (const auto& t : ts) {
             res = pvi(concatIters(std::move(res), _structInductionTermIndex->getGeneralizations(t, false)));
           }
@@ -905,7 +905,7 @@ ClauseStack InductionClauseIterator::produceClauses(Formula* hypothesis, Inferen
   NewCNF cnf(0);
   cnf.setForInduction();
   ClauseStack hyp_clauses;
-  Inference inf = NonspecificInference0(UnitInputType::AXIOM,rule);
+  Inference inf = TheoryAxiom(rule);
   unsigned maxInductionDepth = 0;
   for (const auto& kv : context._cls) {
     maxInductionDepth = max(maxInductionDepth,kv.first->inference().inductionDepth());

@@ -12,10 +12,11 @@
  * Implements class InferenceStore.
  */
 
-#include "Kernel/Theory.hpp"
+#include "Debug/Assertion.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
+#include "Lib/Metaiterators.hpp"
 #include "Lib/ScopedPtr.hpp"
 #include "Lib/SharedSet.hpp"
 #include "Lib/Stack.hpp"
@@ -30,20 +31,25 @@
 
 #include "Saturation/Splitter.hpp"
 
-#include "Signature.hpp"
+#include "HOL/HOL.hpp"
 #include "Clause.hpp"
 #include "Formula.hpp"
 #include "FormulaUnit.hpp"
 #include "FormulaVarIterator.hpp"
 #include "Inference.hpp"
-#include "Term.hpp"
-#include "TermIterators.hpp"
+#include "NumTraits.hpp"
+#include "Signature.hpp"
 #include "SortHelper.hpp"
 
 #include "InferenceStore.hpp"
+#include "Term.hpp"
+#include "TermIterators.hpp"
+#include "Theory.hpp"
+#include "Unit.hpp"
 
 #include <set>
-
+#include<string>
+#include<vector>
 //TODO: when we delete clause, we should also delete all its records from the inference store
 
 namespace Kernel
@@ -75,11 +81,24 @@ void InferenceStore::recordSplittingNameLiteral(Unit* us, Literal* lit)
 /**
  * Record the introduction of a new symbol
  */
-void InferenceStore::recordIntroducedSymbol(Unit* u, SymbolType st, unsigned number)
+void InferenceStore::recordIntroducedSymbol(Unit* u, Signature::Symbol* sym)
 {
+  ASS_REP(sym->introduced(), sym->name());
+
   SymbolStack* pStack;
   _introducedSymbols.getValuePtr(u->number(),pStack);
-  pStack->push(SymbolId(st,number));
+  pStack->push(sym);
+}
+
+void InferenceStore::recordIntroducedSkolemSymbol(Unit* u, Signature::Symbol* sym, unsigned replacedVar, Term* symTerm)
+{
+  ASS_REP(sym->introduced(), sym->name());
+
+  SymbolStack* pStack;
+  _introducedSymbols.getValuePtr(u->number(),pStack);
+  _introducedSymbolReplacedVars.insert(sym, replacedVar);
+  _introducedSkolemSymTerms.insert(sym, symTerm);
+  pStack->emplace(sym);
 }
 
 /**
@@ -96,7 +115,7 @@ void InferenceStore::recordIntroducedSplitName(Unit* u, std::string name)
  * It is caller's responsibility to ensure that variables in @b vars are unique.
  */
 template<typename VarContainer>
-std::string getQuantifiedStr(const VarContainer& vars, std::string inner, DHMap<unsigned,TermList>& t_map, bool innerParentheses=true){
+std::string getQuantifiedStr(const VarContainer& vars, std::string inner, DHMap<unsigned,TermList, FnvHash, IdentityHash>& t_map, bool innerParentheses=true){
   VirtualIterator<unsigned> vit=pvi( getContentIterator(vars) );
   std::string varStr;
   bool first=true;
@@ -105,10 +124,14 @@ std::string getQuantifiedStr(const VarContainer& vars, std::string inner, DHMap<
     std::string ty="";
     TermList t;
 
-    if(t_map.find(var,t) && env.getMainProblem()->hasNonDefaultSorts()){
-      //hasNonDefaultSorts is true if the problem contains a sort
-      //that is not $i and not a variable
-      ty=" : " + t.toString();
+    if(t_map.find(var,t)){
+      //a variable of a sort other than $i must always be annotated, and
+      //preprocessing is not expected to introduce such a sort into an
+      //initially untyped problem. Same predicate as Formula::toString.
+      ASS(t == AtomicSort::defaultSort() || env.initiallyHasNonDefaultSorts());
+      if(env.initiallyHasNonDefaultSorts()){
+        ty=" : " + t.toString();
+      }
     }
     if(ty == " : $tType"){
       if (!first) { varStr = "," + varStr; }
@@ -134,26 +157,14 @@ std::string getQuantifiedStr(const VarContainer& vars, std::string inner, DHMap<
 }
 
 /**
- * Return @b inner quentified over variables in @b vars
- *
- * It is caller's responsibility to ensure that variables in @b vars are unique.
- */
-template<typename VarContainer>
-std::string getQuantifiedStr(const VarContainer& vars, std::string inner, bool innerParentheses=true)
-{
-  static DHMap<unsigned,TermList> d;
-  return getQuantifiedStr(vars,inner,d,innerParentheses);
-}
-
-/**
  * Return std::string containing quantified unit @b u.
  */
 std::string getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
 {
-  Set<unsigned> vars;
+  Set<unsigned, FnvHash> vars;
   std::string res;
-  DHMap<unsigned,TermList> t_map;
-  SortHelper::collectVariableSorts(u,t_map);
+  DHMap<unsigned,TermList, FnvHash, IdentityHash> t_map;
+  SortHelper::collectVariableSorts(u,t_map, /*ignoreBound=*/true);
   if (u->isClause()) {
     Clause* cl=static_cast<Clause*>(u);
     unsigned clen=cl->length();
@@ -187,10 +198,7 @@ std::string getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
 struct InferenceStore::ProofPrinter
 {
   ProofPrinter(std::ostream& out, InferenceStore* is)
-  : _is(is), out(out)
-  {
-    outputAxiomNames=env.options->outputAxiomNames();
-  }
+  : _is(is), out(out) {}
 
   // compute closure of `us`' ancestors for printing and insert into `proof`
   void scheduleForPrinting(Unit* us)
@@ -259,11 +267,12 @@ protected:
 
       out <<"["<<cs->inference().name();
 
-      if (outputAxiomNames && rule==InferenceRule::INPUT) {
+      if (rule==InferenceRule::INPUT) {
         ASS(!parents.hasNext()); //input clauses don't have parents
         std::string name;
-        if (Parse::TPTP::findAxiomName(cs, name)) {
-          out << " " << name;
+        std::filesystem::path path;
+        if (Parse::TPTP::findAxiomName(cs, name, path)) {
+          out << " " << name << " " << path;
         }
       }
 
@@ -293,7 +302,6 @@ protected:
 
   InferenceStore *_is = nullptr;
   ostream &out;
-  bool outputAxiomNames;
 
 private:
   struct CompareSATClauses {
@@ -430,9 +438,14 @@ struct InferenceStore::TPTPProofPrinter
 
   void print() override
   {
-    //outputSymbolDeclarations also deals with sorts for now
-    //UIHelper::outputSortDeclarations(out);
-    UIHelper::outputSymbolDeclarations(out);
+    //an fof proof needs no type declarations, and the signature can hold a
+    //typed symbol no unit ever used, whose declaration would put a tff line
+    //into an otherwise fof proof
+    if(env.initiallyHasNonDefaultSorts() || env.initiallyHigherOrder()){
+      //outputSymbolDeclarations also deals with sorts for now
+      //UIHelper::outputSortDeclarations(out);
+      UIHelper::outputSymbolDeclarations(out);
+    }
     ProofPrinter::print();
   }
 
@@ -441,6 +454,9 @@ protected:
 
   std::string getRole(InferenceRule rule, UnitInputType origin)
   {
+    if (isTheoryAxiomRule(rule)) {
+      return "axiom";
+    }
     switch(rule) {
     case InferenceRule::INPUT:
       if (origin==UnitInputType::CONJECTURE) {
@@ -454,12 +470,19 @@ protected:
       return "negated_conjecture";
     case InferenceRule::AVATAR_DEFINITION:
     case InferenceRule::FUNCTION_DEFINITION:
+    case InferenceRule::PREDICATE_DEFINITION:
     case InferenceRule::FOOL_ITE_DEFINITION:
     case InferenceRule::FOOL_LET_DEFINITION:
     case InferenceRule::FOOL_FORMULA_DEFINITION:
     case InferenceRule::FOOL_MATCH_DEFINITION:
     case InferenceRule::GENERAL_SPLITTING_COMPONENT:
+    case InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION:
+    case InferenceRule::EQUALITY_PROXY_DEFINITION:
       return "definition";
+    case InferenceRule::THEORY_TAUTOLOGY_SAT_CONFLICT:
+    case InferenceRule::HILBERTS_CHOICE_INSTANCE:
+    case InferenceRule::DISTINCTNESS_AXIOM:
+      return "axiom";
     default:
       return "plain";
     }
@@ -504,23 +527,16 @@ protected:
     return res;
   }
 
-  std::string quoteAxiomName(std::string n)
-  {
-    static std::string allowedFirst("0123456789abcdefghijklmnopqrstuvwxyz");
-    const char* allowed="_ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789abcdefghijklmnopqrstuvwxyz";
-
-    if (n.size()==0 || allowedFirst.find(n[0])==std::string::npos ||
-	n.find_first_not_of(allowed)!=std::string::npos) {
-      n='\''+n+'\'';
-    }
-    return n;
-  }
-
   std::string getFofString(std::string id, std::string formula, std::string inference, InferenceRule rule, UnitInputType origin=UnitInputType::AXIOM)
   {
+    // use the fragment of the unpreprocessed input: the problem's own
+    // hasNonDefaultSorts() and isHigherOrder() are recomputed from the current
+    // unit list, so they forget sorts that preprocessing removed, and TPTP
+    // conventions allow a proof in a weaker fragment than the input but not in
+    // a stronger one
     std::string kind = "fof";
-    if(env.getMainProblem()->hasNonDefaultSorts()){ kind="tff"; }
-    if(env.getMainProblem()->isHigherOrder()){ kind="thf"; }
+    if(env.initiallyHasNonDefaultSorts()){ kind="tff"; }
+    if(env.initiallyHigherOrder()){ kind="thf"; }
 
     return kind+"("+id+","+getRole(rule,origin)+",("+"\n"
 	+"  "+formula+"),\n"
@@ -555,19 +571,14 @@ protected:
   std::string getNewSymbols(std::string origin, std::string symStr) {
     return "new_symbols(" + origin + ",[" +symStr + "])";
   }
+
   /** It is an iterator over SymbolId */
   template<class It>
   std::string getNewSymbols(std::string origin, It symIt) {
     std::ostringstream symsStr;
     while(symIt.hasNext()) {
-      SymbolId sym = symIt.next();
-      if (sym.first == SymbolType::FUNC ) {
-        symsStr << env.signature->functionName(sym.second);
-      } else if (sym.first == SymbolType::PRED){
-        symsStr << env.signature->predicateName(sym.second);
-      } else {
-        symsStr << env.signature->typeConName(sym.second);
-      }
+      auto sym = symIt.next();
+      symsStr << sym->name();
       if (symIt.hasNext()) {
         symsStr << ',';
       }
@@ -584,6 +595,78 @@ protected:
     SymbolStack& syms = _is->_introducedSymbols.get(u->number());
     return getNewSymbols(origin, SymbolStack::ConstIterator(syms));
   }
+
+std::string getSkolemizeMap(Unit* u){
+  ASS(hasNewSymbols(u));
+  SymbolStack& syms = _is->_introducedSymbols.get(u->number());
+  return getSkolemizeMap(u->number(), SymbolStack::ConstIterator(syms));
+}
+
+template<class It>
+std::string getSkolemizeMap(unsigned unitNumber, It symIt){
+  std::ostringstream symsStr;
+  bool hasNext = symIt.hasNext();
+  while (hasNext) {
+    symsStr << "skolemize(";
+    auto symbol = symIt.next();
+    auto skolemTerm = _is->_introducedSkolemSymTerms.find(symbol);
+    NEVER(skolemTerm.isNone());
+    auto skolemizedVariable = _is->_introducedSymbolReplacedVars.find(symbol);
+    NEVER(skolemizedVariable.isNone());
+
+    // for now we have to output standard prolog, i.e. f(X1,...,Xn) even in THF
+    // TODO: change this once GDV is updated
+    std::string skolemStr;
+    if (env.higherOrder()) {
+      // we require non-lambda terms
+      ASS(!TermList(*skolemTerm).isLambdaTerm());
+      auto [head, args] = HOL::getHeadAndArgs(TermList(*skolemTerm));
+      ASS(head.isTerm() && !head.isLambdaTerm());
+
+      auto h = head.term();
+      if(h->isLiteral()) {
+        skolemStr = static_cast<Literal*>(h)->predicateName();
+      } else if (h->isSort()) {
+        skolemStr = static_cast<AtomicSort*>(h)->typeConName();
+      } else {
+        skolemStr = h->functionName();
+      }
+
+      if (h->arity() || args.size()) {
+        skolemStr += "(";
+        bool first = true;
+        for (unsigned i = 0; i < h->arity(); i++) {
+          auto v = *h->nthArgument(i);
+          ASS(v.isVar());
+          if (!first) {
+            skolemStr += ",";
+          }
+          skolemStr += v.toString();
+          first = false;
+        }
+        for (unsigned i = 0; i < args.size(); i++) {
+          ASS(args[i].isVar());
+          if (!first) {
+            skolemStr += ",";
+          }
+          skolemStr += args[i].toString();
+          first = false;
+        }
+        skolemStr += ")";
+      }
+
+    } else {
+      skolemStr = (*skolemTerm)->toString();
+    }
+
+    symsStr << "X" << *skolemizedVariable << "," << skolemStr << ")";
+    hasNext = symIt.hasNext();
+    if(hasNext) {
+      symsStr << ",";
+    }
+  }
+  return symsStr.str();
+}
 
   void printStep(Unit* us) override
   {
@@ -608,45 +691,35 @@ protected:
 
     std::string inferenceStr;
     if (rule==InferenceRule::INPUT) {
-      std::string fileName;
-      if (env.options->inputFile()=="") {
-	      fileName="unknown";
-      }
-      else {
-	      fileName="'"+env.options->inputFile()+"'";
-      }
       std::string axiomName;
-      if (!outputAxiomNames || !Parse::TPTP::findAxiomName(us, axiomName)) {
+      std::filesystem::path axiomPath;
+      if (!Parse::TPTP::findAxiomName(us, axiomName, axiomPath)) {
         // Giles' ucore extraction code parses labels from smtlib files, let's try printing these too
         if (!us->isClause() && us->getFormula()->hasLabel()) {
           axiomName = us->getFormula()->getLabel();
+          axiomPath = "unknown";
         } else {
 	        axiomName="unknown";
+          axiomPath = "unknown";
         }
       }
-      inferenceStr="file("+fileName+","+quoteAxiomName(axiomName)+")";
+      inferenceStr="file('"+std::string(axiomPath)+"','"+axiomName+"')";
     }
     else if (!parents.hasNext()) {
       std::string newSymbolInfo;
       if (hasNewSymbols(us)) {
-        std::string newSymbOrigin;
-        if (
-          rule == InferenceRule::FUNCTION_DEFINITION ||
-          rule == InferenceRule::FOOL_ITE_DEFINITION || rule == InferenceRule::FOOL_LET_DEFINITION ||
-          rule == InferenceRule::FOOL_FORMULA_DEFINITION || rule == InferenceRule::FOOL_MATCH_DEFINITION) {
-          newSymbOrigin = "definition";
-        } else {
-          newSymbOrigin = "naming";
-        }
-	      newSymbolInfo = getNewSymbols(newSymbOrigin,us);
+        newSymbolInfo = getNewSymbols("definition",us);
+        inferenceStr="introduced(definition,["+newSymbolInfo+"],["+tptpRuleName(rule)+"])";
+      } else {
+        // without introduced symbols we have to claim that the axiom comes from a theory
+        inferenceStr="introduced(theory,["+tptpRuleName(rule)+"],[])";
       }
-      inferenceStr="introduced(definition,["+newSymbolInfo+"],["+tptpRuleName(rule)+"])";
     }
     else {
       ASS(parents.hasNext());
       std::string statusStr;
       if (rule==InferenceRule::SKOLEMIZE) {
-	      statusStr="status(esa),"+getNewSymbols("skolem",us);
+	      statusStr="status(esa),"+getNewSymbols("skolem",us) + "," + getSkolemizeMap(us);
       }
       else if(rule==InferenceRule::NEGATED_CONJECTURE) {
 	      statusStr="status(cth)";
@@ -754,6 +827,11 @@ protected:
 
     Literal* nameLit=_is->_splittingNameLiterals.get(us->number()); //the name literal must always be stored
 
+    //sorts of the clause's variables, so the quantifiers of the definition
+    //below are annotated like every other formula in the proof
+    DHMap<unsigned,TermList, FnvHash, IdentityHash> t_map;
+    SortHelper::collectVariableSorts(us, t_map);
+
     std::string defId=tptpDefId(us);
 
     out<<getFofString(tptpUnitId(us), getFormulaString(us),
@@ -795,17 +873,17 @@ protected:
     }
     ASS(!first);
 
-    compStr=getQuantifiedStr(compOnlyVars, compStr, multiple);
+    compStr=getQuantifiedStr(compOnlyVars, compStr, t_map, multiple);
     List<unsigned>::destroy(compOnlyVars);
 
     std::string defStr=compStr+" <=> "+Literal::complementaryLiteral(nameLit)->toString();
-    defStr=getQuantifiedStr(nameVars, defStr);
+    defStr=getQuantifiedStr(nameVars, defStr, t_map);
     List<unsigned>::destroy(nameVars);
 
-    SymbolId nameSymbol = SymbolId(SymbolType::PRED,nameLit->functor());
+    auto nameSymbol = env.signature->getPredicate(nameLit->functor());
     std::ostringstream originStm;
     originStm << "introduced(definition,["
-	      << getNewSymbols("naming",getSingletonIterator(nameSymbol))
+	      << getNewSymbols("definition",getSingletonIterator(nameSymbol))
 	      << "],[" << tptpRuleName(rule) << "])";
 
     out<<getFofString(defId, defStr, originStm.str(), rule)<<endl;
@@ -824,13 +902,17 @@ protected:
     InferenceRule rule = cs->inference().rule();
     UnitIterator parents= cs->getParents();
 
-    //outputSymbolDeclarations also deals with sorts for now
-    //UIHelper::outputSortDeclarations(out);
-    UIHelper::outputSymbolDeclarations(out);
+    //an fof proof needs no type declarations, see TPTPProofPrinter::print
+    if(env.initiallyHasNonDefaultSorts() || env.initiallyHigherOrder()){
+      //outputSymbolDeclarations also deals with sorts for now
+      //UIHelper::outputSortDeclarations(out);
+      UIHelper::outputSymbolDeclarations(out);
+    }
 
+    // fragment of the unpreprocessed input, see the comment in getFofString
     std::string kind = "fof";
-    if(env.getMainProblem()->hasNonDefaultSorts()){ kind="tff"; }
-    if(env.getMainProblem()->isHigherOrder()){ kind="thf"; }
+    if(env.initiallyHasNonDefaultSorts()){ kind="tff"; }
+    if(env.initiallyHigherOrder()){ kind="thf"; }
 
     out << kind
         << "(r"<< cs->number()
@@ -858,8 +940,8 @@ protected:
     case InferenceRule::SKOLEMIZE:
     case InferenceRule::SKOLEM_SYMBOL_INTRODUCTION:
     case InferenceRule::EQUALITY_PROXY_REPLACEMENT:
-    case InferenceRule::EQUALITY_PROXY_AXIOM1:
-    case InferenceRule::EQUALITY_PROXY_AXIOM2:
+    case InferenceRule::EQUALITY_PROXY_DEFINITION:
+    case InferenceRule::EQUALITY_PROXY_AXIOM:
     case InferenceRule::NEGATED_CONJECTURE:
     case InferenceRule::RECTIFY:
     case InferenceRule::FLATTEN:
@@ -1116,7 +1198,6 @@ protected:
       case Theory::REAL_FLOOR:     out << "|$floor|";       return;
 
       case Theory::EQUAL: out << "="; return;
-
       case UNSUPPORTED_INTERPRETATIONS:
          throw UserErrorException("divides function ", itp, " does not exist in SMT2");
 
@@ -1310,7 +1391,12 @@ protected:
         if (t->isLiteral()) {
           outputPredicateName(out, t->functor());
         } else {
-          outputFunctionName(out, t->functor());
+          if (theory->isInterpretedFunction(t->functor(), Theory::INT_DIVIDES) 
+              && IntTraits::isNumeral(t->termArg(0) )) {
+            out << "( (_ divisible " << *IntTraits::tryNumeral(t->termArg(0)) << ") " << t->termArg(1) << " )";
+          } else {
+            outputFunctionName(out, t->functor());
+          }
         }
 
         for (unsigned i = 0; i < t->numTermArguments(); i++) {
@@ -1445,7 +1531,7 @@ protected:
   static void output(std::ostream& out, Unit* unit)
   {
     using Sort = TermList;
-    DHMap<unsigned, Sort> vars;
+    DHMap<unsigned, Sort, FnvHash, IdentityHash> vars;
     SortHelper::collectVariableSorts(unit, vars);
     decltype(vars)::Iterator iter(vars);
     if (vars.size() != 0) {
@@ -1520,8 +1606,8 @@ protected:
     case InferenceRule::SKOLEMIZE:
     case InferenceRule::SKOLEM_SYMBOL_INTRODUCTION:
     case InferenceRule::EQUALITY_PROXY_REPLACEMENT:
-    case InferenceRule::EQUALITY_PROXY_AXIOM1:
-    case InferenceRule::EQUALITY_PROXY_AXIOM2:
+    case InferenceRule::EQUALITY_PROXY_DEFINITION:
+    case InferenceRule::EQUALITY_PROXY_AXIOM:
     case InferenceRule::NEGATED_CONJECTURE:
     case InferenceRule::RECTIFY:
     case InferenceRule::FLATTEN:
@@ -1601,7 +1687,7 @@ void InferenceStore::outputUnsatCore(std::ostream& out, Unit* refutation)
 
   Stack<Unit*> todo;
   todo.push(refutation);
-  Set<unsigned> visited;
+  Set<unsigned, FnvHash> visited;
   while(!todo.isEmpty()){
 
     Unit* u = todo.pop();

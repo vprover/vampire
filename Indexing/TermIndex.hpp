@@ -17,7 +17,8 @@
 #define __TermIndex__
 
 #include "Index.hpp"
-#include "TermIndexingStructure.hpp"
+#include "Indexing/CodeTreeInterfaces.hpp"
+#include "Indexing/TermSubstitutionTree.hpp"
 
 namespace Indexing {
 
@@ -26,28 +27,59 @@ class TermIndex
 : public Index
 {
 public:
-  ~TermIndex() override {}
-
-  VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
-  { return _is->getUwa(t, uwa, fixedPointIteration); }
+  template<bool higherOrder>
+  VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(TypedTermList t, const Options& opt)
+  {
+    auto uwa = opt.unificationWithAbstraction();
+    auto fpi = opt.unificationWithAbstractionFixedPointIteration();
+    if constexpr (higherOrder) {
+      return _is.getUwaHOL(t, uwa, fpi, opt.higherOrderUnifDepth(), opt.functionExtensionality()==Options::FunctionExtensionality::ABSTRACTION);
+    } else {
+      return _is.getUwa(t, uwa, fpi, /*funcExt=*/false);
+    }
+  }
 
   VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getUnifications(TypedTermList t, bool retrieveSubstitutions = true)
-  { return _is->getUnifications(t, retrieveSubstitutions); }
+  { return _is.getUnifications(t, retrieveSubstitutions); }
 
-  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true)
-  { return _is->getGeneralizations(t, retrieveSubstitutions); }
-
+  template<bool higherOrder>
   VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getInstances(TypedTermList t, bool retrieveSubstitutions = true)
-  { return _is->getInstances(t, retrieveSubstitutions); }
+  {
+    if constexpr (higherOrder) {
+      // TODO(HOL): implement proper higher-order matching here
+      // we override retrieveSubstitutions because we need the substitution for the aftercheck
+      return pvi(iterTraits(_is.getInstances(t, /*retrieveSubstitutions=*/true))
+        .filter([t](auto qr) {
+          return iterTraits(VariableIterator(t)).all([&qr](TermList var) {
+            return !qr.unifier->applyToBoundQuery(var).containsLooseDBIndex();
+          });
+        }));
+    } else {
+      return _is.getInstances(t, retrieveSubstitutions);
+    }
+  }
 
   friend std::ostream& operator<<(std::ostream& out, TermIndex const& self)
   { return out << *self._is; }
 protected:
-  TermIndex(TermIndexingStructure<Data>* is) : _is(is) {}
-
-  std::unique_ptr<TermIndexingStructure<Data>> _is;
+  TermSubstitutionTree<Data> _is;
 };
 
+template<bool higherOrder, class Data>
+class GeneralizingTermIndex
+: public Index
+{
+public:
+  auto getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true) const
+  { return iterTraits(_ct.getGeneralizations(t, retrieveSubstitutions)); }
+
+  friend std::ostream& operator<<(std::ostream& out, GeneralizingTermIndex const& self)
+  { return out << self._ct; }
+protected:
+  CodeTreeTIS<higherOrder, Data> _ct;
+};
+
+template<bool higherOrder>
 class SuperpositionSubtermIndex
 : public TermIndex<TermLiteralClause>
 {
@@ -57,7 +89,6 @@ protected:
   void handleClause(Clause* c, bool adding) override;
 private:
   const Ordering& _ord;
-  const bool _higherOrder;
 };
 
 class SuperpositionLHSIndex
@@ -70,37 +101,6 @@ protected:
 private:
   const Ordering& _ord;
   const Options& _opt;
-};
-
-/**
- * Term index for backward demodulation
- */
-template<bool higherOrder>
-class DemodulationSubtermIndex
-: public TermIndex<TermLiteralClause>
-{
-public:
-  DemodulationSubtermIndex(SaturationAlgorithm& salg);
-protected:
-  void handleClause(Clause* c, bool adding) override;
-private:
-  const bool _skipNonequationalLiterals;
-};
-
-/**
- * Term index for forward demodulation
- */
-template<bool higherOrder>
-class DemodulationLHSIndex
-: public TermIndex<DemodulatorData>
-{
-public:
-  DemodulationLHSIndex(SaturationAlgorithm& salg);
-protected:
-  void handleClause(Clause* c, bool adding) override;
-private:
-  Ordering& _ord;
-  const bool _preordered;
 };
 
 /**
@@ -121,7 +121,7 @@ private:
  * Term index for structural induction
  */
 class StructInductionTermIndex
-: public TermIndex<TermLiteralClause>
+: public GeneralizingTermIndex</*higherOrder=*/false, TermLiteralClause>
 {
 public:
   StructInductionTermIndex(SaturationAlgorithm& salg);
@@ -129,14 +129,6 @@ protected:
   void handleClause(Clause* c, bool adding) override;
 private:
   const bool _inductionGroundOnly;
-};
-
-class SkolemisingFormulaIndex
-: public TermIndex<TermWithValue<TermList>>
-{
-public:
-  SkolemisingFormulaIndex(SaturationAlgorithm&);
-  void insertFormula(TermList formula, TermList skolem);
 };
 
 } // namespace Indexing

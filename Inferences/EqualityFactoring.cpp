@@ -42,11 +42,9 @@ using std::pair;
 
 EqualityFactoring::EqualityFactoring(SaturationAlgorithm& salg)
   : _salg(salg)
-  , _abstractionOracle(AbstractionOracle::createOnlyHigherOrder())
-  , _uwaFixedPointIteration(env.options->unificationWithAbstractionFixedPointIteration())
-{
-
-}
+  , _abstractionOracle(_salg.getOptions().unificationWithAbstraction())
+  , _uwaFixedPointIteration(_salg.getOptions().unificationWithAbstractionFixedPointIteration())
+{}
 
 struct EqualityFactoring::IsPositiveEqualityFn
 {
