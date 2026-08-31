@@ -203,20 +203,21 @@ std::ostream &operator<<(std::ostream &out, Message<BinaryConstraint<C, L, R>, T
     << Message { constraint.right, value };
 }
 
-template<typename L, typename R>
-using OrConstraint = BinaryConstraint<Connective::OR, L, R>;
-template<typename L, typename R>
-using AndConstraint = BinaryConstraint<Connective::AND, L, R>;
-
 template<typename R>
 R Or(R r) { return r; }
 template<typename L, typename...Rs>
-auto Or(L l, Rs...rs) { return OrConstraint { l, Or(rs...) }; }
+auto Or(L l, Rs...rs) {
+  auto r = Or(rs...);
+  return BinaryConstraint<Connective::OR, L, decltype(r)> { l, r };
+}
 
 template<typename R>
 R And(R r) { return r; }
 template<typename L, typename...Rs>
-auto And(L l, Rs...rs) { return AndConstraint { l, Or(rs...) }; }
+auto And(L l, Rs...rs) {
+  auto r = And(rs...);
+  return BinaryConstraint<Connective::AND, L, decltype(r)> { l, r };
+}
 
 template<typename If, typename Then>
 struct IfThenConstraint {
