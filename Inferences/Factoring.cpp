@@ -32,88 +32,6 @@ namespace Inferences
 {
 
 /**
- * This functor given a pair of literal indices
- * removes the second literal from the clause specified in constructor,
- * applies the substitution, and returns resulting clause.
- * (Also it records this to statistics as factoring.)
- */
-class Factoring::ResultsFn
-{
-public:
-  ResultsFn(Clause* cl, bool afterCheck, LiteralSelector &sel, Ordering& ord)
-  : _cl(cl), _cLen(cl->length()), _afterCheck(afterCheck), _sel(sel), _ord(ord) {}
-  Clause* operator() (std::pair<unsigned,unsigned> nums)
-  {
-    Literal* l1 = (*_cl)[nums.first];
-    Literal* l2 = (*_cl)[nums.second];
-
-    //we assume there are no duplicate literals
-    ASS(l1!=l2);
-
-    if(l1->isEquality())
-      //We don't perform factoring with equalities
-      return nullptr;
-
-    // check polarity and functor matches
-    if(!Literal::headersMatch(l1, l2, false))
-      return nullptr;
-
-    if(_sel.isNegativeForSelection(l1)) {
-      //We don't perform factoring on negative literals
-      // (this check only becomes relevant, when there is more than one literal selected
-      // and yet the selected ones are not all positive -- see the check in generateClauses)
-      return nullptr;
-    }
-
-    _subst.reset();
-    if(!_subst.unify(TermList(l1), 0, TermList(l2), 0))
-      return nullptr;
-
-    RStack<Literal*> resLits;
-
-    Literal *skipped = l2;
-
-    Literal* skippedAfter = 0;
-    if (_afterCheck && _cl->numSelected() > 1) {
-      TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
-
-      skippedAfter = _subst.apply(skipped, 0);
-    }
-
-    for(unsigned i=0;i<_cLen;i++) {
-      Literal* curr=(*_cl)[i];
-      if(curr!=skipped) {
-        Literal* currAfter = _subst.apply(curr, 0);
-
-        if (skippedAfter) {
-          TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
-
-          if (i < _cl->numSelected() && _ord.compare(currAfter,skippedAfter) == Ordering::GREATER) {
-            env.statistics->inferencesBlockedDueToOrderingAftercheck++;
-            return nullptr;
-          }
-        }
-
-        resLits->push(currAfter);
-      }
-    }
-
-    Clause *cl = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::FACTORING,_cl));
-    if(env.options->proofExtra() == Options::ProofExtra::FULL)
-      env.proofExtra.insert(cl, new FactoringExtra(l1, l2));
-    return cl;
-  }
-private:
-  RobSubstitution _subst;
-  Clause* _cl;
-  ///length of the premise clause
-  unsigned _cLen;
-  bool _afterCheck;
-  LiteralSelector& _sel;
-  Ordering& _ord;
-};
-
-/**
  * Return ClauseIterator, that yields clauses generated from
  * @b premise by the factoring inference rule.
  *
@@ -131,6 +49,7 @@ private:
  */
 ClauseIterator Factoring::generateClauses(Clause* premise)
 {
+  // bail out before even creating a coroutine frame
   if(premise->length()<=1) {
     return ClauseIterator::getEmpty();
   }
@@ -138,16 +57,91 @@ ClauseIterator Factoring::generateClauses(Clause* premise)
     return ClauseIterator::getEmpty();
   }
 
-  auto it1 = getCombinationIterator(0u,premise->numSelected(),premise->length());
+  return pvi(factorings(premise));
+}
 
-  // the substitution now lives in the ResultsFn, so move rather than copy it along
-  auto it2 = getMappingIterator(std::move(it1),ResultsFn(premise,
-      _salg.getOptions().literalMaximalityAftercheck() && _salg.getLiteralSelector().isBGComplete(),
-      _salg.getLiteralSelector(), _salg.getOrdering()));
+/**
+ * For each unordered pair of literals of @b premise with at least one of them selected,
+ * unify them, drop the second, apply the substitution to the rest, and yield the result.
+ */
+Generator<Clause*> Factoring::factorings(Clause* premise)
+{
+  LiteralSelector& sel = _salg.getLiteralSelector();
+  const Ordering& ord = _salg.getOrdering();
+  bool afterCheck = _salg.getOptions().literalMaximalityAftercheck() && sel.isBGComplete();
+  unsigned cLen = premise->length();
 
-  auto it3 = getFilteredIterator(std::move(it2), NonzeroFn());
+  RobSubstitution subst;
 
-  return pvi( std::move(it3) );
+  for(unsigned fst=0; fst<premise->numSelected(); fst++) {
+    Literal* l1 = (*premise)[fst];
+
+    //We don't perform factoring with equalities
+    if(l1->isEquality())
+      continue;
+
+    //We don't perform factoring on negative literals
+    // (this check only becomes relevant, when there is more than one literal selected
+    // and yet the selected ones are not all positive -- see the check in generateClauses)
+    if(sel.isNegativeForSelection(l1))
+      continue;
+
+    for(unsigned snd=fst+1; snd<cLen; snd++) {
+      Literal* skipped = (*premise)[snd];
+
+      //we assume there are no duplicate literals
+      ASS(l1!=skipped);
+
+      // check polarity and functor matches
+      if(!Literal::headersMatch(l1, skipped, false))
+        continue;
+
+      subst.reset();
+      if(!subst.unify(TermList(l1), 0, TermList(skipped), 0))
+        continue;
+
+      Clause* factor;
+      {
+        RStack<Literal*> resLits;
+
+        Literal* skippedAfter = 0;
+        if (afterCheck && premise->numSelected() > 1) {
+          TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
+
+          skippedAfter = subst.apply(skipped, 0);
+        }
+
+        bool blocked = false;
+        for(unsigned i=0;i<cLen;i++) {
+          Literal* curr=(*premise)[i];
+          if(curr!=skipped) {
+            Literal* currAfter = subst.apply(curr, 0);
+
+            if (skippedAfter) {
+              TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
+
+              if (i < premise->numSelected() && ord.compare(currAfter,skippedAfter) == Ordering::GREATER) {
+                env.statistics->inferencesBlockedDueToOrderingAftercheck++;
+                blocked = true;
+                break;
+              }
+            }
+
+            resLits->push(currAfter);
+          }
+        }
+        if(blocked)
+          continue;
+
+        factor = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::FACTORING,premise));
+      }
+
+      if(env.options->proofExtra() == Options::ProofExtra::FULL)
+        env.proofExtra.insert(factor, new FactoringExtra(l1, skipped));
+
+      co_yield factor;
+    }
+  }
 }
 
 }
