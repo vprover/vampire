@@ -266,7 +266,6 @@ void TPTP::parseImpl(State initialState)
       symbolDefinition();
       break;
     case TUPLE_DEFINITION:
-      if(!env.options->newCNF()){ USER_ERROR("Set --newcnf on if using tuples"); }
       tupleDefinition();
       break;
     case END_LET:
@@ -276,7 +275,6 @@ void TPTP::parseImpl(State initialState)
       endTheoryFunction();
       break;
     case END_TUPLE:
-      if(!env.options->newCNF()){ USER_ERROR("Set --newcnf on if using tuples"); }
       endTuple();
       break;
     default:
@@ -2446,7 +2444,17 @@ void TPTP::definition()
           return;
 
         case T_LBRA:
+          // a tuple definition heading a list of simultaneous definitions;
+          // consume the tuple's first name and the comma after it, just like
+          // in the non-simultaneous case above
           resetToks();
+          if (getTok(0).tag != T_NAME) {
+            PARSE_ERROR_TOK("name expected", getTok(0));
+          }
+          _strings.push(name());
+          if (getTok(0).tag == T_COMMA) {
+            resetToks();
+          }
           _bools.push(true); // is a simultaneous definition
           addTagState(T_RBRA);
           _states.push(TUPLE_DEFINITION);
@@ -2471,7 +2479,16 @@ void TPTP::midDefinition()
       break;
 
     case T_LBRA:
+      // a tuple definition inside a list of simultaneous definitions;
+      // TUPLE_DEFINITION expects the first name of the tuple on _strings
       resetToks();
+      if (getTok(0).tag != T_NAME) {
+        PARSE_ERROR_TOK("name expected", getTok(0));
+      }
+      _strings.push(name());
+      if (getTok(0).tag == T_COMMA) {
+        resetToks();
+      }
       _states.push(TUPLE_DEFINITION);
       break;
 
@@ -2601,7 +2618,7 @@ void TPTP::tupleDefinition()
 
   LetDefinitions definitions = _letDefinitions.pop();
   // TODO tuple $lets probably also need adjusting with polymorphic (implicit) types
-  definitions.push(LetSymbolReference{ tupleFunctor, false, std::move(sorts) });
+  definitions.push(LetSymbolReference{ tupleFunctor, false, std::move(sorts), /*isTuple=*/true });
   _letDefinitions.push(definitions);
 
   VList* constants = VList::empty();
@@ -2699,11 +2716,11 @@ void TPTP::endLet()
     VList* varList = _varLists.pop();
     TermList body = _termLists.pop();
 
-    bool isTuple = false;
-    if (!isPredicate) {
-      TermList resultSort = env.signature->getFunction(symbol)->fnType()->result();
-      isTuple = resultSort.isTupleSort();
-    }
+    // note that this cannot be decided by looking at the result sort of symbol:
+    // an ordinary $let-bound symbol may have a tuple sort as well, and then it
+    // is bound as a single symbol and has no list of tuple constants
+    bool isTuple = ref.isTuple;
+    ASS(!isTuple || !isPredicate);
 
     // Implicit type variables come first, then the rest
     TermStack args = ref.iTypeArgs;

@@ -114,6 +114,7 @@ set(UNIT_TESTS
     UnitTests/tTermAlgebra.cpp
     UnitTests/tTermIndex.cpp
     UnitTests/tTimeTrace.cpp
+    UnitTests/tTuple.cpp
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/HOL/tHOL_Printing.cpp
     UnitTests/HOL/tHOL_BetaReduction.cpp

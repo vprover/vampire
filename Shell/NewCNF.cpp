@@ -690,12 +690,30 @@ TermList NewCNF::eliminateLet(Term* term)
         }
       }
     } else {
-      auto tupleType = env.signature->getFunction(bindingLhs->functor())->fnType();
       auto arity = bindingLhs->numTypeArguments();
-      unsigned tuple = env.signature->addFreshFunction(arity, "tuple");
-      env.signature->getFunction(tuple)->setType(OperatorType::getConstantsType(tupleType->result(), arity));
+      TermList tupleSort = SortHelper::getResultSort(bindingLhs);
+
+      // The fresh constant standing for the whole tuple is declared over
+      // exactly the type variables occurring in the tuple sort (typically
+      // none). Declaring it over the tuple's arity instead would make it
+      // polymorphic in the monomorphic case, and its arity would then no
+      // longer agree with the arguments nameLetBinding applies it to.
+      TermStack tupleTypeArgs;
+      for (auto var : iterTraits(VariableIterator(tupleSort))) {
+        if (!tupleTypeArgs.find(var)) {
+          tupleTypeArgs.push(var);
+        }
+      }
+      TermList tupleResultSort = tupleSort;
+      SortHelper::normaliseSort(tupleTypeArgs, tupleResultSort);
+
+      unsigned tuple = env.signature->addFreshFunction(tupleTypeArgs.size(), "tuple");
+      env.signature->getFunction(tuple)->setType(
+          OperatorType::getConstantsType(tupleResultSort, tupleTypeArgs.size()));
+      auto tupleTerm = Term::create(tuple, tupleTypeArgs);
+
+      // the projections take the tuple's type arguments and the tuple itself
       auto args = TermStack::fromIterator(typeArgIter(bindingLhs));
-      auto tupleTerm = Term::create(tuple, args);
       args.push(TermList(tupleTerm));
 
       iterTraits(termArgIter(bindingLhs))
@@ -703,10 +721,11 @@ TermList NewCNF::eliminateLet(Term* term)
           auto lhs = arg.term();
           ASS_EQ(lhs->numTermArguments(), 0);
 
+          // note that the projections are always functions, also for a Boolean
+          // component: such a component is a $o-sorted *term* proj_i(...,tuple),
+          // which SymbolDefinitionInlining turns into a formula where needed
           unsigned projFunctor = Theory::getTupleProjectionFunctor(arity, i);
-          Term* projectedArgument = lhs->isBoolean()
-            ? Term::createFormula(new AtomicFormula(Literal::create(projFunctor, args.size(), /*polarity*/true, args.begin())))
-            : Term::create(projFunctor, args);
+          Term* projectedArgument = Term::create(projFunctor, args);
 
           SymbolDefinitionInlining inlining(lhs, TermList(projectedArgument), 0);
           body = inlining.process(body);
@@ -818,31 +837,39 @@ TermList NewCNF::nameLetBinding(Term* bindingLhs, TermList bindingRhs, TermList 
   }
 
   Recycled<TermStack> args;
-  Recycled<TermStack> termArgs;
-  // Use sorts directly from bindingBoundVars VSList
-  VSList::Iterator vsit2(bindingBoundVars);
-  while (vsit2.hasNext()) {
-    auto [var, sort] = vsit2.next();
-    if (sort == AtomicSort::superSort()) {
-      args->push(TermList::var(var));
-    } else {
-      termArgs->push(TermList::var(var));
+  if (!renameSymbol) {
+    // we keep the bound symbol itself, so we must apply it to its own
+    // arguments; these need not be the bound variables (the symbol may, e.g.,
+    // be a fresh constant introduced when de-tuplifying a tuple binding)
+    args->loadFromIterator(anyArgIter(bindingLhs));
+  } else {
+    Recycled<TermStack> termArgs;
+    // Use sorts directly from bindingBoundVars VSList
+    VSList::Iterator vsit2(bindingBoundVars);
+    while (vsit2.hasNext()) {
+      auto [var, sort] = vsit2.next();
+      if (sort == AtomicSort::superSort()) {
+        args->push(TermList::var(var));
+      } else {
+        termArgs->push(TermList::var(var));
+      }
     }
-  }
-  for (const auto& var : iterTraits(bindingFreeVars.iterator())) {
-    auto sort = getVarSort(var);
-    if (sort == AtomicSort::superSort()) {
-      args->push(TermList::var(var));
-    } else {
-      termArgs->push(TermList::var(var));
+    for (const auto& var : iterTraits(bindingFreeVars.iterator())) {
+      auto sort = getVarSort(var);
+      if (sort == AtomicSort::superSort()) {
+        args->push(TermList::var(var));
+      } else {
+        termArgs->push(TermList::var(var));
+      }
     }
+    args->loadFromIterator(termArgs->iterFifo());
+    ASS_EQ(args->size(), nameArity);
   }
-  args->loadFromIterator(termArgs->iterFifo());
 
   Term* freshApplication;
 
   if (isPredicate) {
-    Literal* name = Literal::create(freshSymbol, nameArity, POSITIVE, args->begin());
+    Literal* name = Literal::create(freshSymbol, args->size(), POSITIVE, args->begin());
     freshApplication = name;
     Formula* nameFormula = new AtomicFormula(name);
 
@@ -853,7 +880,7 @@ TermList NewCNF::nameLetBinding(Term* bindingLhs, TermList bindingRhs, TermList 
       introduceGenClause(GenLit(nameFormula, sign), GenLit(formulaBinding, OPPOSITE(sign)));
     }
   } else {
-    TermList name = TermList(Term::create(freshSymbol, nameArity, args->begin()));
+    TermList name = TermList(Term::create(freshSymbol, args->size(), args->begin()));
     freshApplication = name.term();
     Formula* nameFormula = new AtomicFormula(Literal::createEquality(POSITIVE, name, bindingRhs, nameSort));
 
