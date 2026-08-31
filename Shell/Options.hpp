@@ -43,7 +43,6 @@
 
 #include "Debug/Assertion.hpp"
 
-#include "Lib/VirtualIterator.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Int.hpp"
@@ -186,7 +185,6 @@ using OptionValueConstraintUP = std::unique_ptr<OptionValueConstraint<T>>;
  * @author Giles
  */
 struct AbstractOptionValue {
-    AbstractOptionValue(){}
     AbstractOptionValue(const char *l,const char *s)
         // treat empty short names as nullptr
         : longName(l), shortName(s && *s ? s : nullptr) {}
@@ -249,11 +247,6 @@ struct AbstractOptionValue {
  */
 template<typename T>
 struct OptionValue : public AbstractOptionValue {
-    // We need to include an empty constructor as all the OptionValue objects need to be initialized
-    // with something when the Options object is created. They should then all be reconstructed
-    // This is annoying but preferable to the alternative in my opinion
-    // TODO could actually be done if Options::init() becomes the Options constructor?
-    OptionValue(){}
     OptionValue(const char *l, const char *s,T def) : AbstractOptionValue(l,s),
     defaultValue(def), actualValue(def){}
 
@@ -323,14 +316,17 @@ private:
  */
 class Options
 {
-private:
-  // MS: I don't think we need the public to copy Options objects
-  Options(const Options& that);
-  Options& operator=(const Options& that);
 public:
-    Options ();
-    // It is important that we can safely copy Options for use in CASC mode
-    void init();
+    Options();
+
+    /* we probably don't want to accidentally copy this honkin' great object
+     * MOREOVER we _really_ don't want the automatically-generated copy constructor:
+     * the constraints in each option point to other options! */
+    Options(const Options& that) = delete;
+    Options& operator=(const Options& that) = delete;
+
+    // however, is important that we can safely copy Options for use in CASC mode
+    // - this method kinda-sorta this by iterating over the option names
     void copyValuesFrom(const Options& that);
 
     // used to print help and options
@@ -823,12 +819,6 @@ public:
     FULL = 2
   };
 
-  enum class GlobalSubsumptionAvatarAssumptions : unsigned int {
-    OFF,
-    FROM_CURRENT,
-    FULL_MODEL
-  };
-
   enum class Sos : unsigned int{
     ALL = 0,
     OFF = 1,
@@ -1051,7 +1041,6 @@ private:
      * @author Giles
      */
     struct BoolOptionValue : public OptionValue<bool> {
-        BoolOptionValue(){}
         BoolOptionValue(const char *l, const char *s, bool d) : OptionValue(l,s,d){}
         bool setValue(const std::string& value) override{
             if (! value.compare("on") || ! value.compare("true")) {
@@ -1070,7 +1059,6 @@ private:
     };
 
     struct IntOptionValue : public OptionValue<int> {
-        IntOptionValue(){}
         IntOptionValue(const char *l,const char *s, int d) : OptionValue(l,s,d){}
         bool setValue(const std::string& value) override{
             return Int::stringToInt(value.c_str(),actualValue);
@@ -1079,7 +1067,6 @@ private:
     };
 
     struct UnsignedOptionValue : public OptionValue<unsigned> {
-        UnsignedOptionValue(){}
         UnsignedOptionValue(const char *l,const char *s, unsigned d) : OptionValue(l,s,d){}
 
         bool setValue(const std::string& value) override{
@@ -1089,7 +1076,6 @@ private:
     };
 
     struct StringOptionValue : public OptionValue<std::string> {
-        StringOptionValue(){}
         StringOptionValue(const char *l,const char *s, std::string d) : OptionValue(l,s,d){}
         bool setValue(const std::string& value) override{
             actualValue = (value=="<empty>") ? "" : value;
@@ -1102,7 +1088,6 @@ private:
     };
 
     struct LongOptionValue : public OptionValue<long> {
-        LongOptionValue(){}
         LongOptionValue(const char *l,const char *s, long d) : OptionValue(l,s,d){}
         bool setValue(const std::string& value) override{
             return Int::stringToLong(value.c_str(),actualValue);
@@ -1111,7 +1096,6 @@ private:
     };
 
     struct FloatOptionValue : public OptionValue<float> {
-        FloatOptionValue(){}
         FloatOptionValue(const char *l,const char *s, float d) : OptionValue(l,s,d){}
         bool setValue(const std::string& value) override{
             return Int::stringToFloat(value.c_str(),actualValue);
@@ -1120,7 +1104,6 @@ private:
     };
 
 struct RatioOptionValue : public OptionValue<std::pair<unsigned, unsigned>> {
-RatioOptionValue(){}
 RatioOptionValue(const char *l, const char *s, std::pair<unsigned, unsigned> def, char sp=':') :
 OptionValue(l,s,def), sep(sp) {};
 
@@ -1150,7 +1133,6 @@ std::string getStringOfActual() const override {
 * @author Giles
 */
 struct NonGoalWeightOptionValue : public OptionValue<float>{
-NonGoalWeightOptionValue(){}
 NonGoalWeightOptionValue(const char *l, const char *s) :
 OptionValue(l,s,10.0), numerator(10), denominator(1) {};
 
@@ -1170,7 +1152,6 @@ std::string getStringOfValue(float value) const override{ return Lib::Int::toStr
 * @author Giles
 */
 struct SelectionOptionValue : public OptionValue<int>{
-SelectionOptionValue(){}
 SelectionOptionValue(const char *l,const char *s, int def):
 OptionValue(l,s,def){};
 
@@ -1191,7 +1172,6 @@ auto isLookAheadSelection();
 * @author Giles
 */
 struct InputFileOptionValue : public OptionValue<std::string>{
-InputFileOptionValue(){}
 InputFileOptionValue(const char *l,const char *s, std::string def,Options* p):
 OptionValue(l,s,def), parent(p){};
 
@@ -1212,7 +1192,6 @@ Options* parent;
 * @author Giles
 */
 struct DecodeOptionValue : public OptionValue<std::string>{
-    DecodeOptionValue() = default;
     DecodeOptionValue(const char *l,const char *s,Options* p)
         : OptionValue(l,s,""), parent(p){}
 
@@ -1233,7 +1212,6 @@ Options* parent = nullptr;
 * @author Giles
 */
 struct TimeLimitOptionValue : public OptionValue<int>{
-TimeLimitOptionValue(){}
 TimeLimitOptionValue(const char *l, const char *s, float def) :
 OptionValue(l,s,def) {};
 
@@ -1283,7 +1261,6 @@ public:
   bool keepSbeamGenerators() const { return _fmbKeepSbeamGenerators.actualValue; }
   bool fmbUseSimplifyingSolver() const { return _fmbUseSimplifyingSolver.actualValue; }
 
-  bool flattenTopLevelConjunctions() const { return _flattenTopLevelConjunctions.actualValue; }
   Mode mode() const { return _mode.actualValue; }
   void setMode(Mode mode) { _mode.actualValue = mode; }
   Intent intent() const { return _intent.actualValue; }
@@ -1526,7 +1503,6 @@ public:
   std::string thanks() const { return _thanks.actualValue; }
   void setQuestionAnswering(QuestionAnsweringMode newVal) { _questionAnswering.actualValue = newVal; }
   bool globalSubsumption() const { return _globalSubsumption.actualValue; }
-  GlobalSubsumptionAvatarAssumptions globalSubsumptionAvatarAssumptions() const { return _globalSubsumptionAvatarAssumptions.actualValue; }
 
   /** true if calling set() on non-existing options does not result in a user error */
   IgnoreMissing ignoreMissing() const { return _ignoreMissing.actualValue; }
@@ -1551,8 +1527,6 @@ public:
   float sineTolerance() const { return _sineTolerance.actualValue; }
   float sineToAgeTolerance() const { return _sineToAgeTolerance.actualValue; }
 
-  bool colorUnblocking() const { return _colorUnblocking.actualValue; }
-
   bool instantiation() const { return _instantiation.actualValue; }
   bool theoryFlattening() const { return _theoryFlattening.actualValue; }
   bool ignoreUnrecognizedLogic() const { return _ignoreUnrecognizedLogic.actualValue; }
@@ -1565,7 +1539,6 @@ public:
   bool inductionNegOnly() const { return _inductionNegOnly.actualValue; }
   bool inductionUnitOnly() const { return _inductionUnitOnly.actualValue; }
   bool inductionGen() const { return _inductionGen.actualValue; }
-  bool inductionGenHeur() const { return _inductionGenHeur.actualValue; }
   bool inductionStrengthenHypothesis() const { return _inductionStrengthenHypothesis.actualValue; }
   unsigned maxInductionGenSubsetSize() const { return _maxInductionGenSubsetSize.actualValue; }
   bool inductionOnComplexTerms() const {return _inductionOnComplexTerms.actualValue;}
@@ -1663,8 +1636,8 @@ private:
             return value;
         }
 
-        VirtualIterator<AbstractOptionValue*> values() const {
-            return _longMap.range();
+        DHMap<std::string_view, AbstractOptionValue *>::Iterator values() const {
+            return _longMap;
         }
 
     private:
@@ -1744,7 +1717,6 @@ private:
   BoolOptionValue _binaryResolution;
   BoolOptionValue _superposition;
 
-  BoolOptionValue _colorUnblocking;
   ChoiceOptionValue<Condensation> _condensation;
 
   ChoiceOptionValue<DemodulationRedundancyCheck> _demodulationRedundancyCheck;
@@ -1753,7 +1725,6 @@ private:
 
   ChoiceOptionValue<EqualityProxy> _equalityProxy;
   BoolOptionValue _equalityResolutionWithDeletion;
-  BoolOptionValue _equivalentVariableRemoval;
   ChoiceOptionValue<ExtensionalityResolution> _extensionalityResolution;
   UnsignedOptionValue _extensionalityMaxLength;
   BoolOptionValue _extensionalityAllowPosEq;
@@ -1777,9 +1748,7 @@ private:
   BoolOptionValue _fmbKeepSbeamGenerators;
   BoolOptionValue _fmbUseSimplifyingSolver;
 
-  BoolOptionValue _flattenTopLevelConjunctions;
   StringOptionValue _forbiddenOptions;
-  BoolOptionValue _forceIncompleteness;
   StringOptionValue _forcedOptions;
   ChoiceOptionValue<Demodulation> _forwardDemodulation;
   BoolOptionValue _forwardGroundJoinability;
@@ -1796,7 +1765,6 @@ private:
 
   BoolOptionValue _generalSplitting;
   BoolOptionValue _globalSubsumption;
-  ChoiceOptionValue<GlobalSubsumptionAvatarAssumptions> _globalSubsumptionAvatarAssumptions;
   ChoiceOptionValue<GoalGuess> _guessTheGoal;
   UnsignedOptionValue _guessTheGoalLimit;
 
@@ -1833,7 +1801,6 @@ private:
   BoolOptionValue _inductionNegOnly;
   BoolOptionValue _inductionUnitOnly;
   BoolOptionValue _inductionGen;
-  BoolOptionValue _inductionGenHeur;
   BoolOptionValue _inductionStrengthenHypothesis;
   UnsignedOptionValue _maxInductionGenSubsetSize;
   BoolOptionValue _inductionOnComplexTerms;
