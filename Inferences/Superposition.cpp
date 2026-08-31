@@ -17,7 +17,6 @@
 #include "Forwards.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/PairUtils.hpp"
 #include "Lib/Recycled.hpp"
 #include "Lib/VirtualIterator.hpp"
 
@@ -50,7 +49,6 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
-using std::pair;
 
 namespace Inferences {
 
@@ -64,60 +62,53 @@ Superposition<higherOrder>::Superposition(SaturationAlgorithm& salg)
 template<bool higherOrder>
 ClauseIterator Superposition<higherOrder>::generateClauses(Clause* premise)
 {
-  auto itf = premise->getSelectedLiteralIterator()
-    // Get an iterator of pairs of selected literals and rewritable subterms of those literals
-    // A subterm is rewritable (see EqHelper) if it is a non-variable subterm of either
+  // the outer iterator ensures we update the time counter for superposition
+  return pvi(TIME_TRACE_ITER("superposition", superpositions(premise)));
+}
+
+/**
+ * Yield the result of every superposition that can be performed with @b premise as one of
+ * the two parents: first forwards (equations from the index rewrite @b premise), then
+ * backwards (equations of @b premise rewrite clauses from the index).
+ *
+ * @warning @b qr.unifier below aliases state owned by the index query iterator that is
+ * still being walked, and that state is undone as soon as the query iterator is advanced
+ * -- which is exactly what happens when this coroutine is resumed. So the clause must be
+ * built *before* the co_yield; never carry a QueryRes across one.
+ */
+template<bool higherOrder>
+Generator<Clause*> Superposition<higherOrder>::superpositions(Clause* premise)
+{
+  for (Literal* lit : premise->getSelectedLiteralIterator()) {
+    // a subterm is rewritable (see EqHelper) if it is a non-variable subterm of either
     // a maximal side of an equality or of a non-equational literal
-    .flatMap([this](Literal* lit)
-      // returns an iterator over the rewritable subterms
-      { return pushPairIntoRightIterator(lit, EqHelper::getSubtermIterator<higherOrder>(lit, _salg.getOrdering())); })
+    for (Term* rw : iterTraits(EqHelper::getSubtermIterator<higherOrder>(lit, _salg.getOrdering()))) {
+      TypedTermList rwTerm(rw);
+      // clauses with a literal whose complement unifies with the rewritable subterm,
+      // modulo abstraction
+      for (auto qr : iterTraits(_lhsIndex->template getUwa<higherOrder>(rwTerm, _salg.getOptions())))
+        if (Clause* generated = performSuperposition(premise, lit, rwTerm,
+              qr.data->clause, qr.data->literal, qr.data->term, qr.unifier, /*eqIsResult=*/true))
+          co_yield generated;
+    }
+  }
 
-    // Get clauses with a literal whose complement unifies with the rewritable subterm,
-    // returns a pair with the original pair and the unification result (includes substitution)
-    .flatMap([this](pair<Literal*, TypedTermList> arg)
-      { return pushPairIntoRightIterator(arg, _lhsIndex->getUwa<higherOrder>(arg.second, _salg.getOptions())); })
+  for (Literal* lit : premise->getSelectedLiteralIterator()) {
+    // LHSs of the selected positive literals to superpose from
+    for (TermList eqLHS : iterTraits(EqHelper::getSuperpositionLHSIterator(lit, _salg.getOrdering(), _salg.getOptions()))) {
+      TypedTermList query(eqLHS, SortHelper::getEqualityArgumentSort(lit));
+      // clauses that unify with these LHSs, modulo abstraction
+      for (auto qr : iterTraits(_subtermIndex->template getUwa<higherOrder>(query, _salg.getOptions()))) {
+        // self-superpositions are only done in forwards mode
+        if (premise == qr.data->clause)
+          continue;
 
-    // Perform forward superposition
-    .map([this,premise](pair<pair<Literal*, TypedTermList>, QueryRes<AbstractingUnifier*, TermLiteralClause>> arg)
-      {
-        auto& qr = arg.second;
-        return performSuperposition(premise, arg.first.first, arg.first.second,
-	        qr.data->clause, qr.data->literal, qr.data->term, qr.unifier, true);
-      });
-
-  auto itb = premise->getSelectedLiteralIterator()
-    // Get LHSs of all selected positive literals for superposition
-    .flatMap([this](Literal* lit)
-      { return pvi( pushPairIntoRightIterator(lit, EqHelper::getSuperpositionLHSIterator(lit, _salg.getOrdering(), _salg.getOptions())) ); })
-
-    // Get clauses that unify with these LHSs, modulo abstraction
-    .flatMap([this] (pair<Literal*, TermList> arg)
-      { return pushPairIntoRightIterator(arg,
-          _subtermIndex->template getUwa<higherOrder>(TypedTermList(arg.second, SortHelper::getEqualityArgumentSort(arg.first)), _salg.getOptions())); })
-
-    // Perform backward superposition
-    .map([this,premise](pair<pair<Literal*, TermList>, QueryRes<AbstractingUnifier*, TermLiteralClause>> arg) -> Clause*
-    {
-      // Self-superpositions are only done in forwards mode
-      if (premise == arg.second.data->clause) {
-        return nullptr;
+        if (Clause* generated = performSuperposition(qr.data->clause, qr.data->literal, qr.data->term,
+              premise, lit, eqLHS, qr.unifier, /*eqIsResult=*/false))
+          co_yield generated;
       }
-
-      auto& qr = arg.second;
-      return performSuperposition(qr.data->clause, qr.data->literal, qr.data->term,
-        premise, arg.first.first, arg.first.second, qr.unifier, false);
-    });
-
-  // Add the results of forward and backward together
-  auto it1 = concatIters(std::move(itf),std::move(itb));
-
-  // Remove null elements - these can come from performSuperposition
-  auto it2 = getFilteredIterator(std::move(it1),NonzeroFn());
-
-  // The outer iterator ensures we update the time counter for superposition
-  auto it3 = TIME_TRACE_ITER("superposition", std::move(it2));
-
-  return pvi( std::move(it3) );
+    }
+  }
 }
 
 /**

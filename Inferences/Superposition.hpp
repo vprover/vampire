@@ -18,6 +18,7 @@
 
 #include "Forwards.hpp"
 #include "Indexing/TermIndex.hpp"
+#include "Lib/Generator.hpp"
 
 #include "InferenceEngine.hpp"
 #include "Inferences/ProofExtra.hpp"
@@ -37,6 +38,9 @@ public:
   ClauseIterator generateClauses(Clause* premise) override;
 
 private:
+  /** every opportunity to superpose with @b premise as a parent, yielded lazily */
+  Generator<Clause*> superpositions(Clause* premise);
+
   Clause* performSuperposition(
     Clause* rwClause, Literal* rwLiteral, TermList rwTerm,
     Clause* eqClause, Literal* eqLiteral, TermList eqLHS,
