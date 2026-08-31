@@ -193,15 +193,7 @@ struct OptionValueConstraint {
 template<typename T>
 using OptionValueConstraintUP = std::unique_ptr<OptionValueConstraint<T>>;
 
-// A Wrapped Constraint takes an OptionValue and a Constraint
-// It allows us to supply a constraint on another OptionValue in an If constraint for example
-// TODO can this just be typecast to a different OptionValueConstraint<T>?
-struct AbstractWrappedConstraint {
-  virtual bool check() = 0;
-  virtual std::string msg() = 0;
-  virtual ~AbstractWrappedConstraint() {};
-};
-
+struct AbstractWrappedConstraint;
 using AbstractWrappedConstraintUP = std::unique_ptr<AbstractWrappedConstraint>;
 
 /**
@@ -215,8 +207,9 @@ using AbstractWrappedConstraintUP = std::unique_ptr<AbstractWrappedConstraint>;
  */
 struct AbstractOptionValue {
     AbstractOptionValue(){}
-    AbstractOptionValue(std::string_view l,std::string_view s)
-        : longName(l), shortName(s) {}
+    AbstractOptionValue(const char *l,const char *s)
+        // treat empty short names as nullptr
+        : longName(l), shortName(s && *s ? s : nullptr) {}
 
     // Never copy an OptionValue... the Constraint system would break
     AbstractOptionValue(const AbstractOptionValue&) = delete;
@@ -257,9 +250,9 @@ struct AbstractOptionValue {
     // For use in showOptions and explainOption
     virtual void output(std::ostream &out, bool linewrap) const;
 
-    std::string_view longName;
-    std::string_view shortName;
-    std::string_view description;
+    const char *longName = nullptr;
+    const char *shortName = nullptr;
+    const char *description = nullptr;
     bool experimental = false;
     bool is_set = false;
 
@@ -281,7 +274,7 @@ struct OptionValue : public AbstractOptionValue {
     // This is annoying but preferable to the alternative in my opinion
     // TODO could actually be done if Options::init() becomes the Options constructor?
     OptionValue(){}
-    OptionValue(std::string l, std::string s,T def) : AbstractOptionValue(l,s),
+    OptionValue(const char *l, const char *s,T def) : AbstractOptionValue(l,s),
     defaultValue(def), actualValue(def){}
 
     // We store the defaultValue separately so that we can check if the actualValue is non-default
@@ -291,40 +284,42 @@ struct OptionValue : public AbstractOptionValue {
     bool isDefault() const override { return defaultValue==actualValue;}
 
     // Getting the string versions of values, useful for output
-    virtual std::string getStringOfValue(T value) const{ ASSERTION_VIOLATION;}
+    virtual std::string getStringOfValue(T value) const { ASSERTION_VIOLATION; }
     std::string getStringOfActual() const override { return getStringOfValue(actualValue); }
 
     // Adding and checking constraints
     // By default constraints are soft and reaction to them is controlled by the bad_option option
     // But a constraint can be added as Hard, meaning that it always causes a UserError
-    void addConstraint(OptionValueConstraintUP<T> c){ _constraints.push(std::move(c)); }
-    void addHardConstraint(OptionValueConstraintUP<T> c){ c->hard = true; addConstraint(std::move(c)); }
+    template<typename C>
+    void addConstraint(C c);
+    template<typename C>
+    void addHardConstraint(C c);
 
     // A onlyUsefulWith constraint gives a constraint that must be true if this option's value is set
     // For example, split_at_activation is only useful with splitting being on
-    // These are defined for OptionValueConstraints and WrappedConstraints - see below for explanation
-    void onlyUsefulWith(AbstractWrappedConstraintUP c);
-    void onlyUsefulWith(OptionValueConstraintUP<T> c);
+    template<typename C>
+    void onlyUsefulWith(C c);
 
     // similar to onlyUsefulWith, except the trigger is a non-default value
     // (as opposed to the explicitly-set flag)
     // we use it for selection and awr which cannot be not set via the decode string
     // TODO why not? ott+11_5:1_.... seems alright to me
-    void onlyUsefulWith2(AbstractWrappedConstraintUP c);
-    void onlyUsefulWith2(OptionValueConstraintUP<T> c);
+    template<typename C>
+    void onlyUsefulWith2(C c);
 
     // similar to onlyUsefulWith2, except its a hard constraint,
     // so that the user is strongly aware of situations when changing the
     // respective option has no effect
-    void reliesOn(AbstractWrappedConstraintUP c);
-    void reliesOn(OptionValueConstraintUP<T> c);
+    template<typename C>
+    void reliesOn(C c);
 
     // This checks the constraints and may cause a UserError
     bool checkConstraints() override;
 
     // Produces a separate constraint object based on this option
     /// Useful for IfThen constraints and onlyUsefulWith i.e. _splitting.is(equal(true))
-    AbstractWrappedConstraintUP is(OptionValueConstraintUP<T> c);
+    template<typename C>
+    auto is(C c);
 
     // Problem constraints place a restriction on problem properties and option values
     void addProblemConstraint(OptionProblemConstraintUP c){ _prob_constraints.push(std::move(c)); }
@@ -1023,9 +1018,8 @@ private:
     template<typename T >
     struct ChoiceOptionValue : public OptionValue<T> {
         ChoiceOptionValue(){}
-        ChoiceOptionValue(std::string l, std::string s,T def,OptionChoiceValues c) :
+        ChoiceOptionValue(const char *l, const char *s,T def,OptionChoiceValues c) :
         OptionValue<T>(l,s,def), choices(c) {}
-        ChoiceOptionValue(std::string l, std::string s,T d) : ChoiceOptionValue(l,s,d, T::optionChoiceValues()) {}
 
         bool setValue(const std::string& value) override{
             // makes reasonable assumption about ordering of every enum
@@ -1078,7 +1072,7 @@ private:
      */
     struct BoolOptionValue : public OptionValue<bool> {
         BoolOptionValue(){}
-        BoolOptionValue(std::string l,std::string s, bool d) : OptionValue(l,s,d){}
+        BoolOptionValue(const char *l, const char *s, bool d) : OptionValue(l,s,d){}
         bool setValue(const std::string& value) override{
             if (! value.compare("on") || ! value.compare("true")) {
                 actualValue=true;
@@ -1097,7 +1091,7 @@ private:
 
     struct IntOptionValue : public OptionValue<int> {
         IntOptionValue(){}
-        IntOptionValue(std::string l,std::string s, int d) : OptionValue(l,s,d){}
+        IntOptionValue(const char *l,const char *s, int d) : OptionValue(l,s,d){}
         bool setValue(const std::string& value) override{
             return Int::stringToInt(value.c_str(),actualValue);
         }
@@ -1106,7 +1100,7 @@ private:
 
     struct UnsignedOptionValue : public OptionValue<unsigned> {
         UnsignedOptionValue(){}
-        UnsignedOptionValue(std::string l,std::string s, unsigned d) : OptionValue(l,s,d){}
+        UnsignedOptionValue(const char *l,const char *s, unsigned d) : OptionValue(l,s,d){}
 
         bool setValue(const std::string& value) override{
             return Int::stringToUnsignedInt(value.c_str(),actualValue);
@@ -1116,7 +1110,7 @@ private:
 
     struct StringOptionValue : public OptionValue<std::string> {
         StringOptionValue(){}
-        StringOptionValue(std::string l,std::string s, std::string d) : OptionValue(l,s,d){}
+        StringOptionValue(const char *l,const char *s, std::string d) : OptionValue(l,s,d){}
         bool setValue(const std::string& value) override{
             actualValue = (value=="<empty>") ? "" : value;
             return true;
@@ -1129,7 +1123,7 @@ private:
 
     struct LongOptionValue : public OptionValue<long> {
         LongOptionValue(){}
-        LongOptionValue(std::string l,std::string s, long d) : OptionValue(l,s,d){}
+        LongOptionValue(const char *l,const char *s, long d) : OptionValue(l,s,d){}
         bool setValue(const std::string& value) override{
             return Int::stringToLong(value.c_str(),actualValue);
         }
@@ -1138,7 +1132,7 @@ private:
 
     struct FloatOptionValue : public OptionValue<float> {
         FloatOptionValue(){}
-        FloatOptionValue(std::string l,std::string s, float d) : OptionValue(l,s,d){}
+        FloatOptionValue(const char *l,const char *s, float d) : OptionValue(l,s,d){}
         bool setValue(const std::string& value) override{
             return Int::stringToFloat(value.c_str(),actualValue);
         }
@@ -1147,7 +1141,7 @@ private:
 
 struct RatioOptionValue : public OptionValue<std::pair<unsigned, unsigned>> {
 RatioOptionValue(){}
-RatioOptionValue(std::string l, std::string s, std::pair<unsigned, unsigned> def, char sp=':') :
+RatioOptionValue(const char *l, const char *s, std::pair<unsigned, unsigned> def, char sp=':') :
 OptionValue(l,s,def), sep(sp) {};
 
 bool readRatio(const char* val,char separator);
@@ -1177,7 +1171,7 @@ std::string getStringOfActual() const override {
 */
 struct NonGoalWeightOptionValue : public OptionValue<float>{
 NonGoalWeightOptionValue(){}
-NonGoalWeightOptionValue(std::string l, std::string s) :
+NonGoalWeightOptionValue(const char *l, const char *s) :
 OptionValue(l,s,10.0), numerator(10), denominator(1) {};
 
 bool setValue(const std::string& value) override;
@@ -1197,7 +1191,7 @@ std::string getStringOfValue(float value) const override{ return Lib::Int::toStr
 */
 struct SelectionOptionValue : public OptionValue<int>{
 SelectionOptionValue(){}
-SelectionOptionValue(std::string l,std::string s, int def):
+SelectionOptionValue(const char *l,const char *s, int def):
 OptionValue(l,s,def){};
 
 bool setValue(const std::string& value) override;
@@ -1209,7 +1203,7 @@ void output(std::ostream& out,bool linewrap) const override {
 
 std::string getStringOfValue(int value) const override{ return Lib::Int::toString(value); }
 
-AbstractWrappedConstraintUP isLookAheadSelection();
+auto isLookAheadSelection();
 };
 
 /**
@@ -1218,7 +1212,7 @@ AbstractWrappedConstraintUP isLookAheadSelection();
 */
 struct InputFileOptionValue : public OptionValue<std::string>{
 InputFileOptionValue(){}
-InputFileOptionValue(std::string l,std::string s, std::string def,Options* p):
+InputFileOptionValue(const char *l,const char *s, std::string def,Options* p):
 OptionValue(l,s,def), parent(p){};
 
 bool setValue(const std::string& value) override;
@@ -1241,7 +1235,7 @@ Options* parent;
 */
 struct DecodeOptionValue : public OptionValue<std::string>{
     DecodeOptionValue() = default;
-    DecodeOptionValue(std::string l,std::string s,Options* p)
+    DecodeOptionValue(const char *l,const char *s,Options* p)
         : OptionValue(l,s,""), parent(p){}
 
 bool setValue(const std::string& value) override{
@@ -1250,6 +1244,7 @@ bool setValue(const std::string& value) override{
 }
 std::string getStringOfValue(std::string value) const override{ return value; }
 
+bool shouldCopy() override { return false; }
 private:
 Options* parent = nullptr;
 
@@ -1261,7 +1256,7 @@ Options* parent = nullptr;
 */
 struct TimeLimitOptionValue : public OptionValue<int>{
 TimeLimitOptionValue(){}
-TimeLimitOptionValue(std::string l, std::string s, float def) :
+TimeLimitOptionValue(const char *l, const char *s, float def) :
 OptionValue(l,s,def) {};
 
 bool setValue(const std::string& value) override;
@@ -1670,20 +1665,20 @@ private:
         LookupWrapper &operator=(const LookupWrapper &) = delete;
 
         void insert(AbstractOptionValue* option_value){
-            ASS(!option_value->longName.empty());
+            ASS(option_value->longName);
             bool new_long =  _longMap.insert(option_value->longName,option_value);
             bool new_short = true;
-            if(!option_value->shortName.empty()){
+            if(option_value->shortName){
                 new_short = _shortMap.insert(option_value->shortName,option_value);
             }
             if(!new_long || !new_short){ std::cout << "Bad " << option_value->longName << std::endl; }
             ASS(new_long && new_short);
         }
-        AbstractOptionValue* findLong(std::string_view longName) const{
+        AbstractOptionValue* findLong(const char *longName) const{
             if(!_longMap.find(longName)){ throw ValueNotFoundException(); }
             return _longMap.get(longName);
         }
-        AbstractOptionValue* findShort(std::string_view shortName) const{
+        AbstractOptionValue* findShort(const char *shortName) const{
             if(!_shortMap.find(shortName)){ throw ValueNotFoundException(); }
             return _shortMap.get(shortName);
         }
@@ -1698,7 +1693,7 @@ private:
     } _lookup;
 
     // The const is a lie - we can alter the resulting OptionValue
-    AbstractOptionValue* getOptionValueByName(std::string_view name) const{
+    AbstractOptionValue* getOptionValueByName(const char *name) const{
         try{
           return _lookup.findLong(name);
         }
@@ -1712,7 +1707,7 @@ private:
         }
     }
 
-    Stack<std::string_view> getSimilarOptionNames(std::string_view name, bool is_short) const;
+    Stack<const char *> getSimilarOptionNames(const char *name, bool is_short) const;
 
     //==========================================================
     // Variables holding option values

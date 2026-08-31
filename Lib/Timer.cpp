@@ -101,7 +101,7 @@ static std::recursive_mutex EXIT_LOCK;
       std::cout << std::endl;
 
       if (szsOutputMode()) {
-        std::cout << STATUS[whichLimit] << (env.options ? env.options->problemName().c_str() : "unknown") << std::endl;
+        std::cout << STATUS[whichLimit] << (env.options ? env.options->problemName.c_str() : "unknown") << std::endl;
       }
     } else // the actual child
       if (env.statistics) {
