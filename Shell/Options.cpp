@@ -3230,7 +3230,7 @@ bool OptionValue<T>::checkProblemConstraints(Property* prop){
       // Constraint should hold whenever the option is set
       if(is_set && !con->check(prop)){
 
-         if (env.options->mode() == Mode::SPIDER){
+         if (env.options->mode() == Options::Mode::SPIDER){
            reportSpiderFail();
            USER_ERROR("% WARNING: " + std::string(longName) + con->msg());
          }
@@ -4150,7 +4150,7 @@ bool OptionValue<T>::checkConstraints()
     const OptionValueConstraintUP<T> &con = it.next();
     if (!con->check(*this)) {
 
-      if (env.options->mode() == Mode::SPIDER) {
+      if (env.options->mode() == Options::Mode::SPIDER) {
         reportSpiderFail();
         USER_ERROR("\nBroken Constraint: " + con->msg(*this));
       }

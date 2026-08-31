@@ -36,6 +36,7 @@
 #include "Lib/DHSet.hpp"
 #include "Lib/ArrayMap.hpp"
 
+#include "Shell/Property.hpp"
 #include "Shell/UIHelper.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/GeneralSplitting.hpp"
