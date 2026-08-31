@@ -35,8 +35,6 @@
 #ifndef __Options__
 #define __Options__
 
-#include <type_traits>
-#include <cstring>
 #include <memory>
 
 #include "Forwards.hpp"
@@ -47,8 +45,6 @@
 #include "Lib/Stack.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Portability.hpp"
-
-#include "Property.hpp"
 
 #ifndef VAMPIRE_CLAUSE_TRACING
 #  if VDEBUG
@@ -91,29 +87,6 @@ enum class OptionTag : unsigned int {
     LAST_TAG // Used for counting the number of tags
 };
 // update _tagNames at the end of Options constructor if you add a tag
-
-/**
- * Possible values for mode_name.
- * @since 06/05/2007 Manchester
- */
-enum class Mode : unsigned int {
-  AXIOM_SELECTION,
-  CASC,
-  CLAUSIFY,
-  CONSEQUENCE_ELIMINATION,
-  MODEL_CHECK,
-  /** this mode only outputs the input problem, without any preprocessing */
-  OUTPUT,
-  PORTFOLIO,
-  PREPROCESS,
-  PREPROCESS2,
-  PROFILE,
-  SMTCOMP,
-  SPIDER,
-  TCLAUSIFY,
-  TPREPROCESS,
-  VAMPIRE
-};
 
 /**
  * NOTE on OptionProblemConstraint
@@ -579,6 +552,29 @@ public:
     //HUMAN = 4,
     //MPS = 5,
     //NETLIB = 6
+  };
+
+  /**
+   * Possible values for mode_name.
+   * @since 06/05/2007 Manchester
+   */
+  enum class Mode : unsigned int {
+    AXIOM_SELECTION,
+    CASC,
+    CLAUSIFY,
+    CONSEQUENCE_ELIMINATION,
+    MODEL_CHECK,
+    /** this mode only outputs the input problem, without any preprocessing */
+    OUTPUT,
+    PORTFOLIO,
+    PREPROCESS,
+    PREPROCESS2,
+    PROFILE,
+    SMTCOMP,
+    SPIDER,
+    TCLAUSIFY,
+    TPREPROCESS,
+    VAMPIRE
   };
 
   enum class Intent : unsigned int {

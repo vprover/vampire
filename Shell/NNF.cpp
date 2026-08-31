@@ -13,6 +13,7 @@
  * @since 28/12/2003 Manchester
  */
 
+#include "Lib/DArray.hpp"
 #include "Lib/Environment.hpp"
 
 #include "Kernel/Inference.hpp"

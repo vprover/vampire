@@ -258,7 +258,7 @@ void UIHelper::parseSingleLine(const std::string& lineToParse, Options::InputSyn
 // Call this function to report a parsing attempt has failed and to reset the input
 void resetParsing(ParsingRelatedException& exception, istream& input, std::string nowtry)
 {
-  if (env.options->mode() != Mode::SPIDER) {
+  if (env.options->mode() != Options::Mode::SPIDER) {
     addCommentSignForSZS(std::cout);
     std::cout << "Failed with\n";
     addCommentSignForSZS(std::cout);
@@ -533,7 +533,7 @@ void UIHelper::outputResult(std::ostream& out)
     }
     addCommentSignForSZS(out);
     env.statistics->explainRefutationNotFound(out);
-    if ((env.options->mode() == Mode::VAMPIRE) && szsOutputMode()) {
+    if ((env.options->mode() == Options::Mode::VAMPIRE) && szsOutputMode()) {
       out << "% SZS status GaveUp for " << env.options->problemName << endl;
     }
     break;
