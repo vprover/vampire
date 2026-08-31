@@ -17,6 +17,7 @@
 #define __Factoring__
 
 #include "Forwards.hpp"
+#include "Lib/Generator.hpp"
 
 #include "InferenceEngine.hpp"
 #include "ProofExtra.hpp"
@@ -30,7 +31,9 @@ public:
   Factoring(SaturationAlgorithm& salg) : _salg(salg) {}
   ClauseIterator generateClauses(Kernel::Clause* premise) override;
 private:
-  class ResultsFn;
+  /** every factor of @b premise, yielded lazily */
+  Lib::Generator<Kernel::Clause*> factorings(Kernel::Clause* premise);
+
   const SaturationAlgorithm& _salg;
 };
 
