@@ -22,10 +22,10 @@
 #include "Lib/List.hpp"
 #include "Lib/ScopedPtr.hpp"
 
-#include "Kernel/ALASCA/State.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/MainLoop.hpp"
 #include "Kernel/RCClauseStack.hpp"
+#include "Kernel/Problem.hpp"
 
 #include "Indexing/IndexManager.hpp"
 
@@ -34,6 +34,7 @@
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
+namespace Kernel { struct AlascaState; }
 namespace Shell { class AnswerLiteralManager; }
 
 namespace Saturation

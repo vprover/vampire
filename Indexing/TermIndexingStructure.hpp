@@ -17,6 +17,9 @@
 #define __TermIndexingStructure__
 
 #include "Index.hpp"
+#include "Shell/Options.hpp"
+
+namespace Kernel { class AbstractingUnifier; }
 
 namespace Indexing {
 

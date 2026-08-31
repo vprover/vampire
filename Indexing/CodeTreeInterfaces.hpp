@@ -16,6 +16,8 @@
 #define __CodeTreeInterfaces__
 
 #include "Forwards.hpp"
+#include "Kernel/SubstHelper.hpp"
+#include "Kernel/Renaming.hpp"
 
 #include "TermCodeTree.hpp"
 #include "ClauseCodeTree.hpp"

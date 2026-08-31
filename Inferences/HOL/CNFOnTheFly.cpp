@@ -19,6 +19,7 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/RobSubstitution.hpp"
 #include "Kernel/SortHelper.hpp"
 
 #include "Shell/Skolem.hpp"

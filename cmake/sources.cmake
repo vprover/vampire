@@ -179,6 +179,8 @@ set(SOURCES
     Indexing/CodeTree.hpp
     Indexing/CodeTreeInterfaces.cpp
     Indexing/CodeTreeInterfaces.hpp
+    Indexing/DemodulationIndex.hpp
+    Indexing/DemodulationIndex.cpp
     Indexing/Index.cpp
     Indexing/Index.hpp
     Indexing/IndexManager.cpp
@@ -440,6 +442,7 @@ set(SOURCES
     Kernel/PartialOrdering.hpp
     Kernel/Polynomial.cpp
     Kernel/Polynomial.hpp
+    Kernel/PolynomialBottomUpEvaluation.hpp
     Kernel/PolynomialNormalizer.cpp
     Kernel/PolynomialNormalizer.hpp
     Kernel/PolynomialNormalizer/PredicateEvaluator.hpp

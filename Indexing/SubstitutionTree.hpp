@@ -56,6 +56,7 @@
 #include "Lib/Allocator.hpp"
 
 #include "Index.hpp"
+#include "ResultSubstitution.hpp"
 
 #if VDEBUG
 #include <iostream>
