@@ -93,14 +93,14 @@ bool PortfolioMode::perform(Problem* problem)
       cout<<"Proof not found in time "<<Timer::msToSecondsString(Timer::elapsedMilliseconds())<<endl;
       if (env.remainingTime()/100>0) {
         addCommentSignForSZS(cout);
-        cout<<"SZS status GaveUp for "<<env.options->problemName()<<endl;
+        cout<<"SZS status GaveUp for "<<env.options->problemName<<endl;
       }
       else {
         //From time to time we may also be terminating in the timeLimitReached()
         //function in Lib/Timer.cpp in case the time runs out. We, however, output
         //the same string there as well.
         addCommentSignForSZS(cout);
-        cout<<"SZS status Timeout for "<<env.options->problemName()<<endl;
+        cout<<"SZS status Timeout for "<<env.options->problemName<<endl;
       }
     }
 #if VTIME_PROFILING
@@ -625,7 +625,7 @@ void PortfolioMode::runSlice(Options& opt)
   opt.checkGlobalOptionConstraints();
 
   if (outputAllowed()) {
-    addCommentSignForSZS(cout) << opt.generateEncodedOptions() << " on " << opt.problemName() <<
+    addCommentSignForSZS(cout) << opt.generateEncodedOptions() << " on " << opt.problemName <<
       " for (" << opt.timeLimitInDeciseconds() << "ds"<<
 #if VAMPIRE_PERF_EXISTS
       "/" << opt.instructionLimit() << "Mi" <<

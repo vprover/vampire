@@ -19,6 +19,7 @@
 #include <functional>
 #include <type_traits>
 #include <cstdint>
+#include <cstring>
 
 #include "Forwards.hpp"
 #include "Kernel/Unit.hpp"
@@ -141,6 +142,10 @@ struct FnvHash
     static_assert(
       !std::is_base_of<Kernel::Unit, T>::value,
       "Units are hashed by their number: use UnitHash or UnitNumberHash");
+    static_assert(
+      !std::is_same<const char, T>::value,
+      "careful - this will use pointer equality in DHMap, are you sure?"
+    );
     return hashBytes(
       reinterpret_cast<const unsigned char*>(&ptr),
       sizeof(ptr),

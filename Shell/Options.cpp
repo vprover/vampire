@@ -61,325 +61,306 @@ using namespace Lib;
 static const int COPY_SIZE = 128;
 
 namespace Shell {
-    template<typename T>
-    struct WrappedConstraint : AbstractWrappedConstraint {
-        WrappedConstraint(const OptionValue<T>& v, OptionValueConstraintUP<T> c) : value(v), con(std::move(c)) {}
 
-        bool check() override {
-            return con->check(value);
-        }
-        std::string msg() override {
-            return con->msg(value);
-        }
+template<typename C, typename T>
+struct Message {
+  const C &constraint;
+  const OptionValue<T> &value;
+};
 
-        const OptionValue<T>& value;
-        OptionValueConstraintUP<T> con;
-    };
+template<typename T, typename C>
+struct BoxedConstraint : OptionValueConstraint<T> {
+  C constraint;
+  BoxedConstraint(C c) : constraint(c) {}
 
-    struct WrappedConstraintOrWrapper : public AbstractWrappedConstraint {
-        WrappedConstraintOrWrapper(AbstractWrappedConstraintUP l, AbstractWrappedConstraintUP r) : left(std::move(l)),right(std::move(r)) {}
-        bool check() override {
-            return left->check() || right->check();
-        }
-        std::string msg() override { return left->msg() + " or " + right->msg(); }
+  bool check(const OptionValue<T> &value) final {
+    return constraint.check(value);
+  }
 
-        AbstractWrappedConstraintUP left;
-        AbstractWrappedConstraintUP right;
-    };
+  std::string msg(const OptionValue<T> &value) final {
+    stringstream ss;
+    ss << Message { constraint, value };
+    return ss.str();
+  }
+};
 
-    struct WrappedConstraintAndWrapper : public AbstractWrappedConstraint {
-        WrappedConstraintAndWrapper(AbstractWrappedConstraintUP l, AbstractWrappedConstraintUP r) : left(std::move(l)),right(std::move(r)) {}
-        bool check() override {
-            return left->check() && right->check();
-        }
-        std::string msg() override { return left->msg() + " and " + right->msg(); }
+template<typename T, typename C>
+OptionValueConstraintUP<T> boxed(C c) {
+  return std::make_unique<BoxedConstraint<T, C>>(c);
+}
 
-        AbstractWrappedConstraintUP left;
-        AbstractWrappedConstraintUP right;
-    };
+enum class OptionComparison {
+  EQUAL,
+  NOT_EQUAL,
+  LESS,
+  LESS_EQUAL,
+  GREATER,
+  GREATER_EQUAL
+};
 
-    template<typename T>
-    struct OptionValueConstraintOrWrapper : public OptionValueConstraint<T>{
-        OptionValueConstraintOrWrapper(OptionValueConstraintUP<T> l, OptionValueConstraintUP<T> r) : left(std::move(l)),right(std::move(r)) {}
-        bool check(const OptionValue<T>& value) override{
-            return left->check(value) || right->check(value);
-        }
-        std::string msg(const OptionValue<T>& value) override{ return left->msg(value) + " or " + right->msg(value); }
+std::ostream &operator<<(std::ostream &out, OptionComparison c) {
+  switch(c) {
+  case OptionComparison::EQUAL:
+    return out << "equal to";
+  case OptionComparison::NOT_EQUAL:
+    return out << "not equal to";
+  case OptionComparison::LESS:
+    return out << "less than";
+  case OptionComparison::LESS_EQUAL:
+    return out << "less than or equal";
+  case OptionComparison::GREATER:
+    return out << "greater than";
+  case OptionComparison::GREATER_EQUAL:
+    return out << "greater than or equal";
+  }
+}
 
-        OptionValueConstraintUP<T> left;
-        OptionValueConstraintUP<T> right;
-    };
-
-    template<typename T>
-    struct OptionValueConstraintAndWrapper : public OptionValueConstraint<T>{
-        OptionValueConstraintAndWrapper(OptionValueConstraintUP<T> l, OptionValueConstraintUP<T> r) : left(std::move(l)),right(std::move(r)) {}
-        bool check(const OptionValue<T>& value){
-            return left->check(value) && right->check(value);
-        }
-        std::string msg(const OptionValue<T>& value){ return left->msg(value) + " and " + right->msg(value); }
-
-        OptionValueConstraintUP<T> left;
-        OptionValueConstraintUP<T> right;
-    };
-
-    template<typename T>
-    struct UnWrappedConstraint : public OptionValueConstraint<T>{
-        UnWrappedConstraint(AbstractWrappedConstraintUP c) : con(std::move(c)) {}
-
-        bool check(const OptionValue<T>&) override{ return con->check(); }
-        std::string msg(const OptionValue<T>&) override{ return con->msg(); }
-        
-        AbstractWrappedConstraintUP con;
-    };
-
-    template <typename T>
-    static OptionValueConstraintUP<T> maybe_unwrap(OptionValueConstraintUP<T> c) { return c; }
-
-    template <typename T>
-    static OptionValueConstraintUP<T> unwrap(AbstractWrappedConstraintUP& c) { return OptionValueConstraintUP<T>(new UnWrappedConstraint<T>(std::move(c))); }
-
-    template <typename T>
-    static OptionValueConstraintUP<T> maybe_unwrap(AbstractWrappedConstraintUP& c) { return unwrap<T>(c); }
-
-    /*
-     * To avoid too many cases a certain discipline is required from the user.
-     * Namely, OptionValueConstraints need to precede WrappedConstraints in the arguments of Or and And
-     **/
-
-    // the base case (the unary Or)
-    template <typename T>
-    OptionValueConstraintUP<T> Or(OptionValueConstraintUP<T> a) { return a; }
-    AbstractWrappedConstraintUP Or(AbstractWrappedConstraintUP a) { return a; }
-
-    template<typename T, typename... Args>
-    OptionValueConstraintUP<T> Or(OptionValueConstraintUP<T> a, Args... args)
-    {
-      OptionValueConstraintUP<T> r = maybe_unwrap<T>(Or(std::move(args)...));
-      return OptionValueConstraintUP<T>(new OptionValueConstraintOrWrapper<T>(std::move(a),std::move(r)));
+template<OptionComparison C, typename T>
+struct InequationConstraint {
+  bool check(const OptionValue<T> &value) {
+    switch(C) {
+    case OptionComparison::EQUAL:
+      return value.actualValue == ref;
+    case OptionComparison::NOT_EQUAL:
+      return value.actualValue != ref;
+    case OptionComparison::LESS:
+      return value.actualValue < ref;
+    case OptionComparison::LESS_EQUAL:
+      return value.actualValue <= ref;
+    case OptionComparison::GREATER:
+      return value.actualValue >  ref;
+    case OptionComparison::GREATER_EQUAL:
+      return value.actualValue >= ref;
     }
+  }
 
-    template<typename... Args>
-    AbstractWrappedConstraintUP Or(AbstractWrappedConstraintUP a, Args... args)
-    {
-      AbstractWrappedConstraintUP r = Or(std::move(args)...);
-      return AbstractWrappedConstraintUP(new WrappedConstraintOrWrapper(std::move(a),std::move(r)));
+  T ref;
+};
+
+template<OptionComparison C, typename T>
+std::ostream &operator<<(std::ostream &out, Message<InequationConstraint<C, T>, T> message) {
+  auto [constraint, value] = message;
+  return out
+    << value.longName
+    << "(" << value.getStringOfActual() << ") is " << C << " "
+    << value.getStringOfValue(constraint.ref);
+}
+
+template<typename T> static InequationConstraint<OptionComparison::EQUAL, T>
+equal(T good) { return { good }; }
+
+template<typename T> static InequationConstraint<OptionComparison::NOT_EQUAL, T>
+notEqual(T bad) { return { bad }; }
+
+template<typename T> static InequationConstraint<OptionComparison::LESS, T>
+lessThan(T than) { return { than }; }
+
+template<typename T> static InequationConstraint<OptionComparison::LESS_EQUAL, T>
+lessThanEq(T than) { return { than }; }
+
+template<typename T> static InequationConstraint<OptionComparison::GREATER, T>
+greaterThan(T than) { return { than }; }
+
+template<typename T> static InequationConstraint<OptionComparison::GREATER_EQUAL, T>
+greaterThanEq(T than) { return { than }; }
+
+enum class Connective {
+  AND,
+  OR
+};
+
+std::ostream &operator<<(std::ostream &out, Connective c) {
+  switch(c) {
+  case Connective::AND:
+    return out << "and";
+  case Connective::OR:
+    return out << "or";
+  }
+}
+
+template<Connective C, typename L, typename R>
+struct BinaryConstraint {
+  L left;
+  R right;
+
+  template<typename T>
+  bool check(const OptionValue<T> &value) {
+    switch(C) {
+    case Connective::AND:
+      return left.check(value) && right.check(value);
+    case Connective::OR:
+      return left.check(value) || right.check(value);
     }
+  }
+};
 
-    // the base case (the unary And)
-    template <typename T>
-    OptionValueConstraintUP<T> And(OptionValueConstraintUP<T> a) { return a; }
-    AbstractWrappedConstraintUP And(AbstractWrappedConstraintUP a) { return a; }
+template<Connective C, typename L, typename R, typename T>
+std::ostream &operator<<(std::ostream &out, Message<BinaryConstraint<C, L, R>, T> message) {
+  auto [constraint, value] = message;
+  return out
+    << Message { constraint.left,  value }
+    << C
+    << Message { constraint.right, value };
+}
 
-    template<typename T, typename... Args>
-    OptionValueConstraintUP<T> And(OptionValueConstraintUP<T> a, Args... args)
-    {
-      OptionValueConstraintUP<T> r = maybe_unwrap<T>(And(std::move(args)...));
-      return OptionValueConstraintUP<T>(new OptionValueConstraintAndWrapper<T>(std::move(a),std::move(r)));
-    }
+template<typename L, typename R>
+using OrConstraint = BinaryConstraint<Connective::OR, L, R>;
+template<typename L, typename R>
+using AndConstraint = BinaryConstraint<Connective::AND, L, R>;
 
-    template<typename... Args>
-    AbstractWrappedConstraintUP And(AbstractWrappedConstraintUP a, Args... args)
-    {
-      AbstractWrappedConstraintUP r = And(std::move(args)...);
-      return AbstractWrappedConstraintUP(new WrappedConstraintAndWrapper(std::move(a),std::move(r)));
-    }
+template<typename R>
+R Or(R r) { return r; }
+template<typename L, typename...Rs>
+auto Or(L l, Rs...rs) { return OrConstraint { l, Or(rs...) }; }
 
-    template<typename T>
-    struct Equal : public OptionValueConstraint<T>{
-        Equal(T gv) : _goodvalue(gv) {}
-        bool check(const OptionValue<T>& value) override{
-            return value.actualValue == _goodvalue;
-        }
-        std::string msg(const OptionValue<T>& value) override{
-            return std::string(value.longName)+"("+value.getStringOfActual()+") is equal to " + value.getStringOfValue(_goodvalue);
-        }
-        T _goodvalue;
-    };
-    template<typename T>
-    static OptionValueConstraintUP<T> equal(T bv){
-        return OptionValueConstraintUP<T>(new Equal<T>(bv));
-    }
+template<typename R>
+R And(R r) { return r; }
+template<typename L, typename...Rs>
+auto And(L l, Rs...rs) { return AndConstraint { l, Or(rs...) }; }
 
-    template<typename T>
-    struct NotEqual : public OptionValueConstraint<T>{
-        NotEqual(T bv) : _badvalue(bv) {}
-        bool check(const OptionValue<T>& value) override{
-            return value.actualValue != _badvalue;
-        }
-        std::string msg(const OptionValue<T>& value) override{ return std::string(value.longName)+"("+value.getStringOfActual()+") is not equal to " + value.getStringOfValue(_badvalue); }
-        T _badvalue;
-    };
-    template<typename T>
-    static OptionValueConstraintUP<T> notEqual(T bv){
-        return OptionValueConstraintUP<T>(new NotEqual<T>(bv));
-    }
+template<typename If, typename Then>
+struct IfThenConstraint {
+  template<typename T>
+  bool check(const OptionValue<T> &value) {
+    return !if_.check(value) || then.check(value);
+  }
 
-    // Constraint that the value should be less than a given value
-    // optionally we can allow it be equal to that value also
-    template<typename T>
-    struct LessThan : public OptionValueConstraint<T>{
-        LessThan(T gv,bool eq=false) : _goodvalue(gv), _orequal(eq) {}
-        bool check(const OptionValue<T>& value) override{
-            return (value.actualValue < _goodvalue || (_orequal && value.actualValue==_goodvalue));
-        }
-        std::string msg(const OptionValue<T>& value) override{
-            if(_orequal) return std::string(value.longName)+"("+value.getStringOfActual()+") is less than or equal to " + value.getStringOfValue(_goodvalue);
-            return std::string(value.longName)+"("+value.getStringOfActual()+") is less than "+ value.getStringOfValue(_goodvalue);
-        }
+  If if_;
+  Then then;
+};
 
-        T _goodvalue;
-        bool _orequal;
-    };
-    template<typename T>
-    static OptionValueConstraintUP<T> lessThan(T bv){
-        return OptionValueConstraintUP<T>(new LessThan<T>(bv,false));
-    }
-    template<typename T>
-    static OptionValueConstraintUP<T> lessThanEq(T bv){
-        return OptionValueConstraintUP<T>(new LessThan<T>(bv,true));
-    }
+template<typename If, typename Then, typename T>
+std::ostream &operator<<(std::ostream &out, Message<IfThenConstraint<If, Then>, T> message) {
+  auto [constraint, value] = message;
+  return out
+    << "if " << Message {constraint.if_, value}
+    << " then " << Message {constraint.then, value};
+}
 
-    // Constraint that the value should be greater than a given value
-    // optionally we can allow it be equal to that value also
-    template<typename T>
-    struct GreaterThan : public OptionValueConstraint<T>{
-        GreaterThan(T gv,bool eq=false) : _goodvalue(gv), _orequal(eq) {}
-        bool check(const OptionValue<T>& value) override{
-            return (value.actualValue > _goodvalue || (_orequal && value.actualValue==_goodvalue));
-        }
-        
-        std::string msg(const OptionValue<T>& value) override{
-            if(_orequal) return std::string(value.longName)+"("+value.getStringOfActual()+") is greater than or equal to " + value.getStringOfValue(_goodvalue);
-            return std::string(value.longName)+"("+value.getStringOfActual()+") is greater than "+ value.getStringOfValue(_goodvalue);
-        }
+template<typename If>
+struct IfPart {
+  template<typename Then>
+  IfThenConstraint<If, Then> then(Then then) { return { if_, then }; }
+  If if_;
+};
 
-        T _goodvalue;
-        bool _orequal;
-    };
-    template<typename T>
-    static OptionValueConstraintUP<T> greaterThan(T bv){
-        return OptionValueConstraintUP<T>(new GreaterThan<T>(bv,false));
-    }
-    template<typename T>
-    static OptionValueConstraintUP<T> greaterThanEq(T bv){
-        return OptionValueConstraintUP<T>(new GreaterThan<T>(bv,true));
-    }
+template<typename If_>
+static IfPart<If_> If(If_ if_) { return { if_ }; }
 
-    // Constraint that the value should be smaller than a given value
-    // optionally we can allow it be equal to that value also
-    template<typename T>
-    struct SmallerThan : public OptionValueConstraint<T>{
-        SmallerThan(T gv,bool eq=false) : _goodvalue(gv), _orequal(eq) {}
-        bool check(const OptionValue<T>& value) override{
-            return (value.actualValue < _goodvalue || (_orequal && value.actualValue==_goodvalue));
-        }
+/**
+ * Option-(explicitly)-set constraint
+ */
+struct HasBeenSetConstraint {
+  template<typename T>
+  bool check(const OptionValue<T> &value) {
+    return value.is_set;
+  }
 
-        std::string msg(const OptionValue<T>& value) override{
-            if(_orequal) return std::string(value.longName)+"("+value.getStringOfActual()+") is smaller than or equal to " + value.getStringOfValue(_goodvalue);
-            return std::string(value.longName)+"("+value.getStringOfActual()+") is smaller than "+ value.getStringOfValue(_goodvalue);
-        }
+  template<typename T>
+  void msg(std::ostream &out, const OptionValue<T> &value) {
+  }
+};
 
-        T _goodvalue;
-        bool _orequal;
-    };
-    template<typename T>
-    static OptionValueConstraintUP<T> smallerThan(T bv){
-        return OptionValueConstraintUP<T>(new SmallerThan<T>(bv,false));
-    }
-    template<typename T>
-    static OptionValueConstraintUP<T> smallerThanEq(T bv){
-        return OptionValueConstraintUP<T>(new SmallerThan<T>(bv,true));
-    }
+template<typename T>
+std::ostream &operator<<(std::ostream &out, Message<HasBeenSetConstraint, T> message) {
+  auto [constraint, value] = message;
+  return out
+    << value.longName
+    << "(" << value.getStringOfActual() << ") has been set";
+}
 
-    /**
-     * If constraints
-     */
-    template<typename T>
-    struct IfThenConstraint : public OptionValueConstraint<T>{
-        IfThenConstraint(OptionValueConstraintUP<T> ic, OptionValueConstraintUP<T> c) :
-        if_con(std::move(ic)), then_con(std::move(c)) {}
+static HasBeenSetConstraint hasBeenSet() { return {}; }
 
-        bool check(const OptionValue<T>& value) override{
-            ASS(then_con);
-            return !if_con->check(value) || then_con->check(value);
-        }
+/**
+ * Default Value constraints
+ */
+struct NotDefaultConstraint {
+  template<typename T>
+  bool check(const OptionValue<T> &value) {
+    return value.actualValue != value.defaultValue;
+  }
+};
 
-        std::string msg(const OptionValue<T>& value) override{
-            return "if "+if_con->msg(value)+" then "+ then_con->msg(value);
-        }
+template<typename T>
+std::ostream &operator<<(std::ostream &out, Message<NotDefaultConstraint, T> message) {
+  auto [constraint, value] = message;
+  return out
+    << value.longName
+    << "(" << value.getStringOfActual() << ") is not default("
+    << value.getStringOfValue(value.defaultValue) << ")";
+}
 
-        OptionValueConstraintUP<T> if_con;
-        OptionValueConstraintUP<T> then_con;
-    };
+static NotDefaultConstraint isNotDefault() { return {}; }
 
-    template<typename T>
-    struct IfConstraint {
-        IfConstraint(OptionValueConstraintUP<T> c) :if_con(std::move(c)) {}
+struct LookAheadSelectionConstraint {
+  bool check(const OptionValue<int> &value) {
+    return value.actualValue == 11 || value.actualValue == 1011 || value.actualValue == -11 || value.actualValue == -1011;
+  }
+};
 
-        OptionValueConstraintUP<T> then(OptionValueConstraintUP<T> c){
-          return OptionValueConstraintUP<T>(new IfThenConstraint<T>(std::move(if_con),std::move(c)));
-        }
-        OptionValueConstraintUP<T> then(AbstractWrappedConstraintUP c){
-          return OptionValueConstraintUP<T>(new IfThenConstraint<T>(std::move(if_con),unwrap<T>(c)));
-        }
+std::ostream &operator<<(std::ostream &out, Message<LookAheadSelectionConstraint, int> message) {
+  auto [constraint, value] = message;
+  return out
+    << value.longName
+    << "(" << value.getStringOfActual() << ") is not lookahead selection";
+}
 
-        OptionValueConstraintUP<T> if_con;
-    };
+template<typename T, typename C>
+struct IsConstraint {
+  template<typename S>
+  bool check(const OptionValue<S> &) {
+    return constraint.check(value);
+  }
 
-    template<typename T>
-    static IfConstraint<T> If(OptionValueConstraintUP<T> c){
-        return IfConstraint<T>(std::move(c));
-    }
-    template<typename T>
-    static IfConstraint<T> If(AbstractWrappedConstraintUP c){
-        return IfConstraint<T>(unwrap<T>(c));
-    }
+  const OptionValue<T> &value;
+  C constraint;
+};
 
-    /**
-     * Option-(explicitly)-set constraint
-     */
-    template<typename T>
-    struct HasBeenSet : public OptionValueConstraint<T> {
-      HasBeenSet() {}
+template<typename C, typename T, typename S>
+std::ostream &operator<<(std::ostream &out, Message<IsConstraint<C, T>, S> message) {
+  auto [constraint, value] = message;
+  return out << Message {constraint.constraint, constraint.value};
+}
 
-        bool check(const OptionValue<T>& value) override {
-            return value.is_set;
-        }
-        std::string msg(const OptionValue<T>& value) override { return std::string(value.longName)+"("+value.getStringOfActual()+") has been set";}
-    };
+template<typename T>
+template<typename C>
+void OptionValue<T>::addConstraint(C c) {
+  _constraints.push(boxed<T>(c));
+}
 
-    template<typename T>
-    static OptionValueConstraintUP<T> hasBeenSet(){
-        return OptionValueConstraintUP<T>(new HasBeenSet<T>());
-    }
+template<typename T>
+template<typename C>
+void OptionValue<T>::addHardConstraint(C c) {
+  auto b = boxed<T>(c);
+  b->hard = true;
+  _constraints.push(std::move(b));
+}
 
-    /**
-     * Default Value constraints
-     */
-    template<typename T>
-    struct NotDefaultConstraint : public OptionValueConstraint<T> {
-        NotDefaultConstraint() {}
+template<typename T>
+template<typename C>
+void OptionValue<T>::onlyUsefulWith(C c) {
+  addConstraint(If(hasBeenSet()).then(c));
+}
 
-        bool check(const OptionValue<T>& value) override{
-            return value.defaultValue != value.actualValue;
-        }
-        std::string msg(const OptionValue<T>& value) override { return std::string(value.longName)+"("+value.getStringOfActual()+") is not default("+value.getStringOfValue(value.defaultValue)+")";}
-    };
+template<typename T>
+template<typename C>
+void OptionValue<T>::onlyUsefulWith2(C c) {
+  addConstraint(If(isNotDefault()).then(c));
+}
 
-    template<typename T>
-    static OptionValueConstraintUP<T> isNotDefault() {
-      return OptionValueConstraintUP<T>(new NotDefaultConstraint<T>());
-    }
+template<typename T>
+template<typename C>
+void OptionValue<T>::reliesOn(C c) {
+  addHardConstraint(If(isNotDefault()).then(c));
+}
 
-    struct isLookAheadSelectionConstraint : public OptionValueConstraint<int> {
-        isLookAheadSelectionConstraint() {}
-        bool check(const OptionValue<int>& value) override{
-            return value.actualValue == 11 || value.actualValue == 1011 || value.actualValue == -11 || value.actualValue == -1011;
-        }
-        std::string msg(const OptionValue<int>& value) override{
-            return std::string(value.longName)+"("+value.getStringOfActual()+") is not lookahead selection";
-        }
-    };
+template<typename T>
+template<typename C>
+auto OptionValue<T>::is(C con) { return IsConstraint { *this, con }; }
+
+auto Options::SelectionOptionValue::isLookAheadSelection() {
+  return is(LookAheadSelectionConstraint {});
+}
 
 struct CategoryCondition : OptionProblemConstraint{
   CategoryCondition(Property::Category c,bool h) : cat(c), has(h) {}
@@ -495,7 +476,7 @@ static OptionProblemConstraintUP hasGoal() { return OptionProblemConstraintUP(ne
 void AbstractOptionValue::output(std::ostream &out, bool linewrap) const
 {
   out << "--" << longName;
-  if (!shortName.empty()) {
+  if (shortName) {
     out << " (-" << shortName << ")";
   }
   out << std::endl;
@@ -504,20 +485,20 @@ void AbstractOptionValue::output(std::ostream &out, bool linewrap) const
     out << "\t[experimental]" << std::endl;
   }
 
-  if (!description.empty()) {
+  if (description) {
     // Break a the description into lines where there have been at least 70 characters
     // on the line at the next space
     out << "\t";
     int count = 0;
-    for (char p : description) {
+    for (const char *p = description; *p; p++) {
       out << p;
       count++;
-      if (linewrap && count > 70 && p == ' ') {
+      if (linewrap && count > 70 && *p == ' ') {
         out << std::endl
             << '\t';
         count = 0;
       }
-      if (p == '\n') {
+      if (*p == '\n') {
         count = 0;
         out << '\t';
       }
@@ -532,7 +513,7 @@ void AbstractOptionValue::output(std::ostream &out, bool linewrap) const
 struct AbstractOptionValueCompatator{
   Comparison compare(AbstractOptionValue* o1, AbstractOptionValue* o2)
   {
-    int value = o1->longName.compare(o2->longName);
+    int value = strcmp(o1->longName, o2->longName);
     return value < 0 ? LESS : (value==0 ? EQUAL : GREATER);
   }
 };
@@ -1833,7 +1814,7 @@ void Options::init()
     _inequalityNormalization.addProblemConstraint(hasTheories());
     _inequalityNormalization.tag = OptionTag::THEORIES;
 
-    auto choiceArithmeticSimplificationMode = [&](std::string l, std::string s, ArithmeticSimplificationMode d)
+    auto choiceArithmeticSimplificationMode = [&](const char *l, const char *s, ArithmeticSimplificationMode d)
     { return ChoiceOptionValue<ArithmeticSimplificationMode>(l,s,d, {"force", "cautious", "off", }); };
     _cancellation = choiceArithmeticSimplificationMode(
        "cancellation", "canc",
@@ -2727,7 +2708,7 @@ void Options::init()
     _lookup.insert(&_splittingAvatimer);
     _splittingAvatimer.tag = OptionTag::AVATAR;
     _splittingAvatimer.addConstraint(greaterThanEq(0.0f)); //if you want to stop splitting right-away, just turn AVATAR off
-    _splittingAvatimer.addConstraint(smallerThanEq(1.0f));
+    _splittingAvatimer.addConstraint(lessThanEq(1.0f));
     _splittingAvatimer.onlyUsefulWith(_splitting.is(equal(true)));
 
     _splittingNonsplittableComponents = ChoiceOptionValue<SplittingNonsplittableComponents>("avatar_nonsplittable_components","anc",
@@ -3045,7 +3026,6 @@ void Options::init()
                  "Higher-order",
                  "Global"
                 };
-
 } // Options::init
 
 void Options::copyValuesFrom(const Options& that)
@@ -3171,11 +3151,11 @@ void Options::output (std::ostream& str) const
      AbstractOptionValue* option;
      std::string name = explainOption();
      try{
-       option = _lookup.findLong(name);
+       option = _lookup.findLong(name.c_str());
      }
      catch(const ValueNotFoundException&){
        try{
-         option = _lookup.findShort(name);
+         option = _lookup.findShort(name.c_str());
        }
        catch(const ValueNotFoundException&){
          option = 0;
@@ -3183,8 +3163,8 @@ void Options::output (std::ostream& str) const
      }
      if(!option){
        str << name << " not a known option" << endl;
-       auto sim_s = getSimilarOptionNames(name,true);
-       auto sim_l = getSimilarOptionNames(name,false);
+       auto sim_s = getSimilarOptionNames(name.c_str(),true);
+       auto sim_l = getSimilarOptionNames(name.c_str(),false);
        auto sit = pvi(concatIters(
            decltype(sim_s)::Iterator(sim_s),decltype(sim_l)::Iterator(sim_l)));
         if(sit.hasNext()){
@@ -3282,40 +3262,6 @@ void Options::output (std::ostream& str) const
 } // Options::output (std::ostream& str) const
 
 template<typename T>
-void OptionValue<T>::onlyUsefulWith(AbstractWrappedConstraintUP c) {
-  _constraints.push(If(hasBeenSet<T>()).then(unwrap<T>(c)));
-}
-
-template<typename T>
-void OptionValue<T>::onlyUsefulWith(OptionValueConstraintUP<T> c) {
-  _constraints.push(If(hasBeenSet<T>()).then(std::move(c)));
-}
-
-template<typename T>
-void OptionValue<T>::onlyUsefulWith2(AbstractWrappedConstraintUP c) {
-  _constraints.push(If(isNotDefault<T>()).then(unwrap<T>(c)));
-}
-
-template<typename T>
-void OptionValue<T>::onlyUsefulWith2(OptionValueConstraintUP<T> c) {
-  _constraints.push(If(isNotDefault<T>()).then(std::move(c)));
-}
-
-template<typename T>
-void OptionValue<T>::reliesOn(AbstractWrappedConstraintUP c) {
-  OptionValueConstraintUP<T> tc = If(isNotDefault<T>()).then(unwrap<T>(c));
-  tc->hard = true;
-  _constraints.push(std::move(tc));
-}
-
-template<typename T>
-void OptionValue<T>::reliesOn(OptionValueConstraintUP<T> c) {
-  OptionValueConstraintUP<T> tc = If(isNotDefault<T>()).then(c);
-  tc->hard = true;
-  _constraints.push(std::move(tc));
-}
-
-template<typename T>
 bool OptionValue<T>::checkProblemConstraints(Property* prop){
     Lib::Stack<OptionProblemConstraintUP>::RefIterator it(_prob_constraints);
     while(it.hasNext()){
@@ -3337,12 +3283,6 @@ bool OptionValue<T>::checkProblemConstraints(Property* prop){
       }
     }
     return true;
-}
-
-template<typename T>
-AbstractWrappedConstraintUP OptionValue<T>::is(OptionValueConstraintUP<T> c)
-{
-    return AbstractWrappedConstraintUP(new WrappedConstraint<T>(*this,std::move(c)));
 }
 
 /**
@@ -3477,10 +3417,6 @@ bool Options::SelectionOptionValue::setValue(const std::string& value)
   }
 }
 
-AbstractWrappedConstraintUP Options::SelectionOptionValue::isLookAheadSelection() {
-  return AbstractWrappedConstraintUP(new WrappedConstraint(*this,OptionValueConstraintUP<int>(new isLookAheadSelectionConstraint())));
-}
-
 bool Options::InputFileOptionValue::setValue(const std::string& value)
 {
   actualValue=value;
@@ -3582,7 +3518,7 @@ void Options::strategySamplingAssign(std::string optname, std::string value, DHM
     return;
   }
 
-  AbstractOptionValue* opt = getOptionValueByName(optname);
+  AbstractOptionValue* opt = getOptionValueByName(optname.c_str());
   if (opt) {
     if (!opt->set(value,/* dont_touch_if_defaulting =*/ true)) {
       USER_ERROR("Sampling file processing error -- unknown option value: " + value + " for option " + optname);
@@ -3610,7 +3546,7 @@ std::string Options::strategySamplingLookup(std::string optname, DHMap<std::stri
     return *foundVal;
   }
 
-  AbstractOptionValue* opt = getOptionValueByName(optname);
+  AbstractOptionValue* opt = getOptionValueByName(optname.c_str());
   if (opt) {
     return opt->getStringOfActual();
   } else {
@@ -3865,7 +3801,7 @@ void Options::readOptionsString(std::string optionsString,bool assign)
     else {
       value = optionsString.substr(index1+1,index-index1-1);
     }
-    AbstractOptionValue* opt = getOptionValueByName(param);
+    AbstractOptionValue* opt = getOptionValueByName(param.c_str());
     if(opt){
         if(assign){
             if (!opt->set(value)) {
@@ -3923,6 +3859,7 @@ void Options::readOptionsString(std::string optionsString,bool assign)
  */
 void Options::readFromEncodedOptions (std::string testId)
 {
+  ASS(!testId.empty())
   _testId.actualValue = testId;
 
   std::string ma(testId,0,3); // the first 3 characters
@@ -4065,7 +4002,7 @@ std::string Options::generateEncodedOptions() const
     AbstractOptionValue* option = options.next();
     if (!forbidden.contains(option) && !option->isDefault()){
       auto name = option->shortName;
-      if(name.empty()) name = option->longName;
+      if(!name) name = option->longName;
       if(!first){ res<<":";}else{first=false;}
       res << name << "=" << option->getStringOfActual();
     }
@@ -4515,16 +4452,17 @@ vector<float> Options::hoSplitQueueCutoffs() const
   return cutoffs;
 }
 
-Stack<std::string_view> Options::getSimilarOptionNames(std::string_view name, bool is_short) const {
-  Stack<std::string_view> similar_names;
+Stack<const char *> Options::getSimilarOptionNames(const char *name, bool is_short) const {
+  Stack<const char *> similar_names;
 
   VirtualIterator<AbstractOptionValue*> options = _lookup.values();
   while(options.hasNext()){
     AbstractOptionValue* opt = options.next();
     auto opt_name = is_short ? opt->shortName : opt->longName;
     size_t dif = 2;
-    if(!is_short) dif += name.size()/4;
-    if(name.size()!=0 && StringUtils::distance(name,opt_name) < dif)
+    size_t len = strlen(name);
+    if(!is_short) dif += len/4;
+    if(len!=0 && StringUtils::distance(name,opt_name) < dif)
       similar_names.push(opt_name);
   }
 
