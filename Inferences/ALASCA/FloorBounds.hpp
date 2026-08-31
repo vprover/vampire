@@ -159,6 +159,8 @@ public:
           generateClauses<FourierMotzkin::Rhs>(premise)
     ));
   }
+
+  using GeneratingInferenceEngine::generateClauses; // https://isocpp.org/wiki/faq/strange-inheritance#hiding-rule
 };
 
 } // namespace ALASCA 

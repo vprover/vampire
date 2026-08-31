@@ -223,7 +223,7 @@ struct Coherence : public BinInf<CoherenceConf<NumTraits>> {
 
 
 template<class NumTraits>
-struct CoherenceNormalization : SimplifyingGeneratingInference {
+struct CoherenceNormalization : SimplifyingGeneratingInferenceEngine {
   const AlascaState& _shared;
   CoherenceNormalization(SaturationAlgorithm& salg) : _shared(salg.alascaState()) {}
 

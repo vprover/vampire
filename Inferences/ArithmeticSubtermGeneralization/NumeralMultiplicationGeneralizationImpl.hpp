@@ -63,7 +63,7 @@ struct Generalize
 const auto isOne = [](auto x) { return decltype(x)(1) == x; };
 
 /** applies the rule */ 
-SimplifyingGeneratingInference1::Result applyRule(Clause* cl, bool doOrderingCheck) 
+SimplifyingGeneratingInferenceEngine1::Result applyRule(Clause* cl, bool doOrderingCheck) 
 {
   DEBUG("input clause: ", *cl);
 
@@ -112,7 +112,7 @@ SimplifyingGeneratingInference1::Result applyRule(Clause* cl, bool doOrderingChe
 
   if (selected.isNone()) {
     DEBUG("not applicable")
-    return SimplifyingGeneratingInference1::Result::nop(cl);
+    return SimplifyingGeneratingInferenceEngine1::Result::nop(cl);
   } else {
     auto& e = selected.unwrap();
     DEBUG("selected generalization: (", e.key(), ", ", e.value(), ")");

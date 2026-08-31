@@ -89,7 +89,12 @@ ClauseIterator CompositeGIE::generateClauses(Clause* premise)
 	  getMappingIterator(GIList::Iterator(_inners), GeneratingFunctor(premise))) );
 }
 
-void CompositeSGI::push(SimplifyingGeneratingInference* gen)
+void CompositeGIE::generateClauses(Clause* premise, ClauseReceiver receive) {
+  for(auto inner : iterTraits(GIList::Iterator(_inners)))
+    inner->generateClauses(premise, receive);
+}
+
+void CompositeSGI::push(SimplifyingGeneratingInferenceEngine* gen)
 { _simplifiers.push(gen); }
 
 void CompositeSGI::push(GeneratingInferenceEngine* gen)
@@ -99,7 +104,7 @@ CompositeSGI::ClauseGenerationResult CompositeSGI::generateSimplify(Kernel::Clau
 {
   auto redundant = false;
   Stack<ClauseIterator> clauses;
-  /* apply generations as until a redundancy is discovered */
+  /* apply generations until a redundancy is discovered */
   for (auto simpl : _simplifiers) {
     auto res = simpl->generateSimplify(cl);
     clauses.push(std::move(res.clauses));
@@ -118,6 +123,34 @@ CompositeSGI::ClauseGenerationResult CompositeSGI::generateSimplify(Kernel::Clau
     .clauses          = pvi(getFlattenedIterator(arrayIter(std::move(clauses)))),
     .premiseRedundant = redundant,
   };
+}
+
+bool CompositeSGI::generateSimplify(Kernel::Clause* cl, ClauseReceiver receive) {
+ // TODO could consider collecting into e.g. Stack<Clause *> instead
+ // this would enable using internal iteration here too
+  Stack<ClauseIterator> clauses;
+
+  /* apply generations until a redundancy is discovered */
+  for (auto simpl : _simplifiers) {
+    auto res = simpl->generateSimplify(cl);
+    if(res.premiseRedundant) {
+      for(Clause *cl : iterTraits(std::move(res.clauses)))
+        receive(cl);
+      return true;
+    }
+    clauses.push(std::move(res.clauses));
+  }
+
+  // `cl` not redundant, empty the deferred simplifications
+  while(!clauses.isEmpty())
+    for(Clause *cl : iterTraits(clauses.pop()))
+        receive(cl);
+
+  /* apply strictly generating rules if there hasn't been a redundancy */
+  for (auto gen : _generators)
+    gen->generateClauses(cl, receive);
+
+  return false;
 }
 
 CompositeSGI::~CompositeSGI() {
@@ -386,7 +419,7 @@ Clause* TrivialInequalitiesRemovalISE::simplify(Clause* c)
   return Clause::fromStack(*resLits, SimplifyingInference1(InferenceRule::TRIVIAL_INEQUALITY_REMOVAL,c));
 }
 
-Clause* SimplifyingGeneratingInference1::simplify(Clause* cl) 
+Clause* SimplifyingGeneratingInferenceEngine1::simplify(Clause* cl) 
 {
   if (cl->isTheoryAxiom()) {
     DEBUG("skipping theory axiom")
@@ -395,12 +428,12 @@ Clause* SimplifyingGeneratingInference1::simplify(Clause* cl)
   return this->simplify(cl, false).simplified;
 }
 
-ImmediateSimplificationEngine& SimplifyingGeneratingInference1::asISE() 
+ImmediateSimplificationEngine& SimplifyingGeneratingInferenceEngine1::asISE() 
 { return *this; }
 
 
 
-SimplifyingGeneratingInference::ClauseGenerationResult SimplifyingGeneratingInference1::generateSimplify(Clause* cl) {
+SimplifyingGeneratingInferenceEngine::ClauseGenerationResult SimplifyingGeneratingInferenceEngine1::generateSimplify(Clause* cl) {
   auto gen = this->simplify(cl, true);
   auto simpl = gen.simplified;
   auto redundant = gen.premiseRedundant;
@@ -421,7 +454,21 @@ SimplifyingGeneratingInference::ClauseGenerationResult SimplifyingGeneratingInfe
   }
 }
 
-SimplifyingGeneratingInference1::Result SimplifyingGeneratingLiteralSimplification::simplify(Clause* cl_, bool doOrderingCheck) {
+bool SimplifyingGeneratingInferenceEngine1::generateSimplify(Clause* cl, ClauseReceiver receive) {
+  auto gen = this->simplify(cl, true);
+  auto simpl = gen.simplified;
+  bool redundant = gen.premiseRedundant && !cl->isTheoryAxiom();
+
+  if (simpl == cl)
+    return false;
+
+  if (simpl)
+    receive(simpl);
+
+  return redundant;
+}
+
+SimplifyingGeneratingInferenceEngine1::Result SimplifyingGeneratingLiteralSimplification::simplify(Clause* cl_, bool doOrderingCheck) {
   DEBUG("in:  ", *cl_)
   auto& cl = *cl_;
   Stack<Literal*> out(cl.size());
@@ -445,7 +492,7 @@ SimplifyingGeneratingInference1::Result SimplifyingGeneratingLiteralSimplificati
         bool trivialValue = simpl.unwrapConstant();
         if (trivialValue) {
           /* clause is a tautology and can be deleted */
-          return SimplifyingGeneratingInference1::Result::tautology();
+          return SimplifyingGeneratingInferenceEngine1::Result::tautology();
         } else {
           /* do not add the literal to the output stack */
           changed = true;
@@ -482,11 +529,11 @@ SimplifyingGeneratingInference1::Result SimplifyingGeneratingLiteralSimplificati
 
 
   if (!changed) {
-    return SimplifyingGeneratingInference1::Result::nop(cl_);
+    return SimplifyingGeneratingInferenceEngine1::Result::nop(cl_);
   } else {
     auto result = Clause::fromStack(out, SimplifyingInference1(_rule, cl_));
     DEBUG("out: ", *result)
-    return SimplifyingGeneratingInference1::Result{
+    return SimplifyingGeneratingInferenceEngine1::Result{
             .simplified = result, 
             .premiseRedundant = allLessEq && oneLess,
           };

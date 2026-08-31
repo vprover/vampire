@@ -43,16 +43,16 @@ public:
 
 template<class Rule>
 class LfpRule
-  : public SimplifyingGeneratingInference1
+  : public SimplifyingGeneratingInferenceEngine1
 {
   Rule _inner;
 public:
   LfpRule(SaturationAlgorithm& salg) {}
-  SimplifyingGeneratingInference1::Result simplify(Clause *cl, bool doCheckOrdering) override;
+  SimplifyingGeneratingInferenceEngine1::Result simplify(Clause *cl, bool doCheckOrdering) override;
 };
 
 template<class Rule> 
-SimplifyingGeneratingInference1::Result LfpRule<Rule>::simplify(Clause *cl, bool doCheckOrdering) 
+SimplifyingGeneratingInferenceEngine1::Result LfpRule<Rule>::simplify(Clause *cl, bool doCheckOrdering) 
 {
   auto splits = cl->splits();
 

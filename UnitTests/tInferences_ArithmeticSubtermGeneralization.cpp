@@ -40,7 +40,7 @@ struct SimplificationTester : public ImmediateSimplificationEngine
   {
     auto ord = KBO::testKBO();
     Ordering::trySetGlobalOrdering(SmartPtr<Ordering>(&ord, true));
-    auto apply = [](SimplifyingGeneratingInference1& simpl, Kernel::Clause* in) {
+    auto apply = [](SimplifyingGeneratingInferenceEngine1& simpl, Kernel::Clause* in) {
      auto out = simpl.asISE().simplify(in);
      // DEBUG("result: ", pretty(out));
      return out;

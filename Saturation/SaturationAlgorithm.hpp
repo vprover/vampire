@@ -206,7 +206,7 @@ protected:
   ActiveClauseContainer* _active;
   ExtensionalityClauseContainer* _extensionality;
 
-  ScopedPtr<SimplifyingGeneratingInference> _generator;
+  ScopedPtr<SimplifyingGeneratingInferenceEngine> _generator;
   ScopedPtr<ImmediateSimplificationEngine> _immediateSimplifier;
   CompositeISEMany _immediateSimplifierMany;
 

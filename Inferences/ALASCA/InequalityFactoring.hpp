@@ -54,6 +54,7 @@ public:
     );
 
   ClauseIterator generateClauses(Clause* premise) final;
+  using GeneratingInferenceEngine::generateClauses; // https://isocpp.org/wiki/faq/strange-inheritance#hiding-rule
 
 private:
 

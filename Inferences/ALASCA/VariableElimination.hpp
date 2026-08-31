@@ -29,7 +29,7 @@ using namespace Indexing;
 using namespace Saturation;
 
 class VariableElimination
-: public SimplifyingGeneratingInference
+: public SimplifyingGeneratingInferenceEngine
 {
 public:
   USE_ALLOCATOR(VariableElimination);

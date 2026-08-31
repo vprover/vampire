@@ -876,7 +876,7 @@ unsigned getFreshVar(Clause& clause)
   return freshVar;
 }
 
-SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::generateSimplify(Clause* premise)
+SimplifyingGeneratingInferenceEngine::ClauseGenerationResult TheoryInstAndSimp::generateSimplify(Clause* premise)
 {
   auto empty = ClauseGenerationResult {
     .clauses          = ClauseIterator::getEmpty(),

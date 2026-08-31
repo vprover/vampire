@@ -76,7 +76,7 @@ void traverseLiraVars(TermList self, F f) {
 
 
 template<class NumTraits>
-Option<SimplifyingGeneratingInference::ClauseGenerationResult> VirasQuantifierElimination::generateSimplify(NumTraits n, Clause* premise) {
+Option<SimplifyingGeneratingInferenceEngine::ClauseGenerationResult> VirasQuantifierElimination::generateSimplify(NumTraits n, Clause* premise) {
   DEBUG(0, *premise)
   auto viras = viras::viras(VampireVirasConfig<NumTraits>{});
   Recycled<DHSet<unsigned, FnvHash, IdentityHash>> shieldedVars;
@@ -146,14 +146,14 @@ Option<SimplifyingGeneratingInference::ClauseGenerationResult> VirasQuantifierEl
   }
 }
 
-Option<SimplifyingGeneratingInference::ClauseGenerationResult> VirasQuantifierElimination::generateSimplify(IntTraits n, Clause* premise) {
+Option<SimplifyingGeneratingInferenceEngine::ClauseGenerationResult> VirasQuantifierElimination::generateSimplify(IntTraits n, Clause* premise) {
   // TODO viras for integers ? (=  cooper)
   return {};
 }
 
 VirasQuantifierElimination::VirasQuantifierElimination(SaturationAlgorithm& salg) : _shared(salg.alascaState()) {}
 
-SimplifyingGeneratingInference::ClauseGenerationResult VirasQuantifierElimination::generateSimplify(Clause* premise) {
+SimplifyingGeneratingInferenceEngine::ClauseGenerationResult VirasQuantifierElimination::generateSimplify(Clause* premise) {
   return 
     forAnyNumTraits([&](auto n) { return generateSimplify(n, premise); })
     .unwrapOrElse([]() {

@@ -19,45 +19,45 @@
 namespace Inferences {
 
 class NumeralMultiplicationGeneralization
-: public SimplifyingGeneratingInference1
+: public SimplifyingGeneratingInferenceEngine1
 {
 public:
   ~NumeralMultiplicationGeneralization() override;
 
-  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck) override;
+  SimplifyingGeneratingInferenceEngine1::Result simplify(Clause* cl, bool doOrderingCheck) override;
 };
 
 
 class VariableMultiplicationGeneralization
-: public SimplifyingGeneratingInference1
+: public SimplifyingGeneratingInferenceEngine1
 {
 public:
   ~VariableMultiplicationGeneralization() override;
 
-  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck) override;
+  SimplifyingGeneratingInferenceEngine1::Result simplify(Clause* cl, bool doOrderingCheck) override;
 };
 
 
 class VariablePowerGeneralization
-: public SimplifyingGeneratingInference1
+: public SimplifyingGeneratingInferenceEngine1
 {
 public:
   ~VariablePowerGeneralization() override;
 
-  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck) override;
+  SimplifyingGeneratingInferenceEngine1::Result simplify(Clause* cl, bool doOrderingCheck) override;
 };
 
 
 class AdditionGeneralization
-: public SimplifyingGeneratingInference1
+: public SimplifyingGeneratingInferenceEngine1
 {
 public:
   ~AdditionGeneralization() override;
 
-  SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doOrderingCheck) override;
+  SimplifyingGeneratingInferenceEngine1::Result simplify(Clause* cl, bool doOrderingCheck) override;
 };
 
-Stack<SimplifyingGeneratingInference1*> allArithmeticSubtermGeneralizations();
+Stack<SimplifyingGeneratingInferenceEngine1*> allArithmeticSubtermGeneralizations();
 
 
 } // namespace Inferences

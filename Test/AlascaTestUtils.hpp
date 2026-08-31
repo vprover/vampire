@@ -22,7 +22,7 @@
 
 template<class Rule>
 struct AlascaSimplRule 
-  : public SimplifyingGeneratingInference
+  : public SimplifyingGeneratingInferenceEngine
 {
   Rule _rule;
   ALASCA::Normalization _norm;
@@ -42,10 +42,11 @@ struct AlascaSimplRule
       .premiseRedundant = res.premiseRedundant,
     };
   }
+  using SimplifyingGeneratingInferenceEngine::generateSimplify;
 };
 
 template<class ISE>
-struct ToSgi : SimplifyingGeneratingInference {
+struct ToSgi : SimplifyingGeneratingInferenceEngine {
   ISE self;
 
   ToSgi(SaturationAlgorithm& salg) : self(salg) {}

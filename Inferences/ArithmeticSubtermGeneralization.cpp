@@ -76,7 +76,7 @@ static const auto iterVars = [](Clause* cl) {
 };
 
 template<class EvalFn>
-SimplifyingGeneratingInference1::Result generalizeBottomUp(Clause* cl, EvalFn eval) 
+SimplifyingGeneratingInferenceEngine1::Result generalizeBottomUp(Clause* cl, EvalFn eval) 
 {
   /* apply the selectedGen generalization */
   DEBUG_CODE(bool anyChange = false);
@@ -131,7 +131,7 @@ SimplifyingGeneratingInference1::Result generalizeBottomUp(Clause* cl, EvalFn ev
 
   ASS(anyChange)
   Inference inf(SimplifyingInference1(Kernel::InferenceRule::ARITHMETIC_SUBTERM_GENERALIZATION, cl));
-  return SimplifyingGeneratingInference1::Result{
+  return SimplifyingGeneratingInferenceEngine1::Result{
     .simplified = Clause::fromStack(stack, inf), 
     .premiseRedundant = (allLessEq && oneLess)
   };
@@ -140,7 +140,7 @@ SimplifyingGeneratingInference1::Result generalizeBottomUp(Clause* cl, EvalFn ev
 template<class Generalization>
 struct ArithmeticSubtermGeneralization
 {
-  static SimplifyingGeneratingInference1::Result simplify(Clause* cl, bool doCheckOrdering);
+  static SimplifyingGeneratingInferenceEngine1::Result simplify(Clause* cl, bool doCheckOrdering);
 };
 
 /** type to represent the top element in a lattice */
@@ -323,7 +323,7 @@ Stack<C> intersectSortedStack(Stack<C>&& l, Stack<C>&& r)
 #include "ArithmeticSubtermGeneralization/VariableMultiplicationGeneralizationImpl.hpp"
 #include "ArithmeticSubtermGeneralization/VariablePowerGeneralizationImpl.hpp"
 
-SimplifyingGeneratingInference1::Result AdditionGeneralization::simplify(Clause* cl, bool doOrderingCheck) 
+SimplifyingGeneratingInferenceEngine1::Result AdditionGeneralization::simplify(Clause* cl, bool doOrderingCheck) 
 { 
   return AdditionGeneralizationImpl::applyRule(cl,doOrderingCheck);
 }
@@ -331,13 +331,13 @@ SimplifyingGeneratingInference1::Result AdditionGeneralization::simplify(Clause*
 AdditionGeneralization::~AdditionGeneralization()  {}
 
 
-SimplifyingGeneratingInference1::Result NumeralMultiplicationGeneralization::simplify(Clause* cl, bool doOrderingCheck) 
+SimplifyingGeneratingInferenceEngine1::Result NumeralMultiplicationGeneralization::simplify(Clause* cl, bool doOrderingCheck) 
 { 
   return NumeralMultiplicationGeneralizationImpl::applyRule(cl, doOrderingCheck);
 }
 
 NumeralMultiplicationGeneralization::~NumeralMultiplicationGeneralization()  {}
-SimplifyingGeneratingInference1::Result VariableMultiplicationGeneralization::simplify(Clause* cl, bool doOrderingCheck) 
+SimplifyingGeneratingInferenceEngine1::Result VariableMultiplicationGeneralization::simplify(Clause* cl, bool doOrderingCheck) 
 { 
   return VariableMultiplicationGeneralizationImpl::applyRule(cl, doOrderingCheck);
 }
@@ -345,16 +345,16 @@ SimplifyingGeneratingInference1::Result VariableMultiplicationGeneralization::si
 VariableMultiplicationGeneralization::~VariableMultiplicationGeneralization()  { }
 
 
-SimplifyingGeneratingInference1::Result VariablePowerGeneralization::simplify(Clause* cl, bool doOrderingCheck) 
+SimplifyingGeneratingInferenceEngine1::Result VariablePowerGeneralization::simplify(Clause* cl, bool doOrderingCheck) 
 { 
   return VariablePowerGeneralizationImpl::applyRule(cl, doOrderingCheck);
 }
 
 VariablePowerGeneralization::~VariablePowerGeneralization()  {}
 
-Stack<SimplifyingGeneratingInference1*> allArithmeticSubtermGeneralizations()
+Stack<SimplifyingGeneratingInferenceEngine1*> allArithmeticSubtermGeneralizations()
 { 
-  return Stack<SimplifyingGeneratingInference1*> {
+  return Stack<SimplifyingGeneratingInferenceEngine1*> {
       new VariableMultiplicationGeneralization(),
       new VariablePowerGeneralization(),
       new NumeralMultiplicationGeneralization(),

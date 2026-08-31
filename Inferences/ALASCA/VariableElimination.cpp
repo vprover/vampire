@@ -107,7 +107,7 @@ Option<VariableElimination::AnyFoundVariable> VariableElimination::findUnshielde
   return out;
 }
 
-SimplifyingGeneratingInference::ClauseGenerationResult VariableElimination::generateSimplify(Clause* premise) 
+SimplifyingGeneratingInferenceEngine::ClauseGenerationResult VariableElimination::generateSimplify(Clause* premise) 
 {
   TIME_TRACE("alasca variable elimination generate")
   auto var = this->findUnshieldedVar(premise);

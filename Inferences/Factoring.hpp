@@ -28,9 +28,11 @@ class Factoring
 {
 public:
   Factoring(SaturationAlgorithm& salg) : _salg(salg) {}
-  ClauseIterator generateClauses(Kernel::Clause* premise) override;
+  ClauseIterator generateClauses(Kernel::Clause *premise) override { NOT_IMPLEMENTED; }
+  void generateClauses(Kernel::Clause *premise, ClauseReceiver receive) override;
+
 private:
-  class ResultsFn;
+  Clause *attemptFactor(Kernel::Clause *premise, unsigned i, unsigned j);
   const SaturationAlgorithm& _salg;
 };
 

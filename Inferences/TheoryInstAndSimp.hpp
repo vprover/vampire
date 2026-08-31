@@ -44,7 +44,7 @@ private:
 
 
 class TheoryInstAndSimp
-: public SimplifyingGeneratingInference
+: public SimplifyingGeneratingInferenceEngine
 {
 public:
   using SortId = SAT::Z3Interfacing::SortId;
@@ -55,6 +55,7 @@ public:
   TheoryInstAndSimp(Splitter* splitter, Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, std::string const& exportSmtlib, Options::ProblemExportSyntax problemExportSyntax);
 
   ClauseGenerationResult generateSimplify(Clause* premise) override;
+  using SimplifyingGeneratingInferenceEngine::generateSimplify;
 
   /**
    * Assuming cl is only built from theory material, this will use an SMT solver

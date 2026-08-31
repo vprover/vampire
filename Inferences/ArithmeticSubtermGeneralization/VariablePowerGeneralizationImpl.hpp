@@ -100,7 +100,7 @@ struct Generalize
 /** 
  * applies the rule
  */ 
-SimplifyingGeneratingInference1::Result applyRule(Clause* cl, bool doOrderingCheck) 
+SimplifyingGeneratingInferenceEngine1::Result applyRule(Clause* cl, bool doOrderingCheck) 
 {
   DEBUG("input clause: ", *cl);
   PowerMap powers;
@@ -120,7 +120,7 @@ SimplifyingGeneratingInference1::Result applyRule(Clause* cl, bool doOrderingChe
   if (applicable) {
     return generalizeBottomUp(cl, EvaluateMonom<Generalize> { Generalize { powers, doOrderingCheck } });
   } else {
-    return SimplifyingGeneratingInference1::Result::nop(cl);
+    return SimplifyingGeneratingInferenceEngine1::Result::nop(cl);
   }
 }
 
