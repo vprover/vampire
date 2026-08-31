@@ -1877,7 +1877,7 @@ void FiniteModelBuilder::onModelFound()
   //we need to print this early because model generating can take some time
   if(szsOutputMode()) {
     std::cout << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
-        << " for " << _opt.problemName() << endl << flush;
+        << " for " << _opt.problemName << endl << flush;
     UIHelper::satisfiableStatusWasAlreadyOutput = true;
   }
 
