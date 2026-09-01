@@ -99,11 +99,7 @@ void InductionTermIndex::handleClause(Clause* c, bool adding)
       }
       if (InductionHelper::isInductionTerm(t) &&
           InductionHelper::isIntInductionTermListInLiteral(t, lit)) {
-        if (adding) {
-          _is.insert(TermLiteralClause{ t, lit, c });
-        } else {
-          _is.remove(TermLiteralClause{ t, lit, c });
-        }
+        _is.handle(TermLiteralClause{ t, lit, c }, adding);
       }
     }
   }

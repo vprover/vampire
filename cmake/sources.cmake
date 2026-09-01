@@ -182,7 +182,6 @@ set(SOURCES
     Indexing/DemodulationIndex.cpp
     Indexing/Index.cpp
     Indexing/Index.hpp
-    Indexing/IndexingStructure.hpp
     Indexing/IndexManager.cpp
     Indexing/IndexManager.hpp
     Indexing/InductionFormulaIndex.cpp
