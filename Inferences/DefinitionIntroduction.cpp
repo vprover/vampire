@@ -18,6 +18,7 @@
 #include "Kernel/HOL/HOL.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/InferenceStore.hpp"
+#include "Kernel/Renaming.hpp"
 #include "Lib/Metaiterators.hpp"
 
 struct IncompleteFunction {

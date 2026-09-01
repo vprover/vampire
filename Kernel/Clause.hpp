@@ -24,7 +24,6 @@
 
 #include "Lib/InverseLookup.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/Reflection.hpp"
 #include "Lib/Stack.hpp"
 
 #include "Unit.hpp"
@@ -55,7 +54,7 @@ private:
   template<class VarIt>
   void collectVars2(DHSet<unsigned, FnvHash, IdentityHash>& acc);
 public:
-  DECL_ELEMENT_TYPE(Literal*);
+  using ElementType = Literal*;
 
   /** Storage kind */
   enum Store {

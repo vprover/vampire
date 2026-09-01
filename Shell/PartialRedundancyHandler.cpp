@@ -14,6 +14,7 @@
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
+#include "Kernel/TermOrderingDiagram.hpp"
 
 #include "Indexing/CodeTreeInterfaces.hpp"
 #include "Indexing/ResultSubstitution.hpp"

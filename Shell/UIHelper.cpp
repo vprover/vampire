@@ -600,13 +600,13 @@ void UIHelper::outputSatisfiableResult(std::ostream& out)
  * @author Andrei Voronkov
  * @since 03/07/2013 Manchester
  */
-void UIHelper::outputSymbolDeclarations(std::ostream& out)
+void UIHelper::outputSymbolDeclarations(std::ostream& out, bool tcf)
 {
   const Signature& sig = *env.signature;
 
   unsigned typeCons = sig.typeCons();
   for (unsigned i=0; i<typeCons; ++i) {
-    outputSymbolTypeDeclarationIfNeeded(out, false, true, i);
+    outputSymbolTypeDeclarationIfNeeded(out, false, true, i, tcf);
   }
   unsigned funcs = sig.functions();
   for (unsigned i=0; i<funcs; ++i) {
@@ -615,11 +615,11 @@ void UIHelper::outputSymbolDeclarations(std::ostream& out)
         continue;
       }
     }
-    outputSymbolTypeDeclarationIfNeeded(out, true, false, i);
+    outputSymbolTypeDeclarationIfNeeded(out, true, false, i, tcf);
   }
   unsigned preds = sig.predicates();
   for (unsigned i=0; i<preds; ++i) {
-    outputSymbolTypeDeclarationIfNeeded(out, false, false, i);
+    outputSymbolTypeDeclarationIfNeeded(out, false, false, i, tcf);
   }
 } // UIHelper::outputSymbolDeclarations
 
@@ -629,7 +629,7 @@ void UIHelper::outputSymbolDeclarations(std::ostream& out)
  * @author Andrei Voronkov
  * @since 03/07/2013 Manchester
  */
-void UIHelper::outputSymbolTypeDeclarationIfNeeded(std::ostream& out, bool function, bool typeCon, unsigned symNumber)
+void UIHelper::outputSymbolTypeDeclarationIfNeeded(std::ostream& out, bool function, bool typeCon, unsigned symNumber, bool tcf)
 {
   Signature::Symbol* sym;
 
@@ -689,7 +689,7 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(std::ostream& out, bool funct
   if(!(function && env.signature->isAppFun(symNumber))){
     //match the fragment used for the proof steps (see
     //InferenceStore's getFofString), so one proof does not mix languages
-    out << (env.initiallyHigherOrder() ? "thf(" : "tff(")
+    out << (env.initiallyHigherOrder() ? "thf(" : (tcf ? "tcf(" : "tff("))
         << (function ? "func" : (typeCon ?  "type" : "pred"))
         << "_def_" << symNumber << ", type, "
         << symName << ": ";

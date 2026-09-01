@@ -141,7 +141,7 @@ class PartitionIter {
   Option<std::vector<bool>> _partition;
   bool _finished;
 public:
-  DECL_ELEMENT_TYPE(PartitionIter&);
+  using ElementType = PartitionIter&;
   PartitionIter(Stack<A> orig) : _orig(std::move(orig)), _partition(), _finished(false) {}
   bool hasNext() { return !_finished; }
   PartitionIter& next() { 

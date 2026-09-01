@@ -139,7 +139,7 @@ Unit* TPTP::parseFormulaFromString(const std::string& str)
   std::stringstream input(str+")."); // to fake endFOF, which creates the clause
   Parse::TPTP parser(input, "<string>");
   parser._lastInputType = UnitInputType::AXIOM;
-  parser._bools.push(true);     // true is what fof/tff normally pushes (but we start "from the middle")
+  parser._lastDialect = Dialect::FOF; // what fof/tff normally records (but we start "from the middle")
   parser._strings.push("dummy_name");
   parser._states.push(END_FOF);  // this is what does the clause building
   parser.parseImpl(FORMULA);
@@ -154,6 +154,7 @@ TPTP::TPTP(std::istream &in, std::filesystem::path path, UnitList::FIFO unitBuff
   : _containsConjecture(false),
     currentFile { &in, {}, path, 1 },
     _units(unitBuffer),
+    _lastDialect(Dialect::FOF),
     _isThf(false),
     _containsPolymorphism(false),
     _currentColor(COLOR_TRANSPARENT),
@@ -210,8 +211,13 @@ void TPTP::parseImpl(State initialState)
       break;
     case THF:
       _isThf = true;
+      tff(false);
+      break;
     case TFF:
-      tff();
+      tff(false);
+      break;
+    case TCF:
+      tff(true);
       break;
     case CNF:
       fof(false);
@@ -325,7 +331,6 @@ void TPTP::parseImpl(State initialState)
       symbolDefinition();
       break;
     case TUPLE_DEFINITION:
-      if(!env.options->newCNF()){ USER_ERROR("Set --newcnf on if using tuples"); }
       tupleDefinition();
       break;
     case END_LET:
@@ -335,7 +340,6 @@ void TPTP::parseImpl(State initialState)
       endTheoryFunction();
       break;
     case END_TUPLE:
-      if(!env.options->newCNF()){ USER_ERROR("Set --newcnf on if using tuples"); }
       endTuple();
       break;
     default:
@@ -1295,7 +1299,7 @@ void TPTP::unitList()
     return;
   }
   if (tok.tag != T_NAME) {
-    PARSE_ERROR_TOK("cnf(), fof(), tff(), thf(), vampire() or include() expected",tok);
+    PARSE_ERROR_TOK("cnf(), fof(), tff(), tcf(), thf(), vampire() or include() expected",tok);
   }
   std::string name(tok.content);
   _states.push(UNIT_LIST);
@@ -1319,6 +1323,11 @@ void TPTP::unitList()
     resetToks();
     return;
   }
+  if (name == "tcf") {
+    _states.push(TCF);
+    resetToks();
+    return;
+  }
   if (name == "vampire") {
     _states.push(VAMPIRE);
     resetToks();
@@ -1329,7 +1338,7 @@ void TPTP::unitList()
     resetToks();
     return;
   }
-  PARSE_ERROR_TOK("cnf(), fof(), tff(), thf(), vampire() or include() expected",tok);
+  PARSE_ERROR_TOK("cnf(), fof(), tff(), tcf(), thf(), vampire() or include() expected",tok);
 }
 
 /**
@@ -1339,13 +1348,13 @@ void TPTP::unitList()
  *  <li>save the input type to _lastInputType</li>
  *  <li>add unit name to _strings</li>
  *  <li>add to _states END_FOF,FORMULA</li>
- *  <li>adds to _bools true, if fof and false, if cnf</li>
+ *  <li>records in _lastDialect whether this is fof or cnf</li>
  * </ol>
  * @since 10/04/2011 Manchester
  */
 void TPTP::fof(bool fo)
 {
-  _bools.push(fo);
+  _lastDialect = fo ? Dialect::FOF : Dialect::CNF;
   consumeToken(T_LPAR);
   // save the name of this unit
   Token& tok = getTok(0);
@@ -1408,18 +1417,20 @@ void TPTP::fof(bool fo)
 } // fof()
 
 /**
- * Process fof() or cnf() declaration. Does the following:
+ * Process tff(), thf() or tcf() declaration. Does the following:
  * <ol>
  *  <li>add 0 to _formulas</li>
  *  <li>save the input type to _lastInputType</li>
  *  <li>add unit name to _strings</li>
  *  <li>add to _states END_FOF,FORMULA</li>
- *  <li>adds to _bools true, if fof and false, if cnf</li>
+ *  <li>records in _lastDialect whether this is tcf (which must end up a clause) or not</li>
  * </ol>
+ * A tcf() unit is read exactly as a tff() one; that it really is a (universally closed)
+ * clause is only checked at the very end, in endFof().
  * @since 10/04/2011 Manchester
  * @author Andrei Voronkov
  */
-void TPTP::tff()
+void TPTP::tff(bool tcf)
 {
   consumeToken(T_LPAR);
   // save the name of this unit
@@ -1466,9 +1477,9 @@ void TPTP::tff()
             PARSE_ERROR_TOK("Type constructor declared with two different types",tok);
           }
         } else{
-          symbol->setType(ot);  
+          symbol->setType(ot);
           _typeConstructorArities.insert(nm, arity);
-        }       
+        }
         //cout << "added type constructor " + nm + " of type " + symbol->fnType()->toString() << endl;
         while (lpars--) {
           consumeToken(T_RPAR);
@@ -1487,7 +1498,7 @@ void TPTP::tff()
     return;
   }
 
-  _bools.push(true); // to denote that it is an FOF formula
+  _lastDialect = tcf ? Dialect::TCF : Dialect::FOF;
   _isQuestion = false;
   if(_modelDefinition){
     _lastInputType = UnitInputType::MODEL_DEFINITION;
@@ -2650,7 +2661,17 @@ void TPTP::definition()
           return;
 
         case T_LBRA:
+          // a tuple definition heading a list of simultaneous definitions;
+          // consume the tuple's first name and the comma after it, just like
+          // in the non-simultaneous case above
           resetToks();
+          if (getTok(0).tag != T_NAME) {
+            PARSE_ERROR_TOK("name expected", getTok(0));
+          }
+          _strings.push(name());
+          if (getTok(0).tag == T_COMMA) {
+            resetToks();
+          }
           _bools.push(true); // is a simultaneous definition
           addTagState(T_RBRA);
           _states.push(TUPLE_DEFINITION);
@@ -2675,7 +2696,16 @@ void TPTP::midDefinition()
       break;
 
     case T_LBRA:
+      // a tuple definition inside a list of simultaneous definitions;
+      // TUPLE_DEFINITION expects the first name of the tuple on _strings
       resetToks();
+      if (getTok(0).tag != T_NAME) {
+        PARSE_ERROR_TOK("name expected", getTok(0));
+      }
+      _strings.push(name());
+      if (getTok(0).tag == T_COMMA) {
+        resetToks();
+      }
       _states.push(TUPLE_DEFINITION);
       break;
 
@@ -2805,7 +2835,7 @@ void TPTP::tupleDefinition()
 
   LetDefinitions definitions = _letDefinitions.pop();
   // TODO tuple $lets probably also need adjusting with polymorphic (implicit) types
-  definitions.push(LetSymbolReference{ tupleFunctor, false, std::move(sorts) });
+  definitions.push(LetSymbolReference{ tupleFunctor, false, std::move(sorts), /*isTuple=*/true });
   _letDefinitions.push(definitions);
 
   VList* constants = VList::empty();
@@ -2904,11 +2934,11 @@ void TPTP::endLet()
     VList* varList = _varLists.pop();
     TermList body = _termLists.pop();
 
-    bool isTuple = false;
-    if (!isPredicate) {
-      TermList resultSort = env.signature->getFunction(symbol)->fnType()->result();
-      isTuple = resultSort.isTupleSort();
-    }
+    // note that this cannot be decided by looking at the result sort of symbol:
+    // an ordinary $let-bound symbol may have a tuple sort as well, and then it
+    // is bound as a single symbol and has no list of tuple constants
+    bool isTuple = ref.isTuple;
+    ASS(!isTuple || !isPredicate);
 
     // Implicit type variables come first, then the rest
     TermStack args = ref.iTypeArgs;
@@ -3900,7 +3930,10 @@ void TPTP::endFof()
   consumeToken(T_DOT);
 
   _vars.reset();
-  bool isFof = _bools.pop();
+  // fof/tff/thf formulas must be closed, cnf ones may have free variables;
+  // tcf is both closed and a clause
+  const bool mustBeClosed = _lastDialect != Dialect::CNF;
+  const bool mustBeClause = _lastDialect != Dialect::FOF;
   Formula* f = _formulas.pop();
   std::string nm = _strings.pop(); // unit name
   if (!currentFile.allowedNames.empty() && !currentFile.allowedNames.count(nm)) {
@@ -3915,20 +3948,29 @@ void TPTP::endFof()
     _containsConjecture = true;
   }
 
+  if (mustBeClosed && freeVariables(f)) {
+    USER_ERROR("unquantified variable detected for a formula named '",nm,"'");
+  }
+
   Unit *unit, *original;
-  if (isFof) { // fof() or tff()
-    if (freeVariables(f)) {
-      USER_ERROR("unquantified variable detected for a formula named '",nm,"'");
-    }
+  if (!mustBeClause) { // fof() or tff()
     original = unit = new FormulaUnit(f,FromInput(_lastInputType));
     unit->setInheritedColor(_currentColor);
   }
-  else { // cnf()
-    // convert the input formula f to a clause
+  else { // cnf() or tcf()
+    Formula* body = f;
+    if (_lastDialect == Dialect::TCF) {
+      // a tcf clause comes wrapped in a universal prefix, which is there to carry
+      // the variable sorts; strict TCF allows exactly one, we tolerate a chain
+      while (body->connective() == FORALL) {
+        body = body->qarg();
+      }
+    }
+    // convert the input formula body to a clause
     Stack<Formula*> forms;
     Stack<Literal*> lits;
     Formula* g = nullptr;
-    forms.push(f);
+    forms.push(body);
     bool needsFlipDocumenting = false;
     while (! forms.isEmpty()) {
       g = forms.pop();
@@ -3994,7 +4036,9 @@ void TPTP::endFof()
 
   switch (_lastInputType) {
   case UnitInputType::CONJECTURE:
-    if(!isFof) USER_ERROR("conjecture is not allowed in cnf");
+    // negating a clause does not give a clause
+    if(mustBeClause) USER_ERROR("conjecture is not allowed in ",
+        _lastDialect == Dialect::CNF ? "cnf" : "tcf");
     {
       ASS_EQ(freeVariables(f),VList::empty())
       f = new NegatedFormula(f);
@@ -5297,6 +5341,8 @@ const char* TPTP::toString(State s)
     return "TFF";
   case THF:
     return "THF";
+  case TCF:
+    return "TCF";
   case TYPE:
     return "TYPE";
   case END_TFF:

@@ -226,6 +226,8 @@ public:
     TFF,
     /** THF declaration */
     THF,
+    /** tcf declaration */
+    TCF,
     /** read type declaration */
     TYPE,
     /** after a top-level type declaration */
@@ -551,6 +553,10 @@ private:
   Stack<State> _states;
   /** input type of the last read unit */ // it must be int since -1 can be used as a value
   UnitInputType _lastInputType;
+  /** the top-level dialect the unit currently being read came from;
+   *  CNF and TCF units must end up being clauses, FOF and TCF units must be closed */
+  enum class Dialect { CNF, FOF, TCF };
+  Dialect _lastDialect;
   /** true if the last read unit is a question */
   bool _isQuestion = false;
   /** */
@@ -604,6 +610,11 @@ private:
     unsigned symbol;
     bool isPredicate;
     TermStack iTypeArgs;
+    /** true for the reference standing for a tuple binding [c1,...,cn] := t,
+     *  in which case symbol is the tuple constructor and iTypeArgs holds the
+     *  sorts of c1,...,cn; note that this cannot be recovered from the result
+     *  sort of symbol, as an ordinary symbol may have a tuple sort too */
+    bool isTuple = false;
   };
   #define SYMBOL(ref) (ref.symbol)
   #define IS_PREDICATE(ref) (ref.isPredicate)
@@ -739,7 +750,7 @@ private:
   static Formula* makeJunction(Connective c,Formula* lhs,Formula* rhs);
   void unitList();
   void fof(bool fo);
-  void tff();
+  void tff(bool tcf);
   void vampire();
   void consumeToken(Tag);
   std::string name();
