@@ -202,6 +202,7 @@ set(SOURCES
     Indexing/SubstitutionTree_impl.hpp
     Indexing/TermCodeTree.cpp
     Indexing/TermCodeTree.hpp
+    Indexing/TermOrLiteralCodeTree.hpp
     Indexing/TermIndex.cpp
     Indexing/TermIndex.hpp
     Indexing/TermSharing.cpp

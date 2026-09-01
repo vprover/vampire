@@ -28,93 +28,63 @@ using namespace Kernel;
 template<bool higherOrder, class Data>
 LiteralCodeTree<higherOrder, Data>::LiteralCodeTree()
 {
-  _containsLiterals = true;
+  CodeTree::_containsLiterals = true;
 }
 
 template<bool higherOrder, class Data>
 void LiteralCodeTree<higherOrder, Data>::insert(Data* data)
 {
-  Recycled<CodeStack> code;
+  Recycled<CodeTree::CodeStack> code;
 
-  TermCompiler compiler(*code);
+  CodeTree::TermCompiler compiler(*code);
   compiler.handleTerm(data->key());
-  code->push(CodeOp::getSuccess(data));
+  code->push(CodeTree::CodeOp::getSuccess(data));
 
   compiler.updateCodeTree(this);
 
-  incorporate(*code);
+  CodeTree::incorporate(*code);
   ASS(code->isEmpty());
-}
-
-template<bool higherOrder, class Data>
-void LiteralCodeTree<higherOrder, Data>::remove(const Data& data)
-{
-  Recycled<RemovingMatcher<higherOrder>> rtm;
-  Recycled<Stack<CodeOp*>> firstsInBlocks;
-
-  auto ft = FlatTerm::create(TermList(data.literal));
-  rtm->init(ft, *this, &*firstsInBlocks);
-
-  Data* dptr = nullptr;
-  for(;;) {
-    if (!rtm->execute()) {
-      INVALID_OPERATION("term being removed was not found");
-    }
-    ASS(rtm->op->isSuccess());
-    dptr=rtm->op->template getSuccessResult<Data>();
-    if (*dptr==data) {
-      break;
-    }
-  }
-
-  rtm->op->makeFail();
-
-  ASS(dptr);
-  delete dptr;
-  ft->destroy();
-
-  optimizeMemoryAfterRemoval(&*firstsInBlocks, rtm->op);
 }
 
 template<bool higherOrder, class Data>
 void LiteralCodeTree<higherOrder, Data>::LiteralMatcher::init(const CodeTree& tree, Literal* lit, bool complementary)
 {
-  Matcher::init(tree,tree.getEntryPoint(), 0, 0);
+  Base::init(tree,tree.getEntryPoint(), 0, 0);
 
   ASS(!ft);
   ft = FlatTerm::create(TermList(lit));
   if (complementary) {
     ft->changeLiteralPolarity();
   }
-  tp = 0;
-  op = entry;
+  Base::tp = 0;
+  Base::op = Base::entry;
   _checkEqReversed = lit->isEquality();
 }
 
 template<bool higherOrder, class Data>
 Data* LiteralCodeTree<higherOrder, Data>::LiteralMatcher::next()
 {
-  if (finished()) {
+  if (Base::finished()) {
     //all possible matches are exhausted
     return 0;
   }
 
 MATCH:
-  _matched = execute();
-  if (!_matched) {
+  Base::_matched = Base::execute();
+  if (!Base::_matched) {
     if (_checkEqReversed) {
       ft->swapCommutativePredicateArguments();
-      Matcher::init(*tree,tree->getEntryPoint(), 0, 0);
-      tp = 0;
-      op = entry;
+      Base::init(*Base::tree,Base::tree->getEntryPoint(), 0, 0);
+      Base::tp = 0;
+      Base::op = Base::entry;
       _checkEqReversed = false;
       goto MATCH;
     }
     return 0;
   }
 
-  ASS(op->isSuccess());
-  return op->getSuccessResult<Data>();
+  ASS(Base::op->isSuccess());
+  return Base::op->template getSuccessResult<Data>();
 }
 
 template class LiteralCodeTree<false, LiteralClause>;

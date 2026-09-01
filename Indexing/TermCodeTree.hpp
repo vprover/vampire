@@ -19,8 +19,7 @@
 
 #include "Kernel/TypedTermList.hpp"
 
-#include "CodeTree.hpp"
-
+#include "TermOrLiteralCodeTree.hpp"
 
 namespace Indexing {
 
@@ -28,35 +27,20 @@ using namespace Lib;
 using namespace Kernel;
 
 template<bool higherOrder, class Data>
-class TermCodeTree : public CodeTree
+class TermCodeTree : public TermOrLiteralCodeTree<higherOrder, Data>
 {
-protected:
-  void onCodeOpDestroying(CodeOp* op) override {
-    if (op->isSuccess()) {
-      delete op->getSuccessResult<Data>();
-    }
-  }
-  void printSuccess(std::ostream& out, const CodeOp& op) const override
-  { out << *op.getSuccessResult<Data>(); }
-
 public:
   void insert(Data* data);
-  void remove(const Data& data);
 
-public:
   struct TermMatcher
-  : public Matcher</*removing*/false,false,higherOrder>
+  : public TermOrLiteralCodeTree<higherOrder, Data>::Matcher
   {
-    using Base = Matcher</*removing*/false,false,higherOrder>;
+    using Base = TermOrLiteralCodeTree<higherOrder, Data>::Matcher;
     using Base::ft;
 
     void init(const CodeTree& tree, TypedTermList t);
-    void reset() {
-      ft->destroy();
-      ft = nullptr;
-    }
-
     Data* next();
+
   private:
     TermList _querySort;
   };

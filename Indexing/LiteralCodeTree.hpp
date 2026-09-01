@@ -19,8 +19,7 @@
 
 #include "Lib/Vector.hpp"
 
-#include "CodeTree.hpp"
-
+#include "TermOrLiteralCodeTree.hpp"
 
 namespace Indexing {
 
@@ -28,35 +27,25 @@ using namespace Lib;
 using namespace Kernel;
 
 template<bool higherOrder, class Data>
-class LiteralCodeTree : public CodeTree
+class LiteralCodeTree : public TermOrLiteralCodeTree<higherOrder, Data>
 {
 public:
   LiteralCodeTree();
 
   void insert(Data* data);
-  void remove(const Data& data);
 
   struct LiteralMatcher
-  : public Matcher</*removing=*/false,/*checkRange=*/false,/*higherOrder=*/false>
+  : public TermOrLiteralCodeTree<higherOrder, Data>::Matcher
   {
-    void init(const CodeTree& tree, Literal* lit, bool complementary);
-    void reset() {
-      ft->destroy();
-      ft = nullptr;
-    }
+    using Base = TermOrLiteralCodeTree<higherOrder, Data>::Matcher;
+    using Base::ft;
 
+    void init(const CodeTree& tree, Literal* lit, bool complementary);
     Data* next();
 
   private:
     bool _checkEqReversed;
   };
-
-private:
-  void onCodeOpDestroying(CodeOp* op) override {
-    if (op->isSuccess()) {
-      delete op->getSuccessResult<Data>();
-    }
-  }
 };
 
 };

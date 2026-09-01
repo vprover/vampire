@@ -32,63 +32,30 @@ using namespace Kernel;
 template<bool higherOrder, class Data>
 void TermCodeTree<higherOrder, Data>::insert(Data* data)
 {
-  Recycled<CodeStack> code;
+  Recycled<CodeTree::CodeStack> code;
 
   auto t = data->key();
   if (t.isVar()) {
-    code->push(CodeOp::getTermOp(ASSIGN_VAR,0));
+    code->push(CodeTree::CodeOp::getTermOp(CodeTree::ASSIGN_VAR,0));
     // we match the variable sort separately, but the binding array has to be prepared
     for (const auto& v : iterTraits(VariableIterator(t.sort()))) {
       ASS_G(v.var(), 0); // X0 is reserved for the term itself
-      if (v.var()+1 > _maxVarCnt) { _maxVarCnt = v.var()+1; }
+      if (v.var()+1 > CodeTree::_maxVarCnt) { CodeTree::_maxVarCnt = v.var()+1; }
     }
   }
   else {
     ASS(t.isTerm());
 
-    TermCompiler compiler(*code);
+    CodeTree::TermCompiler compiler(*code);
     compiler.handleTerm(t.term());
     compiler.updateCodeTree(this);
   }
 
-  code->push(CodeOp::getSuccess(data));
-  incorporate(*code);
+  code->push(CodeTree::CodeOp::getSuccess(data));
+  CodeTree::incorporate(*code);
   //@b incorporate should empty the code stack
   ASS(code->isEmpty());
 }
-
-//////////////// removal ////////////////////
-
-template<bool higherOrder, class Data>
-void TermCodeTree<higherOrder, Data>::remove(const Data& data)
-{
-  Recycled<RemovingMatcher<higherOrder>> rtm;
-  Recycled<Stack<CodeOp*>> firstsInBlocks;
-
-  FlatTerm* ft=FlatTerm::create(data.key());
-  rtm->init(ft, *this, &*firstsInBlocks);
-
-  Data* dptr = nullptr;
-  for(;;) {
-    if (!rtm->execute()) {
-      ASSERTION_VIOLATION;
-      INVALID_OPERATION("term being removed was not found");
-    }
-    ASS(rtm->op->isSuccess());
-    dptr=rtm->op->template getSuccessResult<Data>();
-    if (*dptr==data) {
-      break;
-    }
-  }
-
-  rtm->op->makeFail();
-
-  ASS(dptr);
-  delete dptr;
-  ft->destroy();
-
-  optimizeMemoryAfterRemoval(&*firstsInBlocks, rtm->op);
-} // TermCodeTree::remove
 
 //////////////// retrieval ////////////////////
 
