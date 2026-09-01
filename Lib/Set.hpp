@@ -19,7 +19,6 @@
 #include "Forwards.hpp"
 
 #include "Allocator.hpp"
-#include "Reflection.hpp"
 #include "Lib/Metaiterators.hpp"
 
 namespace std {
@@ -421,7 +420,7 @@ public:
    */
   class Iterator {
   public:
-    DECL_ELEMENT_TYPE(Val);
+    using ElementType = Val;
 
     /** Create a new empty iterator */
     inline Iterator() : _next(0), _last(0) {}
@@ -468,7 +467,6 @@ public:
     /** iterator will stop looking for the next cell after reaching this one */
     Cell* _last;
   };
-  DECL_ITERATOR_TYPE(Iterator);
 
   IterTraits<Iterator> iter() const
   { return iterTraits(Iterator(*this)); }

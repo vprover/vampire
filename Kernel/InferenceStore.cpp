@@ -114,9 +114,8 @@ void InferenceStore::recordIntroducedSplitName(Unit* u, std::string name)
  *
  * It is caller's responsibility to ensure that variables in @b vars are unique.
  */
-template<typename VarContainer>
-std::string getQuantifiedStr(const VarContainer& vars, std::string inner, DHMap<unsigned,TermList, FnvHash, IdentityHash>& t_map, bool innerParentheses=true){
-  VirtualIterator<unsigned> vit=pvi( getContentIterator(vars) );
+template<typename VarIter>
+std::string getQuantifiedStr(VarIter vit, std::string inner, DHMap<unsigned,TermList, FnvHash, IdentityHash>& t_map, bool innerParentheses=true){
   std::string varStr;
   bool first=true;
   while(vit.hasNext()) {
@@ -192,7 +191,7 @@ std::string getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified=0)
     res=formula->toString();
   }
 
-  return getQuantifiedStr(vars, res, t_map);
+  return getQuantifiedStr(decltype(vars)::Iterator(vars), res, t_map);
 }
 
 struct InferenceStore::ProofPrinter
@@ -873,11 +872,11 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
     }
     ASS(!first);
 
-    compStr=getQuantifiedStr(compOnlyVars, compStr, t_map, multiple);
+    compStr=getQuantifiedStr(VList::Iterator(compOnlyVars), compStr, t_map, multiple);
     List<unsigned>::destroy(compOnlyVars);
 
     std::string defStr=compStr+" <=> "+Literal::complementaryLiteral(nameLit)->toString();
-    defStr=getQuantifiedStr(nameVars, defStr, t_map);
+    defStr=getQuantifiedStr(VList::Iterator(nameVars), defStr, t_map);
     List<unsigned>::destroy(nameVars);
 
     auto nameSymbol = env.signature->getPredicate(nameLit->functor());

@@ -71,7 +71,7 @@ public:
    */
   class Iterator {
   public:
-    DECL_ELEMENT_TYPE(Clause*);
+    using ElementType = Clause*;
 
     /** Create a new iterator */
     inline explicit Iterator(ClauseQueue& queue)

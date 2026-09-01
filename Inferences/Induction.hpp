@@ -298,10 +298,10 @@ public:
     processClause(premise);
   }
 
-  DECL_ELEMENT_TYPE(Clause*);
+  using ElementType = Clause*;
 
   inline bool hasNext() { return _clauses.isNonEmpty(); }
-  inline OWN_ELEMENT_TYPE next() { 
+  inline ElementType next() { 
     return _clauses.pop();
   }
 
