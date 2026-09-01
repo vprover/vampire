@@ -226,7 +226,7 @@ namespace Indexing
       ASS_EQ(_currentDepth, _substChanges.size());
     }
     
-    DECL_ELEMENT_TYPE(CycleQueryResult*);
+    using ElementType = CycleQueryResult*;
 
     Clause *applySubstitution(Clause *c, unsigned index)
     {
@@ -363,7 +363,7 @@ namespace Indexing
       return false;
     }
     
-    OWN_ELEMENT_TYPE next()
+    ElementType next()
     {
       ASS(_nextResult);
       CycleQueryResult *res = _nextResult;

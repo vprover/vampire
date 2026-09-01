@@ -34,7 +34,7 @@ class SharedSet {
   typedef Stack<T> ItemStack;
 
 public:
-  DECL_ELEMENT_TYPE(T);
+  using ElementType = T;
 
   SharedSet(size_t sz) : _size(sz) {}
 

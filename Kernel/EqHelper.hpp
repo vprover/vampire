@@ -77,7 +77,7 @@ public:
 private:
 
   template<class SubtermIterator>
-  static VirtualIterator<ELEMENT_TYPE(SubtermIterator)> getRewritableSubtermIterator(Literal* lit, const Ordering& ord);
+  static VirtualIterator<typename SubtermIterator::ElementType> getRewritableSubtermIterator(Literal* lit, const Ordering& ord);
 
   struct IsNonVariable;
 

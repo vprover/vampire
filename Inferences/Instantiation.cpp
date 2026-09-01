@@ -208,7 +208,7 @@ VirtualIterator<Term*> Instantiation::getCandidateTerms(Clause* cl, unsigned var
 
 class Instantiation::AllSubstitutionsIterator{
 public:
-  DECL_ELEMENT_TYPE(Substitution);
+  using ElementType = Substitution;
   AllSubstitutionsIterator(Clause* cl,Instantiation* ins)
   {
     DHMap<unsigned,TermList, FnvHash, IdentityHash> sortedVars;
