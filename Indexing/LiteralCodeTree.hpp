@@ -40,7 +40,10 @@ public:
   : public Matcher</*removing=*/false,/*checkRange=*/false,/*higherOrder=*/false>
   {
     void init(const CodeTree& tree, Literal* lit, bool complementary);
-    void reset();
+    void reset() {
+      ft->destroy();
+      ft = nullptr;
+    }
 
     Data* next();
 
@@ -49,7 +52,11 @@ public:
   };
 
 private:
-  void onCodeOpDestroying(CodeOp* op) override;
+  void onCodeOpDestroying(CodeOp* op) override {
+    if (op->isSuccess()) {
+      delete op->getSuccessResult<Data>();
+    }
+  }
 };
 
 };

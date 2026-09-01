@@ -17,8 +17,6 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Allocator.hpp"
-
 #include "Kernel/TypedTermList.hpp"
 
 #include "CodeTree.hpp"
@@ -33,8 +31,13 @@ template<bool higherOrder, class Data>
 class TermCodeTree : public CodeTree
 {
 protected:
-  void onCodeOpDestroying(CodeOp* op) override;
-  void printSuccess(std::ostream& out, const CodeOp& op) const override;
+  void onCodeOpDestroying(CodeOp* op) override {
+    if (op->isSuccess()) {
+      delete op->getSuccessResult<Data>();
+    }
+  }
+  void printSuccess(std::ostream& out, const CodeOp& op) const override
+  { out << *op.getSuccessResult<Data>(); }
 
 public:
   void insert(Data* data);
@@ -44,17 +47,16 @@ public:
   struct TermMatcher
   : public Matcher</*removing*/false,false,higherOrder>
   {
-    TermMatcher();
-
     using Base = Matcher</*removing*/false,false,higherOrder>;
     using Base::ft;
 
     void init(const CodeTree& tree, TypedTermList t);
-    void reset();
+    void reset() {
+      ft->destroy();
+      ft = nullptr;
+    }
 
     Data* next();
-
-    USE_ALLOCATOR(TermMatcher);
   private:
     TermList _querySort;
   };

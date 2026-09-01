@@ -452,6 +452,7 @@ public:
       Base::tp=0;
       Base::op=Base::entry;
     }
+    void reset() {}
   };
 
   //////// auxiliary methods //////////

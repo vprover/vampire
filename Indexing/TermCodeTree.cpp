@@ -30,28 +30,13 @@ using namespace Lib;
 using namespace Kernel;
 
 template<bool higherOrder, class Data>
-void TermCodeTree<higherOrder, Data>::onCodeOpDestroying(CodeOp* op)
-{
-  if (op->isSuccess()) {
-    delete op->getSuccessResult<Data>();
-  }
-}
-
-template<bool higherOrder, class Data>
-void TermCodeTree<higherOrder, Data>::printSuccess(std::ostream& out, const CodeOp& op) const
-{
-  out << *op.getSuccessResult<Data>();
-}
-
-template<bool higherOrder, class Data>
 void TermCodeTree<higherOrder, Data>::insert(Data* data)
 {
-  static CodeStack code;
-  code.reset();
+  Recycled<CodeStack> code;
 
   auto t = data->key();
   if (t.isVar()) {
-    code.push(CodeOp::getTermOp(ASSIGN_VAR,0));
+    code->push(CodeOp::getTermOp(ASSIGN_VAR,0));
     // we match the variable sort separately, but the binding array has to be prepared
     for (const auto& v : iterTraits(VariableIterator(t.sort()))) {
       ASS_G(v.var(), 0); // X0 is reserved for the term itself
@@ -61,15 +46,15 @@ void TermCodeTree<higherOrder, Data>::insert(Data* data)
   else {
     ASS(t.isTerm());
 
-    TermCompiler compiler(code);
+    TermCompiler compiler(*code);
     compiler.handleTerm(t.term());
     compiler.updateCodeTree(this);
   }
 
-  code.push(CodeOp::getSuccess(data));
-  incorporate(code);
+  code->push(CodeOp::getSuccess(data));
+  incorporate(*code);
   //@b incorporate should empty the code stack
-  ASS(code.isEmpty());
+  ASS(code->isEmpty());
 }
 
 //////////////// removal ////////////////////
@@ -77,44 +62,35 @@ void TermCodeTree<higherOrder, Data>::insert(Data* data)
 template<bool higherOrder, class Data>
 void TermCodeTree<higherOrder, Data>::remove(const Data& data)
 {
-  static RemovingMatcher<higherOrder> rtm;
-  static Stack<CodeOp*> firstsInBlocks;
-  firstsInBlocks.reset();
+  Recycled<RemovingMatcher<higherOrder>> rtm;
+  Recycled<Stack<CodeOp*>> firstsInBlocks;
 
   FlatTerm* ft=FlatTerm::create(data.key());
-  rtm.init(ft, *this, &firstsInBlocks);
+  rtm->init(ft, *this, &*firstsInBlocks);
 
   Data* dptr = nullptr;
   for(;;) {
-    if (!rtm.execute()) {
+    if (!rtm->execute()) {
       ASSERTION_VIOLATION;
       INVALID_OPERATION("term being removed was not found");
     }
-    ASS(rtm.op->isSuccess());
-    dptr=rtm.op->template getSuccessResult<Data>();
+    ASS(rtm->op->isSuccess());
+    dptr=rtm->op->template getSuccessResult<Data>();
     if (*dptr==data) {
       break;
     }
   }
 
-  rtm.op->makeFail();
+  rtm->op->makeFail();
 
   ASS(dptr);
   delete dptr;
   ft->destroy();
 
-  optimizeMemoryAfterRemoval(&firstsInBlocks, rtm.op);
+  optimizeMemoryAfterRemoval(&*firstsInBlocks, rtm->op);
 } // TermCodeTree::remove
 
 //////////////// retrieval ////////////////////
-
-template<bool higherOrder, class Data>
-TermCodeTree<higherOrder, Data>::TermMatcher::TermMatcher()
-{
-#if VDEBUG
-  ft=0;
-#endif
-}
 
 template<bool higherOrder, class Data>
 void TermCodeTree<higherOrder, Data>::TermMatcher::init(const CodeTree& tree, TypedTermList t)
@@ -127,15 +103,6 @@ void TermCodeTree<higherOrder, Data>::TermMatcher::init(const CodeTree& tree, Ty
 
   Base::op=Base::entry;
   Base::tp=0;
-}
-
-template<bool higherOrder, class Data>
-void TermCodeTree<higherOrder, Data>::TermMatcher::reset()
-{
-  ft->destroy();
-#if VDEBUG
-  ft=0;
-#endif
 }
 
 template<bool higherOrder, class Data>

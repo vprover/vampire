@@ -26,14 +26,6 @@ using namespace Lib;
 using namespace Kernel;
 
 template<bool higherOrder, class Data>
-void LiteralCodeTree<higherOrder, Data>::onCodeOpDestroying(CodeOp* op)
-{
-  if (op->isSuccess()) {
-    delete op->getSuccessResult<Data>();
-  }
-}
-
-template<bool higherOrder, class Data>
 LiteralCodeTree<higherOrder, Data>::LiteralCodeTree()
 {
   _containsLiterals = true;
@@ -45,7 +37,7 @@ void LiteralCodeTree<higherOrder, Data>::insert(Data* data)
   Recycled<CodeStack> code;
 
   TermCompiler compiler(*code);
-  compiler.handleTerm(data->literal);
+  compiler.handleTerm(data->key());
   code->push(CodeOp::getSuccess(data));
 
   compiler.updateCodeTree(this);
@@ -57,33 +49,31 @@ void LiteralCodeTree<higherOrder, Data>::insert(Data* data)
 template<bool higherOrder, class Data>
 void LiteralCodeTree<higherOrder, Data>::remove(const Data& data)
 {
-  static RemovingMatcher<higherOrder> rtm;
-  static Stack<CodeOp*> firstsInBlocks;
-  firstsInBlocks.reset();
+  Recycled<RemovingMatcher<higherOrder>> rtm;
+  Recycled<Stack<CodeOp*>> firstsInBlocks;
 
   auto ft = FlatTerm::create(TermList(data.literal));
-  rtm.init(ft, *this, &firstsInBlocks);
+  rtm->init(ft, *this, &*firstsInBlocks);
 
   Data* dptr = nullptr;
   for(;;) {
-    if (!rtm.execute()) {
-      ASSERTION_VIOLATION;
+    if (!rtm->execute()) {
       INVALID_OPERATION("term being removed was not found");
     }
-    ASS(rtm.op->isSuccess());
-    dptr=rtm.op->template getSuccessResult<Data>();
+    ASS(rtm->op->isSuccess());
+    dptr=rtm->op->template getSuccessResult<Data>();
     if (*dptr==data) {
       break;
     }
   }
 
-  rtm.op->makeFail();
+  rtm->op->makeFail();
 
   ASS(dptr);
   delete dptr;
   ft->destroy();
 
-  optimizeMemoryAfterRemoval(&firstsInBlocks, rtm.op);
+  optimizeMemoryAfterRemoval(&*firstsInBlocks, rtm->op);
 }
 
 template<bool higherOrder, class Data>
@@ -99,13 +89,6 @@ void LiteralCodeTree<higherOrder, Data>::LiteralMatcher::init(const CodeTree& tr
   tp = 0;
   op = entry;
   _checkEqReversed = lit->isEquality();
-}
-
-template<bool higherOrder, class Data>
-void LiteralCodeTree<higherOrder, Data>::LiteralMatcher::reset()
-{
-  ft->destroy();
-  ft = nullptr;
 }
 
 template<bool higherOrder, class Data>
