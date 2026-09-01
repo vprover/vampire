@@ -24,6 +24,8 @@
 #include "Lib/Environment.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/EqHelper.hpp"
+#include "Kernel/SortHelper.hpp"
+#include "Kernel/SubstHelper.hpp"
 #include "Indexing/TermSharing.hpp"
 
 #include "Lib/DHSet.hpp"
@@ -67,7 +69,7 @@ void BlockedClauseElimination::apply(Problem& prb)
     ClWrapper* clw = new ClWrapper(cl);
     wrappers.push(clw);
 
-    if (_useSubsumption && !equationally) {
+    if (_useSubsumption) {
       indexInsert(clw);
     }
 
@@ -240,25 +242,37 @@ bool BlockedClauseElimination::clearedBy(bool equationally, RobSubstitution& sub
     return true;
   }
 
-  // the equational check does not work with the mgu (there need not be one), so there is
-  // no first-order resolvent to hand to the index; c.f. the comment at resolvesToTautologyEq
-  if (!_useSubsumption || equationally) {
+  if (!_useSubsumption) {
     return false;
   }
 
-  TIME_TRACE("bce subsumption");
-
   bool tautology = false;
-  Clause* resolvent = buildResolvent(subst,cl,cand->litIdx,pcl,partner->litIdx,tautology);
+  Clause* resolvent;
+  {
+    TIME_TRACE("bce resolvent construction");
+    resolvent = equationally ?
+      buildResolventEq(cl,cand->litIdx,pcl,partner->litIdx,tautology) :
+      buildResolventUn(subst,cl,cand->litIdx,pcl,partner->litIdx,tautology);
+  }
   if (!resolvent) {
+    if (tautology && equationally) {
+      // not something resolvesToTautologyEq could establish: it normalizes differently
+      env.statistics->bceFlatResolventTautologies++;
+    }
     return tautology;
   }
 
-  // cl is the clause we are about to remove, so it may not justify its own removal
-  // (any other clause of the set will do, the partner pcl included)
-  bool subsumed = subsumedBy(resolvent,cl);
+  bool subsumed;
+  {
+    TIME_TRACE("bce subsumption");
+    // cl is the clause we are about to remove, so it may not justify its own removal
+    // (any other clause of the set will do, the partner pcl included)
+    subsumed = subsumedBy(resolvent,cl);
+  }
   resolvent->destroy();
 
+  // NB: only a subsumption clearing is reported back, tautologyhood being independent
+  // of the clause set and thus safe for contFrom to skip over on a later scan
   bySubsumption = subsumed;
   return subsumed;
 }
@@ -283,19 +297,15 @@ static bool couldBeTheResolvedLiteral(RobSubstitution& subst_aux, Literal* resol
   return subst_aux.unifyArgs(resolved,0,l,0);
 }
 
-Clause* BlockedClauseElimination::buildResolvent(RobSubstitution& subst, Clause* cl, unsigned litIdx, Clause* pcl, unsigned plitIdx, bool& tautology)
+Clause* BlockedClauseElimination::buildResolventUn(RobSubstitution& subst, Clause* cl, unsigned litIdx, Clause* pcl, unsigned plitIdx, bool& tautology)
 {
-  ASS(!tautology);
-
-  static DHSet<Literal*, FnvHash, PtrIdentityHash> seen;
-  seen.reset();
-
   static RobSubstitution subst_aux;
 
   // plit under the mgu, i.e. the literal resolution removes from pcl
   Literal* resolved = subst.apply((*pcl)[plitIdx],1);
 
-  LiteralStack lits;
+  static LiteralStack lits;
+  lits.reset();
 
   for (unsigned bank = 0; bank < 2; bank++) {
     Clause* c = bank ? pcl : cl;
@@ -308,27 +318,93 @@ Clause* BlockedClauseElimination::buildResolvent(RobSubstitution& subst, Clause*
       if (bank && couldBeTheResolvedLiteral(subst_aux,resolved,l)) {
         continue;
       }
-      // the complementary pair conditions in resolvesToTautologyUn are deliberately
-      // conservative (c.f. the opslit business there), so this can genuinely fire
-      if (seen.find(Literal::complementaryLiteral(l))) {
-        tautology = true;
-        return nullptr;
-      }
-      if (seen.insert(l)) {
-        lits.push(l);
-      }
+      lits.push(l);
     }
   }
 
-  if (lits.isEmpty()) {
-    // ClauseMatcher::init asserts on a zero-length query; also, only the empty clause
-    // could subsume this, in which case the problem is refuted anyway
+  return assembleResolvent(lits,tautology);
+}
+
+Clause* BlockedClauseElimination::buildResolventEq(Clause* cl, unsigned litIdx, Clause* pcl, unsigned plitIdx, bool& tautology)
+{
+  Literal* lit = (*cl)[litIdx];
+  Literal* plit = (*pcl)[plitIdx];
+  ASS_EQ(lit->arity(),plit->arity()); // the same predicate; and no type arguments, see below
+
+  static LiteralStack lits;
+  lits.reset();
+
+  for (unsigned i = 0; i < cl->length(); i++) {
+    if (i != litIdx) {
+      lits.push((*cl)[i]);
+    }
+  }
+
+  // pcl gets a variable range of its own, disjoint from cl's. As in buildResolventUn, every
+  // literal which could be the resolved one has to go, not just the plitIdx-th occurrence --
+  // only here "could coincide with plit" is meant modulo the model's equality, which no
+  // syntactic test approximates, so the whole predicate/polarity class goes. That is exactly
+  // the filter resolvesToTautologyEq applies to pcl, which is thus a soundness requirement
+  // rather than the conservatism it looks like.
+  VarShiftApplicator shift{cl->maxVar()+1};
+  for (unsigned i = 0; i < pcl->length(); i++) {
+    Literal* l = (*pcl)[i];
+    if (l->functor() != plit->functor() || l->polarity() != plit->polarity()) {
+      lits.push(SubstHelper::apply(l,shift));
+    }
+  }
+
+  // this is where the "virtual flattening" happens. Note we are monomorphic here (_useSubsumption
+  // is switched off for polymorphic and higher-order inputs), so arity() counts no type arguments
+  // and the two arguments of each equality are guaranteed to have the same sort
+  for (unsigned i = 0; i < lit->arity(); i++) {
+    lits.push(Literal::createEquality(false,
+                                      *lit->nthArgument(i),
+                                      SubstHelper::apply(*plit->nthArgument(i),shift),
+                                      SortHelper::getArgSort(lit,i)));
+  }
+
+  EqHelper::equalityResolutionWithDeletion(lits);
+
+  return assembleResolvent(lits,tautology);
+}
+
+Clause* BlockedClauseElimination::assembleResolvent(LiteralStack& lits, bool& tautology)
+{
+  ASS(!tautology);
+
+  static DHSet<Literal*, FnvHash, PtrIdentityHash> seen;
+  seen.reset();
+
+  static LiteralStack out;
+  out.reset();
+
+  for (const auto& l : lits) {
+    if (EqHelper::isEqTautology(l)) { // s = s
+      tautology = true;
+      return nullptr;
+    }
+    // the complementary pair conditions in resolvesToTautologyUn are deliberately
+    // conservative (c.f. the opslit business there), so this can genuinely fire
+    if (seen.find(Literal::complementaryLiteral(l))) {
+      tautology = true;
+      return nullptr;
+    }
+    if (l->isEquality() && l->isNegative() && *l->nthArgument(0) == *l->nthArgument(1)) {
+      continue; // t != t is simply false
+    }
+    if (seen.insert(l)) {
+      out.push(l);
+    }
+  }
+
+  if (out.isEmpty()) {
     return nullptr;
   }
 
   // the clause is a throwaway query for the index, so it does not record its actual parents
   // (which would make destroying it decrease their reference counts)
-  return Clause::fromStack(lits,FromInput(UnitInputType::AXIOM));
+  return Clause::fromStack(out,FromInput(UnitInputType::AXIOM));
 }
 
 // a cousin of PredicateElimination::forwardSubsumedOrResolved: the code tree indexes whole

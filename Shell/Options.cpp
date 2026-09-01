@@ -568,10 +568,11 @@ void Options::init()
 
     _blockedClauseEliminationSubsumption = BoolOptionValue("blocked_clause_elimination_subsumption","bces",false);
     _blockedClauseEliminationSubsumption.description=
-      "During blocked clause elimination, also accept a resolvent which is not a tautology,"
-      " provided it is subsumed by another clause of the current clause set."
-      " Only applies to the non-equational tautologyhood check, i.e. it has no effect"
-      " on problems with positive equality atoms (nor under finite model building).";
+      "During blocked clause elimination, whenever the (cheap) tautologyhood check on a resolvent"
+      " fails, construct the resolvent and accept it if it is subsumed by another clause of the"
+      " current clause set. In the equational case the resolvent is obtained by resolving under"
+      " flattening followed by equality resolution with deletion, and is accepted also when it"
+      " turns out to be a tautology, which the cheap equational check may miss.";
     _lookup.insert(&_blockedClauseEliminationSubsumption);
     _blockedClauseEliminationSubsumption.tag(OptionTag::PREPROCESSING);
     _blockedClauseEliminationSubsumption.reliesOn(_blockedClauseElimination.is(equal(true)));

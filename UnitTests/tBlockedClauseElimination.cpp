@@ -38,10 +38,11 @@ static Problem *problemFromClauses(std::initializer_list<Clause *> cls)
 }
 
 /** the clauses' literals, sorted, so that a test does not depend on the elimination order */
-static std::vector<std::string> runBCE(std::initializer_list<Clause *> cls, bool useSubsumption)
+static std::vector<std::string> runBCE(std::initializer_list<Clause *> cls, bool useSubsumption,
+                                       bool forceEquationally = false)
 {
   Problem *prb = problemFromClauses(cls);
-  BlockedClauseElimination bce(/*forceEquationally=*/false, useSubsumption);
+  BlockedClauseElimination bce(forceEquationally, useSubsumption);
   bce.apply(*prb);
 
   std::vector<std::string> res;
@@ -63,6 +64,7 @@ static bool contains(const std::vector<std::string> &cls, const std::string &lit
   DECL_CONST(a, s)      \
   DECL_CONST(b, s)      \
   DECL_CONST(c, s)      \
+  DECL_FUNC(f, {s}, s)  \
   DECL_PRED(p, {s})     \
   DECL_PRED(q, {s})     \
   DECL_PRED(r, {s})     \
@@ -163,12 +165,14 @@ TEST_FUN(duplicates_and_tautologies_in_input)
   ASS(!contains(with, "p(X0) | q(X0)"));
 }
 
-TEST_FUN(equational_path_unaffected)
+TEST_FUN(subsumed_flat_resolvent_blocks)
 {
   MY_SYNTAX_SUGAR
 
-  // A positive equality atom in the problem forces the (weaker) equational tautologyhood
-  // check, which does not work with an mgu and so has no resolvent to hand to the index.
+  // The same clause set under the equational check, which does not work with an mgu. The
+  // cheap union-find normalisation *generalises* the resolvent to {q(X) \/ r(X)} and finds
+  // nothing; resolving under flattening gives {q(X) \/ r(a) \/ X != a}, and the implied
+  // binding X := a instantiates it to {q(a) \/ r(a)}, which {q(a)} subsumes.
   auto cls = {clause({p(x), q(x)}),
               clause({~p(a), r(a)}),
               clause({q(a)}),
@@ -176,9 +180,33 @@ TEST_FUN(equational_path_unaffected)
               clause({p(a), u(a)}),
               clause({~u(a)}),
               clause({~t(c)}),
-              clause({~r(a)}),
-              clause({a == b})};
+              clause({~r(a)})};
 
-  auto with = runBCE(cls, /*useSubsumption=*/true);
-  ASS(contains(with, "p(X0) | q(X0)"));
+  auto without = runBCE(cls, /*useSubsumption=*/false, /*forceEquationally=*/true);
+  ASS_EQ(without.size(), 8);
+  ASS(contains(without, "p(X0) | q(X0)"));
+
+  auto with = runBCE(cls, /*useSubsumption=*/true, /*forceEquationally=*/true);
+  ASS_EQ(with.size(), 7);
+  ASS(!contains(with, "p(X0) | q(X0)"));
+}
+
+TEST_FUN(residual_disequality_blocks_nothing)
+{
+  MY_SYNTAX_SUGAR
+
+  // Flattening f(X) against f(a) leaves f(X) != f(a), which equality resolution cannot
+  // discharge -- decomposing it to X != a would weaken the clause and is not sound here.
+  // So the resolvent stays {q(X) \/ r(a) \/ f(X) != f(a)}, which {q(a)} does not subsume.
+  auto cls = {clause({p(f(x)), q(x)}),
+              clause({~p(f(a)), r(a)}),
+              clause({q(a)}),
+              clause({~q(y), t(y)}),
+              clause({p(f(a)), u(a)}),
+              clause({~u(a)}),
+              clause({~t(c)}),
+              clause({~r(a)})};
+
+  auto with = runBCE(cls, /*useSubsumption=*/true, /*forceEquationally=*/true);
+  ASS(contains(with, "p(f(X0)) | q(X0)"));
 }

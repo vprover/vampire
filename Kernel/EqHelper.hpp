@@ -74,6 +74,22 @@ public:
   {
     return lit->isEquality() && lit->isPositive() && (*lit->nthArgument(0))==(*lit->nthArgument(1));
   }
+
+  /**
+   * Exhaustively apply equality resolution with deletion to @b lits, in place:
+   * a literal x != t, with x a variable not occurring in t, is removed and t substituted
+   * for x throughout; t != t is simply removed. Read as a clause, the result is logically
+   * equivalent to the input, only more instantiated.
+   *
+   * NB: there is deliberately no decomposition -- f(s) != f(t) may NOT be replaced by
+   * s != t. That only weakens the clause (f(s)!=f(t) entails s!=t, not the other way round),
+   * which is unsound wherever it is the validity of the clause that matters.
+   *
+   * @warning quadratic in the worst case, for the reason documented on
+   * Shell/EqResWithDeletion::apply: a single pass of "resolvable" literals does not suffice,
+   * as the substitution can make further literals resolvable (X != f(Y) | Y = g(X) | ...).
+   */
+  static void equalityResolutionWithDeletion(LiteralStack& lits);
 private:
 
   template<class SubtermIterator>

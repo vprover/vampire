@@ -34,6 +34,23 @@ struct SubstApplicator {
 };
 
 /**
+ * Renames variables by adding a fixed offset.
+ */
+struct VarShiftApplicator {
+  unsigned off;
+  TermList apply(unsigned var) const { return TermList::var(var + off); }
+};
+
+/**
+ * Replaces a single variable by a term, leaving other variables intact.
+ */
+struct SingleVarApplicator {
+  unsigned var;
+  TermList term;
+  TermList apply(unsigned v) const { return v == var ? term : TermList::var(v); }
+};
+
+/**
  * Term with a substitution applied to it lazily. This is used in the context of
  * evaluating some term in a top-down manner symbol by symbol without actually
  * creating the result of the substitution in the process. For example, we might

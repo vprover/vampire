@@ -126,6 +126,9 @@ public:
   unsigned blockedClauses = 0;
   /** of those, the ones which needed at least one resolvent discharged by subsumption */
   unsigned blockedClausesBySubsumption = 0;
+  /** resolution partners cleared by the flat resolvent being a tautology, which the cheap
+   * equational check could not establish (counting clearings, not blocked clauses) */
+  unsigned bceFlatResolventTautologies = 0;
   /** number of predicates eliminated by predicate elimination */
   unsigned eliminatedPredicates = 0;
   /** number of resolvents kept during predicate elimination */

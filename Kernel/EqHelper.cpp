@@ -16,6 +16,7 @@
 
 #include "Ordering.hpp"
 #include "SortHelper.hpp"
+#include "SubstHelper.hpp"
 #include "TermIterators.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Matcher.hpp"
@@ -25,6 +26,44 @@
 namespace Kernel {
 
 using namespace Shell;
+
+void EqHelper::equalityResolutionWithDeletion(LiteralStack& lits)
+{
+  for (bool changed = true; changed;) {
+    changed = false;
+    for (unsigned idx = 0; idx < lits.size(); idx++) {
+      Literal *l = lits[idx];
+      if (!l->isEquality() || l->isPositive()) {
+        continue;
+      }
+      auto [a0, a1] = l->eqArgs();
+      if (a0 == a1) { // t != t is simply false
+        lits.swapRemove(idx);
+        changed = true;
+        break;
+      }
+      TermList var, tgt;
+      if (a0.isVar() && !a1.containsSubterm(a0)) {
+        var = a0;
+        tgt = a1;
+      }
+      else if (a1.isVar() && !a0.containsSubterm(a1)) {
+        var = a1;
+        tgt = a0;
+      }
+      else {
+        continue; // a residual disequality (to be kept)
+      }
+      lits.swapRemove(idx);
+      SingleVarApplicator app{var.var(), tgt};
+      for (auto& lit : lits) {
+        lit = SubstHelper::apply(lit, app);
+      }
+      changed = true;
+      break;
+    }
+  }
+}
 
 /*
  * Turns an iterator with TermList elements to an iterator of TypedTermList elements

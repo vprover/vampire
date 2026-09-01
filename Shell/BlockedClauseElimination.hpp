@@ -103,11 +103,31 @@ private:
 
   /**
    * The resolvent of cl (on its litIdx-th literal) and pcl (on its plitIdx-th one) under the mgu
-   * left in @b subst by resolvesToTautologyUn, deduplicated. Returns 0 either when the resolvent
-   * turns out to be a tautology after all (then @b tautology is set) or when it is empty.
+   * left in @b subst by resolvesToTautologyUn. Returns 0 either when the resolvent turns out to
+   * be a tautology after all (then @b tautology is set) or when it comes out empty.
+   */
+  Kernel::Clause* buildResolventUn(Kernel::RobSubstitution& subst, Clause* cl, unsigned litIdx, Clause* pcl, unsigned plitIdx, bool& tautology);
+
+  /**
+   * The same, for the equational case, where there is no mgu to work with: resolve under
+   * flattening, i.e. keep both clause rests (pcl's renamed apart) and add lit's and plit's
+   * arguments' pairwise disequalities, then apply the bindings those imply. The binary special
+   * case of PredicateElimination::buildResolventEq.
+   *
+   * Here @b tautology being set is a genuine, extra reason for the partner to be cleared: the
+   * flat resolvent being valid is precisely the equational blockedness condition, of which
+   * resolvesToTautologyEq is only a (differently shaped) approximation.
+   */
+  Kernel::Clause* buildResolventEq(Clause* cl, unsigned litIdx, Clause* pcl, unsigned plitIdx, bool& tautology);
+
+  /**
+   * Turn @b lits into the clause to query the index with: drop duplicates and the plainly false
+   * t != t, and report a complementary pair or an s = s via @b tautology (returning 0). Returns 0
+   * also for an empty result -- ClauseMatcher::init asserts on a zero-length query, and only the
+   * empty clause could subsume it anyway, in which case the problem is refuted.
    * The caller owns the returned clause and is expected to destroy() it.
    */
-  Kernel::Clause* buildResolvent(Kernel::RobSubstitution& subst, Clause* cl, unsigned litIdx, Clause* pcl, unsigned plitIdx, bool& tautology);
+  Kernel::Clause* assembleResolvent(Kernel::LiteralStack& lits, bool& tautology);
 
   /** Is @b resolvent subsumed by a clause of the index other than @b exclude? */
   bool subsumedBy(Kernel::Clause* resolvent, Kernel::Clause* exclude);

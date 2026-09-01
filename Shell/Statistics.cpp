@@ -190,6 +190,7 @@ void Statistics::print(std::ostream& out)
     ENTRY("SInE iterations", sineIterations);
     ENTRY("Blocked clauses", blockedClauses);
     ENTRY("Blocked clauses needing subsumption", blockedClausesBySubsumption);
+    ENTRY("Blocked clause flat resolvent tautologies", bceFlatResolventTautologies);
     ENTRY("Eliminated predicates", eliminatedPredicates);
     ENTRY("Predicate elimination resolvents", predicateEliminationResolvents);
     ENTRY("Predicate elimination subsumed", predicateEliminationSubsumed);

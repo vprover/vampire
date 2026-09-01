@@ -47,23 +47,6 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 
-/**
- * Renames variables by adding a fixed offset.
- */
-struct VarShiftApplicator {
-  unsigned off;
-  TermList apply(unsigned var) const { return TermList::var(var + off); }
-};
-
-/**
- * Replaces a single variable by a term, leaving other variables intact.
- */
-struct SingleVarApplicator {
-  unsigned var;
-  TermList term;
-  TermList apply(unsigned v) const { return v == var ? term : TermList::var(v); }
-};
-
 void PredicateElimination::apply(Problem &prb)
 {
   TIME_TRACE("predicate elimination");
@@ -519,40 +502,7 @@ Clause *PredicateElimination::buildResolventEq(Clause *nucleus, Stack<unsigned> 
   }
 
   // exhaustive equality substitution (note: no decomposition, so this is weaker than unification)
-  for (bool changed = true; changed;) {
-    changed = false;
-    for (unsigned idx = 0; idx < lits.size(); idx++) {
-      Literal *l = lits[idx];
-      if (!l->isEquality() || l->isPositive()) {
-        continue;
-      }
-      auto [a0, a1] = l->eqArgs();
-      if (a0 == a1) { // t != t is simply false
-        lits.swapRemove(idx);
-        changed = true;
-        break;
-      }
-      TermList var, tgt;
-      if (a0.isVar() && !a1.containsSubterm(a0)) {
-        var = a0;
-        tgt = a1;
-      }
-      else if (a1.isVar() && !a0.containsSubterm(a1)) {
-        var = a1;
-        tgt = a0;
-      }
-      else {
-        continue; // a residual disequality (to be kept)
-      }
-      lits.swapRemove(idx);
-      SingleVarApplicator app{var.var(), tgt};
-      for (auto& lit : lits) {
-        lit = SubstHelper::apply(lit, app);
-      }
-      changed = true;
-      break;
-    }
-  }
+  EqHelper::equalityResolutionWithDeletion(lits);
 
   return assembleClause(lits, nucleus, sats, choice);
 }
