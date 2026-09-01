@@ -155,7 +155,7 @@ void profileMode(Problem* problem)
 
   /* CAREFUL: Make sure that the order
    * 1) getProperty, 2) normalise, 3) TheoryFinder::search
-   * is the same as in PortfolioOptions::Mode::searchForProof
+   * is the same as in PortfolioMode::searchForProof
    * also, cf. the beginning of Preprocessing::preprocess*/
   Property* property = prb->getProperty();
   Normalisation().normalise(*prb);

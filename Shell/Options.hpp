@@ -951,8 +951,10 @@ private:
         OptionChoiceValues() = default;
         OptionChoiceValues(std::initializer_list<std::string_view> list) : _names(list)
         {
+#if VDEBUG
           for (auto x : list)
             ASS(x.length() < 70) // or else cannot be printed on a line
+#endif
         }
 
         int find(std::string_view value) const {
@@ -1632,8 +1634,8 @@ private:
             return value;
         }
 
-        DHMap<std::string_view, AbstractOptionValue *>::Iterator values() const {
-            return _longMap;
+        auto values() const {
+            return _longMap.range();
         }
 
     private:
