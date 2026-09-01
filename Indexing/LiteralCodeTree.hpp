@@ -30,9 +30,9 @@ template<bool higherOrder, class Data>
 class LiteralCodeTree : public TermOrLiteralCodeTree<higherOrder, Data>
 {
 public:
-  LiteralCodeTree();
-
-  void insert(Data* data);
+  LiteralCodeTree() {
+    CodeTree::_containsLiterals = true;
+  }
 
   struct LiteralMatcher
   : public TermOrLiteralCodeTree<higherOrder, Data>::Matcher
@@ -40,8 +40,35 @@ public:
     using Base = TermOrLiteralCodeTree<higherOrder, Data>::Matcher;
     using Base::ft;
 
-    void init(const CodeTree& tree, Literal* lit, bool complementary);
-    Data* next();
+    void init(const CodeTree& tree, Literal* lit, bool complementary) {
+      Base::init(tree, FlatTerm::create(TermList(lit)));
+      if (complementary) {
+        ft->changeLiteralPolarity();
+      }
+      _checkEqReversed = lit->isEquality();
+    }
+
+    Data* next() {
+      if (Base::finished()) {
+        //all possible matches are exhausted
+        return nullptr;
+      }
+
+MATCH:
+      Base::_matched = Base::execute();
+      if (!Base::_matched) {
+        if (_checkEqReversed) {
+          Base::init(*Base::tree, Base::ft);
+          ft->swapCommutativePredicateArguments();
+          _checkEqReversed = false;
+          goto MATCH;
+        }
+        return nullptr;
+      }
+
+      ASS(Base::op->isSuccess());
+      return Base::op->template getSuccessResult<Data>();
+    }
 
   private:
     bool _checkEqReversed;

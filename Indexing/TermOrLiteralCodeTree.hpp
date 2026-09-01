@@ -19,6 +19,9 @@
 
 #include "CodeTree.hpp"
 
+#include "Kernel/TermIterators.hpp"
+#include "Kernel/TypedTermList.hpp"
+
 namespace Indexing {
 
 using namespace Lib;
@@ -37,6 +40,33 @@ protected:
   { out << *op.getSuccessResult<Data>(); }
 
 public:
+  void insert(Data* data)
+  {
+    Recycled<CodeStack> code;
+
+    TypedTermList t(data->key());
+    if (t.isVar()) {
+      code->push(CodeOp::getTermOp(ASSIGN_VAR,0));
+      // we match the variable sort separately, but the binding array has to be prepared
+      for (const auto& v : iterTraits(VariableIterator(t.sort()))) {
+        ASS_G(v.var(), 0); // X0 is reserved for the term itself
+        if (v.var()+1 > _maxVarCnt) { _maxVarCnt = v.var()+1; }
+      }
+    }
+    else {
+      ASS(t.isTerm());
+
+      TermCompiler compiler(*code);
+      compiler.handleTerm(t.term());
+      compiler.updateCodeTree(this);
+    }
+
+    code->push(CodeOp::getSuccess(data));
+    incorporate(*code);
+    //@b incorporate should empty the code stack
+    ASS(code->isEmpty());
+  }
+
   void remove(const Data& data) {
     Recycled<RemovingMatcher> rtm;
     Recycled<Stack<CodeOp*>> firstsInBlocks;
@@ -89,8 +119,15 @@ public:
   struct Matcher
   : public CodeTree::Matcher</*removing*/false,/*checkRange=*/false,higherOrder>
   {
-    using Base = CodeTree::Matcher</*removing*/false,false,higherOrder>;
+    using Base = CodeTree::Matcher</*removing*/false,/*checkRange=*/false,higherOrder>;
     using Base::ft;
+
+    void init(const CodeTree& tree, FlatTerm* ft_) {
+      Base::init(tree,tree.getEntryPoint(), 0, 0);
+      ft = ft_;
+      Base::tp = 0;
+      Base::op = Base::entry;
+    }
 
     void reset() {
       ft->destroy();

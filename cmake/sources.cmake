@@ -187,7 +187,6 @@ set(SOURCES
     Indexing/IndexManager.hpp
     Indexing/InductionFormulaIndex.cpp
     Indexing/InductionFormulaIndex.hpp
-    Indexing/LiteralCodeTree.cpp
     Indexing/LiteralCodeTree.hpp
     Indexing/LiteralIndex.cpp
     Indexing/LiteralIndex.hpp
@@ -200,7 +199,6 @@ set(SOURCES
     Indexing/SubstitutionTree_FastInst.hpp
     Indexing/SubstitutionTree_Nodes.hpp
     Indexing/SubstitutionTree_impl.hpp
-    Indexing/TermCodeTree.cpp
     Indexing/TermCodeTree.hpp
     Indexing/TermOrLiteralCodeTree.hpp
     Indexing/TermIndex.cpp

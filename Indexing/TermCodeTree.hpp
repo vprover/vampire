@@ -17,6 +17,7 @@
 
 #include "Forwards.hpp"
 
+#include "Kernel/Matcher.hpp"
 #include "Kernel/TypedTermList.hpp"
 
 #include "TermOrLiteralCodeTree.hpp"
@@ -30,21 +31,46 @@ template<bool higherOrder, class Data>
 class TermCodeTree : public TermOrLiteralCodeTree<higherOrder, Data>
 {
 public:
-  void insert(Data* data);
-
   struct TermMatcher
   : public TermOrLiteralCodeTree<higherOrder, Data>::Matcher
   {
     using Base = TermOrLiteralCodeTree<higherOrder, Data>::Matcher;
     using Base::ft;
+    using Base::op;
 
-    void init(const CodeTree& tree, TypedTermList t);
-    Data* next();
+    void init(const CodeTree& tree, TypedTermList t) {
+      Base::init(tree, FlatTerm::create(t));
+      _querySort = t.sort();
+    }
+
+    Data* next() {
+      if (Base::finished()) {
+        //all possible matches are exhausted
+        return 0;
+      }
+
+      while ((Base::_matched=Base::execute())) {
+        ASS(op->isSuccess());
+        auto res = op->template getSuccessResult<Data>();
+        if (res->key().isVar()) {
+          // match the variable sort separately
+          Substitution subst;
+          if (!MatchingUtils::matchTerms(res->key().sort(), _querySort, subst)) {
+            continue;
+          }
+          for (const auto& [v,t] : iterTraits(subst.items())) {
+            ASS_G(v, 0); // X0 is reserved for the term itself
+            Base::bindings[v] = t;
+          }
+        }
+        return res;
+      }
+      return nullptr;
+    }
 
   private:
     TermList _querySort;
   };
-
 };
 
 };

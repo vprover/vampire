@@ -293,36 +293,36 @@ TEST_FUN(zero_arity_predicate) {
   check_unify(tree, a != a, Stack<Data>{});
 }
 
-// TEST_FUN(zero_arity_predicate_gen) {
+TEST_FUN(zero_arity_predicate_gen) {
 
-//   DECL_DEFAULT_VARS
-//   DECL_SORT(srt)
-//   DECL_CONST(a, srt)
-//   DECL_CONST(b, srt)
-//   DECL_PRED(p0, {})
-//   DECL_PRED(p1, {srt})
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_CONST(a, srt)
+  DECL_CONST(b, srt)
+  DECL_PRED(p0, {})
+  DECL_PRED(p1, {srt})
 
-//   using Data = MyData<Literal*>;
-//   CodeTreeLIS</*higherOrder=*/false, Data> tree;
-//   auto dat = [](Literal* k,std::string s) { return Data(k, std::move(s)); };
-//   tree.handle(dat( p0() , " p0()"), /*insert=*/true);
-//   tree.handle(dat( p1(a), " p1(a)"), /*insert=*/true);
-//   tree.handle(dat( p1(b), " p1(b)"), /*insert=*/true);
-//   tree.handle(dat(~p0() , "~p0()"), /*insert=*/true);
-//   tree.handle(dat(~p1(a), "~p1(a)"), /*insert=*/true);
-//   tree.handle(dat(~p1(b), "~p1(b)"), /*insert=*/true);
+  using Data = MyData<Literal*>;
+  CodeTreeLIS</*higherOrder=*/false, Data> tree;
+  auto dat = [](Literal* k,std::string s) { return Data(k, std::move(s)); };
+  tree.handle(dat( p0() , " p0()"), /*insert=*/true);
+  tree.handle(dat( p1(a), " p1(a)"), /*insert=*/true);
+  tree.handle(dat( p1(b), " p1(b)"), /*insert=*/true);
+  tree.handle(dat(~p0() , "~p0()"), /*insert=*/true);
+  tree.handle(dat(~p1(a), "~p1(a)"), /*insert=*/true);
+  tree.handle(dat(~p1(b), "~p1(b)"), /*insert=*/true);
 
-//   tree.handle(dat(~p1(a), "~p1(a)"), /*insert=*/false);
-//   tree.handle(dat(~p0() , "~p0()"), /*insert=*/false);
+  tree.handle(dat(~p1(a), "~p1(a)"), /*insert=*/false);
+  tree.handle(dat(~p0() , "~p0()"), /*insert=*/false);
 
-//   check_gen(tree,  p0() , { dat( p0() , " p0()") });
-//   check_gen(tree, ~p0() , Stack<Data>{});
+  check_gen(tree,  p0() , { dat( p0() , " p0()") });
+  check_gen(tree, ~p0() , Stack<Data>{});
 
-//   tree.handle(dat( p1(x), " p1(x)"), /*insert=*/true);
-//   tree.handle(dat(~p1(x), "~p1(x)"), /*insert=*/true);
+  tree.handle(dat( p1(x), " p1(x)"), /*insert=*/true);
+  tree.handle(dat(~p1(x), "~p1(x)"), /*insert=*/true);
 
-//   check_gen(tree,  p1(a), { dat( p1(a), " p1(a)"), dat( p1(x), " p1(x)") });
-//   check_gen(tree, ~p1(a), {                        dat(~p1(x), "~p1(x)") });
-//   check_gen(  tree, a != a, Stack<Data>{});
-// }
+  check_gen(tree,  p1(a), { dat( p1(a), " p1(a)"), dat( p1(x), " p1(x)") });
+  check_gen(tree, ~p1(a), {                        dat(~p1(x), "~p1(x)") });
+  check_gen(  tree, a != a, Stack<Data>{});
+}
 
