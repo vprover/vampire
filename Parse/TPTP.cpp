@@ -798,7 +798,7 @@ void TPTP::skipWhiteSpacesAndComments()
       if (c == 0) {
         resetChars();
         getChar(0);
-	return;
+        return;
       }
       if (c == '\n') {
         currentFile.lineNumber++;
@@ -817,43 +817,43 @@ void TPTP::skipWhiteSpacesAndComments()
         }
 #endif
         resetChars();
-	break;
+        break;
       }
     }
     break;
 
     case '/': // potential comment
       if (getChar(1) != '*') {
-	return;
+        return;
       }
       resetChars();
       // search for the end of this comment
       for (;;) {
-	int c = getChar(0);
+        int c = getChar(0);
         if( c == '\n' || c == '\r'){
           currentFile.lineNumber++;
           if (c == '\r' && getChar(1) == '\n') {
             shiftChars(1); // count a CRLF line ending only once
           }
         }
-	if (!c) {
-	  return;
-	}
-	// shiftChars instead of resetChars, as the CRLF check above may have peeked one character ahead
-	shiftChars(1);
-	if (c != '*') {
-	  continue;
-	}
-	// c == '*'
-	c = getChar(0);
-	if (c != '/') {
-	  // do not consume: this character must be re-examined from the top
-	  // of the loop (it may be another '*' starting the closing '*/',
-	  // or a newline that needs counting)
-	  continue;
-	}
-	shiftChars(1);
-	break;
+        if (!c) {
+          return;
+        }
+        // shiftChars instead of resetChars, as the CRLF check above may have peeked one character ahead
+        shiftChars(1);
+        if (c != '*') {
+          continue;
+        }
+        // c == '*'
+        c = getChar(0);
+        if (c != '/') {
+          // do not consume: this character must be re-examined from the top
+          // of the loop (it may be another '*' starting the closing '*/',
+          // or a newline that needs counting)
+          continue;
+        }
+        shiftChars(1);
+        break;
       }
       break;
 
