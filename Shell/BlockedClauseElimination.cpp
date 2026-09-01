@@ -263,6 +263,26 @@ bool BlockedClauseElimination::clearedBy(bool equationally, RobSubstitution& sub
   return subsumed;
 }
 
+/**
+ * Every literal of the resolvent must be one which is guaranteed false in the model repair
+ * scenario the blockedness argument runs (a model of the current clause set minus cl, under
+ * which cl's instance is false, so that lit gets flipped to true and some partner instance
+ * might break). On cl's side that is every literal, cl's instance being false as a whole.
+ * On pcl's side it is every literal *except* those which could be the resolved literal itself:
+ * those are exactly the ones the flip falsifies, and are true before it. Dropping just the
+ * plitIdx-th occurrence is not enough -- another literal can coincide with plit(subst) under a
+ * further instantiation, and is then true, too. So drop everything unifiable with it, which is
+ * the very same rule the subst_aux guard in resolvesToTautologyUn enforces.
+ */
+static bool couldBeTheResolvedLiteral(RobSubstitution& subst_aux, Literal* resolved, Literal* l)
+{
+  if (l->functor() != resolved->functor() || l->polarity() != resolved->polarity()) {
+    return false;
+  }
+  subst_aux.reset();
+  return subst_aux.unifyArgs(resolved,0,l,0);
+}
+
 Clause* BlockedClauseElimination::buildResolvent(RobSubstitution& subst, Clause* cl, unsigned litIdx, Clause* pcl, unsigned plitIdx, bool& tautology)
 {
   ASS(!tautology);
@@ -270,17 +290,24 @@ Clause* BlockedClauseElimination::buildResolvent(RobSubstitution& subst, Clause*
   static DHSet<Literal*, FnvHash, PtrIdentityHash> seen;
   seen.reset();
 
+  static RobSubstitution subst_aux;
+
+  // plit under the mgu, i.e. the literal resolution removes from pcl
+  Literal* resolved = subst.apply((*pcl)[plitIdx],1);
+
   LiteralStack lits;
 
   for (unsigned bank = 0; bank < 2; bank++) {
     Clause* c = bank ? pcl : cl;
-    unsigned skip = bank ? plitIdx : litIdx;
 
     for (unsigned i = 0; i < c->length(); i++) {
-      if (i == skip) {
+      if (!bank && i == litIdx) {
         continue;
       }
       Literal* l = subst.apply((*c)[i],bank);
+      if (bank && couldBeTheResolvedLiteral(subst_aux,resolved,l)) {
+        continue;
+      }
       // the complementary pair conditions in resolvesToTautologyUn are deliberately
       // conservative (c.f. the opslit business there), so this can genuinely fire
       if (seen.find(Literal::complementaryLiteral(l))) {
