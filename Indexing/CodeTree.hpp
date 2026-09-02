@@ -324,7 +324,7 @@ public:
    * this one. After use, the @b deinit function should be called (if
    * present). This allows for reuse of a single object.
    */
-  template<bool removing, bool checkRange, bool higherOrder>
+  template<bool removing, bool checkRange>
   struct Matcher
     : public std::conditional<removing, RemovingBase, NonRemovingBase>::type
   {

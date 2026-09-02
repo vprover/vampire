@@ -27,7 +27,6 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-template<bool higherOrder>
 class ForwardGroundJoinability
 : public ForwardSimplificationEngine
 {
@@ -55,7 +54,7 @@ private:
   };
 
   const Ordering& _ord;
-  std::shared_ptr<DemodulationLHSIndex<higherOrder>> _index;
+  std::shared_ptr<DemodulationLHSIndex> _index;
 };
 
 };

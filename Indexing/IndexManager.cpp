@@ -34,10 +34,8 @@ using namespace Indexing;
 
 SIMP_INDEX_IMPL(GeneralizingAlascaIndex<ALASCA::Demodulation::Lhs>)
 SIMP_INDEX_IMPL(AlascaIndex<ALASCA::Demodulation::Rhs>)
-SIMP_INDEX_IMPL(DemodulationLHSIndex<false>)
-SIMP_INDEX_IMPL(DemodulationLHSIndex<true>)
-SIMP_INDEX_IMPL(CodeTreeSubsumptionIndex<false>)
-SIMP_INDEX_IMPL(CodeTreeSubsumptionIndex<true>)
+SIMP_INDEX_IMPL(DemodulationLHSIndex)
+SIMP_INDEX_IMPL(CodeTreeSubsumptionIndex)
 SIMP_INDEX_IMPL(BackwardSubsumptionIndex)
 SIMP_INDEX_IMPL(FwSubsSimplifyingLiteralIndex)
 SIMP_INDEX_IMPL(RewriteRuleIndex)

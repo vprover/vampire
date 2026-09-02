@@ -33,7 +33,7 @@ public:
     return _ct.getGeneralizations(TypedTermList(forTerm));
   }
 private:
-  CodeTreeTIS<true, TermWithValue<TermList>> _ct;
+  CodeTreeTIS<TermWithValue<TermList>> _ct;
 };
 
 class IFFXORRewriterISE

@@ -88,14 +88,14 @@ template<class T> std::string AlascaIndex<T>::_lookupStr = T::name() + std::stri
 template<class T> std::string AlascaIndex<T>::_maintenanceStr = T::name() + std::string(" maintenance");
 
 template<class T>
-class GeneralizingAlascaIndex : public Indexing::GeneralizingTermIndex</*higherOrder=*/false, T>
+class GeneralizingAlascaIndex : public Indexing::GeneralizingTermIndex<T>
 {
 public:
   GeneralizingAlascaIndex(SaturationAlgorithm& salg) : _shared(salg.alascaState()) {}
 
   void handleClause(Clause* c, bool adding) override {
     for (auto appl : T::iter(_shared, c)) {
-      Indexing::GeneralizingTermIndex<false, T>::_ct.handle(std::move(appl), adding);
+      Indexing::GeneralizingTermIndex<T>::_ct.handle(std::move(appl), adding);
     }
   }
 private:

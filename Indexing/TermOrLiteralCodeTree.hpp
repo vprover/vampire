@@ -27,7 +27,7 @@ namespace Indexing {
 using namespace Lib;
 using namespace Kernel;
 
-template<bool higherOrder, class Data>
+template<class Data>
 class TermOrLiteralCodeTree : public CodeTree
 {
 protected:
@@ -97,18 +97,15 @@ public:
 
 public:
   struct RemovingMatcher
-  : public Matcher</*removing=*/true,/*checkRange=*/false,higherOrder>
+  : public Matcher</*removing=*/true,/*checkRange=*/false>
   {
   public:
-    using Base = Matcher</*removing*/true,/*checkRange=*/false,higherOrder>;
-    using Base::ft;
-
     void init(FlatTerm* ft_, const CodeTree& tree_, Stack<CodeOp*>* firstsInBlocks_) {
-      Base::init(tree_, tree_.getEntryPoint(), /*linfos_=*/0, /*linfoCnt_=*/0, firstsInBlocks_);
-      Base::firstsInBlocks->push(Base::entry);
+      Matcher</*removing=*/true,/*checkRange=*/false>::init(tree_, tree_.getEntryPoint(), /*linfos_=*/0, /*linfoCnt_=*/0, firstsInBlocks_);
+      firstsInBlocks->push(entry);
       ft=ft_;
-      Base::tp=0;
-      Base::op=Base::entry;
+      tp=0;
+      op=entry;
     }
     void reset() {
       ft->destroy();
@@ -117,16 +114,13 @@ public:
   };
 
   struct Matcher
-  : public CodeTree::Matcher</*removing*/false,/*checkRange=*/false,higherOrder>
+  : public CodeTree::Matcher</*removing*/false,/*checkRange=*/false>
   {
-    using Base = CodeTree::Matcher</*removing*/false,/*checkRange=*/false,higherOrder>;
-    using Base::ft;
-
     void init(const CodeTree& tree, FlatTerm* ft_) {
-      Base::init(tree,tree.getEntryPoint(), 0, 0);
+      CodeTree::Matcher</*removing*/false,/*checkRange=*/false>::init(tree,tree.getEntryPoint(), 0, 0);
       ft = ft_;
-      Base::tp = 0;
-      Base::op = Base::entry;
+      tp = 0;
+      op = entry;
     }
 
     void reset() {

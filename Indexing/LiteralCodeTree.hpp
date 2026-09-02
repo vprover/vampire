@@ -26,8 +26,8 @@ namespace Indexing {
 using namespace Lib;
 using namespace Kernel;
 
-template<bool higherOrder, class Data>
-class LiteralCodeTree : public TermOrLiteralCodeTree<higherOrder, Data>
+template<class Data>
+class LiteralCodeTree : public TermOrLiteralCodeTree<Data>
 {
 public:
   LiteralCodeTree() {
@@ -35,9 +35,9 @@ public:
   }
 
   struct LiteralMatcher
-  : public TermOrLiteralCodeTree<higherOrder, Data>::Matcher
+  : public TermOrLiteralCodeTree<Data>::Matcher
   {
-    using Base = TermOrLiteralCodeTree<higherOrder, Data>::Matcher;
+    using Base = TermOrLiteralCodeTree<Data>::Matcher;
     using Base::ft;
 
     void init(const CodeTree& tree, Literal* lit, bool complementary) {

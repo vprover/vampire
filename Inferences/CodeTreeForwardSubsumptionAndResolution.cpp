@@ -22,15 +22,13 @@
 
 namespace Inferences {
 
-template<bool higherOrder>
-CodeTreeForwardSubsumptionAndResolution<higherOrder>::CodeTreeForwardSubsumptionAndResolution(SaturationAlgorithm& salg)
+CodeTreeForwardSubsumptionAndResolution::CodeTreeForwardSubsumptionAndResolution(SaturationAlgorithm& salg)
   : _subsumptionResolution(salg.getOptions().forwardSubsumptionResolution()),
-    _index(salg.getSimplifyingIndex<CodeTreeSubsumptionIndex<higherOrder>>()),
+    _index(salg.getSimplifyingIndex<CodeTreeSubsumptionIndex>()),
     _ct(_index->getClauseCodeTree())
 {}
 
-template<bool higherOrder>
-bool CodeTreeForwardSubsumptionAndResolution<higherOrder>::perform(Clause *cl, Clause *&replacement, ClauseIterator &premises)
+bool CodeTreeForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, ClauseIterator &premises)
 {
   if (_ct->isEmpty()) {
     return false;
@@ -42,7 +40,7 @@ bool CodeTreeForwardSubsumptionAndResolution<higherOrder>::perform(Clause *cl, C
   constexpr double RSI_SKIP_PROB = 0.02;
   bool rsi = env.options->randomizedSimplifications();
 
-  static typename ClauseCodeTree<higherOrder>::ClauseMatcher cm;
+  static typename ClauseCodeTree::ClauseMatcher cm;
 
   cm.init(_ct, cl, _subsumptionResolution);
 
@@ -80,8 +78,5 @@ bool CodeTreeForwardSubsumptionAndResolution<higherOrder>::perform(Clause *cl, C
   cm.reset();
   return false;
 }
-
-template class CodeTreeForwardSubsumptionAndResolution<false>;
-template class CodeTreeForwardSubsumptionAndResolution<true>;
 
 } // namespace Inferences

@@ -109,7 +109,7 @@ private:
 /**
  * Term indexing structure using code trees to retrieve generalizations
  */
-template<bool higherOrder, class Data>
+template<class Data>
 class CodeTreeTIS
 {
 public:
@@ -129,17 +129,17 @@ public:
       return VirtualIterator<GenSubstitutionQR<Data>>::getEmpty();
     }
 
-    return vi( new ResultIterator<Data, typename TermCodeTree<higherOrder, Data>::TermMatcher>(_ct, t) );
+    return vi( new ResultIterator<Data, typename TermCodeTree<Data>::TermMatcher>(_ct, t) );
   }
 
 private:
-  TermCodeTree<higherOrder, Data> _ct;
+  TermCodeTree<Data> _ct;
 };
 
 /**
  * Literal indexing structure using code trees to retrieve generalizations
  */
-template<bool higherOrder, class Data>
+template<class Data>
 class CodeTreeLIS
 {
 public:
@@ -159,23 +159,22 @@ public:
     if(_ct.isEmpty()) {
       return VirtualIterator<GenSubstitutionQR<Data>>::getEmpty();
     }
-    return vi( new ResultIterator<Data, typename LiteralCodeTree<higherOrder, Data>::LiteralMatcher>(_ct, lit, complementary) );
+    return vi( new ResultIterator<Data, typename LiteralCodeTree<Data>::LiteralMatcher>(_ct, lit, complementary) );
   }
 
-  friend std::ostream& operator<<(std::ostream& out, Output::Multiline<CodeTreeLIS<higherOrder, Data>> const& self)
+  friend std::ostream& operator<<(std::ostream& out, Output::Multiline<CodeTreeLIS<Data>> const& self)
   { return out << self.self._ct; }
 
 private:
-  LiteralCodeTree<higherOrder, Data> _ct;
+  LiteralCodeTree<Data> _ct;
 };
 
-template<bool higherOrder>
 class CodeTreeSubsumptionIndex
 : public Index
 {
 public:
   CodeTreeSubsumptionIndex(SaturationAlgorithm&) {}
-  ClauseCodeTree<higherOrder>* getClauseCodeTree() { return &_ct; }
+  ClauseCodeTree* getClauseCodeTree() { return &_ct; }
 protected:
   void handleClause(Clause* c, bool adding) override {
     TIME_TRACE("codetree subsumption index maintenance");
@@ -188,7 +187,7 @@ protected:
     }
   }
 private:
-  ClauseCodeTree<higherOrder> _ct;
+  ClauseCodeTree _ct;
 };
 
 };

@@ -180,7 +180,7 @@ private:
   // forward subsumption (and subsumption resolution) machinery, only used with _useSubsumption;
   // the backward direction (new clauses simplifying older ones) is left as future work
   // a whole-clause index, which also performs the multi-literal matching for us
-  Indexing::ClauseCodeTree<false> _ct; // only populated when _useSubsumption
+  Indexing::ClauseCodeTree _ct; // only populated when _useSubsumption
   // simplify cl against the indexed clause set (to fixpoint): returns nullptr if cl
   // is subsumed, otherwise cl itself or a subsumption-resolution descendant of it
   Clause *forwardSimplify(Clause *cl);

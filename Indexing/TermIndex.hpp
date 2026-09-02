@@ -65,7 +65,7 @@ protected:
   TermSubstitutionTree<Data> _is;
 };
 
-template<bool higherOrder, class Data>
+template<class Data>
 class GeneralizingTermIndex
 : public Index
 {
@@ -76,7 +76,7 @@ public:
   friend std::ostream& operator<<(std::ostream& out, GeneralizingTermIndex const& self)
   { return out << self._ct; }
 protected:
-  CodeTreeTIS<higherOrder, Data> _ct;
+  CodeTreeTIS<Data> _ct;
 };
 
 template<bool higherOrder>
@@ -121,7 +121,7 @@ private:
  * Term index for structural induction
  */
 class StructInductionTermIndex
-: public GeneralizingTermIndex</*higherOrder=*/false, TermLiteralClause>
+: public GeneralizingTermIndex<TermLiteralClause>
 {
 public:
   StructInductionTermIndex(SaturationAlgorithm& salg);

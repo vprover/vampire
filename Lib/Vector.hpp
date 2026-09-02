@@ -22,11 +22,10 @@
 
 #include "Debug/Assertion.hpp"
 #include "Allocator.hpp"
-#include "Reflection.hpp"
 
 namespace Indexing {
   class CodeTree;
-  template<bool> class ClauseCodeTree;
+  class ClauseCodeTree;
 }
 
 namespace Lib {
@@ -118,7 +117,7 @@ public:
   } // toString
 
   friend class Indexing::CodeTree;
-  template<bool> friend class Indexing::ClauseCodeTree;
+  friend class Indexing::ClauseCodeTree;
 
   /**
    * Iterator that deallocates the vector when it yields the last value.

@@ -69,8 +69,7 @@ protected:
   void handle(LiteralClause data, bool add)
   { _is.handle(std::move(data), add); }
 
-  // TODO make this work for higher order too
-  CodeTreeLIS</*higherOrder=*/false, LiteralClause> _is;
+  CodeTreeLIS<LiteralClause> _is;
 };
 
 class BinaryResolutionIndex
