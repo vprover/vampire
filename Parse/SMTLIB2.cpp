@@ -1392,7 +1392,7 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
     }
 
     ASS(t.isTerm());
-    DHMap<unsigned,TermList> vs;
+    DHMap<unsigned,TermList, FnvHash, IdentityHash> vs;
     SortHelper::collectVariableSorts(t.term(),vs);
     TermStack args;
     TermStack varSorts;

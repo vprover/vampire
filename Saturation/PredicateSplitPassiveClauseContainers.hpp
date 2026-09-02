@@ -103,7 +103,7 @@ private:
    * The hashamp is populated lazily be recursing to parents as needed in the computeTheoryFeatures method above.
    * See Bernhard Gleiss, Martin Suda: Layered Clause Selection for Theory Reasoning - (Short Paper). IJCAR (1) 2020: 402-409
   */
-  mutable DHMap<unsigned, std::pair<float,float>> _teoryFeatureCache;
+  mutable DHMap<unsigned, std::pair<float,float>, FnvHash, IdentityHash> _teoryFeatureCache;
 };
 
 class HoFeaturesMultiSplitPassiveClauseContainer : public PredicateSplitPassiveClauseContainer

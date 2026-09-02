@@ -346,6 +346,15 @@ public:
   };
 
   /**
+   * Possible values for predicate_elimination.
+   */
+  enum class PredicateElimination : unsigned int {
+    OFF = 0,
+    ON = 1,
+    MULTI = 2
+  };
+
+  /**
    * Possible values for the input syntax
    * @since 26/08/2009 Redmond
    */
@@ -2059,6 +2068,10 @@ public:
 
   bool unusedPredicateDefinitionRemoval() const { return _unusedPredicateDefinitionRemoval.actualValue; }
   bool blockedClauseElimination() const { return _blockedClauseElimination.actualValue; }
+  PredicateElimination predicateElimination() const { return _predicateElimination.actualValue; }
+  float predicateEliminationTotalLimit() const { return _predicateEliminationTotalLimit.actualValue; }
+  bool predicateEliminationSubsumption() const { return _predicateEliminationSubsumption.actualValue; }
+  bool predicateEliminationMultiOccurrence() const { return _predicateElimination.actualValue == PredicateElimination::MULTI; }
   unsigned distinctGroupExpansionLimit() const { return _distinctGroupExpansionLimit.actualValue; }
   void setUnusedPredicateDefinitionRemoval(bool newVal) { _unusedPredicateDefinitionRemoval.actualValue = newVal; }
   SatSolver satSolver() const { return _satSolver.actualValue; }
@@ -2165,7 +2178,6 @@ public:
   bool literalMaximalityAftercheck() const { return _literalMaximalityAftercheck.actualValue; }
   bool superpositionFromVariables() const { return _superpositionFromVariables.actualValue; }
   EqualityProxy equalityProxy() const { return _equalityProxy.actualValue; }
-  bool useMonoEqualityProxy() const { return _useMonoEqualityProxy.actualValue; }
   bool equalityResolutionWithDeletion() const { return _equalityResolutionWithDeletion.actualValue; }
   ExtensionalityResolution extensionalityResolution() const { return _extensionalityResolution.actualValue; }
   bool FOOLParamodulation() const { return _FOOLParamodulation.actualValue; }
@@ -2183,6 +2195,8 @@ public:
 
   bool shuffleInput() const { return _shuffleInput.actualValue; }
   bool randomPolarities() const { return _randomPolarities.actualValue; }
+  bool randomizedSimplifications() const { return _randomizedSimplifications.actualValue; }
+  bool randomizedPreprocessing() const { return _randomizedPreprocessing.actualValue; }
   bool randomAWR() const { return _randomAWR.actualValue; }
   bool randomTraversals() const { return _randomTraversals.actualValue; }
   bool randomizeSeedForPortfolioWorkers() const { return _randomizeSeedForPortfolioWorkers.actualValue; }
@@ -2449,7 +2463,6 @@ private:
   BoolOptionValue _demodulationOnlyEquational;
 
   ChoiceOptionValue<EqualityProxy> _equalityProxy;
-  BoolOptionValue _useMonoEqualityProxy;
   BoolOptionValue _equalityResolutionWithDeletion;
   BoolOptionValue _equivalentVariableRemoval;
   ChoiceOptionValue<ExtensionalityResolution> _extensionalityResolution;
@@ -2577,6 +2590,10 @@ private:
   BoolOptionValue _shuffleInput;
   BoolOptionValue _randomPolarities;
 
+  BoolOptionValue _randomizedSimplifications;
+  
+  BoolOptionValue _randomizedPreprocessing;
+
   StringOptionValue _printProofToFile;
   BoolOptionValue _printClausifierPremises;
   BoolOptionValue _replaceDomainElements;
@@ -2703,6 +2720,9 @@ private:
   ChoiceOptionValue<URResolution> _unitResultingResolution;
   BoolOptionValue _unusedPredicateDefinitionRemoval;
   BoolOptionValue _blockedClauseElimination;
+  ChoiceOptionValue<PredicateElimination> _predicateElimination;
+  FloatOptionValue _predicateEliminationTotalLimit;
+  BoolOptionValue _predicateEliminationSubsumption;
   UnsignedOptionValue _distinctGroupExpansionLimit;
 
   OptionChoiceValues _tagNames;

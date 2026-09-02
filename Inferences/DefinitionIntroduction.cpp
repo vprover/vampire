@@ -18,6 +18,7 @@
 #include "Kernel/HOL/HOL.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/InferenceStore.hpp"
+#include "Kernel/Renaming.hpp"
 #include "Lib/Metaiterators.hpp"
 
 struct IncompleteFunction {
@@ -108,7 +109,7 @@ void DefinitionIntroduction<higherOrder>::introduceDefinitionFor(Term *t) {
     return;
 
   // compute domain and range sorts
-  DHMap<unsigned, TermList> domain_sorts;
+  DHMap<unsigned, TermList, FnvHash, IdentityHash> domain_sorts;
   TermList range_sort = SortHelper::getResultSort(t);
   SortHelper::collectVariableSorts(t, domain_sorts);
 
@@ -174,7 +175,7 @@ void DefinitionIntroduction<higherOrder>::introduceDefinitionFor(Term *t) {
   }
 
   // record definition
-  InferenceStore::instance()->recordIntroducedSymbol(intro, SymbolType::FUNC, functor);
+  InferenceStore::instance()->recordIntroducedSymbol(intro, env.signature->getFunction(functor));
 
   _definitions.push_back(definition);
 }

@@ -43,7 +43,6 @@
 #include <utility>
 
 #include "Allocator.hpp"
-#include "Reflection.hpp"
 
 #include "Debug/Assertion.hpp"
 
@@ -60,7 +59,7 @@ template <class C>
 class List
 {
 public:
-  DECL_ELEMENT_TYPE(C);
+  using ElementType = C;
 
   /** builds a single-element list */
   explicit List (C head)
@@ -480,7 +479,7 @@ public:
   public:
     USE_ALLOCATOR(List::Iterator);
 
-    DECL_ELEMENT_TYPE(C);
+    using ElementType = C;
 
     explicit Iterator(const List* l) : _lst (l) {}
 
@@ -523,7 +522,7 @@ public:
    public:
      USE_ALLOCATOR(List::RefIterator);
 
-     DECL_ELEMENT_TYPE(C&);
+     using ElementType = C&;
 
     explicit RefIterator(List* l) : _lst (l) {}
 
@@ -555,7 +554,7 @@ public:
    public:
      USE_ALLOCATOR(List::DelIterator);
      
-    DECL_ELEMENT_TYPE(C);
+    using ElementType = C;
     DelIterator (List*& l)
       :
       _lst(l),
@@ -702,7 +701,7 @@ public:
   public:
     USE_ALLOCATOR(List::DestructiveIterator);
     
-    DECL_ELEMENT_TYPE(C);
+    using ElementType = C;
 
     explicit
     DestructiveIterator(List* l)
@@ -799,42 +798,6 @@ protected:  // structure
   /** tail of the list */
   List* _tail;
 };  // class List
-
-///@addtogroup Iterators
-///@{
-
-template<typename T>
-typename List<T>::Iterator getContentIterator(List<T>* lst)
-{
-  return typename List<T>::Iterator(lst);
-}
-
-///@}?
-
-
-///@addtogroup Reflection
-///@{
-
-/** see Reflection.hpp */
-template<typename T>
-struct ElementTypeInfo<List<T>* >
-{
-  typedef T Type;
-};
-
-/** see Reflection.hpp */
-template<typename T>
-struct IteratorTypeInfo<List<T>* >
-{
-  typedef typename List<T>::Iterator Type;
-};
-template<typename T>
-struct IteratorTypeInfo<const List<T>*>
-{
-  typedef typename List<T>::Iterator Type;
-};
-
-///@}?
 
 #if VDEBUG
 

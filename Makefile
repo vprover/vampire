@@ -233,6 +233,7 @@ VI_OBJ = Indexing/AcyclicityIndex.o\
          Indexing/ClauseVariantIndex.o\
          Indexing/CodeTree.o\
          Indexing/CodeTreeInterfaces.o\
+         Indexing/DemodulationIndex.o\
          Indexing/Index.o\
          Indexing/IndexManager.o\
          Indexing/InductionFormulaIndex.o\
@@ -354,7 +355,6 @@ VS_OBJ = Shell/AnswerLiteralManager.o\
          Shell/DistinctGroupExpansion.o\
          Shell/EqResWithDeletion.o\
          Shell/EqualityProxy.o\
-         Shell/EqualityProxyMono.o\
          Shell/Flattening.o\
          Shell/FunctionDefinition.o\
          Shell/FunctionDefinitionHandler.o\
@@ -392,6 +392,7 @@ VS_OBJ = Shell/AnswerLiteralManager.o\
          Shell/TheoryFlattening.o\
          Shell/TweeGoalTransformation.o\
          Shell/BlockedClauseElimination.o\
+         Shell/PredicateElimination.o\
          Shell/Token.o\
          Shell/TPTPPrinter.o\
          Shell/UIHelper.o\
@@ -499,7 +500,7 @@ all: #default make disabled
 ################################################################
 # automated generation of Vampire revision information
 
-VERSION_NUMBER = 5.0.1
+VERSION_NUMBER = 5.1.0
 
 # We extract the revision number from svn every time the svn meta-data are modified
 # (that's why there is the dependency on .svn/entries) 

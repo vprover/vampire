@@ -199,7 +199,7 @@ TermIterator EqHelper::getBooleanSubtermIterator(Literal* lit, const Ordering& o
  * superposition.
  */
 template<class SubtermIterator>
-VirtualIterator<ELEMENT_TYPE(SubtermIterator)> EqHelper::getRewritableSubtermIterator(Literal* lit, const Ordering& ord)
+VirtualIterator<typename SubtermIterator::ElementType> EqHelper::getRewritableSubtermIterator(Literal* lit, const Ordering& ord)
 {
   if (lit->isEquality()) {
     TermList sel;
@@ -221,7 +221,7 @@ VirtualIterator<ELEMENT_TYPE(SubtermIterator)> EqHelper::getRewritableSubtermIte
 #endif
     }
     if (!sel.isTerm()) {
-      return VirtualIterator<ELEMENT_TYPE(SubtermIterator)>::getEmpty();
+      return VirtualIterator<typename SubtermIterator::ElementType>::getEmpty();
     }
     return getUniquePersistentIterator(vi(new SubtermIterator(sel.term(), true)));
   }
@@ -307,8 +307,10 @@ std::pair<VirtualIterator<TypedTermList>,bool> EqHelper::getDemodulationLHSItera
     if (lit->isNegative()) {
       return { VirtualIterator<TypedTermList>::getEmpty(), isPreordered };
     }
-    TermList t0=*lit->nthArgument(0);
-    TermList t1=*lit->nthArgument(1);
+    auto [lhs, rhs] = lit->eqArgs();
+    auto sort = lit->eqArgSort();
+    TypedTermList t0(lhs, sort);
+    TypedTermList t1(rhs, sort);
     switch(ord.getEqualityArgumentOrder(lit))
     {
     case Ordering::INCOMPARABLE:
@@ -320,24 +322,24 @@ std::pair<VirtualIterator<TypedTermList>,bool> EqHelper::getDemodulationLHSItera
           // If the equation is its own variant when oriented
           // reversed, there's no need to index both sides
           if (MatchingUtils::matchReversedArgs(lit, lit)) {
-            return { withEqualitySort(lit, getSingletonIterator(t0) ), isPreordered };
+            return { pvi(getSingletonIterator(t0)), isPreordered };
           }
-          return { withEqualitySort(lit, iterItems(t0, t1)), isPreordered };
+          return { pvi(iterItems(t0, t1)), isPreordered };
         }
-        return { withEqualitySort(lit, getSingletonIterator(t0) ), isPreordered };
+        return { pvi(getSingletonIterator(t0)), isPreordered };
       }
       if (t1.containsAllVariablesOf(t0)) {
-        return { withEqualitySort(lit, getSingletonIterator(t1) ), isPreordered };
+        return { pvi(getSingletonIterator(t1)), isPreordered };
       }
       break;
     case Ordering::GREATER:
       ASS(t0.containsAllVariablesOf(t1));
       isPreordered = true;
-      return { withEqualitySort(lit, getSingletonIterator(t0) ), isPreordered };
+      return { pvi(getSingletonIterator(t0)), isPreordered };
     case Ordering::LESS:
       ASS(t1.containsAllVariablesOf(t0));
       isPreordered = true;
-      return { withEqualitySort(lit, getSingletonIterator(t1) ), isPreordered };
+      return { pvi(getSingletonIterator(t1)), isPreordered };
     //there should be no equality literals of equal terms
     case Ordering::EQUAL:
       ASSERTION_VIOLATION_REP(*lit);

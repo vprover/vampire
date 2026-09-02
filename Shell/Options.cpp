@@ -141,7 +141,7 @@ void Options::init()
     "  -casc, casc_sat, smtcomp - like portfolio mode, with competition-specific presets for other options, including output. "
     "If you wish to use e.g. the CASC portfolio without the presets, use --mode portfolio --schedule casc.\n"
     "  -preprocess,axiom_selection,clausify: modes for producing output\n      for other solvers.\n"
-    "  -tpreprocess,tclausify: output modes for theory input (clauses are quantified\n      with sort information).\n"
+    "  -tpreprocess,tclausify: output modes for theory input (clauses are quantified\n      with sort information; tclausify outputs TPTP tcf).\n"
     "  -output,profile: output information about the problem\n"
     "Some modes are not currently maintained (get in touch if interested):\n"
     "  -bpa: perform bound propagation\n"
@@ -472,17 +472,13 @@ void Options::init()
      "     ~E(x1,y1) \\/ ... \\/ ~E(xN,yN) \\/ ~p(x1,...,xN) \\/ p(y1,...,yN)\n"
      "    for non-constant functions f add\n"
      "     ~E(x1,y1) \\/ ... \\/ ~E(xN,yN) \\/ E(f(x1,...,xN),f(y1,...,yN))\n"
-     " R stands for reflexivity";
+     " R stands for reflexivity.\n"
+     " E is a single polymorphic predicate for a polymorphic problem and one predicate"
+     " per sort for a monomorphic one";
     _lookup.insert(&_equalityProxy);
     _equalityProxy.tag(OptionTag::PREPROCESSING);
     _equalityProxy.addProblemConstraint(hasEquality());
     _equalityProxy.addProblemConstraint(onlyFirstOrder());
-
-    _useMonoEqualityProxy = BoolOptionValue("mono_ep","mep",true);
-    _useMonoEqualityProxy.description="Use the monomorphic version of equality proxy transformation.";
-    _lookup.insert(&_useMonoEqualityProxy);
-    _useMonoEqualityProxy.onlyUsefulWith(_equalityProxy.is(notEqual(EqualityProxy::OFF)));
-    _useMonoEqualityProxy.tag(OptionTag::PREPROCESSING);
 
     _equalityResolutionWithDeletion = BoolOptionValue("equality_resolution_with_deletion","erd",true);
     _equalityResolutionWithDeletion.description="Perform equality resolution with deletion.";
@@ -569,6 +565,42 @@ void Options::init()
     _lookup.insert(&_blockedClauseElimination);
     _blockedClauseElimination.tag(OptionTag::PREPROCESSING);
     _blockedClauseElimination.addProblemConstraint(notWithCat(Property::UEQ));
+
+    _predicateElimination = ChoiceOptionValue<PredicateElimination>("predicate_elimination","pel",
+                                                                     PredicateElimination::OFF,
+                                                                     {"off","on","multi"});
+    _predicateElimination.description=
+      "After clausification, eliminate predicates that occur at most once in every clause"
+      " by replacing their clauses with all pairwise resolvents (cf. Khasidashvili and Korovin, SAT 2016)."
+      " With multi, also eliminate a predicate P occurring more than once in a clause, provided P"
+      " never occurs both positively and negatively in a single clause and the multi-occurrence"
+      " clauses all sit on one polarity side. Instead of pairwise resolvents, the replacement clauses"
+      " are then all the hyper-resolvents, each occurrence of a multi-occurrence clause being resolved"
+      " against its own (variable-disjoint) copy of a single-occurrence clause of the opposite polarity."
+      " On problems without equality and theories, resolvents are computed with an mgu;"
+      " otherwise argument disequalities are introduced via (virtual) flattening,"
+      " which may add equality to a problem previously without it.";
+    _lookup.insert(&_predicateElimination);
+    _predicateElimination.tag(OptionTag::PREPROCESSING);
+    _predicateElimination.addProblemConstraint(notWithCat(Property::UEQ));
+
+    _predicateEliminationTotalLimit = FloatOptionValue("predicate_elimination_total_limit","peltl",2.0);
+    _predicateEliminationTotalLimit.description=
+      "A predicate elimination step is only performed if the estimated number of clauses afterwards"
+      " (current - |S_P| - |S_~P| + the number of resolvents, which is |S_P|*|S_~P| unless"
+      " predicate_elimination is set to multi) does not exceed the number of clauses"
+      " before predicate elimination started times this factor.";
+    _lookup.insert(&_predicateEliminationTotalLimit);
+    _predicateEliminationTotalLimit.tag(OptionTag::PREPROCESSING);
+    _predicateEliminationTotalLimit.addConstraint(greaterThanEq(0.0f));
+    _predicateEliminationTotalLimit.onlyUsefulWith(_predicateElimination.is(notEqual(PredicateElimination::OFF)));
+
+    _predicateEliminationSubsumption = BoolOptionValue("predicate_elimination_subsumption","pels",true);
+    _predicateEliminationSubsumption.description=
+      "Keep the clause set forward-inter-subsumed and subsumption-resolved during predicate elimination.";
+    _lookup.insert(&_predicateEliminationSubsumption);
+    _predicateEliminationSubsumption.tag(OptionTag::PREPROCESSING);
+    _predicateEliminationSubsumption.onlyUsefulWith(_predicateElimination.is(notEqual(PredicateElimination::OFF)));
 
     _distinctGroupExpansionLimit = UnsignedOptionValue("distinct_group_expansion_limit","dgel",140);
     _distinctGroupExpansionLimit.description = "If a distinct group (defined, e.g., via TPTP's $distinct)"
@@ -2330,6 +2362,18 @@ void Options::init()
     _lookup.insert(&_randomPolarities);
     _randomPolarities.tag(OptionTag::PREPROCESSING);
 
+    _randomizedSimplifications = BoolOptionValue("randomized_simplifications","rsi",false);
+    _randomizedSimplifications.description="Make selected saturation-loop simplifications (including AVATAR splitting) \"leaky\":"
+       " under a coin toss, some of their candidate operations are randomly skipped, as a source of noise injection.";
+    _lookup.insert(&_randomizedSimplifications);
+    _randomizedSimplifications.tag(OptionTag::INFERENCES);
+
+    _randomizedPreprocessing = BoolOptionValue("randomized_preprocessing","rpr",false);
+    _randomizedPreprocessing.description="Make selected preprocessing steps \"leaky\": under a coin toss, some of their operations are randomly skipped,"
+       " producing a mixture of half-completed (but still sound) results as a source of noise injection.";
+    _lookup.insert(&_randomizedPreprocessing);
+    _randomizedPreprocessing.tag(OptionTag::PREPROCESSING);
+
     _questionAnswering = ChoiceOptionValue<QuestionAnsweringMode>("question_answering","qa",QuestionAnsweringMode::AUTO,
                                                                   {"auto","plain","synthesis","off"});
     _questionAnswering.description= "Determines whether (and how) we attempt to answer questions:"
@@ -3477,7 +3521,7 @@ std::string Options::generateEncodedOptions() const
   Options cur=*this;
 
   // Record options that do not want to be in encoded string
-  static Set<const AbstractOptionValue*> forbidden;
+  static Set<const AbstractOptionValue*, FnvHash> forbidden;
   //we initialize the set if there's nothing inside
   if (forbidden.size()==0) {
     //things we output elsewhere

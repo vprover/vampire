@@ -308,7 +308,7 @@ public:
     Stack<CodeOp*>* firstsInBlocks;
     size_t initFIBDepth;
     bool matchingClauses;
-    DHSet<unsigned> range;
+    DHSet<unsigned, FnvHash, IdentityHash> range;
   };
 
   struct NonRemovingBase {};
@@ -382,7 +382,7 @@ public:
     }
 
   protected:
-    void init(CodeTree* tree_, CodeOp* entry_, LitInfo* linfos_ = 0,
+    void init(const CodeTree& tree_, CodeOp* entry_, LitInfo* linfos_ = 0,
       size_t linfoCnt_ = 0, Stack<CodeOp*>* firstsInBlocks_ = 0);
 
     bool backtrack();
@@ -416,7 +416,7 @@ public:
     Stack<std::conditional_t<removing,BTPointRemoving,BTPoint>> btStack;
 
     CodeOp* entry;
-    CodeTree* tree;
+    CodeTree const* tree;
 
     /**
      * Array of alternative LitInfo objects
@@ -453,7 +453,7 @@ public:
 
   //////////// insertion //////////////
 
-  typedef DHMap<unsigned,unsigned> VarMap;
+  typedef DHMap<unsigned,unsigned, FnvHash, IdentityHash> VarMap;
 
   template<bool forLits>
   struct Compiler

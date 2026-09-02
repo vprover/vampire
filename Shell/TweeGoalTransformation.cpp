@@ -64,7 +64,7 @@ class Definizator : public BottomUpTermTransformer {
     UnitList* premises;
 
     // for each relevant term, cache the introduced symbol and the corresponding definition
-    DHMap<Term*,std::pair<unsigned,Clause*>> _cache;
+    DHMap<Term*,std::pair<unsigned,Clause*>, FnvHash, PtrIdentityHash> _cache;
 
     Definizator(bool groundOnly) : newUnits(UnitList::empty()), _groundOnly(groundOnly) {}
   private:
@@ -79,7 +79,7 @@ class Definizator : public BottomUpTermTransformer {
     // a helper function to collect terms variables and their sorts
     // all stored in the above private fields to be looked up by transformSubterm
     void scanVars(Term* t) {
-      static DHSet<unsigned> varSeen;
+      static DHSet<unsigned, FnvHash, IdentityHash> varSeen;
       varSeen.reset();
       _typeArity = 0;
       _typeVars.reset();
@@ -139,7 +139,8 @@ class Definizator : public BottomUpTermTransformer {
       TermList res;
       if (!_cache.find(key,symAndDef)) {
         TermList outSort = SortHelper::getResultSort(t);
-        unsigned newSym;
+        unsigned newFn;
+        Signature::Symbol* newSym;
         Clause* newDef;
         scanVars(t);
 
@@ -152,16 +153,17 @@ class Definizator : public BottomUpTermTransformer {
 
           if (env.higherOrder()) {
             auto sort = AtomicSort::arrowSort(_termVarSorts, outSort);
-            newSym = env.signature->addFreshFunction(OperatorType::getConstantsType(sort, _typeVars.size()), "sF");
+            newFn = env.signature->addFreshFunction(OperatorType::getConstantsType(sort, _typeVars.size()), "sF");
 
-            TermList head(Term::create(newSym, _typeVars.size(), _typeVars.begin()));
+            TermList head(Term::create(newFn, _typeVars.size(), _typeVars.begin()));
             res = HOL::create::app(head, _termVars);
           } else {
-            newSym = env.signature->addFreshFunction(OperatorType::getFunctionType(_termVarSorts,outSort,_typeArity), "sF");
+            newFn = env.signature->addFreshFunction(OperatorType::getFunctionType(_termVarSorts,outSort,_typeArity), "sF");
 
             // res is used both to replace here, but also in the new definition
-            res = TermList(Term::create(newSym,_allVars.size(),_allVars.begin()));
+            res = TermList(Term::create(newFn,_allVars.size(),_allVars.begin()));
           }
+          newSym = env.signature->getFunction(newFn);
 
           // (we don't care the definition is not rectified, as long as it's correct)
           // it is correct, because the lhs below is t and not key
@@ -178,7 +180,7 @@ class Definizator : public BottomUpTermTransformer {
             newDef = Clause::fromLiterals({ equation }, FormulaClauseTransformation(InferenceRule::REORIENT_EQUATIONS, intro));
           }
 
-          InferenceStore::instance()->recordIntroducedSymbol(intro,SymbolType::FUNC,newSym);
+          InferenceStore::instance()->recordIntroducedSymbol(intro, newSym);
         } else {
           // linear term, don't replace (and remember it in cache)
           symAndDef.first = 0;
@@ -192,7 +194,7 @@ class Definizator : public BottomUpTermTransformer {
         if(env.options->showPreprocessing()) {
           std::cout << "[PP] twee: " << newDef->toString() << std::endl;
         }
-        symAndDef.first = newSym;
+        symAndDef.first = newFn;
         symAndDef.second = newDef;
         _cache.insert(key,symAndDef);
       } else {
@@ -243,7 +245,7 @@ void Shell::TweeGoalTransformation::apply(Problem &prb, bool groundOnly)
     if (df.premises) {
       UnitList::push(c,df.premises);
       Clause* nc = Clause::fromStack(newLits,
-        NonspecificInferenceMany(InferenceRule::DEFINITION_FOLDING,df.premises));
+        FormulaClauseTransformationMany(InferenceRule::DEFINITION_FOLDING,df.premises));
       u = nc; // replace the original in the Problem's list
     }
   }

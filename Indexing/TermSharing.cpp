@@ -63,8 +63,7 @@ TermSharing::~TermSharing()
 void TermSharing::setPoly()
 {
   // higher-order superposition can introduce polymorphism into a monomorphic problem
-  _poly = env.higherOrder() || env.getMainProblem()->hasPolymorphicSym() ||
-    (env.options->equalityProxy() != Options::EqualityProxy::OFF && !env.options->useMonoEqualityProxy());
+  _poly = env.higherOrder() || env.getMainProblem()->hasPolymorphicSym();
 }
 
 /**

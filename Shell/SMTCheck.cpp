@@ -37,7 +37,7 @@
 
 using namespace Kernel;
 using Indexing::Splitter;
-using SortMap = DHMap<unsigned, TermList>;
+using SortMap = DHMap<unsigned, TermList, FnvHash, IdentityHash>;
 
 // get first N parents of a unit
 template <unsigned N, typename T>

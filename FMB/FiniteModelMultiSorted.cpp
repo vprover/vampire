@@ -419,7 +419,7 @@ pModelLabel:
   return modelStm.str();
 }
 
-unsigned FiniteModelMultiSorted::evaluateTerm(TermList tl, const DHMap<unsigned,unsigned>& subst)
+unsigned FiniteModelMultiSorted::evaluateTerm(TermList tl, const DHMap<unsigned,unsigned, FnvHash, IdentityHash>& subst)
 {
   if (tl.isVar()) {
     // TODO: maybe error, if the variable is not in the map?
@@ -483,7 +483,7 @@ unsigned FiniteModelMultiSorted::evaluateGroundTerm(Term* term)
   return _f_interpretation[var];
 }
 
-bool FiniteModelMultiSorted::evaluateLiteral(Literal* lit, const DHMap<unsigned,unsigned>& subst)
+bool FiniteModelMultiSorted::evaluateLiteral(Literal* lit, const DHMap<unsigned,unsigned, FnvHash, IdentityHash>& subst)
 {
   unsigned p = lit->functor();
   unsigned arity = env.signature->predicateArity(p);
@@ -576,9 +576,9 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
     ASS_EQ(elim_symb->arity(),1)
     unsigned srt = elim_symb->type()->result().term()->functor();
 
-    DHSet<unsigned> f_range;
-    DHMap<unsigned,unsigned> new_to_old;
-    DHMap<unsigned,unsigned> old_to_new;
+    DHSet<unsigned, FnvHash, IdentityHash> f_range;
+    DHMap<unsigned,unsigned, FnvHash, IdentityHash> new_to_old;
+    DHMap<unsigned,unsigned, FnvHash, IdentityHash> old_to_new;
 
     unsigned origSize = _sizes[srt];
     unsigned newSize = 0;
@@ -721,8 +721,8 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
 
     // cout << "Eliminate p = " << elim_p << endl;
 
-    DHMap<unsigned,unsigned> new_to_old;
-    DHMap<unsigned,unsigned> old_to_new;
+    DHMap<unsigned,unsigned, FnvHash, IdentityHash> new_to_old;
+    DHMap<unsigned,unsigned, FnvHash, IdentityHash> old_to_new;
 
     unsigned origSize = _sizes[srt];
     unsigned newSize = 0;
@@ -873,7 +873,7 @@ void FiniteModelMultiSorted::restoreEliminatedFunDef(Problem::FunDef* fd)
 
   static DArray<unsigned> args;
   args.ensure(arity);
-  static DHMap<unsigned,unsigned> subst;
+  static DHMap<unsigned,unsigned, FnvHash, IdentityHash> subst;
   subst.reset();
   // start with all 1s
   for(unsigned i=0;i<arity;i++){
@@ -942,7 +942,7 @@ void FiniteModelMultiSorted::restoreEliminatedPredDef(Problem::PredDef* pd)
 
   static DArray<unsigned> args;
   args.ensure(arity);
-  static DHMap<unsigned,unsigned> subst;
+  static DHMap<unsigned,unsigned, FnvHash, IdentityHash> subst;
   subst.reset();
   // start with all 1s
   for(unsigned i=0;i<arity;i++){
@@ -1037,7 +1037,7 @@ void FiniteModelMultiSorted::restoreViaCondFlip(Problem::CondFlip* cf)
 {
   // cf->outputDefinition(cout);
 
-  DHMap<unsigned,TermList> sortMap;
+  DHMap<unsigned,TermList, FnvHash, IdentityHash> sortMap;
   SortHelper::collectVariableSorts(cf->_val,sortMap);
   SortHelper::collectVariableSorts(cf->_cond,sortMap); // in bce, cond can have extra variables; we could treat them existentially, but this may be wrong for _fixedPoint-ers
   unsigned arity = sortMap.size();
@@ -1077,7 +1077,7 @@ void FiniteModelMultiSorted::restoreViaCondFlip(Problem::CondFlip* cf)
   sorts.ensure(arity);
 
   unsigned i = 0;
-  DHMap<unsigned,TermList>::Iterator it(sortMap); // non-deterministic order OK?
+  DHMap<unsigned,TermList, FnvHash, IdentityHash>::Iterator it(sortMap); // non-deterministic order OK?
   while (it.hasNext()) {
     unsigned var;
     TermList srt;
@@ -1091,7 +1091,7 @@ void FiniteModelMultiSorted::restoreViaCondFlip(Problem::CondFlip* cf)
   do {
     flipped = false;
 
-    static DHMap<unsigned,unsigned> subst;
+    static DHMap<unsigned,unsigned, FnvHash, IdentityHash> subst;
     static DArray<unsigned> args;
     args.ensure(arity);
     // start with all 1s
@@ -1198,7 +1198,7 @@ bool FiniteModelMultiSorted::evaluate(Unit* unit, bool expectingPartial)
   formula = partialEvaluate(formula);
   formula = SimplifyFalseTrue::simplify(formula);
 
-  DHMap<unsigned,unsigned> subst;
+  DHMap<unsigned,unsigned, FnvHash, IdentityHash> subst;
   bool res = evaluateFormula(formula,subst);
   if (!expectingPartial && (_implicitlyEliminatedFunctions.size() > 0 || _implicitlyEliminatedPredicates.size() > 0)) {
     USER_ERROR("Encountered an undefined symbol while evaluating a Unit");
@@ -1211,7 +1211,7 @@ bool FiniteModelMultiSorted::evaluate(Unit* unit, bool expectingPartial)
  * TODO: This is recursive, which could be problematic in the long run
  *
  */
-bool FiniteModelMultiSorted::evaluateFormula(Formula* formula, DHMap<unsigned,unsigned>& subst)
+bool FiniteModelMultiSorted::evaluateFormula(Formula* formula, DHMap<unsigned,unsigned, FnvHash, IdentityHash>& subst)
 {
   bool isAnd = false;
   bool isImp = false;

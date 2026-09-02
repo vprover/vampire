@@ -15,7 +15,6 @@
 #ifndef __IntUnionFind__
 #define __IntUnionFind__
 
-#include "Reflection.hpp"
 #include "Stack.hpp"
 
 namespace Lib {
@@ -64,7 +63,7 @@ public:
   class ElementIterator
   {
   public:
-    DECL_ELEMENT_TYPE(int);
+    using ElementType = int;
 
     bool hasNext() { return _next!=-1; }
     int next()
@@ -94,7 +93,7 @@ public:
   class ComponentIterator
   {
   public:
-    DECL_ELEMENT_TYPE(ElementIterator);
+    using ElementType = ElementIterator;
     /**
      * Construct the iterator
      *

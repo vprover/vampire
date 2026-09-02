@@ -51,6 +51,7 @@ set(UNIT_TESTS
     UnitTests/tDisagreement.cpp
     UnitTests/tDynamicHeap.cpp
     UnitTests/tFunctionDefinitionHandler.cpp
+    UnitTests/tHash.cpp
     UnitTests/tIndexManager.cpp
     UnitTests/tInferences_AnswerLiteralProcessors.cpp
     UnitTests/tInferences_ArithmeticSubtermGeneralization.cpp
@@ -97,6 +98,7 @@ set(UNIT_TESTS
     UnitTests/tLPO.cpp
     UnitTests/tList.cpp
     UnitTests/tOption.cpp
+    UnitTests/tPredicateElimination.cpp
     UnitTests/tOptionConstraints.cpp
     UnitTests/tQKbo.cpp
     UnitTests/tQuotientE.cpp
@@ -112,6 +114,7 @@ set(UNIT_TESTS
     UnitTests/tTermAlgebra.cpp
     UnitTests/tTermIndex.cpp
     UnitTests/tTimeTrace.cpp
+    UnitTests/tTuple.cpp
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/HOL/tHOL_Printing.cpp
     UnitTests/HOL/tHOL_BetaReduction.cpp
@@ -176,6 +179,8 @@ set(SOURCES
     Indexing/CodeTree.hpp
     Indexing/CodeTreeInterfaces.cpp
     Indexing/CodeTreeInterfaces.hpp
+    Indexing/DemodulationIndex.hpp
+    Indexing/DemodulationIndex.cpp
     Indexing/Index.cpp
     Indexing/Index.hpp
     Indexing/IndexManager.cpp
@@ -437,6 +442,7 @@ set(SOURCES
     Kernel/PartialOrdering.hpp
     Kernel/Polynomial.cpp
     Kernel/Polynomial.hpp
+    Kernel/PolynomialBottomUpEvaluation.hpp
     Kernel/PolynomialNormalizer.cpp
     Kernel/PolynomialNormalizer.hpp
     Kernel/PolynomialNormalizer/PredicateEvaluator.hpp
@@ -690,8 +696,6 @@ set(SOURCES
     Shell/EqResWithDeletion.hpp
     Shell/EqualityProxy.cpp
     Shell/EqualityProxy.hpp
-    Shell/EqualityProxyMono.cpp
-    Shell/EqualityProxyMono.hpp
     Shell/FOOLElimination.cpp
     Shell/FOOLElimination.hpp
     Shell/Flattening.cpp
@@ -732,6 +736,8 @@ set(SOURCES
     Shell/PartialRedundancyHandler.hpp
     Shell/PredicateDefinition.cpp
     Shell/PredicateDefinition.hpp
+    Shell/PredicateElimination.cpp
+    Shell/PredicateElimination.hpp
     Shell/Preprocess.cpp
     Shell/Preprocess.cpp
     Shell/Preprocess.hpp

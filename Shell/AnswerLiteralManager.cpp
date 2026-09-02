@@ -150,7 +150,7 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
   Formula* out = new NegatedFormula(new QuantifiedFormula(EXISTS, eVarSorts, new JunctionFormula(AND, conjArgs)));
 
   if (skolemise) {
-    Map<unsigned,std::string>* questionVars = Parse::TPTP::findQuestionVars(unit->number());
+    Map<unsigned,std::string, FnvHash>* questionVars = Parse::TPTP::findQuestionVars(unit->number());
 
     VSList* fVarSorts = subNot->vars();
     Substitution subst;
@@ -196,7 +196,7 @@ void AnswerLiteralManager::tryOutputAnswer(Clause* refutation, std::ostream& out
     return;
   }
 
-  DHSet<unsigned> seenSkolems;
+  DHSet<unsigned, FnvHash, IdentityHash> seenSkolems;
 
   out << "% SZS answers Tuple [";
 
@@ -230,7 +230,7 @@ void AnswerLiteralManager::tryOutputAnswer(Clause* refutation, std::ostream& out
       vss << "[";
       unsigned arity = aLit->arity();
 
-      Map<unsigned,std::string>* questionVars = 0;
+      Map<unsigned,std::string, FnvHash>* questionVars = 0;
       std::pair<Unit*,Literal*> unitAndLiteral;
       if (_originUnitsAndInjectedLiterals.find(aLit->functor(),unitAndLiteral)) {
         questionVars = Parse::TPTP::findQuestionVars(unitAndLiteral.first->number());
@@ -241,7 +241,7 @@ void AnswerLiteralManager::tryOutputAnswer(Clause* refutation, std::ostream& out
           vss << ',';
         }
         if (questionVars) {
-          vss << questionVars->get(unitAndLiteral.second->nthArgument(i)->var()) << "->";
+          vss << questionVars->get(unitAndLiteral.second->nthArgument(i)->var()) << ":=";
         }
         TermList evalauted = possiblyEvaluateAnswerTerm(*aLit->nthArgument(i));
         if (evalauted.isTerm()){ // just check which Skolems we might have used
@@ -275,7 +275,7 @@ void AnswerLiteralManager::tryOutputAnswer(Clause* refutation, std::ostream& out
   out << "|_] for " << env.options->problemName() << endl;
 
   // recall what the skolems mean:
-  DHSet<unsigned>::Iterator it(seenSkolems);
+  DHSet<unsigned, FnvHash, IdentityHash>::Iterator it(seenSkolems);
   while (it.hasNext()) {
     unsigned f = it.next();
     const std::pair<unsigned,Unit*>& origin = _skolemsOrigin.get(f);
@@ -442,7 +442,7 @@ std::string PlainALManager::postprocessAnswerString(std::string answer)
 // SynthesisALManager
 //
 
-void SynthesisALManager::getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<unsigned>& allProofUnitNums)
+void SynthesisALManager::getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<unsigned, FnvHash, IdentityHash>& allProofUnitNums)
 {
   Stack<Unit*> toDo;
   toDo.push(refutation);
@@ -489,7 +489,7 @@ bool SynthesisALManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answer
 
   ClauseStack premiseClauses;
   Stack<Unit*> conjectures;
-  DHSet<unsigned> proofNums;
+  DHSet<unsigned, FnvHash, IdentityHash> proofNums;
   getNeededUnits(refutation, premiseClauses, conjectures, proofNums);
 
   // We iterate through the stored _answerPairs. An answer pair p is relevant if:
@@ -529,7 +529,7 @@ bool SynthesisALManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answer
     }
   }
   // just a single literal answer
-  answer.push(Clause::fromLiterals({Literal::create(origLit,answerArgs.begin())}, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::INPUT)));
+  answer.push(Clause::fromLiterals({Literal::create(origLit,answerArgs.begin())}, FromInput(UnitInputType::AXIOM)));
 
   outputRecursiveFunctions();
 
@@ -562,7 +562,7 @@ Clause* SynthesisALManager::recordAnswerAndReduce(Clause* cl) {
   // represents any answer.
   bool removeDefaultAnsLit = true;
   Literal* ansLit = cl->getAnswerLiteral();
-  Set<unsigned> vars;
+  Set<unsigned, FnvHash> vars;
   for (unsigned i = 0; i < ansLit->numTermArguments(); ++i) {
     TermList* tl = ansLit->nthArgument(i);
     if (!tl->isVar()) {
@@ -664,9 +664,22 @@ Term* SynthesisALManager::translateToSynthesisConditionTerm(Literal* l)
   unsigned fn = env.signature->addFunction(fnName, OperatorType::getFunctionType(argSorts, AtomicSort::defaultSort()), added);
   // Store the mapping between the function and predicate symbols
   _skolemReplacement.addCondPair(fn, l->functor());
-  if (added && !l->isEquality()) {
-    if (isPredicateComputable(l->functor())) {
-      ALWAYS(_introducedComputable.insert(make_pair(fn, /*isPredicate=*/false)));
+  if (added) {
+    Stack<TermList> argSorts;
+    if (l->isEquality()) {
+      TermList as = SortHelper::getEqualityArgumentSort(l);
+      argSorts.push(as);
+      argSorts.push(as);
+    } else {
+      OperatorType* ot = env.signature->getPredicate(l->functor())->type();
+      for (unsigned i = 0; i < arity; ++i) {
+        argSorts.push(ot->arg(i));
+      }
+      if (isPredicateComputable(l->functor())) {
+        ALWAYS(_introducedComputable.insert(make_pair(fn, /*isPredicate=*/false)));
+      } else {
+        ALWAYS(_annotatedUncomputable.insert(make_pair(fn, /*isPredicate=*/false)));
+      }
     }
   }
   
@@ -754,7 +767,7 @@ TermList SynthesisALManager::ConjectureSkolemReplacement::transformSubterm(TermL
       for (unsigned i = 0; i < transformed->arity()-1; ++i) {
         // Iterate over cases and replace only the associated skolems in each.
         TermList* narg = transformed->nthArgument(i);
-        DHMap<Term*, TermList>* m = recf->_skolemToTermListForCase.findPtr(i);
+        DHMap<Term*, TermList, FnvHash, PtrIdentityHash>* m = recf->_skolemToTermListForCase.findPtr(i);
         if (narg->isTerm() && m) {
           ssr.setMap(m);
           NonVariableIterator it(narg->term());
@@ -821,9 +834,9 @@ SynthesisALManager::ConjectureSkolemReplacement::Function::Function(unsigned rec
   _functor = env.signature->addFreshFunction(OperatorType::getFunctionType({in}, out), "rf");
   // Process SkolemTrackers corresponding to this function:
   // populate the maps mapping skolems to terms they represent.
-  DHMap<Term*, TermList>* caseMap;
-  const DHMap<unsigned, SkolemTracker>& mapping = replacement->_recursionMappings->get(recFunctor);
-  DHMap<unsigned, SkolemTracker>::Iterator it(mapping);
+  DHMap<Term*, TermList, FnvHash, PtrIdentityHash>* caseMap;
+  const DHMap<unsigned, SkolemTracker, FnvHash, IdentityHash>& mapping = replacement->_recursionMappings->get(recFunctor);
+  DHMap<unsigned, SkolemTracker, FnvHash, IdentityHash>::Iterator it(mapping);
   while (it.hasNext()) {
     unsigned var;
     SkolemTracker& st = it.nextRef(var);
@@ -845,7 +858,7 @@ void SynthesisALManager::ConjectureSkolemReplacement::Function::addCases(Term* t
 
 void SynthesisALManager::printSkolemTrackers() {
   cout << "Skolem mappings:" << endl;
-  DHMap<unsigned, SkolemTracker*>::Iterator it(_skolemTrackers);
+  DHMap<unsigned, SkolemTracker*, FnvHash, IdentityHash>::Iterator it(_skolemTrackers);
   while (it.hasNext()) {
     SkolemTracker* st = it.next();
     cout << st->toString() << endl;
@@ -860,7 +873,7 @@ void SynthesisALManager::printRecursionMappings() {
     unsigned recFn;
     auto& m = rit.nextRef(recFn);
     cout << "  recFn " << recFn << ":" << endl; 
-    DHMap<unsigned, SkolemTracker>::Iterator mit(m);
+    DHMap<unsigned, SkolemTracker, FnvHash, IdentityHash>::Iterator mit(m);
     while (mit.hasNext()) {
       SkolemTracker& s = mit.nextRef(v);
       cout << v << ": " << s.toString() << endl;
@@ -901,7 +914,7 @@ void SynthesisALManager::registerSkolemSymbols(Term* recTerm, const Substitution
   ALWAYS(_functionHeads.insert(recFnId, std::move(functionHeads)));
 
   // Finalize SkolemTrackers and store them.
-  DHMap<unsigned, SkolemTracker>* mapping;
+  DHMap<unsigned, SkolemTracker, FnvHash, IdentityHash>* mapping;
   ALWAYS(_recursionMappings.getValuePtr(recFnId, mapping));
   for (SkolemTracker& st : incompleteTrackers) {
     ASS_EQ(st.binding.second, nullptr);
@@ -948,7 +961,7 @@ bool SynthesisALManager::isPredicateComputable(unsigned functor) const {
     (!s->introduced() && !_annotatedUncomputable.contains(make_pair(functor, true)));
 }
 
-bool SynthesisALManager::computableOrVarHelper(const Term* t, DHMap<unsigned, unsigned>* recAncestors) const {
+bool SynthesisALManager::computableOrVarHelper(const Term* t, DHMap<unsigned, unsigned, FnvHash, IdentityHash>* recAncestors) const {
   ASS(t);
   unsigned f = t->functor();
   Signature::Symbol* symbol = env.signature->getFunction(f);
@@ -1001,7 +1014,7 @@ bool SynthesisALManager::computableOrVarHelper(const Term* t, DHMap<unsigned, un
 }
 
 bool SynthesisALManager::isComputableOrVar(const Term* t) const {
-  DHMap<unsigned, unsigned> recAncestors;
+  DHMap<unsigned, unsigned, FnvHash, IdentityHash> recAncestors;
   return computableOrVarHelper(t, &recAncestors);
 }
 

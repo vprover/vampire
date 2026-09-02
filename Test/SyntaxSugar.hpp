@@ -683,7 +683,7 @@ inline Clause* clause(Stack<Lit> ls, Inference inf) {
 }
 
 inline Clause* clause(Stack<Lit> ls)
-{ return clause(ls, Inference(Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::INPUT))); }
+{ return clause(ls, FromInput(UnitInputType::ASSUMPTION)); }
 
 inline Clause* clause(std::initializer_list<Lit> ls)
 { return clause(Stack<Lit>(ls)); }

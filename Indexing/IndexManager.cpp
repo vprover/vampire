@@ -16,6 +16,7 @@
 #include "AcyclicityIndex.hpp"
 #include "LiteralIndex.hpp"
 #include "TermIndex.hpp"
+#include "DemodulationIndex.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -31,7 +32,7 @@
 using namespace Lib;
 using namespace Indexing;
 
-SIMP_INDEX_IMPL(AlascaIndex<ALASCA::Demodulation::Lhs>)
+SIMP_INDEX_IMPL(GeneralizingAlascaIndex<ALASCA::Demodulation::Lhs>)
 SIMP_INDEX_IMPL(AlascaIndex<ALASCA::Demodulation::Rhs>)
 SIMP_INDEX_IMPL(DemodulationLHSIndex<false>)
 SIMP_INDEX_IMPL(DemodulationLHSIndex<true>)

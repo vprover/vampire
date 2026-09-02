@@ -167,7 +167,7 @@ bool Monotonicity::guards(Literal* l, unsigned var, Stack<SATLiteral>& slits)
 
 
 void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const DArray<bool>& del_f,
-  DHMap<unsigned,DArray<signed char>*>& monotonic_vampire_sorts, Stack<unsigned>& sort_predicates) // may write into these
+  DHMap<unsigned,DArray<signed char>*, FnvHash, IdentityHash>& monotonic_vampire_sorts, Stack<unsigned>& sort_predicates) // may write into these
 {
   // First compute the monotonic sorts
   DArray<bool> isMonotonic(env.signature->typeCons());
@@ -235,7 +235,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const D
 
       Term* fX = Term::create(f,arity,vars.begin());
       Literal* pfX = Literal::create1(p,true,TermList(fX));
-      auto fINs = Clause::fromLiterals({ pfX }, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::INPUT));
+      auto fINs = Clause::fromLiterals({ pfX }, FromInput(UnitInputType::AXIOM));
       ClauseList::push(fINs,newAxioms);
       ASS(SortHelper::areSortsValid(fINs));
     }
@@ -245,7 +245,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const D
     // Increment usage count so it's not treated as a deleted function later
     env.signature->getFunction(skolemConstant)->incUsageCnt();
     Literal* psk = Literal::create1(p,true,TermList(Term::createConstant(skolemConstant)));
-    auto nonEmpty = Clause::fromLiterals({ psk }, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::INPUT));
+    auto nonEmpty = Clause::fromLiterals({ psk }, FromInput(UnitInputType::AXIOM));
     ClauseList::push(nonEmpty,newAxioms);
     ASS(SortHelper::areSortsValid(nonEmpty));
   }
@@ -260,7 +260,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const D
     static Stack<std::pair<unsigned,unsigned>> sortedVariables;
     sortedVariables.reset();
 
-    DHMap<unsigned,TermList> varSorts;
+    DHMap<unsigned,TermList, FnvHash, IdentityHash> varSorts;
     SortHelper::collectVariableSorts(cl,varSorts);
     for(unsigned v=0;v<cl->varCnt();v++){
       TermList vsrt;
@@ -327,7 +327,7 @@ public:
 };
 
 void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses,
-  DHMap<unsigned,DArray<signed char>*>& monotonic_vampire_sorts, Stack<unsigned>& sort_functions) // may write into these
+  DHMap<unsigned,DArray<signed char>*, FnvHash, IdentityHash>& monotonic_vampire_sorts, Stack<unsigned>& sort_functions) // may write into these
 {
   // First compute the monotonic sorts
   DArray<bool> isMonotonic(env.signature->typeCons());

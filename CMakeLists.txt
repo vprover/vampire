@@ -6,7 +6,7 @@ cmake_minimum_required (VERSION 3.14.0)
 project(Vampire)
 
 # version
-set(VAMPIRE_VERSION_NUMBER 5.0.1)
+set(VAMPIRE_VERSION_NUMBER 5.1.0)
 
 include(CheckSymbolExists)
 include(CTest)
@@ -102,7 +102,9 @@ if(GCC_OR_CLANG)
   # ...or RTTI
   add_compile_options(-fno-rtti)
 
-  if(CMAKE_BUILD_TYPE STREQUAL Debug)
+  option(UBSAN "enable undefined-behaviour sanitizer for Debug builds" OFF)
+  if(CMAKE_BUILD_TYPE STREQUAL Debug AND UBSAN)
+    message(STATUS "UBSAN = 1")
     add_compile_options(-fsanitize=undefined)
     add_link_options(-fsanitize=undefined)
   endif()

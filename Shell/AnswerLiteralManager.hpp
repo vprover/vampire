@@ -114,11 +114,11 @@ private:
    * (which, in particular, has the variables for arguments
    * as they were in the conecture).
    */
-  DHMap<unsigned, std::pair<Unit*,Literal*>> _originUnitsAndInjectedLiterals;
+  DHMap<unsigned, std::pair<Unit*,Literal*>, FnvHash, IdentityHash> _originUnitsAndInjectedLiterals;
 
-  DHMap<unsigned, Clause*> _resolverClauses;
+  DHMap<unsigned, Clause*, FnvHash, IdentityHash> _resolverClauses;
 
-  DHMap<unsigned,std::pair<unsigned,Unit*>> _skolemsOrigin;
+  DHMap<unsigned,std::pair<unsigned,Unit*>, FnvHash, IdentityHash> _skolemsOrigin;
 };
 
 class PlainALManager : public AnswerLiteralManager
@@ -167,7 +167,7 @@ struct SkolemTracker { // used for tracking skolem terms in the structural induc
 class SynthesisALManager : public AnswerLiteralManager
 {
 private:
-  typedef DHMap<unsigned /*recFnId*/, DHMap<unsigned /*var*/, SkolemTracker>> RecursionMappings;
+  typedef DHMap<unsigned /*recFnId*/, DHMap<unsigned /*var*/, SkolemTracker, FnvHash, IdentityHash>, FnvHash, IdentityHash> RecursionMappings;
 public:
   bool tryGetAnswer(Clause* refutation, Stack<Clause*>& answer) override;
   void onNewClause(Clause* cl) override;
@@ -238,19 +238,19 @@ private:
       DArray<TermList> _cases;
       std::vector<Term*>* _caseHeads;
       // Mappings of skolems to terms they should be replaced with then construcing the functions for each case.
-      DHMap<unsigned, DHMap<Term*, TermList>> _skolemToTermListForCase;
+      DHMap<unsigned, DHMap<Term*, TermList, FnvHash, PtrIdentityHash>, FnvHash, IdentityHash> _skolemToTermListForCase;
       // A union of replacements for all cases (for convenience).
-      DHMap<Term*, TermList> _skolemToTermList;
+      DHMap<Term*, TermList, FnvHash, PtrIdentityHash> _skolemToTermList;
     };
 
     void bindSkolemToTermList(Term* t, TermList&& tl);
     TermList transformTermList(TermList tl, TermList sort);
     void addCondPair(unsigned fn, unsigned pred) { _condFnToPred.insert(fn, pred); }
-    void associateRecMappings(RecursionMappings* m, DHMap<unsigned, std::vector<Term*>>* f) { _recursionMappings = m; _functionHeads = f;}
+    void associateRecMappings(RecursionMappings* m, DHMap<unsigned, std::vector<Term*>, FnvHash, IdentityHash>* f) { _recursionMappings = m; _functionHeads = f;}
     unsigned numInputSkolems() { return _numInputSkolems; }
     void outputRecursiveFunctions();
 
-    DHMap<unsigned, std::vector<Term*>>* _functionHeads;
+    DHMap<unsigned, std::vector<Term*>, FnvHash, IdentityHash>* _functionHeads;
     const RecursionMappings* _recursionMappings;
 
    protected:
@@ -259,17 +259,17 @@ private:
    private:
     unsigned _numInputSkolems = 0;
     // Mapping of input skolems to input variables.
-    DHMap<Term*, TermList> _skolemToTermList;
+    DHMap<Term*, TermList, FnvHash, PtrIdentityHash> _skolemToTermList;
     // Map from functions to predicates they represent in answer literal conditions
-    DHMap<unsigned, unsigned> _condFnToPred;
+    DHMap<unsigned, unsigned, FnvHash, IdentityHash> _condFnToPred;
     // Recursive functions indexed by their function symbol number.
-    DHMap<unsigned, Function*> _functions; 
+    DHMap<unsigned, Function*, FnvHash, IdentityHash> _functions; 
 
     // Term replacement based on a simple mapping with no additional logic.
     class SimpleSkolemReplacement : public TermTransformer {
      public:
-      SimpleSkolemReplacement(DHMap<Term*, TermList>* m) : _skolemToTermList(m) {}
-      void setMap(DHMap<Term*, TermList>* m) { _skolemToTermList = m; }
+      SimpleSkolemReplacement(DHMap<Term*, TermList, FnvHash, PtrIdentityHash>* m) : _skolemToTermList(m) {}
+      void setMap(DHMap<Term*, TermList, FnvHash, PtrIdentityHash>* m) { _skolemToTermList = m; }
      protected:
       TermList transformSubterm(TermList trm) override {
         if (trm.isTerm()) {
@@ -281,14 +281,14 @@ private:
         return trm;
       }
      private:
-      DHMap<Term*, TermList>* _skolemToTermList;
+      DHMap<Term*, TermList, FnvHash, PtrIdentityHash>* _skolemToTermList;
     };
 
   };
 
-  bool computableOrVarHelper(const Term* t, DHMap<unsigned, unsigned>* recAncestors) const;
+  bool computableOrVarHelper(const Term* t, DHMap<unsigned, unsigned, FnvHash, IdentityHash>* recAncestors) const;
 
-  void getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<unsigned>& allProofUnitNums);
+  void getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<unsigned, FnvHash, IdentityHash>& allProofUnitNums);
 
   Formula* getConditionFromClause(Clause* cl);
 
@@ -311,9 +311,9 @@ private:
   // All SkolemTrackers created during the proof search indexed first by the rec-function symbol number and then by the variable number.
   RecursionMappings _recursionMappings;
   // All SkolemTrackers created during the proof search indexed by the skolem function symbol number.
-  DHMap<unsigned, SkolemTracker*> _skolemTrackers;
+  DHMap<unsigned, SkolemTracker*, FnvHash, IdentityHash> _skolemTrackers;
   // Function heads corresponding to all rec-symbols created in Induction, indexed by the rec-function symbol number.
-  DHMap<unsigned, std::vector<Term*>> _functionHeads;
+  DHMap<unsigned, std::vector<Term*>, FnvHash, IdentityHash> _functionHeads;
 
   // Sets of <functor, isPredicate> pairs representing symbols that are:
   // 1. Marked as uncomputable in the input file

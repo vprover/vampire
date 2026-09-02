@@ -143,8 +143,7 @@ void Signature::Symbol::addToDistinctGroup(unsigned group,unsigned this_number)
 } // addToDistinctGroup
 
 Signature::RealSymbol::RealSymbol(const RealConstantType& val)
-  : Symbol((env.options->proof() == Shell::Options::Proof::PROOFCHECK) ? Output::toString("$to_real(",val,")")
-                                                                       : Output::toString(val),
+  : Symbol(Output::toString("$to_real(",val,")"),
         /*              type */ OperatorType::getConstantsType(AtomicSort::realSort()),
         /*       interpreted */ true,
         /*    preventQuoting */ false),

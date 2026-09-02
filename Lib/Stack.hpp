@@ -27,7 +27,6 @@
 #include "Debug/Assertion.hpp"
 
 #include "Allocator.hpp"
-#include "Lib/Reflection.hpp"
 
 namespace std
 {
@@ -54,8 +53,7 @@ public:
   class ConstIterator;
   class BottomFirstIterator;
 
-  DECL_ELEMENT_TYPE(C);
-  DECL_ITERATOR_TYPE(Iterator);
+  using ElementType = C;
 
   USE_ALLOCATOR(Stack);
 
@@ -515,7 +513,7 @@ public:
    */
   class RefIterator {
   public:
-    DECL_ELEMENT_TYPE(C&);
+    using ElementType = C&;
     /** create an iterator for @b s */
     inline
     explicit RefIterator (Stack& s)
@@ -594,13 +592,13 @@ public:
   class Iterator : public RefIterator {
   public:
     Iterator(Stack & s) : RefIterator(s) {}
-    DECL_ELEMENT_TYPE(C);
+    using ElementType = C;
     C next() { return RefIterator::next(); }
   };
 
   class ConstRefIterator {
   public:
-    DECL_ELEMENT_TYPE(C const&);
+    using ElementType = C const&;
     /** create an iterator for @b s */
     inline
     explicit ConstRefIterator (const Stack& s)
@@ -635,7 +633,7 @@ public:
   class ConstIterator : public ConstRefIterator {
   public:
     ConstIterator(Stack const& s) : ConstRefIterator(s) {}
-    DECL_ELEMENT_TYPE(C);
+    using ElementType = C;
     C next() { return ConstRefIterator::next(); }
   };
 
@@ -659,7 +657,7 @@ public:
    */
   class BottomFirstIterator {
   public:
-    DECL_ELEMENT_TYPE(C);
+    using ElementType = C;
     /** create an iterator for @b s */
     inline
     explicit BottomFirstIterator (const Stack& s)
@@ -703,7 +701,7 @@ public:
     StableDelIterator(const StableDelIterator&);
     StableDelIterator& operator=(const StableDelIterator&);
   public:
-    DECL_ELEMENT_TYPE(C);
+    using ElementType = C;
     /** create an iterator for @b s */
     inline
     explicit StableDelIterator (Stack& s)

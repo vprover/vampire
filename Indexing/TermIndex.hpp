@@ -17,6 +17,7 @@
 #define __TermIndex__
 
 #include "Index.hpp"
+#include "Indexing/CodeTreeInterfaces.hpp"
 #include "TermIndexingStructure.hpp"
 
 namespace Indexing {
@@ -41,9 +42,6 @@ public:
   VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getUnifications(TypedTermList t, bool retrieveSubstitutions = true)
   { return _is->getUnifications(t, retrieveSubstitutions); }
 
-  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true)
-  { return _is->getGeneralizations(t, retrieveSubstitutions); }
-
   template<bool higherOrder>
   VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getInstances(TypedTermList t, bool retrieveSubstitutions = true)
   {
@@ -67,6 +65,20 @@ protected:
   TermIndex(TermIndexingStructure<Data>* is) : _is(is) {}
 
   std::unique_ptr<TermIndexingStructure<Data>> _is;
+};
+
+template<bool higherOrder, class Data>
+class GeneralizingTermIndex
+: public Index
+{
+public:
+  auto getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true) const
+  { return iterTraits(_ct.getGeneralizations(t, retrieveSubstitutions)); }
+
+  friend std::ostream& operator<<(std::ostream& out, GeneralizingTermIndex const& self)
+  { return out << self._ct; }
+protected:
+  CodeTreeTIS<higherOrder, Data> _ct;
 };
 
 template<bool higherOrder>
@@ -94,37 +106,6 @@ private:
 };
 
 /**
- * Term index for backward demodulation
- */
-template<bool higherOrder>
-class DemodulationSubtermIndex
-: public TermIndex<TermLiteralClause>
-{
-public:
-  DemodulationSubtermIndex(SaturationAlgorithm& salg);
-protected:
-  void handleClause(Clause* c, bool adding) override;
-private:
-  const bool _skipNonequationalLiterals;
-};
-
-/**
- * Term index for forward demodulation
- */
-template<bool higherOrder>
-class DemodulationLHSIndex
-: public TermIndex<DemodulatorData>
-{
-public:
-  DemodulationLHSIndex(SaturationAlgorithm& salg);
-protected:
-  void handleClause(Clause* c, bool adding) override;
-private:
-  Ordering& _ord;
-  const bool _preordered;
-};
-
-/**
  * Term index for induction
  */
 class InductionTermIndex
@@ -142,7 +123,7 @@ private:
  * Term index for structural induction
  */
 class StructInductionTermIndex
-: public TermIndex<TermLiteralClause>
+: public GeneralizingTermIndex</*higherOrder=*/false, TermLiteralClause>
 {
 public:
   StructInductionTermIndex(SaturationAlgorithm& salg);

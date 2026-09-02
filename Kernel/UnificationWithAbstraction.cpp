@@ -29,6 +29,7 @@
 #include "Term.hpp"
 #include "RobSubstitution.hpp"
 #include "Kernel/NumTraits.hpp"
+#include "Kernel/ALASCA/Signature.hpp"
 
 #include "UnificationWithAbstraction.hpp"
 #include "Kernel/SortHelper.hpp"
@@ -168,7 +169,7 @@ public:
   AcIter(unsigned function, TermSpec t, RobSubstitution const* subs) : _function(function), _todo(), _subs(subs)
   { _todo->push(std::move(t)); }
 
-  DECL_ELEMENT_TYPE(TermSpec);
+  using ElementType = TermSpec;
 
   bool hasNext() const { return !_todo->isEmpty(); }
 
@@ -1080,7 +1081,7 @@ struct FloorUwaState {
   };
 
   auto buckets() const {
-    Recycled<Map<unsigned, Bucket>> buckets;
+    Recycled<Map<unsigned, Bucket, FnvHash>> buckets;
     ASS(ratVars->isEmpty())
     ASS(intVars->isEmpty())
     ASS(mixVars->isEmpty())

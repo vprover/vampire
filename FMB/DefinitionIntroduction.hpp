@@ -221,8 +221,8 @@ namespace FMB {
     ClauseIterator _cit;
     Stack<Clause*> _processed;
 
-    DHMap<Term*,Term*> _introduced;
-    DHMap<Term*,unsigned> _introducedNG;
+    DHMap<Term*,Term*, FnvHash, PtrIdentityHash> _introduced;
+    DHMap<Term*,unsigned, FnvHash, PtrIdentityHash> _introducedNG;
 
   };
 

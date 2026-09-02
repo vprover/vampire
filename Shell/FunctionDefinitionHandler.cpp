@@ -139,7 +139,7 @@ void FunctionDefinitionHandler::initAndPreprocessLate(Problem& prb,const Options
         defCl->setSplits(SplitSet::getEmpty());
         defCl->incRefCnt();
         ASS_EQ(condLits.size()+1,lits.size());
-        _is->insert(TermLiteralClause {lhs.term(), lits.top(), defCl});
+        _is->handle(TermLiteralClause {lhs.term(), lits.top(), defCl}, /*insert=*/true);
         // TODO should we store this clause anywhere else?
       } else {
         it.replace(defCl);
@@ -261,7 +261,7 @@ bool RecursionTemplate::finalize()
   for (const auto& b : _branches) {
     // we need this sophisticated renaming due to
     // already fixed sort variables coming from _type
-    static DHMap<unsigned,unsigned> renaming;
+    static DHMap<unsigned,unsigned, FnvHash, IdentityHash> renaming;
     renaming.reset();
     auto renameTerm = [&](TermList t, TermList sort) {
       if (t.isVar()) {

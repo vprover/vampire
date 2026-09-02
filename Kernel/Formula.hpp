@@ -69,7 +69,7 @@ public:
   VSList* boundVariables () const;
 
   // output
-  std::string toString() const;
+  std::string toString(bool topLevel = true) const;
   static std::string toString(Connective con);
   bool parenthesesRequired(Connective outer) const;
   // auxiliary functions

@@ -203,7 +203,7 @@ const PartialOrdering* PartialOrdering::set(const PartialOrdering* po, size_t x,
 
 const PartialOrdering* PartialOrdering::extend(const PartialOrdering* po)
 {
-  static DHMap<const PartialOrdering*, const PartialOrdering*> cache;
+  static DHMap<const PartialOrdering*, const PartialOrdering*, FnvHash, PtrIdentityHash> cache;
 
   const PartialOrdering** ptr;
   if (cache.getValuePtr(po, ptr, nullptr)) {

@@ -8,8 +8,6 @@
 
 # equality_proxy
 > ep ~cat off:70,RST:2,R:3,RSTC:2,RS:3
-# mono_ep
-ep!=off > mep ~cat on:10,off:1
 
 # equality_resolution_with_deletion
 > erd ~cat on:10,off:1
@@ -35,6 +33,15 @@ $nm=NZ > nm ~sgd 0.07,2
 > $ins ~cat Z:2,NZ:1
 $ins=Z > ins ~cat 0:1
 $ins=NZ > ins ~sgd 0.4,1
+
+# predicate_elimination
+> pel ~cat off:5,on:4,multi:1
+
+# predicate_elimination_subsumption
+pel!=off > pels ~cat on:4,off:1
+
+# predicate_elimination_total_limit
+pel!=off > peltl ~uf 0.9,5.0
 
 # random_polarities
 > rp ~cat off:3,on:1
