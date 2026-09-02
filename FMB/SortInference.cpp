@@ -494,7 +494,6 @@ void SortInference::doInference()
     if(!_posEqualitiesOnSort[s]){ cout << "No positive equalities for subsort " << s << endl; }
 #endif
     if(_sig->sortedConstants[s].size()==0 && _sig->sortedFunctions[s].size()>0){
-      INVALID_OPERATION("TODO: find out type here");
       unsigned dsrt = _sig->parents[s];
       unsigned vsrt = (*_sig->distinctToVampire.get(dsrt))[0];
       TermList vsrtT = TermList(AtomicSort::createConstant(vsrt));
@@ -642,11 +641,6 @@ void SortInference::doInference()
 #endif
   // Setting types for fresh constants
   for(unsigned f=firstFreshConstant;f<env.signature->functions();f++){
-    // unsigned srt = freshMap.get(f);
-    // unsigned dsrt = _sig->parents[srt];
-    // unsigned vsrt = (*_sig->distinctToVampire.get(dsrt))[0];
-    // TermList vsrtT = TermList(AtomicSort::createConstant(vsrt));
-    // env.signature->getFunction(f)->setType(OperatorType::getConstantsType(vsrtT));
     env.signature->getFunction(f)->markIntroduced();
   }
 
