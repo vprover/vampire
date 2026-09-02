@@ -124,7 +124,7 @@ public:
     }
   }
 
-  VirtualIterator<GenSubstitutionQR<Data>> getGeneralizations(TypedTermList t) const {
+  auto getGeneralizations(TypedTermList t) const {
     if(_ct.isEmpty()) {
       return VirtualIterator<GenSubstitutionQR<Data>>::getEmpty();
     }
