@@ -98,8 +98,6 @@ void FiniteModelMultiSorted::initTables()
 
   sortRepr.ensure(env.signature->typeCons());
   for(unsigned s=0;s<env.signature->typeCons();s++){
-    if(env.signature->isInterpretedNonDefault(s))
-      continue;
     sortRepr[s].ensure(_sizes[s]+1);
     for(unsigned i=0;i<=_sizes[s];i++){
       sortRepr[s][i] = -1;
@@ -158,15 +156,11 @@ std::string FiniteModelMultiSorted::toString()
     unsigned size = _sizes[s];
     if(size==0) continue;
 
-    // don't output interpreted sorts at all, we know what they are
-    if(env.signature->isInterpretedNonDefault(s))
-      continue;
-
     std::string sortName = env.signature->typeConName(s);
     std::string sortNameLabel = (env.signature->isBoolCon(s)) ? "bool" : sortName;
 
-    // skip declaring $i, we know what it is
-    if(!env.signature->isDefaultSortCon(s))
+    // skip declaring $i and interpreted sorts, we know what they are
+    if(!env.signature->isDefaultSortCon(s) && !env.signature->isInterpretedNonDefault(s))
       // Sort declaration
       modelStm << "tff(" << prepend("declare_", sortNameLabel) << ",type,"<<sortName<<":$tType)." <<endl;
 
