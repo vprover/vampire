@@ -632,11 +632,19 @@ private:
   /** Record whether a formula or term has been pushed more recently */
   LastPushed _lastPushed;
 
+  /** The tag of the most recently consumed token (see resetToks/shiftToks).
+   * Used by endHolFormula to tell whether the argument of a '~' just parsed
+   * ended with a closing parenthesis (making the '~ (...)' a complete
+   * <thf_prefix_unary> per the TPTP BNF), which decides whether a following
+   * '@' may be leniently absorbed into it or belongs to the enclosing
+   * context. */
+  Tag _lastTokenTag = T_EOF;
+
   static Substitution getTypeSub(const LetSymbolReference& ref);
 
   /** finds if the symbol has been defined in an enclosing $let */
-  bool findLetSymbol(LetSymbolName symbolName, LetSymbolReference& symbolReference);
-  bool findLetSymbol(LetSymbolName symbolName, LetSymbols scope, LetSymbolReference& symbolReference);
+  bool findLetSymbol(const LetSymbolName& symbolName, LetSymbolReference& symbolReference);
+  bool findLetSymbol(const LetSymbolName& symbolName, const LetSymbols& scope, LetSymbolReference& symbolReference);
 
   typedef Stack<LetSymbolReference> LetDefinitions;
   Stack<LetDefinitions> _letDefinitions;
@@ -647,6 +655,9 @@ private:
   // A hack to hard-code the precedence of = and != higher than connectives
   // This is needed for implementation of FOOL
   unsigned _insideEqualityArgument;
+  /** _insideEqualityArgument as it stood outside each argument list currently open;
+   * pushed by openArgumentList(), restored by endArgs() */
+  Stack<unsigned> _savedInsideEqualityArgument;
 
   /**
    * Get the next characters at the position pos.
@@ -704,6 +715,7 @@ private:
     ASS(n > 0);
     ASS(n <= _tend);
 
+    _lastTokenTag = _tokens[n-1].tag;
     for (int i = 0;i < _tend-n;i++) {
       _tokens[i] = _tokens[n+i];
     }
@@ -716,6 +728,9 @@ private:
    */
   inline void resetToks()
   {
+    if (_tend > 0) {
+      _lastTokenTag = _tokens[_tend-1].tag;
+    }
     _tend = 0;
   } // resetToks
 
@@ -770,6 +785,7 @@ private:
   std::filesystem::path resolveInclude(const std::filesystem::path included);
   void include();
   void type();
+  void openArgumentList(Tag closer);
   void endIte();
   void letType();
   void endLetTypes();
@@ -846,6 +862,7 @@ public:
    */
   struct SourceRecord{
     virtual bool isFile() = 0;
+    virtual ~SourceRecord() = default;
   };
   struct FileSourceRecord : SourceRecord {
     const std::string fileName;
@@ -892,8 +909,6 @@ private:
 
 
 #if VDEBUG
-  void printStates(std::string extra);
-  void printInts(std::string extra);
   const char* toString(State s);
 #endif
 #ifdef DEBUG_SHOW_STATE
