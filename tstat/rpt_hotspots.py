@@ -36,6 +36,15 @@ import common as C  # noqa: E402
 # whose average is near this is measuring mostly itself.  See calib_overhead.py.
 DEFAULT_OVERHEAD_NS = 26   # measured by calib_overhead.py on this machine
 
+# Instrumentation cost per scope, in instructions. Unlike the ns figure this is a
+# machine-independent constant, so it can be subtracted exactly rather than merely
+# flagged -- but it has not been calibrated on the sweep machine yet. The bound
+# below comes from the sweep itself: over nodes with more than 3e8 calls the
+# cheapest is `splitting` at 107.5 instructions per call, and it does real work, so
+# a ScopedTimer costs no more than that. A node whose instr/call is near 100 is
+# therefore mostly measuring itself.
+OVERHEAD_INSTR_BOUND = 107
+
 # --metric membound ignores nodes below this share of corpus instructions: ps/instr
 # is a ratio, and a node with few calls can post an arbitrary one.
 MEMBOUND_FLOOR = 0.001
@@ -93,7 +102,7 @@ def hotspots(con, where, params, overhead, key, title, limit, metric="instructio
          ("mean%/run*", "mean_pct", lambda x: f"{x:.2f}%"),
          ("calls", "calls", C.fmt_n),
          ("avg", "avg_ns", C.fmt_ns),
-         ("ovh%", "ovh_pct", lambda x: f"{x:.0f}%"),
+         ("instr/call", "ipc", lambda x: f"{x:,.0f}"),
          ("runs", "runs", C.fmt_n)],
         title=f"{title}  ({nruns} runs, {tot_ns/1e9:,.0f}s / {tot_instr/1e12:,.0f}T instr "
               f"exclusive, ranked by {metric})")
@@ -119,8 +128,9 @@ def hotspots(con, where, params, overhead, key, title, limit, metric="instructio
                    ps=(1000.0 * ns / instr) if instr else None,
                    mean_pct=100 * (r["mean_share"] or 0), calls=calls,
                    avg_ns=ns / max(calls, 1),
-                   # what fraction of this node's measured time is the profiler itself
-                   ovh_pct=min(100.0, 100.0 * overhead * calls / max(ns, 1)),
+                   # instructions per call: compare against OVERHEAD_INSTR_BOUND to
+                   # see how much of the node is instrumentation rather than work
+                   ipc=instr / max(calls, 1),
                    runs=r["runs"]))
     t.emit(limit)
     print(f"\n  %instr/%time = share of corpus exclusive instructions / time.\n"
@@ -129,9 +139,10 @@ def hotspots(con, where, params, overhead, key, title, limit, metric="instructio
           f"  ps/instr   = picoseconds per instruction; corpus average is {base_ps:.0f}.\n"
           "  mean%/run* = mean of the node's per-run share, over the `runs` runs where it\n"
           "               occurs at all -- i.e. conditional on the node being exercised.\n"
-          "  ovh%       = share of this node's *time* that is TIME_TRACE overhead itself\n"
-          f"               (at {overhead}ns per scoped timer); >30% means the number is\n"
-          "               mostly instrumentation, not work.")
+          "  instr/call = retired instructions per call. One TIME_TRACE scope costs at\n"
+          f"               most {OVERHEAD_INSTR_BOUND} instructions (the cheapest high-count node in the\n"
+          "               sweep), so a node near that figure is mostly measuring itself\n"
+          "               and its cost should not be believed.")
 
 
 def main():
