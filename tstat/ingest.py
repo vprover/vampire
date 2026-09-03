@@ -44,6 +44,7 @@ CREATE TABLE runs (
   signal       TEXT,
   user_error   TEXT,
   root_ns      INTEGER,   -- from the flattened profile
+  root_instr   INTEGER,   -- ditto, the whole run's retired instructions
   tree_root_ns INTEGER,   -- from the trace tree (should agree)
   clean        INTEGER,   -- 1 = flattened profile trustworthy
   tree_clean   INTEGER,   -- 1 = trace tree trustworthy
@@ -102,13 +103,14 @@ CREATE VIEW v AS
 SELECT r.problem, r.domain, r.family, t.dialect, t.spc, t.tptp_status, t.rating,
        t.size, t.atoms, t.formulae, t.max_term_depth,
        r.szs, r.termination, r.time_s, r.peak_mb, r.instr_M,
-       r.root_ns, r.clean, r.tree_clean, r.user_error, r.signal
+       r.root_ns, r.root_instr, r.clean, r.tree_clean, r.user_error, r.signal
 FROM runs r LEFT JOIN tptp t USING(problem);
 
 DROP VIEW IF EXISTS vflat;
 CREATE VIEW vflat AS
 SELECT f.problem, f.node, f.total_ns, f.avg_ns, f.cnt, f.instr,
-       v.dialect, v.family, v.size, v.szs, v.termination, v.root_ns, v.time_s
+       v.dialect, v.family, v.size, v.szs, v.termination, v.root_ns, v.root_instr,
+       v.time_s
 FROM nodes_flat f JOIN v USING(problem)
 WHERE v.clean = 1;
 
@@ -118,7 +120,8 @@ SELECT n.problem, n.path, n.node, n.depth, n.total_ns, n.avg_ns, n.cnt,
        n.instr, n.self_ns, n.self_instr,
        -- picoseconds per instruction: the per-node memory-boundedness signal
        CASE WHEN n.self_instr > 0 THEN 1000.0 * n.self_ns / n.self_instr END ps_per_instr,
-       v.dialect, v.family, v.size, v.szs, v.termination, v.root_ns, v.time_s
+       v.dialect, v.family, v.size, v.szs, v.termination, v.root_ns, v.root_instr,
+       v.time_s
 FROM nodes_tree n JOIN v USING(problem)
 WHERE v.tree_clean = 1;
 """
@@ -162,8 +165,9 @@ def ingest(logdir, db_path):
             problem, problem[:3], C.family_of(problem),
             sc["szs"], sc["termination"], sc["time_s"], sc["peak_mb"], sc["instr_M"],
             sc["signal"], sc["user_error"],
-            froot if clean else None,
-            troot if tree_clean else None,
+            froot[0] if clean else None,
+            froot[1] if clean else None,
+            troot[0] if tree_clean else None,
             clean, tree_clean,
             None if clean else (frows if froot is None else "signal"),
             None if tree_clean else (trows if troot is None else "signal"),
@@ -195,7 +199,7 @@ def ingest(logdir, db_path):
                     h["types"], h["type_conns"], size,
                 ))
 
-    con.executemany("INSERT INTO runs VALUES (%s)" % ",".join("?" * 17), runs)
+    con.executemany("INSERT INTO runs VALUES (%s)" % ",".join("?" * 18), runs)
     con.executemany("INSERT INTO tptp VALUES (%s)" % ",".join("?" * 19), tptp)
     con.executemany("INSERT INTO stats VALUES (?,?,?,?,?)", stats)
     con.executemany("INSERT INTO nodes_flat VALUES (?,?,?,?,?,?)", flat)
