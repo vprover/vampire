@@ -134,7 +134,8 @@ def _indent_depth(ind):
 def parse_flat(text):
     """Parse the flattened profile.
 
-    Returns (root_ns, [(name, total_ns, avg_ns, cnt, instr)]) or (None, reason).
+    Returns ((root_ns, root_instr), [(name, total_ns, avg_ns, cnt, instr)]) or
+    (None, reason).
     `instr` is None when the run had no hardware instruction counter.
     Strict: the section must appear exactly once, be fully parsable, use only known
     node names, respect total<=root and pct<=100, satisfy total~=avg*cnt, and be
@@ -149,7 +150,7 @@ def parse_flat(text):
     m = RE_ROOT.match(lines[0])
     if not m:
         return None, "flat-bad-root"
-    root = _dur(m.group("t"), m.group("tu"))
+    root, root_instr = _dur(m.group("t"), m.group("tu")), _instr(m)
     rows = []
     for ln in lines[1:]:
         mm = RE_NODE.match(ln)
@@ -169,14 +170,14 @@ def parse_flat(text):
     for i in range(len(rows) - 1):
         if rows[i][1] < rows[i + 1][1]:
             return None, "flat-not-sorted"
-    return root, rows
+    return (root, root_instr), rows
 
 
 def parse_tree(text):
     """Parse the nesting trace tree.
 
-    Returns (root_ns, [(path, name, depth, total_ns, avg_ns, cnt, instr)]) or
-    (None, reason).
+    Returns ((root_ns, root_instr), [(path, name, depth, total_ns, avg_ns, cnt,
+    instr)]) or (None, reason).
     `path` is the dotted ancestry including the node itself, e.g.
     "main loop.run.forward simplification.forward demodulation".
     """
@@ -189,7 +190,7 @@ def parse_tree(text):
     m = RE_ROOT.match(lines[0])
     if not m:
         return None, "tree-bad-root"
-    root = _dur(m.group("t"), m.group("tu"))
+    root, root_instr = _dur(m.group("t"), m.group("tu")), _instr(m)
     rows = []
     stack = []  # (depth, name) of the ancestors
     for ln in lines[1:]:
@@ -210,7 +211,7 @@ def parse_tree(text):
         del stack[d - 1:]
         stack.append(name)
         rows.append((".".join(stack), name, d, t, a, c, _instr(mm)))
-    return root, rows
+    return (root, root_instr), rows
 
 
 def add_self_times(tree_rows):
