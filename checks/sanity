@@ -118,6 +118,10 @@ check_szs_status Theorem Problems/PUZ/PUZ139_1.p
 # check_smtcomp_status unsat --mode smtcomp ucore/test1.smt2
 check_exact_output ucore/test2.out --input_syntax smtlib2 -om ucore ucore/test2.smt2
 
+# Finite model building
+# sort bound detection over a function with a multi-sorted argument list
+check_szs_status Satisfiable -sa fmb -fmbdsb on fmb/detect-sort-bounds.p
+
 # Term algebra problems
 check_szs_status Unsatisfiable term-algebra/terms_distinct.smt2
 check_szs_status Unsatisfiable -tac axiom term-algebra/terms_acyclic.smt2
