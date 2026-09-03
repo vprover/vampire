@@ -76,3 +76,32 @@ superposition` records 22.7 G calls and `clause generation` 14.0 G. One scope co
 26 ns here (`calib_overhead.py`), which is 31% of `term sharing`'s reported 146 ns/call
 and 32% of `clause generation`'s 142 ns. The `instr%` column in `rpt_hotspots.py`
 flags this; treat anything above ~30% as unmeasured.
+
+## Instruction counts (sweeps built after Sep 2026)
+
+`TIME_TRACE` now records user-space instructions retired alongside wall time, so each
+node line carries a further field:
+
+```
+[root] (total: 39 ms, avg: 39 ms, cnt: 1, instr: 118 M)
+```
+
+It reads `instr: -` when the hardware counter was unavailable (not Linux, no
+`perf_event_open`, or no user-space `rdpmc`). The parser treats the field as optional,
+so logs from older sweeps still ingest — they simply get `NULL` in the `instr`,
+`self_instr` and `ps_per_instr` columns of `nodes_tree` / `nodes_flat`.
+
+Two reasons this matters more than it might look:
+
+- **Instruction counts are immune to hazard 3.** On the reference server a fixed
+  workload measured 12 000 031 and 12 000 032 instructions across seven runs — a spread
+  of 0.0000%, against the 2.6x spread in wall-clock throughput. Per-node instruction
+  counts are therefore comparable between problems, between machines, and between
+  builds, in a way ns never were.
+- **Hazard 4 becomes correctable.** Instrumentation overhead is a *constant* number of
+  instructions per scope, so it can be calibrated once and subtracted exactly
+  (`true = measured − k·cnt`). Time can only ever be flagged, never corrected.
+
+Keep reading time as well: `ps_per_instr` in the `vtree` view is picoseconds per
+instruction per node, which is what separates "this node did more work" from "this node
+is cache-missing" — the distinction hazard 3 otherwise destroys.
