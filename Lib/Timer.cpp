@@ -16,6 +16,7 @@
 #include <mutex>
 #include <thread>
 
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/Environment.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
@@ -79,6 +80,17 @@ static std::recursive_mutex EXIT_LOCK;
   // if we get this lock we can assume that the parent won't also try to exit
   EXIT_LOCK.lock();
 
+#if VTIME_PROFILING
+  // We are on timer_thread, and the main thread is still proving. Reporting below walks
+  // (and, in flatten(), rebuilds) the whole time trace, which the main thread mutates on
+  // every TIME_TRACE scope -- that raced badly enough to SIGSEGV about one run in five
+  // in a large sweep. Freezing the trace stops the main thread writing to it at all; the
+  // sleep gives a ScopedTimer that passed the flag check just before us time to finish
+  // appending its node.
+  TimeTrace::instance().setEnabled(false);
+  std::this_thread::sleep_for(TICK_INTERVAL);
+#endif
+
   env.statistics->terminationReason = REASON[whichLimit];
 
   // NB unsynchronised output:
@@ -108,6 +120,10 @@ static std::recursive_mutex EXIT_LOCK;
         env.statistics->print(std::cout);
     }
   }
+
+  // terminateImmediately is std::_Exit, which does not flush: without this the tail of
+  // the report is lost whenever stdout is a (fully buffered) file rather than a tty.
+  std::cout.flush();
 
   System::terminateImmediately(1);
 }
