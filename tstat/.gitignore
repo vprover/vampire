@@ -1,0 +1,4 @@
+# regenerated from the logs by ./ingest.py (~460 MB)
+tstat.db
+out/
+__pycache__/
