@@ -122,14 +122,40 @@ above ~1% as real. That is one to three orders of magnitude better than wall clo
 it is measured on an *idle* machine — under a parallel sweep the time figures degrade by
 the further 2.6x of hazard 3, while the instruction figures do not move at all.
 
-The residual is genuine program variation, not measurement error. `backward
-simplification` on `BIO004+1.p` gave 22602031, 22601755, 22091101 — two runs agreeing to
-0.001% and one 2.3% away, i.e. bimodal rather than noisy, so a discrete difference in
-work rather than accumulated jitter. The nodes that top the spread lists are hash-index
-traversals (`hvci retrieve`, `splitting component index usage`, `term sharing`,
-`literal order aftercheck`), which points at the pointer-hashing nondeterminism CLAUDE.md
-warns about: address-dependent iteration order changes the probe sequences while leaving
-the clause set identical, which is why the statistics-block control still passes.
+### Run sweeps with ASLR off
 
-Test it with ASLR off — `setarch $(uname -m) -R ./determinism.py …`. If the medians
-collapse, that is the cause.
+That residual is genuine program variation, and most of it is **address-dependent**.
+Repeating the same six problems under `setarch $(uname -m) -R`:
+
+| problem | ASLR on | ASLR off |
+|---|---:|---:|
+| HWV114-1.p | 0.042% | 0.004% |
+| PUZ016-1.p | 0.060% | 0.005% |
+| SWW976_1.p | 0.039% | 0.015% |
+| SWV767_5.p | 0.061% | 0.005% |
+| PUZ098^5.p | 0.020% | 0.004% |
+| BIO004+1.p | 0.030% | 0.010% |
+
+An 8x tightening of the median for one flag, so **run comparison sweeps under
+`setarch -R`**. `hvci retrieve`, the worst node on two problems, disappears from the
+lists entirely, as does the bimodal `backward simplification` on `BIO004+1.p`
+(22602031 / 22601755 / 22091101 — two runs agreeing to 0.001% and one 2.3% away, which
+is a discrete difference in work, not jitter).
+
+Note this is a *systematic* choice, not a cheat: with ASLR off every run shares one
+address layout, so if that layout is cache-unfriendly all runs pay it equally. Fine for
+A/B comparison, which is what sweeps are for.
+
+**`hvci` is the symptom, not the cause.** Its container is
+`DHMap<unsigned, ClauseList*, FnvHash, IdentityHash>` keyed on a *computed* hash, and
+`VariableIgnoringComparator` (`Indexing/ClauseVariantIndex.cpp:178`) is deliberately
+address-independent — it orders ground terms by `Term::getId()`, with the comment "now
+get just some total deterministic order while ignoring variables". But `getId()` is
+assigned in term *creation* order. So something upstream enumerating a pointer-hashed
+container creates terms in a different order, the ids shift, the comparator's ordering
+shifts, and `hvci` pays different collision costs. It is simply the node most sensitive
+to it. Finding that upstream container is the pointer-hashing hunt CLAUDE.md describes,
+and is separate work.
+
+A residual of ~0.005% median survives ASLR being off. For a deterministic program that
+should be zero, so there is something else too — worth knowing, not worth blocking on.
