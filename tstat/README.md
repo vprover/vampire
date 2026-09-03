@@ -146,16 +146,26 @@ Note this is a *systematic* choice, not a cheat: with ASLR off every run shares 
 address layout, so if that layout is cache-unfriendly all runs pay it equally. Fine for
 A/B comparison, which is what sweeps are for.
 
-**`hvci` is the symptom, not the cause.** Its container is
-`DHMap<unsigned, ClauseList*, FnvHash, IdentityHash>` keyed on a *computed* hash, and
+**What the mechanism is not.** `hvci`'s own container is
+`DHMap<unsigned, ClauseList*, FnvHash, IdentityHash>`, keyed on a *computed* hash, and
 `VariableIgnoringComparator` (`Indexing/ClauseVariantIndex.cpp:178`) is deliberately
-address-independent — it orders ground terms by `Term::getId()`, with the comment "now
-get just some total deterministic order while ignoring variables". But `getId()` is
-assigned in term *creation* order. So something upstream enumerating a pointer-hashed
-container creates terms in a different order, the ids shift, the comparator's ordering
-shifts, and `hvci` pays different collision costs. It is simply the node most sensitive
-to it. Finding that upstream container is the pointer-hashing hunt CLAUDE.md describes,
-and is separate work.
+address-independent — ground terms are ordered by `Term::getId()`, with the comment "now
+get just some total deterministic order while ignoring variables". So `hvci` is not
+itself the source.
+
+**What it most likely is.** The statistics blocks are *identical* across runs, so the
+same logical work happens; only its cost changes. That is the signature of a container
+hashed on pointers: the bucket distribution differs per run, so lookups take a different
+number of probes and arrive at the same answers. `DefaultHash` on a `Term*` or a
+`TermList` does exactly this — see the nondeterminism note in `CLAUDE.md`, which also
+gives the fix (`SharedTermHash` / `SharedTermListHash`, id-based). Finding the specific
+container is a separate hunt; the instruction counters now make it tractable, since they
+localise *which node's* cost moves.
+
+An earlier draft of this file blamed shifted `Term::getId()` values. That was
+speculation, and Martin's objection is right: ids are assigned in creation order, and
+creation order changing per run would have caused visible trouble long before now. The
+pointer-bucket explanation needs no such shift.
 
 A residual of ~0.005% median survives ASLR being off. For a deterministic program that
 should be zero, so there is something else too — worth knowing, not worth blocking on.
