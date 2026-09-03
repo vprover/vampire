@@ -21,6 +21,8 @@
 #include "Indexing/TermSubstitutionTree.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 
+#include <deque>
+
 using namespace Kernel;
 using namespace Indexing;
 
@@ -57,7 +59,7 @@ private:
 
   struct NonGoalClauseInfo {
     unsigned watchedIndex = 0;
-    Stack<TypedTermList> unprocessed;
+    std::deque<TypedTermList> unprocessed;
     Stack<TypedTermList> processed; // these are saved so we can remove them from indices
     DHSet<TypedTermList> seen;
   };

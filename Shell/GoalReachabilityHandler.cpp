@@ -49,7 +49,7 @@ TypedTermList linearize(TypedTermList t, unsigned freshVar) {
 
 void GoalReachabilityHandler::handleGoalClause(Clause* cl, bool adding)
 {
-  DEBUG("handleGoalClause ", adding, " ", *cl);
+  DEBUG("handleGoalClause ", adding, " ", cl->toString());
 
   ASS(cl->numSelected());
 
@@ -144,15 +144,17 @@ bool GoalReachabilityHandler::iterate()
     if (!ptr) {
       continue;
     }
-    if (ptr->unprocessed.isEmpty()) {
+    if (ptr->unprocessed.empty()) {
       // clause will be added to todo again via backward inferences if needed
       continue;
     }
-    DEBUG("processing non-goal clause ", *cl);
-    auto t = ptr->unprocessed.pop();
+    DEBUG("processing non-goal clause ", cl->toString());
+    auto t = ptr->unprocessed.front();
+    ptr->unprocessed.pop_front();
     DEBUG("processing term ", t);
     if (!ptr->seen.insert(t)) {
       DEBUG("already seen");
+      _todoNonGoalClauses.push_back(cl);
       continue;
     }
 
@@ -164,13 +166,13 @@ bool GoalReachabilityHandler::iterate()
       continue;
     }
 
-    // if we find a forward base_2 inference with t, we are done for this term
-    if (iterTraits(_chain1ForwardIndex.getUnifications(t, /*retrieveSubstitutions=*/true)).any([this,cl](const auto& qr) {
-      return base2Inference(cl, qr.data->value.term, qr.data->value.literal, *qr.unifier, /*tIsResult=*/true);
-    })) {
-      updateWatchedLiteral(cl);
-      continue;
-    }
+    // // if we find a forward base_2 inference with t, we are done for this term
+    // if (iterTraits(_chain1ForwardIndex.getUnifications(t, /*retrieveSubstitutions=*/true)).any([this,cl](const auto& qr) {
+    //   return base2Inference(cl, qr.data->value.term, qr.data->value.literal, *qr.unifier, /*tIsResult=*/true);
+    // })) {
+    //   updateWatchedLiteral(cl);
+    //   continue;
+    // }
 
     ptr->processed.push(t);
     handleNonGoalTerm(cl, t, /*adding=*/true);
@@ -213,7 +215,7 @@ GoalReachabilityHandler::GoalReachabilityHandler(SaturationAlgorithm& salg)
 
 void GoalReachabilityHandler::addClause(Clause* cl)
 {
-  DEBUG("addClause ", *cl);
+  DEBUG("addClause ", cl->toString());
 
   ASS(cl->numSelected());
 
@@ -228,8 +230,8 @@ void GoalReachabilityHandler::addClause(Clause* cl)
     auto sort = lit->eqArgSort();
 
     NonGoalClauseInfo info;
-    info.unprocessed.emplace(lhs, sort);
-    info.unprocessed.emplace(rhs, sort);
+    info.unprocessed.emplace_back(lhs, sort);
+    info.unprocessed.emplace_back(rhs, sort);
     info.watchedIndex = i;
     _todoNonGoalClauses.push_back(cl);
     _nonGoalClauses.insert(cl, std::move(info));
@@ -241,11 +243,12 @@ void GoalReachabilityHandler::addClause(Clause* cl)
 
 bool GoalReachabilityHandler::updateWatchedLiteral(Clause* cl)
 {
-  DEBUG("updateWatchedLiteral ", *cl);
+  DEBUG("updateWatchedLiteral ", cl->toString());
 
   auto ptr = _nonGoalClauses.findPtr(cl);
 
   ASS(ptr);
+  ptr->seen.reset();
   (ptr->watchedIndex)++;
 
   for (; ptr->watchedIndex < cl->size(); (ptr->watchedIndex)++) {
@@ -261,13 +264,13 @@ bool GoalReachabilityHandler::updateWatchedLiteral(Clause* cl)
     while (ptr->processed.isNonEmpty()) {
       handleNonGoalTerm(cl, ptr->processed.pop(), /*adding=*/false);
     }
-    if (ptr->unprocessed.isEmpty()) {
+    if (ptr->unprocessed.empty()) {
       _todoNonGoalClauses.push_back(cl);
     } else {
-      ptr->unprocessed.reset();
+      ptr->unprocessed.clear();
     }
-    ptr->unprocessed.emplace(lhs, sort);
-    ptr->unprocessed.emplace(rhs, sort);
+    ptr->unprocessed.emplace_back(lhs, sort);
+    ptr->unprocessed.emplace_back(rhs, sort);
     return false;
   }
 
@@ -282,7 +285,7 @@ bool GoalReachabilityHandler::updateWatchedLiteral(Clause* cl)
 
 bool GoalReachabilityHandler::baseInference(Clause* cl, TermList t, Literal* lit, ResultSubstitution& unif, bool tIsResult)
 {
-  DEBUG("base inference ", t, " ", *lit, " ", *cl);
+  DEBUG("base inference ", t, " ", *lit, " ", cl->toString());
 
   auto [lhs, rhs] = lit->eqArgs();
   auto lhsS = unif.applyTo(lhs, tIsResult);
@@ -300,7 +303,7 @@ bool GoalReachabilityHandler::baseInference(Clause* cl, TermList t, Literal* lit
 
 bool GoalReachabilityHandler::base2Inference(Clause* cl, TermList t, Literal* lit, ResultSubstitution& unif, bool tIsResult)
 {
-  DEBUG("base_2 inference ", t, " ", *lit, " ", *cl);
+  DEBUG("base_2 inference ", t, " ", *lit, " ", cl->toString());
 
   auto [lhs, rhs] = lit->eqArgs();
   auto sortS = unif.applyTo(lit->eqArgSort(), tIsResult);
@@ -327,7 +330,7 @@ bool GoalReachabilityHandler::base2Inference(Clause* cl, TermList t, Literal* li
 
 void GoalReachabilityHandler::chain1Inference(Clause* cl, TermList t, Literal* lit, ResultSubstitution& unif, bool tIsResult)
 {
-  DEBUG("chain_1 inference ", t, " ", *lit, " ", *cl);
+  DEBUG("chain_1 inference ", t, " ", *lit, " ", cl->toString());
 
   auto [lhs, rhs] = lit->eqArgs();
   auto sortS = unif.applyTo(lit->eqArgSort(), tIsResult);
@@ -338,24 +341,24 @@ void GoalReachabilityHandler::chain1Inference(Clause* cl, TermList t, Literal* l
   auto ptr = _nonGoalClauses.findPtr(cl);
   ASS(ptr);
   if (lhs.containsSubterm(t) && !Ordering::isGreaterOrEqual(Ordering::reverse(comp))) {
-    if (ptr->unprocessed.isEmpty()) {
+    if (ptr->unprocessed.empty()) {
       _todoNonGoalClauses.push_back(cl);
     }
-    ptr->unprocessed.emplace(lhsS, sortS); // TODO: adding the lhs like this is not very efficient
-    ptr->unprocessed.emplace(rhsS, sortS);
+    ptr->unprocessed.emplace_back(lhsS, sortS); // TODO: adding the lhs like this is not very efficient
+    ptr->unprocessed.emplace_back(rhsS, sortS);
   }
   if (rhs.containsSubterm(t) && !Ordering::isGreaterOrEqual(comp)) {
-    if (ptr->unprocessed.isEmpty()) {
+    if (ptr->unprocessed.empty()) {
       _todoNonGoalClauses.push_back(cl);
     }
-    ptr->unprocessed.emplace(rhsS, sortS); // TODO: adding the rhs like this is not very efficient
-    ptr->unprocessed.emplace(lhsS, sortS);
+    ptr->unprocessed.emplace_back(rhsS, sortS); // TODO: adding the rhs like this is not very efficient
+    ptr->unprocessed.emplace_back(lhsS, sortS);
   }
 }
 
 void GoalReachabilityHandler::chain2Inference(Clause* cl, TermList t, TermList lhs, Literal* lit, ResultSubstitution& unif, bool lhsIsResult)
 {
-  DEBUG("chain_2 inference ", t, " ", lhs, " ", *lit, " ", *cl);
+  DEBUG("chain_2 inference ", t, " ", lhs, " ", *lit, " ", cl->toString());
 
   auto rhs = EqHelper::getOtherEqualitySide(lit, lhs);
   auto lhsS = unif.applyTo(lhs, lhsIsResult);
@@ -367,10 +370,10 @@ void GoalReachabilityHandler::chain2Inference(Clause* cl, TermList t, TermList l
 
   auto ptr = _nonGoalClauses.findPtr(cl);
   ASS(ptr);
-  if (ptr->unprocessed.isEmpty()) {
+  if (ptr->unprocessed.empty()) {
     _todoNonGoalClauses.push_back(cl);
   }
-  ptr->unprocessed.emplace(EqHelper::replace(unif.applyTo(t, !lhsIsResult).term(), lhsS, rhsS));
+  ptr->unprocessed.emplace_back(EqHelper::replace(unif.applyTo(t, !lhsIsResult).term(), lhsS, rhsS));
 }
 
 void GoalReachabilityHandler::removeClause(Clause* cl)
