@@ -205,7 +205,7 @@ bool BlockedClauseElimination::resolvesToTautology(bool equationally, Clause* cl
 
 class VarMaxUpdatingNormalizer : public TermTransformer {
 public:
-  VarMaxUpdatingNormalizer(const Lib::DHMap<TermList, TermList>& replacements, int& varMax)
+  VarMaxUpdatingNormalizer(const Lib::DHMap<TermList, TermList, TermListHash, TermListHash2>& replacements, int& varMax)
     : _repls(replacements), _varMax(varMax) {}
 protected:
   TermList transformSubterm(TermList trm) override {
@@ -222,13 +222,13 @@ protected:
     return trm;
   }
 private:
-  const Lib::DHMap<TermList, TermList>& _repls;
+  const Lib::DHMap<TermList, TermList, TermListHash, TermListHash2>& _repls;
   int& _varMax;
 };
 
 class RenanigApartNormalizer : public TermTransformer {
 public:
-  RenanigApartNormalizer(const Lib::DHMap<TermList, TermList>& replacements, int varMax, Lib::DHMap<unsigned, unsigned, FnvHash, IdentityHash>& varMap)
+  RenanigApartNormalizer(const Lib::DHMap<TermList, TermList, TermListHash, TermListHash2>& replacements, int varMax, Lib::DHMap<unsigned, unsigned, FnvHash, IdentityHash>& varMap)
     : _repls(replacements), _varMax(varMax), _varMap(varMap) {}
 protected:
   TermList transformSubterm(TermList trm) override {
@@ -247,7 +247,7 @@ protected:
     return trm;
   }
 private:
-  const Lib::DHMap<TermList, TermList>& _repls;
+  const Lib::DHMap<TermList, TermList, TermListHash, TermListHash2>& _repls;
   int _varMax;
   Lib::DHMap<unsigned, unsigned, FnvHash, IdentityHash>& _varMap;
 };
@@ -267,9 +267,9 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
   unsigned n = lit->arity();
 
   IntUnionFind uf(n ? 2*n : 1); // IntUnionFind does not like 0
-  static Lib::DHMap<TermList, unsigned>  litArgIds;
+  static Lib::DHMap<TermList, unsigned, TermListHash, TermListHash2>  litArgIds;
   litArgIds.reset();
-  static Lib::DHMap<TermList, unsigned> plitArgIds;
+  static Lib::DHMap<TermList, unsigned, TermListHash, TermListHash2> plitArgIds;
   plitArgIds.reset();
 
   int varMax = -1;
@@ -312,7 +312,7 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
 
   // to do replacements in cl, we need a mapping for all lit's arguments.
   // As a bonus we also allow ground arguments of plit
-  static Lib::DHMap<TermList, TermList> replacements;
+  static Lib::DHMap<TermList, TermList, TermListHash, TermListHash2> replacements;
   replacements.reset();
   for(unsigned i = 0; i<n; i++) {
     TermList arg = *lit->nthArgument(i);

@@ -47,8 +47,8 @@ private:
   void tryMakeLiteralFalse(Literal*, Stack<Substitution>& subs);
   Term* tryGetDifferentValue(Term* t); 
 
-  DHMap<TermList,Lib::Set<Term*, FnvHash>*> sorted_candidates_check;
-  DHMap<TermList,Lib::Stack<Term*>*> sorted_candidates;
+  DHMap<TermList,Lib::Set<Term*, FnvHash>*, TermListHash, TermListHash2> sorted_candidates_check;
+  DHMap<TermList,Lib::Stack<Term*>*, TermListHash, TermListHash2> sorted_candidates;
 
 };
 

@@ -128,7 +128,7 @@ private:
     };
 
     const char* _prefix;
-    Map<SortId, SortedConstantCache> _inner;
+    Map<SortId, SortedConstantCache, TermListHash> _inner;
 
   public:
     ConstantCache(const char* prefix) : _prefix(prefix), _inner() {}
@@ -143,7 +143,7 @@ private:
   bool const _thiTautologyDeletion;
   SAT2FO _naming;
   std::unique_ptr<Z3Interfacing> _solver;
-  Map<SortId, bool> _supportedSorts;
+  Map<SortId, bool, TermListHash> _supportedSorts;
   bool _generalisation;
   ConstantCache _instantiationConstants;
   ConstantCache _generalizationConstants;

@@ -76,11 +76,11 @@ unsigned TermAlgebraConstructor::discriminator()
   }
 }
 
-Lib::Set<TermList> TermAlgebra::subSorts(TermList sort)
+Lib::Set<TermList, TermListHash> TermAlgebra::subSorts(TermList sort)
 {
   ASS(sort.isTerm() && sort.term()->isSort());
 
-  Set<TermList> out; 
+  Set<TermList, TermListHash> out; 
   /* connected component finding without recursion */
   TermStack work; // <- stack for simulating recursion
   work.push(sort);

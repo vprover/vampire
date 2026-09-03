@@ -135,7 +135,7 @@ namespace Shell {
      *
      * then subSorts(atree(intp)) == { int, nat, intp, atree(intp) }
      */
-    static Lib::Set<TermList> subSorts(TermList sort);
+    static Lib::Set<TermList, TermListHash> subSorts(TermList sort);
 
     bool allowsCyclicTerms() { return _allowsCyclicTerms; }
 

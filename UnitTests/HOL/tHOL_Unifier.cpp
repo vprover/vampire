@@ -88,7 +88,7 @@ void testUnifySuccess(TermList lhs, TermList rhs, Stack<ResultSpec> expected) {
     auto hoUnif = wrapper.next();
     auto& e = expected[i];
 
-    DHSet<VarSpec> vars;
+    DHSet<VarSpec, VarSpecHash, VarSpecHash2> vars;
     auto loadVars = [&vars](TermList t, unsigned index) {
       if (t.isVar()) {
         vars.insert(VarSpec(t, index));

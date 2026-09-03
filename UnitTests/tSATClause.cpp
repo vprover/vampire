@@ -80,3 +80,23 @@ TEST_FUN(removeDuplicateLiterals_tautology_among_others)
 
   ASS(!result);
 }
+
+// The hash is the exclusive or over the clause's literals, so a permutation of
+// the same literals hashes alike. The loop reads the literals through a pointer:
+// _literals is declared with one element while a clause holds length() of them,
+// and indexing the array lvalue past its bound lets -O3 compute a different
+// value at different call sites.
+TEST_FUN(hashIsExclusiveOrOverLiterals)
+{
+  auto cl = satClause({ p, ~q, r });
+  const SATLiteral* lits = &(*cl)[0];
+  unsigned expected = 0;
+  for (unsigned i = 0; i < cl->length(); i++)
+    expected ^= SATLiteralHash::hash(lits[i]);
+
+  ASS_EQ(SATClauseHash::hash(*cl), expected);
+  ASS_EQ(cl->defaultHash(), expected);
+
+  auto permuted = satClause({ r, p, ~q });
+  ASS_EQ(SATClauseHash::hash(*permuted), SATClauseHash::hash(*cl));
+}

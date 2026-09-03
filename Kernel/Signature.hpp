@@ -58,7 +58,7 @@ class Signature
     , std::pair<Theory::Interpretation, OperatorType*>
     >;
 
-  using SymbolMap = Map<SymbolKey, unsigned>;
+  using SymbolMap = Map<SymbolKey, unsigned, CoproductHash>;
  public:
   /** Function or predicate symbol */
   
@@ -665,7 +665,7 @@ class Signature
     _instantiations.insert(inst);
   }
 
-  DHSet<TermList>* getInstantiations() {
+  DHSet<TermList, TermListHash, TermListHash2>* getInstantiations() {
     return &_instantiations;
   }
 
@@ -1003,13 +1003,13 @@ private:
 
   // TODO(HOL): these two don't belong in the signature
   DHSet<unsigned, FnvHash, IdentityHash> _choiceSymbols;
-  DHSet<TermList> _instantiations;
+  DHSet<TermList, TermListHash, TermListHash2> _instantiations;
 
   SymbolMap _funNames;
   SymbolMap _predNames;
   SymbolMap _typeConNames;
   /** Map for the arity_check options: maps symbols to their arities */
-  Map<std::string, unsigned> _arityCheck;
+  Map<std::string, unsigned, FnvHash> _arityCheck;
   /** Last number used for fresh functions and predicates */
   int _nextFreshSymbolNumber;
 

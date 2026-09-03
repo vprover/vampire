@@ -49,7 +49,7 @@ bool ForwardGroundJoinability<higherOrder>::perform(Clause* cl, Clause*& replace
 {
   // cout << "trying " << *cl << endl;
 
-  static DHSet<TermList> attempted;
+  static DHSet<TermList, TermListHash, TermListHash2> attempted;
 
   if (cl->length()>1) {
     return false;

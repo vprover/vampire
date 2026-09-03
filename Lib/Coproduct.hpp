@@ -675,6 +675,23 @@ public:
   inline Coproduct clone() const { return apply([](auto& x){ return Coproduct(x.clone()); }); }
 }; // class Coproduct<As...>
 
+// hash a Coproduct by its tag together with the alternative it holds. The
+// alternative's own hash still comes from DefaultHash: which one of them is
+// live is only known at run time, so a functor per alternative cannot be named
+// here. Stage 6 threads the hash through as a template argument.
+struct CoproductHash {
+  template<class... As>
+  static bool equals(Coproduct<As...> const& c1, Coproduct<As...> const& c2) { return c1 == c2; }
+
+  template<class... As>
+  static unsigned hash(Coproduct<As...> const& c) { return c.defaultHash(); }
+};
+
+struct CoproductHash2 {
+  template<class... As>
+  static unsigned hash(Coproduct<As...> const& c) { return c.defaultHash2(); }
+};
+
 
 
 } // Lib

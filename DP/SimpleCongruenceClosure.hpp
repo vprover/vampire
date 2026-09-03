@@ -263,14 +263,14 @@ private:
   /**
    * Map from signature symbols to the local constant numbers.
    */
-  DHMap<std::pair<unsigned,SignatureKind>,unsigned> _sigConsts;
+  DHMap<std::pair<unsigned,SignatureKind>,unsigned, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>> _sigConsts;
 
-  typedef DHMap<CPair,unsigned> PairMap;
+  typedef DHMap<CPair,unsigned, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>> PairMap;
   /** Names of constant pairs (modulo the congruence!)*/
   PairMap _pairNames;
 
   /** Constants corresponding to terms */
-  DHMap<TermList,unsigned> _termNames;
+  DHMap<TermList,unsigned, TermListHash, TermListHash2> _termNames;
   /** Constants corresponding to literals */
   DHMap<Literal*,unsigned, FnvHash, PtrIdentityHash> _litNames;
 

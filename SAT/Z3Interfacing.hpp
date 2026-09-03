@@ -110,10 +110,10 @@ namespace ProblemExport {
   struct ApiCalls {
     std::ofstream out;
     z3::context& _ctxt;
-    Map<std::string, std::string> _escapedNames; // <- maps string -> unique string that can be used as c++ variable
-    Map<std::string, Map<std::string, unsigned>> _escapePrefixes; // <- maps c++ variable prefix of _escapedNames -> strings that have been escaped to it
+    Map<std::string, std::string, FnvHash> _escapedNames; // <- maps string -> unique string that can be used as c++ variable
+    Map<std::string, Map<std::string, unsigned, FnvHash>, FnvHash> _escapePrefixes; // <- maps c++ variable prefix of _escapedNames -> strings that have been escaped to it
 
-    Set<std::string> _predeclaredConstants; // <- c++ variable names of been declared using declare_const
+    Set<std::string, FnvHash> _predeclaredConstants; // <- c++ variable names of been declared using declare_const
     ApiCalls(ApiCalls &&) = default;
     ApiCalls(std::ofstream out, z3::context& context) : out(std::move(out)), _ctxt(context) {}
 
@@ -276,7 +276,7 @@ private:
   void addAssumption(SATLiteral lit);
   void solveModuloAssumptionsAndSetStatus();
 
-  Map<SortId, z3::sort> _sorts;
+  Map<SortId, z3::sort, TermListHash> _sorts;
   struct Z3Hash {
     static unsigned hash(z3::func_decl const& c) { return c.hash(); }
     static unsigned hash(z3::expr const& c) { return c.hash(); }
@@ -285,7 +285,7 @@ private:
   };
   Map<z3::func_decl, FuncOrPredId , Z3Hash > _fromZ3;
   Map<FuncOrPredId,  z3::func_decl, StlHash> _toZ3;
-  Set<SortId> _createdTermAlgebras;
+  Set<SortId, TermListHash> _createdTermAlgebras;
 
   z3::func_decl const& findConstructor(Term* t);
   void createTermAlgebra(TermList sort);
@@ -344,10 +344,10 @@ private:
   Coproduct<ProblemExport::NoExport, ProblemExport::Smtlib, ProblemExport::ApiCalls> _exporter;
 
 
-  BiMap<SATLiteral, z3::expr, DefaultHash, Z3Hash> _assumptionLookup;
+  BiMap<SATLiteral, z3::expr, SATLiteralHash, Z3Hash> _assumptionLookup;
   Option<std::ofstream> _out;
   Map<unsigned, z3::expr, FnvHash> _varNames;
-  Map<TermList, z3::expr> _termIndexedConstants;
+  Map<TermList, z3::expr, TermListHash> _termIndexedConstants;
   Map<Signature::Symbol*, z3::expr, FnvHash> _constantNames;
 
   bool     isNamedExpr(unsigned var) const;

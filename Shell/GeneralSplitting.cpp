@@ -116,7 +116,7 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
 
   Set<unsigned, FnvHash> vars;
   //only edges from lower to higher variable are included
-  DHMultiset<pair<unsigned, unsigned> > connections;
+  DHMultiset<pair<unsigned, unsigned>, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash> > connections;
   DHMultiset<unsigned, FnvHash, IdentityHash> degrees;
 
 

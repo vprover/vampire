@@ -40,7 +40,7 @@ public:
   static void splitStr(const char* str, char delimiter, Stack<std::string>& strings);
   static void dropEmpty(Stack<std::string>& strings);
   static bool readEquality(const char* str, char eqChar, std::string& lhs, std::string& rhs);
-  static bool readEqualities(const char* str, char delimiter, char eqChar, DHMap<std::string,std::string>& pairs);
+  static bool readEqualities(const char* str, char delimiter, char eqChar, DHMap<std::string,std::string, FnvHash, LengthHash>& pairs);
   template<class A>
   static A parse(std::string const& str)
   { return StringParser<A>{}(str); }

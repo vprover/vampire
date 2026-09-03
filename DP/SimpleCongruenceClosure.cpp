@@ -245,7 +245,7 @@ struct Memo {
     termNames.insert(orig, result);
     return result;
   }
-  DHMap<TermList, unsigned> &termNames;
+  DHMap<TermList, unsigned, TermListHash, TermListHash2> &termNames;
 };
 
 /**
@@ -997,7 +997,7 @@ void SimpleCongruenceClosure::getModel(LiteralStack& model)
     
     //cout << "Outputting for class " << r << " with nf " << nf.toString() << endl;
     
-    static DHSet<TermList> seen;
+    static DHSet<TermList, TermListHash, TermListHash2> seen;
     seen.reset();
     seen.insert(nf); // this way we avoid generating the identity equality
     

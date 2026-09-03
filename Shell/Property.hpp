@@ -157,7 +157,7 @@ public:
   std::string toString() const;
   std::string toSpider(const std::string& problemName) const;
 
-  DHMap<std::string,std::string> toDict() const;
+  DHMap<std::string,std::string, FnvHash, LengthHash> toDict() const;
 
   /** Total number of clauses in the problem. */
   int clauses() const { return _goalClauses + _axiomClauses; }
