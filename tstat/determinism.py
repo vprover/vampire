@@ -16,9 +16,14 @@ discards anything, and the search becomes deterministic.
     ./determinism.py --runs 5 --al 40000
     ./determinism.py --problem PUZ016-1.p --problem HWV114-1.p
 
-Expected: instruction spreads well under 0.1%, time spreads far larger. If instruction
-spreads are also large *and* the statistics blocks match, the premise of counting
-instructions is wrong and we should find out why before sweeping.
+Measured on a quiet server (six problems, 3 runs, -al 2000 -sa otter): instruction
+spreads of 0.02-0.06% median and up to 2.3% on the worst node, against time spreads of
+0.45-49.7% median. So a per-node instruction difference below ~0.1% means nothing, and
+one above ~1% is real.
+
+The residual is genuine variation in work done, not measurement error -- it comes out
+bimodal rather than noisy, and concentrates in hash-index nodes. Run under
+`setarch $(uname -m) -R` to test whether address-dependent iteration order is the cause.
 """
 
 import argparse
@@ -92,7 +97,11 @@ def main():
     ap.add_argument("--timeout", type=int, default=600,
                     help="-t, a watchdog only; must be generous enough that LRS "
                          "never tightens its limits, or the search is not reproducible")
-    ap.add_argument("--extra", default="", help="further options, space separated")
+    ap.add_argument("--extra", default="-sa otter",
+                    help="further options, space separated. Defaults to -sa otter: "
+                         "LRS derives its limits from elapsed time and instructions, "
+                         "so under it the search itself is not reproducible and the "
+                         "statistics-block control below will report DIFFERS")
     ap.add_argument("--min-ms", type=float, default=1.0,
                     help="ignore nodes whose median time is below this many "
                          "milliseconds: their spread is clock granularity, not signal")
