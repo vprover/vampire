@@ -1,10 +1,17 @@
 # tstat — mining a `-tstat on` sweep for optimization targets
 
 Analysis toolkit for the DVTIME_PROFILING sweep in
-`../problemsALL_master11131_tstat-on_i100K/` (26 504 TPTP problems,
-`vampire_z3_rel_..._11131 -i 100000 -tstat on`, 120 jobs in parallel).
+`../problemsALLlocal_tstat11142_tstat-on_i100K/` (26 504 TPTP problems,
+`vampire_z3_rel_martin-tstat_11142 -i 100000 -tstat on`, TPTP on local disk, 64 workers
+pinned one per physical core, ASLR off). **26 265 runs are usable**; the 239 that are not
+are Vampire user errors that never reached profiling.
 
 Nothing here touches the prover. Everything reads logs and writes CSVs into `out/`.
+
+Cost is measured in **retired instructions** by default, with wall time kept alongside.
+Every report takes `--metric time` for the old view. The reason is in `FINDINGS.md` §6:
+time over-ranks the memory-bound nodes by up to 3x, and instruction counts are
+reproducible run to run where time is not.
 
 ## Setup
 
@@ -21,61 +28,90 @@ point at it.
 
 | script | question |
 |---|---|
-| `rpt_hotspots.py` | where does the time go, corpus-wide and per dialect (`--by-dialect`, `--tree`) |
+| `rpt_hotspots.py` | where the work goes, corpus-wide and per dialect (`--by-dialect`, `--tree`). `--metric membound` ranks by ps/instr: which nodes stall on memory |
 | `rpt_preproc.py` | is any pre-saturation step superlinear in input size (`--fit`), and which problems cost far more than their size predicts (`--outliers`, `--percost`) |
-| `rpt_percall.py` | which runs pay far more *per call* for a node than usual, ranked by recoverable time (`--node-summary` for the per-node spread) |
+| `rpt_percall.py` | which runs pay far more *per call* for a node than usual, ranked by recoverable cost (`--node-summary` for the per-node spread) |
 | `rpt_peers.py` | which runs spend their saturation time unlike near-identical problems (`--family CSR115` dumps one family) |
-| `rpt_ips.py` | instructions per second: `--spread` measures how noisy the sweep's machine was; default lists memory-bound runs |
+| `rpt_ips.py` | instructions per second: `--spread` sizes the wall-clock spread across runs; default lists memory-bound runs |
+| `determinism.py` | repeats one problem under `-al` and compares per-node instruction vs time spread — the honest noise floor |
 | `calib_overhead.py` | what one `TIME_TRACE` scope costs, so we know which nodes measure themselves |
-| `q.sh` | ad-hoc SQL: `./q.sh "SELECT node, SUM(self_ns)/1e9 FROM vtree GROUP BY 1 ORDER BY 2 DESC LIMIT 10"` |
+| `q.sh` | ad-hoc SQL: `./q.sh "SELECT node, SUM(self_instr) FROM vtree GROUP BY 1 ORDER BY 2 DESC LIMIT 10"` |
 | `rerun.sh` | reproduce one problem locally and diff its profile against the sweep |
+
+`rpt_hotspots.py`, `rpt_preproc.py` and `rpt_percall.py` all take
+`--metric {instructions,time}` and default to instructions.
 
 ## Schema
 
 `runs`, `tptp`, `stats`, `nodes_flat`, `nodes_tree`, plus the joined views `v`
 (one row per run), `vflat` and `vtree` (profile rows, already restricted to
 trustworthy runs). `nodes_tree.path` is the dotted ancestry, so parse-time
-`term sharing` is distinguishable from the saturation-time one; `self_ns` is
-exclusive time (total minus direct children).
+`term sharing` is distinguishable from the saturation-time one; `self_ns` and
+`self_instr` are exclusive (total minus direct children), and `ps_per_instr` is their
+ratio.
 
-## Reading the data: four hazards, all real
+One reason to prefer `self_instr`: the printer rounds each node's total to 3-4
+significant figures, so a parent whose children round up can end with a *negative*
+`self_ns` (`NUM789^4.p`'s `main loop` is -191 µs). Instruction counts are printed as exact
+integers, so `self_instr` never goes negative.
 
-**1. Mangled logs (2 952 of 26 504 dropped).** `Lib/Timer.cpp:limitReached()` runs on
-the *timer thread*: it prints `env.statistics` and calls `terminateImmediately` while
-the main thread is still proving and mutating the time trace. **2 450 logs carry
-`Aborted by signal`** (2 120 SIGSEGV) — about one in five instruction-limited runs — and
-the abort always lands inside the trace output. See `FINDINGS.md` §4 for the diagnosis
-and the fix. (Count these with `grep -la`: plain `grep -l` skips the interleaved logs as
-binary and reports only 1 900.) `ingest.py`
-rejects anything that fails a structural check, and the selftest confirms the cost:
-the trace tree and the flattened profile agree **exactly** on all 467 111 rows from
-normally-terminated runs, and disagree only under `Instruction limit` (8% of rows,
-always flat > tree, ≤1.7%) — which is the same race, caught in the act.
+## Reading the data: two live hazards, and two that are now history
 
-The rejects are not uniform: instruction-limited **TH0 is 53% clean and TH1 27%**,
-against 85% for CNF/FOF. Do not read a THF saturation conclusion off this sweep
-without checking how many runs survived.
+**1. Wall clock is not comparable between runs; instructions are.** `rpt_ips.py
+--spread`: effective throughput runs from 3 444 M instr/s at p10 to 8 616 at p90, so a run
+at p10 takes 1.55x longer than the median for exactly the same work.
 
-**2. `parsing` measures the server's NFS, not the parser.** Every FOF problem shows a
-fixed ~21 ms floor no matter how small it is, +1.5 ms per `include()`. The same
-problems parse in 220–520 µs locally from disk (`SET044+1.p`: 113 ms on the server,
-220 µs here). The TPTP release was on `/nfs/...` and 120 jobs were hammering it. The
-`parsing` node is therefore excluded by default from `rpt_percall.py`, and its
-sublinear exponent in `rpt_preproc.py --fit` is this artifact, not a scaling property.
+Pinning 64 workers one per physical core instead of running 120 unpinned raised median
+throughput 1.70x but left this spread almost unchanged (2.58x → 2.50x), which shows what
+the number really is: it compares *different problems*, so it mixes machine load with
+genuine problem-to-problem memory-boundedness, and the second term does not go away.
+Median throughput still falls monotonically with peak memory — 8 486 M instr/s under
+64 MB, 5 994 at 64–256 MB, 4 624 at 256 MB–1 GB.
 
-**3. 120-way parallelism moves wall clock by 2.6x.** `rpt_ips.py --spread`: effective
-throughput ranges from 1 828 M instr/s at p10 to 4 724 at p90, so a run at p10 takes
-1.7x longer than the median for exactly the same work. Part of that is genuine
-memory-boundedness (median IPS falls monotonically from 4 530 under 64 MB to 2 672 at
-256 MB–1 GB) and part is contention. Wall-clock *ratios within one run* are sound;
-absolute per-call comparisons *between* runs carry this 1.7–2.4x noise floor.
+The clean noise figure comes from repeating *one* problem (`determinism.py`, below):
+0.004–0.015% per-node instruction spread against 0.45–49.7% in time. So compare
+instructions between runs freely, and time only within a run.
 
-**4. The profiler perturbs the fine-grained nodes.** `TIME_TRACE_ITER`
-(`Lib/Metaiterators.hpp:1011`) wraps every `hasNext()`/`next()`, so `perform
-superposition` records 22.7 G calls and `clause generation` 14.0 G. One scope costs
-26 ns here (`calib_overhead.py`), which is 31% of `term sharing`'s reported 146 ns/call
-and 32% of `clause generation`'s 142 ns. The `instr%` column in `rpt_hotspots.py`
-flags this; treat anything above ~30% as unmeasured.
+**2. The profiler perturbs the fine-grained nodes — but the size of the effect is now
+measurable.** `TIME_TRACE_ITER` (`Lib/Metaiterators.hpp:1011`) wraps every
+`hasNext()`/`next()`, so `term sharing` records 21.6 G calls and `clause generation`
+16.3 G. Instrumentation costs a *constant number of instructions* per scope, which the
+sweep bounds directly: over nodes with more than 3×10⁸ calls the cheapest is `splitting`
+at **107 instructions per call**, and it does real work, so a `ScopedTimer` costs no more
+than that. Against `clause generation` at 657 instructions/call and `term sharing` at 723,
+instrumentation is therefore under 16% — not the 43% the old time-based estimate claimed
+from a 26 ns figure measured on a Mac laptop.
+
+The `instr/call` column in `rpt_hotspots.py` is the thing to read; treat a node near 100
+as measuring itself. Calibrating the constant exactly (so it can be *subtracted* rather
+than flagged) needs `calib_overhead.py` re-run with instruction counting on the sweep
+machine — worth doing, not yet done.
+
+### Two hazards the 11142 sweep removed
+
+Kept here because they are why the 11131 sweep's numbers must not be compared against
+this one.
+
+**Mangled logs — gone.** `Lib/Timer.cpp:limitReached()` used to print the time trace from
+the *timer thread* while the main thread was still mutating it: 2 450 of 26 504 logs died
+with `Aborted by signal`, about one in five instruction-limited runs. Fixed (`FINDINGS.md`
+§4); this sweep has **0** crashes, **0** rejected logs, and a **100.0%** clean rate in
+every dialect × termination bucket. The old sweep's rejects were badly non-uniform —
+instruction-limited TH0 was 53% clean and TH1 27% — so no THF conclusion drawn from it is
+safe.
+
+> Counting trap, corrected: the old note here said to use `grep -la`. That is still wrong.
+> `grep -l` reports 1 900 of those logs and `grep -la` reports 2 241; the true count is
+> **2 450**. Interleaved output defeats both. Only a byte-level scan is reliable:
+> `open(f,'rb').read()` and search for the bytes.
+
+**`parsing` measuring NFS — gone.** The TPTP release used to live on `/nfs/...` with 120
+jobs hammering it, giving every FOF problem a ~21 ms floor regardless of size. With TPTP
+on local disk, `SET044+1.p` went from 113 ms to **212 µs** and `SYO837+1.p` from 174 ms to
+266 µs — matching what the same problems cost from local disk on a laptop. The node's
+sublinear exponent in `rpt_preproc.py --fit` (b = 0.29–0.79) was that fixed floor; it is
+now 0.93–1.23, cleanly linear. `rpt_percall.py` no longer excludes `parsing`, and what the
+node now shows is a real and previously invisible cost — see `FINDINGS.md` §3.
 
 ## Instruction counts (sweeps built after Sep 2026)
 
@@ -93,18 +129,19 @@ so logs from older sweeps still ingest — they simply get `NULL` in the `instr`
 
 Two reasons this matters more than it might look:
 
-- **Instruction counts are immune to hazard 3.** On the reference server a fixed
+- **Instruction counts are immune to hazard 1.** On the reference server a fixed
   workload measured 12 000 031 and 12 000 032 instructions across seven runs — a spread
-  of 0.0000%, against the 2.6x spread in wall-clock throughput. Per-node instruction
+  of 0.0000%, against the 2.5x spread in wall-clock throughput. Per-node instruction
   counts are therefore comparable between problems, between machines, and between
   builds, in a way ns never were.
-- **Hazard 4 becomes correctable.** Instrumentation overhead is a *constant* number of
+- **Hazard 2 becomes correctable.** Instrumentation overhead is a *constant* number of
   instructions per scope, so it can be calibrated once and subtracted exactly
   (`true = measured − k·cnt`). Time can only ever be flagged, never corrected.
 
 Keep reading time as well: `ps_per_instr` in the `vtree` view is picoseconds per
 instruction per node, which is what separates "this node did more work" from "this node
-is cache-missing" — the distinction hazard 3 otherwise destroys.
+is cache-missing" — the distinction hazard 1 otherwise destroys. `FINDINGS.md` §6 is that
+distinction applied to the whole corpus.
 
 ### The measured noise floor
 
@@ -120,7 +157,7 @@ on an otherwise quiet server:
 So **do not believe a per-node instruction difference below ~0.1%**, and treat anything
 above ~1% as real. That is one to three orders of magnitude better than wall clock, and
 it is measured on an *idle* machine — under a parallel sweep the time figures degrade by
-the further 2.6x of hazard 3, while the instruction figures do not move at all.
+the further 2.5x of hazard 1, while the instruction figures do not move at all.
 
 ### Run sweeps with ASLR off
 
