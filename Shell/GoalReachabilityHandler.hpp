@@ -47,8 +47,8 @@ private:
   void handleNonGoalTerm(Clause* cl, TypedTermList t, bool adding);
   bool updateWatchedLiteral(Clause* cl);
 
-  bool baseInference(Clause* cl, TermList t, Literal* lit, ResultSubstitution& unif, bool tIsResult);
-  bool base2Inference(Clause* cl, TermList t, Literal* lit, ResultSubstitution& unif, bool tIsResult);
+  [[nodiscard]] bool baseInference(Clause* cl, TermList t, Literal* lit, ResultSubstitution& unif, bool tIsResult);
+  [[nodiscard]] bool base2Inference(Clause* cl, TermList t, Literal* lit, ResultSubstitution& unif, bool tIsResult);
   void chain1Inference(Clause* cl, TermList t, Literal* lit, ResultSubstitution& unif, bool tIsResult);
   void chain2Inference(Clause* cl, TermList t, TermList lhs, Literal* lit, ResultSubstitution& unif, bool lhsIsResult);
 
