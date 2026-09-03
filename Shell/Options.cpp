@@ -1949,7 +1949,7 @@ void Options::init()
     _simultaneousSuperposition.onlyUsefulWith(ProperSaturationAlgorithm());
     _simultaneousSuperposition.tag(OptionTag::INFERENCES);
 
-    _goalOrientedSuperposition = BoolOptionValue("goal_oriented_superposition","gos",false);
+    _goalOrientedSuperposition = BoolOptionValue("goal_oriented_superposition","gos",true);
     _goalOrientedSuperposition.description="New calculus, to be described.";
     _lookup.insert(&_goalOrientedSuperposition);
     _goalOrientedSuperposition.onlyUsefulWith(ProperSaturationAlgorithm());
