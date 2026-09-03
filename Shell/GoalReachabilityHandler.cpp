@@ -150,6 +150,11 @@ bool GoalReachabilityHandler::iterate()
     }
     DEBUG("processing non-goal clause ", *cl);
     auto t = ptr->unprocessed.pop();
+    DEBUG("processing term ", t);
+    if (!ptr->seen.insert(t)) {
+      DEBUG("already seen");
+      continue;
+    }
 
     // if we find a forward base inference with t, we are done for this term
     if (iterTraits(_baseForwardIndex.getUnifications(t, /*retrieveSubstitutions=*/true)).any([this,cl](const auto& qr) {
@@ -336,12 +341,14 @@ void GoalReachabilityHandler::chain1Inference(Clause* cl, TermList t, Literal* l
     if (ptr->unprocessed.isEmpty()) {
       _todoNonGoalClauses.push_back(cl);
     }
+    ptr->unprocessed.emplace(lhsS, sortS); // TODO: adding the lhs like this is not very efficient
     ptr->unprocessed.emplace(rhsS, sortS);
   }
   if (rhs.containsSubterm(t) && !Ordering::isGreaterOrEqual(comp)) {
     if (ptr->unprocessed.isEmpty()) {
       _todoNonGoalClauses.push_back(cl);
     }
+    ptr->unprocessed.emplace(rhsS, sortS); // TODO: adding the rhs like this is not very efficient
     ptr->unprocessed.emplace(lhsS, sortS);
   }
 }

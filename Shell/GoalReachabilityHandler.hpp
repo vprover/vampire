@@ -59,6 +59,7 @@ private:
     unsigned watchedIndex = 0;
     Stack<TypedTermList> unprocessed;
     Stack<TypedTermList> processed; // these are saved so we can remove them from indices
+    DHSet<TypedTermList> seen;
   };
   DHMap<Clause*, NonGoalClauseInfo> _nonGoalClauses;
 
