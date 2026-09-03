@@ -487,20 +487,16 @@ void SortInference::doInference()
     cout << "Sort Inference information:" << endl;
     cout << comps << " inferred subsorts" << endl;
   }
-  unsigned firstFreshConstant = UINT_MAX;
+  unsigned firstFreshConstant = env.signature->functions();
+  unsigned fresh = firstFreshConstant;
   DHMap<unsigned,unsigned, FnvHash, IdentityHash> freshMap;
   for(unsigned s=0;s<comps;s++){
 #if DEBUG_SORT_INFERENCE
     if(!_posEqualitiesOnSort[s]){ cout << "No positive equalities for subsort " << s << endl; }
 #endif
     if(_sig->sortedConstants[s].size()==0 && _sig->sortedFunctions[s].size()>0){
-      unsigned dsrt = _sig->parents[s];
-      unsigned vsrt = (*_sig->distinctToVampire.get(dsrt))[0];
-      TermList vsrtT = TermList(AtomicSort::createConstant(vsrt));
-      unsigned fresh = env.signature->addFreshFunction(OperatorType::getConstantsType(vsrtT),"fmbFreshConstant");
-      _sig->sortedConstants[s].push(fresh);
       freshMap.insert(fresh,s);
-      if(firstFreshConstant==UINT_MAX) firstFreshConstant=fresh;
+      _sig->sortedConstants[s].push(fresh++);
 #if DEBUG_SORT_INFERENCE
       cout << "Adding fresh constant for subsort "<<s<<endl;
 #endif
@@ -537,7 +533,7 @@ void SortInference::doInference()
   for(unsigned i=0;i<comps;i++) parentSet[i]=false;
 
   _sig->parents.ensure(comps);
-  _sig->functionSignatures.ensure(env.signature->functions());
+  _sig->functionSignatures.ensure(fresh);
   _sig->predicateSignatures.ensure(env.signature->predicates());
 
 #if DEBUG_SORT_INFERENCE
@@ -545,7 +541,7 @@ void SortInference::doInference()
 #endif
 
   // Now record the _signatures for functions
-  for(unsigned f=0;f<env.signature->functions();f++){
+  for(unsigned f=0;f<fresh;f++){
     if(f < _del_f.size() && _del_f[f]) {
 #if DEBUG_SORT_INFERENCE
     cout << "Skipping deleted function signature "  << env.signature->functionName(f) << endl;
@@ -560,7 +556,7 @@ void SortInference::doInference()
     // be bounded
     // We need to treat them specially as they are functions that are added
     // after we do sort inference (so offsets/positions do not apply)
-    if(f >= firstFreshConstant){
+    if(f >= env.signature->functions()){
       unsigned srt = freshMap.get(f);
       _sig->functionSignatures[f].ensure(1);
       _sig->functionSignatures[f][0]=srt;
@@ -640,8 +636,19 @@ void SortInference::doInference()
   cout << "Setting up fresh constant info" << endl;
 #endif
   // Setting types for fresh constants
-  for(unsigned f=firstFreshConstant;f<env.signature->functions();f++){
+  for(unsigned f=env.signature->functions();f<fresh;f++){
+    unsigned srt = freshMap.get(f);
+    unsigned dsrt = _sig->parents[srt];
+    unsigned vsrt = (*_sig->distinctToVampire.get(dsrt))[0];
+    TermList vsrtT = TermList(AtomicSort::createConstant(vsrt));
+    auto type = OperatorType::getConstantsType(vsrtT);
+    // we avoid actually creating new symbols until `type` can be computed reasonably,
+    // but firstFreshConstant...fresh should be a new contiguous block in the signature
+    // we kind of pretend these functions already exist above
+    unsigned inserted = env.signature->addFreshFunction(type, "fmbFreshConstant");
     env.signature->getFunction(f)->markIntroduced();
+    // ...but now everything should be sane again
+    ASS_EQ(f, inserted)
   }
 
 #if DEBUG_SORT_INFERENCE
