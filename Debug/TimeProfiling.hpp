@@ -112,22 +112,29 @@ private:
   class Measurements {
     Duration _sum;
     unsigned _cnt;
+    // user-space instructions retired inside the measured blocks; 0 when the
+    // hardware counter is unavailable (see Lib/PerfInstructions.hpp)
+    long long _instrSum;
 
   public:
-    void add(Duration d) {
+    void add(Duration d, long long instr) {
       _cnt += 1;
       _sum += d;
+      _instrSum += instr;
     }
-    void remove(Duration d) {
+    void remove(Duration d, long long instr) {
       _cnt -= 1;
       _sum -= d;
+      _instrSum -= instr;
     }
     Duration sum() const { return _sum; }
     unsigned cnt() const { return _cnt; }
+    long long instr() const { return _instrSum; }
     Duration avg() const { return sum() / cnt(); }
     void extend(Measurements other) {
       _sum += other._sum;
       _cnt += other._cnt;
+      _instrSum += other._instrSum;
     }
   };
 
@@ -202,11 +209,23 @@ public:
    * running main thread -- see Lib/Timer.cpp, limitReached().
    */
   void setEnabled(bool);
+
+  /**
+   * Re-base the instruction-counter readings of the currently open scopes -- in
+   * practice just [root], which is entered before the counter exists at all.
+   *
+   * Called by Timer::reinitialise() once the perf event has been opened and reset,
+   * so that [root] measures instructions from the counter's own origin rather than
+   * reporting none.
+   */
+  void rebaseInstructionCounters();
 private:
 
   Node _root;
   std::vector<Node*> _tmpRoots;
-  std::vector<std::tuple<Node*, TimePoint>> _stack;
+  // node, and the time / instruction-counter readings taken when it was entered
+  // (the instruction reading is -1 when the hardware counter is unavailable)
+  std::vector<std::tuple<Node*, TimePoint, long long>> _stack;
   // read on every TIME_TRACE scope and written by the timer thread
   std::atomic<bool> _enabled;
 };
