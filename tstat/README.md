@@ -105,3 +105,31 @@ Two reasons this matters more than it might look:
 Keep reading time as well: `ps_per_instr` in the `vtree` view is picoseconds per
 instruction per node, which is what separates "this node did more work" from "this node
 is cache-missing" — the distinction hazard 3 otherwise destroys.
+
+### The measured noise floor
+
+`determinism.py`, six problems x 3 runs, `-al 2000 -t 600 -sa otter` (otter rather than
+LRS, whose limits depend on elapsed time and so make the search itself irreproducible),
+on an otherwise quiet server:
+
+| | median | worst node |
+|---|---:|---:|
+| instruction spread | 0.020% – 0.061% | 0.255% – 2.313% |
+| time spread | 0.45% – 49.7% | 5.8% – 941% |
+
+So **do not believe a per-node instruction difference below ~0.1%**, and treat anything
+above ~1% as real. That is one to three orders of magnitude better than wall clock, and
+it is measured on an *idle* machine — under a parallel sweep the time figures degrade by
+the further 2.6x of hazard 3, while the instruction figures do not move at all.
+
+The residual is genuine program variation, not measurement error. `backward
+simplification` on `BIO004+1.p` gave 22602031, 22601755, 22091101 — two runs agreeing to
+0.001% and one 2.3% away, i.e. bimodal rather than noisy, so a discrete difference in
+work rather than accumulated jitter. The nodes that top the spread lists are hash-index
+traversals (`hvci retrieve`, `splitting component index usage`, `term sharing`,
+`literal order aftercheck`), which points at the pointer-hashing nondeterminism CLAUDE.md
+warns about: address-dependent iteration order changes the probe sequences while leaving
+the clause set identical, which is why the statistics-block control still passes.
+
+Test it with ASLR off — `setarch $(uname -m) -R ./determinism.py …`. If the medians
+collapse, that is the cause.
