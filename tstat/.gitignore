@@ -1,4 +1,7 @@
-# regenerated from the logs by ./ingest.py (~460 MB)
-tstat.db
+# Regenerated from the logs by ./ingest.py (~460 MB each), so never committed.
+# The glob rather than the bare name is deliberate: keeping a second sweep's database
+# around for comparison (tstat-11131.db) is normal, and `tstat.db` alone did not cover
+# it -- one such file reached a commit that way.
+tstat*.db
 out/
 __pycache__/
