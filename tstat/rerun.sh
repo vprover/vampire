@@ -13,7 +13,12 @@ set -eu
 
 here=$(cd "$(dirname "$0")" && pwd)
 root=$(dirname "$here")
-: "${VAMPIRE:=$root/vampire_z3_rel_master_11132}"
+# The Makefile encodes branch and commit count in the binary name, so it changes
+# under you as you commit; default to the most recently built one.
+if [ -z "${VAMPIRE:-}" ]; then
+  VAMPIRE=$(ls -t "$root"/vampire_*_rel_* 2>/dev/null | head -1)
+  [ -n "$VAMPIRE" ] || { echo "no vampire_*_rel_* binary in $root; set VAMPIRE=" >&2; exit 1; }
+fi
 
 [ $# -ge 1 ] || { sed -n '2,12p' "$0"; exit 2; }
 prob=$1; shift

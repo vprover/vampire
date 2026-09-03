@@ -70,12 +70,14 @@ CREATE TABLE stats (
 );
 
 CREATE TABLE nodes_flat (
-  problem TEXT, node TEXT, total_ns INTEGER, avg_ns INTEGER, cnt INTEGER
+  problem TEXT, node TEXT, total_ns INTEGER, avg_ns INTEGER, cnt INTEGER,
+  instr INTEGER          -- NULL when the run had no hardware instruction counter
 );
 
 CREATE TABLE nodes_tree (
   problem TEXT, path TEXT, node TEXT, depth INTEGER,
-  total_ns INTEGER, avg_ns INTEGER, cnt INTEGER, self_ns INTEGER
+  total_ns INTEGER, avg_ns INTEGER, cnt INTEGER, instr INTEGER,
+  self_ns INTEGER, self_instr INTEGER
 );
 
 CREATE TABLE meta (key TEXT PRIMARY KEY, value TEXT);
@@ -105,14 +107,17 @@ FROM runs r LEFT JOIN tptp t USING(problem);
 
 DROP VIEW IF EXISTS vflat;
 CREATE VIEW vflat AS
-SELECT f.problem, f.node, f.total_ns, f.avg_ns, f.cnt,
+SELECT f.problem, f.node, f.total_ns, f.avg_ns, f.cnt, f.instr,
        v.dialect, v.family, v.size, v.szs, v.termination, v.root_ns, v.time_s
 FROM nodes_flat f JOIN v USING(problem)
 WHERE v.clean = 1;
 
 DROP VIEW IF EXISTS vtree;
 CREATE VIEW vtree AS
-SELECT n.problem, n.path, n.node, n.depth, n.total_ns, n.avg_ns, n.cnt, n.self_ns,
+SELECT n.problem, n.path, n.node, n.depth, n.total_ns, n.avg_ns, n.cnt,
+       n.instr, n.self_ns, n.self_instr,
+       -- picoseconds per instruction: the per-node memory-boundedness signal
+       CASE WHEN n.self_instr > 0 THEN 1000.0 * n.self_ns / n.self_instr END ps_per_instr,
        v.dialect, v.family, v.size, v.szs, v.termination, v.root_ns, v.time_s
 FROM nodes_tree n JOIN v USING(problem)
 WHERE v.tree_clean = 1;
@@ -166,11 +171,11 @@ def ingest(logdir, db_path):
         ))
 
         if clean:
-            for name, t, a, c in frows:
-                flat.append((problem, name, t, a, c))
+            for name, t, a, c, i in frows:
+                flat.append((problem, name, t, a, c, i))
         if tree_clean:
-            for p, name, d, t, a, c, s in C.add_self_times(trows):
-                tree.append((problem, p, name, d, t, a, c, s))
+            for p, name, d, t, a, c, i, s, si in C.add_self_times(trows):
+                tree.append((problem, p, name, d, t, a, c, i, s, si))
 
         for section, label, proof, total in C.parse_stats(text):
             stats.append((problem, section, label, proof, total))
@@ -193,8 +198,8 @@ def ingest(logdir, db_path):
     con.executemany("INSERT INTO runs VALUES (%s)" % ",".join("?" * 17), runs)
     con.executemany("INSERT INTO tptp VALUES (%s)" % ",".join("?" * 19), tptp)
     con.executemany("INSERT INTO stats VALUES (?,?,?,?,?)", stats)
-    con.executemany("INSERT INTO nodes_flat VALUES (?,?,?,?,?)", flat)
-    con.executemany("INSERT INTO nodes_tree VALUES (?,?,?,?,?,?,?,?)", tree)
+    con.executemany("INSERT INTO nodes_flat VALUES (?,?,?,?,?,?)", flat)
+    con.executemany("INSERT INTO nodes_tree VALUES (?,?,?,?,?,?,?,?,?,?)", tree)
     con.execute("INSERT INTO meta VALUES ('logdir', ?)", (os.path.abspath(logdir),))
     con.execute("INSERT INTO meta VALUES ('ingested', ?)", (time.strftime("%F %T"),))
     con.executescript(INDEXES)
