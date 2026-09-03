@@ -114,7 +114,7 @@ public:
 
 private:
   ScopedPtr<CodeTreeTIS</*higherOrder=*/false, TermLiteralClause>> _is;
-  DHMap<std::pair<unsigned, SymbolType>, RecursionTemplate> _templates;
+  DHMap<std::pair<unsigned, SymbolType>, RecursionTemplate, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>> _templates;
 };
 
 /**

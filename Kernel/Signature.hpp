@@ -1009,7 +1009,7 @@ private:
   SymbolMap _predNames;
   SymbolMap _typeConNames;
   /** Map for the arity_check options: maps symbols to their arities */
-  Map<std::string, unsigned> _arityCheck;
+  Map<std::string, unsigned, FnvHash> _arityCheck;
   /** Last number used for fresh functions and predicates */
   int _nextFreshSymbolNumber;
 

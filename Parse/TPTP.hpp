@@ -586,7 +586,7 @@ private:
   /** term lists */
   Stack<TermList> _termLists;
   /** name table for variable names */
-  Map<std::string, unsigned> _vars;
+  Map<std::string, unsigned, FnvHash> _vars;
   /** When parsing a question, make note of the inverse mapping to _vars, i.e. from the ints back to the vstrings, for better user reporting */
   Map<unsigned,std::string, FnvHash> _curQuestionVarNames;
   /** parsed types */
@@ -902,8 +902,8 @@ private:
   static DHMap<unsigned, Map<unsigned,std::string, FnvHash>, FnvHash, IdentityHash> _questionVariableNames;
 
   /** Stores the type arities of function symbols */
-  DHMap<std::string, unsigned> _typeArities;
-  DHMap<std::string, unsigned> _typeConstructorArities;
+  DHMap<std::string, unsigned, FnvHash, LengthHash> _typeArities;
+  DHMap<std::string, unsigned, FnvHash, LengthHash> _typeConstructorArities;
 
   bool _filterReserved;
 

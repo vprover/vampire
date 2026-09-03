@@ -2793,7 +2793,7 @@ void TPTP::symbolDefinition()
  */
 void TPTP::tupleDefinition()
 {
-  Set<std::string> uniqueConstants;
+  Set<std::string, FnvHash> uniqueConstants;
   Stack<unsigned> symbols;
   TermStack sorts;
 
