@@ -53,12 +53,12 @@ NOISE = re.compile(r"^% (Time elapsed|Instructions burned|Peak memory usage|Vers
 
 def run_once(binary, problem, al, timeout, extra):
     path = C.problem_path(problem)
+    if not os.path.exists(path):
+        return "", f"no such problem file: {path}", 0
     cmd = [binary, "-tstat", "on", "-p", "off",
            "-al", str(al), "-t", str(timeout)] + extra + [path]
-    t0 = time.time()
-    out = subprocess.run(cmd, capture_output=True, text=True,
-                         cwd=C.ROOT).stdout
-    return out, time.time() - t0
+    r = subprocess.run(cmd, capture_output=True, text=True, cwd=C.ROOT)
+    return r.stdout, r.stderr, r.returncode
 
 
 def stats_fingerprint(text):
@@ -124,11 +124,12 @@ def main():
                     title="per-node spread across identical runs")
 
     for problem in problems:
-        outs, walls = [], []
+        outs, errs, codes = [], [], []
         for _ in range(a.runs):
-            out, wall = run_once(binary, problem, a.al, a.timeout, extra)
+            out, err, code = run_once(binary, problem, a.al, a.timeout, extra)
             outs.append(out)
-            walls.append(wall)
+            errs.append(err)
+            codes.append(code)
 
         reasons = {(re.search(r"^% Termination reason: (.*)$", o, re.M) or
                     [None, "?"])[1].strip() for o in outs}
@@ -149,8 +150,18 @@ def main():
                 series_i.setdefault(name, []).append(instr)
                 series_t.setdefault(name, []).append(t)
         if not ok:
+            # say *why*, rather than leaving a blank row: usually a missing problem
+            # file, a user error, or output the strict parser rejects
+            # exit codes (Lib/System.hpp): 0 ok, 1 unknown/limit, 2 signal,
+            # 3 interrupted, 4 user error; negative means killed by a signal
+            why = (errs[0].strip().split("\n")[0] if errs[0].strip() else
+                   next((l for l in outs[0].split("\n")
+                         if "User error" in l or "Aborted" in l or "limit" in l),
+                        f"parser said: {rows}"))
             table.add(dict(problem=problem, search=search, bound=bound,
                            nodes="unparsable", instr="-", time="-"))
+            print(f"  {problem:16s} UNPARSABLE  exit={codes[0]}  "
+                  f"stdout={len(outs[0])}B -- {str(why)[:80]}", flush=True)
             continue
 
         # A node that runs for a few nanoseconds has a meaningless spread (one clock
@@ -167,6 +178,12 @@ def main():
                        nodes=str(len(full)), instr=fmt(si), time=fmt(st)))
         print(f"  {problem:16s} {search:9s} {bound:18s} "
               f"instr {fmt(si):22s} time {fmt(st)}", flush=True)
+        # name the worst offenders with their raw values, so an unexpected spread
+        # can be diagnosed without another run
+        worst = sorted(((spread(series_i[n]) or 0, n) for n in full), reverse=True)[:3]
+        for sp, n in worst:
+            if sp > 0.05:
+                print(f"       {n:38s} {sp:7.3f}%  {series_i[n]}", flush=True)
 
     print()
     table.emit(len(table.rows))
