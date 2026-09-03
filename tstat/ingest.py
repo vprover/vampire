@@ -270,9 +270,15 @@ def selftest(db_path):
     for r in rows:
         kind = "instruction-limited" if r["ilim"] else "normally terminated"
         if r["ilim"]:
-            ok = r["missing"] == 0 and r["wrong_dir"] == 0 and (r["worst"] or 0) <= 0.05
-            note = (f"{r['mism']} rows drift (max {100*(r['worst'] or 0):.2f}%), "
-                    f"all flat>tree -- expected, timer-thread race")
+            # Before the timer-thread race was fixed, this bucket drifted on ~8% of
+            # rows, always flat>tree: the trace kept being mutated between the two
+            # dumps. With the trace frozen before reporting it must now agree
+            # exactly, exactly as the normally-terminated bucket does. Any drift
+            # reappearing here means the freeze regressed.
+            ok = r["missing"] == 0 and r["mism"] == 0
+            note = ("exact agreement (trace frozen before reporting)" if ok else
+                    f"{r['mism']} rows drift (max {100*(r['worst'] or 0):.2f}%), "
+                    f"{r['wrong_dir']} flat>tree -- the reporting race is back")
         else:
             ok = r["missing"] == 0 and r["mism"] == 0
             note = "exact agreement" if ok else f"{r['mism']} mismatches, {r['missing']} missing"
@@ -299,16 +305,33 @@ def selftest(db_path):
     else:
         print("   ok (no run attributes more exclusive time than the root measured)")
 
-    print("3. hand-checked example: AGT001+1.p")
-    for node, want_ns, want_cnt in [("parsing", 31 * 10**6, 1),
-                                    ("main loop", 2628 * 1000, 1),
-                                    ("property evaluation", 2628 * 1000, 3)]:
-        r = con.execute("SELECT total_ns, cnt FROM nodes_flat WHERE problem='AGT001+1.p' AND node=?",
-                        (node,)).fetchone()
-        got = (r["total_ns"], r["cnt"]) if r else None
-        okk = got == (want_ns, want_cnt)
-        fails += 0 if okk else 1
-        print(f"   {'ok  ' if okk else 'FAIL'} {node:22s} got={got} want=({want_ns}, {want_cnt})")
+    # Re-parse one log straight from disk and compare every row against what the DB
+    # stored. Hardcoding a snapshot of one sweep's numbers here would only mean
+    # "the sweep has not changed", and would have to be re-hardcoded each time;
+    # this checks the thing that actually matters -- that ingestion is faithful --
+    # and stays valid across sweeps.
+    logdir = con.execute("SELECT value FROM meta WHERE key='logdir'").fetchone()["value"]
+    sample = con.execute("""SELECT problem FROM runs WHERE clean = 1
+                            ORDER BY problem LIMIT 1""").fetchone()["problem"]
+    logname = next(f for f in os.listdir(logdir)
+                   if f.endswith(".log") and C.log_to_problem(f) == sample)
+    with open(os.path.join(logdir, logname), "rb") as fh:
+        text = fh.read().decode("utf-8", "replace")
+    _root, rows = C.parse_flat(text)
+    print(f"3. re-parse of {sample} agrees with the database ({len(rows)} rows)")
+    stored = {r["node"]: (r["total_ns"], r["cnt"], r["instr"]) for r in con.execute(
+        "SELECT node, total_ns, cnt, instr FROM nodes_flat WHERE problem=?", (sample,))}
+    mismatched = [(name, (t, c, i), stored.get(name))
+                  for name, t, _a, c, i in rows if stored.get(name) != (t, c, i)]
+    fails += 1 if (mismatched or len(stored) != len(rows)) else 0
+    if mismatched:
+        print(f"   FAIL {len(mismatched)} rows differ from the log:")
+        for name, got, want in mismatched[:5]:
+            print(f"     {name:26s} log={got} db={want}")
+    elif len(stored) != len(rows):
+        print(f"   FAIL row count: log has {len(rows)}, db has {len(stored)}")
+    else:
+        print("   ok (total_ns, cnt and instr identical on every row)")
 
     print("4. no unknown node names leaked in")
     bad = con.execute("SELECT DISTINCT node FROM nodes_flat").fetchall()
