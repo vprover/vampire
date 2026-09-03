@@ -15,7 +15,7 @@ views:
               (studentised residual), with the sub-node breakdown showing which step
               is responsible and the peer problems to compare against.
 
-  --percost   the model-free view: ns per input atom, descending, floored at a
+  --percost   the model-free view: cost per input atom, descending, floored at a
               minimum size so noise cannot win.
 
     ./rpt_preproc.py                    # all three
@@ -53,7 +53,9 @@ PREPROC_PATHS = [
     "property evaluation",
 ]
 MIN_SIZE = 200          # below this the TPTP header metrics are too coarse to fit
-MIN_NS = 1_000_000      # 1ms: below this the measurement is mostly clock noise
+# 1e6: as nanoseconds that is 1ms, below which the measurement is mostly clock
+# noise; as instructions it is a comparable floor of real work.
+MIN_NS = 1_000_000
 
 
 def load(con, path, dialect=None):
@@ -103,8 +105,11 @@ def fit_report(con, nodes, dialects, limit):
                  ("exponent b", "b", lambda v: f"{v:.2f}"),
                  ("95% CI", "ci", str),
                  ("verdict", "verdict", str),
-                 ("median ns/atom", "per", lambda v: f"{v:.0f}")],
-                title="complexity fit:  log(self time) ~ a + b*log(input size)")
+                 (f"median {'instr' if COST == 'self_instr' else 'ns'}/atom", "per",
+                  lambda v: f"{v:.0f}")],
+                title="complexity fit:  log(self "
+                      + ("instructions" if COST == "self_instr" else "time")
+                      + ") ~ a + b*log(input size)")
     rng = random.Random(1)
     for d in dialects:
         for path in nodes:
