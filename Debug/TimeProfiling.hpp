@@ -13,9 +13,11 @@
 #define __TimeProfiling__
 
 #include "Lib/Stack.hpp"
+#include <atomic>
 #include <chrono>
 #include <ostream>
 #include <memory>
+#include <vector>
 #include "Lib/MacroUtils.hpp"
 
 namespace Shell {
@@ -130,10 +132,14 @@ private:
   };
 
 
+  // NB: deliberately *not* USE_ALLOCATOR, and std::vector rather than Lib::Stack.
+  // The whole trace is walked and (in flatten()) rebuilt by the timer thread when a
+  // resource limit is reached, while the main thread is still proving. Vampire's
+  // GLOBAL_SMALL_OBJECT_ALLOCATOR is plain free lists with no synchronisation, so
+  // anything here that allocated through it would corrupt the prover's heap.
   struct Node {
-    USE_ALLOCATOR(Node)
     const char* name;
-    Lib::Stack<std::unique_ptr<Node>> children;
+    std::vector<std::unique_ptr<Node>> children;
     Measurements measurements;
     Node(const char* name) : name(name), children(), measurements() {}
     struct NodeFormatOpts ;
@@ -161,6 +167,11 @@ public:
 
   class ScopedTimer {
     TimeTrace& _trace;
+    // whether this timer actually pushed a node. Must be remembered rather than
+    // re-testing _enabled in the destructor: the flag can be cleared in between (see
+    // setEnabled), and skipping only the pop would unbalance _stack and mis-attribute
+    // every subsequent scope.
+    bool _active;
 #if VDEBUG
     TimePoint _start;
     const char* _name;
@@ -182,13 +193,22 @@ public:
 
   void printPretty(std::ostream& out);
   void serialize(std::ostream& out);
+  /**
+   * Enable or disable time tracing.
+   *
+   * Clearing the flag *freezes* the trace: no further node is created and no further
+   * measurement is recorded, including by scopes that are already open. That is what
+   * makes it safe(ish) for the timer thread to print the trace out from under a still
+   * running main thread -- see Lib/Timer.cpp, limitReached().
+   */
   void setEnabled(bool);
 private:
 
   Node _root;
-  Lib::Stack<Node*> _tmpRoots;
-  Lib::Stack<std::tuple<Node*, TimePoint>> _stack;
-  bool _enabled;
+  std::vector<Node*> _tmpRoots;
+  std::vector<std::tuple<Node*, TimePoint>> _stack;
+  // read on every TIME_TRACE scope and written by the timer thread
+  std::atomic<bool> _enabled;
 };
 
 #endif // VTIME_PROFILING
