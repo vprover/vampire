@@ -12,7 +12,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 DB = os.path.join(HERE, "tstat.db")
 OUT = os.path.join(HERE, "out")
-LOGDIR = os.path.join(ROOT, "problemsALL_master11131_tstat-on_i100K")
+LOGDIR = os.path.join(ROOT, "problemsALLlocal_tstat11142_tstat-on_i100K")
 PROBLEMS = os.path.join(ROOT, "Problems")
 
 # The printer uses U+03BC (GREEK SMALL LETTER MU); accept U+00B5 too, just in case.
@@ -352,9 +352,18 @@ RE_FAMILY = re.compile(r"^([A-Z]{3}\d{3})")
 
 
 def log_to_problem(logname):
-    """`Problems_AGT_AGT001+1.p.log` -> `AGT001+1.p`"""
-    assert logname.startswith("Problems_") and logname.endswith(".log")
-    return logname[len("Problems_"):-len(".log")].split("_", 1)[1]
+    """`Problems_AGT_AGT001+1.p.log` -> `AGT001+1.p`
+
+    The sweep runner names each log after the problem's path with `/` turned into `_`,
+    so the name depends on how the problem was reached. The 11131 sweep used a relative
+    path and the 11142 one an absolute path into the local TPTP copy
+    (`_home_sudamar2_TPTP-v9.3.1_Problems_AGT_AGT001+1.p.log`), so anchor on the
+    `Problems_` segment wherever it occurs rather than at the start.
+    """
+    assert logname.endswith(".log")
+    i = logname.find("Problems_")
+    assert i >= 0, logname
+    return logname[i + len("Problems_"):-len(".log")].split("_", 1)[1]
 
 
 def family_of(problem):
