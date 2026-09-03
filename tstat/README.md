@@ -1,0 +1,78 @@
+# tstat — mining a `-tstat on` sweep for optimization targets
+
+Analysis toolkit for the DVTIME_PROFILING sweep in
+`../problemsALL_master11131_tstat-on_i100K/` (26 504 TPTP problems,
+`vampire_z3_rel_..._11131 -i 100000 -tstat on`, 120 jobs in parallel).
+
+Nothing here touches the prover. Everything reads logs and writes CSVs into `out/`.
+
+## Setup
+
+Scripts need numpy; the interpreter with it is **`/opt/local/bin/python3.14`**
+(the `python3` first on `$PATH` is a conda 3.11 without numpy). The shebangs already
+point at it.
+
+```sh
+./ingest.py              # ~25s, builds tstat.db
+./ingest.py --selftest   # integrity checks; must print SELFTEST PASSED
+```
+
+## Reports
+
+| script | question |
+|---|---|
+| `rpt_hotspots.py` | where does the time go, corpus-wide and per dialect (`--by-dialect`, `--tree`) |
+| `rpt_preproc.py` | is any pre-saturation step superlinear in input size (`--fit`), and which problems cost far more than their size predicts (`--outliers`, `--percost`) |
+| `rpt_percall.py` | which runs pay far more *per call* for a node than usual, ranked by recoverable time (`--node-summary` for the per-node spread) |
+| `rpt_peers.py` | which runs spend their saturation time unlike near-identical problems (`--family CSR115` dumps one family) |
+| `rpt_ips.py` | instructions per second: `--spread` measures how noisy the sweep's machine was; default lists memory-bound runs |
+| `calib_overhead.py` | what one `TIME_TRACE` scope costs, so we know which nodes measure themselves |
+| `q.sh` | ad-hoc SQL: `./q.sh "SELECT node, SUM(self_ns)/1e9 FROM vtree GROUP BY 1 ORDER BY 2 DESC LIMIT 10"` |
+| `rerun.sh` | reproduce one problem locally and diff its profile against the sweep |
+
+## Schema
+
+`runs`, `tptp`, `stats`, `nodes_flat`, `nodes_tree`, plus the joined views `v`
+(one row per run), `vflat` and `vtree` (profile rows, already restricted to
+trustworthy runs). `nodes_tree.path` is the dotted ancestry, so parse-time
+`term sharing` is distinguishable from the saturation-time one; `self_ns` is
+exclusive time (total minus direct children).
+
+## Reading the data: four hazards, all real
+
+**1. Mangled logs (2 952 of 26 504 dropped).** `Lib/Timer.cpp:limitReached()` runs on
+the *timer thread*: it prints `env.statistics` and calls `terminateImmediately` while
+the main thread is still proving and mutating the time trace. **2 450 logs carry
+`Aborted by signal`** (2 120 SIGSEGV) — about one in five instruction-limited runs — and
+the abort always lands inside the trace output. See `FINDINGS.md` §4 for the diagnosis
+and the fix. (Count these with `grep -la`: plain `grep -l` skips the interleaved logs as
+binary and reports only 1 900.) `ingest.py`
+rejects anything that fails a structural check, and the selftest confirms the cost:
+the trace tree and the flattened profile agree **exactly** on all 467 111 rows from
+normally-terminated runs, and disagree only under `Instruction limit` (8% of rows,
+always flat > tree, ≤1.7%) — which is the same race, caught in the act.
+
+The rejects are not uniform: instruction-limited **TH0 is 53% clean and TH1 27%**,
+against 85% for CNF/FOF. Do not read a THF saturation conclusion off this sweep
+without checking how many runs survived.
+
+**2. `parsing` measures the server's NFS, not the parser.** Every FOF problem shows a
+fixed ~21 ms floor no matter how small it is, +1.5 ms per `include()`. The same
+problems parse in 220–520 µs locally from disk (`SET044+1.p`: 113 ms on the server,
+220 µs here). The TPTP release was on `/nfs/...` and 120 jobs were hammering it. The
+`parsing` node is therefore excluded by default from `rpt_percall.py`, and its
+sublinear exponent in `rpt_preproc.py --fit` is this artifact, not a scaling property.
+
+**3. 120-way parallelism moves wall clock by 2.6x.** `rpt_ips.py --spread`: effective
+throughput ranges from 1 828 M instr/s at p10 to 4 724 at p90, so a run at p10 takes
+1.7x longer than the median for exactly the same work. Part of that is genuine
+memory-boundedness (median IPS falls monotonically from 4 530 under 64 MB to 2 672 at
+256 MB–1 GB) and part is contention. Wall-clock *ratios within one run* are sound;
+absolute per-call comparisons *between* runs carry this 1.7–2.4x noise floor.
+
+**4. The profiler perturbs the fine-grained nodes.** `TIME_TRACE_ITER`
+(`Lib/Metaiterators.hpp:1011`) wraps every `hasNext()`/`next()`, so `perform
+superposition` records 22.7 G calls and `clause generation` 14.0 G. One scope costs
+26 ns here (`calib_overhead.py`), which is 31% of `term sharing`'s reported 146 ns/call
+and 32% of `clause generation`'s 142 ns. The `instr%` column in `rpt_hotspots.py`
+flags this; treat anything above ~30% as unmeasured.
