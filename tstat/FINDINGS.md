@@ -194,7 +194,55 @@ flushes `std::cout`, which `std::_Exit` does not.
   LRS-bound at 60-76% while their `^1`/`+1` siblings are not. `./rpt_peers.py --family
   ITP007` shows this side by side.
 
-## 6. Machine noise floor, for interpreting anything above
+## 6. First instrumented run: time and instructions rank the nodes differently
+
+`AGT001+1.p`, `-tstat on -t 10 -p off`, on the server, with the new per-node
+instruction counters. Depth-1 nodes as a share of `[root]`:
+
+| node | % of time | % of instructions | G instr/s |
+|---|---:|---:|---:|
+| parsing | 23.8% | 55.0% | 4.09 |
+| main loop | 3.9% | 15.3% | 6.83 |
+| preprocessing | 2.3% | 13.2% | 10.33 |
+| property evaluation | 2.0% | 14.3% | 12.81 |
+| **`[root]` self (untraced)** | **68.1%** | **2.2%** | **0.06** |
+
+**The counters are validated.** `[root]` reports 60 M instructions; the statistics
+block's `Instructions burned` reports 57, and those two reach the same hardware event
+by completely independent paths (rdpmc through the mmap'd page vs `read()` on the fd).
+They agree to 0.4%, the residual being the statistics block printed between the two
+reads. See the caveat below on what "57" means.
+
+**Two thirds of a short run's wall clock is not executing user code.** `[root]`'s own
+time — everything outside any `TIME_TRACE` node — is 68% of the run but 2% of the
+instructions, running at 0.06 G instr/s against 4-13 G/s everywhere else. That is
+process start-up, dynamic linking, page faults and I/O. It also means the "`parsing` is
+32.5% of the mean per-run share" headline in `rpt_hotspots.py` was measuring the
+environment as much as the parser.
+
+**Time badly under-ranks `property evaluation`.** 2.0% of the time but **14.3% of the
+instructions** — a 7x difference — because the time denominator is inflated by all that
+non-executing wall clock. This corroborates finding 2 far more strongly than time did:
+three `Property::scan`s cost a seventh of the CPU work of a *first-order* run, before
+saturation has done anything.
+
+The general lesson for the next sweep: rank by instructions, and use time only via
+`ps_per_instr` to spot the memory-bound nodes.
+
+### Caveat: `Instructions burned` is mebi, not mega
+
+`Lib/Timer.cpp` defines `MEGA = 1 << 20`, so `elapsedMegaInstructions()` divides by
+2^20. The printed `Instructions burned: 57 (million)` is therefore 57 x 2^20 =
+59 768 832, and `-i 100000` is 104.9 G instructions rather than 100 G — every such
+figure is 4.86% larger than its label claims. This is what makes the cross-check above
+work: against a true 57 x 10^6 the gap would be 5.3%, far too large to be explained by
+printing a few lines.
+
+Harmless in itself (it is self-consistent, and ratios are unaffected), but the label is
+wrong. Correcting the arithmetic would silently reinterpret every existing `-i` value,
+including those baked into portfolio schedules, so that is a decision rather than a fix.
+
+## 7. Machine noise floor, for interpreting anything above
 
 `./rpt_ips.py --spread` over 11 723 runs of at least 5 G instructions:
 
