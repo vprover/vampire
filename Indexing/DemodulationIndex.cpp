@@ -22,8 +22,7 @@ namespace Indexing {
 
 template<bool higherOrder>
 DemodulationSubtermIndex<higherOrder>::DemodulationSubtermIndex(SaturationAlgorithm& salg)
-: TermIndex(new TermSubstitutionTree<TermLiteralClause>()),
-  _skipNonequationalLiterals(salg.getOptions().demodulationOnlyEquational()) {};
+: TermIndex(), _skipNonequationalLiterals(salg.getOptions().demodulationOnlyEquational()) {};
 
 template<bool higherOrder>
 void DemodulationSubtermIndex<higherOrder>::handleClause(Clause* c, bool adding)
@@ -57,11 +56,7 @@ void DemodulationSubtermIndex<higherOrder>::handleClause(Clause* c, bool adding)
         it.right();
         continue;
       }
-      if (adding) {
-        _is->insert(TermLiteralClause{ t, lit, c });
-      } else {
-        _is->remove(TermLiteralClause{ t, lit, c });
-      }
+      _is.handle(TermLiteralClause{ t, lit, c }, adding);
     }
   }
 }
@@ -69,12 +64,10 @@ void DemodulationSubtermIndex<higherOrder>::handleClause(Clause* c, bool adding)
 template class DemodulationSubtermIndex<true>;
 template class DemodulationSubtermIndex<false>;
 
-template<bool higherOrder>
-DemodulationLHSIndex<higherOrder>::DemodulationLHSIndex(SaturationAlgorithm& salg)
+DemodulationLHSIndex::DemodulationLHSIndex(SaturationAlgorithm& salg)
 : _ord(salg.getOrdering()), _preordered(salg.getOptions().forwardDemodulation()==Options::Demodulation::PREORDERED) {}
 
-template<bool higherOrder>
-void DemodulationLHSIndex<higherOrder>::handleClause(Clause* c, bool adding)
+void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
 {
   if (c->length()!=1) {
     return;
@@ -96,11 +89,8 @@ void DemodulationLHSIndex<higherOrder>::handleClause(Clause* c, bool adding)
       TypedTermList(r.apply(EqHelper::getOtherEqualitySide(lit, lhs)),sortR),
       c, preordered, _ord
     );
-    GeneralizingTermIndex<higherOrder, DemodulatorData>::_ct.handle(std::move(dd), adding);
+    GeneralizingTermIndex<DemodulatorData>::_ct.handle(std::move(dd), adding);
   }
 }
-
-template class DemodulationLHSIndex<true>;
-template class DemodulationLHSIndex<false>;
 
 } // namespace Indexing

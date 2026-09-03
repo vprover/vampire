@@ -12,6 +12,7 @@
  * Implements class AcyclicityIndex
  */
 
+#include "Indexing/Index.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/Signature.hpp"
@@ -56,9 +57,7 @@ namespace Indexing
   }
 
   AcyclicityIndex::AcyclicityIndex(SaturationAlgorithm&) :
-    _sIndexes(),
-    _tis(new TermSubstitutionTree<TermLiteralClause>())
-  {}
+    _sIndexes(), _tis() {}
   
   List<TypedTermList>* AcyclicityIndex::getSubterms(Term *t)
   {
@@ -213,7 +212,7 @@ namespace Indexing
 
         if (aindex._sIndexes.find(sort)) {
           _index = aindex._sIndexes.get(sort);
-          _tis = aindex._tis;
+          _tis = &aindex._tis;
           if (_index->find(make_pair(queryLit, queryClause))) {
             IndexEntry *entry = _index->get(make_pair(queryLit, queryClause));
             _stack.push(CycleSearchTreeNode::unificationNode(entry->t,
@@ -270,7 +269,7 @@ namespace Indexing
     {
       // ASS(t.isTerm());
       ASS(_tis);
-      auto tqrIt = _tis->getUnifications(t);
+      auto tqrIt = _tis->getUnifications(t, /*retrieveSubstitutions=*/true);
       int index;
       while (tqrIt.hasNext()) {
         auto tqr = tqrIt.next();
@@ -374,7 +373,7 @@ namespace Indexing
   private:
     Literal *_queryLit;
     SIndex *_index;
-    TermIndexingStructure *_tis;
+    TermSubstitutionTree<TermLiteralClause>* _tis;
     CycleQueryResult *_nextResult;
     Stack<CycleSearchTreeNode*> _stack;
     RobSubstitution *_subst;
@@ -416,7 +415,7 @@ namespace Indexing
       ULit ulit = make_pair(lit, c);
       if (!index->find(ulit)) {
         index->insert(ulit, new IndexEntry(lit, c, TypedTermList(*t,sort), getSubterms(fs->term())));
-        _tis->insert(TermLiteralClause{ TypedTermList(*t, sort), lit, c });
+        _tis.insert(TermLiteralClause{ TypedTermList(*t, sort), lit, c });
       }
     }
   }
@@ -433,7 +432,7 @@ namespace Indexing
         return;
 
       _sIndexes.get(sort)->remove(ulit);
-      _tis->remove(TermLiteralClause{ TypedTermList(*t, sort), lit, c });
+      _tis.remove(TermLiteralClause{ TypedTermList(*t, sort), lit, c });
     }
   }
 

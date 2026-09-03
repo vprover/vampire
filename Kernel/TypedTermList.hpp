@@ -40,6 +40,7 @@ public:
     ASS(!sort.isEmpty())
   }
   TypedTermList(Term* t) : TypedTermList(TermList(t), SortHelper::getResultSort(t)) {}
+  TypedTermList(Literal* lit) : TypedTermList(TermList(lit), AtomicSort::boolSort()) {}
 
   VirtualIterator<TermList> varIter() const {
     if (isVar()) {

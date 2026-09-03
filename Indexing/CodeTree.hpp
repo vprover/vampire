@@ -324,7 +324,7 @@ public:
    * this one. After use, the @b deinit function should be called (if
    * present). This allows for reuse of a single object.
    */
-  template<bool removing, bool checkRange, bool higherOrder>
+  template<bool removing, bool checkRange>
   struct Matcher
     : public std::conditional<removing, RemovingBase, NonRemovingBase>::type
   {
@@ -406,7 +406,7 @@ public:
      * Must be initialized by inheritor (either directly or by
      * a call to the @b prepareLiteral function).
      */
-    FlatTerm* ft;
+    FlatTerm* ft = nullptr;
 
     /** the matcher object is initialized but no execution of code was done yet */
     bool fresh;
@@ -492,7 +492,8 @@ public:
 
   //////// member variables //////////
 
-  bool _clauseCodeTree;
+  bool _clauseCodeTree = false;
+  bool _containsLiterals = false;
   unsigned _curTimeStamp = 0;
 
   /** maximal number of local variables in a stored term/literal (always at least 1) */

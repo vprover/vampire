@@ -16,30 +16,26 @@
 #ifndef __LiteralIndex__
 #define __LiteralIndex__
 
+#include "Indexing/CodeTreeInterfaces.hpp"
 #include "Indexing/LiteralSubstitutionTree.hpp"
-#include "Lib/Output.hpp"
 #include "Lib/DHMap.hpp"
 
 #include "Index.hpp"
 
 namespace Indexing {
 
-template<class Data>
-class LiteralIndex
+class NonGeneralizingLiteralIndex
 : public Index
 {
 public:
-  VirtualIterator<QueryRes<ResultSubstitutionSP, LiteralClause>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
+  auto getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
   { return _is.getUnifications(lit, complementary, retrieveSubstitutions); }
 
-  VirtualIterator<QueryRes<AbstractingUnifier*, Data>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
+  auto getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
   { return _is.getUwa(lit, complementary, uwa, fixedPointIteration); }
 
-  VirtualIterator<QueryRes<ResultSubstitutionSP, LiteralClause>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
-  { return _is.getGeneralizations(lit, complementary, retrieveSubstitutions); }
-
   template<bool higherOrder>
-  VirtualIterator<QueryRes<ResultSubstitutionSP, LiteralClause>> getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
+  auto getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
   {
     if constexpr (higherOrder) {
       // TODO(HOL): implement proper higher-order matching here
@@ -55,18 +51,29 @@ public:
     }
   }
 
-  friend std::ostream& operator<<(std::ostream& out,                 LiteralIndex const& self) { return out << self._is; }
-  friend std::ostream& operator<<(std::ostream& out, Output::Multiline<LiteralIndex>const& self) { return out << Output::multiline(self.self._is, self.indent); }
-
 protected:
-  void handle(Data data, bool add)
+  void handle(LiteralClause data, bool add)
   { _is.handle(std::move(data), add); }
 
   LiteralSubstitutionTree<LiteralClause> _is;
 };
 
+class GeneralizingLiteralIndex
+: public Index
+{
+public:
+  auto getGeneralizations(Literal* lit, bool complementary) const
+  { return _is.getGeneralizations(lit, complementary); }
+
+protected:
+  void handle(LiteralClause data, bool add)
+  { _is.handle(std::move(data), add); }
+
+  CodeTreeLIS<LiteralClause> _is;
+};
+
 class BinaryResolutionIndex
-: public LiteralIndex<LiteralClause>
+: public NonGeneralizingLiteralIndex
 {
 public:
   BinaryResolutionIndex(SaturationAlgorithm&) {}
@@ -75,7 +82,7 @@ protected:
 };
 
 class BackwardSubsumptionIndex
-: public LiteralIndex<LiteralClause>
+: public NonGeneralizingLiteralIndex
 {
 public:
   BackwardSubsumptionIndex(SaturationAlgorithm&) {}
@@ -84,7 +91,7 @@ protected:
 };
 
 class FwSubsSimplifyingLiteralIndex
-: public LiteralIndex<LiteralClause>
+: public GeneralizingLiteralIndex
 {
 public:
   FwSubsSimplifyingLiteralIndex(SaturationAlgorithm&) {}
@@ -93,7 +100,7 @@ protected:
 };
 
 class FSDLiteralIndex
-: public LiteralIndex<LiteralClause>
+: public GeneralizingLiteralIndex
 {
 public:
   FSDLiteralIndex(SaturationAlgorithm&) {}
@@ -101,8 +108,9 @@ protected:
   void handleClause(Clause* c, bool adding) override;
 };
 
+template<bool forGeneralizations>
 class UnitClauseLiteralIndex
-: public LiteralIndex<LiteralClause>
+: public std::conditional_t<forGeneralizations, GeneralizingLiteralIndex, NonGeneralizingLiteralIndex>
 {
 public:
   UnitClauseLiteralIndex(SaturationAlgorithm&) {}
@@ -111,7 +119,7 @@ protected:
 };
 
 class UnitClauseWithALLiteralIndex
-: public LiteralIndex<LiteralClause>
+: public NonGeneralizingLiteralIndex
 {
 public:
   UnitClauseWithALLiteralIndex(SaturationAlgorithm&) {}
@@ -120,7 +128,7 @@ protected:
 };
 
 class NonUnitClauseLiteralIndex
-: public LiteralIndex<LiteralClause>
+: public NonGeneralizingLiteralIndex
 {
 public:
   NonUnitClauseLiteralIndex(SaturationAlgorithm&) {}
@@ -129,7 +137,7 @@ protected:
 };
 
 class NonUnitClauseWithALLiteralIndex
-: public LiteralIndex<LiteralClause>
+: public NonGeneralizingLiteralIndex
 {
 public:
   NonUnitClauseWithALLiteralIndex(SaturationAlgorithm&) {}
@@ -138,7 +146,7 @@ protected:
 };
 
 class RewriteRuleIndex
-: public LiteralIndex<LiteralClause>
+: public GeneralizingLiteralIndex
 {
 public:
   RewriteRuleIndex(SaturationAlgorithm& salg);
@@ -159,7 +167,7 @@ private:
 };
 
 class UnitIntegerComparisonLiteralIndex
-: public LiteralIndex<LiteralClause>
+: public NonGeneralizingLiteralIndex
 {
 public:
   UnitIntegerComparisonLiteralIndex(SaturationAlgorithm&) {}

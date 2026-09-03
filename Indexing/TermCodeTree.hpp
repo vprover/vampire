@@ -17,61 +17,60 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Allocator.hpp"
-#include "Lib/Stack.hpp"
-
+#include "Kernel/Matcher.hpp"
 #include "Kernel/TypedTermList.hpp"
 
-#include "CodeTree.hpp"
-
+#include "TermOrLiteralCodeTree.hpp"
 
 namespace Indexing {
 
 using namespace Lib;
 using namespace Kernel;
 
-template<bool higherOrder, class Data>
-class TermCodeTree : public CodeTree
+template<class Data>
+class TermCodeTree : public TermOrLiteralCodeTree<Data>
 {
-protected:
-  void onCodeOpDestroying(CodeOp* op) override;
-  void printSuccess(std::ostream& out, const CodeOp& op) const override;
-
-public:
-  TermCodeTree();
-
-  void insert(Data* data);
-  void remove(const Data& data);
-
-private:
-  struct RemovingTermMatcher
-  : public Matcher</*removing*/true,false,higherOrder>
-  {
-  public:
-    using Base = Matcher</*removing*/true,false,higherOrder>;
-
-    void init(FlatTerm* ft_, const TermCodeTree& tree_, Stack<CodeOp*>* firstsInBlocks_);
-  };
-
 public:
   struct TermMatcher
-  : public Matcher</*removing*/false,false,higherOrder>
+  : public TermOrLiteralCodeTree<Data>::Matcher
   {
-    TermMatcher();
-
-    using Base = Matcher</*removing*/false,false,higherOrder>;
+    using Base = TermOrLiteralCodeTree<Data>::Matcher;
     using Base::ft;
+    using Base::op;
 
-    void init(const CodeTree& tree, TypedTermList t);
-    void reset();
+    void init(const CodeTree& tree, TypedTermList t) {
+      Base::init(tree, FlatTerm::create(t));
+      _querySort = t.sort();
+    }
 
-    Data* next();
+    Data* next() {
+      if (Base::finished()) {
+        //all possible matches are exhausted
+        return 0;
+      }
 
-    USE_ALLOCATOR(TermMatcher);
+      while ((Base::_matched=Base::execute())) {
+        ASS(op->isSuccess());
+        auto res = op->template getSuccessResult<Data>();
+        if (res->key().isVar()) {
+          // match the variable sort separately
+          Substitution subst;
+          if (!MatchingUtils::matchTerms(res->key().sort(), _querySort, subst)) {
+            continue;
+          }
+          for (const auto& [v,t] : iterTraits(subst.items())) {
+            ASS_G(v, 0); // X0 is reserved for the term itself
+            Base::bindings[v] = t;
+          }
+        }
+        return res;
+      }
+      return nullptr;
+    }
+
   private:
     TermList _querySort;
   };
-
 };
 
 };

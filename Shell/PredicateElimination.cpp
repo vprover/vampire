@@ -733,7 +733,7 @@ bool PredicateElimination::forwardSubsumedOrResolved(Clause *cl, Clause *&replac
     return false;
   }
 
-  static ClauseCodeTree<false>::ClauseMatcher cm;
+  static ClauseCodeTree::ClauseMatcher cm;
   cm.init(&_ct, cl, /*sres=*/true);
 
   bool subsumed = false;
