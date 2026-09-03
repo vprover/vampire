@@ -5,7 +5,7 @@ cost far more than their size predicts?
 Everything before saturation should be roughly linear in the size of the input.  Two
 views:
 
-  --fit       per (dialect, node), a Theil-Sen fit of log(self_ns) ~ a + b*log(size)
+  --fit       per (dialect, node), a Theil-Sen fit of log(cost) ~ a + b*log(size)
               with a bootstrap CI on the exponent b.  b ~ 1 is linear, b ~ 2 is
               quadratic and *is* the finding.  Size is the TPTP header's
               atoms+connectives+variables, which is an input measure computed by
@@ -33,6 +33,11 @@ import common as C  # noqa: E402
 
 import numpy as np  # noqa: E402
 
+# Which column measures cost. Set from --metric in main(); aliased AS self_ns in the
+# queries so the fitting and reporting code below is metric-agnostic.
+COST = "self_instr"
+UNIT = C.fmt_n
+
 # The pre-saturation steps.  Path-qualified where a name also occurs inside the main
 # loop, so we never mix parse-time term sharing with the saturation-time one.
 PREPROC_PATHS = [
@@ -53,8 +58,8 @@ MIN_NS = 1_000_000      # 1ms: below this the measurement is mostly clock noise
 
 def load(con, path, dialect=None):
     """(size, self_ns, problem) triples for one tree path."""
-    q = """SELECT problem, size, self_ns FROM vtree
-           WHERE path = ? AND size >= ? AND self_ns >= ?"""
+    q = f"""SELECT problem, size, {COST} AS self_ns FROM vtree
+           WHERE path = ? AND size >= ? AND {COST} >= ?"""
     p = [path, MIN_SIZE, MIN_NS]
     if dialect:
         q += " AND dialect = ?"
@@ -129,15 +134,15 @@ def fit_report(con, nodes, dialects, limit):
     t.rows.sort(key=lambda r: -r["b"])
     t.emit(limit)
     print("\n  b is the fitted exponent: 1.0 = linear in input size, 2.0 = quadratic.\n"
-          "  Only rows with n >= 30 and self time >= 1ms are fitted.")
+          "  Only rows with n >= 30 and a non-trivial self cost are fitted.")
 
 
 def outlier_report(con, nodes, dialects, limit):
     t = C.Table("preproc_outliers",
                 [("problem", "problem", str), ("dialect", "dialect", str),
                  ("step", "path", str), ("size", "size", C.fmt_n),
-                 ("self", "self_ns", C.fmt_ns),
-                 ("predicted", "pred_ns", C.fmt_ns),
+                 ("self", "self_ns", UNIT),
+                 ("predicted", "pred_ns", UNIT),
                  ("x over", "ratio", lambda v: f"{v:.0f}x"),
                  ("resid z", "z", lambda v: f"{v:.1f}"),
                  ("szs", "szs", str)],
@@ -175,14 +180,16 @@ def percost_report(con, nodes, limit):
     t = C.Table("preproc_percost",
                 [("problem", "problem", str), ("dialect", "dialect", str),
                  ("step", "path", str), ("size", "size", C.fmt_n),
-                 ("self", "self_ns", C.fmt_ns),
-                 ("ns/atom", "per", lambda v: f"{v:,.0f}"),
+                 ("self", "self_ns", UNIT),
+                 (f"{'instr' if COST == 'self_instr' else 'ns'}/atom", "per",
+                  lambda v: f"{v:,.0f}"),
                  ("x median", "x", lambda v: f"{v:.0f}x"), ("szs", "szs", str)],
-                title="model-free: nanoseconds of pre-saturation time per input atom")
+                title="model-free: pre-saturation cost per input atom, in "
+                      + ("instructions" if COST == "self_instr" else "nanoseconds"))
     for path in nodes:
-        rows = con.execute("""
-            SELECT problem, dialect, size, self_ns, szs FROM vtree
-            WHERE path = ? AND size >= ? AND self_ns >= ?
+        rows = con.execute(f"""
+            SELECT problem, dialect, size, {COST} AS self_ns, szs FROM vtree
+            WHERE path = ? AND size >= ? AND {COST} >= ?
         """, (path, MIN_SIZE, MIN_NS)).fetchall()
         if len(rows) < 30:
             continue
@@ -204,7 +211,13 @@ def main():
     ap.add_argument("--outliers", action="store_true")
     ap.add_argument("--percost", action="store_true")
     ap.add_argument("--limit", type=int, default=35)
+    ap.add_argument("--metric", choices=["instructions", "time"], default="instructions",
+                    help="measure pre-saturation cost in retired instructions "
+                         "(default) or nanoseconds")
     a = ap.parse_args()
+    global COST, UNIT
+    COST = "self_instr" if a.metric == "instructions" else "self_ns"
+    UNIT = C.fmt_n if a.metric == "instructions" else C.fmt_ns
     if not (a.fit or a.outliers or a.percost):
         a.fit = a.outliers = a.percost = True
 
