@@ -1014,17 +1014,17 @@ class TimeTracedIter
   const char* _name;
   Iter _iter;
 public:
-  TimeTracedIter(const char* name, Iter iter) 
+  TimeTracedIter(const char* name, Iter iter)
     : _name(name)
-    , _iter(std::move(iter)) 
+    , _iter(std::move(iter))
   {}
 
-  using ElementType = typename Iter::ElementType
+  using ElementType = typename Iter::ElementType;
 
   ElementType next() { TIME_TRACE(_name); return _iter.next(); }
   bool hasNext() { TIME_TRACE(_name); return _iter.hasNext(); }
 
-  bool knowsSize() const 
+  bool knowsSize() const
   { return _iter.knowsSize(); }
 
   size_t size() const
@@ -1033,7 +1033,7 @@ public:
 };
 
 template<class Iter>
-auto timeTraceIter(const char* name, Iter iter) 
+auto timeTraceIter(const char* name, Iter iter)
 { return TimeTracedIter<Iter>(name, std::move(iter)); }
 
 #define TIME_TRACE_ITER(name, iter) timeTraceIter(name, iter)
