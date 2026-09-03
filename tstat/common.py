@@ -18,22 +18,29 @@ PROBLEMS = os.path.join(ROOT, "Problems")
 # The printer uses U+03BC (GREEK SMALL LETTER MU); accept U+00B5 too, just in case.
 UNIT_NS = {"ns": 1, "μs": 1000, "µs": 1000, "ms": 10**6, "s": 10**9}
 _U = "ns|μs|µs|ms|s"
+# `instr:` was added alongside `cnt:` when TIME_TRACE gained hardware instruction
+# counters; it is optional here so that older sweeps still parse. A value of "-"
+# means the counter was unavailable for that run (no perf, or not Linux).
+INSTR_UNIT = {"": 1, "k": 1000, "M": 10**6, "G": 10**9}
 
 FLAT_BEGIN = "===== start of flattened time profile ====="
 FLAT_END = "===== end of flattened time profile ====="
 TREE_BEGIN = "===== start of time trace ====="
 TREE_END = "===== end of time trace ====="
 
+_INSTR = r"(?:,\s*instr:\s*(?P<i>-|\d+)\s*(?P<iu>[GMk]?)\s*)?"
+
 RE_ROOT = re.compile(
-    r"^\[root\]\s*\(total:\s*(\d+)\s*(" + _U + r"),\s*avg:\s*(\d+)\s*(" + _U + r"),"
-    r"\s*cnt:\s*(\d+)\s*\)\s*$"
+    r"^\[root\]\s*\(total:\s*(?P<t>\d+)\s*(?P<tu>" + _U + r"),"
+    r"\s*avg:\s*(?P<a>\d+)\s*(?P<au>" + _U + r"),"
+    r"\s*cnt:\s*(?P<c>\d+)\s*" + _INSTR + r"\)\s*$"
 )
 RE_NODE = re.compile(
     r"^(?P<ind>[ │├└─]*)\[\s*(?P<pct>\d+)%\]\s"
     r"(?P<name>.*?)\s*"
     r"\(total:\s*(?P<t>\d+)\s*(?P<tu>" + _U + r"),"
     r"\s*avg:\s*(?P<a>\d+)\s*(?P<au>" + _U + r"),"
-    r"\s*cnt:\s*(?P<c>\d+)\s*\)\s*$"
+    r"\s*cnt:\s*(?P<c>\d+)\s*" + _INSTR + r"\)\s*$"
 )
 
 # Node names are a closed vocabulary (Debug/TimeProfiling.hpp plus ad-hoc TIME_TRACE
@@ -96,6 +103,14 @@ def _dur(val, unit):
     return int(val) * UNIT_NS[unit]
 
 
+def _instr(m):
+    """Instruction count from a matched line: None when absent or reported as '-'."""
+    v = m.groupdict().get("i")
+    if v is None or v == "-":
+        return None
+    return int(v) * INSTR_UNIT[m.group("iu") or ""]
+
+
 def _consistent(total_ns, avg_ns, cnt):
     """total == avg*cnt up to the printer's aggressive unit rounding.
 
@@ -119,7 +134,8 @@ def _indent_depth(ind):
 def parse_flat(text):
     """Parse the flattened profile.
 
-    Returns (root_ns, [(name, total_ns, avg_ns, cnt)]) or (None, reason).
+    Returns (root_ns, [(name, total_ns, avg_ns, cnt, instr)]) or (None, reason).
+    `instr` is None when the run had no hardware instruction counter.
     Strict: the section must appear exactly once, be fully parsable, use only known
     node names, respect total<=root and pct<=100, satisfy total~=avg*cnt, and be
     sorted by total descending (which is how the printer emits it).
@@ -133,7 +149,7 @@ def parse_flat(text):
     m = RE_ROOT.match(lines[0])
     if not m:
         return None, "flat-bad-root"
-    root = _dur(m.group(1), m.group(2))
+    root = _dur(m.group("t"), m.group("tu"))
     rows = []
     for ln in lines[1:]:
         mm = RE_NODE.match(ln)
@@ -147,7 +163,7 @@ def parse_flat(text):
         c = int(mm.group("c"))
         if int(mm.group("pct")) > 100 or t > root * 1.02 or not _consistent(t, a, c):
             return None, "flat-inconsistent"
-        rows.append((name, t, a, c))
+        rows.append((name, t, a, c, _instr(mm)))
     if len(rows) != len(set(r[0] for r in rows)):
         return None, "flat-duplicate-node"
     for i in range(len(rows) - 1):
@@ -159,7 +175,8 @@ def parse_flat(text):
 def parse_tree(text):
     """Parse the nesting trace tree.
 
-    Returns (root_ns, [(path, name, depth, total_ns, avg_ns, cnt)]) or (None, reason).
+    Returns (root_ns, [(path, name, depth, total_ns, avg_ns, cnt, instr)]) or
+    (None, reason).
     `path` is the dotted ancestry including the node itself, e.g.
     "main loop.run.forward simplification.forward demodulation".
     """
@@ -172,7 +189,7 @@ def parse_tree(text):
     m = RE_ROOT.match(lines[0])
     if not m:
         return None, "tree-bad-root"
-    root = _dur(m.group(1), m.group(2))
+    root = _dur(m.group("t"), m.group("tu"))
     rows = []
     stack = []  # (depth, name) of the ancestors
     for ln in lines[1:]:
@@ -192,19 +209,22 @@ def parse_tree(text):
             return None, "tree-bad-indent"
         del stack[d - 1:]
         stack.append(name)
-        rows.append((".".join(stack), name, d, t, a, c))
+        rows.append((".".join(stack), name, d, t, a, c, _instr(mm)))
     return root, rows
 
 
 def add_self_times(tree_rows):
-    """Annotate tree rows with exclusive (self) time: total minus direct children."""
-    child_sum = {}
-    for path, _name, _d, t, _a, _c in tree_rows:
+    """Annotate tree rows with exclusive (self) time and instructions."""
+    child_t, child_i = {}, {}
+    for path, _name, _d, t, _a, _c, i in tree_rows:
         parent = path.rsplit(".", 1)[0] if "." in path else ""
-        child_sum[parent] = child_sum.get(parent, 0) + t
+        child_t[parent] = child_t.get(parent, 0) + t
+        if i is not None:
+            child_i[parent] = child_i.get(parent, 0) + i
     out = []
-    for path, name, d, t, a, c in tree_rows:
-        out.append((path, name, d, t, a, c, t - child_sum.get(path, 0)))
+    for path, name, d, t, a, c, i in tree_rows:
+        self_i = None if i is None else i - child_i.get(path, 0)
+        out.append((path, name, d, t, a, c, i, t - child_t.get(path, 0), self_i))
     return out
 
 
