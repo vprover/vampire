@@ -197,23 +197,54 @@ and TH1 at 27% meant no THF saturation claim was safe. That constraint is gone.
 
 ---
 
-## 5. Peer outliers: AVATAR's SAT solver, and one instructive false positive
+## 5. Peer outliers, and which of them are *not to fix*
 
-`./rpt_peers.py` (3 640 rows). After the LRS group, which dominates it:
+`./rpt_peers.py` (3 640 rows). After the LRS group, which dominates it.
 
-- **`SAT solver` blow-ups, larger than the old sweep showed.** `LCL648+1.010.p` spends
-  **96% of its run** (100 G instructions) in 1 228 solver calls — **82 M instructions per
-  call** against a corpus median of 3 M, a 27x per-call cost. At 109 ps/instr it is
-  compute-bound, so this is the solver genuinely working, not thrashing. The whole
-  `SWV421-1.4xx/5xx` and `SWV422-1.4xx/5xx` family sits at ~70% with 12-14 k calls each.
-  `SWC512_1.p`, the old sweep's example, is still here (54 G, 366 ps/instr). Worth a look
-  at what AVATAR is asking the solver to prove on these.
-- **`SYN986+1.005.p` / `.006`**: `resolution` at 84.9% against a peer median of 0.1%
-  (z = 443). This is the **Orevkov formula**, a deliberate non-elementary proof-length
-  benchmark; the blow-up is the problem, not the prover. Kept here so it is not chased
-  again — it is a useful check that the detector finds such things.
+The detector's job is to find runs that behave unlike their peers, and it does — but a
+large share of what it finds is the *problem* being hard, not the prover being wrong. Two
+of the loudest signals in this sweep are cases where complexity theory says the blow-up is
+unavoidable. They are kept here deliberately, marked, so they are not investigated a
+second time.
+
+**Not to fix — the theory is against us:**
+
+- **`LCL648+1.010.p`** — `SAT solver` is **96% of the run** (100 G instructions) in 1 228
+  calls, **82 M instructions per call** against a corpus median of 3 M: a 27x per-call
+  cost, and the largest SAT anomaly in the sweep. The header reads
+  `Problem : In K, pigeonhole formulae, size 10`. **Pigeonhole formulae have no
+  polynomial-size resolution refutation** (Haken 1985), and CDCL is resolution, so an
+  exponential blow-up here is a theorem, not a defect. At 109 ps/instr the solver is
+  compute-bound — genuinely working, not thrashing. Nothing to fix, and the same applies
+  to the rest of the `LCL64x` pigeonhole series and to any other pigeonhole encoding.
+- **`SYN986+1.005.p` / `.006`** — `resolution` at 84.9% against a peer median of 0.1%
+  (z = 443). The **Orevkov formulae**, a deliberate non-elementary proof-length benchmark.
+  Same reasoning: the blow-up is the intended content of the problem.
+
+Both are useful as positive controls: a detector that *failed* to flag them would be
+broken. The lesson generalises — before chasing a peer outlier, read the problem's TPTP
+header. A benchmark designed to be hard is not a performance bug.
+
+**Expected, though not theoretically forced:**
+
+- The `SWV421-1.4xx/5xx` and `SWV422-1.4xx/5xx` family sits at ~70% `SAT solver`, but at
+  **5 M instructions per call it is barely above the 3 M median** — the share comes from
+  making 13-14 k calls, not from any call being pathological. These are bounded model
+  checking of a mutex algorithm at k = 400-500; heavy SAT work is what the problem *is*.
+  No anomaly. (My earlier draft grouped this family with `LCL648` as "SAT solver
+  blow-ups". That was wrong: only the per-call figure distinguishes a pathology from a
+  problem that simply asks for a lot of solving, and by that figure these are normal.)
+
+**Worth actually looking at:**
+
+- **`SWC512_1.p`** — `SAT solver` 52% of the run at **14 M instructions per call**, 4.7x
+  the median, and at 366 ps/instr it is memory-bound rather than compute-bound, unlike
+  `LCL648`. An Atelier-B industrial proof obligation with no header suggesting deliberate
+  hardness. This is the one case here where AVATAR may be asking the solver something
+  avoidable.
 - The `ITP2xx_3` (TX0) and `ITP0xx_5` (TF0) variants are LRS-bound at 62-77% while their
   `^1`/`+1` siblings are not. `./rpt_peers.py --family ITP007` shows this side by side.
+  This is §1, not a separate finding.
 
 ---
 
