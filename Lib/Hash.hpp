@@ -19,6 +19,7 @@
 #include <functional>
 #include <type_traits>
 #include <cstdint>
+#include <cstring>
 
 #include "Forwards.hpp"
 #include "Kernel/Unit.hpp"
@@ -141,6 +142,10 @@ struct FnvHash
     static_assert(
       !std::is_base_of<Kernel::Unit, T>::value,
       "Units are hashed by their number: use UnitHash or UnitNumberHash");
+    static_assert(
+      !std::is_same<const char, T>::value,
+      "careful - this will use pointer equality in DHMap, are you sure?"
+    );
     return hashBytes(
       reinterpret_cast<const unsigned char*>(&ptr),
       sizeof(ptr),
@@ -151,6 +156,8 @@ struct FnvHash
   // strings hash the underlying C-style string
   static unsigned hash(const std::string& str)
   { return hashNulTerminated(str.c_str()); }
+  static unsigned hash(const std::string_view str)
+  { return hashNulTerminated(str.data()); }
 };
 
 // hash a Unit (or descendant, e.g. Clause) by FNV-1a of its unique incrementing number
@@ -321,6 +328,8 @@ public:
   // strings hash the underlying C-style string
   static unsigned hash(const std::string& str)
   { return FnvHash::hash(str); }
+  static unsigned hash(std::string_view str)
+  { return FnvHash::hash(str); }
 
   // dispatch to VectorHash<DefaultHash>
   template<typename T>
@@ -417,6 +426,8 @@ public:
 
   // strings use their length
   static unsigned hash(const std::string &str)
+  { return LengthHash::hash(str); }
+  static unsigned hash(std::string_view str)
   { return LengthHash::hash(str); }
 
   // containers use their length
