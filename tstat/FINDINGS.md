@@ -1,257 +1,294 @@
-# Findings from the master-11131 sweep
+# Findings from the 11142 sweep
 
-Each entry names the reproducer and the command that shows it. Read `README.md` first —
-three of the four measurement hazards there change how these numbers should be read.
+`vampire_z3_rel_martin-tstat_11142 -i 100000 -tstat on`, 26 504 TPTP problems, TPTP on
+local disk, 64 workers pinned one per physical core, ASLR off. **26 265 usable runs**
+(the other 239 are Vampire user errors that never reached profiling), 247 671 s and
+1 338 T instructions of exclusive cost.
 
-Corpus: 23 750 trustworthy runs, 355 798 s of exclusive time.
+Read `README.md` first for how to read these numbers. This sweep replaces the
+master-11131 one; where a finding changed, the old claim is stated so the difference is
+visible rather than silently overwritten.
 
----
-
-## 1. `LRS limit maintenance` is 25% of all time, and quadratic in run length
-
-`./rpt_hotspots.py` — 88 638 s self time, **24.91% of the corpus**, 131.9 M calls,
-672 µs/call, 0% instrumentation. Also 13.5% of the mean per-run share, so it is
-pervasive, not a few pathological runs. `./rpt_percall.py --node-summary` puts the
-recoverable time at 50 154 s, twice the next node.
-
-**Mechanism.** `LRS::poppedFromUnprocessed` (`Saturation/LRS.cpp:41`) calls
-`_passive->updateLimits()`, which (`Saturation/ClauseContainer.cpp:60`) runs a *full
-simulation*: `simulationInit()` then `simulationPopSelected()` repeated
-`estReachableCnt` times. The early-out only fires when `estReachableCnt >
-sizeEstimate()`, i.e. while passive is still small.
-
-Measured cost per call against the run's final passive size:
-
-```
-passive ~  1 834   median   22 us/call
-passive ~ 16 496   median  222 us/call
-passive ~ 44 463   median  679 us/call
-passive ~117 785   median 3065 us/call      log-log slope 1.01, r = 0.82
-```
-
-Linear in passive size. And `LRS::shouldUpdateLimits()` (`Saturation/LRS.cpp:57`) fires
-on a **fixed counter** — every 500 activations, or every **50** once limits are active —
-with no regard for what an update costs. Total cost is therefore
-`O(activations/50 x |passive|)`, i.e. quadratic in run length: the longer the run, the
-worse the fraction. That is why it is so visible at `-i 100000`.
-
-**Minimally-intrusive fix**: make the cadence adaptive in `shouldUpdateLimits()` — keep
-the measured cost of limit maintenance under a fixed fraction of elapsed time (or scale
-the interval with `sizeEstimate()`), instead of the constants 500/50. Purely a policy
-change; no data structure touched.
-
-Worst individual runs (`./rpt_percall.py`): `BIO004+1.p` (17 ms/call, 104 s),
-`HWV088-1.p` (13 ms/call), `SYN906-1.p`, `SYN912-1.p`, `HWV098-1.p`, and the whole
-`ITP2xx_1/_3` group. `./rpt_peers.py` flags the same set independently: `BIO004+1.p`
-spends 86.7% of its main loop here against a peer median of 35.7%.
-
-**Caveat**: this node walks a large structure, so the 120-way parallel sweep's memory
-contention inflates its *share* somewhat. The mechanism and the linear-in-passive
-scaling are contention-independent; the exact 25% is not.
+**Cost is counted in instructions unless stated otherwise.** That is not cosmetic: time
+and instructions rank the nodes differently by up to 3x, and §6 is about exactly that.
 
 ---
 
-## 2. `Property::scan` is very expensive on HOL, and runs several times per problem
+## 1. `LRS limit maintenance`: 6.6% of the work, 19.4% of the wall clock
 
-`./rpt_preproc.py --outliers` — the top non-parsing rows are a whole TH0 family:
+**Revised, not merely confirmed.** The old sweep called this "25% of all time" and made
+it the clear top target. In instructions it is much smaller, and the gap is itself the
+finding.
 
-```
-NUM796^4.p  property evaluation  size 12.0k  15.0s  predicted 31ms  488x over
-NUM792^4.p  property evaluation  size 11.2k  13.0s  predicted 28ms  459x
-NUM789^4.p ... NUM795^4.p        same shape, 12-15 s each
-NUN053^4.p  preprocessing        size 26.3k  11.5s  209x
-```
+`./rpt_hotspots.py` — 87 914 G instructions, **6.57% of corpus**, against **19.44% of
+corpus self time**: a `t/i` of **2.96x**, the largest of any node. At **548 ps/instr**
+against a corpus average of 185 it is the most memory-bound node in the prover
+(`./rpt_hotspots.py --metric membound` ranks it first). It is not executing much code;
+it is walking a large structure and missing cache.
 
-**Reproduces locally on disk** (so it is not the NFS artifact):
-`./rerun.sh NUM789^4.p -t 40` gives `property evaluation (total: 4360 ms, avg: 1090 ms,
-cnt: 4)` on a problem that *parses* in 7.4 ms. One scan costs 150x a full parse, and it
-happens four times.
-
-**Mechanism** (`sample` on the preprocessing phase, 5 s of samples):
+Per run (13 186 runs with at least 200 updates):
 
 ```
-3710  Shell::Property::scan(UnitList*)   <- via Problem::getProperty() -> refreshProperty()
-3307    Shell::Property::scan(Clause*)
-1082      Shell::Property::scan(TermList, bool, bool)
- 473        Kernel::SortHelper::getArgSort
- 387        Kernel::SortHelper::getTypeSub
- 365        Kernel::SortHelper::getResultSort
- 176        Kernel::SubtermIterator::hasNext
+share of the run's instructions   median  5.0%   p90 18.0%   max 64.3%
+share of the run's time           median 11.5%   p90 37.2%   max 90.0%
 ```
 
-75% of the phase is inside one `Property::scan`. `Property::scan(Literal*)`
+**Mechanism, unchanged and confirmed in the source.** `LRS::poppedFromUnprocessed`
+(`Saturation/LRS.cpp:41`) calls `_passive->updateLimits()`, which
+(`Saturation/ClauseContainer.cpp:60`) runs a *full simulation*: `simulationInit()` then
+`simulationPopSelected()` repeated `estReachableCnt` times.
+
+**The cadence is far tighter than the constants suggest, which is the part worth
+knowing.** `LRS::shouldUpdateLimits()` (`Saturation/LRS.cpp:57`) fires when its own call
+counter hits 500, or **50** once limits are active. Those read like "every 500 / every 50
+activations" — but the counter advances once per clause *popped from unprocessed*, and a
+single activation pushes many clauses through unprocessed. Measured:
+
+```
+activations per limit update   median 1.4    p10 0.2    p90 11.0
+```
+
+So in the median run a full passive-set simulation runs **more often than once per
+activation**, and at p10 five times per activation. That is roughly 36x more often than
+reading the constant as activations would suggest.
+
+Cost per update against the run's passive size:
+
+```
+passive ~   2 198   median   23 k instr/call     6 us
+passive ~   9 774   median   88 k                29 us
+passive ~  42 446   median  391 k               141 us
+passive ~ 105 618   median  784 k               356 us
+passive ~ 393 752   median  920 k               411 us
+```
+
+Roughly linear to ~10^5 (slope 0.91 over the first four buckets) then flattening, because
+`estReachableCnt` bounds the simulation once passive is very large. The old sweep's clean
+"slope 1.01" was fitted on bucket medians only; over all 13 186 raw points the exponent is
+0.74 in instructions and 0.90 in time, r = 0.53 / 0.61.
+
+**Fix**: make the cadence in `shouldUpdateLimits()` adaptive — keep measured limit
+maintenance under a fixed fraction of elapsed work, or scale the interval with
+`sizeEstimate()` — instead of the constants 500/50. Purely a policy change, no data
+structure touched. Because the node is memory-bound, the wall-clock win should exceed the
+6.6% instruction share; on a loaded machine it should exceed it by more.
+
+Worth noting while in this function: `static unsigned cnt=0;` is a function-local static
+holding per-problem state, which `CLAUDE.md` calls out as a hazard rather than an
+optimisation.
+
+**Worst runs** (`./rpt_peers.py` ranks the same set independently): the whole `SYN903-1`
+to `SYN912-1` group at 54-64% of instructions, `HWV121-1.p` 49.8%, `CSR114+15.p` 49.6%,
+`CSR066+4.p` 48.8%, `LCL684+1.005.p` 46.5%, and the `ITP2xx_3` (TX0) / `ITP0xx_5` (TF0)
+families at 62-77% of main-loop time against peer medians of 3-5%.
+
+---
+
+## 2. `Property::scan` is up to 88% of a HOL run — confirmed, and larger than before
+
+`./rpt_preproc.py --outliers`, and directly:
+
+```
+NUM795^4.p  property evaluation  2 calls   93 G instr = 88% of the whole run  (7.6 s)
+NUM796^4.p                       2 calls   93 G       = 88%
+NUM793^4.p                       2 calls   79 G       = 75%
+NUM789^4.p                       2 calls   72 G       = 68%
+... the whole NUM76x-NUM79x^4 family, 15+ problems
+```
+
+All of them then hit the instruction limit — the budget is spent before saturation gets
+anywhere. Corpus-wide `property evaluation` is only 0.816% of instructions (10 T over
+67 452 calls), so this is concentrated, not pervasive; but where it bites, it consumes the
+run. By dialect the mean share is 3% on TH0/TX1 against 1% on FOF/CNF.
+
+**Mechanism, verified in the source.** `Property::scan(Literal*)`
 (`Shell/Property.cpp:605`) does
 
 ```cpp
 for (int i=0; i<arity; i++) { scanSort(SortHelper::getArgSort(lit, i)); }
 ```
 
-and every `getArgSort` call rebuilds the entire type substitution from scratch
-(`SortHelper::getTypeSub`, `Kernel/SortHelper.cpp:68`, binds all type arguments into a
-fresh `Substitution`) before applying it to one argument. Scanning a term of arity n
-costs n substitution builds instead of one. In HOL every `@` is polymorphic, so this is
-the whole traversal — NUM789^4.p has 6 002 `@` connectives.
+and `SortHelper::getArgSort` (`Kernel/SortHelper.cpp:217`) builds a fresh `Substitution`
+and calls `getTypeSub(t, subst)` — which binds *every* type argument
+(`Kernel/SortHelper.cpp:68`) — before applying it to the one argument asked for. Scanning
+a term of arity n therefore costs n substitution builds instead of one. In HOL every `@`
+is polymorphic, so this is the whole traversal.
 
 **Two independent fixes, both small:**
 
-- a bulk `SortHelper::getArgSorts(const Term*, Stack<TermList>&)` that calls
-  `getTypeSub` once and applies it to each `ot->arg(i)`. `Shell/Property.cpp:605` and
-  `:715` are the hot callers; the same `for i < arity: getArgSort(t,i)` pattern appears
-  in ~10 further places (`Shell/BlockedClauseElimination.cpp:477`,
+- a bulk `SortHelper::getArgSorts(const Term*, Stack<TermList>&)` that calls `getTypeSub`
+  once and applies it to each `ot->arg(i)`. `Shell/Property.cpp:605` and `:715` are the
+  hot callers, and the same `for i < arity: getArgSort(t, i)` pattern appears in ~10
+  further places (`Shell/BlockedClauseElimination.cpp:477`,
   `Inferences/TheoryInstAndSimp.cpp:134,209`, `Indexing/AcyclicityIndex.cpp:71,84`,
   `Inferences/TermAlgebraReasoning.cpp:384,397`, ...), so one helper fixes all of them.
-- find out why `Problem::refreshProperty()` runs 4 times here. Per `CLAUDE.md`, the
-  `Problem` property cache is invalidated by transformations and silently repaired by
-  the next `getProperty()`; at ~1 s a scan on HOL, each spurious invalidation is a
-  second of wall time.
-
-Corpus-wide `property evaluation` is 1 550 s (0.44%) with 59 657 calls over 23 698 runs
-— 2-3 scans per run everywhere, and `./rpt_preproc.py --fit` puts TH0 at 2 281 ns per
-input atom against 703 for FOF.
+- find out why the scan runs more than once. Call counts are now 1 (21 681 rows), 2
+  (21 039) and 3 (1 231) — the old sweep's "4 times" no longer reproduces, but 2 scans of
+  a HOL problem still costs seconds. Per `CLAUDE.md` the `Problem` property cache is
+  invalidated by transformations and silently repaired by the next `getProperty()`.
 
 ---
 
-## 3. `parsing` in this sweep measures NFS, not the parser
+## 3. Parsing costs 5 800 - 33 800 instructions per input atom
 
-Not a prover finding, but it invalidates the most obvious reading of the data, so it is
-worth stating plainly. `parsing` is 32.5% of the mean per-run share — the single largest
-entry by that measure — and it is an artifact:
+**This finding is new, and it replaces the old §3.** In the 11131 sweep `parsing`
+measured the server's NFS mount rather than the parser, so the whole node was written off
+as an artifact. With TPTP on local disk the artifact is gone (`SET044+1.p`: 113 ms then,
+**212 µs** now) and what is left is real — and was never previously visible.
 
-| | server (sweep) | local disk |
+`./rpt_preproc.py --fit --node parsing` — cleanly **linear** in input size in every
+dialect (FOF b = 1.03 [1.01, 1.04]), so there is no scaling bug. The constant is the
+issue:
+
+```
+TX1  33 793 instr/atom      FOF  13 666        TH0   7 837
+TF1  29 859                 TF0  18 551        TH1   5 832
+TX0  19 301
+```
+
+And it is not a rounding error on small problems:
+
+```
+runs where parsing is >= 90% of the whole run's instructions:    55  (54 then hit -i)
+                       50-90%:                                  488
+                       20-50%:                                4 019
+```
+
+**4 562 runs — 17% of the corpus — spend at least a fifth of their entire instruction
+budget parsing**, and 55 spend essentially all of it. `CSR061+6.p` (8.4 M atoms) burns
+**102 G of its 104.9 G budget** in `parsing` and never starts proving. Of that, only 2 G
+is `parsing.term sharing`, so the cost is in the parser proper, not in term construction.
+
+Not yet localised below the node — `Parse/TPTP.cpp` has no finer `TIME_TRACE` scopes.
+Adding a few would be the natural next step before optimising anything here.
+
+---
+
+## 4. The instruction-limit reporting race — fixed, and verified fixed
+
+In the 11131 sweep `Lib/Timer.cpp:limitReached()` ran on the *timer thread* and printed
+the time trace while the main thread was still proving and mutating it. **2 450 logs**
+(~1 in 5 instruction-limited runs) died with `Aborted by signal`, and the abort always
+landed inside the trace output.
+
+Fixed on `martin-tstat` by freezing the trace rather than stopping the thread:
+`TimeTrace::_enabled` is atomic and `limitReached()` clears it (plus a 1 ms settle) before
+reporting; `ScopedTimer` remembers whether it pushed, so a frozen trace is never written
+to again even by already-open scopes; `printPrettyRec` orders a local `vector<Node*>`
+instead of sorting the live child list; and the whole subsystem uses `std::vector` and the
+system allocator, so the timer thread never enters the prover's unsynchronised pool.
+`limitReached` also flushes `std::cout`, which `std::_Exit` does not.
+
+Verified on this sweep:
+
+| | 11131 | 11142 |
 |---|---|---|
-| `SET044+1.p` | 113 ms | 220 µs |
-| `SYN952+1.p` (size 5) | 71 ms | 244 µs |
-| `SYO837+1.p` | 174 ms | 271 µs |
-| `NUM789^4.p` | — | 7.4 ms |
+| `Aborted by signal` | 2 450 | **0** |
+| logs rejected as mangled | 2 952 of 26 504 | **0** |
+| clean rate, every dialect x termination bucket | TH0 53%, TH1 27% at `-i` | **100.0% everywhere** |
+| flat vs tree counter drift under `-i` | 8% of rows, up to 1.7% | **0 of 431 645 rows** |
 
-Every FOF problem pays a ~21 ms floor regardless of size, +1.5 ms per `include()`
-(median 21.0 ms at 0 includes, 28.0 ms at 6). The TPTP release was on `/nfs/...` with
-120 jobs reading it. `rpt_percall.py` excludes `parsing` by default; the sublinear
-exponent it gets in `rpt_preproc.py --fit` (b = 0.29-0.79) is this constant, not a
-scaling property.
+That last row is the sharpest test: the two dumps are taken at different moments, so any
+mutation between them shows up as flat > tree. `./ingest.py --selftest` now asserts exact
+agreement there and would catch a regression of the freeze.
 
-To get a real parsing measurement, the sweep needs TPTP on local disk.
-
----
-
-## 4. The instruction-limit reporting path is racy — diagnosed and fixed
-
-`Lib/Timer.cpp:limitReached()` runs on the **timer thread**: it writes
-`env.statistics->print(std::cout)` — which reaches `TimeTrace::printPretty`
-(`Shell/Statistics.cpp:339`) — and then `System::terminateImmediately(1)`, all while the
-main thread is still proving and still mutating the trace.
-
-- **2 450 logs** contain `Aborted by signal` (2 120 SIGSEGV, 27 SIGBUS, plus SIGABRT and
-  mangled variants) — **about one in five of the ~12–13 k instruction-limited runs**.
-- 2 239 more logs have a missing or duplicated profile section.
-- The crash is precisely located: in **all 2 450** logs the abort line lands *inside* the
-  time-trace output — 1 676 inside the flattened profile, 774 inside the trace tree,
-  **zero before it**.
-- The race is visible even in the survivors: the trace tree and the flattened profile
-  agree *exactly* on all 467 111 rows from normally-terminated runs, and differ on 8% of
-  instruction-limited rows, always flat > tree (counters still growing between the two
-  dumps), by up to 1.7%.
-
-> Counting trap: `grep -l 'Aborted by signal' *.log` gives 1 900, because grep skips
-> files it judges binary and the interleaved logs contain invalid UTF-8. Use `grep -la`.
-
-**Three memory-unsafe interactions**, all in the reporting path:
-
-1. `printPrettyRec` sorted `children` **in place** — a `Lib::Stack<unique_ptr<Node>>`
-   that the main thread's `ScopedTimer` constructor scans and appends to. A concurrent
-   append reallocates the array the sort is writing into.
-2. `printPretty` iterates `_stack` twice while every `TIME_TRACE` scope pushes and pops
-   it, ~10⁹ times per run.
-3. `Node` carried `USE_ALLOCATOR(Node)` and `Lib::Stack::expand` uses `ALLOC_KNOWN`, both
-   routing to `GLOBAL_SMALL_OBJECT_ALLOCATOR` — plain free lists, **no synchronisation**
-   (`Lib/Allocator.hpp:246`). `Node::flatten()` allocated dozens of nodes on the timer
-   thread while the main thread allocated clauses from the same lists. This one corrupts
-   silently and faults later, which is why it only showed up under load.
-
-**Fixed on `martin-tstat`** by freezing the trace rather than stopping the thread:
-`TimeTrace::_enabled` is now atomic and `limitReached()` clears it (plus a 1 ms settle)
-before reporting; `ScopedTimer` remembers whether it pushed, so a frozen trace is never
-written to again, not even by already-open scopes; `printPrettyRec` orders a local
-`vector<Node*>`; and the whole TimeTrace subsystem uses `std::vector` and the system
-allocator so the timer thread never enters the prover's pool. `limitReached` also
-flushes `std::cout`, which `std::_Exit` does not.
+The old sweep's clean-rate bias also mattered for *what could be concluded*: TH0 at 53%
+and TH1 at 27% meant no THF saturation claim was safe. That constraint is gone.
 
 ---
 
-## 5. Peer outliers worth a look (and one instructive false positive)
+## 5. Peer outliers: AVATAR's SAT solver, and one instructive false positive
 
-`./rpt_peers.py` (3 273 rows). After the LRS group:
+`./rpt_peers.py` (3 640 rows). After the LRS group, which dominates it:
 
-- **`SYN986+1.005.p` / `.006`**: `resolution` at 81-83% of the main loop against a peer
-  median of **1.4%** (z = 40), 55 s excess. Reproduces locally: 312 resolution calls at
-  22 ms each, 5.2 M `term sharing` calls, 2.4 GB peak — on a problem with 3 formulae.
-  This is the **Orevkov formula**, a deliberate non-elementary proof-length benchmark;
-  the blow-up is the problem, not the prover. Useful to know the detector finds these,
-  and that they should be excluded rather than chased.
-- **`SWC512_1.p`**: `SAT solver` at 59.6% against a peer median of 1.8% (z = 72), 33 s.
-  Not obviously inherent — worth a look at AVATAR on TX0.
-- The `ITP2xx` / `ITP0xx` families split by dialect: the `_1`/`_3` (TF0/TX0) variants are
-  LRS-bound at 60-76% while their `^1`/`+1` siblings are not. `./rpt_peers.py --family
-  ITP007` shows this side by side.
+- **`SAT solver` blow-ups, larger than the old sweep showed.** `LCL648+1.010.p` spends
+  **96% of its run** (100 G instructions) in 1 228 solver calls — **82 M instructions per
+  call** against a corpus median of 3 M, a 27x per-call cost. At 109 ps/instr it is
+  compute-bound, so this is the solver genuinely working, not thrashing. The whole
+  `SWV421-1.4xx/5xx` and `SWV422-1.4xx/5xx` family sits at ~70% with 12-14 k calls each.
+  `SWC512_1.p`, the old sweep's example, is still here (54 G, 366 ps/instr). Worth a look
+  at what AVATAR is asking the solver to prove on these.
+- **`SYN986+1.005.p` / `.006`**: `resolution` at 84.9% against a peer median of 0.1%
+  (z = 443). This is the **Orevkov formula**, a deliberate non-elementary proof-length
+  benchmark; the blow-up is the problem, not the prover. Kept here so it is not chased
+  again — it is a useful check that the detector finds such things.
+- The `ITP2xx_3` (TX0) and `ITP0xx_5` (TF0) variants are LRS-bound at 62-77% while their
+  `^1`/`+1` siblings are not. `./rpt_peers.py --family ITP007` shows this side by side.
 
-## 6. First instrumented run: time and instructions rank the nodes differently
+---
 
-`AGT001+1.p`, `-tstat on -t 10 -p off`, on the server, with the new per-node
-instruction counters. Depth-1 nodes as a share of `[root]`:
+## 6. Time and instructions rank the nodes differently, corpus-wide
 
-| node | % of time | % of instructions | G instr/s |
-|---|---:|---:|---:|
-| parsing | 23.8% | 55.0% | 4.09 |
-| main loop | 3.9% | 15.3% | 6.83 |
-| preprocessing | 2.3% | 13.2% | 10.33 |
-| property evaluation | 2.0% | 14.3% | 12.81 |
-| **`[root]` self (untraced)** | **68.1%** | **2.2%** | **0.06** |
+The old §6 argued this from one hand-run problem. The full corpus now says it, and the
+effect is one-directional in a way that is worth internalising: **exactly one cluster of
+nodes is over-ranked by time, and everything else is under-ranked to compensate.**
 
-**The counters are validated.** `[root]` reports 60 M instructions; the statistics
-block's `Instructions burned` reports 57, and those two reach the same hardware event
-by completely independent paths (rdpmc through the mmap'd page vs `read()` on the fd).
-They agree to 0.4%, the residual being the statistics block printed between the two
-reads. See the caveat below on what "57" means.
+`./rpt_hotspots.py --metric membound`:
 
-**Two thirds of a short run's wall clock is not executing user code.** `[root]`'s own
-time — everything outside any `TIME_TRACE` node — is 68% of the run but 2% of the
-instructions, running at 0.06 G instr/s against 4-13 G/s everywhere else. That is
-process start-up, dynamic linking, page faults and I/O. It also means the "`parsing` is
-32.5% of the mean per-run share" headline in `rpt_hotspots.py` was measuring the
-environment as much as the parser.
+| node | %instr | %time | t/i | ps/instr |
+|---|---:|---:|---:|---:|
+| LRS limit maintenance | 6.57% | 19.44% | **2.96x** | 548 |
+| binary resolution index maintenance | 0.14% | 0.30% | 2.12x | 392 |
+| passive container maintenance | 0.34% | 0.71% | 2.08x | 385 |
+| backward superposition index maintenance | 0.44% | 0.89% | 2.04x | 378 |
+| SAT solver | 4.56% | 5.90% | 1.30x | 240 |
+| *— cliff to the corpus average of 185 —* | | | | |
+| resolution | 19.09% | 17.25% | 0.90x | 167 |
+| forward simplification | 17.93% | 15.89% | 0.89x | 164 |
+| superposition | 16.39% | 11.56% | 0.71x | 131 |
+| perform superposition | 13.54% | 12.48% | 0.92x | 171 |
+| immediate simplification | 4.51% | 2.69% | 0.60x | 110 |
 
-**Time badly under-ranks `property evaluation`.** 2.0% of the time but **14.3% of the
-instructions** — a 7x difference — because the time denominator is inflated by all that
-non-executing wall clock. This corroborates finding 2 far more strongly than time did:
-three `Property::scan`s cost a seventh of the CPU work of a *first-order* run, before
-saturation has done anything.
+Four structure-walking nodes plus the SAT solver stall on memory; the actual inference
+machinery runs at or below the corpus average. `forward demodulation index maintenance`
+(1.06x) is *not* in the cluster, so this is not "all index maintenance" — it is
+specifically these three indices plus LRS.
 
-The general lesson for the next sweep: rank by instructions, and use time only via
-`ps_per_instr` to spot the memory-bound nodes.
+**The counters are validated independently.** `[root]`'s instruction count comes from
+`rdpmc` through the mmap'd perf page; the statistics block's `Instructions burned` comes
+from `read()` on the perf fd. Over all 11 975 instruction-limited runs their ratio is
+1.0000 at p10, p50 and p90 — agreement to within the 2^20 rounding of the printed figure.
+
+**A practical benefit beyond ranking**: `self_ns` can go *negative* on a node whose
+children's printed (rounded) totals exceed its own — `NUM789^4.p`'s `main loop` has
+self_ns = -191 µs. Instruction counts are exact integers, so `self_instr` never does this.
 
 ### Caveat: `Instructions burned` is mebi, not mega
 
-`Lib/Timer.cpp` defines `MEGA = 1 << 20`, so `elapsedMegaInstructions()` divides by
-2^20. The printed `Instructions burned: 57 (million)` is therefore 57 x 2^20 =
-59 768 832, and `-i 100000` is 104.9 G instructions rather than 100 G — every such
-figure is 4.86% larger than its label claims. This is what makes the cross-check above
-work: against a true 57 x 10^6 the gap would be 5.3%, far too large to be explained by
-printing a few lines.
+`Lib/Timer.cpp` defines `MEGA = 1 << 20`, so `elapsedMegaInstructions()` divides by 2^20
+and `-i 100000` is 104.9 G instructions, not 100 G — every such figure is 4.86% larger
+than its label. Self-consistent and harmless for ratios, but the label is wrong.
+Correcting it would silently reinterpret every existing `-i` value, including those baked
+into portfolio schedules, so it is a decision for Martin rather than a fix.
 
-Harmless in itself (it is self-consistent, and ratios are unaffected), but the label is
-wrong. Correcting the arithmetic would silently reinterpret every existing `-i` value,
-including those baked into portfolio schedules, so that is a decision rather than a fix.
+---
 
-## 7. Machine noise floor, for interpreting anything above
+## 7. What the machine noise actually is
 
-`./rpt_ips.py --spread` over 11 723 runs of at least 5 G instructions:
+`./rpt_ips.py --spread`, run against both sweeps' databases. Pinning 64 workers to
+distinct physical cores, instead of running 120 unpinned, raised throughput by **1.70x**
+(median 3 126 -> 5 327 M instr/s) but barely moved the p90/p10 spread (2.58x -> 2.50x).
 
-```
-p10  1 828 M instr/s     p50  3 126     p90  4 724       p90/p10 = 2.58x
-```
+That is not a failure of the pinning; it is evidence that this metric was never a clean
+noise measure. It compares *different problems*, so it mixes genuine problem-to-problem
+memory-boundedness with machine load, and the first term does not go away. §6's ps/instr
+column shows how large that first term is.
 
-A run at p10 takes 1.71x longer than the median for identical work. Part of that is
-genuine memory-boundedness — median throughput falls monotonically with peak memory,
-4 530 M instr/s under 64 MB down to 2 672 at 256 MB-1 GB — and part is contention
-between the 120 parallel jobs. Ratios *within* one run are sound; absolute per-call
-comparisons *between* runs carry this factor.
+The honest noise figure comes from repeating **one** problem: `./determinism.py` gives a
+median per-node instruction spread of 0.004-0.015% under `setarch -R`, against wall-time
+spreads of 0.45-49.7% on the same runs. So instruction counts should be believed to ~0.1%
+and time only to the tens of percent.
+
+---
+
+## 8. Not superlinear, which is worth stating
+
+`./rpt_preproc.py --fit` was built to find a preprocessing step that is quadratic in input
+size. Across every dialect and every pre-saturation node, the fitted exponent is 0.75-1.30
+— **nothing is superlinear**. The one mild exception is `property evaluation` on TX0 (1.30
+[1.28, 1.32]) and TH0 (1.27), which is §2 showing up as a slope rather than as outliers.
+
+The old sweep's sublinear parsing exponents (b = 0.29-0.79) were the NFS floor, not a
+scaling property; they are now 0.93-1.23. So the preprocessing problems in this corpus are
+constant factors, not complexity bugs — which is why §2 and §3 are both phrased as cost per
+atom.
