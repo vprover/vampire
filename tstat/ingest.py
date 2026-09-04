@@ -289,25 +289,29 @@ def selftest(db_path):
         fails += 0 if ok else 1
         print(f"   {'ok  ' if ok else 'FAIL'} {kind:20s} {r['n']:7d} rows: {note}")
 
-    print("2. sum of self times == root total, per run")
+    # In *instructions* rather than nanoseconds. Times are printed rounded to three
+    # significant figures, so a root printed as "26 s" hides up to a second and the
+    # children can legitimately outsum it by nearly 4%; that made this check a test
+    # of the printer's rounding rather than of the data, and it tripped on three
+    # ALG problems in the 11156 sweep for exactly that reason. Instruction counts
+    # are printed as exact integers, so the invariant is exact and needs no
+    # tolerance at all.
+    print("2. sum of self instructions <= root total, per run")
     bad = con.execute("""
-        SELECT n.problem, SUM(n.self_ns) s, r.tree_root_ns root
+        SELECT n.problem, SUM(n.self_instr) s, r.root_instr root
         FROM nodes_tree n JOIN runs r USING(problem)
-        WHERE r.tree_clean = 1
+        WHERE r.tree_clean = 1 AND n.self_instr IS NOT NULL AND r.root_instr > 0
         GROUP BY n.problem
-        HAVING ABS(SUM(n.self_ns) - r.tree_root_ns) > 0.02*r.tree_root_ns + 2000000
+        HAVING SUM(n.self_instr) > r.root_instr
         LIMIT 20
     """).fetchall()
-    # NB: root self time is not printed, so sum(self) <= root always; check the
-    # depth-1 totals instead, which must sum to at most the root.
-    bad = [b for b in bad if b["s"] > b["root"] * 1.02 + 2000000]
     if bad:
         fails += 1
-        print("   FAIL: self times exceed the root total:")
+        print("   FAIL: self instructions exceed the root total:")
         for b in bad[:10]:
             print(f"     {b['problem']:22s} self={b['s']} root={b['root']}")
     else:
-        print("   ok (no run attributes more exclusive time than the root measured)")
+        print("   ok (no run attributes more exclusive instructions than the root measured)")
 
     # Re-parse one log straight from disk and compare every row against what the DB
     # stored. Hardcoding a snapshot of one sweep's numbers here would only mean

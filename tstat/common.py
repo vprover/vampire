@@ -12,7 +12,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 DB = os.path.join(HERE, "tstat.db")
 OUT = os.path.join(HERE, "out")
-LOGDIR = os.path.join(ROOT, "problemsALLlocal_tstat11142_tstat-on_i100K")
+LOGDIR = os.path.join(ROOT, "problemsALLlocal_tstat11156_tstat-on_i100K")
 PROBLEMS = os.path.join(ROOT, "Problems")
 
 # The printer uses U+03BC (GREEK SMALL LETTER MU); accept U+00B5 too, just in case.
@@ -232,7 +232,11 @@ def add_self_times(tree_rows):
 # ---------------------------------------------------------------- scalar outputs
 
 RE_SZS = re.compile(r"^% SZS status (\S+)", re.M)
-RE_TERM = re.compile(r"^% Termination reason: ([A-Za-z][A-Za-z ,]*)\s*$", re.M)
+# The hyphen matters: "Refutation not found, non-redundant clauses discarded" is the
+# reason LRS gives when its limits threw away something it later needed, so it is
+# exactly the category to watch when changing LRS. Without it the line failed to match
+# at all and 95 runs of the 11156 sweep recorded an empty termination.
+RE_TERM = re.compile(r"^% Termination reason: ([A-Za-z][A-Za-z ,-]*)\s*$", re.M)
 RE_TIME = re.compile(r"^% Time elapsed: ([0-9.]+) s\s*$", re.M)
 RE_MEM = re.compile(r"^% Peak memory usage: (\d+) MB\s*$", re.M)
 RE_INSTR = re.compile(r"^% Instructions burned: (\d+) \(million\)\s*$", re.M)
