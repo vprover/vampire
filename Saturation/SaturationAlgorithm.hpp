@@ -171,8 +171,8 @@ protected:
   void onAllProcessed();
   virtual bool isComplete();
   /*
-   * Called at the beginning of doUnprocessedLoop;
-   * will recieve the number of unprocessed pops since last call;
+   * Called once per doUnprocessedLoop iteration, after unprocessed has been drained;
+   * receives the number of unprocessed pops since the last call;
    * used by LRS to potentially update its estimates.
   */
   virtual void afterUnprocessedLoop(unsigned popsElapsed) {};

@@ -20,6 +20,9 @@
 
 #include "Otter.hpp"
 
+#include <fstream>
+#include <memory>
+
 namespace Saturation {
 
 using namespace Kernel;
@@ -36,6 +39,19 @@ protected:
   bool shouldUpdateLimits(unsigned popsElapsed);
 
   long long estimatedReachableCount();
+
+private:
+  /** Unprocessed pops seen since the last limit update. Carried across calls, so it
+   * must be per-instance state: a function-local static would leak between Problems
+   * solved in one process. */
+  unsigned _leftoverPops = 0;
+
+  /** Trace of limit-update decisions, for reproducing an LRS run exactly.
+   * Opened lazily on first use from -lrs_save_trace_file / -lrs_load_trace_file. */
+  std::unique_ptr<std::ofstream> _saveTrace;
+  std::unique_ptr<std::ifstream> _loadTrace;
+  bool _traceOpened = false;
+  void openTraceFiles();
 };
 
 };
