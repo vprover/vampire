@@ -48,6 +48,11 @@ TypedTermList linearize(TypedTermList t, unsigned freshVar) {
   return TypedTermList(linearizer.transform(t.term()));
 }
 
+Literal* linearize(Literal* lit, unsigned freshVar) {
+  Linearizer linearizer(freshVar);
+  return linearizer.transformLiteral(lit);
+}
+
 void GoalReachabilityHandler::handleGoalClause(Clause* cl, bool adding)
 {
   DEBUG("handleGoalClause ", adding, " ", cl->toString());
@@ -59,7 +64,6 @@ void GoalReachabilityHandler::handleGoalClause(Clause* cl, bool adding)
   DHSet<Clause*> needsUpdating;
 
   for (const auto lit : cl->getSelectedLiteralIterator()) {
-    ASS(lit->isEquality());
 
     for (const TypedTermList& tt : iterTraits(EqHelper::getSubtermIterator</*higherOrder=*/false>(lit, _ord))) {
       auto ttl = linearize(tt,freshVar);
@@ -68,13 +72,13 @@ void GoalReachabilityHandler::handleGoalClause(Clause* cl, bool adding)
         if (adding) {
           // backward base_2 inferences
           for (const auto& qr : iterTraits(_backwardTermIndex.getUnifications(ttl, /*retrieveSubstitutions=*/true))) {
-            if (base2Inference(qr.data->value, tt, lit, *qr.unifier, /*tIsResult=*/false)) {
+            if (base2Inference(qr.data->value, tt, *qr.unifier, /*tIsResult=*/false)) {
               needsUpdating.insert(qr.data->value);
             }
           }
           // backward chain_1 inferences
           for (const auto& qr : iterTraits(_backwardTermIndex.getUnifications(ttl, /*retrieveSubstitutions=*/true))) {
-            chain1Inference(qr.data->value, tt, lit, *qr.unifier, /*tIsResult=*/false);
+            chain1Inference(qr.data->value, lit, *qr.unifier, /*tIsResult=*/false);
           }
         }
       } else {
@@ -89,12 +93,24 @@ void GoalReachabilityHandler::handleGoalClause(Clause* cl, bool adding)
       }
     }
 
-    for (const auto& lhs : iterTraits(EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt))) {
-      auto lhsl = linearize(lhs, freshVar);
-	    _chain2ForwardIndex.handle(TermWithValue{ lhsl, TermLiteralClause{ lhs, lit, cl } }, adding);
+    // I think chain_2 inferences are not needed for literal right premises.
+    if (lit->isEquality()) {
+      for (const auto& lhs : iterTraits(EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt))) {
+        auto lhsl = linearize(lhs, freshVar);
+        _chain2ForwardIndex.handle(TermWithValue{ lhsl, TermLiteralClause{ lhs, lit, cl } }, adding);
+        if (adding) {
+          for (const auto& qr : iterTraits(_backwardSubtermIndex.getUnifications(lhsl, /*retrieveSubstitutions=*/true))) {
+            chain2Inference(qr.data->value.second, qr.data->value.first, lhs, lit, *qr.unifier, /*lhsIsResult=*/false);
+          }
+        }
+      }
+    } else if (lit->isNegative()) {
+      auto litc = Literal::complementaryLiteral(lit);
+      auto litl = linearize(litc,freshVar);
+      _baseForwardLiteralIndex.handle(LiteralWithValue{ litl, LiteralClause{ litc, cl } }, adding);
       if (adding) {
-        for (const auto& qr : iterTraits(_backwardSubtermIndex.getUnifications(lhsl, /*retrieveSubstitutions=*/true))) {
-          chain2Inference(qr.data->value.second, qr.data->value.first, lhs, lit, *qr.unifier, /*lhsIsResult=*/false);
+        for (const auto& qr : iterTraits(_backwardLiteralIndex.getUnifications(litl, /*complementary=*/false, /*retrieveSubstitutions=*/false))) {
+          needsUpdating.insert(qr.data->value);
         }
       }
     }
@@ -108,6 +124,10 @@ void GoalReachabilityHandler::handleGoalClause(Clause* cl, bool adding)
 
 void GoalReachabilityHandler::handleNonGoalTerm(Clause* cl, TypedTermList t, bool adding)
 {
+  if (t.term()->isLiteral()) {
+    _backwardLiteralIndex.handle({ static_cast<Literal*>(t.term()), cl }, adding);
+    return;
+  }
   _backwardTermIndex.handle({ t, cl }, adding);
   if (t.isTerm()) {
     for (const auto& st : iterTraits(NonVariableNonTypeIterator(t.term(), /*includeSelf=*/false))) {
@@ -162,34 +182,54 @@ bool GoalReachabilityHandler::iterate(ClauseStack& newGoalClauses)
       continue;
     }
 
-    // if we find a forward base inference with t, we are done for this term
-    if (iterTraits(_baseForwardIndex.getUnifications(t, /*retrieveSubstitutions=*/true)).any([this,cl](const auto& qr) {
-      return baseInference(cl, qr.data->value.term, qr.data->value.literal, *qr.unifier, /*tIsResult=*/true);
-    })) {
-      updateWatchedLiteral(cl);
-      continue;
-    }
+    if (t.term()->isLiteral()) {
 
-    // if we find a forward base_2 inference with t, we are done for this term
-    if (iterTraits(_chain1ForwardIndex.getUnifications(t, /*retrieveSubstitutions=*/true)).any([this,cl](const auto& qr) {
-      return base2Inference(cl, qr.data->value.term, qr.data->value.literal, *qr.unifier, /*tIsResult=*/true);
-    })) {
-      updateWatchedLiteral(cl);
-      continue;
+      auto lit = static_cast<Literal*>(t.term());
+      ASS(lit->isPositive());
+      ASS(!lit->isEquality());
+
+      // if we find a forward base inference with lit, we are done for this term
+      if (iterTraits(_baseForwardLiteralIndex.getUnifications(lit, /*complementary=*/false, /*retrieveSubstitutions=*/true)).hasNext()) {
+        updateWatchedLiteral(cl);
+        continue;
+      }
+
+    } else {
+      // if we find a forward base inference with t, we are done for this term
+      if (iterTraits(_baseForwardIndex.getUnifications(t, /*retrieveSubstitutions=*/true)).any([this,cl](const auto& qr) {
+        return baseInference(cl, qr.data->value.term, qr.data->value.literal, *qr.unifier, /*tIsResult=*/true);
+      })) {
+        updateWatchedLiteral(cl);
+        continue;
+      }
+
+      // if we find a forward base_2 inference with t, we are done for this term
+      if (iterTraits(_chain1ForwardIndex.getUnifications(t, /*retrieveSubstitutions=*/true)).any([this,cl](const auto& qr) {
+        return base2Inference(cl, qr.data->value.term, *qr.unifier, /*tIsResult=*/true);
+      })) {
+        updateWatchedLiteral(cl);
+        continue;
+      }
     }
 
     ptr->processed.push(t);
     handleNonGoalTerm(cl, t, /*adding=*/true);
 
     if (t.isVar()) {
+      // for variables, it suffices to check base inferences, if there is no base term that
+      // unifies with them (i.e. has unifying sort), then there shouldn't be any unifying chain either.
       ASS(!_chain1ForwardIndex.getUnifications(t, /*retrieveSubstitutions=*/true).hasNext());
       _todoNonGoalClauses.push_back(cl);
       continue;
     }
 
-    // forward chain_1 inferences
-    for (const auto& qr : iterTraits(_chain1ForwardIndex.getUnifications(t, /*retrieveSubstitutions=*/true))) {
-      chain1Inference(cl, qr.data->value.term, qr.data->value.literal, *qr.unifier, /*tIsResult=*/true);
+    // I think chain_1 inferences are not needed for literal left premises, as (implicit)
+    // right hand sides are never used and the rest is covered by base inferences.
+    if (!t.term()->isLiteral()) {
+      // forward chain_1 inferences
+      for (const auto& qr : iterTraits(_chain1ForwardIndex.getUnifications(t, /*retrieveSubstitutions=*/true))) {
+        chain1Inference(cl, qr.data->value.literal, *qr.unifier, /*tIsResult=*/true);
+      }
     }
 
     // forward chain_2 inferences (chain_1 and chain_2 coincide on the term itself, so we skip that)
@@ -229,13 +269,15 @@ void GoalReachabilityHandler::addClause(Clause* cl)
       continue;
     }
 
-    // this literal will be watched, add its sides to the TODO deque
-    auto [lhs,rhs] = lit->eqArgs();
-    auto sort = lit->eqArgSort();
-
     NonGoalClauseInfo info;
-    info.unprocessed.emplace_back(lhs, sort);
-    info.unprocessed.emplace_back(rhs, sort);
+    if (lit->isEquality()) {
+      auto [lhs,rhs] = lit->eqArgs();
+      auto sort = lit->eqArgSort();
+      info.unprocessed.emplace_back(lhs, sort);
+      info.unprocessed.emplace_back(rhs, sort);
+    } else {
+      info.unprocessed.emplace_back(lit);
+    }
     info.watchedIndex = i;
     _todoNonGoalClauses.push_back(cl);
     _nonGoalClauses.insert(cl, std::move(info));
@@ -261,9 +303,6 @@ void GoalReachabilityHandler::updateWatchedLiteral(Clause* cl)
       continue;
     }
 
-    // this literal will be watched, add its sides to the TODO deque
-    auto [lhs,rhs] = lit->eqArgs();
-    auto sort = lit->eqArgSort();
     // remove indexed terms
     while (ptr->processed.isNonEmpty()) {
       handleNonGoalTerm(cl, ptr->processed.pop(), /*adding=*/false);
@@ -273,8 +312,14 @@ void GoalReachabilityHandler::updateWatchedLiteral(Clause* cl)
     } else {
       ptr->unprocessed.clear();
     }
-    ptr->unprocessed.emplace_back(lhs, sort);
-    ptr->unprocessed.emplace_back(rhs, sort);
+    if (lit->isEquality()) {
+      auto [lhs,rhs] = lit->eqArgs();
+      auto sort = lit->eqArgSort();
+      ptr->unprocessed.emplace_back(lhs, sort);
+      ptr->unprocessed.emplace_back(rhs, sort);
+    } else {
+      ptr->unprocessed.emplace_back(lit);
+    }
   }
 
   // remove indexed terms
@@ -303,9 +348,10 @@ bool GoalReachabilityHandler::baseInference(Clause* cl, TermList t, Literal* lit
   return false;
 }
 
-bool GoalReachabilityHandler::base2Inference(Clause* cl, TermList t, Literal* lit, ResultSubstitution& unif, bool tIsResult)
+template<typename Object>
+bool GoalReachabilityHandler::base2Inference(Clause* cl, Object obj, ResultSubstitution& unif, bool tIsResult)
 {
-  DEBUG("base_2 inference ", t, " ", *lit, " ", cl->toString());
+  DEBUG("base_2 inference ", obj, " ", cl->toString());
   struct Appl : SubstApplicator {
     Appl(ResultSubstitution& subst, bool result) : subst(subst), result(result) {}
     TermList apply(unsigned v) const override {
@@ -314,57 +360,29 @@ bool GoalReachabilityHandler::base2Inference(Clause* cl, TermList t, Literal* li
     ResultSubstitution& subst;
     bool result;
   } appl { unif, tIsResult };
-  return DemodulationHelper::isRenamingOn(&appl, t);
-
-  // auto [lhs, rhs] = lit->eqArgs();
-  // auto sortS = unif.applyTo(lit->eqArgSort(), tIsResult);
-  // auto lhsS = unif.applyTo(lhs, tIsResult);
-  // auto rhsS = unif.applyTo(rhs, tIsResult);
-  // auto comp = _ord.compare(lhsS, rhsS);
-
-  // if (lhs.containsSubterm(t) && !Ordering::isGreaterOrEqual(Ordering::reverse(comp))) {
-  //   if (iterTraits(_baseForwardIndex.getUnifications(TypedTermList(lhsS, sortS), /*retrieveSubstitutions=*/true)).any([this,cl](const auto& qr) {
-  //     return baseInference(cl, qr.data->value.term, qr.data->value.literal, *qr.unifier, /*tIsResult=*/true);
-  //   })) {
-  //     return true;
-  //   }
-  // }
-  // if (rhs.containsSubterm(t) && !Ordering::isGreaterOrEqual(comp)) {
-  //   if (iterTraits(_baseForwardIndex.getUnifications(TypedTermList(rhsS, sortS), /*retrieveSubstitutions=*/true)).any([this,cl](const auto& qr) {
-  //     return baseInference(cl, qr.data->value.term, qr.data->value.literal, *qr.unifier, /*tIsResult=*/true);
-  //   })) {
-  //     return true;
-  //   }
-  // }
-  // return false;
+  return DemodulationHelper::isRenamingOn(&appl, obj);
 }
 
-void GoalReachabilityHandler::chain1Inference(Clause* cl, TermList t, Literal* lit, ResultSubstitution& unif, bool tIsResult)
+void GoalReachabilityHandler::chain1Inference(Clause* cl, Literal* lit, ResultSubstitution& unif, bool tIsResult)
 {
   DEBUG("chain_1 inference ", t, " ", *lit, " ", cl->toString());
 
-  auto [lhs, rhs] = lit->eqArgs();
-  auto sortS = unif.applyTo(lit->eqArgSort(), tIsResult);
-  auto lhsS = unif.applyTo(lhs, tIsResult);
-  auto rhsS = unif.applyTo(rhs, tIsResult);
-  // auto comp = _ord.compare(lhsS, rhsS);
-
   auto ptr = _nonGoalClauses.findPtr(cl);
   ASS(ptr);
-  // if (lhs.containsSubterm(t) && !Ordering::isGreaterOrEqual(Ordering::reverse(comp))) {
-    if (ptr->unprocessed.empty()) {
-      _todoNonGoalClauses.push_back(cl);
-    }
+  if (ptr->unprocessed.empty()) {
+    _todoNonGoalClauses.push_back(cl);
+  }
+
+  if (lit->isEquality()) {
+    auto [lhs, rhs] = lit->eqArgs();
+    auto sortS = unif.applyTo(lit->eqArgSort(), tIsResult);
+    auto lhsS = unif.applyTo(lhs, tIsResult);
+    auto rhsS = unif.applyTo(rhs, tIsResult);
     ptr->unprocessed.emplace_back(lhsS, sortS); // TODO: adding the lhs like this is not very efficient
     ptr->unprocessed.emplace_back(rhsS, sortS);
-  // }
-  // if (rhs.containsSubterm(t) && !Ordering::isGreaterOrEqual(comp)) {
-  //   if (ptr->unprocessed.empty()) {
-  //     _todoNonGoalClauses.push_back(cl);
-  //   }
-  //   ptr->unprocessed.emplace_back(rhsS, sortS); // TODO: adding the rhs like this is not very efficient
-  //   ptr->unprocessed.emplace_back(lhsS, sortS);
-  // }
+  } else {
+    ptr->unprocessed.emplace_back(unif.applyTo(lit, tIsResult));
+  }
 }
 
 void GoalReachabilityHandler::chain2Inference(Clause* cl, TermList t, TermList lhs, Literal* lit, ResultSubstitution& unif, bool lhsIsResult)

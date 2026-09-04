@@ -18,6 +18,7 @@
 
 #include "Forwards.hpp"
 
+#include "Indexing/LiteralSubstitutionTree.hpp"
 #include "Indexing/TermSubstitutionTree.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -42,8 +43,9 @@ private:
   void updateWatchedLiteral(Clause* cl);
 
   [[nodiscard]] bool baseInference(Clause* cl, TermList t, Literal* lit, ResultSubstitution& unif, bool tIsResult);
-  [[nodiscard]] bool base2Inference(Clause* cl, TermList t, Literal* lit, ResultSubstitution& unif, bool tIsResult);
-  void chain1Inference(Clause* cl, TermList t, Literal* lit, ResultSubstitution& unif, bool tIsResult);
+  template<typename Object>
+  [[nodiscard]] bool base2Inference(Clause* cl, Object obj, ResultSubstitution& unif, bool tIsResult);
+  void chain1Inference(Clause* cl, Literal* lit, ResultSubstitution& unif, bool tIsResult);
   void chain2Inference(Clause* cl, TermList t, TermList lhs, Literal* lit, ResultSubstitution& unif, bool lhsIsResult);
 
   friend class GoalNonLinearityHandler;
@@ -63,8 +65,13 @@ private:
   TermSubstitutionTree<TermWithValue<TermLiteralClause>> _chain1ForwardIndex;
   TermSubstitutionTree<TermWithValue<TermLiteralClause>> _chain2ForwardIndex;
 
+  LiteralSubstitutionTree<LiteralWithValue<LiteralClause>> _baseForwardLiteralIndex;
+  LiteralSubstitutionTree<LiteralWithValue<LiteralClause>> _chain1ForwardLiteralIndex;
+  LiteralSubstitutionTree<LiteralWithValue<LiteralClause>> _chain2ForwardLiteralIndex;
+
   TermSubstitutionTree<TermWithValue<std::pair<TypedTermList, Clause*>>> _backwardSubtermIndex;
   TermSubstitutionTree<TermWithValue<Clause*>> _backwardTermIndex;
+  LiteralSubstitutionTree<LiteralWithValue<Clause*>> _backwardLiteralIndex;
 
   const Ordering& _ord;
   const Options& _opt;

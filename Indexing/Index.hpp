@@ -58,36 +58,44 @@ public:
   { return out << "{ " << Output::ptr(self.clause) << ", " << Output::ptr(self.literal) << " }"; }
 };
 
-template<class Value>
-struct TermWithValue {
-  TypedTermList term;
+template<class Key, class Value>
+struct KeyWithValue {
+  Key _key;
   Value value;
 
-  TermWithValue() {}
+  KeyWithValue() {}
 
-  TermWithValue(TypedTermList term, Value v)
-    : term(term)
+  KeyWithValue(Key key, Value v)
+    : _key(key)
     , value(std::move(v))
   {}
 
-  TypedTermList const& key() const { return term; }
+  auto const& key() const { return _key; }
 
-  std::tuple<const TypedTermList &,const Value &> asTuple() const
-  { return std::tie(term, value); }
+  std::tuple<const Key &,const Value &> asTuple() const
+  { return std::tie(_key, value); }
 
-  IMPL_COMPARISONS_FROM_TUPLE(TermWithValue)
+  IMPL_COMPARISONS_FROM_TUPLE(KeyWithValue)
 
-  friend std::ostream& operator<<(std::ostream& out, TermWithValue const& self)
+  friend std::ostream& operator<<(std::ostream& out, KeyWithValue const& self)
   { return out << self.asTuple(); }
 };
 
-class TermWithoutValue : public TermWithValue<std::tuple<>> 
+template<class Key>
+class KeyWithoutValue : public KeyWithValue<Key, std::tuple<>>
 {
 public:
-  TermWithoutValue(TypedTermList t) 
-    : TermWithValue(t, std::make_tuple()) 
+  KeyWithoutValue(Key k) 
+    : KeyWithValue<Key, std::tuple<>>(k, std::make_tuple())
   { }
 };
+
+template<class Value>
+using TermWithValue = KeyWithValue<TypedTermList,Value>;
+using TermWithoutValue = KeyWithoutValue<TypedTermList>;
+
+template<class Value>
+using LiteralWithValue = KeyWithValue<Literal*,Value>;
 
 struct TermLiteralClause 
 {
