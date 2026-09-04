@@ -12,12 +12,15 @@
  * Implements class LRS.
  */
 
+#include <chrono>
+
 #include "Lib/Environment.hpp"
 #include "Lib/Timer.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Kernel/Clause.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/Options.hpp"
+#include "Shell/UIHelper.hpp"
 
 #include "LRS.hpp"
 
@@ -36,31 +39,153 @@ void LRS::afterUnprocessedLoop(unsigned popsElapsed)
   if(shouldUpdateLimits(popsElapsed)) {
     TIME_TRACE("LRS limit maintenance");
 
+    // Charge this update against the maintenance budget. steady_clock rather than
+    // Timer::elapsedMilliseconds(), because a typical update takes a few hundred
+    // microseconds and would round to zero milliseconds.
+    auto startedAt = std::chrono::steady_clock::now();
+    long startInstrs = Timer::elapsedMegaInstructions();
+
     long long estimatedReachable=estimatedReachableCount();
     if(estimatedReachable>=0) {
       _passive->updateLimits(estimatedReachable);
     }
+
+    _maintenanceMicros += std::chrono::duration_cast<std::chrono::microseconds>(
+        std::chrono::steady_clock::now() - startedAt).count();
+    // Note this one is coarse: elapsedMegaInstructions() returns a value the timer
+    // thread refreshes on a 1ms tick, so a single update usually sees no change at
+    // all and occasionally sees a jump. The tick advances at the true rate, so the
+    // running total is what converges -- which is why the budget below is checked
+    // cumulatively rather than per update.
+    _maintenanceInstrs += Timer::elapsedMegaInstructions() - startInstrs;
   }
+}
+
+/**
+ * Is the instruction limit the one that will stop this run first?
+ *
+ * estimatedReachableCount() takes the min of a time-based and an instruction-based
+ * estimate, i.e. it is governed by whichever limit binds. The maintenance budget
+ * follows the same rule, since the resource worth conserving is the one that runs
+ * out first. With no instruction limit set, or no way to read the counter, it is
+ * time by default.
+ */
+bool LRS::bindingResourceIsInstructions()
+{
+  long instrLimit = 0; // (in mega-instructions)
+#if VAMPIRE_PERF_EXISTS
+  instrLimit = _opt.simulatedInstructionLimit()
+    ? _opt.simulatedInstructionLimit()
+    : _opt.instructionLimit();
+#endif
+  if (instrLimit <= 0) {
+    return false;
+  }
+  int timeLimitDeci = _opt.simulatedTimeLimit()
+    ? _opt.simulatedTimeLimit()
+    : _opt.timeLimitInDeciseconds();
+  if (timeLimitDeci <= 0) {
+    return true;
+  }
+  // both active: whichever is a larger fraction of the way to its limit
+  long instrsBurned = Timer::elapsedMegaInstructions() - _lrsStartInstrs;
+  long timeSpent = Timer::elapsedMilliseconds() - _lrsStartTime; // (in milliseconds)
+  return instrsBurned * static_cast<long long>(timeLimitDeci) * 100 >
+         timeSpent * static_cast<long long>(instrLimit);
+}
+
+/**
+ * Has limit maintenance stayed inside its share of the saturation budget so far?
+ *
+ * Each update simulates the passive set, at a cost proportional to the number of
+ * clauses it expects to still reach, so it gets more expensive as a run goes on.
+ * Left alone it reaches 90% of the longest runs. Comparing the running cost against
+ * the running total keeps the share near -lmb without needing to predict anything:
+ * after an expensive update this simply stays false until saturation catches up.
+ */
+bool LRS::withinMaintenanceBudget()
+{
+  // double rather than float: on a long run the right-hand side reaches ~1e7
+  // microseconds, which is where float's 24-bit mantissa starts losing units.
+  double budget = _opt.lrsMaintenanceBudget();
+
+  if (bindingResourceIsInstructions()) {
+    long spent = Timer::elapsedMegaInstructions() - _lrsStartInstrs;
+    return _maintenanceInstrs <= budget * spent;
+  }
+  long spent = Timer::elapsedMilliseconds() - _lrsStartTime; // (in milliseconds)
+  return _maintenanceMicros <= budget * spent * 1000.0;
 }
 
 /**
  * Return true if it is time to update age and weight
  * limits of the LRS strategy
  *
- * The time of the limit update is determined by a counter
- * of calls of this method.
+ * The pops counter sets the rate, exactly as before; the budget check can only ever
+ * hold an update back. So this is a pure throttle: where updates are cheap the budget
+ * never binds and the cadence is master's, and only the expensive runs -- the ones
+ * where maintenance had grown to a large share of the run -- see any difference.
  */
 bool LRS::shouldUpdateLimits(unsigned popsElapsed)
 {
+  openTraceFiles();
+
   _leftoverPops += popsElapsed;
+
+  if (replaying()) {
+    // Replay must not consult the clock, the instruction counter or the budget:
+    // that is the whole point of the trace, and it is what lets a run recorded
+    // under one limit be replayed under another. The recorded pop counts are the
+    // only thing driving the cadence here.
+    if (_traceExhausted || !readNextRecord()) {
+      return false;
+    }
+    if (_leftoverPops < _nextRecordPops) {
+      return false;
+    }
+    _leftoverPops = 0;
+    _haveNextRecord = false; // consumed by the update we are about to make
+    return true;
+  }
 
   if (env.statistics->activations <= 10)
     return false;
 
   //when there are limits, we check more frequently so we don't skip too much inferences
   if(_leftoverPops>500 || (_passive->limitsActive() && _leftoverPops>50 )) {
+    if (!withinMaintenanceBudget()) {
+      // Deliberately leave _leftoverPops standing, so that the update happens at the
+      // first opportunity once the budget allows rather than after a further 50 pops.
+      return false;
+    }
+    _popsAtFire = _leftoverPops;
     _leftoverPops = 0;
     return true;
+  }
+  return false;
+}
+
+/**
+ * Ensure _nextRecordPops/_nextRecordResult hold the next unconsumed trace record.
+ *
+ * Returns false once the file runs out, after which no further updates are made:
+ * finishing a replay on the live (clock-driven) logic would silently stop
+ * reproducing the recorded run, which is worse than doing nothing.
+ */
+bool LRS::readNextRecord()
+{
+  if (_haveNextRecord) {
+    return true;
+  }
+  if (*_loadTrace >> _nextRecordPops >> _nextRecordResult) {
+    _haveNextRecord = true;
+    return true;
+  }
+  if (!_traceExhausted) {
+    _traceExhausted = true;
+    addCommentSignForSZS(std::cout);
+    std::cout << "LRS trace file exhausted; limits will no longer be updated"
+              << std::endl;
   }
   return false;
 }
@@ -94,13 +219,10 @@ void LRS::openTraceFiles()
  */
 long long LRS::estimatedReachableCount()
 {
-  openTraceFiles();
-
-  if (_loadTrace) {
-    long long thing;
-    if (*_loadTrace >> thing) {
-      return thing;
-    }
+  if (replaying()) {
+    // shouldUpdateLimits only returns true here having consumed a record, so the
+    // estimate to use is the one that record carried.
+    return _nextRecordResult;
   }
 
   long currTime = Timer::elapsedMilliseconds();
@@ -161,7 +283,7 @@ long long LRS::estimatedReachableCount()
   finish:
 
   if (_saveTrace) {
-    (*_saveTrace) << result << std::endl;
+    (*_saveTrace) << _popsAtFire << " " << result << std::endl;
   }
 
   return result;

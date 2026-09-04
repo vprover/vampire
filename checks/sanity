@@ -93,6 +93,37 @@ check_szs_status() {
 	fi
 }
 
+# strip the lines of a statistics block that legitimately differ between two runs
+lrs_fingerprint() {
+	grep '^%' $1 | grep -vE 'Time elapsed|Instructions burned|Peak memory usage|Version|Termination reason|trace file exhausted'
+}
+
+# LRS decides when to refresh its limits partly from the clock, so an LRS run is only
+# reproducible through a recorded trace: -lstf writes each decision (the pops that
+# triggered it) and its estimate, -lltf replays them without consulting any clock.
+# Recording then replaying must reproduce the run exactly.
+#
+# Choose the problem and -al with care, or this checks nothing: the limits have to
+# actually change the search. On SWW620_2.p that starts at -al 6000 -- below it, -sa
+# lrs and -sa otter give identical statistics and so would any broken replay. The two
+# runs also use different -t, which is free but is not what makes the check bite: for
+# the time limit to reach LRS's estimates the run has to approach it, and a run that
+# does is too nondeterministic to belong here.
+# The caller passes no -t; this appends one, so it must come last to win.
+check_lrs_replay() {
+	run_vampire -sa lrs -p off -lstf lrs-trace $@ -t 10
+	lrs_fingerprint checks/vampire-stdout > checks/lrs-recorded
+	run_vampire -sa lrs -p off -lltf lrs-trace $@ -t 6
+	lrs_fingerprint checks/vampire-stdout > checks/lrs-replayed
+	diff=`diff checks/lrs-recorded checks/lrs-replayed`
+	if test -n "$diff"
+	then
+		echo "LRS replay check failed: replaying the trace did not reproduce the run"
+		echo "$diff"
+		exit 1
+	fi
+}
+
 # check SMT status
 check_smtcomp_status() {
 	status=$1
@@ -327,3 +358,6 @@ check_szs_status Unsatisfiable -qa synthesis synthesis/ex2-inverse_of_ixopiy.smt
 
 # Higher-order logic
 check_szs_status Theorem hol/hol1.p
+
+# LRS limit updates are reproducible from a recorded trace, independently of timing
+check_lrs_replay -al 6000 Problems/SWW/SWW620_2.p
