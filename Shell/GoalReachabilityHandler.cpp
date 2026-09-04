@@ -124,7 +124,7 @@ void GoalReachabilityHandler::handleGoalClause(Clause* cl, bool adding)
 
 void GoalReachabilityHandler::handleNonGoalTerm(Clause* cl, TypedTermList t, bool adding)
 {
-  if (t.term()->isLiteral()) {
+  if (t.isTerm() && t.term()->isLiteral()) {
     _backwardLiteralIndex.handle({ static_cast<Literal*>(t.term()), cl }, adding);
     return;
   }
@@ -182,7 +182,7 @@ bool GoalReachabilityHandler::iterate(ClauseStack& newGoalClauses)
       continue;
     }
 
-    if (t.term()->isLiteral()) {
+    if (t.isTerm() && t.term()->isLiteral()) {
 
       auto lit = static_cast<Literal*>(t.term());
       ASS(lit->isPositive());
