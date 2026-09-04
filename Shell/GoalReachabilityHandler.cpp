@@ -100,11 +100,14 @@ void GoalReachabilityHandler::handleGoalClause(Clause* cl, bool adding)
     }
   }
 
+  ASS(adding || needsUpdating.isEmpty());
   for (const auto& ncl : iterTraits(needsUpdating.iter())) {
     updateWatchedLiteral(ncl);
   }
 
+  if (adding) {
   _newGoalClauses.push(cl);
+  }
 }
 
 void GoalReachabilityHandler::handleNonGoalTerm(Clause* cl, TypedTermList t, bool adding)
@@ -143,6 +146,7 @@ bool GoalReachabilityHandler::iterate()
     auto cl = _todoNonGoalClauses.pop_front();
     auto ptr = _nonGoalClauses.findPtr(cl);
     if (!ptr) {
+      // clause was removed in between from the todo list
       continue;
     }
     if (ptr->unprocessed.empty()) {
@@ -242,7 +246,7 @@ void GoalReachabilityHandler::addClause(Clause* cl)
   _todoGoalClauses.push_back(cl);
 }
 
-bool GoalReachabilityHandler::updateWatchedLiteral(Clause* cl)
+void GoalReachabilityHandler::updateWatchedLiteral(Clause* cl)
 {
   DEBUG("updateWatchedLiteral ", cl->toString());
 
@@ -272,7 +276,6 @@ bool GoalReachabilityHandler::updateWatchedLiteral(Clause* cl)
     }
     ptr->unprocessed.emplace_back(lhs, sort);
     ptr->unprocessed.emplace_back(rhs, sort);
-    return false;
   }
 
   // remove indexed terms
@@ -281,7 +284,6 @@ bool GoalReachabilityHandler::updateWatchedLiteral(Clause* cl)
   }
   _nonGoalClauses.remove(cl);
   _todoGoalClauses.push_back(cl);
-  return true;
 }
 
 bool GoalReachabilityHandler::baseInference(Clause* cl, TermList t, Literal* lit, ResultSubstitution& unif, bool tIsResult)
@@ -388,5 +390,16 @@ void GoalReachabilityHandler::chain2Inference(Clause* cl, TermList t, TermList l
 
 void GoalReachabilityHandler::removeClause(Clause* cl)
 {
-  INVALID_OPERATION("not yet implemented");
+  auto ptr = _nonGoalClauses.findPtr(cl);
+  if (!ptr) {
+    handleGoalClause(cl, /*adding=*/false);
+    return;
+  }
+
+  // remove indexed terms
+  while (ptr->processed.isNonEmpty()) {
+    handleNonGoalTerm(cl, ptr->processed.pop(), /*adding=*/false);
+  }
+  _nonGoalClauses.remove(cl);
+  ASS(!_newGoalClauses.find(cl));
 }

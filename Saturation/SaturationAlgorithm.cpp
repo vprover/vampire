@@ -1070,7 +1070,9 @@ void SaturationAlgorithm::removeActiveOrPassiveClause(Clause* cl)
     }
     case Clause::ACTIVE:
       _active->remove(cl);
+      if (_opt.goalOrientedSuperposition()) {
       _goalReachabilityHandler->removeClause(cl);
+      }
       break;
     default:
       ASS_REP2(false, cl->store(), *cl);

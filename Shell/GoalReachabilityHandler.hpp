@@ -45,7 +45,7 @@ public:
 private:
   void handleGoalClause(Clause* cl, bool adding);
   void handleNonGoalTerm(Clause* cl, TypedTermList t, bool adding);
-  bool updateWatchedLiteral(Clause* cl);
+  void updateWatchedLiteral(Clause* cl);
 
   [[nodiscard]] bool baseInference(Clause* cl, TermList t, Literal* lit, ResultSubstitution& unif, bool tIsResult);
   [[nodiscard]] bool base2Inference(Clause* cl, TermList t, Literal* lit, ResultSubstitution& unif, bool tIsResult);
