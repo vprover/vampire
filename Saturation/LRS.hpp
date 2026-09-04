@@ -46,12 +46,35 @@ private:
    * solved in one process. */
   unsigned _leftoverPops = 0;
 
+  /** Running cost of limit maintenance, against which the -lmb budget is checked.
+   * Kept in both units because which one matters depends on which limit binds;
+   * see bindingResourceIsInstructions(). */
+  long long _maintenanceMicros = 0;   //< microseconds spent in updates
+  long _maintenanceInstrs = 0;        //< mega-instructions spent in updates
+
+  bool withinMaintenanceBudget();
+  bool bindingResourceIsInstructions();
+
   /** Trace of limit-update decisions, for reproducing an LRS run exactly.
-   * Opened lazily on first use from -lrs_save_trace_file / -lrs_load_trace_file. */
+   * Opened lazily on first use from -lrs_save_trace_file / -lrs_load_trace_file.
+   * Each record is "<pops accumulated when the update fired> <estimate returned>":
+   * the decision has to be recorded as well as its result, because the cadence
+   * consults the clock and so is not reproducible on its own. */
   std::unique_ptr<std::ofstream> _saveTrace;
   std::unique_ptr<std::ifstream> _loadTrace;
   bool _traceOpened = false;
   void openTraceFiles();
+
+  /** Replay state: the next record read ahead from _loadTrace, and the result to
+   * hand back for the update it describes. */
+  bool _haveNextRecord = false;
+  bool _traceExhausted = false;
+  unsigned _nextRecordPops = 0;
+  long long _nextRecordResult = -1;
+  /** Pops that triggered the update currently being made, for _saveTrace. */
+  unsigned _popsAtFire = 0;
+  bool replaying() const { return _loadTrace != nullptr; }
+  bool readNextRecord();
 };
 
 };
