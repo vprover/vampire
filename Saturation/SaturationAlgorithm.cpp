@@ -841,6 +841,7 @@ void SaturationAlgorithm::newClausesToUnprocessed()
         break;
       case Clause::SELECTED:
       case Clause::ACTIVE:
+      case Clause::SUSPENDED:
 #if VDEBUG
         cout << "FAIL: " << cl->toString() << endl;
         // such clauses should not appear as new ones
@@ -1070,9 +1071,11 @@ void SaturationAlgorithm::removeActiveOrPassiveClause(Clause* cl)
     }
     case Clause::ACTIVE:
       _active->remove(cl);
-      if (_opt.goalOrientedSuperposition()) {
+      break;
+    case Clause::SUSPENDED:
+      ASS(_opt.goalOrientedSuperposition());
       _goalReachabilityHandler->removeClause(cl);
-      }
+      cl->setStore(Clause::NONE);
       break;
     default:
       ASS_REP2(false, cl->store(), *cl);
@@ -1177,9 +1180,10 @@ bool SaturationAlgorithm::iterateGoalReachability()
   if (!_opt.goalOrientedSuperposition()) {
     return true;
   }
-  auto terminated = _goalReachabilityHandler->iterate();
+  ClauseStack newGoalClauses;
+  auto terminated = _goalReachabilityHandler->iterate(newGoalClauses);
 
-  for (const auto& cl : _goalReachabilityHandler->goalClauses()) {
+  for (const auto& cl : newGoalClauses) {
 
     if (env.options->showAll()) {
       std::cout << "[SA] goal clause: " << cl->toString() << endl;
@@ -1359,7 +1363,7 @@ void SaturationAlgorithm::doOneAlgorithmStep()
 
     _selector->select(cl);
   }
-  cl->setStore(Clause::PASSIVE);
+  cl->setStore(Clause::SUSPENDED);
 
   if (_opt.goalOrientedSuperposition()) {
     _goalReachabilityHandler->addClause(cl);

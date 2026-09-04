@@ -34,13 +34,7 @@ public:
 
   void addClause(Clause* cl);
   void removeClause(Clause* cl);
-  [[nodiscard]] bool iterate();
-
-  ClauseStack goalClauses() {
-    ClauseStack res;
-    std::swap(res, _newGoalClauses);
-    return res;
-  }
+  [[nodiscard]] bool iterate(ClauseStack& newGoalClauses);
 
 private:
   void handleGoalClause(Clause* cl, bool adding);
@@ -54,8 +48,8 @@ private:
 
   friend class GoalNonLinearityHandler;
 
-  Deque<Clause*> _todoNonGoalClauses;
-  Deque<Clause*> _todoGoalClauses;
+  std::deque<Clause*> _todoNonGoalClauses;
+  std::deque<Clause*> _todoGoalClauses;
 
   struct NonGoalClauseInfo {
     unsigned watchedIndex = 0;
@@ -71,8 +65,6 @@ private:
 
   TermSubstitutionTree<TermWithValue<std::pair<TypedTermList, Clause*>>> _backwardSubtermIndex;
   TermSubstitutionTree<TermWithValue<Clause*>> _backwardTermIndex;
-
-  ClauseStack _newGoalClauses;
 
   const Ordering& _ord;
   const Options& _opt;

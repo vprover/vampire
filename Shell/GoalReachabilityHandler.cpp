@@ -104,10 +104,6 @@ void GoalReachabilityHandler::handleGoalClause(Clause* cl, bool adding)
   for (const auto& ncl : iterTraits(needsUpdating.iter())) {
     updateWatchedLiteral(ncl);
   }
-
-  if (adding) {
-  _newGoalClauses.push(cl);
-  }
 }
 
 void GoalReachabilityHandler::handleNonGoalTerm(Clause* cl, TypedTermList t, bool adding)
@@ -120,30 +116,33 @@ void GoalReachabilityHandler::handleNonGoalTerm(Clause* cl, TypedTermList t, boo
   }
 }
 
-bool GoalReachabilityHandler::iterate()
+bool GoalReachabilityHandler::iterate(ClauseStack& newGoalClauses)
 {
   DEBUG("iterate");
 
   unsigned cnt = 0;
 
-  while (_todoGoalClauses.isNonEmpty()) {
+  while (!_todoGoalClauses.empty()) {
 
     if (cnt++ >= _chainLimit) {
       return false;
     }
 
-    auto curr = _todoGoalClauses.pop_front();
-    DEBUG("processing goal clause ", *curr);
+    auto curr = _todoGoalClauses.front();
+    _todoGoalClauses.pop_front();
+    DEBUG("processing goal clause ", curr->toString());
     handleGoalClause(curr, /*adding=*/true);
+    newGoalClauses.push(curr);
   }
 
-  while (_todoNonGoalClauses.isNonEmpty()) {
+  while (!_todoNonGoalClauses.empty()) {
 
     if (cnt++ >= _chainLimit) {
       return false;
     }
 
-    auto cl = _todoNonGoalClauses.pop_front();
+    auto cl = _todoNonGoalClauses.front();
+    _todoNonGoalClauses.pop_front();
     auto ptr = _nonGoalClauses.findPtr(cl);
     if (!ptr) {
       // clause was removed in between from the todo list
@@ -202,7 +201,7 @@ bool GoalReachabilityHandler::iterate()
     _todoNonGoalClauses.push_back(cl);
   }
 
-  return _todoGoalClauses.isEmpty();
+  return _todoGoalClauses.empty();
 }
 
 GoalReachabilityHandler::GoalReachabilityHandler(SaturationAlgorithm& salg)
@@ -390,9 +389,14 @@ void GoalReachabilityHandler::chain2Inference(Clause* cl, TermList t, TermList l
 
 void GoalReachabilityHandler::removeClause(Clause* cl)
 {
+  ASS_EQ(cl->store(), Clause::SUSPENDED);
   auto ptr = _nonGoalClauses.findPtr(cl);
   if (!ptr) {
-    handleGoalClause(cl, /*adding=*/false);
+    auto num_removed = std::erase(_todoGoalClauses, cl);
+    ASS_LE(num_removed, 1);
+    if (!num_removed) {
+      handleGoalClause(cl, /*adding=*/false);
+    }
     return;
   }
 
@@ -401,5 +405,5 @@ void GoalReachabilityHandler::removeClause(Clause* cl)
     handleNonGoalTerm(cl, ptr->processed.pop(), /*adding=*/false);
   }
   _nonGoalClauses.remove(cl);
-  ASS(!_newGoalClauses.find(cl));
+  std::erase(_todoNonGoalClauses, cl);
 }
