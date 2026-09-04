@@ -317,6 +317,20 @@ _SYN = {
 }
 _SYN = {k: re.compile(v, re.M) for k, v in _SYN.items()}
 
+# CNF headers count different things: "Number of clauses" and "Number of literals"
+# where the others say "formulae" and "atoms", and they have no connectives line at
+# all. Without these, every CNF problem got size = NULL and dropped out of each
+# size-based report -- 8 474 problems, a third of the corpus, and the dialect with by
+# far the most parse-dominated runs. Mapped onto the same fields so that `size` means
+# the same kind of thing (a count of syntactic units) in every dialect.
+_SYN_CNF = {
+    "formulae": _PFX + r"Number of clauses\s+:\s+(\d+)",
+    "atoms": _PFX + r"Number of literals\s+:\s+(\d+)",
+    "equ_atoms": _PFX + r"Number of literals\s+:\s+\d+\s+\(\s*(\d+) equ\)",
+    "max_formula_atoms": _PFX + r"Maximal clause size\s+:\s+(\d+)",
+}
+_SYN_CNF = {k: re.compile(v, re.M) for k, v in _SYN_CNF.items()}
+
 
 def problem_path(problem):
     """`AGT001+1.p` -> <repo>/Problems/AGT/AGT001+1.p"""
@@ -350,6 +364,18 @@ def parse_tptp_header(path):
     for k, rx in _SYN.items():
         mm = rx.search(head)
         d[k] = int(mm.group(1)) if mm else None
+    # CNF spells four of these differently; fill only what the FOF-shaped patterns
+    # missed, so a header carrying both wordings keeps the primary reading.
+    for k, rx in _SYN_CNF.items():
+        if d.get(k) is None:
+            mm = rx.search(head)
+            if mm:
+                d[k] = int(mm.group(1))
+    # A CNF header has no connectives line, and clause structure is what would be
+    # counted there; 0 keeps `size` = atoms + connectives + variables well-defined
+    # rather than dropping the problem entirely.
+    if d.get("connectives") is None and d.get("atoms") is not None:
+        d["connectives"] = 0
     return d
 
 
