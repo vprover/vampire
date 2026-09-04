@@ -1280,7 +1280,7 @@ void Options::init()
     _lrsLoadTraceFile.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
 
     _lrsMaintenanceBudget = FloatOptionValue("lrs_maintenance_budget","lmb",0.05);
-    _lrsMaintenanceBudget.description = "The fraction of the saturation budget (of time, or of instructions, whichever limit is the binding one) that LRS may spend on maintaining its limits. Each update simulates the passive set, so its cost grows with the run; without a cap, maintenance can reach 90% of a long run. Larger values give more up-to-date limits at a higher price.";
+    _lrsMaintenanceBudget.description = "The fraction of the saturation budget (of time, or of instructions, whichever limit is the binding one) that LRS may spend on maintaining its limits. Each update simulates the passive set, so its cost grows with the run; without a cap, maintenance can reach 90% of a long run. Larger values give more up-to-date limits at a higher price. Maintenance is a subset of what it is measured against, so any value >= 1.0 switches the cap off entirely.";
     _lookup.insert(&_lrsMaintenanceBudget);
     _lrsMaintenanceBudget.tag(OptionTag::LRS);
     _lrsMaintenanceBudget.addConstraint(greaterThan(0.0f));
