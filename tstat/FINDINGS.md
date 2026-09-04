@@ -5,6 +5,10 @@ local disk, 64 workers pinned one per physical core, ASLR off. **26 265 usable r
 (the other 239 are Vampire user errors that never reached profiling), 247 671 s and
 1 338 T instructions of exclusive cost.
 
+> **§1 has since been acted on.** The 11156 sweep is the same configuration with the LRS
+> maintenance cap in place at its default `-lmb 0.05`. What it did is written up in §9 at
+> the end of this file; §1 below is left as the diagnosis that motivated the change.
+
 Read `README.md` first for how to read these numbers. This sweep replaces the
 master-11131 one; where a finding changed, the old claim is stated so the difference is
 visible rather than silently overwritten.
@@ -323,3 +327,92 @@ The old sweep's sublinear parsing exponents (b = 0.29-0.79) were the NFS floor, 
 scaling property; they are now 0.93-1.23. So the preprocessing problems in this corpus are
 constant factors, not complexity bugs — which is why §2 and §3 are both phrased as cost per
 atom.
+
+---
+
+## 9. What the LRS maintenance cap actually did (11156 vs 11142)
+
+`vampire_z3_rel_martin-tstat_11156 -i 100000 -tstat on`, same corpus, same machine
+setup, `-lrs_maintenance_budget` at its 0.05 default. Runs were **purely
+instruction-limited**, so instructions are the binding resource and the cap applies to
+them. 26 265 usable runs again, 0 crashes, selftest clean.
+
+### The cap holds exactly
+
+Per-run share of a run's own instructions spent in `LRS limit maintenance`, over the
+18 946 runs where the node appears:
+
+| | median | p90 | p99 | max | runs over 5% |
+|---|---:|---:|---:|---:|---:|
+| 11142 (uncapped) | 1.15% | 15.69% | 27.63% | **64.34%** | **36.1%** |
+| 11156 (`-lmb 0.05`) | 0.16% | 2.06% | 3.10% | **4.76%** | **0.0%** |
+
+No run exceeds the budget, and the maximum lands just under it. That is the mechanism
+doing exactly what it says.
+
+Corpus-wide the node falls from **6.57% of instructions to 0.95%** (87.9 T → 12.7 T) and
+from **19.44% of time to 5.86%** (48 145 s → 12 766 s), on 152.9 M → 24.6 M updates.
+
+Note the corpus figure (0.95%) sits far below the 5% cap. That is expected: the cap is a
+ceiling applied per run, most runs were never near it, and the cumulative form also
+thins the early updates — after each one it waits for saturation to catch up, and early
+in a run there is little to catch up to.
+
+### The freed budget becomes search, and it is measurable
+
+On the 10 488 problems that hit the instruction limit in *both* sweeps — same budget
+spent, so a clean throughput comparison — 11156 performs **3.34% more activations** on
+average. Corpus-wide the 75.2 T instructions taken out of LRS reappear in the inference
+machinery:
+
+```
+resolution                 +23.8 T      SAT solver           +5.4 T
+forward simplification     +13.7 T      superposition        +4.9 T
+perform superposition       +8.0 T      LRS limit maintenance  -75.2 T
+```
+
+### Under an instruction limit, 5% of instructions is not 5% of time
+
+The time share only falls to 5.86% corpus-wide, with a p90 of 11.15% and a **max of
+34.54%** per run. This is the memory-boundedness of §6 showing up as a design
+consequence rather than an observation: capping the resource that ends the run
+(instructions) leaves the wall-clock share three to seven times higher.
+
+It gets worse after capping, not better — `LRS limit maintenance` goes from 548 to
+**1004 ps/instr**, from 2.96x the corpus average to 6.15x. The updates that survive are
+the late, expensive, cache-hostile ones, and with fewer of them each starts from a colder
+cache. So the cap trades *many cheapish* updates for *few expensive* ones.
+
+**This is the thing to decide before the PR.** If the goal is a 5% share of wall clock
+rather than of instructions, the budget under `-i` has to be either applied to time
+regardless of which limit binds, or set nearer 0.015 in instruction terms.
+
+### The cost win is solid; the solved-problem win is not
+
+| | 11142 | 11156 | delta |
+|---|---:|---:|---:|
+| Refutation | 12 820 | 12 857 | **+37** |
+| Instruction limit | 11 975 | 11 948 | −27 |
+| Satisfiable | 1 067 | 1 067 | 0 |
+| Refutation not found, non-redundant clauses discarded | 105 | 95 | −10 |
+
+Gained 60, lost 32, **net +28**, and **zero soundness contradictions** — no problem got
+two different definite SZS statuses across the two sweeps.
+
+But +28 out of ~13 900 solved is not a result to lean on. Martin's own paired experiment
+at `-i 64K`, `-lmb 1.0` against `-lmb 0.05` on the same corpus, gives 12 666 → 12 678
+(+12), with 18 problems solved only by `1.0` against 30 only by `0.05` — a spread
+comparable to what re-running an LRS strategy produces by itself. **Treat the solved
+count as unchanged.** What the change reliably buys is the 5.6 percentage points of
+corpus instructions moved out of overhead and into inference, and the removal of the
+64%-of-a-run worst case; whether that converts into problems is below the noise floor
+of a single sweep.
+
+The `non-redundant clauses discarded` drop (105 → 95) is a small independent sign the
+limits are now less aggressive: that reason is reported exactly when LRS discarded
+something it later needed.
+
+> Toolkit bug found while doing this, now fixed: `RE_TERM` in `common.py` excluded the
+> hyphen, so `Refutation not found, non-redundant clauses discarded` failed to match at
+> all and 95 runs recorded an empty termination. That is precisely the category worth
+> watching when changing LRS, and it had been invisible in every earlier analysis.
