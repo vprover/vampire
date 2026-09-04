@@ -1075,7 +1075,10 @@ void SaturationAlgorithm::removeActiveOrPassiveClause(Clause* cl)
     case Clause::SUSPENDED:
       ASS(_opt.goalOrientedSuperposition());
       _goalReachabilityHandler->removeClause(cl);
-      cl->setStore(Clause::NONE);
+      cl->setStore(Clause::PASSIVE);
+      // Clauses get suspended before activation,
+      // so they have to be removed from the passive too.
+      _passive->remove(cl);
       break;
     default:
       ASS_REP2(false, cl->store(), *cl);
