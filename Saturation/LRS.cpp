@@ -18,11 +18,9 @@
 #include "Kernel/Clause.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/Options.hpp"
-#include "Lib/ScopedPtr.hpp"
 
 #include "LRS.hpp"
 
-#include <fstream>
 
 namespace Saturation
 {
@@ -54,18 +52,40 @@ void LRS::afterUnprocessedLoop(unsigned popsElapsed)
  */
 bool LRS::shouldUpdateLimits(unsigned popsElapsed)
 {
-  static unsigned leftoverPops=0;
-  leftoverPops += popsElapsed;
+  _leftoverPops += popsElapsed;
 
   if (env.statistics->activations <= 10)
     return false;
 
   //when there are limits, we check more frequently so we don't skip too much inferences
-  if(leftoverPops>500 || (_passive->limitsActive() && leftoverPops>50 )) {
-    leftoverPops = 0;
+  if(_leftoverPops>500 || (_passive->limitsActive() && _leftoverPops>50 )) {
+    _leftoverPops = 0;
     return true;
   }
   return false;
+}
+
+/**
+ * Open the trace files named by -lrs_save_trace_file / -lrs_load_trace_file, once.
+ *
+ * Lazily rather than in a constructor because LRS inherits Otter's constructors, and
+ * because a run that sets neither option should not touch the filesystem at all.
+ */
+void LRS::openTraceFiles()
+{
+  if (_traceOpened) {
+    return;
+  }
+  _traceOpened = true;
+
+  const std::string& load = _opt.lrsLoadTraceFile();
+  if (!load.empty()) {
+    _loadTrace = std::make_unique<std::ifstream>(load.c_str());
+  }
+  const std::string& save = _opt.lrsSaveTraceFile();
+  if (!save.empty()) {
+    _saveTrace = std::make_unique<std::ofstream>(save.c_str());
+  }
 }
 
 /**
@@ -74,11 +94,11 @@ bool LRS::shouldUpdateLimits(unsigned popsElapsed)
  */
 long long LRS::estimatedReachableCount()
 {
-  static ScopedPtr<std::ifstream> infile((!env.options->lrsLoadTraceFile().empty()) ? new std::ifstream(env.options->lrsLoadTraceFile().c_str()) : 0);
-  if (infile) {
+  openTraceFiles();
+
+  if (_loadTrace) {
     long long thing;
-    if (*infile >> thing) {
-      // cout << "reading " << thing << endl;
+    if (*_loadTrace >> thing) {
       return thing;
     }
   }
@@ -140,9 +160,8 @@ long long LRS::estimatedReachableCount()
 
   finish:
 
-  static ScopedPtr<std::ofstream> outfile((!env.options->lrsSaveTraceFile().empty()) ? new std::ofstream(env.options->lrsSaveTraceFile().c_str()) : 0);
-  if (outfile) {
-    (*outfile) << result << std::endl;
+  if (_saveTrace) {
+    (*_saveTrace) << result << std::endl;
   }
 
   return result;
