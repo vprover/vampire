@@ -416,3 +416,95 @@ something it later needed.
 > hyphen, so `Refutation not found, non-redundant clauses discarded` failed to match at
 > all and 95 runs recorded an empty termination. That is precisely the category worth
 > watching when changing LRS, and it had been invisible in every earlier analysis.
+
+---
+
+## 10. Candidate outliers for later, ranked by how tractable they look
+
+From the 11156 sweep. The measure is deliberately not corpus share: the biggest nodes
+by share are the inference machinery, which is supposed to be big. What follows are
+nodes whose corpus share is modest but which *dominate individual runs*, since that is
+where a bounded fix has somewhere to bite. Counts are runs where the node exceeds 30%
+(and 50%) of that run's own instructions.
+
+```
+node                                   %corpus   >30%   >50%   ps/instr
+forward simplification                  19.01%   5646   2235    159
+resolution                              20.94%   4215   1879    161
+superposition                           16.80%   2695   1132    130
+parsing                                  1.18%   2426    543    171   <- §3
+perform superposition                   14.18%   2145    990    168
+SAT solver                               4.98%    912    238    217   <- §5
+forward demodulation                     3.47%    493     73    147
+immediate simplification                 4.61%    476    317    113   <- new
+interpreted evaluation                   0.82%     52     35    107   <- new
+```
+
+### a. `immediate simplification` on higher-order — the most concentrated thing left
+
+476 runs above 30%, **every one of them TH0 or TH1**, averaging 68% of the run. 85 of
+them reach that in **ten calls or fewer**, and `SYN007^4.014.p` spends its entire
+104.8 G instruction budget inside a **single call** (`cnt: 1`). `SYO875^1.p`,
+`SYO864^1.p`, `SYO866^1.p`, `SYO847^1.p`, `ALG021^7.p` are all at 99%.
+
+At 4.61% of corpus instructions this is not a headline number, but a single
+simplification call that never returns is a bug-shaped problem rather than a tuning
+one, and it is confined to one dialect. Together with §2 (`Property::scan`, also HOL,
+also concentrated) it suggests higher-order has more of these than first-order does.
+
+### b. `interpreted evaluation` on TF0 arithmetic
+
+52 runs above 30%, 35 above 50%. The `SWX146_1.p` … `SWX151_1.p` family sits at **96%
+of the budget**, and does so almost identically — 21 425 calls at 4.74 M instructions
+each, within 0.1% of one another across six problems. That uniformity is the useful
+part: six problems failing the same way is one root cause, not six.
+
+### c. Parsing, now that CNF is visible
+
+§3 undercounted this. `parsing` exceeds 30% of the budget on **2 426 runs** and 50% on
+543, and the dialect that dominates that list is **CNF (1 243 runs)**, followed by FOF
+(835). CNF also turns out to be expensive per unit of input: **16 258 instructions per
+input unit against FOF's 9 182**, on a clean linear fit (b = 1.00, [0.97, 1.03]).
+
+### d. The memory-bound index trio
+
+With LRS capped, these are the only nodes left with a time/instruction skew above 2:
+
+```
+binary resolution index maintenance        0.15% instr   0.34% time   370 ps/instr
+passive container maintenance              0.37%         0.82%        357
+backward superposition index maintenance   0.46%         0.99%        351
+```
+
+Together about 1% of instructions but 2.15% of time, against a corpus rate of 163
+ps/instr. A small prize, and "make an index cache-friendlier" is not a cheap fix — but
+they are a coherent group, and `forward demodulation index maintenance` (191) sitting
+outside it says the cost is specific to these three rather than to index maintenance
+generally.
+
+### e. Demodulation — the folklore checked, and it is not quite right
+
+The expectation was that demodulation eats a large share of long-lived runs. Share of a
+run's own instructions in `forward demodulation`, bucketed by how long the run actually
+was:
+
+| run length | n | median | p90 | p99 | max |
+|---|---:|---:|---:|---:|---:|
+| <1 G instr | 7 409 | 4.20% | 14.42% | 33.13% | 56.76% |
+| 1–10 G | 1 501 | **11.16%** | **34.66%** | 55.44% | 67.32% |
+| 10–50 G | 1 146 | 6.63% | 19.81% | 49.13% | 84.80% |
+| 50–100 G | 378 | 3.14% | 10.04% | 31.25% | 68.98% |
+| >100 G (budget-bound) | 10 421 | 2.80% | 7.34% | 27.17% | **88.08%** |
+
+It peaks in the **middle** and falls away in the longest runs — the opposite of the
+expectation, and by a factor of four at the median. What is true is that the tail stays
+heavy everywhere: 493 runs exceed 30% and the worst budget-bound run is at 88%. So
+demodulation is worth looking at, but as a per-problem pathology rather than as a
+general tax on long runs, and the runs to look at are the mid-length ones.
+
+> Two toolkit gaps fixed to get here. `parse_tptp_header` only understood the FOF
+> wording of the header metrics, so all **8 474 CNF problems** had `size = NULL` and
+> silently dropped out of every size-based report, §3 included — the dialect with the
+> most parse-dominated runs was the one being excluded. CNF says "Number of clauses"
+> and "Number of literals" where the rest say "formulae" and "atoms", and has no
+> connectives line.
