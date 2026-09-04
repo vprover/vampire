@@ -109,6 +109,16 @@ bool LRS::withinMaintenanceBudget()
   // microseconds, which is where float's 24-bit mantissa starts losing units.
   double budget = _opt.lrsMaintenanceBudget();
 
+  // Maintenance is a subset of the saturation it is measured against, so a budget
+  // of 1.0 or more can never be exceeded and the throttle is off. Short-circuiting
+  // says so exactly rather than nearly: on the time path `spent` is truncated to
+  // whole milliseconds, so without this the comparison could still fail inside the
+  // first millisecond, where maintenance can exceed a `spent` that is still 0.
+  // This makes -lmb 1.0 a clean "as if unthrottled" baseline to measure against.
+  if (budget >= 1.0) {
+    return true;
+  }
+
   if (bindingResourceIsInstructions()) {
     long spent = Timer::elapsedMegaInstructions() - _lrsStartInstrs;
     return _maintenanceInstrs <= budget * spent;
