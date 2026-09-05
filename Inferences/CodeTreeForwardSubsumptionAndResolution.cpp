@@ -12,6 +12,8 @@
  * Implements class CodeTreeForwardSubsumptionAndResolution.
  */
 
+#include "Debug/TimeProfiling.hpp"
+
 #include "Lib/Environment.hpp"
 #include "Lib/Random.hpp"
 
@@ -32,6 +34,11 @@ CodeTreeForwardSubsumptionAndResolution<higherOrder>::CodeTreeForwardSubsumption
 template<bool higherOrder>
 bool CodeTreeForwardSubsumptionAndResolution<higherOrder>::perform(Clause *cl, Clause *&replacement, ClauseIterator &premises)
 {
+  // Deliberately a different name from ForwardSubsumptionAndResolution's "forward
+  // subsumption": the two are mutually exclusive implementations selected by -cts, so
+  // the profile should say which one ran.
+  TIME_TRACE("codetree forward subsumption");
+
   if (_ct->isEmpty()) {
     return false;
   }
