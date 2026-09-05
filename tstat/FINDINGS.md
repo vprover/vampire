@@ -508,3 +508,149 @@ general tax on long runs, and the runs to look at are the mid-length ones.
 > most parse-dominated runs was the one being excluded. CNF says "Number of clauses"
 > and "Number of literals" where the rest say "formulae" and "atoms", and has no
 > connectives line.
+
+---
+
+## 11. The same change under a *time* limit (t60s, 11142 vs 11156)
+
+Two further sweeps, `-t 60` instead of `-i 100000`, same corpus, same
+`taskset -c "$CPUS" setarch $(uname -m) -R` setup, 64 concurrent processes and nothing
+else on the machine. 26 265 usable runs in each, 0 crashes, 99.1% clean, identical
+reject counts (239, all `flat-section-missing-or-duplicated`).
+
+**This is the sweep §1 was actually about.** §1 measured `LRS limit maintenance` at
+19.4% of *wall clock* against 6.6% of instructions; §9 then capped it under an
+instruction limit and could only bank the smaller of those two numbers. Under `-t` the
+budget is applied in the time unit — which is what `bindingResourceIsInstructions()`
+is for — so the cap now bites on the quantity the finding was stated in.
+
+### The cap holds in the time unit, and the payoff is ~10x the instruction-limited one
+
+Per-run share of a run's own **wall time** spent in `LRS limit maintenance`, over the
+~19 000 runs where the node appears:
+
+| | median | p90 | p99 | max | runs over 5% |
+|---|---:|---:|---:|---:|---:|
+| 11142 (uncapped) | 3.37% | 33.33% | 48.33% | **80.00%** | **46.8%** |
+| 11156 (`-lmb 0.05`) | 0.82% | 4.71% | 5.12% | 5.45% | 2.1% |
+
+Corpus-wide: **15.71% → 2.75% of wall time**, 5.18% → 0.35% of instructions,
+31.77 h → 5.50 h, on 342.3 M → 31.1 M updates.
+
+The 403 runs that read above 5% are a **reporting artifact, not a budget violation**:
+91% of them have a whole-second `root_ns` (Vampire prints run totals of a few seconds
+and up rounded down to whole seconds), so the denominator is understated by up to 1 s.
+Recomputed against `printed + 1 s` the worst of them is 4.98%. Among the 6 911 runs
+whose root kept sub-second resolution, the max is 5.27% and only 35 exceed 5% — that
+residue is the expected single-update-in-flight overshoot, since the budget is checked
+before an update and the update is not preempted.
+
+### 26 hours of wall clock moved from overhead into inference
+
+```
+LRS limit maintenance  -26.27 h   |   resolution              +8.60 h
+parsing                 -0.02 h   |   forward simplification  +3.80 h
+property evaluation     -0.01 h   |   perform superposition   +2.54 h
+                                  |   SAT solver              +2.48 h
+                                  |   superposition           +2.15 h
+```
+
+Corpus totals: **4 263 T → 4 639 T instructions (+8.8%) in 1.1% less wall time**. Median
+machine throughput on runs that used the full 60 s in both sweeps rises from **5.26 to
+5.91 G instr/s** — same hardware, same clock, more useful work per second, because the
+throttled node is the most memory-bound one in the prover.
+
+On those 11 198 runs the same 60 s now retires a median **10.2% more instructions**
+(p90 +34.3%; more work in 82.6% of them) and performs a median **4.1% more activations**
+(mean +10.9%, more in 76.4%). Restricted to the 1 708 of them where 11142 had spent
+>30% of its wall clock on maintenance: median **+28%** activations, p90 +69%, max 7.2x.
+
+### The solved-problem win is real here, unlike under `-i`
+
+| | 11142 | 11156 | delta |
+|---|---:|---:|---:|
+| Refutation | 13 343 | 13 469 | **+126** |
+| Time limit | 11 394 | 11 270 | −124 |
+| Satisfiable | 1 114 | 1 117 | +3 |
+| Refutation not found, non-redundant clauses discarded | 107 | 102 | −5 |
+
+Gained 172, lost 43, **net +129**, **zero soundness contradictions**. Against §9's +28
+under `-i 100K` and Martin's +12 at `-i 64K`, and the ratio is 4:1 rather than 2:1.
+
+The gains sit where the throttle bound, which is what makes them believable rather than
+noise. Bucketing every flip by how hot maintenance had been in 11142:
+
+| maintenance share in 11142 | lost | gained |
+|---|---:|---:|
+| node absent | 2 | 16 |
+| <2% (control) | 8 | 9 |
+| 2–10% | 2 | 7 |
+| 10–30% | 17 | 59 |
+| >30% | 14 | 81 |
+
+**140 of the 172 gains (81%) come from the two hot buckets**, while the control bucket —
+where the throttle provably cannot have bound, since the run was already under budget —
+is 8 lost against 9 gained, i.e. exactly balanced. No domain concentration worth
+worrying about: CSR leads in both directions (9 lost, 59 gained), and 21 of the 43
+losses were problems 11142 had solved only in its final 10 seconds.
+
+`non-redundant clauses discarded` falls again (107 → 102), so the coarser limits are, if
+anything, slightly less aggressive rather than more.
+
+### The noise floor, measured rather than assumed
+
+The concern with `-t` under 64-way concurrency is that contention adds variance a
+`-i` sweep does not have. The control group above measures it directly: 2 511
+time-limited runs where 11142 already spent <2% of its wall clock on maintenance, so the
+change is a provable no-op and every difference is machine noise.
+
+```
+activations  11156/11142:  p5 0.855   p25 0.989   median 0.999   p75 1.007   p95 1.069
+instructions 11156/11142:  p5 0.967               median 0.998              p95 1.049
+                           within +-2%: 69.5%     within +-5%: 83.6%
+```
+
+Centred on 1.000 with no bias, ±5% covering five runs in six, and a p5/p95 spread of
+about ±7–15%. So a per-problem difference under `-t` needs to clear roughly 5% before it
+means anything, and the 60 s budget itself is reproducible to a few percent — but a
+corpus-level effect of +8.8% instructions, or a 4:1 gained/lost ratio concentrated in a
+predicted subgroup, is comfortably outside it.
+
+### What the two regimes are each good for
+
+The regimes are not comparable and should not be compared directly: a budget-bound run
+is 60 s / 355 G instructions under `-t 60` against 17 s / 105 G under `-i 100K`, so the
+time-limited sweep gives every run 3.4x more work. Shares of fixed costs move
+accordingly — `parsing` reads 1.23% of the corpus under `-i` and 0.45% under `-t`, and
+that is arithmetic, not a change in parsing.
+
+What each regime is *for*:
+
+- **`-i` measures search.** Work done is fixed by construction, so two builds are
+  compared at identical effort and the only nondeterminism is the residual ~0.005%.
+  It is the right tool for anything that changes *which* inferences happen.
+- **`-t` measures cost.** It is the only regime in which memory-boundedness is
+  chargeable: under `-i`, a cache miss is free. The §6 `t/i` skew stops being an
+  observation and becomes the budget. Ranking the nodes by how much *more* wall budget
+  they take than their instruction count would predict:
+
+| node | %time | %instr | gap | ps/instr |
+|---|---:|---:|---:|---:|
+| `LRS limit maintenance` | 2.78 | 0.35 | **+2.43** | 1220 |
+| `SAT solver` | 5.96 | 3.74 | **+2.22** | 245 |
+| `resolution` | 21.15 | 20.31 | +0.84 | 160 |
+| `perform superposition` | 14.65 | 13.87 | +0.78 | 162 |
+| `backward superposition index maintenance` | 0.69 | 0.30 | +0.39 | 351 |
+| `passive container maintenance` | 0.57 | 0.23 | +0.34 | 386 |
+| … | | | | |
+| `immediate simplification` | 4.63 | 7.03 | −2.40 | 101 |
+| `superposition` | 17.29 | 20.79 | −3.51 | 128 |
+
+With LRS capped, **`SAT solver` is now the largest node that costs more clock than it
+costs instructions** — 5.96% of wall time against 3.74% of instructions, at 245
+ps/instr. An instruction-limited sweep under-ranks it by a third, every time. Worth
+remembering when §10's shortlist is worked through: the memory-bound index trio (d)
+keeps its 2.1–2.5x skew here too, so that finding is regime-independent.
+
+Nothing else in the corpus ranking moves in a way that is not explained by the 3.4x
+longer runs. No new outliers, no crashes, no suspicious families.
