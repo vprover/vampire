@@ -90,6 +90,7 @@ public:
   static constexpr const char* const CLAUSE_GENERATION = "clause generation";
   static constexpr const char* const CONSEQUENCE_FINDING = "consequence finding";
   static constexpr const char* const FMB_DEFINITION_INTRODUCTION = "fmb definition introduction";
+  static constexpr const char* const FMB_MONOTONICITY = "fmb monotonicity";
   static constexpr const char* const HYPER_SUP = "hyper superposition";
   static constexpr const char* const LITERAL_ORDER_AFTERCHECK = "literal order aftercheck";
   static constexpr const char* const PARSING = "parsing";
