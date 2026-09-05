@@ -93,9 +93,17 @@ check_szs_status() {
 	fi
 }
 
-# strip the lines of a statistics block that legitimately differ between two runs
+# The SATURATION block of a -stat full report, without its two rule-off lines. These
+# counters -- activations, passive size, final active/passive, discarded non-redundant
+# clauses -- are precisely what LRS's limits move, so two runs agreeing on all of them
+# have taken the same path. Selecting the lines we care about is deliberate: an earlier
+# version of this check listed the lines to *exclude* instead, and combined with -p off
+# (which suppresses the statistics entirely) it compared two near-empty files and passed
+# no matter what.
 lrs_fingerprint() {
-	grep '^%' $1 | grep -vE 'Time elapsed|Instructions burned|Peak memory usage|Version|Termination reason|trace file exhausted'
+	awk '/^% SATURATION/ {b=1; next}
+	     b && /^% ---/  {if (++seps == 2) exit; next}
+	     b              {print}' $1
 }
 
 # LRS decides when to refresh its limits partly from the clock, so an LRS run is only
@@ -103,22 +111,57 @@ lrs_fingerprint() {
 # triggered it) and its estimate, -lltf replays them without consulting any clock.
 # Recording then replaying must reproduce the run exactly.
 #
-# Choose the problem and -al with care, or this checks nothing: the limits have to
-# actually change the search. On SWW620_2.p that starts at -al 6000 -- below it, -sa
-# lrs and -sa otter give identical statistics and so would any broken replay. The two
-# runs also use different -t, which is free but is not what makes the check bite: for
-# the time limit to reach LRS's estimates the run has to approach it, and a run that
-# does is too nondeterministic to belong here.
-# The caller passes no -t; this appends one, so it must come last to win.
+# Three runs, because both the activation limit and the time limit have to be chosen
+# with care or the check compares two runs that were never going to differ:
+#
+#  1. a 1-second run, purely to learn how fast this machine is on this problem. Hard-
+#     coding an activation limit would make the check machine-dependent: too high and
+#     the recording run runs out of time, too low and the limits never bind.
+#  2. record, bounded by -al at 90% of that count, so the bound is deterministic.
+#  3. replay the trace at the same -al but a different -t.
+#
+# The differing -t is what makes the check bite. At a fixed -al on SWW620_2.p, -t 2 and
+# -t 4 reach the same 6200 activations by visibly different routes (33 341 against
+# 52 416 passive clauses, 1.26 M against 1.16 M discarded), because LRS scales its
+# estimates by the fraction of the time limit consumed. So a replay that still consulted
+# the clock could not reproduce the recording run, and the diff would show it.
+#
+# Runs 2 and 3 both get a -t well clear of what they need, for opposite reasons. Run 3
+# must not be cut short, and run 2 must be certain to *reach* -al: the same 1-second
+# budget yields anywhere from 6 400 to 7 200 activations here, a spread wider than the
+# 10% margin, and a recording run stopped early leaves a short trace that run 3 would
+# replay off the end of.
+#
+# The caller passes only the problem; everything else is appended here, so the -t and
+# -stat given here win over anything the caller might set.
 check_lrs_replay() {
-	run_vampire -sa lrs -p off -lstf lrs-trace $@ -t 10
+	run_vampire -sa lrs -p off $@ -stat full -t 1
+	activations=`grep 'Activations started' checks/vampire-stdout | sed 's/.*| *//'`
+	if test -z "$activations"
+	then
+		echo "LRS replay check failed: calibration run reported no activations"
+		cat checks/vampire-stdout
+		exit 1
+	fi
+	al=`expr $activations \* 9 / 10`
+
+	run_vampire -sa lrs -p off -lstf lrs-trace $@ -al $al -stat full -t 2
 	lrs_fingerprint checks/vampire-stdout > checks/lrs-recorded
-	run_vampire -sa lrs -p off -lltf lrs-trace $@ -t 6
+	run_vampire -sa lrs -p off -lltf lrs-trace $@ -al $al -stat full -t 4
 	lrs_fingerprint checks/vampire-stdout > checks/lrs-replayed
+
+	# a missing statistics block would otherwise make the diff below trivially empty
+	if test `wc -l < checks/lrs-recorded` -lt 5
+	then
+		echo "LRS replay check failed: no SATURATION statistics to compare"
+		cat checks/lrs-recorded
+		exit 1
+	fi
 	diff=`diff checks/lrs-recorded checks/lrs-replayed`
 	if test -n "$diff"
 	then
 		echo "LRS replay check failed: replaying the trace did not reproduce the run"
+		echo "(recorded at -al $al -t 2, replayed at -al $al -t 4)"
 		echo "$diff"
 		exit 1
 	fi
@@ -360,4 +403,4 @@ check_szs_status Unsatisfiable -qa synthesis synthesis/ex2-inverse_of_ixopiy.smt
 check_szs_status Theorem hol/hol1.p
 
 # LRS limit updates are reproducible from a recorded trace, independently of timing
-check_lrs_replay -al 6000 Problems/SWW/SWW620_2.p
+check_lrs_replay Problems/SWW/SWW620_2.p
