@@ -12,6 +12,8 @@
  * Implements class ImitateProject.
  */
 
+#include "Debug/TimeProfiling.hpp"
+
 #include <utility>
 
 #include "Lib/VirtualIterator.hpp"
@@ -78,7 +80,8 @@ ClauseIterator ImitateProject::generateClauses(Clause* premise)
       // TODO decide whether to keep check below (see NegExt)
       /*&& !SortHelper::getEqualityArgumentSort(l).isArrowSort()*/;
     })
-    .flatMap(ImitateProjectFn(premise)));
+    .flatMap(ImitateProjectFn(premise))
+    .timeTraced("imitate project"));
 }
 
 }

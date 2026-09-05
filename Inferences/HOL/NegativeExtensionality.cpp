@@ -12,6 +12,8 @@
  * Implements class NegativeExtensionality.
  */
 
+#include "Debug/TimeProfiling.hpp"
+
 #include <utility>
 
 #include "Lib/VirtualIterator.hpp"
@@ -118,7 +120,8 @@ ClauseIterator NegativeExtensionality::generateClauses(Clause* premise)
   return pvi(premise->getSelectedLiteralIterator()
     .filter([](Literal* l) { return l->isEquality() && l->isNegative(); })
     .map(NegExtResultFn(premise))
-    .filter(NonzeroFn()));
+    .filter(NonzeroFn())
+    .timeTraced("negative extensionality"));
 }
 
 }

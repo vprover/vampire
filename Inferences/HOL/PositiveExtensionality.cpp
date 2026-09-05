@@ -12,6 +12,8 @@
  * Implements class PositiveExtensionality.
  */
 
+#include "Debug/TimeProfiling.hpp"
+
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Metaiterators.hpp"
 
@@ -82,7 +84,8 @@ ClauseIterator PositiveExtensionality::generateClauses(Clause* premise)
   return pvi(premise->getSelectedLiteralIterator()
     .filter([](Literal* l){ return l->isEquality() && l->isPositive(); })
     .map(PosExtResultFn(premise))
-    .filter(NonzeroFn()));
+    .filter(NonzeroFn())
+    .timeTraced("positive extensionality"));
 }
 
 }
