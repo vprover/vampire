@@ -13,6 +13,22 @@ Read `README.md` first for how to read these numbers. This sweep replaces the
 master-11131 one; where a finding changed, the old claim is stated so the difference is
 visible rather than silently overwritten.
 
+> **Which sweep is the reference.** Four sweeps exist now: master-11131 and 11142 at
+> `-i 100000`, 11156 at `-i 100000`, and a 11142/11156 pair at `-t 60` (§11). The
+> **`-i 100000` 11156 sweep is the standing reference** — it is the current code, and an
+> instruction limit fixes the work done per run by construction, so two builds are always
+> compared at equal effort and the residual nondeterminism is ~0.005%. `tstat/tstat.db`
+> and `common.py`'s `LOGDIR` both point at it, and §10's shortlist is measured on it.
+> Future sweeps return to `-i 100000`.
+>
+> The `-t 60` pair in §11 is kept as a *secondary* source with one specific job: it is the
+> only regime in which memory-boundedness is chargeable, since under `-i` a cache miss is
+> free. Consult it when a question is about wall-clock cost (the §6 `t/i` skew, the §10d
+> index trio, `SAT solver`) — and re-measure there rather than converting, because the two
+> are not comparable: a budget-bound run is 60 s / 355 G instructions under `-t 60`
+> against 17 s / 105 G under `-i 100K`. Its noise floor is also ~5% per problem against
+> the instruction sweep's ~0.005%, so it settles no per-problem question on its own.
+
 **Cost is counted in instructions unless stated otherwise.** That is not cosmetic: time
 and instructions rank the nodes differently by up to 3x, and §6 is about exactly that.
 
@@ -461,10 +477,48 @@ part: six problems failing the same way is one root cause, not six.
 
 ### c. Parsing, now that CNF is visible
 
-§3 undercounted this. `parsing` exceeds 30% of the budget on **2 426 runs** and 50% on
-543, and the dialect that dominates that list is **CNF (1 243 runs)**, followed by FOF
-(835). CNF also turns out to be expensive per unit of input: **16 258 instructions per
-input unit against FOF's 9 182**, on a clean linear fit (b = 1.00, [0.97, 1.03]).
+§3 undercounted this. Measured in instructions, the metric §10 uses throughout,
+`parsing` exceeds **30% of a run on 2 613 runs and 50% on 620**, and the dialect
+dominating both lists is **CNF (1 328 and 329)**, ahead of FOF (909 and 241). CNF is
+also expensive per unit of input: **16 258 instructions per input unit against FOF's
+9 182**, on a clean linear fit (b = 1.00, [0.97, 1.03]).
+
+> Earlier drafts of this section quoted 2 426 / 543 / CNF 1 243 / FOF 835. Those were a
+> mix of the two thresholds below; the figures above are the instruction-based ones
+> throughout. In wall time the counts are 2 462 and 649, and the ordering flips at the
+> 50% mark — FOF 299 against CNF 285 — one more instance of §11's point that the two
+> regimes rank things differently.
+
+The parse-dominated CNF runs are two distinct populations, and only one of them is a
+parser problem:
+
+**Large inputs, HWV hardware verification.** This is where the absolute cost is.
+
+| problem | parse Ginstr | % of run | parse wall | input size | clauses |
+|---|---:|---:|---:|---:|---:|
+| `HWV133-1.p` | 104.87 | **100.0** | 15.0 s | 10 577 953 | 2 326 311 |
+| `HWV134-1.p` | 104.87 | **100.0** | 17.0 s | 10 605 013 | 2 332 428 |
+| `HWV132-1.p` | 104.87 | **100.0** | 16.0 s | 10 601 524 | 2 330 609 |
+| `HWV092-1.p` | 35.91 | 78.3 | 5.2 s | 3 253 954 | 696 691 |
+| `HWV100-1.p` | 34.68 | 33.1 | 4.8 s | 3 136 502 | 688 367 |
+| `HWV094-1.p` | 17.82 | 77.3 | 2.55 s | 1 548 321 | 361 199 |
+| `HWV096-1.p` | 17.82 | 77.3 | 2.50 s | 1 548 144 | 361 152 |
+| `HWV090-1.p` | 7.56 | 76.9 | 1.03 s | 642 940 | 155 095 |
+| `HWV091-1.p` | 6.34 | 76.5 | 0.86 s | 543 354 | 125 811 |
+
+`HWV132/133/134-1.p` are the case worth naming: the **entire 100 Gi budget goes to
+parsing and saturation never starts**, so they report no SZS status at all. HWV090-100
+is the same curve further down and those do finish (Unsatisfiable) — while spending
+three quarters of the run in the parser.
+
+**Short runs, SYN.** `SYN842-1.p` (9.00 G, 31.6%), `SYN830-1.p` (7.58 G, 41.6%),
+`SYN812-1.p` (5.51 G, **48.4%**), `SYN826-1.p` (47.4%), `SYN825-1.p` (44.6%), and their
+neighbours. These are only 130-250 K input units with a few thousand clauses; the share
+is high because the *run* is short — they finish Satisfiable almost immediately and
+parsing is most of what happened. That is arithmetic, not a defect.
+
+Family spread over all 1 328: SYN 265, SWV 201, SET 142, SWC 141, NLP 108, LCL 69,
+COL 56, GEO 49, HWV 44, PUZ 39. So the ratio is widespread, but the *work* is HWV.
 
 ### d. The memory-bound index trio
 
