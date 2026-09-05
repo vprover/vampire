@@ -130,7 +130,7 @@ WHERE v.tree_clean = 1;
 def ingest(logdir, db_path):
     if os.path.exists(db_path):
         os.remove(db_path)
-    con = C.connect(readonly=False)
+    con = C.connect(readonly=False, db=db_path)
     con.executescript(DDL)
 
     logs = sorted(f for f in os.listdir(logdir) if f.endswith(".log"))
@@ -355,11 +355,12 @@ def selftest(db_path):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--logdir", default=C.LOGDIR)
+    ap.add_argument("--db", default=C.DB, help="destination database (default tstat.db)")
     ap.add_argument("--selftest", action="store_true")
     a = ap.parse_args()
     if a.selftest:
-        sys.exit(selftest(C.DB))
-    ingest(a.logdir, C.DB)
+        sys.exit(selftest(a.db))
+    ingest(a.logdir, a.db)
 
 
 if __name__ == "__main__":
