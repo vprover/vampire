@@ -393,6 +393,7 @@ void FiniteModelBuilder::init()
   DHSet<std::pair<unsigned,unsigned>> vampire_sort_constraints_nonstrict;
   DHSet<std::pair<unsigned,unsigned>> vampire_sort_constraints_strict;
   if(env.options->fmbDetectSortBounds()){
+    TIME_TRACE("fmb sort bound detection");
     FunctionRelationshipInference inf;
     inf.findFunctionRelationships(
       _prb.clauseIterator(),
@@ -407,10 +408,12 @@ void FiniteModelBuilder::init()
       deleted_functions[f] = env.signature->getFunction(f)->usageCnt()==0;
      }
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
+    TIME_TRACE(TimeTrace::FMB_MONOTONICITY);
     Monotonicity::addSortPredicates(true,clist,deleted_functions,_monotonic_vampire_sorts,_sortPredicates);
   }
   if(env.options->fmbAdjustSorts() == Options::FMBAdjustSorts::FUNCTION){
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
+    TIME_TRACE(TimeTrace::FMB_MONOTONICITY);
     Monotonicity::addSortFunctions(true,clist,_monotonic_vampire_sorts,_sortFunctions);
   }
 
@@ -1865,6 +1868,10 @@ void FiniteModelBuilder::onModelFound()
   if(_opt.proof()==Options::Proof::OFF){
     return;
   }
+
+  // Building and printing the model is not free for a large domain, and it runs with
+  // limit enforcement disabled below, so it is worth being able to see it.
+  TIME_TRACE("fmb model construction");
 
   // Prevent timing out whilst the model is being printed
   Timer::disableLimitEnforcement();
