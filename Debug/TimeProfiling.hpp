@@ -97,6 +97,7 @@ public:
   static constexpr const char* const PREPROCESSING = "preprocessing";
   static constexpr const char* const PROPERTY_EVALUATION = "property evaluation";
   static constexpr const char* const AVATAR_SAT_SOLVER = "SAT solver";
+  static constexpr const char* const SPLITTING = "splitting";
   static constexpr const char* const SHUFFLING = "shuffling things";
   static constexpr const char* const SINE_SELECTION = "sine selection";
   static constexpr const char* const TERM_SHARING = "term sharing";
