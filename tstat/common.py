@@ -406,11 +406,12 @@ def family_of(problem):
     return m.group(1) if m else problem[:3]
 
 
-def connect(readonly=True):
+def connect(readonly=True, db=None):
+    db = db or DB
     if readonly:
-        con = sqlite3.connect("file:%s?mode=ro" % DB, uri=True)
+        con = sqlite3.connect("file:%s?mode=ro" % db, uri=True)
     else:
-        con = sqlite3.connect(DB)
+        con = sqlite3.connect(db)
     con.row_factory = sqlite3.Row
     return con
 
