@@ -266,8 +266,8 @@ struct NormalizedLinearComparatorByWeight : public LiteralComparator
       }
     }
 
-    static DHMap<unsigned, unsigned> firstNums;
-    static DHMap<unsigned, unsigned> secondNums;
+    static DHMap<unsigned, unsigned, FnvHash, IdentityHash> firstNums;
+    static DHMap<unsigned, unsigned, FnvHash, IdentityHash> secondNums;
     firstNums.reset();
     secondNums.reset();
 

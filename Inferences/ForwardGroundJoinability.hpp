@@ -17,7 +17,7 @@
 #define __ForwardGroundJoinability__
 
 #include "Forwards.hpp"
-#include "Indexing/TermIndex.hpp"
+#include "Indexing/DemodulationIndex.hpp"
 #include "InferenceEngine.hpp"
 
 namespace Inferences

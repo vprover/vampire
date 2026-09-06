@@ -87,7 +87,7 @@ public:
   AbstractingWrapper(const AbstractingWrapper&) = delete;
   AbstractingWrapper& operator=(const AbstractingWrapper&) = delete;
 
-  DECL_ELEMENT_TYPE(AbstractingUnifier*);
+  using ElementType = AbstractingUnifier*;
 
   bool hasNext() override;
   AbstractingUnifier* next() override;

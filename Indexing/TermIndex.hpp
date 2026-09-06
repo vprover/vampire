@@ -106,37 +106,6 @@ private:
 };
 
 /**
- * Term index for backward demodulation
- */
-template<bool higherOrder>
-class DemodulationSubtermIndex
-: public TermIndex<TermLiteralClause>
-{
-public:
-  DemodulationSubtermIndex(SaturationAlgorithm& salg);
-protected:
-  void handleClause(Clause* c, bool adding) override;
-private:
-  const bool _skipNonequationalLiterals;
-};
-
-/**
- * Term index for forward demodulation
- */
-template<bool higherOrder>
-class DemodulationLHSIndex
-: public GeneralizingTermIndex<higherOrder, DemodulatorData>
-{
-public:
-  DemodulationLHSIndex(SaturationAlgorithm& salg);
-protected:
-  void handleClause(Clause* c, bool adding) override;
-private:
-  Ordering& _ord;
-  const bool _preordered;
-};
-
-/**
  * Term index for induction
  */
 class InductionTermIndex

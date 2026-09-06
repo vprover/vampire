@@ -165,7 +165,7 @@ Formula* InductionContext::getFormula(
   auto right = getFormulaWithSquashedSkolems(ts, nextVar, renamedFreeVars, varsReplacingSkolems, subst);
   auto f = left ? new BinaryFormula(Connective::IMP, left, right) : right;
   if (renamedFreeVars) {
-    DHMap<unsigned, TermList> varSorts;
+    DHMap<unsigned, TermList, FnvHash, IdentityHash> varSorts;
     SortHelper::collectVariableSorts(f, varSorts);
     auto vs = VSList::fromIterator(iterTraits(VList::Iterator(renamedFreeVars))
       .map([&varSorts](unsigned v) -> VarSort { return {v, varSorts.get(v)}; }));

@@ -16,6 +16,7 @@
 #include "AcyclicityIndex.hpp"
 #include "LiteralIndex.hpp"
 #include "TermIndex.hpp"
+#include "DemodulationIndex.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 

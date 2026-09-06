@@ -224,7 +224,7 @@ void SortInference::doInference()
   IntUnionFind unionFind(count);
   ZIArray<unsigned> posEqualitiesOnPos;
   Stack<unsigned> varEqualityVampireSorts;
-  DHMap<unsigned,unsigned> vampireSortMax;
+  DHMap<unsigned,unsigned, FnvHash, IdentityHash> vampireSortMax;
 
   ClauseIterator cit = pvi(ClauseList::Iterator(_clauses));
 
@@ -413,7 +413,7 @@ void SortInference::doInference()
 
   // We will normalize the resulting sorts as we go
   // translate maps the components from union find to these new sorts
-  DHMap<int,unsigned> translate;
+  DHMap<int,unsigned, FnvHash, IdentityHash> translate;
   unsigned seen = 0;
 
   // True if there is a positive equality on a position with this sort
@@ -489,7 +489,7 @@ void SortInference::doInference()
     cout << comps << " inferred subsorts" << endl;
   }
   unsigned firstFreshConstant = UINT_MAX;
-  DHMap<unsigned,unsigned> freshMap;
+  DHMap<unsigned,unsigned, FnvHash, IdentityHash> freshMap;
   for(unsigned s=0;s<comps;s++){
 #if DEBUG_SORT_INFERENCE
     if(!_posEqualitiesOnSort[s]){ cout << "No positive equalities for subsort " << s << endl; }
@@ -790,7 +790,7 @@ void SortInference::doInference()
   // Let the sorted signature know about the sort bounds found by the { X = t_i } scenario
   // To do this we need to map from vampire sorts to the sorts of the sorted signature
   // via the notion of distinct sort
-  DHMap<unsigned,unsigned>::Iterator vmax(vampireSortMax);
+  DHMap<unsigned,unsigned, FnvHash, IdentityHash>::Iterator vmax(vampireSortMax);
   while(vmax.hasNext()){
     unsigned vsrt;
     unsigned max;
@@ -815,7 +815,7 @@ unsigned SortInference::getDistinctSort(unsigned subsort, unsigned realVampireSo
   // oink, oink
   static bool firstMonotonicSortSeen = false;
   static unsigned firstMonotonicSort = 0;
-  static DHMap<unsigned,unsigned> ourDistinctSorts;
+  static DHMap<unsigned,unsigned, FnvHash, IdentityHash> ourDistinctSorts;
 
   unsigned vampireSort = realVampireSort;
   if(_expandSubsorts){

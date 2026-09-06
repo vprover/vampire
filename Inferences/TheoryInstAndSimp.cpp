@@ -599,7 +599,7 @@ template<class IterLits> TheoryInstAndSimp::SkolemizedLiterals TheoryInstAndSimp
   _instantiationConstants.reset();
   for (auto lit : lits) {
     // replace variables consistently by fresh constants
-    DHMap<unsigned, SortId> srtMap;
+    DHMap<unsigned, SortId, FnvHash, IdentityHash> srtMap;
     SortHelper::collectVariableSorts(lit,srtMap);
     TermVarIterator vit(lit);
     while(vit.hasNext()){
@@ -835,7 +835,7 @@ Stack<Literal*> filterLiterals(Stack<Literal*> lits, Options::TheoryInstSimp mod
 
     case Options::TheoryInstSimp::OVERLAP:
       {
-        Set<unsigned> strongVars;
+        Set<unsigned, FnvHash> strongVars;
 
         for (auto l : lits) {
           if (isStrong(l)) {

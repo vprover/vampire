@@ -114,15 +114,15 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
     return false;
   }
 
-  Set<unsigned> vars;
+  Set<unsigned, FnvHash> vars;
   //only edges from lower to higher variable are included
   DHMultiset<pair<unsigned, unsigned> > connections;
-  DHMultiset<unsigned> degrees;
+  DHMultiset<unsigned, FnvHash, IdentityHash> degrees;
 
 
   for(unsigned i=0;i<clen;i++) {
     Literal* lit=(*cl)[i];
-    Set<unsigned> litVars;
+    Set<unsigned, FnvHash> litVars;
 
     VariableIterator vit(lit);
     while(vit.hasNext()) {
@@ -132,12 +132,12 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
     //TODO can move varCnt check to here!
 
     //we insert a complete graph containing variables from the literal
-    Set<unsigned>::Iterator sit(litVars);
+    Set<unsigned, FnvHash>::Iterator sit(litVars);
     while(sit.hasNext()) {
       unsigned v1=sit.next();
       vars.insert(v1);
 
-      Set<unsigned>::Iterator sit2=sit;
+      Set<unsigned, FnvHash>::Iterator sit2=sit;
       while(sit2.hasNext()) {
   unsigned v2=sit2.next();
   ASS_NEQ(v1,v2);
@@ -164,7 +164,7 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
 
   unsigned minDegVar = 0; // to silence a gcc warning (we overwrite the value below anyway, at least where it matters)
   unsigned minDeg=varCnt-1;
-  Set<unsigned>::Iterator vit(vars);
+  Set<unsigned, FnvHash>::Iterator vit(vars);
   while(vit.hasNext()) {
     unsigned var=vit.next();
     unsigned deg=degrees.multiplicity(var);
@@ -202,10 +202,10 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
   static TermStack argSorts;
   argSorts.reset();
 
-  DHMap<unsigned,TermList> varSorts;
+  DHMap<unsigned,TermList, FnvHash, IdentityHash> varSorts;
   SortHelper::collectVariableSorts(cl, varSorts);
 
-  DHMultiset<unsigned>::SetIterator nivit(degrees); //iterating just over non-isolated vars
+  DHMultiset<unsigned, FnvHash, IdentityHash>::SetIterator nivit(degrees); //iterating just over non-isolated vars
   while(nivit.hasNext()) {
     unsigned var=nivit.next();
     if(minDegVar==var) {

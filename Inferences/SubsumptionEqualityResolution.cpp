@@ -49,8 +49,8 @@ Clause* SubsumptionEqualityResolution::simplify(Clause* cl)
     }
 
     RStack<Literal*> resLits;
-    DHSet<unsigned> renamingDomain;
-    DHSet<unsigned> renamingRange;
+    DHSet<unsigned, FnvHash, IdentityHash> renamingDomain;
+    DHSet<unsigned, FnvHash, IdentityHash> renamingRange;
     for (const auto& curr : *cl) {
       if (lit == curr) {
         continue;

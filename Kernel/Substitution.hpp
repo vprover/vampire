@@ -114,7 +114,7 @@ public:
   }
 
 private:
-  DHMap<unsigned,TermList> _map;
+  DHMap<unsigned,TermList, FnvHash, IdentityHash> _map;
 }; // class Substitution
 } // namespace Kernel
 

@@ -22,6 +22,7 @@
 #include "Debug/Assertion.hpp"
 #include "Lib/Hash.hpp"
 #include "Lib/Comparison.hpp"
+#include "Lib/Reflection.hpp"
 #include "Lib/Sort.hpp"
 #include "Lib/TypeList.hpp"
 #include "Lib/Option.hpp"

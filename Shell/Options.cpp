@@ -141,7 +141,7 @@ void Options::init()
     "  -casc, casc_sat, smtcomp - like portfolio mode, with competition-specific presets for other options, including output. "
     "If you wish to use e.g. the CASC portfolio without the presets, use --mode portfolio --schedule casc.\n"
     "  -preprocess,axiom_selection,clausify: modes for producing output\n      for other solvers.\n"
-    "  -tpreprocess,tclausify: output modes for theory input (clauses are quantified\n      with sort information).\n"
+    "  -tpreprocess,tclausify: output modes for theory input (clauses are quantified\n      with sort information; tclausify outputs TPTP tcf).\n"
     "  -output,profile: output information about the problem\n"
     "Some modes are not currently maintained (get in touch if interested):\n"
     "  -bpa: perform bound propagation\n"
@@ -2393,6 +2393,7 @@ void Options::init()
     _questionAnswering.addHardConstraint(If(equal(QuestionAnsweringMode::PLAIN)).then(ProperSaturationAlgorithm()));
     _questionAnswering.addHardConstraint(If(equal(QuestionAnsweringMode::SYNTHESIS)).then(ProperSaturationAlgorithm()));
     _lookup.insert(&_questionAnswering);
+    _questionAnswering.addProblemConstraint(onlyFirstOrder()); // currently not supported; but should work in principle when reconciled with the HO-saturation invariants
     _questionAnswering.tag(OptionTag::OTHER);
 
     _questionAnsweringGroundOnly = BoolOptionValue("question_answering_ground_only","qago",false);

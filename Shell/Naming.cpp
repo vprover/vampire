@@ -1083,7 +1083,7 @@ std::pair<Literal*, Signature::Symbol*> Naming::getDefinitionLiteral(Formula* f,
   static TermStack termVarSorts;
   static TermStack termVars;
   static TermStack typeVars;
-  static DHMap<unsigned, TermList> varSorts;
+  static DHMap<unsigned, TermList, FnvHash, IdentityHash> varSorts;
   termVarSorts.reset();
   termVars.reset();
   typeVars.reset();
@@ -1174,7 +1174,7 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
     def = new JunctionFormula(OR, fs);
   }
   if (VList::isNonEmpty(vs)) {
-    DHMap<unsigned, TermList> varSorts;
+    DHMap<unsigned, TermList, FnvHash, IdentityHash> varSorts;
     SortHelper::collectVariableSorts(def, varSorts);
     VSList::FIFO vsfifo;
     VList::Iterator vit(vs);

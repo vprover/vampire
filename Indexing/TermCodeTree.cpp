@@ -19,6 +19,7 @@
 #include "Kernel/Term.hpp"
 
 #include "Index.hpp"
+#include "DemodulationIndex.hpp"
 
 #include "TermCodeTree.hpp"
 

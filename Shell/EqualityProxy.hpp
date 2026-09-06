@@ -101,7 +101,7 @@ private:
    */
   DHMap<TermList, unsigned, SharedTermListHash, SharedTermListHash2> _proxyPredicates;
   /** equality proxy predicate sorts */
-  DHMap<unsigned, TermList> _proxyPredicateSorts;
+  DHMap<unsigned, TermList, FnvHash, IdentityHash> _proxyPredicateSorts;
   /** the definitions E_sigma(x,y) <=> x = y, indexed by the sort sigma */
   DHMap<TermList, Unit*, SharedTermListHash, SharedTermListHash2> _proxyPremises;
 };

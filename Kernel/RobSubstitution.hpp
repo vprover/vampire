@@ -26,7 +26,6 @@
 #include "Lib/Metaiterators.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
 #include "Lib/Environment.hpp"
-#include "Kernel/Signature.hpp"
 #include "Kernel/TypedTermList.hpp"
 
 #if VDEBUG

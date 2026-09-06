@@ -998,7 +998,7 @@ public:
   class Iterator
   {
   public:
-    DECL_ELEMENT_TYPE(TermList);
+    using ElementType = TermList;
     Iterator(const Term* t) : _next(t->args()) {}
     bool hasNext() const { return _next->isNonEmpty(); }
     TermList next()

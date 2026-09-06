@@ -157,7 +157,7 @@ namespace Kernel {
 
     public: 
 
-      DECL_ELEMENT_TYPE(std::tuple<T const*, unsigned>);
+      using ElementType = std::tuple<T const*, unsigned>;
       DiffIter(MultiSet const& l, MultiSet  const& r) : _l(l), _r(r), _li(0), _ri(0) 
       { skipToNext(); }
 
@@ -184,12 +184,12 @@ namespace Kernel {
       }
 
       bool hasNext() const { return _li < _l.distinctElems(); }
-      OWN_ELEMENT_TYPE next() { 
+      ElementType next() { 
         auto cnt_r = _ri >= _r.distinctElems() ? 0
                    : _r.elemAt(_ri) == _l.elemAt(_li) ? _r.cntAt(_ri) 
                    : 0;
 
-        auto out = OWN_ELEMENT_TYPE(&_l.elemAt(_li), _l.cntAt(_li) - cnt_r);
+        auto out = ElementType(&_l.elemAt(_li), _l.cntAt(_li) - cnt_r);
         _li++;
         skipToNext();
         return out;

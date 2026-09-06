@@ -14,6 +14,7 @@
  */
 
 #include "Indexing/Index.hpp"
+#include "Indexing/DemodulationIndex.hpp"
 #include "Inferences/ALASCA/Demodulation.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/Recycled.hpp"

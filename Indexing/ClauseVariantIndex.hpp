@@ -58,7 +58,7 @@ public:
 private:
   struct VariableIgnoringComparator;
 
-  typedef DHMap<unsigned, unsigned char> VarCounts; // overflows allowed
+  typedef DHMap<unsigned, unsigned char, FnvHash, IdentityHash> VarCounts; // overflows allowed
 
   unsigned termFunctorHash(Term* t, unsigned hash_begin) {
     unsigned func = t->functor();
@@ -85,7 +85,7 @@ private:
 
   unsigned computeHash(Literal* const * lits, unsigned length);
 
-  DHMap<unsigned, ClauseList*> _entries;
+  DHMap<unsigned, ClauseList*, FnvHash, IdentityHash> _entries;
 };
 
 };

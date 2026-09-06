@@ -640,10 +640,6 @@ std::string Term::headToString() const
         ASSERTION_VIOLATION;
     }
   } else {
-    unsigned proj;
-    if (!isSort() && Theory::findTupleProjection(functor(), isLiteral(), proj)) {
-      return "$proj(" + Int::toString(proj) + ", ";
-    }
     std::string name = "";
     if(isLiteral()) {
       name = static_cast<const Literal *>(this)->predicateName();
@@ -924,10 +920,6 @@ std::string Literal::toString(bool reverseEquality) const
     }
   }
 
-  unsigned proj;
-  if (Theory::findTupleProjection(functor(), true, proj)) {
-    return s + "$proj(" + Int::toString(proj) + ", " + args()->asArgsToString();
-  }
   s += predicateName();
 
   //cerr << "predicate: "<< predicateName()<<endl;
@@ -1383,7 +1375,7 @@ TermList AtomicSort::tupleSort(unsigned arity, TermList* sorts)
 
 unsigned Term::computeDistinctVars() const
 {
-  Set<unsigned> vars;
+  Set<unsigned, FnvHash> vars;
   VariableIterator vit(this);
   while (vit.hasNext()) {
     vars.insert(vit.next().var());

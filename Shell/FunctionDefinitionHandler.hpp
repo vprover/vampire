@@ -17,6 +17,8 @@
 
 #include "Forwards.hpp"
 
+#include "Lib/ScopedPtr.hpp"
+
 #include "Indexing/CodeTreeInterfaces.hpp"
 
 #include "Kernel/InductionTemplate.hpp"

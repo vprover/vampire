@@ -12,6 +12,7 @@
  * Implements class CodeTreeForwardSubsumptionAndResolution.
  */
 
+#include "Lib/Environment.hpp"
 #include "Lib/Random.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"

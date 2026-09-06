@@ -27,8 +27,8 @@ namespace Kernel {
 class AlascaPreprocessor
 {
   const InequalityNormalizer& _norm;
-  Map<unsigned, unsigned> _preds;
-  Map<unsigned, unsigned> _funcs;
+  Map<unsigned, unsigned, FnvHash> _preds;
+  Map<unsigned, unsigned, FnvHash> _funcs;
   // TODO create option for this
   bool _useFloor = false;
 

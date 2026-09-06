@@ -208,10 +208,10 @@ VirtualIterator<Term*> Instantiation::getCandidateTerms(Clause* cl, unsigned var
 
 class Instantiation::AllSubstitutionsIterator{
 public:
-  DECL_ELEMENT_TYPE(Substitution);
+  using ElementType = Substitution;
   AllSubstitutionsIterator(Clause* cl,Instantiation* ins)
   {
-    DHMap<unsigned,TermList> sortedVars;
+    DHMap<unsigned,TermList, FnvHash, IdentityHash> sortedVars;
     SortHelper::collectVariableSorts(cl,sortedVars);
     auto it = sortedVars.items();
 
@@ -257,8 +257,8 @@ public:
   }
 
 private:
-  DHMap<unsigned,DArray<Term*>*> candidates;
-  DHMap<unsigned,unsigned> current;
+  DHMap<unsigned,DArray<Term*>*, FnvHash, IdentityHash> candidates;
+  DHMap<unsigned,unsigned, FnvHash, IdentityHash> current;
   VirtualIterator<unsigned> variables;
   unsigned currently;
   bool finished;

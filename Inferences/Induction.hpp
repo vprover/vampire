@@ -115,10 +115,10 @@ public:
   unsigned& _nextVar; // fresh variable counter supported by caller
 
   DHMap<Term*, unsigned, SharedTermHash, PtrIdentityHash> _skolemToVarMap; // maps terms to their variable replacement
-  DHMap<unsigned,TermList> _varsReplacingSkolems;
+  DHMap<unsigned,TermList, FnvHash, IdentityHash> _varsReplacingSkolems;
 
-  DHMap<unsigned,unsigned> _renaming; // for renaming free variables
-  DHSet<unsigned> _renamedFreeVars;
+  DHMap<unsigned,unsigned, FnvHash, IdentityHash> _renaming; // for renaming free variables
+  DHSet<unsigned, FnvHash, IdentityHash> _renamedFreeVars;
 };
 
 /**
@@ -298,10 +298,10 @@ public:
     processClause(premise);
   }
 
-  DECL_ELEMENT_TYPE(Clause*);
+  using ElementType = Clause*;
 
   inline bool hasNext() { return _clauses.isNonEmpty(); }
-  inline OWN_ELEMENT_TYPE next() { 
+  inline ElementType next() { 
     return _clauses.pop();
   }
 

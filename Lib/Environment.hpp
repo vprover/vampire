@@ -46,7 +46,7 @@ public:
 
   unsigned char maxSineLevel;
 
-  DHMap<unsigned, unsigned>* predicateSineLevels;
+  DHMap<unsigned, unsigned, FnvHash, IdentityHash>* predicateSineLevels;
 
   ProofExtra proofExtra;
 

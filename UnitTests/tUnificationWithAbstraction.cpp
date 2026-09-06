@@ -122,7 +122,7 @@ void checkTermMatchesWithUnifFun(TermSubstitutionTree<TermWithoutValue>& index, 
   for (auto qr : iterTraits(unifFun(index, term))) {
     is.push(TermUnificationResultSpec {
         .querySigma  = qr.unifier->subs().apply(term, /* result */ subsTreeQueryBank(0)),
-        .resultSigma = qr.unifier->subs().apply(qr.data->term, /* result */ subsTreeInternalBank(0)),
+        .resultSigma = qr.unifier->subs().apply(qr.data->key(), /* result */ subsTreeInternalBank(0)),
         .constraints = *qr.unifier->constr().literals(qr.unifier->subs()),
     });
   }

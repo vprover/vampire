@@ -25,6 +25,7 @@
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/LiteralSelector.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 

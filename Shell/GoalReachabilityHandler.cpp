@@ -16,10 +16,10 @@
 #include "Indexing/ResultSubstitution.hpp"
 #include "Inferences/DemodulationHelper.hpp"
 #include "Kernel/EqHelper.hpp"
+#include "Kernel/Ordering.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/TermTransformer.hpp"
 #include "Kernel/TypedTermList.hpp"
-#include "Lib/Exception.hpp"
 
 using namespace Shell;
 using namespace Kernel;

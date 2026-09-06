@@ -379,7 +379,7 @@ void clausifyMode(Problem* problem, bool theory)
 
   //outputSymbolDeclarations deals with sorts as well for now
   //UIHelper::outputSortDeclarations(std::cout);
-  UIHelper::outputSymbolDeclarations(std::cout);
+  UIHelper::outputSymbolDeclarations(std::cout,/*tcf=*/theory);
 
   ClauseIterator cit = prb->clauseIterator();
   bool printed_conjecture = false;
@@ -390,20 +390,8 @@ void clausifyMode(Problem* problem, bool theory)
       continue;
     }
     printed_conjecture |= cl->inputType() == UnitInputType::CONJECTURE || cl->inputType() == UnitInputType::NEGATED_CONJECTURE;
-    if (theory) {
-      Formula* f = Formula::fromClause(cl);
-
-      // CONJECTURE as inputType is evil, as it cannot occur multiple times
-      if (cl->inference().inputType() == UnitInputType::CONJECTURE) {
-        cl->inference().setInputType(UnitInputType::NEGATED_CONJECTURE);
-      }
-
-      FormulaUnit* fu = new FormulaUnit(f,cl->inference()); // we are stealing cl's inference, which is not nice!
-      fu->overwriteNumber(cl->number()); // we are also making sure it's number is the same as that of the original (for Kostya from Russia to CASC, with love, and back again)
-      std::cout << TPTPPrinter::toString(fu) << "\n";
-    } else {
-      std::cout << TPTPPrinter::toString(cl) << "\n";
-    }
+    // with theory, we print tcf(), i.e. the clause quantified with its variables' sorts
+    std::cout << TPTPPrinter::toString(cl,theory) << "\n";
   }
   if(!printed_conjecture && UIHelper::haveConjecture()){
     unsigned p = env.signature->addFreshPredicate(0,"p");
@@ -412,7 +400,7 @@ void clausifyMode(Problem* problem, bool theory)
         Literal::create(p, /* polarity */ false, {})
       }, 
       FromInput(UnitInputType::NEGATED_CONJECTURE));
-    std::cout << TPTPPrinter::toString(c) << "\n";
+    std::cout << TPTPPrinter::toString(c,theory) << "\n";
   }
 
   //we have successfully output all clauses, so we'll terminate with zero return value

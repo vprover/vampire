@@ -45,14 +45,14 @@ ClauseList* getCheckingClauses();
 
 void addClaimForFunction(TermList x, TermList y, TermList fx, TermList fy,
                          unsigned fname,
-                         TermList arg_srt, TermList ret_srt, VList* existential,
+                         TermList arg_srt, TermList ret_srt, VSList* existential,
                          ClauseList*& newClauses);
 
 void addClaim(Formula* conjecture, ClauseList*& newClauses);
 Formula* getName(TermList fromSort, TermList toSort, bool strict);
 
-DHMap<unsigned,std::pair<unsigned,unsigned>> _labelMap_nonstrict;
-DHMap<unsigned,std::pair<unsigned,unsigned>> _labelMap_strict;
+DHMap<unsigned,std::pair<unsigned,unsigned>, FnvHash, IdentityHash> _labelMap_nonstrict;
+DHMap<unsigned,std::pair<unsigned,unsigned>, FnvHash, IdentityHash> _labelMap_strict;
 
 };
 

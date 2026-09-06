@@ -27,7 +27,6 @@
 
 #include "Kernel/UnificationWithAbstraction.hpp"
 #include "Lib/Exception.hpp"
-#include "Lib/Reflection.hpp"
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Comparison.hpp"
@@ -56,6 +55,7 @@
 #include "Lib/Allocator.hpp"
 
 #include "Index.hpp"
+#include "ResultSubstitution.hpp"
 
 #if VDEBUG
 #include <iostream>
@@ -227,7 +227,7 @@ public:
   template<class I> using QueryResultIter = VirtualIterator<QueryRes<LeafData, typename I::Unifier>>;
   template<class I, class TermOrLit, class... Args>
   auto iterator(TermOrLit query, bool retrieveSubstitutions, bool reversed, Args... args)
-  { return isEmpty() ? VirtualIterator<ELEMENT_TYPE(I)>::getEmpty()
+  { return isEmpty() ? VirtualIterator<typename I::ElementType>::getEmpty()
                      : pvi(iterPointer(Recycled<I>(this, _root, query, retrieveSubstitutions, reversed, std::move(args)...)));
   }
 
@@ -539,7 +539,7 @@ public:
       Binding(int v,TermList t) : var(v), term(t) {}
     }; // class SubstitutionTree::Binding
 
-    typedef DHMap<unsigned,TermList,IdentityHash,DefaultHash> BindingMap;
+    typedef DHMap<unsigned,TermList,IdentityHash,FnvHash> BindingMap;
     typedef Stack<unsigned> VarStack;
 
     Leaf* findLeaf(BindingMap& svBindings)
@@ -662,7 +662,7 @@ public:
     public:
       LeafIterator(LeafIterator&&) = default;
       LeafIterator& operator=(LeafIterator&&) = default;
-      DECL_ELEMENT_TYPE(Leaf*);
+      using ElementType = Leaf*;
       LeafIterator(SubstitutionTree* st);
       bool hasNext()
       { return _curr != nullptr; }
@@ -820,7 +820,7 @@ public:
 
       FastGeneralizationsIterator(FastGeneralizationsIterator&&) = default;
       FastGeneralizationsIterator& operator=(FastGeneralizationsIterator&&) = default;
-      DECL_ELEMENT_TYPE(QueryRes<ResultSubstitutionSP, LeafData>);
+      using ElementType = QueryRes<ResultSubstitutionSP, LeafData>;
       using Unifier = ResultSubstitutionSP;
 
       void reset() {
@@ -1066,7 +1066,7 @@ public:
     public:
       FastInstancesIterator(FastInstancesIterator&&) = default;
       FastInstancesIterator& operator=(FastInstancesIterator&&) = default;
-      DECL_ELEMENT_TYPE(QueryRes<ResultSubstitutionSP, LeafData>);
+      using ElementType = QueryRes<ResultSubstitutionSP, LeafData>;
       using Unifier = ResultSubstitutionSP;
 
       void reset() {
@@ -1163,7 +1163,7 @@ public:
       Iterator(Iterator&&) = default;
       Iterator& operator=(Iterator&&) = default;
       using Unifier = typename RetrievalAlgorithm::Unifier;
-      DECL_ELEMENT_TYPE(QueryRes<Unifier, LeafData>);
+      using ElementType = QueryRes<Unifier, LeafData>;
 
       void reset() {
         _iterCntr.reset();

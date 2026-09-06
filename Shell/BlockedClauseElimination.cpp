@@ -228,7 +228,7 @@ private:
 
 class RenanigApartNormalizer : public TermTransformer {
 public:
-  RenanigApartNormalizer(const Lib::DHMap<TermList, TermList>& replacements, int varMax, Lib::DHMap<unsigned, unsigned>& varMap)
+  RenanigApartNormalizer(const Lib::DHMap<TermList, TermList>& replacements, int varMax, Lib::DHMap<unsigned, unsigned, FnvHash, IdentityHash>& varMap)
     : _repls(replacements), _varMax(varMax), _varMap(varMap) {}
 protected:
   TermList transformSubterm(TermList trm) override {
@@ -249,7 +249,7 @@ protected:
 private:
   const Lib::DHMap<TermList, TermList>& _repls;
   int _varMax;
-  Lib::DHMap<unsigned, unsigned>& _varMap;
+  Lib::DHMap<unsigned, unsigned, FnvHash, IdentityHash>& _varMap;
 };
 
 
@@ -383,7 +383,7 @@ bool BlockedClauseElimination::resolvesToTautologyEq(Clause* cl, Literal* lit, C
     }
   }
 
-  static Lib::DHMap<unsigned, unsigned> varMap;
+  static Lib::DHMap<unsigned, unsigned, FnvHash, IdentityHash> varMap;
   varMap.reset();
   RenanigApartNormalizer pclNormalizer(replacements,varMax,varMap);
 

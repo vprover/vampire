@@ -46,6 +46,8 @@ class SymbolOccurrenceReplacement {
     TermList process(TermList ts);
 
   private:
+    TermList processArgument(TermList arg);
+
     const bool _isPredicate;
     Term* _oldApplication;
     Term* _freshApplication;

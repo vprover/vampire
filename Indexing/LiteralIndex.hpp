@@ -154,7 +154,7 @@ private:
   void handleEquivalence(Clause* c, Literal* cgr, Clause* d, Literal* dgr, bool adding);
 
   LiteralSubstitutionTree<LiteralClause> _partialIndex;
-  DHMap<unsigned,Clause*> _counterparts;
+  DHMap<unsigned,Clause*, FnvHash, IdentityHash> _counterparts;
   Ordering& _ordering;
 };
 

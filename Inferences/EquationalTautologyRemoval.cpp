@@ -35,7 +35,7 @@ Clause* EquationalTautologyRemoval::simplify(Clause* cl)
   bool has_pos_eq = false;
   bool has_complement = false;
 
-  static DHSet<int> preds;
+  static DHSet<int, FnvHash, IdentityHash> preds;
   preds.reset();
 
   for (unsigned i = 0; i < cl->length(); i++) {
