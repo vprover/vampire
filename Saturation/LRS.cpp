@@ -100,31 +100,27 @@ bool LRS::bindingResourceIsInstructions()
  * Each update simulates the passive set, at a cost proportional to the number of
  * clauses it expects to still reach, so it gets more expensive as a run goes on.
  * Left alone it reaches 90% of the longest runs. Comparing the running cost against
- * the running total keeps the share near -lmb without needing to predict anything:
- * after an expensive update this simply stays false until saturation catches up.
+ * the running total keeps the share near MAINTENANCE_BUDGET without needing to predict
+ * anything: after an expensive update this simply stays false until saturation catches up.
  */
 bool LRS::withinMaintenanceBudget()
 {
+  // The fraction of the saturation budget -- of time, or of instructions, whichever
+  // limit is the binding one -- that limit maintenance may spend. Tuned by sweeping
+  // the whole TPTP: at 0.05 the cap holds (max 5.45% of wall time per run, the excess
+  // being the one update already in flight when the budget runs out) while moving
+  // maintenance from 15.71% to 2.75% of corpus wall time.
+  //
   // double rather than float: on a long run the right-hand side reaches ~1e7
   // microseconds, which is where float's 24-bit mantissa starts losing units.
-  double budget = _opt.lrsMaintenanceBudget();
-
-  // Maintenance is a subset of the saturation it is measured against, so a budget
-  // of 1.0 or more can never be exceeded and the throttle is off. Short-circuiting
-  // says so exactly rather than nearly: on the time path `spent` is truncated to
-  // whole milliseconds, so without this the comparison could still fail inside the
-  // first millisecond, where maintenance can exceed a `spent` that is still 0.
-  // This makes -lmb 1.0 a clean "as if unthrottled" baseline to measure against.
-  if (budget >= 1.0) {
-    return true;
-  }
+  constexpr double MAINTENANCE_BUDGET = 0.05;
 
   if (bindingResourceIsInstructions()) {
     long spent = Timer::elapsedMegaInstructions() - _lrsStartInstrs;
-    return _maintenanceInstrs <= budget * spent;
+    return _maintenanceInstrs <= MAINTENANCE_BUDGET * spent;
   }
   long spent = Timer::elapsedMilliseconds() - _lrsStartTime; // (in milliseconds)
-  return _maintenanceMicros <= budget * spent * 1000.0;
+  return _maintenanceMicros <= MAINTENANCE_BUDGET * spent * 1000.0;
 }
 
 /**

@@ -2122,7 +2122,6 @@ public:
   int simulatedTimeLimit() const { return _simulatedTimeLimit.actualValue; }
   void setSimulatedTimeLimit(int newVal) { _simulatedTimeLimit.actualValue = newVal; }
   float lrsEstimateCorrectionCoef() const { return _lrsEstimateCorrectionCoef.actualValue; }
-  float lrsMaintenanceBudget() const { return _lrsMaintenanceBudget.actualValue; }
   const std::string& lrsSaveTraceFile() const { return _lrsSaveTraceFile.actualValue; }
   const std::string& lrsLoadTraceFile() const { return _lrsLoadTraceFile.actualValue; }
   TermOrdering termOrdering() const { return _termOrdering.actualValue; }
@@ -2670,7 +2669,6 @@ private:
   BoolOptionValue _useACeval;
   TimeLimitOptionValue _simulatedTimeLimit;
   FloatOptionValue _lrsEstimateCorrectionCoef;
-  FloatOptionValue _lrsMaintenanceBudget;
   StringOptionValue _lrsSaveTraceFile;
   StringOptionValue _lrsLoadTraceFile;
   UnsignedOptionValue _sineDepth;
