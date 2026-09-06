@@ -100,6 +100,8 @@ Term* TermTransformerCommon::transformSpecial(Term* term)
  */
 Term* TermTransformer::transform(Term* term)
 {
+  ASS(transformSorts || !term->isSort());
+
   onTermEntry(term);
 
   if (term->isSpecial()) {
@@ -115,8 +117,21 @@ Term* TermTransformer::transform(Term* term)
   modified.reset();
   args.reset();
 
+  auto pushTodo = [this,&toDo,&args](Term* t) {
+    if (transformSorts) {
+      toDo.push(t->args());
+    } else {
+      auto targs = t->args();
+      while (targs != t->termArgs()) {
+        args.push(*targs);
+        targs = targs->next();
+      }
+      toDo.push(targs);
+    }
+  };
+
   modified.push(false);
-  toDo.push(term->args());
+  pushTodo(term);
 
   for (;;) {
     TermList* tt = toDo.pop();
@@ -162,12 +177,7 @@ Term* TermTransformer::transform(Term* term)
 
     TermList tl = *tt;
 
-    // We still transform sort and term variables ...
-    // It is difficult to avoid this though
-    if (tl.isTerm() && tl.term()->isSort() && !transformSorts) {
-      args.push(tl);
-      continue;
-    }
+    ASS(transformSorts || tl.isVar() || !tl.term()->isSort());
 
     if (tl.isTerm() && tl.term()->isSpecial()) {
       Term* td = transformSpecial(tl.term());
@@ -195,7 +205,7 @@ Term* TermTransformer::transform(Term* term)
     ASS(!t->isSpecial())
     terms.push(t);
     modified.push(false);
-    toDo.push(t->args());
+    pushTodo(t);
   }
   ASS(toDo.isEmpty());
   ASS(terms.isEmpty());

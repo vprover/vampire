@@ -249,9 +249,6 @@ GoalReachabilityHandler::GoalReachabilityHandler(SaturationAlgorithm& salg)
     _opt(salg.getOptions()),
     _chainLimit(salg.getOptions().goalOrientedChainLimit())
 {
-  if (salg.getProblem().hasPolymorphicSym()) {
-    INVALID_OPERATION("polymorphism is not yet handled");
-  }
   if (salg.getProblem().isHigherOrder()) {
     INVALID_OPERATION("HOL is not yet handled");
   }
