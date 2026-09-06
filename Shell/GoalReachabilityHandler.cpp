@@ -100,7 +100,7 @@ void GoalReachabilityHandler::handleGoalClause(Clause* cl, bool adding)
         _chain2ForwardIndex.handle(TermWithValue{ lhsl, TermLiteralClause{ lhs, lit, cl } }, adding);
         if (adding) {
           for (const auto& qr : iterTraits(_backwardSubtermIndex.getUnifications(lhsl, /*retrieveSubstitutions=*/true))) {
-            chain2Inference(qr.data->value.second, qr.data->value.first, lhs, lit, *qr.unifier, /*lhsIsResult=*/false);
+            chain2Inference(qr.data->value.second, qr.data->value.first, lhsl, lhs, lit, *qr.unifier, /*lhsIsResult=*/false);
           }
         }
       }
@@ -126,9 +126,9 @@ void GoalReachabilityHandler::handleNonGoalTerm(Clause* cl, TypedTermList t, boo
 {
   if (t.isTerm() && t.term()->isLiteral()) {
     _backwardLiteralIndex.handle({ static_cast<Literal*>(t.term()), cl }, adding);
-    return;
+  } else {
+    _backwardTermIndex.handle({ t, cl }, adding);
   }
-  _backwardTermIndex.handle({ t, cl }, adding);
   if (t.isTerm()) {
     for (const auto& st : iterTraits(NonVariableNonTypeIterator(t.term(), /*includeSelf=*/false))) {
       _backwardSubtermIndex.handle({ st, { t, cl } }, adding);
@@ -235,7 +235,7 @@ bool GoalReachabilityHandler::iterate(ClauseStack& newGoalClauses)
     // forward chain_2 inferences (chain_1 and chain_2 coincide on the term itself, so we skip that)
     for (const auto& st : iterTraits(NonVariableNonTypeIterator(t.term(), /*includeSelf=*/false))) {
       for (const auto& qr : iterTraits(_chain2ForwardIndex.getUnifications(st, /*retrieveSubstitutions=*/true))) {
-        chain2Inference(cl, t, qr.data->value.term, qr.data->value.literal, *qr.unifier, /*lhsIsResult=*/true);
+        chain2Inference(cl, t, qr.data->_key, qr.data->value.term, qr.data->value.literal, *qr.unifier, /*lhsIsResult=*/true);
       }
     }
     _todoNonGoalClauses.push_back(cl);
@@ -334,6 +334,11 @@ bool GoalReachabilityHandler::baseInference(Clause* cl, TermList t, Literal* lit
 {
   DEBUG("base inference ", t, " ", *lit, " ", cl->toString());
 
+  // unified t with some t' in a non-equality L[t']
+  if (!lit->isEquality()) {
+    return true;
+  }
+
   auto [lhs, rhs] = lit->eqArgs();
   auto lhsS = unif.applyTo(lhs, tIsResult);
   auto rhsS = unif.applyTo(rhs, tIsResult);
@@ -365,7 +370,7 @@ bool GoalReachabilityHandler::base2Inference(Clause* cl, Object obj, ResultSubst
 
 void GoalReachabilityHandler::chain1Inference(Clause* cl, Literal* lit, ResultSubstitution& unif, bool tIsResult)
 {
-  DEBUG("chain_1 inference ", t, " ", *lit, " ", cl->toString());
+  DEBUG("chain_1 inference ", *lit, " ", cl->toString());
 
   auto ptr = _nonGoalClauses.findPtr(cl);
   ASS(ptr);
@@ -385,12 +390,13 @@ void GoalReachabilityHandler::chain1Inference(Clause* cl, Literal* lit, ResultSu
   }
 }
 
-void GoalReachabilityHandler::chain2Inference(Clause* cl, TermList t, TermList lhs, Literal* lit, ResultSubstitution& unif, bool lhsIsResult)
+void GoalReachabilityHandler::chain2Inference(Clause* cl, TermList t, TermList lhsl, TermList lhs, Literal* lit, ResultSubstitution& unif, bool lhsIsResult)
 {
   DEBUG("chain_2 inference ", t, " ", lhs, " ", *lit, " ", cl->toString());
 
   auto rhs = EqHelper::getOtherEqualitySide(lit, lhs);
-  auto lhsS = unif.applyTo(lhs, lhsIsResult);
+  // note that we use the linearized lhs here, that's what we unified with
+  auto lhsS = unif.applyTo(lhsl, lhsIsResult);
   auto rhsS = unif.applyTo(rhs, lhsIsResult);
 
   if (Ordering::isGreaterOrEqual(_ord.compare(rhsS, lhsS))) {
@@ -402,7 +408,13 @@ void GoalReachabilityHandler::chain2Inference(Clause* cl, TermList t, TermList l
   if (ptr->unprocessed.empty()) {
     _todoNonGoalClauses.push_back(cl);
   }
-  ptr->unprocessed.emplace_back(EqHelper::replace(unif.applyTo(t, !lhsIsResult).term(), lhsS, rhsS));
+  if (t.term()->isLiteral()) {
+    auto litS = unif.applyTo(static_cast<Literal*>(t.term()), !lhsIsResult);
+    ptr->unprocessed.emplace_back(EqHelper::replace(litS, lhsS, rhsS));
+  } else {
+    auto tS = unif.applyTo(t, !lhsIsResult).term();
+    ptr->unprocessed.emplace_back(EqHelper::replace(tS, lhsS, rhsS));
+  }
 }
 
 void GoalReachabilityHandler::removeClause(Clause* cl)

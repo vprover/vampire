@@ -46,7 +46,7 @@ private:
   template<typename Object>
   [[nodiscard]] bool base2Inference(Clause* cl, Object obj, ResultSubstitution& unif, bool tIsResult);
   void chain1Inference(Clause* cl, Literal* lit, ResultSubstitution& unif, bool tIsResult);
-  void chain2Inference(Clause* cl, TermList t, TermList lhs, Literal* lit, ResultSubstitution& unif, bool lhsIsResult);
+  void chain2Inference(Clause* cl, TermList t, TermList lhsl, TermList lhs, Literal* lit, ResultSubstitution& unif, bool lhsIsResult);
 
   friend class GoalNonLinearityHandler;
 
