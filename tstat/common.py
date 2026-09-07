@@ -12,7 +12,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 DB = os.path.join(HERE, "tstat.db")
 OUT = os.path.join(HERE, "out")
-LOGDIR = os.path.join(ROOT, "problemsALLlocal_tstat11156_tstat-on_i100K")
+LOGDIR = os.path.join(ROOT, "problemsALLlocal_tstat11165_tstat-on_i100K")
 PROBLEMS = os.path.join(ROOT, "Problems")
 
 # The printer uses U+03BC (GREEK SMALL LETTER MU); accept U+00B5 too, just in case.
@@ -43,60 +43,50 @@ RE_NODE = re.compile(
     r"\s*cnt:\s*(?P<c>\d+)\s*" + _INSTR + r"\)\s*$"
 )
 
-# Node names are a closed vocabulary (Debug/TimeProfiling.hpp plus ad-hoc TIME_TRACE
-# literals).  Anything else in a trace line is interleaved garbage, so we reject it.
-KNOWN_NODES = frozenset(
-    """
-    SAT solver
-    activation
-    add clause
-    backward simplification
-    backward superposition index maintenance
-    binary resolution index maintenance
-    clause generation
-    clause selection
-    codetree subsumption index maintenance
-    consequence finding
-    fmb definition introduction
-    forward demodulation
-    forward demodulation index maintenance
-    forward simplification
-    forward superposition index maintenance
-    hvci compute hash
-    hvci insert
-    hvci retrieve
-    hyper superposition
-    immediate simplification
-    init
-    interpreted evaluation
-    literal order aftercheck
-    literal selection
-    LRS limit maintenance
-    main loop
-    minimizing solver time
-    naming
-    parsing
-    passive container maintenance
-    perform superposition
-    preprocessing
-    property evaluation
-    redundancy check
-    resolution
-    run
-    shuffling things
-    sine selection
-    sort sharing
-    splitting
-    splitting component index maintenance
-    splitting component index usage
-    splitting model update
-    superposition
-    term sharing
-    unification with abstraction
-    uwa fixed point
-    """.strip().splitlines()
-)
-KNOWN_NODES = frozenset(n.strip() for n in KNOWN_NODES)
+# Node names are a closed vocabulary, so anything else in a trace line is interleaved
+# garbage from a concurrently printing thread and the run is rejected.
+#
+# Derived from the source rather than listed by hand. It used to be a hand-kept list,
+# which silently rotted the moment anyone added a TIME_TRACE: the 11165 sweep added 18
+# node names and *every* run carrying one was rejected -- 26 211 of 26 504 -- because an
+# unrecognised name is indistinguishable from garbage under this rule. Scanning the tree
+# costs ~0.12 s and cannot drift.
+_TRACE_CALL = re.compile(
+    r'(?:TIME_TRACE|TIME_TRACE_EXPR|TIME_TRACE_ITER|timeTraceIter|\.timeTraced)'
+    r'\s*\(\s*"((?:[^"\\]|\\.)*)"')
+# the TimeTrace::FOO constants, whose values are what actually reaches the log
+_TRACE_CONST = re.compile(
+    r'constexpr\s+const\s+char\*\s+const\s+\w+\s*=\s*"((?:[^"\\]|\\.)*)"')
+_SOURCE_DIRS = ("Kernel", "Shell", "Saturation", "Inferences", "Indexing", "SAT",
+                "FMB", "CASC", "Lib", "Debug", "Parse", "DP")
+
+
+def _node_names_from_source():
+    names = set()
+    for d in _SOURCE_DIRS:
+        for dirpath, _, files in os.walk(os.path.join(ROOT, d)):
+            for f in files:
+                if not f.endswith((".cpp", ".hpp")):
+                    continue
+                with open(os.path.join(dirpath, f), encoding="utf-8",
+                          errors="replace") as fh:
+                    text = fh.read()
+                names |= set(_TRACE_CALL.findall(text))
+                names |= set(_TRACE_CONST.findall(text))
+    main = os.path.join(ROOT, "vampire.cpp")
+    if os.path.exists(main):
+        with open(main, encoding="utf-8", errors="replace") as fh:
+            names |= set(_TRACE_CALL.findall(fh.read()))
+    # "[root]" is synthesised by the printer, not by any TIME_TRACE call site
+    names.add("[root]")
+    return frozenset(names)
+
+
+KNOWN_NODES = _node_names_from_source()
+if len(KNOWN_NODES) < 40:
+    raise RuntimeError(
+        "only %d TIME_TRACE names found under %s -- is this the Vampire checkout?"
+        % (len(KNOWN_NODES), ROOT))
 
 
 def _dur(val, unit):
@@ -158,7 +148,9 @@ def parse_flat(text):
             return None, "flat-bad-line"
         name = mm.group("name").strip()
         if name not in KNOWN_NODES:
-            return None, "flat-unknown-node"
+            # name the culprit: a whole sweep rejecting on one new TIME_TRACE is
+            # otherwise a puzzle rather than a one-line fix
+            return None, "flat-unknown-node: " + name
         t = _dur(mm.group("t"), mm.group("tu"))
         a = _dur(mm.group("a"), mm.group("au"))
         c = int(mm.group("c"))
@@ -199,7 +191,7 @@ def parse_tree(text):
             return None, "tree-bad-line"
         name = mm.group("name").strip()
         if name not in KNOWN_NODES:
-            return None, "tree-unknown-node"
+            return None, "tree-unknown-node: " + name
         t = _dur(mm.group("t"), mm.group("tu"))
         a = _dur(mm.group("a"), mm.group("au"))
         c = int(mm.group("c"))

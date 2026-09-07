@@ -13,13 +13,17 @@ Read `README.md` first for how to read these numbers. This sweep replaces the
 master-11131 one; where a finding changed, the old claim is stated so the difference is
 visible rather than silently overwritten.
 
-> **Which sweep is the reference.** Four sweeps exist now: master-11131 and 11142 at
-> `-i 100000`, 11156 at `-i 100000`, and a 11142/11156 pair at `-t 60` (§11). The
-> **`-i 100000` 11156 sweep is the standing reference** — it is the current code, and an
-> instruction limit fixes the work done per run by construction, so two builds are always
-> compared at equal effort and the residual nondeterminism is ~0.005%. `tstat/tstat.db`
-> and `common.py`'s `LOGDIR` both point at it, and §10's shortlist is measured on it.
-> Future sweeps return to `-i 100000`.
+> **Which sweep is the reference.** Five sweeps exist now: master-11131, 11142, 11156
+> and 11165 at `-i 100000`, plus a 11142/11156 pair at `-t 60` (§11). The
+> **`-i 100000` 11165 sweep is the standing reference** — it is the first with the
+> instrumentation of §12, so it is the only one that can see forward subsumption at all;
+> 11156 (now `tstat-11156.db`) remains the before-picture for §12's comparison.
+>
+> The reason to prefer `-i 100000` holds for it as it did for 11156: an instruction limit
+> fixes the work done per run by construction, so two builds are always compared at equal
+> effort and the residual nondeterminism is ~0.005%. `tstat/tstat.db` and `common.py`'s
+> `LOGDIR` both point at 11165. §10's shortlist was measured on 11156 and is superseded
+> in part by §12. Future sweeps stay on `-i 100000`.
 >
 > The `-t 60` pair in §11 is kept as a *secondary* source with one specific job: it is the
 > only regime in which memory-boundedness is chargeable, since under `-i` a cache miss is
@@ -468,6 +472,10 @@ simplification call that never returns is a bug-shaped problem rather than a tun
 one, and it is confined to one dialect. Together with §2 (`Property::scan`, also HOL,
 also concentrated) it suggests higher-order has more of these than first-order does.
 
+> **Answered in §12.** The rule is `BetaEtaSimplify`, which the 11165 sweep can now
+> name because `Inferences/HOL/` is instrumented. `SYN007^4.014.p`'s single call is a
+> single call to *it*.
+
 ### b. `interpreted evaluation` on TF0 arithmetic
 
 52 runs above 30%, 35 above 50%. The `SWX146_1.p` … `SWX151_1.p` family sits at **96%
@@ -708,3 +716,112 @@ keeps its 2.1–2.5x skew here too, so that finding is regime-independent.
 
 Nothing else in the corpus ranking moves in a way that is not explained by the 3.4x
 longer runs. No new outliers, no crashes, no suspicious families.
+
+---
+
+## 12. What the new instrumentation revealed (11165)
+
+`vampire_z3_rel_martin-tstat_11165 -i 100000 -tstat on`, same corpus and machine setup,
+now with the four instrumentation commits in place. **26 265 usable runs**, the same 239
+rejects, selftest clean, 1 080 535 flat nodes against 11156's 902 771. **This sweep
+replaces 11156 as the standing reference** — `tstat.db` and `LOGDIR` point at it.
+
+### The blind spots closed, as predicted
+
+Unattributed *self* instructions in each container, 11156 → 11165:
+
+| container | 11156 self | 11165 self |
+|---|---:|---:|
+| `forward simplification` | 253.5 T (**19.01%** of corpus) | 8.1 T (**0.61%**) |
+| `immediate simplification` | 61.4 T (4.61%) | 13.2 T (0.99%) |
+| `preprocessing` | 4.0 T (0.30%) | 0.5 T (0.04%) |
+| `run` | 32.2 T (2.41%) | 32.1 T (2.41%) — untouched, as intended |
+
+and it went exactly where the diagnosis said it would: `codetree forward subsumption`
+242.1 T, `beta eta simplification` 32.4 T, `boolean simplification` 14.1 T,
+`eager clausification` 2.4 T, `preprocess 3` 1.6 T, `function definition elimination`
+1.2 T, `FOOL elimination` 0.6 T.
+
+The old `forward subsumption` node still appears in **0 of 26 265 runs**, confirming
+that `-cts` on is what the corpus actually exercises.
+
+### The instrumentation is free
+
+On the 11 508 runs budget-bound in both sweeps — an equal-instruction comparison —
+activations are a median **0.9996** of 11156's, mean 1.0002, p10 0.980, p90 1.017. So
+the added scopes cost **0.04%** of the work done, against the 0.2% predicted from the
+per-scope arithmetic. Solved counts move +4 UNS and −1 SAT, **zero soundness
+contradictions**: noise, as it should be.
+
+### Finding: forward subsumption is the second-largest node in the prover
+
+| node | % of corpus instructions | ps/instr |
+|---|---:|---:|
+| `resolution` | 20.92 | 164 |
+| **`codetree forward subsumption`** | **18.06** | 162 |
+| `superposition` | 16.78 | 132 |
+| `perform superposition` | 14.16 | 172 |
+| `SAT solver` | 4.96 | 221 |
+| `forward demodulation` | 3.45 | 150 |
+| `beta eta simplification` | 2.38 | 95 |
+
+**Roughly one instruction in five of everything Vampire does is forward subsumption**,
+and until now none of it was visible. It costs **35 106 instructions per call** over
+6.90 G calls — twice `forward demodulation`'s 17 318, at 2.6x the call count. At
+162 ps/instr it is compute-bound, not memory-bound, so unlike §1 this is not a
+cache-behaviour problem: it is simply a lot of work.
+
+It is also concentrated, not just large: **5 044 runs (20% of the corpus) spend more
+than 30% of their instructions in it**, median 13.68% of a run, p90 45.02%.
+
+The tail is where it gets strange, because the per-call cost varies by four orders of
+magnitude:
+
+| problem | share of run | calls | instructions per call |
+|---|---:|---:|---:|
+| `GRA124-1.p` (CNF) | 99.82% | 621 | 168 591 959 |
+| `GRA124+1.p` (FOF) | 99.82% | 621 | 168 595 110 |
+| `GRA071^2.p` (TH0) | 99.82% | 38 | **2 754 813 068** |
+| `GRA073^2.p` (TH0) | 99.81% | 38 | 2 754 834 378 |
+| `GRA144-1.p` (CNF) | 99.81% | 611 | 171 334 186 |
+| `SYN307-1.p` (CNF) | 99.79% | 3 677 | 28 463 726 |
+
+A *single* forward subsumption check costing 2.75 **billion** instructions is not a
+tuning matter. The GRA family (graph theory) dominates and appears in all three of CNF,
+FOF and TH0 at nearly identical cost, which points at the problem shape rather than the
+dialect. This is the clearest new target in the file, and it displaces §10's shortlist:
+it is bigger than everything on it put together.
+
+### Finding: the HOL black box was `BetaEtaSimplify`
+
+§10a could see that `immediate simplification` ate whole higher-order runs but not which
+rule. It is **`BetaEtaSimplify`**: 2.38% of the entire corpus from only **4 796 runs**,
+286 of them above 30% of their own run.
+
+| problem | share of run | calls |
+|---|---:|---:|
+| `SYN007^4.014.p` | 99.97% | **1** |
+| `LCL931^1.p` | 98.66% | 33 |
+| `LCL938^1.p` | 98.40% | 38 |
+| `LCL932^1.p` | 98.37% | 33 |
+| `NUM643^4.p` | 97.53% | 10 |
+
+One beta-eta normalisation consuming a 104.8 G budget is bug-shaped, exactly as §10a
+suspected. `BoolSimp` is the same story one order down (1.06% of corpus from 4 557 runs,
+62 above 30%). Both are `Inferences/HOL/`, both are immediate simplifications, and
+neither could be named before this sweep.
+
+### What is still unattributed
+
+Nothing above 2.5% now. The largest remaining self nodes are the inference rules
+themselves — `resolution` 95.4% self, `perform superposition` 94.8%, `SAT solver` 100%
+— which is expected and correct: those are leaves, not containers. `run` at 2.41% (the
+saturation loop's own bookkeeping) is the only container of any size left, and
+`superposition` at 50.6% self is the one place where a further split might still pay.
+
+> Toolkit fix this sweep forced. `KNOWN_NODES` in `common.py` was a hand-kept list, and
+> an unrecognised name rejects the *whole run* — so the 18 new node names caused
+> **26 211 of 26 504 runs to be thrown away** on first ingest. It is now derived by
+> scanning the source tree for `TIME_TRACE` literals and `TimeTrace::` constants
+> (~0.12 s, 151 names), which cannot drift; and the rejection reason now names the
+> offending node, so the next such surprise is a one-line diagnosis rather than a hunt.
