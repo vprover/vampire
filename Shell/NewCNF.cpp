@@ -788,7 +788,6 @@ TermList NewCNF::nameLetBinding(Term* bindingLhs, TermList bindingRhs, TermList 
     bindingLhs = inner->literal();
   }
 
-  unsigned nameArity = VSList::length(bindingBoundVars) + bindingFreeVars.size();
   TermList nameSort = isPredicate ? AtomicSort::boolSort() : SortHelper::getResultSort(bindingLhs);
 
   unsigned freshSymbol = bindingLhs->functor();
@@ -859,7 +858,7 @@ TermList NewCNF::nameLetBinding(Term* bindingLhs, TermList bindingRhs, TermList 
       }
     }
     args->loadFromIterator(termArgs->iterFifo());
-    ASS_EQ(args->size(), nameArity);
+    ASS_EQ(args->size(), VSList::length(bindingBoundVars) + bindingFreeVars.size());
   }
 
   Term* freshApplication;

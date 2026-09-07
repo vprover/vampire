@@ -665,16 +665,7 @@ Term* SynthesisALManager::translateToSynthesisConditionTerm(Literal* l)
   // Store the mapping between the function and predicate symbols
   _skolemReplacement.addCondPair(fn, l->functor());
   if (added) {
-    Stack<TermList> argSorts;
-    if (l->isEquality()) {
-      TermList as = SortHelper::getEqualityArgumentSort(l);
-      argSorts.push(as);
-      argSorts.push(as);
-    } else {
-      OperatorType* ot = env.signature->getPredicate(l->functor())->type();
-      for (unsigned i = 0; i < arity; ++i) {
-        argSorts.push(ot->arg(i));
-      }
+    if (!l->isEquality()) {
       if (isPredicateComputable(l->functor())) {
         ALWAYS(_introducedComputable.insert(make_pair(fn, /*isPredicate=*/false)));
       } else {

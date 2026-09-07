@@ -645,7 +645,7 @@ void SortInference::doInference()
     // we avoid actually creating new symbols until `type` can be computed reasonably,
     // but firstFreshConstant...fresh should be a new contiguous block in the signature
     // we kind of pretend these functions already exist above
-    unsigned inserted = env.signature->addFreshFunction(type, "fmbFreshConstant");
+    DEBUG_CODE(unsigned inserted =) env.signature->addFreshFunction(type, "fmbFreshConstant");
     env.signature->getFunction(f)->markIntroduced();
     // ...but now everything should be sane again
     ASS_EQ(f, inserted)

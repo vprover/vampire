@@ -1476,7 +1476,7 @@ void TPTP::tff(bool tcf)
           }
         } else {
           _typeConstructorArities.insert(nm, arity);
-        }       
+        }
         //cout << "added type constructor " + nm + " of type " + symbol->type()->toString() << endl;
         while (lpars--) {
           consumeToken(T_RPAR);
