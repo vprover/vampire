@@ -1274,7 +1274,7 @@ void Options::init()
     _lrsSaveTraceFile.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
 
     _lrsLoadTraceFile = StringOptionValue("lrs_load_trace_file","lltf","");
-    _lrsLoadTraceFile.description = "When set, vampire will load a previously saved trace of decistions of the LRS estimate module, which be used insteado fhte modules logic to guide the estimates.";
+    _lrsLoadTraceFile.description = "When set, vampire will load a previously saved trace of decistions of the LRS estimate module, which be used instead of the module's logic to guide the estimates.";
     _lookup.insert(&_lrsLoadTraceFile);
     _lrsLoadTraceFile.tag(OptionTag::LRS);
     _lrsLoadTraceFile.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
