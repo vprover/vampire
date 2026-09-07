@@ -40,6 +40,7 @@ class CNF
 {
 public:
   CNF();
+  void apply(Problem& prb);
   void clausify (Unit*,Stack<Clause*>& stack);
 private:
   void clausify(Formula*);

@@ -26,6 +26,7 @@
 #include "Lib/Environment.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Clause.hpp"
+#include "Kernel/FormulaUnit.hpp"
 #include "Kernel/HOL/HOL.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/NumTraits.hpp"
@@ -698,6 +699,23 @@ inline Clause* clause(Stack<Lit> ls)
 
 inline Clause* clause(std::initializer_list<Lit> ls)
 { return clause(Stack<Lit>(ls)); }
+
+struct FormulaSugar {
+  FormulaSugar(Lit lit) : _sugaredFormula(new AtomicFormula(lit)) {}
+  FormulaSugar(Formula* f) : _sugaredFormula(f) {}
+
+  operator Formula*() const { return _sugaredFormula; }
+
+  Formula* _sugaredFormula;
+};
+
+inline FormulaSugar operator&(FormulaSugar lhs, FormulaSugar rhs) {
+  return FormulaSugar(JunctionFormula::generalJunction(Connective::AND, FormulaList::cons(lhs, FormulaList::singleton(rhs))));
+}
+
+inline FormulaUnit* formula(FormulaSugar f) {
+  return new FormulaUnit(f, FromInput(UnitInputType::ASSUMPTION));
+}
 
 ////////////////////////// Sugar for term algebras //////////////////////////
 

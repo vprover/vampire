@@ -10,12 +10,16 @@
 
 #ifndef __TEST__BUILDER_PATTERN_HPP__
 #define __TEST__BUILDER_PATTERN_HPP__
+
+#include "Lib/Stack.hpp"
+#include "Lib/Option.hpp"
+
 namespace Test {
 
 template<class Field>
 struct DefaultValue {
   using Type = typename Field::Type;
-  static Option<Type> value() { return Option<Type>(); }
+  static Lib::Option<Type> value() { return Option<Type>(); }
 };
 
 template<class C>
@@ -23,7 +27,7 @@ struct BuilderInitializer
 { using Type = C; };
 
 template<class A>
-struct BuilderInitializer<Stack<A>>
+struct BuilderInitializer<Lib::Stack<A>>
 { using Type = std::initializer_list<A>; };
 
 
@@ -59,7 +63,7 @@ public:                                                                         
                                                                                           \
 
 template<class Field>
-Option<typename Field::Type> getDefault()
+Lib::Option<typename Field::Type> getDefault()
 { return DefaultValue<Field>::value(); }
 
 } // namespace Test

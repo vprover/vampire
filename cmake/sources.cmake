@@ -15,6 +15,7 @@ set(TESTING_SOURCES
     Test/TermIndexTester.hpp
     Test/TestUtils.cpp
     Test/TestUtils.hpp
+    Test/TransformationTester.hpp
     Test/UnitTesting.cpp
     Test/UnitTesting.hpp
     Test/HOLUtils.cpp
@@ -99,6 +100,7 @@ set(UNIT_TESTS
     UnitTests/tList.cpp
     UnitTests/tOption.cpp
     UnitTests/tPredicateElimination.cpp
+    UnitTests/tPreprocess_CNF.cpp
     UnitTests/tOptionConstraints.cpp
     UnitTests/tQKbo.cpp
     UnitTests/tQuotientE.cpp

@@ -774,49 +774,8 @@ void Preprocess::preprocess3 (Problem& prb)
 void Preprocess::clausify(Problem& prb)
 {
   env.statistics->phase=ExecutionPhase::CLAUSIFICATION;
-
-  //we check if we haven't discovered an empty clause during preprocessing
-  Unit* emptyClause = 0;
-
-  bool modified = false;
-
-  UnitList::DelIterator us(prb.units());
   CNF cnf;
-  Stack<Clause*> clauses(32);
-  while (us.hasNext()) {
-    Unit* u = us.next();
-    if (env.options->showPreprocessing()) {
-      std::cout << "[PP] clausify: " << u->toString() << std::endl;
-    }
-    if (u->isClause()) {
-      if (static_cast<Clause*>(u)->isEmpty()) {
-        emptyClause = u;
-        break;
-      }
-      continue;
-    }
-    modified = true;
-    cnf.clausify(u,clauses);
-    while (! clauses.isEmpty()) {
-      Unit* u = clauses.pop();
-      if (static_cast<Clause*>(u)->isEmpty()) {
-        emptyClause = u;
-        goto fin;
-      }
-      us.insert(u);
-    }
-    us.del();
-  }
-  fin:
-  if (emptyClause) {
-    UnitList::destroy(prb.units());
-    prb.units() = 0;
-    UnitList::push(emptyClause, prb.units());
-  }
-  if (modified) {
-    prb.invalidateProperty();
-  }
-  prb.reportFormulasEliminated();
+  cnf.apply(prb);
 }
 
 void Preprocess::findAbstractions(UnitList*& units)
