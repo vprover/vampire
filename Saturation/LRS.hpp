@@ -41,9 +41,7 @@ protected:
   long long estimatedReachableCount();
 
 private:
-  /** Unprocessed pops seen since the last limit update. Carried across calls, so it
-   * must be per-instance state: a function-local static would leak between Problems
-   * solved in one process. */
+  /** Unprocessed pops seen since the last limit update. */
   unsigned _leftoverPops = 0;
 
   /** Running cost of limit maintenance, against which the -lmb budget is checked.

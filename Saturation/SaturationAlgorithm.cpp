@@ -1218,11 +1218,9 @@ void SaturationAlgorithm::doUnprocessedLoop()
       }
 
       newClausesToUnprocessed();
-      // It should not matter that much (from the point of view of the NN) that these new clauses are now unevaluated
-      // (the assumption is that reduced good clause is also good)
     }
 
-    afterUnprocessedLoop(unprocessedPops);
+    afterUnprocessedLoop(unprocessedPops); // may trigger LRS estimate update
 
     ASS(clausesFlushed());
     onAllProcessed(); // in particular, Splitter has now recomputed model which may have triggered deletions and additions
