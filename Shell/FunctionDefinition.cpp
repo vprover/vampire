@@ -657,7 +657,7 @@ Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
     //sorts can never contain definitions
     if(!t->isSort() && !defIndex && _defs.find(t->functor(), d) && d->mark!=Def::BLOCKED
       // safeguard for HOL to avoid unsound variable capture inside lambdas
-      && iterTraits(anyArgIter(t)).all([](TermList t) { return !t.containsLooseDBIndex(); }))
+      && (!env.higherOrder() || iterTraits(anyArgIter(t)).all([](TermList t) { return !t.containsLooseDBIndex(); })))
     {
       ASS_EQ(d->mark, Def::UNFOLDED);
       usedDefs->push(d);
