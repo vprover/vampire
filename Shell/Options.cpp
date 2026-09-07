@@ -2381,6 +2381,7 @@ void Options::init()
     _questionAnswering.addHardConstraint(If(equal(QuestionAnsweringMode::PLAIN)).then(ProperSaturationAlgorithm()));
     _questionAnswering.addHardConstraint(If(equal(QuestionAnsweringMode::SYNTHESIS)).then(ProperSaturationAlgorithm()));
     _lookup.insert(&_questionAnswering);
+    _questionAnswering.addProblemConstraint(onlyFirstOrder()); // currently not supported; but should work in principle when reconciled with the HO-saturation invariants
     _questionAnswering.tag(OptionTag::OTHER);
 
     _questionAnsweringGroundOnly = BoolOptionValue("question_answering_ground_only","qago",false);
