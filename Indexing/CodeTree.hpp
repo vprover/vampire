@@ -493,7 +493,6 @@ public:
   //////// member variables //////////
 
   bool _clauseCodeTree = false;
-  bool _containsLiterals = false;
   unsigned _curTimeStamp = 0;
 
   /** maximal number of local variables in a stored term/literal (always at least 1) */

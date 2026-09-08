@@ -51,7 +51,6 @@ void ClauseCodeTree::printSuccess(std::ostream& out, const CodeOp& op) const
 ClauseCodeTree::ClauseCodeTree()
 {
   _clauseCodeTree = true;
-  _containsLiterals = true;
 #if VDEBUG
   _clauseMatcherCounter=0;
 #endif

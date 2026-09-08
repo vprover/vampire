@@ -17,8 +17,6 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Vector.hpp"
-
 #include "TermOrLiteralCodeTree.hpp"
 
 namespace Indexing {
@@ -30,10 +28,6 @@ template<class Data>
 class LiteralCodeTree : public TermOrLiteralCodeTree<Data>
 {
 public:
-  LiteralCodeTree() {
-    CodeTree::_containsLiterals = true;
-  }
-
   struct LiteralMatcher
   : public TermOrLiteralCodeTree<Data>::Matcher
   {

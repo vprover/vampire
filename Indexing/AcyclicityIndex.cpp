@@ -56,9 +56,6 @@ namespace Indexing
     List<TypedTermList>::push(t, l);
   }
 
-  AcyclicityIndex::AcyclicityIndex(SaturationAlgorithm&) :
-    _sIndexes(), _tis() {}
-  
   List<TypedTermList>* AcyclicityIndex::getSubterms(Term *t)
   {
     Stack<Term*> toVisit;

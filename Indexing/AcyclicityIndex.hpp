@@ -52,7 +52,7 @@ class AcyclicityIndex
 : public Index
 {
 public:
-  AcyclicityIndex(SaturationAlgorithm&);
+  AcyclicityIndex(SaturationAlgorithm&) {}
   ~AcyclicityIndex() override = default;
   
   void insert(Kernel::Literal *lit, Kernel::Clause *c);
