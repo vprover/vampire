@@ -151,7 +151,7 @@ ClauseList* FunctionRelationshipInference::getCheckingClauses()
   unsigned initial_functions = env.signature->functions();
   for(unsigned f=0; f < initial_functions; f++){
 
-    OperatorType* ftype = env.signature->getFunction(f)->fnType();
+    OperatorType* ftype = env.signature->getFunction(f)->type();
     TermList ret_srt = ftype->result();
     unsigned arity = env.signature->functionArity(f);
 
@@ -282,7 +282,7 @@ void FunctionRelationshipInference::addClaim(Formula* conjecture, ClauseList*& n
 // get a name for a formula that captures the relationship that |fromSrt| >= |toSrt|
 Formula* FunctionRelationshipInference::getName(TermList fromSrt, TermList toSrt, bool strict)
 {
-    unsigned label= env.signature->addFreshPredicate(0,"label");
+    unsigned label= env.signature->addFreshPredicate(OperatorType::getConstantsType(AtomicSort::defaultSort()),"label");
     env.signature->getPredicate(label)->markLabel();
 
     unsigned fsT = fromSrt.term()->functor();

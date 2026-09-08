@@ -234,7 +234,7 @@ void EqualityProxy::addCongruenceAxioms(UnitList*& units)
     if (arity == 0) {
       continue;
     }
-    OperatorType* fnType = fnSym->fnType();
+    OperatorType* fnType = fnSym->type();
     // arity counts the type arguments, so the check above does not catch a polymorphic
     // constant such as nil : !>[X]: list(X); there is nothing to relate for one of those
     // and the axiom would just be an instance of reflexivity
@@ -263,7 +263,7 @@ void EqualityProxy::addCongruenceAxioms(UnitList*& units)
     // with a single polymorphic proxy predicate every sort has one, so nothing gets skipped there
     // (but an all-type-argument predicate still leaves nothing to relate, and its axiom would be
     // a tautology)
-    if (!getArgumentEqualityLiterals(arity, lits, vars1, vars2, predSym->predType(), /*skipSortsWithoutEquality=*/!_poly)) {
+    if (!getArgumentEqualityLiterals(arity, lits, vars1, vars2, predSym->type(), /*skipSortsWithoutEquality=*/!_poly)) {
       continue;
     }
     lits.push(Literal::create(i, arity, false, vars1.begin()));
@@ -381,10 +381,8 @@ unsigned EqualityProxy::getProxyPredicate(TermList sort)
     ASS(sort.term()->ground());
   }
 
-  unsigned newPred = env.signature->addFreshPredicate(_poly ? 3 : 2,"sQ","eqProxy");
+  unsigned newPred = env.signature->addFreshPredicate(OperatorType::getPredicateType({sort, sort}, _poly ? 1 : 0),"sQ","eqProxy");
   Signature::Symbol* predSym = env.signature->getPredicate(newPred);
-  OperatorType* predType = OperatorType::getPredicateType({sort, sort}, _poly ? 1 : 0);
-  predSym->setType(predType);
   predSym->markEqualityProxy();
   // don't need congruence axioms for the equality predicate itself
   predSym->markSkipCongruence();

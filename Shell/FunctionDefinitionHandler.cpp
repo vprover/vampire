@@ -412,8 +412,8 @@ bool RecursionTemplate::checkWellFoundedness()
 
 RecursionTemplate::RecursionTemplate(const Term* t)
   : _functor(t->functor()), _arity(t->arity()), _isLit(t->isLiteral()),
-  _type(_isLit ? env.signature->getPredicate(_functor)->predType()
-               : env.signature->getFunction(_functor)->fnType()),
+  _type(_isLit ? env.signature->getPredicate(_functor)->type()
+               : env.signature->getFunction(_functor)->type()),
   _branches(), _indPos(_arity, false) {}
 
 void RecursionTemplate::addBranch(std::vector<Term*>&& recursiveCalls, Term* header)
@@ -517,9 +517,9 @@ bool InductionPreprocessor::checkWellFoundedness(const std::vector<pair<Term*,Te
   auto arity = t->arity();
   OperatorType* type;
   if (isFun) {
-    type = env.signature->getFunction(fn)->fnType();
+    type = env.signature->getFunction(fn)->type();
   } else {
-    type = env.signature->getPredicate(fn)->predType();
+    type = env.signature->getPredicate(fn)->type();
   }
   std::set<unsigned> positions;
   for (unsigned i = 0; i < arity; i++) {

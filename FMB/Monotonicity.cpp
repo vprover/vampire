@@ -192,8 +192,8 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const D
   for(unsigned s=0;s<env.signature->typeCons();s++){
     if(!isMonotonic[s]){
       std::string name = "sortPredicate_"+env.signature->typeConName(s);
-      unsigned p = env.signature->addFreshPredicate(1,name.c_str());
-      env.signature->getPredicate(p)->setType(OperatorType::getPredicateType({TermList(AtomicSort::createConstant(s))}));
+      unsigned p = env.signature->addFreshPredicate(
+        OperatorType::getPredicateType({TermList(AtomicSort::createConstant(s))}),name.c_str());
       sortPredicates[s] = p;
       sort_predicates.push(p);
 
@@ -225,7 +225,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const D
     for(unsigned f=0; f < function_count; f++){
       if(del_f[f]) continue;
 
-      if(env.signature->getFunction(f)->fnType()->result() != sTerm)
+      if(env.signature->getFunction(f)->type()->result() != sTerm)
         continue;
 
       unsigned arity = env.signature->functionArity(f);
@@ -241,8 +241,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const D
     }
 
     // Next the non-empty constraint
-    unsigned skolemConstant = env.signature->addSkolemFunction(0);
-    env.signature->getFunction(skolemConstant)->setType(OperatorType::getConstantsType(sTerm));
+    unsigned skolemConstant = env.signature->addSkolemFunction(OperatorType::getConstantsType(sTerm));
     // Increment usage count so it's not treated as a deleted function later
     env.signature->getFunction(skolemConstant)->incUsageCnt();
     Literal* psk = Literal::create1(p,true,TermList(Term::createConstant(skolemConstant)));
@@ -353,9 +352,8 @@ void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses,
   for(unsigned s=0;s<env.signature->typeCons();s++){
     if(!isMonotonic[s]){
       std::string name = "sortFunction_"+env.signature->typeConName(s);
-      unsigned f = env.signature->addFreshFunction(1,name.c_str());
       TermList sT = TermList(AtomicSort::createConstant(s));
-      env.signature->getFunction(f)->setType(OperatorType::getFunctionType({sT},sT));
+      unsigned f = env.signature->addFreshFunction(OperatorType::getFunctionType({sT},sT),name.c_str());
       // increment usage count so not treated as deleted
       env.signature->getFunction(f)->incUsageCnt();
       sortFunctions[s] = f;

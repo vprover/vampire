@@ -20,7 +20,6 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/Substitution.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/FormulaVarIterator.hpp"
 
@@ -708,9 +707,7 @@ TermList NewCNF::eliminateLet(Term* term)
       TermList tupleResultSort = tupleSort;
       SortHelper::normaliseSort(tupleTypeArgs, tupleResultSort);
 
-      unsigned tuple = env.signature->addFreshFunction(tupleTypeArgs.size(), "tuple");
-      env.signature->getFunction(tuple)->setType(
-          OperatorType::getConstantsType(tupleResultSort, tupleTypeArgs.size()));
+      unsigned tuple = env.signature->addFreshFunction(OperatorType::getConstantsType(tupleResultSort, tupleTypeArgs.size()), "tuple");
       auto tupleTerm = Term::create(tuple, tupleTypeArgs);
 
       // the projections take the tuple's type arguments and the tuple itself
@@ -791,7 +788,6 @@ TermList NewCNF::nameLetBinding(Term* bindingLhs, TermList bindingRhs, TermList 
     bindingLhs = inner->literal();
   }
 
-  unsigned nameArity = VSList::length(bindingBoundVars) + bindingFreeVars.size();
   TermList nameSort = isPredicate ? AtomicSort::boolSort() : SortHelper::getResultSort(bindingLhs);
 
   unsigned freshSymbol = bindingLhs->functor();
@@ -827,13 +823,11 @@ TermList NewCNF::nameLetBinding(Term* bindingLhs, TermList bindingRhs, TermList 
     SortHelper::normaliseSort(*typeVars, resultSort);
 
     if (isPredicate) {
-      OperatorType* type = OperatorType::getPredicateType(termVarSorts->size(), termVarSorts->begin(), typeVars.size());
-      freshSymbol = env.signature->addFreshPredicate(nameArity, "lG");
-      env.signature->getPredicate(freshSymbol)->setType(type);
+      auto type = OperatorType::getPredicateType(*termVarSorts, typeVars.size());
+      freshSymbol = env.signature->addFreshPredicate(type, "lG");
     } else {
-      OperatorType* type = OperatorType::getFunctionType(termVarSorts->size(), termVarSorts->begin(), resultSort, typeVars.size());
-      freshSymbol = env.signature->addFreshFunction(nameArity, "lG");
-      env.signature->getFunction(freshSymbol)->setType(type);
+      auto type = OperatorType::getFunctionType(*termVarSorts, resultSort, typeVars.size());
+      freshSymbol = env.signature->addFreshFunction(type, "lG");
     }
   }
 
@@ -864,7 +858,7 @@ TermList NewCNF::nameLetBinding(Term* bindingLhs, TermList bindingRhs, TermList 
       }
     }
     args->loadFromIterator(termArgs->iterFifo());
-    ASS_EQ(args->size(), nameArity);
+    ASS_EQ(args->size(), VSList::length(bindingBoundVars) + bindingFreeVars.size());
   }
 
   Term* freshApplication;
@@ -991,7 +985,7 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
   bool isPredicate = (rangeSort == AtomicSort::boolSort());
   bool isTypeVar = (rangeSort == AtomicSort::superSort());
   if (isPredicate) {
-    unsigned pred = Skolem::addSkolemPredicate(arity, taArity, termVarSorts->begin());
+    unsigned pred = Skolem::addSkolemPredicate(taArity, *termVarSorts);
     sym = env.signature->getPredicate(pred);
     res = Term::createFormula(new AtomicFormula(Literal::create(pred, arity, true, args.begin())));
   } else if (isTypeVar) {
@@ -1001,7 +995,7 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
     sym = env.signature->getTypeCon(typeCon);
     res = AtomicSort::create(typeCon, arity, typeVars->begin());
   } else {
-    unsigned fun = Skolem::addSkolemFunction(arity, taArity, termVarSorts->begin(), rangeSort);
+    unsigned fun = Skolem::addSkolemFunction(taArity, *termVarSorts, rangeSort);
     sym = env.signature->getFunction(fun);
     if(_forInduction){
       sym->markInductionSkolem();
@@ -1214,21 +1208,6 @@ void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
 Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
 {
   unsigned length = VList::length(free);
-  unsigned pred = env.signature->addNamePredicate(length);
-  env.statistics->formulaNames++;
-
-  Signature::Symbol* predSym = env.signature->getPredicate(pred);
-  predSym->markSkipCongruence();
-
-  if (env.colorUsed) {
-    Color fc = f->getColor();
-    if (fc != COLOR_TRANSPARENT) {
-      predSym->addColor(fc);
-    }
-    if (f->getSkip()) {
-      predSym->markSkip();
-    }
-  }
 
   Recycled<TermStack> termVarSorts;
   Recycled<TermStack> typeVars;
@@ -1250,7 +1229,22 @@ Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
 
   auto taArity = typeVars->size();
   SortHelper::normaliseArgSorts(*typeVars, *termVarSorts);
-  predSym->setType(OperatorType::getPredicateType(length-taArity, termVarSorts->begin(), taArity));
+
+  unsigned pred = env.signature->addNamePredicate(OperatorType::getPredicateType(*termVarSorts, taArity));
+  env.statistics->formulaNames++;
+
+  Signature::Symbol* predSym = env.signature->getPredicate(pred);
+  predSym->markSkipCongruence();
+
+  if (env.colorUsed) {
+    Color fc = f->getColor();
+    if (fc != COLOR_TRANSPARENT) {
+      predSym->addColor(fc);
+    }
+    if (f->getSkip()) {
+      predSym->markSkip();
+    }
+  }
 
   auto args = *typeVars;
   args.loadFromIterator(TermStack::BottomFirstIterator(*termVars));

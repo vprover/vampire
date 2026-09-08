@@ -244,7 +244,7 @@ bool InductionHelper::isIntInductionTermListInLiteral(Term* tl, Literal* l) {
   //   3: tl does not occur in both arguments of l
   //   4: comparisons or equalities are not allowed
   unsigned f = tl->functor();
-  if (env.signature->getFunction(f)->fnType()->result() != AtomicSort::intSort())
+  if (env.signature->getFunction(f)->type()->result() != AtomicSort::intSort())
     return false;
 
   using TS = Options::IntegerInductionTermStrictness;

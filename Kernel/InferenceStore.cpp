@@ -1017,7 +1017,7 @@ protected:
         out << "(declare-fun ";
         outputFunctionName(out, i);
         out << " (";
-        auto fty = sig.getFunction(i)->fnType();
+        auto fty = sig.getFunction(i)->type();
         for (auto a : range(0, sig.functionArity(i))) {
           out << " ";
           outputSort(out, fty->arg(a));
@@ -1029,7 +1029,7 @@ protected:
       }
     }
     for (unsigned i = 0; i < sig.predicates(); ++i) {
-      auto fty = sig.getPredicate(i)->predType();
+      auto fty = sig.getPredicate(i)->type();
       // we might introduce an equality proxy for rationals, which 
       // we cannot translate to smt2 as there are no rationals there
       // therefore we skip that

@@ -713,9 +713,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
             TermList tupleResultSort = tupleSort;
             SortHelper::normaliseSort(tupleTypeArgs, tupleResultSort);
 
-            unsigned tupleSymbol = env.signature->addFreshFunction(tupleTypeArgs.size(), LET_PREFIX);
-            env.signature->getFunction(tupleSymbol)->setType(
-                OperatorType::getConstantsType(tupleResultSort, tupleTypeArgs.size()));
+            unsigned tupleSymbol = env.signature->addFreshFunction(OperatorType::getConstantsType(tupleResultSort, tupleTypeArgs.size()), LET_PREFIX);
             TermList tupleTerm = TermList(Term::create(tupleSymbol, tupleTypeArgs));
 
             // the projections take the tuple's type arguments and the tuple
@@ -1179,21 +1177,18 @@ Formula* FOOLElimination::toEquality(TermList booleanTerm) {
 
 unsigned FOOLElimination::introduceFreshSymbol(Context context, const char* prefix,
                                                TermStack sorts, TermList resultSort, unsigned typeArgsArity) {
-  unsigned arity = (unsigned)sorts.size();
   OperatorType* type;
   if (context == FORMULA_CONTEXT) {
-    type = OperatorType::getPredicateType(arity, sorts.begin(), typeArgsArity);
+    type = OperatorType::getPredicateType(sorts, typeArgsArity);
   } else {
-    type = OperatorType::getFunctionType(arity, sorts.begin(), resultSort, typeArgsArity);
+    type = OperatorType::getFunctionType(sorts, resultSort, typeArgsArity);
   }
 
   unsigned symbol;
   if (context == FORMULA_CONTEXT) {
-    symbol = env.signature->addFreshPredicate(arity + typeArgsArity, prefix);
-    env.signature->getPredicate(symbol)->setType(type);
+    symbol = env.signature->addFreshPredicate(type, prefix);
   } else {
-    symbol = env.signature->addFreshFunction(arity + typeArgsArity, prefix);
-    env.signature->getFunction(symbol)->setType(type);
+    symbol = env.signature->addFreshFunction(type, prefix);
   }
 
   if (env.options->showPreprocessing()) {

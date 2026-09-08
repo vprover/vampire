@@ -1051,7 +1051,7 @@ bool Theory::findTupleProjection(unsigned projFunctor, bool isPredicate, unsigne
     return false;
   }
 
-  OperatorType* projType = sym->fnType();
+  OperatorType* projType = sym->type();
   unsigned numTypeArgs = projType->numTypeArguments();
 
   // a projection takes exactly one term argument (the tuple);
@@ -1245,7 +1245,7 @@ OperatorType* Theory::getOperatorType(Interpretation i)
   // (except for two variable equalities where the type argument
   // is stored as an extra in the Literal).
   if (i == Interpretation::EQUAL) {
-    return OperatorType::getPredicateType(2);
+    return OperatorType::getPredicateTypeUniformRange(2, AtomicSort::defaultSort());
   }
 
   // Array operators have two type arguments, index type and element type
@@ -1265,16 +1265,12 @@ OperatorType* Theory::getOperatorType(Interpretation i)
 
   ASS(hasSingleSort(i));
   TermList sort = getOperationSort(i);
-
   unsigned arity = getArity(i);
 
-  static DArray<TermList> domainSorts;
-  domainSorts.init(arity, sort);
-
   if (isFunction(i)) {
-    return OperatorType::getFunctionType(arity, domainSorts.array(), sort);
+    return OperatorType::getFunctionTypeUniformRange(arity, sort, sort);
   } else {
-    return OperatorType::getPredicateType(arity, domainSorts.array());
+    return OperatorType::getPredicateTypeUniformRange(arity, sort);
   }
 }
 
@@ -1291,16 +1287,14 @@ TermAlgebra* Theory::getTupleTermAlgebra(unsigned arity)
   auto args = typeVars;
   args.loadFromIterator(varRange(arity, 2*arity));
 
-  auto functor = env.signature->addFreshFunction(2*arity, "tuple");
-  auto tupleType = OperatorType::getFunctionType(arity, args.begin(), tupleSort, arity);
-  env.signature->getFunction(functor)->setType(tupleType);
+  auto tupleType = OperatorType::getFunctionType(typeVars, tupleSort, arity);
+  auto functor = env.signature->addFreshFunction(tupleType, "tuple");
   env.signature->getFunction(functor)->markTermAlgebraCons();
 
   Array<unsigned> destructors(arity);
   for (unsigned i = 0; i < arity; i++) {
-    auto destructor = env.signature->addFreshFunction(arity+1, "proj");
+    auto destructor = env.signature->addFreshFunction(OperatorType::getFunctionType({ tupleSort }, typeVars[i], arity), "proj");
     auto destSym = env.signature->getFunction(destructor);
-    destSym->setType(OperatorType::getFunctionType({ tupleSort }, typeVars[i], arity));
     destSym->markTermAlgebraDest();
     destructors[i] = destructor;
   }
