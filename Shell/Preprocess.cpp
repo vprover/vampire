@@ -88,11 +88,18 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   if (_options.questionAnswering()!=Options::QuestionAnsweringMode::OFF) {
-    env.statistics->phase=ExecutionPhase::ANSWER_LITERAL;
-    if (env.options->showPreprocessing())
-      std::cout << "answer literal addition" << std::endl;
+    if (prb.isHigherOrder()) {  // TODO: extend QuestionAnserting to support HOL
+       if (outputAllowed()) {
+         addCommentSignForSZS(std::cout);
+         std::cout << "WARNING: Skipping QuestionAnswering currently not compatible with higher-order inputs." << endl;
+       }
+    } else {
+      env.statistics->phase=ExecutionPhase::ANSWER_LITERAL;
+      if (env.options->showPreprocessing())
+        std::cout << "answer literal addition" << std::endl;
 
-    AnswerLiteralManager::getInstance()->addAnswerLiterals(prb);
+      AnswerLiteralManager::getInstance()->addAnswerLiterals(prb);
+    }
   }
 
   //we ensure that in the beginning we have a valid property object, to

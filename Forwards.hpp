@@ -38,6 +38,7 @@ class DefaultHash;
 class DefaultHash2;
 struct FnvHash;
 struct IdentityHash;
+struct LengthHash;
 template <typename Key, typename Val,class Hash=DefaultHash> class Map;
 template<class A, class B, class HashA=DefaultHash, class HashB=DefaultHash> class BiMap;
 template <typename Key, typename Val, class Hash1=DefaultHash, class Hash2=DefaultHash2> class DHMap;

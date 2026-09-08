@@ -119,7 +119,7 @@ private:
   bool evaluateOld(Formula* formula,unsigned depth=0);
 
   // the pairs of <constant number, sort>
-  DHMap<std::pair<unsigned,unsigned>,Term*> _domainConstants;
+  DHMap<std::pair<unsigned,unsigned>,Term*, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>> _domainConstants;
   DHMap<Term*,std::pair<unsigned,unsigned>, FnvHash, PtrIdentityHash> _domainConstantsRev;
 public:
 

@@ -36,8 +36,8 @@ class FunctionRelationshipInference {
 public:
 
 void findFunctionRelationships(ClauseIterator clauses,
-                               DHSet<std::pair<unsigned,unsigned>>& nonstrict_cons,
-                               DHSet<std::pair<unsigned,unsigned>>& strict_cons);
+                               DHSet<std::pair<unsigned,unsigned>, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>>& nonstrict_cons,
+                               DHSet<std::pair<unsigned,unsigned>, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>>& strict_cons);
 
 private:
 
@@ -45,7 +45,7 @@ ClauseList* getCheckingClauses();
 
 void addClaimForFunction(TermList x, TermList y, TermList fx, TermList fy,
                          unsigned fname,
-                         TermList arg_srt, TermList ret_srt, VList* existential,
+                         TermList arg_srt, TermList ret_srt, VSList* existential,
                          ClauseList*& newClauses);
 
 void addClaim(Formula* conjecture, ClauseList*& newClauses);

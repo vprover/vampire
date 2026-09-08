@@ -322,9 +322,9 @@ private:
 
   // Sets of <functor, isPredicate> pairs representing symbols that are:
   // 1. Marked as uncomputable in the input file
-  DHSet<std::pair<unsigned, bool>> _annotatedUncomputable;
+  DHSet<std::pair<unsigned, bool>, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>> _annotatedUncomputable;
   // 2. symbols introduced during proving, yet computable
-  DHSet<std::pair<unsigned, bool>> _introducedComputable;
+  DHSet<std::pair<unsigned, bool>, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>> _introducedComputable;
 };
 
 }

@@ -118,7 +118,7 @@ private:
    * Maps smtlib name of a defined sort to its arity and its sort term.
    * The sort term is assumed to contain X1,...,Xn where n is the arity.
    */
-  DHMap<std::string,std::pair<unsigned,TermList>> _sortDefinitions;
+  DHMap<std::string,std::pair<unsigned,TermList>, FnvHash, LengthHash> _sortDefinitions;
 
   /**
    * Handle "define-sort" entry.
@@ -231,8 +231,8 @@ private:
   /** <vampire signature id, predicate> */
   typedef std::pair<unsigned,bool> DeclaredSymbol;
   /** symbols are implicitly declared also when they are defined (see below) */
-  DHMap<std::string, DeclaredSymbol> _declaredSymbols;
-  DHMap<std::string, unsigned> _declaredSorts;
+  DHMap<std::string, DeclaredSymbol, FnvHash, LengthHash> _declaredSymbols;
+  DHMap<std::string, unsigned, FnvHash, LengthHash> _declaredSorts;
 
   /**
    * Given a symbol name, range sort (which can be Bool) and argSorts,
