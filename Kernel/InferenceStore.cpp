@@ -998,7 +998,7 @@ protected:
   {
     auto& sig = *env.signature;
 
-    for (unsigned i=0; i < sig.typeCons(); ++i) {
+    for (const auto& i : sig.typeConSymbols()) {
       if (!isBuiltInSort(/* may output warning */ out, i)) {
         out << "(declare-sort ";
         outputQuoted(out, sig.typeConName(i));
@@ -1007,7 +1007,7 @@ protected:
             << std::endl;
       }
     }
-    for (unsigned i = 0; i < sig.functions(); ++i) {
+    for (const auto& i : sig.functionSymbols()) {
       if ( env.signature->isFoolConstantSymbol(true,i) 
         || env.signature->isFoolConstantSymbol(false,i)
         || theory->isInterpretedFunction(i)
@@ -1028,7 +1028,7 @@ protected:
             << std::endl;
       }
     }
-    for (unsigned i = 0; i < sig.predicates(); ++i) {
+    for (const auto& i : sig.predicateSymbols()) {
       auto fty = sig.getPredicate(i)->type();
       // we might introduce an equality proxy for rationals, which 
       // we cannot translate to smt2 as there are no rationals there

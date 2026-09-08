@@ -139,7 +139,7 @@ void FunctionDefinition::removeUnusedDefinitions(Problem& prb)
  */
 bool FunctionDefinition::removeUnusedDefinitions(UnitList*& units, Problem* prb)
 {
-  unsigned funs=env.signature->functions();
+  unsigned funs=env.signature->functionSymbols().size();
 
   Stack<Def*> defStack;
   DArray<Def*> def;

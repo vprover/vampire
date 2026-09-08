@@ -214,7 +214,7 @@ bool SATSubsumptionAndResolution::pruneSubsumption()
     "timestamp and storage should be the same type");
 
   // multiset of signed predicates in M
-  headerMultiset.resize(2 * env.signature->predicates(), 0);
+  headerMultiset.resize(2 * env.signature->predicateSymbols().size(), 0);
   ASS(std::all_of(headerMultiset.begin(), headerMultiset.end(), [&](prune_t x) { return x <= timestamp; }))
 
   // Our relative zero for counting is the timestamp.
@@ -279,7 +279,7 @@ bool SATSubsumptionAndResolution::pruneSubsumptionResolution()
   auto& functorSet = _pruneStorage;
   auto& timestamp = _pruneTimestamp;
 
-  functorSet.resize(env.signature->predicates(), 0);
+  functorSet.resize(env.signature->predicateSymbols().size(), 0);
   ASS(std::all_of(functorSet.begin(), functorSet.end(), [&](prune_t x) { return x <= timestamp; }))
 
   timestamp++;

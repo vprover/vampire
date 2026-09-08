@@ -141,9 +141,16 @@ class Signature
   public:
     /** standard constructor */
     Symbol(const std::string& name, OperatorType* type, bool interpreted, bool preventQuoting);
+
+    void destroy();
+
     void destroyFnSymbol();
     void destroyPredSymbol();
     void destroyTypeConSymbol();
+
+    bool isFun() const { return !isPred() && !isTypeCon(); }
+    bool isPred() const { return _type->result() == AtomicSort::boolSort(); }
+    bool isTypeCon() const { return _type->result() == AtomicSort::superSort(); }
 
     void addColor(Color color);
     /** mark symbol that doesn't come from input problem, but was introduced by Vampire */
@@ -448,6 +455,8 @@ class Signature
   // Uninterpreted symbol declarations
   //
 
+  unsigned addSymbol(SymbolKey key, Symbol* sym);
+
   unsigned addPredicate(const std::string& name, OperatorType* type, bool& added);
   unsigned addTypeCon(const std::string& name, unsigned arity, bool& added);
   unsigned addFunction(const std::string& name, OperatorType* type, bool& added);
@@ -543,14 +552,10 @@ class Signature
     if (_funNames.find(key,result)) {
       return result;
     }
-    result = _funs.length();
     // copy number out of key again
     auto number = key.as<std::pair<Numeral, unsigned>>()->first;
     noteOccurrence(number);
-    Symbol* sym = newNumeralConstantSymbol(std::move(number));
-    _funs.push(sym);
-    _funNames.insert(key,result);
-    return result;
+    return addSymbol(key, newNumeralConstantSymbol(std::move(number)));
   }
 
  private:
@@ -567,10 +572,7 @@ class Signature
       return result;
     }
     noteOccurrence(number);
-    result = _funs.length();
-    _funs.push(new LinMulSym<Numeral>(number));
-    _funNames.insert(key,result);
-    return result;
+    return addSymbol(key, new LinMulSym<Numeral>(number));
   }
 
   template<class Numeral>
@@ -599,42 +601,35 @@ class Signature
     return _iSymbols.find(interp);
   }
 
-  /** return the name of a function with a given number */
-  const std::string& functionName(int number);
-  /** return the name of a predicate with a given number */
-  const std::string& predicateName(int number)
-  {
-    return _preds[number]->name();
-  }
-  /** return the name of a type constructor with a given number */
-  const std::string& typeConName(int number)
-  {
-    return _typeCons[number]->name();
-  }  
+  const std::string& symbolName(unsigned number) const;
+  const std::string& functionName(int number) const { return symbolName(number); }
+  const std::string& predicateName(int number) const { return symbolName(number); }
+  const std::string& typeConName(int number) const { return symbolName(number); }
+
   /** return the arity of a function with a given number */
   const unsigned functionArity(int number)
   {
-    return _funs[number]->arity();
+    return _symbols[number]->arity();
   }
   /** return the arity of a predicate with a given number */
   const unsigned predicateArity(int number)
   {
-    return _preds[number]->arity();
+    return _symbols[number]->arity();
   }
 
   const unsigned typeConArity(int number)
   {
-    return _typeCons[number]->arity();
+    return _symbols[number]->arity();
   }
 
   const bool predicateColored(int number)
   {
-    return _preds[number]->color()!=COLOR_TRANSPARENT;
+    return _symbols[number]->color()!=COLOR_TRANSPARENT;
   }
 
   const bool functionColored(int number)
   {
-    return _funs[number]->color()!=COLOR_TRANSPARENT;
+    return _symbols[number]->color()!=COLOR_TRANSPARENT;
   }
 
   /** return true iff predicate of given @b name and @b arity exists. */
@@ -665,29 +660,23 @@ class Signature
     return &_instantiations;
   }
 
-  /** return the number of functions */
-  unsigned functions() const { return _funs.length(); }
-  /** return the number of predicates */
-  unsigned predicates() const { return _preds.length(); }
-  /** return the number of typecons */
-  unsigned typeCons() const { return _typeCons.length(); }
+  const auto& functionSymbols() const { return _funSymbols; }
+  const auto& predicateSymbols() const { return _predSymbols; }
+  const auto& typeConSymbols() const { return _typeConSymbols; }
 
   /** Return the function symbol by its number */
   inline Symbol* getFunction(unsigned n)
   {
-    ASS_L(n, _funs.length());
-    return _funs[n];
+    return _symbols[n];
   } // getFunction
   /** Return the predicate symbol by its number */
   inline Symbol* getPredicate(unsigned n)
   {
-    ASS_L(n, _preds.length());
-    return _preds[n];
+    return _symbols[n];
   } // getPredicate
   inline Symbol* getTypeCon(unsigned n)
   {
-    ASS_L(n, _typeCons.length());
-    return _typeCons[n];
+    return _symbols[n];
   }
 
   static inline bool isEqualityPredicate(unsigned p)
@@ -705,7 +694,7 @@ class Signature
 
   /** true if there are user defined sorts */
   bool hasSorts() const{
-    return typeCons() > FIRST_USER_CON;
+    return _typeConSymbols.size() > FIRST_USER_CON;
   }
 
   bool isDefaultSortCon(unsigned con) const{
@@ -804,7 +793,7 @@ class Signature
     }
     return isTrue ? _foolTrue : _foolFalse;
   }
-  bool isFoolConstantSymbol(bool isTrue, unsigned number){
+  bool isFoolConstantSymbol(bool isTrue, unsigned number) const {
     if(!_foolConstantsDefined) return false;
     return isTrue ? number==_foolTrue : number==_foolFalse;
   }
@@ -951,12 +940,12 @@ private:
 
   static bool isProtectedName(std::string name);
   static bool charNeedsQuoting(char c, bool first);
-  /** Stack of function symbols */
-  Stack<Symbol*> _funs;
-  /** Stack of predicate symbols */
-  Stack<Symbol*> _preds;
-  /** Stack of type constructor symbols */  
-  Stack<Symbol*> _typeCons;
+
+  Stack<Symbol*> _symbols;
+
+  Stack<unsigned> _funSymbols;
+  Stack<unsigned> _predSymbols;
+  Stack<unsigned> _typeConSymbols;
 
   // TODO(HOL): these two don't belong in the signature
   DHSet<unsigned, FnvHash, IdentityHash> _choiceSymbols;

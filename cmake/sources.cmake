@@ -158,16 +158,16 @@ set(SOURCES
     FMB/ClauseFlattening.hpp
     FMB/CliqueFinder.hpp
     FMB/DefinitionIntroduction.hpp
-    FMB/FiniteModelBuilder.cpp
+    # FMB/FiniteModelBuilder.cpp
     FMB/FiniteModelBuilder.hpp
-    FMB/FiniteModelMultiSorted.cpp
+    # FMB/FiniteModelMultiSorted.cpp
     FMB/FiniteModelMultiSorted.hpp
-    FMB/FunctionRelationshipInference.cpp
+    # FMB/FunctionRelationshipInference.cpp
     FMB/FunctionRelationshipInference.hpp
     FMB/ModelCheck.hpp
-    FMB/Monotonicity.cpp
+    # FMB/Monotonicity.cpp
     FMB/Monotonicity.hpp
-    FMB/SortInference.cpp
+    # FMB/SortInference.cpp
     FMB/SortInference.hpp
     Indexing/AcyclicityIndex.cpp
     Indexing/AcyclicityIndex.hpp

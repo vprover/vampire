@@ -372,7 +372,7 @@ struct FuncSigTraits {
   { return "function"; }
 
   static unsigned nSymbols() 
-  { return env.signature->functions(); } 
+  { return env.signature->functionSymbols().size(); } 
 
   static bool isColored(unsigned functor) 
   { return env.signature->functionColored(functor);}
@@ -604,9 +604,9 @@ KBO KBO::testKBO(bool rand, bool qkbo)
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
       rand ? KboWeightMap<PredSigTraits>::randomized(qkbo) : KboWeightMap<PredSigTraits>::dflt(qkbo),
 #endif
-      prec(env.signature->functions()),
-      prec(env.signature->typeCons()),
-      prec(env.signature->predicates()),
+      prec(env.signature->functionSymbols().size()),
+      prec(env.signature->typeConSymbols().size()),
+      prec(env.signature->predicateSymbols().size()),
       predLevels(),
       /*reverseLCM=*/false,
       qkbo);

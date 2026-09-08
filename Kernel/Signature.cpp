@@ -158,9 +158,6 @@ Signature::RealSymbol::RealSymbol(const RealConstantType& val)
  */
 Signature::Signature ():
     _foolConstantsDefined(false), _foolTrue(0), _foolFalse(0),
-    _funs(32),
-    _preds(32),
-    _typeCons(32),
     _nextFreshSymbolNumber(0),
     _distinctGroupsAddedTo(false),
     _strings(0),
@@ -198,14 +195,8 @@ void Signature::addEquality()
  */
 Signature::~Signature ()
 {
-  for (int i = _funs.length()-1;i >= 0;i--) {
-    _funs[i]->destroyFnSymbol();
-  }
-  for (int i = _preds.length()-1;i >= 0;i--) {
-    _preds[i]->destroyPredSymbol();
-  }
-  for (int i = _typeCons.length()-1;i >= 0;i--) {
-    _typeCons[i]->destroyTypeConSymbol();
+  for (int i = _symbols.length()-1;i >= 0;i--) {
+    _symbols[i]->destroy();
   }
 } // Signature::~Signature
 
@@ -226,15 +217,14 @@ unsigned Signature::addInterpretedFunction(Interpretation interpretation, const 
   }
 
   auto type = Theory::getOperatorType(interpretation);
+  ASS(type->isFunctionType());
+
   auto symbolKey = SymbolKey(std::make_pair(interpretation, type));
   ASS_REP(!_funNames.find(symbolKey), name);
 
-  unsigned fnNum = _funs.length();
-  _funs.push(new InterpretedSymbol(name, interpretation, type));
-  _funNames.insert(symbolKey, fnNum);
+  unsigned fnNum = addSymbol(symbolKey, new InterpretedSymbol(name, interpretation, type));
   ALWAYS(_iSymbols.insert(interpretation, fnNum));
 
-  ASS(type->isFunctionType());
   return fnNum;
 } // Signature::addInterpretedFunction
 
@@ -245,8 +235,6 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, const
 {
   ASS(!Theory::isFunction(interpretation));
 
-  // cout << "addInterpretedPredicate " << (type ? type->toString() : "nullptr") << " " << name << endl;
-
   unsigned res;
   if (_iSymbols.find(interpretation,res)) { // already declared
     if (name!=predicateName(res)) {
@@ -256,17 +244,14 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, const
   }
 
   auto type = Theory::getOperatorType(interpretation);
+  ASS(type->isPredicateType());
+
   auto symbolKey = SymbolKey(std::make_pair(interpretation, type));
-
-  // cout << "symbolKey " << symbolKey << endl;
-
   ASS_REP(!_predNames.find(symbolKey), symbolKey);
 
-  unsigned predNum = _preds.length();
-  _preds.push(new InterpretedSymbol(name, interpretation, type));
-  _predNames.insert(symbolKey,predNum);
+  unsigned predNum = addSymbol(symbolKey, new InterpretedSymbol(name, interpretation, type));
   ALWAYS(_iSymbols.insert(interpretation, predNum));
-  ASS_REP(type->isPredicateType(), type->toString());
+
   return predNum;
 } // Signature::addInterpretedPredicate
 
@@ -311,7 +296,7 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
   return _iSymbols.get(interp);
 }
 
-const std::string& Signature::functionName(int number)
+const std::string& Signature::symbolName(unsigned number) const
 {
   // it is safe to reuse "$true" and "$false" for constants
   // because the user cannot define constants with these names herself
@@ -325,7 +310,7 @@ const std::string& Signature::functionName(int number)
     static std::string troo("$true");
     return troo;
   }
-  return _funs[number]->name();
+  return _symbols[number]->name();
 }
 
 /**
@@ -421,13 +406,10 @@ unsigned Signature::addFunction (const std::string& name,
     _arityCheck.insert(name,2*arity+1);
   }
 
-  result = _funs.length();
-  _funs.push(new Symbol(name, /*type=*/type,
-        /*       interpreted */ false, 
-        /*    preventQuoting */ (name == "$tType")));
-  _funNames.insert(symbolKey, result);
   added = true;
-  return result;
+  return addSymbol(symbolKey, new Symbol(name, /*type=*/type,
+    /*       interpreted */ false, 
+    /*    preventQuoting */ (name == "$tType")));
 } // Signature::addFunction
 
 /**
@@ -446,14 +428,11 @@ unsigned Signature::addStringConstant(const std::string& name, TermList sort)
   _strings++;
   // TODO shouldn't we also quote inside of name?
   std::string quotedName = "\"" + name + "\"";
-  result = _funs.length();
-  Symbol* sym = new Symbol(quotedName, OperatorType::getConstantsType(sort),
-        /*       interpreted */ false, 
-        /*    preventQuoting */ true);
+  auto sym = new Symbol(quotedName, OperatorType::getConstantsType(sort),
+    /*       interpreted */ false, 
+    /*    preventQuoting */ true);
   sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result);
-  _funs.push(sym);
-  _funNames.insert(symbolKey,result);
-  return result;
+  return addSymbol(symbolKey, sym);
 } // addStringConstant
 
 
@@ -603,6 +582,23 @@ unsigned Signature::formulaCount(Term* t){
   return 0;
 }
 
+unsigned Signature::addSymbol(SymbolKey key, Symbol* sym)
+{
+  auto result = _symbols.length();
+  _symbols.push(sym);
+  if (sym->isFun()) {
+    _funSymbols.push(result);
+    _funNames.insert(key, result);
+  } else if (sym->isPred()) {
+    _predSymbols.push(result);
+    _predNames.insert(key, result);
+  } else {
+    ASS(sym->isTypeCon());
+    _typeConSymbols.push(result);
+    _typeConNames.insert(key, result);
+  }
+  return result;
+}
 
 /**
  * If a type constructor with this name and arity exists, return its number.
@@ -620,13 +616,10 @@ unsigned Signature::addTypeCon (const std::string& name,
   }
   //TODO no arity check. Is this safe?
 
-  result = _typeCons.length();
-  _typeCons.push(new Symbol(name,
+  added = true;
+  return addSymbol(symbolKey, new Symbol(name,
     OperatorType::getTypeConType(arity),
     /* interpreted */ false, /* preventQuoting */ false));
-  _typeConNames.insert(symbolKey,result);
-  added = true;
-  return result;
 }
 
 /**
@@ -667,13 +660,10 @@ unsigned Signature::addPredicate (const std::string& name,
     _arityCheck.insert(name,2*arity);
   }
 
-  result = _preds.length();
-  _preds.push(new Symbol(name, /*type=*/type,
-        /*       interpreted */ false, 
-        /*    preventQuoting */ false));
-  _predNames.insert(symbolKey,result);
   added = true;
-  return result;
+  return addSymbol(symbolKey, new Symbol(name, /*type=*/type,
+    /*       interpreted */ false, 
+    /*    preventQuoting */ false));
 } // Signature::addPredicate
 
 /**

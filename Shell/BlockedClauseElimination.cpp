@@ -51,8 +51,8 @@ void BlockedClauseElimination::apply(Problem& prb)
   bool modified = false;
   bool equationally = _forceEquationally || (prb.hasEquality() && prb.getProperty()->positiveEqualityAtoms());
 
-  DArray<Stack<Candidate*>> positive(env.signature->predicates());
-  DArray<Stack<Candidate*>> negative(env.signature->predicates());
+  DArray<Stack<Candidate*>> positive(env.signature->predicateSymbols().size());
+  DArray<Stack<Candidate*>> negative(env.signature->predicateSymbols().size());
 
   Stack<ClWrapper*> wrappers; // just to delete easily in the end
 

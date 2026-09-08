@@ -375,19 +375,7 @@ CodeTree::SearchStruct* CodeTree::CodeOp::getSearchStruct()
 
 std::string functorStr(unsigned functor, bool litStart)
 {
-  // TODO without slowing code trees down by adding new operations, it's hard to distinguish
-  // between predicates/functions and type constructors, so we just avoid failure now.
-  if (litStart) {
-    if (env.signature->predicates() <= (functor / 2)) {
-      return env.signature->getTypeCon(functor)->name();
-    }
-    return (functor % 2 == 0 ? "~" : "") + env.signature->getPredicate(functor / 2)->name();
-  }
-
-  if (env.signature->functions() <= functor) {
-    return env.signature->getTypeCon(functor)->name();
-  }
-  return env.signature->getFunction(functor)->name();
+  return env.signature->symbolName(functor);
 }
 
 void CodeTree::printOp(std::ostream& out, const CodeTree::CodeOp& op, bool litStart) const

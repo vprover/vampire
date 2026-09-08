@@ -214,7 +214,7 @@ void DefinitionIntroduction<higherOrder>::process(Clause *cl) {
     return;
 
   // this can happen with e.g. induction or CNFOnTheFly introducing new symbols
-  while(_entries.size() < env.signature->functions())
+  while(_entries.size() < env.signature->functionSymbols().size())
     _entries.emplace_back();
 
   // process all the non-trivial terms in the clause
