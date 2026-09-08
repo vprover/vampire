@@ -54,7 +54,6 @@ class PartialRedundancyHandler::ConstraintIndex
 public:
   ConstraintIndex(Clause* cl) : _varSorts()
   {
-    _clauseCodeTree=false;
 #if VDEBUG
     _cl = cl;
 #endif
@@ -246,8 +245,7 @@ private:
   }
 
   struct SubstMatcher
-  // TODO(HOL): consider turning higherOrder flag off for HOL
-  : public Matcher</*removing*/false,false,/*higherOrder=*/true>
+  : public Matcher</*removing*/false,/*checkRange=*/false>
   {
     void init(const CodeTree& tree, const TermStack& ts)
     {
@@ -282,7 +280,7 @@ private:
   };
 
   struct VariantMatcher
-  : public Matcher</*removing*/true,true,/*higherOrder=*/false>
+  : public Matcher</*removing*/true,/*checkRange=*/true>
   {
   public:
     void init(FlatTerm* ft_, const CodeTree& tree_, Stack<CodeOp*>* firstsInBlocks_) {

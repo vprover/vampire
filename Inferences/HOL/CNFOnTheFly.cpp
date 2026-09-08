@@ -215,7 +215,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
             if(results.hasNext()){
               auto tqr = results.next();
               TermList skolemTerm = tqr.data->value;
-              skolemTerm = tqr.unifier->apply(skolemTerm);
+              skolemTerm = tqr.unifier.apply(skolemTerm);
               newTerm = HOL::create::app(srt, args[0], skolemTerm);
               newTermCreated = true;
             }

@@ -232,7 +232,6 @@ VI_OBJ = Indexing/AcyclicityIndex.o\
          Indexing/ClauseCodeTree.o\
          Indexing/ClauseVariantIndex.o\
          Indexing/CodeTree.o\
-         Indexing/CodeTreeInterfaces.o\
          Indexing/DemodulationIndex.o\
          Indexing/Index.o\
          Indexing/IndexManager.o\
@@ -240,7 +239,6 @@ VI_OBJ = Indexing/AcyclicityIndex.o\
          Indexing/LiteralIndex.o\
          Indexing/LiteralMiniIndex.o\
          Indexing/ResultSubstitution.o\
-         Indexing/TermCodeTree.o\
          Indexing/TermIndex.o\
          Indexing/TermSharing.o\
 
