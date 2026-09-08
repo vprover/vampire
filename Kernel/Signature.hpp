@@ -84,11 +84,6 @@ class Signature
     OperatorType* _type;
     // both _arity and _typeArgsArity could be recovered from _type. Storing directly here as well for convenience
 
-    /** arity */
-    unsigned _arity;
-    /** arity of type arguments */
-    unsigned _typeArgsArity;
-
     /** List of distinct groups the constant is a member of, all members of a distinct group should be distinct from each other */
     List<unsigned>* _distinctGroups;
     /** number of times it is used in the problem */
@@ -181,19 +176,11 @@ class Signature
     /** Return the arity of the symbol
      * this includes the term as well as the type arguments of the symbol
      */
-    inline unsigned arity() const { return _arity; }
+    inline unsigned arity() const { return _type->arity(); }
     /* the number of term arguments for this symbol */
     inline unsigned numTermArguments() const { return arity() - numTypeArguments(); }
     /** Return the type argument arity of the symbol. Only accurate once type has been set. */
-    inline unsigned numTypeArguments() const 
-    { 
-      if(name() == "="){ 
-        //for some reason, equality is never assigned a type (probably because it is poly)
-        return 0; 
-      }
-      ASS_REP(_type, name()); 
-      return _typeArgsArity; 
-    }
+    inline unsigned numTypeArguments() const { return _type->numTypeArguments(); }
     /** Return the name of the symbol */
     inline const std::string& name() const { return _name; }
     /** Return true iff the object is of type InterpretedSymbol */
