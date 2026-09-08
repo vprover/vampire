@@ -709,8 +709,39 @@ struct FormulaSugar {
   Formula* _sugaredFormula;
 };
 
+// conjunction
 inline FormulaSugar operator&(FormulaSugar lhs, FormulaSugar rhs) {
   return FormulaSugar(JunctionFormula::generalJunction(Connective::AND, FormulaList::cons(lhs, FormulaList::singleton(rhs))));
+}
+
+// disjunction
+inline FormulaSugar operator|(FormulaSugar lhs, FormulaSugar rhs) {
+  return FormulaSugar(JunctionFormula::generalJunction(Connective::OR, FormulaList::cons(lhs, FormulaList::singleton(rhs))));
+}
+
+// negation
+inline FormulaSugar operator~(FormulaSugar f) {
+  return FormulaSugar(new NegatedFormula(f));
+}
+
+// implication
+inline FormulaSugar impl(FormulaSugar lhs, FormulaSugar rhs) {
+  return FormulaSugar(new BinaryFormula(Connective::IMP, lhs, rhs));
+}
+
+// equivalence
+inline FormulaSugar equiv(FormulaSugar lhs, FormulaSugar rhs) {
+  return FormulaSugar(new BinaryFormula(Connective::IFF, lhs, rhs));
+}
+
+// universal quantifier
+inline FormulaSugar forall(TermSugar v, FormulaSugar f) {
+  return FormulaSugar(new QuantifiedFormula(Connective::FORALL, VSList::singleton({ v.sugaredExpr().var(), v.sort() }), f));
+}
+
+// existential quantifier
+inline FormulaSugar exists(TermSugar v, FormulaSugar f) {
+  return FormulaSugar(new QuantifiedFormula(Connective::EXISTS, VSList::singleton({ v.sugaredExpr().var(), v.sort() }), f));
 }
 
 inline FormulaUnit* formula(FormulaSugar f) {

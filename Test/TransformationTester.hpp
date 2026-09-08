@@ -23,27 +23,15 @@
 #include "Debug/Assertion.hpp"
 #include "Forwards.hpp"
 
-#include "Kernel/Clause.hpp"
 #include "Kernel/Problem.hpp"
 
 #include "Test/BuilderPattern.hpp"
+#include "Test/TestUtils.hpp"
 #include "UnitTesting.hpp"
 
 namespace Test {
 
 namespace Transformation {
-
-inline bool deepEq(Clause* c1, Clause* c2) {
-  if (c1->length() != c2->length()) {
-    return false;
-  }
-  for (unsigned i = 0; i < c1->length(); i++) {
-    if ((*c1)[i] != (*c2)[i]) {
-      return false;
-    }
-  }
-  return true;
-}
 
 inline bool deepEq(Formula* f1, Formula* f2) {
   if (f1->connective() != f2->connective()) {
@@ -62,7 +50,7 @@ inline bool deepEq(Unit* u1, Unit* u2) {
     return false;
   }
   if (u1->isClause()) {
-    return deepEq(u1->asClause(), u2->asClause());
+    return TestUtils::eqModAC(u1->asClause(), u2->asClause());
   }
   return deepEq(u1->getFormula(), u2->getFormula());
 }
@@ -71,8 +59,8 @@ class TransformationTest
 {
 public:
 
-  __BUILDER_METHOD(TransformationTest, Stack<Unit*>, input)
-  __BUILDER_METHOD(TransformationTest, Stack<Unit*>, expected)
+  __BUILDER_METHOD(TransformationTest, UnitStack, input)
+  __BUILDER_METHOD(TransformationTest, UnitStack, expected)
 
   template<typename Rule>
   void run() {
@@ -82,21 +70,12 @@ public:
     Rule rule;
     rule.apply(p);
 
-    auto actual = p.units();
-    auto expI = 0;
-    while (actual) {
-      ASS_REP(expI < _expected.size(), "unexpected unit " + actual->head()->toString());
-
-      if (!deepEq(actual->head(), _expected[expI])) {
-        std::cout << "unit mismatch" << std::endl;
-        std::cout << "[  actual  ]: " << *actual->head() << std::endl;
-        std::cout << "[ expected ]: " << *_expected[expI] << std::endl;
-        ASSERTION_VIOLATION;
-      }
-      expI++;
-      actual = actual->tail();
+    UnitStack actual = UnitStack::fromIterator(p.units()->iter());
+    if (!TestUtils::permEq(actual, _expected, [&](auto act, auto exp) { return deepEq(act, exp); })) {
+      std::cout << "[  actual  ]: " << pretty(actual) << std::endl;
+      std::cout << "[ expected ]: " << pretty(_expected) << std::endl;
+      ASSERTION_VIOLATION;
     }
-    ASS_REP(expI == _expected.size(), "expected unit " + _expected[expI]->toString());
   }
 };
 
