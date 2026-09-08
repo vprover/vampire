@@ -26,7 +26,6 @@
 #include "Lib/Metaiterators.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
 #include "Lib/Environment.hpp"
-#include "Kernel/Signature.hpp"
 #include "Kernel/TypedTermList.hpp"
 
 #if VDEBUG
@@ -148,7 +147,7 @@ struct TermSpec {
   { 
     if (!isTerm()) return false;
     auto fun = env.signature->getFunction(functor());
-    auto op = fun->fnType();
+    auto op = fun->type();
     TermList res = op->result();
     return res.isVar() || res == AtomicSort::boolSort();
   }

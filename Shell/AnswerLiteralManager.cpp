@@ -157,13 +157,10 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
     VSList::Iterator fvit(fVarSorts);
     while (fvit.hasNext()) {
       auto [var, sort] = fvit.next();
-      unsigned skFun = env.signature->addSkolemFunction(/*arity=*/0, /*suffix=*/"in");
-      Signature::Symbol* skSym = env.signature->getFunction(skFun);
+      unsigned skFun = env.signature->addSkolemFunction(OperatorType::getConstantsType(sort), /*suffix=*/"in");
       if ((env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS)) {
         ALWAYS(static_cast<Shell::SynthesisALManager*>(Shell::SynthesisALManager::getInstance())->addIntroducedComputableSymbol(make_pair(skFun, /*isPredicate=*/false)));
       }
-      OperatorType* ot = OperatorType::getConstantsType(sort);
-      skSym->setType(ot);
       Term* skTerm = Term::create(skFun, /*arity=*/0, /*args=*/nullptr);
       subst.bindUnbound(var, skTerm);
       recordSkolemBinding(skTerm, var, questionVars ? questionVars->get(var) : TermList(var,false).toString() );
@@ -178,10 +175,8 @@ TermList AnswerLiteralManager::possiblyEvaluateAnswerTerm(TermList aT)
 {
   if(aT.isTerm() && !aT.term()->isSpecial()){
     InterpretedLiteralEvaluator eval;
-    unsigned p = env.signature->addFreshPredicate(1,"p");
     TermList sort = SortHelper::getResultSort(aT.term());
-    OperatorType* type = OperatorType::getPredicateType({sort});
-    env.signature->getPredicate(p)->setType(type);
+    unsigned p = env.signature->addFreshPredicate(OperatorType::getPredicateType({sort}),"p");
     Literal* l = Literal::create1(p,true,aT);
     Literal* res =0;
     bool constant, constTrue;
@@ -344,9 +339,8 @@ Literal* AnswerLiteralManager::getAnswerLiteral(VSList* varSorts, Formula* f)
   }
 
   unsigned vcnt = litArgs.size();
-  unsigned pred = env.signature->addFreshPredicate(vcnt,"ans");
+  unsigned pred = env.signature->addFreshPredicate(OperatorType::getPredicateType(sorts),"ans");
   Signature::Symbol* predSym = env.signature->getPredicate(pred);
-  predSym->setType(OperatorType::getPredicateType(sorts.size(), sorts.begin()));
   predSym->markAnswerPredicate();
   // don't need equality proxy for answer literals
   predSym->markSkipCongruence();
@@ -515,7 +509,7 @@ bool SynthesisALManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answer
   Stack<TermList> sorts(arity);
   // Initialization: each answer is set to the answer from origLit.
   for (unsigned i = 0; i < arity; i++) {
-    sorts.push(env.signature->getPredicate(origLit->functor())->predType()->arg(i));
+    sorts.push(env.signature->getPredicate(origLit->functor())->type()->arg(i));
     answerArgs.push(_skolemReplacement.transformTermList(*origLit->nthArgument(i), sorts[i]));
   }
   // Go through all other answer pairs and use the relevant ones.
@@ -529,7 +523,7 @@ bool SynthesisALManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answer
     // Create the condition for an if-then-else by negating the clause
     Formula* condition = getConditionFromClause(p.second.first);
     for (unsigned i = 0; i < arity; i++) {
-      ASS_EQ(sorts[i], env.signature->getPredicate(p.second.second->functor())->predType()->arg(i));
+      ASS_EQ(sorts[i], env.signature->getPredicate(p.second.second->functor())->type()->arg(i));
       // Construct the answer using if-then-else
       answerArgs[i] = TermList(Term::createITE(condition, _skolemReplacement.transformTermList(*p.second.second->nthArgument(i), sorts[i]), answerArgs[i], sorts[i]));
     }
@@ -609,7 +603,7 @@ Literal* SynthesisALManager::makeITEAnswerLiteral(Literal* condition, Literal* t
     if (ttl == etl) {
       litArgs.push(*ttl);
     } else {
-      litArgs.push(TermList(createRegularITE(condTerm, *ttl, *etl, predSym->predType()->arg(i))));
+      litArgs.push(TermList(createRegularITE(condTerm, *ttl, *etl, predSym->type()->arg(i))));
     }
   }
   return Literal::create(thenLit->functor(), thenLit->arity(), thenLit->polarity(), litArgs.begin());
@@ -621,7 +615,7 @@ void SynthesisALManager::pushEqualityConstraints(LiteralStack* ls, Literal* then
     TermList& t = *thenLit->nthArgument(i);
     TermList& e = *elseLit->nthArgument(i);
     if (t != e) {
-      ls->push(Literal::createEquality(false, t, e, env.signature->getPredicate(thenLit->functor())->predType()->arg(i)));
+      ls->push(Literal::createEquality(false, t, e, env.signature->getPredicate(thenLit->functor())->type()->arg(i)));
     }
   }
 }
@@ -654,29 +648,30 @@ Term* SynthesisALManager::translateToSynthesisConditionTerm(Literal* l)
   if (l->isEquality()) {
     fnName.append(SortHelper::getEqualityArgumentSort(l).toString());
   }
+
+  TermStack argSorts;
+  if (l->isEquality()) {
+    TermList as = SortHelper::getEqualityArgumentSort(l);
+    argSorts.push(as);
+    argSorts.push(as);
+  } else {
+    OperatorType* ot = env.signature->getPredicate(l->functor())->type();
+    for (unsigned i = 0; i < arity; ++i) {
+      argSorts.push(ot->arg(i));
+    }
+  }
   bool added = false;
-  unsigned fn = env.signature->addFunction(fnName, arity, added);
+  unsigned fn = env.signature->addFunction(fnName, OperatorType::getFunctionType(argSorts, AtomicSort::defaultSort()), added);
   // Store the mapping between the function and predicate symbols
   _skolemReplacement.addCondPair(fn, l->functor());
   if (added) {
-    Signature::Symbol* sym = env.signature->getFunction(fn);
-    Stack<TermList> argSorts;
-    if (l->isEquality()) {
-      TermList as = SortHelper::getEqualityArgumentSort(l);
-      argSorts.push(as);
-      argSorts.push(as);
-    } else {
-      OperatorType* ot = env.signature->getPredicate(l->functor())->predType();
-      for (unsigned i = 0; i < arity; ++i) {
-        argSorts.push(ot->arg(i));
-      }
+    if (!l->isEquality()) {
       if (isPredicateComputable(l->functor())) {
         ALWAYS(_introducedComputable.insert(make_pair(fn, /*isPredicate=*/false)));
       } else {
         ALWAYS(_annotatedUncomputable.insert(make_pair(fn, /*isPredicate=*/false)));
       }
     }
-    sym->setType(OperatorType::getFunctionType(arity, argSorts.begin(), AtomicSort::defaultSort()));
   }
   
   Stack<TermList> args;
@@ -712,8 +707,7 @@ TermList getConstantForVariable(TermList sort) {
     std::string name = "cz_" + sort.toString();
     unsigned czfn;
     if (!env.signature->tryGetFunctionNumber(name, 0, czfn)) {
-      czfn = env.signature->addFreshFunction(0, name.c_str());
-      env.signature->getFunction(czfn)->setType(OperatorType::getConstantsType(sort));
+      czfn = env.signature->addFreshFunction(OperatorType::getConstantsType(sort), name.c_str());
     } 
     return TermList(Term::createConstant(czfn));
   }
@@ -788,7 +782,7 @@ TermList SynthesisALManager::ConjectureSkolemReplacement::transformSubterm(TermL
       // Replace 'trm' by the function called on the last argument of this 'trm'.
       return TermList(Term::create(rfunctor, {*t->nthArgument(t->arity()-1)}));
     } else if ((t->arity() == 3) && t->nthArgument(0)->isTerm()) {
-      TermList sort = env.signature->getFunction(functor)->fnType()->arg(1);
+      TermList sort = env.signature->getFunction(functor)->type()->arg(1);
       if (t->functor() == static_cast<SynthesisALManager*>(SynthesisALManager::getInstance())->getITEFunctionSymbol(sort)) {
         // Build condition
         Term* tcond = t->nthArgument(0)->term();
@@ -824,13 +818,11 @@ SynthesisALManager::ConjectureSkolemReplacement::Function::Function(unsigned rec
   ASS(_caseHeads);
   _cases.ensure(_caseHeads->size());
   // Add the new function to signature
-  OperatorType* ot = env.signature->getFunction(recFunctor)->fnType();
+  OperatorType* ot = env.signature->getFunction(recFunctor)->type();
   TermList in = ot->arg(ot->arity()-1);
   TermList out = ot->arg(0);
   ASS_EQ(env.signature->getTermAlgebraOfSort(in)->nConstructors(), _caseHeads->size());
-  _functor = env.signature->addFreshFunction(/*arity=*/1, "rf");
-  Signature::Symbol* f = env.signature->getFunction(_functor);
-  f->setType(OperatorType::getFunctionType({in}, out));
+  _functor = env.signature->addFreshFunction(OperatorType::getFunctionType({in}, out), "rf");
   // Process SkolemTrackers corresponding to this function:
   // populate the maps mapping skolems to terms they represent.
   DHMap<Term*, TermList, FnvHash, PtrIdentityHash>* caseMap;

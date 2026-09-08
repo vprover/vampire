@@ -21,7 +21,6 @@
 #include "Forwards.hpp"
 
 #include "Lib/Metaiterators.hpp"
-#include "Lib/Reflection.hpp"
 
 #include "SATLiteral.hpp"
 
@@ -37,7 +36,7 @@ using namespace Kernel;
 class SATClause
 {
 public:
-  DECL_ELEMENT_TYPE(SATLiteral);
+  using ElementType = SATLiteral;
 
   auto iter() const { return arrayIter(*this); }
 

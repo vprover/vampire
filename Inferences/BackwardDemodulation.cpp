@@ -27,7 +27,7 @@
 #include "Kernel/Term.hpp"
 
 #include "Indexing/Index.hpp"
-#include "Indexing/TermIndex.hpp"
+#include "Indexing/ResultSubstitution.hpp"
 #include "Debug/TimeProfiling.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"

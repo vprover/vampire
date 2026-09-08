@@ -180,7 +180,7 @@ void FiniteModelMultiSorted::initTables()
       continue; // not represented: no layers at all
     }
 
-    OperatorType* sig = symb->fnType();
+    OperatorType* sig = symb->type();
     _f_layers[f].push(new TableFunLayer(sig,tableSize(sig,symb->arity(),_sizes),MODEL_ZERO));
   }
 
@@ -191,7 +191,7 @@ void FiniteModelMultiSorted::initTables()
       continue; // not represented
     }
 
-    OperatorType* sig = symb->predType();
+    OperatorType* sig = symb->type();
     _p_layers[p].push(new TablePredLayer(sig,tableSize(sig,symb->arity(),_sizes),MODEL_ZERO));
   }
 }
@@ -250,7 +250,7 @@ void FiniteModelMultiSorted::installTrivialLayers()
   for(unsigned f=0; f<env.signature->functions();f++){
     if (_f_layers[f].isEmpty()) {
 #if FMB_CHECK_MODEL_AGAINST_INPUT
-      unsigned srt = env.signature->getFunction(f)->fnType()->result().term()->functor();
+      unsigned srt = env.signature->getFunction(f)->type()->result().term()->functor();
       _f_layers[f].push(new TrivialFunLayer(srt,Random::getInteger(INT_MAX),MODEL_ZERO));
 #else
       _f_layers[f].push(new TrivialFunLayer(MODEL_ZERO));
@@ -309,7 +309,7 @@ void FiniteModelMultiSorted::addFunctionDefinition(unsigned f, const DArray<unsi
 {
   ASS_EQ(env.signature->functionArity(f),args.size());
 
-  OperatorType* tp = env.signature->getFunction(f)->fnType();
+  OperatorType* tp = env.signature->getFunction(f)->type();
   // a function's value must be a domain element of its result sort
   ASS_G(res,0); ASS_LE(res,domainSize(_sizes,tp->result().term()->functor()));
 
@@ -325,7 +325,7 @@ void FiniteModelMultiSorted::addPredicateDefinition(unsigned p, const DArray<uns
   ASS_EQ(env.signature->predicateArity(p),args.size());
 
   DArray<char>& tbl = predTable(p)->raw();
-  size_t idx = tableIndex(args,_sizes,env.signature->getPredicate(p)->predType());
+  size_t idx = tableIndex(args,_sizes,env.signature->getPredicate(p)->type());
 
   ASS_L(idx, tbl.size());
   tbl[idx] = (res ? INTP_TRUE : INTP_FALSE);
@@ -512,7 +512,7 @@ std::string FiniteModelMultiSorted::toString()
     if(env.signature->isFoolConstantSymbol(true,f) || env.signature->isFoolConstantSymbol(false,f)) continue;
     std::string name = symb->name();
 
-    OperatorType* ot = symb->fnType();
+    OperatorType* ot = symb->type();
     modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<" : ";
     if (arity>0) {
       modelStm << "( ";
@@ -615,7 +615,7 @@ std::string FiniteModelMultiSorted::toString()
     unsigned arity = symb->arity();
     if(!printIntroduced && symb->introduced()) continue;
     std::string name = symb->name();
-    OperatorType* ot = symb->predType();
+    OperatorType* ot = symb->type();
     modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": "; //"(";
     if (arity>0) {
       modelStm << "( ";
@@ -850,7 +850,7 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
     unsigned elim_f = sortFunctions[i];
     Signature::Symbol* elim_symb = env.signature->getFunction(elim_f);
     ASS_EQ(elim_symb->arity(),1)
-    unsigned srt = elim_symb->fnType()->result().term()->functor();
+    unsigned srt = elim_symb->type()->result().term()->functor();
 
     DHSet<unsigned, FnvHash, IdentityHash> f_range;
     DHMap<unsigned,unsigned, FnvHash, IdentityHash> new_to_old;
@@ -897,7 +897,7 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
         continue;
       }
       Signature::Symbol* symb = env.signature->getFunction(f);
-      OperatorType* sig = symb->fnType();
+      OperatorType* sig = symb->type();
       unsigned arity = symb->arity();
 
       // cout << "f = " << f << " arity= " << arity << endl;
@@ -940,7 +940,7 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
         continue;
       }
       Signature::Symbol* symb = env.signature->getPredicate(p);
-      OperatorType* sig = symb->predType();
+      OperatorType* sig = symb->type();
       unsigned arity = symb->arity();
 
       // cout << "p = " << p << " arity= " << arity << endl;
@@ -973,7 +973,7 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
     unsigned elim_p = sortPredicates[i];
     Signature::Symbol* elim_symb = env.signature->getPredicate(elim_p);
     ASS_EQ(elim_symb->arity(),1)
-    unsigned srt = elim_symb->predType()->arg(0).term()->functor();
+    unsigned srt = elim_symb->type()->arg(0).term()->functor();
 
     // cout << "Eliminate p = " << elim_p << endl;
 
@@ -1024,7 +1024,7 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
         continue;
       }
       Signature::Symbol* symb = env.signature->getFunction(f);
-      OperatorType* sig = symb->fnType();
+      OperatorType* sig = symb->type();
       unsigned arity = symb->arity();
 
       DArray<unsigned>& tbl = funTable(f)->raw();
@@ -1064,7 +1064,7 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
         continue;
       }
       Signature::Symbol* symb = env.signature->getPredicate(p);
-      OperatorType* sig = symb->predType();
+      OperatorType* sig = symb->type();
       unsigned arity = symb->arity();
 
       // cout << "p = " << p << " arity= " << arity << endl;

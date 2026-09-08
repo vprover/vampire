@@ -110,10 +110,10 @@ namespace ProblemExport {
   struct ApiCalls {
     std::ofstream out;
     z3::context& _ctxt;
-    Map<std::string, std::string> _escapedNames; // <- maps string -> unique string that can be used as c++ variable
-    Map<std::string, Map<std::string, unsigned>> _escapePrefixes; // <- maps c++ variable prefix of _escapedNames -> strings that have been escaped to it
+    Map<std::string, std::string, FnvHash> _escapedNames; // <- maps string -> unique string that can be used as c++ variable
+    Map<std::string, Map<std::string, unsigned, FnvHash>, FnvHash> _escapePrefixes; // <- maps c++ variable prefix of _escapedNames -> strings that have been escaped to it
 
-    Set<std::string> _predeclaredConstants; // <- c++ variable names of been declared using declare_const
+    Set<std::string, FnvHash> _predeclaredConstants; // <- c++ variable names of been declared using declare_const
     ApiCalls(ApiCalls &&) = default;
     ApiCalls(std::ofstream out, z3::context& context) : out(std::move(out)), _ctxt(context) {}
 

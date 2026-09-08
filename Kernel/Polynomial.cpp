@@ -10,6 +10,7 @@
 
 #include "Kernel/Polynomial.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
+#include "Kernel/PolynomialBottomUpEvaluation.hpp"
 #include "Lib/Output.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)

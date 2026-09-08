@@ -18,6 +18,7 @@
 #include "Kernel/HOL/HOL.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/InferenceStore.hpp"
+#include "Kernel/Renaming.hpp"
 #include "Lib/Metaiterators.hpp"
 
 struct IncompleteFunction {
@@ -142,22 +143,16 @@ void DefinitionIntroduction<higherOrder>::introduceDefinitionFor(Term *t) {
 
   // create the equation
   unsigned functor;
-  OperatorType* type;
   if constexpr (higherOrder) {
-    functor = env.signature->addFreshFunction(type_arity, "sF");
     auto sort = AtomicSort::arrowSort(domain_sort_vector, sort_rename.apply(range_sort), /*fromTop=*/true);
-    type = OperatorType::getConstantsType(sort, type_arity);
+    functor = env.signature->addFreshFunction(OperatorType::getConstantsType(sort, type_arity), "sF");
   } else {
-    functor = env.signature->addFreshFunction(type_arity + term_arity, "sF");
-    type = OperatorType::getFunctionType(
-      term_arity,
-      domain_sort_vector.begin(),
+    functor = env.signature->addFreshFunction(OperatorType::getFunctionType(
+      domain_sort_vector,
       sort_rename.apply(range_sort),
       type_arity
-    );
+    ), "sF");
   }
-  auto sym = env.signature->getFunction(functor);
-  sym->setType(type);
   Term *def;
   if constexpr (higherOrder) {
     TermList head(Term::create(functor, type_arity, variables.data()));
@@ -180,7 +175,7 @@ void DefinitionIntroduction<higherOrder>::introduceDefinitionFor(Term *t) {
   }
 
   // record definition
-  InferenceStore::instance()->recordIntroducedSymbol(intro, sym);
+  InferenceStore::instance()->recordIntroducedSymbol(intro, env.signature->getFunction(functor));
 
   _definitions.push_back(definition);
 }

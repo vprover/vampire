@@ -46,8 +46,8 @@ using namespace std;
 using namespace Shell;
 
 void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator clauses,
-                 DHSet<std::pair<unsigned,unsigned>>& nonstrict_cons,
-                 DHSet<std::pair<unsigned,unsigned>>& strict_cons)
+                 DHSet<std::pair<unsigned,unsigned>, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>>& nonstrict_cons,
+                 DHSet<std::pair<unsigned,unsigned>, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>>& strict_cons)
 {
   bool print = env.options->showFMBsortInfo();
 
@@ -82,8 +82,8 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
 
   if(foundLabels.size()>0 && print){ cout << "Found constraints:" << endl; }
 
-  DHSet<std::pair<unsigned,unsigned>> nonstrict_constraints;
-  DHSet<std::pair<unsigned,unsigned>> strict_constraints;
+  DHSet<std::pair<unsigned,unsigned>, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>> nonstrict_constraints;
+  DHSet<std::pair<unsigned,unsigned>, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>> strict_constraints;
   Stack<unsigned>::Iterator it(foundLabels);
   while(it.hasNext()){
     unsigned l = it.next();
@@ -102,7 +102,7 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
   // Normalise constraints
   unsigned constraint_count = 0;
   {
-    DHSet<std::pair<unsigned,unsigned>>::Iterator it1(nonstrict_constraints);
+    DHSet<std::pair<unsigned,unsigned>, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>>::Iterator it1(nonstrict_constraints);
     while(it1.hasNext()){ 
       constraint_count++;
       std::pair<unsigned,unsigned> con = it1.next();
@@ -120,7 +120,7 @@ void FunctionRelationshipInference::findFunctionRelationships(ClauseIterator cla
   }
   constraint_count = 0;
   {
-    DHSet<std::pair<unsigned,unsigned>>::Iterator it1(strict_constraints);
+    DHSet<std::pair<unsigned,unsigned>, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>>::Iterator it1(strict_constraints);
     while(it1.hasNext()){
       constraint_count++;
       std::pair<unsigned,unsigned> con = it1.next();
@@ -151,7 +151,7 @@ ClauseList* FunctionRelationshipInference::getCheckingClauses()
   unsigned initial_functions = env.signature->functions();
   for(unsigned f=0; f < initial_functions; f++){
 
-    OperatorType* ftype = env.signature->getFunction(f)->fnType();
+    OperatorType* ftype = env.signature->getFunction(f)->type();
     TermList ret_srt = ftype->result();
     unsigned arity = env.signature->functionArity(f);
 
@@ -183,11 +183,6 @@ ClauseList* FunctionRelationshipInference::getCheckingClauses()
     // First go, let's use each argument as a singleton variable once
     // i.e. f(x,_,_), f(_,x,_), f(_,_,x)
     // and ignore cases like f(x,x,_)
-      VList* existential = VList::empty();
-      for(unsigned i=0;i<arity-1;i++){
-        VList::push(i+2,existential);
-      }
-
       for(unsigned i=0;i<arity;i++){
         TermList arg_srt = ftype->arg(i);
 
@@ -195,6 +190,10 @@ ClauseList* FunctionRelationshipInference::getCheckingClauses()
 
         Stack<TermList> xargs(arity);
         Stack<TermList> yargs(arity);
+
+        // the variables to quantify existentially, with the sorts of the argument
+        // positions they stand for (which is why this depends on i)
+        VSList::FIFO existential;
 
         unsigned v=2;
         for(unsigned j=0;j<arity;j++){
@@ -205,13 +204,14 @@ ClauseList* FunctionRelationshipInference::getCheckingClauses()
           else{
             xargs.push(TermList(v,false));
             yargs.push(TermList(v,false));
+            existential.pushBack({v, ftype->arg(j)});
             v++;
           }
         }
         TermList fx(Term::create(f,arity,xargs.begin()));
         TermList fy(Term::create(f,arity,yargs.begin()));
 
-        addClaimForFunction(x,y,fx,fy,f,arg_srt,ret_srt,existential,newClauses);
+        addClaimForFunction(x,y,fx,fy,f,arg_srt,ret_srt,existential.list(),newClauses);
       }
     }
 
@@ -222,7 +222,7 @@ ClauseList* FunctionRelationshipInference::getCheckingClauses()
 
 void FunctionRelationshipInference::addClaimForFunction(TermList x, TermList y, TermList fx, TermList fy,
                                                unsigned fname,
-                                               TermList arg_srt, TermList ret_srt, VList* existential,
+                                               TermList arg_srt, TermList ret_srt, VSList* existential,
                                                ClauseList*& newClauses)
 {
     VSList* xy = VSList::cons({0, arg_srt}, VSList::cons({1, arg_srt}, VSList::empty()));
@@ -244,26 +244,10 @@ void FunctionRelationshipInference::addClaimForFunction(TermList x, TermList y, 
                             new FormulaList(surjective, new FormulaList(new NegatedFormula(injective))));
 
     if(existential){
-      // Build VSList from existential VList - need to determine sorts from function type
-      // For now, collect from the formulas
-      DHMap<unsigned, TermList, FnvHash, IdentityHash> varSorts;
-      SortHelper::collectVariableSorts(injective, varSorts);
-      SortHelper::collectVariableSorts(surjective, varSorts);
-      VSList::FIFO vsfifo;
-      VList::Iterator vit(existential);
-      while (vit.hasNext()) {
-        unsigned v = vit.next();
-        TermList s;
-        if (!varSorts.find(v, s)) {
-          s = AtomicSort::defaultSort();
-        }
-        vsfifo.pushBack({v, s});
-      }
-      VSList* existentialVS = vsfifo.list();
-      injective  = new QuantifiedFormula(EXISTS, existentialVS, injective);
-      surjective = new QuantifiedFormula(EXISTS, existentialVS, surjective);
-      ing_and_nons = new QuantifiedFormula(EXISTS, existentialVS, ing_and_nons);
-      sur_and_noni = new QuantifiedFormula(EXISTS, existentialVS, sur_and_noni);
+      injective  = new QuantifiedFormula(EXISTS, existential, injective);
+      surjective = new QuantifiedFormula(EXISTS, existential, surjective);
+      ing_and_nons = new QuantifiedFormula(EXISTS, existential, ing_and_nons);
+      sur_and_noni = new QuantifiedFormula(EXISTS, existential, sur_and_noni);
     }
     // Add names (true/false relates to being injective or not i.e. surjective)
     injective    = new BinaryFormula(IMP,injective,getName(ret_srt,arg_srt,false));
@@ -298,7 +282,7 @@ void FunctionRelationshipInference::addClaim(Formula* conjecture, ClauseList*& n
 // get a name for a formula that captures the relationship that |fromSrt| >= |toSrt|
 Formula* FunctionRelationshipInference::getName(TermList fromSrt, TermList toSrt, bool strict)
 {
-    unsigned label= env.signature->addFreshPredicate(0,"label");
+    unsigned label= env.signature->addFreshPredicate(OperatorType::getConstantsType(AtomicSort::defaultSort()),"label");
     env.signature->getPredicate(label)->markLabel();
 
     unsigned fsT = fromSrt.term()->functor();

@@ -8,7 +8,7 @@
  * and in the source directory
  */
 
-#include "Lib/DArray.hpp"
+#include "Indexing/CodeTreeInterfaces.hpp"
 
 #include "Test/UnitTesting.hpp"
 #include "Test/TestUtils.hpp"
@@ -45,8 +45,8 @@ void __check(const char* operation, Idx& tree, Key key, Stack<Data> expected, It
   }
 }
 
-template<class Data, class Iter>
-void check_lit(const char* op, LiteralSubstitutionTree<Data>& tree, Literal* key, Stack<Data> expected, Iter iter)
+template<class Data, class Iter, class Idx>
+void check_lit(const char* op, Idx& tree, Literal* key, Stack<Data> expected, Iter iter)
 {
   auto ckey = Literal::complementaryLiteral(key);
   __check(op, tree,  key, expected, [&](auto key) { return iter(key, /* complementary */ false); });
@@ -65,9 +65,9 @@ void check_inst(LiteralSubstitutionTree<Data>& tree, Literal* key, Stack<Data> e
       { return tree.getInstances(key, complementary, /* retrieveSubstitutions */ true); }); }
 
 template<class Data>
-void check_gen(LiteralSubstitutionTree<Data>& tree, Literal* key, Stack<Data> expected)
+void check_gen(CodeTreeLIS<Data>& tree, Literal* key, Stack<Data> expected)
 { return check_lit("getGen", tree, key, expected, [&](Literal* key, bool complementary) 
-      { return tree.getGeneralizations(key, complementary, /* retrieveSubstitutions */ true); }); }
+      { return tree.getGeneralizations(key, complementary); }); }
 
 
 template<class Data>
@@ -128,8 +128,6 @@ struct MyData {
   Key const& key() const
   { return term; }
 };
-
-
 
 TEST_FUN(custom_data_01) {
 
@@ -285,19 +283,46 @@ TEST_FUN(zero_arity_predicate) {
 
   check_unify(tree,  p0() , { dat( p0() , " p0()") });
   check_unify(tree, ~p0() , Stack<Data>{});
-  check_gen(tree,  p0() , { dat( p0() , " p0()") });
-  check_gen(tree, ~p0() , Stack<Data>{});
   check_inst(tree,  p0() , { dat( p0() , " p0()") });
   check_inst(tree, ~p0() , Stack<Data>{});
 
   tree.insert(dat( p1(x), " p1(x)"));
   tree.insert(dat(~p1(x), "~p1(x)"));
-  check_gen(tree,  p1(a), { dat( p1(a), " p1(a)"), dat( p1(x), " p1(x)") });
-  check_gen(tree, ~p1(a), {                        dat(~p1(x), "~p1(x)") });
 
-  check_gen(  tree, a != a, Stack<Data>{});
   check_inst( tree, a != a, Stack<Data>{});
   check_unify(tree, a != a, Stack<Data>{});
+}
 
+TEST_FUN(zero_arity_predicate_gen) {
+
+  DECL_DEFAULT_VARS
+  DECL_SORT(srt)
+  DECL_CONST(a, srt)
+  DECL_CONST(b, srt)
+  DECL_PRED(p0, {})
+  DECL_PRED(p1, {srt})
+
+  using Data = MyData<Literal*>;
+  CodeTreeLIS<Data> tree;
+  auto dat = [](Literal* k,std::string s) { return Data(k, std::move(s)); };
+  tree.handle(dat( p0() , " p0()"), /*insert=*/true);
+  tree.handle(dat( p1(a), " p1(a)"), /*insert=*/true);
+  tree.handle(dat( p1(b), " p1(b)"), /*insert=*/true);
+  tree.handle(dat(~p0() , "~p0()"), /*insert=*/true);
+  tree.handle(dat(~p1(a), "~p1(a)"), /*insert=*/true);
+  tree.handle(dat(~p1(b), "~p1(b)"), /*insert=*/true);
+
+  tree.handle(dat(~p1(a), "~p1(a)"), /*insert=*/false);
+  tree.handle(dat(~p0() , "~p0()"), /*insert=*/false);
+
+  check_gen(tree,  p0() , { dat( p0() , " p0()") });
+  check_gen(tree, ~p0() , Stack<Data>{});
+
+  tree.handle(dat( p1(x), " p1(x)"), /*insert=*/true);
+  tree.handle(dat(~p1(x), "~p1(x)"), /*insert=*/true);
+
+  check_gen(tree,  p1(a), { dat( p1(a), " p1(a)"), dat( p1(x), " p1(x)") });
+  check_gen(tree, ~p1(a), {                        dat(~p1(x), "~p1(x)") });
+  check_gen(  tree, a != a, Stack<Data>{});
 }
 

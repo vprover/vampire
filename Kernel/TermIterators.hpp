@@ -53,7 +53,7 @@ class VariableIterator
 : public IteratorCore<TermList>
 {
 public:
-  DECL_ELEMENT_TYPE(TermList);
+  using ElementType = TermList;
   VariableIterator() : _stack(8), _used(false) {}
 
   void swap(VariableIterator& other) {
@@ -616,7 +616,7 @@ class LiteralArgIterator
   Literal* _lit;
   unsigned _idx;
 public:
-  DECL_ELEMENT_TYPE(TypedTermList);
+  using ElementType = TypedTermList;
 
   LiteralArgIterator(Literal* lit) : _lit(lit), _idx(0) {}
 

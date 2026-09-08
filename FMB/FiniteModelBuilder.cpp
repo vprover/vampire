@@ -391,8 +391,8 @@ void FiniteModelBuilder::init()
 
   env.statistics->phase = ExecutionPhase::FMB_PREPROCESSING;
 
-  DHSet<std::pair<unsigned,unsigned>> vampire_sort_constraints_nonstrict;
-  DHSet<std::pair<unsigned,unsigned>> vampire_sort_constraints_strict;
+  DHSet<std::pair<unsigned,unsigned>, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>> vampire_sort_constraints_nonstrict;
+  DHSet<std::pair<unsigned,unsigned>, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>> vampire_sort_constraints_strict;
   if(env.options->fmbDetectSortBounds()){
     FunctionRelationshipInference inf;
     inf.findFunctionRelationships(
@@ -584,7 +584,7 @@ void FiniteModelBuilder::init()
     // now we have a mapping between vampire sorts and distinct sorts we can translate
     // the sort constraints, if any
     {
-      DHSet<std::pair<unsigned,unsigned>>::Iterator it(vampire_sort_constraints_nonstrict);
+      DHSet<std::pair<unsigned,unsigned>, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>>::Iterator it(vampire_sort_constraints_nonstrict);
       while(it.hasNext()){
         std::pair<unsigned,unsigned> vconstraint = it.next();
         ASS(_sortedSignature->vampireToDistinctParent.find(vconstraint.first));
@@ -597,7 +597,7 @@ void FiniteModelBuilder::init()
       }
     }
     {
-      DHSet<std::pair<unsigned,unsigned>>::Iterator it(vampire_sort_constraints_strict);
+      DHSet<std::pair<unsigned,unsigned>, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>>::Iterator it(vampire_sort_constraints_strict);
       while(it.hasNext()){
         std::pair<unsigned,unsigned> vconstraint = it.next();
         ASS(_sortedSignature->vampireToDistinctParent.find(vconstraint.first));
@@ -761,7 +761,7 @@ void FiniteModelBuilder::init()
     if(del_f[f]) continue;
 
     if(env.signature->functionArity(f)==0){
-      TermList vsrtT = env.signature->getFunction(f)->fnType()->result();
+      TermList vsrtT = env.signature->getFunction(f)->type()->result();
       if(!vsrtT.isBoolSort()){
         unsigned vsrt = vsrtT.term()->functor();
         ASS(_sortedSignature->vampireToDistinctParent.find(vsrt));
@@ -1925,7 +1925,7 @@ void FiniteModelBuilder::onModelFound()
     //cout << "For " << env.signature->getFunction(f)->name() << endl;
     unsigned arity = env.signature->functionArity(f);
 
-    OperatorType* tp = sym->fnType();
+    OperatorType* tp = sym->type();
     ASS_EQ(tp->numTypeArguments(),0) // no polymorphic business in FMB
 
     // bounding box for querying the solver
@@ -1983,7 +1983,7 @@ void FiniteModelBuilder::onModelFound()
     unsigned arity = env.signature->predicateArity(p);
     //cout << "Record for " << env.signature->getPredicate(p)->name() << "/" << arity << endl;
 
-    OperatorType* tp = sym->fnType();
+    OperatorType* tp = sym->type();
     ASS_EQ(tp->numTypeArguments(),0) // no polymorphic business in FMB
 
     // bounding box for querying the solver

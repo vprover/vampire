@@ -228,6 +228,8 @@ public:
     TFF,
     /** THF declaration */
     THF,
+    /** tcf declaration */
+    TCF,
     /** read type declaration */
     TYPE,
     /** after a top-level type declaration */
@@ -555,6 +557,10 @@ private:
   Stack<State> _states;
   /** input type of the last read unit */ // it must be int since -1 can be used as a value
   UnitInputType _lastInputType;
+  /** the top-level dialect the unit currently being read came from;
+   *  CNF and TCF units must end up being clauses, FOF and TCF units must be closed */
+  enum class Dialect { CNF, FOF, TCF };
+  Dialect _lastDialect;
   /** true if the last read unit is a question */
   bool _isQuestion = false;
   /** */
@@ -584,7 +590,7 @@ private:
   /** term lists */
   Stack<TermList> _termLists;
   /** name table for variable names */
-  Map<std::string, unsigned> _vars;
+  Map<std::string, unsigned, FnvHash> _vars;
   /** When parsing a question, make note of the inverse mapping to _vars, i.e. from the ints back to the vstrings, for better user reporting */
   Map<unsigned,std::string, FnvHash> _curQuestionVarNames;
   /** parsed types */
@@ -608,6 +614,11 @@ private:
     unsigned symbol;
     bool isPredicate;
     TermStack iTypeArgs;
+    /** true for the reference standing for a tuple binding [c1,...,cn] := t,
+     *  in which case symbol is the tuple constructor and iTypeArgs holds the
+     *  sorts of c1,...,cn; note that this cannot be recovered from the result
+     *  sort of symbol, as an ordinary symbol may have a tuple sort too */
+    bool isTuple = false;
   };
   #define SYMBOL(ref) (ref.symbol)
   #define IS_PREDICATE(ref) (ref.isPredicate)
@@ -651,25 +662,6 @@ private:
   /** _insideEqualityArgument as it stood outside each argument list currently open;
    * pushed by openArgumentList(), restored by endArgs() */
   Stack<unsigned> _savedInsideEqualityArgument;
-
-  /** Kinds of input that are not legal per the TPTP BNF but that we accept
-   * leniently, inventing a reading. Each kind is warned about at most once
-   * per parser run (see nonConformityWarning). */
-  enum NonConformity {
-    /** '~ s = t' read as '~ (s = t)' */
-    NC_NOT_APPLIED_TO_EQUALITY,
-    /** 'p & f @ x' read as 'p & (f @ x)' */
-    NC_UNPARENTHESIZED_APPLICATION,
-    /** 'r = ~ s' read as 'r = (~ s)'; 'g = ^[X]: t' as 'g = (^[X]: t)' */
-    NC_NON_UNITARY_EQUALITY_ARGUMENT,
-    /** 'r = s = t' read as 'r = (s = t)' */
-    NC_CHAINED_EQUALITY,
-    /** the number of kinds above */
-    NC_KINDS
-  };
-  /** which non-conformity kinds have already been warned about in this run */
-  bool _nonConformityWarned[NC_KINDS] = {};
-  void nonConformityWarning(NonConformity kind, const std::string& explanation);
 
   /**
    * Get the next characters at the position pos.
@@ -762,7 +754,7 @@ private:
   static Formula* makeJunction(Connective c,Formula* lhs,Formula* rhs);
   void unitList();
   void fof(bool fo);
-  void tff();
+  void tff(bool tcf);
   void vampire();
   void consumeToken(Tag);
   std::string name();
@@ -915,8 +907,8 @@ private:
   static DHMap<unsigned, Map<unsigned,std::string, FnvHash>, FnvHash, IdentityHash> _questionVariableNames;
 
   /** Stores the type arities of function symbols */
-  DHMap<std::string, unsigned> _typeArities;
-  DHMap<std::string, unsigned> _typeConstructorArities;
+  DHMap<std::string, unsigned, FnvHash, LengthHash> _typeArities;
+  DHMap<std::string, unsigned, FnvHash, LengthHash> _typeConstructorArities;
 
   bool _filterReserved;
 

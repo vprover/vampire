@@ -17,7 +17,7 @@
 #define __ForwardDemodulation__
 
 #include "Forwards.hpp"
-#include "Indexing/TermIndex.hpp"
+#include "Indexing/DemodulationIndex.hpp"
 
 #include "DemodulationHelper.hpp"
 #include "InferenceEngine.hpp"
@@ -44,7 +44,7 @@ protected:
   const bool _skipNonequationalLiterals;
   const DemodulationHelper _helper;
   const Ordering& _ord;
-  std::shared_ptr<DemodulationLHSIndex<higherOrder>> _index;
+  std::shared_ptr<DemodulationLHSIndex> _index;
 };
 
 using ForwardDemodulationExtra = RewriteInferenceExtra;

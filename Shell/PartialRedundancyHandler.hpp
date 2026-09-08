@@ -43,6 +43,7 @@
 #include "Forwards.hpp"
 
 #include "Kernel/Ordering.hpp"
+#include "Kernel/TermPartialOrdering.hpp"
 
 #include "Lib/Stack.hpp"
 #include "Lib/SharedSet.hpp"

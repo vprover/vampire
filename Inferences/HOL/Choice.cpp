@@ -71,7 +71,7 @@ struct Choice::AxiomsIterator
     _choiceOps.loadFromIterator(env.signature->getChoiceOperators()->iter());
   }
 
-  DECL_ELEMENT_TYPE(Clause*);
+  using ElementType = Clause*;
 
   bool hasNext() {
     if (_curr) {
@@ -80,7 +80,7 @@ struct Choice::AxiomsIterator
 
     while (_choiceOps.isNonEmpty()) {
       auto op = _choiceOps.pop();
-      auto type = env.signature->getFunction(op)->fnType();
+      auto type = env.signature->getFunction(op)->type();
 
       static TermStack typeArgs;
       typeArgs.reset();
@@ -104,7 +104,7 @@ struct Choice::AxiomsIterator
     return false;
   }
 
-  OWN_ELEMENT_TYPE next()
+  ElementType next()
   {
     Clause* res = nullptr;
     std::swap(res, _curr);

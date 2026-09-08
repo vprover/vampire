@@ -38,7 +38,7 @@ TermList doInvertMulInt(const InversionContext &ctxt);
 template <class Number> bool nonZero(const TermList &t);
 
 bool dtorIsPredicate(Signature::Symbol const& ctor, unsigned index) 
-{ return ctor.fnType()->arg(index) == AtomicSort::boolSort(); }
+{ return ctor.type()->arg(index) == AtomicSort::boolSort(); }
 
 Option<TermList> tryInvertLinMul(InversionContext const& ctxt, IntTraits n) {
     return asig(n)

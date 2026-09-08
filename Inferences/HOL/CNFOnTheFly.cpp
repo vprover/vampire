@@ -19,6 +19,7 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/RobSubstitution.hpp"
 #include "Kernel/SortHelper.hpp"
 
 #include "Shell/Skolem.hpp"
@@ -214,7 +215,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
             if(results.hasNext()){
               auto tqr = results.next();
               TermList skolemTerm = tqr.data->value;
-              skolemTerm = tqr.unifier->apply(skolemTerm);
+              skolemTerm = tqr.unifier.apply(skolemTerm);
               newTerm = HOL::create::app(srt, args[0], skolemTerm);
               newTermCreated = true;
             }
@@ -349,7 +350,7 @@ TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt){
 
   // TODO Double check this arrow sort, as the order changed. By the looks of it, it was also wrong here.
   TermList skSymSort = AtomicSort::arrowSort(termVarSorts, resultSort);
-  unsigned fun = Skolem::addSkolemFunction(typeVars.size(), typeVars.size(), 0, skSymSort);
+  unsigned fun = Skolem::addSkolemFunction(typeVars.size(), TermStack(), skSymSort);
   TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
   TermList skolemTerm = HOL::create::app(head, termVars);
 

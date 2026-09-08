@@ -110,7 +110,7 @@ class AlascaPreprocessor
       // TODO divides
 
       auto sym = env.signature->getPredicate(f);
-      auto ty = sym->predType();
+      auto ty = sym->type();
       auto sorts_changed = false;
       auto intConv= [&](auto x) {
         auto out = integerConversion(TypedTermList(x, AtomicSort::superSort()));
@@ -122,11 +122,8 @@ class AlascaPreprocessor
         arg_sorts->push(intConv(ty->arg(i)));
       }
       if (sorts_changed) {
-        unsigned nf = env.signature->addFreshPredicate(sym->arity(), sym->name().c_str());
-        auto nsym = env.signature->getPredicate(nf);
-        auto nty = OperatorType::getPredicateType(sym->arity(), arg_sorts->begin(), ty->numTypeArguments());
-        nsym->setType(nty);
-        DEBUG_TRANSLATION(*sym, ": ", ty->toString(), " -> ", *nsym, ": ", nty->toString());
+        unsigned nf = env.signature->addFreshPredicate(OperatorType::getPredicateType(*arg_sorts, ty->numTypeArguments()), sym->name().c_str());
+        DEBUG_TRANSLATION(*sym, ": ", ty->toString(), " -> ", *env.signature->getPredicate(nf), ": ", nty->toString());
         return nf;
       } else {
         return f;
@@ -162,18 +159,15 @@ class AlascaPreprocessor
       };
 
       auto sym = env.signature->getFunction(f);
-      auto ty = sym->fnType();
-      Recycled<Stack<TermList>> sorts;
+      auto ty = sym->type();
+      Recycled<TermStack> sorts;
       for (auto i : range(0, ty->arity())) {
         sorts->push(intConv(ty->arg(i)));
       }
       auto res_sort = intConv(ty->result());
       if (sorts_changed) {
-        unsigned nf = env.signature->addFreshFunction(sym->arity(), sym->name().c_str());
-        auto nsym = env.signature->getFunction(nf);
-        auto nty = OperatorType::getFunctionType(sym->arity(), sorts->begin(), res_sort, ty->numTypeArguments());
-        nsym->setType(nty);
-        DEBUG_TRANSLATION(*sym, ": ", ty->toString(), " -> ", *nsym, ": ", nty->toString());
+        unsigned nf = env.signature->addFreshFunction(OperatorType::getFunctionType(*sorts, res_sort, ty->numTypeArguments()), sym->name().c_str());
+        DEBUG_TRANSLATION(*sym, ": ", ty->toString(), " -> ", *env.signature->getFunction(nf), ": ", nty->toString());
         return nf;
       } else {
         return f;
@@ -248,7 +242,7 @@ public:
             && !R::isLinMul(func.value())
             ) {
           auto sym = env.signature->getFunction(func.value());
-          if (orig_sym->fnType()->result() == Z::sort()) {
+          if (orig_sym->type()->result() == Z::sort()) {
             auto t = TermList(Term::createFromIter(func.value(), range(0, sym->arity()).map([](auto x) { return TermList::var(x); })));
             auto inf = Inference(NonspecificInference0(UnitInputType::AXIOM,
                   InferenceRule::ALASCA_INTEGRALITY_AXIOM));

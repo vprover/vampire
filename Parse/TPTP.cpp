@@ -91,12 +91,55 @@ static const int APP_ABSORB = -4;
 /** true for the two "tight subformula" contexts above */
 static bool tightContext(int con) { return con == EQ_RHS || con == APP_ABSORB; }
 
+/** Kinds of input that are not legal per the TPTP BNF but that we accept
+ * leniently, inventing a reading (see nonConformityWarning). */
+enum NonConformity {
+  /** '~ s = t' read as '~ (s = t)' */
+  NC_NOT_APPLIED_TO_EQUALITY,
+  /** 'p & f @ x' read as 'p & (f @ x)' */
+  NC_UNPARENTHESIZED_APPLICATION,
+  /** 'r = ~ s' read as 'r = (~ s)'; 'g = ^[X]: t' as 'g = (^[X]: t)' */
+  NC_NON_UNITARY_EQUALITY_ARGUMENT,
+  /** 'r = s = t' read as 'r = (s = t)' */
+  NC_CHAINED_EQUALITY,
+  /** the number of kinds above */
+  NC_KINDS
+};
+
+/** the reading invented for each kind, as reported to the user */
+static const char* const NON_CONFORMITY_EXPLANATION[NC_KINDS] = {
+  "'~' applied to an unparenthesized (in)equality is not legal THF; reading '~ s = t' as '~ (s = t)'",
+  "an unparenthesized application as a connective argument is not legal THF; reading e.g. 'p & f @ x' as 'p & (f @ x)'",
+  "a unary, quantified or lambda formula as an unparenthesized equality argument is not legal THF; reading e.g. 'r = ~ s' as 'r = (~ s)'",
+  "a chained equality is not legal THF; reading 'r = s = t' right-associatively as 'r = (s = t)'"
+};
+
+/** which non-conformity kinds have already been warned about in this run
+ * (a run may parse several pieces of input, each with its own parser) */
+static bool nonConformityWarned[NC_KINDS] = {};
+
+/**
+ * Report (at most once per kind and run) that Vampire leniently accepted
+ * input that is not legal according to the TPTP BNF, explaining the reading
+ * it chose.
+ */
+static void nonConformityWarning(NonConformity kind, const std::filesystem::path& path, unsigned lineNumber)
+{
+  if (nonConformityWarned[kind]) {
+    return;
+  }
+  nonConformityWarned[kind] = true;
+  std::cout << "% WARNING: non-conforming THF input in " << path
+            << ", line " << lineNumber << ": " << NON_CONFORMITY_EXPLANATION[kind]
+            << " (further occurrences of this kind will not be reported in this run)" << endl;
+}
+
 Unit* TPTP::parseFormulaFromString(const std::string& str)
 {
   std::stringstream input(str+")."); // to fake endFOF, which creates the clause
   Parse::TPTP parser(input, "<string>");
   parser._lastInputType = UnitInputType::AXIOM;
-  parser._bools.push(true);     // true is what fof/tff normally pushes (but we start "from the middle")
+  parser._lastDialect = Dialect::FOF; // what fof/tff normally records (but we start "from the middle")
   parser._strings.push("dummy_name");
   parser._states.push(END_FOF);  // this is what does the clause building
   parser.parseImpl(FORMULA);
@@ -111,6 +154,7 @@ TPTP::TPTP(std::istream &in, std::filesystem::path path, UnitList::FIFO unitBuff
   : _containsConjecture(false),
     currentFile { &in, {}, path, 1 },
     _units(unitBuffer),
+    _lastDialect(Dialect::FOF),
     _isThf(false),
     _containsPolymorphism(false),
     _currentColor(COLOR_TRANSPARENT),
@@ -167,8 +211,13 @@ void TPTP::parseImpl(State initialState)
       break;
     case THF:
       _isThf = true;
+      tff(false);
+      break;
     case TFF:
-      tff();
+      tff(false);
+      break;
+    case TCF:
+      tff(true);
       break;
     case CNF:
       fof(false);
@@ -285,7 +334,6 @@ void TPTP::parseImpl(State initialState)
       symbolDefinition();
       break;
     case TUPLE_DEFINITION:
-      if(!env.options->newCNF()){ USER_ERROR("Set --newcnf on if using tuples"); }
       tupleDefinition();
       break;
     case END_LET:
@@ -295,7 +343,6 @@ void TPTP::parseImpl(State initialState)
       endTheoryFunction();
       break;
     case END_TUPLE:
-      if(!env.options->newCNF()){ USER_ERROR("Set --newcnf on if using tuples"); }
       endTuple();
       break;
     default:
@@ -756,7 +803,7 @@ void TPTP::skipWhiteSpacesAndComments()
       if (c == 0) {
         resetChars();
         getChar(0);
-	return;
+        return;
       }
       if (c == '\n') {
         currentFile.lineNumber++;
@@ -775,43 +822,43 @@ void TPTP::skipWhiteSpacesAndComments()
         }
 #endif
         resetChars();
-	break;
+        break;
       }
     }
     break;
 
     case '/': // potential comment
       if (getChar(1) != '*') {
-	return;
+        return;
       }
       resetChars();
       // search for the end of this comment
       for (;;) {
-	int c = getChar(0);
+        int c = getChar(0);
         if( c == '\n' || c == '\r'){
           currentFile.lineNumber++;
           if (c == '\r' && getChar(1) == '\n') {
             shiftChars(1); // count a CRLF line ending only once
           }
         }
-	if (!c) {
-	  return;
-	}
-	// shiftChars instead of resetChars, as the CRLF check above may have peeked one character ahead
-	shiftChars(1);
-	if (c != '*') {
-	  continue;
-	}
-	// c == '*'
-	c = getChar(0);
-	if (c != '/') {
-	  // do not consume: this character must be re-examined from the top
-	  // of the loop (it may be another '*' starting the closing '*/',
-	  // or a newline that needs counting)
-	  continue;
-	}
-	shiftChars(1);
-	break;
+        if (!c) {
+          return;
+        }
+        // shiftChars instead of resetChars, as the CRLF check above may have peeked one character ahead
+        shiftChars(1);
+        if (c != '*') {
+          continue;
+        }
+        // c == '*'
+        c = getChar(0);
+        if (c != '/') {
+          // do not consume: this character must be re-examined from the top
+          // of the loop (it may be another '*' starting the closing '*/',
+          // or a newline that needs counting)
+          continue;
+        }
+        shiftChars(1);
+        break;
       }
       break;
 
@@ -1260,7 +1307,7 @@ void TPTP::unitList()
     return;
   }
   if (tok.tag != T_NAME) {
-    PARSE_ERROR_TOK("cnf(), fof(), tff(), thf(), vampire() or include() expected",tok);
+    PARSE_ERROR_TOK("cnf(), fof(), tff(), tcf(), thf(), vampire() or include() expected",tok);
   }
   std::string name(tok.content);
   _states.push(UNIT_LIST);
@@ -1284,6 +1331,11 @@ void TPTP::unitList()
     resetToks();
     return;
   }
+  if (name == "tcf") {
+    _states.push(TCF);
+    resetToks();
+    return;
+  }
   if (name == "vampire") {
     _states.push(VAMPIRE);
     resetToks();
@@ -1294,7 +1346,7 @@ void TPTP::unitList()
     resetToks();
     return;
   }
-  PARSE_ERROR_TOK("cnf(), fof(), tff(), thf(), vampire() or include() expected",tok);
+  PARSE_ERROR_TOK("cnf(), fof(), tff(), tcf(), thf(), vampire() or include() expected",tok);
 }
 
 /**
@@ -1304,13 +1356,13 @@ void TPTP::unitList()
  *  <li>save the input type to _lastInputType</li>
  *  <li>add unit name to _strings</li>
  *  <li>add to _states END_FOF,FORMULA</li>
- *  <li>adds to _bools true, if fof and false, if cnf</li>
+ *  <li>records in _lastDialect whether this is fof or cnf</li>
  * </ol>
  * @since 10/04/2011 Manchester
  */
 void TPTP::fof(bool fo)
 {
-  _bools.push(fo);
+  _lastDialect = fo ? Dialect::FOF : Dialect::CNF;
   consumeToken(T_LPAR);
   // save the name of this unit
   Token& tok = getTok(0);
@@ -1373,18 +1425,20 @@ void TPTP::fof(bool fo)
 } // fof()
 
 /**
- * Process fof() or cnf() declaration. Does the following:
+ * Process tff(), thf() or tcf() declaration. Does the following:
  * <ol>
  *  <li>add 0 to _formulas</li>
  *  <li>save the input type to _lastInputType</li>
  *  <li>add unit name to _strings</li>
  *  <li>add to _states END_FOF,FORMULA</li>
- *  <li>adds to _bools true, if fof and false, if cnf</li>
+ *  <li>records in _lastDialect whether this is tcf (which must end up a clause) or not</li>
  * </ol>
+ * A tcf() unit is read exactly as a tff() one; that it really is a (universally closed)
+ * clause is only checked at the very end, in endFof().
  * @since 10/04/2011 Manchester
  * @author Andrei Voronkov
  */
-void TPTP::tff()
+void TPTP::tff(bool tcf)
 {
   consumeToken(T_LPAR);
   // save the name of this unit
@@ -1424,17 +1478,14 @@ void TPTP::tff()
         unsigned arity = getConstructorArity();
         bool added = false;
         unsigned fun = env.signature->addTypeCon(nm, arity, added);
-        Signature::Symbol* symbol = env.signature->getTypeCon(fun);
-        OperatorType* ot = OperatorType::getTypeConType(arity);
         if (!added) {
-          if(symbol->fnType()!=ot){
+          if(env.signature->getTypeCon(fun)->type() != OperatorType::getTypeConType(arity)){
             PARSE_ERROR_TOK("Type constructor declared with two different types",tok);
           }
-        } else{
-          symbol->setType(ot);  
+        } else {
           _typeConstructorArities.insert(nm, arity);
-        }       
-        //cout << "added type constructor " + nm + " of type " + symbol->fnType()->toString() << endl;
+        }
+        //cout << "added type constructor " + nm + " of type " + symbol->type()->toString() << endl;
         while (lpars--) {
           consumeToken(T_RPAR);
         }
@@ -1452,7 +1503,7 @@ void TPTP::tff()
     return;
   }
 
-  _bools.push(true); // to denote that it is an FOF formula
+  _lastDialect = tcf ? Dialect::TCF : Dialect::FOF;
   _isQuestion = false;
   if(_modelDefinition){
     _lastInputType = UnitInputType::MODEL_DEFINITION;
@@ -1520,8 +1571,7 @@ void TPTP::holFormula()
   switch (tok.tag) {
   case T_NOT:
     if (!_connectives.isEmpty() && _connectives.top() == EQ_RHS) {
-      nonConformityWarning(NC_NON_UNITARY_EQUALITY_ARGUMENT,
-        "a unary, quantified or lambda formula as an unparenthesized equality argument is not legal THF; reading e.g. 'r = ~ s' as 'r = (~ s)'");
+      nonConformityWarning(NC_NON_UNITARY_EQUALITY_ARGUMENT, currentFile.path, currentFile.lineNumber);
     }
     resetToks();
     _connectives.push(NOT);
@@ -1547,8 +1597,7 @@ void TPTP::holFormula()
    // _states.push(UNBIND_VARIABLES);
   case T_LAMBDA:
     if (!_connectives.isEmpty() && _connectives.top() == EQ_RHS) {
-      nonConformityWarning(NC_NON_UNITARY_EQUALITY_ARGUMENT,
-        "a unary, quantified or lambda formula as an unparenthesized equality argument is not legal THF; reading e.g. 'r = ~ s' as 'r = (~ s)'");
+      nonConformityWarning(NC_NON_UNITARY_EQUALITY_ARGUMENT, currentFile.path, currentFile.lineNumber);
     }
     resetToks();
     consumeToken(T_LBRA);
@@ -1747,22 +1796,6 @@ std::string TPTP::convert(Tag t)
   * @author Ahmed Bhayat
   */
 
-/**
- * Report (at most once per parser run per kind) that Vampire leniently
- * accepted input that is not legal according to the TPTP BNF, explaining
- * the reading it chose.
- */
-void TPTP::nonConformityWarning(NonConformity kind, const std::string& explanation)
-{
-  if (_nonConformityWarned[kind]) {
-    return;
-  }
-  _nonConformityWarned[kind] = true;
-  std::cout << "% WARNING: non-conforming THF input in " << currentFile.path
-            << ", line " << currentFile.lineNumber << ": " << explanation
-            << " (further occurrences of this kind will not be reported in this run)" << endl;
-}
-
 void TPTP::endHolFormula()
 {
   int con = _connectives.pop();
@@ -1785,8 +1818,7 @@ void TPTP::endHolFormula()
     // '~ p = q' reads as '~ (p = q)', consistent with the reading the TPTP
     // BNF mandates for the same text in FOF/TFF.
     if (con == NOT) {
-      nonConformityWarning(NC_NOT_APPLIED_TO_EQUALITY,
-        "'~' applied to an unparenthesized (in)equality is not legal THF; reading '~ s = t' as '~ (s = t)'");
+      nonConformityWarning(NC_NOT_APPLIED_TO_EQUALITY, currentFile.path, currentFile.lineNumber);
     }
     _connectives.push(con);
     _states.push(END_HOL_FORMULA);
@@ -1830,8 +1862,7 @@ void TPTP::endHolFormula()
     //   makes '~ (...)' a complete <thf_prefix_unary>, so a following '@'
     //   belongs to the enclosing context: '^ [X: a] : ~ ( p @ X ) @ y'
     //   applies the lambda (whose body is '~ (p @ X)') to y.
-    nonConformityWarning(NC_UNPARENTHESIZED_APPLICATION,
-      "an unparenthesized application as a connective argument is not legal THF; reading e.g. 'p & f @ x' as 'p & (f @ x)'");
+    nonConformityWarning(NC_UNPARENTHESIZED_APPLICATION, currentFile.path, currentFile.lineNumber);
     if (_lastPushed == FORM) {
       // a parenthesized formula, e.g. '(q | r)' in 'p & (q | r) @ x', becomes
       // the head of the application chain: wrap it as a term first
@@ -1949,8 +1980,7 @@ switch (tag) {
       return;
     }
     if (con == EQ_RHS) {
-      nonConformityWarning(NC_CHAINED_EQUALITY,
-        "a chained equality is not legal THF; reading 'r = s = t' right-associatively as 'r = (s = t)'");
+      nonConformityWarning(NC_CHAINED_EQUALITY, currentFile.path, currentFile.lineNumber);
     }
     // as in endFormula(), restore the pending connective (with its conReverse
     // flag) and re-push END_HOL_FORMULA, so that once the equality atom is
@@ -2596,13 +2626,8 @@ void TPTP::endLetTypes()
   bool isPredicate = type->isPredicateType();
 
   unsigned functor = isPredicate
-                  ? env.signature->addFreshPredicate(arity, name.c_str())
-                  : env.signature->addFreshFunction(arity,  name.c_str());
-  Signature::Symbol *symbol = isPredicate
-    ? env.signature->getPredicate(functor)
-    : env.signature->getFunction(functor);
-
-  symbol->setType(type);
+                  ? env.signature->addFreshPredicate(type, name.c_str())
+                  : env.signature->addFreshFunction(type, name.c_str());
 
   auto ivars = TermStack::fromIterator(iterTraits(iTypeVars.iterator())
     .map(unsignedToVarFn));
@@ -2685,7 +2710,17 @@ void TPTP::definition()
           return;
 
         case T_LBRA:
+          // a tuple definition heading a list of simultaneous definitions;
+          // consume the tuple's first name and the comma after it, just like
+          // in the non-simultaneous case above
           resetToks();
+          if (getTok(0).tag != T_NAME) {
+            PARSE_ERROR_TOK("name expected", getTok(0));
+          }
+          _strings.push(name());
+          if (getTok(0).tag == T_COMMA) {
+            resetToks();
+          }
           _bools.push(true); // is a simultaneous definition
           addTagState(T_RBRA);
           _states.push(TUPLE_DEFINITION);
@@ -2710,7 +2745,16 @@ void TPTP::midDefinition()
       break;
 
     case T_LBRA:
+      // a tuple definition inside a list of simultaneous definitions;
+      // TUPLE_DEFINITION expects the first name of the tuple on _strings
       resetToks();
+      if (getTok(0).tag != T_NAME) {
+        PARSE_ERROR_TOK("name expected", getTok(0));
+      }
+      _strings.push(name());
+      if (getTok(0).tag == T_COMMA) {
+        resetToks();
+      }
       _states.push(TUPLE_DEFINITION);
       break;
 
@@ -2763,8 +2807,8 @@ void TPTP::symbolDefinition()
 
   if (arity > 0) {
     OperatorType* type = isPredicate
-                       ? env.signature->getPredicate(symbol)->predType()
-                       : env.signature->getFunction(symbol)->fnType();
+                       ? env.signature->getPredicate(symbol)->type()
+                       : env.signature->getFunction(symbol)->type();
 
     // Given a binding f(X1,...,Xn) := t, we now quantify variables X1,...,Xn.
     // However, if the type of f contained implicit type variables Y1,...,Ym,
@@ -2798,7 +2842,7 @@ void TPTP::symbolDefinition()
  */
 void TPTP::tupleDefinition()
 {
-  Set<std::string> uniqueConstants;
+  Set<std::string, FnvHash> uniqueConstants;
   Stack<unsigned> symbols;
   TermStack sorts;
 
@@ -2822,7 +2866,7 @@ void TPTP::tupleDefinition()
     symbols.push(symbol);
     TermList sort = isPredicate
                   ? AtomicSort::boolSort()
-                  : env.signature->getFunction(symbol)->fnType()->result();
+                  : env.signature->getFunction(symbol)->type()->result();
     auto subst = getTypeSub(ref);
     sorts.push(SubstHelper::apply(sort, subst));
 
@@ -2840,7 +2884,7 @@ void TPTP::tupleDefinition()
 
   LetDefinitions definitions = _letDefinitions.pop();
   // TODO tuple $lets probably also need adjusting with polymorphic (implicit) types
-  definitions.push(LetSymbolReference{ tupleFunctor, false, std::move(sorts) });
+  definitions.push(LetSymbolReference{ tupleFunctor, false, std::move(sorts), /*isTuple=*/true });
   _letDefinitions.push(definitions);
 
   VList* constants = VList::empty();
@@ -2864,7 +2908,7 @@ void TPTP::endDefinition()
 
   TermList refSort = isPredicate
                      ? AtomicSort::boolSort()
-                     : env.signature->getFunction(symbol)->fnType()->result();
+                     : env.signature->getFunction(symbol)->type()->result();
 
   // Before checking the argument sorts, we must substitute in implicit type variables.
   auto subst = getTypeSub(ref);
@@ -2939,11 +2983,11 @@ void TPTP::endLet()
     VList* varList = _varLists.pop();
     TermList body = _termLists.pop();
 
-    bool isTuple = false;
-    if (!isPredicate) {
-      TermList resultSort = env.signature->getFunction(symbol)->fnType()->result();
-      isTuple = resultSort.isTupleSort();
-    }
+    // note that this cannot be decided by looking at the result sort of symbol:
+    // an ordinary $let-bound symbol may have a tuple sort as well, and then it
+    // is bound as a single symbol and has no list of tuple constants
+    bool isTuple = ref.isTuple;
+    ASS(!isTuple || !isPredicate);
 
     // Implicit type variables come first, then the rest
     TermStack args = ref.iTypeArgs;
@@ -2955,7 +2999,7 @@ void TPTP::endLet()
           args.emplace(Term::createFormula(new AtomicFormula(Literal::create(fn, true, {}))));
         } else {
           // otherwise we have to match its result type with the actual sort
-          auto argType = env.signature->getFunction(fn)->fnType();
+          auto argType = env.signature->getFunction(fn)->type();
           ASS_EQ(argType->arity()-argType->numTypeArguments(),0);
           Substitution subst;
           MatchingUtils::matchTerms(argType->result(), ref.iTypeArgs[i], subst);
@@ -3206,11 +3250,8 @@ void TPTP::term()
       unsigned number;
       switch (tok.tag) {
         case T_STRING:
-          number = env.signature->addStringConstant(tok.content);
           // "distinct_object"s are _always_ of sort $i, even in typed contexts
-          env.signature->getFunction(number)->setType(
-            OperatorType::getConstantsType(AtomicSort::defaultSort())
-          );
+          number = env.signature->addStringConstant(tok.content, AtomicSort::defaultSort());
           break;
         case T_INT:
           number = addNumeralConstant<IntegerConstantType>(tok.content);
@@ -3470,7 +3511,7 @@ Formula* TPTP::createPredicateApplication(std::string name, unsigned arity)
       bool dummy;
       pred = addPredicate(name, arity, dummy, _termLists.top());
     } else {
-      pred = env.signature->addPredicate(name, 0);
+      pred = env.signature->addPredicate(name, OperatorType::getPredicateType({}, 0));
     }
   }
   if (pred == -1) { // equality
@@ -3515,7 +3556,7 @@ Formula* TPTP::createPredicateApplication(std::string name, unsigned arity)
   }
   // not equality or distinct
   auto args = nLastTermLists(arity);
-  OperatorType* type = env.signature->getPredicate(pred)->predType();
+  OperatorType* type = env.signature->getPredicate(pred)->type();
   for (auto i : range(0, arity)) {
     TermList sort = type->arg(i);
     TermList ts = args[i];
@@ -3572,7 +3613,7 @@ TermList TPTP::createFunctionApplication(std::string name, unsigned arity)
     }
   }
 
-  OperatorType* type = env.signature->getFunction(fun)->fnType();
+  OperatorType* type = env.signature->getFunction(fun)->type();
   auto args = nLastTermLists(arity);
   for (unsigned i : range(0, arity)) {
     TermList sort = type->arg(i);
@@ -3948,7 +3989,10 @@ void TPTP::endFof()
   consumeToken(T_DOT);
 
   _vars.reset();
-  bool isFof = _bools.pop();
+  // fof/tff/thf formulas must be closed, cnf ones may have free variables;
+  // tcf is both closed and a clause
+  const bool mustBeClosed = _lastDialect != Dialect::CNF;
+  const bool mustBeClause = _lastDialect != Dialect::FOF;
   Formula* f = _formulas.pop();
   std::string nm = _strings.pop(); // unit name
   if (!currentFile.allowedNames.empty() && !currentFile.allowedNames.count(nm)) {
@@ -3963,20 +4007,29 @@ void TPTP::endFof()
     _containsConjecture = true;
   }
 
+  if (mustBeClosed && freeVariables(f)) {
+    USER_ERROR("unquantified variable detected for a formula named '",nm,"'");
+  }
+
   Unit *unit, *original;
-  if (isFof) { // fof() or tff()
-    if (freeVariables(f)) {
-      USER_ERROR("unquantified variable detected for a formula named '",nm,"'");
-    }
+  if (!mustBeClause) { // fof() or tff()
     original = unit = new FormulaUnit(f,FromInput(_lastInputType));
     unit->setInheritedColor(_currentColor);
   }
-  else { // cnf()
-    // convert the input formula f to a clause
+  else { // cnf() or tcf()
+    Formula* body = f;
+    if (_lastDialect == Dialect::TCF) {
+      // a tcf clause comes wrapped in a universal prefix, which is there to carry
+      // the variable sorts; strict TCF allows exactly one, we tolerate a chain
+      while (body->connective() == FORALL) {
+        body = body->qarg();
+      }
+    }
+    // convert the input formula body to a clause
     Stack<Formula*> forms;
     Stack<Literal*> lits;
     Formula* g = nullptr;
-    forms.push(f);
+    forms.push(body);
     bool needsFlipDocumenting = false;
     while (! forms.isEmpty()) {
       g = forms.pop();
@@ -4042,7 +4095,9 @@ void TPTP::endFof()
 
   switch (_lastInputType) {
   case UnitInputType::CONJECTURE:
-    if(!isFof) USER_ERROR("conjecture is not allowed in cnf");
+    // negating a clause does not give a clause
+    if(mustBeClause) USER_ERROR("conjecture is not allowed in ",
+        _lastDialect == Dialect::CNF ? "cnf" : "tcf");
     {
       ASS_EQ(freeVariables(f),VList::empty())
       f = new NegatedFormula(f);
@@ -4077,7 +4132,7 @@ void TPTP::endFof()
 Unit* TPTP::processClaimFormula(Unit* unit, Formula * f, const std::string& nm)
 {
   bool added;
-  unsigned pred = env.signature->addPredicate(nm,0,added);
+  unsigned pred = env.signature->addPredicate(nm,OperatorType::getPredicateType(TermStack(), 0), added);
   if (!added) {
     USER_ERROR("Names of claims must be unique: "+nm);
   }
@@ -4135,17 +4190,12 @@ void TPTP::endTff()
   bool added;
   Signature::Symbol* symbol;
   if (isPredicate) {
-    unsigned pred = env.signature->addPredicate(name, arity, added);
+    unsigned pred = env.signature->addPredicate(name, ot, added);
     symbol = env.signature->getPredicate(pred);
     if (!added) {
       // GR: Multiple identical type declarations for a symbol are allowed
-      if(symbol->predType() != ot){
+      if(symbol->type() != ot){
         USER_ERROR("Predicate symbol type is declared after its use: " + name);
-      }
-    }
-    else{
-      if (arity != 0) {
-        symbol->setType(ot);
       }
     }
   } else if (isTypeCon){
@@ -4153,25 +4203,19 @@ void TPTP::endTff()
     symbol = env.signature->getTypeCon(typeCon);
     if (!added) {
       // GR: Multiple identical type declarations for a symbol are allowed
-      if(symbol->typeConType() != ot){
+      if(symbol->type() != ot){
         USER_ERROR("Type constructor type is declared after its use: " + name);
       }
     }
-    else{
-      symbol->setType(ot);
-    }
   } else {
-    unsigned fun = arity == 0
-                   ? addUninterpretedConstant(name, added)
-                   : env.signature->addFunction(name, arity, added);
+    unsigned fun = env.signature->addFunction(name, ot, added);
     symbol = env.signature->getFunction(fun);
     if (!added) {
-      if(symbol->fnType() != ot){
+      if(symbol->type() != ot){
         USER_ERROR("Function symbol type is declared after its use: " + name);
       }
     }
     else {   
-      symbol->setType(ot);
       //TODO check whether the below is actually required or not.
       if(_isThf){
         if(!_typeArities.insert(name, ot->numTypeArguments())){
@@ -4268,7 +4312,6 @@ OperatorType* TPTP::constructOperatorType(Type* t, VList* vars, DHSet<unsigned, 
   }
 
   bool isPredicate = resultSort == AtomicSort::boolSort();
-  unsigned arity = (unsigned)argumentSorts.size();
 
   if(_containsPolymorphism){
     SortHelper::normaliseArgSorts(vars, argumentSorts);
@@ -4276,9 +4319,9 @@ OperatorType* TPTP::constructOperatorType(Type* t, VList* vars, DHSet<unsigned, 
   }
 
   if (isPredicate && !_isThf) { //in THF, we treat predicates and boolean terms the same
-    return OperatorType::getPredicateType(arity, argumentSorts.begin(), VList::length(vars));
+    return OperatorType::getPredicateType(argumentSorts, VList::length(vars));
   } else {
-    return OperatorType::getFunctionType(arity, argumentSorts.begin(), resultSort, VList::length(vars));
+    return OperatorType::getFunctionType(argumentSorts, resultSort, VList::length(vars));
   }
 } // constructOperatorType
 
@@ -4984,7 +5027,7 @@ unsigned TPTP::addFunction(std::string name,int arity,bool& added,TermList& arg)
     return env.signature->getPiSigmaProxy(name);
   }
   if (arity > 0) {
-    return env.signature->addFunction(name,arity,added);
+    return env.signature->addFunction(name,OperatorType::getFunctionTypeUniformRange(arity, AtomicSort::defaultSort(), AtomicSort::defaultSort(), 0), added);
   }
   return addUninterpretedConstant(name,added);
 } // addFunction
@@ -5052,7 +5095,7 @@ int TPTP::addPredicate(std::string name,int arity,bool& added,TermList& arg)
     // special case for distinct, dealt with in formulaInfix
     return -2;
   }
-  return env.signature->addPredicate(name,arity,added);
+  return env.signature->addPredicate(name, OperatorType::getPredicateTypeUniformRange(arity, AtomicSort::defaultSort()), added);
 } // addPredicate
 
 
@@ -5157,7 +5200,7 @@ unsigned TPTP::addUninterpretedConstant(const std::string& name, bool& added)
   // constants in any input dialect (including FOF and SMT-LIB, which
   // additionally left `added` uninitialized on that path). It now happens
   // in createFunctionApplication()/addFunction(), only in THF mode.
-  return env.signature->addFunction(name,0,added);
+  return env.signature->addFunction(name,OperatorType::getConstantsType(AtomicSort::defaultSort(),0),added);
 } // TPTP::addUninterpretedConstant
 
 /**
@@ -5246,7 +5289,9 @@ void TPTP::vampire()
     if (!uncomputable) {
       env.colorUsed = true;
     }
-    unsigned f = pred ? env.signature->addPredicate(symb,arity) : env.signature->addFunction(symb,arity);
+    unsigned f = pred
+      ? env.signature->addPredicate(symb, OperatorType::getPredicateTypeUniformRange(arity, AtomicSort::defaultSort()))
+      : env.signature->addFunction(symb, OperatorType::getFunctionTypeUniformRange(arity, AtomicSort::defaultSort(), AtomicSort::defaultSort()));
     Signature::Symbol* sym = pred ? env.signature->getPredicate(f) : env.signature->getFunction(f);
     if (skip) {
       sym->markSkip();
@@ -5346,6 +5391,8 @@ const char* TPTP::toString(State s)
     return "TFF";
   case THF:
     return "THF";
+  case TCF:
+    return "TCF";
   case TYPE:
     return "TYPE";
   case END_TFF:
