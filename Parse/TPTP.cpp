@@ -1748,8 +1748,12 @@ void TPTP::holTerm()
     }    
     case T_NAME:{
       //AYB must be a nicer way of dealing with this?
+      if(name == "$distinct"){
+        // the latest TPTP BNF does allow it in thf, always in functional form
+        USER_ERROR("$distinct is not supported in thf");
+      }
       if(name.at(0) == '$'){
-        USER_ERROR("Vampire higher-order is currently not compatible with theory reasoning");    
+        USER_ERROR("Vampire higher-order is currently not compatible with theory reasoning");
       }
       readTypeArgs(arity);
       _termLists.push(createFunctionApplication(name, arity)); // arity
@@ -3465,51 +3469,49 @@ Formula* TPTP::createPredicateApplication(std::string name, unsigned arity)
     return new AtomicFormula(l, lhs != l->termArg(0));
   }
   if (pred == -2){ // distinct
-    // TODO check that we are top-level
-
     // ignore pointless $distinct(x)
     if(arity < 2) {
       _termLists.pop(arity);
       return new Formula(true);
     }
 
-    // the arguments must be constants of one and the same sort; a distinct group of
-    // mixed sorts would make DistinctGroupExpansion build ill-sorted disequalities
-    TermList sort = TermList::empty();
-    auto checkArg = [&sort](TermList t) {
-      if(!t.isTerm() || t.term()->arity()!=0){
-        USER_ERROR("$distinct can only be used with constants. Found "+t.toString());
-      }
-      TermList argSort = SortHelper::getResultSort(t.term());
-      if(sort.isEmpty()){
-        sort = argSort;
-      } else if(sort != argSort){
-        USER_ERROR("$distinct can only be used with constants of the same sort. Found "+
-          t.toString()+" of sort "+argSort.toString()+" among constants of sort "+sort.toString());
-      }
-    };
-
-    // If fewer than 5 things are distinct then we add the disequalities
-    if(arity < 5){
-      static Stack<unsigned> distincts;
-      distincts.reset();
-      for(int i=arity-1;i >= 0; i--){
-        TermList t = _termLists.pop();
-        checkArg(t);
-        distincts.push(t.term()->functor());
-      }
-      Formula* distinct_formula = DistinctGroupExpansion(0 /* zero means "always expand"*/).expand(distincts);
-      return distinct_formula;
-    }else{
-      // Otherwise record them as being in a distinct group
-      unsigned grpIdx = env.signature->createDistinctGroup(0);
-      for(int i = arity-1;i >=0; i--){
-        TermList ts = _termLists.pop();
-        checkArg(ts);
-        env.signature->addToDistinctGroup(ts.term()->functor(),grpIdx);
-      }
-      return new Formula(true); // we ignore it, it evaluates to true as we have recorded it elsewhere
+    // Whether this occurrence can be recorded as a distinct group depends on where in
+    // the formula it sits, which we cannot tell from here. So just build a marker
+    // literal; Shell/DistinctGroupExpansion eliminates it once the unit is complete.
+    if(_lastDialect != Dialect::FOF){
+      USER_ERROR("$distinct is not supported in ",
+        _lastDialect == Dialect::CNF ? "cnf" : "tcf", ", only in fof/tff");
     }
+
+    auto args = nLastTermLists(arity);
+    // all the arguments must have the same sort, or the disequalities the marker
+    // stands for would be ill-sorted
+    TermList sort = sortOf(args[0]);
+    for (auto i : range(1u, arity)) {
+      TermList argSort = sortOf(args[i]);
+      if(argSort != sort){
+        USER_ERROR("$distinct can only be used with constants of the same sort. Found ",
+          args[i], " of sort ", argSort, " among constants of sort ", sort);
+      }
+    }
+
+    Formula* out;
+    if(sort.isVar() || !sort.term()->ground()){
+      // a marker predicate for a non-ground sort would have to be polymorphic. Such an
+      // occurrence could never become a distinct group anyway -- a group holds constants,
+      // and here the arguments are typically the quantified variables the sort comes
+      // from -- so just expand it right away.
+      Stack<TermList> terms(arity);
+      for (auto i : range(0u, arity)) {
+        terms.push(args[i]);
+      }
+      out = DistinctGroupExpansion(0).expandTerms(terms,sort);
+    } else {
+      out = new AtomicFormula(Literal::create(
+        env.signature->getDistinctPredicate(arity,sort), arity, /* polarity */ true, args));
+    }
+    _termLists.pop(arity);
+    return out;
   }
   // not equality or distinct
   auto args = nLastTermLists(arity);

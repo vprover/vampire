@@ -295,6 +295,24 @@ check_rejected '$distinct can only be used with constants of the same sort' --in
 check_szs_status Satisfiable parse/distinct-group-singleton.p
 check_szs_status Satisfiable parse/distinct-group-pair.p
 check_szs_status GaveUp -dgel 1 parse/distinct-group-pair.p
+# $distinct only holds unconditionally at a positive top level; anywhere else it
+# has to be expanded rather than recorded as a distinct group
+check_szs_status Satisfiable parse/distinct-negated.p
+check_szs_status CounterSatisfiable parse/distinct-conjecture.p
+check_szs_status CounterSatisfiable parse/distinct-disjunct.p
+check_szs_status Theorem parse/distinct-terms.p
+# the good case, whether the group is expanded (-dgel 0) or survives (-dgel 1)
+check_szs_status Theorem parse/distinct-toplevel.p
+check_szs_status Theorem -dgel 0 parse/distinct-toplevel.p
+check_szs_status Theorem -dgel 1 parse/distinct-toplevel.p
+check_szs_status Theorem parse/distinct-nested-and.p
+check_szs_status Theorem -dgel 1 parse/distinct-nested-and.p
+# $distinct now survives parsing, so --mode output no longer silently loses it
+check_output_contains '$distinct(a,b,c,d,e,f)' --mode output parse/distinct-toplevel.p
+check_rejected '$distinct is not supported in cnf' --input_syntax tptp --mode output parse/distinct-cnf.p
+check_rejected '$distinct is not supported in thf' --input_syntax tptp --mode output parse/distinct-thf.p
+# a $distinct at a non-ground sort gets no marker predicate, it is expanded at once
+check_szs_status Theorem parse/distinct-poly-sort.p
 # TPTP tcf (typed clause form), read and written. parse/SYN000-3.p is the TPTP
 # sample exercising every tcf construct; exact output, because what is under test
 # is that all of it parses and that --mode tclausify prints legal tcf.
