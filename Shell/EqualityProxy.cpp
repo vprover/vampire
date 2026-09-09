@@ -224,8 +224,7 @@ void EqualityProxy::addCongruenceAxioms(UnitList*& units)
   LiteralStack lits;
   TermList srt;
 
-  unsigned funs = env.signature->functions();
-  for (unsigned i=0; i<funs; i++) {
+  for (const auto& i : env.signature->functionSymbols()) {
     Signature::Symbol* fnSym = env.signature->getFunction(i);
     // can axiomatise equality _before_ preprocessing, so skip (some) introduced symbols
     if(!fnSym->usageCnt() || fnSym->skipCongruence())
@@ -250,8 +249,7 @@ void EqualityProxy::addCongruenceAxioms(UnitList*& units)
     UnitList::push(cl,units);
   }
 
-  unsigned preds = env.signature->predicates();
-  for (unsigned i = 1; i < preds; i++) {
+  for (const auto& i : env.signature->predicateSymbols()) {
     Signature::Symbol* predSym = env.signature->getPredicate(i);
     // can axiomatise equality _before_ preprocessing, so skip (some) introduced symbols
     if(!predSym->usageCnt() || predSym->skipCongruence())

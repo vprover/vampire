@@ -132,7 +132,6 @@ bool GoalGuessing::apply(Literal* lit)
     it.next(); // to move past the lit symbol 
     while(it.hasNext()){
       unsigned f = it.next();
-      if(f > env.signature->functions()){ continue; }
       unsigned unitUsageCnt = env.signature->getFunction(f)->unitUsageCnt();
       static unsigned unitUsageCntLimit = env.options->gtgLimit();
       if(unitUsageCnt <= unitUsageCntLimit){
