@@ -290,6 +290,7 @@ check_rejected 'must be declared as a constant of a proper sort: "f"' --input_sy
 check_rejected 'must be declared as a constant of a proper sort: "a"' --input_syntax tptp --mode output parse/distinct-objects-bool.p
 check_rejected 'must be declared as a constant of a proper sort: "a"' --input_syntax tptp --mode output parse/distinct-objects-ttype.p
 check_rejected 'Distinct object type is declared after its use' --input_syntax tptp --mode output parse/distinct-objects-clash.p
+check_rejected '$distinct can only be used with constants of the same sort' --input_syntax tptp --mode output parse/distinct-mixed-sorts.p
 # TPTP tcf (typed clause form), read and written. parse/SYN000-3.p is the TPTP
 # sample exercising every tcf construct; exact output, because what is under test
 # is that all of it parses and that --mode tclausify prints legal tcf.

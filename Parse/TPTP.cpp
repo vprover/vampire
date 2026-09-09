@@ -3472,15 +3472,30 @@ Formula* TPTP::createPredicateApplication(std::string name, unsigned arity)
       _termLists.pop(arity);
       return new Formula(true);
     }
+
+    // the arguments must be constants of one and the same sort; a distinct group of
+    // mixed sorts would make DistinctGroupExpansion build ill-sorted disequalities
+    TermList sort = TermList::empty();
+    auto checkArg = [&sort](TermList t) {
+      if(!t.isTerm() || t.term()->arity()!=0){
+        USER_ERROR("$distinct can only be used with constants. Found "+t.toString());
+      }
+      TermList argSort = SortHelper::getResultSort(t.term());
+      if(sort.isEmpty()){
+        sort = argSort;
+      } else if(sort != argSort){
+        USER_ERROR("$distinct can only be used with constants of the same sort. Found "+
+          t.toString()+" of sort "+argSort.toString()+" among constants of sort "+sort.toString());
+      }
+    };
+
     // If fewer than 5 things are distinct then we add the disequalities
-    else if(arity < 5){
+    if(arity < 5){
       static Stack<unsigned> distincts;
       distincts.reset();
       for(int i=arity-1;i >= 0; i--){
         TermList t = _termLists.pop();
-        if(t.isVar() || t.term()->arity()!=0){
-          USER_ERROR("$distinct can only be used with constants. Found "+t.toString());
-        }
+        checkArg(t);
         distincts.push(t.term()->functor());
       }
       Formula* distinct_formula = DistinctGroupExpansion(0 /* zero means "always expand"*/).expand(distincts);
@@ -3490,9 +3505,7 @@ Formula* TPTP::createPredicateApplication(std::string name, unsigned arity)
       unsigned grpIdx = env.signature->createDistinctGroup(0);
       for(int i = arity-1;i >=0; i--){
         TermList ts = _termLists.pop();
-        if(!ts.isTerm() || ts.term()->arity()!=0){
-          USER_ERROR("$distinct can only be used with constants. Found "+ts.toString());
-        }
+        checkArg(ts);
         env.signature->addToDistinctGroup(ts.term()->functor(),grpIdx);
       }
       return new Formula(true); // we ignore it, it evaluates to true as we have recorded it elsewhere

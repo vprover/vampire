@@ -100,7 +100,10 @@ Formula* DistinctGroupExpansion::expand(Stack<unsigned>& constants)
   if(constants.size()==2){
     TermList a = TermList(Term::createConstant(constants[0]));
     TermList b = TermList(Term::createConstant(constants[1]));
-    TermList sort = SortHelper::getResultSort(a.term()); //TODO where is the type of these constants set?
+    // the members of a group are all of the same sort: string constants are grouped by
+    // sort (Signature::getStringDistinctGroup) and $distinct checks its arguments
+    TermList sort = SortHelper::getResultSort(a.term());
+    ASS_EQ(SortHelper::getResultSort(b.term()),sort);
     return new AtomicFormula(Literal::createEquality(false,a,b,sort));
   }
 
@@ -115,7 +118,8 @@ Formula* DistinctGroupExpansion::expand(Stack<unsigned>& constants)
     for(unsigned j=0;j<i;j++){
       TermList b = TermList(Term::createConstant(constants[j]));
       ASS(b.isSafe());
-      
+      ASS_EQ(SortHelper::getResultSort(b.term()),sort);
+
       Formula* new_dis = new AtomicFormula(Literal::createEquality(false,a,b,sort));
       if(diseqs) FormulaList::push(new_dis,diseqs);
       else diseqs = new FormulaList(new_dis);
