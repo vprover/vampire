@@ -676,10 +676,7 @@ void CodeTree::Matcher<removing, checkRange, higherOrder>::init(const CodeTree& 
   tree=&tree_;
   canEnterOpposites=canEnterOpposites_;
 #if GROUND_TERM_CHECK
-  if (canEnterOpposites) {
-    // TODO: GROUND_TERM_CHECK is currently incompatible with opposite matching
-    ASSERTION_VIOLATION;
-  }
+  ASS(!canEnterOpposites);
 #endif
   entry=entry_;
   opposite=false;
