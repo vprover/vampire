@@ -43,6 +43,7 @@ void CNF::apply(Problem& prb)
 
   bool modified = false;
 
+  CNF cnf;
   UnitList::DelIterator us(prb.units());
   Stack<Clause*> clauses(32);
   while (us.hasNext()) {
@@ -58,7 +59,7 @@ void CNF::apply(Problem& prb)
       continue;
     }
     modified = true;
-    clausify(u,clauses);
+    cnf.clausify(u,clauses);
     while (! clauses.isEmpty()) {
       Unit* u = clauses.pop();
       if (static_cast<Clause*>(u)->isEmpty()) {

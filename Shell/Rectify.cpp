@@ -14,6 +14,7 @@
  * @since 23/01/2004 Manchester, changed to use non-static objects
  */
 
+#include "Kernel/Problem.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Recycled.hpp"
 #include "Lib/ScopedLet.hpp"
@@ -73,6 +74,11 @@ std::pair<Formula*,FormulaUnit*> Rectify::closeOverGivenVars(VList* vars, Formul
   }
   f = new QuantifiedFormula(FORALL, vsfifo.list(), f);
   return {f,new FormulaUnit(f,FormulaClauseTransformation(InferenceRule::CLOSURE,u))};
+}
+
+void Rectify::apply(Problem& prb)
+{
+  rectify(prb.units());
 }
 
 /**

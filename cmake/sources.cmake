@@ -101,6 +101,7 @@ set(UNIT_TESTS
     UnitTests/tOption.cpp
     UnitTests/tPredicateElimination.cpp
     UnitTests/tPreprocess_CNF.cpp
+    UnitTests/tPreprocess_Rectify.cpp
     UnitTests/tOptionConstraints.cpp
     UnitTests/tQKbo.cpp
     UnitTests/tQuotientE.cpp

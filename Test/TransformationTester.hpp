@@ -24,6 +24,7 @@
 #include "Forwards.hpp"
 
 #include "Kernel/Problem.hpp"
+#include "Lib/Environment.hpp"
 
 #include "Test/BuilderPattern.hpp"
 #include "Test/TestUtils.hpp"
@@ -33,15 +34,35 @@ namespace Test {
 
 namespace Transformation {
 
+inline bool deepEq(VSList* v1, VSList* v2) {
+  return iterTraits(v1->iter()).zip(v2->iter()).all([](auto p){ return p.first == p.second; });
+}
+
 inline bool deepEq(Formula* f1, Formula* f2) {
   if (f1->connective() != f2->connective()) {
     return false;
   }
   switch (f1->connective()) {
-    case LITERAL:
+    case Connective::LITERAL:
       return f1->literal() == f2->literal();
+    case Connective::NOT:
+      return deepEq(static_cast<NegatedFormula*>(f1)->subformula(), static_cast<NegatedFormula*>(f2)->subformula());
+    case Connective::AND:
+    case Connective::OR:
+      return iterTraits(static_cast<JunctionFormula*>(f1)->getArgs()->iter())
+        .zip(static_cast<JunctionFormula*>(f2)->getArgs()->iter())
+        .all([](auto p) { return deepEq(p.first, p.second); });
+    case Connective::IMP:
+    case Connective::IFF:
+    case Connective::XOR:
+      return deepEq(static_cast<BinaryFormula*>(f1)->lhs(), static_cast<BinaryFormula*>(f2)->lhs()) &&
+        deepEq(static_cast<BinaryFormula*>(f1)->rhs(), static_cast<BinaryFormula*>(f2)->rhs());
+    case Connective::FORALL:
+    case Connective::EXISTS:
+      return deepEq(static_cast<QuantifiedFormula*>(f1)->varList(), static_cast<QuantifiedFormula*>(f2)->varList()) &&
+        deepEq(static_cast<QuantifiedFormula*>(f1)->subformula(), static_cast<QuantifiedFormula*>(f2)->subformula());
     default:
-      ASSERTION_VIOLATION;
+      ASSERTION_VIOLATION_REP(f1->toString());
   }
 }
 
@@ -66,9 +87,9 @@ public:
   void run() {
 
     Problem p(UnitList::fromIterator(_input.iter()));
+    env.setMainProblem(&p);
 
-    Rule rule;
-    rule.apply(p);
+    Rule::apply(p);
 
     UnitStack actual = UnitStack::fromIterator(p.units()->iter());
     if (!TestUtils::permEq(actual, _expected, [&](auto act, auto exp) { return deepEq(act, exp); })) {
