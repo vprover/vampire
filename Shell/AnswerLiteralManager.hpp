@@ -299,12 +299,7 @@ private:
   static unsigned getITEFunctionSymbol(TermList sort) {
     std::string name = "$ite_" + sort.toString();
     bool added = false;
-    unsigned fn = env.signature->addFunction(name, 3, added);
-    if (added) {
-      Signature::Symbol* sym = env.signature->getFunction(fn);
-      sym->setType(OperatorType::getFunctionType({AtomicSort::defaultSort(), sort, sort}, sort));
-    }
-    return fn;
+    return env.signature->addFunction(name, OperatorType::getFunctionType({AtomicSort::defaultSort(), sort, sort}, sort), added);
   }
 
   ConjectureSkolemReplacement _skolemReplacement;
@@ -322,9 +317,9 @@ private:
 
   // Sets of <functor, isPredicate> pairs representing symbols that are:
   // 1. Marked as uncomputable in the input file
-  DHSet<std::pair<unsigned, bool>> _annotatedUncomputable;
+  DHSet<std::pair<unsigned, bool>, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>> _annotatedUncomputable;
   // 2. symbols introduced during proving, yet computable
-  DHSet<std::pair<unsigned, bool>> _introducedComputable;
+  DHSet<std::pair<unsigned, bool>, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>> _introducedComputable;
 };
 
 }

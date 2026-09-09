@@ -80,9 +80,8 @@ private:
 /**
  * Term index for forward demodulation
  */
-template<bool higherOrder>
 class DemodulationLHSIndex
-: public GeneralizingTermIndex<higherOrder, DemodulatorData>
+: public GeneralizingTermIndex<DemodulatorData>
 {
 public:
   DemodulationLHSIndex(SaturationAlgorithm& salg);

@@ -592,7 +592,7 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
       pred->markInGoal();
     }
 
-    OperatorType* type = pred->predType();
+    OperatorType* type = pred->type();
     if(type->numTypeArguments()){
       _hasPolymorphicSym = true;
     }
@@ -1182,9 +1182,9 @@ std::string Property::toSpider(const std::string& problemName) const
  * as a dictionary of key-valey (string) pairs. In particular,
  * Options::sampleStrategy is eagerly waiting for this to be able to do property-conditioned sampling.
  */
-DHMap<std::string,std::string> Property::toDict() const
+DHMap<std::string,std::string, FnvHash, LengthHash> Property::toDict() const
 {
-  DHMap<std::string,std::string> result;
+  DHMap<std::string,std::string, FnvHash, LengthHash> result;
   result.set("@hasFormulas",Int::toString(hasFormulas()));
   result.set("@hasEquality",Int::toString(equalityAtoms()>0));
   result.set("@hasFOOL",Int::toString(hasFOOL()));

@@ -242,12 +242,21 @@ struct VectorHash {
   }
 };
 
-template<class InnerHash> 
-struct TupleHash 
+// combine the hashes of a tuple's elements, one functor per element
+template<class... ElementHashes>
+struct TupleHash
 {
   template<typename... T>
+  static bool equals(std::tuple<T...> const& o1, std::tuple<T...> const& o2)
+  { return o1 == o2; }
+
+  template<typename... T>
   static unsigned hash(std::tuple<T...> const& s)
-  { return std::apply([](auto... args) { return HashUtils::combine(InnerHash::hash(args)...); }, s); }
+  {
+    static_assert(sizeof...(ElementHashes) == sizeof...(T),
+      "TupleHash takes one hash functor per tuple element");
+    return std::apply([](T... args) { return HashUtils::combine(ElementHashes::hash(args)...); }, s);
+  }
 };
 
 // combine HashFst of the first and HashSnd of the second element of a pair
@@ -365,9 +374,10 @@ public:
 
 
 
+  // std::tuple combines default hashes of its elements
   template<typename... T>
-  static unsigned hash(std::tuple<T...> const& s) 
-  { return TupleHash<DefaultHash>::hash(s); }
+  static unsigned hash(std::tuple<T...> const& s)
+  { return std::apply([](T... args) { return HashUtils::combine(DefaultHash::hash(args)...); }, s); }
 
   template<typename T>
   static unsigned hash(Lib::Option<T> const& o) 
@@ -431,9 +441,10 @@ public:
   template<typename T, typename U>
   static unsigned hash(const std::pair<T, U> &pp)
   { return PairHash<DefaultHash2, DefaultHash2>::hash(pp); }
+  // std::tuple combines default secondary hashes of its elements
   template<typename... T>
-  static unsigned hash(std::tuple<T...> const& s) 
-  { return TupleHash<DefaultHash2>::hash(s); }
+  static unsigned hash(std::tuple<T...> const& s)
+  { return std::apply([](T... args) { return HashUtils::combine(DefaultHash2::hash(args)...); }, s); }
 
   template<typename T>
   static unsigned hash(Lib::Option<T> const& o) 

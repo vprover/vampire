@@ -457,9 +457,7 @@ void TheoryInstAndSimp::ConstantCache::SortedConstantCache::reset()
 Term* TheoryInstAndSimp::ConstantCache::SortedConstantCache::freshConstant(const char* prefix, SortId sort) 
 { 
   if (_constants.size() == _used)  {
-    unsigned sym = env.signature->addFreshFunction(0, prefix);
-    env.signature->getFunction(sym)
-                 ->setType(OperatorType::getConstantsType(sort));
+    unsigned sym = env.signature->addFreshFunction(OperatorType::getConstantsType(sort), prefix);
     DEBUG("new constant for sort ", sort, ": ", *env.signature->getFunction(sym));
     _constants.push(Term::createConstant(sym));
   }
@@ -755,7 +753,7 @@ Stack<Literal*> computeGuards(Stack<Literal*> const& lits)
     /* guards for predicates */
     auto predSym = env.signature->getPredicate(lit->functor());
     if (predSym->termAlgebraDest()) {
-      out.push(destructorGuard(lit, predSym->predType()->arg(0), /* predicate */ true));
+      out.push(destructorGuard(lit, predSym->type()->arg(0), /* predicate */ true));
     }
 
     /* guards for subterms */
@@ -801,7 +799,7 @@ Stack<Literal*> computeGuards(Stack<Literal*> const& lits)
             default:; /* no guard */
           }
         } else if (sym->termAlgebraDest()) {
-          out.push(destructorGuard(term, sym->fnType()->arg(0), /* predicate */ false));
+          out.push(destructorGuard(term, sym->type()->arg(0), /* predicate */ false));
         }
       }
     }

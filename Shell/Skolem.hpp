@@ -42,9 +42,9 @@ class Skolem
 {
 public:
   static FormulaUnit* skolemise(FormulaUnit*, bool appify = false);
-  static unsigned addSkolemFunction(unsigned arity, unsigned taArity, TermList* domainSorts, TermList rangeSort, const char* suffix=0);
-  static unsigned addSkolemTypeCon(unsigned arity, const char* suffix=0);
-  static unsigned addSkolemPredicate(unsigned arity, unsigned taArity, TermList* domainSorts, const char* suffix=0);
+  static unsigned addSkolemFunction(unsigned taArity, TermStack domainSorts, TermList rangeSort, const char* suffix=0);
+  static unsigned addSkolemTypeCon(unsigned arity);
+  static unsigned addSkolemPredicate(unsigned taArity, TermStack domainSorts, const char* suffix=0);
 private:
   /** Initialise a Skolem object */
   Skolem () :  _beingSkolemised(0) {}

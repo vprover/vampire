@@ -105,7 +105,7 @@ void SortInference::doInference()
     for(unsigned f=0;f<env.signature->functions();f++){
       if(f < _del_f.size() && _del_f[f]) continue;
       unsigned arity = env.signature->functionArity(f);
-      OperatorType* ftype = env.signature->getFunction(f)->fnType();
+      OperatorType* ftype = env.signature->getFunction(f)->type();
       //cout << env.signature->functionName(f) << " : " << env.sorts->sortName(ftype->result()) << endl;;
       TermList resTypeT = ftype->result();
       unsigned resType = resTypeT.term()->functor();
@@ -123,9 +123,8 @@ void SortInference::doInference()
       if(env.getMainProblem()->getProperty()->usesSort(s) || env.signature->isNonDefaultCon(s)){
         unsigned dsort = (*_sig->vampireToDistinct.get(s))[0];
         if(_sig->sortedConstants[dsort].isEmpty()){
-          unsigned fresh = env.signature->addFreshFunction(0,"fmbFreshConstant");
           TermList sT = TermList(AtomicSort::createConstant(s));
-          env.signature->getFunction(fresh)->setType(OperatorType::getConstantsType(sT));
+          unsigned fresh = env.signature->addFreshFunction(OperatorType::getConstantsType(sT),"fmbFreshConstant");
           _sig->sortedConstants[dsort].push(fresh);
         }
       }
@@ -141,7 +140,7 @@ void SortInference::doInference()
         continue;
       }
       unsigned arity = env.signature->functionArity(f);
-      OperatorType* ftype = env.signature->getFunction(f)->fnType();
+      OperatorType* ftype = env.signature->getFunction(f)->type();
       _sig->functionSignatures[f].ensure(arity+1);
       for(unsigned i=0;i<arity;i++){
         TermList argTypeT = ftype->arg(i);
@@ -156,7 +155,7 @@ void SortInference::doInference()
     for(unsigned p=1;p<env.signature->predicates();p++){
       if(p < _del_p.size() && _del_p[p]) continue;
       unsigned arity = env.signature->predicateArity(p);
-      OperatorType* ptype = env.signature->getPredicate(p)->predType();
+      OperatorType* ptype = env.signature->getPredicate(p)->type();
       _sig->predicateSignatures[p].ensure(arity);
       for(unsigned i=0;i<arity;i++){
         TermList argTypeT = ptype->arg(i);
@@ -488,17 +487,16 @@ void SortInference::doInference()
     cout << "Sort Inference information:" << endl;
     cout << comps << " inferred subsorts" << endl;
   }
-  unsigned firstFreshConstant = UINT_MAX;
+  unsigned firstFreshConstant = env.signature->functions();
+  unsigned fresh = firstFreshConstant;
   DHMap<unsigned,unsigned, FnvHash, IdentityHash> freshMap;
   for(unsigned s=0;s<comps;s++){
 #if DEBUG_SORT_INFERENCE
     if(!_posEqualitiesOnSort[s]){ cout << "No positive equalities for subsort " << s << endl; }
 #endif
     if(_sig->sortedConstants[s].size()==0 && _sig->sortedFunctions[s].size()>0){
-      unsigned fresh = env.signature->addFreshFunction(0,"fmbFreshConstant");
-      _sig->sortedConstants[s].push(fresh);
       freshMap.insert(fresh,s);
-      if(firstFreshConstant==UINT_MAX) firstFreshConstant=fresh;
+      _sig->sortedConstants[s].push(fresh++);
 #if DEBUG_SORT_INFERENCE
       cout << "Adding fresh constant for subsort "<<s<<endl;
 #endif
@@ -535,7 +533,7 @@ void SortInference::doInference()
   for(unsigned i=0;i<comps;i++) parentSet[i]=false;
 
   _sig->parents.ensure(comps);
-  _sig->functionSignatures.ensure(env.signature->functions());
+  _sig->functionSignatures.ensure(fresh);
   _sig->predicateSignatures.ensure(env.signature->predicates());
 
 #if DEBUG_SORT_INFERENCE
@@ -543,7 +541,7 @@ void SortInference::doInference()
 #endif
 
   // Now record the _signatures for functions
-  for(unsigned f=0;f<env.signature->functions();f++){
+  for(unsigned f=0;f<fresh;f++){
     if(f < _del_f.size() && _del_f[f]) {
 #if DEBUG_SORT_INFERENCE
     cout << "Skipping deleted function signature "  << env.signature->functionName(f) << endl;
@@ -558,7 +556,7 @@ void SortInference::doInference()
     // be bounded
     // We need to treat them specially as they are functions that are added
     // after we do sort inference (so offsets/positions do not apply)
-    if(f >= firstFreshConstant){
+    if(f >= env.signature->functions()){
       unsigned srt = freshMap.get(f);
       _sig->functionSignatures[f].ensure(1);
       _sig->functionSignatures[f][0]=srt;
@@ -578,7 +576,7 @@ void SortInference::doInference()
     _sig->functionSignatures[f][arity] = rangeSort;
 
     Signature::Symbol* fnSym = env.signature->getFunction(f);
-    OperatorType* fnType = fnSym->fnType();
+    OperatorType* fnType = fnSym->type();
     if(parentSet[rangeSort]){
 #if VDEBUG
       //cout << "FUNCTION " << env.signature->functionName(f) << endl;
@@ -638,13 +636,19 @@ void SortInference::doInference()
   cout << "Setting up fresh constant info" << endl;
 #endif
   // Setting types for fresh constants
-  for(unsigned f=firstFreshConstant;f<env.signature->functions();f++){
+  for(unsigned f=env.signature->functions();f<fresh;f++){
     unsigned srt = freshMap.get(f);
     unsigned dsrt = _sig->parents[srt];
     unsigned vsrt = (*_sig->distinctToVampire.get(dsrt))[0];
     TermList vsrtT = TermList(AtomicSort::createConstant(vsrt));
-    env.signature->getFunction(f)->setType(OperatorType::getConstantsType(vsrtT));
+    auto type = OperatorType::getConstantsType(vsrtT);
+    // we avoid actually creating new symbols until `type` can be computed reasonably,
+    // but firstFreshConstant...fresh should be a new contiguous block in the signature
+    // we kind of pretend these functions already exist above
+    DEBUG_CODE(unsigned inserted =) env.signature->addFreshFunction(type, "fmbFreshConstant");
     env.signature->getFunction(f)->markIntroduced();
+    // ...but now everything should be sane again
+    ASS_EQ(f, inserted)
   }
 
 #if DEBUG_SORT_INFERENCE
@@ -662,7 +666,7 @@ void SortInference::doInference()
     _sig->predicateSignatures[p].ensure(arity);
 
     Signature::Symbol* prSym = env.signature->getPredicate(p);
-    OperatorType* prType = prSym->predType();
+    OperatorType* prType = prSym->type();
 
     for(unsigned i=0;i<arity;i++){
       int argRoot = unionFind.root(offset_p[p]+i);
