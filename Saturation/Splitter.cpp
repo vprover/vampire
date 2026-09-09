@@ -615,7 +615,7 @@ std::string Splitter::getFormulaStringFromName(SplitLevel compName, bool negated
 {
   if (splPrefix.empty()) {
     if(env.options->proof()==Options::Proof::TPTP){
-      unsigned spl = env.signature->addFreshFunction(0,"spl");
+      unsigned spl = env.signature->addFreshFunction(OperatorType::getPredicateType({}),"spl");
       splPrefix = env.signature->functionName(spl)+"_";
     }
   }
@@ -915,7 +915,7 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc, bool shuffle)
 
   //Master literal of an variable is the literal
   //with lowest index, in which it appears.
-  static DHMap<unsigned, unsigned, IdentityHash, DefaultHash> varMasters;
+  static DHMap<unsigned, unsigned, IdentityHash, FnvHash> varMasters;
   varMasters.reset();
   IntUnionFind components(clen);
 
@@ -1681,7 +1681,7 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
  */
 UnitList* Splitter::preprendCurrentlyAssumedComponentClauses(UnitList* clauses)
 {
-  DHSet<unsigned> seen;
+  DHSet<unsigned, FnvHash, IdentityHash> seen;
 
   // to keep the nice order
   UnitList::FIFO res;

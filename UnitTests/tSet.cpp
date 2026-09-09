@@ -14,7 +14,7 @@
 
 TEST_FUN(find_remove_contains)
 {
-  Set<int> *test_set = new Set<int>();
+  Set<int, FnvHash> *test_set = new Set<int, FnvHash>();
   int test_num = 42;
   int found_num = 0;
   test_set->insert(test_num);
@@ -37,7 +37,7 @@ TEST_FUN(find_remove_contains)
 
 TEST_FUN(reset)
 {
-  Set<int> *test_set = new Set<int>();
+  Set<int, FnvHash> *test_set = new Set<int, FnvHash>();
   test_set->insert(42);
   ASS_EQ(test_set->size(), 1);
   test_set->reset();

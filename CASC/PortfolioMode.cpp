@@ -392,7 +392,7 @@ std::optional<fs::path> PortfolioMode::runSchedule(Schedule schedule) {
   pid_t me = getpid();
   Schedule::BottomFirstIterator it(schedule);
   pid_t successful = 0; // PID 0 should be invalid
-  Set<pid_t> processes;
+  Set<pid_t, FnvHash> processes;
   int remainingTime;
   bool scheduleRepeat = false;
   while(remainingTime = env.remainingTime() / 100, remainingTime > 0) {

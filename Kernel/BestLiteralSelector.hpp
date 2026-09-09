@@ -121,7 +121,7 @@ protected:
     ASS_G(eligible, 1); //trivial cases should be taken care of by the base LiteralSelector
 
     static DArray<Literal*> litArr(64);
-    static Set<unsigned> maxTermHeads;
+    static Set<unsigned, FnvHash> maxTermHeads;
     maxTermHeads.reset();
     litArr.initFromArray(eligible,*c);
     litArr.sortInversed(_comp);

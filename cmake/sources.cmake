@@ -115,6 +115,7 @@ set(UNIT_TESTS
     UnitTests/tTermAlgebra.cpp
     UnitTests/tTermIndex.cpp
     UnitTests/tTimeTrace.cpp
+    UnitTests/tTuple.cpp
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/HOL/tHOL_Printing.cpp
     UnitTests/HOL/tHOL_BetaReduction.cpp
@@ -177,14 +178,16 @@ set(SOURCES
     Indexing/ClauseVariantIndex.hpp
     Indexing/CodeTree.cpp
     Indexing/CodeTree.hpp
-    Indexing/CodeTreeInterfaces.cpp
     Indexing/CodeTreeInterfaces.hpp
+    Indexing/DemodulationIndex.hpp
+    Indexing/DemodulationIndex.cpp
     Indexing/Index.cpp
     Indexing/Index.hpp
     Indexing/IndexManager.cpp
     Indexing/IndexManager.hpp
     Indexing/InductionFormulaIndex.cpp
     Indexing/InductionFormulaIndex.hpp
+    Indexing/LiteralCodeTree.hpp
     Indexing/LiteralIndex.cpp
     Indexing/LiteralIndex.hpp
     Indexing/LiteralMiniIndex.cpp
@@ -193,15 +196,13 @@ set(SOURCES
     Indexing/ResultSubstitution.cpp
     Indexing/ResultSubstitution.hpp
     Indexing/SubstitutionTree.hpp
-    Indexing/SubstitutionTree_FastGen.hpp
     Indexing/SubstitutionTree_FastInst.hpp
     Indexing/SubstitutionTree_Nodes.hpp
     Indexing/SubstitutionTree_impl.hpp
-    Indexing/TermCodeTree.cpp
     Indexing/TermCodeTree.hpp
+    Indexing/TermOrLiteralCodeTree.hpp
     Indexing/TermIndex.cpp
     Indexing/TermIndex.hpp
-    Indexing/TermIndexingStructure.hpp
     Indexing/TermSharing.cpp
     Indexing/TermSharing.hpp
     Indexing/TermSubstitutionTree.hpp
@@ -440,6 +441,7 @@ set(SOURCES
     Kernel/PartialOrdering.hpp
     Kernel/Polynomial.cpp
     Kernel/Polynomial.hpp
+    Kernel/PolynomialBottomUpEvaluation.hpp
     Kernel/PolynomialNormalizer.cpp
     Kernel/PolynomialNormalizer.hpp
     Kernel/PolynomialNormalizer/PredicateEvaluator.hpp

@@ -609,7 +609,7 @@ std::string Term::headToString() const
           } else {
             sym = env.signature->getFunction(bindingLhs->functor());
           }
-          type = sym->name() + ": " + (isPredicate ? sym->predType() : sym->fnType())->toString();
+          type = sym->name() + ": " + sym->type()->toString();
         }
         return "$let(" + type + ", " + binding->toString() + ", ";
       }
@@ -640,10 +640,6 @@ std::string Term::headToString() const
         ASSERTION_VIOLATION;
     }
   } else {
-    unsigned proj;
-    if (!isSort() && Theory::findTupleProjection(functor(), isLiteral(), proj)) {
-      return "$proj(" + Int::toString(proj) + ", ";
-    }
     std::string name = "";
     if(isLiteral()) {
       name = static_cast<const Literal *>(this)->predicateName();
@@ -924,10 +920,6 @@ std::string Literal::toString(bool reverseEquality) const
     }
   }
 
-  unsigned proj;
-  if (Theory::findTupleProjection(functor(), true, proj)) {
-    return s + "$proj(" + Int::toString(proj) + ", " + args()->asArgsToString();
-  }
   s += predicateName();
 
   //cerr << "predicate: "<< predicateName()<<endl;
@@ -1085,16 +1077,6 @@ Term* Term::create(unsigned function, unsigned arity, const TermList* args)
   } else {
     return allocTerm();
   }
-}
-
-
-/** Create a new constant and insert in into the sharing
- *  structure.
- */
-Term* Term::createConstant(const std::string& name)
-{
-  unsigned symbolNumber = env.signature->addFunction(name,0);
-  return createConstant(symbolNumber);
 }
 
 /** Create a new complex term, copy from @b t its function symbol and
@@ -1291,7 +1273,8 @@ Term* Term::foolFalse(){
  * and also is not linked to a symbol in the signature.
  */
 TermList AtomicSort::superSort(){
-  static AtomicSort* _super = createNonSharedConstant(0);
+  // TODO this can technically collide with any sort term that uses 0 as functor
+  static AtomicSort* _super = new(0) AtomicSort(0, 0);
   return TermList(_super);
 }
 
@@ -1362,13 +1345,7 @@ TermList AtomicSort::arrowSort(const TermStack& domSorts, TermList range, bool f
 
 AtomicSort* AtomicSort::createConstant(const std::string& name)
 {
-  bool added;
-  unsigned newSort = env.signature->addTypeCon(name,0,added);
-  if(added){
-    OperatorType* ot = OperatorType::getConstantsType(superSort());
-    env.signature->getTypeCon(newSort)->setType(ot);
-  }
-  return createConstant(newSort);
+  return createConstant(env.signature->addTypeCon(name,0));
 }
 
 TermList AtomicSort::arraySort(TermList indexSort, TermList innerSort)
@@ -1383,7 +1360,7 @@ TermList AtomicSort::tupleSort(unsigned arity, TermList* sorts)
 
 unsigned Term::computeDistinctVars() const
 {
-  Set<unsigned> vars;
+  Set<unsigned, FnvHash> vars;
   VariableIterator vit(this);
   while (vit.hasNext()) {
     vars.insert(vit.next().var());
@@ -1426,7 +1403,7 @@ bool Term::isBoolean() const {
         env.signature->isFoolConstantSymbol(false, term->functor())) return true;
     if (!term->isSpecial()){
       bool val = !term->isLiteral() &&
-      env.signature->getFunction(term->functor())->fnType()->result() == AtomicSort::boolSort();
+      env.signature->getFunction(term->functor())->type()->result() == AtomicSort::boolSort();
       return val;
     }
     switch (term->specialFunctor()) {

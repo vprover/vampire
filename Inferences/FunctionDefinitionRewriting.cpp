@@ -21,7 +21,6 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/SubstHelper.hpp"
 #include "Kernel/TermIterators.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -111,7 +110,7 @@ Kernel::ClauseIterator FunctionDefinitionRewriting::generateClauses(Clause *prem
       auto &qr = arg.second;
       bool temp;
       return (Clause*)performRewriting(premise, arg.first.first, TermList(arg.first.second), qr.data->clause,
-        qr.data->literal, qr.data->term, qr.unifier, nullptr, temp,
+        qr.data->literal, qr.data->term, &qr.unifier, nullptr, temp,
         Inference(GeneratingInference2(InferenceRule::FUNCTION_DEFINITION_REWRITING, premise, qr.data->clause)));
     })
     .filter(NonzeroFn()));
@@ -152,7 +151,7 @@ bool FunctionDefinitionDemodulation::perform(Clause* cl, Clause*& replacement, C
         }
         bool isEqTautology = false;
         auto res = performRewriting(
-          cl, lit, trm, qr.data->clause, qr.data->literal, qr.data->term, qr.unifier, redundancyCheck ? &_helper : nullptr,
+          cl, lit, trm, qr.data->clause, qr.data->literal, qr.data->term, &qr.unifier, redundancyCheck ? &_helper : nullptr,
           isEqTautology, Inference(SimplifyingInference2(InferenceRule::FUNCTION_DEFINITION_DEMODULATION, cl, qr.data->clause)));
         if (!res && !isEqTautology) {
           continue;

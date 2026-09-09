@@ -88,7 +88,7 @@ void FunctionDefinitionHandler::initAndPreprocessEarly(Problem& prb)
 void FunctionDefinitionHandler::initAndPreprocessLate(Problem& prb,const Options& opts)
 {
   // reset state
-  _is = new CodeTreeTIS</*higherOrder=*/false, TermLiteralClause>();
+  _is = new CodeTreeTIS<TermLiteralClause>();
   _templates.reset();
 
   UnitList::DelIterator it(prb.units());
@@ -150,7 +150,7 @@ void FunctionDefinitionHandler::initAndPreprocessLate(Problem& prb,const Options
     }
   }
 
-  DHMap<pair<unsigned,SymbolType>,RecursionTemplate>::DelIterator tIt(_templates);
+  DHMap<pair<unsigned,SymbolType>,RecursionTemplate, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>>::DelIterator tIt(_templates);
   while (tIt.hasNext()) {
     auto k = tIt.nextKey();
     auto ptr = _templates.findPtr(k);
@@ -261,7 +261,7 @@ bool RecursionTemplate::finalize()
   for (const auto& b : _branches) {
     // we need this sophisticated renaming due to
     // already fixed sort variables coming from _type
-    static DHMap<unsigned,unsigned> renaming;
+    static DHMap<unsigned,unsigned, FnvHash, IdentityHash> renaming;
     renaming.reset();
     auto renameTerm = [&](TermList t, TermList sort) {
       if (t.isVar()) {
@@ -412,8 +412,8 @@ bool RecursionTemplate::checkWellFoundedness()
 
 RecursionTemplate::RecursionTemplate(const Term* t)
   : _functor(t->functor()), _arity(t->arity()), _isLit(t->isLiteral()),
-  _type(_isLit ? env.signature->getPredicate(_functor)->predType()
-               : env.signature->getFunction(_functor)->fnType()),
+  _type(_isLit ? env.signature->getPredicate(_functor)->type()
+               : env.signature->getFunction(_functor)->type()),
   _branches(), _indPos(_arity, false) {}
 
 void RecursionTemplate::addBranch(std::vector<Term*>&& recursiveCalls, Term* header)
@@ -517,9 +517,9 @@ bool InductionPreprocessor::checkWellFoundedness(const std::vector<pair<Term*,Te
   auto arity = t->arity();
   OperatorType* type;
   if (isFun) {
-    type = env.signature->getFunction(fn)->fnType();
+    type = env.signature->getFunction(fn)->type();
   } else {
-    type = env.signature->getPredicate(fn)->predType();
+    type = env.signature->getPredicate(fn)->type();
   }
   std::set<unsigned> positions;
   for (unsigned i = 0; i < arity; i++) {

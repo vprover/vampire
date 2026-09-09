@@ -14,6 +14,7 @@
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
+#include "Kernel/TermOrderingDiagram.hpp"
 
 #include "Indexing/CodeTreeInterfaces.hpp"
 #include "Indexing/ResultSubstitution.hpp"
@@ -53,7 +54,6 @@ class PartialRedundancyHandler::ConstraintIndex
 public:
   ConstraintIndex(Clause* cl) : _varSorts()
   {
-    _clauseCodeTree=false;
 #if VDEBUG
     _cl = cl;
 #endif
@@ -192,7 +192,7 @@ private:
   template<class Applicator>
   TermStack getInstances(Applicator applicator) const
   {
-    DHMap<unsigned,TermList>::Iterator vit(_varSorts);
+    DHMap<unsigned,TermList, FnvHash, IdentityHash>::Iterator vit(_varSorts);
     TermStack res;
     while (vit.hasNext()) {
       auto v = vit.nextKey();
@@ -201,7 +201,7 @@ private:
     return res;
   }
 
-  DHMap<unsigned,TermList> _varSorts;
+  DHMap<unsigned,TermList, FnvHash, IdentityHash> _varSorts;
 
   PartialRedundancyEntry* createEntry(const TermStack& ts, Splitter* splitter, OrderingConstraints&& ordCons, LiteralSet&& lits, SplitSet* splits) const
   {
@@ -246,7 +246,7 @@ private:
 
   struct SubstMatcher
   // TODO(HOL): consider turning higherOrder flag off for HOL
-  : public Matcher</*removing*/false,false,/*higherOrder=*/true,/*sres=*/false>
+  : public Matcher</*removing*/false,false,/*sres=*/false>
   {
     void init(const CodeTree& tree, const TermStack& ts)
     {
@@ -281,7 +281,7 @@ private:
   };
 
   struct VariantMatcher
-  : public Matcher</*removing*/true,true,/*higherOrder=*/false,/*sres=*/false>
+  : public Matcher</*removing*/true,true,/*sres=*/false>
   {
   public:
     void init(FlatTerm* ft_, const CodeTree& tree_, Stack<CodeOp*>* firstsInBlocks_) {
@@ -359,7 +359,7 @@ PartialRedundancyHandler::ConstraintIndex** PartialRedundancyHandler::getDataPtr
   return ptr;
 }
 
-DHMap<unsigned,typename PartialRedundancyHandler::ConstraintIndex*> PartialRedundancyHandler::clauseData;
+DHMap<unsigned,typename PartialRedundancyHandler::ConstraintIndex*, FnvHash, IdentityHash> PartialRedundancyHandler::clauseData;
 
 // PartialRedundancyHandlerImpl
 

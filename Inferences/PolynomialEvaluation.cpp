@@ -14,6 +14,7 @@
 #include "Debug/TimeProfiling.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
+#include "Kernel/PolynomialBottomUpEvaluation.hpp"
 
 #define DEBUG(...)  // DBG(__VA_ARGS__)
 using namespace Lib;

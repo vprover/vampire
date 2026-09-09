@@ -54,7 +54,7 @@ using namespace Kernel;
 struct PredicateDefinition::PredData
 {
   /** Units that contain the predicate. */
-  Map<unsigned, Unit*> containingUnits;
+  Map<unsigned, Unit*, FnvHash> containingUnits;
 
   bool builtIn;
   int pred;
@@ -263,7 +263,7 @@ void PredicateDefinition::replacePurePred(unsigned pred, ReplMap& replacements)
   if(_processedPrb) {
     _processedPrb->addTrivialPredicate(pred, pd.nocc==0);
   }
-  Map<unsigned, Unit*>::Iterator uit(pd.containingUnits);
+  Map<unsigned, Unit*, FnvHash>::Iterator uit(pd.containingUnits);
   while(uit.hasNext()) {
     Unit* u=uit.next().value();
     if(replacements.find(u->number())) {
@@ -349,7 +349,7 @@ void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(Problem& prb)
 
 void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(UnitList*& units)
 {
-  static DHMap<unsigned, Unit*> replacements;
+  static DHMap<unsigned, Unit*, FnvHash, IdentityHash> replacements;
   replacements.reset();
 
   collectReplacements(units, replacements);

@@ -30,12 +30,12 @@ public:
 
   template<typename Object>
   static bool isRenamingOn(const SubstApplicator* applicator, Object obj) {
-    DHSet<unsigned> domain;
-    DHSet<unsigned> range;
+    DHSet<unsigned, FnvHash, IdentityHash> domain;
+    DHSet<unsigned, FnvHash, IdentityHash> range;
     return isRenamingOn(applicator, obj, domain, range);
   }
   template<typename Object>
-  static bool isRenamingOn(const SubstApplicator* applicator, Object obj, DHSet<unsigned>& domain, DHSet<unsigned>& range)
+  static bool isRenamingOn(const SubstApplicator* applicator, Object obj, DHSet<unsigned, FnvHash, IdentityHash>& domain, DHSet<unsigned, FnvHash, IdentityHash>& range)
   {
     for (const auto& v : iterTraits(VariableIterator(obj))) {
       ASS(v.isVar());

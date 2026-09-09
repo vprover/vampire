@@ -141,7 +141,7 @@ void Options::init()
     "  -casc, casc_sat, smtcomp - like portfolio mode, with competition-specific presets for other options, including output. "
     "If you wish to use e.g. the CASC portfolio without the presets, use --mode portfolio --schedule casc.\n"
     "  -preprocess,axiom_selection,clausify: modes for producing output\n      for other solvers.\n"
-    "  -tpreprocess,tclausify: output modes for theory input (clauses are quantified\n      with sort information).\n"
+    "  -tpreprocess,tclausify: output modes for theory input (clauses are quantified\n      with sort information; tclausify outputs TPTP tcf).\n"
     "  -output,profile: output information about the problem\n"
     "Some modes are not currently maintained (get in touch if interested):\n"
     "  -bpa: perform bound propagation\n"
@@ -2381,6 +2381,7 @@ void Options::init()
     _questionAnswering.addHardConstraint(If(equal(QuestionAnsweringMode::PLAIN)).then(ProperSaturationAlgorithm()));
     _questionAnswering.addHardConstraint(If(equal(QuestionAnsweringMode::SYNTHESIS)).then(ProperSaturationAlgorithm()));
     _lookup.insert(&_questionAnswering);
+    _questionAnswering.addProblemConstraint(onlyFirstOrder()); // currently not supported; but should work in principle when reconciled with the HO-saturation invariants
     _questionAnswering.tag(OptionTag::OTHER);
 
     _questionAnsweringGroundOnly = BoolOptionValue("question_answering_ground_only","qago",false);
@@ -3073,7 +3074,7 @@ bool Options::TimeLimitOptionValue::setValue(const std::string& value)
  * An optname starting with $ is not meant to be a real option, but a fake one.
  * Fakes get stored in the map fakes and can be referenced later, during the sampling process.
  */
-void Options::strategySamplingAssign(std::string optname, std::string value, DHMap<std::string,std::string>& fakes)
+void Options::strategySamplingAssign(std::string optname, std::string value, DHMap<std::string,std::string, FnvHash, LengthHash>& fakes)
 {
   // dollar sign signifies fake options
   if (optname[0] == '$') {
@@ -3099,7 +3100,7 @@ void Options::strategySamplingAssign(std::string optname, std::string value, DHM
  * An optname starting with $ is not meant to be a real option, but a fake one.
  * Fakes get read from the given map fakes.
  */
-std::string Options::strategySamplingLookup(std::string optname, DHMap<std::string,std::string>& fakes)
+std::string Options::strategySamplingLookup(std::string optname, DHMap<std::string,std::string, FnvHash, LengthHash>& fakes)
 {
   if (optname[0] == '$' || optname[0] == '@') {
     std::string* foundVal = fakes.findPtr(optname);
@@ -3118,7 +3119,7 @@ std::string Options::strategySamplingLookup(std::string optname, DHMap<std::stri
   return "";
 }
 
-void Options::sampleStrategy(const std::string& strategySamplerFilename, DHMap<std::string,std::string> fakes)
+void Options::sampleStrategy(const std::string& strategySamplerFilename, DHMap<std::string,std::string, FnvHash, LengthHash> fakes)
 {
   std::ifstream input(strategySamplerFilename.c_str());
 

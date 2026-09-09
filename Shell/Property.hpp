@@ -157,7 +157,7 @@ public:
   std::string toString() const;
   std::string toSpider(const std::string& problemName) const;
 
-  DHMap<std::string,std::string> toDict() const;
+  DHMap<std::string,std::string, FnvHash, LengthHash> toDict() const;
 
   /** Total number of clauses in the problem. */
   int clauses() const { return _goalClauses + _axiomClauses; }
@@ -298,7 +298,7 @@ public:
   /** Symbols in this formula, used during counting
       Functions are positive, predicates stored in the negative part
   **/
-  DHSet<int> _symbolsInFormula;
+  DHSet<int, FnvHash, IdentityHash> _symbolsInFormula;
 
   /** Bitwise OR of all properties of this problem */
   uint64_t _props;

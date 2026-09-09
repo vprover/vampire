@@ -239,7 +239,7 @@ private:
   };
 
   struct ConstOrderingComparator;  
-  typedef DHMap<unsigned,TermList> NFMap;
+  typedef DHMap<unsigned,TermList, FnvHash, IdentityHash> NFMap;
   void computeConstsNormalForm(unsigned c, NFMap& normalForms);
   
 #if VDEBUG
@@ -263,9 +263,9 @@ private:
   /**
    * Map from signature symbols to the local constant numbers.
    */
-  DHMap<std::pair<unsigned,SignatureKind>,unsigned> _sigConsts;
+  DHMap<std::pair<unsigned,SignatureKind>,unsigned, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>> _sigConsts;
 
-  typedef DHMap<CPair,unsigned> PairMap;
+  typedef DHMap<CPair,unsigned, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>> PairMap;
   /** Names of constant pairs (modulo the congruence!)*/
   PairMap _pairNames;
 

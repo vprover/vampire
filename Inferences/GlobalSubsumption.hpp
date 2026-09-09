@@ -55,12 +55,12 @@ private:
   /**
    * A map binding split levels to variables assigned to them in our SAT solver.
    */
-  DHMap<unsigned, unsigned> _splits2vars;
+  DHMap<unsigned, unsigned, FnvHash, IdentityHash> _splits2vars;
 
   /**
    * An inverse of the above map, for convenience.
    */
-  DHMap<unsigned, unsigned> _vars2splits;
+  DHMap<unsigned, unsigned, FnvHash, IdentityHash> _vars2splits;
 protected:
   unsigned splitLevelToVar(SplitLevel lev) {
     unsigned* pvar;

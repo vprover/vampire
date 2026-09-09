@@ -28,7 +28,7 @@ TEST_FUN(skiplist1)
   SkipList<StoredType, Int> sl1;
   SkipList<StoredType, Int> sl2;
   DArray<StoredType> darr(cnt);
-  DHMultiset<StoredType> ms;
+  DHMultiset<StoredType, FnvHash, IdentityHash> ms;
 
   for(int i=0;i<cnt;i++)
   {

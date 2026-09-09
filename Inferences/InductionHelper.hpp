@@ -28,9 +28,8 @@ using namespace Indexing;
 using namespace Kernel;
 
 class InductionHelper {
-  using TermIndex               = Indexing::TermIndex<TermLiteralClause>;
 public:
-  InductionHelper(LiteralIndex<LiteralClause>* comparisonIndex, TermIndex* inductionTermIndex)
+  InductionHelper(UnitIntegerComparisonLiteralIndex* comparisonIndex, InductionTermIndex* inductionTermIndex)
       : _comparisonIndex(comparisonIndex), _inductionTermIndex(inductionTermIndex) {}
 
   VirtualIterator<TermLiteralClause> getLess(Term* t);
@@ -65,8 +64,8 @@ private:
   VirtualIterator<TermLiteralClause> getComparisonMatch(bool polarity, bool termIsLeft, Term* t);
 
   // The following pointers can be null if splitting or integer induction is off.
-  LiteralIndex<LiteralClause>* _comparisonIndex;  // not owned
-  TermIndex* _inductionTermIndex;  // not owned
+  UnitIntegerComparisonLiteralIndex* _comparisonIndex;  // not owned
+  InductionTermIndex* _inductionTermIndex;  // not owned
 };
 
 };  // namespace Inferences

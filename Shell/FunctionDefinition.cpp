@@ -488,7 +488,7 @@ void FunctionDefinition::assignArgOccursData(Def* updDef)
 	    "FunctionDefinition::Def::argOccurs"));
   std::memset(updDef->argOccurs, 0, updDef->lhs->arity() * sizeof(bool));
 
-  static DHMap<unsigned, unsigned, IdentityHash, DefaultHash> var2argIndex;
+  static DHMap<unsigned, unsigned, IdentityHash, FnvHash> var2argIndex;
   var2argIndex.reset();
   int argIndex=0;
   for (TermList* ts = updDef->lhs->args(); ts->isNonEmpty(); ts=ts->next()) {
@@ -546,8 +546,8 @@ void FunctionDefinition::assignArgOccursData(Def* updDef)
 
 
 typedef pair<unsigned,unsigned> BindingSpec;
-typedef DHMap<BindingSpec, TermList> BindingMap;
-typedef DHMap<BindingSpec, bool> UnfoldedSet;
+typedef DHMap<BindingSpec, TermList, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>> BindingMap;
+typedef DHMap<BindingSpec, bool, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>> UnfoldedSet;
 
 Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
 {
@@ -655,7 +655,10 @@ Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
 
     Def* d;
     //sorts can never contain definitions
-    if(!t->isSort() && !defIndex && _defs.find(t->functor(), d) && d->mark!=Def::BLOCKED) {
+    if(!t->isSort() && !defIndex && _defs.find(t->functor(), d) && d->mark!=Def::BLOCKED
+      // safeguard for HOL to avoid unsound variable capture inside lambdas
+      && (!env.higherOrder() || iterTraits(anyArgIter(t)).all([](TermList t) { return !t.containsLooseDBIndex(); })))
+    {
       ASS_EQ(d->mark, Def::UNFOLDED);
       usedDefs->push(d);
       if (env.options->showPreprocessing()) {

@@ -12,6 +12,7 @@
  * Implements class CodeTreeForwardSubsumptionAndResolution.
  */
 
+#include "Lib/Environment.hpp"
 #include "Lib/Random.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -21,15 +22,13 @@
 
 namespace Inferences {
 
-template<bool higherOrder>
-CodeTreeForwardSubsumptionAndResolution<higherOrder>::CodeTreeForwardSubsumptionAndResolution(SaturationAlgorithm& salg)
+CodeTreeForwardSubsumptionAndResolution::CodeTreeForwardSubsumptionAndResolution(SaturationAlgorithm& salg)
   : _subsumptionResolution(salg.getOptions().forwardSubsumptionResolution()),
-    _index(salg.getSimplifyingIndex<CodeTreeSubsumptionIndex<higherOrder>>()),
+    _index(salg.getSimplifyingIndex<CodeTreeSubsumptionIndex>()),
     _ct(_index->getClauseCodeTree())
 {}
 
-template<bool higherOrder>
-bool CodeTreeForwardSubsumptionAndResolution<higherOrder>::perform(Clause *cl, Clause *&replacement, ClauseIterator &premises)
+bool CodeTreeForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, ClauseIterator &premises)
 {
   if (_subsumptionResolution) {
     return performWith</*sres=*/true>(cl, replacement, premises);
@@ -38,9 +37,8 @@ bool CodeTreeForwardSubsumptionAndResolution<higherOrder>::perform(Clause *cl, C
   }
 }
 
-template<bool higherOrder>
 template<bool sres>
-bool CodeTreeForwardSubsumptionAndResolution<higherOrder>::performWith(Clause *cl, Clause *&replacement, ClauseIterator &premises)
+bool CodeTreeForwardSubsumptionAndResolution::performWith(Clause *cl, Clause *&replacement, ClauseIterator &premises)
 {
   if (_ct->isEmpty()) {
     return false;
@@ -52,7 +50,7 @@ bool CodeTreeForwardSubsumptionAndResolution<higherOrder>::performWith(Clause *c
   constexpr double RSI_SKIP_PROB = 0.02;
   bool rsi = env.options->randomizedSimplifications();
 
-  static typename ClauseCodeTree<higherOrder>::template ClauseMatcher<sres> cm;
+  static typename ClauseCodeTree::template ClauseMatcher<sres> cm;
 
   cm.init(_ct, cl);
 
@@ -90,8 +88,5 @@ bool CodeTreeForwardSubsumptionAndResolution<higherOrder>::performWith(Clause *c
   cm.reset();
   return false;
 }
-
-template class CodeTreeForwardSubsumptionAndResolution<false>;
-template class CodeTreeForwardSubsumptionAndResolution<true>;
 
 } // namespace Inferences

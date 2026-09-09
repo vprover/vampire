@@ -55,7 +55,7 @@ InductionUnit::InductionUnit(TermStack&& F_terms, LiteralStack&& conditions, VSt
   ASS(F_terms.isNonEmpty());
 }
 
-void InductionUnit::collectVariableSorts(const DHSet<unsigned>& sortVars, const TermStack& sorts, DHMap<unsigned,TermList>& varSorts) const
+void InductionUnit::collectVariableSorts(const DHSet<unsigned, FnvHash, IdentityHash>& sortVars, const TermStack& sorts, DHMap<unsigned,TermList, FnvHash, IdentityHash>& varSorts) const
 {
   ASS_EQ(sorts.size(), F_terms.size());
   for (unsigned i = 0; i < sorts.size(); i++) {
@@ -108,7 +108,7 @@ InductionTemplate::InductionTemplate(TermStack&& sorts, Stack<InductionCase>&& c
   : sorts(sorts), cases(cases), conclusion(conclusion), rule(rule), maxVar(maxVar)
 {
 #if VDEBUG
-  DHSet<unsigned> sortVars;
+  DHSet<unsigned, FnvHash, IdentityHash> sortVars;
   for (const auto& s : sorts) {
     iterTraits(VariableIterator(s)).forEach([&](const auto& t) {
       sortVars.insert(t.var());
@@ -116,12 +116,12 @@ InductionTemplate::InductionTemplate(TermStack&& sorts, Stack<InductionCase>&& c
   }
 
   // check sorts and vars
-  DHMap<unsigned,TermList> varSorts;
+  DHMap<unsigned,TermList, FnvHash, IdentityHash> varSorts;
   conclusion.collectVariableSorts(sortVars, sorts, varSorts);
 
   ASS(cases.isNonEmpty());
   for (const auto& c : cases) {
-    DHMap<unsigned,TermList> caseVars;
+    DHMap<unsigned,TermList, FnvHash, IdentityHash> caseVars;
     c.conclusion.collectVariableSorts(sortVars, sorts, caseVars);
     for (const auto& h : c.hypotheses) {
       h.collectVariableSorts(sortVars, sorts, caseVars);

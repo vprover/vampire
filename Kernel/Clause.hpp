@@ -24,7 +24,6 @@
 
 #include "Lib/InverseLookup.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/Reflection.hpp"
 #include "Lib/Stack.hpp"
 
 #include "Unit.hpp"
@@ -53,9 +52,9 @@ private:
   void operator delete(void* ptr) { ASSERTION_VIOLATION; }
 
   template<class VarIt>
-  void collectVars2(DHSet<unsigned>& acc);
+  void collectVars2(DHSet<unsigned, FnvHash, IdentityHash>& acc);
 public:
-  DECL_ELEMENT_TYPE(Literal*);
+  using ElementType = Literal*;
 
   /** Storage kind */
   enum Store {
@@ -332,7 +331,7 @@ public:
   unsigned splitWeight() const;
   unsigned getNumeralWeight() const;
 
-  void collectVars(DHSet<unsigned>& acc);
+  void collectVars(DHSet<unsigned, FnvHash, IdentityHash>& acc);
 
 
   unsigned varCnt();

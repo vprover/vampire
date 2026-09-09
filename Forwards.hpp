@@ -36,6 +36,9 @@ typedef List<int> IntList;
 
 class DefaultHash;
 class DefaultHash2;
+struct FnvHash;
+struct IdentityHash;
+struct LengthHash;
 template <typename Key, typename Val,class Hash=DefaultHash> class Map;
 template<class A, class B, class HashA=DefaultHash, class HashB=DefaultHash> class BiMap;
 template <typename Key, typename Val, class Hash1=DefaultHash, class Hash2=DefaultHash2> class DHMap;
@@ -143,12 +146,10 @@ namespace Indexing
 {
 class Index;
 class IndexManager;
-template<class Data>
+template<class Data, bool generalizing>
 class LiteralIndex;
 template<class Data>
 class TermIndex;
-template<class Data>
-class TermIndexingStructure;
 
 class TermSharing;
 

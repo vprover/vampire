@@ -29,7 +29,6 @@ namespace Indexing {
 using namespace Lib;
 using namespace Kernel;
 
-template<bool higherOrder>
 class ClauseCodeTree : public CodeTree
 {
 protected:
@@ -57,9 +56,9 @@ private:
   bool removeOneOfAlternatives(CodeOp* op, Clause* cl, Stack<CodeOp*>* firstsInBlocks);
 
   struct RemovingLiteralMatcher
-  : public Matcher</*removing*/true,false,higherOrder,/*sres*/false>
+  : public Matcher</*removing*/true,false,/*sres*/false>
   {
-    using Base = Matcher</*removing*/true,false,higherOrder, /*sres*/false>;
+    using Base = Matcher</*removing*/true,false,/*sres*/false>;
 
     void init(CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_,
 	    const ClauseCodeTree& tree_, Stack<CodeOp*>* firstsInBlocks_);
@@ -76,9 +75,9 @@ private:
    * */
   template<bool sres>
   struct LiteralMatcher
-  : public Matcher</*removing*/false,false,higherOrder,sres>
+  : public Matcher</*removing*/false,false,sres>
   {
-    using Base = Matcher</*removing*/false,false,higherOrder,sres>;
+    using Base = Matcher</*removing*/false,false,sres>;
     using Base::op;
     using Base::_matched;
     using Base::finished;

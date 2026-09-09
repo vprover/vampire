@@ -79,7 +79,7 @@ class Definizator : public BottomUpTermTransformer {
     // a helper function to collect terms variables and their sorts
     // all stored in the above private fields to be looked up by transformSubterm
     void scanVars(Term* t) {
-      static DHSet<unsigned> varSeen;
+      static DHSet<unsigned, FnvHash, IdentityHash> varSeen;
       varSeen.reset();
       _typeArity = 0;
       _typeVars.reset();
@@ -152,22 +152,18 @@ class Definizator : public BottomUpTermTransformer {
           // this is always true in the ground case (where t->weight()>=2 and _allVars.size() == 0)
 
           if (env.higherOrder()) {
-            newFn = env.signature->addFreshFunction(_typeVars.size(), "sF");
             auto sort = AtomicSort::arrowSort(_termVarSorts, outSort);
-            newSym = env.signature->getFunction(newFn);
-            newSym->setType(OperatorType::getConstantsType(sort, _typeVars.size()));
+            newFn = env.signature->addFreshFunction(OperatorType::getConstantsType(sort, _typeVars.size()), "sF");
 
             TermList head(Term::create(newFn, _typeVars.size(), _typeVars.begin()));
             res = HOL::create::app(head, _termVars);
           } else {
-            newFn = env.signature->addFreshFunction(_allVars.size(), "sF");
-            auto type = OperatorType::getFunctionType(_termVarSorts.size(),_termVarSorts.begin(),outSort,_typeArity);
-            newSym = env.signature->getFunction(newFn);
-            newSym->setType(type);
+            newFn = env.signature->addFreshFunction(OperatorType::getFunctionType(_termVarSorts,outSort,_typeArity), "sF");
 
             // res is used both to replace here, but also in the new definition
             res = TermList(Term::create(newFn,_allVars.size(),_allVars.begin()));
           }
+          newSym = env.signature->getFunction(newFn);
 
           // (we don't care the definition is not rectified, as long as it's correct)
           // it is correct, because the lhs below is t and not key
