@@ -62,7 +62,7 @@ struct ImitateProjectFn
       pushResult(binding, inf == HOL::UnificationInference::IMITATION ? InferenceRule::IMITATION : InferenceRule::PROJECTION);
     }
 
-    return pvi(getUniquePersistentIterator(ClauseStack::Iterator(results)));;
+    return pvi(getUniquePersistentIterator<UnitHash, UnitNumberHash>(ClauseStack::Iterator(results)));;
   }
 private:
   Clause* _cl;

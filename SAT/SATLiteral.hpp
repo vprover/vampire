@@ -47,9 +47,6 @@ public:
   bool positive() const { return _lit > 0; }
   SATLiteral opposite() const { return SATLiteral(-_lit); }
 
-  unsigned defaultHash() const;
-  unsigned defaultHash2() const;
-
   bool operator==(const SATLiteral& l) const
   { return _lit==l._lit; }
   bool operator!=(const SATLiteral& l) const
@@ -74,9 +71,6 @@ struct SATLiteralHash {
 struct SATLiteralHash2 {
   static unsigned hash(SATLiteral l) { return l._lit; }
 };
-
-inline unsigned SATLiteral::defaultHash() const { return SATLiteralHash::hash(*this); }
-inline unsigned SATLiteral::defaultHash2() const { return SATLiteralHash2::hash(*this); }
 
 inline std::ostream& operator<<(std::ostream &out, const SAT::SATLiteral &lit)
 {

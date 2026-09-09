@@ -49,7 +49,7 @@ public:
   void reset(){ _posMap.reset(); }
   friend std::ostream& operator<<(std::ostream& out, SAT2FO const& self);
 private:
-  typedef Numbering<Literal *, 1 /* variables start from 1 */ > TwoWayMap;
+  typedef Numbering<Literal*, FnvHash, PtrIdentityHash, 1 /* variables start from 1 */> TwoWayMap;
   TwoWayMap _posMap;
 };
 

@@ -58,7 +58,15 @@ class Signature
     , std::pair<Theory::Interpretation, OperatorType*>
     >;
 
-  using SymbolMap = Map<SymbolKey, unsigned, CoproductHash>;
+  using SymbolKeyHash = CoproductHash<
+      PairHash<FnvHash, FnvHash>
+    , FnvHash
+    , PairHash<IntegerConstantTypeHash, FnvHash>
+    , PairHash<RationalConstantTypeHash, FnvHash>
+    , PairHash<RationalConstantTypeHash, FnvHash>
+    , PairHash<FnvHash, FnvHash>
+    >;
+  using SymbolMap = Map<SymbolKey, unsigned, SymbolKeyHash>;
  public:
   /** Function or predicate symbol */
   
@@ -988,7 +996,7 @@ private:
   DHMap<TermList, unsigned, SharedTermListHash, SharedTermListHash2> _stringDistinctGroups;
   // The $distinct marker predicates, keyed by (arity, id of the argument sort).
   // Keyed by the sort's Term::getId() rather than its address, so the layout is deterministic.
-  DHMap<std::pair<unsigned,unsigned>, unsigned> _distinctPredicates;
+  DHMap<std::pair<unsigned,unsigned>, unsigned, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>> _distinctPredicates;
 
   /**
    * Map from Interpretation values to function and predicate symbols representing them
