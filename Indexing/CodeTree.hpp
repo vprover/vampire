@@ -139,10 +139,11 @@ public:
     unsigned* globalVarPermutation;
 
     unsigned timestamp;
-    //from here on, the values are valid only if the timestamp is current
 
-    void addMatch(unsigned liIndex, DArray<TermList>& bindingArray, bool opposite);
-    void deleteMatch(unsigned matchIndex);
+    //from here on, the values are valid only if the timestamp is current
+    /** boolean template sres variable indicates whether this ILStruct supports subsumption resolution */
+    template<bool sres> void addMatch(unsigned liIndex, DArray<TermList>& bindingArray, bool opposite);
+    template<bool sres> void deleteMatch(unsigned matchIndex);
     MatchInfo*& getMatch(unsigned matchIndex);
 
     unsigned matchCnt;
@@ -340,7 +341,7 @@ public:
    * this one. After use, the @b deinit function should be called (if
    * present). This allows for reuse of a single object.
    */
-  template<bool removing, bool checkRange, bool higherOrder>
+  template<bool removing, bool checkRange, bool higherOrder, bool sres>
   struct Matcher
     : public std::conditional<removing, RemovingBase, NonRemovingBase>::type
   {
@@ -350,24 +351,46 @@ public:
 
     /**
      * A CodeOp* tagged in its lowest bit with the 'opposite' flag 
+     * When sres is false, it becomes a plain CodeOp*
      */
     class MarkedOp
     {
-      static_assert(alignof(CodeOp) >= 2, "CodeOp must be at least 2-byte aligned so its lowest bit is free for the mark");
+      using Content = typename std::conditional<sres, uint64_t, CodeOp*>::type;
     public:
-      MarkedOp(CodeOp* op, bool mark) { _setOp(op); _setMark(mark); }
+      MarkedOp(CodeOp* op, bool mark) 
+      { 
+        if constexpr (sres) {
+          static_assert(alignof(CodeOp) >= 2, "CodeOp must be at least 2-byte aligned so its lowest bit is free for the mark");
+          static_assert(sizeof(void *) <= sizeof(uint64_t), "must be able to fit a pointer into a 64-bit integer");
+          _content = 0;
+          BitUtils::setBits<1, CHAR_BIT * sizeof(CodeOp*)>(_content, reinterpret_cast<uint64_t>(op));
+          BitUtils::setBits<0, 1>(_content, mark);
+        } else {
+          ASS(!mark);
+          _content = op;
+        }
+      }
 
-      BITFIELD(64,
-        BITFIELD_MEMBER(bool, getMark, _setMark, 1,
-        END_BITFIELD
-      ))
-      static_assert(sizeof(void *) <= sizeof(uint64_t), "must be able to fit a pointer into a 64-bit integer");
-      BITFIELD_PTR_GET(CodeOp, getOp, 1)
-      BITFIELD_PTR_SET(CodeOp, _setOp, 1)
+      CodeOp* getOp() const
+      {
+        if constexpr (sres) {
+          return reinterpret_cast<CodeOp*>(BitUtils::getBits<1, CHAR_BIT * sizeof(CodeOp*)>(_content));
+        } else {
+          return _content;
+        }
+      }
+
+      bool getMark() const
+      {
+        if constexpr (sres) {
+          return BitUtils::getBits<0, 1>(_content);
+        } else {
+          return false;
+        }
+      }
 
     private:
-      // bitfield
-      uint64_t _content = 0;
+      Content _content = 0;
     };
 
     /**

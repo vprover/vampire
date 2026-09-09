@@ -57,9 +57,9 @@ private:
   bool removeOneOfAlternatives(CodeOp* op, Clause* cl, Stack<CodeOp*>* firstsInBlocks);
 
   struct RemovingLiteralMatcher
-  : public Matcher</*removing*/true,false,higherOrder>
+  : public Matcher</*removing*/true,false,higherOrder,/*sres*/false>
   {
-    using Base = Matcher</*removing*/true,false,higherOrder>;
+    using Base = Matcher</*removing*/true,false,higherOrder, /*sres*/false>;
 
     void init(CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_,
 	    const ClauseCodeTree& tree_, Stack<CodeOp*>* firstsInBlocks_);
@@ -71,11 +71,14 @@ private:
 
   /** Context for finding matches of literals
    *
-   * Here the actual execution of the code of the tree takes place */
+   * Here the actual execution of the code of the tree takes place 
+   * sres selects between subsumption+resolution (true) and subsumption-only (false)
+   * */
+  template<bool sres>
   struct LiteralMatcher
-  : public Matcher</*removing*/false,false,higherOrder>
+  : public Matcher</*removing*/false,false,higherOrder,sres>
   {
-    using Base = Matcher</*removing*/false,false,higherOrder>;
+    using Base = Matcher</*removing*/false,false,higherOrder,sres>;
     using Base::op;
     using Base::_matched;
     using Base::finished;
@@ -101,9 +104,10 @@ private:
   };
 
 public:
+  template<bool sres>
   struct ClauseMatcher
   {
-    void init(ClauseCodeTree* tree_, Clause* query_, bool sres_);
+    void init(ClauseCodeTree* tree_, Clause* query_);
     void reset();
     bool keepRecycled() const { return lInfos.keepRecycled(); }
 
@@ -127,7 +131,6 @@ public:
 
     Clause* query;
     ClauseCodeTree* tree;
-    bool sres;
 
     static const unsigned sresNoLiteral=static_cast<unsigned>(-1);
     unsigned sresLiteral;
@@ -144,7 +147,7 @@ public:
      */
     DArray<LitInfo> lInfos;
 
-    Stack<Recycled<LiteralMatcher, NoReset>> lms;
+    Stack<Recycled<LiteralMatcher<sres>, NoReset>> lms;
   };
 
 private:

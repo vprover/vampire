@@ -35,6 +35,11 @@ public:
                Kernel::ClauseIterator &premises) override;
 
 private:
+  template<bool sres>
+  bool performWith(Kernel::Clause *cl,
+               Kernel::Clause *&replacement,
+               Kernel::ClauseIterator &premises);
+
   const bool _subsumptionResolution;
   std::shared_ptr<Indexing::CodeTreeSubsumptionIndex<higherOrder>> _index;
   Indexing::ClauseCodeTree<higherOrder>* _ct;

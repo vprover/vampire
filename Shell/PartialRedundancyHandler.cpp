@@ -246,7 +246,7 @@ private:
 
   struct SubstMatcher
   // TODO(HOL): consider turning higherOrder flag off for HOL
-  : public Matcher</*removing*/false,false,/*higherOrder=*/true>
+  : public Matcher</*removing*/false,false,/*higherOrder=*/true,/*sres=*/false>
   {
     void init(const CodeTree& tree, const TermStack& ts)
     {
@@ -281,7 +281,7 @@ private:
   };
 
   struct VariantMatcher
-  : public Matcher</*removing*/true,true,/*higherOrder=*/false>
+  : public Matcher</*removing*/true,true,/*higherOrder=*/false,/*sres=*/false>
   {
   public:
     void init(FlatTerm* ft_, const CodeTree& tree_, Stack<CodeOp*>* firstsInBlocks_) {

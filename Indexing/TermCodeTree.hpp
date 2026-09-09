@@ -45,21 +45,21 @@ public:
 
 private:
   struct RemovingTermMatcher
-  : public Matcher</*removing*/true,false,higherOrder>
+  : public Matcher</*removing*/true,false,higherOrder,/*sres*/false>
   {
   public:
-    using Base = Matcher</*removing*/true,false,higherOrder>;
+    using Base = Matcher</*removing*/true,false,higherOrder,/*sres*/false>;
 
     void init(FlatTerm* ft_, const TermCodeTree& tree_, Stack<CodeOp*>* firstsInBlocks_);
   };
 
 public:
   struct TermMatcher
-  : public Matcher</*removing*/false,false,higherOrder>
+  : public Matcher</*removing*/false,false,higherOrder,/*sres*/false>
   {
     TermMatcher();
 
-    using Base = Matcher</*removing*/false,false,higherOrder>;
+    using Base = Matcher</*removing*/false,false,higherOrder,/*sres*/false>;
     using Base::ft;
 
     void init(const CodeTree& tree, TypedTermList t);
