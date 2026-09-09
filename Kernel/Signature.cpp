@@ -430,7 +430,7 @@ unsigned Signature::addFunction (const std::string& name,
 
 /**
  * Add a string constant to the signature. This constant will automatically be
- * added to the distinct group STRING_DISTINCT_GROUP.
+ * added to the distinct group of its sort (STRING_DISTINCT_GROUP for $i).
  * @author Andrei Voronkov
  */
 unsigned Signature::addStringConstant(const std::string& name, TermList sort)
@@ -448,7 +448,7 @@ unsigned Signature::addStringConstant(const std::string& name, TermList sort)
   Symbol* sym = new Symbol(quotedName, OperatorType::getConstantsType(sort),
         /*       interpreted */ false, 
         /*    preventQuoting */ true);
-  sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result);
+  sym->addToDistinctGroup(getStringDistinctGroup(sort),result);
   _funs.push(sym);
   _funNames.insert(symbolKey,result);
   return result;
@@ -867,6 +867,26 @@ void Signature::addToDistinctGroup(unsigned constantSymbol, unsigned groupId)
 {
   Symbol* sym = getFunction(constantSymbol);
   sym->addToDistinctGroup(groupId,constantSymbol);
+}
+
+/**
+ * Return the distinct group collecting the string constants ("distinct objects") of
+ * @c sort, creating it if this is the first one of that sort.
+ *
+ * $i uses STRING_DISTINCT_GROUP, which is reserved in the constructor; this cannot be
+ * folded into the map, since the constructor must not call AtomicSort::defaultSort().
+ */
+unsigned Signature::getStringDistinctGroup(TermList sort)
+{
+  if (sort == AtomicSort::defaultSort()) {
+    return STRING_DISTINCT_GROUP;
+  }
+  unsigned group;
+  if (!_stringDistinctGroups.find(sort,group)) {
+    group = createDistinctGroup(); // no premise, just as for STRING_DISTINCT_GROUP
+    ALWAYS(_stringDistinctGroups.insert(sort,group));
+  }
+  return group;
 }
 
 bool Signature::isProtectedName(std::string name)

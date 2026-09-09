@@ -476,10 +476,14 @@ class Signature
     return addFunction(name, type, added);
   }
   /**
-   * If a unique string constant with this name and arity exists, return its number.
-   * Otherwise, add a new one and return its number.
+   * If a unique string constant with this name exists, return its number.
+   * Otherwise, add a new one of sort @c sort and return its number.
    *
-   * The added constant is of default ($i) sort.
+   * A string constant ("distinct object") is a member of the distinct group of its
+   * sort, cf. getStringDistinctGroup. Note that string constants are keyed by name
+   * alone: a distinct object denotes one object, so a second call with a different
+   * sort returns the previously created symbol and @c sort is ignored. It is up to
+   * the caller to complain about a sort clash, if it cares.
    */
   unsigned addStringConstant(const std::string& name, TermList sort);
   unsigned addFreshFunction(OperatorType* type, const char* prefix, const char* suffix = 0);
@@ -763,6 +767,7 @@ class Signature
   Unit* getDistinctGroupPremise(unsigned group);
   unsigned createDistinctGroup(Unit* premise = 0);
   void addToDistinctGroup(unsigned constantSymbol, unsigned groupId);
+  unsigned getStringDistinctGroup(TermList sort);
   bool hasDistinctGroups(){ return _distinctGroupsAddedTo; }
   void noDistinctGroupsLeft(){ _distinctGroupsAddedTo=false; }
   Stack<DistinctGroupMembers> &distinctGroupMembers(){ return _distinctGroupMembers; }
@@ -963,10 +968,13 @@ private:
   // Store the premise of a distinct group for proof printing, if 0 then group is input
   Stack<Unit*> _distinctGroupPremises;
 
-  // We only store members up until a hard-coded limit i.e. the limit at which we will expand the group
+  // The members of each distinct group, indexed by the group's id
   Stack<DistinctGroupMembers> _distinctGroupMembers;
   // Flag to indicate if any distinct groups have members
   bool _distinctGroupsAddedTo;
+  // For each sort that has string constants ("distinct objects"), the group collecting them.
+  // $i is not stored here; it always uses STRING_DISTINCT_GROUP. See getStringDistinctGroup.
+  DHMap<TermList, unsigned, SharedTermListHash, SharedTermListHash2> _stringDistinctGroups;
 
   /**
    * Map from Interpretation values to function and predicate symbols representing them

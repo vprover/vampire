@@ -277,6 +277,19 @@ check_rejected 'cannot parse the ?* quantifier' --input_syntax tptp --mode outpu
 check_rejected 'only supports type quantification (!>) in type declarations' --input_syntax tptp --mode output parse/thf-type-quant-in-formula.p
 check_output_contains '(p(vAND) & p(vNOT))' --mode output parse/proxy-names.p
 check_output_contains '(c = vPI(c))' --mode output parse/proxy-names.p
+# distinct objects (doubly-quoted symbols): declarable at a user sort in tff, one
+# distinct group per sort, non-ground sorts rejected
+check_szs_status Unsatisfiable parse/distinct-objects-tff.p
+check_szs_status Unsatisfiable -newcnf on parse/distinct-objects-tff.p
+# -dgel 1 leaves the group unexpanded, so the refutation goes via DistinctEqualitySimplifier
+check_szs_status Unsatisfiable -dgel 1 parse/distinct-objects-tff.p
+check_output_contains '"a": letter' --mode output parse/distinct-objects-tff.p
+check_szs_status Unsatisfiable parse/distinct-objects-fof.p
+check_rejected 'distinct object cannot have a polymorphic type' --input_syntax tptp --mode output parse/distinct-objects-poly.p
+check_rejected 'must be declared as a constant of a proper sort: "f"' --input_syntax tptp --mode output parse/distinct-objects-arity.p
+check_rejected 'must be declared as a constant of a proper sort: "a"' --input_syntax tptp --mode output parse/distinct-objects-bool.p
+check_rejected 'must be declared as a constant of a proper sort: "a"' --input_syntax tptp --mode output parse/distinct-objects-ttype.p
+check_rejected 'Distinct object type is declared after its use' --input_syntax tptp --mode output parse/distinct-objects-clash.p
 # TPTP tcf (typed clause form), read and written. parse/SYN000-3.p is the TPTP
 # sample exercising every tcf construct; exact output, because what is under test
 # is that all of it parses and that --mode tclausify prints legal tcf.
