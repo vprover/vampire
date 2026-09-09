@@ -177,7 +177,6 @@ set(SOURCES
     Indexing/ClauseVariantIndex.hpp
     Indexing/CodeTree.cpp
     Indexing/CodeTree.hpp
-    Indexing/CodeTreeInterfaces.cpp
     Indexing/CodeTreeInterfaces.hpp
     Indexing/DemodulationIndex.hpp
     Indexing/DemodulationIndex.cpp
@@ -187,6 +186,7 @@ set(SOURCES
     Indexing/IndexManager.hpp
     Indexing/InductionFormulaIndex.cpp
     Indexing/InductionFormulaIndex.hpp
+    Indexing/LiteralCodeTree.hpp
     Indexing/LiteralIndex.cpp
     Indexing/LiteralIndex.hpp
     Indexing/LiteralMiniIndex.cpp
@@ -195,15 +195,13 @@ set(SOURCES
     Indexing/ResultSubstitution.cpp
     Indexing/ResultSubstitution.hpp
     Indexing/SubstitutionTree.hpp
-    Indexing/SubstitutionTree_FastGen.hpp
     Indexing/SubstitutionTree_FastInst.hpp
     Indexing/SubstitutionTree_Nodes.hpp
     Indexing/SubstitutionTree_impl.hpp
-    Indexing/TermCodeTree.cpp
     Indexing/TermCodeTree.hpp
+    Indexing/TermOrLiteralCodeTree.hpp
     Indexing/TermIndex.cpp
     Indexing/TermIndex.hpp
-    Indexing/TermIndexingStructure.hpp
     Indexing/TermSharing.cpp
     Indexing/TermSharing.hpp
     Indexing/TermSubstitutionTree.hpp

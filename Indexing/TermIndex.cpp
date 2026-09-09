@@ -37,7 +37,7 @@ using namespace Inferences;
 
 template<bool higherOrder>
 SuperpositionSubtermIndex<higherOrder>::SuperpositionSubtermIndex(SaturationAlgorithm& salg)
-: TermIndex(new TermSubstitutionTree<TermLiteralClause>), _ord(salg.getOrdering()) {}
+: TermIndex(), _ord(salg.getOrdering()) {}
 
 template<bool higherOrder>
 void SuperpositionSubtermIndex<higherOrder>::handleClause(Clause* c, bool adding)
@@ -46,7 +46,7 @@ void SuperpositionSubtermIndex<higherOrder>::handleClause(Clause* c, bool adding
 
   for (const auto& lit : c->getSelectedLiteralIterator()) {
     for (const auto& tt : iterTraits(EqHelper::getSubtermIterator<higherOrder>(lit, _ord))) {
-      _is->handle(TermLiteralClause{ tt, lit, c }, adding);
+      _is.handle(TermLiteralClause{ tt, lit, c }, adding);
     }
   }
 }
@@ -55,7 +55,7 @@ template class SuperpositionSubtermIndex<false>;
 template class SuperpositionSubtermIndex<true>;
 
 SuperpositionLHSIndex::SuperpositionLHSIndex(SaturationAlgorithm& salg)
-: TermIndex(new TermSubstitutionTree<TermLiteralClause>), _ord(salg.getOrdering()), _opt(salg.getOptions()) {}
+: TermIndex(), _ord(salg.getOrdering()), _opt(salg.getOptions()) {}
 
 void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
 {
@@ -63,13 +63,13 @@ void SuperpositionLHSIndex::handleClause(Clause* c, bool adding)
 
   for (const auto& lit : c->getSelectedLiteralIterator()) {
     for (const auto& lhs : iterTraits(EqHelper::getSuperpositionLHSIterator(lit, _ord, _opt))) {
-	    _is->handle(TermLiteralClause{ lhs, lit, c }, adding);
+	    _is.handle(TermLiteralClause{ lhs, lit, c }, adding);
     }
   }
 }
 
 InductionTermIndex::InductionTermIndex(SaturationAlgorithm& salg)
-: TermIndex(new TermSubstitutionTree<TermLiteralClause>()), _inductionGroundOnly(salg.getOptions().inductionGroundOnly()) {}
+: TermIndex(), _inductionGroundOnly(salg.getOptions().inductionGroundOnly()) {}
 
 void InductionTermIndex::handleClause(Clause* c, bool adding)
 {
@@ -99,11 +99,7 @@ void InductionTermIndex::handleClause(Clause* c, bool adding)
       }
       if (InductionHelper::isInductionTerm(t) &&
           InductionHelper::isIntInductionTermListInLiteral(t, lit)) {
-        if (adding) {
-          _is->insert(TermLiteralClause{ t, lit, c });
-        } else {
-          _is->remove(TermLiteralClause{ t, lit, c });
-        }
+        _is.handle(TermLiteralClause{ t, lit, c }, adding);
       }
     }
   }

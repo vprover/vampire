@@ -34,8 +34,6 @@ const unsigned Signature::STRING_DISTINCT_GROUP = 0;
 Signature::Symbol::Symbol(const std::string& nm, OperatorType* type, bool interpreted, bool preventQuoting)
   : _name(nm),
     _type(type),
-    _arity(type->arity()),
-    _typeArgsArity(type->numTypeArguments()),
     _distinctGroups(0),
     _usageCount(0),
     _unitUsageCount(0),
@@ -62,7 +60,7 @@ Signature::Symbol::Symbol(const std::string& nm, OperatorType* type, bool interp
     _deBruijnIndex(-1)
 {
   ASS(_type);
-  if (!preventQuoting && symbolNeedsQuoting(_name, interpreted, _arity)) {
+  if (!preventQuoting && symbolNeedsQuoting(_name, interpreted, arity())) {
     _name="'"+_name+"'";
   }
   if (_interpreted || isProtectedName(nm)) {

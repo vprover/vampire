@@ -91,7 +91,7 @@ bool ForwardSubsumptionDemodulation<higherOrder>::perform(Clause* cl, Clause*& r
     /**
      * Step 1: find candidate clauses for subsumption
      */
-    auto rit = _index->getGeneralizations(subsQueryLit, false, false);
+    auto rit = _index->getGeneralizations(subsQueryLit, false);
     while (rit.hasNext()) {
       auto res = rit.next();
       Clause* mcl = res.data->clause;  // left premise of FSD

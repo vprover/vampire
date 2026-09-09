@@ -99,9 +99,9 @@ public:
   auto getGeneralizations(TypedTermList t)
   {
     if (_is.isEmpty()) {
-      return VirtualIterator<QueryRes<const GenSubstitution<TermLiteralClause>*, TermLiteralClause>>::getEmpty();
+      return VirtualIterator<GenSubstitutionQR<TermLiteralClause>>::getEmpty();
     }
-    return _is->getGeneralizations(t, true);
+    return _is->getGeneralizations(t);
   }
 
   const RecursionTemplate* getRecursionTemplate(Term* t) const {
@@ -113,8 +113,8 @@ public:
   const InductionTemplate* matchesTerm(Term* t, Stack<Term*>& inductionTerms) const;
 
 private:
-  ScopedPtr<CodeTreeTIS</*higherOrder=*/false, TermLiteralClause>> _is;
-  DHMap<std::pair<unsigned, SymbolType>, RecursionTemplate> _templates;
+  ScopedPtr<CodeTreeTIS<TermLiteralClause>> _is;
+  DHMap<std::pair<unsigned, SymbolType>, RecursionTemplate, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>> _templates;
 };
 
 /**

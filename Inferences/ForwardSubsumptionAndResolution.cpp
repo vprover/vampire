@@ -39,7 +39,7 @@ using namespace Saturation;
 
 ForwardSubsumptionAndResolution::ForwardSubsumptionAndResolution(SaturationAlgorithm& salg)
   : _subsumptionResolution(salg.getOptions().forwardSubsumptionResolution()),
-    _unitIndex(salg.getSimplifyingIndex<UnitClauseLiteralIndex>()),
+    _unitIndex(salg.getSimplifyingIndex<UnitClauseLiteralIndex<true>>()),
     _fwIndex(salg.getSimplifyingIndex<FwSubsSimplifyingLiteralIndex>())
 {}
 
@@ -83,7 +83,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
   // Therefore L subsumes M
   for (unsigned li = 0; li < clen; li++) {
     Literal *lit = (*cl)[li];
-    auto it = _unitIndex->getGeneralizations(lit, false, false);
+    auto it = _unitIndex->getGeneralizations(lit, false);
     if (it.hasNext()) {
       mcl = it.next().data->clause;
       premise = mcl;
@@ -108,7 +108,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
   // subsumption resolution become relevant
   for (unsigned li = 0; li < clen; li++) {
     Literal *lit = (*cl)[li];
-    auto it = _fwIndex->getGeneralizations(lit, false, false);
+    auto it = _fwIndex->getGeneralizations(lit, false);
     while (it.hasNext()) {
       mcl = it.next().data->clause;
       if (!checkedClauses.insert(mcl->number())) {
@@ -169,7 +169,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
   // This is why we do not chain subsumption resolutions.
   for (unsigned li = 0; li < clen; li++) {
     Literal *lit = (*cl)[li];
-    auto it = _unitIndex->getGeneralizations(lit, true, false);
+    auto it = _unitIndex->getGeneralizations(lit, true);
     if (it.hasNext()) {
       if (rsi && Random::getDouble(0.0,1.0) < RSI_SKIP_PROB) {
         continue; // drop this candidate early; another literal may still get resolved
@@ -188,7 +188,7 @@ bool ForwardSubsumptionAndResolution::perform(Clause *cl,
   // Check for the last clauses that are negatively matched in the index.
   for (unsigned li = 0; li < clen; li++) {
     Literal *lit = (*cl)[li];
-    auto it = _fwIndex->getGeneralizations(lit, true, false);
+    auto it = _fwIndex->getGeneralizations(lit, true);
     while (it.hasNext()) {
       mcl = it.next().data->clause;
       if (!checkedClauses.insert(mcl->number())) {

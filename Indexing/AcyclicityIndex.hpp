@@ -15,7 +15,7 @@
 #ifndef __AcyclicityIndex__
 #define __AcyclicityIndex__
 
-#include "Indexing/Index.hpp"
+#include "Indexing/TermSubstitutionTree.hpp"
 
 #include "Kernel/Term.hpp"
 
@@ -51,9 +51,8 @@ typedef Lib::VirtualIterator<CycleQueryResult*> CycleQueryResultsIterator;
 class AcyclicityIndex
 : public Index
 {
-  using TermIndexingStructure   = Indexing::TermIndexingStructure<TermLiteralClause>;
 public:
-  AcyclicityIndex(SaturationAlgorithm&);
+  AcyclicityIndex(SaturationAlgorithm&) {}
   ~AcyclicityIndex() override = default;
   
   void insert(Kernel::Literal *lit, Kernel::Clause *c);
@@ -70,10 +69,10 @@ private:
   struct CycleSearchTreeNode;
   struct CycleSearchIterator;
   typedef std::pair<Kernel::Literal*, Kernel::Clause*> ULit;
-  typedef Lib::DHMap<ULit, IndexEntry*> SIndex;
+  typedef Lib::DHMap<ULit, IndexEntry*, Lib::PairHash<Lib::FnvHash, Lib::UnitHash>, Lib::PairHash<Lib::PtrIdentityHash, Lib::UnitNumberHash>> SIndex;
 
   Lib::DHMap<TermList, SIndex*> _sIndexes;
-  TermIndexingStructure* _tis;
+  TermSubstitutionTree<TermLiteralClause> _tis;
 };
 
 }

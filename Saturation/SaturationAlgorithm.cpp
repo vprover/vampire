@@ -1636,11 +1636,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   if (mayHaveEquality) {
     if (opt.forwardGroundJoinability()) {
-      if (prb.isHigherOrder()) {
-        res->addExpensiveForwardSimplifierToFront<ForwardGroundJoinability<true>>();
-      } else {
-        res->addExpensiveForwardSimplifierToFront<ForwardGroundJoinability<false>>();
-      }
+      res->addExpensiveForwardSimplifierToFront<ForwardGroundJoinability>();
     }
     switch (opt.forwardDemodulation()) {
       case Options::Demodulation::ALL:
@@ -1662,11 +1658,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   if (opt.forwardSubsumption()) {
     if (opt.codeTreeSubsumption()) {
-      if (prb.isHigherOrder()) {
-        res->addForwardSimplifierToFront<CodeTreeForwardSubsumptionAndResolution<true>>();
-      } else {
-        res->addForwardSimplifierToFront<CodeTreeForwardSubsumptionAndResolution<false>>();
-      }
+      res->addForwardSimplifierToFront<CodeTreeForwardSubsumptionAndResolution>();
     } else {
       res->addForwardSimplifierToFront<ForwardSubsumptionAndResolution>();
     }
