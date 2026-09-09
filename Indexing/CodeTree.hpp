@@ -453,7 +453,6 @@ public:
     bool doCheckFun();
     bool doCheckGroundTerm();
     bool doSearchStruct();
-    MarkedOp markOp(CodeOp*);
 
     /**
      * Position in the flat term
