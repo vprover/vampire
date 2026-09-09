@@ -102,6 +102,15 @@ void Preprocess::preprocess(Problem& prb)
     }
   }
 
+  // Distinctness is still recorded symbolically at this point: as $distinct marker
+  // literals left by the parsers, and as the distinct groups the string constants were
+  // collected into. Get rid of all of it before anything else looks at the problem --
+  // in particular before the property scan below, so that the marker predicates never
+  // show up in it.
+  if(env.options->showPreprocessing())
+    std::cout << "distinct group expansion" << std::endl;
+  DistinctGroupExpansion(_options.distinctGroupExpansionLimit()).apply(prb);
+
   //we ensure that in the beginning we have a valid property object, to
   //know that the queries to uncertain problem properties will be precise
   //enough
@@ -207,14 +216,6 @@ void Preprocess::preprocess(Problem& prb)
         std::cout << "[PP] Added Hilbert choice axiom: " << choiceAx->toString() << std::endl;
       }
     }
-  }
-
-  // Expansion of distinct groups happens before other preprocessing
-  // If a distinct group is small enough it will add inequality to describe it
-  if(env.signature->hasDistinctGroups()){
-    if(env.options->showPreprocessing())
-      std::cout << "distinct group expansion" << std::endl;
-    DistinctGroupExpansion(_options.distinctGroupExpansionLimit()).apply(prb);
   }
 
   if (_options.sineToAge() || _options.useSineLevelSplitQueues() || (_options.sineToPredLevels() != Options::PredicateSineLevels::OFF)) {

@@ -105,6 +105,8 @@ class Signature
     unsigned _label : 1;
     /** marks predicates that are equality proxy */
     unsigned _equalityProxy : 1;
+    /** marks the $distinct marker predicates, cf. Signature::getDistinctPredicate */
+    unsigned _distinctPred : 1;
     /** was flipped **/ 
     unsigned _wasFlipped : 1;
     /** used in coloured proofs and interpolation */
@@ -156,6 +158,7 @@ class Signature
     void markAnswerPredicate() { _answerPredicate=1; markProtected(); }
     /** mark predicate to be an equality proxy */
     void markEqualityProxy() { _equalityProxy=1; }
+    void markDistinctPred() { _distinctPred=1; }
     /** mark predicate as (polarity) flipped */
     void markFlipped() { _wasFlipped=1; }
     void markLinMul() { _linMul=1; }
@@ -193,6 +196,8 @@ class Signature
     inline bool answerPredicate() const { return _answerPredicate; }
     /** Return true iff symbol is an equality proxy */
     inline bool equalityProxy() const { return _equalityProxy; }
+    /** true for the $distinct marker predicates, cf. Signature::getDistinctPredicate */
+    inline bool distinctPred() const { return _distinctPred; }
     /** Return true iff symbol was polarity flipped */
     inline bool wasFlipped() const { return _wasFlipped; }
     /** Return true iff symbol is a term algebra constructor */
@@ -768,6 +773,9 @@ class Signature
   unsigned createDistinctGroup(Unit* premise = 0);
   void addToDistinctGroup(unsigned constantSymbol, unsigned groupId);
   unsigned getStringDistinctGroup(TermList sort);
+  unsigned getDistinctPredicate(unsigned arity, TermList sort);
+  /** true if @c l is an application of a $distinct marker predicate */
+  static bool isDistinctLiteral(Literal* l);
   bool hasDistinctGroups(){ return _distinctGroupsAddedTo; }
   void noDistinctGroupsLeft(){ _distinctGroupsAddedTo=false; }
   Stack<DistinctGroupMembers> &distinctGroupMembers(){ return _distinctGroupMembers; }
@@ -975,6 +983,9 @@ private:
   // For each sort that has string constants ("distinct objects"), the group collecting them.
   // $i is not stored here; it always uses STRING_DISTINCT_GROUP. See getStringDistinctGroup.
   DHMap<TermList, unsigned, SharedTermListHash, SharedTermListHash2> _stringDistinctGroups;
+  // The $distinct marker predicates, keyed by (arity, id of the argument sort).
+  // Keyed by the sort's Term::getId() rather than its address, so the layout is deterministic.
+  DHMap<std::pair<unsigned,unsigned>, unsigned> _distinctPredicates;
 
   /**
    * Map from Interpretation values to function and predicate symbols representing them
