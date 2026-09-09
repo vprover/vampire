@@ -664,7 +664,7 @@ FlatMapIter<Inner,Functor> getMapAndFlattenIterator(Inner it, Functor f)
  *
  * @see VirtualIterator
  */
-template<class Inner>
+template<class Inner, class Hash1, class Hash2>
 class UniquePersistentIterator
 : public IteratorCore<typename Inner::ElementType>
 {
@@ -693,7 +693,7 @@ public:
   inline bool knowsSize() const override { return true; }
   inline size_t size() const override { return _size; }
 private:
-  typedef DHSet<T> ItemSet;
+  typedef DHSet<T, Hash1, Hash2> ItemSet;
 
   static ItemList* getUniqueItemList(Inner& inn, size_t& sizeRef)
   {
@@ -726,14 +726,14 @@ private:
  *
  * @see UniquePersistentIterator
  */
-template<class Inner>
+template<class Hash1, class Hash2, class Inner>
 inline
 VirtualIterator<typename Inner::ElementType> getUniquePersistentIterator(Inner it)
 {
   if(!it.hasNext()) {
     return VirtualIterator<typename Inner::ElementType>::getEmpty();
   }
-  return vi( new UniquePersistentIterator<Inner>(it) );
+  return vi( new UniquePersistentIterator<Inner, Hash1, Hash2>(it) );
 }
 
 
@@ -748,14 +748,14 @@ VirtualIterator<typename Inner::ElementType> getUniquePersistentIterator(Inner i
  *
  * @see UniquePersistentIterator
  */
-template<class Inner>
+template<class Hash1, class Hash2, class Inner>
 inline
 VirtualIterator<typename Inner::ElementType> getUniquePersistentIteratorFromPtr(Inner* it)
 {
   if(!it->hasNext()) {
     return VirtualIterator<typename Inner::ElementType>::getEmpty();
   }
-  return vi( new UniquePersistentIterator<Inner>(*it) );
+  return vi( new UniquePersistentIterator<Inner, Hash1, Hash2>(*it) );
 }
 
 /**
@@ -1568,9 +1568,10 @@ public:
   auto takeWhile(Pred p)
   { return iterTraits(TakeWhileIter<Iter, Pred>(std::move(_iter), std::move(p))); }
 
+  template<class Hash>
   auto unique()
   { 
-    Map<ElementType, std::tuple<>> found;
+    Map<ElementType, std::tuple<>, Hash> found;
     return iterTraits(std::move(*this)
         .filterMap([found = std::move(found)](ElementType next) mutable {
           if (found.tryGet(next).isSome()) {
@@ -1821,7 +1822,7 @@ template<class Inner>
 auto getPersistentIterator(Inner it)
 { return pvi(arrayIter(iterTraits(std::move(it)).template collect<Stack>())); }
 
-/* wrapper around an iterator that implements ==, <, > and hash functions.
+/* wrapper around an iterator that implements ==, < and >.
  * <,> are implemented as lexicographic comparison of the iterator elements */
 template<class Iter>
 class IterContOps {
@@ -1829,9 +1830,6 @@ class IterContOps {
 
 public:
   IterContOps(Iter iter) : _iter(std::move(iter)) {}
-
-  auto defaultHash() const { return DefaultHash::hashIter(Iter(_iter).map([](typename Iter::ElementType x) -> unsigned { return DefaultHash::hash(x); })); }
-  auto defaultHash2() const { return DefaultHash::hashIter(Iter(_iter).map([](typename Iter::ElementType x) -> unsigned { return DefaultHash2::hash(x); })); }
 
   static int cmp(IterContOps const& lhs, IterContOps const& rhs) {
     auto l = lhs._iter;

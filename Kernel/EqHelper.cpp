@@ -180,9 +180,9 @@ template<bool higherOrder>
 VirtualIterator<Term*> EqHelper::getSubtermIterator(Literal* lit, const Ordering& ord)
 {
   if constexpr (higherOrder) {
-    return getRewritableSubtermIterator<FirstOrderSubtermIterator>(lit, ord);
+    return getRewritableSubtermIterator<FirstOrderSubtermIterator, FnvHash, PtrIdentityHash>(lit, ord);
   } else {
-    return getRewritableSubtermIterator<NonVariableNonTypeIterator>(lit, ord);
+    return getRewritableSubtermIterator<NonVariableNonTypeIterator, FnvHash, PtrIdentityHash>(lit, ord);
   }
 }
 
@@ -191,14 +191,14 @@ template VirtualIterator<Term*> EqHelper::getSubtermIterator<true>(Literal*, con
 
 TermIterator EqHelper::getBooleanSubtermIterator(Literal* lit, const Ordering& ord)
 {
-  return getRewritableSubtermIterator<BooleanSubtermIt>(lit, ord);
+  return getRewritableSubtermIterator<BooleanSubtermIt, TermListHash, TermListHash2>(lit, ord);
 }
 
 /**
  * Return iterator on subterms of a literal, that can be rewritten by
  * superposition.
  */
-template<class SubtermIterator>
+template<class SubtermIterator, class Hash1, class Hash2>
 VirtualIterator<typename SubtermIterator::ElementType> EqHelper::getRewritableSubtermIterator(Literal* lit, const Ordering& ord)
 {
   if (lit->isEquality()) {
@@ -206,7 +206,7 @@ VirtualIterator<typename SubtermIterator::ElementType> EqHelper::getRewritableSu
     switch(ord.getEqualityArgumentOrder(lit)) {
     case Ordering::INCOMPARABLE: {
       SubtermIterator si(lit);
-      return getUniquePersistentIteratorFromPtr(&si);
+      return getUniquePersistentIteratorFromPtr<Hash1, Hash2>(&si);
     }
     case Ordering::EQUAL:
     case Ordering::GREATER:
@@ -223,11 +223,11 @@ VirtualIterator<typename SubtermIterator::ElementType> EqHelper::getRewritableSu
     if (!sel.isTerm()) {
       return VirtualIterator<typename SubtermIterator::ElementType>::getEmpty();
     }
-    return getUniquePersistentIterator(vi(new SubtermIterator(sel.term(), true)));
+    return getUniquePersistentIterator<Hash1, Hash2>(vi(new SubtermIterator(sel.term(), true)));
   }
 
   SubtermIterator si(lit);
-  return getUniquePersistentIteratorFromPtr(&si);
+  return getUniquePersistentIteratorFromPtr<Hash1, Hash2>(&si);
 
 }
 

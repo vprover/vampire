@@ -378,7 +378,7 @@ protected:
   size_t _auxTimestamp = 0;
 
   /** a map that translates Literal* to its index in the clause */
-  InverseLookup<Literal>* _literalPositions = nullptr;
+  InverseLookup<Literal, FnvHash, PtrIdentityHash>* _literalPositions = nullptr;
 
   static size_t _auxCurrTimestamp;
 #if VDEBUG

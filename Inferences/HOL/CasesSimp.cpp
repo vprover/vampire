@@ -56,7 +56,7 @@ Option<ClauseIterator> CasesSimp::simplifyMany(Clause* premise)
     // TODO aren't all literals equalities in the HOL setting?
     .filter([](Literal* lit){ return lit->isEquality(); })
     .flatMap([](Literal* lit) {
-      return pvi(pushPairIntoRightIterator(lit, getUniquePersistentIterator(vi(new BooleanSubtermIt(lit)))));
+      return pvi(pushPairIntoRightIterator(lit, getUniquePersistentIterator<TermListHash, TermListHash2>(vi(new BooleanSubtermIt(lit)))));
     })
     // filter out top-level terms
     .filter([](pair<Literal*, TermList> arg) {

@@ -84,10 +84,6 @@ public:
   { return DfltComparison::compare(*this, rhs); }
   IMPL_COMPARISONS_FROM_COMPARE(Perfect);
   IMPL_EQ_FROM_COMPARE(Perfect);
-
-  unsigned defaultHash () const { return DfltComparison::template defaultHash<DefaultHash >(*this); }
-  unsigned defaultHash2() const { return DfltComparison::template defaultHash<DefaultHash2>(*this); }
-
 }; // class Perfect
 
 
@@ -108,9 +104,9 @@ struct PerfectPtrComparison
   static size_t hash(Lib::Perfect<T, Cmp> const& self) 
   { return std::hash<size_t>{}((size_t)self._ptr); }
 
-  template<class DH, class T, class Cmp> 
-  static size_t defaultHash(Lib::Perfect<T, Cmp> const& self) 
-  { return DH::hash((size_t)self._ptr); }
+  template<class Hash, class T, class Cmp>
+  static unsigned hashWith(Lib::Perfect<T, Cmp> const& self)
+  { return Hash::hash((size_t)self._ptr); }
 };
 
 
@@ -129,11 +125,23 @@ struct PerfectIdComparison
   static size_t hash(Lib::Perfect<T, Cmp> const& self) 
   { return std::hash<unsigned>{}(self._id); }
 
-  template<class DH, class T, class Cmp> 
-  static size_t defaultHash(Lib::Perfect<T, Cmp> const& self) 
-  { return DH::hash(self._id); }
+  template<class Hash, class T, class Cmp>
+  static unsigned hashWith(Lib::Perfect<T, Cmp> const& self)
+  { return Hash::hash(self._id); }
 };
 
+
+// Apply Hash to the id or address selected by the comparison policy.
+template<class Hash>
+struct PerfectHash {
+  template<class T, class Cmp>
+  static bool equals(const Perfect<T, Cmp>& lhs, const Perfect<T, Cmp>& rhs)
+  { return lhs == rhs; }
+
+  template<class T, class Cmp>
+  static unsigned hash(const Perfect<T, Cmp>& value)
+  { return Cmp::template hashWith<Hash>(value); }
+};
 
 /** function to create a Perfect<T> ergonomically (with the help of type deduction) */
 template<class T, class Cmp = PerfectIdComparison> 

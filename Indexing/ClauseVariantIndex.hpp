@@ -63,7 +63,7 @@ private:
   unsigned termFunctorHash(Term* t, unsigned hash_begin) {
     unsigned func = t->functor();
     // std::cout << "will hash funtor " << func << std::endl;
-    return DefaultHash::hash(func, hash_begin);
+    return FnvHash::hash(func, hash_begin);
   }
 
   unsigned computeHashAndCountVariables(unsigned var, VarCounts& varCnts, unsigned hash_begin) {
@@ -77,7 +77,7 @@ private:
     }
 
     // std::cout << "will hash variable" << std::endl;
-    return DefaultHash::hash(varHash, hash_begin);
+    return FnvHash::hash(varHash, hash_begin);
   }
 
   unsigned computeHashAndCountVariables(TermList* tl, VarCounts& varCnts, unsigned hash_begin);
