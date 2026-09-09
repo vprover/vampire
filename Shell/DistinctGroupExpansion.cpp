@@ -64,8 +64,10 @@ bool DistinctGroupExpansion::apply(UnitList*& units)
 
   for(unsigned i=0;i<group_members.size();i++){
     Signature::DistinctGroupMembers members = group_members[i];
-    if(members->size() > 0) {
-      if( members->size()>1 && (expandEverything || members->size() <= _expandUpToSize)) {
+    // a group of fewer than two members says nothing, so it neither needs expanding
+    // nor counts as left behind: DistinctEqualitySimplifier could not use it anyway
+    if(members->size() > 1) {
+      if(expandEverything || members->size() <= _expandUpToSize) {
         added=true;
         Formula* expansion = expand(*members);
         if(env.options->showPreprocessing()){
@@ -80,7 +82,7 @@ bool DistinctGroupExpansion::apply(UnitList*& units)
         someLeft=true;
       }
     }
-  } 
+  }
 
   if(!someLeft){
     env.signature->noDistinctGroupsLeft();
