@@ -313,6 +313,10 @@ check_rejected '$distinct is not supported in cnf' --input_syntax tptp --mode ou
 check_rejected '$distinct is not supported in thf' --input_syntax tptp --mode output parse/distinct-thf.p
 # a $distinct at a non-ground sort gets no marker predicate, it is expanded at once
 check_szs_status Theorem parse/distinct-poly-sort.p
+# SMT-LIB's distinct takes the same route
+check_szs_status Unsatisfiable parse/distinct-smtlib.smt2
+check_szs_status Unsatisfiable -dgel 1 parse/distinct-smtlib.smt2
+check_szs_status Satisfiable parse/distinct-smtlib-negated.smt2
 # TPTP tcf (typed clause form), read and written. parse/SYN000-3.p is the TPTP
 # sample exercising every tcf construct; exact output, because what is under test
 # is that all of it parses and that --mode tclausify prints legal tcf.

@@ -23,6 +23,8 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Renaming.hpp"
 #include "Kernel/Signature.hpp"
+
+#include "Shell/DistinctGroupExpansion.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Substitution.hpp"
@@ -2180,20 +2182,19 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const std::string& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
+      // Just record the distinctness with a marker literal, the way the TPTP parser
+      // does for $distinct. Shell/DistinctGroupExpansion decides later -- knowing
+      // where in the formula this sits, which we do not -- whether it becomes a
+      // distinct group or is paid for with the quadratic expansion.
+      // A non-ground sort (parametric datatypes) would need a polymorphic marker;
+      // such an occurrence could not become a group anyway, so expand it here.
       Formula* res;
-      if(args.size()==2) { // if there are 2 just create a disequality
-        res = new AtomicFormula(Literal::createEquality(false,args[0],args[1],sort));
-      } else { // Otherwise create a formula list of disequalities
-        FormulaList* diseqs = nullptr;
-
-        for(unsigned i=0;i<args.size();i++){
-          for(unsigned j=0;j<i;j++){
-            Formula* new_dis = new AtomicFormula(Literal::createEquality(false,args[i],args[j],sort));
-            FormulaList::push(new_dis,diseqs);
-          }
-        }
-
-        res = new JunctionFormula(AND, diseqs);
+      if (sort.isVar() || !sort.term()->ground()) {
+        res = DistinctGroupExpansion(0).expandTerms(args,sort);
+      } else {
+        res = new AtomicFormula(Literal::create(
+          env.signature->getDistinctPredicate(args.size(),sort),
+          args.size(), /* polarity */ true, args.begin()));
       }
 
       _results.push(res);
