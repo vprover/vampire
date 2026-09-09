@@ -46,12 +46,30 @@ protected:
   Formula* applyLiteral(Formula* f) override
   {
     Literal* lit = f->literal();
-    if(!Signature::isDistinctLiteral(lit)){
-      return f;
+    if(Signature::isDistinctLiteral(lit)){
+      Formula* expansion = _owner.expandLiteral(lit);
+      // the parsers only ever build positive $distinct atoms, but do not rely on it
+      return lit->isPositive() ? expansion : new NegatedFormula(expansion);
     }
-    Formula* expansion = _owner.expandLiteral(lit);
-    // the parsers only ever build positive $distinct atoms, but do not rely on it
-    return lit->isPositive() ? expansion : new NegatedFormula(expansion);
+
+    // A marker can also hide inside a FOOL term, as in p($ite($distinct(a,b),x,y)),
+    // so the arguments have to be visited too. FormulaTransformer::apply(TermList)
+    // descends through the special terms and calls back into apply(Formula*) -- and
+    // so into this function -- for the formulas they carry.
+    if(!lit->shared()){
+      bool changed = false;
+      Stack<TermList> args(lit->arity());
+      for(unsigned i = 0; i < lit->arity(); i++){
+        TermList arg = *lit->nthArgument(i);
+        TermList newArg = apply(arg);
+        changed |= (newArg != arg);
+        args.push(newArg);
+      }
+      if(changed){
+        return new AtomicFormula(Literal::create(lit,args.begin()));
+      }
+    }
+    return f;
   }
 private:
   DistinctGroupExpansion& _owner;
