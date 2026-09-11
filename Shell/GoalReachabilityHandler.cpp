@@ -63,7 +63,13 @@ void GoalReachabilityHandler::handleGoalClause(Clause* cl, bool adding)
 
   DHSet<Clause*> needsUpdating;
 
-  for (const auto lit : cl->getSelectedLiteralIterator()) {
+  for (unsigned i = 0; i < cl->size(); i++) {
+
+    auto lit = (*cl)[i];
+    // TODO try to get rid of it, currently it is needed for completeness
+    if (lit->isPositive() && i >= cl->numSelected()) {
+      continue;
+    }
 
     for (const TypedTermList& tt : iterTraits(EqHelper::getSubtermIterator</*higherOrder=*/false>(lit, _ord))) {
       auto ttl = linearize(tt,freshVar);
