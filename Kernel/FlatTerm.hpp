@@ -61,6 +61,9 @@ public:
     inline bool isVar(unsigned num) const { return isVar() && _number()==num; }
     inline bool isFun() const { return _tag()==FUN || _tag()==FUN_UNEXPANDED; }
     inline bool isFun(unsigned num) const { return isFun() && _number()==num; }
+    /* Literal headers encode polarity in their lowest bit, so xor-ing with 1
+     * gives the opposite (negated) predicate. Only meaningful for literal predicates. */
+    inline bool isOppositeFun(unsigned num) const { return isFun() && (_number()^1)==num; }
     /**
      * Should be called when @b isFun() is true.
      * If @b tag()==FUN_UNEXPANDED, it fills out entries for the functions

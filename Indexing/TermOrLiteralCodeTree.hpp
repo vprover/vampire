@@ -97,11 +97,11 @@ public:
 
 public:
   struct RemovingMatcher
-  : public Matcher</*removing=*/true,/*checkRange=*/false>
+  : public Matcher</*removing=*/true,/*checkRange=*/false,/*sres*/false>
   {
   public:
     void init(FlatTerm* ft_, const CodeTree& tree_, Stack<CodeOp*>* firstsInBlocks_) {
-      Matcher</*removing=*/true,/*checkRange=*/false>::init(tree_, tree_.getEntryPoint(), /*linfos_=*/0, /*linfoCnt_=*/0, firstsInBlocks_);
+      Matcher</*removing=*/true,/*checkRange=*/false,/*sres*/false>::init(tree_, tree_.getEntryPoint(), /*canEnterOpposites_=*/false, /*linfos_=*/0, /*linfoCnt_=*/0, firstsInBlocks_);
       firstsInBlocks->push(entry);
       ft=ft_;
       tp=0;
@@ -114,10 +114,10 @@ public:
   };
 
   struct Matcher
-  : public CodeTree::Matcher</*removing*/false,/*checkRange=*/false>
+  : public CodeTree::Matcher</*removing*/false,/*checkRange=*/false,/*sres*/false>
   {
     void init(const CodeTree& tree, FlatTerm* ft_) {
-      CodeTree::Matcher</*removing*/false,/*checkRange=*/false>::init(tree,tree.getEntryPoint(), 0, 0);
+      CodeTree::Matcher</*removing*/false,/*checkRange=*/false,/*sres*/false>::init(tree,tree.getEntryPoint(), /*canEnterOpposites_=*/false, 0, 0);
       ft = ft_;
       tp = 0;
       op = entry;

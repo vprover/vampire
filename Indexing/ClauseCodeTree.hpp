@@ -56,8 +56,10 @@ private:
   bool removeOneOfAlternatives(CodeOp* op, Clause* cl, Stack<CodeOp*>* firstsInBlocks);
 
   struct RemovingLiteralMatcher
-  : public Matcher</*removing*/true,false>
+  : public Matcher</*removing*/true,false,/*sres*/false>
   {
+    using Base = Matcher</*removing*/true,false,/*sres*/false>;
+
     void init(CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_,
 	    const ClauseCodeTree& tree_, Stack<CodeOp*>* firstsInBlocks_);
 
@@ -68,17 +70,27 @@ private:
 
   /** Context for finding matches of literals
    *
-   * Here the actual execution of the code of the tree takes place */
+   * Here the actual execution of the code of the tree takes place 
+   * sres selects between subsumption+resolution (true) and subsumption-only (false)
+   * */
+  template<bool sres>
   struct LiteralMatcher
-  : public Matcher</*removing*/false,false>
+  : public Matcher</*removing*/false,false,sres>
   {
-    void init(const CodeTree& tree, CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_, bool seekOnlySuccess=false);
+    using Base = Matcher</*removing*/false,false,sres>;
+    using Base::op;
+    using Base::_matched;
+    using Base::finished;
+    using Base::opposite;
+    using Base::execute;
+
+    void init(const CodeTree& tree, CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_, bool canEnterOpposites, bool seekOnlySuccess);
     bool next();
     bool doEagerMatching();
 
     inline bool eagerlyMatched() const { return _eagerlyMatched; }
 
-    inline ILStruct* getILS() { ASS(matched()); return op->getILS(); }
+    inline ILStruct* getILS() { ASS(Base::matched()); return op->getILS(); }
 
     USE_ALLOCATOR(LiteralMatcher);
 
@@ -91,9 +103,10 @@ private:
   };
 
 public:
+  template<bool sres>
   struct ClauseMatcher
   {
-    void init(ClauseCodeTree* tree_, Clause* query_, bool sres_);
+    void init(ClauseCodeTree* tree_, Clause* query_);
     void reset();
     bool keepRecycled() const { return lInfos.keepRecycled(); }
 
@@ -105,7 +118,7 @@ public:
     USE_ALLOCATOR(ClauseMatcher);
 
   private:
-    void enterLiteral(CodeOp* entry, bool seekOnlySuccess);
+    void enterLiteral(CodeOp* entry, bool seekOnlySuccess, bool canEnterOpposites);
     void leaveLiteral();
     bool canEnterLiteral(CodeOp* op);
 
@@ -117,7 +130,6 @@ public:
 
     Clause* query;
     ClauseCodeTree* tree;
-    bool sres;
 
     static const unsigned sresNoLiteral=static_cast<unsigned>(-1);
     unsigned sresLiteral;
@@ -134,7 +146,7 @@ public:
      */
     DArray<LitInfo> lInfos;
 
-    Stack<Recycled<LiteralMatcher, NoReset>> lms;
+    Stack<Recycled<LiteralMatcher<sres>, NoReset>> lms;
   };
 
 private:
