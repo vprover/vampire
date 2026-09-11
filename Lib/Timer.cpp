@@ -121,11 +121,7 @@ static std::recursive_mutex EXIT_LOCK;
     }
   }
 
-  // terminateImmediately is std::_Exit, which does not flush: without this the tail of
-  // the report is lost whenever stdout is a (fully buffered) file rather than a tty.
-  std::cout.flush();
-
-  System::terminateImmediately(1);
+  System::flushAndTerminateImmediately(1);
 }
 
 static std::chrono::time_point<std::chrono::steady_clock> START_TIME;

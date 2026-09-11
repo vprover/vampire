@@ -90,7 +90,7 @@ void handleSignal (int sigNum)
   case SIGXCPU:
 #endif
     TERMINAL_SIGNAL_HANDLED = true;
-    System::terminateImmediately(VAMP_RESULT_STATUS_INTERRUPTED);
+    System::flushAndTerminateImmediately(VAMP_RESULT_STATUS_INTERRUPTED);
 
   // crashy or impolite interrupts, complain about it
   case SIGABRT:
@@ -116,7 +116,7 @@ void handleSignal (int sigNum)
           env.statistics->print(std::cout);
         Debug::Tracer::printStack();
       }
-      System::terminateImmediately(VAMP_RESULT_STATUS_OTHER_SIGNAL);
+      System::flushAndTerminateImmediately(VAMP_RESULT_STATUS_OTHER_SIGNAL);
     }
   default:
     break;

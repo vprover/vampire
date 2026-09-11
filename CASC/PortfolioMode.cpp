@@ -80,7 +80,7 @@ bool PortfolioMode::perform(Problem* problem)
   } catch (Exception& exc) {
       cerr << "% Exception at proof search level" << endl;
       exc.cry(cerr);
-      System::terminateImmediately(1); //we didn't find the proof, so we return nonzero status code
+      System::flushAndTerminateImmediately(1); //we didn't find the proof, so we return nonzero status code
   }
 
   if (outputAllowed()) {
@@ -607,7 +607,7 @@ void PortfolioMode::runSlice(std::string sliceCode, int timeLimitInDeciseconds, 
       cerr << "% Exception at run slice level" << endl;
       e.cry(cerr);
     }
-    System::terminateImmediately(1); // didn't find proof
+    System::flushAndTerminateImmediately(1); // didn't find proof
   }
 } // runSlice
 
