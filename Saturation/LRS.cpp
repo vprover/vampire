@@ -24,6 +24,7 @@
 
 #include "LRS.hpp"
 
+#include <fstream>
 
 namespace Saturation
 {
