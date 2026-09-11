@@ -162,13 +162,11 @@ struct AbstractOptionValue {
         // treat empty short names as nullptr
         : longName(l), shortName(s && *s ? s : nullptr) {}
 
-    // Never copy an OptionValue... the Constraint system would break
+    // Never copy/move an OptionValue... the Constraint system would break
     AbstractOptionValue(const AbstractOptionValue&) = delete;
     AbstractOptionValue& operator=(const AbstractOptionValue&) = delete;
-
-    // however move-assigment is needed for all the assigns in Options::init()
-    AbstractOptionValue(AbstractOptionValue&&) = default;
-    AbstractOptionValue& operator= (AbstractOptionValue && ) = default;
+    AbstractOptionValue(AbstractOptionValue&&) = delete;
+    AbstractOptionValue& operator=(AbstractOptionValue&&) = delete;
 
     virtual ~AbstractOptionValue() = default;
 
@@ -186,12 +184,10 @@ struct AbstractOptionValue {
 
     // Checking constraints
     virtual bool checkConstraints() = 0;
-    virtual bool checkProblemConstraints(Property* prop) = 0;
 
-    // Used to determine whether the value of an option should be copied when
-    // the Options object is copied.
-    // currently only false for `decode` for some reason?
-    virtual bool shouldCopy() { return true; }
+    // Problem constraints place a restriction on problem properties and option values
+    void addProblemConstraint(OptionProblemConstraintUP c){ _prob_constraints.push(std::move(c)); }
+    bool checkProblemConstraints(Property* prop);
 
     // This allows us to get the actual value in string form
     virtual std::string getStringOfActual() const = 0;
@@ -209,6 +205,9 @@ struct AbstractOptionValue {
 
     // Tagging: options can be filtered by mode and are organised by Tag in showOptions
     OptionTag tag = OptionTag::LAST_TAG;
+
+private:
+    Lib::Stack<OptionProblemConstraintUP> _prob_constraints;
 };
 
 /**
@@ -267,10 +266,6 @@ struct OptionValue : public AbstractOptionValue {
     template<typename C>
     auto is(C c);
 
-    // Problem constraints place a restriction on problem properties and option values
-    void addProblemConstraint(OptionProblemConstraintUP c){ _prob_constraints.push(std::move(c)); }
-    bool checkProblemConstraints(Property* prop) override;
-
     void output(std::ostream& out, bool linewrap) const override {
         AbstractOptionValue::output(out,linewrap);
         out << "\tdefault: " << getStringOfValue(defaultValue) << std::endl;
@@ -278,7 +273,6 @@ struct OptionValue : public AbstractOptionValue {
 
 private:
     Lib::Stack<OptionValueConstraintUP<T>> _constraints;
-    Lib::Stack<OptionProblemConstraintUP> _prob_constraints;
 };
 
 /**
@@ -292,15 +286,12 @@ class Options
 public:
     Options();
 
-    /* we probably don't want to accidentally copy this honkin' great object
-     * MOREOVER we _really_ don't want the automatically-generated copy constructor:
-     * the constraints in each option point to other options! */
+    /* Options must not be moved or copied:
+     * the constraints in each OptionValueConstraint point to other options! */
     Options(const Options& that) = delete;
     Options& operator=(const Options& that) = delete;
-
-    // however, is important that we can safely copy Options for use in CASC mode
-    // - this method kinda-sorta this by iterating over the option names
-    void copyValuesFrom(const Options& that);
+    Options(Options&& that) = delete;
+    Options& operator=(Options&& that) = delete;
 
     // used to print help and options
     void output (std::ostream&) const;
@@ -1198,8 +1189,6 @@ bool setValue(const std::string& value) override{
     return true;
 }
 std::string getStringOfValue(std::string value) const override{ return value; }
-
-bool shouldCopy() override { return false; }
 private:
 Options* parent = nullptr;
 

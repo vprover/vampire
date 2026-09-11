@@ -2992,23 +2992,6 @@ Options::Options ()
 
 } // Options::init
 
-void Options::copyValuesFrom(const Options& that)
-{
-  //copy across the actual values in that
-  auto options = _lookup.values();
-
-  while(options.hasNext()){
-    AbstractOptionValue* opt = options.next();
-    if(opt->shouldCopy()){
-      const AbstractOptionValue *other = that.getOptionValueByName(opt->longName);
-      ASS(opt!=other);
-      ALWAYS(opt->set(other->getStringOfActual()));
-      // copyValuesFrom preserves whether the option has been user-set
-      opt->is_set=other->is_set;
-    }
-  }
-}
-
 /**
  * Set option by its name and value.
  * @since 13/11/2004 Manchester
@@ -3200,8 +3183,7 @@ void Options::output (std::ostream& str) const
 
 } // Options::output (std::ostream& str) const
 
-template<typename T>
-bool OptionValue<T>::checkProblemConstraints(Property* prop){
+bool AbstractOptionValue::checkProblemConstraints(Property* prop){
     Lib::Stack<OptionProblemConstraintUP>::RefIterator it(_prob_constraints);
     while(it.hasNext()){
       OptionProblemConstraintUP& con = it.next();
@@ -3895,10 +3877,8 @@ std::string Options::generateEncodedOptions() const
   res << weightRatio();
   res << "_";
 
-  Options cur;
-  cur.copyValuesFrom(*this);
-
   // Record options that do not want to be in encoded string
+  // TODO this could just be a field on AbstractOptionValue
   static Set<const AbstractOptionValue*, FnvHash> forbidden;
   //we initialize the set if there's nothing inside
   if (forbidden.size()==0) {
