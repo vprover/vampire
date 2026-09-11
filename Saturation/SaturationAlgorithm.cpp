@@ -920,12 +920,6 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
 {
   TIME_TRACE("forward simplification");
 
-  if (env.options->lrsPreemptiveDeletes() && _passive->exceedsAllLimits(cl)) {
-    RSTAT_CTR_INC("clauses discarded by limit in forward simplification");
-    env.statistics->discardedNonRedundantClauses++;
-    return false;
-  }
-
   FwSimplList::Iterator fsit(_fwSimplifiers);
 
   while (fsit.hasNext()) {
@@ -995,6 +989,12 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
     if (_splitter->doSplitting(cl)) {
       return false;
     }
+  }
+
+  if (env.options->lrsPreemptiveDeletes() && _passive->exceedsAllLimits(cl)) {
+    RSTAT_CTR_INC("clauses discarded by limit in forward simplification");
+    env.statistics->discardedNonRedundantClauses++;
+    return false;
   }
 
   return true;
