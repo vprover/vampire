@@ -982,6 +982,12 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
     }
   }
 
+  if (env.options->lrsPreemptiveDeletes() && _passive->exceedsAllLimits(cl)) {
+    RSTAT_CTR_INC("clauses discarded by limit in forward simplification");
+    env.statistics->discardedNonRedundantClauses++;
+    return false;
+  }
+
   //TODO: hack that only clauses deleted by forward simplification can be destroyed (other destruction needs debugging)
   cl->incRefCnt();
 
@@ -989,12 +995,6 @@ bool SaturationAlgorithm::forwardSimplify(Clause* cl)
     if (_splitter->doSplitting(cl)) {
       return false;
     }
-  }
-
-  if (env.options->lrsPreemptiveDeletes() && _passive->exceedsAllLimits(cl)) {
-    RSTAT_CTR_INC("clauses discarded by limit in forward simplification");
-    env.statistics->discardedNonRedundantClauses++;
-    return false;
   }
 
   return true;
