@@ -8,14 +8,22 @@
 # where is Vampire? passed by CI
 vampire="`pwd`/$1 --traceback on"
 
+# scratch files (each run's stdout/stderr, the LRS traces) go to a temp directory
+# rather than into the source tree, and are removed however the script ends.
+# absolute, because the runs themselves happen with checks/ as the working directory
+scratch=`mktemp -d "${TMPDIR:-/tmp}/vampire-sanity.XXXXXX"` || exit 1
+trap 'rm -rf "$scratch"' EXIT
+trap 'rm -rf "$scratch"; exit 130' INT
+trap 'rm -rf "$scratch"; exit 143' TERM
+
 run_vampire() {
 	echo $vampire $@
-	(cd checks; $vampire $@ > vampire-stdout 2> vampire-stderr)
-	errors=`grep -E 'SIG|viola|error' checks/vampire-stderr`
+	(cd checks; $vampire $@ > "$scratch/vampire-stdout" 2> "$scratch/vampire-stderr")
+	errors=`grep -E 'SIG|viola|error' "$scratch/vampire-stderr"`
 	if test -n "$errors"
 	then
 		echo "run failed: contains errors"
-		cat checks/vampire-stderr
+		cat "$scratch/vampire-stderr"
 		exit 1
 	fi
 }
@@ -25,7 +33,7 @@ check_exact_output() {
 	expected=checks/$1
 	shift
 	run_vampire $@
-	diff=`diff $expected checks/vampire-stdout`
+	diff=`diff $expected "$scratch/vampire-stdout"`
 	if test -n "$diff"
 	then
 		echo "check against $expected failed: diff follows"
@@ -40,11 +48,11 @@ check_output_contains() {
 	expected="$1"
 	shift
 	run_vampire $@
-	found=`grep -F "$expected" checks/vampire-stdout`
+	found=`grep -F "$expected" "$scratch/vampire-stdout"`
 	if test -z "$found"
 	then
 		echo "check failed: output should contain: $expected"
-		cat checks/vampire-stdout
+		cat "$scratch/vampire-stdout"
 		exit 1
 	fi
 }
@@ -54,11 +62,11 @@ check_output_contains_once() {
 	expected="$1"
 	shift
 	run_vampire $@
-	count=`grep -cF "$expected" checks/vampire-stdout`
+	count=`grep -cF "$expected" "$scratch/vampire-stdout"`
 	if test "$count" != 1
 	then
 		echo "check failed: output should contain exactly once (found $count times): $expected"
-		cat checks/vampire-stdout
+		cat "$scratch/vampire-stdout"
 		exit 1
 	fi
 }
@@ -70,11 +78,11 @@ check_rejected() {
 	expected="$1"
 	shift
 	run_vampire $@
-	found=`grep -F "$expected" checks/vampire-stdout`
+	found=`grep -F "$expected" "$scratch/vampire-stdout"`
 	if test -z "$found"
 	then
 		echo "rejection check failed: expected a message containing: $expected"
-		cat checks/vampire-stdout checks/vampire-stderr
+		cat "$scratch/vampire-stdout" "$scratch/vampire-stderr"
 		exit 1
 	fi
 }
@@ -84,11 +92,11 @@ check_szs_status() {
 	status=$1
 	shift
 	run_vampire $@
-	szs=`grep -E "^% SZS status $status for .+$" checks/vampire-stdout`
+	szs=`grep -E "^% SZS status $status for .+$" "$scratch/vampire-stdout"`
 	if test -z "$szs"
 	then
 		echo "SZS check failed: should have been SZS $status"
-		cat checks/vampire-stdout checks/vampire-stderr
+		cat "$scratch/vampire-stdout" "$scratch/vampire-stderr"
 		exit 1
 	fi
 }
@@ -125,28 +133,28 @@ lrs_fingerprint() {
 # -stat given here win over anything the caller might set.
 check_lrs_replay() {
 	run_vampire -sa lrs -p off $@ -stat full -t 2
-	activations=`grep 'Activations started' checks/vampire-stdout | sed 's/.*| *//'`
+	activations=`grep 'Activations started' "$scratch/vampire-stdout" | sed 's/.*| *//'`
 	if test -z "$activations"
 	then
 		echo "LRS replay check failed: calibration run reported no activations"
-		cat checks/vampire-stdout
+		cat "$scratch/vampire-stdout"
 		exit 1
 	fi
 	al=`expr $activations \* 4 / 5`
 
-	run_vampire -sa lrs -p off -lstf lrs-trace $@ -al $al -stat full -t 2
-	lrs_fingerprint checks/vampire-stdout > checks/lrs-recorded
-	run_vampire -sa lrs -p off -lltf lrs-trace $@ -al $al -stat full -t 60
-	lrs_fingerprint checks/vampire-stdout > checks/lrs-replayed
+	run_vampire -sa lrs -p off -lstf "$scratch/lrs-trace" $@ -al $al -stat full -t 2
+	lrs_fingerprint "$scratch/vampire-stdout" > "$scratch/lrs-recorded"
+	run_vampire -sa lrs -p off -lltf "$scratch/lrs-trace" $@ -al $al -stat full -t 60
+	lrs_fingerprint "$scratch/vampire-stdout" > "$scratch/lrs-replayed"
 
 	# a missing statistics block would otherwise make the diff below trivially empty
-	if test `wc -l < checks/lrs-recorded` -lt 5
+	if test `wc -l < "$scratch/lrs-recorded"` -lt 5
 	then
 		echo "LRS replay check failed: no SATURATION statistics to compare"
-		cat checks/lrs-recorded
+		cat "$scratch/lrs-recorded"
 		exit 1
 	fi
-	diff=`diff checks/lrs-recorded checks/lrs-replayed`
+	diff=`diff "$scratch/lrs-recorded" "$scratch/lrs-replayed"`
 	if test -n "$diff"
 	then
 		echo "LRS replay check failed: replaying the trace did not reproduce the run"
@@ -161,11 +169,11 @@ check_smtcomp_status() {
 	status=$1
 	shift
 	run_vampire $@
-	result=`grep -E "^$status$" checks/vampire-stdout`
+	result=`grep -E "^$status$" "$scratch/vampire-stdout"`
 	if test -z "$result"
 	then
 		echo "$SMT check failed: should have been $status"
-		cat checks/vampire-stdout checks/vampire-stderr
+		cat "$scratch/vampire-stdout" "$scratch/vampire-stderr"
 		exit 1
 	fi
 }
