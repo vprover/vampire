@@ -2350,7 +2350,7 @@ void FiniteModelBuilder::SmtBasedDSAE::reportZ3OutOfMemory()
     env.statistics->print(std::cout);
   }
   Debug::Tracer::printStack();
-  System::terminateImmediately(1);
+  System::flushAndTerminateImmediately(1);
 }
 
 bool FiniteModelBuilder::SmtBasedDSAE::increaseModelSizes(DArray<unsigned>& newSortSizes, DArray<unsigned>& sortMaxes)

@@ -33,45 +33,57 @@ TimeTrace::ScopedTimer::ScopedTimer(const char* name)
 
 TimeTrace::ScopedTimer::ScopedTimer(TimeTrace& trace, const char* name)
   : _trace(trace)
+  , _active(trace._enabled.load(std::memory_order_relaxed))
 #if VDEBUG
   , _start()
   , _name(name)
 #endif
 {
-  if (_trace._enabled) {
-    auto& children = std::get<0>(trace._stack.top())->children;
-    auto node = iterTraits(children.iter())
-      .map([](auto& x) { return &*x; })
-      .find([&](Node* n) { return n->name == name; })
-      .unwrapOrElse([&]() { 
-          children.push(std::make_unique<Node>(name));
-          return &*children.top();
-      });
+  if (_active) {
+    auto& children = std::get<0>(trace._stack.back())->children;
+    Node* node = nullptr;
+    for (auto& c : children) {
+      if (c->name == name) {
+        node = &*c;
+        break;
+      }
+    }
+    if (!node) {
+      children.push_back(std::make_unique<Node>(name));
+      node = &*children.back();
+    }
     auto start = Clock::now();
 #if VDEBUG
     _start = start;
-#endif 
+#endif
 
-    _trace._stack.push(std::make_pair(node, start));
+    _trace._stack.push_back(std::make_pair(node, start));
   }
 }
 
 TimeTrace TimeTrace::_instance;
 
-void TimeTrace::setEnabled(bool v) 
-{ _enabled = v; }
+void TimeTrace::setEnabled(bool v)
+{ _enabled.store(v, std::memory_order_relaxed); }
 
 TimeTrace::ScopedTimer::~ScopedTimer()
 {
-  if (_trace._enabled) {
-    auto now = Clock::now();
-    auto cur = _trace._stack.pop();
-    auto node = get<0>(cur);
-    auto start = get<1>(cur);
-    node->measurements.add(now  - start);
-    ASS_EQ(node->name, _name);
-    ASS(start == _start);
-  }
+  // tracing was off when we were constructed, so there is nothing on the stack for us
+  if (!_active)
+    return;
+  // tracing has been turned off since: the trace is frozen so that someone else can
+  // print it (see setEnabled). Leave it strictly alone -- we are about to exit anyway.
+  if (!_trace._enabled.load(std::memory_order_relaxed))
+    return;
+
+  auto now = Clock::now();
+  auto cur = _trace._stack.back();
+  _trace._stack.pop_back();
+  auto node = get<0>(cur);
+  auto start = get<1>(cur);
+  node->measurements.add(now  - start);
+  ASS_EQ(node->name, _name);
+  ASS(start == _start);
 }
 
 
@@ -82,15 +94,16 @@ TimeTrace::ScopedChangeRoot::ScopedChangeRoot()
 TimeTrace::ScopedChangeRoot::ScopedChangeRoot(TimeTrace& trace)
   : _trace(trace)
 {
-  if (_trace._enabled) {
-    _trace._tmpRoots.push(get<0>(trace._stack.top()));
+  if (_trace._enabled.load(std::memory_order_relaxed)) {
+    _trace._tmpRoots.push_back(get<0>(trace._stack.back()));
   }
 }
 
 TimeTrace::ScopedChangeRoot::~ScopedChangeRoot()
 {
-  if (_trace._enabled) {
-    _trace._tmpRoots.pop();
+  // see ~ScopedTimer: never pop what we did not push, and never touch a frozen trace
+  if (_trace._enabled.load(std::memory_order_relaxed) && !_trace._tmpRoots.empty()) {
+    _trace._tmpRoots.pop_back();
   }
 }
 
@@ -113,7 +126,8 @@ std::ostream& operator<<(std::ostream& out, TimeTrace::Duration const& self)
 }
 
 struct TimeTrace::Node::NodeFormatOpts {
-  Kernel::Stack<const char*>& indent;
+  // std::vector, not Lib::Stack: printing runs on the timer thread, see Node
+  std::vector<const char*>& indent;
   Lib::Option<Duration> parentDuration;
   bool last;
   bool align;
@@ -124,8 +138,8 @@ struct TimeTrace::Node::NodeFormatOpts {
              .parentDuration = some(parent.totalDuration()), 
              .last = false, 
              .align = this->align,
-             .nameWidth = align 
-               ? iterTraits(parent.children.iter())
+             .nameWidth = align
+               ? iterTraits(arrayIter(parent.children))
                    .map([](auto& c) { return unsigned(strlen(c->name)); })
                    .max()
                : none<unsigned>(),
@@ -193,22 +207,34 @@ void TimeTrace::Node::printPrettyRec(std::ostream& out, NodeFormatOpts& opts)
   }
   out << ", cnt: "  << msetw(6) << cnt
       << ")" << std::endl;
-  std::sort(children.begin(), children.end(), [](auto& l, auto& r) { return l->totalDuration() > r->totalDuration(); });
-  indent.push(indentBeforeLast);
-  auto copts = opts.child(*this);
-  for (unsigned i = 0; i < children.size(); i++) {
-    copts.last = i == children.size() - 1;
-    if (copts.last) {
-      indent.top() = indentAfterLast;
-    }
-    children[i]->printPrettyRec(out, copts);
+
+  // Order a local copy rather than sorting `children` in place: this is called on the
+  // timer thread while the main thread may still be scanning and appending to
+  // `children` (Lib/Timer.cpp, limitReached()), and an in-place sort would move
+  // elements under it. Also makes printing idempotent.
+  std::vector<Node*> ordered;
+  ordered.reserve(children.size());
+  for (auto& c : children) {
+    ordered.push_back(&*c);
   }
-  indent.pop();
+  std::sort(ordered.begin(), ordered.end(), [](Node* l, Node* r) { return l->totalDuration() > r->totalDuration(); });
+
+  indent.push_back(indentBeforeLast);
+  auto copts = opts.child(*this);
+  for (unsigned i = 0; i < ordered.size(); i++) {
+    copts.last = i == ordered.size() - 1;
+    if (copts.last) {
+      indent.back() = indentAfterLast;
+    }
+    ordered[i]->printPrettyRec(out, copts);
+  }
+  indent.pop_back();
 }
 
 struct TimeTrace::Node::FlattenState {
-  Stack<unique_ptr<Node>> nodes;
-  Stack<Node*> recPath;
+  // std::vector, not Lib::Stack: flatten() runs on the timer thread, see Node
+  std::vector<unique_ptr<Node>> nodes;
+  std::vector<Node*> recPath;
 };
 
 TimeTrace::Node TimeTrace::Node::flatten()
@@ -225,9 +251,10 @@ TimeTrace::Node TimeTrace::Node::clone() const
 {
   auto out = Node(name);
   out.measurements = measurements;
-  out.children = iterTraits(children.iter())
-      .map([](auto& c) { return make_unique<TimeTrace::Node>(c->clone()); })
-      .template collect<Stack>();
+  out.children.reserve(children.size());
+  for (auto& c : children) {
+    out.children.push_back(make_unique<TimeTrace::Node>(c->clone()));
+  }
   return out;
 }
 
@@ -247,12 +274,17 @@ void TimeTrace::Node::extendWith(TimeTrace::Node const& other)
   ASS(strcmp(other.name, name) == 0)
   measurements.extend(other.measurements);
   for (auto& c : other.children) {
-    auto node_ = iterTraits(this->children.iter())
-      .find([&](auto& n) { return n->name == c->name; });
-    if (node_.isSome()) {
-      node_.unwrap()->extendWith(*c);
+    Node* found = nullptr;
+    for (auto& n : this->children) {
+      if (n->name == c->name) {
+        found = &*n;
+        break;
+      }
+    }
+    if (found) {
+      found->extendWith(*c);
     } else {
-      this->children.push(make_unique<TimeTrace::Node>(c->clone()));
+      this->children.push_back(make_unique<TimeTrace::Node>(c->clone()));
     }
   }
 }
@@ -269,22 +301,33 @@ void TimeTrace::Node::flatten_(FlattenState& s)
 {
 
   for (auto& c : children) {
-    auto node_ = iterTraits(s.nodes.iter())
-      .find([&](auto& n) { return n->name == c->name; });
-
-    if (node_.isNone()) {
-      s.nodes.push(make_unique<Node>(c->name));
+    Node* node = nullptr;
+    for (auto& n : s.nodes) {
+      if (n->name == c->name) {
+        node = &*n;
+        break;
+      }
     }
-    auto& node = node_.isSome() ? node_.unwrap() : s.nodes.top();
+    if (!node) {
+      s.nodes.push_back(make_unique<Node>(c->name));
+      node = &*s.nodes.back();
+    }
 
-    if (!iterTraits(s.recPath.iter()).any([&](auto& x) { return x->name == c->name; })) {
+    bool onPath = false;
+    for (auto* x : s.recPath) {
+      if (x->name == c->name) {
+        onPath = true;
+        break;
+      }
+    }
+    if (!onPath) {
       // prevent double counting time
       node->measurements.extend(c->measurements);
     }
 
-    s.recPath.push(&*c);
+    s.recPath.push_back(&*c);
     c->flatten_(s);
-    s.recPath.pop();
+    s.recPath.pop_back();
   }
 }
 
@@ -298,8 +341,8 @@ void TimeTrace::printPretty(std::ostream& out)
     node->measurements.add(now - start);
   }
 
-  auto& root = _tmpRoots.size() == 0 ? _root : *_tmpRoots.top();
-  Stack<const char*> indent;
+  auto& root = _tmpRoots.empty() ? _root : *_tmpRoots.back();
+  std::vector<const char*> indent;
   auto rootOpts = Node::NodeFormatOpts::root(indent);
 
   out << "===== start of time trace =====" << std::endl;
