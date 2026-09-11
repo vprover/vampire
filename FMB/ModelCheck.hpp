@@ -38,6 +38,12 @@ using std::endl;
 
 class ModelCheck{
 
+  // hashed by Term::getId(), not by address: the iteration order of this set is what
+  // numbers the domain elements, and so decides the whole output (cf. Kernel/Term.hpp).
+  // Deliberately not FnvHash, which is what the rest of FMB spells out for a Term* key:
+  // that one hashes the pointer, which is the reproducibility hazard this avoids
+  using DomainConstantSet = Set<Term*,SharedTermHash>;
+
 public:
 static void doCheck(UnitList* units)
 {
@@ -45,7 +51,7 @@ static void doCheck(UnitList* units)
   // looking for a domain axiom with a name starting 'finite_domain' (TODO search for something of the right shape)
 
   DHMap<unsigned,unsigned, FnvHash, IdentityHash> sortSizes;
-  DHMap<unsigned,std::unique_ptr<Set<Term*, FnvHash>>, FnvHash, IdentityHash> domainConstantsPerSort;
+  DHMap<unsigned,std::unique_ptr<DomainConstantSet>, FnvHash, IdentityHash> domainConstantsPerSort;
 
   // first just search for finite_domain axiom (TODO: do this for every sort!)
   {
@@ -70,7 +76,7 @@ static void doCheck(UnitList* units)
         unsigned curSort = formula->vars()->head().second.term()->functor();
 
         unsigned curModelSize = 0;
-        auto curDomainConstants = std::make_unique<Set<Term*, FnvHash>>();
+        auto curDomainConstants = std::make_unique<DomainConstantSet>();
 
         int single_var = -1;
         if (subformula->connective()==Connective::OR) {
@@ -99,7 +105,19 @@ static void doCheck(UnitList* units)
   }
 
   std::cout << "Loading model..." << std::endl;
-  DArray<unsigned> sortSizesArray(env.signature->typeCons());
+
+  // $true and $false may occur in term position, in the model as well as in the units to check,
+  // and are then the two elements of the boolean domain -- so the model needs a table for them.
+  // The parser only ever builds them as special terms (see FiniteModelMultiSorted::deFool), so
+  // their usage goes uncounted; and they have to exist before the model sizes its tables.
+  for (unsigned i = 0; i < 2; i++) {
+    env.signature->getFunction(env.signature->getFoolConstantSymbol(i > 0))->incUsageCnt();
+  }
+
+  DArray<unsigned> sortSizesArray;
+  // a sort the model file does not mention gets no domain (a well-formed model only
+  // describes the sorts it talks about); without the init the entry stayed uninitialised
+  sortSizesArray.init(env.signature->typeCons(),0);
   {
     auto it = sortSizes.items();
     while (it.hasNext()) {
@@ -110,7 +128,8 @@ static void doCheck(UnitList* units)
   // TODO can we pass a reference here instead of clone()ing?
   FiniteModelMultiSorted model(sortSizesArray.clone());
 
-  Set<Term*, FnvHash> domainConstants; // union of all the perSort ones
+  DomainConstantSet domainConstants; // union of all the perSort ones
+  // a pure lookup, never enumerated, so hashing it by address is harmless here
   DHMap<Term*,unsigned, FnvHash, PtrIdentityHash> domainConstantNumber;
 
   std::cout << "Detected model with " << sortSizes.size() << " sorts." << std::endl;
@@ -124,7 +143,7 @@ static void doCheck(UnitList* units)
     std::cout << ", domain elements are:" << std::endl;
 
     // number the domain constants
-    Set<Term*, FnvHash>::Iterator dit(curDomainConstants);
+    DomainConstantSet::Iterator dit(curDomainConstants);
     unsigned count=1;
     while(dit.hasNext()){
       Term* con = dit.next();
@@ -189,7 +208,12 @@ static void doCheck(UnitList* units)
         if(u->inputType()== UnitInputType::MODEL_DEFINITION) continue;
 
         std::cout << "Checking " << u->toString() << "..." << std::endl;
-        bool res = model.evaluate(u);
+        bool res;
+        try {
+          res = model.evaluate(u);
+        } catch (UndefinedValueException& e) {
+          USER_ERROR("The loaded model is partial: " + e.msg() + " (needed to evaluate the above)");
+        }
         allTrue &= res;
         std::cout << "Evaluates to " << (res ? "True" : "False") << std::endl;
       }
@@ -204,24 +228,27 @@ static void doCheck(UnitList* units)
 
 private:
 
-static void checkIsDomainLiteral(Literal* l, int& single_var, Set<Term*, FnvHash>& domainConstants)
+static void checkIsDomainLiteral(Literal* l, int& single_var, DomainConstantSet& domainConstants)
 {
   if(!l->isEquality()) USER_ERROR("finite_domain is not a domain axiom");
 
   // put var in left and constant in right
-  TermList* left = l->nthArgument(0);
-  TermList* right = l->nthArgument(1);
-  if(right->isVar()){
-    TermList* temp = left;left=right;right=temp;
+  // (deFool, because the domain of $o is spelled with $true and $false)
+  TermList left = FiniteModelMultiSorted::deFool(*l->nthArgument(0));
+  TermList right = FiniteModelMultiSorted::deFool(*l->nthArgument(1));
+  if(right.isVar()){
+    std::swap(left,right);
   }
-  if(right->isVar()) USER_ERROR("finite_domain is not a domain axiom");
+  // a leftover special term is a FOOL construct we cannot read (deFool covers $true / $false)
+  if(left.isTerm() || right.isVar() || right.term()->isSpecial())
+    USER_ERROR("finite_domain is not a domain axiom:\n"+l->toString());
 
   // store and check the single variable used
-  if(single_var<0) single_var=left->var();
-  if(left->var()!=(unsigned)single_var) USER_ERROR("finite_domain is not a domain axiom");
+  if(single_var<0) single_var=left.var();
+  if(left.var()!=(unsigned)single_var) USER_ERROR("finite_domain is not a domain axiom");
 
   // store and check the ground constant used
-  Term* constant = right->term();
+  Term* constant = right.term();
   unsigned f = constant->functor();
   if(env.signature->functionArity(f)!=0) USER_ERROR("finite_domain is not a domain axiom");
   if(domainConstants.contains(constant)) USER_ERROR("finite_domain is not a domain axiom");
@@ -229,32 +256,53 @@ static void checkIsDomainLiteral(Literal* l, int& single_var, Set<Term*, FnvHash
   domainConstants.insert(constant);
 }
 
+/**
+ * Is @b t one of the model's domain constants?
+ *
+ * Ask this rather than domainConstants.contains(t.term()) directly. That set hashes a term
+ * by Term::getId(), which only a shared term has, and the terms reaching addDefinition need
+ * not be shared: deFool only rewrites the top of a term, so a definition's left-hand side is
+ * still unshared whenever an argument is a FOOL special term -- "g($false,'fmb_$i_1')" in
+ * checks/fmb/bool.check.p, whose arguments are deFooled only further down. Nothing is lost
+ * by answering no: every domain constant is an ordinary shared constant.
+ */
+static bool isDomainConstant(const DomainConstantSet& domainConstants, TermList t)
+{
+  return t.isTerm() && t.term()->shared() && domainConstants.contains(t.term());
+}
+
 static void addDefinition(FiniteModelMultiSorted& model,Literal* lit,bool negated,
-                          Set<Term*, FnvHash>& domainConstants,
+                          DomainConstantSet& domainConstants,
                           DHMap<Term*,unsigned, FnvHash, PtrIdentityHash>& domainConstantNumber)
 {
   if(lit->isEquality()){
     if(!lit->polarity() || negated) USER_ERROR("Cannot have negated function definition");
     // Defining a function or constant
-    TermList* left = lit->nthArgument(0);
-    TermList* right = lit->nthArgument(1);
-    if(domainConstants.contains(left->term())){
-      TermList* temp = left; left=right;right=temp;
+    // (deFool, because the elements of $o are spelled with $true and $false)
+    TermList left = FiniteModelMultiSorted::deFool(*lit->nthArgument(0));
+    TermList right = FiniteModelMultiSorted::deFool(*lit->nthArgument(1));
+    if(isDomainConstant(domainConstants,left)){
+      std::swap(left,right);
     }
 
-    if(domainConstants.contains(left->term()))
+    if(left.isVar()) USER_ERROR("Expect term on left of definition");
+    // a leftover special term is a FOOL construct we cannot read (deFool covers $true / $false)
+    if(left.term()->isSpecial())
+      USER_ERROR("Cannot read the definition:\n"+lit->toString());
+    if(isDomainConstant(domainConstants,left))
       USER_ERROR("Cannot have equality between domain elements:\n"+lit->toString());
-    unsigned res = domainConstantNumber.get(right->term());
-    if(left->isVar()) USER_ERROR("Expect term on left of definition");
-    Term* fun = left->term();
+    if(!isDomainConstant(domainConstants,right))
+      USER_ERROR("Expect a domain constant on the right of definition:\n"+lit->toString());
+    unsigned res = domainConstantNumber.get(right.term());
+    Term* fun = left.term();
     unsigned f = fun->functor();
     unsigned arity = env.signature->functionArity(f);
     DArray<unsigned> args(arity);
     for(unsigned i=0;i<arity;i++){
-      TermList* arg = fun->nthArgument(i);
-      if(arg->isVar() || !domainConstants.contains(arg->term()))
+      TermList arg = FiniteModelMultiSorted::deFool(*fun->nthArgument(i));
+      if(!isDomainConstant(domainConstants,arg))
         USER_ERROR("Expect term on left of definition to be grounded with domain constants");
-      args[i] = domainConstantNumber.get(arg->term());
+      args[i] = domainConstantNumber.get(arg.term());
     }
     model.addFunctionDefinition(f,args,res);
   }else{
@@ -266,10 +314,10 @@ static void addDefinition(FiniteModelMultiSorted& model,Literal* lit,bool negate
 
     DArray<unsigned> args(arity);
     for(unsigned i=0;i<arity;i++){
-      TermList* arg = lit->nthArgument(i);
-      if(arg->isVar() || !domainConstants.contains(arg->term()))
+      TermList arg = FiniteModelMultiSorted::deFool(*lit->nthArgument(i));
+      if(!isDomainConstant(domainConstants,arg))
         USER_ERROR("Expect term on left of definition to be grounded with domain constants");
-      args[i] = domainConstantNumber.get(arg->term());
+      args[i] = domainConstantNumber.get(arg.term());
     }
     model.addPredicateDefinition(p,args,!negated);
   }

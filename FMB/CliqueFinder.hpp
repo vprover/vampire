@@ -15,7 +15,10 @@
 #ifndef __CliqueFinder__
 #define __CliqueFinder__
 
+#include "Lib/DArray.hpp"
 #include "Lib/DHMap.hpp"
+#include "Lib/DHSet.hpp"
+#include "Lib/Stack.hpp"
 
 namespace FMB {
 
@@ -46,7 +49,9 @@ namespace FMB {
       }
       //std::cout << "Searching" << std::endl;
 
-      for(unsigned i=atleast.size()-1;i>1;i--){
+      // a clique of size i+1 needs every member to have at least i neighbours,
+      // so i==1 (a single edge) is the smallest case worth looking at
+      for(unsigned i=atleast.size()-1;i>0;i--){
         // in this case we would expect atleast[i] to be the clique
         if(atleast[i].size() == i+1){
           //std::cout << "CASE 1" << std::endl;

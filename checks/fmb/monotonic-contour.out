@@ -1,0 +1,30 @@
+% Detected minimum model sizes of [1]
+% Detected maximum model sizes of [2]
+% TRYING [1]
+% TRYING [2]
+% Finite Model Found!
+% SZS status Satisfiable for monotonic-contour
+% FMB model self-check passed (2 units checked)
+% SZS output start FiniteModel for monotonic-contour
+tff('declare_$i1',type,'fmb_$i_1':$i).
+tff('declare_$i2',type,'fmb_$i_2':$i).
+tff('finite_domain_$i',axiom,
+      ! [X:$i] : (
+         (X = 'fmb_$i_1') | (X = 'fmb_$i_2')
+      ) ).
+
+tff('distinct_domain_$i',axiom,
+         'fmb_$i_1' != 'fmb_$i_2'
+).
+
+tff(declare_a,type,a : $i).
+tff(a_definition,axiom,a = 'fmb_$i_1').
+tff(declare_b,type,b : $i).
+tff(b_definition,axiom,b = 'fmb_$i_2').
+tff(declare_p,type,p: ( $i ) > $o ).
+tff(predicate_p,axiom,
+           p('fmb_$i_1')
+         & ~p('fmb_$i_2')
+).
+
+% SZS output end FiniteModel for monotonic-contour

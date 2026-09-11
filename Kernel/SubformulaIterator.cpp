@@ -193,7 +193,8 @@ bool SubformulaIterator::hasNext ()
             }
             break;
           }
-          case SpecialFunctor::MATCH: {
+          case SpecialFunctor::MATCH:
+          case SpecialFunctor::COND: {
             delete _reserve;
             _reserve = rest;
             break;

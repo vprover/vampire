@@ -1375,6 +1375,9 @@ protected:
 
         case SpecialFunctor::MATCH:
             throw UserErrorException("&match are not supperted in smt2 proofcheck");
+
+        case SpecialFunctor::COND:
+            throw UserErrorException("$cond is not supported in smt2 proofcheck");
       }
 
 

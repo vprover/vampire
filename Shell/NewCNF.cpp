@@ -365,6 +365,12 @@ TermList NewCNF::findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula
         elseBranches, matchVariables, matchConditions, matchBranches);
     }
 
+    case SpecialFunctor::COND: {
+      // $cond is an abbreviation for the nested $ite below it
+      return findITEs(Term::condToITE(term), variables, conditions, thenBranches,
+        elseBranches, matchVariables, matchConditions, matchBranches);
+    }
+
     case SpecialFunctor::LAMBDA:
       NOT_IMPLEMENTED;
     case SpecialFunctor::MATCH: {
@@ -1191,6 +1197,10 @@ void NewCNF::processBoolterm(TermList ts, Occurrences &occurrences)
     }
     case SpecialFunctor::LET:
       processLet(term, occurrences);
+      return;
+    case SpecialFunctor::COND:
+      // $cond is an abbreviation for the nested $ite below it
+      processBoolterm(Term::condToITE(term), occurrences);
       return;
     case SpecialFunctor::LAMBDA:
       NOT_IMPLEMENTED;
