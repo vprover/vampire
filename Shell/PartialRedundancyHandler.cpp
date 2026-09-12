@@ -30,7 +30,7 @@ namespace Shell
 template<class T>
 bool checkVars(const TermStack& ts, T s)
 {
-  DHSet<TermList> vars;
+  DHSet<TermList, TermListHash, TermListHash2> vars;
   for (const auto& t : ts) {
     VariableIterator vit(t);
     while (vit.hasNext()) {

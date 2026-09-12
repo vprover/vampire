@@ -31,7 +31,7 @@ static Ordering::Result kLtPtr = Ordering::LESS;
 
 TermOrderingDiagram* TermOrderingDiagram::createForSingleComparison(const Ordering& ord, TermList lhs, TermList rhs)
 {
-  static Map<tuple<TermList,TermList>,TermOrderingDiagram*> cache; // TODO this leaks now
+  static Map<tuple<TermList,TermList>,TermOrderingDiagram*, TupleHash<TermListHash,TermListHash>> cache; // TODO this leaks now
 
   TermOrderingDiagram** ptr;
   if (cache.getValuePtr({ lhs, rhs }, ptr, nullptr)) {
@@ -493,7 +493,7 @@ TermOrderingDiagram::Branch& TermOrderingDiagram::Node::getBranch(Ordering::Resu
 
 const TermOrderingDiagram::Polynomial* TermOrderingDiagram::Polynomial::get(int constant, const Stack<VarCoeffPair>& varCoeffPairs)
 {
-  static Set<Polynomial*, DerefPtrHash<DefaultHash>> polys;
+  static Set<Polynomial*, DerefPtrHash<PolynomialHash>> polys;
 
   sort(varCoeffPairs.begin(),varCoeffPairs.end(),[](const auto& vc1, const auto& vc2) {
     auto vc1pos = vc1.second>0;
@@ -508,7 +508,7 @@ const TermOrderingDiagram::Polynomial* TermOrderingDiagram::Polynomial::get(int 
   bool unused;
   return polys.rawFindOrInsert(
     [&](){ return new Polynomial(std::move(poly)); },
-    poly.defaultHash(),
+    PolynomialHash::hash(poly),
     [&](Polynomial* p) { return *p == poly; },
     unused);
 }
@@ -590,7 +590,7 @@ TermOrderingDiagram::NodeIterator::NodeIterator(const Ordering&, const SubstAppl
       bps.push({ { { lhs, rhs, Result::LESS    } }, Result::LESS    });
     } else if (lhs.isVar()) {
       ASS(rhs.isTerm());
-      DHSet<TermList> seen;
+      DHSet<TermList, TermListHash, TermListHash2> seen;
       // x ? t[y_1,...,y_n]
       for (const auto& v : iterTraits(VariableIterator(rhs.term()))) {
         if (!seen.insert(v)) {
@@ -602,7 +602,7 @@ TermOrderingDiagram::NodeIterator::NodeIterator(const Ordering&, const SubstAppl
       }
     } else if (rhs.isVar()) {
       ASS(lhs.isTerm());
-      DHSet<TermList> seen;
+      DHSet<TermList, TermListHash, TermListHash2> seen;
       // s[x_1,...,x_n] ? y
       for (const auto& v : iterTraits(VariableIterator(lhs.term()))) {
         if (!seen.insert(v)) {

@@ -835,7 +835,7 @@ public:
 
       TermSpec deref(TermList var);
 
-      typedef DHMap<TermList, TermSpec> BindingMap;
+      typedef DHMap<TermList, TermSpec, TermListHash, TermListHash2> BindingMap;
       typedef Stack<TermList> TermStack;
 
       /** Stacks of bindings made on each backtrack level. Backtrack
@@ -849,7 +849,7 @@ public:
        *
        * The map is reset whenever we enter a new leaf
        */
-      DHMap<TermList,TermList> _derefBindings;
+      DHMap<TermList,TermList, TermListHash, TermListHash2> _derefBindings;
 
       struct DerefTask
       {

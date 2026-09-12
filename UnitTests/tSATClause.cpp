@@ -80,3 +80,21 @@ TEST_FUN(removeDuplicateLiterals_tautology_among_others)
 
   ASS(!result);
 }
+
+// Compute the expected hash from the input literals, independently of the
+// clause's trailing array. Reordering literals must preserve the hash.
+TEST_FUN(hashIsExclusiveOrOverLiterals)
+{
+  auto cl = satClause({ p, ~q, r });
+  unsigned expected = SATLiteralHash::hash(p) ^ SATLiteralHash::hash(~q)
+                    ^ SATLiteralHash::hash(r);
+
+  ASS_EQ(SATClauseHash::hash(*cl), expected);
+  ASS_EQ(cl->defaultHash(), expected);
+
+  auto permuted = satClause({ r, p, ~q });
+  ASS_EQ(SATClauseHash::hash(*permuted), expected);
+
+  cl->destroy();
+  permuted->destroy();
+}

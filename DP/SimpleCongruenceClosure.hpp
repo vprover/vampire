@@ -270,7 +270,7 @@ private:
   PairMap _pairNames;
 
   /** Constants corresponding to terms */
-  DHMap<TermList,unsigned> _termNames;
+  DHMap<TermList,unsigned, TermListHash, TermListHash2> _termNames;
   /** Constants corresponding to literals */
   DHMap<Literal*,unsigned, FnvHash, PtrIdentityHash> _litNames;
 
