@@ -272,7 +272,7 @@ void AnswerLiteralManager::tryOutputAnswer(Clause* refutation, std::ostream& out
     vss << ")";
   }
   out << postprocessAnswerString(vss.str());
-  out << "|_] for " << env.options->problemName() << endl;
+  out << "|_] for " << env.options->problemName << endl;
 
   // recall what the skolems mean:
   DHSet<unsigned, FnvHash, IdentityHash>::Iterator it(seenSkolems);

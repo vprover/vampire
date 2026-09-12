@@ -27,6 +27,7 @@
 #include "Lib/ScopedPtr.hpp"
 #include "SortInference.hpp"
 #include "Lib/BinaryHeap.hpp"
+#include "Lib/DArray.hpp"
 
 namespace FMB {
 using namespace Lib;

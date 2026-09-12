@@ -22,6 +22,7 @@
 #include "SAT/Z3MainLoop.hpp"
 
 #include "Shell/Options.hpp"
+#include "Shell/Property.hpp"
 #include "Shell/UIHelper.hpp"
 
 #include "Clause.hpp"

@@ -22,6 +22,7 @@
 
 #include "Forwards.hpp"
 
+#include "Lib/DArray.hpp"
 #include "Lib/DHMap.hpp"
 
 namespace FMB {

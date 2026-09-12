@@ -104,7 +104,7 @@ void reportSpiderStatus(char status)
     cadicalVersion = cadicalVersion.substr(dashPosition + 1);
   }
 
-  std::string problemName = Lib::env.options->problemName();
+  std::string problemName = Lib::env.options->problemName;
   std::cout
     << status << " "
     << (problemName.length() == 0 ? "unknown" : problemName) << " "
@@ -434,15 +434,15 @@ void UIHelper::outputResult(std::ostream& out)
     if (szsOutputMode()) {
       out << "% SZS status " <<
         (UIHelper::haveConjecture() ? ( refutation->derivedFromGoal() ? "Theorem" : "ContradictoryAxioms" ) : "Unsatisfiable")
-	      << " for " << env.options->problemName() << endl;
+	      << " for " << env.options->problemName << endl;
     }
     if (env.options->proof() != Options::Proof::OFF) {
       if (szsOutputMode()) {
-        out << "% SZS output start Proof for " << env.options->problemName() << endl;
+        out << "% SZS output start Proof for " << env.options->problemName << endl;
       }
       InferenceStore::instance()->outputProof(out, refutation);
       if (szsOutputMode()) {
-        out << "% SZS output end Proof for " << env.options->problemName() << endl << flush;
+        out << "% SZS output end Proof for " << env.options->problemName << endl << flush;
       }
     }
     if (env.options->questionAnswering()!=Options::QuestionAnsweringMode::OFF) {
@@ -534,7 +534,7 @@ void UIHelper::outputResult(std::ostream& out)
     addCommentSignForSZS(out);
     env.statistics->explainRefutationNotFound(out);
     if ((env.options->mode() == Options::Mode::VAMPIRE) && szsOutputMode()) {
-      out << "% SZS status GaveUp for " << env.options->problemName() << endl;
+      out << "% SZS status GaveUp for " << env.options->problemName << endl;
     }
     break;
   case TerminationReason::SATISFIABLE:
@@ -574,18 +574,18 @@ void UIHelper::outputSatisfiableResult(std::ostream& out)
   //out << "Satisfiable!\n";
   if (szsOutputMode() && !satisfiableStatusWasAlreadyOutput) {
     out << "% SZS status " << ( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
-	  <<" for " << env.options->problemName() << endl;
+	  <<" for " << env.options->problemName << endl;
   }
   if (env.options->proof() != Options::Proof::OFF) {
     if (!env.statistics->model.empty()) {
       if (szsOutputMode()) {
-        out << "% SZS output start FiniteModel for " << env.options->problemName() << endl;
+        out << "% SZS output start FiniteModel for " << env.options->problemName << endl;
       } else {
         out << "# Finite Model:" << endl;
       }
       out << env.statistics->model;
       if (szsOutputMode()) {
-        out << "% SZS output end FiniteModel for " << env.options->problemName() << endl;
+        out << "% SZS output end FiniteModel for " << env.options->problemName << endl;
       }
     } else {
       outputSaturatedSet(out, pvi(UnitList::Iterator(env.statistics->saturatedSet)));

@@ -16,6 +16,7 @@
 
 #include "Forwards.hpp"
 #include "Kernel/Clause.hpp"
+#include "Shell/Property.hpp"
 
 #include "Z3Interfacing.hpp"
 
