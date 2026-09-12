@@ -135,7 +135,7 @@ struct PrimitiveInstResultFn
       }
     }
 
-    return pvi(getUniquePersistentIterator(ClauseStack::Iterator(results)));
+    return pvi(getUniquePersistentIterator<UnitHash, UnitNumberHash>(ClauseStack::Iterator(results)));
   }
 
 private:

@@ -666,31 +666,25 @@ public:
 
   IMPL_COMPARISONS_FROM_COMPARE(Coproduct)
 
-  unsigned defaultHash() const
-  { return Lib::HashUtils::combine( std::hash<unsigned>{}(tag()), this->apply([](auto const& x){ return DefaultHash::hash(x); })); }
-
-  unsigned defaultHash2() const
-  { return Lib::HashUtils::combine( std::hash<unsigned>{}(tag()), this->apply([](auto const& x){ return DefaultHash2::hash(x); })); }
-
   inline Coproduct clone() const { return apply([](auto& x){ return Coproduct(x.clone()); }); }
 }; // class Coproduct<As...>
 
-// Hash a Coproduct by its tag and the alternative it holds. The methods still
-// use DefaultHash until generic callers accept explicit hashes for the alternatives.
+// Combine the tag with the active alternative's hash, one functor per alternative.
+template<class... ElementHashes>
 struct CoproductHash {
   template<class... As>
-  static bool equals(Coproduct<As...> const& c1, Coproduct<As...> const& c2) { return c1 == c2; }
+  static bool equals(Coproduct<As...> const& c1, Coproduct<As...> const& c2)
+  { return c1 == c2; }
 
   template<class... As>
-  static unsigned hash(Coproduct<As...> const& c) { return c.defaultHash(); }
+  static unsigned hash(Coproduct<As...> const& c)
+  {
+    static_assert(sizeof...(ElementHashes) == sizeof...(As),
+      "CoproductHash takes one hash functor per alternative");
+    return HashUtils::combine(std::hash<unsigned>{}(c.tag()),
+      c.match([](As const& x) -> unsigned { return ElementHashes::hash(x); }...));
+  }
 };
-
-struct CoproductHash2 {
-  template<class... As>
-  static unsigned hash(Coproduct<As...> const& c) { return c.defaultHash2(); }
-};
-
-
 
 } // Lib
 

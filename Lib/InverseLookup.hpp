@@ -22,7 +22,7 @@
 
 namespace Lib {
 
-template<typename T>
+template<typename T, class Hash1, class Hash2>
 class InverseLookup
 {
 private:
@@ -30,7 +30,7 @@ private:
   InverseLookup(const InverseLookup&);
   InverseLookup& operator=(const InverseLookup&);
 public:
-  USE_ALLOCATOR(InverseLookup<T>);
+  USE_ALLOCATOR(InverseLookup);
 
   template<typename Arr>
   InverseLookup(Arr arr, size_t size)
@@ -55,7 +55,7 @@ public:
   }
 
 private:
-  DHMap<T*,size_t> _data;
+  DHMap<T*, size_t, Hash1, Hash2> _data;
 };
 
 };

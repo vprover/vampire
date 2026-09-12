@@ -436,7 +436,7 @@ private:
   static unsigned hash(const T* arr, size_t len)
   {
     static_assert(std::is_arithmetic<T>::value, "T must be safely hashable");
-    return DefaultHash::hashBytes(
+    return FnvHash::hashBytes(
       reinterpret_cast<const unsigned char *>(arr),
       sizeof(T) * len
     );

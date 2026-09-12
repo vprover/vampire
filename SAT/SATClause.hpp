@@ -49,8 +49,6 @@ public:
   void* operator new(size_t,unsigned length);
   void operator delete(void *, size_t);
 
-  unsigned defaultHash() const;
-
   bool operator==(const SATClause &other) const {
     if(length() != other.length())
       return false;
@@ -123,8 +121,6 @@ struct SATClauseHash {
     return hash;
   }
 };
-
-inline unsigned SATClause::defaultHash() const { return SATClauseHash::hash(*this); }
 
 std::ostream &operator<<(std::ostream &out, const SATClause &cl);
 

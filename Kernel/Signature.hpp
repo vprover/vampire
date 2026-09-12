@@ -58,7 +58,15 @@ class Signature
     , std::pair<Theory::Interpretation, OperatorType*>
     >;
 
-  using SymbolMap = Map<SymbolKey, unsigned, CoproductHash>;
+  using SymbolKeyHash = CoproductHash<
+      PairHash<FnvHash, FnvHash>
+    , FnvHash
+    , PairHash<IntegerConstantTypeHash, FnvHash>
+    , PairHash<RationalConstantTypeHash, FnvHash>
+    , PairHash<RationalConstantTypeHash, FnvHash>
+    , PairHash<FnvHash, FnvHash>
+    >;
+  using SymbolMap = Map<SymbolKey, unsigned, SymbolKeyHash>;
  public:
   /** Function or predicate symbol */
   

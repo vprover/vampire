@@ -60,8 +60,15 @@ public:
   friend struct std::hash<Variable>;
   friend std::ostream& operator<<(std::ostream& out, const Variable& self);
   auto asTuple() const { return std::make_tuple(_num); }
-  IMPL_HASH_FROM_TUPLE(Variable);
   IMPL_COMPARISONS_FROM_TUPLE(Variable);
+};
+
+struct VariableHash {
+  static bool equals(Variable const& lhs, Variable const& rhs)
+  { return lhs == rhs; }
+
+  static unsigned hash(Variable const& value)
+  { return FnvHash::hash(value.id()); }
 };
 
 } // namespace Kernel
@@ -128,7 +135,19 @@ public:
   
   auto asTuple() const { return std::tuple(_num, iterContOps(iterTypeArgs())); }
   IMPL_COMPARISONS_FROM_TUPLE(FuncId)
-  IMPL_HASH_FROM_TUPLE(FuncId)
+};
+
+struct FuncIdHash {
+  static bool equals(FuncId const& lhs, FuncId const& rhs)
+  { return lhs == rhs; }
+
+  static unsigned hash(FuncId const& value)
+  {
+    return HashUtils::combine(FnvHash::hash(value.id()),
+      FnvHash::hashIter(value.iterTypeArgs().map([](TermList arg) {
+        return TermListHash::hash(arg);
+      })));
+  }
 };
 
 } // namespace Kernel
@@ -382,6 +401,28 @@ public:
   friend std::ostream& operator<<(std::ostream& out, const PolyNf& self);
 };
 
+
+struct AnyPolyHash {
+  static bool equals(AnyPoly const& lhs, AnyPoly const& rhs)
+  { return lhs == rhs; }
+
+  static unsigned hash(AnyPoly const& value)
+  {
+    return CoproductHash<PerfectHash<FnvHash>, PerfectHash<FnvHash>, PerfectHash<FnvHash>>::hash(
+      static_cast<AnyPolySuper const&>(value));
+  }
+};
+
+struct PolyNfHash {
+  static bool equals(PolyNf const& lhs, PolyNf const& rhs)
+  { return lhs == rhs; }
+
+  static unsigned hash(PolyNf const& value)
+  {
+    return CoproductHash<PerfectHash<FnvHash>, VariableHash, AnyPolyHash>::hash(
+      static_cast<PolyNfSuper const&>(value));
+  }
+};
 
 /** 
  * Represents a factor in a monom. Each unique term contained in the monom is stored 
@@ -809,7 +850,7 @@ template<class F> FuncTerm FuncTerm::mapVars(F fun) const
 template<> struct std::hash<Kernel::FuncTerm> 
 {
   size_t operator()(Kernel::FuncTerm const& f) const 
-  { return Lib::HashUtils::combine(f._fun.defaultHash(), std::hash<Stack<Kernel::PolyNf>>{}(f._args));  }
+  { return Lib::HashUtils::combine(Kernel::FuncIdHash::hash(f._fun), std::hash<Stack<Kernel::PolyNf>>{}(f._args));  }
 };
 
 /////////////////////////////////////////////////////////

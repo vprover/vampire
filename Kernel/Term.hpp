@@ -208,9 +208,6 @@ public:
   inline uint64_t content() const { return _content; }
   /** set the content manually - hazardous, such terms should then only be used as integers */
   void setContent(uint64_t content) { _content = content; }
-  /** default hash is to hash the content */
-  unsigned defaultHash() const;
-  unsigned defaultHash2() const;
 
   // TODO this default value is probably the reason we get too many parentheses everywhere
   std::string toString(bool topLevel = false) const;
@@ -388,6 +385,17 @@ private:
   friend class AtomicSort;
 }; // class TermList
 static_assert(sizeof(TermList) == 8, "size of TermList must be exactly 64 bits");
+
+// hash a TermList by FNV-1a of its content word
+struct TermListHash {
+  static bool equals(TermList t1, TermList t2) { return t1 == t2; }
+  static unsigned hash(TermList t) { return FnvHash::hash(t.content()); }
+};
+
+// cheap secondary hash: the content word itself
+struct TermListHash2 {
+  static unsigned hash(TermList t) { return t.content(); }
+};
 
 //special functor values
 enum class SpecialFunctor {
@@ -612,15 +620,15 @@ public:
 
   template<class GetArg>
   static unsigned termHash(unsigned functor, GetArg getArg, unsigned arity) {
-    return DefaultHash::hashIter(
+    return FnvHash::hashIter(
         range(0, arity).map([&](auto i) {
           TermList t = getArg(i);
-          return DefaultHash::hashBytes(
+          return FnvHash::hashBytes(
               reinterpret_cast<const unsigned char*>(&t),
               sizeof(TermList)
               );
           }),
-        DefaultHash::hash(functor));
+        FnvHash::hash(functor));
   }
 
   /**
@@ -1190,15 +1198,15 @@ public:
       ASS_EQ(arity, 2)
       ASS(rightArgOrder(getArg(0), getArg(1)))
       return HashUtils::combine(
-          DefaultHash::hash(polarity),
-          DefaultHash::hash(functor),
-          DefaultHash::hash(twoVarEqSort),
-          getArg(0).defaultHash(),
-          getArg(1).defaultHash());
+          FnvHash::hash(polarity),
+          FnvHash::hash(functor),
+          twoVarEqSort.isSome() ? TermListHash::hash(*twoVarEqSort) : FnvHash::hash(0),
+          TermListHash::hash(getArg(0)),
+          TermListHash::hash(getArg(1)));
     } else {
       ASS(twoVarEqSort.isNone())
       return HashUtils::combine(
-          DefaultHash::hash(polarity),
+          FnvHash::hash(polarity),
           Term::termHash(functor, getArg, arity));
     }
   }
@@ -1316,8 +1324,8 @@ struct SharedTermHash {
 
 /**
  * Hashes to make hashing over shared terms wrapped in a TermList (typically sorts)
- * deterministic. The default hashes go through TermList::content(), i.e. the address of
- * the term, so a container using them gets enumerated in an order which differs between
+ * deterministic. TermListHash and TermListHash2 go through TermList::content(),
+ * i.e. the address of the term, so a container using them gets enumerated in an order which differs between
  * runs. Both are needed: DHMap takes the bucket from Hash1 and the probing step from Hash2.
  */
 struct SharedTermListHash {
@@ -1329,20 +1337,6 @@ struct SharedTermListHash2 {
   static unsigned hash(TermList t)
   { ASS(t.isTerm() && t.term()->shared()); return IdentityHash::hash(t.term()->getId()); }
 };
-
-// hash a TermList by FNV-1a of its content word
-struct TermListHash {
-  static bool equals(TermList t1, TermList t2) { return t1 == t2; }
-  static unsigned hash(TermList t) { return FnvHash::hash(t.content()); }
-};
-
-// cheap secondary hash: the content word itself
-struct TermListHash2 {
-  static unsigned hash(TermList t) { return t.content(); }
-};
-
-inline unsigned TermList::defaultHash() const { return TermListHash::hash(*this); }
-inline unsigned TermList::defaultHash2() const { return TermListHash2::hash(*this); }
 
 /** helper lambda that turns a number into a variable */
 static const auto unsignedToVarFn = [](unsigned var)

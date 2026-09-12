@@ -76,7 +76,7 @@ public:
   }
 private:
 
-  template<class SubtermIterator>
+  template<class SubtermIterator, class Hash1, class Hash2>
   static VirtualIterator<typename SubtermIterator::ElementType> getRewritableSubtermIterator(Literal* lit, const Ordering& ord);
 
   struct IsNonVariable;

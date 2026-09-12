@@ -23,7 +23,7 @@ using namespace Lib;
 
 TEST_FUN(dheapFewElements)
 {
-  DynamicHeap<int, Int> dh;
+  DynamicHeap<int, Int, DHMap<int, size_t, FnvHash, IdentityHash>> dh;
   
   int cnt=10;
   int primeAfterCnt=13;
@@ -43,7 +43,7 @@ TEST_FUN(dheapFewElements)
 
 TEST_FUN(dheapMoreElements)
 {
-  DynamicHeap<int, Int> dh;
+  DynamicHeap<int, Int, DHMap<int, size_t, FnvHash, IdentityHash>> dh;
 
   int cnt=100;
   int primeAfterCnt=113;
@@ -82,7 +82,7 @@ TEST_FUN(dheapDecreasing)
   int vals[100];
 
   IndirectComparator myCmp(vals);
-  DynamicHeap<int, IndirectComparator> dh(myCmp);
+  DynamicHeap<int, IndirectComparator, DHMap<int, size_t, FnvHash, IdentityHash>> dh(myCmp);
 
   for(int i=0;i<cnt;i++) {
     int idx = (i*3)%100;
