@@ -1461,11 +1461,22 @@ void TPTP::tff(bool tcf)
       lpars++;
       resetToks();
     }
-    std::string nm = name();
+    // a doubly-quoted symbol may be declared too; it becomes a "distinct object"
+    bool isDistinctObject = (getTok(0).tag == T_STRING);
+    std::string nm;
+    if (isDistinctObject) {
+      nm = getTok(0).content;
+      resetToks();
+    } else {
+      nm = name();
+    }
     consumeToken(T_COLON);
     if(_isThf){
       tok = getTok(0);
       if (tok.tag == T_TTYPE) {
+        if (isDistinctObject) {
+          USER_ERROR("A distinct object cannot be a type constructor: \"" + nm + "\"");
+        }
         resetToks();
         unsigned arity = getConstructorArity();
         bool added = false;
@@ -1490,6 +1501,8 @@ void TPTP::tff(bool tcf)
     _ints.push(lpars);
     // remember type name
     _strings.push(nm);
+    // remember whether it was doubly-quoted; nothing between here and endTff touches _bools
+    _bools.push(isDistinctObject);
     _states.push(END_TFF);
     _states.push(TYPE);
     return;
@@ -1735,8 +1748,12 @@ void TPTP::holTerm()
     }    
     case T_NAME:{
       //AYB must be a nicer way of dealing with this?
+      if(name == "$distinct"){
+        // the latest TPTP BNF does allow it in thf, always in functional form
+        USER_ERROR("$distinct is not supported in thf");
+      }
       if(name.at(0) == '$'){
-        USER_ERROR("Vampire higher-order is currently not compatible with theory reasoning");    
+        USER_ERROR("Vampire higher-order is currently not compatible with theory reasoning");
       }
       readTypeArgs(arity);
       _termLists.push(createFunctionApplication(name, arity)); // arity
@@ -3192,7 +3209,8 @@ void TPTP::term()
       unsigned number;
       switch (tok.tag) {
         case T_STRING:
-          // "distinct_object"s are _always_ of sort $i, even in typed contexts
+          // a "distinct_object" is of sort $i unless a type declaration said otherwise;
+          // if it was declared, addStringConstant returns that symbol and ignores the sort
           number = env.signature->addStringConstant(tok.content, AtomicSort::defaultSort());
           break;
         case T_INT:
@@ -3451,38 +3469,49 @@ Formula* TPTP::createPredicateApplication(std::string name, unsigned arity)
     return new AtomicFormula(l, lhs != l->termArg(0));
   }
   if (pred == -2){ // distinct
-    // TODO check that we are top-level
-
     // ignore pointless $distinct(x)
     if(arity < 2) {
       _termLists.pop(arity);
       return new Formula(true);
     }
-    // If fewer than 5 things are distinct then we add the disequalities
-    else if(arity < 5){
-      static Stack<unsigned> distincts;
-      distincts.reset();
-      for(int i=arity-1;i >= 0; i--){
-        TermList t = _termLists.pop();
-        if(t.isVar() || t.term()->arity()!=0){
-          USER_ERROR("$distinct can only be used with constants. Found "+t.toString());
-        }
-        distincts.push(t.term()->functor());
-      }
-      Formula* distinct_formula = DistinctGroupExpansion(0 /* zero means "always expand"*/).expand(distincts);
-      return distinct_formula;
-    }else{
-      // Otherwise record them as being in a distinct group
-      unsigned grpIdx = env.signature->createDistinctGroup(0);
-      for(int i = arity-1;i >=0; i--){
-        TermList ts = _termLists.pop();
-        if(!ts.isTerm() || ts.term()->arity()!=0){
-          USER_ERROR("$distinct can only be used with constants. Found "+ts.toString());
-        }
-        env.signature->addToDistinctGroup(ts.term()->functor(),grpIdx);
-      }
-      return new Formula(true); // we ignore it, it evaluates to true as we have recorded it elsewhere
+
+    // Whether this occurrence can be recorded as a distinct group depends on where in
+    // the formula it sits, which we cannot tell from here. So just build a marker
+    // literal; Shell/DistinctGroupExpansion eliminates it once the unit is complete.
+    if(_lastDialect != Dialect::FOF){
+      USER_ERROR("$distinct is not supported in ",
+        _lastDialect == Dialect::CNF ? "cnf" : "tcf", ", only in fof/tff");
     }
+
+    auto args = nLastTermLists(arity);
+    // all the arguments must have the same sort, or the disequalities the marker
+    // stands for would be ill-sorted
+    TermList sort = sortOf(args[0]);
+    for (auto i : range(1u, arity)) {
+      TermList argSort = sortOf(args[i]);
+      if(argSort != sort){
+        USER_ERROR("$distinct can only be used with constants of the same sort. Found ",
+          args[i], " of sort ", argSort, " among constants of sort ", sort);
+      }
+    }
+
+    Formula* out;
+    if(sort.isVar() || !sort.term()->ground()){
+      // a marker predicate for a non-ground sort would have to be polymorphic. Such an
+      // occurrence could never become a distinct group anyway -- a group holds constants,
+      // and here the arguments are typically the quantified variables the sort comes
+      // from -- so just expand it right away.
+      Stack<TermList> terms(arity);
+      for (auto i : range(0u, arity)) {
+        terms.push(args[i]);
+      }
+      out = DistinctGroupExpansion(0).expandTerms(terms,sort);
+    } else {
+      out = new AtomicFormula(Literal::create(
+        env.signature->getDistinctPredicate(arity,sort), arity, /* polarity */ true, args));
+    }
+    _termLists.pop(arity);
+    return out;
   }
   // not equality or distinct
   auto args = nLastTermLists(arity);
@@ -4112,6 +4141,28 @@ void TPTP::endTff()
 
   OperatorType* ot = constructOperatorType(t);
   std::string name = _strings.pop();
+  bool isDistinctObject = _bools.pop();
+
+  if (isDistinctObject) {
+    // a "distinct object" is a constant of a ground sort, and lives in the distinct
+    // group of that sort; polymorphism here is deliberately not supported
+    if (ot->numTypeArguments() != 0) {
+      USER_ERROR("A distinct object cannot have a polymorphic type: \"" + name + "\"");
+    }
+    if (ot->arity() != 0 || ot->isPredicateType() || ot->result() == AtomicSort::superSort()) {
+      USER_ERROR("A distinct object must be declared as a constant of a proper sort: \"" + name + "\"");
+    }
+    TermList sort = ot->result();
+    if (sort.isVar() || !sort.term()->ground()) {
+      USER_ERROR("A distinct object cannot have a non-ground sort: \"" + name + "\"");
+    }
+    unsigned fun = env.signature->addStringConstant(name,sort);
+    // addStringConstant keys on the name only, so this also catches a use at another sort
+    if (env.signature->getFunction(fun)->type() != ot) {
+      USER_ERROR("Distinct object type is declared after its use, or twice with different types: \"" + name + "\"");
+    }
+    return;
+  }
 
   unsigned arity = ot->arity();
   bool isPredicate = ot->isPredicateType() && !_isThf;

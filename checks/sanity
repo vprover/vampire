@@ -348,6 +348,50 @@ check_rejected 'cannot parse the ?* quantifier' --input_syntax tptp --mode outpu
 check_rejected 'only supports type quantification (!>) in type declarations' --input_syntax tptp --mode output parse/thf-type-quant-in-formula.p
 check_output_contains '(p(vAND) & p(vNOT))' --mode output parse/proxy-names.p
 check_output_contains '(c = vPI(c))' --mode output parse/proxy-names.p
+# distinct objects (doubly-quoted symbols): declarable at a user sort in tff, one
+# distinct group per sort, non-ground sorts rejected
+check_szs_status Unsatisfiable parse/distinct-objects-tff.p
+check_szs_status Unsatisfiable -newcnf on parse/distinct-objects-tff.p
+# -dgel 1 leaves the group unexpanded, so the refutation goes via DistinctEqualitySimplifier
+check_szs_status Unsatisfiable -dgel 1 parse/distinct-objects-tff.p
+check_output_contains '"a": letter' --mode output parse/distinct-objects-tff.p
+check_szs_status Unsatisfiable parse/distinct-objects-fof.p
+check_rejected 'distinct object cannot have a polymorphic type' --input_syntax tptp --mode output parse/distinct-objects-poly.p
+check_rejected 'must be declared as a constant of a proper sort: "f"' --input_syntax tptp --mode output parse/distinct-objects-arity.p
+check_rejected 'must be declared as a constant of a proper sort: "a"' --input_syntax tptp --mode output parse/distinct-objects-bool.p
+check_rejected 'must be declared as a constant of a proper sort: "a"' --input_syntax tptp --mode output parse/distinct-objects-ttype.p
+check_rejected 'Distinct object type is declared after its use' --input_syntax tptp --mode output parse/distinct-objects-clash.p
+check_rejected '$distinct can only be used with constants of the same sort' --input_syntax tptp --mode output parse/distinct-mixed-sorts.p
+# a distinct group is only worth keeping if it has at least two members
+check_szs_status Satisfiable parse/distinct-group-singleton.p
+check_szs_status Satisfiable parse/distinct-group-pair.p
+check_szs_status GaveUp -dgel 1 parse/distinct-group-pair.p
+# $distinct only holds unconditionally at a positive top level; anywhere else it
+# has to be expanded rather than recorded as a distinct group
+check_szs_status Satisfiable parse/distinct-negated.p
+check_szs_status CounterSatisfiable parse/distinct-conjecture.p
+check_szs_status CounterSatisfiable parse/distinct-disjunct.p
+check_szs_status Theorem parse/distinct-terms.p
+# the good case, whether the group is expanded (-dgel 0) or survives (-dgel 1)
+check_szs_status Theorem parse/distinct-toplevel.p
+check_szs_status Theorem -dgel 0 parse/distinct-toplevel.p
+check_szs_status Theorem -dgel 1 parse/distinct-toplevel.p
+check_szs_status Theorem parse/distinct-nested-and.p
+check_szs_status Theorem -dgel 1 parse/distinct-nested-and.p
+# $distinct now survives parsing, so --mode output no longer silently loses it
+check_output_contains '$distinct(a,b,c,d,e,f)' --mode output parse/distinct-toplevel.p
+check_rejected '$distinct is not supported in cnf' --input_syntax tptp --mode output parse/distinct-cnf.p
+check_rejected '$distinct is not supported in thf' --input_syntax tptp --mode output parse/distinct-thf.p
+# a $distinct at a non-ground sort gets no marker predicate, it is expanded at once
+check_szs_status Theorem parse/distinct-poly-sort.p
+# a $distinct hiding inside a FOOL term must still be found, on both pathways
+check_szs_status Theorem parse/distinct-in-fool.p
+check_szs_status Theorem -newcnf on parse/distinct-in-fool.p
+check_szs_status Theorem -dgel 1 parse/distinct-in-fool.p
+# SMT-LIB's distinct takes the same route
+check_szs_status Unsatisfiable parse/distinct-smtlib.smt2
+check_szs_status Unsatisfiable -dgel 1 parse/distinct-smtlib.smt2
+check_szs_status Satisfiable parse/distinct-smtlib-negated.smt2
 # TPTP tcf (typed clause form), read and written. parse/SYN000-3.p is the TPTP
 # sample exercising every tcf construct; exact output, because what is under test
 # is that all of it parses and that --mode tclausify prints legal tcf.

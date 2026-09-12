@@ -688,8 +688,6 @@ set(SOURCES
     Shell/CommandLine.hpp
     Shell/DistinctGroupExpansion.cpp
     Shell/DistinctGroupExpansion.hpp
-    Shell/DistinctProcessor.cpp
-    Shell/DistinctProcessor.hpp
     Shell/EqResWithDeletion.cpp
     Shell/EqResWithDeletion.hpp
     Shell/EqualityProxy.cpp

@@ -349,7 +349,6 @@ VS_OBJ = Shell/AnswerLiteralManager.o\
          Shell/PartialRedundancyHandler.o\
          Shell/CNF.o\
          Shell/NewCNF.o\
-         Shell/DistinctProcessor.o\
          Shell/DistinctGroupExpansion.o\
          Shell/EqResWithDeletion.o\
          Shell/EqualityProxy.o\
