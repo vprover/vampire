@@ -245,11 +245,12 @@ private:
   }
 
   struct SubstMatcher
-  : public Matcher</*removing*/false,/*checkRange=*/false>
+  // TODO(HOL): consider turning higherOrder flag off for HOL
+  : public Matcher</*removing*/false,false,/*sres=*/false>
   {
     void init(const CodeTree& tree, const TermStack& ts)
     {
-      Matcher::init(tree,tree.getEntryPoint());
+      Matcher::init(tree, tree.getEntryPoint(), /*canEnterOpposites_=*/false);
 
       ft = FlatTerm::create(ts);
 
@@ -280,11 +281,11 @@ private:
   };
 
   struct VariantMatcher
-  : public Matcher</*removing*/true,/*checkRange=*/true>
+  : public Matcher</*removing*/true,true,/*sres=*/false>
   {
   public:
     void init(FlatTerm* ft_, const CodeTree& tree_, Stack<CodeOp*>* firstsInBlocks_) {
-      Matcher::init(tree_, tree_.getEntryPoint(), 0, 0, firstsInBlocks_);
+      Matcher::init(tree_, tree_.getEntryPoint(), /*canEnterOpposites_=*/false, 0, 0, firstsInBlocks_);
       ft=ft_;
       tp=0;
       op=entry;
