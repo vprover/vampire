@@ -113,6 +113,7 @@ set(UNIT_TESTS
     UnitTests/tSyntaxSugar.cpp
     UnitTests/tTermAlgebra.cpp
     UnitTests/tTermIndex.cpp
+    UnitTests/tTermOutput.cpp
     UnitTests/tTimeTrace.cpp
     UnitTests/tTuple.cpp
     UnitTests/tUnificationWithAbstraction.cpp
