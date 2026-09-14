@@ -208,6 +208,7 @@ void InferenceRecorder::forwardDemodulation(unsigned int id, Clause *conclusion,
 
     _inferences[id] = std::move(info);
     _lastInferenceId = id;
+    _hasLastInference = true;
   }
 }
 

@@ -24,6 +24,7 @@
 #include "Lib/ScopedPtr.hpp"
 
 #include "Shell/InferenceReplay.hpp"
+#include "Shell/InferenceRecorder.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/UIHelper.hpp"
 #include "Shell/SMTCheck.hpp"
@@ -430,8 +431,11 @@ struct InferenceStore::TPTPProofPrinter
 : public InferenceStore::ProofPrinter
 {
   TPTPProofPrinter(std::ostream& out, InferenceStore* is)
-  : ProofPrinter(out, is) {
+  : ProofPrinter(out, is), _replayer(out), _replay(env.options->replay()) {
     splitPrefix = Saturation::Splitter::splPrefix;
+    if (_replay) {
+      _replayer.makeInferenceEngine(this->_is->ordering);
+    }
   }
 
   void print() override
@@ -449,6 +453,48 @@ struct InferenceStore::TPTPProofPrinter
 
 protected:
   std::string splitPrefix;
+  InferenceReplayer _replayer;
+  bool _replay;
+
+  std::string replayedUnifier(Unit* us)
+  {
+    if (!_replay || !us->isClause()) {
+      return "";
+    }
+
+    InferenceRecorder::instance()->setCurrentGoal(us->asClause());
+    _replayer.replayInference(us);
+    const auto* info = InferenceRecorder::instance()->getLastRecordedInferenceInformation();
+    if (!info) {
+      return "";
+    }
+
+    std::ostringstream res;
+    res << "unifier([";
+    for (unsigned bank = 0; bank < info->substitutionForBanksSub.size(); bank++) {
+      if (bank) {
+        res << ',';
+      }
+      res << "subs(";
+      if (bank < info->premises.size()) {
+        res << tptpUnitId(info->premises[bank]);
+      } else {
+        res << bank;
+      }
+      res << ",[";
+      auto subst = info->substitutionForBanksSub[bank];
+      bool first = true;
+      for (auto [var, term] : iterTraits(subst.items())) {
+        if (!first) {
+          res << ',';
+        }
+        first = false;
+        res << "(X" << var << "," << term.toString() << ")";
+      }
+      res << "])";
+    }
+    return res.str() + "])";
+  }
 
   std::string getRole(InferenceRule rule, UnitInputType origin)
   {
@@ -721,6 +767,14 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
       }
       else if(rule==InferenceRule::NEGATED_CONJECTURE) {
 	      statusStr="status(cth)";
+      }
+
+      std::string unifierStr = replayedUnifier(us);
+      if (!unifierStr.empty()) {
+        if (!statusStr.empty()) {
+          statusStr += ',';
+        }
+        statusStr += unifierStr;
       }
 
       inferenceStr="inference("+tptpRuleName(rule);

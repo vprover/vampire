@@ -50,11 +50,14 @@ public:
   void setCurrentGoal(Kernel::Clause *goal)
   {
     _currentGoal = goal;
-    _lastInferenceId = 0;
+    _hasLastInference = false;
   }
 
   const InferenceInformation *getLastRecordedInferenceInformation() const
   {
+    if (!_hasLastInference) {
+      return nullptr;
+    }
     auto it = _inferences.find(_lastInferenceId);
     if (it != _inferences.end())
       return it->second.get();
@@ -167,6 +170,7 @@ private:
       populateSubstitutionsGen<T>(info->substitutionForBanksSub, varMap, premises, recordedSubst, applyFunc);
       _inferences[id] = std::move(info);
       _lastInferenceId = id;
+      _hasLastInference = true;
     }
     // Do nothing if not same as proof step
   };
@@ -187,6 +191,7 @@ private:
       // }
       _inferences[id] = std::move(info);
       _lastInferenceId = id;
+      _hasLastInference = true;
     }
     // Do nothing if not same as proof step
   };
@@ -202,6 +207,7 @@ private:
       populateSubstitutionsMergeOneBank<T>(info->substitutionForBanksSub, varMap, premises, recordedSubst, applyFunc);
       _inferences[id] = std::move(info);
       _lastInferenceId = id;
+      _hasLastInference = true;
     }
     // Do nothing if not same as proof step
   };
@@ -211,6 +217,7 @@ private:
   Kernel::Clause *_currentGoal = nullptr;
   std::unordered_map<unsigned int, std::unique_ptr<InferenceInformation>> _inferences;
   unsigned int _lastInferenceId = 0;
+  bool _hasLastInference = false;
 };
 } // namespace Shell
 

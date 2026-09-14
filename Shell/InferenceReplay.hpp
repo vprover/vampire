@@ -27,6 +27,7 @@ class InferenceReplayer
         Problem p;
         env.options->setSaturationAlgorithm(Shell::Options::SaturationAlgorithm::DISCOUNT);
         env.reconstruction = true;
+        Ordering::unsetGlobalOrdering();
         alg = Saturation::SaturationAlgorithm::createFromOptions(p, *env.options);
         alg->setOrdering(_ordering);   
     }

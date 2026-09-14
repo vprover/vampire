@@ -333,6 +333,12 @@ void Options::init()
     _proof.tag(OptionTag::OUTPUT);
     _proof.addHardConstraint(If(equal(Proof::SMTCHECK)).then(_proofExtra.is(equal(ProofExtra::FULL))));
 
+    _replay = BoolOptionValue("replay","",false);
+    _replay.description="Replay supported proof inferences and include the recovered unifier in TPTP inference annotations.";
+    _lookup.insert(&_replay);
+    _replay.tag(OptionTag::OUTPUT);
+    _replay.onlyUsefulWith(_proof.is(equal(Proof::TPTP)));
+
     _minimizeSatProofs = BoolOptionValue("minimize_sat_proofs","msp",true);
     _minimizeSatProofs.description="Perform premise minimization when a sat solver finds a clause set UNSAT\n"
         "(such as with AVATAR proofs or with global subsumption).";
