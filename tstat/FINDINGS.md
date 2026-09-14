@@ -13,17 +13,25 @@ Read `README.md` first for how to read these numbers. This sweep replaces the
 master-11131 one; where a finding changed, the old claim is stated so the difference is
 visible rather than silently overwritten.
 
-> **Which sweep is the reference.** Five sweeps exist now: master-11131, 11142, 11156
-> and 11165 at `-i 100000`, plus a 11142/11156 pair at `-t 60` (§11). The
-> **`-i 100000` 11165 sweep is the standing reference** — it is the first with the
-> instrumentation of §12, so it is the only one that can see forward subsumption at all;
-> 11156 (now `tstat-11156.db`) remains the before-picture for §12's comparison.
+> **Which sweep is the reference.** Six sweeps exist now: master-11131, 11142, 11156,
+> 11165 and 11233 at `-i 100000`, plus a 11142/11156 pair at `-t 60` (§11). The
+> **`-i 100000` 11233 sweep is the standing reference** — it is the first taken on top of
+> current master, so it is the only one whose numbers describe the tree anyone is working
+> in. `tstat/tstat.db` and `common.py`'s `LOGDIR` both point at it; 11165 is kept as
+> `tstat-11165.db` and 11156 as `tstat-11156.db` (the before-picture for §12).
+>
+> **With one hole, which matters for §10a and every HOL claim: 11233 contains almost no
+> higher-order runs.** 3 316 of them die at once on `Not implemented at
+> Kernel/FormulaTransformer.cpp:113` — a master defect, not ours, described in §13. TH0
+> refutations fall 1 951 → 824 and TH1 290 → 82. The 22 957 runs clean in both sweeps
+> agree closely (1 136.63 T vs 1 134.86 T instructions, 0.16%), so **for first-order work
+> 11233 is the reference; for anything higher-order, 11165 is the last trustworthy sweep**
+> until master is fixed and a re-sweep is run.
 >
 > The reason to prefer `-i 100000` holds for it as it did for 11156: an instruction limit
 > fixes the work done per run by construction, so two builds are always compared at equal
-> effort and the residual nondeterminism is ~0.005%. `tstat/tstat.db` and `common.py`'s
-> `LOGDIR` both point at 11165. §10's shortlist was measured on 11156 and is superseded
-> in part by §12. Future sweeps stay on `-i 100000`.
+> effort and the residual nondeterminism is ~0.005%. §10's shortlist was measured on 11156
+> and is superseded in part by §12. Future sweeps stay on `-i 100000`.
 >
 > The `-t 60` pair in §11 is kept as a *secondary* source with one specific job: it is the
 > only regime in which memory-boundedness is chargeable, since under `-i` a cache miss is
@@ -823,5 +831,88 @@ saturation loop's own bookkeeping) is the only container of any size left, and
 > an unrecognised name rejects the *whole run* — so the 18 new node names caused
 > **26 211 of 26 504 runs to be thrown away** on first ingest. It is now derived by
 > scanning the source tree for `TIME_TRACE` literals and `TimeTrace::` constants
-> (~0.12 s, 151 names), which cannot drift; and the rejection reason now names the
+> (~0.4 s, 158 names), which cannot drift; and the rejection reason now names the
 > offending node, so the next such surprise is a one-line diagnosis rather than a hunt.
+
+## 13. The 11233 sweep: the rebase onto master is sound, and master has a HOL defect
+
+`vampire_z3_rel_martin-tstat_11233` is the branch rebased onto master `1254bdc09`, taken
+with the same configuration as every other `-i 100000` sweep. It was run to confirm three
+things after the rebase, not to discover anything: that master's changes integrate, that
+the `rdpmc` rewrite still reads the instruction counter as before, and that the
+instrumentation still covers what it covered. Two of the three came back clean; the third
+found a defect in master.
+
+### a. Instructions are read exactly as before
+
+The `rdpmc` inline-`__asm__` was replaced by `__builtin_ia32_rdpmc` when
+`Lib/PerfInstructions.hpp` was merged (`a606f3e9f`), so the counter path is the thing most
+worth re-checking. Two independent readings of the same hardware counter exist in every
+run — `TIME_TRACE`'s `rdpmc` total at `[root]`, and the timer thread's `Instructions
+burned` — and their ratio is the sharpest available test, because it cancels out every
+difference in what the prover actually did:
+
+| sweep | n | median | p05 | p95 |
+|---|---:|---:|---:|---:|
+| 11165 (inline `__asm__`) | 18 368 | 1.048 58 | 1.048 58 | 1.050 96 |
+| 11233 (`__builtin_ia32_rdpmc`) | 15 880 | 1.048 58 | 1.048 58 | 1.051 10 |
+
+Identical to five decimals, and that constant is 2²⁰/10⁶ — the mebi-labelled-as-mega quirk
+noted in `NEXT.md`, not an error in either reading. The instruction-limited runs also stop
+in the same place (min 104 857 659 463 against 104 858 064 641, 0.0004% apart). The
+builtin and the hand-written `rdpmc` are the same instruction, as expected.
+
+### b. The profile is unchanged where it should be
+
+63 node names appear in each sweep and **none is unique to either**, so nothing master
+added fires on the default path and nothing of ours stopped firing. Over the 22 957 runs
+clean in both, corpus cost is 1 136.63 T against 1 134.86 T instructions (0.16%), and the
+top of the profile moves by less than the noise:
+
+| node | 11165 (T) | 11233 (T) | Δ |
+|---|---:|---:|---:|
+| `main loop` | 1 111.90 | 1 109.95 | −0.2% |
+| `activation` | 662.42 | 664.90 | +0.4% |
+| `clause generation` | 641.83 | 644.11 | +0.4% |
+| `superposition` | 339.10 | 339.92 | +0.2% |
+| `resolution` | 292.44 | 293.74 | +0.4% |
+| `forward simplification` | 271.81 | 265.76 | −2.2% |
+| `codetree forward subsumption` | 209.55 | 205.68 | −1.8% |
+| `forward demodulation` | 44.21 | 41.85 | −5.3% |
+
+`codetree forward subsumption` stays the largest node below `activation`, so §12's
+conclusion and the ranking it implies survive the rebase intact.
+
+### c. Master `1254bdc09` aborts on essentially all higher-order input
+
+**3 316 runs produce a 53-byte log reading `Not implemented at
+Kernel/FormulaTransformer.cpp:113` and nothing else.** TH0 refutations fall 1 951 → 824,
+TH1 290 → 82; 3 308 problems clean in 11165 are unusable in 11233 and none the other way.
+
+The step is `distinct group expansion`, which our instrumentation happens to name but did
+not change (the commit adds a `TIME_TRACE` and braces around the existing call, nothing
+else). `Shell/DistinctGroupExpansion.cpp`'s `DistinctExpander::applyLiteral` descends into
+a literal's arguments to find `$distinct` hidden inside FOOL terms, guarded by
+`if(!lit->shared())` as a proxy for "holds a special term". In higher-order logic a literal
+containing a lambda is *also* unshared, so HOL terms enter the descent, reach
+`FormulaTransformer::apply(TermList)`, and hit `case SpecialFunctor::LAMBDA:
+NOT_IMPLEMENTED`. Two changes combine: `c7032a41b` removed the
+`if(env.signature->hasDistinctGroups())` guard from `Shell/Preprocess.cpp` (correctly — a
+`$distinct` marker can exist with no group yet), so the pass now runs on every problem;
+`3d8a07043` added the FOOL descent. Both are in PR #936.
+
+Four lines reproduce it, with no `$distinct` anywhere:
+
+```tptp
+thf(p_decl, type, p: ($i > $o) > $o).
+thf(q_decl, type, q: $i > $o).
+thf(ax, axiom, (p @ (^[X: $i]: (q @ X)))).
+thf(co, conjecture, (?[F: $i > $o]: (p @ F))).
+```
+
+`vampire_z3_rel_master_11175` (`719d180e2`, before PR #936) proves it; a build of
+`1254bdc09` prints `Not implemented`. Verified against a clean master build, not merely
+against our branch, so the attribution is not an inference.
+
+Until this is fixed, **11165 is the reference for anything higher-order** and 11233 for
+everything else; §10a in particular cannot be re-measured on 11233.
