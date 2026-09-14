@@ -13,20 +13,17 @@ Read `README.md` first for how to read these numbers. This sweep replaces the
 master-11131 one; where a finding changed, the old claim is stated so the difference is
 visible rather than silently overwritten.
 
-> **Which sweep is the reference.** Six sweeps exist now: master-11131, 11142, 11156,
-> 11165 and 11233 at `-i 100000`, plus a 11142/11156 pair at `-t 60` (§11). The
-> **`-i 100000` 11233 sweep is the standing reference** — it is the first taken on top of
-> current master, so it is the only one whose numbers describe the tree anyone is working
-> in. `tstat/tstat.db` and `common.py`'s `LOGDIR` both point at it; 11165 is kept as
+> **Which sweep is the reference.** Seven sweeps exist now: master-11131, 11142, 11156,
+> 11165, 11233 and 11235 at `-i 100000`, plus a 11142/11156 pair at `-t 60` (§11). The
+> **`-i 100000` 11235 sweep is the standing reference** — it is on top of current master
+> with the §13 fix in place, so it is the only one that is both current and complete.
+> `tstat/tstat.db` and `common.py`'s `LOGDIR` both point at it; 11165 is kept as
 > `tstat-11165.db` and 11156 as `tstat-11156.db` (the before-picture for §12).
 >
-> **With one hole, which matters for §10a and every HOL claim: 11233 contains almost no
-> higher-order runs.** 3 316 of them die at once on `Not implemented at
-> Kernel/FormulaTransformer.cpp:113` — a master defect, not ours, described in §13. TH0
-> refutations fall 1 951 → 824 and TH1 290 → 82. The 22 957 runs clean in both sweeps
-> agree closely (1 136.63 T vs 1 134.86 T instructions, 0.16%), so **for first-order work
-> 11233 is the reference; for anything higher-order, 11165 is the last trustworthy sweep**
-> until master is fixed and a re-sweep is run.
+> **11233 (`tstat-11233.db`) is superseded and should not be used.** It was taken on the
+> rebase before the §13 defect was found, so 3 316 higher-order runs abort in it. It is
+> kept only as the evidence for §13c. 11235 has 26 273 clean runs against 11165's 26 265,
+> with the *only* rejections being the 231 pre-existing user errors.
 >
 > The reason to prefer `-i 100000` holds for it as it did for 11156: an instruction limit
 > fixes the work done per run by construction, so two builds are always compared at equal
@@ -921,13 +918,48 @@ everything else; §10a in particular cannot be re-measured on 11233.
 cherry-picked from `martin-distinct-skip-hol` (proposed to master separately). The pass is
 skipped for higher-order input, and a higher-order problem that does carry a distinct
 group — a distinct object still parses in thf, in an equality and in a type declaration —
-is rejected rather than silently losing the disequalities it asserted. So a sweep taken
-from here has no such hole, and **whatever sweep follows 11233 supersedes it outright**:
-11233 is a first-order-only baseline and should be retired once its successor is in, not
-kept as the higher-order before-picture (11165 already is that).
+is rejected rather than silently losing the disequalities it asserted.
 
 `checks/sanity` could not have caught this. Its one end-to-end higher-order entry,
 `hol/hol1.p`, has a higher-order *variable* but no lambda, so nothing unshared carrying a
 special term reaches preprocessing; every other thf entry stops at `--mode output`, before
 preprocessing runs. The same commit adds `hol/hol2.p` (the reproducer above) and
 `hol/hol-distinct-object.p` (the rejected case).
+
+### d. 11235 confirms the fix at corpus scale, and is the new reference
+
+Same configuration, built from `99bd2dbff` (the fix cherry-picked onto this branch).
+
+**The hole is gone.** 26 273 clean runs against 11165's 26 265 and 11233's 22 957, and the
+**only** rejections are the 231 pre-existing Vampire user errors — zero runs lost to
+interleaved output, where 11165 lost 8. Higher-order counts are back to where they were:
+
+| | 11165 | 11233 | 11235 |
+|---|---:|---:|---:|
+| TH0 `Refutation` | 1 951 | 824 | 1 949 |
+| TH0 `Instruction limit` | 1 793 | 453 | 1 797 |
+| TH1 `Refutation` | 290 | 82 | 290 |
+| TH1 `Instruction limit` | 556 | 91 | 564 |
+
+**Nothing else moved.** 13 818 problems solved against 11165's 13 814 (27 lost, 31 gained,
+the usual churn), **zero soundness contradictions** between the two sweeps, the same 63
+node names with none unique to either, and 1 332.13 T against 1 333.77 T instructions over
+the 26 265 runs clean in both. The `rdpmc` cross-check of §13a is unchanged at 1.048 58.
+Every top node is within ±2% except `forward demodulation` at −5.3%, which moved by the
+same amount in 11233 — so it is a real effect of master's 67 commits, not noise, and
+plausibly the code-tree generalisation default.
+
+**The new `USER_ERROR` fires nowhere in TPTP**, as predicted: 0 runs. The 222 "higher-order"
+user errors in the sweep are the pre-existing theory-reasoning message.
+
+**`distinct group expansion` is now an always-on preprocessing step**, which is worth
+recording since it did not used to be: it runs in 21 393 of 26 273 clean runs against 247
+in 11165, master having replaced the `hasDistinctGroups()` guard with an unconditional
+call. It is cheap — 47.48 G instructions, **0.0036% of corpus**, worst single run 0.678%
+of itself — so it needs no action, but it is a new entry on every first-order path.
+
+The 4 880 runs without the node are exactly the higher-order ones, which is the skip being
+visible in the profile. Two residues, both benign: 54 non-HOL runs lack it because they
+burned the whole 100 Gi budget *in parsing* and never reached preprocessing (the `CSR*+6` /
+`HWV13x-1` family of §10c, 2 nodes each); and 13 `^`-named problems do have it, being
+first-order in practice, so `isHigherOrder()` is correctly false for them.
