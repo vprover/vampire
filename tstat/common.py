@@ -12,7 +12,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 ROOT = os.path.dirname(HERE)
 DB = os.path.join(HERE, "tstat.db")
 OUT = os.path.join(HERE, "out")
-LOGDIR = os.path.join(ROOT, "problemsALLlocal_tstat11233_tstat-on_i100K")
+LOGDIR = os.path.join(ROOT, "problemsALLlocal_tstat11235_tstat-on_i100K")
 PROBLEMS = os.path.join(ROOT, "Problems")
 
 # The printer uses U+03BC (GREEK SMALL LETTER MU); accept U+00B5 too, just in case.
