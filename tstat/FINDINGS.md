@@ -916,3 +916,18 @@ against our branch, so the attribution is not an inference.
 
 Until this is fixed, **11165 is the reference for anything higher-order** and 11233 for
 everything else; §10a in particular cannot be re-measured on 11233.
+
+**Fixed on this branch** by "Do not run DistinctGroupExpansion on higher-order problems",
+cherry-picked from `martin-distinct-skip-hol` (proposed to master separately). The pass is
+skipped for higher-order input, and a higher-order problem that does carry a distinct
+group — a distinct object still parses in thf, in an equality and in a type declaration —
+is rejected rather than silently losing the disequalities it asserted. So a sweep taken
+from here has no such hole, and **whatever sweep follows 11233 supersedes it outright**:
+11233 is a first-order-only baseline and should be retired once its successor is in, not
+kept as the higher-order before-picture (11165 already is that).
+
+`checks/sanity` could not have caught this. Its one end-to-end higher-order entry,
+`hol/hol1.p`, has a higher-order *variable* but no lambda, so nothing unshared carrying a
+special term reaches preprocessing; every other thf entry stops at `--mode output`, before
+preprocessing runs. The same commit adds `hol/hol2.p` (the reproducer above) and
+`hol/hol-distinct-object.p` (the rejected case).
