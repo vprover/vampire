@@ -56,13 +56,20 @@ extern perf_event_mmap_page *PERF_MMAP_PAGE;
 /** Whether instructionCount() can return anything meaningful at all. */
 bool instructionCountingAvailable();
 
-#if defined(__x86_64__) || defined(__i386__)
+// __GNUC__ is belt and braces: VAMPIRE_PERF_EXISTS (Lib/Portability.hpp) is already 0
+// off Linux, so a compiler lacking the builtin below cannot reach here anyway. Clang
+// and ICX define __GNUC__ too.
+#if (defined(__x86_64__) || defined(__i386__)) && defined(__GNUC__)
+/** Read performance counter @b counter.
+ *
+ *  __builtin_ia32_rdpmc is available in both GCC and Clang with no target pragma and
+ *  no -m flag; each compiler's __rdpmc() in <x86intrin.h> is a one-line wrapper around
+ *  exactly this builtin, which we skip only to keep a ~40k-line header out of the two
+ *  translation units that include us. It is not subject to common-subexpression
+ *  elimination -- two reads really do issue two rdpmc instructions -- which is why no
+ *  __volatile__ equivalent is needed here. */
 inline uint64_t rdpmc(uint32_t counter)
-{
-  uint32_t low, high;
-  __asm__ __volatile__("rdpmc" : "=a"(low), "=d"(high) : "c"(counter));
-  return (static_cast<uint64_t>(high) << 32) | low;
-}
+{ return __builtin_ia32_rdpmc(static_cast<int>(counter)); }
 #define VAMPIRE_RDPMC_EXISTS 1
 #endif
 
