@@ -919,7 +919,7 @@ public:
   }
 
 protected:
-  std::string headToString() const;
+  std::string prefixToString() const;
 
   unsigned computeDistinctVars() const;
 
