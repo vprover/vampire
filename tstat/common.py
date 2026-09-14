@@ -57,26 +57,41 @@ _TRACE_CALL = re.compile(
 # the TimeTrace::FOO constants, whose values are what actually reaches the log
 _TRACE_CONST = re.compile(
     r'constexpr\s+const\s+char\*\s+const\s+\w+\s*=\s*"((?:[^"\\]|\\.)*)"')
-_SOURCE_DIRS = ("Kernel", "Shell", "Saturation", "Inferences", "Indexing", "SAT",
-                "FMB", "CASC", "Lib", "Debug", "Parse", "DP")
+# Which files to scan is itself derived, never written down here: a hand-written tuple of
+# directories filtered to *.cpp/*.hpp missed Minisat/simp/SimpSolver.cc -- wrong directory
+# *and* wrong extension -- which would have rejected every run whose AVATAR solver reached
+# "minisat eliminate var". So: take cmake/sources.cmake, which lists every file compiled
+# into Vampire, and scan every *directory* it mentions in full. The file list alone is not
+# quite enough (it omits some headers that are nonetheless compiled in, e.g.
+# Lib/PerfInstructions.hpp); the directories around it close that gap, and scanning a file
+# that is not in fact compiled can only ever widen the whitelist, which is harmless --
+# a *missing* name is what costs us a whole run.
+_SOURCES_CMAKE = os.path.join(ROOT, "cmake", "sources.cmake")
+_SOURCE_LINE = re.compile(r"^\s*([A-Za-z0-9_][A-Za-z0-9_./+-]*\.(?:cpp|cc|cxx|hpp|h))\s*$",
+                          re.M)
+_SOURCE_EXT = (".cpp", ".cc", ".cxx", ".hpp", ".h")
 
 
 def _node_names_from_source():
+    with open(_SOURCES_CMAKE, encoding="utf-8", errors="replace") as fh:
+        files = set(_SOURCE_LINE.findall(fh.read()))
+    files.add("vampire.cpp")  # the entry point is added by CMakeLists, not sources.cmake
+    for rel in sorted(files):
+        d = os.path.join(ROOT, os.path.dirname(rel))
+        if not os.path.isdir(d):
+            continue
+        for f in os.listdir(d):
+            if f.endswith(_SOURCE_EXT):
+                files.add(os.path.relpath(os.path.join(d, f), ROOT))
     names = set()
-    for d in _SOURCE_DIRS:
-        for dirpath, _, files in os.walk(os.path.join(ROOT, d)):
-            for f in files:
-                if not f.endswith((".cpp", ".hpp")):
-                    continue
-                with open(os.path.join(dirpath, f), encoding="utf-8",
-                          errors="replace") as fh:
-                    text = fh.read()
-                names |= set(_TRACE_CALL.findall(text))
-                names |= set(_TRACE_CONST.findall(text))
-    main = os.path.join(ROOT, "vampire.cpp")
-    if os.path.exists(main):
-        with open(main, encoding="utf-8", errors="replace") as fh:
-            names |= set(_TRACE_CALL.findall(fh.read()))
+    for rel in files:
+        path = os.path.join(ROOT, rel)
+        if not os.path.exists(path):
+            continue
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            text = fh.read()
+        names |= set(_TRACE_CALL.findall(text))
+        names |= set(_TRACE_CONST.findall(text))
     # "[root]" is synthesised by the printer, not by any TIME_TRACE call site
     names.add("[root]")
     return frozenset(names)
@@ -85,8 +100,8 @@ def _node_names_from_source():
 KNOWN_NODES = _node_names_from_source()
 if len(KNOWN_NODES) < 40:
     raise RuntimeError(
-        "only %d TIME_TRACE names found under %s -- is this the Vampire checkout?"
-        % (len(KNOWN_NODES), ROOT))
+        "only %d TIME_TRACE names found via %s -- is this the Vampire checkout?"
+        % (len(KNOWN_NODES), _SOURCES_CMAKE))
 
 
 def _dur(val, unit):

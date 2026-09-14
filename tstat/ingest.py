@@ -246,7 +246,7 @@ def report(con):
 
 def selftest(db_path):
     """Cross-validate the two independent renderings of the same measurement data."""
-    con = C.connect()
+    con = C.connect(db=db_path)
     fails = 0
 
     print("1. flattened == aggregation of the trace tree, per (problem, node)")
