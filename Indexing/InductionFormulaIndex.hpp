@@ -71,7 +71,7 @@ public:
 
   bool findOrInsert(const Inferences::InductionContext& context, Entry*& e, Literal* bound1 = nullptr, Literal* bound2 = nullptr);
 private:
-  DHMap<Key,Entry> _map;
+  DHMap<Key,Entry, PairHash<StackHash<StackHash<FnvHash>>,PairHash<FnvHash,FnvHash>>, PairHash<LengthHash,PairHash<PtrIdentityHash,PtrIdentityHash>>> _map;
 };
 
 }

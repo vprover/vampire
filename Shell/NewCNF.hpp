@@ -107,19 +107,10 @@ private:
   BindingStore _bindingStore;
   BindingStore _foolBindingStore;
 
-  struct BindingGetVarFunctor
-  {
-    unsigned operator()(const Binding& b) { return b.first; }
-  };
-
-  #define SIGN bool
-  #define POSITIVE true
-  #define NEGATIVE false
-  #define OPPOSITE(sign) (!(sign))
-
-  #define SIDE unsigned
-  #define LEFT 0u
-  #define RIGHT 1u
+  using SIGN = bool;
+  static constexpr SIGN POSITIVE = true;
+  static constexpr SIGN NEGATIVE = false;
+  static SIGN OPPOSITE(SIGN sign) { return !sign; }
 
   // generalized literal
   typedef std::pair<Formula*, SIGN> GenLit;
@@ -205,7 +196,7 @@ private:
   typedef SmartPtr<GenClause> SPGenClause;
 
   void toClauses(SPGenClause gc, Stack<Clause*>& output);
-  bool mapSubstitution(List<GenLit>* gc, Substitution subst, bool onlyFormulaLevel, List<GenLit>* &output);
+  bool mapSubstitution(List<GenLit>* gc, const Substitution& subst, bool onlyFormulaLevel, List<GenLit>* &output);
   Clause* toClause(SPGenClause gc);
 
   typedef std::list<SPGenClause> GenClauses;
@@ -224,8 +215,8 @@ private:
    * without it popping the first occurrence of a formula will invalidate the
    * entire generalised clause, and other occurrences will never be seen.
    */
-  DHMap<Literal*, SIGN> _literalsCache;
-  DHMap<Formula*, SIGN> _formulasCache;
+  DHMap<Literal*, SIGN, FnvHash, PtrIdentityHash> _literalsCache;
+  DHMap<Formula*, SIGN, FnvHash, PtrIdentityHash> _formulasCache;
   inline void pushLiteral(SPGenClause gc, GenLit gl) {
     if (formula(gl)->connective() == LITERAL) {
       /**
@@ -363,11 +354,23 @@ private:
       Occurrences::Iterator occit(*this);
 
       bool negateOccurrenceSign = false;
+      if (f->connective() == NOT) {
+        /**
+         * Generalised clauses store formulas without negations (cf. pushLiteral),
+         * so the negation is dropped here and the sign of every occurrence is
+         * flipped instead. Otherwise the stored formula would not match the
+         * formula the occurrences are registered under in _occurrences, and
+         * pushLiteral would flip the sign a second time when the generalised
+         * literal is copied to another generalised clause.
+         */
+        f = f->uarg();
+        negateOccurrenceSign = true;
+      }
       if (f->connective() == LITERAL) {
         Literal* l = f->literal();
         if (l->shared() && ((SIGN)l->polarity() != POSITIVE)) {
           f = new AtomicFormula(Literal::complementaryLiteral(l));
-          negateOccurrenceSign = true;
+          negateOccurrenceSign = !negateOccurrenceSign;
         }
       }
 
@@ -378,15 +381,6 @@ private:
         if (negateOccurrenceSign) {
           sign(gl) = OPPOSITE(sign(gl));
         }
-      }
-    }
-
-    void invert() {
-      Occurrences::Iterator occit(*this);
-      while (occit.hasNext()) {
-        Occurrence occ = occit.next();
-        GenLit& gl = occ.gc->_literals[occ.position];
-        sign(gl) = OPPOSITE(sign(gl));
       }
     }
 
@@ -401,17 +395,17 @@ private:
             _iterator.del();
             continue;
           }
-          _current = SmartPtr<Occurrence>(new Occurrence(occ.gc, occ.position));
+          _current = occ;
           return true;
         }
         return false;
       }
       Occurrence next() {
-        return *_current;
+        return _current;
       }
     private:
       List<Occurrence>::DelIterator _iterator;
-      SmartPtr<Occurrence> _current;
+      Occurrence _current = Occurrence(SPGenClause(),0); // a dummy value to init with (will get overwritten if hasNext returns true)
     };
   };
 
@@ -432,11 +426,9 @@ private:
     return gc;
   }
 
-  void introduceGenClause(List<GenLit>* gls, BindingList* bindings, BindingList* foolBindings) {
-    SPGenClause gc = makeGenClause(gls, bindings, foolBindings);
-
-    if (gc->size() != List<GenLit>::length(gls)) {
-      LOG4("Eliminated", List<GenLit>::length(gls) - gc->size(), "duplicate literal(s) from", gc->toString());
+  void registerGenClause(SPGenClause gc, unsigned expectedSize) {
+    if (gc->size() != expectedSize) {
+      LOG4("Eliminated", expectedSize - gc->size(), "duplicate literal(s) from", gc->toString());
     }
 
     if (gc->valid) {
@@ -456,6 +448,12 @@ private:
     } else {
       LOG2(gc->toString(), "is eliminated as it contains a tautology");
     }
+  }
+
+  void introduceGenClause(List<GenLit>* gls, BindingList* bindings, BindingList* foolBindings) {
+    unsigned expectedSize = List<GenLit>::length(gls);
+    SPGenClause gc = makeGenClause(gls, bindings, foolBindings);
+    registerGenClause(gc, expectedSize);
   }
 
   void introduceGenClause(GenLit gl, BindingList* bindings=BindingList::empty(), BindingList* foolBindings=BindingList::empty()) {
@@ -494,27 +492,7 @@ private:
     _literalsCache.reset();
     _formulasCache.reset();
 
-    if (newGc->size() != size) {
-      LOG4("Eliminated", size - newGc->size(), "duplicate literal(s) from", newGc->toString());
-    }
-
-    if (newGc->valid) {
-      _genClauses.push_front(newGc);
-      newGc->iter = _genClauses.begin();
-
-      GenClause::Iterator igl = newGc->genLiterals();
-      unsigned position = 0;
-      while (igl.hasNext()) {
-        GenLit gl = igl.next();
-        Occurrences* occurrences = _occurrences.findPtr(formula(gl));
-        if (occurrences) {
-          occurrences->add(Occurrence(newGc, position));
-        }
-        position++;
-      }
-    } else {
-      LOG2(newGc->toString(), "is eliminated as it contains a tautology");
-    }
+    registerGenClause(newGc, size);
   }
 
   void removeGenLit(Occurrence occ) {
@@ -552,10 +530,10 @@ private:
     return occ;
   }
 
-  DHMap<Formula*, Occurrences> _occurrences;
+  DHMap<Formula*, Occurrences, FnvHash, PtrIdentityHash> _occurrences;
 
   /** map var --> sort */
-  DHMap<unsigned,TermList> _varSorts;
+  DHMap<unsigned,TermList, FnvHash, IdentityHash> _varSorts;
   bool _collectedVarSorts;
   unsigned _maxVar;
 
@@ -572,20 +550,20 @@ private:
   bool _forInduction;
 
   // caching of free variables for subformulas
-  DHMap<Formula*,VarSet*> _freeVars;
+  DHMap<Formula*,VarSet*, FnvHash, PtrIdentityHash> _freeVars;
   VarSet* freeVars(Formula* g);
 
   // two level caching scheme for quantifier bindings
   // reset after skolemizing a particular subformula
-  DHMap<BindingList*,BindingList*> _skolemsByBindings;
-  DHMap<VarSet*,BindingList*>      _skolemsByFreeVars;
+  DHMap<BindingList*,BindingList*, FnvHash, PtrIdentityHash> _skolemsByBindings;
+  DHMap<VarSet*,BindingList*, FnvHash, PtrIdentityHash>      _skolemsByFreeVars;
 
-  DHMap<BindingList*,BindingList*> _foolSkolemsByBindings;
-  DHMap<VarSet*,BindingList*>      _foolSkolemsByFreeVars;
+  DHMap<BindingList*,BindingList*, FnvHash, PtrIdentityHash> _foolSkolemsByBindings;
+  DHMap<VarSet*,BindingList*, FnvHash, PtrIdentityHash>      _foolSkolemsByFreeVars;
 
   // caching binding substitutions for the final phase of GenClause -> Clause transformation
   // this saves time, because bindings are potentially shared
-  DHMap<BindingList*,Substitution*> _substitutionsByBindings;
+  DHMap<BindingList*,Substitution*, FnvHash, PtrIdentityHash> _substitutionsByBindings;
 
   void skolemise(QuantifiedFormula* g, BindingList* &bindings, BindingList*& foolBindings);
 
@@ -593,19 +571,19 @@ private:
   void nameSubformula(Formula* g, Occurrences &occurrences);
 
   void enqueue(Formula* formula, Occurrences occurrences = Occurrences()) {
-    if ((formula->connective() == LITERAL) && formula->literal()->shared()) return;
-
     if (formula->connective() == NOT) {
       /**
        * Formulas are always stored without negations in genclauses,
-       * therefore it is safe to drop the negation before queueing,
-       * all the occurrences of the formula won't have it either
+       * therefore it is safe to drop the negation before queueing.
+       * The signs of the occurrences are not touched here: whoever puts
+       * a formula into a generalised clause is responsible for dropping
+       * its negation and flipping the sign of the generalised literal
+       * (cf. pushLiteral and Occurrences::replaceBy).
        */
       formula = formula->uarg();
-      ASS_REP(formula->connective() != LITERAL, formula->toString());
-
-      occurrences.invert();
     }
+
+    if ((formula->connective() == LITERAL) && formula->literal()->shared()) return;
 
     if (_occurrences.find(formula)) {
       Occurrences oldOccurrences;
@@ -636,7 +614,7 @@ private:
   void processLet(Term* term, Occurrences &occurrences);
   TermList eliminateLet(Term* term);
 
-  TermList nameLetBinding(Term* lhs, TermList rhs, TermList body, VList* boundVars);
+  TermList nameLetBinding(Term* lhs, TermList rhs, TermList body, VSList* boundVars);
   TermList inlineLetBinding(Term* lhs, TermList rhs, TermList body);
 
   TermList findITEs(TermList ts, Stack<unsigned> &variables, Stack<Formula*> &conditions,

@@ -10,7 +10,6 @@
 
 #include "Kernel/HOL/HOL.hpp"
 #include "Kernel/HOL/TermShifter.hpp"
-#include "Test/UnitTesting.hpp"
 #include "Test/HOLUtils.hpp"
 
 using namespace Test::HOL;

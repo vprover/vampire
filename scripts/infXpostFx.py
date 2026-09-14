@@ -108,13 +108,13 @@ def evaluate(str):
         
 #defines the types of tokens
 def typeof(s):
-    if s is '(':
+    if s == '(':
         return leftparentheses
-    elif s is ')':
+    elif s == ')':
         return rightparentheses
-    elif s is '+' or s is '-' or s is '*' or s is '~' or s is '/' or s is '<' or s is '#'or s is '>':
+    elif s == '+' or s == '-' or s == '*' or s == '~' or s == '/' or s == '<' or s == '#'or s == '>':
         return operator
-    elif s is ' ' or s is ',':
+    elif s == ' ' or s == ',':
         return space
     else :
         return operand
@@ -122,18 +122,18 @@ def typeof(s):
 #this method is just for testing purpose
 def convert(strin):   
     #infix = raw_input("Enter the infix notation : ")
-    print strin
-    print "deasupra e ce am primit "
-    tem = strin[0].strip("\n")
+    print(strin)
+    print("deasupra e ce am primit ")
+    tem = strin.strip("\n")
     strin = []
     if balanceParanthesis(tem) != 0 :
-        print "There are unbalanced parenthesis "
+        print("There are unbalanced parenthesis ")
         exit(-1)
     else: 
         infix = strToTokens(tem)
         final = []
         final.append(evaluate(infix))
-        print "len of final", len(final)
+        print("len of final", len(final))
         return final
         #print "final expression", final
 
@@ -143,7 +143,7 @@ def convertS(String):
         try:
             temp = x.strip("\n")
             if balanceParanthesis(temp) !=0 :
-                print "Therea are unbalanced parenthesis!"
+                print("Therea are unbalanced parenthesis!")
                 exit(-1)
             else:
                 if x.find("!=")!=-1:
@@ -161,12 +161,12 @@ def convertS(String):
                 else:
                     infix = strToTokens(temp)
                     returnV.append(evaluate(infix))
-        except e: 
-            print e
+        except Exception as e: 
+            print(e)
 
     #print returnV
     return returnV
 
 if __name__ == "__main__":
-    infix = raw_input("enter infix notation:")
-    print "final ", convert(infix)
+    infix = input("enter infix notation:")
+    print("final ", convert(infix))

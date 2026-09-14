@@ -24,7 +24,6 @@
 
 #include "Lib/InverseLookup.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/Reflection.hpp"
 #include "Lib/Stack.hpp"
 
 #include "Unit.hpp"
@@ -53,9 +52,9 @@ private:
   void operator delete(void* ptr) { ASSERTION_VIOLATION; }
 
   template<class VarIt>
-  void collectVars2(DHSet<unsigned>& acc);
+  void collectVars2(DHSet<unsigned, FnvHash, IdentityHash>& acc);
 public:
-  DECL_ELEMENT_TYPE(Literal*);
+  using ElementType = Literal*;
 
   /** Storage kind */
   enum Store {
@@ -252,14 +251,16 @@ public:
   auto getSelectedLiteralIterator() { return arrayIter(*this,numSelected()); }
   auto iterLits()                   { return arrayIter(*this,size()); }
   auto iterLits() const             { return arrayIter(*this,size()); }
-  // TODO remove this
-  auto getLiteralIterator()         { return arrayIter(*this,size()); }
 
   bool isGround();
   bool isPropositional();
   bool isHorn();
 
+  /** the clause's variables, each reported exactly once (which costs a set and a
+   * materialised list -- prefer iterVars below when repetitions do no harm) */
   VirtualIterator<unsigned> getVariableIterator() const;
+  /** the clause's variable occurrences, i.e. lazily and with repetitions */
+  VirtualIterator<unsigned> iterVars() const;
 
   bool contains(Literal* lit);
 #if VDEBUG
@@ -294,36 +295,6 @@ public:
     _auxTimestamp=_auxCurrTimestamp;
   }
 
-  /** Set auxiliary value of this clause. */
-  void setAux(void* ptr)
-  {
-    ASS(_auxInUse);
-    _auxTimestamp=_auxCurrTimestamp;
-    _auxData=ptr;
-  }
-  /**
-   * If there is an auxiliary value stored in this clause,
-   * return true and assign it into @b ptr. Otherwise
-   * return false.
-   */
-  template<typename T>
-  bool tryGetAux(T*& ptr)
-  {
-    ASS(_auxInUse);
-    if(_auxTimestamp==_auxCurrTimestamp) {
-      ptr=static_cast<T*>(_auxData);
-      return true;
-    }
-    return false;
-  }
-  /** Return auxiliary value stored in this clause. */
-  template<typename T>
-  T* getAux()
-  {
-    ASS(_auxInUse);
-    ASS(_auxTimestamp==_auxCurrTimestamp);
-    return static_cast<T*>(_auxData);
-  }
   bool hasAux()
   {
     return _auxTimestamp==_auxCurrTimestamp;
@@ -360,7 +331,7 @@ public:
   unsigned splitWeight() const;
   unsigned getNumeralWeight() const;
 
-  void collectVars(DHSet<unsigned>& acc);
+  void collectVars(DHSet<unsigned, FnvHash, IdentityHash>& acc);
 
 
   unsigned varCnt();
@@ -376,7 +347,7 @@ public:
 
 protected:
   /** number of literals */
-  unsigned _length : 20;
+  unsigned _length;
   /** clause color, or COLOR_INVALID if not determined yet */
   mutable unsigned _color : 2;
   /** Clause was matched as extensionality and is tracked in the extensionality
@@ -391,30 +362,28 @@ protected:
   /** storage class */
   Store _store : 3;
   /** number of selected literals */
-  unsigned _numSelected : 20;
+  unsigned _numSelected : 24;
 
   /** weight */
-  mutable unsigned _weight;
+  mutable unsigned _weight = 0;
   /** weight for clause selection */
-  unsigned _weightForClauseSelection;
+  unsigned _weightForClauseSelection = 0;
 
   /** number of references to this clause */
-  unsigned _refCnt;
+  unsigned _refCnt = 0;
   /** for splitting: timestamp marking when has the clause been reduced or restored by splitting */
-  unsigned _reductionTimestamp;
+  unsigned _reductionTimestamp = 0;
+  int _numActiveSplits = 0;
+
+  size_t _auxTimestamp = 0;
+
   /** a map that translates Literal* to its index in the clause */
-  InverseLookup<Literal>* _literalPositions;
-
-  int _numActiveSplits;
-
-  size_t _auxTimestamp;
-  void* _auxData;
+  InverseLookup<Literal>* _literalPositions = nullptr;
 
   static size_t _auxCurrTimestamp;
 #if VDEBUG
   static bool _auxInUse;
 #endif
-
 
   /** Array of literals of this unit */
   Literal* _literals[1];

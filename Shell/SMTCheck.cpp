@@ -39,7 +39,7 @@
 
 using namespace Kernel;
 using Indexing::Splitter;
-using SortMap = DHMap<unsigned, TermList>;
+using SortMap = DHMap<unsigned, TermList, FnvHash, IdentityHash>;
 
 // get first N parents of a unit
 template <unsigned N, typename T>
@@ -701,7 +701,7 @@ static void alascaBinInf(std::ostream &out, SortMap &conclSorts, Clause *concl) 
   const auto &fm = env.proofExtra.get<ALASCA::BinInfExtra<Rule>>(concl);
 
   auto uwa = AbstractingUnifier::empty(AbstractionOracle(env.options->unificationWithAbstraction()));
-  ALWAYS(uwa.unify(fm.left.key(), 0, fm.right.key(), 1))
+  ALWAYS(uwa.unifyOnce(fm.left.key(), 0, fm.right.key(), 1))
   RobSubstitution &subst = uwa.subs();
 
   subst.apply(fm.left.literal(), 0);
@@ -779,7 +779,7 @@ void outputSignature(std::ostream &out)
     out << "(declare-sort " << SortName(i);
 #if VDEBUG
     Signature::Symbol *type = sig.getTypeCon(i);
-    OperatorType *typeType = type->typeConType();
+    OperatorType *typeType = type->type();
     // we don't support polymorphism yet
     ASS_EQ(typeType->numTypeArguments(), 0)
 #endif
@@ -793,7 +793,7 @@ void outputSignature(std::ostream &out)
       continue;
 
     out << "(declare-fun " << FunctionName(fun);
-    OperatorType *type = fun->fnType();
+    OperatorType *type = fun->type();
     TermList range = type->result();
 
     // we don't support polymorphism yet
@@ -810,7 +810,7 @@ void outputSignature(std::ostream &out)
       continue;
 
     out << "(declare-fun " << PredicateName(pred);
-    OperatorType *type = pred->predType();
+    OperatorType *type = pred->type();
 
     // we don't support polymorphism yet
     ASS_EQ(type->numTypeArguments(), 0)

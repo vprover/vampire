@@ -379,7 +379,7 @@ void clausifyMode(Problem* problem, bool theory)
 
   //outputSymbolDeclarations deals with sorts as well for now
   //UIHelper::outputSortDeclarations(std::cout);
-  UIHelper::outputSymbolDeclarations(std::cout);
+  UIHelper::outputSymbolDeclarations(std::cout,/*tcf=*/theory);
 
   ClauseIterator cit = prb->clauseIterator();
   bool printed_conjecture = false;
@@ -390,20 +390,8 @@ void clausifyMode(Problem* problem, bool theory)
       continue;
     }
     printed_conjecture |= cl->inputType() == UnitInputType::CONJECTURE || cl->inputType() == UnitInputType::NEGATED_CONJECTURE;
-    if (theory) {
-      Formula* f = Formula::fromClause(cl);
-
-      // CONJECTURE as inputType is evil, as it cannot occur multiple times
-      if (cl->inference().inputType() == UnitInputType::CONJECTURE) {
-        cl->inference().setInputType(UnitInputType::NEGATED_CONJECTURE);
-      }
-
-      FormulaUnit* fu = new FormulaUnit(f,cl->inference()); // we are stealing cl's inference, which is not nice!
-      fu->overwriteNumber(cl->number()); // we are also making sure it's number is the same as that of the original (for Kostya from Russia to CASC, with love, and back again)
-      std::cout << TPTPPrinter::toString(fu) << "\n";
-    } else {
-      std::cout << TPTPPrinter::toString(cl) << "\n";
-    }
+    // with theory, we print tcf(), i.e. the clause quantified with its variables' sorts
+    std::cout << TPTPPrinter::toString(cl,theory) << "\n";
   }
   if(!printed_conjecture && UIHelper::haveConjecture()){
     unsigned p = env.signature->addFreshPredicate(0,"p");
@@ -411,8 +399,8 @@ void clausifyMode(Problem* problem, bool theory)
         Literal::create(p, /* polarity */ true , {}),
         Literal::create(p, /* polarity */ false, {})
       }, 
-      NonspecificInference0(UnitInputType::NEGATED_CONJECTURE,InferenceRule::INPUT));
-    std::cout << TPTPPrinter::toString(c) << "\n";
+      FromInput(UnitInputType::NEGATED_CONJECTURE));
+    std::cout << TPTPPrinter::toString(c,theory) << "\n";
   }
 
   //we have successfully output all clauses, so we'll terminate with zero return value
@@ -473,10 +461,11 @@ void dispatchByMode(Problem* problem)
     } else {
       env.options->setSchedule(Options::Schedule::CASC_SAT);
     }
-    env.options->setInputSyntax(Options::InputSyntax::TPTP);
+    // unfortunatelly, setting these here make not difference (the need to be before during parsing)
+    // env.options->setInputSyntax(Options::InputSyntax::TPTP);
+    // env.options->setOutputAxiomNames(true);
     env.options->setOutputMode(Options::Output::SZS);
     env.options->setProof(Options::Proof::TPTP);
-    env.options->setOutputAxiomNames(true);
 
     // env.options->setNormalize(true);
     // env.options->setRandomizeSeedForPortfolioWorkers(false);
@@ -488,7 +477,7 @@ void dispatchByMode(Problem* problem)
 
   case Options::Mode::SMTCOMP:
     env.options->setIgnoreMissing(Options::IgnoreMissing::OFF);
-    env.options->setInputSyntax(Options::InputSyntax::SMTLIB2);
+    // env.options->setInputSyntax(Options::InputSyntax::SMTLIB2);
     if(env.options->outputMode() != Options::Output::UCORE){
       env.options->setOutputMode(Options::Output::SMTCOMP);
     }
@@ -570,7 +559,7 @@ void interactiveMetamode()
       break;
     } else if (line.rfind("run",0) == 0) {
       // the whole running happens in a child (don't modify our options, don't crash here when parsing option rubbish, etc.)
-      pid_t process = Lib::Sys::Multiprocessing::instance()->fork();
+      pid_t process = Sys::fork();
       ASS_NEQ(process, -1);
       if(process == 0) {
         UIHelper::unsetExpecting(); // probably garbage at this point
@@ -674,10 +663,6 @@ int main(int argc, char* argv[])
     }
 
     Lib::setMemoryLimit(env.options->memoryLimit() * 1048576ul);
-
-    if (opts.mode() == Options::Mode::MODEL_CHECK) {
-      opts.setOutputAxiomNames(true);
-    }
 
     if (opts.interactive()) {
       interactiveMetamode();

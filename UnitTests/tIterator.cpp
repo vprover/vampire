@@ -80,7 +80,7 @@ class OwnedStackIter {
   Stack<int> _stack;
   unsigned _index;
 public:
-  DECL_ELEMENT_TYPE(int);
+  using ElementType = int;
 
   OwnedStackIter(Stack<int>&& stack) : _stack(std::move(stack)), _index(0) {  }
   OwnedStackIter(Stack<int> const&) = delete;

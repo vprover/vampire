@@ -24,7 +24,9 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/MainLoop.hpp"
+#include "Kernel/Ordering.hpp"
 #include "Kernel/RCClauseStack.hpp"
+#include "Kernel/Problem.hpp"
 
 #include "Indexing/IndexManager.hpp"
 
@@ -33,6 +35,7 @@
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
+namespace Kernel { struct AlascaState; }
 namespace Shell { class AnswerLiteralManager; }
 
 namespace Saturation
@@ -60,8 +63,14 @@ public:
   static bool couldEqualityArise(const Problem& prb, const Options& opt) {
     // TODO: similar cases of "we might need equational reasoning later" might be relevant to theory reasoning too
     return prb.hasEquality() || (prb.hasFOOL() && opt.FOOLParamodulation()) ||
+      (prb.isHigherOrder() && (opt.cases() || opt.casesSimp())) ||
       (opt.questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
   }
+  static bool doesAlascaTakeOver(const Problem& prb, const Options& opt) {
+    // TODO some unit tests fail because of the second conjunct
+    return opt.alasca() && prb.hasAlascaArithmetic();
+  }
+
   static SaturationAlgorithm* createFromOptions(Problem& prb, const Options& opt);
 
   SaturationAlgorithm(Problem& prb, const Options& opt);
@@ -74,17 +83,7 @@ public:
 
   UnitList* collectSaturatedSet();
 
-  void setGeneratingInferenceEngine(SimplifyingGeneratingInference* generator);
-  void setImmediateSimplificationEngine(ImmediateSimplificationEngine* immediateSimplifier);
-  void setImmediateSimplificationEngineMany(CompositeISEMany ise) { _immediateSimplifierMany = std::move(ise); }
-
   void setLabelFinder(LabelFinder* finder){ _labelFinder = finder; }
-
-  void addForwardSimplifierToFront(ForwardSimplificationEngine* fwSimplifier);
-  void addExpensiveForwardSimplifierToFront(ForwardSimplificationEngine* fwSimplifier);
-  void addSimplifierToFront(SimplificationEngine* simplifier);
-  void addBackwardSimplifierToFront(BackwardSimplificationEngine* bwSimplifier);
-
 
   void addNewClause(Clause* cl);
   bool clausesFlushed();
@@ -124,6 +123,7 @@ public:
   void setOrdering(OrderingSP ordering) {  _ordering = ordering; }
   LiteralSelector& getLiteralSelector() const { return *_selector; }
   const PartialRedundancyHandler& parRedHandler() const { return *_partialRedundancyHandler; }
+  AlascaState& alascaState() { return *_alascaState; }
 
   /**
    * if an intermediate clause is derived somewhere, it still needs to be passed to this function
@@ -172,12 +172,22 @@ protected:
   virtual void beforeSelectedRemoved(Clause* cl) {};
   void onAllProcessed();
   virtual bool isComplete();
-  virtual void poppedFromUnprocessed(Clause* cl) {}; // mainly for LRS to inherit and update its estimates there
+  /*
+   * Called once per doUnprocessedLoop iteration, after unprocessed has been drained;
+   * receives the number of unprocessed pops since the last call;
+   * used by LRS to potentially update its estimates.
+  */
+  virtual void afterUnprocessedLoop(unsigned popsElapsed) {};
 
 private:
   void passiveRemovedHandler(Clause* cl);
   void activeRemovedHandler(Clause* cl);
   void addInputClause(Clause* cl);
+
+  template<typename Inference> void addForwardSimplifierToFront();
+  template<typename Inference> void addExpensiveForwardSimplifierToFront();
+  template<typename Inference> void addBackwardSimplifierToFront();
+  template<typename Inference> void addSimplifierToFront();
 
   LiteralSelector& getSosLiteralSelector();
 
@@ -226,6 +236,7 @@ protected:
 
   Splitter* _splitter;
 
+  std::unique_ptr<AlascaState> _alascaState;
   ConsequenceFinder* _consFinder;
   LabelFinder* _labelFinder;
   SymElOutput* _symEl;
@@ -254,8 +265,7 @@ protected:
   /** Number of clauses that entered the unprocessed container */
   unsigned _activationLimit;
 private:
-  static std::pair<CompositeISE*, CompositeISEMany> createISE(Problem& prb, const Options& opt, Ordering& ordering,
-     bool alascaTakesOver);
+  static std::pair<CompositeISE*, CompositeISEMany> createISE(Problem& prb, const Options& opt, SaturationAlgorithm& salg);
 
   // a "soft" time limit in deciseconds, checked manually: 0 is no limit
   unsigned _softTimeLimit = 0;

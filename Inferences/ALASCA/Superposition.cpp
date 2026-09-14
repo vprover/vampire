@@ -94,7 +94,7 @@ Option<Clause*> SuperpositionConf::applyRule_(
            .all([&](auto L) {
              auto Lσ = sigma(L, lhsVarBank);
              concl.push(Lσ);
-             return _shared->notLeq(L1σ, Lσ);
+             return _shared.notLeq(L1σ, Lσ);
            }))
 
   auto s2σ = sigma(s2, rhsVarBank);
@@ -115,25 +115,25 @@ Option<Clause*> SuperpositionConf::applyRule_(
              } else {
                concl.push(Lσ);
              }
-             return inLitPlus ? _shared->notLeq(L2σ, Lσ)
-                              : _shared->notLess(L2σ, Lσ);
+             return inLitPlus ? _shared.notLeq(L2σ, Lσ)
+                              : _shared.notLess(L2σ, Lσ);
            }));
 
   check_side_condition(
       "s2σ ⊴ ti ∈ active(L[s2]σ)", 
-      _shared->activePositions(L2σ)
+      _shared.activePositions(L2σ)
         .any([&](auto ti) 
-             { return _shared->subtermEqModT(s2σ, ti); }))
+             { return _shared.subtermEqModT(s2σ, ti); }))
 
   check_side_condition(
       "L[s2]σ /⪯ L1σ", // TODO is this the correct thing? if so make sure we do that for fourrier motzkin and friends as well
-      _shared->notLeq(L2σ, L1σ))
+      _shared.notLeq(L2σ, L1σ))
 
 
   auto s1σ = sigma(lhs.biggerSide() , lhsVarBank);
   check_side_condition(
       "s1σ /⪯ tσ",
-      _shared->notLeq(s1σ.untyped(), tσ))
+      _shared.notLeq(s1σ.untyped(), tσ))
 
 
   auto resolvent = EqHelper::replace(L2σ, s2σ, tσ);

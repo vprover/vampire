@@ -48,13 +48,11 @@ class TheoryInstAndSimp
 {
 public:
   using SortId = SAT::Z3Interfacing::SortId;
-  TheoryInstAndSimp() : TheoryInstAndSimp(*env.options) {}
+  TheoryInstAndSimp(SaturationAlgorithm& salg);
   TheoryInstAndSimp(TheoryInstAndSimp&&) = default;
 
-  TheoryInstAndSimp(Options& opts);
-  TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, std::string const& exportSmtlib, Options::ProblemExportSyntax problemExportSyntax);
-
-  void attach(SaturationAlgorithm* salg) override;
+  TheoryInstAndSimp(Splitter* splitter, const Options& opts);
+  TheoryInstAndSimp(Splitter* splitter, Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, std::string const& exportSmtlib, Options::ProblemExportSyntax problemExportSyntax);
 
   ClauseGenerationResult generateSimplify(Clause* premise) override;
 
@@ -130,7 +128,7 @@ private:
     };
 
     const char* _prefix;
-    Map<SortId, SortedConstantCache> _inner;
+    Map<SortId, SortedConstantCache, TermListHash> _inner;
 
   public:
     ConstantCache(const char* prefix) : _prefix(prefix), _inner() {}
@@ -145,7 +143,7 @@ private:
   bool const _thiTautologyDeletion;
   SAT2FO _naming;
   std::unique_ptr<Z3Interfacing> _solver;
-  Map<SortId, bool> _supportedSorts;
+  Map<SortId, bool, TermListHash> _supportedSorts;
   bool _generalisation;
   ConstantCache _instantiationConstants;
   ConstantCache _generalizationConstants;

@@ -33,9 +33,12 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-struct FastCondensation::CondensationBinder
+namespace {
+
+template<bool higherOrder>
+struct CondensationBinder
 {
-  void init(DHMap<unsigned, int>* varMap_)
+  void init(DHMap<unsigned, int, FnvHash, IdentityHash>* varMap_)
   {
     varMap=varMap_;
   }
@@ -49,6 +52,12 @@ struct FastCondensation::CondensationBinder
       return term.isVar() && var==term.var();
     }
 
+    if constexpr (higherOrder) {
+      if (term.containsLooseDBIndex()) {
+        return false;
+      }
+    }
+
     TermList* binding;
     if(bindings.getValuePtr(var,binding,term)) {
       return true;
@@ -58,11 +67,14 @@ struct FastCondensation::CondensationBinder
   void specVar(unsigned var, TermList term)
   { ASSERTION_VIOLATION; }
 private:
-  DHMap<unsigned, int>* varMap;
-  DHMap<unsigned, TermList> bindings;
+  DHMap<unsigned, int, FnvHash, IdentityHash>* varMap;
+  DHMap<unsigned, TermList, FnvHash, IdentityHash> bindings;
 };
 
-Clause* FastCondensation::simplify(Clause* cl)
+}
+
+template<bool higherOrder>
+Clause* FastCondensation<higherOrder>::simplify(Clause* cl)
 {
   TIME_TRACE("fast condensation");
 
@@ -73,7 +85,7 @@ Clause* FastCondensation::simplify(Clause* cl)
 
   //if variable is present in only one literal, the map contains its index,
   //otherwise it contains -1
-  static DHMap<unsigned, int> varLits;
+  static DHMap<unsigned, int, FnvHash, IdentityHash> varLits;
   varLits.reset();
 
   for(unsigned i=0;i<clen;i++) {
@@ -92,7 +104,7 @@ Clause* FastCondensation::simplify(Clause* cl)
     }
   }
 
-  static CondensationBinder cbinder;
+  static CondensationBinder<higherOrder> cbinder;
   cbinder.init(&varLits);
 
   for(unsigned cIndex=0;cIndex<clen;cIndex++) {
@@ -121,5 +133,8 @@ Clause* FastCondensation::simplify(Clause* cl)
   }
   return cl;
 }
+
+template class FastCondensation<false>;
+template class FastCondensation<true>;
 
 }

@@ -137,8 +137,7 @@ struct VampireVirasConfig
 
 #ifdef VDEBUG
   Var test_var(const char* name) {
-    auto f = env.signature->addFunction(name, 0);
-    env.signature->getFunction(f)->setType(Kernel::OperatorType::getFunctionType({}, ASig::sort()));
+    auto f = env.signature->addFunction(name, Kernel::OperatorType::getFunctionType({}, ASig::sort()));
     return VarWrapper(TermList(Kernel::Term::createConstant(f)));
   }
 #endif // VDEBUG

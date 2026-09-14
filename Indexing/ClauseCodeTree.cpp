@@ -43,10 +43,14 @@ void ClauseCodeTree::onCodeOpDestroying(CodeOp* op)
   }
 }
 
+void ClauseCodeTree::printSuccess(std::ostream& out, const CodeOp& op) const
+{
+  out << op.getSuccessResult<Clause>()->toString();
+}
+
 ClauseCodeTree::ClauseCodeTree()
 {
-  _clauseCodeTree=true;
-  _onCodeOpDestroying = onCodeOpDestroying;
+  _clauseCodeTree = true;
 #if VDEBUG
   _clauseMatcherCounter=0;
 #endif
@@ -240,7 +244,7 @@ void ClauseCodeTree::remove(Clause* cl)
     {
       Recycled<RemovingLiteralMatcher, NoReset> rrlm; // take rlm out of recycling
       rlm = &*rrlm; // get the actual content (also to use after this initialization block)
-      rlm->init(op, lInfos.array(), lInfos.size(), this, &*firstsInBlocks); // init it
+      rlm->init(op, lInfos.array(), lInfos.size(), *this, &*firstsInBlocks); // init it
       rlms->push(std::move(rrlm)); // store it in rlms (along with the obligation to return to recycling when no longer used)
     }
 
@@ -284,7 +288,7 @@ void ClauseCodeTree::remove(Clause* cl)
 }
 
 void ClauseCodeTree::RemovingLiteralMatcher::init(CodeOp* entry_, LitInfo* linfos_,
-    size_t linfoCnt_, ClauseCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_)
+    size_t linfoCnt_, const ClauseCodeTree& tree_, Stack<CodeOp*>* firstsInBlocks_)
 {
   Matcher::init(tree_, entry_, linfos_, linfoCnt_, firstsInBlocks_);
 
@@ -320,7 +324,7 @@ bool ClauseCodeTree::removeOneOfAlternatives(CodeOp* op, Clause* cl, Stack<CodeO
  * If @b seekOnlySuccess if true, we will look only for immediate SUCCESS operations
  *  and fail if there isn't any at the beginning (possibly also among alternatives).
  */
-void ClauseCodeTree::LiteralMatcher::init(CodeTree* tree_, CodeOp* entry_,
+void ClauseCodeTree::LiteralMatcher::init(const CodeTree& tree_, CodeOp* entry_,
 					  LitInfo* linfos_, size_t linfoCnt_,
 					  bool seekOnlySuccess)
 {
@@ -342,7 +346,7 @@ void ClauseCodeTree::LiteralMatcher::init(CodeTree* tree_, CodeOp* entry_,
     CodeOp* sop=entry;
     while(sop) {
       if(sop->isSuccess()) {
-	eagerResults.push(sop);
+        eagerResults.push(sop);
       }
       sop=sop->alternative();
     }
@@ -432,7 +436,7 @@ bool ClauseCodeTree::LiteralMatcher::doEagerMatching()
 
 void ClauseCodeTree::LiteralMatcher::recordMatch()
 {
-  ASS(matched());
+  ASS(_matched);
 
   ILStruct* ils=op->getILS();
   ils->ensureFreshness(tree->_curTimeStamp);
@@ -558,7 +562,7 @@ Clause* ClauseCodeTree::ClauseMatcher::next(int& resolvedQueryLit)
       }
     }
     else if(lm->op->isSuccess()) {
-      Clause* candidate=lm->op->getSuccessResult<Clause>();
+      Clause* candidate=lm->op->template getSuccessResult<Clause>();
       RSTAT_MCTR_INC("candidates", lms.size()-1);
       if(checkCandidate(candidate, resolvedQueryLit)) {
 	RSTAT_MCTR_INC("candidates (success)", lms.size()-1);
@@ -665,7 +669,7 @@ void ClauseCodeTree::ClauseMatcher::enterLiteral(CodeOp* entry, bool seekOnlySuc
   }
 
   Recycled<LiteralMatcher, NoReset> lm;
-  lm->init(tree, entry, lInfos.array(), linfoCnt, seekOnlySuccess);
+  lm->init(*tree, entry, lInfos.array(), linfoCnt, seekOnlySuccess);
   lms.push(std::move(lm));
 }
 

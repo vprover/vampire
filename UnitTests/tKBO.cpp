@@ -26,8 +26,8 @@ using namespace Kernel;
 
 KBO kbo(unsigned introducedSymbolWeight, 
     unsigned variableWeight, 
-    const Map<unsigned, KboWeight>& funcs, 
-    const Map<unsigned, KboWeight>& preds) {
+    const Map<unsigned, KboWeight, FnvHash>& funcs, 
+    const Map<unsigned, KboWeight, FnvHash>& preds) {
  
   return KBO(toWeightMap<FuncSigTraits>(introducedSymbolWeight, { 
           ._variableWeight = variableWeight ,
@@ -50,7 +50,7 @@ KBO kbo(unsigned introducedSymbolWeight,
 }
 
 
-KBO kbo(const Map<unsigned, KboWeight>& funcs, const Map<unsigned, KboWeight>& preds) {
+KBO kbo(const Map<unsigned, KboWeight, FnvHash>& funcs, const Map<unsigned, KboWeight, FnvHash>& preds) {
   return kbo(1, 1, funcs, preds);
 }
 

@@ -42,10 +42,10 @@ public:
   }
 private:
   Literal* replaceTopTerms(Literal* lit, Stack<Literal*>& newLits,unsigned& maxVar,
-                           DHMap<Term*,unsigned>& abstracted);
+                           DHMap<Term*,unsigned, FnvHash, PtrIdentityHash>& abstracted);
   Term* replaceTopTermsInTerm(Term* term, Stack<Literal*>& newLits,
                               unsigned& maxVar,bool interpreted,
-                              DHMap<Term*,unsigned>& abstracted);
+                              DHMap<Term*,unsigned, FnvHash, PtrIdentityHash>& abstracted);
 
   bool _recursive;
   bool _sharing;

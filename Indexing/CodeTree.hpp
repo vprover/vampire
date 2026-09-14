@@ -40,8 +40,8 @@ public:
   struct ILStruct;
   struct SearchStruct;
   struct CodeOp;
-  
-protected:  
+
+protected:
   /**
   * During the destruction of the CodeTree,
   * onCodeOpDestroying is called on each CodeOp
@@ -49,12 +49,12 @@ protected:
   * allocated memory "owned" by the particular CodeOp
   * (the details are expected to be descendant specific)
   */
-  void (*_onCodeOpDestroying)(CodeOp* op);
-      
+  virtual void onCodeOpDestroying(CodeOp* op) {}
+  virtual void printSuccess(std::ostream& out, const CodeOp& op) const {}
+
 public:
-  CodeTree();
-  ~CodeTree();
-  
+  virtual ~CodeTree();
+
   struct LitInfo
   {
     LitInfo() {}
@@ -211,8 +211,6 @@ public:
 
     void makeFail() { static_assert(SUCCESS_OR_FAIL==0); _content = 0; }
 
-    friend std::ostream& operator<<(std::ostream& out, const CodeOp& op);
-
     BITFIELD(64,
       BITFIELD_MEMBER(unsigned, _arg, _setArg, CHAR_BIT * sizeof(unsigned) - INSTRUCTION_BITS,
       BITFIELD_MEMBER(unsigned, _instruction, _setInstruction, INSTRUCTION_BITS,
@@ -310,7 +308,7 @@ public:
     Stack<CodeOp*>* firstsInBlocks;
     size_t initFIBDepth;
     bool matchingClauses;
-    DHSet<unsigned> range;
+    DHSet<unsigned, FnvHash, IdentityHash> range;
   };
 
   struct NonRemovingBase {};
@@ -384,7 +382,7 @@ public:
     }
 
   protected:
-    void init(CodeTree* tree_, CodeOp* entry_, LitInfo* linfos_ = 0,
+    void init(const CodeTree& tree_, CodeOp* entry_, LitInfo* linfos_ = 0,
       size_t linfoCnt_ = 0, Stack<CodeOp*>* firstsInBlocks_ = 0);
 
     bool backtrack();
@@ -408,7 +406,7 @@ public:
      * Must be initialized by inheritor (either directly or by
      * a call to the @b prepareLiteral function).
      */
-    FlatTerm* ft;
+    FlatTerm* ft = nullptr;
 
     /** the matcher object is initialized but no execution of code was done yet */
     bool fresh;
@@ -418,7 +416,7 @@ public:
     Stack<std::conditional_t<removing,BTPointRemoving,BTPoint>> btStack;
 
     CodeOp* entry;
-    CodeTree* tree;
+    CodeTree const* tree;
 
     /**
      * Array of alternative LitInfo objects
@@ -449,11 +447,13 @@ public:
   template<class Visitor>
   void visitAllOps(Visitor visitor) const;
 
+  void printOp(std::ostream& out, const CodeOp& op, bool litStart) const;
+  void printOps(std::ostream& out, const CodeTree& ct, const CodeStack& st) const;
   friend std::ostream& operator<<(std::ostream& out, const CodeTree& ct);
 
   //////////// insertion //////////////
 
-  typedef DHMap<unsigned,unsigned> VarMap;
+  typedef DHMap<unsigned,unsigned, FnvHash, IdentityHash> VarMap;
 
   template<bool forLits>
   struct Compiler
@@ -492,13 +492,13 @@ public:
 
   //////// member variables //////////
 
-  bool _clauseCodeTree;
-  unsigned _curTimeStamp;
+  bool _clauseCodeTree = false;
+  unsigned _curTimeStamp = 0;
 
   /** maximal number of local variables in a stored term/literal (always at least 1) */
-  unsigned _maxVarCnt;
+  unsigned _maxVarCnt = 1;
 
-  CodeBlock* _entryPoint;
+  CodeBlock* _entryPoint = nullptr;
 };
 
 }

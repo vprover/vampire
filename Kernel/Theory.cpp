@@ -1002,29 +1002,65 @@ unsigned Theory::getTupleConstructor(unsigned arity)
 
 bool Theory::isTupleConstructor(Term* t)
 {
-  return !t->isSpecial() && !t->isSort() && SortHelper::getResultSort(t).isTupleSort()
-    && getTupleConstructor(t->numTypeArguments()) == t->functor();
+  if (t->isSpecial() || t->isSort() || t->isLiteral()) {
+    return false;
+  }
+
+  // note that we must not call getTupleConstructor before we know that t is a
+  // term algebra constructor of a tuple sort: getTupleConstructor registers the
+  // tuple term algebra of the given arity as a side effect, and we do not want
+  // merely asking this question to extend the signature
+  if (!env.signature->getFunction(t->functor())->termAlgebraCons()) {
+    return false;
+  }
+
+  TermList sort = SortHelper::getResultSort(t);
+
+  if (!sort.isTupleSort()) {
+    return false;
+  }
+
+  // an n-tuple constructor has n type arguments and n term arguments, so its
+  // arity as a symbol is 2n; the arity we need here, n, is the arity of the
+  // tuple sort.  (Taking it from t's own type argument count would coincide for
+  // a genuine tuple constructor, but not for the terms we get asked about --
+  // e.g. a plain constant of a tuple sort has no type arguments at all, and
+  // getTupleConstructor(0) would then register a bogus arity-0 tuple algebra.)
+  return getTupleConstructor(sort.term()->arity()) == t->functor();
 }
 
 unsigned Theory::getTupleProjectionFunctor(unsigned arity, unsigned proj)
 {
   auto c = theory->getTupleTermAlgebra(arity)->constructor(0);
 
-  ASS_L(proj, c->arity());
+  ASS_L(proj, c->arity() - c->numTypeArguments());
 
   return c->destructorFunctor(proj);
 }
 
 // TODO: replace with a constant time algorithm
 bool Theory::findTupleProjection(unsigned projFunctor, bool isPredicate, unsigned &proj) {
-  OperatorType* projType = isPredicate ? env.signature->getPredicate(projFunctor)->predType()
-                                       : env.signature->getFunction(projFunctor)->fnType();
-
-  if (projType->arity() != 1) {
+  // tuple projections are the destructors of the tuple term algebra,
+  // and destructors are always functions (even for a Boolean component)
+  if (isPredicate) {
     return false;
   }
 
-  TermList tupleSort = projType->arg(0);
+  Signature::Symbol* sym = env.signature->getFunction(projFunctor);
+  if (!sym->termAlgebraDest()) {
+    return false;
+  }
+
+  OperatorType* projType = sym->type();
+  unsigned numTypeArgs = projType->numTypeArguments();
+
+  // a projection takes exactly one term argument (the tuple);
+  // note that OperatorType::arity() counts the type arguments as well
+  if (projType->arity() != numTypeArgs + 1) {
+    return false;
+  }
+
+  TermList tupleSort = projType->arg(numTypeArgs);
 
   if (!tupleSort.isTupleSort()) {
     return false;
@@ -1035,7 +1071,7 @@ bool Theory::findTupleProjection(unsigned projFunctor, bool isPredicate, unsigne
   }
 
   Shell::TermAlgebraConstructor* c = env.signature->getTermAlgebraOfSort(tupleSort)->constructor(0);
-  for (unsigned i = 0; i < c->arity(); i++) {
+  for (unsigned i = 0; i < c->arity() - c->numTypeArguments(); i++) {
     if (projFunctor == c->destructorFunctor(i)) {
       proj = i;
       return true;
@@ -1209,7 +1245,7 @@ OperatorType* Theory::getOperatorType(Interpretation i)
   // (except for two variable equalities where the type argument
   // is stored as an extra in the Literal).
   if (i == Interpretation::EQUAL) {
-    return OperatorType::getPredicateType(2);
+    return OperatorType::getPredicateTypeUniformRange(2, AtomicSort::defaultSort());
   }
 
   // Array operators have two type arguments, index type and element type
@@ -1229,16 +1265,12 @@ OperatorType* Theory::getOperatorType(Interpretation i)
 
   ASS(hasSingleSort(i));
   TermList sort = getOperationSort(i);
-
   unsigned arity = getArity(i);
 
-  static DArray<TermList> domainSorts;
-  domainSorts.init(arity, sort);
-
   if (isFunction(i)) {
-    return OperatorType::getFunctionType(arity, domainSorts.array(), sort);
+    return OperatorType::getFunctionTypeUniformRange(arity, sort, sort);
   } else {
-    return OperatorType::getPredicateType(arity, domainSorts.array());
+    return OperatorType::getPredicateTypeUniformRange(arity, sort);
   }
 }
 
@@ -1255,16 +1287,14 @@ TermAlgebra* Theory::getTupleTermAlgebra(unsigned arity)
   auto args = typeVars;
   args.loadFromIterator(varRange(arity, 2*arity));
 
-  auto functor = env.signature->addFreshFunction(2*arity, "tuple");
-  auto tupleType = OperatorType::getFunctionType(arity, args.begin(), tupleSort, arity);
-  env.signature->getFunction(functor)->setType(tupleType);
+  auto tupleType = OperatorType::getFunctionType(typeVars, tupleSort, arity);
+  auto functor = env.signature->addFreshFunction(tupleType, "tuple");
   env.signature->getFunction(functor)->markTermAlgebraCons();
 
   Array<unsigned> destructors(arity);
   for (unsigned i = 0; i < arity; i++) {
-    auto destructor = env.signature->addFreshFunction(arity+1, "proj");
+    auto destructor = env.signature->addFreshFunction(OperatorType::getFunctionType({ tupleSort }, typeVars[i], arity), "proj");
     auto destSym = env.signature->getFunction(destructor);
-    destSym->setType(OperatorType::getFunctionType({ tupleSort }, typeVars[i], arity));
     destSym->markTermAlgebraDest();
     destructors[i] = destructor;
   }

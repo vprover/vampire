@@ -49,7 +49,23 @@ const char* FOOLElimination::MATCH_PREFIX  = "mG";
 
 FOOLElimination::FOOLElimination() : _defs(0), _currentDefs(0), _higherOrder(0), _polymorphic(0) {}
 
-bool FOOLElimination::needsElimination(FormulaUnit* unit) {
+bool FOOLElimination::needsElimination(FormulaUnit* unit)
+{
+  if (env.higherOrder()) {
+    switch(env.options->cnfOnTheFly()){
+      case Options::CNFOnTheFly::EAGER:
+        break;
+      case Options::CNFOnTheFly::CONJ_EAGER:
+        if (unit->inputType() != UnitInputType::NEGATED_CONJECTURE &&
+            unit->inputType() != UnitInputType::CONJECTURE) {
+          return true;
+        }
+        break;
+      default:
+        return true;
+    }
+  }
+
   /**
    * Be careful with the difference between FOOLElimination::needsElimination
    * and Property::_hasFOOL!
@@ -142,7 +158,35 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
 
   SortHelper::collectVariableSorts(formula, _varSorts);
 
-  Formula* processedFormula = process(formula);
+  bool isConjecture =
+    unit->inputType() == UnitInputType::NEGATED_CONJECTURE ||
+    unit->inputType() == UnitInputType::CONJECTURE;
+
+  // The old implementation (combinator implementation) had a check !_polymorphic
+  // I've removed it here, but if we start seeing issues on polymorphic problems, that
+  // is one place to check immediately
+  bool proxify = env.higherOrder() &&
+    env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
+    env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF   &&
+   (env.options->cnfOnTheFly() != Options::CNFOnTheFly::CONJ_EAGER || !isConjecture);
+
+  // proxification fails in HOL::convert::toNameless for formulas that contain
+  // non-prenex type quantifiers, so we simply override this decision for them
+  if (env.higherOrder() && proxify) {
+    auto qf = Formula::removeUniversalTypePrenex(formula);
+    if (iterTraits(vi(new SubformulaIterator(qf))).any([](Formula* f) {
+      // quantified formulas with any type variable
+      // TODO remove leading forall block as in HOL::convert::toNameless
+      return (f->connective() == FORALL || f->connective() == EXISTS) &&
+        iterTraits(Kernel::VSList::Iterator(f->vars())).any([](auto kv) {
+          return kv.second == AtomicSort::superSort();
+        });
+    })) {
+      proxify = false;
+    }
+  }
+
+  Formula* processedFormula = proxify ? convertToProxified(formula) : process(formula);
   if (formula == processedFormula) {
     return rectifiedUnit;
   }
@@ -161,17 +205,30 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
   return processedUnit;
 }
 
-Formula* FOOLElimination::process(Formula* formula) {
-  if (env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
-      !_polymorphic) {
-    Formula* processedFormula = toEquality(TermList(Term::createFormula(formula)));
-
-    if (env.options->showPreprocessing()) {
-      reportProcessed(formula->toString(), processedFormula->toString());
-    }
-
-    return processedFormula;
+Formula* FOOLElimination::convertToProxified(Formula* formula) {
+  Formula* processedFormula;
+  if (formula->connective() == LITERAL) {
+    // don't proxify the equality itself, as this blocks
+    // definition rewriting which really harms performance
+    auto literal = formula->literal();
+    auto [lhs, rhs] = literal->eqArgs();
+    lhs = HOL::convert::toNameless(lhs);
+    rhs = HOL::convert::toNameless(rhs);
+    processedFormula = new AtomicFormula(
+      Literal::createEquality(literal->polarity(), lhs, rhs, SortHelper::getEqualityArgumentSort(literal)));
+  } else {
+    TermList proxifiedFormula = HOL::convert::toNameless(formula);
+    processedFormula = toEquality(proxifiedFormula);
   }
+
+  if (env.options->showPreprocessing()) {
+    reportProcessed(formula->toString(), processedFormula->toString());
+  }
+
+  return processedFormula;
+}
+
+Formula* FOOLElimination::process(Formula* formula) {
   switch (formula->connective()) {
     case LITERAL: {
       Literal* literal = formula->literal();
@@ -278,7 +335,7 @@ Formula* FOOLElimination::process(Formula* formula) {
 
     case FORALL:
     case EXISTS:
-      return new QuantifiedFormula(formula->connective(), formula->vars(),formula->sorts(), process(formula->qarg()));
+      return new QuantifiedFormula(formula->connective(), formula->vars(), process(formula->qarg()));
 
     case BOOL_TERM: {
       Formula* processedFormula = processAsFormula(formula->getBooleanTerm());
@@ -527,8 +584,14 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // build ![X1, ..., Xn]: (f => g(Y1, ..., Ym,X1, ..., Xn) == s)
         if (VList::length(freeVars) > 0) {
-          //TODO do we know the sorts of freeVars?
-          thenImplication = new QuantifiedFormula(FORALL, freeVars,0, thenImplication);
+          VSList::FIFO vsfifo;
+          VList::Iterator vit(freeVars);
+          while (vit.hasNext()) {
+            unsigned v = vit.next();
+            TermList s = _varSorts.get(v, AtomicSort::defaultSort());
+            vsfifo.pushBack({v, s});
+          }
+          thenImplication = new QuantifiedFormula(FORALL, vsfifo.list(), thenImplication);
         }
 
         // build g(Y1, ..., Ym, X1, ..., Xn) == t
@@ -540,8 +603,14 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // build ![X1, ..., Xn]: (~f => g(Y1,...,Ym,X1, ..., Xn) == t)
         if (VList::length(freeVars) > 0) {
-          //TODO do we know the sorts of freeVars?
-          elseImplication = new QuantifiedFormula(FORALL, freeVars, 0, elseImplication);
+          VSList::FIFO vsfifo;
+          VList::Iterator vit(freeVars);
+          while (vit.hasNext()) {
+            unsigned v = vit.next();
+            TermList s = _varSorts.get(v, AtomicSort::defaultSort());
+            vsfifo.pushBack({v, s});
+          }
+          elseImplication = new QuantifiedFormula(FORALL, vsfifo.list(), elseImplication);
         }
 
         // conjoin both definitions for Geoff:
@@ -550,7 +619,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         // add the joint definitions
         FormulaUnit* defUnit = new FormulaUnit(jointDef,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FOOL_ITE_DEFINITION));
         addDefinition(defUnit);
-        InferenceStore::instance()->recordIntroducedSymbol(defUnit,context == FORMULA_CONTEXT ? SymbolType::PRED : SymbolType::FUNC, freshSymbol);
+        InferenceStore::instance()->recordIntroducedSymbol(defUnit, context == FORMULA_CONTEXT ? env.signature->getPredicate(freshSymbol) : env.signature->getFunction(freshSymbol));
 
         if (context == FORMULA_CONTEXT) {
           formulaResult = freshPredicateApplication;
@@ -596,7 +665,90 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         auto bindingRhs = blit->termArg(1);
 
         if (Theory::isTupleConstructor(bindingLhs)) {
-          NOT_IMPLEMENTED;
+          /**
+           * A tuple binding $let([c1,...,cn] := s, t) is reduced to a nest of
+           * ordinary, single-symbol $let-expressions, which are then processed
+           * by the code below (via the recursive call at the end of this block):
+           *
+           *  - if s is a tuple [s1,...,sn], to
+           *      $let(c1 := s1, ... $let(cn := sn, t) ... )
+           *  - otherwise, to
+           *      $let(g := s, $let(c1 := proj_1(g), ... $let(cn := proj_n(g), t) ... ))
+           *    where g is a fresh symbol of the tuple sort, and proj_i are the
+           *    projections, i.e. the destructors of the tuple term algebra.
+           *
+           * Turning simultaneous definitions into a nest of definitions is
+           * sound here because c1,...,cn cannot occur in s: they only become
+           * visible to the parser (in TPTP::endDefinition) once the whole
+           * definition group has been read, so an occurrence of their name in s
+           * refers to a symbol from an enclosing scope instead.
+           *
+           * Note that a Boolean component ci is a nullary predicate (wrapped as
+           * a formula-inside-term) and the corresponding right hand side is a
+           * $o-sorted term; process() turns the latter into a formula, so the
+           * single-symbol machinery below needs no special case for it.
+           */
+          unsigned tupleArity = bindingLhs->numTermArguments();
+
+          TermList letSort = sd->getSort();
+          TermList letBody = term->termArg(0); // deliberately unprocessed here
+
+          TermStack componentBindings; // the right hand sides for c1,...,cn
+          Term* tupleName = nullptr;   // the fresh g, in the second case below
+
+          if (bindingRhs.isTerm() && Theory::isTupleConstructor(bindingRhs.term())) {
+            ASS_EQ(bindingRhs.term()->numTermArguments(), tupleArity);
+            componentBindings.loadFromIterator(termArgIter(bindingRhs.term()));
+          } else {
+            TermList tupleSort = SortHelper::getResultSort(bindingLhs);
+
+            // g is declared over exactly the type variables of the tuple sort
+            // (typically none), so that its arguments are always variables
+            TermStack tupleTypeArgs;
+            for (auto var : iterTraits(VariableIterator(tupleSort))) {
+              if (!tupleTypeArgs.find(var)) {
+                tupleTypeArgs.push(var);
+              }
+            }
+            TermList tupleResultSort = tupleSort;
+            SortHelper::normaliseSort(tupleTypeArgs, tupleResultSort);
+
+            unsigned tupleSymbol = env.signature->addFreshFunction(OperatorType::getConstantsType(tupleResultSort, tupleTypeArgs.size()), LET_PREFIX);
+            TermList tupleTerm = TermList(Term::create(tupleSymbol, tupleTypeArgs));
+
+            // the projections take the tuple's type arguments and the tuple
+            TermStack projArgs = TermStack::fromIterator(typeArgIter(bindingLhs));
+            projArgs.push(tupleTerm);
+
+            for (unsigned i = 0; i < tupleArity; i++) {
+              componentBindings.push(TermList(
+                  Term::create(Theory::getTupleProjectionFunctor(tupleArity, i), projArgs)));
+            }
+
+            tupleName = tupleTerm.term();
+          }
+
+          // build the nest inside out, so that c1 ends up outermost
+          for (int i = tupleArity - 1; i >= 0; i--) {
+            TermList component = bindingLhs->termArg(i);
+            ASS(component.isTerm());
+            letBody = TermList(Term::createLet(
+                Formula::createDefinition(component.term(), componentBindings[i]), letBody, letSort));
+          }
+
+          // g must be bound outside of c1,...,cn, whose bindings mention it
+          if (tupleName) {
+            letBody = TermList(Term::createLet(
+                Formula::createDefinition(tupleName, bindingRhs), letBody, letSort));
+          }
+
+          if (env.options->showPreprocessing()) {
+            std::cout << "[PP] FOOL detuplify in:  " << term->toString() << endl;
+            std::cout << "[PP] FOOL detuplify out: " << letBody.toString() << endl;
+          }
+
+          process(letBody, context, termResult, formulaResult);
+          break;
         }
 
         // The let binder bindingLhs can contain free variables in potentially
@@ -690,7 +842,14 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // build ![X1, ..., Xn, Y1, ..., Yk]: g(A1, ..., Am, B1, ..., Bj,X1, ..., Xn, Y1, ..., Yk) == s
         if (VList::length(vars) > 0) {
-          freshSymbolDefinition = new QuantifiedFormula(FORALL, vars, 0, freshSymbolDefinition);
+          VSList::FIFO vsfifo;
+          VList::Iterator vit(vars);
+          while (vit.hasNext()) {
+            unsigned v = vit.next();
+            TermList s = _varSorts.get(v, AtomicSort::defaultSort());
+            vsfifo.pushBack({v, s});
+          }
+          freshSymbolDefinition = new QuantifiedFormula(FORALL, vsfifo.list(), freshSymbolDefinition);
         }
 
         // add the introduced definition
@@ -703,7 +862,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         // replace occurrences of f(s1, ..., sj,t1, ..., tk) by
         // g(A1, ..., Am, s1, ..., sj,X1, ..., Xn, t1, ..., tk)
         if (renameSymbol) {
-          InferenceStore::instance()->recordIntroducedSymbol(defUnit,bindingContext == FORMULA_CONTEXT ? SymbolType::PRED : SymbolType::FUNC, freshSymbol);
+          InferenceStore::instance()->recordIntroducedSymbol(defUnit, bindingContext == FORMULA_CONTEXT ? env.signature->getPredicate(freshSymbol) : env.signature->getFunction(freshSymbol));
 
           if (env.options->showPreprocessing()) {
             std::cout << "[PP] FOOL replace in: " << contents.toString() << endl;
@@ -731,12 +890,12 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         Connective connective = sd->getFormula()->connective();
 
         if (connective == TRUE) {
-          termResult = TermList(Term::foolTrue());
+          termResult = HOL::create::top();
           break;
         }
 
         if (connective == FALSE) {
-          termResult = TermList(Term::foolFalse());
+          termResult = HOL::create::bottom();
           break;
         }
 
@@ -766,8 +925,14 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
           // build ![X1, ..., Xn]: (f <=> g(Y1, ..., Ym, X1, ..., Xn) = true)
           if (VList::length(freeVars) > 0) {
-            // TODO do we know the sorts of freeVars?
-            freshSymbolDefinition = new QuantifiedFormula(FORALL, freeVars,0, freshSymbolDefinition);
+            VSList::FIFO vsfifo;
+            VList::Iterator vit(freeVars);
+            while (vit.hasNext()) {
+              unsigned v = vit.next();
+              TermList s = _varSorts.get(v, AtomicSort::defaultSort());
+              vsfifo.pushBack({v, s});
+            }
+            freshSymbolDefinition = new QuantifiedFormula(FORALL, vsfifo.list(), freshSymbolDefinition);
           }
 
           // add the introduced definition
@@ -775,7 +940,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
             NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FOOL_FORMULA_DEFINITION));
           addDefinition(defUnit);
 
-          InferenceStore::instance()->recordIntroducedSymbol(defUnit,SymbolType::FUNC, freshSymbol);
+          InferenceStore::instance()->recordIntroducedSymbol(defUnit, env.signature->getFunction(freshSymbol));
 
           termResult = freshSymbolApplication;
         }
@@ -840,12 +1005,18 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
           // build ![X1, ..., Xn]: (f => g(X1, ..., Xn) == s)
           if (VList::length(freeVars) > 0) {
-            //TODO do we know the sorts of freeVars?
-            impl = new QuantifiedFormula(FORALL, freeVars, 0, impl);
+            VSList::FIFO vsfifo;
+            VList::Iterator vit(freeVars);
+            while (vit.hasNext()) {
+              unsigned v = vit.next();
+              TermList s = _varSorts.get(v, AtomicSort::defaultSort());
+              vsfifo.pushBack({v, s});
+            }
+            impl = new QuantifiedFormula(FORALL, vsfifo.list(), impl);
           }
           FormulaUnit* defUnit = new FormulaUnit(impl,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FOOL_MATCH_DEFINITION));
           addDefinition(defUnit);
-          InferenceStore::instance()->recordIntroducedSymbol(defUnit,context == FORMULA_CONTEXT ? SymbolType::PRED : SymbolType::FUNC, freshSymbol);
+          InferenceStore::instance()->recordIntroducedSymbol(defUnit,context == FORMULA_CONTEXT ? env.signature->getPredicate(freshSymbol) : env.signature->getFunction(freshSymbol));
         }
 
         if (context == FORMULA_CONTEXT) {
@@ -1006,21 +1177,18 @@ Formula* FOOLElimination::toEquality(TermList booleanTerm) {
 
 unsigned FOOLElimination::introduceFreshSymbol(Context context, const char* prefix,
                                                TermStack sorts, TermList resultSort, unsigned typeArgsArity) {
-  unsigned arity = (unsigned)sorts.size();
   OperatorType* type;
   if (context == FORMULA_CONTEXT) {
-    type = OperatorType::getPredicateType(arity, sorts.begin(), typeArgsArity);
+    type = OperatorType::getPredicateType(sorts, typeArgsArity);
   } else {
-    type = OperatorType::getFunctionType(arity, sorts.begin(), resultSort, typeArgsArity);
+    type = OperatorType::getFunctionType(sorts, resultSort, typeArgsArity);
   }
 
   unsigned symbol;
   if (context == FORMULA_CONTEXT) {
-    symbol = env.signature->addFreshPredicate(arity + typeArgsArity, prefix);
-    env.signature->getPredicate(symbol)->setType(type);
+    symbol = env.signature->addFreshPredicate(type, prefix);
   } else {
-    symbol = env.signature->addFreshFunction(arity + typeArgsArity, prefix);
-    env.signature->getFunction(symbol)->setType(type);
+    symbol = env.signature->addFreshFunction(type, prefix);
   }
 
   if (env.options->showPreprocessing()) {

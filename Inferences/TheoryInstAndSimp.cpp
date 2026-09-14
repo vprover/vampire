@@ -59,7 +59,11 @@ using namespace SAT;
 
 using SortId = SAT::Z3Interfacing::SortId;
 
-TheoryInstAndSimp::TheoryInstAndSimp(Options& opts) : TheoryInstAndSimp(
+TheoryInstAndSimp::TheoryInstAndSimp(SaturationAlgorithm& salg)
+  : TheoryInstAndSimp(salg.getSplitter(), salg.getOptions()) {}
+
+TheoryInstAndSimp::TheoryInstAndSimp(Splitter* splitter, const Options& opts) : TheoryInstAndSimp(
+    splitter,
     opts.theoryInstAndSimp(),
     opts.thiTautologyDeletion(), 
     opts.showZ3(),  
@@ -83,8 +87,8 @@ Options::TheoryInstSimp manageDeprecations(Options::TheoryInstSimp mode)
   }
 }
 
-TheoryInstAndSimp::TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, std::string const& exportSmtlib, Options::ProblemExportSyntax problemExportSyntax) 
-  : _splitter(0)
+TheoryInstAndSimp::TheoryInstAndSimp(Splitter* splitter, Options::TheoryInstSimp mode, bool thiTautologyDeletion, bool showZ3, bool generalisation, std::string const& exportSmtlib, Options::ProblemExportSyntax problemExportSyntax) 
+  : _splitter(splitter)
   , _mode(manageDeprecations(mode))
   , _thiTautologyDeletion(thiTautologyDeletion)
   , _naming()
@@ -93,15 +97,6 @@ TheoryInstAndSimp::TheoryInstAndSimp(Options::TheoryInstSimp mode, bool thiTauto
   , _instantiationConstants ("$inst")
   , _generalizationConstants("$inst$gen")
 { }
-
-
-void TheoryInstAndSimp::attach(SaturationAlgorithm* salg)
-{
-  SimplifyingGeneratingInference::attach(salg);
-  _splitter = salg->getSplitter();
-}
-
-
 
 bool TheoryInstAndSimp::calcIsSupportedSort(SortId sort)
 {
@@ -449,7 +444,7 @@ void TheoryInstAndSimp::ConstantCache::reset()
 
 Term* TheoryInstAndSimp::ConstantCache::freshConstant(SortId sort) 
 { 
-  auto& cache = _inner.getOrInit(sort, [](){ 
+  auto& cache = _inner.getOrInit(sort, [&](){
       DEBUG("new constant cache for sort ", _inner.size());
       return SortedConstantCache(); 
     });
@@ -462,9 +457,7 @@ void TheoryInstAndSimp::ConstantCache::SortedConstantCache::reset()
 Term* TheoryInstAndSimp::ConstantCache::SortedConstantCache::freshConstant(const char* prefix, SortId sort) 
 { 
   if (_constants.size() == _used)  {
-    unsigned sym = env.signature->addFreshFunction(0, prefix);
-    env.signature->getFunction(sym)
-                 ->setType(OperatorType::getConstantsType(sort));
+    unsigned sym = env.signature->addFreshFunction(OperatorType::getConstantsType(sort), prefix);
     DEBUG("new constant for sort ", sort, ": ", *env.signature->getFunction(sym));
     _constants.push(Term::createConstant(sym));
   }
@@ -500,7 +493,7 @@ public:
     f(*this, Literal::createEquality(true, _introduced, definition, SortHelper::getResultSort(_introduced.term())));
   }
 
-  TermList buildGeneralTerm(Set<TermList> const& usedDefs, unsigned& freshVar)
+  TermList buildGeneralTerm(Set<TermList, TermListHash> const& usedDefs, unsigned& freshVar)
   {
     if (usedDefs.contains(_introduced)) {
       Stack<TermList> args(_args.size());
@@ -534,7 +527,7 @@ Option<Substitution> TheoryInstAndSimp::instantiateGeneralised(
     Stack<SATLiteral> theoryLits;
 
     _generalizationConstants.reset();
-    Map<SATLiteral, TermList> definitionLiterals;
+    Map<SATLiteral, TermList, SATLiteralHash> definitionLiterals;
     Stack<GeneralisationTree> gens;
     // unsigned freshVar = 0;
     for (auto v : skolem.vars) {
@@ -559,7 +552,7 @@ Option<Substitution> TheoryInstAndSimp::instantiateGeneralised(
     DEBUG_CODE(auto res =) _solver->solveUnderAssumptionsLimited(theoryLits, 0);
     ASS_EQ(res, Status::UNSATISFIABLE)
 
-    Set<TermList> usedDefs;
+    Set<TermList, TermListHash> usedDefs;
     for (auto& x : _solver->failedAssumptions()) {
       definitionLiterals
         .tryGet(x)
@@ -604,7 +597,7 @@ template<class IterLits> TheoryInstAndSimp::SkolemizedLiterals TheoryInstAndSimp
   _instantiationConstants.reset();
   for (auto lit : lits) {
     // replace variables consistently by fresh constants
-    DHMap<unsigned, SortId> srtMap;
+    DHMap<unsigned, SortId, FnvHash, IdentityHash> srtMap;
     SortHelper::collectVariableSorts(lit,srtMap);
     TermVarIterator vit(lit);
     while(vit.hasNext()){
@@ -760,7 +753,7 @@ Stack<Literal*> computeGuards(Stack<Literal*> const& lits)
     /* guards for predicates */
     auto predSym = env.signature->getPredicate(lit->functor());
     if (predSym->termAlgebraDest()) {
-      out.push(destructorGuard(lit, predSym->predType()->arg(0), /* predicate */ true));
+      out.push(destructorGuard(lit, predSym->type()->arg(0), /* predicate */ true));
     }
 
     /* guards for subterms */
@@ -806,7 +799,7 @@ Stack<Literal*> computeGuards(Stack<Literal*> const& lits)
             default:; /* no guard */
           }
         } else if (sym->termAlgebraDest()) {
-          out.push(destructorGuard(term, sym->fnType()->arg(0), /* predicate */ false));
+          out.push(destructorGuard(term, sym->type()->arg(0), /* predicate */ false));
         }
       }
     }
@@ -840,7 +833,7 @@ Stack<Literal*> filterLiterals(Stack<Literal*> lits, Options::TheoryInstSimp mod
 
     case Options::TheoryInstSimp::OVERLAP:
       {
-        Set<unsigned> strongVars;
+        Set<unsigned, FnvHash> strongVars;
 
         for (auto l : lits) {
           if (isStrong(l)) {
@@ -949,6 +942,7 @@ SimplifyingGeneratingInference::ClauseGenerationResult TheoryInstAndSimp::genera
 
 bool TheoryInstAndSimp::isTheoryLemma(Clause* cl, bool& couldNotCheck) {
   static TheoryInstAndSimp checker(
+    /*splitter=*/ nullptr,
     Options::TheoryInstSimp::ALL,
     /* thiTautologyDeletion */ true,
     /* showZ3 */ false,
@@ -971,9 +965,9 @@ bool TheoryInstAndSimp::isTheoryLemma(Clause* cl, bool& couldNotCheck) {
   return !solutions.next().sat;
 }
 
-} // namespace Inferences
-
 std::ostream& operator<<(std::ostream& out, Inferences::Solution const& self)
 { return out << "Solution(" << (self.sat ? "sat" : "unsat") << ", " << self.subst << ")"; }
+
+} // namespace Inferences
 
 #endif

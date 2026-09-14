@@ -85,7 +85,7 @@ void check_in_different_contexts(LaKbo& ord, TermList l, LaKbo::Result exp, Term
   check(ord, l != 0, exp, r != 0);
 }
 
-LaKbo& lakbo(bool rand = false) { return *new LaKbo(LAKBO(KBO::testKBO(rand, /* qkboPrec */ true), Lib::make_shared(InequalityNormalizer()))); }
+LaKbo& lakbo(bool rand = false) { return *new LaKbo(LAKBO(KBO::testKBO(rand, /* qkboPrec */ true))); }
 
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -522,8 +522,8 @@ TEST_FUN(var_equalities) {
   auto& ord = lakbo();
   DECL_VAR(x0, 0)
   DECL_VAR(x1, 0)
-  x0.sort(s1);
-  x1.sort(s2);
+  x0 = x0.sort(s1);
+  x1 = x1.sort(s2);
 
   check(ord,  x0 == x0, Less, x1 == x1);
   check(ord,  x0 != x0, Less, x1 != x1);

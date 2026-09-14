@@ -52,7 +52,7 @@ class PolynomialEvaluationRule
 {
 public:
 
-  PolynomialEvaluationRule(Ordering& ordering);
+  PolynomialEvaluationRule(const Ordering& ordering);
   ~PolynomialEvaluationRule() override;
 
 private:

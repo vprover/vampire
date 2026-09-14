@@ -12,7 +12,7 @@
  * Implements class ForwardGroundJoinability.
  */
 
-#include "Lib/DHSet.hpp"
+#include "Lib/DHMap.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/VirtualIterator.hpp"
 
@@ -36,39 +36,18 @@ using namespace Indexing;
 using namespace Saturation;
 using namespace std;
 
-namespace {
-
-struct Applicator : SubstApplicator {
-  Applicator(ResultSubstitution* subst) : subst(subst) {}
-  TermList operator()(unsigned v) const override {
-    return subst->applyToBoundResult(v);
-  }
-  ResultSubstitution* subst;
-};
-
-} // end namespace
-
-void ForwardGroundJoinability::attach(SaturationAlgorithm* salg)
-{
-  ForwardSimplificationEngine::attach(salg);
-  _index = salg->getSimplifyingIndex<DemodulationLHSIndex>();
-}
-
-void ForwardGroundJoinability::detach()
-{
-  _index = nullptr;
-  ForwardSimplificationEngine::detach();
-}
+ForwardGroundJoinability::ForwardGroundJoinability(SaturationAlgorithm& salg)
+  : _ord(salg.getOrdering()),
+    _index(salg.getSimplifyingIndex<DemodulationLHSIndex>())
+{}
 
 #define ITERATION_LIMIT 500
 
 bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
-  Ordering& ordering = _salg->getOrdering();
-
   // cout << "trying " << *cl << endl;
 
-  static DHSet<TermList> attempted;
+  static DHSet<TermList, TermListHash, TermListHash2> attempted;
 
   if (cl->length()>1) {
     return false;
@@ -78,7 +57,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
   if (!lit->isEquality() || lit->isNegative()) {
     return false;
   }
-  DHSet<Clause*> premiseSet;
+  DHMap<unsigned, Clause*, FnvHash, IdentityHash> premiseSet;
 
   if (EqHelper::isEqTautology(lit)) {
     premises = ClauseIterator::getEmpty();
@@ -87,8 +66,8 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
   }
 
   auto curr = lit;
-  RedundancyCheck checker(ordering, curr);
-  auto tpo = TermPartialOrdering::getEmpty(ordering);
+  RedundancyCheck checker(_ord, curr);
+  auto tpo = TermPartialOrdering::getEmpty(_ord);
   unsigned cnt = 0;
 
   while (curr) {
@@ -118,7 +97,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
         continue;
       }
 
-      auto git = _index->getGeneralizations(trm.term(), /* retrieveSubstitutions */ true);
+      auto git = _index->getGeneralizations(trm.term());
       while(git.hasNext()) {
         auto qr=git.next();
         ASS_EQ(qr.data->clause->length(),1);
@@ -134,17 +113,12 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
         }
 
         TermList rhs = qr.data->rhs;
-
-        auto subs = qr.unifier;
-        ASS(subs->isIdentityOnQueryWhenResultBound());
-        Applicator appl(subs.ptr());
-
-        AppliedTerm rhsApplied(rhs, &appl, true);
+        AppliedTerm rhsApplied(rhs, &qr.unifier, true);
 
 #if VDEBUG
         POStruct dpo_struct(tpo);
         TermOrderingDiagram::Traversal<TermOrderingDiagram::NodeIterator,POStruct> dtr(
-          TermOrderingDiagram::createForSingleComparison(ordering, trm, rhsApplied.apply()), nullptr, dpo_struct
+          TermOrderingDiagram::createForSingleComparison(_ord, trm, rhsApplied.apply()), nullptr, dpo_struct
         );
         TermOrderingDiagram::Branch* b;
         bool success = false;
@@ -157,7 +131,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
 #endif
 
         POStruct po_struct(tpo);
-        if (!TermOrderingDiagram::extendVarsGreater(qr.data->tod.get(), &appl, po_struct)) {
+        if (!TermOrderingDiagram::extendVarsGreater(qr.data->tod.get(), &qr.unifier, po_struct)) {
           // TODO this check sometimes fails when the debug code can detect the
           // extension to get GREATER due to elimination of linear expressions
           // ASS(!success);
@@ -173,7 +147,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
         ASS(next.first != curr || next.second != tpo);
         curr = next.first;
         tpo = next.second;
-        premiseSet.insert(qr.data->clause);
+        premiseSet.insert(qr.data->clause->number(), qr.data->clause);
         goto LOOP_END;
       }
     }
@@ -182,7 +156,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
 LOOP_END:
     continue;
   }
-  premises = pvi(getPersistentIterator(premiseSet.iterator()));
+  premises = pvi(getPersistentIterator(premiseSet.range()));
   replacement = nullptr;
 
   // cout << "forward ground joinable " << *cl << endl;

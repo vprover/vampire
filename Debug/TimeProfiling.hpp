@@ -13,9 +13,11 @@
 #define __TimeProfiling__
 
 #include "Lib/Stack.hpp"
+#include <atomic>
 #include <chrono>
 #include <ostream>
 #include <memory>
+#include <vector>
 #include "Lib/MacroUtils.hpp"
 
 namespace Shell {
@@ -85,20 +87,20 @@ public:
   // Let's fake a big enum like the one we used to have using a bunch of constexpr's
   // (NB: TimeTrace can only group TIME_TRACE calls with identical identifiers as pointers
   //  so always going through one place to declare a TIME_TRACE-able call site sounds like a nice routine)
-  static inline constexpr const char* const CLAUSE_GENERATION = "clause generation";
-  static inline constexpr const char* const CONSEQUENCE_FINDING = "consequence finding";
-  static inline constexpr const char* const FMB_DEFINITION_INTRODUCTION = "fmb definition introduction";
-  static inline constexpr const char* const HYPER_SUP = "hyper superposition";
-  static inline constexpr const char* const LITERAL_ORDER_AFTERCHECK = "literal order aftercheck";
-  static inline constexpr const char* const PARSING = "parsing";
-  static inline constexpr const char* const PASSIVE_CONTAINER_MAINTENANCE = "passive container maintenance";
-  static inline constexpr const char* const PREPROCESSING = "preprocessing";
-  static inline constexpr const char* const PROPERTY_EVALUATION = "property evaluation";
-  static inline constexpr const char* const AVATAR_SAT_SOLVER = "SAT solver";
-  static inline constexpr const char* const SHUFFLING = "shuffling things";
-  static inline constexpr const char* const SINE_SELECTION = "sine selection";
-  static inline constexpr const char* const TERM_SHARING = "term sharing";
-  
+  static constexpr const char* const CLAUSE_GENERATION = "clause generation";
+  static constexpr const char* const CONSEQUENCE_FINDING = "consequence finding";
+  static constexpr const char* const FMB_DEFINITION_INTRODUCTION = "fmb definition introduction";
+  static constexpr const char* const HYPER_SUP = "hyper superposition";
+  static constexpr const char* const LITERAL_ORDER_AFTERCHECK = "literal order aftercheck";
+  static constexpr const char* const PARSING = "parsing";
+  static constexpr const char* const PASSIVE_CONTAINER_MAINTENANCE = "passive container maintenance";
+  static constexpr const char* const PREPROCESSING = "preprocessing";
+  static constexpr const char* const PROPERTY_EVALUATION = "property evaluation";
+  static constexpr const char* const AVATAR_SAT_SOLVER = "SAT solver";
+  static constexpr const char* const SHUFFLING = "shuffling things";
+  static constexpr const char* const SINE_SELECTION = "sine selection";
+  static constexpr const char* const TERM_SHARING = "term sharing";
+
 private:
   using Clock = std::chrono::steady_clock;
   using Duration = typename Clock::duration;
@@ -130,10 +132,14 @@ private:
   };
 
 
+  // NB: deliberately *not* USE_ALLOCATOR, and std::vector rather than Lib::Stack.
+  // The whole trace is walked and (in flatten()) rebuilt by the timer thread when a
+  // resource limit is reached, while the main thread is still proving. Vampire's
+  // GLOBAL_SMALL_OBJECT_ALLOCATOR is plain free lists with no synchronisation, so
+  // anything here that allocated through it would corrupt the prover's heap.
   struct Node {
-    USE_ALLOCATOR(Node)
     const char* name;
-    Lib::Stack<std::unique_ptr<Node>> children;
+    std::vector<std::unique_ptr<Node>> children;
     Measurements measurements;
     Node(const char* name) : name(name), children(), measurements() {}
     struct NodeFormatOpts ;
@@ -161,6 +167,11 @@ public:
 
   class ScopedTimer {
     TimeTrace& _trace;
+    // whether this timer actually pushed a node. Must be remembered rather than
+    // re-testing _enabled in the destructor: the flag can be cleared in between (see
+    // setEnabled), and skipping only the pop would unbalance _stack and mis-attribute
+    // every subsequent scope.
+    bool _active;
 #if VDEBUG
     TimePoint _start;
     const char* _name;
@@ -182,13 +193,22 @@ public:
 
   void printPretty(std::ostream& out);
   void serialize(std::ostream& out);
+  /**
+   * Enable or disable time tracing.
+   *
+   * Clearing the flag *freezes* the trace: no further node is created and no further
+   * measurement is recorded, including by scopes that are already open. That is what
+   * makes it safe(ish) for the timer thread to print the trace out from under a still
+   * running main thread -- see Lib/Timer.cpp, limitReached().
+   */
   void setEnabled(bool);
 private:
 
   Node _root;
-  Lib::Stack<Node*> _tmpRoots;
-  Lib::Stack<std::tuple<Node*, TimePoint>> _stack;
-  bool _enabled;
+  std::vector<Node*> _tmpRoots;
+  std::vector<std::tuple<Node*, TimePoint>> _stack;
+  // read on every TIME_TRACE scope and written by the timer thread
+  std::atomic<bool> _enabled;
 };
 
 #endif // VTIME_PROFILING

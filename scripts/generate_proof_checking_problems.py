@@ -17,23 +17,23 @@ with open(read_from,'r') as probs:
 	for line in probs:
 		all_problems.add(line.strip())
 
-problem_set = random.sample(all_problems,N)
+problem_set = random.sample(list(all_problems), min(N,len(all_problems)))
 #problem_set = all_problems
 
 # For each problem generate obligations
 for problem in problem_set:
 
-	if os.path.exists(directory+problem):
+	if os.path.exists(os.path.join(directory, problem)):
 		continue
 
-	print "Dealing with ",problem
+	print("Dealing with ",problem)
 
 	#Solve problem using casc mode
 	OUT=""
 	try:
-		OUT=subprocess.check_output(VAMPIRE+' --ignore_missing on --mode casc --time_limit 300 --include '+TPTP+' '+TPTP+problem, shell = True)
+		OUT=subprocess.check_output(VAMPIRE+' --ignore_missing on --mode casc --time_limit 300 --include '+TPTP+' '+TPTP+problem, shell = True, text=True)
 	except subprocess.CalledProcessError as err:
-		print "Problem not solved"
+		print("Problem not solved")
 		continue
 
 	#Extract option used to solve
@@ -48,7 +48,7 @@ for problem in problem_set:
 			found=True
 
 	if not found:
-		print "There was a problem, option not found!"
+		print("There was a problem, option not found!")
 		continue
 	#print 'Option is ',option, 'found is ',found
 
@@ -60,7 +60,7 @@ for problem in problem_set:
 	if obligations:
 		pdir = directory+'/'+problem
 		if os.path.exists(pdir):
-			print "Oh dear, we did ", problem, " before!"
+			print("Oh dear, we did ", problem, " before!")
 		else:
 			os.makedirs(pdir)
 			for o in obligations:

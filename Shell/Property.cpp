@@ -77,7 +77,6 @@ Property::Property()
     _hasFOOL(false),
     _hasArrowSort(false),
     _hasApp(false),
-    _hasAppliedVar(false),
     _hasBoolVar(false),
     _hasLogicalProxy(false),
     _hasLambda(false),
@@ -232,14 +231,14 @@ void Property::scan(Unit* unit)
   }
   if (! hasProp(PR_HAS_FUNCTION_DEFINITIONS)) {
     FunctionDefinition::Def* def =
-      FunctionDefinition::isFunctionDefinition(*unit,/*in the old, first-order sense*/false);
+      FunctionDefinition::isFunctionDefinition(*unit);
     if (def) {
       addProp(PR_HAS_FUNCTION_DEFINITIONS);
       FunctionDefinition::deleteDef(def);
     }
   }
 
-  DHSet<int>::Iterator it(_symbolsInFormula);
+  DHSet<int, FnvHash, IdentityHash>::Iterator it(_symbolsInFormula);
   while(it.hasNext()){
     int symbol = it.next();
     if(symbol >= 0){
@@ -434,11 +433,10 @@ void Property::scan(Formula* f, int polarity)
     }
     case FORALL:
       if(!_quantifiesOverPolymorphicVar){
-        SList* sorts = f->sorts();
-        SList::Iterator sit(sorts);
+        VSList::Iterator vsit(f->vars());
 
-        while(sit.hasNext()){
-          TermList s = sit.next();
+        while(vsit.hasNext()){
+          TermList s = vsit.next().second;
           if(s.isTerm() && s.term()->isSuper()){
             _quantifiesOverPolymorphicVar = true;
             break;
@@ -451,11 +449,10 @@ void Property::scan(Formula* f, int polarity)
       break;
     case EXISTS:
       if(!_quantifiesOverPolymorphicVar){
-        SList* sorts = f->sorts();
-        SList::Iterator sit(sorts);
+        VSList::Iterator vsit(f->vars());
 
-        while(sit.hasNext()){
-          TermList s = sit.next();
+        while(vsit.hasNext()){
+          TermList s = vsit.next().second;
           if(s.isTerm() && s.term()->isSuper()){
             _quantifiesOverPolymorphicVar = true;
             break;
@@ -595,7 +592,7 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
       pred->markInGoal();
     }
 
-    OperatorType* type = pred->predType();
+    OperatorType* type = pred->type();
     if(type->numTypeArguments()){
       _hasPolymorphicSym = true;
     }
@@ -705,7 +702,7 @@ void Property::scan(TermList ts,bool unit,bool goal)
       _hasLogicalProxy = true;
     }
 
-    if(!t->isApplication() && t->numTypeArguments() > 0){
+    if(!t->isApplication() && !t->isLambdaTerm() && t->numTypeArguments() > 0){
       _hasPolymorphicSym = true;
     }
 
@@ -1031,9 +1028,9 @@ bool Property::hasXEqualsY(const Formula* f)
     case FORALL:
       if (eff_pol >= 0) {
         // will have a universal version
-        VList::Iterator vs(f->vars());
+        VSList::Iterator vs(f->vars());
         while (vs.hasNext()) {
-          unsigned v = vs.next();
+          unsigned v = vs.next().first;
           if (existVars[v]) {
             existVars[v] = false;
             recs.push(Rec(v,true)); // restore back to true
@@ -1041,9 +1038,9 @@ bool Property::hasXEqualsY(const Formula* f)
         }
       } else {
         // only existential
-        VList::Iterator vs(f->vars());
+        VSList::Iterator vs(f->vars());
         while (vs.hasNext()) {
-          unsigned v = vs.next();
+          unsigned v = vs.next().first;
           if (!existVars[v]) {
             existVars[v] = true;
             recs.push(Rec(v,false)); // restore back to false
@@ -1185,9 +1182,9 @@ std::string Property::toSpider(const std::string& problemName) const
  * as a dictionary of key-valey (string) pairs. In particular,
  * Options::sampleStrategy is eagerly waiting for this to be able to do property-conditioned sampling.
  */
-DHMap<std::string,std::string> Property::toDict() const
+DHMap<std::string,std::string, FnvHash, LengthHash> Property::toDict() const
 {
-  DHMap<std::string,std::string> result;
+  DHMap<std::string,std::string, FnvHash, LengthHash> result;
   result.set("@hasFormulas",Int::toString(hasFormulas()));
   result.set("@hasEquality",Int::toString(equalityAtoms()>0));
   result.set("@hasFOOL",Int::toString(hasFOOL()));

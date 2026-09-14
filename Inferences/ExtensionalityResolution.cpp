@@ -101,7 +101,7 @@ struct ExtensionalityResolution::ForwardResultFn
     Literal* extLit = arg.first.second.literal;
 
     return performExtensionalityResolution(extCl, extLit, _otherCl, otherLit, subst,
-                                             _parent.getOptions());
+                                             _parent._salg.getOptions());
   }
 private:
   Clause* _otherCl;
@@ -179,7 +179,7 @@ struct ExtensionalityResolution::BackwardResultFn
     Literal* otherLit = arg.first.second;
 
     return performExtensionalityResolution(_extCl, _extLit, otherCl, otherLit, subst,
-                                             _parent.getOptions());
+                                             _parent._salg.getOptions());
   }
 private:
   Clause* _extCl;
@@ -230,7 +230,7 @@ Clause* ExtensionalityResolution::performExtensionalityResolution(
  */
 ClauseIterator ExtensionalityResolution::generateClauses(Clause* premise)
 {
-  ExtensionalityClauseContainer* extClauses = _salg->getExtensionalityClauseContainer();
+  ExtensionalityClauseContainer* extClauses = _salg.getExtensionalityClauseContainer();
   ClauseIterator backwardIterator;
 
   Literal* extLit = extClauses->addIfExtensionality(premise);
@@ -248,7 +248,7 @@ ClauseIterator ExtensionalityResolution::generateClauses(Clause* premise)
           // resolution inference has to be performed under the assumption
           // that this happens rarely. Experiments could clarify, which
           // solution is more efficient.
-          _salg->activeClauses(),
+          _salg.activeClauses(),
           BackwardPairingFn(extLit->twoVarEqSort()));
 
     // For each <clause,literal> pair, we get 2 substitutions (by unifying

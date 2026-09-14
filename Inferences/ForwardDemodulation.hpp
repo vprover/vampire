@@ -17,7 +17,7 @@
 #define __ForwardDemodulation__
 
 #include "Forwards.hpp"
-#include "Indexing/TermIndex.hpp"
+#include "Indexing/DemodulationIndex.hpp"
 
 #include "DemodulationHelper.hpp"
 #include "InferenceEngine.hpp"
@@ -30,19 +30,20 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+template<bool higherOrder>
 class ForwardDemodulation
 : public ForwardSimplificationEngine
 {
 public:
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
+  ForwardDemodulation(SaturationAlgorithm& salg);
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 protected:
-  bool _preorderedOnly;
-  bool _encompassing;
-  bool _useTermOrderingDiagrams;
-  bool _skipNonequationalLiterals;
-  DemodulationHelper _helper;
+  const bool _preorderedOnly;
+  const bool _encompassing;
+  const bool _useTermOrderingDiagrams;
+  const bool _skipNonequationalLiterals;
+  const DemodulationHelper _helper;
+  const Ordering& _ord;
   std::shared_ptr<DemodulationLHSIndex> _index;
 };
 

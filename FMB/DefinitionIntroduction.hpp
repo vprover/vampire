@@ -117,10 +117,9 @@ namespace FMB {
         //std::cout << "Considering " << t->toString() << std::endl;
         if(t->arity()==0) continue;
         if(!_introduced.find(t)){
-          unsigned newConstant = env.signature->addFreshFunction(0,"fmbdef");
           TermList srt = SortHelper::getResultSort(t);
+          unsigned newConstant = env.signature->addFreshFunction(OperatorType::getConstantsType(srt),"fmbdef");
           Signature::Symbol* newConstantSymb = env.signature->getFunction(newConstant);
-          newConstantSymb->setType(OperatorType::getConstantsType(srt));
           newConstantSymb->incUsageCnt();
           Term* c = Term::createConstant(newConstant); 
           _introduced.insert(t,c);
@@ -222,8 +221,8 @@ namespace FMB {
     ClauseIterator _cit;
     Stack<Clause*> _processed;
 
-    DHMap<Term*,Term*> _introduced;
-    DHMap<Term*,unsigned> _introducedNG;
+    DHMap<Term*,Term*, FnvHash, PtrIdentityHash> _introduced;
+    DHMap<Term*,unsigned, FnvHash, PtrIdentityHash> _introducedNG;
 
   };
 

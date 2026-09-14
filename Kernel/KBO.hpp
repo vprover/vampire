@@ -202,7 +202,7 @@ private:
   {
     int _weightDiff;
     /** The variable counters */
-    DHMap<unsigned, int, IdentityHash, DefaultHash> _varDiffs;
+    DHMap<unsigned, int, IdentityHash, FnvHash> _varDiffs;
     /** Number of variables, that occur more times in the first literal */
     int _posNum;
     /** Number of variables, that occur more times in the second literal */

@@ -17,12 +17,10 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Allocator.hpp"
-#include "Lib/Stack.hpp"
-#include "Lib/Vector.hpp"
+#include "Kernel/Matcher.hpp"
+#include "Kernel/TypedTermList.hpp"
 
-#include "CodeTree.hpp"
-
+#include "TermOrLiteralCodeTree.hpp"
 
 namespace Indexing {
 
@@ -30,40 +28,49 @@ using namespace Lib;
 using namespace Kernel;
 
 template<class Data>
-class TermCodeTree : public CodeTree 
+class TermCodeTree : public TermOrLiteralCodeTree<Data>
 {
-protected:
-  static void onCodeOpDestroying(CodeOp* op);
-  
-public:
-  TermCodeTree();
-
-  void insert(Data* data);
-  void remove(const Data& data);
-
-private:
-  struct RemovingTermMatcher
-  : public Matcher</*removing*/true,false>
-  {
-  public:
-    void init(FlatTerm* ft_, TermCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_);
-
-  };
-
 public:
   struct TermMatcher
-  : public Matcher</*removing*/false,false>
+  : public TermOrLiteralCodeTree<Data>::Matcher
   {
-    TermMatcher();
+    using Base = TermOrLiteralCodeTree<Data>::Matcher;
+    using Base::ft;
+    using Base::op;
 
-    void init(CodeTree* tree, TermList t);
-    void reset();
-    
-    Data* next();
-    
-    USE_ALLOCATOR(TermMatcher);
+    void init(const CodeTree& tree, TypedTermList t) {
+      Base::init(tree, FlatTerm::create(t));
+      _querySort = t.sort();
+    }
+
+    Data* next() {
+      if (Base::finished()) {
+        //all possible matches are exhausted
+        return 0;
+      }
+
+      while ((Base::_matched=Base::execute())) {
+        ASS(op->isSuccess());
+        auto res = op->template getSuccessResult<Data>();
+        if (res->key().isVar()) {
+          // match the variable sort separately
+          Substitution subst;
+          if (!MatchingUtils::matchTerms(res->key().sort(), _querySort, subst)) {
+            continue;
+          }
+          for (const auto& [v,t] : iterTraits(subst.items())) {
+            ASS_G(v, 0); // X0 is reserved for the term itself
+            Base::bindings[v] = t;
+          }
+        }
+        return res;
+      }
+      return nullptr;
+    }
+
+  private:
+    TermList _querySort;
   };
-
 };
 
 };

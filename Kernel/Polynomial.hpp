@@ -213,7 +213,7 @@ public:
   FuncTerm(FuncId f, PolyNf* args);
 
   template<class NumTraits>
-  bool isSort() const { return _fun.symbol()->fnType()->result() == NumTraits::sort(); }
+  bool isSort() const { return _fun.symbol()->type()->result() == NumTraits::sort(); }
 
   unsigned numTermArguments() const;
   FuncId function() const;
@@ -619,7 +619,7 @@ class IterArgsPnf
   Literal* _lit;
   unsigned _idx;
 public:
-  DECL_ELEMENT_TYPE(PolyNf);
+  using ElementType = PolyNf;
 
   IterArgsPnf(Literal* lit);
 
@@ -640,7 +640,7 @@ namespace Kernel {
 class PolyNf::SubtermIter {
   Stack<BottomUpChildIter<PolyNf>> _stack;
 public:
-  DECL_ELEMENT_TYPE(PolyNf);
+  using ElementType = PolyNf;
 
   SubtermIter(SubtermIter&&) = default;
   SubtermIter& operator=(SubtermIter&&) = default;

@@ -34,7 +34,7 @@ class EqHelper
 public:
   static TermList getOtherEqualitySide(Literal* eq, TermList lhs);
   static bool hasGreaterEqualitySide(Literal* eq, const Ordering& ord, TermList& lhs, TermList& rhs);
-  static VirtualIterator<Term*> getSubtermIterator(Literal* lit, const Ordering& ord);
+  template<bool higherOrder> static VirtualIterator<Term*> getSubtermIterator(Literal* lit, const Ordering& ord);
   static TermIterator getBooleanSubtermIterator(Literal* lit, const Ordering& ord);
   static VirtualIterator<TypedTermList> getLHSIterator(Literal* lit, const Ordering& ord);
   static VirtualIterator<TypedTermList> getSuperpositionLHSIterator(Literal* lit, const Ordering& ord, const Options& opt);
@@ -62,19 +62,6 @@ public:
     const Ordering& _ord;
   };
 
-  struct SuperpositionLHSIteratorFn
-  {
-    SuperpositionLHSIteratorFn(const Ordering& ord, const Options& opt) : _ord(ord), _opt(opt) {}
-
-    VirtualIterator<std::pair<Literal*, TypedTermList> > operator()(Literal* lit)
-    {
-      return pvi( pushPairIntoRightIterator(lit, getSuperpositionLHSIterator(lit, _ord, _opt)) );
-    }
-  private:
-    const Ordering& _ord;
-    const Options& _opt;
-  };
-
   struct EqualityArgumentIteratorFn
   {
     VirtualIterator<std::pair<Literal*, TermList> > operator()(Literal* lit)
@@ -90,7 +77,7 @@ public:
 private:
 
   template<class SubtermIterator>
-  static VirtualIterator<ELEMENT_TYPE(SubtermIterator)> getRewritableSubtermIterator(Literal* lit, const Ordering& ord);
+  static VirtualIterator<typename SubtermIterator::ElementType> getRewritableSubtermIterator(Literal* lit, const Ordering& ord);
 
   struct IsNonVariable;
 

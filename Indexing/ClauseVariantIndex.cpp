@@ -106,7 +106,7 @@ HashingClauseVariantIndex::~HashingClauseVariantIndex()
   ClauseList* maxval = 0;
   */
 
-  DHMap<unsigned, ClauseList*>::Iterator iit(_entries);
+  DHMap<unsigned, ClauseList*, FnvHash, IdentityHash>::Iterator iit(_entries);
   while(iit.hasNext()){
     ClauseList* lst = iit.next();
 

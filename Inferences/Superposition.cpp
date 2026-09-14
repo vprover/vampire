@@ -47,103 +47,78 @@
 using namespace std;
 #endif
 
-using namespace Inferences;
 using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 using std::pair;
 
-void Superposition::attach(SaturationAlgorithm* salg)
+namespace Inferences {
+
+template<bool higherOrder>
+Superposition<higherOrder>::Superposition(SaturationAlgorithm& salg)
+  : _salg(salg),
+    _subtermIndex(salg.getGeneratingIndex<SuperpositionSubtermIndex<higherOrder>>()),
+    _lhsIndex(salg.getGeneratingIndex<SuperpositionLHSIndex>())
+{}
+
+template<bool higherOrder>
+ClauseIterator Superposition<higherOrder>::generateClauses(Clause* premise)
 {
-  GeneratingInferenceEngine::attach(salg);
-  _subtermIndex = salg->getGeneratingIndex<SuperpositionSubtermIndex>();
-  _lhsIndex = salg->getGeneratingIndex<SuperpositionLHSIndex>();
-}
-
-void Superposition::detach()
-{
-  _subtermIndex = nullptr;
-  _lhsIndex = nullptr;
-  GeneratingInferenceEngine::detach();
-}
-
-struct Superposition::ForwardResultFn
-{
-  ForwardResultFn(Clause* cl, Superposition& parent) : _cl(cl), _parent(parent) {}
-  Clause* operator()(pair<pair<Literal*, TypedTermList>, QueryRes<AbstractingUnifier*, TermLiteralClause>> arg)
-  {
-    auto& qr = arg.second;
-    return _parent.performSuperposition(_cl, arg.first.first, arg.first.second,
-	    qr.data->clause, qr.data->literal, qr.data->term, qr.unifier, true);
-  }
-private:
-  Clause* _cl;
-  Superposition& _parent;
-};
-
-
-struct Superposition::BackwardResultFn
-{
-  BackwardResultFn(Clause* cl, Superposition& parent) : _cl(cl), _parent(parent) {}
-  Clause* operator()(pair<pair<Literal*, TermList>, QueryRes<AbstractingUnifier*, TermLiteralClause>> arg)
-  {
-    if(_cl==arg.second.data->clause) {
-      return 0;
-    }
-
-    auto& qr = arg.second;
-    return _parent.performSuperposition(qr.data->clause, qr.data->literal, qr.data->term,
-	    _cl, arg.first.first, arg.first.second, qr.unifier, false);
-  }
-private:
-  Clause* _cl;
-  Superposition& _parent;
-};
-
-
-ClauseIterator Superposition::generateClauses(Clause* premise)
-{
-  auto itf1 = premise->getSelectedLiteralIterator();
-
-  // Get an iterator of pairs of selected literals and rewritable subterms of those literals
-  // A subterm is rewritable (see EqHelper) if it is a non-variable subterm of either
-  // a maximal side of an equality or of a non-equational literal
-  auto itf2 = getMapAndFlattenIterator(itf1,
-      [this](Literal* lit)
+  auto itf = premise->getSelectedLiteralIterator()
+    // Get an iterator of pairs of selected literals and rewritable subterms of those literals
+    // A subterm is rewritable (see EqHelper) if it is a non-variable subterm of either
+    // a maximal side of an equality or of a non-equational literal
+    .flatMap([this](Literal* lit)
       // returns an iterator over the rewritable subterms
-      { return pushPairIntoRightIterator(lit, EqHelper::getSubtermIterator(lit,  _salg->getOrdering())); });
+      { return pushPairIntoRightIterator(lit, EqHelper::getSubtermIterator<higherOrder>(lit, _salg.getOrdering())); })
 
-  // Get clauses with a literal whose complement unifies with the rewritable subterm,
-  // returns a pair with the original pair and the unification result (includes substitution)
-  auto itf3 = getMapAndFlattenIterator(std::move(itf2),
-      [this](pair<Literal*, TypedTermList> arg)
-      { return pushPairIntoRightIterator(arg, _lhsIndex->getUwa(arg.second, env.options->unificationWithAbstraction(), env.options->unificationWithAbstractionFixedPointIteration())); });
+    // Get clauses with a literal whose complement unifies with the rewritable subterm,
+    // returns a pair with the original pair and the unification result (includes substitution)
+    .flatMap([this](pair<Literal*, TypedTermList> arg)
+      { return pushPairIntoRightIterator(arg, _lhsIndex->getUwa<higherOrder>(arg.second, _salg.getOptions())); })
 
-  //Perform forward superposition
-  auto itf4 = getMappingIterator(std::move(itf3),ForwardResultFn(premise, *this));
+    // Perform forward superposition
+    .map([this,premise](pair<pair<Literal*, TypedTermList>, QueryRes<AbstractingUnifier*, TermLiteralClause>> arg)
+      {
+        auto& qr = arg.second;
+        return performSuperposition(premise, arg.first.first, arg.first.second,
+	        qr.data->clause, qr.data->literal, qr.data->term, qr.unifier, true);
+      });
 
-  auto itb1 = premise->getSelectedLiteralIterator();
-  auto itb2 = getMapAndFlattenIterator(itb1,EqHelper::SuperpositionLHSIteratorFn(_salg->getOrdering(), _salg->getOptions()));
-  auto itb3 = getMapAndFlattenIterator(std::move(itb2),
-      [this] (pair<Literal*, TermList> arg)
-      { return pushPairIntoRightIterator(
-              arg,
-              _subtermIndex->getUwa(TypedTermList(arg.second, SortHelper::getEqualityArgumentSort(arg.first)), env.options->unificationWithAbstraction(), env.options->unificationWithAbstractionFixedPointIteration())); });
+  auto itb = premise->getSelectedLiteralIterator()
+    // Get LHSs of all selected positive literals for superposition
+    .flatMap([this](Literal* lit)
+      { return pvi( pushPairIntoRightIterator(lit, EqHelper::getSuperpositionLHSIterator(lit, _salg.getOrdering(), _salg.getOptions())) ); })
 
-  //Perform backward superposition
-  auto itb4 = getMappingIterator(std::move(itb3),BackwardResultFn(premise, *this));
+    // Get clauses that unify with these LHSs, modulo abstraction
+    .flatMap([this] (pair<Literal*, TermList> arg)
+      { return pushPairIntoRightIterator(arg,
+          _subtermIndex->template getUwa<higherOrder>(TypedTermList(arg.second, SortHelper::getEqualityArgumentSort(arg.first)), _salg.getOptions())); })
+
+    // Perform backward superposition
+    .map([this,premise](pair<pair<Literal*, TermList>, QueryRes<AbstractingUnifier*, TermLiteralClause>> arg) -> Clause*
+    {
+      // Self-superpositions are only done in forwards mode
+      if (premise == arg.second.data->clause) {
+        return nullptr;
+      }
+
+      auto& qr = arg.second;
+      return performSuperposition(qr.data->clause, qr.data->literal, qr.data->term,
+        premise, arg.first.first, arg.first.second, qr.unifier, false);
+    });
 
   // Add the results of forward and backward together
-  auto it5 = concatIters(std::move(itf4),std::move(itb4));
+  auto it1 = concatIters(std::move(itf),std::move(itb));
 
   // Remove null elements - these can come from performSuperposition
-  auto it6 = getFilteredIterator(std::move(it5),NonzeroFn());
+  auto it2 = getFilteredIterator(std::move(it1),NonzeroFn());
 
   // The outer iterator ensures we update the time counter for superposition
-  auto it7 = TIME_TRACE_ITER("superposition", std::move(it6));
+  auto it3 = TIME_TRACE_ITER("superposition", std::move(it2));
 
-  return pvi( std::move(it7) );
+  return pvi( std::move(it3) );
 }
 
 /**
@@ -154,12 +129,13 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
  *
  * This function also updates the statistics.
  */
-bool Superposition::checkClauseColorCompatibility(Clause* eqClause, Clause* rwClause)
+template<bool higherOrder>
+bool Superposition<higherOrder>::checkClauseColorCompatibility(Clause* eqClause, Clause* rwClause)
 {
   if(ColorHelper::compatible(rwClause->color(), eqClause->color())) {
     return true;
   }
-  if(getOptions().showBlocked()) {
+  if(_salg.getOptions().showBlocked()) {
     std::cout<<"Blocked superposition of "<<eqClause->toString()<<" into "<<rwClause->toString()<<std::endl;
   }
   env.statistics->inferencesSkippedDueToColors++;
@@ -176,7 +152,7 @@ bool Superposition::checkClauseColorCompatibility(Clause* eqClause, Clause* rwCl
  * Such situation would mean that there is no ground substitution in which
  * @c eqLHS would be the larger argument of the largest literal.
  */
-bool Superposition::checkSuperpositionFromVariable(Clause* eqClause, Literal* eqLit, TermList eqLHS)
+bool checkSuperpositionFromVariable(Clause* eqClause, Literal* eqLit, TermList eqLHS)
 {
   ASS(eqLHS.isVar());
   //if we should do rewriting, LHS cannot appear inside RHS
@@ -213,9 +189,9 @@ bool Superposition::checkSuperpositionFromVariable(Clause* eqClause, Literal* eq
  * the resulting clause will not be over the weight limit, just that
  * it cannot be cheaply determined at this time.
  */
-bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
+bool earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
       Clause* rwClause, Literal* rwLit, TermList rwTerm, TermList eqLHS, TermList eqRHS,
-      ResultSubstitutionSP subst, bool eqIsResult, PassiveClauseContainer* passiveClauseContainer, unsigned numPositiveLiteralsLowerBound, const Inference& inf)
+      ResultSubstitutionSP subst, bool eqIsResult, const PassiveClauseContainer* passiveClauseContainer, unsigned numPositiveLiteralsLowerBound, const Inference& inf)
 {
   unsigned nonInvolvedLiteralWLB=0;//weight lower bound for literals that aren't going to be rewritten
 
@@ -282,15 +258,16 @@ bool Superposition::earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
  * If superposition should be performed, return result of the superposition,
  * otherwise return 0.
  */
-Clause* Superposition::performSuperposition(
+template<bool higherOrder>
+Clause* Superposition<higherOrder>::performSuperposition(
     Clause* rwClause, Literal* rwLit, TermList rwTerm,
     Clause* eqClause, Literal* eqLit, TermList eqLHS,
     AbstractingUnifier* unifier, bool eqIsResult)
 {
   TIME_TRACE("perform superposition");
   // we want the rwClause and eqClause to be active
-  ASS(rwClause->store()==Clause::ACTIVE);
-  ASS(eqClause->store()==Clause::ACTIVE);
+  ASS_EQ(rwClause->store(),Clause::ACTIVE);
+  ASS_EQ(eqClause->store(),Clause::ACTIVE);
 
   // the first checks the reference and the second checks the stack
   auto subst = ResultSubstitution::fromSubstitution(&unifier->subs(), RetrievalAlgorithms::DefaultVarBanks::query, RetrievalAlgorithms::DefaultVarBanks::internal);
@@ -321,7 +298,7 @@ Clause* Superposition::performSuperposition(
   Inference inf(GeneratingInference2(unifier->usesUwa() ? InferenceRule::CONSTRAINED_SUPERPOSITION : InferenceRule::SUPERPOSITION, rwClause, eqClause));
   Inference::Destroyer inf_destroyer(inf);
 
-  auto passiveClauseContainer = _salg->getPassiveClauseContainer();
+  auto passiveClauseContainer = _salg.getPassiveClauseContainer();
   bool andThatsIt = false;
   bool hasAgeLimitStrike = passiveClauseContainer && passiveClauseContainer->mayBeAbleToDiscriminateClausesUnderConstructionOnLimits()
                         && passiveClauseContainer->exceedsAgeLimit(numPositiveLiteralsLowerBound, inf, andThatsIt);
@@ -338,14 +315,14 @@ Clause* Superposition::performSuperposition(
     }
   }
 
-  const auto& parRedHandler = _salg->parRedHandler();
+  const auto& parRedHandler = _salg.parRedHandler();
   if (!unifier->usesUwa()) {
     if (!parRedHandler.checkSuperposition(eqClause, eqLit, rwClause, rwLit, eqIsResult, subst.ptr())) {
       return 0;
     }
   }
 
-  const Ordering& ordering = _salg->getOrdering();
+  const Ordering& ordering = _salg.getOrdering();
 
   TermList tgtTermS = subst->apply(tgtTerm, eqIsResult);
 
@@ -378,7 +355,7 @@ Clause* Superposition::performSuperposition(
 
   Literal* tgtLitS = EqHelper::replace(rwLitS,rwTermS,tgtTermS);
 
-  static bool doSimS = getOptions().simulatenousSuperposition();
+  static bool doSimS = _salg.getOptions().simulatenousSuperposition();
 
   //check we don't create an equational tautology (this happens during self-superposition)
   if(EqHelper::isEqTautology(tgtLitS)) {
@@ -401,7 +378,7 @@ Clause* Superposition::performSuperposition(
   Recycled<Stack<Literal*>> res;
   res->reserve(rwLength + eqLength - 1 + unifier->maxNumberOfConstraints());
 
-  static bool afterCheck = getOptions().literalMaximalityAftercheck() && _salg->getLiteralSelector().isBGComplete();
+  static bool afterCheck = _salg.getOptions().literalMaximalityAftercheck() && _salg.getLiteralSelector().isBGComplete();
 
   res->push(tgtLitS);
   unsigned weight=tgtLitS->weight();
@@ -520,4 +497,9 @@ Clause* Superposition::performSuperposition(
   }
 
   return clause;
+}
+
+template class Superposition<false>;
+template class Superposition<true>;
+
 }

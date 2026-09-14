@@ -143,10 +143,10 @@ namespace Inferences {
       }
     }
 
-    DECL_ELEMENT_TYPE(Clause *);
+    using ElementType = Clause *;
 
     bool hasNext() { return _index < _length; }
-    OWN_ELEMENT_TYPE next()
+    ElementType next()
     {
       // from the clause f(x1 ... xn) = f(y1 .. yn) \/ C, we create
       // a new clause xi = yi \/ C. In this case, next() can be
@@ -228,7 +228,7 @@ namespace Inferences {
                                              SortHelper::getArgSort(lit->nthArgument(0)->term(),j));
         for (unsigned k = 0; k < c->length(); k++) {
           if (k != i) {
-            if (_salg->getOrdering().compare((*c)[k], l) != Ordering::GREATER) {
+            if (_ord.compare((*c)[k], l) != Ordering::GREATER) {
               return false;
             }
           }
@@ -275,17 +275,9 @@ namespace Inferences {
     return c;
   }
 
-  void AcyclicityGIE::attach(SaturationAlgorithm* salg)
-  {
-    GeneratingInferenceEngine::attach(salg);
-    _acyclIndex = salg->getGeneratingIndex<AcyclicityIndex>();
-  }
-
-  void AcyclicityGIE::detach()
-  {
-    _acyclIndex = nullptr;
-    GeneratingInferenceEngine::detach();
-  }
+  AcyclicityGIE::AcyclicityGIE(SaturationAlgorithm& salg)
+    : _acyclIndex(salg.getGeneratingIndex<AcyclicityIndex>())
+  {}
 
   struct AcyclicityGIE::AcyclicityGenIterator
   {
@@ -295,11 +287,11 @@ namespace Inferences {
       _queryResults(std::move(results))
     {}
 
-    DECL_ELEMENT_TYPE(Clause *);
+    using ElementType = Clause *;
 
     bool hasNext() { return _queryResults.hasNext(); }
     
-    OWN_ELEMENT_TYPE next()
+    ElementType next()
     {
       Indexing::CycleQueryResult *qres = _queryResults.next();
 
@@ -433,7 +425,7 @@ namespace Inferences {
       }
     }
 
-    DECL_ELEMENT_TYPE(Clause *);
+    using ElementType = Clause *;
 
     bool hasNext() {
       if (!_leftSide && _subterms.isEmpty()) {
@@ -443,7 +435,7 @@ namespace Inferences {
       return (_subterms.isNonEmpty());
     }
     
-    OWN_ELEMENT_TYPE next()
+    ElementType next()
     {
       Literal *newlit = Literal::createEquality(false,
                                                 *_lit->nthArgument(_leftSide ? 0 : 1),
@@ -481,11 +473,11 @@ namespace Inferences {
       _clause(clause)
     {}
 
-    DECL_ELEMENT_TYPE(Literal *);
+    using ElementType = Literal *;
 
     bool hasNext() { return _index < _length; }
 
-    OWN_ELEMENT_TYPE next() { return (*_clause)[_index++]; }
+    ElementType next() { return (*_clause)[_index++]; }
 
   private:
     unsigned _index;

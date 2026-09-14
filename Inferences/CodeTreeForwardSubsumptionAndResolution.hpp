@@ -27,17 +27,14 @@ class CodeTreeForwardSubsumptionAndResolution
   : public ForwardSimplificationEngine
 {
 public:
-  CodeTreeForwardSubsumptionAndResolution(bool subsumptionResolution) : _subsumptionResolution(subsumptionResolution) {}
-
-  void attach(Saturation::SaturationAlgorithm *salg) override;
-  void detach() override;
+  CodeTreeForwardSubsumptionAndResolution(SaturationAlgorithm& salg);
 
   bool perform(Kernel::Clause *cl,
                Kernel::Clause *&replacement,
                Kernel::ClauseIterator &premises) override;
 
 private:
-  bool _subsumptionResolution;
+  const bool _subsumptionResolution;
   std::shared_ptr<Indexing::CodeTreeSubsumptionIndex> _index;
   Indexing::ClauseCodeTree* _ct;
 #if VDEBUG

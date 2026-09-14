@@ -18,6 +18,8 @@
 #include "Kernel/TypedTermList.hpp"
 #include "Kernel/HOL/HOL.hpp"
 #include "Shell/Options.hpp"
+#include "Lib/Environment.hpp"
+#include "Test/UnitTesting.hpp"
 
 #include <optional>
 

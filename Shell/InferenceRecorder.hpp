@@ -13,6 +13,8 @@
 #include <unordered_map>
 #include <vector>
 
+namespace Indexing { struct DemodulatorData; }
+
 namespace Shell {
 class InferenceRecorder {
 public:

@@ -306,7 +306,7 @@ Formula* SimplifyFalseTrue::innerSimplify (Formula* f)
       default:
 	return arg == f->qarg()
                ? f
-               : new QuantifiedFormula(con,f->vars(),f->sorts(),arg);
+               : new QuantifiedFormula(con, f->vars(), arg);
       }
     }
 

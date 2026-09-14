@@ -18,11 +18,15 @@
 #include "Kernel/Clause.hpp"
 #include "Lib/Environment.hpp"
 #include "Shell/Statistics.hpp"
+#include "Saturation/SaturationAlgorithm.hpp"
 
 namespace Inferences {
 
 using namespace Lib;
 using namespace Kernel;
+
+InnerRewriting::InnerRewriting(SaturationAlgorithm& salg)
+  : _ord(salg.getOrdering()) {}
 
 Clause* InnerRewriting::simplify(Clause* cl)
 {

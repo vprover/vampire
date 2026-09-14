@@ -615,7 +615,7 @@ public:
    */
   class Iterator {
   public:
-    DECL_ELEMENT_TYPE(Entry&);
+    using ElementType = Entry&;
 
     /** Create a new iterator */
     inline Iterator(const Map& map)

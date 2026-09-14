@@ -138,41 +138,29 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
     return unit; // do nothing
   }
 
-  VList* eVars = eQuant->vars();
-  SList* eSrts = eQuant->sorts();
-  ASS(eVars);
+  VSList* eVarSorts = eQuant->vars();
+  ASS(eVarSorts);
 
   FormulaList* conjArgs = 0;
   FormulaList::push(eQuant->qarg(), conjArgs);
-  Literal* ansLit = getAnswerLiteral(eVars,eSrts,eQuant);
+  Literal* ansLit = getAnswerLiteral(eVarSorts, eQuant);
   _originUnitsAndInjectedLiterals.insert(ansLit->functor(),make_pair(unit,ansLit));
   FormulaList::push(new AtomicFormula(ansLit), conjArgs);
 
-  Formula* out = new NegatedFormula(new QuantifiedFormula(EXISTS, eVars, eSrts, new JunctionFormula(AND, conjArgs)));
+  Formula* out = new NegatedFormula(new QuantifiedFormula(EXISTS, eVarSorts, new JunctionFormula(AND, conjArgs)));
 
   if (skolemise) {
-    Map<unsigned,std::string>* questionVars = Parse::TPTP::findQuestionVars(unit->number());
+    Map<unsigned,std::string, FnvHash>* questionVars = Parse::TPTP::findQuestionVars(unit->number());
 
-    VList* fVars = subNot->vars();
-    SList* fSrts = subNot->sorts();
+    VSList* fVarSorts = subNot->vars();
     Substitution subst;
-    while (VList::isNonEmpty(fVars)) {
-      unsigned var = fVars->head();
-      fVars = fVars->tail();
-      unsigned skFun = env.signature->addSkolemFunction(/*arity=*/0, /*suffix=*/"in");
-      Signature::Symbol* skSym = env.signature->getFunction(skFun);
+    VSList::Iterator fvit(fVarSorts);
+    while (fvit.hasNext()) {
+      auto [var, sort] = fvit.next();
+      unsigned skFun = env.signature->addSkolemFunction(OperatorType::getConstantsType(sort), /*suffix=*/"in");
       if ((env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS)) {
         ALWAYS(static_cast<Shell::SynthesisALManager*>(Shell::SynthesisALManager::getInstance())->addIntroducedComputableSymbol(make_pair(skFun, /*isPredicate=*/false)));
       }
-      TermList sort;
-      if (SList::isNonEmpty(fSrts)) {
-        sort = fSrts->head();
-        fSrts = fSrts->tail();
-      } else if (!SortHelper::tryGetVariableSort(var, subNot, sort)) {
-        sort = AtomicSort::defaultSort();
-      }
-      OperatorType* ot = OperatorType::getConstantsType(sort);
-      skSym->setType(ot);
       Term* skTerm = Term::create(skFun, /*arity=*/0, /*args=*/nullptr);
       subst.bindUnbound(var, skTerm);
       recordSkolemBinding(skTerm, var, questionVars ? questionVars->get(var) : TermList(var,false).toString() );
@@ -187,10 +175,8 @@ TermList AnswerLiteralManager::possiblyEvaluateAnswerTerm(TermList aT)
 {
   if(aT.isTerm() && !aT.term()->isSpecial()){
     InterpretedLiteralEvaluator eval;
-    unsigned p = env.signature->addFreshPredicate(1,"p");
     TermList sort = SortHelper::getResultSort(aT.term());
-    OperatorType* type = OperatorType::getPredicateType({sort});
-    env.signature->getPredicate(p)->setType(type);
+    unsigned p = env.signature->addFreshPredicate(OperatorType::getPredicateType({sort}),"p");
     Literal* l = Literal::create1(p,true,aT);
     Literal* res =0;
     bool constant, constTrue;
@@ -210,7 +196,7 @@ void AnswerLiteralManager::tryOutputAnswer(Clause* refutation, std::ostream& out
     return;
   }
 
-  DHSet<unsigned> seenSkolems;
+  DHSet<unsigned, FnvHash, IdentityHash> seenSkolems;
 
   out << "% SZS answers Tuple [";
 
@@ -244,7 +230,7 @@ void AnswerLiteralManager::tryOutputAnswer(Clause* refutation, std::ostream& out
       vss << "[";
       unsigned arity = aLit->arity();
 
-      Map<unsigned,std::string>* questionVars = 0;
+      Map<unsigned,std::string, FnvHash>* questionVars = 0;
       std::pair<Unit*,Literal*> unitAndLiteral;
       if (_originUnitsAndInjectedLiterals.find(aLit->functor(),unitAndLiteral)) {
         questionVars = Parse::TPTP::findQuestionVars(unitAndLiteral.first->number());
@@ -255,7 +241,7 @@ void AnswerLiteralManager::tryOutputAnswer(Clause* refutation, std::ostream& out
           vss << ',';
         }
         if (questionVars) {
-          vss << questionVars->get(unitAndLiteral.second->nthArgument(i)->var()) << "->";
+          vss << questionVars->get(unitAndLiteral.second->nthArgument(i)->var()) << ":=";
         }
         TermList evalauted = possiblyEvaluateAnswerTerm(*aLit->nthArgument(i));
         if (evalauted.isTerm()){ // just check which Skolems we might have used
@@ -289,7 +275,7 @@ void AnswerLiteralManager::tryOutputAnswer(Clause* refutation, std::ostream& out
   out << "|_] for " << env.options->problemName() << endl;
 
   // recall what the skolems mean:
-  DHSet<unsigned>::Iterator it(seenSkolems);
+  DHSet<unsigned, FnvHash, IdentityHash>::Iterator it(seenSkolems);
   while (it.hasNext()) {
     unsigned f = it.next();
     const std::pair<unsigned,Unit*>& origin = _skolemsOrigin.get(f);
@@ -340,29 +326,21 @@ bool AnswerLiteralManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answ
   return false;
 }
 
-Literal* AnswerLiteralManager::getAnswerLiteral(VList* vars,SList* srts,Formula* f)
+Literal* AnswerLiteralManager::getAnswerLiteral(VSList* varSorts, Formula* f)
 {
   static Stack<TermList> litArgs;
   litArgs.reset();
   TermStack sorts;
-  while(VList::isNonEmpty(vars)) {
-    unsigned var = vars->head();
-    vars = vars->tail();
-    TermList sort;
-    if (SList::isNonEmpty(srts)) {
-      sort = srts->head();
-      srts = srts->tail();
-    } else if(!SortHelper::tryGetVariableSort(var, f, sort)) {
-      sort = AtomicSort::defaultSort();
-    }
+  VSList::Iterator vit(varSorts);
+  while(vit.hasNext()) {
+    auto [var, sort] = vit.next();
     litArgs.push(TermList(var, false));
     sorts.push(sort);
   }
 
   unsigned vcnt = litArgs.size();
-  unsigned pred = env.signature->addFreshPredicate(vcnt,"ans");
+  unsigned pred = env.signature->addFreshPredicate(OperatorType::getPredicateType(sorts),"ans");
   Signature::Symbol* predSym = env.signature->getPredicate(pred);
-  predSym->setType(OperatorType::getPredicateType(sorts.size(), sorts.begin()));
   predSym->markAnswerPredicate();
   // don't need equality proxy for answer literals
   predSym->markSkipCongruence();
@@ -464,14 +442,14 @@ std::string PlainALManager::postprocessAnswerString(std::string answer)
 // SynthesisALManager
 //
 
-void SynthesisALManager::getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<Unit*>& allProofUnits)
+void SynthesisALManager::getNeededUnits(Clause* refutation, ClauseStack& premiseClauses, Stack<Unit*>& conjectures, DHSet<unsigned, FnvHash, IdentityHash>& allProofUnitNums)
 {
   Stack<Unit*> toDo;
   toDo.push(refutation);
 
   while(toDo.isNonEmpty()) {
     Unit* curr = toDo.pop();
-    if(!allProofUnits.insert(curr)) {
+    if(!allProofUnitNums.insert(curr->number())) {
       continue;
     }
     Inference& inf = curr->inference();
@@ -511,11 +489,8 @@ bool SynthesisALManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answer
 
   ClauseStack premiseClauses;
   Stack<Unit*> conjectures;
-  DHSet<Unit*> proofUnits;
-  getNeededUnits(refutation, premiseClauses, conjectures, proofUnits);
-  DHSet<unsigned> proofNums;
-  DHSet<Unit*>::Iterator puit(proofUnits);
-  while (puit.hasNext()) proofNums.insert(puit.next()->number());
+  DHSet<unsigned, FnvHash, IdentityHash> proofNums;
+  getNeededUnits(refutation, premiseClauses, conjectures, proofNums);
 
   // We iterate through the stored _answerPairs. An answer pair p is relevant if:
   // - either it is the _lastAnsLit (i.e., has p.first==0)
@@ -534,7 +509,7 @@ bool SynthesisALManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answer
   Stack<TermList> sorts(arity);
   // Initialization: each answer is set to the answer from origLit.
   for (unsigned i = 0; i < arity; i++) {
-    sorts.push(env.signature->getPredicate(origLit->functor())->predType()->arg(i));
+    sorts.push(env.signature->getPredicate(origLit->functor())->type()->arg(i));
     answerArgs.push(_skolemReplacement.transformTermList(*origLit->nthArgument(i), sorts[i]));
   }
   // Go through all other answer pairs and use the relevant ones.
@@ -548,13 +523,13 @@ bool SynthesisALManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answer
     // Create the condition for an if-then-else by negating the clause
     Formula* condition = getConditionFromClause(p.second.first);
     for (unsigned i = 0; i < arity; i++) {
-      ASS_EQ(sorts[i], env.signature->getPredicate(p.second.second->functor())->predType()->arg(i));
+      ASS_EQ(sorts[i], env.signature->getPredicate(p.second.second->functor())->type()->arg(i));
       // Construct the answer using if-then-else
       answerArgs[i] = TermList(Term::createITE(condition, _skolemReplacement.transformTermList(*p.second.second->nthArgument(i), sorts[i]), answerArgs[i], sorts[i]));
     }
   }
   // just a single literal answer
-  answer.push(Clause::fromLiterals({Literal::create(origLit,answerArgs.begin())}, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::INPUT)));
+  answer.push(Clause::fromLiterals({Literal::create(origLit,answerArgs.begin())}, FromInput(UnitInputType::AXIOM)));
 
   outputRecursiveFunctions();
 
@@ -587,7 +562,7 @@ Clause* SynthesisALManager::recordAnswerAndReduce(Clause* cl) {
   // represents any answer.
   bool removeDefaultAnsLit = true;
   Literal* ansLit = cl->getAnswerLiteral();
-  Set<unsigned> vars;
+  Set<unsigned, FnvHash> vars;
   for (unsigned i = 0; i < ansLit->numTermArguments(); ++i) {
     TermList* tl = ansLit->nthArgument(i);
     if (!tl->isVar()) {
@@ -628,7 +603,7 @@ Literal* SynthesisALManager::makeITEAnswerLiteral(Literal* condition, Literal* t
     if (ttl == etl) {
       litArgs.push(*ttl);
     } else {
-      litArgs.push(TermList(createRegularITE(condTerm, *ttl, *etl, predSym->predType()->arg(i))));
+      litArgs.push(TermList(createRegularITE(condTerm, *ttl, *etl, predSym->type()->arg(i))));
     }
   }
   return Literal::create(thenLit->functor(), thenLit->arity(), thenLit->polarity(), litArgs.begin());
@@ -640,7 +615,7 @@ void SynthesisALManager::pushEqualityConstraints(LiteralStack* ls, Literal* then
     TermList& t = *thenLit->nthArgument(i);
     TermList& e = *elseLit->nthArgument(i);
     if (t != e) {
-      ls->push(Literal::createEquality(false, t, e, env.signature->getPredicate(thenLit->functor())->predType()->arg(i)));
+      ls->push(Literal::createEquality(false, t, e, env.signature->getPredicate(thenLit->functor())->type()->arg(i)));
     }
   }
 }
@@ -673,27 +648,30 @@ Term* SynthesisALManager::translateToSynthesisConditionTerm(Literal* l)
   if (l->isEquality()) {
     fnName.append(SortHelper::getEqualityArgumentSort(l).toString());
   }
+
+  TermStack argSorts;
+  if (l->isEquality()) {
+    TermList as = SortHelper::getEqualityArgumentSort(l);
+    argSorts.push(as);
+    argSorts.push(as);
+  } else {
+    OperatorType* ot = env.signature->getPredicate(l->functor())->type();
+    for (unsigned i = 0; i < arity; ++i) {
+      argSorts.push(ot->arg(i));
+    }
+  }
   bool added = false;
-  unsigned fn = env.signature->addFunction(fnName, arity, added);
+  unsigned fn = env.signature->addFunction(fnName, OperatorType::getFunctionType(argSorts, AtomicSort::defaultSort()), added);
   // Store the mapping between the function and predicate symbols
   _skolemReplacement.addCondPair(fn, l->functor());
   if (added) {
-    Signature::Symbol* sym = env.signature->getFunction(fn);
-    Stack<TermList> argSorts;
-    if (l->isEquality()) {
-      TermList as = SortHelper::getEqualityArgumentSort(l);
-      argSorts.push(as);
-      argSorts.push(as);
-    } else {
-      OperatorType* ot = env.signature->getPredicate(l->functor())->predType();
-      for (unsigned i = 0; i < arity; ++i) {
-        argSorts.push(ot->arg(i));
-      }
+    if (!l->isEquality()) {
       if (isPredicateComputable(l->functor())) {
         ALWAYS(_introducedComputable.insert(make_pair(fn, /*isPredicate=*/false)));
+      } else {
+        ALWAYS(_annotatedUncomputable.insert(make_pair(fn, /*isPredicate=*/false)));
       }
     }
-    sym->setType(OperatorType::getFunctionType(arity, argSorts.begin(), AtomicSort::defaultSort()));
   }
   
   Stack<TermList> args;
@@ -729,8 +707,7 @@ TermList getConstantForVariable(TermList sort) {
     std::string name = "cz_" + sort.toString();
     unsigned czfn;
     if (!env.signature->tryGetFunctionNumber(name, 0, czfn)) {
-      czfn = env.signature->addFreshFunction(0, name.c_str());
-      env.signature->getFunction(czfn)->setType(OperatorType::getConstantsType(sort));
+      czfn = env.signature->addFreshFunction(OperatorType::getConstantsType(sort), name.c_str());
     } 
     return TermList(Term::createConstant(czfn));
   }
@@ -781,7 +758,7 @@ TermList SynthesisALManager::ConjectureSkolemReplacement::transformSubterm(TermL
       for (unsigned i = 0; i < transformed->arity()-1; ++i) {
         // Iterate over cases and replace only the associated skolems in each.
         TermList* narg = transformed->nthArgument(i);
-        DHMap<Term*, TermList>* m = recf->_skolemToTermListForCase.findPtr(i);
+        DHMap<Term*, TermList, FnvHash, PtrIdentityHash>* m = recf->_skolemToTermListForCase.findPtr(i);
         if (narg->isTerm() && m) {
           ssr.setMap(m);
           NonVariableIterator it(narg->term());
@@ -805,7 +782,7 @@ TermList SynthesisALManager::ConjectureSkolemReplacement::transformSubterm(TermL
       // Replace 'trm' by the function called on the last argument of this 'trm'.
       return TermList(Term::create(rfunctor, {*t->nthArgument(t->arity()-1)}));
     } else if ((t->arity() == 3) && t->nthArgument(0)->isTerm()) {
-      TermList sort = env.signature->getFunction(functor)->fnType()->arg(1);
+      TermList sort = env.signature->getFunction(functor)->type()->arg(1);
       if (t->functor() == static_cast<SynthesisALManager*>(SynthesisALManager::getInstance())->getITEFunctionSymbol(sort)) {
         // Build condition
         Term* tcond = t->nthArgument(0)->term();
@@ -841,18 +818,16 @@ SynthesisALManager::ConjectureSkolemReplacement::Function::Function(unsigned rec
   ASS(_caseHeads);
   _cases.ensure(_caseHeads->size());
   // Add the new function to signature
-  OperatorType* ot = env.signature->getFunction(recFunctor)->fnType();
+  OperatorType* ot = env.signature->getFunction(recFunctor)->type();
   TermList in = ot->arg(ot->arity()-1);
   TermList out = ot->arg(0);
   ASS_EQ(env.signature->getTermAlgebraOfSort(in)->nConstructors(), _caseHeads->size());
-  _functor = env.signature->addFreshFunction(/*arity=*/1, "rf");
-  Signature::Symbol* f = env.signature->getFunction(_functor);
-  f->setType(OperatorType::getFunctionType({in}, out));
+  _functor = env.signature->addFreshFunction(OperatorType::getFunctionType({in}, out), "rf");
   // Process SkolemTrackers corresponding to this function:
   // populate the maps mapping skolems to terms they represent.
-  DHMap<Term*, TermList>* caseMap;
-  const DHMap<unsigned, SkolemTracker>& mapping = replacement->_recursionMappings->get(recFunctor);
-  DHMap<unsigned, SkolemTracker>::Iterator it(mapping);
+  DHMap<Term*, TermList, FnvHash, PtrIdentityHash>* caseMap;
+  const DHMap<unsigned, SkolemTracker, FnvHash, IdentityHash>& mapping = replacement->_recursionMappings->get(recFunctor);
+  DHMap<unsigned, SkolemTracker, FnvHash, IdentityHash>::Iterator it(mapping);
   while (it.hasNext()) {
     unsigned var;
     SkolemTracker& st = it.nextRef(var);
@@ -874,7 +849,7 @@ void SynthesisALManager::ConjectureSkolemReplacement::Function::addCases(Term* t
 
 void SynthesisALManager::printSkolemTrackers() {
   cout << "Skolem mappings:" << endl;
-  DHMap<unsigned, SkolemTracker*>::Iterator it(_skolemTrackers);
+  DHMap<unsigned, SkolemTracker*, FnvHash, IdentityHash>::Iterator it(_skolemTrackers);
   while (it.hasNext()) {
     SkolemTracker* st = it.next();
     cout << st->toString() << endl;
@@ -889,7 +864,7 @@ void SynthesisALManager::printRecursionMappings() {
     unsigned recFn;
     auto& m = rit.nextRef(recFn);
     cout << "  recFn " << recFn << ":" << endl; 
-    DHMap<unsigned, SkolemTracker>::Iterator mit(m);
+    DHMap<unsigned, SkolemTracker, FnvHash, IdentityHash>::Iterator mit(m);
     while (mit.hasNext()) {
       SkolemTracker& s = mit.nextRef(v);
       cout << v << ": " << s.toString() << endl;
@@ -897,10 +872,10 @@ void SynthesisALManager::printRecursionMappings() {
   }
 }
 
-void SynthesisALManager::registerSkolemSymbols(Term* recTerm, const Substitution& subst, const std::vector<Term*>& functionHeadsByConstruction, vector<SkolemTracker>& incompleteTrackers, const VList* us) {
+void SynthesisALManager::registerSkolemSymbols(Term* recTerm, const Substitution& subst, const std::vector<Term*>& functionHeadsByConstruction, vector<SkolemTracker>& incompleteTrackers, const VSList* us) {
   unsigned recFnId = recTerm->functor();
   unsigned ctorNumber = recTerm->arity()-1;
-  ASS_EQ(ctorNumber, VList::length(us));
+  ASS_EQ(ctorNumber, VSList::length(us));
   ASS_EQ(ctorNumber, functionHeadsByConstruction.size());
   // Find out what is the order of arguments in `recTerm`, and
   // store the function heads in the correct indices in `_functionHeads`.
@@ -909,10 +884,10 @@ void SynthesisALManager::registerSkolemSymbols(Term* recTerm, const Substitution
   // and to the `constructorId` of the SkolemTrackers.
   DArray<unsigned> ctorOrder(ctorNumber);
   vector<Term*> functionHeads(ctorNumber);
-  VList::Iterator vit(us);
+  VSList::Iterator vit(us);
   unsigned i = 0;
   while (vit.hasNext()) {
-    unsigned v = vit.next();
+    unsigned v = vit.next().first;
     DEBUG_CODE(bool found = false;)
     for (unsigned j = 0; j < ctorNumber; ++j) {
       TermList& arg = *(recTerm->nthArgument(j));
@@ -930,7 +905,7 @@ void SynthesisALManager::registerSkolemSymbols(Term* recTerm, const Substitution
   ALWAYS(_functionHeads.insert(recFnId, std::move(functionHeads)));
 
   // Finalize SkolemTrackers and store them.
-  DHMap<unsigned, SkolemTracker>* mapping;
+  DHMap<unsigned, SkolemTracker, FnvHash, IdentityHash>* mapping;
   ALWAYS(_recursionMappings.getValuePtr(recFnId, mapping));
   for (SkolemTracker& st : incompleteTrackers) {
     ASS_EQ(st.binding.second, nullptr);
@@ -977,7 +952,7 @@ bool SynthesisALManager::isPredicateComputable(unsigned functor) const {
     (!s->introduced() && !_annotatedUncomputable.contains(make_pair(functor, true)));
 }
 
-bool SynthesisALManager::computableOrVarHelper(const Term* t, DHMap<unsigned, unsigned>* recAncestors) const {
+bool SynthesisALManager::computableOrVarHelper(const Term* t, DHMap<unsigned, unsigned, FnvHash, IdentityHash>* recAncestors) const {
   ASS(t);
   unsigned f = t->functor();
   Signature::Symbol* symbol = env.signature->getFunction(f);
@@ -1030,7 +1005,7 @@ bool SynthesisALManager::computableOrVarHelper(const Term* t, DHMap<unsigned, un
 }
 
 bool SynthesisALManager::isComputableOrVar(const Term* t) const {
-  DHMap<unsigned, unsigned> recAncestors;
+  DHMap<unsigned, unsigned, FnvHash, IdentityHash> recAncestors;
   return computableOrVarHelper(t, &recAncestors);
 }
 

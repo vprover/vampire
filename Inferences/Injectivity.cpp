@@ -27,31 +27,34 @@
 
 namespace Inferences {
 
-ClauseIterator Injectivity::generateClauses(Clause* premise) {
-  if(premise->length() != 2){
+ClauseIterator Injectivity::generateClauses(Clause* premise)
+{
+  if (premise->length() != 2) {
     return ClauseIterator::getEmpty();
   }
 
   Literal* mainLit;
   Literal* sideLit;
-  Literal* lit0 = (*premise)[0];
-  Literal* lit1 = (*premise)[1];
-  if(!lit0->isTwoVarEquality() && lit1->isTwoVarEquality() && 
-     !lit0->polarity() && lit1->polarity()){
+  auto lit0 = (*premise)[0];
+  auto lit1 = (*premise)[1];
+  if (!lit0->isTwoVarEquality() && lit1->isTwoVarEquality() && 
+     !lit0->polarity() && lit1->polarity()) {
     mainLit = lit0;
     sideLit = lit1;
-  }else if(!lit1->isTwoVarEquality() && lit0->isTwoVarEquality() &&
+  } else if(!lit1->isTwoVarEquality() && lit0->isTwoVarEquality() &&
            !lit1->polarity() && lit0->polarity()) {
     mainLit = lit1;
     sideLit = lit0;
-  }else{
+  } else {
     return ClauseIterator::getEmpty();
   }
 
-  TermList lhsM = *(mainLit->nthArgument(0));
-  TermList rhsM = *(mainLit->nthArgument(1));
-  TermList lhsS = *(sideLit->nthArgument(0));
-  TermList rhsS = *(sideLit->nthArgument(1));
+  auto [lhsM, rhsM] = mainLit->eqArgs();
+  if (lhsM.isLambdaTerm() || rhsM.isLambdaTerm()) {
+    return ClauseIterator::getEmpty();
+  }
+
+  auto [lhsS, rhsS] = sideLit->eqArgs();
 
   static TermStack argsLhs;//No need to reset because getHeadAndArgs resets
   static TermStack argsRhs;
@@ -63,7 +66,8 @@ ClauseIterator Injectivity::generateClauses(Clause* premise) {
   if (headLhs != headRhs || headLhs.isVar()) {
     return ClauseIterator::getEmpty();
   }
-  ASS(argsLhs.size() == argsRhs.size());
+  // assertion below holds, since lhsM and rhsM have same types and neither is a lambda term
+  ASS_EQ(argsLhs.size(), argsRhs.size());
 
   bool differingArgFound = false;
   unsigned index = 0;
@@ -90,6 +94,9 @@ ClauseIterator Injectivity::generateClauses(Clause* premise) {
     }
     if(!differingArgFound){ index++; }
   }
+  if (!differingArgFound) {
+    return ClauseIterator::getEmpty();
+  }
 
   //at this point, we know the clause is of the form f x1 y x2... = f x1 z x2 ... \/ x != y 
   //index holds the index of the different argument
@@ -111,9 +118,8 @@ TermList Injectivity::createNewLhs(TermList oldhead, TermStack& termArgs, unsign
 
   Signature::Symbol* func = env.signature->getFunction(oldhead.term()->functor());
   std::string pref = "inv_" + func->name() + "_";
-  unsigned iFunc = env.signature->addFreshFunction(func->arity(), pref.c_str() ); 
 
-  OperatorType* funcType = func->fnType();
+  OperatorType* funcType = func->type();
   TermList type = funcType->result(); 
 
   TermList oldResult = HOL::getResultAppliedToNArgs(type, termArgs.size());
@@ -131,13 +137,10 @@ TermList Injectivity::createNewLhs(TermList oldhead, TermStack& termArgs, unsign
 
   TermList inverseType = AtomicSort::arrowSort(sorts, newResult);
 
-  OperatorType* invFuncType = OperatorType::getConstantsType(inverseType, funcType->numTypeArguments());
-  Signature::Symbol* invFunc = env.signature->getFunction(iFunc);
-  invFunc->setType(invFuncType);
+  unsigned iFunc = env.signature->addFreshFunction(OperatorType::getConstantsType(inverseType, funcType->numTypeArguments()), pref.c_str() ); 
   TermList invFuncHead = TermList(Term::create(iFunc, func->arity(), typeArgs.begin()));
 
   return HOL::create::app(invFuncHead, termArgs);  
 }
-
 
 }

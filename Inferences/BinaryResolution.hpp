@@ -18,6 +18,8 @@
 
 #include "Forwards.hpp"
 
+#include "Kernel/UnificationWithAbstraction.hpp"
+
 #include "InferenceEngine.hpp"
 #include "ProofExtra.hpp"
 
@@ -36,18 +38,17 @@ class BinaryResolution
 : public GeneratingInferenceEngine
 {
 public:
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
+  BinaryResolution(SaturationAlgorithm& salg);
 
   static Clause* generateClause(Clause* queryCl, Literal* queryLit, 
                                 Clause* resultCl, Literal* resultLit, 
-                                AbstractingUnifier& uwa, const Options& opts, SaturationAlgorithm* salg);
+                                AbstractingUnifier& uwa, const Options& opts, SaturationAlgorithm& salg);
 
   template<class ComputeConstraints>
   static Clause* generateClause(Clause* queryCl, Literal* queryLit, 
                                 Clause* resultCl, Literal* resultLit, 
                                 ResultSubstitutionSP subs, ComputeConstraints constraints, const Options& opts,
-                                bool afterCheck = false, PassiveClauseContainer* passive=0, Ordering* ord=0, LiteralSelector* ls = 0, PartialRedundancyHandler const* parRedHandler = 0);
+                                bool afterCheck = false, const PassiveClauseContainer* passive=0, Ordering* ord=0, LiteralSelector* ls = 0, PartialRedundancyHandler const* parRedHandler = 0);
 
   ClauseIterator generateClauses(Clause* premise) override;
 
@@ -56,6 +57,7 @@ private:
     Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit,
     ResultSubstitutionSP subs, AbstractingUnifier* absUnif);
 
+  SaturationAlgorithm& _salg;
   std::shared_ptr<BinaryResolutionIndex> _index;
 };
 

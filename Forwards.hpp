@@ -15,6 +15,8 @@
 #ifndef __Forwards__
 #define __Forwards__
 
+#include <utility>
+
 namespace Lib
 {
 struct EmptyStruct {};
@@ -34,6 +36,9 @@ typedef List<int> IntList;
 
 class DefaultHash;
 class DefaultHash2;
+struct FnvHash;
+struct IdentityHash;
+struct LengthHash;
 template <typename Key, typename Val,class Hash=DefaultHash> class Map;
 template<class A, class B, class HashA=DefaultHash, class HashB=DefaultHash> class BiMap;
 template <typename Key, typename Val, class Hash1=DefaultHash, class Hash2=DefaultHash2> class DHMap;
@@ -58,7 +63,9 @@ struct SubstApplicator;
 struct AppliedTerm;
 
 typedef List<unsigned> VList; // a list of variables (which are unsigned)
-typedef List<TermList> SList; // a list of sorts (which are now, with polymorphism, TermLists)
+typedef std::pair<unsigned,TermList> VarSort; // a variable with sort
+typedef List<VarSort> VSList; // a list of variables withg sorts
+
 typedef const SharedSet<unsigned> VarSet;
 
 
@@ -90,7 +97,11 @@ typedef Stack<Clause*> ClauseStack;
 class Problem;
 
 class Renaming;
-class Substitution;
+template<bool higherOrder>
+class Substitution_;
+// TODO(HOL): for now use HOSubstitution everywhere, change to false when performance is affected
+using Substitution = Substitution_</*higherOrder=*/true>;
+using HOSubstitution = Substitution_</*higherOrder=*/true>;
 
 class RobSubstitution;
 typedef VirtualIterator<RobSubstitution*> SubstIterator;
@@ -135,12 +146,10 @@ namespace Indexing
 {
 class Index;
 class IndexManager;
-template<class Data>
+template<class Data, bool generalizing>
 class LiteralIndex;
 template<class Data>
 class TermIndex;
-template<class Data>
-class TermIndexingStructure;
 
 class TermSharing;
 

@@ -38,18 +38,13 @@ public:
   USE_ALLOCATOR(FwdDemodulation);
 
   FwdDemodulation(FwdDemodulation&&) = default;
-  FwdDemodulation(std::shared_ptr<AlascaState> shared) 
-    : _shared(shared)
-  { ASS(_shared); }
-
-  void attach(SaturationAlgorithm* salg) final;
-  void detach() final;
+  FwdDemodulation(SaturationAlgorithm& salg);
 
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 
 private:
-  std::shared_ptr<AlascaState> _shared;
-  std::shared_ptr<AlascaIndex<Demodulation::Lhs>> _index;
+  AlascaState& _shared;
+  std::shared_ptr<GeneralizingAlascaIndex<Demodulation::Lhs>> _index;
 };
 
 } // namespaceALASCA 

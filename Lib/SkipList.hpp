@@ -595,7 +595,7 @@ public:
   /** iterator over the skip list elements */
   class Iterator {
    public:
-     DECL_ELEMENT_TYPE(Value);
+     using ElementType = Value;
 
     inline explicit
     Iterator(const SkipList& l)
@@ -621,7 +621,7 @@ public:
   /** iterator over references to the skip list elements */
   class RefIterator {
   public:
-    DECL_ELEMENT_TYPE(Value&);
+    using ElementType = Value&;
     inline explicit
     RefIterator(const SkipList& l)
       : _cur (l._left) {}

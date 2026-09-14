@@ -12,6 +12,9 @@
  * Implements class CodeTreeForwardSubsumptionAndResolution.
  */
 
+#include "Lib/Environment.hpp"
+#include "Lib/Random.hpp"
+
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "ProofExtra.hpp"
@@ -19,19 +22,11 @@
 
 namespace Inferences {
 
-void CodeTreeForwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
-{
-  ForwardSimplificationEngine::attach(salg);
-  _index = salg->getSimplifyingIndex<CodeTreeSubsumptionIndex>();
-  _ct = _index->getClauseCodeTree();
-}
-
-void CodeTreeForwardSubsumptionAndResolution::detach()
-{
-  _ct = nullptr;
-  _index = nullptr;
-  ForwardSimplificationEngine::detach();
-}
+CodeTreeForwardSubsumptionAndResolution::CodeTreeForwardSubsumptionAndResolution(SaturationAlgorithm& salg)
+  : _subsumptionResolution(salg.getOptions().forwardSubsumptionResolution()),
+    _index(salg.getSimplifyingIndex<CodeTreeSubsumptionIndex>()),
+    _ct(_index->getClauseCodeTree())
+{}
 
 bool CodeTreeForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&replacement, ClauseIterator &premises)
 {
@@ -39,7 +34,13 @@ bool CodeTreeForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&repla
     return false;
   }
 
-  static ClauseCodeTree::ClauseMatcher cm;
+  // under randomized simplifications, each subsumption resolution match is with this
+  // probability dropped, giving the next match (possibly a proper subsumption, which
+  // is never leaky) a chance instead (to be tuned)
+  constexpr double RSI_SKIP_PROB = 0.02;
+  bool rsi = env.options->randomizedSimplifications();
+
+  static typename ClauseCodeTree::ClauseMatcher cm;
 
   cm.init(_ct, cl, _subsumptionResolution);
 
@@ -53,6 +54,9 @@ bool CodeTreeForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&repla
       env.statistics->forwardSubsumed++;
       cm.reset();
       return true;
+    }
+    if (rsi && Random::getDouble(0.0,1.0) < RSI_SKIP_PROB) {
+      continue; // drop this candidate; the next match gets a chance
     }
     ASS(satSubs.checkSubsumptionResolutionWithLiteral(premise, cl, resolvedQueryLit));
 

@@ -11,20 +11,19 @@
 #ifndef __TEST__MOCKED_SATURATION_ALGORITHM__
 #define __TEST__MOCKED_SATURATION_ALGORITHM__
 
+#include "Lib/Environment.hpp"
 #include "Saturation/Otter.hpp"
 
 namespace Test {
 
 using OptionMap = Stack<std::pair<std::string,std::string>>;
 
-inline void resetAndFillEnvOptions(const Option<OptionMap>& opt, const Problem& prb) {
+inline void resetAndFillEnvOptions(const OptionMap& opt, const Problem& prb) {
   delete env.options;
   env.options = new Options();
   // env.options->reset();
-  if (opt.isSome()) {
-    for (const auto& kv : opt.unwrap()) {
-      env.options->set(kv.first, kv.second);
-    }
+  for (const auto& kv : opt) {
+    env.options->set(kv.first, kv.second);
   }
   env.options->resolveAwayAutoValues0();
   env.options->resolveAwayAutoValues(prb);

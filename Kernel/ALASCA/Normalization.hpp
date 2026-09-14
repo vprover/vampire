@@ -157,10 +157,9 @@ namespace Kernel {
     Inferences::PolynomialEvaluation _eval;
 
   public:
-    static std::shared_ptr<InequalityNormalizer> global() {
+    static const InequalityNormalizer& global() {
       // TODO get rid of this global state
-      static std::shared_ptr<InequalityNormalizer> globalNormalizer = Lib::make_shared(InequalityNormalizer());
-
+      static InequalityNormalizer globalNormalizer;
       return globalNormalizer;
     }
 
@@ -322,7 +321,7 @@ namespace Kernel {
       return out;
     }
     template<class NumTraits>
-    Option<AlascaLiteral<NumTraits>> normalize(Literal* l)
+    Option<AlascaLiteral<NumTraits>> normalize(Literal* l) const
     { return tryNormalizeInterpreted<NumTraits>(l); }
 
     Option<AnyAlascaLiteral> tryNormalizeInterpreted(Literal* lit) const
@@ -348,7 +347,7 @@ namespace Kernel {
       return out;
     }
 
-    bool equivalent(TermList lhs, TermList rhs)
+    bool equivalent(TermList lhs, TermList rhs) const
     {
       if (lhs.isVar() && rhs.isVar()) {
         return lhs == rhs;
@@ -367,14 +366,14 @@ namespace Kernel {
       return equivalent(TypedTermList(lhs, sort), TypedTermList(rhs, sort));
     }
 
-    bool equivalent(Literal* lhs, Literal* rhs)
+    bool equivalent(Literal* lhs, Literal* rhs) const
     {
        auto s1 = normalizedLiteral(lhs);
        auto s2 = normalizedLiteral(rhs);
        return s1 == s2;
      }
 
-    bool equivalent(TypedTermList lhs, TypedTermList rhs)
+    bool equivalent(TypedTermList lhs, TypedTermList rhs) const
     { return normalize(lhs) == normalize(rhs); }
 
 

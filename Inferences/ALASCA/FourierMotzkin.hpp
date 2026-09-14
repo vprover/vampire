@@ -29,8 +29,8 @@ using namespace Saturation;
 
 struct FourierMotzkinConf
 {
-  FourierMotzkinConf(std::shared_ptr<AlascaState> shared) 
-    : _shared(std::move(shared))
+  FourierMotzkinConf(SaturationAlgorithm& salg) 
+    : _shared(salg.alascaState())
   {  }
 
   static const char* name() { return "alasca fourier motzkin"; }
@@ -88,12 +88,12 @@ struct FourierMotzkinConf
       AbstractingUnifier& uwa
       ) const;
 
-  std::shared_ptr<AlascaState> _shared;
+  AlascaState& _shared;
 };
 
 struct FourierMotzkin : public BinInf<FourierMotzkinConf>  {
-  FourierMotzkin(std::shared_ptr<AlascaState> state) 
-    : BinInf<FourierMotzkinConf>(state, FourierMotzkinConf(state)) {}
+  FourierMotzkin(SaturationAlgorithm& salg) 
+    : BinInf<FourierMotzkinConf>(salg, FourierMotzkinConf(salg)) {}
 };
 
 } // namespace ALASCA 

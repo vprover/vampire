@@ -4,6 +4,7 @@
 
 #include "Debug/Assertion.hpp"
 #include "Forwards.hpp"
+#include "Lib/Environment.hpp"
 #include "Kernel/Inference.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 

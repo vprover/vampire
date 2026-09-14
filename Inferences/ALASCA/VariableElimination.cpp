@@ -19,6 +19,8 @@
 #include "Debug/TimeProfiling.hpp"
 #include "Kernel/TermIterators.hpp"
 
+#include "Saturation/SaturationAlgorithm.hpp"
+
 #define TODO ASSERTION_VIOLATION
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
@@ -26,18 +28,13 @@ namespace Inferences {
 namespace ALASCA {
 
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-// INDEXING STUFF
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-  
-void VariableElimination::attach(SaturationAlgorithm* salg) 
-{ }
-
-void VariableElimination::detach() 
-{ }
-
-//////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // ACTUAL RULE
 //////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+VariableElimination::VariableElimination(SaturationAlgorithm& salg, bool simplify)
+  : _shared(salg.alascaState())
+  , _simplify(simplify)
+{}
 
 Option<VariableElimination::AnyFoundVariable> VariableElimination::findUnshieldedVar(Clause* premise) const
 {
@@ -46,7 +43,7 @@ Option<VariableElimination::AnyFoundVariable> VariableElimination::findUnshielde
   Set<Variable, StlHash> shielded;
   for (unsigned i = 0; i < premise->size(); i++) {
     auto lit = (*premise)[i];
-    auto norm = _shared->norm().tryNormalizeInterpreted(lit);
+    auto norm = _shared.norm().tryNormalizeInterpreted(lit);
     if (norm.isSome()) {
       norm.unwrap().apply([&](auto& lit) -> void {
       //                            ^^^-->  t1 + ... + tn <> 0 
@@ -144,7 +141,7 @@ class PartitionIter {
   Option<std::vector<bool>> _partition;
   bool _finished;
 public:
-  DECL_ELEMENT_TYPE(PartitionIter&);
+  using ElementType = PartitionIter&;
   PartitionIter(Stack<A> orig) : _orig(std::move(orig)), _partition(), _finished(false) {}
   bool hasNext() { return !_finished; }
   PartitionIter& next() { 

@@ -9,7 +9,7 @@
  */
 
 #include "PolynomialNormalizer.hpp"
-#include "Kernel/BottomUpEvaluation.hpp"
+#include "Kernel/PolynomialBottomUpEvaluation.hpp"
 
 #define DEBUG(lvl, ...) if (lvl < 0) { DBG(__VA_ARGS__) }
 

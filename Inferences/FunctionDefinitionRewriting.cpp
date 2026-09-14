@@ -21,7 +21,6 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/SubstHelper.hpp"
 #include "Kernel/TermIterators.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -35,32 +34,19 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Saturation;
 
-namespace {
-struct Applicator : SubstApplicator {
-  Applicator(ResultSubstitution* subst) : subst(subst) {}
-  TermList operator()(unsigned v) const override {
-    return subst->applyToBoundResult(v);
-  }
-  ResultSubstitution* subst;
-};
-}
-
 Clause* performRewriting(
     Clause *rwClause, Literal *rwLit, TermList rwTerm, Clause *eqClause,
-    Literal *eqLit, TermList eqLHS, ResultSubstitutionSP subst,
-    DemodulationHelper* helper, bool& isEqTautology, Inference&& inf)
+    Literal *eqLit, TermList eqLHS, const GenSubstitution<TermLiteralClause>* subst,
+    const DemodulationHelper* helper, bool& isEqTautology, Inference&& inf)
 {
   ASS(!eqLHS.isVar());
 
   TermList tgtTerm = EqHelper::getOtherEqualitySide(eqLit, eqLHS);
 
   // This should be the case for code trees
-  ASS(subst->isIdentityOnQueryWhenResultBound());
-  TermList tgtTermS = subst->applyToBoundResult(tgtTerm);
+  TermList tgtTermS = subst->apply(tgtTerm);
 
-  Applicator appl(subst.ptr());
-
-  if (helper && !helper->isPremiseRedundant(rwClause,rwLit,rwTerm,tgtTermS,eqLHS,&appl)) {
+  if (helper && !helper->isPremiseRedundant(rwClause,rwLit,rwTerm,tgtTermS,eqLHS,subst)) {
     return 0;
   }
 
@@ -92,7 +78,7 @@ Clause* performRewriting(
     if (curr == eqLit) {
       continue;
     }
-    Literal* currAfter = subst->applyToBoundResult(curr);
+    Literal* currAfter = subst->apply(curr);
 
     if (EqHelper::isEqTautology(currAfter)) {
       isEqTautology = true;
@@ -105,11 +91,9 @@ Clause* performRewriting(
   return Clause::fromStack(*resLits, inf);
 }
 
-void FunctionDefinitionRewriting::attach(SaturationAlgorithm* salg)
-{
-  GeneratingInferenceEngine::attach(salg);
-  _helper = DemodulationHelper(salg->getOptions(), &salg->getOrdering());
-}
+FunctionDefinitionRewriting::FunctionDefinitionRewriting(SaturationAlgorithm& salg)
+  : _salg(salg), _helper(DemodulationHelper(salg.getOptions(), &salg.getOrdering()))
+{}
 
 Kernel::ClauseIterator FunctionDefinitionRewriting::generateClauses(Clause *premise)
 {
@@ -120,29 +104,25 @@ Kernel::ClauseIterator FunctionDefinitionRewriting::generateClauses(Clause *prem
     })
     .flatMap([this](std::pair<Literal*, Term*> arg){
       return pvi(pushPairIntoRightIterator(arg,
-        GeneratingInferenceEngine::_salg->getFunctionDefinitionHandler().getGeneralizations(arg.second)));
+        _salg.getFunctionDefinitionHandler().getGeneralizations(arg.second)));
     })
     .map([premise](auto arg) {
       auto &qr = arg.second;
       bool temp;
       return (Clause*)performRewriting(premise, arg.first.first, TermList(arg.first.second), qr.data->clause,
-        qr.data->literal, qr.data->term, qr.unifier, nullptr, temp,
+        qr.data->literal, qr.data->term, &qr.unifier, nullptr, temp,
         Inference(GeneratingInference2(InferenceRule::FUNCTION_DEFINITION_REWRITING, premise, qr.data->clause)));
     })
     .filter(NonzeroFn()));
 }
 
-void FunctionDefinitionDemodulation::attach(SaturationAlgorithm* salg)
-{
-  ForwardSimplificationEngine::attach(salg);
-  _helper = DemodulationHelper(salg->getOptions(), &salg->getOrdering());
-}
+FunctionDefinitionDemodulation::FunctionDefinitionDemodulation(SaturationAlgorithm& salg)
+  : _ord(salg.getOrdering()), _helper(salg.getOptions(), &_ord), _fnDefHandler(salg.getFunctionDefinitionHandler())
+{}
 
 bool FunctionDefinitionDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
-  Ordering& ordering = _salg->getOrdering();
-
-  static DHSet<Term*> attempted;
+  static DHSet<Term*, FnvHash, PtrIdentityHash> attempted;
   attempted.reset();
 
   unsigned cLen = cl->length();
@@ -158,7 +138,7 @@ bool FunctionDefinitionDemodulation::perform(Clause* cl, Clause*& replacement, C
 
       bool redundancyCheck = _helper.redundancyCheckNeededForPremise(cl, lit, trm);
 
-      auto git = _salg->getFunctionDefinitionHandler().getGeneralizations(trm);
+      auto git = _fnDefHandler.getGeneralizations(trm);
       while (git.hasNext()) {
         auto qr = git.next();
         if (qr.data->clause->length() != 1) {
@@ -166,12 +146,12 @@ bool FunctionDefinitionDemodulation::perform(Clause* cl, Clause*& replacement, C
         }
         auto rhs = EqHelper::getOtherEqualitySide(qr.data->literal, qr.data->term);
         // TODO shouldn't allow demodulation with incomparables in the non-ground case
-        if (Ordering::isGreaterOrEqual(ordering.compare(rhs,qr.data->term))) {
+        if (Ordering::isGreaterOrEqual(_ord.compare(rhs,qr.data->term))) {
           continue;
         }
         bool isEqTautology = false;
         auto res = performRewriting(
-          cl, lit, trm, qr.data->clause, qr.data->literal, qr.data->term, qr.unifier, redundancyCheck ? &_helper : nullptr,
+          cl, lit, trm, qr.data->clause, qr.data->literal, qr.data->term, &qr.unifier, redundancyCheck ? &_helper : nullptr,
           isEqTautology, Inference(SimplifyingInference2(InferenceRule::FUNCTION_DEFINITION_DEMODULATION, cl, qr.data->clause)));
         if (!res && !isEqTautology) {
           continue;

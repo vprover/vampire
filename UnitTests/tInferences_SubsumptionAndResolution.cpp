@@ -58,12 +58,17 @@ using namespace Test;
     DECL_PRED(r2, {s, s}) \
   )
 
-namespace SubsumptionAndResolutionTester {
+namespace {
 
 inline auto tester() {
-  return FwdBwdSimplification::TestCase()
-    .fwd(new ForwardSubsumptionAndResolution())
-    .bwd(new BackwardSubsumptionAndResolution(/*subsumption=*/true, /*subsumptionByUnitsOnly=*/false, /*subsumptionResolution=*/true, /*srByUnitsOnly=*/false));
+  return FwdBwdSimplification::TestCase<
+      ForwardSubsumptionAndResolution,
+      BackwardSubsumptionAndResolution</*higherOrder=*/false>
+    >()
+    .options({
+      { "backward_subsumption", "on" },
+      { "backward_subsumption_resolution", "on" }
+    });
 }
 
 // Note: most of these tests were taken from the SAT subsumption test suite

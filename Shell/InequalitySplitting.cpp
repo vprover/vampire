@@ -47,7 +47,7 @@ InequalitySplitting::InequalitySplitting(const Options& opt)
 
 void InequalitySplitting::perform(Problem& prb)
 {
-  _appify = prb.hasApp();
+  _appify = prb.isHigherOrder();
   if(perform(prb.units())) {
     prb.invalidateByRemoval();
   }
@@ -150,12 +150,12 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, 
   unsigned fun;
   OperatorType* type;
   if(!_appify){
-    fun=env.signature->addNamePredicate(vars.size() + 1);
     type = OperatorType::getPredicateType({srt}, vars.size());
+    fun=env.signature->addNamePredicate(type);
   } else {
     srt = AtomicSort::arrowSort(srt, AtomicSort::boolSort());
-    fun=env.signature->addNameFunction(vars.size());
     type = OperatorType::getConstantsType(srt, vars.size());
+    fun=env.signature->addNameFunction(type);
   }
 
 
@@ -165,7 +165,6 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, 
   } else {
     sym = env.signature->getPredicate(fun);
   }
-  sym->setType(type);
   sym->markProtected(); // at least to prevent blocked clause elimination to work on split equality (think "Problems/ARI/ARI713_1.p --decode ott+2_1:1_bce=on:ins=3_0", where BCE otherwise wipes the input completely)
 
   TermList s;
@@ -192,11 +191,7 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, 
       NonspecificInference0(inpType,InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION));
   _predDefs.push(defCl);
 
-  if(_appify){
-    InferenceStore::instance()->recordIntroducedSymbol(defCl,SymbolType::FUNC,fun);
-  } else {
-    InferenceStore::instance()->recordIntroducedSymbol(defCl,SymbolType::PRED,fun);
-  }
+  InferenceStore::instance()->recordIntroducedSymbol(defCl, sym);
 
   premise=defCl;
 
@@ -223,7 +218,7 @@ Literal* InequalitySplitting::makeNameLiteral(unsigned predNum, TermList arg, bo
     vars.push(arg);
     return Literal::create(predNum, vars.size(), polarity, vars.begin());
   } else {
-    TermList boolT = polarity ? TermList(Term::foolTrue()) : TermList(Term::foolFalse());
+    TermList boolT = polarity ? HOL::create::top() : HOL::create::bottom();
     TermList head = TermList(Term::create(predNum, vars.size(), vars.begin()));
     TermList t = HOL::create::app(head, arg);
     return Literal::createEquality(true, t, boolT, AtomicSort::boolSort());

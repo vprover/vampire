@@ -15,7 +15,10 @@
 
 using namespace Test;
 
-REGISTER_GEN_TESTER(Test::Generation::GenerationTester<EqualityFactoring>(EqualityFactoring(Options::UnificationWithAbstraction::OFF, /*uwaFixedPointIteration=*/false)))
+namespace {
+
+#define MY_GEN_RULE   EqualityFactoring
+#define MY_GEN_TESTER Generation::GenerationTester
 
 /**
  * NECESSARY: We need to tell the tester which syntax sugar to import for creating terms & clauses.
@@ -43,3 +46,5 @@ TEST_GENERATION(test02,
     .input( clause({  f(f(x)) == x, f(y) == y, selected(g(x) == x), p(y) }))
     .expected(none())
   )
+
+}

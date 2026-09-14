@@ -92,7 +92,7 @@ public:
   }
 private:
   DHMap<T, unsigned> _map;
-  DHMap<unsigned, T> _rev;
+  DHMap<unsigned, T, FnvHash, IdentityHash> _rev;
 
   unsigned _nextNum;
 };

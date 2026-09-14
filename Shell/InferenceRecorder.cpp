@@ -1,5 +1,7 @@
 #include "InferenceRecorder.hpp"
 
+#include "Indexing/DemodulationIndex.hpp"
+
 #include "Forwards.hpp"
 #include "Indexing/Index.hpp"
 #include "Inferences/InferenceEngine.hpp"
@@ -201,7 +203,7 @@ void InferenceRecorder::forwardDemodulation(unsigned int id, Clause *conclusion,
       auto var = iter.next();
       TermList mappedVar = varPermut.apply(var);
       ASS(mappedVar.isVar());
-      info->substitutionForBanksSub[0].bind(var, (*appl)(mappedVar.var()));
+      info->substitutionForBanksSub[0].bind(var, appl->apply(mappedVar.var()));
     }
 
     _inferences[id] = std::move(info);
@@ -213,7 +215,7 @@ void InferenceRecorder::backwardDemodulation(unsigned int id, Clause *conclusion
 {
   recordGenericSubstitutionToOneBank<SubstApplicator>(id, conclusion, premises, appl, 
 	[](const SubstApplicator &subst, const TermList &term, size_t bank) {
-      return subst(term.var());
+      return subst.apply(term.var());
     }
   );
 }

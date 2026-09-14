@@ -56,15 +56,15 @@ struct SortedSignature{
 
     // Map the distinct sorts back to their vampire parents
     // A distinct sort may merge multiple vampire sorts (due to monotonicity)
-    DHMap<unsigned,Stack<unsigned>*> distinctToVampire;
+    DHMap<unsigned,Stack<unsigned>*, FnvHash, IdentityHash> distinctToVampire;
     // A vampire sort can only be mapped to more than one distinct sort under certain conditions i.e. when
     // (i) the option for fmbSortInference = expand
     // (ii) at most one sort has non-monotonic subsorts and that is called parent
     // (iii) additional constraints have been added making expanded <= parent
-    DHMap<unsigned,Stack<unsigned>*> vampireToDistinct;
+    DHMap<unsigned,Stack<unsigned>*, FnvHash, IdentityHash> vampireToDistinct;
     // This maps to the distinct parent
     // invariant: domain of the two maps are the same and the second maps to something in the stack of the first
-    DHMap<unsigned,unsigned> vampireToDistinctParent;
+    DHMap<unsigned,unsigned, FnvHash, IdentityHash> vampireToDistinctParent;
 
     // has size distinctSorts
     // is 1 if that distinct sort is monotonic
@@ -77,7 +77,7 @@ public:
                 const DArray<bool>& del_f,
                 const DArray<bool>& del_p,
                 Stack<std::pair<unsigned,unsigned>>& distinct_sort_constraints,
-                DHMap<unsigned,DArray<signed char>*>& monotonic_vampire_sorts) :
+                DHMap<unsigned,DArray<signed char>*, FnvHash, IdentityHash>& monotonic_vampire_sorts) :
                 _clauses(clauses), _del_f(del_f), _del_p(del_p),
                 // these two are essentially output arguments
                 _sort_constraints(distinct_sort_constraints),
@@ -130,7 +130,7 @@ private:
   // these two actually live in FiniteModelBuilder and serve as output arguments of this sort inference
   // (see more explanations there)
   Stack<std::pair<unsigned,unsigned>>& _sort_constraints;
-  DHMap<unsigned,DArray<signed char>*>& _monotonic_vampire_sorts;
+  DHMap<unsigned,DArray<signed char>*, FnvHash, IdentityHash>& _monotonic_vampire_sorts;
 };
 
 }

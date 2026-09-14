@@ -15,6 +15,7 @@
 #ifndef __UIHelper__
 #define __UIHelper__
 
+#include <filesystem>
 #include <ostream>
 
 #include "Forwards.hpp"
@@ -45,12 +46,12 @@ private:
   };
   static Stack<LoadedPiece> _loadedPieces;
 
-  static void tryParseTPTP(std::istream& input);
+  static void tryParseTPTP(std::istream& input, std::filesystem::path path);
   static void tryParseSMTLIB2(std::istream& input);
 public:
   static void parseSingleLine(const std::string& lineToParse, Options::InputSyntax inputSyntax);
 
-  static void parseStream(std::istream& input, Options::InputSyntax inputSyntax, bool verbose, bool preferSMTonAuto);
+  static void parseStream(std::istream& input, std::filesystem::path path, Options::InputSyntax inputSyntax, bool verbose, bool preferSMTonAuto);
   static void parseStandardInput(Options::InputSyntax inputSyntax);
   static void parseFile(const std::string& inputFile, Options::InputSyntax inputSyntax, bool verbose);
 
@@ -76,8 +77,10 @@ public:
   static void outputSaturatedSet(std::ostream& out, UnitIterator uit);
   static void outputInterferences(std::ostream& out, const Problem&);
 
-  static void outputSymbolDeclarations(std::ostream& out);
-  static void outputSymbolTypeDeclarationIfNeeded(std::ostream& out, bool function, bool typecon, unsigned symNumber);
+  /** With @b tcf, the declarations are wrapped in tcf() rather than tff(),
+   *  so that they can accompany tcf() clauses (see <tff_atom_typing> in the TCF grammar). */
+  static void outputSymbolDeclarations(std::ostream& out, bool tcf = false);
+  static void outputSymbolTypeDeclarationIfNeeded(std::ostream& out, bool function, bool typecon, unsigned symNumber, bool tcf = false);
 
   /**
    * A hacky global flag distinguishing the parent and the child in portfolio modes.

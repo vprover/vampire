@@ -46,9 +46,8 @@ using namespace Inferences::ALASCA;
 #define UWA_MODE Options::UnificationWithAbstraction::ALASCA_MAIN
 
 inline auto demodTester() {
-    return FwdBwdSimplification::TestCase()
-      .fwd   (   new FwdDemodulation(testAlascaState(UWA_MODE))  )
-      .bwd   (   new BwdDemodulation(testAlascaState(UWA_MODE))  );
+    return FwdBwdSimplification::TestCase<FwdDemodulation, BwdDemodulation>()
+      .options(alascaTestOptions());
 }
 // ±ks + t ≈ 0          C[sσ]
 // ============================

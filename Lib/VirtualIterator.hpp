@@ -31,9 +31,6 @@ namespace Lib {
 ///@addtogroup Iterators
 ///@{
 
-template<typename T>
-  class VirtualIterator;
-
 /**
  * Base class of objects that provide the "virtual" core of
  * @b VirtualIterator objects.
@@ -47,13 +44,7 @@ template<typename T>
 template<typename T>
 class IteratorCore {
 public:
-  IteratorCore(const IteratorCore&) = delete;
-  IteratorCore& operator=(const IteratorCore&) = delete;
-  IteratorCore(IteratorCore&&) = default;
-  IteratorCore& operator=(IteratorCore&&) = default;
-
-  DECL_ELEMENT_TYPE(T);
-  IteratorCore() = default;
+  using ElementType = T;
   virtual ~IteratorCore() = default;
 
   /** Return true if there is a next element */
@@ -90,7 +81,6 @@ class EmptyIterator
 public:
   USE_ALLOCATOR(EmptyIterator);
 
-  EmptyIterator() {}
   bool hasNext() override { return false; };
   T next() override { INVALID_OPERATION("next() called on EmptyIterator object"); };
   bool knowsSize() const override { return true; }
@@ -102,32 +92,20 @@ public:
  * of element retrieval through the polymorphism of @b IteratorCore objects
  *
  * @tparam T type returned by the iterator
- *
- * The @b VirtualIterator object performs reference counting on @b IteratorCore
- * objects and deletes them when the reference count drops to zero. The reference
- * count is kept in the @b IteratorCore::_refCnt field.
- *
- * @see IteratorCore
  */
 template<typename T>
 class VirtualIterator final {
 public:
   USE_ALLOCATOR(VirtualIterator);
-
-  DECL_ELEMENT_TYPE(T);
+  using ElementType = T;
 
   VirtualIterator() = default;
+
   /**
    * Create an object with @b core as its core.
    */
   inline
   explicit VirtualIterator(IteratorCore<T>* core) : _core(core) {}
-
-  VirtualIterator(const VirtualIterator &) = delete;
-  VirtualIterator &operator=(const VirtualIterator &) = delete;
-
-  VirtualIterator(VirtualIterator &&) noexcept = default;
-  VirtualIterator &operator=(VirtualIterator &&other) noexcept = default;
 
   /** Return an empty iterator */
   static VirtualIterator getEmpty()
@@ -213,7 +191,6 @@ class ProxyIterator
 public:
   USE_ALLOCATOR(ProxyIterator);
   DEFAULT_CONSTRUCTORS(ProxyIterator)
-  ~ProxyIterator() override {}
 
   explicit ProxyIterator(Inner inn) : _inn(std::move(inn)) {}
   bool hasNext() override { return _inn.hasNext(); };
@@ -226,17 +203,14 @@ private:
  * Encapsulate an ordinary iterator object @b it into a VirtualIterator
  *
  * @tparam Inner type of the iterator to be encapsulated. It must be
- *   a class/struct that declares its element type through the
- *   DECL_ELEMENT_TYPE macro, and has functions @b hasNext() and
- *   @b next()
- *
- * @see DECL_ELEMENT_TYPE
+ *   a class/struct that declares its element type,
+ *   and has functions @b hasNext() and @b next()
  */
 template<class Inner>
 inline
-VirtualIterator<ELEMENT_TYPE(Inner)> pvi(Inner it)
+VirtualIterator<typename Inner::ElementType> pvi(Inner it)
 {
-  return VirtualIterator<ELEMENT_TYPE(Inner)>(new ProxyIterator<ELEMENT_TYPE(Inner),Inner>(std::move(it)));
+  return VirtualIterator<typename Inner::ElementType>(new ProxyIterator<typename Inner::ElementType,Inner>(std::move(it)));
 }
 
 ///@}

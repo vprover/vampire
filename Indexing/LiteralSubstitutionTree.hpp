@@ -16,28 +16,24 @@
 #ifndef __LiteralSubstitutionTree__
 #define __LiteralSubstitutionTree__
 
-#include "Indexing/Index.hpp"
 #include "Lib/STL.hpp"
 #include "Kernel/UnificationWithAbstraction.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/VirtualIterator.hpp"
-#include "LiteralIndexingStructure.hpp"
 #include "SubstitutionTree.hpp"
 #include "Kernel/Signature.hpp"
 
 namespace Indexing {
 
-/** A wrapper class around SubstitutionTree that makes it usable  as a LiteralIndexingStructure */
+/** A wrapper class around SubstitutionTree that makes it usable a literal index */
 template<class LeafData_>
 class LiteralSubstitutionTree
-: public LiteralIndexingStructure<LeafData_>
 {
   using SubstitutionTree = Indexing::SubstitutionTree<LeafData_>;
   using LeafData         = LeafData_;
   using BindingMap                  = typename SubstitutionTree::BindingMap;
   using Node                        = typename SubstitutionTree::Node;
   using FastInstancesIterator       = typename SubstitutionTree::FastInstancesIterator;
-  using FastGeneralizationsIterator = typename SubstitutionTree::FastGeneralizationsIterator;
   using LDIterator                  = typename SubstitutionTree::LDIterator;
   using Leaf                        = typename SubstitutionTree::Leaf;
   using LeafIterator                = typename SubstitutionTree::LeafIterator;
@@ -47,33 +43,20 @@ public:
     : _trees(env.signature->predicates() * 2)
     { }
 
-  void handle(LeafData ld, bool insert) final
+  void handle(LeafData ld, bool insert)
   { getTree(ld.key(), /* complementary */ false).handle(std::move(ld), insert); }
 
-  VirtualIterator<LeafData> getAll() final
-  {
-    return pvi(
-          iterTraits(getRangeIterator((unsigned long)0, _trees.size()))
-           .flatMap([this](auto i) { return LeafIterator(_trees[i].get()); })
-           .flatMap([](Leaf* l) { return l->allChildren(); })
-           // TODO get rid of copying data here
-           .map([](LeafData const* ld) { return *ld; })
-        );
-  }
+  void insert(LeafData ld) { handle(std::move(ld), /* insert = */ true ); }
+  void remove(LeafData ld) { handle(std::move(ld), /* insert = */ false); }
 
-  VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData_>> getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions) final
+  auto getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions)
   { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::RobUnification<RetrievalAlgorithms::DefaultVarBanks>>>(lit, complementary, retrieveSubstitutions)); }
 
-  VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getGeneralizations(Literal* lit, bool complementary, bool retrieveSubstitutions) final
-  { return pvi(getResultIterator<FastGeneralizationsIterator>(lit, complementary, retrieveSubstitutions)); }
-
-  VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions) final
+  auto getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions)
   { return pvi(getResultIterator<FastInstancesIterator>(lit, complementary, retrieveSubstitutions)); }
 
-  VirtualIterator<QueryRes<ResultSubstitutionSP, LeafData>> getVariants(Literal* query, bool complementary, bool retrieveSubstitutions) final
-  {
-    return pvi(iterTraits(getTree(query, complementary).getVariants(query, retrieveSubstitutions)));
-  }
+  auto getVariants(Literal* query, bool complementary, bool retrieveSubstitutions)
+  { return pvi(iterTraits(getTree(query, complementary).getVariants(query, retrieveSubstitutions))); }
 
 private:
   /** encodes functor and polarity into one number, so it can be used as an index in the array _trees
@@ -95,7 +78,7 @@ private:
       { return tree->template iterator<Iterator>(lit, retrieveSubstitutions, reversed, args...); };
 
     return ifElseIter(
-        tree->isEmpty(), [&]() { return VirtualIterator<ELEMENT_TYPE(Iterator)>::getEmpty(); },
+        tree->isEmpty(), [&]() { return VirtualIterator<typename Iterator::ElementType>::getEmpty(); },
                          [&]() { return ifElseIter(!lit->isEquality(),
                                  [&]() { return iter(/* reverse */ false); },
                                  [&]() { return concatIters(iter(/* reverse */ false), iter(/* reverse */ true)); }); }
@@ -104,14 +87,14 @@ private:
 
 public:
 
-  VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration) final
+  auto getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
   { 
     auto unif = Lib::make_shared(AbstractingUnifier::empty(AbstractionOracle(uwa)));
     return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::UnificationWithAbstraction<AbstractingUnifier*, RetrievalAlgorithms::DefaultVarBanks>>>(lit, complementary, /* retrieveSubstitutions */ true,  unif.get(), AbstractionOracle(uwa), fixedPointIteration)
         .store(std::move(unif))); }
 
   template<class VarBanks>
-  VirtualIterator<QueryRes<AbstractingUnifier*, LeafData>> getUwa(AbstractingUnifier* state, Literal* lit, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
+  auto getUwa(AbstractingUnifier* state, Literal* lit, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
   { return pvi(getResultIterator<typename SubstitutionTree::template Iterator<RetrievalAlgorithms::UnificationWithAbstraction<AbstractingUnifier*, VarBanks>>>(lit, /* complementar*/ false, /* retrieveSubstitutions */ true, state, AbstractionOracle(uwa), fixedPointIteration)); }
 
   friend std::ostream& operator<<(std::ostream& out, LiteralSubstitutionTree const& self)
@@ -143,14 +126,13 @@ public:
     return out << "} ";
   }
 
-  void output(std::ostream& out, Option<unsigned> multilineIndent) const override {
+  void output(std::ostream& out, Option<unsigned> multilineIndent) const {
     if (multilineIndent) {
       out << Output::multiline(*this, *multilineIndent);
     } else {
       out << *this;
     }
   }
-
 
 private:
   SubstitutionTree& getTree(Literal* lit, bool complementary)

@@ -32,8 +32,7 @@ class URResolution
 : public GeneratingInferenceEngine
 {
 public:
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
+  URResolution(SaturationAlgorithm& salg);
 
   ClauseIterator generateClauses(Clause* premise) override;
 
@@ -47,10 +46,10 @@ private:
 
   void doBackwardInferences(Clause* cl, ClauseList*& acc);
 
-  bool _full;
-  bool _emptyClauseOnly;
-  bool _selectedOnly = false;
-  using UnitIndexType = std::conditional_t<synthesis, UnitClauseWithALLiteralIndex, UnitClauseLiteralIndex>;
+  const bool _full;
+  const bool _emptyClauseOnly;
+  const bool _selectedOnly;
+  using UnitIndexType = std::conditional_t<synthesis, UnitClauseWithALLiteralIndex, UnitClauseLiteralIndex<false>>;
   using NonUnitIndexType = std::conditional_t<synthesis, NonUnitClauseWithALLiteralIndex, NonUnitClauseLiteralIndex>;
   std::shared_ptr<UnitIndexType> _unitIndex;
   std::shared_ptr<NonUnitIndexType> _nonUnitIndex;

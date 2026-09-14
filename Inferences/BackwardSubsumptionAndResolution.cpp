@@ -25,6 +25,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Lib/List.hpp"
+#include "Lib/Random.hpp"
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralIndex.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -38,20 +39,19 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-void BackwardSubsumptionAndResolution::attach(SaturationAlgorithm *salg)
+template<bool higherOrder>
+BackwardSubsumptionAndResolution<higherOrder>::BackwardSubsumptionAndResolution(SaturationAlgorithm& salg)
+  : _subsumption(salg.getOptions().backwardSubsumption() != Options::Subsumption::OFF),
+    _subsumptionResolution(salg.getOptions().backwardSubsumptionResolution() != Options::Subsumption::OFF),
+    _subsumptionByUnitsOnly(salg.getOptions().backwardSubsumption() == Options::Subsumption::UNIT_ONLY),
+    _srByUnitsOnly(salg.getOptions().backwardSubsumptionResolution() == Options::Subsumption::UNIT_ONLY),
+    _bwIndex(salg.getSimplifyingIndex<BackwardSubsumptionIndex>())
 {
-  BackwardSimplificationEngine::attach(salg);
-  _bwIndex = salg->getSimplifyingIndex<BackwardSubsumptionIndex>();
+  ASS(_subsumption || _subsumptionResolution);
 }
 
-void BackwardSubsumptionAndResolution::detach()
-{
-  _bwIndex = nullptr;
-  BackwardSimplificationEngine::detach();
-}
-
-
-void BackwardSubsumptionAndResolution::perform(Clause *cl,
+template<bool higherOrder>
+void BackwardSubsumptionAndResolution<higherOrder>::perform(Clause *cl,
                                                BwSimplificationRecordIterator &simplifications)
 {
   ASSERT_VALID(*cl)
@@ -61,6 +61,12 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
   if (!_subsumption && !_subsumptionResolution) {
     return;
   }
+
+  // under randomized simplifications, each subsumption resolution candidate is with this
+  // probability dropped as early as possible (saving also the SR checks); proper
+  // subsumptions are never leaky (the same prob as for the forward variant; to be tuned)
+  constexpr double RSI_SKIP_PROB = 0.02;
+  bool rsi = env.options->randomizedSimplifications();
 
   _checked.reset();
 
@@ -79,10 +85,10 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
       /***************************************************/
       /*            SUBSUMPTION UNIT CLAUSE              */
       /***************************************************/
-      auto it = _bwIndex->getInstances(lit, false, false);
+      auto it = _bwIndex->getInstances<higherOrder>(lit, false, false);
       while (it.hasNext()) {
         Clause *icl = it.next().data->clause;
-        if (!_checked.insert(icl))
+        if (!_checked.insert(icl->number()))
           continue;
         env.statistics->backwardSubsumed++;
         List<BwSimplificationRecord>::push(BwSimplificationRecord(icl), simplificationBuffer);
@@ -92,12 +98,15 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
       /***************************************************/
       /*      SUBSUMPTION RESOLUTION UNIT CLAUSE         */
       /***************************************************/
-      auto it = _bwIndex->getInstances(lit, true, false);
+      auto it = _bwIndex->getInstances<higherOrder>(lit, true, false);
       while (it.hasNext()) {
         auto res = it.next();
         Clause *icl = res.data->clause;
-        if (!_checked.insert(icl))
+        if (!_checked.insert(icl->number()))
           continue;
+        if (rsi && Random::getDouble(0.0,1.0) < RSI_SKIP_PROB) {
+          continue; // drop this candidate early; the next one gets a chance
+        }
         Clause *conclusion = SATSubsumption::SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(icl, res.data->literal, cl, /*forward=*/false);
         ASS(conclusion)
         List<BwSimplificationRecord>::push(BwSimplificationRecord(icl, conclusion), simplificationBuffer);
@@ -138,14 +147,15 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
 
   if (!_subsumptionByUnitsOnly) {
     // find the positively matched literals
-    auto it = _bwIndex->getInstances(lit, false, false);
+    auto it = _bwIndex->getInstances<higherOrder>(lit, false, false);
     while (it.hasNext()) {
       Clause *icl = it.next().data->clause;
-      if (!_checked.insert(icl))
+      if (!_checked.insert(icl->number()))
         continue;
       // check subsumption and setup subsumption resolution at the same time
       bool checkS = _subsumption && !_subsumptionByUnitsOnly;
-      bool checkSR = _subsumptionResolution && !_srByUnitsOnly;
+      bool checkSR = _subsumptionResolution && !_srByUnitsOnly &&
+                    !(rsi && Random::getDouble(0.0,1.0) < RSI_SKIP_PROB);
       if (checkS) {
         if (_satSubs.checkSubsumption(cl, icl, checkSR)) {
           env.statistics->backwardSubsumed++;
@@ -170,11 +180,14 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
     // find the negatively matched literals
     // We can use the same least matchable literal as before since our method is agnostic to the
     // flipped literal
-    auto it = _bwIndex->getInstances(lit, true, false);
+    auto it = _bwIndex->getInstances<higherOrder>(lit, true, false);
     while (it.hasNext()) {
       Clause *icl = it.next().data->clause;
-      if (!_checked.insert(icl))
+      if (!_checked.insert(icl->number()))
         continue;
+      if (rsi && Random::getDouble(0.0,1.0) < RSI_SKIP_PROB) {
+        continue; // drop this candidate early; the next one gets a chance
+      }
       // check subsumption resolution
       Clause *conclusion = _satSubs.checkSubsumptionResolution(cl, icl, /*forward=*/false, false);
       if (conclusion) {
@@ -187,5 +200,8 @@ void BackwardSubsumptionAndResolution::perform(Clause *cl,
     simplifications = pvi(List<BwSimplificationRecord>::Iterator(simplificationBuffer));
   }
 }
+
+template class BackwardSubsumptionAndResolution<false>;
+template class BackwardSubsumptionAndResolution<true>;
 
 } // namespace Inferences

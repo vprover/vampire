@@ -130,8 +130,6 @@ enum class Proxy {
   AND,
   OR,
   IMP,
-  FORALL,
-  EXISTS,
   IFF,
   XOR,
   NOT,
@@ -211,10 +209,11 @@ public:
   /** set the content manually - hazardous, such terms should then only be used as integers */
   void setContent(uint64_t content) { _content = content; }
   /** default hash is to hash the content */
-  unsigned defaultHash() const { return DefaultHash::hash(content()); }
-  unsigned defaultHash2() const { return content(); }
+  unsigned defaultHash() const;
+  unsigned defaultHash2() const;
 
-  std::string toString(bool needsPar = false) const;
+  // TODO this default value is probably the reason we get too many parentheses everywhere
+  std::string toString(bool topLevel = false) const;
 
   friend std::ostream& operator<<(std::ostream& out, Kernel::TermList const& tl);
   /** make the term into an ordinary variable with a given number */
@@ -292,6 +291,10 @@ public:
   bool isPlaceholder() const;
 
   Option<unsigned> deBruijnIndex() const;
+  /* Checks whether a term contains a loose, or unbound DB index.
+   * In other words, it returns true if there is a db_i in the
+   * term that is not wrapped into i lambda binders. */ 
+  bool containsLooseDBIndex() const;
   TermList lhs() const;
   TermList rhs() const;
   TermList lambdaBody() const;
@@ -433,9 +436,8 @@ public:
       } _formulaData;
       struct {
         TermList lambdaExp;
-        VList* _vars;
-        SList* _sorts;  
-        TermList sort; 
+        VSList* _vars;  // variables with their sorts together
+        TermList sort;
         TermList expSort;//TODO is this needed?
       } _lambdaData;
       struct {
@@ -450,10 +452,8 @@ public:
     { return getTerm()->specialFunctor(); }
 
     Formula* getITECondition() const { ASS_EQ(specialFunctor(), SpecialFunctor::ITE); return _iteData.condition; }
-    VList* getLambdaVars() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData._vars; }
-    void setLambdaVars(VList* vars) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData._vars = vars; }
-    SList* getLambdaVarSorts() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData._sorts; }
-    void setLambdaVarSorts(SList* sorts) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData._sorts = sorts; }
+    VSList* getLambdaVars() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData._vars; }
+    void setLambdaVars(VSList* vars) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData._vars = vars; }
     TermList getLambdaExp() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData.lambdaExp; }
     void setLambdaExp(TermList exp) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData.lambdaExp = exp; }
     void setLambdaExpSort(TermList sort) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData.expSort = sort; }
@@ -497,12 +497,11 @@ public:
   static Term* createNonShared(Term* t);
   static Term* cloneNonShared(Term* t);
 
-  static Term* createConstant(const std::string& name);
   /** Create a new constant and insert in into the sharing structure */
   static Term* createConstant(unsigned symbolNumber) { return create(symbolNumber,0,0); }
   static Term* createITE(Formula * condition, TermList thenBranch, TermList elseBranch, TermList branchSort);
   static Term* createLet(Formula* binding, TermList body, TermList bodySort);
-  static Term* createLambda(TermList lambdaExp, VList* vars, SList* sorts, TermList expSort);
+  static Term* createLambda(TermList lambdaExp, VSList* vars, TermList expSort);
   static Term* createFormula(Formula* formula);
   static Term* createMatch(TermList sort, TermList matchedSort, unsigned int arity, TermList* elements);
   static Term* create1(unsigned fn, TermList arg);
@@ -582,7 +581,7 @@ public:
     * non-emptiness
     * In the monomorphic case, the same as args()
     */
-  TermList* termArgs();
+  const TermList* termArgs() const;
 
   /** Return the 1st type argument for a polymorphic term.
     * returns a nullpointer if the term not polymorphic
@@ -835,7 +834,7 @@ public:
   }
 
   /** Return an index of the argument to which @b arg points */
-  unsigned getArgumentIndex(TermList* arg)
+  unsigned getArgumentIndex(const TermList* arg)
   {
     unsigned res=arity()-(arg-_args);
     ASS_L(res,arity());
@@ -998,7 +997,7 @@ public:
   class Iterator
   {
   public:
-    DECL_ELEMENT_TYPE(TermList);
+    using ElementType = TermList;
     Iterator(const Term* t) : _next(t->args()) {}
     bool hasNext() const { return _next->isNonEmpty(); }
     TermList next()
@@ -1037,7 +1036,7 @@ public:
   static AtomicSort* create(AtomicSort const* t,TermList* args);
   static AtomicSort* createNonShared(AtomicSort const* sort,TermList* args);
   static AtomicSort* createConstant(unsigned typeCon) { return create(typeCon,0,0); }
-  static AtomicSort* createConstant(const std::string& name); 
+  static AtomicSort* createConstant(const std::string& name);
 
   /** True if the sort is a higher-order arrow sort */
   bool isArrowSort() const;
@@ -1048,9 +1047,12 @@ public:
   /** true if sort is the sort of an tuple */
   bool isTupleSort() const;
 
-  const std::string& typeConName() const;  
-  
-  static TermList arrowSort(const TermStack& domSorts, TermList range);
+  const std::string& typeConName() const;
+
+  // With a stack (s1,...sn) from bottom to top, we get s1 -> (... -> sn) with fromTop = true,
+  // while sn -> (... -> s1) with fromTop = false.
+  // TODO(HOL): check also this, some call sites might be wrong
+  static TermList arrowSort(const TermStack& domSorts, TermList range, bool fromTop = false);
   static TermList arrowSort(TermList s1, TermList s2);
   static TermList arrowSort(unsigned size, const TermList* types, TermList range);
   static TermList arrowSort(const std::initializer_list<TermList>& types);
@@ -1066,7 +1068,6 @@ public:
 private:
 
   static AtomicSort* createNonShared(unsigned typeCon, unsigned arity, TermList* arg);
-  static AtomicSort* createNonSharedConstant(unsigned typeCon) { return createNonShared(typeCon,0,0); }
 };
 
 /**
@@ -1116,6 +1117,7 @@ public:
   { _args[0]._setPolarity(positive); }
 
   TermList eqArgSort() const;
+  std::pair<TermList, TermList> eqArgs() const;
   
   // prevent bugs through implicit bool <-> unsigned conversions
   template<class Iter> static Literal* createFromIter(unsigned predicate, unsigned polarity, Iter iter) = delete;
@@ -1209,11 +1211,16 @@ public:
     return l->isPositive() ? l : complementaryLiteral(l);
   }
 
+  // disequation of the form λ x s ≉ λ y t, where x and y are not lambda-bound variables.
+  bool isFlexFlexConstraint() const;
+  // (dis)equation of the form λ x s ≉ λ f t, where x is a variable that not lambda-bound, and f a constant.
+  bool isFlexRigid() const;
+
   // destructively swap arguments of an equation
   // the term is assumed to be non-shared
   void argSwap() {
     ASS(isEquality() && !shared());
-    ASS(arity() == 2);
+    ASS_EQ(arity(), 2);
 
     TermList* ts1 = args();
     TermList* ts2 = ts1->next();
@@ -1307,6 +1314,36 @@ struct SharedTermHash {
   static unsigned hash(Term* t) { return t->getId(); }
 };
 
+/**
+ * Hashes to make hashing over shared terms wrapped in a TermList (typically sorts)
+ * deterministic. The default hashes go through TermList::content(), i.e. the address of
+ * the term, so a container using them gets enumerated in an order which differs between
+ * runs. Both are needed: DHMap takes the bucket from Hash1 and the probing step from Hash2.
+ */
+struct SharedTermListHash {
+  static bool equals(TermList t1, TermList t2) { return t1==t2; }
+  static unsigned hash(TermList t)
+  { ASS(t.isTerm() && t.term()->shared()); return FnvHash::hash(t.term()->getId()); }
+};
+struct SharedTermListHash2 {
+  static unsigned hash(TermList t)
+  { ASS(t.isTerm() && t.term()->shared()); return IdentityHash::hash(t.term()->getId()); }
+};
+
+// hash a TermList by FNV-1a of its content word
+struct TermListHash {
+  static bool equals(TermList t1, TermList t2) { return t1 == t2; }
+  static unsigned hash(TermList t) { return FnvHash::hash(t.content()); }
+};
+
+// cheap secondary hash: the content word itself
+struct TermListHash2 {
+  static unsigned hash(TermList t) { return t.content(); }
+};
+
+inline unsigned TermList::defaultHash() const { return TermListHash::hash(*this); }
+inline unsigned TermList::defaultHash2() const { return TermListHash2::hash(*this); }
+
 /** helper lambda that turns a number into a variable */
 static const auto unsignedToVarFn = [](unsigned var)
   { return TermList::var(var); };
@@ -1315,8 +1352,8 @@ static const auto unsignedToVarFn = [](unsigned var)
 
 template<>
 struct std::hash<Kernel::TermList> {
-  size_t operator()(Kernel::TermList const& t) const 
-  { return t.defaultHash(); }
+  size_t operator()(Kernel::TermList const& t) const
+  { return Kernel::TermListHash::hash(t); }
 };
 
 #endif

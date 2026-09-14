@@ -26,107 +26,117 @@ bool outputAllowed(bool debug);
 
 namespace Debug {
 namespace Assertion {
+
+struct Location {
+  const char* file;
+  int line;
+};
+
+inline std::ostream& operator<<(std::ostream& out, const Location& loc) {
+  return out << loc.file << ":" << loc.line;
+}
+
 [[noreturn]] void abortAfterViolation();
-[[noreturn]] void violated(const char* file, int line, const char* condition);
+[[noreturn]] void violated(Location loc, const char* condition);
 
 template <typename T>
-[[noreturn]] void violated(const char* file, int line, const char* condition,
+[[noreturn]] void violated(Location loc, const char* condition,
                            const T& rep, const char* repStr);
 
 template <typename T, typename U>
-[[noreturn]] void violated(const char* file, int line, const char* condition,
+[[noreturn]] void violated(Location loc, const char* condition,
                            const T& rep, const char* repStr, const U& rep2, const char* repStr2);
 
 template <typename T, typename U>
-[[noreturn]] void violatedEquality(const char* file, int line, const char* val1Str,
+[[noreturn]] void violatedEquality(Location loc, const char* val1Str,
                                    const char* val2Str, const T& val1, const U& val2);
 
 template <typename T, typename U>
-[[noreturn]] void violatedNonequality(const char* file, int line, const char* val1Str,
+[[noreturn]] void violatedNonequality(Location loc, const char* val1Str,
                                       const char* val2Str, const T& val1, const U& val2);
 
 template <typename T, typename U>
-[[noreturn]] void violatedComparison(const char* file, int line, const char* val1Str,
+[[noreturn]] void violatedComparison(Location loc, const char* val1Str,
                                      const char* val2Str, const T& val1, const U& val2, bool strict, bool greater);
 
 template <typename T>
-[[noreturn]] void violatedMethod(const char* file, int line, const T& obj,
+[[noreturn]] void violatedMethod(Location loc, const T& obj,
                                  const char* objStr, const char* methodStr, const char* prefix);
 
-[[noreturn]] void violatedStrEquality(const char* file, int line, const char* val1Str,
+[[noreturn]] void violatedStrEquality(Location loc, const char* val1Str,
                                       const char* val2Str, const char* val1, const char* val2);
 
-[[noreturn]] void reportAssertValidException(const char* file, int line, const char* obj);
+[[noreturn]] void reportAssertValidException(Location loc, const char* obj);
 } // namespace Assertion
 } // namespace Debug
 
 #define ASS(Cond)                                            \
   {                                                          \
     if (!(Cond)) {                                           \
-      Debug::Assertion::violated(__FILE__, __LINE__, #Cond); \
+      Debug::Assertion::violated({__FILE__, __LINE__}, #Cond); \
     }                                                        \
   }
 
 #define ASS_REP(Cond, ReportedVal)                                                      \
   {                                                                                     \
     if (!(Cond)) {                                                                      \
-      Debug::Assertion::violated(__FILE__, __LINE__, #Cond, ReportedVal, #ReportedVal); \
+      Debug::Assertion::violated({__FILE__, __LINE__}, #Cond, ReportedVal, #ReportedVal); \
     }                                                                                   \
   }
 
 #define ASS_REP2(Cond, ReportedVal, ReportedVal2)                                                                    \
   {                                                                                                                  \
     if (!(Cond)) {                                                                                                   \
-      Debug::Assertion::violated(__FILE__, __LINE__, #Cond, ReportedVal, #ReportedVal, ReportedVal2, #ReportedVal2); \
+      Debug::Assertion::violated({__FILE__, __LINE__}, #Cond, ReportedVal, #ReportedVal, ReportedVal2, #ReportedVal2); \
     }                                                                                                                \
   }
 
 #define ASS_EQ(VAL1, VAL2)                                                              \
   {                                                                                     \
     if (!((VAL1) == (VAL2))) {                                                          \
-      Debug::Assertion::violatedEquality(__FILE__, __LINE__, #VAL1, #VAL2, VAL1, VAL2); \
+      Debug::Assertion::violatedEquality({__FILE__, __LINE__}, #VAL1, #VAL2, VAL1, VAL2); \
     }                                                                                   \
   }
 
 #define ASS_NEQ(VAL1, VAL2)                                                                \
   {                                                                                        \
     if (!((VAL1) != (VAL2))) {                                                             \
-      Debug::Assertion::violatedNonequality(__FILE__, __LINE__, #VAL1, #VAL2, VAL1, VAL2); \
+      Debug::Assertion::violatedNonequality({__FILE__, __LINE__}, #VAL1, #VAL2, VAL1, VAL2); \
     }                                                                                      \
   }
 
 #define ASS_STR_EQ(VAL1, VAL2)                                                             \
   {                                                                                        \
     if (strcmp((VAL1), (VAL2))) {                                                          \
-      Debug::Assertion::violatedStrEquality(__FILE__, __LINE__, #VAL1, #VAL2, VAL1, VAL2); \
+      Debug::Assertion::violatedStrEquality({__FILE__, __LINE__}, #VAL1, #VAL2, VAL1, VAL2); \
     }                                                                                      \
   }
 
 #define ASS_G(VAL1, VAL2)                                                                             \
   {                                                                                                   \
     if (!((VAL1) > (VAL2))) {                                                                         \
-      Debug::Assertion::violatedComparison(__FILE__, __LINE__, #VAL1, #VAL2, VAL1, VAL2, true, true); \
+      Debug::Assertion::violatedComparison({__FILE__, __LINE__}, #VAL1, #VAL2, VAL1, VAL2, true, true); \
     }                                                                                                 \
   }
 
 #define ASS_L(VAL1, VAL2)                                                                              \
   {                                                                                                    \
     if (!((VAL1) < (VAL2))) {                                                                          \
-      Debug::Assertion::violatedComparison(__FILE__, __LINE__, #VAL1, #VAL2, VAL1, VAL2, true, false); \
+      Debug::Assertion::violatedComparison({__FILE__, __LINE__}, #VAL1, #VAL2, VAL1, VAL2, true, false); \
     }                                                                                                  \
   }
 
 #define ASS_GE(VAL1, VAL2)                                                                             \
   {                                                                                                    \
     if (!((VAL1) >= (VAL2))) {                                                                         \
-      Debug::Assertion::violatedComparison(__FILE__, __LINE__, #VAL1, #VAL2, VAL1, VAL2, false, true); \
+      Debug::Assertion::violatedComparison({__FILE__, __LINE__}, #VAL1, #VAL2, VAL1, VAL2, false, true); \
     }                                                                                                  \
   }
 
 #define ASS_LE(VAL1, VAL2)                                                                              \
   {                                                                                                     \
     if (!((VAL1) <= (VAL2))) {                                                                          \
-      Debug::Assertion::violatedComparison(__FILE__, __LINE__, #VAL1, #VAL2, VAL1, VAL2, false, false); \
+      Debug::Assertion::violatedComparison({__FILE__, __LINE__}, #VAL1, #VAL2, VAL1, VAL2, false, false); \
     }                                                                                                   \
   }
 
@@ -136,7 +146,7 @@ template <typename T>
 #define ASS_METHOD(OBJ, METHOD)                                                       \
   {                                                                                   \
     if (!((OBJ).METHOD)) {                                                            \
-      Debug::Assertion::violatedMethod(__FILE__, __LINE__, (OBJ), #OBJ, #METHOD, ""); \
+      Debug::Assertion::violatedMethod({__FILE__, __LINE__}, (OBJ), #OBJ, #METHOD, ""); \
     }                                                                                 \
   }
 
@@ -146,13 +156,13 @@ template <typename T>
       (obj).assertValid();                                                    \
     }                                                                         \
     catch (...) {                                                             \
-      Debug::Assertion::reportAssertValidException(__FILE__, __LINE__, #obj); \
+      Debug::Assertion::reportAssertValidException({__FILE__, __LINE__}, #obj); \
     }                                                                         \
   }
 
 #define ASSERTION_VIOLATION                                 \
   {                                                         \
-    Debug::Assertion::violated(__FILE__, __LINE__, "true"); \
+    Debug::Assertion::violated({__FILE__, __LINE__}, "true"); \
   }
 
 #define ASSERTION_VIOLATION_REP(Val) ASS_REP(false, Val)
@@ -229,11 +239,11 @@ template <typename T>
 #if VDEBUG
 
 template <typename T>
-void Debug::Assertion::violated(const char* file, int line, const char* cond,
+void Debug::Assertion::violated(Location loc, const char* cond,
                                 const T& rep, const char* repStr)
 {
   if (Shell::outputAllowed(true)) {
-    std::cout << "Condition in file " << file << ", line " << line
+    std::cout << "Condition at location " << loc
          << " violated:\n"
          << cond << "\n"
          << "Value of " << repStr << " is: " << rep
@@ -245,11 +255,11 @@ void Debug::Assertion::violated(const char* file, int line, const char* cond,
 } // Assertion::violated
 
 template <typename T, typename U>
-void Debug::Assertion::violated(const char* file, int line, const char* cond,
+void Debug::Assertion::violated(Location loc, const char* cond,
                                 const T& rep, const char* repStr, const U& rep2, const char* repStr2)
 {
   if (Shell::outputAllowed(true)) {
-    std::cout << "Condition in file " << file << ", line " << line
+    std::cout << "Condition at location " << loc
          << " violated:\n"
          << cond << "\n"
          << "Value of " << repStr << " is: " << rep << "\n"
@@ -262,11 +272,11 @@ void Debug::Assertion::violated(const char* file, int line, const char* cond,
 } // Assertion::violated
 
 template <typename T, typename U>
-void Debug::Assertion::violatedEquality(const char* file, int line, const char* val1Str,
+void Debug::Assertion::violatedEquality(Location loc, const char* val1Str,
                                         const char* val2Str, const T& val1, const U& val2)
 {
   if (Shell::outputAllowed(true)) {
-    std::cout << "Condition " << val1Str << " == " << val2Str << " in file " << file << ", line " << line
+    std::cout << "Condition " << val1Str << " == " << val2Str << " at location " << loc
               << " was violated, as:\n"
               << val1Str << " == " << val1 << "\n"
               << val2Str << " == " << val2 << "\n"
@@ -278,11 +288,11 @@ void Debug::Assertion::violatedEquality(const char* file, int line, const char* 
 } // Assertion::violatedEquality
 
 template <typename T, typename U>
-void Debug::Assertion::violatedNonequality(const char* file, int line, const char* val1Str,
+void Debug::Assertion::violatedNonequality(Location loc, const char* val1Str,
                                            const char* val2Str, const T& val1, const U& val2)
 {
   if (Shell::outputAllowed(true)) {
-    std::cout << "Condition " << val1Str << " != " << val2Str << " in file " << file << ", line " << line
+    std::cout << "Condition " << val1Str << " != " << val2Str << " at location " << loc
               << " was violated, as:\n"
               << val1Str << " == " << val1 << "\n"
               << val2Str << " == " << val2 << "\n"
@@ -294,7 +304,7 @@ void Debug::Assertion::violatedNonequality(const char* file, int line, const cha
 } // Assertion::violatedNonequality
 
 template <typename T, typename U>
-void Debug::Assertion::violatedComparison(const char* file, int line, const char* val1Str,
+void Debug::Assertion::violatedComparison(Location loc, const char* val1Str,
                                           const char* val2Str, const T& val1, const U& val2, bool strict, bool greater)
 {
   if (Shell::outputAllowed(true)) {
@@ -314,7 +324,7 @@ void Debug::Assertion::violatedComparison(const char* file, int line, const char
       std::cout << " <= ";
     }
 
-    std::cout << val2Str << " in file " << file << ", line " << line
+    std::cout << val2Str << " at location " << loc
               << " was violated, as:\n"
               << val1Str << " == " << val1 << "\n"
               << val2Str << " == " << val2 << "\n"
@@ -326,12 +336,12 @@ void Debug::Assertion::violatedComparison(const char* file, int line, const char
 } // Assertion::violatedComparison
 
 template <typename T>
-void Debug::Assertion::violatedMethod(const char* file, int line, const T& obj,
+void Debug::Assertion::violatedMethod(Location loc, const T& obj,
                                       const char* objStr, const char* methodStr, const char* prefix)
 {
   if (Shell::outputAllowed(true)) {
-    std::cout << "Condition " << prefix << "(" << objStr << ")." << methodStr << " in file "
-              << file << ", line " << line << " was violated for:\n"
+    std::cout << "Condition " << prefix << "(" << objStr << ")." << methodStr
+              << " at location " << loc << " was violated for:\n"
               << objStr << " == " << obj << "\n"
               << "----- stack dump -----\n";
     Tracer::printStack();

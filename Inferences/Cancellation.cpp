@@ -11,6 +11,7 @@
 #include "Inferences/Cancellation.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/NumTraits.hpp"
+#include "Kernel/PolynomialBottomUpEvaluation.hpp"
 
 #define DEBUG(...) //DBG(__VA_ARGS__)
 
@@ -82,7 +83,7 @@ Literal* tryCancel(Interpretation inter, Literal* lit) {
   return lit;
 }
 
-Cancellation::Cancellation(Ordering& ordering) : SimplifyingGeneratingLiteralSimplification(InferenceRule::CANCELLATION, ordering) {}
+Cancellation::Cancellation(const Ordering& ordering) : SimplifyingGeneratingLiteralSimplification(InferenceRule::CANCELLATION, ordering) {}
 
 Cancellation::Result Cancellation::simplifyLiteral(Literal* litIn) 
 {

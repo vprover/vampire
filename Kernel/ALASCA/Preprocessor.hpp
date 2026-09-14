@@ -15,6 +15,7 @@
 #define __ALASCA_Preprocessor__
 
 #include "Kernel/ALASCA/Normalization.hpp"
+#include "Kernel/Clause.hpp"
 #include "Kernel/FormulaTransformer.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Formula.hpp"
@@ -23,11 +24,11 @@
 
 namespace Kernel {
 
-class AlascaPreprocessor 
+class AlascaPreprocessor
 {
-  std::shared_ptr<InequalityNormalizer> _norm;
-  Map<unsigned, unsigned> _preds;
-  Map<unsigned, unsigned> _funcs;
+  const InequalityNormalizer& _norm;
+  Map<unsigned, unsigned, FnvHash> _preds;
+  Map<unsigned, unsigned, FnvHash> _funcs;
   // TODO create option for this
   bool _useFloor = false;
 
@@ -37,14 +38,14 @@ class AlascaPreprocessor
 
   Literal* integerConversion(Literal* l)
   {
-    auto lit = _norm->normalizedLiteral(l);
+    auto lit = _norm.normalizedLiteral(l);
     // AlascaState::globalState->normalizer->normalizedLiteral()
-    auto impl = [&]() { 
+    auto impl = [&]() {
       if (lit->isEquality()) {
         auto sort = SortHelper::getEqualityArgumentSort(lit);
-        return Literal::createEquality(lit->polarity(), 
-            integerConversion(TypedTermList(lit->termArg(0), sort)), 
-            integerConversion(TypedTermList(lit->termArg(1), sort)), 
+        return Literal::createEquality(lit->polarity(),
+            integerConversion(TypedTermList(lit->termArg(0), sort)),
+            integerConversion(TypedTermList(lit->termArg(1), sort)),
             integerConversion(TypedTermList(sort, AtomicSort::superSort())));
       } else {
         auto ff = integerPredicateConversion(lit->functor());
@@ -62,7 +63,7 @@ class AlascaPreprocessor
     return out;
   }
 
-  TermList integerConversion(TypedTermList t) 
+  TermList integerConversion(TypedTermList t)
   {
     return BottomUpEvaluation<TypedTermList, TermList>()
       .function([this](TypedTermList t, TermList* args) -> TermList {
@@ -99,7 +100,7 @@ class AlascaPreprocessor
   unsigned integerPredicateConversion(unsigned f)
   {
 
-    return _preds.getOrInit(f, [&]() { 
+    return _preds.getOrInit(f, [&]() {
       using Z = IntTraits;
       using R = RealTraits;
       if (Z::isLess(f)) return R::lessF();
@@ -109,10 +110,10 @@ class AlascaPreprocessor
       // TODO divides
 
       auto sym = env.signature->getPredicate(f);
-      auto ty = sym->predType();
+      auto ty = sym->type();
       auto sorts_changed = false;
-      auto intConv= [&](auto x) { 
-        auto out = integerConversion(TypedTermList(x, AtomicSort::superSort())); 
+      auto intConv= [&](auto x) {
+        auto out = integerConversion(TypedTermList(x, AtomicSort::superSort()));
         sorts_changed |= out != x;
         return out;
       };
@@ -121,11 +122,8 @@ class AlascaPreprocessor
         arg_sorts->push(intConv(ty->arg(i)));
       }
       if (sorts_changed) {
-        unsigned nf = env.signature->addFreshPredicate(sym->arity(), sym->name().c_str());
-        auto nsym = env.signature->getPredicate(nf);
-        auto nty = OperatorType::getPredicateType(sym->arity(), arg_sorts->begin(), ty->numTypeArguments());
-        nsym->setType(nty);
-        DEBUG_TRANSLATION(*sym, ": ", ty->toString(), " -> ", *nsym, ": ", nty->toString());
+        unsigned nf = env.signature->addFreshPredicate(OperatorType::getPredicateType(*arg_sorts, ty->numTypeArguments()), sym->name().c_str());
+        DEBUG_TRANSLATION(*sym, ": ", ty->toString(), " -> ", *env.signature->getPredicate(nf), ": ", nty->toString());
         return nf;
       } else {
         return f;
@@ -135,7 +133,7 @@ class AlascaPreprocessor
 
   unsigned integerFunctionConversion(unsigned f)
   {
-    return _funcs.getOrInit(f, [&]() { 
+    return _funcs.getOrInit(f, [&]() {
       if (Z::isAdd(f)) return R::addF();
       if (Z::isMul(f)) return R::mulF();
       if (Z::isMinus(f)) return R::minusF();
@@ -154,25 +152,22 @@ class AlascaPreprocessor
 #undef ASS_NOT
 
       auto sorts_changed = false;
-      auto intConv= [&](auto x) { 
-        auto out = integerConversion(TypedTermList(x, AtomicSort::superSort())); 
+      auto intConv= [&](auto x) {
+        auto out = integerConversion(TypedTermList(x, AtomicSort::superSort()));
         sorts_changed |= out != x;
         return out;
       };
 
       auto sym = env.signature->getFunction(f);
-      auto ty = sym->fnType();
-      Recycled<Stack<TermList>> sorts;
+      auto ty = sym->type();
+      Recycled<TermStack> sorts;
       for (auto i : range(0, ty->arity())) {
         sorts->push(intConv(ty->arg(i)));
       }
       auto res_sort = intConv(ty->result());
       if (sorts_changed) {
-        unsigned nf = env.signature->addFreshFunction(sym->arity(), sym->name().c_str());
-        auto nsym = env.signature->getFunction(nf);
-        auto nty = OperatorType::getFunctionType(sym->arity(), sorts->begin(), res_sort, ty->numTypeArguments());
-        nsym->setType(nty);
-        DEBUG_TRANSLATION(*sym, ": ", ty->toString(), " -> ", *nsym, ": ", nty->toString());
+        unsigned nf = env.signature->addFreshFunction(OperatorType::getFunctionType(*sorts, res_sort, ty->numTypeArguments()), sym->name().c_str());
+        DEBUG_TRANSLATION(*sym, ": ", ty->toString(), " -> ", *env.signature->getFunction(nf), ": ", nty->toString());
         return nf;
       } else {
         return f;
@@ -188,13 +183,13 @@ class AlascaPreprocessor
 
   Clause* integerConversion(Clause* clause)
   {
-    auto notInt = [&](auto t) -> Option<Literal*> { 
+    auto notInt = [&](auto t) -> Option<Literal*> {
       if (auto q = R::tryNumeral(t)) {
         if (q->isInt()) {
           return {};
         }
       }
-      return some(R::eq(false, t, R::floor(t))); 
+      return some(R::eq(false, t, R::floor(t)));
     };
     auto change = false;
     Recycled<Stack<Literal*>> res;
@@ -229,8 +224,8 @@ class AlascaPreprocessor
 public:
 
 
-  AlascaPreprocessor(std::shared_ptr<InequalityNormalizer> norm) 
-    : _norm(std::move(norm))
+  AlascaPreprocessor(const InequalityNormalizer& norm)
+    : _norm(norm)
     , _preds()
     , _funcs() {}
 
@@ -242,26 +237,29 @@ public:
     if (!_useFloor) {
       for (auto& func : iterTraits(_funcs.iter())) {
         auto orig_sym = env.signature->getFunction(func.key());
-        if (!theory->isInterpretedFunction(func.value()) 
+        if (!theory->isInterpretedFunction(func.value())
             && !R::isNumeral(func.value())
             && !R::isLinMul(func.value())
             ) {
           auto sym = env.signature->getFunction(func.value());
-          if (orig_sym->fnType()->result() == Z::sort()) {
+          if (orig_sym->type()->result() == Z::sort()) {
             auto t = TermList(Term::createFromIter(func.value(), range(0, sym->arity()).map([](auto x) { return TermList::var(x); })));
-            // TODO use something else than NonspecificInferenceMany
-            auto inf = Inference(NonspecificInferenceMany(INF_RULE, nullptr));
+            auto inf = Inference(NonspecificInference0(UnitInputType::AXIOM,
+                  InferenceRule::ALASCA_INTEGRALITY_AXIOM));
             auto cl = Clause::fromLiterals({R::eq(true, R::floor(t), t)}, inf);
             UnitList::push(cl, prb.units());
           }
         }
       }
     }
-    
+    // the conversion rewrites every unit and adds new ones (in particular equalities,
+    // which the original problem need not have contained), so nothing cached about the
+    // problem survives it
+    prb.invalidateEverything();
   }
 };
 
-class QuotientEPreproc 
+class QuotientEPreproc
 {
   bool _addedITE = false;
   using Z = IntTraits;
@@ -270,12 +268,12 @@ class QuotientEPreproc
 
   Literal* proc(Literal* lit)
   {
-    auto impl = [&]() { 
+    auto impl = [&]() {
       if (lit->isEquality()) {
         auto sort = SortHelper::getEqualityArgumentSort(lit);
-        return Literal::createEquality(lit->polarity(), 
-            proc(TypedTermList(lit->termArg(0), sort)), 
-            proc(TypedTermList(lit->termArg(1), sort)), 
+        return Literal::createEquality(lit->polarity(),
+            proc(TypedTermList(lit->termArg(0), sort)),
+            proc(TypedTermList(lit->termArg(1), sort)),
             sort);
       } else {
         auto ff = lit->functor();
@@ -321,7 +319,7 @@ class QuotientEPreproc
     }
   }
 
-  TermList proc(TypedTermList t) 
+  TermList proc(TypedTermList t)
   {
     auto trans = TermTrans(*this);
     return t.isVar() ? t : TermList(trans.transform(t.term()));
@@ -346,18 +344,18 @@ class QuotientEPreproc
   struct TermTrans : public TermTransformer {
     QuotientEPreproc& _self;
     TermTrans(QuotientEPreproc& self) : _self(self) {}
-    TermList transformSubterm(TermList t) override 
+    TermList transformSubterm(TermList t) override
     { return _self.transformSubterm(t); }
   };
 
-  FormulaUnit* proc(FormulaUnit* unit) 
-  { 
+  FormulaUnit* proc(FormulaUnit* unit)
+  {
     auto trans = TermTrans(*this);
     auto inf = Inference(FormulaClauseTransformation(INF_RULE, unit));
     return new FormulaUnit(TermTransformingFormulaTransformer(trans).transform(unit->formula()), inf); 
   }
   Unit* proc(Unit* unit) {
-    return unit->isClause() 
+    return unit->isClause()
       ? (Unit*)proc(static_cast<Clause*>(unit))
       : (Unit*)proc(static_cast<FormulaUnit*>(unit));
   }
@@ -376,6 +374,6 @@ public:
 
 
 } // namespace Kernel
- 
+
 #endif // __ALASCA_Preprocessor__
 

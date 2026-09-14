@@ -29,6 +29,9 @@ class MinisatInterfacing : public SATSolver
 public:
   static const unsigned VAR_MAX = std::numeric_limits<Minisat::Var>::max() / 2;
 
+  MinisatInterfacing() = default;
+  MinisatInterfacing(const Shell::Options& opts);
+
   /**
    * Can be called only when all assumptions are retracted
    *
@@ -81,19 +84,6 @@ public:
     for(int i = 0; i < _assumptions.size(); i++)
       assumps.push(minisatLit2Vampire(_assumptions[i]));
     return minimizePremiseList(premises, assumps);
-  }
-
-  void setSeed(unsigned seed) {
-    ASS_NEQ(seed,0)
-    _solver.random_seed = seed;
-  }
-
-  void setClauseShuffling(bool newVal) {
-    _solver.shuffle_clauses = newVal;
-  }
-
-  void setWatchesShuffling(bool newVal) {
-    _solver.shuffle_watches = newVal;
   }
 
 protected:

@@ -44,7 +44,7 @@ namespace Kernel {
 class FormulaVarIterator
 {
 public:
-  DECL_ELEMENT_TYPE(unsigned);
+  using ElementType = unsigned;
   explicit FormulaVarIterator(const Formula*);
   explicit FormulaVarIterator(const Term*);
   explicit FormulaVarIterator(const TermList);
@@ -85,7 +85,7 @@ private:
   /** Stack of instructions telling what to do next */
   Stack<Instruction> _instructions;
   /** Stack of lists of variables to process */
-  Stack<const VList*> _vars;
+  Stack<const VSList*> _vars;
 }; // class FormulaVarIterator
 
 template<typename T> // a template to work with Term*, TermList*, and Formula*

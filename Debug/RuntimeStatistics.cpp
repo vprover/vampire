@@ -28,7 +28,7 @@ void RSMultiCounter::print(std::ostream& out)
   out << "% " << name() << ":"<< endl;
   for(size_t i=0;i<_counters.size();i++) {
     if(_counters[i]) {
-      out << "  " << i << ": " << _counters[i] <<endl;
+      out << "% " << i << ": " << _counters[i] <<endl;
     }
   }
 }
@@ -54,17 +54,17 @@ void RSMultiStatistic::print(std::ostream& out)
       int min=vals->head();
       int max=vals->head();
       while(vit.hasNext()) {
-	int val=vit.next();
-	cnt++;
-	sum+=val;
-	if(val<min) {
-	  min=val;
-	}
-	if(val>max) {
-	  max=val;
-	}
+        int val=vit.next();
+        cnt++;
+        sum+=val;
+        if(val<min) {
+          min=val;
+        }
+        if(val>max) {
+          max=val;
+        }
       }
-      out << "  " << i << ": " <<
+      out << "% " << i << ": " <<
               "cnt: "+Int::toString(cnt)+
               ", avg: "+Int::toString(static_cast<float>(sum)/cnt)+
               ", min: "+Int::toString(min)+

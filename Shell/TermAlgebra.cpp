@@ -7,6 +7,9 @@
  * https://vprover.github.io/license.html
  * and in the source directory
  */
+
+#include "Lib/Environment.hpp"
+
 #include "Kernel/Formula.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/Matcher.hpp"
@@ -28,7 +31,7 @@ TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, std::initialize
 TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, Lib::Array<unsigned> destructors)
   : _functor(functor), _hasDiscriminator(false), _destructors(destructors)
 {
-  _type = env.signature->getFunction(_functor)->fnType();
+  _type = env.signature->getFunction(_functor)->type();
 #if VDEBUG
   ASS_REP(env.signature->getFunction(_functor)->termAlgebraCons(), env.signature->functionName(_functor));
   ASS_EQ(arity(), numTypeArguments()+destructors.size());
@@ -44,7 +47,7 @@ TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, Lib::Array<unsi
 TermAlgebraConstructor::TermAlgebraConstructor(unsigned functor, unsigned discriminator, Lib::Array<unsigned> destructors)
   : _functor(functor), _hasDiscriminator(true), _discriminator(discriminator), _destructors(destructors)
 {
-  _type = env.signature->getFunction(_functor)->fnType();
+  _type = env.signature->getFunction(_functor)->type();
 #if VDEBUG
   ASS_REP(env.signature->getFunction(_functor)->termAlgebraCons(), env.signature->functionName(_functor));
   ASS_EQ(arity(), numTypeArguments()+destructors.size());
@@ -63,9 +66,9 @@ unsigned TermAlgebraConstructor::discriminator()
   if (hasDiscriminator()) {
     return _discriminator;
   } else {
-    auto discr = env.signature->addFreshPredicate(numTypeArguments()+1, discriminatorName().c_str());
+    auto discr = env.signature->addFreshPredicate(
+      OperatorType::getPredicateType({_type->result()},numTypeArguments()), discriminatorName().c_str());
     Signature::Symbol* pred = env.signature->getPredicate(discr);
-    pred->setType(OperatorType::getPredicateType({_type->result()},numTypeArguments()));
     pred->markTermAlgebraDiscriminator();
      _hasDiscriminator = true;
      _discriminator = discr;
@@ -73,11 +76,11 @@ unsigned TermAlgebraConstructor::discriminator()
   }
 }
 
-Lib::Set<TermList> TermAlgebra::subSorts(TermList sort)
+Lib::Set<TermList, TermListHash> TermAlgebra::subSorts(TermList sort)
 {
   ASS(sort.isTerm() && sort.term()->isSort());
 
-  Set<TermList> out; 
+  Set<TermList, TermListHash> out;
   /* connected component finding without recursion */
   TermStack work; // <- stack for simulating recursion
   work.push(sort);
@@ -213,17 +216,8 @@ std::string TermAlgebra::getSubtermPredicateName() {
 
 unsigned TermAlgebra::getSubtermPredicate() {
   bool added;
-  unsigned s = env.signature->addPredicate(getSubtermPredicateName(), nTypeArgs()+2, added);
-
-  if (added) {
-    // declare a binary predicate subterm
-    TermStack args;
-    args.push(_sort);
-    args.push(_sort);
-    env.signature->getPredicate(s)->setType(OperatorType::getPredicateType(args.size(),args.begin(),nTypeArgs()));
-  }
-
-  return s;
+  return env.signature->addPredicate(getSubtermPredicateName(),
+    OperatorType::getPredicateType({ _sort, _sort },nTypeArgs()), added);
 }
 
 void TermAlgebra::getTypeSub(Term* sort, Substitution& subst)
@@ -337,7 +331,7 @@ const InductionTemplate* TermAlgebra::getInductionTemplateThree()
 
     _indTemplThree = std::make_unique<const InductionTemplate>(
       TermStack{ TermList(AtomicSort::create(_sort.term()->functor(), typeArgs.size(), typeArgs.begin())) },
-      Stack<InductionCase>{ { InductionUnit({ y }), std::move(hypotheses), { x.var() } } },
+      Stack<InductionCase>{ { InductionUnit({ y }), std::move(hypotheses), { { x.var(), _sort } } } },
       InductionUnit({ z }), /*maxVar=*/z.var(),
       InferenceRule::STRUCT_INDUCTION_AXIOM_THREE
     );

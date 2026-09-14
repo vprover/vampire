@@ -58,7 +58,7 @@ SineSymbolExtractor::SymId SineSymbolExtractor::getSymIdBound()
          max(env.signature->functions()*3, env.signature->typeCons()*3));
 }
 
-void SineSymbolExtractor::addSymIds(Term* term, DHSet<SymId>& ids)
+void SineSymbolExtractor::addSymIds(Term* term, DHSet<SymId, FnvHash, IdentityHash>& ids)
 {
   if (!term->shared()) {
     if (term->isSpecial()) {
@@ -113,7 +113,7 @@ void SineSymbolExtractor::addSymIds(Term* term, DHSet<SymId>& ids)
  * @since 04/05/2013 Manchester, argument polarity removed
  * @author Andrei Voronkov
  */
-void SineSymbolExtractor::addSymIds(Literal* lit,DHSet<SymId>& ids)
+void SineSymbolExtractor::addSymIds(Literal* lit,DHSet<SymId, FnvHash, IdentityHash>& ids)
 {
   SymId predId=lit->functor()*3;
   ids.insert(predId);
@@ -165,7 +165,7 @@ bool SineSymbolExtractor::validSymId(SymId s)
  * @since 04/05/2013 Manchester, argument polarity removed, made non-recursive
  * @author Andrei Voronkov
  */
-void SineSymbolExtractor::extractFormulaSymbols(Formula* f,DHSet<SymId>& itms)
+void SineSymbolExtractor::extractFormulaSymbols(Formula* f,DHSet<SymId, FnvHash, IdentityHash>& itms)
 {
   Stack<Formula*> fs;
   fs.push(f);
@@ -220,7 +220,7 @@ void SineSymbolExtractor::extractFormulaSymbols(Formula* f,DHSet<SymId>& itms)
  */
 SineSymbolExtractor::SymIdIterator SineSymbolExtractor::extractSymIds(Unit* u)
 {
-  static DHSet<SymId> itms;
+  static DHSet<SymId, FnvHash, IdentityHash> itms;
   itms.reset();
 
   if (u->isClause()) {
@@ -235,7 +235,7 @@ SineSymbolExtractor::SymIdIterator SineSymbolExtractor::extractSymIds(Unit* u)
     extractFormulaSymbols(fu->formula(),itms);
   }
   Stack<SymId> ids(itms.size());
-  DHSet<SymId>::Iterator iter(itms);
+  DHSet<SymId, FnvHash, IdentityHash>::Iterator iter(itms);
   ids.loadFromIterator(iter);
   std::sort(ids.begin(), ids.end()); // <- make order deterministic
   return pvi(arrayIter(std::move(ids)));
@@ -378,7 +378,7 @@ bool SineSelector::perform(UnitList*& units)
 
   SymId symIdBound=_symExtr.getSymIdBound();
 
-  Set<Unit*> selected;
+  Set<unsigned, FnvHash> selected;
   Stack<Unit*> selectedStack; //on this stack there are Units in the order they were selected
   Deque<Unit*> newlySelected;
 
@@ -395,7 +395,7 @@ bool SineSelector::perform(UnitList*& units)
       updateDefRelation(u);
     }
     else { // goal units are immediately taken (well, non-axiom, to by more precise. Includes ASSUMPTION, which cl->isGoal() does not take into account)
-      selected.insert(u);
+      selected.insert(u->number());
       selectedStack.push(u);
       newlySelected.push_back(u);
 
@@ -454,10 +454,10 @@ bool SineSelector::perform(UnitList*& units)
       UnitList::Iterator defUnits(_def[sym]);
       while (defUnits.hasNext()) {
         Unit* du=defUnits.next();
-        if (selected.contains(du)) {
+        if (selected.contains(du->number())) {
           continue;
         }
-        selected.insert(du);
+        selected.insert(du->number());
         selectedStack.push(du);
         newlySelected.push_back(du);
 
@@ -624,8 +624,8 @@ void SineTheorySelector::perform(UnitList*& units)
   }
 
   UnitList* res=0;
-  DHSet<SymId> addedSymIds;
-  DHSet<Unit*> selected;
+  DHSet<SymId, FnvHash, IdentityHash> addedSymIds;
+  DHSet<unsigned, FnvHash, IdentityHash> selected;
   Deque<Unit*> newlySelected;
 
   bool sineOnIncluded=_opt.sineSelection()==Options::SineSelection::INCLUDED;
@@ -641,7 +641,7 @@ void SineTheorySelector::perform(UnitList*& units)
       updateDefRelation(u);
     }
     else {
-      selected.insert(u);
+      selected.insert(u->number());
       newlySelected.push_back(u);
       UnitList::push(u,res);
     }
@@ -684,7 +684,7 @@ void SineTheorySelector::perform(UnitList*& units)
       while (defUnits.hasNext()) {
 	DEntry de=defUnits.next();
 
-	if (de.minTolerance>intTolerance || !selected.insert(de.unit)) {
+	if (de.minTolerance>intTolerance || !selected.insert(de.unit->number())) {
 	  continue;
 	}
 	UnitList::push(de.unit,res);

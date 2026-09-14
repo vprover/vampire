@@ -231,8 +231,11 @@ TermList TermTransformer::transform(TermList ts)
   // first let's try transforming ts directly
   TermList transformed = transformSubterm(ts);
   if (transformed != ts) {
-    // we did transform, so we are done
-    return transformed;
+    // we did transform, so we are done if we do not have to explore subterms
+    if (transformed.isVar() || !exploreSubterms(ts, transformed)) {
+      return transformed;
+    }
+    return TermList(transform(transformed.term()));
   } else if (ts.isVar()) {
     // we didn't transform, but it's a var (no way to recurse)
     return ts;

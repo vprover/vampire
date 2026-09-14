@@ -56,11 +56,12 @@ private:
   void addDefinition(FormulaUnit* unit);
 
   /** Lexical scope of the current unit */
-  DHMap<unsigned,TermList> _varSorts;
+  DHMap<unsigned,TermList, FnvHash, IdentityHash> _varSorts;
 
   /** Process a given part of the unit */
   FormulaList* process(FormulaList* fs);
   Formula* process(Formula* f);
+  Formula* convertToProxified(Formula* f);
 
   // A context in one of two possible values, so we model it with bool constants
   typedef bool Context;

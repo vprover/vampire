@@ -14,6 +14,7 @@
 #include "Debug/TimeProfiling.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
+#include "Kernel/PolynomialBottomUpEvaluation.hpp"
 
 #define DEBUG(...)  // DBG(__VA_ARGS__)
 using namespace Lib;
@@ -26,7 +27,7 @@ using LitSimplResult = SimplifyingGeneratingLiteralSimplification::Result;
 PolynomialEvaluationRule::~PolynomialEvaluationRule() {}
 
 
-PolynomialEvaluationRule::PolynomialEvaluationRule(Ordering& ordering) 
+PolynomialEvaluationRule::PolynomialEvaluationRule(const Ordering& ordering) 
   : SimplifyingGeneratingLiteralSimplification(InferenceRule::EVALUATION, ordering)
   // TODO we have an additional step of normalization here. simplify!
   , _alwaysEvaluate(env.options->alasca())

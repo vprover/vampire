@@ -15,6 +15,7 @@
 
 using namespace Test;
 
+#define MY_SIMPL_TESTER Simplification::SimplificationTester
 #define MY_SYNTAX_SUGAR                                                                                       \
   DECL_DEFAULT_VARS                                                                                           \
   DECL_SORT(s)                                                                                                \
@@ -25,9 +26,9 @@ using namespace Test;
   DECL_PRED (p, {s})                                                                                          \
   DECL_PRED (q, {s})                                                                                          \
 
-namespace DuplicateLiteralRemovalISETest {
+namespace {
 
-REGISTER_SIMPL_TESTER(Simplification::RuleSimplificationTester<DuplicateLiteralRemovalISE>)
+#define MY_SIMPL_RULE DuplicateLiteralRemovalISE
 
 TEST_SIMPLIFY(dlr_test01,
     Simplification::NotApplicable()
@@ -74,9 +75,10 @@ TEST_SIMPLIFY(dlr_test08,
     )
 }
 
-namespace TrivialInequalitiesRemovalISETest {
+namespace {
 
-REGISTER_SIMPL_TESTER(Simplification::RuleSimplificationTester<TrivialInequalitiesRemovalISE>)
+#undef MY_SIMPL_RULE
+#define MY_SIMPL_RULE TrivialInequalitiesRemovalISE
 
 TEST_SIMPLIFY(tir_test01,
     Simplification::NotApplicable()
