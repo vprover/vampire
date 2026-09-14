@@ -51,6 +51,10 @@ namespace Timer {
   // make sure that the instruction data is as up-to-date as possible
   // otherwise may be (slightly) stale
   void updateInstructionCount();
+
+  // exact instruction count, safe to call from any thread but costing a syscall;
+  // -1 when unavailable. For a cheap same-thread read see Lib/PerfInstructions.hpp
+  long long instructionCountAnyThread();
 };
 }
 
