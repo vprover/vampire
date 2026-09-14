@@ -44,6 +44,7 @@ Signature::Symbol::Symbol(const std::string& nm, OperatorType* type, bool interp
     _skip(0),
     _label(0),
     _equalityProxy(0),
+    _distinctPred(0),
     _wasFlipped(0),
     _color(COLOR_TRANSPARENT),
     _answerPredicate(0),
@@ -430,7 +431,7 @@ unsigned Signature::addFunction (const std::string& name,
 
 /**
  * Add a string constant to the signature. This constant will automatically be
- * added to the distinct group STRING_DISTINCT_GROUP.
+ * added to the distinct group of its sort (STRING_DISTINCT_GROUP for $i).
  * @author Andrei Voronkov
  */
 unsigned Signature::addStringConstant(const std::string& name, TermList sort)
@@ -448,7 +449,7 @@ unsigned Signature::addStringConstant(const std::string& name, TermList sort)
   Symbol* sym = new Symbol(quotedName, OperatorType::getConstantsType(sort),
         /*       interpreted */ false, 
         /*    preventQuoting */ true);
-  sym->addToDistinctGroup(STRING_DISTINCT_GROUP,result);
+  sym->addToDistinctGroup(getStringDistinctGroup(sort),result);
   _funs.push(sym);
   _funNames.insert(symbolKey,result);
   return result;
@@ -867,6 +868,68 @@ void Signature::addToDistinctGroup(unsigned constantSymbol, unsigned groupId)
 {
   Symbol* sym = getFunction(constantSymbol);
   sym->addToDistinctGroup(groupId,constantSymbol);
+}
+
+/**
+ * Return the distinct group collecting the string constants ("distinct objects") of
+ * @c sort, creating it if this is the first one of that sort.
+ *
+ * $i uses STRING_DISTINCT_GROUP, which is reserved in the constructor; this cannot be
+ * folded into the map, since the constructor must not call AtomicSort::defaultSort().
+ */
+unsigned Signature::getStringDistinctGroup(TermList sort)
+{
+  if (sort == AtomicSort::defaultSort()) {
+    return STRING_DISTINCT_GROUP;
+  }
+  unsigned group;
+  if (!_stringDistinctGroups.find(sort,group)) {
+    group = createDistinctGroup(); // no premise, just as for STRING_DISTINCT_GROUP
+    ALWAYS(_stringDistinctGroups.insert(sort,group));
+  }
+  return group;
+}
+
+/**
+ * Return the marker predicate standing for a $distinct over @c arity arguments of
+ * @c sort, creating it if this is the first such occurrence.
+ *
+ * $distinct is variadic and sort-agnostic, so it needs one symbol per (arity, sort).
+ * The symbols are deliberately *not* registered in _predNames, whose key is only
+ * (name, arity) and would therefore make $distinct/3 over two different sorts collide;
+ * string constants dodge the same problem the same way, cf. addStringConstant. Giving
+ * the predicate a type argument instead would work too, but would make the problem look
+ * polymorphic to Property, and hence to PortfolioMode's schedule choice, for a symbol
+ * that never survives preprocessing.
+ *
+ * These markers are eliminated by Shell/DistinctGroupExpansion, which is what decides
+ * -- knowing the context, unlike the parser -- whether an occurrence becomes a distinct
+ * group or is expanded into disequalities.
+ */
+unsigned Signature::getDistinctPredicate(unsigned arity, TermList sort)
+{
+  ASS_G(arity,1);
+  ASS(sort.isTerm() && sort.term()->shared());
+
+  auto key = std::make_pair(arity,sort.term()->getId());
+  unsigned result;
+  if (_distinctPredicates.find(key,result)) {
+    return result;
+  }
+
+  result = _preds.length();
+  Symbol* sym = new Symbol("$distinct", OperatorType::getPredicateTypeUniformRange(arity,sort),
+        /*       interpreted */ false,
+        /*    preventQuoting */ true);
+  sym->markDistinctPred();
+  _preds.push(sym);
+  ALWAYS(_distinctPredicates.insert(key,result));
+  return result;
+}
+
+bool Signature::isDistinctLiteral(Literal* l)
+{
+  return !l->isEquality() && env.signature->getPredicate(l->functor())->distinctPred();
 }
 
 bool Signature::isProtectedName(std::string name)

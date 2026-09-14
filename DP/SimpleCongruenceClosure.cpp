@@ -23,7 +23,7 @@
 
 #include "Kernel/SortHelper.hpp"
 
-#include "Shell/DistinctProcessor.hpp"
+#include "Kernel/Signature.hpp"
 
 namespace DP
 {
@@ -318,11 +318,18 @@ unsigned SimpleCongruenceClosure::convertFONonEquality(Literal* lit)
 }
 
 /**
- * Uses Shell::DistinctProcessor to check for $distinct predicate from TFF language in TPTP
+ * Check for the $distinct marker predicate of the TFF language in TPTP.
+ *
+ * NOTE: this, and everything it guards below, is currently dead. The markers do not
+ * survive preprocessing -- Shell/DistinctGroupExpansion either turns an occurrence into
+ * a distinct group or expands it into disequalities -- so no clause reaching a decision
+ * procedure can contain one. What does survive is the distinct *groups*, which this
+ * class does not understand yet; teaching it to would be the way to make the code below
+ * useful again.
  */
 bool SimpleCongruenceClosure::isDistinctPred(Literal* l)
 {
-  return Shell::DistinctProcessor::isDistinctPred(l);
+  return Signature::isDistinctLiteral(l);
 }
 
 /**

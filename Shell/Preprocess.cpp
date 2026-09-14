@@ -136,6 +136,18 @@ void Preprocess::preprocess(Problem& prb)
     Shuffling::shuffle(prb);
   }
 
+  // Distinctness is still only recorded symbolically at this point: as the $distinct
+  // marker literals left behind by the parsers, and as the distinct groups the string
+  // constants were collected into. Get rid of all of it before the real preprocessing.
+  //
+  // CAREFUL, this must stay *after* the getProperty/normalise prefix above: PortfolioMode
+  // and profileMode compute their Property on the problem as parsed, before anything runs,
+  // so eliminating $distinct any earlier would hand single-strategy mode a Property those
+  // two never see.
+  if(env.options->showPreprocessing())
+    std::cout << "distinct group expansion" << std::endl;
+  DistinctGroupExpansion(_options.distinctGroupExpansionLimit()).apply(prb);
+
   if(_options.guessTheGoal() != Options::GoalGuess::OFF){
     prb.invalidateProperty();
     prb.getProperty();
@@ -207,14 +219,6 @@ void Preprocess::preprocess(Problem& prb)
         std::cout << "[PP] Added Hilbert choice axiom: " << choiceAx->toString() << std::endl;
       }
     }
-  }
-
-  // Expansion of distinct groups happens before other preprocessing
-  // If a distinct group is small enough it will add inequality to describe it
-  if(env.signature->hasDistinctGroups()){
-    if(env.options->showPreprocessing())
-      std::cout << "distinct group expansion" << std::endl;
-    DistinctGroupExpansion(_options.distinctGroupExpansionLimit()).apply(prb);
   }
 
   if (_options.sineToAge() || _options.useSineLevelSplitQueues() || (_options.sineToPredLevels() != Options::PredicateSineLevels::OFF)) {
