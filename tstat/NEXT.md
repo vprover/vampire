@@ -90,9 +90,17 @@ judge it on wall time as well as instructions — the instruction share understa
   self-consistent, but wrong. Left alone deliberately: fixing it would silently
   reinterpret every existing `-i` value, including those baked into portfolio schedules.
   Needs an explicit decision from Martin.
-- **`static unsigned cnt` in `LRS::shouldUpdateLimits()`** — function-local static holding
-  per-problem state, which `CLAUDE.md` flags as a hazard. Noticed while investigating §1;
-  worth cleaning up if that function is touched anyway.
+- **The sweep profiles no FMB at all.** Every run in it is the default saturation mode, so
+  `-sa fmb` is a hole in the corpus, not just in the findings. Two consequences: the four
+  `fmb *` nodes added in "Time profiling: close the remaining FMB gaps" have never been
+  exercised by a sweep, and `minisat eliminate var` / `minisat bwd subsumption check`
+  (`Minisat/simp/SimpSolver.cc`) look dead but are not — `SimpSolver` is reachable only
+  through `MinisatInterfacingNewSimp`, whose one instantiation is
+  `FMB/FiniteModelBuilder.cpp:247`, so those two sites fire under `-sa fmb` and nowhere
+  else. Worth a small targeted `-sa fmb` sweep over the satisfiable end of TPTP rather
+  than folding FMB into the main one, whose point is the default path.
+- ~~`static unsigned cnt` in `LRS::shouldUpdateLimits()`~~ — gone: the counter is now the
+  `_leftoverPops` member, as part of the LRS maintenance-budget work.
 - **`HWV114-1.p`** in `determinism.py`'s default set has only 14 nodes above the 1 ms
   floor, so its time column is noisy for reasons unrelated to anything being tested.
   Either raise its `-al` or swap it out.
