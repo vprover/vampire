@@ -12,6 +12,8 @@
  * Implements class PrimitiveInstantiation.
  */
 
+#include "Debug/TimeProfiling.hpp"
+
 #include "Kernel/Clause.hpp"
 #include "Kernel/SubstHelper.hpp"
 
@@ -192,7 +194,8 @@ ClauseIterator PrimitiveInstantiation::generateClauses(Clause* premise)
   // TODO is doing this only on selected literals correct?
   return pvi(premise->getSelectedLiteralIterator()
     .filter([](Literal* l) { return l->isFlexRigid() && SortHelper::getEqualityArgumentSort(l).isBoolSort(); })
-    .flatMap(PrimitiveInstResultFn(premise, _piSet, _heads)));
+    .flatMap(PrimitiveInstResultFn(premise, _piSet, _heads))
+    .timeTraced("primitive instantiation"));
 }
 
 }

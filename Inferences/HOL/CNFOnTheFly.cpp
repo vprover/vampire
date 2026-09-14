@@ -12,6 +12,8 @@
  * Defines classes for clausification on the fly.
  */
 
+#include "Debug/TimeProfiling.hpp"
+
 #include "Lib/Environment.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -373,6 +375,7 @@ TermList piRemoval(TermList piTerm, Clause* clause, TermList expsrt){
 }
 
 Clause* IFFXORRewriterISE::simplify(Clause* c){
+  TIME_TRACE("iff xor rewriting");
   TermList boolSort = AtomicSort::boolSort();
 
   static TermStack args;
@@ -411,6 +414,7 @@ Clause* IFFXORRewriterISE::simplify(Clause* c){
 
 Option<ClauseIterator> EagerClausificationISE::simplifyMany(Clause* c)
 {
+  TIME_TRACE("eager clausification");
   auto it = produceClauses(c, false);
   if (it.hasNext()) {
     return some(it);
@@ -425,6 +429,7 @@ ClauseIterator LazyClausificationGIE::generateClauses(Clause* c)
 
 ClauseIterator LazyClausification::perform(Clause* c)
 {
+  TIME_TRACE("lazy clausification");
   return produceClauses(c, false, &_formulaIndex);
 }
 
