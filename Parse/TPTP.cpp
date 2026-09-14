@@ -5272,7 +5272,7 @@ void TPTP::vampire()
     unsigned f = pred
       ? env.signature->addPredicate(symb, OperatorType::getPredicateTypeUniformRange(arity, AtomicSort::defaultSort()))
       : env.signature->addFunction(symb, OperatorType::getFunctionTypeUniformRange(arity, AtomicSort::defaultSort(), AtomicSort::defaultSort()));
-    Signature::Symbol* sym = pred ? env.signature->getPredicate(f) : env.signature->getFunction(f);
+    Signature::Symbol* sym = env.signature->getSymbol(f);
     if (skip) {
       sym->markSkip();
     }

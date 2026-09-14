@@ -27,6 +27,9 @@ inline KboWeightMap<SigTraits> toWeightMap(unsigned introducedSymbolWeight, KboS
 
   DArray<KboWeight> out(sz);
   for (unsigned i = 0; i < sz; i++) {
+    auto sym = env.signature->getSymbol(i);
+    bool inDomain = std::is_same_v<SigTraits, FuncSigTraits> ? sym->isFunction() : sym->isPredicate();
+    if (!inDomain) { out[i] = 1; continue; }
     auto w = xs.getPtr(i);
     out[i] = w == NULL ? df.symbolWeight(i) : *w;
   }

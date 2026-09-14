@@ -106,11 +106,11 @@ Property::Property()
 Property* Property::scan(UnitList* units)
 {
   // a bit of a hack, these counts belong in Property
-  for(unsigned f=0;f<env.signature->functions();f++){ 
+  for (unsigned f : env.signature->functionSymbols()) {
     env.signature->getFunction(f)->resetUsageCnt(); 
     env.signature->getFunction(f)->resetUnitUsageCnt(); 
    }
-  for(unsigned p=0;p<env.signature->predicates();p++){ 
+  for (unsigned p : env.signature->predicateSymbols()) {
     env.signature->getPredicate(p)->resetUsageCnt(); 
     env.signature->getPredicate(p)->resetUnitUsageCnt(); 
    }
