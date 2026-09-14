@@ -216,7 +216,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     env.proofExtra.insert(cl, new BinaryResolutionExtra(queryLit, resultLit));
   }
   if(env.reconstruction){
-    Shell::InferenceRecorder::instance()->resolution(cl->number(), cl, {queryCl, resultCl}, subs);
+    Shell::InferenceRecorder::instance()->resolution(cl->number(), cl, {queryCl, resultCl}, subs, queryLit, resultLit);
   }
   return cl;
 }

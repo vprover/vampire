@@ -493,7 +493,7 @@ Clause* Superposition<higherOrder>::performSuperposition(
   } 
   if(env.reconstruction){
     Shell::InferenceRecorder* recorder = Shell::InferenceRecorder::instance();
-    recorder->superposition(clause->number(), clause, {rwClause, eqClause}, subst, eqIsResult);
+    recorder->superposition(clause->number(), clause, {rwClause, eqClause}, subst, eqIsResult, rwLit);
   }
 
   return clause;

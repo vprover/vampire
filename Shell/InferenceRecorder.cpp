@@ -6,6 +6,7 @@
 #include "Indexing/Index.hpp"
 #include "Inferences/InferenceEngine.hpp"
 #include "Kernel/MLMatcher.hpp"
+#include "Kernel/MLVariant.hpp"
 #include "Kernel/Matcher.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Substitution.hpp"
@@ -14,6 +15,7 @@
 #include "Shell/EqResWithDeletion.hpp"
 #include <cstddef>
 #include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 using namespace Kernel;
@@ -80,13 +82,32 @@ void InferenceRecorder::populateSubstitutions(std::vector<Substitution> &substMa
       &applyFunc);
 }
 
-void InferenceRecorder::resolution(unsigned int id, Clause *conclusion, const std::vector<Clause *> &premises, const ResultSubstitutionSP &recordedSubst)
+namespace {
+unsigned literalPosition(Clause *clause, Literal *literal)
 {
-  recordGenericSubstitutionInference(id, conclusion, premises, recordedSubst);
+  for (unsigned i = 0; i < clause->length(); ++i) {
+    if ((*clause)[i] == literal) {
+      return i;
+    }
+  }
+  ASS(false);
+  return 0;
+}
 }
 
-void InferenceRecorder::superposition(unsigned int id, Clause *conclusion, const std::vector<Clause *> &premises, const ResultSubstitutionSP &recordedSubst, bool eqIsResult)
+void InferenceRecorder::resolution(unsigned int id, Clause *conclusion, const std::vector<Clause *> &premises, const ResultSubstitutionSP &recordedSubst,
+                                   Literal *queryLit, Literal *resultLit)
 {
+  ASS_EQ(premises.size(), 2);
+  recordGenericSubstitutionInference(id, conclusion, premises, recordedSubst,
+      InferenceInformation::LiteralPositionKind::RESOLVED,
+      {{0, literalPosition(premises[0], queryLit)}, {1, literalPosition(premises[1], resultLit)}});
+}
+
+void InferenceRecorder::superposition(unsigned int id, Clause *conclusion, const std::vector<Clause *> &premises, const ResultSubstitutionSP &recordedSubst,
+                                      bool eqIsResult, Literal *rewrittenLit)
+{
+  ASS_EQ(premises.size(), 2);
   recordGenericSubstitutionInference<ResultSubstitutionSP>(id, conclusion, premises, recordedSubst,
                                                                      [eqIsResult](ResultSubstitutionSP subst, const TermList &term, size_t bank) {
                                                                        if (bank == 1) {
@@ -95,12 +116,18 @@ void InferenceRecorder::superposition(unsigned int id, Clause *conclusion, const
                                                                        else {
                                                                          return subst->apply(term, !eqIsResult);
                                                                        }
-                                                                     });
+                                                                     },
+                                                                     InferenceInformation::LiteralPositionKind::REWRITTEN,
+                                                                     {{0, literalPosition(premises[0], rewrittenLit)}});
 }
 
-void InferenceRecorder::factoring(unsigned int id, Clause *conclusion, const std::vector<Clause *> &premises, const RobSubstitution &recordedSubst)
+void InferenceRecorder::factoring(unsigned int id, Clause *conclusion, const std::vector<Clause *> &premises, const RobSubstitution &recordedSubst,
+                                  Literal *removedLit)
 {
-  recordGenericSubstitutionInference(id, conclusion, premises, recordedSubst);
+  ASS_EQ(premises.size(), 1);
+  recordGenericSubstitutionInference(id, conclusion, premises, recordedSubst,
+      InferenceInformation::LiteralPositionKind::REMOVED,
+      {{0, literalPosition(premises[0], removedLit)}});
 }
 
 void InferenceRecorder::equalityResolution(unsigned int id, Clause *conclusion, const std::vector<Clause *> &premises, const RobSubstitution &recordedSubst)
@@ -223,6 +250,7 @@ void InferenceRecorder::backwardDemodulation(unsigned int id, Clause *conclusion
 
 bool InferenceRecorder::isSameAsProofStep(Clause *clause, Clause *goal, std::unordered_map<unsigned int, unsigned int> &outVarMap)
 {
+  outVarMap.clear();
   if (clause->length() != goal->length()) {
     return false;
   }
@@ -238,6 +266,25 @@ bool InferenceRecorder::isSameAsProofStep(Clause *clause, Clause *goal, std::uno
   Inferences::DuplicateLiteralRemovalISE dlr;
   c = dlr.simplify(c);
   auto simpGoal = dlr.simplify(Clause::fromClause(g));
+
+  if (c->length() != simpGoal->length()) {
+    return false;
+  }
+  if (!MLVariant::isVariant(c, simpGoal)) {
+    return false;
+  }
+
+  auto variables = [](Clause* cl) {
+    std::unordered_set<unsigned> result;
+    auto it = cl->getVariableIterator();
+    while (it.hasNext()) {
+      result.insert(it.next());
+    }
+    return result;
+  };
+  if (variables(c).size() != variables(simpGoal).size()) {
+    return false;
+  }
 
   static std::vector<LiteralList *> alts;
 
@@ -259,15 +306,34 @@ bool InferenceRecorder::isSameAsProofStep(Clause *clause, Clause *goal, std::uno
   }
 
   MLMatcher matcher;
-  matcher.init(c, simpGoal, alts.data());
+  // Both clauses have the same length and have already been checked as variants.
+  // Preserve the literal-to-literal correspondence while extracting the variable
+  // renaming; set matching could reuse one goal literal for multiple replayed ones.
+  matcher.init(c, simpGoal, alts.data(), /*multiset=*/true);
   while (matcher.nextMatch()) {
     std::unordered_map<unsigned int, TermList> varToTermMap;
     matcher.getBindings(varToTermMap);
+    bool isVariableRenaming = true;
     for (auto [var, term] : varToTermMap) {
       if(!term.isVar()){
-        outVarMap.clear();
-        continue;
+        isVariableRenaming = false;
+        break;
       }
+    }
+    if (!isVariableRenaming) {
+      continue;
+    }
+    std::unordered_set<unsigned int> image;
+    for (auto [var, term] : varToTermMap) {
+      if (!image.insert(term.var()).second) {
+        isVariableRenaming = false;
+        break;
+      }
+    }
+    if (!isVariableRenaming) {
+      continue;
+    }
+    for (auto [var, term] : varToTermMap) {
       outVarMap[var] = term.var();
     }
     return true;

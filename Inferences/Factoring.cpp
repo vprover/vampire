@@ -105,7 +105,7 @@ public:
       env.proofExtra.insert(cl, new FactoringExtra(l1, l2));
     }
     if(env.reconstruction){
-      Shell::InferenceRecorder::instance()->factoring(0, cl, {_cl}, subst);
+      Shell::InferenceRecorder::instance()->factoring(0, cl, {_cl}, subst, l2);
     }
 
     return cl;

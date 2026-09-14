@@ -11,6 +11,7 @@
 #include "Shell/EqResWithDeletion.hpp"
 #include <memory>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace Indexing { struct DemodulatorData; }
@@ -20,9 +21,23 @@ class InferenceRecorder {
 public:
   class InferenceInformation {
   public:
+    enum class LiteralPositionKind {
+      NONE,
+      REWRITTEN,
+      RESOLVED,
+      REMOVED
+    };
+
+    struct LiteralPosition {
+      unsigned premiseIndex;
+      unsigned literalIndex;
+    };
+
     Kernel::Clause *conclusion;
     std::vector<Kernel::Clause *> premises;
     std::vector<Kernel::Substitution> substitutionForBanksSub;
+    LiteralPositionKind literalPositionKind = LiteralPositionKind::NONE;
+    std::vector<LiteralPosition> literalPositions;
   };
 
   // Returns the singleton instance (lazily initialized, thread-safe)
@@ -30,11 +45,14 @@ public:
   // Optional: destroy the singleton (if you need controlled teardown)
   // static void destroyInstance();
 
-  void resolution(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const Indexing::ResultSubstitutionSP &recordedSubst);
+  void resolution(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const Indexing::ResultSubstitutionSP &recordedSubst,
+                  Kernel::Literal *queryLit, Kernel::Literal *resultLit);
 
-  void superposition(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const Indexing::ResultSubstitutionSP &recordedSubst, bool eqIsResult);
+  void superposition(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const Indexing::ResultSubstitutionSP &recordedSubst,
+                     bool eqIsResult, Kernel::Literal *rewrittenLit);
 
-  void factoring(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const Indexing::RobSubstitution &recordedSubst);
+  void factoring(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const Indexing::RobSubstitution &recordedSubst,
+                 Kernel::Literal *removedLit);
 
   void equalityResolution(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const Indexing::RobSubstitution &recordedSubst);
   
@@ -94,20 +112,14 @@ private:
 
     substMap.resize(premises.size());
     for (size_t bank = 0; bank < premises.size(); bank++) {
-      unsigned int highestVar = 0;
       auto iter = premises[bank]->getVariableIterator();
-
       while (iter.hasNext()) {
         unsigned int var = iter.next();
-        if (var > highestVar) {
-          highestVar = var;
+        TermList x = applyFunc(recordedSubst, TermList::var(var), bank);
+        TermList mapped = SubstHelper::apply(x, variableSubst);
+        if (mapped != TermList::var(var)) {
+          substMap[bank].bind(var, mapped);
         }
-      }
-      for (unsigned v = 0; v <= highestVar; v++) {
-        TermList x = applyFunc(recordedSubst, TermList::var(v), bank);
-        substMap[bank].bind(v,
-                            SubstHelper::apply(x,
-                                               variableSubst));
       }
     }
   }
@@ -126,21 +138,16 @@ private:
     }
 
     substMap.resize(1);
-    long highestVar = -1;
     for (size_t bank = 0; bank < premises.size(); bank++) {
       auto iter = premises[bank]->getVariableIterator();
       while (iter.hasNext()) {
         unsigned int var = iter.next();
-        if (var > highestVar) {
-          highestVar = var;
+        TermList x = applyFunc(recordedSubst, TermList::var(var), 0);
+        TermList mapped = SubstHelper::apply(x, variableSubst);
+        if (mapped != TermList::var(var)) {
+          substMap[0].bind(var, mapped);
         }
       }
-    }
-    for (unsigned v = 0; v <= highestVar; v++) {
-      TermList x = applyFunc(recordedSubst, TermList::var(v), 0);
-      substMap[0].bind(v,
-                       SubstHelper::apply(x,
-                                          variableSubst));
     }
   }
 
@@ -160,7 +167,9 @@ private:
                              const SubstApplicator &recordedSubst);
 
   template <typename T>
-  void recordGenericSubstitutionInference(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const T &recordedSubst, std::function<TermList(const T &, const TermList &, size_t)> applyFunc)
+  void recordGenericSubstitutionInference(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const T &recordedSubst, std::function<TermList(const T &, const TermList &, size_t)> applyFunc,
+                                          InferenceInformation::LiteralPositionKind literalPositionKind = InferenceInformation::LiteralPositionKind::NONE,
+                                          std::vector<InferenceInformation::LiteralPosition> literalPositions = {})
   {
     std::unordered_map<unsigned int, unsigned int> varMap;
     if (isSameAsProofStep(conclusion, _currentGoal, varMap)) {
@@ -168,6 +177,8 @@ private:
       info->conclusion = conclusion;
       info->premises = premises;
       populateSubstitutionsGen<T>(info->substitutionForBanksSub, varMap, premises, recordedSubst, applyFunc);
+      info->literalPositionKind = literalPositionKind;
+      info->literalPositions = std::move(literalPositions);
       _inferences[id] = std::move(info);
       _lastInferenceId = id;
       _hasLastInference = true;
@@ -176,7 +187,9 @@ private:
   };
 
   template <typename T>
-  void recordGenericSubstitutionInference(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const T &recordedSubst)
+  void recordGenericSubstitutionInference(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const T &recordedSubst,
+                                          InferenceInformation::LiteralPositionKind literalPositionKind = InferenceInformation::LiteralPositionKind::NONE,
+                                          std::vector<InferenceInformation::LiteralPosition> literalPositions = {})
   {
     std::unordered_map<unsigned int, unsigned int> varMap;
     if (isSameAsProofStep(conclusion, _currentGoal, varMap)) {
@@ -186,6 +199,8 @@ private:
       info->conclusion = conclusion;
       info->premises = premises;
       populateSubstitutions(info->substitutionForBanksSub, varMap, premises, recordedSubst);
+      info->literalPositionKind = literalPositionKind;
+      info->literalPositions = std::move(literalPositions);
       // for(auto& subst : info->substitutionForBanksSub){
       //	std::cout << subst << std::endl;
       // }

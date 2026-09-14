@@ -456,10 +456,48 @@ protected:
   InferenceReplayer _replayer;
   bool _replay;
 
+  std::string forwardSubsumptionResolutionLiteral(Unit* us)
+  {
+    if (us->inference().rule() != InferenceRule::FORWARD_SUBSUMPTION_RESOLUTION) {
+      return "";
+    }
+
+    auto parents = us->getParents();
+    if (!parents.hasNext()) {
+      return "";
+    }
+    Unit* simplifiedUnit = parents.next();
+    if (!simplifiedUnit->isClause()) {
+      return "";
+    }
+    Clause* simplified = simplifiedUnit->asClause();
+    Clause* conclusion = us->asClause();
+
+    for (unsigned i = 0; i < simplified->length(); ++i) {
+      Literal* candidate = (*simplified)[i];
+      bool survives = false;
+      for (unsigned j = 0; j < conclusion->length(); ++j) {
+        if ((*conclusion)[j] == candidate) {
+          survives = true;
+          break;
+        }
+      }
+      if (!survives) {
+        return "removed_literal(literal(" + tptpUnitId(simplified) + ',' + Int::toString(i) + "))";
+      }
+    }
+    return "";
+  }
+
   std::string replayedUnifier(Unit* us)
   {
     if (!_replay || !us->isClause()) {
       return "";
+    }
+
+    std::string forwardSubsumptionLiteral = forwardSubsumptionResolutionLiteral(us);
+    if (!forwardSubsumptionLiteral.empty()) {
+      return forwardSubsumptionLiteral;
     }
 
     InferenceRecorder::instance()->setCurrentGoal(us->asClause());
@@ -493,7 +531,36 @@ protected:
       }
       res << "])";
     }
-    return res.str() + "])";
+    res << "])";
+
+    if (!info->literalPositions.empty()) {
+      using PositionKind = InferenceRecorder::InferenceInformation::LiteralPositionKind;
+      switch (info->literalPositionKind) {
+      case PositionKind::REWRITTEN:
+        res << ",rewritten_literal(";
+        break;
+      case PositionKind::RESOLVED:
+        res << ",resolved_literals([";
+        break;
+      case PositionKind::REMOVED:
+        res << ",removed_literal(";
+        break;
+      case PositionKind::NONE:
+        ASSERTION_VIOLATION;
+      }
+
+      bool first = true;
+      for (const auto &position : info->literalPositions) {
+        if (!first) {
+          res << ',';
+        }
+        first = false;
+        res << "literal(" << tptpUnitId(info->premises[position.premiseIndex])
+            << ',' << position.literalIndex << ')';
+      }
+      res << (info->literalPositionKind == PositionKind::RESOLVED ? "])" : ")");
+    }
+    return res.str();
   }
 
   std::string getRole(InferenceRule rule, UnitInputType origin)
