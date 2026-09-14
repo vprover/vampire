@@ -35,9 +35,9 @@ using namespace Shell;
  */
 void Shuffling::polarityFlip(Problem& prb)
 {
-  DArray<bool> flippage(env.signature->predicates());
+  DArray<bool> flippage(env.signature->symbolCount());
 
-  for (unsigned p = 0; p < flippage.size(); p++) {
+  for (unsigned p : env.signature->predicateSymbols()) {
     auto pSymb = env.signature->getPredicate(p);
     if (!pSymb->protectedSymbol() && !pSymb->termAlgebraDest() && !pSymb->termAlgebraDiscriminator()) {
       // don't try to flip interpreted or otherwise protected predicates

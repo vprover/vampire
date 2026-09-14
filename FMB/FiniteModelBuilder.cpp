@@ -150,7 +150,7 @@ bool FiniteModelBuilder::reset(){
 
   // Start from 1 as SAT solver variables are 1-based
   unsigned offsets=1;
-  for(unsigned f=0; f<env.signature->functions();f++){
+  for (unsigned f : env.signature->functionSymbols()) {
     if(del_f[f]) continue;
     f_offsets[f]=offsets;
 #if VTRACE_FMB
@@ -176,7 +176,8 @@ bool FiniteModelBuilder::reset(){
     offsets += add;
   }
   // Start from p=1 as we ignore equality
-  for(unsigned p=1; p<env.signature->predicates();p++){
+  for (unsigned p : env.signature->predicateSymbols()) {
+    if (p < 1) continue;
     if(del_p[p]) continue;
     p_offsets[p]=offsets;
 #if VTRACE_FMB
@@ -404,8 +405,8 @@ void FiniteModelBuilder::init()
 
   ClauseList* clist = 0;
   if(env.options->fmbAdjustSorts() == Options::FMBAdjustSorts::PREDICATE){
-    DArray<bool> deleted_functions(env.signature->functions());
-    for(unsigned f=0;f<env.signature->functions();f++){
+    DArray<bool> deleted_functions(env.signature->symbolCount());
+    for (unsigned f : env.signature->functionSymbols()) {
       deleted_functions[f] = env.signature->getFunction(f)->usageCnt()==0;
      }
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
@@ -427,8 +428,8 @@ void FiniteModelBuilder::init()
 
   // Store distinct constants by type
   DArray<DHMap<unsigned,DHSet<unsigned, FnvHash, IdentityHash>*, FnvHash, IdentityHash>*> _distinctConstants;
-  _distinctConstants.ensure(env.signature->typeCons());
-  for(unsigned i=0;i<env.signature->typeCons();i++){ _distinctConstants[i]=0; }
+  _distinctConstants.ensure(env.signature->symbolCount());
+  for (unsigned i : env.signature->typeConSymbols()) { _distinctConstants[i]=0; }
 
   // Apply flattening and split clauses into ground and non-ground
   while(cit.hasNext()){
@@ -547,16 +548,17 @@ void FiniteModelBuilder::init()
 
   // record the deleted functions and predicates
   // we do this only here so that there are slots for symbols introduced in the previous preprocessing steps (definition introduction, splitting)
-  del_f.ensure(env.signature->functions());
-  del_p.ensure(env.signature->predicates());
+  del_f.ensure(env.signature->symbolCount());
+  del_p.ensure(env.signature->symbolCount());
 
-  for(unsigned f=0;f<env.signature->functions();f++){
+  for (unsigned f : env.signature->functionSymbols()) {
     del_f[f] = env.signature->getFunction(f)->usageCnt()==0;
 #if VTRACE_FMB
     if(del_f[f]) cout << "Mark " << env.signature->functionName(f)  << " as deleted" << endl;
 #endif
   }
-  for(unsigned p=1;p<env.signature->predicates();p++){ // skipping equality
+  for (unsigned p : env.signature->predicateSymbols()) {
+    if (p < 1) continue; // skipping equality
     del_p[p] = env.signature->getPredicate(p)->usageCnt()==0;
 #if VTRACE_FMB
     if(del_p[p]) {
@@ -663,7 +665,7 @@ void FiniteModelBuilder::init()
 
     // if we've done the sort expansion thing then the max for the parent should be
     // the max of all children
-    for(unsigned s=0;s<env.signature->typeCons();s++){
+    for (unsigned s : env.signature->typeConSymbols()) {
       if((env.getMainProblem()->getProperty()->usesSort(s) || env.signature->isNonDefaultCon(s)) && _sortedSignature->vampireToDistinct.find(s)){
         Stack<unsigned>* dmembers = _sortedSignature->vampireToDistinct.get(s);
         ASS(dmembers);
@@ -681,7 +683,7 @@ void FiniteModelBuilder::init()
     }
 
     //_distinctConstants
-    for(unsigned s=0;s<env.signature->typeCons();s++){
+    for (unsigned s : env.signature->typeConSymbols()) {
       if(_distinctConstants[s]!=0){
 
         ASS(_sortedSignature->vampireToDistinct.find(s));
@@ -706,7 +708,7 @@ void FiniteModelBuilder::init()
     // Otherwise this was done at clausification
     if(env.options->fmbSymmetryOrderSymbols() != Options::FMBSymbolOrders::PREPROCESSED_USAGE){
      // reset usage counts
-     for(unsigned f=0;f<env.signature->functions();f++){
+     for (unsigned f : env.signature->functionSymbols()) {
        env.signature->getFunction(f)->resetUsageCnt();
      }
      // do them again!
@@ -749,18 +751,18 @@ void FiniteModelBuilder::init()
 
   //TODO why is this here? Can intermediate steps introduce new functions?
   //  - SortInference can introduce new constants
-  del_f.expand(env.signature->functions());
+  del_f.expand(env.signature->symbolCount());
 
   // these offsets are for SAT variables and need to be set to the right size
-  f_offsets.ensure(env.signature->functions());
-  p_offsets.ensure(env.signature->predicates());
+  f_offsets.ensure(env.signature->symbolCount());
+  p_offsets.ensure(env.signature->symbolCount());
 
   // Set up fminbound, which records the minimum sort size for a function symbol
   // i.e. the smallest return or parameter sort
   // this loop also counts the number of constants in the problem
   _distinctSortConstantCount.ensure(_sortedSignature->distinctSorts);
-  _fminbound.ensure(env.signature->functions());
-  for(unsigned f=0;f<env.signature->functions();f++){
+  _fminbound.ensure(env.signature->symbolCount());
+  for (unsigned f : env.signature->functionSymbols()) {
     if(del_f[f]) continue;
 
     if(env.signature->functionArity(f)==0){
@@ -1137,7 +1139,7 @@ unsigned FiniteModelBuilder::estimateFunctionalDefCount()
 {
   unsigned res = 0;
 
-  for(unsigned f=0;f<env.signature->functions();f++){
+  for (unsigned f : env.signature->functionSymbols()) {
     unsigned instances = 1;
 
     if(del_f[f]) continue;
@@ -1167,7 +1169,7 @@ void FiniteModelBuilder::addNewFunctionalDefs()
   // f(x1,...,xn) != y | f(x1,...,xn) != z
   // they should be instantiated with groundings where y!=z
 
-  for(unsigned f=0;f<env.signature->functions();f++){
+  for (unsigned f : env.signature->functionSymbols()) {
     if(del_f[f]) continue;
     unsigned arity = env.signature->functionArity(f);
 
@@ -1361,7 +1363,7 @@ void FiniteModelBuilder::addNewTotalityDefs()
     }
   }
 
-  for(unsigned f=0;f<env.signature->functions();f++){
+  for (unsigned f : env.signature->functionSymbols()) {
     if(del_f[f]) continue;
     unsigned arity = env.signature->functionArity(f);
 
@@ -1890,8 +1892,8 @@ void FiniteModelBuilder::onModelFound()
   }
 
   DArray<unsigned> vampireSortSizes;
-  vampireSortSizes.ensure(env.signature->typeCons());
-  for(unsigned vSort=0;vSort<env.signature->typeCons();vSort++){
+  vampireSortSizes.ensure(env.signature->symbolCount());
+  for (unsigned vSort : env.signature->typeConSymbols()) {
     unsigned size = 1;
     if(env.signature->isInterpretedNonDefault(vSort) && !env.signature->isBoolCon(vSort)){ size=0;}
     unsigned dsort;
@@ -1904,7 +1906,7 @@ void FiniteModelBuilder::onModelFound()
   FiniteModelMultiSorted model(vampireSortSizes.clone()); // need a clone, because FiniteModelMultiSorted may want to modify its version later
 
   //Record interpretation of constants and functions
-  for(unsigned f=0;f<env.signature->functions();f++){
+  for (unsigned f : env.signature->functionSymbols()) {
     if(del_f[f]) continue;
 
     Signature::Symbol* sym = env.signature->getFunction(f);
@@ -1983,7 +1985,8 @@ void FiniteModelBuilder::onModelFound()
   }
 
   //Record interpretation of predicates
-  for(unsigned p=1;p<env.signature->predicates();p++){
+  for (unsigned p : env.signature->predicateSymbols()) {
+    if (p < 1) continue;
     if(del_p[p]) continue;
 
     Signature::Symbol* sym = env.signature->getPredicate(p);

@@ -69,7 +69,7 @@ void GoalGuessing::apply(Problem& prb)
  */
 void GoalGuessing::countPerUnitUsage(UnitList* units)
 {
-  _perUnitUsageCount.init(env.signature->functions(),0);
+  _perUnitUsageCount.init(env.signature->symbolCount(),0);
 
   UnitList::Iterator uit(units);
   while(uit.hasNext()) {
@@ -204,7 +204,7 @@ bool GoalGuessing::apply(Literal* lit)
     it.next(); // to move past the lit symbol 
     while(it.hasNext()){
       unsigned f = it.next();
-      if(f >= _perUnitUsageCount.size()){ continue; }
+      if(f >= _perUnitUsageCount.size() || !env.signature->getSymbol(f)->isFunction()){ continue; }
       if(_perUnitUsageCount[f] <= _limit){
         //cout << "IDENTIFIED AS GOAL symbol " << env.signature->functionName(f) << endl;
         env.signature->getFunction(f)->markInGoal();

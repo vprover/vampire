@@ -142,9 +142,9 @@ struct PredicateDefinition::PredData
 };
 
 PredicateDefinition::PredicateDefinition()
-: _processedPrb(0), _predCnt(env.signature->predicates())
+: _processedPrb(0), _predCnt(env.signature->symbolCount())
 {
-  int predCnt=env.signature->predicates();
+  int predCnt=env.signature->symbolCount();
 
   _preds = new PredData[predCnt];
   for(int i=0;i<predCnt;i++) {
@@ -152,7 +152,7 @@ PredicateDefinition::PredicateDefinition()
   }
 
   //mark built-in
-  for(int i=0;i<predCnt;i++) {
+  for(unsigned i : env.signature->predicateSymbols()) {
     if(env.signature->getPredicate(i)->protectedSymbol()) {
       addBuiltInPredicate(i);
     }
@@ -308,7 +308,8 @@ void PredicateDefinition::collectReplacements(UnitList* units, ReplMap& replacem
     }
   }
 
-  for(unsigned pred=1; pred<_predCnt; pred++) {
+  for(unsigned pred : env.signature->predicateSymbols()) {
+    if (pred == 0 || pred >= _predCnt) continue;
     _preds[pred].check(this);
   }
 

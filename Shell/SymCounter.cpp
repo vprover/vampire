@@ -36,9 +36,9 @@ using namespace Shell;
  */
 SymCounter::SymCounter (Signature& sig)
   :
-  _noOfPreds(sig.predicates()),
-  _noOfFuns (sig.functions()),
-  _noOfTypeCons(sig.typeCons())
+  _noOfPreds(sig.symbolCount()),
+  _noOfFuns (sig.symbolCount()),
+  _noOfTypeCons(sig.symbolCount())
 {
   if (_noOfPreds) {
     void* mem = ALLOC_KNOWN(_noOfPreds*sizeof(Pred),"SymCounter::Pred[]");

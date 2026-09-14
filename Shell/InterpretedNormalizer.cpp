@@ -186,8 +186,8 @@ class InterpretedNormalizer::NLiteralTransformer : public BottomUpTermTransforme
 {
 public:
   NLiteralTransformer()
-  : _ineqTransls(env.signature->predicates()),
-    _fnTransfs(env.signature->functions())
+  : _ineqTransls(env.signature->symbolCount()),
+    _fnTransfs(env.signature->symbolCount())
   {
     // from, to, swap, reverse_pol 
     addIneqTransformer(Theory::INT_LESS_EQUAL, 	  Theory::INT_LESS, true, true);
