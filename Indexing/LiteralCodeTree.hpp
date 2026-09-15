@@ -28,6 +28,8 @@ template<class Data>
 class LiteralCodeTree : public TermOrLiteralCodeTree<Data>
 {
 public:
+  LiteralCodeTree() { this->_literalCodeTree = true; }
+
   struct LiteralMatcher
   : public TermOrLiteralCodeTree<Data>::Matcher
   {

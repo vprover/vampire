@@ -343,8 +343,10 @@ struct PredSigTraits {
   static const char* symbolKindName() 
   { return "predicate"; }
 
+  static auto symbols() { return env.signature->predicateSymbols(); }
+
   static unsigned nSymbols() 
-  { return env.signature->predicates(); }
+  { return env.signature->symbolCount(); }
 
   static bool isColored(unsigned functor) 
   { return env.signature->predicateColored(functor);}
@@ -371,8 +373,10 @@ struct FuncSigTraits {
   static const char* symbolKindName() 
   { return "function"; }
 
+  static auto symbols() { return env.signature->functionSymbols(); }
+
   static unsigned nSymbols() 
-  { return env.signature->functions(); } 
+  { return env.signature->symbolCount(); }
 
   static bool isColored(unsigned functor) 
   { return env.signature->functionColored(functor);}
@@ -519,7 +523,7 @@ KboWeightMap<SigTraits> KBO::weightsFromFile(const Options& opts) const
   auto& filename = SigTraits::weightFileName(opts);
   auto defaultSymbolWeight = parseDefaultSymbolWeight(filename);
 
-  for (unsigned i = 0; i < SigTraits::nSymbols(); i++) {
+  for (unsigned i : SigTraits::symbols()) {
     weights[i] = SigTraits::isColored(i) 
           ? defaultSymbolWeight * COLORED_WEIGHT_BOOST 
           : defaultSymbolWeight;
@@ -604,9 +608,9 @@ KBO KBO::testKBO(bool rand, bool qkbo)
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
       rand ? KboWeightMap<PredSigTraits>::randomized(qkbo) : KboWeightMap<PredSigTraits>::dflt(qkbo),
 #endif
-      prec(env.signature->functions()),
-      prec(env.signature->typeCons()),
-      prec(env.signature->predicates()),
+      prec(env.signature->symbolCount()),
+      prec(env.signature->symbolCount()),
+      prec(env.signature->symbolCount()),
       predLevels(),
       /*reverseLCM=*/false,
       qkbo);
@@ -616,13 +620,14 @@ void KBO::zeroWeightForMaximalFunc() {
   // actually, it's non-constant maximal func, as constants cannot be weight 0
 
   using FunctionSymbol = unsigned;
-  auto nFunctions = _funcWeights._weights.size();
+  auto functions = env.signature->functionSymbols();
+  auto nFunctions = functions.size();
   if (!nFunctions) {
     return;
   }
 
-  FunctionSymbol maxFn = 0;
-  for (FunctionSymbol i = 1; i < nFunctions; i++) {
+  FunctionSymbol maxFn = nFunctions ? functions[0] : 0;
+  for (FunctionSymbol i : functions) {
     if (compareFunctionPrecedences(maxFn, i) == LESS) {
       maxFn = i;
     }
@@ -641,10 +646,11 @@ template<class HandleError>
 void KBO::checkAdmissibility(HandleError handle) const 
 {
   using FunctionSymbol = unsigned;
-  auto nFunctions = _funcWeights._weights.size();
+  auto functions = env.signature->functionSymbols();
+  auto nFunctions = functions.size();
 
-  FunctionSymbol maxFn = 0; // only properly initialized when (nFunctions > 0)
-  for (FunctionSymbol i = 1; i < nFunctions; i++) {
+  FunctionSymbol maxFn = nFunctions ? functions[0] : 0; // only properly initialized when (nFunctions > 0)
+  for (FunctionSymbol i : functions) {
     if (compareFunctionPrecedences(maxFn, i) == LESS) {
       maxFn = i;
     }
@@ -661,7 +667,7 @@ void KBO::checkAdmissibility(HandleError handle) const
   ////////////////// check kbo-releated constraints //////////////////
   unsigned varWght = _funcWeights._specialWeights._variableWeight;
 
-  for (unsigned i = 0; i < nFunctions; i++) {
+  for (unsigned i : functions) {
     auto arity = env.signature->getFunction(i)->numTermArguments();
 
     if (_funcWeights._weights[i] < varWght && arity == 0) {
@@ -952,14 +958,14 @@ KboWeightMap<SigTraits> KboWeightMap<SigTraits>::fromSomeUnsigned(Extractor ex, 
   DArray<KboWeight> weights(nSym);
 
   decltype(ex(0)) max = 0;
-  for (unsigned i = 0; i < nSym; i++) {
+  for (unsigned i : SigTraits::symbols()) {
     auto a = ex(i);
     if (a > max) {
       max = a;
     }
   }
 
-  for (unsigned i = 0; i < nSym; i++) {
+  for (unsigned i : SigTraits::symbols()) {
     weights[i] = fml(max,ex(i));
   }
 
@@ -985,7 +991,7 @@ KboWeightMap<FuncSigTraits> KboWeightMap<FuncSigTraits>::randomized(unsigned max
   unsigned numReal          = random(variableWeight, maxWeight);
 
   DArray<KboWeight> weights(nSym);
-  for (unsigned i = 0; i < nSym; i++) {
+  for (unsigned i : SigTraits::symbols()) {
     if (SigTraits::isConstantSymbol(i)) {
       weights[i] = random(variableWeight, maxWeight);
     } else if (SigTraits::isUnaryFunction(i)) {
@@ -1024,7 +1030,7 @@ KboWeightMap<PredSigTraits> KboWeightMap<PredSigTraits>::randomized(unsigned max
   unsigned introducedWeight = random(0, maxWeight);
 
   DArray<KboWeight> weights(nSym);
-  for (unsigned i = 0; i < nSym; i++) {
+  for (unsigned i : SigTraits::symbols()) {
     weights[i] = random(0, maxWeight);
   }
 
@@ -1075,10 +1081,11 @@ void KBO::showConcrete_(ostream& out) const
 
   auto& map = getWeightMap<SigTraits>();
   DArray<unsigned> functors;
-  functors.initFromIterator(getRangeIterator(0u,SigTraits::nSymbols()),SigTraits::nSymbols());
+  auto symbols = SigTraits::symbols();
+  functors.initFromIterator(symbols.iter(), symbols.size());
   functors.sort(closureComparator([&](unsigned l, unsigned r) { return Int::compare(map.symbolWeight(l), map.symbolWeight(r)); }));
 
-  for (unsigned i = 0; i < SigTraits::nSymbols(); i++) {
+  for (unsigned i = 0; i < functors.size(); ++i) {
     auto functor = functors[i];
     auto sym = SigTraits::getSymbol(functor);
     out << "% " << sym->name() << " " << sym->arity() << " " << map.symbolWeight(functor) << std::endl;

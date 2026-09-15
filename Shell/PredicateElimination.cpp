@@ -76,7 +76,7 @@ void PredicateElimination::apply(Problem &prb)
   // dropping non-unifiable pairs is only sound if equality and theories don't interfere
   _equational = _forceEquationally || prb.hasEquality() || prb.hasInterpretedOperations() || prb.hasNumerals();
 
-  _preds.ensure(env.signature->predicates());
+  _preds.ensure(env.signature->symbolCount());
 
   // clauses may still contain duplicate literals (or be tautologies) at this stage of
   // preprocessing; besides making our occurrence counting needlessly conservative, they would,
@@ -262,7 +262,8 @@ int PredicateElimination::pickCandidate() const
 {
   static Stack<unsigned> order;
   order.reset();
-  for (unsigned pred = 1; pred < _preds.size(); pred++) {
+  for (unsigned pred : env.signature->predicateSymbols()) {
+    if (pred == 0 || pred >= _preds.size()) continue;
     order.push(pred);
   }
   if (env.options->randomTraversals()) {

@@ -1511,7 +1511,7 @@ InterpretedLiteralEvaluator::Evaluator* InterpretedLiteralEvaluator::getFuncEval
 {
    return getEvaluator(func, 
        this->_funEvaluators, 
-       [] (Evaluator* ev, unsigned i) {return ev->canEvaluateFunc(i); });
+       [] (Evaluator* ev, unsigned i) { return env.signature->getSymbol(i)->isFunction() && ev->canEvaluateFunc(i); });
 }
 
 /**
@@ -1520,7 +1520,7 @@ InterpretedLiteralEvaluator::Evaluator* InterpretedLiteralEvaluator::getFuncEval
 InterpretedLiteralEvaluator::Evaluator* InterpretedLiteralEvaluator::getPredEvaluator(unsigned pred)
 {
    return getEvaluator(pred, this->_predEvaluators,
-       [] (Evaluator* ev, unsigned i) {return ev->canEvaluatePred(i); });
+       [] (Evaluator* ev, unsigned i) { return env.signature->getSymbol(i)->isPredicate() && ev->canEvaluatePred(i); });
 }
 
 }

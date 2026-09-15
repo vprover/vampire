@@ -100,7 +100,7 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
   ASS(_introducedSkolemSyms.isNonEmpty());
   while(_introducedSkolemSyms.isNonEmpty()) {
     auto [v, t, fn] = _introducedSkolemSyms.pop();
-    auto sym = t->kind() == TermKind::SORT ? env.signature->getTypeCon(fn) : env.signature->getFunction(fn);
+    auto sym = env.signature->getSymbol(fn);
 
     InferenceStore::instance()->recordIntroducedSkolemSymbol(res, sym, v, t);
     if (unit->derivedFromGoal()) {
@@ -116,10 +116,8 @@ unsigned Skolem::addSkolemFunction(unsigned taArity, TermStack domainSorts,
 {
   //ASS(arity==0 || domainSorts!=0);
 
-  unsigned fun = env.signature->addSkolemFunction(OperatorType::getFunctionType(domainSorts, rangeSort, taArity), suffix);
-  Signature::Symbol* fnSym = env.signature->getFunction(fun);
-  fnSym->markSkipCongruence();
-  return fun;
+  return env.signature->freshFunction(OperatorType::getFunctionType(domainSorts, rangeSort, taArity), "sK", suffix)
+    .skolem().skipCongruence().number();
 }
 
 unsigned Skolem::addSkolemTypeCon(unsigned arity)
@@ -533,5 +531,4 @@ FormulaList* Skolem::skolemise (FormulaList* fs)
 
   return res;
 } // Skolem::skolemise
-
 

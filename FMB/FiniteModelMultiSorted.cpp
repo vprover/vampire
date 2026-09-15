@@ -46,14 +46,14 @@ using namespace Shell;
 
 void FiniteModelMultiSorted::initTables()
 {
-  _f_offsets.ensure(env.signature->functions());
-  _p_offsets.ensure(env.signature->predicates());
+  _f_offsets.ensure(env.signature->symbolCount());
+  _p_offsets.ensure(env.signature->symbolCount());
 
   // generate offsets per function for indexing f_interpreation
   // see addFunctionDefinition for how the offset is used to compute
   // the actual index
   unsigned offsets=0;
-  for(unsigned f=0; f<env.signature->functions();f++){
+  for (unsigned f : env.signature->functionSymbols()) {
     unsigned arity=env.signature->functionArity(f);
     _f_offsets[f]=offsets;
 
@@ -74,7 +74,8 @@ void FiniteModelMultiSorted::initTables()
   _f_interpretation.expand(offsets,0);
   // can restart for predicates as indexing p_interepration instead
   offsets=0;
-  for(unsigned p=1; p<env.signature->predicates();p++){
+  for (unsigned p : env.signature->predicateSymbols()) {
+    if (p < 1) continue;
     unsigned arity=env.signature->predicateArity(p);
     _p_offsets[p]=offsets;
 
@@ -96,8 +97,8 @@ void FiniteModelMultiSorted::initTables()
   }
   _p_interpretation.expand(offsets,0);
 
-  sortRepr.ensure(env.signature->typeCons());
-  for(unsigned s=0;s<env.signature->typeCons();s++){
+  sortRepr.ensure(env.signature->symbolCount());
+  for (unsigned s : env.signature->typeConSymbols()) {
     if(env.signature->isInterpretedNonDefault(s))
       continue;
     sortRepr[s].ensure(_sizes[s]+1);
@@ -151,10 +152,10 @@ std::string FiniteModelMultiSorted::toString()
   bool replaceDomainConstants = env.options->replaceDomainElements();
 
   static DArray<DArray<std::string>> cnames;
-  cnames.ensure(env.signature->typeCons());
+  cnames.ensure(env.signature->symbolCount());
 
   //Output sorts and their sizes
-  for(unsigned s=0;s<env.signature->typeCons();s++){
+  for (unsigned s : env.signature->typeConSymbols()) {
     unsigned size = _sizes[s];
     if(size==0) continue;
 
@@ -214,7 +215,7 @@ std::string FiniteModelMultiSorted::toString()
   }
 
   //Constants
-  for(unsigned f=0;f<env.signature->functions();f++){
+  for (unsigned f : env.signature->functionSymbols()) {
     Signature::Symbol* symb = env.signature->getFunction(f);
     // if(symb->usageCnt()==0) continue;
     unsigned arity = symb->arity();
@@ -241,7 +242,7 @@ std::string FiniteModelMultiSorted::toString()
   }
 
   //Functions
-  for(unsigned f=0;f<env.signature->functions();f++){
+  for (unsigned f : env.signature->functionSymbols()) {
     Signature::Symbol* symb = env.signature->getFunction(f);
     // if(symb->usageCnt()==0) continue;
     unsigned arity = symb->arity();
@@ -320,7 +321,8 @@ fModelLabel:
   }
 
   //Propositions
-  for(unsigned p=1;p<env.signature->predicates();p++){
+  for (unsigned p : env.signature->predicateSymbols()) {
+    if (p < 1) continue;
     unsigned arity = env.signature->predicateArity(p);
     if(arity>0) continue;
     Signature::Symbol* symb = env.signature->getPredicate(p);
@@ -337,7 +339,8 @@ fModelLabel:
   }
 
   //Predicates
-  for(unsigned p=1;p<env.signature->predicates();p++){
+  for (unsigned p : env.signature->predicateSymbols()) {
+    if (p < 1) continue;
     Signature::Symbol* symb = env.signature->getPredicate(p);
     unsigned arity = symb->arity();
     if(arity==0) continue;
@@ -616,7 +619,7 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
     // - function values of sort srt still need to passed through the ``disappearing'' elim_f
 
     unsigned var = 0; // ... var will fly linearly through all this
-    for(unsigned f=0; f<env.signature->functions();f++){
+    for (unsigned f : env.signature->functionSymbols()) {
       ASS_EQ(var,_f_offsets[f]);
       Signature::Symbol* symb = env.signature->getFunction(f);
       OperatorType* sig = symb->type();
@@ -671,7 +674,8 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
     }
 
     var = 0; // ... var will fly linearly through all this again (for the predicates)
-    for(unsigned p=1; p<env.signature->predicates();p++){
+    for (unsigned p : env.signature->predicateSymbols()) {
+      if (p < 1) continue;
       ASS_EQ(var,_p_offsets[p]);
       Signature::Symbol* symb = env.signature->getPredicate(p);
       OperatorType* sig = symb->type();
@@ -763,7 +767,7 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
     // - arguments of sort srt now iterate over a different (likely smaller domain)
 
     unsigned var = 0; // ... var will fly linearly through all this
-    for(unsigned f=0; f<env.signature->functions();f++){
+    for (unsigned f : env.signature->functionSymbols()) {
       ASS_EQ(var,_f_offsets[f]);
       Signature::Symbol* symb = env.signature->getFunction(f);
       OperatorType* sig = symb->type();
@@ -818,7 +822,8 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
     }
 
     var = 0; // ... var will fly linearly through all this again (for the predicates)
-    for(unsigned p=1; p<env.signature->predicates();p++){
+    for (unsigned p : env.signature->predicateSymbols()) {
+      if (p < 1) continue;
       ASS_EQ(var,_p_offsets[p]);
       Signature::Symbol* symb = env.signature->getPredicate(p);
       OperatorType* sig = symb->type();
