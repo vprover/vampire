@@ -171,6 +171,7 @@ public:
   };
   static const unsigned INSTRUCTION_BITS = 3;
   static_assert(SEARCH_STRUCT < 1 << INSTRUCTION_BITS, "Instruction should fit within INSTRUCTION_BITS");
+  static_assert(SEARCH_STRUCT <= 7, "emit-time instruction must fit in the alternative tag bits");
 
   /** Structure containing a single instruction and its arguments */
   struct CodeOp
@@ -451,6 +452,10 @@ public:
     /** the matcher object is initialized but no execution of code was done yet */
     bool fresh;
     bool _matched;
+    /** Set once a match has been handed from JIT code back to the interpreter
+     *  (a cold block was reached). From then on this matcher's backtrack state
+     *  lives in btStack, so it must keep using execute(). */
+    bool _deopted = false;
 
     /** Stack containing backtracking points */
     Stack<std::conditional_t<removing,BTPointRemoving,BTPoint>> btStack;

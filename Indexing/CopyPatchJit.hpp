@@ -32,6 +32,10 @@ struct JitExecContext {
   FlatTerm::Entry* ftData;     // [rbp +  0]  -> r12
   size_t           tp;         // [rbp +  8]  -> r13
   TermList*        bindings;   // [rbp + 16]  -> r14
+  //  Backtrack stack entries are 16-byte {size_t tp, CodeOp* alt} pairs -
+  //  the same shape as the interpreter's BTPoint, so a suspended match can be
+  //  read by either engine. The pop path resolves alt->_mcode (and lazily
+  //  compiles it) rather than the push path.
   void*            btCursor;   // [rbp + 24]  -> r15  (in/out)
   void*            btEnd;      // [rbp + 32]  -> rbx
   void*            btBase;     // [rbp + 40]  (underflow check)
@@ -64,7 +68,12 @@ struct JitExecContext {
   // Data-driven SearchStruct dispatch
   void*            ssLookupFunc;      // [rbp + 184] (C helper: binary search over ss values[]/targets[])
   void*            ssDispatchStub;    // [rbp + 192] (shared JIT stub entered from 16-byte SS landing stubs)
-  uint8_t          bailout;
+  uint8_t          bailout;           // [rbp + 200] out: hard code budget hit
+  uint8_t          deopt;             // [rbp + 201] out: a cold (untiered)
+                                      //   block was reached; ctx->op says
+                                      //   where the interpreter resumes
+  uint8_t          _pad2[6];          // alignment
+  void*            exitHandler;       // [rbp + 208] trampoline epilogue
 };
 
 static_assert(offsetof(JitExecContext, ftData)           ==  0, "");
@@ -93,6 +102,8 @@ static_assert(offsetof(JitExecContext, btPops)           == 176, "");
 static_assert(offsetof(JitExecContext, ssLookupFunc)     == 184, "");
 static_assert(offsetof(JitExecContext, ssDispatchStub)   == 192, "");
 static_assert(offsetof(JitExecContext, bailout)          == 200, "");
+static_assert(offsetof(JitExecContext, deopt)            == 201, "");
+static_assert(offsetof(JitExecContext, exitHandler)      == 208, "");
 
 
 // --------------------------------------------------------------------------
@@ -147,6 +158,22 @@ public:
    *  has emitted its full code budget). Called from CodeTree. */
   static void recordBudgetStop();
 
+  //  ---- tiered compilation ---------------------------------------------
+  //  A block is emitted only once it has been entered JIT_TIER_THRESHOLD
+  //  times; below that, lazyCompileBlock hands back deoptStub() and the
+  //  match continues in the interpreter. On HWV069+1, 72% of emitted bytes
+  //  belong to blocks that are entered once and never sampled again.
+  /** Bump and return this block's entry count (keyed on its first op). */
+  static unsigned noteBlockEntry(const void* firstOp);
+  /** Address of the shared deopt stub, reachable from the static helpers that
+   *  emitted code calls into. One exec region per process means one stub. */
+  static void* _deoptStubAddr;
+  static void recordTierDeopt();
+  static void recordEntryNotHead();
+  static void recordDeoptNullOp();
+  static void recordTierCompile();
+  static bool deoptAllowed();
+
   // Non-copyable
   CopyPatchJit(const CopyPatchJit&) = delete;
   CopyPatchJit& operator=(const CopyPatchJit&) = delete;
@@ -165,6 +192,10 @@ public:
   TrampolineFunc trampoline() const { return _trampoline; }
 
   void* backtrackHandler() const { return _backtrackHandler; }
+  /** Entered when lazyCompileBlock declines to compile a cold block: saves the
+   *  register file into the context and leaves through the trampoline's exit,
+   *  so the interpreter can pick the match up exactly where the JIT left it. */
+  void* deoptStub() const { return _deoptStub; }
   void* successHandler()   const { return _successHandler; }
 
   void initContext(JitExecContext& ctx) const {
@@ -180,6 +211,8 @@ public:
     ctx.ssLookupFunc     = reinterpret_cast<void*>(&ssLookupHelper);
     ctx.ssDispatchStub   = _ssDispatchStub;
     ctx.bailout          = 0;
+    ctx.deopt            = 0;
+    ctx.exitHandler      = _exitHandler;
   }
 
   void releaseAll();
@@ -218,7 +251,9 @@ public:
   static size_t emittedTotal() { return JitBudget::emittedTotal; }
   //  These two MUST stay inline and header-visible. executeMachineCode calls
   //  outOfBudget() on every retrieval; with the definition in the .cpp it
-  //  becomes a cross-TU call that cannot be inlined
+  //  becomes a cross-TU call that cannot be inlined, and that alone measured
+  //  ~3% of runtime on GRP767-1 (11.45 G -> 11.79 G cycles at unchanged
+  //  instruction count and cache misses).
   static bool   outOfBudget()     { return JitBudget::emittedTotal >= JitBudget::codeBudget; }
   static bool   budgetExhausted() { return JitBudget::emittedTotal >= 2 * JitBudget::codeBudget; }
   void*  bailoutHandler()  const { return _bailoutHandler; }
@@ -262,6 +297,7 @@ private:
   void compileLazyCompileStub();
   void compileBindJmpAltStub();
   void compileSsDispatchStub();
+  void compileDeoptStub();
 
   void emitPushAlt(void* assembler_ptr, Stencil& s, size_t baseOffset);
   void emitJmpAlt(void* assembler_ptr, Stencil& s, size_t baseOffset);
@@ -335,6 +371,8 @@ private:
   void* _lazyCompileStub = nullptr;
   void* _bindJmpAltStub = nullptr;
   void* _ssDispatchStub = nullptr;
+  void* _deoptStub   = nullptr;
+  void* _exitHandler = nullptr;   // trampoline's epilogue, target of the above
   void* _bailoutHandler = nullptr;
 
 };

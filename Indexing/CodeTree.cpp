@@ -52,6 +52,8 @@ namespace Indexing
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
+static_assert(sizeof(Indexing::CodeTree::CodeOp) == 32,
+    "CodeOp layout changed - patchAlternative and emitBlock depend on _altPatchOfs");
 
 //////////////// general datastructures ////////////////////
 
@@ -668,16 +670,53 @@ bool CodeTree::Matcher<removing, checkRange, higherOrder>::executeMachineCode()
     case CopyPatchJit::JitMode::TermOnly:   if ( tree->_clauseCodeTree) { return execute(); } break;
     case CopyPatchJit::JitMode::Both:       break;
   }
-  if (tree->_cpJit->outOfBudget()) { CopyPatchJit::recordBudgetStop(); return execute(); }
+  // Soft code budget: refuse to enter JIT code once the process has emitted
+  // enough. Compilation is only ever triggered from inside JIT execution, so
+  // this single check bounds the JIT's memory; from here the tree runs
+  // interpreted and the proof search continues normally.
+  if (CopyPatchJit::outOfBudget()) { CopyPatchJit::recordBudgetStop(); return execute(); }
 
   // Lazy compilation: compile entry block on first encounter
   if (!entry->_mcode) {
+    if (entry != tree->getEntryPoint()) {
+      CopyPatchJit::recordEntryNotHead();
+      return execute();
+    }
     tree->jitBlock(CodeTree::firstOpToCodeBlock(entry));
   }
   if (!_jitBtBuf) {
     _jitBtBuf = static_cast<BTPoint*>(malloc(JIT_BT_INIT_CAP * sizeof(BTPoint)));
     _jitBtEnd = _jitBtBuf + JIT_BT_INIT_CAP;
     _jitBtCursor = _jitBtBuf;
+  }
+
+  //  if constexpr because for `removing` matchers btStack holds BTPointRemoving
+  //  rather than BTPoint. Those never reach JIT code (the constexpr fallback
+  //  at the top of this function returns first), but the body is still
+  //  instantiated for every template argument, so the guard is required.
+  if constexpr (!removing && !checkRange) {
+    if (_deopted) {
+      //  The previous call ended in the interpreter, so the backtrack state
+      //  lives in btStack. Move it back so JIT code can own it again - the
+      //  exact inverse of the transfer in the deopt path below, and safe for
+      //  the same reason (both sides are BTPoints).
+      //
+      //  This is what lets cold blocks warm up: each call that reaches one
+      //  counts it, rather than the first deopt silencing the counter forever.
+      size_t need = btStack.size();
+      if (static_cast<size_t>(_jitBtEnd - _jitBtBuf) < need) {
+        size_t cap = static_cast<size_t>(_jitBtEnd - _jitBtBuf);
+        while (cap < need) { cap *= 2; }
+        _jitBtBuf = static_cast<BTPoint*>(realloc(_jitBtBuf, cap * sizeof(BTPoint)));
+        _jitBtEnd = _jitBtBuf + cap;
+      }
+      for (size_t i = 0; i < need; i++) { _jitBtBuf[i] = btStack[i]; }
+      _jitBtCursor = _jitBtBuf + need;
+      btStack.reset();
+      _deopted = false;
+      //  fresh is false here, so the trampoline is entered with ctx->op set
+      //  below and resumes exactly where the interpreter stopped.
+    }
   }
 
   if (!_jitCtx) {
@@ -715,6 +754,7 @@ bool CodeTree::Matcher<removing, checkRange, higherOrder>::executeMachineCode()
   ctx->matched  = 0;
   ctx->btPops   = 0;
   ctx->bailout  = 0;
+  ctx->deopt    = 0;
 
   jitFn(ctx);
   CopyPatchJit::recordBtPops(ctx->btPops);
@@ -736,8 +776,46 @@ bool CodeTree::Matcher<removing, checkRange, higherOrder>::executeMachineCode()
   op           = static_cast<CodeOp*>(ctx->op);
   curLInfo     = ctx->curLInfo;
 
+  //  The trampoline's total-fail handler can advance to the next query
+  //  literal inside a single call, recomputing ftData in a register. Refresh
+  //  the member before anything else reads it - in particular before the
+  //  deopt path below hands the match to the interpreter, which would
+  //  otherwise carry on matching against the previous literal's flat term.
   if (linfoCnt > 0 && curLInfo < linfoCnt) {
     ft = linfos[curLInfo].ft;
+  }
+
+  //  Guarded by if constexpr because for `removing` matchers btStack holds
+  //  BTPointRemoving rather than BTPoint. Those never reach JIT code (the
+  //  constexpr fallback at the top returns first), but the body is still
+  //  instantiated for every template argument.
+  //
+  //  This MUST come after the read-back above: if the JIT grew the backtrack
+  //  buffer during the call, expandBtBufferHelper realloc'd it and only
+  //  ctx->btBase is current - walking from a stale _jitBtBuf would read freed
+  //  memory. curLInfo matters for the same reason (the total-fail handler
+  //  advances it in the context, not in the member).
+  if constexpr (!removing && !checkRange) {
+    if (ctx->deopt) {
+      if (!op) { CopyPatchJit::recordDeoptNullOp(); }
+      //  A cold block was reached: hand this CALL to the interpreter. The
+      //  JIT's backtrack entries are {tp, CodeOp*} pairs, i.e. BTPoints, so
+      //  they transfer unchanged.
+      //
+      //  Deopt is per call, not per matcher. Making it permanent is
+      //  self-defeating: the entry counter only rises inside
+      //  lazyCompileBlock, which is only reached from JIT code, so a matcher
+      //  that never returns to JIT code never makes anything hot. Measured,
+      //  that collapsed HWV069+1 from 113 MB of emitted code to 0.23 MB.
+      static_assert(sizeof(BTPoint) == 16, "JIT backtrack entries must be BTPoints");
+      for (BTPoint* p = _jitBtBuf; p != _jitBtCursor; ++p) {
+        btStack.push(*p);
+      }
+      _jitBtCursor = _jitBtBuf;
+      fresh    = true;   //  resume AT op instead of backtracking away from it
+      _deopted = true;   //  cleared on the next call, once the stack moves back
+      return execute();
+    }
   }
 
   if (ctx->matched) { _matched = true; return true; }
@@ -762,6 +840,7 @@ void CodeTree::Matcher<removing, checkRange, higherOrder>::init(CodeTree* tree_,
 
   fresh=true;
   _matched=false;
+  _deopted=false;
   curLInfo=0;
 
   bindings.ensure(tree->_maxVarCnt);
@@ -960,13 +1039,22 @@ CodeTree::CodeTree()
   // multiple GB and drive the process into the limit. Beyond the cap the
   // tree simply runs interpreted - see CopyPatchJit::outOfBudget.
   size_t limitMB = env.options ? env.options->memoryLimit() : 0;
-  if (limitMB) { 
+  if (limitMB) {
     size_t budget = (limitMB << 20) / 4;
-    // Never budget past the reserved exec region: code emitted beyond it
-    // lands in fallback mappings that jmp rel32 cannot reach, so those
-    // sites stay permanently unbound (bind_unreachable)
+    // Never budget past the reserved exec region. Two reasons, the second one
+    // being the important one:
+    //   1. code emitted beyond the region lands in fallback mappings that
+    //      jmp rel32 may not reach, leaving those sites unbound, and
+    //   2. slabs carved from the region need no *additional* mapping, so as
+    //      long as total emission stays inside it the JIT's virtual footprint
+    //      is exactly EXEC_REGION_SIZE - flat, no matter how much code is
+    //      emitted or how many trees exist. Vampire's -m check measures
+    //      VIRTUAL size, so that flatness is what stops the JIT eating the
+    //      memory budget before the prover has done any work.
     if (budget > CopyPatchJit::EXEC_REGION_SIZE) { budget = CopyPatchJit::EXEC_REGION_SIZE; }
-    _cpJit->setCodeBudget(budget);
+    // Process-wide, not per tree: the limit being protected is the process's,
+    // so N indexes must share one budget rather than get N of them.
+    CopyPatchJit::setCodeBudget(budget);
   }
 }
 
@@ -1245,7 +1333,7 @@ void CodeTree::incorporate(CodeStack& code)
   #endif
 
   size_t clen=code.length();
-  CodeOp** tailTarget;
+  CodeOp** tailTarget = nullptr;
   bool tailIsAlternative = false;
   size_t matchedCnt;
   ILStruct* lastMatchedILS=0;
@@ -1365,7 +1453,6 @@ matching_done:
     CodeOp* owner = reinterpret_cast<CodeOp*>(reinterpret_cast<char*>(tailTarget) - offsetof(CodeOp, _alternative));
     patchAlternative(owner);
   }
-  LOG_OP(rem->toString()<<" incorporated, mismatch caused by "<<code[matchedCnt].toString());
 
   //truncate the part that was used and thus does not need disposing
   code.truncate(matchedCnt);
@@ -1620,6 +1707,14 @@ void CodeTree::incTimeStamp()
 
 //////////////// JIT-delegating to CopyPatchJit ////////////////////
 
+//  Tiered compilation: emit a block only once it has been entered this many
+//  times. 1 reproduces the old always-compile behaviour and is the transparency
+//  gate; 2 skips blocks entered exactly once, which is 72% of the emitted bytes
+//  on HWV069+1.
+#ifndef JIT_TIER_THRESHOLD
+#define JIT_TIER_THRESHOLD 2
+#endif
+
 void* CodeTree::lazyCompileBlock(CodeOp* firstOp)
 {
   if (!firstOp || firstOp->_mcode) return firstOp ? firstOp->_mcode : nullptr;
@@ -1628,10 +1723,27 @@ void* CodeTree::lazyCompileBlock(CodeOp* firstOp)
   // The stencil stub detected null _mcode and called this
   // We compile the block now and the next time the stub dereferences _mcode it will find the compiled code and jump directly
   if (firstOp->isSearchStruct()) {
+    //  SearchStruct landing stubs are 16 bytes and emitted once for the SS's
+    //  whole lifetime, so there is nothing to gain by deferring them.
     jitSearchStruct(firstOp->getSearchStruct());
-  } else {
-    jitBlock(firstOpToCodeBlock(firstOp));
+    return firstOp->_mcode;
   }
+
+#if JIT_TIER_THRESHOLD > 1
+    if (CopyPatchJit::noteBlockEntry(firstOp) < JIT_TIER_THRESHOLD
+      && CopyPatchJit::deoptAllowed()) {
+    //  Too cold to be worth emitting. Return the deopt stub - NOT nullptr,
+    //  which every caller reads as "no alternative" and would silently drop
+    //  a branch. _mcode is deliberately left null so the next entry comes
+    //  back through here and the count keeps rising.
+    CopyPatchJit::recordTierDeopt();
+    void* st = _cpJit->deoptStub();
+    return st;
+  }
+  CopyPatchJit::recordTierCompile();
+#endif
+
+  jitBlock(firstOpToCodeBlock(firstOp));
   return firstOp->_mcode;
 }
 

@@ -25,6 +25,7 @@
 #include <cstring>
 #include <cstdlib>
 #include <algorithm>
+#include <unordered_map>
 
 #ifdef __linux__
   #include <sys/mman.h>
@@ -76,16 +77,33 @@ struct JitStats {
   size_t patchAltCalls = 0, patchAltStores = 0;
   size_t lazyCompiles = 0;
   size_t slabsMapped = 0, slabBytes = 0;
+  size_t jitInstances = 0;     // CodeTrees that JIT-compiled in this run (1 on UEQ, 2 on FOF)
+
+  //  tiered compilation
+  size_t tierDeopts = 0;       // entries into a block too cold to compile
+  size_t tierCompiled = 0;     // blocks that reached the threshold and were emitted
+  size_t deoptViaLazy = 0;     // deopts resolved through lazyCompileHelper
+  size_t deoptViaBind = 0;     // deopts resolved through bindJmpAltHelper (site left unbound)
+                               //   invariant: deoptViaLazy + deoptViaBind == tierDeopts
+  size_t entryNotHead = 0;     // literal entries skipped by the eager compile because the
+                               //   entry op is mid-block (ClauseCodeTree enters at litEndOp+1);
+                               //   those literals run interpreted ie expected non-zero on clause trees
+
   // PLT-style binding of jmpAlt sites
   size_t bindCalls = 0;        // trips through the bind stub (once per site per bind epoch)
   size_t binds = 0;            // sites patched to direct 'jmp rel32'
   size_t unbinds = 0;          // bound sites restored to initial form by patchAlternative
   size_t bindUnreachable = 0;  // target outside +-2 GB: left unbound (fallback slabs only)
-  size_t bindBadSite = 0;      // site head bytes unexpected: refused to patch (should stay 0)
-  size_t patchBadSite = 0;     // patchAlternative met unexpected head bytes: refused (should stay 0)
+
   size_t execRegionMB = 0;     // size of the reserved exec region actually obtained
   size_t budgetStops = 0;      // times the soft code budget refused a JIT entry
-  size_t budgetBailouts = 0;   // times the HARD budget aborted mid-match (should stay 0)
+
+  //  Tripwires - all should stay 0 in a healthy run
+  size_t deoptNullOp = 0;      // deopt with ctx->op unset: interpreter resumes at a stale op
+  size_t bindBadSite = 0;      // site head bytes unexpected: refused to patch
+  size_t patchBadSite = 0;     // patchAlternative met unexpected head bytes: refused
+  size_t budgetBailouts = 0;   //HARD budget aborted a match mid-flight
+
   // trampoline instrumentation
   size_t btPops = 0;           // backtrack-stack pops resumed by the bt handler
 };
@@ -147,7 +165,7 @@ namespace JitBudget {
 void CopyPatchJit::printJitStats(std::ostream& out)
 {
   const JitStats& s = g_jitStats;
-  if (JIT_MODE == JitMode::Both && !s.emitBlocks && !s.ssEmits && !s.slabsMapped) return;
+  if (!s.emitBlocks && !s.ssEmits && !s.slabsMapped) return;
   out << "% JITSTATS"
       << " emit_blocks=" << s.emitBlocks
       << " emit_bytes=" << s.emitBytes
@@ -156,6 +174,13 @@ void CopyPatchJit::printJitStats(std::ostream& out)
       << " ss_bytes=" << s.ssBytes
       << " ss_lookups=" << s.ssLookups
       << " ss_found=" << s.ssFound
+      << " tier_deopts=" << s.tierDeopts
+      << " tier_compiled=" << s.tierCompiled
+      << " entry_not_head=" << s.entryNotHead
+      << " jit_instances=" << s.jitInstances
+      << " deopt_nullop=" << s.deoptNullOp
+      << " deopt_via_lazy=" << s.deoptViaLazy
+      << " deopt_via_bind=" << s.deoptViaBind
       << " frees=" << s.frees
       << " patch_alt_calls=" << s.patchAltCalls
       << " patch_alt_stores=" << s.patchAltStores
@@ -186,6 +211,45 @@ void CopyPatchJit::recordBudgetStop()
 {
   g_jitStats.budgetStops++;
 }
+
+/*
+ * Tiering: how many times a block has been entered, keyed on its first op.
+ *
+ * The count cannot live in CodeBlock - that is a variable-length Vector with
+ * its CodeOp array inline at the end, so an extra member would overlap the
+ * data - and CodeOp has no spare bytes. A side table is fine because it is
+ * only ever touched from lazyCompileBlock, i.e. once per entry into a block
+ * that is not yet compiled: ~64k lookups over an entire HWV069+1 run.
+ *
+ * Stale entries after a block is freed are harmless: the worst case is that a
+ * newly allocated block reusing the address starts with an inflated count and
+ * is compiled sooner than it deserves.
+ */
+static std::unordered_map<const void*, unsigned> g_blockEntries;
+
+unsigned CopyPatchJit::noteBlockEntry(const void* firstOp)
+{ return ++g_blockEntries[firstOp]; }
+
+bool CopyPatchJit::deoptAllowed()
+{
+  static const size_t limit = [] {
+    const char* s = std::getenv("JIT_DEOPT_LIMIT");
+    return s ? strtoull(s, nullptr, 10) : ~size_t(0);
+  }();
+  static size_t seen = 0;
+  return ++seen <= limit;
+}
+
+//  The two helpers below are static (they are called from emitted code), so
+//  they cannot reach _deoptStub through an instance. There is one exec-code
+//  region per process, hence one deopt stub; cache its address here when it is
+//  compiled.
+void* CopyPatchJit::_deoptStubAddr = nullptr;
+
+void CopyPatchJit::recordTierDeopt()   { g_jitStats.tierDeopts++; }
+void CopyPatchJit::recordEntryNotHead()   { g_jitStats.entryNotHead++; }
+void CopyPatchJit::recordDeoptNullOp()       { g_jitStats.deoptNullOp++; }
+void CopyPatchJit::recordTierCompile() { g_jitStats.tierCompiled++; }
 
 void CopyPatchJit::setCodeBudget(size_t bytes)
 {
@@ -239,7 +303,20 @@ void* CopyPatchJit::lazyCompileHelper(JitExecContext* ctx, CodeTree::CodeOp* alt
     return nullptr;
   }
   g_jitStats.lazyCompiles++;
-  return tree->lazyCompileBlock(alt);
+  void* res = tree->lazyCompileBlock(alt);
+  //  Compare against THIS tree's stub, not the static _deoptStubAddr: every
+  //  CodeTree owns a CopyPatchJit and each compiles its own deopt stub, so the
+  //  static names only the last one to initialize. lazyCompileBlock returns
+  //  tree->_cpJit->deoptStub(), so with two live trees the old test silently
+  //  failed and ctx->op was never set.
+  if (res == tree->_cpJit->deoptStub()) {
+    //  The block was too cold to compile, so the caller is about to jump into
+    //  the deopt stub. That stub saves the register file but cannot know which
+    //  op the interpreter should resume at, only we do.
+    g_jitStats.deoptViaLazy++;
+    ctx->op = alt;
+  }
+  return res;
 }
 
 /*
@@ -269,6 +346,16 @@ void* CopyPatchJit::bindJmpAltHelper(JitExecContext* ctx, CodeTree::CodeOp* alt,
     target = tree->lazyCompileBlock(alt);
   }
   if (!target) return nullptr;
+  if (target == tree->_cpJit->deoptStub()) {   // this tree's stub - see lazyCompileHelper
+    //  Cold block: hand this dispatch to the interpreter, and do NOT bind the
+    //  site. Binding would wire a jmp rel32 straight to the deopt stub, so
+    //  this site would never consult the counter again and the block could
+    //  never become hot - the whole tiering mechanism would be dead for every
+    //  bound edge.
+    g_jitStats.deoptViaBind++;
+    ctx->op = alt;
+    return target;
+  }
   // SearchStruct alternatives are bindable too: the 16-byte landing stub is
   // emitted once and freed only when the SS is destroyed, and every
   // destruction path repoints + patchAlternatives the (single) incoming op
@@ -499,7 +586,7 @@ void CopyPatchJit::ensureSlabSpace(size_t size) {
   } else {
     //  Region exhausted (or unavailable): fall back to an individual mapping.
     //  Correct, but it does add virtual footprint and its sites may be out of
-    //  rel32 range-bind_unreachable counts those.
+    //  rel32 range ie bind_unreachable counts those.
     p = mapExecPages(cap);
   }
   ASS(p);
@@ -644,6 +731,8 @@ void CopyPatchJit::releaseAll() {
   _lazyCompileStub = nullptr;
   _bindJmpAltStub = nullptr;
   _ssDispatchStub = nullptr;
+  _deoptStub = nullptr;
+  _exitHandler = nullptr;
   _bailoutHandler = nullptr;
   //  JitBudget::emittedTotal is deliberately NOT reset: it is the process-wide budget
   //  counter, and space handed back here goes to g_freeSlabs rather than
@@ -665,6 +754,7 @@ void CopyPatchJit::initialize() {
   compileLazyCompileStub();
   compileBindJmpAltStub();
   compileSsDispatchStub();
+  compileDeoptStub();
 
   compileStencilSuccessOrFail();
   compileStencilCheckGroundTerm();
@@ -676,6 +766,7 @@ void CopyPatchJit::initialize() {
   // differently (they're compiled individually, not via stencils).
 
   _initialized = true;
+  g_jitStats.jitInstances++;
 }
 
 
@@ -722,9 +813,9 @@ void CopyPatchJit::compileTrampoline() {
   a.mov(rbx, qword_ptr(rbp, offsetof(JitExecContext, btEnd)));
 
   // Dispatch: jump to op->_mcode (or backtrack if op is null)
-  // A null ctx.op signals "resume from backtrack stack"-used when
-  // re-entering after a yield, avoiding the need for C++ to interpret
-  // the JIT backtrack stack (which now stores mcode, not CodeOp*).
+  // A null ctx.op signals "resume from backtrack stack":used when
+  // re-entering after a yield. The stack stores {tp, CodeOp*}, which C++ can
+  // also read directly (same shape as the interpreter's BTPoint).
   a.mov(rax, qword_ptr(rbp, offsetof(JitExecContext, op)));
   a.test(rax, rax);
   a.jz(backtrackL);
@@ -740,7 +831,12 @@ void CopyPatchJit::compileTrampoline() {
   a.jmp(exitL);
 
   // --- Backtrack handler ---
-  // Pop a {tp, mcode*} pair from the backtrack stack and resume.
+  //  Pop a {tp, CodeOp*} pair and resume. The stack stores CodeOp pointers
+  //  rather than code addresses (see emitPushAlt), so the _mcode load and the
+  //  lazy-compile path live here: an alternative is compiled only if it is
+  //  actually resumed, and the entries are in the same {tp, CodeOp*} form the
+  //  interpreter's BTPoint uses.
+  Label btHaveMcode = a.new_label();
   a.bind(backtrackL);
   a.cmp(byte_ptr(rbp, offsetof(JitExecContext, bailout)), 0);
   a.jnz(bailoutL);
@@ -748,13 +844,24 @@ void CopyPatchJit::compileTrampoline() {
   a.je(totalFailL);
   a.sub(r15, 16);
   a.mov(r13, qword_ptr(r15, 0));    // tp
-  a.mov(rax, qword_ptr(r15, 8));    // mcode directly
-  a.test(rax, rax);
-  a.jz(backtrackL);                  // null mcode -> keep backtracking
+  a.mov(rcx, qword_ptr(r15, 8));    // alternative CodeOp*
+  a.test(rcx, rcx);
+  a.jz(backtrackL);                  // null entry -> keep backtracking
   // Instrumentation: count resumed pops (splits backtrack-dispatch traffic
   // from jmpAlt-dispatch traffic; ~1 extra instruction per pop, remove the
   // line for pristine timing runs if desired).
   a.inc(qword_ptr(rbp, offsetof(JitExecContext, btPops)));
+  a.mov(rax, qword_ptr(rcx, offsetof(CodeTree::CodeOp, _mcode)));
+  a.test(rax, rax);
+  a.jnz(btHaveMcode);
+  //  Not compiled yet: rcx already holds the CodeOp*, which is the
+  //  lazyCompileStub's argument convention. A null result means the block
+  //  could not be compiled (budget), so keep backtracking rather than
+  //  treating it as a match failure.
+  a.call(qword_ptr(rbp, offsetof(JitExecContext, lazyCompileStub)));
+  a.test(rax, rax);
+  a.jz(backtrackL);
+  a.bind(btHaveMcode);
   a.jmp(rax);
 
   // --- Bailout: the hard code budget was hit mid-match. Report "no match"
@@ -834,6 +941,7 @@ void CopyPatchJit::compileTrampoline() {
   _backtrackHandler = base + code.label_offset(backtrackL);
   _successHandler   = base + code.label_offset(successL);
   _totalFailHandler = base + code.label_offset(totalFailL);
+  _exitHandler      = base + code.label_offset(exitL);
   _bailoutHandler   = base + code.label_offset(bailoutL);
 
   // perf map: split the trampoline into its four regions so profiles
@@ -996,7 +1104,7 @@ void CopyPatchJit::compileBindJmpAltStub() {
  *
  * Semantics (net-effect equivalent to the interpreter's SEARCH_STRUCT):
  *   target = lookup(key at ft[tp])
- *   found:     push {tp, alt mcode} if landingOp has an alternative,
+ *   found:     push {tp, alternative CodeOp*} if landingOp has one,
  *              then jump to target's code (which re-verifies the key itself)
  *   not found: jump to the alternative directly (nothing was pushed), or
  *              backtrack if there is none
@@ -1011,7 +1119,6 @@ void CopyPatchJit::compileSsDispatchStub() {
   Assembler a(&code);
 
   Label notFound   = a.new_label();
-  Label havePushM  = a.new_label();
   Label doPush     = a.new_label();
   Label dispatch   = a.new_label();
   Label go         = a.new_label();
@@ -1038,16 +1145,7 @@ void CopyPatchJit::compileSsDispatchStub() {
   a.mov(rax, qword_ptr(rdi, offsetof(CodeTree::CodeOp, _alternative)));
   a.test(rax, rax);
   a.jz(dispatch);
-  // push {tp, alt mcode}, lazy-compiling the alternative if needed
-  a.mov(rcx, qword_ptr(rax, offsetof(CodeTree::CodeOp, _mcode)));
-  a.test(rcx, rcx);
-  a.jnz(havePushM);
-  a.mov(rcx, rax);          // stub convention: rcx = CodeOp*
-  a.call(qword_ptr(rbp, offsetof(JitExecContext, lazyCompileStub)));
   a.mov(rcx, rax);
-  a.test(rcx, rcx);
-  a.jz(dispatch);           // uncompilable alternative: skip the push
-  a.bind(havePushM);
   a.cmp(r15, rbx);
   a.jb(doPush);
   a.call(qword_ptr(rbp, offsetof(JitExecContext, expandStub)));
@@ -1094,6 +1192,46 @@ void CopyPatchJit::compileSsDispatchStub() {
 }
 
 /*
+ * compileDeoptStub - the hand-back to the interpreter.
+ *
+ * lazyCompileBlock returns this address instead of compiling when a block has
+ * not yet been entered often enough to be worth emitting (see
+ * JIT_TIER_THRESHOLD). Whichever site was resolving the block - pushAlt's pop
+ * path, the bind stub, the SS dispatch stub - then jumps here exactly as it
+ * would to real code.
+ *
+ * The helper has already stored the CodeOp* to resume at in ctx->op, so all
+ * this has to do is flush the two registers C++ cannot see (tp, btCursor),
+ * raise the deopt flag, and leave through the trampoline's normal epilogue.
+ * The backtrack stack is left exactly as it is: entries are {tp, CodeOp*},
+ * i.e. BTPoints, so executeMachineCode can hand them straight to the
+ * interpreter.
+ *
+ * Note this is entered by jmp, not call - there is no return address and
+ * nothing to unwind.
+ */
+void CopyPatchJit::compileDeoptStub() {
+  auto& rt = sharedRuntime();
+  CodeHolder code;
+  code.init(rt.environment(), rt.cpu_features());
+  Assembler a(&code);
+
+  a.mov(qword_ptr(rbp, offsetof(JitExecContext, tp)), r13);
+  a.mov(qword_ptr(rbp, offsetof(JitExecContext, btCursor)), r15);
+  a.mov(byte_ptr(rbp, offsetof(JitExecContext, deopt)), 1);
+  a.mov(byte_ptr(rbp, offsetof(JitExecContext, matched)), 0);
+  a.jmp(qword_ptr(rbp, offsetof(JitExecContext, exitHandler)));
+
+  auto bytes = extractCode(code);
+  void* dest = allocExec(bytes.size());
+  memcpy(dest, bytes.data(), bytes.size());
+  flushICache(dest, bytes.size());
+  _deoptStub = dest;
+  _deoptStubAddr = dest;
+  perfMapAdd(dest, bytes.size(), "jit_deopt_stub");
+}
+
+/*
  * Emits:
  *   movabs rcx, <CodeOp* alt>   ; 10 bytes-patchable
  *   test   rcx, rcx
@@ -1114,7 +1252,7 @@ void CopyPatchJit::compileSsDispatchStub() {
  *   call   [rbp + expandStub]   ; cold: expand buffer, reload r15/rbx
  *   .doPush:
  *   mov    [r15+0], r13         ; tp
- *   mov    [r15+8], rcx         ; alt mcode
+ *   mov    [r15+8], rcx         ; alternative CodeOp*
  *   add    r15, 16
  *   .noPush:
  *
@@ -1135,24 +1273,19 @@ void CopyPatchJit::emitPushAlt(void* asm_ptr, Stencil& s, size_t base) {
 
   Label noPush = a.new_label();
   Label doPush = a.new_label();
-  Label haveMcode = a.new_label();
 
   a.test(rcx, rcx);
   a.jz(noPush);
 
-  a.mov(rdi, rcx);  // save CodeOp* in rdi (for lazy compile path)
-  a.mov(rcx, qword_ptr(rcx, offsetof(CodeTree::CodeOp, _mcode)));
-  a.test(rcx, rcx);
-  a.jnz(haveMcode);
-
-  // Cold path: _mcode is null->call lazy compile stub
-  a.mov(rcx, rdi);   // pass CodeOp* in rcx (stub convention)
-  a.call(qword_ptr(rbp, offsetof(JitExecContext, lazyCompileStub)));
-  a.mov(rcx, rax);   // result->rcx
-  a.test(rcx, rcx);
-  a.jz(noPush);      // still null->skip
-
-  a.bind(haveMcode);
+  //  Push the CodeOp* itself, NOT its _mcode. Two reasons:
+  //    1. the entry becomes interpretable by the interpreter as well as by
+  //       JIT code, which is what lets a suspended match be handed over
+  //       (BTPoint is {tp, CodeOp*} too), and
+  //    2. resolving _mcode - and lazily compiling when it is null - moves off
+  //       this hot path and onto the backtrack handler, which pops far less
+  //       often than pushAlt pushes (594 k pops against billions of edges on
+  //       HWV069+1). The alternative is only ever compiled if it is actually
+  //       resumed.
   a.cmp(r15, rbx);
   a.jb(doPush);
 
@@ -1160,7 +1293,7 @@ void CopyPatchJit::emitPushAlt(void* asm_ptr, Stencil& s, size_t base) {
 
   a.bind(doPush);
   a.mov(qword_ptr(r15, 0), r13);     // tp
-  a.mov(qword_ptr(r15, 8), rcx);     // alt mcode
+  a.mov(qword_ptr(r15, 8), rcx);     // alternative CodeOp*
   a.add(r15, 16);
 
   a.bind(noPush);
