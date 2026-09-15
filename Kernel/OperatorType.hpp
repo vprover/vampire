@@ -58,8 +58,8 @@ public:
       OperatorKey& key = *ot->key();
       unsigned typeArgsArity = ot->numTypeArguments();
       return HashUtils::combine(
-        DefaultHash::hash(key),
-        DefaultHash::hash(typeArgsArity)
+        VectorHash<TermListHash>::hash(key),
+        FnvHash::hash(typeArgsArity)
       );
     }
   };

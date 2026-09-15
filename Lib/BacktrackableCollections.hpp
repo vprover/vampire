@@ -36,10 +36,10 @@ namespace Lib {
     }
   };
 
-  template<class K, class V>
-  struct BdDHMap : public DHMap<K, V> {
-    using Super = DHMap<K,V>;
-    using DHMap<K,V>::DHMap;
+  template<class K, class V, class Hash1, class Hash2>
+  struct BdDHMap : public DHMap<K, V, Hash1, Hash2> {
+    using Super = DHMap<K, V, Hash1, Hash2>;
+    using Super::Super;
 
     using Super::remove;
 

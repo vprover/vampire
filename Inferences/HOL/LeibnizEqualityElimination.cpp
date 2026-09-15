@@ -157,7 +157,7 @@ afterLoop:
     clauses.push(createConclusion(premise, newLit, posLit, negLit, subst));
   }
 
-  return pvi(getUniquePersistentIterator(ClauseStack::Iterator(clauses)));
+  return pvi(getUniquePersistentIterator<UnitHash, UnitNumberHash>(ClauseStack::Iterator(clauses)));
 }
 
 }
