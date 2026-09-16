@@ -36,6 +36,7 @@
 #include "Lib/DHSet.hpp"
 #include "Lib/ArrayMap.hpp"
 
+#include "Shell/Property.hpp"
 #include "Shell/UIHelper.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/GeneralSplitting.hpp"
@@ -1877,7 +1878,7 @@ void FiniteModelBuilder::onModelFound()
   //we need to print this early because model generating can take some time
   if(szsOutputMode()) {
     std::cout << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
-        << " for " << _opt.problemName() << endl << flush;
+        << " for " << _opt.problemName << endl << flush;
     UIHelper::satisfiableStatusWasAlreadyOutput = true;
   }
 
