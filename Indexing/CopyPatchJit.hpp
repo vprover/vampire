@@ -170,6 +170,7 @@ public:
   static void* _deoptStubAddr;
   static void recordTierDeopt();
   static void recordEntryNotHead();
+  static void recordEmptyTree();
   static void recordDeoptNullOp();
   static void recordTierCompile();
   static bool deoptAllowed();

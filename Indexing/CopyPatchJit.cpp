@@ -88,6 +88,7 @@ struct JitStats {
   size_t entryNotHead = 0;     // literal entries skipped by the eager compile because the
                                //   entry op is mid-block (ClauseCodeTree enters at litEndOp+1);
                                //   those literals run interpreted ie expected non-zero on clause trees
+  size_t treeEmpty = 0;                             
 
   // PLT-style binding of jmpAlt sites
   size_t bindCalls = 0;        // trips through the bind stub (once per site per bind epoch)
@@ -177,6 +178,7 @@ void CopyPatchJit::printJitStats(std::ostream& out)
       << " tier_deopts=" << s.tierDeopts
       << " tier_compiled=" << s.tierCompiled
       << " entry_not_head=" << s.entryNotHead
+      << " tree_empty=" << s.treeEmpty
       << " jit_instances=" << s.jitInstances
       << " deopt_nullop=" << s.deoptNullOp
       << " deopt_via_lazy=" << s.deoptViaLazy
@@ -248,6 +250,7 @@ void* CopyPatchJit::_deoptStubAddr = nullptr;
 
 void CopyPatchJit::recordTierDeopt()   { g_jitStats.tierDeopts++; }
 void CopyPatchJit::recordEntryNotHead()   { g_jitStats.entryNotHead++; }
+void CopyPatchJit::recordEmptyTree()  { g_jitStats.treeEmpty++; }
 void CopyPatchJit::recordDeoptNullOp()       { g_jitStats.deoptNullOp++; }
 void CopyPatchJit::recordTierCompile() { g_jitStats.tierCompiled++; }
 

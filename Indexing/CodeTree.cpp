@@ -659,7 +659,7 @@ bool CodeTree::Matcher<removing, checkRange, higherOrder>::executeMachineCode()
 {
   if constexpr (removing || checkRange) { return execute(); }
   // if (!tree->_clauseCodeTree) { return execute(); }
-  if (tree->isEmpty()) { return false; }
+  if (tree->isEmpty()) { CopyPatchJit::recordEmptyTree(); return false; }
   // Soft code budget: refuse to enter JIT code once this tree has emitted
   // enough. Compilation is only ever triggered from inside JIT execution, so
   // this single check is what bounds the JIT's memory; from here on the tree
