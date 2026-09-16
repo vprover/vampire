@@ -104,8 +104,10 @@ void DistinctGroupExpansion::apply(Problem& prb)
 
 bool DistinctGroupExpansion::apply(UnitList*& units)
 {
-  // must run unconditionally: there can be $distinct markers even with no group yet
-  bool eliminated = eliminateDistinctPredicates(units);
+  // phase 1 cannot be skipped just because there is no distinct group yet -- it is what
+  // creates them -- but it is pointless when the signature holds no marker predicate,
+  // as then no unit can contain one
+  bool eliminated = env.signature->hasDistinctPredicates() && eliminateDistinctPredicates(units);
   bool added = expandGroups(units);
   return eliminated || added;
 }

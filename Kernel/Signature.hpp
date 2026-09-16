@@ -776,6 +776,9 @@ class Signature
   unsigned getDistinctPredicate(unsigned arity, TermList sort);
   /** true if @c l is an application of a $distinct marker predicate */
   static bool isDistinctLiteral(Literal* l);
+  /** true if a $distinct marker predicate has ever been created, i.e. if some unit
+   *  might still contain one (cf. Shell/DistinctGroupExpansion) */
+  bool hasDistinctPredicates(){ return !_distinctPredicates.isEmpty(); }
   bool hasDistinctGroups(){ return _distinctGroupsAddedTo; }
   void noDistinctGroupsLeft(){ _distinctGroupsAddedTo=false; }
   Stack<DistinctGroupMembers> &distinctGroupMembers(){ return _distinctGroupMembers; }
