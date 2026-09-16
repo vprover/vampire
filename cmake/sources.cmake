@@ -113,6 +113,7 @@ set(UNIT_TESTS
     UnitTests/tSyntaxSugar.cpp
     UnitTests/tTermAlgebra.cpp
     UnitTests/tTermIndex.cpp
+    UnitTests/tTermOutput.cpp
     UnitTests/tTimeTrace.cpp
     UnitTests/tTuple.cpp
     UnitTests/tUnificationWithAbstraction.cpp
@@ -688,8 +689,6 @@ set(SOURCES
     Shell/CommandLine.hpp
     Shell/DistinctGroupExpansion.cpp
     Shell/DistinctGroupExpansion.hpp
-    Shell/DistinctProcessor.cpp
-    Shell/DistinctProcessor.hpp
     Shell/EqResWithDeletion.cpp
     Shell/EqResWithDeletion.hpp
     Shell/EqualityProxy.cpp

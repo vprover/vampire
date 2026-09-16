@@ -1208,10 +1208,10 @@ void SaturationAlgorithm::doUnprocessedLoop()
   do {
     newClausesToUnprocessed();
 
+    unsigned unprocessedPops = 0;
     while (!_unprocessed->isEmpty()) {
+      unprocessedPops++;
       Clause* c = _unprocessed->pop();
-      poppedFromUnprocessed(c); // tells LRS's it might make sense to update limits
-
       ASS(!isRefutation(c));
 
       if (forwardSimplify(c)) {
@@ -1226,6 +1226,8 @@ void SaturationAlgorithm::doUnprocessedLoop()
 
       newClausesToUnprocessed();
     }
+
+    afterUnprocessedLoop(unprocessedPops); // may trigger LRS estimate update
 
     ASS(clausesFlushed());
     onAllProcessed(); // in particular, Splitter has now recomputed model which may have triggered deletions and additions

@@ -13,9 +13,11 @@
 #define __TimeProfiling__
 
 #include "Lib/Stack.hpp"
+#include <atomic>
 #include <chrono>
 #include <ostream>
 #include <memory>
+#include <vector>
 #include "Lib/MacroUtils.hpp"
 
 namespace Shell {
@@ -110,30 +112,41 @@ private:
   class Measurements {
     Duration _sum;
     unsigned _cnt;
+    // user-space instructions retired inside the measured blocks; 0 when the
+    // hardware counter is unavailable (see Lib/PerfInstructions.hpp)
+    long long _instrSum;
 
   public:
-    void add(Duration d) {
+    void add(Duration d, long long instr) {
       _cnt += 1;
       _sum += d;
+      _instrSum += instr;
     }
-    void remove(Duration d) {
+    void remove(Duration d, long long instr) {
       _cnt -= 1;
       _sum -= d;
+      _instrSum -= instr;
     }
     Duration sum() const { return _sum; }
     unsigned cnt() const { return _cnt; }
+    long long instr() const { return _instrSum; }
     Duration avg() const { return sum() / cnt(); }
     void extend(Measurements other) {
       _sum += other._sum;
       _cnt += other._cnt;
+      _instrSum += other._instrSum;
     }
   };
 
 
+  // NB: deliberately *not* USE_ALLOCATOR, and std::vector rather than Lib::Stack.
+  // The whole trace is walked and (in flatten()) rebuilt by the timer thread when a
+  // resource limit is reached, while the main thread is still proving. Vampire's
+  // GLOBAL_SMALL_OBJECT_ALLOCATOR is plain free lists with no synchronisation, so
+  // anything here that allocated through it would corrupt the prover's heap.
   struct Node {
-    USE_ALLOCATOR(Node)
     const char* name;
-    Lib::Stack<std::unique_ptr<Node>> children;
+    std::vector<std::unique_ptr<Node>> children;
     Measurements measurements;
     Node(const char* name) : name(name), children(), measurements() {}
     struct NodeFormatOpts ;
@@ -161,6 +174,11 @@ public:
 
   class ScopedTimer {
     TimeTrace& _trace;
+    // whether this timer actually pushed a node. Must be remembered rather than
+    // re-testing _enabled in the destructor: the flag can be cleared in between (see
+    // setEnabled), and skipping only the pop would unbalance _stack and mis-attribute
+    // every subsequent scope.
+    bool _active;
 #if VDEBUG
     TimePoint _start;
     const char* _name;
@@ -182,13 +200,34 @@ public:
 
   void printPretty(std::ostream& out);
   void serialize(std::ostream& out);
+  /**
+   * Enable or disable time tracing.
+   *
+   * Clearing the flag *freezes* the trace: no further node is created and no further
+   * measurement is recorded, including by scopes that are already open. That is what
+   * makes it safe(ish) for the timer thread to print the trace out from under a still
+   * running main thread -- see Lib/Timer.cpp, limitReached().
+   */
   void setEnabled(bool);
+
+  /**
+   * Re-base the instruction-counter readings of the currently open scopes -- in
+   * practice just [root], which is entered before the counter exists at all.
+   *
+   * Called by Timer::reinitialise() once the perf event has been opened and reset,
+   * so that [root] measures instructions from the counter's own origin rather than
+   * reporting none.
+   */
+  void rebaseInstructionCounters();
 private:
 
   Node _root;
-  Lib::Stack<Node*> _tmpRoots;
-  Lib::Stack<std::tuple<Node*, TimePoint>> _stack;
-  bool _enabled;
+  std::vector<Node*> _tmpRoots;
+  // node, and the time / instruction-counter readings taken when it was entered
+  // (the instruction reading is -1 when the hardware counter is unavailable)
+  std::vector<std::tuple<Node*, TimePoint, long long>> _stack;
+  // read on every TIME_TRACE scope and written by the timer thread
+  std::atomic<bool> _enabled;
 };
 
 #endif // VTIME_PROFILING

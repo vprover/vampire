@@ -675,6 +675,21 @@ public:
   inline Coproduct clone() const { return apply([](auto& x){ return Coproduct(x.clone()); }); }
 }; // class Coproduct<As...>
 
+// Hash a Coproduct by its tag and the alternative it holds. The methods still
+// use DefaultHash until generic callers accept explicit hashes for the alternatives.
+struct CoproductHash {
+  template<class... As>
+  static bool equals(Coproduct<As...> const& c1, Coproduct<As...> const& c2) { return c1 == c2; }
+
+  template<class... As>
+  static unsigned hash(Coproduct<As...> const& c) { return c.defaultHash(); }
+};
+
+struct CoproductHash2 {
+  template<class... As>
+  static unsigned hash(Coproduct<As...> const& c) { return c.defaultHash2(); }
+};
+
 
 
 } // Lib

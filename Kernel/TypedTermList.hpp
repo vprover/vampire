@@ -50,7 +50,7 @@ public:
   }
 
   bool containsAllVariablesOf(TypedTermList other) const {
-    Set<TermList> vars;
+    Set<TermList, TermListHash> vars;
     vars.insertFromIterator(varIter());
 
     return iterTraits(other.varIter()).all([&vars](TermList v) {
