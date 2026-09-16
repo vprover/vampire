@@ -161,7 +161,11 @@ void Preprocess::preprocess(Problem& prb)
     if(env.signature->hasDistinctGroups()){
       USER_ERROR("distinct objects are not supported in higher-order problems");
     }
-  } else {
+  } else if(env.signature->hasDistinctPredicates() || env.signature->hasDistinctGroups()){
+    // the two conditions are the two phases' inputs: no marker predicate was ever created
+    // means no unit can contain one, and with no group there is nothing to expand either,
+    // so for the vast majority of problems the pass has nothing to do. (Skipping it also
+    // skips the noDistinctGroupsLeft() it would end on, which is a no-op with no groups.)
     if(env.options->showPreprocessing())
       std::cout << "distinct group expansion" << std::endl;
     DistinctGroupExpansion(_options.distinctGroupExpansionLimit()).apply(prb);
