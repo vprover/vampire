@@ -76,6 +76,7 @@ struct AlascaOrderingUtils {
         case Sign::Pos: return 1;
         case Sign::Neg: return 2;
       }
+      ASSERTION_VIOLATION
     };
     return cmpN(toN(c1), toN(c2)); 
   }
