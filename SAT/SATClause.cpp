@@ -37,30 +37,13 @@ unsigned SATClause::_lastNumber = 0;
  */
 void* SATClause::operator new(size_t sz,unsigned lits)
 {
-  //We have to get sizeof(SATClause) + (_length-1)*sizeof(SATLiteral*)
-  //this way, because _length-1 wouldn't behave well for
-  //_length==0 on x64 platform.
-  size_t size=sz+lits*sizeof(SATLiteral);
-  /*
-    it's not safe to save memory for the empty clause,
-    since the compiler wants to call a constructor 
-    on the only officially declared literal, see:
-  
-    SATLiteral _literals[1];
-  */
-  if (lits > 0)
-    size-=sizeof(SATLiteral);
-
-  return ALLOC_KNOWN(size,"SATClause");
+  return ALLOC_KNOWN(allocationRequired(lits),"SATClause");
 }
 
 void SATClause::operator delete(void *ptr, size_t sz) {
   SATClause *self = static_cast<SATClause *>(ptr);
-  size_t size = sz + self->_length * sizeof(SATLiteral);
-  if(self->_length > 0)
-    size -= sizeof(SATLiteral);
-
-  DEALLOC_KNOWN(ptr, size, "SATClause");
+  unsigned lits = self->length();
+  DEALLOC_KNOWN(ptr, allocationRequired(lits), "SATClause");
 }
 
 SATClause::SATClause(unsigned length)
@@ -76,7 +59,7 @@ SATClause::SATClause(unsigned length)
 
   // call a constructor on the literals
   for (size_t i = 1; i < _length; i++)
-    ::new (&_literals[i]) SATLiteral();
+    ::new (&literals()[i]) SATLiteral();
 }
 
 /**
@@ -103,7 +86,7 @@ void SATClause::destroy()
 
   // call a destructor on the excess literals
   for (size_t i = 1; i < _length; i++)
-    _literals[i].~SATLiteral();    
+    literals()[i].~SATLiteral();    
   
   // call a destructor of the clause object (will destroy _literals[0])
   this->~SATClause();
@@ -129,7 +112,7 @@ void SATClause::setInference(SATInference* val)
 
 void SATClause::sort()
 {
-  std::sort(_literals, _literals + length(), [](SATLiteral l, SATLiteral k) -> bool {
+  std::sort(literals(), literals() + length(), [](SATLiteral l, SATLiteral k) -> bool {
     return l.var() < k.var() || (l.var() == k.var() && l.positive() < k.positive());
   });
 }
