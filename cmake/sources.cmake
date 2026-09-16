@@ -538,6 +538,7 @@ set(SOURCES
     Lib/Event.hpp
     Lib/Exception.cpp
     Lib/Exception.hpp
+    Lib/FlexibleTail.hpp
     Lib/Hash.hpp
     Lib/Int.cpp
     Lib/Int.hpp
