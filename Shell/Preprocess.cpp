@@ -15,6 +15,8 @@
  */
 
 
+#include "Debug/TimeProfiling.hpp"
+
 #include "Lib/Random.hpp"
 #include "Lib/ScopedLet.hpp"
 
@@ -122,6 +124,7 @@ void Preprocess::preprocess(Problem& prb)
     if (env.options->showPreprocessing())
       std::cout << "normalization" << std::endl;
 
+    TIME_TRACE("normalisation");
     Normalisation().normalise(prb);
   }
 
@@ -162,6 +165,7 @@ void Preprocess::preprocess(Problem& prb)
       USER_ERROR("distinct objects are not supported in higher-order problems");
     }
   } else if(env.signature->hasDistinctPredicates() || env.signature->hasDistinctGroups()){
+    TIME_TRACE("distinct group expansion");
     // the two conditions are the two phases' inputs: no marker predicate was ever created
     // means no unit can contain one, and with no group there is nothing to expand either,
     // so for the vast majority of problems the pass has nothing to do. (Skipping it also
@@ -174,6 +178,7 @@ void Preprocess::preprocess(Problem& prb)
   if(_options.guessTheGoal() != Options::GoalGuess::OFF){
     prb.invalidateProperty();
     prb.getProperty();
+    TIME_TRACE("goal guessing");
     GoalGuessing().apply(prb);
   }
 
@@ -181,7 +186,7 @@ void Preprocess::preprocess(Problem& prb)
   if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
     if (_options.theoryAxioms() != Options::TheoryAxiomLevel::OFF // we need to normalize before adding the theory axioms as they rely on only normalized symbols being present
       || !_options.alasca()) { // NOTE: Alasca wouldn't need this, but then not all axioms would necessarily be added
-      InterpretedNormalizer().apply(prb);
+      { TIME_TRACE("interpreted normalisation"); InterpretedNormalizer().apply(prb); }
     }
 
     // Add theory axioms if needed
@@ -190,6 +195,7 @@ void Preprocess::preprocess(Problem& prb)
       if (env.options->showPreprocessing())
         std::cout << "adding theory axioms" << std::endl;
 
+      TIME_TRACE("theory axioms");
       TheoryAxioms(prb).apply();
     }
   }
@@ -198,6 +204,7 @@ void Preprocess::preprocess(Problem& prb)
     if (env.options->showPreprocessing())
       std::cout << "eliminating euclidean quotient and remainder" << std::endl;
 
+    TIME_TRACE("euclidean quotient elimination");
     QuotientEPreproc().proc(prb);
   }
 
@@ -207,6 +214,7 @@ void Preprocess::preprocess(Problem& prb)
       if (env.options->showPreprocessing())
         std::cout << "FOOL elimination" << std::endl;
 
+      TIME_TRACE("FOOL elimination");
       FOOLElimination().apply(prb);
     }
   }
@@ -302,6 +310,7 @@ void Preprocess::preprocess(Problem& prb)
     if (env.options->showPreprocessing())
       std::cout << "unused predicate definition removal" << std::endl;
 
+    TIME_TRACE("unused predicate definition removal");
     PredicateDefinition pdRemover;
     pdRemover.removeUnusedDefinitionsAndPurePredicates(prb);
   }
@@ -310,6 +319,7 @@ void Preprocess::preprocess(Problem& prb)
     if (env.options->showPreprocessing())
       std::cout << "preprocess 2 (ennf,flatten)" << std::endl;
 
+    TIME_TRACE("preprocess 2");
     preprocess2(prb);
   }
 
@@ -327,6 +337,7 @@ void Preprocess::preprocess(Problem& prb)
     if (env.options->showPreprocessing())
       std::cout << "newCnf" << std::endl;
 
+    TIME_TRACE("new CNF");
     newCnf(prb);
   } else {
     if (prb.mayHaveFormulas() && _options.newCNF()) { // TODO: update newCNF to deal with higher-order
@@ -348,6 +359,7 @@ void Preprocess::preprocess(Problem& prb)
       if (env.options->showPreprocessing())
         std::cout << "preprocess3 (nnf, flatten, skolemize)" << std::endl;
 
+      TIME_TRACE("preprocess 3");
       preprocess3(prb);
     }
 
@@ -355,6 +367,7 @@ void Preprocess::preprocess(Problem& prb)
       if (env.options->showPreprocessing())
         std::cout << "clausify" << std::endl;
 
+      TIME_TRACE("clausification");
       clausify(prb);
     }
   }
@@ -364,6 +377,7 @@ void Preprocess::preprocess(Problem& prb)
   if (prb.hasFOOL()) {
     // This is the point to extend the signature with $$true and $$false
     // If we don't have fool then these constants get in the way (a lot).
+    TIME_TRACE("FOOL theory axioms");
     TheoryAxioms(prb).applyFOOL();
   }
 
@@ -372,6 +386,7 @@ void Preprocess::preprocess(Problem& prb)
     if (env.options->showPreprocessing())
       std::cout << "function definition elimination" << std::endl;
 
+    TIME_TRACE("function definition elimination");
     if (_options.functionDefinitionElimination() == Options::FunctionDefinitionElimination::ALL) {
       FunctionDefinition fd;
       fd.removeAllDefinitions(prb);
@@ -387,6 +402,7 @@ void Preprocess::preprocess(Problem& prb)
       std::cout << "inequality splitting" << std::endl;
 
     env.statistics->phase=ExecutionPhase::INEQUALITY_SPLITTING;
+    TIME_TRACE("inequality splitting");
     InequalitySplitting is(_options);
     is.perform(prb);
   }
@@ -414,6 +430,7 @@ void Preprocess::preprocess(Problem& prb)
      if (env.options->showPreprocessing())
       std::cout << "equality resolution with deletion" << std::endl;
 
+     TIME_TRACE("equality resolution with deletion");
      EqResWithDeletion resolver;
      resolver.apply(prb);
    }
@@ -435,6 +452,7 @@ void Preprocess::preprocess(Problem& prb)
        if (env.options->showPreprocessing())
          std::cout << "general splitting" << std::endl;
 
+       TIME_TRACE("general splitting");
        GeneralSplitting gs;
        gs.apply(prb);
      }
@@ -445,6 +463,7 @@ void Preprocess::preprocess(Problem& prb)
      if(env.options->showPreprocessing())
        std::cout << "twee goal transformation" << std::endl;
 
+     TIME_TRACE("twee goal transformation");
      TweeGoalTransformation twee;
      twee.apply(prb,(env.options->tweeGoalTransformation() == Options::TweeGoalTransformation::GROUND));
    }
@@ -465,6 +484,7 @@ void Preprocess::preprocess(Problem& prb)
      // TODO: hasPolymorphicSym over-approximates; it also holds for a monomorphic problem
      // with an equality on a non-nullary ground sort, such as list(int), which the
      // monomorphic variant would handle just fine
+     TIME_TRACE("equality proxy");
      EqualityProxy proxy(_options.equalityProxy(),/*poly=*/prb.hasPolymorphicSym());
      proxy.apply(prb);
    }
@@ -480,6 +500,7 @@ void Preprocess::preprocess(Problem& prb)
        if(env.options->showPreprocessing())
          std::cout << "theory flattening" << std::endl;
 
+       TIME_TRACE("theory flattening");
        TheoryFlattening tf;
        tf.apply(prb);
      }
@@ -489,6 +510,7 @@ void Preprocess::preprocess(Problem& prb)
      if (env.options->showPreprocessing())
         std::cout << "performing integer conversion" << std::endl;
 
+     TIME_TRACE("alasca integer conversion");
      AlascaPreprocessor alasca(InequalityNormalizer::global());
      alasca.integerConversion(prb);
    }

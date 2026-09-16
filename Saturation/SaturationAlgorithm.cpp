@@ -1118,12 +1118,11 @@ void SaturationAlgorithm::activate(Clause* cl)
     }
   }
 
-  {
-    TIME_TRACE("splitting")
-    if (_splitter && _opt.splitAtActivation()) {
-      if (_splitter->doSplitting(cl)) {
-        return removeSelected(cl);
-      }
+  if (_splitter && _opt.splitAtActivation()) {
+    // no TIME_TRACE here: Splitter::doSplitting traces itself, and nesting the same
+    // name inside itself would double-count it in the flattened profile
+    if (_splitter->doSplitting(cl)) {
+      return removeSelected(cl);
     }
   }
 
