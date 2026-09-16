@@ -488,10 +488,6 @@ struct AbstractOptionValueCompatator{
   }
 };
 
-// helper for initialising some option values
-#define ARITH_SIMPL_MODE(l, s, d)\
-  ChoiceOptionValue<ArithmeticSimplificationMode>(l,s,d, {"force", "cautious", "off", })
-
 /**
  * Initialize options to the default values.
  *
@@ -506,187 +502,187 @@ struct AbstractOptionValueCompatator{
  */
 Options::Options ()
   : _decode(DecodeOptionValue("decode","",this))
-  , _encode(BoolOptionValue("encode","",false))
-  , _ageWeightRatio(RatioOptionValue("age_weight_ratio","awr",{1,1},':'))
-  , _useTheorySplitQueues(BoolOptionValue("theory_split_queue","thsq",false))
-  , _theorySplitQueueRatios(StringOptionValue("theory_split_queue_ratios", "thsqr", "1,1"))
-  , _theorySplitQueueCutoffs(StringOptionValue("theory_split_queue_cutoffs", "thsqc", "0"))
-  , _theorySplitQueueExpectedRatioDenom(IntOptionValue("theory_split_queue_expected_ratio_denom","thsqd", 8))
-  , _theorySplitQueueLayeredArrangement(BoolOptionValue("theory_split_queue_layered_arrangement","thsql",true))
-  , _useAvatarSplitQueues(BoolOptionValue("avatar_split_queue","avsq",false))
-  , _avatarSplitQueueRatios(StringOptionValue("avatar_split_queue_ratios", "avsqr", "1,1"))
-  , _avatarSplitQueueCutoffs(StringOptionValue("avatar_split_queue_cutoffs", "avsqc", "0"))
-  , _avatarSplitQueueLayeredArrangement(BoolOptionValue("avatar_split_queue_layered_arrangement","avsql",false))
-  , _useSineLevelSplitQueues(BoolOptionValue("sine_level_split_queue","slsq",false))
-  , _sineLevelSplitQueueRatios(StringOptionValue("sine_level_split_queue_ratios", "slsqr", "1,1"))
-  , _sineLevelSplitQueueCutoffs(StringOptionValue("sine_level_split_queue_cutoffs", "slsqc", "0"))
-  , _sineLevelSplitQueueLayeredArrangement(BoolOptionValue("sine_level_split_queue_layered_arrangement","slsql",true))
-  , _usePositiveLiteralSplitQueues(BoolOptionValue("positive_literal_split_queue","plsq",false))
-  , _positiveLiteralSplitQueueRatios(StringOptionValue("positive_literal_split_queue_ratios", "plsqr", "1,4"))
-  , _positiveLiteralSplitQueueCutoffs(StringOptionValue("positive_literal_split_queue_cutoffs", "plsqc", "0"))
-  , _positiveLiteralSplitQueueLayeredArrangement(BoolOptionValue("positive_literal_split_queue_layered_arrangement","plsql",false))
-  , _hoSplitQueues(BoolOptionValue("ho_split_queue","hsq",false))
-  , _hoSplitQueueLambdaWeight(UnsignedOptionValue("ho_split_queue_lambda_weight","hsqlw",1))
-  , _hoSplitQueueAppVarWeight(UnsignedOptionValue("ho_split_queue_appvar_weight","hsqaw",1))
-  , _hoSplitQueueRatios(StringOptionValue("ho_split_queue_ratios", "hsqr", "1,1"))
-  , _hoSplitQueueCutoffs(StringOptionValue("ho_split_queue_cutoffs", "hsqc", "0"))
-  , _hoSplitQueueLayeredArrangement(BoolOptionValue("ho_split_queue_layered_arrangement","hsql",true))
-  , _randomAWR(BoolOptionValue("random_awr","rawr",false))
-  , _literalMaximalityAftercheck(BoolOptionValue("literal_maximality_aftercheck","lma",true))
-  , _arityCheck(BoolOptionValue("arity_check","",false))
-  , _parseGoalAnnotations(BoolOptionValue("parse_goal_annotations","",true))
-  , _randomTraversals(BoolOptionValue("random_traversals","rtra",false))
-  , _badOption(ChoiceOptionValue<BadOption>("bad_option","",BadOption::SOFT,{"hard","forced","off","soft"}))
-  , _backwardDemodulation(ChoiceOptionValue<Demodulation>("backward_demodulation","bd",
+  , _encode("encode","",false)
+  , _ageWeightRatio("age_weight_ratio","awr",{1,1},':')
+  , _useTheorySplitQueues("theory_split_queue","thsq",false)
+  , _theorySplitQueueRatios("theory_split_queue_ratios", "thsqr", "1,1")
+  , _theorySplitQueueCutoffs("theory_split_queue_cutoffs", "thsqc", "0")
+  , _theorySplitQueueExpectedRatioDenom("theory_split_queue_expected_ratio_denom","thsqd", 8)
+  , _theorySplitQueueLayeredArrangement("theory_split_queue_layered_arrangement","thsql",true)
+  , _useAvatarSplitQueues("avatar_split_queue","avsq",false)
+  , _avatarSplitQueueRatios("avatar_split_queue_ratios", "avsqr", "1,1")
+  , _avatarSplitQueueCutoffs("avatar_split_queue_cutoffs", "avsqc", "0")
+  , _avatarSplitQueueLayeredArrangement("avatar_split_queue_layered_arrangement","avsql",false)
+  , _useSineLevelSplitQueues("sine_level_split_queue","slsq",false)
+  , _sineLevelSplitQueueRatios("sine_level_split_queue_ratios", "slsqr", "1,1")
+  , _sineLevelSplitQueueCutoffs("sine_level_split_queue_cutoffs", "slsqc", "0")
+  , _sineLevelSplitQueueLayeredArrangement("sine_level_split_queue_layered_arrangement","slsql",true)
+  , _usePositiveLiteralSplitQueues("positive_literal_split_queue","plsq",false)
+  , _positiveLiteralSplitQueueRatios("positive_literal_split_queue_ratios", "plsqr", "1,4")
+  , _positiveLiteralSplitQueueCutoffs("positive_literal_split_queue_cutoffs", "plsqc", "0")
+  , _positiveLiteralSplitQueueLayeredArrangement("positive_literal_split_queue_layered_arrangement","plsql",false)
+  , _hoSplitQueues("ho_split_queue","hsq",false)
+  , _hoSplitQueueLambdaWeight("ho_split_queue_lambda_weight","hsqlw",1)
+  , _hoSplitQueueAppVarWeight("ho_split_queue_appvar_weight","hsqaw",1)
+  , _hoSplitQueueRatios("ho_split_queue_ratios", "hsqr", "1,1")
+  , _hoSplitQueueCutoffs("ho_split_queue_cutoffs", "hsqc", "0")
+  , _hoSplitQueueLayeredArrangement("ho_split_queue_layered_arrangement","hsql",true)
+  , _randomAWR("random_awr","rawr",false)
+  , _literalMaximalityAftercheck("literal_maximality_aftercheck","lma",true)
+  , _arityCheck("arity_check","",false)
+  , _parseGoalAnnotations("parse_goal_annotations","",true)
+  , _randomTraversals("random_traversals","rtra",false)
+  , _badOption("bad_option","",BadOption::SOFT,{"hard","forced","off","soft"})
+  , _backwardDemodulation("backward_demodulation","bd",
                   Demodulation::OFF,
-                  {"all","off","preordered"}))
-  , _backwardSubsumption(ChoiceOptionValue<Subsumption>("backward_subsumption","bs",
-                Subsumption::OFF,{"off","on","unit_only"}))
-  , _backwardSubsumptionResolution(ChoiceOptionValue<Subsumption>("backward_subsumption_resolution","bsr",
-                    Subsumption::OFF,{"off","on","unit_only"}))
-  , _backwardSubsumptionDemodulation(BoolOptionValue("backward_subsumption_demodulation", "bsd", false))
-  , _backwardSubsumptionDemodulationMaxMatches(UnsignedOptionValue("backward_subsumption_demodulation_max_matches", "bsdmm", 0))
-  , _binaryResolution(BoolOptionValue("binary_resolution","br",true))
-  , _superposition(BoolOptionValue("superposition","sup",true))
-  , _condensation(ChoiceOptionValue<Condensation>("condensation","cond",Condensation::OFF,{"fast","off","on"}))
-  , _demodulationRedundancyCheck(ChoiceOptionValue<DemodulationRedundancyCheck>("demodulation_redundancy_check","drc",
-       DemodulationRedundancyCheck::ENCOMPASS,{"off","ordering","encompass"}))
-  , _forwardDemodulationTermOrderingDiagrams(BoolOptionValue("forward_demodulation_term_ordering_diagrams","fdtod",true))
-  , _demodulationOnlyEquational(BoolOptionValue("demodulation_only_equational","doe",false))
-  , _equalityProxy(ChoiceOptionValue<EqualityProxy>( "equality_proxy","ep",EqualityProxy::OFF,{"R","RS","RST","RSTC","off"}))
-  , _equalityResolutionWithDeletion(BoolOptionValue("equality_resolution_with_deletion","erd",true))
-  , _extensionalityResolution(ChoiceOptionValue<ExtensionalityResolution>("extensionality_resolution","er",
-                      ExtensionalityResolution::OFF,{"filter","known","tagged","off"}))
-  , _extensionalityMaxLength(UnsignedOptionValue("extensionality_max_length","erml",0))
-  , _extensionalityAllowPosEq(BoolOptionValue( "extensionality_allow_pos_eq","eape",true))
-  , _FOOLParamodulation(BoolOptionValue("fool_paramodulation","foolp",false))
-  , _termAlgebraInferences(BoolOptionValue("term_algebra_rules","tar",true))
-  , _termAlgebraCyclicityCheck(ChoiceOptionValue<TACyclicityCheck>("term_algebra_acyclicity","tac",
-                                                                     TACyclicityCheck::OFF,{"off","axiom","rule","light"}))
-  , _termAlgebraExhaustivenessAxiom(BoolOptionValue("term_algebra_exhaustiveness_axiom","taea",true))
-  , _fmbNonGroundDefs(BoolOptionValue("fmb_nonground_defs","fmbngd",false))
-  , _fmbStartSize(UnsignedOptionValue("fmb_start_size","fmbss",1))
-  , _fmbSymmetryRatio(FloatOptionValue("fmb_symmetry_ratio","fmbsr",1.0))
-  , _fmbSymmetryWidgetOrders(ChoiceOptionValue<FMBWidgetOrders>("fmb_symmetry_widget_order","fmbswo",
+                  {"all","off","preordered"})
+  , _backwardSubsumption("backward_subsumption","bs",
+                Subsumption::OFF,{"off","on","unit_only"})
+  , _backwardSubsumptionResolution("backward_subsumption_resolution","bsr",
+                    Subsumption::OFF,{"off","on","unit_only"})
+  , _backwardSubsumptionDemodulation("backward_subsumption_demodulation", "bsd", false)
+  , _backwardSubsumptionDemodulationMaxMatches("backward_subsumption_demodulation_max_matches", "bsdmm", 0)
+  , _binaryResolution("binary_resolution","br",true)
+  , _superposition("superposition","sup",true)
+  , _condensation("condensation","cond",Condensation::OFF,{"fast","off","on"})
+  , _demodulationRedundancyCheck("demodulation_redundancy_check","drc",
+       DemodulationRedundancyCheck::ENCOMPASS,{"off","ordering","encompass"})
+  , _forwardDemodulationTermOrderingDiagrams("forward_demodulation_term_ordering_diagrams","fdtod",true)
+  , _demodulationOnlyEquational("demodulation_only_equational","doe",false)
+  , _equalityProxy( "equality_proxy","ep",EqualityProxy::OFF,{"R","RS","RST","RSTC","off"})
+  , _equalityResolutionWithDeletion("equality_resolution_with_deletion","erd",true)
+  , _extensionalityResolution("extensionality_resolution","er",
+                      ExtensionalityResolution::OFF,{"filter","known","tagged","off"})
+  , _extensionalityMaxLength("extensionality_max_length","erml",0)
+  , _extensionalityAllowPosEq( "extensionality_allow_pos_eq","eape",true)
+  , _FOOLParamodulation("fool_paramodulation","foolp",false)
+  , _termAlgebraInferences("term_algebra_rules","tar",true)
+  , _termAlgebraCyclicityCheck("term_algebra_acyclicity","tac",
+                                                                     TACyclicityCheck::OFF,{"off","axiom","rule","light"})
+  , _termAlgebraExhaustivenessAxiom("term_algebra_exhaustiveness_axiom","taea",true)
+  , _fmbNonGroundDefs("fmb_nonground_defs","fmbngd",false)
+  , _fmbStartSize("fmb_start_size","fmbss",1)
+  , _fmbSymmetryRatio("fmb_symmetry_ratio","fmbsr",1.0)
+  , _fmbSymmetryWidgetOrders("fmb_symmetry_widget_order","fmbswo",
                                                      FMBWidgetOrders::FUNCTION_FIRST,
-                                                     {"function_first","argument_first","diagonal"}))
-  , _fmbSymmetryOrderSymbols(ChoiceOptionValue<FMBSymbolOrders>("fmb_symmetry_symbol_order","fmbsso",
+                                                     {"function_first","argument_first","diagonal"})
+  , _fmbSymmetryOrderSymbols("fmb_symmetry_symbol_order","fmbsso",
                                                      FMBSymbolOrders::OCCURRENCE,
-                                                     {"occurrence","input_usage","preprocessed_usage"}))
-  , _fmbAdjustSorts(ChoiceOptionValue<FMBAdjustSorts>("fmb_adjust_sorts","fmbas",
+                                                     {"occurrence","input_usage","preprocessed_usage"})
+  , _fmbAdjustSorts("fmb_adjust_sorts","fmbas",
                                                            FMBAdjustSorts::GROUP,
-                                                           {"off","expand","group","predicate","function"}))
-  , _fmbDetectSortBounds(BoolOptionValue("fmb_detect_sort_bounds","fmbdsb",false))
-  , _fmbDetectSortBoundsTimeLimit(TimeLimitOptionValue("fmb_detect_sort_bounds_time_limit","fmbdsbt",10))
-  , _fmbSizeWeightRatio(UnsignedOptionValue("fmb_size_weight_ratio","fmbswr",1))
-  , _fmbEnumerationStrategy(ChoiceOptionValue<FMBEnumerationStrategy>("fmb_enumeration_strategy","fmbes",FMBEnumerationStrategy::SBMEAM,{"sbeam",
+                                                           {"off","expand","group","predicate","function"})
+  , _fmbDetectSortBounds("fmb_detect_sort_bounds","fmbdsb",false)
+  , _fmbDetectSortBoundsTimeLimit("fmb_detect_sort_bounds_time_limit","fmbdsbt",10)
+  , _fmbSizeWeightRatio("fmb_size_weight_ratio","fmbswr",1)
+  , _fmbEnumerationStrategy("fmb_enumeration_strategy","fmbes",FMBEnumerationStrategy::SBMEAM,{"sbeam",
 #if VZ3
         "smt",
 #endif
-        "contour"}))
-  , _fmbKeepSbeamGenerators(BoolOptionValue("fmb_keep_sbeam_generators","fmbksg",false))
-  , _fmbUseSimplifyingSolver(BoolOptionValue("fmb_use_simplifying_solver","fmbuss",true))
-  , _forbiddenOptions(StringOptionValue("forbidden_options","",""))
-  , _forcedOptions(StringOptionValue("forced_options","",""))
-  , _forwardDemodulation(ChoiceOptionValue<Demodulation>("forward_demodulation","fd",Demodulation::ALL,{"all","off","preordered"}))
-  , _forwardGroundJoinability(BoolOptionValue("forward_ground_joinability","fgj",false))
-  , _forwardLiteralRewriting(BoolOptionValue("forward_literal_rewriting","flr",false))
-  , _forwardSubsumption(BoolOptionValue("forward_subsumption","fs",true))
-  , _forwardSubsumptionResolution(BoolOptionValue("forward_subsumption_resolution","fsr",true))
-  , _forwardSubsumptionDemodulation(BoolOptionValue("forward_subsumption_demodulation", "fsd", false))
-  , _forwardSubsumptionDemodulationMaxMatches(UnsignedOptionValue("forward_subsumption_demodulation_max_matches", "fsdmm", 0))
-  , _functionDefinitionElimination(ChoiceOptionValue<FunctionDefinitionElimination>("function_definition_elimination","fde",
-                                                                                      FunctionDefinitionElimination::ALL,{"all","none","unused"}))
-  , _functionDefinitionIntroduction(UnsignedOptionValue(
+        "contour"})
+  , _fmbKeepSbeamGenerators("fmb_keep_sbeam_generators","fmbksg",false)
+  , _fmbUseSimplifyingSolver("fmb_use_simplifying_solver","fmbuss",true)
+  , _forbiddenOptions("forbidden_options","","")
+  , _forcedOptions("forced_options","","")
+  , _forwardDemodulation("forward_demodulation","fd",Demodulation::ALL,{"all","off","preordered"})
+  , _forwardGroundJoinability("forward_ground_joinability","fgj",false)
+  , _forwardLiteralRewriting("forward_literal_rewriting","flr",false)
+  , _forwardSubsumption("forward_subsumption","fs",true)
+  , _forwardSubsumptionResolution("forward_subsumption_resolution","fsr",true)
+  , _forwardSubsumptionDemodulation("forward_subsumption_demodulation", "fsd", false)
+  , _forwardSubsumptionDemodulationMaxMatches("forward_subsumption_demodulation_max_matches", "fsdmm", 0)
+  , _functionDefinitionElimination("function_definition_elimination","fde",
+                                                                                      FunctionDefinitionElimination::ALL,{"all","none","unused"})
+  , _functionDefinitionIntroduction(
       "function_definition_introduction",
       "fdi",
       0
-    ))
-  , _tweeGoalTransformation(ChoiceOptionValue<TweeGoalTransformation>("twee_goal_transformation",
-       "tgt", TweeGoalTransformation::OFF, {"off","ground","full"}))
-  , _tweeSkipArrows(BoolOptionValue("twee_skip_arrows","tsa",true))
-  , _codeTreeSubsumption(BoolOptionValue("code_tree_subsumption", "cts", true))
-  , _generalSplitting(BoolOptionValue("general_splitting","gsp",false))
-  , _globalSubsumption(BoolOptionValue("global_subsumption","gs",false))
-  , _guessTheGoal(ChoiceOptionValue<GoalGuess>("guess_the_goal","gtg",GoalGuess::OFF,{"off","all","exists_top","exists_all","exists_sym","position"}))
-  , _guessTheGoalLimit(UnsignedOptionValue("guess_the_goal_limit","gtgl",1))
-  , _simultaneousSuperposition(BoolOptionValue("simultaneous_superposition","sims",true))
-  , _innerRewriting(BoolOptionValue("inner_rewriting","irw",false))
-  , _equationalTautologyRemoval(BoolOptionValue("equational_tautology_removal","etr",false))
-  , _subsumptionEqualityResolution(BoolOptionValue("subsumption_equality_resolution","ser",false))
-  , _partialRedundancyCheck(BoolOptionValue("partial_redundancy_check","prc",false))
-  , _partialRedundancyOrderingConstraints(BoolOptionValue("partial_redundancy_ordering_constraints","proc",false))
-  , _partialRedundancyAvatarConstraints(BoolOptionValue("partial_redundancy_avatar_constraints","prac",false))
-  , _partialRedundancyLiteralConstraints(BoolOptionValue("partial_redundancy_literal_constraints","prlc",false))
-  , _ignoreMissing(ChoiceOptionValue<IgnoreMissing>("ignore_missing","",IgnoreMissing::OFF,{"on","off","warn"}))
-  , _include(StringOptionValue("include","",""))
-  , _increasedNumeralWeight(BoolOptionValue("increased_numeral_weight","inw",false))
-  , _ignoreConjectureInPreprocessing(BoolOptionValue("ignore_conjecture_in_preprocessing","icip",false))
-  , _inequalitySplitting(IntOptionValue("inequality_splitting","ins",0))
-  , _inputSyntax(ChoiceOptionValue<InputSyntax>("input_syntax","",InputSyntax::AUTO,{"smtlib2","tptp","auto"}))
-  , _instantiation(BoolOptionValue("instantiation","inst",false))
-  , _induction(ChoiceOptionValue<Induction>("induction","ind",Induction::NONE,
-                      {"none","struct","int","both"}))
-  , _structInduction(ChoiceOptionValue<StructuralInductionKind>("structural_induction_kind","sik",
-                         StructuralInductionKind::ONE,{"one","two","three","recursion","all"}))
-  , _intInduction(ChoiceOptionValue<IntInductionKind>("int_induction_kind","iik",
-                         IntInductionKind::ONE,{"one","two","all"}))
-  , _inductionChoice(ChoiceOptionValue<InductionChoice>("induction_choice","indc",InductionChoice::ALL,
-                        {"all","goal","goal_plus"}))
-  , _maxInductionDepth(UnsignedOptionValue("induction_max_depth","indmd",0))
-  , _inductionNegOnly(BoolOptionValue("induction_neg_only","indn",true))
-  , _inductionUnitOnly(BoolOptionValue("induction_unit_only","indu",true))
-  , _inductionGen(BoolOptionValue("induction_gen","indgen",false))
-  , _inductionStrengthenHypothesis(BoolOptionValue("induction_strengthen_hypothesis","indstrhyp",false))
-  , _maxInductionGenSubsetSize(UnsignedOptionValue("max_induction_gen_subset_size","indgenss",3))
-  , _inductionOnComplexTerms(BoolOptionValue("induction_on_complex_terms","indoct",false))
-  , _inductionGroundOnly(BoolOptionValue("induction_ground_only","indgo",true))
-  , _functionDefinitionRewriting(BoolOptionValue("function_definition_rewriting","fnrw",false))
-  , _integerInductionDefaultBound(BoolOptionValue("int_induction_default_bound","intinddb",false))
-  , _integerInductionInterval(ChoiceOptionValue<IntegerInductionInterval>("int_induction_interval","intindint",
-                         IntegerInductionInterval::BOTH,{"infinite","finite","both"}))
-  , _integerInductionStrictnessEq(ChoiceOptionValue<IntegerInductionLiteralStrictness>(
+    )
+  , _tweeGoalTransformation("twee_goal_transformation",
+       "tgt", TweeGoalTransformation::OFF, {"off","ground","full"})
+  , _tweeSkipArrows("twee_skip_arrows","tsa",true)
+  , _codeTreeSubsumption("code_tree_subsumption", "cts", true)
+  , _generalSplitting("general_splitting","gsp",false)
+  , _globalSubsumption("global_subsumption","gs",false)
+  , _guessTheGoal("guess_the_goal","gtg",GoalGuess::OFF,{"off","all","exists_top","exists_all","exists_sym","position"})
+  , _guessTheGoalLimit("guess_the_goal_limit","gtgl",1)
+  , _simultaneousSuperposition("simultaneous_superposition","sims",true)
+  , _innerRewriting("inner_rewriting","irw",false)
+  , _equationalTautologyRemoval("equational_tautology_removal","etr",false)
+  , _subsumptionEqualityResolution("subsumption_equality_resolution","ser",false)
+  , _partialRedundancyCheck("partial_redundancy_check","prc",false)
+  , _partialRedundancyOrderingConstraints("partial_redundancy_ordering_constraints","proc",false)
+  , _partialRedundancyAvatarConstraints("partial_redundancy_avatar_constraints","prac",false)
+  , _partialRedundancyLiteralConstraints("partial_redundancy_literal_constraints","prlc",false)
+  , _ignoreMissing("ignore_missing","",IgnoreMissing::OFF,{"on","off","warn"})
+  , _include("include","","")
+  , _increasedNumeralWeight("increased_numeral_weight","inw",false)
+  , _ignoreConjectureInPreprocessing("ignore_conjecture_in_preprocessing","icip",false)
+  , _inequalitySplitting("inequality_splitting","ins",0)
+  , _inputSyntax("input_syntax","",InputSyntax::AUTO,{"smtlib2","tptp","auto"})
+  , _instantiation("instantiation","inst",false)
+  , _induction("induction","ind",Induction::NONE,
+                      {"none","struct","int","both"})
+  , _structInduction("structural_induction_kind","sik",
+                         StructuralInductionKind::ONE,{"one","two","three","recursion","all"})
+  , _intInduction("int_induction_kind","iik",
+                         IntInductionKind::ONE,{"one","two","all"})
+  , _inductionChoice("induction_choice","indc",InductionChoice::ALL,
+                        {"all","goal","goal_plus"})
+  , _maxInductionDepth("induction_max_depth","indmd",0)
+  , _inductionNegOnly("induction_neg_only","indn",true)
+  , _inductionUnitOnly("induction_unit_only","indu",true)
+  , _inductionGen("induction_gen","indgen",false)
+  , _inductionStrengthenHypothesis("induction_strengthen_hypothesis","indstrhyp",false)
+  , _maxInductionGenSubsetSize("max_induction_gen_subset_size","indgenss",3)
+  , _inductionOnComplexTerms("induction_on_complex_terms","indoct",false)
+  , _inductionGroundOnly("induction_ground_only","indgo",true)
+  , _functionDefinitionRewriting("function_definition_rewriting","fnrw",false)
+  , _integerInductionDefaultBound("int_induction_default_bound","intinddb",false)
+  , _integerInductionInterval("int_induction_interval","intindint",
+                         IntegerInductionInterval::BOTH,{"infinite","finite","both"})
+  , _integerInductionStrictnessEq(
         "int_induction_strictness_eq",
         "intindsteq",
         IntegerInductionLiteralStrictness::NONE,
         OptionChoiceValues{"none","toplevel_not_in_other","only_one_occurrence","not_in_both","always"}
-    ))
-  , _integerInductionStrictnessComp(ChoiceOptionValue<IntegerInductionLiteralStrictness>(
+    )
+  , _integerInductionStrictnessComp(
         "int_induction_strictness_comp",
         "intindstcomp",
         IntegerInductionLiteralStrictness::TOPLEVEL_NOT_IN_OTHER,
         OptionChoiceValues{"none","toplevel_not_in_other","only_one_occurrence","not_in_both","always"}
-    ))
-  , _integerInductionStrictnessTerm(ChoiceOptionValue<IntegerInductionTermStrictness>(
+    )
+  , _integerInductionStrictnessTerm(
       "int_induction_strictness_term",
       "intindstterm",
       IntegerInductionTermStrictness::INTERPRETED_CONSTANT,
       {"none", "interpreted_constant", "no_skolems"}
-    ))
-  , _nonUnitInduction(BoolOptionValue("non_unit_induction","nui",false))
-  , _inductionOnActiveOccurrences(BoolOptionValue("induction_on_active_occurrences","indao",false))
-  , _literalComparisonMode(ChoiceOptionValue<LiteralComparisonMode>("literal_comparison_mode","lcm",
+    )
+  , _nonUnitInduction("non_unit_induction","nui",false)
+  , _inductionOnActiveOccurrences("induction_on_active_occurrences","indao",false)
+  , _literalComparisonMode("literal_comparison_mode","lcm",
                                                                       LiteralComparisonMode::STANDARD,
-                                                                      {"predicate","reverse","standard"}))
-  , _lookaheadDelay(IntOptionValue("lookahaed_delay","lsd",0))
-  , _lrsFirstTimeCheck(IntOptionValue("lrs_first_time_check","lftc",5))
-  , _lrsWeightLimitOnly(BoolOptionValue("lrs_weight_limit_only","lwlo",false))
-  , _lrsRetroactiveDeletes(BoolOptionValue("lrs_retroactive_deletes","lrd",false))
-  , _lrsPreemptiveDeletes(BoolOptionValue("lrs_preemptive_deletes","lpd",true))
+                                                                      {"predicate","reverse","standard"})
+  , _lookaheadDelay("lookahaed_delay","lsd",0)
+  , _lrsFirstTimeCheck("lrs_first_time_check","lftc",5)
+  , _lrsWeightLimitOnly("lrs_weight_limit_only","lwlo",false)
+  , _lrsRetroactiveDeletes("lrs_retroactive_deletes","lrd",false)
+  , _lrsPreemptiveDeletes("lrs_preemptive_deletes","lpd",true)
   #if VAMPIRE_PERF_EXISTS
-  , _instructionLimit(UnsignedOptionValue("instruction_limit","i",0))
-  , _simulatedInstructionLimit(UnsignedOptionValue("simulated_instruction_limit","sil",0))
-  , _parsingDoesNotCount(BoolOptionValue("parsing_does_not_count","",false))
+  , _instructionLimit("instruction_limit","i",0)
+  , _simulatedInstructionLimit("simulated_instruction_limit","sil",0)
+  , _parsingDoesNotCount("parsing_does_not_count","",false)
   #endif
-  , _memoryLimit(UnsignedOptionValue("memory_limit","m",
+  , _memoryLimit("memory_limit","m",
 #if VDEBUG
                                        1024     //   1 GB
 #else
                                        131072   // 128 GB (current max on the StarExecs)
 #endif
-                                       ))
-  , _interactive(BoolOptionValue("interactive","",false))
-  , _mode(ChoiceOptionValue<Mode>("mode","",Mode::VAMPIRE,
+                                       )
+  , _interactive("interactive","",false)
+  , _mode("mode","",Mode::VAMPIRE,
                                     {"axiom_selection",
                                         "casc",
                                         "clausify",
@@ -701,9 +697,9 @@ Options::Options ()
                                         "spider",
                                         "tclausify",
                                         "tpreprocess",
-                                        "vampire"}))
-  , _intent(ChoiceOptionValue<Intent>("intent","intent",Intent::UNSAT,{"unsat","sat"}))
-  , _schedule(ChoiceOptionValue<Schedule>("schedule","sched",Schedule::CASC,
+                                        "vampire"})
+  , _intent("intent","intent",Intent::UNSAT,{"unsat","sat"})
+  , _schedule("schedule","sched",Schedule::CASC,
         {"casc",
          "casc_2024",
          "casc_2025",
@@ -724,183 +720,183 @@ Options::Options ()
          "snake_tptp_uns",
          "snake_tptp_sat",
          "struct_induction",
-         "struct_induction_tip"}))
-  , _scheduleFile(StringOptionValue("schedule_file", "", ""))
-  , _multicore(UnsignedOptionValue("cores","",1))
-  , _slowness(FloatOptionValue("slowness","",1.0))
-  , _randomizeSeedForPortfolioWorkers(BoolOptionValue("randomize_seed_for_portfolio_workers","",true))
-  , _shuffleOnScheduleRepeats(BoolOptionValue("shuffle_on_schedule_repeats","",true))
-  , _naming(IntOptionValue("naming","nm",8))
-  , _nonliteralsInClauseWeight(BoolOptionValue("nonliterals_in_clause_weight","nicw",false))
-  , _normalize(BoolOptionValue("normalize","norm",false))
-  , _shuffleInput(BoolOptionValue("shuffle_input","si",false))
-  , _randomPolarities(BoolOptionValue("random_polarities","rp",false))
-  , _randomizedSimplifications(BoolOptionValue("randomized_simplifications","rsi",false))
-  , _randomizedPreprocessing(BoolOptionValue("randomized_preprocessing","rpr",false))
-  , _printProofToFile(StringOptionValue("print_proofs_to_file","pptf",""))
-  , _printClausifierPremises(BoolOptionValue("print_clausifier_premises","",false))
-  , _replaceDomainElements(BoolOptionValue("replace_domain_elements","",false))
-  , _proof(ChoiceOptionValue<Proof>("proof","p",Proof::ON,{"off","on","proofcheck","tptp","property","smt2_proofcheck","smtcheck"}))
-  , _minimizeSatProofs(BoolOptionValue("minimize_sat_proofs","msp",true))
-  , _proofExtra(ChoiceOptionValue<ProofExtra>("proof_extra","",ProofExtra::OFF,{"off","free","full"}))
-  , _traceback(BoolOptionValue("traceback","",false))
-  , _protectedPrefix(StringOptionValue("protected_prefix","",""))
-  , _questionAnswering(ChoiceOptionValue<QuestionAnsweringMode>("question_answering","qa",QuestionAnsweringMode::AUTO,
-                                                                  {"auto","plain","synthesis","off"}))
-  , _questionAnsweringGroundOnly(BoolOptionValue("question_answering_ground_only","qago",false))
-  , _questionAnsweringAvoidThese(StringOptionValue("question_answering_avoid_these","qaat",""))
-  , _randomSeed(UnsignedOptionValue("random_seed","",1 /* this should be the value of Random::_seed from Random.cpp */))
-  , _randomStrategySeed(UnsignedOptionValue("random_strategy_seed","",0))
-  , _sampleStrategy(StringOptionValue("sample_strategy","",""))
-  , _activationLimit(IntOptionValue("activation_limit","al",0))
-  , _satSolver(ChoiceOptionValue<SatSolver>("sat_solver","sas",SatSolver::MINISAT, {
+         "struct_induction_tip"})
+  , _scheduleFile("schedule_file", "", "")
+  , _multicore("cores","",1)
+  , _slowness("slowness","",1.0)
+  , _randomizeSeedForPortfolioWorkers("randomize_seed_for_portfolio_workers","",true)
+  , _shuffleOnScheduleRepeats("shuffle_on_schedule_repeats","",true)
+  , _naming("naming","nm",8)
+  , _nonliteralsInClauseWeight("nonliterals_in_clause_weight","nicw",false)
+  , _normalize("normalize","norm",false)
+  , _shuffleInput("shuffle_input","si",false)
+  , _randomPolarities("random_polarities","rp",false)
+  , _randomizedSimplifications("randomized_simplifications","rsi",false)
+  , _randomizedPreprocessing("randomized_preprocessing","rpr",false)
+  , _printProofToFile("print_proofs_to_file","pptf","")
+  , _printClausifierPremises("print_clausifier_premises","",false)
+  , _replaceDomainElements("replace_domain_elements","",false)
+  , _proof("proof","p",Proof::ON,{"off","on","proofcheck","tptp","property","smt2_proofcheck","smtcheck"})
+  , _minimizeSatProofs("minimize_sat_proofs","msp",true)
+  , _proofExtra("proof_extra","",ProofExtra::OFF,{"off","free","full"})
+  , _traceback("traceback","",false)
+  , _protectedPrefix("protected_prefix","","")
+  , _questionAnswering("question_answering","qa",QuestionAnsweringMode::AUTO,
+                                                                  {"auto","plain","synthesis","off"})
+  , _questionAnsweringGroundOnly("question_answering_ground_only","qago",false)
+  , _questionAnsweringAvoidThese("question_answering_avoid_these","qaat","")
+  , _randomSeed("random_seed","",1 /* this should be the value of Random::_seed from Random.cpp */)
+  , _randomStrategySeed("random_strategy_seed","",0)
+  , _sampleStrategy("sample_strategy","","")
+  , _activationLimit("activation_limit","al",0)
+  , _satSolver("sat_solver","sas",SatSolver::MINISAT, {
       "minisat",
       "cadical"
 #if VZ3
       ,"z3"
 #endif
-    }))
-  , _saturationAlgorithm(ChoiceOptionValue<SaturationAlgorithm>("saturation_algorithm","sa",SaturationAlgorithm::LRS,
+    })
+  , _saturationAlgorithm("saturation_algorithm","sa",SaturationAlgorithm::LRS,
                                                                   {"discount","fmb","lrs","otter"
 #if VZ3
       ,"z3"
 #endif
-    }))
-  , _showAll(BoolOptionValue("show_everything","",false))
-  , _showActive(BoolOptionValue("show_active","",false))
-  , _showBlocked(BoolOptionValue("show_blocked","",false))
-  , _showDefinitions(BoolOptionValue("show_definitions","",false))
-  , _showInterpolant(ChoiceOptionValue<InterpolantMode>("show_interpolant","",InterpolantMode::OFF,
+    })
+  , _showAll("show_everything","",false)
+  , _showActive("show_active","",false)
+  , _showBlocked("show_blocked","",false)
+  , _showDefinitions("show_definitions","",false)
+  , _showInterpolant("show_interpolant","",InterpolantMode::OFF,
                                                           {"new_heur",
 #if VZ3
                                                           "new_opt",
 #endif
-                                                          "off"}))
-  , _showNew(BoolOptionValue("show_new","",false))
-  , _sineToAge(BoolOptionValue("sine_to_age","s2a",false))
-  , _sineToPredLevels(ChoiceOptionValue<PredicateSineLevels>("sine_to_pred_levels","s2pl",PredicateSineLevels::OFF,{"no","off","on"}))
-  , _showSplitting(BoolOptionValue("show_splitting","",false))
-  , _showNewPropositional(BoolOptionValue("show_new_propositional","",false))
-  , _showNonconstantSkolemFunctionTrace(BoolOptionValue("show_nonconstant_skolem_function_trace","",false))
-  , _showOptions(BoolOptionValue("show_options","",false))
-  , _showOptionsLineWrap(BoolOptionValue("show_options_line_wrap","",true))
-  , _showExperimentalOptions(BoolOptionValue("show_experimental_options","",false))
-  , _showHelp(BoolOptionValue("help","h",false))
-  , _printAllTheoryAxioms(BoolOptionValue("print_theory_axioms","",false))
-  , _explainOption(StringOptionValue("explain_option","explain",""))
-  , _showPassive(BoolOptionValue("show_passive","",false))
-  , _showReductions(BoolOptionValue("show_reductions","",false))
-  , _showPreprocessing(BoolOptionValue("show_preprocessing","",false))
-  , _showSkolemisations(BoolOptionValue("show_skolemisations","",false))
-  , _showSymbolElimination(BoolOptionValue("show_symbol_elimination","",false))
-  , _showTheoryAxioms(BoolOptionValue("show_theory_axioms","",false))
-  , _showFOOL(BoolOptionValue("show_fool","",false))
-  , _showFMBsortInfo(BoolOptionValue("show_fmb_sort_info","",false))
-  , _showInduction(BoolOptionValue("show_induction","",false))
-  , _showSimplOrdering(BoolOptionValue("show_ordering","",false))
-  , _showPropDict(BoolOptionValue("show_property_dict","",false))
+                                                          "off"})
+  , _showNew("show_new","",false)
+  , _sineToAge("sine_to_age","s2a",false)
+  , _sineToPredLevels("sine_to_pred_levels","s2pl",PredicateSineLevels::OFF,{"no","off","on"})
+  , _showSplitting("show_splitting","",false)
+  , _showNewPropositional("show_new_propositional","",false)
+  , _showNonconstantSkolemFunctionTrace("show_nonconstant_skolem_function_trace","",false)
+  , _showOptions("show_options","",false)
+  , _showOptionsLineWrap("show_options_line_wrap","",true)
+  , _showExperimentalOptions("show_experimental_options","",false)
+  , _showHelp("help","h",false)
+  , _printAllTheoryAxioms("print_theory_axioms","",false)
+  , _explainOption("explain_option","explain","")
+  , _showPassive("show_passive","",false)
+  , _showReductions("show_reductions","",false)
+  , _showPreprocessing("show_preprocessing","",false)
+  , _showSkolemisations("show_skolemisations","",false)
+  , _showSymbolElimination("show_symbol_elimination","",false)
+  , _showTheoryAxioms("show_theory_axioms","",false)
+  , _showFOOL("show_fool","",false)
+  , _showFMBsortInfo("show_fmb_sort_info","",false)
+  , _showInduction("show_induction","",false)
+  , _showSimplOrdering("show_ordering","",false)
+  , _showPropDict("show_property_dict","",false)
   #if VAMPIRE_CLAUSE_TRACING
-  , _traceBackward(IntOptionValue("trace_bwd","",0))
-  , _traceForward(IntOptionValue("trace_fwd","",-1))
+  , _traceBackward("trace_bwd","",0)
+  , _traceForward("trace_fwd","",-1)
   #endif
   #if VZ3
-  , _showZ3(BoolOptionValue("show_z3","",false))
-  , _problemExportSyntax(ChoiceOptionValue<ProblemExportSyntax>("export_syntax","",ProblemExportSyntax::SMTLIB, {"smtlib", "api_calls",}))
-  , _exportAvatarProblem(StringOptionValue("export_avatar","",""))
-  , _exportThiProblem(StringOptionValue("export_thi","",""))
-  , _satFallbackForSMT(BoolOptionValue("sat_fallback_for_smt","sffsmt",false))
-  , _smtForGround(BoolOptionValue("smt_for_ground","smtfg",false))
-  , _theoryInstAndSimp(ChoiceOptionValue<TheoryInstSimp>("theory_instantiation","thi",
-                                        TheoryInstSimp::OFF, {"off", "all", "strong", "neg_eq", "overlap", "full", "new"}))
-  , _thiGeneralise(BoolOptionValue("theory_instantiation_generalisation", "thigen", false))
-  , _thiTautologyDeletion(BoolOptionValue("theory_instantiation_tautology_deletion", "thitd", false))
+  , _showZ3("show_z3","",false)
+  , _problemExportSyntax("export_syntax","",ProblemExportSyntax::SMTLIB, {"smtlib", "api_calls",})
+  , _exportAvatarProblem("export_avatar","","")
+  , _exportThiProblem("export_thi","","")
+  , _satFallbackForSMT("sat_fallback_for_smt","sffsmt",false)
+  , _smtForGround("smt_for_ground","smtfg",false)
+  , _theoryInstAndSimp("theory_instantiation","thi",
+                                        TheoryInstSimp::OFF, {"off", "all", "strong", "neg_eq", "overlap", "full", "new"})
+  , _thiGeneralise("theory_instantiation_generalisation", "thigen", false)
+  , _thiTautologyDeletion("theory_instantiation_tautology_deletion", "thitd", false)
   #endif
-  , _unificationWithAbstraction(ChoiceOptionValue<UnificationWithAbstraction>("unification_with_abstraction","uwa",
+  , _unificationWithAbstraction("unification_with_abstraction","uwa",
                                       UnificationWithAbstraction::AUTO,
-                                      {"auto","off","interpreted_only","one_side_interpreted","one_side_constant","all","ground", "func_ext", "alasca_one_interp", "alasca_can_abstract", "alasca_main", "alasca_main_floor", "hol"}))
-  , _unificationWithAbstractionFixedPointIteration(BoolOptionValue("unification_with_abstraction_fixed_point_iteration","uwa_fpi",
-                                     false))
-  , _useACeval(BoolOptionValue("use_ac_eval","uace",false))
-  , _simulatedTimeLimit(TimeLimitOptionValue("simulated_time_limit","stl",0))
-  , _lrsEstimateCorrectionCoef(FloatOptionValue("lrs_estimate_correction_coef","lecc",1.0))
-  , _lrsSaveTraceFile(StringOptionValue("lrs_save_trace_file","lstf",""))
-  , _lrsLoadTraceFile(StringOptionValue("lrs_load_trace_file","lltf",""))
-  , _sineDepth(UnsignedOptionValue("sine_depth","sd",0))
-  , _sineGeneralityThreshold(UnsignedOptionValue("sine_generality_threshold","sgt",0))
-  , _sineToAgeGeneralityThreshold(UnsignedOptionValue("sine_to_age_generality_threshold","s2agt",0))
-  , _sineSelection(ChoiceOptionValue<SineSelection>("sine_selection","ss",SineSelection::OFF,{"axioms","included","off"}))
-  , _sineTolerance(FloatOptionValue("sine_tolerance","st",1.0))
-  , _sineToAgeTolerance(FloatOptionValue("sine_to_age_tolerance","s2at",1.0))
-  , _sos(ChoiceOptionValue<Sos>("sos","sos",Sos::OFF,{"all","off","on","theory"}))
-  , _sosTheoryLimit(UnsignedOptionValue("sos_theory_limit","sstl",0))
-  , _splitting(BoolOptionValue("avatar","av",true))
-  , _splitAtActivation(BoolOptionValue("split_at_activation","sac",false))
-  , _cleaveNonsplittables(BoolOptionValue("cleave_nonsplittables","cn",false))
-  , _splittingAddComplementary(ChoiceOptionValue<SplittingAddComplementary>("avatar_add_complementary","aac",
-                                                                                SplittingAddComplementary::GROUND,{"ground","none"}))
-  , _splittingCongruenceClosure(BoolOptionValue("avatar_congruence_closure", "acc", false))
-  , _splittingAvatimer(FloatOptionValue("avatar_turn_off_time_frac","atotf",1.0))
-  , _splittingNonsplittableComponents(ChoiceOptionValue<SplittingNonsplittableComponents>("avatar_nonsplittable_components","anc",
+                                      {"auto","off","interpreted_only","one_side_interpreted","one_side_constant","all","ground", "func_ext", "alasca_one_interp", "alasca_can_abstract", "alasca_main", "alasca_main_floor", "hol"})
+  , _unificationWithAbstractionFixedPointIteration("unification_with_abstraction_fixed_point_iteration","uwa_fpi",
+                                     false)
+  , _useACeval("use_ac_eval","uace",false)
+  , _simulatedTimeLimit("simulated_time_limit","stl",0)
+  , _lrsEstimateCorrectionCoef("lrs_estimate_correction_coef","lecc",1.0)
+  , _lrsSaveTraceFile("lrs_save_trace_file","lstf","")
+  , _lrsLoadTraceFile("lrs_load_trace_file","lltf","")
+  , _sineDepth("sine_depth","sd",0)
+  , _sineGeneralityThreshold("sine_generality_threshold","sgt",0)
+  , _sineToAgeGeneralityThreshold("sine_to_age_generality_threshold","s2agt",0)
+  , _sineSelection("sine_selection","ss",SineSelection::OFF,{"axioms","included","off"})
+  , _sineTolerance("sine_tolerance","st",1.0)
+  , _sineToAgeTolerance("sine_to_age_tolerance","s2at",1.0)
+  , _sos("sos","sos",Sos::OFF,{"all","off","on","theory"})
+  , _sosTheoryLimit("sos_theory_limit","sstl",0)
+  , _splitting("avatar","av",true)
+  , _splitAtActivation("split_at_activation","sac",false)
+  , _cleaveNonsplittables("cleave_nonsplittables","cn",false)
+  , _splittingAddComplementary("avatar_add_complementary","aac",
+                                                                                SplittingAddComplementary::GROUND,{"ground","none"})
+  , _splittingCongruenceClosure("avatar_congruence_closure", "acc", false)
+  , _splittingAvatimer("avatar_turn_off_time_frac","atotf",1.0)
+  , _splittingNonsplittableComponents("avatar_nonsplittable_components","anc",
                                                                                               SplittingNonsplittableComponents::KNOWN,
-                                                                                              {"all","all_dependent","known","none"}))
-  , _splittingMinimizeModel(BoolOptionValue("avatar_minimize_model","amm",true))
-  , _splittingLiteralPolarityAdvice(ChoiceOptionValue<SplittingLiteralPolarityAdvice>(
+                                                                                              {"all","all_dependent","known","none"})
+  , _splittingMinimizeModel("avatar_minimize_model","amm",true)
+  , _splittingLiteralPolarityAdvice(
                                                 "avatar_literal_polarity_advice","alpa",
                                                 SplittingLiteralPolarityAdvice::NONE,
-                                                {"false","true","none","random"}))
-  , _splittingDeleteDeactivated(ChoiceOptionValue<SplittingDeleteDeactivated>("avatar_delete_deactivated","add",
-                                                                        SplittingDeleteDeactivated::LARGE_ONLY,{"on","large","off"}))
-  , _statistics(ChoiceOptionValue<Statistics>("statistics","stat",Statistics::BRIEF,{"brief","full","none"}))
-  , _superpositionFromVariables(BoolOptionValue("superposition_from_variables","sfv",true))
-  , _termOrdering(ChoiceOptionValue<TermOrdering>("term_ordering","to", TermOrdering::AUTO_KBO,
-                                                    {"auto_kbo","kbo","qkbo","lakbo","lpo","incomp"}))
-  , _symbolPrecedence(ChoiceOptionValue<SymbolPrecedence>("symbol_precedence","sp",SymbolPrecedence::FREQUENCY,
+                                                {"false","true","none","random"})
+  , _splittingDeleteDeactivated("avatar_delete_deactivated","add",
+                                                                        SplittingDeleteDeactivated::LARGE_ONLY,{"on","large","off"})
+  , _statistics("statistics","stat",Statistics::BRIEF,{"brief","full","none"})
+  , _superpositionFromVariables("superposition_from_variables","sfv",true)
+  , _termOrdering("term_ordering","to", TermOrdering::AUTO_KBO,
+                                                    {"auto_kbo","kbo","qkbo","lakbo","lpo","incomp"})
+  , _symbolPrecedence("symbol_precedence","sp",SymbolPrecedence::FREQUENCY,
                                                             {"arity","occurrence","reverse_arity","unary_first",
                                                             "const_max", "const_min",
                                                             "scramble","frequency","unary_frequency","const_frequency",
-                                                            "reverse_frequency", "weighted_frequency","reverse_weighted_frequency"}))
-  , _symbolPrecedenceBoost(ChoiceOptionValue<SymbolPrecedenceBoost>("symbol_precedence_boost","spb",SymbolPrecedenceBoost::NONE,
+                                                            "reverse_frequency", "weighted_frequency","reverse_weighted_frequency"})
+  , _symbolPrecedenceBoost("symbol_precedence_boost","spb",SymbolPrecedenceBoost::NONE,
                                      {"none","goal","units","goal_then_units",
-                                      "non_intro","intro"}))
-  , _introducedSymbolPrecedence(ChoiceOptionValue<IntroducedSymbolPrecedence>("introduced_symbol_precedence","isp",
+                                      "non_intro","intro"})
+  , _introducedSymbolPrecedence("introduced_symbol_precedence","isp",
                                                                                 IntroducedSymbolPrecedence::TOP,
-                                                                                {"top","bottom"}))
-  , _evaluationMode(ChoiceOptionValue<EvaluationMode>("evaluation","ev",
+                                                                                {"top","bottom"})
+  , _evaluationMode("evaluation","ev",
                                                         EvaluationMode::SIMPLE,
-                                                        {"off","simple","force","cautious"}))
-  , _kboWeightGenerationScheme(ChoiceOptionValue<KboWeightGenerationScheme>("kbo_weight_scheme","kws",KboWeightGenerationScheme::CONST,
+                                                        {"off","simple","force","cautious"})
+  , _kboWeightGenerationScheme("kbo_weight_scheme","kws",KboWeightGenerationScheme::CONST,
                                           {"const","random","arity","inv_arity","arity_squared","inv_arity_squared",
-                                          "precedence","inv_precedence","frequency","inv_frequency"}))
-  , _kboMaxZero(BoolOptionValue("kbo_max_zero","kmz",false))
-  , _kboAdmissabilityCheck(ChoiceOptionValue<KboAdmissibilityCheck>(
+                                          "precedence","inv_precedence","frequency","inv_frequency"})
+  , _kboMaxZero("kbo_max_zero","kmz",false)
+  , _kboAdmissabilityCheck(
         "kbo_admissibility_check", "", KboAdmissibilityCheck::ERROR,
-                                     {"error","warning" }))
-  , _functionWeights(StringOptionValue("function_weights","fw",""))
-  , _predicateWeights(StringOptionValue("predicate_weights","pw",""))
-  , _typeConPrecedence(StringOptionValue("type_con_precedence","tcp",""))
-  , _functionPrecedence(StringOptionValue("function_precedence","fp",""))
-  , _predicatePrecedence(StringOptionValue("predicate_precedence","pp",""))
-  , _testId(StringOptionValue("test_id","","unspecified_test"))
-  , _outputMode(ChoiceOptionValue<Output>("output_mode","om",Output::SZS,{"smtcomp","spider","szs","vampire","ucore"}))
-  , _ignoreMissingInputsInUnsatCore(BoolOptionValue("ignore_missing_inputs_in_unsat_core","",false))
-  , _thanks(StringOptionValue("thanks","","Tanya"))
-  , _theoryAxioms(ChoiceOptionValue<TheoryAxiomLevel>("theory_axioms","tha",TheoryAxiomLevel::ON,{"on","off","some"}))
-  , _theoryFlattening(BoolOptionValue("theory_flattening","thf",false))
-  , _ignoreUnrecognizedLogic(BoolOptionValue("ignore_unrecognized_logic","iul",false))
-  , _timeLimitInDeciseconds(TimeLimitOptionValue("time_limit","t",600))
+                                     {"error","warning" })
+  , _functionWeights("function_weights","fw","")
+  , _predicateWeights("predicate_weights","pw","")
+  , _typeConPrecedence("type_con_precedence","tcp","")
+  , _functionPrecedence("function_precedence","fp","")
+  , _predicatePrecedence("predicate_precedence","pp","")
+  , _testId("test_id","","unspecified_test")
+  , _outputMode("output_mode","om",Output::SZS,{"smtcomp","spider","szs","vampire","ucore"})
+  , _ignoreMissingInputsInUnsatCore("ignore_missing_inputs_in_unsat_core","",false)
+  , _thanks("thanks","","Tanya")
+  , _theoryAxioms("theory_axioms","tha",TheoryAxiomLevel::ON,{"on","off","some"})
+  , _theoryFlattening("theory_flattening","thf",false)
+  , _ignoreUnrecognizedLogic("ignore_unrecognized_logic","iul",false)
+  , _timeLimitInDeciseconds("time_limit","t",600)
   #if VTIME_PROFILING
-  , _timeStatistics(BoolOptionValue("time_statistics","tstat",false))
-  , _timeStatisticsFocus(StringOptionValue("time_statistics_focus","tstat_focus",""))
+  , _timeStatistics("time_statistics","tstat",false)
+  , _timeStatisticsFocus("time_statistics_focus","tstat_focus","")
   #endif
-  , _unitResultingResolution(ChoiceOptionValue<URResolution>("unit_resulting_resolution","urr",URResolution::OFF,{"ec_only","off","on","full"}))
-  , _unusedPredicateDefinitionRemoval(BoolOptionValue("unused_predicate_definition_removal","updr",true))
-  , _blockedClauseElimination(BoolOptionValue("blocked_clause_elimination","bce",false))
-  , _predicateElimination(ChoiceOptionValue<PredicateElimination>("predicate_elimination","pel",
+  , _unitResultingResolution("unit_resulting_resolution","urr",URResolution::OFF,{"ec_only","off","on","full"})
+  , _unusedPredicateDefinitionRemoval("unused_predicate_definition_removal","updr",true)
+  , _blockedClauseElimination("blocked_clause_elimination","bce",false)
+  , _predicateElimination("predicate_elimination","pel",
                                                                      PredicateElimination::OFF,
-                                                                     {"off","on","multi"}))
-  , _predicateEliminationTotalLimit(FloatOptionValue("predicate_elimination_total_limit","peltl",2.0))
-  , _predicateEliminationSubsumption(BoolOptionValue("predicate_elimination_subsumption","pels",true))
-  , _distinctGroupExpansionLimit(UnsignedOptionValue("distinct_group_expansion_limit","dgel",140))
+                                                                     {"off","on","multi"})
+  , _predicateEliminationTotalLimit("predicate_elimination_total_limit","peltl",2.0)
+  , _predicateEliminationSubsumption("predicate_elimination_subsumption","pels",true)
+  , _distinctGroupExpansionLimit("distinct_group_expansion_limit","dgel",140)
   , _tagNames({
                  "Unused",
                  "Other",
@@ -921,36 +917,36 @@ Options::Options ()
                  "Higher-order",
                  "Global"
                 })
-  , _nonGoalWeightCoefficient(NonGoalWeightOptionValue("nongoal_weight_coefficient","nwc"))
-  , _restrictNWCtoGC(BoolOptionValue("restrict_nwc_to_goal_constants","rnwc",false))
-  , _selection(SelectionOptionValue("selection","s",10))
-  , _inputFile(InputFileOptionValue("input_file","","",this))
-  , _newCNF(BoolOptionValue("newcnf","newcnf",false))
-  , _inlineLet(BoolOptionValue("inline_let","ile",true))
-  , _manualClauseSelection(BoolOptionValue("manual_cs","",false))
-  , _inequalityNormalization(BoolOptionValue("normalize_inequalities","norm_ineq",false))
-  , _pushUnaryMinus(BoolOptionValue(
+  , _nonGoalWeightCoefficient("nongoal_weight_coefficient","nwc")
+  , _restrictNWCtoGC("restrict_nwc_to_goal_constants","rnwc",false)
+  , _selection("selection","s",10)
+  , _inputFile("input_file","","",this)
+  , _newCNF("newcnf","newcnf",false)
+  , _inlineLet("inline_let","ile",true)
+  , _manualClauseSelection("manual_cs","",false)
+  , _inequalityNormalization("normalize_inequalities","norm_ineq",false)
+  , _pushUnaryMinus(
        "push_unary_minus", "pum",
-       false))
-  , _gaussianVariableElimination(ARITH_SIMPL_MODE("gaussian_variable_elimination", "gve", ArithmeticSimplificationMode::OFF))
-  , _alasca(BoolOptionValue("abstracting_linear_arithmetic_superposition_calculus","alasca",false))
-  , _viras(BoolOptionValue("virtual_integer_real_arithmetic_substitution","viras",true))
-  , _alascaDemodulation(BoolOptionValue("alasca_demodulation","alasca_demod",false))
-  , _alascaStrongNormalization(BoolOptionValue("alasca_strong_normalziation","alasca_sn",false))
-  , _alascaIntegerConversion(BoolOptionValue("alasca_integer_conversion","alascai",false))
-  , _alascaAbstraction(BoolOptionValue("alasca_abstraction","alascaa",false))
-  , _cancellation(ARITH_SIMPL_MODE("cancellation", "canc", ArithmeticSimplificationMode::OFF))
-  , _arithmeticSubtermGeneralizations(ARITH_SIMPL_MODE("arithmetic_subterm_generalizations", "asg", ArithmeticSimplificationMode::OFF))
-  , _holPrinting(ChoiceOptionValue("pretty_hol_printing",
+       false)
+  , _gaussianVariableElimination("gaussian_variable_elimination", "gve", ArithmeticSimplificationMode::OFF, {"force", "cautious", "off"})
+  , _alasca("abstracting_linear_arithmetic_superposition_calculus","alasca",false)
+  , _viras("virtual_integer_real_arithmetic_substitution","viras",true)
+  , _alascaDemodulation("alasca_demodulation","alasca_demod",false)
+  , _alascaStrongNormalization("alasca_strong_normalziation","alasca_sn",false)
+  , _alascaIntegerConversion("alasca_integer_conversion","alascai",false)
+  , _alascaAbstraction("alasca_abstraction","alascaa",false)
+  , _cancellation("cancellation", "canc", ArithmeticSimplificationMode::OFF, {"force", "cautious", "off"})
+  , _arithmeticSubtermGeneralizations("arithmetic_subterm_generalizations", "asg", ArithmeticSimplificationMode::OFF, {"force", "cautious", "off"})
+  , _holPrinting("pretty_hol_printing",
                                      "php",
                                      HPrinting::TPTP,
-                                     {"raw", "db", "pretty", "tptp"}))
-  , _choiceAxiom(BoolOptionValue("choice_ax","cha",false))
-  , _injectivity(BoolOptionValue("injectivity", "inj", false))
-  , _choiceReasoning(BoolOptionValue("choice_reasoning","chr",false))
-  , _functionExtensionality(ChoiceOptionValue<FunctionExtensionality>("func_ext","fe",FunctionExtensionality::OFF,
-                                                                          {"off", "axiom", "abstraction"}))
-  , _clausificationOnTheFly(ChoiceOptionValue<CNFOnTheFly>("cnf_on_the_fly", "cnfonf", CNFOnTheFly::EAGER,
+                                     {"raw", "db", "pretty", "tptp"})
+  , _choiceAxiom("choice_ax","cha",false)
+  , _injectivity("injectivity", "inj", false)
+  , _choiceReasoning("choice_reasoning","chr",false)
+  , _functionExtensionality("func_ext","fe",FunctionExtensionality::OFF,
+                                                                          {"off", "axiom", "abstraction"})
+  , _clausificationOnTheFly("cnf_on_the_fly", "cnfonf", CNFOnTheFly::EAGER,
                                                              {"eager",
                                                                 "lazy_gen",
                                                                 "lazy_simp",
@@ -959,8 +955,8 @@ Options::Options ()
                                                                 "lazy_not_gen_be_off",
                                                                 "lazy_not_be_gen",
                                                                 "conj_eager",
-                                                                "off"}))
-  , _piSet(ChoiceOptionValue<PISet>("prim_inst_set","piset",PISet::PRAGMATIC,
+                                                                "off"})
+  , _piSet("prim_inst_set","piset",PISet::PRAGMATIC,
                                                                         {"all",
                                                                          "all_but_not_eq",
                                                                          "not",
@@ -969,17 +965,17 @@ Options::Options ()
                                                                          "and",
                                                                          "or",
                                                                          "equals",
-                                                                         "pi_sigma"}))
-  , _equalityToEquivalence(BoolOptionValue("equality_to_equiv","e2e",false))
-  , _complexBooleanReasoning(BoolOptionValue("complex_bool_reasoning","cbe",true))
-  , _booleanEqTrick(BoolOptionValue("bool_eq_trick","bet",false))
-  , _heuristicInstantiation(BoolOptionValue("heur_inst","hi",false))
-  , _higherOrderUnifDepth(UnsignedOptionValue("hol_unif_depth","hud",2))
-  , _casesSimp(BoolOptionValue("cases_simp","cs",false))
-  , _cases(BoolOptionValue("cases","c",false))
-  , _newTautologyDel(BoolOptionValue("new_taut_del", "ntd", false))
-  , _positiveExt(BoolOptionValue("pos_ext","pe",false))
-  , _iffXorRewriter(BoolOptionValue("iff_xor_rewriter","ixr",true))
+                                                                         "pi_sigma"})
+  , _equalityToEquivalence("equality_to_equiv","e2e",false)
+  , _complexBooleanReasoning("complex_bool_reasoning","cbe",true)
+  , _booleanEqTrick("bool_eq_trick","bet",false)
+  , _heuristicInstantiation("heur_inst","hi",false)
+  , _higherOrderUnifDepth("hol_unif_depth","hud",2)
+  , _casesSimp("cases_simp","cs",false)
+  , _cases("cases","c",false)
+  , _newTautologyDel("new_taut_del", "ntd", false)
+  , _positiveExt("pos_ext","pe",false)
+  , _iffXorRewriter("iff_xor_rewriter","ixr",true)
 {
 //**********************************************************************
 //*********************** GLOBAL, for all modes  ***********************
