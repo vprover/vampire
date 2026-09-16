@@ -823,6 +823,8 @@ Options::Options ()
   , _useACeval(BoolOptionValue("use_ac_eval","uace",false))
   , _simulatedTimeLimit(TimeLimitOptionValue("simulated_time_limit","stl",0))
   , _lrsEstimateCorrectionCoef(FloatOptionValue("lrs_estimate_correction_coef","lecc",1.0))
+  , _lrsSaveTraceFile(StringOptionValue("lrs_save_trace_file","lstf",""))
+  , _lrsLoadTraceFile(StringOptionValue("lrs_load_trace_file","lltf",""))
   , _sineDepth(UnsignedOptionValue("sine_depth","sd",0))
   , _sineGeneralityThreshold(UnsignedOptionValue("sine_generality_threshold","sgt",0))
   , _sineToAgeGeneralityThreshold(UnsignedOptionValue("sine_to_age_generality_threshold","s2agt",0))
@@ -1942,16 +1944,14 @@ Options::Options ()
     _lrsEstimateCorrectionCoef.addConstraint(greaterThan(0.0f));
     _lrsEstimateCorrectionCoef.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
 
-    _lrsSaveTraceFile = StringOptionValue("lrs_save_trace_file","lstf","");
     _lrsSaveTraceFile.description = "When set, vampire will output a trace of decistions in the LRS estimate module, which can be used to reproduce a lucky run.";
-    _lookup.insert(&_lrsSaveTraceFile);
-    _lrsSaveTraceFile.tag(OptionTag::LRS);
+    _lookup.insert(_lrsSaveTraceFile);
+    _lrsSaveTraceFile.tag = OptionTag::LRS;
     _lrsSaveTraceFile.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
 
-    _lrsLoadTraceFile = StringOptionValue("lrs_load_trace_file","lltf","");
     _lrsLoadTraceFile.description = "When set, vampire will load a previously saved trace of decistions of the LRS estimate module, which be used instead of the module's logic to guide the estimates.";
-    _lookup.insert(&_lrsLoadTraceFile);
-    _lrsLoadTraceFile.tag(OptionTag::LRS);
+    _lookup.insert(_lrsLoadTraceFile);
+    _lrsLoadTraceFile.tag = OptionTag::LRS;
     _lrsLoadTraceFile.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
 
 
