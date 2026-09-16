@@ -829,14 +829,6 @@ private:
 
     template<class T> 
     struct ChoiceOption {};
- 
-    template<>
-    struct ChoiceOption<Demodulation>  {
-      static OptionChoiceValues optionChoiceValues() {
-        return {"all","off","preordered"};
-      }
-    };
- 
 
     // Declare constraints here so they can be referred to, but define them below
     template<typename T>
@@ -2844,6 +2836,16 @@ private:
 
 #undef FUN
 }; // class Options
+
+template<>
+struct Options::ChoiceOption<Options::Demodulation>  {
+  static OptionChoiceValues optionChoiceValues() {
+    return {"all","off","preordered"};
+  }
+};
+ 
+
+
 
 // Allow printing of enums
 template<typename T,
