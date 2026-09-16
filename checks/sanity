@@ -440,8 +440,13 @@ check_szs_status Unsatisfiable -t 5d -fgj on -bd all Problems/SWW/SWW436-1.p
 check_szs_status Unsatisfiable -qa synthesis synthesis/max2.smt2
 check_szs_status Unsatisfiable -qa synthesis synthesis/ex2-inverse_of_ixopiy.smt2
 
-# Higher-order logic
+# Higher-order logic. hol1.p has a higher-order *variable* but no lambda, so it does not
+# exercise the special-term paths; hol2.p does, and every other thf entry above stops at
+# --mode output, before preprocessing runs at all.
 check_szs_status Theorem hol/hol1.p
+check_szs_status Theorem hol/hol2.p
+check_rejected 'distinct objects are not supported in higher-order problems' \
+	--input_syntax tptp hol/hol-distinct-object.p
 
 # LRS limit updates are reproducible from a recorded trace, independently of timing
 check_lrs_replay Problems/SWW/SWW620_2.p

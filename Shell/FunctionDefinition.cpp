@@ -17,6 +17,7 @@
 
 #include "Debug/Assertion.hpp"
 #include "Lib/Allocator.hpp"
+#include "Lib/DArray.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Random.hpp"
 #include "Lib/ScopedLet.hpp"

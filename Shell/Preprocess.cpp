@@ -147,10 +147,33 @@ void Preprocess::preprocess(Problem& prb)
   // and profileMode compute their Property on the problem as parsed, before anything runs,
   // so eliminating $distinct any earlier would hand single-strategy mode a Property those
   // two never see.
-  if(env.options->showPreprocessing())
-    std::cout << "distinct group expansion" << std::endl;
-  { TIME_TRACE("distinct group expansion");
-    DistinctGroupExpansion(_options.distinctGroupExpansionLimit()).apply(prb); }
+  //
+  // Not for higher-order input, where the pass cannot run at all:
+  // DistinctExpander::applyLiteral descends into the arguments of any unshared literal to
+  // find a $distinct hidden inside a FOOL term, and in higher-order logic a literal
+  // holding a lambda is unshared too, so it reaches FormulaTransformer's NOT_IMPLEMENTED
+  // for SpecialFunctor::LAMBDA.
+  //
+  // Skipping is sound for the marker literals, which thf rejects outright ("$distinct is
+  // not supported in thf", Parse/TPTP.cpp). It is *not* sound for the other source of
+  // distinctness: a distinct object still parses in thf, in an equality and in a type
+  // declaration, and silently dropping the disequalities its group stands for would lose
+  // information the input asserted. Nothing in TPTP does this today, so rather than leave
+  // a trap for whoever writes the first such problem, say so.
+  if(prb.isHigherOrder()){
+    if(env.signature->hasDistinctGroups()){
+      USER_ERROR("distinct objects are not supported in higher-order problems");
+    }
+  } else if(env.signature->hasDistinctPredicates() || env.signature->hasDistinctGroups()){
+    TIME_TRACE("distinct group expansion");
+    // the two conditions are the two phases' inputs: no marker predicate was ever created
+    // means no unit can contain one, and with no group there is nothing to expand either,
+    // so for the vast majority of problems the pass has nothing to do. (Skipping it also
+    // skips the noDistinctGroupsLeft() it would end on, which is a no-op with no groups.)
+    if(env.options->showPreprocessing())
+      std::cout << "distinct group expansion" << std::endl;
+    DistinctGroupExpansion(_options.distinctGroupExpansionLimit()).apply(prb);
+  }
 
   if(_options.guessTheGoal() != Options::GoalGuess::OFF){
     prb.invalidateProperty();
