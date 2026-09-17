@@ -765,11 +765,9 @@ static void sortAuxBySymbolPrecedence(DArray<unsigned>& aux, const Options& opt,
       aux.sort(BoostWrapper<ConstFirstComparator<true /*reverse*/,ArityComparator<true /*reverse*/>>>(symType,noTiebreak));
       break;
     case Shell::Options::SymbolPrecedence::FREQUENCY:
-    case Shell::Options::SymbolPrecedence::WEIGHTED_FREQUENCY:
       aux.sort(BoostWrapper<FreqComparator<>>(symType,noTiebreak));
       break;
     case Shell::Options::SymbolPrecedence::REVERSE_FREQUENCY:
-    case Shell::Options::SymbolPrecedence::REVERSE_WEIGHTED_FREQUENCY:
       aux.sort(BoostWrapper<FreqComparator<true /*reverse*/>>(symType,noTiebreak));
       break;
     case Shell::Options::SymbolPrecedence::UNARY_FREQ:

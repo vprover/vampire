@@ -29,7 +29,6 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/TermIterators.hpp"
 
-#include "Options.hpp"
 #include "FunctionDefinition.hpp"
 #include "Property.hpp"
 #include "SubexpressionIterator.hpp"
@@ -552,10 +551,10 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
     if((lhs.isVar() || rhs.isVar()) && eqSort == AtomicSort::boolSort()){
       _hasBoolVar = true;
     }
-    if((eqSort.isVar() || eqSort.term()->arity()) && 
+    if((eqSort.isVar() || eqSort.term()->arity()) &&
        !eqSort.isArrowSort() && !eqSort.isArraySort() && !eqSort.isTupleSort()){
-      _hasPolymorphicSym = true;      
-    } 
+      _hasPolymorphicSym = true;
+    }
     scanSort(eqSort);
   }
   else {
@@ -564,10 +563,7 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
       _maxPredArity = arity;
     }
     Signature::Symbol* pred = env.signature->getPredicate(lit->functor());
-    static bool weighted = env.options->symbolPrecedence() == Options::SymbolPrecedence::WEIGHTED_FREQUENCY ||
-                           env.options->symbolPrecedence() == Options::SymbolPrecedence::REVERSE_WEIGHTED_FREQUENCY;
-    unsigned w = weighted ? cLen : 1; 
-    for(unsigned i=0;i<w;i++){pred->incUsageCnt();} //MS: Giles, was this a joke?
+    pred->incUsageCnt();
     if(cLen==1){
       pred->markInUnit();
     }
