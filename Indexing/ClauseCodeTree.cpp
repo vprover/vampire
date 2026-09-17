@@ -101,6 +101,15 @@ void ClauseCodeTree::optimizeLiteralOrder(DArray<Literal*>& lits)
     return;
   }
 
+  CodeStack code;
+  LitCompiler compiler(code);
+  DArray<CodeStack> codes(clen);
+  for (unsigned i = 0; i < clen; i++) {
+    compiler.nextLit();
+    compiler.handleTerm(lits[i]);
+    codes[i] = std::move(code);
+  }
+
   CodeOp* entry=getEntryPoint();
   for(unsigned startIndex=0;startIndex<clen-1;startIndex++) {
 //  for(unsigned startIndex=0;startIndex<1;startIndex++) {
@@ -110,14 +119,14 @@ void ClauseCodeTree::optimizeLiteralOrder(DArray<Literal*>& lits)
     size_t bestSharedLen;
     bool bestGround=lits[startIndex]->ground();
     CodeOp* nextOp;
-    evalSharing(lits[startIndex], entry, bestSharedLen, unshared, nextOp);
+    evalSharing(codes[startIndex], entry, bestSharedLen, unshared, nextOp);
     if(!unshared) {
       goto have_best;
     }
 
     for(unsigned i=startIndex+1;i<clen;i++) {
       size_t sharedLen;
-      evalSharing(lits[i], entry, sharedLen, unshared, nextOp);
+      evalSharing(codes[i], entry, sharedLen, unshared, nextOp);
       if(!unshared) {
 	bestIndex=i;
         goto have_best;
@@ -133,29 +142,27 @@ void ClauseCodeTree::optimizeLiteralOrder(DArray<Literal*>& lits)
 
   have_best:
     swap(lits[startIndex],lits[bestIndex]);
+    swap(codes[startIndex], codes[bestIndex]);
 
     if(unshared) {
       //we haven't matched the whole literal, so we won't proceed with the next one
-      return;
+      break;
     }
     ASS(nextOp);
     entry=nextOp;
   }
+  for (auto& literal : codes) {
+    delete literal.top().getILS();
+  }
 }
 
-void ClauseCodeTree::evalSharing(Literal* lit, CodeOp* startOp, size_t& sharedLen, size_t& unsharedLen, CodeOp*& nextOp)
+void ClauseCodeTree::evalSharing(CodeStack& code, CodeOp* startOp, size_t& sharedLen, size_t& unsharedLen, CodeOp*& nextOp)
 {
-  CodeStack code;
-  LitCompiler compiler(code);
-
-  compiler.handleTerm(lit);
-
   matchCode(code, startOp, sharedLen, nextOp);
 
   unsharedLen=code.size()-sharedLen;
 
   ASS(code.top().isLitEnd());
-  delete code.pop().getILS();
 }
 
 /**
