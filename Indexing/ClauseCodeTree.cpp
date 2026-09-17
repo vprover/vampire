@@ -94,12 +94,12 @@ struct ClauseCodeTree::InitialLiteralOrderingComparator
 
 void ClauseCodeTree::optimizeLiteralOrder(DArray<Literal*>& lits)
 {
+  lits.sort(InitialLiteralOrderingComparator());
+
   unsigned clen=lits.size();
   if(isEmpty() || clen<=1) {
     return;
   }
-
-  lits.sort(InitialLiteralOrderingComparator());
 
   CodeOp* entry=getEntryPoint();
   for(unsigned startIndex=0;startIndex<clen-1;startIndex++) {
