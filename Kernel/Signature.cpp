@@ -36,7 +36,6 @@ Signature::Symbol::Symbol(const std::string& nm, OperatorType* type, bool interp
     _type(type),
     _distinctGroups(0),
     _usageCount(0),
-    _unitUsageCount(0),
     _interpreted(interpreted ? 1 : 0),
     _linMul(0),
     _introduced(0),
