@@ -23,7 +23,6 @@
 #include "Forwards.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/Array.hpp"
-#include "Lib/DHSet.hpp"
 #include "Kernel/Theory.hpp"
 #include "SMTLIBLogic.hpp"
 
@@ -295,10 +294,6 @@ public:
   int _totalNumberOfVariables;
   /** Maximal number of variables in a clause */
   int _maxVariablesInClause;
-  /** Symbols in this formula, used during counting
-      Functions are positive, predicates stored in the negative part
-  **/
-  DHSet<int, FnvHash, IdentityHash> _symbolsInFormula;
 
   /** Bitwise OR of all properties of this problem */
   uint64_t _props;

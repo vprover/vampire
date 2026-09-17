@@ -108,11 +108,9 @@ Property* Property::scan(UnitList* units)
   // a bit of a hack, these counts belong in Property
   for(unsigned f=0;f<env.signature->functions();f++){ 
     env.signature->getFunction(f)->resetUsageCnt(); 
-    env.signature->getFunction(f)->resetUnitUsageCnt(); 
    }
   for(unsigned p=0;p<env.signature->predicates();p++){ 
     env.signature->getPredicate(p)->resetUsageCnt(); 
-    env.signature->getPredicate(p)->resetUnitUsageCnt(); 
    }
 
   Property* prop = new Property;
@@ -221,8 +219,6 @@ void Property::add(UnitList* units)
  */
 void Property::scan(Unit* unit)
 {
-  _symbolsInFormula.reset();
-
   if (unit->isClause()) {
     scan(static_cast<Clause*>(unit));
   }
@@ -237,18 +233,6 @@ void Property::scan(Unit* unit)
       FunctionDefinition::deleteDef(def);
     }
   }
-
-  DHSet<int, FnvHash, IdentityHash>::Iterator it(_symbolsInFormula);
-  while(it.hasNext()){
-    int symbol = it.next();
-    if(symbol >= 0){
-      env.signature->getFunction(symbol)->incUnitUsageCnt();
-    }else{
-      symbol = -symbol;
-      env.signature->getPredicate(symbol)->incUnitUsageCnt();
-    }
-  }
-
 } // Property::scan(const Unit* unit)
 
 /**
@@ -575,7 +559,6 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
     scanSort(eqSort);
   }
   else {
-    _symbolsInFormula.insert(-lit->functor());
     int arity = lit->arity();
     if (arity > _maxPredArity) {
       _maxPredArity = arity;
@@ -677,7 +660,6 @@ void Property::scan(TermList ts,bool unit,bool goal)
 
     scanForInterpreted(t);
 
-    _symbolsInFormula.insert(t->functor());
     Signature::Symbol* func = env.signature->getFunction(t->functor());
     func->incUsageCnt();
     if(unit){ func->markInUnit();}

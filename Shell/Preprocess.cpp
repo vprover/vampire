@@ -176,8 +176,6 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   if(_options.guessTheGoal() != Options::GoalGuess::OFF){
-    prb.invalidateProperty();
-    prb.getProperty();
     TIME_TRACE("goal guessing");
     GoalGuessing().apply(prb);
   }

@@ -88,8 +88,6 @@ class Signature
     List<unsigned>* _distinctGroups;
     /** number of times it is used in the problem */
     unsigned _usageCount;
-    /** number of units it is used in in the problem */
-    unsigned _unitUsageCount;
 
     /** the object is of type InterpretedSymbol */
     unsigned _interpreted : 1;
@@ -213,10 +211,6 @@ class Signature
     inline unsigned usageCnt() const { return _usageCount; }
     /** Reset usage count to zero, to start again! **/
     inline void resetUsageCnt(){ _usageCount=0; }
-
-    inline void incUnitUsageCnt(){ _unitUsageCount++;}
-    inline unsigned unitUsageCnt() const { return _unitUsageCount; }
-    inline void resetUnitUsageCnt(){ _unitUsageCount=0;}
 
     inline void markInGoal(){ _inGoal=1; }
     inline bool inGoal(){ return _inGoal; }
