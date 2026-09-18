@@ -106,11 +106,14 @@ Property* Property::scan(UnitList* units)
 {
   // a bit of a hack, these counts belong in Property
   for (unsigned f : env.signature->functionSymbols()) {
-    env.signature->getFunction(f)->resetUsageCnt(); 
-   }
+    env.signature->getFunction(f)->resetUsageCnt();
+  }
   for (unsigned p : env.signature->predicateSymbols()) {
-    env.signature->getPredicate(p)->resetUsageCnt(); 
-   }
+    env.signature->getPredicate(p)->resetUsageCnt();
+  }
+  for (unsigned t : env.signature->typeConSymbols()) {
+    env.signature->getTypeCon(t)->resetUsageCnt();
+  }
 
   Property* prop = new Property;
   prop->add(units);
@@ -651,6 +654,8 @@ void Property::scan(TermList ts,bool unit,bool goal)
       if(t->arity() > _maxTypeConArity){
         _maxTypeConArity = t->arity();
       }
+      // an AtomicSort stores the type constructor's number as its functor
+      env.signature->getTypeCon(t->functor())->incUsageCnt();
       return;
     }
 

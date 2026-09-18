@@ -10,6 +10,8 @@
 
 #include "Test/UnitTesting.hpp"
 #include "Kernel/Signature.hpp"
+#include "Kernel/Clause.hpp"
+#include "Shell/Property.hpp"
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/KBO.hpp"
 #include "Kernel/LPO.hpp"
@@ -244,4 +246,35 @@ TEST_FUN(finiteModelUsesInterleavedSymbolOffsets)
   ASS_EQ(model.evaluateGroundTerm(Term::create1(f.number(), TermList(term))), 1u);
   ASS(model.evaluateGroundLiteral(Literal::create1(p.number(), true, TermList(term))));
   ASS(!model.evaluateGroundLiteral(Literal::create1(q.number(), true, TermList(term))));
+}
+
+TEST_FUN(propertyScanCountsAndResetsInterleavedSymbols)
+{
+  auto& sig = *env.signature;
+  auto f = sig.freshFunction(OperatorType::getConstantsType(AtomicSort::defaultSort()), "usage_f");
+  auto p = sig.freshPredicate(OperatorType::getPredicateType({AtomicSort::defaultSort()}, 1), "usage_p");
+  auto tc = sig.freshTypeConstructor(0, "usage_s");
+  auto sort = TermList(AtomicSort::createConstant(tc.number()));
+  auto clause = Clause::fromLiterals({
+    Literal::create2(p.number(), true, sort, TermList(Term::createConstant(f.number())))
+  }, Inference(FromInput(UnitInputType::ASSUMPTION)));
+  UnitList* units = nullptr;
+  UnitList::push(clause, units);
+
+  delete Shell::Property::scan(units);
+  ASS_EQ(f->usageCnt(), 1u);
+  ASS_EQ(p->usageCnt(), 1u);
+  ASS_EQ(tc->usageCnt(), 1u);
+
+  // Rescanning must not accumulate counts from the previous scan.
+  delete Shell::Property::scan(units);
+  ASS_EQ(f->usageCnt(), 1u);
+  ASS_EQ(p->usageCnt(), 1u);
+  ASS_EQ(tc->usageCnt(), 1u);
+
+  delete Shell::Property::scan(UnitList::empty());
+  ASS_EQ(f->usageCnt(), 0u);
+  ASS_EQ(p->usageCnt(), 0u);
+  ASS_EQ(tc->usageCnt(), 0u);
+  UnitList::destroy(units);
 }
