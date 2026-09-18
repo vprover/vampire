@@ -702,37 +702,10 @@ void FiniteModelBuilder::init()
   cout << "Optionally doing Symmetry Ordering precomputation" << endl;
 #endif
 
-    // If symmetry ordering uses the usage after preprocessing then recompute symbol usage
-    // Otherwise this was done at clausification
-    if(env.options->fmbSymmetryOrderSymbols() != Options::FMBSymbolOrders::PREPROCESSED_USAGE){
-     // reset usage counts
-     for(unsigned f=0;f<env.signature->functions();f++){
-       env.signature->getFunction(f)->resetUsageCnt();
-     }
-     // do them again!
-     {
-       ClauseIterator cit = pvi(ClauseList::Iterator(_clauses));
-       while(cit.hasNext()){
-         Clause* c = cit.next();
-         // Can assume c is flat, so no nesting :)
-         for(unsigned i=0;i<c->length();i++){
-           Literal* l = (*c)[i];
-            // Let's only count usage of functions (not predicates) as that's all we use
-           if(l->isEquality() && !l->isTwoVarEquality()){
-             ASS(!l->nthArgument(0)->isVar());
-             ASS(l->nthArgument(1)->isVar());
-             Term* t = l->nthArgument(0)->term();
-             unsigned f = t->functor();
-             env.signature->getFunction(f)->incUsageCnt();
-           }
-         }
-       }
-     }
-    }
-
-    // Fragile (change if you extend FMBSymbolOrders) as it assumes that the values that
-    //          are not OCCURRENCE depend on usage (as per FMBSymmetryFunctionComparator)
-    if(env.options->fmbSymmetryOrderSymbols() != Options::FMBSymbolOrders::OCCURRENCE){
+    // USAGE sorts by the usage counts the Property::scan of _groundClauses ++ _clauses
+    // above left on the symbols, i.e. by how often a symbol occurs in the clauses this
+    // class has preprocessed
+    if(env.options->fmbSymmetryOrderSymbols() == Options::FMBSymbolOrders::USAGE){
       // Let's try sorting constants and functions in the sorted signature
       for(unsigned s=0;s<_sortedSignature->sorts;s++){
         Stack<unsigned>& sortedConstants = _sortedSignature->sortedConstants[s];
