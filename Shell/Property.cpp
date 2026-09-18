@@ -108,8 +108,11 @@ Property* Property::scan(UnitList* units)
   for(unsigned f=0;f<env.signature->functions();f++){ 
     env.signature->getFunction(f)->resetUsageCnt(); 
    }
-  for(unsigned p=0;p<env.signature->predicates();p++){ 
-    env.signature->getPredicate(p)->resetUsageCnt(); 
+  for(unsigned p=0;p<env.signature->predicates();p++){
+    env.signature->getPredicate(p)->resetUsageCnt();
+   }
+  for(unsigned t=0;t<env.signature->typeCons();t++){
+    env.signature->getTypeCon(t)->resetUsageCnt();
    }
 
   Property* prop = new Property;
@@ -651,6 +654,8 @@ void Property::scan(TermList ts,bool unit,bool goal)
       if(t->arity() > _maxTypeConArity){
         _maxTypeConArity = t->arity();
       }
+      // an AtomicSort stores the type constructor's number as its functor
+      env.signature->getTypeCon(t->functor())->incUsageCnt();
       return;
     }
 
