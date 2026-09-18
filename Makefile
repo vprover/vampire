@@ -200,6 +200,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Signature.o\
         Kernel/SortHelper.o\
         Kernel/OperatorType.o\
+        Kernel/SymbolUsage.o\
         Kernel/SubformulaIterator.o\
         Kernel/Term.o\
         Kernel/PolynomialNormalizer.o\
