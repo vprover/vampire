@@ -23,6 +23,7 @@
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/SymbolUsage.hpp"
 #include "Kernel/Renaming.hpp"
 
 #include "SAT/CadicalInterfacing.hpp"
@@ -404,9 +405,16 @@ void FiniteModelBuilder::init()
 
   ClauseList* clist = 0;
   if(env.options->fmbAdjustSorts() == Options::FMBAdjustSorts::PREDICATE){
-    DArray<bool> deleted_functions(env.signature->functions());
-    for(unsigned f=0;f<env.signature->functions();f++){
-      deleted_functions[f] = env.signature->getFunction(f)->usageCnt()==0;
+    // which functions occur is asked of the very clauses we are about to hand over,
+    // rather than of the usage counts some earlier Property::scan happened to leave on
+    // the signature: addSortPredicates uses this to decide for which f it need not say
+    // "!args: p(f(args))", so it had better describe the clauses it is transforming
+    DArray<bool> usedFunctions;
+    DArray<bool> usedPredicates;
+    collectUsedSymbols(_prb.clauseIterator(),usedFunctions,usedPredicates);
+    DArray<bool> deleted_functions(usedFunctions.size());
+    for(unsigned f=0;f<usedFunctions.size();f++){
+      deleted_functions[f] = !usedFunctions[f];
      }
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
     TIME_TRACE(TimeTrace::FMB_MONOTONICITY);
