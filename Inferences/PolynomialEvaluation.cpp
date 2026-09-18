@@ -214,7 +214,7 @@ PolyNf simplifyPoly(AnyPoly const& p, PolyNf* ts, bool removeZeros)
 
 Option<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const 
 {
-  static MemoNonVars<PolyNf, PolyNf> memo;
+  static MemoNonVars<PolyNf, PolyNf, PolyNfHash> memo;
   auto out = BottomUpEvaluation<PolyNf, PolyNf>()
     .function(
         [&](PolyNf orig, PolyNf* ts) -> PolyNf 

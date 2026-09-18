@@ -472,7 +472,7 @@ size_t Term::countSubtermOccurrences(TermList subterm) {
 
 bool TermList::containsAllVariablesOf(TermList t) const
 {
-  Set<TermList> vars;
+  Set<TermList, TermListHash> vars;
   TermIterator oldVars=Term::getVariableIterator(*this);
   while (oldVars.hasNext()) {
     vars.insert(oldVars.next());
@@ -488,7 +488,7 @@ bool TermList::containsAllVariablesOf(TermList t) const
 
 bool Term::containsAllVariablesOf(Term* t)
 {
-  static DHSet<TermList> vars;
+  static DHSet<TermList, TermListHash, TermListHash2> vars;
   vars.reset();
 
   static VariableIterator vit;
@@ -557,12 +557,11 @@ std::string Term::variableToString(TermList var)
 } // variableToString
 
 /**
- * Return the std::string representation of the terms "head"
- * i.e., the function / predicate symbol name or the special term head.
- * Special term prints also '(' and the following arguments which are not args() and a comma
- * Normal term prints "(" if there are any args to follow
+ * Print the prefix before args(). For non-zero arity this includes the
+ * opening '(' and any special-term data preceding the arguments.
+ * For zero arity this is the complete term.
  */
-std::string Term::headToString() const
+std::string Term::prefixToString() const
 {
   if (isSpecial()) {
     const Term::SpecialTermData* sd = getSpecialData();
@@ -653,12 +652,12 @@ std::string Term::headToString() const
     } else {
       name = functionName();
     }
-    return name;
+    return name + (arity() ? "(" : "");
   }
 }
 
 /**
- * In combination with Term::headToString prepares
+ * In combination with Term::prefixToString prepares
  * std::string representation of a term.
  * (this) has to come from arguments of a term of non-zero arity,
  * possibly a special one.
@@ -698,11 +697,9 @@ std::string TermList::asArgsToString() const
       continue;
     }
 
-    res += t->headToString();
+    res += t->prefixToString();
 
     if (t->arity()) {
-      res += '(';
-
       stack.push(t->args());
     }
   }
@@ -821,10 +818,10 @@ std::string Term::toString(bool topLevel) const
 #endif // NICE_THEORY_OUTPUT
 
   std::stringstream out;
-  out << headToString();
+  out << prefixToString();
   
   if (_arity) {
-    out << "(" << Output::interleaved(',', anyArgIter(this)) << ")";
+    out << Output::interleaved(',', anyArgIter(this)) << ")";
   }
   return out.str();
 } // Term::toString

@@ -36,6 +36,7 @@
 #include "Lib/DHSet.hpp"
 #include "Lib/ArrayMap.hpp"
 
+#include "Shell/Property.hpp"
 #include "Shell/UIHelper.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/GeneralSplitting.hpp"
@@ -393,6 +394,7 @@ void FiniteModelBuilder::init()
   DHSet<std::pair<unsigned,unsigned>, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>> vampire_sort_constraints_nonstrict;
   DHSet<std::pair<unsigned,unsigned>, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>> vampire_sort_constraints_strict;
   if(env.options->fmbDetectSortBounds()){
+    TIME_TRACE("fmb sort bound detection");
     FunctionRelationshipInference inf;
     inf.findFunctionRelationships(
       _prb.clauseIterator(),
@@ -407,10 +409,12 @@ void FiniteModelBuilder::init()
       deleted_functions[f] = env.signature->getFunction(f)->usageCnt()==0;
      }
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
+    TIME_TRACE(TimeTrace::FMB_MONOTONICITY);
     Monotonicity::addSortPredicates(true,clist,deleted_functions,_monotonic_vampire_sorts,_sortPredicates);
   }
   if(env.options->fmbAdjustSorts() == Options::FMBAdjustSorts::FUNCTION){
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
+    TIME_TRACE(TimeTrace::FMB_MONOTONICITY);
     Monotonicity::addSortFunctions(true,clist,_monotonic_vampire_sorts,_sortFunctions);
   }
 
@@ -726,13 +730,13 @@ void FiniteModelBuilder::init()
      }
     }
 
-    // Fragile, change if extend FMBSymbolOrders as it assumes that the values that
-    //          are not occurrence depend on usage (as per FMBSymmetryFunctionComparator)
+    // Fragile (change if you extend FMBSymbolOrders) as it assumes that the values that
+    //          are not OCCURRENCE depend on usage (as per FMBSymmetryFunctionComparator)
     if(env.options->fmbSymmetryOrderSymbols() != Options::FMBSymbolOrders::OCCURRENCE){
       // Let's try sorting constants and functions in the sorted signature
       for(unsigned s=0;s<_sortedSignature->sorts;s++){
-        Stack<unsigned> sortedConstants =  _sortedSignature->sortedConstants[s];
-        Stack<unsigned> sortedFunctions = _sortedSignature->sortedFunctions[s];
+        Stack<unsigned>& sortedConstants = _sortedSignature->sortedConstants[s];
+        Stack<unsigned>& sortedFunctions = _sortedSignature->sortedFunctions[s];
         sort(sortedConstants.begin(),sortedConstants.end(), FMBSymmetryFunctionComparator::compare);
         sort(sortedFunctions.begin(),sortedFunctions.end(), FMBSymmetryFunctionComparator::compare);
       }
@@ -1866,6 +1870,10 @@ void FiniteModelBuilder::onModelFound()
     return;
   }
 
+  // Building and printing the model is not free for a large domain, and it runs with
+  // limit enforcement disabled below, so it is worth being able to see it.
+  TIME_TRACE("fmb model construction");
+
   // Prevent timing out whilst the model is being printed
   Timer::disableLimitEnforcement();
 
@@ -1877,7 +1885,7 @@ void FiniteModelBuilder::onModelFound()
   //we need to print this early because model generating can take some time
   if(szsOutputMode()) {
     std::cout << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
-        << " for " << _opt.problemName() << endl << flush;
+        << " for " << _opt.problemName << endl << flush;
     UIHelper::satisfiableStatusWasAlreadyOutput = true;
   }
 
@@ -2350,7 +2358,7 @@ void FiniteModelBuilder::SmtBasedDSAE::reportZ3OutOfMemory()
     env.statistics->print(std::cout);
   }
   Debug::Tracer::printStack();
-  System::terminateImmediately(1);
+  System::flushAndTerminateImmediately(1);
 }
 
 bool FiniteModelBuilder::SmtBasedDSAE::increaseModelSizes(DArray<unsigned>& newSortSizes, DArray<unsigned>& sortMaxes)

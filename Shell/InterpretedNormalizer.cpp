@@ -12,6 +12,7 @@
  * Implements class InterpretedNormalizer.
  */
 
+#include "Lib/DArray.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/ScopedPtr.hpp"
 

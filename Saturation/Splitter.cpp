@@ -615,8 +615,8 @@ std::string Splitter::getFormulaStringFromName(SplitLevel compName, bool negated
 {
   if (splPrefix.empty()) {
     if(env.options->proof()==Options::Proof::TPTP){
-      unsigned spl = env.signature->addFreshFunction(OperatorType::getPredicateType({}),"spl");
-      splPrefix = env.signature->functionName(spl)+"_";
+      unsigned spl = env.signature->addFreshPredicate(OperatorType::getPredicateType({}),"spl");
+      splPrefix = env.signature->predicateName(spl)+"_";
     }
   }
 
@@ -967,6 +967,11 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc, bool shuffle)
  */
 bool Splitter::doSplitting(Clause* cl)
 {
+  // Traced here rather than at the call sites: with -sac off (the default) splitting
+  // happens inside forwardSimplify and with -sac on inside activate, and one node
+  // covering both keeps the two configurations comparable.
+  TIME_TRACE(TimeTrace::SPLITTING);
+
   static bool hasStopped = false;
   if (hasStopped) {
     return false;

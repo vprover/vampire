@@ -12,6 +12,8 @@
  * Implements class BetaEtaSimplify.
  */
 
+#include "Debug/TimeProfiling.hpp"
+
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/HOL/HOL.hpp"
@@ -26,6 +28,7 @@ namespace Inferences {
 
 Clause* BetaEtaSimplify::simplify(Clause* c)
 {
+  TIME_TRACE("beta eta simplification");
   LiteralStack litStack;
   bool modified = false;
 

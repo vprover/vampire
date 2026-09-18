@@ -285,7 +285,7 @@ alasca=off > to ~cat kbo:130,lpo:40,incomp:1
 alasca=on > to ~cat kbo:10,qkbo:20,lakbo:40,lpo:10,incomp:1
 
 # symbol_precedence
-> sp ~cat arity:100,const_min:72,frequency:130,const_frequency:49,reverse_frequency:55,reverse_arity:72,weighted_frequency:24,unary_first:28,occurrence:82,unary_frequency:14,const_max:18
+> sp ~cat arity:100,const_min:72,frequency:130,const_frequency:49,reverse_frequency:55,reverse_arity:72,unary_first:28,occurrence:82,unary_frequency:14,const_max:18
 # symbol_precedence_boost
 > spb ~cat none:200,units:78,goal:91,goal_then_units:93,non_intro:14,intro:12
 

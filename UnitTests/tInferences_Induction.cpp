@@ -124,7 +124,7 @@ public:
 
 private:
   bool matchAftercheck() {
-    DHMap<TermList, unsigned> inverse;
+    DHMap<TermList, unsigned, TermListHash, TermListHash2> inverse;
     for (const auto& i : _varsMatched) {
       auto t = _subst.apply(TermList::var(i),EXPECTED_BANK);
       unsigned v;

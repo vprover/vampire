@@ -29,7 +29,6 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/TermIterators.hpp"
 
-#include "Options.hpp"
 #include "FunctionDefinition.hpp"
 #include "Property.hpp"
 #include "SubexpressionIterator.hpp"
@@ -108,11 +107,12 @@ Property* Property::scan(UnitList* units)
   // a bit of a hack, these counts belong in Property
   for(unsigned f=0;f<env.signature->functions();f++){ 
     env.signature->getFunction(f)->resetUsageCnt(); 
-    env.signature->getFunction(f)->resetUnitUsageCnt(); 
    }
-  for(unsigned p=0;p<env.signature->predicates();p++){ 
-    env.signature->getPredicate(p)->resetUsageCnt(); 
-    env.signature->getPredicate(p)->resetUnitUsageCnt(); 
+  for(unsigned p=0;p<env.signature->predicates();p++){
+    env.signature->getPredicate(p)->resetUsageCnt();
+   }
+  for(unsigned t=0;t<env.signature->typeCons();t++){
+    env.signature->getTypeCon(t)->resetUsageCnt();
    }
 
   Property* prop = new Property;
@@ -221,8 +221,6 @@ void Property::add(UnitList* units)
  */
 void Property::scan(Unit* unit)
 {
-  _symbolsInFormula.reset();
-
   if (unit->isClause()) {
     scan(static_cast<Clause*>(unit));
   }
@@ -237,18 +235,6 @@ void Property::scan(Unit* unit)
       FunctionDefinition::deleteDef(def);
     }
   }
-
-  DHSet<int, FnvHash, IdentityHash>::Iterator it(_symbolsInFormula);
-  while(it.hasNext()){
-    int symbol = it.next();
-    if(symbol >= 0){
-      env.signature->getFunction(symbol)->incUnitUsageCnt();
-    }else{
-      symbol = -symbol;
-      env.signature->getPredicate(symbol)->incUnitUsageCnt();
-    }
-  }
-
 } // Property::scan(const Unit* unit)
 
 /**
@@ -568,23 +554,19 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
     if((lhs.isVar() || rhs.isVar()) && eqSort == AtomicSort::boolSort()){
       _hasBoolVar = true;
     }
-    if((eqSort.isVar() || eqSort.term()->arity()) && 
+    if((eqSort.isVar() || eqSort.term()->arity()) &&
        !eqSort.isArrowSort() && !eqSort.isArraySort() && !eqSort.isTupleSort()){
-      _hasPolymorphicSym = true;      
-    } 
+      _hasPolymorphicSym = true;
+    }
     scanSort(eqSort);
   }
   else {
-    _symbolsInFormula.insert(-lit->functor());
     int arity = lit->arity();
     if (arity > _maxPredArity) {
       _maxPredArity = arity;
     }
     Signature::Symbol* pred = env.signature->getPredicate(lit->functor());
-    static bool weighted = env.options->symbolPrecedence() == Options::SymbolPrecedence::WEIGHTED_FREQUENCY ||
-                           env.options->symbolPrecedence() == Options::SymbolPrecedence::REVERSE_WEIGHTED_FREQUENCY;
-    unsigned w = weighted ? cLen : 1; 
-    for(unsigned i=0;i<w;i++){pred->incUsageCnt();} //MS: Giles, was this a joke?
+    pred->incUsageCnt();
     if(cLen==1){
       pred->markInUnit();
     }
@@ -672,12 +654,13 @@ void Property::scan(TermList ts,bool unit,bool goal)
       if(t->arity() > _maxTypeConArity){
         _maxTypeConArity = t->arity();
       }
+      // an AtomicSort stores the type constructor's number as its functor
+      env.signature->getTypeCon(t->functor())->incUsageCnt();
       return;
     }
 
     scanForInterpreted(t);
 
-    _symbolsInFormula.insert(t->functor());
     Signature::Symbol* func = env.signature->getFunction(t->functor());
     func->incUsageCnt();
     if(unit){ func->markInUnit();}

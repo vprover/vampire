@@ -237,7 +237,7 @@ void RobSubstitution::bindVar(const VarSpec& var, const VarSpec& to)
 bool RobSubstitution::occurs(VarSpec const& toFind, TermSpec const& ts) 
 {
 
-   Recycled<DHSet<TermSpec>> encountered;
+   Recycled<DHSet<TermSpec, TermSpecHash, TermSpecHash2>> encountered;
    Recycled<Stack<TermSpec>> todo;
    todo->push(std::move(ts));
 
@@ -281,7 +281,7 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t)
 
   // Save encountered unification pairs to avoid
   // recomputing their unification
-  static DHSet<pair<TermSpec, TermSpec>> encountered_;
+  static DHSet<pair<TermSpec, TermSpec>, PairHash<TermSpecHash,TermSpecHash>, PairHash<TermSpecHash2,TermSpecHash2>> encountered_;
   auto encountered = &encountered_;
   encountered->reset();
   

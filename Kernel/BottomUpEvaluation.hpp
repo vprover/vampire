@@ -48,7 +48,7 @@ namespace Memo {
   };
 
   /** a memoization realized as a hashmap */
-  template<class Arg, class Result, class Hash = DefaultHash>
+  template<class Arg, class Result, class Hash>
   class Hashed
   {
     Map<Arg, Result, Hash> _memo;
@@ -286,7 +286,7 @@ public:
    *
    * It is to be used as follows (this example computes the weight of a term):
    * ```
-   *  Memo::Hashed<TermList, size_t> memo;
+   *  Memo::Hashed<TermList, size_t, TermListHash> memo;
    *  ...
    *  return BottomUpEvaluation<TermList, size_t>()
    *                         // ^^^^^^^^  ^^^^^^--> result type
