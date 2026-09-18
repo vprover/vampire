@@ -220,10 +220,22 @@ class Signature
     /** Reset usage count to zero, to start again! **/
     inline void resetUsageCnt(){ _usageCount=0; }
 
+    /** The two marks below describe what the last Property::scan saw; that scan clears
+     * them (see Property::scan(UnitList*)) and sets them again as it goes.
+     *
+     * Beware: they are only faithful with respect to the CLAUSE part of the scanned unit
+     * list. The formula path of the scan sets neither -- see Property::scan(FormulaUnit*),
+     * which passes goal=false and cLen=0, deeming only a clausified problem to have a
+     * meaningful notion of "occurs in the goal" / "occurs in a unit clause". So these
+     * should ideally only be consulted after clausification and a rescan, when they
+     * finally describe the problem as a whole.
+     */
     inline void markInGoal(){ _inGoal=1; }
     inline bool inGoal(){ return _inGoal; }
     inline void markInUnit(){ _inUnit=1; }
     inline bool inUnit(){ return _inUnit; }
+    /** to be called just before a scan that will recompute the two marks above */
+    inline void resetScanMarks(){ _inGoal=0; _inUnit=0; }
 
     inline void markSkolem(){ _skolem = 1;}
     inline bool skolem(){ return _skolem; }
