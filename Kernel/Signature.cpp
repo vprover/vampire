@@ -92,9 +92,20 @@ unsigned Signature::addSymbol(SymbolKind kind, Symbol* sym)
   }
   sym->_number = id;
   switch (kind) {
-    case SymbolKind::FUNCTION: ASS(sym->type()->isFunctionType()); _funSymbols.push(id); break;
-    case SymbolKind::PREDICATE: ASS(sym->type()->isPredicateType()); _predSymbols.push(id); break;
-    case SymbolKind::TYPE_CONSTRUCTOR: _typeConSymbols.push(id); break;
+    case SymbolKind::FUNCTION:
+      ASS(sym->type()->isFunctionType());
+      sym->_categoryIndex = _funSymbols.size();
+      _funSymbols.push(id);
+      break;
+    case SymbolKind::PREDICATE:
+      ASS(sym->type()->isPredicateType());
+      sym->_categoryIndex = _predSymbols.size();
+      _predSymbols.push(id);
+      break;
+    case SymbolKind::TYPE_CONSTRUCTOR:
+      sym->_categoryIndex = _typeConSymbols.size();
+      _typeConSymbols.push(id);
+      break;
   }
   return id;
 }

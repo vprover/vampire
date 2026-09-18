@@ -36,9 +36,10 @@ using namespace Shell;
  */
 SymCounter::SymCounter (Signature& sig)
   :
-  _noOfPreds(sig.symbolCount()),
-  _noOfFuns (sig.symbolCount()),
-  _noOfTypeCons(sig.symbolCount())
+  _signature(sig),
+  _noOfPreds(sig.predicateCount()),
+  _noOfFuns (sig.functionCount()),
+  _noOfTypeCons(sig.typeConCount())
 {
   if (_noOfPreds) {
     void* mem = ALLOC_KNOWN(_noOfPreds*sizeof(Pred),"SymCounter::Pred[]");
@@ -179,9 +180,8 @@ void SymCounter::count (Formula* f,int polarity,int add)
 void SymCounter::count(Literal* l,int polarity,int add)
 {
   int pred = l->functor();
-  ASS(_noOfPreds > pred);
 
-  _preds[pred].add(l->isPositive() ? polarity : -polarity,add);
+  getPred(pred).add(l->isPositive() ? polarity : -polarity,add);
 
   if (!l->shared()) {
     for(TermList* arg=l->args(); arg->isNonEmpty(); arg=arg->next()) {
@@ -201,11 +201,9 @@ void SymCounter::count(Literal* l,int polarity,int add)
       Term *t = nvi.next().term();
       int fun = t->functor();
       if(!t->isSort()){
-        ASS_REP(_noOfFuns > fun, t->toString());
-        _funs[fun].add(add);
+        getFun(fun).add(add);
       } else {
-        ASS_REP(_noOfTypeCons > fun, t->toString());
-        _typeCons[fun].add(add);        
+        getTypeCon(fun).add(add);
       }
     }
   }
@@ -252,8 +250,7 @@ void SymCounter::count(Term* term, int polarity, int add)
       //There should never be a non-shared sort
       int fun = term->functor();
       ASS(!term->isSort());
-      ASS_REP(_noOfFuns > fun, term->toString());
-      _funs[fun].add(add);
+      getFun(fun).add(add);
 
       for(TermList* arg=term->args(); arg->isNonEmpty(); arg=arg->next()) {
         if(arg->isTerm()){
@@ -264,11 +261,9 @@ void SymCounter::count(Term* term, int polarity, int add)
   } else {
     int fun = term->functor();
     if(!term->isSort()){
-      ASS_REP(_noOfFuns > fun, term->toString());
-      _funs[fun].add(add);
+      getFun(fun).add(add);
     } else {
-      ASS_REP(_noOfTypeCons > fun, term->toString());
-      _typeCons[fun].add(add);       
+      getTypeCon(fun).add(add);
     }
 
     NonVariableIterator nvi(term);
@@ -276,11 +271,9 @@ void SymCounter::count(Term* term, int polarity, int add)
       Term *t = nvi.next().term();
       int fun = t->functor();
       if(!t->isSort()){      
-        ASS_REP(_noOfFuns > fun, t->toString());
-        _funs[fun].add(add);
+        getFun(fun).add(add);
       } else {
-        ASS_REP(_noOfTypeCons > fun, t->toString());
-        _typeCons[fun].add(add);        
+        getTypeCon(fun).add(add);
       }
     }
   }

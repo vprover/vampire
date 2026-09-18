@@ -51,8 +51,8 @@ void BlockedClauseElimination::apply(Problem& prb)
   bool modified = false;
   bool equationally = _forceEquationally || (prb.hasEquality() && prb.getProperty()->positiveEqualityAtoms());
 
-  DArray<Stack<Candidate*>> positive(env.signature->symbolCount());
-  DArray<Stack<Candidate*>> negative(env.signature->symbolCount());
+  DArray<Stack<Candidate*>> positive(env.signature->predicateCount());
+  DArray<Stack<Candidate*>> negative(env.signature->predicateCount());
 
   Stack<ClWrapper*> wrappers; // just to delete easily in the end
 
@@ -72,7 +72,7 @@ void BlockedClauseElimination::apply(Problem& prb)
       if (!env.signature->getPredicate(pred)->protectedSymbol()) { // don't index on interpreted or otherwise protected predicates (=> the cannot be ``flipped'')
         ASS(pred); // equality predicate is protected
 
-        (lit->isPositive() ? positive : negative)[pred].push(new Candidate {clw,i,0,0});
+        (lit->isPositive() ? positive : negative)[env.signature->predicateIndex(pred)].push(new Candidate {clw,i,0,0});
       }
     }
   }
@@ -117,7 +117,7 @@ void BlockedClauseElimination::apply(Problem& prb)
     Clause* cl = clw->cl;
     Literal* lit = (*cl)[cand->litIdx];
     unsigned pred = lit->functor();
-    Stack<Candidate*>& partners = (lit->isPositive() ? negative : positive)[pred];
+    Stack<Candidate*>& partners = (lit->isPositive() ? negative : positive)[env.signature->predicateIndex(pred)];
 
     for (unsigned i = cand->contFrom; i < partners.size(); i++) {
       Candidate* partner = partners[i];

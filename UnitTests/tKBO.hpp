@@ -26,12 +26,12 @@ inline KboWeightMap<SigTraits> toWeightMap(unsigned introducedSymbolWeight, KboS
   df._specialWeights = ws;
 
   DArray<KboWeight> out(sz);
+  auto symbols = std::is_same_v<SigTraits, FuncSigTraits>
+    ? env.signature->functionSymbols() : env.signature->predicateSymbols();
   for (unsigned i = 0; i < sz; i++) {
-    auto sym = env.signature->getSymbol(i);
-    bool inDomain = std::is_same_v<SigTraits, FuncSigTraits> ? sym->isFunction() : sym->isPredicate();
-    if (!inDomain) { out[i] = 1; continue; }
-    auto w = xs.getPtr(i);
-    out[i] = w == NULL ? df.symbolWeight(i) : *w;
+    unsigned id = symbols[i];
+    auto w = xs.getPtr(id);
+    out[i] = w == NULL ? df.symbolWeight(id) : *w;
   }
   return  {
     ._weights = out.clone(),

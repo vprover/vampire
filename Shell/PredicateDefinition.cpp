@@ -142,13 +142,13 @@ struct PredicateDefinition::PredData
 };
 
 PredicateDefinition::PredicateDefinition()
-: _processedPrb(0), _predCnt(env.signature->symbolCount())
+: _processedPrb(0), _predCnt(env.signature->predicateCount())
 {
-  int predCnt=env.signature->symbolCount();
+  int predCnt=env.signature->predicateCount();
 
   _preds = new PredData[predCnt];
   for(int i=0;i<predCnt;i++) {
-    _preds[i].pred=i;
+    _preds[i].pred=env.signature->predicateSymbols()[i];
   }
 
   //mark built-in
@@ -169,9 +169,9 @@ PredicateDefinition::~PredicateDefinition()
  */
 void PredicateDefinition::addBuiltInPredicate(unsigned pred)
 {
-  ASS_L(pred,_predCnt);
+  ASS_L(env.signature->predicateIndex(pred),_predCnt);
 
-  _preds[pred].builtIn = true;
+  _preds[env.signature->predicateIndex(pred)].builtIn = true;
 
   if (env.options->showPreprocessing()) {
     std::cout << "[PP] pred marked as built-in: "
@@ -200,7 +200,7 @@ FormulaUnit* PredicateDefinition::getReplacement(FormulaUnit* u, ReplMap& replac
 
 void PredicateDefinition::eliminatePredicateDefinition(unsigned pred, ReplMap& replacements)
 {
-  PredData& pd=_preds[pred];
+  PredData& pd=_preds[env.signature->predicateIndex(pred)];
   ASS(pd.defUnit);
   FormulaUnit* def0 = pd.defUnit;
   FormulaUnit* def = getReplacement(def0, replacements);
@@ -256,7 +256,7 @@ void PredicateDefinition::eliminatePredicateDefinition(unsigned pred, ReplMap& r
 
 void PredicateDefinition::replacePurePred(unsigned pred, ReplMap& replacements)
 {
-  PredData& pd=_preds[pred];
+  PredData& pd=_preds[env.signature->predicateIndex(pred)];
   ASS(pd.pocc==0 || pd.nocc==0);
 
   _purePreds.insert(pred, pd.nocc==0);
@@ -309,8 +309,8 @@ void PredicateDefinition::collectReplacements(UnitList* units, ReplMap& replacem
   }
 
   for(unsigned pred : env.signature->predicateSymbols()) {
-    if (pred == 0 || pred >= _predCnt) continue;
-    _preds[pred].check(this);
+    if (pred == 0 || env.signature->predicateIndex(pred) >= _predCnt) continue;
+    _preds[env.signature->predicateIndex(pred)].check(this);
   }
 
   // under randomized preprocessing, each candidate is with this probability left alone
@@ -754,9 +754,9 @@ void PredicateDefinition::count (Clause* cl, int add)
   for(unsigned i=0;i<clen;i++) {
     Literal* l=(*cl)[i];
     int pred = l->functor();
-    _preds[pred].add(l->isPositive() ? 1 : -1, add, this);
+    _preds[env.signature->predicateIndex(pred)].add(l->isPositive() ? 1 : -1, add, this);
     if(add==1) {
-	_preds[pred].containingUnits.insert(cl->number(), cl);
+	_preds[env.signature->predicateIndex(pred)].containingUnits.insert(cl->number(), cl);
     }
   }
 }
@@ -768,9 +768,9 @@ void PredicateDefinition::count (Formula* f,int polarity,int add, Unit* unit)
     {
       Literal* l=f->literal();
       int pred = l->functor();
-      _preds[pred].add(l->isPositive() ? polarity : -polarity, add, this);
+      _preds[env.signature->predicateIndex(pred)].add(l->isPositive() ? polarity : -polarity, add, this);
       if(add==1) {
-        _preds[pred].containingUnits.insert(unit->number(), unit);
+        _preds[env.signature->predicateIndex(pred)].containingUnits.insert(unit->number(), unit);
       }
       Term::Iterator args(l);
       while (args.hasNext()) {
@@ -918,7 +918,7 @@ bool PredicateDefinition::tryGetDef(Literal* lhs, Formula* rhs, FormulaUnit* uni
     }
   }
 
-  _preds[lhs->functor()].setDefUnit(unit);
+  _preds[env.signature->predicateIndex(lhs->functor())].setDefUnit(unit);
   return true;
 }
 

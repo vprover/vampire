@@ -35,10 +35,8 @@ struct SortedSignature{
     DArray<Stack<unsigned>> sortedConstants;
     DArray<Stack<unsigned>> sortedFunctions;
 
-    // for f(x,y) = z this will store sort(z),sort(x),sort(y)
-    DArray<DArray<unsigned>> functionSignatures;
-    // for p(x,y) this will store sort(x),sort(y)
-    DArray<DArray<unsigned>> predicateSignatures;
+    // Indexed by global symbol ID: argument sorts, then the result sort for functions.
+    DArray<DArray<unsigned>> symbolSignatures;
 
     // gives the maximum size of a sort
     DArray<unsigned> sortBounds;
@@ -75,11 +73,10 @@ struct SortedSignature{
 class SortInference {
 public:
   SortInference(ClauseList* clauses,
-                const DArray<bool>& del_f,
-                const DArray<bool>& del_p,
+                const DArray<bool>& deletedSymbols,
                 Stack<std::pair<unsigned,unsigned>>& distinct_sort_constraints,
                 DHMap<unsigned,DArray<signed char>*, FnvHash, IdentityHash>& monotonic_vampire_sorts) :
-                _clauses(clauses), _del_f(del_f), _del_p(del_p),
+                _clauses(clauses), _deletedSymbols(deletedSymbols),
                 // these two are essentially output arguments
                 _sort_constraints(distinct_sort_constraints),
                 _monotonic_vampire_sorts(monotonic_vampire_sorts)
@@ -125,8 +122,7 @@ private:
 
   SortedSignature* _sig;
   ClauseList* _clauses;
-  const DArray<bool>& _del_f;
-  const DArray<bool>& _del_p;
+  const DArray<bool>& _deletedSymbols;
 
   // these two actually live in FiniteModelBuilder and serve as output arguments of this sort inference
   // (see more explanations there)

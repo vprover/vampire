@@ -20,9 +20,9 @@ inline void compareTwoWays(const Ordering& ord, TermSugar t1, TermSugar t2) {
 
 LPO lpo() {
   return LPO(
-      DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->symbolCount())),
-      DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->symbolCount())),
-      DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->symbolCount())),
+      DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->functionCount())),
+      DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->typeConCount())),
+      DArray<int>::fromIterator(getRangeIterator(0, (int) env.signature->predicateCount())),
       PrecedenceOrdering::testLevels(), false /* reverseLCM */);
 }
 

@@ -89,6 +89,7 @@ class Signature
     friend class Signature;
     SymbolKind _kind = SymbolKind::FUNCTION;
     unsigned _number = UINT_MAX;
+    unsigned _categoryIndex = UINT_MAX;
   
   protected:
     /** print name */
@@ -153,6 +154,7 @@ class Signature
     bool isPredicate() const { return _kind == SymbolKind::PREDICATE; }
     bool isTypeCon() const { return _kind == SymbolKind::TYPE_CONSTRUCTOR; }
     unsigned number() const { return _number; }
+    unsigned categoryIndex() const { return _categoryIndex; }
     void destroy();
 
     void destroyFnSymbol();
@@ -686,6 +688,14 @@ public:
 
   /** Exclusive upper bound for arrays indexed by symbol ID. */
   unsigned symbolCount() const { return _symbols.size(); }
+
+  // Category indices are dense and stable; symbol IDs remain global.
+  unsigned functionCount() const { return _funSymbols.size(); }
+  unsigned predicateCount() const { return _predSymbols.size(); }
+  unsigned typeConCount() const { return _typeConSymbols.size(); }
+  unsigned functionIndex(unsigned id) const { return getFunction(id)->categoryIndex(); }
+  unsigned predicateIndex(unsigned id) const { return getPredicate(id)->categoryIndex(); }
+  unsigned typeConIndex(unsigned id) const { return getTypeCon(id)->categoryIndex(); }
 
   /** A snapshot of a category's IDs; remains valid if registration grows its storage. */
   class SymbolRange {
