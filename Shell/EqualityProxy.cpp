@@ -210,13 +210,70 @@ bool EqualityProxy::getArgumentEqualityLiterals(unsigned cnt, LiteralStack& lits
 }
 
 /**
- * For every symbol occurring in env.signature, add to the units equality congruence axioms
+ * Record in @c usedFunctions / @c usedPredicates which symbols occur in @c units.
+ *
+ * Only presence is recorded, never a count, and that is what lets the traversal stop at a
+ * subterm it has already seen: whether a symbol occurs somewhere below a shared term does
+ * not depend on how many times that term occurs. So the walk is over the term DAG rather
+ * than over the tree it unfolds to.
+ */
+void EqualityProxy::collectUsedSymbols(UnitList* units, DArray<bool>& usedFunctions, DArray<bool>& usedPredicates)
+{
+  usedFunctions.init(env.signature->functions(),false);
+  usedPredicates.init(env.signature->predicates(),false);
+
+  DHSet<Term*, SharedTermHash, PtrIdentityHash> seen;
+  Stack<Term*> todo;
+
+  UnitList::Iterator uit(units);
+  while (uit.hasNext()) {
+    Unit* u = uit.next();
+    ASS(u->isClause()); // equality proxy runs on a clausified problem
+    Clause* cl = static_cast<Clause*>(u);
+    for (unsigned i = 0; i < cl->length(); i++) {
+      Literal* lit = (*cl)[i];
+      ASS(lit->shared()); // so the ids the visited set hashes by are meaningful
+      usedPredicates[lit->functor()] = true;
+      for (TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()) {
+        if (ts->isTerm()) {
+          todo.push(ts->term());
+        }
+      }
+      while (todo.isNonEmpty()) {
+        Term* t = todo.pop();
+        ASS(t->shared());
+        // a sort is built from type constructors, not from function symbols, and so are
+        // all of its arguments, so the whole subtree is of no interest here
+        if (t->isSort() || !seen.insert(t)) {
+          continue;
+        }
+        usedFunctions[t->functor()] = true;
+        for (TermList* ts = t->args(); ts->isNonEmpty(); ts = ts->next()) {
+          if (ts->isTerm()) {
+            todo.push(ts->term());
+          }
+        }
+      }
+    }
+  }
+}
+
+/**
+ * For every symbol occurring in @c units, add to the units equality congruence axioms
  * for this symbol.
  * @author Andrei Voronkov
  * @since 16/05/2014 Manchester
  */
 void EqualityProxy::addCongruenceAxioms(UnitList*& units)
 {
+  // Which symbols actually occur is established here, over the clauses at hand and only
+  // when congruence axioms are really being added. It used to be read off
+  // Signature::Symbol::usageCnt(), a side effect of Property::scan -- which Preprocess
+  // had to force a whole extra scan of the problem to refresh, just for these two loops.
+  DArray<bool> usedFunctions;
+  DArray<bool> usedPredicates;
+  collectUsedSymbols(units, usedFunctions, usedPredicates);
+
   // This is Krystof Hoder's comment:
   // TODO: skip UPDR predicates!!!
   Stack<TermList> vars1;
@@ -228,7 +285,7 @@ void EqualityProxy::addCongruenceAxioms(UnitList*& units)
   for (unsigned i=0; i<funs; i++) {
     Signature::Symbol* fnSym = env.signature->getFunction(i);
     // can axiomatise equality _before_ preprocessing, so skip (some) introduced symbols
-    if(!fnSym->usageCnt() || fnSym->skipCongruence())
+    if(!usedFunctions[i] || fnSym->skipCongruence())
       continue;
     unsigned arity = fnSym->arity();
     if (arity == 0) {
@@ -253,8 +310,10 @@ void EqualityProxy::addCongruenceAxioms(UnitList*& units)
   unsigned preds = env.signature->predicates();
   for (unsigned i = 1; i < preds; i++) {
     Signature::Symbol* predSym = env.signature->getPredicate(i);
-    // can axiomatise equality _before_ preprocessing, so skip (some) introduced symbols
-    if(!predSym->usageCnt() || predSym->skipCongruence())
+    // can axiomatise equality _before_ preprocessing, so skip (some) introduced symbols.
+    // The loop above may have created new proxy predicates, which postdate usedPredicates
+    // and, occurring in no scanned clause, are not used in its sense either
+    if(i >= usedPredicates.size() || !usedPredicates[i] || predSym->skipCongruence())
       continue;
     unsigned arity = predSym->arity();
     if (arity == 0) {
