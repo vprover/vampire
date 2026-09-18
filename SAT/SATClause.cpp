@@ -58,7 +58,7 @@ SATClause::SATClause(unsigned length)
   }
 
   // call a constructor on the literals
-  for (size_t i = 1; i < _length; i++)
+  for (size_t i = 0; i < _length; i++)
     ::new (&literals()[i]) SATLiteral();
 }
 
@@ -76,22 +76,16 @@ void SATClause::destroy()
   if(_inference) {
     delete _inference;
   }
-  
-  //We have to get sizeof(SATClause) + (_length-1)*sizeof(SATLiteral*)
-  //this way, because _length-1 wouldn't behave well for
-  //_length==0 on x64 platform.
-  size_t size=sizeof(SATClause)+_length*sizeof(SATLiteral);
-  if (_length > 0) // see comment in operator new(size_t sz,unsigned lits) above
-    size-=sizeof(SATLiteral);
 
+  unsigned lits = _length;
   // call a destructor on the excess literals
-  for (size_t i = 1; i < _length; i++)
-    literals()[i].~SATLiteral();    
-  
-  // call a destructor of the clause object (will destroy _literals[0])
+  for (size_t i = 0; i < lits; i++)
+    literals()[i].~SATLiteral();
+
+  // call a destructor of the clause object
   this->~SATClause();
-    
-  DEALLOC_KNOWN(this, size,"SATClause");
+
+  DEALLOC_KNOWN(this, allocationRequired(lits),"SATClause");
 } // SATClause::destroy
 
 
