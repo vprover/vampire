@@ -346,7 +346,7 @@ PolyNf normalizeTerm(TypedTermList t, bool& simplified)
 {
   DBG_INDENT
   DEBUG(0, "normalizing ", t)
-  static MemoNonVars<TypedTermList, std::pair<PolyNf, bool>> memo;
+  static MemoNonVars<TypedTermList, std::pair<PolyNf, bool>, TypedTermListHash> memo;
   auto out = memo.getOrInit(t, [&t]() {
 
       bool simplified = false;
@@ -387,7 +387,7 @@ PolyNf normalizeTerm(TypedTermList t, bool& simplified)
 
 TermList PolyNf::denormalize() const
 { 
-  static MemoNonVars<PolyNf, TermList> memo;
+  static MemoNonVars<PolyNf, TermList, PolyNfHash> memo;
   return BottomUpEvaluation<PolyNf, TermList>()
     .function(
         [&](PolyNf orig, TermList* results) -> TermList

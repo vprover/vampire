@@ -279,7 +279,7 @@ bool Clause::isHorn()
  */
 VirtualIterator<unsigned> Clause::getVariableIterator() const
 {
-  return pvi( getUniquePersistentIterator(iterVars()) );
+  return pvi( getUniquePersistentIterator<FnvHash, IdentityHash>(iterVars()) );
 }
 
 /**
@@ -719,7 +719,7 @@ unsigned Clause::getLiteralPosition(Literal* lit)
 #endif
   default:
     if (!_literalPositions) {
-      _literalPositions=new InverseLookup<Literal>(_literals,length());
+      _literalPositions=new InverseLookup<Literal, FnvHash, PtrIdentityHash>(_literals,length());
     }
     return static_cast<unsigned>(_literalPositions->get(lit));
   }

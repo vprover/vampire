@@ -100,7 +100,7 @@ Kernel::ClauseIterator FunctionDefinitionRewriting::generateClauses(Clause *prem
   return pvi(premise->iterLits()
     .flatMap([](Literal *lit) {
       NonVariableNonTypeIterator nvi(lit);
-      return pvi(pushPairIntoRightIterator(lit, getUniquePersistentIteratorFromPtr(&nvi)));
+      return pvi(pushPairIntoRightIterator(lit, getUniquePersistentIteratorFromPtr<FnvHash, PtrIdentityHash>(&nvi)));
     })
     .flatMap([this](std::pair<Literal*, Term*> arg){
       return pvi(pushPairIntoRightIterator(arg,

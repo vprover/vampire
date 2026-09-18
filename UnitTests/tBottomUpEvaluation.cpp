@@ -59,7 +59,7 @@ TEST_FUN(example_02__compute_size) {
   //                    ^^^^    ^^^^ size of this sub-term will only be evaluated once due to memo
 
   /* actual evaluation */
-  Memo::Hashed<TermList, unsigned> memo{};
+  Memo::Hashed<TermList, unsigned, TermListHash> memo{};
   auto size =  BottomUpEvaluation<TermList, unsigned>()
     .function(
         /* defines how to evaluate bottom up. 

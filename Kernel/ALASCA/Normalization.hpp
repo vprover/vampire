@@ -89,9 +89,20 @@ namespace Kernel {
     auto asTuple() const { return std::tie(_symbol, _term);  }
 
     IMPL_COMPARISONS_FROM_TUPLE(AlascaLiteral)
-    IMPL_HASH_FROM_TUPLE(AlascaLiteral)
   };
 
+
+  struct AlascaLiteralHash {
+    template<class NumTraits>
+    static bool equals(AlascaLiteral<NumTraits> const& lhs, AlascaLiteral<NumTraits> const& rhs)
+    { return lhs == rhs; }
+
+    template<class NumTraits>
+    static unsigned hash(AlascaLiteral<NumTraits> const& value)
+    { return TupleHash<FnvHash, PerfectHash<FnvHash>>::hash(value.asTuple()); }
+  };
+
+  using AnyAlascaLiteralHash = CoproductHash<AlascaLiteralHash, AlascaLiteralHash, AlascaLiteralHash>;
 
   using AnyConstantType = Coproduct< IntegerConstantType
                                    , RationalConstantType
