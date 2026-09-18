@@ -854,7 +854,7 @@ Options::Options ()
                                                             {"arity","occurrence","reverse_arity","unary_first",
                                                             "const_max", "const_min",
                                                             "scramble","frequency","unary_frequency","const_frequency",
-                                                            "reverse_frequency", "weighted_frequency","reverse_weighted_frequency"})
+                                                            "reverse_frequency"})
   , _symbolPrecedenceBoost("symbol_precedence_boost","spb",SymbolPrecedenceBoost::NONE,
                                      {"none","goal","units","goal_then_units",
                                       "non_intro","intro"})

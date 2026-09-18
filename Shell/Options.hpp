@@ -726,8 +726,6 @@ public:
     UNARY_FREQ = 8,
     CONST_FREQ = 9,
     REVERSE_FREQUENCY = 10,
-    WEIGHTED_FREQUENCY = 11,
-    REVERSE_WEIGHTED_FREQUENCY = 12
   };
   enum class SymbolPrecedenceBoost : unsigned int {
     NONE = 0,
