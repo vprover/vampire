@@ -39,6 +39,7 @@
 #define RED    ""
 #endif
 
+// If re-enabled, see the ASSERTION_VIOLATION in Matcher::init: opposite-literal matching doesn't support it yet.
 #define GROUND_TERM_CHECK 0
 
 #undef RSTAT_COLLECTION
@@ -132,9 +133,11 @@ void CodeTree::MatchInfo::destroy(unsigned bindCnt)
 }
 
 
-void CodeTree::MatchInfo::init(ILStruct* ils, unsigned liIndex_, DArray<TermList>& bindingArray)
+void CodeTree::MatchInfo::init(ILStruct* ils, unsigned liIndex_, DArray<TermList>& bindingArray, bool opposite)
 {
-  liIndex=liIndex_;
+  /* Pack liIndex and the opposite flag into _content (see getLiIndex/opposite) */
+  _setLiIndex(liIndex_);
+  _setOpposite(opposite);
   size_t bindCnt=ils->varCnt;
   if(bindCnt) {
     unsigned* perm=ils->globalVarPermutation;
@@ -261,11 +264,14 @@ void CodeTree::ILStruct::ensureFreshness(unsigned globalTimestamp)
     finished=false;
     noNonOppositeMatches=false;
     matchCnt=0;
+    nonOppositeMatchCnt=0;
   }
 }
 
-void CodeTree::ILStruct::addMatch(unsigned liIndex, DArray<TermList>& bindingArray)
+template<bool sres>
+void CodeTree::ILStruct::addMatch(unsigned liIndex, DArray<TermList>& bindingArray, bool opposite)
 {
+  ASS(sres || !opposite);
   if(matchCnt==matches.size()) {
     matches.expand(matchCnt ? (matchCnt*2) : 4);
     size_t newSize=matches.size();
@@ -277,7 +283,24 @@ void CodeTree::ILStruct::addMatch(unsigned liIndex, DArray<TermList>& bindingArr
   if(!matches[matchCnt]) {
     matches[matchCnt]=MatchInfo::alloc(varCnt);
   }
-  matches[matchCnt]->init(this, liIndex, bindingArray);
+  
+  if constexpr (sres) {
+    /* Maintain the invariant that non-opposite matches occupy [0, nonOppositeMatchCnt):
+    * an opposite match is simply appended, while a non-opposite match is swapped into
+    * position nonOppositeMatchCnt before that boundary is advanced. */
+    if(opposite) {
+      matches[matchCnt]->init(this, liIndex, bindingArray, /*opposite=*/true);
+    }
+    else {
+      if(nonOppositeMatchCnt!=matchCnt) {
+        swap(matches[nonOppositeMatchCnt], matches[matchCnt]);
+      }
+      matches[nonOppositeMatchCnt]->init(this, liIndex, bindingArray, /*opposite=*/false);
+      nonOppositeMatchCnt++;
+    }
+  } else {
+    matches[matchCnt]->init(this, liIndex, bindingArray, /*opposite=*/false);
+  }
   matchCnt++;
 }
 
@@ -289,13 +312,33 @@ void CodeTree::ILStruct::addMatch(unsigned liIndex, DArray<TermList>& bindingArr
  * to filter them by this function, the traversal should go from higher
  * indexes down to zero.
  */
+template<bool sres>
 void CodeTree::ILStruct::deleteMatch(unsigned matchIndex)
 {
   ASS_L(matchIndex, matchCnt);
 
   matchCnt--;
-  swap(matches[matchIndex], matches[matchCnt]);
+  if constexpr (sres) {
+    /* Removing a non-opposite match must preserve the [0, nonOppositeMatchCnt) invariant */
+    if(matchIndex<nonOppositeMatchCnt) {
+      nonOppositeMatchCnt--;
+      swap(matches[matchIndex], matches[nonOppositeMatchCnt]);
+      if(nonOppositeMatchCnt!=matchCnt) {
+        swap(matches[nonOppositeMatchCnt], matches[matchCnt]);
+      }
+    }
+    else {
+      swap(matches[matchIndex], matches[matchCnt]);
+    }
+  } else {
+    swap(matches[matchIndex], matches[matchCnt]);
+  }
 }
+
+template void CodeTree::ILStruct::addMatch<true>(unsigned, DArray<TermList>&, bool);
+template void CodeTree::ILStruct::addMatch<false>(unsigned, DArray<TermList>&, bool);
+template void CodeTree::ILStruct::deleteMatch<true>(unsigned);
+template void CodeTree::ILStruct::deleteMatch<false>(unsigned);
 
 CodeTree::MatchInfo*& CodeTree::ILStruct::getMatch(unsigned matchIndex)
 {
@@ -482,14 +525,19 @@ bool CodeTree::SearchStruct::getTargetOpPtr(const CodeOp& insertedOp, CodeOp**& 
 // expose for ClauseCodeTree.cpp
 template bool CodeTree::SearchStruct::getTargetOpPtr<false>(const CodeOp&, CodeOp**&);
 
-CodeTree::CodeOp* CodeTree::SearchStruct::getTargetOp(const FlatTerm::Entry* ftPos)
+CodeTree::CodeOp* CodeTree::SearchStruct::getTargetOp(const FlatTerm::Entry* ftPos, bool opposite)
 {
   if(!ftPos->isFun()) { return 0; }
   switch(kind) {
   case FN_STRUCT:
+    /* if opposite is true, look up the negated predicate symbol instead */
+    if (opposite) {
+      return static_cast<FnSearchStruct*>(this)->targetOp<false>(ftPos->_number() ^ 1);
+    }
     return static_cast<FnSearchStruct*>(this)->targetOp<false>(ftPos->_number());
   case GROUND_TERM_STRUCT:
     ftPos++;
+    ASS(!opposite);
     ASS_EQ(ftPos->_tag(), FlatTerm::FUN_TERM_PTR);
     return static_cast<GroundTermSearchStruct*>(this)->targetOp<false>(ftPos->_term());
   default:
@@ -542,8 +590,8 @@ CodeTree::CodeOp*& CodeTree::SearchStructImpl<k>::targetOp(const T& val)
 
 //////////////// Matcher ////////////////////
 
-template<bool removing, bool checkRange>
-bool CodeTree::Matcher<removing, checkRange>::execute()
+template<bool removing, bool checkRange, bool sres>
+bool CodeTree::Matcher<removing, checkRange, sres>::execute()
 {
   if(fresh) {
     fresh=false;
@@ -557,11 +605,12 @@ bool CodeTree::Matcher<removing, checkRange>::execute()
 
   bool shouldBacktrack=false;
   for(;;) {
+    /* Note: doSearchStruct() also pushes onto btStack to handle opposite matches */
     if(op->alternative()) {
       if constexpr (removing) {
-        btStack.push(BTPointRemoving(tp, op->alternative(), RemovingBase::firstsInBlocks->size()));
+        btStack.push(BTPointRemoving(tp, MarkedOp(op->alternative(), opposite), RemovingBase::firstsInBlocks->size()));
       } else {
-        btStack.push(BTPoint(tp, op->alternative()));
+        btStack.push(BTPoint(tp, MarkedOp(op->alternative(), opposite)));
       }
     }
     switch(op->_instruction()) {
@@ -637,11 +686,16 @@ bool CodeTree::Matcher<removing, checkRange>::execute()
   }
 }
 
-template<bool removing, bool checkRange>
-void CodeTree::Matcher<removing, checkRange>::init(const CodeTree& tree_, CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_, Stack<CodeOp*>* firstsInBlocks_)
+template<bool removing, bool checkRange, bool sres>
+void CodeTree::Matcher<removing, checkRange, sres>::init(const CodeTree& tree_, CodeOp* entry_, bool canEnterOpposites_, LitInfo* linfos_, size_t linfoCnt_, Stack<CodeOp*>* firstsInBlocks_)
 {
   tree=&tree_;
+  canEnterOpposites=canEnterOpposites_;
+#if GROUND_TERM_CHECK
+  ASS(!canEnterOpposites);
+#endif
   entry=entry_;
+  opposite=false;
 
   linfos=linfos_;
   linfoCnt=linfoCnt_;
@@ -667,8 +721,8 @@ void CodeTree::Matcher<removing, checkRange>::init(const CodeTree& tree_, CodeOp
  * entry point and starts evaluating new literal info (if there
  * is some left).
  */
-template<bool removing, bool checkRange>
-bool CodeTree::Matcher<removing, checkRange>::backtrack()
+template<bool removing, bool checkRange, bool sres>
+bool CodeTree::Matcher<removing, checkRange, sres>::backtrack()
 {
   if(btStack.isEmpty()) {
     curLInfo++;
@@ -676,7 +730,8 @@ bool CodeTree::Matcher<removing, checkRange>::backtrack()
   }
   auto bp=btStack.pop();
   tp=bp.tp;
-  op=bp.op;
+  op=bp.markedOp.getOp();
+  opposite=bp.markedOp.getMark();
   if constexpr (removing) {
     RemovingBase::firstsInBlocks->truncate(bp.fibDepth);
     RemovingBase::firstsInBlocks->push(op);
@@ -684,8 +739,8 @@ bool CodeTree::Matcher<removing, checkRange>::backtrack()
   return true;
 }
 
-template<bool removing, bool checkRange>
-bool CodeTree::Matcher<removing, checkRange>::prepareLiteral()
+template<bool removing, bool checkRange, bool sres>
+bool CodeTree::Matcher<removing, checkRange, sres>::prepareLiteral()
 {
   if constexpr (removing) {
     RemovingBase::firstsInBlocks->truncate(RemovingBase::initFIBDepth);
@@ -696,11 +751,12 @@ bool CodeTree::Matcher<removing, checkRange>::prepareLiteral()
   ft=linfos[curLInfo].ft;
   tp=0;
   op=entry;
+  opposite=false;
   return true;
 }
 
-template<bool removing, bool checkRange>
-inline bool CodeTree::Matcher<removing, checkRange>::doAssignVar()
+template<bool removing, bool checkRange, bool sres>
+inline bool CodeTree::Matcher<removing, checkRange, sres>::doAssignVar()
 {
   ASS_EQ(op->_instruction(), ASSIGN_VAR);
 
@@ -740,8 +796,8 @@ inline bool CodeTree::Matcher<removing, checkRange>::doAssignVar()
   return true;
 }
 
-template<bool removing, bool checkRange>
-inline bool CodeTree::Matcher<removing, checkRange>::doCheckVar()
+template<bool removing, bool checkRange, bool sres>
+inline bool CodeTree::Matcher<removing, checkRange, sres>::doCheckVar()
 {
   ASS_EQ(op->_instruction(), CHECK_VAR);
 
@@ -772,23 +828,32 @@ inline bool CodeTree::Matcher<removing, checkRange>::doCheckVar()
   return true;
 }
 
-template<bool removing, bool checkRange>
-inline bool CodeTree::Matcher<removing, checkRange>::doCheckFun()
+template<bool removing, bool checkRange, bool sres>
+inline bool CodeTree::Matcher<removing, checkRange, sres>::doCheckFun()
 {
   ASS_EQ(op->_instruction(), CHECK_FUN);
 
   unsigned functor=op->_arg();
   FlatTerm::Entry& fte=(*ft)[tp];
   if(!fte.isFun(functor)) {
-    return false;
+    /* the top-level predicate didn't match, so match 
+     * against negation for subsumption resolution */
+    if constexpr (!sres) {
+      return false;
+    }
+    if (canEnterOpposites && tp == 0 && fte.isOppositeFun(functor)) {
+      opposite=true;
+    } else {
+      return false;
+    }
   }
   fte.expand();
   tp+=FlatTerm::FUNCTION_ENTRY_COUNT;
   return true;
 }
 
-template<bool removing, bool checkRange>
-inline bool CodeTree::Matcher<removing, checkRange>::doCheckGroundTerm()
+template<bool removing, bool checkRange, bool sres>
+inline bool CodeTree::Matcher<removing, checkRange, sres>::doCheckGroundTerm()
 {
   ASS_EQ(op->_instruction(), CHECK_GROUND_TERM);
 
@@ -811,13 +876,29 @@ inline bool CodeTree::Matcher<removing, checkRange>::doCheckGroundTerm()
   return true;
 }
 
-template<bool removing, bool checkRange>
-inline bool CodeTree::Matcher<removing, checkRange>::doSearchStruct()
+template<bool removing, bool checkRange, bool sres>
+inline bool CodeTree::Matcher<removing, checkRange, sres>::doSearchStruct()
 {
   ASS_EQ(op->_instruction(), SEARCH_STRUCT);
 
   const FlatTerm::Entry* fte=&(*ft)[tp];
-  CodeOp* target=op->getSearchStruct()->getTargetOp(fte);
+  CodeOp* target=op->getSearchStruct()->getTargetOp(fte, /*opposite=*/false);
+  /* look up the branch for the negated predicate, so it
+   * can be tried on backtracking for subsumption resolution */
+  if constexpr (sres) {
+    if (canEnterOpposites && tp == 0 && op->getSearchStruct()->kind == SearchStruct::FN_STRUCT) {
+      CodeOp* alt = op->getSearchStruct()->getTargetOp(fte, /*opposite=*/true);
+      if (alt && target != alt) {
+        /* 'opposite' will be determined by doCheckFun
+        * when this backtracking point is resumed */
+        if constexpr (removing) {
+        btStack.emplace(tp, MarkedOp(alt, /*opposite=*/false), RemovingBase::firstsInBlocks->size());
+        } else {
+          btStack.emplace(tp, MarkedOp(alt, /*opposite=*/false));
+        }
+      }
+    }
+  }
   if(!target) {
     return false;
   }
@@ -828,9 +909,10 @@ inline bool CodeTree::Matcher<removing, checkRange>::doSearchStruct()
   return true;
 }
 
-template struct CodeTree::Matcher<true, false>;
-template struct CodeTree::Matcher<true, true>;
-template struct CodeTree::Matcher<false, false>;
+template struct CodeTree::Matcher<true, false, false>;
+template struct CodeTree::Matcher<true, true, false>;
+template struct CodeTree::Matcher<false, false, false>;
+template struct CodeTree::Matcher<false, false, true>;
 
 //////////////// auxiliary ////////////////////
 
