@@ -917,7 +917,7 @@ Options::Options ()
                  "Higher-order",
                  "Global"
                 })
-  , _nonGoalWeightCoefficient("nongoal_weight_coefficient","nwc")
+  , _nonGoalWeightCoefficient("nongoal_weight_coefficient","nwc") // default 10.0 is hard-wired to the constructor
   , _restrictNWCtoGC("restrict_nwc_to_goal_constants","rnwc",false)
   , _selection("selection","s",10)
   , _inputFile("input_file","","",this)
@@ -2818,7 +2818,6 @@ Options::Options ()
     _literalComparisonMode.addProblemConstraint(mayHaveNonUnits());
     _literalComparisonMode.addProblemConstraint(notJustEquality());
 
- // default 10.0 is hard-wired to the constructor
     _nonGoalWeightCoefficient.description=
              "coefficient that will multiply the weight of non-conjecture clauses (those marked as 'axiom' in TPTP)";
     _lookup.insert(_nonGoalWeightCoefficient);
