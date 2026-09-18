@@ -730,13 +730,13 @@ void FiniteModelBuilder::init()
      }
     }
 
-    // Fragile, change if extend FMBSymbolOrders as it assumes that the values that
-    //          are not occurrence depend on usage (as per FMBSymmetryFunctionComparator)
+    // Fragile (change if you extend FMBSymbolOrders) as it assumes that the values that
+    //          are not OCCURRENCE depend on usage (as per FMBSymmetryFunctionComparator)
     if(env.options->fmbSymmetryOrderSymbols() != Options::FMBSymbolOrders::OCCURRENCE){
       // Let's try sorting constants and functions in the sorted signature
       for(unsigned s=0;s<_sortedSignature->sorts;s++){
-        Stack<unsigned> sortedConstants =  _sortedSignature->sortedConstants[s];
-        Stack<unsigned> sortedFunctions = _sortedSignature->sortedFunctions[s];
+        Stack<unsigned>& sortedConstants = _sortedSignature->sortedConstants[s];
+        Stack<unsigned>& sortedFunctions = _sortedSignature->sortedFunctions[s];
         sort(sortedConstants.begin(),sortedConstants.end(), FMBSymmetryFunctionComparator::compare);
         sort(sortedFunctions.begin(),sortedFunctions.end(), FMBSymmetryFunctionComparator::compare);
       }
