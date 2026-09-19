@@ -36,22 +36,36 @@ using namespace Lib;
 void collectUsedSymbols(ClauseIterator clauses, DArray<bool>& usedFunctions, DArray<bool>& usedPredicates);
 
 /**
- * Count how often each symbol occurs in @c clauses: one per occurrence of a function or
- * type constructor as a subterm, one per occurrence of a non-equality literal for a
- * predicate. All three arrays are (re)sized to the current signature and zeroed first,
- * with the same out-of-range convention as collectUsedSymbols.
- *
- * Unlike collectUsedSymbols this must NOT skip a subterm it has already seen: the answer
- * is a multiplicity, so every occurrence of a shared term has to be counted again, once
- * for each way the term DAG reaches it. Adding a visited set here would silently change
- * every count on a problem with any sharing.
- *
- * The counting rule is the one Property::scan maintained as a side effect on
- * Signature::Symbol::usageCnt, so that callers moving off that counter keep their
- * behaviour.
+ * How often each symbol of the signature occurs in a set of clauses.
  */
-void collectSymbolCounts(ClauseIterator clauses, DArray<unsigned>& functionCounts,
-    DArray<unsigned>& predicateCounts, DArray<unsigned>& typeConCounts);
+struct SymbolCounts {
+  /** indexed by functor; an index past the end means a symbol younger than the count */
+  DArray<unsigned> functions;
+  DArray<unsigned> predicates;
+  DArray<unsigned> typeCons;
+
+  /**
+   * Count occurrences in @c clauses: one per occurrence of a function or type constructor
+   * as a subterm, one per occurrence of a non-equality literal for a predicate. All three
+   * arrays are (re)sized to the current signature and zeroed first.
+   *
+   * Unlike collectUsedSymbols this must NOT skip a subterm it has already seen: the answer
+   * is a multiplicity, so every occurrence of a shared term has to be counted again, once
+   * for each way the term DAG reaches it. Adding a visited set here would silently change
+   * every count on a problem with any sharing.
+   *
+   * The counting rule is the one Property::scan maintained as a side effect on
+   * Signature::Symbol::usageCnt, so that callers moving off that counter keep their
+   * behaviour.
+   */
+  void countIn(ClauseIterator clauses);
+
+  /** false until countIn has run; see PrecedenceOrdering::symbolCounts() */
+  bool isInitialised() const { return _initialised; }
+
+private:
+  bool _initialised = false;
+};
 
 }
 
