@@ -105,6 +105,7 @@ struct KboSpecialWeights<FuncSigTraits>
 template<class SigTraits>
 struct KboWeightMap {
   friend class KBO;
+  // Indexed by the dense index within this symbol category.
   DArray<KboWeight> _weights;
 
   /** KboWeight of function symbols not occurring in the signature, i.e. that are introduced during proof search */

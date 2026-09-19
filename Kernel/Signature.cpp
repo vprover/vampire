@@ -68,6 +68,48 @@ Signature::Symbol::Symbol(const std::string& nm, OperatorType* type, bool interp
   }
 } // Symbol::Symbol
 
+void Signature::Symbol::destroy()
+{
+  switch (_kind) {
+    case SymbolKind::FUNCTION: destroyFnSymbol(); break;
+    case SymbolKind::PREDICATE: destroyPredSymbol(); break;
+    case SymbolKind::TYPE_CONSTRUCTOR: destroyTypeConSymbol(); break;
+  }
+}
+
+unsigned Signature::addSymbol(SymbolKind kind, Symbol* sym)
+{
+  sym->_kind = kind;
+  unsigned id;
+  if (kind == SymbolKind::PREDICATE && sym->interpreted() &&
+      static_cast<InterpretedSymbol*>(sym)->getInterpretation() == Theory::EQUAL) {
+    ASS(!_symbols[0]);
+    id = 0;
+    _symbols[0] = sym;
+  } else {
+    id = _symbols.size();
+    _symbols.push(sym);
+  }
+  sym->_number = id;
+  switch (kind) {
+    case SymbolKind::FUNCTION:
+      ASS(sym->type()->isFunctionType());
+      sym->_categoryIndex = _funSymbols.size();
+      _funSymbols.push(id);
+      break;
+    case SymbolKind::PREDICATE:
+      ASS(sym->type()->isPredicateType());
+      sym->_categoryIndex = _predSymbols.size();
+      _predSymbols.push(id);
+      break;
+    case SymbolKind::TYPE_CONSTRUCTOR:
+      sym->_categoryIndex = _typeConSymbols.size();
+      _typeConSymbols.push(id);
+      break;
+  }
+  return id;
+}
+
 /**
  * Deallocate function Symbol object
  */
@@ -156,9 +198,7 @@ Signature::RealSymbol::RealSymbol(const RealConstantType& val)
  */
 Signature::Signature ():
     _foolConstantsDefined(false), _foolTrue(0), _foolFalse(0),
-    _funs(32),
-    _preds(32),
-    _typeCons(32),
+    _symbols(32),
     _nextFreshSymbolNumber(0),
     _distinctGroupsAddedTo(false),
     _strings(0),
@@ -174,6 +214,8 @@ Signature::Signature ():
     _defPred(UINT_MAX),
     _termAlgebras()
 {
+  // Equality must be ID 0, but its type can register sorts before it is ready.
+  _symbols.push(nullptr);
   ALWAYS(createDistinctGroup() == STRING_DISTINCT_GROUP);
 } // Signature::Signature
 
@@ -196,15 +238,7 @@ void Signature::addEquality()
  */
 Signature::~Signature ()
 {
-  for (int i = _funs.length()-1;i >= 0;i--) {
-    _funs[i]->destroyFnSymbol();
-  }
-  for (int i = _preds.length()-1;i >= 0;i--) {
-    _preds[i]->destroyPredSymbol();
-  }
-  for (int i = _typeCons.length()-1;i >= 0;i--) {
-    _typeCons[i]->destroyTypeConSymbol();
-  }
+  for (auto sym : _symbols) { if (sym) sym->destroy(); }
 } // Signature::~Signature
 
 /**
@@ -227,8 +261,7 @@ unsigned Signature::addInterpretedFunction(Interpretation interpretation, const 
   auto symbolKey = SymbolKey(std::make_pair(interpretation, type));
   ASS_REP(!_funNames.find(symbolKey), name);
 
-  unsigned fnNum = _funs.length();
-  _funs.push(new InterpretedSymbol(name, interpretation, type));
+  unsigned fnNum = addSymbol(SymbolKind::FUNCTION, new InterpretedSymbol(name, interpretation, type));
   _funNames.insert(symbolKey, fnNum);
   ALWAYS(_iSymbols.insert(interpretation, fnNum));
 
@@ -260,8 +293,7 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, const
 
   ASS_REP(!_predNames.find(symbolKey), symbolKey);
 
-  unsigned predNum = _preds.length();
-  _preds.push(new InterpretedSymbol(name, interpretation, type));
+  unsigned predNum = addSymbol(SymbolKind::PREDICATE, new InterpretedSymbol(name, interpretation, type));
   _predNames.insert(symbolKey,predNum);
   ALWAYS(_iSymbols.insert(interpretation, predNum));
   ASS_REP(type->isPredicateType(), type->toString());
@@ -309,7 +341,7 @@ unsigned Signature::getInterpretingSymbol(Interpretation interp)
   return _iSymbols.get(interp);
 }
 
-const std::string& Signature::functionName(int number)
+const std::string& Signature::symbolName(unsigned number) const
 {
   // it is safe to reuse "$true" and "$false" for constants
   // because the user cannot define constants with these names herself
@@ -323,7 +355,7 @@ const std::string& Signature::functionName(int number)
     static std::string troo("$true");
     return troo;
   }
-  return _funs[number]->name();
+  return getSymbol(number)->name();
 }
 
 /**
@@ -419,8 +451,7 @@ unsigned Signature::addFunction (const std::string& name,
     _arityCheck.insert(name,2*arity+1);
   }
 
-  result = _funs.length();
-  _funs.push(new Symbol(name, /*type=*/type,
+  result = addSymbol(SymbolKind::FUNCTION, new Symbol(name, /*type=*/type,
         /*       interpreted */ false, 
         /*    preventQuoting */ (name == "$tType")));
   _funNames.insert(symbolKey, result);
@@ -444,12 +475,11 @@ unsigned Signature::addStringConstant(const std::string& name, TermList sort)
   _strings++;
   // TODO shouldn't we also quote inside of name?
   std::string quotedName = "\"" + name + "\"";
-  result = _funs.length();
   Symbol* sym = new Symbol(quotedName, OperatorType::getConstantsType(sort),
         /*       interpreted */ false, 
         /*    preventQuoting */ true);
+  result = addSymbol(SymbolKind::FUNCTION, sym);
   sym->addToDistinctGroup(getStringDistinctGroup(sort),result);
-  _funs.push(sym);
   _funNames.insert(symbolKey,result);
   return result;
 } // addStringConstant
@@ -618,8 +648,7 @@ unsigned Signature::addTypeCon (const std::string& name,
   }
   //TODO no arity check. Is this safe?
 
-  result = _typeCons.length();
-  _typeCons.push(new Symbol(name,
+  result = addSymbol(SymbolKind::TYPE_CONSTRUCTOR, new Symbol(name,
     OperatorType::getTypeConType(arity),
     /* interpreted */ false, /* preventQuoting */ false));
   _typeConNames.insert(symbolKey,result);
@@ -665,8 +694,7 @@ unsigned Signature::addPredicate (const std::string& name,
     _arityCheck.insert(name,2*arity);
   }
 
-  result = _preds.length();
-  _preds.push(new Symbol(name, /*type=*/type,
+  result = addSymbol(SymbolKind::PREDICATE, new Symbol(name, /*type=*/type,
         /*       interpreted */ false, 
         /*    preventQuoting */ false));
   _predNames.insert(symbolKey,result);
@@ -916,12 +944,11 @@ unsigned Signature::getDistinctPredicate(unsigned arity, TermList sort)
     return result;
   }
 
-  result = _preds.length();
   Symbol* sym = new Symbol("$distinct", OperatorType::getPredicateTypeUniformRange(arity,sort),
         /*       interpreted */ false,
         /*    preventQuoting */ true);
   sym->markDistinctPred();
-  _preds.push(sym);
+  result = addSymbol(SymbolKind::PREDICATE, sym);
   ALWAYS(_distinctPredicates.insert(key,result));
   return result;
 }

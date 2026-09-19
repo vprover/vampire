@@ -105,21 +105,21 @@ Property::Property()
 Property* Property::scan(UnitList* units)
 {
   // a bit of a hack, these counts and marks belong in Property
-  for(unsigned f=0;f<env.signature->functions();f++){
+  for (unsigned f : env.signature->functionSymbols()) {
     Signature::Symbol* sym = env.signature->getFunction(f);
     sym->resetUsageCnt();
     sym->resetScanMarks();
-   }
-  for(unsigned p=0;p<env.signature->predicates();p++){
+  }
+  for (unsigned p : env.signature->predicateSymbols()) {
     Signature::Symbol* sym = env.signature->getPredicate(p);
     sym->resetUsageCnt();
     sym->resetScanMarks();
-   }
-  for(unsigned t=0;t<env.signature->typeCons();t++){
+  }
+  for (unsigned t : env.signature->typeConSymbols()) {
     Signature::Symbol* sym = env.signature->getTypeCon(t);
     sym->resetUsageCnt();
     sym->resetScanMarks();
-   }
+  }
 
   Property* prop = new Property;
   prop->add(units);

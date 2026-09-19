@@ -150,14 +150,14 @@ bool FiniteModelBuilder::reset(){
 
   // Start from 1 as SAT solver variables are 1-based
   unsigned offsets=1;
-  for(unsigned f=0; f<env.signature->functions();f++){
-    if(del_f[f]) continue;
-    f_offsets[f]=offsets;
+  for (unsigned f : env.signature->functionSymbols()) {
+    if(deletedSymbols[f]) continue;
+    symbolOffsets[f]=offsets;
 #if VTRACE_FMB
     cout << "offset for " << f << " is " << offsets << " (arity is " << env.signature->functionArity(f) << ") " << endl;
 #endif
 
-    auto const& f_signature = _sortedSignature->functionSignatures[f];
+    auto const& f_signature = _sortedSignature->symbolSignatures[f];
     ASS(f_signature.size() == env.signature->functionArity(f)+1);
 
     unsigned add = _sortModelSizes[f_signature[0]];
@@ -176,15 +176,16 @@ bool FiniteModelBuilder::reset(){
     offsets += add;
   }
   // Start from p=1 as we ignore equality
-  for(unsigned p=1; p<env.signature->predicates();p++){
-    if(del_p[p]) continue;
-    p_offsets[p]=offsets;
+  for (unsigned p : env.signature->predicateSymbols()) {
+    if (p < 1) continue;
+    if(deletedSymbols[p]) continue;
+    symbolOffsets[p]=offsets;
 #if VTRACE_FMB
     cout << "offset for " << p << " is " << offsets << " for " << env.signature->predicateName(p) << endl; 
  
 #endif
 
-    auto const& p_signature = _sortedSignature->predicateSignatures[p];
+    auto const& p_signature = _sortedSignature->symbolSignatures[p];
     ASS(p_signature.size()==env.signature->predicateArity(p));
     unsigned add=1;
     for(unsigned i=0;i<p_signature.size();i++){
@@ -315,7 +316,7 @@ void FiniteModelBuilder::createSymmetryOrdering()
 
           // We skip f if its range is bounded to less than size
           unsigned arity = env.signature->functionArity(g.f);
-          unsigned gfsrt = _sortedSignature->functionSignatures[g.f][arity];
+          unsigned gfsrt = _sortedSignature->symbolSignatures[g.f][arity];
           if(_sortedSignature->sortBounds[gfsrt] < size) continue;
 
           g.grounding.ensure(arity);
@@ -323,7 +324,7 @@ void FiniteModelBuilder::createSymmetryOrdering()
           // We skip f if its domain is bounded to less than g.grounding
           bool outOfBounds = false;
           for(unsigned i=0;i<arity;i++){
-            unsigned srtx = _sortedSignature->functionSignatures[g.f][i];
+            unsigned srtx = _sortedSignature->symbolSignatures[g.f][i];
             g.grounding[i] = min(m,_sortModelSizes[srtx]);
             if(_sortedSignature->sortBounds[srtx] < g.grounding[i])
               outOfBounds=true;
@@ -353,7 +354,7 @@ void FiniteModelBuilder::createSymmetryOrdering()
 
           // We skip f if its range is bounded to less than size
           unsigned arity = env.signature->functionArity(g.f);
-          unsigned gfsrt = _sortedSignature->functionSignatures[g.f][arity];
+          unsigned gfsrt = _sortedSignature->symbolSignatures[g.f][arity];
           if(_sortedSignature->sortBounds[gfsrt] < size) continue;
 
           // If doing arg_first then we ignore the diagonal thing
@@ -364,7 +365,7 @@ void FiniteModelBuilder::createSymmetryOrdering()
           // We skip f if its domain is bounded to less than g.grounding
           bool outOfBounds = false;
           for(unsigned i=0;i<arity;i++){
-            unsigned srtx = _sortedSignature->functionSignatures[g.f][i];
+            unsigned srtx = _sortedSignature->symbolSignatures[g.f][i];
             g.grounding[i] = min(groundWith,_sortModelSizes[srtx]);
             if(_sortedSignature->sortBounds[srtx] < g.grounding[i])
               outOfBounds=true;
@@ -404,9 +405,9 @@ void FiniteModelBuilder::init()
 
   ClauseList* clist = 0;
   if(env.options->fmbAdjustSorts() == Options::FMBAdjustSorts::PREDICATE){
-    DArray<bool> deleted_functions(env.signature->functions());
-    for(unsigned f=0;f<env.signature->functions();f++){
-      deleted_functions[f] = env.signature->getFunction(f)->usageCnt()==0;
+    DArray<bool> deleted_functions(env.signature->functionCount());
+    for (unsigned f : env.signature->functionSymbols()) {
+      deleted_functions[env.signature->functionIndex(f)] = env.signature->getFunction(f)->usageCnt()==0;
      }
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
     TIME_TRACE(TimeTrace::FMB_MONOTONICITY);
@@ -427,8 +428,8 @@ void FiniteModelBuilder::init()
 
   // Store distinct constants by type
   DArray<DHMap<unsigned,DHSet<unsigned, FnvHash, IdentityHash>*, FnvHash, IdentityHash>*> _distinctConstants;
-  _distinctConstants.ensure(env.signature->typeCons());
-  for(unsigned i=0;i<env.signature->typeCons();i++){ _distinctConstants[i]=0; }
+  _distinctConstants.ensure(env.signature->typeConCount());
+  for (unsigned i : env.signature->typeConSymbols()) { _distinctConstants[env.signature->typeConIndex(i)]=0; }
 
   // Apply flattening and split clauses into ground and non-ground
   while(cit.hasNext()){
@@ -451,10 +452,10 @@ void FiniteModelBuilder::init()
 
           TermList srtT = SortHelper::getResultSort(left->term());
           unsigned srt = srtT.term()->functor();
-          auto map = _distinctConstants[srt];
+          auto map = _distinctConstants[env.signature->typeConIndex(srt)];
           if(map==0){
             map = new DHMap<unsigned,DHSet<unsigned, FnvHash, IdentityHash>*, FnvHash, IdentityHash>();
-            _distinctConstants[srt]=map;
+            _distinctConstants[env.signature->typeConIndex(srt)]=map;
           }
           unsigned lnum = left->term()->functor();
           unsigned rnum = right->term()->functor();
@@ -547,19 +548,19 @@ void FiniteModelBuilder::init()
 
   // record the deleted functions and predicates
   // we do this only here so that there are slots for symbols introduced in the previous preprocessing steps (definition introduction, splitting)
-  del_f.ensure(env.signature->functions());
-  del_p.ensure(env.signature->predicates());
+  deletedSymbols.init(env.signature->symbolCount(), false);
 
-  for(unsigned f=0;f<env.signature->functions();f++){
-    del_f[f] = env.signature->getFunction(f)->usageCnt()==0;
+  for (unsigned f : env.signature->functionSymbols()) {
+    deletedSymbols[f] = env.signature->getFunction(f)->usageCnt()==0;
 #if VTRACE_FMB
-    if(del_f[f]) cout << "Mark " << env.signature->functionName(f)  << " as deleted" << endl;
+    if(deletedSymbols[f]) cout << "Mark " << env.signature->functionName(f)  << " as deleted" << endl;
 #endif
   }
-  for(unsigned p=1;p<env.signature->predicates();p++){ // skipping equality
-    del_p[p] = env.signature->getPredicate(p)->usageCnt()==0;
+  for (unsigned p : env.signature->predicateSymbols()) {
+    if (p < 1) continue; // skipping equality
+    deletedSymbols[p] = env.signature->getPredicate(p)->usageCnt()==0;
 #if VTRACE_FMB
-    if(del_p[p]) {
+    if(deletedSymbols[p]) {
       cout << "Mark " << env.signature->predicateName(p) << " as deleted" << endl;
       cout << "  since (bool)_prb.getEliminatedPredicates().findPtr(p) = " << (bool)_prb.getEliminatedPredicates().findPtr(p) << endl;
       cout << "  since env.signature->getPredicate(p)->usageCnt() = " << env.signature->getPredicate(p)->usageCnt() << endl;
@@ -576,7 +577,7 @@ void FiniteModelBuilder::init()
   {
     TIME_TRACE("fmb sort inference");
     //ClauseList* both = ClauseList::concat(_clauses,_groundClauses);
-    SortInference inference(_clauses,del_f,del_p,_distinct_sort_constraints,_monotonic_vampire_sorts);
+    SortInference inference(_clauses,deletedSymbols,_distinct_sort_constraints,_monotonic_vampire_sorts);
     inference.doInference();
     _sortedSignature = inference.getSignature();
     ASS(_sortedSignature);
@@ -663,7 +664,7 @@ void FiniteModelBuilder::init()
 
     // if we've done the sort expansion thing then the max for the parent should be
     // the max of all children
-    for(unsigned s=0;s<env.signature->typeCons();s++){
+    for (unsigned s : env.signature->typeConSymbols()) {
       if((env.getMainProblem()->getProperty()->usesSort(s) || env.signature->isNonDefaultCon(s)) && _sortedSignature->vampireToDistinct.find(s)){
         Stack<unsigned>* dmembers = _sortedSignature->vampireToDistinct.get(s);
         ASS(dmembers);
@@ -681,11 +682,11 @@ void FiniteModelBuilder::init()
     }
 
     //_distinctConstants
-    for(unsigned s=0;s<env.signature->typeCons();s++){
-      if(_distinctConstants[s]!=0){
+    for (unsigned s : env.signature->typeConSymbols()) {
+      if(_distinctConstants[env.signature->typeConIndex(s)]!=0){
 
         ASS(_sortedSignature->vampireToDistinct.find(s));
-        auto map = _distinctConstants[s];
+        auto map = _distinctConstants[env.signature->typeConIndex(s)];
         unsigned max = CliqueFinder::findMaxCliqueSize(map);
         Stack<unsigned>* dss = _sortedSignature->vampireToDistinct.get(s);
         Stack<unsigned>::Iterator ds(*dss);
@@ -706,7 +707,7 @@ void FiniteModelBuilder::init()
     // Otherwise this was done at clausification
     if(env.options->fmbSymmetryOrderSymbols() != Options::FMBSymbolOrders::PREPROCESSED_USAGE){
      // reset usage counts
-     for(unsigned f=0;f<env.signature->functions();f++){
+     for (unsigned f : env.signature->functionSymbols()) {
        env.signature->getFunction(f)->resetUsageCnt();
      }
      // do them again!
@@ -749,19 +750,18 @@ void FiniteModelBuilder::init()
 
   //TODO why is this here? Can intermediate steps introduce new functions?
   //  - SortInference can introduce new constants
-  del_f.expand(env.signature->functions());
+  deletedSymbols.expand(env.signature->symbolCount(), false);
 
   // these offsets are for SAT variables and need to be set to the right size
-  f_offsets.ensure(env.signature->functions());
-  p_offsets.ensure(env.signature->predicates());
+  symbolOffsets.ensure(env.signature->symbolCount());
 
   // Set up fminbound, which records the minimum sort size for a function symbol
   // i.e. the smallest return or parameter sort
   // this loop also counts the number of constants in the problem
   _distinctSortConstantCount.ensure(_sortedSignature->distinctSorts);
-  _fminbound.ensure(env.signature->functions());
-  for(unsigned f=0;f<env.signature->functions();f++){
-    if(del_f[f]) continue;
+  _fminbound.ensure(env.signature->functionCount());
+  for (unsigned f : env.signature->functionSymbols()) {
+    if(deletedSymbols[f]) continue;
 
     if(env.signature->functionArity(f)==0){
       TermList vsrtT = env.signature->getFunction(f)->type()->result();
@@ -775,17 +775,17 @@ void FiniteModelBuilder::init()
 
     // f might have been added to the signature since we created the sortedSignature
     // TODO how?
-    if(f >= _sortedSignature->functionSignatures.size()){
-      _fminbound[f]=UINT_MAX;
+    if(f >= _sortedSignature->symbolSignatures.size()){
+      _fminbound[env.signature->functionIndex(f)]=UINT_MAX;
       continue;
     }
-    const DArray<unsigned>& fsig = _sortedSignature->functionSignatures[f];
+    const DArray<unsigned>& fsig = _sortedSignature->symbolSignatures[f];
     unsigned min = _sortedSignature->sortBounds[fsig[0]];
     for(unsigned i=1;i<fsig.size();i++){
       unsigned sz = _sortedSignature->sortBounds[fsig[i]];
       if(sz<min) min = sz;
       }
-    _fminbound[f]=min;
+    _fminbound[env.signature->functionIndex(f)]=min;
   }
 
 #if VTRACE_FMB
@@ -818,8 +818,8 @@ void FiniteModelBuilder::init()
           ASS(lit->nthArgument(0)->isTerm());
           ASS(lit->nthArgument(1)->isVar());
           Term* t = lit->nthArgument(0)->term();
-          ASS(!del_f[t->functor()]);
-          const DArray<unsigned>& fsg = _sortedSignature->functionSignatures[t->functor()];
+          ASS(!deletedSymbols[t->functor()]);
+          const DArray<unsigned>& fsg = _sortedSignature->symbolSignatures[t->functor()];
           ASS_REP(fsg.size() == env.signature->functionArity(t->functor())+1,  fsg.size());
           unsigned var = lit->nthArgument(1)->var();
           unsigned ret = fsg[env.signature->functionArity(t->functor())];
@@ -844,7 +844,7 @@ void FiniteModelBuilder::init()
           ASS_EQ(lit->arity(),env.signature->predicateArity(lit->functor()));
           for(unsigned j=0;j<lit->arity();j++){
             ASS(lit->nthArgument(j)->isVar());
-            unsigned asrt = _sortedSignature->predicateSignatures[lit->functor()][j];
+            unsigned asrt = _sortedSignature->symbolSignatures[lit->functor()][j];
             unsigned avar = (lit->nthArgument(j))->var();
             if(csig_set[avar]){ ASS((*csig)[avar]==asrt); }
             else{ 
@@ -1137,13 +1137,13 @@ unsigned FiniteModelBuilder::estimateFunctionalDefCount()
 {
   unsigned res = 0;
 
-  for(unsigned f=0;f<env.signature->functions();f++){
+  for (unsigned f : env.signature->functionSymbols()) {
     unsigned instances = 1;
 
-    if(del_f[f]) continue;
+    if(deletedSymbols[f]) continue;
     unsigned arity = env.signature->functionArity(f);
 
-    const DArray<unsigned>& f_signature = _sortedSignature->functionSignatures[f];
+    const DArray<unsigned>& f_signature = _sortedSignature->symbolSignatures[f];
 
     // find max size of y and z
     unsigned returnSrt = f_signature[arity];
@@ -1167,15 +1167,15 @@ void FiniteModelBuilder::addNewFunctionalDefs()
   // f(x1,...,xn) != y | f(x1,...,xn) != z
   // they should be instantiated with groundings where y!=z
 
-  for(unsigned f=0;f<env.signature->functions();f++){
-    if(del_f[f]) continue;
+  for (unsigned f : env.signature->functionSymbols()) {
+    if(deletedSymbols[f]) continue;
     unsigned arity = env.signature->functionArity(f);
 
 #if VTRACE_FMB
     cout << "Adding func defs for " << env.signature->functionName(f) << endl;
 #endif
 
-    const DArray<unsigned>& f_signature = _sortedSignature->functionSignatures[f];
+    const DArray<unsigned>& f_signature = _sortedSignature->symbolSignatures[f];
     static DArray<unsigned> maxVarSize;
     maxVarSize.ensure(arity+2);
 
@@ -1361,15 +1361,15 @@ void FiniteModelBuilder::addNewTotalityDefs()
     }
   }
 
-  for(unsigned f=0;f<env.signature->functions();f++){
-    if(del_f[f]) continue;
+  for (unsigned f : env.signature->functionSymbols()) {
+    if(deletedSymbols[f]) continue;
     unsigned arity = env.signature->functionArity(f);
 
 #if VTRACE_FMB
     cout << "Adding total defs for " << env.signature->functionName(f) << endl;
 #endif
 
-    const DArray<unsigned>& f_signature = _sortedSignature->functionSignatures[f];
+    const DArray<unsigned>& f_signature = _sortedSignature->symbolSignatures[f];
 
     if(arity==0){
       unsigned srt = f_signature[0];
@@ -1474,15 +1474,13 @@ SATLiteral FiniteModelBuilder::getSATLiteral(unsigned f, const DArray<unsigned>&
   );
   ASS((isFunction && arity==grounding.size()-1) || (!isFunction && arity==grounding.size()));
 
-  unsigned offset = isFunction ? f_offsets[f] : p_offsets[f];
+  unsigned offset = symbolOffsets[f];
 
   //cout << "getSATLiteral " << f<< ","  << offset << ", grounding = ";
   //for(unsigned i=0;i<grounding.size();i++) cout <<  grounding[i] << " "; 
   //cout << endl;
 
-  DArray<unsigned>& signature = isFunction ?
-             _sortedSignature->functionSignatures[f] : 
-             _sortedSignature->predicateSignatures[f];
+  DArray<unsigned>& signature = _sortedSignature->symbolSignatures[f];
 
   unsigned var = offset;
   unsigned mult=1;
@@ -1890,8 +1888,8 @@ void FiniteModelBuilder::onModelFound()
   }
 
   DArray<unsigned> vampireSortSizes;
-  vampireSortSizes.ensure(env.signature->typeCons());
-  for(unsigned vSort=0;vSort<env.signature->typeCons();vSort++){
+  vampireSortSizes.ensure(env.signature->symbolCount());
+  for (unsigned vSort : env.signature->typeConSymbols()) {
     unsigned size = 1;
     if(env.signature->isInterpretedNonDefault(vSort) && !env.signature->isBoolCon(vSort)){ size=0;}
     unsigned dsort;
@@ -1904,8 +1902,8 @@ void FiniteModelBuilder::onModelFound()
   FiniteModelMultiSorted model(vampireSortSizes.clone()); // need a clone, because FiniteModelMultiSorted may want to modify its version later
 
   //Record interpretation of constants and functions
-  for(unsigned f=0;f<env.signature->functions();f++){
-    if(del_f[f]) continue;
+  for (unsigned f : env.signature->functionSymbols()) {
+    if(deletedSymbols[f]) continue;
 
     Signature::Symbol* sym = env.signature->getFunction(f);
     // if (sym->introduced()) continue; // so that a sort function may enter the model (to be elimintated later)
@@ -1936,7 +1934,7 @@ void FiniteModelBuilder::onModelFound()
     static DArray<unsigned> maxVarSizeSml;
     maxVarSizeSml.ensure(arity+1); // +1 for the result bit
 
-    const DArray<unsigned>& f_signature = _sortedSignature->functionSignatures[f];
+    const DArray<unsigned>& f_signature = _sortedSignature->symbolSignatures[f];
     for(unsigned var=0;var<=arity;var++){
       unsigned srt = f_signature[var];
       maxVarSizeSml[var] = min(_sortedSignature->sortBounds[srt],_sortModelSizes[srt]);
@@ -1983,8 +1981,9 @@ void FiniteModelBuilder::onModelFound()
   }
 
   //Record interpretation of predicates
-  for(unsigned p=1;p<env.signature->predicates();p++){
-    if(del_p[p]) continue;
+  for (unsigned p : env.signature->predicateSymbols()) {
+    if (p < 1) continue;
+    if(deletedSymbols[p]) continue;
 
     Signature::Symbol* sym = env.signature->getPredicate(p);
     // if (sym->introduced()) continue; // so that a sort predicate may enter the model (to be elimintated later)
@@ -2015,7 +2014,7 @@ void FiniteModelBuilder::onModelFound()
     static DArray<unsigned> maxVarSizeSml;
     maxVarSizeSml.ensure(arity);
 
-    const DArray<unsigned>& p_signature = _sortedSignature->predicateSignatures[p];
+    const DArray<unsigned>& p_signature = _sortedSignature->symbolSignatures[p];
     for(unsigned var=0;var<arity;var++){
       unsigned srt = p_signature[var];
       maxVarSizeSml[var] = min(_sortedSignature->sortBounds[srt],_sortModelSizes[srt]);
@@ -2032,7 +2031,8 @@ void FiniteModelBuilder::onModelFound()
       DArray<signed char>* monot_info;
       if (_monotonic_vampire_sorts.find(vamp_srt,monot_info)) {
         // it's safe to extend symbols introduced after monotonicity analysis via the default mode 0
-        sort_extension_modes[i] = (p<monot_info->size()) ? (*monot_info)[p] : 0;
+        unsigned index = env.signature->predicateIndex(p);
+        sort_extension_modes[i] = (index<monot_info->size()) ? (*monot_info)[index] : 0;
       } else {
         // the simple monotonicity argument (from the Paradox paper already)
         sort_extension_modes[i] = 0;

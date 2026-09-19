@@ -186,8 +186,8 @@ class InterpretedNormalizer::NLiteralTransformer : public BottomUpTermTransforme
 {
 public:
   NLiteralTransformer()
-  : _ineqTransls(env.signature->predicates()),
-    _fnTransfs(env.signature->functions())
+  : _ineqTransls(env.signature->predicateCount()),
+    _fnTransfs(env.signature->functionCount())
   {
     // from, to, swap, reverse_pol 
     addIneqTransformer(Theory::INT_LESS_EQUAL, 	  Theory::INT_LESS, true, true);
@@ -286,7 +286,7 @@ private:
       return; //the symbol to be transformed doesn't exist, so we don't need to worry
     }
     BinaryMinusTranslator* transl = new BinaryMinusTranslator(bMinus, plus, uMinus);
-    unsigned func = transl->srcFunc();
+    unsigned func = env.signature->functionIndex(transl->srcFunc());
     ASS(!_fnTransfs[func])
     _fnTransfs[func] = transl;
   }
@@ -300,7 +300,7 @@ private:
       return; //the symbol to be transformed doesn't exist, so we don't need to worry
     }
     SuccessorTranslator* transl = new SuccessorTranslator();
-    unsigned func = transl->srcFunc();
+    unsigned func = env.signature->functionIndex(transl->srcFunc());
     ASS(!_fnTransfs[func])
     _fnTransfs[func] = transl;
   }
@@ -314,7 +314,7 @@ private:
       return; //the symbol to be transformed doesn't exist, so we don't need to worry
     }
     RoundingFunctionTranslator* transl = new RoundingFunctionTranslator(origF,newF,roundF);
-    unsigned func = transl->srcFunc();
+    unsigned func = env.signature->functionIndex(transl->srcFunc());
     ASS(!_fnTransfs[func])
     _fnTransfs[func] = transl;
   }
@@ -330,7 +330,7 @@ private:
       return; //the symbol to be transformed doesn't exist, so we don't need to worry
     }
     IneqTranslator* transl = new IneqTranslator(from, to, swapArguments, reversePolarity);
-    unsigned pred = transl->srcPred();
+    unsigned pred = env.signature->predicateIndex(transl->srcPred());
     ASS(!_ineqTransls[pred])
     _ineqTransls[pred] = transl;
   }
@@ -341,6 +341,7 @@ private:
    */
   FunctionTranslator* getFnTranslator(unsigned func)
   {
+    func = env.signature->functionIndex(func);
     if(_fnTransfs.size()<=func) { return 0; }
     return _fnTransfs[func].ptr();
   }
@@ -351,6 +352,7 @@ private:
    */
   IneqTranslator* getIneqTranslator(unsigned ineq)
   {
+    ineq = env.signature->predicateIndex(ineq);
     if(_ineqTransls.size()<=ineq) { return 0; }
     return _ineqTransls[ineq].ptr();
   }

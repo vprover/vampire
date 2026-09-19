@@ -46,7 +46,8 @@ Monotonicity::Monotonicity(ClauseList* clauses, unsigned srt) : _srt(srt)
   _solver = new MinisatInterfacing;
 
  // create pt and pf per predicate and add the constraint -pf | -pt
- for(unsigned p=1;p<env.signature->predicates();p++){
+ for (unsigned p : env.signature->predicateSymbols()) {
+   if (p < 1) continue;
    _pT.insert(p,SATLiteral(_solver->newVar(),true));
    _pF.insert(p,SATLiteral(_solver->newVar(),true));
 
@@ -72,13 +73,14 @@ Monotonicity::Monotonicity(ClauseList* clauses, unsigned srt) : _srt(srt)
 DArray<signed char>* Monotonicity::check() {
   if (!_result) return nullptr;
 
-  DArray<signed char>* res = new DArray<signed char>(env.signature->predicates());
+  DArray<signed char>* res = new DArray<signed char>(env.signature->predicateCount());
   (*res)[0] = 0; // pick a value for the 0-th = predicate (we don't really care here)
-  for(unsigned p=1;p<env.signature->predicates();p++){
+  for (unsigned p : env.signature->predicateSymbols()) {
+    if (p < 1) continue;
     bool trueExt = _solver->trueInAssignment(_pT.get(p));
     bool falseExt = _solver->trueInAssignment(_pF.get(p));
     ASS(!trueExt || !falseExt)
-    (*res)[p] = trueExt ? 1 : (falseExt ? -1 : 0);
+    (*res)[env.signature->predicateIndex(p)] = trueExt ? 1 : (falseExt ? -1 : 0);
   }
 
   return res;
@@ -173,40 +175,43 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const D
   DHMap<unsigned,DArray<signed char>*, FnvHash, IdentityHash>& monotonic_vampire_sorts, Stack<unsigned>& sort_predicates) // may write into these
 {
   // First compute the monotonic sorts
-  DArray<bool> isMonotonic(env.signature->typeCons());
-  for(unsigned s=0;s<env.signature->typeCons();s++){
+  DArray<bool> isMonotonic(env.signature->typeConCount());
+  for (unsigned s : env.signature->typeConSymbols()) {
     if(env.getMainProblem()->getProperty()->usesSort(s) || env.signature->isNonDefaultCon(s)){
        if(withMon){
          Monotonicity m(clauses,s);
          auto monot_info = m.check();
-         if ((isMonotonic[s] = (bool)monot_info)) {
+         if ((isMonotonic[env.signature->typeConIndex(s)] = (bool)monot_info)) {
            ALWAYS(monotonic_vampire_sorts.insert(s,monot_info));
          }
        }
        else{
-        isMonotonic[s] = false;
+        isMonotonic[env.signature->typeConIndex(s)] = false;
        }
     }
-    else{ isMonotonic[s] = true; } // We are monotonic in a sort we do not use!!
+    else{ isMonotonic[env.signature->typeConIndex(s)] = true; } // We are monotonic in a sort we do not use!!
   }
 
   // Now create a sort predicate per non-monotonic sort
-  DArray<unsigned> sortPredicates(env.signature->typeCons());
-  for(unsigned s=0;s<env.signature->typeCons();s++){
-    if(!isMonotonic[s]){
+  DArray<unsigned> sortPredicates(env.signature->typeConCount());
+  for (unsigned s : env.signature->typeConSymbols()) {
+    if(!isMonotonic[env.signature->typeConIndex(s)]){
       std::string name = "sortPredicate_"+env.signature->typeConName(s);
       unsigned p = env.signature->addFreshPredicate(
         OperatorType::getPredicateType({TermList(AtomicSort::createConstant(s))}),name.c_str());
-      sortPredicates[s] = p;
+      sortPredicates[env.signature->typeConIndex(s)] = p;
       sort_predicates.push(p);
 
-      auto monot_info = new DArray<signed char>(env.signature->predicates());
+      auto monot_info = new DArray<signed char>(env.signature->predicateCount());
       // when adding sort predicate, we assume all predicates false-extended
       (*monot_info)[0] = 0; // except equality, which nobody should read anyway
-      for (unsigned p = 1; p< env.signature->predicates(); p++) { (*monot_info)[p] = -1; }
+      for (unsigned p : env.signature->predicateSymbols()) {
+        if (p == 0) continue;
+        (*monot_info)[env.signature->predicateIndex(p)] = -1;
+      }
       ALWAYS(monotonic_vampire_sorts.insert(s,monot_info));
     }
-    else{ sortPredicates[s]=0; }
+    else{ sortPredicates[env.signature->typeConIndex(s)]=0; }
   }
 
   // The newAxioms clause list
@@ -216,17 +221,17 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const D
   // 1) ?[X] : p(X) (need skolem constant) = p(sk)
   // 2) for each function f with return sort s
   //    !args : p(f(args))
-  unsigned function_count = env.signature->functions();
-  for(unsigned s=0;s<env.signature->typeCons();s++){
-    if(isMonotonic[s]) continue;
+  auto functions = env.signature->functionSymbols();
+  for (unsigned s : env.signature->typeConSymbols()) {
+    if(isMonotonic[env.signature->typeConIndex(s)]) continue;
 
-    unsigned p = sortPredicates[s];
+    unsigned p = sortPredicates[env.signature->typeConIndex(s)];
     ASS(p>0);
 
     TermList sTerm = TermList(AtomicSort::createConstant(s));
 
-    for(unsigned f=0; f < function_count; f++){
-      if(del_f[f]) continue;
+    for (unsigned f : functions) {
+      if(del_f[env.signature->functionIndex(f)]) continue;
 
       if(env.signature->getFunction(f)->type()->result() != sTerm)
         continue;
@@ -269,7 +274,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const D
       TermList vsrt;
       if(varSorts.find(v,vsrt)){
       unsigned vsrtU = vsrt.term()->functor();
-        if(!isMonotonic[vsrtU]) sortedVariables.push(make_pair(v,vsrtU));
+        if(!isMonotonic[env.signature->typeConIndex(vsrtU)]) sortedVariables.push(make_pair(v,vsrtU));
       }
       // else the var isn't used in the clause...they're not normalised
     }
@@ -284,9 +289,9 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const D
         std::pair<unsigned,unsigned> pair = vit.next();
         unsigned var = pair.first;
         unsigned varSort = pair.second;
-        unsigned p = sortPredicates[varSort];
+        unsigned p = sortPredicates[env.signature->typeConIndex(varSort)];
         ASS(p>0);
-        ASS(!isMonotonic[varSort]);
+        ASS(!isMonotonic[env.signature->typeConIndex(varSort)]);
         Literal* guard = Literal::create1(p,false,TermList(var,false));
         literals.push(guard);
       }
@@ -318,10 +323,10 @@ public:
 
     TermList srt = origTerm.sort();
     TermList trm = origTerm.isVar() ? origTerm : TermList(Term::create(origTerm.term(), evalArgs));
-    if (_isM[srt.term()->functor()])
+    if (_isM[env.signature->typeConIndex(srt.term()->functor())])
       return trm;
 
-    unsigned f = _sf[srt.term()->functor()];
+    unsigned f = _sf[env.signature->typeConIndex(srt.term()->functor())];
     return TermList(Term::create1(f, trm));
   }
 
@@ -333,41 +338,41 @@ void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses,
   DHMap<unsigned,DArray<signed char>*, FnvHash, IdentityHash>& monotonic_vampire_sorts, Stack<unsigned>& sort_functions) // may write into these
 {
   // First compute the monotonic sorts
-  DArray<bool> isMonotonic(env.signature->typeCons());
-  for(unsigned s=0;s<env.signature->typeCons();s++){
+  DArray<bool> isMonotonic(env.signature->typeConCount());
+  for (unsigned s : env.signature->typeConSymbols()) {
     if(env.getMainProblem()->getProperty()->usesSort(s) || env.signature->isNonDefaultCon(s)){
        if(withMon){
          Monotonicity m(clauses,s);
          auto monot_info = m.check();
-         if ((isMonotonic[s] = (bool)monot_info)) {
+         if ((isMonotonic[env.signature->typeConIndex(s)] = (bool)monot_info)) {
            ALWAYS(monotonic_vampire_sorts.insert(s,monot_info));
          }
        }
        else{
-        isMonotonic[s] = false;
+        isMonotonic[env.signature->typeConIndex(s)] = false;
        }
     }
-    else{ isMonotonic[s] = true; } // We are monotonic in a sort we do not use!!
+    else{ isMonotonic[env.signature->typeConIndex(s)] = true; } // We are monotonic in a sort we do not use!!
   }
 
   // Now create a sort function per non-monotonic sort
-  DArray<unsigned> sortFunctions(env.signature->typeCons());
-  for(unsigned s=0;s<env.signature->typeCons();s++){
-    if(!isMonotonic[s]){
+  DArray<unsigned> sortFunctions(env.signature->typeConCount());
+  for (unsigned s : env.signature->typeConSymbols()) {
+    if(!isMonotonic[env.signature->typeConIndex(s)]){
       std::string name = "sortFunction_"+env.signature->typeConName(s);
       TermList sT = TermList(AtomicSort::createConstant(s));
       unsigned f = env.signature->addFreshFunction(OperatorType::getFunctionType({sT},sT),name.c_str());
       // increment usage count so not treated as deleted
       env.signature->getFunction(f)->incUsageCnt();
-      sortFunctions[s] = f;
+      sortFunctions[env.signature->typeConIndex(s)] = f;
       sort_functions.push(f);
 
-      auto monot_info = new DArray<signed char>(env.signature->predicates());
+      auto monot_info = new DArray<signed char>(env.signature->predicateCount());
       // when adding sort functions, we assume all predicates copy-extended
-      for (unsigned p = 0; p< env.signature->predicates(); p++) { (*monot_info)[p] = 0; }
+      for (unsigned p : env.signature->predicateSymbols()) { (*monot_info)[env.signature->predicateIndex(p)] = 0; }
       ALWAYS(monotonic_vampire_sorts.insert(s,monot_info));
     }
-    else{ sortFunctions[s]=0; }
+    else{ sortFunctions[env.signature->typeConIndex(s)]=0; }
   }
 
   // The newAxioms clause list

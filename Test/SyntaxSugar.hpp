@@ -68,8 +68,8 @@
 #define DECL_SIGMA_PROXY auto sigmaP = FuncSugar(env.signature->getPiSigmaProxy("vSIGMA"));
 #define DECL_APP env.signature->getApp();
 #define DECL_LAM env.signature->getLam();
-#define NEXT_INTRODUCED_PRED(s,offset) auto s = PredSugar(env.signature->predicates()+offset);
-#define NEXT_INTRODUCED_FUN(s,offset) auto s = FuncSugar(env.signature->functions()+offset);
+#define NEXT_INTRODUCED_PRED(s,offset) auto s = PredSugar(env.signature->symbolCount()+offset);
+#define NEXT_INTRODUCED_FUN(s,offset) auto s = FuncSugar(env.signature->symbolCount()+offset);
 #define TROO auto troo = TermSugar(true);
 #define FOLS auto fols = TermSugar(false);
 #define DECL_ANSWER_PRED(f, ...)                                                          \

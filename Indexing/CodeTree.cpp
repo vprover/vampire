@@ -375,19 +375,9 @@ CodeTree::SearchStruct* CodeTree::CodeOp::getSearchStruct()
 
 std::string functorStr(unsigned functor, bool litStart)
 {
-  // TODO without slowing code trees down by adding new operations, it's hard to distinguish
-  // between predicates/functions and type constructors, so we just avoid failure now.
-  if (litStart) {
-    if (env.signature->predicates() <= (functor / 2)) {
-      return env.signature->getTypeCon(functor)->name();
-    }
-    return (functor % 2 == 0 ? "~" : "") + env.signature->getPredicate(functor / 2)->name();
-  }
-
-  if (env.signature->functions() <= functor) {
-    return env.signature->getTypeCon(functor)->name();
-  }
-  return env.signature->getFunction(functor)->name();
+  return litStart
+    ? (functor % 2 == 0 ? "~" : "") + env.signature->symbolName(functor / 2)
+    : env.signature->symbolName(functor);
 }
 
 void CodeTree::printOp(std::ostream& out, const CodeTree::CodeOp& op, bool litStart) const
@@ -893,7 +883,7 @@ void CodeTree::visitAllOps(Visitor visitor) const
   // but it cannot be both since SearchStructs don't occur inside blocks
   top_ops.reset();
 
-  if(!isEmpty()) { top_ops.emplace(getEntryPoint(),0,_clauseCodeTree); }
+  if(!isEmpty()) { top_ops.emplace(getEntryPoint(),0,_clauseCodeTree || _literalCodeTree); }
 
   while(top_ops.isNonEmpty()) {
     auto [top_op,depth,litStart] = top_ops.pop();
@@ -929,7 +919,7 @@ void CodeTree::visitAllOps(Visitor visitor) const
 
 void CodeTree::printOps(std::ostream& out, const CodeTree& ct, const CodeTree::CodeStack& st) const
 {
-  bool litStart = _clauseCodeTree;
+  bool litStart = _clauseCodeTree || _literalCodeTree;
   for (const auto& op : st) {
     printOp(out, op, litStart);
     out << std::endl;

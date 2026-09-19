@@ -65,7 +65,7 @@ void SortInference::doInference()
       _sig->distinctToVampire.insert(dsorts,stack);
     }
 
-    for(unsigned s=0;s<env.signature->typeCons();s++){
+    for (unsigned s : env.signature->typeConSymbols()) {
       if(env.getMainProblem()->getProperty()->usesSort(s) || env.signature->isNonDefaultCon(s)){
         if(_assumeMonotonic){
           _sig->distinctToVampire.get(dsorts)->push(s);
@@ -103,8 +103,8 @@ void SortInference::doInference()
       _sig->varEqSorts[i]=i;
     }
 
-    for(unsigned f=0;f<env.signature->functions();f++){
-      if(f < _del_f.size() && _del_f[f]) continue;
+    for (unsigned f : env.signature->functionSymbols()) {
+      if(f < _deletedSymbols.size() && _deletedSymbols[f]) continue;
       unsigned arity = env.signature->functionArity(f);
       OperatorType* ftype = env.signature->getFunction(f)->type();
       //cout << env.signature->functionName(f) << " : " << env.sorts->sortName(ftype->result()) << endl;;
@@ -120,7 +120,7 @@ void SortInference::doInference()
     }
 
     // we need at least one constant for symmetry breaking
-    for(unsigned s=0;s<env.signature->typeCons();s++){
+    for (unsigned s : env.signature->typeConSymbols()) {
       if(env.getMainProblem()->getProperty()->usesSort(s) || env.signature->isNonDefaultCon(s)){
         unsigned dsort = (*_sig->vampireToDistinct.get(s))[0];
         if(_sig->sortedConstants[dsort].isEmpty()){
@@ -130,11 +130,10 @@ void SortInference::doInference()
         }
       }
     }
-    _sig->functionSignatures.ensure(env.signature->functions());
-    _sig->predicateSignatures.ensure(env.signature->predicates());
+    _sig->symbolSignatures.ensure(env.signature->symbolCount());
 
-    for(unsigned f=0;f<env.signature->functions();f++){
-      if(f < _del_f.size() && _del_f[f]){
+    for (unsigned f : env.signature->functionSymbols()) {
+      if(f < _deletedSymbols.size() && _deletedSymbols[f]){
 #if DEBUG_SORT_INFERENCE
        cout << "Skipping deleted function signature for " << env.signature->functionName(f) << endl;
 #endif
@@ -142,26 +141,27 @@ void SortInference::doInference()
       }
       unsigned arity = env.signature->functionArity(f);
       OperatorType* ftype = env.signature->getFunction(f)->type();
-      _sig->functionSignatures[f].ensure(arity+1);
+      _sig->symbolSignatures[f].ensure(arity+1);
       for(unsigned i=0;i<arity;i++){
         TermList argTypeT = ftype->arg(i);
         unsigned argType = argTypeT.term()->functor();
-        _sig->functionSignatures[f][i]=(*_sig->vampireToDistinct.get(argType))[0];
+        _sig->symbolSignatures[f][i]=(*_sig->vampireToDistinct.get(argType))[0];
       }
       TermList resTypeT = ftype->result();
       unsigned resType = resTypeT.term()->functor();
-      _sig->functionSignatures[f][arity]=(*_sig->vampireToDistinct.get(resType))[0];
+      _sig->symbolSignatures[f][arity]=(*_sig->vampireToDistinct.get(resType))[0];
     }
 
-    for(unsigned p=1;p<env.signature->predicates();p++){
-      if(p < _del_p.size() && _del_p[p]) continue;
+    for (unsigned p : env.signature->predicateSymbols()) {
+      if (p < 1) continue;
+      if(p < _deletedSymbols.size() && _deletedSymbols[p]) continue;
       unsigned arity = env.signature->predicateArity(p);
       OperatorType* ptype = env.signature->getPredicate(p)->type();
-      _sig->predicateSignatures[p].ensure(arity);
+      _sig->symbolSignatures[p].ensure(arity);
       for(unsigned i=0;i<arity;i++){
         TermList argTypeT = ptype->arg(i);
         unsigned argType = argTypeT.term()->functor();
-        _sig->predicateSignatures[p][i]=(*_sig->vampireToDistinct.get(argType))[0];
+        _sig->symbolSignatures[p][i]=(*_sig->vampireToDistinct.get(argType))[0];
       }
     }
     return;
@@ -173,7 +173,7 @@ void SortInference::doInference()
       cout << "Monotonicity information:" << endl;
       if(_assumeMonotonic){ cout << "Assuming all sorts monotonic due to translation" << endl; }
     }
-    for(unsigned s=0;s<env.signature->typeCons();s++){
+    for (unsigned s : env.signature->typeConSymbols()) {
       if(env.getMainProblem()->getProperty()->usesSort(s) || env.signature->isNonDefaultCon(s)){
         bool monotonic = _assumeMonotonic;
         if(!monotonic){
@@ -194,13 +194,12 @@ void SortInference::doInference()
     }
   }
 
-  Array<unsigned> offset_f(env.signature->functions());
-  Array<unsigned> offset_p(env.signature->predicates());
+  Array<unsigned> offsets(env.signature->symbolCount());
 
   unsigned count = 0;
-  for(unsigned f=0; f < env.signature->functions();f++){
-    if(f < _del_f.size() && _del_f[f]) continue;
-    offset_f[f] = count;
+  for (unsigned f : env.signature->functionSymbols()) {
+    if(f < _deletedSymbols.size() && _deletedSymbols[f]) continue;
+    offsets[f] = count;
     count += (1+env.signature->getFunction(f)->arity());
   }
 
@@ -209,9 +208,10 @@ void SortInference::doInference()
 #endif
 
   // skip 0 because it is always equality
-  for(unsigned p=1; p < env.signature->predicates();p++){
-    if(p < _del_p.size() && _del_p[p]) continue;
-    offset_p[p] = count;
+  for (unsigned p : env.signature->predicateSymbols()) {
+    if (p < 1) continue;
+    if(p < _deletedSymbols.size() && _deletedSymbols[p]) continue;
+    offsets[p] = count;
     count += (env.signature->getPredicate(p)->arity());
   }
 
@@ -319,7 +319,7 @@ void SortInference::doInference()
           Term* t = l->nthArgument(0)->term();
 
           unsigned f = t->functor();
-          unsigned n = offset_f[f];
+          unsigned n = offsets[f];
           varPositions[l->nthArgument(1)->var()].push(n);
 #if DEBUG_SORT_INFERENCE
           cout << "push " << n << " for X" << l->nthArgument(1)->var() << endl;
@@ -338,7 +338,7 @@ void SortInference::doInference()
       } else { // i.e., !(l->isEquality())
         num_vars_always_in_equalities = 0;
 
-        unsigned n = offset_p[l->functor()];
+        unsigned n = offsets[l->functor()];
         for(unsigned i=0;i<l->arity();i++){
           ASS(l->nthArgument(i)->isVar());
           varPositions[l->nthArgument(i)->var()].push(n+i);
@@ -419,10 +419,11 @@ void SortInference::doInference()
   // True if there is a positive equality on a position with this sort
   // Later we will use this to promote sorts if _expandSubsorts is true
 
-  // First check all of the predicate positions
-  for(unsigned p=0;p<env.signature->predicates();p++){
-    if(p < _del_p.size() && _del_p[p]) continue;
-    unsigned offset = offset_p[p];
+  // Equality has no entry in offsets; its arguments were handled above.
+  for (unsigned p : env.signature->predicateSymbols()) {
+    if (p == 0) continue;
+    if(p < _deletedSymbols.size() && _deletedSymbols[p]) continue;
+    unsigned offset = offsets[p];
     unsigned arity = env.signature->predicateArity(p);
     for(unsigned i=0;i<arity;i++){
       unsigned arg_offset = offset+i;
@@ -440,10 +441,10 @@ void SortInference::doInference()
 
   // Next check function positions for positive equalities
   // Also recorded the functions/constants for each sort
-  for(unsigned f=0;f<env.signature->functions();f++){
-    if(f < _del_f.size() && _del_f[f]) continue;
+  for (unsigned f : env.signature->functionSymbols()) {
+    if(f < _deletedSymbols.size() && _deletedSymbols[f]) continue;
 
-    unsigned offset = offset_f[f];
+    unsigned offset = offsets[f];
     unsigned arity = env.signature->functionArity(f);
     int root = unionFind.root(offset);
     unsigned rangeSort;
@@ -488,7 +489,7 @@ void SortInference::doInference()
     cout << "Sort Inference information:" << endl;
     cout << comps << " inferred subsorts" << endl;
   }
-  unsigned firstFreshConstant = env.signature->functions();
+  unsigned firstFreshConstant = env.signature->symbolCount();
   unsigned fresh = firstFreshConstant;
   DHMap<unsigned,unsigned, FnvHash, IdentityHash> freshMap;
   for(unsigned s=0;s<comps;s++){
@@ -534,8 +535,7 @@ void SortInference::doInference()
   for(unsigned i=0;i<comps;i++) parentSet[i]=false;
 
   _sig->parents.ensure(comps);
-  _sig->functionSignatures.ensure(fresh);
-  _sig->predicateSignatures.ensure(env.signature->predicates());
+  _sig->symbolSignatures.ensure(fresh);
 
 #if DEBUG_SORT_INFERENCE
   cout << "Setting function _signatures" << endl;
@@ -543,7 +543,8 @@ void SortInference::doInference()
 
   // Now record the _signatures for functions
   for(unsigned f=0;f<fresh;f++){
-    if(f < _del_f.size() && _del_f[f]) {
+    if (f < firstFreshConstant && !env.signature->getSymbol(f)->isFunction()) continue;
+    if(f < _deletedSymbols.size() && _deletedSymbols[f]) {
 #if DEBUG_SORT_INFERENCE
     cout << "Skipping deleted function signature "  << env.signature->functionName(f) << endl;
 #endif
@@ -557,10 +558,10 @@ void SortInference::doInference()
     // be bounded
     // We need to treat them specially as they are functions that are added
     // after we do sort inference (so offsets/positions do not apply)
-    if(f >= env.signature->functions()){
+    if(f >= env.signature->symbolCount()){
       unsigned srt = freshMap.get(f);
-      _sig->functionSignatures[f].ensure(1);
-      _sig->functionSignatures[f][0]=srt;
+      _sig->symbolSignatures[f].ensure(1);
+      _sig->symbolSignatures[f][0]=srt;
 #if DEBUG_SORT_INFERENCE
       cout << " fresh constant, so skipping" << endl;
 #endif
@@ -568,13 +569,13 @@ void SortInference::doInference()
     }
 
     unsigned arity = env.signature->functionArity(f);
-    _sig->functionSignatures[f].ensure(arity+1);
-    int root = unionFind.root(offset_f[f]);
+    _sig->symbolSignatures[f].ensure(arity+1);
+    int root = unionFind.root(offsets[f]);
     unsigned rangeSort = translate.get(root);
 #if DEBUG_SORT_INFERENCE
     cout << rangeSort << " <= ";
 #endif
-    _sig->functionSignatures[f][arity] = rangeSort;
+    _sig->symbolSignatures[f][arity] = rangeSort;
 
     Signature::Symbol* fnSym = env.signature->getFunction(f);
     OperatorType* fnType = fnSym->type();
@@ -602,12 +603,12 @@ void SortInference::doInference()
 
 
     for(unsigned i=0;i<arity;i++){
-      int argRoot = unionFind.root(offset_f[f]+i+1);
+      int argRoot = unionFind.root(offsets[f]+i+1);
       unsigned argSort = translate.get(argRoot);
 #if DEBUG_SORT_INFERENCE
       cout << argSort << " ";
 #endif
-      _sig->functionSignatures[f][i] = argSort;
+      _sig->symbolSignatures[f][i] = argSort;
       if(parentSet[argSort]){
 #if VDEBUG
       TermList vs = fnType->arg(i);
@@ -629,15 +630,15 @@ void SortInference::doInference()
       }
     }
 #if DEBUG_SORT_INFERENCE
-   cout << "("<< offset_f[f] << ")"<< endl;
+   cout << "("<< offsets[f] << ")"<< endl;
 #endif
-  } // for(unsigned f=0;f<env.signature->functions();f++)
+  } // for(unsigned f=0;f<env.signature->symbolCount();f++)
 
 #if DEBUG_SORT_INFERENCE
   cout << "Setting up fresh constant info" << endl;
 #endif
   // Setting types for fresh constants
-  for(unsigned f=env.signature->functions();f<fresh;f++){
+  for(unsigned f=env.signature->symbolCount();f<fresh;f++){
     unsigned srt = freshMap.get(f);
     unsigned dsrt = _sig->parents[srt];
     unsigned vsrt = (*_sig->distinctToVampire.get(dsrt))[0];
@@ -656,23 +657,24 @@ void SortInference::doInference()
   cout << "Setting predicate _signatures" << endl;
 #endif
   // Remember to skip 0 as it is =
-  for(unsigned p=1;p<env.signature->predicates();p++){
-    if(p < _del_p.size() && _del_p[p]) continue;
+  for (unsigned p : env.signature->predicateSymbols()) {
+    if (p < 1) continue;
+    if(p < _deletedSymbols.size() && _deletedSymbols[p]) continue;
 #if DEBUG_SORT_INFERENCE
     cout << env.signature->predicateName(p) << " : ";
 #endif
     //cout << env.signature->predicateName(p) <<" : ";
     unsigned arity = env.signature->predicateArity(p);
     // Now set _signatures
-    _sig->predicateSignatures[p].ensure(arity);
+    _sig->symbolSignatures[p].ensure(arity);
 
     Signature::Symbol* prSym = env.signature->getPredicate(p);
     OperatorType* prType = prSym->type();
 
     for(unsigned i=0;i<arity;i++){
-      int argRoot = unionFind.root(offset_p[p]+i);
+      int argRoot = unionFind.root(offsets[p]+i);
       unsigned argSort = translate.get(argRoot);
-      _sig->predicateSignatures[p][i] = argSort;
+      _sig->symbolSignatures[p][i] = argSort;
       if(parentSet[argSort]){
 #if VDEBUG
       TermList vs = prType->arg(i);
@@ -697,7 +699,7 @@ void SortInference::doInference()
 #endif
     }
 #if DEBUG_SORT_INFERENCE
-   cout << "("<< offset_p[p] << ")"<< endl;
+   cout << "("<< offsets[p] << ")"<< endl;
 #endif
   }
 
@@ -761,7 +763,7 @@ void SortInference::doInference()
     }
   }
 
-  for(unsigned s=0;s<env.signature->typeCons();s++){
+  for (unsigned s : env.signature->typeConSymbols()) {
     if(env.getMainProblem()->getProperty()->usesSort(s) || env.signature->isNonDefaultCon(s)){
       // if sort is not here then it does not appear in signature (check)
       if(!_sig->vampireToDistinct.find(s)){ continue; }
@@ -825,7 +827,7 @@ unsigned SortInference::getDistinctSort(unsigned subsort, unsigned realVampireSo
   unsigned vampireSort = realVampireSort;
   if(_expandSubsorts){
     if(!_posEqualitiesOnSort[subsort]){
-      vampireSort = env.signature->typeCons()+subsort+1;
+      vampireSort = env.signature->symbolCount()+subsort+1;
     }
   }
 
