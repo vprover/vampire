@@ -381,11 +381,11 @@ unsigned EqualityProxy::getProxyPredicate(TermList sort)
     ASS(sort.term()->ground());
   }
 
-  unsigned newPred = env.signature->addFreshPredicate(OperatorType::getPredicateType({sort, sort}, _poly ? 1 : 0),"sQ","eqProxy");
-  Signature::Symbol* predSym = env.signature->getPredicate(newPred);
-  predSym->markEqualityProxy();
-  // don't need congruence axioms for the equality predicate itself
-  predSym->markSkipCongruence();
+  // The equality predicate itself does not need congruence axioms.
+  auto pred = env.signature->freshPredicate(OperatorType::getPredicateType({sort, sort}, _poly ? 1 : 0), "sQ", "eqProxy")
+    .equalityProxy().skipCongruence();
+  unsigned newPred = pred.number();
+  Signature::Symbol* predSym = &pred.symbol();
 
   TermList var1 = TermList(_poly ? 1 : 0,false);
   TermList var2 = TermList(_poly ? 2 : 1,false);

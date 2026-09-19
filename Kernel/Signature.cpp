@@ -462,7 +462,7 @@ unsigned Signature::getApp()
   auto arrowType = AtomicSort::arrowSort(tv1, tv2);
 
   bool added = false;
-  unsigned app = addFunction("vAPP", OperatorType::getFunctionType({arrowType, tv1}, tv2, 2), added);
+  unsigned app = function("vAPP", OperatorType::getFunctionType({arrowType, tv1}, tv2, 2), added).number();
   if (added) {
     _appFun = app;
   }
@@ -474,7 +474,7 @@ unsigned Signature::getLam() {
   auto arrowType = AtomicSort::arrowSort(TermList::var(0), tv2);
 
   bool added = false;
-  unsigned lam = addFunction("vLAM", OperatorType::getFunctionType({tv2}, arrowType, 2), added);
+  unsigned lam = function("vLAM", OperatorType::getFunctionType({tv2}, arrowType, 2), added).number();
   if (added) {
     _lamFun = lam;
   }
@@ -486,14 +486,14 @@ unsigned Signature::getDiff() {
   auto alphaBeta = AtomicSort::arrowSort(alpha, TermList::var(1));
   auto result = AtomicSort::arrowSort({alphaBeta, alphaBeta, alpha});
 
-  return addFunction("diff", OperatorType::getConstantsType(result, 2));
+  return function("diff", OperatorType::getConstantsType(result, 2)).number();
 }
 
 unsigned Signature::getDefPred()
 {
   bool added = false;
-  unsigned def = addPredicate(":=",
-    OperatorType::getPredicateType({ TermList::var(0), TermList::var(0) }, /*taArity=*/ 1), added);
+  unsigned def = predicate(":=",
+    OperatorType::getPredicateType({ TermList::var(0), TermList::var(0) }, /*taArity=*/ 1), added).number();
   if (added) {
     _defPred = def;
   }
@@ -506,12 +506,12 @@ unsigned Signature::getFnDef(unsigned fn)
   auto sort = type->result();
   bool added = false;
   auto name = "sFN_"+getFunction(fn)->name();
-  unsigned p = addPredicate(name,
+  auto symbol = predicate(name,
     OperatorType::getPredicateType({sort, sort}, type->numTypeArguments()), added);
+  unsigned p = symbol.number();
   if (added) {
     ALWAYS(_fnDefPreds.insert(p));
-    Symbol* sym = getPredicate(p);
-    sym->markProtected();
+    symbol.protect();
   }
   return p;
 }
@@ -526,12 +526,12 @@ unsigned Signature::getBoolDef(unsigned fn)
   for (unsigned i = type->numTypeArguments(); i < type->arity(); i++) {
     sorts.push(type->arg(i));
   }
-  auto p = addPredicate(name,
+  auto symbol = predicate(name,
     OperatorType::getPredicateType(sorts, type->numTypeArguments()), added);
+  unsigned p = symbol.number();
   if (added) {
     ALWAYS(_boolDefPreds.insert(p,fn));
-    Symbol* sym = getPredicate(p);
-    sym->markProtected();
+    symbol.protect();
   }
   return p;
 }
@@ -541,14 +541,14 @@ unsigned Signature::getChoice() {
   auto alphaBs = AtomicSort::arrowSort(alpha, AtomicSort::boolSort());
   auto result = AtomicSort::arrowSort(alphaBs, alpha);
 
-  return addFunction("vEPSILON", OperatorType::getConstantsType(result, 1));
+  return function("vEPSILON", OperatorType::getConstantsType(result, 1)).number();
 }
 
 unsigned Signature::getDeBruijnIndex(int index) {
   ASS_GE(index, 0);
 
   bool added = false;
-  unsigned fun = addFunction("db" + Int::toString(index), OperatorType::getConstantsType(TermList::var(0), 1), added);
+  unsigned fun = function("db" + Int::toString(index), OperatorType::getConstantsType(TermList::var(0), 1), added).number();
   if (added) {
     getFunction(fun)->setDeBruijnIndex(index);
   }
@@ -559,7 +559,7 @@ unsigned Signature::getPlaceholder() {
   if (_placeholderFun != UINT_MAX)
     return _placeholderFun;
 
-  unsigned fun = addFreshFunction(OperatorType::getConstantsType(TermList::var(0), 1), "ph");
+  unsigned fun = freshFunction(OperatorType::getConstantsType(TermList::var(0), 1), "ph").number();
   _placeholderFun = fun;
   return fun;
 }
@@ -680,13 +680,13 @@ unsigned Signature::addPredicate (const std::string& name,
  */
 unsigned Signature::addNamePredicate(OperatorType* type)
 {
-  return addFreshPredicate(type,"sP");
+  return freshPredicate(type, "sP").number();
 } // addNamePredicate
 
 
 unsigned Signature::addNameFunction(OperatorType* type)
 {
-  return addFreshFunction(type,"sP");
+  return freshFunction(type, "sP").number();
 } // addNameFunction
 
 /**
@@ -780,9 +780,7 @@ unsigned Signature::addFreshPredicate(OperatorType* type, const char* prefix, co
  */
 unsigned Signature::addSkolemFunction (OperatorType* type, const char* suffix)
 {
-  unsigned f = addFreshFunction(type, "sK", suffix);
-  getFunction(f)->markSkolem();
-  return f;
+  return freshFunction(type, "sK", suffix).skolem().number();
 } // addSkolemFunction
 
 /**
@@ -792,9 +790,7 @@ unsigned Signature::addSkolemFunction (OperatorType* type, const char* suffix)
  */
 unsigned Signature::addSkolemTypeCon (unsigned arity)
 {
-  unsigned tc = addFreshTypeCon(arity, "sK");
-  getTypeCon(tc)->markSkolem();
-  return tc;
+  return freshTypeConstructor(arity, "sK").skolem().number();
 } // addSkolemFunction
 
 
@@ -805,9 +801,7 @@ unsigned Signature::addSkolemTypeCon (unsigned arity)
  */
 unsigned Signature::addSkolemPredicate(OperatorType* type, const char* suffix)
 {
-  unsigned p = addFreshPredicate(type, "sK", suffix);
-  getPredicate(p)->markSkolem();
-  return p;
+  return freshPredicate(type, "sK", suffix).skolem().number();
 } // addSkolemPredicate
 
 /**
