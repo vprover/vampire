@@ -997,9 +997,6 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
   } else {
     unsigned fun = Skolem::addSkolemFunction(taArity, *termVarSorts, rangeSort);
     sym = env.signature->getFunction(fun);
-    if(_forInduction){
-      sym->markInductionSkolem();
-    }
     res = Term::create(fun, arity, args.begin());
   }
 
