@@ -869,11 +869,11 @@ bool ClauseCodeTree::ClauseMatcher::compatible(ILStruct* bi, MatchInfo* bq, ILSt
 
   unsigned bvars=bi->varCnt;
   unsigned* bgvn=bi->sortedGlobalVarNumbers;
-  TermList* bb=bq->bindings;
+  TermList* bb=bq->bindings();
 
   unsigned nvars=ni->varCnt;
   unsigned* ngvn=ni->sortedGlobalVarNumbers;
-  TermList* nb=nq->bindings;
+  TermList* nb=nq->bindings();
 
   while(bvars && nvars) {
     while(bvars && *bgvn<*ngvn) {

@@ -48,8 +48,8 @@ template<typename Derived, typename T>
 struct FlexibleTail {
   FlexibleTail() = default;
 
-  // copying/moving such an object is in principle possible but tricky
-  // - could implement if ever needed
+  // copying/moving such an object is possible but tricky
+  // - could relax this if ever needed
   FlexibleTail(const FlexibleTail &) = delete;
   FlexibleTail(FlexibleTail &&) = delete;
 
@@ -62,22 +62,17 @@ struct FlexibleTail {
     return derived;
   }
 
-  // number of bytes required for Derived with a tail of `length`
+  // number of bytes required for `Derived` with a tail of `length`
   constexpr static size_t bytesRequiredFor(unsigned length) {
+    /* note that we include the padding even when length == 0
+     * this means that the flexibleTail() pointer remains valid (I hope!)
+     * since creating a one-past-the-end pointer is OK */
     return tailOffset() + length * sizeof(T);
   }
 
-  /*
-   * pointer to tail array if tailLength() is non-zero, nullptr otherwise
-   *
-   * creating (not dereferencing) an invalid pointer is UB,
-   * so we cannot return a sensible pointer for the zero-length case */
-  T *flexibleTail() const {
-    if(!((Derived *)this)->tailLength())
-      return nullptr;
-
-    return (T *)((char *)this + tailOffset());
-  }
+  // compute pointer to tail array
+  T *flexibleTail() { return (T *)((char *)this + tailOffset()); }
+  const T *flexibleTail() const { return (const T *)((char *)this + tailOffset()); }
 };
 
 }
