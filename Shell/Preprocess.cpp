@@ -475,8 +475,6 @@ void Preprocess::preprocess(Problem& prb)
      if (env.options->showPreprocessing())
        std::cout << "equality proxy" << std::endl;
 
-     // refresh symbol usage counts, can skip unused symbols for equality proxy
-     prb.getProperty();
      // only a problem which is polymorphic already gets the polymorphic proxy predicate;
      // a monomorphic problem must not be turned polymorphic by preprocessing
      // TODO: hasPolymorphicSym over-approximates; it also holds for a monomorphic problem
