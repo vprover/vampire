@@ -282,7 +282,8 @@ void FunctionRelationshipInference::addClaim(Formula* conjecture, ClauseList*& n
 // get a name for a formula that captures the relationship that |fromSrt| >= |toSrt|
 Formula* FunctionRelationshipInference::getName(TermList fromSrt, TermList toSrt, bool strict)
 {
-    unsigned label = env.signature->freshPredicate(OperatorType::getPredicateType({}), "label").label().number();
+    unsigned label = env.signature->addFreshPredicate(OperatorType::getPredicateType({}), "label");
+    env.signature->getPredicate(label)->markLabel();
 
     unsigned fsT = fromSrt.term()->functor();
     unsigned tsT = toSrt.term()->functor();

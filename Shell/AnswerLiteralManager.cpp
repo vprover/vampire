@@ -339,9 +339,11 @@ Literal* AnswerLiteralManager::getAnswerLiteral(VSList* varSorts, Formula* f)
   }
 
   unsigned vcnt = litArgs.size();
+  unsigned pred = env.signature->addFreshPredicate(OperatorType::getPredicateType(sorts),"ans");
+  Signature::Symbol* predSym = env.signature->getPredicate(pred);
+  predSym->markAnswerPredicate();
   // don't need equality proxy for answer literals
-  unsigned pred = env.signature->freshPredicate(OperatorType::getPredicateType(sorts), "ans")
-    .answerPredicate().skipCongruence().number();
+  predSym->markSkipCongruence();
   if ((env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS)) {
     ALWAYS(static_cast<Shell::SynthesisALManager*>(Shell::SynthesisALManager::getInstance())->addIntroducedComputableSymbol(make_pair(pred, /*isPredicate=*/true)));
   }

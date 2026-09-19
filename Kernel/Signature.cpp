@@ -808,7 +808,9 @@ unsigned Signature::addFreshPredicate(OperatorType* type, const char* prefix, co
  */
 unsigned Signature::addSkolemFunction (OperatorType* type, const char* suffix)
 {
-  return freshFunction(type, "sK", suffix).skolem().number();
+  unsigned f = addFreshFunction(type, "sK", suffix);
+  getFunction(f)->markSkolem();
+  return f;
 } // addSkolemFunction
 
 /**
@@ -818,7 +820,9 @@ unsigned Signature::addSkolemFunction (OperatorType* type, const char* suffix)
  */
 unsigned Signature::addSkolemTypeCon (unsigned arity)
 {
-  return freshTypeConstructor(arity, "sK").skolem().number();
+  unsigned tc = addFreshTypeCon(arity, "sK");
+  getTypeCon(tc)->markSkolem();
+  return tc;
 } // addSkolemFunction
 
 
@@ -829,7 +833,9 @@ unsigned Signature::addSkolemTypeCon (unsigned arity)
  */
 unsigned Signature::addSkolemPredicate(OperatorType* type, const char* suffix)
 {
-  return freshPredicate(type, "sK", suffix).skolem().number();
+  unsigned p = addFreshPredicate(type, "sK", suffix);
+  getPredicate(p)->markSkolem();
+  return p;
 } // addSkolemPredicate
 
 /**

@@ -116,8 +116,10 @@ unsigned Skolem::addSkolemFunction(unsigned taArity, TermStack domainSorts,
 {
   //ASS(arity==0 || domainSorts!=0);
 
-  return env.signature->freshFunction(OperatorType::getFunctionType(domainSorts, rangeSort, taArity), "sK", suffix)
-    .skolem().skipCongruence().number();
+  unsigned fun = env.signature->addSkolemFunction(OperatorType::getFunctionType(domainSorts, rangeSort, taArity), suffix);
+  Signature::Symbol* fnSym = env.signature->getFunction(fun);
+  fnSym->markSkipCongruence();
+  return fun;
 }
 
 unsigned Skolem::addSkolemTypeCon(unsigned arity)

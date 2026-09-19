@@ -455,42 +455,6 @@ class Signature
   // Uninterpreted symbol declarations
   //
 
-  /** A registered symbol and its ID. Flag setters can be chained at creation. */
-  class SymbolBuilder {
-    Symbol* _symbol;
-  public:
-    explicit SymbolBuilder(Symbol* symbol) : _symbol(symbol) {}
-    unsigned number() const { return _symbol->number(); }
-    Symbol* operator->() const { return _symbol; }
-    Symbol& symbol() const { return *_symbol; }
-    SymbolBuilder& introduced() { _symbol->markIntroduced(); return *this; }
-    SymbolBuilder& skolem() { _symbol->markSkolem(); return *this; }
-    SymbolBuilder& skip() { _symbol->markSkip(); return *this; }
-    SymbolBuilder& skipCongruence() { _symbol->markSkipCongruence(); return *this; }
-    SymbolBuilder& protect() { _symbol->markProtected(); return *this; }
-    SymbolBuilder& color(Color color) { _symbol->addColor(color); return *this; }
-    SymbolBuilder& label() { _symbol->markLabel(); return *this; }
-    SymbolBuilder& answerPredicate() { _symbol->markAnswerPredicate(); return *this; }
-  };
-
-  SymbolBuilder function(const std::string& name, OperatorType* type) {
-    return SymbolBuilder(getSymbol(addFunction(name, type)));
-  }
-  SymbolBuilder predicate(const std::string& name, OperatorType* type) {
-    return SymbolBuilder(getSymbol(addPredicate(name, type)));
-  }
-  SymbolBuilder typeConstructor(const std::string& name, unsigned arity) {
-    return SymbolBuilder(getSymbol(addTypeCon(name, arity)));
-  }
-  SymbolBuilder freshFunction(OperatorType* type, const char* prefix, const char* suffix = nullptr) {
-    return SymbolBuilder(getSymbol(addFreshFunction(type, prefix, suffix)));
-  }
-  SymbolBuilder freshPredicate(OperatorType* type, const char* prefix, const char* suffix = nullptr) {
-    return SymbolBuilder(getSymbol(addFreshPredicate(type, prefix, suffix)));
-  }
-  SymbolBuilder freshTypeConstructor(unsigned arity, const char* prefix) {
-    return SymbolBuilder(getSymbol(addFreshTypeCon(arity, prefix)));
-  }
 
 private:
   unsigned addSymbol(SymbolKind kind, Symbol* symbol);
