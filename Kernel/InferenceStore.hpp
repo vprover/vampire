@@ -20,7 +20,6 @@
 
 #include "Forwards.hpp"
 
-#include "Lib/Allocator.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/DHMultiset.hpp"
 #include "Lib/Stack.hpp"
@@ -37,40 +36,11 @@ class InferenceStore
 public:
   static InferenceStore* instance();
 
-  typedef List<int> IntList;
-
-  struct FullInference
-  {
-    FullInference(unsigned premCnt) : csId(0), premCnt(premCnt) { }
-
-    void* operator new(size_t,unsigned premCnt)
-    {
-      size_t size=sizeof(FullInference)+premCnt*sizeof(Unit*);
-      size-=sizeof(Unit*);
-
-      return ALLOC_KNOWN(size,"InferenceStore::FullInference");
-    }
-
-    size_t occupiedBytes()
-    {
-      size_t size=sizeof(FullInference)+premCnt*sizeof(Unit*);
-      size-=sizeof(Unit*);
-      return size;
-    }
-
-    void increasePremiseRefCounters();
-
-    int csId;
-    unsigned premCnt;
-    InferenceRule rule;
-    Unit* premises[1];
-  };
-
   void recordSplittingNameLiteral(Unit* us, Literal* lit);
   void recordIntroducedSymbol(Unit* u, Signature::Symbol* sym);
   void recordIntroducedSkolemSymbol(Unit* u, Signature::Symbol* sym, unsigned replacedVar, Term* symTerm);
   void recordIntroducedSplitName(Unit* u, std::string name);
-  
+
 
   void outputUnsatCore(std::ostream& out, Unit* refutation);
   void outputProof(std::ostream& out, Unit* refutation);

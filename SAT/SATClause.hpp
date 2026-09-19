@@ -73,10 +73,10 @@ public:
   unsigned length() const { return _length; }
   /** Alternative name for length to conform with other containers */
   unsigned size() const { return _length; }
-  size_t tailLength() const { return _length; }
 
   /** Return a pointer to the array of literals. */
-  SATLiteral* literals() const { return flexibleTail(); }
+  SATLiteral* literals() { return flexibleTail(); }
+  const SATLiteral* literals() const { return flexibleTail(); }
 
   /** True if the clause is empty */
   bool isEmpty() const { return _length == 0; }
