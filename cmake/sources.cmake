@@ -470,6 +470,8 @@ set(SOURCES
     Kernel/SortHelper.hpp
     Kernel/SpassLiteralSelector.cpp
     Kernel/SpassLiteralSelector.hpp
+    Kernel/SymbolUsage.cpp
+    Kernel/SymbolUsage.hpp
     Kernel/SubformulaIterator.cpp
     Kernel/SubformulaIterator.hpp
     Kernel/SubstHelper.hpp

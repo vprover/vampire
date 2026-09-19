@@ -12,8 +12,8 @@
  * Implements class EqualityProxy.
  */
 
-#include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/Metaiterators.hpp"
 #include "Lib/List.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -25,6 +25,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
+#include "Kernel/SymbolUsage.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
 
@@ -210,55 +211,6 @@ bool EqualityProxy::getArgumentEqualityLiterals(unsigned cnt, LiteralStack& lits
 }
 
 /**
- * Record in @c usedFunctions / @c usedPredicates which symbols occur in @c units.
- *
- * Only presence is recorded, never a count, and that is what lets the traversal stop at a
- * subterm it has already seen: whether a symbol occurs somewhere below a shared term does
- * not depend on how many times that term occurs. So the walk is over the term DAG rather
- * than over the tree it unfolds to.
- */
-void EqualityProxy::collectUsedSymbols(UnitList* units, DArray<bool>& usedFunctions, DArray<bool>& usedPredicates)
-{
-  usedFunctions.init(env.signature->functions(),false);
-  usedPredicates.init(env.signature->predicates(),false);
-
-  DHSet<Term*, SharedTermHash, PtrIdentityHash> seen;
-  Stack<Term*> todo;
-
-  UnitList::Iterator uit(units);
-  while (uit.hasNext()) {
-    Unit* u = uit.next();
-    ASS(u->isClause()); // equality proxy runs on a clausified problem
-    Clause* cl = static_cast<Clause*>(u);
-    for (unsigned i = 0; i < cl->length(); i++) {
-      Literal* lit = (*cl)[i];
-      ASS(lit->shared()); // so the ids the visited set hashes by are meaningful
-      usedPredicates[lit->functor()] = true;
-      for (TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()) {
-        if (ts->isTerm()) {
-          todo.push(ts->term());
-        }
-      }
-      while (todo.isNonEmpty()) {
-        Term* t = todo.pop();
-        ASS(t->shared());
-        // a sort is built from type constructors, not from function symbols, and so are
-        // all of its arguments, so the whole subtree is of no interest here
-        if (t->isSort() || !seen.insert(t)) {
-          continue;
-        }
-        usedFunctions[t->functor()] = true;
-        for (TermList* ts = t->args(); ts->isNonEmpty(); ts = ts->next()) {
-          if (ts->isTerm()) {
-            todo.push(ts->term());
-          }
-        }
-      }
-    }
-  }
-}
-
-/**
  * For every symbol occurring in @c units, add to the units equality congruence axioms
  * for this symbol.
  * @author Andrei Voronkov
@@ -272,7 +224,10 @@ void EqualityProxy::addCongruenceAxioms(UnitList*& units)
   // had to force a whole extra scan of the problem to refresh, just for these two loops.
   DArray<bool> usedFunctions;
   DArray<bool> usedPredicates;
-  collectUsedSymbols(units, usedFunctions, usedPredicates);
+  collectUsedSymbols(pvi(iterTraits(UnitList::Iterator(units)).map([](Unit* u) {
+      ASS(u->isClause()); // equality proxy runs on a clausified problem
+      return static_cast<Clause*>(u);
+    })), usedFunctions, usedPredicates);
 
   // This is Krystof Hoder's comment:
   // TODO: skip UPDR predicates!!!
