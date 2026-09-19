@@ -37,13 +37,13 @@ unsigned SATClause::_lastNumber = 0;
  */
 void* SATClause::operator new(size_t sz,unsigned lits)
 {
-  return ALLOC_KNOWN(allocationRequired(lits),"SATClause");
+  return ALLOC_KNOWN(bytesRequiredFor(lits),"SATClause");
 }
 
 void SATClause::operator delete(void *ptr, size_t sz) {
   SATClause *self = static_cast<SATClause *>(ptr);
   unsigned lits = self->length();
-  DEALLOC_KNOWN(ptr, allocationRequired(lits), "SATClause");
+  DEALLOC_KNOWN(ptr, bytesRequiredFor(lits), "SATClause");
 }
 
 SATClause::SATClause(unsigned length)
@@ -85,7 +85,7 @@ void SATClause::destroy()
   // call a destructor of the clause object
   this->~SATClause();
 
-  DEALLOC_KNOWN(this, allocationRequired(lits),"SATClause");
+  DEALLOC_KNOWN(this, bytesRequiredFor(lits),"SATClause");
 } // SATClause::destroy
 
 
