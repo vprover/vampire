@@ -1342,7 +1342,7 @@ TermList AtomicSort::arrowSort(const TermStack& domSorts, TermList range, bool f
 
 AtomicSort* AtomicSort::createConstant(const std::string& name)
 {
-  return createConstant(env.signature->addTypeCon(name,0));
+  return createConstant(env.signature->typeConstructor(name,0).number());
 }
 
 TermList AtomicSort::arraySort(TermList indexSort, TermList innerSort)

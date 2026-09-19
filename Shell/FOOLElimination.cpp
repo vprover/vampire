@@ -713,7 +713,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
             TermList tupleResultSort = tupleSort;
             SortHelper::normaliseSort(tupleTypeArgs, tupleResultSort);
 
-            unsigned tupleSymbol = env.signature->addFreshFunction(OperatorType::getConstantsType(tupleResultSort, tupleTypeArgs.size()), LET_PREFIX);
+            unsigned tupleSymbol = env.signature->freshFunction(OperatorType::getConstantsType(tupleResultSort, tupleTypeArgs.size()), LET_PREFIX).number();
             TermList tupleTerm = TermList(Term::create(tupleSymbol, tupleTypeArgs));
 
             // the projections take the tuple's type arguments and the tuple
@@ -1186,9 +1186,9 @@ unsigned FOOLElimination::introduceFreshSymbol(Context context, const char* pref
 
   unsigned symbol;
   if (context == FORMULA_CONTEXT) {
-    symbol = env.signature->addFreshPredicate(type, prefix);
+    symbol = env.signature->freshPredicate(type, prefix).number();
   } else {
-    symbol = env.signature->addFreshFunction(type, prefix);
+    symbol = env.signature->freshFunction(type, prefix).number();
   }
 
   if (env.options->showPreprocessing()) {

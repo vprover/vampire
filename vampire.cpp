@@ -394,7 +394,7 @@ void clausifyMode(Problem* problem, bool theory)
     std::cout << TPTPPrinter::toString(cl,theory) << "\n";
   }
   if(!printed_conjecture && UIHelper::haveConjecture()){
-    unsigned p = env.signature->addFreshPredicate(0,"p");
+    unsigned p = env.signature->freshPredicate(0,"p").number();
     auto c = Clause::fromLiterals({
         Literal::create(p, /* polarity */ true , {}),
         Literal::create(p, /* polarity */ false, {})

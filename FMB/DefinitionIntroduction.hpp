@@ -118,7 +118,7 @@ namespace FMB {
         if(t->arity()==0) continue;
         if(!_introduced.find(t)){
           TermList srt = SortHelper::getResultSort(t);
-          unsigned newConstant = env.signature->addFreshFunction(OperatorType::getConstantsType(srt),"fmbdef");
+          unsigned newConstant = env.signature->freshFunction(OperatorType::getConstantsType(srt),"fmbdef").number();
           Signature::Symbol* newConstantSymb = env.signature->getFunction(newConstant);
           newConstantSymb->incUsageCnt();
           Term* c = Term::createConstant(newConstant); 
@@ -184,7 +184,7 @@ namespace FMB {
         unsigned vars = t->vars();
 
         // then create a fresh function symbol for the definition
-        newf = env.signature->addFreshFunction(vars,"fmbdef");
+        newf = env.signature->freshFunction(vars,"fmbdef").number();
         // and save it
         _introducedNG.insert(t,newf);
         

@@ -147,15 +147,16 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, 
 
   SortHelper::normaliseSort(vars, srt);
 
+  // Protect split equalities from blocked clause elimination (e.g. ARI713_1).
   unsigned fun;
   OperatorType* type;
   if(!_appify){
     type = OperatorType::getPredicateType({srt}, vars.size());
-    fun=env.signature->addNamePredicate(type);
+    fun=env.signature->freshPredicate(type, "sP").protect().number();
   } else {
     srt = AtomicSort::arrowSort(srt, AtomicSort::boolSort());
     type = OperatorType::getConstantsType(srt, vars.size());
-    fun=env.signature->addNameFunction(type);
+    fun=env.signature->freshFunction(type, "sP").protect().number();
   }
 
 
@@ -165,7 +166,6 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, 
   } else {
     sym = env.signature->getPredicate(fun);
   }
-  sym->markProtected(); // at least to prevent blocked clause elimination to work on split equality (think "Problems/ARI/ARI713_1.p --decode ott+2_1:1_bce=on:ins=3_0", where BCE otherwise wipes the input completely)
 
   TermList s;
   TermList t; //the ground inequality argument, that'll be split out

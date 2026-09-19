@@ -367,12 +367,12 @@ public:
 
   static TermSugar createConstant(const char* name, SortSugar s, bool skolem) {
     bool added;
-    unsigned f = env.signature->addFunction(name, OperatorType::getFunctionType({}, s.sugaredExpr()), added);
+    auto f = env.signature->function(name, OperatorType::getFunctionType({}, s.sugaredExpr()), added);
 
     if (added && skolem) {
-      env.signature->getFunction(f)->markSkolem();
+      f.skolem();
     }
-    return TermSugar(TermList(Term::createConstant(f)));
+    return TermSugar(TermList(Term::createConstant(f.number())));
   }
 
   operator TypedTermList() const { return TypedTermList(TermList(*this), sort()); }
@@ -548,14 +548,15 @@ public:
     }
 
     bool added = false;
-    _functor = env.signature->addFunction(name, OperatorType::getFunctionType(as, res, taArity), added);
+    auto symbol = env.signature->function(name, OperatorType::getFunctionType(as, res, taArity), added);
+    _functor = symbol.number();
     if (added){
       if (skolem) {
-        env.signature->getFunction(_functor)->markSkolem();
+        symbol.skolem();
       }
       if (c != COLOR_TRANSPARENT) {
         env.colorUsed = true;
-        env.signature->getFunction(_functor)->addColor(c);
+        symbol.color(c);
       }
     }
   }
@@ -607,7 +608,7 @@ class TypeConSugar {
 public:
   TypeConSugar(const char* name, unsigned arity)
   {
-    _functor = env.signature->addTypeCon(name, arity);
+    _functor = env.signature->typeConstructor(name, arity).number();
   }
 
   template<class... As>
@@ -652,7 +653,7 @@ public:
       SortHelper::normaliseArgSorts(vars, as);
     }
 
-    _functor = env.signature->addPredicate(name, OperatorType::getPredicateType(as, taArity));
+    _functor = env.signature->predicate(name, OperatorType::getPredicateType(as, taArity)).number();
   }
 
   template<class... As>

@@ -109,6 +109,7 @@ set(UNIT_TESTS
     UnitTests/tSATSubsumptionResolution.cpp
     UnitTests/tSet.cpp
     UnitTests/tSkipList.cpp
+    UnitTests/tSignatureBuilder.cpp
     UnitTests/tStack.cpp
     UnitTests/tSyntaxSugar.cpp
     UnitTests/tTermAlgebra.cpp

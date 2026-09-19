@@ -705,12 +705,12 @@ SMTLIB2::DeclaredSymbol SMTLIB2::declareFunctionOrPredicate(const std::string& n
 
   if (rangeSort == AtomicSort::boolSort()) { // predicate
     type = OperatorType::getPredicateType(argSorts, taArity);
-    symNum = env.signature->addPredicate(name, type, added);
+    symNum = env.signature->predicate(name, type, added).number();
 
     LOG1("declareFunctionOrPredicate-Predicate");
   } else { // proper function
     type = OperatorType::getFunctionType(argSorts, rangeSort, taArity);
-    symNum = env.signature->addFunction(name, type, added);
+    symNum = env.signature->function(name, type, added).number();
 
     LOG1("declareFunctionOrPredicate-Function");
   }
@@ -731,7 +731,7 @@ SMTLIB2::DeclaredSymbol SMTLIB2::declareFunctionOrPredicate(const std::string& n
 unsigned SMTLIB2::declareTypeCon(const std::string& name, unsigned arity)
 {
   bool added = false;
-  auto symNum = env.signature->addTypeCon(name, arity, added);
+  auto symNum = env.signature->typeConstructor(name, arity, added).number();
   ASS(added);
 
   LOG2("declareTypeCon -name ",name);
@@ -1102,10 +1102,9 @@ TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(std::string constrN
 
   OperatorType* constructorType = OperatorType::getFunctionType(argSorts, taSort, numTypeArgs);
   bool added;
-  unsigned functor = env.signature->addFunction(constrName, constructorType, added);
+  auto constructor = env.signature->function(constrName, constructorType, added);
   ASS(added);
-
-  env.signature->getFunction(functor)->markTermAlgebraCons();
+  unsigned functor = constructor.termAlgebraConstructor().number();
 
   LOG1("build constructor "+constrName+": "+constructorType->toString());
 
@@ -1126,15 +1125,13 @@ TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(std::string constrN
     OperatorType* destructorType = isPredicate ? OperatorType::getPredicateType({ taSort }, numTypeArgs)
                                            : OperatorType::getFunctionType({ taSort }, destructorSort, numTypeArgs);
 
-    unsigned destructorFunctor = isPredicate ? env.signature->addPredicate(destructorName, destructorType, added)
-                                             : env.signature->addFunction(destructorName, destructorType, added);
+    auto destructor = isPredicate ? env.signature->predicate(destructorName, destructorType, added)
+                                  : env.signature->function(destructorName, destructorType, added);
     ASS(added);
 
     LOG1("build destructor "+destructorName+": "+destructorType->toString());
 
-    auto destSym = isPredicate ? env.signature->getPredicate(destructorFunctor)
-                               : env.signature->getFunction (destructorFunctor);
-    destSym->markTermAlgebraDest();
+    unsigned destructorFunctor = destructor.termAlgebraDestructor().number();
 
     ALWAYS(_declaredSymbols.insert(destructorName, make_pair(destructorFunctor, isPredicate)));
 
@@ -1424,8 +1421,8 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
 
     TermList trm;
     if (sort == AtomicSort::boolSort()) {
-      unsigned symb = env.signature->addFreshPredicate(
-        OperatorType::getPredicateType(varSorts, args.size()-varSorts.size()),"sLP");
+      unsigned symb = env.signature->freshPredicate(
+        OperatorType::getPredicateType(varSorts, args.size()-varSorts.size()),"sLP").number();
 
       Formula* atom = new AtomicFormula(Literal::create(symb,args.size(),true,args.begin()));
       trm = TermList(Term::createFormula(atom));
@@ -1433,7 +1430,7 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
       TermList nSort = sort;
       SortHelper::normaliseSort(typeVars.list(),nSort);
       OperatorType* type = OperatorType::getFunctionType(varSorts, nSort, args.size()-varSorts.size());
-      unsigned symb = env.signature->addFreshFunction(type,"sLF");
+      unsigned symb = env.signature->freshFunction(type,"sLF").number();
 
       trm = TermList(Term::create(symb,args.size(),args.begin()));
     }

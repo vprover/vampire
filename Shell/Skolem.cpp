@@ -116,20 +116,18 @@ unsigned Skolem::addSkolemFunction(unsigned taArity, TermStack domainSorts,
 {
   //ASS(arity==0 || domainSorts!=0);
 
-  unsigned fun = env.signature->addSkolemFunction(OperatorType::getFunctionType(domainSorts, rangeSort, taArity), suffix);
-  Signature::Symbol* fnSym = env.signature->getFunction(fun);
-  fnSym->markSkipCongruence();
-  return fun;
+  return env.signature->freshFunction(OperatorType::getFunctionType(domainSorts, rangeSort, taArity), "sK", suffix)
+    .skolem().skipCongruence().number();
 }
 
 unsigned Skolem::addSkolemTypeCon(unsigned arity)
 {
-  return env.signature->addSkolemTypeCon(arity);
+  return env.signature->freshTypeConstructor(arity, "sK").skolem().number();
 }
 
 unsigned Skolem::addSkolemPredicate(unsigned taArity, TermStack domainSorts, const char* suffix)
 {
-  return env.signature->addSkolemPredicate(OperatorType::getPredicateType(domainSorts, taArity), suffix);
+  return env.signature->freshPredicate(OperatorType::getPredicateType(domainSorts, taArity), "sK", suffix).skolem().number();
 }
 
 void Skolem::ensureHavingVarSorts()

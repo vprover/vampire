@@ -707,7 +707,7 @@ TermList NewCNF::eliminateLet(Term* term)
       TermList tupleResultSort = tupleSort;
       SortHelper::normaliseSort(tupleTypeArgs, tupleResultSort);
 
-      unsigned tuple = env.signature->addFreshFunction(OperatorType::getConstantsType(tupleResultSort, tupleTypeArgs.size()), "tuple");
+      unsigned tuple = env.signature->freshFunction(OperatorType::getConstantsType(tupleResultSort, tupleTypeArgs.size()), "tuple").number();
       auto tupleTerm = Term::create(tuple, tupleTypeArgs);
 
       // the projections take the tuple's type arguments and the tuple itself
@@ -824,10 +824,10 @@ TermList NewCNF::nameLetBinding(Term* bindingLhs, TermList bindingRhs, TermList 
 
     if (isPredicate) {
       auto type = OperatorType::getPredicateType(*termVarSorts, typeVars.size());
-      freshSymbol = env.signature->addFreshPredicate(type, "lG");
+      freshSymbol = env.signature->freshPredicate(type, "lG").number();
     } else {
       auto type = OperatorType::getFunctionType(*termVarSorts, resultSort, typeVars.size());
-      freshSymbol = env.signature->addFreshFunction(type, "lG");
+      freshSymbol = env.signature->freshFunction(type, "lG").number();
     }
   }
 
@@ -1230,19 +1230,17 @@ Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
   auto taArity = typeVars->size();
   SortHelper::normaliseArgSorts(*typeVars, *termVarSorts);
 
-  unsigned pred = env.signature->addNamePredicate(OperatorType::getPredicateType(*termVarSorts, taArity));
+  auto symbol = env.signature->freshPredicate(OperatorType::getPredicateType(*termVarSorts, taArity), "sP").skipCongruence();
+  unsigned pred = symbol.number();
   env.statistics->formulaNames++;
-
-  Signature::Symbol* predSym = env.signature->getPredicate(pred);
-  predSym->markSkipCongruence();
 
   if (env.colorUsed) {
     Color fc = f->getColor();
     if (fc != COLOR_TRANSPARENT) {
-      predSym->addColor(fc);
+      symbol.color(fc);
     }
     if (f->getSkip()) {
-      predSym->markSkip();
+      symbol.skip();
     }
   }
 

@@ -125,7 +125,7 @@ void SortInference::doInference()
         unsigned dsort = (*_sig->vampireToDistinct.get(s))[0];
         if(_sig->sortedConstants[dsort].isEmpty()){
           TermList sT = TermList(AtomicSort::createConstant(s));
-          unsigned fresh = env.signature->addFreshFunction(OperatorType::getConstantsType(sT),"fmbFreshConstant");
+          unsigned fresh = env.signature->freshFunction(OperatorType::getConstantsType(sT),"fmbFreshConstant").number();
           _sig->sortedConstants[dsort].push(fresh);
         }
       }
@@ -646,7 +646,7 @@ void SortInference::doInference()
     // we avoid actually creating new symbols until `type` can be computed reasonably,
     // but firstFreshConstant...fresh should be a new contiguous block in the signature
     // we kind of pretend these functions already exist above
-    DEBUG_CODE(unsigned inserted =) env.signature->addFreshFunction(type, "fmbFreshConstant");
+    DEBUG_CODE(unsigned inserted =) env.signature->freshFunction(type, "fmbFreshConstant").number();
     env.signature->getFunction(f)->markIntroduced();
     // ...but now everything should be sane again
     ASS_EQ(f, inserted)

@@ -1289,14 +1289,12 @@ TermAlgebra* Theory::getTupleTermAlgebra(unsigned arity)
   args.loadFromIterator(varRange(arity, 2*arity));
 
   auto tupleType = OperatorType::getFunctionType(typeVars, tupleSort, arity);
-  auto functor = env.signature->addFreshFunction(tupleType, "tuple");
-  env.signature->getFunction(functor)->markTermAlgebraCons();
+  auto functor = env.signature->freshFunction(tupleType, "tuple").termAlgebraConstructor().number();
 
   Array<unsigned> destructors(arity);
   for (unsigned i = 0; i < arity; i++) {
-    auto destructor = env.signature->addFreshFunction(OperatorType::getFunctionType({ tupleSort }, typeVars[i], arity), "proj");
-    auto destSym = env.signature->getFunction(destructor);
-    destSym->markTermAlgebraDest();
+    auto destructor = env.signature->freshFunction(OperatorType::getFunctionType({ tupleSort }, typeVars[i], arity), "proj")
+      .termAlgebraDestructor().number();
     destructors[i] = destructor;
   }
 

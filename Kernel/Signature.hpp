@@ -442,6 +442,69 @@ class Signature
   // Uninterpreted symbol declarations
   //
 
+  // The signature owns the symbol; the builder only keeps a handle to it.
+  class SymbolBuilder {
+    Symbol* _symbol;
+    unsigned _number;
+  public:
+    SymbolBuilder(Symbol* symbol, unsigned number) : _symbol(symbol), _number(number) {}
+    unsigned number() const { return _number; }
+    Symbol* operator->() const { return _symbol; }
+    Symbol& symbol() const { return *_symbol; }
+    SymbolBuilder& introduced() { _symbol->markIntroduced(); return *this; }
+    SymbolBuilder& skolem() { _symbol->markSkolem(); return *this; }
+    SymbolBuilder& skip() { _symbol->markSkip(); return *this; }
+    SymbolBuilder& skipCongruence() { _symbol->markSkipCongruence(); return *this; }
+    SymbolBuilder& protect() { _symbol->markProtected(); return *this; }
+    SymbolBuilder& color(Color color) { _symbol->addColor(color); return *this; }
+    SymbolBuilder& label() { _symbol->markLabel(); return *this; }
+    SymbolBuilder& equalityProxy() { _symbol->markEqualityProxy(); return *this; }
+    SymbolBuilder& termAlgebraConstructor() { _symbol->markTermAlgebraCons(); return *this; }
+    SymbolBuilder& termAlgebraDestructor() { _symbol->markTermAlgebraDest(); return *this; }
+    SymbolBuilder& termAlgebraDiscriminator() { _symbol->markTermAlgebraDiscriminator(); return *this; }
+    SymbolBuilder& answerPredicate() { _symbol->markAnswerPredicate(); return *this; }
+  };
+
+  SymbolBuilder function(const std::string& name, OperatorType* type) {
+    unsigned number = addFunction(name, type);
+    return SymbolBuilder(getFunction(number), number);
+  }
+  SymbolBuilder predicate(const std::string& name, OperatorType* type) {
+    unsigned number = addPredicate(name, type);
+    return SymbolBuilder(getPredicate(number), number);
+  }
+  SymbolBuilder typeConstructor(const std::string& name, unsigned arity) {
+    unsigned number = addTypeCon(name, arity);
+    return SymbolBuilder(getTypeCon(number), number);
+  }
+  SymbolBuilder freshFunction(OperatorType* type, const char* prefix, const char* suffix = nullptr) {
+    unsigned number = addFreshFunction(type, prefix, suffix);
+    return SymbolBuilder(getFunction(number), number);
+  }
+  SymbolBuilder freshPredicate(OperatorType* type, const char* prefix, const char* suffix = nullptr) {
+    unsigned number = addFreshPredicate(type, prefix, suffix);
+    return SymbolBuilder(getPredicate(number), number);
+  }
+  SymbolBuilder freshTypeConstructor(unsigned arity, const char* prefix) {
+    unsigned number = addFreshTypeCon(arity, prefix);
+    return SymbolBuilder(getTypeCon(number), number);
+  }
+
+  SymbolBuilder function(const std::string& name, OperatorType* type, bool& added) {
+    unsigned number = addFunction(name, type, added);
+    return SymbolBuilder(getFunction(number), number);
+  }
+
+  SymbolBuilder predicate(const std::string& name, OperatorType* type, bool& added) {
+    unsigned number = addPredicate(name, type, added);
+    return SymbolBuilder(getPredicate(number), number);
+  }
+
+  SymbolBuilder typeConstructor(const std::string& name, unsigned arity, bool& added) {
+    unsigned number = addTypeCon(name, arity, added);
+    return SymbolBuilder(getTypeCon(number), number);
+  }
+
   unsigned addPredicate(const std::string& name, OperatorType* type, bool& added);
   unsigned addTypeCon(const std::string& name, unsigned arity, bool& added);
   unsigned addFunction(const std::string& name, OperatorType* type, bool& added);
@@ -803,8 +866,8 @@ class Signature
 
   unsigned getFoolConstantSymbol(bool isTrue){ 
     if(!_foolConstantsDefined){
-      _foolFalse = addFunction("$$false",OperatorType::getConstantsType(AtomicSort::boolSort())); 
-      _foolTrue = addFunction("$$true", OperatorType::getConstantsType(AtomicSort::boolSort()));
+      _foolFalse = function("$$false",OperatorType::getConstantsType(AtomicSort::boolSort())).number();
+      _foolTrue = function("$$true", OperatorType::getConstantsType(AtomicSort::boolSort())).number();
       _foolConstantsDefined=true;
     }
     return isTrue ? _foolTrue : _foolFalse;
@@ -815,28 +878,28 @@ class Signature
   }
 
   unsigned getDefaultSort(){
-    return addTypeCon("$i", 0);
+    return typeConstructor("$i", 0).number();
   }
 
   unsigned getBoolSort(){
-    return addTypeCon("$o", 0);
+    return typeConstructor("$o", 0).number();
   }
 
   unsigned getRealSort(){
-    return addTypeCon("$real", 0);
+    return typeConstructor("$real", 0).number();
   }
 
   unsigned getIntSort(){
-    return addTypeCon("$int", 0);
+    return typeConstructor("$int", 0).number();
   }  
 
   unsigned getRatSort(){
-    return addTypeCon("$rat", 0);
+    return typeConstructor("$rat", 0).number();
   }
 
   unsigned getArrowConstructor(){
     bool added = false;
-    unsigned arrow = addTypeCon("vARROW",2, added);
+    unsigned arrow = typeConstructor("vARROW",2, added).number();
     if(added){
       _arrowCon = arrow;
     }
@@ -845,7 +908,7 @@ class Signature
 
   unsigned getArrayConstructor(){
     bool added = false;
-    unsigned array = addTypeCon("Array",2, added);
+    unsigned array = typeConstructor("Array",2, added).number();
     if(added){
       _arrayCon = array;
     }
@@ -855,7 +918,7 @@ class Signature
   unsigned getTupleConstructor(unsigned arity){
     bool added = false;
     //TODO make the name unique
-    unsigned tuple = addTypeCon("Tuple", arity, added);
+    unsigned tuple = typeConstructor("Tuple", arity, added).number();
     if(added){
       Symbol* tup = getTypeCon(tuple);
       tup->markTuple();
@@ -868,7 +931,7 @@ class Signature
     TermList result = AtomicSort::arrowSort({tv, tv, AtomicSort::boolSort()});
 
     bool added = false;
-    unsigned eqProxy = addFunction("vEQ", OperatorType::getConstantsType(result, 1),added);
+    unsigned eqProxy = function("vEQ", OperatorType::getConstantsType(result, 1),added).number();
     if(added){
       getFunction(eqProxy)->setProxy(Proxy::EQUALS);
     }
@@ -890,7 +953,7 @@ class Signature
     auto bs = AtomicSort::boolSort();
     auto result = AtomicSort::arrowSort({bs, bs, bs});
 
-    unsigned proxy = addFunction(name, OperatorType::getConstantsType(result), added);
+    unsigned proxy = function(name, OperatorType::getConstantsType(result), added).number();
     if (added) {
       getFunction(proxy)->setProxy(convert(name));
     }
@@ -902,7 +965,7 @@ class Signature
     TermList result = AtomicSort::arrowSort(bs, bs);
 
     bool added = false;
-    unsigned notProxy = addFunction("vNOT", OperatorType::getConstantsType(result), added);
+    unsigned notProxy = function("vNOT", OperatorType::getConstantsType(result), added).number();
     if(added){
       getFunction(notProxy)->setProxy(Proxy::NOT);
     }
@@ -915,7 +978,7 @@ class Signature
     result = AtomicSort::arrowSort(result, AtomicSort::boolSort());
 
     bool added = false;
-    unsigned proxy = addFunction(name, OperatorType::getConstantsType(result, 1), added);
+    unsigned proxy = function(name, OperatorType::getConstantsType(result, 1), added).number();
     if (added) {
       getFunction(proxy)->setProxy(name == "vPI" ? Proxy::PI : Proxy::SIGMA);
     }
