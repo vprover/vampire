@@ -19,13 +19,13 @@
  *
  * which are intended as one allocation:
  *
- * arity | <maybe padding> | arg[0] | ... | arg[arity]
+ * arity | <maybe padding> | arg[0] | ... | arg[arity - 1]
  */
 
 #ifndef __FlexibleTail__
 #define __FlexibleTail__
 
-#include "Debug/Assertion.hpp"
+#include <cstddef>
 
 namespace Lib {
 
@@ -38,11 +38,11 @@ namespace Lib {
  * Call allocationRequired() to know how many bytes you need.
  *
  * The resulting object will be laid out as follows:
- * | derived | <maybe padding> | arg[0] | ... | arg[arity]|
+ * | derived | <maybe padding> | arg[0] | ... | arg[arity - 1]|
  * ^ this
  *           ^ this + sizeof(Derived)
  *                             ^ flexibleTail()
- *                                                        ^ flexibleTail() + arity * sizeof(TermList)
+ *                                                            ^ flexibleTail() + arity * sizeof(TermList)
  */
 template<typename Derived, typename T>
 struct FlexibleTail {
@@ -63,7 +63,7 @@ struct FlexibleTail {
   }
 
   // number of bytes required for Derived with a tail of `length`
-  constexpr static size_t allocationRequired(unsigned length) {
+  constexpr static size_t bytesRequiredFor(unsigned length) {
     return tailOffset() + length * sizeof(T);
   }
 
