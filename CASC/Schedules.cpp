@@ -1430,12 +1430,12 @@ void Schedules::getIntindOeisSchedule(const Shell::Property& property, Schedule&
    quick.push("lrs-10_1:1024_drc=ordering:fnrw=on:gtg=position:ins=2:kws=inv_frequency:newcnf=on:norm_ineq=on:sac=on:sas=z3:sos=on:i=401:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_av=off:drc=off:ev=force:fd=preordered:gtg=all:gtgl=4:ind=both:lcm=reverse:s2a=on:sp=reverse_arity:to=lpo:uwa=interpreted_only:i=590:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_av=off:canc=cautious:ind=int:intindstcomp=none:intindstterm=no_skolems:spb=goal_then_units:to=lpo:urr=on:i=111:si=on:rtra=on_0");
-   quick.push("lrs+10_5:1_drc=ordering:br=off:canc=force:fd=preordered:ind=int:indc=goal:intindsteq=only_one_occurrence:sos=on:sp=frequency:to=lpo:urr=on:i=24:si=on:rtra=on_0");
+   quick.push("lrs+10_5:1_drc=ordering:br=off:canc=force:fd=preordered:ind=int:indgco=on:intindsteq=only_one_occurrence:sos=on:sp=frequency:to=lpo:urr=on:i=24:si=on:rtra=on_0");
    quick.push("ott+10_1:1_drc=ordering:br=off:ep=RSTC:ev=force:fnrw=on:gtg=position:ins=1:kws=inv_arity:newcnf=on:sos=all:i=245:si=on:rtra=on_0");
    quick.push("ott+1010_1:1_drc=ordering:anc=all:ev=force:fnrw=on:ins=1:newcnf=on:rawr=on:slsq=on:to=lpo:i=119:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_drc=off:ev=force:gtg=all:ind=both:intinddb=on:intindint=finite:intindstcomp=only_one_occurrence:intindstterm=no_skolems:sas=z3:sp=const_min:to=lpo:i=1083:si=on:rtra=on_0");
    quick.push("lrs+10_1:128_drc=ordering:br=off:ev=cautious:fd=preordered:fnrw=on:gtg=all:ins=2:kws=precedence:newcnf=on:sos=on:sp=frequency:spb=intro:i=261:si=on:rtra=on_0");
-   quick.push("ott+11_1:1_asg=force:av=off:canc=force:drc=off:ev=force:gve=force:ind=both:indc=goal_plus:nwc=3.0:s2a=on:sd=10:sp=const_frequency:ss=included:st=5.0:tar=off:thi=neg_eq:to=lpo:uwa=one_side_constant:i=458:si=on:rtra=on_0");
+   quick.push("ott+11_1:1_asg=force:av=off:canc=force:drc=off:ev=force:gve=force:ind=both:indgco=on:indso=on:nwc=3.0:s2a=on:sd=10:sp=const_frequency:ss=included:st=5.0:tar=off:thi=neg_eq:to=lpo:uwa=one_side_constant:i=458:si=on:rtra=on_0");
    quick.push("lrs+11_1:1_ev=force:fsr=off:kws=precedence:sp=unary_frequency:i=114:si=on:rtra=on_0");
    quick.push("lrs+10_1:128_canc=cautious:ev=force:fnrw=on:gtg=exists_sym:newcnf=on:nwc=10.0:to=lpo:i=163:si=on:rtra=on_0");
    quick.push("ott+1002_1:1_drc=ordering:bd=preordered:br=off:ep=R:fnrw=on:ins=2:newcnf=on:norm_ineq=on:sas=z3:sffsmt=on:to=lpo:i=949:si=on:rtra=on_0");
@@ -1446,7 +1446,7 @@ void Schedules::getIntindOeisSchedule(const Shell::Property& property, Schedule&
    quick.push("ott+1002_1:1_drc=off:fnrw=on:gtg=all:ind=both:intindint=infinite:intindstterm=no_skolems:newcnf=on:s2a=on:sas=z3:sos=on:sp=const_min:tac=axiom:thi=neg_eq:to=lpo:uhcvi=on:i=1409:si=on:rtra=on_0");
   // Improves by expected 768.8930392701382 probs costing 9984 Mi
   // Sub-schedule for 30000Mi strat cap / 30000Mi overall limit
-   quick.push("dis+1010_1:8_drc=ordering:av=off:bsr=on:ev=cautious:gtg=all:gtgl=5:ind=int:indc=goal_plus:intindsteq=toplevel_not_in_other:nwc=10.0:plsq=on:plsql=on:plsqr=32,1:pum=on:rawr=on:sp=unary_frequency:tac=axiom:taea=off:tgt=ground:thi=strong:thigen=on:uwa=interpreted_only:i=1215:si=on:rtra=on_0");
+   quick.push("dis+1010_1:8_drc=ordering:av=off:bsr=on:ev=cautious:gtg=all:gtgl=5:ind=int:indgco=on:indso=on:intindsteq=toplevel_not_in_other:nwc=10.0:plsq=on:plsql=on:plsqr=32,1:pum=on:rawr=on:sp=unary_frequency:tac=axiom:taea=off:tgt=ground:thi=strong:thigen=on:uwa=interpreted_only:i=1215:si=on:rtra=on_0");
    quick.push("ott+10_1:1_bd=preordered:bsr=on:drc=off:gtg=exists_sym:gtgl=2:ind=int:intindint=infinite:intindsteq=only_one_occurrence:newcnf=on:nwc=3.0:sac=on:sas=z3:sp=const_min:spb=goal:tac=light:thi=all:to=lpo:i=990:si=on:rtra=on_0");
    quick.push("ott+11_1:1_av=off:canc=force:drc=off:fd=preordered:ind=both:indmd=5:intindsteq=toplevel_not_in_other:pum=on:spb=non_intro:to=lpo:i=1237:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_asg=cautious:drc=off:fde=unused:gtg=exists_all:ind=both:indoct=on:ins=4:intindstterm=no_skolems:newcnf=on:rawr=on:s2a=on:s2at=5.0:sp=const_min:spb=goal_then_units:tac=rule:to=lpo:i=453:si=on:rtra=on_0");
@@ -1455,7 +1455,7 @@ void Schedules::getIntindOeisSchedule(const Shell::Property& property, Schedule&
    quick.push("ott+10_1:16_asg=cautious:drc=off:erd=off:fd=preordered:norm_ineq=on:sp=unary_first:spb=intro:tar=off:tgt=ground:to=lpo:i=711:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_av=off:ev=force:ind=int:indgen=on:indgenss=1:intindint=infinite:newcnf=on:nwc=5.0:s2a=on:sp=frequency:to=lpo:i=234:si=on:rtra=on_0");
    quick.push("lrs+2_8:1_asg=force:av=off:drc=off:ev=force:flr=on:gtg=all:gtgl=2:ind=both:indmd=10:intindstterm=none:lcm=reverse:nwc=10.0:sp=frequency:spb=goal:tar=off:tgt=full:thi=strong:thigen=on:to=lpo:i=860:si=on:rtra=on_0");
-   quick.push("ott+2_1:1_drc=off:ev=force:fdi=60:ind=int:indao=on:indc=goal:indmd=10:newcnf=on:norm_ineq=on:pum=on:s2agt=16:s2at=1.5:s2pl=no:sp=const_max:spb=goal_then_units:to=lpo:updr=off:uwa=one_side_constant:i=322:si=on:rtra=on_0");
+   quick.push("ott+2_1:1_drc=off:ev=force:fdi=60:ind=int:indao=on:indgco=on:indmd=10:newcnf=on:norm_ineq=on:pum=on:s2agt=16:s2at=1.5:s2pl=no:sp=const_max:spb=goal_then_units:to=lpo:updr=off:uwa=one_side_constant:i=322:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_av=off:drc=off:ev=force:fd=preordered:gtg=all:gtgl=4:ind=both:lcm=reverse:s2a=on:sp=reverse_arity:to=lpo:uwa=interpreted_only:i=872:si=on:rtra=on_0");
    quick.push("ott+21_1:1_canc=cautious:drc=off:gtg=exists_top:ind=both:newcnf=on:spb=goal_then_units:to=lpo:urr=on:i=602:si=on:rtra=on_0");
    quick.push("ott-1011_1:1_drc=ordering:bd=off:fsr=off:gtg=exists_sym:gtgl=3:kws=inv_frequency:nwc=10.0:s2a=on:slsq=on:thi=neg_eq:uwa=one_side_interpreted:i=839:si=on:rtra=on_0");
@@ -1464,8 +1464,8 @@ void Schedules::getIntindOeisSchedule(const Shell::Property& property, Schedule&
    quick.push("ott+1010_1:1_drc=ordering:anc=all:ev=force:fnrw=on:ins=1:newcnf=on:rawr=on:slsq=on:to=lpo:i=671:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_drc=off:ev=force:gtg=all:ind=both:intinddb=on:intindint=finite:intindstcomp=only_one_occurrence:intindstterm=no_skolems:sas=z3:sp=const_min:to=lpo:i=4846:si=on:rtra=on_0");
    quick.push("lrs+10_1:128_drc=ordering:br=off:ev=cautious:fd=preordered:fnrw=on:gtg=all:ins=2:kws=precedence:newcnf=on:sos=on:sp=frequency:spb=intro:i=1569:si=on:rtra=on_0");
-   quick.push("ott+11_1:1_asg=force:av=off:canc=force:drc=off:ev=force:gve=force:ind=both:indc=goal_plus:nwc=3.0:s2a=on:sd=10:sp=const_frequency:ss=included:st=5.0:tar=off:thi=neg_eq:to=lpo:uwa=one_side_constant:i=3272:si=on:rtra=on_0");
-   quick.push("ott+10_1:1_afr=on:asg=cautious:avsq=on:avsqc=1:drc=off:ev=force:ind=int:indc=goal:indu=off:intindstterm=no_skolems:nm=16:spb=non_intro:to=lpo:uwa=all:i=691:si=on:rtra=on_0");
+   quick.push("ott+11_1:1_asg=force:av=off:canc=force:drc=off:ev=force:gve=force:ind=both:indgco=on:indso=on:nwc=3.0:s2a=on:sd=10:sp=const_frequency:ss=included:st=5.0:tar=off:thi=neg_eq:to=lpo:uwa=one_side_constant:i=3272:si=on:rtra=on_0");
+   quick.push("ott+10_1:1_afr=on:asg=cautious:avsq=on:avsqc=1:drc=off:ev=force:ind=int:indgco=on:indu=off:intindstterm=no_skolems:nm=16:spb=non_intro:to=lpo:uwa=all:i=691:si=on:rtra=on_0");
    quick.push("lrs+1011_8:1_drc=ordering:afp=5000:afq=1.93:fdi=50:ins=1:pum=on:rawr=on:sas=z3:sos=theory:sp=const_min:spb=goal_then_units:tar=off:tgt=ground:thi=strong:to=lpo:i=618:si=on:rtra=on_0");
    quick.push("lrs+21_8:1_av=off:canc=cautious:gtg=position:ind=int:intindint=infinite:lwlo=on:plsq=on:plsqc=1:plsqr=8767905,1048576:s2a=on:s2agt=64:s2pl=on:sp=unary_frequency:to=lpo:i=2259:si=on:rtra=on_0");
    quick.push("ott+1010_3:2_canc=force:drc=off:ev=force:gtg=all:ind=both:intindint=infinite:intindstcomp=none:intindstterm=no_skolems:newcnf=on:sos=all:sp=const_max:spb=non_intro:to=lpo:urr=on:i=715:si=on:rtra=on_0");
@@ -1475,7 +1475,7 @@ void Schedules::getIntindOeisSchedule(const Shell::Property& property, Schedule&
    quick.push("ott+1002_1:1_drc=off:fnrw=on:gtg=all:ind=both:intindint=infinite:intindstterm=no_skolems:newcnf=on:s2a=on:sas=z3:sos=on:sp=const_min:tac=axiom:thi=neg_eq:to=lpo:uhcvi=on:i=1660:si=on:rtra=on_0");
   // Improves by expected 64.39173134160707 probs costing 29963 Mi
   // Sub-schedule for 80000Mi strat cap / 80000Mi overall limit
-   quick.push("dis+1010_1:8_drc=ordering:av=off:bsr=on:ev=cautious:gtg=all:gtgl=5:ind=int:indc=goal_plus:intindsteq=toplevel_not_in_other:nwc=10.0:plsq=on:plsql=on:plsqr=32,1:pum=on:rawr=on:sp=unary_frequency:tac=axiom:taea=off:tgt=ground:thi=strong:thigen=on:uwa=interpreted_only:i=4823:si=on:rtra=on_0");
+   quick.push("dis+1010_1:8_drc=ordering:av=off:bsr=on:ev=cautious:gtg=all:gtgl=5:ind=int:indgco=on:indso=on:intindsteq=toplevel_not_in_other:nwc=10.0:plsq=on:plsql=on:plsqr=32,1:pum=on:rawr=on:sp=unary_frequency:tac=axiom:taea=off:tgt=ground:thi=strong:thigen=on:uwa=interpreted_only:i=4823:si=on:rtra=on_0");
    quick.push("ott+1011_1:1_alpa=false:asg=cautious:drc=off:ins=1:sac=on:sp=unary_frequency:thi=overlap:to=lpo:uwa=interpreted_only:i=517:si=on:rtra=on_0");
    quick.push("dis+1010_1:1_drc=ordering:asg=cautious:canc=force:ins=1:sas=z3:sos=on:spb=non_intro:tgt=full:to=lpo:i=2189:si=on:rtra=on_0");
    quick.push("ott+10_1:1_bd=preordered:bsr=on:drc=off:gtg=exists_sym:gtgl=2:ind=int:intindint=infinite:intindsteq=only_one_occurrence:newcnf=on:nwc=3.0:sac=on:sas=z3:sp=const_min:spb=goal:tac=light:thi=all:to=lpo:i=990:si=on:rtra=on_0");
@@ -1488,7 +1488,7 @@ void Schedules::getIntindOeisSchedule(const Shell::Property& property, Schedule&
    quick.push("lrs+1011_1:8_flr=on:ile=on:ind=int:sp=unary_first:tgt=ground:thi=strong:thitd=on:to=lpo:uhcvi=on:uwa=all:i=479:si=on:rtra=on_0");
    quick.push("ott+10_1:16_asg=cautious:drc=off:erd=off:fd=preordered:norm_ineq=on:sp=unary_first:spb=intro:tar=off:tgt=ground:to=lpo:i=2617:si=on:rtra=on_0");
    quick.push("ott+1010_1:1_avsq=on:avsqr=6,31:drc=off:ins=3:newcnf=on:nm=16:s2a=on:sas=z3:sp=frequency:tac=rule:thi=all:to=lpo:uwa=ground:i=795:si=on:rtra=on_0");
-   quick.push("lrs+1_1:256_drc=ordering:ind=struct:indc=goal_plus:ins=2:nm=40:nwc=6.0:s2at=3.0:slsq=on:slsql=off:slsqr=11,17:spb=non_intro:thi=all:thitd=on:to=lpo:i=1803:si=on:rtra=on_0");
+   quick.push("lrs+1_1:256_drc=ordering:ind=struct:indgco=on:indso=on:ins=2:nm=40:nwc=6.0:s2at=3.0:slsq=on:slsql=off:slsqr=11,17:spb=non_intro:thi=all:thitd=on:to=lpo:i=1803:si=on:rtra=on_0");
    quick.push("ott+1002_5:2_drc=ordering:canc=cautious:fd=preordered:gsp=on:gtg=exists_all:gtgl=3:ind=both:s2a=on:s2at=5.0:sac=on:sas=z3:slsq=on:slsqc=4:slsqr=1,4:sp=reverse_arity:to=lpo:urr=on:i=2346:si=on:rtra=on_0");
    quick.push("lrs-10_1:1024_drc=ordering:fnrw=on:gtg=position:ins=2:kws=inv_frequency:newcnf=on:norm_ineq=on:sac=on:sas=z3:sos=on:i=1399:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_av=off:drc=off:ev=force:fd=preordered:gtg=all:gtgl=4:ind=both:lcm=reverse:s2a=on:sp=reverse_arity:to=lpo:uwa=interpreted_only:i=1549:si=on:rtra=on_0");
@@ -1497,16 +1497,16 @@ void Schedules::getIntindOeisSchedule(const Shell::Property& property, Schedule&
    quick.push("ott-1011_1:1_drc=ordering:bd=off:fsr=off:gtg=exists_sym:gtgl=3:kws=inv_frequency:nwc=10.0:s2a=on:slsq=on:thi=neg_eq:uwa=one_side_interpreted:i=1101:si=on:rtra=on_0");
    quick.push("ott+1010_1:1_drc=ordering:canc=force:fnrw=on:ins=1:newcnf=on:sas=z3:sos=on:sp=frequency:to=lpo:i=2335:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_drc=off:ev=force:gtg=all:ind=both:intinddb=on:intindint=finite:intindstcomp=only_one_occurrence:intindstterm=no_skolems:sas=z3:sp=const_min:to=lpo:i=11689:si=on:rtra=on_0");
-   quick.push("ott+11_1:1_asg=force:av=off:canc=force:drc=off:ev=force:gve=force:ind=both:indc=goal_plus:nwc=3.0:s2a=on:sd=10:sp=const_frequency:ss=included:st=5.0:tar=off:thi=neg_eq:to=lpo:uwa=one_side_constant:i=7199:si=on:rtra=on_0");
-   quick.push("ott+10_1:1_afr=on:asg=cautious:avsq=on:avsqc=1:drc=off:ev=force:ind=int:indc=goal:indu=off:intindstterm=no_skolems:nm=16:spb=non_intro:to=lpo:uwa=all:i=691:si=on:rtra=on_0");
+   quick.push("ott+11_1:1_asg=force:av=off:canc=force:drc=off:ev=force:gve=force:ind=both:indgco=on:indso=on:nwc=3.0:s2a=on:sd=10:sp=const_frequency:ss=included:st=5.0:tar=off:thi=neg_eq:to=lpo:uwa=one_side_constant:i=7199:si=on:rtra=on_0");
+   quick.push("ott+10_1:1_afr=on:asg=cautious:avsq=on:avsqc=1:drc=off:ev=force:ind=int:indgco=on:indu=off:intindstterm=no_skolems:nm=16:spb=non_intro:to=lpo:uwa=all:i=691:si=on:rtra=on_0");
    quick.push("lrs+21_8:1_av=off:canc=cautious:gtg=position:ind=int:intindint=infinite:lwlo=on:plsq=on:plsqc=1:plsqr=8767905,1048576:s2a=on:s2agt=64:s2pl=on:sp=unary_frequency:to=lpo:i=2259:si=on:rtra=on_0");
    quick.push("ott+1010_3:2_canc=force:drc=off:ev=force:gtg=all:ind=both:intindint=infinite:intindstcomp=none:intindstterm=no_skolems:newcnf=on:sos=all:sp=const_max:spb=non_intro:to=lpo:urr=on:i=1455:si=on:rtra=on_0");
-   quick.push("ott+10_1:1_drc=ordering:ind=both:indc=goal:intindsteq=not_in_both:nwc=3.0:sas=z3:sp=frequency:to=lpo:i=306:si=on:rtra=on_0");
+   quick.push("ott+10_1:1_drc=ordering:ind=both:indgco=on:intindsteq=not_in_both:nwc=3.0:sas=z3:sp=frequency:to=lpo:i=306:si=on:rtra=on_0");
    quick.push("lrs+1011_1:1_drc=ordering:ep=R:fnrw=on:kws=precedence:newcnf=on:norm_ineq=on:pum=on:sas=z3:sp=frequency:tgt=ground:i=11267:si=on:rtra=on_0");
    quick.push("ott+1002_1:1_drc=off:fnrw=on:gtg=all:ind=both:intindint=infinite:intindstterm=no_skolems:newcnf=on:s2a=on:sas=z3:sos=on:sp=const_min:tac=axiom:thi=neg_eq:to=lpo:uhcvi=on:i=8399:si=on:rtra=on_0");
   // Improves by expected 38.96337376225668 probs costing 79240 Mi
   // Sub-schedule for 120000Mi strat cap / 120000Mi overall limit
-   quick.push("dis+1010_1:8_drc=ordering:av=off:bsr=on:ev=cautious:gtg=all:gtgl=5:ind=int:indc=goal_plus:intindsteq=toplevel_not_in_other:nwc=10.0:plsq=on:plsql=on:plsqr=32,1:pum=on:rawr=on:sp=unary_frequency:tac=axiom:taea=off:tgt=ground:thi=strong:thigen=on:uwa=interpreted_only:i=1215:si=on:rtra=on_0");
+   quick.push("dis+1010_1:8_drc=ordering:av=off:bsr=on:ev=cautious:gtg=all:gtgl=5:ind=int:indgco=on:indso=on:intindsteq=toplevel_not_in_other:nwc=10.0:plsq=on:plsql=on:plsqr=32,1:pum=on:rawr=on:sp=unary_frequency:tac=axiom:taea=off:tgt=ground:thi=strong:thigen=on:uwa=interpreted_only:i=1215:si=on:rtra=on_0");
    quick.push("ott+1011_1:1_alpa=false:asg=cautious:drc=off:ins=1:sac=on:sp=unary_frequency:thi=overlap:to=lpo:uwa=interpreted_only:i=376:si=on:rtra=on_0");
    quick.push("dis+1010_1:1_drc=ordering:asg=cautious:canc=force:ins=1:sas=z3:sos=on:spb=non_intro:tgt=full:to=lpo:i=2189:si=on:rtra=on_0");
    quick.push("ott+10_1:1_bd=preordered:bsr=on:drc=off:gtg=exists_sym:gtgl=2:ind=int:intindint=infinite:intindsteq=only_one_occurrence:newcnf=on:nwc=3.0:sac=on:sas=z3:sp=const_min:spb=goal:tac=light:thi=all:to=lpo:i=6179:si=on:rtra=on_0");
@@ -1526,16 +1526,16 @@ void Schedules::getIntindOeisSchedule(const Shell::Property& property, Schedule&
    quick.push("ott-1011_1:1_drc=ordering:bd=off:fsr=off:gtg=exists_sym:gtgl=3:kws=inv_frequency:nwc=10.0:s2a=on:slsq=on:thi=neg_eq:uwa=one_side_interpreted:i=1101:si=on:rtra=on_0");
    quick.push("ott+1010_1:1_drc=ordering:canc=force:fnrw=on:ins=1:newcnf=on:sas=z3:sos=on:sp=frequency:to=lpo:i=2335:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_drc=off:ev=force:gtg=all:ind=both:intinddb=on:intindint=finite:intindstcomp=only_one_occurrence:intindstterm=no_skolems:sas=z3:sp=const_min:to=lpo:i=25013:si=on:rtra=on_0");
-   quick.push("ott+10_1:1_afr=on:asg=cautious:avsq=on:avsqc=1:drc=off:ev=force:ind=int:indc=goal:indu=off:intindstterm=no_skolems:nm=16:spb=non_intro:to=lpo:uwa=all:i=691:si=on:rtra=on_0");
+   quick.push("ott+10_1:1_afr=on:asg=cautious:avsq=on:avsqc=1:drc=off:ev=force:ind=int:indgco=on:indu=off:intindstterm=no_skolems:nm=16:spb=non_intro:to=lpo:uwa=all:i=691:si=on:rtra=on_0");
    quick.push("lrs+1011_8:1_drc=ordering:afp=5000:afq=1.93:fdi=50:ins=1:pum=on:rawr=on:sas=z3:sos=theory:sp=const_min:spb=goal_then_units:tar=off:tgt=ground:thi=strong:to=lpo:i=989:si=on:rtra=on_0");
    quick.push("lrs+21_8:1_av=off:canc=cautious:gtg=position:ind=int:intindint=infinite:lwlo=on:plsq=on:plsqc=1:plsqr=8767905,1048576:s2a=on:s2agt=64:s2pl=on:sp=unary_frequency:to=lpo:i=2259:si=on:rtra=on_0");
    quick.push("ott+1010_3:2_canc=force:drc=off:ev=force:gtg=all:ind=both:intindint=infinite:intindstcomp=none:intindstterm=no_skolems:newcnf=on:sos=all:sp=const_max:spb=non_intro:to=lpo:urr=on:i=1455:si=on:rtra=on_0");
-   quick.push("ott+10_1:1_drc=ordering:ind=both:indc=goal:intindsteq=not_in_both:nwc=3.0:sas=z3:sp=frequency:to=lpo:i=306:si=on:rtra=on_0");
+   quick.push("ott+10_1:1_drc=ordering:ind=both:indgco=on:intindsteq=not_in_both:nwc=3.0:sas=z3:sp=frequency:to=lpo:i=306:si=on:rtra=on_0");
    quick.push("lrs+1011_1:1_drc=ordering:ep=R:fnrw=on:kws=precedence:newcnf=on:norm_ineq=on:pum=on:sas=z3:sp=frequency:tgt=ground:i=17601:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_drc=ordering:gtg=position:ins=1:norm_ineq=on:sas=z3:sos=on:sp=frequency:thi=all:to=lpo:i=1642:si=on:rtra=on_0");
   // Improves by expected 20.483810176123523 probs costing 119197 Mi
   // Sub-schedule for 120000Mi strat cap / 120000Mi overall limit
-   quick.push("dis+1010_1:8_drc=ordering:av=off:bsr=on:ev=cautious:gtg=all:gtgl=5:ind=int:indc=goal_plus:intindsteq=toplevel_not_in_other:nwc=10.0:plsq=on:plsql=on:plsqr=32,1:pum=on:rawr=on:sp=unary_frequency:tac=axiom:taea=off:tgt=ground:thi=strong:thigen=on:uwa=interpreted_only:i=5153:si=on:rtra=on_0");
+   quick.push("dis+1010_1:8_drc=ordering:av=off:bsr=on:ev=cautious:gtg=all:gtgl=5:ind=int:indgco=on:indso=on:intindsteq=toplevel_not_in_other:nwc=10.0:plsq=on:plsql=on:plsqr=32,1:pum=on:rawr=on:sp=unary_frequency:tac=axiom:taea=off:tgt=ground:thi=strong:thigen=on:uwa=interpreted_only:i=5153:si=on:rtra=on_0");
    quick.push("dis+1010_1:1_drc=ordering:asg=cautious:canc=force:ins=1:sas=z3:sos=on:spb=non_intro:tgt=full:to=lpo:i=2189:si=on:rtra=on_0");
    quick.push("ott+1002_1:1_drc=ordering:canc=cautious:fsr=off:gs=on:ind=both:intindint=finite:intindsteq=always:intindstterm=none:newcnf=on:s2a=on:s2agt=64:sas=z3:sp=frequency:tar=off:tgt=ground:thi=all:to=lpo:i=2504:si=on:rtra=on_0");
    quick.push("ott+1011_8:1_av=off:drc=off:fde=none:ind=int:kws=inv_arity_squared:plsq=on:plsqc=1:plsqr=9,8:rawr=on:sp=unary_first:tgt=ground:thi=all:uwa=ground:i=1901:si=on:rtra=on_0");
@@ -1549,15 +1549,15 @@ void Schedules::getIntindOeisSchedule(const Shell::Property& property, Schedule&
    quick.push("lrs+2_1:1_drc=off:ev=force:gtg=all:ind=both:intinddb=on:intindint=finite:intindstcomp=only_one_occurrence:intindstterm=no_skolems:sas=z3:sp=const_min:to=lpo:i=25013:si=on:rtra=on_0");
    quick.push("ott+21_6:1_drc=ordering:avsq=on:avsql=on:gtg=position:gtgl=3:ind=int:intindsteq=not_in_both:nm=10:pum=on:sas=z3:sp=const_min:thi=all:thigen=on:to=lpo:uwa=ground:i=11432:si=on:rtra=on_0");
    quick.push("lrs+10_1:128_drc=ordering:br=off:ev=cautious:fd=preordered:fnrw=on:gtg=all:ins=2:kws=precedence:newcnf=on:sos=on:sp=frequency:spb=intro:i=20153:si=on:rtra=on_0");
-   quick.push("ott+11_1:1_asg=force:av=off:canc=force:drc=off:ev=force:gve=force:ind=both:indc=goal_plus:nwc=3.0:s2a=on:sd=10:sp=const_frequency:ss=included:st=5.0:tar=off:thi=neg_eq:to=lpo:uwa=one_side_constant:i=2538:si=on:rtra=on_0");
-   quick.push("ott+10_1:1_afr=on:asg=cautious:avsq=on:avsqc=1:drc=off:ev=force:ind=int:indc=goal:indu=off:intindstterm=no_skolems:nm=16:spb=non_intro:to=lpo:uwa=all:i=691:si=on:rtra=on_0");
+   quick.push("ott+11_1:1_asg=force:av=off:canc=force:drc=off:ev=force:gve=force:ind=both:indgco=on:indso=on:nwc=3.0:s2a=on:sd=10:sp=const_frequency:ss=included:st=5.0:tar=off:thi=neg_eq:to=lpo:uwa=one_side_constant:i=2538:si=on:rtra=on_0");
+   quick.push("ott+10_1:1_afr=on:asg=cautious:avsq=on:avsqc=1:drc=off:ev=force:ind=int:indgco=on:indu=off:intindstterm=no_skolems:nm=16:spb=non_intro:to=lpo:uwa=all:i=691:si=on:rtra=on_0");
    quick.push("lrs+21_8:1_av=off:canc=cautious:gtg=position:ind=int:intindint=infinite:lwlo=on:plsq=on:plsqc=1:plsqr=8767905,1048576:s2a=on:s2agt=64:s2pl=on:sp=unary_frequency:to=lpo:i=2259:si=on:rtra=on_0");
    quick.push("ott+1010_3:2_canc=force:drc=off:ev=force:gtg=all:ind=both:intindint=infinite:intindstcomp=none:intindstterm=no_skolems:newcnf=on:sos=all:sp=const_max:spb=non_intro:to=lpo:urr=on:i=1455:si=on:rtra=on_0");
-   quick.push("ott+10_1:1_drc=ordering:ind=both:indc=goal:intindsteq=not_in_both:nwc=3.0:sas=z3:sp=frequency:to=lpo:i=306:si=on:rtra=on_0");
+   quick.push("ott+10_1:1_drc=ordering:ind=both:indgco=on:intindsteq=not_in_both:nwc=3.0:sas=z3:sp=frequency:to=lpo:i=306:si=on:rtra=on_0");
    quick.push("ott+1002_1:1_drc=off:fnrw=on:gtg=all:ind=both:intindint=infinite:intindstterm=no_skolems:newcnf=on:s2a=on:sas=z3:sos=on:sp=const_min:tac=axiom:thi=neg_eq:to=lpo:uhcvi=on:i=8399:si=on:rtra=on_0");
   // Improves by expected 11.98641809031958 probs costing 119881 Mi
   // Sub-schedule for 120000Mi strat cap / 120000Mi overall limit
-   quick.push("dis+1010_1:8_drc=ordering:av=off:bsr=on:ev=cautious:gtg=all:gtgl=5:ind=int:indc=goal_plus:intindsteq=toplevel_not_in_other:nwc=10.0:plsq=on:plsql=on:plsqr=32,1:pum=on:rawr=on:sp=unary_frequency:tac=axiom:taea=off:tgt=ground:thi=strong:thigen=on:uwa=interpreted_only:i=5153:si=on:rtra=on_0");
+   quick.push("dis+1010_1:8_drc=ordering:av=off:bsr=on:ev=cautious:gtg=all:gtgl=5:ind=int:indgco=on:indso=on:intindsteq=toplevel_not_in_other:nwc=10.0:plsq=on:plsql=on:plsqr=32,1:pum=on:rawr=on:sp=unary_frequency:tac=axiom:taea=off:tgt=ground:thi=strong:thigen=on:uwa=interpreted_only:i=5153:si=on:rtra=on_0");
    quick.push("ott+10_1:1_bd=preordered:bsr=on:drc=off:gtg=exists_sym:gtgl=2:ind=int:intindint=infinite:intindsteq=only_one_occurrence:newcnf=on:nwc=3.0:sac=on:sas=z3:sp=const_min:spb=goal:tac=light:thi=all:to=lpo:i=8390:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_drc=ordering:ev=force:gtg=all:gtgl=5:nicw=on:sas=z3:sp=const_max:spb=units:to=lpo:i=1667:si=on:rtra=on_0");
    quick.push("ott+1002_1:1_drc=ordering:canc=cautious:fsr=off:gs=on:ind=both:intindint=finite:intindsteq=always:intindstterm=none:newcnf=on:s2a=on:s2agt=64:sas=z3:sp=frequency:tar=off:tgt=ground:thi=all:to=lpo:i=2330:si=on:rtra=on_0");
@@ -1570,15 +1570,15 @@ void Schedules::getIntindOeisSchedule(const Shell::Property& property, Schedule&
    quick.push("ott+21_1:1_canc=cautious:drc=off:gtg=exists_top:ind=both:newcnf=on:spb=goal_then_units:to=lpo:urr=on:i=739:si=on:rtra=on_0");
    quick.push("ott+1010_1:1_drc=ordering:canc=force:fnrw=on:ins=1:newcnf=on:sas=z3:sos=on:sp=frequency:to=lpo:i=1134:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_drc=off:ev=force:gtg=all:ind=both:intinddb=on:intindint=finite:intindstcomp=only_one_occurrence:intindstterm=no_skolems:sas=z3:sp=const_min:to=lpo:i=25013:si=on:rtra=on_0");
-   quick.push("ott+11_1:1_asg=force:av=off:canc=force:drc=off:ev=force:gve=force:ind=both:indc=goal_plus:nwc=3.0:s2a=on:sd=10:sp=const_frequency:ss=included:st=5.0:tar=off:thi=neg_eq:to=lpo:uwa=one_side_constant:i=3272:si=on:rtra=on_0");
-   quick.push("ott+10_1:1_afr=on:asg=cautious:avsq=on:avsqc=1:drc=off:ev=force:ind=int:indc=goal:indu=off:intindstterm=no_skolems:nm=16:spb=non_intro:to=lpo:uwa=all:i=691:si=on:rtra=on_0");
+   quick.push("ott+11_1:1_asg=force:av=off:canc=force:drc=off:ev=force:gve=force:ind=both:indgco=on:indso=on:nwc=3.0:s2a=on:sd=10:sp=const_frequency:ss=included:st=5.0:tar=off:thi=neg_eq:to=lpo:uwa=one_side_constant:i=3272:si=on:rtra=on_0");
+   quick.push("ott+10_1:1_afr=on:asg=cautious:avsq=on:avsqc=1:drc=off:ev=force:ind=int:indgco=on:indu=off:intindstterm=no_skolems:nm=16:spb=non_intro:to=lpo:uwa=all:i=691:si=on:rtra=on_0");
    quick.push("lrs+21_8:1_av=off:canc=cautious:gtg=position:ind=int:intindint=infinite:lwlo=on:plsq=on:plsqc=1:plsqr=8767905,1048576:s2a=on:s2agt=64:s2pl=on:sp=unary_frequency:to=lpo:i=2259:si=on:rtra=on_0");
-   quick.push("ott+10_1:1_drc=ordering:ind=both:indc=goal:intindsteq=not_in_both:nwc=3.0:sas=z3:sp=frequency:to=lpo:i=1019:si=on:rtra=on_0");
+   quick.push("ott+10_1:1_drc=ordering:ind=both:indgco=on:intindsteq=not_in_both:nwc=3.0:sas=z3:sp=frequency:to=lpo:i=1019:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_drc=ordering:gtg=position:ins=1:norm_ineq=on:sas=z3:sos=on:sp=frequency:thi=all:to=lpo:i=1642:si=on:rtra=on_0");
    quick.push("ott+1002_1:1_drc=off:fnrw=on:gtg=all:ind=both:intindint=infinite:intindstterm=no_skolems:newcnf=on:s2a=on:sas=z3:sos=on:sp=const_min:tac=axiom:thi=neg_eq:to=lpo:uhcvi=on:i=8399:si=on:rtra=on_0");
   // Improves by expected 8.168250634990825 probs costing 119711 Mi
   // Sub-schedule for 120000Mi strat cap / 120000Mi overall limit
-   quick.push("dis+1010_1:8_drc=ordering:av=off:bsr=on:ev=cautious:gtg=all:gtgl=5:ind=int:indc=goal_plus:intindsteq=toplevel_not_in_other:nwc=10.0:plsq=on:plsql=on:plsqr=32,1:pum=on:rawr=on:sp=unary_frequency:tac=axiom:taea=off:tgt=ground:thi=strong:thigen=on:uwa=interpreted_only:i=5153:si=on:rtra=on_0");
+   quick.push("dis+1010_1:8_drc=ordering:av=off:bsr=on:ev=cautious:gtg=all:gtgl=5:ind=int:indgco=on:indso=on:intindsteq=toplevel_not_in_other:nwc=10.0:plsq=on:plsql=on:plsqr=32,1:pum=on:rawr=on:sp=unary_frequency:tac=axiom:taea=off:tgt=ground:thi=strong:thigen=on:uwa=interpreted_only:i=5153:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_asg=cautious:drc=off:fde=unused:gtg=exists_all:ind=both:indoct=on:ins=4:intindstterm=no_skolems:newcnf=on:rawr=on:s2a=on:s2at=5.0:sp=const_min:spb=goal_then_units:tac=rule:to=lpo:i=3801:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_asg=cautious:drc=off:gtg=exists_sym:gtgl=5:ind=both:intindint=infinite:intindstcomp=not_in_both:nwc=2.0:sas=z3:sp=frequency:to=lpo:i=3525:si=on:rtra=on_0");
    quick.push("lrs+2_16:1_drc=ordering:aac=none:amm=off:canc=cautious:ind=both:indao=on:intindsteq=not_in_both:intindstterm=none:s2a=on:sp=frequency:spb=goal:thi=overlap:thitd=on:to=lpo:urr=on:i=27251:si=on:rtra=on_0");
@@ -1588,8 +1588,8 @@ void Schedules::getIntindOeisSchedule(const Shell::Property& property, Schedule&
    quick.push("ott+1010_1:1_drc=ordering:canc=force:fnrw=on:ins=1:newcnf=on:sas=z3:sos=on:sp=frequency:to=lpo:i=3187:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_drc=off:ev=force:gtg=all:ind=both:intinddb=on:intindint=finite:intindstcomp=only_one_occurrence:intindstterm=no_skolems:sas=z3:sp=const_min:to=lpo:i=25013:si=on:rtra=on_0");
    quick.push("ott+21_6:1_drc=ordering:avsq=on:avsql=on:gtg=position:gtgl=3:ind=int:intindsteq=not_in_both:nm=10:pum=on:sas=z3:sp=const_min:thi=all:thigen=on:to=lpo:uwa=ground:i=12063:si=on:rtra=on_0");
-   quick.push("ott+11_1:1_asg=force:av=off:canc=force:drc=off:ev=force:gve=force:ind=both:indc=goal_plus:nwc=3.0:s2a=on:sd=10:sp=const_frequency:ss=included:st=5.0:tar=off:thi=neg_eq:to=lpo:uwa=one_side_constant:i=2799:si=on:rtra=on_0");
-   quick.push("ott+10_1:1_afr=on:asg=cautious:avsq=on:avsqc=1:drc=off:ev=force:ind=int:indc=goal:indu=off:intindstterm=no_skolems:nm=16:spb=non_intro:to=lpo:uwa=all:i=691:si=on:rtra=on_0");
+   quick.push("ott+11_1:1_asg=force:av=off:canc=force:drc=off:ev=force:gve=force:ind=both:indgco=on:indso=on:nwc=3.0:s2a=on:sd=10:sp=const_frequency:ss=included:st=5.0:tar=off:thi=neg_eq:to=lpo:uwa=one_side_constant:i=2799:si=on:rtra=on_0");
+   quick.push("ott+10_1:1_afr=on:asg=cautious:avsq=on:avsqc=1:drc=off:ev=force:ind=int:indgco=on:indu=off:intindstterm=no_skolems:nm=16:spb=non_intro:to=lpo:uwa=all:i=691:si=on:rtra=on_0");
   // Improves by expected 5.072521477354672 probs costing 115830 Mi
   // Overall score 917.9591447527905 probs on average / budget 593806 Mi
 }
@@ -1639,16 +1639,16 @@ void Schedules::getStructInductionSchedule(const Shell::Property& property, Sche
    quick.push("lrs+1011_5:1_av=off:canc=force:s2a=on:sp=const_frequency:to=lpo:urr=on:i=7:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_atotf=0.2:drc=off:gtg=exists_top:ind=both:nwc=10.0:sac=on:sp=unary_frequency:tgt=ground:to=lpo:i=7:si=on:rtra=on_0");
    quick.push("dis+10_1:1_drc=ordering:gtg=exists_top:gve=cautious:ind=struct:indn=off:rawr=on:s2a=on:s2agt=8:sac=on:uwa=all:i=11:si=on:rtra=on_0");
-   quick.push("lrs+2_1:4_drc=off:gtg=position:gve=cautious:ile=on:ind=struct:indao=on:indc=goal:indmd=6:newcnf=on:nwc=5.0:s2a=on:tac=axiom:to=lpo:i=232:si=on:rtra=on_0");
+   quick.push("lrs+2_1:4_drc=off:gtg=position:gve=cautious:ile=on:ind=struct:indao=on:indgco=on:indmd=6:newcnf=on:nwc=5.0:s2a=on:tac=axiom:to=lpo:i=232:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_drc=off:ind=both:indoct=on:indstrhyp=on:sos=on:sp=const_frequency:ss=axioms:to=lpo:i=96:si=on:rtra=on_0");
    quick.push("ott+1002_1:1024_bce=on:drc=off:fsd=on:ind=struct:indgen=on:indgenss=2:sac=on:taea=off:to=lpo:uwa=interpreted_only:i=293:si=on:rtra=on_0");
    quick.push("lrs+1010_1:1_avsq=on:avsqc=1:avsqr=1,16:drc=off:ev=force:ind=struct:sos=on:to=lpo:urr=on:i=14:si=on:rtra=on_0");
-   quick.push("ott+10_1:172_drc=off:gtg=position:ind=both:indao=on:indc=goal:indgen=on:newcnf=on:sik=recursion:sp=frequency:taea=off:uhcvi=on:i=165:si=on:rtra=on_0");
+   quick.push("ott+10_1:172_drc=off:gtg=position:ind=both:indao=on:indgco=on:indgen=on:newcnf=on:sik=recursion:sp=frequency:taea=off:uhcvi=on:i=165:si=on:rtra=on_0");
    quick.push("dis+10_1:14_drc=ordering:gtg=position:sp=frequency:ss=axioms:tgt=full:i=9:si=on:rtra=on_0");
    quick.push("lrs+10_1:128_drc=off:gtg=exists_top:ind=struct:indstrhyp=on:sac=on:slsq=on:slsqc=1:taea=off:i=25:si=on:rtra=on_0");
-   quick.push("lrs+1002_1:1_av=off:br=off:drc=off:gtg=exists_all:ind=both:indc=goal:indmd=15:plsq=on:plsqr=9,1:sos=on:sp=unary_frequency:tgt=ground:to=lpo:uace=off:uwa=one_side_interpreted:i=3:si=on:rtra=on_0");
+   quick.push("lrs+1002_1:1_av=off:br=off:drc=off:gtg=exists_all:ind=both:indgco=on:indmd=15:plsq=on:plsqr=9,1:sos=on:sp=unary_frequency:tgt=ground:to=lpo:uace=off:uwa=one_side_interpreted:i=3:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_ind=struct:indao=on:newcnf=on:plsq=on:plsqr=32,1:sp=frequency:to=lpo:i=2:si=on:rtra=on_0");
-   quick.push("dis+1002_1:1024_av=off:bd=off:drc=off:fsr=off:gtg=position:ind=struct:indc=goal:indgen=on:indgenss=2:taea=off:to=lpo:i=742:si=on:rtra=on_0");
+   quick.push("dis+1002_1:1024_av=off:bd=off:drc=off:fsr=off:gtg=position:ind=struct:indgco=on:indgen=on:indgenss=2:taea=off:to=lpo:i=742:si=on:rtra=on_0");
    quick.push("lrs+1010_1:128_aac=none:alpa=false:cond=fast:drc=off:gtg=position:gve=cautious:ind=both:norm_ineq=on:nwc=10.0:sac=on:sp=frequency:tgt=full:to=lpo:i=53:si=on:rtra=on_0");
   // Improves by expected 5526.94623336456 probs costing 1999 Mi
   // Sub-schedule for 4000Mi strat cap / 4000Mi overall limit
@@ -1662,10 +1662,10 @@ void Schedules::getStructInductionSchedule(const Shell::Property& property, Sche
    quick.push("ott+1002_1:1024_bsd=on:drc=off:fd=preordered:ind=struct:indao=on:indgenss=7:kws=inv_arity:rawr=on:sac=on:sp=const_max:spb=intro:sup=off:uhcvi=on:updr=off:uwa=ground:i=380:si=on:rtra=on_0");
    quick.push("ott+1002_1:1024_bce=on:drc=off:fsd=on:ind=struct:indgen=on:indgenss=2:sac=on:taea=off:to=lpo:uwa=interpreted_only:i=860:si=on:rtra=on_0");
    quick.push("lrs+1010_1:1_avsq=on:avsqc=1:avsqr=1,16:drc=off:ev=force:ind=struct:sos=on:to=lpo:urr=on:i=46:si=on:rtra=on_0");
-   quick.push("ott+10_1:172_drc=off:gtg=position:ind=both:indao=on:indc=goal:indgen=on:newcnf=on:sik=recursion:sp=frequency:taea=off:uhcvi=on:i=1108:si=on:rtra=on_0");
+   quick.push("ott+10_1:172_drc=off:gtg=position:ind=both:indao=on:indgco=on:indgen=on:newcnf=on:sik=recursion:sp=frequency:taea=off:uhcvi=on:i=1108:si=on:rtra=on_0");
    quick.push("lrs+10_1:128_drc=off:gtg=exists_top:ind=struct:indstrhyp=on:sac=on:slsq=on:slsqc=1:taea=off:i=61:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_drc=off:gtg=exists_sym:ind=struct:indstrhyp=on:sp=const_min:taea=off:tar=off:to=lpo:i=67:si=on:rtra=on_0");
-   quick.push("lrs+1002_1:1_av=off:br=off:drc=off:gtg=exists_all:ind=both:indc=goal:indmd=15:plsq=on:plsqr=9,1:sos=on:sp=unary_frequency:tgt=ground:to=lpo:uace=off:uwa=one_side_interpreted:i=3:si=on:rtra=on_0");
+   quick.push("lrs+1002_1:1_av=off:br=off:drc=off:gtg=exists_all:ind=both:indgco=on:indmd=15:plsq=on:plsqr=9,1:sos=on:sp=unary_frequency:tgt=ground:to=lpo:uace=off:uwa=one_side_interpreted:i=3:si=on:rtra=on_0");
    quick.push("lrs+21_1:1_drc=ordering:av=off:ind=struct:newcnf=on:plsq=on:plsqc=1:plsqr=32,1:rawr=on:sos=all:sup=off:i=20:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_ind=struct:indao=on:newcnf=on:plsq=on:plsqr=32,1:sp=frequency:to=lpo:i=19:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_av=off:drc=off:gtg=position:ind=struct:indoct=on:plsq=on:plsqc=1:plsqr=32,1:to=lpo:i=33:si=on:rtra=on_0");
@@ -1675,22 +1675,22 @@ void Schedules::getStructInductionSchedule(const Shell::Property& property, Sche
   // Improves by expected 305.621133946607 probs costing 3995 Mi
   // Sub-schedule for 4000Mi strat cap / 4000Mi overall limit
    quick.push("lrs+10_1:1_drc=ordering:gtg=exists_sym:ind=struct:indstrhyp=on:kws=precedence:sos=on:sp=unary_first:spb=goal:urr=on:i=89:si=on:rtra=on_0");
-   quick.push("ott+10_1:1_drc=ordering:ev=cautious:gtg=exists_top:ind=struct:indc=goal:indstrhyp=on:nwc=10.0:sos=on:i=72:si=on:rtra=on_0");
+   quick.push("ott+10_1:1_drc=ordering:ev=cautious:gtg=exists_top:ind=struct:indgco=on:indstrhyp=on:nwc=10.0:sos=on:i=72:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_drc=ordering:bd=off:gtg=exists_top:ind=struct:indmd=2:indstrhyp=on:nwc=5.0:s2a=on:s2agt=16:i=41:si=on:rtra=on_0");
    quick.push("dis+10_1:128_drc=ordering:ind=both:indmd=1:indstrhyp=on:nui=on:sac=on:i=45:si=on:rtra=on_0");
    quick.push("ott+1002_1:4_drc=off:fde=unused:fsd=on:fsdmm=3:gtg=exists_all:gtgl=3:ind=struct:indgen=on:indoct=on:newcnf=on:norm_ineq=on:sp=occurrence:taea=off:to=lpo:i=84:si=on:rtra=on_0");
-   quick.push("dis+10_1:1_drc=ordering:av=off:fsd=on:fsr=off:gtg=exists_all:ind=struct:indc=goal:indgen=on:ss=axioms:i=66:si=on:rtra=on_0");
+   quick.push("dis+10_1:1_drc=ordering:av=off:fsd=on:fsr=off:gtg=exists_all:ind=struct:indgco=on:indgen=on:ss=axioms:i=66:si=on:rtra=on_0");
    quick.push("ott+1011_1:1_drc=ordering:ind=struct:indstrhyp=on:newcnf=on:nui=on:s2a=on:i=74:si=on:rtra=on_0");
-   quick.push("ott+1011_31:15_abs=on:drc=off:ev=cautious:gtg=position:gtgl=3:ind=struct:indc=goal:indmd=1:taea=off:to=lpo:i=179:si=on:rtra=on_0");
+   quick.push("ott+1011_31:15_abs=on:drc=off:ev=cautious:gtg=position:gtgl=3:ind=struct:indgco=on:indmd=1:taea=off:to=lpo:i=179:si=on:rtra=on_0");
    quick.push("ott+1002_3:2_aac=none:abs=on:alpa=true:drc=off:gve=force:ind=struct:indao=on:newcnf=on:nicw=on:nm=30:rawr=on:taea=off:i=1038:si=on:rtra=on_0");
    quick.push("ott+1002_1:1024_bce=on:drc=off:fsd=on:ind=struct:indgen=on:indgenss=2:sac=on:taea=off:to=lpo:uwa=interpreted_only:i=1022:si=on:rtra=on_0");
-   quick.push("dis+10_1:1_drc=ordering:av=off:bsd=on:fd=off:fnrw=on:gtg=all:gtgl=2:ind=both:indao=on:indc=goal:indgen=on:newcnf=on:plsq=on:plsqr=32,1:ss=axioms:i=89:si=on:rtra=on_0");
+   quick.push("dis+10_1:1_drc=ordering:av=off:bsd=on:fd=off:fnrw=on:gtg=all:gtgl=2:ind=both:indao=on:indgco=on:indgen=on:newcnf=on:plsq=on:plsqr=32,1:ss=axioms:i=89:si=on:rtra=on_0");
    quick.push("ott+1011_1:1_drc=ordering:aac=none:fd=preordered:ind=struct:indao=on:newcnf=on:nm=0:nui=on:sik=three:sp=const_frequency:spb=intro:to=lpo:i=35:si=on:rtra=on_0");
    quick.push("ott+21_1:1_canc=cautious:cond=fast:drc=off:fd=preordered:ind=struct:indao=on:indgen=on:indgenss=1:indoct=on:newcnf=on:sik=recursion:sp=occurrence:taea=off:i=688:si=on:rtra=on_0");
-   quick.push("lrs+1002_1:1_av=off:br=off:drc=off:gtg=exists_all:ind=both:indc=goal:indmd=15:plsq=on:plsqr=9,1:sos=on:sp=unary_frequency:tgt=ground:to=lpo:uace=off:uwa=one_side_interpreted:i=3:si=on:rtra=on_0");
+   quick.push("lrs+1002_1:1_av=off:br=off:drc=off:gtg=exists_all:ind=both:indgco=on:indmd=15:plsq=on:plsqr=9,1:sos=on:sp=unary_frequency:tgt=ground:to=lpo:uace=off:uwa=one_side_interpreted:i=3:si=on:rtra=on_0");
    quick.push("ott+10_5:1_drc=off:ind=struct:indstrhyp=on:kws=precedence:taea=off:uwa=all:i=51:si=on:rtra=on_0");
    quick.push("dis+10_1:64_drc=ordering:ind=both:indao=on:indstrhyp=on:intindint=infinite:newcnf=on:nm=0:ss=axioms:i=55:si=on:rtra=on_0");
-   quick.push("lrs+1010_1:1_drc=ordering:asg=cautious:gtg=all:ind=struct:indc=goal:norm_ineq=on:nui=on:s2a=on:i=111:si=on:rtra=on_0");
+   quick.push("lrs+1010_1:1_drc=ordering:asg=cautious:gtg=all:ind=struct:indgco=on:norm_ineq=on:nui=on:s2a=on:i=111:si=on:rtra=on_0");
    quick.push("lrs+1011_1:7_drc=off:fsr=off:ind=struct:norm_ineq=on:s2a=on:taea=off:to=lpo:uace=off:uwa=interpreted_only:i=60:si=on:rtra=on_0");
    quick.push("dis+10_1:1024_drc=ordering:av=off:ind=struct:indgen=on:indgenss=2:indmd=1:indstrhyp=on:sp=const_min:taea=off:to=lpo:i=38:si=on:rtra=on_0");
    quick.push("lrs+1010_1:128_aac=none:alpa=false:cond=fast:drc=off:gtg=position:gve=cautious:ind=both:norm_ineq=on:nwc=10.0:sac=on:sp=frequency:tgt=full:to=lpo:i=111:si=on:rtra=on_0");
@@ -1701,10 +1701,10 @@ void Schedules::getStructInductionSchedule(const Shell::Property& property, Sche
    quick.push("ott+1002_1:1024_bsd=on:drc=off:fd=preordered:ind=struct:indao=on:indgenss=7:kws=inv_arity:rawr=on:sac=on:sp=const_max:spb=intro:sup=off:uhcvi=on:updr=off:uwa=ground:i=1598:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_drc=off:ind=both:indoct=on:indstrhyp=on:sos=on:sp=const_frequency:ss=axioms:to=lpo:i=311:si=on:rtra=on_0");
    quick.push("ott+1002_1:1024_bce=on:drc=off:fsd=on:ind=struct:indgen=on:indgenss=2:sac=on:taea=off:to=lpo:uwa=interpreted_only:i=1235:si=on:rtra=on_0");
-   quick.push("ott+10_1:172_drc=off:gtg=position:ind=both:indao=on:indc=goal:indgen=on:newcnf=on:sik=recursion:sp=frequency:taea=off:uhcvi=on:i=2892:si=on:rtra=on_0");
+   quick.push("ott+10_1:172_drc=off:gtg=position:ind=both:indao=on:indgco=on:indgen=on:newcnf=on:sik=recursion:sp=frequency:taea=off:uhcvi=on:i=2892:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_drc=off:gtg=all:ind=both:indgen=on:indoct=on:sp=reverse_frequency:ss=axioms:to=lpo:i=102:si=on:rtra=on_0");
    quick.push("dis+21_1:1_drc=ordering:ind=struct:indstrhyp=on:norm_ineq=on:rawr=on:s2a=on:spb=goal:to=lpo:uace=off:urr=on:i=34:si=on:rtra=on_0");
-   quick.push("dis+1002_1:1024_av=off:bd=off:drc=off:fsr=off:gtg=position:ind=struct:indc=goal:indgen=on:indgenss=2:taea=off:to=lpo:i=1117:si=on:rtra=on_0");
+   quick.push("dis+1002_1:1024_av=off:bd=off:drc=off:fsr=off:gtg=position:ind=struct:indgco=on:indgen=on:indgenss=2:taea=off:to=lpo:i=1117:si=on:rtra=on_0");
   // Improves by expected 143.8120963705851 probs costing 7998 Mi
   // Sub-schedule for 20000Mi strat cap / 20000Mi overall limit
    quick.push("ott+2_1:1_drc=ordering:av=off:ev=cautious:fd=preordered:ind=struct:indstrhyp=on:sos=on:i=198:si=on:rtra=on_0");
@@ -1720,7 +1720,7 @@ void Schedules::getStructInductionSchedule(const Shell::Property& property, Sche
    quick.push("ott+1002_1:1024_bce=on:drc=off:fsd=on:ind=struct:indgen=on:indgenss=2:sac=on:taea=off:to=lpo:uwa=interpreted_only:i=2262:si=on:rtra=on_0");
    quick.push("ott+1011_1:1_drc=ordering:aac=none:fd=preordered:ind=struct:indao=on:newcnf=on:nm=0:nui=on:sik=three:sp=const_frequency:spb=intro:to=lpo:i=248:si=on:rtra=on_0");
    quick.push("ott+21_1:1_canc=cautious:cond=fast:drc=off:fd=preordered:ind=struct:indao=on:indgen=on:indgenss=1:indoct=on:newcnf=on:sik=recursion:sp=occurrence:taea=off:i=2535:si=on:rtra=on_0");
-   quick.push("ott+10_1:172_drc=off:gtg=position:ind=both:indao=on:indc=goal:indgen=on:newcnf=on:sik=recursion:sp=frequency:taea=off:uhcvi=on:i=8568:si=on:rtra=on_0");
+   quick.push("ott+10_1:172_drc=off:gtg=position:ind=both:indao=on:indgco=on:indgen=on:newcnf=on:sik=recursion:sp=frequency:taea=off:uhcvi=on:i=8568:si=on:rtra=on_0");
    quick.push("lrs+10_1:128_drc=off:gtg=exists_top:ind=struct:indstrhyp=on:sac=on:slsq=on:slsqc=1:taea=off:i=61:si=on:rtra=on_0");
    quick.push("lrs+10_8:1_drc=ordering:gtg=all:ind=struct:indmd=2:indoct=on:kws=frequency:lma=on:nui=on:sos=on:sp=reverse_frequency:taea=off:i=172:si=on:rtra=on_0");
    quick.push("ott+21_1:10_bsr=on:canc=force:ev=cautious:ile=on:ind=struct:indao=on:indoct=on:newcnf=on:spb=non_intro:tac=rule:taea=off:to=lpo:i=849:si=on:rtra=on_0");
@@ -1763,7 +1763,7 @@ void Schedules::getStructInductionSchedule(const Shell::Property& property, Sche
    quick.push("dis+10_21:29_bd=off:br=off:drc=off:ev=cautious:gs=on:gtg=exists_sym:ind=struct:indgen=on:indgenss=2:lcm=reverse:s2agt=10:sac=on:slsq=on:slsqc=2:sos=all:sp=const_frequency:taea=off:tgt=full:i=35938:si=on:rtra=on_0");
    quick.push("lrs+1010_1:1_avsq=on:avsqc=1:avsqr=1,16:drc=off:ev=force:ind=struct:sos=on:to=lpo:urr=on:i=197:si=on:rtra=on_0");
    quick.push("ott+21_1:1_canc=cautious:cond=fast:drc=off:fd=preordered:ind=struct:indao=on:indgen=on:indgenss=1:indoct=on:newcnf=on:sik=recursion:sp=occurrence:taea=off:i=17422:si=on:rtra=on_0");
-   quick.push("ott+10_1:172_drc=off:gtg=position:ind=both:indao=on:indc=goal:indgen=on:newcnf=on:sik=recursion:sp=frequency:taea=off:uhcvi=on:i=39081:si=on:rtra=on_0");
+   quick.push("ott+10_1:172_drc=off:gtg=position:ind=both:indao=on:indgco=on:indgen=on:newcnf=on:sik=recursion:sp=frequency:taea=off:uhcvi=on:i=39081:si=on:rtra=on_0");
    quick.push("lrs+1010_5:1_drc=ordering:asg=cautious:av=off:fsd=on:gtg=exists_sym:ind=both:indgen=on:indgenss=4:kws=precedence:lwlo=on:nm=30:sos=theory:sp=const_frequency:taea=off:tar=off:i=120:si=on:rtra=on_0");
    quick.push("ott+1011_1:64_avsq=on:avsqr=11223,262144:drc=off:ev=force:lsd=10:nm=16:plsq=on:plsqc=1:plsqr=1,32:rawr=on:sp=unary_frequency:spb=goal:taea=off:tgt=ground:to=lpo:i=191:si=on:rtra=on_0");
    quick.push("dis+21_1:1_drc=ordering:ind=struct:indstrhyp=on:norm_ineq=on:rawr=on:s2a=on:spb=goal:to=lpo:uace=off:urr=on:i=156:si=on:rtra=on_0");
@@ -1784,12 +1784,12 @@ void Schedules::getStructInductionSchedule(const Shell::Property& property, Sche
    quick.push("lrs+10_1:1_drc=off:ind=both:indoct=on:indstrhyp=on:sos=on:sp=const_frequency:ss=axioms:to=lpo:i=574:si=on:rtra=on_0");
    quick.push("ott+1002_1:1024_bce=on:drc=off:fsd=on:ind=struct:indgen=on:indgenss=2:sac=on:taea=off:to=lpo:uwa=interpreted_only:i=8598:si=on:rtra=on_0");
    quick.push("dis+10_21:29_bd=off:br=off:drc=off:ev=cautious:gs=on:gtg=exists_sym:ind=struct:indgen=on:indgenss=2:lcm=reverse:s2agt=10:sac=on:slsq=on:slsqc=2:sos=all:sp=const_frequency:taea=off:tgt=full:i=115235:si=on:rtra=on_0");
-   quick.push("ott+10_1:172_drc=off:gtg=position:ind=both:indao=on:indc=goal:indgen=on:newcnf=on:sik=recursion:sp=frequency:taea=off:uhcvi=on:i=45312:si=on:rtra=on_0");
+   quick.push("ott+10_1:172_drc=off:gtg=position:ind=both:indao=on:indgco=on:indgen=on:newcnf=on:sik=recursion:sp=frequency:taea=off:uhcvi=on:i=45312:si=on:rtra=on_0");
    quick.push("lrs+1010_5:1_drc=ordering:asg=cautious:av=off:fsd=on:gtg=exists_sym:ind=both:indgen=on:indgenss=4:kws=precedence:lwlo=on:nm=30:sos=theory:sp=const_frequency:taea=off:tar=off:i=120:si=on:rtra=on_0");
    quick.push("lrs+10_8:1_drc=ordering:gtg=all:ind=struct:indmd=2:indoct=on:kws=frequency:lma=on:nui=on:sos=on:sp=reverse_frequency:taea=off:i=1165:si=on:rtra=on_0");
    quick.push("ott+1011_1:64_avsq=on:avsqr=11223,262144:drc=off:ev=force:lsd=10:nm=16:plsq=on:plsqc=1:plsqr=1,32:rawr=on:sp=unary_frequency:spb=goal:taea=off:tgt=ground:to=lpo:i=421:si=on:rtra=on_0");
    quick.push("ott+21_1:10_bsr=on:canc=force:ev=cautious:ile=on:ind=struct:indao=on:indoct=on:newcnf=on:spb=non_intro:tac=rule:taea=off:to=lpo:i=5032:si=on:rtra=on_0");
-   quick.push("dis+1002_1:1024_av=off:bd=off:drc=off:fsr=off:gtg=position:ind=struct:indc=goal:indgen=on:indgenss=2:taea=off:to=lpo:i=2124:si=on:rtra=on_0");
+   quick.push("dis+1002_1:1024_av=off:bd=off:drc=off:fsr=off:gtg=position:ind=struct:indgco=on:indgen=on:indgenss=2:taea=off:to=lpo:i=2124:si=on:rtra=on_0");
    quick.push("lrs+1010_1:128_aac=none:alpa=false:cond=fast:drc=off:gtg=position:gve=cautious:ind=both:norm_ineq=on:nwc=10.0:sac=on:sp=frequency:tgt=full:to=lpo:i=561:si=on:rtra=on_0");
   // Improves by expected 79.18911371902213 probs costing 238987 Mi
   // Sub-schedule for 480000Mi strat cap / 480000Mi overall limit
@@ -1802,7 +1802,7 @@ void Schedules::getStructInductionSchedule(const Shell::Property& property, Sche
    quick.push("dis+10_21:29_bd=off:br=off:drc=off:ev=cautious:gs=on:gtg=exists_sym:ind=struct:indgen=on:indgenss=2:lcm=reverse:s2agt=10:sac=on:slsq=on:slsqc=2:sos=all:sp=const_frequency:taea=off:tgt=full:i=84824:si=on:rtra=on_0");
    quick.push("ott+2_1:1_drc=off:fs=off:fsr=off:ind=both:indgen=on:indgenss=2:indoct=on:sac=on:sp=occurrence:i=13173:si=on:rtra=on_0");
    quick.push("ott+21_1:1_canc=cautious:cond=fast:drc=off:fd=preordered:ind=struct:indao=on:indgen=on:indgenss=1:indoct=on:newcnf=on:sik=recursion:sp=occurrence:taea=off:i=56164:si=on:rtra=on_0");
-   quick.push("ott+10_1:172_drc=off:gtg=position:ind=both:indao=on:indc=goal:indgen=on:newcnf=on:sik=recursion:sp=frequency:taea=off:uhcvi=on:i=142751:si=on:rtra=on_0");
+   quick.push("ott+10_1:172_drc=off:gtg=position:ind=both:indao=on:indgco=on:indgen=on:newcnf=on:sik=recursion:sp=frequency:taea=off:uhcvi=on:i=142751:si=on:rtra=on_0");
    quick.push("lrs+1010_5:1_drc=ordering:asg=cautious:av=off:fsd=on:gtg=exists_sym:ind=both:indgen=on:indgenss=4:kws=precedence:lwlo=on:nm=30:sos=theory:sp=const_frequency:taea=off:tar=off:i=158:si=on:rtra=on_0");
   // Improves by expected 57.473513520147854 probs costing 479344 Mi
   // Sub-schedule for 960000Mi strat cap / 960000Mi overall limit
@@ -1818,7 +1818,7 @@ void Schedules::getStructInductionSchedule(const Shell::Property& property, Sche
    quick.push("ott+1002_1:1024_bce=on:drc=off:fsd=on:ind=struct:indgen=on:indgenss=2:sac=on:taea=off:to=lpo:uwa=interpreted_only:i=49784:si=on:rtra=on_0");
    quick.push("dis+10_21:29_bd=off:br=off:drc=off:ev=cautious:gs=on:gtg=exists_sym:ind=struct:indgen=on:indgenss=2:lcm=reverse:s2agt=10:sac=on:slsq=on:slsqc=2:sos=all:sp=const_frequency:taea=off:tgt=full:i=140001:si=on:rtra=on_0");
    quick.push("ott+21_1:1_canc=cautious:cond=fast:drc=off:fd=preordered:ind=struct:indao=on:indgen=on:indgenss=1:indoct=on:newcnf=on:sik=recursion:sp=occurrence:taea=off:i=71989:si=on:rtra=on_0");
-   quick.push("ott+10_1:172_drc=off:gtg=position:ind=both:indao=on:indc=goal:indgen=on:newcnf=on:sik=recursion:sp=frequency:taea=off:uhcvi=on:i=124992:si=on:rtra=on_0");
+   quick.push("ott+10_1:172_drc=off:gtg=position:ind=both:indao=on:indgco=on:indgen=on:newcnf=on:sik=recursion:sp=frequency:taea=off:uhcvi=on:i=124992:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_ind=struct:indao=on:newcnf=on:plsq=on:plsqr=32,1:sp=frequency:to=lpo:i=3032:si=on:rtra=on_0");
    quick.push("ott+21_1:10_bsr=on:canc=force:ev=cautious:ile=on:ind=struct:indao=on:indoct=on:newcnf=on:spb=non_intro:tac=rule:taea=off:to=lpo:i=11986:si=on:rtra=on_0");
   // Improves by expected 35.58186707682759 probs costing 959784 Mi
@@ -1834,7 +1834,7 @@ void Schedules::getStructInductionSchedule(const Shell::Property& property, Sche
    quick.push("ott+1002_1:1024_bce=on:drc=off:fsd=on:ind=struct:indgen=on:indgenss=2:sac=on:taea=off:to=lpo:uwa=interpreted_only:i=124459:si=on:rtra=on_0");
    quick.push("dis+10_21:29_bd=off:br=off:drc=off:ev=cautious:gs=on:gtg=exists_sym:ind=struct:indgen=on:indgenss=2:lcm=reverse:s2agt=10:sac=on:slsq=on:slsqc=2:sos=all:sp=const_frequency:taea=off:tgt=full:i=123527:si=on:rtra=on_0");
    quick.push("ott+21_1:1_canc=cautious:cond=fast:drc=off:fd=preordered:ind=struct:indao=on:indgen=on:indgenss=1:indoct=on:newcnf=on:sik=recursion:sp=occurrence:taea=off:i=39284:si=on:rtra=on_0");
-   quick.push("ott+10_1:172_drc=off:gtg=position:ind=both:indao=on:indc=goal:indgen=on:newcnf=on:sik=recursion:sp=frequency:taea=off:uhcvi=on:i=124992:si=on:rtra=on_0");
+   quick.push("ott+10_1:172_drc=off:gtg=position:ind=both:indao=on:indgco=on:indgen=on:newcnf=on:sik=recursion:sp=frequency:taea=off:uhcvi=on:i=124992:si=on:rtra=on_0");
   // Improves by expected 13.948651891536842 probs costing 946466 Mi
   // Sub-schedule for 960000Mi strat cap / 960000Mi overall limit
    quick.push("dis+10_1:1_drc=ordering:anc=none:gtg=exists_sym:gtgl=5:ind=struct:indgen=on:indoct=on:s2a=on:sac=on:ss=axioms:i=120877:si=on:rtra=on_0");
@@ -1845,11 +1845,11 @@ void Schedules::getStructInductionSchedule(const Shell::Property& property, Sche
    quick.push("dis+10_33:64_aac=none:add=large:drc=off:gtg=exists_sym:ind=struct:indmd=4:indoct=on:indstrhyp=on:nm=0:pum=on:sac=on:sp=const_min:thi=all:i=69001:si=on:rtra=on_0");
    quick.push("ott+1002_3:2_aac=none:abs=on:alpa=true:drc=off:gve=force:ind=struct:indao=on:newcnf=on:nicw=on:nm=30:rawr=on:taea=off:i=75001:si=on:rtra=on_0");
    quick.push("ott+1002_1:1024_bsd=on:drc=off:fd=preordered:ind=struct:indao=on:indgenss=7:kws=inv_arity:rawr=on:sac=on:sp=const_max:spb=intro:sup=off:uhcvi=on:updr=off:uwa=ground:i=34870:si=on:rtra=on_0");
-   quick.push("dis+1011_8:1_drc=ordering:abs=on:bd=off:canc=cautious:ev=force:ind=int:indc=goal_plus:kws=inv_frequency:s2a=on:s2agt=10:sas=z3:sp=reverse_arity:ss=included:tgt=ground:i=33001:si=on:rtra=on_0");
+   quick.push("dis+1011_8:1_drc=ordering:abs=on:bd=off:canc=cautious:ev=force:ind=int:indgco=on:indso=on:kws=inv_frequency:s2a=on:s2agt=10:sas=z3:sp=reverse_arity:ss=included:tgt=ground:i=33001:si=on:rtra=on_0");
    quick.push("ott+1002_1:1024_bce=on:drc=off:fsd=on:ind=struct:indgen=on:indgenss=2:sac=on:taea=off:to=lpo:uwa=interpreted_only:i=122070:si=on:rtra=on_0");
    quick.push("dis+10_21:29_bd=off:br=off:drc=off:ev=cautious:gs=on:gtg=exists_sym:ind=struct:indgen=on:indgenss=2:lcm=reverse:s2agt=10:sac=on:slsq=on:slsqc=2:sos=all:sp=const_frequency:taea=off:tgt=full:i=123336:si=on:rtra=on_0");
    quick.push("ott+21_1:1_canc=cautious:cond=fast:drc=off:fd=preordered:ind=struct:indao=on:indgen=on:indgenss=1:indoct=on:newcnf=on:sik=recursion:sp=occurrence:taea=off:i=39735:si=on:rtra=on_0");
-   quick.push("ott+10_1:172_drc=off:gtg=position:ind=both:indao=on:indc=goal:indgen=on:newcnf=on:sik=recursion:sp=frequency:taea=off:uhcvi=on:i=124992:si=on:rtra=on_0");
+   quick.push("ott+10_1:172_drc=off:gtg=position:ind=both:indao=on:indgco=on:indgen=on:newcnf=on:sik=recursion:sp=frequency:taea=off:uhcvi=on:i=124992:si=on:rtra=on_0");
   // Improves by expected 7.613387054318119 probs costing 957929 Mi
   // Overall score 6682.615103801281 probs on average / budget 3780367 Mi
 }
@@ -1857,22 +1857,22 @@ void Schedules::getStructInductionSchedule(const Shell::Property& property, Sche
 void Schedules::getStructInductionTipSchedule(const Shell::Property& property, Schedule& quick) {
   // Ran on tipvampire231219_nolemmas.txt
   // Sub-schedule for 2000Mi strat cap / 2000Mi overall limit
-   quick.push("lrs+10_1:1024_drc=ordering:fnrw=on:gtg=all:gtgl=3:ind=struct:indao=on:indc=goal:indoct=on:newcnf=on:sac=on:sp=unary_first:i=43:si=on:rtra=on_0");
-   quick.push("lrs+21_1:128_drc=ordering:gtg=exists_top:gtgl=2:ind=both:indc=goal_plus:indmd=1:newcnf=on:nm=20:nui=on:sik=recursion:sp=unary_frequency:spb=non_intro:i=19:si=on:rtra=on_0");
+   quick.push("lrs+10_1:1024_drc=ordering:fnrw=on:gtg=all:gtgl=3:ind=struct:indao=on:indgco=on:indoct=on:newcnf=on:sac=on:sp=unary_first:i=43:si=on:rtra=on_0");
+   quick.push("lrs+21_1:128_drc=ordering:gtg=exists_top:gtgl=2:ind=both:indgco=on:indso=on:indmd=1:newcnf=on:nm=20:nui=on:sik=recursion:sp=unary_frequency:spb=non_intro:i=19:si=on:rtra=on_0");
    quick.push("lrs+10_1:40_bsr=unit_only:drc=off:flr=on:ind=both:newcnf=on:nm=75:nui=on:sik=recursion:sp=const_min:updr=off:i=28:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_drc=ordering:aac=none:gtg=exists_all:gtgl=3:ind=both:newcnf=on:nui=on:plsq=on:plsqr=4,1:rp=on:sik=recursion:spb=goal_then_units:i=22:si=on:rtra=on_0");
    quick.push("dis+1010_1:1_drc=off:er=filter:fsr=off:ind=both:indao=on:newcnf=on:nm=32:rp=on:sac=on:sik=recursion:sp=unary_frequency:tac=rule:taea=off:to=lpo:uace=off:i=8:si=on:rtra=on_0");
    quick.push("dis+10_1:1_drc=ordering:flr=on:ind=both:kws=precedence:newcnf=on:nui=on:sik=recursion:i=25:si=on:rtra=on_0");
    quick.push("dis+1002_1:1_drc=ordering:tac=light:taea=off:i=32:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_av=off:drc=off:ind=struct:indstrhyp=on:newcnf=on:sik=all:taea=off:urr=on:i=74:si=on:rtra=on_0");
-   quick.push("lrs+1010_1:128_drc=ordering:add=large:bs=on:bsd=on:etr=on:ev=force:fnrw=on:ind=struct:indc=goal_plus:indmd=2:indoct=on:lecc=2.0:newcnf=on:nui=on:sp=unary_first:i=89:si=on:rtra=on_0");
+   quick.push("lrs+1010_1:128_drc=ordering:add=large:bs=on:bsd=on:etr=on:ev=force:fnrw=on:ind=struct:indgco=on:indso=on:indmd=2:indoct=on:lecc=2.0:newcnf=on:nui=on:sp=unary_first:i=89:si=on:rtra=on_0");
    quick.push("lrs+1002_1:1_avsq=on:avsql=on:drc=off:ind=struct:indmd=20:kws=precedence:newcnf=on:rp=on:sas=z3:sp=const_max:i=260:si=on:rtra=on_0");
    quick.push("dis+10_1:1_drc=ordering:bs=unit_only:fde=unused:fnrw=on:ind=int:indn=off:ins=1:intindstcomp=always:kws=arity:newcnf=on:rp=on:sp=frequency:tac=rule:taea=off:tgt=full:urr=on:i=28:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_drc=ordering:ind=struct:newcnf=on:nui=on:nwc=10.0:sac=on:sik=recursion:to=lpo:i=16:si=on:rtra=on_0");
    quick.push("lrs+1011_1:1_drc=ordering:fnrw=on:ind=both:indmd=2:indoct=on:kws=frequency:newcnf=on:nui=on:sik=recursion:taea=off:i=13:si=on:rtra=on_0");
    quick.push("ott+10_1:1_drc=ordering:ind=struct:indstrhyp=on:kws=precedence:s2a=on:s2agt=16:sac=on:sos=all:sp=reverse_arity:spb=intro:i=71:si=on:rtra=on_0");
    quick.push("lrs+2_1:1_ind=struct:indao=on:newcnf=on:plsq=on:plsqr=32,1:sp=frequency:to=lpo:i=8:si=on:rtra=on_0");
-   quick.push("lrs+1010_1:1_drc=ordering:aac=none:afp=10000:fnrw=on:ind=both:indc=goal_plus:indmd=1:indn=off:newcnf=on:i=4:si=on:rtra=on_0");
+   quick.push("lrs+1010_1:1_drc=ordering:aac=none:afp=10000:fnrw=on:ind=both:indgco=on:indso=on:indmd=1:indn=off:newcnf=on:i=4:si=on:rtra=on_0");
    quick.push("dis+10_1:1_drc=ordering:asg=cautious:ind=both:intindstterm=no_skolems:newcnf=on:norm_ineq=on:rp=on:sac=on:sas=z3:sos=theory:spb=intro:to=lpo:i=174:si=on:rtra=on_0");
    quick.push("lrs+10_1633:262144_canc=cautious:drc=off:ev=force:fde=none:ind=both:indoct=on:newcnf=on:sik=recursion:sil=100000:sp=const_min:spb=goal_then_units:to=lpo:updr=off:i=15:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_drc=ordering:bd=off:gtg=exists_all:ind=both:indmd=1:indstrhyp=on:ins=3:newcnf=on:nui=on:spb=goal_then_units:to=lpo:i=19:si=on:rtra=on_0");
@@ -1880,12 +1880,12 @@ void Schedules::getStructInductionTipSchedule(const Shell::Property& property, S
    quick.push("lrs-1003_1:4_av=off:drc=off:ind=struct:indu=off:kws=precedence:newcnf=on:rawr=on:s2a=on:s2agt=16:sil=100000:slsq=on:spb=units:urr=on:uwa=ground:i=31:si=on:rtra=on_0");
    quick.push("ott+10_1:1_gtg=exists_all:ind=struct:indmd=3:indstrhyp=on:s2a=on:i=27:si=on:rtra=on_0");
    quick.push("dis+1010_3:1_drc=ordering:aac=none:flr=on:ind=struct:ins=2:newcnf=on:nwc=2.0:sac=on:sil=100000:i=69:si=on:rtra=on_0");
-   quick.push("lrs+2_1:4_drc=off:gtg=position:gve=cautious:ile=on:ind=struct:indao=on:indc=goal:indmd=6:newcnf=on:nwc=5.0:s2a=on:tac=axiom:to=lpo:i=39:si=on:rtra=on_0");
+   quick.push("lrs+2_1:4_drc=off:gtg=position:gve=cautious:ile=on:ind=struct:indao=on:indgco=on:indmd=6:newcnf=on:nwc=5.0:s2a=on:tac=axiom:to=lpo:i=39:si=on:rtra=on_0");
    quick.push("lrs+1002_1:8_alpa=false:bd=preordered:drc=off:ind=struct:newcnf=on:nwc=10.0:sac=on:sik=recursion:sp=occurrence:spb=goal:i=10:si=on:rtra=on_0");
    quick.push("ott+10_1:1_drc=off:fnrw=on:gtg=all:gtgl=3:ind=both:indao=on:kws=precedence:newcnf=on:nwc=6.0:sac=on:sp=reverse_arity:uwa=interpreted_only:i=11:si=on:rtra=on_0");
    quick.push("ott+10_1:1_drc=ordering:add=large:flr=on:ind=both:newcnf=on:nui=on:nwc=5.0:sik=all:sil=100000:spb=non_intro:i=13:si=on:rtra=on_0");
    quick.push("lrs+1002_1:1_drc=ordering:av=off:bd=off:gtg=exists_top:ind=struct:indao=on:kws=precedence:newcnf=on:nwc=10.0:sik=recursion:sil=100000:sp=frequency:taea=off:uwa=all:i=16:si=on:rtra=on_0");
-   quick.push("ott+10_1:1_drc=ordering:ev=cautious:gtg=exists_top:ind=struct:indc=goal:indstrhyp=on:nwc=10.0:sos=on:i=7:si=on:rtra=on_0");
+   quick.push("ott+10_1:1_drc=ordering:ev=cautious:gtg=exists_top:ind=struct:indgco=on:indstrhyp=on:nwc=10.0:sos=on:i=7:si=on:rtra=on_0");
    quick.push("ott+21_1:1_drc=ordering:ep=RST:fsd=on:gve=cautious:ind=both:indn=off:newcnf=on:nui=on:nwc=10.0:sik=recursion:spb=intro:urr=on:i=4:si=on:rtra=on_0");
    quick.push("lrs+1010_1:1_drc=ordering:gtg=exists_all:ind=both:indmd=1:newcnf=on:nui=on:taea=off:updr=off:i=18:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_erd=off:ind=struct:indmd=1:sos=on:ss=axioms:urr=on:i=21:si=on:rtra=on_0");
@@ -1894,7 +1894,7 @@ void Schedules::getStructInductionTipSchedule(const Shell::Property& property, S
    quick.push("ott+1002_1:1024_bsd=on:drc=off:fd=preordered:ind=struct:indao=on:indgenss=7:kws=inv_arity:rawr=on:sac=on:sp=const_max:spb=intro:sup=off:uhcvi=on:updr=off:uwa=ground:i=51:si=on:rtra=on_0");
    quick.push("ott+1002_3:2_aac=none:abs=on:alpa=true:drc=off:gve=force:ind=struct:indao=on:newcnf=on:nicw=on:nm=30:rawr=on:taea=off:i=8:si=on:rtra=on_0");
    quick.push("lrs+1002_1:4_drc=off:fsd=on:ind=struct:indmd=1:newcnf=on:nm=10:rp=on:s2pl=no:sik=recursion:sil=100000:sos=theory:sp=const_frequency:taea=off:uace=off:i=8:si=on:rtra=on_0");
-   quick.push("dis+21_1:1_drc=ordering:alpa=true:amm=off:fnrw=on:gtg=exists_top:gtgl=2:ind=struct:indc=goal:newcnf=on:rp=on:sil=100000:sos=theory:sp=frequency:taea=off:tgt=full:urr=on:i=82:si=on:rtra=on_0");
+   quick.push("dis+21_1:1_drc=ordering:alpa=true:amm=off:fnrw=on:gtg=exists_top:gtgl=2:ind=struct:indgco=on:newcnf=on:rp=on:sil=100000:sos=theory:sp=frequency:taea=off:tgt=full:urr=on:i=82:si=on:rtra=on_0");
    quick.push("dis-1011_1:1_drc=ordering:erd=off:gtg=exists_sym:gve=cautious:ind=both:indmd=3:indstrhyp=on:kws=inv_frequency:norm_ineq=on:sil=100000:sp=occurrence:spb=intro:ss=axioms:i=97:si=on:rtra=on_0");
    quick.push("ott+10_1:1_drc=ordering:ind=both:newcnf=on:nui=on:plsq=on:sik=recursion:sp=unary_frequency:uwa=interpreted_only:i=2:si=on:rtra=on_0");
    quick.push("dis+10_1:1_drc=ordering:av=off:fnrw=on:ind=struct:newcnf=on:nwc=5.0:i=9:si=on:rtra=on_0");
@@ -1921,7 +1921,7 @@ void Schedules::getStructInductionTipSchedule(const Shell::Property& property, S
    quick.push("ott+10_1:1_drc=off:gve=cautious:ind=both:kws=inv_frequency:newcnf=on:sik=recursion:sil=100000:sos=on:sp=frequency:ss=axioms:st=6.0:i=582:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_drc=ordering:bd=off:gtg=exists_top:ind=struct:indmd=2:indstrhyp=on:nwc=5.0:s2a=on:s2agt=16:i=103:si=on:rtra=on_0");
    quick.push("ott+21_1:1_asg=cautious:av=off:drc=off:fnrw=on:ins=1:newcnf=on:norm_ineq=on:rp=on:sp=const_min:ss=axioms:taea=off:uwa=interpreted_only:i=96:si=on:rtra=on_0");
-   quick.push("dis+21_1:1_drc=ordering:alpa=true:amm=off:fnrw=on:gtg=exists_top:gtgl=2:ind=struct:indc=goal:newcnf=on:rp=on:sil=100000:sos=theory:sp=frequency:taea=off:tgt=full:urr=on:i=82:si=on:rtra=on_0");
+   quick.push("dis+21_1:1_drc=ordering:alpa=true:amm=off:fnrw=on:gtg=exists_top:gtgl=2:ind=struct:indgco=on:newcnf=on:rp=on:sil=100000:sos=theory:sp=frequency:taea=off:tgt=full:urr=on:i=82:si=on:rtra=on_0");
    quick.push("dis-1011_1:1_drc=ordering:erd=off:gtg=exists_sym:gve=cautious:ind=both:indmd=3:indstrhyp=on:kws=inv_frequency:norm_ineq=on:sil=100000:sp=occurrence:spb=intro:ss=axioms:i=86:si=on:rtra=on_0");
    quick.push("lrs+10_1:1_drc=off:gtg=exists_all:gtgl=2:ind=struct:ss=axioms:uwa=one_side_constant:i=86:si=on:rtra=on_0");
    quick.push("dis+1002_1:1_drc=ordering:bd=off:ep=RSTC:gtg=exists_all:newcnf=on:nm=10:norm_ineq=on:rp=on:s2agt=32:sac=on:sas=z3:slsq=on:slsqr=151023,1048576:sp=const_max:tac=light:i=161:si=on:rtra=on_0");
