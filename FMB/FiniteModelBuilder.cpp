@@ -535,11 +535,8 @@ void FiniteModelBuilder::init()
   // How often each symbol occurs in the clauses we have arrived at. This used to be an
   // "ugly hack" running a whole throwaway Property::scan over them, purely for the
   // usageCnts it left on the signature as a side effect.
-  DArray<unsigned> functionCounts;
-  DArray<unsigned> predicateCounts;
-  DArray<unsigned> typeConCounts;
-  collectSymbolCounts(pvi(concatIters(ClauseList::Iterator(_groundClauses),ClauseList::Iterator(_clauses))),
-      functionCounts,predicateCounts,typeConCounts);
+  SymbolCounts counts;
+  counts.countIn(pvi(concatIters(ClauseList::Iterator(_groundClauses),ClauseList::Iterator(_clauses))));
 
   // record the deleted functions and predicates
   // we do this only here so that there are slots for symbols introduced in the previous preprocessing steps (definition introduction, splitting)
@@ -547,18 +544,18 @@ void FiniteModelBuilder::init()
   del_p.ensure(env.signature->predicates());
 
   for(unsigned f=0;f<env.signature->functions();f++){
-    del_f[f] = functionCounts[f]==0;
+    del_f[f] = counts.functions[f]==0;
 #if VTRACE_FMB
     if(del_f[f]) cout << "Mark " << env.signature->functionName(f)  << " as deleted" << endl;
 #endif
   }
   for(unsigned p=1;p<env.signature->predicates();p++){ // skipping equality
-    del_p[p] = predicateCounts[p]==0;
+    del_p[p] = counts.predicates[p]==0;
 #if VTRACE_FMB
     if(del_p[p]) {
       cout << "Mark " << env.signature->predicateName(p) << " as deleted" << endl;
       cout << "  since (bool)_prb.getEliminatedPredicates().findPtr(p) = " << (bool)_prb.getEliminatedPredicates().findPtr(p) << endl;
-      cout << "  since the clauses use it " << predicateCounts[p] << " times" << endl;
+      cout << "  since the clauses use it " << counts.predicates[p] << " times" << endl;
     }
 #endif
   }
@@ -702,9 +699,9 @@ void FiniteModelBuilder::init()
     // most used first. Sort inference introduces fresh constants of its own after the
     // counting above, and those are simply unused as far as it is concerned.
     if(env.options->fmbSymmetryOrderSymbols() == Options::FMBSymbolOrders::USAGE){
-      auto mostUsedFirst = [&functionCounts](unsigned f1, unsigned f2) {
-        unsigned c1 = f1 < functionCounts.size() ? functionCounts[f1] : 0;
-        unsigned c2 = f2 < functionCounts.size() ? functionCounts[f2] : 0;
+      auto mostUsedFirst = [&counts](unsigned f1, unsigned f2) {
+        unsigned c1 = f1 < counts.functions.size() ? counts.functions[f1] : 0;
+        unsigned c2 = f2 < counts.functions.size() ? counts.functions[f2] : 0;
         return c2 < c1;
       };
       // Let's try sorting constants and functions in the sorted signature
