@@ -521,16 +521,10 @@ Options::Options ()
 #undef VAMPIRE_INIT_STRING
 #undef VAMPIRE_INIT_CHOICE
   , _ageWeightRatio("age_weight_ratio","awr",{1,1},':')
-  , _fmbNonGroundDefs("fmb_nonground_defs","fmbngd",false)
   , _fmbSymmetryWidgetOrders("fmb_symmetry_widget_order","fmbswo",
                                                      FMBWidgetOrders::FUNCTION_FIRST,
                                                      {"function_first","argument_first","diagonal"})
   , _fmbDetectSortBoundsTimeLimit("fmb_detect_sort_bounds_time_limit","fmbdsbt",10)
-  , _fmbEnumerationStrategy("fmb_enumeration_strategy","fmbes",FMBEnumerationStrategy::SBMEAM,{"sbeam",
-#if VZ3
-        "smt",
-#endif
-        "contour"})
   , _memoryLimit("memory_limit","m",
 #if VDEBUG
                                        1024     //   1 GB
@@ -538,29 +532,6 @@ Options::Options ()
                                        131072   // 128 GB (current max on the StarExecs)
 #endif
                                        )
-  , _satSolver("sat_solver","sas",SatSolver::MINISAT, {
-      "minisat",
-      "cadical"
-#if VZ3
-      ,"z3"
-#endif
-    })
-  , _saturationAlgorithm("saturation_algorithm","sa",SaturationAlgorithm::LRS,
-                                                                  {"discount","fmb","lrs","otter"
-#if VZ3
-      ,"z3"
-#endif
-    })
-  , _showInterpolant("show_interpolant","",InterpolantMode::OFF,
-                                                          {"new_heur",
-#if VZ3
-                                                          "new_opt",
-#endif
-                                                          "off"})
-  , _showNewPropositional("show_new_propositional","",false)
-#if VZ3
-  , _smtForGround("smt_for_ground","smtfg",false)
-#endif
   , _simulatedTimeLimit("simulated_time_limit","stl",0)
   , _predicateWeights("predicate_weights","pw","")
   , _timeLimitInDeciseconds("time_limit","t",600)
@@ -615,19 +586,8 @@ Options::Options ()
 #undef VAMPIRE_REG_CHOICE
 #undef VAMPIRE_REG_COMMON
 
-
-//**********************************************************************
-//*********************** GLOBAL, for all modes  ***********************
-//**********************************************************************
-
     _memoryLimit.description="Attempt to limit memory use (in MB). Limits less than 20MB are ignored to allow Vampire to start. Known not to work on MacOS for mysterious reasons: https://forums.developer.apple.com/forums/thread/702803";
     _lookup.insert(_memoryLimit);
-
-#if VAMPIRE_PERF_EXISTS
-
-  // _simulatedInstructionLimit.onlyUsefulWith(Or(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)),_splittingAvatimer.is(notEqual(1.0f))));
-
-#endif
 
     _mode.addHardConstraint(If(equal(Mode::CONSEQUENCE_ELIMINATION)).then(_splitting.is(notEqual(true))));
 
@@ -653,7 +613,6 @@ Options::Options ()
     _randomizeSeedForPortfolioWorkers.onlyUsefulWith(UsingPortfolioTechnology());
 
     _shuffleOnScheduleRepeats.onlyUsefulWith(UsingPortfolioTechnology());
-    
 
     _decode.description="Decodes an encoded strategy. Can be used to replay a strategy. To make Vampire output an encoded version of the strategy use the encode option.";
     _lookup.insert(_decode);
@@ -663,24 +622,15 @@ Options::Options ()
 
     _randomStrategySeed.reliesOn(_sampleStrategy.is(notEqual(std::string(""))));
 
-     // only we know about it!
-
     _proof.addHardConstraint(If(equal(Proof::SMTCHECK)).then(_proofExtra.is(equal(ProofExtra::FULL))));
 
-     // Does not work for all (any?) preprocessing steps currently
-
- // Used by spider mode
-
- // stores deciseconds, but reads seconds from the user by default
+    // stores deciseconds, but reads seconds from the user by default
     _timeLimitInDeciseconds.description="Time limit in wall clock seconds, you can use d,s,m,h,D suffixes also i.e. 60s, 5m. Setting it to 0 effectively gives no time limit.";
     _lookup.insert(_timeLimitInDeciseconds);
 
 #if VTIME_PROFILING
-
     _timeStatisticsFocus.onlyUsefulWith(_timeStatistics.is(equal(true)));
 #endif // VTIME_PROFILING
-
-//*********************** Input  ***********************
 
     _inputFile.description="Problem file to be solved (if not specified, standard input is used)";
     _lookup.insert(_inputFile);
@@ -688,8 +638,6 @@ Options::Options ()
     _inputFile.experimental = true;
 
     _guessTheGoalLimit.onlyUsefulWith(_guessTheGoal.is(notEqual(GoalGuess::OFF)));
-
-//*********************** Preprocessing  ***********************
 
     _inequalitySplitting.addProblemConstraint(hasEquality());
     _inequalitySplitting.addProblemConstraint(onlyFirstOrder());
@@ -700,10 +648,6 @@ Options::Options ()
     _equalityResolutionWithDeletion.addProblemConstraint(hasEquality());
 
     _functionDefinitionElimination.addProblemConstraint(hasEquality());
-
-    // At least on higher-order TPTP, tgt with tsa=off sucks badly
-    // TODO(HOL): investigate perhaps less invasive options of restraining
-    // general tgt in HOL, that would still be performant
 
     _generalSplitting.addProblemConstraint(mayHaveNonUnits());
 
@@ -718,18 +662,12 @@ Options::Options ()
 
     _predicateEliminationSubsumption.onlyUsefulWith(_predicateElimination.is(notEqual(PredicateElimination::OFF)));
 
-    // Captures that if the value is not default then sineSelection must be on
     _sineDepth.onlyUsefulWith(_sineSelection.is(notEqual(SineSelection::OFF)));
-
-    // Captures that if the value is not default then sineSelection must be on
     _sineGeneralityThreshold.onlyUsefulWith(_sineSelection.is(notEqual(SineSelection::OFF)));
-
-    _sineTolerance.addConstraint(Or(equal(-1.0f),greaterThanEq(1.0f) ));
-    // Captures that if the value is not 1.0 then sineSelection must be on
     _sineTolerance.onlyUsefulWith(_sineSelection.is(notEqual(SineSelection::OFF)));
+    _sineTolerance.addConstraint(Or(equal(-1.0f),greaterThanEq(1.0f) ));
 
     _naming.addProblemConstraint(hasFormulas());
-    
     _naming.addHardConstraint(lessThan(32768));
     _naming.addHardConstraint(greaterThan(-1));
     _naming.addHardConstraint(notEqual(1));
@@ -738,46 +676,12 @@ Options::Options ()
     _newCNF.addProblemConstraint(onlyFirstOrder());
 
     _inlineLet.onlyUsefulWith(_newCNF.is(equal(true)));
-    
-
-//*********************** Output  ***********************
-
-    // Note that while we have the code in place thanks to Giles, Geoff didn't like the functionality
-    // (and, arguably, since it in general incomplete in the sense that sometimes the domain elements are anyway necessary,
-    // it's a bit ugly for its non-uniformity and for mixing syntax - the constants - with semantics - domain elements)
-    // To sum up, we have a feature maybe nobody really likes? A candidate for removal.
-
-    _showNewPropositional.description="";
-    //_lookup.insert(_showNewPropositional);
-    _showNewPropositional.tag = OptionTag::DEVELOPMENT;
 
 #if VZ3
-
     _problemExportSyntax.reliesOn(Or(_exportAvatarProblem.is(notEqual(std::string(""))), _exportThiProblem.is(notEqual(std::string("")))));
-
     _exportAvatarProblem.onlyUsefulWith(And(_splitting.is(equal(true)), _satSolver.is(equal(Options::SatSolver::Z3))));
-
     _exportThiProblem.onlyUsefulWith(_theoryInstAndSimp.is(notEqual(TheoryInstSimp::OFF)));
-
 #endif
-
-
-//************************************************************************
-//*********************** VAMPIRE (includes CASC)  ***********************
-//************************************************************************
-
-//*********************** Saturation  ***********************
-
-    _saturationAlgorithm.description=
-    "Select the saturation algorithm:\n"
-    " - discount:\n"
-    " - otter:\n"
-    " - limited resource:\n"
-    " - fmb : finite model building for satisfiable problems.\n"
-    " - z3 : pass the preprocessed problem to z3, will terminate if the resulting problem is not ground.\n"
-    "z3 and fmb aren't influenced by options for the saturation algorithm, apart from those under the relevant heading";
-    _lookup.insert(_saturationAlgorithm);
-    _saturationAlgorithm.tag = OptionTag::SATURATION;
 
     // make the next hard - RSTC will make FMB crash (as RSTC correctly does not trigger hadIncompleteTransformation; still it probably does not make sense to use ep with fmb)
     _saturationAlgorithm.addHardConstraint(If(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)).then(_equalityProxy.is(notEqual(EqualityProxy::RSTC))));
@@ -792,21 +696,11 @@ Options::Options ()
 
     _sosTheoryLimit.onlyUsefulWith(_sos.is(equal(Sos::THEORY)));
 
-    /*
-#if VZ3
-    _smtForGround = BoolOptionValue("smt_for_ground","smtfg",false);
-    _smtForGround.description = "When a (theory) problem is ground after preprocessing pass it to Z3. In this case we can return sat if Z3 does.";
-    _smtForGround.experimental = true; // since smt_for_ground is not running anyway (see MainLoop.cpp)
-    _lookup.insert(_smtForGround);
-#endif
-     */
-
     _fmbStartSize.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
 
     _fmbSymmetryRatio.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
 
     _fmbSymmetryOrderSymbols.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
-    
 
     _fmbSymmetryWidgetOrders.description = "The order of constructed principal terms used in symmetry avoidance. See Symmetry Avoidance in MACE-Style Finite Model Finding.";
     // TODO: put back only when debugged (see https://github.com/vprover/vampire/issues/393)
@@ -821,25 +715,17 @@ Options::Options ()
     _fmbDetectSortBounds.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
     _fmbDetectSortBounds.addHardConstraint(If(equal(true)).then(_fmbAdjustSorts.is(notEqual(FMBAdjustSorts::PREDICATE))));
     _fmbDetectSortBounds.addHardConstraint(If(equal(true)).then(_fmbAdjustSorts.is(notEqual(FMBAdjustSorts::FUNCTION))));
-    
 
     _fmbDetectSortBoundsTimeLimit.description = "The time limit for performing sort bound detection";
     _lookup.insert(_fmbDetectSortBoundsTimeLimit);
     _fmbDetectSortBoundsTimeLimit.onlyUsefulWith(_fmbDetectSortBounds.is(equal(true)));
     _fmbDetectSortBoundsTimeLimit.tag = OptionTag::FMB;
 
-    
     _fmbSizeWeightRatio.onlyUsefulWith(_fmbEnumerationStrategy.is(equal(FMBEnumerationStrategy::CONTOUR)));
     _fmbSizeWeightRatio.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
 
-    _fmbEnumerationStrategy.description = "How model sizes assignments are enumerated in the multi-sorted setting. (Only smt and contour are known to be finite model complete and can therefore return UNSAT.)";
-    _lookup.insert(_fmbEnumerationStrategy);
     _fmbEnumerationStrategy.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
-    _fmbEnumerationStrategy.tag = OptionTag::FMB;
 
-    
-    // for an example where this helps try "-sa fmb -fmbas expand Problems/KRS/KRS185+1.p"
-    
     _fmbKeepSbeamGenerators.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
     _fmbKeepSbeamGenerators.onlyUsefulWith(_fmbEnumerationStrategy.is(equal(FMBEnumerationStrategy::SBMEAM)));
 
@@ -878,7 +764,6 @@ Options::Options ()
     _ageWeightRatio.tag = OptionTag::SATURATION;
     _ageWeightRatio.onlyUsefulWith2(ProperSaturationAlgorithm());
 
-    
     _useTheorySplitQueues.onlyUsefulWith(ProperSaturationAlgorithm());
     // _useTheorySplitQueues.addProblemConstraint(hasTheories()); // recall how they helped even on non-theory problems during CACS 2021?
 
@@ -939,14 +824,10 @@ Options::Options ()
     _sineToPredLevels.addHardConstraint(If(notEqual(PredicateSineLevels::OFF)).then(_literalComparisonMode.is(notEqual(LiteralComparisonMode::PREDICATE))));
     _sineToPredLevels.addHardConstraint(If(notEqual(PredicateSineLevels::OFF)).then(_literalComparisonMode.is(notEqual(LiteralComparisonMode::REVERSE))));
 
-    // Like generality threshold for SiNE, except used by the sine2age trick
-
     _sineToAgeGeneralityThreshold.onlyUsefulWith(Or(
       _sineToAge.is(equal(true)),
       _sineToPredLevels.is(notEqual(PredicateSineLevels::OFF)),
       _useSineLevelSplitQueues.is(equal(true))));
-
-    // Like generality threshold for SiNE, except used by the sine2age trick
 
     _sineToAgeTolerance.addConstraint(Or(equal(-1.0f),greaterThanEq(1.0f)));
     // Captures that if the value is not 1.0 then sineSelection must be on
@@ -958,13 +839,10 @@ Options::Options ()
     _lrsFirstTimeCheck.addConstraint(greaterThanEq(0));
     _lrsFirstTimeCheck.addConstraint(lessThan(100));
 
-    
     _lrsWeightLimitOnly.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
 
     _lrsRetroactiveDeletes.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
 
-     // Under lrd=off:lpd=off, we don't have any LRS anymore (and are back to Otter, essentially), so the value of this option is questionable.
-     // (Still, it's currently used in a few strategies in Schedules.)
     _lrsPreemptiveDeletes.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
 
     _simulatedTimeLimit.description=
@@ -981,10 +859,7 @@ Options::Options ()
     _lrsLoadTraceFile.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
 
 
-  //*********************** Inferences  ***********************
-
 #if VZ3
-
     _theoryInstAndSimp.addProblemConstraint(hasTheories());
 
     _thiGeneralise.onlyUsefulWith(_theoryInstAndSimp.is(notEqual(TheoryInstSimp::OFF)));
@@ -997,7 +872,6 @@ Options::Options ()
     _inequalityNormalization.addProblemConstraint(hasTheories());
 
     _cancellation.addProblemConstraint(hasTheories());
-    
     _cancellation.addHardConstraint(If(equal(ArithmeticSimplificationMode::CAUTIOUS))
         .then(And(
               _termOrdering.is(notEqual(TermOrdering::QKBO))
@@ -1005,7 +879,6 @@ Options::Options ()
             )));
 
     _pushUnaryMinus.addProblemConstraint(hasTheories());
-    
 
     auto addRecommendationConstraint = [](auto& opt, auto constr) {
       // MS: TODO: implement meaningful soft warnings / reminsders to the effect
@@ -1156,7 +1029,6 @@ Options::Options ()
     _forwardSubsumptionResolution.onlyUsefulWith(ProperSaturationAlgorithm());
 
     _forwardSubsumptionDemodulation.onlyUsefulWith(ProperSaturationAlgorithm());
-    
     _forwardSubsumptionDemodulation.addProblemConstraint(hasEquality());
 
     _forwardSubsumptionDemodulationMaxMatches.onlyUsefulWith(_forwardSubsumptionDemodulation.is(equal(true)));
@@ -1190,33 +1062,24 @@ Options::Options ()
     _superpositionFromVariables.addProblemConstraint(hasEquality());
     _superpositionFromVariables.onlyUsefulWith(ProperSaturationAlgorithm());
 
-//*********************** Higher-order  ***********************
-
     _choiceAxiom.addProblemConstraint(hasHigherOrder());
 
     _choiceReasoning.addProblemConstraint(hasHigherOrder());
     _choiceReasoning.onlyUsefulWith(_choiceAxiom.is(equal(false))); //no point having two together
 
     _injectivity.addProblemConstraint(hasHigherOrder());
-    
 
-    // TODO we have two ways of enabling function extensionality abstraction atm:
-    // this option, and `-uwa`.
-    // We should sort this out before merging into master.
-    
-    
     _functionExtensionality.addProblemConstraint(hasHigherOrder());
 
     _clausificationOnTheFly.addProblemConstraint(hasHigherOrder());
 
     _piSet.addProblemConstraint(hasHigherOrder());
 
-    // potentially could be useful for FOOL, so am not adding the HOL constraint
+    // equalityToEquivalence: potentially could be useful for FOOL, so am not adding the HOL constraint
 
     _complexBooleanReasoning.addProblemConstraint(hasHigherOrder());
 
-    // potentially could be useful for FOOL, so am not adding the HOL constraint    
-    
+    // booleanEqTrick: potentially could be useful for FOOL, so am not adding the HOL constraint
 
     _heuristicInstantiation.onlyUsefulWith(ProperSaturationAlgorithm());
     _heuristicInstantiation.addProblemConstraint(hasHigherOrder());   
@@ -1226,36 +1089,23 @@ Options::Options ()
     _higherOrderUnifDepth.addHardConstraint(lessThan(100u));
 
     _casesSimp.onlyUsefulWith(_cases.is(equal(false)));
-    
-    // potentially could be useful for FOOL, so am not adding the HOL constraint
-    
+    // casesSimp: potentially could be useful for FOOL, so am not adding the HOL constraint
 
     //TODO, sort out the mess with cases and FOOLP.
     //One should be removed. AYB
-    
     _cases.onlyUsefulWith(_casesSimp.is(equal(false)));
-    
-    // potentially could be useful for FOOL, so am not adding the HOL constraint
+    // cases: potentially could be useful for FOOL, so am not adding the HOL constraint
+    // newTautologyDel: potentially could be useful for FOOL, so am not adding the HOL constraint
 
-    // potentially could be useful for FOOL, so am not adding the HOL constraint
-
-    _positiveExt.addProblemConstraint(hasHigherOrder());   
+    _positiveExt.addProblemConstraint(hasHigherOrder());
     _positiveExt.onlyUsefulWith(_functionExtensionality.is(notEqual(FunctionExtensionality::AXIOM)));
 
     _iffXorRewriter.addProblemConstraint(hasHigherOrder());
-    
-
-//*********************** InstGen  ***********************
-// TODO not really InstGen any more, just global subsumption
 
     _globalSubsumption.onlyUsefulWith(ProperSaturationAlgorithm());
-    
     // _globalSubsumption.addProblemConstraint(mayHaveNonUnits()); - this is too strict, think of a better one
 
-//*********************** AVATAR  ***********************
-
     _splitting.onlyUsefulWith(ProperSaturationAlgorithm());
-    
     //_splitting.addProblemConstraint(mayHaveNonUnits());
 
     _splitAtActivation.onlyUsefulWith(_splitting.is(equal(true)));
@@ -1285,26 +1135,16 @@ Options::Options ()
     _nonliteralsInClauseWeight.onlyUsefulWith(_splitting.is(equal(true)));
     // _nonliteralsInClauseWeight.addProblemConstraint(mayHaveNonUnits()); (for the same reason this is disabled in splitting)
 
-//*********************** SAT solver (used in various places)  ***********************
-    _satSolver.description= "Select the SAT solver to be used throughout Vampire."
-      " This will be used in AVATAR (for splitting) when the saturation algorithm is discount, lrs or otter."
-      " And for finite model finding when the saturation algorithm is fmb.";
-    _lookup.insert(_satSolver);
 #if VZ3
     _satSolver.addHardConstraint(If(equal(SatSolver::Z3)).then(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::FINITE_MODEL_BUILDING))));
 #endif
     _satSolver.onlyUsefulWith(_splitting.is(equal(true)));
-    _satSolver.tag = OptionTag::SAT;
 
 #if VZ3
 
     _satFallbackForSMT.addProblemConstraint(hasTheories()); // Z3 won't be incomplete for pure FOL
     _satFallbackForSMT.onlyUsefulWith(_satSolver.is(equal(SatSolver::Z3)));
 #endif
-
-    //*************************************************************
-    //*********************** which mode or tag?  ************************
-    //*************************************************************
 
     _increasedNumeralWeight.onlyUsefulWith(ProperSaturationAlgorithm());
 
@@ -1335,9 +1175,7 @@ Options::Options ()
                 _termOrdering.is(equal(TermOrdering::AUTO_KBO)));
     };
 
-    
     _termOrdering.onlyUsefulWith(ProperSaturationAlgorithm());
-    
     _termOrdering.addHardConstraint(
         If(Or(equal(TermOrdering::QKBO), equal(TermOrdering::LAKBO)))
           .then(_alasca.is(equal(true)))); // <- alasca must be enabled, because the orderings rely on AlascaState to be set
@@ -1353,17 +1191,6 @@ Options::Options ()
     _functionWeights.onlyUsefulWith(KboLike());
 
     _symbolPrecedenceBoost.onlyUsefulWith(ProperSaturationAlgorithm());
-
-    //******************************************************************
-    //*********************** Vinter???  *******************************
-    //******************************************************************
-
-    _lookup.insert(_showInterpolant);
-    _showInterpolant.tag = OptionTag::OTHER;
-    _showInterpolant.experimental = true;
-
- // Declare tag names
-
 } // Options::init
 
 /**

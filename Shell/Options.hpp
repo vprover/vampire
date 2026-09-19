@@ -59,7 +59,7 @@ class Property;
 
 /**
  * Possible tags to group options by
- * Update _tagNames at the end of Options constructor if you add a tag
+ * Update _tagNames in the Options constructor if you add a tag
  * @author Giles
  */
 enum class OptionTag : unsigned int {
@@ -82,7 +82,6 @@ enum class OptionTag : unsigned int {
     HIGHER_ORDER,
     LAST_TAG // Used for counting the number of tags
 };
-// update _tagNames at the end of Options constructor if you add a tag
 
 /**
  * NOTE on OptionProblemConstraint
@@ -1313,6 +1312,7 @@ public:
     "only, 1 means 1:1, 2 means 1:2, etc.", \
     OptionTag::FMB, false) \
   \
+  /* for an example where this helps try "-sa fmb -fmbas expand Problems/KRS/KRS185+1.p" */\
   BOOL(_fmbKeepSbeamGenerators, "fmb_keep_sbeam_generators", "fmbksg", false, \
     "A modification of the sbeam enumeration strategy which (for a performance price) makes " \
     "it more enumeration-complete.", \
@@ -1391,6 +1391,9 @@ public:
     "`full` is a generalization, where also non-ground subterms are considered.", \
     OptionTag::PREPROCESSING, true) \
   \
+  /* At least on higher-order TPTP, tgt with tsa=off sucks badly
+   * TODO(HOL): investigate perhaps less invasive options of restraining
+   * general tgt in HOL, that would still be performant */\
   BOOL(_tweeSkipArrows, "twee_skip_arrows", "tsa", true, \
     "During twee_goal_transformation, when in HOL, don't introduce definitions for arrow-typed " \
     "subterms.", \
@@ -1457,6 +1460,7 @@ public:
     "Strengthen partial redundancy with literals from clauses.", \
     OptionTag::INFERENCES, false) \
   \
+  /** if true, then calling set() on non-existing options will not result in a user error */\
   CHOICE(IgnoreMissing, _ignoreMissing, "ignore_missing", "", IgnoreMissing::OFF, \
     ("on","off","warn"), \
     "Ignore any options that have been removed (useful in portfolio modes where this can " \
@@ -1468,6 +1472,11 @@ public:
     "Path prefix for the 'include' TPTP directive", \
     OptionTag::INPUT, false) \
   \
+  /** if this option is true, Vampire will add the numeral weight of a clause
+   * to its weight. The weight is defined as the sum of binary sizes of all
+   * integers occurring in this clause. This option has not been tested and
+   * may be extensive, see Clause::getNumeralWeight()
+   */\
   BOOL(_increasedNumeralWeight, "increased_numeral_weight", "inw", false, \
     "This option only applies if the problem has interpreted numbers. The weight of integer " \
     "constants depends on the logarithm of their absolute value (instead of being 1)", \
@@ -1637,6 +1646,8 @@ public:
     "only generate children exceeding the limit.", \
     OptionTag::LRS, false) \
   \
+  /* Under lrd=off:lpd=off, we don't have any LRS anymore (and are back to Otter, essentially), so the value of this option is questionable.
+     (Still, it's currently used in a few strategies in Schedules.) */\
   BOOL(_lrsPreemptiveDeletes, "lrs_preemptive_deletes", "lpd", true, \
     "If false, LRS will not use limits to delete clauses entering passive." \
     " (Only the retroactive deletes might apply.)", \
@@ -1813,6 +1824,7 @@ public:
     "Try decoding backtrace into a sequence of human readable function names using addr2line/atos/etc.", \
     OptionTag::OUTPUT, false) \
   \
+  /* Does not work for all (any?) preprocessing steps currently */\
   STRING(_protectedPrefix, "protected_prefix", "", "", \
     "Symbols with this prefix are immune against elimination during preprocessing", \
     OptionTag::PREPROCESSING, true) \
@@ -1969,6 +1981,7 @@ public:
     "problem.", \
     OptionTag::OUTPUT, true) \
   \
+  /* TODO make unsigned option value */\
   VAMPIRE_IF_CLAUSE_TRACING(INT(_traceBackward, "trace_bwd", "", 0, \
     "The id of a clause you want to see all predecessors (unites used to derive the clause).", \
     OptionTag::OUTPUT, false)) \
@@ -2104,6 +2117,7 @@ public:
     "in the already included unit.)", \
     OptionTag::PREPROCESSING, false) \
   \
+  /* Like generality threshold for SiNE, except used by the sine2age trick */\
   UNSIGNED(_sineToAgeGeneralityThreshold, "sine_to_age_generality_threshold", "s2agt", 0, \
     "Like sine_generality_threshold but influences sine_to_age, sine_to_pred_levels, and " \
     "sine_level_split_queue rather than sine_selection.", \
@@ -2126,6 +2140,7 @@ public:
     "its symbols with generality up to g_min*tolerance trigger the unit to be included.", \
     OptionTag::PREPROCESSING, false) \
   \
+  /* Like generality threshold for SiNE, except used by the sine2age trick */\
   FLOAT(_sineToAgeTolerance, "sine_to_age_tolerance", "s2at", 1.0, \
     "Like sine_tolerance but influences sine_to_age, sine_to_pred_levels, and sine_level_split_queue " \
     "rather than sine_selection." \
@@ -2321,6 +2336,7 @@ public:
     "A name of a file with an explicit user specified precedence on predicate symbols.", \
     OptionTag::LAST_TAG, true) \
   \
+  /* Used by spider mode */\
   STRING(_testId, "test_id", "", "unspecified_test", \
     "", \
     OptionTag::LAST_TAG, true) \
@@ -2525,6 +2541,9 @@ public:
     "Reason about choice by adding relevant instances of the axiom", \
     OptionTag::HIGHER_ORDER, false) \
   \
+  /* TODO we have two ways of enabling function extensionality abstraction atm:
+   * this option, and `-uwa`.
+   * We should sort this out before merging into master. */\
   CHOICE(FunctionExtensionality, _functionExtensionality, "func_ext", "fe", FunctionExtensionality::OFF, \
     ("off", "axiom", "abstraction"), \
     "Deal with extensionality using abstraction, axiom or neither", \
@@ -2588,7 +2607,39 @@ public:
   \
   BOOL(_iffXorRewriter, "iff_xor_rewriter", "ixr", true, \
     "Rewrites p <=> q = $true to p <=> q and the like. It does this as an immediate simplification.", \
-    OptionTag::HIGHER_ORDER, false)
+    OptionTag::HIGHER_ORDER, false) \
+  \
+  CHOICE(FMBEnumerationStrategy, _fmbEnumerationStrategy, "fmb_enumeration_strategy", "fmbes", FMBEnumerationStrategy::SBMEAM, \
+    ("sbeam", VAMPIRE_IF_VZ3("smt",) "contour"), \
+    "How model sizes assignments are enumerated in the multi-sorted setting. (Only smt and " \
+    "contour are known to be finite model complete and can therefore return UNSAT.)", \
+    OptionTag::FMB, false) \
+  \
+  CHOICE(SatSolver, _satSolver, "sat_solver", "sas", SatSolver::MINISAT, \
+    ("minisat", "cadical" VAMPIRE_IF_VZ3(,"z3")), \
+    "Select the SAT solver to be used throughout Vampire." \
+    " This will be used in AVATAR (for splitting) when the saturation algorithm is discount, " \
+    "lrs or otter." \
+    " And for finite model finding when the saturation algorithm is fmb.", \
+    OptionTag::SAT, false) \
+  \
+  CHOICE(SaturationAlgorithm, _saturationAlgorithm, "saturation_algorithm", "sa", SaturationAlgorithm::LRS, \
+    ("discount", "fmb", "lrs", "otter" VAMPIRE_IF_VZ3(,"z3")), \
+    "Select the saturation algorithm:\n" \
+    " - discount:\n" \
+    " - otter:\n" \
+    " - limited resource:\n" \
+    " - fmb : finite model building for satisfiable problems.\n" \
+    " - z3 : pass the preprocessed problem to z3, will terminate if the resulting problem " \
+    "is not ground.\n" \
+    "z3 and fmb aren't influenced by options for the saturation algorithm, apart from those " \
+    "under the relevant heading", \
+    OptionTag::SATURATION, false) \
+  \
+  CHOICE(InterpolantMode, _showInterpolant, "show_interpolant", "", InterpolantMode::OFF, \
+    ("new_heur", VAMPIRE_IF_VZ3("new_opt",) "off"), \
+    nullptr, \
+    OptionTag::OTHER, true)
 
     //==========================================================
     // The Internals
@@ -2914,7 +2965,6 @@ public:
   std::string printProofToFile() const { return _printProofToFile.actualValue; }
   int naming() const { return _naming.actualValue; }
 
-  bool fmbNonGroundDefs() const { return _fmbNonGroundDefs.actualValue; }
   unsigned fmbStartSize() const { return _fmbStartSize.actualValue;}
   float fmbSymmetryRatio() const { return _fmbSymmetryRatio.actualValue; }
   FMBWidgetOrders fmbSymmetryWidgetOrders() { return _fmbSymmetryWidgetOrders.actualValue;}
@@ -2961,7 +3011,6 @@ public:
   bool sineToAge() const { return _sineToAge.actualValue; }
   PredicateSineLevels sineToPredLevels() const { return _sineToPredLevels.actualValue; }
   bool showSplitting() const { return showAll() || _showSplitting.actualValue; }
-  bool showNewPropositional() const { return showAll() || _showNewPropositional.actualValue; }
   bool showPassive() const { return showAll() || _showPassive.actualValue; }
   bool showReductions() const { return showAll() || _showReductions.actualValue; }
   bool showPreprocessing() const { return showAll() || _showPreprocessing.actualValue; }
@@ -3000,7 +3049,6 @@ public:
 
 #if VZ3
   bool satFallbackForSMT() const { return _satFallbackForSMT.actualValue; }
-  bool smtForGround() const { return _smtForGround.actualValue; }
   TheoryInstSimp theoryInstAndSimp() const { return _theoryInstAndSimp.actualValue; }
   bool thiGeneralise() const { return _thiGeneralise.actualValue; }
   bool thiTautologyDeletion() const { return _thiTautologyDeletion.actualValue; }
@@ -3346,34 +3394,14 @@ private:
 
   RatioOptionValue _ageWeightRatio;
 
-  BoolOptionValue _fmbNonGroundDefs;
   ChoiceOptionValue<FMBWidgetOrders> _fmbSymmetryWidgetOrders;
   TimeLimitOptionValue _fmbDetectSortBoundsTimeLimit;
-  ChoiceOptionValue<FMBEnumerationStrategy> _fmbEnumerationStrategy;
-
-  /** if true, then calling set() on non-existing options will not result in a user error */
-  /** if this option is true, Vampire will add the numeral weight of a clause
-   * to its weight. The weight is defined as the sum of binary sizes of all
-   * integers occurring in this clause. This option has not been tested and
-   * may be extensive, see Clause::getNumeralWeight()
-   */
 
   UnsignedOptionValue _memoryLimit; // should be size_t, making an assumption
 
-  ChoiceOptionValue<SatSolver> _satSolver;
-  ChoiceOptionValue<SaturationAlgorithm> _saturationAlgorithm;
-  ChoiceOptionValue<InterpolantMode> _showInterpolant;
-  BoolOptionValue _showNewPropositional;
-#if VAMPIRE_CLAUSE_TRACING
-  // TODO make unsigned option value
-#endif // VAMPIRE_CLAUSE_TRACING
-#if VZ3
-  BoolOptionValue _smtForGround;
-#endif
   TimeLimitOptionValue _simulatedTimeLimit;
 
   StringOptionValue _predicateWeights;
-
 
   /** Time limit in deciseconds */
   TimeLimitOptionValue _timeLimitInDeciseconds;
@@ -3386,13 +3414,6 @@ private:
   SelectionOptionValue _selection;
 
   InputFileOptionValue _inputFile;
-
-
-  // arithmeitc reasoning options
-
-
-  //Higher-order options
-
 }; // class Options
 
 // Allow printing of enums

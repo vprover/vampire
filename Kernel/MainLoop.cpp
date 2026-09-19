@@ -86,17 +86,6 @@ bool MainLoop::isRefutation(Clause* cl)
 
 MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
 {
-#if VZ3
-  bool isComplete = false; // artificially prevent smtForGround from running
-  /*
-  if(isComplete && opt.smtForGround() && prb.getProperty()->allNonTheoryClausesGround()
-                        && prb.getProperty()->hasInterpretedOperations()){
-    return new SAT::Z3MainLoop(prb,opt);
-  }
-  */
-#endif
-
-
   MainLoop* res;
 
   switch (opt.saturationAlgorithm()) {
@@ -112,12 +101,9 @@ MainLoop* MainLoop::createFromOptions(Problem& prb, const Options& opt)
     break;
 #if VZ3
   case Options::SaturationAlgorithm::Z3:
-    if(!isComplete || !prb.getProperty()->allNonTheoryClausesGround()){
-      reportSpiderStatus('u');
-      USER_ERROR("Z3 saturation algorithm is only appropriate where preprocessing produces a ground problem");
-      //TODO should return inappropriate result instead of error
-    }
-    res = new SAT::Z3MainLoop(prb,opt);
+    //TODO should return inappropriate result instead of error
+    //TODO so `sa=z3` useless?
+    USER_ERROR("Z3 saturation algorithm is only appropriate where preprocessing produces a ground problem");
     break;
 #endif
   default:

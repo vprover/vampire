@@ -461,10 +461,6 @@ void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause* c)
 {
   ASS(c->isPropositional());
 
-  if (env.options->showNewPropositional()) {
-    std::cout << "[SA] new propositional: " << c->toString() << std::endl;
-  }
-
   if (_consFinder) {
     _consFinder->onNewPropositionalClause(c);
   }
