@@ -69,12 +69,12 @@ void collectUsedSymbols(ClauseIterator clauses, DArray<bool>& usedFunctions, DAr
   }
 }
 
-void collectSymbolCounts(ClauseIterator clauses, DArray<unsigned>& functionCounts,
-    DArray<unsigned>& predicateCounts, DArray<unsigned>& typeConCounts)
+void SymbolCounts::countIn(ClauseIterator clauses)
 {
-  functionCounts.init(env.signature->functions(),0);
-  predicateCounts.init(env.signature->predicates(),0);
-  typeConCounts.init(env.signature->typeCons(),0);
+  functions.init(env.signature->functions(),0);
+  predicates.init(env.signature->predicates(),0);
+  typeCons.init(env.signature->typeCons(),0);
+  _initialised = true;
 
   while (clauses.hasNext()) {
     Clause* cl = clauses.next();
@@ -84,7 +84,7 @@ void collectSymbolCounts(ClauseIterator clauses, DArray<unsigned>& functionCount
       // equality is not counted: it is the one predicate every consumer of these numbers
       // wants to ignore, and Property::scan left it out too
       if (!lit->isEquality()) {
-        predicateCounts[lit->functor()]++;
+        predicates[lit->functor()]++;
       }
       // deliberately no visited set here, see the header. SubtermIterator walks the type
       // arguments along with the rest, so the sorts inside a literal are reached as well
@@ -101,10 +101,10 @@ void collectSymbolCounts(ClauseIterator clauses, DArray<unsigned>& functionCount
         ASS(!t->isSpecial());
         if (t->isSort()) {
           // an AtomicSort stores the type constructor's number as its functor
-          typeConCounts[t->functor()]++;
+          typeCons[t->functor()]++;
         }
         else {
-          functionCounts[t->functor()]++;
+          functions[t->functor()]++;
         }
       }
     }
