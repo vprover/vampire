@@ -19,6 +19,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/TermIterators.hpp"
 
 #include "SymbolUsage.hpp"
 
@@ -62,6 +63,48 @@ void collectUsedSymbols(ClauseIterator clauses, DArray<bool>& usedFunctions, DAr
           if (ts->isTerm()) {
             todo.push(ts->term());
           }
+        }
+      }
+    }
+  }
+}
+
+void collectSymbolCounts(ClauseIterator clauses, DArray<unsigned>& functionCounts,
+    DArray<unsigned>& predicateCounts, DArray<unsigned>& typeConCounts)
+{
+  functionCounts.init(env.signature->functions(),0);
+  predicateCounts.init(env.signature->predicates(),0);
+  typeConCounts.init(env.signature->typeCons(),0);
+
+  while (clauses.hasNext()) {
+    Clause* cl = clauses.next();
+    for (unsigned i = 0; i < cl->length(); i++) {
+      Literal* lit = (*cl)[i];
+      ASS(lit->shared());
+      // equality is not counted: it is the one predicate every consumer of these numbers
+      // wants to ignore, and Property::scan left it out too
+      if (!lit->isEquality()) {
+        predicateCounts[lit->functor()]++;
+      }
+      // deliberately no visited set here, see the header. SubtermIterator walks the type
+      // arguments along with the rest, so the sorts inside a literal are reached as well
+      SubtermIterator stit(lit);
+      while (stit.hasNext()) {
+        TermList ts = stit.next();
+        if (!ts.isTerm()) {
+          continue;
+        }
+        Term* t = ts.term();
+        // SubtermIterator only follows args(), so it would silently skip whatever hides
+        // in the special data of a special term. Clause literals must not contain one:
+        // a term with a special subterm cannot be shared.
+        ASS(!t->isSpecial());
+        if (t->isSort()) {
+          // an AtomicSort stores the type constructor's number as its functor
+          typeConCounts[t->functor()]++;
+        }
+        else {
+          functionCounts[t->functor()]++;
         }
       }
     }
