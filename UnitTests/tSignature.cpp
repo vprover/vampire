@@ -261,7 +261,7 @@ TEST_FUN(propertyScanCountsAndResetsInterleavedSymbols)
   auto sort = TermList(AtomicSort::createConstant(tc->number()));
   auto clause = Clause::fromLiterals({
     Literal::create2(p->number(), true, sort, TermList(Term::createConstant(f->number())))
-  }, Inference(FromInput(UnitInputType::ASSUMPTION)));
+  }, Inference(FromInput(UnitInputType::CONJECTURE)));
   UnitList* units = nullptr;
   UnitList::push(clause, units);
 
@@ -269,16 +269,28 @@ TEST_FUN(propertyScanCountsAndResetsInterleavedSymbols)
   ASS_EQ(f->usageCnt(), 1u);
   ASS_EQ(p->usageCnt(), 1u);
   ASS_EQ(tc->usageCnt(), 1u);
+  for (auto symbol : {f, p, tc}) {
+    ASS(symbol->inGoal());
+    ASS(symbol->inUnit());
+  }
 
   // Rescanning must not accumulate counts from the previous scan.
   delete Shell::Property::scan(units);
   ASS_EQ(f->usageCnt(), 1u);
   ASS_EQ(p->usageCnt(), 1u);
   ASS_EQ(tc->usageCnt(), 1u);
+  for (auto symbol : {f, p, tc}) {
+    ASS(symbol->inGoal());
+    ASS(symbol->inUnit());
+  }
 
   delete Shell::Property::scan(UnitList::empty());
   ASS_EQ(f->usageCnt(), 0u);
   ASS_EQ(p->usageCnt(), 0u);
   ASS_EQ(tc->usageCnt(), 0u);
+  for (auto symbol : {f, p, tc}) {
+    ASS(!symbol->inGoal());
+    ASS(!symbol->inUnit());
+  }
   UnitList::destroy(units);
 }

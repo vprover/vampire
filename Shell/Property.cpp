@@ -104,15 +104,21 @@ Property::Property()
  */
 Property* Property::scan(UnitList* units)
 {
-  // a bit of a hack, these counts belong in Property
+  // a bit of a hack, these counts and marks belong in Property
   for (unsigned f : env.signature->functionSymbols()) {
-    env.signature->getFunction(f)->resetUsageCnt();
+    Signature::Symbol* sym = env.signature->getFunction(f);
+    sym->resetUsageCnt();
+    sym->resetScanMarks();
   }
   for (unsigned p : env.signature->predicateSymbols()) {
-    env.signature->getPredicate(p)->resetUsageCnt();
+    Signature::Symbol* sym = env.signature->getPredicate(p);
+    sym->resetUsageCnt();
+    sym->resetScanMarks();
   }
   for (unsigned t : env.signature->typeConSymbols()) {
-    env.signature->getTypeCon(t)->resetUsageCnt();
+    Signature::Symbol* sym = env.signature->getTypeCon(t);
+    sym->resetUsageCnt();
+    sym->resetScanMarks();
   }
 
   Property* prop = new Property;
@@ -271,8 +277,8 @@ void Property::scan(Clause* clause)
       }
     }
 
-    bool goal = (clause->inputType()==UnitInputType::CONJECTURE ||
-        clause->inputType()==UnitInputType::NEGATED_CONJECTURE);
+    // the same notion of "goal" as the one Skolem and NewCNF mark their symbols by
+    bool goal = clause->derivedFromGoal();
     bool unit = (clause->length() == 1);
 
     // 1 for context polarity, only used in formulas
@@ -655,7 +661,10 @@ void Property::scan(TermList ts,bool unit,bool goal)
         _maxTypeConArity = t->arity();
       }
       // an AtomicSort stores the type constructor's number as its functor
-      env.signature->getTypeCon(t->functor())->incUsageCnt();
+      Signature::Symbol* typeCon = env.signature->getTypeCon(t->functor());
+      typeCon->incUsageCnt();
+      if(unit){ typeCon->markInUnit();}
+      if(goal){ typeCon->markInGoal();}
       return;
     }
 
