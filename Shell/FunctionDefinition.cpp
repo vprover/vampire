@@ -856,6 +856,17 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
     return 0;
   }
 
+  // A necessary condition for lhs to be a definition head, checked before occurs()
+  // below because that one is a full walk of rhs while this looks only at lhs's own
+  // arguments. Note lhs->args() leads with the type arguments, which are sorts rather
+  // than variables, so a polymorphic or higher-order application dies on the first one.
+  // Vacuous when lhs->arity()==0, which is what lets it sit above the arity-0 block.
+  for (const TermList* ts = lhs->args(); ts->isNonEmpty(); ts=ts->next()) {
+    if (! ts->isVar()) {
+      return 0;
+    }
+  }
+
   if (occurs(f,*rhs)) {
     return 0;
   }
@@ -879,14 +890,13 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
 
   int vars = 0; // counter of variables occurring in the lhs
 
-  // First, iterate subterms in lhs and check that all of them are variables
-  // and each of them occurs exactly once. counter will contain variables
-  // occurring in lhs
+  // Check that each of lhs's arguments occurs exactly once; that they are all variables
+  // is already known from the loop above. counter will contain variables occurring in
+  // lhs. It is a heap-allocated 31-slot array, which after the reordering above is only
+  // paid for on the few lhs that survive the cheap test.
   ZIArray<unsigned> counter;
   for (const TermList* ts = lhs->args(); ts->isNonEmpty(); ts=ts->next()) {
-    if (! ts->isVar()) {
-      return 0;
-    }
+    ASS(ts->isVar());
     int w = ts->var();
     if (counter[w]++) { // more than one occurrence
       return 0;
