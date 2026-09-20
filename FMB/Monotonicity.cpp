@@ -245,8 +245,8 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const D
 
     // Next the non-empty constraint
     unsigned skolemConstant = env.signature->addSkolemFunction(OperatorType::getConstantsType(sTerm));
-    // Increment usage count so it's not treated as a deleted function later
-    env.signature->getFunction(skolemConstant)->incUsageCnt();
+    // no need to mark it as used: it occurs in the clause just below, which is appended
+    // to the clauses finite model building then counts symbol occurrences in
     Literal* psk = Literal::create1(p,true,TermList(Term::createConstant(skolemConstant)));
     auto nonEmpty = Clause::fromLiterals({ psk }, FromInput(UnitInputType::AXIOM));
     ClauseList::push(nonEmpty,newAxioms);
@@ -357,8 +357,6 @@ void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses,
       std::string name = "sortFunction_"+env.signature->typeConName(s);
       TermList sT = TermList(AtomicSort::createConstant(s));
       unsigned f = env.signature->addFreshFunction(OperatorType::getFunctionType({sT},sT),name.c_str());
-      // increment usage count so not treated as deleted
-      env.signature->getFunction(f)->incUsageCnt();
       sortFunctions[s] = f;
       sort_functions.push(f);
 

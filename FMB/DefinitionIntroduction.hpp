@@ -119,8 +119,8 @@ namespace FMB {
         if(!_introduced.find(t)){
           TermList srt = SortHelper::getResultSort(t);
           unsigned newConstant = env.signature->addFreshFunction(OperatorType::getConstantsType(srt),"fmbdef");
-          Signature::Symbol* newConstantSymb = env.signature->getFunction(newConstant);
-          newConstantSymb->incUsageCnt();
+          // no need to mark it as used: it occurs in the definition clause pushed below,
+          // which this iterator yields along with the rest
           Term* c = Term::createConstant(newConstant); 
           _introduced.insert(t,c);
           if(term==t) retC=c;

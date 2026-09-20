@@ -94,8 +94,6 @@ class Signature
 
     /** List of distinct groups the constant is a member of, all members of a distinct group should be distinct from each other */
     List<unsigned>* _distinctGroups;
-    /** number of times it is used in the problem */
-    unsigned _usageCount;
 
     /** the object is of type InterpretedSymbol */
     unsigned _interpreted : 1;
@@ -212,13 +210,6 @@ class Signature
     inline bool termAlgebraDest() const { return _termAlgebraDest; }
     /** Return true iff symbol is a term algebra destructor */
     inline bool termAlgebraDiscriminator() const { return _termAlgebraDiscriminator; }
-
-    /** Increase the usage count of this symbol **/
-    inline void incUsageCnt(){ _usageCount++; }
-    /** Return the usage count of this symbol **/
-    inline unsigned usageCnt() const { return _usageCount; }
-    /** Reset usage count to zero, to start again! **/
-    inline void resetUsageCnt(){ _usageCount=0; }
 
     /** The two marks below describe what the last Property::scan saw; that scan clears
      * them (see Property::scan(UnitList*)) and sets them again as it goes.

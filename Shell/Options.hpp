@@ -481,8 +481,7 @@ public:
   };
   enum class FMBSymbolOrders : unsigned int {
     OCCURRENCE,
-    INPUT_USAGE,
-    PREPROCESSED_USAGE
+    USAGE
   };
   enum class FMBAdjustSorts : unsigned int {
     OFF,

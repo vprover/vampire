@@ -73,7 +73,6 @@ private:
   void addLocalAxioms(UnitList*& units, TermList sort);
   void addAxioms(UnitList*& units);
   void addCongruenceAxioms(UnitList*& units);
-  static void collectUsedSymbols(UnitList* units, DArray<bool>& usedFunctions, DArray<bool>& usedPredicates);
   bool getArgumentEqualityLiterals(unsigned cnt, LiteralStack& lits, Stack<TermList>& vars1,
       Stack<TermList>& vars2, OperatorType* symbolType, bool skipSortsWithoutEquality);
   Literal* apply(Literal* lit);
