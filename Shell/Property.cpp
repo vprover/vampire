@@ -543,7 +543,7 @@ void Property::scanSort(TermList sort)
     addProp(PR_HAS_REALS);
   } else 
   if (sort == AtomicSort::boolSort()){
-    addProp(PR_HAS_BOOLEAN_VARIABLES);    
+    addProp(PR_HAS_BOOLEAN_VARIABLES);
   }
 }
 
@@ -552,8 +552,6 @@ void Property::scanSort(TermList sort)
  *
  * @param lit the literal
  * @param polarity
- * @param cLen
- * @param goal
  * @since 29/06/2002 Manchester
  * @since 17/07/2003 Manchester, changed to non-pointer types
  * @since 27/05/2007 flight Manchester-Frankfurt, uses new datastructures
