@@ -446,15 +446,6 @@ public:
     ON
   };
 
-
-  enum class InductionChoice : unsigned int {
-    ALL,
-    GOAL,                     // only apply induction to goal constants
-                              // a goal constant is one appearing in an explicit goal, or if gtg is used
-                              // a constant that is used to lift a clause to a goal (uniqueness or Skolem)
-    GOAL_PLUS,                // above plus skolem terms introduced in induction inferences
-  };
-
   enum class DemodulationRedundancyCheck : unsigned int {
     OFF,       // no check
     ORDERING,  // solely ordering-based check
@@ -1520,7 +1511,8 @@ public:
   Induction induction() const { return _induction.actualValue; }
   StructuralInductionKind structInduction() const { return _structInduction.actualValue; }
   IntInductionKind intInduction() const { return _intInduction.actualValue; }
-  InductionChoice inductionChoice() const { return _inductionChoice.actualValue; }
+  bool inductionSkolemOnly() const { return _inductionSkolemOnly.actualValue; }
+  bool inductionGoalClausesOnly() const { return _inductionGoalClausesOnly.actualValue; }
   unsigned maxInductionDepth() const { return _maxInductionDepth.actualValue; }
   bool inductionNegOnly() const { return _inductionNegOnly.actualValue; }
   bool inductionUnitOnly() const { return _inductionUnitOnly.actualValue; }
@@ -1782,7 +1774,8 @@ private:
   ChoiceOptionValue<Induction> _induction;
   ChoiceOptionValue<StructuralInductionKind> _structInduction;
   ChoiceOptionValue<IntInductionKind> _intInduction;
-  ChoiceOptionValue<InductionChoice> _inductionChoice;
+  BoolOptionValue _inductionSkolemOnly;
+  BoolOptionValue _inductionGoalClausesOnly;
   UnsignedOptionValue _maxInductionDepth;
   BoolOptionValue _inductionNegOnly;
   BoolOptionValue _inductionUnitOnly;

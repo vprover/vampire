@@ -627,8 +627,8 @@ Options::Options ()
                          StructuralInductionKind::ONE,{"one","two","three","recursion","all"})
   , _intInduction("int_induction_kind","iik",
                          IntInductionKind::ONE,{"one","two","all"})
-  , _inductionChoice("induction_choice","indc",InductionChoice::ALL,
-                        {"all","goal","goal_plus"})
+  , _inductionSkolemOnly("induction_skolem_only","indso",false)
+  , _inductionGoalClausesOnly("induction_goal_clauses_only","indgco",false)
   , _maxInductionDepth("induction_max_depth","indmd",0)
   , _inductionNegOnly("induction_neg_only","indn",true)
   , _inductionUnitOnly("induction_unit_only","indu",true)
@@ -2183,15 +2183,15 @@ Options::Options ()
     _intInduction.onlyUsefulWith(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
     _lookup.insert(_intInduction);
 
-    _inductionChoice.description="Where to apply induction. Goal only applies to constants in goal, goal_plus"
-                                 " extends this with skolem constants introduced by induction. Consider using"
-                                 " guess_the_goal for problems in SMTLIB as they do not come with a conjecture";
-    _inductionChoice.tag = OptionTag::INDUCTION;
-    _lookup.insert(_inductionChoice);
-    _inductionChoice.onlyUsefulWith(_induction.is(notEqual(Induction::NONE)));
-    //_inductionChoice.addHardConstraint(If(equal(InductionChoice::GOAL)->Or(equal(InductionChoice::GOAL_PLUS))).then(
-    //  _inputSyntax.is(equal(InputSyntax::TPTP))->Or<InductionChoice>(_guessTheGoal.is(equal(true)))));
+    _inductionSkolemOnly.description="Induct only on terms containing Skolems";
+    _inductionSkolemOnly.tag = OptionTag::INDUCTION;
+    _lookup.insert(_inductionSkolemOnly);
+    _inductionSkolemOnly.onlyUsefulWith(_induction.is(notEqual(Induction::NONE)));
 
+    _inductionGoalClausesOnly.description="Induct only on clauses derived from the goal";
+    _inductionGoalClausesOnly.tag = OptionTag::INDUCTION;
+    _lookup.insert(_inductionGoalClausesOnly);
+    _inductionGoalClausesOnly.onlyUsefulWith(_induction.is(notEqual(Induction::NONE)));
 
     _maxInductionDepth.description = "Set maximum depth of induction where 0 means no max.";
     _maxInductionDepth.tag = OptionTag::INDUCTION;

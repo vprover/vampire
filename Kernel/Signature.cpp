@@ -51,7 +51,6 @@ Signature::Symbol::Symbol(const std::string& nm, OperatorType* type, bool interp
     _termAlgebraDiscriminator(0),
     _inGoal(0),
     _inUnit(0),
-    _inductionSkolem(0),
     _skolem(0),
     _skipCongruence(0),
     _tuple(0),
