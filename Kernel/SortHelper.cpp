@@ -74,6 +74,31 @@ static OperatorType* getType(Term const* t)
 static bool mayBeShared(TermList t)
 { return !t.isSpecialVar() && (!t.isTerm() || t.term()->shared()); }
 
+/** whether a sort built out of @c t's first @c typeArity arguments may be shared */
+static bool typeArgsMayBeShared(const Term* t, unsigned typeArity)
+{
+  for(unsigned i = 0; i < typeArity; i++){
+    if(!mayBeShared(*t->nthArgument(i))){
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * The substitution that instantiates a symbol's declared sorts at a particular term is
+ * always the same shape: OperatorType::quantifiedVar(i) is simply variable i, and it goes
+ * to t's i-th argument. So the lookup is an index into t itself, and there is no reason
+ * to go through a map -- which matters, because Substitution's DHMap allocates and
+ * zero-fills a table on its first bind and throws it away again when the query returns.
+ */
+struct TypeArgApplicator {
+  TypeArgApplicator(const Term* t) : _t(t) {}
+  TermList apply(unsigned var) const { return *_t->nthArgument(var); }
+private:
+  const Term* _t;
+};
+
 bool SortHelper::getTypeSub(const Term* t, Substitution& subst)
 {
   OperatorType* ot       = getType(t);
@@ -92,6 +117,19 @@ bool SortHelper::getTypeSub(const Term* t, Substitution& subst)
   }
   return resultShared;
 } // getTypeSub
+
+/** Instantiate @c declaredSort, one of @c t's symbol's declared sorts, at @c t. */
+static TermList instantiate(TermList declaredSort, const Term* t, unsigned typeArity)
+{
+  if(!typeArity){
+    // nothing to instantiate: a symbol with no type variables has ground declared sorts
+    ASS_REP(declaredSort.isTerm() &&
+        (declaredSort.term()->isSuper() || declaredSort.term()->ground()), t->toString());
+    return declaredSort;
+  }
+  TypeArgApplicator applicator(t);
+  return SubstHelper::apply(declaredSort, applicator, !typeArgsMayBeShared(t, typeArity));
+}
 
 /**
  * Return the sort of a non-variable term t. This function cannot be applied
@@ -119,17 +157,8 @@ TermList SortHelper::getResultSort(const Term* t)
     return *t->nthArgument(1);
   }
 
-  Substitution subst;
-  bool shared = getTypeSub(t, subst);
-  Signature::Symbol* sym = env.signature->getFunction(t->functor());
-  TermList result = sym->type()->result();
-
-  // If the substitution is empty, then the result sort must be necessarily ground.
-  ASS(
-    !subst.isEmpty() ||
-    (result.isTerm() && (result.term()->isSuper() || result.term()->ground()))
-  )
-  return SubstHelper::apply(result, subst, !shared);
+  OperatorType* ot = env.signature->getFunction(t->functor())->type();
+  return instantiate(ot->result(), t, ot->numTypeArguments());
 }
 
 TermList SortHelper::getResultSortMono(const Term* t)
@@ -240,7 +269,6 @@ TermList SortHelper::getArgSort(Term const* t, unsigned argIndex)
     return getEqualityArgumentSort(static_cast<Literal const*>(t));
   }
 
-  Substitution subst;
   OperatorType* ot = getType(t);
 
   if(argIndex < ot->numTypeArguments()){
@@ -264,8 +292,7 @@ TermList SortHelper::getArgSort(Term const* t, unsigned argIndex)
     }
   }
 
-  bool shared = getTypeSub(t, subst);
-  return SubstHelper::apply(ot->arg(argIndex), subst, !shared);
+  return instantiate(ot->arg(argIndex), t, ot->numTypeArguments());
 } // getArgSort
 
 /* returns the sort of the nth term argument */
@@ -835,15 +862,13 @@ bool SortHelper::areImmediateSortsValidPoly(Term* t)
     
   OperatorType* type = getType(t);
   unsigned arity = t->arity();
-  Substitution subst;
-  getTypeSub(t, subst);
+  unsigned typeArity = type->numTypeArguments();
   for (unsigned i = 0; i < arity; i++) {
     TermList arg = *t->nthArgument(i);
     if (!arg.isTerm()) { continue; }
     Term* ta = arg.term();
     TermList argSort = getResultSort(ta);
-    TermList instantiatedTypeSort = SubstHelper::apply(type->arg(i), subst);
-    if (instantiatedTypeSort != argSort) {
+    if (instantiate(type->arg(i), t, typeArity) != argSort) {
       return false;
     }
   }
