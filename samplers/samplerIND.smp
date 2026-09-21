@@ -130,8 +130,6 @@ $nwc!=1 > nwc ~uf 0.5,15.0
 # introduced_symbol_precedence
 > isp ~cat top:10,bottom:1
 
-# restrict_nwc_to_goal_constants
-nwc!=1 > rnwc ~cat off:5,on:1
 
 # literal_maximality_aftercheck
 > lma ~cat off:500,on:83

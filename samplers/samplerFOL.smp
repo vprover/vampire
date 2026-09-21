@@ -125,8 +125,6 @@ sa!=fmb $nwc=1 > nwc ~cat 1:1
 sa!=fmb $nwc!=1 > nwc ~uf 0.5,15.0
 # TODO: we will most likely want a new distribution here for ($nwc!=1) just above!
 
-# restrict_nwc_to_goal_constants
-sa!=fmb nwc!=1 > rnwc ~cat off:5,on:1
 
 # literal_maximality_aftercheck
 sa!=fmb > lma ~cat off:500,on:83

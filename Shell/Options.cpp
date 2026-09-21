@@ -915,7 +915,6 @@ Options::Options ()
                  "Global"
                 })
   , _nonGoalWeightCoefficient("nongoal_weight_coefficient","nwc") // default 10.0 is hard-wired to the constructor
-  , _restrictNWCtoGC("restrict_nwc_to_goal_constants","rnwc",false)
   , _selection("selection","s",10)
   , _inputFile("input_file","","",this)
   , _newCNF("newcnf","newcnf",false)
@@ -2820,11 +2819,6 @@ Options::Options ()
     _lookup.insert(_nonGoalWeightCoefficient);
     _nonGoalWeightCoefficient.onlyUsefulWith(ProperSaturationAlgorithm());
     _nonGoalWeightCoefficient.tag = OptionTag::SATURATION;
-
-    _restrictNWCtoGC.description = "restrict nongoal_weight_coefficient to those containing goal constants";
-    _lookup.insert(_restrictNWCtoGC);
-    _restrictNWCtoGC.tag = OptionTag::SATURATION;
-    _restrictNWCtoGC.onlyUsefulWith(_nonGoalWeightCoefficient.is(notEqual(1.0f)));
 
     _normalize.description="Normalize the problem so that the ordering of clauses etc does not effect proof search.";
     _lookup.insert(_normalize);

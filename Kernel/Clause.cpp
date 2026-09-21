@@ -30,9 +30,7 @@
 #include "Shell/Options.hpp"
 
 #include "Inference.hpp"
-#include "Signature.hpp"
 #include "Term.hpp"
-#include "TermIterators.hpp"
 #include "SortHelper.hpp"
 
 #include "Clause.hpp"
@@ -598,19 +596,7 @@ unsigned Clause::computeWeightForClauseSelection(const Options& opt) const
     numeralWeight = getNumeralWeight();
   }
 
-  bool derivedFromGoal = Unit::derivedFromGoal();
-  if(derivedFromGoal && opt.restrictNWCtoGC()){
-    bool found = false;
-    for(unsigned i=0;i<_length;i++){
-      NonVariableNonTypeIterator it(_literals[i]);
-      while(it.hasNext()){
-        found |= env.signature->getFunction(it.next()->functor())->inGoal();
-      }
-    }
-    if(!found){ derivedFromGoal=false; }
-  }
-
-  return Clause::computeWeightForClauseSelection(w, splWeight, numeralWeight, derivedFromGoal, opt);
+  return Clause::computeWeightForClauseSelection(w, splWeight, numeralWeight, Unit::derivedFromGoal(), opt);
 }
 
 /*
