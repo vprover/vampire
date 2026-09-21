@@ -568,7 +568,7 @@ Options::Options ()
                                                      {"function_first","argument_first","diagonal"})
   , _fmbSymmetryOrderSymbols("fmb_symmetry_symbol_order","fmbsso",
                                                      FMBSymbolOrders::OCCURRENCE,
-                                                     {"occurrence","input_usage","preprocessed_usage"})
+                                                     {"occurrence","usage"})
   , _fmbAdjustSorts("fmb_adjust_sorts","fmbas",
                                                            FMBAdjustSorts::GROUP,
                                                            {"off","expand","group","predicate","function"})
@@ -1642,7 +1642,7 @@ Options::Options ()
     _fmbSymmetryRatio.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
     _fmbSymmetryRatio.tag = OptionTag::FMB;
 
-    _fmbSymmetryOrderSymbols.description = "The order of symbols considered for symmetry avoidance. See Symmetry Avoidance in MACE-Style Finite Model Finding.";
+    _fmbSymmetryOrderSymbols.description = "The order of symbols considered for symmetry avoidance: either as they come in the signature, or by how often they occur in the clauses finite model building has preprocessed. See Symmetry Avoidance in MACE-Style Finite Model Finding.";
     _lookup.insert(_fmbSymmetryOrderSymbols);
     _fmbSymmetryOrderSymbols.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
     _fmbSymmetryOrderSymbols.tag = OptionTag::FMB;
