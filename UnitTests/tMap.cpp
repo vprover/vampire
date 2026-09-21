@@ -27,7 +27,7 @@ struct HashOnly {
 };
 
 struct HashWithEquality : HashOnly {
-  static bool equals(unsigned, unsigned) { return true; }
+  static bool equals(unsigned, unsigned) = delete;
 };
 
 // No operator==: every comparison must use the explicit predicate.

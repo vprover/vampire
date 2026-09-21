@@ -94,10 +94,6 @@ namespace Kernel {
 
   struct AlascaLiteralHash {
     template<class NumTraits>
-    static bool equals(AlascaLiteral<NumTraits> const& lhs, AlascaLiteral<NumTraits> const& rhs)
-    { return lhs == rhs; }
-
-    template<class NumTraits>
     static unsigned hash(AlascaLiteral<NumTraits> const& value)
     { return TupleHash<FnvHash, PerfectHash<FnvHash>>::hash(value.asTuple()); }
   };

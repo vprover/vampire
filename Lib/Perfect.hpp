@@ -11,6 +11,7 @@
 #ifndef __UNIQUE_SHARED_HPP__
 #define __UNIQUE_SHARED_HPP__
 
+#include "Lib/Comparison.hpp"
 #include <functional>
 #include "Lib/Reflection.hpp"
 #include "Lib/Sort.hpp"
@@ -37,10 +38,7 @@ struct PerfectIdComparison ;
 template<class T, class DfltComparison = PerfectIdComparison>
 class Perfect 
 {
-  struct DerefEqual {
-    bool operator()(const T* lhs, const T* rhs) const { return *lhs == *rhs; }
-  };
-  using IdMap = Map<const T*, Perfect, DerefPtrHash<StlHash>, DerefEqual>;
+  using IdMap = Map<const T*, Perfect, DerefPtrHash<StlHash>, DerefPtrEqual>;
 
   unsigned _id;
   const T* _ptr;
@@ -100,10 +98,6 @@ struct PerfectPtrComparison
   { return DefaultComparator::compare((size_t)lhs._ptr, (size_t)rhs._ptr); }
 
   template<class T, class Cmp>
-  static bool equals(const Perfect<T, Cmp>& lhs, const Perfect<T, Cmp>& rhs) 
-  { return compare(lhs, rhs) == Comparison::EQUAL; }
-
-  template<class T, class Cmp>
   static size_t hash(Lib::Perfect<T, Cmp> const& self) 
   { return std::hash<size_t>{}((size_t)self._ptr); }
 
@@ -121,10 +115,6 @@ struct PerfectIdComparison
   { return DefaultComparator::compare(lhs._id, rhs._id); }
 
   template<class T, class Cmp>
-  static bool equals(const Perfect<T, Cmp>& lhs, const Perfect<T, Cmp>& rhs) 
-  { return compare(lhs, rhs) == Comparison::EQUAL; }
-
-  template<class T, class Cmp>
   static size_t hash(Lib::Perfect<T, Cmp> const& self) 
   { return std::hash<unsigned>{}(self._id); }
 
@@ -137,10 +127,6 @@ struct PerfectIdComparison
 // Apply Hash to the id or address selected by the comparison policy.
 template<class Hash>
 struct PerfectHash {
-  template<class T, class Cmp>
-  static bool equals(const Perfect<T, Cmp>& lhs, const Perfect<T, Cmp>& rhs)
-  { return lhs == rhs; }
-
   template<class T, class Cmp>
   static unsigned hash(const Perfect<T, Cmp>& value)
   { return Cmp::template hashWith<Hash>(value); }

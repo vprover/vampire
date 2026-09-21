@@ -62,10 +62,6 @@ struct HashUtils
 struct IdentityHash
 {
   template<typename T>
-  static bool equals(T o1, T o2)
-  { return o1 == o2; }
-
-  template<typename T>
   static unsigned hash(T val)
   { return static_cast<unsigned>(val); }
 };
@@ -80,10 +76,6 @@ struct IdentityHash
  */
 struct FnvHash
 {
-  template<typename T>
-  static bool equals(const T &o1, const T &o2)
-  { return o1 == o2; }
-
   /**
    * FNV-1a with initial value @b hash.
    * @since 31/03/2006
@@ -163,9 +155,6 @@ struct FnvHash
 // hash a Unit (or descendant, e.g. Clause) by FNV-1a of its unique incrementing number
 struct UnitHash
 {
-  static bool equals(const Kernel::Unit* o1, const Kernel::Unit* o2)
-  { return o1 == o2; }
-
   static unsigned hash(const Kernel::Unit* unit)
   { return FnvHash::hash(unit ? unit->number() : 0); }
 };
@@ -202,10 +191,6 @@ struct LengthHash
 // wrapper around std::hash
 struct StlHash {
   template<class T>
-  static bool equals(const T& lhs, const T& rhs) 
-  { return lhs == rhs; }
-
-  template<class T>
   static unsigned hash(const T& self)
   { return std::hash<T>{}(self); }
 };
@@ -214,10 +199,6 @@ struct StlHash {
 template<class InnerHash>
 struct DerefPtrHash {
   template<class T>
-  static bool equals(const T* lhs, const T* rhs)
-  { return InnerHash::equals(*lhs, *rhs); }
-
-  template<class T>
   static unsigned hash(const T* self) 
   { return InnerHash::hash(*self); }
 };
@@ -225,7 +206,6 @@ struct DerefPtrHash {
 // a hash for Stack<T>, applying ElementHash to each item
 template<class ElementHash>
 struct StackHash {
-  // TODO equals()?
   template<typename T>
   static unsigned hash(const Stack<T>& s, unsigned hash = FNV32_OFFSET_BASIS) {
     for (auto& x : s) {
@@ -238,7 +218,6 @@ struct StackHash {
 // a hash for Vector<T>, applying ElementHash to each item
 template<class ElementHash>
 struct VectorHash {
-  // TODO equals()?
   template<typename T>
   static unsigned hash(const Vector<T>& s) {
     unsigned res = FNV32_OFFSET_BASIS;
@@ -254,10 +233,6 @@ template<class... ElementHashes>
 struct TupleHash
 {
   template<typename... T>
-  static bool equals(std::tuple<T...> const& o1, std::tuple<T...> const& o2)
-  { return o1 == o2; }
-
-  template<typename... T>
   static unsigned hash(std::tuple<T...> const& s)
   {
     static_assert(sizeof...(ElementHashes) == sizeof...(T),
@@ -270,10 +245,6 @@ struct TupleHash
 template<class HashFst, class HashSnd>
 struct PairHash
 {
-  template<typename T, typename U>
-  static bool equals(const std::pair<T,U>& o1, const std::pair<T,U>& o2)
-  { return o1 == o2; }
-
   template<typename T, typename U>
   static unsigned hash(const std::pair<T,U>& pp) {
     return HashUtils::combine(

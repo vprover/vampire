@@ -15,6 +15,7 @@
 #ifndef __OperatorType__
 #define __OperatorType__
 
+#include "Lib/Comparison.hpp"
 #include "Forwards.hpp"
 
 #include "Lib/Set.hpp"
@@ -50,9 +51,6 @@ class OperatorType
 public:
   class TypeHash {
   public:
-    static bool equals(OperatorType* t1, OperatorType* t2)
-    { return (*t1) == (*t2); }
-
     static unsigned hash(OperatorType* ot)
     {
       OperatorKey& key = *ot->key();
@@ -90,7 +88,7 @@ private:
   }
   static OperatorKey* setupKeyUniformRange(unsigned arity, TermList argsSort);
 
-  typedef Set<OperatorType*,TypeHash> OperatorTypes;
+  typedef Set<OperatorType*, TypeHash, DerefPtrEqual> OperatorTypes;
   static OperatorTypes& operatorTypes(); // just a wrapper around a static OperatorTypes object, to ensure a correct initialization order
 
   static OperatorType* getTypeFromKey(OperatorKey* key, unsigned taArity);

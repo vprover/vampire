@@ -43,7 +43,7 @@ template<class A, class B, class HashA, class HashB, class EqualA = std::equal_t
 template <typename Key, typename Val, class Hash1, class Hash2> class DHMap;
 template <typename Val, class Hash1, class Hash2> class DHSet;
 template <typename Val, class Hash1, class Hash2> class DHMultiset;
-template <typename Val, class Hash> class Set;
+template <typename Val, class Hash, class Equal = std::equal_to<Val>> class Set;
 };
 
 namespace Kernel

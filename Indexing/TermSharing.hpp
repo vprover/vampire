@@ -48,26 +48,27 @@ public:
   /** The hash function of this term */
   inline static unsigned hash(const Term* t)
   { return t->hash(); }
-  static bool equals(const Term* t1,const Term* t2);
-
-  /**
-   * True if the two literals are equal (or equal except polarity if @c opposite is true)
-   */
-  template<bool opposite = false>
-  static bool equals(const Literal* l1, const Literal* l2)
-  { return Literal::literalEquals(l1, l2->functor(), l2->polarity() ^ opposite, 
-        [&](auto i){ return *l2->nthArgument(i); }, 
-        l2->arity(), someIf(l2->isTwoVarEquality(), [&](){ return l2->twoVarEqSort(); })); }
-
   struct OpLitWrapper {
     OpLitWrapper(Literal* l) : l(l) {}
     Literal* l;
   };
   inline static unsigned hash(const OpLitWrapper& w)
   { return w.l->hash<true>(); }
-  static bool equals(const Literal* l1,const OpLitWrapper& w) {
-    return equals<true>(l1, w.l);
-  }
+
+  struct Equal {
+    bool operator()(const Term* t1, const Term* t2) const;
+    bool operator()(const Literal* l1, const Literal* l2) const
+    { return equalLiterals<false>(l1, l2); }
+    bool operator()(const Literal* l1, const OpLitWrapper& w) const
+    { return equalLiterals<true>(l1, w.l); }
+
+  private:
+    template<bool opposite>
+    static bool equalLiterals(const Literal* l1, const Literal* l2)
+    { return Literal::literalEquals(l1, l2->functor(), l2->polarity() ^ opposite,
+          [&](auto i){ return *l2->nthArgument(i); },
+          l2->arity(), someIf(l2->isTwoVarEquality(), [&](){ return l2->twoVarEqSort(); })); }
+  };
 
   // stuff for disabling a well-sortedness check
   // still used, but only in BlockedClauseElimination: can we eliminate that occurrence?
@@ -93,11 +94,11 @@ private:
   static bool argNormGt(TermList t1, TermList t2);
 
   /** The set storing all terms */
-  Set<Term*,TermSharing> _terms;
+  Set<Term*, TermSharing, Equal> _terms;
   /** The set storing all literals */
-  Set<Literal*,TermSharing> _literals;
+  Set<Literal*, TermSharing, Equal> _literals;
   /** The set storing all sorts */
-  Set<AtomicSort*,TermSharing> _sorts;
+  Set<AtomicSort*, TermSharing, Equal> _sorts;
 
   bool _poly;
   bool _wellSortednessCheckingDisabled;
