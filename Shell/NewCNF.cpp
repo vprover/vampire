@@ -986,24 +986,23 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
   bool isTypeVar = (rangeSort == AtomicSort::superSort());
   if (isPredicate) {
     unsigned pred = Skolem::addSkolemPredicate(taArity, *termVarSorts);
-    sym = env.signature->getPredicate(pred);
+    sym = &env.signature->predicate(pred).skipCongruence().symbol();
     res = Term::createFormula(new AtomicFormula(Literal::create(pred, arity, true, args.begin())));
   } else if (isTypeVar) {
     ASS(termVars->isEmpty() && termVarSorts->isEmpty());
     ASS_EQ(taArity, arity);
     unsigned typeCon = Skolem::addSkolemTypeCon(arity);
-    sym = env.signature->getTypeCon(typeCon);
+    sym = &env.signature->typeConstructor(typeCon).skipCongruence().symbol();
     res = AtomicSort::create(typeCon, arity, typeVars->begin());
   } else {
     unsigned fun = Skolem::addSkolemFunction(taArity, *termVarSorts, rangeSort);
-    sym = env.signature->getFunction(fun);
+    sym = &env.signature->function(fun).skipCongruence().symbol();
     if(_forInduction){
       sym->markInductionSkolem();
     }
     res = Term::create(fun, arity, args.begin());
   }
 
-  sym->markSkipCongruence();
   if(_beingClausified->derivedFromGoal()){
     sym->markInGoal();
   }

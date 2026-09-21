@@ -4091,7 +4091,7 @@ void TPTP::endFof()
 Unit* TPTP::processClaimFormula(Unit* unit, Formula * f, const std::string& nm)
 {
   bool added;
-  auto symbol = env.signature->predicate(nm, OperatorType::getPredicateType(TermStack(), 0), added);
+  auto symbol = env.signature->predicate(nm, OperatorType::getPredicateType(TermStack(), 0), added).label();
   unsigned pred = symbol.number();
   if (!added) {
     USER_ERROR("Names of claims must be unique: "+nm);
@@ -4105,7 +4105,6 @@ Unit* TPTP::processClaimFormula(Unit* unit, Formula * f, const std::string& nm)
     // only clauses can have free variables at this point!
     ASS_EQ(freeVariables(f),VList::empty())
   }
-  symbol.label();
   Formula* claim = new AtomicFormula(Literal::create(pred, /* polarity */ true, {}));
   f = new BinaryFormula(IFF,claim,f);
   return new FormulaUnit(f,

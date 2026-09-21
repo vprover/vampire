@@ -160,12 +160,7 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, 
   }
 
 
-  Signature::Symbol* sym;
-  if(_appify){
-    sym = env.signature->getFunction(fun);
-  } else {
-    sym = env.signature->getPredicate(fun);
-  }
+  auto symbol = _appify ? env.signature->function(fun) : env.signature->predicate(fun);
 
   TermList s;
   TermList t; //the ground inequality argument, that'll be split out
@@ -180,10 +175,10 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, 
 
   ASS(t.isTerm());
   if(env.colorUsed && t.term()->color()!=COLOR_TRANSPARENT) {
-    sym->addColor(t.term()->color());
+    symbol.color(t.term()->color());
   }
   if(env.colorUsed && t.term()->skip()) {
-    sym->markSkip();
+    symbol.skip();
   }
 
   RStack<Literal*> resLits;
@@ -191,7 +186,7 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, 
       NonspecificInference0(inpType,InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION));
   _predDefs.push(defCl);
 
-  InferenceStore::instance()->recordIntroducedSymbol(defCl, sym);
+  InferenceStore::instance()->recordIntroducedSymbol(defCl, &symbol.symbol());
 
   premise=defCl;
 

@@ -226,7 +226,6 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
 
   auto symbol = env.signature->freshPredicate(OperatorType::getPredicateType(argSorts), "sP").skipCongruence();
   unsigned namingPred = symbol.number();
-  auto sym = &symbol.symbol();
 
   if(mdvColor!=COLOR_TRANSPARENT && otherColor!=COLOR_TRANSPARENT) {
     ASS_EQ(mdvColor, otherColor);

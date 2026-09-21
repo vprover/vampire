@@ -83,7 +83,11 @@ class Signature
   /** this is not a sort, it is just used to denote the first index of a user-define sort */
   static const unsigned FIRST_USER_CON=5;
   
+  class SymbolBuilder;
+
   class Symbol {
+    friend class Signature;
+    friend class SymbolBuilder;
   
   protected:
     /** print name */
@@ -146,7 +150,15 @@ class Signature
     void destroyPredSymbol();
     void destroyTypeConSymbol();
 
+    void markDistinctPred() { _distinctPred=1; }
+    /** mark predicate as (polarity) flipped */
+    void markFlipped() { _wasFlipped=1; }
+    void markLinMul() { _linMul=1; }
+
+  private:
     void addColor(Color color);
+    inline void markSkipCongruence() { _skipCongruence = 1; }
+    inline void markSkolem(){ _skolem = 1;}
     /** mark symbol that doesn't come from input problem, but was introduced by Vampire */
     void markIntroduced() { _introduced=1; }
     /** remove the marking that the symbol was introduced, it has now been found in the input
@@ -162,10 +174,6 @@ class Signature
     void markAnswerPredicate() { _answerPredicate=1; markProtected(); }
     /** mark predicate to be an equality proxy */
     void markEqualityProxy() { _equalityProxy=1; }
-    void markDistinctPred() { _distinctPred=1; }
-    /** mark predicate as (polarity) flipped */
-    void markFlipped() { _wasFlipped=1; }
-    void markLinMul() { _linMul=1; }
     /** mark symbol as a term algebra constructor */
     void markTermAlgebraCons() { _termAlgebraCons=1; }
     /** mark symbol as a term algebra destructor */
@@ -173,6 +181,7 @@ class Signature
     /** mark symbol as a term algebra discriminator */
     void markTermAlgebraDiscriminator() { _termAlgebraDiscriminator=1; }
 
+  public:
     /** return true iff symbol is marked as skip for the purpose of symbol elimination */
     bool skip() const { return _skip; }
     /** return true iff the symbol is marked as name predicate
@@ -228,10 +237,8 @@ class Signature
     /** to be called just before a scan that will recompute the two marks above */
     inline void resetScanMarks(){ _inGoal=0; _inUnit=0; }
 
-    inline void markSkolem(){ _skolem = 1;}
     inline bool skolem(){ return _skolem; }
 
-    inline void markSkipCongruence() { _skipCongruence = 1; }
     inline bool skipCongruence() { return _skipCongruence; }
 
     inline void markTuple(){ _tuple = 1; }
@@ -449,8 +456,9 @@ class Signature
   class SymbolBuilder {
     Symbol* _symbol;
     unsigned _number;
-  public:
+    friend class Signature;
     SymbolBuilder(Symbol* symbol, unsigned number) : _symbol(symbol), _number(number) {}
+  public:
     unsigned number() const { return _number; }
     Symbol* operator->() const { return _symbol; }
     Symbol& symbol() const { return *_symbol; }
@@ -468,86 +476,65 @@ class Signature
     SymbolBuilder& answerPredicate() { _symbol->markAnswerPredicate(); return *this; }
   };
 
+  // Configure an existing symbol without registering its name again.
+  SymbolBuilder function(unsigned number) { return SymbolBuilder(getFunction(number), number); }
+  SymbolBuilder predicate(unsigned number) { return SymbolBuilder(getPredicate(number), number); }
+  SymbolBuilder typeConstructor(unsigned number) { return SymbolBuilder(getTypeCon(number), number); }
+
   SymbolBuilder function(const std::string& name, OperatorType* type) {
-    unsigned number = addFunction(name, type);
-    return SymbolBuilder(getFunction(number), number);
+    bool added;
+    return function(name, type, added);
+  }
+  SymbolBuilder function(const std::string& name, OperatorType* type, bool& added) {
+    unsigned number;
+    Symbol* symbol = addFunction(name, type, added, number);
+    return SymbolBuilder(symbol, number);
   }
   SymbolBuilder predicate(const std::string& name, OperatorType* type) {
-    unsigned number = addPredicate(name, type);
-    return SymbolBuilder(getPredicate(number), number);
+    bool added;
+    return predicate(name, type, added);
+  }
+  SymbolBuilder predicate(const std::string& name, OperatorType* type, bool& added) {
+    unsigned number;
+    Symbol* symbol = addPredicate(name, type, added, number);
+    return SymbolBuilder(symbol, number);
   }
   SymbolBuilder typeConstructor(const std::string& name, unsigned arity) {
-    unsigned number = addTypeCon(name, arity);
-    return SymbolBuilder(getTypeCon(number), number);
+    bool added;
+    return typeConstructor(name, arity, added);
   }
+  SymbolBuilder typeConstructor(const std::string& name, unsigned arity, bool& added) {
+    unsigned number;
+    Symbol* symbol = addTypeCon(name, arity, added, number);
+    return SymbolBuilder(symbol, number);
+  }
+
   SymbolBuilder freshFunction(OperatorType* type, const char* prefix, const char* suffix = nullptr) {
-    unsigned number = addFreshFunction(type, prefix, suffix);
-    return SymbolBuilder(getFunction(number), number);
+    unsigned number;
+    Symbol* symbol = addFreshFunction(type, prefix, suffix, number);
+    return SymbolBuilder(symbol, number);
   }
   SymbolBuilder freshPredicate(OperatorType* type, const char* prefix, const char* suffix = nullptr) {
-    unsigned number = addFreshPredicate(type, prefix, suffix);
-    return SymbolBuilder(getPredicate(number), number);
+    unsigned number;
+    Symbol* symbol = addFreshPredicate(type, prefix, suffix, number);
+    return SymbolBuilder(symbol, number);
   }
   SymbolBuilder freshTypeConstructor(unsigned arity, const char* prefix) {
-    unsigned number = addFreshTypeCon(arity, prefix);
-    return SymbolBuilder(getTypeCon(number), number);
+    unsigned number;
+    Symbol* symbol = addFreshTypeCon(arity, prefix, number);
+    return SymbolBuilder(symbol, number);
   }
 
-  SymbolBuilder function(const std::string& name, OperatorType* type, bool& added) {
-    unsigned number = addFunction(name, type, added);
-    return SymbolBuilder(getFunction(number), number);
-  }
+private:
+  // Registration returns the symbol and writes its signature index to number.
+  Symbol* addFunction(const std::string& name, OperatorType* type, bool& added, unsigned& number);
+  Symbol* addPredicate(const std::string& name, OperatorType* type, bool& added, unsigned& number);
+  Symbol* addTypeCon(const std::string& name, unsigned arity, bool& added, unsigned& number);
+  Symbol* addFreshFunction(OperatorType* type, const char* prefix, const char* suffix, unsigned& number);
+  Symbol* addFreshPredicate(OperatorType* type, const char* prefix, const char* suffix, unsigned& number);
+  Symbol* addFreshTypeCon(unsigned arity, const char* prefix, unsigned& number);
 
-  SymbolBuilder predicate(const std::string& name, OperatorType* type, bool& added) {
-    unsigned number = addPredicate(name, type, added);
-    return SymbolBuilder(getPredicate(number), number);
-  }
-
-  SymbolBuilder typeConstructor(const std::string& name, unsigned arity, bool& added) {
-    unsigned number = addTypeCon(name, arity, added);
-    return SymbolBuilder(getTypeCon(number), number);
-  }
-
-  unsigned addPredicate(const std::string& name, OperatorType* type, bool& added);
-  unsigned addTypeCon(const std::string& name, unsigned arity, bool& added);
-  unsigned addFunction(const std::string& name, OperatorType* type, bool& added);
-
-  /**
-   * If a predicate with this name and arity exists, return its number.
-   * Otherwise, add a new one and return its number.
-   *
-   * @param name name of the symbol
-   * @param arity arity of the symbol
-   * @since 07/05/2007 Manchester
-   */
-  unsigned addPredicate(const std::string& name, OperatorType* type)
-  {
-    bool added;
-    return addPredicate(name, type, added);
-  }
-  /**
-   * If a type constructor with this name and arity exists, return its number.
-   * Otherwise, add a new one and return its number.
-   *
-   * @param name name of the symbol
-   * @param arity arity of the symbol
-   */
-  unsigned addTypeCon(const std::string& name,unsigned arity)
-  {
-    bool added;
-    return addTypeCon(name,arity,added);
-  }
-  /**
-   * If a function with this name and arity exists, return its number.
-   * Otherwise, add a new one and return its number.
-   *
-   * @since 28/12/2007 Manchester
-   */
-  unsigned addFunction(const std::string& name, OperatorType* type)
-  {
-    bool added;
-    return addFunction(name, type, added);
-  }
+public:
   /**
    * If a unique string constant with this name exists, return its number.
    * Otherwise, add a new one of sort @c sort and return its number.
@@ -559,14 +546,6 @@ class Signature
    * the caller to complain about a sort clash, if it cares.
    */
   unsigned addStringConstant(const std::string& name, TermList sort);
-  unsigned addFreshFunction(OperatorType* type, const char* prefix, const char* suffix = 0);
-  unsigned addSkolemFunction(OperatorType* type,const char* suffix = 0);
-  unsigned addFreshTypeCon(unsigned arity, const char* prefix);
-  unsigned addSkolemTypeCon(unsigned arity);
-  unsigned addFreshPredicate(OperatorType* type, const char* prefix, const char* suffix = 0);
-  unsigned addSkolemPredicate(OperatorType* type,const char* suffix = 0);
-  unsigned addNamePredicate(OperatorType* type);
-  unsigned addNameFunction(OperatorType* type);
   void addEquality();
   unsigned getApp();
   unsigned getLam();

@@ -74,7 +74,7 @@
 #define FOLS auto fols = TermSugar(false);
 #define DECL_ANSWER_PRED(f, ...)                                                          \
   auto f = PredSugar(#f, __VA_ARGS__);                                                    \
-  env.signature->getPredicate(f.functor())->markAnswerPredicate();
+  env.signature->predicate(f.functor()).answerPredicate();
 
 #define DECL_DEFAULT_VARS                                                                 \
   __ALLOW_UNUSED(                                                                         \
@@ -703,15 +703,13 @@ inline void createTermAlgebra(SortSugar sort, std::initializer_list<FuncSugar> f
   Stack<TermAlgebraConstructor*> cons;
 
   for (auto f : funcs) {
-    env.signature->getFunction(f.functor())
-      ->markTermAlgebraCons();
+    env.signature->function(f.functor()).termAlgebraConstructor();
 
     auto dtor = [&](unsigned i) {
       std::stringstream name;
       name << f << "@" << i;
       auto d = FuncSugar(name.str(), { f.result() }, f.arg(i));
-      env.signature->getFunction(d.functor())
-        ->markTermAlgebraDest();
+      env.signature->function(d.functor()).termAlgebraDestructor();
       return d;
     };
 

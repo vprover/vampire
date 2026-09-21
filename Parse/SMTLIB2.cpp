@@ -805,10 +805,8 @@ void SMTLIB2::readDefineFun(const std::string& name, LExpr* iArgs, LExpr* oSort,
   args.loadFromIterator(TermStack::BottomFirstIterator(termArgs));
 
   Literal* lit;
-  Signature::Symbol* sym;
+  auto symbol = isTrueFun ? env.signature->function(symbIdx) : env.signature->predicate(symbIdx);
   if (isTrueFun) {
-    sym = env.signature->getFunction(symbIdx);
-
     TermList lhs(Term::create(symbIdx,args.size(),args.begin()));
     auto p = env.signature->getFnDef(symbIdx);
     auto defArgs = typeVars;
@@ -816,8 +814,6 @@ void SMTLIB2::readDefineFun(const std::string& name, LExpr* iArgs, LExpr* oSort,
     defArgs.push(rhs);
     lit = Literal::create(p,defArgs.size(),true,defArgs.begin());
   } else {
-    sym = env.signature->getPredicate(symbIdx);
-
     auto p = env.signature->getBoolDef(symbIdx);
     TermList lhs(Term::createFormula(new AtomicFormula(Literal::create(p,args.size(),true,args.begin()))));
     lit = Literal::createEquality(true, lhs, rhs, rangeSort);
@@ -827,7 +823,7 @@ void SMTLIB2::readDefineFun(const std::string& name, LExpr* iArgs, LExpr* oSort,
   // Mark original symbol protected to avoid
   // erroneous unused symbol elimination later.
   // TODO find a better way to do this
-  sym->markProtected();
+  symbol.protect();
 
   FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
 
@@ -899,10 +895,8 @@ void SMTLIB2::readDefineFunsRec(LExpr* declsExpr, LExpr* defsExpr)
     bool isTrueFun = !decl.sym.second;
 
     Literal* lit;
-    Signature::Symbol* sym;
+    auto symbol = isTrueFun ? env.signature->function(symbIdx) : env.signature->predicate(symbIdx);
     if (isTrueFun) {
-      sym = env.signature->getFunction(symbIdx);
-
       TermList lhs(Term::create(symbIdx,decl.args.size(),decl.args.begin()));
       auto p = env.signature->getFnDef(symbIdx);
       TermStack defArgs; // no type arguments (yet) in this case
@@ -910,8 +904,6 @@ void SMTLIB2::readDefineFunsRec(LExpr* declsExpr, LExpr* defsExpr)
       defArgs.push(rhs);
       lit = Literal::create(p,defArgs.size(),true,defArgs.begin());
     } else {
-      sym = env.signature->getPredicate(symbIdx);
-
       auto p = env.signature->getBoolDef(symbIdx);
       TermList lhs(Term::createFormula(new AtomicFormula(Literal::create(p,decl.args.size(),true,decl.args.begin()))));
       lit = Literal::createEquality(true, lhs, rhs, decl.rangeSort);
@@ -921,7 +913,7 @@ void SMTLIB2::readDefineFunsRec(LExpr* declsExpr, LExpr* defsExpr)
     // Mark original symbol protected to avoid
     // erroneous unused symbol elimination later.
     // TODO find a better way to do this
-    sym->markProtected();
+    symbol.protect();
 
     FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
     _formulas.pushBack(fu);
@@ -2884,8 +2876,8 @@ void SMTLIB2::colorSymbol(const std::string& name, Color color)
 
   env.colorUsed = true;
 
-  Signature::Symbol* sym = getSymbol(s);
-  sym->addColor(color);
+  auto symbol = s.second ? env.signature->predicate(s.first) : env.signature->function(s.first);
+  symbol.color(color);
 }
 
 void SMTLIB2::markSymbolUncomputable(const std::string& name)

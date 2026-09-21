@@ -93,3 +93,30 @@ TEST_FUN(freshSymbolsKeepFlagsAndStableHandles)
   auto named = sig.function("builder_flags", type).introduced().skip();
   ASS(named->introduced() && named->skip());
 }
+
+TEST_FUN(existingSymbolHandlesPreserveRegistration)
+{
+  auto& sig = *env.signature;
+  auto f = sig.freshFunction(OperatorType::getConstantsType(AtomicSort::defaultSort()), "existing");
+  auto p = sig.freshPredicate(OperatorType::getPredicateType({}), "existing");
+  auto tc = sig.freshTypeConstructor(0, "existing");
+  auto functions = sig.functions();
+  auto predicates = sig.predicates();
+  auto typeCons = sig.typeCons();
+
+  auto sameFunction = sig.function(f.number()).protect();
+  auto samePredicate = sig.predicate(p.number()).label();
+  auto sameTypeCon = sig.typeConstructor(tc.number()).skolem();
+  ASS_EQ(&sameFunction.symbol(), &f.symbol());
+  ASS_EQ(&samePredicate.symbol(), &p.symbol());
+  ASS_EQ(&sameTypeCon.symbol(), &tc.symbol());
+  ASS_EQ(sameFunction.number(), f.number());
+  ASS_EQ(samePredicate.number(), p.number());
+  ASS_EQ(sameTypeCon.number(), tc.number());
+  ASS(f->introduced() && f->protectedSymbol());
+  ASS(p->introduced() && p->label() && p->protectedSymbol());
+  ASS(tc->introduced() && tc->skolem());
+  ASS_EQ(sig.functions(), functions);
+  ASS_EQ(sig.predicates(), predicates);
+  ASS_EQ(sig.typeCons(), typeCons);
+}

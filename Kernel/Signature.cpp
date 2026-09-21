@@ -385,25 +385,25 @@ unsigned Signature::getPredicateNumber(const std::string& name, unsigned arity) 
 }
 
 /**
- * If a function with this name and arity exists, return its number.
- * Otherwise, add a new one and return its number.
+ * If a function with this name and arity exists, return it.
+ * Otherwise, add a new one and return it.
  *
  * @param name name of the symbol
  * @param arity arity of the symbol
  * @param added will be set to true if the function did not exist
  * @since 07/05/2007 Manchester
  */
-unsigned Signature::addFunction (const std::string& name,
+Signature::Symbol* Signature::addFunction (const std::string& name,
          OperatorType* type,
-				 bool& added)
+				 bool& added, unsigned& result)
 {
   auto arity = type->arity();
   auto symbolKey = key(name,arity);
-  unsigned result;
   if (_funNames.find(symbolKey,result)) {
     added = false;
-    getFunction(result)->unmarkIntroduced();
-    return result;
+    Symbol* sym = getFunction(result);
+    sym->unmarkIntroduced();
+    return sym;
   }
   if (env.options->arityCheck()) {
     unsigned prev;
@@ -419,12 +419,13 @@ unsigned Signature::addFunction (const std::string& name,
   }
 
   result = _funs.length();
-  _funs.push(new Symbol(name, /*type=*/type,
+  Symbol* sym = new Symbol(name, /*type=*/type,
         /*       interpreted */ false, 
-        /*    preventQuoting */ (name == "$tType")));
+        /*    preventQuoting */ (name == "$tType"));
+  _funs.push(sym);
   _funNames.insert(symbolKey, result);
   added = true;
-  return result;
+  return sym;
 } // Signature::addFunction
 
 /**
@@ -602,33 +603,33 @@ unsigned Signature::formulaCount(Term* t){
 
 
 /**
- * If a type constructor with this name and arity exists, return its number.
- * Otherwise, add a new one and return its number.
+ * If a type constructor with this name and arity exists, return it.
+ * Otherwise, add a new one and return it.
  */
-unsigned Signature::addTypeCon (const std::string& name,
+Signature::Symbol* Signature::addTypeCon (const std::string& name,
          unsigned arity,
-         bool& added)
+         bool& added, unsigned& result)
 {
   auto symbolKey = key(name,arity);
-  unsigned result;
   if (_typeConNames.find(symbolKey,result)) {
     added = false;
-    return result;
+    return getTypeCon(result);
   }
   //TODO no arity check. Is this safe?
 
   result = _typeCons.length();
-  _typeCons.push(new Symbol(name,
+  Symbol* sym = new Symbol(name,
     OperatorType::getTypeConType(arity),
-    /* interpreted */ false, /* preventQuoting */ false));
+    /* interpreted */ false, /* preventQuoting */ false);
+  _typeCons.push(sym);
   _typeConNames.insert(symbolKey,result);
   added = true;
-  return result;
+  return sym;
 }
 
 /**
- * If a predicate with this name and arity exists, return its number.
- * Otherwise, add a new one and return its number.
+ * If a predicate with this name and arity exists, return it.
+ * Otherwise, add a new one and return it.
  *
  * @param name name of the symbol
  * @param arity arity of the symbol
@@ -639,17 +640,17 @@ unsigned Signature::addTypeCon (const std::string& name,
  * @since 06/12/2009 Haifa, arity check added
  * @author Andrei Voronkov
  */
-unsigned Signature::addPredicate (const std::string& name,
+Signature::Symbol* Signature::addPredicate (const std::string& name,
 				  OperatorType* type,
-				  bool& added)
+				  bool& added, unsigned& result)
 {
   auto arity = type->arity();
   auto symbolKey = key(name,arity);
-  unsigned result;
   if (_predNames.find(symbolKey,result)) {
     added = false;
-    getPredicate(result)->unmarkIntroduced();
-    return result;
+    Symbol* sym = getPredicate(result);
+    sym->unmarkIntroduced();
+    return sym;
   }
   if (env.options->arityCheck()) {
     unsigned prev;
@@ -665,28 +666,14 @@ unsigned Signature::addPredicate (const std::string& name,
   }
 
   result = _preds.length();
-  _preds.push(new Symbol(name, /*type=*/type,
+  Symbol* sym = new Symbol(name, /*type=*/type,
         /*       interpreted */ false, 
-        /*    preventQuoting */ false));
+        /*    preventQuoting */ false);
+  _preds.push(sym);
   _predNames.insert(symbolKey,result);
   added = true;
-  return result;
+  return sym;
 } // Signature::addPredicate
-
-/**
- * Create a new name.
- * @since 01/07/2005 Manchester
- */
-unsigned Signature::addNamePredicate(OperatorType* type)
-{
-  return freshPredicate(type, "sP").number();
-} // addNamePredicate
-
-
-unsigned Signature::addNameFunction(OperatorType* type)
-{
-  return freshFunction(type, "sP").number();
-} // addNameFunction
 
 /**
  * Add fresh function of a given arity and with a given prefix. If suffix is non-zero,
@@ -694,26 +681,18 @@ unsigned Signature::addNameFunction(OperatorType* type)
  * prefixI_suffix. The new function will be marked as skip for the purpose of equality
  * elimination.
  */
-unsigned Signature::addFreshFunction(OperatorType* type, const char* prefix, const char* suffix)
+Signature::Symbol* Signature::addFreshFunction(OperatorType* type, const char* prefix, const char* suffix, unsigned& result)
 {
   std::string pref(prefix);
   std::string suf(suffix ? std::string("_")+suffix : "");
   bool added;
-  unsigned result;
-  //commented out because it could lead to introduction of function with the same name
-  //that differ only in arity (which is OK with tptp, but iProver was complaining when
-  //using Vampire as clausifier)
-//  unsigned result = addFunction(pref+suf,arity,added);
-//  if (!added) {
-    do {
-      result = addFunction(pref+Int::toString(_nextFreshSymbolNumber++)+suf,type,added);
-    }
-    while (!added);
-//  }
-  Symbol* sym = getFunction(result);
+  Symbol* sym;
+  do {
+    sym = addFunction(pref+Int::toString(_nextFreshSymbolNumber++)+suf,type, added, result);
+  } while (!added);
   sym->markIntroduced();
   sym->markSkip();
-  return result;
+  return sym;
 } // addFreshFunction
 
 /**
@@ -723,23 +702,22 @@ unsigned Signature::addFreshFunction(OperatorType* type, const char* prefix, con
  * elimination.
  * TODO update documentation of all functions
  */
-unsigned Signature::addFreshTypeCon(unsigned arity, const char* prefix)
+Signature::Symbol* Signature::addFreshTypeCon(unsigned arity, const char* prefix, unsigned& result)
 {
   std::string pref(prefix);
   bool added;
-  unsigned result;
+  Symbol* sym;
 
   do {
-    result = addTypeCon(pref+Int::toString(_nextFreshSymbolNumber++),arity,added);
+    sym = addTypeCon(pref+Int::toString(_nextFreshSymbolNumber++),arity, added, result);
   }
   while (!added);
 
-  Symbol* sym = getTypeCon(result);
   //TODO are these necessary? I doubt that equality elimination works
   //on sorts anyway. Requires further investigation.
   sym->markIntroduced();
   sym->markSkip();
-  return result;
+  return sym;
 } // addFreshFunction
 
 /**
@@ -748,60 +726,19 @@ unsigned Signature::addFreshTypeCon(unsigned arity, const char* prefix)
  * prefixI_suffix. The new predicate will be marked as skip for the purpose of equality
  * elimination.
  */
-unsigned Signature::addFreshPredicate(OperatorType* type, const char* prefix, const char* suffix)
+Signature::Symbol* Signature::addFreshPredicate(OperatorType* type, const char* prefix, const char* suffix, unsigned& result)
 {
   std::string pref(prefix);
   std::string suf(suffix ? std::string("_")+suffix : "");
   bool added = false;
-  unsigned result;
-  //commented out because it could lead to introduction of function with the same name
-  //that differ only in arity (which is OK with tptp, but iProver was complaining when
-  //using Vampire as clausifier)
-//  if (suffix) {
-//    result = addPredicate(pref+suf,arity,added);
-//  }
-//  if (!added) {
-    do {
-      result = addPredicate(pref+Int::toString(_nextFreshSymbolNumber++)+suf, type, added);
-    }
-    while (!added);
-//  }
-  Symbol* sym = getPredicate(result);
+  Symbol* sym;
+  do {
+    sym = addPredicate(pref+Int::toString(_nextFreshSymbolNumber++)+suf, type, added, result);
+  } while (!added);
   sym->markIntroduced();
   sym->markSkip();
-  return result;
+  return sym;
 } // addFreshPredicate
-
-/**
- * Return a new Skolem function. If @b suffix is nonzero, include it
- * into the name of the Skolem function.
- * @since 01/07/2005 Manchester
- */
-unsigned Signature::addSkolemFunction (OperatorType* type, const char* suffix)
-{
-  return freshFunction(type, "sK", suffix).skolem().number();
-} // addSkolemFunction
-
-/**
- * Return a new Skolem typeCon. If @b suffix is nonzero, include it
- * into the name of the Skolem typeCon.
- * @since 01/07/2005 Manchester
- */
-unsigned Signature::addSkolemTypeCon (unsigned arity)
-{
-  return freshTypeConstructor(arity, "sK").skolem().number();
-} // addSkolemFunction
-
-
-/**
- * Return a new Skolem predicate. If @b suffix is nonzero, include it
- * into the name of the Skolem function.
- * @since 15/02/2016 Gothenburg
- */
-unsigned Signature::addSkolemPredicate(OperatorType* type, const char* suffix)
-{
-  return freshPredicate(type, "sK", suffix).skolem().number();
-} // addSkolemPredicate
 
 /**
  * Return the key "name_arity" used for hashing. This key is obtained by
