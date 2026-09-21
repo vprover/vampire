@@ -157,36 +157,34 @@ bool GoalGuessing::apply(Clause* cl)
   if(cl->isPureTheoryDescendant()){ return false; }
 
   unsigned clen = cl->length();
-  bool looksLikeGoal = false;
   for(unsigned i=0; i<clen; i++) {
-    Literal* lit = (*cl)[i];
-    looksLikeGoal |= apply(lit);
+    if(apply((*cl)[i])){
+      cl->inference().setInputType(UnitInputType::NEGATED_CONJECTURE);
+      return true;
+    }
   }
-  if(looksLikeGoal){ cl->inference().setInputType(UnitInputType::NEGATED_CONJECTURE); }
-  return looksLikeGoal; 
+  return false;
 }
+
 bool GoalGuessing::apply(FormulaUnit* fu)
 {
-  bool looksLikeGoal = false;
-
-  // existential quantification at the top-level is conjecture-like
-  if(_checkTop && fu->formula()->connective() == EXISTS){
-    looksLikeGoal = true;
-  }
-  // negated universal quantification at the top level is conjecture-like
-  if(_checkTop && fu->formula()->connective() == NOT && fu->formula()->uarg()->connective() == FORALL){
-    looksLikeGoal = true;
+  // existential quantification at the top-level is conjecture-like, and so is
+  // negated universal quantification (the two are mutually exclusive)
+  if(_checkTop && (fu->formula()->connective() == EXISTS ||
+      (fu->formula()->connective() == NOT && fu->formula()->uarg()->connective() == FORALL))){
+    fu->inference().setInputType(UnitInputType::NEGATED_CONJECTURE);
+    return true;
   }
 
   SubformulaIterator sfit(fu->formula());
   while (sfit.hasNext()) {
     Formula* sf = sfit.next();
-    if (sf->connective() == LITERAL){
-      looksLikeGoal |= apply(sf->literal());
+    if (sf->connective() == LITERAL && apply(sf->literal())){
+      fu->inference().setInputType(UnitInputType::NEGATED_CONJECTURE);
+      return true;
     }
   }
-  if(looksLikeGoal){ fu->inference().setInputType(UnitInputType::NEGATED_CONJECTURE); }
-  return looksLikeGoal;
+  return false;
 }
 
 bool GoalGuessing::apply(Literal* lit)
@@ -197,20 +195,19 @@ bool GoalGuessing::apply(Literal* lit)
 
     // do we care if we have predicate symbols only appearing in the goal?
     //unsigned p = lit->functor();
-    bool found = false;
 
     TermFunIterator it(lit);
     ASS(it.hasNext());
-    it.next(); // to move past the lit symbol 
+    it.next(); // to move past the lit symbol
     while(it.hasNext()){
       unsigned f = it.next();
       if(f >= _perUnitUsageCount.size()){ continue; }
       if(_perUnitUsageCount[f] <= _limit){
         //cout << "IDENTIFIED AS GOAL symbol " << env.signature->functionName(f) << endl;
-        found = true;
+        return true;
       }
     }
-    return found;
+    return false;
 }
 
 }
