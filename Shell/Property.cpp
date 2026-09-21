@@ -67,8 +67,6 @@ Property::Property()
     _maxFunArity(0),
     _maxPredArity(0),
     _maxTypeConArity(0),
-    _totalNumberOfVariables(0),
-    _maxVariablesInClause(0),
     _props(0),
     _hasInterpreted(false),
     _hasNonDefaultSorts(false),
@@ -242,7 +240,6 @@ void Property::scan(Clause* clause)
   int equationalLiterals = 0;
   int positiveEquationalLiterals = 0;
   int groundLiterals = 0;
-  _variablesInThisClause = 0;
 
   for (int i = clause->length()-1;i >= 0;i--) {
     Literal* literal = (*clause)[i];
@@ -263,9 +260,20 @@ void Property::scan(Clause* clause)
     // 1 for context polarity, only used in formulas
     scan(literal,1);
 
+    // Walk the term DAG rather than the tree it unfolds to. Everything scan(TermList)
+    // records is monotone -- flags that only ever go from false to true, running maxima,
+    // and the idempotent scanSort -- so a shared term seen a second time can contribute
+    // nothing new, and SubtermIterator's stack discipline guarantees its whole subtree has
+    // already been walked by the time a later occurrence comes up (a term's arguments are
+    // pushed above its right sibling, so they drain first).
     SubtermIterator stit(literal);
     while (stit.hasNext()) {
-      scan(stit.next());
+      TermList ts = stit.next();
+      if (ts.isTerm() && ts.term()->shared() && !_scannedTerms.insert(ts.term())) {
+        stit.right();
+        continue;
+      }
+      scan(ts);
     }
 
     if (literal->shared() && literal->ground()) {
@@ -315,15 +323,17 @@ void Property::scan(Clause* clause)
     }
   }
 
-  _totalNumberOfVariables += _variablesInThisClause;
-  if (_variablesInThisClause > _maxVariablesInClause) {
-    _maxVariablesInClause = _variablesInThisClause;
-  }
   if (! hasProp(PR_HAS_X_EQUALS_Y) && hasXEqualsY(clause)) {
     addProp(PR_HAS_X_EQUALS_Y);
   }
 
-  if (_variablesInThisClause > 0) {
+  // A clause is ground exactly when every one of its literals is, which groundLiterals
+  // above has already established: TermSharing maintains numVarOccs as the tree count of
+  // variable occurrences over all arguments, type arguments included, and Literal::ground()
+  // is numVarOccs()==0. So there is nothing for the term walk to count. (As before, an
+  // unshared literal counts as non-ground; clause literals are shared in any case, which
+  // Kernel/SymbolUsage asserts outright.)
+  if (literals != groundLiterals) {
     _allClausesGround = false;
     if(!clause->isTheoryAxiom()){
       _allNonTheoryClausesGround = false;
@@ -440,6 +450,24 @@ void Property::scan(Formula* f, int polarity)
 } // Property::scan(const Formula&)
 
 /**
+ * Whether scan() will work out this argument's sort for itself, so that asking the parent
+ * for it would be pure duplication.
+ *
+ * For an ordinary term it will: scan(TermList) ends in scanSort(getResultSort(arg)), and
+ * by well-typedness that is the very sort the parent's getArgSort would have returned. The
+ * iterator does reach every argument -- SubtermIterator in the clause path,
+ * SubexpressionIterator in the formula path, which pushes the arguments of every literal
+ * and of every ordinary term.
+ *
+ * Not so for a variable, which has no result sort of its own, nor for a special term,
+ * which takes the FOOL branch of scan and computes none. A sort argument needs no special
+ * case: getArgSort answers superSort for a type argument and scanSort discards it, so
+ * skipping it loses nothing.
+ */
+static bool scanWillFindItsOwnSort(TermList arg)
+{ return arg.isTerm() && !arg.term()->isSpecial(); }
+
+/**
  * If the sort is recognised by the properties, add information about it to the properties.
  * @since 04/05/2013 Manchester, array sorts removed
  * @author Andrei Voronkov
@@ -473,7 +501,7 @@ void Property::scanSort(TermList sort)
     return;
   }
   _hasNonDefaultSorts = true;
-  
+
   if(sort.isArraySort()){
     // an array sort is infinite, if the index or value sort is infinite
     // we rely on the recursive calls setting appropriate flags
@@ -515,7 +543,7 @@ void Property::scanSort(TermList sort)
     addProp(PR_HAS_REALS);
   } else 
   if (sort == AtomicSort::boolSort()){
-    addProp(PR_HAS_BOOLEAN_VARIABLES);    
+    addProp(PR_HAS_BOOLEAN_VARIABLES);
   }
 }
 
@@ -524,8 +552,6 @@ void Property::scanSort(TermList sort)
  *
  * @param lit the literal
  * @param polarity
- * @param cLen
- * @param goal
  * @since 29/06/2002 Manchester
  * @since 17/07/2003 Manchester, changed to non-pointer types
  * @since 27/05/2007 flight Manchester-Frankfurt, uses new datastructures
@@ -563,7 +589,14 @@ void Property::scan(Literal* lit, int polarity)
 
 
     for (int i=0; i<arity; i++) {
-      scanSort(SortHelper::getArgSort(lit, i));
+      TermList arg = *lit->nthArgument(i);
+      if (!scanWillFindItsOwnSort(arg)) {
+        scanSort(SortHelper::getArgSort(lit, i));
+      }
+      else {
+        ASS_REP2(SortHelper::getArgSort(lit, i) == SortHelper::getResultSort(arg.term()),
+            SortHelper::getArgSort(lit, i), SortHelper::getResultSort(arg.term()));
+      }
     }
   }
 
@@ -596,7 +629,6 @@ void Property::scan(Literal* lit, int polarity)
 void Property::scan(TermList ts)
 {
   if (ts.isVar()) {
-    _variablesInThisClause++;
     return;
   }
 
@@ -639,10 +671,17 @@ void Property::scan(TermList ts)
 
     Signature::Symbol* func = env.signature->getFunction(t->functor());
 
+    // an application wants this twice, for the _hasBoolVar test just below and for the
+    // scanSort at the end, and getResultSort is not cheap: it builds a Substitution and
+    // rebuilds the sort term through it
+    TermList resultSort = SortHelper::getResultSort(t);
+
     if(t->isApplication()){
       _hasApp = true;
-      TermList sort = SortHelper::getResultSort(t);
-      if(HOL::finalResult(sort).isBoolSort() && ts.head().isVar()){
+      // _hasBoolVar only ever goes from false to true, and both tests below walk a spine
+      // (finalResult up the arrow sort, head down the application), so once it is set
+      // there is nothing left to learn here
+      if(!_hasBoolVar && HOL::finalResult(resultSort).isBoolSort() && ts.head().isVar()){
         _hasBoolVar = true;
       }
     }
@@ -669,9 +708,16 @@ void Property::scan(TermList ts)
     }
 
     for (int i = 0; i < arity; i++) {
-      scanSort(SortHelper::getArgSort(t, i));
+      TermList arg = *t->nthArgument(i);
+      if (!scanWillFindItsOwnSort(arg)) {
+        scanSort(SortHelper::getArgSort(t, i));
+      }
+      else {
+        ASS_REP2(SortHelper::getArgSort(t, i) == SortHelper::getResultSort(arg.term()),
+            SortHelper::getArgSort(t, i), SortHelper::getResultSort(arg.term()));
+      }
     }
-    scanSort(SortHelper::getResultSort(t));  
+    scanSort(resultSort);
   }
 }
 
@@ -816,12 +862,6 @@ std::string Property::toString() const
     result += " goal, ";
     result += Int::toString(_equationalClauses);
     result += " equational)\n";
-
-    result += "Variables: ";
-    result += Int::toString(_totalNumberOfVariables);
-    result += " (";
-    result += Int::toString(_maxVariablesInClause);
-    result += " maximum in a single clause)\n";
   }
 
   if (formulas() > 0) {
