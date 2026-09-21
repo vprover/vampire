@@ -127,8 +127,6 @@ class Signature
     unsigned _inGoal : 1;
     /** if used in a unit **/
     unsigned _inUnit : 1;
-    /** if induction skolem **/
-    unsigned _inductionSkolem : 1;
     /** if skolem function in general **/
     unsigned _skolem : 1;
     /** if does not need congruence axioms with equality proxy */
@@ -250,9 +248,6 @@ class Signature
 
       return {};
     }
-
-    inline void markInductionSkolem(){ _inductionSkolem=1; _skolem=1;}
-    inline bool inductionSkolem(){ return _inductionSkolem;}
       
     /** Return true if symbol is an integer constant */
     inline bool integerConstant() const
