@@ -37,6 +37,16 @@ bool CodeTreeForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&repla
   // the profile should say which one ran.
   TIME_TRACE("codetree forward subsumption");
 
+  if (_subsumptionResolution) {
+    return performWith</*sres=*/true>(cl, replacement, premises);
+  } else {
+    return performWith</*sres=*/false>(cl, replacement, premises);
+  }
+}
+
+template<bool sres>
+bool CodeTreeForwardSubsumptionAndResolution::performWith(Clause *cl, Clause *&replacement, ClauseIterator &premises)
+{
   if (_ct->isEmpty()) {
     return false;
   }
@@ -47,9 +57,9 @@ bool CodeTreeForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&repla
   constexpr double RSI_SKIP_PROB = 0.02;
   bool rsi = env.options->randomizedSimplifications();
 
-  static typename ClauseCodeTree::ClauseMatcher cm;
+  static typename ClauseCodeTree::template ClauseMatcher<sres> cm;
 
-  cm.init(_ct, cl, _subsumptionResolution);
+  cm.init(_ct, cl);
 
   Clause* premise;
   int resolvedQueryLit;

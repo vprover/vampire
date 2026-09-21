@@ -50,12 +50,28 @@ using namespace Test;
     DECL_FUNC(i, {s}, s) \
     DECL_FUNC(i2, {s, s}, s) \
     DECL_PRED(p, {s}) \
+    DECL_PRED(p1, {s}) \
     DECL_PRED(p2, {s, s}) \
+    DECL_PRED(p2u, {s}) \
     DECL_PRED(p3, {s, s, s}) \
+    DECL_PRED(p3u, {s}) \
+    DECL_PRED(p4, {s}) \
+    DECL_PRED(p5, {s}) \
     DECL_PRED(q, {s}) \
+    DECL_PRED(q0, {s}) \
+    DECL_PRED(q1, {s}) \
     DECL_PRED(q2, {s, s}) \
     DECL_PRED(r, {s}) \
     DECL_PRED(r2, {s, s}) \
+    DECL_PRED(accessible_world, {s, s}) \
+    DECL_PRED(be, {s, s, s, s}) \
+    DECL_PRED(event, {s, s}) \
+    DECL_PRED(eventuality, {s, s}) \
+    DECL_PRED(human_person, {s, s}) \
+    DECL_PRED(proposition, {s, s}) \
+    DECL_PRED(smoke, {s, s}) \
+    DECL_PRED(state, {s, s}) \
+    DECL_PRED(think_believe_consider, {s, s}) \
   )
 
 namespace {
@@ -322,6 +338,72 @@ TEST_SIMPLIFICATION(neg_sub_res_test12,
     .toSimplify({ clause({ p2(g2(x2, f2(y1, y3)), x2), f2(y1, y3) == x2, p2(g2(x2, f2(y1, y3)), y3) }) })
     .expected({ /* nothing */ })
     .justifications({ /* nothing */ })
+)
+
+TEST_SIMPLIFICATION(opposite_optimization_search_struct_1,
+  tester()
+    .simplifyWith({
+      clause({ accessible_world(x1, x2), ~human_person(x2, x3) }),
+      clause({ accessible_world(x1, x2), ~be(x2, x3, x4, x5) }),
+      clause({ think_believe_consider(x1, x3), ~think_believe_consider(x2, x3), accessible_world(x1, x2) }),
+      clause({ accessible_world(x1, x2), proposition(x1, x3) }),
+      clause({ ~state(x2, x3), accessible_world(x1, x2) }),
+      clause({ smoke(x1, x2), accessible_world(x1, x3) }),
+      clause({ accessible_world(x1, x3), ~event(x3, x2) }),
+      clause({ accessible_world(x1, x3), ~eventuality(x3, x2) }),
+      clause({ think_believe_consider(x1, x2), accessible_world(x1, x3) })
+    })
+    .toSimplify({
+      clause({
+        ~think_believe_consider(x1, x2),
+        accessible_world(x3, x1),
+        think_believe_consider(x4, x2),
+        accessible_world(x4, x3)
+      })
+    })
+    .expected({ /* nothing */ })
+    .justifications({
+      clause({
+        think_believe_consider(x1, x2),
+        accessible_world(x1, x3)
+      })
+    })
+)
+
+TEST_SIMPLIFICATION(opposite_optimization_search_struct_2,
+  tester()
+    .simplifyWith({
+      clause({ q0(f(x1)) }),
+      clause({ ~p1(x2) }),
+      clause({ ~p5(f(x1)) }),
+      clause({ ~r2(x1, x3), ~q1(x3) }),
+      clause({ ~p4(x2) }),
+      clause({ ~q1(d) }),
+      clause({ r2(x3, x1), ~p3u(x3) }),
+      clause({ r2(x3, x1), ~p1(x3) })
+    })
+    .toSimplify({
+      clause({
+        ~q0(x1),
+        ~q0(x4),
+        r2(x3, x2),
+        r2(x3, x1),
+        ~r2(x2, x4),
+        ~p2u(x3),
+        ~p3u(x2)
+      })
+    })
+    .expected({
+      clause({
+        ~q0(x1),
+        ~q0(x4),
+        r2(x3, x2),
+        r2(x3, x1),
+        ~p2u(x3),
+        ~p3u(x2)
+      })
+    })
+    .justifications({ clause({ r2(x3, x1), ~p3u(x3) }) })
 )
 
 }
