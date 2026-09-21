@@ -184,7 +184,6 @@ protected:
 
   // hash a Polynomial by its constant and its variable-coefficient pairs
   struct PolynomialHash {
-    static bool equals(Polynomial const& p1, Polynomial const& p2) { return p1 == p2; }
     static unsigned hash(Polynomial const& p)
     { return TupleHash<FnvHash, StackHash<PairHash<FnvHash,FnvHash>>>::hash(p.asTuple()); }
   };

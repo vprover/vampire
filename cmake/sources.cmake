@@ -97,6 +97,7 @@ set(UNIT_TESTS
     UnitTests/tKBO.cpp
     UnitTests/tLPO.cpp
     UnitTests/tList.cpp
+    UnitTests/tMap.cpp
     UnitTests/tOption.cpp
     UnitTests/tPredicateElimination.cpp
     UnitTests/tOptionConstraints.cpp

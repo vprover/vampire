@@ -388,7 +388,6 @@ static_assert(sizeof(TermList) == 8, "size of TermList must be exactly 64 bits")
 
 // hash a TermList by FNV-1a of its content word
 struct TermListHash {
-  static bool equals(TermList t1, TermList t2) { return t1 == t2; }
   static unsigned hash(TermList t) { return FnvHash::hash(t.content()); }
 };
 
@@ -1318,7 +1317,6 @@ bool positionIn(TermList& subterm,Term* term, std::string& position);
  * Hash used to make hashing over shared terms deterministic.
  */
 struct SharedTermHash {
-  static bool equals(Term* t1, Term* t2) { return t1==t2; }
   static unsigned hash(Term* t) { return t->getId(); }
 };
 
@@ -1329,7 +1327,6 @@ struct SharedTermHash {
  * runs. Both are needed: DHMap takes the bucket from Hash1 and the probing step from Hash2.
  */
 struct SharedTermListHash {
-  static bool equals(TermList t1, TermList t2) { return t1==t2; }
   static unsigned hash(TermList t)
   { ASS(t.isTerm() && t.term()->shared()); return FnvHash::hash(t.term()->getId()); }
 };

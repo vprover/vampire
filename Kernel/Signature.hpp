@@ -127,10 +127,6 @@ class Signature
     unsigned _termAlgebraDest : 1;
     /** marks term algebra discriminators */
     unsigned _termAlgebraDiscriminator : 1;
-    /** if used in the goal **/
-    unsigned _inGoal : 1;
-    /** if used in a unit **/
-    unsigned _inUnit : 1;
     /** if skolem function in general **/
     unsigned _skolem : 1;
     /** if does not need congruence axioms with equality proxy */
@@ -217,23 +213,6 @@ class Signature
     inline bool termAlgebraDest() const { return _termAlgebraDest; }
     /** Return true iff symbol is a term algebra destructor */
     inline bool termAlgebraDiscriminator() const { return _termAlgebraDiscriminator; }
-
-    /** The two marks below describe what the last Property::scan saw; that scan clears
-     * them (see Property::scan(UnitList*)) and sets them again as it goes.
-     *
-     * Beware: they are only faithful with respect to the CLAUSE part of the scanned unit
-     * list. The formula path of the scan sets neither -- see Property::scan(FormulaUnit*),
-     * which passes goal=false and cLen=0, deeming only a clausified problem to have a
-     * meaningful notion of "occurs in the goal" / "occurs in a unit clause". So these
-     * should ideally only be consulted after clausification and a rescan, when they
-     * finally describe the problem as a whole.
-     */
-    inline void markInGoal(){ _inGoal=1; }
-    inline bool inGoal(){ return _inGoal; }
-    inline void markInUnit(){ _inUnit=1; }
-    inline bool inUnit(){ return _inUnit; }
-    /** to be called just before a scan that will recompute the two marks above */
-    inline void resetScanMarks(){ _inGoal=0; _inUnit=0; }
 
     inline bool skolem(){ return _skolem; }
 

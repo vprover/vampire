@@ -103,9 +103,6 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
     auto sym = t->kind() == TermKind::SORT ? env.signature->getTypeCon(fn) : env.signature->getFunction(fn);
 
     InferenceStore::instance()->recordIntroducedSkolemSymbol(res, sym, v, t);
-    if (unit->derivedFromGoal()) {
-      sym->markInGoal();
-    }
   }
 
   return res;

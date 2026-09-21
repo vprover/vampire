@@ -197,7 +197,6 @@ struct TermSpec {
 
 // hash a VarSpec by combining the variable's content word with its bank index
 struct VarSpecHash {
-  static bool equals(VarSpec v1, VarSpec v2) { return v1 == v2; }
   static unsigned hash(VarSpec v) { return HashUtils::combine(v._self.content(), v.index); }
 };
 
@@ -208,7 +207,6 @@ struct VarSpecHash2 {
 
 // hash a TermSpec by its term and its bank index
 struct TermSpecHash {
-  static bool equals(TermSpec const& s1, TermSpec const& s2) { return s1 == s2; }
   static unsigned hash(TermSpec const& s)
   { return TupleHash<TermListHash, FnvHash>::hash(s.asTuple()); }
 };

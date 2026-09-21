@@ -716,14 +716,7 @@ public:
     UNARY_FREQ = 8,
     CONST_FREQ = 9,
     REVERSE_FREQUENCY = 10,
-  };
-  enum class SymbolPrecedenceBoost : unsigned int {
-    NONE = 0,
-    GOAL = 1,
-    UNITS = 2,
-    GOAL_THEN_UNITS = 3,
-    NON_INTRO = 4,
-    INTRO = 5,
+    REVERSE_OCCURRENCE = 11,
   };
   enum class IntroducedSymbolPrecedence : unsigned int {
     TOP = 0,
@@ -1386,7 +1379,6 @@ public:
   const std::string& lrsLoadTraceFile() const { return _lrsLoadTraceFile.actualValue; }
   TermOrdering termOrdering() const { return _termOrdering.actualValue; }
   SymbolPrecedence symbolPrecedence() const { return _symbolPrecedence.actualValue; }
-  SymbolPrecedenceBoost symbolPrecedenceBoost() const { return _symbolPrecedenceBoost.actualValue; }
   IntroducedSymbolPrecedence introducedSymbolPrecedence() const { return _introducedSymbolPrecedence.actualValue; }
   KboWeightGenerationScheme kboWeightGenerationScheme() const { return _kboWeightGenerationScheme.actualValue; }
   bool kboMaxZero() const { return _kboMaxZero.actualValue; }
@@ -1448,7 +1440,6 @@ public:
   bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq.actualValue; }
   unsigned nongoalWeightCoefficientNumerator() const { return _nonGoalWeightCoefficient.numerator; }
   unsigned nongoalWeightCoefficientDenominator() const { return _nonGoalWeightCoefficient.denominator; }
-  bool restrictNWCtoGC() const { return _restrictNWCtoGC.actualValue; }
   Sos sos() const { return _sos.actualValue; }
   unsigned sosTheoryLimit() const { return _sosTheoryLimit.actualValue; }
   //void setSos(Sos newVal) { _sos = newVal; }
@@ -1926,7 +1917,6 @@ private:
   BoolOptionValue _superpositionFromVariables;
   ChoiceOptionValue<TermOrdering> _termOrdering;
   ChoiceOptionValue<SymbolPrecedence> _symbolPrecedence;
-  ChoiceOptionValue<SymbolPrecedenceBoost> _symbolPrecedenceBoost;
   ChoiceOptionValue<IntroducedSymbolPrecedence> _introducedSymbolPrecedence;
   ChoiceOptionValue<EvaluationMode> _evaluationMode;
   ChoiceOptionValue<KboWeightGenerationScheme> _kboWeightGenerationScheme;
@@ -1964,7 +1954,6 @@ private:
   OptionChoiceValues _tagNames;
 
   NonGoalWeightOptionValue _nonGoalWeightCoefficient;
-  BoolOptionValue _restrictNWCtoGC;
 
   SelectionOptionValue _selection;
 

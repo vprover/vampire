@@ -12,6 +12,7 @@
  * Implements class TermOrderingDiagram.
  */
 
+#include "Lib/Comparison.hpp"
 #include "Lib/Stack.hpp"
 
 #include "KBO.hpp"
@@ -493,7 +494,7 @@ TermOrderingDiagram::Branch& TermOrderingDiagram::Node::getBranch(Ordering::Resu
 
 const TermOrderingDiagram::Polynomial* TermOrderingDiagram::Polynomial::get(int constant, const Stack<VarCoeffPair>& varCoeffPairs)
 {
-  static Set<Polynomial*, DerefPtrHash<PolynomialHash>> polys;
+  static Set<Polynomial*, DerefPtrHash<PolynomialHash>, DerefPtrEqual> polys;
 
   sort(varCoeffPairs.begin(),varCoeffPairs.end(),[](const auto& vc1, const auto& vc2) {
     auto vc1pos = vc1.second>0;

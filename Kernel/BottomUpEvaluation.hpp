@@ -48,10 +48,10 @@ namespace Memo {
   };
 
   /** a memoization realized as a hashmap */
-  template<class Arg, class Result, class Hash>
+  template<class Arg, class Result, class Hash, class Equal = std::equal_to<Arg>>
   class Hashed
   {
-    Map<Arg, Result, Hash> _memo;
+    Map<Arg, Result, Hash, Equal> _memo;
 
   public:
     Hashed() : _memo(decltype(_memo)()) {}

@@ -1000,9 +1000,6 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
     res = Term::create(fun, arity, args.begin());
   }
 
-  if(_beingClausified->derivedFromGoal()){
-    sym->markInGoal();
-  }
 
   // Store type variables and their Skolemized form in a substitution
   // which is then applied on variable sorts to get the right ones.
