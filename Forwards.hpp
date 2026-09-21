@@ -16,6 +16,7 @@
 #define __Forwards__
 
 #include <utility>
+#include <functional>
 
 namespace Lib
 {
@@ -37,8 +38,8 @@ typedef List<int> IntList;
 struct FnvHash;
 struct IdentityHash;
 struct LengthHash;
-template <typename Key, typename Val,class Hash> class Map;
-template<class A, class B, class HashA, class HashB> class BiMap;
+template <typename Key, typename Val, class Hash, class Equal = std::equal_to<Key>> class Map;
+template<class A, class B, class HashA, class HashB, class EqualA = std::equal_to<A>, class EqualB = std::equal_to<B>> class BiMap;
 template <typename Key, typename Val, class Hash1, class Hash2> class DHMap;
 template <typename Val, class Hash1, class Hash2> class DHSet;
 template <typename Val, class Hash1, class Hash2> class DHMultiset;

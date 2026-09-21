@@ -37,7 +37,10 @@ struct PerfectIdComparison ;
 template<class T, class DfltComparison = PerfectIdComparison>
 class Perfect 
 {
-  using IdMap = Map<const T*, Perfect, DerefPtrHash<StlHash>>;
+  struct DerefEqual {
+    bool operator()(const T* lhs, const T* rhs) const { return *lhs == *rhs; }
+  };
+  using IdMap = Map<const T*, Perfect, DerefPtrHash<StlHash>, DerefEqual>;
 
   unsigned _id;
   const T* _ptr;
