@@ -440,6 +440,24 @@ void Property::scan(Formula* f, int polarity)
 } // Property::scan(const Formula&)
 
 /**
+ * Whether scan() will work out this argument's sort for itself, so that asking the parent
+ * for it would be pure duplication.
+ *
+ * For an ordinary term it will: scan(TermList) ends in scanSort(getResultSort(arg)), and
+ * by well-typedness that is the very sort the parent's getArgSort would have returned. The
+ * iterator does reach every argument -- SubtermIterator in the clause path,
+ * SubexpressionIterator in the formula path, which pushes the arguments of every literal
+ * and of every ordinary term.
+ *
+ * Not so for a variable, which has no result sort of its own, nor for a special term,
+ * which takes the FOOL branch of scan and computes none. A sort argument needs no special
+ * case: getArgSort answers superSort for a type argument and scanSort discards it, so
+ * skipping it loses nothing.
+ */
+static bool scanWillFindItsOwnSort(TermList arg)
+{ return arg.isTerm() && !arg.term()->isSpecial(); }
+
+/**
  * If the sort is recognised by the properties, add information about it to the properties.
  * @since 04/05/2013 Manchester, array sorts removed
  * @author Andrei Voronkov
@@ -563,7 +581,14 @@ void Property::scan(Literal* lit, int polarity)
 
 
     for (int i=0; i<arity; i++) {
-      scanSort(SortHelper::getArgSort(lit, i));
+      TermList arg = *lit->nthArgument(i);
+      if (!scanWillFindItsOwnSort(arg)) {
+        scanSort(SortHelper::getArgSort(lit, i));
+      }
+      else {
+        ASS_REP2(SortHelper::getArgSort(lit, i) == SortHelper::getResultSort(arg.term()),
+            SortHelper::getArgSort(lit, i), SortHelper::getResultSort(arg.term()));
+      }
     }
   }
 
@@ -676,7 +701,14 @@ void Property::scan(TermList ts)
     }
 
     for (int i = 0; i < arity; i++) {
-      scanSort(SortHelper::getArgSort(t, i));
+      TermList arg = *t->nthArgument(i);
+      if (!scanWillFindItsOwnSort(arg)) {
+        scanSort(SortHelper::getArgSort(t, i));
+      }
+      else {
+        ASS_REP2(SortHelper::getArgSort(t, i) == SortHelper::getResultSort(arg.term()),
+            SortHelper::getArgSort(t, i), SortHelper::getResultSort(arg.term()));
+      }
     }
     scanSort(resultSort);
   }
