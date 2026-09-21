@@ -12,6 +12,7 @@
  * Implements class Ordering.
  */
 
+#include <algorithm>
 #include <fstream>
 
 #include "Debug/Assertion.hpp"
@@ -795,6 +796,13 @@ static void sortAuxBySymbolPrecedence(DArray<unsigned>& aux, const Options& opt,
       break;
     case Shell::Options::SymbolPrecedence::OCCURRENCE:
       // already sorted by occurrence
+      break;
+    case Shell::Options::SymbolPrecedence::REVERSE_OCCURRENCE:
+      // The mirror image of OCCURRENCE. Worth having as its own value because the two are
+      // not symmetric in what they do to the symbols introduced during preprocessing: those
+      // get the highest functor numbers, so OCCURRENCE puts every Skolem and every formula
+      // name above every input symbol, and this puts them below.
+      std::reverse(aux.begin(),aux.end());
       break;
     case Shell::Options::SymbolPrecedence::SCRAMBLE:
       Shuffling::shuffleArray(aux,aux.size());

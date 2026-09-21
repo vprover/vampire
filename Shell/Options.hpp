@@ -716,6 +716,7 @@ public:
     UNARY_FREQ = 8,
     CONST_FREQ = 9,
     REVERSE_FREQUENCY = 10,
+    REVERSE_OCCURRENCE = 11,
   };
   enum class IntroducedSymbolPrecedence : unsigned int {
     TOP = 0,

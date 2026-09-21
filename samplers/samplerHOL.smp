@@ -257,7 +257,7 @@ slsq=on > slsqr ~u2r -5;2;,
 > to ~cat kbo:13,lpo:4
 
 # symbol_precedence
-> sp ~cat arity:100,const_min:72,frequency:130,const_frequency:49,reverse_frequency:55,reverse_arity:72,unary_first:28,occurrence:82,unary_frequency:14,const_max:18
+> sp ~cat arity:100,const_min:72,frequency:130,const_frequency:49,reverse_frequency:55,reverse_arity:72,unary_first:28,occurrence:41,reverse_occurrence:41,unary_frequency:14,const_max:18
 
 # kbo_max_zero
 to=kbo > kmz ~cat off:200,on:1

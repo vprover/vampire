@@ -854,7 +854,7 @@ Options::Options ()
                                                             {"arity","occurrence","reverse_arity","unary_first",
                                                             "const_max", "const_min",
                                                             "scramble","frequency","unary_frequency","const_frequency",
-                                                            "reverse_frequency"})
+                                                            "reverse_frequency","reverse_occurrence"})
   , _introducedSymbolPrecedence("introduced_symbol_precedence","isp",
                                                                                 IntroducedSymbolPrecedence::TOP,
                                                                                 {"top","bottom"})
@@ -2897,7 +2897,9 @@ Options::Options ()
     _lookup.insert(_termOrdering);
 
     _symbolPrecedence.description="Vampire uses term orderings which require a precedence relation between symbols.\n"
-                                  "Arity orders symbols by their arity (and reverse_arity takes the reverse of this) and occurrence orders symbols by the order they appear in the problem. "
+                                  "Arity orders symbols by their arity (and reverse_arity takes the reverse of this) and occurrence orders symbols by the order they appear in the problem, "
+                                  "the first one seen becoming the smallest (reverse_occurrence takes the reverse of this, which notably puts the symbols introduced during "
+                                  "preprocessing -- the Skolems and the formula names -- at the bottom rather than above every input symbol). "
                                   "Then we have a few precedence generating schemes adopted from E: frequency - sort by frequency making rare symbols large, reverse does the opposite, "
                                   "(For the weighted versions, each symbol occurrence counts as many times as is the length of the clause in which it occurs.) "
                                   "unary_first is like arity, except that unary symbols are maximal (and ties are broken by frequency), "
