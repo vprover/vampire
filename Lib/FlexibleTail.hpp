@@ -71,8 +71,19 @@ struct FlexibleTail {
   }
 
   // compute pointer to tail array
-  T *flexibleTail() { return (T *)((char *)this + tailOffset()); }
-  const T *flexibleTail() const { return (const T *)((char *)this + tailOffset()); }
+  T *flexibleTail() {
+    // hazard: in some situations me != this, e.g. multiple inheritance
+    // thanks to Pietro Pellegrino for pointing this out
+    auto me = static_cast<Derived *>(this);
+    return (T *)((char *)me + tailOffset());
+  }
+
+  const T *flexibleTail() const {
+    // hazard: in some situations me != this, e.g. multiple inheritance
+    // thanks to Pietro Pellegrino for pointing this out
+    auto me = static_cast<const Derived *>(this);
+    return (const T *)((char *)me + tailOffset());
+  }
 };
 
 }
