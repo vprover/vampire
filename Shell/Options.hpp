@@ -149,6 +149,17 @@ template<typename T>
 using OptionValueConstraintUP = std::unique_ptr<OptionValueConstraint<T>>;
 
 /**
+ * Static metadata of an option, passed as the last constructor argument of every OptionValue,
+ * e.g. {.description = "...", .tag = OptionTag::OUTPUT, .experimental = true}
+ */
+struct OptionMeta {
+  const char* short_name = nullptr;
+  const char* description = nullptr;
+  OptionTag tag = OptionTag::LAST_TAG;
+  bool experimental = false;
+};
+
+/**
  * An AbstractOptionValue includes all the information and functionality that does not
  * depend on the type of the stored option. This is inherited by the templated OptionValue.
  *
@@ -158,9 +169,9 @@ using OptionValueConstraintUP = std::unique_ptr<OptionValueConstraint<T>>;
  * @author Giles
  */
 struct AbstractOptionValue {
-    AbstractOptionValue(const char *l,const char *s)
-        // treat empty short names as nullptr
-        : longName(l), shortName(s && *s ? s : nullptr) {}
+    AbstractOptionValue(const char *l, OptionMeta meta = {})
+        : longName(l), shortName(meta.short_name),
+          description(meta.description), experimental(meta.experimental), tag(meta.tag) {}
 
     // Never copy/move an OptionValue... the Constraint system would break
     AbstractOptionValue(const AbstractOptionValue&) = delete;
@@ -219,7 +230,7 @@ private:
  */
 template<typename T>
 struct OptionValue : public AbstractOptionValue {
-    OptionValue(const char *l, const char *s,T def) : AbstractOptionValue(l,s),
+    OptionValue(const char *l, T def, OptionMeta meta = {}) : AbstractOptionValue(l,meta),
     defaultValue(def), actualValue(def){}
 
     // We store the defaultValue separately so that we can check if the actualValue is non-default
@@ -958,8 +969,8 @@ private:
     template<typename T >
     struct ChoiceOptionValue : public OptionValue<T> {
         ChoiceOptionValue(){}
-        ChoiceOptionValue(const char *l, const char *s,T def,OptionChoiceValues c) :
-        OptionValue<T>(l,s,def), choices(c) {}
+        ChoiceOptionValue(const char *l, T def,OptionChoiceValues c, OptionMeta meta = {}) :
+        OptionValue<T>(l,def,meta), choices(c) {}
 
         bool setValue(const std::string& value) override{
             // makes reasonable assumption about ordering of every enum
@@ -1011,7 +1022,7 @@ private:
      * @author Giles
      */
     struct BoolOptionValue : public OptionValue<bool> {
-        BoolOptionValue(const char *l, const char *s, bool d) : OptionValue(l,s,d){}
+        BoolOptionValue(const char *l, bool d, OptionMeta meta = {}) : OptionValue(l,d,meta){}
         bool setValue(const std::string& value) override{
             if (! value.compare("on") || ! value.compare("true")) {
                 actualValue=true;
@@ -1029,7 +1040,7 @@ private:
     };
 
     struct IntOptionValue : public OptionValue<int> {
-        IntOptionValue(const char *l,const char *s, int d) : OptionValue(l,s,d){}
+        IntOptionValue(const char *l, int d, OptionMeta meta = {}) : OptionValue(l,d,meta){}
         bool setValue(const std::string& value) override{
             return Int::stringToInt(value.c_str(),actualValue);
         }
@@ -1037,7 +1048,7 @@ private:
     };
 
     struct UnsignedOptionValue : public OptionValue<unsigned> {
-        UnsignedOptionValue(const char *l,const char *s, unsigned d) : OptionValue(l,s,d){}
+        UnsignedOptionValue(const char *l, unsigned d, OptionMeta meta = {}) : OptionValue(l,d,meta){}
 
         bool setValue(const std::string& value) override{
             return Int::stringToUnsignedInt(value.c_str(),actualValue);
@@ -1046,7 +1057,7 @@ private:
     };
 
     struct StringOptionValue : public OptionValue<std::string> {
-        StringOptionValue(const char *l,const char *s, std::string d) : OptionValue(l,s,d){}
+        StringOptionValue(const char *l, std::string d, OptionMeta meta = {}) : OptionValue(l,d,meta){}
         bool setValue(const std::string& value) override{
             actualValue = (value=="<empty>") ? "" : value;
             return true;
@@ -1058,7 +1069,7 @@ private:
     };
 
     struct LongOptionValue : public OptionValue<long> {
-        LongOptionValue(const char *l,const char *s, long d) : OptionValue(l,s,d){}
+        LongOptionValue(const char *l, long d, OptionMeta meta = {}) : OptionValue(l,d,meta){}
         bool setValue(const std::string& value) override{
             return Int::stringToLong(value.c_str(),actualValue);
         }
@@ -1066,7 +1077,7 @@ private:
     };
 
     struct FloatOptionValue : public OptionValue<float> {
-        FloatOptionValue(const char *l,const char *s, float d) : OptionValue(l,s,d){}
+        FloatOptionValue(const char *l, float d, OptionMeta meta = {}) : OptionValue(l,d,meta){}
         bool setValue(const std::string& value) override{
             return Int::stringToFloat(value.c_str(),actualValue);
         }
@@ -1074,8 +1085,8 @@ private:
     };
 
 struct RatioOptionValue : public OptionValue<std::pair<unsigned, unsigned>> {
-RatioOptionValue(const char *l, const char *s, std::pair<unsigned, unsigned> def, char sp=':') :
-OptionValue(l,s,def), sep(sp) {};
+RatioOptionValue(const char *l, std::pair<unsigned, unsigned> def, char sp=':', OptionMeta meta = {}) :
+OptionValue(l,def,meta), sep(sp) {};
 
 bool readRatio(const char* val,char separator);
 bool setValue(const std::string& value) override {
@@ -1103,8 +1114,8 @@ std::string getStringOfActual() const override {
 * @author Giles
 */
 struct NonGoalWeightOptionValue : public OptionValue<float>{
-NonGoalWeightOptionValue(const char *l, const char *s) :
-OptionValue(l,s,10.0), numerator(10), denominator(1) {};
+NonGoalWeightOptionValue(const char *l, OptionMeta meta = {}) :
+OptionValue(l,10.0,meta), numerator(10), denominator(1) {};
 
 bool setValue(const std::string& value) override;
 
@@ -1122,8 +1133,8 @@ std::string getStringOfValue(float value) const override{ return Lib::Int::toStr
 * @author Giles
 */
 struct SelectionOptionValue : public OptionValue<int>{
-SelectionOptionValue(const char *l,const char *s, int def):
-OptionValue(l,s,def){};
+SelectionOptionValue(const char *l, int def, OptionMeta meta = {}):
+OptionValue(l,def,meta){};
 
 bool setValue(const std::string& value) override;
 
@@ -1142,8 +1153,8 @@ auto isLookAheadSelection();
 * @author Giles
 */
 struct InputFileOptionValue : public OptionValue<std::string>{
-InputFileOptionValue(const char *l,const char *s, std::string def,Options* p):
-OptionValue(l,s,def), parent(p){};
+InputFileOptionValue(const char *l, std::string def,Options* p, OptionMeta meta = {}):
+OptionValue(l,def,meta), parent(p){};
 
 bool setValue(const std::string& value) override;
 
@@ -1162,8 +1173,8 @@ Options* parent;
 * @author Giles
 */
 struct DecodeOptionValue : public OptionValue<std::string>{
-    DecodeOptionValue(const char *l,const char *s,Options* p)
-        : OptionValue(l,s,""), parent(p){}
+    DecodeOptionValue(const char *l, Options* p, OptionMeta meta = {})
+        : OptionValue(l,"",meta), parent(p){}
 
 bool setValue(const std::string& value) override{
     parent->readFromEncodedOptions(value);
@@ -1180,8 +1191,8 @@ Options* parent = nullptr;
 * @author Giles
 */
 struct TimeLimitOptionValue : public OptionValue<int>{
-TimeLimitOptionValue(const char *l, const char *s, float def) :
-OptionValue(l,s,def) {};
+TimeLimitOptionValue(const char *l, float def, OptionMeta meta = {}) :
+OptionValue(l,def,meta) {};
 
 bool setValue(const std::string& value) override;
 
