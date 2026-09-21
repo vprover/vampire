@@ -256,9 +256,9 @@ public:
   void scan(Clause*);
   void scan(FormulaUnit*);
 
-  void scan(Literal* lit, int polarity, unsigned cLen, bool goal);
+  void scan(Literal* lit, int polarity);
   void scan(Formula*, int polarity);
-  void scan(TermList ts,bool unit,bool goal);
+  void scan(TermList ts);
 
   void scanSort(TermList sort);
 

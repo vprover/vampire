@@ -160,7 +160,7 @@ bool GoalGuessing::apply(Clause* cl)
   bool looksLikeGoal = false;
   for(unsigned i=0; i<clen; i++) {
     Literal* lit = (*cl)[i];
-    looksLikeGoal |= apply(lit); // need to consider all as apply(Lit) may update signature
+    looksLikeGoal |= apply(lit);
   }
   if(looksLikeGoal){ cl->inference().setInputType(UnitInputType::NEGATED_CONJECTURE); }
   return looksLikeGoal; 
@@ -182,7 +182,7 @@ bool GoalGuessing::apply(FormulaUnit* fu)
   while (sfit.hasNext()) {
     Formula* sf = sfit.next();
     if (sf->connective() == LITERAL){
-      looksLikeGoal |= apply(sf->literal()); // need to consider all as apply(Lit) may update signature
+      looksLikeGoal |= apply(sf->literal());
     }
   }
   if(looksLikeGoal){ fu->inference().setInputType(UnitInputType::NEGATED_CONJECTURE); }
@@ -207,7 +207,6 @@ bool GoalGuessing::apply(Literal* lit)
       if(f >= _perUnitUsageCount.size()){ continue; }
       if(_perUnitUsageCount[f] <= _limit){
         //cout << "IDENTIFIED AS GOAL symbol " << env.signature->functionName(f) << endl;
-        env.signature->getFunction(f)->markInGoal();
         found = true;
       }
     }
