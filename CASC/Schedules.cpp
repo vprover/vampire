@@ -6533,7 +6533,7 @@ void Schedules::getCascSat2025Schedule(const Property& property, Schedule& quick
   quick.push("dis+10_16:1_sil=16000:i=9155:fsr=off_0");
   quick.push("ott-3_1:8_sil=64000:i=20139:bs=on_0");
   quick.push("fmb+10_1:1_sil=64000:sas=cadical:bce=on:fmbsr=2.0:i=32576:tgt=ground:fmbss=9_0");
-  quick.push("ott+10_8:1_sil=16000:sp=arity:gs=on:i=11404:_0");
+  quick.push("ott+10_8:1_sil=16000:sp=arity:gs=on:i=11404_0");
   quick.push("ott-11_1:1_sil=16000:sac=on:i=14134:alpa=false_0");
   quick.push("dis+33_1:16_sil=32000:sac=on:i=15851:nm=0_0");
   quick.push("dis+4_1:1024_sil=32000:avsql=on:sp=occurrence:avsqc=1:avsq=on:i=17627:add=on:gs=on:amm=off_0");
