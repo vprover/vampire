@@ -17,9 +17,11 @@
 
 #include "Debug/Assertion.hpp"
 #include "Lib/Allocator.hpp"
+#include "Lib/ArrayMap.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Random.hpp"
+#include "Lib/Recycled.hpp"
 #include "Lib/ScopedLet.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -861,9 +863,14 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
   // arguments. Note lhs->args() leads with the type arguments, which are sorts rather
   // than variables, so a polymorphic or higher-order application dies on the first one.
   // Vacuous when lhs->arity()==0, which is what lets it sit above the arity-0 block.
+  // While here, note the largest variable number, which bounds the map used below.
+  unsigned varBound = 0;
   for (const TermList* ts = lhs->args(); ts->isNonEmpty(); ts=ts->next()) {
     if (! ts->isVar()) {
       return 0;
+    }
+    if (ts->var() >= varBound) {
+      varBound = ts->var() + 1;
     }
   }
 
@@ -897,35 +904,42 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
 
   int vars = 0; // counter of variables occurring in the lhs
 
+  // counter records, for each variable of lhs, whether rhs has met it yet: 1 = not yet,
+  // 2 = met once, and a second sighting means the definition is not linear. Keyed by
+  // variable number and bounded by varBound above, so a rhs variable at or past that bound
+  // cannot be one of lhs's and is rejected on the spot. Recycled because defines() is
+  // called twice per equational literal of every unit: the array is taken from a pool and
+  // reset in O(1) by a timestamp, rather than allocated and zeroed afresh each time.
+  Recycled<ArrayMap<unsigned>> counter;
+  counter->ensure(varBound);
+  counter->reset();
+
   // Check that each of lhs's arguments occurs exactly once; that they are all variables
-  // is already known from the loop above. counter will contain variables occurring in
-  // lhs. It is a heap-allocated 31-slot array, which after the reordering above is only
-  // paid for on the few lhs that survive the cheap test.
-  ZIArray<unsigned> counter;
+  // is already known from the loop above.
   for (const TermList* ts = lhs->args(); ts->isNonEmpty(); ts=ts->next()) {
     ASS(ts->isVar());
-    int w = ts->var();
-    if (counter[w]++) { // more than one occurrence
+    unsigned w = ts->var();
+    if (counter->find(w)) { // more than one occurrence
       return 0;
     }
+    counter->insert(w, 1);
     vars++;
   }
 
   bool linear = true;
   // now check that rhs contains only variables in the counter
-  // Iterate over variables in rhs and check that they
-  // are counted as 1 or 2.
-  // found will be increased by the number of different variables
-  // marked 1.
   TermVarIterator vs(rhs->args());
   while (vs.hasNext()) {
-    int v = vs.next();
-    switch (counter.get(v)) {
+    unsigned v = vs.next();
+    if (v >= varBound) { // cannot be one of lhs's variables
+      return 0;
+    }
+    switch (counter->get(v, 0u)) {
     case 0: // v does not occur in lhs
       return 0;
 
     case 1: // v occurs in lhs, it is first occurrence in rhs
-      counter[v]++;
+      counter->set(v, 2);
       vars--;
       break;
 
