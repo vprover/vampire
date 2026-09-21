@@ -23,6 +23,7 @@
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/SymbolUsage.hpp"
 #include "Kernel/Renaming.hpp"
 
 #include "SAT/CadicalInterfacing.hpp"
@@ -267,17 +268,6 @@ bool FiniteModelBuilder::reset(){
   return true;
 }
 
-// Compare function symbols by their usage in the problem
-struct FMBSymmetryFunctionComparator
-{
-  static bool compare(unsigned f1, unsigned f2)
-  {
-    unsigned c1 = env.signature->getFunction(f1)->usageCnt();
-    unsigned c2 = env.signature->getFunction(f2)->usageCnt();
-    return c2 < c1;
-  }
-};
-
 void FiniteModelBuilder::createSymmetryOrdering()
 {
   // only really required the first time
@@ -405,9 +395,16 @@ void FiniteModelBuilder::init()
 
   ClauseList* clist = 0;
   if(env.options->fmbAdjustSorts() == Options::FMBAdjustSorts::PREDICATE){
-    DArray<bool> deleted_functions(env.signature->functionCount());
-    for (unsigned f : env.signature->functionSymbols()) {
-      deleted_functions[env.signature->functionIndex(f)] = env.signature->getFunction(f)->usageCnt()==0;
+    // which functions occur is asked of the very clauses we are about to hand over,
+    // rather than of the usage counts some earlier Property::scan happened to leave on
+    // the signature: addSortPredicates uses this to decide for which f it need not say
+    // "!args: p(f(args))", so it had better describe the clauses it is transforming
+    DArray<bool> usedFunctions;
+    DArray<bool> usedPredicates;
+    collectUsedSymbols(_prb.clauseIterator(),usedFunctions,usedPredicates);
+    DArray<bool> deleted_functions(usedFunctions.size());
+    for(unsigned f=0;f<usedFunctions.size();f++){
+      deleted_functions[f] = !usedFunctions[f];
      }
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
     TIME_TRACE(TimeTrace::FMB_MONOTONICITY);
@@ -536,34 +533,30 @@ void FiniteModelBuilder::init()
 
   }
 
-  { // An ugly hack to cause a recomputation of usageCnts!
-    // (it's already ugly the usageCnts are stored with Symbols)
-
-    UnitList* units = 0; // we create a list just because ClauseList is not a UnitList in C++
-    UnitList::pushFromIterator(IterTraits(ClauseList::Iterator(_groundClauses)).map([](Clause* c) { return (Unit*)c; }),units);
-    UnitList::pushFromIterator(IterTraits(ClauseList::Iterator(_clauses)).map([](Clause* c) { return (Unit*)c; }),units);
-    ScopedPtr<Property> dummy_property(Property::scan(units));
-    UnitList::destroy(units);
-  }
+  // How often each symbol occurs in the clauses we have arrived at. This used to be an
+  // "ugly hack" running a whole throwaway Property::scan over them, purely for the
+  // usageCnts it left on the signature as a side effect.
+  SymbolCounts counts;
+  counts.countIn(pvi(concatIters(ClauseList::Iterator(_groundClauses),ClauseList::Iterator(_clauses))));
 
   // record the deleted functions and predicates
   // we do this only here so that there are slots for symbols introduced in the previous preprocessing steps (definition introduction, splitting)
   deletedSymbols.init(env.signature->symbolCount(), false);
 
   for (unsigned f : env.signature->functionSymbols()) {
-    deletedSymbols[f] = env.signature->getFunction(f)->usageCnt()==0;
+    deletedSymbols[f] = counts.functions[env.signature->functionIndex(f)]==0;
 #if VTRACE_FMB
     if(deletedSymbols[f]) cout << "Mark " << env.signature->functionName(f)  << " as deleted" << endl;
 #endif
   }
   for (unsigned p : env.signature->predicateSymbols()) {
     if (p < 1) continue; // skipping equality
-    deletedSymbols[p] = env.signature->getPredicate(p)->usageCnt()==0;
+    deletedSymbols[p] = counts.predicates[env.signature->predicateIndex(p)]==0;
 #if VTRACE_FMB
     if(deletedSymbols[p]) {
       cout << "Mark " << env.signature->predicateName(p) << " as deleted" << endl;
       cout << "  since (bool)_prb.getEliminatedPredicates().findPtr(p) = " << (bool)_prb.getEliminatedPredicates().findPtr(p) << endl;
-      cout << "  since env.signature->getPredicate(p)->usageCnt() = " << env.signature->getPredicate(p)->usageCnt() << endl;
+      cout << "  since the clauses use it " << counts.predicates[env.signature->predicateIndex(p)] << " times" << endl;
     }
 #endif
   }
@@ -703,43 +696,23 @@ void FiniteModelBuilder::init()
   cout << "Optionally doing Symmetry Ordering precomputation" << endl;
 #endif
 
-    // If symmetry ordering uses the usage after preprocessing then recompute symbol usage
-    // Otherwise this was done at clausification
-    if(env.options->fmbSymmetryOrderSymbols() != Options::FMBSymbolOrders::PREPROCESSED_USAGE){
-     // reset usage counts
-     for (unsigned f : env.signature->functionSymbols()) {
-       env.signature->getFunction(f)->resetUsageCnt();
-     }
-     // do them again!
-     {
-       ClauseIterator cit = pvi(ClauseList::Iterator(_clauses));
-       while(cit.hasNext()){
-         Clause* c = cit.next();
-         // Can assume c is flat, so no nesting :)
-         for(unsigned i=0;i<c->length();i++){
-           Literal* l = (*c)[i];
-            // Let's only count usage of functions (not predicates) as that's all we use
-           if(l->isEquality() && !l->isTwoVarEquality()){
-             ASS(!l->nthArgument(0)->isVar());
-             ASS(l->nthArgument(1)->isVar());
-             Term* t = l->nthArgument(0)->term();
-             unsigned f = t->functor();
-             env.signature->getFunction(f)->incUsageCnt();
-           }
-         }
-       }
-     }
-    }
-
-    // Fragile (change if you extend FMBSymbolOrders) as it assumes that the values that
-    //          are not OCCURRENCE depend on usage (as per FMBSymmetryFunctionComparator)
-    if(env.options->fmbSymmetryOrderSymbols() != Options::FMBSymbolOrders::OCCURRENCE){
+    // USAGE sorts by how often a symbol occurs in the clauses this class has preprocessed,
+    // most used first. Sort inference introduces fresh constants of its own after the
+    // counting above, and those are simply unused as far as it is concerned.
+    if(env.options->fmbSymmetryOrderSymbols() == Options::FMBSymbolOrders::USAGE){
+      auto mostUsedFirst = [&counts](unsigned f1, unsigned f2) {
+        unsigned i1 = env.signature->functionIndex(f1);
+        unsigned i2 = env.signature->functionIndex(f2);
+        unsigned c1 = i1 < counts.functions.size() ? counts.functions[i1] : 0;
+        unsigned c2 = i2 < counts.functions.size() ? counts.functions[i2] : 0;
+        return c2 < c1;
+      };
       // Let's try sorting constants and functions in the sorted signature
       for(unsigned s=0;s<_sortedSignature->sorts;s++){
         Stack<unsigned>& sortedConstants = _sortedSignature->sortedConstants[s];
         Stack<unsigned>& sortedFunctions = _sortedSignature->sortedFunctions[s];
-        sort(sortedConstants.begin(),sortedConstants.end(), FMBSymmetryFunctionComparator::compare);
-        sort(sortedFunctions.begin(),sortedFunctions.end(), FMBSymmetryFunctionComparator::compare);
+        sort(sortedConstants.begin(),sortedConstants.end(), mostUsedFirst);
+        sort(sortedFunctions.begin(),sortedFunctions.end(), mostUsedFirst);
       }
     }
   }

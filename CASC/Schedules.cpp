@@ -3227,7 +3227,7 @@ void Schedules::getSnakeTptpUnsSchedule(const Shell::Property& property, Schedul
     quick.push("lrs+10_1:1_drc=off:sp=reverse_frequency:spb=goal:to=lpo:i=5:si=on:rawr=on:rtra=on_0");
     quick.push("lrs+30_1:12_drc=ordering:av=off:bs=unit_only:fsd=on:gs=on:lwlo=on:newcnf=on:slsq=on:slsqr=1,2:i=3:si=on:rawr=on:rtra=on_0");
     quick.push("dis+1011_3:29_av=off:bce=on:drc=off:fde=unused:gsp=on:irw=on:nwc=2.0:spb=goal_then_units:updr=off:urr=ec_only:i=29:si=on:rawr=on:rtra=on_0");
-    quick.push("fmb+10_1:1_drc=ordering:fmbes=contour:fmbsr=2.0:fmbsso=input_usage:i=6:si=on:rawr=on:rtra=on_0");
+    quick.push("fmb+10_1:1_drc=ordering:fmbes=contour:fmbsr=2.0:fmbsso=usage:i=6:si=on:rawr=on:rtra=on_0");
     quick.push("lrs+1_1:1_drc=ordering:aac=none:add=large:anc=all_dependent:cond=fast:ep=RST:fsr=off:lma=on:nm=2:sos=on:sp=reverse_arity:stl=30:uhcvi=on:urr=on:i=2:si=on:rawr=on:rtra=on_0");
     quick.push("ott+2_1:64_drc=ordering:afp=40000:bd=off:irw=on:i=8:si=on:rawr=on:rtra=on_0");
     quick.push("lrs+1003_1:1024_drc=ordering:add=large:afr=on:cond=fast:fsr=off:gs=on:sos=on:sp=reverse_arity:i=28:si=on:rawr=on:rtra=on_0");
@@ -3251,7 +3251,7 @@ void Schedules::getSnakeTptpUnsSchedule(const Shell::Property& property, Schedul
     quick.push("dis+21_1:2_drc=ordering:av=off:bd=off:fd=off:lcm=predicate:nwc=10.0:s2a=on:s2at=2.0:sp=reverse_arity:spb=goal:i=29:si=on:rawr=on:rtra=on_0");
     quick.push("dis+1002_1:32_drc=ordering:av=off:bs=on:fsr=off:gs=on:gsp=on:nwc=1.4:s2a=on:s2agt=32:urr=on:i=34:si=on:rawr=on:rtra=on_0");
     quick.push("dis+21_1:8_drc=ordering:aac=none:bs=unit_only:er=filter:fd=off:nwc=5.0:s2pl=no:i=46:si=on:rawr=on:rtra=on_0");
-    quick.push("fmb+10_1:1_drc=ordering:fde=unused:fmbsr=1.78:fmbsso=preprocessed_usage:gsp=on:ins=1:newcnf=on:updr=off:i=22:si=on:rawr=on:rtra=on_0");
+    quick.push("fmb+10_1:1_drc=ordering:fde=unused:fmbsr=1.78:fmbsso=usage:gsp=on:ins=1:newcnf=on:updr=off:i=22:si=on:rawr=on:rtra=on_0");
     // Improves by expected 65.49608605006348 probs costing 800 Mi
     // Sub-schedule for 150Mi strat cap / 1200Mi overall limit
     quick.push("dis+1011_1:1_drc=ordering:av=off:er=known:fde=unused:nwc=10.0:slsq=on:slsqc=1:slsqr=4,15:i=75:si=on:rawr=on:rtra=on_0");
@@ -3880,7 +3880,7 @@ void Schedules::getSnakeTptpSatSchedule(const Shell::Property& property, Schedul
    quick.push("fmb+10_1:1_drc=ordering:fmbas=expand:i=96985:si=on:rawr=on:rtra=on_0");
    quick.push("fmb+10_1:1_drc=ordering:bce=on:fmbsr=1.47:gsp=on:nm=2:i=99648:si=on:rawr=on:rtra=on_0");
    quick.push("fmb+10_1:1_drc=ordering:bce=on:fmbsr=1.5:nm=4:i=99882:si=on:rawr=on:rtra=on_0");
-   quick.push("fmb+10_1:1_drc=ordering:bce=on:fmbas=predicate:fmbsr=1.5:fmbsso=preprocessed_usage:nm=4:i=99913:si=on:rawr=on:rtra=on_0");
+   quick.push("fmb+10_1:1_drc=ordering:bce=on:fmbas=predicate:fmbsr=1.5:fmbsso=usage:nm=4:i=99913:si=on:rawr=on:rtra=on_0");
    quick.push("dis+10_1:128_drc=ordering:bd=off:lcm=predicate:sac=on:sp=reverse_arity:urr=on:i=28201:si=on:rawr=on:rtra=on_0");
    quick.push("ott-11_1:32_drc=ordering:i=9707:si=on:rawr=on:rtra=on_0");
   // Improves by expected 6.347485436212229 probs costing 729797 Mi

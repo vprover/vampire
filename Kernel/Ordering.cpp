@@ -505,17 +505,33 @@ Ordering::Result PrecedenceOrdering::comparePrecedences(const Term* t1, const Te
 struct SymbolComparator {
   SymbolType _symType;
   bool _noTiebreak;
-  SymbolComparator(SymbolType symType, bool noTiebreak) : _symType(symType), _noTiebreak(noTiebreak) {}
+  /** only meaningful for the comparators that actually look at occurrence counts */
+  const SymbolCounts& _counts;
+  SymbolComparator(SymbolType symType, bool noTiebreak, const SymbolCounts& counts)
+    : _symType(symType), _noTiebreak(noTiebreak), _counts(counts) {}
 
   Signature::Symbol* getSymbol(unsigned s) {
     return env.signature->getSymbol(s);
+  }
+
+  unsigned getCount(unsigned s) {
+    ASS_REP(_counts.isInitialised(),
+        "symbol occurrence counts were referenced, but no option asked for them: "
+        "needsSymbolCounts() has fallen out of sync with whoever reads them");
+    if(_symType == SymbolType::FUNC){
+      return _counts.functions[env.signature->functionIndex(s)];
+    } else if (_symType == SymbolType::PRED){
+      return _counts.predicates[env.signature->predicateIndex(s)];
+    } else {
+      return _counts.typeCons[env.signature->typeConIndex(s)];
+    }
   }
 };
 
 template<typename InnerComparator>
 struct BoostWrapper : public SymbolComparator
 {
-  BoostWrapper(SymbolType symType, bool noTiebreak) : SymbolComparator(symType,noTiebreak) {}
+  BoostWrapper(SymbolType symType, bool noTiebreak, const SymbolCounts& counts) : SymbolComparator(symType,noTiebreak,counts) {}
 
   Comparison compare(unsigned s1, unsigned s2)
   {
@@ -557,15 +573,16 @@ struct BoostWrapper : public SymbolComparator
     }
     if(res==EQUAL){
       // fallback to Inner
-      res = InnerComparator(_symType,_noTiebreak).compare(s1,s2);
+      res = InnerComparator(_symType,_noTiebreak,_counts).compare(s1,s2);
     }
     return res;
   }
 };
 
 struct OccurrenceTieBreak {
-  OccurrenceTieBreak(SymbolType, // here the SymbolType is a dummy argument, required by the template recursion convention
-    bool noTiebreak) : _noTiebreak(noTiebreak) {}
+  OccurrenceTieBreak(SymbolType, // the SymbolType and the counts are dummy arguments here,
+    bool noTiebreak, const SymbolCounts&) // required by the template recursion convention
+    : _noTiebreak(noTiebreak) {}
 
   // normally, OccurrenceTieBreak resorts to comparing the plain symbol IDs,
   // but under shuffling (=> noTiebreak), we want to ignore this and use whatever was in the array before (which was a random permutation)
@@ -577,17 +594,17 @@ private:
 template<bool revert = false, typename InnerComparator = OccurrenceTieBreak>
 struct FreqComparator : public SymbolComparator
 {
-  FreqComparator(SymbolType symType, bool noTiebreak) : SymbolComparator(symType,noTiebreak) {}
+  FreqComparator(SymbolType symType, bool noTiebreak, const SymbolCounts& counts) : SymbolComparator(symType,noTiebreak,counts) {}
 
   Comparison compare(unsigned s1, unsigned s2)
   {
-    unsigned c1 = getSymbol(s1)->usageCnt();
-    unsigned c2 = getSymbol(s2)->usageCnt();
+    unsigned c1 = getCount(s1);
+    unsigned c2 = getCount(s2);
     // note that we have: "rare is large" (unless reverted)
     Comparison res = revert ? Int::compare(c1,c2) : Int::compare(c2,c1);
     if(res==EQUAL){
       // fallback to Inner
-      res = InnerComparator(_symType,_noTiebreak).compare(s1,s2);
+      res = InnerComparator(_symType,_noTiebreak,_counts).compare(s1,s2);
     }
     return res;
   }
@@ -596,7 +613,7 @@ struct FreqComparator : public SymbolComparator
 template<bool revert = false, typename InnerComparator = OccurrenceTieBreak>
 struct ArityComparator : public SymbolComparator
 {
-  ArityComparator(SymbolType symType, bool noTiebreak) : SymbolComparator(symType,noTiebreak) {}
+  ArityComparator(SymbolType symType, bool noTiebreak, const SymbolCounts& counts) : SymbolComparator(symType,noTiebreak,counts) {}
 
   Comparison compare(unsigned u1, unsigned u2)
   {
@@ -606,7 +623,7 @@ struct ArityComparator : public SymbolComparator
     }
     if(res==EQUAL) {
       // fallback to Inner
-      res = InnerComparator(_symType,_noTiebreak).compare(u1,u2);
+      res = InnerComparator(_symType,_noTiebreak,_counts).compare(u1,u2);
     }
     return res;
   }
@@ -615,7 +632,7 @@ struct ArityComparator : public SymbolComparator
 template<int spc, bool revert = false, typename InnerComparator = OccurrenceTieBreak>
 struct SpecAriFirstComparator : public SymbolComparator
 {
-  SpecAriFirstComparator(SymbolType symType, bool noTiebreak) : SymbolComparator(symType,noTiebreak) {}
+  SpecAriFirstComparator(SymbolType symType, bool noTiebreak, const SymbolCounts& counts) : SymbolComparator(symType,noTiebreak,counts) {}
 
   Comparison compare(unsigned s1, unsigned s2)
   {
@@ -627,7 +644,7 @@ struct SpecAriFirstComparator : public SymbolComparator
       return revert ? GREATER : LESS;
     }
     // fallback to Inner
-    return InnerComparator(_symType,_noTiebreak).compare(s1,s2);
+    return InnerComparator(_symType,_noTiebreak,_counts).compare(s1,s2);
   }
 };
 
@@ -700,14 +717,46 @@ PrecedenceOrdering::PrecedenceOrdering(const DArray<int>& funcPrec,
 }
 
 /**
+ * Which options want to know how often a symbol occurs.
+ *
+ * Deliberately a little generous: computing the counts when nobody looks at them only
+ * wastes one pass over the clauses, whereas not computing them when somebody does trips
+ * the assertion in symbolCounts(). That is the trade the assertion is there to police --
+ * unary_first, for instance, reaches FreqComparator two template levels down, inside
+ * UnaryFirstComparator<false,ArityComparator<false,FreqComparator<>>>, which is exactly
+ * the kind of thing one forgets to account for here.
+ */
+bool PrecedenceOrdering::needsSymbolCounts(const Options& opt)
+{
+  switch (opt.symbolPrecedence()) {
+    case Shell::Options::SymbolPrecedence::FREQUENCY:
+    case Shell::Options::SymbolPrecedence::REVERSE_FREQUENCY:
+    case Shell::Options::SymbolPrecedence::UNARY_FREQ:
+    case Shell::Options::SymbolPrecedence::CONST_FREQ:
+    case Shell::Options::SymbolPrecedence::UNARY_FIRST:
+      return true;
+    default:
+      break;
+  }
+  switch (opt.kboWeightGenerationScheme()) {
+    case Shell::Options::KboWeightGenerationScheme::FREQUENCY:
+    case Shell::Options::KboWeightGenerationScheme::INV_FREQUENCY:
+      return true;
+    default:
+      return false;
+  }
+}
+
+/**
  * Create a PrecedenceOrdering object.
  *
  * "Intermediate" constructor; this is needed so that we only call predPrecFromOpts once (and use it here twice).
  */
-PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt, const DArray<int>& predPrec, bool qkboPrecedence)
+PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt, const SymbolCounts& counts,
+    const DArray<int>& predPrec, bool qkboPrecedence)
 : PrecedenceOrdering(
-    funcPrecFromOpts(prb,opt),
-    typeConPrecFromOpts(prb,opt),
+    funcPrecFromOpts(prb,opt,counts),
+    typeConPrecFromOpts(prb,opt,counts),
     predPrec,
     predLevelsFromOptsAndPrec(prb,opt,predPrec),
     opt.literalComparisonMode()==Shell::Options::LiteralComparisonMode::REVERSE,
@@ -718,21 +767,40 @@ PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt, const D
 
 /**
  * Create a PrecedenceOrdering object.
+ *
+ * "Intermediate" constructor; this one exists so that the counts, if wanted at all, are
+ * gathered once and shared by all three precedences.
+ */
+PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt, SymbolCounts counts, bool qkboPrecedence)
+: PrecedenceOrdering(prb,opt,counts,predPrecFromOpts(prb,opt,counts),qkboPrecedence)
+{
+  // only now, once every mem-initializer above has read them: the counts are moved into
+  // place rather than copied, DArray having no copy assignment
+  _symbolCounts = std::move(counts);
+}
+
+/**
+ * Create a PrecedenceOrdering object.
  */
 PrecedenceOrdering::PrecedenceOrdering(Problem& prb, const Options& opt, bool qkboPrecedence)
 : PrecedenceOrdering(prb,opt,
     [&]() {
-       // Make sure we (re-)compute usageCnt's for all the symbols;
-       // in particular, the sP's (the Tseitin predicates) and sK's (the Skolem functions), which only exists since preprocessing.
-       prb.getProperty();
-       return predPrecFromOpts(prb, opt);
-   }(),
-   qkboPrecedence)
+      SymbolCounts counts;
+      // Counted here rather than read off the symbols, where a Property::scan used to
+      // leave them: the symbols this wants to know about include the sP's (the Tseitin
+      // predicates) and the sK's (the Skolem functions), which only exist since
+      // preprocessing, and the clauses in front of us are the authority on all of them.
+      if (needsSymbolCounts(opt)) {
+        counts.countIn(prb.clauseIterator());
+      }
+      return counts;
+    }(),
+    qkboPrecedence)
 {
   ASS_G(_symbols, 0);
 }
 
-static void sortAuxBySymbolPrecedence(DArray<unsigned>& aux, const Options& opt, SymbolType symType) {
+static void sortAuxBySymbolPrecedence(DArray<unsigned>& aux, const Options& opt, SymbolType symType, const SymbolCounts& counts) {
   bool noTiebreak = opt.shuffleInput();
   // a proper input shuffling manifests itself (also) by initializing aux with a random permutation rather then the identity one
   if (noTiebreak) {
@@ -746,31 +814,31 @@ static void sortAuxBySymbolPrecedence(DArray<unsigned>& aux, const Options& opt,
 
   switch(opt.symbolPrecedence()) {
     case Shell::Options::SymbolPrecedence::ARITY:
-      aux.sort(BoostWrapper<ArityComparator<>>(symType,noTiebreak));
+      aux.sort(BoostWrapper<ArityComparator<>>(symType,noTiebreak,counts));
       break;
     case Shell::Options::SymbolPrecedence::REVERSE_ARITY:
-      aux.sort(BoostWrapper<ArityComparator<true /*reverse*/>>(symType,noTiebreak));
+      aux.sort(BoostWrapper<ArityComparator<true /*reverse*/>>(symType,noTiebreak,counts));
       break;
     case Shell::Options::SymbolPrecedence::UNARY_FIRST:
-      aux.sort(BoostWrapper<UnaryFirstComparator<false,ArityComparator<false,FreqComparator<>>>>(symType,noTiebreak));
+      aux.sort(BoostWrapper<UnaryFirstComparator<false,ArityComparator<false,FreqComparator<>>>>(symType,noTiebreak,counts));
       break;
     case Shell::Options::SymbolPrecedence::CONST_MAX:
-      aux.sort(BoostWrapper<ConstFirstComparator<false,ArityComparator<>>>(symType,noTiebreak));
+      aux.sort(BoostWrapper<ConstFirstComparator<false,ArityComparator<>>>(symType,noTiebreak,counts));
       break;
     case Shell::Options::SymbolPrecedence::CONST_MIN:
-      aux.sort(BoostWrapper<ConstFirstComparator<true /*reverse*/,ArityComparator<true /*reverse*/>>>(symType,noTiebreak));
+      aux.sort(BoostWrapper<ConstFirstComparator<true /*reverse*/,ArityComparator<true /*reverse*/>>>(symType,noTiebreak,counts));
       break;
     case Shell::Options::SymbolPrecedence::FREQUENCY:
-      aux.sort(BoostWrapper<FreqComparator<>>(symType,noTiebreak));
+      aux.sort(BoostWrapper<FreqComparator<>>(symType,noTiebreak,counts));
       break;
     case Shell::Options::SymbolPrecedence::REVERSE_FREQUENCY:
-      aux.sort(BoostWrapper<FreqComparator<true /*reverse*/>>(symType,noTiebreak));
+      aux.sort(BoostWrapper<FreqComparator<true /*reverse*/>>(symType,noTiebreak,counts));
       break;
     case Shell::Options::SymbolPrecedence::UNARY_FREQ:
-      aux.sort(BoostWrapper<UnaryFirstComparator<false,FreqComparator<>>>(symType,noTiebreak));
+      aux.sort(BoostWrapper<UnaryFirstComparator<false,FreqComparator<>>>(symType,noTiebreak,counts));
       break;
     case Shell::Options::SymbolPrecedence::CONST_FREQ:
-      aux.sort(BoostWrapper<ConstFirstComparator<true /*reverse*/,FreqComparator<>>>(symType,noTiebreak));
+      aux.sort(BoostWrapper<ConstFirstComparator<true /*reverse*/,FreqComparator<>>>(symType,noTiebreak,counts));
       break;
     case Shell::Options::SymbolPrecedence::OCCURRENCE:
       // already sorted by occurrence
@@ -782,7 +850,7 @@ static void sortAuxBySymbolPrecedence(DArray<unsigned>& aux, const Options& opt,
 }
 
 
-DArray<int> PrecedenceOrdering::typeConPrecFromOpts(Problem& prb, const Options& opt) {
+DArray<int> PrecedenceOrdering::typeConPrecFromOpts(Problem& prb, const Options& opt, const SymbolCounts& counts) {
   auto symbols = env.signature->typeConSymbols();
   unsigned nTypeCons = symbols.size();
   DArray<unsigned> aux(nTypeCons);
@@ -800,7 +868,7 @@ DArray<int> PrecedenceOrdering::typeConPrecFromOpts(Problem& prb, const Options&
         precedence_file.close();
       }
     } else {
-      sortAuxBySymbolPrecedence(aux,opt,SymbolType::TYPE_CON);
+      sortAuxBySymbolPrecedence(aux,opt,SymbolType::TYPE_CON,counts);
     }
   }
 
@@ -811,7 +879,7 @@ DArray<int> PrecedenceOrdering::typeConPrecFromOpts(Problem& prb, const Options&
   return typeConPrecedences;
 }
 
-DArray<int> PrecedenceOrdering::funcPrecFromOpts(Problem& prb, const Options& opt) {
+DArray<int> PrecedenceOrdering::funcPrecFromOpts(Problem& prb, const Options& opt, const SymbolCounts& counts) {
   auto symbols = env.signature->functionSymbols();
   unsigned nFunctions = symbols.size();
   DArray<unsigned> aux(nFunctions);
@@ -829,7 +897,7 @@ DArray<int> PrecedenceOrdering::funcPrecFromOpts(Problem& prb, const Options& op
         precedence_file.close();
       }
     } else {
-      sortAuxBySymbolPrecedence(aux,opt,SymbolType::FUNC);
+      sortAuxBySymbolPrecedence(aux,opt,SymbolType::FUNC,counts);
     }
   }
 
@@ -840,7 +908,7 @@ DArray<int> PrecedenceOrdering::funcPrecFromOpts(Problem& prb, const Options& op
   return functionPrecedences;
 }
 
-DArray<int> PrecedenceOrdering::predPrecFromOpts(Problem& prb, const Options& opt) {
+DArray<int> PrecedenceOrdering::predPrecFromOpts(Problem& prb, const Options& opt, const SymbolCounts& counts) {
   auto symbols = env.signature->predicateSymbols();
   unsigned nPredicates = symbols.size();
   DArray<unsigned> aux(nPredicates);
@@ -856,7 +924,7 @@ DArray<int> PrecedenceOrdering::predPrecFromOpts(Problem& prb, const Options& op
       precedence_file.close();
     }
   } else {
-    sortAuxBySymbolPrecedence(aux,opt,SymbolType::PRED);
+    sortAuxBySymbolPrecedence(aux,opt,SymbolType::PRED,counts);
   }
 
   auto predicatePrecedences = DArray<int>::initialized(env.signature->predicateCount(), -1);

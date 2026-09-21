@@ -11,6 +11,8 @@
 #include "Test/UnitTesting.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/Clause.hpp"
+#include "Kernel/SymbolUsage.hpp"
+#include "Kernel/Problem.hpp"
 #include "Shell/Property.hpp"
 #include "Kernel/NumTraits.hpp"
 #include "Kernel/KBO.hpp"
@@ -252,7 +254,7 @@ TEST_FUN(finiteModelUsesInterleavedSymbolOffsets)
   ASS(!model.evaluateGroundLiteral(Literal::create1(q->number(), true, TermList(term))));
 }
 
-TEST_FUN(propertyScanCountsAndResetsInterleavedSymbols)
+TEST_FUN(propertyScanResetsInterleavedSymbolMarks)
 {
   auto& sig = *env.signature;
   auto f = sig.getSymbol(sig.addFreshFunction(OperatorType::getConstantsType(AtomicSort::defaultSort()), "usage_f"));
@@ -266,31 +268,117 @@ TEST_FUN(propertyScanCountsAndResetsInterleavedSymbols)
   UnitList::push(clause, units);
 
   delete Shell::Property::scan(units);
-  ASS_EQ(f->usageCnt(), 1u);
-  ASS_EQ(p->usageCnt(), 1u);
-  ASS_EQ(tc->usageCnt(), 1u);
   for (auto symbol : {f, p, tc}) {
     ASS(symbol->inGoal());
     ASS(symbol->inUnit());
   }
 
-  // Rescanning must not accumulate counts from the previous scan.
+  // Rescanning preserves marks for symbols still in the clauses.
   delete Shell::Property::scan(units);
-  ASS_EQ(f->usageCnt(), 1u);
-  ASS_EQ(p->usageCnt(), 1u);
-  ASS_EQ(tc->usageCnt(), 1u);
   for (auto symbol : {f, p, tc}) {
     ASS(symbol->inGoal());
     ASS(symbol->inUnit());
   }
 
   delete Shell::Property::scan(UnitList::empty());
-  ASS_EQ(f->usageCnt(), 0u);
-  ASS_EQ(p->usageCnt(), 0u);
-  ASS_EQ(tc->usageCnt(), 0u);
   for (auto symbol : {f, p, tc}) {
     ASS(!symbol->inGoal());
     ASS(!symbol->inUnit());
   }
   UnitList::destroy(units);
+}
+
+TEST_FUN(symbolUsageUsesDenseCategoryIndices)
+{
+  auto& sig = *env.signature;
+  auto f = sig.addFreshFunction(OperatorType::getConstantsType(AtomicSort::defaultSort()), "count_f");
+  auto p = sig.addFreshPredicate(OperatorType::getPredicateType({AtomicSort::defaultSort(), AtomicSort::defaultSort()}, 1), "count_p");
+  auto tc = sig.addFreshTypeCon(0, "count_s");
+  auto unused = sig.addFreshFunction(OperatorType::getConstantsType(AtomicSort::defaultSort()), "unused_f");
+  auto sort = TermList(AtomicSort::createConstant(tc));
+  auto term = TermList(Term::createConstant(f));
+  TermList args[] = {sort, term, term};
+  auto clause = Clause::fromLiterals({Literal::create(p, 3, true, args)},
+      Inference(FromInput(UnitInputType::AXIOM)));
+  ClauseStack clauses;
+  clauses.push(clause);
+
+  SymbolCounts counts;
+  counts.countIn(pvi(ClauseStack::Iterator(clauses)));
+  ASS_EQ(counts.functions.size(), sig.functionCount());
+  ASS_EQ(counts.predicates.size(), sig.predicateCount());
+  ASS_EQ(counts.typeCons.size(), sig.typeConCount());
+  ASS_EQ(counts.functions[sig.functionIndex(f)], 2u);
+  ASS_EQ(counts.functions[sig.functionIndex(unused)], 0u);
+  ASS_EQ(counts.predicates[sig.predicateIndex(p)], 1u);
+  ASS_EQ(counts.predicates[sig.predicateIndex(0)], 0u);
+  ASS_EQ(counts.typeCons[sig.typeConIndex(tc)], 1u);
+
+  DArray<bool> usedFunctions, usedPredicates;
+  collectUsedSymbols(pvi(ClauseStack::Iterator(clauses)), usedFunctions, usedPredicates);
+  ASS_EQ(usedFunctions.size(), sig.functionCount());
+  ASS_EQ(usedPredicates.size(), sig.predicateCount());
+  ASS(usedFunctions[sig.functionIndex(f)]);
+  ASS(!usedFunctions[sig.functionIndex(unused)]);
+  ASS(usedPredicates[sig.predicateIndex(p)]);
+  ASS(!usedPredicates[sig.predicateIndex(0)]);
+
+  auto late = sig.addFreshPredicate(OperatorType::getPredicateType({}), "late_count_p");
+  ASS_EQ(sig.predicateIndex(late), usedPredicates.size());
+  clauses.reset();
+  counts.countIn(pvi(ClauseStack::Iterator(clauses)));
+  collectUsedSymbols(pvi(ClauseStack::Iterator(clauses)), usedFunctions, usedPredicates);
+  ASS_EQ(counts.functions[sig.functionIndex(f)], 0u);
+  ASS_EQ(counts.predicates[sig.predicateIndex(p)], 0u);
+  ASS_EQ(counts.typeCons[sig.typeConIndex(tc)], 0u);
+  ASS(!usedFunctions[sig.functionIndex(f)]);
+  ASS(!usedPredicates[sig.predicateIndex(p)]);
+  ASS(!usedPredicates[sig.predicateIndex(late)]);
+}
+
+namespace {
+class InspectableKBO : public KBO {
+public:
+  using KBO::KBO;
+  using KBO::symbolWeight;
+};
+}
+
+TEST_FUN(kboGeneratedWeightsUseDenseCategoryIndices)
+{
+  auto& sig = *env.signature;
+  auto sort = AtomicSort::defaultSort();
+  auto f = sig.addFreshFunction(OperatorType::getConstantsType(sort), "weight_f");
+  auto p = sig.addFreshPredicate(OperatorType::getPredicateType({sort, sort, sort}), "weight_p");
+  sig.addFreshTypeCon(0, "weight_s");
+  auto g = sig.addFreshFunction(OperatorType::getConstantsType(sort), "weight_g");
+  auto ft = Term::createConstant(f);
+  auto gt = Term::createConstant(g);
+  TermList args[] = {TermList(ft), TermList(ft), TermList(gt)};
+  auto clause = Clause::fromLiterals({Literal::create(p, 3, true, args)},
+      Inference(FromInput(UnitInputType::AXIOM)));
+  UnitList* units = nullptr;
+  UnitList::push(clause, units);
+  Problem prb(units);
+  Shell::Options opts;
+  opts.set("symbol_precedence", "occurrence");
+  opts.set("kbo_weight_scheme", "precedence");
+  InspectableKBO precedence(prb, opts);
+  ASS_EQ(precedence.symbolWeight(ft), static_cast<int>(sig.functionIndex(f) + 1));
+  ASS_EQ(precedence.symbolWeight(gt), static_cast<int>(sig.functionIndex(g) + 1));
+
+  opts.set("kbo_weight_scheme", "inv_precedence");
+  InspectableKBO inversePrecedence(prb, opts);
+  ASS_EQ(inversePrecedence.symbolWeight(ft), static_cast<int>(sig.functionCount() - sig.functionIndex(f)));
+  ASS_EQ(inversePrecedence.symbolWeight(gt), static_cast<int>(sig.functionCount() - sig.functionIndex(g)));
+
+  opts.set("kbo_weight_scheme", "frequency");
+  InspectableKBO frequency(prb, opts);
+  ASS_EQ(frequency.symbolWeight(ft), 2);
+  ASS_EQ(frequency.symbolWeight(gt), 1);
+
+  opts.set("kbo_weight_scheme", "inv_frequency");
+  InspectableKBO inverseFrequency(prb, opts);
+  ASS_EQ(inverseFrequency.symbolWeight(ft), 1);
+  ASS_EQ(inverseFrequency.symbolWeight(gt), 2);
 }

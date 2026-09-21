@@ -25,6 +25,8 @@
 
 #include "Lib/Comparison.hpp"
 #include "Lib/DArray.hpp"
+
+#include "Kernel/SymbolUsage.hpp"
 #include "Kernel/Term.hpp"
 
 #include "Kernel/SubstHelper.hpp"
@@ -179,8 +181,8 @@ public:
 #ifdef VDEBUG
   bool usesQkboPrecedence() const { return _qkboPrecedence; }
 #endif
-  static DArray<int> funcPrecFromOpts(Problem& prb, const Options& opt);
-  static DArray<int> predPrecFromOpts(Problem& prb, const Options& opt);
+  static DArray<int> funcPrecFromOpts(Problem& prb, const Options& opt, const SymbolCounts& counts);
+  static DArray<int> predPrecFromOpts(Problem& prb, const Options& opt, const SymbolCounts& counts);
 
   Result comparePredicatePrecedences(unsigned fun1, unsigned fun2) const;
   int predicatePrecedence(unsigned pred) const;
@@ -190,11 +192,29 @@ protected:
   PrecedenceOrdering(const DArray<int>& funcPrec, const DArray<int>& typeConPrec, 
                      const DArray<int>& predPrec, const DArray<int>& predLevels, 
                      bool reverseLCM, bool qkboPrecedence = false);
-  PrecedenceOrdering(Problem& prb, const Options& opt, const DArray<int>& predPrec, bool qkboPrecedence = false);
+  PrecedenceOrdering(Problem& prb, const Options& opt, const SymbolCounts& counts,
+                     const DArray<int>& predPrec, bool qkboPrecedence = false);
+  PrecedenceOrdering(Problem& prb, const Options& opt, SymbolCounts counts, bool qkboPrecedence);
   PrecedenceOrdering(Problem& prb, const Options& opt, bool qkboPrecedence = false);
 
+  /**
+   * Do any of the options in force want to know how often a symbol occurs? If so the
+   * counts are gathered once while this ordering is built, and symbolCounts() hands them
+   * out; if not, nothing pays for them and symbolCounts() must not be called.
+   */
+  static bool needsSymbolCounts(const Options& opt);
 
-  static DArray<int> typeConPrecFromOpts(Problem& prb, const Options& opt);
+  /** Occurrence counts, but only if some option asked for them -- go through symbolCounts(). */
+  SymbolCounts _symbolCounts;
+
+  const SymbolCounts& symbolCounts() const {
+    ASS_REP(_symbolCounts.isInitialised(),
+        "symbol occurrence counts were referenced, but no option asked for them: "
+        "needsSymbolCounts() has fallen out of sync with whoever reads them");
+    return _symbolCounts;
+  }
+
+  static DArray<int> typeConPrecFromOpts(Problem& prb, const Options& opt, const SymbolCounts& counts);
   static DArray<int> predLevelsFromOptsAndPrec(Problem& prb, const Options& opt, const DArray<int>& predicatePrecedences);
 
   Result comparePrecedences(const Term* t1, const Term* t2) const;

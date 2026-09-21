@@ -104,20 +104,17 @@ Property::Property()
  */
 Property* Property::scan(UnitList* units)
 {
-  // a bit of a hack, these counts and marks belong in Property
+  // a bit of a hack, these marks belong in Property
   for (unsigned f : env.signature->functionSymbols()) {
     Signature::Symbol* sym = env.signature->getFunction(f);
-    sym->resetUsageCnt();
     sym->resetScanMarks();
   }
   for (unsigned p : env.signature->predicateSymbols()) {
     Signature::Symbol* sym = env.signature->getPredicate(p);
-    sym->resetUsageCnt();
     sym->resetScanMarks();
   }
   for (unsigned t : env.signature->typeConSymbols()) {
     Signature::Symbol* sym = env.signature->getTypeCon(t);
-    sym->resetUsageCnt();
     sym->resetScanMarks();
   }
 
@@ -572,7 +569,6 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
       _maxPredArity = arity;
     }
     Signature::Symbol* pred = env.signature->getPredicate(lit->functor());
-    pred->incUsageCnt();
     if(cLen==1){
       pred->markInUnit();
     }
@@ -662,7 +658,6 @@ void Property::scan(TermList ts,bool unit,bool goal)
       }
       // an AtomicSort stores the type constructor's number as its functor
       Signature::Symbol* typeCon = env.signature->getTypeCon(t->functor());
-      typeCon->incUsageCnt();
       if(unit){ typeCon->markInUnit();}
       if(goal){ typeCon->markInGoal();}
       return;
@@ -671,7 +666,6 @@ void Property::scan(TermList ts,bool unit,bool goal)
     scanForInterpreted(t);
 
     Signature::Symbol* func = env.signature->getFunction(t->functor());
-    func->incUsageCnt();
     if(unit){ func->markInUnit();}
     if(goal){ func->markInGoal();}
 
