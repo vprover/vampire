@@ -192,7 +192,7 @@ TEST_FUN(sharingEqualityAfterResizing)
   ASS_EQ(OperatorType::getFunctionType({sort}, sort), type);
 
   auto pred = env.signature->addPredicate("set_equality_predicate",
-      OperatorType::getPredicateType({sort}));
+      OperatorType::getPredicateType({sort}))->number();
   auto positive = Literal::create1(pred, true, TermList(0, false));
   auto negative = Literal::create1(pred, false, TermList(0, false));
   auto other = Literal::create1(pred, false, TermList(1, false));

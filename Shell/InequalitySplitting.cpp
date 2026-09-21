@@ -148,19 +148,19 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, 
   SortHelper::normaliseSort(vars, srt);
 
   // Protect split equalities from blocked clause elimination (e.g. ARI713_1).
-  unsigned fun;
+  Signature::Symbol* symbol;
   OperatorType* type;
   if(!_appify){
     type = OperatorType::getPredicateType({srt}, vars.size());
-    fun=env.signature->freshPredicate(type, "sP").protect().number();
+    symbol = env.signature->addNamePredicate(type)->markProtected();
   } else {
     srt = AtomicSort::arrowSort(srt, AtomicSort::boolSort());
     type = OperatorType::getConstantsType(srt, vars.size());
-    fun=env.signature->freshFunction(type, "sP").protect().number();
+    symbol = env.signature->addNameFunction(type)->markProtected();
   }
 
 
-  auto symbol = _appify ? env.signature->function(fun) : env.signature->predicate(fun);
+  unsigned fun = symbol->number();
 
   TermList s;
   TermList t; //the ground inequality argument, that'll be split out
@@ -175,10 +175,10 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, 
 
   ASS(t.isTerm());
   if(env.colorUsed && t.term()->color()!=COLOR_TRANSPARENT) {
-    symbol.color(t.term()->color());
+    symbol->addColor(t.term()->color());
   }
   if(env.colorUsed && t.term()->skip()) {
-    symbol.skip();
+    symbol->markSkip();
   }
 
   RStack<Literal*> resLits;
@@ -186,7 +186,7 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, 
       NonspecificInference0(inpType,InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION));
   _predDefs.push(defCl);
 
-  InferenceStore::instance()->recordIntroducedSymbol(defCl, &symbol.symbol());
+  InferenceStore::instance()->recordIntroducedSymbol(defCl, symbol);
 
   premise=defCl;
 

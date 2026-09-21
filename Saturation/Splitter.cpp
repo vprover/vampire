@@ -615,7 +615,7 @@ std::string Splitter::getFormulaStringFromName(SplitLevel compName, bool negated
 {
   if (splPrefix.empty()) {
     if(env.options->proof()==Options::Proof::TPTP){
-      unsigned spl = env.signature->freshPredicate(OperatorType::getPredicateType({}),"spl").number();
+      unsigned spl = env.signature->addFreshPredicate(OperatorType::getPredicateType({}),"spl")->number();
       splPrefix = env.signature->predicateName(spl)+"_";
     }
   }

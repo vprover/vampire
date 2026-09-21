@@ -321,7 +321,7 @@ struct NumTraits;
     static TermList constantTl(ConstantType const& i) { return TermList(constantT(i)); }  \
     static Option<ConstantType const&> tryNumeral(unsigned functor)                       \
     {                                                                                     \
-      Signature::Symbol* sym = env.signature->getFunction(functor);                       \
+      const Signature::Symbol* sym = env.signature->getFunction(functor);                       \
       if (!sym->numeralConstant<ConstantType>()) {                                        \
         return {};                                                                        \
       }                                                                                   \

@@ -1047,7 +1047,7 @@ bool Theory::findTupleProjection(unsigned projFunctor, bool isPredicate, unsigne
     return false;
   }
 
-  Signature::Symbol* sym = env.signature->getFunction(projFunctor);
+  const Signature::Symbol* sym = env.signature->getFunction(projFunctor);
   if (!sym->termAlgebraDest()) {
     return false;
   }
@@ -1289,12 +1289,12 @@ TermAlgebra* Theory::getTupleTermAlgebra(unsigned arity)
   args.loadFromIterator(varRange(arity, 2*arity));
 
   auto tupleType = OperatorType::getFunctionType(typeVars, tupleSort, arity);
-  auto functor = env.signature->freshFunction(tupleType, "tuple").termAlgebraConstructor().number();
+  auto functor = env.signature->addFreshFunction(tupleType, "tuple")->markTermAlgebraCons()->number();
 
   Array<unsigned> destructors(arity);
   for (unsigned i = 0; i < arity; i++) {
-    auto destructor = env.signature->freshFunction(OperatorType::getFunctionType({ tupleSort }, typeVars[i], arity), "proj")
-      .termAlgebraDestructor().number();
+    auto destructor = env.signature->addFreshFunction(OperatorType::getFunctionType({ tupleSort }, typeVars[i], arity), "proj")
+      ->markTermAlgebraDest()->number();
     destructors[i] = destructor;
   }
 
@@ -1435,8 +1435,8 @@ Interpretation Theory::interpretFunction(unsigned func)
 {
   ASS(isInterpretedFunction(func));
 
-  Signature::InterpretedSymbol* sym =
-      static_cast<Signature::InterpretedSymbol*>(env.signature->getFunction(func));
+  const Signature::InterpretedSymbol* sym =
+      static_cast<const Signature::InterpretedSymbol*>(env.signature->getFunction(func));
 
   return sym->getInterpretation();
 }
@@ -1465,8 +1465,8 @@ Interpretation Theory::interpretPredicate(unsigned pred)
 {
   ASS(isInterpretedPredicate(pred));
 
-  Signature::InterpretedSymbol* sym =
-      static_cast<Signature::InterpretedSymbol*>(env.signature->getPredicate(pred));
+  const Signature::InterpretedSymbol* sym =
+      static_cast<const Signature::InterpretedSymbol*>(env.signature->getPredicate(pred));
 
   return sym->getInterpretation();
 }
@@ -1501,7 +1501,7 @@ bool Theory::tryInterpretConstant(const Term* t, IntegerConstantType& res)
 
 bool Theory::tryInterpretConstant(unsigned func, IntegerConstantType& res)
 {
-  Signature::Symbol* sym = env.signature->getFunction(func);
+  const Signature::Symbol* sym = env.signature->getFunction(func);
   if (!sym->integerConstant()) {
     return false;
   }
@@ -1529,7 +1529,7 @@ bool Theory::tryInterpretConstant(const Term* t, RationalConstantType& res)
 
 bool Theory::tryInterpretConstant(unsigned func, RationalConstantType& res)
 {
-  Signature::Symbol* sym = env.signature->getFunction(func);
+  const Signature::Symbol* sym = env.signature->getFunction(func);
   if (!sym->rationalConstant()) {
     return false;
   }
@@ -1563,7 +1563,7 @@ bool Theory::tryInterpretConstant(const Term* t, RealConstantType& res)
 
 bool Theory::tryInterpretConstant(unsigned func, RealConstantType& res)
 {
-  Signature::Symbol* sym = env.signature->getFunction(func);
+  const Signature::Symbol* sym = env.signature->getFunction(func);
   if (!sym->realConstant()) {
     return false;
   }

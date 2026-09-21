@@ -1077,7 +1077,7 @@ bool Naming::canBeInDefinition(Formula* f, Where where) {
   return true;
 }
 
-std::pair<Literal*, Signature::Symbol*> Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
+std::pair<Literal*, const Signature::Symbol*> Naming::getDefinitionLiteral(Formula* f, VList* freeVars) {
   unsigned arity = VList::length(freeVars);
 
   static TermStack termVarSorts;
@@ -1113,26 +1113,26 @@ std::pair<Literal*, Signature::Symbol*> Naming::getDefinitionLiteral(Formula* f,
   }
 
   if(!_appify){
-    auto symbol = env.signature->freshPredicate(OperatorType::getPredicateType(termVarSorts, typeArgArity), "sP").skipCongruence();
-    unsigned pred = symbol.number();
-    auto predSym = &symbol.symbol();
+    auto symbol = env.signature->addNamePredicate(OperatorType::getPredicateType(termVarSorts, typeArgArity))->markSkipCongruence();
+    unsigned pred = symbol->number();
+    auto predSym = symbol;
 
     if (env.colorUsed) {
       Color fc = f->getColor();
       if (fc != COLOR_TRANSPARENT) {
-        symbol.color(fc);
+        symbol->addColor(fc);
       }
       if (f->getSkip()) {
-        symbol.skip();
+        symbol->markSkip();
       }
     }
 
     return { Literal::create(pred, arity, true, allVars.begin()), predSym };
   } else {
     TermList sort = AtomicSort::arrowSort(termVarSorts, AtomicSort::boolSort());
-    auto symbol = env.signature->freshFunction(OperatorType::getConstantsType(sort, typeArgArity), "sP").skipCongruence();
-    unsigned fun = symbol.number();
-    auto sym = &symbol.symbol();
+    auto symbol = env.signature->addNameFunction(OperatorType::getConstantsType(sort, typeArgArity))->markSkipCongruence();
+    unsigned fun = symbol->number();
+    auto sym = symbol;
     TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
     TermList t = HOL::create::app(head, termVars);
     return { Literal::createEquality(true, TermList(t), HOL::create::top(), AtomicSort::boolSort()), sym };

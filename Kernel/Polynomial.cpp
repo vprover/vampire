@@ -61,7 +61,7 @@ std::ostream& operator<<(std::ostream& out, const Kernel::FuncId& self)
   }
 }
 
-Signature::Symbol* FuncId::symbol() const 
+const Signature::Symbol* FuncId::symbol() const
 { return env.signature->getFunction(_num); }
 
 unsigned FuncId::id() const 

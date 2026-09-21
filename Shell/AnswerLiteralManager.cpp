@@ -157,7 +157,7 @@ Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
     VSList::Iterator fvit(fVarSorts);
     while (fvit.hasNext()) {
       auto [var, sort] = fvit.next();
-      unsigned skFun = env.signature->freshFunction(OperatorType::getConstantsType(sort), "sK", /*suffix=*/"in").skolem().number();
+      unsigned skFun = env.signature->addSkolemFunction(OperatorType::getConstantsType(sort), /*suffix=*/"in")->number();
       if ((env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS)) {
         ALWAYS(static_cast<Shell::SynthesisALManager*>(Shell::SynthesisALManager::getInstance())->addIntroducedComputableSymbol(make_pair(skFun, /*isPredicate=*/false)));
       }
@@ -176,7 +176,7 @@ TermList AnswerLiteralManager::possiblyEvaluateAnswerTerm(TermList aT)
   if(aT.isTerm() && !aT.term()->isSpecial()){
     InterpretedLiteralEvaluator eval;
     TermList sort = SortHelper::getResultSort(aT.term());
-    unsigned p = env.signature->freshPredicate(OperatorType::getPredicateType({sort}),"p").number();
+    unsigned p = env.signature->addFreshPredicate(OperatorType::getPredicateType({sort}),"p")->number();
     Literal* l = Literal::create1(p,true,aT);
     Literal* res =0;
     bool constant, constTrue;
@@ -340,8 +340,8 @@ Literal* AnswerLiteralManager::getAnswerLiteral(VSList* varSorts, Formula* f)
 
   unsigned vcnt = litArgs.size();
   // Answer literals do not need equality proxies.
-  unsigned pred = env.signature->freshPredicate(OperatorType::getPredicateType(sorts), "ans")
-    .answerPredicate().skipCongruence().number();
+  unsigned pred = env.signature->addFreshPredicate(OperatorType::getPredicateType(sorts), "ans")
+    ->markAnswerPredicate()->markSkipCongruence()->number();
   if ((env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS)) {
     ALWAYS(static_cast<Shell::SynthesisALManager*>(Shell::SynthesisALManager::getInstance())->addIntroducedComputableSymbol(make_pair(pred, /*isPredicate=*/true)));
   }
@@ -358,7 +358,7 @@ Clause* AnswerLiteralManager::getResolverClause(unsigned pred)
   static Stack<TermList> args;
   args.reset();
 
-  Signature::Symbol* predSym = env.signature->getPredicate(pred);
+  const Signature::Symbol* predSym = env.signature->getPredicate(pred);
   ASS(predSym->answerPredicate());
   unsigned arity = predSym->arity();
 
@@ -592,7 +592,7 @@ Clause* SynthesisALManager::recordAnswerAndReduce(Clause* cl) {
 Literal* SynthesisALManager::makeITEAnswerLiteral(Literal* condition, Literal* thenLit, Literal* elseLit) {
   ASS(Literal::headersMatch(thenLit, elseLit, /*complementary=*/false));
 
-  Signature::Symbol* predSym = env.signature->getPredicate(thenLit->functor());
+  const Signature::Symbol* predSym = env.signature->getPredicate(thenLit->functor());
   Stack<TermList> litArgs;
   Term* condTerm = translateToSynthesisConditionTerm(condition);
   for (unsigned i = 0; i < thenLit->arity(); ++i) {
@@ -659,7 +659,7 @@ Term* SynthesisALManager::translateToSynthesisConditionTerm(Literal* l)
     }
   }
   bool added = false;
-  unsigned fn = env.signature->function(fnName, OperatorType::getFunctionType(argSorts, AtomicSort::defaultSort()), added).number();
+  unsigned fn = env.signature->addFunction(fnName, OperatorType::getFunctionType(argSorts, AtomicSort::defaultSort()), added)->number();
   // Store the mapping between the function and predicate symbols
   _skolemReplacement.addCondPair(fn, l->functor());
   if (added) {
@@ -705,7 +705,7 @@ TermList getConstantForVariable(TermList sort) {
     std::string name = "cz_" + sort.toString();
     unsigned czfn;
     if (!env.signature->tryGetFunctionNumber(name, 0, czfn)) {
-      czfn = env.signature->freshFunction(OperatorType::getConstantsType(sort), name.c_str()).number();
+      czfn = env.signature->addFreshFunction(OperatorType::getConstantsType(sort), name.c_str())->number();
     } 
     return TermList(Term::createConstant(czfn));
   }
@@ -820,7 +820,7 @@ SynthesisALManager::ConjectureSkolemReplacement::Function::Function(unsigned rec
   TermList in = ot->arg(ot->arity()-1);
   TermList out = ot->arg(0);
   ASS_EQ(env.signature->getTermAlgebraOfSort(in)->nConstructors(), _caseHeads->size());
-  _functor = env.signature->freshFunction(OperatorType::getFunctionType({in}, out), "rf").number();
+  _functor = env.signature->addFreshFunction(OperatorType::getFunctionType({in}, out), "rf")->number();
   // Process SkolemTrackers corresponding to this function:
   // populate the maps mapping skolems to terms they represent.
   DHMap<Term*, TermList, FnvHash, PtrIdentityHash>* caseMap;
@@ -939,13 +939,13 @@ bool SynthesisALManager::hasRecTerm(Literal* lit) {
 }
 
 bool SynthesisALManager::isFunctionComputable(unsigned functor) const {
-  Signature::Symbol* s = env.signature->getFunction(functor);
+  const Signature::Symbol* s = env.signature->getFunction(functor);
   return (s->introduced() && _introducedComputable.contains(make_pair(functor, false))) ||
     (!s->introduced() && !_annotatedUncomputable.contains(make_pair(functor, false)));
 }
 
 bool SynthesisALManager::isPredicateComputable(unsigned functor) const {
-  Signature::Symbol* s = env.signature->getPredicate(functor);
+  const Signature::Symbol* s = env.signature->getPredicate(functor);
   return (s->introduced() && _introducedComputable.contains(make_pair(functor, true))) ||
     (!s->introduced() && !_annotatedUncomputable.contains(make_pair(functor, true)));
 }
@@ -953,7 +953,7 @@ bool SynthesisALManager::isPredicateComputable(unsigned functor) const {
 bool SynthesisALManager::computableOrVarHelper(const Term* t, DHMap<unsigned, unsigned, FnvHash, IdentityHash>* recAncestors) const {
   ASS(t);
   unsigned f = t->functor();
-  Signature::Symbol* symbol = env.signature->getFunction(f);
+  const Signature::Symbol* symbol = env.signature->getFunction(f);
 
   if (!isFunctionComputable(f)) {
     // either an uncomputable symbol from the input, or an introduced symbol

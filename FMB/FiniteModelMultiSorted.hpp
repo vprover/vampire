@@ -132,7 +132,7 @@ public:
     if(_domainConstants.find(pair,t)) return t;
     std::string name = "domCon_"+env.signature->typeConName(srt)+"_"+Lib::Int::toString(c);
     TermList srtT = TermList(AtomicSort::createConstant(srt));
-    unsigned f = env.signature->freshFunction(OperatorType::getConstantsType(srtT),name.c_str()).number();
+    unsigned f = env.signature->addFreshFunction(OperatorType::getConstantsType(srtT),name.c_str())->number();
     t = Term::createConstant(f);
     _domainConstants.insert(pair,t);
     _domainConstantsRev.insert(t,pair);

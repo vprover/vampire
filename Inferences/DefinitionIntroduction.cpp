@@ -145,13 +145,13 @@ void DefinitionIntroduction<higherOrder>::introduceDefinitionFor(Term *t) {
   unsigned functor;
   if constexpr (higherOrder) {
     auto sort = AtomicSort::arrowSort(domain_sort_vector, sort_rename.apply(range_sort), /*fromTop=*/true);
-    functor = env.signature->freshFunction(OperatorType::getConstantsType(sort, type_arity), "sF").number();
+    functor = env.signature->addFreshFunction(OperatorType::getConstantsType(sort, type_arity), "sF")->number();
   } else {
-    functor = env.signature->freshFunction(OperatorType::getFunctionType(
+    functor = env.signature->addFreshFunction(OperatorType::getFunctionType(
       domain_sort_vector,
       sort_rename.apply(range_sort),
       type_arity
-    ), "sF").number();
+    ), "sF")->number();
   }
   Term *def;
   if constexpr (higherOrder) {

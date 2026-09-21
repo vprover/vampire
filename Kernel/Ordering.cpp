@@ -398,8 +398,8 @@ Ordering::Result PrecedenceOrdering::compareFunctionPrecedences(unsigned fun1, u
     return GREATER;
   }
 
-  Signature::Symbol* s1=env.signature->getFunction(fun1);
-  Signature::Symbol* s2=env.signature->getFunction(fun2);
+  const Signature::Symbol* s1=env.signature->getFunction(fun1);
+  const Signature::Symbol* s2=env.signature->getFunction(fun2);
   // term algebra constructors are smaller than other symbols
   if(s1->termAlgebraCons() && !s2->termAlgebraCons()) {
     return LESS;
@@ -511,7 +511,7 @@ struct SymbolComparator {
   SymbolComparator(SymbolType symType, bool noTiebreak, const SymbolCounts& counts)
     : _symType(symType), _noTiebreak(noTiebreak), _counts(counts) {}
 
-  Signature::Symbol* getSymbol(unsigned s) {
+  const Signature::Symbol* getSymbol(unsigned s) {
     if(_symType == SymbolType::FUNC){
       return env.signature->getFunction(s);
     } else if (_symType == SymbolType::PRED){
@@ -922,7 +922,7 @@ DArray<int> PrecedenceOrdering::predLevelsFromOptsAndPrec(Problem& prb, const Op
   }
 
   for(unsigned i=1;i<nPredicates;i++) {
-    Signature::Symbol* predSym = env.signature->getPredicate(i);
+    const Signature::Symbol* predSym = env.signature->getPredicate(i);
     //consequence-finding name predicates have the lowest level
     if(predSym->label()) {
       predicateLevels[i]=-1;

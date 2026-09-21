@@ -67,8 +67,8 @@ public:
   };
 
   void recordSplittingNameLiteral(Unit* us, Literal* lit);
-  void recordIntroducedSymbol(Unit* u, Signature::Symbol* sym);
-  void recordIntroducedSkolemSymbol(Unit* u, Signature::Symbol* sym, unsigned replacedVar, Term* symTerm);
+  void recordIntroducedSymbol(Unit* u, const Signature::Symbol* sym);
+  void recordIntroducedSkolemSymbol(Unit* u, const Signature::Symbol* sym, unsigned replacedVar, Term* symTerm);
   void recordIntroducedSplitName(Unit* u, std::string name);
   
 
@@ -90,13 +90,13 @@ private:
 
   DHMap<unsigned, Literal*, FnvHash, IdentityHash> _splittingNameLiterals;
 
-  typedef Stack<Signature::Symbol*> SymbolStack;
+  typedef Stack<const Signature::Symbol*> SymbolStack;
   // unit id -> stack of introduced symbols (in order of introduction)
   DHMap<unsigned,SymbolStack, FnvHash, IdentityHash> _introducedSymbols;
   // symbol id -> existential variable name (number) that was replaced by the symbol
-  DHMap<Signature::Symbol*, unsigned, FnvHash, PtrIdentityHash> _introducedSymbolReplacedVars;
+  DHMap<const Signature::Symbol*, unsigned, FnvHash, PtrIdentityHash> _introducedSymbolReplacedVars;
   // symbol id -> the term that is introduced when introducing the skolem symbol
-  DHMap<Signature::Symbol*, Term*, FnvHash, PtrIdentityHash> _introducedSkolemSymTerms;
+  DHMap<const Signature::Symbol*, Term*, FnvHash, PtrIdentityHash> _introducedSkolemSymTerms;
 
   DHMap<unsigned,std::string, FnvHash, IdentityHash> _introducedSplitNames;
 };

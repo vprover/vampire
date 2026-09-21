@@ -539,7 +539,7 @@ private:
   /**
    * Helper method: switch on SymbolType and return corresponding Symbol.
    */
-  Signature::Symbol* getSymbol(DeclaredSymbol& s);
+  const Signature::Symbol* getSymbol(DeclaredSymbol& s);
 
   /**
    * Unofficial command

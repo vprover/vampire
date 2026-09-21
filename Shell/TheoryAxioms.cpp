@@ -575,7 +575,7 @@ void TheoryAxioms::addIntegerDividesAxioms(Interpretation divides, Interpretatio
   Literal* ndivsXY = Literal::create2(divsPred,false,n,y);
   
   // create a skolem function with signature srt*srt>srt
-  unsigned skolem = env.signature->freshFunction(OperatorType::getFunctionType({srt,srt},srt), "sK").skolem().number();
+  unsigned skolem = env.signature->addSkolemFunction(OperatorType::getFunctionType({srt,srt},srt))->number();
   TermList skXY(Term::create2(skolem,n,y));
   TermList msxX(Term::create2(mulFun,skXY,n));
   Literal* msxXeqY = Literal::createEquality(true,msxX,y,srt);
@@ -811,7 +811,7 @@ void TheoryAxioms::addArrayExtensionalityAxioms()
 
   TermList arraySort(AtomicSort::create2(env.signature->getArrayConstructor(), indexSort, innerSort));
   TermStack args { arraySort, arraySort };
-  auto skolemFn = Skolem::addSkolemFunction(/*taArity=*/2, args, indexSort, "arrayDiff");
+  auto skolemFn = Skolem::addSkolemFunction(/*taArity=*/2, args, indexSort, "arrayDiff")->number();
 
   TermList sk(Term::create(skolemFn, { indexSort, innerSort, x, y })); //sk(x,y)
   TermList sel_x_sk(Term::create(sel, { indexSort, innerSort, x, sk })); //select(x,sk(x,y))
