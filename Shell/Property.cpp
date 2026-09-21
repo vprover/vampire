@@ -639,10 +639,17 @@ void Property::scan(TermList ts)
 
     Signature::Symbol* func = env.signature->getFunction(t->functor());
 
+    // an application wants this twice, for the _hasBoolVar test just below and for the
+    // scanSort at the end, and getResultSort is not cheap: it builds a Substitution and
+    // rebuilds the sort term through it
+    TermList resultSort = SortHelper::getResultSort(t);
+
     if(t->isApplication()){
       _hasApp = true;
-      TermList sort = SortHelper::getResultSort(t);
-      if(HOL::finalResult(sort).isBoolSort() && ts.head().isVar()){
+      // _hasBoolVar only ever goes from false to true, and both tests below walk a spine
+      // (finalResult up the arrow sort, head down the application), so once it is set
+      // there is nothing left to learn here
+      if(!_hasBoolVar && HOL::finalResult(resultSort).isBoolSort() && ts.head().isVar()){
         _hasBoolVar = true;
       }
     }
@@ -671,7 +678,7 @@ void Property::scan(TermList ts)
     for (int i = 0; i < arity; i++) {
       scanSort(SortHelper::getArgSort(t, i));
     }
-    scanSort(SortHelper::getResultSort(t));  
+    scanSort(resultSort);
   }
 }
 
