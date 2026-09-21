@@ -421,7 +421,7 @@ private:
   T _items[1];
 
 
-  static bool equals(const T* arr1, const T* arr2, size_t len)
+  static bool equalItems(const T* arr1, const T* arr2, size_t len)
   {
     const T* arr1e=arr1+len;
     while(arr1!=arr1e) {
@@ -465,8 +465,25 @@ private:
     return res;
   }
 
+  struct Equal {
+    bool operator()(const SharedSet* s1,const SharedSet* s2) const
+    {
+      if(s1->size()!=s2->size()) {
+        return false;
+      }
+      return equalItems(s1->_items, s2->_items, s1->size());
+    }
+    bool operator()(const SharedSet* s1,const ItemStack& is) const
+    {
+      if(s1->size()!=is.size()) {
+        return false;
+      }
+      return equalItems(s1->_items, is.begin(), s1->size());
+    }
+  };
+
   class SharingStruct {
-    typedef Set<SharedSet*, SharedSet> InternalSharingSet;
+    typedef Set<SharedSet*, SharedSet, Equal> InternalSharingSet;
     
     /* starts empty */ 
     InternalSharingSet _data;
@@ -498,25 +515,9 @@ private:
 
 public:
 
-  static bool equals(const SharedSet* s1,const SharedSet* s2)
-  {
-    if(s1->size()!=s2->size()) {
-      return false;
-    }
-    return equals(s1->_items, s2->_items, s1->size());
-  }
-
   static unsigned hash(const SharedSet* s)
   {
     return hash(s->_items, s->size());
-  }
-
-  static bool equals(const SharedSet* s1,const ItemStack& is)
-  {
-    if(s1->size()!=is.size()) {
-      return false;
-    }
-    return equals(s1->_items, is.begin(), s1->size());
   }
 
   static unsigned hash(const ItemStack& is)

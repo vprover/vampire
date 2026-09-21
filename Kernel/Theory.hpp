@@ -210,9 +210,6 @@ private:
 };
 
 struct IntegerConstantTypeHash {
-  static bool equals(const IntegerConstantType& lhs, const IntegerConstantType& rhs)
-  { return lhs == rhs; }
-
   static unsigned hash(const IntegerConstantType& value)
   { return FnvHash::hash(value.truncate<unsigned long>()); }
 };
@@ -310,9 +307,6 @@ std::ostream& operator<<(std::ostream& out, const IntegerConstantType& val);
 
 // RealConstantType uses the same rational representation and hash.
 struct RationalConstantTypeHash {
-  static bool equals(const RationalConstantType& lhs, const RationalConstantType& rhs)
-  { return lhs == rhs; }
-
   static unsigned hash(const RationalConstantType& value)
   {
     return HashUtils::combine(

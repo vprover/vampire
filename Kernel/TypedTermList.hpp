@@ -61,9 +61,6 @@ public:
 };
 
 struct TypedTermListHash {
-  static bool equals(TypedTermList const& lhs, TypedTermList const& rhs)
-  { return lhs == rhs; }
-
   static unsigned hash(TypedTermList const& value)
   { return TupleHash<TermListHash, TermListHash>::hash(value.asTuple()); }
 };

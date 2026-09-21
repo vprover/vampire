@@ -111,8 +111,6 @@ private:
 // _literals is declared with one element, and indexing it directly produced
 // different hash values in optimized builds when this loop was moved.
 struct SATClauseHash {
-  static bool equals(SATClause const& c1, SATClause const& c2) { return c1 == c2; }
-
   static unsigned hash(SATClause const& c) {
     const SATLiteral* lits = &c[0];
     unsigned hash = 0;

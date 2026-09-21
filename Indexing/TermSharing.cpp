@@ -45,15 +45,15 @@ TermSharing::TermSharing()
 TermSharing::~TermSharing()
 {
 #if CHECK_LEAKS
-  Set<Term*,TermSharing>::Iterator ts(_terms);
+  Set<Term*, TermSharing, Equal>::Iterator ts(_terms);
   while (ts.hasNext()) {
     ts.next()->destroy();
   }
-  Set<Literal*,TermSharing>::Iterator ls(_literals);
+  Set<Literal*, TermSharing, Equal>::Iterator ls(_literals);
   while (ls.hasNext()) {
     ls.next()->destroy();
   }
-  Set<AtomicSort*,TermSharing>::Iterator ss(_sorts);
+  Set<AtomicSort*, TermSharing, Equal>::Iterator ss(_sorts);
   while (ss.hasNext()) {
     ss.next()->destroy();
   }
@@ -342,7 +342,7 @@ bool TermSharing::argNormGt(TermList t1, TermList t2)
  * @pre s and t must be non-variable terms
  * @since 28/12/2007 Manchester
  */
-bool TermSharing::equals(const Term* s, const Term* t)
+bool TermSharing::Equal::operator()(const Term* s, const Term* t) const
 {
   if (s->functor() != t->functor())
     return false;
@@ -357,4 +357,4 @@ bool TermSharing::equals(const Term* s, const Term* t)
     tt = tt->next();
   }
   return true;
-} // TermSharing::equals
+} // TermSharing::Equal::operator()
