@@ -425,7 +425,7 @@ struct MayHaveNonUnits : OptionProblemConstraint{
 
 struct NotJustEquality : OptionProblemConstraint{
   bool check(Property*p) override{
-    return (p->category()!=Property::PEQ || p->category()!=Property::UEQ);
+    return (p->category()!=Property::PEQ && p->category()!=Property::UEQ);
   }
   std::string msg() override{ return " not useful with just equality"; }
 };
