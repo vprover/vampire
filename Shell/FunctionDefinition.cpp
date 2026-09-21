@@ -445,7 +445,7 @@ void FunctionDefinition::checkDefinitions(Def* def0)
         } else {
           ASS_EQ(d->mark, Def::SAFE);
         }
-      }      
+      }
     }
     if(stack.isEmpty()) {
       break;
@@ -867,25 +867,32 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
     }
   }
 
-  if (occurs(f,*rhs)) {
-    return 0;
-  }
+  // An arity-0 lhs passes the loop above vacuously, so for a constant these are the first
+  // real tests -- and each is O(1) where occurs() below is a full walk of rhs. None of them
+  // depends on what occurs() would answer, so they belong above it. (Only the Def returned
+  // at the end of the block has to stay below: that is what occurs() actually guards, by
+  // ruling out f = t[f], which the rhs->functor() test catches only at the top of rhs.)
+  bool isArrowSort = false;
   if (!lhs->arity()) {
     if(env.signature->isFoolConstantSymbol(true , f) ||
        env.signature->isFoolConstantSymbol(false, f)){
       return 0;
     }
     //Higher-order often contains definitions of the form f = ^x^y...
-    auto isArrowSort = SortHelper::getResultSort(lhs).isArrowSort();
+    isArrowSort = SortHelper::getResultSort(lhs).isArrowSort();
     if (rhs->arity() && !isArrowSort) { // c = f(...)
       return 0;
     }
     if (rhs->functor() == f) {
       return 0;
     }
-    if(!isArrowSort){
-      return new Def(lhs,rhs,true,true);
-    }
+  }
+
+  if (occurs(f,*rhs)) {
+    return 0;
+  }
+  if (!lhs->arity() && !isArrowSort) {
+    return new Def(lhs,rhs,true,true);
   }
 
   int vars = 0; // counter of variables occurring in the lhs
@@ -933,7 +940,7 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
   if(!lhs->arity() && !rhs->arity()){
     res->twoConstDef = true;
   }
-  
+
   return res;
 } // FunctionDefinition::defines
 
