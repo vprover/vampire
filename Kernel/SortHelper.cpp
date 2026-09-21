@@ -65,6 +65,15 @@ static OperatorType* getType(Term const* t)
   return env.signature->getFunction(t->functor())->type();
 } // getType
 
+/**
+ * When working with substitution trees we sometimes need to find the sort of terms within
+ * the tree. These terms can contain special variables and may therefore not be shared,
+ * and a sort built out of them must not be shared either. Cf. SubstHelper::canBeShared,
+ * which is the same test applied by the generic path below.
+ */
+static bool mayBeShared(TermList t)
+{ return !t.isSpecialVar() && (!t.isTerm() || t.term()->shared()); }
+
 bool SortHelper::getTypeSub(const Term* t, Substitution& subst)
 {
   OperatorType* ot       = getType(t);
@@ -75,10 +84,7 @@ bool SortHelper::getTypeSub(const Term* t, Substitution& subst)
   for(unsigned i = 0; i < typeArgsArity; i++){
     TermList var = ot->quantifiedVar(i);
     ASS_REP(var.isVar(), t->toString());
-    // when working with substitution trees we sometimes need to find the sort
-    // of terms within the tree. These terms can contain special variables
-    // and may therefore not be shared.
-    if (typeArg->isSpecialVar() || (typeArg->isTerm() && !typeArg->term()->shared()))
+    if (!mayBeShared(*typeArg))
       resultShared = false;
 
     subst.bindUnbound(var.var(), *typeArg);
@@ -103,6 +109,14 @@ TermList SortHelper::getResultSort(const Term* t)
 
   if(t->isSort()){
     return TermList(AtomicSort::superSort());
+  }
+
+  // vAPP : !>[X0,X1]: ((X0 > X1) * X0) > X1, so an application's result sort is its
+  // second type argument, sitting right there in t. Worth special-casing because on a
+  // higher-order problem nearly every term is an application, and the general path below
+  // builds a Substitution -- whose DHMap allocates on the first bind -- to discover it.
+  if(t->isApplication()){
+    return *t->nthArgument(1);
   }
 
   Substitution subst;
@@ -232,7 +246,24 @@ TermList SortHelper::getArgSort(Term const* t, unsigned argIndex)
   if(argIndex < ot->numTypeArguments()){
     return AtomicSort::superSort();
   }
-  
+
+  // the same shortcut as in getResultSort: with vAPP's type declared as
+  // !>[X0,X1]: ((X0 > X1) * X0) > X1, its two term arguments have sorts X0 > X1 and X0,
+  // and both X0 and X1 are type arguments of t itself
+  if(t->isApplication()){
+    ASS_EQ(t->arity(), 4);
+    TermList domain = *t->nthArgument(0);
+    if(argIndex == 3){
+      return domain;
+    }
+    ASS_EQ(argIndex, 2u);
+    TermList range = *t->nthArgument(1);
+    // only where the general path would also have shared the arrow it builds
+    if(mayBeShared(domain) && mayBeShared(range)){
+      return AtomicSort::arrowSort(domain, range);
+    }
+  }
+
   bool shared = getTypeSub(t, subst);
   return SubstHelper::apply(ot->arg(argIndex), subst, !shared);
 } // getArgSort
