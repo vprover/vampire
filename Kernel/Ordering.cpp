@@ -534,57 +534,6 @@ struct SymbolComparator {
   }
 };
 
-template<typename InnerComparator>
-struct BoostWrapper : public SymbolComparator
-{
-  BoostWrapper(SymbolType symType, bool noTiebreak, const SymbolCounts& counts) : SymbolComparator(symType,noTiebreak,counts) {}
-
-  Comparison compare(unsigned s1, unsigned s2)
-  {
-    static Options::SymbolPrecedenceBoost boost = env.options->symbolPrecedenceBoost();
-    Comparison res = EQUAL;
-    auto sym1 = getSymbol(s1);
-    auto sym2 = getSymbol(s2);
-    bool u1 = sym1->inUnit();
-    bool u2 = sym2->inUnit();
-    bool g1 = sym1->inGoal();
-    bool g2 = sym2->inGoal();
-    bool i1 = sym1->introduced();
-    bool i2 = sym2->introduced();
-    switch(boost){
-      case Options::SymbolPrecedenceBoost::NONE:
-        break;
-      case Options::SymbolPrecedenceBoost::GOAL:
-        if(g1 && !g2){ res = GREATER; }
-        else if(!g1 && g2){ res = LESS; }
-        break;
-      case Options::SymbolPrecedenceBoost::UNITS:
-        if(u1 && !u2){ res = GREATER; }
-        else if(!u1 && u2){ res = LESS; }
-        break;
-      case Options::SymbolPrecedenceBoost::GOAL_THEN_UNITS:
-        if(g1 && !g2){ res = GREATER; }
-        else if(!g1 && g2){ res = LESS; }
-        else if(u1 && !u2){ res = GREATER; }
-        else if(!u1 && u2){ res = LESS; }
-        break;
-      case Options::SymbolPrecedenceBoost::NON_INTRO:
-        if (i1 && !i2) { res = LESS; }
-        else if (!i1 && i2) { res = GREATER; }
-        break;
-      case Options::SymbolPrecedenceBoost::INTRO:
-        if (!i1 && i2) { res = LESS; }
-        else if (i1 && !i2) { res = GREATER; }
-        break;
-    }
-    if(res==EQUAL){
-      // fallback to Inner
-      res = InnerComparator(_symType,_noTiebreak,_counts).compare(s1,s2);
-    }
-    return res;
-  }
-};
-
 struct OccurrenceTieBreak {
   OccurrenceTieBreak(SymbolType, // the SymbolType and the counts are dummy arguments here,
     bool noTiebreak, const SymbolCounts&) // required by the template recursion convention
@@ -818,31 +767,31 @@ static void sortAuxBySymbolPrecedence(DArray<unsigned>& aux, const Options& opt,
 
   switch(opt.symbolPrecedence()) {
     case Shell::Options::SymbolPrecedence::ARITY:
-      aux.sort(BoostWrapper<ArityComparator<>>(symType,noTiebreak,counts));
+      aux.sort(ArityComparator<>(symType,noTiebreak,counts));
       break;
     case Shell::Options::SymbolPrecedence::REVERSE_ARITY:
-      aux.sort(BoostWrapper<ArityComparator<true /*reverse*/>>(symType,noTiebreak,counts));
+      aux.sort(ArityComparator<true /*reverse*/>(symType,noTiebreak,counts));
       break;
     case Shell::Options::SymbolPrecedence::UNARY_FIRST:
-      aux.sort(BoostWrapper<UnaryFirstComparator<false,ArityComparator<false,FreqComparator<>>>>(symType,noTiebreak,counts));
+      aux.sort(UnaryFirstComparator<false,ArityComparator<false,FreqComparator<>>>(symType,noTiebreak,counts));
       break;
     case Shell::Options::SymbolPrecedence::CONST_MAX:
-      aux.sort(BoostWrapper<ConstFirstComparator<false,ArityComparator<>>>(symType,noTiebreak,counts));
+      aux.sort(ConstFirstComparator<false,ArityComparator<>>(symType,noTiebreak,counts));
       break;
     case Shell::Options::SymbolPrecedence::CONST_MIN:
-      aux.sort(BoostWrapper<ConstFirstComparator<true /*reverse*/,ArityComparator<true /*reverse*/>>>(symType,noTiebreak,counts));
+      aux.sort(ConstFirstComparator<true /*reverse*/,ArityComparator<true /*reverse*/>>(symType,noTiebreak,counts));
       break;
     case Shell::Options::SymbolPrecedence::FREQUENCY:
-      aux.sort(BoostWrapper<FreqComparator<>>(symType,noTiebreak,counts));
+      aux.sort(FreqComparator<>(symType,noTiebreak,counts));
       break;
     case Shell::Options::SymbolPrecedence::REVERSE_FREQUENCY:
-      aux.sort(BoostWrapper<FreqComparator<true /*reverse*/>>(symType,noTiebreak,counts));
+      aux.sort(FreqComparator<true /*reverse*/>(symType,noTiebreak,counts));
       break;
     case Shell::Options::SymbolPrecedence::UNARY_FREQ:
-      aux.sort(BoostWrapper<UnaryFirstComparator<false,FreqComparator<>>>(symType,noTiebreak,counts));
+      aux.sort(UnaryFirstComparator<false,FreqComparator<>>(symType,noTiebreak,counts));
       break;
     case Shell::Options::SymbolPrecedence::CONST_FREQ:
-      aux.sort(BoostWrapper<ConstFirstComparator<true /*reverse*/,FreqComparator<>>>(symType,noTiebreak,counts));
+      aux.sort(ConstFirstComparator<true /*reverse*/,FreqComparator<>>(symType,noTiebreak,counts));
       break;
     case Shell::Options::SymbolPrecedence::OCCURRENCE:
       // already sorted by occurrence

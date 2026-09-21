@@ -205,8 +205,6 @@ sa!=fmb > to ~cat kbo:13,lpo:4
 
 # symbol_precedence
 sa!=fmb > sp ~cat arity:100,const_min:72,frequency:130,const_frequency:49,reverse_frequency:55,reverse_arity:72,unary_first:28,occurrence:82,unary_frequency:14,const_max:18
-# symbol_precedence_boost
-sa!=fmb > spb ~cat none:200,units:78,goal:91,goal_then_units:93,non_intro:14,intro:12
 
 # kbo_max_zero
 sa!=fmb to=kbo > kmz ~cat off:200,on:1

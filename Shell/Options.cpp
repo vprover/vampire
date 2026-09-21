@@ -855,9 +855,6 @@ Options::Options ()
                                                             "const_max", "const_min",
                                                             "scramble","frequency","unary_frequency","const_frequency",
                                                             "reverse_frequency"})
-  , _symbolPrecedenceBoost("symbol_precedence_boost","spb",SymbolPrecedenceBoost::NONE,
-                                     {"none","goal","units","goal_then_units",
-                                      "non_intro","intro"})
   , _introducedSymbolPrecedence("introduced_symbol_precedence","isp",
                                                                                 IntroducedSymbolPrecedence::TOP,
                                                                                 {"top","bottom"})
@@ -2980,12 +2977,6 @@ Options::Options ()
     _predicatePrecedence.description = "A name of a file with an explicit user specified precedence on predicate symbols.";
     _predicatePrecedence.experimental = true;
     _lookup.insert(_predicatePrecedence);
-
-    _symbolPrecedenceBoost.description = "Boost the symbol precedence of symbols occurring in certain kinds of clauses in the input.\n"
-                                         "Additionally, non_intro/intro suppress/boost the precedence of symbols introduced during preprocessing (i.e., mainly, the naming predicates and the skolems).";
-    _symbolPrecedenceBoost.onlyUsefulWith(ProperSaturationAlgorithm());
-    _symbolPrecedenceBoost.tag = OptionTag::SATURATION;
-    _lookup.insert(_symbolPrecedenceBoost);
 
 
     //******************************************************************
