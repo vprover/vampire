@@ -35,7 +35,7 @@ namespace Lib {
  * NB CRTP parameter.
  *
  * You will need to implement operator new/operator delete in a manner of your choosing.
- * Call allocationRequired() to know how many bytes you need.
+ * Call bytesRequiredFor(n) to know how many bytes you need to allocate.
  *
  * The resulting object will be laid out as follows:
  * | derived | <maybe padding> | arg[0] | ... | arg[arity - 1]|
