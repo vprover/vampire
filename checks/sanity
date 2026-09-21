@@ -425,7 +425,6 @@ check_szs_status Theorem -t 5d -s 1010 -thsq on -thsqr 8,1 -thsqc 64 -thsqd 64 -
 check_szs_status Theorem -t 10d -sa discount -s 2 -awr 1:32 -to lpo -s2a on -s2agt 20 -bd all Problems/HWV/HWV087_2.p
 check_szs_status Theorem -t 1d -sa discount -awr 1:32 -to lpo -sp const_frequency -sos all -sac on -lma off Problems/ITP/ITP319_1.p
 check_szs_status Theorem -t 1d -sa discount -tha off -nwc 5.0 -gtg exists_sym -gtgl 5 Problems/ITP/ITP320_1.p
-check_szs_status Theorem -t 1d -to lpo -spb goal_then_units -sp arity Problems/ITP/ITP412_1.p
 check_szs_status Theorem -t 1d -gve force -uwa one_side_interpreted -ep R Problems/NUM/NUM919_1.p
 check_szs_status ContradictoryAxioms -t 1d -s 1011 -thi all -uwa ground -br off -nwc 1.0 Problems/PLA/PLA046_1.p
 check_szs_status Theorem -t 1d -s 1002 -to kbo -kws inv_frequency -sas z3 -nwc 5.0 -gtg exists_all Problems/PLA/PLA050_1.p

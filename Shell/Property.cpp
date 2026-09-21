@@ -104,17 +104,6 @@ Property::Property()
  */
 Property* Property::scan(UnitList* units)
 {
-  // a bit of a hack, these marks belong in Property
-  for(unsigned f=0;f<env.signature->functions();f++){
-    env.signature->getFunction(f)->resetScanMarks();
-   }
-  for(unsigned p=0;p<env.signature->predicates();p++){
-    env.signature->getPredicate(p)->resetScanMarks();
-   }
-  for(unsigned t=0;t<env.signature->typeCons();t++){
-    env.signature->getTypeCon(t)->resetScanMarks();
-   }
-
   Property* prop = new Property;
   prop->add(units);
   return prop;
@@ -271,16 +260,12 @@ void Property::scan(Clause* clause)
       }
     }
 
-    // the same notion of "goal" as the one Skolem and NewCNF mark their symbols by
-    bool goal = clause->derivedFromGoal();
-    bool unit = (clause->length() == 1);
-
     // 1 for context polarity, only used in formulas
-    scan(literal,1,clause->length(),goal);
+    scan(literal,1);
 
     SubtermIterator stit(literal);
     while (stit.hasNext()) {
-      scan(stit.next(),unit,goal);
+      scan(stit.next());
     }
 
     if (literal->shared() && literal->ground()) {
@@ -371,7 +356,7 @@ void Property::scan(FormulaUnit* unit)
     if (expr.isFormula()) {
       scan(expr.getFormula(), polarity);
     } else if (expr.isTerm()) {
-      scan(expr.getTerm(),false,false); // only care about unit/goal when clausified
+      scan(expr.getTerm());
     } else {
       ASSERTION_VIOLATION;
     }
@@ -406,7 +391,7 @@ void Property::scan(Formula* f, int polarity)
           _positiveEqualityAtoms++;
         }
       }
-      scan(lit,polarity,0,false); // 0 as not in clause, goal type irrelevant
+      scan(lit,polarity);
       break;
     }
     case BOOL_TERM: {
@@ -545,7 +530,7 @@ void Property::scanSort(TermList sort)
  * @since 17/07/2003 Manchester, changed to non-pointer types
  * @since 27/05/2007 flight Manchester-Frankfurt, uses new datastructures
  */
-void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
+void Property::scan(Literal* lit, int polarity)
 {
   if (lit->isEquality()) {
     TermList eqSort = SortHelper::getEqualityArgumentSort(lit);
@@ -566,12 +551,6 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
       _maxPredArity = arity;
     }
     Signature::Symbol* pred = env.signature->getPredicate(lit->functor());
-    if(cLen==1){
-      pred->markInUnit();
-    }
-    if(goal){
-      pred->markInGoal();
-    }
 
     OperatorType* type = pred->type();
     if(type->numTypeArguments()){
@@ -614,7 +593,7 @@ void Property::scan(Literal* lit, int polarity, unsigned cLen, bool goal)
  * @since 27/08/2003 Vienna, changed to count variables
  * @since 27/05/2007 flight Manchester-Frankfurt, changed to new datastructures
  */
-void Property::scan(TermList ts,bool unit,bool goal)
+void Property::scan(TermList ts)
 {
   if (ts.isVar()) {
     _variablesInThisClause++;
@@ -653,18 +632,12 @@ void Property::scan(TermList ts,bool unit,bool goal)
       if(t->arity() > _maxTypeConArity){
         _maxTypeConArity = t->arity();
       }
-      // an AtomicSort stores the type constructor's number as its functor
-      Signature::Symbol* typeCon = env.signature->getTypeCon(t->functor());
-      if(unit){ typeCon->markInUnit();}
-      if(goal){ typeCon->markInGoal();}
       return;
     }
 
     scanForInterpreted(t);
 
     Signature::Symbol* func = env.signature->getFunction(t->functor());
-    if(unit){ func->markInUnit();}
-    if(goal){ func->markInGoal();}
 
     if(t->isApplication()){
       _hasApp = true;

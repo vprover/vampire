@@ -854,10 +854,7 @@ Options::Options ()
                                                             {"arity","occurrence","reverse_arity","unary_first",
                                                             "const_max", "const_min",
                                                             "scramble","frequency","unary_frequency","const_frequency",
-                                                            "reverse_frequency"})
-  , _symbolPrecedenceBoost("symbol_precedence_boost","spb",SymbolPrecedenceBoost::NONE,
-                                     {"none","goal","units","goal_then_units",
-                                      "non_intro","intro"})
+                                                            "reverse_frequency","reverse_occurrence"})
   , _introducedSymbolPrecedence("introduced_symbol_precedence","isp",
                                                                                 IntroducedSymbolPrecedence::TOP,
                                                                                 {"top","bottom"})
@@ -918,7 +915,6 @@ Options::Options ()
                  "Global"
                 })
   , _nonGoalWeightCoefficient("nongoal_weight_coefficient","nwc") // default 10.0 is hard-wired to the constructor
-  , _restrictNWCtoGC("restrict_nwc_to_goal_constants","rnwc",false)
   , _selection("selection","s",10)
   , _inputFile("input_file","","",this)
   , _newCNF("newcnf","newcnf",false)
@@ -2824,11 +2820,6 @@ Options::Options ()
     _nonGoalWeightCoefficient.onlyUsefulWith(ProperSaturationAlgorithm());
     _nonGoalWeightCoefficient.tag = OptionTag::SATURATION;
 
-    _restrictNWCtoGC.description = "restrict nongoal_weight_coefficient to those containing goal constants";
-    _lookup.insert(_restrictNWCtoGC);
-    _restrictNWCtoGC.tag = OptionTag::SATURATION;
-    _restrictNWCtoGC.onlyUsefulWith(_nonGoalWeightCoefficient.is(notEqual(1.0f)));
-
     _normalize.description="Normalize the problem so that the ordering of clauses etc does not effect proof search.";
     _lookup.insert(_normalize);
     _normalize.tag = OptionTag::PREPROCESSING;
@@ -2906,7 +2897,9 @@ Options::Options ()
     _lookup.insert(_termOrdering);
 
     _symbolPrecedence.description="Vampire uses term orderings which require a precedence relation between symbols.\n"
-                                  "Arity orders symbols by their arity (and reverse_arity takes the reverse of this) and occurrence orders symbols by the order they appear in the problem. "
+                                  "Arity orders symbols by their arity (and reverse_arity takes the reverse of this) and occurrence orders symbols by the order they appear in the problem, "
+                                  "the first one seen becoming the smallest (reverse_occurrence takes the reverse of this, which notably puts the symbols introduced during "
+                                  "preprocessing -- the Skolems and the formula names -- at the bottom rather than above every input symbol). "
                                   "Then we have a few precedence generating schemes adopted from E: frequency - sort by frequency making rare symbols large, reverse does the opposite, "
                                   "(For the weighted versions, each symbol occurrence counts as many times as is the length of the clause in which it occurs.) "
                                   "unary_first is like arity, except that unary symbols are maximal (and ties are broken by frequency), "
@@ -2980,12 +2973,6 @@ Options::Options ()
     _predicatePrecedence.description = "A name of a file with an explicit user specified precedence on predicate symbols.";
     _predicatePrecedence.experimental = true;
     _lookup.insert(_predicatePrecedence);
-
-    _symbolPrecedenceBoost.description = "Boost the symbol precedence of symbols occurring in certain kinds of clauses in the input.\n"
-                                         "Additionally, non_intro/intro suppress/boost the precedence of symbols introduced during preprocessing (i.e., mainly, the naming predicates and the skolems).";
-    _symbolPrecedenceBoost.onlyUsefulWith(ProperSaturationAlgorithm());
-    _symbolPrecedenceBoost.tag = OptionTag::SATURATION;
-    _lookup.insert(_symbolPrecedenceBoost);
 
 
     //******************************************************************
