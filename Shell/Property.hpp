@@ -23,6 +23,8 @@
 #include "Forwards.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/Array.hpp"
+#include "Lib/DHSet.hpp"
+#include "Kernel/Term.hpp"
 #include "Kernel/Theory.hpp"
 #include "SMTLIBLogic.hpp"
 
@@ -287,6 +289,9 @@ public:
   int _maxFunArity;
   int _maxPredArity;
   unsigned _maxTypeConArity;
+
+  /** shared terms the clause walk has already been through; see Property::scan(Clause*) */
+  Lib::DHSet<Kernel::Term*, Kernel::SharedTermHash, Lib::PtrIdentityHash> _scannedTerms;
 
   /** Number of variables in this clause, used during counting */
   int _variablesInThisClause;

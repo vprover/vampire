@@ -263,9 +263,23 @@ void Property::scan(Clause* clause)
     // 1 for context polarity, only used in formulas
     scan(literal,1);
 
+    // Walk the term DAG rather than the tree it unfolds to. Everything scan(TermList)
+    // records is monotone -- flags that only ever go from false to true, running maxima,
+    // and the idempotent scanSort -- so a shared term seen a second time can contribute
+    // nothing new, and SubtermIterator's stack discipline guarantees its whole subtree has
+    // already been walked by the time a later occurrence comes up (a term's arguments are
+    // pushed above its right sibling, so they drain first). The one thing that is not
+    // idempotent is the count of variable occurrences below the term -- and the term
+    // carries exactly that, since TermSharing maintains numVarOccs as the tree count.
     SubtermIterator stit(literal);
     while (stit.hasNext()) {
-      scan(stit.next());
+      TermList ts = stit.next();
+      if (ts.isTerm() && ts.term()->shared() && !_scannedTerms.insert(ts.term())) {
+        _variablesInThisClause += ts.term()->numVarOccs();
+        stit.right();
+        continue;
+      }
+      scan(ts);
     }
 
     if (literal->shared() && literal->ground()) {
@@ -491,7 +505,7 @@ void Property::scanSort(TermList sort)
     return;
   }
   _hasNonDefaultSorts = true;
-  
+
   if(sort.isArraySort()){
     // an array sort is infinite, if the index or value sort is infinite
     // we rely on the recursive calls setting appropriate flags
