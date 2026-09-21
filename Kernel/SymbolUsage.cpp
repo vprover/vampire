@@ -12,6 +12,8 @@
  * Implements the symbol usage queries declared in SymbolUsage.hpp.
  */
 
+#include "Debug/TimeProfiling.hpp"
+
 #include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Stack.hpp"
@@ -71,6 +73,8 @@ void collectUsedSymbols(ClauseIterator clauses, DArray<bool>& usedFunctions, DAr
 
 void SymbolCounts::countIn(ClauseIterator clauses)
 {
+  TIME_TRACE("symbol counts")
+
   functions.init(env.signature->functions(),0);
   predicates.init(env.signature->predicates(),0);
   typeCons.init(env.signature->typeCons(),0);
