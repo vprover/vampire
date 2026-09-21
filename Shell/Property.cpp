@@ -67,8 +67,6 @@ Property::Property()
     _maxFunArity(0),
     _maxPredArity(0),
     _maxTypeConArity(0),
-    _totalNumberOfVariables(0),
-    _maxVariablesInClause(0),
     _props(0),
     _hasInterpreted(false),
     _hasNonDefaultSorts(false),
@@ -242,7 +240,6 @@ void Property::scan(Clause* clause)
   int equationalLiterals = 0;
   int positiveEquationalLiterals = 0;
   int groundLiterals = 0;
-  _variablesInThisClause = 0;
 
   for (int i = clause->length()-1;i >= 0;i--) {
     Literal* literal = (*clause)[i];
@@ -268,14 +265,11 @@ void Property::scan(Clause* clause)
     // and the idempotent scanSort -- so a shared term seen a second time can contribute
     // nothing new, and SubtermIterator's stack discipline guarantees its whole subtree has
     // already been walked by the time a later occurrence comes up (a term's arguments are
-    // pushed above its right sibling, so they drain first). The one thing that is not
-    // idempotent is the count of variable occurrences below the term -- and the term
-    // carries exactly that, since TermSharing maintains numVarOccs as the tree count.
+    // pushed above its right sibling, so they drain first).
     SubtermIterator stit(literal);
     while (stit.hasNext()) {
       TermList ts = stit.next();
       if (ts.isTerm() && ts.term()->shared() && !_scannedTerms.insert(ts.term())) {
-        _variablesInThisClause += ts.term()->numVarOccs();
         stit.right();
         continue;
       }
@@ -329,15 +323,17 @@ void Property::scan(Clause* clause)
     }
   }
 
-  _totalNumberOfVariables += _variablesInThisClause;
-  if (_variablesInThisClause > _maxVariablesInClause) {
-    _maxVariablesInClause = _variablesInThisClause;
-  }
   if (! hasProp(PR_HAS_X_EQUALS_Y) && hasXEqualsY(clause)) {
     addProp(PR_HAS_X_EQUALS_Y);
   }
 
-  if (_variablesInThisClause > 0) {
+  // A clause is ground exactly when every one of its literals is, which groundLiterals
+  // above has already established: TermSharing maintains numVarOccs as the tree count of
+  // variable occurrences over all arguments, type arguments included, and Literal::ground()
+  // is numVarOccs()==0. So there is nothing for the term walk to count. (As before, an
+  // unshared literal counts as non-ground; clause literals are shared in any case, which
+  // Kernel/SymbolUsage asserts outright.)
+  if (literals != groundLiterals) {
     _allClausesGround = false;
     if(!clause->isTheoryAxiom()){
       _allNonTheoryClausesGround = false;
@@ -635,7 +631,6 @@ void Property::scan(Literal* lit, int polarity)
 void Property::scan(TermList ts)
 {
   if (ts.isVar()) {
-    _variablesInThisClause++;
     return;
   }
 
@@ -869,12 +864,6 @@ std::string Property::toString() const
     result += " goal, ";
     result += Int::toString(_equationalClauses);
     result += " equational)\n";
-
-    result += "Variables: ";
-    result += Int::toString(_totalNumberOfVariables);
-    result += " (";
-    result += Int::toString(_maxVariablesInClause);
-    result += " maximum in a single clause)\n";
   }
 
   if (formulas() > 0) {
