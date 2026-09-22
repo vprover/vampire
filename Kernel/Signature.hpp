@@ -91,7 +91,7 @@ class Signature
     std::string _name;
 
     OperatorType* _type;
-    unsigned _number;
+    const unsigned _number;
     // both _arity and _typeArgsArity could be recovered from _type. Storing directly here as well for convenience
 
     /** List of distinct groups the constant is a member of, all members of a distinct group should be distinct from each other */
@@ -147,12 +147,12 @@ class Signature
 
   public:
     /** standard constructor */
-    Symbol(const std::string& name, OperatorType* type, bool interpreted, bool preventQuoting);
+    Symbol(unsigned number, const std::string& name, OperatorType* type, bool interpreted, bool preventQuoting);
     void destroyFnSymbol();
     void destroyPredSymbol();
     void destroyTypeConSymbol();
 
-    unsigned number() const { ASS_NEQ(_number, UINT_MAX); return _number; }
+    unsigned number() const { return _number; }
     Symbol* addColor(Color color);
 
   private:
@@ -261,8 +261,8 @@ class Signature
 
   public:
 
-    InterpretedSymbol(const std::string& name, Interpretation interp, OperatorType* type)
-    : Symbol(name, type,
+    InterpretedSymbol(unsigned number, const std::string& name, Interpretation interp, OperatorType* type)
+    : Symbol(number, name, type,
         /*       interpreted */ true, 
         /*    preventQuoting */ false),
       _interp(interp)
@@ -310,10 +310,10 @@ class Signature
 
   public:
     static std::string name(Numeral n) { return Output::toString(n); }
-    LinMulSym(Numeral val)
+    LinMulSym(unsigned number, Numeral val)
     : AnyLinMulSym(
         AnyLinMulSym::typeOf<Numeral>(),
-        name(val),
+        number, name(val),
         /*              type */ OperatorType::getFunctionType({ AnyLinMulSym::sortOf<Numeral>() } , AnyLinMulSym::sortOf<Numeral>()),
         /*       interpreted */ false, 
         /*    preventQuoting */ true),
@@ -332,8 +332,8 @@ class Signature
     IntegerConstantType _intValue;
 
   public:
-    IntegerSymbol(IntegerConstantType val)
-    : Symbol(Output::toString(val),
+    IntegerSymbol(unsigned number, IntegerConstantType val)
+    : Symbol(number, Output::toString(val),
         /*              type */ OperatorType::getConstantsType(AtomicSort::intSort()),
         /*       interpreted */ true, 
         /*    preventQuoting */ false),
@@ -351,8 +351,8 @@ class Signature
     RationalConstantType _ratValue;
 
   public:
-    RationalSymbol(RationalConstantType val)
-    : Symbol(Output::toString(val),
+    RationalSymbol(unsigned number, RationalConstantType val)
+    : Symbol(number, Output::toString(val),
         /*              type */ OperatorType::getConstantsType(AtomicSort::rationalSort()),
         /*       interpreted */ true, 
         /*    preventQuoting */ false),
@@ -370,7 +370,7 @@ class Signature
     RealConstantType _realValue;
 
   public:
-    RealSymbol(const RealConstantType& val);
+    RealSymbol(unsigned number, const RealConstantType& val);
   };
 
   //////////////////////////////////////
@@ -412,6 +412,7 @@ class Signature
   Symbol* addNamePredicate(OperatorType* type) { return addFreshPredicate(type, "sP"); }
 
   // Updates that are needed after registration go through the signature.
+  // TODO: Remove these methods once callers can set the flags during construction.
   void protectFunction(unsigned n) { _funs[n]->markProtected(); }
   void protectPredicate(unsigned n) { _preds[n]->markProtected(); }
   void colorFunction(unsigned n, Color color) { _funs[n]->addColor(color); }
@@ -453,14 +454,14 @@ class Signature
   unsigned getBoolDef(unsigned fn);
 
  private:
-  Symbol* newNumeralConstantSymbol(IntegerConstantType n) 
-  { return new IntegerSymbol(std::move(n)); }
+  Symbol* newNumeralConstantSymbol(unsigned number, IntegerConstantType n)
+  { return new IntegerSymbol(number, std::move(n)); }
 
-  Symbol* newNumeralConstantSymbol(RationalConstantType n) 
-  { return new RationalSymbol(std::move(n)); }
+  Symbol* newNumeralConstantSymbol(unsigned number, RationalConstantType n)
+  { return new RationalSymbol(number, std::move(n)); }
 
-  Symbol* newNumeralConstantSymbol(RealConstantType n) 
-  { return new RealSymbol(std::move(n)); }
+  Symbol* newNumeralConstantSymbol(unsigned number, RealConstantType n)
+  { return new RealSymbol(number, std::move(n)); }
  public:
 
   // Interpreted symbol declarations
@@ -476,7 +477,7 @@ class Signature
     // copy number out of key again
     auto number = key.as<std::pair<Numeral, unsigned>>()->first;
     noteOccurrence(number);
-    Symbol* sym = newNumeralConstantSymbol(std::move(number));
+    Symbol* sym = newNumeralConstantSymbol(result, std::move(number));
     registerSymbol(_funs, sym);
     _funNames.insert(key,result);
     return result;
@@ -497,7 +498,7 @@ class Signature
     }
     noteOccurrence(number);
     result = _funs.length();
-    registerSymbol(_funs, new LinMulSym<Numeral>(number));
+    registerSymbol(_funs, new LinMulSym<Numeral>(result, number));
     _funNames.insert(key,result);
     return result;
   }
@@ -879,7 +880,7 @@ class Signature
 
 private:
   static void registerSymbol(Stack<Symbol*>& symbols, Symbol* symbol) {
-    symbol->_number = symbols.size();
+    ASS_EQ(symbol->number(), symbols.size());
     symbols.push(symbol);
   }
 

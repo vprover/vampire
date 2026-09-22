@@ -81,9 +81,9 @@ static std::ostream &operator<<(std::ostream &out, Escaped escaped) {
 }
 
 struct FunctionName {
-  FunctionName(const Signature::Symbol*symbol) : symbol(symbol) {}
+  FunctionName(const Signature::Symbol* symbol) : symbol(symbol) {}
   FunctionName(Term *t) : FunctionName(env.signature->getFunction(t->functor())) {}
-  const Signature::Symbol*symbol;
+  const Signature::Symbol* symbol;
 };
 
 static std::ostream &operator<<(std::ostream &out, FunctionName name) {
@@ -206,9 +206,9 @@ static std::ostream &operator<<(std::ostream &out, FunctionName name) {
 }
 
 struct PredicateName {
-  PredicateName(const Signature::Symbol*symbol) : symbol(symbol) {}
+  PredicateName(const Signature::Symbol* symbol) : symbol(symbol) {}
   PredicateName(Literal *l) : PredicateName(env.signature->getPredicate(l->functor())) {}
-  const Signature::Symbol*symbol;
+  const Signature::Symbol* symbol;
 };
 
 static std::ostream &operator<<(std::ostream &out, PredicateName name) {
@@ -870,7 +870,7 @@ void outputSignature(std::ostream &out)
   for(unsigned i = Signature::FIRST_USER_CON; i < sig.typeCons(); i++) {
     out << "(declare-sort " << SortName(i);
 #if VDEBUG
-    const Signature::Symbol*type = sig.getTypeCon(i);
+    const Signature::Symbol* type = sig.getTypeCon(i);
     OperatorType *typeType = type->type();
     // we don't support polymorphism yet
     ASS_EQ(typeType->numTypeArguments(), 0)
@@ -880,7 +880,7 @@ void outputSignature(std::ostream &out)
   }
 
   for(unsigned i = 0; i < sig.functions(); i++) {
-    const Signature::Symbol*fun = sig.getFunction(i);
+    const Signature::Symbol* fun = sig.getFunction(i);
     if(fun->interpreted() || fun->linMul())
       continue;
 
@@ -897,7 +897,7 @@ void outputSignature(std::ostream &out)
   }
 
   for(unsigned i = 1; i < sig.predicates(); i++) {
-    const Signature::Symbol*pred = sig.getPredicate(i);
+    const Signature::Symbol* pred = sig.getPredicate(i);
     if(pred->interpreted())
       continue;
 

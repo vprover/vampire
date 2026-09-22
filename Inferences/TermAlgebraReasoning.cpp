@@ -62,7 +62,7 @@ namespace Inferences {
   const Signature::Symbol* termAlgebraConstructor(TermList *t)
   {
     if (t->isTerm()) {
-      const Signature::Symbol*s = env.signature->getFunction(t->term()->functor());
+      const Signature::Symbol* s = env.signature->getFunction(t->term()->functor());
 
       if (s->termAlgebraCons()) {
         return s;
@@ -79,8 +79,8 @@ namespace Inferences {
     if (!lit->isEquality())
       return false;
 
-    const Signature::Symbol*s = termAlgebraConstructor(lit->nthArgument(0));
-    const Signature::Symbol*t = termAlgebraConstructor(lit->nthArgument(1));
+    const Signature::Symbol* s = termAlgebraConstructor(lit->nthArgument(0));
+    const Signature::Symbol* t = termAlgebraConstructor(lit->nthArgument(1));
 
     return (s && t && s != t);
   }
@@ -92,8 +92,8 @@ namespace Inferences {
     if (!lit->isEquality())
       return false;
 
-    const Signature::Symbol*s = termAlgebraConstructor(lit->nthArgument(0));
-    const Signature::Symbol*t = termAlgebraConstructor(lit->nthArgument(1));
+    const Signature::Symbol* s = termAlgebraConstructor(lit->nthArgument(0));
+    const Signature::Symbol* t = termAlgebraConstructor(lit->nthArgument(1));
 
     return (s && s == t);
   }

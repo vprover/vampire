@@ -31,10 +31,10 @@ const unsigned Signature::STRING_DISTINCT_GROUP = 0;
  * Standard constructor.
  * @author Andrei Voronkov
  */
-Signature::Symbol::Symbol(const std::string& nm, OperatorType* type, bool interpreted, bool preventQuoting)
+Signature::Symbol::Symbol(unsigned number, const std::string& nm, OperatorType* type, bool interpreted, bool preventQuoting)
   : _name(nm),
     _type(type),
-    _number(UINT_MAX),
+    _number(number),
     _distinctGroups(0),
     _interpreted(interpreted ? 1 : 0),
     _linMul(0),
@@ -137,8 +137,8 @@ void Signature::Symbol::addToDistinctGroup(unsigned group)
   members->push(number());
 } // addToDistinctGroup
 
-Signature::RealSymbol::RealSymbol(const RealConstantType& val)
-  : Symbol(Output::toString("$to_real(",val,")"),
+Signature::RealSymbol::RealSymbol(unsigned number, const RealConstantType& val)
+  : Symbol(number, Output::toString("$to_real(",val,")"),
         /*              type */ OperatorType::getConstantsType(AtomicSort::realSort()),
         /*       interpreted */ true,
         /*    preventQuoting */ false),
@@ -225,7 +225,7 @@ unsigned Signature::addInterpretedFunction(Interpretation interpretation, const 
   ASS_REP(!_funNames.find(symbolKey), name);
 
   unsigned fnNum = _funs.length();
-  registerSymbol(_funs, new InterpretedSymbol(name, interpretation, type));
+  registerSymbol(_funs, new InterpretedSymbol(fnNum, name, interpretation, type));
   _funNames.insert(symbolKey, fnNum);
   ALWAYS(_iSymbols.insert(interpretation, fnNum));
 
@@ -258,7 +258,7 @@ unsigned Signature::addInterpretedPredicate(Interpretation interpretation, const
   ASS_REP(!_predNames.find(symbolKey), symbolKey);
 
   unsigned predNum = _preds.length();
-  registerSymbol(_preds, new InterpretedSymbol(name, interpretation, type));
+  registerSymbol(_preds, new InterpretedSymbol(predNum, name, interpretation, type));
   _predNames.insert(symbolKey,predNum);
   ALWAYS(_iSymbols.insert(interpretation, predNum));
   ASS_REP(type->isPredicateType(), type->toString());
@@ -418,7 +418,7 @@ Signature::Symbol* Signature::addFunction (const std::string& name,
   }
 
   result = _funs.length();
-  Symbol* sym = new Symbol(name, /*type=*/type,
+  Symbol* sym = new Symbol(result, name, /*type=*/type,
         /*       interpreted */ false, 
         /*    preventQuoting */ (name == "$tType"));
   registerSymbol(_funs, sym);
@@ -444,7 +444,7 @@ unsigned Signature::addStringConstant(const std::string& name, TermList sort)
   // TODO shouldn't we also quote inside of name?
   std::string quotedName = "\"" + name + "\"";
   result = _funs.length();
-  Symbol* sym = new Symbol(quotedName, OperatorType::getConstantsType(sort),
+  Symbol* sym = new Symbol(result, quotedName, OperatorType::getConstantsType(sort),
         /*       interpreted */ false, 
         /*    preventQuoting */ true);
 
@@ -619,7 +619,7 @@ Signature::Symbol* Signature::addTypeCon (const std::string& name,
   //TODO no arity check. Is this safe?
 
   result = _typeCons.length();
-  Symbol* sym = new Symbol(name,
+  Symbol* sym = new Symbol(result, name,
     OperatorType::getTypeConType(arity),
     /* interpreted */ false, /* preventQuoting */ false);
   registerSymbol(_typeCons, sym);
@@ -668,7 +668,7 @@ Signature::Symbol* Signature::addPredicate (const std::string& name,
   }
 
   result = _preds.length();
-  Symbol* sym = new Symbol(name, /*type=*/type,
+  Symbol* sym = new Symbol(result, name, /*type=*/type,
         /*       interpreted */ false, 
         /*    preventQuoting */ false);
   registerSymbol(_preds, sym);
@@ -850,7 +850,7 @@ unsigned Signature::getDistinctPredicate(unsigned arity, TermList sort)
   }
 
   result = _preds.length();
-  Symbol* sym = new Symbol("$distinct", OperatorType::getPredicateTypeUniformRange(arity,sort),
+  Symbol* sym = new Symbol(result, "$distinct", OperatorType::getPredicateTypeUniformRange(arity,sort),
         /*       interpreted */ false,
         /*    preventQuoting */ true);
   sym->markDistinctPred();
