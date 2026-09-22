@@ -143,18 +143,40 @@ linear in input size in every dialect (FOF b = 1.03 [1.01, 1.04], CNF 1.00, TF0 
 The constant is the issue, and it differs by 5x across dialects:
 
 ```
-TX1  31 578 instr/atom      CNF  15 519        TH0   7 346
+TX1  31 578 instr/unit      CNF  15 519        TH0   7 346
 TF1  23 374                 TF0  14 029        TH1   5 847
 TX0  22 046                 FOF   8 814
 ```
 
+> **What `size` is, and what it is not.** Every "input size" in this file and every
+> `--fit` in `rpt_preproc.py` is the database's `size` column: the TPTP header's
+> **atoms + connectives + variables**. The reports label its unit "atom"; it is really
+> that sum. It is **not** a byte count and it can diverge from one by more than an order
+> of magnitude in *either* direction:
+>
+> | problem | `size` | file on disk | why |
+> |---|---:|---:|---|
+> | `SWX146_1.p` | 42 | 167 KB | 31 atoms, but term depth 77 over 4 887 arithmetic applications, which `size` does not count (§4) |
+> | `CSR061+6.p` | 8 365 857 | 2.7 KB | an `include()` wrapper; the axiom file it pulls in is **477 MB** |
+> | `HWV133-1.p` | 10 577 953 | 278 MB | CNF, so literals + variables; here the file really is large |
+>
+> `size` is a fine regressor for the fits above — the exponents are unaffected by a
+> constant factor — but any sentence of the form "an N-byte problem" must come from
+> `wc -c`, not from this column. One in §4 did not, and was wrong.
+
 The extreme tail is two distinct populations, and only one is a parser problem:
 
 **Large inputs — CSR (SUMO/Cyc) and HWV (hardware verification).** This is where the
-absolute cost is. `HWV132/133/134-1.p` (10.6 M bytes, 2.33 M clauses) each burn the
-entire 104.87 G budget in parsing; the `CSR*+6` family (8.4 M bytes) is at 99.1%. Of
-`CSR061+6.p`'s 102 G, only 2 G is `parsing.term sharing`, so the cost is in the parser
-proper and not in term construction.
+absolute cost is. `HWV132/133/134-1.p` — 2.33 M clauses in a **278 MB** file — each burn
+the entire 104.87 G budget in parsing; the `CSR*+6` family is at 99.1%, reading a 2.7 KB
+wrapper around a **477 MB** axiom file (`Axioms/CSR002+5.ax`). Of `CSR061+6.p`'s 102 G,
+only 2 G is `parsing.term sharing`, so the cost is in the parser proper and not in term
+construction.
+
+Those byte counts settle one question before the sweep does. `HWV133-1.p` spends **377
+instructions per input byte** and `CSR061+6.p` **214**; a tokeniser costs 5–20. So the
+parser is an order of magnitude too expensive for lexing to be the explanation, whatever
+the split below turns out to say — which is also why not scoping the lexer costs nothing.
 
 **Short runs — SYN.** `SYN812-1.p` at 48.4%, `SYN842-1.p` at 31.6% and neighbours are
 only 130–250 K input units; the share is high because the *run* is short. They finish
@@ -178,15 +200,15 @@ unit, and that is where the new nodes sit:
 A scope per input unit costs **0.002% of a sweep** and at most 0.34% of the worst single
 run (the 3.3 M-formula `CSR*+6` family), which is why five of them are affordable where
 one per token would not be. The lexer is deliberately not scoped for exactly that reason,
-and it does not need to be: what stays unattributed as `parsing` self time is lexer +
-state machine + term and formula construction, and since the input byte count is known,
-instructions per byte of that residue says whether a lexer can plausibly account for it.
+and it does not need to be: the instructions-per-byte figures above already rule the
+lexer out as the explanation, so what the residue measures is the state machine and term
+and formula construction.
 
 Local wall-clock on `CSR025+6.p` already bounds it: of the 13 s in `parsing`,
 `tptp formula unit` is **13%** (3 341 978 calls, exactly the header's formula count), of
 which the closure check is a fifth, and `tptp include` is one call and negligible. So
-**~87% of parsing is the scanning-and-building residue** — which is the number the sweep
-now needs to turn into instructions per byte.
+**~87% of parsing is the scanning-and-building residue**, and at ~200 instructions per
+input byte that residue is where the next sweep has to look.
 
 ## 3. `beta eta simplification` — a single call can eat a whole higher-order run
 
@@ -216,26 +238,39 @@ paying for sort computation rather than for simplification.
 Neither rule could even be named before the 11165 sweep; `Inferences/HOL/` had no
 instrumentation at all (§15).
 
-## 4. `interpreted evaluation` — six 42-byte problems at 97% of budget
+## 4. `interpreted evaluation` — 4.7 M instructions per call on deep arithmetic
 
 0.83% of corpus over 1 773 runs, 53 above 30% and 36 above 50%, and the tail is
 remarkable for how *uniform* it is:
 
-| problem | share of run | calls | instructions per call | input size |
-|---|---:|---:|---:|---:|
-| `SWX146_1.p` … `SWX151_1.p` | **97.07%** | 21 825–21 827 | 4 664 5xx | **42** |
-| `SWX134/135/137/139_1.p` | 95.64% | 10 760–10 761 | 9 322 xxx | 42 |
+| problem | share of run | calls | instructions per call | max term depth | file |
+|---|---:|---:|---:|---:|---:|
+| `SWX146_1.p` … `SWX151_1.p` | **97.07%** | 21 825–21 827 | **4 664 5xx** | 77 | 167 KB |
+| `SWX134/135/137/139_1.p` | 95.64% | 10 760–10 761 | 9 322 xxx | 40 | 333 KB |
 
-Six problems agreeing to within 0.01% on all three figures is one root cause, not six.
-A **42-byte** TF0 problem burning 101.8 G instructions in `interpreted evaluation`, at
-4.66 M instructions per evaluation call, is the clearest small-input/large-cost signal
-in the corpus — exactly the kind of outlier that exposes an inefficiency the average run
-hides. 121 runs give the node over 20% of their budget and those hold 52% of it; they
-are TF0 arithmetic almost exclusively (118 of 121), families SWW (41), SWX (31), ANA
-(15), SWC (12), ARI (12).
+Six problems agreeing to within 0.01% on all three figures is one root cause, not six,
+and **4.66 M instructions to evaluate one clause** is the number worth chasing. 121 runs
+give the node over 20% of their budget and those hold 52% of it; they are TF0 arithmetic
+almost exclusively (118 of 121), families SWW (41), SWX (31), ANA (15), SWC (12),
+ARI (12).
 
-Small, self-contained, and reproducible in seconds — a good first problem for someone
-picking this file up cold.
+What makes them expensive is term *depth*, not input size. `SWX146_1.p`'s header reads
+31 atoms and 9 connectives but `Maximal term depth : 77` and
+`Number arithmetic : 7270 (26 atm; 4887 fun; 2355 num)` — thirty-odd atoms holding
+almost five thousand arithmetic applications over two and a half thousand numerals. The
+corpus median term depth is **4** and the 99th percentile is **38**, so these sit past
+the far end of that distribution. Whether 4.66 M instructions is then a defect or simply
+what normalising an expression that size costs is the open question; the six-way
+agreement says that whatever it is, it is structural.
+
+> **Correction.** An earlier draft of this section called these "42-byte problems" and
+> made the small-input/large-cost contrast its headline. That was wrong, and the mistake
+> is worth recording because the trap is still there: `size` in the database is the TPTP
+> header's **atoms + connectives + variables**, not a byte count, and for these problems
+> it is 42 while the files are 167 KB. It is blind to exactly what makes them hard —
+> arithmetic term structure is counted on the header's `Number arithmetic` line, which
+> `size` does not read. See the note under §2 on how far `size` can diverge from the
+> input in *either* direction.
 
 ## 5. `LRS limit maintenance` — solved as a work problem, still the worst memory stall
 
@@ -444,10 +479,18 @@ than the ops it timed.
 **What is left, in the order it is worth doing:**
 
 - **`superposition`, 17.7% and 52.2% self.** Its chain is: enumerate rewritable subterms
-  (`EqHelper`), retrieve unifiable candidates (`getUwa`), then `perform superposition`.
-  Only the last is named. The *cheap* half is the enumeration — stepped once per subterm,
-  not per candidate, so ~0.02% — and retrieval then comes out by subtraction. This is the
-  best remaining information-per-instruction in the file and the obvious next addition.
+  (`EqHelper::getSubtermIterator`, which also does the ordering comparisons that restrict
+  to maximal sides), retrieve unifiable candidates (`getUwa`), then
+  `perform superposition`. Only the last is named. Either half would do — scoping one
+  gives the other by subtraction — so the choice is purely which is cheaper to scope,
+  and **that is not yet known.** The enumeration is stepped once per subterm rather than
+  once per candidate, which is cheaper only if a subterm typically retrieves several
+  candidates; at *c* candidates per subterm the overhead is 2 × 28.4 G / *c* scopes, so
+  0.046% at *c* = 10 but **0.46% at *c* = 1** — no better than scoping retrieval
+  directly. If most subterms match nothing, which is entirely plausible, the cheap option
+  is not the cheap one. Measure *c* on a few problems before adding anything; an earlier
+  draft quoted 0.02% here on no evidence, and assumed retrieval was the expensive half,
+  which is the very thing the split exists to find out.
 - **`perform superposition`, 14.1%.** Colour and ordering checks, substitution
   application, clause construction. Worth splitting, but at 1.63% per scope it is the
   first place the cost stops being negligible, so do it after the resolution split says

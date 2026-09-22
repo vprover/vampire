@@ -47,14 +47,19 @@ Ranked in `FINDINGS.md` Part I. By tractability rather than size, the order to p
 
    §10 lists what would still be unattributed afterwards, with the cost of one more scope
    in each as a share of that node — the number that decides whether a split is worth
-   making. `superposition`'s subterm enumeration is the cheapest thing left on it by a
-   wide margin (~0.02%) and is worth adding *before* the sweep runs if there is time,
-   since adding it later costs a whole sweep.
-1. **§4, `interpreted evaluation` on TF0 arithmetic.** Small, self-contained,
-   reproducible in seconds: six 42-byte `SWX14x_1.p` problems burn 97% of a full budget
-   at 4.66 M instructions per evaluation call, agreeing to within 0.01% of each other.
-   One root cause, not six. A good first problem for someone cold, and it does not need
-   the new sweep.
+   making. `superposition`'s subterm enumeration is the candidate that was considered
+   and deferred; its cost is **not yet measured** and depends on how many index
+   candidates an average rewritable subterm retrieves — anywhere from 0.05% to 0.46% of
+   corpus, which is the difference between free and as expensive as scoping retrieval
+   directly. Settle that with a scratchpad build and three or four problems before
+   deciding, the way the `perform resolution` ratio was settled.
+1. **§4, `interpreted evaluation` on TF0 arithmetic.** Six `SWX14x_1.p` problems burn
+   97% of a full budget at **4.66 M instructions per evaluation call**, agreeing to
+   within 0.01% of each other — one root cause, not six. Self-contained and reproducible
+   in seconds, and it does not need the new sweep. Note the problems are *not* small
+   (167 KB files); what is extreme is term depth, 77 against a corpus median of 4, so
+   the open question is whether 4.66 M per call is a defect or the price of normalising
+   an expression that size.
 2. **§3, `BetaEtaSimplify`.** `SYN007^4.014.p` spends its entire 104.9 G budget in **one
    call**. Bug-shaped rather than tuning-shaped, and confined to TH0/TH1.
 3. **§1, `codetree forward subsumption`.** The largest target in the file — 17.79% of
