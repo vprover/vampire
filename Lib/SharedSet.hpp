@@ -20,6 +20,7 @@
 #include "Debug/Assertion.hpp"
 
 #include "Allocator.hpp"
+#include "FlexibleTail.hpp"
 #include "Metaiterators.hpp"
 #include "Set.hpp"
 #include "Sort.hpp"
@@ -29,7 +30,7 @@ namespace Lib {
 
 
 template<typename T>
-class SharedSet {
+class SharedSet : public FlexibleTail<SharedSet<T>, T> {
 
   typedef Stack<T> ItemStack;
 
@@ -49,7 +50,7 @@ public:
   {
     ASS_L(n,size());
 
-    return _items[n];
+    return items()[n];
   }
 
   /**
@@ -110,8 +111,8 @@ public:
     static ItemStack acc;
     acc.reset();
 
-    const T* p1=_items;
-    const T* p2=s->_items;
+    const T* p1=items();
+    const T* p2=s->items();
     const T* p1e=p1+size();
     const T* p2e=p2+s->size();
 
@@ -168,8 +169,8 @@ public:
     static ItemStack acc;
     ASS(acc.isEmpty());
 
-    const T* p1=_items;
-    const T* p2=s->_items;
+    const T* p1=items();
+    const T* p2=s->items();
     const T* p1e=p1+size();
     const T* p2e=p2+s->size();
 
@@ -208,8 +209,8 @@ public:
     static ItemStack acc;
     ASS(acc.isEmpty());
 
-    const T* p1=_items;
-    const T* p2=s->_items;
+    const T* p1=items();
+    const T* p2=s->items();
     const T* p1e=p1+size();
     const T* p2e=p2+s->size();
 
@@ -242,8 +243,8 @@ public:
   {
     ASS(s);
 
-    const T* p1=_items;
-    const T* p2=s->_items;
+    const T* p1=items();
+    const T* p2=s->items();
     const T* p1e=p1+size();
     const T* p2e=p2+s->size();
 
@@ -274,8 +275,8 @@ public:
       return true;
     }
 
-    const T* p1=_items;
-    const T* p2=s->_items;
+    const T* p1=items();
+    const T* p2=s->items();
     const T* p1e=p1+size();
     const T* p2e=p2+s->size();
 
@@ -395,31 +396,19 @@ public:
 private:
   void* operator new(size_t sz,size_t length)
   {
-    //We have to get sizeof(SharedSet) + (length-1)*sizeof(T)
-    //this way, because length-1 wouldn't behave well for
-    //length==0 on x64 platform.
-    size_t size=sizeof(SharedSet)+length*sizeof(T);
-    size-=sizeof(T);
-
-    return ALLOC_KNOWN(size,"SharedSet");
+    return ALLOC_KNOWN(SharedSet::bytesRequiredFor(length),"SharedSet");
   }
   
   void operator delete (void* obj)
   {
     SharedSet* ss = static_cast<SharedSet*>(obj);
-    
-    IGNORE_MAYBE_UNINITIALIZED(
-    // calculate the same thing as in operator new
-    size_t size=sizeof(SharedSet)+ss->_size*sizeof(T);
-    size-=sizeof(T);
-    )
-  
-    DEALLOC_KNOWN(obj, size,"SharedSet");
+    DEALLOC_KNOWN(obj, SharedSet::bytesRequiredFor(ss->_size),"SharedSet");
   }
 
   size_t _size;
-  T _items[1];
 
+  T *items() { return this->flexibleTail(); }
+  const T *items() const { return this->flexibleTail(); }
 
   static bool equalItems(const T* arr1, const T* arr2, size_t len)
   {
@@ -458,7 +447,7 @@ private:
     res=new(sz) SharedSet(sz);
     for(size_t i=0;i<sz;i++) {
       ASS(i==0 || is[i-1]<is[i]);
-      res->_items[i]=is[i];
+      res->items()[i]=is[i];
     }
 
     getSStruct().insert(res);
@@ -471,14 +460,14 @@ private:
       if(s1->size()!=s2->size()) {
         return false;
       }
-      return equalItems(s1->_items, s2->_items, s1->size());
+      return equalItems(s1->items(), s2->items(), s1->size());
     }
     bool operator()(const SharedSet* s1,const ItemStack& is) const
     {
       if(s1->size()!=is.size()) {
         return false;
       }
-      return equalItems(s1->_items, is.begin(), s1->size());
+      return equalItems(s1->items(), is.begin(), s1->size());
     }
   };
 
@@ -517,7 +506,7 @@ public:
 
   static unsigned hash(const SharedSet* s)
   {
-    return hash(s->_items, s->size());
+    return hash(s->items(), s->size());
   }
 
   static unsigned hash(const ItemStack& is)
@@ -526,8 +515,7 @@ public:
   }
 
   auto iter() const
-  { return arrayIter(static_cast<const T *>(_items), size()); }
-
+  { return arrayIter(items(), size()); }
 };
 
 template<typename T>

@@ -59,15 +59,6 @@ using namespace std;
 using namespace Lib;
 using namespace Shell;
 
-void InferenceStore::FullInference::increasePremiseRefCounters()
-{
-  for(unsigned i=0;i<premCnt;i++) {
-    if (premises[i]->isClause()) {
-      premises[i]->incRefCnt();
-    }
-  }
-}
-
 /**
  * Records information needed for outputting proofs of general splitting
  */
