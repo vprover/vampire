@@ -1412,8 +1412,7 @@ Options::Options ()
       {.description = "Show updates within AVATAR",
        .tag = OptionTag::DEVELOPMENT})
   , _showNewPropositional("show_new_propositional",false,
-      {.description = "",
-       .tag = OptionTag::DEVELOPMENT})
+      {.tag = OptionTag::DEVELOPMENT})
   , _showNonconstantSkolemFunctionTrace("show_nonconstant_skolem_function_trace",false,
       {.description = "Show introduction of non-constant skolem functions.",
        .tag = OptionTag::DEVELOPMENT})
@@ -1651,7 +1650,6 @@ Options::Options ()
   , _splittingAddComplementary("avatar_add_complementary",
                                                                                 SplittingAddComplementary::GROUND,{"ground","none"},
       {.short_name = "aac",
-       .description = "",
        .tag = OptionTag::AVATAR})
   , _splittingCongruenceClosure("avatar_congruence_closure", false,
       {.short_name = "acc",
@@ -1687,7 +1685,6 @@ Options::Options ()
   , _splittingDeleteDeactivated("avatar_delete_deactivated",
                                                                         SplittingDeleteDeactivated::LARGE_ONLY,{"on","large","off"},
       {.short_name = "add",
-       .description = "",
        .tag = OptionTag::AVATAR})
   , _statistics("statistics",Statistics::BRIEF,{"brief","full","none"},
       {.short_name = "stat",
@@ -1801,8 +1798,7 @@ Options::Options ()
        .description = "A name of a file with an explicit user specified precedence on predicate symbols.",
        .experimental = true})
   , _testId("test_id","unspecified_test",
-      {.description = "",
-       .experimental = true})
+      {.experimental = true})
   , _outputMode("output_mode",Output::SZS,{"smtcomp","spider","szs","vampire","ucore"},
       {.short_name = "om",
        .description = "Change how Vampire prints the final result. SZS uses TPTP's SZS ontology. smtcomp mode"
@@ -1814,8 +1810,7 @@ Options::Options ()
     " an input formula that has no label. Set this on if you don't want this behaviour (which is default in smt-comp).",
        .tag = OptionTag::OUTPUT})
   , _thanks("thanks","Tanya",
-      {.description = "",
-       .experimental = true})
+      {.experimental = true})
   , _theoryAxioms("theory_axioms",TheoryAxiomLevel::ON,{"on","off","some"},
       {.short_name = "tha",
        .description = "Include theory axioms for detected interpreted symbols",
