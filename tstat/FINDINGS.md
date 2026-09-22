@@ -5,24 +5,20 @@ about it so far.
 
 Read `README.md` first for how to read the numbers and how to reproduce any of them.
 
-> **The reference sweep is 11279.**
-> `vampire_z3_rel_..._11279 -i 100000 -tstat on` (commit `248fb8b61`), 26 504 TPTP
+> **The reference sweep is 11295.**
+> `vampire_z3_rel_..._11295 -i 100000 -tstat on` (commit `e07474dc1`), 26 504 TPTP
 > problems, TPTP on local disk, 64 workers pinned one per physical core, ASLR off.
 > **26 273 usable runs** — the only 231 rejections are Vampire user errors that never
-> reached profiling — 222 930 s and 1 327 T instructions of exclusive cost, 64 distinct
-> node names. `tstat/tstat.db` and `common.py`'s `LOGDIR` point at it.
+> reached profiling — 1 329 T instructions of exclusive cost, **78 distinct node names**.
+> `tstat/tstat.db` and `common.py`'s `LOGDIR` point at it. It is the first sweep with the
+> phase breakdown of §1, §2 and §9 in place; §19 is what it cost and what else moved.
 >
-> §19 indexes the eight sweeps taken so far and says which of the older databases are
+> §20 indexes the nine sweeps taken so far and says which of the older databases are
 > still worth keeping and why.
 >
-> **The branch has since gained twelve more nodes**, breaking §1's and §2's two largest
-> targets into phases, splitting codetree index maintenance into insert and remove, and
-> naming resolution's resolvent construction the way superposition's already was (§9,
-> §10). They are described where they belong, under the finding each was added to answer;
-> nothing in this file is measured with them yet. Every one of them is a *child* of an
-> existing node and nothing was renamed — which is the rule, not an accident: the node
-> whitelist is derived by scanning the source tree, so a renamed node would make all six
-> earlier databases unreadable at a stroke.
+> Every node added in this round is a *child* of an existing one and nothing was renamed
+> — the rule, not an accident: the whitelist is derived by scanning the source tree, so a
+> renamed node would make all seven earlier databases unreadable at a stroke.
 
 **Cost is counted in retired instructions unless stated otherwise.** That is not
 cosmetic: time and instructions rank the nodes differently by up to 6x, and §11 is about
@@ -44,78 +40,95 @@ a bounded fix has somewhere to bite, and because an outlier problem exposes an
 inefficiency that the average run hides.
 
 Counts are runs where the node exceeds 30% (and 50%) of that run's own instructions,
-over the 11279 sweep:
+over the 11295 sweep. `resolution` and `codetree forward subsumption` are now *self*
+figures with their new children broken out beneath them:
 
 ```
-node                                   %corpus   >30%   >50%   ps/instr   runs
-codetree forward subsumption            17.79%   4955   1953    166      25427   <- §1
-resolution                              21.54%   4441   1969    162      24561
-parsing                                  1.17%   3449   1014    172      26273   <- §2
-superposition                           17.73%   2906   1255    129      20211
-perform superposition                   14.07%   2150    998    171      19041
-SAT solver                               5.18%    974    243    220      19564   <- §8
-forward demodulation                     2.89%    435     83    159      20869   <- §7
-beta eta simplification                  2.81%    353    234     91       4806   <- §3
-unification with abstraction             1.34%     78     25    129       4293
-interpreted evaluation                   0.83%     53     36    109       1773   <- §4
+node                                   %corpus   >30%   >50%
+superposition                           17.57%   2878   1244
+codetree forward subsumption (interp.)  14.95%   3658   1341   <- §1
+perform superposition                   13.92%   2123    980
+resolution (= index retrieval)          13.80%   2143    640
+perform resolution                       8.00%    504      8
+SAT solver                               5.10%    964    240   <- §8
+forward demodulation                     2.85%    411     78   <- §7
+beta eta simplification                  2.81%    353    234   <- §3
+codetree matcher setup                   1.65%      2      0   <- §1
+parsing                                  1.09%   3115    658   <- §2
+codetree multi-literal matching          0.92%    172*     —   <- §1, the tail
+interpreted evaluation                   0.83%     53     36   <- §4
+codetree literal ordering                0.61%      —      —   <- §9
 ```
+
+\* runs where it exceeds **20%** of the run; 68% of the node is in those 172.
+
+**The single largest structural fact this sweep produced** is not in any one row:
+`resolution` self is index retrieval and `superposition` self is retrieval plus subterm
+enumeration, so **substitution-tree retrieval is around 30% of the corpus** — more than
+either inference rule's own work. Both rules split the same way, 63/37 and 56/44 in
+favour of retrieval (§1, §10).
 
 Two nodes have left this table since it was last drawn against 11156, and both left
 because they were fixed: `forward simplification` (19.01% of corpus, 5 646 runs over
 30%) is now 0.62% and 0 runs, because the work inside it has a name (§15); and
 `property evaluation` (0.81%, up to 89% of a single run) is now 0.13% (§17).
 
-## 1. `codetree forward subsumption` — one instruction in five, with a four-order-of-magnitude tail
+## 1. `codetree forward subsumption` — 18% of the corpus, and two different pathologies
 
-**17.79% of all corpus instructions**, second only to `resolution`, at 32 694
-instructions per call over 7.22 G calls. Roughly one instruction in five of everything
-Vampire does is forward subsumption, and until the 11165 sweep none of it was visible at
-all (§15). At 166 ps/instr it is compute-bound, not memory-bound, so unlike §5 this is
-not a cache-behaviour problem: it is simply a lot of work.
+The whole subtree is **17.8%** of corpus instructions, second only to superposition's,
+and until the 11165 sweep none of it was visible at all (§15). At 166 ps/instr it is
+compute-bound, so unlike §5 this is not a cache-behaviour problem: it is a lot of work.
+It is concentrated as well as large — **3 658 runs give the interpreter alone more than
+30% of their instructions**, and the per-call cost varies by four orders of magnitude,
+from 33 000 at the median to 2.75 **billion** on `GRA071^2.p`.
 
-It is also concentrated rather than merely large: **4 955 runs (19% of the corpus) spend
-more than 30% of their instructions in it**, median 13.42% of a run, p90 44.95%.
+**The 11295 sweep splits it, and the split is the finding.** Corpus-wide:
 
-The tail is where it stops looking like tuning, because the per-call cost varies by four
-orders of magnitude:
+| node | self | % corpus | calls | instr/call | share of the subtree |
+|---|---:|---:|---:|---:|---:|
+| the interpreter (`codetree forward subsumption` self) | 198.7 T | 14.95% | 7.12 G | 27 891 | **83.3%** |
+| `codetree matcher setup` | 21.9 T | 1.65% | 7.12 G | 3 072 | 9.2% |
+| `codetree multi-literal matching` | 12.2 T | 0.92% | 1.00 G | 12 172 | 5.1% |
+| `codetree matcher teardown` | 5.7 T | 0.43% | 7.12 G | 799 | 2.4% |
 
-| problem | share of run | calls | instructions per call |
-|---|---:|---:|---:|
-| `GRA071^2.p` (TH0) | 99.85% | 38 | **2 755 622 228** |
-| `GRA073^2.p` (TH0) | 99.85% | 38 | 2 755 670 362 |
-| `GRA071^1.p` (TH0) | 99.82% | 42 | 2 492 620 277 |
-| `GRA124-1.p` (CNF) | 99.81% | 659 | 158 842 806 |
-| `GRA124+1.p` (FOF) | 99.81% | 659 | 158 851 207 |
-| `GRA144-1.p` (CNF) | 99.81% | 682 | 153 484 224 |
+So *on average* it is the code-tree interpreter, as the local reading on `GRA124-1.p`
+suggested, and there is no phase to peel off: `Matcher::execute` dispatches one `CodeOp`
+at a time and is deliberately not entered, because a scope inside it would cost more than
+the ops it timed.
 
-A *single* subsumption check costing 2.75 **billion** instructions is bug-shaped. The
-GRA family (graph theory) dominates and appears in CNF, FOF and TH0 at nearly identical
-cost, which points at the problem shape rather than at the dialect or the parser.
+**But the average is not where the four orders of magnitude live, and there the answer is
+different.** Of the 1 843 runs where the subtree exceeds half the run, **99 are dominated
+by multi-literal matching rather than by the interpreter** — and those are the extreme
+ones:
 
-**Instrumented for the next sweep.** Until now `perform` had one scope and nothing below
-it, so a 2.7 G-instruction call was opaque. It is now cut into the parts that are *not*
-the code-tree interpreter, leaving the interpreter as the node's own self time:
+| problem | multi-lit % of run | interp % | calls | instructions per multi-lit call |
+|---|---:|---:|---:|---:|
+| `ANA073^1.p` | 91.2% | 8.5% | 2 874 | **33 263 603** |
+| `ANA085^1.p` | 90.7% | 8.9% | 3 022 | 31 491 625 |
+| `QUA001^1.p` | 92.7% | 5.2% | 6 487 | 14 991 553 |
+| `QUA009^1.p` | 90.5% | 5.7% | 7 837 | 12 114 344 |
+| `SEU686^2.p` | 89.2% | 9.5% | 8 167 | 11 460 637 |
+| `ITP218^1.p` | 87.1% | 8.2% | 8 669 | 10 543 703 |
 
-| node | where | frequency |
-|---|---|---|
-| `codetree matcher setup` | `ClauseMatcher::init` — building a `LitInfo` per query literal | once per `perform` |
-| `codetree multi-literal matching` | `checkCandidate` past the `clen<=1` exit — the backtracking search for a combination of per-literal matches whose bindings agree | once per multi-literal candidate |
-| `codetree matcher teardown` | `ClauseMatcher::reset` — disposing the `MatchInfo`s the search accumulated | once per `perform` |
+**68% of the whole `codetree multi-literal matching` node sits in 172 runs**, and every
+problem at the top of that list is TH0. `GRA071^2.p`, the worst per-call figure in the
+corpus, turns out to be 74.7% multi-literal matching in **twelve calls** — 6.5 G
+instructions each — while `GRA124-1.p` next to it is 90.6% interpreter. The single
+heading "forward subsumption is expensive" was covering two unrelated problems.
 
-The interpreter itself is deliberately not entered: `Matcher::execute` dispatches one
-`CodeOp` at a time, so a scope inside it would cost more than the ops it timed. Measuring
-it whole, against named siblings, is as far as this can usefully go.
+**Which half is actionable.** `ClauseMatcher::matchGlobalVars` /
+`existsCompatibleMatch` (`Indexing/ClauseCodeTree.cpp`) is a backtracking search over
+combinations of per-literal matches with **no bound on the search**, so a candidate with
+many matches per literal explodes combinatorially. Thirty-three million instructions to
+decide one subsumption is that explosion, it is confined to 172 runs, and a cap or a
+better ordering of the match vectors is a bounded change. The interpreter half is the
+larger number but the harder problem: 83% of the subtree spread thinly over 25 000 runs,
+with no pathology to aim at.
 
-Local wall-clock on `GRA124-1.p` (`-al 400`) already answers the fork, and the answer is
-the unwelcome one: of the 99% of the run inside forward subsumption, `multi-literal
-matching` is **7%** (62 077 calls, 24 candidates per `perform`) and setup and teardown are
-under 1% each — so **~93% is the interpreter proper**. On `CSR025+6.p`, where clauses are
-mostly unit, the split is the other way round: setup is 54% and multi-literal matching
-0.01%. Two different problems for two different corpora, which is why the split was worth
-having even though neither half is a quick fix.
-
-This is the largest single target in the file, and it has been the largest since it
-became visible.
+> An earlier draft concluded from `GRA124-1.p` alone that "~93% is the interpreter" and
+> that there was nothing to peel off. Corpus-wide that is right (83%); as a statement
+> about the tail it was wrong, and the tail is what §1 has always been about. One
+> problem was not a sample.
 
 ## 2. `parsing` — a fifth of the corpus gives it a fifth of its budget
 
@@ -184,31 +197,40 @@ Satisfiable almost immediately and parsing is most of what happened. That is ari
 not a defect, and it is why the 20–50% bucket should not be read as 4 282 problems worth
 fixing.
 
-**Instrumented for the next sweep.** The parser is a flat state machine, so it has no
-phases in the sense preprocessing does — every state handler runs per token and is far
-too hot to scope. What it does have is a boundary that recurs exactly once per input
-unit, and that is where the new nodes sit:
+**Split, and the answer is that the cost is in none of the places a boundary exists.**
+The parser is a flat state machine, so it has no phases in the sense preprocessing does
+— every state handler runs per token and is far too hot to scope. What it does have is a
+boundary recurring once per input unit, and that is where the five new nodes sit. On
+11295, corpus-wide:
 
-| node | where | frequency |
-|---|---|---|
-| `tptp formula unit` | `endFof` — closing off a parsed formula and handing it over as a `Unit` | once per cnf/fof/tff/thf/tcf formula |
-| `tptp clause conversion` | the `mustBeClause` block in `endFof` | once per cnf/tcf unit |
-| `tptp closure check` | the `freeVariables(f)` walk that rejects an unquantified variable | once per non-CNF unit |
-| `tptp type declaration` | `endTff` | once per type declaration |
-| `tptp include` | `include` — opening the axiom file, building the selection set | once per include directive |
+| node | where | self | % of `parsing` |
+|---|---|---:|---:|
+| `tptp formula unit` | `endFof` — closing a formula off and handing it over as a `Unit` | 0.76 T | 4.9% |
+| `tptp closure check` | the `freeVariables(f)` walk rejecting an unquantified variable | 0.33 T | 2.1% |
+| `tptp type declaration` | `endTff` | 0.03 T | 0.2% |
+| `tptp clause conversion` | the `mustBeClause` block in `endFof` | 0.02 T | 0.1% |
+| `tptp include` | opening the axiom file, building the selection set | 0.004 T | 0.03% |
+| **residue** (`parsing` self) | lexer + state machine + term and formula construction | **14.46 T** | **92.7%** |
 
-A scope per input unit costs **0.002% of a sweep** and at most 0.34% of the worst single
-run (the 3.3 M-formula `CSR*+6` family), which is why five of them are affordable where
-one per token would not be. The lexer is deliberately not scoped for exactly that reason,
-and it does not need to be: the instructions-per-byte figures above already rule the
-lexer out as the explanation, so what the residue measures is the state machine and term
-and formula construction.
+The five together cost **0.03% of the corpus** to measure, as predicted. They rule out
+everything they name: per-unit finalisation is 5%, the closure check 2%, and `include` —
+which reads a 477 MB axiom file on the `CSR*+6` family — is *thirty thousandths* of one
+percent. On the parse-bound outliers themselves the shape is the same, not worse:
+`HWV133-1.p` spends 91.4% of its whole budget in `parsing` of which only 5.8% is
+`tptp formula unit` and 1.9% clause conversion; `CSR061+6.p` 91.1%, of which 5.8% and
+2.3%.
 
-Local wall-clock on `CSR025+6.p` already bounds it: of the 13 s in `parsing`,
-`tptp formula unit` is **13%** (3 341 978 calls, exactly the header's formula count), of
-which the closure check is a fifth, and `tptp include` is one call and negligible. So
-**~87% of parsing is the scanning-and-building residue**, and at ~200 instructions per
-input byte that residue is where the next sweep has to look.
+So **93% of parsing is the residue**, and the §2 note above already rules out the lexer
+arithmetically — 214–377 instructions per input byte against 5–20 for a tokeniser. By
+elimination the cost is the state machine and term/formula construction: `getTok` and
+the `_states` loop, the per-token `std::string` in `Token::content`, symbol-table lookup
+by name, and `Term`/`Formula` allocation. None of those has a per-unit boundary, which
+is why this round could not localise it further.
+
+**What would.** The next scope has to be per *token* or per *term*, which the §11 budget
+forbids at 46 M tokens on `HWV133-1.p` — unless it is taken on a handful of problems
+only, outside a sweep. That is the honest next step here: a one-problem `perf record` on
+`HWV133-1.p`, not another sweep node.
 
 ## 3. `beta eta simplification` — a single call can eat a whole higher-order run
 
@@ -403,10 +425,35 @@ Removal is left whole on purpose. Splitting its interpreter from its surgery wou
 a scope inside the per-`CodeOp` loop, which is the thing this instrumentation exists to
 avoid; knowing what removal costs in total is the question that was actually open.
 
-Local wall-clock already shows the phases do not rank consistently, which is the argument
-for having them: on `GRA124-1.p` insertion is 59% ordering / 26% compilation / 10%
-incorporation, and on `CSR025+6.p` it is 18% / 9% / **65%**. One number for "index
-maintenance" was hiding two different problems.
+**Measured on 11295, and removal is not the story.** The whole subtree is 21.4 T, 1.61%
+of corpus:
+
+| node | self | % of corpus | calls | instr/call | share of the subtree |
+|---|---:|---:|---:|---:|---:|
+| `codetree literal ordering` | 8.12 T | 0.611% | 1 184 M | 6 860 | **38%** |
+| `codetree code compilation` | 6.53 T | 0.491% | 1 184 M | 5 518 | 31% |
+| `codetree code incorporation` | 3.58 T | 0.269% | 1 184 M | 3 022 | 17% |
+| `codetree subsumption index remove` | 1.61 T | 0.121% | 245 M | 6 552 | **8%** |
+| `codetree subsumption index insert` (own) | 1.10 T | 0.082% | 1 184 M | 926 | 5% |
+| `codetree subsumption index maintenance` (own) | 0.41 T | 0.031% | 1 429 M | 286 | 2% |
+
+So **insertion is 92% of index maintenance and removal 8%**, on a fifth as many calls —
+removal is 7x more expensive per call than insertion's own bookkeeping, but there is so
+little of it that the total is small. That answers the question the split was made to
+answer: deletion is not where the money goes.
+
+Where it goes is the *ordering heuristic*. `codetree literal ordering` alone is 8.12 T —
+**five times the entire cost of removal**, and 0.61% of the corpus in its own right, more
+than `splitting` or `boolean simplification`. It is `optimizeLiteralOrder`, which is
+quadratic in clause length and compiles every literal a first time purely to run its
+`evalSharing` walks, after which `codetree code compilation` compiles them all again.
+That second compilation is another 6.53 T. Roughly **15 T, 1.1% of the corpus, is spent
+deciding and then re-deciding how to lay a clause into the tree** — and it is a
+self-contained, bounded piece of code with an obvious redundancy in it.
+
+The local readings were right that the phases do not rank consistently (`GRA124-1.p`
+59/26/10 against `CSR025+6.p` 18/9/65) but wrong about which dominates at scale: ordering
+does, everywhere except the incorporation-heavy CSR shape.
 
 **Why the parent node stays, at the cost of a scope.** Splitting a node by *renaming* it
 is free — a call takes exactly one branch — and it was how this was first written. It is
@@ -437,69 +484,72 @@ figures in the profile by calling them leaves. A leaf is not a node that does on
 it is a node we have not divided — and `resolution`'s 24 000 instructions per call are at
 least two things.
 
-So, honestly, on 11279 — the largest **self** figures whatever the node's role, and what
+So, honestly, on 11295 — the largest **self** figures whatever the node's role, and what
 one more scope inside each would cost as a share of that node:
 
 | node | self | % corpus | self/total | instr/call | one scope |
 |---|---:|---:|---:|---:|---:|
-| `resolution` | 285.9 T | **21.54%** | 95.9% | 23 992 | 0.45% |
-| `codetree forward subsumption` | 236.2 T | 17.79% | 99.7% | 32 694 | 0.33% |
-| `superposition` | 235.3 T | **17.73%** | 52.2% | 33 646 | 0.32% |
-| `perform superposition` | 186.8 T | **14.07%** | 95.4% | 6 571 | **1.63%** |
-| `SAT solver` | 68.8 T | 5.18% | 100.0% | 4 208 120 | 0.00% |
-| `forward demodulation` | 38.3 T | 2.89% | 99.1% | 13 484 | 0.79% |
-| `beta eta simplification` | 37.3 T | 2.81% | 98.9% | 116 901 | 0.09% |
-| `run` (the loop's own bookkeeping) | 33.4 T | 2.52% | 2.6% | — | 0.00% |
+| `superposition` | 233.6 T | **17.57%** | 52.1% | 33 411 | 0.32% |
+| `codetree forward subsumption` (interpreter) | 198.7 T | 14.95% | 83.3% | 27 891 | 0.38% |
+| `perform superposition` | 185.0 T | **13.92%** | 95.4% | 6 510 | **1.64%** |
+| `resolution` (retrieval) | 183.5 T | **13.80%** | 63.3% | 15 734 | 0.68% |
+| `perform resolution` | 106.4 T | 8.00% | 99.5% | 2 694 | **3.97%** |
+| `SAT solver` | 67.8 T | 5.10% | 100.0% | — | 0.00% |
+| `forward demodulation` | 37.9 T | 2.85% | 99.1% | 13 383 | 0.80% |
+| `beta eta simplification` | 37.4 T | 2.81% | 98.9% | 117 000 | 0.09% |
 
-Nine nodes hold 86% of the corpus. **The last column is the whole decision**: it is
-~107 instructions over the node's cost per call, so it says how much of what you would
-measure is the measurement. Below ~0.5% a scope is free in practice; at 1.6%
-(`perform superposition`) two scopes start to distort; the cautionary case already in
-the tree is `term sharing`, which spends 15.1% of its own measured cost on
-instrumentation.
+**The last column is the whole decision**: ~107 instructions over the node's cost per
+call, i.e. how much of what you would measure is the measurement. Below ~0.5% a scope is
+free in practice; `perform superposition` at 1.64% and `perform resolution` at **3.97%**
+are past the point where another scope inside starts measuring itself. The cautionary
+case already in the tree is `term sharing`, at 15.1%.
 
-**What has been divided this round, and on what principle.** `codetree forward
-subsumption` into setup, multi-literal matching and teardown (§1); codetree index
-maintenance into insert and remove, and insert three ways further (§9); parsing into its
-per-unit boundaries (§2); and **`resolution` into retrieval and `perform resolution`** —
-one scope at the top of `BinaryResolution::generateClause`, mirroring the
-`superposition` / `perform superposition` pair that already existed. That last one was
-pure asymmetry: the call sits inside a lambda in `generateClauses`, which is why it never
-got a name, not because anyone decided it should not have one. Measured at 0.48
-`perform resolution` calls per `resolution` scope entry across four problem shapes, so
-~5.7 G calls and **0.046% of corpus** — the cheapest thing in this list and the largest
-node it divides.
+**What was divided this round, and what it showed.** Four splits, one principle: scope
+the phases that are *not* the hot inner loop and let the loop fall out as the parent's
+self time — `Matcher::execute` dispatches one `CodeOp` at a time, retrieval yields one
+candidate at a time, `readToken` runs per token, so a scope in any of them would cost
+more than the ops it timed.
 
-The principle behind all four: scope the phases that are *not* the hot inner loop, and
-let the loop fall out as the parent's self time. The loop itself is never entered —
-`Matcher::execute` dispatches one `CodeOp` at a time, substitution-tree retrieval yields
-one candidate at a time, `readToken` runs per token — so a scope there would cost more
-than the ops it timed.
+- `codetree forward subsumption` → §1. Interpreter 83%, but the tail is multi-literal
+  matching, which is the actionable half.
+- codetree index maintenance → §9. Insert 92% / remove 8%, and the ordering heuristic
+  alone is five times all of removal.
+- `parsing` → §2. The named boundaries account for 7%; the rest has no boundary.
+- `resolution` → `perform resolution`, one scope at the top of
+  `BinaryResolution::generateClause`, mirroring the `superposition` /
+  `perform superposition` pair. **Retrieval 63% / construction 37%**, against 56/44 for
+  superposition — the two main generating rules now agree that most of their cost is
+  looking clauses up, not inferring with them.
+
+That last one is the biggest single structural result in the sweep. `resolution` self
+(13.80%) plus `superposition` self (17.57%) is **31% of the corpus in substitution-tree
+retrieval and subterm enumeration** — more than either rule's own inference work, and
+more than any other node in the file. It also makes `Indexing/SubstitutionTree` the
+largest thing in the prover that has never been instrumented at all.
 
 **What is left, in the order it is worth doing:**
 
-- **`superposition`, 17.7% and 52.2% self.** Its chain is: enumerate rewritable subterms
-  (`EqHelper::getSubtermIterator`, which also does the ordering comparisons that restrict
-  to maximal sides), retrieve unifiable candidates (`getUwa`), then
-  `perform superposition`. Only the last is named. Either half would do — scoping one
-  gives the other by subtraction — so the choice is purely which is cheaper to scope,
-  and **that is not yet known.** The enumeration is stepped once per subterm rather than
-  once per candidate, which is cheaper only if a subterm typically retrieves several
-  candidates; at *c* candidates per subterm the overhead is 2 × 28.4 G / *c* scopes, so
-  0.046% at *c* = 10 but **0.46% at *c* = 1** — no better than scoping retrieval
-  directly. If most subterms match nothing, which is entirely plausible, the cheap option
-  is not the cheap one. Measure *c* on a few problems before adding anything; an earlier
-  draft quoted 0.02% here on no evidence, and assumed retrieval was the expensive half,
-  which is the very thing the split exists to find out.
-- **`perform superposition`, 14.1%.** Colour and ordering checks, substitution
-  application, clause construction. Worth splitting, but at 1.63% per scope it is the
-  first place the cost stops being negligible, so do it after the resolution split says
-  by analogy whether the cost is in the checks or the construction.
-- **`forward demodulation`, 2.9% and 99.1% self.** Untouched, 0.79% per scope. §7 says
+- **`Indexing/SubstitutionTree` retrieval, ~31% of the corpus, no instrumentation at
+  all.** This is now the biggest unmeasured thing in the prover, and the sweep is what
+  promoted it: `resolution` self *is* retrieval, and `superposition` self is retrieval
+  plus subterm enumeration. Both rules' retrieval iterators are lazy, so the cost is
+  spread over `hasNext()` calls rather than sitting in a scopeable block, which is why
+  it has escaped so far. The cheap way in is still `superposition`'s *other* half —
+  scope `EqHelper::getSubtermIterator` and get retrieval by subtraction — but its cost
+  depends on candidates per subterm *c*: 2 × 28.4 G / *c* scopes, so 0.046% at *c* = 10
+  and **0.46% at *c* = 1**, and *c* is unmeasured. Measure it before adding anything,
+  and measure it on **budget-bound runs**, not on short local ones — see §19 for why
+  that distinction cost a 7x error last time.
+- **`perform superposition`, 13.9%, and `perform resolution`, 8.0%.** Colour and
+  ordering checks, substitution application, clause construction. Both are now past the
+  comfortable range — 1.64% and **3.97%** per scope — so any further split here pays a
+  real fraction of what it measures. `perform resolution` at 2 694 instructions per call
+  is close to the floor at which this technique stops working.
+- **`forward demodulation`, 2.9% and 99.1% self.** Untouched, 0.80% per scope. §7 says
   its pathology is per-problem and mid-length-run, so the split wants a hypothesis first.
-- **`SAT solver`, 5.2%.** Third-party (Minisat / CaDiCaL / Z3). Out of scope; §12 notes
+- **`SAT solver`, 5.1%.** Third-party (Minisat / CaDiCaL / Z3). Out of scope; §12 notes
   it is the largest node that costs more clock than instructions.
-- **`run`, 2.5% self over 26 K calls.** The saturation loop's own bookkeeping, 1.27 G
+- **`run`, 2.5% self over 26 K calls.** The saturation loop's own bookkeeping, 1.25 G
   instructions per run. Scopes are free at this frequency, but the cost is diffuse rather
   than concentrated in one call, so there is nothing obvious to wrap.
 
@@ -929,9 +979,96 @@ the artifact is gone (`SET044+1.p`: 113 ms then, **212 µs** now) and what is le
 — §2. The old sublinear parsing exponents (b = 0.29–0.79) were the NFS floor, not a
 scaling property.
 
-## 19. Sweep index
+## 19. The 11295 sweep: what the phase breakdown cost, and what else moved
 
-Eight sweeps exist. All are `-tstat on` over the same 26 504 TPTP problems, same machine,
+`vampire_z3_rel_..._11295` (`e07474dc1`), the first sweep with §1's, §2's, §9's and
+§10's twelve new nodes. 26 273 clean runs, the same 231 user errors, selftest clean,
+1 384 836 flat nodes against 11279's 1 107 726.
+
+**It is not a pure instrumentation comparison, and that has to be said first.** Master
+advanced between the two binaries: six `FlexibleTail` commits (a safe-flexible-array
+abstraction threaded through `Clause`, `SATClause` and `SkipList::Node`, plus a
+pointer-downcast hazard fix) and the two commits separating `Map`/`Set` equality from
+their hash parameter. So a per-problem difference here can be either change, and the
+sections below separate them where it matters.
+
+### The instrumentation costs 0.2%, as predicted
+
+Equal-effort comparison over the 11 494 runs budget-bound in **both** sweeps, the same
+test §15 used:
+
+```
+activations 11295/11279:  p10 0.9572   median 0.9978   mean 0.9908   p90 1.0071
+```
+
+**Median −0.22% of the work done**, against ~0.25% predicted. Scope-count arithmetic
+says 58.7 G net new scopes × ~107 instructions = 6.3 T = 0.47% of corpus, so the
+measured cost is about half the arithmetic — consistent with 107 being an upper bound on
+the per-scope cost rather than a typical value.
+
+Solved: 13 986 → 13 960, **net −26** (18 gained, 44 lost), **zero soundness
+contradictions**. That is the honest price of the breakdown, and it is the largest an
+instrumentation round has cost so far (§15's was +3).
+
+### The tail is search perturbation, not slowdown
+
+The mean (−0.92%) is much worse than the median because of a tail, and it is worth
+saying what that tail is not. Distribution of the activation ratio:
+
+| ratio | runs | |
+|---|---:|---|
+| <0.80 | 62 | 0.5% |
+| 0.80–0.95 | 847 | 7.4% |
+| 0.95–1.05 | 10 188 | **88.6%** |
+| 1.05–1.25 | 364 | 3.2% |
+| >1.25 | 33 | 0.3% |
+
+**Roughly symmetric** — 62 runs lose more than 20%, 33 gain more than 25% — which is the
+signature of a reordered search, not a slower prover. Confirmed directly: on
+`SWX094_1.p`, the worst-hit run (activations ×0.24), the new scopes account for **0.02%
+of the run** by count, while `interpreted evaluation` went from 13 533 to 296 306
+instructions per call — a different clause population, not a slower one. Per `CLAUDE.md`,
+individual problems flipping under a change like `FlexibleTail` is expected and is not
+itself a defect; the 0 soundness contradictions are the check that matters.
+
+### `FlexibleTail for SkipList::Node` is visible, and is a wash
+
+Per-call cost ratios 11295/11279 for nodes with **no** new scope inside them are 1.000
+at the median almost everywhere — `superposition` 1.000, `perform superposition` 0.998,
+`forward demodulation` 0.997, `beta eta simplification` 1.000, `splitting` 1.000. Two
+are not:
+
+| node | instr/call | ps/instr | wall |
+|---|---|---|---|
+| `passive container maintenance` | 2 885 → 3 186 (**+10.4%**) | 363 → 325 (−10.5%) | 1 881 s → 1 840 s |
+| `hvci compute hash` | −2.1% | — | — |
+
+The passive container is `SkipList`, so the +10.4% is `FlexibleTail for SkipList::Node`
+and the interquartile range is 1.102–1.117 — a tight, systematic change, not noise. But
+the node got *less* memory-bound by almost exactly the same factor, so it retires 8.9%
+more instructions in 2% **less** wall time. A layout change that trades instructions for
+locality, and on this hardware the trade is slightly favourable. Worth recording because
+under `-i` it reads as a 0.03%-of-corpus regression while under `-t` it would read as a
+small win — §13's point about the two regimes, arriving unprompted.
+
+### The methodological lesson: measure ratios on budget-bound runs
+
+The `perform resolution` cost estimate was **7x too low**, and the reason generalises.
+Its frequency was measured locally as 0.48 calls per `resolution` scope entry, on four
+problems under `-al`. Corpus-wide under `-i 100000` it is **3.4** (39.48 G against
+11.66 G), so the real cost is 0.32% of corpus, not 0.046%.
+
+The cause is `.filter(NonzeroFn())` in `generateClauses`: `generateClause` returns 0 when
+the LRS age/weight limits reject the clause *before* building it, so one `hasNext()`
+consumes as many candidates as it takes to find one that survives. On a short local run
+LRS limits are not yet active and nearly every candidate survives; on a budget-bound
+sweep most do not. **A call-frequency ratio measured where LRS is not binding does not
+transfer to a sweep**, and the same trap is waiting for the `superposition` enumeration
+measurement §10 asks for.
+
+## 20. Sweep index
+
+Nine sweeps exist. All are `-tstat on` over the same 26 504 TPTP problems, same machine,
 64 workers pinned one per physical core, ASLR off.
 
 | sweep | limit | database | what it is for |
@@ -942,7 +1079,8 @@ Eight sweeps exist. All are `-tstat on` over the same 26 504 TPTP problems, same
 | 11165 | `-i 100000` | `tstat-11165.db` | first instrumented sweep; the before-picture for §16 |
 | 11233 | `-i 100000` | `tstat-11233.db` | **superseded, do not use** — the §16c HOL defect loses 3 316 runs. Kept only as that section's evidence |
 | 11235 | `-i 100000` | `tstat-11235.db` | the before-picture for §17 |
-| **11279** | **`-i 100000`** | **`tstat.db`** | **the standing reference** |
+| 11279 | `-i 100000` | `tstat-11279.db` | the before-picture for §19 |
+| **11295** | **`-i 100000`** | **`tstat.db`** | **the standing reference** — first with the phase breakdown (§19) |
 | 11142/11156 pair | `-t 60` | `tstat-t60s-*.db` | the only regime where memory-boundedness is chargeable; §13, §14 |
 
 Future `-i` sweeps stay on `-i 100000` so they remain comparable to this chain. Keep the

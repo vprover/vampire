@@ -6,9 +6,10 @@ Read this first if context was lost. It points at the detail rather than repeati
 
 `tstat/` is a SQLite-backed toolkit for mining a `-tstat on` sweep of all of TPTP.
 `README.md` documents the measurement hazards; `FINDINGS.md` is the write-up. The
-standing reference is the **11279** sweep (`problemsALLlocal_cheaper11279_tstat-on_i100K`,
-commit `248fb8b61`, 26 273 usable runs), and `tstat.db` / `common.py`'s `LOGDIR` point
-at it. `FINDINGS.md` §18 indexes every sweep and says which older databases still matter.
+standing reference is the **11295** sweep (`problemsALLlocal_tprofile11295_tstat-on_i100K`,
+commit `e07474dc1`, 26 273 usable runs, 78 node names), and `tstat.db` / `common.py`'s
+`LOGDIR` point at it. `FINDINGS.md` §20 indexes every sweep and says which older
+databases still matter; §19 is what 11295 cost and what else moved in it.
 
 **`FINDINGS.md` is organised so you do not have to read it in order:** Part I is the open
 work ranked, Part II is how not to fool yourself with the numbers, Part III is history —
@@ -18,66 +19,65 @@ each change that has landed, with the sweep pair that measured it.
 
 Everything the first four rounds of this work produced is now on master:
 
-- the **timer-thread trace race** fix — 2 450 crashed runs → 0 (`FINDINGS.md` §17);
+- the **timer-thread trace race** fix — 2 450 crashed runs → 0 (`FINDINGS.md` §18);
 - **instruction counters in `TIME_TRACE`** (`Lib/PerfInstructions.hpp`), cross-validated
   against the statistics block's independent `read()` path;
 - the **LRS maintenance budget** — 6.57% → 0.95% of corpus instructions, and under
-  `-t 60` 26 hours of wall clock moved from overhead into inference (§13);
+  `-t 60` 26 hours of wall clock moved from overhead into inference (§14);
 - the **instrumentation commits** that closed the blind spots — `forward simplification`
-  self 19.01% → 0.61%, and with them the two largest findings in the file (§14);
+  self 19.01% → 0.61%, and with them the two largest findings in the file (§15);
 - **`Do not run DistinctGroupExpansion on higher-order problems`**, which fixed a master
-  defect that aborted essentially all higher-order input (§15c).
+  defect that aborted essentially all higher-order input (§16c).
 
-Master's own "cheaper scan" work (§16) then took `Property::scan` down 78.6% and, as a
+Master's own "cheaper scan" work (§17) then took `Property::scan` down 78.6% and, as a
 side effect nobody was aiming at, made `boolean simplification` 2.8x cheaper per call.
+
+The **phase breakdown** — twelve nodes splitting §1, §2, §9 and §10's largest figures —
+is in too, and 11295 measured it (§19): median −0.22% of work done, net −26 problems,
+zero soundness contradictions. What it showed is in the ranking below.
 
 ## Next: one bottleneck at a time
 
 Ranked in `FINDINGS.md` Part I. By tractability rather than size, the order to pick from:
 
-0. **Run a sweep with the twelve new nodes.** The branch now breaks §1's and §2's two
-   largest targets into phases, splits codetree index maintenance into insert and remove,
-   and names resolution's resolvent construction (§9, §10). Nothing in `FINDINGS.md` is
-   measured with them yet, and between them they divide three of the four largest figures
-   in the profile — `resolution` 21.5%, `codetree forward subsumption` 17.8%, `parsing`
-   in its per-run tail. Everything below is easier to prioritise afterwards. They cost
-   ~0.25% of corpus, almost all of it the two per-`perform` scopes in the code-tree
-   matcher; the sweep should confirm that against 11279 at equal effort, the way §15 did
-   (0.2% predicted, 0.04% measured).
-
-   §10 lists what would still be unattributed afterwards, with the cost of one more scope
-   in each as a share of that node — the number that decides whether a split is worth
-   making. `superposition`'s subterm enumeration is the candidate that was considered
-   and deferred; its cost is **not yet measured** and depends on how many index
-   candidates an average rewritable subterm retrieves — anywhere from 0.05% to 0.46% of
-   corpus, which is the difference between free and as expensive as scoping retrieval
-   directly. Settle that with a scratchpad build and three or four problems before
-   deciding, the way the `perform resolution` ratio was settled.
-1. **§4, `interpreted evaluation` on TF0 arithmetic.** Six `SWX14x_1.p` problems burn
+1. **§1, the multi-literal matching blow-up.** The split delivered the one clearly
+   bug-shaped thing in the file. `ClauseMatcher::matchGlobalVars` /
+   `existsCompatibleMatch` is a backtracking search over combinations of per-literal
+   matches with no bound, and on `ANA073^1.p` it spends **33 million instructions
+   deciding one subsumption**; 68% of the whole node is in 172 runs, almost all TH0
+   (QUA, ITP, ANA, SEU). Bounded, concentrated, and a cap or a better match-vector
+   ordering is a contained change. Start here.
+2. **§9, `codetree literal ordering`.** 8.12 T, **0.61% of the corpus on its own** —
+   five times the entire cost of index *removal*, and more than `splitting`. It is a
+   quadratic greedy heuristic that compiles every literal once to run its `evalSharing`
+   walks and then `codetree code compilation` compiles them all again: ~15 T, 1.1% of
+   corpus, spent deciding and re-deciding how to lay a clause into the tree. The
+   redundant first compilation is the obvious thing to look at, and it is self-contained.
+3. **§4, `interpreted evaluation` on TF0 arithmetic.** Six `SWX14x_1.p` problems burn
    97% of a full budget at **4.66 M instructions per evaluation call**, agreeing to
    within 0.01% of each other — one root cause, not six. Self-contained and reproducible
-   in seconds, and it does not need the new sweep. Note the problems are *not* small
-   (167 KB files); what is extreme is term depth, 77 against a corpus median of 4, so
-   the open question is whether 4.66 M per call is a defect or the price of normalising
-   an expression that size.
-2. **§3, `BetaEtaSimplify`.** `SYN007^4.014.p` spends its entire 104.9 G budget in **one
+   in seconds. The problems are *not* small (167 KB files); what is extreme is term
+   depth, 77 against a corpus median of 4, so the open question is whether 4.66 M per
+   call is a defect or the price of normalising an expression that size.
+4. **§3, `BetaEtaSimplify`.** `SYN007^4.014.p` spends its entire 104.9 G budget in **one
    call**. Bug-shaped rather than tuning-shaped, and confined to TH0/TH1.
-3. **§1, `codetree forward subsumption`.** The largest target in the file — 17.79% of
-   everything, with single calls costing 2.75 G instructions on the GRA family. The local
-   reading on `GRA124-1.p` already says ~93% of it is the code-tree interpreter itself
-   rather than the multi-literal matching, which is the hard answer: there is no phase to
-   peel off, only the interpreter to make cheaper or to enter less often. Worth checking
-   whether the ordering heuristic at insertion (`codetree literal ordering`, 59% of
-   insertion on GRA) is what makes the tree so expensive to walk.
-4. **§2, `parsing`.** 20% of the corpus gives it at least a fifth of its budget and 54
-   runs never start saturating. Locally, ~87% of it is neither per-unit finalisation nor
-   the include machinery — so it is the lexer, the state machine, or term and formula
-   construction, and the sweep's instructions-per-input-byte will say which is even
-   possible.
-5. **§5, LRS as a *time* problem.** The instruction share is finished; what survives the
+5. **§10, instrument `Indexing/SubstitutionTree` retrieval.** The sweep promoted this to
+   the biggest unmeasured thing in the prover: `resolution` self *is* retrieval and
+   `superposition` self is retrieval plus enumeration, so **~31% of the corpus** is
+   looking clauses up. No scope anywhere in it. The cheap way in is scoping
+   `EqHelper::getSubtermIterator` and taking retrieval by subtraction, but its cost
+   depends on candidates per subterm and is unmeasured — and measure it on
+   **budget-bound** runs, not short local ones, which is exactly how the
+   `perform resolution` estimate came out 7x low (§19).
+6. **§5, LRS as a *time* problem.** The instruction share is finished; what survives the
    cap runs at 6x the corpus stall rate and is still 6% of wall clock. The open decision
    is whether the budget should be applied in the time unit regardless of which limit
    binds — see the end of §5.
+
+**Not on this list any more:** §2 `parsing`. The breakdown ruled out everything it could
+name — per-unit finalisation 5%, closure check 2%, `include` 0.03% — leaving 93% in the
+state machine and term/formula construction, which has no per-unit boundary to scope.
+The next step there is a `perf record` on `HWV133-1.p`, not another sweep node.
 
 For each: implement on `martin-tstat` (or a fresh branch off it), small and focused;
 verify per `CLAUDE.md` (a unit test that fails before and passes after where possible,
