@@ -20,7 +20,7 @@
 
 #include "Otter.hpp"
 
-#include <iosfwd>
+#include <fstream>
 #include <memory>
 
 namespace Saturation {

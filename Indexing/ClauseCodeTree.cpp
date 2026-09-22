@@ -15,6 +15,7 @@
 #include <utility>
 
 #include "Debug/RuntimeStatistics.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #include "Lib/Comparison.hpp"
 #include "Lib/Int.hpp"
@@ -60,24 +61,44 @@ ClauseCodeTree::ClauseCodeTree()
 
 void ClauseCodeTree::insert(Clause* cl)
 {
+  // Insertion is three phases that do quite different things, and only their sum was
+  // visible before. Each scope is entered once per inserted clause, so the three
+  // together cost ~0.02% of a sweep -- see the comment in ClauseMatcher::init for the
+  // arithmetic and for what is deliberately left unmeasured.
   unsigned clen=cl->length();
   static DArray<Literal*> lits;
   lits.initFromArray(clen, *cl);
 
-  optimizeLiteralOrder(lits);
+  {
+    // The greedy heuristic that decides which literal to compile first. It is quadratic
+    // in the clause length -- for each start position it walks every remaining literal's
+    // code against the tree (evalSharing) -- and it compiles all of them to do so, so
+    // the compilation below is the second time each literal is compiled.
+    TIME_TRACE("codetree literal ordering");
+    optimizeLiteralOrder(lits);
+  }
 
   CodeStack code;
-  LitCompiler compiler(code);
 
-  for(unsigned i=0;i<clen;i++) {
-    compiler.nextLit();
-    compiler.handleTerm(lits[i]);
+  {
+    TIME_TRACE("codetree code compilation");
+    LitCompiler compiler(code);
+
+    for(unsigned i=0;i<clen;i++) {
+      compiler.nextLit();
+      compiler.handleTerm(lits[i]);
+    }
+    code.push(CodeOp::getSuccess(cl));
+
+    compiler.updateCodeTree(this);
   }
-  code.push(CodeOp::getSuccess(cl));
 
-  compiler.updateCodeTree(this);
-
-  incorporate(code);
+  {
+    // Merging the fresh code into the tree: finding how far it matches an existing path,
+    // splitting a block, and rebuilding the search structures (compressCheckOps).
+    TIME_TRACE("codetree code incorporation");
+    incorporate(code);
+  }
   ASS(code.isEmpty());
 }
 
@@ -468,6 +489,22 @@ void ClauseCodeTree::LiteralMatcher::recordMatch()
  */
 void ClauseCodeTree::ClauseMatcher::init(ClauseCodeTree* tree_, Clause* query_, bool sres_)
 {
+  // "codetree forward subsumption" is 18% of a sweep's instructions and was one opaque
+  // number. These three scopes -- setup here, teardown in reset(), and the multi-literal
+  // matching in checkCandidate() -- cut it into the parts that are not the code-tree
+  // interpreter, so that what is left as this node's *self* time is the interpreter and
+  // only the interpreter.
+  //
+  // The interpreter itself is deliberately not entered. Matcher::execute() dispatches on
+  // one CodeOp at a time, so a scope inside it would be measuring itself: at ~107
+  // instructions per scope it would cost more than the ops it timed. Measuring it as a
+  // whole, against named siblings, is as far as this can usefully go.
+  //
+  // Cost of the three: init and reset run once per perform() (7.2 G calls corpus-wide,
+  // so ~0.06% of corpus each), checkCandidate once per candidate clause that survives to
+  // a SUCCESS op and has more than one literal -- per candidate, never per CodeOp.
+  TIME_TRACE("codetree matcher setup");
+
   ASS(!tree_->isEmpty());
 
   query=query_;
@@ -534,6 +571,10 @@ void ClauseCodeTree::ClauseMatcher::init(ClauseCodeTree* tree_, Clause* query_, 
 
 void ClauseCodeTree::ClauseMatcher::reset()
 {
+  // Disposing the LitInfos frees every MatchInfo recorded during the search, so this is
+  // where a run that accumulated a great many matches pays for them.
+  TIME_TRACE("codetree matcher teardown");
+
   unsigned liCnt=lInfos.size();
   for(unsigned i=0;i<liCnt;i++) {
     lInfos[i].dispose();
@@ -739,6 +780,14 @@ bool ClauseCodeTree::ClauseMatcher::checkCandidate(Clause* cl, int& resolvedQuer
 //  if(matchGlobalVars(resolvedQueryLit)) {
 //    return true;
 //  }
+
+  // Past this point we are no longer interpreting code-tree ops: the candidate's literals
+  // have each been matched individually, and what remains is to find one combination of
+  // those matches whose variable bindings agree -- a backtracking search over match
+  // vectors (doEagerMatching, then matchGlobalVars/compatible/existsCompatibleMatch),
+  // the same kind of work MLMatcher does. Scoped here, above the clen<=1 early exit, so
+  // it is entered once per multi-literal candidate and never for a unit one.
+  TIME_TRACE("codetree multi-literal matching");
 
   bool newMatches=false;
   for(int i=clen-1;i>=0;i--) {
