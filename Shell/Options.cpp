@@ -443,6 +443,13 @@ static OptionProblemConstraintUP hasFormulas() { return OptionProblemConstraintU
 static OptionProblemConstraintUP hasTheories() { return OptionProblemConstraintUP(new HasTheories); }
 static OptionProblemConstraintUP hasGoal() { return OptionProblemConstraintUP(new HasGoal); }
 
+AbstractOptionValue::AbstractOptionValue(const char *l, Options* owner, OptionMeta meta)
+  : longName(l), shortName(meta.short_name),
+    description(meta.description), experimental(meta.experimental), tag(meta.tag)
+{
+  owner->_lookup.insert(*this);
+}
+
 void AbstractOptionValue::output(std::ostream &out, bool linewrap) const
 {
   out << "--" << longName;
@@ -504,129 +511,129 @@ Options::Options ()
   : _decode("decode",this,
       {.description="Decodes an encoded strategy. Can be used to replay a strategy. To make Vampire output an encoded version of the strategy use the encode option.",
        .tag = OptionTag::DEVELOPMENT})
-  , _encode("encode",false,
+  , _encode("encode",this,false,
       {.description = "Output an encoding of the strategy to be used with the decode option",
        .tag = OptionTag::DEVELOPMENT})
-  , _ageWeightRatio("age_weight_ratio",{1,1},':',
+  , _ageWeightRatio("age_weight_ratio",this,{1,1},':',
       {.short_name = "awr",
        .description = "Ratio in which clauses are being selected for activation i.e. A:W means that for every A clauses selected based on age "
     "there will be W selected based on weight. (At most one of A and W can be zero, which means that that queue won't be used at all.)",
        .tag = OptionTag::SATURATION})
-  , _useTheorySplitQueues("theory_split_queue",false,
+  , _useTheorySplitQueues("theory_split_queue",this,false,
       {.short_name = "thsq",
        .description = "Turn on clause selection using multiple queues containing different clauses (split by amount of theory reasoning)",
        .tag = OptionTag::SATURATION})
-  , _theorySplitQueueRatios("theory_split_queue_ratios", "1,1",
+  , _theorySplitQueueRatios("theory_split_queue_ratios",this, "1,1",
       {.short_name = "thsqr",
        .description = "The ratios for picking clauses from the split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.",
        .tag = OptionTag::SATURATION})
-  , _theorySplitQueueCutoffs("theory_split_queue_cutoffs", "0",
+  , _theorySplitQueueCutoffs("theory_split_queue_cutoffs",this, "0",
       {.short_name = "thsqc",
        .description = "The cutoff-values for the split-queues (the cutoff value for the last queue has to be omitted, as it is always infinity). Any split-queue contains all clauses which are assigned a feature-value less or equal to the cutoff-value of the queue. If no custom value for this option is set, the implementation will use cutoffs 0,4*d,10*d,infinity (where d denotes the theory split queue expected ratio denominator).",
        .tag = OptionTag::SATURATION})
-  , _theorySplitQueueExpectedRatioDenom("theory_split_queue_expected_ratio_denom", 8,
+  , _theorySplitQueueExpectedRatioDenom("theory_split_queue_expected_ratio_denom",this, 8,
       {.short_name = "thsqd",
        .description = "The denominator n such that we expect the final proof to have a ratio of theory-axioms to all-axioms of 1/n.",
        .tag = OptionTag::SATURATION})
-  , _theorySplitQueueLayeredArrangement("theory_split_queue_layered_arrangement",true,
+  , _theorySplitQueueLayeredArrangement("theory_split_queue_layered_arrangement",this,true,
       {.short_name = "thsql",
        .description = "If turned on, use a layered arrangement to split clauses into queues. Otherwise use a tammet-style-arrangement.",
        .tag = OptionTag::SATURATION})
-  , _useAvatarSplitQueues("avatar_split_queue",false,
+  , _useAvatarSplitQueues("avatar_split_queue",this,false,
       {.short_name = "avsq",
        .description = "Turn on experiments: clause selection with multiple queues containing different clauses (split by amount of avatar-split-set-size)",
        .tag = OptionTag::AVATAR})
-  , _avatarSplitQueueRatios("avatar_split_queue_ratios", "1,1",
+  , _avatarSplitQueueRatios("avatar_split_queue_ratios",this, "1,1",
       {.short_name = "avsqr",
        .description = "The ratios for picking clauses from the split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.",
        .tag = OptionTag::AVATAR})
-  , _avatarSplitQueueCutoffs("avatar_split_queue_cutoffs", "0",
+  , _avatarSplitQueueCutoffs("avatar_split_queue_cutoffs",this, "0",
       {.short_name = "avsqc",
        .description = "The cutoff-values for the avatar-split-queues (the cutoff value for the last queue is omitted, since it has to be infinity).",
        .tag = OptionTag::AVATAR})
-  , _avatarSplitQueueLayeredArrangement("avatar_split_queue_layered_arrangement",false,
+  , _avatarSplitQueueLayeredArrangement("avatar_split_queue_layered_arrangement",this,false,
       {.short_name = "avsql",
        .description = "If turned on, use a layered arrangement to split clauses into queues. Otherwise use a tammet-style-arrangement.",
        .tag = OptionTag::AVATAR})
-  , _useSineLevelSplitQueues("sine_level_split_queue",false,
+  , _useSineLevelSplitQueues("sine_level_split_queue",this,false,
       {.short_name = "slsq",
        .description = "Turn on experiments: clause selection with multiple queues containing different clauses (split by sine-level of clause)",
        .tag = OptionTag::SATURATION})
-  , _sineLevelSplitQueueRatios("sine_level_split_queue_ratios", "1,1",
+  , _sineLevelSplitQueueRatios("sine_level_split_queue_ratios",this, "1,1",
       {.short_name = "slsqr",
        .description = "The ratios for picking clauses from the sine-level-split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.",
        .tag = OptionTag::SATURATION})
-  , _sineLevelSplitQueueCutoffs("sine_level_split_queue_cutoffs", "0",
+  , _sineLevelSplitQueueCutoffs("sine_level_split_queue_cutoffs",this, "0",
       {.short_name = "slsqc",
        .description = "The cutoff-values for the sine-level-split-queues (the cutoff value for the last queue is omitted, since it has to be infinity).",
        .tag = OptionTag::SATURATION})
-  , _sineLevelSplitQueueLayeredArrangement("sine_level_split_queue_layered_arrangement",true,
+  , _sineLevelSplitQueueLayeredArrangement("sine_level_split_queue_layered_arrangement",this,true,
       {.short_name = "slsql",
        .description = "If turned on, use a layered arrangement to split clauses into queues. Otherwise use a tammet-style-arrangement.",
        .tag = OptionTag::SATURATION})
-  , _usePositiveLiteralSplitQueues("positive_literal_split_queue",false,
+  , _usePositiveLiteralSplitQueues("positive_literal_split_queue",this,false,
       {.short_name = "plsq",
        .description = "Turn on experiments: clause selection with multiple queues containing different clauses (split by number of positive literals in clause)",
        .tag = OptionTag::SATURATION})
-  , _positiveLiteralSplitQueueRatios("positive_literal_split_queue_ratios", "1,4",
+  , _positiveLiteralSplitQueueRatios("positive_literal_split_queue_ratios",this, "1,4",
       {.short_name = "plsqr",
        .description = "The ratios for picking clauses from the positive-literal-split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.",
        .tag = OptionTag::SATURATION})
-  , _positiveLiteralSplitQueueCutoffs("positive_literal_split_queue_cutoffs", "0",
+  , _positiveLiteralSplitQueueCutoffs("positive_literal_split_queue_cutoffs",this, "0",
       {.short_name = "plsqc",
        .description = "The cutoff-values for the positive-literal-split-queues (the cutoff value for the last queue is omitted, since it has to be infinity).",
        .tag = OptionTag::SATURATION})
-  , _positiveLiteralSplitQueueLayeredArrangement("positive_literal_split_queue_layered_arrangement",false,
+  , _positiveLiteralSplitQueueLayeredArrangement("positive_literal_split_queue_layered_arrangement",this,false,
       {.short_name = "plsql",
        .description = "If turned on, use a layered arrangement to split clauses into queues. Otherwise use a tammet-style-arrangement.",
        .tag = OptionTag::SATURATION})
-  , _hoSplitQueues("ho_split_queue",false,
+  , _hoSplitQueues("ho_split_queue",this,false,
       {.short_name = "hsq",
        .description = "Turn on clause selection using multiple queues containing different clauses (split by amount of higher-order featues)",
        .tag = OptionTag::SATURATION})
-  , _hoSplitQueueLambdaWeight("ho_split_queue_lambda_weight",1,
+  , _hoSplitQueueLambdaWeight("ho_split_queue_lambda_weight",this,1,
       {.short_name = "hsqlw",
        .description = "How much should lambda occurrences count in the HO features",
        .tag = OptionTag::SATURATION})
-  , _hoSplitQueueAppVarWeight("ho_split_queue_appvar_weight",1,
+  , _hoSplitQueueAppVarWeight("ho_split_queue_appvar_weight",this,1,
       {.short_name = "hsqaw",
        .description = "How much should app-var occurrences count in the HO features",
        .tag = OptionTag::SATURATION})
-  , _hoSplitQueueRatios("ho_split_queue_ratios", "1,1",
+  , _hoSplitQueueRatios("ho_split_queue_ratios",this, "1,1",
       {.short_name = "hsqr",
        .description = "The ratios for picking clauses from the split-queues using weighted round robin. If a queue is empty, the clause will be picked from the next non-empty queue to the right. Note that this option implicitly also sets the number of queues.",
        .tag = OptionTag::AVATAR})
-  , _hoSplitQueueCutoffs("ho_split_queue_cutoffs", "0",
+  , _hoSplitQueueCutoffs("ho_split_queue_cutoffs",this, "0",
       {.short_name = "hsqc",
        .description = "The cutoff-values for the split-queues (the cutoff value for the last queue has to be omitted, as it is always infinity). Any split-queue contains all clauses which are assigned a feature-value less or equal to the cutoff-value of the queue. If no custom value for this option is set, the implementation will use cutoffs 0,4*d,10*d,infinity (where d denotes the theory split queue expected ratio denominator).",
        .tag = OptionTag::SATURATION})
-  , _hoSplitQueueLayeredArrangement("ho_split_queue_layered_arrangement",true,
+  , _hoSplitQueueLayeredArrangement("ho_split_queue_layered_arrangement",this,true,
       {.short_name = "hsql",
        .description = "If turned on, use a layered arrangement to split clauses into queues. Otherwise use a tammet-style-arrangement.",
        .tag = OptionTag::SATURATION})
-  , _randomAWR("random_awr",false,
+  , _randomAWR("random_awr",this,false,
       {.short_name = "rawr",
        .description = "Respecting age_weight_ratio, always choose the next clause selection queue probabilistically (rather than deterministically).",
        .tag = OptionTag::SATURATION,
        .experimental = true})
-  , _literalMaximalityAftercheck("literal_maximality_aftercheck",true,
+  , _literalMaximalityAftercheck("literal_maximality_aftercheck",this,true,
       {.short_name = "lma",
        .description = "Allows to disable a secondary (literal maximality) ordering check (in the superposition calculus) after a substitution is applied."
                                    " The check costs something but sometimes helps to skip some generating inferences",
        .tag = OptionTag::SATURATION})
-  , _arityCheck("arity_check",false,
+  , _arityCheck("arity_check",this,false,
       {.description = "Enforce the condition that the same symbol name cannot be used with multiple arities."
        "This also ensures a symbol is not used as a function and predicate.",
        .tag = OptionTag::DEVELOPMENT})
-  , _parseGoalAnnotations("parse_goal_annotations",true,
+  , _parseGoalAnnotations("parse_goal_annotations",this,true,
       {.description = "Enable parsing :goal annotations in smtlib problems."
        "They can be used like this: (assert (! <formula> :goal <goal-name>))",
        .tag = OptionTag::INPUT})
-  , _randomTraversals("random_traversals",false,
+  , _randomTraversals("random_traversals",this,false,
       {.short_name = "rtra",
        .tag = OptionTag::SATURATION,
        .experimental = true})
-  , _badOption("bad_option",BadOption::SOFT,{"hard","forced","off","soft"},
+  , _badOption("bad_option",this,BadOption::SOFT,{"hard","forced","off","soft"},
       {.description = "What should be done if a bad option value (wrt hard and soft constraints) is encountered:\n"
        " - hard: will cause a user error\n"
        " - soft: will only report the error (unless it is unsafe)\n"
@@ -634,7 +641,7 @@ Options::Options ()
        " - off: will ignore safe errors\n"
        "Note that unsafe errors will always lead to a user error",
        .tag = OptionTag::HELP})
-  , _backwardDemodulation("backward_demodulation",
+  , _backwardDemodulation("backward_demodulation",this,
                   Demodulation::OFF,
                   {"all","off","preordered"},
       {.short_name = "bd",
@@ -643,25 +650,25 @@ Options::Options ()
        "---------------------   where sθ > tθ (replaces RHS)\n"
        " L[tθ] \\/ C\n",
        .tag = OptionTag::INFERENCES})
-  , _backwardSubsumption("backward_subsumption",
+  , _backwardSubsumption("backward_subsumption",this,
                 Subsumption::OFF,{"off","on","unit_only"},
       {.short_name = "bs",
        .description = "Perform subsumption deletion of kept clauses by newly derived clauses. Unit_only means that the subsumption will be performed only by unit clauses",
        .tag = OptionTag::INFERENCES})
-  , _backwardSubsumptionResolution("backward_subsumption_resolution",
+  , _backwardSubsumptionResolution("backward_subsumption_resolution",this,
                     Subsumption::OFF,{"off","on","unit_only"},
       {.short_name = "bsr",
        .description = "Perform subsumption resolution on kept clauses using newly derived clauses. Unit_only means that the subsumption resolution will be performed only by unit clauses",
        .tag = OptionTag::INFERENCES})
-  , _backwardSubsumptionDemodulation("backward_subsumption_demodulation", false,
+  , _backwardSubsumptionDemodulation("backward_subsumption_demodulation",this, false,
       {.short_name = "bsd",
        .description = "Perform backward subsumption demodulation.",
        .tag = OptionTag::INFERENCES})
-  , _backwardSubsumptionDemodulationMaxMatches("backward_subsumption_demodulation_max_matches", 0,
+  , _backwardSubsumptionDemodulationMaxMatches("backward_subsumption_demodulation_max_matches",this, 0,
       {.short_name = "bsdmm",
        .description = "Maximum number of multi-literal matches to consider in backward subsumption demodulation. 0 means to try all matches (until first success).",
        .tag = OptionTag::INFERENCES})
-  , _binaryResolution("binary_resolution",true,
+  , _binaryResolution("binary_resolution",this,true,
       {.short_name = "br",
        .description = "Standard binary resolution i.e.\n"
         "C \\/ t     D \\/ s\n"
@@ -669,15 +676,15 @@ Options::Options ()
         "(C \\/ D)θ\n"
         "where θ = mgu(t,-s) and t selected",
        .tag = OptionTag::INFERENCES})
-  , _superposition("superposition",true,
+  , _superposition("superposition",this,true,
       {.short_name = "sup",
        .description = "Control superposition. Turning off this core inference leads to an incomplete calculus on equational problems.",
        .tag = OptionTag::INFERENCES})
-  , _condensation("condensation",Condensation::OFF,{"fast","off","on"},
+  , _condensation("condensation",this,Condensation::OFF,{"fast","off","on"},
       {.short_name = "cond",
        .description = "Perform condensation. If 'fast' is specified, we only perform condensations that are easy to check for.",
        .tag = OptionTag::INFERENCES})
-  , _demodulationRedundancyCheck("demodulation_redundancy_check",
+  , _demodulationRedundancyCheck("demodulation_redundancy_check",this,
        DemodulationRedundancyCheck::ENCOMPASS,{"off","ordering","encompass"},
       {.short_name = "drc",
        .description = "The following cases of backward and forward demodulation do not preserve completeness:\n"
@@ -690,16 +697,16 @@ Options::Options ()
        "With `ordering`, we check this condition and don't demodulate if we could violate completeness.\n"
        "With `off`, we skip the checks, save time, but become incomplete.",
        .tag = OptionTag::INFERENCES})
-  , _forwardDemodulationTermOrderingDiagrams("forward_demodulation_term_ordering_diagrams",true,
+  , _forwardDemodulationTermOrderingDiagrams("forward_demodulation_term_ordering_diagrams",this,true,
       {.short_name = "fdtod",
        .description = "Use term ordering diagrams (TODs) to runtime specialize post-ordering checks in forward demodulation.",
        .tag = OptionTag::INFERENCES})
-  , _demodulationOnlyEquational("demodulation_only_equational",false,
+  , _demodulationOnlyEquational("demodulation_only_equational",this,false,
       {.short_name = "doe",
        .description = "Disables demodulation of non-equational literals. In combination with -ins > 0 simulates the effect of Waldmeister's `Enlarging the Hypothesis` trick.",
        .tag = OptionTag::INFERENCES,
        .experimental = true})
-  , _equalityProxy( "equality_proxy",EqualityProxy::OFF,{"R","RS","RST","RSTC","off"},
+  , _equalityProxy( "equality_proxy",this,EqualityProxy::OFF,{"R","RS","RST","RSTC","off"},
       {.short_name = "ep",
        .description = "Applies the equality proxy transformation to the problem. It works as follows:\n"
      " - All literals s=t are replaced by E(s,t)\n"
@@ -715,11 +722,11 @@ Options::Options ()
      " E is a single polymorphic predicate for a polymorphic problem and one predicate"
      " per sort for a monomorphic one",
        .tag = OptionTag::PREPROCESSING})
-  , _equalityResolutionWithDeletion("equality_resolution_with_deletion",true,
+  , _equalityResolutionWithDeletion("equality_resolution_with_deletion",this,true,
       {.short_name = "erd",
        .description = "Perform equality resolution with deletion.",
        .tag = OptionTag::PREPROCESSING})
-  , _extensionalityResolution("extensionality_resolution",
+  , _extensionalityResolution("extensionality_resolution",this,
                       ExtensionalityResolution::OFF,{"filter","known","tagged","off"},
       {.short_name = "er",
        .description = "Turns on the following inference rule:\n"
@@ -731,17 +738,17 @@ Options::Options ()
       "If known we only recognise a known set of extensionality clauses. At the moment this includes the standard and subset-based formulations of the set extensionality axiom, as well as the array extensionality axiom.\n"
       "If tagged we only use formulas tagged as extensionality clauses.",
        .tag = OptionTag::INFERENCES})
-  , _extensionalityMaxLength("extensionality_max_length",0,
+  , _extensionalityMaxLength("extensionality_max_length",this,0,
       {.short_name = "erml",
        .description = "Sets the maximum length (number of literals) an extensionality"
       " clause can have when doing recognition for extensionality resolution. If zero there is no maximum.",
        .tag = OptionTag::INFERENCES})
-  , _extensionalityAllowPosEq( "extensionality_allow_pos_eq",true,
+  , _extensionalityAllowPosEq( "extensionality_allow_pos_eq",this,true,
       {.short_name = "eape",
        .description = "If extensionality resolution equals filter, this dictates"
       " whether we allow other positive equalities when recognising extensionality clauses",
        .tag = OptionTag::INFERENCES})
-  , _FOOLParamodulation("fool_paramodulation",false,
+  , _FOOLParamodulation("fool_paramodulation",this,false,
       {.short_name = "foolp",
        .description = "Turns on the following inference rule:\n"
       "        C[s]\n"
@@ -751,7 +758,7 @@ Options::Options ()
       "the C clause with s substituted by true. This rule is needed for efficient "
       "treatment of boolean terms.",
        .tag = OptionTag::INFERENCES})
-  , _termAlgebraInferences("term_algebra_rules",true,
+  , _termAlgebraInferences("term_algebra_rules",this,true,
       {.short_name = "tar",
        .description = "Activates some rules that improve reasoning with term algebras (such as algebraic datatypes in SMT-LIB):\n"
       "If the problem does not contain any term algebra symbols, activating this options has no effect\n"
@@ -768,7 +775,7 @@ Options::Options ()
       "               ...\n"
       "         sn = tn \\/ A",
        .tag = OptionTag::THEORIES})
-  , _termAlgebraCyclicityCheck("term_algebra_acyclicity",
+  , _termAlgebraCyclicityCheck("term_algebra_acyclicity",this,
                                                                      TACyclicityCheck::OFF,{"off","axiom","rule","light"},
       {.short_name = "tac",
        .description = "Activates the cyclicity rule for term algebras (such as algebraic datatypes in SMT-LIB):\n"
@@ -777,53 +784,43 @@ Options::Options ()
       "- rule : the cyclicity rule is enforced by a specific hyper-resolution rule\n"
       "- light : the cyclicity rule is enforced by rule generating disequality between a term and its known subterms",
        .tag = OptionTag::THEORIES})
-  , _termAlgebraExhaustivenessAxiom("term_algebra_exhaustiveness_axiom",true,
+  , _termAlgebraExhaustivenessAxiom("term_algebra_exhaustiveness_axiom",this,true,
       {.short_name = "taea",
        .description = "Enable term algebra exhaustiveness axiom",
        .tag = OptionTag::THEORIES})
-  , _fmbNonGroundDefs("fmb_nonground_defs",false,
-      {.short_name = "fmbngd",
-       .description = "Introduce definitions for non ground terms in preprocessing for fmb",
-       .experimental = true})
-  , _fmbStartSize("fmb_start_size",1,
+  , _fmbStartSize("fmb_start_size",this,1,
       {.short_name = "fmbss",
        .description = "Set the initial model size for finite model building",
        .tag = OptionTag::FMB})
-  , _fmbSymmetryRatio("fmb_symmetry_ratio",1.0,
+  , _fmbSymmetryRatio("fmb_symmetry_ratio",this,1.0,
       {.short_name = "fmbsr",
        .description = "Usually we use at most n principal terms for symmetry avoidance where n is the current model size. This option allows us to supply a multiplier for that n. See Symmetry Avoidance in MACE-Style Finite Model Finding.",
        .tag = OptionTag::FMB})
-  , _fmbSymmetryWidgetOrders("fmb_symmetry_widget_order",
-                                                     FMBWidgetOrders::FUNCTION_FIRST,
-                                                     {"function_first","argument_first","diagonal"},
-      {.short_name = "fmbswo",
-       .description = "The order of constructed principal terms used in symmetry avoidance. See Symmetry Avoidance in MACE-Style Finite Model Finding.",
-       .tag = OptionTag::FMB})
-  , _fmbSymmetryOrderSymbols("fmb_symmetry_symbol_order",
+  , _fmbSymmetryOrderSymbols("fmb_symmetry_symbol_order",this,
                                                      FMBSymbolOrders::OCCURRENCE,
                                                      {"occurrence","usage"},
       {.short_name = "fmbsso",
        .description = "The order of symbols considered for symmetry avoidance: either as they come in the signature, or by how often they occur in the clauses finite model building has preprocessed. See Symmetry Avoidance in MACE-Style Finite Model Finding.",
        .tag = OptionTag::FMB})
-  , _fmbAdjustSorts("fmb_adjust_sorts",
+  , _fmbAdjustSorts("fmb_adjust_sorts",this,
                                                            FMBAdjustSorts::GROUP,
                                                            {"off","expand","group","predicate","function"},
       {.short_name = "fmbas",
        .description = "Detect monotonic sorts. If <expand> then expand monotonic subsorts into proper sorts. If <group> then collapse monotonic sorts into a single sort. If <predicate> then introduce sort predicates for non-monotonic sorts and collapse all sorts into one. If <function> then introduce sort functions for non-monotonic sorts and collapse all sorts into one",
        .tag = OptionTag::FMB})
-  , _fmbDetectSortBounds("fmb_detect_sort_bounds",false,
+  , _fmbDetectSortBounds("fmb_detect_sort_bounds",this,false,
       {.short_name = "fmbdsb",
        .description = "Use a saturation loop to detect sort bounds introduced by (for example) injective functions",
        .tag = OptionTag::FMB})
-  , _fmbDetectSortBoundsTimeLimit("fmb_detect_sort_bounds_time_limit",10,
+  , _fmbDetectSortBoundsTimeLimit("fmb_detect_sort_bounds_time_limit",this,10,
       {.short_name = "fmbdsbt",
        .description = "The time limit for performing sort bound detection",
        .tag = OptionTag::FMB})
-  , _fmbSizeWeightRatio("fmb_size_weight_ratio",1,
+  , _fmbSizeWeightRatio("fmb_size_weight_ratio",this,1,
       {.short_name = "fmbswr",
        .description = "Controls the priority the next sort size vector is given based on a ratio. 0 is size only, 1 means 1:1, 2 means 1:2, etc.",
        .tag = OptionTag::FMB})
-  , _fmbEnumerationStrategy("fmb_enumeration_strategy",FMBEnumerationStrategy::SBMEAM,{"sbeam",
+  , _fmbEnumerationStrategy("fmb_enumeration_strategy",this,FMBEnumerationStrategy::SBMEAM,{"sbeam",
 #if VZ3
         "smt",
 #endif
@@ -831,21 +828,21 @@ Options::Options ()
       {.short_name = "fmbes",
        .description = "How model sizes assignments are enumerated in the multi-sorted setting. (Only smt and contour are known to be finite model complete and can therefore return UNSAT.)",
        .tag = OptionTag::FMB})
-  , _fmbKeepSbeamGenerators("fmb_keep_sbeam_generators",false,
+  , _fmbKeepSbeamGenerators("fmb_keep_sbeam_generators",this,false,
       {.short_name = "fmbksg",
        .description = "A modification of the sbeam enumeration strategy which (for a performance price) makes it more enumeration-complete.",
        .tag = OptionTag::FMB})
-  , _fmbUseSimplifyingSolver("fmb_use_simplifying_solver",true,
+  , _fmbUseSimplifyingSolver("fmb_use_simplifying_solver",this,true,
       {.short_name = "fmbuss",
        .description = "Allow the SAT solver to internally simplify the instance.",
        .tag = OptionTag::FMB})
-  , _forbiddenOptions("forbidden_options","",
+  , _forbiddenOptions("forbidden_options",this,"",
       {.description = "If some of the specified options are set to a forbidden state, vampire will fail to start, or in portfolio modes it will skip such strategies. The expected syntax is <opt1>=<val1>:<opt2>:<val2>:...:<optn>=<valN>",
        .tag = OptionTag::INPUT})
-  , _forcedOptions("forced_options","",
+  , _forcedOptions("forced_options",this,"",
       {.description = "Options in the format <opt1>=<val1>:<opt2>=<val2>:...:<optn>=<valN> that override the option values set by other means (also inside portfolio mode strategies)",
        .tag = OptionTag::INPUT})
-  , _forwardDemodulation("forward_demodulation",Demodulation::ALL,{"all","off","preordered"},
+  , _forwardDemodulation("forward_demodulation",this,Demodulation::ALL,{"all","off","preordered"},
       {.short_name = "fd",
        .description = "Oriented rewriting of newly derived clauses by kept unit equalities\n"
     "s = t     L[sθ] \\/ C\n"
@@ -853,38 +850,38 @@ Options::Options ()
     " L[tθ] \\/ C\n"
     "If 'preordered' is set, only equalities s = t where s > t are used for rewriting.",
        .tag = OptionTag::INFERENCES})
-  , _forwardGroundJoinability("forward_ground_joinability",false,
+  , _forwardGroundJoinability("forward_ground_joinability",this,false,
       {.short_name = "fgj",
        .description = "Perform forward ground joinability.",
        .tag = OptionTag::INFERENCES})
-  , _forwardLiteralRewriting("forward_literal_rewriting",false,
+  , _forwardLiteralRewriting("forward_literal_rewriting",this,false,
       {.short_name = "flr",
        .description = "Perform forward literal rewriting.",
        .tag = OptionTag::INFERENCES})
-  , _forwardSubsumption("forward_subsumption",true,
+  , _forwardSubsumption("forward_subsumption",this,true,
       {.short_name = "fs",
        .description = "Perform forward subsumption deletion.",
        .tag = OptionTag::INFERENCES})
-  , _forwardSubsumptionResolution("forward_subsumption_resolution",true,
+  , _forwardSubsumptionResolution("forward_subsumption_resolution",this,true,
       {.short_name = "fsr",
        .description = "Perform forward subsumption resolution.",
        .tag = OptionTag::INFERENCES})
-  , _forwardSubsumptionDemodulation("forward_subsumption_demodulation", false,
+  , _forwardSubsumptionDemodulation("forward_subsumption_demodulation",this, false,
       {.short_name = "fsd",
        .description = "Perform forward subsumption demodulation.",
        .tag = OptionTag::INFERENCES})
-  , _forwardSubsumptionDemodulationMaxMatches("forward_subsumption_demodulation_max_matches", 0,
+  , _forwardSubsumptionDemodulationMaxMatches("forward_subsumption_demodulation_max_matches",this, 0,
       {.short_name = "fsdmm",
        .description = "Maximum number of multi-literal matches to consider in forward subsumption demodulation. 0 means to try all matches (until first success).",
        .tag = OptionTag::INFERENCES})
-  , _functionDefinitionElimination("function_definition_elimination",
+  , _functionDefinitionElimination("function_definition_elimination",this,
                                                                                       FunctionDefinitionElimination::ALL,{"all","none","unused"},
       {.short_name = "fde",
        .description = "Attempts to eliminate function definitions. A function definition is a unit clause of the form f(x1,..,xn) = t where x1,..,xn are the pairwise distinct free variables of t and f does not appear in t."
         " If 'all', definitions are eliminated by replacing every occurrence of f(s1,..,sn) by t{x1 -> s1, .., xn -> sn}. If 'unused' only unused definitions are removed.",
        .tag = OptionTag::PREPROCESSING})
   , _functionDefinitionIntroduction(
-      "function_definition_introduction",
+      "function_definition_introduction",this,
       0,
       {.short_name = "fdi",
        .description = "If non-zero, introduces function definitions with generalisation for repeated compound terms in the active set. "
@@ -892,176 +889,179 @@ Options::Options ()
       "The parameter value 'n' is a threshold: terms that occur more than n times have a definition created.",
        .tag = OptionTag::INFERENCES}
     )
-  , _tweeGoalTransformation("twee_goal_transformation", TweeGoalTransformation::OFF, {"off","ground","full"},
+  , _tweeGoalTransformation("twee_goal_transformation",this, TweeGoalTransformation::OFF, {"off","ground","full"},
       {.short_name = "tgt",
        .description = "Add definitions for `ground` subterms in the conjecture, inspired by Twee. "
       "This adds a goal-directed flavour to equational reasoning. "
       "`full` is a generalization, where also non-ground subterms are considered.",
        .tag = OptionTag::PREPROCESSING,
        .experimental = true})
-  , _tweeSkipArrows("twee_skip_arrows",true,
+    // At least on higher-order TPTP, tgt with tsa=off sucks badly
+    // TODO(HOL): investigate perhaps less invasive options of restraining
+    // general tgt in HOL, that would still be performant
+  , _tweeSkipArrows("twee_skip_arrows",this,true,
       {.short_name = "tsa",
        .description = "During twee_goal_transformation, when in HOL, don't introduce definitions for arrow-typed subterms.",
        .tag = OptionTag::PREPROCESSING,
        .experimental = true})
-  , _codeTreeSubsumption("code_tree_subsumption", true,
+  , _codeTreeSubsumption("code_tree_subsumption",this, true,
       {.short_name = "cts",
        .description = "Use code tree implementation of forward subsumption and subsumption resolution.",
        .tag = OptionTag::INFERENCES,
        .experimental = true})
-  , _generalSplitting("general_splitting",false,
+  , _generalSplitting("general_splitting",this,false,
       {.short_name = "gsp",
        .description = "Splits clauses in order to reduce number of different variables in each clause. "
     "A clause C[X] \\/ D[Y] with subclauses C and D over non-equal sets of variables X and Y can be split into S(Z) \\/ C[X] and ~S(Z) \\/ D[Y] where Z is the intersection of X and Y.",
        .tag = OptionTag::PREPROCESSING})
-  , _globalSubsumption("global_subsumption",false,
+  , _globalSubsumption("global_subsumption",this,false,
       {.short_name = "gs",
        .description = "Perform global subsumption. Use a set of groundings of generated clauses G to replace C \\/ L by C if the grounding of C is implied by G. A SAT solver is used for ground reasoning.",
        .tag = OptionTag::INFERENCES})
-  , _guessTheGoal("guess_the_goal",GoalGuess::OFF,{"off","all","exists_top","exists_all","exists_sym","position"},
+  , _guessTheGoal("guess_the_goal",this,GoalGuess::OFF,{"off","all","exists_top","exists_all","exists_sym","position"},
       {.short_name = "gtg",
        .description = "Use heuristics to guess formulas that correspond to the goal. Doesn't "
                                 "really make sense if there is already a goal but it will still do something. "
                                 "This is really designed for use with SMTLIB problems that don't have goals",
        .tag = OptionTag::INPUT})
-  , _guessTheGoalLimit("guess_the_goal_limit",1,
+  , _guessTheGoalLimit("guess_the_goal_limit",this,1,
       {.short_name = "gtgl",
        .description = "The maximum number of input units a symbol appears for it to be considered in a goal",
        .tag = OptionTag::INPUT})
-  , _simultaneousSuperposition("simultaneous_superposition",true,
+  , _simultaneousSuperposition("simultaneous_superposition",this,true,
       {.short_name = "sims",
        .description = "Rewrite the whole RHS clause during superposition, not just the target literal.",
        .tag = OptionTag::INFERENCES})
-  , _innerRewriting("inner_rewriting",false,
+  , _innerRewriting("inner_rewriting",this,false,
       {.short_name = "irw",
        .description = "C[t_1] | t1 != t2 ==> C[t_2] | t1 != t2 when t1>t2",
        .tag = OptionTag::INFERENCES})
-  , _equationalTautologyRemoval("equational_tautology_removal",false,
+  , _equationalTautologyRemoval("equational_tautology_removal",this,false,
       {.short_name = "etr",
        .description = "A reduction which uses congruence closure to remove logically valid clauses.",
        .tag = OptionTag::INFERENCES})
-  , _subsumptionEqualityResolution("subsumption_equality_resolution",false,
+  , _subsumptionEqualityResolution("subsumption_equality_resolution",this,false,
       {.short_name = "ser",
        .description = "Similar to subsumption resolution but uses the implicit x = x clause to resolve a literal.",
        .tag = OptionTag::INFERENCES})
-  , _partialRedundancyCheck("partial_redundancy_check",false,
+  , _partialRedundancyCheck("partial_redundancy_check",this,false,
       {.short_name = "prc",
        .description = "Skip generating inferences on clause instances on which we already performed a simplifying inference.",
        .tag = OptionTag::INFERENCES})
-  , _partialRedundancyOrderingConstraints("partial_redundancy_ordering_constraints",false,
+  , _partialRedundancyOrderingConstraints("partial_redundancy_ordering_constraints",this,false,
       {.short_name = "proc",
        .description = "Strengthen partial redundancy with ordering constraints.",
        .tag = OptionTag::INFERENCES})
-  , _partialRedundancyAvatarConstraints("partial_redundancy_avatar_constraints",false,
+  , _partialRedundancyAvatarConstraints("partial_redundancy_avatar_constraints",this,false,
       {.short_name = "prac",
        .description = "Strengthen partial redundancy with AVATAR constraints.",
        .tag = OptionTag::INFERENCES})
-  , _partialRedundancyLiteralConstraints("partial_redundancy_literal_constraints",false,
+  , _partialRedundancyLiteralConstraints("partial_redundancy_literal_constraints",this,false,
       {.short_name = "prlc",
        .description = "Strengthen partial redundancy with literals from clauses.",
        .tag = OptionTag::INFERENCES})
-  , _ignoreMissing("ignore_missing",IgnoreMissing::OFF,{"on","off","warn"},
+  , _ignoreMissing("ignore_missing",this,IgnoreMissing::OFF,{"on","off","warn"},
       {.description = "Ignore any options that have been removed (useful in portfolio modes where this can cause strategies to be skipped). If set to warn "
       "this will print a warning when ignoring. This is set to warn in CASC mode.",
        .tag = OptionTag::DEVELOPMENT})
-  , _include("include","",
+  , _include("include",this,"",
       {.description = "Path prefix for the 'include' TPTP directive",
        .tag = OptionTag::INPUT})
-  , _increasedNumeralWeight("increased_numeral_weight",false,
+  , _increasedNumeralWeight("increased_numeral_weight",this,false,
       {.short_name = "inw",
        .description = "This option only applies if the problem has interpreted numbers. The weight of integer constants depends on the logarithm of their absolute value (instead of being 1)",
        .tag = OptionTag::SATURATION})
-  , _ignoreConjectureInPreprocessing("ignore_conjecture_in_preprocessing",false,
+  , _ignoreConjectureInPreprocessing("ignore_conjecture_in_preprocessing",this,false,
       {.short_name = "icip",
        .description = "Make sure we do not delete the conjecture in preprocessing even if it can be deleted.",
        .tag = OptionTag::PREPROCESSING})
-  , _inequalitySplitting("inequality_splitting",0,
+  , _inequalitySplitting("inequality_splitting",this,0,
       {.short_name = "ins",
        .description = "When greater than zero, ins defines a weight threshold w such that any clause C \\/ s!=t "
     "where s (or conversely t) is ground and has weight greater or equal than w "
     "is replaced by C \\/ p(s) with the additional unit clause ~p(t) being added "
     "for fresh predicate p.",
        .tag = OptionTag::PREPROCESSING})
-  , _inputSyntax("input_syntax",InputSyntax::AUTO,{"smtlib2","tptp","auto"},
+  , _inputSyntax("input_syntax",this,InputSyntax::AUTO,{"smtlib2","tptp","auto"},
       {.description = "Input syntax. Historic input syntaxes have been removed as they are not actively maintained. Contact developers for help with these.",
        .tag = OptionTag::INPUT})
-  , _instantiation("instantiation",false,
+  , _instantiation("instantiation",this,false,
       {.short_name = "inst",
        .description = "Heuristically instantiate variables. Often wastes a lot of effort. Consider using thi instead.",
        .tag = OptionTag::THEORIES})
-  , _induction("induction",Induction::NONE,
+  , _induction("induction",this,Induction::NONE,
                       {"none","struct","int","both"},
       {.short_name = "ind",
        .description = "Apply structural and/or integer induction on datatypes and integers.",
        .tag = OptionTag::INDUCTION})
-  , _structInduction("structural_induction_kind",
+  , _structInduction("structural_induction_kind",this,
                          StructuralInductionKind::ONE,{"one","two","three","recursion","all"},
       {.short_name = "sik",
        .description = "The kind of structural induction applied",
        .tag = OptionTag::INDUCTION})
-  , _intInduction("int_induction_kind",
+  , _intInduction("int_induction_kind",this,
                          IntInductionKind::ONE,{"one","two","all"},
       {.short_name = "iik",
        .description = "The kind of integer induction applied",
        .tag = OptionTag::INDUCTION})
-  , _inductionSkolemOnly("induction_skolem_only",false,
+  , _inductionSkolemOnly("induction_skolem_only",this,false,
       {.short_name = "indso",
        .description = "Induct only on terms containing Skolems",
        .tag = OptionTag::INDUCTION})
-  , _inductionGoalClausesOnly("induction_goal_clauses_only",false,
+  , _inductionGoalClausesOnly("induction_goal_clauses_only",this,false,
       {.short_name = "indgco",
        .description = "Induct only on clauses derived from the goal",
        .tag = OptionTag::INDUCTION})
-  , _maxInductionDepth("induction_max_depth",0,
+  , _maxInductionDepth("induction_max_depth",this,0,
       {.short_name = "indmd",
        .description = "Set maximum depth of induction where 0 means no max.",
        .tag = OptionTag::INDUCTION})
-  , _inductionNegOnly("induction_neg_only",true,
+  , _inductionNegOnly("induction_neg_only",this,true,
       {.short_name = "indn",
        .description = "Only apply induction to negative literals",
        .tag = OptionTag::INDUCTION})
-  , _inductionUnitOnly("induction_unit_only",true,
+  , _inductionUnitOnly("induction_unit_only",this,true,
       {.short_name = "indu",
        .description = "Only apply induction to unit clauses",
        .tag = OptionTag::INDUCTION})
-  , _inductionGen("induction_gen",false,
+  , _inductionGen("induction_gen",this,false,
       {.short_name = "indgen",
        .description = "Apply induction with generalization (on both all & selected occurrences)",
        .tag = OptionTag::INDUCTION})
-  , _inductionStrengthenHypothesis("induction_strengthen_hypothesis",false,
+  , _inductionStrengthenHypothesis("induction_strengthen_hypothesis",this,false,
       {.short_name = "indstrhyp",
        .description = "Strengthen induction formulas with the remaining skolem constants"
                                                   " replaced with universally quantified variables in hypotheses",
        .tag = OptionTag::INDUCTION})
-  , _maxInductionGenSubsetSize("max_induction_gen_subset_size",3,
+  , _maxInductionGenSubsetSize("max_induction_gen_subset_size",this,3,
       {.short_name = "indgenss",
        .description = "Set maximum number of occurrences of the induction term to be"
                                               " generalized, where 0 means no max. (Regular induction will"
                                               " be applied without this restriction.)",
        .tag = OptionTag::INDUCTION})
-  , _inductionOnComplexTerms("induction_on_complex_terms",false,
+  , _inductionOnComplexTerms("induction_on_complex_terms",this,false,
       {.short_name = "indoct",
        .description = "Apply induction on complex (ground) terms vs. only on constants",
        .tag = OptionTag::INDUCTION})
-  , _inductionGroundOnly("induction_ground_only",true,
+  , _inductionGroundOnly("induction_ground_only",this,true,
       {.short_name = "indgo",
        .description = "Apply induction only on ground literals vs. literals with at most one free variable",
        .tag = OptionTag::INDUCTION})
-  , _functionDefinitionRewriting("function_definition_rewriting",false,
+  , _functionDefinitionRewriting("function_definition_rewriting",this,false,
       {.short_name = "fnrw",
        .description = "Use function definitions as rewrite rules with the intended orientation rather than the term ordering one",
        .tag = OptionTag::INFERENCES})
-  , _integerInductionDefaultBound("int_induction_default_bound",false,
+  , _integerInductionDefaultBound("int_induction_default_bound",this,false,
       {.short_name = "intinddb",
        .description = "Always apply integer induction with bound 0",
        .tag = OptionTag::INDUCTION})
-  , _integerInductionInterval("int_induction_interval",
+  , _integerInductionInterval("int_induction_interval",this,
                          IntegerInductionInterval::BOTH,{"infinite","finite","both"},
       {.short_name = "intindint",
        .description = "Whether integer induction is applied over infinite or finite intervals, or both",
        .tag = OptionTag::INDUCTION})
   , _integerInductionStrictnessEq(
-        "int_induction_strictness_eq",
+        "int_induction_strictness_eq",this,
         IntegerInductionLiteralStrictness::NONE,
         OptionChoiceValues{"none","toplevel_not_in_other","only_one_occurrence","not_in_both","always"},
       {.short_name = "intindsteq",
@@ -1076,7 +1076,7 @@ Options::Options ()
        .tag = OptionTag::INDUCTION}
     )
   , _integerInductionStrictnessComp(
-        "int_induction_strictness_comp",
+        "int_induction_strictness_comp",this,
         IntegerInductionLiteralStrictness::TOPLEVEL_NOT_IN_OTHER,
         OptionChoiceValues{"none","toplevel_not_in_other","only_one_occurrence","not_in_both","always"},
       {.short_name = "intindstcomp",
@@ -1091,7 +1091,7 @@ Options::Options ()
        .tag = OptionTag::INDUCTION}
     )
   , _integerInductionStrictnessTerm(
-      "int_induction_strictness_term",
+      "int_induction_strictness_term",this,
       IntegerInductionTermStrictness::INTERPRETED_CONSTANT,
       {"none", "interpreted_constant", "no_skolems"},
       {.short_name = "intindstterm",
@@ -1102,57 +1102,57 @@ Options::Options ()
       "  - no_skolems: t does not contain a skolem function",
        .tag = OptionTag::INDUCTION}
     )
-  , _nonUnitInduction("non_unit_induction",false,
+  , _nonUnitInduction("non_unit_induction",this,false,
       {.short_name = "nui",
        .description = "Induction on certain clauses or clause sets instead of just unit clauses",
        .tag = OptionTag::INDUCTION})
-  , _inductionOnActiveOccurrences("induction_on_active_occurrences",false,
+  , _inductionOnActiveOccurrences("induction_on_active_occurrences",this,false,
       {.short_name = "indao",
        .description = "Only use induction terms from active occurrences, generalize over active occurrences",
        .tag = OptionTag::INDUCTION})
-  , _literalComparisonMode("literal_comparison_mode",
+  , _literalComparisonMode("literal_comparison_mode",this,
                                                                       LiteralComparisonMode::STANDARD,
                                                                       {"predicate","reverse","standard"},
       {.short_name = "lcm",
        .description = "Vampire uses term orderings which use an ordering of predicates. Standard places equality (and certain other special predicates) first and all others second. Predicate depends on symbol precedence (see symbol_precedence). Reverse reverses the order.",
        .tag = OptionTag::SATURATION})
-  , _lookaheadDelay("lookahaed_delay",0,
+  , _lookaheadDelay("lookahaed_delay",this,0,
       {.short_name = "lsd",
        .description = "Delay the use of lookahead selection by this many selections"
                                   " the idea is that lookahead selection may behave erratically"
                                   " at the start",
        .tag = OptionTag::SATURATION})
-  , _lrsFirstTimeCheck("lrs_first_time_check",5,
+  , _lrsFirstTimeCheck("lrs_first_time_check",this,5,
       {.short_name = "lftc",
        .description = "Percentage of time limit at which the LRS algorithm will for the first time estimate the number of reachable clauses.",
        .tag = OptionTag::LRS})
-  , _lrsWeightLimitOnly("lrs_weight_limit_only",false,
+  , _lrsWeightLimitOnly("lrs_weight_limit_only",this,false,
       {.short_name = "lwlo",
        .description = "If off, the lrs sets both age and weight limit according to clause reachability, otherwise it sets the age limit to 0 and only the weight limit reflects reachable clauses",
        .tag = OptionTag::LRS})
-  , _lrsRetroactiveDeletes("lrs_retroactive_deletes",false,
+  , _lrsRetroactiveDeletes("lrs_retroactive_deletes",this,false,
       {.short_name = "lrd",
        .description = "Not only deleted new clauses that exceed current estimated limits in passive,"
     " but also visit active and passive and delete clauses that exceed the new limit or would only generate children exceeding the limit.",
        .tag = OptionTag::LRS})
-  , _lrsPreemptiveDeletes("lrs_preemptive_deletes",true,
+  , _lrsPreemptiveDeletes("lrs_preemptive_deletes",this,true,
       {.short_name = "lpd",
        .description = "If false, LRS will not use limits to delete clauses entering passive."
      " (Only the retroactive deletes might apply.)",
        .tag = OptionTag::LRS})
   #if VAMPIRE_PERF_EXISTS
-  , _instructionLimit("instruction_limit",0,
+  , _instructionLimit("instruction_limit",this,0,
       {.short_name = "i",
        .description = "Limit the number (in millions) of executed instructions (excluding the kernel ones)."})
-  , _simulatedInstructionLimit("simulated_instruction_limit",0,
+  , _simulatedInstructionLimit("simulated_instruction_limit",this,0,
       {.short_name = "sil",
        .description = "Instruction limit (in millions) of executed instructions for the purpose of reachability estimations of the LRS saturation algorithm (if 0, the actual instruction limit is used)",
        .tag = OptionTag::LRS})
-  , _parsingDoesNotCount("parsing_does_not_count",false,
+  , _parsingDoesNotCount("parsing_does_not_count",this,false,
       {.description = "Extend the instruction limit by the amount of instructions it took to parse the input problem.",
        .tag = OptionTag::DEVELOPMENT})
   #endif
-  , _memoryLimit("memory_limit",
+  , _memoryLimit("memory_limit",this,
 #if VDEBUG
                                        1024     //   1 GB
 #else
@@ -1162,10 +1162,10 @@ Options::Options ()
       {.short_name = "m",
        .description="Attempt to limit memory use (in MB). Limits less than 20MB are ignored to allow Vampire to start. Known not to work on MacOS for mysterious reasons: https://forums.developer.apple.com/forums/thread/702803"}
                                        )
-  , _interactive("interactive",false,
+  , _interactive("interactive",this,false,
       {.description = "An experimental interactive mode (commands to use: load <file to parse>, read <line to parse>, pop (to drop the last added set of formulas), run [options to supply], exit).",
        .experimental = true})
-  , _mode("mode",Mode::VAMPIRE,
+  , _mode("mode",this,Mode::VAMPIRE,
                                     {"axiom_selection",
                                         "casc",
                                         "clausify",
@@ -1192,14 +1192,14 @@ Options::Options ()
     "Some modes are not currently maintained (get in touch if interested):\n"
     "  -bpa: perform bound propagation\n"
     "  -consequence_elimination: perform consequence elimination\n"})
-  , _intent("intent",Intent::UNSAT,{"unsat","sat"},
+  , _intent("intent",this,Intent::UNSAT,{"unsat","sat"},
       {.short_name = "intent",
        .description = "Describes what the system should be striving to show."
       " By default a prover tries to show `unsat` and find a refutation (a proof of the negated conjecture)."
       " Discovering a finite saturations while using a complete strategy and thus testifying satisfiability is a nice bonus in that case."
       " On the other hand, with the intent `sat` the main focus is on finding models."
       " (Please use `--mode casc --intent sat` to achieve what was previously triggered via `--mode CASC_SAT`)."})
-  , _schedule("schedule",Schedule::CASC,
+  , _schedule("schedule",this,Schedule::CASC,
         {"casc",
          "casc_2024",
          "casc_2025",
@@ -1224,68 +1224,68 @@ Options::Options ()
       {.short_name = "sched",
        .description = "Schedule to be run by the portfolio mode. casc and smtcomp usually point to the most recent schedule in that category. file loads the schedule from a file specified in --schedule_file. Note that some old schedules may contain option values that are no longer supported - see ignore_missing.",
        .tag = OptionTag::PORTFOLIO})
-  , _scheduleFile("schedule_file", "",
+  , _scheduleFile("schedule_file",this, "",
       {.description = "Path to the input schedule file. Each line contains an encoded strategy. Disabled unless `--schedule file` is set.",
        .tag = OptionTag::PORTFOLIO})
-  , _multicore("cores",1,
+  , _multicore("cores",this,1,
       {.description = "When running in portfolio modes (including casc or smtcomp modes) specify the number of cores, set to 0 to use maximum",
        .tag = OptionTag::PORTFOLIO})
-  , _slowness("slowness",1.0,
+  , _slowness("slowness",this,1.0,
       {.description = "The factor by which is multiplied the time limit of each configuration in casc/casc_sat/smtcomp/portfolio mode",
        .tag = OptionTag::PORTFOLIO})
-  , _randomizeSeedForPortfolioWorkers("randomize_seed_for_portfolio_workers",true,
+  , _randomizeSeedForPortfolioWorkers("randomize_seed_for_portfolio_workers",this,true,
       {.description = "In portfolio mode, let each worker process start from its own independent random seed.",
        .tag = OptionTag::PORTFOLIO})
-  , _shuffleOnScheduleRepeats("shuffle_on_schedule_repeats",true,
+  , _shuffleOnScheduleRepeats("shuffle_on_schedule_repeats",this,true,
       {.description = "In portfolio mode, when we run out of strategies in the selected schedule, we restart from the beginning while doubling the limits,"
                                              " under this option, we also force si=on:rtra=on to increase the chance that the repeated strategies `do something else`.",
        .tag = OptionTag::PORTFOLIO})
-  , _naming("naming",8,
+  , _naming("naming",this,8,
       {.short_name = "nm",
        .description = "Introduce names for subformulas. Given a subformula F(x1,..,xk) of formula G a new predicate symbol is introduced as a name for F(x1,..,xk) by adding the axiom n(x1,..,xk) <=> F(x1,..,xk) and replacing F(x1,..,xk) with n(x1,..,xk) in G. The value indicates how many times a subformula must be used before it is named.",
        .tag = OptionTag::PREPROCESSING})
-  , _nonliteralsInClauseWeight("nonliterals_in_clause_weight",false,
+  , _nonliteralsInClauseWeight("nonliterals_in_clause_weight",this,false,
       {.short_name = "nicw",
        .description = "Non-literal parts of clauses (such as its split history) will also contribute to the weight",
        .tag = OptionTag::AVATAR})
-  , _normalize("normalize",false,
+  , _normalize("normalize",this,false,
       {.short_name = "norm",
        .description = "Normalize the problem so that the ordering of clauses etc does not effect proof search.",
        .tag = OptionTag::PREPROCESSING})
-  , _shuffleInput("shuffle_input",false,
+  , _shuffleInput("shuffle_input",this,false,
       {.short_name = "si",
        .description = "Randomly shuffle the input problem. (Runs after and thus destroys normalize.)",
        .tag = OptionTag::PREPROCESSING})
-  , _randomPolarities("random_polarities",false,
+  , _randomPolarities("random_polarities",this,false,
       {.short_name = "rp",
        .description = "As part of preprocessing, randomly (though consistently) flip polarities of non-equality predicates in the whole CNF.",
        .tag = OptionTag::PREPROCESSING})
-  , _randomizedSimplifications("randomized_simplifications",false,
+  , _randomizedSimplifications("randomized_simplifications",this,false,
       {.short_name = "rsi",
        .description = "Make selected saturation-loop simplifications (including AVATAR splitting) \"leaky\":"
        " under a coin toss, some of their candidate operations are randomly skipped, as a source of noise injection.",
        .tag = OptionTag::INFERENCES})
-  , _randomizedPreprocessing("randomized_preprocessing",false,
+  , _randomizedPreprocessing("randomized_preprocessing",this,false,
       {.short_name = "rpr",
        .description = "Make selected preprocessing steps \"leaky\": under a coin toss, some of their operations are randomly skipped,"
        " producing a mixture of half-completed (but still sound) results as a source of noise injection.",
        .tag = OptionTag::PREPROCESSING})
-  , _printProofToFile("print_proofs_to_file","",
+  , _printProofToFile("print_proofs_to_file",this,"",
       {.short_name = "pptf",
        .description = "If Vampire finds a proof, it is printed to the here specified file instead of to stdout.\n"
                                   "Currently, this option only works in portfolio mode.",
        .tag = OptionTag::OUTPUT})
-  , _printClausifierPremises("print_clausifier_premises",false,
+  , _printClausifierPremises("print_clausifier_premises",this,false,
       {.description = "Output how the clausified problem was derived.",
        .tag = OptionTag::OUTPUT})
     // Note that while we have the code in place thanks to Giles, Geoff didn't like the functionality
     // (and, arguably, since it in general incomplete in the sense that sometimes the domain elements are anyway necessary,
     // it's a bit ugly for its non-uniformity and for mixing syntax - the constants - with semantics - domain elements)
     // To sum up, we have a feature maybe nobody really likes? A candidate for removal.
-  , _replaceDomainElements("replace_domain_elements",false,
+  , _replaceDomainElements("replace_domain_elements",this,false,
       {.description = "When printing a finite model, try hard to look for constants from the original formulation to use instead of domain elements.",
        .tag = OptionTag::OUTPUT})
-  , _proof("proof",Proof::ON,{"off","on","proofcheck","tptp","property","smt2_proofcheck","smtcheck"},
+  , _proof("proof",this,Proof::ON,{"off","on","proofcheck","tptp","property","smt2_proofcheck","smtcheck"},
       {.short_name = "p",
        .description = "Specifies whether proof (or similar e.g. model/saturation) will be output and in which format:\n"
       "- off gives no proof output\n"
@@ -1296,60 +1296,60 @@ Options::Options ()
       "object (see Kernel/InferenceStore::ProofPropertyPrinter\n"
       "- smtcheck produces a ground SMT script for proof checking\n",
        .tag = OptionTag::OUTPUT})
-  , _minimizeSatProofs("minimize_sat_proofs",true,
+  , _minimizeSatProofs("minimize_sat_proofs",this,true,
       {.short_name = "msp",
        .description = "Perform premise minimization when a sat solver finds a clause set UNSAT\n"
         "(such as with AVATAR proofs or with global subsumption).",
        .tag = OptionTag::OUTPUT})
-  , _proofExtra("proof_extra",ProofExtra::OFF,{"off","free","full"},
+  , _proofExtra("proof_extra",this,ProofExtra::OFF,{"off","free","full"},
       {.description = "Add extra detail to proofs:\n "
       "- free uses known information only\n"
       "- full may perform expensive operations to achieve this so may"
       " significantly impact on performance.\n"
       " The option is still under development and the format of extra information (mainly from full) may change between minor releases",
        .tag = OptionTag::OUTPUT})
-  , _traceback("traceback",false,
+  , _traceback("traceback",this,false,
       {.description = "Try decoding backtrace into a sequence of human readable function names using addr2line/atos/etc.",
        .tag = OptionTag::OUTPUT})
-  , _protectedPrefix("protected_prefix","",
+  , _protectedPrefix("protected_prefix",this,"",
       {.description = "Symbols with this prefix are immune against elimination during preprocessing",
        .tag = OptionTag::PREPROCESSING,
        .experimental = true // Does not work for all (any?) preprocessing steps currently
       })
-  , _questionAnswering("question_answering",QuestionAnsweringMode::AUTO,
+  , _questionAnswering("question_answering",this,QuestionAnsweringMode::AUTO,
                                                                   {"auto","plain","synthesis","off"},
       {.short_name = "qa",
        .description = "Determines whether (and how) we attempt to answer questions:"
        " plain - answer-literal-based, supports disjunctive answers; synthesis - designed for synthesising programs from proofs.",
        .tag = OptionTag::OTHER})
-  , _questionAnsweringGroundOnly("question_answering_ground_only",false,
+  , _questionAnsweringGroundOnly("question_answering_ground_only",this,false,
       {.short_name = "qago",
        .description = "In qa plain mode: if set, only ground answers will be considered.",
        .tag = OptionTag::OTHER})
-  , _questionAnsweringAvoidThese("question_answering_avoid_these","",
+  , _questionAnsweringAvoidThese("question_answering_avoid_these",this,"",
       {.short_name = "qaat",
        .description = "A |-separated list of answer literal atoms (e.g., `ans0(sK1)|ans0(f(c))`) that should not be considered as answers to return."
       " The atoms may contain variables. Matching against any of those disqualifies a potential answer.",
        .tag = OptionTag::OTHER})
-  , _randomSeed("random_seed",1 /* this should be the value of Random::_seed from Random.cpp */,
+  , _randomSeed("random_seed",this,1 /* this should be the value of Random::_seed from Random.cpp */,
       {.description = "Some parts of vampire use random numbers. This seed allows for reproducibility of results. By default the seed is not changed."
       " Use the non-default value 0 to have vampire query a random_device for always different behaviour.",
        .tag = OptionTag::INPUT})
-  , _randomStrategySeed("random_strategy_seed",0,
+  , _randomStrategySeed("random_strategy_seed",this,0,
       {.description = "Sets the seed for generating random strategies."
       " This option is necessary because --random_seed <value> will be included as a fixed value in the generated random strategy,"
       " hence won't have any effect on the random strategy generation. Set to non-0 for this to have effect; the default 0 still calls a random_device.",
        .tag = OptionTag::INPUT,
        .experimental = true})
-  , _sampleStrategy("sample_strategy","",
+  , _sampleStrategy("sample_strategy",this,"",
       {.description = "Specify a path to a filename (of homemade format) describing how to sample a random strategy.",
        .tag = OptionTag::DEVELOPMENT,
        .experimental = true})
-  , _activationLimit("activation_limit",0,
+  , _activationLimit("activation_limit",this,0,
       {.short_name = "al",
        .description = "Terminate saturation after this many iterations of the main loop. 0 means no limit.",
        .tag = OptionTag::SATURATION})
-  , _satSolver("sat_solver",SatSolver::MINISAT, {
+  , _satSolver("sat_solver",this,SatSolver::MINISAT, {
       "minisat",
       "cadical"
 #if VZ3
@@ -1361,7 +1361,7 @@ Options::Options ()
       " This will be used in AVATAR (for splitting) when the saturation algorithm is discount, lrs or otter."
       " And for finite model finding when the saturation algorithm is fmb.",
        .tag = OptionTag::SAT})
-  , _saturationAlgorithm("saturation_algorithm",SaturationAlgorithm::LRS,
+  , _saturationAlgorithm("saturation_algorithm",this,SaturationAlgorithm::LRS,
                                                                   {"discount","fmb","lrs","otter"
 #if VZ3
       ,"z3"
@@ -1376,19 +1376,19 @@ Options::Options ()
     " - z3 : pass the preprocessed problem to z3, will terminate if the resulting problem is not ground.\n"
     "z3 and fmb aren't influenced by options for the saturation algorithm, apart from those under the relevant heading",
        .tag = OptionTag::SATURATION})
-  , _showAll("show_everything",false,
+  , _showAll("show_everything",this,false,
       {.description = "Turn (almost) all of the showX commands on",
        .tag = OptionTag::DEVELOPMENT})
-  , _showActive("show_active",false,
+  , _showActive("show_active",this,false,
       {.description = "Print activated clauses.",
        .tag = OptionTag::DEVELOPMENT})
-  , _showBlocked("show_blocked",false,
+  , _showBlocked("show_blocked",this,false,
       {.description = "Show generating inferences blocked due to coloring of symbols",
        .tag = OptionTag::DEVELOPMENT})
-  , _showDefinitions("show_definitions",false,
+  , _showDefinitions("show_definitions",this,false,
       {.description = "Show definition introductions.",
        .tag = OptionTag::DEVELOPMENT})
-  , _showInterpolant("show_interpolant",InterpolantMode::OFF,
+  , _showInterpolant("show_interpolant",this,InterpolantMode::OFF,
                                                           {"new_heur",
 #if VZ3
                                                           "new_opt",
@@ -1396,116 +1396,109 @@ Options::Options ()
                                                           "off"},
       {.tag = OptionTag::OTHER,
        .experimental = true})
-  , _showNew("show_new",false,
+  , _showNew("show_new",this,false,
       {.description = "Show new (generated) clauses",
        .tag = OptionTag::DEVELOPMENT})
-  , _sineToAge("sine_to_age",false,
+  , _sineToAge("sine_to_age",this,false,
       {.short_name = "s2a",
        .description = "Use SInE levels to postpone introducing clauses more distant from the conjecture to proof search by artificially making them younger (age := sine_level).",
        .tag = OptionTag::SATURATION})
-  , _sineToPredLevels("sine_to_pred_levels",PredicateSineLevels::OFF,{"no","off","on"},
+  , _sineToPredLevels("sine_to_pred_levels",this,PredicateSineLevels::OFF,{"no","off","on"},
       {.short_name = "s2pl",
        .description = "Assign levels to predicate symbols as they are used to trigger axioms during SInE computation. "
         "Then use them as predicateLevels determining the ordering. 'on' means conjecture symbols are larger, 'no' means the opposite. (equality keeps its standard lowest level).",
        .tag = OptionTag::SATURATION})
-  , _showSplitting("show_splitting",false,
+  , _showSplitting("show_splitting",this,false,
       {.description = "Show updates within AVATAR",
        .tag = OptionTag::DEVELOPMENT})
-  , _showNewPropositional("show_new_propositional",false,
-      {.tag = OptionTag::DEVELOPMENT})
-  , _showNonconstantSkolemFunctionTrace("show_nonconstant_skolem_function_trace",false,
+  , _showNonconstantSkolemFunctionTrace("show_nonconstant_skolem_function_trace",this,false,
       {.description = "Show introduction of non-constant skolem functions.",
        .tag = OptionTag::DEVELOPMENT})
-  , _showOptions("show_options",false,
+  , _showOptions("show_options",this,false,
       {.description = "List all available options",
        .tag = OptionTag::HELP})
-  , _showOptionsLineWrap("show_options_line_wrap",true,
+  , _showOptionsLineWrap("show_options_line_wrap",this,true,
       {.description = "Line wrap in show options. Mainly used when options are read by another tool that applies its own line wrap.",
        .tag = OptionTag::HELP,
        .experimental = true})
-  , _showExperimentalOptions("show_experimental_options",false,
+  , _showExperimentalOptions("show_experimental_options",this,false,
       {.description = "Include experimental options in showOption",
        .tag = OptionTag::HELP,
        .experimental = true // only we know about it!
       })
-  , _showHelp("help",false,
+  , _showHelp("help",this,false,
       {.short_name = "h",
        .description = "Display the help message",
        .tag = OptionTag::HELP})
-  , _printAllTheoryAxioms("print_theory_axioms",false,
+  , _printAllTheoryAxioms("print_theory_axioms",this,false,
       {.description = "Just print all theory axioms and terminate",
        .tag = OptionTag::DEVELOPMENT,
        .experimental = true})
-  , _explainOption("explain_option","",
+  , _explainOption("explain_option",this,"",
       {.short_name = "explain",
        .description = "Use to explain a single option i.e. -explain explain",
        .tag = OptionTag::HELP})
-  , _showPassive("show_passive",false,
+  , _showPassive("show_passive",this,false,
       {.description = "Show clauses added to the passive set.",
        .tag = OptionTag::DEVELOPMENT})
-  , _showReductions("show_reductions",false,
+  , _showReductions("show_reductions",this,false,
       {.description = "Show reductions.",
        .tag = OptionTag::DEVELOPMENT})
-  , _showPreprocessing("show_preprocessing",false,
+  , _showPreprocessing("show_preprocessing",this,false,
       {.description = "Show preprocessing.",
        .tag = OptionTag::DEVELOPMENT})
-  , _showSkolemisations("show_skolemisations",false,
+  , _showSkolemisations("show_skolemisations",this,false,
       {.description = "Show Skolemisations.",
        .tag = OptionTag::DEVELOPMENT})
-  , _showSymbolElimination("show_symbol_elimination",false,
+  , _showSymbolElimination("show_symbol_elimination",this,false,
       {.description = "Show symbol elimination.",
        .tag = OptionTag::DEVELOPMENT})
-  , _showTheoryAxioms("show_theory_axioms",false,
+  , _showTheoryAxioms("show_theory_axioms",this,false,
       {.description = "Show the added theory axioms.",
        .tag = OptionTag::DEVELOPMENT})
-  , _showFOOL("show_fool",false,
+  , _showFOOL("show_fool",this,false,
       {.description = "Reveal the internal representation of FOOL terms",
        .tag = OptionTag::OUTPUT})
-  , _showFMBsortInfo("show_fmb_sort_info",false,
+  , _showFMBsortInfo("show_fmb_sort_info",this,false,
       {.description = "Print information about sorts in FMB",
        .tag = OptionTag::OUTPUT})
-  , _showInduction("show_induction",false,
+  , _showInduction("show_induction",this,false,
       {.description = "Print information about induction",
        .tag = OptionTag::OUTPUT})
-  , _showSimplOrdering("show_ordering",false,
+  , _showSimplOrdering("show_ordering",this,false,
       {.description = "Display the used simplification ordering's parameters.",
        .tag = OptionTag::OUTPUT})
-  , _showPropDict("show_property_dict",false,
+  , _showPropDict("show_property_dict",this,false,
       {.description = "Display a (python-formatted) dictionary summing up the main properties of the parsed problem.",
        .tag = OptionTag::OUTPUT,
        .experimental = true})
   #if VAMPIRE_CLAUSE_TRACING
-  , _traceBackward("trace_bwd",0,
+  , _traceBackward("trace_bwd",this,0,
       {.description = "The id of a clause you want to see all predecessors (unites used to derive the clause).",
        .tag = OptionTag::OUTPUT})
-  , _traceForward("trace_fwd",-1,
+  , _traceForward("trace_fwd",this,-1,
       {.description = "The id of a clause you want to see all consequences of.",
        .tag = OptionTag::OUTPUT})
   #endif
   #if VZ3
-  , _showZ3("show_z3",false,
+  , _showZ3("show_z3",this,false,
       {.description = "Print the clauses being added to Z3",
        .tag = OptionTag::DEVELOPMENT})
-  , _problemExportSyntax("export_syntax",ProblemExportSyntax::SMTLIB, {"smtlib", "api_calls",},
+  , _problemExportSyntax("export_syntax",this,ProblemExportSyntax::SMTLIB, {"smtlib", "api_calls",},
       {.description = "Set the syntax for exporting z3 problems.",
        .tag = OptionTag::DEVELOPMENT})
-  , _exportAvatarProblem("export_avatar","",
+  , _exportAvatarProblem("export_avatar",this,"",
       {.description = "Export the avatar problems to solve in smtlib syntax.",
        .tag = OptionTag::DEVELOPMENT})
-  , _exportThiProblem("export_thi","",
+  , _exportThiProblem("export_thi",this,"",
       {.description = "Export the theory instantiation problems to solve in smtlib syntax.",
        .tag = OptionTag::DEVELOPMENT})
-  , _satFallbackForSMT("sat_fallback_for_smt",false,
+  , _satFallbackForSMT("sat_fallback_for_smt",this,false,
       {.short_name = "sffsmt",
        .description = "If using z3 run a sat solver alongside to use if the smt"
        " solver returns unknown at any point",
        .tag = OptionTag::SAT})
-  , _smtForGround("smt_for_ground",false,
-      {.short_name = "smtfg",
-       .description = "When a (theory) problem is ground after preprocessing pass it to Z3. In this case we can return sat if Z3 does.",
-       .experimental = true // since smt_for_ground is not running anyway (see MainLoop.cpp)
-      })
-  , _theoryInstAndSimp("theory_instantiation",
+  , _theoryInstAndSimp("theory_instantiation",this,
                                         TheoryInstSimp::OFF, {"off", "all", "strong", "neg_eq", "overlap", "full", "new"},
       {.short_name = "thi",
        .description = ""
@@ -1528,7 +1521,7 @@ Options::Options ()
     "\n- full   : deprecated"
     "",
        .tag = OptionTag::THEORIES})
-  , _thiGeneralise("theory_instantiation_generalisation", false,
+  , _thiGeneralise("theory_instantiation_generalisation",this, false,
       {.short_name = "thigen",
        .description = "Enable retrieval of generalised instances in theory instantiation. This can help with datatypes but requires thi to call the smt solver twice. "
     "\n"
@@ -1543,13 +1536,13 @@ Options::Options ()
     "\n     P[(-1, 0)]",
        .tag = OptionTag::THEORIES,
        .experimental = true})
-  , _thiTautologyDeletion("theory_instantiation_tautology_deletion", false,
+  , _thiTautologyDeletion("theory_instantiation_tautology_deletion",this, false,
       {.short_name = "thitd",
        .description = "Enable deletion of tautology theory subclauses detected via theory instantiation.",
        .tag = OptionTag::THEORIES,
        .experimental = true})
   #endif
-  , _unificationWithAbstraction("unification_with_abstraction",
+  , _unificationWithAbstraction("unification_with_abstraction",this,
                                       UnificationWithAbstraction::AUTO,
                                       {"auto","off","interpreted_only","one_side_interpreted","one_side_constant","all","ground", "func_ext", "alasca_one_interp", "alasca_can_abstract", "alasca_main", "alasca_main_floor", "hol"},
       {.short_name = "uwa",
@@ -1568,36 +1561,36 @@ Options::Options ()
       "- hol: introduce constraints for all higher-order parts whose unification is undecidable\n"
       "See Unification with Abstraction and Theory Instantiation in Saturation-Based Reasoning for further details.",
        .tag = OptionTag::THEORIES})
-  , _unificationWithAbstractionFixedPointIteration("unification_with_abstraction_fixed_point_iteration",
+  , _unificationWithAbstractionFixedPointIteration("unification_with_abstraction_fixed_point_iteration",this,
                                      false,
       {.short_name = "uwa_fpi",
        .description = "The order in which arguments are being processed in unification with absraction can yield different results. i.e. unnecessary unifiers. This can be resolved by applying unification with absraction multiple times. This option enables this fixed point iteration. For details have a look at the paper \"Refining Unification with Abstraction\" from LPAR 2023.",
        .tag = OptionTag::INFERENCES})
-  , _useACeval("use_ac_eval",false,
+  , _useACeval("use_ac_eval",this,false,
       {.short_name = "uace",
        .description = "Evaluate associative and commutative operators e.g. + and *.",
        .tag = OptionTag::THEORIES})
-  , _simulatedTimeLimit("simulated_time_limit",0,
+  , _simulatedTimeLimit("simulated_time_limit",this,0,
       {.short_name = "stl",
        .description = "Time limit in seconds for the purpose of reachability estimations of the LRS saturation algorithm (if 0, the actual time limit is used)",
        .tag = OptionTag::LRS})
-  , _lrsEstimateCorrectionCoef("lrs_estimate_correction_coef",1.0,
+  , _lrsEstimateCorrectionCoef("lrs_estimate_correction_coef",this,1.0,
       {.short_name = "lecc",
        .description = "Make lrs more (<1.0) or less (>1.0) aggressive by multiplying by this coef its estimate of how many clauses are still reachable.",
        .tag = OptionTag::LRS})
-  , _lrsSaveTraceFile("lrs_save_trace_file","",
+  , _lrsSaveTraceFile("lrs_save_trace_file",this,"",
       {.short_name = "lstf",
        .description = "When set, vampire will output a trace of decistions in the LRS estimate module, which can be used to reproduce a lucky run.",
        .tag = OptionTag::LRS})
-  , _lrsLoadTraceFile("lrs_load_trace_file","",
+  , _lrsLoadTraceFile("lrs_load_trace_file",this,"",
       {.short_name = "lltf",
        .description = "When set, vampire will load a previously saved trace of decistions of the LRS estimate module, which be used instead of the module's logic to guide the estimates.",
        .tag = OptionTag::LRS})
-  , _sineDepth("sine_depth",0,
+  , _sineDepth("sine_depth",this,0,
       {.short_name = "sd",
        .description = "Limit number of iterations of the transitive closure algorithm that selects formulas based on SInE's D-relation (see SInE description). 0 means no limit, 1 is a maximal limit (least selected axioms), 2 allows two iterations, etc...",
        .tag = OptionTag::PREPROCESSING})
-  , _sineGeneralityThreshold("sine_generality_threshold",0,
+  , _sineGeneralityThreshold("sine_generality_threshold",this,0,
       {.short_name = "sgt",
        .description = "Generality of a symbol is the number of input formulas in which a symbol appears."
     " If the generality of a symbol is smaller than the threshold, it is always included into the D-relation with formulas in which it appears."
@@ -1605,63 +1598,63 @@ Options::Options ()
     " (And with 1, there would be no difference, because the 1 is used up on the occurrence in the already included unit.)",
        .tag = OptionTag::PREPROCESSING})
     // Like generality threshold for SiNE, except used by the sine2age trick
-  , _sineToAgeGeneralityThreshold("sine_to_age_generality_threshold",0,
+  , _sineToAgeGeneralityThreshold("sine_to_age_generality_threshold",this,0,
       {.short_name = "s2agt",
        .description = "Like sine_generality_threshold but influences sine_to_age, sine_to_pred_levels, and sine_level_split_queue rather than sine_selection.",
        .tag = OptionTag::SATURATION})
-  , _sineSelection("sine_selection",SineSelection::OFF,{"axioms","included","off"},
+  , _sineSelection("sine_selection",this,SineSelection::OFF,{"axioms","included","off"},
       {.short_name = "ss",
        .description = "If 'axioms', all formulas that are not annotated as 'axiom' (i.e. conjectures and hypotheses) are initially selected, and the SInE selection is performed on those annotated as 'axiom'. If 'included', all formulas that are directly in the problem file are initially selected, and the SInE selection is performed on formulas from included files. The 'included' value corresponds to the behaviour of the original SInE implementation.",
        .tag = OptionTag::PREPROCESSING})
-  , _sineTolerance("sine_tolerance",1.0,
+  , _sineTolerance("sine_tolerance",this,1.0,
       {.short_name = "st",
        .description = "SInE tolerance parameter (sometimes referred to as 'benevolence')."
     " Has special value of -1.0 (which effectively codes +infinity), but otherwise must be greater or equal 1.0."
     " For each unit, only its least general symbol (let's call its generality g_min) and its symbols with generality up to g_min*tolerance trigger the unit to be included.",
        .tag = OptionTag::PREPROCESSING})
     // Like generality threshold for SiNE, except used by the sine2age trick
-  , _sineToAgeTolerance("sine_to_age_tolerance",1.0,
+  , _sineToAgeTolerance("sine_to_age_tolerance",this,1.0,
       {.short_name = "s2at",
        .description = "Like sine_tolerance but influences sine_to_age, sine_to_pred_levels, and sine_level_split_queue rather than sine_selection."
     " Has special value of -1.0, but otherwise must be greater or equal 1.0.",
        .tag = OptionTag::SATURATION})
-  , _sos("sos",Sos::OFF,{"all","off","on","theory"},
+  , _sos("sos",this,Sos::OFF,{"all","off","on","theory"},
       {.short_name = "sos",
        .description = "Set of support strategy. All formulas annotated as axioms are put directly among active clauses, without performing any inferences between them."
     " If all, select all literals of set-of-support clauses, otherwise use the default literal selector. If theory then only apply to theory"
     " axioms introduced by vampire (all literals are selected).",
        .tag = OptionTag::PREPROCESSING})
-  , _sosTheoryLimit("sos_theory_limit",0,
+  , _sosTheoryLimit("sos_theory_limit",this,0,
       {.short_name = "sstl",
        .description = "When sos=theory, limit the depth of descendants a theory axiom can have.",
        .tag = OptionTag::PREPROCESSING})
-  , _splitting("avatar",true,
+  , _splitting("avatar",this,true,
       {.short_name = "av",
        .description = "Use AVATAR splitting.",
        .tag = OptionTag::AVATAR})
-  , _splitAtActivation("split_at_activation",false,
+  , _splitAtActivation("split_at_activation",this,false,
       {.short_name = "sac",
        .description = "Split a clause when it is activated, default is to split when it is processed",
        .tag = OptionTag::AVATAR})
-  , _cleaveNonsplittables("cleave_nonsplittables",false,
+  , _cleaveNonsplittables("cleave_nonsplittables",this,false,
       {.short_name = "cn",
        .description = "Tentatively propose single-literal component strengthenings. Sometimes useful for bringing about finite saturations.",
        .tag = OptionTag::AVATAR})
-  , _splittingAddComplementary("avatar_add_complementary",
+  , _splittingAddComplementary("avatar_add_complementary",this,
                                                                                 SplittingAddComplementary::GROUND,{"ground","none"},
       {.short_name = "aac",
        .tag = OptionTag::AVATAR})
-  , _splittingCongruenceClosure("avatar_congruence_closure", false,
+  , _splittingCongruenceClosure("avatar_congruence_closure",this, false,
       {.short_name = "acc",
        .description = "Use a congruence closure decision procedure on top of the AVATAR SAT solver. This ensures that models produced by AVATAR satisfy the theory of uninterpreted functions.",
        .tag = OptionTag::AVATAR})
-  , _splittingAvatimer("avatar_turn_off_time_frac",1.0,
+  , _splittingAvatimer("avatar_turn_off_time_frac",this,1.0,
       {.short_name = "atotf",
        .description = "Stop splitting after the specified fraction of the overall time has passed (the default 1.0 means AVATAR runs until the end).\n"
         "(the remaining time AVATAR is still switching branches and communicating with the SAT solver,\n"
         "but not introducing new splits anymore. This fights the theoretical possibility of AVATAR's dynamic incompleteness.)",
        .tag = OptionTag::AVATAR})
-  , _splittingNonsplittableComponents("avatar_nonsplittable_components",
+  , _splittingNonsplittableComponents("avatar_nonsplittable_components",this,
                                                                                               SplittingNonsplittableComponents::KNOWN,
                                                                                               {"all","all_dependent","known","none"},
       {.short_name = "anc",
@@ -1670,31 +1663,31 @@ Options::Options ()
     "  -all: like known, except when we see a non-splittable clause that doesn't have a name, we introduce the name for it.\n"
     "  -all_dependent: like all, but we don't introduce names for non-splittable clauses that don't depend on any components",
        .tag = OptionTag::AVATAR})
-  , _splittingMinimizeModel("avatar_minimize_model",true,
+  , _splittingMinimizeModel("avatar_minimize_model",this,true,
       {.short_name = "amm",
        .description = "Minimize the SAT-solver model by replacing concrete values with don't-cares"
                                         " provided the sat clauses remain provably satisfied by the partial model.",
        .tag = OptionTag::AVATAR})
   , _splittingLiteralPolarityAdvice(
-                                                "avatar_literal_polarity_advice",
+                                                "avatar_literal_polarity_advice",this,
                                                 SplittingLiteralPolarityAdvice::NONE,
                                                 {"false","true","none","random"},
       {.short_name = "alpa",
        .description = "Override SAT-solver's default polarity/phase setting for variables abstracting clause components.",
        .tag = OptionTag::AVATAR})
-  , _splittingDeleteDeactivated("avatar_delete_deactivated",
+  , _splittingDeleteDeactivated("avatar_delete_deactivated",this,
                                                                         SplittingDeleteDeactivated::LARGE_ONLY,{"on","large","off"},
       {.short_name = "add",
        .tag = OptionTag::AVATAR})
-  , _statistics("statistics",Statistics::BRIEF,{"brief","full","none"},
+  , _statistics("statistics",this,Statistics::BRIEF,{"brief","full","none"},
       {.short_name = "stat",
        .description = "The level of statistics to report at the end of the run.",
        .tag = OptionTag::OUTPUT})
-  , _superpositionFromVariables("superposition_from_variables",true,
+  , _superpositionFromVariables("superposition_from_variables",this,true,
       {.short_name = "sfv",
        .description = "Perform superposition from variables.",
        .tag = OptionTag::INFERENCES})
-  , _termOrdering("term_ordering", TermOrdering::AUTO_KBO,
+  , _termOrdering("term_ordering",this, TermOrdering::AUTO_KBO,
                                                     {"auto_kbo","kbo","qkbo","lakbo","lpo","incomp"},
       {.short_name = "to",
        .description = "The term ordering used by Vampire to orient equations and order literals.\n"
@@ -1705,7 +1698,7 @@ Options::Options ()
       "- lpo: Lexicographical Path Ordering\n"
       "- lakbo: similar to QKBO but for mixed integer-real arithmetic. this option is experimental",
        .tag = OptionTag::SATURATION})
-  , _symbolPrecedence("symbol_precedence",SymbolPrecedence::FREQUENCY,
+  , _symbolPrecedence("symbol_precedence",this,SymbolPrecedence::FREQUENCY,
                                                             {"arity","occurrence","reverse_arity","unary_first",
                                                             "const_max", "const_min",
                                                             "scramble","frequency","unary_frequency","const_frequency",
@@ -1723,13 +1716,13 @@ Options::Options ()
                                   "const_min makes constants the smallest, then falls back to reverse_arity, "
                                   "const_frequency makes constants the smallest, then falls back to frequency.",
        .tag = OptionTag::SATURATION})
-  , _introducedSymbolPrecedence("introduced_symbol_precedence",
+  , _introducedSymbolPrecedence("introduced_symbol_precedence",this,
                                                                                 IntroducedSymbolPrecedence::TOP,
                                                                                 {"top","bottom"},
       {.short_name = "isp",
        .description = "Decides where to place symbols introduced during proof search in the symbol precedence",
        .tag = OptionTag::SATURATION})
-  , _evaluationMode("evaluation",
+  , _evaluationMode("evaluation",this,
                                                         EvaluationMode::SIMPLE,
                                                         {"off","simple","force","cautious"},
       {.short_name = "ev",
@@ -1741,25 +1734,25 @@ Options::Options ()
     ",
        .tag = OptionTag::THEORIES,
        .experimental = true})
-  , _kboWeightGenerationScheme("kbo_weight_scheme",KboWeightGenerationScheme::CONST,
+  , _kboWeightGenerationScheme("kbo_weight_scheme",this,KboWeightGenerationScheme::CONST,
                                           {"const","random","arity","inv_arity","arity_squared","inv_arity_squared",
                                           "precedence","inv_precedence","frequency","inv_frequency"},
       {.short_name = "kws",
        .description = "Weight generation schemes from KBO inspired by E. This gets overridden by the function_weights option if used.",
        .tag = OptionTag::SATURATION,
        .experimental = true})
-  , _kboMaxZero("kbo_max_zero",false,
+  , _kboMaxZero("kbo_max_zero",this,false,
       {.short_name = "kmz",
        .description = "Modifies any kbo_weight_scheme by setting the maximal (by the precedence) function symbol to have weight 0.",
        .tag = OptionTag::SATURATION,
        .experimental = true})
   , _kboAdmissabilityCheck(
-        "kbo_admissibility_check", KboAdmissibilityCheck::ERROR,
+        "kbo_admissibility_check",this, KboAdmissibilityCheck::ERROR,
                                      {"error","warning" },
       {.description = "Choose to emit a warning instead of throwing an exception if the weight function and precedence ordering for kbo are not compatible.",
        .tag = OptionTag::SATURATION,
        .experimental = true})
-  , _functionWeights("function_weights","",
+  , _functionWeights("function_weights",this,"",
       {.short_name = "fw",
        .description = "Path to a file that defines weights for KBO for function symbols.\n"
       "\n"
@@ -1784,73 +1777,74 @@ Options::Options ()
       "\n"
       "If this option is empty all weights default to 1.\n",
        .experimental = true})
-  , _predicateWeights("predicate_weights","", {.short_name = "pw"})
-  , _typeConPrecedence("type_con_precedence","",
+  , _typeConPrecedence("type_con_precedence",this,"",
       {.short_name = "tcp",
        .description = "A name of a file with an explicit user specified precedence on type constructor symbols.",
        .experimental = true})
-  , _functionPrecedence("function_precedence","",
+  , _functionPrecedence("function_precedence",this,"",
       {.short_name = "fp",
        .description = "A name of a file with an explicit user specified precedence on function symbols.",
        .experimental = true})
-  , _predicatePrecedence("predicate_precedence","",
+  , _predicatePrecedence("predicate_precedence",this,"",
       {.short_name = "pp",
        .description = "A name of a file with an explicit user specified precedence on predicate symbols.",
        .experimental = true})
-  , _testId("test_id","unspecified_test",
+   // Used by spider mode
+  , _testId("test_id",this,"unspecified_test",
       {.experimental = true})
-  , _outputMode("output_mode",Output::SZS,{"smtcomp","spider","szs","vampire","ucore"},
+  , _outputMode("output_mode",this,Output::SZS,{"smtcomp","spider","szs","vampire","ucore"},
       {.short_name = "om",
        .description = "Change how Vampire prints the final result. SZS uses TPTP's SZS ontology. smtcomp mode"
     " suppresses all output and just prints sat/unsat. vampire is the same as SZS just without the SZS."
     " Spider prints out some profile information and extra error reports. ucore uses the smt-lib ucore output.",
        .tag = OptionTag::OUTPUT})
-  , _ignoreMissingInputsInUnsatCore("ignore_missing_inputs_in_unsat_core",false,
+  , _ignoreMissingInputsInUnsatCore("ignore_missing_inputs_in_unsat_core",this,false,
       {.description = "When running in unsat core output mode we will complain if there is"
     " an input formula that has no label. Set this on if you don't want this behaviour (which is default in smt-comp).",
        .tag = OptionTag::OUTPUT})
-  , _thanks("thanks","Tanya",
+  , _thanks("thanks",this,"Tanya",
       {.experimental = true})
-  , _theoryAxioms("theory_axioms",TheoryAxiomLevel::ON,{"on","off","some"},
+  , _theoryAxioms("theory_axioms",this,TheoryAxiomLevel::ON,{"on","off","some"},
       {.short_name = "tha",
        .description = "Include theory axioms for detected interpreted symbols",
        .tag = OptionTag::PREPROCESSING})
-  , _theoryFlattening("theory_flattening",false,
+  , _theoryFlattening("theory_flattening",this,false,
       {.short_name = "thf",
        .description = "Flatten clauses to separate theory and non-theory parts in the input. This is often quickly undone in proof search.",
        .tag = OptionTag::PREPROCESSING})
-  , _ignoreUnrecognizedLogic("ignore_unrecognized_logic",false,
+  , _ignoreUnrecognizedLogic("ignore_unrecognized_logic",this,false,
       {.short_name = "iul",
        .description = "Try proof search anyways, if vampire would throw an \"unrecognized logic\" error otherwise.",
        .tag = OptionTag::INPUT})
-  , _timeLimitInDeciseconds("time_limit",600,
+  // stores deciseconds, but reads seconds from the user by default
+  , _timeLimitInDeciseconds("time_limit",this,600,
       {.short_name = "t",
        .description = "Time limit in wall clock seconds, you can use d,s,m,h,D suffixes also i.e. 60s, 5m. Setting it to 0 effectively gives no time limit."})
   #if VTIME_PROFILING
-  , _timeStatistics("time_statistics",false,
+  , _timeStatistics("time_statistics",this,false,
       {.short_name = "tstat",
        .description = "Show how much running time was spent in each part of Vampire",
        .tag = OptionTag::OUTPUT})
-  , _timeStatisticsFocus("time_statistics_focus","",
+  , _timeStatisticsFocus("time_statistics_focus",this,"",
       {.short_name = "tstat_focus",
        .description = "focus on some special subtree of the time statistics",
        .tag = OptionTag::OUTPUT})
   #endif
-  , _unitResultingResolution("unit_resulting_resolution",URResolution::OFF,{"ec_only","off","on","full"},
+  , _unitResultingResolution("unit_resulting_resolution",this,URResolution::OFF,{"ec_only","off","on","full"},
       {.short_name = "urr",
        .description = "Uses unit resulting resolution only to derive empty clauses (may be useful for splitting)."
     " 'ec_only' only derives empty clauses, 'on' does everything (but implements a heuristic to skip deriving more than one empty clause),"
     " 'full' ignores this heuristic and is thus complete also under AVATAR.",
        .tag = OptionTag::INFERENCES})
-  , _unusedPredicateDefinitionRemoval("unused_predicate_definition_removal",true,
+  , _unusedPredicateDefinitionRemoval("unused_predicate_definition_removal",this,true,
       {.short_name = "updr",
        .description = "Attempt to remove predicate definitions. A predicate definition is a formula of the form ![X1,..,Xn] : (p(X1,..,XN) <=> F) where p is not equality and does not occur in F and X1,..,XN are the free variables of F. If p has only positive (negative) occurrences then <=> in the definition can be replaced by => (<=). If p does not occur in the rest of the problem the definition can be removed.",
        .tag = OptionTag::PREPROCESSING})
-  , _blockedClauseElimination("blocked_clause_elimination",false,
+  , _blockedClauseElimination("blocked_clause_elimination",this,false,
       {.short_name = "bce",
        .description = "Eliminate blocked clauses after clausification.",
        .tag = OptionTag::PREPROCESSING})
-  , _predicateElimination("predicate_elimination",
+  , _predicateElimination("predicate_elimination",this,
                                                                      PredicateElimination::OFF,
                                                                      {"off","on","multi"},
       {.short_name = "pel",
@@ -1865,18 +1859,18 @@ Options::Options ()
       " otherwise argument disequalities are introduced via (virtual) flattening,"
       " which may add equality to a problem previously without it.",
        .tag = OptionTag::PREPROCESSING})
-  , _predicateEliminationTotalLimit("predicate_elimination_total_limit",2.0,
+  , _predicateEliminationTotalLimit("predicate_elimination_total_limit",this,2.0,
       {.short_name = "peltl",
        .description = "A predicate elimination step is only performed if the estimated number of clauses afterwards"
       " (current - |S_P| - |S_~P| + the number of resolvents, which is |S_P|*|S_~P| unless"
       " predicate_elimination is set to multi) does not exceed the number of clauses"
       " before predicate elimination started times this factor.",
        .tag = OptionTag::PREPROCESSING})
-  , _predicateEliminationSubsumption("predicate_elimination_subsumption",true,
+  , _predicateEliminationSubsumption("predicate_elimination_subsumption",this,true,
       {.short_name = "pels",
        .description = "Keep the clause set forward-inter-subsumed and subsumption-resolved during predicate elimination.",
        .tag = OptionTag::PREPROCESSING})
-  , _distinctGroupExpansionLimit("distinct_group_expansion_limit",140,
+  , _distinctGroupExpansionLimit("distinct_group_expansion_limit",this,140,
       {.short_name = "dgel",
        .description = "If a distinct group (defined, e.g., via TPTP's $distinct)"
          " is not larger than this limit, it will be expanded during preprocessing into quadratically many disequalities."
@@ -1902,11 +1896,11 @@ Options::Options ()
                  "Higher-order",
                  "Global"
                 })
-  , _nonGoalWeightCoefficient("nongoal_weight_coefficient",
+  , _nonGoalWeightCoefficient("nongoal_weight_coefficient",this,
       {.short_name = "nwc",
        .description = "coefficient that will multiply the weight of non-conjecture clauses (those marked as 'axiom' in TPTP)",
        .tag = OptionTag::SATURATION}) // default 10.0 is hard-wired to the constructor
-  , _selection("selection",10,
+  , _selection("selection",this,10,
       {.short_name = "s",
        .description = "Selection methods 2,3,4,10,11 are complete by virtue of extending Maximal i.e. they select the best among maximal. Methods 1002,1003,1004,1010,1011 relax this restriction and are therefore not complete.\n"
     " 0     - Total (select everything)\n"
@@ -1926,34 +1920,34 @@ Options::Options ()
     "Or negated, which means that reversePolarity is true i.e. for selection we treat all negative non-equality literals as "
     "positive and vice versa (can only apply to non-equality literals).\n",
        .tag = OptionTag::SATURATION})
-  , _inputFile("input_file","",this,
+  , _inputFile("input_file",this,"",
       {.description = "Problem file to be solved (if not specified, standard input is used)",
        .tag = OptionTag::INPUT,
        .experimental = true})
-  , _newCNF("newcnf",false,
+  , _newCNF("newcnf",this,false,
       {.short_name = "newcnf",
        .description = "Use NewCNF algorithm to do naming, preprocessing and clausification.",
        .tag = OptionTag::PREPROCESSING})
-  , _inlineLet("inline_let",true,
+  , _inlineLet("inline_let",this,true,
       {.short_name = "ile",
        .description = "Always inline let-expressions.",
        .tag = OptionTag::PREPROCESSING})
-  , _manualClauseSelection("manual_cs",false,
+  , _manualClauseSelection("manual_cs",this,false,
       {.description = "Run Vampire interactively by manually picking the clauses to be selected",
        .tag = OptionTag::DEVELOPMENT})
-  , _inequalityNormalization("normalize_inequalities",false,
+  , _inequalityNormalization("normalize_inequalities",this,false,
       {.short_name = "norm_ineq",
        .description = "Enable normalizing of inequalities like s < t ==> 0 < t - s.",
        .tag = OptionTag::THEORIES})
   , _pushUnaryMinus(
-       "push_unary_minus",
+       "push_unary_minus",this,
        false,
       {.short_name = "pum",
        .description = "Enable the immediate simplifications:\n"
           " -(t + s) ==> -t + -s\n"
           " -(-t) ==> t\n",
        .tag = OptionTag::THEORIES})
-  , _gaussianVariableElimination("gaussian_variable_elimination", ArithmeticSimplificationMode::OFF, {"force", "cautious", "off"},
+  , _gaussianVariableElimination("gaussian_variable_elimination",this, ArithmeticSimplificationMode::OFF, {"force", "cautious", "off"},
       {.short_name = "gve",
        .description = "Enable the immediate simplification \"Gaussian Variable Elimination\":\n"
           "\n"
@@ -1972,54 +1966,54 @@ Options::Options ()
           In some rare cases the conclusion may be not strictly simpler than the hypothesis. With `force` we ignore these cases, violating the ordering and just simplifying \
           anyways. With `cautious` we will generate a new clause instead of simplifying in these cases.",
        .tag = OptionTag::THEORIES})
-  , _alasca("abstracting_linear_arithmetic_superposition_calculus",false,
+  , _alasca("abstracting_linear_arithmetic_superposition_calculus",this,false,
       {.short_name = "alasca",
        .description = "Enables the Linear Arithmetic Superposition CAlculus, a calculus for linear real arithmetic with uninterpretd functions. It is described in the LPAR2023 paper \"ALASCA: Reasoning in Quantified Linear Arithmetic\"\n",
        .tag = OptionTag::INFERENCES})
-  , _viras("virtual_integer_real_arithmetic_substitution",true,
+  , _viras("virtual_integer_real_arithmetic_substitution",this,true,
       {.short_name = "viras",
        .description = "Enables the VIRAS quantifier elimination to be used in ALASCA. The VIRAS method is explained in the LPAR2024 paper \"VIRAS: Conflict-Driven Quantifier Elimination for Integer-Real Arithmetic\"\n",
        .tag = OptionTag::INFERENCES,
        .experimental = true})
-  , _alascaDemodulation("alasca_demodulation",false,
+  , _alascaDemodulation("alasca_demodulation",this,false,
       {.short_name = "alasca_demod",
        .description = "Enables the linear arithmetic demodulation rule\n",
        .tag = OptionTag::INFERENCES,
        .experimental = true})
-  , _alascaStrongNormalization("alasca_strong_normalziation",false,
+  , _alascaStrongNormalization("alasca_strong_normalziation",this,false,
       {.short_name = "alasca_sn",
        .description = "enables stronger normalizations for inequalities: \n"
             "s >= 0 ==> s > 0 \\/  s == 0\n"
             "s != 0 ==> s > 0 \\/ -s  > 0\n"
             "\n",
        .tag = OptionTag::INFERENCES})
-  , _alascaIntegerConversion("alasca_integer_conversion",false,
+  , _alascaIntegerConversion("alasca_integer_conversion",this,false,
       {.short_name = "alascai",
        .description = "enables converting integer problems into LIRA problems where there is only the sort of reals by"
             "replacing integer variables with floor functions and transforming the signature appropriately"
             "\n",
        .tag = OptionTag::INFERENCES,
        .experimental = true})
-  , _alascaAbstraction("alasca_abstraction",false,
+  , _alascaAbstraction("alasca_abstraction",this,false,
       {.short_name = "alascaa",
        .description = "Enables the alasca abstraction rule. This is an experimental rule not yet finished."
             "\n",
        .tag = OptionTag::INFERENCES,
        .experimental = true})
-  , _cancellation("cancellation", ArithmeticSimplificationMode::OFF, {"force", "cautious", "off"},
+  , _cancellation("cancellation",this, ArithmeticSimplificationMode::OFF, {"force", "cautious", "off"},
       {.short_name = "canc",
        .description = "Enables the rule cancellation around additions as described in the paper Making Theory Reasoning Simpler ( https://easychair.org/publications/preprint/K2hb ). \
                                 In some rare cases the conclusion may be not strictly simpler than the hypothesis. With `force` we ignore these cases, violating the ordering and just simplifying \
                                 anyways. With `cautious` we will generate a new clause instead of simplifying in these cases.",
        .tag = OptionTag::THEORIES})
-  , _arithmeticSubtermGeneralizations("arithmetic_subterm_generalizations", ArithmeticSimplificationMode::OFF, {"force", "cautious", "off"},
+  , _arithmeticSubtermGeneralizations("arithmetic_subterm_generalizations",this, ArithmeticSimplificationMode::OFF, {"force", "cautious", "off"},
       {.short_name = "asg",
        .description = "\
           Enables various generalization rules for arithmetic terms as described in the paper Making Theory Reasoning Simpler ( https://easychair.org/publications/preprint/K2hb ). \
           In some rare cases the conclusion may be not strictly simpler than the hypothesis. With `force` we ignore these cases, violating the ordering and just simplifying \
           anyways. With `cautious` we will generate a new clause instead of simplifying in these cases.",
        .tag = OptionTag::THEORIES})
-  , _holPrinting("pretty_hol_printing",
+  , _holPrinting("pretty_hol_printing",this,
                                      HPrinting::TPTP,
                                      {"raw", "db", "pretty", "tptp"},
       {.short_name = "php",
@@ -2029,27 +2023,27 @@ Options::Options ()
         " -tptp : matches tptp standards \n"
         " -db : same as tptp, except that De Bruijn indices printed instead of named variables",
        .tag = OptionTag::HIGHER_ORDER})
-  , _choiceAxiom("choice_ax",false,
+  , _choiceAxiom("choice_ax",this,false,
       {.short_name = "cha",
        .description = "Adds the cnf form of the Hilbert choice axiom",
        .tag = OptionTag::HIGHER_ORDER})
-  , _injectivity("injectivity", false,
+  , _injectivity("injectivity",this, false,
       {.short_name = "inj",
        .description = "Attempts to identify injective functions and postulates a left-inverse",
        .tag = OptionTag::HIGHER_ORDER})
-  , _choiceReasoning("choice_reasoning",false,
+  , _choiceReasoning("choice_reasoning",this,false,
       {.short_name = "chr",
        .description = "Reason about choice by adding relevant instances of the axiom",
        .tag = OptionTag::HIGHER_ORDER})
     // TODO we have two ways of enabling function extensionality abstraction atm:
     // this option, and `-uwa`.
     // We should sort this out before merging into master.
-  , _functionExtensionality("func_ext",FunctionExtensionality::OFF,
+  , _functionExtensionality("func_ext",this,FunctionExtensionality::OFF,
                                                                           {"off", "axiom", "abstraction"},
       {.short_name = "fe",
        .description = "Deal with extensionality using abstraction, axiom or neither",
        .tag = OptionTag::HIGHER_ORDER})
-  , _clausificationOnTheFly("cnf_on_the_fly", CNFOnTheFly::EAGER,
+  , _clausificationOnTheFly("cnf_on_the_fly",this, CNFOnTheFly::EAGER,
                                                              {"eager",
                                                                 "lazy_gen",
                                                                 "lazy_simp",
@@ -2062,7 +2056,7 @@ Options::Options ()
       {.short_name = "cnfonf",
        .description = "Various options linked to clausification on the fly",
        .tag = OptionTag::HIGHER_ORDER})
-  , _piSet("prim_inst_set",PISet::PRAGMATIC,
+  , _piSet("prim_inst_set",this,PISet::PRAGMATIC,
                                                                         {"all",
                                                                          "all_but_not_eq",
                                                                          "not",
@@ -2075,42 +2069,42 @@ Options::Options ()
       {.short_name = "piset",
        .description = "Controls the set of equations to use in primitive instantiation",
        .tag = OptionTag::HIGHER_ORDER})
-  , _equalityToEquivalence("equality_to_equiv",false,
+  , _equalityToEquivalence("equality_to_equiv",this,false,
       {.short_name = "e2e",
        .description = "Equality between boolean terms changed to equivalence \n"
       "t1 : $o = t2 : $o is changed to t1 <=> t2"})
-  , _complexBooleanReasoning("complex_bool_reasoning",true,
+  , _complexBooleanReasoning("complex_bool_reasoning",this,true,
       {.short_name = "cbe",
        .description = "Switches on primitive instantiation and elimination of leibniz equality",
        .tag = OptionTag::HIGHER_ORDER})
-  , _booleanEqTrick("bool_eq_trick",false,
+  , _booleanEqTrick("bool_eq_trick",this,false,
       {.short_name = "bet",
        .description = "Replace an equality between boolean terms such as: "
     "t = s with a disequality t != vnot(s)"
     " The theory is that this can help with EqRes",
        .tag = OptionTag::HIGHER_ORDER})
-  , _heuristicInstantiation("heur_inst",false,
+  , _heuristicInstantiation("heur_inst",this,false,
       {.short_name = "hi",
        .description = "Heuristically instantiates universally quantified variables with abstractions of literals from negated conjecture",
        .tag = OptionTag::HIGHER_ORDER})
-  , _higherOrderUnifDepth("hol_unif_depth",2,
+  , _higherOrderUnifDepth("hol_unif_depth",this,2,
       {.short_name = "hud",
        .description = "Set the maximum depth (in terms of projections and imitations) that higher-order unification can descend to."
       "Once limit is reached, remaining pairs are returned as constraints.",
        .tag = OptionTag::HIGHER_ORDER})
-  , _casesSimp("cases_simp",false,
+  , _casesSimp("cases_simp",this,false,
       {.short_name = "cs",
        .description = "FOOL Paramodulation with two conclusion as a simplification",
        .tag = OptionTag::HIGHER_ORDER})
-  , _cases("cases",false,
+  , _cases("cases",this,false,
       {.short_name = "c",
        .description = "Alternative to FOOL Paramodulation that replaces all Boolean subterms in one step",
        .tag = OptionTag::HIGHER_ORDER})
-  , _newTautologyDel("new_taut_del", false,
+  , _newTautologyDel("new_taut_del",this, false,
       {.short_name = "ntd",
        .description = "Delete clauses with literals of the form false != true or t = true \\/ t = false",
        .tag = OptionTag::HIGHER_ORDER})
-  , _positiveExt("pos_ext",false,
+  , _positiveExt("pos_ext",this,false,
       {.short_name = "pe",
        .description = "Enables the following inference\n"
         "C \\/ t X = s X \n"
@@ -2118,7 +2112,7 @@ Options::Options ()
         "  C \\/ t = s   \n"
         "where X doesn't occur in t,s or C",
        .tag = OptionTag::HIGHER_ORDER})
-  , _iffXorRewriter("iff_xor_rewriter",true,
+  , _iffXorRewriter("iff_xor_rewriter",this,true,
       {.short_name = "ixr",
        .description = "Rewrites p <=> q = $true to p <=> q and the like. It does this as an immediate simplification.",
        .tag = OptionTag::HIGHER_ORDER})
@@ -2127,18 +2121,11 @@ Options::Options ()
 //*********************** GLOBAL, for all modes  ***********************
 //**********************************************************************
 
-    _lookup.insert(_memoryLimit);
-
 #if VAMPIRE_PERF_EXISTS
-  _lookup.insert(_instructionLimit);
 
   // _simulatedInstructionLimit.onlyUsefulWith(Or(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)),_splittingAvatimer.is(notEqual(1.0f))));
-  _lookup.insert(_simulatedInstructionLimit);
-  _lookup.insert(_parsingDoesNotCount);
 #endif
 
-    _lookup.insert(_interactive);
-    _lookup.insert(_mode);
     _mode.addHardConstraint(If(equal(Mode::CONSEQUENCE_ELIMINATION)).then(_splitting.is(notEqual(true))));
 
     auto UsingPortfolioTechnology = [this] {
@@ -2151,210 +2138,91 @@ Options::Options ()
     // Warn about combinations of Intent::SAT and incomplete settings
     _intent.addConstraint(If(equal(Intent::SAT)).then(_sineSelection.is(equal(SineSelection::OFF))));
     _intent.addConstraint(If(equal(Intent::SAT)).then(_equalityProxy.is(equal(EqualityProxy::OFF))));
-    _lookup.insert(_intent);
-    _lookup.insert(_schedule);
     _schedule.reliesOn(UsingPortfolioTechnology());
 
-    _lookup.insert(_scheduleFile);
     _scheduleFile.onlyUsefulWith(_schedule.is(equal(Schedule::FILE)));
 
-    _lookup.insert(_multicore);
     _multicore.reliesOn(UsingPortfolioTechnology());
 
-    _lookup.insert(_slowness);
     _slowness.onlyUsefulWith(UsingPortfolioTechnology());
 
-    _lookup.insert(_randomizeSeedForPortfolioWorkers);
     _randomizeSeedForPortfolioWorkers.onlyUsefulWith(UsingPortfolioTechnology());
 
-    _lookup.insert(_shuffleOnScheduleRepeats);
     _shuffleOnScheduleRepeats.onlyUsefulWith(UsingPortfolioTechnology());
 
-    _lookup.insert(_decode);
-    _lookup.insert(_encode);
-    _lookup.insert(_sampleStrategy);
     _sampleStrategy.reliesOn(_mode.is(equal(Mode::VAMPIRE)));
 
     _randomStrategySeed.reliesOn(_sampleStrategy.is(notEqual(std::string(""))));
-    _lookup.insert(_randomStrategySeed);
-    _lookup.insert(_forbiddenOptions);
-    _lookup.insert(_forcedOptions);
-    _lookup.insert(_printAllTheoryAxioms);
-    _lookup.insert(_showHelp);
-    _lookup.insert(_showOptions);
-    _lookup.insert(_showOptionsLineWrap);
-    _lookup.insert(_showExperimentalOptions);
-    _lookup.insert(_explainOption);
-    _lookup.insert(_ignoreMissing);
-    _lookup.insert(_badOption);
-    _lookup.insert(_proof);
     _proof.addHardConstraint(If(equal(Proof::SMTCHECK)).then(_proofExtra.is(equal(ProofExtra::FULL))));
 
-    _lookup.insert(_minimizeSatProofs);
-    _lookup.insert(_printProofToFile);
-    _lookup.insert(_proofExtra);
-    _lookup.insert(_protectedPrefix);
-    _lookup.insert(_statistics);
-
- // Used by spider mode
-    _lookup.insert(_testId);
-    _lookup.insert(_outputMode);
-    _lookup.insert(_ignoreMissingInputsInUnsatCore);
-    _lookup.insert(_traceback);
-    _lookup.insert(_thanks);
-
- // stores deciseconds, but reads seconds from the user by default
-    _lookup.insert(_timeLimitInDeciseconds);
-
 #if VTIME_PROFILING
-    _lookup.insert(_timeStatistics);
-    _lookup.insert(_timeStatisticsFocus);
     _timeStatisticsFocus.onlyUsefulWith(_timeStatistics.is(equal(true)));
 #endif // VTIME_PROFILING
 
 //*********************** Input  ***********************
 
-    _lookup.insert(_include);
-    _lookup.insert(_inputFile);
-    _lookup.insert(_inputSyntax);
-    _lookup.insert(_guessTheGoal);
-
     _guessTheGoalLimit.onlyUsefulWith(_guessTheGoal.is(notEqual(GoalGuess::OFF)));
-    _lookup.insert(_guessTheGoalLimit);
 
 //*********************** Preprocessing  ***********************
 
-    _lookup.insert(_ignoreConjectureInPreprocessing);
-
     _inequalitySplitting.addProblemConstraint(hasEquality());
     _inequalitySplitting.addProblemConstraint(onlyFirstOrder());
-    _lookup.insert(_inequalitySplitting);
-    _lookup.insert(_equalityProxy);
     _equalityProxy.addProblemConstraint(hasEquality());
     _equalityProxy.addProblemConstraint(onlyFirstOrder());
 
-    _lookup.insert(_equalityResolutionWithDeletion);
     _equalityResolutionWithDeletion.addProblemConstraint(hasEquality());
 
-    _lookup.insert(_arityCheck);
-    _lookup.insert(_parseGoalAnnotations);
-    _lookup.insert(_functionDefinitionElimination);
     _functionDefinitionElimination.addProblemConstraint(hasEquality());
 
-    _lookup.insert(_functionDefinitionIntroduction);
-    _lookup.insert(_tweeGoalTransformation);
-
-    // At least on higher-order TPTP, tgt with tsa=off sucks badly
-    // TODO(HOL): investigate perhaps less invasive options of restraining
-    // general tgt in HOL, that would still be performant
-    _lookup.insert(_tweeSkipArrows);
-    _lookup.insert(_codeTreeSubsumption);
-    _lookup.insert(_generalSplitting);
     _generalSplitting.addProblemConstraint(mayHaveNonUnits());
 
-    _lookup.insert(_unusedPredicateDefinitionRemoval);
     _unusedPredicateDefinitionRemoval.addProblemConstraint(notWithCat(Property::UEQ));
 
-    _lookup.insert(_blockedClauseElimination);
     _blockedClauseElimination.addProblemConstraint(notWithCat(Property::UEQ));
 
-    _lookup.insert(_predicateElimination);
     _predicateElimination.addProblemConstraint(notWithCat(Property::UEQ));
 
-    _lookup.insert(_predicateEliminationTotalLimit);
     _predicateEliminationTotalLimit.addConstraint(greaterThanEq(0.0f));
     _predicateEliminationTotalLimit.onlyUsefulWith(_predicateElimination.is(notEqual(PredicateElimination::OFF)));
 
-    _lookup.insert(_predicateEliminationSubsumption);
     _predicateEliminationSubsumption.onlyUsefulWith(_predicateElimination.is(notEqual(PredicateElimination::OFF)));
 
-    _lookup.insert(_distinctGroupExpansionLimit);
-    _lookup.insert(_theoryAxioms);
-    _lookup.insert(_theoryFlattening);
-    _lookup.insert(_ignoreUnrecognizedLogic);
-    _lookup.insert(_sineDepth);
     // Captures that if the value is not default then sineSelection must be on
     _sineDepth.onlyUsefulWith(_sineSelection.is(notEqual(SineSelection::OFF)));
 
-    _lookup.insert(_sineGeneralityThreshold);
     // Captures that if the value is not default then sineSelection must be on
     _sineGeneralityThreshold.onlyUsefulWith(_sineSelection.is(notEqual(SineSelection::OFF)));
 
-    _lookup.insert(_sineSelection);
-    _lookup.insert(_sineTolerance);
     _sineTolerance.addConstraint(Or(equal(-1.0f),greaterThanEq(1.0f) ));
     // Captures that if the value is not 1.0 then sineSelection must be on
     _sineTolerance.onlyUsefulWith(_sineSelection.is(notEqual(SineSelection::OFF)));
 
-    _lookup.insert(_naming);
     _naming.addProblemConstraint(hasFormulas());
     _naming.addHardConstraint(lessThan(32768));
     _naming.addHardConstraint(greaterThan(-1));
     _naming.addHardConstraint(notEqual(1));
 
-    _lookup.insert(_newCNF);
     _newCNF.addProblemConstraint(hasFormulas());
     _newCNF.addProblemConstraint(onlyFirstOrder());
 
-    _lookup.insert(_inlineLet);
     _inlineLet.onlyUsefulWith(_newCNF.is(equal(true)));
 
 //*********************** Output  ***********************
-    _lookup.insert(_printClausifierPremises);
-
-    _lookup.insert(_replaceDomainElements);
-    _lookup.insert(_showAll);
-    _lookup.insert(_showActive);
-    _lookup.insert(_showBlocked);
-    _lookup.insert(_showDefinitions);
-    _lookup.insert(_showNew);
-    _lookup.insert(_showSplitting);
-
-    //_lookup.insert(_showNewPropositional);
-
-    _lookup.insert(_showNonconstantSkolemFunctionTrace);
-    _lookup.insert(_showPassive);
-    _lookup.insert(_showReductions);
-    _lookup.insert(_showPreprocessing);
-    _lookup.insert(_showSkolemisations);
-    _lookup.insert(_showSymbolElimination);
-    _lookup.insert(_showTheoryAxioms);
 
 #if VZ3
-    _lookup.insert(_showZ3);
-    _lookup.insert(_problemExportSyntax);
     _problemExportSyntax.reliesOn(Or(_exportAvatarProblem.is(notEqual(std::string(""))), _exportThiProblem.is(notEqual(std::string("")))));
 
-    _lookup.insert(_exportAvatarProblem);
     _exportAvatarProblem.onlyUsefulWith(And(_splitting.is(equal(true)), _satSolver.is(equal(Options::SatSolver::Z3))));
 
-    _lookup.insert(_exportThiProblem);
     _exportThiProblem.onlyUsefulWith(_theoryInstAndSimp.is(notEqual(TheoryInstSimp::OFF)));
 
 #endif
-
-    _lookup.insert(_showFOOL);
-    _lookup.insert(_showFMBsortInfo);
-    _lookup.insert(_showInduction);
-    _lookup.insert(_showSimplOrdering);
-    _lookup.insert(_showPropDict);
-
-#if VAMPIRE_CLAUSE_TRACING
-
-    _lookup.insert(_traceBackward);
-    _lookup.insert(_traceForward);
-
-#endif // VAMPIRE_CLAUSE_TRACING
-
-    _lookup.insert(_manualClauseSelection);
 
 //************************************************************************
 //*********************** VAMPIRE (includes CASC)  ***********************
 //************************************************************************
 
 //*********************** Saturation  ***********************
-
-    _lookup.insert(_saturationAlgorithm);
 
     // make the next hard - RSTC will make FMB crash (as RSTC correctly does not trigger hadIncompleteTransformation; still it probably does not make sense to use ep with fmb)
     _saturationAlgorithm.addHardConstraint(If(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)).then(_equalityProxy.is(notEqual(EqualityProxy::RSTC))));
@@ -2365,161 +2233,103 @@ Options::Options ()
                 _saturationAlgorithm.is(equal(SaturationAlgorithm::DISCOUNT)));
     };
 
-    _lookup.insert(_sos);
     _sos.onlyUsefulWith(ProperSaturationAlgorithm());
 
-    _lookup.insert(_sosTheoryLimit);
     _sosTheoryLimit.onlyUsefulWith(_sos.is(equal(Sos::THEORY)));
 
-    /*
-#if VZ3
-    _smtForGround = BoolOptionValue("smt_for_ground","smtfg",false);
-    _lookup.insert(_smtForGround);
-#endif
-     */
-
-    //_lookup.insert(_fmbNonGroundDefs);
-    _fmbNonGroundDefs.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
-
-    _lookup.insert(_fmbStartSize);
     _fmbStartSize.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
 
-    _lookup.insert(_fmbSymmetryRatio);
     _fmbSymmetryRatio.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
 
-    _lookup.insert(_fmbSymmetryOrderSymbols);
     _fmbSymmetryOrderSymbols.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
 
-    // TODO: put back only when debugged (see https://github.com/vprover/vampire/issues/393)
-    // _lookup.insert(_fmbSymmetryWidgetOrders);
-    _fmbSymmetryWidgetOrders.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
-
-    _lookup.insert(_fmbAdjustSorts);
     _fmbAdjustSorts.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
     _fmbAdjustSorts.addHardConstraint(
       If(equal(FMBAdjustSorts::EXPAND)).then(_fmbEnumerationStrategy.is(notEqual(FMBEnumerationStrategy::CONTOUR))));
 
-    _lookup.insert(_fmbDetectSortBounds);
     _fmbDetectSortBounds.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
     _fmbDetectSortBounds.addHardConstraint(If(equal(true)).then(_fmbAdjustSorts.is(notEqual(FMBAdjustSorts::PREDICATE))));
     _fmbDetectSortBounds.addHardConstraint(If(equal(true)).then(_fmbAdjustSorts.is(notEqual(FMBAdjustSorts::FUNCTION))));
 
-    _lookup.insert(_fmbDetectSortBoundsTimeLimit);
     _fmbDetectSortBoundsTimeLimit.onlyUsefulWith(_fmbDetectSortBounds.is(equal(true)));
 
     _fmbSizeWeightRatio.onlyUsefulWith(_fmbEnumerationStrategy.is(equal(FMBEnumerationStrategy::CONTOUR)));
     _fmbSizeWeightRatio.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
-    _lookup.insert(_fmbSizeWeightRatio);
-    _lookup.insert(_fmbEnumerationStrategy);
     _fmbEnumerationStrategy.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
 
     // for an example where this helps try "-sa fmb -fmbas expand Problems/KRS/KRS185+1.p"
-    _lookup.insert(_fmbKeepSbeamGenerators);
     _fmbKeepSbeamGenerators.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
     _fmbKeepSbeamGenerators.onlyUsefulWith(_fmbEnumerationStrategy.is(equal(FMBEnumerationStrategy::SBMEAM)));
 
     _fmbUseSimplifyingSolver.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
     _fmbUseSimplifyingSolver.onlyUsefulWith(_satSolver.is(equal(SatSolver::MINISAT)));
-    _lookup.insert(_fmbUseSimplifyingSolver);
-    _lookup.insert(_selection);
     _selection.onlyUsefulWith2(ProperSaturationAlgorithm());
 
-    _lookup.insert(_lookaheadDelay);
     _lookaheadDelay.onlyUsefulWith(_selection.isLookAheadSelection());
 
-    _lookup.insert(_ageWeightRatio);
     _ageWeightRatio.onlyUsefulWith2(ProperSaturationAlgorithm());
 
     _useTheorySplitQueues.onlyUsefulWith(ProperSaturationAlgorithm());
     // _useTheorySplitQueues.addProblemConstraint(hasTheories()); // recall how they helped even on non-theory problems during CACS 2021?
-    _lookup.insert(_useTheorySplitQueues);
-    _lookup.insert(_theorySplitQueueExpectedRatioDenom);
     _theorySplitQueueExpectedRatioDenom.onlyUsefulWith(_useTheorySplitQueues.is(equal(true)));
 
-    _lookup.insert(_theorySplitQueueCutoffs);
     _theorySplitQueueCutoffs.onlyUsefulWith(_useTheorySplitQueues.is(equal(true)));
 
-    _lookup.insert(_theorySplitQueueRatios);
     _theorySplitQueueRatios.onlyUsefulWith(_useTheorySplitQueues.is(equal(true)));
 
-    _lookup.insert(_theorySplitQueueLayeredArrangement);
     _theorySplitQueueLayeredArrangement.onlyUsefulWith(_useTheorySplitQueues.is(equal(true)));
 
-    _lookup.insert(_useAvatarSplitQueues);
     _useAvatarSplitQueues.onlyUsefulWith(ProperSaturationAlgorithm());
     _useAvatarSplitQueues.onlyUsefulWith(_splitting.is(equal(true)));
 
-    _lookup.insert(_avatarSplitQueueCutoffs);
     _avatarSplitQueueCutoffs.onlyUsefulWith(_useAvatarSplitQueues.is(equal(true)));
 
-    _lookup.insert(_avatarSplitQueueRatios);
     _avatarSplitQueueRatios.onlyUsefulWith(_useAvatarSplitQueues.is(equal(true)));
 
-    _lookup.insert(_avatarSplitQueueLayeredArrangement);
     _avatarSplitQueueLayeredArrangement.onlyUsefulWith(_useAvatarSplitQueues.is(equal(true)));
 
     _useSineLevelSplitQueues.onlyUsefulWith(ProperSaturationAlgorithm());
     _useSineLevelSplitQueues.addProblemConstraint(hasGoal());
-    _lookup.insert(_useSineLevelSplitQueues);
-    _lookup.insert(_sineLevelSplitQueueCutoffs);
     _sineLevelSplitQueueCutoffs.onlyUsefulWith(_useSineLevelSplitQueues.is(equal(true)));
 
-    _lookup.insert(_sineLevelSplitQueueRatios);
     _sineLevelSplitQueueRatios.onlyUsefulWith(_useSineLevelSplitQueues.is(equal(true)));
 
-    _lookup.insert(_sineLevelSplitQueueLayeredArrangement);
     _sineLevelSplitQueueLayeredArrangement.onlyUsefulWith(_useSineLevelSplitQueues.is(equal(true)));
 
-    _lookup.insert(_usePositiveLiteralSplitQueues);
     _usePositiveLiteralSplitQueues.onlyUsefulWith(ProperSaturationAlgorithm());
 
-    _lookup.insert(_positiveLiteralSplitQueueCutoffs);
     _positiveLiteralSplitQueueCutoffs.onlyUsefulWith(_usePositiveLiteralSplitQueues.is(equal(true)));
 
-    _lookup.insert(_positiveLiteralSplitQueueRatios);
     _positiveLiteralSplitQueueRatios.onlyUsefulWith(_usePositiveLiteralSplitQueues.is(equal(true)));
 
-    _lookup.insert(_positiveLiteralSplitQueueLayeredArrangement);
     _positiveLiteralSplitQueueLayeredArrangement.onlyUsefulWith(_usePositiveLiteralSplitQueues.is(equal(true)));
 
     _hoSplitQueues.onlyUsefulWith(ProperSaturationAlgorithm()); // could be "IncludingInstgen"? (not with theories...)
     _hoSplitQueues.addProblemConstraint(hasHigherOrder());
-    _lookup.insert(_hoSplitQueues);
 
     _hoSplitQueueLambdaWeight.onlyUsefulWith(_hoSplitQueues.is(equal(true)));
     _hoSplitQueueLambdaWeight.addProblemConstraint(hasHigherOrder());
-    _lookup.insert(_hoSplitQueueLambdaWeight);
 
     _hoSplitQueueAppVarWeight.onlyUsefulWith(_hoSplitQueues.is(equal(true)));
     _hoSplitQueueAppVarWeight.addProblemConstraint(hasHigherOrder());
-    _lookup.insert(_hoSplitQueueAppVarWeight);
-    _lookup.insert(_hoSplitQueueCutoffs);
     _hoSplitQueueCutoffs.onlyUsefulWith(_hoSplitQueues.is(equal(true)));
 
-    _lookup.insert(_hoSplitQueueRatios);
     _hoSplitQueueRatios.onlyUsefulWith(_hoSplitQueues.is(equal(true)));
 
-    _lookup.insert(_hoSplitQueueLayeredArrangement);
     _hoSplitQueueLayeredArrangement.onlyUsefulWith(_hoSplitQueues.is(equal(true)));
 
-    _lookup.insert(_literalMaximalityAftercheck);
     _literalMaximalityAftercheck.onlyUsefulWith(ProperSaturationAlgorithm());
 
     _sineToAge.onlyUsefulWith(ProperSaturationAlgorithm());
-    _lookup.insert(_sineToAge);
-    _lookup.insert(_randomAWR);
-    _lookup.insert(_sineToPredLevels);
     _sineToPredLevels.onlyUsefulWith(ProperSaturationAlgorithm());
     _sineToPredLevels.addHardConstraint(If(notEqual(PredicateSineLevels::OFF)).then(_literalComparisonMode.is(notEqual(LiteralComparisonMode::PREDICATE))));
     _sineToPredLevels.addHardConstraint(If(notEqual(PredicateSineLevels::OFF)).then(_literalComparisonMode.is(notEqual(LiteralComparisonMode::REVERSE))));
 
-    _lookup.insert(_sineToAgeGeneralityThreshold);
     _sineToAgeGeneralityThreshold.onlyUsefulWith(Or(
       _sineToAge.is(equal(true)),
       _sineToPredLevels.is(notEqual(PredicateSineLevels::OFF)),
       _useSineLevelSplitQueues.is(equal(true))));
 
-    _lookup.insert(_sineToAgeTolerance);
     _sineToAgeTolerance.addConstraint(Or(equal(-1.0f),greaterThanEq(1.0f)));
     // Captures that if the value is not 1.0 then sineSelection must be on
     _sineToAgeTolerance.onlyUsefulWith(Or(
@@ -2527,31 +2337,23 @@ Options::Options ()
       _sineToPredLevels.is(notEqual(PredicateSineLevels::OFF)),
       _useSineLevelSplitQueues.is(equal(true))));
 
-    _lookup.insert(_lrsFirstTimeCheck);
     _lrsFirstTimeCheck.addConstraint(greaterThanEq(0));
     _lrsFirstTimeCheck.addConstraint(lessThan(100));
 
     _lrsWeightLimitOnly.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
-    _lookup.insert(_lrsWeightLimitOnly);
 
     _lrsRetroactiveDeletes.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
-    _lookup.insert(_lrsRetroactiveDeletes);
 
      // Under lrd=off:lpd=off, we don't have any LRS anymore (and are back to Otter, essentially), so the value of this option is questionable.
      // (Still, it's currently used in a few strategies in Schedules.)
     _lrsPreemptiveDeletes.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
-    _lookup.insert(_lrsPreemptiveDeletes);
 
     _simulatedTimeLimit.onlyUsefulWith(Or(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)),_splittingAvatimer.is(notEqual(1.0f))));
-    _lookup.insert(_simulatedTimeLimit);
-    _lookup.insert(_lrsEstimateCorrectionCoef);
     _lrsEstimateCorrectionCoef.addConstraint(greaterThan(0.0f));
     _lrsEstimateCorrectionCoef.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
 
-    _lookup.insert(_lrsSaveTraceFile);
     _lrsSaveTraceFile.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
 
-    _lookup.insert(_lrsLoadTraceFile);
     _lrsLoadTraceFile.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)));
 
   //*********************** Inferences  ***********************
@@ -2559,23 +2361,14 @@ Options::Options ()
 #if VZ3
 
     _theoryInstAndSimp.addProblemConstraint(hasTheories());
-    _lookup.insert(_theoryInstAndSimp);
-    _lookup.insert(_thiGeneralise);
     _thiGeneralise.onlyUsefulWith(_theoryInstAndSimp.is(notEqual(TheoryInstSimp::OFF)));
 
-    _lookup.insert(_thiTautologyDeletion);
     _thiTautologyDeletion.onlyUsefulWith(_theoryInstAndSimp.is(notEqual(TheoryInstSimp::OFF)));
 #endif
 
-    _lookup.insert(_unificationWithAbstraction);
-    _lookup.insert(_unificationWithAbstractionFixedPointIteration);
-
     _useACeval.onlyUsefulWith(_alasca.is(equal(false)));
-    _lookup.insert(_useACeval);
-    _lookup.insert(_inequalityNormalization);
     _inequalityNormalization.addProblemConstraint(hasTheories());
 
-    _lookup.insert(_cancellation);
     _cancellation.addProblemConstraint(hasTheories());
     _cancellation.addHardConstraint(If(equal(ArithmeticSimplificationMode::CAUTIOUS))
         .then(And(
@@ -2583,7 +2376,6 @@ Options::Options ()
             , _termOrdering.is(notEqual(TermOrdering::LAKBO))
             )));
 
-    _lookup.insert(_pushUnaryMinus);
     _pushUnaryMinus.addProblemConstraint(hasTheories());
 
     auto addRecommendationConstraint = [](auto& opt, auto constr) {
@@ -2594,7 +2386,6 @@ Options::Options ()
       //    only when "env.options->alasca() && prb.hasAlascaArithmetic()"
     };
 
-    _lookup.insert(_alasca);
     addRecommendationConstraint(_alasca, Or(
            _termOrdering.is(equal(TermOrdering::AUTO_KBO)),
            _termOrdering.is(equal(TermOrdering::QKBO)),
@@ -2610,337 +2401,232 @@ Options::Options ()
             , equal(UnificationWithAbstraction::AUTO)
             )));
 
-    _lookup.insert(_viras);
     _viras.onlyUsefulWith(_alasca.is(equal(true)));
 
-    _lookup.insert(_alascaDemodulation);
     _alascaDemodulation.onlyUsefulWith(_alasca.is(equal(true)));
 
-    _lookup.insert(_alascaStrongNormalization);
     _alascaStrongNormalization.onlyUsefulWith(_alasca.is(equal(true)));
 
-    _lookup.insert(_alascaIntegerConversion);
     _alascaIntegerConversion.onlyUsefulWith(_alasca.is(equal(true)));
     addRecommendationConstraint(_alascaIntegerConversion, _unificationWithAbstraction.is(equal(UnificationWithAbstraction::ALASCA_MAIN_FLOOR)));
 
-    _lookup.insert(_alascaAbstraction);
     _alascaAbstraction.onlyUsefulWith(_alasca.is(equal(true)));
 
-    _lookup.insert(_gaussianVariableElimination);
     _gaussianVariableElimination.addProblemConstraint(hasTheories());
 
-    _lookup.insert(_arithmeticSubtermGeneralizations);
     _arithmeticSubtermGeneralizations.addProblemConstraint(hasTheories());
 
-    _lookup.insert(_evaluationMode);
     _evaluationMode.addProblemConstraint(hasTheories());
-
-    _lookup.insert(_induction);
-    //_induction.setRandomChoices
 
     _structInduction.onlyUsefulWith(Or(_induction.is(equal(Induction::STRUCTURAL)),_induction.is(equal(Induction::BOTH))));
     _structInduction.addHardConstraint(If(equal(StructuralInductionKind::RECURSION)).then(_newCNF.is(equal(true))));
     _structInduction.addHardConstraint(If(equal(StructuralInductionKind::RECURSION)).then(_equalityResolutionWithDeletion.is(equal(true))));
     _structInduction.addHardConstraint(If(equal(StructuralInductionKind::ALL)).then(_newCNF.is(equal(true))));
     _structInduction.addHardConstraint(If(equal(StructuralInductionKind::ALL)).then(_equalityResolutionWithDeletion.is(equal(true))));
-    _lookup.insert(_structInduction);
 
     _intInduction.onlyUsefulWith(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
-    _lookup.insert(_intInduction);
-    _lookup.insert(_inductionSkolemOnly);
     _inductionSkolemOnly.onlyUsefulWith(_induction.is(notEqual(Induction::NONE)));
 
-    _lookup.insert(_inductionGoalClausesOnly);
     _inductionGoalClausesOnly.onlyUsefulWith(_induction.is(notEqual(Induction::NONE)));
 
     _maxInductionDepth.onlyUsefulWith(_induction.is(notEqual(Induction::NONE)));
     _maxInductionDepth.addHardConstraint(lessThan(33u));
-    _lookup.insert(_maxInductionDepth);
 
     _inductionNegOnly.onlyUsefulWith(_induction.is(notEqual(Induction::NONE)));
-    _lookup.insert(_inductionNegOnly);
 
     _inductionUnitOnly.onlyUsefulWith(_induction.is(notEqual(Induction::NONE)));
-    _lookup.insert(_inductionUnitOnly);
 
     _inductionGen.onlyUsefulWith(_induction.is(notEqual(Induction::NONE)));
-    _lookup.insert(_inductionGen);
 
     _maxInductionGenSubsetSize.onlyUsefulWith(_inductionGen.is(equal(true)));
     _maxInductionGenSubsetSize.addHardConstraint(lessThan(10u));
-    _lookup.insert(_maxInductionGenSubsetSize);
 
     _inductionStrengthenHypothesis.onlyUsefulWith(_induction.is(notEqual(Induction::NONE)));
-    _lookup.insert(_inductionStrengthenHypothesis);
 
     _inductionOnComplexTerms.onlyUsefulWith(_induction.is(notEqual(Induction::NONE)));
-    _lookup.insert(_inductionOnComplexTerms);
 
     _inductionGroundOnly.onlyUsefulWith(Or(_induction.is(equal(Induction::STRUCTURAL)),_induction.is(equal(Induction::BOTH))));
-    _lookup.insert(_inductionGroundOnly);
 
     _functionDefinitionRewriting.addHardConstraint(If(equal(true)).then(_newCNF.is(equal(true))));
     _functionDefinitionRewriting.addHardConstraint(If(equal(true)).then(_equalityResolutionWithDeletion.is(equal(true))));
-    _lookup.insert(_functionDefinitionRewriting);
 
     _integerInductionDefaultBound.onlyUsefulWith(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
-    _lookup.insert(_integerInductionDefaultBound);
 
     _integerInductionInterval.onlyUsefulWith(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
-    _lookup.insert(_integerInductionInterval);
 
     _integerInductionStrictnessEq.onlyUsefulWith(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
-    _lookup.insert(_integerInductionStrictnessEq);
 
     _integerInductionStrictnessComp.onlyUsefulWith(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
-    _lookup.insert(_integerInductionStrictnessComp);
 
     _integerInductionStrictnessTerm.onlyUsefulWith(Or(_induction.is(equal(Induction::INTEGER)),_induction.is(equal(Induction::BOTH))));
-    _lookup.insert(_integerInductionStrictnessTerm);
 
     _nonUnitInduction.reliesOn(_induction.is(notEqual(Induction::NONE)));
-    _lookup.insert(_nonUnitInduction);
 
     _inductionOnActiveOccurrences.onlyUsefulWith(_induction.is(notEqual(Induction::NONE)));
-    _lookup.insert(_inductionOnActiveOccurrences);
-    _lookup.insert(_instantiation);
-    _lookup.insert(_backwardDemodulation);
     _backwardDemodulation.addProblemConstraint(hasEquality());
     _backwardDemodulation.onlyUsefulWith(ProperSaturationAlgorithm());
 
-    _lookup.insert(_backwardSubsumption);
     _backwardSubsumption.onlyUsefulWith(ProperSaturationAlgorithm());
     // bs without fs may lead to rapid looping (when a newly derived clause subsumes its own ancestor already in active) and makes little sense
     _backwardSubsumption.addHardConstraint(
         If(notEqual(Subsumption::OFF)).then(_forwardSubsumption.is(notEqual(false))));
 
-    _lookup.insert(_backwardSubsumptionResolution);
     _backwardSubsumptionResolution.onlyUsefulWith(ProperSaturationAlgorithm());
 
-    _lookup.insert(_backwardSubsumptionDemodulation);
     _backwardSubsumptionDemodulation.onlyUsefulWith(ProperSaturationAlgorithm());
     _backwardSubsumptionDemodulation.addProblemConstraint(hasEquality());
 
-    _lookup.insert(_backwardSubsumptionDemodulationMaxMatches);
     _backwardSubsumptionDemodulationMaxMatches.onlyUsefulWith(_backwardSubsumptionDemodulation.is(equal(true)));
 
-    _lookup.insert(_binaryResolution);
     _binaryResolution.onlyUsefulWith(ProperSaturationAlgorithm());
     // If urr is off then binary resolution should be on
     // _binaryResolution.addConstraint(If(equal(false)).then(_unitResultingResolution.is(notEqual(URResolution::OFF))));
 
     _superposition.onlyUsefulWith(ProperSaturationAlgorithm());
-    _lookup.insert(_superposition);
-    _lookup.insert(_condensation);
     _condensation.onlyUsefulWith(ProperSaturationAlgorithm());
 
-    _lookup.insert(_demodulationRedundancyCheck);
     _demodulationRedundancyCheck.onlyUsefulWith(ProperSaturationAlgorithm());
     _demodulationRedundancyCheck.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),
                                                    _backwardDemodulation.is(notEqual(Demodulation::OFF)),
                                                    _partialRedundancyCheck.is(notEqual(false))));
     _demodulationRedundancyCheck.addProblemConstraint(hasEquality());
 
-    _lookup.insert(_forwardDemodulationTermOrderingDiagrams);
     _forwardDemodulationTermOrderingDiagrams.onlyUsefulWith(ProperSaturationAlgorithm());
     _forwardDemodulationTermOrderingDiagrams.onlyUsefulWith(_forwardDemodulation.is(notEqual(Demodulation::OFF)));
     _forwardDemodulationTermOrderingDiagrams.addProblemConstraint(hasEquality());
 
-    _lookup.insert(_demodulationOnlyEquational);
     _demodulationOnlyEquational.onlyUsefulWith(ProperSaturationAlgorithm());
     _demodulationOnlyEquational.onlyUsefulWith(Or(_forwardDemodulation.is(notEqual(Demodulation::OFF)),_backwardDemodulation.is(notEqual(Demodulation::OFF))));
     _demodulationOnlyEquational.addProblemConstraint(hasEquality());
 
-    _lookup.insert(_extensionalityAllowPosEq);
     _extensionalityAllowPosEq.onlyUsefulWith(_extensionalityResolution.is(equal(ExtensionalityResolution::FILTER)));
 
-    _lookup.insert(_extensionalityMaxLength);
     // 0 means infinity, so it is intentionally not if (unsignedValue < 2).
     _extensionalityMaxLength.addConstraint(notEqual(1u));
     _extensionalityMaxLength.onlyUsefulWith(_extensionalityResolution.is(notEqual(ExtensionalityResolution::OFF)));
     //TODO does this depend on anything?
 
-    _lookup.insert(_extensionalityResolution);
     // Captures that if ExtensionalityResolution is not off then inequality splitting must be 0
     _extensionalityResolution.onlyUsefulWith(_inequalitySplitting.is(equal(0)));
 
-    _lookup.insert(_FOOLParamodulation);
-    _lookup.insert(_termAlgebraInferences);
-    _lookup.insert(_termAlgebraExhaustivenessAxiom);
-    _lookup.insert(_termAlgebraCyclicityCheck);
-    _lookup.insert(_forwardDemodulation);
     _forwardDemodulation.onlyUsefulWith(ProperSaturationAlgorithm());
 
-    _lookup.insert(_forwardGroundJoinability);
     _forwardGroundJoinability.onlyUsefulWith(ProperSaturationAlgorithm());
 
-    _lookup.insert(_forwardLiteralRewriting);
     _forwardLiteralRewriting.addProblemConstraint(mayHaveNonUnits());
     _forwardLiteralRewriting.onlyUsefulWith(ProperSaturationAlgorithm());
 
-    _lookup.insert(_forwardSubsumption);
-    _lookup.insert(_forwardSubsumptionResolution);
     _forwardSubsumptionResolution.addHardConstraint(If(equal(true)).then(_forwardSubsumption.is(equal(true))));
 
     _forwardSubsumptionResolution.onlyUsefulWith(ProperSaturationAlgorithm());
 
-    _lookup.insert(_forwardSubsumptionDemodulation);
     _forwardSubsumptionDemodulation.onlyUsefulWith(ProperSaturationAlgorithm());
     _forwardSubsumptionDemodulation.addProblemConstraint(hasEquality());
 
-    _lookup.insert(_forwardSubsumptionDemodulationMaxMatches);
     _forwardSubsumptionDemodulationMaxMatches.onlyUsefulWith(_forwardSubsumptionDemodulation.is(equal(true)));
 
-    _lookup.insert(_simultaneousSuperposition);
     _simultaneousSuperposition.onlyUsefulWith(ProperSaturationAlgorithm());
 
     _innerRewriting.onlyUsefulWith(ProperSaturationAlgorithm());
     _innerRewriting.addProblemConstraint(hasEquality());
-    _lookup.insert(_innerRewriting);
-    _lookup.insert(_equationalTautologyRemoval);
     _equationalTautologyRemoval.onlyUsefulWith(ProperSaturationAlgorithm());
 
-    _lookup.insert(_subsumptionEqualityResolution);
     _subsumptionEqualityResolution.onlyUsefulWith(ProperSaturationAlgorithm());
 
-    _lookup.insert(_partialRedundancyCheck);
     _partialRedundancyCheck.onlyUsefulWith(ProperSaturationAlgorithm());
     _partialRedundancyCheck.addHardConstraint(If(equal(true)).then(Or(_unificationWithAbstraction.is(equal(UnificationWithAbstraction::AUTO)),
                                                                           _unificationWithAbstraction.is(equal(UnificationWithAbstraction::OFF)))));
 
-    _lookup.insert(_partialRedundancyOrderingConstraints);
     _partialRedundancyOrderingConstraints.onlyUsefulWith(_partialRedundancyCheck.is(equal(true)));
 
-    _lookup.insert(_partialRedundancyAvatarConstraints);
     _partialRedundancyAvatarConstraints.onlyUsefulWith(_partialRedundancyCheck.is(equal(true)));
     _partialRedundancyAvatarConstraints.onlyUsefulWith(_splitting.is(equal(true)));
 
-    _lookup.insert(_partialRedundancyLiteralConstraints);
     _partialRedundancyLiteralConstraints.onlyUsefulWith(_partialRedundancyCheck.is(equal(true)));
 
-    _lookup.insert(_unitResultingResolution);
     _unitResultingResolution.onlyUsefulWith(ProperSaturationAlgorithm());
     _unitResultingResolution.addProblemConstraint(notJustEquality());
     _unitResultingResolution.addConstraint(If(equal(URResolution::FULL)).then(_splitting.is(equal(true))));
     // If br has already been set off then this will be forced on, if br has not yet been set
     // then setting this to off will force br on
 
-    _lookup.insert(_superpositionFromVariables);
     _superpositionFromVariables.addProblemConstraint(hasEquality());
     _superpositionFromVariables.onlyUsefulWith(ProperSaturationAlgorithm());
 
 //*********************** Higher-order  ***********************
 
-    _lookup.insert(_holPrinting);
-    _lookup.insert(_choiceAxiom);
     _choiceAxiom.addProblemConstraint(hasHigherOrder());
 
-    _lookup.insert(_choiceReasoning);
     _choiceReasoning.addProblemConstraint(hasHigherOrder());
     _choiceReasoning.onlyUsefulWith(_choiceAxiom.is(equal(false))); //no point having two together
 
-    _lookup.insert(_injectivity);
     _injectivity.addProblemConstraint(hasHigherOrder());
 
-    _lookup.insert(_functionExtensionality);
     _functionExtensionality.addProblemConstraint(hasHigherOrder());
 
-    _lookup.insert(_clausificationOnTheFly);
     _clausificationOnTheFly.addProblemConstraint(hasHigherOrder());
 
-    _lookup.insert(_piSet);
     _piSet.addProblemConstraint(hasHigherOrder());
 
-    _lookup.insert(_equalityToEquivalence);
-    // potentially could be useful for FOOL, so am not adding the HOL constraint
-
-    _lookup.insert(_complexBooleanReasoning);
     _complexBooleanReasoning.addProblemConstraint(hasHigherOrder());
-
-    _lookup.insert(_booleanEqTrick);
-    // potentially could be useful for FOOL, so am not adding the HOL constraint    
 
     _heuristicInstantiation.onlyUsefulWith(ProperSaturationAlgorithm());
     _heuristicInstantiation.addProblemConstraint(hasHigherOrder());   
     _heuristicInstantiation.addHardConstraint(If(notEqual(false)).then(_clausificationOnTheFly.is(equal(CNFOnTheFly::CONJ_EAGER)))); 
-    _lookup.insert(_heuristicInstantiation);
 
     _higherOrderUnifDepth.addProblemConstraint(hasHigherOrder());    
     _higherOrderUnifDepth.addHardConstraint(lessThan(100u));
-    _lookup.insert(_higherOrderUnifDepth);
 
     _casesSimp.onlyUsefulWith(_cases.is(equal(false)));
-    _lookup.insert(_casesSimp);
-    // potentially could be useful for FOOL, so am not adding the HOL constraint
 
     //TODO, sort out the mess with cases and FOOLP.
     //One should be removed. AYB
     _cases.onlyUsefulWith(_casesSimp.is(equal(false)));
-    _lookup.insert(_cases);
-    // potentially could be useful for FOOL, so am not adding the HOL constraint
 
-    _lookup.insert(_newTautologyDel);
-    // potentially could be useful for FOOL, so am not adding the HOL constraint
-
-    _lookup.insert(_positiveExt);
     _positiveExt.addProblemConstraint(hasHigherOrder());   
     _positiveExt.onlyUsefulWith(_functionExtensionality.is(notEqual(FunctionExtensionality::AXIOM)));
 
-    _lookup.insert(_iffXorRewriter);
     _iffXorRewriter.addProblemConstraint(hasHigherOrder());
 
 //*********************** InstGen  ***********************
 // TODO not really InstGen any more, just global subsumption
 
-    _lookup.insert(_globalSubsumption);
     _globalSubsumption.onlyUsefulWith(ProperSaturationAlgorithm());
     // _globalSubsumption.addProblemConstraint(mayHaveNonUnits()); - this is too strict, think of a better one
 
 //*********************** AVATAR  ***********************
 
-    _lookup.insert(_splitting);
     _splitting.onlyUsefulWith(ProperSaturationAlgorithm());
     //_splitting.addProblemConstraint(mayHaveNonUnits());
 
-    _lookup.insert(_splitAtActivation);
     _splitAtActivation.onlyUsefulWith(_splitting.is(equal(true)));
 
-    _lookup.insert(_cleaveNonsplittables);
     _cleaveNonsplittables.onlyUsefulWith(_splitting.is(equal(true)));
 
-    _lookup.insert(_splittingAddComplementary);
     _splittingAddComplementary.onlyUsefulWith(_splitting.is(equal(true)));
 
-    _lookup.insert(_splittingCongruenceClosure);
     _splittingCongruenceClosure.onlyUsefulWith(_splitting.is(equal(true)));
 #if VZ3
     _splittingCongruenceClosure.onlyUsefulWith(_satSolver.is(notEqual(SatSolver::Z3)));
 #endif
     // _splittingCongruenceClosure.addProblemConstraint(hasEquality()); -- not a good constraint for the minimizer
 
-    _lookup.insert(_splittingLiteralPolarityAdvice);
     _splittingLiteralPolarityAdvice.onlyUsefulWith(_splitting.is(equal(true)));
 
-    _lookup.insert(_splittingMinimizeModel);
     _splittingMinimizeModel.onlyUsefulWith(_splitting.is(equal(true)));
 
-    _lookup.insert(_splittingDeleteDeactivated);
     _splittingDeleteDeactivated.onlyUsefulWith(_splitting.is(equal(true)));
 
-    _lookup.insert(_splittingAvatimer);
     _splittingAvatimer.addConstraint(greaterThanEq(0.0f)); //if you want to stop splitting right-away, just turn AVATAR off
     _splittingAvatimer.addConstraint(lessThanEq(1.0f));
     _splittingAvatimer.onlyUsefulWith(_splitting.is(equal(true)));
 
-    _lookup.insert(_splittingNonsplittableComponents);
     _splittingNonsplittableComponents.onlyUsefulWith(_splitting.is(equal(true)));
 
-    _lookup.insert(_nonliteralsInClauseWeight);
     _nonliteralsInClauseWeight.onlyUsefulWith(_splitting.is(equal(true)));
     // _nonliteralsInClauseWeight.addProblemConstraint(mayHaveNonUnits()); (for the same reason this is disabled in splitting)
 
 //*********************** SAT solver (used in various places)  ***********************
-    _lookup.insert(_satSolver);
 #if VZ3
     _satSolver.addHardConstraint(If(equal(SatSolver::Z3)).then(_saturationAlgorithm.is(notEqual(SaturationAlgorithm::FINITE_MODEL_BUILDING))));
 #endif
@@ -2948,7 +2634,6 @@ Options::Options ()
 
 #if VZ3
 
-    _lookup.insert(_satFallbackForSMT);
     _satFallbackForSMT.addProblemConstraint(hasTheories()); // Z3 won't be incomplete for pure FOL
     _satFallbackForSMT.onlyUsefulWith(_satSolver.is(equal(SatSolver::Z3)));
 #endif
@@ -2957,36 +2642,20 @@ Options::Options ()
     //*********************** which mode or tag?  ************************
     //*************************************************************
 
-    _lookup.insert(_increasedNumeralWeight);
     _increasedNumeralWeight.onlyUsefulWith(ProperSaturationAlgorithm());
 
-    _lookup.insert(_literalComparisonMode);
     _literalComparisonMode.onlyUsefulWith(ProperSaturationAlgorithm());
     _literalComparisonMode.addProblemConstraint(mayHaveNonUnits());
     _literalComparisonMode.addProblemConstraint(notJustEquality());
 
-    _lookup.insert(_nonGoalWeightCoefficient);
     _nonGoalWeightCoefficient.onlyUsefulWith(ProperSaturationAlgorithm());
-
-    _lookup.insert(_normalize);
-    _lookup.insert(_shuffleInput);
-    _lookup.insert(_randomTraversals);
-    _lookup.insert(_randomPolarities);
-    _lookup.insert(_randomizedSimplifications);
-    _lookup.insert(_randomizedPreprocessing);
 
     _questionAnswering.addHardConstraint(If(equal(QuestionAnsweringMode::PLAIN)).then(ProperSaturationAlgorithm()));
     _questionAnswering.addHardConstraint(If(equal(QuestionAnsweringMode::SYNTHESIS)).then(ProperSaturationAlgorithm()));
-    _lookup.insert(_questionAnswering);
     _questionAnswering.addProblemConstraint(onlyFirstOrder()); // currently not supported; but should work in principle when reconciled with the HO-saturation invariants
 
     _questionAnsweringGroundOnly.onlyUsefulWith(_questionAnswering.is(equal(QuestionAnsweringMode::PLAIN)));
-    _lookup.insert(_questionAnsweringGroundOnly);
-    _lookup.insert(_questionAnsweringAvoidThese);
     _questionAnsweringAvoidThese.onlyUsefulWith(_questionAnswering.is(equal(QuestionAnsweringMode::PLAIN)));
-
-    _lookup.insert(_randomSeed);
-    _lookup.insert(_activationLimit);
 
     // Even if AUTO_KBO resolves to "qkbo" or "lakbo", we still allow KBO suboptions (and possibly ignore them)
     // this is better than the default (to=auto_kbo) warning whenever we touch "kws" or "kmz" ...
@@ -2999,32 +2668,15 @@ Options::Options ()
     _termOrdering.addHardConstraint(
         If(Or(equal(TermOrdering::QKBO), equal(TermOrdering::LAKBO)))
           .then(_alasca.is(equal(true)))); // <- alasca must be enabled, because the orderings rely on AlascaState to be set
-    _lookup.insert(_termOrdering);
-    _lookup.insert(_symbolPrecedence);
     _symbolPrecedence.onlyUsefulWith(ProperSaturationAlgorithm());
 
-    _lookup.insert(_introducedSymbolPrecedence);
-
     _kboWeightGenerationScheme.onlyUsefulWith(KboLike());
-    _lookup.insert(_kboWeightGenerationScheme);
 
     _kboMaxZero.onlyUsefulWith(KboLike());
-    _lookup.insert(_kboMaxZero);
 
     _kboAdmissabilityCheck.onlyUsefulWith(KboLike());
-    _lookup.insert(_kboAdmissabilityCheck);
 
     _functionWeights.onlyUsefulWith(KboLike());
-    _lookup.insert(_functionWeights);
-    _lookup.insert(_typeConPrecedence);
-    _lookup.insert(_functionPrecedence);
-    _lookup.insert(_predicatePrecedence);
-
-    //******************************************************************
-    //*********************** Vinter???  *******************************
-    //******************************************************************
-
-    _lookup.insert(_showInterpolant);
 } // Options::Options()
 
 /**

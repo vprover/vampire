@@ -23,10 +23,8 @@
  *
  * In Options.cpp
  * - Initialise the OptionValue member, to do this you need to
- * -- Call the constructor with at least a long name, short name and default value
- * -- Provide a description
- * -- Insert the option into lookup (this is essential)
- * -- Tag the option, otherwise it will not appear nicely in showOptions
+ * -- Call the constructor with at least a long name and default value
+ * -- Provide metadata like a short name, description, tag, experimental status.
  * -- Add value constraints, they can be soft or hard (see NOTE on OptionValueConstraints below)
  * -- Add problem constraints (see NOTE on OptionProblemConstraints)
  *
@@ -60,6 +58,7 @@ using namespace Lib;
 using namespace Kernel;
 
 class Property;
+class Options;
 
 /**
  * Possible tags to group options by
@@ -169,9 +168,9 @@ struct OptionMeta {
  * @author Giles
  */
 struct AbstractOptionValue {
-    AbstractOptionValue(const char *l, OptionMeta meta = {})
-        : longName(l), shortName(meta.short_name),
-          description(meta.description), experimental(meta.experimental), tag(meta.tag) {}
+    // registers this option with owner's lookup; defined out-of-line in Options.cpp,
+    // where class Options is complete
+    AbstractOptionValue(const char *l, Options* owner, OptionMeta meta = {});
 
     // Never copy/move an OptionValue... the Constraint system would break
     AbstractOptionValue(const AbstractOptionValue&) = delete;
@@ -230,7 +229,7 @@ private:
  */
 template<typename T>
 struct OptionValue : public AbstractOptionValue {
-    OptionValue(const char *l, T def, OptionMeta meta = {}) : AbstractOptionValue(l,meta),
+    OptionValue(const char *l, Options* owner, T def, OptionMeta meta = {}) : AbstractOptionValue(l,owner,meta),
     defaultValue(def), actualValue(def){}
 
     // We store the defaultValue separately so that we can check if the actualValue is non-default
@@ -294,6 +293,7 @@ private:
  */
 class Options
 {
+    friend struct AbstractOptionValue;
 public:
     Options();
 
@@ -475,11 +475,6 @@ public:
     OFF,
     FREE,
     FULL
-  };
-  enum class FMBWidgetOrders : unsigned int {
-    FUNCTION_FIRST, // f(1) f(2) f(3) ... g(1) g(2) ...
-    ARGUMENT_FIRST, // f(1) g(1) h(1) ... f(2) g(2) ...
-    DIAGONAL,       // f(1) g(2) h(3) f(2) g(3) h(1) f(3) g(1) h(2)
   };
   enum class FMBSymbolOrders : unsigned int {
     OCCURRENCE,
@@ -969,8 +964,8 @@ private:
     template<typename T >
     struct ChoiceOptionValue : public OptionValue<T> {
         ChoiceOptionValue(){}
-        ChoiceOptionValue(const char *l, T def,OptionChoiceValues c, OptionMeta meta = {}) :
-        OptionValue<T>(l,def,meta), choices(c) {}
+        ChoiceOptionValue(const char *l, Options* owner, T def,OptionChoiceValues c, OptionMeta meta = {}) :
+        OptionValue<T>(l,owner,def,meta), choices(c) {}
 
         bool setValue(const std::string& value) override{
             // makes reasonable assumption about ordering of every enum
@@ -1022,7 +1017,7 @@ private:
      * @author Giles
      */
     struct BoolOptionValue : public OptionValue<bool> {
-        BoolOptionValue(const char *l, bool d, OptionMeta meta = {}) : OptionValue(l,d,meta){}
+        BoolOptionValue(const char *l, Options* owner, bool d, OptionMeta meta = {}) : OptionValue(l,owner,d,meta){}
         bool setValue(const std::string& value) override{
             if (! value.compare("on") || ! value.compare("true")) {
                 actualValue=true;
@@ -1040,7 +1035,7 @@ private:
     };
 
     struct IntOptionValue : public OptionValue<int> {
-        IntOptionValue(const char *l, int d, OptionMeta meta = {}) : OptionValue(l,d,meta){}
+        IntOptionValue(const char *l, Options* owner, int d, OptionMeta meta = {}) : OptionValue(l,owner,d,meta){}
         bool setValue(const std::string& value) override{
             return Int::stringToInt(value.c_str(),actualValue);
         }
@@ -1048,7 +1043,7 @@ private:
     };
 
     struct UnsignedOptionValue : public OptionValue<unsigned> {
-        UnsignedOptionValue(const char *l, unsigned d, OptionMeta meta = {}) : OptionValue(l,d,meta){}
+        UnsignedOptionValue(const char *l, Options* owner, unsigned d, OptionMeta meta = {}) : OptionValue(l,owner,d,meta){}
 
         bool setValue(const std::string& value) override{
             return Int::stringToUnsignedInt(value.c_str(),actualValue);
@@ -1057,7 +1052,7 @@ private:
     };
 
     struct StringOptionValue : public OptionValue<std::string> {
-        StringOptionValue(const char *l, std::string d, OptionMeta meta = {}) : OptionValue(l,d,meta){}
+        StringOptionValue(const char *l, Options* owner, std::string d, OptionMeta meta = {}) : OptionValue(l,owner,d,meta){}
         bool setValue(const std::string& value) override{
             actualValue = (value=="<empty>") ? "" : value;
             return true;
@@ -1069,7 +1064,7 @@ private:
     };
 
     struct LongOptionValue : public OptionValue<long> {
-        LongOptionValue(const char *l, long d, OptionMeta meta = {}) : OptionValue(l,d,meta){}
+        LongOptionValue(const char *l, Options* owner, long d, OptionMeta meta = {}) : OptionValue(l,owner,d,meta){}
         bool setValue(const std::string& value) override{
             return Int::stringToLong(value.c_str(),actualValue);
         }
@@ -1077,7 +1072,7 @@ private:
     };
 
     struct FloatOptionValue : public OptionValue<float> {
-        FloatOptionValue(const char *l, float d, OptionMeta meta = {}) : OptionValue(l,d,meta){}
+        FloatOptionValue(const char *l, Options* owner, float d, OptionMeta meta = {}) : OptionValue(l,owner,d,meta){}
         bool setValue(const std::string& value) override{
             return Int::stringToFloat(value.c_str(),actualValue);
         }
@@ -1085,8 +1080,8 @@ private:
     };
 
 struct RatioOptionValue : public OptionValue<std::pair<unsigned, unsigned>> {
-RatioOptionValue(const char *l, std::pair<unsigned, unsigned> def, char sp=':', OptionMeta meta = {}) :
-OptionValue(l,def,meta), sep(sp) {};
+RatioOptionValue(const char *l, Options* owner, std::pair<unsigned, unsigned> def, char sp=':', OptionMeta meta = {}) :
+OptionValue(l,owner,def,meta), sep(sp) {};
 
 bool readRatio(const char* val,char separator);
 bool setValue(const std::string& value) override {
@@ -1114,8 +1109,8 @@ std::string getStringOfActual() const override {
 * @author Giles
 */
 struct NonGoalWeightOptionValue : public OptionValue<float>{
-NonGoalWeightOptionValue(const char *l, OptionMeta meta = {}) :
-OptionValue(l,10.0,meta), numerator(10), denominator(1) {};
+NonGoalWeightOptionValue(const char *l, Options* owner, OptionMeta meta = {}) :
+OptionValue(l,owner,10.0,meta), numerator(10), denominator(1) {};
 
 bool setValue(const std::string& value) override;
 
@@ -1133,8 +1128,8 @@ std::string getStringOfValue(float value) const override{ return Lib::Int::toStr
 * @author Giles
 */
 struct SelectionOptionValue : public OptionValue<int>{
-SelectionOptionValue(const char *l, int def, OptionMeta meta = {}):
-OptionValue(l,def,meta){};
+SelectionOptionValue(const char *l, Options* owner, int def, OptionMeta meta = {}):
+OptionValue(l,owner,def,meta){};
 
 bool setValue(const std::string& value) override;
 
@@ -1153,8 +1148,8 @@ auto isLookAheadSelection();
 * @author Giles
 */
 struct InputFileOptionValue : public OptionValue<std::string>{
-InputFileOptionValue(const char *l, std::string def,Options* p, OptionMeta meta = {}):
-OptionValue(l,def,meta), parent(p){};
+InputFileOptionValue(const char *l, Options* p, std::string def, OptionMeta meta = {}):
+OptionValue(l,p,def,meta), parent(p){};
 
 bool setValue(const std::string& value) override;
 
@@ -1174,7 +1169,7 @@ Options* parent;
 */
 struct DecodeOptionValue : public OptionValue<std::string>{
     DecodeOptionValue(const char *l, Options* p, OptionMeta meta = {})
-        : OptionValue(l,"",meta), parent(p){}
+        : OptionValue(l,p,"",meta), parent(p){}
 
 bool setValue(const std::string& value) override{
     parent->readFromEncodedOptions(value);
@@ -1191,8 +1186,8 @@ Options* parent = nullptr;
 * @author Giles
 */
 struct TimeLimitOptionValue : public OptionValue<int>{
-TimeLimitOptionValue(const char *l, float def, OptionMeta meta = {}) :
-OptionValue(l,def,meta) {};
+TimeLimitOptionValue(const char *l, Options* owner, float def, OptionMeta meta = {}) :
+OptionValue(l,owner,def,meta) {};
 
 bool setValue(const std::string& value) override;
 
@@ -1227,10 +1222,8 @@ public:
   std::string printProofToFile() const { return _printProofToFile.actualValue; }
   int naming() const { return _naming.actualValue; }
 
-  bool fmbNonGroundDefs() const { return _fmbNonGroundDefs.actualValue; }
   unsigned fmbStartSize() const { return _fmbStartSize.actualValue;}
   float fmbSymmetryRatio() const { return _fmbSymmetryRatio.actualValue; }
-  FMBWidgetOrders fmbSymmetryWidgetOrders() { return _fmbSymmetryWidgetOrders.actualValue;}
   FMBSymbolOrders fmbSymmetryOrderSymbols() const {return _fmbSymmetryOrderSymbols.actualValue; }
   FMBAdjustSorts fmbAdjustSorts() const {return _fmbAdjustSorts.actualValue; }
   bool fmbDetectSortBounds() const { return _fmbDetectSortBounds.actualValue; }
@@ -1278,7 +1271,6 @@ public:
   bool sineToAge() const { return _sineToAge.actualValue; }
   PredicateSineLevels sineToPredLevels() const { return _sineToPredLevels.actualValue; }
   bool showSplitting() const { return showAll() || _showSplitting.actualValue; }
-  bool showNewPropositional() const { return showAll() || _showNewPropositional.actualValue; }
   bool showPassive() const { return showAll() || _showPassive.actualValue; }
   bool showReductions() const { return showAll() || _showReductions.actualValue; }
   bool showPreprocessing() const { return showAll() || _showPreprocessing.actualValue; }
@@ -1318,7 +1310,6 @@ public:
 
 #if VZ3
   bool satFallbackForSMT() const { return _satFallbackForSMT.actualValue; }
-  bool smtForGround() const { return _smtForGround.actualValue; }
   TheoryInstSimp theoryInstAndSimp() const { return _theoryInstAndSimp.actualValue; }
   bool thiGeneralise() const { return _thiGeneralise.actualValue; }
   bool thiTautologyDeletion() const { return _thiTautologyDeletion.actualValue; }
@@ -1395,7 +1386,6 @@ public:
   bool kboMaxZero() const { return _kboMaxZero.actualValue; }
   const KboAdmissibilityCheck kboAdmissabilityCheck() const { return _kboAdmissabilityCheck.actualValue; }
   const std::string& functionWeights() const { return _functionWeights.actualValue; }
-  const std::string& predicateWeights() const { return _predicateWeights.actualValue; }
   const std::string& functionPrecedence() const { return _functionPrecedence.actualValue; }
   const std::string& typeConPrecedence() const { return _typeConPrecedence.actualValue; }
   const std::string& predicatePrecedence() const { return _predicatePrecedence.actualValue; }
@@ -1715,10 +1705,8 @@ private:
   ChoiceOptionValue<TACyclicityCheck> _termAlgebraCyclicityCheck;
   BoolOptionValue _termAlgebraExhaustivenessAxiom;
 
-  BoolOptionValue _fmbNonGroundDefs;
   UnsignedOptionValue _fmbStartSize;
   FloatOptionValue _fmbSymmetryRatio;
-  ChoiceOptionValue<FMBWidgetOrders> _fmbSymmetryWidgetOrders;
   ChoiceOptionValue<FMBSymbolOrders> _fmbSymmetryOrderSymbols;
   ChoiceOptionValue<FMBAdjustSorts> _fmbAdjustSorts;
   BoolOptionValue _fmbDetectSortBounds;
@@ -1863,7 +1851,6 @@ private:
   BoolOptionValue _sineToAge;
   ChoiceOptionValue<PredicateSineLevels> _sineToPredLevels;
   BoolOptionValue _showSplitting;
-  BoolOptionValue _showNewPropositional;
   BoolOptionValue _showNonconstantSkolemFunctionTrace;
   BoolOptionValue _showOptions;
   BoolOptionValue _showOptionsLineWrap;
@@ -1893,7 +1880,6 @@ private:
   StringOptionValue _exportAvatarProblem;
   StringOptionValue _exportThiProblem;
   BoolOptionValue _satFallbackForSMT;
-  BoolOptionValue _smtForGround;
   ChoiceOptionValue<TheoryInstSimp> _theoryInstAndSimp;
   BoolOptionValue _thiGeneralise;
   BoolOptionValue _thiTautologyDeletion;
@@ -1934,7 +1920,6 @@ private:
   BoolOptionValue _kboMaxZero;
   ChoiceOptionValue<KboAdmissibilityCheck> _kboAdmissabilityCheck;
   StringOptionValue _functionWeights;
-  StringOptionValue _predicateWeights;
   StringOptionValue _typeConPrecedence;
   StringOptionValue _functionPrecedence;
   StringOptionValue _predicatePrecedence;
