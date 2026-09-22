@@ -36,6 +36,35 @@ namespace Kernel
 using namespace std;
 using namespace Lib;
 
+/**
+ * Numeral values are stored in the signature, and every numeral type is a pair of
+ * mpz_t's, i.e. copying one costs two mallocs. The evaluators below look at the
+ * numerals of *every* interpreted subterm they are offered, but only need to copy
+ * one when they actually compute with it. These helpers give read-only access to
+ * the stored value instead, and test against 0/1/-1 without building a numeral.
+ */
+static inline IntegerConstantType const* symConstPtr(Signature::Symbol* sym, IntegerConstantType*)
+{ return sym->integerConstant() ? &sym->integerValue() : nullptr; }
+static inline RationalConstantType const* symConstPtr(Signature::Symbol* sym, RationalConstantType*)
+{ return sym->rationalConstant() ? &sym->rationalValue() : nullptr; }
+static inline RealConstantType const* symConstPtr(Signature::Symbol* sym, RealConstantType*)
+{ return sym->realConstant() ? &sym->realValue() : nullptr; }
+
+/** the non-copying counterpart of Theory::tryInterpretConstant; nullptr if not a numeral */
+template<class T>
+static inline T const* tryConstPtr(TermList tl)
+{
+  if (!tl.isTerm()) { return nullptr; }
+  Term* t = tl.term();
+  if (t->numTermArguments() != 0 || t->isSpecial()) { return nullptr; }
+  return symConstPtr(env.signature->getFunction(t->functor()), (T*)nullptr);
+}
+
+static inline bool cstIsVal(IntegerConstantType const& c, long v)
+{ auto o = c.cvt<long>(); return o.isSome() && *o == v; }
+static inline bool cstIsVal(RationalConstantType const& c, long v)
+{ return cstIsVal(c.denominator(), 1) && cstIsVal(c.numerator(), v); }
+
 struct PredEvalResult {
   enum status_t {
     Simplified,
@@ -420,10 +449,10 @@ public:
 
   TypedEvaluator() {}
 
-  bool isZero(T arg) const { return T(0) == arg; }
+  bool isZero(T const& arg) const { return arg.sign() == Sign::Zero; }
   TermList getZero() const {return number::zero(); }
-  bool isOne(T arg) const { return T(1) == arg; }
-  bool isMinusOne(T arg) const { return typename number::ConstantType(-1) == arg; }
+  bool isOne(T const& arg) const { return cstIsVal(arg, 1); }
+  bool isMinusOne(T const& arg) const { return cstIsVal(arg, -1); }
   TermList invert(TermList t) const { return number::minus(t); }
   bool isAddition(Interpretation interp) const { return interp == number::addI; }
   bool isProduct(Interpretation interp) const  { return interp == number::mulI; }
@@ -457,10 +486,10 @@ public:
       }
       T resNum;
       TermList arg1Trm = trm->termArg(0);
-      T arg1;
+      T const* arg1 = tryConstPtr<T>(arg1Trm);
       if (arity==1) {
-        if (theory->tryInterpretConstant(arg1Trm, arg1)){
-          if (!tryEvaluateUnaryFunc(itp, arg1, resNum)) { return false;}
+        if (arg1){
+          if (!tryEvaluateUnaryFunc(itp, *arg1, resNum)) { return false;}
         } else if (itp == num.minusI){ 
           const unsigned umin = trm->functor();
           return trySimplifyUnaryMinus(umin, arg1Trm, res);
@@ -473,19 +502,17 @@ public:
 
         // If one argument is not a constant and the other is zero, one or minus one then
         // we might have some special cases
-        T arg2;
         TermList arg2Trm = trm->termArg(1);
+        T const* arg2 = tryConstPtr<T>(arg2Trm);
 
         bool specialCase = true;
-        T conArg;
+        T const* conArg = nullptr;
         TermList nonConTerm;
-        if (theory->tryInterpretConstant(arg1Trm, arg1) && (isZero(arg1) || isOne(arg1) || isMinusOne(arg1)) && 
-            !theory->tryInterpretConstant(arg2Trm, arg2)) {
+        if (arg1 && (isZero(*arg1) || isOne(*arg1) || isMinusOne(*arg1)) && !arg2) {
          conArg = arg1;
          nonConTerm = arg2Trm;
         }
-        else if(theory->tryInterpretConstant(arg2Trm, arg2) && (isZero(arg2) || isOne(arg2) || isMinusOne(arg2)) && 
-            !theory->tryInterpretConstant(arg1Trm, arg1)) {
+        else if(arg2 && (isZero(*arg2) || isOne(*arg2) || isMinusOne(*arg2)) && !arg1) {
          conArg = arg2;
          nonConTerm = arg1Trm;
         }
@@ -497,33 +524,33 @@ public:
  
           //Special case where itp is division and arg2 is '1'
           //   Important... this is a non-symmetric case!
-          if(theory->tryInterpretConstant(arg2Trm, arg2) && isOne(arg2) && isDivision(itp)){
+          if(arg2 && isOne(*arg2) && isDivision(itp)){
             res = arg1Trm;
             return true;
           }
           //Special case where itp is addition and conArg is '0'
-          if(isZero(conArg) && isAddition(itp)){
+          if(isZero(*conArg) && isAddition(itp)){
             res = nonConTerm;
             return true;
           }
           //Special case where itp is multiplication and conArg  is '1'
-          if(isOne(conArg) && isProduct(itp)){
+          if(isOne(*conArg) && isProduct(itp)){
             res = nonConTerm;
             return true;
           }
           //Special case where itp is multiplication and conArg  is '-1'
-          if(isMinusOne(conArg) && isProduct(itp)){
+          if(isMinusOne(*conArg) && isProduct(itp)){
             res = invert(nonConTerm); 
             return true;
           }
           //Special case where itp is multiplication and conArg is '0'
-          if(isZero(conArg) && isProduct(itp)){
+          if(isZero(*conArg) && isProduct(itp)){
             res = getZero();
             return true;
           }
         }
-        if(theory->tryInterpretConstant(arg1Trm, arg1) && theory->tryInterpretConstant(arg2Trm, arg2)){
-	  if (!tryEvaluateBinaryFunc(itp, arg1, arg2, resNum)) { return false;}
+        if(arg1 && arg2){
+	  if (!tryEvaluateBinaryFunc(itp, *arg1, *arg2, resNum)) { return false;}
         }
         else{ return false;}
       }
@@ -551,16 +578,16 @@ public:
 	INVALID_OPERATION("unsupported arity of interpreted operation: "+Int::toString(arity));
       }
       TermList arg1Trm = lit->termArg(0);
-      T arg1;
-      if (!theory->tryInterpretConstant(arg1Trm, arg1)) { return PredEvalResult::nop(); }
+      T const* arg1 = tryConstPtr<T>(arg1Trm);
+      if (!arg1) { return PredEvalResult::nop(); }
       if (arity==1) {
-	if (!tryEvaluateUnaryPred(itp, arg1, res)) { return PredEvalResult::nop();}
+	if (!tryEvaluateUnaryPred(itp, *arg1, res)) { return PredEvalResult::nop();}
       }
       else {
 	TermList arg2Trm = lit->termArg(1);
-	T arg2;
-	if (!theory->tryInterpretConstant(arg2Trm, arg2)) { return PredEvalResult::nop(); }
-	if (!tryEvaluateBinaryPred(itp, arg1, arg2, res)) { return PredEvalResult::nop();}
+	T const* arg2 = tryConstPtr<T>(arg2Trm);
+	if (!arg2) { return PredEvalResult::nop(); }
+	if (!tryEvaluateBinaryPred(itp, *arg1, *arg2, res)) { return PredEvalResult::nop();}
       }
       if (lit->isNegative()) {
 	res = !res;
