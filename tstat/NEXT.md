@@ -35,21 +35,32 @@ side effect nobody was aiming at, made `boolean simplification` 2.8x cheaper per
 
 Ranked in `FINDINGS.md` Part I. By tractability rather than size, the order to pick from:
 
-1. **§2, finer `TIME_TRACE` scopes in `Parse/TPTP.cpp`.** The cheapest useful thing on
-   the list and a prerequisite for the rest of §2: 20% of the corpus gives parsing at
-   least a fifth of its budget and 54 runs never start saturating, but the node has no
-   children, so there is nothing to attribute 100 G to. Parsing runs once per problem, so
-   the scopes are free.
-2. **§4, `interpreted evaluation` on TF0 arithmetic.** Small, self-contained,
+0. **Run a sweep with the eleven new nodes.** The branch now breaks §1's and §2's two
+   largest targets into phases and splits codetree index maintenance into insert and
+   remove (§9). Nothing in `FINDINGS.md` is measured with them yet, and they are what
+   turns §1 and §2 from "large and opaque" into something with a shape. Everything below
+   is easier to prioritise afterwards. The arithmetic says they cost ~0.2% of corpus,
+   almost all of it the two per-`perform` scopes in the code-tree matcher; the sweep
+   should confirm that against 11279 at equal effort, the way §15 did.
+1. **§4, `interpreted evaluation` on TF0 arithmetic.** Small, self-contained,
    reproducible in seconds: six 42-byte `SWX14x_1.p` problems burn 97% of a full budget
    at 4.66 M instructions per evaluation call, agreeing to within 0.01% of each other.
-   One root cause, not six. A good first problem for someone cold.
-3. **§3, `BetaEtaSimplify`.** `SYN007^4.014.p` spends its entire 104.9 G budget in **one
+   One root cause, not six. A good first problem for someone cold, and it does not need
+   the new sweep.
+2. **§3, `BetaEtaSimplify`.** `SYN007^4.014.p` spends its entire 104.9 G budget in **one
    call**. Bug-shaped rather than tuning-shaped, and confined to TH0/TH1.
-4. **§1, `codetree forward subsumption`.** The largest target in the file — 17.79% of
-   everything, with single calls costing 2.75 G instructions on the GRA family. Needs
-   scopes inside the code-tree matching loop first, to say whether the cost is retrieval
-   or multi-literal matching; that fork decides what a fix even looks like.
+3. **§1, `codetree forward subsumption`.** The largest target in the file — 17.79% of
+   everything, with single calls costing 2.75 G instructions on the GRA family. The local
+   reading on `GRA124-1.p` already says ~93% of it is the code-tree interpreter itself
+   rather than the multi-literal matching, which is the hard answer: there is no phase to
+   peel off, only the interpreter to make cheaper or to enter less often. Worth checking
+   whether the ordering heuristic at insertion (`codetree literal ordering`, 59% of
+   insertion on GRA) is what makes the tree so expensive to walk.
+4. **§2, `parsing`.** 20% of the corpus gives it at least a fifth of its budget and 54
+   runs never start saturating. Locally, ~87% of it is neither per-unit finalisation nor
+   the include machinery — so it is the lexer, the state machine, or term and formula
+   construction, and the sweep's instructions-per-input-byte will say which is even
+   possible.
 5. **§5, LRS as a *time* problem.** The instruction share is finished; what survives the
    cap runs at 6x the corpus stall rate and is still 6% of wall clock. The open decision
    is whether the budget should be applied in the time unit regardless of which limit

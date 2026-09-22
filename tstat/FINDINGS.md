@@ -12,11 +12,19 @@ Read `README.md` first for how to read the numbers and how to reproduce any of t
 > reached profiling — 222 930 s and 1 327 T instructions of exclusive cost, 64 distinct
 > node names. `tstat/tstat.db` and `common.py`'s `LOGDIR` point at it.
 >
-> §18 indexes the eight sweeps taken so far and says which of the older databases are
+> §19 indexes the eight sweeps taken so far and says which of the older databases are
 > still worth keeping and why.
+>
+> **The branch has since gained eleven more nodes**, breaking §1's and §2's two largest
+> targets into phases and splitting codetree index maintenance into insert and remove
+> (§9). They are described where they belong, under the finding each was added to answer;
+> nothing in this file is measured with them yet. Every one of them is a *child* of an
+> existing node and nothing was renamed — which is the rule, not an accident: the node
+> whitelist is derived by scanning the source tree, so a renamed node would make all six
+> earlier databases unreadable at a stroke.
 
 **Cost is counted in retired instructions unless stated otherwise.** That is not
-cosmetic: time and instructions rank the nodes differently by up to 6x, and §9 is about
+cosmetic: time and instructions rank the nodes differently by up to 6x, and §11 is about
 exactly that.
 
 **Structure.** Part I is the open work, ranked. Part II is how to read the numbers
@@ -53,15 +61,15 @@ interpreted evaluation                   0.83%     53     36    109       1773  
 
 Two nodes have left this table since it was last drawn against 11156, and both left
 because they were fixed: `forward simplification` (19.01% of corpus, 5 646 runs over
-30%) is now 0.62% and 0 runs, because the work inside it has a name (§14); and
-`property evaluation` (0.81%, up to 89% of a single run) is now 0.13% (§16).
+30%) is now 0.62% and 0 runs, because the work inside it has a name (§15); and
+`property evaluation` (0.81%, up to 89% of a single run) is now 0.13% (§17).
 
 ## 1. `codetree forward subsumption` — one instruction in five, with a four-order-of-magnitude tail
 
 **17.79% of all corpus instructions**, second only to `resolution`, at 32 694
 instructions per call over 7.22 G calls. Roughly one instruction in five of everything
 Vampire does is forward subsumption, and until the 11165 sweep none of it was visible at
-all (§14). At 166 ps/instr it is compute-bound, not memory-bound, so unlike §5 this is
+all (§15). At 166 ps/instr it is compute-bound, not memory-bound, so unlike §5 this is
 not a cache-behaviour problem: it is simply a lot of work.
 
 It is also concentrated rather than merely large: **4 955 runs (19% of the corpus) spend
@@ -83,13 +91,27 @@ A *single* subsumption check costing 2.75 **billion** instructions is bug-shaped
 GRA family (graph theory) dominates and appears in CNF, FOF and TH0 at nearly identical
 cost, which points at the problem shape rather than at the dialect or the parser.
 
-**Where to start.** `Inferences/CodeTreeForwardSubsumptionAndResolution.cpp` has one
-`TIME_TRACE` at the top of `perform` and nothing below it, so a 2.7 G-instruction call
-is still opaque. A couple of scopes inside the code-tree matching loop would say whether
-the cost is in retrieval or in the multi-literal matching, which is the fork that decides
-what a fix would even look like. Overhead is affordable at this call count (one extra
-scope on the `forward simplification` path was measured at 0.09% of corpus, §14) but not
-at the *per-candidate* level.
+**Instrumented for the next sweep.** Until now `perform` had one scope and nothing below
+it, so a 2.7 G-instruction call was opaque. It is now cut into the parts that are *not*
+the code-tree interpreter, leaving the interpreter as the node's own self time:
+
+| node | where | frequency |
+|---|---|---|
+| `codetree matcher setup` | `ClauseMatcher::init` — building a `LitInfo` per query literal | once per `perform` |
+| `codetree multi-literal matching` | `checkCandidate` past the `clen<=1` exit — the backtracking search for a combination of per-literal matches whose bindings agree | once per multi-literal candidate |
+| `codetree matcher teardown` | `ClauseMatcher::reset` — disposing the `MatchInfo`s the search accumulated | once per `perform` |
+
+The interpreter itself is deliberately not entered: `Matcher::execute` dispatches one
+`CodeOp` at a time, so a scope inside it would cost more than the ops it timed. Measuring
+it whole, against named siblings, is as far as this can usefully go.
+
+Local wall-clock on `GRA124-1.p` (`-al 400`) already answers the fork, and the answer is
+the unwelcome one: of the 99% of the run inside forward subsumption, `multi-literal
+matching` is **7%** (62 077 calls, 24 candidates per `perform`) and setup and teardown are
+under 1% each — so **~93% is the interpreter proper**. On `CSR025+6.p`, where clauses are
+mostly unit, the split is the other way round: setup is 54% and multi-literal matching
+0.01%. Two different problems for two different corpora, which is why the split was worth
+having even though neither half is a quick fix.
 
 This is the largest single target in the file, and it has been the largest since it
 became visible.
@@ -139,12 +161,31 @@ Satisfiable almost immediately and parsing is most of what happened. That is ari
 not a defect, and it is why the 20–50% bucket should not be read as 4 282 problems worth
 fixing.
 
-**Where to start.** `Parse/TPTP.cpp` has no `TIME_TRACE` below the single top-level
-scope, so there is nothing to attribute the 100 G to. Parsing runs once per problem, so
-scopes here are free (§14's tier-2 arithmetic: ~0 at 26 K calls). A handful around
-tokenising, term construction, the include/axiom-selection path and the unit list would
-localise this before anyone optimises a line of it. **This is the cheapest useful thing
-on the list**, and it is a prerequisite for the rest.
+**Instrumented for the next sweep.** The parser is a flat state machine, so it has no
+phases in the sense preprocessing does — every state handler runs per token and is far
+too hot to scope. What it does have is a boundary that recurs exactly once per input
+unit, and that is where the new nodes sit:
+
+| node | where | frequency |
+|---|---|---|
+| `tptp formula unit` | `endFof` — closing off a parsed formula and handing it over as a `Unit` | once per cnf/fof/tff/thf/tcf formula |
+| `tptp clause conversion` | the `mustBeClause` block in `endFof` | once per cnf/tcf unit |
+| `tptp closure check` | the `freeVariables(f)` walk that rejects an unquantified variable | once per non-CNF unit |
+| `tptp type declaration` | `endTff` | once per type declaration |
+| `tptp include` | `include` — opening the axiom file, building the selection set | once per include directive |
+
+A scope per input unit costs **0.002% of a sweep** and at most 0.34% of the worst single
+run (the 3.3 M-formula `CSR*+6` family), which is why five of them are affordable where
+one per token would not be. The lexer is deliberately not scoped for exactly that reason,
+and it does not need to be: what stays unattributed as `parsing` self time is lexer +
+state machine + term and formula construction, and since the input byte count is known,
+instructions per byte of that residue says whether a lexer can plausibly account for it.
+
+Local wall-clock on `CSR025+6.p` already bounds it: of the 13 s in `parsing`,
+`tptp formula unit` is **13%** (3 341 978 calls, exactly the header's formula count), of
+which the closure check is a fifth, and `tptp include` is one call and negligible. So
+**~87% of parsing is the scanning-and-building residue** — which is the number the sweep
+now needs to turn into instructions per byte.
 
 ## 3. `beta eta simplification` — a single call can eat a whole higher-order run
 
@@ -168,11 +209,11 @@ NUN (41), and the dialect is TH0/TH1 without exception.
 
 `BoolSimp` is the same story one order down: 0.46% of corpus from 4 565 runs, 7 above
 30%, worst 68.2%. It got 2.8x cheaper per call in the 11279 sweep as a side effect of
-the `SortHelper` work (§16), which is evidence that the HOL simplification rules are
+the `SortHelper` work (§17), which is evidence that the HOL simplification rules are
 paying for sort computation rather than for simplification.
 
 Neither rule could even be named before the 11165 sweep; `Inferences/HOL/` had no
-instrumentation at all (§14).
+instrumentation at all (§15).
 
 ## 4. `interpreted evaluation` — six 42-byte problems at 97% of budget
 
@@ -197,7 +238,7 @@ picking this file up cold.
 
 ## 5. `LRS limit maintenance` — solved as a work problem, still the worst memory stall
 
-The maintenance cap (§13) took this from the top of the file to 0.98% of corpus
+The maintenance cap (§14) took this from the top of the file to 0.98% of corpus
 instructions, and no run now gives it more than 5% of its own budget. As an
 *instruction* target it is finished.
 
@@ -216,11 +257,11 @@ traded many cheapish updates for few expensive ones: the updates that survive ar
 late, large-passive, cache-hostile ones, and with fewer of them each starts from a colder
 cache. The ratio has been stable across three sweeps, so this is structural, not noise.
 
-**The open question, unchanged since §13 and worth deciding before anyone reopens this:**
+**The open question, unchanged since §14 and worth deciding before anyone reopens this:**
 if the goal is 5% of *wall clock* rather than 5% of instructions, the budget under `-i`
 has to be either applied in the time unit regardless of which limit binds, or set nearer
 0.015 in instruction terms. Under `-t 60` the cap already binds in the right unit and
-buys ~10x more (§13).
+buys ~10x more (§14).
 
 ## 6. The memory-bound index trio
 
@@ -236,7 +277,7 @@ About 1% of instructions but 2.1% of time, against a corpus rate of 168 ps/instr
 small prize, and "make an index cache-friendlier" is not a cheap fix — but they are a
 coherent group, and `forward demodulation index maintenance` (192 ps/instr) sitting
 *outside* it says the cost is specific to these three rather than to index maintenance
-generally. The skew is regime-independent: it holds at 2.1–2.5x under `-t 60` too (§12).
+generally. The skew is regime-independent: it holds at 2.1–2.5x under `-t 60` too (§13).
 
 ## 7. Demodulation — the folklore checked, and it is not quite right
 
@@ -259,7 +300,7 @@ demodulation is worth looking at as a per-problem pathology rather than as a gen
 on long runs, and the runs to look at are the mid-length ones.
 
 The node also got **15.7% cheaper per call** between 11235 and 11279, across every
-dialect — see §16, which also explains why that number should not be read as a pure
+dialect — see §17, which also explains why that number should not be read as a pure
 speedup.
 
 ## 8. Peer outliers, and which of them are *not* to fix
@@ -305,9 +346,56 @@ outlier. A benchmark designed to be hard is not a performance bug.
   `^1`/`+1` siblings are not. `./rpt_peers.py --family ITP007` shows this side by side.
   This is §5, not a separate finding.
 
-## 9. What is *not* a blind spot any more
+## 9. Index maintenance, now that insert and remove are separate
 
-Worth stating explicitly, because the instrumentation plan that produced §14 is now
+`codetree subsumption index maintenance` (1.51% of corpus, 1.45 G calls) lumped two
+operations that are nothing alike: insertion compiles a clause and merges the code into
+the tree, removal runs the matching interpreter to find the clause's path and then
+performs surgery. Each now has its own node, `codetree subsumption index insert` and
+`codetree subsumption index remove`, **nested under the old one rather than replacing
+it** — see the note below on why that is worth a scope.
+
+Insertion is split further (three more scopes, on the insert half only):
+
+| node | what it is |
+|---|---|
+| `codetree literal ordering` | `optimizeLiteralOrder`, the greedy heuristic choosing which literal to compile first. Quadratic in clause length — for each start position it walks every remaining literal's code against the tree — and it compiles all of them to do so, so the compilation below is the *second* time each literal is compiled |
+| `codetree code compilation` | `LitCompiler` proper, plus `updateCodeTree` |
+| `codetree code incorporation` | `incorporate`: matching the new code against an existing path, splitting a block, rebuilding search structures (`compressCheckOps`) |
+
+Removal is left whole on purpose. Splitting its interpreter from its surgery would mean
+a scope inside the per-`CodeOp` loop, which is the thing this instrumentation exists to
+avoid; knowing what removal costs in total is the question that was actually open.
+
+Local wall-clock already shows the phases do not rank consistently, which is the argument
+for having them: on `GRA124-1.p` insertion is 59% ordering / 26% compilation / 10%
+incorporation, and on `CSR025+6.p` it is 18% / 9% / **65%**. One number for "index
+maintenance" was hiding two different problems.
+
+**Why the parent node stays, at the cost of a scope.** Splitting a node by *renaming* it
+is free — a call takes exactly one branch — and it was how this was first written. It is
+still the wrong trade. The whitelist in `common.py` is derived by scanning the source
+tree for `TIME_TRACE` literals, which is what stopped it drifting (§15); the price is
+that a name leaving the source makes every sweep containing it unreadable, since an
+unrecognised node rejects the whole run. Keeping the parent costs one scope per call —
+1.45 G calls, **~0.012% of corpus**, 0.2% of the worst single run — and buys a rule with
+no bookkeeping behind it: *add children, never rename*. Six sweeps' worth of this number
+then stay directly comparable, and `_RETIRED_NODES` stays empty.
+
+It does not stay empty for free forever: a node genuinely **deleted** with the code that
+emitted it still needs an entry, so the mechanism is kept. `forward subsumption` — dead
+in every sweep since `-cts` became the default — is the obvious future candidate.
+
+One thing to watch when reading a trend: this node's `self_instr` changes meaning across
+the split, from a leaf's cost to a container's ~0. Compare `instr` (the total), not
+`self_instr`, across sweeps. The same caveat applies to `parsing` and
+`codetree forward subsumption` in this round, and to `forward simplification` in §15 —
+it is the normal consequence of a container gaining children, and the reason the schema
+keeps the two columns apart.
+
+## 10. What is *not* a blind spot any more
+
+Worth stating explicitly, because the instrumentation plan that produced §15 is now
 complete and there is no longer a large container whose cost we can see but whose cause
 we cannot.
 
@@ -335,9 +423,9 @@ mode, so the four `fmb *` nodes and `minisat eliminate var` /
 
 # Part II — How to read these numbers
 
-## 10. Instructions, not time
+## 11. Instructions, not time
 
-The old §6 argued this from one hand-run problem; the corpus says it, and the effect is
+An earlier draft argued this from one hand-run problem; the corpus says it, and the effect is
 one-directional in a way worth internalising: **one cluster of nodes is over-ranked by
 time, and everything else is under-ranked to compensate.** `./rpt_hotspots.py --metric
 membound` on 11279:
@@ -378,7 +466,7 @@ than its label. Self-consistent and harmless for ratios, but the label is wrong.
 Correcting it would silently reinterpret every existing `-i` value, including those baked
 into portfolio schedules, so it is a decision for Martin rather than a fix.
 
-## 11. The noise floor
+## 12. The noise floor
 
 `./rpt_ips.py --spread`: pinning 64 workers to distinct physical cores, instead of
 running 120 unpinned, raised throughput by **1.70x** (median 3 126 → 5 327 M instr/s) but
@@ -392,14 +480,14 @@ per-node instruction spread of **0.004–0.015%** under `setarch -R`, against wa
 spreads of 0.45–49.7% on the same runs. So instruction counts should be believed to
 ~0.1% and time only to the tens of percent.
 
-Under `-t 60` the floor is much higher — see §12.
+Under `-t 60` the floor is much higher — see §13.
 
-## 12. Nothing is superlinear, and the two regimes measure different things
+## 13. Nothing is superlinear, and the two regimes measure different things
 
 `./rpt_preproc.py --fit` was built to find a preprocessing step quadratic in input size.
 Across every dialect and every pre-saturation node the fitted exponent is 0.75–1.30 —
 **nothing is superlinear.** The one mild exception used to be `property evaluation` on
-TX0 (1.30) and TH0 (1.27), which was §16's finding showing up as a slope rather than as
+TX0 (1.30) and TH0 (1.27), which was §17's finding showing up as a slope rather than as
 outliers; that step is now 13x cheaper. So the preprocessing problems in this corpus are
 constant factors, not complexity bugs, which is why §2 is phrased as cost per atom.
 
@@ -415,9 +503,9 @@ costs move accordingly — in the 11156 pair, `parsing` reads 1.23% of the corpu
   every reference sweep uses.
 - **`-t` measures cost.** It is the only regime in which memory-boundedness is
   chargeable: under `-i`, a cache miss is free. Its per-problem noise floor is ~5%
-  (measured, §13), so it settles no per-problem question on its own — but a corpus-level
+  (measured, §14), so it settles no per-problem question on its own — but a corpus-level
   effect is comfortably outside it. Consult it when the question is about wall clock:
-  the §10 skew, the §6 index trio, `SAT solver`.
+  the §11 skew, the §6 index trio, `SAT solver`.
 
 Under `-t`, with LRS capped, **`SAT solver` is the largest node that costs more clock
 than it costs instructions** — 5.96% of wall time against 3.74% of instructions, at 245
@@ -430,7 +518,7 @@ ps/instr. An instruction-limited sweep under-ranks it by a third, every time.
 Each subsection is a change that has landed, the before-and-after sweep pair that
 measured it, and the conclusion. None of it is pending work.
 
-## 13. The LRS maintenance cap (11142 → 11156, and the t60s pair)
+## 14. The LRS maintenance cap (11142 → 11156, and the t60s pair)
 
 **The finding.** On 11142, `LRS limit maintenance` was **6.57% of corpus instructions
 and 19.44% of corpus wall clock** — a t/i of 2.96x, the largest of any node, at 548
@@ -470,9 +558,9 @@ problems budget-bound in both sweeps — equal effort, so a clean throughput com
 +12, with 18 problems solved only by `-lmb 1.0` against 30 only by `0.05` — a spread
 comparable to re-running an LRS strategy by itself. Treat the solved count as unchanged.
 
-**Under `-t 60` the payoff is ~10x, and the solved win *is* real.** This is the regime §13
-was always about: §1 stated the cost in wall clock, and only `-t` applies the budget in
-that unit.
+**Under `-t 60` the payoff is ~10x, and the solved win *is* real.** This is the regime
+this section was always about: the finding above stated the cost in wall clock, and only
+`-t` applies the budget in that unit.
 
 | per-run share of own wall time | median | p90 | p99 | max | runs over 5% |
 |---|---:|---:|---:|---:|---:|
@@ -516,7 +604,7 @@ that is 6x more memory-bound than it was.
 > recorded an empty termination — precisely the category worth watching when changing
 > LRS, invisible in every earlier analysis.
 
-## 14. The instrumentation (11156 → 11165)
+## 15. The instrumentation (11156 → 11165)
 
 Four commits closing the blind spots the 11156 analysis kept running into.
 `vampire_z3_rel_martin-tstat_11165`, same corpus and setup, 1 080 535 flat nodes against
@@ -553,7 +641,7 @@ displaced the shortlist that existed before them.
 > (~0.4 s, 158 names), which cannot drift; and the rejection reason names the offending
 > node, so the next such surprise is a one-line diagnosis rather than a hunt.
 
-## 15. The rebase onto master, and a HOL defect it exposed (11233 → 11235)
+## 16. The rebase onto master, and a HOL defect it exposed (11233 → 11235)
 
 11233 was taken to confirm three things after rebasing onto master `1254bdc09`, not to
 discover anything. Two came back clean; the third found a defect in master.
@@ -615,7 +703,7 @@ visible in the profile. Two benign residues: 54 non-HOL runs lack it because the
 the whole budget in parsing and never reached preprocessing (the `CSR*+6` / `HWV13x-1`
 family of §2); and 13 `^`-named problems do have it, being first-order in practice.
 
-## 16. The cheaper `Property::scan` (11235 → 11279)
+## 17. The cheaper `Property::scan` (11235 → 11279)
 
 `vampire_z3_rel_..._11279` (`248fb8b61`), same corpus and setup, master's "cheaper scan"
 work in place: ~50 commits removing `Signature::Symbol::usageCnt`, walking the term DAG
@@ -672,7 +760,7 @@ dialect:
 
 That is 7.9 T + 4.8 T + 5.3 T = **18 T recovered, twice what the scan itself gave back**.
 `boolean simplification` calls `SortHelper::getResultSort` on every non-variable subterm
-of every literal, so it was paying the §16 cost per subterm and now is not; that it is
+of every literal, so it was paying the §17 cost per subterm and now is not; that it is
 also the node most helped is the cleanest confirmation of the mechanism.
 
 **A caveat on `forward demodulation`, and on the churn.** `8d47d9b9f` ("Build the
@@ -703,15 +791,15 @@ SAT solver               +2.12 T  (+3.2%)
 ```
 
 **Nothing else changed.** One new node name (`symbol counts`); no node disappeared. The
-rebase checks of §15a hold: the `rdpmc` cross-check is unmoved.
+rebase checks of §16a hold: the `rdpmc` cross-check is unmoved.
 
 **Not detectable here: LRS.** Master gained the maintenance cap through this branch, so
 from master's point of view the LRS estimate is new — but both 11235 and 11279 already
 contain it (`6e275ba98` … `d3f57446a` are ancestors of both), and no commit between the
-two sweeps touches `Saturation/LRS.cpp`. §13 remains the measurement of that change; §5
+two sweeps touches `Saturation/LRS.cpp`. §14 remains the measurement of that change; §5
 records that its share has been stable at 0.95–0.98% across all three sweeps since.
 
-## 17. The instruction-limit reporting race — fixed, and verified fixed
+## 18. The instruction-limit reporting race — fixed, and verified fixed
 
 In the 11131 sweep `Lib/Timer.cpp:limitReached()` ran on the *timer thread* and printed
 the time trace while the main thread was still proving and mutating it. **2 450 logs**
@@ -747,21 +835,21 @@ the artifact is gone (`SET044+1.p`: 113 ms then, **212 µs** now) and what is le
 — §2. The old sublinear parsing exponents (b = 0.29–0.79) were the NFS floor, not a
 scaling property.
 
-## 18. Sweep index
+## 19. Sweep index
 
 Eight sweeps exist. All are `-tstat on` over the same 26 504 TPTP problems, same machine,
 64 workers pinned one per physical core, ASLR off.
 
 | sweep | limit | database | what it is for |
 |---|---|---|---|
-| master-11131 | `-i 100000` | — | superseded; NFS-mounted TPTP, and the trace race of §17 |
-| 11142 | `-i 100000` | `tstat-11142.db` | the before-picture for §13 (uncapped LRS) |
-| 11156 | `-i 100000` | `tstat-11156.db` | LRS capped; the before-picture for §14 |
-| 11165 | `-i 100000` | `tstat-11165.db` | first instrumented sweep; the before-picture for §15 |
-| 11233 | `-i 100000` | `tstat-11233.db` | **superseded, do not use** — the §15c HOL defect loses 3 316 runs. Kept only as that section's evidence |
-| 11235 | `-i 100000` | `tstat-11235.db` | the before-picture for §16 |
+| master-11131 | `-i 100000` | — | superseded; NFS-mounted TPTP, and the trace race of §18 |
+| 11142 | `-i 100000` | `tstat-11142.db` | the before-picture for §14 (uncapped LRS) |
+| 11156 | `-i 100000` | `tstat-11156.db` | LRS capped; the before-picture for §15 |
+| 11165 | `-i 100000` | `tstat-11165.db` | first instrumented sweep; the before-picture for §16 |
+| 11233 | `-i 100000` | `tstat-11233.db` | **superseded, do not use** — the §16c HOL defect loses 3 316 runs. Kept only as that section's evidence |
+| 11235 | `-i 100000` | `tstat-11235.db` | the before-picture for §17 |
 | **11279** | **`-i 100000`** | **`tstat.db`** | **the standing reference** |
-| 11142/11156 pair | `-t 60` | `tstat-t60s-*.db` | the only regime where memory-boundedness is chargeable; §12, §13 |
+| 11142/11156 pair | `-t 60` | `tstat-t60s-*.db` | the only regime where memory-boundedness is chargeable; §13, §14 |
 
 Future `-i` sweeps stay on `-i 100000` so they remain comparable to this chain. Keep the
-`-t 60` pair for wall-clock questions and re-measure there rather than converting (§12).
+`-t 60` pair for wall-clock questions and re-measure there rather than converting (§13).
