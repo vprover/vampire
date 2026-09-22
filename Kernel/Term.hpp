@@ -909,6 +909,22 @@ public:
   /** Assign value that will be returned by the hasInterpretedConstants() function */
   void setInterpretedConstantsPresence(bool value) { _hasInterpretedConstants=value; }
 
+  /**
+   * True if interpreted evaluation has already been applied to this term and to
+   * everything below it, and left all of it unchanged, so that a later evaluation
+   * can skip the whole subtree.
+   *
+   * Unlike weight(), color() or hasTermVar(), this is not a property of the term
+   * but a cache belonging to one particular evaluator (much like _kboWeight belongs
+   * to one KBO). The owner is the single InterpretedEvaluation of a saturation run;
+   * nobody else may set it, and every other user of InterpretedLiteralEvaluator
+   * ignores it. It is deliberately not part of a term's identity: terms are hashed
+   * and compared on their functor and arguments only.
+   */
+  bool isEvalNormalForm() const { return _evalNormalForm; }
+  /** @see isEvalNormalForm; only shared terms are ever marked */
+  void markEvalNormalForm() { ASS(shared()); _evalNormalForm = 1; }
+
   /** Return true if term is either an if-then-else or a let...in expression */
   bool isSpecial() const { return functor() >= SPECIAL_FUNCTOR_LOWER_BOUND; }
 
@@ -966,7 +982,9 @@ protected:
   /** The number of this symbol in a signature */
   unsigned _functor;
   /** Arity of the symbol */
-  unsigned _arity : 28;
+  unsigned _arity : 27;
+  /** Evaluation cache bit, @see isEvalNormalForm() */
+  unsigned _evalNormalForm : 1;
   /** colour, used in interpolation and symbol elimination */
   unsigned _color : 2;
   /** Equal to 1 if the term/literal contains any interpreted constants */

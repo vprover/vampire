@@ -258,6 +258,10 @@ Term* BottomUpTermTransformer::transform(Term* term)
     return transformSpecial(term);
   }
 
+  if (alreadyTransformed(term)) {
+    return term;
+  }
+
   Stack<TermList*> toDo(8);
   Stack<Term*> terms(8);
   Stack<TermList> args(8);
@@ -332,6 +336,10 @@ Term* BottomUpTermTransformer::transform(Term* term)
 
     ASS(tl.isTerm());
     Term* t=tl.term();
+    if (alreadyTransformed(t)) {
+      args.push(tl);
+      continue;
+    }
     terms.push(t);
     toDo.push(t->args());
   }

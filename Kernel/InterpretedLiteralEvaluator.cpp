@@ -1011,8 +1011,20 @@ IMPL_OPERATOR(Theory::REAL_PLUS, RealConstantType, RealConstantType(RationalCons
 //
 // This is where the evaluators defined above are used.
 
-InterpretedLiteralEvaluator::InterpretedLiteralEvaluator(bool doNormalize) : _normalize(doNormalize)
+#if VDEBUG
+/** at most one evaluator may own Term::isEvalNormalForm() at a time, @see the constructor */
+static unsigned s_normalFormCachers = 0;
+#endif
+
+InterpretedLiteralEvaluator::InterpretedLiteralEvaluator(bool doNormalize, bool cacheNormalForms)
+  : _normalize(doNormalize), _cacheNormalForms(cacheNormalForms)
 {
+#if VDEBUG
+  if (cacheNormalForms) {
+    ASS_EQ(s_normalFormCachers, 0);
+    s_normalFormCachers++;
+  }
+#endif
   // For an evaluator to be used it must be pushed onto _evals
   // We search this list, calling canEvaluate on each evaluator
   // An invariant we want to maintain is that for any literal only one
@@ -1040,6 +1052,11 @@ InterpretedLiteralEvaluator::InterpretedLiteralEvaluator(bool doNormalize) : _no
 
 InterpretedLiteralEvaluator::~InterpretedLiteralEvaluator()
 {
+#if VDEBUG
+  if (_cacheNormalForms) {
+    s_normalFormCachers--;
+  }
+#endif
   while (_evals.isNonEmpty()) {
     delete _evals.pop();
   }
@@ -1502,7 +1519,40 @@ TermList InterpretedLiteralEvaluator::transformSubterm(TermList trm)
   } else {
     DEBUG("no transformer")
   }
+  // there is nothing to do on t; remember that, so that we can skip it wholesale
+  // when we meet it again inside some other literal
+  rememberEvalNormalForm(t);
   return trm;
+}
+
+/**
+ * Mark @b t as being in evaluation normal form, provided its arguments already are
+ * (we are called bottom-up, so they have been visited). That makes the flag downward
+ * closed: a marked term has nothing to evaluate anywhere below it, which is what
+ * entitles alreadyTransformed to prune the whole subtree.
+ *
+ * Arguments which are variables or sorts count as normal forms: there is nothing to
+ * evaluate in them, and transformSubterm is the identity on both.
+ */
+void InterpretedLiteralEvaluator::rememberEvalNormalForm(Term* t)
+{
+  if (!_cacheNormalForms || !t->shared() || t->isLiteral()) {
+    return;
+  }
+  for (unsigned i = 0; i < t->arity(); i++) {
+    TermList arg = *t->nthArgument(i);
+    if (arg.isTerm() && !arg.term()->isSort() && !arg.term()->isEvalNormalForm()) {
+      return;
+    }
+  }
+  t->markEvalNormalForm();
+}
+
+bool InterpretedLiteralEvaluator::alreadyTransformed(Term* t)
+{
+  // sorts are never evaluated (transformSubterm is the identity on them and on
+  // everything they contain), so they need no flag of their own
+  return _cacheNormalForms && (t->isSort() || t->isEvalNormalForm());
 }
 
 /**
