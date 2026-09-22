@@ -5,3 +5,8 @@
 tstat*.db
 out/
 __pycache__/
+
+# The repo root ignores *.txt wholesale, which is right for the scratch lists that
+# accumulate here but wrong for one that is an input to a committed script.
+# Un-ignored by name, so a new scratch .txt still stays out by default.
+!bisect_probes.txt
