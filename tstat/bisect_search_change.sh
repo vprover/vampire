@@ -45,9 +45,19 @@ PROBLEMS=${1:?usage: bisect_search_change.sh <TPTP Problems dir> [outdir] [jobs]
 OUT=${2:-/tmp/tstat-bisect}
 JOBS=${3:-$(nproc 2>/dev/null || echo 8)}
 
-# $0 is no longer under $REPO after the relocation below, so the repo path has to
-# survive the re-exec explicitly.
-REPO=${TSTAT_REPO:-$(cd "$(dirname "$0")/.." && pwd)}
+# Finding the repo, in three ways, because this script deliberately gets copied out of
+# it (see the relocation below) and a copy cannot use dirname($0)/.. any more:
+#   1. TSTAT_REPO, which the re-exec sets;
+#   2. the parent of wherever the script sits, for the normal in-repo invocation;
+#   3. failing both, the repo containing the working directory -- so a copy made by
+#      hand also works, as long as it is run from inside the checkout.
+if [ -n "${TSTAT_REPO:-}" ]; then
+  REPO=$TSTAT_REPO
+elif git -C "$(dirname "$0")/.." rev-parse --show-toplevel >/dev/null 2>&1; then
+  REPO=$(git -C "$(dirname "$0")/.." rev-parse --show-toplevel)
+else
+  REPO=$(git rev-parse --show-toplevel)
+fi
 mkdir -p "$OUT"
 OUT=$(cd "$OUT" && pwd)                 # absolute: the build step cd's into $REPO
 PROBLEMS=$(cd "$PROBLEMS" && pwd)       # absolute for the same reason
