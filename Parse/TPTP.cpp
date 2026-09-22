@@ -17,6 +17,7 @@
 #include <fstream>
 
 #include "Debug/Assertion.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #include "Lib/Int.hpp"
 #include "Lib/Environment.hpp"
@@ -2305,6 +2306,11 @@ fs::path TPTP::resolveInclude(const fs::path included)
  */
 void TPTP::include()
 {
+  // Handling the directive only -- opening the axiom file and building the
+  // formula-selection set. The included content is parsed afterwards, by the ordinary
+  // state machine under whatever scope is then open, so this does not nest.
+  TIME_TRACE("tptp include");
+
   consumeToken(T_LPAR);
   Token& tok = getTok(0);
   if (tok.tag != T_NAME) {
@@ -3930,6 +3936,21 @@ void TPTP::tag()
  */
 void TPTP::endFof()
 {
+  // The parser is a flat state machine, so it has no phases in the sense preprocessing
+  // does: every state handler runs per token and is far too hot to scope. What it does
+  // have is a boundary that recurs exactly once per input formula, and that is this
+  // function -- where the formula is closed off, checked, possibly turned into a clause,
+  // and handed over as a Unit.
+  //
+  // So the nodes added here and in endTff()/include() are all per-unit or rarer: a scope
+  // per input unit is ~0.002% of a sweep and at most 0.34% of the worst single run (the
+  // 3.3 M-formula CSR*+6 family), which is why several of them are affordable where one
+  // per token would not be. What stays unattributed as "parsing" self time is then the
+  // lexer plus the state machine plus term and formula construction -- and since the
+  // input byte count is known, instructions per byte of that residue says whether a
+  // lexer can plausibly account for it, without paying to measure one.
+  TIME_TRACE("tptp formula unit");
+
   TPTP::SourceRecord* source = 0;
 
   // are we interested in collecting sources?
@@ -3966,7 +3987,8 @@ void TPTP::endFof()
     _containsConjecture = true;
   }
 
-  if (mustBeClosed && freeVariables(f)) {
+  // A full walk of the formula, once per non-CNF unit, purely to reject an input error
+  if (mustBeClosed && TIME_TRACE_EXPR("tptp closure check", freeVariables(f))) {
     USER_ERROR("unquantified variable detected for a formula named '",nm,"'");
   }
 
@@ -3976,6 +3998,12 @@ void TPTP::endFof()
     unit->setInheritedColor(_currentColor);
   }
   else { // cnf() or tcf()
+    // Flattening the parsed disjunction back into a Clause. This is the whole of what a
+    // CNF unit costs after its formula is built, and CNF is the dialect that dominates
+    // the parse-bound tail (HWV13x-1 at 100% of a full budget), so it is worth its own
+    // node rather than being folded into the unit above.
+    TIME_TRACE("tptp clause conversion");
+
     Formula* body = f;
     if (_lastDialect == Dialect::TCF) {
       // a tcf clause comes wrapped in a universal prefix, which is there to carry
@@ -4127,6 +4155,11 @@ void TPTP::addTagState(Tag t)
  */
 void TPTP::endTff()
 {
+  // Once per type declaration -- the other half of the per-unit boundary described in
+  // endFof(). Only the typed dialects pay it at all, and there it separates declaring
+  // the signature from parsing formulas over it.
+  TIME_TRACE("tptp type declaration");
+
   int rpars= _ints.pop();
   while (rpars--) {
     consumeToken(T_RPAR);
