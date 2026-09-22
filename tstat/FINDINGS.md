@@ -13,8 +13,9 @@ Read `README.md` first for how to read the numbers and how to reproduce any of t
 > `tstat/tstat.db` and `common.py`'s `LOGDIR` point at it. It is the first sweep with the
 > phase breakdown of §1, §2 and §9 in place; §19 is what it cost and what else moved.
 >
-> §20 indexes the nine sweeps taken so far and says which of the older databases are
-> still worth keeping and why.
+> §20 indexes the ten sweeps taken so far and says which of the older databases are
+> still worth keeping and why. §21 is why its solved count must not be compared against
+> a sweep with a different node set — and §12 is that as a rule.
 >
 > Every node added in this round is a *child* of an existing one and nothing was renamed
 > — the rule, not an accident: the whitelist is derived by scanning the source tree, so a
@@ -626,6 +627,34 @@ spreads of 0.45–49.7% on the same runs. So instruction counts should be believ
 
 Under `-t 60` the floor is much higher — see §13.
 
+### Never compare solved counts across sweeps with different node sets
+
+Adding `TIME_TRACE` scopes **costs solved problems**, by a mechanism that has nothing to
+do with the prover getting worse. Each scope adds a constant ~107 instructions, so a
+round of them taxes throughput by a fraction of a percent; under `-i`, LRS estimates its
+limits from *elapsed instructions*, so that tax does not merely shave the last fraction
+of the search — it tightens the limits throughout, discards more clauses, and can lose a
+proof that was landing at 6% of budget. §21 measures it: the twelve nodes of the 11295
+round cost **net −25 problems** at a median throughput tax of 0.28%.
+
+So a solved-count delta between two sweeps with different instrumentation is dominated by
+how many scopes were added, not by anything about the prover. The readings that stay
+valid are:
+
+- **between sweeps with identical instrumentation** — §14 and §17 are the clean cases,
+  and their solved counts mean what they say;
+- **on a deterministic bound**, `-sa otter -al N`, where LRS is out of the loop entirely.
+  This is what `determinism.py` already uses, and it is the right harness for any future
+  question of the form "did this change lose problems";
+- **per-node instruction ratios**, which are unaffected — provided the node's whole
+  *subtree* is free of new names, not merely its direct children (§19 got this wrong
+  once).
+
+None of this reaches users: both build paths default to profiling off — the repo Makefile
+hardcodes `COMMON_FLAGS = -DVTIME_PROFILING=0` and CMake's `TIME_PROFILING` option is
+`OFF` — and with it off `TIME_TRACE` compiles to nothing. The cost exists only inside the
+measuring instrument, which is why §21's −25 is not an argument against adding nodes.
+
 ## 13. Nothing is superlinear, and the two regimes measure different things
 
 `./rpt_preproc.py --fit` was built to find a preprocessing step quadratic in input size.
@@ -773,6 +802,11 @@ that `-cts on` is what the corpus actually exercises.
 activations are a median 0.9996 of 11156's (mean 1.0002, p10 0.980, p90 1.017) — the
 added scopes cost **0.04%** of the work done, against the 0.2% predicted from the
 per-scope arithmetic. Solved counts move +4 / −1, zero soundness contradictions.
+
+> That +4 / −1 is churn, and reading it as evidence of anything would be the §12 mistake.
+> This round's instrumentation happened to be seven times cheaper than 11295's, so the
+> systematic loss §21 measures was well below the flip noise here. The solved count did
+> not vindicate the scopes; it merely failed to notice them.
 
 **What it revealed** is now §1 (forward subsumption was the second-largest node in the
 prover and entirely invisible) and §3 (the HOL black box was `BetaEtaSimplify`). Both
@@ -985,12 +1019,13 @@ scaling property.
 §10's twelve new nodes. 26 273 clean runs, the same 231 user errors, selftest clean,
 1 384 836 flat nodes against 11279's 1 107 726.
 
-**It is not a pure instrumentation comparison, and that has to be said first.** Master
-advanced between the two binaries: six `FlexibleTail` commits (a safe-flexible-array
+**It was not a pure instrumentation comparison, and that had to be said first.** Master
+advanced between the two binaries: seven `FlexibleTail` commits (a safe-flexible-array
 abstraction threaded through `Clause`, `SATClause` and `SkipList::Node`, plus a
 pointer-downcast hazard fix) and the two commits separating `Map`/`Set` equality from
-their hash parameter. So a per-problem difference here can be either change, and the
-sections below separate them where it matters.
+their hash parameter. So a per-problem difference here could be either change. **§21
+resolved this** with an intermediate sweep at master's own head: master's contribution to
+the solved count is net −1, and all of the −26 is ours.
 
 ### The instrumentation costs 0.2%, as predicted
 
@@ -1008,7 +1043,8 @@ the per-scope cost rather than a typical value.
 
 Solved: 13 986 → 13 960, **net −26** (18 gained, 44 lost), **zero soundness
 contradictions**. That is the honest price of the breakdown, and it is the largest an
-instrumentation round has cost so far (§15's was +3).
+instrumentation round has cost so far (§15's was +3). §21 attributes it: −25 of the −26
+is the instrumentation, by a mechanism that is not the one the 0.22% suggests.
 
 ### The tail is search perturbation, not slowdown
 
@@ -1028,28 +1064,49 @@ signature of a reordered search, not a slower prover. Confirmed directly: on
 `SWX094_1.p`, the worst-hit run (activations ×0.24), the new scopes account for **0.02%
 of the run** by count, while `interpreted evaluation` went from 13 533 to 296 306
 instructions per call — a different clause population, not a slower one. Per `CLAUDE.md`,
-individual problems flipping under a change like `FlexibleTail` is expected and is not
-itself a defect; the 0 soundness contradictions are the check that matters.
+individual problems flipping under any perturbation is expected and is not itself a
+defect; the 0 soundness contradictions are the check that matters.
 
-### `FlexibleTail for SkipList::Node` is visible, and is a wash
+The *distribution* being symmetric is not the same as the *count* being symmetric, and
+§21 is that distinction: 88.6% of runs land within ±5%, the far tails balance, and yet
+68.8% of all budget-bound runs do slightly less search. A small one-directional bias
+hiding inside a symmetric-looking spread is exactly what costs 25 problems.
+
+### `FlexibleTail for SkipList::Node` is barely visible — a correction
 
 Per-call cost ratios 11295/11279 for nodes with **no** new scope inside them are 1.000
 at the median almost everywhere — `superposition` 1.000, `perform superposition` 0.998,
 `forward demodulation` 0.997, `beta eta simplification` 1.000, `splitting` 1.000. Two
-are not:
+are not: `passive container maintenance` (+10.4%) and `hvci compute hash` (−2.1%).
 
-| node | instr/call | ps/instr | wall |
+> **This section originally read "`FlexibleTail` is visible, and is a wash" and credited
+> the whole +10.4% to `FlexibleTail for SkipList::Node`. That was wrong, and it is worth
+> keeping the reason.** `passive container maintenance` was put in the "no new scope
+> inside" list by checking its *direct* children. But it contains `codetree subsumption
+> index maintenance`, which in 11295 gained four of §9's new scopes two levels down —
+> `codetree subsumption index insert` and, beneath it, `code incorporation`, `code
+> compilation` and `literal ordering`. A `TIME_TRACE` total is **inclusive**, so the
+> parent absorbs every descendant's instrumentation however deep. Checking one level was
+> not enough; the test has to be "does this node's whole subtree contain a new name".
+
+The 11291 sweep separates them. It has `FlexibleTail` and none of our scopes, so
+11279 → 11291 is comparable at every node:
+
+| | instr/call | ps/instr | wall |
 |---|---|---|---|
-| `passive container maintenance` | 2 885 → 3 186 (**+10.4%**) | 363 → 325 (−10.5%) | 1 881 s → 1 840 s |
-| `hvci compute hash` | −2.1% | — | — |
+| master PRs (incl. `FlexibleTail`) | **+1.42%** | −0.43% | +0.95% |
+| our scopes | +6.45% | −1.79% | +3.26% |
+| both, as measured before | +7.95% | −2.21% | +4.24% |
 
-The passive container is `SkipList`, so the +10.4% is `FlexibleTail for SkipList::Node`
-and the interquartile range is 1.102–1.117 — a tight, systematic change, not noise. But
-the node got *less* memory-bound by almost exactly the same factor, so it retires 8.9%
-more instructions in 2% **less** wall time. A layout change that trades instructions for
-locality, and on this hardware the trade is slightly favourable. Worth recording because
-under `-i` it reads as a 0.03%-of-corpus regression while under `-t` it would read as a
-small win — §13's point about the two regimes, arriving unprompted.
+So `FlexibleTail` costs the passive container **+1.4% per call, not +10.4%**, and the
+original claim that it "retires 8.9% more instructions in 2% *less* wall time" does not
+survive: at the master step wall time goes *up* 0.95%, and the memory-boundedness gain is
+−0.43%, not −10.5%. There is no instructions-for-locality trade here to record. The
+per-run median tells the same story (master ×1.011, ours ×1.065) — the decomposition is
+not an artefact of how the ratio is aggregated.
+
+`FlexibleTail` is therefore a small, systematic, and essentially neutral change at this
+node, consistent with §21 finding it neutral on solved counts too.
 
 ### The methodological lesson: measure ratios on budget-bound runs
 
@@ -1068,7 +1125,7 @@ measurement §10 asks for.
 
 ## 20. Sweep index
 
-Nine sweeps exist. All are `-tstat on` over the same 26 504 TPTP problems, same machine,
+Ten sweeps exist. All are `-tstat on` over the same 26 504 TPTP problems, same machine,
 64 workers pinned one per physical core, ASLR off.
 
 | sweep | limit | database | what it is for |
@@ -1080,8 +1137,112 @@ Nine sweeps exist. All are `-tstat on` over the same 26 504 TPTP problems, same 
 | 11233 | `-i 100000` | `tstat-11233.db` | **superseded, do not use** — the §16c HOL defect loses 3 316 runs. Kept only as that section's evidence |
 | 11235 | `-i 100000` | `tstat-11235.db` | the before-picture for §17 |
 | 11279 | `-i 100000` | `tstat-11279.db` | the before-picture for §19 |
+| 11291 | `-i 100000` | — | master's own head (`71a5da3ed`), **no instrumentation of ours**. The control that splits §19's −26 into master's share and ours (§21), and the only clean read on `FlexibleTail` |
 | **11295** | **`-i 100000`** | **`tstat.db`** | **the standing reference** — first with the phase breakdown (§19) |
 | 11142/11156 pair | `-t 60` | `tstat-t60s-*.db` | the only regime where memory-boundedness is chargeable; §13, §14 |
 
 Future `-i` sweeps stay on `-i 100000` so they remain comparable to this chain. Keep the
 `-t 60` pair for wall-clock questions and re-measure there rather than converting (§13).
+
+## 21. Where §19's −26 went (11279 → 11291 → 11295)
+
+§19 reported the phase breakdown costing **net −26 solved problems** and could not say
+how much of that was master advancing underneath it. The 11291 sweep answers it: the
+instrumentation is responsible for essentially all of it, and the mechanism is not the
+one the headline 0.22% suggests.
+
+### The interval is exactly two master PRs
+
+The two sweep binaries are three months of `git log` apart in feel and two PRs apart in
+fact. 11279 was built from `248fb8b61`, the tip of `martin-cheaper-scan` *before* it
+merged, and that branch had been cut from `5888511f8`:
+
+```
+5888511f8  Merge PR #964 martin-cheaper-scan       <- branch point
+  |\
+  | \  cheaper-scan: 6f9b44a63 .. 248fb8b61        ==> 11279
+  |  \
+611821e9f  Merge PR #963 separate-map-equality     <- master advanced by exactly one PR
+  |  /
+384446ad5  Merge PR #965 martin-cheaper-scan
+  |\
+  | \  flexible-tail: fbdf6d029 .. 908af35de
+  |  /
+71a5da3ed  Merge PR #946 michael-flexible-tail     ==> 11291  (= master HEAD)
+  |
+4727eb556 / 793b9848c / 1d67b4228 / e07474dc1      <- the four TIME_TRACE commits
+                                                   ==> 11295
+```
+
+Both merges are **clean unions** — `diff(248fb8b61 → 384446ad5)` is byte-for-byte PR
+#963's own diff and `diff(908af35de → 71a5da3ed)` is byte-for-byte cheaper-scan's — so
+nothing exists in the merge that exists in neither branch, and 11291 is a legitimate
+midpoint even though 11279 was taken off a side branch.
+
+### The decomposition
+
+| step | isolates | net | lost | gained |
+|---|---|---:|---:|---:|
+| 11279 → 11291 | PR #963 `separate-map-equality` + PR #946 `michael-flexible-tail` | **−1** | 16 | 15 |
+| 11291 → 11295 | the four TIME_TRACE commits | **−25** | 42 | 17 |
+| 11279 → 11295 | total (§19's figure) | −26 | 44 | 18 |
+
+**Master is neutral.** 16 lost against 15 gained is what two behaviour-preserving PRs
+look like once any perturbation reshuffles a chaotic search. `FlexibleTail` in particular
+is exonerated twice over — here, and at the node level in §19's corrected subsection.
+The suspicion it drew was reasonable (it changes the memory layout of `Clause`, `Term`,
+`SATClause`, `SharedSet` and `SkipList::Node`) but wrong: reading `Kernel/ClauseQueue.cpp`
+shows the edit is purely mechanical, `nodes[i]` → `nodes()[i]`, with `lessThan` untouched
+and `bytesRequiredFor(h+1)` arithmetically equal to the old `sizeof(Node)+h*sizeof(Node*)`.
+The passive queue's order never changed.
+
+### The mechanism is LRS policy, not budget trimming
+
+The obvious story — "0.28% more overhead pushes the marginal runs over the edge" — is
+wrong, and the numbers kill it outright. All 42 lost runs end on `Instruction limit`, but
+when they *solved* at 11291 they had used a **median 64% of the budget**; the extremes are
+`COL003-20.p` at 6.5% and `SEU451+1.p` at 99.4%. Meanwhile:
+
+```
+solved at 11291                                          13 985
+  of which used >99.72% of budget (the trim candidates)        1
+systematic loss to be explained                             ~26
+```
+
+So budget trimming accounts for at most one problem. What actually happens is visible on
+the 11 383 runs that consumed the **full** budget in both sweeps — identical instructions
+spent, so `Activations started` measures throughput directly:
+
+| | identical | **less search** | more search | median |
+|---|---:|---:|---:|---:|
+| master PRs | 17.2% | 28.1% | 54.7% | **+0.02%** |
+| our scopes | 14.6% | **68.8%** | 16.6% | **−0.28%** |
+
+Master's perturbation has no direction. Ours does: two thirds of all budget-bound runs do
+less search, at a median −0.28%, matching the 0.25% predicted from ~107 instructions per
+scope. Under `-i`, LRS estimates its limits from elapsed instructions, so a uniform
+throughput tax is not a haircut on the end of the search — it tightens the age/weight
+limits from the start, discards more non-redundant clauses, and can lose a proof that was
+landing nowhere near the budget. That is how a 0.28% tax costs 25 problems.
+
+§12 turns this into the standing rule.
+
+### Individual flips carry no signal
+
+**14 of the 59 flips oscillate**: `CSR094+4`, `NUM516+3`, `SCT170_3`, `SET041-3`,
+`SET173-6` and `SWV565-1.007` are lost by master and regained by our commits, while
+`ARI651_1`, `COL003-20`, `COM285_1`, `SET098+1`, `SEU275+2`, `SEU427+1`, `SWC005-1` and
+`SWW099+1` go the other way. Only the aggregate means anything; a flipped problem is not
+a lead.
+
+> **Method note, for the next time this question comes up.** The first attempt was
+> `bisect_search_change.sh`, which rebuilds each commit on the first-parent path and
+> re-runs a probe set. It produced nothing usable: 23 of 28 probes never moved, and the
+> ones that did could not be read, because the probe set was selected from a flip list
+> measured against a binary whose exact invocation was not recorded. Two full sweeps
+> answered in one pass what seven targeted rebuilds could not. The script is kept, but
+> **a sweep interval is cheaper to bisect with sweeps than with probes** — the flips are
+> a property of the aggregate, and any subset of them is exactly the self-selected sample
+> that has misled this analysis before (§19's `perform resolution` estimate, and the
+> AVATAR-enrichment "finding" that survived a difficulty control and died against the
+> previous sweep pairs).

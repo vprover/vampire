@@ -9,7 +9,8 @@ Read this first if context was lost. It points at the detail rather than repeati
 standing reference is the **11295** sweep (`problemsALLlocal_tprofile11295_tstat-on_i100K`,
 commit `e07474dc1`, 26 273 usable runs, 78 node names), and `tstat.db` / `common.py`'s
 `LOGDIR` point at it. `FINDINGS.md` §20 indexes every sweep and says which older
-databases still matter; §19 is what 11295 cost and what else moved in it.
+databases still matter; §19 is what 11295 cost and what else moved in it, and §21 is
+where that cost turned out to come from.
 
 **`FINDINGS.md` is organised so you do not have to read it in order:** Part I is the open
 work ranked, Part II is how not to fool yourself with the numbers, Part III is history —
@@ -34,7 +35,11 @@ side effect nobody was aiming at, made `boolean simplification` 2.8x cheaper per
 
 The **phase breakdown** — twelve nodes splitting §1, §2, §9 and §10's largest figures —
 is in too, and 11295 measured it (§19): median −0.22% of work done, net −26 problems,
-zero soundness contradictions. What it showed is in the ranking below.
+zero soundness contradictions. The 11291 control sweep attributes −25 of those −26 to the
+instrumentation itself, via LRS reading the overhead as a reason to tighten its limits
+(§21) — which is a fact about the measuring instrument, not about the prover, since
+shipped builds compile `TIME_TRACE` to nothing. **Do not compare solved counts across
+sweeps with different node sets** (§12). What the breakdown showed is in the ranking below.
 
 ## Next: one bottleneck at a time
 

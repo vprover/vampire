@@ -7,6 +7,13 @@ Analysis toolkit for the DVTIME_PROFILING sweep in
 that are not are Vampire user errors that never reached profiling. `FINDINGS.md` §20
 indexes the earlier sweeps and says which of their databases are still worth keeping.
 
+**Solved counts are not comparable between sweeps with different node sets.** Each
+`TIME_TRACE` scope taxes throughput by a constant, LRS reads that tax as a reason to
+tighten its limits, and problems are lost that were solving nowhere near the budget —
+measured at net −25 for the twelve nodes of this round. `FINDINGS.md` §12 is the rule and
+§21 the evidence. Per-node instruction ratios are unaffected, provided the node's whole
+*subtree* is free of new names.
+
 Nothing here touches the prover. Everything reads logs and writes CSVs into `out/`.
 
 Cost is measured in **retired instructions** by default, with wall time kept alongside.
