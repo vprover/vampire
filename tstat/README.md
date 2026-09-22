@@ -1,16 +1,16 @@
 # tstat — mining a `-tstat on` sweep for optimization targets
 
 Analysis toolkit for the DVTIME_PROFILING sweep in
-`../problemsALLlocal_cheaper11279_tstat-on_i100K/` (26 504 TPTP problems,
-`vampire_z3_rel_..._11279 -i 100000 -tstat on`, commit `248fb8b61`, TPTP on local disk,
+`../problemsALLlocal_tprofile11295_tstat-on_i100K/` (26 504 TPTP problems,
+`vampire_z3_rel_..._11295 -i 100000 -tstat on`, commit `e07474dc1`, TPTP on local disk,
 64 workers pinned one per physical core, ASLR off). **26 273 runs are usable**; the 231
-that are not are Vampire user errors that never reached profiling. `FINDINGS.md` §18
+that are not are Vampire user errors that never reached profiling. `FINDINGS.md` §20
 indexes the earlier sweeps and says which of their databases are still worth keeping.
 
 Nothing here touches the prover. Everything reads logs and writes CSVs into `out/`.
 
 Cost is measured in **retired instructions** by default, with wall time kept alongside.
-Every report takes `--metric time` for the old view. The reason is in `FINDINGS.md` §10:
+Every report takes `--metric time` for the old view. The reason is in `FINDINGS.md` §11:
 time over-ranks the memory-bound nodes by up to 6x, and instruction counts are
 reproducible run to run where time is not.
 
@@ -96,7 +96,7 @@ this one.
 **Mangled logs — gone.** `Lib/Timer.cpp:limitReached()` used to print the time trace from
 the *timer thread* while the main thread was still mutating it: 2 450 of 26 504 logs died
 with `Aborted by signal`, about one in five instruction-limited runs. Fixed (`FINDINGS.md`
-§17); every sweep since has **0** crashes, **0** rejected logs, and a **100.0%** clean rate in
+§18); every sweep since has **0** crashes, **0** rejected logs, and a **100.0%** clean rate in
 every dialect × termination bucket. The old sweep's rejects were badly non-uniform —
 instruction-limited TH0 was 53% clean and TH1 27% — so no THF conclusion drawn from it is
 safe.
@@ -141,7 +141,7 @@ Two reasons this matters more than it might look:
 
 Keep reading time as well: `ps_per_instr` in the `vtree` view is picoseconds per
 instruction per node, which is what separates "this node did more work" from "this node
-is cache-missing" — the distinction hazard 1 otherwise destroys. `FINDINGS.md` §10 is that
+is cache-missing" — the distinction hazard 1 otherwise destroys. `FINDINGS.md` §11 is that
 distinction applied to the whole corpus.
 
 ### The measured noise floor
