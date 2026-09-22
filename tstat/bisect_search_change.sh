@@ -45,11 +45,28 @@ PROBLEMS=${1:?usage: bisect_search_change.sh <TPTP Problems dir> [outdir] [jobs]
 OUT=${2:-/tmp/tstat-bisect}
 JOBS=${3:-$(nproc 2>/dev/null || echo 8)}
 
-REPO=$(cd "$(dirname "$0")/.." && pwd)
+# $0 is no longer under $REPO after the relocation below, so the repo path has to
+# survive the re-exec explicitly.
+REPO=${TSTAT_REPO:-$(cd "$(dirname "$0")/.." && pwd)}
 mkdir -p "$OUT"
 OUT=$(cd "$OUT" && pwd)                 # absolute: the build step cd's into $REPO
 PROBLEMS=$(cd "$PROBLEMS" && pwd)       # absolute for the same reason
-PROBES="$REPO/tstat/bisect_probes.txt"
+
+# --- get out of the repo before touching it ---------------------------------------
+# Every step checks out a historical commit, and BOTH this script and the probe list
+# are tracked files under tstat/ that do not exist in most of them. The probe list
+# simply disappears mid-run ("bisect_probes.txt: No such file or directory"), and the
+# script is worse: sh reads its own source lazily, so having it replaced underneath
+# is a live hazard rather than a clean failure. Copy both somewhere git will not
+# touch and carry on from there.
+if [ "${TSTAT_RELOCATED:-}" != 1 ]; then
+  cp "$REPO/tstat/bisect_probes.txt" "$OUT/probes.txt"
+  cp "$0" "$OUT/run.sh"
+  TSTAT_REPO="$REPO"; TSTAT_RELOCATED=1
+  export TSTAT_REPO TSTAT_RELOCATED
+  exec sh "$OUT/run.sh" "$@"
+fi
+PROBES="$OUT/probes.txt"
 
 # Six of the 28 probes -- SWC393-1, KLE017+1, SEV540+1, SWC014+1, SWC394+1 and
 # RNG029-3, the last of them one of the four lost problems -- pull in an Axioms file.
