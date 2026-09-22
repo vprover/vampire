@@ -35,13 +35,21 @@ side effect nobody was aiming at, made `boolean simplification` 2.8x cheaper per
 
 Ranked in `FINDINGS.md` Part I. By tractability rather than size, the order to pick from:
 
-0. **Run a sweep with the eleven new nodes.** The branch now breaks §1's and §2's two
-   largest targets into phases and splits codetree index maintenance into insert and
-   remove (§9). Nothing in `FINDINGS.md` is measured with them yet, and they are what
-   turns §1 and §2 from "large and opaque" into something with a shape. Everything below
-   is easier to prioritise afterwards. The arithmetic says they cost ~0.2% of corpus,
-   almost all of it the two per-`perform` scopes in the code-tree matcher; the sweep
-   should confirm that against 11279 at equal effort, the way §15 did.
+0. **Run a sweep with the twelve new nodes.** The branch now breaks §1's and §2's two
+   largest targets into phases, splits codetree index maintenance into insert and remove,
+   and names resolution's resolvent construction (§9, §10). Nothing in `FINDINGS.md` is
+   measured with them yet, and between them they divide three of the four largest figures
+   in the profile — `resolution` 21.5%, `codetree forward subsumption` 17.8%, `parsing`
+   in its per-run tail. Everything below is easier to prioritise afterwards. They cost
+   ~0.25% of corpus, almost all of it the two per-`perform` scopes in the code-tree
+   matcher; the sweep should confirm that against 11279 at equal effort, the way §15 did
+   (0.2% predicted, 0.04% measured).
+
+   §10 lists what would still be unattributed afterwards, with the cost of one more scope
+   in each as a share of that node — the number that decides whether a split is worth
+   making. `superposition`'s subterm enumeration is the cheapest thing left on it by a
+   wide margin (~0.02%) and is worth adding *before* the sweep runs if there is time,
+   since adding it later costs a whole sweep.
 1. **§4, `interpreted evaluation` on TF0 arithmetic.** Small, self-contained,
    reproducible in seconds: six 42-byte `SWX14x_1.p` problems burn 97% of a full budget
    at 4.66 M instructions per evaluation call, agreeing to within 0.01% of each other.

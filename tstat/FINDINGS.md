@@ -15,9 +15,10 @@ Read `README.md` first for how to read the numbers and how to reproduce any of t
 > §19 indexes the eight sweeps taken so far and says which of the older databases are
 > still worth keeping and why.
 >
-> **The branch has since gained eleven more nodes**, breaking §1's and §2's two largest
-> targets into phases and splitting codetree index maintenance into insert and remove
-> (§9). They are described where they belong, under the finding each was added to answer;
+> **The branch has since gained twelve more nodes**, breaking §1's and §2's two largest
+> targets into phases, splitting codetree index maintenance into insert and remove, and
+> naming resolution's resolvent construction the way superposition's already was (§9,
+> §10). They are described where they belong, under the finding each was added to answer;
 > nothing in this file is measured with them yet. Every one of them is a *child* of an
 > existing node and nothing was renamed — which is the rule, not an accident: the node
 > whitelist is derived by scanning the source tree, so a renamed node would make all six
@@ -393,26 +394,76 @@ the split, from a leaf's cost to a container's ~0. Compare `instr` (the total), 
 it is the normal consequence of a container gaining children, and the reason the schema
 keeps the two columns apart.
 
-## 10. What is *not* a blind spot any more
+## 10. What is still unattributed, and what it would cost to attribute it
 
-Worth stating explicitly, because the instrumentation plan that produced §15 is now
-complete and there is no longer a large container whose cost we can see but whose cause
-we cannot.
+An earlier draft of this section claimed the blind spots were closed, and listed only the
+*container* nodes to prove it. That was circular: it defined away the four biggest
+figures in the profile by calling them leaves. A leaf is not a node that does one thing,
+it is a node we have not divided — and `resolution`'s 24 000 instructions per call are at
+least two things.
 
-Unattributed *self* instructions, by container, on 11279:
+So, honestly, on 11279 — the largest **self** figures whatever the node's role, and what
+one more scope inside each would cost as a share of that node:
 
-| container | self | self / total |
-|---|---:|---:|
-| `run` (the saturation loop's own bookkeeping) | 33.4 T (2.52%) | 2.6% |
-| `immediate simplification` | 14.5 T (1.09%) | 20.0% |
-| `forward simplification` | 8.3 T (0.62%) | 2.8% |
-| `splitting` | 6.1 T (0.46%) | 54.4% |
-| `clause generation` | 12.1 T (0.91%) | 1.6% |
+| node | self | % corpus | self/total | instr/call | one scope |
+|---|---:|---:|---:|---:|---:|
+| `resolution` | 285.9 T | **21.54%** | 95.9% | 23 992 | 0.45% |
+| `codetree forward subsumption` | 236.2 T | 17.79% | 99.7% | 32 694 | 0.33% |
+| `superposition` | 235.3 T | **17.73%** | 52.2% | 33 646 | 0.32% |
+| `perform superposition` | 186.8 T | **14.07%** | 95.4% | 6 571 | **1.63%** |
+| `SAT solver` | 68.8 T | 5.18% | 100.0% | 4 208 120 | 0.00% |
+| `forward demodulation` | 38.3 T | 2.89% | 99.1% | 13 484 | 0.79% |
+| `beta eta simplification` | 37.3 T | 2.81% | 98.9% | 116 901 | 0.09% |
+| `run` (the loop's own bookkeeping) | 33.4 T | 2.52% | 2.6% | — | 0.00% |
 
-Everything larger is a leaf — `resolution` 95.9% self, `codetree forward subsumption`
-99.7%, `SAT solver` 100% — which is expected and correct. `superposition` at 52.2% self
-(its one child being `perform superposition`) is the only place where a further split
-might still pay, and `splitting` at 54.4% the only container of any size left.
+Nine nodes hold 86% of the corpus. **The last column is the whole decision**: it is
+~107 instructions over the node's cost per call, so it says how much of what you would
+measure is the measurement. Below ~0.5% a scope is free in practice; at 1.6%
+(`perform superposition`) two scopes start to distort; the cautionary case already in
+the tree is `term sharing`, which spends 15.1% of its own measured cost on
+instrumentation.
+
+**What has been divided this round, and on what principle.** `codetree forward
+subsumption` into setup, multi-literal matching and teardown (§1); codetree index
+maintenance into insert and remove, and insert three ways further (§9); parsing into its
+per-unit boundaries (§2); and **`resolution` into retrieval and `perform resolution`** —
+one scope at the top of `BinaryResolution::generateClause`, mirroring the
+`superposition` / `perform superposition` pair that already existed. That last one was
+pure asymmetry: the call sits inside a lambda in `generateClauses`, which is why it never
+got a name, not because anyone decided it should not have one. Measured at 0.48
+`perform resolution` calls per `resolution` scope entry across four problem shapes, so
+~5.7 G calls and **0.046% of corpus** — the cheapest thing in this list and the largest
+node it divides.
+
+The principle behind all four: scope the phases that are *not* the hot inner loop, and
+let the loop fall out as the parent's self time. The loop itself is never entered —
+`Matcher::execute` dispatches one `CodeOp` at a time, substitution-tree retrieval yields
+one candidate at a time, `readToken` runs per token — so a scope there would cost more
+than the ops it timed.
+
+**What is left, in the order it is worth doing:**
+
+- **`superposition`, 17.7% and 52.2% self.** Its chain is: enumerate rewritable subterms
+  (`EqHelper`), retrieve unifiable candidates (`getUwa`), then `perform superposition`.
+  Only the last is named. The *cheap* half is the enumeration — stepped once per subterm,
+  not per candidate, so ~0.02% — and retrieval then comes out by subtraction. This is the
+  best remaining information-per-instruction in the file and the obvious next addition.
+- **`perform superposition`, 14.1%.** Colour and ordering checks, substitution
+  application, clause construction. Worth splitting, but at 1.63% per scope it is the
+  first place the cost stops being negligible, so do it after the resolution split says
+  by analogy whether the cost is in the checks or the construction.
+- **`forward demodulation`, 2.9% and 99.1% self.** Untouched, 0.79% per scope. §7 says
+  its pathology is per-problem and mid-length-run, so the split wants a hypothesis first.
+- **`SAT solver`, 5.2%.** Third-party (Minisat / CaDiCaL / Z3). Out of scope; §12 notes
+  it is the largest node that costs more clock than instructions.
+- **`run`, 2.5% self over 26 K calls.** The saturation loop's own bookkeeping, 1.27 G
+  instructions per run. Scopes are free at this frequency, but the cost is diffuse rather
+  than concentrated in one call, so there is nothing obvious to wrap.
+
+**And what is *not* worth dividing, so it is not rediscovered:** per-engine scopes inside
+`CompositeISE::simplify` — `immediate simplification` is now 1 125 instructions per call,
+so one scope is 9.5% of the node, against the 1.8% it would have been when the original
+plan first declined this.
 
 The FMB nodes remain untested by any sweep: the corpus is entirely default saturation
 mode, so the four `fmb *` nodes and `minisat eliminate var` /
