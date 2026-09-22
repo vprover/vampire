@@ -1,651 +1,493 @@
-# Findings from the 11142 sweep
+# Findings from the `-tstat` sweeps
 
-`vampire_z3_rel_martin-tstat_11142 -i 100000 -tstat on`, 26 504 TPTP problems, TPTP on
-local disk, 64 workers pinned one per physical core, ASLR off. **26 265 usable runs**
-(the other 239 are Vampire user errors that never reached profiling), 247 671 s and
-1 338 T instructions of exclusive cost.
+Where Vampire's instructions go, measured over the whole of TPTP, and what has been done
+about it so far.
 
-> **§1 has since been acted on.** The 11156 sweep is the same configuration with the LRS
-> maintenance cap in place at its default `-lmb 0.05`. What it did is written up in §9 at
-> the end of this file; §1 below is left as the diagnosis that motivated the change.
+Read `README.md` first for how to read the numbers and how to reproduce any of them.
 
-Read `README.md` first for how to read these numbers. This sweep replaces the
-master-11131 one; where a finding changed, the old claim is stated so the difference is
-visible rather than silently overwritten.
-
-> **Which sweep is the reference.** Seven sweeps exist now: master-11131, 11142, 11156,
-> 11165, 11233 and 11235 at `-i 100000`, plus a 11142/11156 pair at `-t 60` (§11). The
-> **`-i 100000` 11235 sweep is the standing reference** — it is on top of current master
-> with the §13 fix in place, so it is the only one that is both current and complete.
-> `tstat/tstat.db` and `common.py`'s `LOGDIR` both point at it; 11165 is kept as
-> `tstat-11165.db` and 11156 as `tstat-11156.db` (the before-picture for §12).
+> **The reference sweep is 11279.**
+> `vampire_z3_rel_..._11279 -i 100000 -tstat on` (commit `248fb8b61`), 26 504 TPTP
+> problems, TPTP on local disk, 64 workers pinned one per physical core, ASLR off.
+> **26 273 usable runs** — the only 231 rejections are Vampire user errors that never
+> reached profiling — 222 930 s and 1 327 T instructions of exclusive cost, 64 distinct
+> node names. `tstat/tstat.db` and `common.py`'s `LOGDIR` point at it.
 >
-> **11233 (`tstat-11233.db`) is superseded and should not be used.** It was taken on the
-> rebase before the §13 defect was found, so 3 316 higher-order runs abort in it. It is
-> kept only as the evidence for §13c. 11235 has 26 273 clean runs against 11165's 26 265,
-> with the *only* rejections being the 231 pre-existing user errors.
->
-> The reason to prefer `-i 100000` holds for it as it did for 11156: an instruction limit
-> fixes the work done per run by construction, so two builds are always compared at equal
-> effort and the residual nondeterminism is ~0.005%. §10's shortlist was measured on 11156
-> and is superseded in part by §12. Future sweeps stay on `-i 100000`.
->
-> The `-t 60` pair in §11 is kept as a *secondary* source with one specific job: it is the
-> only regime in which memory-boundedness is chargeable, since under `-i` a cache miss is
-> free. Consult it when a question is about wall-clock cost (the §6 `t/i` skew, the §10d
-> index trio, `SAT solver`) — and re-measure there rather than converting, because the two
-> are not comparable: a budget-bound run is 60 s / 355 G instructions under `-t 60`
-> against 17 s / 105 G under `-i 100K`. Its noise floor is also ~5% per problem against
-> the instruction sweep's ~0.005%, so it settles no per-problem question on its own.
+> §18 indexes the eight sweeps taken so far and says which of the older databases are
+> still worth keeping and why.
 
-**Cost is counted in instructions unless stated otherwise.** That is not cosmetic: time
-and instructions rank the nodes differently by up to 3x, and §6 is about exactly that.
+**Cost is counted in retired instructions unless stated otherwise.** That is not
+cosmetic: time and instructions rank the nodes differently by up to 6x, and §9 is about
+exactly that.
+
+**Structure.** Part I is the open work, ranked. Part II is how to read the numbers
+without fooling yourself. Part III is the history: each change that has been made, what
+the sweep before and after it said, and what it bought. Nothing in Part III is a pending
+task.
 
 ---
 
-## 1. `LRS limit maintenance`: 6.6% of the work, 19.4% of the wall clock
+# Part I — Open targets
 
-**Revised, not merely confirmed.** The old sweep called this "25% of all time" and made
-it the clear top target. In instructions it is much smaller, and the gap is itself the
-finding.
+The measure here is deliberately **not** corpus share alone. The biggest nodes by share
+are the inference machinery, which is supposed to be big. What earns a place below is
+either a large share *or* a node that dominates individual runs — because that is where
+a bounded fix has somewhere to bite, and because an outlier problem exposes an
+inefficiency that the average run hides.
 
-`./rpt_hotspots.py` — 87 914 G instructions, **6.57% of corpus**, against **19.44% of
-corpus self time**: a `t/i` of **2.96x**, the largest of any node. At **548 ps/instr**
-against a corpus average of 185 it is the most memory-bound node in the prover
-(`./rpt_hotspots.py --metric membound` ranks it first). It is not executing much code;
-it is walking a large structure and missing cache.
-
-Per run (13 186 runs with at least 200 updates):
+Counts are runs where the node exceeds 30% (and 50%) of that run's own instructions,
+over the 11279 sweep:
 
 ```
-share of the run's instructions   median  5.0%   p90 18.0%   max 64.3%
-share of the run's time           median 11.5%   p90 37.2%   max 90.0%
+node                                   %corpus   >30%   >50%   ps/instr   runs
+codetree forward subsumption            17.79%   4955   1953    166      25427   <- §1
+resolution                              21.54%   4441   1969    162      24561
+parsing                                  1.17%   3449   1014    172      26273   <- §2
+superposition                           17.73%   2906   1255    129      20211
+perform superposition                   14.07%   2150    998    171      19041
+SAT solver                               5.18%    974    243    220      19564   <- §8
+forward demodulation                     2.89%    435     83    159      20869   <- §7
+beta eta simplification                  2.81%    353    234     91       4806   <- §3
+unification with abstraction             1.34%     78     25    129       4293
+interpreted evaluation                   0.83%     53     36    109       1773   <- §4
 ```
 
-**Mechanism, unchanged and confirmed in the source.** `LRS::poppedFromUnprocessed`
-(`Saturation/LRS.cpp:41`) calls `_passive->updateLimits()`, which
-(`Saturation/ClauseContainer.cpp:60`) runs a *full simulation*: `simulationInit()` then
-`simulationPopSelected()` repeated `estReachableCnt` times.
+Two nodes have left this table since it was last drawn against 11156, and both left
+because they were fixed: `forward simplification` (19.01% of corpus, 5 646 runs over
+30%) is now 0.62% and 0 runs, because the work inside it has a name (§14); and
+`property evaluation` (0.81%, up to 89% of a single run) is now 0.13% (§16).
 
-**The cadence is far tighter than the constants suggest, which is the part worth
-knowing.** `LRS::shouldUpdateLimits()` (`Saturation/LRS.cpp:57`) fires when its own call
-counter hits 500, or **50** once limits are active. Those read like "every 500 / every 50
-activations" — but the counter advances once per clause *popped from unprocessed*, and a
-single activation pushes many clauses through unprocessed. Measured:
+## 1. `codetree forward subsumption` — one instruction in five, with a four-order-of-magnitude tail
 
-```
-activations per limit update   median 1.4    p10 0.2    p90 11.0
-```
+**17.79% of all corpus instructions**, second only to `resolution`, at 32 694
+instructions per call over 7.22 G calls. Roughly one instruction in five of everything
+Vampire does is forward subsumption, and until the 11165 sweep none of it was visible at
+all (§14). At 166 ps/instr it is compute-bound, not memory-bound, so unlike §5 this is
+not a cache-behaviour problem: it is simply a lot of work.
 
-So in the median run a full passive-set simulation runs **more often than once per
-activation**, and at p10 five times per activation. That is roughly 36x more often than
-reading the constant as activations would suggest.
+It is also concentrated rather than merely large: **4 955 runs (19% of the corpus) spend
+more than 30% of their instructions in it**, median 13.42% of a run, p90 44.95%.
 
-Cost per update against the run's passive size:
+The tail is where it stops looking like tuning, because the per-call cost varies by four
+orders of magnitude:
 
-```
-passive ~   2 198   median   23 k instr/call     6 us
-passive ~   9 774   median   88 k                29 us
-passive ~  42 446   median  391 k               141 us
-passive ~ 105 618   median  784 k               356 us
-passive ~ 393 752   median  920 k               411 us
-```
+| problem | share of run | calls | instructions per call |
+|---|---:|---:|---:|
+| `GRA071^2.p` (TH0) | 99.85% | 38 | **2 755 622 228** |
+| `GRA073^2.p` (TH0) | 99.85% | 38 | 2 755 670 362 |
+| `GRA071^1.p` (TH0) | 99.82% | 42 | 2 492 620 277 |
+| `GRA124-1.p` (CNF) | 99.81% | 659 | 158 842 806 |
+| `GRA124+1.p` (FOF) | 99.81% | 659 | 158 851 207 |
+| `GRA144-1.p` (CNF) | 99.81% | 682 | 153 484 224 |
 
-Roughly linear to ~10^5 (slope 0.91 over the first four buckets) then flattening, because
-`estReachableCnt` bounds the simulation once passive is very large. The old sweep's clean
-"slope 1.01" was fitted on bucket medians only; over all 13 186 raw points the exponent is
-0.74 in instructions and 0.90 in time, r = 0.53 / 0.61.
+A *single* subsumption check costing 2.75 **billion** instructions is bug-shaped. The
+GRA family (graph theory) dominates and appears in CNF, FOF and TH0 at nearly identical
+cost, which points at the problem shape rather than at the dialect or the parser.
 
-**Fix**: make the cadence in `shouldUpdateLimits()` adaptive — keep measured limit
-maintenance under a fixed fraction of elapsed work, or scale the interval with
-`sizeEstimate()` — instead of the constants 500/50. Purely a policy change, no data
-structure touched. Because the node is memory-bound, the wall-clock win should exceed the
-6.6% instruction share; on a loaded machine it should exceed it by more.
+**Where to start.** `Inferences/CodeTreeForwardSubsumptionAndResolution.cpp` has one
+`TIME_TRACE` at the top of `perform` and nothing below it, so a 2.7 G-instruction call
+is still opaque. A couple of scopes inside the code-tree matching loop would say whether
+the cost is in retrieval or in the multi-literal matching, which is the fork that decides
+what a fix would even look like. Overhead is affordable at this call count (one extra
+scope on the `forward simplification` path was measured at 0.09% of corpus, §14) but not
+at the *per-candidate* level.
 
-Worth noting while in this function: `static unsigned cnt=0;` is a function-local static
-holding per-problem state, which `CLAUDE.md` calls out as a hazard rather than an
-optimisation.
+This is the largest single target in the file, and it has been the largest since it
+became visible.
 
-**Worst runs** (`./rpt_peers.py` ranks the same set independently): the whole `SYN903-1`
-to `SYN912-1` group at 54-64% of instructions, `HWV121-1.p` 49.8%, `CSR114+15.p` 49.6%,
-`CSR066+4.p` 48.8%, `LCL684+1.005.p` 46.5%, and the `ITP2xx_3` (TX0) / `ITP0xx_5` (TF0)
-families at 62-77% of main-loop time against peer medians of 3-5%.
+## 2. `parsing` — a fifth of the corpus gives it a fifth of its budget
 
----
-
-## 2. `Property::scan` is up to 88% of a HOL run — confirmed, and larger than before
-
-`./rpt_preproc.py --outliers`, and directly:
+1.17% of corpus instructions, which sounds negligible, and a per-run distribution that
+is anything but:
 
 ```
-NUM795^4.p  property evaluation  2 calls   93 G instr = 88% of the whole run  (7.6 s)
-NUM796^4.p                       2 calls   93 G       = 88%
-NUM793^4.p                       2 calls   79 G       = 75%
-NUM789^4.p                       2 calls   72 G       = 68%
-... the whole NUM76x-NUM79x^4 family, 15+ problems
+runs where parsing is >= 90% of the whole run's instructions:     63
+                       50-90%:                                   951
+                       20-50%:                                  4 282
 ```
 
-All of them then hit the instruction limit — the budget is spent before saturation gets
-anywhere. Corpus-wide `property evaluation` is only 0.816% of instructions (10 T over
-67 452 calls), so this is concentrated, not pervasive; but where it bites, it consumes the
-run. By dialect the mean share is 3% on TH0/TX1 against 1% on FOF/CNF.
+**5 296 runs — 20% of the corpus — spend at least a fifth of their entire instruction
+budget in the parser**, and **54 spend 99% or more of it, so saturation never starts and
+they report no SZS status at all.** In a corpus where every run is budget-bound this is
+pure loss: the parser is spending the prover's search budget.
 
-**Mechanism, verified in the source.** `Property::scan(Literal*)`
-(`Shell/Property.cpp:605`) does
+Of the four nodes that dominate the most runs, parsing is the only one that is not
+inference. It has also *risen* in this ranking — 2 426 runs over 30% on 11156 against
+3 449 now — which is mostly mechanical, since everything around it got cheaper, but it
+is the reason parsing now outranks `superposition` on concentration.
 
-```cpp
-for (int i=0; i<arity; i++) { scanSort(SortHelper::getArgSort(lit, i)); }
-```
-
-and `SortHelper::getArgSort` (`Kernel/SortHelper.cpp:217`) builds a fresh `Substitution`
-and calls `getTypeSub(t, subst)` — which binds *every* type argument
-(`Kernel/SortHelper.cpp:68`) — before applying it to the one argument asked for. Scanning
-a term of arity n therefore costs n substitution builds instead of one. In HOL every `@`
-is polymorphic, so this is the whole traversal.
-
-**Two independent fixes, both small:**
-
-- a bulk `SortHelper::getArgSorts(const Term*, Stack<TermList>&)` that calls `getTypeSub`
-  once and applies it to each `ot->arg(i)`. `Shell/Property.cpp:605` and `:715` are the
-  hot callers, and the same `for i < arity: getArgSort(t, i)` pattern appears in ~10
-  further places (`Shell/BlockedClauseElimination.cpp:477`,
-  `Inferences/TheoryInstAndSimp.cpp:134,209`, `Indexing/AcyclicityIndex.cpp:71,84`,
-  `Inferences/TermAlgebraReasoning.cpp:384,397`, ...), so one helper fixes all of them.
-- find out why the scan runs more than once. Call counts are now 1 (21 681 rows), 2
-  (21 039) and 3 (1 231) — the old sweep's "4 times" no longer reproduces, but 2 scans of
-  a HOL problem still costs seconds. Per `CLAUDE.md` the `Problem` property cache is
-  invalidated by transformations and silently repaired by the next `getProperty()`.
-
----
-
-## 3. Parsing costs 5 800 - 33 800 instructions per input atom
-
-**This finding is new, and it replaces the old §3.** In the 11131 sweep `parsing`
-measured the server's NFS mount rather than the parser, so the whole node was written off
-as an artifact. With TPTP on local disk the artifact is gone (`SET044+1.p`: 113 ms then,
-**212 µs** now) and what is left is real — and was never previously visible.
-
-`./rpt_preproc.py --fit --node parsing` — cleanly **linear** in input size in every
-dialect (FOF b = 1.03 [1.01, 1.04]), so there is no scaling bug. The constant is the
-issue:
+**Scaling is not the problem.** `./rpt_preproc.py --fit --node parsing` is cleanly
+linear in input size in every dialect (FOF b = 1.03 [1.01, 1.04], CNF 1.00, TF0 1.01).
+The constant is the issue, and it differs by 5x across dialects:
 
 ```
-TX1  33 793 instr/atom      FOF  13 666        TH0   7 837
-TF1  29 859                 TF0  18 551        TH1   5 832
-TX0  19 301
+TX1  31 578 instr/atom      CNF  15 519        TH0   7 346
+TF1  23 374                 TF0  14 029        TH1   5 847
+TX0  22 046                 FOF   8 814
 ```
 
-And it is not a rounding error on small problems:
+The extreme tail is two distinct populations, and only one is a parser problem:
+
+**Large inputs — CSR (SUMO/Cyc) and HWV (hardware verification).** This is where the
+absolute cost is. `HWV132/133/134-1.p` (10.6 M bytes, 2.33 M clauses) each burn the
+entire 104.87 G budget in parsing; the `CSR*+6` family (8.4 M bytes) is at 99.1%. Of
+`CSR061+6.p`'s 102 G, only 2 G is `parsing.term sharing`, so the cost is in the parser
+proper and not in term construction.
+
+**Short runs — SYN.** `SYN812-1.p` at 48.4%, `SYN842-1.p` at 31.6% and neighbours are
+only 130–250 K input units; the share is high because the *run* is short. They finish
+Satisfiable almost immediately and parsing is most of what happened. That is arithmetic,
+not a defect, and it is why the 20–50% bucket should not be read as 4 282 problems worth
+fixing.
+
+**Where to start.** `Parse/TPTP.cpp` has no `TIME_TRACE` below the single top-level
+scope, so there is nothing to attribute the 100 G to. Parsing runs once per problem, so
+scopes here are free (§14's tier-2 arithmetic: ~0 at 26 K calls). A handful around
+tokenising, term construction, the include/axiom-selection path and the unit list would
+localise this before anyone optimises a line of it. **This is the cheapest useful thing
+on the list**, and it is a prerequisite for the rest.
+
+## 3. `beta eta simplification` — a single call can eat a whole higher-order run
+
+2.81% of corpus from only **4 806 runs**, of which **353 are above 30% of their own run
+and 234 above 50%** — the highest >50%/>30% ratio of any node in the table, i.e. when it
+bites it takes the run rather than a slice of it.
+
+| problem | share of run | calls |
+|---|---:|---:|
+| `SYN007^4.014.p` | **100.0%** | **1** |
+| `NUN109^1.p` | 99.4% | — |
+| `NUN103^1.p` | 99.3% | — |
+| `LCL931^1.p` | 98.7% | 33 |
+| `NUM643^4.p` | 97.5% | 10 |
+
+`SYN007^4.014.p` spends its entire 104.9 G budget inside **one** call to
+`BetaEtaSimplify`. A single beta-eta normalisation that never returns is a bug, not a
+tuning matter. 449 runs give the node more than 20% of their budget, and those 449 hold
+28.2 T — **75% of the whole node**; the families are NUM (131), ITP (130), SYO (45) and
+NUN (41), and the dialect is TH0/TH1 without exception.
+
+`BoolSimp` is the same story one order down: 0.46% of corpus from 4 565 runs, 7 above
+30%, worst 68.2%. It got 2.8x cheaper per call in the 11279 sweep as a side effect of
+the `SortHelper` work (§16), which is evidence that the HOL simplification rules are
+paying for sort computation rather than for simplification.
+
+Neither rule could even be named before the 11165 sweep; `Inferences/HOL/` had no
+instrumentation at all (§14).
+
+## 4. `interpreted evaluation` — six 42-byte problems at 97% of budget
+
+0.83% of corpus over 1 773 runs, 53 above 30% and 36 above 50%, and the tail is
+remarkable for how *uniform* it is:
+
+| problem | share of run | calls | instructions per call | input size |
+|---|---:|---:|---:|---:|
+| `SWX146_1.p` … `SWX151_1.p` | **97.07%** | 21 825–21 827 | 4 664 5xx | **42** |
+| `SWX134/135/137/139_1.p` | 95.64% | 10 760–10 761 | 9 322 xxx | 42 |
+
+Six problems agreeing to within 0.01% on all three figures is one root cause, not six.
+A **42-byte** TF0 problem burning 101.8 G instructions in `interpreted evaluation`, at
+4.66 M instructions per evaluation call, is the clearest small-input/large-cost signal
+in the corpus — exactly the kind of outlier that exposes an inefficiency the average run
+hides. 121 runs give the node over 20% of their budget and those hold 52% of it; they
+are TF0 arithmetic almost exclusively (118 of 121), families SWW (41), SWX (31), ANA
+(15), SWC (12), ARI (12).
+
+Small, self-contained, and reproducible in seconds — a good first problem for someone
+picking this file up cold.
+
+## 5. `LRS limit maintenance` — solved as a work problem, still the worst memory stall
+
+The maintenance cap (§13) took this from the top of the file to 0.98% of corpus
+instructions, and no run now gives it more than 5% of its own budget. As an
+*instruction* target it is finished.
+
+It is not finished as a *time* target, and the cap is why:
+
+| sweep | %instr | %time | t/i | ps/instr |
+|---|---:|---:|---:|---:|
+| 11142 (uncapped) | 6.571 | 19.439 | 2.96x | 548 |
+| 11156 (capped) | 0.953 | 5.857 | **6.15x** | 1004 |
+| 11235 | 0.957 | 5.832 | 6.10x | 1008 |
+| 11279 | 0.983 | 6.041 | **6.15x** | **1032** |
+
+Against a corpus average of 168 ps/instr, what survives the cap runs at **6x the corpus
+stall rate** and is still **6% of the prover's wall clock** for 1% of its work. The cap
+traded many cheapish updates for few expensive ones: the updates that survive are the
+late, large-passive, cache-hostile ones, and with fewer of them each starts from a colder
+cache. The ratio has been stable across three sweeps, so this is structural, not noise.
+
+**The open question, unchanged since §13 and worth deciding before anyone reopens this:**
+if the goal is 5% of *wall clock* rather than 5% of instructions, the budget under `-i`
+has to be either applied in the time unit regardless of which limit binds, or set nearer
+0.015 in instruction terms. Under `-t 60` the cap already binds in the right unit and
+buys ~10x more (§13).
+
+## 6. The memory-bound index trio
+
+With LRS capped, these are the only nodes left with a time/instruction skew above 2:
 
 ```
-runs where parsing is >= 90% of the whole run's instructions:    55  (54 then hit -i)
-                       50-90%:                                  488
-                       20-50%:                                4 019
+backward superposition index maintenance   0.42% instr   0.95% time   378 ps/instr
+binary resolution index maintenance        0.16%         0.35%        363
+passive container maintenance              0.39%         0.84%        363
 ```
 
-**4 562 runs — 17% of the corpus — spend at least a fifth of their entire instruction
-budget parsing**, and 55 spend essentially all of it. `CSR061+6.p` (8.4 M atoms) burns
-**102 G of its 104.9 G budget** in `parsing` and never starts proving. Of that, only 2 G
-is `parsing.term sharing`, so the cost is in the parser proper, not in term construction.
+About 1% of instructions but 2.1% of time, against a corpus rate of 168 ps/instr. A
+small prize, and "make an index cache-friendlier" is not a cheap fix — but they are a
+coherent group, and `forward demodulation index maintenance` (192 ps/instr) sitting
+*outside* it says the cost is specific to these three rather than to index maintenance
+generally. The skew is regime-independent: it holds at 2.1–2.5x under `-t 60` too (§12).
 
-Not yet localised below the node — `Parse/TPTP.cpp` has no finer `TIME_TRACE` scopes.
-Adding a few would be the natural next step before optimising anything here.
+## 7. Demodulation — the folklore checked, and it is not quite right
 
----
+The expectation was that demodulation eats a large share of long-lived runs. Share of a
+run's own instructions in `forward demodulation`, bucketed by how long the run actually
+was (11279):
 
-## 4. The instruction-limit reporting race — fixed, and verified fixed
+| run length | n | median | p90 | p99 | max |
+|---|---:|---:|---:|---:|---:|
+| <1 G instr | 7 500 | 3.13% | 11.69% | 32.41% | 57.44% |
+| 1–10 G | 1 484 | **8.45%** | **33.88%** | 56.98% | 68.10% |
+| 10–50 G | 1 133 | 5.05% | 16.33% | 46.68% | 85.32% |
+| 50–100 G | 346 | 2.01% | 9.42% | 53.09% | 70.11% |
+| >100 G (budget-bound) | 10 406 | 2.12% | 6.08% | 26.70% | **88.55%** |
 
-In the 11131 sweep `Lib/Timer.cpp:limitReached()` ran on the *timer thread* and printed
-the time trace while the main thread was still proving and mutating it. **2 450 logs**
-(~1 in 5 instruction-limited runs) died with `Aborted by signal`, and the abort always
-landed inside the trace output.
+It peaks in the **middle** and falls away in the longest runs — the opposite of the
+expectation, by a factor of four at the median. What is true is that the tail stays heavy
+everywhere: 435 runs exceed 30% and the worst budget-bound run is at 88.6%. So
+demodulation is worth looking at as a per-problem pathology rather than as a general tax
+on long runs, and the runs to look at are the mid-length ones.
 
-Fixed on `martin-tstat` by freezing the trace rather than stopping the thread:
-`TimeTrace::_enabled` is atomic and `limitReached()` clears it (plus a 1 ms settle) before
-reporting; `ScopedTimer` remembers whether it pushed, so a frozen trace is never written
-to again even by already-open scopes; `printPrettyRec` orders a local `vector<Node*>`
-instead of sorting the live child list; and the whole subsystem uses `std::vector` and the
-system allocator, so the timer thread never enters the prover's unsynchronised pool.
-`limitReached` also flushes `std::cout`, which `std::_Exit` does not.
+The node also got **15.7% cheaper per call** between 11235 and 11279, across every
+dialect — see §16, which also explains why that number should not be read as a pure
+speedup.
 
-Verified on this sweep:
+## 8. Peer outliers, and which of them are *not* to fix
 
-| | 11131 | 11142 |
-|---|---|---|
-| `Aborted by signal` | 2 450 | **0** |
-| logs rejected as mangled | 2 952 of 26 504 | **0** |
-| clean rate, every dialect x termination bucket | TH0 53%, TH1 27% at `-i` | **100.0% everywhere** |
-| flat vs tree counter drift under `-i` | 8% of rows, up to 1.7% | **0 of 431 645 rows** |
-
-That last row is the sharpest test: the two dumps are taken at different moments, so any
-mutation between them shows up as flat > tree. `./ingest.py --selftest` now asserts exact
-agreement there and would catch a regression of the freeze.
-
-The old sweep's clean-rate bias also mattered for *what could be concluded*: TH0 at 53%
-and TH1 at 27% meant no THF saturation claim was safe. That constraint is gone.
-
----
-
-## 5. Peer outliers, and which of them are *not to fix*
-
-`./rpt_peers.py` (3 640 rows). After the LRS group, which dominates it.
-
-The detector's job is to find runs that behave unlike their peers, and it does — but a
-large share of what it finds is the *problem* being hard, not the prover being wrong. Two
-of the loudest signals in this sweep are cases where complexity theory says the blow-up is
-unavoidable. They are kept here deliberately, marked, so they are not investigated a
-second time.
+`./rpt_peers.py` finds runs that behave unlike their peers, and it does — but a large
+share of what it finds is the *problem* being hard, not the prover being wrong. These
+are recorded so they are not investigated a second time.
 
 **Not to fix — the theory is against us:**
 
-- **`LCL648+1.010.p`** — `SAT solver` is **96% of the run** (100 G instructions) in 1 228
-  calls, **82 M instructions per call** against a corpus median of 3 M: a 27x per-call
-  cost, and the largest SAT anomaly in the sweep. The header reads
+- **`LCL648+1.010.p`** — `SAT solver` is 96% of the run (100 G instructions) in 1 228
+  calls, 82 M instructions per call against a corpus median of 3 M: a 27x per-call cost,
+  and the largest SAT anomaly in the sweep. The header reads
   `Problem : In K, pigeonhole formulae, size 10`. **Pigeonhole formulae have no
   polynomial-size resolution refutation** (Haken 1985), and CDCL is resolution, so an
   exponential blow-up here is a theorem, not a defect. At 109 ps/instr the solver is
-  compute-bound — genuinely working, not thrashing. Nothing to fix, and the same applies
-  to the rest of the `LCL64x` pigeonhole series and to any other pigeonhole encoding.
+  compute-bound — genuinely working, not thrashing. Same for the rest of the `LCL64x`
+  series and any other pigeonhole encoding.
 - **`SYN986+1.005.p` / `.006`** — `resolution` at 84.9% against a peer median of 0.1%
-  (z = 443). The **Orevkov formulae**, a deliberate non-elementary proof-length benchmark.
-  Same reasoning: the blow-up is the intended content of the problem.
+  (z = 443). The **Orevkov formulae**, a deliberate non-elementary proof-length
+  benchmark. The blow-up is the intended content of the problem.
 
 Both are useful as positive controls: a detector that *failed* to flag them would be
-broken. The lesson generalises — before chasing a peer outlier, read the problem's TPTP
-header. A benchmark designed to be hard is not a performance bug.
+broken. The lesson generalises — read the problem's TPTP header before chasing a peer
+outlier. A benchmark designed to be hard is not a performance bug.
 
 **Expected, though not theoretically forced:**
 
-- The `SWV421-1.4xx/5xx` and `SWV422-1.4xx/5xx` family sits at ~70% `SAT solver`, but at
-  **5 M instructions per call it is barely above the 3 M median** — the share comes from
-  making 13-14 k calls, not from any call being pathological. These are bounded model
-  checking of a mutex algorithm at k = 400-500; heavy SAT work is what the problem *is*.
-  No anomaly. (My earlier draft grouped this family with `LCL648` as "SAT solver
-  blow-ups". That was wrong: only the per-call figure distinguishes a pathology from a
-  problem that simply asks for a lot of solving, and by that figure these are normal.)
+- `SWV421-1.4xx/5xx` and `SWV422-1.4xx/5xx` sit at ~70% `SAT solver`, but at **5 M
+  instructions per call they are barely above the 3 M median** — the share comes from
+  making 13–14 k calls, not from any call being pathological. Bounded model checking of a
+  mutex algorithm at k = 400–500; heavy SAT work is what the problem *is*. (An earlier
+  draft grouped these with `LCL648`. That was wrong: only the per-call figure
+  distinguishes a pathology from a problem that asks for a lot of solving.)
 
 **Worth actually looking at:**
 
 - **`SWC512_1.p`** — `SAT solver` 52% of the run at **14 M instructions per call**, 4.7x
-  the median, and at 366 ps/instr it is memory-bound rather than compute-bound, unlike
+  the median, and at 366 ps/instr memory-bound rather than compute-bound, unlike
   `LCL648`. An Atelier-B industrial proof obligation with no header suggesting deliberate
-  hardness. This is the one case here where AVATAR may be asking the solver something
-  avoidable.
-- The `ITP2xx_3` (TX0) and `ITP0xx_5` (TF0) variants are LRS-bound at 62-77% while their
+  hardness. The one case here where AVATAR may be asking the solver something avoidable.
+- The `ITP2xx_3` (TX0) and `ITP0xx_5` (TF0) variants are LRS-bound at 62–77% while their
   `^1`/`+1` siblings are not. `./rpt_peers.py --family ITP007` shows this side by side.
-  This is §1, not a separate finding.
+  This is §5, not a separate finding.
+
+## 9. What is *not* a blind spot any more
+
+Worth stating explicitly, because the instrumentation plan that produced §14 is now
+complete and there is no longer a large container whose cost we can see but whose cause
+we cannot.
+
+Unattributed *self* instructions, by container, on 11279:
+
+| container | self | self / total |
+|---|---:|---:|
+| `run` (the saturation loop's own bookkeeping) | 33.4 T (2.52%) | 2.6% |
+| `immediate simplification` | 14.5 T (1.09%) | 20.0% |
+| `forward simplification` | 8.3 T (0.62%) | 2.8% |
+| `splitting` | 6.1 T (0.46%) | 54.4% |
+| `clause generation` | 12.1 T (0.91%) | 1.6% |
+
+Everything larger is a leaf — `resolution` 95.9% self, `codetree forward subsumption`
+99.7%, `SAT solver` 100% — which is expected and correct. `superposition` at 52.2% self
+(its one child being `perform superposition`) is the only place where a further split
+might still pay, and `splitting` at 54.4% the only container of any size left.
+
+The FMB nodes remain untested by any sweep: the corpus is entirely default saturation
+mode, so the four `fmb *` nodes and `minisat eliminate var` /
+`minisat bwd subsumption check` have never been exercised. That wants a targeted
+`-sa fmb` run, not a sweep. See `NEXT.md`.
 
 ---
 
-## 6. Time and instructions rank the nodes differently, corpus-wide
+# Part II — How to read these numbers
 
-The old §6 argued this from one hand-run problem. The full corpus now says it, and the
-effect is one-directional in a way that is worth internalising: **exactly one cluster of
-nodes is over-ranked by time, and everything else is under-ranked to compensate.**
+## 10. Instructions, not time
 
-`./rpt_hotspots.py --metric membound`:
+The old §6 argued this from one hand-run problem; the corpus says it, and the effect is
+one-directional in a way worth internalising: **one cluster of nodes is over-ranked by
+time, and everything else is under-ranked to compensate.** `./rpt_hotspots.py --metric
+membound` on 11279:
 
 | node | %instr | %time | t/i | ps/instr |
 |---|---:|---:|---:|---:|
-| LRS limit maintenance | 6.57% | 19.44% | **2.96x** | 548 |
-| binary resolution index maintenance | 0.14% | 0.30% | 2.12x | 392 |
-| passive container maintenance | 0.34% | 0.71% | 2.08x | 385 |
-| backward superposition index maintenance | 0.44% | 0.89% | 2.04x | 378 |
-| SAT solver | 4.56% | 5.90% | 1.30x | 240 |
-| *— cliff to the corpus average of 185 —* | | | | |
-| resolution | 19.09% | 17.25% | 0.90x | 167 |
-| forward simplification | 17.93% | 15.89% | 0.89x | 164 |
-| superposition | 16.39% | 11.56% | 0.71x | 131 |
-| perform superposition | 13.54% | 12.48% | 0.92x | 171 |
-| immediate simplification | 4.51% | 2.69% | 0.60x | 110 |
+| LRS limit maintenance | 0.98% | 6.04% | **6.15x** | 1032 |
+| backward superposition index maintenance | 0.42% | 0.95% | 2.25x | 378 |
+| binary resolution index maintenance | 0.16% | 0.35% | 2.16x | 363 |
+| passive container maintenance | 0.39% | 0.84% | 2.16x | 363 |
+| SAT solver | 5.18% | 6.80% | 1.31x | 220 |
+| *— cliff to the corpus average of 168 —* | | | | |
+| resolution | 21.54% | 20.81% | 0.97x | 162 |
+| codetree forward subsumption | 17.79% | 17.54% | 0.99x | 166 |
+| superposition | 17.73% | 13.59% | 0.77x | 129 |
+| perform superposition | 14.07% | 14.32% | 1.02x | 171 |
+| beta eta simplification | 2.81% | 1.52% | 0.54x | 91 |
 
-Four structure-walking nodes plus the SAT solver stall on memory; the actual inference
-machinery runs at or below the corpus average. `forward demodulation index maintenance`
-(1.06x) is *not* in the cluster, so this is not "all index maintenance" — it is
-specifically these three indices plus LRS.
+Three structure-walking indices plus LRS and the SAT solver stall on memory; the
+inference machinery runs at or below the corpus average. `forward demodulation index
+maintenance` (1.15x) is *not* in the cluster, so this is not "all index maintenance".
 
 **The counters are validated independently.** `[root]`'s instruction count comes from
 `rdpmc` through the mmap'd perf page; the statistics block's `Instructions burned` comes
-from `read()` on the perf fd. Over all 11 975 instruction-limited runs their ratio is
-1.0000 at p10, p50 and p90 — agreement to within the 2^20 rounding of the printed figure.
+from `read()` on the perf fd. Their ratio over every instruction-limited run is 1.048 58
+at p05 and p50, identical to five decimals across the 11165, 11233, 11235 and 11279
+sweeps — and that constant is 2²⁰/10⁶, the quirk below, not an error in either reading.
 
 **A practical benefit beyond ranking**: `self_ns` can go *negative* on a node whose
-children's printed (rounded) totals exceed its own — `NUM789^4.p`'s `main loop` has
-self_ns = -191 µs. Instruction counts are exact integers, so `self_instr` never does this.
+children's printed (rounded) totals exceed its own — `NUM789^4.p`'s `main loop` had
+self_ns = −191 µs. Instruction counts are exact integers, so `self_instr` never does.
 
 ### Caveat: `Instructions burned` is mebi, not mega
 
-`Lib/Timer.cpp` defines `MEGA = 1 << 20`, so `elapsedMegaInstructions()` divides by 2^20
+`Lib/Timer.cpp` defines `MEGA = 1 << 20`, so `elapsedMegaInstructions()` divides by 2²⁰
 and `-i 100000` is 104.9 G instructions, not 100 G — every such figure is 4.86% larger
 than its label. Self-consistent and harmless for ratios, but the label is wrong.
 Correcting it would silently reinterpret every existing `-i` value, including those baked
 into portfolio schedules, so it is a decision for Martin rather than a fix.
 
+## 11. The noise floor
+
+`./rpt_ips.py --spread`: pinning 64 workers to distinct physical cores, instead of
+running 120 unpinned, raised throughput by **1.70x** (median 3 126 → 5 327 M instr/s) but
+barely moved the p90/p10 spread (2.58x → 2.50x). That is not a failure of the pinning; it
+is evidence that this metric was never a clean noise measure. It compares *different
+problems*, so it mixes genuine problem-to-problem memory-boundedness with machine load,
+and the first term does not go away.
+
+The honest figure comes from repeating **one** problem. `./determinism.py` gives a median
+per-node instruction spread of **0.004–0.015%** under `setarch -R`, against wall-time
+spreads of 0.45–49.7% on the same runs. So instruction counts should be believed to
+~0.1% and time only to the tens of percent.
+
+Under `-t 60` the floor is much higher — see §12.
+
+## 12. Nothing is superlinear, and the two regimes measure different things
+
+`./rpt_preproc.py --fit` was built to find a preprocessing step quadratic in input size.
+Across every dialect and every pre-saturation node the fitted exponent is 0.75–1.30 —
+**nothing is superlinear.** The one mild exception used to be `property evaluation` on
+TX0 (1.30) and TH0 (1.27), which was §16's finding showing up as a slope rather than as
+outliers; that step is now 13x cheaper. So the preprocessing problems in this corpus are
+constant factors, not complexity bugs, which is why §2 is phrased as cost per atom.
+
+**The two regimes are not comparable and should not be compared directly.** A
+budget-bound run is 60 s / 355 G instructions under `-t 60` against 17 s / 105 G under
+`-i 100K`, so the time-limited sweep gives every run 3.4x more work. Shares of fixed
+costs move accordingly — in the 11156 pair, `parsing` reads 1.23% of the corpus under
+`-i` and 0.45% under `-t`, and that is arithmetic, not a change in parsing.
+
+- **`-i` measures search.** Work done is fixed by construction, so two builds are
+  compared at identical effort and the only nondeterminism is the residual ~0.005%. It is
+  the right tool for anything that changes *which* inferences happen, and it is what
+  every reference sweep uses.
+- **`-t` measures cost.** It is the only regime in which memory-boundedness is
+  chargeable: under `-i`, a cache miss is free. Its per-problem noise floor is ~5%
+  (measured, §13), so it settles no per-problem question on its own — but a corpus-level
+  effect is comfortably outside it. Consult it when the question is about wall clock:
+  the §10 skew, the §6 index trio, `SAT solver`.
+
+Under `-t`, with LRS capped, **`SAT solver` is the largest node that costs more clock
+than it costs instructions** — 5.96% of wall time against 3.74% of instructions, at 245
+ps/instr. An instruction-limited sweep under-ranks it by a third, every time.
+
 ---
 
-## 7. What the machine noise actually is
+# Part III — Closed: what was measured, and what it bought
 
-`./rpt_ips.py --spread`, run against both sweeps' databases. Pinning 64 workers to
-distinct physical cores, instead of running 120 unpinned, raised throughput by **1.70x**
-(median 3 126 -> 5 327 M instr/s) but barely moved the p90/p10 spread (2.58x -> 2.50x).
+Each subsection is a change that has landed, the before-and-after sweep pair that
+measured it, and the conclusion. None of it is pending work.
 
-That is not a failure of the pinning; it is evidence that this metric was never a clean
-noise measure. It compares *different problems*, so it mixes genuine problem-to-problem
-memory-boundedness with machine load, and the first term does not go away. §6's ps/instr
-column shows how large that first term is.
+## 13. The LRS maintenance cap (11142 → 11156, and the t60s pair)
 
-The honest noise figure comes from repeating **one** problem: `./determinism.py` gives a
-median per-node instruction spread of 0.004-0.015% under `setarch -R`, against wall-time
-spreads of 0.45-49.7% on the same runs. So instruction counts should be believed to ~0.1%
-and time only to the tens of percent.
+**The finding.** On 11142, `LRS limit maintenance` was **6.57% of corpus instructions
+and 19.44% of corpus wall clock** — a t/i of 2.96x, the largest of any node, at 548
+ps/instr against a corpus average of 185. It was not executing much code; it was walking
+a large structure and missing cache.
 
----
+`LRS::poppedFromUnprocessed` (`Saturation/LRS.cpp:41`) calls `_passive->updateLimits()`,
+which (`Saturation/ClauseContainer.cpp:60`) runs a *full simulation*. The cadence in
+`shouldUpdateLimits()` — 500, or **50** once limits are active — reads like "every 500 /
+every 50 activations", but the counter advances once per clause *popped from
+unprocessed*, and a single activation pushes many clauses through. Measured: **1.4
+activations per limit update at the median, 0.2 at p10** — so in the median run a full
+passive-set simulation runs more often than once per activation, roughly 36x more often
+than reading the constant would suggest. Cost per update scaled with passive size
+(23 k instructions at ~2 200 clauses, 784 k at ~106 000), roughly linear to 10⁵ then
+flattening because `estReachableCnt` bounds the simulation.
 
-## 8. Not superlinear, which is worth stating
+**The change.** `-lrs_maintenance_budget`, default 0.05: keep measured limit maintenance
+under a fixed fraction of the run. Later baked in as a constant (`d3f57446a`).
 
-`./rpt_preproc.py --fit` was built to find a preprocessing step that is quadratic in input
-size. Across every dialect and every pre-saturation node, the fitted exponent is 0.75-1.30
-— **nothing is superlinear**. The one mild exception is `property evaluation` on TX0 (1.30
-[1.28, 1.32]) and TH0 (1.27), which is §2 showing up as a slope rather than as outliers.
+**What it did, under `-i 100000`** (11156, same corpus and machine):
 
-The old sweep's sublinear parsing exponents (b = 0.29-0.79) were the NFS floor, not a
-scaling property; they are now 0.93-1.23. So the preprocessing problems in this corpus are
-constant factors, not complexity bugs — which is why §2 and §3 are both phrased as cost per
-atom.
-
----
-
-## 9. What the LRS maintenance cap actually did (11156 vs 11142)
-
-`vampire_z3_rel_martin-tstat_11156 -i 100000 -tstat on`, same corpus, same machine
-setup, `-lrs_maintenance_budget` at its 0.05 default. Runs were **purely
-instruction-limited**, so instructions are the binding resource and the cap applies to
-them. 26 265 usable runs again, 0 crashes, selftest clean.
-
-### The cap holds exactly
-
-Per-run share of a run's own instructions spent in `LRS limit maintenance`, over the
-18 946 runs where the node appears:
-
-| | median | p90 | p99 | max | runs over 5% |
+| per-run share of own instructions | median | p90 | p99 | max | runs over 5% |
 |---|---:|---:|---:|---:|---:|
 | 11142 (uncapped) | 1.15% | 15.69% | 27.63% | **64.34%** | **36.1%** |
 | 11156 (`-lmb 0.05`) | 0.16% | 2.06% | 3.10% | **4.76%** | **0.0%** |
 
-No run exceeds the budget, and the maximum lands just under it. That is the mechanism
-doing exactly what it says.
+No run exceeds the budget and the maximum lands just under it. Corpus-wide the node fell
+from **6.57% to 0.95% of instructions** (87.9 T → 12.7 T) on 152.9 M → 24.6 M updates.
+The 75.2 T reappeared in the inference machinery (`resolution` +23.8 T,
+`forward simplification` +13.7 T, `perform superposition` +8.0 T), and on the 10 488
+problems budget-bound in both sweeps — equal effort, so a clean throughput comparison —
+11156 performs **3.34% more activations**.
 
-Corpus-wide the node falls from **6.57% of instructions to 0.95%** (87.9 T → 12.7 T) and
-from **19.44% of time to 5.86%** (48 145 s → 12 766 s), on 152.9 M → 24.6 M updates.
+**The solved-problem win under `-i` is not real.** Gained 60, lost 32, net **+28** out of
+~13 900, zero soundness contradictions. Martin's own paired experiment at `-i 64K` gives
++12, with 18 problems solved only by `-lmb 1.0` against 30 only by `0.05` — a spread
+comparable to re-running an LRS strategy by itself. Treat the solved count as unchanged.
 
-Note the corpus figure (0.95%) sits far below the 5% cap. That is expected: the cap is a
-ceiling applied per run, most runs were never near it, and the cumulative form also
-thins the early updates — after each one it waits for saturation to catch up, and early
-in a run there is little to catch up to.
+**Under `-t 60` the payoff is ~10x, and the solved win *is* real.** This is the regime §13
+was always about: §1 stated the cost in wall clock, and only `-t` applies the budget in
+that unit.
 
-### The freed budget becomes search, and it is measurable
-
-On the 10 488 problems that hit the instruction limit in *both* sweeps — same budget
-spent, so a clean throughput comparison — 11156 performs **3.34% more activations** on
-average. Corpus-wide the 75.2 T instructions taken out of LRS reappear in the inference
-machinery:
-
-```
-resolution                 +23.8 T      SAT solver           +5.4 T
-forward simplification     +13.7 T      superposition        +4.9 T
-perform superposition       +8.0 T      LRS limit maintenance  -75.2 T
-```
-
-### Under an instruction limit, 5% of instructions is not 5% of time
-
-The time share only falls to 5.86% corpus-wide, with a p90 of 11.15% and a **max of
-34.54%** per run. This is the memory-boundedness of §6 showing up as a design
-consequence rather than an observation: capping the resource that ends the run
-(instructions) leaves the wall-clock share three to seven times higher.
-
-It gets worse after capping, not better — `LRS limit maintenance` goes from 548 to
-**1004 ps/instr**, from 2.96x the corpus average to 6.15x. The updates that survive are
-the late, expensive, cache-hostile ones, and with fewer of them each starts from a colder
-cache. So the cap trades *many cheapish* updates for *few expensive* ones.
-
-**This is the thing to decide before the PR.** If the goal is a 5% share of wall clock
-rather than of instructions, the budget under `-i` has to be either applied to time
-regardless of which limit binds, or set nearer 0.015 in instruction terms.
-
-### The cost win is solid; the solved-problem win is not
-
-| | 11142 | 11156 | delta |
-|---|---:|---:|---:|
-| Refutation | 12 820 | 12 857 | **+37** |
-| Instruction limit | 11 975 | 11 948 | −27 |
-| Satisfiable | 1 067 | 1 067 | 0 |
-| Refutation not found, non-redundant clauses discarded | 105 | 95 | −10 |
-
-Gained 60, lost 32, **net +28**, and **zero soundness contradictions** — no problem got
-two different definite SZS statuses across the two sweeps.
-
-But +28 out of ~13 900 solved is not a result to lean on. Martin's own paired experiment
-at `-i 64K`, `-lmb 1.0` against `-lmb 0.05` on the same corpus, gives 12 666 → 12 678
-(+12), with 18 problems solved only by `1.0` against 30 only by `0.05` — a spread
-comparable to what re-running an LRS strategy produces by itself. **Treat the solved
-count as unchanged.** What the change reliably buys is the 5.6 percentage points of
-corpus instructions moved out of overhead and into inference, and the removal of the
-64%-of-a-run worst case; whether that converts into problems is below the noise floor
-of a single sweep.
-
-The `non-redundant clauses discarded` drop (105 → 95) is a small independent sign the
-limits are now less aggressive: that reason is reported exactly when LRS discarded
-something it later needed.
-
-> Toolkit bug found while doing this, now fixed: `RE_TERM` in `common.py` excluded the
-> hyphen, so `Refutation not found, non-redundant clauses discarded` failed to match at
-> all and 95 runs recorded an empty termination. That is precisely the category worth
-> watching when changing LRS, and it had been invisible in every earlier analysis.
-
----
-
-## 10. Candidate outliers for later, ranked by how tractable they look
-
-From the 11156 sweep. The measure is deliberately not corpus share: the biggest nodes
-by share are the inference machinery, which is supposed to be big. What follows are
-nodes whose corpus share is modest but which *dominate individual runs*, since that is
-where a bounded fix has somewhere to bite. Counts are runs where the node exceeds 30%
-(and 50%) of that run's own instructions.
-
-```
-node                                   %corpus   >30%   >50%   ps/instr
-forward simplification                  19.01%   5646   2235    159
-resolution                              20.94%   4215   1879    161
-superposition                           16.80%   2695   1132    130
-parsing                                  1.18%   2426    543    171   <- §3
-perform superposition                   14.18%   2145    990    168
-SAT solver                               4.98%    912    238    217   <- §5
-forward demodulation                     3.47%    493     73    147
-immediate simplification                 4.61%    476    317    113   <- new
-interpreted evaluation                   0.82%     52     35    107   <- new
-```
-
-### a. `immediate simplification` on higher-order — the most concentrated thing left
-
-476 runs above 30%, **every one of them TH0 or TH1**, averaging 68% of the run. 85 of
-them reach that in **ten calls or fewer**, and `SYN007^4.014.p` spends its entire
-104.8 G instruction budget inside a **single call** (`cnt: 1`). `SYO875^1.p`,
-`SYO864^1.p`, `SYO866^1.p`, `SYO847^1.p`, `ALG021^7.p` are all at 99%.
-
-At 4.61% of corpus instructions this is not a headline number, but a single
-simplification call that never returns is a bug-shaped problem rather than a tuning
-one, and it is confined to one dialect. Together with §2 (`Property::scan`, also HOL,
-also concentrated) it suggests higher-order has more of these than first-order does.
-
-> **Answered in §12.** The rule is `BetaEtaSimplify`, which the 11165 sweep can now
-> name because `Inferences/HOL/` is instrumented. `SYN007^4.014.p`'s single call is a
-> single call to *it*.
-
-### b. `interpreted evaluation` on TF0 arithmetic
-
-52 runs above 30%, 35 above 50%. The `SWX146_1.p` … `SWX151_1.p` family sits at **96%
-of the budget**, and does so almost identically — 21 425 calls at 4.74 M instructions
-each, within 0.1% of one another across six problems. That uniformity is the useful
-part: six problems failing the same way is one root cause, not six.
-
-### c. Parsing, now that CNF is visible
-
-§3 undercounted this. Measured in instructions, the metric §10 uses throughout,
-`parsing` exceeds **30% of a run on 2 613 runs and 50% on 620**, and the dialect
-dominating both lists is **CNF (1 328 and 329)**, ahead of FOF (909 and 241). CNF is
-also expensive per unit of input: **16 258 instructions per input unit against FOF's
-9 182**, on a clean linear fit (b = 1.00, [0.97, 1.03]).
-
-> Earlier drafts of this section quoted 2 426 / 543 / CNF 1 243 / FOF 835. Those were a
-> mix of the two thresholds below; the figures above are the instruction-based ones
-> throughout. In wall time the counts are 2 462 and 649, and the ordering flips at the
-> 50% mark — FOF 299 against CNF 285 — one more instance of §11's point that the two
-> regimes rank things differently.
-
-The parse-dominated CNF runs are two distinct populations, and only one of them is a
-parser problem:
-
-**Large inputs, HWV hardware verification.** This is where the absolute cost is.
-
-| problem | parse Ginstr | % of run | parse wall | input size | clauses |
-|---|---:|---:|---:|---:|---:|
-| `HWV133-1.p` | 104.87 | **100.0** | 15.0 s | 10 577 953 | 2 326 311 |
-| `HWV134-1.p` | 104.87 | **100.0** | 17.0 s | 10 605 013 | 2 332 428 |
-| `HWV132-1.p` | 104.87 | **100.0** | 16.0 s | 10 601 524 | 2 330 609 |
-| `HWV092-1.p` | 35.91 | 78.3 | 5.2 s | 3 253 954 | 696 691 |
-| `HWV100-1.p` | 34.68 | 33.1 | 4.8 s | 3 136 502 | 688 367 |
-| `HWV094-1.p` | 17.82 | 77.3 | 2.55 s | 1 548 321 | 361 199 |
-| `HWV096-1.p` | 17.82 | 77.3 | 2.50 s | 1 548 144 | 361 152 |
-| `HWV090-1.p` | 7.56 | 76.9 | 1.03 s | 642 940 | 155 095 |
-| `HWV091-1.p` | 6.34 | 76.5 | 0.86 s | 543 354 | 125 811 |
-
-`HWV132/133/134-1.p` are the case worth naming: the **entire 100 Gi budget goes to
-parsing and saturation never starts**, so they report no SZS status at all. HWV090-100
-is the same curve further down and those do finish (Unsatisfiable) — while spending
-three quarters of the run in the parser.
-
-**Short runs, SYN.** `SYN842-1.p` (9.00 G, 31.6%), `SYN830-1.p` (7.58 G, 41.6%),
-`SYN812-1.p` (5.51 G, **48.4%**), `SYN826-1.p` (47.4%), `SYN825-1.p` (44.6%), and their
-neighbours. These are only 130-250 K input units with a few thousand clauses; the share
-is high because the *run* is short — they finish Satisfiable almost immediately and
-parsing is most of what happened. That is arithmetic, not a defect.
-
-Family spread over all 1 328: SYN 265, SWV 201, SET 142, SWC 141, NLP 108, LCL 69,
-COL 56, GEO 49, HWV 44, PUZ 39. So the ratio is widespread, but the *work* is HWV.
-
-### d. The memory-bound index trio
-
-With LRS capped, these are the only nodes left with a time/instruction skew above 2:
-
-```
-binary resolution index maintenance        0.15% instr   0.34% time   370 ps/instr
-passive container maintenance              0.37%         0.82%        357
-backward superposition index maintenance   0.46%         0.99%        351
-```
-
-Together about 1% of instructions but 2.15% of time, against a corpus rate of 163
-ps/instr. A small prize, and "make an index cache-friendlier" is not a cheap fix — but
-they are a coherent group, and `forward demodulation index maintenance` (191) sitting
-outside it says the cost is specific to these three rather than to index maintenance
-generally.
-
-### e. Demodulation — the folklore checked, and it is not quite right
-
-The expectation was that demodulation eats a large share of long-lived runs. Share of a
-run's own instructions in `forward demodulation`, bucketed by how long the run actually
-was:
-
-| run length | n | median | p90 | p99 | max |
-|---|---:|---:|---:|---:|---:|
-| <1 G instr | 7 409 | 4.20% | 14.42% | 33.13% | 56.76% |
-| 1–10 G | 1 501 | **11.16%** | **34.66%** | 55.44% | 67.32% |
-| 10–50 G | 1 146 | 6.63% | 19.81% | 49.13% | 84.80% |
-| 50–100 G | 378 | 3.14% | 10.04% | 31.25% | 68.98% |
-| >100 G (budget-bound) | 10 421 | 2.80% | 7.34% | 27.17% | **88.08%** |
-
-It peaks in the **middle** and falls away in the longest runs — the opposite of the
-expectation, and by a factor of four at the median. What is true is that the tail stays
-heavy everywhere: 493 runs exceed 30% and the worst budget-bound run is at 88%. So
-demodulation is worth looking at, but as a per-problem pathology rather than as a
-general tax on long runs, and the runs to look at are the mid-length ones.
-
-> Two toolkit gaps fixed to get here. `parse_tptp_header` only understood the FOF
-> wording of the header metrics, so all **8 474 CNF problems** had `size = NULL` and
-> silently dropped out of every size-based report, §3 included — the dialect with the
-> most parse-dominated runs was the one being excluded. CNF says "Number of clauses"
-> and "Number of literals" where the rest say "formulae" and "atoms", and has no
-> connectives line.
-
----
-
-## 11. The same change under a *time* limit (t60s, 11142 vs 11156)
-
-Two further sweeps, `-t 60` instead of `-i 100000`, same corpus, same
-`taskset -c "$CPUS" setarch $(uname -m) -R` setup, 64 concurrent processes and nothing
-else on the machine. 26 265 usable runs in each, 0 crashes, 99.1% clean, identical
-reject counts (239, all `flat-section-missing-or-duplicated`).
-
-**This is the sweep §1 was actually about.** §1 measured `LRS limit maintenance` at
-19.4% of *wall clock* against 6.6% of instructions; §9 then capped it under an
-instruction limit and could only bank the smaller of those two numbers. Under `-t` the
-budget is applied in the time unit — which is what `bindingResourceIsInstructions()`
-is for — so the cap now bites on the quantity the finding was stated in.
-
-### The cap holds in the time unit, and the payoff is ~10x the instruction-limited one
-
-Per-run share of a run's own **wall time** spent in `LRS limit maintenance`, over the
-~19 000 runs where the node appears:
-
-| | median | p90 | p99 | max | runs over 5% |
+| per-run share of own wall time | median | p90 | p99 | max | runs over 5% |
 |---|---:|---:|---:|---:|---:|
 | 11142 (uncapped) | 3.37% | 33.33% | 48.33% | **80.00%** | **46.8%** |
 | 11156 (`-lmb 0.05`) | 0.82% | 4.71% | 5.12% | 5.45% | 2.1% |
 
-Corpus-wide: **15.71% → 2.75% of wall time**, 5.18% → 0.35% of instructions,
-31.77 h → 5.50 h, on 342.3 M → 31.1 M updates.
+Corpus-wide **15.71% → 2.75% of wall time**, 31.77 h → 5.50 h, 26.27 hours moved out of
+overhead and into inference (`resolution` +8.60 h, `forward simplification` +3.80 h,
+`perform superposition` +2.54 h, `SAT solver` +2.48 h). Corpus totals **4 263 T →
+4 639 T instructions (+8.8%) in 1.1% less wall time**; median machine throughput on runs
+that used the full 60 s in both rises from **5.26 to 5.91 G instr/s** — same hardware,
+more useful work per second, because the throttled node is the most memory-bound one in
+the prover. Solved: gained 172, lost 43, **net +129**, zero soundness contradictions.
 
-The 403 runs that read above 5% are a **reporting artifact, not a budget violation**:
-91% of them have a whole-second `root_ns` (Vampire prints run totals of a few seconds
-and up rounded down to whole seconds), so the denominator is understated by up to 1 s.
-Recomputed against `printed + 1 s` the worst of them is 4.98%. Among the 6 911 runs
-whose root kept sub-second resolution, the max is 5.27% and only 35 exceed 5% — that
-residue is the expected single-update-in-flight overshoot, since the budget is checked
-before an update and the update is not preempted.
-
-### 26 hours of wall clock moved from overhead into inference
-
-```
-LRS limit maintenance  -26.27 h   |   resolution              +8.60 h
-parsing                 -0.02 h   |   forward simplification  +3.80 h
-property evaluation     -0.01 h   |   perform superposition   +2.54 h
-                                  |   SAT solver              +2.48 h
-                                  |   superposition           +2.15 h
-```
-
-Corpus totals: **4 263 T → 4 639 T instructions (+8.8%) in 1.1% less wall time**. Median
-machine throughput on runs that used the full 60 s in both sweeps rises from **5.26 to
-5.91 G instr/s** — same hardware, same clock, more useful work per second, because the
-throttled node is the most memory-bound one in the prover.
-
-On those 11 198 runs the same 60 s now retires a median **10.2% more instructions**
-(p90 +34.3%; more work in 82.6% of them) and performs a median **4.1% more activations**
-(mean +10.9%, more in 76.4%). Restricted to the 1 708 of them where 11142 had spent
->30% of its wall clock on maintenance: median **+28%** activations, p90 +69%, max 7.2x.
-
-### The solved-problem win is real here, unlike under `-i`
-
-| | 11142 | 11156 | delta |
-|---|---:|---:|---:|
-| Refutation | 13 343 | 13 469 | **+126** |
-| Time limit | 11 394 | 11 270 | −124 |
-| Satisfiable | 1 114 | 1 117 | +3 |
-| Refutation not found, non-redundant clauses discarded | 107 | 102 | −5 |
-
-Gained 172, lost 43, **net +129**, **zero soundness contradictions**. Against §9's +28
-under `-i 100K` and Martin's +12 at `-i 64K`, and the ratio is 4:1 rather than 2:1.
-
-The gains sit where the throttle bound, which is what makes them believable rather than
-noise. Bucketing every flip by how hot maintenance had been in 11142:
+The gains sit where the throttle bound, which is what makes them believable:
 
 | maintenance share in 11142 | lost | gained |
 |---|---:|---:|
@@ -656,84 +498,31 @@ noise. Bucketing every flip by how hot maintenance had been in 11142:
 | >30% | 14 | 81 |
 
 **140 of the 172 gains (81%) come from the two hot buckets**, while the control bucket —
-where the throttle provably cannot have bound, since the run was already under budget —
-is 8 lost against 9 gained, i.e. exactly balanced. No domain concentration worth
-worrying about: CSR leads in both directions (9 lost, 59 gained), and 21 of the 43
-losses were problems 11142 had solved only in its final 10 seconds.
+where the throttle provably cannot have bound — is 8 lost against 9 gained, exactly
+balanced. The control group also measures the `-t` noise floor directly, over 2 511
+time-limited runs where the change is a provable no-op: instructions p5 0.967, median
+0.998, p95 1.049; within ±5% for five runs in six. **So a per-problem difference under
+`-t` needs to clear ~5% before it means anything.**
 
-`non-redundant clauses discarded` falls again (107 → 102), so the coarser limits are, if
-anything, slightly less aggressive rather than more.
+`Refutation not found, non-redundant clauses discarded` fell in both regimes (105 → 95
+under `-i`, 107 → 102 under `-t`) — a small independent sign the limits are now less
+aggressive rather than more.
 
-### The noise floor, measured rather than assumed
+**What remains open** is §5: the cap bought the instruction share, and left behind a node
+that is 6x more memory-bound than it was.
 
-The concern with `-t` under 64-way concurrency is that contention adds variance a
-`-i` sweep does not have. The control group above measures it directly: 2 511
-time-limited runs where 11142 already spent <2% of its wall clock on maintenance, so the
-change is a provable no-op and every difference is machine noise.
+> Toolkit bug found here, now fixed: `RE_TERM` in `common.py` excluded the hyphen, so
+> `Refutation not found, non-redundant clauses discarded` never matched and 95 runs
+> recorded an empty termination — precisely the category worth watching when changing
+> LRS, invisible in every earlier analysis.
 
-```
-activations  11156/11142:  p5 0.855   p25 0.989   median 0.999   p75 1.007   p95 1.069
-instructions 11156/11142:  p5 0.967               median 0.998              p95 1.049
-                           within +-2%: 69.5%     within +-5%: 83.6%
-```
+## 14. The instrumentation (11156 → 11165)
 
-Centred on 1.000 with no bias, ±5% covering five runs in six, and a p5/p95 spread of
-about ±7–15%. So a per-problem difference under `-t` needs to clear roughly 5% before it
-means anything, and the 60 s budget itself is reproducible to a few percent — but a
-corpus-level effect of +8.8% instructions, or a 4:1 gained/lost ratio concentrated in a
-predicted subgroup, is comfortably outside it.
+Four commits closing the blind spots the 11156 analysis kept running into.
+`vampire_z3_rel_martin-tstat_11165`, same corpus and setup, 1 080 535 flat nodes against
+11156's 902 771.
 
-### What the two regimes are each good for
-
-The regimes are not comparable and should not be compared directly: a budget-bound run
-is 60 s / 355 G instructions under `-t 60` against 17 s / 105 G under `-i 100K`, so the
-time-limited sweep gives every run 3.4x more work. Shares of fixed costs move
-accordingly — `parsing` reads 1.23% of the corpus under `-i` and 0.45% under `-t`, and
-that is arithmetic, not a change in parsing.
-
-What each regime is *for*:
-
-- **`-i` measures search.** Work done is fixed by construction, so two builds are
-  compared at identical effort and the only nondeterminism is the residual ~0.005%.
-  It is the right tool for anything that changes *which* inferences happen.
-- **`-t` measures cost.** It is the only regime in which memory-boundedness is
-  chargeable: under `-i`, a cache miss is free. The §6 `t/i` skew stops being an
-  observation and becomes the budget. Ranking the nodes by how much *more* wall budget
-  they take than their instruction count would predict:
-
-| node | %time | %instr | gap | ps/instr |
-|---|---:|---:|---:|---:|
-| `LRS limit maintenance` | 2.78 | 0.35 | **+2.43** | 1220 |
-| `SAT solver` | 5.96 | 3.74 | **+2.22** | 245 |
-| `resolution` | 21.15 | 20.31 | +0.84 | 160 |
-| `perform superposition` | 14.65 | 13.87 | +0.78 | 162 |
-| `backward superposition index maintenance` | 0.69 | 0.30 | +0.39 | 351 |
-| `passive container maintenance` | 0.57 | 0.23 | +0.34 | 386 |
-| … | | | | |
-| `immediate simplification` | 4.63 | 7.03 | −2.40 | 101 |
-| `superposition` | 17.29 | 20.79 | −3.51 | 128 |
-
-With LRS capped, **`SAT solver` is now the largest node that costs more clock than it
-costs instructions** — 5.96% of wall time against 3.74% of instructions, at 245
-ps/instr. An instruction-limited sweep under-ranks it by a third, every time. Worth
-remembering when §10's shortlist is worked through: the memory-bound index trio (d)
-keeps its 2.1–2.5x skew here too, so that finding is regime-independent.
-
-Nothing else in the corpus ranking moves in a way that is not explained by the 3.4x
-longer runs. No new outliers, no crashes, no suspicious families.
-
----
-
-## 12. What the new instrumentation revealed (11165)
-
-`vampire_z3_rel_martin-tstat_11165 -i 100000 -tstat on`, same corpus and machine setup,
-now with the four instrumentation commits in place. **26 265 usable runs**, the same 239
-rejects, selftest clean, 1 080 535 flat nodes against 11156's 902 771. **This sweep
-replaces 11156 as the standing reference** — `tstat.db` and `LOGDIR` point at it.
-
-### The blind spots closed, as predicted
-
-Unattributed *self* instructions in each container, 11156 → 11165:
+**The blind spots closed, as predicted.** Unattributed *self* instructions per container:
 
 | container | 11156 self | 11165 self |
 |---|---:|---:|
@@ -742,163 +531,56 @@ Unattributed *self* instructions in each container, 11156 → 11165:
 | `preprocessing` | 4.0 T (0.30%) | 0.5 T (0.04%) |
 | `run` | 32.2 T (2.41%) | 32.1 T (2.41%) — untouched, as intended |
 
-and it went exactly where the diagnosis said it would: `codetree forward subsumption`
-242.1 T, `beta eta simplification` 32.4 T, `boolean simplification` 14.1 T,
-`eager clausification` 2.4 T, `preprocess 3` 1.6 T, `function definition elimination`
-1.2 T, `FOOL elimination` 0.6 T.
+and it went where the diagnosis said: `codetree forward subsumption` 242.1 T,
+`beta eta simplification` 32.4 T, `boolean simplification` 14.1 T, `eager clausification`
+2.4 T, `preprocess 3` 1.6 T, `function definition elimination` 1.2 T, `FOOL elimination`
+0.6 T. The old `forward subsumption` node appears in **0 of 26 265 runs**, confirming
+that `-cts on` is what the corpus actually exercises.
 
-The old `forward subsumption` node still appears in **0 of 26 265 runs**, confirming
-that `-cts` on is what the corpus actually exercises.
+**The instrumentation is free.** On the 11 508 runs budget-bound in both sweeps,
+activations are a median 0.9996 of 11156's (mean 1.0002, p10 0.980, p90 1.017) — the
+added scopes cost **0.04%** of the work done, against the 0.2% predicted from the
+per-scope arithmetic. Solved counts move +4 / −1, zero soundness contradictions.
 
-### The instrumentation is free
-
-On the 11 508 runs budget-bound in both sweeps — an equal-instruction comparison —
-activations are a median **0.9996** of 11156's, mean 1.0002, p10 0.980, p90 1.017. So
-the added scopes cost **0.04%** of the work done, against the 0.2% predicted from the
-per-scope arithmetic. Solved counts move +4 UNS and −1 SAT, **zero soundness
-contradictions**: noise, as it should be.
-
-### Finding: forward subsumption is the second-largest node in the prover
-
-| node | % of corpus instructions | ps/instr |
-|---|---:|---:|
-| `resolution` | 20.92 | 164 |
-| **`codetree forward subsumption`** | **18.06** | 162 |
-| `superposition` | 16.78 | 132 |
-| `perform superposition` | 14.16 | 172 |
-| `SAT solver` | 4.96 | 221 |
-| `forward demodulation` | 3.45 | 150 |
-| `beta eta simplification` | 2.38 | 95 |
-
-**Roughly one instruction in five of everything Vampire does is forward subsumption**,
-and until now none of it was visible. It costs **35 106 instructions per call** over
-6.90 G calls — twice `forward demodulation`'s 17 318, at 2.6x the call count. At
-162 ps/instr it is compute-bound, not memory-bound, so unlike §1 this is not a
-cache-behaviour problem: it is simply a lot of work.
-
-It is also concentrated, not just large: **5 044 runs (20% of the corpus) spend more
-than 30% of their instructions in it**, median 13.68% of a run, p90 45.02%.
-
-The tail is where it gets strange, because the per-call cost varies by four orders of
-magnitude:
-
-| problem | share of run | calls | instructions per call |
-|---|---:|---:|---:|
-| `GRA124-1.p` (CNF) | 99.82% | 621 | 168 591 959 |
-| `GRA124+1.p` (FOF) | 99.82% | 621 | 168 595 110 |
-| `GRA071^2.p` (TH0) | 99.82% | 38 | **2 754 813 068** |
-| `GRA073^2.p` (TH0) | 99.81% | 38 | 2 754 834 378 |
-| `GRA144-1.p` (CNF) | 99.81% | 611 | 171 334 186 |
-| `SYN307-1.p` (CNF) | 99.79% | 3 677 | 28 463 726 |
-
-A *single* forward subsumption check costing 2.75 **billion** instructions is not a
-tuning matter. The GRA family (graph theory) dominates and appears in all three of CNF,
-FOF and TH0 at nearly identical cost, which points at the problem shape rather than the
-dialect. This is the clearest new target in the file, and it displaces §10's shortlist:
-it is bigger than everything on it put together.
-
-### Finding: the HOL black box was `BetaEtaSimplify`
-
-§10a could see that `immediate simplification` ate whole higher-order runs but not which
-rule. It is **`BetaEtaSimplify`**: 2.38% of the entire corpus from only **4 796 runs**,
-286 of them above 30% of their own run.
-
-| problem | share of run | calls |
-|---|---:|---:|
-| `SYN007^4.014.p` | 99.97% | **1** |
-| `LCL931^1.p` | 98.66% | 33 |
-| `LCL938^1.p` | 98.40% | 38 |
-| `LCL932^1.p` | 98.37% | 33 |
-| `NUM643^4.p` | 97.53% | 10 |
-
-One beta-eta normalisation consuming a 104.8 G budget is bug-shaped, exactly as §10a
-suspected. `BoolSimp` is the same story one order down (1.06% of corpus from 4 557 runs,
-62 above 30%). Both are `Inferences/HOL/`, both are immediate simplifications, and
-neither could be named before this sweep.
-
-### What is still unattributed
-
-Nothing above 2.5% now. The largest remaining self nodes are the inference rules
-themselves — `resolution` 95.4% self, `perform superposition` 94.8%, `SAT solver` 100%
-— which is expected and correct: those are leaves, not containers. `run` at 2.41% (the
-saturation loop's own bookkeeping) is the only container of any size left, and
-`superposition` at 50.6% self is the one place where a further split might still pay.
+**What it revealed** is now §1 (forward subsumption was the second-largest node in the
+prover and entirely invisible) and §3 (the HOL black box was `BetaEtaSimplify`). Both
+displaced the shortlist that existed before them.
 
 > Toolkit fix this sweep forced. `KNOWN_NODES` in `common.py` was a hand-kept list, and
 > an unrecognised name rejects the *whole run* — so the 18 new node names caused
 > **26 211 of 26 504 runs to be thrown away** on first ingest. It is now derived by
 > scanning the source tree for `TIME_TRACE` literals and `TimeTrace::` constants
-> (~0.4 s, 158 names), which cannot drift; and the rejection reason now names the
-> offending node, so the next such surprise is a one-line diagnosis rather than a hunt.
+> (~0.4 s, 158 names), which cannot drift; and the rejection reason names the offending
+> node, so the next such surprise is a one-line diagnosis rather than a hunt.
 
-## 13. The 11233 sweep: the rebase onto master is sound, and master has a HOL defect
+## 15. The rebase onto master, and a HOL defect it exposed (11233 → 11235)
 
-`vampire_z3_rel_martin-tstat_11233` is the branch rebased onto master `1254bdc09`, taken
-with the same configuration as every other `-i 100000` sweep. It was run to confirm three
-things after the rebase, not to discover anything: that master's changes integrate, that
-the `rdpmc` rewrite still reads the instruction counter as before, and that the
-instrumentation still covers what it covered. Two of the three came back clean; the third
-found a defect in master.
+11233 was taken to confirm three things after rebasing onto master `1254bdc09`, not to
+discover anything. Two came back clean; the third found a defect in master.
 
-### a. Instructions are read exactly as before
+**a. Instructions are read exactly as before.** The `rdpmc` inline `__asm__` was replaced
+by `__builtin_ia32_rdpmc` when `Lib/PerfInstructions.hpp` was merged (`a606f3e9f`). The
+ratio of the two independent readings of the same counter is 1.048 58 at median and p05
+in both sweeps, identical to five decimals; instruction-limited runs stop in the same
+place to 0.0004%.
 
-The `rdpmc` inline-`__asm__` was replaced by `__builtin_ia32_rdpmc` when
-`Lib/PerfInstructions.hpp` was merged (`a606f3e9f`), so the counter path is the thing most
-worth re-checking. Two independent readings of the same hardware counter exist in every
-run — `TIME_TRACE`'s `rdpmc` total at `[root]`, and the timer thread's `Instructions
-burned` — and their ratio is the sharpest available test, because it cancels out every
-difference in what the prover actually did:
+**b. The profile is unchanged where it should be.** 63 node names in each, none unique to
+either; corpus cost 1 136.63 T against 1 134.86 T over the 22 957 runs clean in both;
+every top node within ±2% except `forward demodulation` at −5.3%.
 
-| sweep | n | median | p05 | p95 |
-|---|---:|---:|---:|---:|
-| 11165 (inline `__asm__`) | 18 368 | 1.048 58 | 1.048 58 | 1.050 96 |
-| 11233 (`__builtin_ia32_rdpmc`) | 15 880 | 1.048 58 | 1.048 58 | 1.051 10 |
+**c. Master aborted on essentially all higher-order input.** **3 316 runs produced a
+53-byte log reading `Not implemented at Kernel/FormulaTransformer.cpp:113` and nothing
+else.** TH0 refutations fell 1 951 → 824, TH1 290 → 82.
 
-Identical to five decimals, and that constant is 2²⁰/10⁶ — the mebi-labelled-as-mega quirk
-noted in `NEXT.md`, not an error in either reading. The instruction-limited runs also stop
-in the same place (min 104 857 659 463 against 104 858 064 641, 0.0004% apart). The
-builtin and the hand-written `rdpmc` are the same instruction, as expected.
-
-### b. The profile is unchanged where it should be
-
-63 node names appear in each sweep and **none is unique to either**, so nothing master
-added fires on the default path and nothing of ours stopped firing. Over the 22 957 runs
-clean in both, corpus cost is 1 136.63 T against 1 134.86 T instructions (0.16%), and the
-top of the profile moves by less than the noise:
-
-| node | 11165 (T) | 11233 (T) | Δ |
-|---|---:|---:|---:|
-| `main loop` | 1 111.90 | 1 109.95 | −0.2% |
-| `activation` | 662.42 | 664.90 | +0.4% |
-| `clause generation` | 641.83 | 644.11 | +0.4% |
-| `superposition` | 339.10 | 339.92 | +0.2% |
-| `resolution` | 292.44 | 293.74 | +0.4% |
-| `forward simplification` | 271.81 | 265.76 | −2.2% |
-| `codetree forward subsumption` | 209.55 | 205.68 | −1.8% |
-| `forward demodulation` | 44.21 | 41.85 | −5.3% |
-
-`codetree forward subsumption` stays the largest node below `activation`, so §12's
-conclusion and the ranking it implies survive the rebase intact.
-
-### c. Master `1254bdc09` aborts on essentially all higher-order input
-
-**3 316 runs produce a 53-byte log reading `Not implemented at
-Kernel/FormulaTransformer.cpp:113` and nothing else.** TH0 refutations fall 1 951 → 824,
-TH1 290 → 82; 3 308 problems clean in 11165 are unusable in 11233 and none the other way.
-
-The step is `distinct group expansion`, which our instrumentation happens to name but did
-not change (the commit adds a `TIME_TRACE` and braces around the existing call, nothing
-else). `Shell/DistinctGroupExpansion.cpp`'s `DistinctExpander::applyLiteral` descends into
-a literal's arguments to find `$distinct` hidden inside FOOL terms, guarded by
-`if(!lit->shared())` as a proxy for "holds a special term". In higher-order logic a literal
-containing a lambda is *also* unshared, so HOL terms enter the descent, reach
-`FormulaTransformer::apply(TermList)`, and hit `case SpecialFunctor::LAMBDA:
-NOT_IMPLEMENTED`. Two changes combine: `c7032a41b` removed the
-`if(env.signature->hasDistinctGroups())` guard from `Shell/Preprocess.cpp` (correctly — a
-`$distinct` marker can exist with no group yet), so the pass now runs on every problem;
-`3d8a07043` added the FOOL descent. Both are in PR #936.
-
-Four lines reproduce it, with no `$distinct` anywhere:
+`Shell/DistinctGroupExpansion.cpp`'s `DistinctExpander::applyLiteral` descends into a
+literal's arguments to find `$distinct` hidden inside FOOL terms, guarded by
+`if(!lit->shared())` as a proxy for "holds a special term". In higher-order logic a
+literal containing a lambda is *also* unshared, so HOL terms enter the descent, reach
+`FormulaTransformer::apply(TermList)` and hit `case SpecialFunctor::LAMBDA:
+NOT_IMPLEMENTED`. Two changes in PR #936 combine: `c7032a41b` removed the
+`hasDistinctGroups()` guard from `Shell/Preprocess.cpp` (correctly — a `$distinct` marker
+can exist with no group yet), so the pass now runs on every problem; `3d8a07043` added
+the FOOL descent. Four lines reproduce it, with no `$distinct` anywhere:
 
 ```tptp
 thf(p_decl, type, p: ($i > $o) > $o).
@@ -907,59 +589,179 @@ thf(ax, axiom, (p @ (^[X: $i]: (q @ X)))).
 thf(co, conjecture, (?[F: $i > $o]: (p @ F))).
 ```
 
-`vampire_z3_rel_master_11175` (`719d180e2`, before PR #936) proves it; a build of
-`1254bdc09` prints `Not implemented`. Verified against a clean master build, not merely
-against our branch, so the attribution is not an inference.
+Verified against a clean build of `1254bdc09`, not merely against our branch, so the
+attribution is not an inference. **Fixed** by "Do not run DistinctGroupExpansion on
+higher-order problems": the pass is skipped for higher-order input, and a higher-order
+problem that does carry a distinct group — a distinct object still parses in thf, in an
+equality and in a type declaration — is rejected rather than silently losing the
+disequalities it asserted.
 
-Until this is fixed, **11165 is the reference for anything higher-order** and 11233 for
-everything else; §10a in particular cannot be re-measured on 11233.
+`checks/sanity` could not have caught this: its one end-to-end higher-order entry,
+`hol/hol1.p`, has a higher-order *variable* but no lambda, and every other thf entry
+stops at `--mode output`, before preprocessing runs. The same commit adds `hol/hol2.p`
+(the reproducer) and `hol/hol-distinct-object.p` (the rejected case).
 
-**Fixed on this branch** by "Do not run DistinctGroupExpansion on higher-order problems",
-cherry-picked from `martin-distinct-skip-hol` (proposed to master separately). The pass is
-skipped for higher-order input, and a higher-order problem that does carry a distinct
-group — a distinct object still parses in thf, in an equality and in a type declaration —
-is rejected rather than silently losing the disequalities it asserted.
+**d. 11235 confirmed the fix at corpus scale.** 26 273 clean runs against 11165's 26 265,
+the only rejections the 231 pre-existing user errors; TH0 refutations 1 949, TH1 290 —
+back to 11165 levels. 13 818 solved against 11165's 13 814, zero soundness
+contradictions, the same 63 node names, the `rdpmc` cross-check unchanged. The new
+`USER_ERROR` fires **0 times** in TPTP, as predicted.
 
-`checks/sanity` could not have caught this. Its one end-to-end higher-order entry,
-`hol/hol1.p`, has a higher-order *variable* but no lambda, so nothing unshared carrying a
-special term reaches preprocessing; every other thf entry stops at `--mode output`, before
-preprocessing runs. The same commit adds `hol/hol2.p` (the reproducer above) and
-`hol/hol-distinct-object.p` (the rejected case).
+`distinct group expansion` became an **always-on** preprocessing step in the process:
+21 393 of 26 273 runs against 247 in 11165. Cheap — 47.48 G instructions, 0.0036% of
+corpus, worst single run 0.678% of itself — but a new entry on every first-order path.
+The 4 880 runs without it are exactly the higher-order ones, which is the skip being
+visible in the profile. Two benign residues: 54 non-HOL runs lack it because they burned
+the whole budget in parsing and never reached preprocessing (the `CSR*+6` / `HWV13x-1`
+family of §2); and 13 `^`-named problems do have it, being first-order in practice.
 
-### d. 11235 confirms the fix at corpus scale, and is the new reference
+## 16. The cheaper `Property::scan` (11235 → 11279)
 
-Same configuration, built from `99bd2dbff` (the fix cherry-picked onto this branch).
+`vampire_z3_rel_..._11279` (`248fb8b61`), same corpus and setup, master's "cheaper scan"
+work in place: ~50 commits removing `Signature::Symbol::usageCnt`, walking the term DAG
+rather than the tree it unfolds to, short-circuiting `GoalGuessing`, and rewriting how
+`SortHelper` computes an application's sorts. 26 273 clean runs, the same 231 user
+errors, selftest clean.
 
-**The hole is gone.** 26 273 clean runs against 11165's 26 265 and 11233's 22 957, and the
-**only** rejections are the 231 pre-existing Vampire user errors — zero runs lost to
-interleaved output, where 11165 lost 8. Higher-order counts are back to where they were:
+**The finding it answers.** On every sweep up to 11235, `property evaluation` was 0.81%
+of corpus but consumed whole runs: the `NUM76x–NUM79x^4` family at 67–89% of a full
+104.9 G budget, 2–4 scans each, all of them then hitting the instruction limit with
+saturation nowhere. `Property::scan(Literal*)` called `SortHelper::getArgSort` once per
+argument, and each call built a fresh `Substitution` binding *every* type argument before
+applying it to the one argument asked for — so scanning a term of arity n cost n
+substitution builds instead of one. In HOL every `@` is polymorphic, so that was the
+whole traversal.
 
-| | 11165 | 11233 | 11235 |
+**The win, corpus-wide.** The scan's own node falls 84%, and the symbol counting it used
+to do on the side reappears as a new `symbol counts` node (`Kernel/SymbolUsage.cpp`, one
+call per run, at the `PrecedenceOrdering` construction rather than inside preprocessing):
+
+| | 11235 | 11279 |
+|---|---:|---:|
+| `property evaluation` | 10.74 T (0.806%) | 1.72 T (0.130%) |
+| `symbol counts` | — | 0.58 T (0.044%) |
+| **together** | **10.74 T (0.806%)** | **2.30 T (0.173%)** — **−78.6%** |
+
+**The win on the outliers, honestly stated.** The scan itself is ~2 000x cheaper on the
+NUM family, but the work did not vanish — it moved into the single cheap counting pass,
+which on exactly these problems is the expensive part. Counting both nodes:
+
+| problem | 11235 | 11279 | factor |
 |---|---:|---:|---:|
-| TH0 `Refutation` | 1 951 | 824 | 1 949 |
-| TH0 `Instruction limit` | 1 793 | 453 | 1 797 |
-| TH1 `Refutation` | 290 | 82 | 290 |
-| TH1 `Instruction limit` | 556 | 91 | 564 |
+| `NUM795^4.p` | 88.90% of run | 7.20% | **12.4x** |
+| `NUM796^4.p` | 88.78% | 7.29% | 12.2x |
+| `NUM793^4.p` | 73.97% | 5.98% | 12.4x |
+| `NUM789^4.p` | 67.18% | 5.43% | 12.4x |
 
-**Nothing else moved.** 13 818 problems solved against 11165's 13 814 (27 lost, 31 gained,
-the usual churn), **zero soundness contradictions** between the two sweeps, the same 63
-node names with none unique to either, and 1 332.13 T against 1 333.77 T instructions over
-the 26 265 runs clean in both. The `rdpmc` cross-check of §13a is unchanged at 1.048 58.
-Every top node is within ±2% except `forward demodulation` at −5.3%, which moved by the
-same amount in 11233 — so it is a real effect of master's 67 commits, not noise, and
-plausibly the code-tree generalisation default.
+A 12x reduction on the worst family in the corpus, uniform across it. `symbol counts` is
+now their largest pre-saturation cost at ~7% of the run, which is a real but much smaller
+target than what it replaced.
 
-**The new `USER_ERROR` fires nowhere in TPTP**, as predicted: 0 runs. The 222 "higher-order"
-user errors in the sweep are the pre-existing theory-reasoning message.
+**The larger win was somewhere else, and was not the stated goal.** Two of the commits
+landed in `Kernel/SortHelper.cpp` — `463490415` "Read an application's sorts off the term
+instead of substituting" and `52b51a1ab` "Instantiate declared sorts by indexing the
+term, not through a map" — and `getResultSort` has callers far beyond `Property::scan`.
+Three nodes got systematically cheaper **per call**, in 86–99.8% of runs, across every
+dialect:
 
-**`distinct group expansion` is now an always-on preprocessing step**, which is worth
-recording since it did not used to be: it runs in 21 393 of 26 273 clean runs against 247
-in 11165, master having replaced the `hasDistinctGroups()` guard with an unconditional
-call. It is cheap — 47.48 G instructions, **0.0036% of corpus**, worst single run 0.678%
-of itself — so it needs no action, but it is a new entry on every first-order path.
+| node | calls | instructions/call | per-run median ratio |
+|---|---:|---:|---:|
+| `boolean simplification` | +14.6% | 63 800 → 24 127 (**−62.2%**) | 0.355 |
+| `term sharing` | +3.2% | 682 → 466 (**−31.7%**) | 0.668 |
+| `forward demodulation` | +4.2% | 15 993 → 13 484 (**−15.7%**) | 0.771 |
 
-The 4 880 runs without the node are exactly the higher-order ones, which is the skip being
-visible in the profile. Two residues, both benign: 54 non-HOL runs lack it because they
-burned the whole 100 Gi budget *in parsing* and never reached preprocessing (the `CSR*+6` /
-`HWV13x-1` family of §10c, 2 nodes each); and 13 `^`-named problems do have it, being
-first-order in practice, so `isHigherOrder()` is correctly false for them.
+That is 7.9 T + 4.8 T + 5.3 T = **18 T recovered, twice what the scan itself gave back**.
+`boolean simplification` calls `SortHelper::getResultSort` on every non-variable subterm
+of every literal, so it was paying the §16 cost per subterm and now is not; that it is
+also the node most helped is the cleanest confirmation of the mechanism.
+
+**A caveat on `forward demodulation`, and on the churn.** `8d47d9b9f` ("Build the
+ordering's frequencies from the clauses, not from the signature") changes *what* the
+default `sp=frequency` precedence is on any problem whose cached `Property` had gone
+stale — its own message calls this out as sweep-worthy. So 11235 → 11279 is **not** a
+pure same-search-cheaper-code comparison for the ordering-dependent nodes, and part of
+`forward demodulation`'s −15.7% is a different search rather than faster code. The sweep
+is the answer to whether that was a good trade, and it is:
+
+**No regression anywhere.** 105 problems gained, 47 lost, **net +58** (13 928 → 13 986),
+**zero soundness contradictions**, no node name lost. The gains are led by **CSR (29)**,
+the SUMO/Cyc family with the largest signatures in TPTP — which is where a cheaper
+signature scan should show up, and a mechanistic confirmation rather than a coincidence.
+By dialect: FOF 53, CNF 21, TH0 12, TF0 7, TH1 7. Losses are unconcentrated (NUM 6, SET 6,
+ITP 3, then twos).
+
+**Where the freed budget went.** Under `-i`, a saving does not reduce the corpus total —
+it buys more saturation. Corpus self-instructions fall only 0.41% (1 332.8 T → 1 327.3 T,
+and that is the newly-solved problems finishing early), while the inference nodes rise at
+**flat per-call cost**, which is exactly the signature of "same code, run more":
+
+```
+superposition            +8.68 T  (+3.8%, instr/call +0.4%)
+resolution               +5.47 T  (+2.0%, instr/call −0.1%)
+beta eta simplification  +4.77 T  (+14.6%, instr/call +0.1%)
+SAT solver               +2.12 T  (+3.2%)
+```
+
+**Nothing else changed.** One new node name (`symbol counts`); no node disappeared. The
+rebase checks of §15a hold: the `rdpmc` cross-check is unmoved.
+
+**Not detectable here: LRS.** Master gained the maintenance cap through this branch, so
+from master's point of view the LRS estimate is new — but both 11235 and 11279 already
+contain it (`6e275ba98` … `d3f57446a` are ancestors of both), and no commit between the
+two sweeps touches `Saturation/LRS.cpp`. §13 remains the measurement of that change; §5
+records that its share has been stable at 0.95–0.98% across all three sweeps since.
+
+## 17. The instruction-limit reporting race — fixed, and verified fixed
+
+In the 11131 sweep `Lib/Timer.cpp:limitReached()` ran on the *timer thread* and printed
+the time trace while the main thread was still proving and mutating it. **2 450 logs**
+(~1 in 5 instruction-limited runs) died with `Aborted by signal`, and the abort always
+landed inside the trace output.
+
+Fixed on `martin-tstat` by freezing the trace rather than stopping the thread:
+`TimeTrace::_enabled` is atomic and `limitReached()` clears it (plus a 1 ms settle)
+before reporting; `ScopedTimer` remembers whether it pushed, so a frozen trace is never
+written to again even by already-open scopes; `printPrettyRec` orders a local
+`vector<Node*>` instead of sorting the live child list; and the whole subsystem uses
+`std::vector` and the system allocator, so the timer thread never enters the prover's
+unsynchronised pool. `limitReached` also flushes `std::cout`, which `std::_Exit` does not.
+
+| | 11131 | 11142 onwards |
+|---|---|---|
+| `Aborted by signal` | 2 450 | **0** |
+| logs rejected as mangled | 2 952 of 26 504 | **0** |
+| clean rate, every dialect x termination bucket | TH0 53%, TH1 27% at `-i` | **100.0% everywhere** |
+| flat vs tree counter drift under `-i` | 8% of rows, up to 1.7% | **0 of 431 645 rows** |
+
+That last row is the sharpest test: the two dumps are taken at different moments, so any
+mutation between them shows up as flat > tree. `./ingest.py --selftest` asserts exact
+agreement there and would catch a regression of the freeze.
+
+The old clean-rate bias also mattered for *what could be concluded*: TH0 at 53% and TH1
+at 27% meant no THF saturation claim was safe. That constraint is gone, which is what
+makes §3 possible.
+
+One more artifact retired in the same move: in 11131, `parsing` measured the server's NFS
+mount rather than the parser, and the whole node was written off. With TPTP on local disk
+the artifact is gone (`SET044+1.p`: 113 ms then, **212 µs** now) and what is left is real
+— §2. The old sublinear parsing exponents (b = 0.29–0.79) were the NFS floor, not a
+scaling property.
+
+## 18. Sweep index
+
+Eight sweeps exist. All are `-tstat on` over the same 26 504 TPTP problems, same machine,
+64 workers pinned one per physical core, ASLR off.
+
+| sweep | limit | database | what it is for |
+|---|---|---|---|
+| master-11131 | `-i 100000` | — | superseded; NFS-mounted TPTP, and the trace race of §17 |
+| 11142 | `-i 100000` | `tstat-11142.db` | the before-picture for §13 (uncapped LRS) |
+| 11156 | `-i 100000` | `tstat-11156.db` | LRS capped; the before-picture for §14 |
+| 11165 | `-i 100000` | `tstat-11165.db` | first instrumented sweep; the before-picture for §15 |
+| 11233 | `-i 100000` | `tstat-11233.db` | **superseded, do not use** — the §15c HOL defect loses 3 316 runs. Kept only as that section's evidence |
+| 11235 | `-i 100000` | `tstat-11235.db` | the before-picture for §16 |
+| **11279** | **`-i 100000`** | **`tstat.db`** | **the standing reference** |
+| 11142/11156 pair | `-t 60` | `tstat-t60s-*.db` | the only regime where memory-boundedness is chargeable; §12, §13 |
+
+Future `-i` sweeps stay on `-i 100000` so they remain comparable to this chain. Keep the
+`-t 60` pair for wall-clock questions and re-measure there rather than converting (§12).
