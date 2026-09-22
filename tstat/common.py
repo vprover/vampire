@@ -97,7 +97,23 @@ def _node_names_from_source():
     return frozenset(names)
 
 
-KNOWN_NODES = _node_names_from_source()
+# Names that the current source no longer emits but older sweeps still contain. Deriving
+# the whitelist from the source tree is what stopped it drifting, and the price is that a
+# name leaving the source makes every earlier sweep unreadable -- an unrecognised node
+# rejects the whole run.
+#
+# Empty, and meant to stay that way. The rule on the prover side is to add children and
+# never rename: a phase split keeps the old node as their parent, which costs one scope
+# and keeps the series comparable (see CodeTreeInterfaces.hpp's handleClause). What that
+# rule cannot cover is a node genuinely *deleted* along with the code that emitted it --
+# "forward subsumption" would be the candidate, dead in every sweep since -cts became the
+# default -- so the mechanism stays here for when that happens.
+#
+# An entry needs the sweep it was last seen in and what became of it, and is never
+# deleted afterwards: the database it protects is the evidence for a FINDINGS section.
+_RETIRED_NODES = frozenset()
+
+KNOWN_NODES = _node_names_from_source() | _RETIRED_NODES
 if len(KNOWN_NODES) < 40:
     raise RuntimeError(
         "only %d TIME_TRACE names found via %s -- is this the Vampire checkout?"
