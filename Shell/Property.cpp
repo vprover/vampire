@@ -576,7 +576,7 @@ void Property::scan(Literal* lit, int polarity)
     if (arity > _maxPredArity) {
       _maxPredArity = arity;
     }
-    Signature::Symbol* pred = env.signature->getPredicate(lit->functor());
+    const Signature::Symbol* pred = env.signature->getPredicate(lit->functor());
 
     OperatorType* type = pred->type();
     if(type->numTypeArguments()){
@@ -669,7 +669,7 @@ void Property::scan(TermList ts)
 
     scanForInterpreted(t);
 
-    Signature::Symbol* func = env.signature->getFunction(t->functor());
+    const Signature::Symbol* func = env.signature->getFunction(t->functor());
 
     // an application wants this twice, for the _hasBoolVar test just below and for the
     // scanSort at the end, and getResultSort is not cheap: it builds a Substitution and

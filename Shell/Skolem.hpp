@@ -21,6 +21,7 @@
 #include "Lib/Stack.hpp"
 
 #include "Kernel/Substitution.hpp"
+#include "Kernel/Signature.hpp"
 
 namespace Kernel {
   class Unit;
@@ -42,9 +43,9 @@ class Skolem
 {
 public:
   static FormulaUnit* skolemise(FormulaUnit*, bool appify = false);
-  static unsigned addSkolemFunction(unsigned taArity, TermStack domainSorts, TermList rangeSort, const char* suffix=0);
-  static unsigned addSkolemTypeCon(unsigned arity);
-  static unsigned addSkolemPredicate(unsigned taArity, TermStack domainSorts, const char* suffix=0);
+  static Signature::Symbol* addSkolemFunction(unsigned taArity, TermStack domainSorts, TermList rangeSort, const char* suffix=0);
+  static Signature::Symbol* addSkolemTypeCon(unsigned arity);
+  static Signature::Symbol* addSkolemPredicate(unsigned taArity, TermStack domainSorts, const char* suffix=0);
 private:
   /** Initialise a Skolem object */
   Skolem () :  _beingSkolemised(0) {}

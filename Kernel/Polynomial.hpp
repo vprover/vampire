@@ -120,7 +120,7 @@ public:
   auto iterTypeArgs() const 
   { return range(0, numTypeArguments()).map([&](auto i) { return typeArg(i); }); }
 
-  Signature::Symbol* symbol() const;
+  const Signature::Symbol* symbol() const;
 
   unsigned id() const;
   Theory::Interpretation interpretation() const;

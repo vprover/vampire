@@ -1481,7 +1481,7 @@ void TPTP::tff(bool tcf)
         resetToks();
         unsigned arity = getConstructorArity();
         bool added = false;
-        unsigned fun = env.signature->addTypeCon(nm, arity, added);
+        unsigned fun = env.signature->addTypeCon(nm, arity, added)->number();
         if (!added) {
           if(env.signature->getTypeCon(fun)->type() != OperatorType::getTypeConType(arity)){
             PARSE_ERROR_TOK("Type constructor declared with two different types",tok);
@@ -2592,8 +2592,8 @@ void TPTP::endLetTypes()
   bool isPredicate = type->isPredicateType();
 
   unsigned functor = isPredicate
-                  ? env.signature->addFreshPredicate(type, name.c_str())
-                  : env.signature->addFreshFunction(type, name.c_str());
+                  ? env.signature->addFreshPredicate(type, name.c_str())->number()
+                  : env.signature->addFreshFunction(type, name.c_str())->number();
 
   auto ivars = TermStack::fromIterator(iterTraits(iTypeVars.iterator())
     .map(unsignedToVarFn));
@@ -3465,7 +3465,7 @@ Formula* TPTP::createPredicateApplication(std::string name, unsigned arity)
       bool dummy;
       pred = addPredicate(name, arity, dummy, _termLists.top());
     } else {
-      pred = env.signature->addPredicate(name, OperatorType::getPredicateType({}, 0));
+      pred = env.signature->addPredicate(name, OperatorType::getPredicateType({}, 0))->number();
     }
   }
   if (pred == -1) { // equality
@@ -3614,7 +3614,7 @@ TermList TPTP::createTypeConApplication(std::string name, unsigned arity)
   ASS_GE(_termLists.size(), arity);
 
   bool added = false;
-  unsigned typeCon = env.signature->addTypeCon(name,arity,added);
+  unsigned typeCon = env.signature->addTypeCon(name,arity,added)->number();
   if(added)
     USER_ERROR("Undeclared type constructor ", name, "/", arity);
 
@@ -4119,7 +4119,8 @@ void TPTP::endFof()
 Unit* TPTP::processClaimFormula(Unit* unit, Formula * f, const std::string& nm)
 {
   bool added;
-  unsigned pred = env.signature->addPredicate(nm,OperatorType::getPredicateType(TermStack(), 0), added);
+  auto symbol = env.signature->addPredicate(nm, OperatorType::getPredicateType(TermStack(), 0), added)->markLabel();
+  unsigned pred = symbol->number();
   if (!added) {
     USER_ERROR("Names of claims must be unique: "+nm);
   }
@@ -4132,7 +4133,6 @@ Unit* TPTP::processClaimFormula(Unit* unit, Formula * f, const std::string& nm)
     // only clauses can have free variables at this point!
     ASS_EQ(freeVariables(f),VList::empty())
   }
-  env.signature->getPredicate(pred)->markLabel();
   Formula* claim = new AtomicFormula(Literal::create(pred, /* polarity */ true, {}));
   f = new BinaryFormula(IFF,claim,f);
   return new FormulaUnit(f,
@@ -4202,9 +4202,9 @@ void TPTP::endTff()
   bool isTypeCon = !isPredicate && (ot->result() == AtomicSort::superSort());
 
   bool added;
-  Signature::Symbol* symbol;
+  const Signature::Symbol* symbol;
   if (isPredicate) {
-    unsigned pred = env.signature->addPredicate(name, ot, added);
+    unsigned pred = env.signature->addPredicate(name, ot, added)->number();
     symbol = env.signature->getPredicate(pred);
     if (!added) {
       // GR: Multiple identical type declarations for a symbol are allowed
@@ -4213,7 +4213,7 @@ void TPTP::endTff()
       }
     }
   } else if (isTypeCon){
-    unsigned typeCon = env.signature->addTypeCon(name, arity, added);
+    unsigned typeCon = env.signature->addTypeCon(name, arity, added)->number();
     symbol = env.signature->getTypeCon(typeCon);
     if (!added) {
       // GR: Multiple identical type declarations for a symbol are allowed
@@ -4222,7 +4222,7 @@ void TPTP::endTff()
       }
     }
   } else {
-    unsigned fun = env.signature->addFunction(name, ot, added);
+    unsigned fun = env.signature->addFunction(name, ot, added)->number();
     symbol = env.signature->getFunction(fun);
     if (!added) {
       if(symbol->type() != ot){
@@ -5040,7 +5040,7 @@ unsigned TPTP::addFunction(std::string name,int arity,bool& added,TermList& arg)
     return env.signature->getPiSigmaProxy(name);
   }
   if (arity > 0) {
-    return env.signature->addFunction(name,OperatorType::getFunctionTypeUniformRange(arity, AtomicSort::defaultSort(), AtomicSort::defaultSort(), 0), added);
+    return env.signature->addFunction(name,OperatorType::getFunctionTypeUniformRange(arity, AtomicSort::defaultSort(), AtomicSort::defaultSort(), 0), added)->number();
   }
   return addUninterpretedConstant(name,added);
 } // addFunction
@@ -5108,7 +5108,7 @@ int TPTP::addPredicate(std::string name,int arity,bool& added,TermList& arg)
     // special case for distinct, dealt with in formulaInfix
     return -2;
   }
-  return env.signature->addPredicate(name, OperatorType::getPredicateTypeUniformRange(arity, AtomicSort::defaultSort()), added);
+  return env.signature->addPredicate(name, OperatorType::getPredicateTypeUniformRange(arity, AtomicSort::defaultSort()), added)->number();
 } // addPredicate
 
 
@@ -5213,7 +5213,7 @@ unsigned TPTP::addUninterpretedConstant(const std::string& name, bool& added)
   // constants in any input dialect (including FOF and SMT-LIB, which
   // additionally left `added` uninitialized on that path). It now happens
   // in createFunctionApplication()/addFunction(), only in THF mode.
-  return env.signature->addFunction(name,OperatorType::getConstantsType(AtomicSort::defaultSort(),0),added);
+  return env.signature->addFunction(name,OperatorType::getConstantsType(AtomicSort::defaultSort(),0),added)->number();
 } // TPTP::addUninterpretedConstant
 
 /**
@@ -5302,23 +5302,22 @@ void TPTP::vampire()
     if (!uncomputable) {
       env.colorUsed = true;
     }
-    unsigned f = pred
+    auto symbol = pred
       ? env.signature->addPredicate(symb, OperatorType::getPredicateTypeUniformRange(arity, AtomicSort::defaultSort()))
       : env.signature->addFunction(symb, OperatorType::getFunctionTypeUniformRange(arity, AtomicSort::defaultSort(), AtomicSort::defaultSort()));
-    Signature::Symbol* sym = pred ? env.signature->getPredicate(f) : env.signature->getFunction(f);
     if (skip) {
-      sym->markSkip();
+      symbol->markSkip();
     }
     else if (uncomputable) {
       if (env.options->questionAnswering() != Options::QuestionAnsweringMode::SYNTHESIS) {
         std::cout << "% WARNING: Found the :uncomputable option but synthesis is not enabled. Consider running with '-qa synthesis'." << endl;
       } else {
-        static_cast<Shell::SynthesisALManager*>(Shell::SynthesisALManager::getInstance())->addDeclaredSymbolAnnotatedAsUncomputable(std::make_pair(f, pred));
+        static_cast<Shell::SynthesisALManager*>(Shell::SynthesisALManager::getInstance())->addDeclaredSymbolAnnotatedAsUncomputable(std::make_pair(symbol->number(), pred));
       }
     }
     else {
       ASS_NEQ(color, COLOR_INVALID);
-      sym->addColor(color);
+      symbol->addColor(color);
     }
   }
   else if (nm == "left_formula") { // e.g. vampire(left_formula)

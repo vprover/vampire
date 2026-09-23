@@ -94,7 +94,7 @@ struct NegExtResultFn
     SortHelper::normaliseSort(typeVars, resultSort);
 
     auto skSymSort = AtomicSort::arrowSort(termVarSorts, resultSort);
-    auto fun = Skolem::addSkolemFunction(typeVars.size(), TermStack(), skSymSort);
+    auto fun = Skolem::addSkolemFunction(typeVars.size(), TermStack(), skSymSort)->number();
     auto head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
     auto skolemTerm = HOL::create::app(head, termVars);
 

@@ -43,11 +43,11 @@ using namespace Lib;
  * one when they actually compute with it. These helpers give read-only access to
  * the stored value instead, and test against 0/1/-1 without building a numeral.
  */
-static inline IntegerConstantType const* symConstPtr(Signature::Symbol* sym, IntegerConstantType*)
+static inline IntegerConstantType const* symConstPtr(const Signature::Symbol* sym, IntegerConstantType*)
 { return sym->integerConstant() ? &sym->integerValue() : nullptr; }
-static inline RationalConstantType const* symConstPtr(Signature::Symbol* sym, RationalConstantType*)
+static inline RationalConstantType const* symConstPtr(const Signature::Symbol* sym, RationalConstantType*)
 { return sym->rationalConstant() ? &sym->rationalValue() : nullptr; }
-static inline RealConstantType const* symConstPtr(Signature::Symbol* sym, RealConstantType*)
+static inline RealConstantType const* symConstPtr(const Signature::Symbol* sym, RealConstantType*)
 { return sym->realConstant() ? &sym->realValue() : nullptr; }
 
 /** the non-copying counterpart of Theory::tryInterpretConstant; nullptr if not a numeral */
@@ -1143,7 +1143,7 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit)
   }
   // so we have t1 a constant and t2 something that has an interpreted function at the top
 
-  Signature::Symbol* conSym = env.signature->getFunction(t1.term()->functor());
+  const Signature::Symbol* conSym = env.signature->getFunction(t1.term()->functor());
   TermList srt;
   if(conSym->integerConstant()) srt = AtomicSort::intSort();
   else if(conSym->rationalConstant()) srt = AtomicSort::rationalSort();
