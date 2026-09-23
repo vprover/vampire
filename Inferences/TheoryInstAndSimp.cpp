@@ -457,7 +457,7 @@ void TheoryInstAndSimp::ConstantCache::SortedConstantCache::reset()
 Term* TheoryInstAndSimp::ConstantCache::SortedConstantCache::freshConstant(const char* prefix, SortId sort) 
 { 
   if (_constants.size() == _used)  {
-    unsigned sym = env.signature->addFreshFunction(OperatorType::getConstantsType(sort), prefix);
+    unsigned sym = env.signature->addFreshFunction(OperatorType::getConstantsType(sort), prefix)->number();
     DEBUG("new constant for sort ", sort, ": ", *env.signature->getFunction(sym));
     _constants.push(Term::createConstant(sym));
   }
@@ -493,7 +493,7 @@ public:
     f(*this, Literal::createEquality(true, _introduced, definition, SortHelper::getResultSort(_introduced.term())));
   }
 
-  TermList buildGeneralTerm(Set<TermList> const& usedDefs, unsigned& freshVar)
+  TermList buildGeneralTerm(Set<TermList, TermListHash> const& usedDefs, unsigned& freshVar)
   {
     if (usedDefs.contains(_introduced)) {
       Stack<TermList> args(_args.size());
@@ -527,7 +527,7 @@ Option<Substitution> TheoryInstAndSimp::instantiateGeneralised(
     Stack<SATLiteral> theoryLits;
 
     _generalizationConstants.reset();
-    Map<SATLiteral, TermList> definitionLiterals;
+    Map<SATLiteral, TermList, SATLiteralHash> definitionLiterals;
     Stack<GeneralisationTree> gens;
     // unsigned freshVar = 0;
     for (auto v : skolem.vars) {
@@ -552,7 +552,7 @@ Option<Substitution> TheoryInstAndSimp::instantiateGeneralised(
     DEBUG_CODE(auto res =) _solver->solveUnderAssumptionsLimited(theoryLits, 0);
     ASS_EQ(res, Status::UNSATISFIABLE)
 
-    Set<TermList> usedDefs;
+    Set<TermList, TermListHash> usedDefs;
     for (auto& x : _solver->failedAssumptions()) {
       definitionLiterals
         .tryGet(x)

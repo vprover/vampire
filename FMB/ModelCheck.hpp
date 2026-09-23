@@ -23,6 +23,8 @@
 #include "Lib/Environment.hpp"
 #include "Lib/StringUtils.hpp"
 
+#include "Kernel/Formula.hpp"
+#include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Term.hpp"
 
@@ -106,13 +108,11 @@ static void doCheck(UnitList* units)
 
   std::cout << "Loading model..." << std::endl;
 
-  // $true and $false may occur in term position, in the model as well as in the units to check,
-  // and are then the two elements of the boolean domain -- so the model needs a table for them.
-  // The parser only ever builds them as special terms (see FiniteModelMultiSorted::deFool), so
-  // their usage goes uncounted; and they have to exist before the model sizes its tables.
-  for (unsigned i = 0; i < 2; i++) {
-    env.signature->getFunction(env.signature->getFoolConstantSymbol(i > 0))->incUsageCnt();
-  }
+  // Which symbols the model is about: the ones its own definitions mention. A symbol that
+  // only occurs in the formulas to be checked deliberately gets no table -- the model
+  // saying nothing about it is exactly the partiality evaluate() is to report.
+  DArray<bool> usedFunctions, usedPredicates;
+  collectModelSymbols(units,usedFunctions,usedPredicates);
 
   DArray<unsigned> sortSizesArray;
   // a sort the model file does not mention gets no domain (a well-formed model only
@@ -126,7 +126,7 @@ static void doCheck(UnitList* units)
     }
   }
   // TODO can we pass a reference here instead of clone()ing?
-  FiniteModelMultiSorted model(sortSizesArray.clone());
+  FiniteModelMultiSorted model(sortSizesArray.clone(),std::move(usedFunctions),std::move(usedPredicates));
 
   DomainConstantSet domainConstants; // union of all the perSort ones
   // a pure lookup, never enumerated, so hashing it by address is harmless here
@@ -227,6 +227,77 @@ static void doCheck(UnitList* units)
 }
 
 private:
+
+/**
+ * Mark every function and predicate the model definitions among @b units mention.
+ *
+ * Deliberately not a Property scan: symbol usage is no longer recorded on the signature,
+ * and the question here is narrower anyway -- which symbols this *model* speaks about,
+ * not which ones the whole file mentions.
+ *
+ * Model formulas are read as parsed, so they may contain unshared terms and FOOL special
+ * terms; hence no visited set (which would want Term::getId()) and an explicit descent
+ * into a formula sitting in term position.
+ */
+static void collectModelSymbols(UnitList* units, DArray<bool>& usedFunctions, DArray<bool>& usedPredicates)
+{
+  usedFunctions.init(env.signature->functions(),false);
+  usedPredicates.init(env.signature->predicates(),false);
+
+  // $true and $false may occur in term position, in the model as well as in the units to
+  // check, and are then the two elements of the boolean domain -- so the model needs a
+  // table for them. The parser only ever builds them as special terms (see
+  // FiniteModelMultiSorted::deFool), so walking the terms would not find them.
+  if (env.signature->foolConstantsDefined()) {
+    for (unsigned i = 0; i < 2; i++) {
+      usedFunctions[env.signature->getFoolConstantSymbol(i > 0)] = true;
+    }
+  }
+
+  Stack<TermList> todo;
+  auto collectTerm = [&usedFunctions,&todo](TermList tl) {
+    todo.push(tl);
+    while (todo.isNonEmpty()) {
+      TermList cur = todo.pop();
+      if (!cur.isTerm()) {
+        continue;
+      }
+      Term* t = cur.term();
+      if (t->isSort()) {
+        continue; // sorts are built from type constructors, not from function symbols
+      }
+      if (!t->isSpecial()) { // a special term's head is not a function symbol
+        usedFunctions[t->functor()] = true;
+      }
+      for (unsigned i = 0; i < t->arity(); i++) {
+        todo.push(*t->nthArgument(i));
+      }
+    }
+  };
+
+  UnitList::Iterator uit(units);
+  while (uit.hasNext()) {
+    Unit* u = uit.next();
+    if (u->inputType() != UnitInputType::MODEL_DEFINITION) continue;
+    if (u->isClause()) continue; // rejected later, with a message
+    SubformulaIterator sfit(u->getFormula());
+    while (sfit.hasNext()) {
+      Formula* sf = sfit.next();
+      if (sf->connective() == Connective::BOOL_TERM) {
+        collectTerm(sf->getBooleanTerm());
+        continue;
+      }
+      if (sf->connective() != Connective::LITERAL) continue;
+      Literal* lit = sf->literal();
+      if (!lit->isEquality()) { // equality is never tabulated
+        usedPredicates[lit->functor()] = true;
+      }
+      for (unsigned i = 0; i < lit->arity(); i++) {
+        collectTerm(*lit->nthArgument(i));
+      }
+    }
+  }
+}
 
 static void checkIsDomainLiteral(Literal* l, int& single_var, DomainConstantSet& domainConstants)
 {

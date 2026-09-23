@@ -461,10 +461,6 @@ void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause* c)
 {
   ASS(c->isPropositional());
 
-  if (env.options->showNewPropositional()) {
-    std::cout << "[SA] new propositional: " << c->toString() << std::endl;
-  }
-
   if (_consFinder) {
     _consFinder->onNewPropositionalClause(c);
   }
@@ -1118,12 +1114,11 @@ void SaturationAlgorithm::activate(Clause* cl)
     }
   }
 
-  {
-    TIME_TRACE("splitting")
-    if (_splitter && _opt.splitAtActivation()) {
-      if (_splitter->doSplitting(cl)) {
-        return removeSelected(cl);
-      }
+  if (_splitter && _opt.splitAtActivation()) {
+    // no TIME_TRACE here: Splitter::doSplitting traces itself, and nesting the same
+    // name inside itself would double-count it in the flattened profile
+    if (_splitter->doSplitting(cl)) {
+      return removeSelected(cl);
     }
   }
 
@@ -1201,10 +1196,10 @@ void SaturationAlgorithm::doUnprocessedLoop()
   do {
     newClausesToUnprocessed();
 
+    unsigned unprocessedPops = 0;
     while (!_unprocessed->isEmpty()) {
+      unprocessedPops++;
       Clause* c = _unprocessed->pop();
-      poppedFromUnprocessed(c); // tells LRS's it might make sense to update limits
-
       ASS(!isRefutation(c));
 
       if (forwardSimplify(c)) {
@@ -1219,6 +1214,8 @@ void SaturationAlgorithm::doUnprocessedLoop()
 
       newClausesToUnprocessed();
     }
+
+    afterUnprocessedLoop(unprocessedPops); // may trigger LRS estimate update
 
     ASS(clausesFlushed());
     onAllProcessed(); // in particular, Splitter has now recomputed model which may have triggered deletions and additions

@@ -17,8 +17,11 @@
 
 #include "Debug/Assertion.hpp"
 #include "Lib/Allocator.hpp"
+#include "Lib/ArrayMap.hpp"
+#include "Lib/DArray.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Random.hpp"
+#include "Lib/Recycled.hpp"
 #include "Lib/ScopedLet.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -449,7 +452,7 @@ void FunctionDefinition::checkDefinitions(Def* def0)
         } else {
           ASS_EQ(d->mark, Def::SAFE);
         }
-      }      
+      }
     }
     if(stack.isEmpty()) {
       break;
@@ -860,59 +863,88 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
     return 0;
   }
 
-  if (occurs(f,*rhs)) {
-    return 0;
+  // A necessary condition for lhs to be a definition head, checked before occurs()
+  // below because that one is a full walk of rhs while this looks only at lhs's own
+  // arguments. Note lhs->args() leads with the type arguments, which are sorts rather
+  // than variables, so a polymorphic or higher-order application dies on the first one.
+  // Vacuous when lhs->arity()==0, which is what lets it sit above the arity-0 block.
+  // While here, note the largest variable number, which bounds the map used below.
+  unsigned varBound = 0;
+  for (const TermList* ts = lhs->args(); ts->isNonEmpty(); ts=ts->next()) {
+    if (! ts->isVar()) {
+      return 0;
+    }
+    if (ts->var() >= varBound) {
+      varBound = ts->var() + 1;
+    }
   }
+
+  // An arity-0 lhs passes the loop above vacuously, so for a constant these are the first
+  // real tests -- and each is O(1) where occurs() below is a full walk of rhs. None of them
+  // depends on what occurs() would answer, so they belong above it. (Only the Def returned
+  // at the end of the block has to stay below: that is what occurs() actually guards, by
+  // ruling out f = t[f], which the rhs->functor() test catches only at the top of rhs.)
+  bool isArrowSort = false;
   if (!lhs->arity()) {
     if(env.signature->isFoolConstantSymbol(true , f) ||
        env.signature->isFoolConstantSymbol(false, f)){
       return 0;
     }
     //Higher-order often contains definitions of the form f = ^x^y...
-    auto isArrowSort = SortHelper::getResultSort(lhs).isArrowSort();
+    isArrowSort = SortHelper::getResultSort(lhs).isArrowSort();
     if (rhs->arity() && !isArrowSort) { // c = f(...)
       return 0;
     }
     if (rhs->functor() == f) {
       return 0;
     }
-    if(!isArrowSort){
-      return new Def(lhs,rhs,true,true);
-    }
+  }
+
+  if (occurs(f,*rhs)) {
+    return 0;
+  }
+  if (!lhs->arity() && !isArrowSort) {
+    return new Def(lhs,rhs,true,true);
   }
 
   int vars = 0; // counter of variables occurring in the lhs
 
-  // First, iterate subterms in lhs and check that all of them are variables
-  // and each of them occurs exactly once. counter will contain variables
-  // occurring in lhs
-  ZIArray<unsigned> counter;
+  // counter records, for each variable of lhs, whether rhs has met it yet: 1 = not yet,
+  // 2 = met once, and a second sighting means the definition is not linear. Keyed by
+  // variable number and bounded by varBound above, so a rhs variable at or past that bound
+  // cannot be one of lhs's and is rejected on the spot. Recycled because defines() is
+  // called twice per equational literal of every unit: the array is taken from a pool and
+  // reset in O(1) by a timestamp, rather than allocated and zeroed afresh each time.
+  Recycled<ArrayMap<unsigned>> counter;
+  counter->ensure(varBound);
+  counter->reset();
+
+  // Check that each of lhs's arguments occurs exactly once; that they are all variables
+  // is already known from the loop above.
   for (const TermList* ts = lhs->args(); ts->isNonEmpty(); ts=ts->next()) {
-    if (! ts->isVar()) {
+    ASS(ts->isVar());
+    unsigned w = ts->var();
+    if (counter->find(w)) { // more than one occurrence
       return 0;
     }
-    int w = ts->var();
-    if (counter[w]++) { // more than one occurrence
-      return 0;
-    }
+    counter->insert(w, 1);
     vars++;
   }
 
   bool linear = true;
   // now check that rhs contains only variables in the counter
-  // Iterate over variables in rhs and check that they
-  // are counted as 1 or 2.
-  // found will be increased by the number of different variables
-  // marked 1.
   TermVarIterator vs(rhs->args());
   while (vs.hasNext()) {
-    int v = vs.next();
-    switch (counter.get(v)) {
+    unsigned v = vs.next();
+    if (v >= varBound) { // cannot be one of lhs's variables
+      return 0;
+    }
+    switch (counter->get(v, 0u)) {
     case 0: // v does not occur in lhs
       return 0;
 
     case 1: // v occurs in lhs, it is first occurrence in rhs
-      counter[v]++;
+      counter->set(v, 2);
       vars--;
       break;
 
@@ -927,7 +959,7 @@ FunctionDefinition::defines (Term* lhs, Term* rhs)
   if(!lhs->arity() && !rhs->arity()){
     res->twoConstDef = true;
   }
-  
+
   return res;
 } // FunctionDefinition::defines
 

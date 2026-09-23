@@ -37,7 +37,7 @@ static Term *lgg(Term *left, Term *right) {
   // remaining parts of the term that should be created
   std::vector<IncompleteFunction> skeleton;
   // map from left-right pairs of subterms to their variables
-  DHMap<std::pair<TermList, TermList>, unsigned> substitution;
+  DHMap<std::pair<TermList, TermList>, unsigned, PairHash<TermListHash,TermListHash>, PairHash<TermListHash2,TermListHash2>> substitution;
 
   // fresh variable where necessary
   unsigned fresh = 0;
@@ -145,13 +145,13 @@ void DefinitionIntroduction<higherOrder>::introduceDefinitionFor(Term *t) {
   unsigned functor;
   if constexpr (higherOrder) {
     auto sort = AtomicSort::arrowSort(domain_sort_vector, sort_rename.apply(range_sort), /*fromTop=*/true);
-    functor = env.signature->addFreshFunction(OperatorType::getConstantsType(sort, type_arity), "sF");
+    functor = env.signature->addFreshFunction(OperatorType::getConstantsType(sort, type_arity), "sF")->number();
   } else {
     functor = env.signature->addFreshFunction(OperatorType::getFunctionType(
       domain_sort_vector,
       sort_rename.apply(range_sort),
       type_arity
-    ), "sF");
+    ), "sF")->number();
   }
   Term *def;
   if constexpr (higherOrder) {

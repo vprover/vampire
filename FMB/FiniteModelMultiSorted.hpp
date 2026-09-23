@@ -69,27 +69,48 @@ class FiniteModelMultiSorted {
   // step of restoreEliminatedDefinitions is 1 and a read as of 1 sees exactly model_0
   Timestamp _now = MODEL_ZERO+1;
 
+  // Which symbols the model is given an explicit table for; see the constructor. An index
+  // past the end means "not used", which is the truthful answer for a symbol introduced
+  // after these were collected (cf. Kernel::collectUsedSymbols).
+  DArray<bool> _usedFunctions;
+  DArray<bool> _usedPredicates;
+
+  bool funUsed(unsigned f) const { return f < _usedFunctions.size() && _usedFunctions[f]; }
+  bool predUsed(unsigned p) const { return p < _usedPredicates.size() && _usedPredicates[p]; }
+
   // the base explicit table of a symbol, or nullptr if it does not have one
   TableFunLayer* funTable(unsigned f) const;
   TablePredLayer* predTable(unsigned p) const;
 
-  bool funRepresented(unsigned f) const { return funTable(f) != nullptr; }
-  bool predRepresented(unsigned p) const { return predTable(p) != nullptr; }
-
   void deleteAllLayers();
 
   // uses _sizes to fillup _f_layers and _p_layers from scratch, giving each represented
-  // symbol a single base table layer (only symbols with usageCnt()>0 get one)
+  // symbol a single base table layer (only the used symbols get one)
   void initTables();
 
 public:
 
-  // sortSizes is a map from vampire sorts (defined in Kernel/Sorts) to the size of that sort
-  FiniteModelMultiSorted(DArray<unsigned> sortSizes) : _sizes(std::move(sortSizes)) {
+  /**
+   * sortSizes is a map from vampire sorts (defined in Kernel/Sorts) to the size of that sort.
+   *
+   * usedFunctions / usedPredicates say which symbols this model is about, i.e. which ones
+   * get a table. Everything else gets no layer at all and the model says nothing about it
+   * until some later step does. The caller has to state this because it is the only one
+   * who knows: for FMB it is the symbols surviving into the clauses it encoded, for a model
+   * read from a file the symbols that file mentions. (It used to be read off
+   * Signature::Symbol::usageCnt, a global left behind by whichever Property scan ran last.)
+   */
+  FiniteModelMultiSorted(DArray<unsigned> sortSizes, DArray<bool> usedFunctions, DArray<bool> usedPredicates)
+   : _sizes(std::move(sortSizes)), _usedFunctions(std::move(usedFunctions)),
+     _usedPredicates(std::move(usedPredicates)) {
     initTables();
   }
 
   ~FiniteModelMultiSorted() { deleteAllLayers(); }
+
+  // does the model have an explicit table for this symbol? (i.e. was it among the used ones)
+  bool funRepresented(unsigned f) const { return funTable(f) != nullptr; }
+  bool predRepresented(unsigned p) const { return predTable(p) != nullptr; }
 
   // the layers call these back while computing their own value; a layer reads as of its own
   // birth, so that it sees the model its own replay step transforms and nothing later

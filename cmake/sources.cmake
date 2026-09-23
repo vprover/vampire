@@ -99,6 +99,7 @@ set(UNIT_TESTS
     UnitTests/tKBO.cpp
     UnitTests/tLPO.cpp
     UnitTests/tList.cpp
+    UnitTests/tMap.cpp
     UnitTests/tOption.cpp
     UnitTests/tPredicateElimination.cpp
     UnitTests/tOptionConstraints.cpp
@@ -111,11 +112,13 @@ set(UNIT_TESTS
     UnitTests/tSATSubsumptionResolution.cpp
     UnitTests/tSet.cpp
     UnitTests/tSkipList.cpp
+    UnitTests/tSignature.cpp
     UnitTests/tStack.cpp
     UnitTests/tSyntaxSugar.cpp
     UnitTests/tTermPrinting.cpp
     UnitTests/tTermAlgebra.cpp
     UnitTests/tTermIndex.cpp
+    UnitTests/tTermOutput.cpp
     UnitTests/tTimeTrace.cpp
     UnitTests/tTuple.cpp
     UnitTests/tUnificationWithAbstraction.cpp
@@ -473,6 +476,8 @@ set(SOURCES
     Kernel/SortHelper.hpp
     Kernel/SpassLiteralSelector.cpp
     Kernel/SpassLiteralSelector.hpp
+    Kernel/SymbolUsage.cpp
+    Kernel/SymbolUsage.hpp
     Kernel/SubformulaIterator.cpp
     Kernel/SubformulaIterator.hpp
     Kernel/SubstHelper.hpp
@@ -541,6 +546,7 @@ set(SOURCES
     Lib/Event.hpp
     Lib/Exception.cpp
     Lib/Exception.hpp
+    Lib/FlexibleTail.hpp
     Lib/Hash.hpp
     Lib/Int.cpp
     Lib/Int.hpp
@@ -692,8 +698,6 @@ set(SOURCES
     Shell/CommandLine.hpp
     Shell/DistinctGroupExpansion.cpp
     Shell/DistinctGroupExpansion.hpp
-    Shell/DistinctProcessor.cpp
-    Shell/DistinctProcessor.hpp
     Shell/EqResWithDeletion.cpp
     Shell/EqResWithDeletion.hpp
     Shell/EqualityProxy.cpp

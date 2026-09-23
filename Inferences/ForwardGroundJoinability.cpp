@@ -47,7 +47,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
 {
   // cout << "trying " << *cl << endl;
 
-  static DHSet<TermList> attempted;
+  static DHSet<TermList, TermListHash, TermListHash2> attempted;
 
   if (cl->length()>1) {
     return false;

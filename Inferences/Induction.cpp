@@ -69,11 +69,11 @@ Term* ActiveOccurrenceIterator::next()
 
 Term* getPlaceholderForTerm(const Stack<Term*>& ts, unsigned i)
 {
-  static DHMap<pair<TermList,unsigned>,Term*> placeholders;
+  static DHMap<pair<TermList,unsigned>,Term*, PairHash<TermListHash,FnvHash>, PairHash<TermListHash2,IdentityHash>> placeholders;
   TermList srt = SortHelper::getResultSort(ts[i]);
   auto p = make_pair(srt,i);
   if(!placeholders.find(p)){
-    unsigned fresh = env.signature->addFreshFunction(OperatorType::getConstantsType(srt),(srt.toString() + "_placeholder" + Int::toString(i)).c_str());
+    unsigned fresh = env.signature->addFreshFunction(OperatorType::getConstantsType(srt),(srt.toString() + "_placeholder" + Int::toString(i)).c_str())->number();
     auto res = Term::createConstant(fresh);
     placeholders.insert(p,res);
     return res;

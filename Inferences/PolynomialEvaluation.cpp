@@ -98,7 +98,7 @@ Option<LitSimplResult> PolynomialEvaluation::tryEvalPredicate(Literal* orig, Pol
 
   auto sym = env.signature->getPredicate(orig->functor());
   if (sym->interpreted()) {
-    auto inter = static_cast<Signature::InterpretedSymbol*>(sym)->getInterpretation();
+    auto inter = static_cast<const Signature::InterpretedSymbol*>(sym)->getInterpretation();
 
     switch (inter) {
       /* polymorphic */
@@ -214,7 +214,7 @@ PolyNf simplifyPoly(AnyPoly const& p, PolyNf* ts, bool removeZeros)
 
 Option<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const 
 {
-  static MemoNonVars<PolyNf, PolyNf> memo;
+  static MemoNonVars<PolyNf, PolyNf, PolyNfHash> memo;
   auto out = BottomUpEvaluation<PolyNf, PolyNf>()
     .function(
         [&](PolyNf orig, PolyNf* ts) -> PolyNf 

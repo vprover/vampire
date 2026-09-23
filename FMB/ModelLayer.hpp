@@ -204,18 +204,26 @@ public:
   }
   bool operator!=(const ArgsKey& o) const { return !(*this == o); }
 
-  unsigned defaultHash() const
+  // combine the values, left to right, from a seed
+  unsigned hashFrom(unsigned h) const
   {
-    unsigned h = 1;
     for (unsigned i = 0; i < _args.size(); i++) { h = HashUtils::combine(h,_args[i]); }
     return h;
   }
-  unsigned defaultHash2() const
+  // ... and the other way round, so that the two disagree on a one-element tuple
+  unsigned hashInto(unsigned h) const
   {
-    unsigned h = 17;
     for (unsigned i = 0; i < _args.size(); i++) { h = HashUtils::combine(_args[i],h); }
     return h;
   }
+};
+
+// the two hashes DHMap wants: the bucket from the first, the probing step from the second
+struct ArgsKeyHash {
+  static unsigned hash(const ArgsKey& k) { return k.hashFrom(1); }
+};
+struct ArgsKeyHash2 {
+  static unsigned hash(const ArgsKey& k) { return k.hashInto(17); }
 };
 
 /**
@@ -239,7 +247,7 @@ class DefFunLayer : public FunLayer {
   // what materialization used to provide as a side effect of writing a table, except that
   // this costs one entry per argument tuple actually asked about rather than per tuple that
   // exists.
-  DHMap<ArgsKey,unsigned> _memo;
+  DHMap<ArgsKey,unsigned, ArgsKeyHash, ArgsKeyHash2> _memo;
 public:
   DefFunLayer(Problem::FunDef* fd, Timestamp born) : FunLayer(LayerKind::DEF,born), _fd(fd) {}
 
@@ -250,7 +258,7 @@ public:
 
 class DefPredLayer : public PredLayer {
   Problem::PredDef* _pd;
-  DHMap<ArgsKey,char> _memo; // see DefFunLayer
+  DHMap<ArgsKey,char, ArgsKeyHash, ArgsKeyHash2> _memo; // see DefFunLayer
 public:
   DefPredLayer(Problem::PredDef* pd, Timestamp born) : PredLayer(LayerKind::DEF,born), _pd(pd) {}
 
@@ -289,7 +297,7 @@ public:
  * lookup and the layer need not remember which way it flipped.
  */
 class CondFlipPredLayer : public PredLayer {
-  DHMap<ArgsKey,char> _vals;
+  DHMap<ArgsKey,char, ArgsKeyHash, ArgsKeyHash2> _vals;
 public:
   explicit CondFlipPredLayer(Timestamp born) : PredLayer(LayerKind::COND_FLIP,born) {}
 

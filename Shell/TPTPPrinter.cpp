@@ -184,7 +184,7 @@ void TPTPPrinter::printTffWrapper(Unit* u, std::string bodyStr)
  */
 void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType symType)
 {
-  Signature::Symbol* sym;
+  const Signature::Symbol* sym;
   if(symType == SymbolType::FUNC){
     sym = env.signature->getFunction(symNumber);
   } else if(symType == SymbolType::PRED){
@@ -202,7 +202,7 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
   if(func && theory->isInterpretedConstant(symNumber)) { return; }
 
   if(sym->interpreted()) {
-    Interpretation interp = static_cast<Signature::InterpretedSymbol*>(sym)->getInterpretation();
+    Interpretation interp = static_cast<const Signature::InterpretedSymbol*>(sym)->getInterpretation();
     switch(interp) {
     case Theory::INT_SUCCESSOR:
     case Theory::INT_ABS:
@@ -248,7 +248,7 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
   unsigned i;
   List<TermList> *_usedSorts(0);
   OperatorType* type;
-  Signature::Symbol* sym;
+  const Signature::Symbol* sym;
   unsigned sorts = env.sorts->count();
   //check the sorts of the function symbols and collect information about used sorts
   for (i = 0; i < env.signature->functions(); i++) {

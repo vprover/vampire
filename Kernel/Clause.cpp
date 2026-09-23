@@ -30,9 +30,7 @@
 #include "Shell/Options.hpp"
 
 #include "Inference.hpp"
-#include "Signature.hpp"
 #include "Term.hpp"
-#include "TermIterators.hpp"
 #include "SortHelper.hpp"
 
 #include "Clause.hpp"
@@ -94,26 +92,14 @@ void* Clause::operator new(size_t sz, unsigned lits)
 
   RSTAT_CTR_INC("clauses created");
 
-  //We have to get sizeof(Clause) + (_length-1)*sizeof(Literal*)
-  //this way, because _length-1 wouldn't behave well for
-  //_length==0 on x64 platform.
-  size_t size = sizeof(Clause) + lits * sizeof(Literal*);
-  size -= sizeof(Literal*);
-
-  return ALLOC_KNOWN(size,"Clause");
+  return ALLOC_KNOWN(bytesRequiredFor(lits),"Clause");
 }
 
 void Clause::operator delete(void* ptr,unsigned length)
 {
   RSTAT_CTR_INC("clauses deleted by delete operator");
 
-  //We have to get sizeof(Clause) + (_length-1)*sizeof(Literal*)
-  //this way, because _length-1 wouldn't behave well for
-  //_length==0 on x64 platform.
-  size_t size = sizeof(Clause) + length * sizeof(Literal*);
-  size -= sizeof(Literal*);
-
-  DEALLOC_KNOWN(ptr, size,"Clause");
+  DEALLOC_KNOWN(ptr, bytesRequiredFor(length),"Clause");
 }
 
 void Clause::destroyExceptInferenceObject()
@@ -126,13 +112,7 @@ void Clause::destroyExceptInferenceObject()
 
   RSTAT_CTR_INC("clauses deleted");
 
-  //We have to get sizeof(Clause) + (_length-1)*sizeof(Literal*)
-  //this way, because _length-1 wouldn't behave well for
-  //_length==0 on x64 platform.
-  size_t size = sizeof(Clause) + _length * sizeof(Literal*);
-  size -= sizeof(Literal*);
-
-  DEALLOC_KNOWN(this, size,"Clause");
+  DEALLOC_KNOWN(this, bytesRequiredFor(_length),"Clause");
 }
 
 
@@ -279,7 +259,7 @@ bool Clause::isHorn()
  */
 VirtualIterator<unsigned> Clause::getVariableIterator() const
 {
-  return pvi( getUniquePersistentIterator(iterVars()) );
+  return pvi( getUniquePersistentIterator<FnvHash, IdentityHash>(iterVars()) );
 }
 
 /**
@@ -312,10 +292,10 @@ std::string Clause::literalsOnlyToString() const
     return "$false";
   } else {
     std::string result;
-    result += _literals[0]->toString();
+    result += literals()[0]->toString();
     for(unsigned i = 1; i < _length; i++) {
       result += " | ";
-      result += _literals[i]->toString();
+      result += literals()[i]->toString();
     }
     return result;
   }
@@ -496,8 +476,8 @@ unsigned Clause::computeWeight() const
 {
   unsigned result = 0;
   for (int i = _length-1; i >= 0; i--) {
-    ASS_REP(_literals[i]->shared(), *_literals[i]);
-    result += _literals[i]->weight();
+    ASS_REP(literals()[i]->shared(), *literals()[i]);
+    result += literals()[i]->weight();
   }
 
   return result;
@@ -598,19 +578,7 @@ unsigned Clause::computeWeightForClauseSelection(const Options& opt) const
     numeralWeight = getNumeralWeight();
   }
 
-  bool derivedFromGoal = Unit::derivedFromGoal();
-  if(derivedFromGoal && opt.restrictNWCtoGC()){
-    bool found = false;
-    for(unsigned i=0;i<_length;i++){
-      NonVariableNonTypeIterator it(_literals[i]);
-      while(it.hasNext()){
-        found |= env.signature->getFunction(it.next()->functor())->inGoal();
-      }
-    }
-    if(!found){ derivedFromGoal=false; }
-  }
-
-  return Clause::computeWeightForClauseSelection(w, splWeight, numeralWeight, derivedFromGoal, opt);
+  return Clause::computeWeightForClauseSelection(w, splWeight, numeralWeight, Unit::derivedFromGoal(), opt);
 }
 
 /*
@@ -719,7 +687,7 @@ unsigned Clause::getLiteralPosition(Literal* lit)
 #endif
   default:
     if (!_literalPositions) {
-      _literalPositions=new InverseLookup<Literal>(_literals,length());
+      _literalPositions=new InverseLookup<Literal, FnvHash, PtrIdentityHash>(literals(),length());
     }
     return static_cast<unsigned>(_literalPositions->get(lit));
   }
@@ -733,7 +701,7 @@ unsigned Clause::getLiteralPosition(Literal* lit)
 void Clause::notifyLiteralReorder()
 {
   if (_literalPositions) {
-    _literalPositions->update(_literals);
+    _literalPositions->update(literals());
   }
 }
 
@@ -755,7 +723,7 @@ void Clause::assertValid()
 bool Clause::contains(Literal* lit)
 {
   for (int i = _length-1; i >= 0; i--) {
-    if (_literals[i]==lit) {
+    if (literals()[i]==lit) {
       return true;
     }
   }
@@ -764,8 +732,8 @@ bool Clause::contains(Literal* lit)
 
 Literal* Clause::getAnswerLiteral() {
   for (unsigned i = 0; i < _length; ++i) {
-    if (_literals[i]->isAnswerLiteral()) {
-      return _literals[i];
+    if (literals()[i]->isAnswerLiteral()) {
+      return literals()[i];
     }
   }
   return nullptr;

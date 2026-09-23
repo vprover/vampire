@@ -12,6 +12,8 @@
  * Implements class Choice.
  */
 
+#include "Debug/TimeProfiling.hpp"
+
 #include "Kernel/OperatorType.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Signature.hpp"
@@ -159,10 +161,11 @@ ClauseIterator Choice::generateClauses(Clause* premise)
 {
   return pvi(premise->getSelectedLiteralIterator()
     .flatMap([](Literal* lit) {
-      return getUniquePersistentIterator(NonVariableNonTypeIterator(lit));
+      return getUniquePersistentIterator<FnvHash, PtrIdentityHash>(NonVariableNonTypeIterator(lit));
     })
     .filter(IsChoiceTerm())
-    .flatMap(ResultFn()));
+    .flatMap(ResultFn())
+    .timeTraced("choice"));
 }
 
 }

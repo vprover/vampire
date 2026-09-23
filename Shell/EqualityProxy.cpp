@@ -12,8 +12,8 @@
  * Implements class EqualityProxy.
  */
 
-#include "Lib/DHSet.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/Metaiterators.hpp"
 #include "Lib/List.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -25,6 +25,7 @@
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
+#include "Kernel/SymbolUsage.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
 
@@ -210,13 +211,24 @@ bool EqualityProxy::getArgumentEqualityLiterals(unsigned cnt, LiteralStack& lits
 }
 
 /**
- * For every symbol occurring in env.signature, add to the units equality congruence axioms
+ * For every symbol occurring in @c units, add to the units equality congruence axioms
  * for this symbol.
  * @author Andrei Voronkov
  * @since 16/05/2014 Manchester
  */
 void EqualityProxy::addCongruenceAxioms(UnitList*& units)
 {
+  // Which symbols actually occur is established here, over the clauses at hand and only
+  // when congruence axioms are really being added. It used to be read off
+  // Signature::Symbol::usageCnt(), a side effect of Property::scan -- which Preprocess
+  // had to force a whole extra scan of the problem to refresh, just for these two loops.
+  DArray<bool> usedFunctions;
+  DArray<bool> usedPredicates;
+  collectUsedSymbols(pvi(iterTraits(UnitList::Iterator(units)).map([](Unit* u) {
+      ASS(u->isClause()); // equality proxy runs on a clausified problem
+      return static_cast<Clause*>(u);
+    })), usedFunctions, usedPredicates);
+
   // This is Krystof Hoder's comment:
   // TODO: skip UPDR predicates!!!
   Stack<TermList> vars1;
@@ -226,9 +238,9 @@ void EqualityProxy::addCongruenceAxioms(UnitList*& units)
 
   unsigned funs = env.signature->functions();
   for (unsigned i=0; i<funs; i++) {
-    Signature::Symbol* fnSym = env.signature->getFunction(i);
+    const Signature::Symbol* fnSym = env.signature->getFunction(i);
     // can axiomatise equality _before_ preprocessing, so skip (some) introduced symbols
-    if(!fnSym->usageCnt() || fnSym->skipCongruence())
+    if(!usedFunctions[i] || fnSym->skipCongruence())
       continue;
     unsigned arity = fnSym->arity();
     if (arity == 0) {
@@ -252,9 +264,11 @@ void EqualityProxy::addCongruenceAxioms(UnitList*& units)
 
   unsigned preds = env.signature->predicates();
   for (unsigned i = 1; i < preds; i++) {
-    Signature::Symbol* predSym = env.signature->getPredicate(i);
-    // can axiomatise equality _before_ preprocessing, so skip (some) introduced symbols
-    if(!predSym->usageCnt() || predSym->skipCongruence())
+    const Signature::Symbol* predSym = env.signature->getPredicate(i);
+    // can axiomatise equality _before_ preprocessing, so skip (some) introduced symbols.
+    // The loop above may have created new proxy predicates, which postdate usedPredicates
+    // and, occurring in no scanned clause, are not used in its sense either
+    if(i >= usedPredicates.size() || !usedPredicates[i] || predSym->skipCongruence())
       continue;
     unsigned arity = predSym->arity();
     if (arity == 0) {
@@ -381,11 +395,11 @@ unsigned EqualityProxy::getProxyPredicate(TermList sort)
     ASS(sort.term()->ground());
   }
 
-  unsigned newPred = env.signature->addFreshPredicate(OperatorType::getPredicateType({sort, sort}, _poly ? 1 : 0),"sQ","eqProxy");
-  Signature::Symbol* predSym = env.signature->getPredicate(newPred);
-  predSym->markEqualityProxy();
-  // don't need congruence axioms for the equality predicate itself
-  predSym->markSkipCongruence();
+  // The equality predicate itself does not need congruence axioms.
+  auto pred = env.signature->addFreshPredicate(OperatorType::getPredicateType({sort, sort}, _poly ? 1 : 0), "sQ", "eqProxy")
+    ->markEqualityProxy()->markSkipCongruence();
+  unsigned newPred = pred->number();
+  const Signature::Symbol* predSym = pred;
 
   TermList var1 = TermList(_poly ? 1 : 0,false);
   TermList var2 = TermList(_poly ? 2 : 1,false);

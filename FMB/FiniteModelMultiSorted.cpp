@@ -173,12 +173,12 @@ void FiniteModelMultiSorted::initTables()
   _p_layers.ensure(env.signature->predicates());
 
   for(unsigned f=0; f<env.signature->functions();f++){
-    Signature::Symbol* symb = env.signature->getFunction(f);
-    if (symb->usageCnt()==0) {
+    if (!funUsed(f)) {
       // the SAT solver skipped some functions as they are eliminated
       // (the model, on the other hand, should be prepared to give them values later)
       continue; // not represented: no layers at all
     }
+    const Signature::Symbol* symb = env.signature->getFunction(f);
 
     OperatorType* sig = symb->type();
     _f_layers[f].push(new TableFunLayer(sig,tableSize(sig,symb->arity(),_sizes),MODEL_ZERO));
@@ -186,10 +186,10 @@ void FiniteModelMultiSorted::initTables()
 
   // equality is never tabulated, so predicate 0 keeps an empty stack
   for(unsigned p=1; p<env.signature->predicates();p++){
-    Signature::Symbol* symb = env.signature->getPredicate(p);
-    if (symb->usageCnt()==0) {
+    if (!predUsed(p)) {
       continue; // not represented
     }
+    const Signature::Symbol* symb = env.signature->getPredicate(p);
 
     OperatorType* sig = symb->type();
     _p_layers[p].push(new TablePredLayer(sig,tableSize(sig,symb->arity(),_sizes),MODEL_ZERO));
@@ -504,7 +504,7 @@ std::string FiniteModelMultiSorted::toString()
 
   // Functions (including constants)
   for(unsigned f=0;f<env.signature->functions();f++){
-    Signature::Symbol* symb = env.signature->getFunction(f);
+    const Signature::Symbol* symb = env.signature->getFunction(f);
     unsigned arity = symb->arity();
     if(!printIntroduced && symb->introduced()) continue;
     // the boolean domain elements are named after these two, so their definitions
@@ -611,7 +611,7 @@ std::string FiniteModelMultiSorted::toString()
 
   //Predicates (including propositions)
   for(unsigned p=1;p<env.signature->predicates();p++){
-    Signature::Symbol* symb = env.signature->getPredicate(p);
+    const Signature::Symbol* symb = env.signature->getPredicate(p);
     unsigned arity = symb->arity();
     if(!printIntroduced && symb->introduced()) continue;
     std::string name = symb->name();
@@ -848,7 +848,7 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
   // let's do functions first
   for(unsigned i = 0; i<sortFunctions.size(); i++) {
     unsigned elim_f = sortFunctions[i];
-    Signature::Symbol* elim_symb = env.signature->getFunction(elim_f);
+    const Signature::Symbol* elim_symb = env.signature->getFunction(elim_f);
     ASS_EQ(elim_symb->arity(),1)
     unsigned srt = elim_symb->type()->result().term()->functor();
 
@@ -861,7 +861,7 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
 
     // srt's domain is getting reduced to the range of f
     {
-      ASS(funRepresented(elim_f)); // Monotonicity bumps usageCnt of the sort functions it introduces
+      ASS(funRepresented(elim_f)); // the sort functions Monotonicity introduces occur in the clauses, so they are used
       const DArray<unsigned>& elim_tbl = funTable(elim_f)->raw();
       for(unsigned j = 1; j<=origSize; j++) {
         unsigned res = elim_tbl[j-1];
@@ -893,10 +893,10 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
 
     for(unsigned f=0; f<env.signature->functions();f++){
       if (!funRepresented(f)) {
-        ASS(!funTableIn(old_f_layers,f)); // usageCnt did not change, so neither did representedness
+        ASS(!funTableIn(old_f_layers,f)); // the used-symbol arrays did not change, so neither did representedness
         continue;
       }
-      Signature::Symbol* symb = env.signature->getFunction(f);
+      const Signature::Symbol* symb = env.signature->getFunction(f);
       OperatorType* sig = symb->type();
       unsigned arity = symb->arity();
 
@@ -936,10 +936,10 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
 
     for(unsigned p=1; p<env.signature->predicates();p++){
       if (!predRepresented(p)) {
-        ASS(!predTableIn(old_p_layers,p)); // usageCnt did not change, so neither did representedness
+        ASS(!predTableIn(old_p_layers,p)); // the used-symbol arrays did not change, so neither did representedness
         continue;
       }
-      Signature::Symbol* symb = env.signature->getPredicate(p);
+      const Signature::Symbol* symb = env.signature->getPredicate(p);
       OperatorType* sig = symb->type();
       unsigned arity = symb->arity();
 
@@ -971,7 +971,7 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
   // let's do predicates now
   for(unsigned i = 0; i<sortPredicates.size(); i++) {
     unsigned elim_p = sortPredicates[i];
-    Signature::Symbol* elim_symb = env.signature->getPredicate(elim_p);
+    const Signature::Symbol* elim_symb = env.signature->getPredicate(elim_p);
     ASS_EQ(elim_symb->arity(),1)
     unsigned srt = elim_symb->type()->arg(0).term()->functor();
 
@@ -1020,10 +1020,10 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
 
     for(unsigned f=0; f<env.signature->functions();f++){
       if (!funRepresented(f)) {
-        ASS(!funTableIn(old_f_layers,f)); // usageCnt did not change, so neither did representedness
+        ASS(!funTableIn(old_f_layers,f)); // the used-symbol arrays did not change, so neither did representedness
         continue;
       }
-      Signature::Symbol* symb = env.signature->getFunction(f);
+      const Signature::Symbol* symb = env.signature->getFunction(f);
       OperatorType* sig = symb->type();
       unsigned arity = symb->arity();
 
@@ -1060,10 +1060,10 @@ void FiniteModelMultiSorted::eliminateSortFunctionsAndPredicates(const Stack<uns
 
     for(unsigned p=1; p<env.signature->predicates();p++){
       if (!predRepresented(p)) {
-        ASS(!predTableIn(old_p_layers,p)); // usageCnt did not change, so neither did representedness
+        ASS(!predTableIn(old_p_layers,p)); // the used-symbol arrays did not change, so neither did representedness
         continue;
       }
-      Signature::Symbol* symb = env.signature->getPredicate(p);
+      const Signature::Symbol* symb = env.signature->getPredicate(p);
       OperatorType* sig = symb->type();
       unsigned arity = symb->arity();
 
@@ -1251,14 +1251,14 @@ void FiniteModelMultiSorted::restoreEliminatedDefinitions(Kernel::Problem* prob)
         unsigned f = fd->_head->functor();
         // a definition is total, so pushing it hides everything the model said about f so far;
         // only a flip replayed earlier can have put a table underneath
-        ASS(!funRepresented(f) || env.signature->getFunction(f)->usageCnt()==0);
+        ASS(!funRepresented(f) || !funUsed(f));
         _f_layers[f].push(new DefFunLayer(fd,_now));
         break;
       }
       case Problem::IntereferenceKind::PRED_DEF: {
         Problem::PredDef* pd = static_cast<Problem::PredDef*>(i);
         unsigned p = pd->_head->functor();
-        ASS(!predRepresented(p) || env.signature->getPredicate(p)->usageCnt()==0);
+        ASS(!predRepresented(p) || !predUsed(p));
         _p_layers[p].push(new DefPredLayer(pd,_now));
         break;
       }

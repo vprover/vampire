@@ -23,6 +23,8 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Renaming.hpp"
 #include "Kernel/Signature.hpp"
+
+#include "Shell/DistinctGroupExpansion.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Substitution.hpp"
@@ -533,7 +535,7 @@ TermList SMTLIB2::parseSort(LExpr* sExpr)
 
 TermStack SMTLIB2::normalizeFunctionSorts(TermStack& argSorts, TermList& resSort)
 {
-  DHSet<TermList> varsSeen;
+  DHSet<TermList, TermListHash, TermListHash2> varsSeen;
   for (auto sort : argSorts) {
     varsSeen.loadFromIterator(VariableIterator(sort));
   }
@@ -703,12 +705,12 @@ SMTLIB2::DeclaredSymbol SMTLIB2::declareFunctionOrPredicate(const std::string& n
 
   if (rangeSort == AtomicSort::boolSort()) { // predicate
     type = OperatorType::getPredicateType(argSorts, taArity);
-    symNum = env.signature->addPredicate(name, type, added);
+    symNum = env.signature->addPredicate(name, type, added)->number();
 
     LOG1("declareFunctionOrPredicate-Predicate");
   } else { // proper function
     type = OperatorType::getFunctionType(argSorts, rangeSort, taArity);
-    symNum = env.signature->addFunction(name, type, added);
+    symNum = env.signature->addFunction(name, type, added)->number();
 
     LOG1("declareFunctionOrPredicate-Function");
   }
@@ -729,7 +731,7 @@ SMTLIB2::DeclaredSymbol SMTLIB2::declareFunctionOrPredicate(const std::string& n
 unsigned SMTLIB2::declareTypeCon(const std::string& name, unsigned arity)
 {
   bool added = false;
-  auto symNum = env.signature->addTypeCon(name, arity, added);
+  auto symNum = env.signature->addTypeCon(name, arity, added)->number();
   ASS(added);
 
   LOG2("declareTypeCon -name ",name);
@@ -803,10 +805,7 @@ void SMTLIB2::readDefineFun(const std::string& name, LExpr* iArgs, LExpr* oSort,
   args.loadFromIterator(TermStack::BottomFirstIterator(termArgs));
 
   Literal* lit;
-  Signature::Symbol* sym;
   if (isTrueFun) {
-    sym = env.signature->getFunction(symbIdx);
-
     TermList lhs(Term::create(symbIdx,args.size(),args.begin()));
     auto p = env.signature->getFnDef(symbIdx);
     auto defArgs = typeVars;
@@ -814,8 +813,6 @@ void SMTLIB2::readDefineFun(const std::string& name, LExpr* iArgs, LExpr* oSort,
     defArgs.push(rhs);
     lit = Literal::create(p,defArgs.size(),true,defArgs.begin());
   } else {
-    sym = env.signature->getPredicate(symbIdx);
-
     auto p = env.signature->getBoolDef(symbIdx);
     TermList lhs(Term::createFormula(new AtomicFormula(Literal::create(p,args.size(),true,args.begin()))));
     lit = Literal::createEquality(true, lhs, rhs, rangeSort);
@@ -825,7 +822,11 @@ void SMTLIB2::readDefineFun(const std::string& name, LExpr* iArgs, LExpr* oSort,
   // Mark original symbol protected to avoid
   // erroneous unused symbol elimination later.
   // TODO find a better way to do this
-  sym->markProtected();
+  if (isTrueFun) {
+    env.signature->protectFunction(symbIdx);
+  } else {
+    env.signature->protectPredicate(symbIdx);
+  }
 
   FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
 
@@ -897,10 +898,7 @@ void SMTLIB2::readDefineFunsRec(LExpr* declsExpr, LExpr* defsExpr)
     bool isTrueFun = !decl.sym.second;
 
     Literal* lit;
-    Signature::Symbol* sym;
     if (isTrueFun) {
-      sym = env.signature->getFunction(symbIdx);
-
       TermList lhs(Term::create(symbIdx,decl.args.size(),decl.args.begin()));
       auto p = env.signature->getFnDef(symbIdx);
       TermStack defArgs; // no type arguments (yet) in this case
@@ -908,8 +906,6 @@ void SMTLIB2::readDefineFunsRec(LExpr* declsExpr, LExpr* defsExpr)
       defArgs.push(rhs);
       lit = Literal::create(p,defArgs.size(),true,defArgs.begin());
     } else {
-      sym = env.signature->getPredicate(symbIdx);
-
       auto p = env.signature->getBoolDef(symbIdx);
       TermList lhs(Term::createFormula(new AtomicFormula(Literal::create(p,decl.args.size(),true,decl.args.begin()))));
       lit = Literal::createEquality(true, lhs, rhs, decl.rangeSort);
@@ -919,7 +915,11 @@ void SMTLIB2::readDefineFunsRec(LExpr* declsExpr, LExpr* defsExpr)
     // Mark original symbol protected to avoid
     // erroneous unused symbol elimination later.
     // TODO find a better way to do this
-    sym->markProtected();
+    if (isTrueFun) {
+      env.signature->protectFunction(symbIdx);
+    } else {
+      env.signature->protectPredicate(symbIdx);
+    }
 
     FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::ASSUMPTION));
     _formulas.pushBack(fu);
@@ -1100,10 +1100,9 @@ TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(std::string constrN
 
   OperatorType* constructorType = OperatorType::getFunctionType(argSorts, taSort, numTypeArgs);
   bool added;
-  unsigned functor = env.signature->addFunction(constrName, constructorType, added);
+  auto constructor = env.signature->addFunction(constrName, constructorType, added);
   ASS(added);
-
-  env.signature->getFunction(functor)->markTermAlgebraCons();
+  unsigned functor = constructor->markTermAlgebraCons()->number();
 
   LOG1("build constructor "+constrName+": "+constructorType->toString());
 
@@ -1124,15 +1123,13 @@ TermAlgebraConstructor* SMTLIB2::buildTermAlgebraConstructor(std::string constrN
     OperatorType* destructorType = isPredicate ? OperatorType::getPredicateType({ taSort }, numTypeArgs)
                                            : OperatorType::getFunctionType({ taSort }, destructorSort, numTypeArgs);
 
-    unsigned destructorFunctor = isPredicate ? env.signature->addPredicate(destructorName, destructorType, added)
-                                             : env.signature->addFunction(destructorName, destructorType, added);
+    auto destructor = isPredicate ? env.signature->addPredicate(destructorName, destructorType, added)
+                                  : env.signature->addFunction(destructorName, destructorType, added);
     ASS(added);
 
     LOG1("build destructor "+destructorName+": "+destructorType->toString());
 
-    auto destSym = isPredicate ? env.signature->getPredicate(destructorFunctor)
-                               : env.signature->getFunction (destructorFunctor);
-    destSym->markTermAlgebraDest();
+    unsigned destructorFunctor = destructor->markTermAlgebraDest()->number();
 
     ALWAYS(_declaredSymbols.insert(destructorName, make_pair(destructorFunctor, isPredicate)));
 
@@ -1423,7 +1420,7 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
     TermList trm;
     if (sort == AtomicSort::boolSort()) {
       unsigned symb = env.signature->addFreshPredicate(
-        OperatorType::getPredicateType(varSorts, args.size()-varSorts.size()),"sLP");
+        OperatorType::getPredicateType(varSorts, args.size()-varSorts.size()),"sLP")->number();
 
       Formula* atom = new AtomicFormula(Literal::create(symb,args.size(),true,args.begin()));
       trm = TermList(Term::createFormula(atom));
@@ -1431,7 +1428,7 @@ void SMTLIB2::parseLetPrepareLookup(LExpr* exp)
       TermList nSort = sort;
       SortHelper::normaliseSort(typeVars.list(),nSort);
       OperatorType* type = OperatorType::getFunctionType(varSorts, nSort, args.size()-varSorts.size());
-      unsigned symb = env.signature->addFreshFunction(type,"sLF");
+      unsigned symb = env.signature->addFreshFunction(type,"sLF")->number();
 
       trm = TermList(Term::create(symb,args.size(),args.begin()));
     }
@@ -1875,7 +1872,7 @@ bool SMTLIB2::parseAsUserDefinedSymbol(const std::string& id,LExpr* exp,bool isS
 
   unsigned symbIdx = sym.first;
   bool isPred = sym.second;
-  Signature::Symbol* symbol = nullptr;
+  const Signature::Symbol* symbol = nullptr;
   if(isSort) {
     symbol = env.signature->getTypeCon(symbIdx);
     
@@ -2180,20 +2177,19 @@ bool SMTLIB2::parseAsBuiltinFormulaSymbol(const std::string& id, LExpr* exp)
         complainAboutArgShortageOrWrongSorts(BUILT_IN_SYMBOL,exp);
       }
 
+      // Just record the distinctness with a marker literal, the way the TPTP parser
+      // does for $distinct. Shell/DistinctGroupExpansion decides later -- knowing
+      // where in the formula this sits, which we do not -- whether it becomes a
+      // distinct group or is paid for with the quadratic expansion.
+      // A non-ground sort (parametric datatypes) would need a polymorphic marker;
+      // such an occurrence could not become a group anyway, so expand it here.
       Formula* res;
-      if(args.size()==2) { // if there are 2 just create a disequality
-        res = new AtomicFormula(Literal::createEquality(false,args[0],args[1],sort));
-      } else { // Otherwise create a formula list of disequalities
-        FormulaList* diseqs = nullptr;
-
-        for(unsigned i=0;i<args.size();i++){
-          for(unsigned j=0;j<i;j++){
-            Formula* new_dis = new AtomicFormula(Literal::createEquality(false,args[i],args[j],sort));
-            FormulaList::push(new_dis,diseqs);
-          }
-        }
-
-        res = new JunctionFormula(AND, diseqs);
+      if (sort.isVar() || !sort.term()->ground()) {
+        res = DistinctGroupExpansion(0).expandTerms(args,sort);
+      } else {
+        res = new AtomicFormula(Literal::create(
+          env.signature->getDistinctPredicate(args.size(),sort),
+          args.size(), /* polarity */ true, args.begin()));
       }
 
       _results.push(res);
@@ -2871,7 +2867,7 @@ void SMTLIB2::readAssertSynth(LExpr* forall, LExpr* exist, LExpr* body)
   _formulas.pushBack(fu);
 }
 
-Signature::Symbol* SMTLIB2::getSymbol(DeclaredSymbol& s) {
+const Signature::Symbol* SMTLIB2::getSymbol(DeclaredSymbol& s) {
   return s.second
     ? env.signature->getPredicate(s.first)
     : env.signature->getFunction(s.first);
@@ -2886,8 +2882,11 @@ void SMTLIB2::colorSymbol(const std::string& name, Color color)
 
   env.colorUsed = true;
 
-  Signature::Symbol* sym = getSymbol(s);
-  sym->addColor(color);
+  if (s.second) {
+    env.signature->colorPredicate(s.first, color);
+  } else {
+    env.signature->colorFunction(s.first, color);
+  }
 }
 
 void SMTLIB2::markSymbolUncomputable(const std::string& name)

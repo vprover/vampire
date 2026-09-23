@@ -12,6 +12,8 @@
  * Implements class NegativeExtensionality.
  */
 
+#include "Debug/TimeProfiling.hpp"
+
 #include <utility>
 
 #include "Lib/VirtualIterator.hpp"
@@ -92,7 +94,7 @@ struct NegExtResultFn
     SortHelper::normaliseSort(typeVars, resultSort);
 
     auto skSymSort = AtomicSort::arrowSort(termVarSorts, resultSort);
-    auto fun = Skolem::addSkolemFunction(typeVars.size(), TermStack(), skSymSort);
+    auto fun = Skolem::addSkolemFunction(typeVars.size(), TermStack(), skSymSort)->number();
     auto head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
     auto skolemTerm = HOL::create::app(head, termVars);
 
@@ -118,7 +120,8 @@ ClauseIterator NegativeExtensionality::generateClauses(Clause* premise)
   return pvi(premise->getSelectedLiteralIterator()
     .filter([](Literal* l) { return l->isEquality() && l->isNegative(); })
     .map(NegExtResultFn(premise))
-    .filter(NonzeroFn()));
+    .filter(NonzeroFn())
+    .timeTraced("negative extensionality"));
 }
 
 }

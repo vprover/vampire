@@ -11,9 +11,9 @@
  * Pins how terms print, special terms in particular.
  *
  * There are two printers, reached differently and recursing differently:
- *   - Term::toString, which uses headToString and then Output::interleaved;
+ *   - Term::toString, which uses prefixToString and then Output::interleaved;
  *   - TermList::asArgsToString, a separate stack machine reached from
- *     Literal::toString, which calls headToString on *nested* terms itself and
+ *     Literal::toString, which calls prefixToString on *nested* terms itself and
  *     only re-enters Term::toString for arrow sorts.
  * So every shape below is pinned twice, once under each. Fixing one printer while
  * breaking the other is the failure mode this file exists to catch; the ordinary
@@ -25,6 +25,8 @@
 
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
+
+#include "Lib/DArray.hpp"
 
 #include "Kernel/Formula.hpp"
 #include "Kernel/Term.hpp"
@@ -83,15 +85,15 @@ TEST_FUN(print_formula_in_term_position)
 TEST_FUN(print_ite)
 {
   { auto got = printed("tff(t,axiom, d = $ite(p(a), a, b)).\n");
-    ASS_EQ(got, "d = $ite(p(a),a,b)"); }
+    ASS_EQ(got, "d = $ite(p(a), a,b)"); }
   { auto got = printed("tff(t,axiom, r($ite(p(a), a, b))).\n");
-    ASS_EQ(got, "r($ite(p(a),a,b))"); }
+    ASS_EQ(got, "r($ite(p(a), a,b))"); }
 }
 
 TEST_FUN(print_nested_ite)
 {
   { auto got = printed("tff(t,axiom, r($ite(p(a), $ite(p(b), a, b), b))).\n");
-    ASS_EQ(got, "r($ite(p(a),$ite(p(b),a,b),b))"); }
+    ASS_EQ(got, "r($ite(p(a), $ite(p(b), a,b),b))"); }
 }
 
 // one printed() call per test from here on: a $let binds a *fresh* symbol, so a second
@@ -101,13 +103,13 @@ TEST_FUN(print_nested_ite)
 TEST_FUN(print_let_under_equality)
 {
   { auto got = printed("tff(t,axiom, d = $let(g: $i > $i, g(X) := f(X,X), g(a))).\n");
-    ASS_EQ(got, "d = $let(g0: $i > $i,g0(X0) := f(X0,X0),g0(a))"); }
+    ASS_EQ(got, "d = $let(g0: $i > $i, g0(X0) := f(X0,X0), g0(a))"); }
 }
 
 TEST_FUN(print_let_under_predicate)
 {
   { auto got = printed("tff(t,axiom, r($let(g: $i > $i, g(X) := f(X,X), g(a)))).\n");
-    ASS_EQ(got, "r($let(g0: $i > $i,g0(X0) := f(X0,X0),g0(a)))"); }
+    ASS_EQ(got, "r($let(g0: $i > $i, g0(X0) := f(X0,X0), g0(a)))"); }
 }
 
 TEST_FUN(print_cond)
@@ -144,5 +146,5 @@ TEST_FUN(print_tuple_let)
   // note the binding prints the tuple constructor spelled out while the type uses the
   // bracket sugar -- longstanding, and not something this file is asserting is *good*
   { auto got = printed("tff(t,axiom, d = $let([x: $i, y: $i], [x, y] := [a, b], f(x,y))).\n");
-    ASS_EQ(got, "d = $let([x0: $i, y1: $i],tuple2($i,$i,x0,y1) := tuple2($i,$i,a,b),f(x0,y1))"); }
+    ASS_EQ(got, "d = $let([x0: $i, y1: $i], tuple2($i,$i,x0,y1) := tuple2($i,$i,a,b), f(x0,y1))"); }
 }

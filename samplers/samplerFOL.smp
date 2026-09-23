@@ -125,8 +125,6 @@ sa!=fmb $nwc=1 > nwc ~cat 1:1
 sa!=fmb $nwc!=1 > nwc ~uf 0.5,15.0
 # TODO: we will most likely want a new distribution here for ($nwc!=1) just above!
 
-# restrict_nwc_to_goal_constants
-sa!=fmb nwc!=1 > rnwc ~cat off:5,on:1
 
 # literal_maximality_aftercheck
 sa!=fmb > lma ~cat off:500,on:83
@@ -257,9 +255,7 @@ sa!=fmb slsq=on > slsqr ~u2r -5;2;,
 sa!=fmb > to ~cat kbo:13,lpo:4
 
 # symbol_precedence
-sa!=fmb > sp ~cat arity:100,const_min:72,frequency:130,const_frequency:49,reverse_frequency:55,reverse_arity:72,weighted_frequency:24,unary_first:28,occurrence:82,unary_frequency:14,const_max:18
-# symbol_precedence_boost
-sa!=fmb > spb ~cat none:200,units:78,goal:91,goal_then_units:93,non_intro:14,intro:12
+sa!=fmb > sp ~cat arity:100,const_min:72,frequency:130,const_frequency:49,reverse_frequency:55,reverse_arity:72,unary_first:28,occurrence:41,reverse_occurrence:41,unary_frequency:14,const_max:18
 
 # kbo_max_zero
 sa!=fmb to=kbo > kmz ~cat off:200,on:1
@@ -402,7 +398,7 @@ intent=sat sa=fmb $fmbss=1 > fmbss ~cat 1:1
 intent=sat sa=fmb $fmbss=666 > fmbss ~sgd 0.1,1
 
 # fmb_symmetry_symbol_order
-sa=fmb > fmbsso ~cat occurrence:22,input_usage:1,preprocessed_usage:1
+sa=fmb > fmbsso ~cat occurrence:22,usage:2
 
 # fmb_symmetry_ratio
 sa=fmb > fmbsr ~uf 1.0,2.5

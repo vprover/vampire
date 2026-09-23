@@ -23,6 +23,7 @@
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/SymbolUsage.hpp"
 #include "Kernel/Renaming.hpp"
 
 #include "SAT/CadicalInterfacing.hpp"
@@ -36,6 +37,7 @@
 #include "Lib/DHSet.hpp"
 #include "Lib/ArrayMap.hpp"
 
+#include "Shell/Property.hpp"
 #include "Shell/UIHelper.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/GeneralSplitting.hpp"
@@ -266,17 +268,6 @@ bool FiniteModelBuilder::reset(){
   return true;
 }
 
-// Compare function symbols by their usage in the problem
-struct FMBSymmetryFunctionComparator
-{
-  static bool compare(unsigned f1, unsigned f2)
-  {
-    unsigned c1 = env.signature->getFunction(f1)->usageCnt();
-    unsigned c2 = env.signature->getFunction(f2)->usageCnt();
-    return c2 < c1;
-  }
-};
-
 void FiniteModelBuilder::createSymmetryOrdering()
 {
   // only really required the first time
@@ -301,83 +292,35 @@ void FiniteModelBuilder::createSymmetryOrdering()
     // Next add some groundings of function symbols
     // Currently these will be uniform groundings i.e. if we have arity 2 then we consider f(1,1),f(2,2)
     // TODO also allow f(1,2) and f(2,1)
-    bool arg_first = false;
-    switch(env.options->fmbSymmetryWidgetOrders()){
-    // If function first then we do each function in turn i.e.
+    // we do each function in turn i.e.
     // f(1)f(2)f(3)g(1)g(2)g(3)
-    case Options::FMBWidgetOrders::FUNCTION_FIRST:
-    {
-      for(unsigned f=0;f<_sortedSignature->sortedFunctions[s].length();f++){
-        for(unsigned m=1;m<=size;m++){
-
-          GroundedTerm g;
-          g.f =_sortedSignature->sortedFunctions[s][f];
-
-          // We skip f if its range is bounded to less than size
-          unsigned arity = env.signature->functionArity(g.f);
-          unsigned gfsrt = _sortedSignature->functionSignatures[g.f][arity];
-          if(_sortedSignature->sortBounds[gfsrt] < size) continue;
-
-          g.grounding.ensure(arity);
-
-          // We skip f if its domain is bounded to less than g.grounding
-          bool outOfBounds = false;
-          for(unsigned i=0;i<arity;i++){
-            unsigned srtx = _sortedSignature->functionSignatures[g.f][i];
-            g.grounding[i] = min(m,_sortModelSizes[srtx]);
-            if(_sortedSignature->sortBounds[srtx] < g.grounding[i])
-              outOfBounds=true;
-          }
-          if(outOfBounds) continue;
-
-          _sortedGroundedTerms[s].push(g);
-          //cout << "Adding " << g.toString() <<  " to " << s << endl;
-        }
-      }
-      break;
-    }
-    // If argument first then we do each size and then each function i.e.
-    // f(1)g(1)f(2)g(2)f(3)g(3)
-    case Options::FMBWidgetOrders::ARGUMENT_FIRST:
-      arg_first=true;
-      // now use diagonal code but don't do the diagonal
-
-    // If diagonal then we do f(1)g(2)h(3)f(2)g(3)h(1)f(3)g(1)h(2)
-    case Options::FMBWidgetOrders::DIAGONAL:
-    {
+    for(unsigned f=0;f<_sortedSignature->sortedFunctions[s].length();f++){
       for(unsigned m=1;m<=size;m++){
-        for(unsigned f=0;f<_sortedSignature->sortedFunctions[s].length();f++){
 
-          GroundedTerm g;
-          g.f =_sortedSignature->sortedFunctions[s][f];
+        GroundedTerm g;
+        g.f =_sortedSignature->sortedFunctions[s][f];
 
-          // We skip f if its range is bounded to less than size
-          unsigned arity = env.signature->functionArity(g.f);
-          unsigned gfsrt = _sortedSignature->functionSignatures[g.f][arity];
-          if(_sortedSignature->sortBounds[gfsrt] < size) continue;
+        // We skip f if its range is bounded to less than size
+        unsigned arity = env.signature->functionArity(g.f);
+        unsigned gfsrt = _sortedSignature->functionSignatures[g.f][arity];
+        if(_sortedSignature->sortBounds[gfsrt] < size) continue;
 
-          // If doing arg_first then we ignore the diagonal thing
-          // otherwise the grounding is this weird function of m, f and size
-          unsigned groundWith = arg_first ? m : 1+((m+f)%(size));
-          g.grounding.ensure(arity);
+        g.grounding.ensure(arity);
 
-          // We skip f if its domain is bounded to less than g.grounding
-          bool outOfBounds = false;
-          for(unsigned i=0;i<arity;i++){
-            unsigned srtx = _sortedSignature->functionSignatures[g.f][i];
-            g.grounding[i] = min(groundWith,_sortModelSizes[srtx]);
-            if(_sortedSignature->sortBounds[srtx] < g.grounding[i])
-              outOfBounds=true;
-          }
-          if(outOfBounds) continue;
-  
-          _sortedGroundedTerms[s].push(g);
-          //cout << "Adding " << g.toString() << " to " << s << endl;
+        // We skip f if its domain is bounded to less than g.grounding
+        bool outOfBounds = false;
+        for(unsigned i=0;i<arity;i++){
+          unsigned srtx = _sortedSignature->functionSignatures[g.f][i];
+          g.grounding[i] = min(m,_sortModelSizes[srtx]);
+          if(_sortedSignature->sortBounds[srtx] < g.grounding[i])
+            outOfBounds=true;
         }
+        if(outOfBounds) continue;
+
+        _sortedGroundedTerms[s].push(g);
+        //cout << "Adding " << g.toString() <<  " to " << s << endl;
       }
     }
-    }
-
   }
 }
 
@@ -394,6 +337,7 @@ void FiniteModelBuilder::init()
   DHSet<std::pair<unsigned,unsigned>, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>> vampire_sort_constraints_nonstrict;
   DHSet<std::pair<unsigned,unsigned>, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>> vampire_sort_constraints_strict;
   if(env.options->fmbDetectSortBounds()){
+    TIME_TRACE("fmb sort bound detection");
     FunctionRelationshipInference inf;
     inf.findFunctionRelationships(
       _prb.clauseIterator(),
@@ -403,15 +347,24 @@ void FiniteModelBuilder::init()
 
   ClauseList* clist = 0;
   if(env.options->fmbAdjustSorts() == Options::FMBAdjustSorts::PREDICATE){
-    DArray<bool> deleted_functions(env.signature->functions());
-    for(unsigned f=0;f<env.signature->functions();f++){
-      deleted_functions[f] = env.signature->getFunction(f)->usageCnt()==0;
+    // which functions occur is asked of the very clauses we are about to hand over,
+    // rather than of the usage counts some earlier Property::scan happened to leave on
+    // the signature: addSortPredicates uses this to decide for which f it need not say
+    // "!args: p(f(args))", so it had better describe the clauses it is transforming
+    DArray<bool> usedFunctions;
+    DArray<bool> usedPredicates;
+    collectUsedSymbols(_prb.clauseIterator(),usedFunctions,usedPredicates);
+    DArray<bool> deleted_functions(usedFunctions.size());
+    for(unsigned f=0;f<usedFunctions.size();f++){
+      deleted_functions[f] = !usedFunctions[f];
      }
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
+    TIME_TRACE(TimeTrace::FMB_MONOTONICITY);
     Monotonicity::addSortPredicates(true,clist,deleted_functions,_monotonic_vampire_sorts,_sortPredicates);
   }
   if(env.options->fmbAdjustSorts() == Options::FMBAdjustSorts::FUNCTION){
     ClauseList::pushFromIterator(_prb.clauseIterator(),clist);
+    TIME_TRACE(TimeTrace::FMB_MONOTONICITY);
     Monotonicity::addSortFunctions(true,clist,_monotonic_vampire_sorts,_sortFunctions);
   }
 
@@ -532,15 +485,10 @@ void FiniteModelBuilder::init()
 
   }
 
-  { // An ugly hack to cause a recomputation of usageCnts!
-    // (it's already ugly the usageCnts are stored with Symbols)
-
-    UnitList* units = 0; // we create a list just because ClauseList is not a UnitList in C++
-    UnitList::pushFromIterator(IterTraits(ClauseList::Iterator(_groundClauses)).map([](Clause* c) { return (Unit*)c; }),units);
-    UnitList::pushFromIterator(IterTraits(ClauseList::Iterator(_clauses)).map([](Clause* c) { return (Unit*)c; }),units);
-    ScopedPtr<Property> dummy_property(Property::scan(units));
-    UnitList::destroy(units);
-  }
+  // How often each symbol occurs in the clauses we have arrived at. This used to be an
+  // "ugly hack" running a whole throwaway Property::scan over them, purely for the
+  // usageCnts it left on the signature as a side effect.
+  _symbolCounts.countIn(pvi(concatIters(ClauseList::Iterator(_groundClauses),ClauseList::Iterator(_clauses))));
 
   // record the deleted functions and predicates
   // we do this only here so that there are slots for symbols introduced in the previous preprocessing steps (definition introduction, splitting)
@@ -548,18 +496,18 @@ void FiniteModelBuilder::init()
   del_p.ensure(env.signature->predicates());
 
   for(unsigned f=0;f<env.signature->functions();f++){
-    del_f[f] = env.signature->getFunction(f)->usageCnt()==0;
+    del_f[f] = _symbolCounts.functions[f]==0;
 #if VTRACE_FMB
     if(del_f[f]) cout << "Mark " << env.signature->functionName(f)  << " as deleted" << endl;
 #endif
   }
   for(unsigned p=1;p<env.signature->predicates();p++){ // skipping equality
-    del_p[p] = env.signature->getPredicate(p)->usageCnt()==0;
+    del_p[p] = _symbolCounts.predicates[p]==0;
 #if VTRACE_FMB
     if(del_p[p]) {
       cout << "Mark " << env.signature->predicateName(p) << " as deleted" << endl;
       cout << "  since (bool)_prb.getEliminatedPredicates().findPtr(p) = " << (bool)_prb.getEliminatedPredicates().findPtr(p) << endl;
-      cout << "  since env.signature->getPredicate(p)->usageCnt() = " << env.signature->getPredicate(p)->usageCnt() << endl;
+      cout << "  since the clauses use it " << _symbolCounts.predicates[p] << " times" << endl;
     }
 #endif
   }
@@ -699,43 +647,21 @@ void FiniteModelBuilder::init()
   cout << "Optionally doing Symmetry Ordering precomputation" << endl;
 #endif
 
-    // If symmetry ordering uses the usage after preprocessing then recompute symbol usage
-    // Otherwise this was done at clausification
-    if(env.options->fmbSymmetryOrderSymbols() != Options::FMBSymbolOrders::PREPROCESSED_USAGE){
-     // reset usage counts
-     for(unsigned f=0;f<env.signature->functions();f++){
-       env.signature->getFunction(f)->resetUsageCnt();
-     }
-     // do them again!
-     {
-       ClauseIterator cit = pvi(ClauseList::Iterator(_clauses));
-       while(cit.hasNext()){
-         Clause* c = cit.next();
-         // Can assume c is flat, so no nesting :)
-         for(unsigned i=0;i<c->length();i++){
-           Literal* l = (*c)[i];
-            // Let's only count usage of functions (not predicates) as that's all we use
-           if(l->isEquality() && !l->isTwoVarEquality()){
-             ASS(!l->nthArgument(0)->isVar());
-             ASS(l->nthArgument(1)->isVar());
-             Term* t = l->nthArgument(0)->term();
-             unsigned f = t->functor();
-             env.signature->getFunction(f)->incUsageCnt();
-           }
-         }
-       }
-     }
-    }
-
-    // Fragile, change if extend FMBSymbolOrders as it assumes that the values that
-    //          are not occurrence depend on usage (as per FMBSymmetryFunctionComparator)
-    if(env.options->fmbSymmetryOrderSymbols() != Options::FMBSymbolOrders::OCCURRENCE){
+    // USAGE sorts by how often a symbol occurs in the clauses this class has preprocessed,
+    // most used first. Sort inference introduces fresh constants of its own after the
+    // counting above, and those are simply unused as far as it is concerned.
+    if(env.options->fmbSymmetryOrderSymbols() == Options::FMBSymbolOrders::USAGE){
+      auto mostUsedFirst = [this](unsigned f1, unsigned f2) {
+        unsigned c1 = f1 < _symbolCounts.functions.size() ? _symbolCounts.functions[f1] : 0;
+        unsigned c2 = f2 < _symbolCounts.functions.size() ? _symbolCounts.functions[f2] : 0;
+        return c2 < c1;
+      };
       // Let's try sorting constants and functions in the sorted signature
       for(unsigned s=0;s<_sortedSignature->sorts;s++){
-        Stack<unsigned> sortedConstants =  _sortedSignature->sortedConstants[s];
-        Stack<unsigned> sortedFunctions = _sortedSignature->sortedFunctions[s];
-        sort(sortedConstants.begin(),sortedConstants.end(), FMBSymmetryFunctionComparator::compare);
-        sort(sortedFunctions.begin(),sortedFunctions.end(), FMBSymmetryFunctionComparator::compare);
+        Stack<unsigned>& sortedConstants = _sortedSignature->sortedConstants[s];
+        Stack<unsigned>& sortedFunctions = _sortedSignature->sortedFunctions[s];
+        sort(sortedConstants.begin(),sortedConstants.end(), mostUsedFirst);
+        sort(sortedFunctions.begin(),sortedFunctions.end(), mostUsedFirst);
       }
     }
   }
@@ -1877,6 +1803,10 @@ void FiniteModelBuilder::onModelFound()
     return;
   }
 
+  // Building and printing the model is not free for a large domain, and it runs with
+  // limit enforcement disabled below, so it is worth being able to see it.
+  TIME_TRACE("fmb model construction");
+
   // Prevent timing out whilst the model is being printed
   Timer::disableLimitEnforcement();
 
@@ -1888,7 +1818,7 @@ void FiniteModelBuilder::onModelFound()
   //we need to print this early because model generating can take some time
   if(szsOutputMode()) {
     std::cout << "% SZS status "<<( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
-        << " for " << _opt.problemName() << endl << flush;
+        << " for " << _opt.problemName << endl << flush;
     UIHelper::satisfiableStatusWasAlreadyOutput = true;
   }
 
@@ -1906,21 +1836,29 @@ void FiniteModelBuilder::onModelFound()
     vampireSortSizes[vSort] = size;
   }
 
-  FiniteModelMultiSorted model(vampireSortSizes.clone()); // need a clone, because FiniteModelMultiSorted may want to modify its version later
+  // Which symbols the model is about, i.e. which ones get a table (see initTables). The
+  // symbols occurring in the clauses we encoded: a symbol nothing uses has no values worth
+  // recording, and a table for it could be arbitrarily large. Anything younger than the
+  // count -- SortInference's fmbFreshConstant-s -- is past the end and so counts as unused,
+  // which is what the usageCnt this replaces answered for them too.
+  DArray<bool> usedFunctions(_symbolCounts.functions.size());
+  for(unsigned f=0;f<usedFunctions.size();f++){ usedFunctions[f] = _symbolCounts.functions[f]>0; }
+  DArray<bool> usedPredicates(_symbolCounts.predicates.size());
+  for(unsigned p=0;p<usedPredicates.size();p++){ usedPredicates[p] = _symbolCounts.predicates[p]>0; }
+
+  // need a clone, because FiniteModelMultiSorted may want to modify its version later
+  FiniteModelMultiSorted model(vampireSortSizes.clone(),std::move(usedFunctions),std::move(usedPredicates));
 
   //Record interpretation of constants and functions
   for(unsigned f=0;f<env.signature->functions();f++){
     if(del_f[f]) continue;
 
-    Signature::Symbol* sym = env.signature->getFunction(f);
+    const Signature::Symbol* sym = env.signature->getFunction(f);
     // if (sym->introduced()) continue; // so that a sort function may enter the model (to be elimintated later)
 
-    // symbols with no recorded usage get no table in the model (see initTables) and their
-    // values cannot matter -- this skips, e.g., fmbFreshConstant-s and fmbdef-s introduced
-    // during FMB's own preprocessing, which postdate the Property scan that counts usage
-    // (Monotonicity, by contrast, bumps the usage of the sort functions/predicates it
-    // introduces, precisely so that they do get a table here)
-    if(sym->usageCnt()==0) continue;
+    // a symbol with no table in the model has no values to record either (and del_f, read
+    // off the very same counts, has already skipped almost all of them)
+    if(!model.funRepresented(f)) continue;
 
     //cout << "For " << env.signature->getFunction(f)->name() << endl;
     unsigned arity = env.signature->functionArity(f);
@@ -1974,11 +1912,11 @@ void FiniteModelBuilder::onModelFound()
   for(unsigned p=1;p<env.signature->predicates();p++){
     if(del_p[p]) continue;
 
-    Signature::Symbol* sym = env.signature->getPredicate(p);
+    const Signature::Symbol* sym = env.signature->getPredicate(p);
     // if (sym->introduced()) continue; // so that a sort predicate may enter the model (to be elimintated later)
 
     // see the analogous skip in the function loop above
-    if(sym->usageCnt()==0) continue;
+    if(!model.predRepresented(p)) continue;
 
     unsigned arity = env.signature->predicateArity(p);
     //cout << "Record for " << env.signature->getPredicate(p)->name() << "/" << arity << endl;
@@ -2450,7 +2388,7 @@ void FiniteModelBuilder::SmtBasedDSAE::reportZ3OutOfMemory()
     env.statistics->print(std::cout);
   }
   Debug::Tracer::printStack();
-  System::terminateImmediately(1);
+  System::flushAndTerminateImmediately(1);
 }
 
 bool FiniteModelBuilder::SmtBasedDSAE::increaseModelSizes(DArray<unsigned>& newSortSizes, DArray<unsigned>& sortMaxes)

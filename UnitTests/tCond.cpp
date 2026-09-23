@@ -20,6 +20,7 @@
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Unit.hpp"
+#include "Lib/DArray.hpp"
 #include "Lib/Exception.hpp"
 #include "Parse/TPTP.hpp"
 

@@ -82,8 +82,6 @@ $nwc=1 > nwc ~cat 1:1
 $nwc!=1 > nwc ~uf 0.5,15.0
 # TODO: we will most likely want a new distribution here for ($nwc!=1) just above!
 
-# restrict_nwc_to_goal_constants
-nwc!=1 > rnwc ~cat off:5,on:1
 
 # literal_maximality_aftercheck
 > lma ~cat off:500,on:83
@@ -213,9 +211,7 @@ slsq=on > slsqr ~u2r -5;2;,
 > to ~cat kbo:13,lpo:4
 
 # symbol_precedence
-> sp ~cat arity:100,const_min:72,frequency:130,const_frequency:49,reverse_frequency:55,reverse_arity:72,weighted_frequency:24,unary_first:28,occurrence:82,unary_frequency:14,const_max:18
-# symbol_precedence_boost
-> spb ~cat none:200,units:78,goal:91,goal_then_units:93,non_intro:14,intro:12
+> sp ~cat arity:100,const_min:72,frequency:130,const_frequency:49,reverse_frequency:55,reverse_arity:72,unary_first:28,occurrence:41,reverse_occurrence:41,unary_frequency:14,const_max:18
 
 # kbo_max_zero
 to=kbo > kmz ~cat off:200,on:1

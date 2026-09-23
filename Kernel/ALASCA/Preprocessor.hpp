@@ -122,7 +122,7 @@ class AlascaPreprocessor
         arg_sorts->push(intConv(ty->arg(i)));
       }
       if (sorts_changed) {
-        unsigned nf = env.signature->addFreshPredicate(OperatorType::getPredicateType(*arg_sorts, ty->numTypeArguments()), sym->name().c_str());
+        unsigned nf = env.signature->addFreshPredicate(OperatorType::getPredicateType(*arg_sorts, ty->numTypeArguments()), sym->name().c_str())->number();
         DEBUG_TRANSLATION(*sym, ": ", ty->toString(), " -> ", *env.signature->getPredicate(nf), ": ", nty->toString());
         return nf;
       } else {
@@ -166,7 +166,7 @@ class AlascaPreprocessor
       }
       auto res_sort = intConv(ty->result());
       if (sorts_changed) {
-        unsigned nf = env.signature->addFreshFunction(OperatorType::getFunctionType(*sorts, res_sort, ty->numTypeArguments()), sym->name().c_str());
+        unsigned nf = env.signature->addFreshFunction(OperatorType::getFunctionType(*sorts, res_sort, ty->numTypeArguments()), sym->name().c_str())->number();
         DEBUG_TRANSLATION(*sym, ": ", ty->toString(), " -> ", *env.signature->getFunction(nf), ": ", nty->toString());
         return nf;
       } else {

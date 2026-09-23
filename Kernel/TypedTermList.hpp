@@ -29,8 +29,6 @@ public:
   TermList untyped() const { return *this; }
   auto asTuple() const -> decltype(auto) { return std::make_tuple(untyped(), sort()); }
   IMPL_COMPARISONS_FROM_TUPLE(TypedTermList);
-  IMPL_HASH_FROM_TUPLE(TypedTermList);
-
 
     // TODO get rid of default constructor
   TypedTermList() {}
@@ -50,7 +48,7 @@ public:
   }
 
   bool containsAllVariablesOf(TypedTermList other) const {
-    Set<TermList> vars;
+    Set<TermList, TermListHash> vars;
     vars.insertFromIterator(varIter());
 
     return iterTraits(other.varIter()).all([&vars](TermList v) {
@@ -62,13 +60,18 @@ public:
   { return out << (TermList const&) self << ": " << self._sort; }
 };
 
+struct TypedTermListHash {
+  static unsigned hash(TypedTermList const& value)
+  { return TupleHash<TermListHash, TermListHash>::hash(value.asTuple()); }
+};
+
 } // namespace Kernel 
 
 
 template<>
 struct std::hash<Kernel::TypedTermList> {
   size_t operator()(Kernel::TypedTermList const& t) 
-  { return t.defaultHash(); }
+  { return Kernel::TypedTermListHash::hash(t); }
 };
 
 #endif // __Kernel_TypedTermList__
