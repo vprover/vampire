@@ -1085,6 +1085,7 @@ Term* Term::createNonShared(Term* t,TermList* args)
 {
   int arity = t->arity();
   Term* s = new(arity) Term(*t);
+  s->_evalNormalForm = 0; // only shared terms carry this cache, @see isEvalNormalForm()
   TermList* ss = s->args();
   for (int i = 0;i < arity;i++) {
     ASS(!args[i].isEmpty());
@@ -1220,6 +1221,7 @@ Term* Term::createNonShared(Term* t)
 {
   int arity = t->arity();
   Term* s = new(arity) Term(*t);
+  s->_evalNormalForm = 0; // only shared terms carry this cache, @see isEvalNormalForm()
   TermList* ss = s->args();
   for (int i = 0;i < arity;i++) {
     (*ss--).makeSpecialVar(0);
@@ -1235,6 +1237,7 @@ Term* Term::cloneNonShared(Term* t)
   int arity = t->arity();
   TermList* args = t->args();
   Term* s = new(arity) Term(*t);
+  s->_evalNormalForm = 0; // only shared terms carry this cache, @see isEvalNormalForm()
   TermList* ss = s->args();
   for (int i = 0;i < arity;i++) {
     *ss-- = args[-i];
@@ -1698,6 +1701,7 @@ AtomicSort::AtomicSort(const AtomicSort& p) throw()
 Term::Term() throw()
   :_functor(0),
    _arity(0),
+   _evalNormalForm(0),
    _color(COLOR_TRANSPARENT),
    _hasInterpretedConstants(0),
    _isTwoVarEquality(0),
