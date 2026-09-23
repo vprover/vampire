@@ -173,7 +173,6 @@ private:
          "set_option maxHeartbeats 0\n"
          "set_option linter.all false\n"
          "set_option linter.unusedSectionVars false\n"
-         "set_option linter.unusedTactic false\n"
          "set_option linter.unusedSimpArgs false\n"
          "set_option linter.unusedVariables false\n"
          //"set_option linter.unnecessarySeqFocus false\n"
