@@ -6,17 +6,22 @@ Read this first if context was lost. It points at the detail rather than repeati
 
 `tstat/` is a SQLite-backed toolkit for mining a `-tstat on` sweep of all of TPTP.
 `README.md` documents the measurement hazards; `FINDINGS.md` is the write-up. The
-standing reference is the **11304** sweep
-(`problemsALLlocal_interpreted11304_otter_tstat-on_i100K`, commit `a7dff21ad`, 26 272
+standing reference is the **11306** sweep
+(`problemsALLlocal_interpreted11306_otter_tstat-on_i100K`, commit `6d25b2cc6`, 26 272
 usable runs, 77 node names), and `tstat.db` / `common.py`'s `LOGDIR` point at it.
 `FINDINGS.md` §20 indexes every sweep and says which older databases still matter.
 
-**11304 is the first sweep under `-sa otter`, and that is the new standing regime.** LRS
-estimates its limits from elapsed instructions, so under it the instrumentation was a
-*policy* change and not merely a cost — §21 measures that costing 25 solved problems, and
-§12 is the rule that came out of it. Otter has no such feedback loop. The price is 486
-fewer problems solved and a corpus that reallocates hugely (§1: 14.95% → 43.28%), so
-**nothing in an otter sweep may be compared against an LRS one** — §12 again.
+**From 11304 the standing regime is `-sa otter`.** LRS estimates its limits from elapsed
+instructions, so under it the instrumentation was a *policy* change and not merely a
+cost — §21 measures that costing 25 solved problems, and §12 is the rule that came out of
+it. Otter has no such feedback loop. The price is 486 fewer problems solved and a corpus
+that reallocates hugely (§1: 14.95% → 43.28%), so **nothing in an otter sweep may be
+compared against an LRS one** — §12 again.
+
+**It has already paid off.** 11304 → 11306 is the first pair in twelve sweeps matching on
+all three axes (bound, strategy, node set), and it reads **0 lost, 1 gained**, every node
+within 0.8%. Under LRS, two *behaviour-preserving* PRs produced 16 lost and 15 gained.
+A solved-count difference now means something (§12, §23).
 
 **We follow master from here.** Each sweep is taken on master or on a branch about to
 land, and does double duty: catching performance regressions nothing else would catch,
@@ -52,11 +57,22 @@ to tighten its limits (§21) — a fact about the measuring instrument, not abou
 prover, since shipped builds compile `TIME_TRACE` to nothing. **Do not compare solved
 counts across sweeps with different node sets** (§12).
 
-And **§4 is fixed** (§22): three commits on `BottomUpTermTransformer` and the interpreted
-evaluators took `interpreted evaluation` from 0.87% of corpus to 0.13%, from 117 runs
-giving it over a fifth of their budget to **2**, and by **1 072x–2 500x** per call on the
-six `SWX` problems the section was built around. That is the third finding in this file
-to turn into a landed optimization.
+And **§4 is fixed and closed** (§22, §23): three commits on `BottomUpTermTransformer` and
+the interpreted evaluators took `interpreted evaluation` from 0.87% of corpus to 0.13%,
+from 117 runs giving it over a fifth of their budget to **2**, and by **1 072x–2 500x**
+per call on the six `SWX` problems the section was built around. That is the third
+finding in this file to turn into a landed optimization.
+
+Two further commits then chased the last outlier, `SWW838_1.p`, and **that one is closed
+as not-a-target**: it is an FFT problem that squares a numeral against itself until the
+integer is 79 000 digits long, so the instructions are honestly spent. `mpz_t` numerals
+are arbitrary-precision by design — arithmetic is always sound, never silently wrapping —
+and the cost of that is that a self-feeding arithmetic loop can eat a whole budget. The
+two commits removed real inefficiencies (a copy, and a decimal conversion to name the
+symbol that cost ~80x the multiplication) and moved the run by **six activations**:
+exponential growth swallows any constant factor. Only a size cap on evaluation would
+help, and that trades correctness-by-default for robustness, so it would have to be an
+option. Not being pursued.
 
 ## Next: one bottleneck at a time
 
@@ -99,18 +115,13 @@ Ranked in `FINDINGS.md` Part I. By tractability rather than size, the order to p
    (§19), not retrieval. Those nodes are now 1.93% and 3.51%. Re-estimate before
    investing: the cheap way in is scoping `EqHelper::getSubtermIterator` and taking
    retrieval by subtraction.
-6. **§4's residual, `SWW838_1.p`.** The interpreted-evaluation fix reached everything
-   except this one problem: 843 485 instructions per call, unchanged by a factor of 1.01,
-   still 93.5% of its own run. One instance in the corpus, so low priority — but it is a
-   *different* mechanism from the one just fixed, and it is precisely localised.
+6. **§9's sibling, `codetree code compilation`** (1.64% of corpus). Only worth doing
+   together with §9 above — between them it is the redundant double compilation, and
+   fixing one without the other leaves the work where it is.
 
-**Before any of that: one SIGSEGV.** `SWV645_5.p` crashes after 61.5 G instructions,
-well under budget — the only crash in 26 504 runs and the first since §18's reporting
-race was fixed. The trace printed completely first, so it is not that fault returning.
-It is either the otter regime or the three interpreted-evaluation commits, and the latter
-are exactly the kind of change (`BottomUpTermTransformer` no longer rebuilding subterms,
-numerals no longer copied) where a lifetime mistake looks like this. §22 has the
-reproducer and the discriminating run. A crash outranks a profiling target.
+**Not ours: the `SWV645_5.p` SIGSEGV.** Reported in §22, reproduces unchanged in 11306,
+and **someone else on the team is on it** — do not fix it in this line of work. Treat the
+one unusable run as a known constant of the current sweeps.
 
 **Not on this list any more:**
 
@@ -118,7 +129,9 @@ reproducer and the discriminating run. A crash outranks a profiling target.
   finalisation 5%, closure check 2%, `include` 0.03% — leaving 93% in the state machine
   and term/formula construction, which has no per-unit boundary to scope. The next step
   there is a `perf record` on `HWV133-1.p`, not another sweep node.
-- **§4 `interpreted evaluation`.** Fixed (§22). Only the `SWW838_1.p` residual above.
+- **§4 `interpreted evaluation`.** Fixed (§22) and now fully closed (§23): the last two
+  outliers are arbitrary-precision arithmetic on inputs that ask for 79 000-digit
+  integers, which is honest work, not a hot spot.
 - **§5, LRS as a *time* problem.** Not dropped so much as unmeasurable here: the node
   fires in 0 of 11304's runs because otter has no LRS. The finding stands for LRS, which
   is still Vampire's default strategy and so still what users run — re-measure it on

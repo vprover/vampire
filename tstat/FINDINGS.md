@@ -5,23 +5,28 @@ about it so far.
 
 Read `README.md` first for how to read the numbers and how to reproduce any of them.
 
-> **The reference sweep is 11304, and it is the first run under `-sa otter`.**
-> `vampire_z3_rel_..._11304 -sa otter -i 100000 -tstat on` (commit `a7dff21ad`), 26 504
+> **The reference sweep is 11306.**
+> `vampire_z3_rel_..._11306 -sa otter -i 100000 -tstat on` (commit `6d25b2cc6`), 26 504
 > TPTP problems, TPTP on local disk, 64 workers pinned one per physical core, ASLR off.
 > **26 272 usable runs** — 231 Vampire user errors that never reached profiling, plus one
 > SIGSEGV (§22) — 1 371 T instructions of exclusive cost, **77 distinct node names**
 > (78 minus `LRS limit maintenance`, which never fires). `tstat/tstat.db` and
 > `common.py`'s `LOGDIR` point at it.
 >
-> **The regime changed with this sweep, and that matters more than the commit did.**
-> Every earlier sweep ran under LRS, whose limits are estimated from elapsed
+> **The regime changed at 11304, and that matters more than any one commit has.**
+> Every sweep before it ran under LRS, whose limits are estimated from elapsed
 > instructions — so instrumentation was a *policy* change, not just a budget trim, and
 > §21 measured that costing 25 solved problems. Otter has no such feedback loop, which
 > makes the instrument honest again. It is also a different prover: it solves 486 fewer
 > problems and reallocates the corpus enormously, so **no figure here may be compared
 > against an LRS sweep's** (§13, §22).
 >
-> §20 indexes the eleven sweeps taken so far and says which of the older databases are
+> **11304 → 11306 is the first pair in the whole chain with all three axes matched** —
+> same bound, same strategy, same node set — and it reads 0 problems lost, 1 gained, with
+> every node's per-call cost within 0.8%. That is what a clean A/B looks like, and §12
+> is why it took eleven sweeps to get one.
+>
+> §20 indexes the twelve sweeps taken so far and says which of the older databases are
 > still worth keeping and why. §12 is when a between-sweep comparison is legitimate at
 > all — read it before making one.
 >
@@ -310,22 +315,38 @@ paying for sort computation rather than for simplification.
 Neither rule could even be named before the 11165 sweep; `Inferences/HOL/` had no
 instrumentation at all (§15).
 
-## 4. `interpreted evaluation` — closed, bar one problem
+## 4. `interpreted evaluation` — closed
 
 > **Fixed in 11304 (§22).** The three commits behind `a7dff21ad` took the node from
 > 0.87% of corpus to **0.13%**, from 12 360 instructions per call to 2 549, and from
 > **117 runs giving it over 20% of their budget to 2**. On the six problems this section
-> was built around the per-call cost fell by **1 072x–2 500x**. What is left is the one
-> residual below, and the section is kept because that residual is the interesting part
-> now.
+> was built around the per-call cost fell by **1 072x–2 500x**.
 >
-> The one problem the fix does not reach is **`SWW838_1.p`**: 853 809 → 843 485
-> instructions per call, a factor of 1.01, still **93.5% of its own run**. Whatever costs
-> 850 K instructions per evaluation there is a different mechanism from the one that was
-> fixed, and it is now the only instance of it in the corpus. `SWW633_2.p` also still
-> gives the node 76% of its run, but that one went *up* 25x per call across the same
-> sweep pair, which crosses the LRS→otter regime change and so cannot be read as a
-> regression — see §13.
+> **The remaining outlier is not a hot spot, and this is why (§23).** `SWW838_1.p` is an
+> FFT problem containing a clause that makes the prover square a numeral against itself.
+> Evaluation obliges, and the result feeds the next squaring: from
+> `$product(4294967296, 4294967296)` = 2³²·2³², every step doubles the bit length —
+> 2⁶⁴, 2¹²⁸, 2²⁵⁶, … — reaching a **79 000-digit integer within five seconds**. The time
+> really is spent computing those numbers. It is honest work on an absurd input.
+>
+> That is the price of a deliberate design decision taken for the greater good: Vampire's
+> numerals are arbitrary-precision (`mpz_t`), so arithmetic is always sound — it never
+> silently wraps or gives up on large values, which is what makes it trustworthy on the
+> problems where that matters. The flip side is that nothing stops a self-feeding
+> arithmetic loop from consuming a whole budget.
+>
+> Two real inefficiencies were removed here (§23) and **neither changed the outcome**:
+> the numerals were being copied, and — worse — converted to decimal in order to name
+> their signature symbol, which is quadratic in mini-gmp and cost about **80x the
+> multiplication itself**. With the naming gone the run reaches four more doublings and
+> still spends its five seconds inside `mpz_mul`: 1 547 → 1 553 activations for the same
+> budget. **Exponential growth swallows any constant factor.**
+>
+> The only thing that would actually help is refusing to evaluate when the result exceeds
+> some size — declining to compute a number nobody will ever use. That is a real
+> trade-off, not an obvious win: it would have to be an option, it makes evaluation
+> incomplete, and it spends correctness-by-default to buy robustness against pathological
+> input. **Not being pursued.** `SWW633_2.p`, the other survivor, is the same story.
 >
 > The original section follows, because the diagnosis in it is what the fix was aimed at.
 
@@ -725,6 +746,28 @@ valid are:
 - **per-node instruction ratios**, which are unaffected — provided the node's whole
   *subtree* is free of new names, not merely its direct children (§19 got this wrong
   once).
+
+### What a legitimate comparison actually looks like
+
+11304 → 11306 is the first pair in twelve sweeps to match on all three axes — same bound,
+same strategy, same node set — and the contrast with the LRS pairs is the whole argument
+for the switch:
+
+| pair | regime | code change | lost | gained |
+|---|---|---|---:|---:|
+| 11279 → 11291 | LRS | two PRs, **behaviour-preserving** | 16 | 15 |
+| 11291 → 11295 | LRS | twelve `TIME_TRACE` scopes | 42 | 17 |
+| **11304 → 11306** | **otter** | two real optimizations | **0** | **1** |
+
+Under LRS even a change that alters nothing produced ±16 flips, which swamped any signal
+a real change could carry — §21 needed a dedicated control sweep to see past it. Under
+otter a corpus-neutral pair reads 0 and 1, with every node's per-call cost within 0.8%
+(§23). The flip churn was never noise in the measurement; it was LRS re-planning the
+search in response to a changed instruction count, and removing that feedback removes it.
+
+So a solved-count difference under otter now *means* something, which is the point of the
+regime: it is the first time this toolkit can answer "did this change lose problems"
+directly rather than by argument.
 
 ### And never compare an LRS sweep against an otter one
 
@@ -1221,9 +1264,9 @@ measurement §10 asks for.
 
 ## 20. Sweep index
 
-Eleven sweeps exist. All are `-tstat on` over the same 26 504 TPTP problems, same
-machine, 64 workers pinned one per physical core, ASLR off. **All but the last are LRS**
-— see §12 before comparing across that line.
+Twelve sweeps exist. All are `-tstat on` over the same 26 504 TPTP problems, same
+machine, 64 workers pinned one per physical core, ASLR off. **All but the last two are
+LRS** — see §12 before comparing across that line.
 
 | sweep | limit | database | what it is for |
 |---|---|---|---|
@@ -1236,7 +1279,8 @@ machine, 64 workers pinned one per physical core, ASLR off. **All but the last a
 | 11279 | `-i 100000` | `tstat-11279.db` | the before-picture for §19 |
 | 11291 | `-i 100000` | — | master's own head (`71a5da3ed`), **no instrumentation of ours**. The control that splits §19's −26 into master's share and ours (§21), and the only clean read on `FlexibleTail` |
 | 11295 | `-i 100000` | `tstat-11295.db` | last of the LRS chain, and the most detailed — first with the phase breakdown (§19). The right database for any LRS question, including §5 |
-| **11304** | **`-sa otter -i 100000`** | **`tstat.db`** | **the standing reference** — first otter sweep (§22) |
+| 11304 | `-sa otter -i 100000` | — | first otter sweep (§22). No database kept: 11306 is within 0.8% of it at every node, and it re-ingests from the logs in 40 s if a question ever needs it |
+| **11306** | **`-sa otter -i 100000`** | **`tstat.db`** | **the standing reference** (§23) |
 | 11142/11156 pair | `-t 60` | `tstat-t60s-*.db` | the only regime where memory-boundedness is chargeable; §13, §14 |
 
 Future sweeps stay on **`-sa otter -i 100000`** so they remain comparable to each other;
@@ -1404,7 +1448,12 @@ Part I's table: §1 rises 14.95% → 43.28% because nothing prunes the passive s
 The practical consequence is that **§1 is now the target to the exclusion of almost
 everything else**: 43% of the corpus and over half of 6 225 runs.
 
-### One SIGSEGV — new, and worth chasing
+### One SIGSEGV — reported, and owned elsewhere
+
+> **Status: being handled by someone else on the team; not ours to fix, and deliberately
+> not fixed in this line of work.** It reproduces unchanged in 11306, so treat the one
+> unusable run as a known constant of the current otter sweeps rather than as a new
+> finding each time. The diagnosis below is kept as the report.
 
 `SWV645_5.p` aborts with **SIGSEGV** after 61.5 G instructions, in `Saturation`, well
 under the 104.9 G budget. It is the only crash in 26 504 runs and the first in any sweep
@@ -1425,3 +1474,71 @@ vampire_z3_rel_..._11304 -sa otter -i 100000 -tstat on Problems/SWV/SWV645_5.p
 
 and the discriminating run is the same invocation against master `2026e92e0` without the
 three commits. A debug build with `--traceback on` should name the site directly.
+
+## 23. The 11306 sweep: the first clean A/B, and why `SWW838_1.p` is not a target
+
+`vampire_z3_rel_..._11306` (`6d25b2cc6`) = 11304 plus two commits chasing §4's residual:
+`e314224cd` "Stop the numeral API itself from copying its operands" and `6d25b2cc6`
+"Name numeral symbols only when their name is asked for". Neither touches `TIME_TRACE`,
+so the node set is identical to 11304's.
+
+### It is the first comparison this toolkit has been able to make cleanly
+
+Same bound, same strategy, same instrumentation — the three conditions §12 asks for, met
+together for the first time in twelve sweeps. The reading:
+
+- **0 problems lost, 1 gained** (`SWV545-1.010.p`);
+- every node's per-call cost within **0.8%** of 11304's — `codetree forward subsumption`
+  ×1.000, `superposition` ×1.000, `parsing` ×0.998, `term sharing` ×1.007;
+- corpus totals identical at 1 313 T.
+
+Set that against the LRS pairs, where two *behaviour-preserving* PRs produced 16 lost and
+15 gained (§21). The churn that made every earlier solved count unreadable is simply
+gone, and §12 now carries the comparison as the argument for the regime.
+
+The flip side is worth stating plainly: **this pair also shows the commits bought nothing
+measurable.** They are right — a copy elided is a copy elided — but the corpus cannot see
+them, and the problem they were aimed at is unmoved. That is the finding, not a
+disappointment about it.
+
+### Why `SWW838_1.p` is closed rather than open
+
+§4's last outlier turns out not to be an inefficiency at all. The problem is an FFT
+encoding containing a clause that makes the prover square a numeral against itself, and
+the result feeds the next squaring: from `$product(4294967296, 4294967296)` = 2³²·2³²,
+every step doubles the bit length — 2⁶⁴, 2¹²⁸, 2²⁵⁶, … — reaching a **79 000-digit
+integer within five seconds**. The instructions are really spent computing those numbers.
+
+This is the cost side of a deliberate design decision. Vampire's numerals are
+arbitrary-precision (`mpz_t`), so arithmetic is always sound: it never silently wraps and
+never gives up on a large value, which is exactly what makes it trustworthy on the
+problems where that matters. Nothing then stops a self-feeding arithmetic loop from
+eating a whole budget.
+
+The two commits removed two genuine inefficiencies on that path — the numerals were being
+copied, and, worse, converted to decimal to name their signature symbol, which is
+quadratic in mini-gmp and cost roughly **80x the multiplication itself**. The sweep says
+what happened:
+
+```
+SWW838_1.p   instr/call   843 485 -> 839 828     (x0.996)
+             share of run  93.48% ->  93.45%
+             activations     1 547 ->   1 553
+```
+
+Six more activations. With the naming gone the run reaches about four more doublings and
+still spends its five seconds inside `mpz_mul`. **Exponential growth swallows any
+constant factor**, which is the general lesson and the reason this is not worth another
+pass.
+
+The only change that would help is refusing to evaluate when the result exceeds some
+size — declining to compute a number nobody will ever use. That is a genuine trade-off
+rather than an oversight: it would have to be an option, it makes evaluation incomplete,
+and it spends correctness-by-default to buy robustness against pathological input. **Not
+being pursued**, and `SWW633_2.p` is the same story.
+
+> Worth keeping as a diagnostic pattern. A node that stays at ~90% of its run while its
+> per-call cost is cut by a large constant is not a tuning target; the shape of the curve
+> is what is expensive, not the constant in front of it. The tell here was available
+> before the sweep — `SWW838_1.p` survived a fix that gave every comparable problem
+> 1 072x — and one more measurement would have been cheaper than one more commit.
