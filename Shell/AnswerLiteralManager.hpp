@@ -299,7 +299,7 @@ private:
   static unsigned getITEFunctionSymbol(TermList sort) {
     std::string name = "$ite_" + sort.toString();
     bool added = false;
-    return env.signature->addFunction(name, OperatorType::getFunctionType({AtomicSort::defaultSort(), sort, sort}, sort), added);
+    return env.signature->addFunction(name, OperatorType::getFunctionType({AtomicSort::defaultSort(), sort, sort}, sort), added)->number();
   }
 
   ConjectureSkolemReplacement _skolemReplacement;

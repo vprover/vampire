@@ -46,7 +46,7 @@ void Shuffling::polarityFlip(Problem& prb)
       ASS(p); // the equality predicate (at index 0) is protected
       flippage[env.signature->predicateIndex(p)] = Random::getBit();
       if (flippage[env.signature->predicateIndex(p)]) {
-        pSymb->markFlipped();
+        env.signature->markPredicateFlipped(p);
         prb.addFlippedPredicate(p);
       }
     } else {

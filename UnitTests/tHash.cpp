@@ -101,8 +101,6 @@ TEST_FUN(coproductHashUsesAlternativeIndex)
   ASS_EQ(Primary::hash(second), 0xedd6a6a5u);
   ASS_EQ(Secondary::hash(first), 0x9e3779bcu);
   ASS_EQ(Secondary::hash(second), 0x9e3779ffu);
-  ASS(Primary::equals(second, Value(std::string("hello"))));
-  ASS(!Primary::equals(first, second));
 
   // Repeated types may use different functors: dispatch must use the tag.
   using Repeated = Coproduct<uint8_t, uint8_t>;
@@ -111,7 +109,6 @@ TEST_FUN(coproductHashUsesAlternativeIndex)
   auto b = Repeated::variant<1>(3);
   ASS_EQ(Mixed::hash(a), 0xa443d86bu);
   ASS_EQ(Mixed::hash(b), 0x9e3779fdu);
-  ASS(!Mixed::equals(a, b));
 }
 
 TEST_FUN(numericAndPolynomialHashes)
@@ -126,8 +123,6 @@ TEST_FUN(numericAndPolynomialHashes)
   Variable var(3);
   ASS_EQ(VariableHash::hash(var), FnvHash::hash(3u));
   ASS_EQ(PolyNfHash::hash(PolyNf(var)), HashUtils::combine(1u, FnvHash::hash(3u)));
-  ASS(PolyNfHash::equals(PolyNf(var), PolyNf(Variable(3))));
-  ASS(!PolyNfHash::equals(PolyNf(var), PolyNf(Variable(4))));
 
   // Interned polynomials use FNV of their ids in this hash. Their std::hash
   // specializations use the ids directly, and are still used by other caches.

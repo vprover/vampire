@@ -20,6 +20,12 @@
 
 namespace Lib {
 
+// Compare the values addressed by two pointers.
+struct DerefPtrEqual {
+  template<class T>
+  bool operator()(const T* lhs, const T* rhs) const { return *lhs == *rhs; }
+};
+
 /**
  * Type denoting the result of comparison.
  */

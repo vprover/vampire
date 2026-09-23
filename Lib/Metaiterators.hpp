@@ -1568,10 +1568,10 @@ public:
   auto takeWhile(Pred p)
   { return iterTraits(TakeWhileIter<Iter, Pred>(std::move(_iter), std::move(p))); }
 
-  template<class Hash>
+  template<class Hash, class Equal = std::equal_to<ElementType>>
   auto unique()
   { 
-    Map<ElementType, std::tuple<>, Hash> found;
+    Map<ElementType, std::tuple<>, Hash, Equal> found;
     return iterTraits(std::move(*this)
         .filterMap([found = std::move(found)](ElementType next) mutable {
           if (found.tryGet(next).isSome()) {

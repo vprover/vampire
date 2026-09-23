@@ -673,10 +673,6 @@ public:
 template<class... ElementHashes>
 struct CoproductHash {
   template<class... As>
-  static bool equals(Coproduct<As...> const& c1, Coproduct<As...> const& c2)
-  { return c1 == c2; }
-
-  template<class... As>
   static unsigned hash(Coproduct<As...> const& c)
   {
     static_assert(sizeof...(ElementHashes) == sizeof...(As),

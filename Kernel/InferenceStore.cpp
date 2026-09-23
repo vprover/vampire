@@ -59,15 +59,6 @@ using namespace std;
 using namespace Lib;
 using namespace Shell;
 
-void InferenceStore::FullInference::increasePremiseRefCounters()
-{
-  for(unsigned i=0;i<premCnt;i++) {
-    if (premises[i]->isClause()) {
-      premises[i]->incRefCnt();
-    }
-  }
-}
-
 /**
  * Records information needed for outputting proofs of general splitting
  */
@@ -81,7 +72,7 @@ void InferenceStore::recordSplittingNameLiteral(Unit* us, Literal* lit)
 /**
  * Record the introduction of a new symbol
  */
-void InferenceStore::recordIntroducedSymbol(Unit* u, Signature::Symbol* sym)
+void InferenceStore::recordIntroducedSymbol(Unit* u, const Signature::Symbol* sym)
 {
   ASS_REP(sym->introduced(), sym->name());
 
@@ -90,7 +81,7 @@ void InferenceStore::recordIntroducedSymbol(Unit* u, Signature::Symbol* sym)
   pStack->push(sym);
 }
 
-void InferenceStore::recordIntroducedSkolemSymbol(Unit* u, Signature::Symbol* sym, unsigned replacedVar, Term* symTerm)
+void InferenceStore::recordIntroducedSkolemSymbol(Unit* u, const Signature::Symbol* sym, unsigned replacedVar, Term* symTerm)
 {
   ASS_REP(sym->introduced(), sym->name());
 

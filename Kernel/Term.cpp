@@ -41,7 +41,7 @@ void Term::setId(unsigned id)
       // (cf ProvingHelper::runVampire and getPreprocessedProblem in vampire.cpp)
     id += Random::getInteger(1 << 12) << 20; // the twelve most significant bits are randomized
   }
-   _args[0]._setId(id);
+   info()._setId(id);
 }
 
 /**
@@ -53,7 +53,7 @@ void* Term::operator new(size_t,unsigned arity, size_t preData)
   //preData must be a multiple of pointer size to maintain alignment
   ASS_EQ(preData%sizeof(size_t), 0);
 
-  size_t sz = sizeof(Term)+arity*sizeof(TermList)+preData;
+  size_t sz = bytesRequiredFor(arity+1)+preData;
   void* mem = ALLOC_KNOWN(sz,"Term");
   mem = reinterpret_cast<void*>(reinterpret_cast<char*>(mem)+preData);
   return (Term*)mem;
@@ -72,7 +72,7 @@ void Term::destroy ()
 {
   ASS(CHECK_LEAKS || ! shared());
 
-  size_t sz = sizeof(Term)+_arity*sizeof(TermList)+getPreDataSize();
+  size_t sz = bytesRequiredFor(_arity+1)+getPreDataSize();
   void* mem = this;
   mem = reinterpret_cast<void*>(reinterpret_cast<char*>(mem)-getPreDataSize());
   DEALLOC_KNOWN(mem,sz,"Term");
@@ -385,7 +385,7 @@ const TermList* Term::termArgs() const
 {
   ASS(!isSort());
 
-  return _args + (_arity - numTypeArguments());
+  return flexibleTail() + (_arity - numTypeArguments());
 }
 
 const TermList* Term::typeArgs() const
@@ -592,7 +592,7 @@ std::string Term::prefixToString() const
           type += "]";
         } else {
           auto isPredicate = bindingLhs->isBoolean();
-          Signature::Symbol* sym;
+          const Signature::Symbol* sym;
           if (isPredicate) {
             ASS(bindingLhs->isFormula());
             auto f = bindingLhs->getSpecialData()->getFormula();
@@ -1336,7 +1336,7 @@ TermList AtomicSort::arrowSort(const TermStack& domSorts, TermList range, bool f
 
 AtomicSort* AtomicSort::createConstant(const std::string& name)
 {
-  return createConstant(env.signature->addTypeCon(name,0));
+  return createConstant(env.signature->addTypeCon(name,0)->number());
 }
 
 TermList AtomicSort::arraySort(TermList indexSort, TermList innerSort)
@@ -1670,10 +1670,10 @@ Term::Term(const Term& t) throw()
 {
   ASS(!isSpecial()); //we do not copy special terms
 
-  _args[0] = t._args[0];
-  _args[0]._setShared(false);
-  _args[0]._setOrder(AO_UNKNOWN);
-  _args[0]._setDistinctVars(TERM_DIST_VAR_UNKNOWN);
+  info() = t.flexibleTail()[0];
+  info()._setShared(false);
+  info()._setOrder(AO_UNKNOWN);
+  info()._setDistinctVars(TERM_DIST_VAR_UNKNOWN);
 } // Term::Term
 
 /** create a new literal and copy from l its content */
@@ -1703,9 +1703,9 @@ Term::Term() throw()
    _maxRedLen(0),
    _vars(0)
 {
-  _args[0].setContent(0);
-  _args[0]._setTag(FUN);
-  _args[0]._setDistinctVars(TERM_DIST_VAR_UNKNOWN);
+  info().setContent(0);
+  info()._setTag(FUN);
+  info()._setDistinctVars(TERM_DIST_VAR_UNKNOWN);
 } // Term::Term
 
 Literal::Literal()
@@ -1723,25 +1723,25 @@ std::string Term::headerToString() const
   s += Int::toString(_functor) + ", arity: " + Int::toString(_arity)
     + ", weight: " + Int::toString(_weight)
     + ", vars: " + Int::toString(_vars)
-    + ", polarity: " + Int::toString(_args[0]._polarity())
-    + ", shared: " + Int::toString(_args[0]._shared())
-    + ", literal: " + Int::toString(_args[0]._literal())
-    + ", order: " + Int::toString(_args[0]._order())
-    + ", tag: " + Int::toString(_args[0]._tag());
+    + ", polarity: " + Int::toString(info()._polarity())
+    + ", shared: " + Int::toString(info()._shared())
+    + ", literal: " + Int::toString(info()._literal())
+    + ", order: " + Int::toString(info()._order())
+    + ", tag: " + Int::toString(info()._tag());
   return s;
 }
 
 void Term::assertValid() const
 {
   ASS_ALLOC_TYPE(this, "Term");
-  ASS_EQ(_args[0]._tag(), FUN);
+  ASS_EQ(info()._tag(), FUN);
 }
 
 void TermList::assertValid() const
 {
   if (this->isTerm()) {
     ASS_ALLOC_TYPE(_term, "Term");
-    ASS_EQ(_term()->_args[0]._tag(), FUN);
+    ASS_EQ(_term()->info()._tag(), FUN);
   }
 }
 

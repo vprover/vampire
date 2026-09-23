@@ -238,7 +238,7 @@ void EqualityProxy::addCongruenceAxioms(UnitList*& units)
 
   auto funs = env.signature->functionSymbols();
   for (unsigned i : funs) {
-    Signature::Symbol* fnSym = env.signature->getFunction(i);
+    const Signature::Symbol* fnSym = env.signature->getFunction(i);
     // can axiomatise equality _before_ preprocessing, so skip (some) introduced symbols
     if(!usedFunctions[env.signature->functionIndex(i)] || fnSym->skipCongruence())
       continue;
@@ -265,7 +265,7 @@ void EqualityProxy::addCongruenceAxioms(UnitList*& units)
   auto preds = env.signature->predicateSymbols();
   for (unsigned i : preds) {
     if (i < 1) continue;
-    Signature::Symbol* predSym = env.signature->getPredicate(i);
+    const Signature::Symbol* predSym = env.signature->getPredicate(i);
     // can axiomatise equality _before_ preprocessing, so skip (some) introduced symbols.
     // The loop above may have created new proxy predicates, which postdate usedPredicates
     // and, occurring in no scanned clause, are not used in its sense either
@@ -397,11 +397,11 @@ unsigned EqualityProxy::getProxyPredicate(TermList sort)
     ASS(sort.term()->ground());
   }
 
-  unsigned newPred = env.signature->addFreshPredicate(OperatorType::getPredicateType({sort, sort}, _poly ? 1 : 0),"sQ","eqProxy");
-  Signature::Symbol* predSym = env.signature->getPredicate(newPred);
-  predSym->markEqualityProxy();
-  // don't need congruence axioms for the equality predicate itself
-  predSym->markSkipCongruence();
+  // The equality predicate itself does not need congruence axioms.
+  auto pred = env.signature->addFreshPredicate(OperatorType::getPredicateType({sort, sort}, _poly ? 1 : 0), "sQ", "eqProxy")
+    ->markEqualityProxy()->markSkipCongruence();
+  unsigned newPred = pred->number();
+  const Signature::Symbol* predSym = pred;
 
   TermList var1 = TermList(_poly ? 1 : 0,false);
   TermList var2 = TermList(_poly ? 2 : 1,false);

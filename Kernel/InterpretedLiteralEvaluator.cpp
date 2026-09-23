@@ -1099,7 +1099,7 @@ bool InterpretedLiteralEvaluator::balance(Literal* lit,Literal*& resLit)
   }
   // so we have t1 a constant and t2 something that has an interpreted function at the top
 
-  Signature::Symbol* conSym = env.signature->getFunction(t1.term()->functor());
+  const Signature::Symbol* conSym = env.signature->getFunction(t1.term()->functor());
   TermList srt;
   if(conSym->integerConstant()) srt = AtomicSort::intSort();
   else if(conSym->rationalConstant()) srt = AtomicSort::rationalSort();

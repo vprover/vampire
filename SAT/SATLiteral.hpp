@@ -63,7 +63,6 @@ private:
 
 // hash a SATLiteral by FNV-1a of the signed integer it wraps
 struct SATLiteralHash {
-  static bool equals(SATLiteral l1, SATLiteral l2) { return l1 == l2; }
   static unsigned hash(SATLiteral l) { return FnvHash::hash(l._lit); }
 };
 

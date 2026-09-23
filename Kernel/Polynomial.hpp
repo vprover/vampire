@@ -64,9 +64,6 @@ public:
 };
 
 struct VariableHash {
-  static bool equals(Variable const& lhs, Variable const& rhs)
-  { return lhs == rhs; }
-
   static unsigned hash(Variable const& value)
   { return FnvHash::hash(value.id()); }
 };
@@ -123,7 +120,7 @@ public:
   auto iterTypeArgs() const 
   { return range(0, numTypeArguments()).map([&](auto i) { return typeArg(i); }); }
 
-  Signature::Symbol* symbol() const;
+  const Signature::Symbol* symbol() const;
 
   unsigned id() const;
   Theory::Interpretation interpretation() const;
@@ -138,9 +135,6 @@ public:
 };
 
 struct FuncIdHash {
-  static bool equals(FuncId const& lhs, FuncId const& rhs)
-  { return lhs == rhs; }
-
   static unsigned hash(FuncId const& value)
   {
     return HashUtils::combine(FnvHash::hash(value.id()),
@@ -403,9 +397,6 @@ public:
 
 
 struct AnyPolyHash {
-  static bool equals(AnyPoly const& lhs, AnyPoly const& rhs)
-  { return lhs == rhs; }
-
   static unsigned hash(AnyPoly const& value)
   {
     return CoproductHash<PerfectHash<FnvHash>, PerfectHash<FnvHash>, PerfectHash<FnvHash>>::hash(
@@ -414,9 +405,6 @@ struct AnyPolyHash {
 };
 
 struct PolyNfHash {
-  static bool equals(PolyNf const& lhs, PolyNf const& rhs)
-  { return lhs == rhs; }
-
   static unsigned hash(PolyNf const& value)
   {
     return CoproductHash<PerfectHash<FnvHash>, VariableHash, AnyPolyHash>::hash(

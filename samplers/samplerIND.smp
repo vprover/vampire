@@ -130,8 +130,6 @@ $nwc!=1 > nwc ~uf 0.5,15.0
 # introduced_symbol_precedence
 > isp ~cat top:10,bottom:1
 
-# restrict_nwc_to_goal_constants
-nwc!=1 > rnwc ~cat off:5,on:1
 
 # literal_maximality_aftercheck
 > lma ~cat off:500,on:83
@@ -282,9 +280,7 @@ alasca=off > to ~cat kbo:130,lpo:40,incomp:1
 alasca=on > to ~cat kbo:10,qkbo:20,lakbo:40,lpo:10,incomp:1
 
 # symbol_precedence
-> sp ~cat arity:100,const_min:72,frequency:130,const_frequency:49,reverse_frequency:55,reverse_arity:72,unary_first:28,occurrence:82,unary_frequency:14,const_max:18
-# symbol_precedence_boost
-> spb ~cat none:200,units:78,goal:91,goal_then_units:93,non_intro:14,intro:12
+> sp ~cat arity:100,const_min:72,frequency:130,const_frequency:49,reverse_frequency:55,reverse_arity:72,unary_first:28,occurrence:41,reverse_occurrence:41,unary_frequency:14,const_max:18
 
 # kbo_max_zero
 to=kbo > kmz ~cat off:200,on:1
@@ -426,8 +422,11 @@ thsq=on > thsqd ~cat 2:1,4:1,8:7,32:5,64:2,128:1
 # induction
 > ind ~cat none:5,struct:10,int:1,both:1
 
-# induction_choice
-ind!=none > indc ~cat all:3,goal:1,goal_plus:1
+# induction_skolem_only
+ind!=none > indso ~cat off:4,on:1
+
+# induction_goal_clauses_only
+ind!=none > indgco ~cat off:4,on:1
 
 # induction_gen
 # Marton: toggles generalizing over occurrences, when on it inducts separately on all non-empty subsets of each induction term (very explosive)

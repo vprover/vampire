@@ -292,83 +292,35 @@ void FiniteModelBuilder::createSymmetryOrdering()
     // Next add some groundings of function symbols
     // Currently these will be uniform groundings i.e. if we have arity 2 then we consider f(1,1),f(2,2)
     // TODO also allow f(1,2) and f(2,1)
-    bool arg_first = false;
-    switch(env.options->fmbSymmetryWidgetOrders()){
-    // If function first then we do each function in turn i.e.
+    // we do each function in turn i.e.
     // f(1)f(2)f(3)g(1)g(2)g(3)
-    case Options::FMBWidgetOrders::FUNCTION_FIRST:
-    {
-      for(unsigned f=0;f<_sortedSignature->sortedFunctions[s].length();f++){
-        for(unsigned m=1;m<=size;m++){
-
-          GroundedTerm g;
-          g.f =_sortedSignature->sortedFunctions[s][f];
-
-          // We skip f if its range is bounded to less than size
-          unsigned arity = env.signature->functionArity(g.f);
-          unsigned gfsrt = _sortedSignature->symbolSignatures[g.f][arity];
-          if(_sortedSignature->sortBounds[gfsrt] < size) continue;
-
-          g.grounding.ensure(arity);
-
-          // We skip f if its domain is bounded to less than g.grounding
-          bool outOfBounds = false;
-          for(unsigned i=0;i<arity;i++){
-            unsigned srtx = _sortedSignature->symbolSignatures[g.f][i];
-            g.grounding[i] = min(m,_sortModelSizes[srtx]);
-            if(_sortedSignature->sortBounds[srtx] < g.grounding[i])
-              outOfBounds=true;
-          }
-          if(outOfBounds) continue;
-
-          _sortedGroundedTerms[s].push(g);
-          //cout << "Adding " << g.toString() <<  " to " << s << endl;
-        }
-      }
-      break;
-    }
-    // If argument first then we do each size and then each function i.e.
-    // f(1)g(1)f(2)g(2)f(3)g(3)
-    case Options::FMBWidgetOrders::ARGUMENT_FIRST:
-      arg_first=true;
-      // now use diagonal code but don't do the diagonal
-
-    // If diagonal then we do f(1)g(2)h(3)f(2)g(3)h(1)f(3)g(1)h(2)
-    case Options::FMBWidgetOrders::DIAGONAL:
-    {
+    for(unsigned f=0;f<_sortedSignature->sortedFunctions[s].length();f++){
       for(unsigned m=1;m<=size;m++){
-        for(unsigned f=0;f<_sortedSignature->sortedFunctions[s].length();f++){
 
-          GroundedTerm g;
-          g.f =_sortedSignature->sortedFunctions[s][f];
+        GroundedTerm g;
+        g.f =_sortedSignature->sortedFunctions[s][f];
 
-          // We skip f if its range is bounded to less than size
-          unsigned arity = env.signature->functionArity(g.f);
-          unsigned gfsrt = _sortedSignature->symbolSignatures[g.f][arity];
-          if(_sortedSignature->sortBounds[gfsrt] < size) continue;
+        // We skip f if its range is bounded to less than size
+        unsigned arity = env.signature->functionArity(g.f);
+        unsigned gfsrt = _sortedSignature->symbolSignatures[g.f][arity];
+        if(_sortedSignature->sortBounds[gfsrt] < size) continue;
 
-          // If doing arg_first then we ignore the diagonal thing
-          // otherwise the grounding is this weird function of m, f and size
-          unsigned groundWith = arg_first ? m : 1+((m+f)%(size));
-          g.grounding.ensure(arity);
+        g.grounding.ensure(arity);
 
-          // We skip f if its domain is bounded to less than g.grounding
-          bool outOfBounds = false;
-          for(unsigned i=0;i<arity;i++){
-            unsigned srtx = _sortedSignature->symbolSignatures[g.f][i];
-            g.grounding[i] = min(groundWith,_sortModelSizes[srtx]);
-            if(_sortedSignature->sortBounds[srtx] < g.grounding[i])
-              outOfBounds=true;
-          }
-          if(outOfBounds) continue;
-  
-          _sortedGroundedTerms[s].push(g);
-          //cout << "Adding " << g.toString() << " to " << s << endl;
+        // We skip f if its domain is bounded to less than g.grounding
+        bool outOfBounds = false;
+        for(unsigned i=0;i<arity;i++){
+          unsigned srtx = _sortedSignature->symbolSignatures[g.f][i];
+          g.grounding[i] = min(m,_sortModelSizes[srtx]);
+          if(_sortedSignature->sortBounds[srtx] < g.grounding[i])
+            outOfBounds=true;
         }
+        if(outOfBounds) continue;
+
+        _sortedGroundedTerms[s].push(g);
+        //cout << "Adding " << g.toString() <<  " to " << s << endl;
       }
     }
-    }
-
   }
 }
 
@@ -1878,7 +1830,7 @@ void FiniteModelBuilder::onModelFound()
   for (unsigned f : env.signature->functionSymbols()) {
     if(deletedSymbols[f]) continue;
 
-    Signature::Symbol* sym = env.signature->getFunction(f);
+    const Signature::Symbol* sym = env.signature->getFunction(f);
     // if (sym->introduced()) continue; // so that a sort function may enter the model (to be elimintated later)
 
     //cout << "For " << env.signature->getFunction(f)->name() << endl;
@@ -1958,7 +1910,7 @@ void FiniteModelBuilder::onModelFound()
     if (p < 1) continue;
     if(deletedSymbols[p]) continue;
 
-    Signature::Symbol* sym = env.signature->getPredicate(p);
+    const Signature::Symbol* sym = env.signature->getPredicate(p);
     // if (sym->introduced()) continue; // so that a sort predicate may enter the model (to be elimintated later)
 
     unsigned arity = env.signature->predicateArity(p);

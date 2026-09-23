@@ -10,6 +10,8 @@
 
 #include "Test/UnitTesting.hpp"
 #include "Kernel/Signature.hpp"
+#include <type_traits>
+#include <utility>
 #include "Kernel/Clause.hpp"
 #include "Kernel/SymbolUsage.hpp"
 #include "Kernel/Problem.hpp"
@@ -31,12 +33,12 @@ TEST_FUN(symbolDomains)
   auto& sig = *env.signature;
   auto sort = AtomicSort::defaultSort();
   unsigned first = sig.symbolCount();
-  auto f = sig.getSymbol(sig.addFunction("signature_test_name", OperatorType::getConstantsType(sort)));
+  auto f = sig.addFunction("signature_test_name", OperatorType::getConstantsType(sort));
   f->markIntroduced();
   f->markSkolem();
-  auto p = sig.getSymbol(sig.addPredicate("signature_test_name", OperatorType::getPredicateType({})));
+  auto p = sig.addPredicate("signature_test_name", OperatorType::getPredicateType({}));
   p->markLabel();
-  auto tc = sig.getSymbol(sig.addTypeCon("signature_test_name", 0));
+  auto tc = sig.addTypeCon("signature_test_name", 0);
   ASS_EQ(f->number(), first);
   ASS_EQ(p->number(), first + 1);
   ASS_EQ(tc->number(), first + 2);
@@ -44,15 +46,15 @@ TEST_FUN(symbolDomains)
   ASS(f->isFunction() && f->introduced() && f->skolem());
   ASS(p->isPredicate() && p->label() && p->protectedSymbol());
   ASS(tc->isTypeCon());
-  ASS_EQ(sig.getSymbol(sig.addFunction("signature_test_name", f->type()))->number(), f->number());
-  ASS_EQ(sig.getSymbol(sig.addPredicate("signature_test_name", p->type()))->number(), p->number());
-  ASS_EQ(sig.getSymbol(sig.addTypeCon("signature_test_name", 0))->number(), tc->number());
+  ASS_EQ(sig.addFunction("signature_test_name", f->type())->number(), f->number());
+  ASS_EQ(sig.addPredicate("signature_test_name", p->type())->number(), p->number());
+  ASS_EQ(sig.addTypeCon("signature_test_name", 0)->number(), tc->number());
 
   // Boolean-valued functions belong to the function domain, not the predicate domain.
-  auto b = sig.getSymbol(sig.addFreshFunction(OperatorType::getConstantsType(AtomicSort::boolSort()), "bool_fun"));
+  auto b = sig.addFreshFunction(OperatorType::getConstantsType(AtomicSort::boolSort()), "bool_fun");
   ASS(b->isFunction());
   ASS(!b->isPredicate());
-  auto fresh = sig.getSymbol(sig.addFreshPredicate(OperatorType::getPredicateType({}), "answer"));
+  auto fresh = sig.addFreshPredicate(OperatorType::getPredicateType({}), "answer");
   fresh->markAnswerPredicate();
   ASS(fresh->introduced() && fresh->skip() && fresh->answerPredicate());
 }
@@ -61,13 +63,13 @@ TEST_FUN(symbolRangeSurvivesRegistration)
 {
   auto& sig = *env.signature;
   auto type = OperatorType::getConstantsType(AtomicSort::defaultSort());
-  sig.getSymbol(sig.addFreshFunction(type, "before"));
+  sig.addFreshFunction(type, "before");
   auto symbols = sig.functionSymbols();
   unsigned count = 0;
   for (unsigned id : symbols) {
     ASS(sig.getSymbol(id)->isFunction());
     // Force the ID list to reallocate while iterating a snapshot.
-    for (unsigned j = 0; j < 100; ++j) sig.getSymbol(sig.addFreshFunction(type, "during"));
+    for (unsigned j = 0; j < 100; ++j) sig.addFreshFunction(type, "during");
     ++count;
   }
   ASS_EQ(count, symbols.size());
@@ -100,9 +102,9 @@ TEST_FUN(builtinsAndArithmeticHaveUniqueIds)
 TEST_FUN(sineUsesSignatureIds)
 {
   auto& sig = *env.signature;
-  auto f = sig.getSymbol(sig.addFreshFunction(OperatorType::getConstantsType(AtomicSort::defaultSort()), "sine_f"));
-  auto p = sig.getSymbol(sig.addFreshPredicate(OperatorType::getPredicateType({}), "sine_p"));
-  auto s = sig.getSymbol(sig.addFreshTypeCon(0, "sine_s"));
+  auto f = sig.addFreshFunction(OperatorType::getConstantsType(AtomicSort::defaultSort()), "sine_f");
+  auto p = sig.addFreshPredicate(OperatorType::getPredicateType({}), "sine_p");
+  auto s = sig.addFreshTypeCon(0, "sine_s");
   Shell::SineSymbolExtractor extractor;
   for (unsigned id : {f->number(), p->number(), s->number()}) {
     bool pred;
@@ -127,10 +129,10 @@ struct SignatureLiteralData {
 TEST_FUN(codeTreePrintsGlobalSymbolNames)
 {
   auto& sig = *env.signature;
-  unsigned s = sig.getSymbol(sig.addTypeCon("signature_print_sort", 0))->number();
+  unsigned s = sig.addTypeCon("signature_print_sort", 0)->number();
   auto sort = TermList(AtomicSort::createConstant(s));
-  auto p = sig.getSymbol(sig.addPredicate("signature_print_pred", OperatorType::getPredicateType({sort})));
-  auto f = sig.getSymbol(sig.addFunction("signature_print_fun", OperatorType::getConstantsType(sort)));
+  auto p = sig.addPredicate("signature_print_pred", OperatorType::getPredicateType({sort}));
+  auto f = sig.addFunction("signature_print_fun", OperatorType::getConstantsType(sort));
   auto term = TermList(Term::createConstant(f->number()));
   Indexing::LiteralCodeTree<SignatureLiteralData> tree;
   tree.insert(new SignatureLiteralData{Literal::create1(p->number(), false, term)});
@@ -153,13 +155,13 @@ TEST_FUN(categoryIndicesStayDenseAcrossRegistration)
   unsigned functions = sig.functionCount();
   unsigned predicates = sig.predicateCount();
   unsigned typeCons = sig.typeConCount();
-  auto p = sig.getSymbol(sig.addFreshPredicate(OperatorType::getPredicateType({}), "dense_p"));
+  auto p = sig.addFreshPredicate(OperatorType::getPredicateType({}), "dense_p");
   for (unsigned i = 0; i < 1000; ++i) {
-    auto f = sig.getSymbol(sig.addFreshFunction(type, "dense_f"));
+    auto f = sig.addFreshFunction(type, "dense_f");
     ASS_EQ(sig.functionIndex(f->number()), functions + i);
   }
-  auto tc = sig.getSymbol(sig.addFreshTypeCon(0, "dense_s"));
-  auto q = sig.getSymbol(sig.addFreshPredicate(OperatorType::getPredicateType({}), "dense_q"));
+  auto tc = sig.addFreshTypeCon(0, "dense_s");
+  auto q = sig.addFreshPredicate(OperatorType::getPredicateType({}), "dense_q");
   ASS_EQ(sig.predicateIndex(0), 0u);
   ASS_EQ(sig.predicateIndex(p->number()), predicates);
   ASS_EQ(sig.predicateIndex(q->number()), predicates + 1);
@@ -188,12 +190,12 @@ TEST_FUN(precedenceStorageHandlesInterleavedAndLateSymbols)
   auto& sig = *env.signature;
   auto sort = AtomicSort::defaultSort();
   auto type = OperatorType::getConstantsType(sort);
-  auto f = sig.getSymbol(sig.addFreshFunction(type, "prec_f"));
-  auto p = sig.getSymbol(sig.addFreshPredicate(OperatorType::getPredicateType({sort}), "prec_p"));
-  auto s = sig.getSymbol(sig.addFreshTypeCon(0, "prec_s"));
-  auto g = sig.getSymbol(sig.addFreshFunction(type, "prec_g"));
-  auto q = sig.getSymbol(sig.addFreshPredicate(OperatorType::getPredicateType({sort}), "prec_q"));
-  auto t = sig.getSymbol(sig.addFreshTypeCon(0, "prec_t"));
+  auto f = sig.addFreshFunction(type, "prec_f");
+  auto p = sig.addFreshPredicate(OperatorType::getPredicateType({sort}), "prec_p");
+  auto s = sig.addFreshTypeCon(0, "prec_s");
+  auto g = sig.addFreshFunction(type, "prec_g");
+  auto q = sig.addFreshPredicate(OperatorType::getPredicateType({sort}), "prec_q");
+  auto t = sig.addFreshTypeCon(0, "prec_t");
   auto prec = [](unsigned size) { return DArray<int>::fromIterator(range(0u, size)); };
   auto fp = prec(sig.functionCount());
   auto pp = prec(sig.predicateCount());
@@ -211,9 +213,9 @@ TEST_FUN(precedenceStorageHandlesInterleavedAndLateSymbols)
   weights._introducedSymbolWeight = 7;
   ASS_EQ(weights._weights.size(), sig.functionCount());
   ASS_EQ(weights.symbolWeight(f->number()), 1u);
-  auto late = sig.getSymbol(sig.addFreshFunction(type, "prec_late_f"));
-  auto latePred = sig.getSymbol(sig.addFreshPredicate(OperatorType::getPredicateType({sort}), "prec_late_p"));
-  auto lateType = sig.getSymbol(sig.addFreshTypeCon(0, "prec_late_s"));
+  auto late = sig.addFreshFunction(type, "prec_late_f");
+  auto latePred = sig.addFreshPredicate(OperatorType::getPredicateType({sort}), "prec_late_p");
+  auto lateType = sig.addFreshTypeCon(0, "prec_late_s");
   auto expected = env.options->introducedSymbolPrecedence() == Shell::Options::IntroducedSymbolPrecedence::BOTTOM
     ? Ordering::LESS : Ordering::GREATER;
   ASS_EQ(order.compareFunctionPrecedences(late->number(), f->number()), expected);
@@ -234,11 +236,11 @@ TEST_FUN(finiteModelUsesInterleavedSymbolOffsets)
 {
   auto& sig = *env.signature;
   auto sort = AtomicSort::defaultSort();
-  auto a = sig.getSymbol(sig.addFreshFunction(OperatorType::getConstantsType(sort), "model_a"));
-  auto p = sig.getSymbol(sig.addFreshPredicate(OperatorType::getPredicateType({sort}), "model_p"));
-  auto f = sig.getSymbol(sig.addFreshFunction(OperatorType::getFunctionType({sort}, sort), "model_f"));
-  auto q = sig.getSymbol(sig.addFreshPredicate(OperatorType::getPredicateType({sort}), "model_q"));
-  sig.getSymbol(sig.addFreshTypeCon(0, "model_s"));
+  auto a = sig.addFreshFunction(OperatorType::getConstantsType(sort), "model_a");
+  auto p = sig.addFreshPredicate(OperatorType::getPredicateType({sort}), "model_p");
+  auto f = sig.addFreshFunction(OperatorType::getFunctionType({sort}, sort), "model_f");
+  auto q = sig.addFreshPredicate(OperatorType::getPredicateType({sort}), "model_q");
+  sig.addFreshTypeCon(0, "model_s");
   auto sizes = DArray<unsigned>::initialized(sig.symbolCount(), 2);
   FMB::FiniteModelMultiSorted model(std::move(sizes));
   DArray<unsigned> noArgs;
@@ -254,47 +256,39 @@ TEST_FUN(finiteModelUsesInterleavedSymbolOffsets)
   ASS(!model.evaluateGroundLiteral(Literal::create1(q->number(), true, TermList(term))));
 }
 
-TEST_FUN(propertyScanResetsInterleavedSymbolMarks)
+TEST_FUN(propertyScanTracksInterleavedSorts)
 {
   auto& sig = *env.signature;
-  auto f = sig.getSymbol(sig.addFreshFunction(OperatorType::getConstantsType(AtomicSort::defaultSort()), "usage_f"));
-  auto p = sig.getSymbol(sig.addFreshPredicate(OperatorType::getPredicateType({AtomicSort::defaultSort()}, 1), "usage_p"));
-  auto tc = sig.getSymbol(sig.addFreshTypeCon(0, "usage_s"));
+  sig.addFreshFunction(OperatorType::getConstantsType(AtomicSort::defaultSort()), "unused_usage_f");
+  auto tc = sig.addFreshTypeCon(0, "usage_s");
   auto sort = TermList(AtomicSort::createConstant(tc->number()));
+  auto p = sig.addFreshPredicate(OperatorType::getPredicateType({sort}), "usage_p");
+  auto f = sig.addFreshFunction(OperatorType::getConstantsType(sort), "usage_f");
   auto clause = Clause::fromLiterals({
-    Literal::create2(p->number(), true, sort, TermList(Term::createConstant(f->number())))
+    Literal::create1(p->number(), true, TermList(Term::createConstant(f->number())))
   }, Inference(FromInput(UnitInputType::CONJECTURE)));
   UnitList* units = nullptr;
   UnitList::push(clause, units);
 
-  delete Shell::Property::scan(units);
-  for (auto symbol : {f, p, tc}) {
-    ASS(symbol->inGoal());
-    ASS(symbol->inUnit());
-  }
-
-  // Rescanning preserves marks for symbols still in the clauses.
-  delete Shell::Property::scan(units);
-  for (auto symbol : {f, p, tc}) {
-    ASS(symbol->inGoal());
-    ASS(symbol->inUnit());
-  }
-
-  delete Shell::Property::scan(UnitList::empty());
-  for (auto symbol : {f, p, tc}) {
-    ASS(!symbol->inGoal());
-    ASS(!symbol->inUnit());
-  }
+  auto first = Shell::Property::scan(units);
+  auto second = Shell::Property::scan(units);
+  auto empty = Shell::Property::scan(UnitList::empty());
+  ASS(first->usesSort(tc->number()));
+  ASS(second->usesSort(tc->number()));
+  ASS(!empty->usesSort(tc->number()));
+  delete first;
+  delete second;
+  delete empty;
   UnitList::destroy(units);
 }
 
 TEST_FUN(symbolUsageUsesDenseCategoryIndices)
 {
   auto& sig = *env.signature;
-  auto f = sig.addFreshFunction(OperatorType::getConstantsType(AtomicSort::defaultSort()), "count_f");
-  auto p = sig.addFreshPredicate(OperatorType::getPredicateType({AtomicSort::defaultSort(), AtomicSort::defaultSort()}, 1), "count_p");
-  auto tc = sig.addFreshTypeCon(0, "count_s");
-  auto unused = sig.addFreshFunction(OperatorType::getConstantsType(AtomicSort::defaultSort()), "unused_f");
+  auto f = sig.addFreshFunction(OperatorType::getConstantsType(AtomicSort::defaultSort()), "count_f")->number();
+  auto p = sig.addFreshPredicate(OperatorType::getPredicateType({AtomicSort::defaultSort(), AtomicSort::defaultSort()}, 1), "count_p")->number();
+  auto tc = sig.addFreshTypeCon(0, "count_s")->number();
+  auto unused = sig.addFreshFunction(OperatorType::getConstantsType(AtomicSort::defaultSort()), "unused_f")->number();
   auto sort = TermList(AtomicSort::createConstant(tc));
   auto term = TermList(Term::createConstant(f));
   TermList args[] = {sort, term, term};
@@ -323,7 +317,7 @@ TEST_FUN(symbolUsageUsesDenseCategoryIndices)
   ASS(usedPredicates[sig.predicateIndex(p)]);
   ASS(!usedPredicates[sig.predicateIndex(0)]);
 
-  auto late = sig.addFreshPredicate(OperatorType::getPredicateType({}), "late_count_p");
+  auto late = sig.addFreshPredicate(OperatorType::getPredicateType({}), "late_count_p")->number();
   ASS_EQ(sig.predicateIndex(late), usedPredicates.size());
   clauses.reset();
   counts.countIn(pvi(ClauseStack::Iterator(clauses)));
@@ -348,10 +342,10 @@ TEST_FUN(kboGeneratedWeightsUseDenseCategoryIndices)
 {
   auto& sig = *env.signature;
   auto sort = AtomicSort::defaultSort();
-  auto f = sig.addFreshFunction(OperatorType::getConstantsType(sort), "weight_f");
-  auto p = sig.addFreshPredicate(OperatorType::getPredicateType({sort, sort, sort}), "weight_p");
-  sig.addFreshTypeCon(0, "weight_s");
-  auto g = sig.addFreshFunction(OperatorType::getConstantsType(sort), "weight_g");
+  auto f = sig.addFreshFunction(OperatorType::getConstantsType(sort), "weight_f")->number();
+  auto p = sig.addFreshPredicate(OperatorType::getPredicateType({sort, sort, sort}), "weight_p")->number();
+  sig.addFreshTypeCon(0, "weight_s")->number();
+  auto g = sig.addFreshFunction(OperatorType::getConstantsType(sort), "weight_g")->number();
   auto ft = Term::createConstant(f);
   auto gt = Term::createConstant(g);
   TermList args[] = {TermList(ft), TermList(ft), TermList(gt)};
@@ -381,4 +375,150 @@ TEST_FUN(kboGeneratedWeightsUseDenseCategoryIndices)
   InspectableKBO inverseFrequency(prb, opts);
   ASS_EQ(inverseFrequency.symbolWeight(ft), 1);
   ASS_EQ(inverseFrequency.symbolWeight(gt), 2);
+}
+
+static_assert(std::is_same_v<decltype(std::declval<Signature&>().getFunction(0)), const Signature::Symbol*>);
+static_assert(std::is_same_v<decltype(std::declval<const Signature&>().getPredicate(0)), const Signature::Symbol*>);
+static_assert(std::is_same_v<decltype(std::declval<Signature&>().getTypeCon(0)), const Signature::Symbol*>);
+
+TEST_FUN(namedSymbolsKeepRegistrationSemantics)
+{
+  auto& sig = *env.signature;
+  auto type = OperatorType::getConstantsType(AtomicSort::defaultSort());
+  bool added = false;
+  auto f = sig.addFunction("symbol_symbol", type, added)->markIntroduced()->markSkolem();
+  ASS(added);
+  ASS_EQ(sig.getFunction(f->number()), f);
+  ASS(f->introduced() && f->skolem());
+  auto again = sig.addFunction("symbol_symbol", type, added);
+  ASS(!added);
+  ASS_EQ(again->number(), f->number());
+  ASS(!again->introduced());
+  ASS(again->skolem());
+
+  auto p = sig.addPredicate("symbol_symbol", OperatorType::getPredicateType({}), added)->markLabel();
+  ASS(added);
+  ASS_EQ(sig.getPredicate(p->number()), p);
+  ASS(p->label() && p->protectedSymbol());
+  ASS_EQ(sig.addPredicate("symbol_symbol", p->type(), added)->number(), p->number());
+  ASS(!added);
+
+  auto tc = sig.addTypeCon("symbol_symbol", 0, added);
+  ASS(added);
+  ASS_EQ(sig.getTypeCon(tc->number()), tc);
+  ASS_EQ(sig.addTypeCon("symbol_symbol", 0, added)->number(), tc->number());
+  ASS(!added);
+  ASS_EQ(sig.addFunction("symbol_symbol", type)->number(), f->number());
+  ASS_EQ(sig.addPredicate("symbol_symbol", p->type())->number(), p->number());
+  ASS_EQ(sig.addTypeCon("symbol_symbol", 0)->number(), tc->number());
+}
+
+TEST_FUN(freshSymbolsKeepFlagsAndStableHandles)
+{
+  auto& sig = *env.signature;
+  auto type = OperatorType::getConstantsType(AtomicSort::boolSort());
+  env.colorUsed = true;
+  auto f = sig.addFreshFunction(type, "symbol", "suffix")->markSkolem()->markSkipCongruence()->markProtected()->addColor(COLOR_LEFT);
+  ASS_EQ(sig.getFunction(f->number()), f);
+  ASS(f->introduced() && f->skip() && f->skolem());
+  ASS(f->skipCongruence() && f->protectedSymbol());
+  ASS_EQ(f->color(), COLOR_LEFT);
+  ASS_EQ(f->type(), type);
+  ASS_EQ(f->name().substr(f->name().size() - 7), "_suffix");
+  ASS_NEQ(sig.addFreshFunction(type, "symbol", "suffix")->number(), f->number());
+
+  auto p = sig.addFreshPredicate(OperatorType::getPredicateType({}), "symbol")->markAnswerPredicate()->markSkipCongruence();
+  ASS_EQ(sig.getPredicate(p->number()), p);
+  ASS(p->introduced() && p->skip() && p->answerPredicate());
+  ASS(p->protectedSymbol() && p->skipCongruence());
+  auto tc = sig.addFreshTypeCon(1, "symbol")->markSkolem();
+  ASS_EQ(sig.getTypeCon(tc->number()), tc);
+  ASS(tc->introduced() && tc->skip() && tc->skolem());
+  ASS_EQ(tc->arity(), 1u);
+
+  for (unsigned i = 0; i < 1000; ++i) {
+    sig.addFreshFunction(type, "grow");
+    sig.addFreshPredicate(p->type(), "grow");
+    sig.addFreshTypeCon(0, "grow");
+  }
+  ASS_EQ(sig.getFunction(f->number()), f);
+  ASS_EQ(sig.getPredicate(p->number()), p);
+  ASS_EQ(sig.getTypeCon(tc->number()), tc);
+  ASS(f->skolem() && p->answerPredicate() && tc->skolem());
+
+  auto proxy = sig.addFreshPredicate(OperatorType::getPredicateType({AtomicSort::defaultSort(), AtomicSort::defaultSort()}), "proxy")
+    ->markEqualityProxy()->markSkipCongruence();
+  ASS(proxy->equalityProxy() && proxy->skipCongruence());
+  auto discr = sig.addFreshPredicate(OperatorType::getPredicateType({AtomicSort::defaultSort()}), "discr")
+    ->markTermAlgebraDiscriminator();
+  ASS(discr->termAlgebraDiscriminator());
+  auto constructor = sig.addFreshFunction(type, "constructor")->markTermAlgebraCons();
+  ASS(constructor->termAlgebraCons());
+  auto destructor = sig.addFreshFunction(type, "destructor")->markTermAlgebraDest();
+  ASS(destructor->termAlgebraDest());
+  auto named = sig.addFunction("symbol_flags", type)->markIntroduced()->markSkip();
+  ASS(named->introduced() && named->skip());
+}
+
+TEST_FUN(postRegistrationUpdatesPreserveIdentity)
+{
+  auto& sig = *env.signature;
+  auto f = sig.addFreshFunction(OperatorType::getConstantsType(AtomicSort::defaultSort()), "existing");
+  auto p = sig.addFreshPredicate(OperatorType::getPredicateType({}), "existing");
+  auto functions = sig.functionCount();
+  auto predicates = sig.predicateCount();
+  sig.protectFunction(f->number());
+  sig.markAnswerPredicate(p->number());
+  ASS(f->introduced() && f->protectedSymbol());
+  ASS(p->introduced() && p->answerPredicate() && p->protectedSymbol());
+  ASS_EQ(sig.getFunction(f->number()), f);
+  ASS_EQ(sig.getPredicate(p->number()), p);
+  ASS_EQ(sig.functionCount(), functions);
+  ASS_EQ(sig.predicateCount(), predicates);
+}
+
+TEST_FUN(specializedHelpersKeepFlags)
+{
+  auto& sig = *env.signature;
+  auto type = OperatorType::getConstantsType(AtomicSort::defaultSort());
+  auto predType = OperatorType::getPredicateType({});
+  auto f = sig.addSkolemFunction(type, "test");
+  auto p = sig.addSkolemPredicate(predType, "test");
+  auto tc = sig.addSkolemTypeCon(1);
+  for (auto symbol : {f, p, tc}) {
+    ASS(symbol->skolem() && symbol->introduced() && symbol->skip());
+    ASS_EQ(symbol->name().substr(0, 2), "sK");
+  }
+  for (auto symbol : {sig.addNameFunction(type), sig.addNamePredicate(predType)}) {
+    ASS(symbol->introduced() && symbol->skip());
+    ASS(!symbol->skolem());
+    ASS_EQ(symbol->name().substr(0, 2), "sP");
+  }
+}
+
+TEST_FUN(allSymbolKindsStoreTheirNumber)
+{
+  auto& sig = *env.signature;
+  auto sort = AtomicSort::defaultSort();
+  auto string = sig.addStringConstant("symbol_number", sort);
+  auto integer = sig.addNumeralConstant(IntegerConstantType(42));
+  auto rational = sig.addNumeralConstant(RationalConstantType(3, 2));
+  auto real = sig.addNumeralConstant(RealConstantType(5, 2));
+  auto mul = sig.addLinMul(IntegerConstantType(7));
+  sig.addEquality();
+  sig.getDistinctPredicate(2, sort);
+  ASS_EQ(sig.getFunction(string)->number(), string);
+  ASS_EQ(sig.getFunction(integer)->number(), integer);
+  ASS_EQ(sig.getFunction(rational)->number(), rational);
+  ASS_EQ(sig.getFunction(real)->number(), real);
+  ASS_EQ(sig.getFunction(mul)->number(), mul);
+  for (unsigned n : sig.functionSymbols()) {
+    ASS_EQ(sig.getFunction(n)->number(), n);
+  }
+  for (unsigned n : sig.predicateSymbols()) {
+    ASS_EQ(sig.getPredicate(n)->number(), n);
+  }
+  for (unsigned n : sig.typeConSymbols()) {
+    ASS_EQ(sig.getTypeCon(n)->number(), n);
+  }
 }

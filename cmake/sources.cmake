@@ -97,6 +97,7 @@ set(UNIT_TESTS
     UnitTests/tKBO.cpp
     UnitTests/tLPO.cpp
     UnitTests/tList.cpp
+    UnitTests/tMap.cpp
     UnitTests/tOption.cpp
     UnitTests/tPredicateElimination.cpp
     UnitTests/tOptionConstraints.cpp
@@ -541,6 +542,7 @@ set(SOURCES
     Lib/Event.hpp
     Lib/Exception.cpp
     Lib/Exception.hpp
+    Lib/FlexibleTail.hpp
     Lib/Hash.hpp
     Lib/Int.cpp
     Lib/Int.hpp
