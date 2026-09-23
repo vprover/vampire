@@ -37,9 +37,9 @@ using namespace std;
 using namespace Lib;
 
 /**
- * Numeral values are stored in the signature, and every numeral type is a pair of
- * mpz_t's, i.e. copying one costs two mallocs. The evaluators below look at the
- * numerals of *every* interpreted subterm they are offered, but only need to copy
+ * Numeral values are stored in the signature; a numeral holds one mpz_t (integers)
+ * or two (rationals and reals), each a malloc to copy. The evaluators below look at
+ * the numerals of *every* interpreted subterm they are offered, but only need to copy
  * one when they actually compute with it. These helpers give read-only access to
  * the stored value instead, and test against 0/1/-1 without building a numeral.
  */
