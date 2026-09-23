@@ -29,7 +29,14 @@ class InterpretedLiteralEvaluator
   :  private BottomUpTermTransformer 
 {
 public:
-  InterpretedLiteralEvaluator(bool doNormalize = true);
+  /**
+   * @param cacheNormalForms lets this evaluator own Term::isEvalNormalForm(), i.e. mark
+   *   the terms it leaves unchanged and skip them when it meets them again. Only the
+   *   InterpretedEvaluation of a saturation run may do this (there is at most one, and
+   *   its behaviour on subterms does not depend on @b doNormalize); every other user of
+   *   this class must leave the flag alone, as its own notion of normal form might differ.
+   */
+  InterpretedLiteralEvaluator(bool doNormalize = true, bool cacheNormalForms = false);
   ~InterpretedLiteralEvaluator() override;
 
   bool evaluate(Literal* lit, bool& isConstant, Literal*& resLit, bool& resConst);
@@ -48,6 +55,7 @@ protected:
 
   typedef Stack<Evaluator*> EvalStack;
   TermList transformSubterm(TermList trm) override;
+  bool alreadyTransformed(Term* t) override;
   Evaluator* getFuncEvaluator(unsigned func);
   Evaluator* getPredEvaluator(unsigned pred);
   EvalStack _evals;
@@ -79,7 +87,10 @@ protected:
 private:
   template<class Fn>
   Evaluator* getEvaluator(unsigned func, DArray<Evaluator*>& evaluators, Fn canEval);
+  /** records in the terms themselves that we have nothing to do on them, @see the constructor */
+  void rememberEvalNormalForm(Term* t);
   const bool _normalize;
+  const bool _cacheNormalForms;
 };
 
 }

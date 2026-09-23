@@ -92,8 +92,8 @@ class Signature
     unsigned _categoryIndex = UINT_MAX;
   
   protected:
-    /** print name */
-    std::string _name;
+    /** print name; for numerals it is only built when first asked for, @see fillNumeralName */
+    mutable std::string _name;
 
     OperatorType* _type;
 
@@ -181,7 +181,8 @@ class Signature
     /** Return the type argument arity of the symbol. */
     inline unsigned numTypeArguments() const { return _type->numTypeArguments(); }
     /** Return the name of the symbol */
-    inline const std::string& name() const { return _name; }
+    inline const std::string& name() const
+    { if (_name.empty()) { fillNumeralName(); } return _name; }
     /** Return true iff the object is of type InterpretedSymbol */
     inline bool interpreted() const { return _interpreted; }
     Symbol* setProxy(Proxy prox) { _prox = prox; return this; }
@@ -210,6 +211,9 @@ class Signature
     { return interpreted() && arity()==0 && type()->result()==AtomicSort::realSort(); }
 
   private:
+    /** builds the name of a numeral symbol, which is not given one when created */
+    void fillNumeralName() const;
+
     bool numeralConstant(RealConstantType*) const { return realConstant(); }
     bool numeralConstant(RationalConstantType*) const { return rationalConstant(); }
     bool numeralConstant(IntegerConstantType*) const { return integerConstant(); }
@@ -343,10 +347,10 @@ class Signature
 
   public:
     IntegerSymbol(IntegerConstantType val)
-    : Symbol(Output::toString(val),
+    : Symbol(/* name: built on demand, @see fillNumeralName */ "",
         /*              type */ OperatorType::getConstantsType(AtomicSort::intSort()),
         /*       interpreted */ true, 
-        /*    preventQuoting */ false),
+        /*    preventQuoting */ true),
       _intValue(std::move(val))
     {
     }
@@ -362,10 +366,10 @@ class Signature
 
   public:
     RationalSymbol(RationalConstantType val)
-    : Symbol(Output::toString(val),
+    : Symbol(/* name: built on demand, @see fillNumeralName */ "",
         /*              type */ OperatorType::getConstantsType(AtomicSort::rationalSort()),
         /*       interpreted */ true, 
-        /*    preventQuoting */ false),
+        /*    preventQuoting */ true),
        _ratValue(std::move(val))
     {
     }
