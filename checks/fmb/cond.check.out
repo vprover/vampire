@@ -1,0 +1,15 @@
+Finite domain axiom found:
+3. ! [X0] : (X0 = 'fmb_$i_1' | X0 = 'fmb_$i_2' | X0 = 'fmb_$i_3') [input(unknown)]
+Loading model...
+Detected model with 1 sorts.
+  domain for $i of size 3, domain elements are:
+    'fmb_$i_1'
+    'fmb_$i_2'
+    'fmb_$i_3'
+Model loaded
+Checking formulas...
+Checking 1. ! [X0] : f(X0) = $cond(p(X0),a,q(X0),b,c) [input(axiom)]...
+Evaluates to True
+Checking 2. ? [X0] : $cond(p(X0),q(X0),$false) [input(axiom)]...
+Evaluates to True
+All formulas evaluated to True!

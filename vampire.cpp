@@ -106,6 +106,11 @@ Problem* preprocessProblem(Problem* prb)
     env.options->checkProblemOptionConstraints(prb->getProperty(), /*before_preprocessing = */ true);
   }
 
+#if FMB_CHECK_MODEL_AGAINST_INPUT
+  // remember the parsed input, so that a model found by fmb can be checked against it
+  prb->setOriginalInputUnits(UnitList::copy(prb->units()));
+#endif
+
   Shell::Preprocess prepro(*env.options);
   //phases for preprocessing are being set inside the preprocess method
   prepro.preprocess(*prb);

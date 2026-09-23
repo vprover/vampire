@@ -316,8 +316,10 @@ void Shuffling::shuffleIter(Shufflable sh) {
                 break; // I know, unreachable;
 
               case SpecialFunctor::MATCH:
+              case SpecialFunctor::COND:
                 {
-                  // treat as non-special (and don't shuffle the MATCH specifics)
+                  // treat as non-special (and don't shuffle the MATCH / COND specifics --
+                  // for a COND the argument order carries the case order and must not move)
                   Term::Iterator it(t);
                   while (it.hasNext()) {
                     todo.push(Shufflable(it.next()));

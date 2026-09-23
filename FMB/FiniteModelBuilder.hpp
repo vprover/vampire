@@ -25,7 +25,9 @@
 #include "SAT/SATSolver.hpp"
 #include "SAT/SATClause.hpp"
 #include "Lib/ScopedPtr.hpp"
+#include "Kernel/SymbolUsage.hpp"
 #include "SortInference.hpp"
+#include "FiniteModelMultiSorted.hpp"
 #include "Lib/BinaryHeap.hpp"
 #include "Lib/DArray.hpp"
 
@@ -72,6 +74,11 @@ private:
 
   // Creates the model output
   void onModelFound();
+
+#if FMB_CHECK_MODEL_AGAINST_INPUT
+  // the temporary in-run sanity check (see FiniteModelMultiSorted.hpp for the macro)
+  void checkModelAgainstOriginalInput(FiniteModelMultiSorted& model);
+#endif
 
   // Adds constraints from ground clauses (same constraints for each model size)
   void addGroundClauses();
@@ -134,6 +141,12 @@ private:
   // if del_f[i] (resp del_p[i]) is true then that function (resp predicate) should be ignored
   DArray<bool> del_f;
   DArray<bool> del_p;
+
+  // how often each symbol occurs in the clauses init() arrived at; del_f/del_p are read off
+  // these, and onModelFound needs them again to say which symbols the model is about.
+  // Symbols introduced afterwards (SortInference's fresh constants) are past the end, which
+  // counts as unused -- they cannot occur in clauses that predate them
+  Kernel::SymbolCounts _symbolCounts;
 
   // Store monotonicity_info (see Monotonicity::check) for every sort detected (or made) monotonic
   DHMap<unsigned,DArray<signed char>*, FnvHash, IdentityHash> _monotonic_vampire_sorts;
