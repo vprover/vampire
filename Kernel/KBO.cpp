@@ -361,7 +361,7 @@ struct PredSigTraits {
   static bool isConstantSymbol(unsigned functor) 
   { return false; } 
 
-  static Signature::Symbol* getSymbol(unsigned functor) 
+  static const Signature::Symbol* getSymbol(unsigned functor)
   { return env.signature->getPredicate(functor); } 
 
   static const DArray<unsigned>& counts(const SymbolCounts& counts)
@@ -392,7 +392,7 @@ struct FuncSigTraits {
   static bool isConstantSymbol(unsigned functor) 
   { return env.signature->getFunction(functor)->numTermArguments() == 0; } 
 
-  static Signature::Symbol* getSymbol(unsigned functor) 
+  static const Signature::Symbol* getSymbol(unsigned functor)
   { return env.signature->getFunction(functor); }
 
   static const DArray<unsigned>& counts(const SymbolCounts& counts)

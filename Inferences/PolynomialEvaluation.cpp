@@ -98,7 +98,7 @@ Option<LitSimplResult> PolynomialEvaluation::tryEvalPredicate(Literal* orig, Pol
 
   auto sym = env.signature->getPredicate(orig->functor());
   if (sym->interpreted()) {
-    auto inter = static_cast<Signature::InterpretedSymbol*>(sym)->getInterpretation();
+    auto inter = static_cast<const Signature::InterpretedSymbol*>(sym)->getInterpretation();
 
     switch (inter) {
       /* polymorphic */

@@ -1830,7 +1830,7 @@ void FiniteModelBuilder::onModelFound()
   for(unsigned f=0;f<env.signature->functions();f++){
     if(del_f[f]) continue;
 
-    Signature::Symbol* sym = env.signature->getFunction(f);
+    const Signature::Symbol* sym = env.signature->getFunction(f);
     // if (sym->introduced()) continue; // so that a sort function may enter the model (to be elimintated later)
 
     //cout << "For " << env.signature->getFunction(f)->name() << endl;
@@ -1909,7 +1909,7 @@ void FiniteModelBuilder::onModelFound()
   for(unsigned p=1;p<env.signature->predicates();p++){
     if(del_p[p]) continue;
 
-    Signature::Symbol* sym = env.signature->getPredicate(p);
+    const Signature::Symbol* sym = env.signature->getPredicate(p);
     // if (sym->introduced()) continue; // so that a sort predicate may enter the model (to be elimintated later)
 
     unsigned arity = env.signature->predicateArity(p);

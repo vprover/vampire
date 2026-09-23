@@ -166,7 +166,7 @@ TermList SortHelper::getResultSortMono(const Term* t)
   ASS(!t->isSpecial());
   ASS(!t->isLiteral());
 
-  Signature::Symbol* sym = env.signature->getFunction(t->functor());
+  const Signature::Symbol* sym = env.signature->getFunction(t->functor());
   return sym->type()->result();
 }
 

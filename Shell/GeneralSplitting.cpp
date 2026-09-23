@@ -224,16 +224,15 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
   }
 
 
-  unsigned namingPred=env.signature->addNamePredicate(OperatorType::getPredicateType(argSorts));
-  Signature::Symbol *sym = env.signature->getPredicate(namingPred);
-  sym->markSkipCongruence();
+  auto symbol = env.signature->addNamePredicate(OperatorType::getPredicateType(argSorts))->markSkipCongruence();
+  unsigned namingPred = symbol->number();
 
   if(mdvColor!=COLOR_TRANSPARENT && otherColor!=COLOR_TRANSPARENT) {
     ASS_EQ(mdvColor, otherColor);
-    env.signature->getPredicate(namingPred)->addColor(mdvColor);
+    symbol->addColor(mdvColor);
   }
   if(env.colorUsed && cl->skip()) {
-    env.signature->getPredicate(namingPred)->markSkip();
+    symbol->markSkip();
   }
 
 

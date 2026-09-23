@@ -631,7 +631,7 @@ void UIHelper::outputSymbolDeclarations(std::ostream& out, bool tcf)
  */
 void UIHelper::outputSymbolTypeDeclarationIfNeeded(std::ostream& out, bool function, bool typeCon, unsigned symNumber, bool tcf)
 {
-  Signature::Symbol* sym;
+  const Signature::Symbol* sym;
 
   if(function){
     sym = env.signature->getFunction(symNumber);
