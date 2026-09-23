@@ -1,17 +1,26 @@
 # tstat — mining a `-tstat on` sweep for optimization targets
 
 Analysis toolkit for the DVTIME_PROFILING sweep in
-`../problemsALLlocal_tprofile11295_tstat-on_i100K/` (26 504 TPTP problems,
-`vampire_z3_rel_..._11295 -i 100000 -tstat on`, commit `e07474dc1`, TPTP on local disk,
-64 workers pinned one per physical core, ASLR off). **26 273 runs are usable**; the 231
-that are not are Vampire user errors that never reached profiling. `FINDINGS.md` §20
-indexes the earlier sweeps and says which of their databases are still worth keeping.
+`../problemsALLlocal_interpreted11304_otter_tstat-on_i100K/` (26 504 TPTP problems,
+`vampire_z3_rel_..._11304 -sa otter -i 100000 -tstat on`, commit `a7dff21ad`, TPTP on
+local disk, 64 workers pinned one per physical core, ASLR off). **26 272 runs are
+usable**; 231 are Vampire user errors that never reached profiling and one is a SIGSEGV
+(`FINDINGS.md` §22). `FINDINGS.md` §20 indexes the earlier sweeps and says which of their
+databases are still worth keeping.
 
-**Solved counts are not comparable between sweeps with different node sets.** Each
-`TIME_TRACE` scope taxes throughput by a constant, LRS reads that tax as a reason to
-tighten its limits, and problems are lost that were solving nowhere near the budget —
-measured at net −25 for the twelve nodes of this round. `FINDINGS.md` §12 is the rule and
-§21 the evidence. Per-node instruction ratios are unaffected, provided the node's whole
+**The standing regime is `-sa otter`, from 11304 onwards.** Every earlier sweep is LRS,
+whose limits are estimated from elapsed instructions — which makes instrumentation a
+change of search *policy* and not merely of cost. Two rules follow, both in
+`FINDINGS.md` §12:
+
+- **Never compare an otter sweep against an LRS one.** The regime moves per-node costs by
+  up to 3.7x in both directions and corpus shares by more than an order of magnitude.
+  `tstat-11295.db` remains the right database for any LRS question.
+- **Never compare solved counts between sweeps with different node sets.** Each
+  `TIME_TRACE` scope taxes throughput by a constant; under LRS that tax cost net −25
+  problems (§21). Otter removes the amplification, but the haircut remains.
+
+Per-node instruction ratios are unaffected by instrumentation, provided the node's whole
 *subtree* is free of new names.
 
 Nothing here touches the prover. Everything reads logs and writes CSVs into `out/`.

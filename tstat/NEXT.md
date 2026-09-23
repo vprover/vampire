@@ -6,11 +6,22 @@ Read this first if context was lost. It points at the detail rather than repeati
 
 `tstat/` is a SQLite-backed toolkit for mining a `-tstat on` sweep of all of TPTP.
 `README.md` documents the measurement hazards; `FINDINGS.md` is the write-up. The
-standing reference is the **11295** sweep (`problemsALLlocal_tprofile11295_tstat-on_i100K`,
-commit `e07474dc1`, 26 273 usable runs, 78 node names), and `tstat.db` / `common.py`'s
-`LOGDIR` point at it. `FINDINGS.md` §20 indexes every sweep and says which older
-databases still matter; §19 is what 11295 cost and what else moved in it, and §21 is
-where that cost turned out to come from.
+standing reference is the **11304** sweep
+(`problemsALLlocal_interpreted11304_otter_tstat-on_i100K`, commit `a7dff21ad`, 26 272
+usable runs, 77 node names), and `tstat.db` / `common.py`'s `LOGDIR` point at it.
+`FINDINGS.md` §20 indexes every sweep and says which older databases still matter.
+
+**11304 is the first sweep under `-sa otter`, and that is the new standing regime.** LRS
+estimates its limits from elapsed instructions, so under it the instrumentation was a
+*policy* change and not merely a cost — §21 measures that costing 25 solved problems, and
+§12 is the rule that came out of it. Otter has no such feedback loop. The price is 486
+fewer problems solved and a corpus that reallocates hugely (§1: 14.95% → 43.28%), so
+**nothing in an otter sweep may be compared against an LRS one** — §12 again.
+
+**We follow master from here.** Each sweep is taken on master or on a branch about to
+land, and does double duty: catching performance regressions nothing else would catch,
+and checking whether the optimizations these findings motivate actually pay. §14, §17 and
+§22 are three that did.
 
 **`FINDINGS.md` is organised so you do not have to read it in order:** Part I is the open
 work ranked, Part II is how not to fool yourself with the numbers, Part III is history —
@@ -34,55 +45,84 @@ Master's own "cheaper scan" work (§17) then took `Property::scan` down 78.6% an
 side effect nobody was aiming at, made `boolean simplification` 2.8x cheaper per call.
 
 The **phase breakdown** — twelve nodes splitting §1, §2, §9 and §10's largest figures —
-is in too, and 11295 measured it (§19): median −0.22% of work done, net −26 problems,
-zero soundness contradictions. The 11291 control sweep attributes −25 of those −26 to the
-instrumentation itself, via LRS reading the overhead as a reason to tighten its limits
-(§21) — which is a fact about the measuring instrument, not about the prover, since
-shipped builds compile `TIME_TRACE` to nothing. **Do not compare solved counts across
-sweeps with different node sets** (§12). What the breakdown showed is in the ranking below.
+is in too (merged as `2d474c360`), and 11295 measured it (§19): median −0.22% of work
+done, net −26 problems, zero soundness contradictions. The 11291 control sweep attributes
+−25 of those −26 to the instrumentation itself, via LRS reading the overhead as a reason
+to tighten its limits (§21) — a fact about the measuring instrument, not about the
+prover, since shipped builds compile `TIME_TRACE` to nothing. **Do not compare solved
+counts across sweeps with different node sets** (§12).
+
+And **§4 is fixed** (§22): three commits on `BottomUpTermTransformer` and the interpreted
+evaluators took `interpreted evaluation` from 0.87% of corpus to 0.13%, from 117 runs
+giving it over a fifth of their budget to **2**, and by **1 072x–2 500x** per call on the
+six `SWX` problems the section was built around. That is the third finding in this file
+to turn into a landed optimization.
 
 ## Next: one bottleneck at a time
 
 Ranked in `FINDINGS.md` Part I. By tractability rather than size, the order to pick from:
 
-1. **§1, the multi-literal matching blow-up.** The split delivered the one clearly
-   bug-shaped thing in the file. `ClauseMatcher::matchGlobalVars` /
-   `existsCompatibleMatch` is a backtracking search over combinations of per-literal
-   matches with no bound, and on `ANA073^1.p` it spends **33 million instructions
-   deciding one subsumption**; 68% of the whole node is in 172 runs, almost all TH0
-   (QUA, ITP, ANA, SEU). Bounded, concentrated, and a cap or a better match-vector
-   ordering is a contained change. Start here.
-2. **§9, `codetree literal ordering`.** 8.12 T, **0.61% of the corpus on its own** —
-   five times the entire cost of index *removal*, and more than `splitting`. It is a
-   quadratic greedy heuristic that compiles every literal once to run its `evalSharing`
-   walks and then `codetree code compilation` compiles them all again: ~15 T, 1.1% of
-   corpus, spent deciding and re-deciding how to lay a clause into the tree. The
-   redundant first compilation is the obvious thing to look at, and it is self-contained.
-3. **§4, `interpreted evaluation` on TF0 arithmetic.** Six `SWX14x_1.p` problems burn
-   97% of a full budget at **4.66 M instructions per evaluation call**, agreeing to
-   within 0.01% of each other — one root cause, not six. Self-contained and reproducible
-   in seconds. The problems are *not* small (167 KB files); what is extreme is term
-   depth, 77 against a corpus median of 4, so the open question is whether 4.66 M per
-   call is a defect or the price of normalising an expression that size.
-4. **§3, `BetaEtaSimplify`.** `SYN007^4.014.p` spends its entire 104.9 G budget in **one
-   call**. Bug-shaped rather than tuning-shaped, and confined to TH0/TH1.
-5. **§10, instrument `Indexing/SubstitutionTree` retrieval.** The sweep promoted this to
-   the biggest unmeasured thing in the prover: `resolution` self *is* retrieval and
-   `superposition` self is retrieval plus enumeration, so **~31% of the corpus** is
-   looking clauses up. No scope anywhere in it. The cheap way in is scoping
-   `EqHelper::getSubtermIterator` and taking retrieval by subtraction, but its cost
-   depends on candidates per subterm and is unmeasured — and measure it on
-   **budget-bound** runs, not short local ones, which is exactly how the
-   `perform resolution` estimate came out 7x low (§19).
-6. **§5, LRS as a *time* problem.** The instruction share is finished; what survives the
-   cap runs at 6x the corpus stall rate and is still 6% of wall clock. The open decision
-   is whether the budget should be applied in the time unit regardless of which limit
-   binds — see the end of §5.
+0. **§1 is now 43% of the corpus.** Under otter, `codetree forward subsumption` is bigger
+   than the next six nodes combined and dominates over half of 6 225 runs. Everything
+   below it is a rounding error by comparison. It splits into two unrelated problems:
 
-**Not on this list any more:** §2 `parsing`. The breakdown ruled out everything it could
-name — per-unit finalisation 5%, closure check 2%, `include` 0.03% — leaving 93% in the
-state machine and term/formula construction, which has no per-unit boundary to scope.
-The next step there is a `perf record` on `HWV133-1.p`, not another sweep node.
+   1. **The multi-literal matching blow-up** — the one clearly bug-shaped thing in the
+      file, and it *survived the regime change intact*, which is the best evidence it is
+      real rather than an artefact of LRS's clause population.
+      `ClauseMatcher::matchGlobalVars` / `existsCompatibleMatch` is a backtracking search
+      over combinations of per-literal matches with no bound; on `GRA071^2.p` it spends
+      **6.5 billion instructions deciding one subsumption**, in twelve calls, and 131
+      runs still give it more than half their budget. Bounded, concentrated, and a cap or
+      a better match-vector ordering is a contained change. **Start here.**
+   2. **The interpreter**, now 89% of the subtree. Far larger but with no pathology to
+      aim at — it is spread over 25 000 runs and `Matcher::execute` is a bytecode
+      dispatch loop that should not be entered with a scope. If §1.1 is exhausted, the
+      question to ask about §1.2 is algorithmic (are we checking too many candidates?),
+      not micro-optimizing (is the loop tight?).
+
+2. **§9, `codetree literal ordering`.** Now **2.07% of corpus** under otter, up from
+   0.61% — a quadratic greedy heuristic that compiles every literal once to run its
+   `evalSharing` walks, after which `codetree code compilation` (1.64%) compiles them all
+   again. Between them 3.7% of the corpus goes on deciding and re-deciding how to lay a
+   clause into the tree. The redundant first compilation is the obvious thing to look at,
+   and it is self-contained.
+3. **§3, `BetaEtaSimplify`.** `SYN007^4.014.p` spends its entire 104.9 G budget in **one
+   call**; 242 runs give the node more than half their budget. Bug-shaped rather than
+   tuning-shaped, and confined to TH0/TH1.
+4. **§7, `forward demodulation`** — 11.04% of corpus under otter against 2.85% under LRS,
+   and second in the table. Nothing has been looked at here since §7 checked the folklore;
+   it deserves a fresh read at its new weight.
+5. **§10, instrument `Indexing/SubstitutionTree` retrieval.** Still the biggest
+   unmeasured thing, but **the otter sweep cut the estimate of its size sharply**: the
+   "~31% of corpus" figure came from `resolution` and `superposition` self time under
+   LRS, and most of that was LRS rejecting candidates inside the generation iterator
+   (§19), not retrieval. Those nodes are now 1.93% and 3.51%. Re-estimate before
+   investing: the cheap way in is scoping `EqHelper::getSubtermIterator` and taking
+   retrieval by subtraction.
+6. **§4's residual, `SWW838_1.p`.** The interpreted-evaluation fix reached everything
+   except this one problem: 843 485 instructions per call, unchanged by a factor of 1.01,
+   still 93.5% of its own run. One instance in the corpus, so low priority — but it is a
+   *different* mechanism from the one just fixed, and it is precisely localised.
+
+**Before any of that: one SIGSEGV.** `SWV645_5.p` crashes after 61.5 G instructions,
+well under budget — the only crash in 26 504 runs and the first since §18's reporting
+race was fixed. The trace printed completely first, so it is not that fault returning.
+It is either the otter regime or the three interpreted-evaluation commits, and the latter
+are exactly the kind of change (`BottomUpTermTransformer` no longer rebuilding subterms,
+numerals no longer copied) where a lifetime mistake looks like this. §22 has the
+reproducer and the discriminating run. A crash outranks a profiling target.
+
+**Not on this list any more:**
+
+- **§2 `parsing`.** The breakdown ruled out everything it could name — per-unit
+  finalisation 5%, closure check 2%, `include` 0.03% — leaving 93% in the state machine
+  and term/formula construction, which has no per-unit boundary to scope. The next step
+  there is a `perf record` on `HWV133-1.p`, not another sweep node.
+- **§4 `interpreted evaluation`.** Fixed (§22). Only the `SWW838_1.p` residual above.
+- **§5, LRS as a *time* problem.** Not dropped so much as unmeasurable here: the node
+  fires in 0 of 11304's runs because otter has no LRS. The finding stands for LRS, which
+  is still Vampire's default strategy and so still what users run — re-measure it on
+  `tstat-11295.db` or the `-t 60` pair, not on the standing sweep.
 
 For each: implement on `martin-tstat` (or a fresh branch off it), small and focused;
 verify per `CLAUDE.md` (a unit test that fails before and passes after where possible,

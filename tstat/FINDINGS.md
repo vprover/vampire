@@ -5,21 +5,35 @@ about it so far.
 
 Read `README.md` first for how to read the numbers and how to reproduce any of them.
 
-> **The reference sweep is 11295.**
-> `vampire_z3_rel_..._11295 -i 100000 -tstat on` (commit `e07474dc1`), 26 504 TPTP
-> problems, TPTP on local disk, 64 workers pinned one per physical core, ASLR off.
-> **26 273 usable runs** — the only 231 rejections are Vampire user errors that never
-> reached profiling — 1 329 T instructions of exclusive cost, **78 distinct node names**.
-> `tstat/tstat.db` and `common.py`'s `LOGDIR` point at it. It is the first sweep with the
-> phase breakdown of §1, §2 and §9 in place; §19 is what it cost and what else moved.
+> **The reference sweep is 11304, and it is the first run under `-sa otter`.**
+> `vampire_z3_rel_..._11304 -sa otter -i 100000 -tstat on` (commit `a7dff21ad`), 26 504
+> TPTP problems, TPTP on local disk, 64 workers pinned one per physical core, ASLR off.
+> **26 272 usable runs** — 231 Vampire user errors that never reached profiling, plus one
+> SIGSEGV (§22) — 1 371 T instructions of exclusive cost, **77 distinct node names**
+> (78 minus `LRS limit maintenance`, which never fires). `tstat/tstat.db` and
+> `common.py`'s `LOGDIR` point at it.
 >
-> §20 indexes the ten sweeps taken so far and says which of the older databases are
-> still worth keeping and why. §21 is why its solved count must not be compared against
-> a sweep with a different node set — and §12 is that as a rule.
+> **The regime changed with this sweep, and that matters more than the commit did.**
+> Every earlier sweep ran under LRS, whose limits are estimated from elapsed
+> instructions — so instrumentation was a *policy* change, not just a budget trim, and
+> §21 measured that costing 25 solved problems. Otter has no such feedback loop, which
+> makes the instrument honest again. It is also a different prover: it solves 486 fewer
+> problems and reallocates the corpus enormously, so **no figure here may be compared
+> against an LRS sweep's** (§13, §22).
 >
-> Every node added in this round is a *child* of an existing one and nothing was renamed
-> — the rule, not an accident: the whitelist is derived by scanning the source tree, so a
-> renamed node would make all seven earlier databases unreadable at a stroke.
+> §20 indexes the eleven sweeps taken so far and says which of the older databases are
+> still worth keeping and why. §12 is when a between-sweep comparison is legitimate at
+> all — read it before making one.
+>
+> Nodes are only ever added as *children* of existing ones and nothing is renamed — the
+> rule, not an accident: the whitelist is derived by scanning the source tree, so a
+> renamed node would make every earlier database unreadable at a stroke.
+
+**Standing practice: we follow master.** Every sweep from here is taken on master, or on
+a branch about to land in it, and its job is twofold — catch performance regressions that
+no test would, and check whether the optimizations these findings motivate actually pay.
+Several already have: §14 (LRS maintenance cap), §17 (cheaper `Property::scan`), §22
+(interpreted evaluation). §20's index is the chain; each Part III section is one link.
 
 **Cost is counted in retired instructions unless stated otherwise.** That is not
 cosmetic: time and instructions rank the nodes differently by up to 6x, and §11 is about
@@ -41,49 +55,70 @@ a bounded fix has somewhere to bite, and because an outlier problem exposes an
 inefficiency that the average run hides.
 
 Counts are runs where the node exceeds 30% (and 50%) of that run's own instructions,
-over the 11295 sweep. `resolution` and `codetree forward subsumption` are now *self*
-figures with their new children broken out beneath them:
+over the **11304** sweep. All figures are *self* (exclusive) instructions:
 
 ```
-node                                   %corpus   >30%   >50%
-superposition                           17.57%   2878   1244
-codetree forward subsumption (interp.)  14.95%   3658   1341   <- §1
-perform superposition                   13.92%   2123    980
-resolution (= index retrieval)          13.80%   2143    640
-perform resolution                       8.00%    504      8
-SAT solver                               5.10%    964    240   <- §8
-forward demodulation                     2.85%    411     78   <- §7
-beta eta simplification                  2.81%    353    234   <- §3
-codetree matcher setup                   1.65%      2      0   <- §1
-parsing                                  1.09%   3115    658   <- §2
-codetree multi-literal matching          0.92%    172*     —   <- §1, the tail
-interpreted evaluation                   0.83%     53     36   <- §4
-codetree literal ordering                0.61%      —      —   <- §9
+node                                   %corpus    >30%   >50%
+codetree forward subsumption            43.28%   10646   6225   <- §1
+forward demodulation                    11.04%    1854    704   <- §7
+SAT solver                               5.02%     966    358   <- §8
+perform superposition                    4.94%     159     41
+superposition                            3.51%     283     21
+codetree matcher setup                   3.30%       2      0   <- §1
+beta eta simplification                  3.17%     362    242   <- §3
+perform resolution                       2.62%      11      3
+codetree literal ordering                2.07%       0      0   <- §9
+resolution                               1.93%      89     20
+codetree multi-literal matching          1.31%     174    131   <- §1, the tail
+parsing                                  1.06%    3694   1165   <- §2
+interpreted evaluation                   0.13%       0      0   <- §4, closed (§22)
 ```
 
-\* runs where it exceeds **20%** of the run; 68% of the node is in those 172.
+**The table is not comparable to the 11295 one it replaces, and the reason is
+instructive.** Under otter nothing is discarded, so the passive set grows and forward
+subsumption checks against far more clauses: §1 went from 14.95% of the corpus to
+**43.28%**, and from 3 658 runs over 30% to **10 646**. In the other direction
+`superposition` fell 17.57% → 3.51% and `resolution` 13.80% → 1.93%. Those two are
+`TIME_TRACE_ITER` nodes, and §19 already explained the mechanism from the other side:
+under LRS, `.filter(NonzeroFn())` makes one `hasNext()` consume every candidate the
+age/weight limits reject, and that rejection cost was charged to the iterator. Otter
+rejects nothing, so it vanishes.
 
-**The single largest structural fact this sweep produced** is not in any one row:
-`resolution` self is index retrieval and `superposition` self is retrieval plus subterm
-enumeration, so **substitution-tree retrieval is around 30% of the corpus** — more than
-either inference rule's own work. Both rules split the same way, 63/37 and 56/44 in
-favour of retrieval (§1, §10).
+**So a large part of what six LRS sweeps read as "superposition and resolution cost" was
+LRS doing its own limit enforcement inside the generation iterator.** The ~30%-of-corpus
+"substitution-tree retrieval" figure that earlier drafts of this section called its
+largest structural finding was substantially that, and it does not survive the regime
+change. What does survive is §10's point that retrieval is unmeasured — it is simply
+worth much less than 30%.
 
-Two nodes have left this table since it was last drawn against 11156, and both left
-because they were fixed: `forward simplification` (19.01% of corpus, 5 646 runs over
-30%) is now 0.62% and 0 runs, because the work inside it has a name (§15); and
-`property evaluation` (0.81%, up to 89% of a single run) is now 0.13% (§17).
+Nodes that have left this table because they were fixed: `forward simplification`
+(19.01% of corpus, 5 646 runs over 30%) is now under 1% with 0 runs, because the work
+inside it has a name (§15); `property evaluation` (0.81%, up to 89% of a single run) is
+0.12% (§17); and `interpreted evaluation` (0.83%, 117 runs over 20%) is **0.13% with 2**
+(§22).
 
-## 1. `codetree forward subsumption` — 18% of the corpus, and two different pathologies
+## 1. `codetree forward subsumption` — 43% of the corpus, and two different pathologies
 
-The whole subtree is **17.8%** of corpus instructions, second only to superposition's,
-and until the 11165 sweep none of it was visible at all (§15). At 166 ps/instr it is
-compute-bound, so unlike §5 this is not a cache-behaviour problem: it is a lot of work.
-It is concentrated as well as large — **3 658 runs give the interpreter alone more than
-30% of their instructions**, and the per-call cost varies by four orders of magnitude,
-from 33 000 at the median to 2.75 **billion** on `GRA071^2.p`.
+**Under otter this is no longer one target among several; it is the target.** In 11304
+the interpreter alone is **43.28%** of corpus instructions — more than the next six nodes
+combined — and it exceeds 30% of its own run in **10 646 runs** and 50% in **6 225**.
+The whole subtree is **48.67%**: interpreter 43.28, `matcher setup` 3.30,
+`multi-literal matching` 1.31, `matcher teardown` 0.78.
 
-**The 11295 sweep splits it, and the split is the finding.** Corpus-wide:
+That is not a regression. Otter does not prune the passive set, so forward subsumption
+checks against far more clauses than LRS ever let it see; the 11295 figures below
+(14.95%, 3 658 runs) are the same node with LRS throwing most of the work away first.
+Which number is "true" depends on the question, but the otter one is what the operation
+costs when the prover is not discarding, and it is the one the standing sweep reports.
+
+At 173 ps/instr it is compute-bound, so unlike §5 this is not a cache-behaviour problem:
+it is a lot of work. The per-call cost varies by four orders of magnitude.
+
+**The 11295 sweep splits it, and the split is the finding.** Corpus-wide, in 11295. The
+otter regime shifts the phase proportions further *towards* the interpreter — its share
+of the subtree goes 83.3% → **88.9%**, while `matcher setup` falls 9.2% → 6.8%,
+`multi-literal matching` 5.1% → 2.7% and `teardown` 2.4% → 1.6% — so the conclusion
+below is strengthened, not weakened, by the switch:
 
 | node | self | % corpus | calls | instr/call | share of the subtree |
 |---|---:|---:|---:|---:|---:|
@@ -117,14 +152,26 @@ corpus, turns out to be 74.7% multi-literal matching in **twelve calls** — 6.5
 instructions each — while `GRA124-1.p` next to it is 90.6% interpreter. The single
 heading "forward subsumption is expensive" was covering two unrelated problems.
 
+**The tail survives the regime change intact**, which is the best evidence that it is a
+real pathology rather than an artefact of LRS's clause population. Under otter 131 runs
+still give multi-literal matching more than half their budget, and the worst per-call
+figures are larger than ever — `GRA071^2.p` and `GRA073^2.p` at **6.5 billion
+instructions per call**, in twelve calls each, with the whole GRA^ family behind them:
+
+| problem | share of run | calls | instructions per call |
+|---|---:|---:|---:|
+| `GRA071^2.p` / `GRA073^2.p` | 74.7% | 12 | **6.53 G** |
+| `GRA071^1.p` / `GRA073^1.p` | 68.8% | 12 | 6.01 G |
+| `GRA045^2.p` / `GRA047^2.p` | 53.5% | 39 | 1.44 G |
+
 **Which half is actionable.** `ClauseMatcher::matchGlobalVars` /
 `existsCompatibleMatch` (`Indexing/ClauseCodeTree.cpp`) is a backtracking search over
 combinations of per-literal matches with **no bound on the search**, so a candidate with
-many matches per literal explodes combinatorially. Thirty-three million instructions to
-decide one subsumption is that explosion, it is confined to 172 runs, and a cap or a
-better ordering of the match vectors is a bounded change. The interpreter half is the
-larger number but the harder problem: 83% of the subtree spread thinly over 25 000 runs,
-with no pathology to aim at.
+many matches per literal explodes combinatorially. Six billion instructions to decide one
+subsumption is that explosion, it is confined to ~130 runs, and a cap or a better
+ordering of the match vectors is a bounded change. The interpreter half is the larger
+number — now 89% of the subtree and 43% of the whole corpus — but the harder problem:
+spread thinly over 25 000 runs, with no pathology to aim at.
 
 > An earlier draft concluded from `GRA124-1.p` alone that "~93% is the interpreter" and
 > that there was nothing to peel off. Corpus-wide that is right (83%); as a statement
@@ -133,13 +180,15 @@ with no pathology to aim at.
 
 ## 2. `parsing` — a fifth of the corpus gives it a fifth of its budget
 
-1.17% of corpus instructions, which sounds negligible, and a per-run distribution that
-is anything but:
+1.06% of corpus instructions, which sounds negligible, and a per-run distribution that
+is anything but. Under otter (11304), essentially unchanged from LRS — parsing happens
+before saturation, so the regime cannot touch it, and that invariance is itself the
+check (§12):
 
 ```
-runs where parsing is >= 90% of the whole run's instructions:     63
-                       50-90%:                                   951
-                       20-50%:                                  4 282
+runs where parsing is >= 90% of the whole run's instructions:     56
+                       50-90%:                                  1 109
+                       20-50%:                                  4 172
 ```
 
 **5 296 runs — 20% of the corpus — spend at least a fifth of their entire instruction
@@ -261,7 +310,24 @@ paying for sort computation rather than for simplification.
 Neither rule could even be named before the 11165 sweep; `Inferences/HOL/` had no
 instrumentation at all (§15).
 
-## 4. `interpreted evaluation` — 4.7 M instructions per call on deep arithmetic
+## 4. `interpreted evaluation` — closed, bar one problem
+
+> **Fixed in 11304 (§22).** The three commits behind `a7dff21ad` took the node from
+> 0.87% of corpus to **0.13%**, from 12 360 instructions per call to 2 549, and from
+> **117 runs giving it over 20% of their budget to 2**. On the six problems this section
+> was built around the per-call cost fell by **1 072x–2 500x**. What is left is the one
+> residual below, and the section is kept because that residual is the interesting part
+> now.
+>
+> The one problem the fix does not reach is **`SWW838_1.p`**: 853 809 → 843 485
+> instructions per call, a factor of 1.01, still **93.5% of its own run**. Whatever costs
+> 850 K instructions per evaluation there is a different mechanism from the one that was
+> fixed, and it is now the only instance of it in the corpus. `SWW633_2.p` also still
+> gives the node 76% of its run, but that one went *up* 25x per call across the same
+> sweep pair, which crosses the LRS→otter regime change and so cannot be read as a
+> regression — see §13.
+>
+> The original section follows, because the diagnosis in it is what the fix was aimed at.
 
 0.83% of corpus over 1 773 runs, 53 above 30% and 36 above 50%, and the tail is
 remarkable for how *uniform* it is:
@@ -295,7 +361,14 @@ agreement says that whatever it is, it is structural.
 > `size` does not read. See the note under §2 on how far `size` can diverge from the
 > input in *either* direction.
 
-## 5. `LRS limit maintenance` — solved as a work problem, still the worst memory stall
+## 5. `LRS limit maintenance` — not measurable in the standing sweep any more
+
+> **The node does not exist under `-sa otter`.** It appears in 18 967 of 11295's runs and
+> **0 of 11304's**, which is the cleanest possible confirmation that the regime switch
+> takes the LRS feedback loop out of the measurement entirely (§12, §22). Everything
+> below is 11295 data and stays valid for LRS, which is still Vampire's default strategy
+> — so this remains a real cost to real users, just not one the standing sweep can see.
+> Re-measure it on the `-t 60` pair, or on a dedicated LRS sweep, not here.
 
 The maintenance cap (§14) took this from the top of the file to 0.98% of corpus
 instructions, and no run now gives it more than 5% of its own budget. As an
@@ -643,19 +716,41 @@ valid are:
 
 - **between sweeps with identical instrumentation** — §14 and §17 are the clean cases,
   and their solved counts mean what they say;
-- **on a deterministic bound**, `-sa otter -al N`, where LRS is out of the loop entirely.
-  This is what `determinism.py` already uses, and it is the right harness for any future
-  question of the form "did this change lose problems";
+- **under `-sa otter`**, where LRS is out of the loop entirely. This is why the standing
+  sweep switched to it from 11304 on (§22). Otter's clause selection does not consult
+  elapsed instructions, so instrumentation can only move *where the budget runs out*,
+  never *which clauses are kept* — the loss reverts to a plain haircut, and only runs
+  within a fraction of a percent of solving can be affected. `determinism.py` already
+  used otter for the same reason;
 - **per-node instruction ratios**, which are unaffected — provided the node's whole
   *subtree* is free of new names, not merely its direct children (§19 got this wrong
   once).
+
+### And never compare an LRS sweep against an otter one
+
+This is the stronger rule, and 11295 → 11304 is the demonstration. The regime moves
+per-call costs by up to **3.7x in both directions** — `perform superposition` ×3.71,
+`codetree forward subsumption` ×1.91, against `resolution` ×0.35 and `clause generation`
+×0.42 — and corpus shares by more than an order of magnitude (§1: 14.95% → 43.28%). Any
+"improvement" or "regression" read across that boundary is the regime.
+
+Two nodes survive it, and they are the ones that run before saturation starts:
+`property evaluation` ×1.000 and `parsing` ×1.001. Their agreement to three decimals
+across two sweeps, two binaries and two strategies is also the best evidence available
+that the measurement itself is sound.
 
 None of this reaches users: both build paths default to profiling off — the repo Makefile
 hardcodes `COMMON_FLAGS = -DVTIME_PROFILING=0` and CMake's `TIME_PROFILING` option is
 `OFF` — and with it off `TIME_TRACE` compiles to nothing. The cost exists only inside the
 measuring instrument, which is why §21's −25 is not an argument against adding nodes.
 
-## 13. Nothing is superlinear, and the two regimes measure different things
+## 13. Nothing is superlinear, and the regimes measure different things
+
+> **There are now three axes, not one.** The *bound* is `-i` or `-t` (below). The
+> *strategy* is LRS or otter, and from 11304 the standing sweep is otter — that axis
+> moves per-node costs by up to 3.7x and is covered in §12. The *instrumentation* is
+> whatever node set the binary was built with, §21. A comparison is only meaningful when
+> two of the three match and you are deliberately varying the third.
 
 `./rpt_preproc.py --fit` was built to find a preprocessing step quadratic in input size.
 Across every dialect and every pre-saturation node the fitted exponent is 0.75–1.30 —
@@ -673,7 +768,8 @@ costs move accordingly — in the 11156 pair, `parsing` reads 1.23% of the corpu
 - **`-i` measures search.** Work done is fixed by construction, so two builds are
   compared at identical effort and the only nondeterminism is the residual ~0.005%. It is
   the right tool for anything that changes *which* inferences happen, and it is what
-  every reference sweep uses.
+  every reference sweep uses. Under LRS it carries the sting §21 documents — the budget
+  feeds back into the search policy — which is exactly what `-sa otter` removes.
 - **`-t` measures cost.** It is the only regime in which memory-boundedness is
   chargeable: under `-i`, a cache miss is free. Its per-problem noise floor is ~5%
   (measured, §14), so it settles no per-problem question on its own — but a corpus-level
@@ -1125,8 +1221,9 @@ measurement §10 asks for.
 
 ## 20. Sweep index
 
-Ten sweeps exist. All are `-tstat on` over the same 26 504 TPTP problems, same machine,
-64 workers pinned one per physical core, ASLR off.
+Eleven sweeps exist. All are `-tstat on` over the same 26 504 TPTP problems, same
+machine, 64 workers pinned one per physical core, ASLR off. **All but the last are LRS**
+— see §12 before comparing across that line.
 
 | sweep | limit | database | what it is for |
 |---|---|---|---|
@@ -1138,11 +1235,14 @@ Ten sweeps exist. All are `-tstat on` over the same 26 504 TPTP problems, same m
 | 11235 | `-i 100000` | `tstat-11235.db` | the before-picture for §17 |
 | 11279 | `-i 100000` | `tstat-11279.db` | the before-picture for §19 |
 | 11291 | `-i 100000` | — | master's own head (`71a5da3ed`), **no instrumentation of ours**. The control that splits §19's −26 into master's share and ours (§21), and the only clean read on `FlexibleTail` |
-| **11295** | **`-i 100000`** | **`tstat.db`** | **the standing reference** — first with the phase breakdown (§19) |
+| 11295 | `-i 100000` | `tstat-11295.db` | last of the LRS chain, and the most detailed — first with the phase breakdown (§19). The right database for any LRS question, including §5 |
+| **11304** | **`-sa otter -i 100000`** | **`tstat.db`** | **the standing reference** — first otter sweep (§22) |
 | 11142/11156 pair | `-t 60` | `tstat-t60s-*.db` | the only regime where memory-boundedness is chargeable; §13, §14 |
 
-Future `-i` sweeps stay on `-i 100000` so they remain comparable to this chain. Keep the
-`-t 60` pair for wall-clock questions and re-measure there rather than converting (§13).
+Future sweeps stay on **`-sa otter -i 100000`** so they remain comparable to each other;
+the ten LRS sweeps above form a separate, closed chain that stays comparable within
+itself. Keep the `-t 60` pair for wall-clock questions and re-measure there rather than
+converting (§13).
 
 ## 21. Where §19's −26 went (11279 → 11291 → 11295)
 
@@ -1246,3 +1346,82 @@ a lead.
 > that has misled this analysis before (§19's `perform resolution` estimate, and the
 > AVATAR-enrichment "finding" that survived a difficulty control and died against the
 > previous sweep pairs).
+
+## 22. The 11304 sweep: interpreted evaluation fixed, and the move to otter
+
+`vampire_z3_rel_..._11304` (`a7dff21ad`) = master `2026e92e0` plus three commits on
+`interpreted evaluation` — `a711085ba` "Do not rebuild unchanged subterms in
+BottomUpTermTransformer", `642c79955` "Stop copying numerals in the interpreted
+evaluators", `16ff6882a` "Remember which terms interpreted evaluation has nothing to do
+on". Master now also carries our own instrumentation: PR #967 merged as `2d474c360`.
+
+**Two things changed at once, and only one of them was a code change.** The sweep is the
+first run under `-sa otter`. Keep that separate from the fix below, because the regime
+accounts for most of what moved everywhere *else* in the profile.
+
+### §4 is fixed — by a factor of a thousand where it mattered
+
+| | 11295 | 11304 |
+|---|---:|---:|
+| corpus share | 0.87% | **0.13%** |
+| instructions per call, corpus | 12 360 | **2 549** |
+| runs giving it >20% of their budget | **117** | **2** |
+
+The per-call figures on the six problems §4 was built around, which agreed with each
+other to 0.01% and so were one root cause rather than six:
+
+| problem | 11295 instr/call | 11304 instr/call | factor |
+|---|---:|---:|---:|
+| `SWX146_1.p` / `147` / `151` | 4 641 8xx | 4 3xx | **~1 072x** |
+| `SWX134_1.p` / `137` / `139` | 9 277 xxx | 3 7xx | **~2 480x** |
+
+`SWX146_1.p` now spends its budget on `forward demodulation` (65%) and
+`codetree forward subsumption` (30%), and gets through **509 546** forward
+simplifications where it managed 20 468 before. Over the 38 runs where the node held
+more than half its run in 11295 the median improvement is **570x**.
+
+**A 1 072x factor is far outside anything the regime change can do** — the largest
+regime effect measured anywhere is 3.7x (§12) — so this attribution is safe even though
+the sweep pair crosses the LRS/otter line. The corpus-wide 0.87% → 0.13% is *not* equally
+safe on its own, and should be quoted with the outliers, not instead of them.
+
+What remains is §4's residual: `SWW838_1.p` at 1.01x, untouched, still 93.5% of its run.
+
+### What the regime change did to everything else
+
+Otter solves **13 474** problems against LRS's 13 960 — net −486 (609 lost, 123 gained),
+which is the price of the cleaner instrument and is not a regression. Two confirmations
+that the switch did what it was for:
+
+- `Refutation not found, non-redundant clauses discarded` goes **92 → 0**. That outcome
+  is the LRS signature; otter discards nothing;
+- `LRS limit maintenance` appears in **18 967 of 11295's runs and 0 of 11304's**.
+
+The corpus reallocation is large enough to need its own warning, and it is in §12 and in
+Part I's table: §1 rises 14.95% → 43.28% because nothing prunes the passive set, while
+`superposition` and `resolution` fall by a factor of five because they are
+`TIME_TRACE_ITER` nodes that were being charged for LRS's own candidate rejection (§19).
+The practical consequence is that **§1 is now the target to the exclusion of almost
+everything else**: 43% of the corpus and over half of 6 225 runs.
+
+### One SIGSEGV — new, and worth chasing
+
+`SWV645_5.p` aborts with **SIGSEGV** after 61.5 G instructions, in `Saturation`, well
+under the 104.9 G budget. It is the only crash in 26 504 runs and the first in any sweep
+since §18's reporting race was fixed; the time trace printed completely before the abort,
+so this is a different fault from that one. The same problem ran cleanly to the
+instruction limit in **all nine** earlier sweeps.
+
+That does not localise it, because those nine are all LRS. The two candidates are the
+regime and the three interpreted-evaluation commits, and the latter are the kind of
+change — `BottomUpTermTransformer` no longer rebuilding subterms, numerals no longer
+copied — where a lifetime mistake would surface exactly like this.
+
+Reproducer for the server, where `-i` works:
+
+```sh
+vampire_z3_rel_..._11304 -sa otter -i 100000 -tstat on Problems/SWV/SWV645_5.p
+```
+
+and the discriminating run is the same invocation against master `2026e92e0` without the
+three commits. A debug build with `--traceback on` should name the site directly.
