@@ -2330,9 +2330,10 @@ void Options::init()
     _randomizedSimplifications.tag(OptionTag::INFERENCES);
 
     _dropClauses = StringOptionValue("drop_clauses","drcl","");
-    _dropClauses.description="A comma-separated list of clause numbers. A clause whose number is listed is silently dropped"
-       " when it is about to enter the saturation loop, as if it had never been derived. Meant for comparing a proof search"
-       " to an otherwise identical reference run. (Makes the run incomplete, so no satisfiable answer can be given.)";
+    _dropClauses.description="A comma-separated list of unit numbers. A listed input unit (clause or formula) is silently dropped"
+       " by the TPTP parser, and a listed clause is silently dropped when it is about to enter the saturation loop,"
+       " as if it had never been derived. Meant for comparing a proof search to an otherwise identical reference run."
+       " (Dropping a clause during saturation makes the run incomplete, so no satisfiable answer can be given.)";
     _lookup.insert(&_dropClauses);
     _dropClauses.tag(OptionTag::SATURATION);
     _dropClauses.setExperimental();
@@ -3594,6 +3595,27 @@ void Options::resolveAwayAutoValues(const Problem& prb)
  * True if the options are complete.
  * @since 23/07/2011 Manchester
  */
+/**
+ * The unit numbers listed by drop_clauses (a user error if the list is malformed)
+ */
+Stack<unsigned> Options::dropClauses() const
+{
+  Stack<unsigned> res;
+  if (_dropClauses.actualValue.empty()) {
+    return res;
+  }
+  Stack<std::string> nums;
+  StringUtils::splitStr(_dropClauses.actualValue.c_str(), ',', nums);
+  for (const std::string& num : nums) {
+    unsigned n;
+    if (!Int::stringToUnsignedInt(num, n)) {
+      USER_ERROR("drop_clauses expects a comma-separated list of unit numbers, got \"" + num + "\"");
+    }
+    res.push(n);
+  }
+  return res;
+}
+
 bool Options::complete(const Problem& prb) const
 {
   if(prb.isHigherOrder()){

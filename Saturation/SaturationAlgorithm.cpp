@@ -17,10 +17,8 @@
 #include "Debug/Assertion.hpp"
 
 #include "Lib/Environment.hpp"
-#include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Stack.hpp"
-#include "Lib/StringUtils.hpp"
 #include "Lib/Timer.hpp"
 #include "Lib/VirtualIterator.hpp"
 
@@ -238,16 +236,8 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
 
   _completeOptionSettings = opt.complete(prb);
 
-  if (!opt.dropClauses().empty()) {
-    Stack<std::string> nums;
-    StringUtils::splitStr(opt.dropClauses().c_str(), ',', nums);
-    for (const std::string& num : nums) {
-      unsigned n;
-      if (!Int::stringToUnsignedInt(num, n)) {
-        USER_ERROR("drop_clauses expects a comma-separated list of clause numbers, got \"" + num + "\"");
-      }
-      _clausesToDrop.insert(n);
-    }
+  for (unsigned n : opt.dropClauses()) {
+    _clausesToDrop.insert(n);
   }
 
   _unprocessed = new UnprocessedClauseContainer();

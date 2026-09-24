@@ -22,6 +22,7 @@
 
 #include "Forwards.hpp"
 #include "Lib/Array.hpp"
+#include "Lib/DHSet.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Exception.hpp"
 
@@ -882,6 +883,8 @@ private:
 
   bool _filterReserved;
   bool _seenConjecture;
+  /** numbers of input units not to be added to _units (option drop_clauses) */
+  DHSet<unsigned> _unitsToDrop;
 
 
 #if VDEBUG

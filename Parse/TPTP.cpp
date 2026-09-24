@@ -115,6 +115,9 @@ TPTP::TPTP(std::istream &in, UnitList::FIFO unitBuffer)
     _filterReserved(false),
     _seenConjecture(false)
 {
+  for (unsigned n : env.options->dropClauses()) {
+    _unitsToDrop.insert(n);
+  }
 } // TPTP::TPTP
 
 /**
@@ -3756,6 +3759,13 @@ void TPTP::endFof()
 
   default:
     break;
+  }
+  // a listed unit is silently left out, whether named by its own number or,
+  // e.g. for a negated conjecture, by the number of the input unit it came from
+  if (_unitsToDrop.contains(unit->number()) || _unitsToDrop.contains(original->number())) {
+    // the problem's stated status need not hold for what is left
+    UIHelper::unsetExpecting();
+    return;
   }
   _units.pushBack(unit);
 } // tag
