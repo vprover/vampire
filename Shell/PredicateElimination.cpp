@@ -76,7 +76,7 @@ void PredicateElimination::apply(Problem &prb)
   // dropping non-unifiable pairs is only sound if equality and theories don't interfere
   _equational = _forceEquationally || prb.hasEquality() || prb.hasInterpretedOperations() || prb.hasNumerals();
 
-  _preds.ensure(env.signature->predicates());
+  _preds.ensure(env.signature->predicateCount());
 
   // clauses may still contain duplicate literals (or be tautologies) at this stage of
   // preprocessing; besides making our occurrence counting needlessly conservative, they would,
@@ -137,7 +137,7 @@ void PredicateElimination::apply(Problem &prb)
       break;
     }
     if (rpr && Random::getDouble(0.0,1.0) < RPR_SKIP_PROB) {
-      _preds[pred].rprSkipped = true;
+      _preds[env.signature->predicateIndex(pred)].rprSkipped = true;
       continue;
     }
     eliminate(prb, (unsigned)pred);
@@ -199,7 +199,7 @@ void PredicateElimination::handleClause(Clause *cl)
 
   for (const auto& [pred, counts] : iterTraits(occ.items())) {
     const auto& [p, n] = counts;
-    PredInfo &info = _preds[pred];
+    PredInfo &info = _preds[env.signature->predicateIndex(pred)];
     if (p > 0 && n > 0) { // occurs in both polarities: a hard blocker (condition 1)
       if constexpr (add) {
         info.blockers++;
@@ -220,7 +220,7 @@ void PredicateElimination::handleClause(Clause *cl)
 
 bool PredicateElimination::eligible(unsigned pred) const
 {
-  const PredInfo &info = _preds[pred];
+  const PredInfo &info = _preds[env.signature->predicateIndex(pred)];
   if (info.eliminated || info.rprSkipped || info.blockers > 0 || info.pos.size() + info.neg.size() == 0) {
     return false;
   }
@@ -262,7 +262,8 @@ int PredicateElimination::pickCandidate() const
 {
   static Stack<unsigned> order;
   order.reset();
-  for (unsigned pred = 1; pred < _preds.size(); pred++) {
+  for (unsigned pred : env.signature->predicateSymbols()) {
+    if (pred == 0 || env.signature->predicateIndex(pred) >= _preds.size()) continue;
     order.push(pred);
   }
   if (env.options->randomTraversals()) {
@@ -319,10 +320,10 @@ void PredicateElimination::eliminate(Problem &prb, unsigned pred)
   ClauseStack posCls;
   ClauseStack negCls;
   {
-    for (const auto& cl : iterTraits(_preds[pred].pos.domain())) {
+    for (const auto& cl : iterTraits(_preds[env.signature->predicateIndex(pred)].pos.domain())) {
       posCls.push(cl);
     }
-    for (const auto& cl : iterTraits(_preds[pred].neg.domain())) {
+    for (const auto& cl : iterTraits(_preds[env.signature->predicateIndex(pred)].neg.domain())) {
       negCls.push(cl);
     }
   }
@@ -412,9 +413,9 @@ void PredicateElimination::eliminate(Problem &prb, unsigned pred)
   }
   _curTotal += resolvents.size();
 
-  _preds[pred].eliminated = true;
-  ASS(_preds[pred].pos.isEmpty());
-  ASS(_preds[pred].neg.isEmpty());
+  _preds[env.signature->predicateIndex(pred)].eliminated = true;
+  ASS(_preds[env.signature->predicateIndex(pred)].pos.isEmpty());
+  ASS(_preds[env.signature->predicateIndex(pred)].neg.isEmpty());
 
   _modified = true;
   env.statistics->eliminatedPredicates++;
@@ -637,7 +638,7 @@ void PredicateElimination::recordElimination(Problem &prb, unsigned pred,
   // the primal definition below needs every clause of S_P to be P-free apart from its
   // single P-literal; when that fails, condition 2) guarantees S_~P is all-single instead,
   // and we can build the dual definition from it
-  bool fromPos = (_preds[pred].posMulti == 0);
+  bool fromPos = (_preds[env.signature->predicateIndex(pred)].posMulti == 0);
   Formula *body = definitionBody(pred, fromPos ? posCls : negCls, fromPos);
 
   prb.addEliminatedPredicate(pred, new BinaryFormula(IFF, new AtomicFormula(head), body));

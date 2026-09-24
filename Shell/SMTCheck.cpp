@@ -931,7 +931,8 @@ void outputSignature(std::ostream &out)
   out << "(declare-fun is_rat (Real) Bool)\n";
 
   Signature &sig = *env.signature;
-  for(unsigned i = Signature::FIRST_USER_CON; i < sig.typeCons(); i++) {
+  for (unsigned i : sig.typeConSymbols()) {
+    if (i < Signature::FIRST_USER_CON) continue;
     out << "(declare-sort " << SortName(i);
 #if VDEBUG
     const Signature::Symbol* type = sig.getTypeCon(i);
@@ -943,8 +944,8 @@ void outputSignature(std::ostream &out)
     out << "(declare-const " << SortName<Inhabit>(i) << ' ' << SortName(i) << ")\n";
   }
 
-  for(unsigned i = 0; i < sig.functions(); i++) {
-    const Signature::Symbol* fun = sig.getFunction(i);
+  for (unsigned i : sig.functionSymbols()) {
+    const Signature::Symbol*fun = sig.getFunction(i);
     if(fun->interpreted() || fun->linMul())
       continue;
 
@@ -960,8 +961,9 @@ void outputSignature(std::ostream &out)
     out << ") " << Sort {range} << ")\n";
   }
 
-  for(unsigned i = 1; i < sig.predicates(); i++) {
-    const Signature::Symbol* pred = sig.getPredicate(i);
+  for (unsigned i : sig.predicateSymbols()) {
+    if (i < 1) continue;
+    const Signature::Symbol*pred = sig.getPredicate(i);
     if(pred->interpreted())
       continue;
 

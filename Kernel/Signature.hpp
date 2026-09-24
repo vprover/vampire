@@ -71,28 +71,31 @@ class Signature
   /** Function or predicate symbol */
   
   /** The default sort of all individuals, always in the non-sorted case */  
-  static const unsigned DEFAULT_SORT_CON=0;
+  static constexpr unsigned DEFAULT_SORT_CON=1;
   /** Boolean sort */
-  static const unsigned BOOL_SRT_CON=1;
+  static constexpr unsigned BOOL_SRT_CON=2;
   /** sort of integers */
-  static const unsigned INTEGER_SRT_CON=2;
+  static constexpr unsigned INTEGER_SRT_CON=3;
   /** sort of rationals */
-  static const unsigned RATIONAL_SRT_CON=3;
+  static constexpr unsigned RATIONAL_SRT_CON=5;
   /** sort of reals */  
-  static const unsigned REAL_SRT_CON=4;
+  static constexpr unsigned REAL_SRT_CON=4;
   /** this is not a sort, it is just used to denote the first index of a user-define sort */
-  static const unsigned FIRST_USER_CON=5;
+  static constexpr unsigned FIRST_USER_CON=6;
   
+  enum class SymbolKind { FUNCTION, PREDICATE, TYPE_CONSTRUCTOR };
+
   class Symbol {
     friend class Signature;
+    SymbolKind _kind = SymbolKind::FUNCTION;
+    unsigned _number = UINT_MAX;
+    unsigned _categoryIndex = UINT_MAX;
   
   protected:
     /** print name; for numerals it is only built when first asked for, @see fillNumeralName */
     mutable std::string _name;
 
     OperatorType* _type;
-    const unsigned _number;
-    // both _arity and _typeArgsArity could be recovered from _type. Storing directly here as well for convenience
 
     /** List of distinct groups the constant is a member of, all members of a distinct group should be distinct from each other */
     List<unsigned>* _distinctGroups;
@@ -147,7 +150,14 @@ class Signature
 
   public:
     /** standard constructor */
-    Symbol(unsigned number, const std::string& name, OperatorType* type, bool interpreted, bool preventQuoting);
+    Symbol(const std::string& name, OperatorType* type, bool interpreted, bool preventQuoting);
+    SymbolKind kind() const { return _kind; }
+    bool isFunction() const { return _kind == SymbolKind::FUNCTION; }
+    bool isPredicate() const { return _kind == SymbolKind::PREDICATE; }
+    bool isTypeCon() const { return _kind == SymbolKind::TYPE_CONSTRUCTOR; }
+    unsigned categoryIndex() const { return _categoryIndex; }
+    void destroy();
+
     void destroyFnSymbol();
     void destroyPredSymbol();
     void destroyTypeConSymbol();
@@ -168,7 +178,7 @@ class Signature
     inline unsigned arity() const { return _type->arity(); }
     /* the number of term arguments for this symbol */
     inline unsigned numTermArguments() const { return arity() - numTypeArguments(); }
-    /** Return the type argument arity of the symbol. Only accurate once type has been set. */
+    /** Return the type argument arity of the symbol. */
     inline unsigned numTypeArguments() const { return _type->numTypeArguments(); }
     /** Return the name of the symbol */
     inline const std::string& name() const
@@ -265,8 +275,8 @@ class Signature
 
   public:
 
-    InterpretedSymbol(unsigned number, const std::string& name, Interpretation interp, OperatorType* type)
-    : Symbol(number, name, type,
+    InterpretedSymbol(const std::string& name, Interpretation interp, OperatorType* type)
+    : Symbol(name, type,
         /*       interpreted */ true, 
         /*    preventQuoting */ false),
       _interp(interp)
@@ -314,10 +324,10 @@ class Signature
 
   public:
     static std::string name(Numeral n) { return Output::toString(n); }
-    LinMulSym(unsigned number, Numeral val)
+    LinMulSym(Numeral val)
     : AnyLinMulSym(
         AnyLinMulSym::typeOf<Numeral>(),
-        number, name(val),
+        name(val),
         /*              type */ OperatorType::getFunctionType({ AnyLinMulSym::sortOf<Numeral>() } , AnyLinMulSym::sortOf<Numeral>()),
         /*       interpreted */ false, 
         /*    preventQuoting */ true),
@@ -336,8 +346,8 @@ class Signature
     IntegerConstantType _intValue;
 
   public:
-    IntegerSymbol(unsigned number, IntegerConstantType val)
-    : Symbol(number, /* name: built on demand, @see fillNumeralName */ "",
+    IntegerSymbol(IntegerConstantType val)
+    : Symbol(/* name: built on demand, @see fillNumeralName */ "",
         /*              type */ OperatorType::getConstantsType(AtomicSort::intSort()),
         /*       interpreted */ true, 
         /*    preventQuoting */ true),
@@ -355,8 +365,8 @@ class Signature
     RationalConstantType _ratValue;
 
   public:
-    RationalSymbol(unsigned number, RationalConstantType val)
-    : Symbol(number, /* name: built on demand, @see fillNumeralName */ "",
+    RationalSymbol(RationalConstantType val)
+    : Symbol(/* name: built on demand, @see fillNumeralName */ "",
         /*              type */ OperatorType::getConstantsType(AtomicSort::rationalSort()),
         /*       interpreted */ true, 
         /*    preventQuoting */ true),
@@ -374,13 +384,16 @@ class Signature
     RealConstantType _realValue;
 
   public:
-    RealSymbol(unsigned number, const RealConstantType& val);
+    RealSymbol(const RealConstantType& val);
   };
 
   //////////////////////////////////////
   // Uninterpreted symbol declarations
   //
 
+private:
+  unsigned addSymbol(SymbolKind kind, Symbol* symbol);
+public:
   // The signature owns symbols; creation returns a pointer for chained marking.
   Symbol* addFunction(const std::string& name, OperatorType* type, bool& added);
   Symbol* addPredicate(const std::string& name, OperatorType* type, bool& added);
@@ -417,14 +430,14 @@ class Signature
 
   // Updates that are needed after registration go through the signature.
   // TODO: Remove these methods once callers can set the flags during construction.
-  void protectFunction(unsigned n) { _funs[n]->markProtected(); }
-  void protectPredicate(unsigned n) { _preds[n]->markProtected(); }
-  void colorFunction(unsigned n, Color color) { _funs[n]->addColor(color); }
-  void colorPredicate(unsigned n, Color color) { _preds[n]->addColor(color); }
-  void markPredicateFlipped(unsigned n) { _preds[n]->markFlipped(); }
-  void markAnswerPredicate(unsigned n) { _preds[n]->markAnswerPredicate(); }
-  void markTermAlgebraConstructor(unsigned n) { _funs[n]->markTermAlgebraCons(); }
-  void markTermAlgebraDestructor(unsigned n) { _funs[n]->markTermAlgebraDest(); }
+  void protectFunction(unsigned n) { _symbols[n]->markProtected(); }
+  void protectPredicate(unsigned n) { _symbols[n]->markProtected(); }
+  void colorFunction(unsigned n, Color color) { _symbols[n]->addColor(color); }
+  void colorPredicate(unsigned n, Color color) { _symbols[n]->addColor(color); }
+  void markPredicateFlipped(unsigned n) { _symbols[n]->markFlipped(); }
+  void markAnswerPredicate(unsigned n) { _symbols[n]->markAnswerPredicate(); }
+  void markTermAlgebraConstructor(unsigned n) { _symbols[n]->markTermAlgebraCons(); }
+  void markTermAlgebraDestructor(unsigned n) { _symbols[n]->markTermAlgebraDest(); }
 
   /**
    * If a unique string constant with this name exists, return its number.
@@ -458,14 +471,14 @@ class Signature
   unsigned getBoolDef(unsigned fn);
 
  private:
-  Symbol* newNumeralConstantSymbol(unsigned number, IntegerConstantType n)
-  { return new IntegerSymbol(number, std::move(n)); }
+  Symbol* newNumeralConstantSymbol(IntegerConstantType n)
+  { return new IntegerSymbol(std::move(n)); }
 
-  Symbol* newNumeralConstantSymbol(unsigned number, RationalConstantType n)
-  { return new RationalSymbol(number, std::move(n)); }
+  Symbol* newNumeralConstantSymbol(RationalConstantType n)
+  { return new RationalSymbol(std::move(n)); }
 
-  Symbol* newNumeralConstantSymbol(unsigned number, RealConstantType n)
-  { return new RealSymbol(number, std::move(n)); }
+  Symbol* newNumeralConstantSymbol(RealConstantType n)
+  { return new RealSymbol(std::move(n)); }
  public:
 
   // Interpreted symbol declarations
@@ -477,12 +490,11 @@ class Signature
     if (_funNames.find(key,result)) {
       return result;
     }
-    result = _funs.length();
     // copy number out of key again
     auto number = key.as<std::pair<Numeral, unsigned>>()->first;
     noteOccurrence(number);
-    Symbol* sym = newNumeralConstantSymbol(result, std::move(number));
-    registerSymbol(_funs, sym);
+    Symbol* sym = newNumeralConstantSymbol(std::move(number));
+    result = addSymbol(SymbolKind::FUNCTION, sym);
     _funNames.insert(key,result);
     return result;
   }
@@ -501,8 +513,7 @@ class Signature
       return result;
     }
     noteOccurrence(number);
-    result = _funs.length();
-    registerSymbol(_funs, new LinMulSym<Numeral>(result, number));
+    result = addSymbol(SymbolKind::FUNCTION, new LinMulSym<Numeral>(number));
     _funNames.insert(key,result);
     return result;
   }
@@ -533,43 +544,15 @@ class Signature
     return _iSymbols.find(interp);
   }
 
-  /** return the name of a function with a given number */
-  const std::string& functionName(int number);
-  /** return the name of a predicate with a given number */
-  const std::string& predicateName(int number)
-  {
-    return _preds[number]->name();
-  }
-  /** return the name of a type constructor with a given number */
-  const std::string& typeConName(int number)
-  {
-    return _typeCons[number]->name();
-  }  
-  /** return the arity of a function with a given number */
-  const unsigned functionArity(int number)
-  {
-    return _funs[number]->arity();
-  }
-  /** return the arity of a predicate with a given number */
-  const unsigned predicateArity(int number)
-  {
-    return _preds[number]->arity();
-  }
-
-  const unsigned typeConArity(int number)
-  {
-    return _typeCons[number]->arity();
-  }
-
-  const bool predicateColored(int number)
-  {
-    return _preds[number]->color()!=COLOR_TRANSPARENT;
-  }
-
-  const bool functionColored(int number)
-  {
-    return _funs[number]->color()!=COLOR_TRANSPARENT;
-  }
+  const std::string& symbolName(unsigned number) const;
+  const std::string& functionName(unsigned number) const { return symbolName(number); }
+  const std::string& predicateName(unsigned number) const { return symbolName(number); }
+  const std::string& typeConName(unsigned number) const { return symbolName(number); }
+  unsigned functionArity(unsigned number) const { return getFunction(number)->arity(); }
+  unsigned predicateArity(unsigned number) const { return getPredicate(number)->arity(); }
+  unsigned typeConArity(unsigned number) const { return getTypeCon(number)->arity(); }
+  bool predicateColored(unsigned number) const { return getPredicate(number)->color() != COLOR_TRANSPARENT; }
+  bool functionColored(unsigned number) const { return getFunction(number)->color() != COLOR_TRANSPARENT; }
 
   /** return true iff predicate of given @b name and @b arity exists. */
   bool isPredicateName(std::string name, unsigned arity)
@@ -599,29 +582,53 @@ class Signature
     return &_instantiations;
   }
 
-  /** return the number of functions */
-  unsigned functions() const { return _funs.length(); }
-  /** return the number of predicates */
-  unsigned predicates() const { return _preds.length(); }
-  /** return the number of typecons */
-  unsigned typeCons() const { return _typeCons.length(); }
+  /** Exclusive upper bound for arrays indexed by symbol ID. */
+  unsigned symbolCount() const { return _symbols.size(); }
 
-  /** Return the function symbol by its number */
-  inline const Symbol* getFunction(unsigned n) const
-  {
-    ASS_L(n, _funs.length());
-    return _funs[n];
-  } // getFunction
-  /** Return the predicate symbol by its number */
-  inline const Symbol* getPredicate(unsigned n) const
-  {
-    ASS_L(n, _preds.length());
-    return _preds[n];
-  } // getPredicate
-  inline const Symbol* getTypeCon(unsigned n) const
-  {
-    ASS_L(n, _typeCons.length());
-    return _typeCons[n];
+  // Category indices are dense and stable; symbol IDs remain global.
+  unsigned functionCount() const { return _funSymbols.size(); }
+  unsigned predicateCount() const { return _predSymbols.size(); }
+  unsigned typeConCount() const { return _typeConSymbols.size(); }
+  unsigned functionIndex(unsigned id) const { return getFunction(id)->categoryIndex(); }
+  unsigned predicateIndex(unsigned id) const { return getPredicate(id)->categoryIndex(); }
+  unsigned typeConIndex(unsigned id) const { return getTypeCon(id)->categoryIndex(); }
+
+  /** A snapshot of a category's IDs; remains valid if registration grows its storage. */
+  class SymbolRange {
+    const Stack<unsigned>& _ids;
+    unsigned _size;
+  public:
+    struct Iterator {
+      const Stack<unsigned>* ids;
+      unsigned index;
+      unsigned operator*() const { return (*ids)[index]; }
+      Iterator& operator++() { ++index; return *this; }
+      bool operator!=(const Iterator& other) const { return index != other.index; }
+    };
+    explicit SymbolRange(const Stack<unsigned>& ids) : _ids(ids), _size(ids.size()) {}
+    Iterator begin() const { return {&_ids, 0}; }
+    Iterator end() const { return {&_ids, _size}; }
+    unsigned size() const { return _size; }
+    unsigned operator[](unsigned i) const { ASS_L(i, _size); return _ids[i]; }
+    auto iter() const { return range(0u, _size).map([ids = &_ids](unsigned i) { return (*ids)[i]; }); }
+  };
+  SymbolRange functionSymbols() const { return SymbolRange(_funSymbols); }
+  SymbolRange predicateSymbols() const { return SymbolRange(_predSymbols); }
+  SymbolRange typeConSymbols() const { return SymbolRange(_typeConSymbols); }
+
+  const Symbol* getSymbol(unsigned n) const {
+    ASS_L(n, _symbols.size());
+    ASS(_symbols[n]);
+    return _symbols[n];
+  }
+  const Symbol* getFunction(unsigned n) const {
+    auto sym = getSymbol(n); ASS(sym->isFunction()); return sym;
+  }
+  const Symbol* getPredicate(unsigned n) const {
+    auto sym = getSymbol(n); ASS(sym->isPredicate()); return sym;
+  }
+  const Symbol* getTypeCon(unsigned n) const {
+    auto sym = getSymbol(n); ASS(sym->isTypeCon()); return sym;
   }
 
   static inline bool isEqualityPredicate(unsigned p)
@@ -639,15 +646,15 @@ class Signature
 
   /** true if there are user defined sorts */
   bool hasSorts() const{
-    return typeCons() > FIRST_USER_CON;
+    return _typeConSymbols.size() > FIRST_USER_CON - DEFAULT_SORT_CON;
   }
 
   bool isDefaultSortCon(unsigned con) const{
-    return con < FIRST_USER_CON;
+    return con >= DEFAULT_SORT_CON && con < FIRST_USER_CON;
   }
 
   bool isInterpretedNonDefault(unsigned con) const{
-    return con < FIRST_USER_CON && con != DEFAULT_SORT_CON;    
+    return con > DEFAULT_SORT_CON && con < FIRST_USER_CON;
   }
 
   bool isNonDefaultCon(unsigned con) const{
@@ -745,7 +752,7 @@ class Signature
     }
     return isTrue ? _foolTrue : _foolFalse;
   }
-  bool isFoolConstantSymbol(bool isTrue, unsigned number){
+  bool isFoolConstantSymbol(bool isTrue, unsigned number) const {
     if(!_foolConstantsDefined) return false;
     return isTrue ? number==_foolTrue : number==_foolFalse;
   }
@@ -793,7 +800,7 @@ class Signature
     //TODO make the name unique
     unsigned tuple = addTypeCon("Tuple", arity, added)->number();
     if(added){
-      Symbol* tup = _typeCons[tuple];
+      Symbol* tup = _symbols[tuple];
       tup->markTuple();
     }
     return tuple;    
@@ -806,7 +813,7 @@ class Signature
     bool added = false;
     unsigned eqProxy = addFunction("vEQ", OperatorType::getConstantsType(result, 1),added)->number();
     if(added){
-      _funs[eqProxy]->setProxy(Proxy::EQUALS);
+      _symbols[eqProxy]->setProxy(Proxy::EQUALS);
     }
     return eqProxy;  
   }
@@ -828,7 +835,7 @@ class Signature
 
     unsigned proxy = addFunction(name, OperatorType::getConstantsType(result), added)->number();
     if (added) {
-      _funs[proxy]->setProxy(convert(name));
+      _symbols[proxy]->setProxy(convert(name));
     }
     return proxy;  
   }
@@ -840,7 +847,7 @@ class Signature
     bool added = false;
     unsigned notProxy = addFunction("vNOT", OperatorType::getConstantsType(result), added)->number();
     if(added){
-      _funs[notProxy]->setProxy(Proxy::NOT);
+      _symbols[notProxy]->setProxy(Proxy::NOT);
     }
     return notProxy;  
   } //TODO merge with above?
@@ -853,7 +860,7 @@ class Signature
     bool added = false;
     unsigned proxy = addFunction(name, OperatorType::getConstantsType(result, 1), added)->number();
     if (added) {
-      _funs[proxy]->setProxy(name == "vPI" ? Proxy::PI : Proxy::SIGMA);
+      _symbols[proxy]->setProxy(name == "vPI" ? Proxy::PI : Proxy::SIGMA);
     }
     return proxy;  
   } //TODO merge with above?  
@@ -897,12 +904,14 @@ private:
 
   static bool isProtectedName(std::string name);
   static bool charNeedsQuoting(char c, bool first);
-  /** Stack of function symbols */
-  Stack<Symbol*> _funs;
+  /** Owns every registered symbol, indexed by its global ID. */
+  Stack<Symbol*> _symbols;
+  /** IDs of function symbols, in registration order. */
+  Stack<unsigned> _funSymbols;
   /** Stack of predicate symbols */
-  Stack<Symbol*> _preds;
+  Stack<unsigned> _predSymbols;
   /** Stack of type constructor symbols */  
-  Stack<Symbol*> _typeCons;
+  Stack<unsigned> _typeConSymbols;
 
   // TODO(HOL): these two don't belong in the signature
   DHSet<unsigned, FnvHash, IdentityHash> _choiceSymbols;

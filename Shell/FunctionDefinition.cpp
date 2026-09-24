@@ -142,7 +142,7 @@ void FunctionDefinition::removeUnusedDefinitions(Problem& prb)
  */
 bool FunctionDefinition::removeUnusedDefinitions(UnitList*& units, Problem* prb)
 {
-  unsigned funs=env.signature->functions();
+  unsigned funs = env.signature->functionCount();
 
   Stack<Def*> defStack;
   DArray<Def*> def;
@@ -158,9 +158,9 @@ bool FunctionDefinition::removeUnusedDefinitions(UnitList*& units, Problem* prb)
     Def* d=isFunctionDefinition(cl);
     if(d) {
       d->defCl=cl;
-      if(!def[d->fun]) {
+      if(!def[env.signature->functionIndex(d->fun)]) {
         defStack.push(d);
-        def[d->fun]=d;
+        def[env.signature->functionIndex(d->fun)]=d;
         scanIterator.del();
       } else {
         delete d;
@@ -170,7 +170,7 @@ bool FunctionDefinition::removeUnusedDefinitions(UnitList*& units, Problem* prb)
       NonVariableNonTypeIterator nvit((*cl)[i]);
       while(nvit.hasNext()) {
         unsigned fn=nvit.next()->functor();
-        occCounter[fn]++;
+        occCounter[env.signature->functionIndex(fn)]++;
       }
     }
   }
@@ -180,8 +180,8 @@ bool FunctionDefinition::removeUnusedDefinitions(UnitList*& units, Problem* prb)
   while(dit.hasNext()) {
     Def* d=dit.next();
     unsigned fn=d->fun;
-    ASS_GE(occCounter[fn],1);
-    if(occCounter[fn]==1) {
+    ASS_GE(occCounter[env.signature->functionIndex(fn)],1);
+    if(occCounter[env.signature->functionIndex(fn)]==1) {
       toDo.push(d);
     }
   }
@@ -198,16 +198,16 @@ bool FunctionDefinition::removeUnusedDefinitions(UnitList*& units, Problem* prb)
     }
     d->mark=Def::REMOVED;
     ASS_EQ(d->defCl->length(), 1);
-    ASS_EQ(occCounter[d->fun], 1);
+    ASS_EQ(occCounter[env.signature->functionIndex(d->fun)], 1);
     NonVariableNonTypeIterator nvit((*d->defCl)[0]);
     while(nvit.hasNext()) {
       unsigned fn=nvit.next()->functor();
-      occCounter[fn]--;
-      if(occCounter[fn]==1 && def[fn]) {
-	toDo.push(def[fn]);
+      occCounter[env.signature->functionIndex(fn)]--;
+      if(occCounter[env.signature->functionIndex(fn)]==1 && def[env.signature->functionIndex(fn)]) {
+	toDo.push(def[env.signature->functionIndex(fn)]);
       }
     }
-    ASS_EQ(occCounter[d->fun], 0);
+    ASS_EQ(occCounter[env.signature->functionIndex(d->fun)], 0);
   }
 
   bool modified = false;

@@ -604,12 +604,12 @@ void UIHelper::outputSymbolDeclarations(std::ostream& out, bool tcf)
 {
   const Signature& sig = *env.signature;
 
-  unsigned typeCons = sig.typeCons();
-  for (unsigned i=0; i<typeCons; ++i) {
+  auto typeCons = sig.typeConSymbols();
+  for (unsigned i : typeCons) {
     outputSymbolTypeDeclarationIfNeeded(out, false, true, i, tcf);
   }
-  unsigned funcs = sig.functions();
-  for (unsigned i=0; i<funcs; ++i) {
+  auto funcs = sig.functionSymbols();
+  for (unsigned i : funcs) {
     if (!env.options->showFOOL()) {
       if (env.signature->isFoolConstantSymbol(true,i) || env.signature->isFoolConstantSymbol(false,i)) {
         continue;
@@ -617,8 +617,8 @@ void UIHelper::outputSymbolDeclarations(std::ostream& out, bool tcf)
     }
     outputSymbolTypeDeclarationIfNeeded(out, true, false, i, tcf);
   }
-  unsigned preds = sig.predicates();
-  for (unsigned i=0; i<preds; ++i) {
+  auto preds = sig.predicateSymbols();
+  for (unsigned i : preds) {
     outputSymbolTypeDeclarationIfNeeded(out, false, false, i, tcf);
   }
 } // UIHelper::outputSymbolDeclarations
@@ -631,15 +631,7 @@ void UIHelper::outputSymbolDeclarations(std::ostream& out, bool tcf)
  */
 void UIHelper::outputSymbolTypeDeclarationIfNeeded(std::ostream& out, bool function, bool typeCon, unsigned symNumber, bool tcf)
 {
-  const Signature::Symbol* sym;
-
-  if(function){
-    sym = env.signature->getFunction(symNumber);
-  } else if(typeCon){
-    sym = env.signature->getTypeCon(symNumber);
-  } else {
-    sym = env.signature->getPredicate(symNumber);
-  }
+  const Signature::Symbol* sym = env.signature->getSymbol(symNumber);
 
   if (typeCon && (env.signature->isArrayCon(symNumber) ||
                   env.signature->isTupleCon(symNumber) ||

@@ -35,22 +35,22 @@ using namespace Shell;
  */
 void Shuffling::polarityFlip(Problem& prb)
 {
-  DArray<bool> flippage(env.signature->predicates());
+  DArray<bool> flippage(env.signature->predicateCount());
 
-  for (unsigned p = 0; p < flippage.size(); p++) {
+  for (unsigned p : env.signature->predicateSymbols()) {
     auto pSymb = env.signature->getPredicate(p);
     if (!pSymb->protectedSymbol() && !pSymb->termAlgebraDest() && !pSymb->termAlgebraDiscriminator()) {
       // don't try to flip interpreted or otherwise protected predicates
       // (this includes term algebra destructors which may go to bool and thus eventually become first-order predicates,
       // as well as term algebra discriminators, which are to_bool to begin with)
       ASS(p); // the equality predicate (at index 0) is protected
-      flippage[p] = Random::getBit();
-      if (flippage[p]) {
+      flippage[env.signature->predicateIndex(p)] = Random::getBit();
+      if (flippage[env.signature->predicateIndex(p)]) {
         env.signature->markPredicateFlipped(p);
         prb.addFlippedPredicate(p);
       }
     } else {
-      flippage[p] = false;
+      flippage[env.signature->predicateIndex(p)] = false;
     }
   }
 
@@ -65,7 +65,7 @@ void Shuffling::polarityFlip(Problem& prb)
     for (unsigned i = 0; i < cl->length(); i++) {
       Literal* l = (*cl)[i];
       // cout << "  bef: " << l->toString() << std::endl;
-      if (flippage[l->functor()]) {
+      if (flippage[env.signature->predicateIndex(l->functor())]) {
         l = Literal::complementaryLiteral(l);
         modified = true;
       }

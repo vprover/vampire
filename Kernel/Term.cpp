@@ -262,11 +262,7 @@ void TermList::Top::output(std::ostream& out) const
   } else {
     ASS(this->functor())
     auto f = *this->functor();
-    switch (f.kind) {
-      case TermKind::LITERAL: out << *env.signature->getPredicate(f.functor); break;
-      case TermKind::TERM:    out << *env.signature->getFunction(f.functor); break;
-      case TermKind::SORT:    out << *env.signature->getTypeCon(f.functor); break;
-    }
+    out << *env.signature->getSymbol(f.functor);
   }
 }
 
@@ -382,9 +378,7 @@ unsigned Term::numTypeArguments() const {
 
   return isSpecial()
     ? 0
-    : isLiteral()
-      ? env.signature->getPredicate(_functor)->numTypeArguments()
-      : env.signature->getFunction(_functor)->numTypeArguments();
+    : env.signature->getSymbol(_functor)->numTypeArguments();
 }
 
 const TermList* Term::termArgs() const
