@@ -13,6 +13,7 @@
  */
 
 #include <array>
+#include <unordered_map>
 #include <unordered_set>
 
 #include "Debug/Assertion.hpp"
@@ -28,9 +29,11 @@
 #include "Inferences/ALASCA/Superposition.hpp"
 #include "Inferences/BinaryResolution.hpp"
 #include "Kernel/EqHelper.hpp"
+#include "Kernel/MLMatcher.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
+#include "Kernel/TermIterators.hpp"
 #include "Lib/SharedSet.hpp"
 #include "Saturation/Splitter.hpp"
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
@@ -587,6 +590,61 @@ static void trivial(std::ostream &out, SortMap &conclSorts, Clause *concl)
   outputConclusion(out, conclSorts, concl->asClause());
 }
 
+// Computes a renaming from reconstructed literals to the recorded conclusion,
+// allowing literal reordering and equality symmetry.
+struct ConclusionSubstitution {
+  std::unordered_map<unsigned, TermList> bindings;
+  unsigned fresh = 0;
+
+  ConclusionSubstitution(Stack<Literal*> &literals, Clause *concl)
+  {
+    fresh = concl->maxVar() + 1;
+
+    // MLMatcher requires duplicate-free base literals. Deduplicate only this
+    // temporary input; the recorded conclusion retains any duplicate literals
+    // until a separate duplicate literal removal inference.
+    literals.sort();
+    literals.dedup();
+    if (literals.isEmpty())
+      return;
+
+    Stack<LiteralList*> alternatives;
+    for (Literal *literal : literals) {
+      LiteralList *matches = nullptr;
+      for (Literal *candidate : *concl)
+        if (MatchingUtils::match(literal, candidate, false))
+          LiteralList::push(candidate, matches);
+      alternatives.push(matches);
+    }
+    MLMatcher matcher;
+    matcher.init(literals.begin(), literals.size(), concl, alternatives.begin());
+    bool matched = matcher.nextMatch();
+    if (matched)
+      matcher.getBindings(bindings);
+    for (auto matches : alternatives)
+      LiteralList::destroy(matches);
+    if (!matched)
+      INVALID_OPERATION("Could not reconstruct the conclusion for SMT proof checking");
+  }
+
+  TermList apply(unsigned var) const
+  {
+    auto it = bindings.find(var);
+    // Variables occurring only in the eliminated literals must not alias a
+    // conclusion variable. outputPremise grounds them with a sort inhabitant.
+    return it == bindings.end() ? TermList::var(fresh + var) : it->second;
+  }
+};
+
+template <unsigned bank>
+struct DoConclusionSubst {
+  const RobSubstitution &subst;
+  const ConclusionSubstitution &conclusion;
+  Literal *operator()(Literal *literal) {
+    return SubstHelper::apply(subst.apply(literal, bank), conclusion);
+  }
+};
+
 static void resolution(std::ostream &out, SortMap &conclSorts, Clause *concl)
 {
   auto [left, right] = getParents<2>(concl);
@@ -600,15 +658,17 @@ static void resolution(std::ostream &out, SortMap &conclSorts, Clause *concl)
   ASS_NEQ(selectedLeft->polarity(), selectedRight->polarity())
   RobSubstitution &subst = uwa.subs();
 
-  for (unsigned i = 0; i < left->length(); i++)
-    if ((*left)[i] != selectedLeft)
-      subst.apply((*left)[i], 0);
-  for (unsigned i = 0; i < right->length(); i++)
-    if ((*right)[i] != selectedRight)
-      subst.apply((*right)[i], 1);
+  Stack<Literal*> literals;
+  for (Literal *literal : *left)
+    if (literal != selectedLeft)
+      literals.push(subst.apply(literal, 0));
+  for (Literal *literal : *right)
+    if (literal != selectedRight)
+      literals.push(subst.apply(literal, 1));
+  ConclusionSubstitution conclusion(literals, concl);
 
-  outputPremise(out, conclSorts, left->asClause(), DoRobSubst<0>(subst));
-  outputPremise(out, conclSorts, right->asClause(), DoRobSubst<1>(subst));
+  outputPremise(out, conclSorts, left, DoConclusionSubst<0>{subst, conclusion});
+  outputPremise(out, conclSorts, right, DoConclusionSubst<1>{subst, conclusion});
   outputConclusion(out, conclSorts, concl->asClause());
 }
 
@@ -639,11 +699,13 @@ static void factoring(std::ostream &out, SortMap &conclSorts, Clause *concl) {
   ASS_EQ(selected->functor(), other->functor())
   ALWAYS(subst.unify(TermList(selected), 0, TermList(other), 0));
 
-  for (unsigned i = 0; i < premise->length(); i++)
-    if ((*premise)[i] != other)
-      subst.apply((*premise)[i], 0);
+  Stack<Literal*> literals;
+  for (Literal *literal : *premise)
+    if (literal != other)
+      literals.push(subst.apply(literal, 0));
+  ConclusionSubstitution conclusion(literals, concl);
 
-  outputPremise(out, conclSorts, premise->asClause(), DoRobSubst<0>(subst));
+  outputPremise(out, conclSorts, premise, DoConclusionSubst<0>{subst, conclusion});
   outputConclusion(out, conclSorts, concl->asClause());
 }
 
@@ -657,11 +719,13 @@ static void equalityResolution(std::ostream &out, SortMap &conclSorts, Clause *c
   ASS(selected->isNegative())
   TermList s = selected->termArg(0), t = selected->termArg(1);
   ALWAYS(subst.unify(s, 0, t, 0));
-  for (unsigned i = 0; i < premise->length(); i++)
-    if ((*premise)[i] != selected)
-      subst.apply((*premise)[i], 0);
+  Stack<Literal*> literals;
+  for (Literal *literal : *premise)
+    if (literal != selected)
+      literals.push(subst.apply(literal, 0));
+  ConclusionSubstitution conclusion(literals, concl);
 
-  outputPremise(out, conclSorts, premise->asClause(), DoRobSubst<0>(subst));
+  outputPremise(out, conclSorts, premise, DoConclusionSubst<0>{subst, conclusion});
   outputConclusion(out, conclSorts, concl->asClause());
 }
 
