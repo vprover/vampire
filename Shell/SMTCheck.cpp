@@ -12,7 +12,6 @@
  * Routines for producing a ground SMT proof-check script
  */
 
-#include <algorithm>
 #include <array>
 #include <unordered_map>
 #include <unordered_set>
@@ -599,11 +598,7 @@ struct ConclusionSubstitution {
 
   ConclusionSubstitution(Stack<Literal*> &literals, Clause *concl)
   {
-    for (Literal *literal : *concl) {
-      VariableIterator vars(literal);
-      while (vars.hasNext())
-        fresh = std::max(fresh, vars.next().var() + 1);
-    }
+    fresh = concl->maxVar() + 1;
 
     // MLMatcher requires duplicate-free base literals. Deduplicate only this
     // temporary input; the recorded conclusion retains any duplicate literals
