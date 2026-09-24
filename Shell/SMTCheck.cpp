@@ -34,6 +34,7 @@
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
+#include "Kernel/TermIterators.hpp"
 #include "Lib/SharedSet.hpp"
 #include "Saturation/Splitter.hpp"
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
@@ -590,21 +591,23 @@ static void trivial(std::ostream &out, SortMap &conclSorts, Clause *concl)
   outputConclusion(out, conclSorts, concl->asClause());
 }
 
-// RobSubstitution assigns output variables on first application. Ordering checks
-// can visit variables before the conclusion is built, so reconstructing the MGU
-// alone does not recover the variable names used in the recorded conclusion.
+// Computes a renaming from reconstructed literals to the recorded conclusion,
+// allowing literal reordering and equality symmetry.
 struct ConclusionSubstitution {
   std::unordered_map<unsigned, TermList> bindings;
   unsigned fresh = 0;
 
   ConclusionSubstitution(Stack<Literal*> &literals, Clause *concl)
   {
-    SortMap sorts;
-    SortHelper::collectVariableSorts(concl, sorts);
-    for (auto [var, sort] : iterTraits(sorts.items()))
-      fresh = std::max(fresh, var + 1);
+    for (Literal *literal : *concl) {
+      VariableIterator vars(literal);
+      while (vars.hasNext())
+        fresh = std::max(fresh, vars.next().var() + 1);
+    }
 
-    // Unification may make two premise literals identical.
+    // MLMatcher requires duplicate-free base literals. Deduplicate only this
+    // temporary input; the recorded conclusion retains any duplicate literals
+    // until a separate duplicate literal removal inference.
     literals.sort();
     literals.dedup();
     if (literals.isEmpty())
@@ -626,7 +629,7 @@ struct ConclusionSubstitution {
     for (auto matches : alternatives)
       LiteralList::destroy(matches);
     if (!matched)
-      USER_ERROR("Could not reconstruct the conclusion for SMT proof checking");
+      INVALID_OPERATION("Could not reconstruct the conclusion for SMT proof checking");
   }
 
   TermList apply(unsigned var) const
