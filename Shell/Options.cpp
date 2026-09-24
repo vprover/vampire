@@ -2329,6 +2329,14 @@ void Options::init()
     _lookup.insert(&_randomizedSimplifications);
     _randomizedSimplifications.tag(OptionTag::INFERENCES);
 
+    _dropClauses = StringOptionValue("drop_clauses","drcl","");
+    _dropClauses.description="A comma-separated list of clause numbers. A clause whose number is listed is silently dropped"
+       " when it is about to enter the saturation loop, as if it had never been derived. Meant for comparing a proof search"
+       " to an otherwise identical reference run. (Makes the run incomplete, so no satisfiable answer can be given.)";
+    _lookup.insert(&_dropClauses);
+    _dropClauses.tag(OptionTag::SATURATION);
+    _dropClauses.setExperimental();
+
     _questionAnswering = ChoiceOptionValue<QuestionAnsweringMode>("question_answering","qa",QuestionAnsweringMode::AUTO,
                                                                   {"auto","plain","synthesis","off"});
     _questionAnswering.description= "Determines whether (and how) we attempt to answer questions:"

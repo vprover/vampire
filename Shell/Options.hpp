@@ -2198,6 +2198,7 @@ public:
   bool randomPolarities() const { return _randomPolarities.actualValue; }
   bool randomizedPreprocessing() const { return _randomizedPreprocessing.actualValue; }
   bool randomizedSimplifications() const { return _randomizedSimplifications.actualValue; }
+  const std::string& dropClauses() const { return _dropClauses.actualValue; }
   bool randomAWR() const { return _randomAWR.actualValue; }
   bool randomTraversals() const { return _randomTraversals.actualValue; }
   bool randomizeSeedForPortfolioWorkers() const { return _randomizeSeedForPortfolioWorkers.actualValue; }
@@ -2677,6 +2678,7 @@ private:
   BoolOptionValue _randomPolarities;
   BoolOptionValue _randomizedPreprocessing;
   BoolOptionValue _randomizedSimplifications;
+  StringOptionValue _dropClauses;
 
   BoolOptionValue _outputAxiomNames;
 

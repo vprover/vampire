@@ -190,6 +190,9 @@ private:
   // to remember which clauses have already had their feature vector shown
   DHSet<unsigned> _shown;
 
+  // numbers of clauses to be silently dropped in newClausesToUnprocessed (option drop_clauses)
+  DHSet<unsigned> _clausesToDrop;
+
   void passiveRemovedHandler(Clause* cl);
   void activeRemovedHandler(Clause* cl);
   void addInputClause(Clause* cl);
