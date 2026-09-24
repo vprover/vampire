@@ -3449,7 +3449,7 @@ Literal* TPTP::createEquality(bool polarity,TermList& lhs,TermList& rhs)
  * Creates a formula that is a predicate application literal from
  * provided predicate symbol name and arity. If arity is greater than zero,
  * the arguments are assumed to be on the _termLists stack.
- * @since 27/03/1015 Manchester
+ * @since 27/03/2015 Manchester
  */
 Formula* TPTP::createPredicateApplication(std::string name, unsigned arity)
 {
