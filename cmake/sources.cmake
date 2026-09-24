@@ -133,6 +133,7 @@ set(UNIT_TESTS
 ################################################################
 set(UNIT_TESTS_Z3
     UnitTests/tInferences_TheoryInstAndSimp.cpp
+    UnitTests/tSMTCheck.cpp
     UnitTests/tZ3Interfacing.cpp
 )
 
