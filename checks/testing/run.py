@@ -446,6 +446,10 @@ def run_case(case, output, timeout, memcheck, z3="z3", asan=False, sanitizer_err
         from finite_model_validation import validate_model
         outcome, reason = validate_model(stdout, folder, Path(case.source).with_suffix('.model.json'))
 
+    if outcome == 'pass' and case.check == 'mode-contract':
+        from mode_cases import validate_mode_output
+        outcome, reason = validate_mode_output(stdout, folder, Path(case.source))
+
     semantic_outcome, semantic_reason = outcome, reason
     errors = []
     if memcheck:
@@ -645,9 +649,9 @@ def execute_cases(args, metadata, cases, results):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('action', choices=('inventory', 'run'))
-    parser.add_argument('--build', type=Path, default=ROOT / 'build/testing/debug')
+    parser.add_argument('--build', type=Path, default=ROOT / 'build/testing/coverage')
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--suite', choices=('units', 'corpus', 'sanity', 'all'), default='all')
+    parser.add_argument('--suite', choices=('units', 'corpus', 'generated', 'features', 'edges', 'options', 'behavior', 'parsers', 'modes', 'portfolios', 'datatypes', 'arithmetic', 'sanity', 'all'), default='all')
     parser.add_argument('--jobs', type=int, default=4)
     parser.add_argument('--timeout', type=float, default=180)
     parser.add_argument('--solver-timeout', type=int, help='override solver seconds (0 disables its timer); Memcheck defaults to 0')
@@ -706,18 +710,77 @@ def main():
         return execute_cases(args, metadata, cases, results)
     cases, skipped = [], []
     discovered, discovery_errors = None, []
-    # This first review layer exposes only the existing test collections.
-    # The next layer restores the audited generated-suite dispatch unchanged.
-    if args.suite in ('all', 'units'):
-        cases += unit_cases(args.build)
+    if args.suite in ('all', 'corpus', 'options', 'behavior', 'modes', 'portfolios', 'arithmetic'):
+        from option_cases import catalogue
+        try:
+            discovered = catalogue(binary, args.output / 'discovery')
+        except (ValueError, OSError) as error:
+            discovery_errors.append(str(error))
+            print(f'[FAIL] Option discovery: {error}; continuing independent suites', flush=True)
+        cases.append(Case('discovery/options', [str(binary), '--show_options', 'on',
+            '--show_experimental_options', 'on', '--show_options_line_wrap', 'off'], str(ROOT), 'contains', '--mode'))
+    if args.suite in ('all', 'units'): cases += unit_cases(args.build)
     if args.suite in ('all', 'corpus'):
         corpus, skipped = corpus_cases(binary)
         cases += corpus
+    if args.suite in ('all', 'generated'): cases += generated_cases(binary, args.output / 'inputs', args.seed)
+    if args.suite in ('all', 'features'): cases += feature_cases(binary, args.output / 'feature-inputs')
+    if args.suite in ('all', 'edges'):
+        from edge_cases import edge_cases
+        cases += edge_cases(binary, args.output / 'edge-inputs', args.seed, Case, ROOT, corpus_cases, write_input)
+    if args.suite in ('all', 'options') and discovered is not None:
+        from option_cases import option_cases
+        cases += option_cases(binary, args.output / 'option-inputs', Case, ROOT, write_input, discovered)
+    if args.suite in ('all', 'behavior'):
+        from behavior_cases import behavior_cases
+        cases += behavior_cases(binary, args.output / 'behavior-inputs', Case, ROOT, write_input, discovered[0] if discovered else [])
+    if args.suite in ('all', 'parsers'):
+        from parser_cases import parser_cases
+        cases += parser_cases(binary, args.output / 'parser-inputs', Case, ROOT, write_input)
+    if args.suite in ('all', 'modes'):
+        from mode_cases import mode_cases
+        cases += mode_cases(binary, args.output / 'mode-inputs', Case, ROOT, write_input, discovered[0] if discovered else [])
+    if args.suite in ('all', 'arithmetic'):
+        from arithmetic_cases import arithmetic_cases
+        cases += arithmetic_cases(binary, args.output / 'arithmetic-inputs', Case, ROOT, write_input, options=discovered[0] if discovered else [])
+    if args.suite in ('all', 'portfolios'):
+        from portfolio_cases import portfolio_cases
+        cases += portfolio_cases(binary, args.output / 'portfolio-inputs', Case, ROOT, write_input, discovered[0] if discovered else [])
+    if args.suite in ('all', 'datatypes'):
+        from datatype_cases import datatype_cases
+        cases += datatype_cases(binary, args.output / 'datatype-inputs', Case, ROOT, write_input)
     if args.suite == 'sanity':
         if args.memcheck:
             parser.error('use --suite corpus with --memcheck; sanity includes tight release timing checks')
         cases = [Case('sanity', ['sh', 'checks/sanity', os.path.relpath(binary, ROOT)], str(ROOT))]
     capability_rejections = []
+    if discovered is not None:
+        names = {entry['name'] for entry in discovered[0]}
+        sat = next((entry for entry in discovered[0] if entry['short'] == 'sas'), None)
+        fmb = next((entry for entry in discovered[0] if entry['name'] == 'fmb_enumeration_strategy'), None)
+        for case in cases:
+            if not case.name.startswith('corpus/') or case.check != 'szs': continue
+            command = case.command
+            diagnostic = None
+            if sat and 'z3' not in sat['values']:
+                if '-sas' in command and command[command.index('-sas') + 1] == 'z3':
+                    diagnostic = 'z3 is an invalid value for sas'
+                elif any('sas=z3' in arg for arg in command):
+                    diagnostic = 'value z3 for option sas not known'
+            if diagnostic is None and fmb and 'smt' not in fmb['values']:
+                for flag in ('--fmb_enumeration_strategy', '-fmbes'):
+                    if flag in command and command[command.index(flag) + 1] == 'smt':
+                        diagnostic = 'smt is an invalid value for fmb_enumeration_strategy'
+            if diagnostic is None and 'theory_instantiation' not in names:
+                if '-thi' in command: diagnostic = 'thi is not a valid short option'
+                elif any('thi=' in arg for arg in command): diagnostic = 'option thi not known'
+            if diagnostic and any('thi=' in arg for arg in command) and 'theory_instantiation' not in names:
+                case.check, case.expected, case.allow_error_exit = 'reject-regex', '(?:' + re.escape(diagnostic) + '|' + re.escape('option thi not known') + ')', True
+                capability_rejections.append(case.name)
+                continue
+            if diagnostic:
+                case.check, case.expected, case.allow_error_exit = 'reject', diagnostic, True
+                capability_rejections.append(case.name)
     if args.filter: cases = [c for c in cases if re.search(args.filter, c.name)]
     if args.limit is not None: cases = cases[:args.limit]
     if not cases: parser.error('no tests selected')

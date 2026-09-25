@@ -53,4 +53,33 @@ interrupted run. The runner validates saved inputs, binary hashes, harness
 and settings, and retains completed failures. Use `--verbose` to print passing
 cases too. Close `report.py --watch` without stopping the runner.
 
+## Generated solver checks
+
+The generated suites use bounded truth tables, finite relations/functions,
+exact arithmetic and explicit datatype witnesses or contradictions. Further
+checks evaluate emitted finite models and propositional interpolants.
+[COVERAGE_EXPANSION.md](COVERAGE_EXPANSION.md) describes the oracles and their
+limits. Option parsing, feature activation and Vampire round trips have
+separate, narrower guarantees.
+
+Start with a partial generated smoke run:
+
+```sh
+python3 checks/testing/run.py run --build build/testing/debug --suite generated \
+  --limit 12 --jobs 2 --output build/testing/results/generated-smoke
+python3 checks/testing/report.py build/testing/results/generated-smoke --failures --commands
+```
+
+Omit `--limit` for that complete suite. Other suite names are `features`,
+`edges`, `options`, `behavior`, `parsers`, `modes`, `portfolios`, `arithmetic`
+and `datatypes`. `--suite all` selects every available non-sanity suite.
+`--filter` selects case names; report filtered and limited runs as partial.
+The seed is fixed and saved; `--seed` selects another reproducible corpus.
+
+Z3 must be on `PATH` for emitted SMT proof-obligation checks, or supplied
+through `--z3`. Unsupported proof rules remain inconclusive. A successful
+obligation check does not certify omitted proof steps or an arbitrary whole
+proof. [parser-capability-notes.md](parser-capability-notes.md) distinguishes
+malformed input from standard syntax that Vampire currently rejects.
+
 See [SCOPE.md](SCOPE.md) for the measurement limits.

@@ -14,3 +14,20 @@ Existing CTest registrations and the upstream sanity script are retained.
 The corpus adapter checks literal sanity assertions; it does not replace the
 shell script's timing, loop or trace-replay contracts. Run performance-sensitive
 sanity checks on an idle machine.
+
+Independent oracles cover bounded propositional formulas, small finite
+structures, exact arithmetic identities, datatype graphs, finite-model
+certificates and propositional interpolation. Higher-order logic, induction,
+polymorphism, unification and simplification also have selected regressions;
+those are not general semantic certification.
+
+Vampire round trips can miss errors shared by both solver executions. Parsing
+an option does not show that its implementation ran, and a positive activation
+counter proves only that the operation occurred. Emitted SMT obligations do
+not certify omitted rules or arbitrary complete proofs. The finite-model
+checker accepts its bounded single-sort fragment, not arbitrary TPTP models.
+
+The feature map is in [FEATURE_CHECKLIST.md](FEATURE_CHECKLIST.md). Broader
+assurance still needs suitable independent oracles, grammar-aware fuzzing with
+minimization, mutation tests, answer/synthesis validation, larger corpora and
+further resource/concurrency configurations.
