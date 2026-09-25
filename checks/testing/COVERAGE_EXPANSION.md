@@ -38,3 +38,28 @@ tests check finite equivalence/congruence relations and core subsets, while
 ground models are checked by a structural rewriter. Schedule and unification
 tests exercise their stated API contracts. The selected public subset contains
 55 added functions; known failing local regressions are separate issue evidence.
+
+## Measure and extend coverage
+
+Use a matching GCC/gcov toolchain and wait for all instrumented processes to
+exit before capture. `coverage.py` combines zero-hit and executed captures so
+unexecuted instrumented code remains in the denominator. The README describes
+the source filters, output files and optional threshold.
+
+The [overlay helper](coverage-overlay.md) writes new counters into a fresh
+tree while preserving a frozen baseline. It hashes inputs, verifies exact
+object-local sums and rejects changed identities or invalid counters. Use
+the source path embedded in the original build, even if the harness is in
+another checkout. Failed or interrupted captures remain evidence.
+
+`reachable_coverage.py` is an optional proof-ledger validator. It retains raw
+coverage and accepts only individually reviewed, build-specific mappings;
+unsupported, exception, assertion and bug-blocked paths are not automatically
+excluded. Read its `--help` and the overlay instructions before use.
+
+New native tests can change template instances and denominators. Measure each
+binary separately. A test that aborts before GCC flushes counters can execute
+a path without recording a hit; its raw gap remains visible. Never clamp an
+invalid negative count to zero. A separately audited lower bound can omit an
+entire inconsistent new object contribution only while preserving the valid
+baseline, all original denominator identities and the rejected raw capture.

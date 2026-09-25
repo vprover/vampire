@@ -105,4 +105,77 @@ against the tested upstream code. Those remain separate evidence for issue
 and fix work; this published subset contains the 55 passing functions. That
 selection does not imply the reported defects are fixed.
 
+## Instrumented profiles
+
+Install Valgrind, GCC with matching `gcov`, and lcov/genhtml. GCC 15 needs
+lcov 2.5 or later for these captures. The ordinary profiles require an available
+Z3 CMake package; `no-z3` deliberately disables it. A separately built Z3
+library is outside Vampire's sanitizer and coverage instrumentation.
+
+`build.sh` checks generated build flags before compiling. Profiles are
+`release`, `debug`, `memcheck`, `asan`, `ubsan`, `no-z3` and `coverage`, with
+separate directories below `build/testing`. All Debug profiles enable cleanup.
+
+Run a partial Valgrind smoke test:
+
+```sh
+JOBS=4 bash checks/testing/build.sh memcheck
+python3 checks/testing/run.py run --build build/testing/memcheck --suite generated \
+  --limit 12 --memcheck --jobs 2 --timeout 180 \
+  --output build/testing/results/valgrind-smoke
+python3 checks/testing/report.py build/testing/results/valgrind-smoke --failures --commands
+```
+
+Valgrind checks child-process XML too. Invalid accesses, uninitialized reads,
+and definite, indirect or possible losses fail memory checks. Reachable records
+remain visible without counting as lost. No project suppression file is used.
+Timeout-truncated XML cannot establish a clean memory check.
+
+For ASan, build `asan`, select that build, and pass `--asan`; the runner keeps
+leak detection and separates reported diagnostics from incomplete leak checks.
+`--sanitizer-error-grace 10` bounds the wait after an actual sanitizer error
+without turning it into a pass. Use `ubsan` for undefined-behavior checks.
+
+For a fresh coverage build, run a partial test selection and then capture only
+after all instrumented processes have exited:
+
+```sh
+JOBS=4 bash checks/testing/build.sh coverage
+python3 checks/testing/run.py run --build build/testing/coverage --suite generated \
+  --limit 12 --jobs 2 --output build/testing/results/coverage-smoke
+python3 checks/testing/coverage.py --build build/testing/coverage \
+  --output build/testing/results/coverage-report
+```
+
+Open `build/testing/results/coverage-report/html/index.html`. The same directory
+contains `coverage.info` and machine-readable gaps. Counters accumulate: use a
+fresh build for a new baseline, or preserve earlier counters and use the
+[coverage overlay](coverage-overlay.md). Do not mix builds or reset previous
+evidence to make a new report. Coverage errors fail capture. If LCOV rejects
+overlapping function ranges, inspect them before explicitly choosing
+`--allow-overlapping-functions`; that choice is recorded.
+
+## Campaigns and optional probes
+
+After the small runs, a campaign builds and executes the selected profiles:
+
+```sh
+python3 checks/testing/campaign.py --profiles release memcheck \
+  --jobs 4 --memcheck-jobs 2 --output build/testing/results/campaign
+```
+
+Omit `--profiles` for the complete configured profile set. A selected subset is
+a partial campaign. `campaign.json` records every stage; stage directories
+contain their summaries and logs. Independent stages continue after failures.
+Use `--resume` with identical settings to continue an interrupted campaign.
+Raw coverage is informational unless `--require-coverage-percent N` is set.
+Every gap remains reported, and an optional threshold does not establish
+general correctness.
+
+[OPTION_BEHAVIOR.md](OPTION_BEHAVIOR.md) documents the 47 runtime-option cases
+and their observed activation requirements. [API_PROBES.md](API_PROBES.md)
+documents optional isolated C++ destruction/cache probes. They include known
+failing or inconclusive cases and are outside the passing 55-function native
+subset and the default campaign.
+
 See [SCOPE.md](SCOPE.md) for the measurement limits.

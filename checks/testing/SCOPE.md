@@ -37,3 +37,21 @@ configuration, these accompany 1,981 original functions in 111 registered
 suites. Ten further local native regressions that exposed defects are kept
 for separate issue/fix work. Removing them from this publication subset does
 not change their recorded failures.
+
+Debug cleanup, ASan/LSan, UBSan and Valgrind use separate builds and retain
+semantic and memory outcomes independently. A logical answer cannot cancel a
+memory error. Incomplete leak checks and truncated XML do not prove memory
+safety. Optional direct API probes do not establish a solver CLI trigger.
+
+Coverage includes the compiled Vampire implementation, debug support, bundled
+Minisat and SATSubsumption. It excludes test sources and separately maintained
+CaDiCaL, VIRAS, Z3 and mini-GMP code, generated build output and system headers.
+Code omitted by configuration has no counters in that build. Named functions,
+source-location function groups, lines and raw branches remain separate
+metrics. Different binaries can have different template denominators.
+
+Raw gaps stay visible. A build-specific reachability proof is separate from
+raw coverage; difficult, unsupported or buggy paths cannot be excluded merely
+to reach a percentage. Reject invalid counters and preserve failed captures.
+Any derived lower bound must retain its denominator and state which new
+contribution was omitted. It is not a complete raw campaign capture.
