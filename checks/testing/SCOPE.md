@@ -31,3 +31,9 @@ The feature map is in [FEATURE_CHECKLIST.md](FEATURE_CHECKLIST.md). Broader
 assurance still needs suitable independent oracles, grammar-aware fuzzing with
 minimization, mutation tests, answer/synthesis validation, larger corpora and
 further resource/concurrency configurations.
+
+The added native subset has 55 functions. At the qualified Z3-enabled
+configuration, these accompany 1,981 original functions in 111 registered
+suites. Ten further local native regressions that exposed defects are kept
+for separate issue/fix work. Removing them from this publication subset does
+not change their recorded failures.

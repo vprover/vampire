@@ -20,3 +20,8 @@ without turning diagnostic stack counts into defect counts. Harness checks
 must pass; solver failures and incomplete checks must remain visible.
 
 See [README.md](README.md) for commands and [SCOPE.md](SCOPE.md) for gaps.
+
+The native layer adds independent set, graph/component, edit-distance and
+congruence checks alongside schedule and unification contracts. Its finite
+term universes and API calls do not certify every inference rule or establish
+an ordinary command-line trigger for an API failure.

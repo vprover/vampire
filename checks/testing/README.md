@@ -82,4 +82,27 @@ obligation check does not certify omitted proof steps or an arbitrary whole
 proof. [parser-capability-notes.md](parser-capability-notes.md) distinguishes
 malformed input from standard syntax that Vampire currently rejects.
 
+## Added C++ tests
+
+The native layer contains 55 added functions across seven suites: SharedSet,
+IntUnionFind, StringUtils, Schedules, UnificationWithAbstractionModes,
+SimpleCongruenceClosure and SimpleCongruenceClosureModels. With the Z3-enabled
+configuration used for qualification, the full inventory is 2,036 functions
+across 111 suites. Conditional compilation can change the available inventory.
+
+These tests use the existing `UnitTests` framework and CTest:
+
+```sh
+cmake --build build/testing/debug --target vtest -j4
+ctest --test-dir build/testing/debug --output-on-failure
+build/testing/debug/vtest run SharedSet
+```
+
+CTest stores its log at `build/testing/debug/Testing/Temporary/LastTest.log`.
+The Python `units` runner above also saves commands and per-suite logs.
+The original local investigation had ten further native regressions that fail
+against the tested upstream code. Those remain separate evidence for issue
+and fix work; this published subset contains the 55 passing functions. That
+selection does not imply the reported defects are fixed.
+
 See [SCOPE.md](SCOPE.md) for the measurement limits.

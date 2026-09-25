@@ -29,3 +29,12 @@ Transformation round trips invoke Vampire again and can miss shared errors.
 Emitted proof obligations are checked with Z3, with unsupported steps retained
 as inconclusive. Passing obligations do not certify missing introduction steps
 or arbitrary complete proofs. These weaker guarantees remain labelled.
+
+## Native reference checks
+
+SharedSet compares against `std::set`; IntUnionFind uses graph reachability;
+StringUtils uses an independent edit-distance calculation. Congruence-closure
+tests check finite equivalence/congruence relations and core subsets, while
+ground models are checked by a structural rewriter. Schedule and unification
+tests exercise their stated API contracts. The selected public subset contains
+55 added functions; known failing local regressions are separate issue evidence.
