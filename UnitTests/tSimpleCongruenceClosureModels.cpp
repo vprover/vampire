@@ -359,9 +359,33 @@ TEST_FUN(reset_replaces_equations)
   }
 }
 
+TEST_FUN(two_live_instances)
+{
+  Fixture fixture;
+  auto ord = ordering();
+  SimpleCongruenceClosure first(&ord), second(&ord);
+  auto firstEquations = fixture.equations({{0,1}});
+  std::vector<TermList> firstProbes{fixture.terms[0], fixture.terms[1]};
+  load(first, fixture, firstEquations, firstProbes);
+  verify(first, ord, fixture, firstEquations, firstProbes);
+  auto secondEquations = fixture.equations({{0,2}, {4,7}, {9,3}});
+  load(second, fixture, secondEquations, fixture.terms, true);
+  verify(second, ord, fixture, secondEquations, fixture.terms);
+  verify(first, ord, fixture, firstEquations, firstProbes);
+}
 
-
-
+TEST_FUN(two_live_orderings)
+{
+  Fixture fixture;
+  auto firstOrdering = ordering();
+  auto secondOrdering = ordering(true);
+  SimpleCongruenceClosure first(&firstOrdering), second(&secondOrdering);
+  auto equations = fixture.equations({{0,1}, {1,2}, {4,7}, {9,3}});
+  load(first, fixture, equations, fixture.terms);
+  verify(first, firstOrdering, fixture, equations, fixture.terms);
+  load(second, fixture, equations, fixture.terms, true);
+  verify(second, secondOrdering, fixture, equations, fixture.terms);
+}
 
 TEST_FUN(sequential_instances)
 {
@@ -378,4 +402,20 @@ TEST_FUN(sequential_instances)
   auto equations = fixture.equations({{1,2}, {4,7}, {9,3}});
   load(second, fixture, equations, fixture.terms, true);
   verify(second, ord, fixture, equations, fixture.terms);
+}
+
+TEST_FUN(surviving_second_instance)
+{
+  Fixture fixture;
+  auto ord = ordering();
+  auto first = std::make_unique<SimpleCongruenceClosure>(&ord);
+  SimpleCongruenceClosure second(&ord);
+  auto firstEquations = fixture.equations({{0,1}});
+  std::vector<TermList> firstProbes{fixture.terms[0], fixture.terms[1]};
+  load(*first, fixture, firstEquations, firstProbes);
+  verify(*first, ord, fixture, firstEquations, firstProbes);
+  first.reset();
+  auto secondEquations = fixture.equations({{0,2}, {4,7}, {9,3}});
+  load(second, fixture, secondEquations, fixture.terms, true);
+  verify(second, ord, fixture, secondEquations, fixture.terms);
 }

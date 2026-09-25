@@ -26,10 +26,16 @@ congruence checks alongside schedule and unification contracts. Its finite
 term universes and API calls do not certify every inference rule or establish
 an ordinary command-line trigger for an API failure.
 
+All 65 added native functions are present. Previous qualification found 55
+added passes and ten failures, with all 1,981 original functions passing.
+The ten regressions remain enabled in the default CTest suite; retain their
+failures until the corresponding fixes pass the same checks. The
+[README](README.md#added-c-tests) lists all ten names and their issue reports.
+
 The instrumentation layer adds memory checks, configuration validation and
 coverage evidence. Retain every raw missed location, every incomplete memory
-check and every failed counter capture. The optional API probes are outside
-the passing native subset and can reproduce known defects.
+check and every failed counter capture. The optional API probes remain
+available outside the default campaign and can reproduce known defects.
 
 Raw coverage is informational by default. A requested numeric gate is an
 extra constraint, not a replacement for reviewing important feature gaps and

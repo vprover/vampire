@@ -32,11 +32,17 @@ assurance still needs suitable independent oracles, grammar-aware fuzzing with
 minimization, mutation tests, answer/synthesis validation, larger corpora and
 further resource/concurrency configurations.
 
-The added native subset has 55 functions. At the qualified Z3-enabled
-configuration, these accompany 1,981 original functions in 111 registered
-suites. Ten further local native regressions that exposed defects are kept
-for separate issue/fix work. Removing them from this publication subset does
-not change their recorded failures.
+All 65 added native functions are included. The previous Z3-enabled Debug
+qualification on production revision `af03e1547d9381cea97c051ed65a7918d07a2b0e`
+recorded 1,981 original passes, 55 added passes and ten added failures across
+2,046 functions in 111 registered suites. The ten failing regressions run by
+default and remain failures. No skip or expected-failure setting masks them.
+The [README](README.md#added-c-tests) lists their names and links to
+[#997](https://github.com/vprover/vampire/issues/997),
+[#998](https://github.com/vprover/vampire/issues/998),
+[#999](https://github.com/vprover/vampire/issues/999),
+[#1000](https://github.com/vprover/vampire/issues/1000) and
+[#1001](https://github.com/vprover/vampire/issues/1001).
 
 Debug cleanup, ASan/LSan, UBSan and Valgrind use separate builds and retain
 semantic and memory outcomes independently. A logical answer cannot cancel a

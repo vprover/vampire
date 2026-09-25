@@ -182,12 +182,36 @@ void groundConflictMatrix(Mode mode)
   }
 }
 
-
+void rejectNonGroundConflict(bool reverse)
+{
+  NUMBER_SUGAR(Rat)
+  DECL_CONST(a, Rat)
+  DECL_FUNC(f, {Rat}, Rat)
+  DECL_FUNC(g, {Rat}, Rat)
+  DECL_VAR_SORTED(x, 0, Rat)
+  for (const auto& other : {typed(g(a)), typed(g(x))}) {
+    const auto open = typed(f(x));
+    const auto left = reverse ? other : open;
+    const auto right = reverse ? open : other;
+    ASS(!left.ground() || !right.ground());
+    std::cout << "UWA ground policy left=" << left << " [bank 0] right="
+              << right << " [bank 1]" << std::endl;
+    auto result = AbstractingUnifier::unify(left, 0, right, 1,
+                                          AbstractionOracle(Mode::GROUND), false);
+    if (result) {
+      auto constraints = result->computeConstraintLiterals();
+      std::cout << "Unexpected success; effective constraints=" << *constraints << std::endl;
+    }
+    // Distinct rigid top symbols cannot unify syntactically. Options.cpp's
+    // GROUND contract also forbids abstracting this non-ground pair.
+    ASS(!result);
+  }
+}
 
 }
 
 TEST_FUN(uwa_off_reflexive_index) { reflexiveIndexMatrix(Mode::OFF); }
-
+TEST_FUN(uwa_constant_reflexive_index) { reflexiveIndexMatrix(Mode::CONSTANT); }
 TEST_FUN(uwa_ground_reflexive_index) { reflexiveIndexMatrix(Mode::GROUND); }
 TEST_FUN(uwa_all_reflexive_index) { reflexiveIndexMatrix(Mode::ALL); }
 
@@ -214,3 +238,6 @@ TEST_FUN(uwa_all_ground_and_open_conflicts)
   expectSingleConstraint(Mode::ALL, typed(f(x)), typed(g(a)), false);
   expectSingleConstraint(Mode::ALL, typed(g(a)), typed(f(x)), false);
 }
+
+TEST_FUN(uwa_ground_rejects_open_left) { rejectNonGroundConflict(false); }
+TEST_FUN(uwa_ground_rejects_open_right) { rejectNonGroundConflict(true); }

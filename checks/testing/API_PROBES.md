@@ -3,9 +3,9 @@
 These probes exercise SAT-inference destruction, Boolean-term destruction
 with a heap-backed label, and cached clause counts after adding units. They
 can reproduce known failures or inconclusive timeouts against the tested
-upstream implementation. They are outside the passing 55-function native
-subset and are not part of the default campaign. No ordinary solver CLI
-trigger follows from a direct API test.
+upstream implementation. They remain available separately from the 65
+registered native functions and are not part of the default campaign. No
+ordinary solver CLI trigger follows from a direct API test.
 
 ## Prepare and inspect
 
