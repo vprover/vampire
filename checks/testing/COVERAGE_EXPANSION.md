@@ -36,5 +36,9 @@ SharedSet compares against `std::set`; IntUnionFind uses graph reachability;
 StringUtils uses an independent edit-distance calculation. Congruence-closure
 tests check finite equivalence/congruence relations and core subsets, while
 ground models are checked by a structural rewriter. Schedule and unification
-tests exercise their stated API contracts. The selected public subset contains
-55 added functions; known failing local regressions are separate issue evidence.
+tests exercise their stated API contracts. All 65 added functions are included,
+including the ten failing regressions documented in the
+[README](README.md#added-c-tests). The previous qualification recorded 55
+added passes and ten failures, alongside 1,981 original passes. The failures
+remain enabled in CTest and retain their normal failure status. These counts
+do not establish general API correctness or a new coverage measurement.

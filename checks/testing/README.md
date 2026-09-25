@@ -84,11 +84,18 @@ malformed input from standard syntax that Vampire currently rejects.
 
 ## Added C++ tests
 
-The native layer contains 55 added functions across seven suites: SharedSet,
+The native layer contains all 65 added functions across seven suites: SharedSet,
 IntUnionFind, StringUtils, Schedules, UnificationWithAbstractionModes,
 SimpleCongruenceClosure and SimpleCongruenceClosureModels. With the Z3-enabled
-configuration used for qualification, the full inventory is 2,036 functions
+configuration used for qualification, the full inventory is 2,046 functions
 across 111 suites. Conditional compilation can change the available inventory.
+
+In the previous Debug qualification on production revision
+`af03e1547d9381cea97c051ed65a7918d07a2b0e`, all 1,981 original functions passed.
+The added functions had 55 passes and ten failures. Those ten regressions are
+included in the default native suite. They remain ordinary failures, with no
+skip or expected-failure setting. CTest reports the three affected suites as
+failed; the `vtest` output identifies each failing function.
 
 These tests use the existing `UnitTests` framework and CTest:
 
@@ -96,13 +103,28 @@ These tests use the existing `UnitTests` framework and CTest:
 cmake --build build/testing/debug --target vtest -j4
 ctest --test-dir build/testing/debug --output-on-failure
 build/testing/debug/vtest run SharedSet
+build/testing/debug/vtest run StringUtils empty_string_is_not_an_integer_numeral
 ```
 
-CTest stores its log at `build/testing/debug/Testing/Temporary/LastTest.log`.
-The Python `units` runner above also saves commands and per-suite logs.
-The original local investigation had ten further native regressions that fail
-against the tested upstream code. Those remain separate evidence for issue
-and fix work; this published subset contains the 55 passing functions. That
-selection does not imply the reported defects are fixed.
+The last command runs one known failure directly. CTest stores its log at
+`build/testing/debug/Testing/Temporary/LastTest.log`. The Python `units` runner
+above also saves commands and per-suite logs. A nonzero result is expected
+while the reported defects remain.
+
+The ten failing functions are grouped below: four StringUtils checks, three
+UWA mode checks and three SimpleCongruenceClosure model checks. These are the
+recorded results of the previous qualification, not a new run on every build.
+
+| Suite | Failing functions | Report |
+| --- | --- | --- |
+| StringUtils | `empty_string_is_not_an_integer_numeral`<br>`empty_string_is_not_a_decimal_numeral` | [#997](https://github.com/vprover/vampire/issues/997) |
+| StringUtils | `replace_char_preserves_embedded_nul_and_remaining_bytes`<br>`sanitize_suffix_is_independent_of_previous_calls` | [#998](https://github.com/vprover/vampire/issues/998) |
+| UnificationWithAbstractionModes | `uwa_constant_reflexive_index` | [#999](https://github.com/vprover/vampire/issues/999) |
+| UnificationWithAbstractionModes | `uwa_ground_rejects_open_left`<br>`uwa_ground_rejects_open_right` | [#1000](https://github.com/vprover/vampire/issues/1000) |
+| SimpleCongruenceClosureModels | `two_live_instances`<br>`two_live_orderings`<br>`surviving_second_instance` | [#1001](https://github.com/vprover/vampire/issues/1001) |
+
+The StringUtils issues qualify their empty-input and embedded-NUL contract
+expectations. The UWA and model cases are API or option-policy findings;
+these native failures alone do not establish a wrong solver answer.
 
 See [SCOPE.md](SCOPE.md) for the measurement limits.

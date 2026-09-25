@@ -177,3 +177,36 @@ TEST_FUN(numeric_recognition_regular_boundaries)
     ASS(!StringUtils::isPositiveDecimal(input));
   }
 }
+
+TEST_FUN(empty_string_is_not_an_integer_numeral)
+{
+  // SMTLIB2.cpp uses this predicate to recognize numeral tokens and arities.
+  // An empty string contains no digits.
+  ASS(!StringUtils::isPositiveInteger(""));
+}
+
+TEST_FUN(empty_string_is_not_a_decimal_numeral)
+{
+  ASS(!StringUtils::isPositiveDecimal(""));
+}
+
+TEST_FUN(replace_char_preserves_embedded_nul_and_remaining_bytes)
+{
+  // This API accepts std::string, whose length includes embedded NUL bytes.
+  StringUtils::replaceChar("seed", 'x', 'y');
+  const std::string input("a\0b", 3);
+  const std::string expected("a\0X", 3);
+  ASS_EQ(StringUtils::replaceChar(input, 'b', 'X'), expected);
+}
+
+TEST_FUN(sanitize_suffix_is_independent_of_previous_calls)
+{
+  // No NUL normalization policy is assumed. The same input must give the same
+  // result regardless of bytes held by a previous call's temporary buffer.
+  const std::string input("a\0.", 3);
+  StringUtils::sanitizeSuffix("1234");
+  const auto first = StringUtils::sanitizeSuffix(input);
+  StringUtils::sanitizeSuffix("WXYZ");
+  const auto second = StringUtils::sanitizeSuffix(input);
+  ASS_EQ(first, second);
+}
