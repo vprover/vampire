@@ -907,8 +907,9 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
                   USER_ERROR("Unsupported special term: "+t->toString());
                 }
               } else {
-                // reverse order, so that we can pop them in the right order below
-                for (int i = t->numTermArguments()-1; i >= 0; i--) {
+                // the last argument will be processed first, so the first one's id ends up on top of ids,
+                // to be popped first below (the same trick applies to all the other pushes below)
+                for (unsigned i = 0; i < t->numTermArguments(); i++) {
                   todos.push({Todo::TERM,true,t->termArg(i),nullptr,nullptr});
                 }
               }
@@ -953,14 +954,12 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
 
           } else {
             c10::impl::GenericList type_args(c10::AnyType::get());
+            for (unsigned i = 0; i < t->numTypeArguments(); i++) {
+              type_args.push_back((int32_t)add_sort(add_sort,t->typeArg(i)));
+            }
             c10::impl::GenericList term_args(c10::AnyType::get());
-            for (unsigned i = 0; i < t->arity(); i++) {
-              TermList arg = *t->nthArgument(i);
-              if (i < t->numTypeArguments()) {
-                type_args.push_back((int32_t)add_sort(add_sort,arg));
-              } else {
-                term_args.push_back((int32_t)ids.pop());
-              }
+            for (unsigned i = 0; i < t->numTermArguments(); i++) {
+              term_args.push_back((int32_t)ids.pop());
             }
             myId = nodeList.size();
             ALWAYS(termsAlreadyKnown.insert(tl,myId))
@@ -985,15 +984,9 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
           unsigned* sharedLitId;
           if (!lit->shared() || !(sharedLitId = litsAlreadyKnown.findPtr(lit->getId()))) {
             todo.starting = false;
-            if (lit->functor() == 0) { // equality
-              // push in reverse order so they pop in forward order
-              todos.push({Todo::TERM,true,*lit->nthArgument(1),nullptr,nullptr});
-              todos.push({Todo::TERM,true,*lit->nthArgument(0),nullptr,nullptr});
-            } else {
-              // push term arguments in reverse order
-              for (int i = lit->arity()-1; i >= (int)lit->numTypeArguments(); i--) {
-                todos.push({Todo::TERM,true,*lit->nthArgument(i),nullptr,nullptr});
-              }
+            // (equality has no type arguments, so it's also covered here)
+            for (unsigned i = 0; i < lit->numTermArguments(); i++) {
+              todos.push({Todo::TERM,true,lit->termArg(i),nullptr,nullptr});
             }
             continue;
           } else {
@@ -1005,20 +998,16 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
           }
         } else { // not starting
           c10::impl::GenericList type_args(c10::AnyType::get());
-          c10::impl::GenericList term_args(c10::AnyType::get());
-          if (lit->functor() == 0) { // equality
-            TermList mySort = SortHelper::getEqualityArgumentSort(lit);
-            type_args.push_back((int32_t)add_sort(add_sort,mySort));
-            term_args.push_back((int32_t)ids.pop());
-            term_args.push_back((int32_t)ids.pop());
+          if (lit->isEquality()) { // its sort is not an argument, but we export it as the type argument
+            type_args.push_back((int32_t)add_sort(add_sort,SortHelper::getEqualityArgumentSort(lit)));
           } else {
-            for (unsigned i = 0; i < lit->arity(); i++) {
-              if (i < lit->numTypeArguments()) {
-                type_args.push_back((int32_t)add_sort(add_sort,*lit->nthArgument(i)));
-              } else {
-                term_args.push_back((int32_t)ids.pop());
-              }
+            for (unsigned i = 0; i < lit->numTypeArguments(); i++) {
+              type_args.push_back((int32_t)add_sort(add_sort,lit->typeArg(i)));
             }
+          }
+          c10::impl::GenericList term_args(c10::AnyType::get());
+          for (unsigned i = 0; i < lit->numTermArguments(); i++) {
+            term_args.push_back((int32_t)ids.pop());
           }
 
           unsigned res = nodeList.size();
@@ -1052,16 +1041,8 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
             case OR:
             {
               const FormulaList* fs = f->args();
-              // first iter just to claim the memory
               while (FormulaList::isNonEmpty(fs)) {
-                todos.push({Todo::FORMULA,true,TermList(),nullptr,nullptr}); // placeholder
-                fs = fs->tail();
-              }
-              Todo* top = todos.end();
-              fs = f->args();
-              // now write the arguments backwards
-              while (FormulaList::isNonEmpty(fs)) {
-                *(--top) = {Todo::FORMULA,true,TermList(),nullptr,fs->head()};
+                todos.push({Todo::FORMULA,true,TermList(),nullptr,fs->head()});
                 fs = fs->tail();
               }
               break;
@@ -1069,9 +1050,8 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
             case IMP:
             case IFF:
             case XOR:
-              // reversing the order
-              todos.push({Todo::FORMULA,true,TermList(),nullptr,f->right()});
               todos.push({Todo::FORMULA,true,TermList(),nullptr,f->left()});
+              todos.push({Todo::FORMULA,true,TermList(),nullptr,f->right()});
               break;
             case NOT:
               todos.push({Todo::FORMULA,true,TermList(),nullptr,f->uarg()});
@@ -1098,8 +1078,10 @@ void UIHelper::outputFormulasToTorch(std::string fileName, UnitList* units) {
               break;
             }
             case BOOL_TERM: {
+              // wrap the boolean term's id (on top of ids) into an atom, just like LITERAL does for literals
+              auto a = (int32_t)ids.pop();
               ids.push(nodeList.size());
-              nodeList.push_back(c10::ivalue::Tuple::create({c10::IValue("atom"),c10::IValue((int32_t)ids.pop())}));
+              nodeList.push_back(c10::ivalue::Tuple::create({c10::IValue("atom"),c10::IValue(a)}));
               break;
             }
             case AND:
