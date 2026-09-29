@@ -1548,7 +1548,7 @@ z3::expr Z3Interfacing::getRepresentation(Term* trm)
         auto trm = toEval.term();
         bool isLit = trm->isLiteral();
 
-        Signature::Symbol* symb;
+        const Signature::Symbol* symb;
         SortId range_sort;
         if (isLit) {
           symb = env.signature->getPredicate(trm->functor());
@@ -1618,7 +1618,7 @@ z3::expr Z3Interfacing::getRepresentation(Term* trm)
         // - constants dealt with above
         // - unary funs/preds like is_rat interpretation unclear
         if(symb->interpreted()){
-          Interpretation interp = static_cast<Signature::InterpretedSymbol*>(symb)->getInterpretation();
+          Interpretation interp = static_cast<const Signature::InterpretedSymbol*>(symb)->getInterpretation();
 
           if (Theory::isPolymorphic(interp)) {
             switch(interp){
@@ -1844,7 +1844,7 @@ z3::expr Z3Interfacing::getNamingConstantFor(TermList toName, z3::sort sort)
     { return z3_declare_const("n" + toName.toString(), sort); });
 }
 
-z3::expr Z3Interfacing::getConst(Signature::Symbol* symb, z3::sort sort)
+z3::expr Z3Interfacing::getConst(const Signature::Symbol* symb, z3::sort sort)
 {
   return _constantNames.getOrInit(symb, [&]()
     // careful: keep native constants' names distinct from the above ones (hence the "c"-prefix below)

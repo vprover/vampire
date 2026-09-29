@@ -13,6 +13,7 @@
  */
 
 #include <array>
+#include <unordered_map>
 #include <unordered_set>
 
 #include "Debug/Assertion.hpp"
@@ -30,6 +31,7 @@
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
+#include "Kernel/TermIterators.hpp"
 #include "Lib/SharedSet.hpp"
 
 #include "Saturation/Splitter.hpp"
@@ -83,9 +85,9 @@ static std::ostream &operator<<(std::ostream &out, Escaped escaped) {
 }
 
 struct FunctionName {
-  FunctionName(Signature::Symbol *symbol) : symbol(symbol) {}
+  FunctionName(const Signature::Symbol* symbol) : symbol(symbol) {}
   FunctionName(Term *t) : FunctionName(env.signature->getFunction(t->functor())) {}
-  Signature::Symbol *symbol;
+  const Signature::Symbol* symbol;
 };
 
 static std::ostream &operator<<(std::ostream &out, FunctionName name) {
@@ -98,7 +100,7 @@ static std::ostream &operator<<(std::ostream &out, FunctionName name) {
     auto rat = f->rationalConstant() ? f->rationalValue() : f->realValue();
     return out << "(/ " << SMTNumeral<true> {rat.numerator()} << ' ' << SMTNumeral<true> {rat.denominator()} << ")";
   }
-  auto *interpreted = static_cast<Signature::InterpretedSymbol *>(f);
+  auto *interpreted = static_cast<const Signature::InterpretedSymbol*>(f);
   switch(interpreted->getInterpretation()) {
   case Theory::EQUAL:
   case Theory::INT_IS_INT:
@@ -208,16 +210,16 @@ static std::ostream &operator<<(std::ostream &out, FunctionName name) {
 }
 
 struct PredicateName {
-  PredicateName(Signature::Symbol *symbol) : symbol(symbol) {}
+  PredicateName(const Signature::Symbol* symbol) : symbol(symbol) {}
   PredicateName(Literal *l) : PredicateName(env.signature->getPredicate(l->functor())) {}
-  Signature::Symbol *symbol;
+  const Signature::Symbol* symbol;
 };
 
 static std::ostream &operator<<(std::ostream &out, PredicateName name) {
   auto p = name.symbol;
   if(!p->interpreted())
     return out << Escaped {p->name().c_str()};
-  auto *interpreted = static_cast<Signature::InterpretedSymbol *>(p);
+  auto *interpreted = static_cast<const Signature::InterpretedSymbol*>(p);
   switch(interpreted->getInterpretation()) {
   case Theory::EQUAL:
     return out << '=';
@@ -377,7 +379,7 @@ static std::ostream &operator<<(std::ostream &out, Args args)
       FunctionName name(term);
       if (term->arity()) {
         if(name.symbol->interpreted()) {
-          auto interpreted = static_cast<Signature::InterpretedSymbol *>(name.symbol);
+          auto interpreted = static_cast<const Signature::InterpretedSymbol*>(name.symbol);
           switch(interpreted->getInterpretation()) {
           // identity functions, skip
           case Theory::INT_TO_INT:
@@ -477,7 +479,7 @@ static std::ostream &operator<<(std::ostream &out, Lit lit)
     out << "(";
 
   if(name.symbol->interpreted()) {
-    auto interpreted = static_cast<Signature::InterpretedSymbol *>(name.symbol);
+    auto interpreted = static_cast<const Signature::InterpretedSymbol*>(name.symbol);
     switch(interpreted->getInterpretation()) {
     case Theory::INT_IS_INT:
     case Theory::INT_IS_RAT:
@@ -778,7 +780,7 @@ void outputSignature(std::ostream &out)
   for(unsigned i = Signature::FIRST_USER_CON; i < sig.typeCons(); i++) {
     out << "(declare-sort " << SortName(i);
 #if VDEBUG
-    Signature::Symbol *type = sig.getTypeCon(i);
+    const Signature::Symbol* type = sig.getTypeCon(i);
     OperatorType *typeType = type->type();
     // we don't support polymorphism yet
     ASS_EQ(typeType->numTypeArguments(), 0)
@@ -788,7 +790,7 @@ void outputSignature(std::ostream &out)
   }
 
   for(unsigned i = 0; i < sig.functions(); i++) {
-    Signature::Symbol *fun = sig.getFunction(i);
+    const Signature::Symbol* fun = sig.getFunction(i);
     if(fun->interpreted() || fun->linMul())
       continue;
 
@@ -805,7 +807,7 @@ void outputSignature(std::ostream &out)
   }
 
   for(unsigned i = 1; i < sig.predicates(); i++) {
-    Signature::Symbol *pred = sig.getPredicate(i);
+    const Signature::Symbol* pred = sig.getPredicate(i);
     if(pred->interpreted())
       continue;
 

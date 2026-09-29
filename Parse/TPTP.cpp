@@ -17,6 +17,7 @@
 #include <fstream>
 
 #include "Debug/Assertion.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #include "Lib/Int.hpp"
 #include "Lib/Environment.hpp"
@@ -1461,15 +1462,26 @@ void TPTP::tff(bool tcf)
       lpars++;
       resetToks();
     }
-    std::string nm = name();
+    // a doubly-quoted symbol may be declared too; it becomes a "distinct object"
+    bool isDistinctObject = (getTok(0).tag == T_STRING);
+    std::string nm;
+    if (isDistinctObject) {
+      nm = getTok(0).content;
+      resetToks();
+    } else {
+      nm = name();
+    }
     consumeToken(T_COLON);
     if(_isThf){
       tok = getTok(0);
       if (tok.tag == T_TTYPE) {
+        if (isDistinctObject) {
+          USER_ERROR("A distinct object cannot be a type constructor: \"" + nm + "\"");
+        }
         resetToks();
         unsigned arity = getConstructorArity();
         bool added = false;
-        unsigned fun = env.signature->addTypeCon(nm, arity, added);
+        unsigned fun = env.signature->addTypeCon(nm, arity, added)->number();
         if (!added) {
           if(env.signature->getTypeCon(fun)->type() != OperatorType::getTypeConType(arity)){
             PARSE_ERROR_TOK("Type constructor declared with two different types",tok);
@@ -1490,6 +1502,8 @@ void TPTP::tff(bool tcf)
     _ints.push(lpars);
     // remember type name
     _strings.push(nm);
+    // remember whether it was doubly-quoted; nothing between here and endTff touches _bools
+    _bools.push(isDistinctObject);
     _states.push(END_TFF);
     _states.push(TYPE);
     return;
@@ -1735,8 +1749,12 @@ void TPTP::holTerm()
     }    
     case T_NAME:{
       //AYB must be a nicer way of dealing with this?
+      if(name == "$distinct"){
+        // the latest TPTP BNF does allow it in thf, always in functional form
+        USER_ERROR("$distinct is not supported in thf");
+      }
       if(name.at(0) == '$'){
-        USER_ERROR("Vampire higher-order is currently not compatible with theory reasoning");    
+        USER_ERROR("Vampire higher-order is currently not compatible with theory reasoning");
       }
       readTypeArgs(arity);
       _termLists.push(createFunctionApplication(name, arity)); // arity
@@ -2288,6 +2306,11 @@ fs::path TPTP::resolveInclude(const fs::path included)
  */
 void TPTP::include()
 {
+  // Handling the directive only -- opening the axiom file and building the
+  // formula-selection set. The included content is parsed afterwards, by the ordinary
+  // state machine under whatever scope is then open, so this does not nest.
+  TIME_TRACE("tptp include");
+
   consumeToken(T_LPAR);
   Token& tok = getTok(0);
   if (tok.tag != T_NAME) {
@@ -2569,8 +2592,8 @@ void TPTP::endLetTypes()
   bool isPredicate = type->isPredicateType();
 
   unsigned functor = isPredicate
-                  ? env.signature->addFreshPredicate(type, name.c_str())
-                  : env.signature->addFreshFunction(type, name.c_str());
+                  ? env.signature->addFreshPredicate(type, name.c_str())->number()
+                  : env.signature->addFreshFunction(type, name.c_str())->number();
 
   auto ivars = TermStack::fromIterator(iterTraits(iTypeVars.iterator())
     .map(unsignedToVarFn));
@@ -3192,7 +3215,8 @@ void TPTP::term()
       unsigned number;
       switch (tok.tag) {
         case T_STRING:
-          // "distinct_object"s are _always_ of sort $i, even in typed contexts
+          // a "distinct_object" is of sort $i unless a type declaration said otherwise;
+          // if it was declared, addStringConstant returns that symbol and ignores the sort
           number = env.signature->addStringConstant(tok.content, AtomicSort::defaultSort());
           break;
         case T_INT:
@@ -3425,7 +3449,7 @@ Literal* TPTP::createEquality(bool polarity,TermList& lhs,TermList& rhs)
  * Creates a formula that is a predicate application literal from
  * provided predicate symbol name and arity. If arity is greater than zero,
  * the arguments are assumed to be on the _termLists stack.
- * @since 27/03/1015 Manchester
+ * @since 27/03/2015 Manchester
  */
 Formula* TPTP::createPredicateApplication(std::string name, unsigned arity)
 {
@@ -3441,7 +3465,7 @@ Formula* TPTP::createPredicateApplication(std::string name, unsigned arity)
       bool dummy;
       pred = addPredicate(name, arity, dummy, _termLists.top());
     } else {
-      pred = env.signature->addPredicate(name, OperatorType::getPredicateType({}, 0));
+      pred = env.signature->addPredicate(name, OperatorType::getPredicateType({}, 0))->number();
     }
   }
   if (pred == -1) { // equality
@@ -3451,38 +3475,49 @@ Formula* TPTP::createPredicateApplication(std::string name, unsigned arity)
     return new AtomicFormula(l, lhs != l->termArg(0));
   }
   if (pred == -2){ // distinct
-    // TODO check that we are top-level
-
     // ignore pointless $distinct(x)
     if(arity < 2) {
       _termLists.pop(arity);
       return new Formula(true);
     }
-    // If fewer than 5 things are distinct then we add the disequalities
-    else if(arity < 5){
-      static Stack<unsigned> distincts;
-      distincts.reset();
-      for(int i=arity-1;i >= 0; i--){
-        TermList t = _termLists.pop();
-        if(t.isVar() || t.term()->arity()!=0){
-          USER_ERROR("$distinct can only be used with constants. Found "+t.toString());
-        }
-        distincts.push(t.term()->functor());
-      }
-      Formula* distinct_formula = DistinctGroupExpansion(0 /* zero means "always expand"*/).expand(distincts);
-      return distinct_formula;
-    }else{
-      // Otherwise record them as being in a distinct group
-      unsigned grpIdx = env.signature->createDistinctGroup(0);
-      for(int i = arity-1;i >=0; i--){
-        TermList ts = _termLists.pop();
-        if(!ts.isTerm() || ts.term()->arity()!=0){
-          USER_ERROR("$distinct can only be used with constants. Found "+ts.toString());
-        }
-        env.signature->addToDistinctGroup(ts.term()->functor(),grpIdx);
-      }
-      return new Formula(true); // we ignore it, it evaluates to true as we have recorded it elsewhere
+
+    // Whether this occurrence can be recorded as a distinct group depends on where in
+    // the formula it sits, which we cannot tell from here. So just build a marker
+    // literal; Shell/DistinctGroupExpansion eliminates it once the unit is complete.
+    if(_lastDialect != Dialect::FOF){
+      USER_ERROR("$distinct is not supported in ",
+        _lastDialect == Dialect::CNF ? "cnf" : "tcf", ", only in fof/tff");
     }
+
+    auto args = nLastTermLists(arity);
+    // all the arguments must have the same sort, or the disequalities the marker
+    // stands for would be ill-sorted
+    TermList sort = sortOf(args[0]);
+    for (auto i : range(1u, arity)) {
+      TermList argSort = sortOf(args[i]);
+      if(argSort != sort){
+        USER_ERROR("$distinct can only be used with constants of the same sort. Found ",
+          args[i], " of sort ", argSort, " among constants of sort ", sort);
+      }
+    }
+
+    Formula* out;
+    if(sort.isVar() || !sort.term()->ground()){
+      // a marker predicate for a non-ground sort would have to be polymorphic. Such an
+      // occurrence could never become a distinct group anyway -- a group holds constants,
+      // and here the arguments are typically the quantified variables the sort comes
+      // from -- so just expand it right away.
+      Stack<TermList> terms(arity);
+      for (auto i : range(0u, arity)) {
+        terms.push(args[i]);
+      }
+      out = DistinctGroupExpansion(0).expandTerms(terms,sort);
+    } else {
+      out = new AtomicFormula(Literal::create(
+        env.signature->getDistinctPredicate(arity,sort), arity, /* polarity */ true, args));
+    }
+    _termLists.pop(arity);
+    return out;
   }
   // not equality or distinct
   auto args = nLastTermLists(arity);
@@ -3579,7 +3614,7 @@ TermList TPTP::createTypeConApplication(std::string name, unsigned arity)
   ASS_GE(_termLists.size(), arity);
 
   bool added = false;
-  unsigned typeCon = env.signature->addTypeCon(name,arity,added);
+  unsigned typeCon = env.signature->addTypeCon(name,arity,added)->number();
   if(added)
     USER_ERROR("Undeclared type constructor ", name, "/", arity);
 
@@ -3901,6 +3936,21 @@ void TPTP::tag()
  */
 void TPTP::endFof()
 {
+  // The parser is a flat state machine, so it has no phases in the sense preprocessing
+  // does: every state handler runs per token and is far too hot to scope. What it does
+  // have is a boundary that recurs exactly once per input formula, and that is this
+  // function -- where the formula is closed off, checked, possibly turned into a clause,
+  // and handed over as a Unit.
+  //
+  // So the nodes added here and in endTff()/include() are all per-unit or rarer: a scope
+  // per input unit is ~0.002% of a sweep and at most 0.34% of the worst single run (the
+  // 3.3 M-formula CSR*+6 family), which is why several of them are affordable where one
+  // per token would not be. What stays unattributed as "parsing" self time is then the
+  // lexer plus the state machine plus term and formula construction -- and since the
+  // input byte count is known, instructions per byte of that residue says whether a
+  // lexer can plausibly account for it, without paying to measure one.
+  TIME_TRACE("tptp formula unit");
+
   TPTP::SourceRecord* source = 0;
 
   // are we interested in collecting sources?
@@ -3937,7 +3987,8 @@ void TPTP::endFof()
     _containsConjecture = true;
   }
 
-  if (mustBeClosed && freeVariables(f)) {
+  // A full walk of the formula, once per non-CNF unit, purely to reject an input error
+  if (mustBeClosed && TIME_TRACE_EXPR("tptp closure check", freeVariables(f))) {
     USER_ERROR("unquantified variable detected for a formula named '",nm,"'");
   }
 
@@ -3947,6 +3998,12 @@ void TPTP::endFof()
     unit->setInheritedColor(_currentColor);
   }
   else { // cnf() or tcf()
+    // Flattening the parsed disjunction back into a Clause. This is the whole of what a
+    // CNF unit costs after its formula is built, and CNF is the dialect that dominates
+    // the parse-bound tail (HWV13x-1 at 100% of a full budget), so it is worth its own
+    // node rather than being folded into the unit above.
+    TIME_TRACE("tptp clause conversion");
+
     Formula* body = f;
     if (_lastDialect == Dialect::TCF) {
       // a tcf clause comes wrapped in a universal prefix, which is there to carry
@@ -4062,7 +4119,8 @@ void TPTP::endFof()
 Unit* TPTP::processClaimFormula(Unit* unit, Formula * f, const std::string& nm)
 {
   bool added;
-  unsigned pred = env.signature->addPredicate(nm,OperatorType::getPredicateType(TermStack(), 0), added);
+  auto symbol = env.signature->addPredicate(nm, OperatorType::getPredicateType(TermStack(), 0), added)->markLabel();
+  unsigned pred = symbol->number();
   if (!added) {
     USER_ERROR("Names of claims must be unique: "+nm);
   }
@@ -4075,7 +4133,6 @@ Unit* TPTP::processClaimFormula(Unit* unit, Formula * f, const std::string& nm)
     // only clauses can have free variables at this point!
     ASS_EQ(freeVariables(f),VList::empty())
   }
-  env.signature->getPredicate(pred)->markLabel();
   Formula* claim = new AtomicFormula(Literal::create(pred, /* polarity */ true, {}));
   f = new BinaryFormula(IFF,claim,f);
   return new FormulaUnit(f,
@@ -4098,6 +4155,11 @@ void TPTP::addTagState(Tag t)
  */
 void TPTP::endTff()
 {
+  // Once per type declaration -- the other half of the per-unit boundary described in
+  // endFof(). Only the typed dialects pay it at all, and there it separates declaring
+  // the signature from parsing formulas over it.
+  TIME_TRACE("tptp type declaration");
+
   int rpars= _ints.pop();
   while (rpars--) {
     consumeToken(T_RPAR);
@@ -4112,15 +4174,37 @@ void TPTP::endTff()
 
   OperatorType* ot = constructOperatorType(t);
   std::string name = _strings.pop();
+  bool isDistinctObject = _bools.pop();
+
+  if (isDistinctObject) {
+    // a "distinct object" is a constant of a ground sort, and lives in the distinct
+    // group of that sort; polymorphism here is deliberately not supported
+    if (ot->numTypeArguments() != 0) {
+      USER_ERROR("A distinct object cannot have a polymorphic type: \"" + name + "\"");
+    }
+    if (ot->arity() != 0 || ot->isPredicateType() || ot->result() == AtomicSort::superSort()) {
+      USER_ERROR("A distinct object must be declared as a constant of a proper sort: \"" + name + "\"");
+    }
+    TermList sort = ot->result();
+    if (sort.isVar() || !sort.term()->ground()) {
+      USER_ERROR("A distinct object cannot have a non-ground sort: \"" + name + "\"");
+    }
+    unsigned fun = env.signature->addStringConstant(name,sort);
+    // addStringConstant keys on the name only, so this also catches a use at another sort
+    if (env.signature->getFunction(fun)->type() != ot) {
+      USER_ERROR("Distinct object type is declared after its use, or twice with different types: \"" + name + "\"");
+    }
+    return;
+  }
 
   unsigned arity = ot->arity();
   bool isPredicate = ot->isPredicateType() && !_isThf;
   bool isTypeCon = !isPredicate && (ot->result() == AtomicSort::superSort());
 
   bool added;
-  Signature::Symbol* symbol;
+  const Signature::Symbol* symbol;
   if (isPredicate) {
-    unsigned pred = env.signature->addPredicate(name, ot, added);
+    unsigned pred = env.signature->addPredicate(name, ot, added)->number();
     symbol = env.signature->getPredicate(pred);
     if (!added) {
       // GR: Multiple identical type declarations for a symbol are allowed
@@ -4129,7 +4213,7 @@ void TPTP::endTff()
       }
     }
   } else if (isTypeCon){
-    unsigned typeCon = env.signature->addTypeCon(name, arity, added);
+    unsigned typeCon = env.signature->addTypeCon(name, arity, added)->number();
     symbol = env.signature->getTypeCon(typeCon);
     if (!added) {
       // GR: Multiple identical type declarations for a symbol are allowed
@@ -4138,7 +4222,7 @@ void TPTP::endTff()
       }
     }
   } else {
-    unsigned fun = env.signature->addFunction(name, ot, added);
+    unsigned fun = env.signature->addFunction(name, ot, added)->number();
     symbol = env.signature->getFunction(fun);
     if (!added) {
       if(symbol->type() != ot){
@@ -4956,7 +5040,7 @@ unsigned TPTP::addFunction(std::string name,int arity,bool& added,TermList& arg)
     return env.signature->getPiSigmaProxy(name);
   }
   if (arity > 0) {
-    return env.signature->addFunction(name,OperatorType::getFunctionTypeUniformRange(arity, AtomicSort::defaultSort(), AtomicSort::defaultSort(), 0), added);
+    return env.signature->addFunction(name,OperatorType::getFunctionTypeUniformRange(arity, AtomicSort::defaultSort(), AtomicSort::defaultSort(), 0), added)->number();
   }
   return addUninterpretedConstant(name,added);
 } // addFunction
@@ -5024,7 +5108,7 @@ int TPTP::addPredicate(std::string name,int arity,bool& added,TermList& arg)
     // special case for distinct, dealt with in formulaInfix
     return -2;
   }
-  return env.signature->addPredicate(name, OperatorType::getPredicateTypeUniformRange(arity, AtomicSort::defaultSort()), added);
+  return env.signature->addPredicate(name, OperatorType::getPredicateTypeUniformRange(arity, AtomicSort::defaultSort()), added)->number();
 } // addPredicate
 
 
@@ -5129,7 +5213,7 @@ unsigned TPTP::addUninterpretedConstant(const std::string& name, bool& added)
   // constants in any input dialect (including FOF and SMT-LIB, which
   // additionally left `added` uninitialized on that path). It now happens
   // in createFunctionApplication()/addFunction(), only in THF mode.
-  return env.signature->addFunction(name,OperatorType::getConstantsType(AtomicSort::defaultSort(),0),added);
+  return env.signature->addFunction(name,OperatorType::getConstantsType(AtomicSort::defaultSort(),0),added)->number();
 } // TPTP::addUninterpretedConstant
 
 /**
@@ -5218,23 +5302,22 @@ void TPTP::vampire()
     if (!uncomputable) {
       env.colorUsed = true;
     }
-    unsigned f = pred
+    auto symbol = pred
       ? env.signature->addPredicate(symb, OperatorType::getPredicateTypeUniformRange(arity, AtomicSort::defaultSort()))
       : env.signature->addFunction(symb, OperatorType::getFunctionTypeUniformRange(arity, AtomicSort::defaultSort(), AtomicSort::defaultSort()));
-    Signature::Symbol* sym = pred ? env.signature->getPredicate(f) : env.signature->getFunction(f);
     if (skip) {
-      sym->markSkip();
+      symbol->markSkip();
     }
     else if (uncomputable) {
       if (env.options->questionAnswering() != Options::QuestionAnsweringMode::SYNTHESIS) {
         std::cout << "% WARNING: Found the :uncomputable option but synthesis is not enabled. Consider running with '-qa synthesis'." << endl;
       } else {
-        static_cast<Shell::SynthesisALManager*>(Shell::SynthesisALManager::getInstance())->addDeclaredSymbolAnnotatedAsUncomputable(std::make_pair(f, pred));
+        static_cast<Shell::SynthesisALManager*>(Shell::SynthesisALManager::getInstance())->addDeclaredSymbolAnnotatedAsUncomputable(std::make_pair(symbol->number(), pred));
       }
     }
     else {
       ASS_NEQ(color, COLOR_INVALID);
-      sym->addColor(color);
+      symbol->addColor(color);
     }
   }
   else if (nm == "left_formula") { // e.g. vampire(left_formula)

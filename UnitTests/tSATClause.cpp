@@ -90,7 +90,6 @@ TEST_FUN(hashIsExclusiveOrOverLiterals)
                     ^ SATLiteralHash::hash(r);
 
   ASS_EQ(SATClauseHash::hash(*cl), expected);
-  ASS_EQ(cl->defaultHash(), expected);
 
   auto permuted = satClause({ r, p, ~q });
   ASS_EQ(SATClauseHash::hash(*permuted), expected);

@@ -55,9 +55,6 @@ struct VarSpec
 
   auto asTuple() const { return std::tie(_self, index); }
   IMPL_COMPARISONS_FROM_TUPLE(VarSpec)
-
-  unsigned defaultHash () const;
-  unsigned defaultHash2() const;
 };
 
 struct TermSpec {
@@ -68,8 +65,6 @@ struct TermSpec {
 
   auto asTuple() const -> decltype(auto) { return std::tie(term, index); }
   IMPL_COMPARISONS_FROM_TUPLE(TermSpec)
-  unsigned defaultHash () const;
-  unsigned defaultHash2() const;
 
   TermList term;
   int index;
@@ -202,7 +197,6 @@ struct TermSpec {
 
 // hash a VarSpec by combining the variable's content word with its bank index
 struct VarSpecHash {
-  static bool equals(VarSpec v1, VarSpec v2) { return v1 == v2; }
   static unsigned hash(VarSpec v) { return HashUtils::combine(v._self.content(), v.index); }
 };
 
@@ -213,7 +207,6 @@ struct VarSpecHash2 {
 
 // hash a TermSpec by its term and its bank index
 struct TermSpecHash {
-  static bool equals(TermSpec const& s1, TermSpec const& s2) { return s1 == s2; }
   static unsigned hash(TermSpec const& s)
   { return TupleHash<TermListHash, FnvHash>::hash(s.asTuple()); }
 };
@@ -222,11 +215,6 @@ struct TermSpecHash2 {
   static unsigned hash(TermSpec const& s)
   { return TupleHash<TermListHash2, IdentityHash>::hash(s.asTuple()); }
 };
-
-inline unsigned VarSpec::defaultHash () const { return VarSpecHash ::hash(*this); }
-inline unsigned VarSpec::defaultHash2() const { return VarSpecHash2::hash(*this); }
-inline unsigned TermSpec::defaultHash () const { return TermSpecHash ::hash(*this); }
-inline unsigned TermSpec::defaultHash2() const { return TermSpecHash2::hash(*this); }
 
 /** A wrapper around TermSpec that automatically dereferences the TermSpec with respect to some RobSubstition when 
  * used with BottomUpEvaluation.  This means for example if we evaluate some TermSpec * `g(X, Y)` in a context 
@@ -290,7 +278,6 @@ public:
   USE_ALLOCATOR(UnificationConstraint)
   auto asTuple() const -> decltype(auto) { return std::tie(_t1, _t2, _sort); }
   IMPL_COMPARISONS_FROM_TUPLE(UnificationConstraint);
-  IMPL_HASH_FROM_TUPLE(UnificationConstraint);
 
   UnificationConstraint(TermSpec t1, TermSpec t2, TermSpec sort)
   : _t1(std::move(t1)), _t2(std::move(t2)), _sort(std::move(sort))

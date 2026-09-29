@@ -65,6 +65,11 @@ public:
    * The function returns true, if all the replacement terms in the substitution
    * are shared.
    *
+   * Only worth it when the same instantiation is applied to several declared sorts
+   * and the cost of the map is amortised, as in Z3Interfacing's symbol declaration.
+   * getArgSort and getResultSort, which want one sort at a time, index into @c t
+   * directly instead -- see TypeArgApplicator in the implementation.
+   *
    * @author Ahmed Bhayat
    */
   static bool getTypeSub(const Term *t, Substitution &subst);

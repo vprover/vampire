@@ -361,8 +361,11 @@ struct PredSigTraits {
   static bool isConstantSymbol(unsigned functor) 
   { return false; } 
 
-  static Signature::Symbol* getSymbol(unsigned functor) 
+  static const Signature::Symbol* getSymbol(unsigned functor)
   { return env.signature->getPredicate(functor); } 
+
+  static const DArray<unsigned>& counts(const SymbolCounts& counts)
+  { return counts.predicates; }
 };
 #endif
 
@@ -389,8 +392,11 @@ struct FuncSigTraits {
   static bool isConstantSymbol(unsigned functor) 
   { return env.signature->getFunction(functor)->numTermArguments() == 0; } 
 
-  static Signature::Symbol* getSymbol(unsigned functor) 
+  static const Signature::Symbol* getSymbol(unsigned functor)
   { return env.signature->getFunction(functor); }
+
+  static const DArray<unsigned>& counts(const SymbolCounts& counts)
+  { return counts.functions; }
 };
 
 
@@ -401,7 +407,7 @@ KboWeightMap<SigTraits> KBO::weightsFromOpts(const Options& opts, const DArray<i
 
   auto arityExtractor = [](unsigned i) { return SigTraits::getSymbol(i)->arity(); };
   auto precedenceExtractor = [&](unsigned i) { return rawPrecedence[i]; };
-  auto frequencyExtractor = [](unsigned i) { return SigTraits::getSymbol(i)->usageCnt(); };
+  auto frequencyExtractor = [this](unsigned i) { return SigTraits::counts(symbolCounts())[i]; };
   bool qkbo = env.options->termOrdering() == Options::TermOrdering::QKBO 
            || env.options->termOrdering() == Options::TermOrdering::LAKBO ;
 

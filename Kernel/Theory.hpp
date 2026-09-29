@@ -38,8 +38,8 @@ template<class T>
 struct QR { T quot; T rem; };
 
 #define MK_CAST_OP(Type, OP, ToCast)                                                      \
-  friend auto operator OP(Type l, ToCast const& r) { return l OP Type(r); }               \
-  friend auto operator OP(ToCast const& l, Type r) { return Type(l) OP r; }               \
+  friend auto operator OP(Type const& l, ToCast const& r) { return l OP Type(r); }        \
+  friend auto operator OP(ToCast const& l, Type const& r) { return Type(l) OP r; }        \
 
 #define MK_CAST_OPS(Type, ToCast)                                                         \
   MK_CAST_OP(Type, *, ToCast)                                                             \
@@ -199,16 +199,19 @@ public:
   IntegerConstantType abs() const;
   IntegerConstantType log2() const;
 
-  static Comparison comparePrecedence(IntegerConstantType n1, IntegerConstantType n2);
+  static Comparison comparePrecedence(IntegerConstantType const& n1, IntegerConstantType const& n2);
   size_t hash() const;
-  auto defaultHash () const { return DefaultHash ::hash(truncate<unsigned long>()); }
-  auto defaultHash2() const { return DefaultHash2::hash(truncate<unsigned long>()); }
 
   friend std::ostream& operator<<(std::ostream& out, const IntegerConstantType& val);
   friend struct RationalConstantType;
   friend void init_mpq(mpq_t out, RationalConstantType const&);
 private:
   MK_CAST_OPS(IntegerConstantType, int)
+};
+
+struct IntegerConstantTypeHash {
+  static unsigned hash(const IntegerConstantType& value)
+  { return FnvHash::hash(value.truncate<unsigned long>()); }
 };
 
 /**
@@ -284,16 +287,13 @@ struct RationalConstantType {
 
   MK_SIGN_OPS
 
-  static Comparison comparePrecedence(RationalConstantType n1, RationalConstantType n2);
+  static Comparison comparePrecedence(RationalConstantType const& n1, RationalConstantType const& n2);
 
   friend std::ostream& operator<<(std::ostream& out, const RationalConstantType& val); 
 
   MK_CAST_OPS(RationalConstantType, int)
   MK_CAST_OPS(RationalConstantType, IntegerConstantType)
   MK_CAST_OP(RationalConstantType, /, int)
-
-  auto defaultHash () const { return HashUtils::combine(_num.defaultHash(), _den.defaultHash()); }
-  auto defaultHash2() const { return HashUtils::combine(_num.defaultHash2(), _den.defaultHash2()); }
 
 private:
   void cannonize();
@@ -304,6 +304,16 @@ private:
 
 std::ostream& operator<<(std::ostream& out, const IntegerConstantType& val); 
 
+
+// RealConstantType uses the same rational representation and hash.
+struct RationalConstantTypeHash {
+  static unsigned hash(const RationalConstantType& value)
+  {
+    return HashUtils::combine(
+      IntegerConstantTypeHash::hash(value.numerator()),
+      IntegerConstantTypeHash::hash(value.denominator()));
+  }
+};
 
 class RealConstantType : public RationalConstantType
 {
@@ -344,7 +354,7 @@ public:
   RealConstantType abs() const;
 
   size_t hash() const;
-  static Comparison comparePrecedence(RealConstantType n1, RealConstantType n2);
+  static Comparison comparePrecedence(RealConstantType const& n1, RealConstantType const& n2);
 
   /* currently we only represent rational numerals */ 
   bool isRat() const { return true;  }

@@ -12,6 +12,8 @@
  * Implements classes for inferences.
  */
 
+#include "Debug/TimeProfiling.hpp"
+
 #include "Kernel/HOL/HOL.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/DArray.hpp"
@@ -131,6 +133,7 @@ CompositeSGI::~CompositeSGI() {
 
 Clause* ChoiceDefinitionISE::simplify(Clause* c)
 {
+  TIME_TRACE("choice definition");
   if (c->length() != 2 || !c->noSplits()) {
     return c;
   }
@@ -300,6 +303,7 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
 
 Clause* TautologyDeletionISE2::simplify(Clause* c)
 {
+  TIME_TRACE("higher-order tautology deletion");
   static LiteralStack negLits;
   static LiteralStack posLits;
 

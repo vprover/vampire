@@ -103,31 +103,25 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
     auto sym = t->kind() == TermKind::SORT ? env.signature->getTypeCon(fn) : env.signature->getFunction(fn);
 
     InferenceStore::instance()->recordIntroducedSkolemSymbol(res, sym, v, t);
-    if (unit->derivedFromGoal()) {
-      sym->markInGoal();
-    }
   }
 
   return res;
 }
 
-unsigned Skolem::addSkolemFunction(unsigned taArity, TermStack domainSorts,
+Signature::Symbol* Skolem::addSkolemFunction(unsigned taArity, TermStack domainSorts,
     TermList rangeSort, const char* suffix)
 {
   //ASS(arity==0 || domainSorts!=0);
 
-  unsigned fun = env.signature->addSkolemFunction(OperatorType::getFunctionType(domainSorts, rangeSort, taArity), suffix);
-  Signature::Symbol* fnSym = env.signature->getFunction(fun);
-  fnSym->markSkipCongruence();
-  return fun;
+  return env.signature->addSkolemFunction(OperatorType::getFunctionType(domainSorts, rangeSort, taArity), suffix)->markSkipCongruence();
 }
 
-unsigned Skolem::addSkolemTypeCon(unsigned arity)
+Signature::Symbol* Skolem::addSkolemTypeCon(unsigned arity)
 {
   return env.signature->addSkolemTypeCon(arity);
 }
 
-unsigned Skolem::addSkolemPredicate(unsigned taArity, TermStack domainSorts, const char* suffix)
+Signature::Symbol* Skolem::addSkolemPredicate(unsigned taArity, TermStack domainSorts, const char* suffix)
 {
   return env.signature->addSkolemPredicate(OperatorType::getPredicateType(domainSorts, taArity), suffix);
 }
@@ -433,17 +427,17 @@ Formula* Skolem::skolemise (Formula* f)
           //Not the higher-order case. Create the term
           //sk(typevars, termvars).
           if(skolemisingTypeVar){
-            sym = addSkolemTypeCon(arity);
+            sym = addSkolemTypeCon(arity)->number();
             skolemTerm = AtomicSort::create(sym, arity, allVars.begin());
           } else {
-            sym = addSkolemFunction(typeVars.size(), termVarSorts, rangeSort);
+            sym = addSkolemFunction(typeVars.size(), termVarSorts, rangeSort)->number();
             skolemTerm = Term::create(sym, arity, allVars.begin());
           }
         } else {
           //The higher-order case. Create the term
           //sk(typevars) @ termvar_1 @ termvar_2 @ ... @ termvar_n
           TermList skSymSort = AtomicSort::arrowSort(termVarSorts, rangeSort);
-          sym = addSkolemFunction(typeVars.size(), TermStack(), skSymSort);
+          sym = addSkolemFunction(typeVars.size(), TermStack(), skSymSort)->number();
           TermList head = TermList(Term::create(sym, typeVars.size(), typeVars.begin()));
           skolemTerm = HOL::create::app(head, termVars).term();
         }

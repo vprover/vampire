@@ -464,10 +464,6 @@ void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause* c)
 {
   ASS(c->isPropositional());
 
-  if (env.options->showNewPropositional()) {
-    std::cout << "[SA] new propositional: " << c->toString() << std::endl;
-  }
-
   if (_consFinder) {
     _consFinder->onNewPropositionalClause(c);
   }
@@ -1121,12 +1117,11 @@ void SaturationAlgorithm::activate(Clause* cl)
     }
   }
 
-  {
-    TIME_TRACE("splitting")
-    if (_splitter && _opt.splitAtActivation()) {
-      if (_splitter->doSplitting(cl)) {
-        return removeSelected(cl);
-      }
+  if (_splitter && _opt.splitAtActivation()) {
+    // no TIME_TRACE here: Splitter::doSplitting traces itself, and nesting the same
+    // name inside itself would double-count it in the flattened profile
+    if (_splitter->doSplitting(cl)) {
+      return removeSelected(cl);
     }
   }
 

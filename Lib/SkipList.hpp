@@ -23,6 +23,7 @@
 #include "Allocator.hpp"
 #include "Backtrackable.hpp"
 #include "Comparison.hpp"
+#include "FlexibleTail.hpp"
 #include "Random.hpp"
 
 #define SKIP_LIST_MAX_HEIGHT 32
@@ -42,15 +43,16 @@ class SkipList
 public:
   USE_ALLOCATOR(SkipList);
 
-  class Node {
+  class Node : public FlexibleTail<Node, Node*> {
   public:
     Value value;
-    Node* nodes[1];
+    Node **nodes() { return Node::flexibleTail(); }
+    Node *const *nodes() const { return Node::flexibleTail(); }
 
     // façade to look a bit like a List<Value>
     // used by Substitution_Fast*
     inline Value head() const { return value; }
-    inline Node *tail() const { return nodes[0]; }
+    inline Node *tail() const { return nodes()[0]; }
   };
   /**
    * Insert an element in the skip list.
@@ -116,7 +118,7 @@ public:
     // this node is on the left of the inserted one
     Node* left = _left;
     for (;;) {
-      Node* next = left->nodes[h];
+      Node* next = left->nodes()[h];
       if (next == 0) {
 	if (h == 0) {
 	    if(canCreate) {
@@ -202,11 +204,11 @@ public:
     // this node is on the left of the inserted one
     Node* left = _left;
     for (;;) {
-      Node* next = left->nodes[h];
+      Node* next = left->nodes()[h];
       if (next == 0) {
 	if(h<=nodeHeight) {
-	  left->nodes[h] = newNode;
-	  newNode->nodes[h] = 0;
+	  left->nodes()[h] = newNode;
+	  newNode->nodes()[h] = 0;
 	  if (h == 0) {
 	    return &newNode->value;
 	  }
@@ -220,8 +222,8 @@ public:
 	case LESS:
 	  // the node should be inserted on the left
 	  if(h<=nodeHeight) {
-	    newNode->nodes[h] = next;
-	    left->nodes[h] = newNode;
+	    newNode->nodes()[h] = next;
+	    left->nodes()[h] = newNode;
 	    if (h == 0) {
 	      return &newNode->value;
 	    }
@@ -262,7 +264,7 @@ public:
     // this node is on the left of the inserted one
     Node* left = _left;
     for (;;) {
-      Node* next = left->nodes[h];
+      Node* next = left->nodes()[h];
       if (next == 0) {
 	if (h == 0) {
 	  ASS_LE(max(),key);
@@ -284,8 +286,8 @@ public:
 	  break;
 
 	case EQUAL:
-	  while(next->nodes[0]) {
-	    next=next->nodes[0];
+	  while(next->nodes()[0]) {
+	    next=next->nodes()[0];
 	    if(ValueComparator::compare(key,next->value)==LESS) {
 	      value=next->value;
 	      return true;
@@ -332,7 +334,7 @@ public:
   inline
   bool isEmpty() const
   {
-    return _left->nodes[0] == 0;
+    return _left->nodes()[0] == 0;
   } // SkipList::isEmpty
 
   /**
@@ -342,7 +344,7 @@ public:
   inline
   bool isNonEmpty() const
   {
-    return _left->nodes[0] != 0;
+    return _left->nodes()[0] != 0;
   } // SkipList::isNonEmpty
 
   /** Returns the first element without removing it. */
@@ -350,7 +352,7 @@ public:
   const Value& top()
   {
     ASS(isNonEmpty());
-    return _left->nodes[0]->value;
+    return _left->nodes()[0]->value;
   }
 
   /**
@@ -362,16 +364,16 @@ public:
     ASS(isNonEmpty());
 
     // find the height of the first
-    Node* node = _left->nodes[0];
+    Node* node = _left->nodes()[0];
     unsigned h;
     for (h = 1;h < _top;h++) {
-      if (_left->nodes[h] != node) {
+      if (_left->nodes()[h] != node) {
 	break;
       }
     }
     // the height of the first node is h-1
     for (unsigned i = 0;i < h;i++) {
-      _left->nodes[i] = node->nodes[i];
+      _left->nodes()[i] = node->nodes()[i];
     }
     Value val = node->value;
     deallocate(node,h-1);
@@ -384,8 +386,8 @@ public:
     ASS(isNonEmpty());
     Node* node=_left;
     for(int h=_top-1;h>=0;h--) {
-      while(node->nodes[h]) {
-	node=node->nodes[h];
+      while(node->nodes()[h]) {
+	node=node->nodes()[h];
       }
     }
     ASS_NEQ(node, _left);
@@ -414,7 +416,7 @@ public:
     Node* left = _left;
     unsigned h = _top-1;
     for (;;) {
-      Node* next = left->nodes[h];
+      Node* next = left->nodes()[h];
       if (next == 0) {
 	ASS(h != 0); //this would mean that the value is not present in the list
 	h--;
@@ -435,29 +437,29 @@ public:
 	case EQUAL:
 	  found = next;
 	  foundHeight = h;
-	  if(h>0 && found->nodes[0] && found->nodes[h]!=found->nodes[0] &&
-		  ValueComparator::compare(key,found->nodes[0]->value)==EQUAL) {
+	  if(h>0 && found->nodes()[0] && found->nodes()[h]!=found->nodes()[0] &&
+		  ValueComparator::compare(key,found->nodes()[0]->value)==EQUAL) {
 	    //The next element exists, contains the same value,
 	    //and its height is lower that the height of this one.
 	    //We'll rather delete that one, than the one we've found,
 	    //because otherwise there'd be only low elements after a few
 	    //deletions, which would degrade the skip list to linked list.
 	    h=0;
-	    while(found->nodes[0]==found->nodes[h+1]) {
+	    while(found->nodes()[0]==found->nodes()[h+1]) {
 	      h++;
 	    }
 	    left = found;
-	    found = found->nodes[0];
+	    found = found->nodes()[0];
 	    foundHeight = h;
 	  }
 	  for(;;) {
-	    left->nodes[h] = found->nodes[h];
+	    left->nodes()[h] = found->nodes()[h];
 	    if(h==0) {
 	      break;
 	    }
 	    h--;
-	    while(left->nodes[h]!=found) {
-	      left=left->nodes[h];
+	    while(left->nodes()[h]!=found) {
+	      left=left->nodes()[h];
 	      ASS(ValueComparator::compare(key,left->value)!=LESS);
 	    }
 	  }
@@ -503,7 +505,7 @@ public:
 
   // allow iterating over something like a List<Value>
   // used by SubstitutionTree_Fast*
-  inline Node *listLike() { return _left->nodes[0]; }
+  inline Node *listLike() { return _left->nodes()[0]; }
 
   /**
    * Create a skip list and initialise its left-most node to a node of the
@@ -515,7 +517,7 @@ public:
       _top(0)
   {
     for (int h = SKIP_LIST_MAX_HEIGHT-1;h >= 0;h--) {
-      _left->nodes[h] = 0;
+      _left->nodes()[h] = 0;
     }
   }
   /**
@@ -537,7 +539,7 @@ private:
   inline
   static Node* allocate(unsigned h)
   {
-    void* memory = ALLOC_KNOWN(sizeof(Node)+h*sizeof(Node*),"SkipList::Node");
+    void* memory = ALLOC_KNOWN(Node::bytesRequiredFor(h + 1),"SkipList::Node");
 
     return reinterpret_cast<Node*>(memory);
   }
@@ -546,7 +548,7 @@ private:
   inline
   static void deallocate(Node* node,unsigned h)
   {
-    DEALLOC_KNOWN(node,sizeof(Node)+h*sizeof(Node*),"SkipList::Node");
+    DEALLOC_KNOWN(node,Node::bytesRequiredFor(h + 1),"SkipList::Node");
   }
 
 
@@ -604,14 +606,14 @@ public:
     /** return the next element */
     inline Value next()
     {
-      ASS(_cur->nodes[0]);
-      _cur=_cur->nodes[0];
+      ASS(_cur->nodes()[0]);
+      _cur=_cur->nodes()[0];
       return _cur->value;
     }
 
     /** True if there is a next element. */
     inline bool hasNext() const
-    { return _cur->nodes[0]; }
+    { return _cur->nodes()[0]; }
 
    private:
     /** the node we're now pointing to */
@@ -629,14 +631,14 @@ public:
     /** return the next element */
     inline Value& next()
     {
-      ASS(_cur->nodes[0]);
-      _cur=_cur->nodes[0];
+      ASS(_cur->nodes()[0]);
+      _cur=_cur->nodes()[0];
       return _cur->value;
     }
 
     /** True if there is a next element. */
     inline bool hasNext() const
-    { return _cur->nodes[0]; }
+    { return _cur->nodes()[0]; }
 
   private:
     /** the node we're now pointing to */

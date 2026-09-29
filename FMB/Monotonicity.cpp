@@ -16,6 +16,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/Stack.hpp"
+#include "Lib/DArray.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/List.hpp"
@@ -30,6 +31,8 @@
 #include "SAT/SATLiteral.hpp"
 #include "SAT/SATClause.hpp"
 #include "SAT/MinisatInterfacing.hpp"
+
+#include "Shell/Property.hpp"
 
 #include "Monotonicity.hpp"
 
@@ -193,7 +196,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const D
     if(!isMonotonic[s]){
       std::string name = "sortPredicate_"+env.signature->typeConName(s);
       unsigned p = env.signature->addFreshPredicate(
-        OperatorType::getPredicateType({TermList(AtomicSort::createConstant(s))}),name.c_str());
+        OperatorType::getPredicateType({TermList(AtomicSort::createConstant(s))}),name.c_str())->number();
       sortPredicates[s] = p;
       sort_predicates.push(p);
 
@@ -241,9 +244,9 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const D
     }
 
     // Next the non-empty constraint
-    unsigned skolemConstant = env.signature->addSkolemFunction(OperatorType::getConstantsType(sTerm));
-    // Increment usage count so it's not treated as a deleted function later
-    env.signature->getFunction(skolemConstant)->incUsageCnt();
+    unsigned skolemConstant = env.signature->addSkolemFunction(OperatorType::getConstantsType(sTerm))->number();
+    // no need to mark it as used: it occurs in the clause just below, which is appended
+    // to the clauses finite model building then counts symbol occurrences in
     Literal* psk = Literal::create1(p,true,TermList(Term::createConstant(skolemConstant)));
     auto nonEmpty = Clause::fromLiterals({ psk }, FromInput(UnitInputType::AXIOM));
     ClauseList::push(nonEmpty,newAxioms);
@@ -353,9 +356,7 @@ void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses,
     if(!isMonotonic[s]){
       std::string name = "sortFunction_"+env.signature->typeConName(s);
       TermList sT = TermList(AtomicSort::createConstant(s));
-      unsigned f = env.signature->addFreshFunction(OperatorType::getFunctionType({sT},sT),name.c_str());
-      // increment usage count so not treated as deleted
-      env.signature->getFunction(f)->incUsageCnt();
+      unsigned f = env.signature->addFreshFunction(OperatorType::getFunctionType({sT},sT),name.c_str())->number();
       sortFunctions[s] = f;
       sort_functions.push(f);
 

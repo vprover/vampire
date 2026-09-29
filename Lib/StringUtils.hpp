@@ -45,7 +45,7 @@ public:
   static A parse(std::string const& str)
   { return StringParser<A>{}(str); }
 
-  static size_t distance(const std::string &s1, const std::string &s2);
+  static size_t distance(std::string_view s1, std::string_view s2);
 };
 
 template<> struct StringParser<int>

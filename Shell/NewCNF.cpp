@@ -707,7 +707,7 @@ TermList NewCNF::eliminateLet(Term* term)
       TermList tupleResultSort = tupleSort;
       SortHelper::normaliseSort(tupleTypeArgs, tupleResultSort);
 
-      unsigned tuple = env.signature->addFreshFunction(OperatorType::getConstantsType(tupleResultSort, tupleTypeArgs.size()), "tuple");
+      unsigned tuple = env.signature->addFreshFunction(OperatorType::getConstantsType(tupleResultSort, tupleTypeArgs.size()), "tuple")->number();
       auto tupleTerm = Term::create(tuple, tupleTypeArgs);
 
       // the projections take the tuple's type arguments and the tuple itself
@@ -824,10 +824,10 @@ TermList NewCNF::nameLetBinding(Term* bindingLhs, TermList bindingRhs, TermList 
 
     if (isPredicate) {
       auto type = OperatorType::getPredicateType(*termVarSorts, typeVars.size());
-      freshSymbol = env.signature->addFreshPredicate(type, "lG");
+      freshSymbol = env.signature->addFreshPredicate(type, "lG")->number();
     } else {
       auto type = OperatorType::getFunctionType(*termVarSorts, resultSort, typeVars.size());
-      freshSymbol = env.signature->addFreshFunction(type, "lG");
+      freshSymbol = env.signature->addFreshFunction(type, "lG")->number();
     }
   }
 
@@ -981,32 +981,24 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
   args.loadFromIterator(TermStack::BottomFirstIterator(*termVars));
 
   Term* res;
-  Signature::Symbol* sym;
   bool isPredicate = (rangeSort == AtomicSort::boolSort());
   bool isTypeVar = (rangeSort == AtomicSort::superSort());
   if (isPredicate) {
-    unsigned pred = Skolem::addSkolemPredicate(taArity, *termVarSorts);
-    sym = env.signature->getPredicate(pred);
+    auto symbol = Skolem::addSkolemPredicate(taArity, *termVarSorts)->markSkipCongruence();
+    unsigned pred = symbol->number();
     res = Term::createFormula(new AtomicFormula(Literal::create(pred, arity, true, args.begin())));
   } else if (isTypeVar) {
     ASS(termVars->isEmpty() && termVarSorts->isEmpty());
     ASS_EQ(taArity, arity);
-    unsigned typeCon = Skolem::addSkolemTypeCon(arity);
-    sym = env.signature->getTypeCon(typeCon);
+    auto symbol = Skolem::addSkolemTypeCon(arity)->markSkipCongruence();
+    unsigned typeCon = symbol->number();
     res = AtomicSort::create(typeCon, arity, typeVars->begin());
   } else {
-    unsigned fun = Skolem::addSkolemFunction(taArity, *termVarSorts, rangeSort);
-    sym = env.signature->getFunction(fun);
-    if(_forInduction){
-      sym->markInductionSkolem();
-    }
+    auto symbol = Skolem::addSkolemFunction(taArity, *termVarSorts, rangeSort)->markSkipCongruence();
+    unsigned fun = symbol->number();
     res = Term::create(fun, arity, args.begin());
   }
 
-  sym->markSkipCongruence();
-  if(_beingClausified->derivedFromGoal()){
-    sym->markInGoal();
-  }
 
   // Store type variables and their Skolemized form in a substitution
   // which is then applied on variable sorts to get the right ones.
@@ -1230,19 +1222,17 @@ Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
   auto taArity = typeVars->size();
   SortHelper::normaliseArgSorts(*typeVars, *termVarSorts);
 
-  unsigned pred = env.signature->addNamePredicate(OperatorType::getPredicateType(*termVarSorts, taArity));
+  auto symbol = env.signature->addNamePredicate(OperatorType::getPredicateType(*termVarSorts, taArity))->markSkipCongruence();
+  unsigned pred = symbol->number();
   env.statistics->formulaNames++;
-
-  Signature::Symbol* predSym = env.signature->getPredicate(pred);
-  predSym->markSkipCongruence();
 
   if (env.colorUsed) {
     Color fc = f->getColor();
     if (fc != COLOR_TRANSPARENT) {
-      predSym->addColor(fc);
+      symbol->addColor(fc);
     }
     if (f->getSkip()) {
-      predSym->markSkip();
+      symbol->markSkip();
     }
   }
 

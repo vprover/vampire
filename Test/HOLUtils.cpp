@@ -49,7 +49,7 @@ static TermList mkAtomicSort(const std::string& name) {
 }
 
 static TypedTermList mkConst(const std::string& name, TermList sort) {
-  unsigned nameIndex = env.signature->addFunction(name, OperatorType::getFunctionType({}, sort));
+  unsigned nameIndex = env.signature->addFunction(name, OperatorType::getFunctionType({}, sort))->number();
   return {TermList(Term::createConstant(nameIndex)), sort};
 }
 

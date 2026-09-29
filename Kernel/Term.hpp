@@ -33,6 +33,7 @@
 #include "Debug/Assertion.hpp"
 
 #include "Lib/BitUtils.hpp"
+#include "Lib/FlexibleTail.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Comparison.hpp"
 #include "Lib/Reflection.hpp"
@@ -208,9 +209,6 @@ public:
   inline uint64_t content() const { return _content; }
   /** set the content manually - hazardous, such terms should then only be used as integers */
   void setContent(uint64_t content) { _content = content; }
-  /** default hash is to hash the content */
-  unsigned defaultHash() const;
-  unsigned defaultHash2() const;
 
   // TODO this default value is probably the reason we get too many parentheses everywhere
   std::string toString(bool topLevel = false) const;
@@ -389,6 +387,16 @@ private:
 }; // class TermList
 static_assert(sizeof(TermList) == 8, "size of TermList must be exactly 64 bits");
 
+// hash a TermList by FNV-1a of its content word
+struct TermListHash {
+  static unsigned hash(TermList t) { return FnvHash::hash(t.content()); }
+};
+
+// cheap secondary hash: the content word itself
+struct TermListHash2 {
+  static unsigned hash(TermList t) { return t.content(); }
+};
+
 //special functor values
 enum class SpecialFunctor {
   ITE,
@@ -404,7 +412,7 @@ std::ostream& operator<<(std::ostream& out, SpecialFunctor const& self);
  * Class to represent terms and lists of terms.
  * @since 19/02/2008 Manchester, changed to use class TermList
  */
-class alignas(8) Term
+class alignas(8) Term : public FlexibleTail<Term, TermList>
 {
 public:
 
@@ -525,6 +533,10 @@ public:
   static std::string variableToString(unsigned var);
   static std::string variableToString(TermList var);
 
+  // reference to the sentinel value teminating the arguments
+  TermList &info() { return *flexibleTail(); }
+  const TermList &info() const { return *flexibleTail(); }
+
   /** return the arguments 
    *
    *  WARNING: this function returns a pointer to the first argument
@@ -534,14 +546,14 @@ public:
    *  suited to your needs before using this.
    */
   const TermList* args() const
-  { return _args + _arity; }
+  { return flexibleTail() + _arity; }
   /** @see nthArguement(int) */ 
   const TermList* nthArgument(int n) const
   {
     ASS(n >= 0);
     ASS((unsigned)n < _arity);
 
-    return _args + (_arity - n);
+    return flexibleTail() + (_arity - n);
   }
   /** return the nth argument (counting from 0) 
    *
@@ -557,7 +569,7 @@ public:
     ASS(n >= 0);
     ASS((unsigned)n < _arity);
 
-    return _args + (_arity - n);
+    return flexibleTail() + (_arity - n);
   }
 
   /** returns the nth term argument. for 0 <= n <= numTermArguments  */
@@ -607,20 +619,20 @@ public:
    *  suited to your needs before using this.
    */  
   TermList* args()
-  { return _args + _arity; }
+  { return flexibleTail() + _arity; }
 
 
   template<class GetArg>
   static unsigned termHash(unsigned functor, GetArg getArg, unsigned arity) {
-    return DefaultHash::hashIter(
+    return FnvHash::hashIter(
         range(0, arity).map([&](auto i) {
           TermList t = getArg(i);
-          return DefaultHash::hashBytes(
+          return FnvHash::hashBytes(
               reinterpret_cast<const unsigned char*>(&t),
               sizeof(TermList)
               );
           }),
-        DefaultHash::hash(functor));
+        FnvHash::hash(functor));
   }
 
   /**
@@ -658,7 +670,7 @@ public:
   /** True if the term is ground. Only applicable to shared terms */
   bool ground() const
   {
-    ASS(_args[0]._shared());
+    ASS(info()._shared());
     return numVarOccs() == 0;
   } // ground
 
@@ -667,12 +679,12 @@ public:
   bool hasTermVar() const
   {
     ASS(shared());
-    return _args[0]._hasTermVar();
+    return info()._hasTermVar();
   } // ground
 
   /** True if the term is shared */
   bool shared() const
-  { return _args[0]._shared(); } // shared
+  { return info()._shared(); } // shared
 
   /** Return the weight. Applicable only to shared terms */
   unsigned weight() const
@@ -707,7 +719,7 @@ public:
   void markShared()
   {
     ASS(! shared());
-    _args[0]._setShared(true);
+    info()._setShared(true);
   } // markShared
 
   /** Set term weight */
@@ -723,7 +735,7 @@ public:
   unsigned getId() const
   {
     ASS(shared());
-    return _args[0]._id();
+    return info()._id();
   }
   
   void setMaxRedLen(int rl)
@@ -744,7 +756,7 @@ public:
   void setHasTermVar(bool b)
   {
     ASS(shared() && !isSort())
-    _args[0]._setHasTermVar(b);
+    info()._setHasTermVar(b);
   }
 
   /** Return the number of variable _occurrences_ */
@@ -772,9 +784,9 @@ public:
   const std::string& functionName() const;
 
   /** True if the term is, in fact, a literal */
-  bool isLiteral() const { return _args[0]._literal(); }
+  bool isLiteral() const { return info()._literal(); }
   /** True if the term is, in fact, a sort */
-  bool isSort() const { return _args[0]._sort(); }
+  bool isSort() const { return info()._sort(); }
   bool isArrowSort() const;
   TermKind kind() const { return isSort() ? TermKind::SORT 
                                : isLiteral() ? TermKind::LITERAL
@@ -798,45 +810,45 @@ public:
   void setHasRedex(bool b) {
     ASS(shared() && !isSort())
 
-    _args[0]._setHasRedex(b);
+    info()._setHasRedex(b);
   }
 
   /** true if term contains redex */
   bool hasRedex() const {
     ASS(shared())
-    return _args[0]._hasRedex();
+    return info()._hasRedex();
   }
   /** returns empty option if not a De Bruijn index and index otherwise */
   Option<unsigned> deBruijnIndex() const;
 
   void setHasDeBruijnIndex(bool b) {
     ASS(shared() && !isSort());
-    _args[0]._setHasDeBruijnIndex(b);
+    info()._setHasDeBruijnIndex(b);
   }
 
   /** returns true if term contains De Bruijn index */
   bool hasDeBruijnIndex() const {
     ASS(shared())
 
-    return _args[0]._hasDeBruijnIndex();
+    return info()._hasDeBruijnIndex();
   }
 
   void setHasLambda(bool b) {
     ASS(shared() && !isSort())
 
-    _args[0]._setHasLambda(b);
+    info()._setHasLambda(b);
   }
   /** true if term contains redex */
   bool hasLambda() const {
     ASS(shared())
 
-    return _args[0]._hasLambda();
+    return info()._hasLambda();
   }
 
   /** Return an index of the argument to which @b arg points */
   unsigned getArgumentIndex(const TermList* arg)
   {
-    unsigned res=arity()-(arg-_args);
+    unsigned res=arity()-(arg-flexibleTail());
     ASS_L(res,arity());
     return res;
   }
@@ -852,15 +864,15 @@ public:
   // the number of _distinct_ variables within the term
   unsigned getDistinctVars()
   {
-    if(_args[0]._distinctVars()==TERM_DIST_VAR_UNKNOWN) {
+    if(info()._distinctVars()==TERM_DIST_VAR_UNKNOWN) {
       unsigned res=computeDistinctVars();
       if(res<TERM_DIST_VAR_UNKNOWN) {
-        _args[0]._setDistinctVars(res);
+        info()._setDistinctVars(res);
       }
       return res;
     } else {
-      ASS_L(_args[0]._distinctVars(),0x100000);
-      return _args[0]._distinctVars();
+      ASS_L(info()._distinctVars(),0x100000);
+      return info()._distinctVars();
     }
   }
 
@@ -897,6 +909,22 @@ public:
   /** Assign value that will be returned by the hasInterpretedConstants() function */
   void setInterpretedConstantsPresence(bool value) { _hasInterpretedConstants=value; }
 
+  /**
+   * True if interpreted evaluation has already been applied to this term and to
+   * everything below it, and left all of it unchanged, so that a later evaluation
+   * can skip the whole subtree.
+   *
+   * Unlike weight(), color() or hasTermVar(), this is not a property of the term
+   * but a cache belonging to one particular evaluator (much like _kboWeight belongs
+   * to one KBO). The owner is the single InterpretedEvaluation of a saturation run;
+   * nobody else may set it, and every other user of InterpretedLiteralEvaluator
+   * ignores it. It is deliberately not part of a term's identity: terms are hashed
+   * and compared on their functor and arguments only.
+   */
+  bool isEvalNormalForm() const { return _evalNormalForm; }
+  /** @see isEvalNormalForm; only shared terms are ever marked */
+  void markEvalNormalForm() { ASS(shared()); _evalNormalForm = 1; }
+
   /** Return true if term is either an if-then-else or a let...in expression */
   bool isSpecial() const { return functor() >= SPECIAL_FUNCTOR_LOWER_BOUND; }
 
@@ -919,7 +947,7 @@ public:
   }
 
 protected:
-  std::string headToString() const;
+  std::string prefixToString() const;
 
   unsigned computeDistinctVars() const;
 
@@ -933,7 +961,7 @@ protected:
    */
   ArgumentOrderVals getArgumentOrderValue() const
   {
-    return static_cast<ArgumentOrderVals>(_args[0]._order());
+    return static_cast<ArgumentOrderVals>(info()._order());
   }
 
   /**
@@ -948,13 +976,15 @@ protected:
     ASS_GE(val,AO_UNKNOWN);
     ASS_LE(val,AO_INCOMPARABLE);
 
-    _args[0]._setOrder(val);
+    info()._setOrder(val);
   }
 
   /** The number of this symbol in a signature */
   unsigned _functor;
   /** Arity of the symbol */
-  unsigned _arity : 28;
+  unsigned _arity : 27;
+  /** Evaluation cache bit, @see isEvalNormalForm() */
+  unsigned _evalNormalForm : 1;
   /** colour, used in interpolation and symbol elimination */
   unsigned _color : 2;
   /** Equal to 1 if the term/literal contains any interpreted constants */
@@ -981,10 +1011,8 @@ protected:
     TermList _sort;
   };
 
-  /** The list of arguments of size type arity + term arity + 1. The first
-   *  argument stores the term weight and the mask (the last two bits are 0).
-   */
-  TermList _args[1];
+  /* Now FlexibleTail provides an array of arguments of size type arity + term arity + 1.
+   * The first argument stores the term weight and the mask (the last two bits are 0) */
 
   friend class TermList;
   friend class Indexing::TermSharing;
@@ -1027,8 +1055,8 @@ public:
   {
     _functor = functor;
     _arity = arity;
-    _args[0]._setLiteral(false);
-    _args[0]._setSort(true);
+    info()._setLiteral(false);
+    info()._setSort(true);
   }
 
   static AtomicSort* create(unsigned typeCon, unsigned arity, const TermList* args);
@@ -1093,9 +1121,9 @@ public:
   {
     _functor = functor;
     _arity = arity;
-    _args[0]._setPolarity(polarity);
-    _args[0]._setSort(false);
-    _args[0]._setLiteral(true);
+    info()._setPolarity(polarity);
+    info()._setSort(false);
+    info()._setLiteral(true);
   }
 
   /**
@@ -1114,7 +1142,7 @@ public:
   static bool headersMatch(Literal* l1, Literal* l2, bool complementary);
   /** set polarity to true or false */
   void setPolarity(bool positive)
-  { _args[0]._setPolarity(positive); }
+  { info()._setPolarity(positive); }
 
   TermList eqArgSort() const;
   std::pair<TermList, TermList> eqArgs() const;
@@ -1190,15 +1218,15 @@ public:
       ASS_EQ(arity, 2)
       ASS(rightArgOrder(getArg(0), getArg(1)))
       return HashUtils::combine(
-          DefaultHash::hash(polarity),
-          DefaultHash::hash(functor),
-          DefaultHash::hash(twoVarEqSort),
-          getArg(0).defaultHash(),
-          getArg(1).defaultHash());
+          FnvHash::hash(polarity),
+          FnvHash::hash(functor),
+          twoVarEqSort.isSome() ? TermListHash::hash(*twoVarEqSort) : FnvHash::hash(0),
+          TermListHash::hash(getArg(0)),
+          TermListHash::hash(getArg(1)));
     } else {
       ASS(twoVarEqSort.isNone())
       return HashUtils::combine(
-          DefaultHash::hash(polarity),
+          FnvHash::hash(polarity),
           Term::termHash(functor, getArg, arity));
     }
   }
@@ -1243,7 +1271,7 @@ public:
   /** return polarity, 1 if positive and 0 if negative */
   int polarity() const
   {
-    return _args[0]._polarity();
+    return info()._polarity();
   } // polarity
 
   /**
@@ -1310,18 +1338,16 @@ bool positionIn(TermList& subterm,Term* term, std::string& position);
  * Hash used to make hashing over shared terms deterministic.
  */
 struct SharedTermHash {
-  static bool equals(Term* t1, Term* t2) { return t1==t2; }
   static unsigned hash(Term* t) { return t->getId(); }
 };
 
 /**
  * Hashes to make hashing over shared terms wrapped in a TermList (typically sorts)
- * deterministic. The default hashes go through TermList::content(), i.e. the address of
- * the term, so a container using them gets enumerated in an order which differs between
+ * deterministic. TermListHash and TermListHash2 go through TermList::content(),
+ * i.e. the address of the term, so a container using them gets enumerated in an order which differs between
  * runs. Both are needed: DHMap takes the bucket from Hash1 and the probing step from Hash2.
  */
 struct SharedTermListHash {
-  static bool equals(TermList t1, TermList t2) { return t1==t2; }
   static unsigned hash(TermList t)
   { ASS(t.isTerm() && t.term()->shared()); return FnvHash::hash(t.term()->getId()); }
 };
@@ -1329,20 +1355,6 @@ struct SharedTermListHash2 {
   static unsigned hash(TermList t)
   { ASS(t.isTerm() && t.term()->shared()); return IdentityHash::hash(t.term()->getId()); }
 };
-
-// hash a TermList by FNV-1a of its content word
-struct TermListHash {
-  static bool equals(TermList t1, TermList t2) { return t1 == t2; }
-  static unsigned hash(TermList t) { return FnvHash::hash(t.content()); }
-};
-
-// cheap secondary hash: the content word itself
-struct TermListHash2 {
-  static unsigned hash(TermList t) { return t.content(); }
-};
-
-inline unsigned TermList::defaultHash() const { return TermListHash::hash(*this); }
-inline unsigned TermList::defaultHash2() const { return TermListHash2::hash(*this); }
 
 /** helper lambda that turns a number into a variable */
 static const auto unsignedToVarFn = [](unsigned var)

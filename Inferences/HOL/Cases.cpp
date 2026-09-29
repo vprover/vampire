@@ -13,6 +13,8 @@
  * @see FOOLParamodulation class.
  */
 
+#include "Debug/TimeProfiling.hpp"
+
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Inference.hpp"
@@ -66,7 +68,8 @@ ClauseIterator Cases::generateClauses(Clause* premise)
     })
     .map([premise](pair<Literal*, TermList> arg) {
       return performCases(premise, arg.first, arg.second);
-    }));
+    })
+    .timeTraced("cases"));
 }
 
 }

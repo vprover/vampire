@@ -148,7 +148,7 @@ private:
 		     int* resultsNeg);
   Formula* introduceDefinition(Formula* f,bool iff);
 
-  std::pair<Literal*, Signature::Symbol*> getDefinitionLiteral(Formula* f, VList* freeVars);
+  std::pair<Literal*, const Signature::Symbol*> getDefinitionLiteral(Formula* f, VList* freeVars);
 }; // class Naming
 
 }

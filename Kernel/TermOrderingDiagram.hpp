@@ -173,8 +173,6 @@ protected:
 
     auto asTuple() const { return std::make_tuple(constant, varCoeffPairs); }
 
-    unsigned defaultHash () const;
-    unsigned defaultHash2() const;
     IMPL_COMPARISONS_FROM_TUPLE(Polynomial);
 
     int constant;
@@ -186,7 +184,6 @@ protected:
 
   // hash a Polynomial by its constant and its variable-coefficient pairs
   struct PolynomialHash {
-    static bool equals(Polynomial const& p1, Polynomial const& p2) { return p1 == p2; }
     static unsigned hash(Polynomial const& p)
     { return TupleHash<FnvHash, StackHash<PairHash<FnvHash,FnvHash>>>::hash(p.asTuple()); }
   };
@@ -273,11 +270,6 @@ public:
     Traversal<NodeIterator,POStruct> traversal;
   };
 };
-
-inline unsigned TermOrderingDiagram::Polynomial::defaultHash () const
-{ return TermOrderingDiagram::PolynomialHash ::hash(*this); }
-inline unsigned TermOrderingDiagram::Polynomial::defaultHash2() const
-{ return TermOrderingDiagram::PolynomialHash2::hash(*this); }
 
 } // namespace Kernel
 

@@ -32,7 +32,6 @@ namespace FMB {
   class DefinitionIntroduction{
   public:
     DefinitionIntroduction(ClauseIterator cit) : _cit(std::move(cit)) {
-      //_ng = env.options->fmbNonGroundDefs();
     }
 
 
@@ -118,9 +117,9 @@ namespace FMB {
         if(t->arity()==0) continue;
         if(!_introduced.find(t)){
           TermList srt = SortHelper::getResultSort(t);
-          unsigned newConstant = env.signature->addFreshFunction(OperatorType::getConstantsType(srt),"fmbdef");
-          Signature::Symbol* newConstantSymb = env.signature->getFunction(newConstant);
-          newConstantSymb->incUsageCnt();
+          unsigned newConstant = env.signature->addFreshFunction(OperatorType::getConstantsType(srt),"fmbdef")->number();
+          // no need to mark it as used: it occurs in the definition clause pushed below,
+          // which this iterator yields along with the rest
           Term* c = Term::createConstant(newConstant); 
           _introduced.insert(t,c);
           if(term==t) retC=c;
@@ -161,69 +160,10 @@ namespace FMB {
       return retC;
     }
 
-/*
-    Term* addNonGroundDefinition(Term* t, Clause* from){
-      // currently don't do anything until I've fixed it
-      return t;
-
-      // only do something if using option
-      if(!_ng) return t;
-
-      // The idea is to replace a complex non-ground term such as
-      //  f(g(x,a),f(b,g(y,z)) with n(x,y,z)
-      // in C and then introduce definition n(x,y,z) = f(g(x,a),f(b,g(y,z))
-      // this should lead to fewer variables in flattened clauses
-
-      // this is the new function symbol
-      unsigned newf;
-
-      //check if 
-      if(!_introducedNG.find(t,newf)){
-
-        // first count the variables in t
-        unsigned vars = t->vars();
-
-        // then create a fresh function symbol for the definition
-        newf = env.signature->addFreshFunction(vars,"fmbdef");
-        // and save it
-        _introducedNG.insert(t,newf);
-        
-
-        // next create the definition clause
-        Stack<TermList> varTerms;
-        for(unsigned v=0;v<vars;v++){
-          TermList vt(v,false);
-          varTerms.push(vt);
-        }
-        Term* nt = Term::create(newf,vars,varTerms.begin()); 
-
-        unsigned sort = SortHelper::getResultSort(t); //TODO set sort of newf
-        Literal* l = Literal::createEquality(true,TermList(t),TermList(nt),sort);
-
-        static Stack<Literal*> lstack;
-        lstack.reset();
-        lstack.push(l);
-        Clause* def = Clause::fromStack(lstack,from->inputType(),
-                    new Inference1(Inference::FMB_DEF_INTRO,from));
-
-        //_todo.push(def);
-      }
-      // Finally create the correct instance of this definition for this one
-      // note that the variables may not be in the same order as the def
-      // i.e. it might be f(x,g(a,y)) in one place and f(y,g(a,x)) elsewhere
-
-      // currently don't do anything!
-      return t;
-    }
-
-    bool _ng;
-*/
     ClauseIterator _cit;
     Stack<Clause*> _processed;
 
     DHMap<Term*,Term*, FnvHash, PtrIdentityHash> _introduced;
-    DHMap<Term*,unsigned, FnvHash, PtrIdentityHash> _introducedNG;
-
   };
 
 } // namespace FMB

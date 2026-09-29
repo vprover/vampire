@@ -107,13 +107,7 @@ CodeTree::LitInfo CodeTree::LitInfo::getOpposite(const LitInfo& li)
  */
 CodeTree::MatchInfo* CodeTree::MatchInfo::alloc(unsigned bindCnt)
 {
-  //We have to get sizeof(MatchInfo) + (bindCnt-1)*sizeof(TermList)
-  //this way, because bindCnt-1 wouldn't behave well for
-  //bindCnt==0 on x64 platform.
-  size_t size=sizeof(MatchInfo)+bindCnt*sizeof(TermList);
-  size-=sizeof(TermList);
-
-  void* mem=ALLOC_KNOWN(size,"CodeTree::MatchInfo");
+  void* mem=ALLOC_KNOWN(bytesRequiredFor(bindCnt),"CodeTree::MatchInfo");
   return reinterpret_cast<MatchInfo*>(mem);
 }
 
@@ -122,13 +116,7 @@ CodeTree::MatchInfo* CodeTree::MatchInfo::alloc(unsigned bindCnt)
  */
 void CodeTree::MatchInfo::destroy(unsigned bindCnt)
 {
-  //We have to get sizeof(MatchInfo) + (bindCnt-1)*sizeof(TermList)
-  //this way, because bindCnt-1 wouldn't behave well for
-  //bindCnt==0 on x64 platform.
-  size_t size=sizeof(MatchInfo)+bindCnt*sizeof(TermList);
-  size-=sizeof(TermList);
-
-  DEALLOC_KNOWN(this, size,"CodeTree::MatchInfo");
+  DEALLOC_KNOWN(this, bytesRequiredFor(bindCnt),"CodeTree::MatchInfo");
 }
 
 
@@ -139,7 +127,7 @@ void CodeTree::MatchInfo::init(ILStruct* ils, unsigned liIndex_, DArray<TermList
   if(bindCnt) {
     unsigned* perm=ils->globalVarPermutation;
     for(size_t i=0;i<bindCnt;i++) {
-      bindings[perm[i]]=bindingArray[i];
+      bindings()[perm[i]]=bindingArray[i];
     }
   }
 }

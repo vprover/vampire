@@ -22,8 +22,8 @@
 #include "Lib/Metaiterators.hpp"
 
 namespace std {
-template<typename T, typename H>
-void swap(Lib::Set<T, H>& s1, Lib::Set<T, H>& s2);
+template<typename T, typename H, typename E>
+void swap(Lib::Set<T, H, E>& s1, Lib::Set<T, H, E>& s2);
 }
 
 
@@ -31,13 +31,11 @@ namespace Lib {
 
 /**
  * Defines class Set<Val> of arbitrary sets, implemented in the same way
- * as Map. Values are compared using Hash::equals.
- *
- * As defined in Forwards, Hash defaults to Lib::Hash
- * So, if you want to use default hash then either add it to Lib::Hash
- * or provide something in place of Hash
+ * as Map. Hash supplies hash(); Equal is a default-constructible predicate
+ * comparing values and defaults to std::equal_to<Val>.
+ * Equal values must have equal hashes.
  */
-template <typename Val, typename Hash>
+template <typename Val, typename Hash, typename Equal>
 class Set
 {
 protected:
@@ -91,8 +89,8 @@ public:
     expand();
   } // Set::Set
 
-  template<typename U, class H>
-  friend void std::swap(Set<U, H>& lhs, Set<U, H>& rhs);
+  template<typename U, class H, class E>
+  friend void std::swap(Set<U, H, E>& lhs, Set<U, H, E>& rhs);
 
   Set(Set&& other) : Set()
   { std::swap(other, *this); }
@@ -110,9 +108,8 @@ public:
    * If the set contains value equal to @b key, return true,
    * and assign the value to @b result
    *
-   * Hash class has to contain methods
-   * Hash::hash(Key)
-   * Hash::equals(Val,Key)
+   * Hash::hash(Key) must accept the lookup key, and Equal must be callable
+   * with (Val, Key), which may have different types.
    */
   template<typename Key>
   bool find(Key key, Val& result) const
@@ -128,7 +125,7 @@ public:
 	continue;
       }
       if (cell->code == code &&
-	  Hash::equals(cell->value,key)) {
+	  Equal{}(cell->value,key)) {
 	result=cell->value;
 	return true;
       }
@@ -153,7 +150,7 @@ public:
 	continue;
       }
       if (cell->code == code &&
-	  Hash::equals(cell->value,val)) {
+	  Equal{}(cell->value,val)) {
 	return true;
       }
     }
@@ -239,7 +236,7 @@ public:
    * @since 09/12/2006 Manchester, reimplemented
    */
   Val insert(Val val, unsigned code)
-  { bool dummy; return rawFindOrInsert([&]() { return std::move(val); },code, [&](auto v) { return Hash::equals(v, val); }, dummy); } // Set::insert
+  { bool dummy; return rawFindOrInsert([&]() { return std::move(val); },code, [&](auto v) { return Equal{}(v, val); }, dummy); } // Set::insert
 
   /** Insert all elements from @b it iterator in the set */
   template<class It>
@@ -274,7 +271,7 @@ public:
 	continue;
       }
       if (cell->code == code &&
-	  Hash::equals(cell->value,val)) {
+	  Equal{}(cell->value,val)) {
 	cell->code = 1; // deleted
 	_size--;
 	return true;
@@ -474,8 +471,8 @@ public:
 }; // class Set
 
 
-template<class A, class B>
-std::ostream& operator<<(std::ostream& out, Set<A, B> const& self)
+template<class A, class B, class E>
+std::ostream& operator<<(std::ostream& out, Set<A, B, E> const& self)
 { 
   out << "{ ";
   auto iter = self.iter();
@@ -491,8 +488,8 @@ std::ostream& operator<<(std::ostream& out, Set<A, B> const& self)
 
 namespace std {
 
-template<typename T, typename H>
-void swap(Lib::Set<T, H>& lhs, Lib::Set<T, H>& rhs)
+template<typename T, typename H, typename E>
+void swap(Lib::Set<T, H, E>& lhs, Lib::Set<T, H, E>& rhs)
 {
   std::swap(lhs._capacity, rhs._capacity);
   std::swap(lhs._nonemptyCells, rhs._nonemptyCells);

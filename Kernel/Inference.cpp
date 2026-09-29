@@ -691,6 +691,8 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "inequality splitting name introduction";
   case InferenceRule::DISTINCTNESS_AXIOM:
     return "distinctness axiom";
+  case InferenceRule::DISTINCT_EXPANSION:
+    return "distinct expansion";
   case InferenceRule::THEORY_TAUTOLOGY_SAT_CONFLICT:
     return "theory tautology sat conflict";
   case InferenceRule::THA_COMMUTATIVITY:

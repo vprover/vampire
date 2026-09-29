@@ -134,17 +134,13 @@ bool InductionHelper::isNonUnitStructInductionOn() {
 }
 
 bool InductionHelper::isInductionClause(Clause* c) {
-  static Options::InductionChoice kind = env.options->inductionChoice();
-  static bool all = (kind == Options::InductionChoice::ALL);
-  static bool goal = (kind == Options::InductionChoice::GOAL);
-  static bool goal_plus = (kind == Options::InductionChoice::GOAL_PLUS);
+  static bool goal_clauses_only = env.options->inductionGoalClausesOnly();
   static unsigned maxD = env.options->maxInductionDepth();
   static bool unitOnly = env.options->inductionUnitOnly();
   static bool ansLits = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS || env.options->questionAnswering() == Options::QuestionAnsweringMode::PLAIN);
-  return ((!unitOnly || c->length()==1 || (c->length() == 2 && ansLits && c->hasAnswerLiteral())) && 
-          (all || ( (goal || goal_plus) && c->derivedFromGoal())) &&
-                  (maxD == 0 || c->inference().inductionDepth() < maxD)
-         );
+  return (!unitOnly || c->length()==1 || (c->length() == 2 && ansLits && c->hasAnswerLiteral())) && 
+         (!goal_clauses_only || c->derivedFromGoal()) &&
+         (maxD == 0 || c->inference().inductionDepth() < maxD);
 }
 
 bool InductionHelper::isInductionLiteral(Literal* l) {
@@ -179,24 +175,6 @@ bool InductionHelper::isNonGroundInductionLiteral(Literal* l) {
   return (!groundOnly && inductionLiteralHasAdmissibleVariables(l) && isInductionLiteral(l));
 }
 
-bool InductionHelper::isInductionTerm(Term* t)
-{
-  if (!t->ground()) {
-    return false;
-  }
-
-  static Options::InductionChoice kind = env.options->inductionChoice();
-  static bool all = (kind == Options::InductionChoice::ALL);
-  static bool goal_plus = (kind == Options::InductionChoice::GOAL_PLUS);
-  static bool complexTermsAllowed = env.options->inductionOnComplexTerms();
-
-  auto sym = t->isLiteral()
-    ? env.signature->getPredicate(t->functor())
-    : env.signature->getFunction(t->functor());
-  return (complexTermsAllowed || t->arity()==0) &&
-    (all || sym->inGoal() || (goal_plus && sym->inductionSkolem())); // set in NewCNF
-}
-
 static bool containsSkolem(Term* t) {
   unsigned f = t->functor();
   // Special case: t is a non-complex term (the most common case in induction)
@@ -209,6 +187,18 @@ static bool containsSkolem(Term* t) {
     if (env.signature->getFunction(nvi.next().term()->functor())->skolem()) return true;
   }
   return false;
+}
+
+bool InductionHelper::isInductionTerm(Term* t)
+{
+  if (!t->ground()) {
+    return false;
+  }
+
+  static bool onSkolems = env.options->inductionSkolemOnly();
+  static bool complexTermsAllowed = env.options->inductionOnComplexTerms();
+
+  return (complexTermsAllowed || t->arity()==0) && (!onSkolems || containsSkolem(t));
 }
 
 static bool termAndLiteralSatisfyStrictness(const TermList& tl, Literal* l, Options::IntegerInductionLiteralStrictness strictness) {

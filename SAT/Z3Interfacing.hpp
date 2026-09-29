@@ -280,10 +280,12 @@ private:
   struct Z3Hash {
     static unsigned hash(z3::func_decl const& c) { return c.hash(); }
     static unsigned hash(z3::expr const& c) { return c.hash(); }
-    static bool equals(z3::func_decl const& l, z3::func_decl const& r) { return z3::eq(l,r); }
-    static bool equals(z3::expr const& l, z3::expr const& r) { return z3::eq(l,r); }
   };
-  Map<z3::func_decl, FuncOrPredId , Z3Hash > _fromZ3;
+  struct Z3Equal {
+    bool operator()(z3::func_decl const& l, z3::func_decl const& r) const { return z3::eq(l,r); }
+    bool operator()(z3::expr const& l, z3::expr const& r) const { return z3::eq(l,r); }
+  };
+  Map<z3::func_decl, FuncOrPredId, Z3Hash, Z3Equal> _fromZ3;
   Map<FuncOrPredId,  z3::func_decl, StlHash> _toZ3;
   Set<SortId, TermListHash> _createdTermAlgebras;
 
@@ -344,17 +346,17 @@ private:
   Coproduct<ProblemExport::NoExport, ProblemExport::Smtlib, ProblemExport::ApiCalls> _exporter;
 
 
-  BiMap<SATLiteral, z3::expr, SATLiteralHash, Z3Hash> _assumptionLookup;
+  BiMap<SATLiteral, z3::expr, SATLiteralHash, Z3Hash, std::equal_to<SATLiteral>, Z3Equal> _assumptionLookup;
   Option<std::ofstream> _out;
   Map<unsigned, z3::expr, FnvHash> _varNames;
   Map<TermList, z3::expr, TermListHash> _termIndexedConstants;
-  Map<Signature::Symbol*, z3::expr, FnvHash> _constantNames;
+  Map<const Signature::Symbol*, z3::expr, FnvHash> _constantNames;
 
   bool     isNamedExpr(unsigned var) const;
   z3::expr getNameExpr(unsigned var);
 
   z3::expr getNamingConstantFor(TermList name, z3::sort sort);
-  z3::expr getConst(Signature::Symbol* symb, z3::sort srt);
+  z3::expr getConst(const Signature::Symbol* symb, z3::sort srt);
 
   template<class Value>
   void             z3_set_param(const char* k, Value const& v);

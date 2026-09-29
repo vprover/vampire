@@ -20,6 +20,7 @@
 
 #include "Forwards.hpp"
 
+#include "Lib/FlexibleTail.hpp"
 #include "Lib/Metaiterators.hpp"
 
 #include "SATLiteral.hpp"
@@ -33,7 +34,7 @@ using namespace Kernel;
  * Class to represent clauses.
  * @since 10/05/2007 Manchester
  */
-class SATClause
+class SATClause : public FlexibleTail<SATClause, SATLiteral>
 {
 public:
   using ElementType = SATLiteral;
@@ -49,13 +50,11 @@ public:
   void* operator new(size_t,unsigned length);
   void operator delete(void *, size_t);
 
-  unsigned defaultHash() const;
-
   bool operator==(const SATClause &other) const {
     if(length() != other.length())
       return false;
     for(unsigned i = 0; i < length(); i++)
-      if(_literals[i] != other[i])
+      if(literals()[i] != other[i])
         return false;
     return true;
   }
@@ -65,10 +64,10 @@ public:
    * Return the (reference to) the nth literal
    */
   SATLiteral& operator[] (int n)
-  { return _literals[n]; }
+  { return literals()[n]; }
   /** Return the (reference to) the nth literal */
   const SATLiteral& operator[] (int n) const
-  { return const_cast<const SATLiteral&>(_literals[n]); }
+  { return const_cast<const SATLiteral&>(literals()[n]); }
 
   /** Return the length (number of literals) */
   unsigned length() const { return _length; }
@@ -76,7 +75,8 @@ public:
   unsigned size() const { return _length; }
 
   /** Return a pointer to the array of literals. */
-  SATLiteral* literals() { return _literals; }
+  SATLiteral* literals() { return flexibleTail(); }
+  const SATLiteral* literals() const { return flexibleTail(); }
 
   /** True if the clause is empty */
   bool isEmpty() const { return _length == 0; }
@@ -101,10 +101,6 @@ private:
 
   SATInference* _inference;
 
-
-  /** Array of literals of this unit */
-  SATLiteral _literals[1];
-
   // counter for `number`
   static unsigned _lastNumber;
 }; // class SATClause
@@ -113,18 +109,13 @@ private:
 // _literals is declared with one element, and indexing it directly produced
 // different hash values in optimized builds when this loop was moved.
 struct SATClauseHash {
-  static bool equals(SATClause const& c1, SATClause const& c2) { return c1 == c2; }
-
   static unsigned hash(SATClause const& c) {
-    const SATLiteral* lits = &c[0];
     unsigned hash = 0;
     for(unsigned i = 0; i < c.length(); i++)
-      hash ^= SATLiteralHash::hash(lits[i]);
+      hash ^= SATLiteralHash::hash(c[i]);
     return hash;
   }
 };
-
-inline unsigned SATClause::defaultHash() const { return SATClauseHash::hash(*this); }
 
 std::ostream &operator<<(std::ostream &out, const SATClause &cl);
 

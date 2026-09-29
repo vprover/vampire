@@ -32,11 +32,13 @@ namespace Lib {
  *
  * @param Key a pointer or integral value (e.g., integer or long):
  *        anything that can be hashed to an unsigned integer
- *        and compared using ==
+ *        and compared using Equal
  * @param Val values, can be anything
- * @param Hash class containing the "hash" and "equals" functions for keys
+ * @param Hash class containing the "hash" function for keys
+ * @param Equal default-constructible predicate comparing keys (defaults to operator==).
+ *        Equal keys must have equal hashes.
  */
-template <typename Key, typename Val,class Hash>
+template <typename Key, typename Val, class Hash, class Equal>
 class Map
 {
 public:
@@ -210,7 +212,7 @@ public:
     auto code = hashCode(key);
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
-      if (entry->code == code && Hash::equals(entry->key(),key)) {
+      if (entry->code == code && Equal{}(entry->key(),key)) {
         return Opt(entry->value());
       }
     }
@@ -249,7 +251,7 @@ public:
     auto code = hashCode(key);
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
-      if (entry->code == code && Hash::equals(entry->key(),key)) {
+      if (entry->code == code && Equal{}(entry->key(),key)) {
         return &entry->value();
       }
     }
@@ -268,7 +270,7 @@ public:
     auto code = hashCode(key);
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
-      if (entry->code == code && Hash::equals(entry->key(),key)) {
+      if (entry->code == code && Equal{}(entry->key(),key)) {
         return &entry->value();
       }
     }
@@ -288,7 +290,7 @@ public:
   {
     auto code = hashCode(key);
     Entry* entry;
-    for (entry = firstEntryForCode(code); !Hash::equals(entry->key(),key); entry = nextEntry(entry)) {
+    for (entry = firstEntryForCode(code); !Equal{}(entry->key(),key); entry = nextEntry(entry)) {
       ASS(entry->occupied());
     }
     ASS(entry->occupied());
@@ -349,7 +351,7 @@ private:
   {
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
-      if (entry->code == code && Hash::equals(entry->key(),key)) {
+      if (entry->code == code && Equal{}(entry->key(),key)) {
         return entry->value();
       }
     }
@@ -377,7 +379,7 @@ public:
     auto code = hashCode(key);
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
-      if (entry->code == code && Hash::equals(entry->key(), key)) {
+      if (entry->code == code && Equal{}(entry->key(), key)) {
         entry->value() = std::move(val);
         return true;
       }
@@ -403,7 +405,7 @@ public:
     auto code = hashCode(key);
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
-      if (entry->code == code && Hash::equals(entry->key(), key)) {
+      if (entry->code == code && Equal{}(entry->key(), key)) {
         entry->value() = val;
         return;
       }
@@ -451,7 +453,7 @@ public:
     auto code = hashCode(key);
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
-      if (entry->code == code && Hash::equals(entry->key(), key)) {
+      if (entry->code == code && Equal{}(entry->key(), key)) {
         ASS_NO_EXCEPT(
           entry->value() = update(std::move(entry->value()));
         )
@@ -481,7 +483,7 @@ public:
     auto code = hashCode(key);
     Entry* entry;
     for (entry = firstEntryForCode(code); entry->occupied(); entry = nextEntry(entry)) {
-      if (entry->code == code && Hash::equals(entry->key(), key)) {
+      if (entry->code == code && Equal{}(entry->key(), key)) {
         pval = &entry->value();
         return false;
       }

@@ -177,12 +177,22 @@ public:
   ClauseCodeTree* getClauseCodeTree() { return &_ct; }
 protected:
   void handleClause(Clause* c, bool adding) override {
+    // Insertion and removal are nothing alike -- insertion compiles a clause and merges
+    // the code into the tree, removal runs the matching interpreter to find the clause's
+    // path and then performs surgery -- so they get a node each. The outer node stays,
+    // rather than the two replacing it: a sweep's node whitelist is derived from this
+    // source tree, so a *renamed* node makes every earlier sweep unreadable, and the
+    // rule that keeps that from ever mattering is to add children and never rename.
+    // It costs one extra scope per call, ~0.01% of a sweep, which is worth not having
+    // to keep a list of retired names correct forever.
     TIME_TRACE("codetree subsumption index maintenance");
 
     if(adding) {
+      TIME_TRACE("codetree subsumption index insert");
       _ct.insert(c);
     }
     else {
+      TIME_TRACE("codetree subsumption index remove");
       _ct.remove(c);
     }
   }

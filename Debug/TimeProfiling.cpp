@@ -15,6 +15,8 @@
 #include <cstring>
 #include "Shell/Options.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/PerfInstructions.hpp"
+#include "Lib/Timer.hpp"
 
 namespace Shell {
 
@@ -23,9 +25,20 @@ using namespace Lib;
 
 TimeTrace::TimeTrace()
   : _root("[root]")
-  , _stack({ {&_root, Clock::now(), }, })
+  // -1 for the instruction counter: it does not exist yet, since this object is a
+  // static constructed long before Timer::reinitialise() opens it. See
+  // rebaseInstructionCounters(), which fixes this up once it does.
+  , _stack({ {&_root, Clock::now(), -1}, })
   , _enabled(false)
 {  }
+
+void TimeTrace::rebaseInstructionCounters()
+{
+  long long now = Timer::instructionCountAnyThread();
+  for (auto& x : _stack) {
+    get<2>(x) = now;
+  }
+}
 
 TimeTrace::ScopedTimer::ScopedTimer(const char* name)
   : ScopedTimer(TimeTrace::instance(), name)
@@ -52,12 +65,17 @@ TimeTrace::ScopedTimer::ScopedTimer(TimeTrace& trace, const char* name)
       children.push_back(std::make_unique<Node>(name));
       node = &*children.back();
     }
+    // Read the clock first and the instruction counter second, so that the
+    // instruction interval sits *inside* the time interval: the cost of the clock
+    // read itself is then excluded from the instruction count, while time keeps
+    // measuring everything, as it always did.
     auto start = Clock::now();
+    auto startInstr = Timer::instructionCount();
 #if VDEBUG
     _start = start;
 #endif
 
-    _trace._stack.push_back(std::make_pair(node, start));
+    _trace._stack.push_back(std::make_tuple(node, start, startInstr));
   }
 }
 
@@ -76,12 +94,16 @@ TimeTrace::ScopedTimer::~ScopedTimer()
   if (!_trace._enabled.load(std::memory_order_relaxed))
     return;
 
+  // mirror of the constructor: instructions innermost, time outermost
+  auto nowInstr = Timer::instructionCount();
   auto now = Clock::now();
   auto cur = _trace._stack.back();
   _trace._stack.pop_back();
   auto node = get<0>(cur);
   auto start = get<1>(cur);
-  node->measurements.add(now  - start);
+  auto startInstr = get<2>(cur);
+  node->measurements.add(now - start,
+      (startInstr < 0 || nowInstr < 0) ? 0 : nowInstr - startInstr);
   ASS_EQ(node->name, _name);
   ASS(start == _start);
 }
@@ -125,19 +147,42 @@ std::ostream& operator<<(std::ostream& out, TimeTrace::Duration const& self)
 // << duration_cast<microseconds>(total / cnt).count() << " μs"
 }
 
+/**
+ * An instruction count.
+ *
+ * Deliberately *not* scaled the way Duration is. A count is an exact integer and
+ * comparing two runs is the main thing one does with it, so rounding it to three
+ * significant figures would be self-defeating: printing 12345 as "12 k" gives the
+ * value 1000-instruction granularity, i.e. 8% of itself, which swamps the real
+ * run-to-run variation (which is nearer 0.001%).
+ */
+struct InstrCount { long long n; };
+
+std::ostream& operator<<(std::ostream& out, InstrCount const& self)
+{
+  if (self.n < 0) {
+    return out << "-";
+  }
+  return out << self.n;
+}
+
 struct TimeTrace::Node::NodeFormatOpts {
   // std::vector, not Lib::Stack: printing runs on the timer thread, see Node
   std::vector<const char*>& indent;
   Lib::Option<Duration> parentDuration;
   bool last;
   bool align;
+  // whether the hardware instruction counter was available for this run; when it
+  // was not we still print the field, as "-", so the format stays unconditional
+  bool haveInstr;
   Lib::Option<unsigned> nameWidth;
 
-  NodeFormatOpts child(Node& parent) 
-  { return { .indent = this->indent, 
-             .parentDuration = some(parent.totalDuration()), 
-             .last = false, 
+  NodeFormatOpts child(Node& parent)
+  { return { .indent = this->indent,
+             .parentDuration = some(parent.totalDuration()),
+             .last = false,
              .align = this->align,
+             .haveInstr = this->haveInstr,
              .nameWidth = align
                ? iterTraits(arrayIter(parent.children))
                    .map([](auto& c) { return unsigned(strlen(c->name)); })
@@ -145,11 +190,12 @@ struct TimeTrace::Node::NodeFormatOpts {
                : none<unsigned>(),
                }; }
 
-  static NodeFormatOpts root(decltype(indent) indent) 
-  { return { .indent = indent, 
-             .parentDuration = Option<Duration>(), 
-             .last = true, 
+  static NodeFormatOpts root(decltype(indent) indent, bool haveInstr)
+  { return { .indent = indent,
+             .parentDuration = Option<Duration>(),
+             .last = true,
              .align = false,
+             .haveInstr = haveInstr,
              .nameWidth = none<unsigned>(),
            }; }
 };
@@ -205,8 +251,10 @@ void TimeTrace::Node::printPrettyRec(std::ostream& out, NodeFormatOpts& opts)
   } else {
     out << total / cnt;
   }
-  out << ", cnt: "  << msetw(6) << cnt
-      << ")" << std::endl;
+  out << ", cnt: "  << msetw(6) << cnt;
+  out << ", instr: " << msetw(12)
+      << InstrCount { opts.haveInstr ? measurements.instr() : -1 };
+  out << ")" << std::endl;
 
   // Order a local copy rather than sorting `children` in place: this is called on the
   // timer thread while the main thread may still be scanning and appending to
@@ -334,16 +382,28 @@ void TimeTrace::Node::flatten_(FlattenState& s)
 void TimeTrace::printPretty(std::ostream& out)
 {
 
+  // Credit the scopes that are still open with what they have run so far -- [root]
+  // among them, so this is what gives the top of the trace any numbers at all.
+  //
+  // NB: instructionCountAnyThread(), not the rdpmc reader: when a resource limit
+  // fires we are called on timer_thread, where rdpmc would read the wrong CPU's
+  // counter. This costs a syscall, but happens once per process.
   auto now = Clock::now();
+  auto nowInstr = Timer::instructionCountAnyThread();
+  bool haveInstr = nowInstr >= 0;
+  auto inFlightInstr = [&](long long startInstr) {
+    return (!haveInstr || startInstr < 0) ? 0 : nowInstr - startInstr;
+  };
+
   for (auto& x : _stack) {
     auto node = get<0>(x);
     auto start = get<1>(x);
-    node->measurements.add(now - start);
+    node->measurements.add(now - start, inFlightInstr(get<2>(x)));
   }
 
   auto& root = _tmpRoots.empty() ? _root : *_tmpRoots.back();
   std::vector<const char*> indent;
-  auto rootOpts = Node::NodeFormatOpts::root(indent);
+  auto rootOpts = Node::NodeFormatOpts::root(indent, haveInstr);
 
   out << "===== start of time trace =====" << std::endl;
   rootOpts.align = false;
@@ -361,7 +421,7 @@ void TimeTrace::printPretty(std::ostream& out)
   for (auto& x : _stack) {
     auto node = get<0>(x);
     auto start = get<1>(x);
-    node->measurements.remove(now - start);
+    node->measurements.remove(now - start, inFlightInstr(get<2>(x)));
   }
 
   if (!env.options->timeStatisticsFocus().empty()) {

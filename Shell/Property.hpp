@@ -24,6 +24,7 @@
 #include "Lib/DArray.hpp"
 #include "Lib/Array.hpp"
 #include "Lib/DHSet.hpp"
+#include "Kernel/Term.hpp"
 #include "Kernel/Theory.hpp"
 #include "SMTLIBLogic.hpp"
 
@@ -180,8 +181,6 @@ public:
   int maxFunArity() const { return _maxFunArity; }
   /** Maximal arity of a type con in the problem */
   unsigned maxTypeConArity() const { return _maxTypeConArity; }
-  /** Total number of variables in problem */
-  int totalNumberOfVariables() const { return _totalNumberOfVariables;}
 
   /** The problem has property p */
   bool hasProp(uint64_t p) const { return _props & p; }
@@ -257,9 +256,9 @@ public:
   void scan(Clause*);
   void scan(FormulaUnit*);
 
-  void scan(Literal* lit, int polarity, unsigned cLen, bool goal);
+  void scan(Literal* lit, int polarity);
   void scan(Formula*, int polarity);
-  void scan(TermList ts,bool unit,bool goal);
+  void scan(TermList ts);
 
   void scanSort(TermList sort);
 
@@ -289,16 +288,8 @@ public:
   int _maxPredArity;
   unsigned _maxTypeConArity;
 
-  /** Number of variables in this clause, used during counting */
-  int _variablesInThisClause;
-  /** Total number of variables in all clauses */
-  int _totalNumberOfVariables;
-  /** Maximal number of variables in a clause */
-  int _maxVariablesInClause;
-  /** Symbols in this formula, used during counting
-      Functions are positive, predicates stored in the negative part
-  **/
-  DHSet<int, FnvHash, IdentityHash> _symbolsInFormula;
+  /** shared terms the clause walk has already been through; see Property::scan(Clause*) */
+  Lib::DHSet<Kernel::Term*, Kernel::SharedTermHash, Lib::PtrIdentityHash> _scannedTerms;
 
   /** Bitwise OR of all properties of this problem */
   uint64_t _props;

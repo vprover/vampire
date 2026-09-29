@@ -16,6 +16,7 @@
 #include "Debug/Assertion.hpp"
 
 #include "Kernel/TermIterators.hpp"
+#include "Lib/DArray.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 
@@ -210,7 +211,7 @@ Sign RationalConstantType::sign() const
   return numerator().sign(); 
 }
 
-Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, IntegerConstantType n2)
+Comparison IntegerConstantType::comparePrecedence(IntegerConstantType const& n1, IntegerConstantType const& n2)
 {
   auto cmp = mpz_cmpabs(n1._val, n2._val);
   if (cmp > 0) return Comparison::GREATER;
@@ -226,7 +227,7 @@ Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, Intege
 //
 
 RationalConstantType::RationalConstantType(InnerType num, InnerType den)
-  : _num(num), _den(den)
+  : _num(std::move(num)), _den(std::move(den))
 { cannonize(); }
 
 RationalConstantType RationalConstantType::operator+(const RationalConstantType& o) const
@@ -313,7 +314,7 @@ void RationalConstantType::cannonize()
   mpq_clear(q);
 }
  
-Comparison RationalConstantType::comparePrecedence(RationalConstantType n1, RationalConstantType n2)
+Comparison RationalConstantType::comparePrecedence(RationalConstantType const& n1, RationalConstantType const& n2)
 {
   auto prec = IntegerConstantType::comparePrecedence(n1._den, n2._den);
   if (prec != EQUAL) return prec;
@@ -325,7 +326,7 @@ Comparison RationalConstantType::comparePrecedence(RationalConstantType n1, Rati
 // RealConstantType
 //
 
-Comparison RealConstantType::comparePrecedence(RealConstantType n1, RealConstantType n2)
+Comparison RealConstantType::comparePrecedence(RealConstantType const& n1, RealConstantType const& n2)
 { return RationalConstantType::comparePrecedence(n1, n2); }
 
 Option<RationalConstantType> parseRat(const std::string& num)
@@ -1046,7 +1047,7 @@ bool Theory::findTupleProjection(unsigned projFunctor, bool isPredicate, unsigne
     return false;
   }
 
-  Signature::Symbol* sym = env.signature->getFunction(projFunctor);
+  const Signature::Symbol* sym = env.signature->getFunction(projFunctor);
   if (!sym->termAlgebraDest()) {
     return false;
   }
@@ -1288,14 +1289,12 @@ TermAlgebra* Theory::getTupleTermAlgebra(unsigned arity)
   args.loadFromIterator(varRange(arity, 2*arity));
 
   auto tupleType = OperatorType::getFunctionType(typeVars, tupleSort, arity);
-  auto functor = env.signature->addFreshFunction(tupleType, "tuple");
-  env.signature->getFunction(functor)->markTermAlgebraCons();
+  auto functor = env.signature->addFreshFunction(tupleType, "tuple")->markTermAlgebraCons()->number();
 
   Array<unsigned> destructors(arity);
   for (unsigned i = 0; i < arity; i++) {
-    auto destructor = env.signature->addFreshFunction(OperatorType::getFunctionType({ tupleSort }, typeVars[i], arity), "proj");
-    auto destSym = env.signature->getFunction(destructor);
-    destSym->markTermAlgebraDest();
+    auto destructor = env.signature->addFreshFunction(OperatorType::getFunctionType({ tupleSort }, typeVars[i], arity), "proj")
+      ->markTermAlgebraDest()->number();
     destructors[i] = destructor;
   }
 
@@ -1436,8 +1435,8 @@ Interpretation Theory::interpretFunction(unsigned func)
 {
   ASS(isInterpretedFunction(func));
 
-  Signature::InterpretedSymbol* sym =
-      static_cast<Signature::InterpretedSymbol*>(env.signature->getFunction(func));
+  const Signature::InterpretedSymbol* sym =
+      static_cast<const Signature::InterpretedSymbol*>(env.signature->getFunction(func));
 
   return sym->getInterpretation();
 }
@@ -1466,8 +1465,8 @@ Interpretation Theory::interpretPredicate(unsigned pred)
 {
   ASS(isInterpretedPredicate(pred));
 
-  Signature::InterpretedSymbol* sym =
-      static_cast<Signature::InterpretedSymbol*>(env.signature->getPredicate(pred));
+  const Signature::InterpretedSymbol* sym =
+      static_cast<const Signature::InterpretedSymbol*>(env.signature->getPredicate(pred));
 
   return sym->getInterpretation();
 }
@@ -1502,7 +1501,7 @@ bool Theory::tryInterpretConstant(const Term* t, IntegerConstantType& res)
 
 bool Theory::tryInterpretConstant(unsigned func, IntegerConstantType& res)
 {
-  Signature::Symbol* sym = env.signature->getFunction(func);
+  const Signature::Symbol* sym = env.signature->getFunction(func);
   if (!sym->integerConstant()) {
     return false;
   }
@@ -1530,7 +1529,7 @@ bool Theory::tryInterpretConstant(const Term* t, RationalConstantType& res)
 
 bool Theory::tryInterpretConstant(unsigned func, RationalConstantType& res)
 {
-  Signature::Symbol* sym = env.signature->getFunction(func);
+  const Signature::Symbol* sym = env.signature->getFunction(func);
   if (!sym->rationalConstant()) {
     return false;
   }
@@ -1564,7 +1563,7 @@ bool Theory::tryInterpretConstant(const Term* t, RealConstantType& res)
 
 bool Theory::tryInterpretConstant(unsigned func, RealConstantType& res)
 {
-  Signature::Symbol* sym = env.signature->getFunction(func);
+  const Signature::Symbol* sym = env.signature->getFunction(func);
   if (!sym->realConstant()) {
     return false;
   }

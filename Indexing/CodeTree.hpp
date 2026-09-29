@@ -20,6 +20,7 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/DHMap.hpp"
+#include "Lib/FlexibleTail.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Vector.hpp"
 
@@ -72,12 +73,11 @@ public:
     bool opposite;
   };
 
-  struct MatchInfo
+  struct MatchInfo : public FlexibleTail<MatchInfo, TermList>
   {
     /** Index of the matched LitInfo in the EContext */
     unsigned liIndex;
-    /** array of bindings */
-    TermList bindings[1];
+    TermList *bindings() { return flexibleTail(); }
 
   private:
     void init(ILStruct* ils, unsigned liIndex, DArray<TermList>& bindingArray);
@@ -89,12 +89,12 @@ public:
 
     friend struct ILStruct;
 
-    //these functions are undefined as we take care of the MatchInfo initialisation
+    //these functions are deleted as we take care of the MatchInfo initialisation
     //and destruction ourselves
-    MatchInfo();
-    ~MatchInfo();
-    void operator delete(void*);
-    void* operator new(size_t,unsigned length);
+    MatchInfo() = delete;
+    ~MatchInfo() = delete;
+    void operator delete(void*) = delete;
+    void* operator new(size_t,unsigned length) = delete;
   };
 
   /**
