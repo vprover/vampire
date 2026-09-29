@@ -33,6 +33,9 @@
 
 #include "Saturation/Splitter.hpp"
 
+#include "SATSubsumption/SATSubsumptionAndResolution.hpp"
+
+
 #include "HOL/HOL.hpp"
 #include "Clause.hpp"
 #include "Formula.hpp"
@@ -456,7 +459,7 @@ protected:
   InferenceReplayer _replayer;
   bool _replay;
 
-  std::string forwardSubsumptionResolutionLiteral(Unit* us)
+  std::string forwardSubsumptionResolutionInfo(Unit* us)
   {
     if (us->inference().rule() != InferenceRule::FORWARD_SUBSUMPTION_RESOLUTION) {
       return "";
@@ -467,10 +470,15 @@ protected:
       return "";
     }
     Unit* simplifiedUnit = parents.next();
-    if (!simplifiedUnit->isClause()) {
+    if (!simplifiedUnit->isClause() || !parents.hasNext()) {
       return "";
     }
     Clause* simplified = simplifiedUnit->asClause();
+    Unit* sideUnit = parents.next();
+    if (!sideUnit->isClause()) {
+      return "";
+    }
+    Clause* side = sideUnit->asClause();
     Clause* conclusion = us->asClause();
 
     for (unsigned i = 0; i < simplified->length(); ++i) {
@@ -483,7 +491,26 @@ protected:
         }
       }
       if (!survives) {
-        return "removed_literal(literal(" + tptpUnitId(simplified) + ',' + Int::toString(i) + "))";
+        //Reconstruct with SATSubsumption
+        SATSubsumption::SATSubsumptionAndResolution satSR;
+        if (!satSR.checkSubsumptionResolutionWithLiteral(side, simplified, i)) {
+          return "removed_literals(literal(" + tptpUnitId(simplified) + ',' + Int::toString(i) + "))";
+        }
+        auto subst = satSR.getBindingsForSubsumptionResolutionWithLiteral();
+
+        std::ostringstream res;
+        res << "unifier([subs(" << tptpUnitId(side) << ",[";
+        bool first = true;
+        for (auto [var, term] : iterTraits(subst.items())) {
+          if (!first) {
+            res << ',';
+          }
+          first = false;
+          res << "b(X" << var << ',' << term.toString() << ')';
+        }
+        res << "])])";
+        res << ",removed_literals(literal(" << tptpUnitId(simplified) << ',' << i << "))";
+        return res.str();
       }
     }
     return "";
@@ -495,9 +522,12 @@ protected:
       return "";
     }
 
-    std::string forwardSubsumptionLiteral = forwardSubsumptionResolutionLiteral(us);
-    if (!forwardSubsumptionLiteral.empty()) {
-      return forwardSubsumptionLiteral;
+    // Forward subsumption resolution is a simplifying inference.  Replaying it
+    // mutates the replay algorithm's active index, whereas its certificate can
+    // be recovered directly from the original clauses.
+    std::string forwardSubsumptionInfo = forwardSubsumptionResolutionInfo(us);
+    if (!forwardSubsumptionInfo.empty()) {
+      return forwardSubsumptionInfo;
     }
 
     InferenceRecorder::instance()->setCurrentGoal(us->asClause());
@@ -527,7 +557,7 @@ protected:
           res << ',';
         }
         first = false;
-        res << "(X" << var << "," << term.toString() << ")";
+        res << "b(X" << var << "," << term.toString() << ")";
       }
       res << "])";
     }
@@ -543,7 +573,7 @@ protected:
         res << ",resolved_literals([";
         break;
       case PositionKind::REMOVED:
-        res << ",removed_literal(";
+        res << ",removed_literals(";
         break;
       case PositionKind::NONE:
         ASSERTION_VIOLATION;

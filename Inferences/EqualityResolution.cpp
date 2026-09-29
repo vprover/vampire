@@ -80,7 +80,7 @@ Clause* unifierToClause(Clause* cl, Literal* lit, AbstractingUnifier* unif, cons
   if(env.options->proofExtra() == Options::ProofExtra::FULL)
     env.proofExtra.insert(res, new EqualityResolutionExtra(lit));
   if(env.reconstruction)
-    Shell::InferenceRecorder::instance()->equalityResolution(0, res, {cl}, unif->subs());
+    Shell::InferenceRecorder::instance()->equalityResolution(res->number(), res, {cl}, unif->subs());
   return res;
 }
 

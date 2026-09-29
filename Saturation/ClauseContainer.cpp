@@ -153,4 +153,3 @@ void ActiveClauseContainer::onLimitsUpdated(PassiveClauseContainer* limits)
 }
 
 }
-

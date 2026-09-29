@@ -8,11 +8,13 @@
 #include "Kernel/MLMatcher.hpp"
 #include "Kernel/MLVariant.hpp"
 #include "Kernel/Matcher.hpp"
+#include "Kernel/Renaming.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Indexing/ResultSubstitution.hpp"
 #include "Kernel/Term.hpp"
 #include "Shell/EqResWithDeletion.hpp"
+#include <algorithm>
 #include <cstddef>
 #include <unordered_map>
 #include <unordered_set>
@@ -130,107 +132,78 @@ void InferenceRecorder::factoring(unsigned int id, Clause *conclusion, const std
       {{0, literalPosition(premises[0], removedLit)}});
 }
 
-void InferenceRecorder::equalityResolution(unsigned int id, Clause *conclusion, const std::vector<Clause *> &premises, const RobSubstitution &recordedSubst)
+void InferenceRecorder::equalityFactoring(unsigned id, Clause *conclusion, const std::vector<Clause *> &premises,
+                                          const RobSubstitution &recordedSubst)
 {
+  ASS_EQ(premises.size(), 1);
   recordGenericSubstitutionInference(id, conclusion, premises, recordedSubst);
 }
 
-void InferenceRecorder::equalityResolutionDeletion(unsigned int id, Clause *conclusion, EqResWithDeletion *appl)
+void InferenceRecorder::equalityResolution(unsigned int id, Clause *conclusion, const std::vector<Clause *> &premises, const RobSubstitution &recordedSubst)
 {
-  recordGenericSubstitutionInference<EqResWithDeletion*>(id, conclusion, {conclusion}, appl,
+  ASS_EQ(premises.size(), 1);
+  recordGenericSubstitutionInference(id, conclusion, premises, recordedSubst);
+}
+
+void InferenceRecorder::equalityResolutionDeletion(unsigned int id, Clause *conclusion, Clause *premise, EqResWithDeletion *appl)
+{
+  recordGenericSubstitutionInference<EqResWithDeletion*>(id, conclusion, {premise}, appl,
     [](EqResWithDeletion *subst, const TermList &term, size_t bank) {
     return subst->apply(term.var());
   });
 }
 
-bool hasVarSubstAndCompute(TermList &expectedTerm, TermList &haveTerm, Substitution &outVariableSwitch)
-{
-  bool haveProperSubst = false;
-  if(expectedTerm.isVar()) {
-    if (haveTerm.isVar()) {
-      outVariableSwitch.bind(expectedTerm.var(), haveTerm);
-      haveProperSubst = true;
-    }
-    return haveProperSubst;
-  }
-  
-  if(haveTerm.isTerm() && expectedTerm.isTerm() && haveTerm.term()->arity()==0 && expectedTerm.term()->arity()==0) {
-    return expectedTerm.term() == haveTerm.term();
-  }
-
-  if (MatchingUtils::matchTerms(expectedTerm, haveTerm)) {
-    haveProperSubst = true;
-    MatchingUtils::matchArgs(haveTerm.term(), expectedTerm.term(), outVariableSwitch);
-    auto items = outVariableSwitch.items();
-    while (items.hasNext()) {
-      auto [var, termList] = items.next();
-      if (!termList.isVar()) {
-        haveProperSubst = false;
-        break;
-      }
-    }
-  }
-  return haveProperSubst;
-}
-
 void InferenceRecorder::forwardDemodulation(unsigned int id, Clause *conclusion, const std::vector<Clause *> &premises, const SubstApplicator *appl, const DemodulatorData *data,
-                                            TermList rhsS)
+                                            Literal *rewrittenLit)
 {
   std::unordered_map<unsigned int, unsigned int> varMap;
   if (isSameAsProofStep(conclusion, _currentGoal, varMap)) {
     std::unique_ptr<InferenceInformation> info = std::make_unique<InferenceInformation>();
     info->conclusion = conclusion;
     info->premises = premises;
-    info->substitutionForBanksSub.resize(1);
-    Substitution varPermut;
-    TermList rhsTerm = data->rhs;
+    info->literalPositionKind = InferenceInformation::LiteralPositionKind::REWRITTEN;
+    info->literalPositions = {{0, literalPosition(premises[0], rewrittenLit)}};
+    // The matcher bindings below are for the indexed demodulator (the
+    // second parent), not for the clause being rewritten.
+    info->substitutionForBanksSub.resize(premises.size());
 
-    // It seems that qr.data->clause and qr.data->rhs can have different variable namings
-    // To handle this we check if the rhs is on either side of the equality and then create a
-    // variable permuation substitution to map the variables to the ones in the clause
-    bool haveProperSubst = false;
-    if (rhsTerm.isTerm()) {
-      haveProperSubst = hasVarSubstAndCompute(rhsTerm, *(data->clause->literals()[0]->nthArgument(0)), varPermut);
-      // check if this is the same as rhsS
-      if (haveProperSubst) {
-        TermList mappedRhs = SubstHelper::apply(*(data->clause->literals()[0]->nthArgument(0)), varPermut);
-        // now apply real subst and check if it was actually the same
-        mappedRhs = SubstHelper::apply(mappedRhs, *appl);
-        if (!MatchingUtils::matchTerms(rhsS, mappedRhs)) {
-          haveProperSubst = false;
-        }
-      }
-      if (!haveProperSubst) {
-		    varPermut.reset();
-        haveProperSubst = hasVarSubstAndCompute(rhsTerm, *(data->clause->literals()[0]->nthArgument(1)), varPermut);
-		    // we don't need to check rhsS again, because now it must be the other side
-      }
-    } else if (rhsTerm.isVar()) {
-      if (data->clause->literals()[0]->nthArgument(0)->isVar()) {
-        varPermut.bind(data->clause->literals()[0]->nthArgument(0)->var(),
-                            TermList::var(rhsTerm.var()));
-        haveProperSubst = true;
-      }
-      else if (data->clause->literals()[0]->nthArgument(1)->isVar()) {
-        varPermut.bind(data->clause->literals()[0]->nthArgument(1)->var(),
-                            TermList::var(rhsTerm.var()));
-        haveProperSubst = true;
-      }
-      else {
-        haveProperSubst = false;
-      }
+    // The replayed conclusion can be an alpha-variant of the original proof
+    // step.  Values produced by `appl` use the replayed names, so translate
+    // them back to the names of the printed conclusion.
+    Substitution conclusionRenaming;
+    for (auto [var, mappedVar] : varMap) {
+      conclusionRenaming.bind(var, TermList::var(mappedVar));
     }
-    ASS(haveProperSubst)
+    // DemodulatorData stores the left-hand side and right-hand side after
+    // normalizing variables in the left-hand side. Recreate that normalization
+    // from the source equality, rather than trying to recover it from the RHS:
+    // the RHS need not contain all variables of the demodulator.
+    Literal* demodulator = data->clause->literals()[0];
+    auto [left, right] = demodulator->eqArgs();
+    TermList sort = demodulator->eqArgSort();
+    Renaming normalization;
+    auto matchesIndexedOrientation = [&](TermList lhs, TermList rhs) {
+      normalization.reset();
+      normalization.normalizeVariables(TypedTermList(lhs, sort));
+      return normalization.apply(lhs) == data->term.untyped()
+          && normalization.apply(rhs) == data->rhs
+          && normalization.apply(sort) == data->term.sort();
+    };
+    bool foundOrientation = matchesIndexedOrientation(left, right)
+      || matchesIndexedOrientation(right, left);
+    if (!foundOrientation) {
+      return;
+    }
 
     // we create a custom substitution to apply the substitution only to variables coming from the demodulator
     // otherwise the substitution we get faults
-    info->substitutionForBanksSub.resize(1);
     auto iter = data->clause->getVariableIterator();
     while (iter.hasNext()) {
       auto var = iter.next();
-      TermList mappedVar = varPermut.apply(var);
+      TermList mappedVar = normalization.apply(TermList::var(var));
       ASS(mappedVar.isVar());
-      info->substitutionForBanksSub[0].bind(var, appl->apply(mappedVar.var()));
+      TermList value = SubstHelper::apply(appl->apply(mappedVar.var()), conclusionRenaming);
+      info->substitutionForBanksSub[1].bind(var, value);
     }
 
     _inferences[id] = std::move(info);
@@ -251,9 +224,29 @@ void InferenceRecorder::backwardDemodulation(unsigned int id, Clause *conclusion
 bool InferenceRecorder::isSameAsProofStep(Clause *clause, Clause *goal, std::unordered_map<unsigned int, unsigned int> &outVarMap)
 {
   outVarMap.clear();
+
   if (clause->length() != goal->length()) {
     return false;
   }
+
+  std::vector<bool> matchedGoalLiterals(goal->length(), false);
+  for (unsigned i = 0; i < clause->length(); ++i) {
+    bool found = false;
+    for (unsigned j = 0; j < goal->length(); ++j) {
+      if (!matchedGoalLiterals[j] && (*clause)[i] == (*goal)[j]) {
+        matchedGoalLiterals[j] = true;
+        found = true;
+        break;
+      }
+    }
+    if (!found) {
+      break;
+    }
+  }
+  if (std::all_of(matchedGoalLiterals.begin(), matchedGoalLiterals.end(), [](bool matched) { return matched; })) {
+    return true;
+  }
+
   if (clause->length() == 0) {
     return true;
   }

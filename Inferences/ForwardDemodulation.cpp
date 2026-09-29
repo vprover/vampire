@@ -179,7 +179,7 @@ bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement,
         if(env.reconstruction){
           ASS(qr.data->clause->length()==1);
           ASS(qr.data->clause->literals()[0]->isEquality());
-          Shell::InferenceRecorder::instance()->forwardDemodulation(replacement->number(), replacement, {cl, qr.data->clause}, &subs, qr.data, rhsS);
+          Shell::InferenceRecorder::instance()->forwardDemodulation(replacement->number(), replacement, {cl, qr.data->clause}, &subs, qr.data, lit);
         }
         return true;
       }

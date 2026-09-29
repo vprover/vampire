@@ -2,6 +2,7 @@
 #include "Inferences/BackwardDemodulation.hpp"
 #include "Inferences/BinaryResolution.hpp"
 #include "Inferences/EqualityResolution.hpp"
+#include "Inferences/EqualityFactoring.hpp"
 #include "Inferences/Factoring.hpp"
 #include "Inferences/ForwardDemodulation.hpp"
 #include "Inferences/InferenceEngine.hpp"
@@ -9,6 +10,8 @@
 #include "Kernel/Inference.hpp"
 #include "Shell/EqResWithDeletion.hpp"
 #include "Shell/InferenceRecorder.hpp"
+
+#include <unordered_set>
 
 namespace Shell {
 void InferenceReplayer::replayInference(Kernel::Unit *u)
@@ -46,6 +49,11 @@ void InferenceReplayer::replayInference(Kernel::Unit *u)
     runGenerating(&eq,
                          stack, u->asClause());
   }
+  else if (u->inference().rule() == InferenceRule::EQUALITY_FACTORING) {
+    Inferences::EqualityFactoring eq(*alg);
+    runGenerating(&eq,
+                         stack, u->asClause());
+  }
   else if (u->inference().rule() == InferenceRule::EQUALITY_RESOLUTION_WITH_DELETION) {
     Inferences::EqResWithDeletion eq;
     Problem p;
@@ -79,7 +87,14 @@ Clause *InferenceReplayer::runGenerating(GeneratingInferenceEngine *rule,
   env.setMainProblem(&p);
 
   auto activeContainer = alg->getActiveClauseContainer();
+  std::unordered_set<unsigned> activated;
   for (auto c : context) {
+    // A self-inference lists one clause in more than one parent position.
+    // Keep those positions in `context`, but an active container owns each
+    // clause number only once.
+    if (!activated.insert(c->number()).second) {
+      continue;
+    }
     c->setStore(Clause::ACTIVE);
     c->setAge(0);
     activeContainer->add(c);
@@ -104,6 +119,7 @@ void InferenceReplayer::runForwardsSimp(ForwardSimplificationEngine *rule,
 {
   Problem p;
   ASS(alg);
+  removeAllActiveClauses();
   ClauseContainer *simplClauseContainer = alg->getSimplifyingClauseContainer();
   context[1]->setStore(Clause::ACTIVE);
   simplClauseContainer->add(context[1]);
@@ -111,6 +127,7 @@ void InferenceReplayer::runForwardsSimp(ForwardSimplificationEngine *rule,
   Clause *replacement = nullptr;
   Kernel::ClauseIterator clauses;
   rule->perform(clause, replacement, clauses);
+  alg->getActiveClauseContainer()->remove(context[1]);
   removeAllActiveClauses();
   Ordering::unsetGlobalOrdering();
 }

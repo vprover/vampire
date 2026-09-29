@@ -664,7 +664,9 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(std::ostream& out, bool funct
 
   if (function) {
     TermList sort = env.signature->getFunction(symNumber)->type()->result();
-    if (sort.isTupleSort()) {
+    // Internal symbols in the function table may have predicate types.  Their
+    // result is the empty TermList, so it must not be queried as a sort.
+    if (sort.isTerm() && sort.isTupleSort()) {
       return;
     }
   }
