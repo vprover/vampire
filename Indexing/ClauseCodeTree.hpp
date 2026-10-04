@@ -134,7 +134,9 @@ public:
      */
     DArray<LitInfo> lInfos;
 
-    Stack<Recycled<LiteralMatcher, NoReset>> lms;
+    Stack<LiteralMatcher*> lms;
+    /** literal matchers for each depth, reused across queries */
+    Stack<LiteralMatcher*> _lmPool;
 
     /** flat terms of previous queries' literal infos, for reuse */
     Stack<FlatTerm*> _spares;
@@ -156,6 +158,9 @@ public:
     ~ClauseMatcher() {
       while (_spares.isNonEmpty()) {
         _spares.pop()->destroy();
+      }
+      while (_lmPool.isNonEmpty()) {
+        delete _lmPool.pop();
       }
     }
   };
