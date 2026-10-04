@@ -227,6 +227,17 @@ endif()
 ################################################################
 # Vampire
 ################################################################
+# link-time optimisation for release builds, if the toolchain supports it
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+  include(CheckIPOSupported)
+  check_ipo_supported(RESULT IPO_SUPPORTED OUTPUT IPO_OUTPUT LANGUAGES CXX)
+  if(IPO_SUPPORTED)
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+  else()
+    message(STATUS "link-time optimisation not supported: ${IPO_OUTPUT}")
+  endif()
+endif()
+
 # wrap up common object files so not built multiple times for each target
 add_library(common OBJECT ${SOURCES})
 
