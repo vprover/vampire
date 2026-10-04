@@ -534,11 +534,11 @@ void ClauseCodeTree::ClauseMatcher::init(ClauseCodeTree* tree_, Clause* query_, 
     if(!(*query)[i]->ground()) {
       continue;
     }
-    lInfos[liIndex]=LitInfo(query,i);
+    lInfos[liIndex]=LitInfo(query,i,spare());
     lInfos[liIndex].liIndex=liIndex;
     liIndex++;
     if((*query)[i]->isEquality()) {
-      lInfos[liIndex]=LitInfo::getReversed(lInfos[liIndex-1]);
+      lInfos[liIndex]=LitInfo::getReversed(lInfos[liIndex-1], spare());
       lInfos[liIndex].liIndex=liIndex;
       liIndex++;
     }
@@ -547,11 +547,11 @@ void ClauseCodeTree::ClauseMatcher::init(ClauseCodeTree* tree_, Clause* query_, 
     if((*query)[i]->ground()) {
       continue;
     }
-    lInfos[liIndex]=LitInfo(query,i);
+    lInfos[liIndex]=LitInfo(query,i,spare());
     lInfos[liIndex].liIndex=liIndex;
     liIndex++;
     if((*query)[i]->isEquality()) {
-      lInfos[liIndex]=LitInfo::getReversed(lInfos[liIndex-1]);
+      lInfos[liIndex]=LitInfo::getReversed(lInfos[liIndex-1], spare());
       lInfos[liIndex].liIndex=liIndex;
       liIndex++;
     }
@@ -559,7 +559,7 @@ void ClauseCodeTree::ClauseMatcher::init(ClauseCodeTree* tree_, Clause* query_, 
   if(sres) {
     for(unsigned i=0;i<baseLICnt;i++) {
       unsigned newIndex=i+baseLICnt;
-      lInfos[newIndex]=LitInfo::getOpposite(lInfos[i]);
+      lInfos[newIndex]=LitInfo::getOpposite(lInfos[i], spare());
       lInfos[newIndex].liIndex=newIndex;
     }
     sresLiteral=sresNoLiteral;
@@ -577,7 +577,13 @@ void ClauseCodeTree::ClauseMatcher::reset()
 
   unsigned liCnt=lInfos.size();
   for(unsigned i=0;i<liCnt;i++) {
-    lInfos[i].dispose();
+    size_t room = lInfos[i].ft->capacity();
+    if (_spareEntries + room <= MAX_SPARE_ENTRIES) {
+      _spares.push(lInfos[i].ft);
+      _spareEntries += room;
+    } else {
+      lInfos[i].dispose();
+    }
   }
   lms.reset();
 

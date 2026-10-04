@@ -27,12 +27,17 @@ public:
    * Note: only allocates the flat term, but does not fill out its
    * content. The caller has to make sure @b Entry::expand is
    * called on each flat term entry before traversing its arguments.
+   *
+   * If @b reuse is non-null, it is used for the result if it is large enough,
+   * and destroyed otherwise.
    */
-  static FlatTerm* create(TermList t);
+  static FlatTerm* create(TermList t, FlatTerm* reuse = nullptr);
   static FlatTerm* create(TermStack ts);
   void destroy();
+  size_t capacity() const { return _capacity; }
 
-  static FlatTerm* copy(const FlatTerm* ft);
+  /** @b reuse as in create() */
+  static FlatTerm* copy(const FlatTerm* ft, FlatTerm* reuse = nullptr);
 
   static constexpr size_t FUNCTION_ENTRY_COUNT=3;
 
@@ -87,6 +92,8 @@ public:
   { _data[0]._setNumber(_data[0]._number()^1); _data[1]._setTerm(Literal::complementaryLiteral(static_cast<Literal*>(_data[1]._term()))); }
 
 private:
+  static FlatTerm* allocate(size_t entries, FlatTerm* reuse);
+
   template<bool mightBeLiteral>
   static size_t getEntryCount(Term* t);
 
@@ -112,7 +119,7 @@ private:
     pos += e[pos+2]._number();
   }
 
-  FlatTerm(size_t length) : _length(length) {}
+  FlatTerm(size_t length) : _length(length), _capacity(length) {}
   void* operator new(size_t,unsigned length);
 
   /**
@@ -122,6 +129,7 @@ private:
   void operator delete(void*);
 
   size_t _length;
+  size_t _capacity;
   Entry _data[1];
 };
 

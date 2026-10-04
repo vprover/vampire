@@ -135,6 +135,29 @@ public:
     DArray<LitInfo> lInfos;
 
     Stack<Recycled<LiteralMatcher, NoReset>> lms;
+
+    /** flat terms of previous queries' literal infos, for reuse */
+    Stack<FlatTerm*> _spares;
+    size_t _spareEntries = 0;
+    FlatTerm* spare() {
+      if (_spares.isEmpty()) {
+        return nullptr;
+      }
+      FlatTerm* s = _spares.pop();
+      _spareEntries -= s->capacity();
+      return s;
+    }
+    static constexpr size_t MAX_SPARE_ENTRIES = 1 << 17;
+
+  public:
+    ClauseMatcher() = default;
+    ClauseMatcher(const ClauseMatcher&) = delete;
+    ClauseMatcher& operator=(const ClauseMatcher&) = delete;
+    ~ClauseMatcher() {
+      while (_spares.isNonEmpty()) {
+        _spares.pop()->destroy();
+      }
+    }
   };
 
 private:
