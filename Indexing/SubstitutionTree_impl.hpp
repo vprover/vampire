@@ -196,9 +196,14 @@ start:
   pnode=inode->childByTop(term.top(),true);
 
   if (*pnode == 0) {
-    BinaryHeap<Binding, BindingComparator<LeafData_>> remainingBindings;
-    for (auto [var, term] : iterTraits(svBindings.items())) {
-      remainingBindings.insert(Binding(var, term));
+    static BinaryHeap<Binding, BindingComparator<LeafData_>> remainingBindings;
+    remainingBindings.reset();
+    typename BindingMap::Iterator bit(svBindings);
+    while (bit.hasNext()) {
+      unsigned var;
+      TermList bound;
+      bit.next(var, bound);
+      remainingBindings.insert(Binding(var, bound));
     }
     while (!remainingBindings.isEmpty()) {
       Binding b=remainingBindings.pop();
@@ -227,7 +232,8 @@ start:
   // ss is the term in node, tt is the term to be inserted
   // ss and tt have the same top symbols but are not equal
   // create the common subterm of ss,tt and an alternative node
-  Stack<TermList*> subterms(64);
+  Recycled<Stack<TermList*>> subtermStack;
+  auto& subterms = *subtermStack;
   for (;;) {
     if (*tt!=*ss && TermList::sameTop(*ss,*tt)) {
       // ss and tt have the same tops and are different, so must be non-variables
@@ -339,7 +345,8 @@ void SubstitutionTree<LeafData_>::remove(BindingMap& svBindings, LeafData ld)
     ASS(!ss->isEmpty());
 
     // computing the disagreement set of the two terms
-    Stack<TermList*> subterms(120);
+    Recycled<Stack<TermList*>> subtermStack;
+    auto& subterms = *subtermStack;
 
     subterms.push(ss);
     subterms.push(t.term()->args());
@@ -434,7 +441,8 @@ typename SubstitutionTree<LeafData_>::Leaf* SubstitutionTree<LeafData_>::findLea
     ASS(!ss->isEmpty());
 
     // computing the disagreement set of the two terms
-    Stack<TermList*> subterms(120);
+    Recycled<Stack<TermList*>> subtermStack;
+    auto& subterms = *subtermStack;
 
     subterms.push(ss);
     subterms.push(t.term()->args());
