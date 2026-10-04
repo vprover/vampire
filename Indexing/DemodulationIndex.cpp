@@ -64,8 +64,12 @@ void DemodulationSubtermIndex<higherOrder>::handleClause(Clause* c, bool adding)
 template class DemodulationSubtermIndex<true>;
 template class DemodulationSubtermIndex<false>;
 
+unsigned DemodulationLHSIndex::_clock = 0;
+unsigned DemodulationLHSIndex::_live = 0;
+
 DemodulationLHSIndex::DemodulationLHSIndex(SaturationAlgorithm& salg)
-: _ord(salg.getOrdering()), _preordered(salg.getOptions().forwardDemodulation()==Options::Demodulation::PREORDERED) {}
+: _ord(salg.getOrdering()), _preordered(salg.getOptions().forwardDemodulation()==Options::Demodulation::PREORDERED)
+{ _live++; }
 
 void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
 {
@@ -89,6 +93,19 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
       TypedTermList(r.apply(EqHelper::getOtherEqualitySide(lit, lhs)),sortR),
       c, preordered, _ord
     );
+    if (adding) {
+      _clock++;
+      ASS(_clock);
+      if (lhs.isVar()) {
+        _lastVarInsertion = _clock;
+      } else {
+        unsigned f = lhs.term()->functor();
+        while (_lastInsertion.size() <= f) {
+          _lastInsertion.push(0);
+        }
+        _lastInsertion[f] = _clock;
+      }
+    }
     GeneralizingTermIndex<DemodulatorData>::_ct.handle(std::move(dd), adding);
   }
 }
