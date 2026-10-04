@@ -203,11 +203,8 @@ void FlatTerm::swapCommutativePredicateArguments()
   copyInitialized(&_data[firstStart + secLen], buf.array() + secLen, firstLen);
 }
 
-void FlatTerm::Entry::expand()
+void FlatTerm::Entry::expandUnexpanded()
 {
-  if (_tag()==FUN) {
-    return;
-  }
   ASS_EQ(_tag(), FUN_UNEXPANDED);
   ASS_EQ(this[1]._tag(), FUN_TERM_PTR);
   ASS_EQ(this[2]._tag(), FUN_RIGHT_OFS);
