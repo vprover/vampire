@@ -127,11 +127,39 @@ FlatTerm* FlatTerm::create(TermStack ts)
   return res;
 }
 
+/**
+ * Copy the entries of @b src[0, len) to @b dst, skipping the uninitialized
+ * argument entries of unexpanded functions.
+ */
+void FlatTerm::copyInitialized(Entry* dst, const Entry* src, size_t len)
+{
+  size_t pos = 0;
+  while (pos < len) {
+    switch (src[pos]._tag()) {
+      case VAR:
+        dst[pos] = src[pos];
+        pos++;
+        break;
+      case FUN_UNEXPANDED:
+        ASS_EQ(src[pos+2]._tag(), FUN_RIGHT_OFS);
+        memcpy(&dst[pos], &src[pos], FUNCTION_ENTRY_COUNT*sizeof(Entry));
+        pos += src[pos+2]._number();
+        break;
+      default:
+        ASS_EQ(src[pos]._tag(), FUN);
+        memcpy(&dst[pos], &src[pos], FUNCTION_ENTRY_COUNT*sizeof(Entry));
+        pos += FUNCTION_ENTRY_COUNT;
+        break;
+    }
+  }
+  ASS_EQ(pos, len);
+}
+
 FlatTerm* FlatTerm::copy(const FlatTerm* ft, FlatTerm* reuse)
 {
   size_t entries=ft->_length;
   FlatTerm* res = allocate(entries, reuse);
-  memcpy(res->_data, ft->_data, entries*sizeof(Entry));
+  copyInitialized(res->_data, ft->_data, entries);
   return res;
 }
 
@@ -168,18 +196,11 @@ void FlatTerm::swapCommutativePredicateArguments()
   ASS_EQ(secStart+secLen,_length);
 
   static DArray<Entry> buf;
-  if(firstLen>secLen) {
-    buf.ensure(firstLen);
-    memcpy(buf.array(), &_data[firstStart], firstLen*sizeof(Entry));
-    memcpy(&_data[firstStart], &_data[secStart], secLen*sizeof(Entry));
-    memcpy(&_data[firstStart+secLen], buf.array(), firstLen*sizeof(Entry));
-  }
-  else {
-    buf.ensure(secLen);
-    memcpy(buf.array(), &_data[secStart], secLen*sizeof(Entry));
-    memcpy(&_data[firstStart+secLen], &_data[firstStart], firstLen*sizeof(Entry));
-    memcpy(&_data[firstStart], buf.array(), secLen*sizeof(Entry));
-  }
+  buf.ensure(firstLen + secLen);
+  copyInitialized(buf.array(), &_data[secStart], secLen);
+  copyInitialized(buf.array() + secLen, &_data[firstStart], firstLen);
+  copyInitialized(&_data[firstStart], buf.array(), secLen);
+  copyInitialized(&_data[firstStart + secLen], buf.array() + secLen, firstLen);
 }
 
 void FlatTerm::Entry::expand()
