@@ -49,12 +49,12 @@ void* FlatTerm::operator new(size_t sz,unsigned num)
  */
 void FlatTerm::destroy()
 {
-  ASS_GE(_length,0);
+  ASS_GE(_capacity,_length);
 
   //one entry is already accounted for in the size of the FlatTerm object
   size_t size = sizeof(FlatTerm);
-  if (_length > 0) {
-    size += (_length-1)*sizeof(Entry);
+  if (_capacity > 0) {
+    size += (_capacity-1)*sizeof(Entry);
   }
 
   DEALLOC_KNOWN(this, size,"FlatTerm");
@@ -85,10 +85,22 @@ size_t FlatTerm::getEntryCount(Term* t)
   return t->weight()*FUNCTION_ENTRY_COUNT-(FUNCTION_ENTRY_COUNT-1)*t->numVarOccs();
 }
 
-FlatTerm* FlatTerm::create(TermList t)
+FlatTerm* FlatTerm::allocate(size_t entries, FlatTerm* reuse)
+{
+  if (reuse && reuse->_capacity >= entries) {
+    reuse->_length = entries;
+    return reuse;
+  }
+  if (reuse) {
+    reuse->destroy();
+  }
+  return new(entries) FlatTerm(entries);
+}
+
+FlatTerm* FlatTerm::create(TermList t, FlatTerm* reuse)
 {
   size_t entries = t.isVar() ? 1 : getEntryCount</*mightBeLiteral=*/true>(t.term());
-  auto res = new(entries) FlatTerm(entries);
+  FlatTerm* res = allocate(entries, reuse);
 
   size_t pos = 0;
   pushTerm</*mightBeLiteral=*/true>(res->_data, pos, TermList(t));
@@ -115,10 +127,10 @@ FlatTerm* FlatTerm::create(TermStack ts)
   return res;
 }
 
-FlatTerm* FlatTerm::copy(const FlatTerm* ft)
+FlatTerm* FlatTerm::copy(const FlatTerm* ft, FlatTerm* reuse)
 {
   size_t entries=ft->_length;
-  FlatTerm* res=new(entries) FlatTerm(entries);
+  FlatTerm* res = allocate(entries, reuse);
   memcpy(res->_data, ft->_data, entries*sizeof(Entry));
   return res;
 }

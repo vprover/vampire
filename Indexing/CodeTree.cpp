@@ -59,10 +59,10 @@ using namespace Kernel;
 
 //////////////// general datastructures ////////////////////
 
-CodeTree::LitInfo::LitInfo(Clause* cl, unsigned litIndex)
+CodeTree::LitInfo::LitInfo(Clause* cl, unsigned litIndex, FlatTerm* reuse)
 : litIndex(litIndex), opposite(false)
 {
-  ft=FlatTerm::create(TermList((*cl)[litIndex]));
+  ft=FlatTerm::create(TermList((*cl)[litIndex]), reuse);
 }
 
 void CodeTree::LitInfo::dispose()
@@ -70,9 +70,9 @@ void CodeTree::LitInfo::dispose()
   ft->destroy();
 }
 
-CodeTree::LitInfo CodeTree::LitInfo::getReversed(const LitInfo& li)
+CodeTree::LitInfo CodeTree::LitInfo::getReversed(const LitInfo& li, FlatTerm* reuse)
 {
-  FlatTerm* ft=FlatTerm::copy(li.ft);
+  FlatTerm* ft=FlatTerm::copy(li.ft, reuse);
   ft->swapCommutativePredicateArguments();
 
   LitInfo res=li;
@@ -83,9 +83,9 @@ CodeTree::LitInfo CodeTree::LitInfo::getReversed(const LitInfo& li)
   return res;
 }
 
-CodeTree::LitInfo CodeTree::LitInfo::getOpposite(const LitInfo& li)
+CodeTree::LitInfo CodeTree::LitInfo::getOpposite(const LitInfo& li, FlatTerm* reuse)
 {
-  FlatTerm* ft=FlatTerm::copy(li.ft);
+  FlatTerm* ft=FlatTerm::copy(li.ft, reuse);
   ft->changeLiteralPolarity();
 #if GROUND_TERM_CHECK
   ASS_EQ((*ft)[1]._tag(), FlatTerm::FUN_TERM_PTR);
