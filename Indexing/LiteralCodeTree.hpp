@@ -37,7 +37,7 @@ public:
     void init(const CodeTree& tree, Literal* lit, bool complementary) {
       Base::init(tree, FlatTerm::create(TermList(lit), Base::spare()));
       if (complementary) {
-        ft->changeLiteralPolarity();
+        ft->flipPolarity();
       }
       _checkEqReversed = lit->isEquality();
     }

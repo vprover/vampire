@@ -93,6 +93,9 @@ public:
   inline const Entry& operator[](size_t i) const { ASS_L(i,_length); return _data[i]; }
 
   void swapCommutativePredicateArguments();
+  /** Like changeLiteralPolarity(), but leaves the term entry pointing to the original literal. */
+  void flipPolarity()
+  { _data[0]._setNumber(_data[0]._number()^1); }
   void changeLiteralPolarity()
   { _data[0]._setNumber(_data[0]._number()^1); _data[1]._setTerm(Literal::complementaryLiteral(static_cast<Literal*>(_data[1]._term()))); }
 
