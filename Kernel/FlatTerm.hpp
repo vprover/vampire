@@ -71,7 +71,12 @@ public:
      * If @b tag()==FUN_UNEXPANDED, it fills out entries for the functions
      * arguments with FUN_UNEXPANDED values. Otherwise does nothing.
      */
-    void expand();
+    void expand() {
+      if (_tag() != FUN) {
+        expandUnexpanded();
+      }
+    }
+    void expandUnexpanded();
 
     uint64_t _content;
     BITFIELD(64,
