@@ -93,8 +93,9 @@ public:
   inline const Entry& operator[](size_t i) const { ASS_L(i,_length); return _data[i]; }
 
   void swapCommutativePredicateArguments();
+  /** Flip the polarity in the header; the term entry still points to the original literal. */
   void changeLiteralPolarity()
-  { _data[0]._setNumber(_data[0]._number()^1); _data[1]._setTerm(Literal::complementaryLiteral(static_cast<Literal*>(_data[1]._term()))); }
+  { _data[0]._setNumber(_data[0]._number()^1); }
 
 private:
   static FlatTerm* allocate(size_t entries, FlatTerm* reuse);
