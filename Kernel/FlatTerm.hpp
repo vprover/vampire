@@ -93,6 +93,7 @@ public:
 
 private:
   static FlatTerm* allocate(size_t entries, FlatTerm* reuse);
+  static void copyInitialized(Entry* dst, const Entry* src, size_t len);
 
   template<bool mightBeLiteral>
   static size_t getEntryCount(Term* t);
