@@ -258,7 +258,7 @@ Term* BottomUpTermTransformer::transform(Term* term)
     return transformSpecial(term);
   }
 
-  if (alreadyTransformed(term)) {
+  if (alreadyTransformed(term) || (!transformSorts && term->isSort())) {
     return term;
   }
 
@@ -266,7 +266,20 @@ Term* BottomUpTermTransformer::transform(Term* term)
   Stack<Term*> terms(8);
   Stack<TermList> args(8);
 
-  toDo.push(term->args());
+  auto pushTodo = [this,&toDo,&args](Term* t) {
+    if (transformSorts) {
+      toDo.push(t->args());
+    } else {
+      auto targs = t->args();
+      while (targs != t->termArgs()) {
+        args.push(*targs);
+        targs = targs->next();
+      }
+      toDo.push(targs);
+    }
+  };
+
+  pushTodo(term);
 
   // cout << "transform " << term->toString() << endl;
 
@@ -328,6 +341,9 @@ Term* BottomUpTermTransformer::transform(Term* term)
       args.push(dest);
       continue;
     }
+
+    ASS(transformSorts || !tl.term()->isSort());
+
     if (tl.isTerm() && tl.term()->isSpecial()) {
       Term* td = transformSpecial(tl.term());
       args.push(TermList(td));
@@ -341,7 +357,7 @@ Term* BottomUpTermTransformer::transform(Term* term)
       continue;
     }
     terms.push(t);
-    toDo.push(t->args());
+    pushTodo(t);
   }
   ASS(toDo.isEmpty());
   ASS(terms.isEmpty());
@@ -359,9 +375,11 @@ Term* BottomUpTermTransformer::transform(Term* term)
 #endif
   if (term->isLiteral()) {
     return Literal::create(static_cast<Literal*>(term), argLst);
-  } else {
-    return Term::create(term, argLst);
   }
+  if (term->isSort()) {
+    return AtomicSort::create(static_cast<AtomicSort*>(term), argLst);
+  }
+  return Term::create(term, argLst);
 }
 
 Formula* BottomUpTermTransformer::transform(Formula* f)
@@ -372,11 +390,7 @@ Formula* BottomUpTermTransformer::transform(Formula* f)
 
 TermList BottomUpTermTransformer::transform(TermList ts)
 {
-  if (ts.isTerm()) {
-    return TermList(transform(ts.term()));
-  } else {
-    return transformSubterm(ts);
-  }
+  return transformSubterm(ts.isTerm() ? TermList(transform(ts.term())) : ts);
 }
 
 }

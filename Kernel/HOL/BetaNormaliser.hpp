@@ -15,6 +15,7 @@
 #define __BetaNormaliser__
 
 #include "Kernel/TermTransformer.hpp"
+#include "Kernel/HOL/RedexReducer.hpp"
 
 using namespace Kernel;
 
@@ -23,20 +24,32 @@ using namespace Kernel;
 // Currently use a leftmost outermost strategy
 // An innermost strategy is theoretically more efficient
 // but is difficult to write iteratively TODO
-class BetaNormaliser : public TermTransformer {
+class BetaNormaliser : public BottomUpTermTransformer {
+#if VDEBUG
   unsigned reductions = 0;
+#endif
 public:
-  BetaNormaliser() : TermTransformer(/*transformSorts=*/false) {}
+  BetaNormaliser() : BottomUpTermTransformer(/*transformSorts=*/false) {}
 
+#if VDEBUG
   unsigned getReductions() const {
     return reductions;
   }
+#endif
 
-  TermList normalise(TermList t);
+  TermList normalise(TermList t) { return transform(t); }
 
-  TermList transformSubterm(TermList t) override;
+  TermList transformSubterm(TermList t) override {
+    if (!t.isRedex()) {
+      return t;
+    }
+    DEBUG_CODE(++reductions;)
+    return transform(RedexReducer().reduce(t.lhs(), t.rhs()));
+  }
 
-  bool exploreSubterms(TermList orig, TermList newTerm) override;
+  bool alreadyTransformed(Term* t) override {
+    return !t->hasRedex();
+  }
 };
 
 #endif // __BetaNormaliser__

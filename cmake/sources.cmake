@@ -506,7 +506,6 @@ set(SOURCES
     Kernel/HOL/Create.cpp
     Kernel/HOL/Convert.cpp
     Kernel/HOL/Reduce.cpp
-    Kernel/HOL/BetaNormaliser.cpp
     Kernel/HOL/BetaNormaliser.hpp
     Kernel/HOL/RedexReducer.cpp
     Kernel/HOL/RedexReducer.hpp
