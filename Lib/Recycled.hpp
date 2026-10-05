@@ -190,7 +190,6 @@ public:
 
   auto asTuple() const -> decltype(auto) { return std::make_tuple(someIf(alive(), [this]() -> decltype(auto) { return self(); })); }
   IMPL_COMPARISONS_FROM_TUPLE(Recycled);
-  IMPL_HASH_FROM_TUPLE(Recycled);
 
   Recycled(Recycled&& other) = default;
   Recycled& operator=(Recycled&& other) = default;

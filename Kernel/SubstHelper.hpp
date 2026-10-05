@@ -30,8 +30,7 @@ using namespace Lib;
 
 struct SubstApplicator {
   virtual ~SubstApplicator() = default;
-  virtual TermList operator()(unsigned v) const = 0;
-  TermList apply(unsigned v) const { return (*this)(v); }
+  virtual TermList apply(unsigned v) const = 0;
 };
 
 /**
@@ -67,11 +66,11 @@ struct AppliedTerm
    * null is @b aboveVar is false.
    */
   AppliedTerm(TermList t, const SubstApplicator* applicator, bool aboveVar)
-    : term(aboveVar && t.isVar() ? (*applicator)(t.var()) : t),
+    : term(aboveVar && t.isVar() ? applicator->apply(t.var()) : t),
       aboveVar(aboveVar && t.isVar() ? false : aboveVar), applicator(applicator) {}
 
   AppliedTerm(TermList t, AppliedTerm parent)
-    : term(parent.aboveVar && t.isVar() ? (*parent.applicator)(t.var()) : t),
+    : term(parent.aboveVar && t.isVar() ? parent.applicator->apply(t.var()) : t),
       aboveVar(parent.aboveVar && t.isVar() ? false : parent.aboveVar), applicator(parent.applicator) {}
 
   /**
@@ -91,12 +90,12 @@ struct AppliedTerm
       return term.containsSubterm(var);
     }
     if (term.isVar()) {
-      return (*applicator)(term.var()).containsSubterm(var);
+      return applicator->apply(term.var()).containsSubterm(var);
     }
     VariableIterator vit(term.term());
     while (vit.hasNext()) {
       auto v = vit.next();
-      if ((*applicator)(v.var()).containsSubterm(var)) {
+      if (applicator->apply(v.var()).containsSubterm(var)) {
         return true;
       }
     }

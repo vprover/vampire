@@ -20,6 +20,7 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/DArray.hpp"
 #include "Lib/DHMap.hpp"
+#include "Lib/FlexibleTail.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Vector.hpp"
 
@@ -72,12 +73,11 @@ public:
     bool opposite;
   };
 
-  struct MatchInfo
+  struct MatchInfo : public FlexibleTail<MatchInfo, TermList>
   {
     /** Index of the matched LitInfo in the EContext */
     unsigned liIndex;
-    /** array of bindings */
-    TermList bindings[1];
+    TermList *bindings() { return flexibleTail(); }
 
   private:
     void init(ILStruct* ils, unsigned liIndex, DArray<TermList>& bindingArray);
@@ -89,12 +89,12 @@ public:
 
     friend struct ILStruct;
 
-    //these functions are undefined as we take care of the MatchInfo initialisation
+    //these functions are deleted as we take care of the MatchInfo initialisation
     //and destruction ourselves
-    MatchInfo();
-    ~MatchInfo();
-    void operator delete(void*);
-    void* operator new(size_t,unsigned length);
+    MatchInfo() = delete;
+    ~MatchInfo() = delete;
+    void operator delete(void*) = delete;
+    void* operator new(size_t,unsigned length) = delete;
   };
 
   /**
@@ -308,7 +308,7 @@ public:
     Stack<CodeOp*>* firstsInBlocks;
     size_t initFIBDepth;
     bool matchingClauses;
-    DHSet<unsigned> range;
+    DHSet<unsigned, FnvHash, IdentityHash> range;
   };
 
   struct NonRemovingBase {};
@@ -324,7 +324,7 @@ public:
    * this one. After use, the @b deinit function should be called (if
    * present). This allows for reuse of a single object.
    */
-  template<bool removing, bool checkRange, bool higherOrder>
+  template<bool removing, bool checkRange>
   struct Matcher
     : public std::conditional<removing, RemovingBase, NonRemovingBase>::type
   {
@@ -382,7 +382,7 @@ public:
     }
 
   protected:
-    void init(CodeTree* tree_, CodeOp* entry_, LitInfo* linfos_ = 0,
+    void init(const CodeTree& tree_, CodeOp* entry_, LitInfo* linfos_ = 0,
       size_t linfoCnt_ = 0, Stack<CodeOp*>* firstsInBlocks_ = 0);
 
     bool backtrack();
@@ -406,7 +406,7 @@ public:
      * Must be initialized by inheritor (either directly or by
      * a call to the @b prepareLiteral function).
      */
-    FlatTerm* ft;
+    FlatTerm* ft = nullptr;
 
     /** the matcher object is initialized but no execution of code was done yet */
     bool fresh;
@@ -416,7 +416,7 @@ public:
     Stack<std::conditional_t<removing,BTPointRemoving,BTPoint>> btStack;
 
     CodeOp* entry;
-    CodeTree* tree;
+    CodeTree const* tree;
 
     /**
      * Array of alternative LitInfo objects
@@ -453,7 +453,7 @@ public:
 
   //////////// insertion //////////////
 
-  typedef DHMap<unsigned,unsigned> VarMap;
+  typedef DHMap<unsigned,unsigned, FnvHash, IdentityHash> VarMap;
 
   template<bool forLits>
   struct Compiler
@@ -492,7 +492,7 @@ public:
 
   //////// member variables //////////
 
-  bool _clauseCodeTree;
+  bool _clauseCodeTree = false;
   unsigned _curTimeStamp = 0;
 
   /** maximal number of local variables in a stored term/literal (always at least 1) */

@@ -30,6 +30,7 @@
 #include "Term.hpp"
 #include "RobSubstitution.hpp"
 #include "Kernel/NumTraits.hpp"
+#include "Kernel/ALASCA/Signature.hpp"
 
 #include "UnificationWithAbstraction.hpp"
 #include "Kernel/SortHelper.hpp"
@@ -169,7 +170,7 @@ public:
   AcIter(unsigned function, TermSpec t, RobSubstitution const* subs) : _function(function), _todo(), _subs(subs)
   { _todo->push(std::move(t)); }
 
-  DECL_ELEMENT_TYPE(TermSpec);
+  using ElementType = TermSpec;
 
   bool hasNext() const { return !_todo->isEmpty(); }
 
@@ -238,11 +239,6 @@ bool AbstractionOracle::canAbstract(AbstractingUnifier* au, TermSpec const& t1, 
 
 Option<TermSpec> appHead(AbstractingUnifier* au, TermSpec t)
 {
-  // contains the @ arguments, innermost on top
-  Stack<TermSpec> args;
-  // contains the substituted arguments inside lambdas, the innermost on top
-  Stack<TermSpec> subst;
-
   for (;;) {
     t = au->subs().derefBound(t);
     // we don't deal with lambdas yet
@@ -259,7 +255,7 @@ Option<TermSpec> appHead(AbstractingUnifier* au, TermSpec t)
   return some(t);
 }
 
-Option<AbstractionOracle::AbstractionResult> hol(AbstractingUnifier* au, TermSpec const& t1, TermSpec const& t2)
+Option<AbstractionOracle::AbstractionResult> hol(AbstractingUnifier* au, TermSpec t1, TermSpec t2, bool funcExt)
 {
   DEBUG_UNIFY(0, "hol uwa unifying ", t1, " =?= ", t2, " w.r.t. ", *au);
 
@@ -268,24 +264,32 @@ Option<AbstractionOracle::AbstractionResult> hol(AbstractingUnifier* au, TermSpe
     return Option<AbstractionOracle::AbstractionResult>();
   }
 
+  // sorts should be unified as usual
+  if (t1.isSort() || t2.isSort()) {
+    return Option<AbstractionOracle::AbstractionResult>();
+  }
+
+  if (funcExt) {
+    if (t1.sort().term.isArrowSort()) {
+      return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, t1.sort()))));
+    }
+  }
+
   // TODO deal with lambdas
   if (t1.term.isLambdaTerm() || t2.term.isLambdaTerm()) {
-    auto sort = t1.isVar() ? t2.sort() : t1.sort();
-    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, sort))));
+    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, t1.sort()))));
   }
 
   auto h1 = appHead(au, t1);
   auto h2 = appHead(au, t2);
   if (h1.isNone() || h2.isNone()) {
-    auto sort = t1.isVar() ? t2.sort() : t1.sort();
-    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, sort))));
+    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, t1.sort()))));
   }
   DEBUG_UNIFY(0, "app heads ", h1, ", ", h2);
 
   // we abstract flex-rigid and flex-flex pairs
   if (h1->isVar() || h2->isVar()) {
-    auto sort = t1.isVar() ? t2.sort() : t1.sort();
-    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, sort))));
+    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, t1.sort()))));
   }
 
   // they cannot be DB indices as we are not dealing with lambdas
@@ -296,8 +300,34 @@ Option<AbstractionOracle::AbstractionResult> hol(AbstractingUnifier* au, TermSpe
   if (h1->functor() != h2->functor()) {
     return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
   }
-  // otherwise simply decompose normally
-  return Option<AbstractionOracle::AbstractionResult>();
+  ASS_EQ(h1->nTermArgs(), 0);
+  // assert that there are no term args, but to be sure unify all args
+  for (unsigned i = 0; i < h1->nAllArgs(); i++) {
+    auto h1s = h1->anyArg(i);
+    auto h2s = h2->anyArg(i);
+    if (!au->subs().unify(h1s.term, h1s.index, h2s.term, h2s.index)) {
+      return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
+    }
+  }
+
+  // otherwise decompose application normally
+  Stack<UnificationConstraint> unifs;
+  DEBUG_UNIFY(0, "decomposing ", t1, " (", t1.sort(), ") ", t2, " (", t2.sort(), ")");
+  while (t1.term.isApplication()) {
+    // It can happen that the substitution tree unifies terms before their sorts
+    // due to reordering. In this case, we may get terms with the same head but
+    // different number of applications, hence the check below and after the loop.
+    if (!t2.term.isApplication()) {
+      return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
+    }
+    unifs.emplace(t1.termArg(1), t2.termArg(1), t1.typeArg(0));
+    t1 = au->subs().derefBound(t1.termArg(0));
+    t2 = au->subs().derefBound(t2.termArg(0));
+  }
+  if (t2.term.isApplication()) {
+    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
+  }
+  return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().unifyAll(unifs.iter())));
 }
 
 Option<AbstractionOracle::AbstractionResult> funcExt(
@@ -639,7 +669,7 @@ AbstractionOracle::AbstractionResult alasca(AbstractingUnifier& au, TermSpec con
     return AbstractionResult(equalIf());
 
   } else if (nVars > 0) {
-     Recycled<DHSet<TermSpec>> shieldedVars;
+     Recycled<DHSet<TermSpec, TermSpecHash, TermSpecHash2>> shieldedVars;
      for (auto i : range(nVars, diff.size())) {
        Recycled<Stack<TermSpec>> todo;
        todo->push(diff[i].first);
@@ -765,10 +795,10 @@ struct FloorUwaState {
   RStack<Monom> mixVars;
   RStack<Monom> ratAtoms;
   RStack<Monom> intAtoms;
-  Recycled<DHSet<VarSpec>> ratVarSet;
-  Recycled<DHSet<VarSpec>> mixVarSet;
-  Recycled<DHSet<VarSpec>> intVarSet;
-  Recycled<DHSet<VarSpec>> shieldedVars;
+  Recycled<DHSet<VarSpec, VarSpecHash, VarSpecHash2>> ratVarSet;
+  Recycled<DHSet<VarSpec, VarSpecHash, VarSpecHash2>> mixVarSet;
+  Recycled<DHSet<VarSpec, VarSpecHash, VarSpecHash2>> intVarSet;
+  Recycled<DHSet<VarSpec, VarSpecHash, VarSpecHash2>> shieldedVars;
 
   bool isShielded(TermSpec t) const { return shieldedVars->find(t.varSpec()); }
   bool isMixVar(VarSpec v) const { return mixVarSet->find(v) || (intVarSet->find(v) && ratVarSet->find(v)); }
@@ -1052,7 +1082,7 @@ struct FloorUwaState {
   };
 
   auto buckets() const {
-    Recycled<Map<unsigned, Bucket>> buckets;
+    Recycled<Map<unsigned, Bucket, FnvHash>> buckets;
     ASS(ratVars->isEmpty())
     ASS(intVars->isEmpty())
     ASS(mixVars->isEmpty())
@@ -1251,7 +1281,7 @@ Option<AbstractionOracle::AbstractionResult> AbstractionOracle::tryAbstract(Abst
       return funcExt(au, t1, t2);
     }
     case Shell::Options::UnificationWithAbstraction::HOL: {
-      return hol(au, t1, t2);
+      return hol(au, t1, t2, _funcExt);
     }
     case Shell::Options::UnificationWithAbstraction::ALASCA_MAIN_FLOOR: {
       return uwa_floor(*au, t1, t2, _mode);
@@ -1414,7 +1444,7 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
 
     // Save encountered unification pairs to avoid
     // recomputing their unification
-    Recycled<DHSet<std::pair<TermSpec,TermSpec>>> encountered;
+    Recycled<DHSet<std::pair<TermSpec,TermSpec>, PairHash<TermSpecHash,TermSpecHash>, PairHash<TermSpecHash2,TermSpecHash2>>> encountered;
 
     Option<AbstractionOracle::AbstractionResult> absRes;
     auto doAbstract = [&](auto& l, auto& r) -> bool

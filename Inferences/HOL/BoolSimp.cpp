@@ -8,6 +8,8 @@
  * and in the source directory
  */
 
+#include "Debug/TimeProfiling.hpp"
+
 #include "Kernel/Clause.hpp"
 #include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Term.hpp"
@@ -22,6 +24,7 @@ namespace Inferences {
 
 Clause* BoolSimp::simplify(Clause* premise)
 {
+  TIME_TRACE("boolean simplification");
   for (const auto& lit : *premise) {
     // Below should be safe. We can bool simplify a term that contains free indices
     for (const auto& st : iterTraits(NonVariableNonTypeIterator(lit))) {

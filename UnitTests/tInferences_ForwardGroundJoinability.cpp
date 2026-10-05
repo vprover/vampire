@@ -71,7 +71,7 @@ void joinabilityTest(ClauseStack axioms, Clause* cl, bool joinable, bool useKbo)
   env.options->set("term_ordering", useKbo ? "kbo" : "lpo");
   Test::MockedSaturationAlgorithm salg(p, o);
 
-  ForwardGroundJoinability</*higherOrder=*/false> fgj(salg);
+  ForwardGroundJoinability fgj(salg);
 
   auto container = salg.getSimplifyingClauseContainer();
 

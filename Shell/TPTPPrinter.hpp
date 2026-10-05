@@ -38,7 +38,10 @@ public:
   void printAsClaim(std::string name, Unit* u);
   void printWithRole(std::string name, std::string role, Unit* u, bool includeSplitLevels = true);
 
-  static std::string toString(const Unit*);
+  /** With @b typedClauses, a clause is printed as a tcf() unit, i.e. with an
+   *  explicit universal prefix spelling out the sort of each of its variables;
+   *  without it, as a cnf() unit. Formulas are printed as tff() either way. */
+  static std::string toString(const Unit*, bool typedClauses = false);
   static std::string toString(const Formula*);
   static std::string toString(const Term*);
   static std::string toString(const Literal*);
@@ -46,6 +49,8 @@ public:
 private:
 
   std::string getBodyStr(Unit* u, bool includeSplitLevels);
+
+  static std::string universalPrefix(const Unit* unit);
 
   void ensureHeadersPrinted(Unit* u);
   void outputSymbolTypeDefinitions(unsigned symNumber, SymbolType symType);

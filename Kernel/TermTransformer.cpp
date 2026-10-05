@@ -258,6 +258,10 @@ Term* BottomUpTermTransformer::transform(Term* term)
     return transformSpecial(term);
   }
 
+  if (alreadyTransformed(term)) {
+    return term;
+  }
+
   Stack<TermList*> toDo(8);
   Stack<Term*> terms(8);
   Stack<TermList> args(8);
@@ -292,13 +296,24 @@ Term* BottomUpTermTransformer::transform(Term* term)
         args.truncate(args.length() - orig->arity());
       }
 
+      // Nothing changed below orig: reuse it rather than looking it up in the
+      // sharing structure again (which would return orig anyway, at the price of
+      // hashing a term of arbitrary size). Cf. the `modified` stack in
+      // TermTransformer::transform above, which serves the same purpose.
+      bool unchanged = orig->shared();
+      for (unsigned i = 0; unchanged && i < orig->arity(); i++) {
+        unchanged = (argLst[i] == *orig->nthArgument(i));
+      }
+
       if(orig->isSort()){
         //For most applications we probably dont want to transform sorts
         //however, we don't enforce that here, inheriting classes can decide
         //for themselves
-        args.push(transformSubterm(TermList(AtomicSort::create(static_cast<AtomicSort*>(orig),argLst))));
+        args.push(transformSubterm(unchanged ? TermList(orig)
+                                             : TermList(AtomicSort::create(static_cast<AtomicSort*>(orig),argLst))));
       } else {
-        args.push(transformSubterm(TermList(Term::create(orig,argLst))));
+        args.push(transformSubterm(unchanged ? TermList(orig)
+                                             : TermList(Term::create(orig,argLst))));
       }
       continue;
     } else {
@@ -321,6 +336,10 @@ Term* BottomUpTermTransformer::transform(Term* term)
 
     ASS(tl.isTerm());
     Term* t=tl.term();
+    if (alreadyTransformed(t)) {
+      args.push(tl);
+      continue;
+    }
     terms.push(t);
     toDo.push(t->args());
   }

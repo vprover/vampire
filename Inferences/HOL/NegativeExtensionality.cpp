@@ -12,6 +12,8 @@
  * Implements class NegativeExtensionality.
  */
 
+#include "Debug/TimeProfiling.hpp"
+
 #include <utility>
 
 #include "Lib/VirtualIterator.hpp"
@@ -35,7 +37,7 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-void getVarSorts(TypedTermList t, DHMap<unsigned,TermList>& varSorts)
+void getVarSorts(TypedTermList t, DHMap<unsigned,TermList, FnvHash, IdentityHash>& varSorts)
 {
   if (t.isVar()) {
     varSorts.insert(t.var(), t.sort());
@@ -55,18 +57,16 @@ struct NegExtResultFn
     ASS(lit->isEquality());
     ASS(lit->isNegative());
 
-    static DHMap<unsigned,TermList> varSorts;
+    static DHMap<unsigned,TermList, FnvHash, IdentityHash> varSorts;
     varSorts.reset();
 
-    auto eqSort = SortHelper::getEqualityArgumentSort(lit);
+    auto eqSort = lit->eqArgSort();
     if (eqSort.isVar() || !eqSort.isArrowSort()) {
       return nullptr;
     }
 
-    auto lhs = lit->termArg(0);
+    auto [lhs,rhs] = lit->eqArgs();
     getVarSorts(TypedTermList(lhs, eqSort), varSorts);
-
-    auto rhs = lit->termArg(1);
     getVarSorts(TypedTermList(rhs, eqSort), varSorts);
 
     if (lit->isTwoVarEquality()) {
@@ -94,7 +94,7 @@ struct NegExtResultFn
     SortHelper::normaliseSort(typeVars, resultSort);
 
     auto skSymSort = AtomicSort::arrowSort(termVarSorts, resultSort);
-    auto fun = Skolem::addSkolemFunction(typeVars.size(), typeVars.size(), 0, skSymSort);
+    auto fun = Skolem::addSkolemFunction(typeVars.size(), TermStack(), skSymSort)->number();
     auto head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
     auto skolemTerm = HOL::create::app(head, termVars);
 
@@ -120,7 +120,8 @@ ClauseIterator NegativeExtensionality::generateClauses(Clause* premise)
   return pvi(premise->getSelectedLiteralIterator()
     .filter([](Literal* l) { return l->isEquality() && l->isNegative(); })
     .map(NegExtResultFn(premise))
-    .filter(NonzeroFn()));
+    .filter(NonzeroFn())
+    .timeTraced("negative extensionality"));
 }
 
 }

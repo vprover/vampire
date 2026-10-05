@@ -76,7 +76,7 @@ private:
   size_t getIdExt(TermList t);
 
   const Ordering& _ord;
-  Map<TermList,size_t> _nodes;
+  Map<TermList,size_t, TermListHash> _nodes;
   const PartialOrdering* _po;
 };
 

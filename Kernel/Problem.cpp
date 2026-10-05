@@ -24,6 +24,7 @@
 #include "Shell/FunctionDefinitionHandler.hpp"
 
 #include "Clause.hpp"
+#include "NumTraits.hpp"
 #include "Term.hpp"
 
 #include "Problem.hpp"

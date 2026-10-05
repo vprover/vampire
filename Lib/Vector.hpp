@@ -25,7 +25,7 @@
 
 namespace Indexing {
   class CodeTree;
-  template<bool> class ClauseCodeTree;
+  class ClauseCodeTree;
 }
 
 namespace Lib {
@@ -117,7 +117,7 @@ public:
   } // toString
 
   friend class Indexing::CodeTree;
-  template<bool> friend class Indexing::ClauseCodeTree;
+  friend class Indexing::ClauseCodeTree;
 
   /**
    * Iterator that deallocates the vector when it yields the last value.
@@ -125,7 +125,7 @@ public:
   class DestructiveIterator
   {
   public:
-    DECL_ELEMENT_TYPE(C);
+    using ElementType = C;
 
     DestructiveIterator(Vector& v)
     : cur(v._array), afterLast(v._array+v.length()), vec(&v)

@@ -42,7 +42,7 @@ private:
     unsigned fun;
     FormulaUnit* def;
   };
-  DHMap<Literal*, UCDef> _litToDefMap;
+  DHMap<Literal*, UCDef, FnvHash, PtrIdentityHash> _litToDefMap;
 
   Stack<HOL::Unifier> _todo;
   Stack<HOL::Unifier> _frozen;
@@ -50,7 +50,7 @@ private:
 
   unsigned _index = 0;
 
-  DHMap<unsigned, unsigned> _fnCnts;
+  DHMap<unsigned, unsigned, FnvHash, IdentityHash> _fnCnts;
 
   const unsigned _kNumIter;
 };

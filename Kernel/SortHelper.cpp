@@ -57,13 +57,47 @@ struct CollectTask {
 static OperatorType* getType(Term const* t)
 {
   if (t->isLiteral())
-    return env.signature->getPredicate(t->functor())->predType();
+    return env.signature->getPredicate(t->functor())->type();
 
   if (t->isSort())
-    return env.signature->getTypeCon(t->functor())->typeConType();
+    return env.signature->getTypeCon(t->functor())->type();
 
-  return env.signature->getFunction(t->functor())->fnType();
+  return env.signature->getFunction(t->functor())->type();
 } // getType
+
+/**
+ * When working with substitution trees we sometimes need to find the sort of terms within
+ * the tree. These terms can contain special variables and may therefore not be shared,
+ * and a sort built out of them must not be shared either. Cf. SubstHelper::canBeShared,
+ * which is the same test applied by the generic path below.
+ */
+static bool mayBeShared(TermList t)
+{ return !t.isSpecialVar() && (!t.isTerm() || t.term()->shared()); }
+
+/** whether a sort built out of @c t's first @c typeArity arguments may be shared */
+static bool typeArgsMayBeShared(const Term* t, unsigned typeArity)
+{
+  for(unsigned i = 0; i < typeArity; i++){
+    if(!mayBeShared(*t->nthArgument(i))){
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * The substitution that instantiates a symbol's declared sorts at a particular term is
+ * always the same shape: OperatorType::quantifiedVar(i) is simply variable i, and it goes
+ * to t's i-th argument. So the lookup is an index into t itself, and there is no reason
+ * to go through a map -- which matters, because Substitution's DHMap allocates and
+ * zero-fills a table on its first bind and throws it away again when the query returns.
+ */
+struct TypeArgApplicator {
+  TypeArgApplicator(const Term* t) : _t(t) {}
+  TermList apply(unsigned var) const { return *_t->nthArgument(var); }
+private:
+  const Term* _t;
+};
 
 bool SortHelper::getTypeSub(const Term* t, Substitution& subst)
 {
@@ -75,10 +109,7 @@ bool SortHelper::getTypeSub(const Term* t, Substitution& subst)
   for(unsigned i = 0; i < typeArgsArity; i++){
     TermList var = ot->quantifiedVar(i);
     ASS_REP(var.isVar(), t->toString());
-    // when working with substitution trees we sometimes need to find the sort
-    // of terms within the tree. These terms can contain special variables
-    // and may therefore not be shared.
-    if (typeArg->isSpecialVar() || (typeArg->isTerm() && !typeArg->term()->shared()))
+    if (!mayBeShared(*typeArg))
       resultShared = false;
 
     subst.bindUnbound(var.var(), *typeArg);
@@ -86,6 +117,19 @@ bool SortHelper::getTypeSub(const Term* t, Substitution& subst)
   }
   return resultShared;
 } // getTypeSub
+
+/** Instantiate @c declaredSort, one of @c t's symbol's declared sorts, at @c t. */
+static TermList instantiate(TermList declaredSort, const Term* t, unsigned typeArity)
+{
+  if(!typeArity){
+    // nothing to instantiate: a symbol with no type variables has ground declared sorts
+    ASS_REP(declaredSort.isTerm() &&
+        (declaredSort.term()->isSuper() || declaredSort.term()->ground()), t->toString());
+    return declaredSort;
+  }
+  TypeArgApplicator applicator(t);
+  return SubstHelper::apply(declaredSort, applicator, !typeArgsMayBeShared(t, typeArity));
+}
 
 /**
  * Return the sort of a non-variable term t. This function cannot be applied
@@ -105,17 +149,16 @@ TermList SortHelper::getResultSort(const Term* t)
     return TermList(AtomicSort::superSort());
   }
 
-  Substitution subst;
-  bool shared = getTypeSub(t, subst);
-  Signature::Symbol* sym = env.signature->getFunction(t->functor());
-  TermList result = sym->fnType()->result();
+  // vAPP : !>[X0,X1]: ((X0 > X1) * X0) > X1, so an application's result sort is its
+  // second type argument, sitting right there in t. Worth special-casing because on a
+  // higher-order problem nearly every term is an application, and the general path below
+  // builds a Substitution -- whose DHMap allocates on the first bind -- to discover it.
+  if(t->isApplication()){
+    return *t->nthArgument(1);
+  }
 
-  // If the substitution is empty, then the result sort must be necessarily ground.
-  ASS(
-    !subst.isEmpty() ||
-    (result.isTerm() && (result.term()->isSuper() || result.term()->ground()))
-  )
-  return SubstHelper::apply(result, subst, !shared);
+  OperatorType* ot = env.signature->getFunction(t->functor())->type();
+  return instantiate(ot->result(), t, ot->numTypeArguments());
 }
 
 TermList SortHelper::getResultSortMono(const Term* t)
@@ -123,8 +166,8 @@ TermList SortHelper::getResultSortMono(const Term* t)
   ASS(!t->isSpecial());
   ASS(!t->isLiteral());
 
-  Signature::Symbol* sym = env.signature->getFunction(t->functor());
-  return sym->fnType()->result();
+  const Signature::Symbol* sym = env.signature->getFunction(t->functor());
+  return sym->type()->result();
 }
 
 /**
@@ -151,7 +194,7 @@ bool SortHelper::tryGetResultSort(const TermList t, TermList& result)
 /**
  * This function works also for special terms
  */
-TermList SortHelper::getResultSort(TermList t, DHMap<unsigned,TermList>& varSorts)
+TermList SortHelper::getResultSort(TermList t, DHMap<unsigned,TermList, FnvHash, IdentityHash>& varSorts)
 {
   TermList res;
   TermList masterVar;
@@ -226,15 +269,30 @@ TermList SortHelper::getArgSort(Term const* t, unsigned argIndex)
     return getEqualityArgumentSort(static_cast<Literal const*>(t));
   }
 
-  Substitution subst;
   OperatorType* ot = getType(t);
 
   if(argIndex < ot->numTypeArguments()){
     return AtomicSort::superSort();
   }
-  
-  bool shared = getTypeSub(t, subst);
-  return SubstHelper::apply(ot->arg(argIndex), subst, !shared);
+
+  // the same shortcut as in getResultSort: with vAPP's type declared as
+  // !>[X0,X1]: ((X0 > X1) * X0) > X1, its two term arguments have sorts X0 > X1 and X0,
+  // and both X0 and X1 are type arguments of t itself
+  if(t->isApplication()){
+    ASS_EQ(t->arity(), 4);
+    TermList domain = *t->nthArgument(0);
+    if(argIndex == 3){
+      return domain;
+    }
+    ASS_EQ(argIndex, 2u);
+    TermList range = *t->nthArgument(1);
+    // only where the general path would also have shared the arrow it builds
+    if(mayBeShared(domain) && mayBeShared(range)){
+      return AtomicSort::arrowSort(domain, range);
+    }
+  }
+
+  return instantiate(ot->arg(argIndex), t, ot->numTypeArguments());
 } // getArgSort
 
 /* returns the sort of the nth term argument */
@@ -335,7 +393,7 @@ bool SortHelper::tryGetVariableSort(unsigned var, Formula* f, TermList& res)
  * @since 13/02/2017 Vienna
  * @author Martin Suda
  */
-static void collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermList>& map, bool ignoreBound = false)
+static void collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermList, FnvHash, IdentityHash>& map, bool ignoreBound = false)
 {
   Stack<CollectTask> todo;
   ZIArray<unsigned> bound;
@@ -499,9 +557,7 @@ static void collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermList>&
               todo.push(unbindTask);
             } else {
               // Pre-insert bound variable sorts from VSList
-              VSList::Iterator vit(f->vars());
-              while (vit.hasNext()) {
-                auto [var, sort] = vit.next();
+              for (const auto& [var, sort] : iterTraits(VSList::Iterator(f->vars()))) {
                 if (!map.insert(var, sort)) {
                   // Variable already in map - validate consistency
                   ASS_EQ(sort, map.get(var));
@@ -582,7 +638,7 @@ static void collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermList>&
  * @since 15/05/2015 Gothenburg, FOOL support added
  * @author Andrei Voronkov, Evgeny Kotelnikov
  */
-void SortHelper::collectVariableSorts(Term* term, DHMap<unsigned,TermList>& map)
+void SortHelper::collectVariableSorts(Term* term, DHMap<unsigned,TermList, FnvHash, IdentityHash>& map)
 {
   CollectTask t(term->isSpecial() ? COLLECT_SPECIALTERM : COLLECT_TERM);
   t.t = term;
@@ -595,7 +651,7 @@ void SortHelper::collectVariableSorts(Term* term, DHMap<unsigned,TermList>& map)
  * is in map already (or appears multiple times), assert that
  * the sorts are equal.
  */
-void SortHelper::collectVariableSorts(Formula* f, DHMap<unsigned,TermList>& map, bool ignoreBound)
+void SortHelper::collectVariableSorts(Formula* f, DHMap<unsigned,TermList, FnvHash, IdentityHash>& map, bool ignoreBound)
 {
   CollectTask task(COLLECT_FORMULA);
   task.f = f;
@@ -608,7 +664,7 @@ void SortHelper::collectVariableSorts(Formula* f, DHMap<unsigned,TermList>& map,
  * is in map already (or appears multiple times), assert that
  * the sorts are equal.
  */
-void SortHelper::collectVariableSorts(Unit* u, DHMap<unsigned,TermList>& map)
+void SortHelper::collectVariableSorts(Unit* u, DHMap<unsigned,TermList, FnvHash, IdentityHash>& map, bool ignoreBound)
 {
   if (!u->isClause()) {
     FormulaUnit* fu = static_cast<FormulaUnit*>(u);
@@ -616,7 +672,7 @@ void SortHelper::collectVariableSorts(Unit* u, DHMap<unsigned,TermList>& map)
     CollectTask task(COLLECT_FORMULA);
     task.f = fu->formula();
 
-    collectVariableSortsIter(task,map);
+    collectVariableSortsIter(task,map, ignoreBound);
 
     return;
   }
@@ -627,7 +683,7 @@ void SortHelper::collectVariableSorts(Unit* u, DHMap<unsigned,TermList>& map)
     CollectTask task(COLLECT_TERM);
     task.t = l;
 
-    collectVariableSortsIter(task,map);
+    collectVariableSortsIter(task,map, ignoreBound);
   }
 }
 
@@ -806,15 +862,13 @@ bool SortHelper::areImmediateSortsValidPoly(Term* t)
     
   OperatorType* type = getType(t);
   unsigned arity = t->arity();
-  Substitution subst;
-  getTypeSub(t, subst);
+  unsigned typeArity = type->numTypeArguments();
   for (unsigned i = 0; i < arity; i++) {
     TermList arg = *t->nthArgument(i);
     if (!arg.isTerm()) { continue; }
     Term* ta = arg.term();
     TermList argSort = getResultSort(ta);
-    TermList instantiatedTypeSort = SubstHelper::apply(type->arg(i), subst);
-    if (instantiatedTypeSort != argSort) {
+    if (instantiate(type->arg(i), t, typeArity) != argSort) {
       return false;
     }
   }
@@ -902,7 +956,7 @@ TermList SortHelper::getInnerSort(TermList arraySort)
  */
 bool SortHelper::areSortsValid(Clause* cl)
 {
-  static DHMap<unsigned,TermList> varSorts;
+  static DHMap<unsigned,TermList, FnvHash, IdentityHash> varSorts;
   varSorts.reset();
 
   unsigned clen = cl->length();
@@ -915,7 +969,7 @@ bool SortHelper::areSortsValid(Clause* cl)
 }
 bool SortHelper::areSortsValid(Term* t0)
 {
-  DHMap<unsigned,TermList> varSorts;
+  DHMap<unsigned,TermList, FnvHash, IdentityHash> varSorts;
   return areSortsValid(t0, varSorts);
 }
 
@@ -926,7 +980,7 @@ bool SortHelper::areSortsValid(Term* t0)
  * @since 04/05/2013 Manchester, new NonVariableIterator is used
  * @author Andrei Voronkov
  */
-bool SortHelper::areSortsValid(Term* t0, DHMap<unsigned,TermList>& varSorts)
+bool SortHelper::areSortsValid(Term* t0, DHMap<unsigned,TermList, FnvHash, IdentityHash>& varSorts)
 {
   NonVariableIterator sit(t0,true);
   while (sit.hasNext()) {

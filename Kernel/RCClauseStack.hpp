@@ -75,7 +75,7 @@ public:
   class Iterator
   {
   public:
-    DECL_ELEMENT_TYPE(Clause*);
+    using ElementType = Clause*;
 
     Iterator(const RCClauseStack& s) : _inner(s._s) {}
 
@@ -89,7 +89,7 @@ public:
   class DelIterator
   {
   public:
-    DECL_ELEMENT_TYPE(Clause*);
+    using ElementType = Clause*;
 
     DelIterator(RCClauseStack& s) : _inner(s._s), curr(nullptr) {}
 

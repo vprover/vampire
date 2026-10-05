@@ -1,7 +1,7 @@
 # MACRO DEFINITIONS
 
 # set $has_z3 to false, if you want to sample without it
-> $has_z3 ~cat true:1
+> $has_z3 ~set false
 
 # PREPROCESSING
 
@@ -10,8 +10,6 @@
 
 # equality_proxy
 intent=unsat > ep ~cat off:70,RST:2,R:3,RSTC:2,RS:3
-# mono_ep
-ep!=off > mep ~cat on:10,off:1
 
 # equality_resolution_with_deletion
 > erd ~cat on:10,off:1
@@ -22,11 +20,11 @@ ep!=off > mep ~cat on:10,off:1
 # general_splitting
 > gsp ~cat off:8,on:1
 
-# newcnf
-> newcnf ~cat on:9,off:25
+# newcnf # "WARNING: Not using 'newcnf' as currently not compatible with higher-order inputs."
+# > newcnf ~cat on:9,off:25
 
 # inline_let -- this is probably irrelevant on TPTP anyway
-newcnf=on > ile ~cat off:10,on:1
+# newcnf=on > ile ~cat off:10,on:1
 
 # naming
 > $nm ~cat Z:1,NZ:5
@@ -37,6 +35,15 @@ $nm=NZ > nm ~sgd 0.07,2
 > $ins ~cat Z:2,NZ:1
 $ins=Z > ins ~cat 0:1
 $ins=NZ > ins ~sgd 0.4,1
+
+# predicate_elimination
+> pel ~cat off:5,on:4,multi:1
+
+# predicate_elimination_subsumption
+pel!=off > pels ~cat on:4,off:1
+
+# predicate_elimination_total_limit
+pel!=off > peltl ~uf 0.9,5.0
 
 # random_polarities
 > rp ~cat off:3,on:1
@@ -120,8 +127,6 @@ $nwc=1 > nwc ~cat 1:1
 $nwc!=1 > nwc ~uf 0.5,15.0
 # TODO: we will most likely want a new distribution here for ($nwc!=1) just above!
 
-# restrict_nwc_to_goal_constants
-nwc!=1 > rnwc ~cat off:5,on:1
 
 # literal_maximality_aftercheck
 > lma ~cat off:500,on:83
@@ -252,9 +257,7 @@ slsq=on > slsqr ~u2r -5;2;,
 > to ~cat kbo:13,lpo:4
 
 # symbol_precedence
-> sp ~cat arity:100,const_min:72,frequency:130,const_frequency:49,reverse_frequency:55,reverse_arity:72,weighted_frequency:24,unary_first:28,occurrence:82,unary_frequency:14,const_max:18
-# symbol_precedence_boost
-> spb ~cat none:200,units:78,goal:91,goal_then_units:93,non_intro:14,intro:12
+> sp ~cat arity:100,const_min:72,frequency:130,const_frequency:49,reverse_frequency:55,reverse_arity:72,unary_first:28,occurrence:41,reverse_occurrence:41,unary_frequency:14,const_max:18
 
 # kbo_max_zero
 to=kbo > kmz ~cat off:200,on:1
@@ -288,7 +291,7 @@ $s2a=on > s2at ~cat -1.0:50,1.0:150,1.5:37,2.0:60,2.5:20,3.0:70,3.5:15,4.0:60,4.
 > av ~cat on:15,off:4
 
 # partial_redundancy_check
-> prc ~cat on:3,off:5
+uwa=off > prc ~cat on:3,off:5
 
 # partial_redundancy_ordering_constraints
 prc=on > proc ~cat on:1,off:1
@@ -437,7 +440,7 @@ func_ext!=axiom > pe ~cat off:20,on:1
 > inj ~cat off:4,on:1
 
 # higher order split queue
-> hsq ~cat off:10,on:1
+> hsq ~cat off:10,on:3
 hsq=on > hsql ~cat off:1,on:4
 hsq=on > hsqc ~cat 0:80,1:30,2:20,3:20,4:10,5:5
 hsq=on > hsqr ~u2r -5;3;,

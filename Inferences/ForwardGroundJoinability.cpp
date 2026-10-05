@@ -36,32 +36,18 @@ using namespace Indexing;
 using namespace Saturation;
 using namespace std;
 
-namespace {
-
-struct Applicator : SubstApplicator {
-  Applicator(ResultSubstitution* subst) : subst(subst) {}
-  TermList operator()(unsigned v) const override {
-    return subst->applyToBoundResult(v);
-  }
-  ResultSubstitution* subst;
-};
-
-} // end namespace
-
-template<bool higherOrder>
-ForwardGroundJoinability<higherOrder>::ForwardGroundJoinability(SaturationAlgorithm& salg)
+ForwardGroundJoinability::ForwardGroundJoinability(SaturationAlgorithm& salg)
   : _ord(salg.getOrdering()),
-    _index(salg.getSimplifyingIndex<DemodulationLHSIndex<higherOrder>>())
+    _index(salg.getSimplifyingIndex<DemodulationLHSIndex>())
 {}
 
 #define ITERATION_LIMIT 500
 
-template<bool higherOrder>
-bool ForwardGroundJoinability<higherOrder>::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
+bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   // cout << "trying " << *cl << endl;
 
-  static DHSet<TermList> attempted;
+  static DHSet<TermList, TermListHash, TermListHash2> attempted;
 
   if (cl->length()>1) {
     return false;
@@ -71,7 +57,7 @@ bool ForwardGroundJoinability<higherOrder>::perform(Clause* cl, Clause*& replace
   if (!lit->isEquality() || lit->isNegative()) {
     return false;
   }
-  DHMap<unsigned, Clause*> premiseSet;
+  DHMap<unsigned, Clause*, FnvHash, IdentityHash> premiseSet;
 
   if (EqHelper::isEqTautology(lit)) {
     premises = ClauseIterator::getEmpty();
@@ -111,7 +97,7 @@ bool ForwardGroundJoinability<higherOrder>::perform(Clause* cl, Clause*& replace
         continue;
       }
 
-      auto git = _index->getGeneralizations(trm.term(), /* retrieveSubstitutions */ true);
+      auto git = _index->getGeneralizations(trm.term());
       while(git.hasNext()) {
         auto qr=git.next();
         ASS_EQ(qr.data->clause->length(),1);
@@ -127,12 +113,7 @@ bool ForwardGroundJoinability<higherOrder>::perform(Clause* cl, Clause*& replace
         }
 
         TermList rhs = qr.data->rhs;
-
-        auto subs = qr.unifier;
-        ASS(subs->isIdentityOnQueryWhenResultBound());
-        Applicator appl(subs.ptr());
-
-        AppliedTerm rhsApplied(rhs, &appl, true);
+        AppliedTerm rhsApplied(rhs, &qr.unifier, true);
 
 #if VDEBUG
         POStruct dpo_struct(tpo);
@@ -150,7 +131,7 @@ bool ForwardGroundJoinability<higherOrder>::perform(Clause* cl, Clause*& replace
 #endif
 
         POStruct po_struct(tpo);
-        if (!TermOrderingDiagram::extendVarsGreater(qr.data->tod.get(), &appl, po_struct)) {
+        if (!TermOrderingDiagram::extendVarsGreater(qr.data->tod.get(), &qr.unifier, po_struct)) {
           // TODO this check sometimes fails when the debug code can detect the
           // extension to get GREATER due to elimination of linear expressions
           // ASS(!success);
@@ -184,8 +165,7 @@ LOOP_END:
   return true;
 }
 
-template<bool higherOrder>
-ForwardGroundJoinability<higherOrder>::RedundancyCheck::RedundancyCheck(const Ordering& ord, Literal* data)
+ForwardGroundJoinability::RedundancyCheck::RedundancyCheck(const Ordering& ord, Literal* data)
   : tod(ord.createTermOrderingDiagram(/*ground=*/true)), traversal(tod.get(), nullptr)
 {
   tod->_source = Branch(data, tod->_sink);
@@ -194,8 +174,7 @@ ForwardGroundJoinability<higherOrder>::RedundancyCheck::RedundancyCheck(const Or
   ASS_EQ(_curr,&tod->_source);
 }
 
-template<bool higherOrder>
-std::pair<Literal*,const TermPartialOrdering*> ForwardGroundJoinability<higherOrder>::RedundancyCheck::next(
+std::pair<Literal*,const TermPartialOrdering*> ForwardGroundJoinability::RedundancyCheck::next(
   Stack<TermOrderingConstraint> ordCons, Literal* data)
 {
   static Ordering::Result ordVals[] = { Ordering::EQUAL, Ordering::GREATER, Ordering::INCOMPARABLE };
@@ -254,8 +233,7 @@ std::pair<Literal*,const TermPartialOrdering*> ForwardGroundJoinability<higherOr
   return { nullptr, nullptr };
 }
 
-template<bool higherOrder>
-bool ForwardGroundJoinability<higherOrder>::makeEqual(Literal* lit, Stack<TermOrderingConstraint>& res)
+bool ForwardGroundJoinability::makeEqual(Literal* lit, Stack<TermOrderingConstraint>& res)
 {
   ASS(lit->isEquality());
   ASS(lit->isPositive());
@@ -295,8 +273,5 @@ bool ForwardGroundJoinability<higherOrder>::makeEqual(Literal* lit, Stack<TermOr
   }
   return true;
 }
-
-template class ForwardGroundJoinability<false>;
-template class ForwardGroundJoinability<true>;
 
 }

@@ -22,6 +22,7 @@
 #include "Debug/Assertion.hpp"
 #include "Lib/Hash.hpp"
 #include "Lib/Comparison.hpp"
+#include "Lib/Reflection.hpp"
 #include "Lib/Sort.hpp"
 #include "Lib/TypeList.hpp"
 #include "Lib/Option.hpp"
@@ -665,16 +666,21 @@ public:
 
   IMPL_COMPARISONS_FROM_COMPARE(Coproduct)
 
-  unsigned defaultHash() const
-  { return Lib::HashUtils::combine( std::hash<unsigned>{}(tag()), this->apply([](auto const& x){ return DefaultHash::hash(x); })); }
-
-  unsigned defaultHash2() const
-  { return Lib::HashUtils::combine( std::hash<unsigned>{}(tag()), this->apply([](auto const& x){ return DefaultHash2::hash(x); })); }
-
   inline Coproduct clone() const { return apply([](auto& x){ return Coproduct(x.clone()); }); }
 }; // class Coproduct<As...>
 
-
+// Combine the tag with the active alternative's hash, one functor per alternative.
+template<class... ElementHashes>
+struct CoproductHash {
+  template<class... As>
+  static unsigned hash(Coproduct<As...> const& c)
+  {
+    static_assert(sizeof...(ElementHashes) == sizeof...(As),
+      "CoproductHash takes one hash functor per alternative");
+    return HashUtils::combine(std::hash<unsigned>{}(c.tag()),
+      c.match([](As const& x) -> unsigned { return ElementHashes::hash(x); }...));
+  }
+};
 
 } // Lib
 

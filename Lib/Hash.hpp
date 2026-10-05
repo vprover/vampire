@@ -19,6 +19,7 @@
 #include <functional>
 #include <type_traits>
 #include <cstdint>
+#include <cstring>
 
 #include "Forwards.hpp"
 #include "Kernel/Unit.hpp"
@@ -61,156 +62,20 @@ struct HashUtils
 struct IdentityHash
 {
   template<typename T>
-  static bool equals(T o1, T o2)
-  { return o1 == o2; }
-
-  template<typename T>
   static unsigned hash(T val)
   { return static_cast<unsigned>(val); }
 };
 
-// wrapper around std::hash
-struct StlHash {
-  template<class T>
-  static bool equals(const T& lhs, const T& rhs) 
-  { return lhs == rhs; }
-
-  template<class T>
-  static unsigned hash(const T& self)
-  { return std::hash<T>{}(self); }
-};
-
-// dereference a pointer and apply InnerHash
-template<class InnerHash>
-struct DerefPtrHash {
-  template<class T>
-  static bool equals(const T* lhs, const T* rhs)
-  { return InnerHash::equals(*lhs, *rhs); }
-
-  template<class T>
-  static unsigned hash(const T* self) 
-  { return InnerHash::hash(*self); }
-};
-
-// a hash for Stack<T>, applying ElementHash to each item
-template<class ElementHash>
-struct StackHash {
-  // TODO equals()?
-  template<typename T>
-  static unsigned hash(const Stack<T>& s, unsigned hash = FNV32_OFFSET_BASIS) {
-    for (auto& x : s) {
-      hash = HashUtils::combine(hash, ElementHash::hash(x));
-    }
-    return hash;
-  }
-};
-
-// a hash for Vector<T>, applying ElementHash to each item
-template<class ElementHash>
-struct VectorHash {
-  // TODO equals()?
-  template<typename T>
-  static unsigned hash(const Vector<T>& s) {
-    unsigned res = FNV32_OFFSET_BASIS;
-    for (unsigned i = 0; i < s.length(); i++) {
-      res = HashUtils::combine(res, ElementHash::hash(s[i]));
-    }
-    return res;
-  }
-};
-
-template<class InnerHash> 
-struct TupleHash 
-{
-  template<typename... T>
-  static unsigned hash(std::tuple<T...> const& s) 
-  { return std::apply([](auto... args) { return HashUtils::combine(InnerHash::hash(args)...); }, s); }
-};
-
 /**
- * The default hash function (FNV-1a), overloaded for various types
+ * FNV-1a for types where hashing the underlying bytes is sensible:
+ * arithmetic and enumeration types, pointers (by address, no dereference)
+ * and strings (by character).
  * Caveat: this implements the 32-bit variant of FNV-1a
  * Therefore it assumes (incorrectly) that `unsigned` is always 32 bits in size
  * Nothing terrible will happen, but it's not going to win any hashing competitions
  */
-class DefaultHash
+struct FnvHash
 {
-public:
-  // dispatch to operator==(const T&, const T&)
-  template<typename T>
-  static bool equals(const T &o1, const T &o2)
-  { return o1 == o2; }
-
-  // if T has a unsigned defaultHash() method, invoke that
-  template<typename T>
-  static typename std::enable_if<
-    std::is_same<
-      typename std::invoke_result<decltype(&T::defaultHash), T>::type,
-      unsigned
-    >::value,
-    unsigned
-  >::type hash(const T &ref) {
-    return ref.defaultHash();
-  }
-
-  // special-case for Units (and their descendants) as they have a unique incrementing identifier  
-  template<typename T>
-  static typename std::enable_if<
-    std::is_base_of<Kernel::Unit, T>::value,
-    unsigned
-  >::type hash(T *unit) 
-  { return hash(unit ? unit->number() : 0); }
-
-  // other pointers are hashed as bytes without dereference
-  // if this isn't what you want, consider using DerefPtrHash
-  template<typename T>
-  static typename std::enable_if<
-    !std::is_base_of<Kernel::Unit, T>::value,
-    unsigned
-  >::type hash(T* ptr, unsigned hash = FNV32_OFFSET_BASIS) {
-    return hashBytes(
-      reinterpret_cast<const unsigned char*>(&ptr),
-      sizeof(ptr),
-      hash
-    );
-  }
-
-  // arithmetic and enumeration types are hashed as bytes
-  template<typename T>
-  static typename std::enable_if<
-    std::is_arithmetic<T>::value || std::is_enum<T>::value,
-    unsigned
-  >::type hash(T val, unsigned hash = FNV32_OFFSET_BASIS) {
-    return hashBytes(
-      reinterpret_cast<const unsigned char *>(&val),
-      sizeof(val),
-      hash
-    );
-  }
-
-  // strings hash the underlying C-style string
-  static unsigned hash(const std::string& str)
-  { return DefaultHash::hashNulTerminated(str.c_str()); }
-
-  // dispatch to VectorHash<DefaultHash>
-  template<typename T>
-  static unsigned hash(const Vector<T> &obj)
-  { return VectorHash<DefaultHash>::hash(obj); }
-
-  // dispatch to StackHash<DefaultHash>
-  template<typename T>
-  static unsigned hash(const Stack<T> &obj, unsigned hash = FNV32_OFFSET_BASIS)
-  { return StackHash<DefaultHash>::hash(obj, hash); }
-
-  // std::pair combines default hashes of first and second
-  template<typename T, typename U>
-  static unsigned hash(const std::pair<T,U> &obj) {
-    return HashUtils::combine(
-      DefaultHash::hash(obj.first),
-      DefaultHash::hash(obj.second)
-    );
-  }
-
   /**
    * FNV-1a with initial value @b hash.
    * @since 31/03/2006
@@ -222,17 +87,6 @@ public:
   ) {
     for (size_t i = 0; i < size; i++) {
       hash = (hash ^ val[i]) * FNV32_PRIME;
-    }
-    return hash;
-  }
-
-  template<class Iter>
-  static unsigned hashIter(
-      Iter iter,
-      unsigned hash = FNV32_OFFSET_BASIS
-      ) {
-    while (iter.hasNext()) {
-      hash = (hash ^ iter.next()) * FNV32_PRIME;
     }
     return hash;
   }
@@ -249,91 +103,155 @@ public:
     return hash;
   }
 
+  template<class Iter>
+  static unsigned hashIter(
+      Iter iter,
+      unsigned hash = FNV32_OFFSET_BASIS
+      ) {
+    while (iter.hasNext()) {
+      hash = (hash ^ iter.next()) * FNV32_PRIME;
+    }
+    return hash;
+  }
 
-
-  template<typename... T>
-  static unsigned hash(std::tuple<T...> const& s) 
-  { return TupleHash<DefaultHash>::hash(s); }
-
+  // arithmetic and enumeration types are hashed as bytes
   template<typename T>
-  static unsigned hash(Lib::Option<T> const& o) 
-  { return o.isSome() ? Lib::DefaultHash::hash(*o)
-                      : Lib::DefaultHash::hash(0); }
-};
-
-// a default secondary hash for doubly-hashed containers
-// these hash functions should be cheap and not worry too much about distribution
-// NB: should not be the same as the first hash!
-class DefaultHash2 {
-public:
-  // if T has a unsigned defaultHash2() method, invoke that
-  template<typename T>
-  static typename std::enable_if<
-    std::is_same<
-      typename std::invoke_result<decltype(&T::defaultHash2), T>::type,
-      unsigned
-    >::value,
-    unsigned
-  >::type hash(const T &ref) {
-    return ref.defaultHash2();
-  }
-
-  // special-case for Units (and their descendants) as they have a unique incrementing identifier
-  template<typename T>
-  static typename std::enable_if<
-    std::is_base_of<Kernel::Unit, T>::value,
-    unsigned
-  >::type hash(T *unit) 
-  { return unit ? unit->number() : 0; }
-
-  // other pointer types are cast to unsigned
-  template<typename T>
-  static typename std::enable_if<
-    !std::is_base_of<Kernel::Unit, T>::value,
-    unsigned
-  >::type hash(T* ptr) {
-    return static_cast<unsigned>(reinterpret_cast<uintptr_t>(ptr));
-  }
-
-  // arithmetic and enumeration types are cast to unsigned
-  template<typename T> static typename std::enable_if<
-    std::is_fundamental<T>::value || std::is_enum<T>::value,
-    unsigned
-  >::type hash(T val) {
-    return static_cast<unsigned>(val);
-  }
-
-  // strings use their length
-  static unsigned hash(const std::string &str) {
-    return str.length();
-  }
-
-  // containers use their length
-  template<typename T> static unsigned hash(const Stack<T> &stack) {
-    return stack.length();
-  }
-
-  // containers use their length
-  template<typename T> static unsigned hash(const Vector<T> &vector) {
-    return vector.length();
-  }
-
-  // std::pair combines default secondary hashes of first and second
-  template<typename T, typename U>
-  static unsigned hash(const std::pair<T, U> &pp) {
-    return HashUtils::combine(
-      DefaultHash2::hash(pp.first),
-      DefaultHash2::hash(pp.second)
+  static unsigned hash(T val, unsigned hash = FNV32_OFFSET_BASIS) {
+    static_assert(
+      std::is_arithmetic<T>::value || std::is_enum<T>::value,
+      "FnvHash::hash(T) hashes the bytes of a scalar: supply a suitable hash for other types");
+    return hashBytes(
+      reinterpret_cast<const unsigned char *>(&val),
+      sizeof(val),
+      hash
     );
   }
-  template<typename... T>
-  static unsigned hash(std::tuple<T...> const& s) 
-  { return TupleHash<DefaultHash2>::hash(s); }
 
+  // pointers are hashed as bytes without dereference
+  // if this isn't what you want, consider DerefPtrHash, or UnitHash for Units
   template<typename T>
-  static unsigned hash(Lib::Option<T> const& o) 
-  { return o.isSome() ? Lib::DefaultHash2::hash(*o)
-                      : Lib::DefaultHash2::hash(0); }
+  static unsigned hash(T* ptr, unsigned hash = FNV32_OFFSET_BASIS) {
+    static_assert(
+      !std::is_base_of<Kernel::Unit, T>::value,
+      "Units are hashed by their number: use UnitHash or UnitNumberHash");
+    static_assert(
+      !std::is_same<const char, T>::value,
+      "careful - this will use pointer equality in DHMap, are you sure?"
+    );
+    return hashBytes(
+      reinterpret_cast<const unsigned char*>(&ptr),
+      sizeof(ptr),
+      hash
+    );
+  }
+
+  // strings hash the underlying C-style string
+  static unsigned hash(const std::string& str)
+  { return hashNulTerminated(str.c_str()); }
+  static unsigned hash(const std::string_view str)
+  { return hashNulTerminated(str.data()); }
+};
+
+// hash a Unit (or descendant, e.g. Clause) by FNV-1a of its unique incrementing number
+struct UnitHash
+{
+  static unsigned hash(const Kernel::Unit* unit)
+  { return FnvHash::hash(unit ? unit->number() : 0); }
+};
+
+// hash a Unit (or descendant, e.g. Clause) by its unique incrementing number directly:
+// cheap secondary hash
+struct UnitNumberHash
+{
+  static unsigned hash(const Kernel::Unit* unit)
+  { return unit ? unit->number() : 0; }
+};
+
+// hash a pointer by its address cast to unsigned: cheap secondary hash
+// not great as a primary hash, since pointers are usually aligned to e.g. multiples of 4
+struct PtrIdentityHash
+{
+  template<typename T>
+  static unsigned hash(T* ptr) {
+    static_assert(
+      !std::is_base_of<Kernel::Unit, T>::value,
+      "Units are hashed by their number: use UnitHash or UnitNumberHash");
+    return static_cast<unsigned>(reinterpret_cast<std::uintptr_t>(ptr));
+  }
+};
+
+// hash strings and containers by their length: cheap secondary hash
+struct LengthHash
+{
+  template<typename T>
+  static unsigned hash(const T& val)
+  { return val.length(); }
+};
+
+// wrapper around std::hash
+struct StlHash {
+  template<class T>
+  static unsigned hash(const T& self)
+  { return std::hash<T>{}(self); }
+};
+
+// dereference a pointer and apply InnerHash
+template<class InnerHash>
+struct DerefPtrHash {
+  template<class T>
+  static unsigned hash(const T* self) 
+  { return InnerHash::hash(*self); }
+};
+
+// a hash for Stack<T>, applying ElementHash to each item
+template<class ElementHash>
+struct StackHash {
+  template<typename T>
+  static unsigned hash(const Stack<T>& s, unsigned hash = FNV32_OFFSET_BASIS) {
+    for (auto& x : s) {
+      hash = HashUtils::combine(hash, ElementHash::hash(x));
+    }
+    return hash;
+  }
+};
+
+// a hash for Vector<T>, applying ElementHash to each item
+template<class ElementHash>
+struct VectorHash {
+  template<typename T>
+  static unsigned hash(const Vector<T>& s) {
+    unsigned res = FNV32_OFFSET_BASIS;
+    for (unsigned i = 0; i < s.length(); i++) {
+      res = HashUtils::combine(res, ElementHash::hash(s[i]));
+    }
+    return res;
+  }
+};
+
+// combine the hashes of a tuple's elements, one functor per element
+template<class... ElementHashes>
+struct TupleHash
+{
+  template<typename... T>
+  static unsigned hash(std::tuple<T...> const& s)
+  {
+    static_assert(sizeof...(ElementHashes) == sizeof...(T),
+      "TupleHash takes one hash functor per tuple element");
+    return std::apply([](T... args) { return HashUtils::combine(ElementHashes::hash(args)...); }, s);
+  }
+};
+
+// combine HashFst of the first and HashSnd of the second element of a pair
+template<class HashFst, class HashSnd>
+struct PairHash
+{
+  template<typename T, typename U>
+  static unsigned hash(const std::pair<T,U>& pp) {
+    return HashUtils::combine(
+      HashFst::hash(pp.first),
+      HashSnd::hash(pp.second)
+    );
+  }
 };
 
 } // namespace Lib
@@ -346,12 +264,6 @@ template<class T> struct hash<Lib::Stack<T>>
   { return Lib::StackHash<Lib::StlHash>::hash(s); }
 };
 
-
-template<class... T> struct hash<std::tuple<T...>> 
-{
-  size_t operator()(std::tuple<T...> const& s) const 
-  { return Lib::DefaultHash::hash(s); }
-};
 } // std
 
 #endif

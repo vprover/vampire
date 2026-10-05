@@ -12,6 +12,8 @@
  * Implements class BoolEqToDiseq.
  */
 
+#include "Debug/TimeProfiling.hpp"
+
 #include "Kernel/Clause.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Inference.hpp"
@@ -33,6 +35,7 @@ using namespace HOL::create;
 
 ClauseIterator BoolEqToDiseq::generateClauses(Clause* cl)
 {
+  TIME_TRACE("boolean equality to disequality");
   unsigned pos = 0;
   Literal* newLit = 0;
 

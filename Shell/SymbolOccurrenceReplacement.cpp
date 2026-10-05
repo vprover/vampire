@@ -18,6 +18,16 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Shell;
 
+/** Process an argument of a term or a literal, leaving variables and sorts
+ *  alone: process(Term*) must not be called on a sort. Type arguments of the
+ *  replaced symbol are usually variables, but need not be. */
+TermList SymbolOccurrenceReplacement::processArgument(TermList arg) {
+  if (arg.isVar() || arg.term()->isSort()) {
+    return arg;
+  }
+  return process(arg);
+}
+
 Term* SymbolOccurrenceReplacement::process(Term* term) {
   ASS(!term->isSort());
 
@@ -49,18 +59,15 @@ Term* SymbolOccurrenceReplacement::process(Term* term) {
   if (!_isPredicate && (term->functor() == _oldApplication->functor())) {
     Substitution substitution;
     for (unsigned i = 0; i < term->arity(); i++) {
-      ALWAYS(MatchingUtils::matchTerms(*_oldApplication->nthArgument(i), process(*term->nthArgument(i)), substitution));
+      ALWAYS(MatchingUtils::matchTerms(*_oldApplication->nthArgument(i),
+                                       processArgument(*term->nthArgument(i)), substitution));
     }
     return SubstHelper::apply(_freshApplication, substitution);
   }
 
   TermStack arguments;
   for (const auto& arg : anyArgIter(term)) {
-    if(arg.isVar() || arg.term()->isSort()){
-      arguments.push(arg);
-    } else {
-      arguments.push(process(arg));        
-    }
+    arguments.push(processArgument(arg));
   }
   return Term::create(term, arguments.begin());
 }
@@ -81,7 +88,8 @@ Formula* SymbolOccurrenceReplacement::process(Formula* formula) {
       if (_isPredicate && (literal->functor() == _oldApplication->functor())) {
         Substitution substitution;
         for (unsigned i = 0; i < literal->arity(); i++) {
-          ALWAYS(MatchingUtils::matchTerms(*_oldApplication->nthArgument(i), process(*literal->nthArgument(i)), substitution));
+          ALWAYS(MatchingUtils::matchTerms(*_oldApplication->nthArgument(i),
+                                           processArgument(*literal->nthArgument(i)), substitution));
         }
 
         auto processedLiteral = SubstHelper::apply(static_cast<Literal*>(_freshApplication), substitution);
@@ -93,11 +101,7 @@ Formula* SymbolOccurrenceReplacement::process(Formula* formula) {
 
       TermStack arguments;
       for (const auto& arg : anyArgIter(literal)) {
-        if(arg.isVar() || arg.term()->isSort()){
-          arguments.push(arg);
-        } else {
-          arguments.push(process(arg));
-        }
+        arguments.push(processArgument(arg));
       }
       return new AtomicFormula(Literal::create(literal, arguments.begin()));
     }

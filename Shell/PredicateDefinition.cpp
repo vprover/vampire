@@ -14,6 +14,7 @@
 
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
+#include "Lib/Random.hpp"
 #include "Lib/ScopedLet.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/Map.hpp"
@@ -53,7 +54,7 @@ using namespace Kernel;
 struct PredicateDefinition::PredData
 {
   /** Units that contain the predicate. */
-  Map<unsigned, Unit*> containingUnits;
+  Map<unsigned, Unit*, FnvHash> containingUnits;
 
   bool builtIn;
   int pred;
@@ -262,7 +263,7 @@ void PredicateDefinition::replacePurePred(unsigned pred, ReplMap& replacements)
   if(_processedPrb) {
     _processedPrb->addTrivialPredicate(pred, pd.nocc==0);
   }
-  Map<unsigned, Unit*>::Iterator uit(pd.containingUnits);
+  Map<unsigned, Unit*, FnvHash>::Iterator uit(pd.containingUnits);
   while(uit.hasNext()) {
     Unit* u=uit.next().value();
     if(replacements.find(u->number())) {
@@ -311,13 +312,24 @@ void PredicateDefinition::collectReplacements(UnitList* units, ReplMap& replacem
     _preds[pred].check(this);
   }
 
+  // under randomized preprocessing, each candidate is with this probability left alone
+  // (a skipped predicate is never re-enqueued, so the loss is monotone; to be tuned)
+  constexpr double RPR_SKIP_PROB = 0.1;
+  bool rpr = env.options->randomizedPreprocessing();
+
   while(_eliminable.isNonEmpty() || _pureToReplace.isNonEmpty()) {
     while(_eliminable.isNonEmpty()) {
       int pred=_eliminable.pop();
+      if(rpr && Random::getDouble(0.0,1.0) < RPR_SKIP_PROB) {
+        continue;
+      }
       eliminatePredicateDefinition(pred, replacements);
     }
     while(_pureToReplace.isNonEmpty()) {
       int pred=_pureToReplace.pop();
+      if(rpr && Random::getDouble(0.0,1.0) < RPR_SKIP_PROB) {
+        continue;
+      }
       replacePurePred(pred, replacements);
     }
   }
@@ -337,7 +349,7 @@ void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(Problem& prb)
 
 void PredicateDefinition::removeUnusedDefinitionsAndPurePredicates(UnitList*& units)
 {
-  static DHMap<unsigned, Unit*> replacements;
+  static DHMap<unsigned, Unit*, FnvHash, IdentityHash> replacements;
   replacements.reset();
 
   collectReplacements(units, replacements);

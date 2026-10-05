@@ -8,14 +8,22 @@
 # where is Vampire? passed by CI
 vampire="`pwd`/$1 --traceback on"
 
+# scratch files (each run's stdout/stderr, the LRS traces) go to a temp directory
+# rather than into the source tree, and are removed however the script ends.
+# absolute, because the runs themselves happen with checks/ as the working directory
+scratch=`mktemp -d "${TMPDIR:-/tmp}/vampire-sanity.XXXXXX"` || exit 1
+trap 'rm -rf "$scratch"' EXIT
+trap 'rm -rf "$scratch"; exit 130' INT
+trap 'rm -rf "$scratch"; exit 143' TERM
+
 run_vampire() {
 	echo $vampire $@
-	(cd checks; $vampire $@ > vampire-stdout 2> vampire-stderr)
-	errors=`grep -E 'SIG|viola|error' checks/vampire-stderr`
+	(cd checks; $vampire $@ > "$scratch/vampire-stdout" 2> "$scratch/vampire-stderr")
+	errors=`grep -E 'SIG|viola|error' "$scratch/vampire-stderr"`
 	if test -n "$errors"
 	then
 		echo "run failed: contains errors"
-		cat checks/vampire-stderr
+		cat "$scratch/vampire-stderr"
 		exit 1
 	fi
 }
@@ -25,11 +33,56 @@ check_exact_output() {
 	expected=checks/$1
 	shift
 	run_vampire $@
-	diff=`diff $expected checks/vampire-stdout`
+	diff=`diff $expected "$scratch/vampire-stdout"`
 	if test -n "$diff"
 	then
 		echo "check against $expected failed: diff follows"
 		echo "$diff"
+		exit 1
+	fi
+}
+
+# check that a key substring appears in the output: more robust than
+# check_exact_output (e.g. against drifting symbol-table indices in --mode output)
+check_output_contains() {
+	expected="$1"
+	shift
+	run_vampire $@
+	found=`grep -F "$expected" "$scratch/vampire-stdout"`
+	if test -z "$found"
+	then
+		echo "check failed: output should contain: $expected"
+		cat "$scratch/vampire-stdout"
+		exit 1
+	fi
+}
+
+# as check_output_contains, but the substring must appear exactly once
+check_output_contains_once() {
+	expected="$1"
+	shift
+	run_vampire $@
+	count=`grep -cF "$expected" "$scratch/vampire-stdout"`
+	if test "$count" != 1
+	then
+		echo "check failed: output should contain exactly once (found $count times): $expected"
+		cat "$scratch/vampire-stdout"
+		exit 1
+	fi
+}
+
+# check that Vampire rejects the input with a message containing the substring
+# (parse errors and user errors are printed to stdout, so run_vampire's stderr
+# check does not trip on them)
+check_rejected() {
+	expected="$1"
+	shift
+	run_vampire $@
+	found=`grep -F "$expected" "$scratch/vampire-stdout"`
+	if test -z "$found"
+	then
+		echo "rejection check failed: expected a message containing: $expected"
+		cat "$scratch/vampire-stdout" "$scratch/vampire-stderr"
 		exit 1
 	fi
 }
@@ -39,11 +92,74 @@ check_szs_status() {
 	status=$1
 	shift
 	run_vampire $@
-	szs=`grep -E "^% SZS status $status for .+$" checks/vampire-stdout`
+	szs=`grep -E "^% SZS status $status for .+$" "$scratch/vampire-stdout"`
 	if test -z "$szs"
 	then
 		echo "SZS check failed: should have been SZS $status"
-		cat checks/vampire-stdout checks/vampire-stderr
+		cat "$scratch/vampire-stdout" "$scratch/vampire-stderr"
+		exit 1
+	fi
+}
+
+# Pick the SATURATION block of a -stat full report, without its two rule-off lines.
+# These counters -- activations, passive size, final active/passive, discarded
+# non-redundant clauses -- are precisely what LRS's limits move, so two runs
+# agreeing on all of them have taken the same path.
+lrs_fingerprint() {
+	awk '/^% SATURATION/ {b=1; next}
+	     b && /^% ---/  {if (++seps == 2) exit; next}
+	     b              {print}' $1
+}
+
+# LRS decides when to refresh its limits partly from the clock, so an LRS run is only
+# reproducible through a recorded trace: -lstf writes each decision (the pops that
+# triggered it) and its estimate, -lltf replays them without consulting any clock.
+# Recording then replaying must reproduce the run exactly.
+#
+# Three runs, because both the activation limit and the time limit have to be chosen
+# with care or the check compares two runs that were never going to differ:
+#
+#  1. a 2-second run, purely to learn how fast this machine is on this problem. Hard-
+#     coding an activation limit would make the check machine-dependent: too high and
+#     the recording run runs out of time, too low and the limits never bind.
+#  2. record, bounded by -al at 80% of that count, so the bound is deterministic.
+#  3. replay the trace at the same -al but a different -t.
+#
+# Run 2 and 3 are meant to hit the -al. Run 2 still under -t 2 so the LRS gets active.
+# Run 3 shoud bahave the same as 2 (it's readind the trace), althouth the time limit
+# is lifted.
+#
+# The caller passes only the problem; everything else is appended here, so the -t and
+# -stat given here win over anything the caller might set.
+check_lrs_replay() {
+	run_vampire -sa lrs -p off $@ -stat full -t 2
+	activations=`grep 'Activations started' "$scratch/vampire-stdout" | sed 's/.*| *//'`
+	if test -z "$activations"
+	then
+		echo "LRS replay check failed: calibration run reported no activations"
+		cat "$scratch/vampire-stdout"
+		exit 1
+	fi
+	al=`expr $activations \* 4 / 5`
+
+	run_vampire -sa lrs -p off -lstf "$scratch/lrs-trace" $@ -al $al -stat full -t 2
+	lrs_fingerprint "$scratch/vampire-stdout" > "$scratch/lrs-recorded"
+	run_vampire -sa lrs -p off -lltf "$scratch/lrs-trace" $@ -al $al -stat full -t 60
+	lrs_fingerprint "$scratch/vampire-stdout" > "$scratch/lrs-replayed"
+
+	# a missing statistics block would otherwise make the diff below trivially empty
+	if test `wc -l < "$scratch/lrs-recorded"` -lt 5
+	then
+		echo "LRS replay check failed: no SATURATION statistics to compare"
+		cat "$scratch/lrs-recorded"
+		exit 1
+	fi
+	diff=`diff "$scratch/lrs-recorded" "$scratch/lrs-replayed"`
+	if test -n "$diff"
+	then
+		echo "LRS replay check failed: replaying the trace did not reproduce the run"
+		echo "(recorded at -al $al -t 2, replayed at -al $al -t 4)"
+		echo "$diff"
 		exit 1
 	fi
 }
@@ -53,11 +169,11 @@ check_smtcomp_status() {
 	status=$1
 	shift
 	run_vampire $@
-	result=`grep -E "^$status$" checks/vampire-stdout`
+	result=`grep -E "^$status$" "$scratch/vampire-stdout"`
 	if test -z "$result"
 	then
 		echo "$SMT check failed: should have been $status"
-		cat checks/vampire-stdout checks/vampire-stderr
+		cat "$scratch/vampire-stdout" "$scratch/vampire-stderr"
 		exit 1
 	fi
 }
@@ -77,9 +193,55 @@ check_szs_status Theorem Problems/PUZ/PUZ139_1.p
 # check_smtcomp_status unsat --mode smtcomp ucore/test1.smt2
 check_exact_output ucore/test2.out --input_syntax smtlib2 -om ucore ucore/test2.smt2
 
+# Finite model building
+# sort bound detection over a function with a multi-sorted argument list
+check_szs_status Satisfiable -sa fmb -fmbdsb on fmb/detect-sort-bounds.p
+
 # Term algebra problems
 check_szs_status Unsatisfiable term-algebra/terms_distinct.smt2
 check_szs_status Unsatisfiable -tac axiom term-algebra/terms_acyclic.smt2
+
+# Tuples
+# an ordinary $let-bound symbol of a tuple sort is not a tuple binding
+check_szs_status Theorem theory/let-tuple-sorted-const.p
+check_szs_status Theorem -newcnf on theory/let-tuple-sorted-const.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-sorted-const.p
+# a tuple binding with a Boolean component, bound to a projection
+check_szs_status Theorem -newcnf on theory/let-tuple-bool-nontuple.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-bool-nontuple.p
+# a monomorphic tuple binding with a non-tuple right hand side
+check_szs_status Theorem -newcnf on theory/let-tuple-nontuple.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-nontuple.p
+# tuples on the FOOLElimination pathway (i.e. without newcnf)
+check_szs_status Theorem theory/let-tuple.p
+check_szs_status Theorem theory/let-tuple-bool.p
+check_szs_status Theorem theory/let-tuple-nontuple.p
+check_szs_status Theorem theory/let-tuple-bool-nontuple.p
+check_szs_status Theorem theory/tuple-proj-print.p
+# further tuple problems, on both pathways
+check_szs_status Theorem theory/let-tuple-mono.p
+check_szs_status Theorem -newcnf on theory/let-tuple-mono.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-mono.p
+check_szs_status Theorem theory/let-tuple-var.p
+check_szs_status Theorem -newcnf on theory/let-tuple-var.p
+check_szs_status Theorem theory/let-tuple-nested.p
+check_szs_status Theorem -newcnf on theory/let-tuple-nested.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-nested.p
+check_szs_status Theorem theory/let-tuple-arg.p
+check_szs_status Theorem -newcnf on theory/let-tuple-arg.p
+check_szs_status Theorem theory/let-tuple-shadow.p
+check_szs_status Theorem -newcnf on theory/let-tuple-shadow.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-shadow.p
+check_szs_status Theorem theory/let-tuple-poly-nontuple.p
+check_szs_status Theorem -newcnf on theory/let-tuple-poly-nontuple.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-poly-nontuple.p
+# a tuple binding inside a simultaneous definition group
+check_szs_status Theorem theory/let-tuple-simultaneous.p
+check_szs_status Theorem -newcnf on theory/let-tuple-simultaneous.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-simultaneous.p
+check_szs_status Theorem theory/let-tuple-simultaneous2.p
+check_szs_status Theorem -newcnf on theory/let-tuple-simultaneous2.p
+check_szs_status Theorem -newcnf on -ile off theory/let-tuple-simultaneous2.p
 
 # FOOL
 check_szs_status Theorem theory/let-function.p
@@ -89,6 +251,28 @@ check_szs_status Theorem -newcnf on theory/let-tuple-bool.p
 check_szs_status Theorem -newcnf on -ile off theory/let-function.p
 check_szs_status Theorem -newcnf on -ile off theory/let-tuple.p
 check_szs_status Theorem -newcnf on -ile off theory/let-tuple-bool.p
+check_szs_status Theorem theory/let-bool.p
+check_szs_status Theorem -newcnf on theory/let-bool.p
+check_szs_status Theorem -ile off theory/let-bool.p
+check_szs_status Theorem -newcnf on -ile off theory/let-bool.p
+check_szs_status Theorem theory/let-bool-pred.p
+check_szs_status Theorem -newcnf on theory/let-bool-pred.p
+check_szs_status Theorem -ile off theory/let-bool-pred.p
+check_szs_status Theorem -newcnf on -ile off theory/let-bool-pred.p
+check_szs_status Theorem theory/let-bool-simultaneous.p
+check_szs_status Theorem -newcnf on theory/let-bool-simultaneous.p
+check_szs_status Theorem theory/let-bool-twice.p
+check_szs_status Theorem -newcnf on theory/let-bool-twice.p
+check_szs_status Theorem -ile off theory/let-bool-twice.p
+check_szs_status Theorem -newcnf on -ile off theory/let-bool-twice.p
+check_szs_status Unsatisfiable theory/let-bool-twice.smt2
+check_szs_status Unsatisfiable -newcnf on theory/let-bool-twice.smt2
+check_szs_status Unsatisfiable theory/let-nested-bool.p
+check_szs_status Unsatisfiable -newcnf on theory/let-nested-bool.p
+check_szs_status Unsatisfiable -ile off theory/let-nested-bool.p
+check_szs_status Unsatisfiable -newcnf on -ile off theory/let-nested-bool.p
+check_szs_status Satisfiable theory/let-nested-bool.smt2
+check_szs_status Satisfiable -newcnf on theory/let-nested-bool.smt2
 
 # Arrays
 check_szs_status Unsatisfiable theory/arrays.smt2
@@ -121,6 +305,112 @@ check_szs_status Unsatisfiable -newcnf on parse/let-bind-variable.smt2
 check_szs_status Unsatisfiable -qa synthesis parse/assert-synth-max5.smt2
 check_szs_status Unsatisfiable parse/define-const.smt2
 
+# TPTP parser regression tests: small inputs documenting expected parser
+# behavior, one or two per fix; see the header comments in the files and the
+# corresponding commit messages for details.
+# (rejection tests pass --input_syntax tptp explicitly, so that the auto mode
+#  does not retry the failing input as SMT-LIB and garble the error message)
+check_output_contains '(p & ((q = r)))' --mode output parse/eq-precedence.p
+check_output_contains '(((p = r)) & s)' --mode output parse/eq-precedence.p
+# the same thing one level down, inside an argument list: an equality now resumes
+# connective parsing after itself, and the equality-argument guard no longer leaks
+# into a nested argument list. a1/a3/a6 of the file are three spellings of one
+# formula, and the single expectation below covers all three
+check_output_contains 'r(X0 = a & p(X0))' --mode output parse/term-eq-connective.p
+check_output_contains 'd = h(p(X0) & p(a))' --mode output parse/term-eq-connective.p
+check_output_contains 'd = h(X0 = a & p(X0))' --mode output parse/term-eq-connective.p
+check_output_contains '((d = X0) & p(X0))' --mode output parse/term-eq-connective.p
+check_rejected 'crlf-line-numbers.p", line 4: formula or term expected' --input_syntax tptp --mode output parse/crlf-line-numbers.p
+check_output_contains 'second_unit_parsed' --mode output parse/block-comment-star.p
+check_rejected ') expected after an end of a term' --input_syntax tptp --mode output parse/mismatched-brackets.p
+check_output_contains '!>[X0: $tType]:(list(X0))' --mode output parse/sort-app-space.p
+check_output_contains 'twenty_seven' --mode output parse/include-selection.p
+check_output_contains 'named_axiom' --mode output parse/include-selection.p
+check_szs_status Unsatisfiable parse/include-filtered-conjecture.p
+check_rejected 'sort mismatch in the if-then-else' --input_syntax tptp --mode output parse/ite-sort-mismatch.p
+check_rejected 'cnf(), fof(), tff(), tcf(), thf(), vampire() or include() expected' --input_syntax tptp --mode output parse/bad-unit-kind.p
+check_output_contains 'f0(X0) := $sum(X0,1)' --mode output parse/let-function-parse.p
+check_output_contains '((((q) = r)) & p)' --mode output parse/thf-eq-truncation.p
+check_output_contains '((((f @ x)) = y))' --mode output parse/thf-eq-truncation.p
+check_output_contains '(^[X0 : tree_b] : (((X0 = e_b))))' --mode output parse/thf-binder-eq.p
+check_output_contains '(![X0 : $o] : (((X0 = X0))))' --mode output parse/thf-binder-eq.p
+check_output_contains '(s & ((p = r)))' --mode output parse/thf-eq-precedence.p
+check_output_contains '(((p = q)) <=> r)' --mode output parse/thf-eq-precedence.p
+check_output_contains '((p = ((f @ x))))' --mode output parse/thf-eq-precedence.p
+check_output_contains '((f @ x) & p)' --mode output parse/thf-app-absorb.p
+check_output_contains '((g @ x @ y) & p)' --mode output parse/thf-app-absorb.p
+check_output_contains_once 'an unparenthesized application as a connective argument' --mode output parse/thf-app-absorb.p
+check_output_contains '(f @ (^[X0 : a] : (X0)) @ (^[X1 : b] : (X1)))' --mode output parse/thf-lambda-in-app-chain.p
+check_output_contains '(^[X0 : a] : ((g @ X0))) @ y' --mode output parse/thf-lambda-in-app-chain.p
+check_output_contains '(ev @ (^[X0 : a] : ((? [X1 : b] : (r @ X0 @ X1)))) @ q)' --mode output parse/thf-lambda-in-app-chain.p
+check_output_contains '(((((^[X0 : b] : (y)) @ w)) = y))' --mode output parse/thf-lambda-in-app-chain.p
+check_output_contains '(fl @ (^[X0 : a] : ((~(r @ X0 @ w)))) @ q)' --mode output parse/thf-lambda-in-app-chain.p
+check_rejected 'sort mismatch in the application x @ y' --input_syntax tptp --mode output parse/thf-ill-typed-app.p
+check_rejected 'sort mismatch in the application r | q @ x' --input_syntax tptp --mode output parse/thf-app-to-formula.p
+check_output_contains '(~((p = q)))' --mode output parse/thf-not-eq.p
+check_output_contains_once "'~' applied to an unparenthesized (in)equality" --mode output parse/thf-non-conformity-warnings.p
+check_output_contains_once 'an unparenthesized application as a connective argument' --mode output parse/thf-non-conformity-warnings.p
+check_output_contains_once 'as an unparenthesized equality argument' --mode output parse/thf-non-conformity-warnings.p
+check_output_contains_once 'a chained equality is not legal THF' --mode output parse/thf-non-conformity-warnings.p
+check_output_contains '(g @ <~>)' --mode output parse/thf-xor-section.p
+check_rejected 'formula or term expected' --input_syntax tptp --mode output parse/thf-empty-parens.p
+check_rejected 'cannot parse the ?* quantifier' --input_syntax tptp --mode output parse/thf-quant-some.p
+check_rejected 'only supports type quantification (!>) in type declarations' --input_syntax tptp --mode output parse/thf-type-quant-in-formula.p
+check_output_contains '(p(vAND) & p(vNOT))' --mode output parse/proxy-names.p
+check_output_contains '(c = vPI(c))' --mode output parse/proxy-names.p
+# distinct objects (doubly-quoted symbols): declarable at a user sort in tff, one
+# distinct group per sort, non-ground sorts rejected
+check_szs_status Unsatisfiable parse/distinct-objects-tff.p
+check_szs_status Unsatisfiable -newcnf on parse/distinct-objects-tff.p
+# -dgel 1 leaves the group unexpanded, so the refutation goes via DistinctEqualitySimplifier
+check_szs_status Unsatisfiable -dgel 1 parse/distinct-objects-tff.p
+check_output_contains '"a": letter' --mode output parse/distinct-objects-tff.p
+check_szs_status Unsatisfiable parse/distinct-objects-fof.p
+check_rejected 'distinct object cannot have a polymorphic type' --input_syntax tptp --mode output parse/distinct-objects-poly.p
+check_rejected 'must be declared as a constant of a proper sort: "f"' --input_syntax tptp --mode output parse/distinct-objects-arity.p
+check_rejected 'must be declared as a constant of a proper sort: "a"' --input_syntax tptp --mode output parse/distinct-objects-bool.p
+check_rejected 'must be declared as a constant of a proper sort: "a"' --input_syntax tptp --mode output parse/distinct-objects-ttype.p
+check_rejected 'Distinct object type is declared after its use' --input_syntax tptp --mode output parse/distinct-objects-clash.p
+check_rejected '$distinct can only be used with constants of the same sort' --input_syntax tptp --mode output parse/distinct-mixed-sorts.p
+# a distinct group is only worth keeping if it has at least two members
+check_szs_status Satisfiable parse/distinct-group-singleton.p
+check_szs_status Satisfiable parse/distinct-group-pair.p
+check_szs_status GaveUp -dgel 1 parse/distinct-group-pair.p
+# $distinct only holds unconditionally at a positive top level; anywhere else it
+# has to be expanded rather than recorded as a distinct group
+check_szs_status Satisfiable parse/distinct-negated.p
+check_szs_status CounterSatisfiable parse/distinct-conjecture.p
+check_szs_status CounterSatisfiable parse/distinct-disjunct.p
+check_szs_status Theorem parse/distinct-terms.p
+# the good case, whether the group is expanded (-dgel 0) or survives (-dgel 1)
+check_szs_status Theorem parse/distinct-toplevel.p
+check_szs_status Theorem -dgel 0 parse/distinct-toplevel.p
+check_szs_status Theorem -dgel 1 parse/distinct-toplevel.p
+check_szs_status Theorem parse/distinct-nested-and.p
+check_szs_status Theorem -dgel 1 parse/distinct-nested-and.p
+# $distinct now survives parsing, so --mode output no longer silently loses it
+check_output_contains '$distinct(a,b,c,d,e,f)' --mode output parse/distinct-toplevel.p
+check_rejected '$distinct is not supported in cnf' --input_syntax tptp --mode output parse/distinct-cnf.p
+check_rejected '$distinct is not supported in thf' --input_syntax tptp --mode output parse/distinct-thf.p
+# a $distinct at a non-ground sort gets no marker predicate, it is expanded at once
+check_szs_status Theorem parse/distinct-poly-sort.p
+# a $distinct hiding inside a FOOL term must still be found, on both pathways
+check_szs_status Theorem parse/distinct-in-fool.p
+check_szs_status Theorem -newcnf on parse/distinct-in-fool.p
+check_szs_status Theorem -dgel 1 parse/distinct-in-fool.p
+# SMT-LIB's distinct takes the same route
+check_szs_status Unsatisfiable parse/distinct-smtlib.smt2
+check_szs_status Unsatisfiable -dgel 1 parse/distinct-smtlib.smt2
+check_szs_status Satisfiable parse/distinct-smtlib-negated.smt2
+# TPTP tcf (typed clause form), read and written. parse/SYN000-3.p is the TPTP
+# sample exercising every tcf construct; exact output, because what is under test
+# is that all of it parses and that --mode tclausify prints legal tcf.
+check_exact_output parse/SYN000-3.out --input_syntax tptp --statistics none --mode tclausify parse/SYN000-3.p
+# and the round trip: the printed clauses have to be re-readable, and mean the same
+check_szs_status Unsatisfiable --input_syntax tptp parse/tcf.p
+check_exact_output parse/tcf.out --input_syntax tptp --statistics none --mode tclausify parse/tcf.p
+check_szs_status Unsatisfiable --input_syntax tptp parse/tcf.out
+
 # Arithmetic
 check_szs_status Theorem -t 1d -s 32 -tgt ground -sas z3 -tha some -nm 6 Problems/ANA/ANA135_1.p
 check_szs_status Theorem -t 1d Problems/ARI/ARI045_1.p # alasca can't!
@@ -132,18 +422,20 @@ check_szs_status Theorem -t 1d -to lpo -sas z3 Problems/ARI/ARI637_1.p
 check_szs_status Theorem -t 1d -sas z3 Problems/ARI/ARI700_1.p
 check_szs_status Theorem -t 1d -sas z3 Problems/ARI/ARI724_1.p
 check_szs_status Theorem -t 1d -sas z3 -nwc 5.0 -br off Problems/DAT/DAT005_1.p
+check_szs_status Unsatisfiable -t 1d -alasca on -alascai on theory/alasca-integer-conversion.p
 check_szs_status Theorem -t 1d -alasca on -alascai on -thf on Problems/DAT/DAT023_1.p
 check_szs_status Theorem -t 1d -tha off Problems/DAT/DAT042_1.p
 check_szs_status Theorem -t 5d -s 1010 -thsq on -thsqr 8,1 -thsqc 64 -thsqd 64 -canc force Problems/DAT/DAT043_1.p
 check_szs_status Theorem -t 10d -sa discount -s 2 -awr 1:32 -to lpo -s2a on -s2agt 20 -bd all Problems/HWV/HWV087_2.p
 check_szs_status Theorem -t 1d -sa discount -awr 1:32 -to lpo -sp const_frequency -sos all -sac on -lma off Problems/ITP/ITP319_1.p
 check_szs_status Theorem -t 1d -sa discount -tha off -nwc 5.0 -gtg exists_sym -gtgl 5 Problems/ITP/ITP320_1.p
-check_szs_status Theorem -t 1d -to lpo -spb goal_then_units -sp arity Problems/ITP/ITP412_1.p
 check_szs_status Theorem -t 1d -gve force -uwa one_side_interpreted -ep R Problems/NUM/NUM919_1.p
 check_szs_status ContradictoryAxioms -t 1d -s 1011 -thi all -uwa ground -br off -nwc 1.0 Problems/PLA/PLA046_1.p
 check_szs_status Theorem -t 1d -s 1002 -to kbo -kws inv_frequency -sas z3 -nwc 5.0 -gtg exists_all Problems/PLA/PLA050_1.p
 check_szs_status Theorem -t 1d -sa discount -s 1002 -to lpo -tha off -canc force -fsr off -fdi 10 -nwc 1.0 Problems/SEV/SEV425_1.p
-check_szs_status Theorem -t 1d -isp bottom -to lpo -sas z3 -fd preordered -ev force -bd all -nwc 1.0 -sp arity Problems/SWC/SWC478_1.p
+# Forced evaluation must not cycle with demodulation, including without LRS.
+check_szs_status Theorem -t 1 -isp bottom -to lpo -sas z3 -fd preordered -ev force -bd all -nwc 1.0 -sp arity Problems/SWC/SWC478_1.p
+check_szs_status Theorem -t 1 -sa otter -isp bottom -to lpo -sas z3 -fd preordered -ev force -bd all -nwc 1.0 -sp arity Problems/SWC/SWC478_1.p
 check_szs_status Theorem --decode ott+11_1:1_to=lpo:thi=all:sas=z3:bd=all:fdtod=on:sp=const_max:foolp=on:gtgl=5:asg=cautious:gtg=all:rawr=on_10 -lma off -add on -nwc 1.0  Problems/SWC/SWC482_1.p
 check_szs_status Theorem -t 1d -s 1011 -to lpo -sp unary_frequency -tha off -newcnf on -s2a on -doe on Problems/SWW/SWW587_2.p
 check_szs_status Theorem -t 3d -s 1011 -tgt full -fde none -nm 0 -bd all -sp arity -lma off -add on -nwc 1.0 Problems/SWW/SWW605_2.p
@@ -159,5 +451,13 @@ check_szs_status Unsatisfiable -t 5d -fgj on -bd all Problems/SWW/SWW436-1.p
 check_szs_status Unsatisfiable -qa synthesis synthesis/max2.smt2
 check_szs_status Unsatisfiable -qa synthesis synthesis/ex2-inverse_of_ixopiy.smt2
 
-# Higher-order logic
+# Higher-order logic. hol1.p has a higher-order *variable* but no lambda, so it does not
+# exercise the special-term paths; hol2.p does, and every other thf entry above stops at
+# --mode output, before preprocessing runs at all.
 check_szs_status Theorem hol/hol1.p
+check_szs_status Theorem hol/hol2.p
+check_rejected 'distinct objects are not supported in higher-order problems' \
+	--input_syntax tptp hol/hol-distinct-object.p
+
+# LRS limit updates are reproducible from a recorded trace, independently of timing
+check_lrs_replay Problems/SWW/SWW620_2.p

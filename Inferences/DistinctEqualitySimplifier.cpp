@@ -55,10 +55,12 @@ Clause* DistinctEqualitySimplifier::simplify(Clause* cl)
   //function returned true
   ASS_L(lits.size(), clen);
 
-  prems.push(cl);
   UnitList* premLst = 0;
   UnitList::pushFromIterator(Stack<Unit*>::Iterator(prems), premLst);
-  ASS(premLst); // at least, because of "prems.push(cl);" above
+  // the simplified clause has to end up at the *head*: that is what
+  // SimplifyingInferenceMany asserts on, and where it takes the age from. The group
+  // premises above may well be formula units, so pushing cl last matters.
+  UnitList::push(cl, premLst);
 
   Clause* res = Clause::fromStack(lits,
       SimplifyingInferenceMany(InferenceRule::DISTINCT_EQUALITY_REMOVAL, premLst));

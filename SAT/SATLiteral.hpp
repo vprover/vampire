@@ -47,9 +47,6 @@ public:
   bool positive() const { return _lit > 0; }
   SATLiteral opposite() const { return SATLiteral(-_lit); }
 
-  unsigned defaultHash() const { return DefaultHash::hash(_lit); }
-  unsigned defaultHash2() const { return _lit; }
-
   bool operator==(const SATLiteral& l) const
   { return _lit==l._lit; }
   bool operator!=(const SATLiteral& l) const
@@ -59,6 +56,19 @@ public:
 
 private:
   int _lit = 0;
+
+  friend struct SATLiteralHash;
+  friend struct SATLiteralHash2;
+};
+
+// hash a SATLiteral by FNV-1a of the signed integer it wraps
+struct SATLiteralHash {
+  static unsigned hash(SATLiteral l) { return FnvHash::hash(l._lit); }
+};
+
+// cheap secondary hash: that integer itself
+struct SATLiteralHash2 {
+  static unsigned hash(SATLiteral l) { return l._lit; }
 };
 
 inline std::ostream& operator<<(std::ostream &out, const SAT::SATLiteral &lit)
@@ -72,7 +82,7 @@ inline std::ostream& operator<<(std::ostream &out, const SAT::SATLiteral &lit)
 
 template<>
 struct std::hash<SAT::SATLiteral> {
-  unsigned operator()(SAT::SATLiteral l) const { return l.defaultHash(); }
+  unsigned operator()(SAT::SATLiteral l) const { return SAT::SATLiteralHash::hash(l); }
 };
 
 

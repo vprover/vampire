@@ -16,18 +16,16 @@
 #ifndef __InferenceStore__
 #define __InferenceStore__
 
-#include <utility>
 #include <ostream>
 
 #include "Forwards.hpp"
 
-#include "Lib/Allocator.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/DHMultiset.hpp"
 #include "Lib/Stack.hpp"
 
-#include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Signature.hpp"
 
 namespace Kernel {
 
@@ -38,40 +36,11 @@ class InferenceStore
 public:
   static InferenceStore* instance();
 
-  typedef List<int> IntList;
-
-  struct FullInference
-  {
-    FullInference(unsigned premCnt) : csId(0), premCnt(premCnt) { }
-
-    void* operator new(size_t,unsigned premCnt)
-    {
-      size_t size=sizeof(FullInference)+premCnt*sizeof(Unit*);
-      size-=sizeof(Unit*);
-
-      return ALLOC_KNOWN(size,"InferenceStore::FullInference");
-    }
-
-    size_t occupiedBytes()
-    {
-      size_t size=sizeof(FullInference)+premCnt*sizeof(Unit*);
-      size-=sizeof(Unit*);
-      return size;
-    }
-
-    void increasePremiseRefCounters();
-
-    int csId;
-    unsigned premCnt;
-    InferenceRule rule;
-    Unit* premises[1];
-  };
-
   void recordSplittingNameLiteral(Unit* us, Literal* lit);
-  void recordIntroducedSymbol(Unit* u, SymbolType st, unsigned number);
-  void recordIntroducedSkolemSymbol(Unit* u, SymbolType st, unsigned replacedVar, Term* symTerm);
+  void recordIntroducedSymbol(Unit* u, const Signature::Symbol* sym);
+  void recordIntroducedSkolemSymbol(Unit* u, const Signature::Symbol* sym, unsigned replacedVar, Term* symTerm);
   void recordIntroducedSplitName(Unit* u, std::string name);
-  
+
 
   void outputUnsatCore(std::ostream& out, Unit* refutation);
   void outputProof(std::ostream& out, Unit* refutation);
@@ -87,22 +56,19 @@ private:
 
   ProofPrinter* createProofPrinter(std::ostream& out);
 
-  DHMultiset<unsigned> _nextClIds;
+  DHMultiset<unsigned, FnvHash, IdentityHash> _nextClIds;
 
-  DHMap<unsigned, Literal*> _splittingNameLiterals;
+  DHMap<unsigned, Literal*, FnvHash, IdentityHash> _splittingNameLiterals;
 
-
-  /** first records the type of the symbol (PRED,FUNC or TYPE_CON), second is symbol number */
-  typedef std::pair<SymbolType,unsigned> SymbolId;
-  typedef Stack<SymbolId> SymbolStack;
+  typedef Stack<const Signature::Symbol*> SymbolStack;
   // unit id -> stack of introduced symbols (in order of introduction)
-  DHMap<unsigned,SymbolStack> _introducedSymbols;
+  DHMap<unsigned,SymbolStack, FnvHash, IdentityHash> _introducedSymbols;
   // symbol id -> existential variable name (number) that was replaced by the symbol
-  DHMap<SymbolId, unsigned> _introducedSymbolReplacedVars;
+  DHMap<const Signature::Symbol*, unsigned, FnvHash, PtrIdentityHash> _introducedSymbolReplacedVars;
   // symbol id -> the term that is introduced when introducing the skolem symbol
-  DHMap<SymbolId, Term*> _introducedSkolemSymTerms;
+  DHMap<const Signature::Symbol*, Term*, FnvHash, PtrIdentityHash> _introducedSkolemSymTerms;
 
-  DHMap<unsigned,std::string> _introducedSplitNames;
+  DHMap<unsigned,std::string, FnvHash, IdentityHash> _introducedSplitNames;
 };
 
 };

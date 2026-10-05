@@ -42,7 +42,7 @@ inline std::ostream& operator<<(std::ostream& os, MLMatchStats const& stats)
   return os;
 }
 
-typedef DHMap<unsigned,unsigned, IdentityHash, DefaultHash> UUMap;
+typedef DHMap<unsigned,unsigned, IdentityHash, FnvHash> UUMap;
 
 /**
  * Binder that stores bindings into a specified array. To be used
@@ -55,6 +55,9 @@ struct ArrayStoringBinder final
 
   bool bind(unsigned var, TermList term)
   {
+    if (term.containsLooseDBIndex()) {
+      return false;
+    }
     _arr[_v2pos.get(var)]=term;
     return true;
   }

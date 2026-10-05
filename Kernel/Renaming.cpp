@@ -162,7 +162,7 @@ TermList Renaming::normalize(TermList trm)
 
 void Renaming::assertValid() const
 {
-  Set<unsigned> range;
+  Set<unsigned, FnvHash> range;
   VariableMap::Iterator mit(_data);
   while(mit.hasNext()) {
     unsigned to = mit.next();

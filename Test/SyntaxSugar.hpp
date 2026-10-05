@@ -74,7 +74,7 @@
 #define FOLS auto fols = TermSugar(false);
 #define DECL_ANSWER_PRED(f, ...)                                                          \
   auto f = PredSugar(#f, __VA_ARGS__);                                                    \
-  env.signature->getPredicate(f.functor())->markAnswerPredicate();
+  env.signature->markAnswerPredicate(f.functor());
 
 #define DECL_DEFAULT_VARS                                                                 \
   __ALLOW_UNUSED(                                                                         \
@@ -366,13 +366,13 @@ public:
   TermSugar sort(SortId s) { return TermSugar(TermList(*this), s);}
 
   static TermSugar createConstant(const char* name, SortSugar s, bool skolem) {
-    unsigned f = env.signature->addFunction(name,0);
+    bool added;
+    auto f = env.signature->addFunction(name, OperatorType::getFunctionType({}, s.sugaredExpr()), added);
 
-    env.signature->getFunction(f)->setType(OperatorType::getFunctionType({}, s.sugaredExpr()));
-    if (skolem) {
-      env.signature->getFunction(f)->markSkolem();
+    if (added && skolem) {
+      f->markSkolem();
     }
-    return TermSugar(TermList(Term::createConstant(f)));
+    return TermSugar(TermList(Term::createConstant(f->number())));
   }
 
   operator TypedTermList() const { return TypedTermList(TermList(*this), sort()); }
@@ -539,26 +539,24 @@ public:
     for (auto a : as_)
       as.push(a.sugaredExpr());
 
+    TermList res = result.sugaredExpr();
+
+    if(taArity){
+      TermStack vars = {TermList(101, false), TermList(102, false), TermList(103, false)};
+      SortHelper::normaliseArgSorts(vars, as);
+      SortHelper::normaliseSort(vars, res);
+    }
+
     bool added = false;
-    _functor = env.signature->addFunction(name, as.size() + taArity, added);
+    auto symbol = env.signature->addFunction(name, OperatorType::getFunctionType(as, res, taArity), added);
+    _functor = symbol->number();
     if (added){
-      TermList res = result.sugaredExpr();
-
-      if(taArity){
-        TermStack vars = {TermList(101, false), TermList(102, false), TermList(103, false)};
-        SortHelper::normaliseArgSorts(vars, as);
-        SortHelper::normaliseSort(vars, res);
-      }
-
-      env.signature
-        ->getFunction(_functor)
-        ->setType(OperatorType::getFunctionType(as.size(), as.begin(), res, taArity));
       if (skolem) {
-        env.signature->getFunction(_functor)->markSkolem();
+        symbol->markSkolem();
       }
       if (c != COLOR_TRANSPARENT) {
         env.colorUsed = true;
-        env.signature->getFunction(_functor)->addColor(c);
+        symbol->addColor(c);
       }
     }
   }
@@ -571,8 +569,8 @@ public:
           ->destructorFunctor(i));
   }
 
-  auto result()        const { return symbol()->fnType()->result(); }
-  auto arg(unsigned i) const { return symbol()->fnType()->arg(i); }
+  auto result()        const { return symbol()->type()->result(); }
+  auto arg(unsigned i) const { return symbol()->type()->arg(i); }
 
   template<class... As>
   TermSugar operator()(As... args) const {
@@ -583,7 +581,7 @@ public:
   }
   unsigned functor() const { return _functor; }
   unsigned arity() const { return env.signature->getFunction(_functor)->arity(); }
-  Signature::Symbol* symbol() const { return env.signature->getFunction(functor()); }
+  const Signature::Symbol* symbol() const { return env.signature->getFunction(functor()); }
 
   friend std::ostream& operator<<(std::ostream& out, FuncSugar const& self)
   { return out << self.symbol()->name(); }
@@ -610,12 +608,7 @@ class TypeConSugar {
 public:
   TypeConSugar(const char* name, unsigned arity)
   {
-    bool added = false;
-    _functor = env.signature->addTypeCon(name, arity, added);
-    if (added)
-      env.signature
-        ->getTypeCon(_functor)
-        ->setType(OperatorType::getTypeConType(arity));
+    _functor = env.signature->addTypeCon(name, arity)->number();
   }
 
   template<class... As>
@@ -660,10 +653,7 @@ public:
       SortHelper::normaliseArgSorts(vars, as);
     }
 
-    _functor = env.signature->addPredicate(name, as.size() + taArity);
-    env.signature
-      ->getPredicate(_functor)
-      ->setType(OperatorType::getPredicateType(as.size(), as.begin(), taArity));
+    _functor = env.signature->addPredicate(name, OperatorType::getPredicateType(as, taArity))->number();
   }
 
   template<class... As>
@@ -694,7 +684,7 @@ inline Clause* clause(Stack<Lit> ls, Inference inf) {
 }
 
 inline Clause* clause(Stack<Lit> ls)
-{ return clause(ls, Inference(Kernel::NonspecificInference0(UnitInputType::ASSUMPTION, InferenceRule::INPUT))); }
+{ return clause(ls, FromInput(UnitInputType::ASSUMPTION)); }
 
 inline Clause* clause(std::initializer_list<Lit> ls)
 { return clause(Stack<Lit>(ls)); }
@@ -713,15 +703,13 @@ inline void createTermAlgebra(SortSugar sort, std::initializer_list<FuncSugar> f
   Stack<TermAlgebraConstructor*> cons;
 
   for (auto f : funcs) {
-    env.signature->getFunction(f.functor())
-      ->markTermAlgebraCons();
+    env.signature->markTermAlgebraConstructor(f.functor());
 
     auto dtor = [&](unsigned i) {
       std::stringstream name;
       name << f << "@" << i;
       auto d = FuncSugar(name.str(), { f.result() }, f.arg(i));
-      env.signature->getFunction(d.functor())
-        ->markTermAlgebraDest();
+      env.signature->markTermAlgebraDestructor(d.functor());
       return d;
     };
 

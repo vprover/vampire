@@ -15,6 +15,7 @@
 #ifndef __OperatorType__
 #define __OperatorType__
 
+#include "Lib/Comparison.hpp"
 #include "Forwards.hpp"
 
 #include "Lib/Set.hpp"
@@ -50,16 +51,13 @@ class OperatorType
 public:
   class TypeHash {
   public:
-    static bool equals(OperatorType* t1, OperatorType* t2)
-    { return (*t1) == (*t2); }
-
     static unsigned hash(OperatorType* ot)
     {
       OperatorKey& key = *ot->key();
       unsigned typeArgsArity = ot->numTypeArguments();
       return HashUtils::combine(
-        DefaultHash::hash(key),
-        DefaultHash::hash(typeArgsArity)
+        VectorHash<TermListHash>::hash(key),
+        FnvHash::hash(typeArgsArity)
       );
     }
   };
@@ -75,11 +73,22 @@ private:
   /**
    * Convenience functions for creating a key
    */
-  static OperatorKey* setupKey(unsigned arity, const TermList* sorts);
-  static OperatorKey* setupKey(std::initializer_list<TermList> sorts);
+  template<typename Sorts>
+  static OperatorKey* setupKey(Sorts sorts) {
+    OperatorKey* key = OperatorKey::allocate(sorts.size()+1);
+
+    // initialise all the argument types to those taken from sorts
+    unsigned i = 0;
+    for (auto sort : sorts) {
+      ASS(sort.isVar() || sort.term()->isSort());
+      (*key)[i++] = sort;
+    }
+
+    return key;
+  }
   static OperatorKey* setupKeyUniformRange(unsigned arity, TermList argsSort);
 
-  typedef Set<OperatorType*,TypeHash> OperatorTypes;
+  typedef Set<OperatorType*, TypeHash, DerefPtrEqual> OperatorTypes;
   static OperatorTypes& operatorTypes(); // just a wrapper around a static OperatorTypes object, to ensure a correct initialization order
 
   static OperatorType* getTypeFromKey(OperatorKey* key, unsigned taArity);
@@ -91,9 +100,9 @@ public:
   { return  *_key==*t._key &&
              _typeArgsArity==t._typeArgsArity; }
 
-  static OperatorType* getPredicateType(unsigned arity, const TermList* sorts=0, unsigned taArity = 0) {
-    OperatorKey* key = setupKey(arity,sorts);
-    (*key)[arity] = TermList::empty();
+  static OperatorType* getPredicateType(const TermStack& sorts, unsigned taArity = 0) {
+    OperatorKey* key = setupKey(sorts);
+    (*key)[sorts.size()] = TermList::empty();
     return getTypeFromKey(key,taArity);
   }
 
@@ -109,9 +118,9 @@ public:
     return getTypeFromKey(key, taArity);
   }
 
-  static OperatorType* getFunctionType(unsigned arity, const TermList* sorts, TermList resultSort, unsigned taArity = 0) {
-    OperatorKey* key = setupKey(arity,sorts);
-    (*key)[arity] = resultSort;
+  static OperatorType* getFunctionType(const TermStack& sorts, TermList resultSort, unsigned taArity = 0) {
+    OperatorKey* key = setupKey(sorts);
+    (*key)[sorts.size()] = resultSort;
     return getTypeFromKey(key, taArity);
   }
 
@@ -132,7 +141,7 @@ public:
    * Constants are function symbols of 0 arity, so just provide the result sort.
    */
   static OperatorType* getConstantsType(TermList resultSort, unsigned taArity = 0) {
-    return getFunctionType(0,nullptr,resultSort, taArity);
+    return getFunctionType({}, resultSort, taArity);
   }
 
   /**

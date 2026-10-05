@@ -84,7 +84,7 @@ private:
   {
     class Inner {
       unsigned cnt = 0;
-      Map<unsigned, unsigned> _self;
+      Map<unsigned, unsigned, FnvHash> _self;
     public:
       unsigned get(unsigned var) 
       { return _self.getOrInit(std::move(var), [&](){ return cnt++; }); }

@@ -49,9 +49,9 @@ public:
   DArray<signed char>* check();
 
   static void addSortPredicates(bool withMon, ClauseList*& clauses, const DArray<bool>& del_f,
-    DHMap<unsigned,DArray<signed char>*>& monotonic_vampire_sorts, Stack<unsigned>& sort_predicates);
+    DHMap<unsigned,DArray<signed char>*, FnvHash, IdentityHash>& monotonic_vampire_sorts, Stack<unsigned>& sort_predicates);
   static void addSortFunctions(bool withMon, ClauseList*& clauses,
-    DHMap<unsigned,DArray<signed char>*>& monotonic_vampire_sorts, Stack<unsigned>& sort_functions);
+    DHMap<unsigned,DArray<signed char>*, FnvHash, IdentityHash>& monotonic_vampire_sorts, Stack<unsigned>& sort_functions);
 
 private:
   void monotone(Clause* c, Literal* l);
@@ -69,8 +69,8 @@ private:
   // the constructor computes the result
   bool _result;
 
-  DHMap<unsigned,SATLiteral> _pF;
-  DHMap<unsigned,SATLiteral> _pT;
+  DHMap<unsigned,SATLiteral, FnvHash, IdentityHash> _pF;
+  DHMap<unsigned,SATLiteral, FnvHash, IdentityHash> _pT;
 
   ScopedPtr<SATSolver> _solver;
 };

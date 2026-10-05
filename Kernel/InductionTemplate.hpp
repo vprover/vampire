@@ -39,7 +39,7 @@ struct InductionUnit
 {
   InductionUnit(TermStack&& F_terms, LiteralStack&& conditions = LiteralStack(), VStack&& condUnivVars = VStack());
 
-  void collectVariableSorts(const DHSet<unsigned>& sortVars, const TermStack& sorts, DHMap<unsigned,TermList>& varSorts) const;
+  void collectVariableSorts(const DHSet<unsigned, FnvHash, IdentityHash>& sortVars, const TermStack& sorts, DHMap<unsigned,TermList, FnvHash, IdentityHash>& varSorts) const;
 
   friend std::ostream& operator<<(std::ostream& out, const InductionUnit& u);
 

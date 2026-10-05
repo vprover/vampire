@@ -17,7 +17,8 @@
 #define __TermIndex__
 
 #include "Index.hpp"
-#include "TermIndexingStructure.hpp"
+#include "Indexing/CodeTreeInterfaces.hpp"
+#include "Indexing/TermSubstitutionTree.hpp"
 
 namespace Indexing {
 
@@ -32,17 +33,14 @@ public:
     auto uwa = opt.unificationWithAbstraction();
     auto fpi = opt.unificationWithAbstractionFixedPointIteration();
     if constexpr (higherOrder) {
-      return _is->getUwaHOL(t, uwa, fpi, opt.higherOrderUnifDepth());
+      return _is.getUwaHOL(t, uwa, fpi, opt.higherOrderUnifDepth(), opt.functionExtensionality()==Options::FunctionExtensionality::ABSTRACTION);
     } else {
-      return _is->getUwa(t, uwa, fpi);
+      return _is.getUwa(t, uwa, fpi, /*funcExt=*/false);
     }
   }
 
   VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getUnifications(TypedTermList t, bool retrieveSubstitutions = true)
-  { return _is->getUnifications(t, retrieveSubstitutions); }
-
-  VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getGeneralizations(TypedTermList t, bool retrieveSubstitutions = true)
-  { return _is->getGeneralizations(t, retrieveSubstitutions); }
+  { return _is.getUnifications(t, retrieveSubstitutions); }
 
   template<bool higherOrder>
   VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getInstances(TypedTermList t, bool retrieveSubstitutions = true)
@@ -50,23 +48,35 @@ public:
     if constexpr (higherOrder) {
       // TODO(HOL): implement proper higher-order matching here
       // we override retrieveSubstitutions because we need the substitution for the aftercheck
-      return pvi(iterTraits(_is->getInstances(t, /*retrieveSubstitutions=*/true))
+      return pvi(iterTraits(_is.getInstances(t, /*retrieveSubstitutions=*/true))
         .filter([t](auto qr) {
           return iterTraits(VariableIterator(t)).all([&qr](TermList var) {
             return !qr.unifier->applyToBoundQuery(var).containsLooseDBIndex();
           });
         }));
     } else {
-      return _is->getInstances(t, retrieveSubstitutions);
+      return _is.getInstances(t, retrieveSubstitutions);
     }
   }
 
   friend std::ostream& operator<<(std::ostream& out, TermIndex const& self)
   { return out << *self._is; }
 protected:
-  TermIndex(TermIndexingStructure<Data>* is) : _is(is) {}
+  TermSubstitutionTree<Data> _is;
+};
 
-  std::unique_ptr<TermIndexingStructure<Data>> _is;
+template<class Data>
+class GeneralizingTermIndex
+: public Index
+{
+public:
+  auto getGeneralizations(TypedTermList t) const
+  { return iterTraits(_ct.getGeneralizations(t)); }
+
+  friend std::ostream& operator<<(std::ostream& out, GeneralizingTermIndex const& self)
+  { return out << self._ct; }
+protected:
+  CodeTreeTIS<Data> _ct;
 };
 
 template<bool higherOrder>
@@ -94,37 +104,6 @@ private:
 };
 
 /**
- * Term index for backward demodulation
- */
-template<bool higherOrder>
-class DemodulationSubtermIndex
-: public TermIndex<TermLiteralClause>
-{
-public:
-  DemodulationSubtermIndex(SaturationAlgorithm& salg);
-protected:
-  void handleClause(Clause* c, bool adding) override;
-private:
-  const bool _skipNonequationalLiterals;
-};
-
-/**
- * Term index for forward demodulation
- */
-template<bool higherOrder>
-class DemodulationLHSIndex
-: public TermIndex<DemodulatorData>
-{
-public:
-  DemodulationLHSIndex(SaturationAlgorithm& salg);
-protected:
-  void handleClause(Clause* c, bool adding) override;
-private:
-  Ordering& _ord;
-  const bool _preordered;
-};
-
-/**
  * Term index for induction
  */
 class InductionTermIndex
@@ -142,7 +121,7 @@ private:
  * Term index for structural induction
  */
 class StructInductionTermIndex
-: public TermIndex<TermLiteralClause>
+: public GeneralizingTermIndex<TermLiteralClause>
 {
 public:
   StructInductionTermIndex(SaturationAlgorithm& salg);
@@ -150,14 +129,6 @@ protected:
   void handleClause(Clause* c, bool adding) override;
 private:
   const bool _inductionGroundOnly;
-};
-
-class SkolemisingFormulaIndex
-: public TermIndex<TermWithValue<TermList>>
-{
-public:
-  SkolemisingFormulaIndex(SaturationAlgorithm&);
-  void insertFormula(TermList formula, TermList skolem);
 };
 
 } // namespace Indexing

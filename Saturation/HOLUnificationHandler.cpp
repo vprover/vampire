@@ -184,7 +184,7 @@ std::pair<Literal*,Unit*> HOLUnificationHandler::introduceDefinition(Literal* li
 
   // 1. collect variable sorts
 
-  DHSet<unsigned> varsSeen;
+  DHSet<unsigned, FnvHash, IdentityHash> varsSeen;
   TermStack typeVars;
   Stack<std::pair<TermList, TermList>> termVars;
   TermStack termVarSorts;
@@ -208,12 +208,11 @@ std::pair<Literal*,Unit*> HOLUnificationHandler::introduceDefinition(Literal* li
 
     // 2.1. introduce function based on variables
 
-    auto f = env.signature->addFreshFunction(typeVars.size(), "hol_unif");
-    auto sym = env.signature->getFunction(f);
     SortHelper::normaliseArgSorts(typeVars, termVarSorts);
     auto srt = AtomicSort::arrowSort(termVarSorts, AtomicSort::boolSort(), /*fromTop=*/true);
     auto type = OperatorType::getConstantsType(srt, typeVars.size());
-    sym->setType(type);
+    auto sym = env.signature->addFreshFunction(type, "hol_unif");
+    auto f = sym->number();
 
     // 2.2. add definition
 
