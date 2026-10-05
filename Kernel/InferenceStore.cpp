@@ -24,7 +24,8 @@
 #include "Lib/ScopedPtr.hpp"
 
 #include "Shell/InferenceReplay.hpp"
-#include "Shell/InferenceRecorder.hpp"
+#include "Shell/ACReconstruction.hpp"
+#include "Shell/TPTPReplayAnnotations.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/UIHelper.hpp"
 #include "Shell/SMTCheck.hpp"
@@ -33,7 +34,6 @@
 
 #include "Saturation/Splitter.hpp"
 
-#include "SATSubsumption/SATSubsumptionAndResolution.hpp"
 
 
 #include "HOL/HOL.hpp"
@@ -53,8 +53,8 @@
 #include "Unit.hpp"
 
 #include <set>
-#include<string>
-#include<vector>
+#include <string>
+#include <vector>
 //TODO: when we delete clause, we should also delete all its records from the inference store
 
 namespace Kernel
@@ -450,140 +450,6 @@ protected:
   InferenceReplayer _replayer;
   bool _replay;
 
-  std::string forwardSubsumptionResolutionInfo(Unit* us)
-  {
-    if (us->inference().rule() != InferenceRule::FORWARD_SUBSUMPTION_RESOLUTION) {
-      return "";
-    }
-
-    auto parents = us->getParents();
-    if (!parents.hasNext()) {
-      return "";
-    }
-    Unit* simplifiedUnit = parents.next();
-    if (!simplifiedUnit->isClause() || !parents.hasNext()) {
-      return "";
-    }
-    Clause* simplified = simplifiedUnit->asClause();
-    Unit* sideUnit = parents.next();
-    if (!sideUnit->isClause()) {
-      return "";
-    }
-    Clause* side = sideUnit->asClause();
-    Clause* conclusion = us->asClause();
-
-    for (unsigned i = 0; i < simplified->length(); ++i) {
-      Literal* candidate = (*simplified)[i];
-      bool survives = false;
-      for (unsigned j = 0; j < conclusion->length(); ++j) {
-        if ((*conclusion)[j] == candidate) {
-          survives = true;
-          break;
-        }
-      }
-      if (!survives) {
-        //Reconstruct with SATSubsumption
-        SATSubsumption::SATSubsumptionAndResolution satSR;
-        if (!satSR.checkSubsumptionResolutionWithLiteral(side, simplified, i)) {
-          return "removed_literals(literal(" + tptpUnitId(simplified) + ',' + Int::toString(i) + "))";
-        }
-        auto subst = satSR.getBindingsForSubsumptionResolutionWithLiteral();
-
-        std::ostringstream res;
-        res << "unifier([subs(" << tptpUnitId(side) << ",[";
-        bool first = true;
-        for (auto [var, term] : iterTraits(subst.items())) {
-          if (!first) {
-            res << ',';
-          }
-          first = false;
-          res << "b(X" << var << ',' << term.toString() << ')';
-        }
-        res << "])])";
-        res << ",removed_literals(literal(" << tptpUnitId(simplified) << ',' << i << "))";
-        return res.str();
-      }
-    }
-    return "";
-  }
-
-  std::string replayedUnifier(Unit* us)
-  {
-    if (!_replay || !us->isClause()) {
-      return "";
-    }
-
-    // Forward subsumption resolution is a simplifying inference.  Replaying it
-    // mutates the replay algorithm's active index, whereas its certificate can
-    // be recovered directly from the original clauses.
-    std::string forwardSubsumptionInfo = forwardSubsumptionResolutionInfo(us);
-    if (!forwardSubsumptionInfo.empty()) {
-      return forwardSubsumptionInfo;
-    }
-
-    InferenceRecorder::instance()->setCurrentGoal(us->asClause());
-    _replayer.replayInference(us);
-    const auto* info = InferenceRecorder::instance()->getLastRecordedInferenceInformation();
-    if (!info) {
-      return "";
-    }
-
-    std::ostringstream res;
-    res << "unifier([";
-    for (unsigned bank = 0; bank < info->substitutionForBanksSub.size(); bank++) {
-      if (bank) {
-        res << ',';
-      }
-      res << "subs(";
-      if (bank < info->premises.size()) {
-        res << tptpUnitId(info->premises[bank]);
-      } else {
-        res << bank;
-      }
-      res << ",[";
-      auto subst = info->substitutionForBanksSub[bank];
-      bool first = true;
-      for (auto [var, term] : iterTraits(subst.items())) {
-        if (!first) {
-          res << ',';
-        }
-        first = false;
-        res << "b(X" << var << "," << term.toString() << ")";
-      }
-      res << "])";
-    }
-    res << "])";
-
-    if (!info->literalPositions.empty()) {
-      using PositionKind = InferenceRecorder::InferenceInformation::LiteralPositionKind;
-      switch (info->literalPositionKind) {
-      case PositionKind::REWRITTEN:
-        res << ",rewritten_literal(";
-        break;
-      case PositionKind::RESOLVED:
-        res << ",resolved_literals([";
-        break;
-      case PositionKind::REMOVED:
-        res << ",removed_literals(";
-        break;
-      case PositionKind::NONE:
-        ASSERTION_VIOLATION;
-      }
-
-      bool first = true;
-      for (const auto &position : info->literalPositions) {
-        if (!first) {
-          res << ',';
-        }
-        first = false;
-        res << "literal(" << tptpUnitId(info->premises[position.premiseIndex])
-            << ',' << position.literalIndex << ')';
-      }
-      res << (info->literalPositionKind == PositionKind::RESOLVED ? "])" : ")");
-    }
-    return res.str();
-  }
-
   std::string getRole(InferenceRule rule, UnitInputType origin)
   {
     if (isTheoryAxiomRule(rule)) {
@@ -690,6 +556,41 @@ protected:
       formulaStr=getQuantifiedStr(fu);
     }
     return formulaStr;
+  }
+
+  /** Print a clause in an explicitly supplied literal order, retaining the
+   * supplied literals' variable spelling and the final clause's AVATAR split
+   * context. */
+  std::string getClauseFormulaString(Unit* finalUnit,
+                                     const std::vector<Literal*>& literals)
+  {
+    ASS(finalUnit->isClause());
+    Set<unsigned, FnvHash> vars;
+    DHMap<unsigned,TermList, FnvHash, IdentityHash> varSorts;
+
+    std::string body;
+    if (literals.empty()) {
+      body = "$false";
+    } else {
+      for (unsigned i = 0; i < literals.size(); ++i) {
+        if (i) {
+          body += " | ";
+        }
+        body += literals[i]->toString();
+        SortHelper::collectVariableSorts(literals[i], varSorts);
+        TermVarIterator variables(literals[i]);
+        while (variables.hasNext()) {
+          vars.insert(variables.next());
+        }
+      }
+    }
+
+    std::string result = getQuantifiedStr(decltype(vars)::Iterator(vars), body, varSorts);
+    Clause* finalClause = finalUnit->asClause();
+    if (finalClause->splits() && !finalClause->splits()->isEmpty()) {
+      result += " | " + splitsToString(finalClause->splits());
+    }
+    return result;
   }
 
   bool hasNewSymbols(Unit* u) {
@@ -822,6 +723,7 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
     //get inference std::string
 
     std::string inferenceStr;
+    TPTPReplayAnnotations::ReplayAnnotation replay;
     if (rule==InferenceRule::INPUT) {
       std::string axiomName;
       std::filesystem::path axiomPath;
@@ -857,12 +759,26 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
 	      statusStr="status(cth)";
       }
 
-      std::string unifierStr = replayedUnifier(us);
-      if (!unifierStr.empty()) {
+      replay = TPTPReplayAnnotations::replayedUnifier(us, _replayer, _replay);
+      if (!replay.text.empty()) {
         if (!statusStr.empty()) {
           statusStr += ',';
         }
-        statusStr += unifierStr;
+        statusStr += replay.text;
+      }
+      std::string rectificationStr = TPTPReplayAnnotations::rectificationInfo(us, _replay);
+      if (!rectificationStr.empty()) {
+        if (!statusStr.empty()) {
+          statusStr += ',';
+        }
+        statusStr += rectificationStr;
+      }
+      std::string avatarSplitInstantiation = TPTPReplayAnnotations::avatarSplitInstantiationInfo(us);
+      if (!avatarSplitInstantiation.empty()) {
+        if (!statusStr.empty()) {
+          statusStr += ',';
+        }
+        statusStr += avatarSplitInstantiation;
       }
 
       inferenceStr="inference("+tptpRuleName(rule);
@@ -887,7 +803,21 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
       inferenceStr+="])";
     }
 
-    out<<getFofString(tptpUnitId(us), formulaStr, inferenceStr, rule, us->inputType())<<endl;
+    std::vector<Literal*> core = std::move(replay.naturalLiterals);
+    std::vector<unsigned> permutation;
+    bool hasBridge = env.options->proof() == Options::Proof::TSTP_AC &&
+                     ACReconstruction::clauseOrderBridge(us, rule, replay.information,
+                                                        core, permutation);
+    if (hasBridge) {
+      std::string coreId = tptpUnitId(us) + "_vh_" + tptpRuleName(rule);
+      out << getFofString(coreId, getClauseFormulaString(us, core), inferenceStr,
+                          rule, us->inputType()) << endl;
+      out << getFofString(tptpUnitId(us), formulaStr,
+                          ACReconstruction::acInference(coreId, permutation),
+                          rule, us->inputType()) << endl;
+    } else {
+      out<<getFofString(tptpUnitId(us), formulaStr, inferenceStr, rule, us->inputType())<<endl;
+    }
   }
 
   void printSATStep(SATClause *cl) override {
@@ -1809,6 +1739,7 @@ InferenceStore::ProofPrinter* InferenceStore::createProofPrinter(std::ostream& o
   case Options::Proof::PROOFCHECK:
     return new ProofCheckPrinter(out, this);
   case Options::Proof::TPTP:
+  case Options::Proof::TSTP_AC:
     return new TPTPProofPrinter(out, this);
   case Options::Proof::PROPERTY:
     return new ProofPropertyPrinter(out,this);

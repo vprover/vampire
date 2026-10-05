@@ -713,6 +713,10 @@ set(SOURCES
     Shell/GoalGuessing.hpp
     Shell/InequalitySplitting.cpp
     Shell/InequalitySplitting.hpp
+    Shell/ACReconstruction.cpp
+    Shell/ACReconstruction.hpp
+    Shell/TPTPReplayAnnotations.cpp
+    Shell/TPTPReplayAnnotations.hpp
     Shell/InferenceRecorder.cpp
     Shell/InferenceRecorder.hpp
     Shell/InferenceReplay.cpp

@@ -1285,13 +1285,14 @@ Options::Options ()
   , _replaceDomainElements("replace_domain_elements",this,false,
       {.description = "When printing a finite model, try hard to look for constants from the original formulation to use instead of domain elements.",
        .tag = OptionTag::OUTPUT})
-  , _proof("proof",this,Proof::ON,{"off","on","proofcheck","tptp","property","smt2_proofcheck","smtcheck"},
+  , _proof("proof",this,Proof::ON,{"off","on","proofcheck","tptp","property","smt2_proofcheck","smtcheck","tstp-ac"},
       {.short_name = "p",
        .description = "Specifies whether proof (or similar e.g. model/saturation) will be output and in which format:\n"
       "- off gives no proof output\n"
       "- on gives native Vampire proof output\n"
       "- proofcheck will output proof as a sequence of TPTP problems to allow for proof-checking by external solvers\n"
       "- tptp gives TPTP output\n"
+      "- tstp-ac gives TPTP output with explicit associativity_commutativity nodes for clause permutations; implies replay\n"
       "- property is a developmental option. It allows developers to output statistics about the proof using a ProofPrinter "
       "object (see Kernel/InferenceStore::ProofPropertyPrinter\n"
       "- smtcheck produces a ground SMT script for proof checking\n",
@@ -1299,14 +1300,20 @@ Options::Options ()
   , _replay("replay",this,false,
       {.description = "Replay supported proof inferences and include the recovered unifier in TPTP inference annotations.",
        .tag = OptionTag::OUTPUT})
+  , _skolemizationType("skolemization",this,SkolemizationType::STANDARD,{"standard","syntactic"},
+      {.short_name = "skt",
+       .description = "The method used for skolemisation. Standard uses Vampire's dependency analysis; "
+        "syntactic uses all enclosing universal quantifiers in scope order and may produce larger Skolem terms.",
+       .tag = OptionTag::PREPROCESSING})
   , _minimizeSatProofs("minimize_sat_proofs",this,true,
       {.short_name = "msp",
        .description = "Perform premise minimization when a sat solver finds a clause set UNSAT\n"
         "(such as with AVATAR proofs or with global subsumption).",
        .tag = OptionTag::OUTPUT})
-  , _proofExtra("proof_extra",this,ProofExtra::OFF,{"off","free","full"},
+  , _proofExtra("proof_extra",this,ProofExtra::OFF,{"off","free","avatar_split","full"},
       {.description = "Add extra detail to proofs:\n "
       "- free uses known information only\n"
+      "- avatar_split records the AVATAR split-definition data needed to recover post-rewrite variable instantiations in TPTP proofs\n"
       "- full may perform expensive operations to achieve this so may"
       " significantly impact on performance.\n"
       " The option is still under development and the format of extra information (mainly from full) may change between minor releases",
@@ -2157,7 +2164,7 @@ Options::Options ()
 
     _randomStrategySeed.reliesOn(_sampleStrategy.is(notEqual(std::string(""))));
     _proof.addHardConstraint(If(equal(Proof::SMTCHECK)).then(_proofExtra.is(equal(ProofExtra::FULL))));
-    _replay.onlyUsefulWith(_proof.is(equal(Proof::TPTP)));
+    _replay.onlyUsefulWith(Or(_proof.is(equal(Proof::TPTP)), _proof.is(equal(Proof::TSTP_AC))));
 
 #if VTIME_PROFILING
     _timeStatisticsFocus.onlyUsefulWith(_timeStatistics.is(equal(true)));

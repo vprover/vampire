@@ -35,6 +35,36 @@ InferenceRecorder *InferenceRecorder::instance()
   return _inst;
 }
 
+void InferenceRecorder::startRectifyRecording()
+{
+  _currentRectifyInference = std::make_unique<RectifyInferenceInformation>();
+}
+
+void InferenceRecorder::recordRectification(const std::vector<unsigned>& sourceBinders,
+                                            const std::vector<unsigned>& targetBinders,
+                                            const Substitution& renaming,
+                                            const std::set<unsigned>& removed)
+{
+  if (!_currentRectifyInference) {
+    return;
+  }
+  _currentRectifyInference->scopes.push_back({sourceBinders, targetBinders, renaming, removed});
+}
+
+void InferenceRecorder::endRectifyRecording(unsigned id)
+{
+  if (_currentRectifyInference) {
+    _rectifyInferences[id] = std::move(_currentRectifyInference);
+  }
+}
+
+const InferenceRecorder::RectifyInferenceInformation*
+InferenceRecorder::getRectifyInferenceInformation(unsigned id) const
+{
+  auto entry = _rectifyInferences.find(id);
+  return entry == _rectifyInferences.end() ? nullptr : entry->second.get();
+}
+
 void InferenceRecorder::populateSubstitutions(std::vector<Substitution> &substMap,
                                               const std::unordered_map<unsigned int, unsigned int> &varMap,
                                               const std::vector<Clause *> premises,

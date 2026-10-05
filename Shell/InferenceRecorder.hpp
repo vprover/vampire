@@ -5,11 +5,13 @@
 
 #include "Indexing/Index.hpp"
 #include "Kernel/Clause.hpp"
+#include "Kernel/Formula.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Shell/EqResWithDeletion.hpp"
 #include <memory>
+#include <set>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -40,6 +42,23 @@ public:
     std::vector<LiteralPosition> literalPositions;
   };
 
+  /** Rectification data is scoped to one quantifier. `renaming` maps a
+   * source-variable occurrence to the canonical source variable used after
+   * the binder order is normalized. This is the combined substitution used by
+   * LeanChecker's rectification proof. `sourceBinders` and `targetBinders`
+   * retain the concrete pre- and post-rectification binder orders, while
+   * `removed` contains vacuous source binders eliminated by rectification. */
+  class RectifyInferenceInformation {
+  public:
+    struct Scope {
+      std::vector<unsigned> sourceBinders;
+      std::vector<unsigned> targetBinders;
+      Kernel::Substitution renaming;
+      std::set<unsigned> removed;
+    };
+    std::vector<Scope> scopes;
+  };
+
   // Returns the singleton instance (lazily initialized, thread-safe)
   static InferenceRecorder *instance();
   // Optional: destroy the singleton (if you need controlled teardown)
@@ -63,6 +82,15 @@ public:
                            Kernel::Literal *rewrittenLit);
 
   void backwardDemodulation(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const SubstApplicator &appl);
+
+  void startRectifyRecording();
+  void recordRectification(const std::vector<unsigned>& sourceBinders,
+                           const std::vector<unsigned>& targetBinders,
+                           const Kernel::Substitution& renaming,
+                           const std::set<unsigned>& removed);
+  void endRectifyRecording(unsigned id);
+
+  const RectifyInferenceInformation* getRectifyInferenceInformation(unsigned id) const;
 
   //void unitResultingResolution(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Unit *> &premises, const std::vector<Indexing::ResultSubstitutionSP> &substitutions);
 
@@ -232,6 +260,8 @@ private:
 
   Kernel::Clause *_currentGoal = nullptr;
   std::unordered_map<unsigned int, std::unique_ptr<InferenceInformation>> _inferences;
+  std::unique_ptr<RectifyInferenceInformation> _currentRectifyInference;
+  std::unordered_map<unsigned, std::unique_ptr<RectifyInferenceInformation>> _rectifyInferences;
   unsigned int _lastInferenceId = 0;
   bool _hasLastInference = false;
 };

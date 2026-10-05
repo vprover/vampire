@@ -36,6 +36,8 @@
 #include "Rectify.hpp"
 #include "Skolem.hpp"
 
+#include <variant>
+
 using namespace std;
 using namespace Kernel;
 using namespace Shell;
@@ -81,6 +83,7 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
   _subst.reset();
   _varDeps.reset();
   _blockLookup.reset();
+  _universalScope.reset();
 
   Formula* f = unit->formula();
   preskolemise(f);
@@ -308,7 +311,17 @@ Formula* Skolem::skolemise (Formula* f)
 
   case FORALL:
     {
+      bool syntactic = env.options->skolemizationType() == Options::SkolemizationType::SYNTACTIC;
+      unsigned scopeSize = _universalScope.size();
+      if (syntactic) {
+        for (auto [var, sort] : iterTraits(f->vars()->iter())) {
+          _universalScope.push(var);
+        }
+      }
       Formula* g = skolemise(f->qarg());
+      while (_universalScope.size() > scopeSize) {
+        _universalScope.pop();
+      }
       // if we have something like
       // ![X : list(A)]: ...
       // then we may need to apply the substitution to A
@@ -375,9 +388,16 @@ Formula* Skolem::skolemise (Formula* f)
        * although perhaps only C occurs in "something", it's as if A occurred as well */
       depInfo.univ = dep;
 
-      auto vuIt = dep->iter();
-      while(vuIt.hasNext()) {
-        unsigned uvar = vuIt.next();
+      // Match leancheck: syntactic dependencies include every enclosing
+      // universal in outer-to-inner order, even if absent from this body.
+      using DependencyIterator = decltype(dep->iter());
+      using ScopeIterator = Stack<unsigned>::BottomFirstIterator;
+      std::variant<DependencyIterator, ScopeIterator> vuIt =
+        env.options->skolemizationType() == Options::SkolemizationType::SYNTACTIC
+          ? std::variant<DependencyIterator, ScopeIterator>{ScopeIterator(_universalScope)}
+          : std::variant<DependencyIterator, ScopeIterator>{dep->iter()};
+      while (std::visit([](auto& it) { return it.hasNext(); }, vuIt)) {
+        unsigned uvar = std::visit([](auto& it) { return it.next(); }, vuIt);
         TermList sort = _varSorts.get(uvar, AtomicSort::defaultSort());
         if(sort == AtomicSort::superSort()){
           //This a type variable
@@ -527,5 +547,4 @@ FormulaList* Skolem::skolemise (FormulaList* fs)
 
   return res;
 } // Skolem::skolemise
-
 

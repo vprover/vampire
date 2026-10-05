@@ -22,11 +22,17 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/SortHelper.hpp"
+#include "Kernel/Substitution.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
+#include "Shell/InferenceRecorder.hpp"
+#include "Shell/Options.hpp"
 
 #include "Rectify.hpp"
+
+#include <optional>
+#include <set>
 
 using namespace std;
 using namespace Shell;
@@ -92,12 +98,22 @@ FormulaUnit* Rectify::rectify (FormulaUnit* unit0, bool removeUnusedVars)
   Formula* f = unit->formula();
   Rectify rect;
   rect._removeUnusedVars = removeUnusedVars;
+  // Rectification happens during preprocessing, whereas `env.reconstruction`
+  // is enabled only later when the proof printer creates its inference
+  // replayer. Record from the user-facing replay option instead.
+  bool record = env.options && env.options->replay();
+  if (record) {
+    InferenceRecorder::instance()->startRectifyRecording();
+  }
   Formula* g = rect.rectify(f);
 
   VList* vars = rect._free;
 
   if (f != g) {
     unit = new FormulaUnit(g,FormulaClauseTransformation(InferenceRule::RECTIFY,unit));
+    if (record) {
+      InferenceRecorder::instance()->endRectifyRecording(unit->number());
+    }
   }
 
   // note that this only kicks in when rectifying formulas with free variables
@@ -434,14 +450,71 @@ Formula* Rectify::rectify (Formula* f)
     bindVars(f->vars());
     Formula* arg = rectify(f->qarg());
     VSList* vs = rectifyBoundVars(f->vars());
+    std::vector<unsigned> sourceBinders;
+    std::vector<unsigned> targetBinders;
+    std::optional<Substitution> rawRenaming;
+    std::optional<Substitution> combinedRenaming;
+    std::optional<std::set<unsigned>> removed;
+    if (env.options && env.options->replay()) {
+      rawRenaming.emplace();
+      combinedRenaming.emplace();
+      removed.emplace();
+      for (auto variableAndSort : iterTraits(f->vars()->iter())) {
+        unsigned variable = variableAndSort.first;
+        sourceBinders.push_back(variable);
+        auto [rectifiedVariable, used] = _renaming.getBoundAndUsage(variable);
+        rawRenaming->bind(variable, TermList::var(rectifiedVariable));
+        if (!used) {
+          removed->insert(variable);
+        }
+      }
+      if (VSList::isNonEmpty(vs)) {
+        for (auto variableAndSort : iterTraits(vs->iter())) {
+          targetBinders.push_back(variableAndSort.first);
+        }
+      }
+
+      // LeanChecker prints every quantifier prefix in variable-number order.
+      // This combined map is therefore not merely the fresh-name map: it also
+      // records the corresponding permutation of every body occurrence, such
+      // as occurrences below function symbols.
+      std::vector<unsigned> liveSourceBinders;
+      for (unsigned variable : sourceBinders) {
+        if (removed->find(variable) == removed->end()) {
+          liveSourceBinders.push_back(variable);
+        }
+      }
+      std::vector<unsigned> sortedTargetBinders = targetBinders;
+      std::sort(liveSourceBinders.begin(), liveSourceBinders.end());
+      std::sort(sortedTargetBinders.begin(), sortedTargetBinders.end());
+      ASS(liveSourceBinders.size() == sortedTargetBinders.size());
+      Substitution canonicalTarget;
+      for (unsigned i = 0; i < liveSourceBinders.size(); ++i) {
+        canonicalTarget.bind(sortedTargetBinders[i], TermList::var(liveSourceBinders[i]));
+      }
+      for (unsigned variable : sourceBinders) {
+        TermList rectified = rawRenaming->apply(variable);
+        ASS(rectified.isVar());
+        combinedRenaming->bind(variable, canonicalTarget.apply(rectified.var()));
+      }
+    }
     unbindVars(f->vars());
     if (vs == f->vars() && arg == f->qarg()) {
       return f;
     }
     if(VSList::isEmpty(vs)) {
+      if (env.options && env.options->replay()) {
+        InferenceRecorder::instance()->recordRectification(sourceBinders, targetBinders,
+                                                            *combinedRenaming, *removed);
+      }
       return arg;
     }
-    return new QuantifiedFormula(f->connective(),vs,arg);
+    Formula* result = new QuantifiedFormula(f->connective(),vs,arg);
+    if (env.options && env.options->replay()) {
+      InferenceRecorder::instance()->recordRectification(sourceBinders, targetBinders,
+                                                          *combinedRenaming, *removed);
+    }
+    return result;
   }
 
   case TRUE:

@@ -108,6 +108,9 @@ private:
   // (variable, new skolem term replacing the variable, new skolem functor)
   Stack<std::tuple<unsigned, Term*, unsigned>> _introducedSkolemSyms;
 
+  /** Enclosing universal binders in syntactic scope order. */
+  Stack<unsigned> _universalScope;
+
   FormulaUnit* _beingSkolemised;
 
   // to create one big inference after we are done

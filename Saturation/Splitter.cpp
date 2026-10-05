@@ -614,7 +614,8 @@ SATLiteral Splitter::getLiteralFromName(SplitLevel compName)
 std::string Splitter::getFormulaStringFromName(SplitLevel compName, bool negated)
 {
   if (splPrefix.empty()) {
-    if(env.options->proof()==Options::Proof::TPTP){
+    if(env.options->proof()==Options::Proof::TPTP ||
+       env.options->proof()==Options::Proof::TSTP_AC){
       unsigned spl = env.signature->addFreshPredicate(OperatorType::getPredicateType({}),"spl")->number();
       splPrefix = env.signature->predicateName(spl)+"_";
     }
@@ -1154,7 +1155,9 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
   Clause* compCl = Clause::fromIterator(arrayIter(lits, size),
           ComponentClauseInference(InferenceRule::AVATAR_COMPONENT,UnitList::singleton(def_u),orig));
 
-  if(posName == name && env.options->proofExtra() == Options::ProofExtra::FULL)
+  if(posName == name &&
+      (env.options->proofExtra() == Options::ProofExtra::FULL ||
+       env.options->proofExtra() == Options::ProofExtra::AVATAR_SPLIT))
     env.proofExtra.insert(def_u, new SplitDefinitionExtra(compCl));
 
   // propagate running sums:

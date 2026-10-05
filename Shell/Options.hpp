@@ -474,6 +474,7 @@ public:
   enum class ProofExtra : unsigned int {
     OFF,
     FREE,
+    AVATAR_SPLIT,
     FULL
   };
   enum class FMBSymbolOrders : unsigned int {
@@ -742,7 +743,13 @@ public:
     TPTP = 3,
     PROPERTY = 4,
     SMT2_PROOFCHECK = 5,
-    SMTCHECK = 6
+    SMTCHECK = 6,
+    TSTP_AC = 7
+  };
+
+  enum class SkolemizationType : unsigned int {
+    STANDARD = 0,
+    SYNTACTIC = 1,
   };
 
   /** Values for --equality_proxy */
@@ -1215,7 +1222,9 @@ public:
   Statistics statistics() const { return _statistics.actualValue; }
   void setStatistics(Statistics newVal) { _statistics.actualValue=newVal; }
   Proof proof() const { return _proof.actualValue; }
-  bool replay() const { return _replay.actualValue; }
+  // TSTP-AC needs replay to reconstruct the natural order of each inference.
+  bool replay() const { return _replay.actualValue || proof() == Proof::TSTP_AC; }
+  SkolemizationType skolemizationType() const { return _skolemizationType.actualValue; }
   bool minimizeSatProofs() const { return _minimizeSatProofs.actualValue; }
   ProofExtra proofExtra() const { return _proofExtra.actualValue; }
   bool traceback() const { return _traceback.actualValue; }
@@ -1825,6 +1834,7 @@ private:
   BoolOptionValue _replaceDomainElements;
   ChoiceOptionValue<Proof> _proof;
   BoolOptionValue _replay;
+  ChoiceOptionValue<SkolemizationType> _skolemizationType;
   BoolOptionValue _minimizeSatProofs;
   ChoiceOptionValue<ProofExtra> _proofExtra;
   BoolOptionValue _traceback;
