@@ -58,9 +58,22 @@ public:
 private:
   struct VariableIgnoringComparator;
 
-  typedef DHMap<unsigned, unsigned char, FnvHash, IdentityHash> VarCounts; // overflows allowed
+  /** occurrences of each variable, indexed by its number; hashed as unsigned char (overflows allowed) */
+  struct VarCounts {
+    Stack<unsigned> counts;
+    Stack<unsigned> seen;
+    void reset() {
+      for (unsigned v : iterTraits(seen.iter())) counts[v] = 0;
+      seen.reset();
+    }
+    void count(unsigned v) {
+      while (counts.size() <= v) counts.push(0);
+      if (counts[v]++ == 0) seen.push(v);
+    }
+    unsigned size() const { return seen.size(); }
+  };
 
-  unsigned termFunctorHash(Term* t, unsigned hash_begin) {
+  unsigned termFunctorHash(const Term* t, unsigned hash_begin) {
     unsigned func = t->functor();
     // std::cout << "will hash funtor " << func << std::endl;
     return FnvHash::hash(func, hash_begin);
@@ -69,12 +82,7 @@ private:
   unsigned computeHashAndCountVariables(unsigned var, VarCounts& varCnts, unsigned hash_begin) {
     const unsigned varHash = 1u;
 
-    unsigned char* pcnt;
-    if (varCnts.getValuePtr(var,pcnt)) {
-      *pcnt = 1;
-    } else {
-      (*pcnt)++;
-    }
+    varCnts.count(var);
 
     // std::cout << "will hash variable" << std::endl;
     return FnvHash::hash(varHash, hash_begin);

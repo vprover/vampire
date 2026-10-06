@@ -391,9 +391,8 @@ unsigned HashingClauseVariantIndex::computeHash(Literal* const * lits, unsigned 
   if (varCnts.size() > 0) {
     static Stack<unsigned char> varCntHistogram;
     varCntHistogram.reset();
-    VarCounts::Iterator it(varCnts);
-    while (it.hasNext()) {
-      varCntHistogram.push(it.next());
+    for (unsigned v : iterTraits(varCnts.seen.iter())) {
+      varCntHistogram.push(static_cast<unsigned char>(varCnts.counts[v]));
     }
 
     std::sort(varCntHistogram.begin(),varCntHistogram.end());
