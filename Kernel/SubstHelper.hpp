@@ -345,33 +345,31 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
     ASSERTION_VIOLATION;
   }
 
-  Recycled<Stack<TermList*>> toDo;
-  Recycled<Stack<Term*>> terms;
-  Recycled<Stack<bool>> modified;
-  Recycled<Stack<TermList>> args;
+  Scratch<std::tuple<Stack<TermList*>, Stack<Term*>, Stack<bool>, Stack<TermList>>> stacks;
+  auto& [toDo, terms, modified, args] = *stacks;
 
-  modified->push(false);
-  toDo->push(trm->args());
+  modified.push(false);
+  toDo.push(trm->args());
 
   for(;;) {
-    TermList* tt=toDo->pop();
+    TermList* tt=toDo.pop();
     if(tt->isEmpty()) {
-      if(terms->isEmpty()) {
+      if(terms.isEmpty()) {
         //we're done, args stack contains modified arguments
         //of the topleve term/literal.
-        ASS(toDo->isEmpty());
+        ASS(toDo.isEmpty());
         break;
       }
-      Term* orig=terms->pop();
-      if(!modified->pop()) {
-        args->truncate(args->length() - orig->arity());
-        args->push(TermList(orig));
+      Term* orig=terms.pop();
+      if(!modified.pop()) {
+        args.truncate(args.length() - orig->arity());
+        args.push(TermList(orig));
         continue;
       }
       //here we assume, that stack is an array with
       //second topmost element as &top()-1, third at
       //&top()-2, etc...
-      TermList* argLst=&args->top() - (orig->arity()-1);
+      TermList* argLst=&args.top() - (orig->arity()-1);
 
       bool shouldShare=!noSharing && canBeShared(argLst, orig->arity());
 
@@ -386,61 +384,61 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
       else {
         newTrm=Term::createNonShared(orig,argLst);
       }
-      args->truncate(args->length() - orig->arity());
-      args->push(TermList(newTrm));
+      args.truncate(args.length() - orig->arity());
+      args.push(TermList(newTrm));
 
-      modified->setTop(true);
+      modified.setTop(true);
       continue;
     }
-    toDo->push(tt->next());
+    toDo.push(tt->next());
 
     TermList tl=*tt;
     if(tl.isOrdinaryVar()) {
       TermList tDest=applicator.apply(tl.var());
-      args->push(tDest);
+      args.push(tDest);
       if(tDest!=tl) {
-        modified->setTop(true);
+        modified.setTop(true);
       }
       continue;
     }
     if(tl.isSpecialVar()) {
       TermList tDest=SpecVarHandler<ProcessSpecVars>::apply(applicator,tl.var());
-      args->push(tDest);
+      args.push(tDest);
       if(tDest!=tl) {
-        modified->setTop(true);
+        modified.setTop(true);
       }
       continue;
     }
     ASS(tl.isTerm());
     if(tl.isVar() || (tl.term()->shared() && tl.term()->ground())) {
-      args->push(tl);
+      args.push(tl);
       continue;
     }
     Term* t = tl.term();
     if(t->isSpecial()) {
       //we handle specal terms at the top level of this function
-      args->push(TermList(applyImpl<ProcessSpecVars>(t, applicator, noSharing)));
+      args.push(TermList(applyImpl<ProcessSpecVars>(t, applicator, noSharing)));
       continue;
     }
-    terms->push(t);
-    modified->push(false);
-    toDo->push(t->args());
+    terms.push(t);
+    modified.push(false);
+    toDo.push(t->args());
   }
-  ASS(toDo->isEmpty());
-  ASS(terms->isEmpty());
-  ASS_EQ(modified->length(),1);
-  ASS_EQ(args->length(),trm->arity());
+  ASS(toDo.isEmpty());
+  ASS(terms.isEmpty());
+  ASS_EQ(modified.length(),1);
+  ASS_EQ(args.length(),trm->arity());
 
   Term* result;
-  if(!modified->pop()) {
+  if(!modified.pop()) {
     result=trm;
   }
   else {
     //here we assume, that stack is an array with
     //second topmost element as &top()-1, third at
     //&top()-2, etc...
-    TermList* argLst=&args->top() - (trm->arity()-1);
-    ASS_EQ(args->size(), trm->arity());
+    TermList* argLst=&args.top() - (trm->arity()-1);
+    ASS_EQ(args.size(), trm->arity());
     if(trm->isLiteral()) {
       ASS(!noSharing);
       Literal* lit = static_cast<Literal*>(trm);
