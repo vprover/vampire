@@ -41,6 +41,11 @@ std::string rectificationInfo(Kernel::Unit* conclusion, bool replay);
 /** Recover argument instantiations following AVATAR-definition rewrites. */
 std::string avatarSplitInstantiationInfo(Kernel::Unit* conclusion);
 
+/** Literal-occurrence mapping and definition premises for a theory clause's
+ * SAT conversion. Ordinary, already-propositional conversions return empty. */
+std::string avatarConversionInfo(Kernel::Unit* origin);
+std::vector<Kernel::Unit*> avatarConversionDefinitions(Kernel::Unit* origin);
+
 } // namespace TPTPReplayAnnotations
 } // namespace Shell
 

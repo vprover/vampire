@@ -24,6 +24,8 @@
 #include "Lib/Hash.hpp"
 #include "Lib/Stack.hpp"
 #include "Lib/ScopedPtr.hpp"
+#include "Lib/ProofExtra.hpp"
+#include <vector>
 
 #include "Shell/Options.hpp"
 
@@ -63,6 +65,18 @@ struct SplitDefinitionExtra : public InferenceExtra {
     component->incRefCnt();
   }
   void output(std::ostream &out) const override;
+};
+
+/** Captured by Splitter while its SAT naming and definitions are live. */
+struct AvatarConversionExtra : Lib::InferenceExtra {
+  struct Mapping {
+    unsigned literalIndex;
+    unsigned avatarVariable;
+    bool positive;
+    Kernel::Unit* definition;
+  };
+  std::vector<Mapping> mappings;
+  void output(std::ostream& out) const override { out << "avatar_conversion_certificate"; }
 };
 
 class Splitter;
@@ -176,6 +190,7 @@ public:
   void init(SaturationAlgorithm* sa);
 
   bool doSplitting(Clause* cl);
+  void recordAvatarConversion(SAT::SATClause* conversion);
 
   void onClauseReduction(Clause* cl, ClauseIterator premises, Clause* replacement);
   void addPartialRedundancyEntry(SplitSet* splits, PartialRedundancyEntry* e);

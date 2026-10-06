@@ -221,6 +221,11 @@ struct InferenceStore::ProofPrinter
         ASS_NEQ(prem, next)
         todo.push_back(prem);
       }
+      if (env.options->proof() == Options::Proof::TSTP_AC) {
+        for (Unit* definition : TPTPReplayAnnotations::avatarConversionDefinitions(next)) {
+          todo.push_back(definition);
+        }
+      }
     }
   }  
   virtual ~ProofPrinter() {}
@@ -856,11 +861,19 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
       }
       break;
     }
-    case SAT::SATInference::FO_CONVERSION:
-      out
-        << "sat_conversion,[],[f"
-        << static_cast<FOConversionInference *>(inference)->getOrigin()->number();
+    case SAT::SATInference::FO_CONVERSION: {
+      Unit* origin = static_cast<FOConversionInference *>(inference)->getOrigin();
+      bool ac = env.options->proof() == Options::Proof::TSTP_AC;
+      out << "sat_conversion,[";
+      if (ac) { out << TPTPReplayAnnotations::avatarConversionInfo(origin); }
+      out << "],[f" << origin->number();
+      if (ac) {
+        for (Unit* definition : TPTPReplayAnnotations::avatarConversionDefinitions(origin)) {
+          out << ",f" << definition->number();
+        }
+      }
       break;
+    }
     }
     out << "])).\n";
   }

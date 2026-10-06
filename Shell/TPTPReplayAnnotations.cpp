@@ -16,17 +16,20 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/SharedSet.hpp"
 #include "Kernel/MLVariant.hpp"
+#include "Kernel/FormulaUnit.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
 #include "Saturation/Splitter.hpp"
 #include "Shell/InferenceReplay.hpp"
+#include "SAT/SATLiteral.hpp"
 
 #include <algorithm>
 #include <map>
 #include <set>
 #include <sstream>
 #include <unordered_map>
+#include <unordered_set>
 #include <utility>
 
 namespace Shell::TPTPReplayAnnotations {
@@ -37,6 +40,49 @@ using namespace Lib;
 static std::string tptpUnitId(Unit* unit)
 {
   return "f" + Int::toString(unit->number());
+}
+
+namespace {
+const Saturation::AvatarConversionExtra* avatarConversionExtra(Unit* origin)
+{
+  if (origin->inference().rule() != InferenceRule::THEORY_TAUTOLOGY_SAT_CONFLICT) {
+    return nullptr;
+  }
+  return static_cast<const Saturation::AvatarConversionExtra*>(env.proofExtra.find(origin));
+}
+
+} // namespace
+
+std::string avatarConversionInfo(Unit* origin)
+{
+  const auto* extra = avatarConversionExtra(origin);
+  if (!extra) { return ""; }
+  std::ostringstream out;
+  out << "avatar_map([";
+  bool first = true;
+  for (const auto& mapping : extra->mappings) {
+    if (!first) { out << ','; }
+    first = false;
+    SAT::SATLiteral positive(mapping.avatarVariable, true);
+    out << "map(literal(" << tptpUnitId(origin) << ',' << mapping.literalIndex << "),"
+        << (mapping.positive ? "positive(" : "negative(")
+        << Saturation::Splitter::getFormulaStringFromLiteral(positive) << "),"
+        << tptpUnitId(mapping.definition) << ')';
+  }
+  out << "])";
+  return out.str();
+}
+
+std::vector<Unit*> avatarConversionDefinitions(Unit* origin)
+{
+  std::vector<Unit*> definitions;
+  if (const auto* extra = avatarConversionExtra(origin)) {
+    std::unordered_set<Unit*> seen;
+    for (const auto& mapping : extra->mappings) {
+      if (seen.insert(mapping.definition).second) { definitions.push_back(mapping.definition); }
+    }
+  }
+  return definitions;
 }
 
 static ReplayAnnotation subsumptionResolutionInfo(Unit* us)
@@ -414,6 +460,17 @@ std::string avatarSplitInstantiationInfo(Unit* conclusion)
     if (definition->inference().rule() != InferenceRule::AVATAR_DEFINITION) {
       return "";
     }
+    // Ground definitions supply no arguments. In particular, a negative
+    // ground component may have no SplitDefinitionExtra: its definition is
+    // stored with the positive polarity. It must not prevent recovery of
+    // the variable arguments supplied by the other definitions.
+    if (!definition->isClause()) {
+      Formula* formula = static_cast<FormulaUnit*>(definition)->formula();
+      if (formula->connective() == IFF && formula->right()->connective() == LITERAL &&
+          formula->right()->literal()->ground()) {
+        continue;
+      }
+    }
     const auto* extra = env.proofExtra.find(definition);
     if (!extra) {
       return "";
@@ -435,6 +492,9 @@ std::string avatarSplitInstantiationInfo(Unit* conclusion)
 
   std::map<unsigned, AvatarSplitVariableTarget> instantiation;
   for (const auto& sourceComponent : avatarSplitComponents(original)) {
+    if (sourceComponent.size() == 1 && sourceComponent[0]->ground()) {
+      continue;
+    }
     bool matched = false;
     for (const auto& targetComponent : newComponents) {
       if (sourceComponent.size() != targetComponent.clause->length()) {

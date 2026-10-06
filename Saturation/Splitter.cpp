@@ -68,6 +68,30 @@ void SplitDefinitionExtra::output(std::ostream &out) const {
   out << component->number();
 }
 
+void Splitter::recordAvatarConversion(SAT::SATClause* conversion)
+{
+  if (getOptions().proofExtra() != Options::ProofExtra::AVATAR_SPLIT) { return; }
+  // Duplicate removal can wrap the original conversion in a propositional
+  // inference. Record against its FO origin, not the sorted SAT positions.
+  SAT::SATInference::visitFOConversions(conversion, [&](SAT::SATClause* converted) {
+    Unit* origin = converted->inference()->foConversion()->getOrigin();
+    if (!origin->isClause() ||
+        origin->inference().rule() != InferenceRule::THEORY_TAUTOLOGY_SAT_CONFLICT ||
+        env.proofExtra.find(origin)) { return; }
+    AvatarConversionExtra information;
+    Clause* clause = origin->asClause();
+    for (unsigned i = 0; i < clause->length(); ++i) {
+      // These literals have already been interned by SAT2FO::toSAT: looking
+      // them up again preserves the original SAT numbers and polarity.
+      auto literal = satNaming().toSAT((*clause)[i]);
+      Unit* definition = getDefinitionFromName(getNameFromLiteral(literal));
+      information.mappings.push_back({i, literal.var(), literal.positive(), definition});
+    }
+    env.proofExtra.insert(origin, new AvatarConversionExtra(std::move(information)));
+  });
+}
+
+
 /////////////////////////////
 // SplittingBranchSelector
 //
@@ -372,6 +396,7 @@ SAT::Status SplittingBranchSelector::processDPConflicts()
         unsatCore.reset();
         _dp->getUnsatCore(unsatCore, i);
         SATClause* conflCl = s2f.createConflictClause(unsatCore);
+        _parent.recordAvatarConversion(conflCl);
         _solver.addClause(conflCl);
       }
 
