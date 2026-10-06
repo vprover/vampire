@@ -101,45 +101,6 @@ bool VariableWithSortIterator::hasNext()
 ///////////////////////////////////////////
 
 
-/**
- * True if there exists next subterm
- */
-bool SubtermIterator::hasNext()
-{
-  if(_stack->isEmpty()) {
-    return false;
-  }
-  if(!_used) {
-    return true;
-  }
-  _used=false;
-  const TermList* t=_stack->pop();
-  pushNext(t->next());
-  if(t->isTerm()) {
-    pushNext(t->term()->args());
-  }
-  return !_stack->isEmpty();
-}
-
-/**
- * Skip subterms of the term just returned by the @b next function
- *
- * Must be called after the @b next function before the @b hasNext
- * function is called again.
- */
-void SubtermIterator::right()
-{
-  ASS(_stack->isNonEmpty());
-  ASS(_used);
-
-  _used=false;
-  const TermList* t=_stack->pop();
-  pushNext(t->next());
-
-  //we did here the same as in the hasNext function, we only didn't call
-  //the pushNext function on arguments of t
-}
-
 
 //////////////////////////////////////////////////////////////////////////
 ///                                                                    ///

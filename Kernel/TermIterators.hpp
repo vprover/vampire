@@ -228,31 +228,47 @@ class SubtermIterator
   : public IteratorCore<TermList>
 {
 public:
-  SubtermIterator(const Term* term) : _used(false)
-  {
-    pushNext(term->args());
-  }
+  SubtermIterator(const Term* term) : _current(term->args()), _used(false) {}
 
-  bool hasNext() override;
+  bool hasNext() override
+  {
+    if(_used) {
+      _used=false;
+      if(_current->isTerm()) {
+        pushNext(_current->next());
+        _current=_current->term()->args();
+      } else {
+        _current=_current->next();
+      }
+    }
+    while(_current->isEmpty()) {
+      if(_stack->isEmpty()) {
+        return false;
+      }
+      _current=_stack->pop();
+    }
+    return true;
+  }
   /** Return next subterm
    * @warning hasNext() must have been called before */
   TermList next() override
   {
-    ASS(!_used && !_stack->isEmpty());
+    ASS(!_used && !_current->isEmpty());
     _used=true;
-    return *_stack->top();
+    return *_current;
   }
 
   /**
    * Do not iterate subterms of the recently returned term (i.e. go right
    * rather than down in the term).
    */
-  void right();
-protected:
-  SubtermIterator() : _used(false)
-  { }
-
-  inline
+  void right()
+  {
+    ASS(_used);
+    _used=false;
+    _current=_current->next();
+  }
+private:
   void pushNext(const TermList* t)
   {
     if(!t->isEmpty()) {
@@ -260,6 +276,9 @@ protected:
     }
   }
 
+  /** the next subterm to return, or an empty list that the stack continues */
+  const TermList* _current;
+  /** the rest of argument lists still to visit */
   Recycled<Stack<const TermList*>> _stack;
   bool _used;
 };
