@@ -1292,7 +1292,7 @@ Options::Options ()
       "- on gives native Vampire proof output\n"
       "- proofcheck will output proof as a sequence of TPTP problems to allow for proof-checking by external solvers\n"
       "- tptp gives TPTP output\n"
-      "- tstp-ac gives TPTP output with explicit associativity_commutativity nodes for clause permutations; implies replay\n"
+      "- tstp-ac (also tptp-ac or tptp_ac) gives TPTP output with explicit associativity_commutativity nodes for clause permutations; implies replay\n"
       "- property is a developmental option. It allows developers to output statistics about the proof using a ProofPrinter "
       "object (see Kernel/InferenceStore::ProofPropertyPrinter\n"
       "- smtcheck produces a ground SMT script for proof checking\n",

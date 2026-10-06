@@ -1832,7 +1832,14 @@ private:
   StringOptionValue _printProofToFile;
   BoolOptionValue _printClausifierPremises;
   BoolOptionValue _replaceDomainElements;
-  ChoiceOptionValue<Proof> _proof;
+  struct ProofOptionValue : ChoiceOptionValue<Proof> {
+    using ChoiceOptionValue<Proof>::ChoiceOptionValue;
+    bool setValue(const std::string& value) override {
+      return ChoiceOptionValue<Proof>::setValue(
+          value == "tptp_ac" || value == "tptp-ac" ? "tstp-ac" : value);
+    }
+  };
+  ProofOptionValue _proof;
   BoolOptionValue _replay;
   ChoiceOptionValue<SkolemizationType> _skolemizationType;
   BoolOptionValue _minimizeSatProofs;
