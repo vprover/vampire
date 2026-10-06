@@ -152,7 +152,6 @@ struct BackwardDemodulation<higherOrder>::ResultFn
       }
     }
 
-    _removed->insert(qr.data->clause->number());
     Clause *replacement = Clause::fromStack(
       *resLits,
       SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, qr.data->clause, _cl)
@@ -160,8 +159,13 @@ struct BackwardDemodulation<higherOrder>::ResultFn
     if(env.options->proofExtra() == Options::ProofExtra::FULL)
       env.proofExtra.insert(replacement, new BackwardDemodulationExtra(lhs, lhsS));
     if(env.reconstruction){
-      Shell::InferenceRecorder::instance()->backwardDemodulation(replacement->number(), replacement, {qr.data->clause, _cl}, appl);
+      if (!Shell::InferenceRecorder::instance()->backwardDemodulation(
+            replacement->number(), replacement, {qr.data->clause, _cl}, appl, qr.data->literal, lhs, rhs)) {
+        replacement->destroy();
+        return BwSimplificationRecord(0);
+      }
     }
+    _removed->insert(qr.data->clause->number());
     return BwSimplificationRecord(qr.data->clause, replacement);
   }
 private:

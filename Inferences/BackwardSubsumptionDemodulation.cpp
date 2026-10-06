@@ -34,6 +34,7 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Shell/Statistics.hpp"
+#include "Shell/InferenceRecorder.hpp"
 
 #include "BackwardSubsumptionDemodulation.hpp"
 #include "SubsumptionDemodulationHelper.hpp"
@@ -629,6 +630,20 @@ isRedundant:
 
         replacement = Clause::fromStack(*resLits,
             SimplifyingInference2(InferenceRule::BACKWARD_SUBSUMPTION_DEMODULATION, mainCl, sideCl));
+        if (env.reconstruction) {
+          Substitution subst;
+          auto vars = sideCl->getVariableIterator();
+          while (vars.hasNext()) {
+            unsigned var = vars.next();
+            subst.bind(var, binder.applyTo(TermList::var(var)));
+          }
+          if (!Shell::InferenceRecorder::instance()->subsumptionDemodulation(
+                replacement, mainCl, sideCl, subst, eqLit, dlit, lhs, rhs)) {
+            replacement->destroy();
+            replacement = nullptr;
+            continue;
+          }
+        }
 
 #if BSD_LOG_INFERENCES
         std::cout << "\% Begin Inference \"BSD-" << replacement->number() << "\"\n";

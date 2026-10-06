@@ -14,6 +14,7 @@
 
 #include "Lib/DArray.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "Lib/Recycled.hpp"
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -27,6 +28,7 @@
 
 #include "Shell/AnswerLiteralManager.hpp"
 #include "Shell/Options.hpp"
+#include "Shell/InferenceRecorder.hpp"
 
 #include "URResolution.hpp"
 
@@ -41,13 +43,13 @@ using namespace Saturation;
 
 template<bool synthesis>
 URResolution<synthesis>::URResolution(SaturationAlgorithm& salg)
-: _full(salg.getOptions().unitResultingResolution() == Options::URResolution::FULL),
-  _emptyClauseOnly(salg.getOptions().unitResultingResolution() == Options::URResolution::EC_ONLY),
+: _full(env.reconstruction || salg.getOptions().unitResultingResolution() == Options::URResolution::FULL),
+  _emptyClauseOnly(!env.reconstruction && salg.getOptions().unitResultingResolution() == Options::URResolution::EC_ONLY),
   _selectedOnly(false),
   _unitIndex(salg.getGeneratingIndex<UnitIndexType>()),
   _nonUnitIndex(salg.getGeneratingIndex<NonUnitIndexType>())
 {
-  ASS_NEQ(salg.getOptions().unitResultingResolution(),  Options::URResolution::OFF);
+  ASS(env.reconstruction || salg.getOptions().unitResultingResolution() != Options::URResolution::OFF);
 }
 
 template<bool synthesis>
@@ -55,9 +57,24 @@ struct URResolution<synthesis>::Item
 {
   USE_ALLOCATOR(URResolution::Item);
 
+  struct ReplayData {
+    std::vector<unsigned> literalIndices;
+    std::vector<Clause*> premises;
+    std::vector<Substitution> substitutions;
+    std::vector<Shell::InferenceRecorder::InferenceInformation::LiteralPosition> positions;
+  };
+
+  Item(const Item& other)
+    : _mustResolveAll(other._mustResolveAll), _atMostOneNonGround(other._atMostOneNonGround),
+      _orig(other._orig), _color(other._color), _premises(other._premises), _lits(other._lits),
+      _replayData(other._replayData ? std::make_unique<ReplayData>(*other._replayData) : nullptr),
+      _ansLit(other._ansLit), _activeLength(other._activeLength), _parent(other._parent)
+  {}
+
   Item(Clause* cl, bool selectedOnly, URResolution& parent, bool mustResolveAll)
   : _orig(cl), _color(cl->color()), _parent(parent)
   {
+    if (env.reconstruction) { _replayData = std::make_unique<ReplayData>(); }
     unsigned clen = cl->length();
     _ansLit = synthesis ? cl->getAnswerLiteral() : nullptr;
     _mustResolveAll = mustResolveAll || (selectedOnly ? true : (clen < 2 + (_ansLit ? 1 : 0)));
@@ -69,9 +86,14 @@ struct URResolution<synthesis>::Item
       if(!(*cl)[i]->ground()) nonGroundCnt++;
       if ((*cl)[i] != _ansLit) {
         _lits.push((*cl)[i]);
+        if (env.reconstruction) { _replayData->literalIndices.push_back(i); }
       }
     }
     _atMostOneNonGround = nonGroundCnt<=1;
+    if (env.reconstruction) {
+      _replayData->premises.push_back(cl);
+      _replayData->substitutions.emplace_back();
+    }
 
     _activeLength = selectedOnly ? cl->numSelected() : litslen;
     ASS_REP2(_activeLength>=litslen-1, cl->toString(), cl->numSelected());
@@ -86,6 +108,32 @@ struct URResolution<synthesis>::Item
    */
   void resolveLiteral(unsigned idx, QueryRes<ResultSubstitutionSP, LiteralClause>& unif, Clause* premise, bool useQuerySubstitution)
   {
+    if (env.reconstruction) {
+      // Each index unifier maps the current aggregate and the new unit to
+      // one fresh bank. Carry every earlier parent's bindings into that bank.
+      for (unsigned bank = 0; bank < _replayData->premises.size(); ++bank) {
+        Substitution composed;
+        auto variables = _replayData->premises[bank]->getVariableIterator();
+        while (variables.hasNext()) {
+          unsigned variable = variables.next();
+          composed.bind(variable, unif.unifier->apply(_replayData->substitutions[bank].apply(variable),
+                                                     !useQuerySubstitution));
+        }
+        _replayData->substitutions[bank] = std::move(composed);
+      }
+      Substitution unitSubstitution;
+      auto variables = premise->getVariableIterator();
+      while (variables.hasNext()) {
+        unsigned variable = variables.next();
+        unitSubstitution.bind(variable, unif.unifier->apply(TermList::var(variable), useQuerySubstitution));
+      }
+      unsigned bank = _replayData->premises.size();
+      _replayData->premises.push_back(premise);
+      _replayData->substitutions.push_back(std::move(unitSubstitution));
+      _replayData->positions.push_back({0, _replayData->literalIndices[idx]});
+      _replayData->positions.push_back({bank, 0});
+    }
+
     Literal* rlit = _lits[idx];
     _lits[idx] = 0;
     _premises[idx] = premise;
@@ -154,15 +202,32 @@ struct URResolution<synthesis>::Item
     Inference inf(GeneratingInferenceMany(InferenceRule::UNIT_RESULTING_RESOLUTION, premLst));
     Clause* res;
 
+    Recycled<Renaming> normalization;
     LiteralIterator it = _ansLit ? pvi(getSingletonIterator(_ansLit)) : LiteralIterator::getEmpty();
     if(single) {
       if (!_ansLit || _ansLit->ground()) {
-        single = Renaming::normalize(single);
+        normalization->normalizeVariables(single);
+        single = normalization->apply(single);
       }
       res = Clause::fromIterator(concatIters(getSingletonIterator(single), std::move(it)), inf);
     }
     else {
       res = Clause::fromIterator(std::move(it), inf);
+    }
+    if (env.reconstruction) {
+      auto substitutions = _replayData->substitutions;
+      for (unsigned bank = 0; bank < _replayData->premises.size(); ++bank) {
+        auto variables = _replayData->premises[bank]->getVariableIterator();
+        while (variables.hasNext()) {
+          unsigned variable = variables.next();
+          substitutions[bank].rebind(variable, normalization->apply(substitutions[bank].apply(variable)));
+        }
+      }
+      if (!Shell::InferenceRecorder::instance()->unitResultingResolution(
+            res, _replayData->premises, substitutions, _replayData->positions)) {
+        res->destroy();
+        return nullptr;
+      }
     }
     return res;
   }
@@ -201,6 +266,7 @@ struct URResolution<synthesis>::Item
     }
     if(idx!=bestIdx) {
       swap(_lits[idx], _lits[bestIdx]);
+      if (env.reconstruction) { swap(_replayData->literalIndices[idx], _replayData->literalIndices[bestIdx]); }
     }
   }
 
@@ -223,6 +289,9 @@ struct URResolution<synthesis>::Item
    * The unresolved literals have the substitutions from other resolutions
    * applied to themselves */
   Stack<Literal*> _lits;
+
+  // Ordinary search items carry no replay payload.
+  std::unique_ptr<ReplayData> _replayData;
 
   Literal* _ansLit;
 
@@ -302,7 +371,8 @@ void URResolution<synthesis>::processAndGetClauses(Item* itm, unsigned startIdx,
 
   while(itms) {
     Item* itm = ItemList::pop(itms);
-    ClauseList::push(itm->generateClause(), acc);
+    Clause* result = itm->generateClause();
+    if (result) { ClauseList::push(result, acc); }
     delete itm;
   }
 }
@@ -344,6 +414,7 @@ void URResolution<synthesis>::doBackwardInferences(Clause* cl, ClauseList*& acc)
     }
     ASS(!_selectedOnly || pos<ucl->numSelected());
     swap(itm->_lits[0], itm->_lits[pos]);
+    if (env.reconstruction) { swap(itm->_replayData->literalIndices[0], itm->_replayData->literalIndices[pos]); }
     itm->resolveLiteral(0, unif, cl, /* useQuerySubstitution */ false);
 
     processAndGetClauses(itm, 1, acc);

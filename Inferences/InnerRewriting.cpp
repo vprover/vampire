@@ -18,6 +18,7 @@
 #include "Kernel/Clause.hpp"
 #include "Lib/Environment.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/InferenceRecorder.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 
 namespace Inferences {
@@ -66,7 +67,12 @@ Clause* InnerRewriting::simplify(Clause* cl)
               }
             }
 
-            return Clause::fromStack(*resLits,SimplifyingInference1(InferenceRule::INNER_REWRITING, cl));
+            auto result = Clause::fromStack(*resLits,SimplifyingInference1(InferenceRule::INNER_REWRITING, cl));
+            if (env.reconstruction && !Shell::InferenceRecorder::instance()->innerRewriting(result, cl, rwLit, lhs, rhs)) {
+              result->destroy();
+              continue;
+            }
+            return result;
           }
         }
       }

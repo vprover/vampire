@@ -76,6 +76,7 @@
 
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
 #include "SATSubsumptionAndResolution.hpp"
+#include "Shell/InferenceRecorder.hpp"
 
 #if PRINT_CLAUSES_SUBS
 #include <iostream>
@@ -829,7 +830,20 @@ Clause* SATSubsumptionAndResolution::generateConclusion(bool forward)
   }
   ASS_EQ(_n, _mainPremise->size())
   ASS(toRemove != INVALID)
-  return SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(_mainPremise, (*_mainPremise)[toRemove], _sidePremise, forward);
+  Clause* conclusion = getSubsumptionResolutionConclusion(_mainPremise, (*_mainPremise)[toRemove],
+                                                         _sidePremise, forward);
+  if (env.reconstruction) {
+    std::vector<Substitution> substitutions(2);
+    substitutions[1] = getBindingsForSubsumptionResolutionWithLiteral();
+    if (!Shell::InferenceRecorder::instance()->replayedInference(
+          conclusion, {_mainPremise, _sidePremise}, substitutions,
+          Shell::InferenceRecorder::InferenceInformation::LiteralPositionKind::REMOVED,
+          {{0, toRemove}})) {
+      conclusion->destroy();
+      return nullptr;
+    }
+  }
+  return conclusion;
 } // SATSubsumptionResolution::generateConclusion
 
 bool SATSubsumptionAndResolution::checkSubsumption(Clause* sidePremise,
@@ -883,6 +897,21 @@ Clause* SATSubsumptionAndResolution::checkSubsumptionResolution(Clause* sidePrem
 {
   ASS(sidePremise)
   ASS(mainPremise)
+  // Replay may need a different removed occurrence from the first SAT model.
+  // Reuse the fixed-literal solver rather than modify its constraints.
+  if (env.reconstruction) {
+    for (unsigned i = 0; i < mainPremise->length(); ++i) {
+      if (!checkSubsumptionResolutionWithLiteral(sidePremise, mainPremise, i)) {
+        continue;
+      }
+      _model.clear();
+      _solver.get_model(_model);
+      if (Clause* conclusion = generateConclusion(forward)) {
+        return conclusion;
+      }
+    }
+    return nullptr;
+  }
   if (usePreviousSetUp) {
     ASS(_sidePremise == sidePremise)
     ASS(_mainPremise == mainPremise)

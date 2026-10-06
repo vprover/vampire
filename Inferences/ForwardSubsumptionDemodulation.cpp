@@ -24,6 +24,7 @@
 #include "Kernel/Term.hpp"
 #include "Lib/ScopeGuard.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
+#include "Shell/InferenceRecorder.hpp"
 #include <vector>
 
 using namespace Kernel;
@@ -593,6 +594,20 @@ isRedundant:
               premises = pvi(getSingletonIterator(mcl));
               replacement = Clause::fromStack(*resLits,
                  SimplifyingInference2(InferenceRule::FORWARD_SUBSUMPTION_DEMODULATION, cl, mcl));
+              if (env.reconstruction) {
+                Substitution subst;
+                auto vars = mcl->getVariableIterator();
+                while (vars.hasNext()) {
+                  unsigned var = vars.next();
+                  subst.bind(var, binder.applyTo(TermList::var(var)));
+                }
+                if (!Shell::InferenceRecorder::instance()->subsumptionDemodulation(
+                      replacement, cl, mcl, subst, eqLit, dlit, lhs, rhs)) {
+                  replacement->destroy();
+                  replacement = nullptr;
+                  continue;
+                }
+              }
 
 #if FSD_LOG_INFERENCES
               std::cout << "\% Begin Inference \"FSD-" << replacement->number() << "\"\n";

@@ -274,7 +274,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
   _passive->removedEvent.subscribe(this, &SaturationAlgorithm::passiveRemovedHandler);
   _passive->selectedEvent.subscribe(this, &SaturationAlgorithm::onPassiveSelected);
 
-  if (opt.extensionalityResolution() != Options::ExtensionalityResolution::OFF) {
+  if (env.reconstruction || opt.extensionalityResolution() != Options::ExtensionalityResolution::OFF) {
     _extensionality = new ExtensionalityClauseContainer(opt);
     //_active->addedEvent.subscribe(_extensionality, &ExtensionalityClauseContainer::addIfExtensionality);
   }

@@ -20,6 +20,7 @@
 #include "Kernel/Matcher.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Shell/InferenceRecorder.hpp"
 
 #include "FastCondensation.hpp"
 
@@ -66,6 +67,16 @@ struct CondensationBinder
   }
   void specVar(unsigned var, TermList term)
   { ASSERTION_VIOLATION; }
+  Substitution substitution()
+  {
+    Substitution result;
+    auto it = bindings.items();
+    while (it.hasNext()) {
+      auto [var, term] = it.next();
+      ALWAYS(result.bind(var, term));
+    }
+    return result;
+  }
 private:
   DHMap<unsigned, int, FnvHash, IdentityHash>* varMap;
   DHMap<unsigned, TermList, FnvHash, IdentityHash> bindings;
@@ -127,7 +138,12 @@ Clause* FastCondensation<higherOrder>::simplify(Clause* cl)
           }
         }
  
-        return Clause::fromStack(*resLits, SimplifyingInference1(InferenceRule::CONDENSATION, cl));
+        Clause* result = Clause::fromStack(*resLits, SimplifyingInference1(InferenceRule::CONDENSATION, cl));
+        if (!env.reconstruction || Shell::InferenceRecorder::instance()->condensation(
+              result, cl, cbinder.substitution(), cIndex)) {
+          return result;
+        }
+        result->destroy();
       }
     }
   }

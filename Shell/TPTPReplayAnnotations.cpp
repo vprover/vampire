@@ -39,7 +39,7 @@ static std::string tptpUnitId(Unit* unit)
   return "f" + Int::toString(unit->number());
 }
 
-static ReplayAnnotation forwardSubsumptionResolutionInfo(Unit* us)
+static ReplayAnnotation subsumptionResolutionInfo(Unit* us)
 {
   if (us->inference().rule() != InferenceRule::FORWARD_SUBSUMPTION_RESOLUTION) {
     return {};
@@ -114,12 +114,12 @@ ReplayAnnotation replayedUnifier(Unit* us, InferenceReplayer& replayer, bool rep
     return {};
   }
 
-  // Forward subsumption resolution is a simplifying inference.  Replaying it
+  // Subsumption resolution is a simplifying inference. Replaying it
   // mutates the replay algorithm's active index, whereas its certificate can
   // be recovered directly from the original clauses.
-  ReplayAnnotation forwardSubsumptionInfo = forwardSubsumptionResolutionInfo(us);
-  if (!forwardSubsumptionInfo.text.empty()) {
-    return forwardSubsumptionInfo;
+  ReplayAnnotation subsumptionInfo = subsumptionResolutionInfo(us);
+  if (!subsumptionInfo.text.empty()) {
+    return subsumptionInfo;
   }
 
   InferenceRecorder::instance()->setCurrentGoal(us->asClause());
@@ -155,11 +155,41 @@ ReplayAnnotation replayedUnifier(Unit* us, InferenceReplayer& replayer, bool rep
   }
   res << "])";
 
+  if (!info->constraints.empty()) {
+    res << ",constraints([";
+    bool first = true;
+    for (Literal* literal : info->constraints) {
+      ASS(literal->isEquality() && literal->isNegative());
+      if (!first) { res << ','; }
+      first = false;
+      auto [left, right] = literal->eqArgs();
+      res << "disequality(" << literal->eqArgSort().toString() << ','
+          << left.toString() << ',' << right.toString() << ')';
+    }
+    res << "])";
+  }
+  auto printPosition = [&](const auto& position) {
+    res << "literal(" << tptpUnitId(info->premises[position.premiseIndex])
+        << ',' << position.literalIndex << ')';
+  };
+  if (info->hasRewrite) {
+    res << ",rewrite([equality(";
+    printPosition(info->rewriteEquality);
+    res << "),from(" << info->rewriteFrom.toString()
+        << "),to(" << info->rewriteTo.toString() << ")])";
+  }
+  if (us->inference().rule() == InferenceRule::FORWARD_LITERAL_REWRITING &&
+      !info->literalPositions.empty()) {
+    const auto& position = info->literalPositions[0];
+    res << ",rewritten_literal(literal(" << tptpUnitId(info->premises[position.premiseIndex])
+        << ',' << position.literalIndex << "))";
+  }
+
   if (!info->literalPositions.empty()) {
     using PositionKind = InferenceRecorder::InferenceInformation::LiteralPositionKind;
     switch (info->literalPositionKind) {
     case PositionKind::REWRITTEN:
-      res << ",rewritten_literal(";
+      res << (info->literalPositions.size() == 1 ? ",rewritten_literal(" : ",rewritten_literals([");
       break;
     case PositionKind::RESOLVED:
       res << ",resolved_literals([";
@@ -177,10 +207,11 @@ ReplayAnnotation replayedUnifier(Unit* us, InferenceReplayer& replayer, bool rep
         res << ',';
       }
       first = false;
-      res << "literal(" << tptpUnitId(info->premises[position.premiseIndex])
-          << ',' << position.literalIndex << ')';
+      printPosition(position);
     }
-    res << (info->literalPositionKind == PositionKind::RESOLVED ? "])" : ")");
+    bool list = info->literalPositionKind == PositionKind::RESOLVED ||
+                (info->literalPositionKind == PositionKind::REWRITTEN && info->literalPositions.size() != 1);
+    res << (list ? "])" : ")");
   }
   return {res.str(), info};
 }

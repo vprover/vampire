@@ -13,6 +13,7 @@
 #include "Kernel/Clause.hpp"
 #include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Matcher.hpp"
+#include "Kernel/SubstHelper.hpp"
 #include "Kernel/Unit.hpp"
 
 #include <algorithm>
@@ -106,12 +107,67 @@ bool clauseOrderBridge(Unit* conclusion, InferenceRule rule,
       }
       core.push_back(literal);
     }
+  } else if (rule == InferenceRule::CONDENSATION ||
+             rule == InferenceRule::SUBSUMPTION_EQUALITY_RESOLUTION ||
+             rule == InferenceRule::BACKWARD_SUBSUMPTION_RESOLUTION) {
+    unsigned parentCount = rule == InferenceRule::BACKWARD_SUBSUMPTION_RESOLUTION ? 2 : 1;
+    if (!information || information->premises.size() != parentCount ||
+        information->substitutionForBanksSub.size() != parentCount ||
+        information->literalPositionKind !=
+          InferenceRecorder::InferenceInformation::LiteralPositionKind::REMOVED ||
+        information->literalPositions.size() != 1 ||
+        information->literalPositions[0].premiseIndex != 0) {
+      return false;
+    }
+    Clause* parent = information->premises[0];
+    unsigned removed = information->literalPositions[0].literalIndex;
+    if (removed >= parent->length()) { return false; }
+    // General condensation moves its retained unified literal to the front.
+    // The proof rule instead instantiates the parent and removes one duplicate
+    // occurrence in place, preserving all other literal positions.
+    const auto& subst = information->substitutionForBanksSub[0];
+    for (unsigned i = 0; i < parent->length(); ++i) {
+      if (i != removed) { core.push_back(SubstHelper::apply((*parent)[i], subst)); }
+    }
+  } else if (rule == InferenceRule::EXTENSIONALITY_RESOLUTION ||
+             rule == InferenceRule::UNIT_RESULTING_RESOLUTION ||
+             rule == InferenceRule::CONSTRAINED_RESOLUTION ||
+             rule == InferenceRule::FORWARD_LITERAL_REWRITING) {
+    if (!information || information->literalPositionKind !=
+          InferenceRecorder::InferenceInformation::LiteralPositionKind::RESOLVED ||
+        information->premises.size() != information->substitutionForBanksSub.size()) { return false; }
+    core = information->constraints;
+    bool rewrite = rule == InferenceRule::FORWARD_LITERAL_REWRITING;
+    if (rewrite && (information->premises.size() != 2 ||
+                    information->literalPositions.size() != 2)) { return false; }
+    for (unsigned bank = 0; bank < information->premises.size(); ++bank) {
+      Clause* parent = information->premises[bank];
+      const auto& subst = information->substitutionForBanksSub[bank];
+      for (unsigned i = 0; i < parent->length(); ++i) {
+        bool removed = false;
+        for (const auto& position : information->literalPositions) {
+          if (position.premiseIndex == bank && position.literalIndex == i) { removed = true; break; }
+        }
+        if (rewrite && bank == 0 && removed) {
+          unsigned sideRemoved = information->literalPositions[1].literalIndex;
+          if (information->premises[1]->length() != 2 || sideRemoved >= 2) { return false; }
+          core.push_back(SubstHelper::apply((*information->premises[1])[1 - sideRemoved],
+                                          information->substitutionForBanksSub[1]));
+        } else if (!removed && (!rewrite || bank == 0)) {
+          core.push_back(SubstHelper::apply((*parent)[i], subst));
+        }
+      }
+    }
   } else {
     if (!information || !information->conclusion) {
       return false;
     }
-    for (Literal* literal : information->conclusion->iterLits()) {
-      core.push_back(literal);
+    if (!information->naturalLiterals.empty()) {
+      core = information->naturalLiterals;
+    } else {
+      for (Literal* literal : information->conclusion->iterLits()) {
+        core.push_back(literal);
+      }
     }
   }
 
@@ -121,7 +177,8 @@ bool clauseOrderBridge(Unit* conclusion, InferenceRule rule,
   // Move the rewritten literal back to its selected source position; the AC
   // node below then records the change back to Vampire's displayed order.
   if (information &&
-      (rule == InferenceRule::SUPERPOSITION || rule == InferenceRule::FORWARD_DEMODULATION) &&
+      (rule == InferenceRule::SUPERPOSITION || rule == InferenceRule::CONSTRAINED_SUPERPOSITION ||
+       rule == InferenceRule::FORWARD_DEMODULATION || rule == InferenceRule::BACKWARD_DEMODULATION) &&
       information->literalPositionKind ==
         InferenceRecorder::InferenceInformation::LiteralPositionKind::REWRITTEN &&
       information->literalPositions.size() == 1 &&

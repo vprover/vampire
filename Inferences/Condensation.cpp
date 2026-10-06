@@ -23,6 +23,7 @@
 #include "Kernel/RobSubstitution.hpp"
 
 #include "Indexing/LiteralMiniIndex.hpp"
+#include "Shell/InferenceRecorder.hpp"
 
 #include "Condensation.hpp"
 
@@ -122,7 +123,12 @@ Clause* Condensation::simplify(Clause* cl)
       }
 
       if(success) {
-        return Clause::fromArray(newLits.begin(), newLen, SimplifyingInference1(InferenceRule::CONDENSATION, cl));
+        Clause* result = Clause::fromArray(newLits.begin(), newLen, SimplifyingInference1(InferenceRule::CONDENSATION, cl));
+        if (!env.reconstruction || Shell::InferenceRecorder::instance()->condensation(
+              result, cl, *subst, l2Index)) {
+          return result;
+        }
+        result->destroy();
       }
     }
   }

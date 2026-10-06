@@ -425,7 +425,7 @@ struct InferenceStore::TPTPProofPrinter
 : public InferenceStore::ProofPrinter
 {
   TPTPProofPrinter(std::ostream& out, InferenceStore* is)
-  : ProofPrinter(out, is), _replayer(out), _replay(env.options->replay()) {
+  : ProofPrinter(out, is), _replay(env.options->replay()) {
     splitPrefix = Saturation::Splitter::splPrefix;
     if (_replay) {
       _replayer.makeInferenceEngine(this->_is->ordering);
@@ -1711,7 +1711,7 @@ struct InferenceStore::SMTCheckPrinter
 : public InferenceStore::ProofPrinter
 {
   SMTCheckPrinter(ostream& out, InferenceStore* is)
-  : ProofPrinter(out, is), _replayer(out) {
+  : ProofPrinter(out, is) {
     _replayer.makeInferenceEngine(this->_is->ordering);
     SMTCheck::replayer = &(this->_replayer);
   }

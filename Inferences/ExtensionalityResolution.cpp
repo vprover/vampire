@@ -26,6 +26,7 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Shell/Options.hpp"
+#include "Shell/InferenceRecorder.hpp"
 
 #include "ExtensionalityResolution.hpp"
 
@@ -221,7 +222,15 @@ Clause* ExtensionalityResolution::performExtensionalityResolution(
     }
   }
 
-  return Clause::fromStack(*resLits, GeneratingInference2(InferenceRule::EXTENSIONALITY_RESOLUTION, extCl, otherCl));
+  Clause* result = Clause::fromStack(*resLits, GeneratingInference2(InferenceRule::EXTENSIONALITY_RESOLUTION, extCl, otherCl));
+  if (env.reconstruction && !Shell::InferenceRecorder::instance()->replayedInference(
+        result, {extCl, otherCl}, *subst,
+        Shell::InferenceRecorder::InferenceInformation::LiteralPositionKind::RESOLVED,
+        {{0, extCl->getLiteralPosition(extLit)}, {1, otherCl->getLiteralPosition(otherLit)}})) {
+    result->destroy();
+    return nullptr;
+  }
+  return result;
 }
   
 /**

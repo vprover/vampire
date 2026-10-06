@@ -21,6 +21,7 @@
 #include "Kernel/SubstHelper.hpp"
 
 #include "SubsumptionEqualityResolution.hpp"
+#include "Shell/InferenceRecorder.hpp"
 
 namespace Inferences
 {
@@ -60,7 +61,15 @@ Clause* SubsumptionEqualityResolution::simplify(Clause* cl)
       }
       resLits->push(curr);
     }
-    return Clause::fromStack(*resLits, SimplifyingInference1(InferenceRule::SUBSUMPTION_EQUALITY_RESOLUTION, cl));
+    {
+      Clause* result = Clause::fromStack(*resLits, SimplifyingInference1(InferenceRule::SUBSUMPTION_EQUALITY_RESOLUTION, cl));
+      if (env.reconstruction && !Shell::InferenceRecorder::instance()->subsumptionEqualityResolution(
+            result, cl, unifier.subst, cl->getLiteralPosition(lit))) {
+        result->destroy();
+        continue;
+      }
+      return result;
+    }
 fail:
     continue;
   }

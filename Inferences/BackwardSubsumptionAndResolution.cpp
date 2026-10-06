@@ -30,6 +30,7 @@
 #include "Indexing/LiteralIndex.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 #include "Shell/Statistics.hpp"
+#include "Shell/InferenceRecorder.hpp"
 #include "BackwardSubsumptionAndResolution.hpp"
 
 namespace Inferences {
@@ -41,10 +42,10 @@ using namespace Saturation;
 
 template<bool higherOrder>
 BackwardSubsumptionAndResolution<higherOrder>::BackwardSubsumptionAndResolution(SaturationAlgorithm& salg)
-  : _subsumption(salg.getOptions().backwardSubsumption() != Options::Subsumption::OFF),
-    _subsumptionResolution(salg.getOptions().backwardSubsumptionResolution() != Options::Subsumption::OFF),
-    _subsumptionByUnitsOnly(salg.getOptions().backwardSubsumption() == Options::Subsumption::UNIT_ONLY),
-    _srByUnitsOnly(salg.getOptions().backwardSubsumptionResolution() == Options::Subsumption::UNIT_ONLY),
+  : _subsumption(!env.reconstruction && salg.getOptions().backwardSubsumption() != Options::Subsumption::OFF),
+    _subsumptionResolution(env.reconstruction || salg.getOptions().backwardSubsumptionResolution() != Options::Subsumption::OFF),
+    _subsumptionByUnitsOnly(!env.reconstruction && salg.getOptions().backwardSubsumption() == Options::Subsumption::UNIT_ONLY),
+    _srByUnitsOnly(!env.reconstruction && salg.getOptions().backwardSubsumptionResolution() == Options::Subsumption::UNIT_ONLY),
     _bwIndex(salg.getSimplifyingIndex<BackwardSubsumptionIndex>())
 {
   ASS(_subsumption || _subsumptionResolution);
@@ -66,7 +67,7 @@ void BackwardSubsumptionAndResolution<higherOrder>::perform(Clause *cl,
   // probability dropped as early as possible (saving also the SR checks); proper
   // subsumptions are never leaky (the same prob as for the forward variant; to be tuned)
   constexpr double RSI_SKIP_PROB = 0.02;
-  bool rsi = env.options->randomizedSimplifications();
+  bool rsi = !env.reconstruction && env.options->randomizedSimplifications();
 
   _checked.reset();
 
@@ -98,7 +99,7 @@ void BackwardSubsumptionAndResolution<higherOrder>::perform(Clause *cl,
       /***************************************************/
       /*      SUBSUMPTION RESOLUTION UNIT CLAUSE         */
       /***************************************************/
-      auto it = _bwIndex->getInstances<higherOrder>(lit, true, false);
+      auto it = _bwIndex->getInstances<higherOrder>(lit, true, env.reconstruction);
       while (it.hasNext()) {
         auto res = it.next();
         Clause *icl = res.data->clause;
@@ -109,6 +110,23 @@ void BackwardSubsumptionAndResolution<higherOrder>::perform(Clause *cl,
         }
         Clause *conclusion = SATSubsumption::SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(icl, res.data->literal, cl, /*forward=*/false);
         ASS(conclusion)
+        if (env.reconstruction) {
+          std::vector<Substitution> substitutions(2);
+          auto variables = cl->getVariableIterator();
+          while (variables.hasNext()) {
+            unsigned variable = variables.next();
+            substitutions[1].bind(variable, res.unifier->applyToBoundQuery(TermList::var(variable)));
+          }
+          if (!Shell::InferenceRecorder::instance()->replayedInference(
+                conclusion, {icl, cl}, substitutions,
+                Shell::InferenceRecorder::InferenceInformation::LiteralPositionKind::REMOVED,
+                {{0, icl->getLiteralPosition(res.data->literal)}})) {
+            conclusion->destroy();
+            _checked.remove(icl->number());
+            continue;
+          }
+        }
+
         List<BwSimplificationRecord>::push(BwSimplificationRecord(icl, conclusion), simplificationBuffer);
       }
     }

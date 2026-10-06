@@ -40,6 +40,12 @@ public:
     std::vector<Kernel::Substitution> substitutionForBanksSub;
     LiteralPositionKind literalPositionKind = LiteralPositionKind::NONE;
     std::vector<LiteralPosition> literalPositions;
+    std::vector<Kernel::Literal*> constraints;
+    std::vector<Kernel::Literal*> naturalLiterals;
+    bool hasRewrite = false;
+    LiteralPosition rewriteEquality{0, 0};
+    Kernel::TermList rewriteFrom;
+    Kernel::TermList rewriteTo;
   };
 
   /** Rectification data is scoped to one quantifier. `renaming` maps a
@@ -65,13 +71,49 @@ public:
   // static void destroyInstance();
 
   void resolution(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const Indexing::ResultSubstitutionSP &recordedSubst,
-                  Kernel::Literal *queryLit, Kernel::Literal *resultLit);
+                  Kernel::Literal *queryLit, Kernel::Literal *resultLit, unsigned constraintCount = 0);
 
   void superposition(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const Indexing::ResultSubstitutionSP &recordedSubst,
-                     bool eqIsResult, Kernel::Literal *rewrittenLit);
+                     bool eqIsResult, Kernel::Literal *rewrittenLit,
+                     Kernel::Literal* equality, Kernel::TermList from, Kernel::TermList to,
+                     unsigned constraintCount);
 
   void factoring(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const Indexing::RobSubstitution &recordedSubst,
                  Kernel::Literal *removedLit);
+
+  // Return whether this candidate reproduces the current proof goal. Replay
+  // must try further condensation candidates when the first one does not.
+  bool condensation(Kernel::Clause *conclusion, Kernel::Clause *premise,
+                    const Kernel::RobSubstitution &subst, unsigned removedIndex);
+  bool condensation(Kernel::Clause *conclusion, Kernel::Clause *premise,
+                    const Kernel::Substitution &subst, unsigned removedIndex);
+
+  /** Record a candidate produced by an inference engine. All substitutions use the
+   * original parent bank order and are translated to the printed conclusion. */
+  bool replayedInference(Kernel::Clause *conclusion,
+                        const std::vector<Kernel::Clause*>& premises,
+                        const Kernel::RobSubstitution& subst,
+                        InferenceInformation::LiteralPositionKind kind,
+                        std::vector<InferenceInformation::LiteralPosition> positions,
+                        const std::vector<Kernel::Literal*>& constraints = {});
+  bool replayedInference(Kernel::Clause *conclusion,
+                        const std::vector<Kernel::Clause*>& premises,
+                        const std::vector<Kernel::Substitution>& substitutions,
+                        InferenceInformation::LiteralPositionKind kind,
+                        std::vector<InferenceInformation::LiteralPosition> positions);
+
+  bool subsumptionEqualityResolution(Kernel::Clause* conclusion, Kernel::Clause* premise,
+                                     const Kernel::RobSubstitution& subst, unsigned removedIndex);
+  bool unitResultingResolution(Kernel::Clause* conclusion,
+                              const std::vector<Kernel::Clause*>& premises,
+                              const std::vector<Kernel::Substitution>& substitutions,
+                              std::vector<InferenceInformation::LiteralPosition> positions);
+
+  /** Complete a successful replay certificate with its rewrite.
+   * Terms are supplied in their original parent banks. */
+  void recordRewrite(InferenceInformation::LiteralPosition equality,
+                     Kernel::TermList from, unsigned fromBank,
+                     Kernel::TermList to, unsigned toBank);
 
   void equalityFactoring(unsigned id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const Indexing::RobSubstitution &recordedSubst );
   void equalityResolution(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const Indexing::RobSubstitution &recordedSubst);
@@ -81,7 +123,14 @@ public:
   void forwardDemodulation(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const SubstApplicator *appl, const Indexing::DemodulatorData *data,
                            Kernel::Literal *rewrittenLit);
 
-  void backwardDemodulation(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const SubstApplicator &appl);
+  bool backwardDemodulation(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const SubstApplicator &appl,
+                            Kernel::Literal* rewrittenLit, Kernel::TermList lhs, Kernel::TermList rhs);
+  bool subsumptionDemodulation(Kernel::Clause* conclusion, Kernel::Clause* main,
+                              Kernel::Clause* side, const Kernel::Substitution& subst,
+                              Kernel::Literal* equality, Kernel::Literal* rewrittenLit,
+                              Kernel::TermList lhs, Kernel::TermList rhs);
+  bool innerRewriting(Kernel::Clause* conclusion, Kernel::Clause* parent,
+                      Kernel::Literal* equality, Kernel::TermList lhs, Kernel::TermList rhs);
 
   void startRectifyRecording();
   void recordRectification(const std::vector<unsigned>& sourceBinders,
@@ -91,8 +140,6 @@ public:
   void endRectifyRecording(unsigned id);
 
   const RectifyInferenceInformation* getRectifyInferenceInformation(unsigned id) const;
-
-  //void unitResultingResolution(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Unit *> &premises, const std::vector<Indexing::ResultSubstitutionSP> &substitutions);
 
   void setCurrentGoal(Kernel::Clause *goal)
   {
@@ -121,6 +168,8 @@ public:
   
 private:
   InferenceRecorder();
+  void populateNaturalLiterals(InferenceInformation& info,
+                              const std::unordered_map<unsigned, unsigned>& varMap);
 
   static InferenceRecorder *_inst;
 
@@ -208,6 +257,7 @@ private:
       populateSubstitutionsGen<T>(info->substitutionForBanksSub, varMap, premises, recordedSubst, applyFunc);
       info->literalPositionKind = literalPositionKind;
       info->literalPositions = std::move(literalPositions);
+      populateNaturalLiterals(*info, varMap);
       _inferences[id] = std::move(info);
       _lastInferenceId = id;
       _hasLastInference = true;
@@ -230,6 +280,7 @@ private:
       populateSubstitutions(info->substitutionForBanksSub, varMap, premises, recordedSubst);
       info->literalPositionKind = literalPositionKind;
       info->literalPositions = std::move(literalPositions);
+      populateNaturalLiterals(*info, varMap);
       // for(auto& subst : info->substitutionForBanksSub){
       //	std::cout << subst << std::endl;
       // }

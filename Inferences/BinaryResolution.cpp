@@ -206,7 +206,9 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     }
   }
 
-  if (nConstraints == 0 && parRedHandler) {
+  // Replay reconstructs the inference, without consulting or modifying search
+  // redundancy data. Its splitter does not own the parents' AVATAR split levels.
+  if (nConstraints == 0 && parRedHandler && !env.reconstruction) {
     if (!parRedHandler->handleResolution(queryCl, queryLit, resultCl, resultLit, subs.ptr())) {
       return 0;
     }
@@ -231,7 +233,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     env.proofExtra.insert(cl, new BinaryResolutionExtra(queryLit, resultLit));
   }
   if(env.reconstruction){
-    Shell::InferenceRecorder::instance()->resolution(cl->number(), cl, {queryCl, resultCl}, subs, queryLit, resultLit);
+    Shell::InferenceRecorder::instance()->resolution(cl->number(), cl, {queryCl, resultCl}, subs, queryLit, resultLit, nConstraints);
   }
   return cl;
 }

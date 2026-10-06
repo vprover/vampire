@@ -316,7 +316,7 @@ Clause* Superposition<higherOrder>::performSuperposition(
   }
 
   const auto& parRedHandler = _salg.parRedHandler();
-  if (!unifier->usesUwa()) {
+  if (!env.reconstruction && !unifier->usesUwa()) {
     if (!parRedHandler.checkSuperposition(eqClause, eqLit, rwClause, rwLit, eqIsResult, subst.ptr())) {
       return 0;
     }
@@ -461,7 +461,8 @@ Clause* Superposition<higherOrder>::performSuperposition(
       eqClause, rwClause, rwTerm, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.ptr());
   }
 
-  res->loadFromIterator(unifier->computeConstraintLiterals()->iter());
+  auto constraints = unifier->computeConstraintLiterals();
+  res->loadFromIterator(constraints->iter());
 
   if(hasAgeLimitStrike && passiveClauseContainer->exceedsWeightLimit(weight, numPositiveLiteralsLowerBound, inf)) {
     RSTAT_CTR_INC("superpositions skipped for weight limit after the clause was built");
@@ -493,7 +494,8 @@ Clause* Superposition<higherOrder>::performSuperposition(
   } 
   if(env.reconstruction){
     Shell::InferenceRecorder* recorder = Shell::InferenceRecorder::instance();
-    recorder->superposition(clause->number(), clause, {rwClause, eqClause}, subst, eqIsResult, rwLit);
+    recorder->superposition(clause->number(), clause, {rwClause, eqClause}, subst, eqIsResult,
+                            rwLit, eqLit, rwTerm, tgtTerm, constraints->size());
   }
 
   return clause;
