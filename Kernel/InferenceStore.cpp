@@ -716,10 +716,6 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
     default: ;
     }
 
-    //get std::string representing the formula
-
-    std::string formulaStr=getFormulaString(us);
-
     //get inference std::string
 
     std::string inferenceStr;
@@ -803,20 +799,30 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
       inferenceStr+="])";
     }
 
-    std::vector<Literal*> core = std::move(replay.naturalLiterals);
+    printOrderedClause(us, rule, rule, inferenceStr, replay);
+  }
+
+  // Splitting has a custom inference/definition annotation, but must use the
+  // same creation-order bridge as the ordinary clause-printing path.
+  void printOrderedClause(Unit* us, InferenceRule orderRule, InferenceRule printedRule,
+                          const std::string& inferenceStr,
+                          const TPTPReplayAnnotations::ReplayAnnotation& replay = {})
+  {
+    std::vector<Literal*> core = replay.naturalLiterals;
     std::vector<unsigned> permutation;
     bool hasBridge = env.options->proof() == Options::Proof::TSTP_AC &&
-                     ACReconstruction::clauseOrderBridge(us, rule, replay.information,
+                     ACReconstruction::clauseOrderBridge(us, orderRule, replay.information,
                                                         core, permutation);
     if (hasBridge) {
-      std::string coreId = tptpUnitId(us) + "_vh_" + tptpRuleName(rule);
+      std::string coreId = tptpUnitId(us) + "_vh_" + tptpRuleName(printedRule);
       out << getFofString(coreId, getClauseFormulaString(us, core), inferenceStr,
-                          rule, us->inputType()) << endl;
-      out << getFofString(tptpUnitId(us), formulaStr,
+                          printedRule, us->inputType()) << endl;
+      out << getFofString(tptpUnitId(us), getFormulaString(us),
                           ACReconstruction::acInference(coreId, permutation),
-                          rule, us->inputType()) << endl;
+                          printedRule, us->inputType()) << endl;
     } else {
-      out<<getFofString(tptpUnitId(us), formulaStr, inferenceStr, rule, us->inputType())<<endl;
+      out << getFofString(tptpUnitId(us), getFormulaString(us), inferenceStr,
+                          printedRule, us->inputType()) << endl;
     }
   }
 
@@ -884,7 +890,7 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
     }
     inferenceStr+="])";
 
-    out<<getFofString(tptpUnitId(us), getFormulaString(us), inferenceStr, rule)<<endl;
+    printOrderedClause(us, rule, rule, inferenceStr);
   }
 
   void printGeneralSplittingComponent(Unit* us)
@@ -892,8 +898,6 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
     ASS(us->isClause());
 
     InferenceRule rule = us->inference().rule();
-    UnitIterator parents= us->getParents();
-    ASS(!parents.hasNext());
 
     Literal* nameLit=_is->_splittingNameLiterals.get(us->number()); //the name literal must always be stored
 
@@ -903,10 +907,6 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
     SortHelper::collectVariableSorts(us, t_map);
 
     std::string defId=tptpDefId(us);
-
-    out<<getFofString(tptpUnitId(us), getFormulaString(us),
-	    "inference("+tptpRuleName(InferenceRule::CLAUSIFY)+",[],["+defId+"])", InferenceRule::CLAUSIFY)<<endl;
-
 
     List<unsigned>* nameVars=0;
     VariableIterator vit(nameLit);
@@ -920,7 +920,13 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
     List<unsigned>* compOnlyVars=0;
     bool first=true;
     bool multiple=false;
-    for (Literal* lit : us->asClause()->iterLits()) {
+    std::vector<Literal*> componentLiterals;
+    std::vector<unsigned> permutation;
+    ACReconstruction::clauseOrderBridge(us, rule, nullptr, componentLiterals, permutation);
+    if (componentLiterals.size() != us->asClause()->length()) {
+      componentLiterals.assign(us->asClause()->begin(), us->asClause()->end());
+    }
+    for (Literal* lit : componentLiterals) {
       if (lit==nameLit) {
 	      continue;
       }
@@ -957,6 +963,8 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
 	      << "],[" << tptpRuleName(rule) << "])";
 
     out<<getFofString(defId, defStr, originStm.str(), rule)<<endl;
+    printOrderedClause(us, rule, InferenceRule::CLAUSIFY,
+        "inference("+tptpRuleName(InferenceRule::CLAUSIFY)+",[],["+defId+"])");
   }
 };
 

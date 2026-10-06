@@ -38,6 +38,7 @@
 #include "Statistics.hpp"
 
 #include "FunctionDefinition.hpp"
+#include "Shell/ACReconstruction.hpp"
 
 #include <algorithm>
 #if VDEBUG
@@ -740,6 +741,7 @@ Clause* FunctionDefinition::applyDefinitions(Clause* cl)
   auto res = Clause::fromStack(*resLits, NonspecificInferenceMany(InferenceRule::DEFINITION_UNFOLDING, premises));
   if(env.options->proofExtra() == Options::ProofExtra::FULL)
     env.proofExtra.insert(res, new FunctionDefinitionExtra(std::move(extra)));
+  ACReconstruction::recordPreprocessingOrder(res);
   res->setAge(cl->age()); // TODO isn't this dones automatically?
   return res;
 }

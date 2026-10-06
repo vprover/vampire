@@ -15,6 +15,8 @@
 #include "Kernel/Matcher.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Unit.hpp"
+#include "Shell/FunctionDefinition.hpp"
+#include "Shell/Options.hpp"
 
 #include <algorithm>
 #include <sstream>
@@ -26,6 +28,19 @@ namespace Shell::ACReconstruction {
 using namespace Kernel;
 
 namespace {
+
+struct PreprocessingOrderExtra : InferenceExtra {
+  std::vector<Literal*> literals;
+  explicit PreprocessingOrderExtra(Clause* clause) : literals(clause->begin(), clause->end()) {}
+  void output(std::ostream& out) const override {
+    out << "natural_order([";
+    for (unsigned i = 0; i < literals.size(); ++i) {
+      if (i) { out << ','; }
+      out << literals[i]->toString();
+    }
+    out << "])";
+  }
+};
 
 /**
  * The TSTP printer works with the final, selected form of a clause.  A
@@ -57,6 +72,22 @@ static bool sameLiteralOrSymmetry(Literal* source, Literal* target)
 
 } // namespace
 
+void recordPreprocessingOrder(Clause* clause)
+{
+  if (env.options->proof() != Options::Proof::TSTP_AC) { return; }
+  if (clause->inference().rule() == InferenceRule::DEFINITION_UNFOLDING) {
+    // Full proof-extra output already uses this slot for the definition LHSs.
+    // Extend that data instead of inserting a second extra for the same unit.
+    if (!env.proofExtra.find(clause)) {
+      env.proofExtra.insert(clause, new FunctionDefinitionExtra({}));
+    }
+    auto& extra = env.proofExtra.get<FunctionDefinitionExtra>(clause);
+    extra.naturalLiterals.assign(clause->begin(), clause->end());
+  } else {
+    env.proofExtra.insert(clause, new PreprocessingOrderExtra(clause));
+  }
+}
+
 /**
  * Build the core literal order and the occurrence permutation from that core
  * to the printed conclusion.  Every source occurrence is consumed exactly
@@ -71,7 +102,15 @@ bool clauseOrderBridge(Unit* conclusion, InferenceRule rule,
     return false;
   }
 
-  if (rule == InferenceRule::FORWARD_SUBSUMPTION_RESOLUTION) {
+  if (rule == InferenceRule::GENERAL_SPLITTING || rule == InferenceRule::GENERAL_SPLITTING_COMPONENT ||
+      rule == InferenceRule::INEQUALITY_SPLITTING || rule == InferenceRule::EQUALITY_PROXY_REPLACEMENT ||
+      rule == InferenceRule::DEFINITION_UNFOLDING || rule == InferenceRule::EQUALITY_PROXY_AXIOM) {
+    const auto* extra = env.proofExtra.find(conclusion);
+    if (!extra) { return false; }
+    core = rule == InferenceRule::DEFINITION_UNFOLDING
+      ? static_cast<const FunctionDefinitionExtra*>(extra)->naturalLiterals
+      : static_cast<const PreprocessingOrderExtra*>(extra)->literals;
+  } else if (rule == InferenceRule::FORWARD_SUBSUMPTION_RESOLUTION) {
     // The direct certificate recovery supplied the main parent with its
     // selected occurrence deleted, preserving all other parent positions.
     if (core.empty()) {

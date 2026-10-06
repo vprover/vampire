@@ -19,6 +19,10 @@
 
 namespace Shell::ACReconstruction {
 
+/** Capture the natural result at a preprocessing inference's creation site.
+ * Only AC proof mode records this data; there is no general Clause hook. */
+void recordPreprocessingOrder(Kernel::Clause* clause);
+
 /**
  * Reconstruct the natural clause and its occurrence permutation to the
  * displayed conclusion. For forward subsumption resolution, core must contain

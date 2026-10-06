@@ -30,6 +30,7 @@
 #include "Kernel/Unit.hpp"
 
 #include "EqualityProxy.hpp"
+#include "Shell/ACReconstruction.hpp"
 
 using namespace Shell;
 using namespace std;
@@ -332,6 +333,7 @@ Clause* EqualityProxy::apply(Clause* cl)
     res = Clause::fromStack(*resLits,
         NonspecificInferenceMany(InferenceRule::EQUALITY_PROXY_REPLACEMENT, prems));
   }
+  ACReconstruction::recordPreprocessingOrder(res);
   // TODO isn't this done automatically
   res->setAge(cl->age()); // MS: this seems useless; as long as EqualityProxy is only operating as a part of preprocessing, age is going to 0 anyway
 
@@ -457,7 +459,9 @@ Clause* EqualityProxy::createEqProxyAxiom(const LiteralStack& literalStack)
 {
   if (_poly) {
     ASS(_defUnit);
-    return Clause::fromStack(literalStack, NonspecificInference1(InferenceRule::EQUALITY_PROXY_AXIOM,_defUnit));
+    auto res = Clause::fromStack(literalStack, NonspecificInference1(InferenceRule::EQUALITY_PROXY_AXIOM,_defUnit));
+    ACReconstruction::recordPreprocessingOrder(res);
+    return res;
   }
 
   DHSet<Unit*, UnitHash, UnitNumberHash> seen;
@@ -473,6 +477,7 @@ Clause* EqualityProxy::createEqProxyAxiom(const LiteralStack& literalStack)
   }
   ASS(prems);
   Clause* res = Clause::fromStack(literalStack,NonspecificInferenceMany(InferenceRule::EQUALITY_PROXY_AXIOM,prems));
+  ACReconstruction::recordPreprocessingOrder(res);
   return res;
 } // EqualityProxy::createEqProxyAxiom
 

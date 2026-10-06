@@ -27,6 +27,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
+#include "Shell/ACReconstruction.hpp"
 
 namespace Shell
 {
@@ -244,12 +245,14 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
   otherLits.push(nnLit);
 
   Clause* mdvCl=Clause::fromStack(mdvLits, NonspecificInference0(cl->inputType(),InferenceRule::GENERAL_SPLITTING_COMPONENT));
+  ACReconstruction::recordPreprocessingOrder(mdvCl);
   mdvCl->setAge(cl->age());
   UnitList::push(mdvCl, resultStack);
 
   InferenceStore::instance()->recordSplittingNameLiteral(mdvCl, pnLit);
 
   Clause* otherCl=Clause::fromStack(otherLits, NonspecificInference2(InferenceRule::GENERAL_SPLITTING, cl, mdvCl));
+  ACReconstruction::recordPreprocessingOrder(otherCl);
   otherCl->setAge(cl->age());
 
   cl=otherCl;

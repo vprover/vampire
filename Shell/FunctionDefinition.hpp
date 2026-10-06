@@ -31,6 +31,7 @@
 #include "Lib/ProofExtra.hpp"
 #include "Lib/Stack.hpp"
 #include "Kernel/Unit.hpp"
+#include <vector>
 
 namespace Shell {
 
@@ -108,6 +109,7 @@ private:
 
 struct FunctionDefinitionExtra : public InferenceExtra {
   std::vector<Term *> lhs;
+  std::vector<Literal*> naturalLiterals;
   FunctionDefinitionExtra(std::vector<Term *> lhs) : lhs(lhs) {}
   void output(std::ostream &out) const override;
 };
