@@ -774,6 +774,11 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
         }
         statusStr += rectificationStr;
       }
+      std::string clausificationStr = TPTPReplayAnnotations::clausificationInfo(us, _replay);
+      if (!clausificationStr.empty()) {
+        if (!statusStr.empty()) { statusStr += ','; }
+        statusStr += clausificationStr;
+      }
       std::string avatarSplitInstantiation = TPTPReplayAnnotations::avatarSplitInstantiationInfo(us);
       if (!avatarSplitInstantiation.empty()) {
         if (!statusStr.empty()) {

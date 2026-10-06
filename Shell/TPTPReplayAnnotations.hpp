@@ -38,6 +38,10 @@ ReplayAnnotation replayedUnifier(Kernel::Unit* conclusion,
 /** Format the recorded scoped rectification data when replay is enabled. */
 std::string rectificationInfo(Kernel::Unit* conclusion, bool replay);
 
+/** Print the captured binder mapping and final occurrence permutation and
+ * equality orientations. No clausification or variable matching is replayed. */
+std::string clausificationInfo(Kernel::Unit* conclusion, bool replay);
+
 /** Recover argument instantiations following AVATAR-definition rewrites. */
 std::string avatarSplitInstantiationInfo(Kernel::Unit* conclusion);
 

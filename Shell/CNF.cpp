@@ -20,9 +20,80 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/FormulaUnit.hpp"
 #include "CNF.hpp"
+#include "Shell/Options.hpp"
+#include "Kernel/TermIterators.hpp"
+#include "Lib/Environment.hpp"
+#include <set>
 
 using namespace Kernel;
 using namespace Shell;
+
+namespace {
+// Index a clause-shaped parent in its printed order. This only enumerates
+// existing literal occurrences; old CNF preserves their variable identifiers.
+// Formula::toString prints junction arguments in reverse list order.
+bool clauseFormula(Formula* formula, std::vector<std::pair<Literal*, bool>>& literals)
+{
+  if (formula->connective() == LITERAL) {
+    literals.emplace_back(formula->literal(), static_cast<AtomicFormula*>(formula)->flipForPrinting);
+    return true;
+  }
+  if (formula->connective() == FALSE) { return true; }
+  if (formula->connective() != OR) { return false; }
+  std::vector<Formula*> args;
+  FormulaList::Iterator it(formula->args());
+  while (it.hasNext()) { args.push_back(it.next()); }
+  for (auto it = args.rbegin(); it != args.rend(); ++it) {
+    if (!clauseFormula(*it, literals)) { return false; }
+  }
+  return true;
+}
+
+} // namespace
+
+void CNF::recordClausification(Clause* conclusion)
+{
+  if (env.options->proofExtra() != Options::ProofExtra::AVATAR_SPLIT) { return; }
+  Formula* formula = _unit->formula();
+  std::vector<unsigned> binders;
+  std::set<unsigned> seen;
+  while (formula->connective() == FORALL) {
+    VSList::Iterator variables(formula->vars());
+    while (variables.hasNext()) {
+      unsigned variable = variables.next().first;
+      if (!seen.insert(variable).second) { return; }
+      binders.push_back(variable);
+    }
+    formula = formula->qarg();
+  }
+  std::vector<std::pair<Literal*, bool>> source;
+  if (!clauseFormula(formula, source) || source.size() != conclusion->length()) { return; }
+  for (auto [literal, flipped] : source) {
+    VariableIterator variables(literal);
+    while (variables.hasNext()) {
+      unsigned variable = variables.next().var();
+      if (seen.insert(variable).second) { binders.push_back(variable); }
+    }
+  }
+  std::set<unsigned> targetVariables;
+  for (Literal* literal : conclusion->iterLits()) {
+    VariableIterator variables(literal);
+    while (variables.hasNext()) { targetVariables.insert(variables.next().var()); }
+  }
+  ClausificationExtra information;
+  for (unsigned variable : binders) {
+    // CNF drops universal binders without renaming their variables. Vacuous
+    // binders have no corresponding conclusion variable.
+    if (!targetVariables.contains(variable)) { return; }
+    information.binders.emplace_back(variable, variable);
+  }
+  for (auto [literal, flipped] : source) {
+    // Old CNF keeps the literal and its variable identifiers unchanged.
+    // Its parent may print an input equality in its original orientation.
+    information.occurrences.push_back({literal, literal->isEquality() && flipped});
+  }
+  env.proofExtra.insert(conclusion, new ClausificationExtra(std::move(information)));
+}
 
 /**
  * Initialise the CNF object.
@@ -54,7 +125,9 @@ void CNF::clausify (Unit* unit,Stack<Clause*>& stack)
     return;
   case FALSE:
     {
-      stack.push(Clause::empty(FormulaClauseTransformation(InferenceRule::CLAUSIFY,unit)));
+      Clause* clause = Clause::empty(FormulaClauseTransformation(InferenceRule::CLAUSIFY,unit));
+      recordClausification(clause);
+      stack.push(clause);
     }
     return;
   default:
@@ -161,8 +234,10 @@ void CNF::clausify(Formula* f)
           _literals.push(f->literal());
           if (_formulas.isEmpty()) {
             // collect the clause
-            _result->push(Clause::fromStack(_literals,
-                FormulaClauseTransformation(InferenceRule::CLAUSIFY,_unit)));
+            Clause* clause = Clause::fromStack(_literals,
+                FormulaClauseTransformation(InferenceRule::CLAUSIFY,_unit));
+            recordClausification(clause);
+            _result->push(clause);
             _literals.pop();
           }
           else {

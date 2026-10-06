@@ -18,6 +18,9 @@
 #define __CNF__
 
 #include "Lib/Stack.hpp"
+#include "Lib/ProofExtra.hpp"
+#include <utility>
+#include <vector>
 
 namespace Kernel {
   class Formula;
@@ -32,6 +35,18 @@ using namespace Kernel;
 
 namespace Shell {
 
+/** Captured by CNF before selection changes literal order. Occurrences
+ * follow the printed parent and retain its equality orientations. */
+struct ClausificationExtra : Lib::InferenceExtra {
+  struct Occurrence {
+    Kernel::Literal* instantiated;
+    bool flipped;
+  };
+  std::vector<std::pair<unsigned, unsigned>> binders;
+  std::vector<Occurrence> occurrences;
+  void output(std::ostream& out) const override { out << "clausification_certificate"; }
+};
+
 /**
  * Class implementing the CNF transformation.
  * @since 19/01/2004 Manchester
@@ -43,6 +58,7 @@ public:
   void clausify (Unit*,Stack<Clause*>& stack);
 private:
   void clausify(Formula*);
+  void recordClausification(Clause* conclusion);
   // the original recurisive version (for documentation and reference)
   // void clausify_rec(Formula*);
   /** The unit currently being processed */

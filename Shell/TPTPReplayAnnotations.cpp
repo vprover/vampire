@@ -9,6 +9,7 @@
  */
 
 #include "TPTPReplayAnnotations.hpp"
+#include "CNF.hpp"
 
 #include "Debug/Assertion.hpp"
 #include "Lib/Environment.hpp"
@@ -51,7 +52,62 @@ const Saturation::AvatarConversionExtra* avatarConversionExtra(Unit* origin)
   return static_cast<const Saturation::AvatarConversionExtra*>(env.proofExtra.find(origin));
 }
 
+bool reversedEquality(Literal* source, Literal* target)
+{
+  return source->isEquality() && target->isEquality() && source->header() == target->header() &&
+    source->eqArgSort() == target->eqArgSort() &&
+    source->nthArgument(0)->sameContent(*target->nthArgument(1)) &&
+    source->nthArgument(1)->sameContent(*target->nthArgument(0));
+}
 } // namespace
+
+std::string clausificationInfo(Unit* conclusion, bool replay)
+{
+  if (!replay || !conclusion->isClause() || conclusion->inference().rule() != InferenceRule::CLAUSIFY) { return ""; }
+  const auto* stored = env.proofExtra.find(conclusion);
+  if (!stored) { return ""; }
+  const auto* extra = static_cast<const ClausificationExtra*>(stored);
+  Clause* clause = conclusion->asClause();
+  if (clause->length() != extra->occurrences.size()) { return ""; }
+  std::vector<bool> used(extra->occurrences.size(), false);
+  std::vector<unsigned> permutation, swapped;
+  for (unsigned i = 0; i < clause->length(); ++i) {
+    unsigned j = 0;
+    bool reversed = false;
+    for (; j < extra->occurrences.size(); ++j) {
+      if (!used[j] && extra->occurrences[j].instantiated == (*clause)[i]) { break; }
+    }
+    if (j == extra->occurrences.size()) {
+      for (j = 0; j < extra->occurrences.size(); ++j) {
+        if (!used[j] && reversedEquality(extra->occurrences[j].instantiated, (*clause)[i])) { break; }
+      }
+      if (j == extra->occurrences.size()) { return ""; }
+      reversed = true;
+    }
+    used[j] = true;
+    permutation.push_back(j);
+    if (extra->occurrences[j].flipped != reversed) { swapped.push_back(i); }
+  }
+  std::ostringstream out;
+  out << "binder_mapping([";
+  for (unsigned i = 0; i < extra->binders.size(); ++i) {
+    if (i) { out << ','; }
+    auto [source, target] = extra->binders[i];
+    out << "b(X" << source << ",X" << target << ')';
+  }
+  out << "])";
+  auto indices = [&out](const char* name, const std::vector<unsigned>& values) {
+    out << ',' << name << "([";
+    for (unsigned i = 0; i < values.size(); ++i) {
+      if (i) { out << ','; }
+      out << values[i];
+    }
+    out << "])";
+  };
+  indices("literal_permutation", permutation);
+  indices("swapped_equalities", swapped);
+  return out.str();
+}
 
 std::string avatarConversionInfo(Unit* origin)
 {
