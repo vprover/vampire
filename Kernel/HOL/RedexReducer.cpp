@@ -29,7 +29,7 @@ TermList RedexReducer::transformSubterm(TermList t) {
     if (index == _replace) {
       // any free indices in _t2 need to be lifted by the number of extra lambdas
       // that now surround them
-      return _replace == 0 ? _t2 : TermShifter::shift(_t2, _replace).first;
+      return _replace == 0 ? _t2 : TermShifter::shift(_t2, _replace);
     }
     if (index > _replace) {
       // free index. replace by index 1 less as now surrounded by one fewer lambdas

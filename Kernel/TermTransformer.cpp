@@ -110,10 +110,6 @@ Term* TermTransformer::transform(Term* term)
   Stack<Term*> terms(8);
   Stack<bool> modified(8);
   Stack<TermList> args(8);
-  ASS(toDo.isEmpty());
-  ASS(terms.isEmpty());
-  modified.reset();
-  args.reset();
 
   modified.push(false);
   toDo.push(term->args());
