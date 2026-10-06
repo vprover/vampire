@@ -21,9 +21,7 @@ using namespace Kernel;
 
 // reduce a term to normal form
 // uses a applicative order reduction strategy
-// Currently use a leftmost outermost strategy
-// An innermost strategy is theoretically more efficient
-// but is difficult to write iteratively TODO
+// Currently use a leftmost innermost strategy
 struct BetaNormaliser : public BottomUpTermTransformer {
 #if VDEBUG
   unsigned reductions = 0;
