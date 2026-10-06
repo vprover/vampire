@@ -31,6 +31,7 @@
 #include "Tracer.hpp"
 #include "Lib/Environment.hpp"
 #include "Shell/Options.hpp"
+#include "Shell/UIHelper.hpp"
 
 // define in version.cpp.in
 extern const char* VERSION_STRING;
@@ -65,6 +66,7 @@ static bool try_lldb(pid_t pid) {
  * @since 12/7/2023 using platform-specific calls to get the stack trace
  */
 void Debug::Tracer::printStack() {
+  Shell::addCommentSignForSZS(std::cout);
   std::cout << "Version : " << VERSION_STRING << "\n";
   if(env.options->traceback()) {
     pid_t pid = getpid();
@@ -72,8 +74,10 @@ void Debug::Tracer::printStack() {
     if(!try_gdb(pid) && !try_lldb(pid))
       std::cout << "(neither GDB nor LLDB worked: perhaps you need to install one of them?)\n";
   }
-  else
+  else {
+    Shell::addCommentSignForSZS(std::cout);
     std::cout << "(use '--traceback on' to invoke a debugger and get a human-readable stack trace)\n";
+  }
 
   // With no debugger attached and no handler installed (as under vtest), the default
   // action for SIGTRAP is to terminate the process -- so anything still sitting in the
