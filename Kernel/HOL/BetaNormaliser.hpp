@@ -24,18 +24,12 @@ using namespace Kernel;
 // Currently use a leftmost outermost strategy
 // An innermost strategy is theoretically more efficient
 // but is difficult to write iteratively TODO
-class BetaNormaliser : public BottomUpTermTransformer {
+struct BetaNormaliser : public BottomUpTermTransformer {
 #if VDEBUG
   unsigned reductions = 0;
 #endif
-public:
-  BetaNormaliser() : BottomUpTermTransformer(/*transformSorts=*/false) {}
 
-#if VDEBUG
-  unsigned getReductions() const {
-    return reductions;
-  }
-#endif
+  BetaNormaliser() : BottomUpTermTransformer(/*transformSorts=*/false) {}
 
   TermList normalise(TermList t) { return transform(t); }
 
@@ -44,6 +38,7 @@ public:
       return t;
     }
     DEBUG_CODE(++reductions;)
+    // a substitution can create new redexes, call transform again
     return transform(RedexReducer().reduce(t.lhs(), t.rhs()));
   }
 
