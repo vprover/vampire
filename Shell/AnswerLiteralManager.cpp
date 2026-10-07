@@ -733,7 +733,7 @@ TermList SynthesisALManager::ConjectureSkolemReplacement::transformTermList(Term
     }
   }
   // Then replace skolems by variables
-  return transformSubterm(transform(tl));
+  return transform(tl);
 }
 
 TermList SynthesisALManager::ConjectureSkolemReplacement::transformSubterm(TermList trm) {
