@@ -59,10 +59,10 @@ using namespace Kernel;
 
 //////////////// general datastructures ////////////////////
 
-CodeTree::LitInfo::LitInfo(Clause* cl, unsigned litIndex)
+CodeTree::LitInfo::LitInfo(Clause* cl, unsigned litIndex, FlatTerm* reuse)
 : litIndex(litIndex), opposite(false)
 {
-  ft=FlatTerm::create(TermList((*cl)[litIndex]));
+  ft=FlatTerm::create(TermList((*cl)[litIndex]), reuse);
 }
 
 void CodeTree::LitInfo::dispose()
@@ -70,9 +70,9 @@ void CodeTree::LitInfo::dispose()
   ft->destroy();
 }
 
-CodeTree::LitInfo CodeTree::LitInfo::getReversed(const LitInfo& li)
+CodeTree::LitInfo CodeTree::LitInfo::getReversed(const LitInfo& li, FlatTerm* reuse)
 {
-  FlatTerm* ft=FlatTerm::copy(li.ft);
+  FlatTerm* ft=FlatTerm::copy(li.ft, reuse);
   ft->swapCommutativePredicateArguments();
 
   LitInfo res=li;
@@ -83,10 +83,10 @@ CodeTree::LitInfo CodeTree::LitInfo::getReversed(const LitInfo& li)
   return res;
 }
 
-CodeTree::LitInfo CodeTree::LitInfo::getOpposite(const LitInfo& li)
+CodeTree::LitInfo CodeTree::LitInfo::getOpposite(const LitInfo& li, FlatTerm* reuse)
 {
-  FlatTerm* ft=FlatTerm::copy(li.ft);
-  ft->changeLiteralPolarity();
+  FlatTerm* ft=FlatTerm::copy(li.ft, reuse);
+  ft->flipPolarity();
 #if GROUND_TERM_CHECK
   ASS_EQ((*ft)[1]._tag(), FlatTerm::FUN_TERM_PTR);
   (*ft)[1]._setTerm(Literal::complementaryLiteral(static_cast<Literal*>((*ft)[1]._term())));
@@ -545,13 +545,22 @@ bool CodeTree::Matcher<removing, checkRange>::execute()
 
   bool shouldBacktrack=false;
   for(;;) {
-    if(op->alternative()) {
-      if constexpr (removing) {
-        btStack.push(BTPointRemoving(tp, op->alternative(), RemovingBase::firstsInBlocks->size()));
-      } else {
-        btStack.push(BTPoint(tp, op->alternative()));
+    // When not removing, the alternative is pushed only if the operation
+    // succeeds; if it fails, we go to the alternative directly.
+    CodeOp* alt = op->alternative();
+    size_t altTp = tp;
+    if constexpr (removing) {
+      if(alt) {
+        btStack.push(BTPointRemoving(tp, alt, RemovingBase::firstsInBlocks->size()));
       }
     }
+    auto pushAlternative = [&]() {
+      if constexpr (!removing) {
+        if(alt) {
+          btStack.push(BTPoint(altTp, alt));
+        }
+      }
+    };
     switch(op->_instruction()) {
       case SUCCESS_OR_FAIL:
         if(op->isFail()) {
@@ -571,6 +580,7 @@ bool CodeTree::Matcher<removing, checkRange>::execute()
           //yield successes only in the first round (we don't want to yield the
           //same thing for each query literal)
           if(curLInfo==0) {
+            pushAlternative();
             return true;
           }
           else {
@@ -582,6 +592,7 @@ bool CodeTree::Matcher<removing, checkRange>::execute()
         if constexpr (removing) {
           ASS(RemovingBase::matchingClauses);
         }
+        pushAlternative();
         return true;
       case CHECK_GROUND_TERM:
         shouldBacktrack=!doCheckGroundTerm();
@@ -598,6 +609,7 @@ bool CodeTree::Matcher<removing, checkRange>::execute()
       case SEARCH_STRUCT:
         if(doSearchStruct()) {
           //a new value of @b op is assigned, so restart the loop
+          pushAlternative();
           continue;
         }
         else {
@@ -609,12 +621,21 @@ bool CodeTree::Matcher<removing, checkRange>::execute()
       }
     }
     if(shouldBacktrack) {
+      if constexpr (!removing) {
+        if(alt) {
+          ASS_EQ(tp, altTp);
+          op=alt;
+          shouldBacktrack=false;
+          continue;
+        }
+      }
       if(!backtrack()) {
         return false;
       }
       shouldBacktrack=false;
     }
     else {
+      pushAlternative();
       //the SEARCH_STRUCT operation does not appear in CodeBlocks
       ASS(!op->isSearchStruct());
       //In each CodeBlock there is always either operation LIT_END or FAIL.

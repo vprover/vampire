@@ -99,6 +99,16 @@ bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement,
 
       bool redundancyCheck = _helper.redundancyCheckNeededForPremise(cl, lit, trm);
 
+      // skip terms that could not be rewritten when last tried, if no demodulator
+      // that could rewrite them has been added since; only remember a failure
+      // that depended on nothing but the term
+      Term* t = trm.term();
+      ASS(t->shared());
+      if (_index->noInsertionSince(t->functor(), t->irreducibleAt())) {
+        continue;
+      }
+      bool stampable = !rsi && !redundancyCheck && cl->color() == COLOR_TRANSPARENT;
+
       auto git = _index->getGeneralizations(trm.term());
       while(git.hasNext()) {
         auto qr=git.next();
@@ -175,6 +185,9 @@ bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement,
         if(env.options->proofExtra() == Options::ProofExtra::FULL)
           env.proofExtra.insert(replacement, new ForwardDemodulationExtra(lhs, trm));
         return true;
+      }
+      if (stampable) {
+        t->setIrreducibleAt(DemodulationLHSIndex::clock());
       }
     }
   }

@@ -49,12 +49,12 @@ void* FlatTerm::operator new(size_t sz,unsigned num)
  */
 void FlatTerm::destroy()
 {
-  ASS_GE(_length,0);
+  ASS_GE(_capacity,_length);
 
   //one entry is already accounted for in the size of the FlatTerm object
   size_t size = sizeof(FlatTerm);
-  if (_length > 0) {
-    size += (_length-1)*sizeof(Entry);
+  if (_capacity > 0) {
+    size += (_capacity-1)*sizeof(Entry);
   }
 
   DEALLOC_KNOWN(this, size,"FlatTerm");
@@ -85,10 +85,22 @@ size_t FlatTerm::getEntryCount(Term* t)
   return t->weight()*FUNCTION_ENTRY_COUNT-(FUNCTION_ENTRY_COUNT-1)*t->numVarOccs();
 }
 
-FlatTerm* FlatTerm::create(TermList t)
+FlatTerm* FlatTerm::allocate(size_t entries, FlatTerm* reuse)
+{
+  if (reuse && reuse->_capacity >= entries) {
+    reuse->_length = entries;
+    return reuse;
+  }
+  if (reuse) {
+    reuse->destroy();
+  }
+  return new(entries) FlatTerm(entries);
+}
+
+FlatTerm* FlatTerm::create(TermList t, FlatTerm* reuse)
 {
   size_t entries = t.isVar() ? 1 : getEntryCount</*mightBeLiteral=*/true>(t.term());
-  auto res = new(entries) FlatTerm(entries);
+  FlatTerm* res = allocate(entries, reuse);
 
   size_t pos = 0;
   pushTerm</*mightBeLiteral=*/true>(res->_data, pos, TermList(t));
@@ -115,11 +127,39 @@ FlatTerm* FlatTerm::create(TermStack ts)
   return res;
 }
 
-FlatTerm* FlatTerm::copy(const FlatTerm* ft)
+/**
+ * Copy the entries of @b src[0, len) to @b dst, skipping the uninitialized
+ * argument entries of unexpanded functions.
+ */
+void FlatTerm::copyInitialized(Entry* dst, const Entry* src, size_t len)
+{
+  size_t pos = 0;
+  while (pos < len) {
+    switch (src[pos]._tag()) {
+      case VAR:
+        dst[pos] = src[pos];
+        pos++;
+        break;
+      case FUN_UNEXPANDED:
+        ASS_EQ(src[pos+2]._tag(), FUN_RIGHT_OFS);
+        memcpy(&dst[pos], &src[pos], FUNCTION_ENTRY_COUNT*sizeof(Entry));
+        pos += src[pos+2]._number();
+        break;
+      default:
+        ASS_EQ(src[pos]._tag(), FUN);
+        memcpy(&dst[pos], &src[pos], FUNCTION_ENTRY_COUNT*sizeof(Entry));
+        pos += FUNCTION_ENTRY_COUNT;
+        break;
+    }
+  }
+  ASS_EQ(pos, len);
+}
+
+FlatTerm* FlatTerm::copy(const FlatTerm* ft, FlatTerm* reuse)
 {
   size_t entries=ft->_length;
-  FlatTerm* res=new(entries) FlatTerm(entries);
-  memcpy(res->_data, ft->_data, entries*sizeof(Entry));
+  FlatTerm* res = allocate(entries, reuse);
+  copyInitialized(res->_data, ft->_data, entries);
   return res;
 }
 
@@ -156,25 +196,15 @@ void FlatTerm::swapCommutativePredicateArguments()
   ASS_EQ(secStart+secLen,_length);
 
   static DArray<Entry> buf;
-  if(firstLen>secLen) {
-    buf.ensure(firstLen);
-    memcpy(buf.array(), &_data[firstStart], firstLen*sizeof(Entry));
-    memcpy(&_data[firstStart], &_data[secStart], secLen*sizeof(Entry));
-    memcpy(&_data[firstStart+secLen], buf.array(), firstLen*sizeof(Entry));
-  }
-  else {
-    buf.ensure(secLen);
-    memcpy(buf.array(), &_data[secStart], secLen*sizeof(Entry));
-    memcpy(&_data[firstStart+secLen], &_data[firstStart], firstLen*sizeof(Entry));
-    memcpy(&_data[firstStart], buf.array(), secLen*sizeof(Entry));
-  }
+  buf.ensure(firstLen + secLen);
+  copyInitialized(buf.array(), &_data[secStart], secLen);
+  copyInitialized(buf.array() + secLen, &_data[firstStart], firstLen);
+  copyInitialized(&_data[firstStart], buf.array(), secLen);
+  copyInitialized(&_data[firstStart + secLen], buf.array() + secLen, firstLen);
 }
 
-void FlatTerm::Entry::expand()
+void FlatTerm::Entry::expandUnexpanded()
 {
-  if (_tag()==FUN) {
-    return;
-  }
   ASS_EQ(_tag(), FUN_UNEXPANDED);
   ASS_EQ(this[1]._tag(), FUN_TERM_PTR);
   ASS_EQ(this[2]._tag(), FUN_RIGHT_OFS);
