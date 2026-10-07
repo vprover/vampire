@@ -386,6 +386,10 @@ Formula* BottomUpTermTransformer::transform(Formula* f)
 
 TermList BottomUpTermTransformer::transform(TermList ts)
 {
+  // like special arguments in transform(Term*), a special term is not passed to transformSubterm
+  if (ts.isTerm() && ts.term()->isSpecial()) {
+    return TermList(transformSpecial(ts.term()));
+  }
   return transformSubterm(ts.isTerm() ? TermList(transform(ts.term())) : ts);
 }
 
