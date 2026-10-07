@@ -380,7 +380,7 @@ Term* BottomUpTermTransformer::transform(Term* term)
 
 Formula* BottomUpTermTransformer::transform(Formula* f)
 {
-  static BottomUpTermTransformerFormulaTransformer ttft(*this);
+  BottomUpTermTransformerFormulaTransformer ttft(*this);
   return ttft.transform(f);
 }
 
