@@ -124,7 +124,6 @@ set(UNIT_TESTS
     UnitTests/HOL/tHOL_EtaReduction.cpp
     UnitTests/HOL/tHOL_TermShifter.cpp
     UnitTests/HOL/tHOL_SubtermReplacer.cpp
-    UnitTests/HOL/tHOL_ToPlaceholders.cpp
     UnitTests/HOL/tHOL_Unifier.cpp
 )
 
@@ -506,7 +505,6 @@ set(SOURCES
     Kernel/HOL/Create.cpp
     Kernel/HOL/Convert.cpp
     Kernel/HOL/Reduce.cpp
-    Kernel/HOL/BetaNormaliser.cpp
     Kernel/HOL/BetaNormaliser.hpp
     Kernel/HOL/RedexReducer.cpp
     Kernel/HOL/RedexReducer.hpp
@@ -516,8 +514,6 @@ set(SOURCES
     Kernel/HOL/EtaNormaliser.hpp
     Kernel/HOL/SubtermReplacer.cpp
     Kernel/HOL/SubtermReplacer.hpp
-    Kernel/HOL/ToPlaceholders.cpp
-    Kernel/HOL/ToPlaceholders.hpp
     Kernel/HOL/Unifier.cpp
     Kernel/HOL/Unifier.hpp
     Lib/Allocator.cpp

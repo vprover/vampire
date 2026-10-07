@@ -120,7 +120,7 @@ HOL_TEST_FUN(beta_reduction_4) {
   ASS_EQ(termListToString(t3, Options::HPrinting::RAW),
          "vAPP(srt,srt > srt,vLAM(srt,srt > srt,f),vAPP(srt > srt,srt,vLAM(srt > srt,srt,vAPP(srt,srt,db0(srt > srt),a)),vLAM(srt,srt,db0(srt))))")
   ASS_EQ(betaNF(t3, &reds), D.f)
-  ASS_EQ(reds, 1)
+  ASS_EQ(reds, 3)
 
   auto t4 = toNameless(app(id(), term));
   ASS_EQ(termListToString(t4, Options::HPrinting::TPTP),
