@@ -59,6 +59,7 @@ set(UNIT_TESTS
     UnitTests/tInferences_CodeTreeSubsumptionAndResolution.cpp
     UnitTests/tInferences_Condensation.cpp
     UnitTests/tInferences_Demodulation.cpp
+    UnitTests/tDemodulationCache.cpp
     UnitTests/tInferences_EqualityFactoring.cpp
     UnitTests/tInferences_EqualityResolution.cpp
     UnitTests/tInferences_Factoring.cpp
@@ -184,6 +185,8 @@ set(SOURCES
     Indexing/CodeTreeInterfaces.hpp
     Indexing/DemodulationIndex.hpp
     Indexing/DemodulationIndex.cpp
+    Indexing/DemodulationFailureCache.hpp
+    Indexing/DemodulationFailureCache.cpp
     Indexing/Index.cpp
     Indexing/Index.hpp
     Indexing/IndexManager.cpp

@@ -29,6 +29,8 @@
 
 #include "Indexing/Index.hpp"
 #include "Indexing/DemodulationIndex.hpp"
+#include "Indexing/DemodulationFailureCache.hpp"
+
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -58,6 +60,47 @@ ForwardDemodulation<higherOrder>::ForwardDemodulation(SaturationAlgorithm& salg)
     _index(salg.getSimplifyingIndex<DemodulationLHSIndex>())
 {}
 
+#if VDEBUG
+/**
+ * The cache of failed lookups must only skip terms that no demodulator generalization can
+ * rewrite (and their subterms if @b subtree). Lookups that find nothing qualify, and so do
+ * lookups whose every generalization is rejected by a check that does not depend on the
+ * clause being simplified: the ordering check, or not being preordered in the preordered-only
+ * mode. A preordered generalization always passes the ordering check, so it either rewrites
+ * (and no failure is recorded) or is rejected by the redundancy check, which blocks the
+ * recording; a generalization rejected only by the color or the redundancy check blocks the
+ * recording as well. None of them can therefore remain for a recorded failure.
+ */
+template<bool higherOrder>
+void ForwardDemodulation<higherOrder>::checkNoApplicableGeneralizations(Term* t, bool subtree)
+{
+  auto checkOne = [&](Term* s) {
+    auto git = _index->getGeneralizations(s);
+    while (git.hasNext()) {
+      auto qr = git.next();
+      ASS_REP(!qr.data->preordered, s->toString());
+      if (_useTermOrderingDiagrams) {
+        auto subs = qr.unifier;
+        qr.data->tod->init(&subs);
+        ASS_REP(_preorderedOnly || !qr.data->tod->next(), s->toString());
+      } else {
+        auto subs = qr.unifier;
+        AppliedTerm rhsApplied(qr.data->rhs, &subs, true);
+        ASS_REP(_preorderedOnly || _ord.compareUnidirectional(TermList(s), rhsApplied) != Ordering::GREATER,
+            s->toString());
+      }
+    }
+  };
+  checkOne(t);
+  if (subtree) {
+    NonVariableNonTypeIterator it(t);
+    while (it.hasNext()) {
+      checkOne(it.next());
+    }
+  }
+}
+#endif
+
 template<bool higherOrder>
 bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
@@ -75,6 +118,7 @@ bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement,
 
   static DHSet<TermList, TermListHash, TermListHash2> attempted;
   attempted.reset();
+  auto& cache = Indexing::DemodulationFailureCache::get();
 
   unsigned cLen=cl->length();
   for(unsigned li=0;li<cLen;li++) {
@@ -97,9 +141,36 @@ bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement,
         continue;
       }
 
-      bool redundancyCheck = _helper.redundancyCheckNeededForPremise(cl, lit, trm);
+      // demodulation_cache: skip lookups (and subterms) known to find nothing
+      Term* cacheable = nullptr;
+      if (!higherOrder && cache.enabled && trm.term()->shared() && !trm.term()->isSpecial() && cache.beginQuery()) {
+        cacheable = trm.term();
+        if (cache.subtreeClean(cacheable)) {
+          cache.subtreesSkipped++;
+          DEBUG_CODE(checkNoApplicableGeneralizations(cacheable, true);)
+          it.right();
+          continue;
+        }
+        if (cache.failureKnown(cacheable)) {
+          cache.lookupsSkipped++;
+          DEBUG_CODE(checkNoApplicableGeneralizations(cacheable, false);)
+          continue;
+        }
+      }
 
       auto git = _index->getGeneralizations(trm.term());
+      bool foundAny = git.hasNext();
+      if (cacheable && !foundAny) {
+        cache.recordFailure(cacheable);
+      }
+
+      // whether every demodulator found by this lookup is rejected by a check that does
+      // not depend on the clause being simplified (the ordering checks); rejections by
+      // the color or the redundancy check make the outcome clause-dependent
+      bool recordable = cacheable && !rsi;
+
+      bool redundancyCheck = _helper.redundancyCheckNeededForPremise(cl, lit, trm);
+
       while(git.hasNext()) {
         auto qr=git.next();
         ASS_EQ(qr.data->clause->length(),1);
@@ -109,6 +180,7 @@ bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement,
         }
 
         if(!ColorHelper::compatible(cl->color(), qr.data->clause->color())) {
+          recordable = false;
           continue;
         }
 
@@ -150,6 +222,7 @@ bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement,
         TermList rhsS = rhsApplied.apply();
 
         if (redundancyCheck && !_helper.isPremiseRedundant(cl, lit, trm, rhsS, lhs, &subs)) {
+          recordable = false;
           continue;
         }
 
@@ -175,6 +248,12 @@ bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement,
         if(env.options->proofExtra() == Options::ProofExtra::FULL)
           env.proofExtra.insert(replacement, new ForwardDemodulationExtra(lhs, trm));
         return true;
+      }
+
+      // the applicability extension: also remember lookups that found only demodulators
+      // rejected by the checks that do not depend on the clause being simplified
+      if (Indexing::DemodulationFailureCache::APPLICABILITY && cacheable && recordable && foundAny) {
+        cache.recordFailure(cacheable);
       }
     }
   }

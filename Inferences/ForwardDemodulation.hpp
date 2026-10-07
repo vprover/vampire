@@ -45,6 +45,9 @@ protected:
   const DemodulationHelper _helper;
   const Ordering& _ord;
   std::shared_ptr<DemodulationLHSIndex> _index;
+#if VDEBUG
+  void checkNoApplicableGeneralizations(Term* t, bool subtree);
+#endif
 };
 
 using ForwardDemodulationExtra = RewriteInferenceExtra;

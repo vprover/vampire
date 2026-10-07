@@ -1360,6 +1360,7 @@ public:
   DemodulationRedundancyCheck demodulationRedundancyCheck() const { return _demodulationRedundancyCheck.actualValue; }
   bool forwardDemodulationTermOrderingDiagrams() const { return _forwardDemodulationTermOrderingDiagrams.actualValue; }
   bool demodulationOnlyEquational() const { return _demodulationOnlyEquational.actualValue; }
+  bool demodulationCache() const { return _demodulationCache.actualValue; }
 
   //void setBackwardDemodulation(Demodulation newVal) { _backwardDemodulation = newVal; }
   Subsumption backwardSubsumption() const { return _backwardSubsumption.actualValue; }
@@ -1692,6 +1693,7 @@ private:
   ChoiceOptionValue<DemodulationRedundancyCheck> _demodulationRedundancyCheck;
   BoolOptionValue _forwardDemodulationTermOrderingDiagrams;
   BoolOptionValue _demodulationOnlyEquational;
+  BoolOptionValue _demodulationCache;
 
   ChoiceOptionValue<EqualityProxy> _equalityProxy;
   BoolOptionValue _equalityResolutionWithDeletion;

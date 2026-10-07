@@ -1,0 +1,168 @@
+/*
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
+/**
+ * @file DemodulationFailureCache.hpp
+ * A cache of failed generalization queries of forward demodulation that does not
+ * change any result (see DemodulationFailureCache).
+ */
+
+#ifndef __Indexing_DemodulationFailureCache__
+#define __Indexing_DemodulationFailureCache__
+
+#include <cstdint>
+#include <vector>
+
+#include "Forwards.hpp"
+#include "Kernel/Term.hpp"
+
+using namespace Kernel;
+
+namespace Indexing {
+
+/**
+ * Cache of failed generalization queries of forward demodulation (option demodulation_cache).
+ *
+ * Two kinds of failures are recorded: terms of which the lookup found no generalization at
+ * all, and -- with APPLICABILITY -- terms of which every generalization found was rejected
+ * by a check that does not depend on the clause being simplified, the ordering check
+ * (rejections by the color or the redundancy check do depend on it, and block the
+ * recording). Whether some generalization rewrites a term can depend on the clause, but
+ * that none can does not.
+ * A failure stays valid until a demodulator is added whose left-hand side has the same
+ * top symbol as the term. Top symbols are grouped into BUCKETS groups with a counter each,
+ * which is increased whenever a left-hand side with a top symbol of the group is added.
+ *
+ * A term is also recorded as clean together with all its subterms, with the set of groups of
+ * the top symbols of all of them and the sum of their counters: as counters only increase,
+ * an unchanged sum means that no relevant demodulator was added. Clean terms are built
+ * bottom-up: a term becomes clean when its own failure is valid and all its arguments are clean.
+ *
+ * Entries live in a dense array indexed by term ID, capped at MAX_DENSE_ENTRIES. Beyond the
+ * cap (or for every term when IDs are randomized) they live in a table of at most
+ * 2^OVERFLOW_BITS slots keyed by term identity that evicts on collision. A lost entry is a
+ * missed skip, never a wrong one: the stored key proves which term an entry describes. The
+ * table grows only when an evicted term claims its slot again (re-reference): only revisits,
+ * not one-time traffic, pay for growth.
+ */
+struct DemodulationFailureCache
+{
+  static DemodulationFailureCache& get();
+
+  bool enabled = false;
+
+  static constexpr unsigned BUCKETS = 64;
+  static constexpr uint64_t NONE = ~uint64_t(0);
+  /** "no value" for the 32-bit entry fields */
+  static constexpr uint32_t NONE32 = ~uint32_t(0);
+  /** total number of bucket bumps (the sum of all epochs) after which all entries are wiped
+   *  and the epochs restart. Keeps stored epochs and dependency-mask sums within 32 bits and
+   *  NONE32 unreachable as a live value; far beyond any real run. */
+  static constexpr uint64_t EPOCH_LIMIT = NONE32 - 1;
+
+  /** the applicability extension: lookups whose every generalization is rejected by a check
+   *  that does not depend on the clause being simplified (the ordering checks) count as
+   *  failures too */
+  static constexpr bool APPLICABILITY = true;
+
+  /** safety ceiling of the overflow table (slots = 2^bits). Growth stops on its own when
+   *  evictions stop coming back; 2^25 slots is beyond any hot set observed in practice. */
+  static constexpr unsigned OVERFLOW_BITS = 25;
+
+  static unsigned bucket(unsigned functor) { return (functor * 0x9e3779b1u) >> 26; }
+
+  /** Start a new index. Randomized IDs require identity-based sparse storage. */
+  void reset(bool enable, bool sparseIds = false, unsigned overflowBits = OVERFLOW_BITS);
+  void onInsertLhs(TermList lhs);
+  /** Called once per eligible visit, before looking up any cache entries. */
+  bool beginQuery()
+  {
+    ++queries;
+    return true;
+  }
+
+  /** whether the lookup for @b t is known to find nothing */
+  bool failureKnown(Term* t);
+  /** whether the lookups for @b t and all its subterms are known to find nothing */
+  bool subtreeClean(Term* t);
+  void recordFailure(Term* t);
+
+  // statistics
+  uint64_t queries = 0;
+  uint64_t lookupsSkipped = 0;
+  uint64_t subtreesSkipped = 0;
+  uint64_t failuresRecorded = 0;
+
+  // bounded-overflow-table statistics: slots claimed from empty, claims that evicted
+  // another term, evicted terms claiming their slot again (re-reference; the only growth
+  // signal above the bootstrap region), growths by rehashing (entries lost to rehash
+  // collisions), and the resulting number of live entries
+  uint64_t overflowFills = 0, overflowEvictions = 0, overflowHot = 0;
+  uint64_t overflowGrowths = 0, overflowRehashDrops = 0;
+  uint64_t overflowLive = 0;
+
+  void print(std::ostream& out) const;
+
+private:
+  struct Entry {
+    uint64_t subtreeMask = 0;
+    uint32_t failureEpoch = NONE32;
+    uint32_t subtreeSum = NONE32;
+  };
+  static_assert(sizeof(Entry) == 16, "the dense table is sized by this");
+  /** one slot of the bounded table that backs the cache beyond the dense array */
+  struct OverflowSlot {
+    Term* term = nullptr;
+    Entry entry;
+  };
+  static constexpr unsigned OVERFLOW_MIN_BITS = 12;
+  /** safety ceiling for the table: 2^25 slots (1 GB with the victim shadow) is beyond any
+   *  observed hot set; growth stops on its own much earlier when evictions stop coming back */
+  static constexpr unsigned OVERFLOW_MAX_BITS = 25;
+  /** grow once hot evictions (an evicted term claiming its slot again) exceed one eighth of
+   *  the slot count; the table grows for revisits, never for one-time traffic */
+  static constexpr unsigned OVERFLOW_HOT_DIVISOR = 8;
+  /** occupancy alone grows the table only below this many slots: a small table cannot see a
+   *  much larger hot set coming back (the victim shadow forgets long-evicted terms), so the
+   *  cheap region bootstraps on occupancy and re-reference takes over beyond it */
+  static constexpr unsigned OVERFLOW_BOOTSTRAP_BITS = 16;
+
+  /** read access: the entry of @b t, or nullptr when none was recorded */
+  Entry* findEntry(Term* t);
+  /** write access: the entry of @b t, claiming it (evicting on collision) if needed */
+  Entry& entry(Term* t);
+  uint32_t sum(uint64_t mask);
+  bool subtreeValid(const Entry& e);
+  void discardEntries();
+  size_t overflowIndex(Term* t) const;
+  Entry* overflowFind(Term* t);
+  Entry& overflowEntry(Term* t);
+  void overflowGrow();
+
+  uint32_t _epochs[BUCKETS] = {};
+  /** the sum of all epochs; each insertion adds one per bucket it bumps */
+  uint64_t _epochSum = 0;
+  // Random traversals perturb the high bits of term IDs. Keep those IDs sparse,
+  // and bound the dense allocation even on runs with many ordinary shared terms.
+  static constexpr unsigned MAX_DENSE_ENTRIES = 1u << 20;
+  unsigned _denseIdLimit = MAX_DENSE_ENTRIES;
+  std::vector<Entry> _entries;
+  unsigned _overflowBits = OVERFLOW_BITS;
+  std::vector<OverflowSlot> _overflow;
+  /** victim shadow: _ghost[i] is the term last evicted from _overflow[i]. When that term
+   *  claims its slot again it was re-referenced after eviction (a hot eviction) -- evidence
+   *  that a bigger table would buy hits. Never answers a query, so it cannot change results. */
+  std::vector<Term*> _ghost;
+  /** 64 - log2 of _overflow.size(), or 64 while the table is empty */
+  unsigned _overflowShift = 64;
+};
+
+} // namespace Indexing
+
+#endif // __Indexing_DemodulationFailureCache__

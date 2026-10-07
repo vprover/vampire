@@ -706,6 +706,12 @@ Options::Options ()
        .description = "Disables demodulation of non-equational literals. In combination with -ins > 0 simulates the effect of Waldmeister's `Enlarging the Hypothesis` trick.",
        .tag = OptionTag::INFERENCES,
        .experimental = true})
+  , _demodulationCache("demodulation_cache",this,false,
+      {.description = "In forward demodulation, remember the terms for which the index of demodulators "
+      "had no applicable generalization (or only ones rejected by the ordering checks), and skip the "
+      "lookup for them (and for the subterms of terms whose subterms all failed) until a demodulator "
+      "with the same top symbol is added. Does not change any result.",
+       .tag = OptionTag::INFERENCES})
   , _equalityProxy( "equality_proxy",this,EqualityProxy::OFF,{"R","RS","RST","RSTC","off"},
       {.short_name = "ep",
        .description = "Applies the equality proxy transformation to the problem. It works as follows:\n"

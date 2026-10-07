@@ -198,6 +198,84 @@ TEST_SIMPLIFICATION(test17,
     .expected({ clause({ h(s) != a }) })
 )
 
+// demodulation_cache: the same scenarios with the cache of failed lookups enabled.
+// Each test visits the same term in two clauses, so the second visit is served
+// from the cache; no result may change.
+inline auto cachedTester() {
+  return FwdBwdSimplification::TestCase<ForwardDemodulation<false>, BackwardDemodulation<false>>()
+    .options({ { "term_ordering", "lpo" }, // use LPO as KBO fails due to caching things in terms
+               { "demodulation_cache", "on" } });
+}
+
+// the lookup finds only a demodulator rejected by the ordering check: an applicability
+// failure is recorded, and the second visit of the same term is skipped
+TEST_SIMPLIFICATION(test20,
+  cachedTester()
+    .simplifyWith({ clause({ f(x,y) == f(y,x) }) })
+    .toSimplify({ clause({ ~p(f(a,b)) }), clause({ ~q(f(a,b)) }) })
+    .expected({ /* nothing */ })
+    .justifications({ /* nothing */ })
+)
+
+// a demodulator rejected by the redundancy check must not be recorded as a failure:
+// the same term still has to rewrite the next clause
+TEST_SIMPLIFICATION(test21,
+  cachedTester()
+    .simplifyWith({ clause({ f(b,a) == f(a,b) }) })
+    .toSimplify({ clause({ f(b,a) == a }), clause({ ~p(f(b,a)) }) })
+    .expected({ clause({ ~p(f(a,b)) }) })
+)
+
+// with fd=preordered the non-preordered demodulator is not used; the failure is
+// recorded and the second visit of the same term is skipped
+TEST_SIMPLIFICATION(test22,
+  cachedTester()
+    .simplifyWith({ clause({ f(x,y) == f(y,x) }) })
+    .toSimplify({ clause({ p(f(a,b)) }), clause({ q(f(a,b)) }) })
+    .expected({ /* nothing */ })
+    .justifications({ /* nothing */ })
+    .options({ { "term_ordering", "lpo" },
+               { "demodulation_cache", "on" },
+               { "forward_demodulation", "preordered" },
+               { "backward_demodulation", "preordered" } })
+)
+
+// lookups that find nothing are recorded and skipped on the second visit
+TEST_SIMPLIFICATION(test23,
+  cachedTester()
+    .simplifyWith({ clause({ f(x,y) == x }) })
+    .toSimplify({ clause({ ~p(g(a)) }), clause({ ~q(g(a)) }) })
+    .expected({ /* nothing */ })
+    .justifications({ /* nothing */ })
+)
+
+// successful rewrites must not be recorded as failures: the same term rewrites again
+TEST_SIMPLIFICATION(test24,
+  cachedTester()
+    .simplifyWith({ clause({ f(x,y) == x }) })
+    .toSimplify({ clause({ ~p(f(a,b)) }), clause({ ~q(f(a,b)) }) })
+    .expected({ clause({ ~p(a) }), clause({ ~q(a) }) })
+)
+
+// a demodulator rejected by the color check must not be recorded as a failure: the
+// same term still has to rewrite a clause of the demodulator's color
+TEST_SIMPLIFICATION(test25,
+  cachedTester()
+    .simplifyWith({ clause({ f(x,y) == left(y) }) })
+    .toSimplify({ clause({ g(f(a,b)) == right(a) }), clause({ g(f(a,b)) == left(a) }) })
+    .expected({ clause({ g(left(b)) == left(a) }) })
+)
+
+// a rewrite into an equational tautology is no failure: the same term still rewrites
+// (and discards) the next clause
+TEST_SIMPLIFICATION(test26,
+  cachedTester()
+    .simplifyWith({ clause({ f(b,a) == f(a,b) }) })
+    .toSimplify({ clause({ g(f(b,a)) == g(f(a,b)) }), clause({ g(f(b,a)) == g(f(a,b)), ~p(x) }) })
+    .expected({ /* nothing */ })
+    .justifications({ clause({ f(b,a) == f(a,b) }) })
+)
+
 TEST_SIMPLIFICATION(test18,
   tester()
     .simplifyWith({ clause({ y == h(x) }) })

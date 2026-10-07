@@ -18,6 +18,8 @@
 #include "Kernel/EqHelper.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 
+#include "DemodulationFailureCache.hpp"
+
 namespace Indexing {
 
 template<bool higherOrder>
@@ -65,7 +67,11 @@ template class DemodulationSubtermIndex<true>;
 template class DemodulationSubtermIndex<false>;
 
 DemodulationLHSIndex::DemodulationLHSIndex(SaturationAlgorithm& salg)
-: _ord(salg.getOrdering()), _preordered(salg.getOptions().forwardDemodulation()==Options::Demodulation::PREORDERED) {}
+: _ord(salg.getOrdering()), _preordered(salg.getOptions().forwardDemodulation()==Options::Demodulation::PREORDERED)
+{
+  DemodulationFailureCache::get().reset(
+    salg.getOptions().demodulationCache(), salg.getOptions().randomTraversals());
+}
 
 void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
 {
@@ -89,6 +95,10 @@ void DemodulationLHSIndex::handleClause(Clause* c, bool adding)
       TypedTermList(r.apply(EqHelper::getOtherEqualitySide(lit, lhs)),sortR),
       c, preordered, _ord
     );
+    if (adding && DemodulationFailureCache::get().enabled) {
+      // removals are not recorded: a cached failure stays valid when demodulators are removed
+      DemodulationFailureCache::get().onInsertLhs(dd.term);
+    }
     GeneralizingTermIndex<DemodulatorData>::_ct.handle(std::move(dd), adding);
   }
 }

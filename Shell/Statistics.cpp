@@ -23,6 +23,8 @@
 #include "Lib/Allocator.hpp"
 #include "SAT/Z3Interfacing.hpp"
 
+#include "Indexing/DemodulationFailureCache.hpp"
+
 #include "Shell/UIHelper.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -305,6 +307,10 @@ void Statistics::print(std::ostream& out)
 #undef ENTRY
 #undef IPGROUP
 #undef IPENTRY
+  }
+
+  if (Indexing::DemodulationFailureCache::get().queries) {
+    Indexing::DemodulationFailureCache::get().print(out);
   }
 
   addCommentSignForSZS(out);
