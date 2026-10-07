@@ -68,9 +68,8 @@ Clause* InnerRewriting::simplify(Clause* cl)
             }
 
             auto result = Clause::fromStack(*resLits,SimplifyingInference1(InferenceRule::INNER_REWRITING, cl));
-            if (env.reconstruction && !Shell::InferenceRecorder::instance()->innerRewriting(result, cl, rwLit, lhs, rhs)) {
-              result->destroy();
-              continue;
+            if (env.reconstruction) {
+              Shell::InferenceRecorder::instance()->innerRewriting(result, cl, rwLit, lhs, rhs);
             }
             return result;
           }

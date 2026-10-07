@@ -223,11 +223,8 @@ struct URResolution<synthesis>::Item
           substitutions[bank].rebind(variable, normalization->apply(substitutions[bank].apply(variable)));
         }
       }
-      if (!Shell::InferenceRecorder::instance()->unitResultingResolution(
-            res, _replayData->premises, substitutions, _replayData->positions)) {
-        res->destroy();
-        return nullptr;
-      }
+      Shell::InferenceRecorder::instance()->unitResultingResolution(
+          res, _replayData->premises, substitutions, _replayData->positions);
     }
     return res;
   }

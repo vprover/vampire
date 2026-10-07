@@ -601,12 +601,8 @@ isRedundant:
                   unsigned var = vars.next();
                   subst.bind(var, binder.applyTo(TermList::var(var)));
                 }
-                if (!Shell::InferenceRecorder::instance()->subsumptionDemodulation(
-                      replacement, cl, mcl, subst, eqLit, dlit, lhs, rhs)) {
-                  replacement->destroy();
-                  replacement = nullptr;
-                  continue;
-                }
+                Shell::InferenceRecorder::instance()->subsumptionDemodulation(
+                    replacement, cl, mcl, subst, eqLit, dlit, lhs, rhs);
               }
 
 #if FSD_LOG_INFERENCES

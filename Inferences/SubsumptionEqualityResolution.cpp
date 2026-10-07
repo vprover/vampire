@@ -63,10 +63,9 @@ Clause* SubsumptionEqualityResolution::simplify(Clause* cl)
     }
     {
       Clause* result = Clause::fromStack(*resLits, SimplifyingInference1(InferenceRule::SUBSUMPTION_EQUALITY_RESOLUTION, cl));
-      if (env.reconstruction && !Shell::InferenceRecorder::instance()->subsumptionEqualityResolution(
-            result, cl, unifier.subst, cl->getLiteralPosition(lit))) {
-        result->destroy();
-        continue;
+      if (env.reconstruction) {
+        Shell::InferenceRecorder::instance()->subsumptionEqualityResolution(
+            result, cl, unifier.subst, cl->getLiteralPosition(lit));
       }
       return result;
     }

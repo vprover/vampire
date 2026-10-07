@@ -124,11 +124,10 @@ Clause* Condensation::simplify(Clause* cl)
 
       if(success) {
         Clause* result = Clause::fromArray(newLits.begin(), newLen, SimplifyingInference1(InferenceRule::CONDENSATION, cl));
-        if (!env.reconstruction || Shell::InferenceRecorder::instance()->condensation(
-              result, cl, *subst, l2Index)) {
-          return result;
+        if(env.reconstruction){
+          Shell::InferenceRecorder::instance()->condensation(result, cl, *subst, l2Index);
         }
-        result->destroy();
+        return result;
       }
     }
   }

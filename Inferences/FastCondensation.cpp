@@ -139,11 +139,10 @@ Clause* FastCondensation<higherOrder>::simplify(Clause* cl)
         }
  
         Clause* result = Clause::fromStack(*resLits, SimplifyingInference1(InferenceRule::CONDENSATION, cl));
-        if (!env.reconstruction || Shell::InferenceRecorder::instance()->condensation(
-              result, cl, cbinder.substitution(), cIndex)) {
-          return result;
+        if (env.reconstruction) {
+          Shell::InferenceRecorder::instance()->condensation(result, cl, cbinder.substitution(), cIndex);
         }
-        result->destroy();
+        return result;
       }
     }
   }

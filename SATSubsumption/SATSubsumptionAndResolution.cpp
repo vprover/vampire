@@ -835,13 +835,10 @@ Clause* SATSubsumptionAndResolution::generateConclusion(bool forward)
   if (env.reconstruction) {
     std::vector<Substitution> substitutions(2);
     substitutions[1] = getBindingsForSubsumptionResolutionWithLiteral();
-    if (!Shell::InferenceRecorder::instance()->replayedInference(
-          conclusion, {_mainPremise, _sidePremise}, substitutions,
-          Shell::InferenceRecorder::InferenceInformation::LiteralPositionKind::REMOVED,
-          {{0, toRemove}})) {
-      conclusion->destroy();
-      return nullptr;
-    }
+    Shell::InferenceRecorder::instance()->replayedInference(
+        conclusion, {_mainPremise, _sidePremise}, substitutions,
+        Shell::InferenceRecorder::InferenceInformation::LiteralPositionKind::REMOVED,
+        {{0, toRemove}});
   }
   return conclusion;
 } // SATSubsumptionResolution::generateConclusion
@@ -906,9 +903,7 @@ Clause* SATSubsumptionAndResolution::checkSubsumptionResolution(Clause* sidePrem
       }
       _model.clear();
       _solver.get_model(_model);
-      if (Clause* conclusion = generateConclusion(forward)) {
-        return conclusion;
-      }
+      return generateConclusion(forward);
     }
     return nullptr;
   }

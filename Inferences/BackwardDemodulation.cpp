@@ -159,11 +159,8 @@ struct BackwardDemodulation<higherOrder>::ResultFn
     if(env.options->proofExtra() == Options::ProofExtra::FULL)
       env.proofExtra.insert(replacement, new BackwardDemodulationExtra(lhs, lhsS));
     if(env.reconstruction){
-      if (!Shell::InferenceRecorder::instance()->backwardDemodulation(
-            replacement->number(), replacement, {qr.data->clause, _cl}, appl, qr.data->literal, lhs, rhs)) {
-        replacement->destroy();
-        return BwSimplificationRecord(0);
-      }
+      Shell::InferenceRecorder::instance()->backwardDemodulation(
+          replacement->number(), replacement, {qr.data->clause, _cl}, appl, qr.data->literal, lhs, rhs);
     }
     _removed->insert(qr.data->clause->number());
     return BwSimplificationRecord(qr.data->clause, replacement);
