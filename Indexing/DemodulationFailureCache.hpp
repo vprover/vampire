@@ -57,25 +57,31 @@ struct DemodulationFailureCache
 
   bool enabled = false;
 
-  static constexpr unsigned BUCKETS = 64;
-  static constexpr uint64_t NONE = ~uint64_t(0);
-  /** "no value" for the 32-bit entry fields */
-  static constexpr uint32_t NONE32 = ~uint32_t(0);
-  /** total number of bucket bumps (the sum of all epochs) after which all entries are wiped
-   *  and the epochs restart. Keeps stored epochs and dependency-mask sums within 32 bits and
-   *  NONE32 unreachable as a live value; far beyond any real run. */
-  static constexpr uint64_t EPOCH_LIMIT = NONE32 - 1;
+  /** one bit of the dependency mask per bucket, so an entry's mask fits next to its
+   *  16-bit epoch fields in 8 bytes (see Entry) */
+  static constexpr unsigned BUCKET_BITS = 5;
+  static constexpr unsigned BUCKETS = 1u << BUCKET_BITS;
+  /** "no value" for the 16-bit entry fields */
+  static constexpr uint16_t NONE16 = ~uint16_t(0);
+  /** total number of bucket bumps (the sum of all epochs) after which all entries are
+   *  wiped and the epochs restart, so the stored epochs and dependency-mask sums stay
+   *  exact within their 16-bit entry fields and NONE16 stays unreachable as a live
+   *  value. The heaviest observed run bumps ~140k times in 30 s: such a run wipes about
+   *  twice, losing entries until the traffic that recorded them fails again. */
+  static constexpr uint64_t EPOCH_LIMIT = NONE16 - 1;
 
   /** the applicability extension: lookups whose every generalization is rejected by a check
    *  that does not depend on the clause being simplified (the ordering checks) count as
    *  failures too */
   static constexpr bool APPLICABILITY = true;
 
-  /** safety ceiling of the overflow table (slots = 2^bits). Growth stops on its own when
-   *  evictions stop coming back; 2^25 slots is beyond any hot set observed in practice. */
-  static constexpr unsigned OVERFLOW_BITS = 25;
+  /** ceiling of the overflow table (slots = 2^bits), keeping it cache-resident: a probe
+   *  of a table that no longer fits in the last-level cache costs about as much as the
+   *  term-index lookup a hit saves, so a bigger table can only lose. Growth stops on its
+   *  own when evictions stop coming back. */
+  static constexpr unsigned OVERFLOW_BITS = 18;
 
-  static unsigned bucket(unsigned functor) { return (functor * 0x9e3779b1u) >> 26; }
+  static unsigned bucket(unsigned functor) { return (functor * 0x9e3779b1u) >> (32 - BUCKET_BITS); }
 
   /** Start a new index. Randomized IDs require identity-based sparse storage. */
   void reset(bool enable, bool sparseIds = false, unsigned overflowBits = OVERFLOW_BITS);
@@ -106,25 +112,30 @@ struct DemodulationFailureCache
   uint64_t overflowFills = 0, overflowEvictions = 0, overflowHot = 0;
   uint64_t overflowGrowths = 0, overflowRehashDrops = 0;
   uint64_t overflowLive = 0;
+  /** total bucket bumps so far, and how often the epoch limit wiped all entries */
+  uint64_t bucketBumps = 0, wipes = 0;
 
   void print(std::ostream& out) const;
 
 private:
   struct Entry {
-    uint64_t subtreeMask = 0;
-    uint32_t failureEpoch = NONE32;
-    uint32_t subtreeSum = NONE32;
+    uint32_t subtreeMask = 0;
+    uint16_t failureEpoch = NONE16;
+    uint16_t subtreeSum = NONE16;
   };
-  static_assert(sizeof(Entry) == 16, "the dense table is sized by this");
+  static_assert(sizeof(Entry) == 8, "the dense table is sized by this");
   /** one slot of the bounded table that backs the cache beyond the dense array */
   struct OverflowSlot {
     Term* term = nullptr;
     Entry entry;
   };
+  static_assert(sizeof(OverflowSlot) == 16, "the overflow table is sized by this");
   static constexpr unsigned OVERFLOW_MIN_BITS = 12;
-  /** safety ceiling for the table: 2^25 slots (1 GB with the victim shadow) is beyond any
-   *  observed hot set; growth stops on its own much earlier when evictions stop coming back */
-  static constexpr unsigned OVERFLOW_MAX_BITS = 25;
+  /** ceiling for the table: 2^18 slots (6 MB with the victim shadow) still fit in the
+   *  last-level cache; a larger hot set was observed to grow the table to 2^21 slots and
+   *  pay for it in misses and evictions. Growth stops on its own much earlier when
+   *  evictions stop coming back */
+  static constexpr unsigned OVERFLOW_MAX_BITS = 18;
   /** grow once hot evictions (an evicted term claiming its slot again) exceed one eighth of
    *  the slot count; the table grows for revisits, never for one-time traffic */
   static constexpr unsigned OVERFLOW_HOT_DIVISOR = 8;
@@ -137,7 +148,7 @@ private:
   Entry* findEntry(Term* t);
   /** write access: the entry of @b t, claiming it (evicting on collision) if needed */
   Entry& entry(Term* t);
-  uint32_t sum(uint64_t mask);
+  uint16_t sum(uint32_t mask);
   bool subtreeValid(const Entry& e);
   void discardEntries();
   size_t overflowIndex(Term* t) const;
@@ -145,7 +156,8 @@ private:
   Entry& overflowEntry(Term* t);
   void overflowGrow();
 
-  uint32_t _epochs[BUCKETS] = {};
+  /** epoch counters, one per bucket; a single cache line at 32 buckets */
+  uint16_t _epochs[BUCKETS] = {};
   /** the sum of all epochs; each insertion adds one per bucket it bumps */
   uint64_t _epochSum = 0;
   // Random traversals perturb the high bits of term IDs. Keep those IDs sparse,

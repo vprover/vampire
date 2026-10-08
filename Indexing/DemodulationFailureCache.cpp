@@ -43,6 +43,7 @@ void DemodulationFailureCache::reset(bool enable, bool sparseIds, unsigned overf
   queries = lookupsSkipped = subtreesSkipped = failuresRecorded = 0;
   overflowFills = overflowEvictions = overflowGrowths = overflowRehashDrops = overflowLive = 0;
   overflowHot = 0;
+  bucketBumps = wipes = 0;
 }
 
 void DemodulationFailureCache::discardEntries()
@@ -52,6 +53,7 @@ void DemodulationFailureCache::discardEntries()
   std::vector<Term*>().swap(_ghost);
   _overflowShift = 64;
   overflowLive = 0;
+  wipes++;
 }
 
 void DemodulationFailureCache::onInsertLhs(TermList lhs)
@@ -62,13 +64,15 @@ void DemodulationFailureCache::onInsertLhs(TermList lhs)
       _epochs[b]++;
     }
     _epochSum += BUCKETS;
+    bucketBumps += BUCKETS;
   } else {
     _epochs[bucket(lhs.term()->functor())]++;
     _epochSum++;
+    bucketBumps++;
   }
   if (_epochSum >= EPOCH_LIMIT) {
-    // unreachable in practice (2^32 total bucket bumps): wipe all entries and
-    // restart the epochs, so the 32-bit stored epochs and mask sums stay exact
+    // reached by the heaviest runs (~140k bucket bumps in 30 s): wipe all entries
+    // and restart the epochs, so the 16-bit stored epochs and mask sums stay exact
     discardEntries();
     std::fill(std::begin(_epochs), std::end(_epochs), 0u);
     _epochSum = 0;
@@ -200,21 +204,21 @@ void DemodulationFailureCache::overflowGrow()
   }
 }
 
-uint32_t DemodulationFailureCache::sum(uint64_t mask)
+uint16_t DemodulationFailureCache::sum(uint32_t mask)
 {
-  uint64_t res = 0;
+  uint32_t res = 0;
   while (mask) {
-    res += _epochs[__builtin_ctzll(mask)];
+    res += _epochs[__builtin_ctz(mask)];
     mask &= mask - 1;
   }
   // a sum over a subset of the epochs is at most their total, kept below EPOCH_LIMIT
-  ASS_L(res, NONE32);
-  return uint32_t(res);
+  ASS_L(res, NONE16);
+  return uint16_t(res);
 }
 
 bool DemodulationFailureCache::subtreeValid(const Entry& e)
 {
-  if (e.subtreeSum == NONE32) {
+  if (e.subtreeSum == NONE16) {
     return false;
   }
   return sum(e.subtreeMask) == e.subtreeSum;
@@ -244,7 +248,7 @@ bool DemodulationFailureCache::subtreeClean(Term* t)
     return false;
   }
   // t itself finds nothing; it is clean if all its arguments are (type arguments are not visited)
-  uint64_t mask = uint64_t(1) << bucket(t->functor());
+  uint32_t mask = uint32_t(1) << bucket(t->functor());
   for (unsigned i = t->numTypeArguments(); i < t->arity(); i++) {
     TermList arg = *t->nthArgument(i);
     if (arg.isVar()) {
@@ -287,6 +291,7 @@ void DemodulationFailureCache::print(std::ostream& out) const
   line(out, "overflow slots / live") << _overflow.size() << " / " << overflowLive << "\n";
   line(out, "overflow fills / evictions / hot / growths") << overflowFills << " / " << overflowEvictions
       << " / " << overflowHot << " / " << overflowGrowths << "\n";
+  line(out, "bucket bumps / epoch wipes") << bucketBumps << " / " << wipes << "\n";
   out << std::defaultfloat << std::setprecision(6);
 }
 
