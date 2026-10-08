@@ -31,12 +31,11 @@ class ForwardLiteralRewriting
 : public ForwardSimplificationEngine
 {
 public:
-  ForwardLiteralRewriting(SaturationAlgorithm& salg, Clause* replayPremise = nullptr);
+  ForwardLiteralRewriting(SaturationAlgorithm& salg);
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 private:
   const Ordering& _ord;
   std::shared_ptr<RewriteRuleIndex> _index;
-  std::unique_ptr<CodeTreeLIS<LiteralClause>> _replayIndex;
 };
 
 };

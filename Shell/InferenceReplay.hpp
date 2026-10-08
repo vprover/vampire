@@ -1,13 +1,8 @@
 #ifndef __INFERENCE_REPLAY__
 #define __INFERENCE_REPLAY__
 
-#include "Debug/Assertion.hpp"
 #include "Forwards.hpp"
-#include "Lib/Environment.hpp"
-#include "Kernel/Inference.hpp"
-#include "Saturation/SaturationAlgorithm.hpp"
-
-#include "Kernel/Unit.hpp"
+#include "Lib/Stack.hpp"
 
 #include <memory>
 
@@ -15,30 +10,27 @@ namespace Shell {
 class InferenceReplayer
 {
 public:
-  void replayInference(Kernel::Unit* u);
+  InferenceReplayer();
+  ~InferenceReplayer();
 
-  void makeInferenceEngine(Kernel::OrderingSP ord) {
-    ASS(alg == nullptr);
-    _ordering = ord;
-    _problem = std::make_unique<Problem>();
-    env.options->setSaturationAlgorithm(Shell::Options::SaturationAlgorithm::DISCOUNT);
-    env.reconstruction = true;
-    Ordering::unsetGlobalOrdering();
-    alg.reset(Saturation::SaturationAlgorithm::createFromOptions(*_problem, *env.options));
-    alg->setOrdering(_ordering);
-  }
+  /** Replay only the recorded parents. The recorder accepts candidates that
+   * reproduce the goal, including its variable names and literal occurrences. */
+  void replayInference(Kernel::Unit* u);
+  void makeInferenceEngine(Kernel::OrderingSP ordering);
 
 private:
-  Kernel::OrderingSP _ordering;
   // The engine retains its Problem by reference. Own both for the entire
   // replay, and release the engine before the problem on destruction.
   std::unique_ptr<Kernel::Problem> _problem;
-  std::unique_ptr<Saturation::SaturationAlgorithm> alg;
+  std::unique_ptr<Saturation::SaturationAlgorithm> _alg;
 
-  void runBackwardsSimp(Inferences::BackwardSimplificationEngine* rule, ClauseStack context, Clause* goal);
-  void runForwardsSimp(Inferences::ForwardSimplificationEngine* rule, ClauseStack context, Clause* goal);
-  Clause* runGenerating(Inferences::GeneratingInferenceEngine* rule, ClauseStack context, Clause* goal);
-  void removeAllActiveClauses();
+  void replayCondensation(Kernel::Clause* premise);
+  template<typename Engine> void runGenerating(const Kernel::ClauseStack& context);
+  template<typename Engine> void runForwardsSimp(const Kernel::ClauseStack& context);
+  template<typename Engine> void runBackwardsSimp(const Kernel::ClauseStack& context);
+  void runBackwardsSimp(Inferences::BackwardSimplificationEngine& rule, const Kernel::ClauseStack& context);
+  void runForwardsSimp(Inferences::ForwardSimplificationEngine& rule, const Kernel::ClauseStack& context);
+  void runGenerating(Inferences::GeneratingInferenceEngine& rule, const Kernel::ClauseStack& context);
 };
 }
 #endif /* __INFERENCE_REPLAY__ */

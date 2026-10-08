@@ -11,10 +11,18 @@
 #include "ACReconstruction.hpp"
 
 #include "Kernel/Clause.hpp"
+#include "Kernel/InferenceStore.hpp"
 #include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Matcher.hpp"
+#include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
+#include "Kernel/TPTPProofPrinter.hpp"
+#include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/Set.hpp"
+#include "Lib/StringUtils.hpp"
 #include "Shell/FunctionDefinition.hpp"
 #include "Shell/Options.hpp"
 
@@ -26,6 +34,7 @@
 namespace Shell::ACReconstruction {
 
 using namespace Kernel;
+using namespace Lib;
 
 namespace {
 
@@ -70,11 +79,35 @@ static bool sameLiteralOrSymmetry(Literal* source, Literal* target)
   return MatchingUtils::haveReversedVariantArgs(source, target);
 }
 
+std::string getClauseFormulaString(const std::vector<Literal*>& literals)
+{
+  Set<unsigned, FnvHash> vars;
+  DHMap<unsigned,TermList, FnvHash, IdentityHash> varSorts;
+
+  std::string body;
+  if (literals.empty()) {
+    body = "$false";
+  } else {
+    for (unsigned i = 0; i < literals.size(); ++i) {
+      if (i) {
+        body += " | ";
+      }
+      body += literals[i]->toString();
+      SortHelper::collectVariableSorts(literals[i], varSorts);
+      TermVarIterator variables(literals[i]);
+      while (variables.hasNext()) {
+        vars.insert(variables.next());
+      }
+    }
+  }
+
+  return getQuantifiedStr(pvi(decltype(vars)::Iterator(vars)), body, varSorts);
+}
+
 } // namespace
 
 void recordPreprocessingOrder(Clause* clause)
 {
-  if (env.options->proof() != Options::Proof::TSTP_AC) { return; }
   if (clause->inference().rule() == InferenceRule::DEFINITION_UNFOLDING) {
     // Full proof-extra output already uses this slot for the definition LHSs.
     // Extend that data instead of inserting a second extra for the same unit.
@@ -298,6 +331,24 @@ std::string acInference(const std::string& parent, const std::vector<unsigned>& 
   }
   result << "])],[" << parent << "])";
   return result.str();
+}
+
+void printOrderedClause(std::ostream& out, Unit* us, InferenceRule orderRule, InferenceRule printedRule,
+                        const std::string& inferenceStr, const FofLine& fofLine,
+                        const InferenceRecorder::InferenceReplayAnnotation& replay)
+{
+  std::vector<Literal*> core = replay.naturalLiterals;
+  std::vector<unsigned> permutation;
+  bool hasBridge = env.options->proof() == Options::Proof::TSTP_AC &&
+                   clauseOrderBridge(us, orderRule, replay.information, core, permutation);
+  std::string unitId = "f" + Int::toString(us->number());
+  if (hasBridge) {
+    std::string coreId = unitId + "_vh_" + StringUtils::replaceChar(ruleName(printedRule), ' ', '_');
+    out << fofLine(coreId, getClauseFormulaString(core), inferenceStr) << std::endl;
+    out << fofLine(unitId, getQuantifiedStr(us), acInference(coreId, permutation)) << std::endl;
+  } else {
+    out << fofLine(unitId, getQuantifiedStr(us), inferenceStr) << std::endl;
+  }
 }
 
 } // namespace Shell::ACReconstruction

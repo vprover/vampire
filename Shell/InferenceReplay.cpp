@@ -1,6 +1,5 @@
 #include "Shell/InferenceReplay.hpp"
 #include "Inferences/BackwardDemodulation.hpp"
-#include "Inferences/BackwardSubsumptionAndResolution.hpp"
 #include "Inferences/BackwardSubsumptionDemodulation.hpp"
 #include "Inferences/BinaryResolution.hpp"
 #include "Inferences/Condensation.hpp"
@@ -10,7 +9,6 @@
 #include "Inferences/Factoring.hpp"
 #include "Inferences/FastCondensation.hpp"
 #include "Inferences/ForwardDemodulation.hpp"
-#include "Inferences/ForwardLiteralRewriting.hpp"
 #include "Inferences/ForwardSubsumptionDemodulation.hpp"
 #include "Inferences/InferenceEngine.hpp"
 #include "Inferences/InnerRewriting.hpp"
@@ -21,198 +19,214 @@
 #include "Shell/EqResWithDeletion.hpp"
 #include "Shell/InferenceRecorder.hpp"
 
+#include "Kernel/InferenceStore.hpp"
+#include "Kernel/Problem.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/ScopedLet.hpp"
+#include "Shell/SimplificationReplay.hpp"
+#include "Saturation/Discount.hpp"
+
 #include <unordered_set>
+#include <vector>
 
 namespace Shell {
 using namespace Kernel;
+using namespace Inferences;
 
-void InferenceReplayer::replayInference(Kernel::Unit *u)
+namespace {
+/** Keep replay's index membership temporary, even when an engine throws.
+ * Preserve the proof parents' search-time stores and ages. Repeated parent
+ * positions remain separate substitution banks but enter the index once. */
+class ReplayContext {
+public:
+  explicit ReplayContext(Saturation::SaturationAlgorithm& alg)
+    : _active(*alg.getActiveClauseContainer()) {}
+
+  void activate(Clause* clause, bool resetAge = false)
+  {
+    if (!_activated.insert(clause).second) { return; }
+    _parents.push_back({clause, clause->store(), clause->age()});
+    // Index removal can release a clause. Hold it until its store is restored.
+    clause->incRefCnt();
+    clause->setStore(Clause::ACTIVE);
+    if (resetAge) { clause->setAge(0); }
+    _active.add(clause);
+  }
+
+  ~ReplayContext()
+  {
+    for (auto [clause, store, age] : _parents) {
+      _active.remove(clause);
+      clause->setAge(age);
+      clause->setStore(store);
+      clause->decRefCnt();
+    }
+  }
+
+private:
+  struct Parent { Clause* clause; Clause::Store store; unsigned age; };
+  Saturation::ActiveClauseContainer& _active;
+  std::unordered_set<Clause*> _activated;
+  std::vector<Parent> _parents;
+};
+
+} // namespace
+
+InferenceReplayer::InferenceReplayer() = default;
+InferenceReplayer::~InferenceReplayer() = default;
+
+void InferenceReplayer::makeInferenceEngine(OrderingSP ordering)
 {
-  auto it = u->getParents();
-  ClauseStack stack;
-  while (it.hasNext()) {
-    Unit* parent = it.next();
+  ASS(!_alg);
+  _problem = std::make_unique<Problem>();
+  Lib::ScopedLet<bool> reconstruction(env.reconstruction, true);
+  // Each replay constructs its own rule. Only DISCOUNT's active container and
+  // indexes are needed; installing all search engines would change options
+  // and create engines that are never run.
+  Lib::ScopedLet<OrderingSP> proofOrdering(InferenceStore::instance()->ordering,
+                                         ordering);
+  Ordering::unsetGlobalOrdering();
+  _alg = std::make_unique<Saturation::Discount>(*_problem, *env.options);
+  // Replay uses the proof ordering explicitly and releases the global cache.
+  Ordering::unsetGlobalOrdering();
+}
+
+template<typename Engine>
+void InferenceReplayer::runGenerating(const ClauseStack& context)
+{
+  ASS(_alg);
+  Engine rule(*_alg);
+  runGenerating(rule, context);
+}
+
+template<typename Engine>
+void InferenceReplayer::runForwardsSimp(const ClauseStack& context)
+{
+  ASS(_alg);
+  Engine rule(*_alg);
+  runForwardsSimp(rule, context);
+}
+
+template<typename Engine>
+void InferenceReplayer::runBackwardsSimp(const ClauseStack& context)
+{
+  ASS(_alg);
+  Engine rule(*_alg);
+  runBackwardsSimp(rule, context);
+}
+
+void InferenceReplayer::replayInference(Unit* goal)
+{
+  if (!goal->isClause()) { return; }
+  InferenceRecorder::instance()->setCurrentGoal(goal->asClause());
+  ClauseStack context;
+  auto parents = goal->getParents();
+  while (parents.hasNext()) {
+    Unit* parent = parents.next();
     if (!parent->isClause()) { return; }
-    stack.push(parent->asClause());
+    context.push(parent->asClause());
   }
-  if (u->inference().rule() == InferenceRule::CONDENSATION) {
-    ASS_EQ(stack.size(), 1);
-    // Both engines use the same inference name. Fast condensation keeps the
-    // remaining literals unchanged; general condensation can instantiate them.
-    // Try both, independently of the options used during the original search.
-    if (env.higherOrder()) {
-      Inferences::FastCondensation<true> fast;
-      fast.simplify(stack[0]);
-    } else {
-      Inferences::FastCondensation<false> fast;
-      fast.simplify(stack[0]);
-    }
-    if (!InferenceRecorder::instance()->getLastRecordedInferenceInformation()) {
-      Inferences::Condensation general;
-      general.simplify(stack[0]);
-    }
+  if (context.isEmpty()) { return; }
+  Lib::ScopedLet<bool> reconstruction(env.reconstruction, true);
+
+  switch (goal->inference().rule()) {
+  case InferenceRule::RESOLUTION:
+  case InferenceRule::CONSTRAINED_RESOLUTION:
+    runGenerating<BinaryResolution>(context); break;
+  case InferenceRule::EXTENSIONALITY_RESOLUTION:
+    runGenerating<ExtensionalityResolution>(context); break;
+  case InferenceRule::UNIT_RESULTING_RESOLUTION:
+    runGenerating<URResolution<false>>(context); break;
+  case InferenceRule::SUPERPOSITION:
+  case InferenceRule::CONSTRAINED_SUPERPOSITION:
+    runGenerating<Superposition<false>>(context); break;
+  case InferenceRule::EQUALITY_RESOLUTION:
+    runGenerating<EqualityResolution>(context); break;
+  case InferenceRule::EQUALITY_FACTORING:
+    runGenerating<EqualityFactoring>(context); break;
+  case InferenceRule::FACTORING:
+    runGenerating<Factoring>(context); break;
+  case InferenceRule::FORWARD_DEMODULATION:
+    runForwardsSimp<ForwardDemodulation<false>>(context); break;
+  case InferenceRule::FORWARD_SUBSUMPTION_DEMODULATION:
+    runForwardsSimp<ForwardSubsumptionDemodulation<false>>(context); break;
+  case InferenceRule::BACKWARD_DEMODULATION:
+    runBackwardsSimp<BackwardDemodulation<false>>(context); break;
+  case InferenceRule::BACKWARD_SUBSUMPTION_DEMODULATION:
+    runBackwardsSimp<BackwardSubsumptionDemodulation<false>>(context); break;
+  case InferenceRule::BACKWARD_SUBSUMPTION_RESOLUTION:
+    ASS_EQ(context.size(), 2);
+    SimplificationReplay::subsumptionResolution(context[0], context[1]); break;
+  case InferenceRule::FORWARD_LITERAL_REWRITING: {
+    ASS_EQ(context.size(), 2);
+    SimplificationReplay::literalRewriting(context[0], context[1]);
+    break;
   }
-  else if (u->inference().rule() == InferenceRule::RESOLUTION ||
-           u->inference().rule() == InferenceRule::CONSTRAINED_RESOLUTION) {
-    BinaryResolution br(*alg);
-    runGenerating(&br, stack, u->asClause());
-  }
-  else if (u->inference().rule() == InferenceRule::EXTENSIONALITY_RESOLUTION) {
-    ExtensionalityResolution er(*alg);
-    runGenerating(&er, stack, u->asClause());
-  }
-  else if (u->inference().rule() == InferenceRule::UNIT_RESULTING_RESOLUTION) {
-    URResolution<false> urr(*alg);
-    runGenerating(&urr, stack, u->asClause());
-  }
-  else if (u->inference().rule() == InferenceRule::FORWARD_LITERAL_REWRITING) {
-    ForwardLiteralRewriting flr(*alg, stack[1]);
-    runForwardsSimp(&flr, stack, u->asClause());
-  }
-  else if (u->inference().rule() == InferenceRule::SUBSUMPTION_EQUALITY_RESOLUTION) {
-    SubsumptionEqualityResolution ser;
-    ser.simplify(stack[0]);
-  }
-  else if (u->inference().rule() == InferenceRule::BACKWARD_SUBSUMPTION_RESOLUTION) {
-    BackwardSubsumptionAndResolution<false> bsr(*alg);
-    runBackwardsSimp(&bsr, stack, u->asClause());
-  }
-  else if (u->inference().rule() == InferenceRule::FORWARD_DEMODULATION) {
-    ForwardDemodulation<false> fd(*alg);
-    runForwardsSimp(&fd, stack, u->asClause());
-  }
-  else if (u->inference().rule() == InferenceRule::BACKWARD_DEMODULATION) {
-    BackwardDemodulation<false> bd(*alg);
-    runBackwardsSimp(&bd, stack, u->asClause());
-  }
-  else if (u->inference().rule() == InferenceRule::FORWARD_SUBSUMPTION_DEMODULATION) {
-    ForwardSubsumptionDemodulation<false> fsd(*alg);
-    runForwardsSimp(&fsd, stack, u->asClause());
-  }
-  else if (u->inference().rule() == InferenceRule::BACKWARD_SUBSUMPTION_DEMODULATION) {
-    BackwardSubsumptionDemodulation<false> bsd(*alg);
-    runBackwardsSimp(&bsd, stack, u->asClause());
-  }
-  else if (u->inference().rule() == InferenceRule::INNER_REWRITING) {
-    InnerRewriting ir(*alg);
-    ir.simplify(stack[0]);
-  }
-  else if (u->inference().rule() == InferenceRule::SUPERPOSITION ||
-           u->inference().rule() == InferenceRule::CONSTRAINED_SUPERPOSITION) {
-    Inferences::Superposition<false> sp(*alg);
-    runGenerating(&sp, stack, u->asClause());
-  }
-  else if (u->inference().rule() == InferenceRule::EQUALITY_RESOLUTION) {
-    Inferences::EqualityResolution eq(*alg);
-    runGenerating(&eq, stack, u->asClause());
-  }
-  else if (u->inference().rule() == InferenceRule::EQUALITY_FACTORING) {
-    Inferences::EqualityFactoring eq(*alg);
-    runGenerating(&eq, stack, u->asClause());
-  }
-  else if (u->inference().rule() == InferenceRule::EQUALITY_RESOLUTION_WITH_DELETION) {
-    Inferences::EqResWithDeletion eq;
-    Problem p;
-    auto ul = UnitList::empty();
-    UnitList::pushFromIterator(ClauseStack::Iterator(stack), ul);
-    p.addUnits(ul);
-    env.setMainProblem(&p);
-    eq.apply(p);
-  }
-  else if (u->inference().rule() == InferenceRule::FACTORING) {
-    Inferences::Factoring fact(*alg);
-    runGenerating(&fact, stack, u->asClause());
-  }
-  else {
-    return; // not replayable yet
+  case InferenceRule::CONDENSATION:
+    ASS_EQ(context.size(), 1);
+    replayCondensation(context[0]); break;
+  case InferenceRule::SUBSUMPTION_EQUALITY_RESOLUTION:
+    ASS_EQ(context.size(), 1);
+    SubsumptionEqualityResolution().simplify(context[0]); break;
+  case InferenceRule::INNER_REWRITING:
+    ASS(_alg);
+    ASS_EQ(context.size(), 1);
+    InnerRewriting(*_alg).simplify(context[0]); break;
+  case InferenceRule::EQUALITY_RESOLUTION_WITH_DELETION:
+    ASS_EQ(context.size(), 1);
+    EqResWithDeletion().apply(context[0]); break;
+  default:
+    break; // not replayable yet
   }
 }
 
-Clause *InferenceReplayer::runGenerating(GeneratingInferenceEngine *rule,
-                                         ClauseStack context, Clause *goal)
+void InferenceReplayer::replayCondensation(Clause* premise)
 {
-  // init problem
-  ASS(alg != nullptr);
-  Problem p;
-  auto ul = UnitList::empty();
-  UnitList::pushFromIterator(ClauseStack::Iterator(context), ul);
-  p.addUnits(ul);
-
-  env.setMainProblem(&p);
-
-  auto activeContainer = alg->getActiveClauseContainer();
-  std::unordered_set<unsigned> activated;
-  for (auto c : context) {
-    // A self-inference lists one clause in more than one parent position.
-    // Keep those positions in `context`, but an active container owns each
-    // clause number only once.
-    if (!activated.insert(c->number()).second) {
-      continue;
-    }
-    c->setStore(Clause::ACTIVE);
-    c->setAge(0);
-    activeContainer->add(c);
+  // Both engines use the same inference name. Fast condensation keeps the
+  // remaining literals unchanged; general condensation can instantiate them.
+  // Try both independently of the original search options.
+  if (env.higherOrder()) {
+    FastCondensation<true>().simplify(premise);
+  } else {
+    FastCondensation<false>().simplify(premise);
   }
-  auto res = rule->generateSimplify(context[0]);
-
-  while(res.clauses.hasNext()){
-    res.clauses.next();
-  }
-  removeAllActiveClauses();
-  Ordering::unsetGlobalOrdering();
-
-  return nullptr;
-}
-
-void InferenceReplayer::runForwardsSimp(ForwardSimplificationEngine *rule,
-                                        ClauseStack context, Clause *goal)
-{
-  Problem p;
-  ASS(alg);
-  removeAllActiveClauses();
-  ClauseContainer *simplClauseContainer = alg->getSimplifyingClauseContainer();
-  context[1]->setStore(Clause::ACTIVE);
-  simplClauseContainer->add(context[1]);
-  Clause *clause = context[0];
-  Clause *replacement = nullptr;
-  Kernel::ClauseIterator clauses;
-  rule->perform(clause, replacement, clauses);
-  alg->getActiveClauseContainer()->remove(context[1]);
-  removeAllActiveClauses();
-  Ordering::unsetGlobalOrdering();
-}
-
-void InferenceReplayer::removeAllActiveClauses()
-{
-  auto iter = alg->getActiveClauseContainer()->clauses();
-  while (iter.hasNext()) {
-    Clause *c = iter.next();
-    alg->getActiveClauseContainer()->remove(c);
+  if (!InferenceRecorder::instance()->getLastRecordedInferenceInformation()) {
+    Condensation().simplify(premise);
   }
 }
 
-void InferenceReplayer::runBackwardsSimp(Inferences::BackwardSimplificationEngine *rule,
-                                         ClauseStack context, Clause *goal)
+void InferenceReplayer::runGenerating(GeneratingInferenceEngine& rule,
+                                     const ClauseStack& context)
 {
-  Problem p;
-  ASS(alg != nullptr);
-  removeAllActiveClauses();
-  ClauseContainer *simplClauseContainer = alg->getSimplifyingClauseContainer();
+  ReplayContext active(*_alg);
+  for (Clause* parent : context) { active.activate(parent, /*resetAge=*/true); }
+  auto result = rule.generateSimplify(context[0]);
+  // Iterators perform inference work lazily. Drain them while the parents are
+  // indexed; the recorder retains only candidates matching the proof goal.
+  while (result.clauses.hasNext()) { result.clauses.next(); }
+}
 
-  // Backward simplification, so we add the clause to be simplified to the simplifying container
-  context[0]->setStore(Clause::ACTIVE);
-  simplClauseContainer->add(context[0]);
+void InferenceReplayer::runForwardsSimp(ForwardSimplificationEngine& rule,
+                                      const ClauseStack& context)
+{
+  ASS_EQ(context.size(), 2);
+  ReplayContext active(*_alg);
+  active.activate(context[1]);
+  Clause* replacement = nullptr;
+  ClauseIterator premises;
+  rule.perform(context[0], replacement, premises);
+}
 
-  Inferences::BwSimplificationRecordIterator simpls;
-  // Keep the original side parent: copying it changes its proof ID and makes
-  // the recorded substitution refer to a parent that is not in the proof.
-  rule->perform(context[1], simpls);
-
-  while(simpls.hasNext()){
-    simpls.next();
-  }
-  removeAllActiveClauses();
-  Ordering::unsetGlobalOrdering();
+void InferenceReplayer::runBackwardsSimp(BackwardSimplificationEngine& rule,
+                                       const ClauseStack& context)
+{
+  ASS_EQ(context.size(), 2);
+  ReplayContext active(*_alg);
+  active.activate(context[0]);
+  BwSimplificationRecordIterator simplifications;
+  // Keep the original side parent: a copy would change its proof ID.
+  rule.perform(context[1], simplifications);
+  while (simplifications.hasNext()) { simplifications.next(); }
 }
 
 } // namespace Shell

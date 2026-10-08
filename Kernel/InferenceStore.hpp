@@ -39,35 +39,6 @@ class InferenceStore
 public:
   static InferenceStore* instance();
 
-  typedef List<int> IntList;
-
-  struct FullInference
-  {
-    FullInference(unsigned premCnt) : csId(0), premCnt(premCnt) { }
-
-    void* operator new(size_t,unsigned premCnt)
-    {
-      size_t size=sizeof(FullInference)+premCnt*sizeof(Unit*);
-      size-=sizeof(Unit*);
-
-      return ALLOC_KNOWN(size,"InferenceStore::FullInference");
-    }
-
-    size_t occupiedBytes()
-    {
-      size_t size=sizeof(FullInference)+premCnt*sizeof(Unit*);
-      size-=sizeof(Unit*);
-      return size;
-    }
-
-    void increasePremiseRefCounters();
-
-    int csId;
-    unsigned premCnt;
-    InferenceRule rule;
-    Unit* premises[1];
-  };
-
   SmartPtr<Ordering> ordering;
 
   void recordSplittingNameLiteral(Unit* us, Literal* lit);
@@ -89,6 +60,7 @@ public:
 
   protected:
     virtual bool hideProofStep(InferenceRule rule) { return false; }
+    virtual void addAdditionalPremises(Unit* unit, std::vector<Unit*>& todo) {}
     virtual void printStep(Unit* unit) = 0;
 
     struct CompareUnits {
@@ -113,12 +85,14 @@ private:
     virtual void printSATStep(SAT::SATClause* clause) = 0;
   };
   struct TPTPProofPrinter;
+  struct TPTPReplayProofPrinter;
   struct Smt2ProofCheckPrinter;
   struct ProofCheckPrinter;
   struct ProofPropertyPrinter;
   struct SMTCheckPrinter;
 
   AbstractProofPrinter* createProofPrinter(std::ostream& out);
+  AbstractProofPrinter* createTPTPReplayProofPrinter(std::ostream& out);
 
   DHMultiset<unsigned, FnvHash, IdentityHash> _nextClIds;
 

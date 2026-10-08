@@ -89,7 +89,7 @@ void BackwardSubsumptionAndResolution<higherOrder>::perform(Clause *cl,
       auto it = _bwIndex->getInstances<higherOrder>(lit, false, false);
       while (it.hasNext()) {
         Clause *icl = it.next().data->clause;
-        if (!_checked.insert(icl->number()))
+        if (!_checked.insert(icl->number()) && !env.reconstruction)
           continue;
         env.statistics->backwardSubsumed++;
         List<BwSimplificationRecord>::push(BwSimplificationRecord(icl), simplificationBuffer);
@@ -117,10 +117,13 @@ void BackwardSubsumptionAndResolution<higherOrder>::perform(Clause *cl,
             unsigned variable = variables.next();
             substitutions[1].bind(variable, res.unifier->applyToBoundQuery(TermList::var(variable)));
           }
-          Shell::InferenceRecorder::instance()->replayedInference(
-              conclusion, {icl, cl}, substitutions,
-              Shell::InferenceRecorder::InferenceInformation::LiteralPositionKind::REMOVED,
-              {{0, icl->getLiteralPosition(res.data->literal)}});
+          if (!Shell::InferenceRecorder::instance()->recordReplayedInferenceCandidate(
+                conclusion, {icl, cl}, substitutions,
+                Shell::InferenceRecorder::InferenceInformation::LiteralPositionKind::REMOVED,
+                {{0, icl->getLiteralPosition(res.data->literal)}})) {
+            conclusion->destroy();
+            continue;
+          }
         }
 
         List<BwSimplificationRecord>::push(BwSimplificationRecord(icl, conclusion), simplificationBuffer);

@@ -224,7 +224,7 @@ Clause* ExtensionalityResolution::performExtensionalityResolution(
 
   Clause* result = Clause::fromStack(*resLits, GeneratingInference2(InferenceRule::EXTENSIONALITY_RESOLUTION, extCl, otherCl));
   if (env.reconstruction) {
-    Shell::InferenceRecorder::instance()->replayedInference(
+    Shell::InferenceRecorder::instance()->recordReplayedInferenceCandidate(
         result, {extCl, otherCl}, *subst,
         Shell::InferenceRecorder::InferenceInformation::LiteralPositionKind::RESOLVED,
         {{0, extCl->getLiteralPosition(extLit)}, {1, otherCl->getLiteralPosition(otherLit)}});

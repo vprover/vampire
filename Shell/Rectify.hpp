@@ -43,7 +43,7 @@ class Rectify
 {
 public:
   /** Initialise Rectify */
-  Rectify() : _free(0), _removeUnusedVars(true) {}
+  Rectify() : _free(0), _removeUnusedVars(true), _record(false) {}
   static FormulaUnit* rectify(FormulaUnit*, bool removeUnusedVars=true);
   static void rectify(UnitList*& units);
   static std::pair<Formula*,FormulaUnit*> closeOverGivenVars(VList* vars, Formula* f, Unit* u);
@@ -99,6 +99,8 @@ private:
 
   /** if true, unused quantified variables will be removed */
   bool _removeUnusedVars;
+  /** Capture scoped renamings for replay annotations during preprocessing. */
+  bool _record;
 
 }; // class Rectify
 

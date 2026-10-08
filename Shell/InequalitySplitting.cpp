@@ -116,7 +116,9 @@ Clause* InequalitySplitting::trySplitClause(Clause* cl)
   UnitList::push(cl, premises);
 
   auto res = Clause::fromStack(*resLits,NonspecificInferenceMany(InferenceRule::INEQUALITY_SPLITTING, premises));
-  ACReconstruction::recordPreprocessingOrder(res);
+  if (env.options->proofExtra() == Options::ProofExtra::REPLAY) {
+    ACReconstruction::recordPreprocessingOrder(res);
+  }
   // TODO isn't this done automatically?
   res->setAge(cl->age()); // MS: this seems useless; as long as InequalitySplitting is only operating as a part of preprocessing, age is going to 0 anyway
 

@@ -592,13 +592,6 @@ static void trivial(std::ostream &out, SortMap &conclSorts, Clause *concl)
   outputConclusion(out, conclSorts, concl->asClause());
 }
 
-static void resolution(std::ostream &out, SortMap &conclSorts, Clause *concl, const Shell::InferenceRecorder::InferenceInformation* info)
-{
-  outputPremise(out, conclSorts, info->premises[0]->asClause(), DoSubst(info->substitutionForBanksSub[0]));
-  outputPremise(out, conclSorts, info->premises[1]->asClause(), DoSubst(info->substitutionForBanksSub[1]));
-  outputConclusion(out, conclSorts, concl->asClause());
-}
-
 static void subsumptionResolution(std::ostream &out, SortMap &conclSorts, Clause *concl)
 {
   auto [left, right] = getParents<2>(concl);
@@ -615,34 +608,21 @@ static void subsumptionResolution(std::ostream &out, SortMap &conclSorts, Clause
   outputConclusion(out, conclSorts, concl->asClause());
 }
 
-static void factoring(std::ostream &out, SortMap &conclSorts, Clause *concl, const InferenceRecorder::InferenceInformation* info) {
-  outputPremise(out, conclSorts, info->premises[0]->asClause(), DoSubst(info->substitutionForBanksSub[0]));
-  outputConclusion(out, conclSorts, concl->asClause());
-}
-
-static void equalityResolution(std::ostream &out, SortMap &conclSorts, Clause *concl, const InferenceRecorder::InferenceInformation* info) {
-  outputPremise(out, conclSorts, info->premises[0]->asClause(), DoSubst(info->substitutionForBanksSub[0]));
-  outputConclusion(out, conclSorts, concl->asClause());
-}
-
-static void superposition(std::ostream &out, SortMap &conclSorts, Clause *concl, const Shell::InferenceRecorder::InferenceInformation* info)
+/** All replay certificates use one substitution bank per original parent.
+ * Applying the main bank to a demodulator would leave its variables unbound. */
+static bool replayedStep(std::ostream& out, SortMap& conclSorts, Clause* conclusion,
+                         InferenceReplayer* replayer)
 {
-  outputPremise(out, conclSorts, info->premises[0]->asClause(), DoSubst(info->substitutionForBanksSub[0]));
-  outputPremise(out, conclSorts, info->premises[1]->asClause(), DoSubst(info->substitutionForBanksSub[1]));
-  outputConclusion(out, conclSorts, concl->asClause());
-}
-
-static void demodulation(std::ostream &out, SortMap &conclSorts, Clause *concl, const Shell::InferenceRecorder::InferenceInformation* info)
-{
-
-  auto [left, right] = getParents<2>(concl);
-  //auto right = info->premises[1]->asClause();
-  ASS((*right)[0]->isEquality())
-  ASS((*right)[0]->isPositive())
-  
-  outputPremise(out, conclSorts, left->asClause());
-  outputPremise(out, conclSorts, right->asClause(), DoSubst(info->substitutionForBanksSub[0]));
-  outputConclusion(out, conclSorts, concl->asClause());
+  if (!replayer) { return false; }
+  replayer->replayInference(conclusion);
+  const auto* info = InferenceRecorder::instance()->getLastRecordedInferenceInformation();
+  if (!info) { return false; }
+  ASS_EQ(info->premises.size(), info->substitutionForBanksSub.size());
+  for (unsigned bank = 0; bank < info->premises.size(); ++bank) {
+    outputPremise(out, conclSorts, info->premises[bank], DoSubst(info->substitutionForBanksSub[bank]));
+  }
+  outputConclusion(out, conclSorts, conclusion);
+  return true;
 }
 
 static void splitClause(std::ostream &out, SortMap &conclSorts, Unit *concl)
@@ -762,8 +742,6 @@ static void outputSplits(std::ostream &out, Unit *u)
 namespace Shell {
 namespace SMTCheck {
 
-InferenceReplayer* replayer;
-
 void outputSignature(std::ostream &out)
 {
   out << "(set-logic ALL)\n";
@@ -822,7 +800,7 @@ void outputSignature(std::ostream &out)
   }
 }
 
-void outputStep(std::ostream &out, Unit *u)
+void outputStep(std::ostream &out, Unit *u, InferenceReplayer* replayer)
 {
   InferenceRule rule = u->inference().rule();
   if (
@@ -906,49 +884,19 @@ void outputStep(std::ostream &out, Unit *u)
     case InferenceRule::FOOL_AXIOM_ALL_IS_TRUE_OR_FALSE:
       trivial(out, conclSorts, u->asClause());
       break;
-    case InferenceRule::RESOLUTION:
-      {
-      InferenceRecorder::instance()->setCurrentGoal(u->asClause());
-      replayer->replayInference(u);
-      auto info = InferenceRecorder::instance()->getLastRecordedInferenceInformation();
-      resolution(out, conclSorts, u->asClause(), info);
-      }
-      break;
     case InferenceRule::FORWARD_SUBSUMPTION_RESOLUTION:
     case InferenceRule::BACKWARD_SUBSUMPTION_RESOLUTION:
       subsumptionResolution(out, conclSorts, u->asClause());
       break;
+    case InferenceRule::RESOLUTION:
     case InferenceRule::FACTORING:
-      {
-        InferenceRecorder::instance()->setCurrentGoal(u->asClause());
-        replayer->replayInference(u);
-        auto info = InferenceRecorder::instance()->getLastRecordedInferenceInformation();
-        factoring(out, conclSorts, u->asClause(), info);
-      }
-      break;
     case InferenceRule::EQUALITY_RESOLUTION:
-      {
-        InferenceRecorder::instance()->setCurrentGoal(u->asClause());
-        replayer->replayInference(u);
-        auto info = InferenceRecorder::instance()->getLastRecordedInferenceInformation();
-        equalityResolution(out, conclSorts, u->asClause(), info);
-      }
-      break;
     case InferenceRule::SUPERPOSITION:
-      {
-        InferenceRecorder::instance()->setCurrentGoal(u->asClause());
-        replayer->replayInference(u);
-        auto info = InferenceRecorder::instance()->getLastRecordedInferenceInformation();
-        superposition(out, conclSorts, u->asClause(), info);
-      }
-      break;
     case InferenceRule::FORWARD_DEMODULATION:
     case InferenceRule::BACKWARD_DEMODULATION:
-      {
-        InferenceRecorder::instance()->setCurrentGoal(u->asClause());
-        replayer->replayInference(u);
-        auto info = InferenceRecorder::instance()->getLastRecordedInferenceInformation();
-        demodulation(out, conclSorts, u->asClause(),info);
+      if (!replayedStep(out, conclSorts, u->asClause(), replayer)) {
+        sorry = true;
+        out << "(echo \"sorry: could not replay " << ruleName(rule) << "\")\n";
       }
       break;
     case InferenceRule::AVATAR_SPLIT_CLAUSE:

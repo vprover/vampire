@@ -34,7 +34,6 @@
 #include "Saturation/Splitter.hpp"
 #include "Shell/ACReconstruction.hpp"
 #include "Shell/Options.hpp"
-#include "Shell/TPTPReplayAnnotations.hpp"
 #include "Shell/UIHelper.hpp"
 
 #include <sstream>
@@ -135,13 +134,8 @@ std::string getQuantifiedStr(Unit* u, List<unsigned>* nonQuantified)
 }
 
 InferenceStore::TPTPProofPrinter::TPTPProofPrinter(std::ostream& out, InferenceStore* is)
-  : AbstractSATProofPrinter(out, is), splitPrefix(Saturation::Splitter::splPrefix),
-    _replay(env.options->replay())
-{
-  if (_replay) {
-    _replayer.makeInferenceEngine(this->_is->ordering);
-  }
-}
+  : AbstractSATProofPrinter(out, is), splitPrefix(Saturation::Splitter::splPrefix)
+{}
 
 void InferenceStore::TPTPProofPrinter::print()
 {
@@ -224,7 +218,7 @@ std::string InferenceStore::TPTPProofPrinter::splitsToString(SplitSet* splits)
     while(sit.hasNext()) {
       res+= Saturation::Splitter::getFormulaStringFromName(sit.next(),true /*negated*/);
       if (sit.hasNext()) {
-	res+=" | ";
+        res+=" | ";
       }
     }
     res+=")";
@@ -245,58 +239,6 @@ std::string InferenceStore::TPTPProofPrinter::getFofString(std::string id, std::
     return kind+"("+id+","+getRole(rule,origin)+",("+"\n"
 	+"  "+formula+"),\n"
 	+"  "+inference+").";
-  }
-
-std::string InferenceStore::TPTPProofPrinter::getFormulaString(Unit* us)
-{
-    std::string formulaStr;
-    if (us->isClause()) {
-      Clause* cl=us->asClause();
-      formulaStr=getQuantifiedStr(cl);
-      if (cl->splits() && !cl->splits()->isEmpty()) {
-	formulaStr+=" | "+splitsToString(cl->splits());
-      }
-    }
-    else {
-      FormulaUnit* fu=static_cast<FormulaUnit*>(us);
-      formulaStr=getQuantifiedStr(fu);
-    }
-    return formulaStr;
-  }
-
-  /** Print a clause in an explicitly supplied literal order, retaining the
-   * supplied literals' variable spelling and the final clause's AVATAR split
-   * context. */
-std::string InferenceStore::TPTPProofPrinter::getClauseFormulaString(Unit* finalUnit,
-                                     const std::vector<Literal*>& literals)
-{
-    ASS(finalUnit->isClause());
-    Set<unsigned, FnvHash> vars;
-    DHMap<unsigned,TermList, FnvHash, IdentityHash> varSorts;
-
-    std::string body;
-    if (literals.empty()) {
-      body = "$false";
-    } else {
-      for (unsigned i = 0; i < literals.size(); ++i) {
-        if (i) {
-          body += " | ";
-        }
-        body += literals[i]->toString();
-        SortHelper::collectVariableSorts(literals[i], varSorts);
-        TermVarIterator variables(literals[i]);
-        while (variables.hasNext()) {
-          vars.insert(variables.next());
-        }
-      }
-    }
-
-    std::string result = getQuantifiedStr(pvi(decltype(vars)::Iterator(vars)), body, varSorts);
-    Clause* finalClause = finalUnit->asClause();
-    if (finalClause->splits() && !finalClause->splits()->isEmpty()) {
-      result += " | " + splitsToString(finalClause->splits());
-    }
-    return result;
   }
 
 bool InferenceStore::TPTPProofPrinter::hasNewSymbols(Unit* u)
@@ -414,6 +356,7 @@ void InferenceStore::TPTPProofPrinter::printStep(Unit* us)
 {
     InferenceRule rule = us->inference().rule();
     UnitIterator parents= us->getParents();
+    InferenceRecorder::InferenceReplayAnnotation replay;
 
     switch(rule) {
     case InferenceRule::GENERAL_SPLITTING_COMPONENT:
@@ -425,11 +368,9 @@ void InferenceStore::TPTPProofPrinter::printStep(Unit* us)
     default: ;
     }
 
-
     //get inference std::string
 
     std::string inferenceStr;
-    TPTPReplayAnnotations::ReplayAnnotation replay;
     if (rule==InferenceRule::INPUT) {
       std::string axiomName;
       std::filesystem::path axiomPath;
@@ -440,7 +381,7 @@ void InferenceStore::TPTPProofPrinter::printStep(Unit* us)
           axiomPath = "unknown";
         } else {
 	        axiomName="unknown";
-          axiomPath="unknown";
+          axiomPath = "unknown";
         }
       }
       inferenceStr="file('"+std::string(axiomPath)+"','"+axiomName+"')";
@@ -465,32 +406,7 @@ void InferenceStore::TPTPProofPrinter::printStep(Unit* us)
 	      statusStr="status(cth)";
       }
 
-      replay = TPTPReplayAnnotations::replayedUnifier(us, _replayer, _replay);
-      if (!replay.text.empty()) {
-        if (!statusStr.empty()) {
-          statusStr += ',';
-        }
-        statusStr += replay.text;
-      }
-      std::string rectificationStr = TPTPReplayAnnotations::rectificationInfo(us, _replay);
-      if (!rectificationStr.empty()) {
-        if (!statusStr.empty()) {
-          statusStr += ',';
-        }
-        statusStr += rectificationStr;
-      }
-      std::string clausificationStr = TPTPReplayAnnotations::clausificationInfo(us, _replay);
-      if (!clausificationStr.empty()) {
-        if (!statusStr.empty()) { statusStr += ','; }
-        statusStr += clausificationStr;
-      }
-      std::string avatarSplitInstantiation = TPTPReplayAnnotations::avatarSplitInstantiationInfo(us);
-      if (!avatarSplitInstantiation.empty()) {
-        if (!statusStr.empty()) {
-          statusStr += ',';
-        }
-        statusStr += avatarSplitInstantiation;
-      }
+      appendInferenceReplayAnnotations(us, statusStr, replay);
 
       inferenceStr="inference("+tptpRuleName(rule);
 
@@ -517,28 +433,23 @@ void InferenceStore::TPTPProofPrinter::printStep(Unit* us)
     printOrderedClause(us, rule, rule, inferenceStr, replay);
   }
 
-  // Splitting has a custom inference/definition annotation, but must use the
-  // same creation-order bridge as the ordinary clause-printing path.
 void InferenceStore::TPTPProofPrinter::printOrderedClause(Unit* us, InferenceRule orderRule, InferenceRule printedRule,
                           const std::string& inferenceStr,
-                          const TPTPReplayAnnotations::ReplayAnnotation& replay)
+                          const InferenceRecorder::InferenceReplayAnnotation& replay)
 {
-    std::vector<Literal*> core = replay.naturalLiterals;
-    std::vector<unsigned> permutation;
-    bool hasBridge = env.options->proof() == Options::Proof::TSTP_AC &&
-                     ACReconstruction::clauseOrderBridge(us, orderRule, replay.information,
-                                                        core, permutation);
-    if (hasBridge) {
-      std::string coreId = tptpUnitId(us) + "_vh_" + tptpRuleName(printedRule);
-      out << getFofString(coreId, getClauseFormulaString(us, core), inferenceStr,
-                          printedRule, us->inputType()) << endl;
-      out << getFofString(tptpUnitId(us), getFormulaString(us),
-                          ACReconstruction::acInference(coreId, permutation),
-                          printedRule, us->inputType()) << endl;
-    } else {
-      out << getFofString(tptpUnitId(us), getFormulaString(us), inferenceStr,
-                          printedRule, us->inputType()) << endl;
-    }
+    ACReconstruction::printOrderedClause(out, us, orderRule, printedRule, inferenceStr,
+        [this, printedRule, us](const std::string& id, const std::string& formula,
+                                const std::string& inference) {
+          std::string splitContext;
+          if (us->isClause()) {
+            auto splits = us->asClause()->splits();
+            if (splits && !splits->isEmpty()) {
+              splitContext = " | " + splitsToString(splits);
+            }
+          }
+          return getFofString(id, formula + splitContext, inference, printedRule, us->inputType());
+        },
+        replay);
   }
 
 void InferenceStore::TPTPProofPrinter::printSATStep(SATClause *cl)
@@ -574,14 +485,11 @@ void InferenceStore::TPTPProofPrinter::printSATStep(SATClause *cl)
     }
     case SAT::SATInference::FO_CONVERSION: {
       Unit* origin = static_cast<FOConversionInference *>(inference)->getOrigin();
-      bool ac = env.options->proof() == Options::Proof::TSTP_AC;
       out << "sat_conversion,[";
-      if (ac) { out << TPTPReplayAnnotations::avatarConversionInfo(origin); }
+      out << avatarConversionReplayAnnotation(origin);
       out << "],[f" << origin->number();
-      if (ac) {
-        for (Unit* definition : TPTPReplayAnnotations::avatarConversionDefinitions(origin)) {
-          out << ",f" << definition->number();
-        }
+      for (Unit* definition : avatarConversionReplayDefinitions(origin)) {
+        out << ",f" << definition->number();
       }
       break;
     }
@@ -622,6 +530,7 @@ void InferenceStore::TPTPProofPrinter::printGeneralSplittingComponent(Unit* us)
     ASS(us->isClause());
 
     InferenceRule rule = us->inference().rule();
+
     Literal* nameLit=_is->_splittingNameLiterals.get(us->number()); //the name literal must always be stored
 
     //sorts of the clause's variables, so the quantifiers of the definition

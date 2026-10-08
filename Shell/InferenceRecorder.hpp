@@ -10,8 +10,10 @@
 #include "Kernel/Substitution.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Shell/EqResWithDeletion.hpp"
+#include <functional>
 #include <memory>
 #include <set>
+#include <string>
 #include <unordered_map>
 #include <utility>
 #include <vector>
@@ -19,6 +21,7 @@
 namespace Indexing { struct DemodulatorData; }
 
 namespace Shell {
+class InferenceReplayer;
 class InferenceRecorder {
 public:
   class InferenceInformation {
@@ -65,10 +68,25 @@ public:
     std::vector<Scope> scopes;
   };
 
-  // Returns the singleton instance (lazily initialized, thread-safe)
+  /** Replay annotation and its borrowed natural inference certificate. */
+  struct InferenceReplayAnnotation {
+    struct Binding {
+      unsigned variable;
+      Kernel::TermList term;
+    };
+    const InferenceInformation* information = nullptr;
+    std::vector<Kernel::Literal*> naturalLiterals;
+    Kernel::Unit* subsumptionUnifierParent = nullptr;
+    Kernel::Unit* removedLiteralParent = nullptr;
+    unsigned removedLiteralIndex = 0;
+    std::vector<Binding> subsumptionBindings;
+  };
+
+  static InferenceReplayAnnotation inferenceReplayAnnotation(Kernel::Unit* conclusion,
+                                  InferenceReplayer& replayer, bool replay);
+
+  // Returns the lazily initialized singleton used by the proof printers.
   static InferenceRecorder *instance();
-  // Optional: destroy the singleton (if you need controlled teardown)
-  // static void destroyInstance();
 
   void resolution(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const Indexing::ResultSubstitutionSP &recordedSubst,
                   Kernel::Literal *queryLit, Kernel::Literal *resultLit, unsigned constraintCount = 0);
@@ -81,8 +99,10 @@ public:
   void factoring(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const Indexing::RobSubstitution &recordedSubst,
                  Kernel::Literal *removedLit);
 
-  // Return whether this candidate reproduces the current proof goal. Replay
-  // must try further condensation candidates when the first one does not.
+  // Return whether this candidate reproduces the current proof goal. Engines
+  // accept their first candidate regardless; the recorder only stores the
+  // certificate when it matches, and the replayer detects a miss through
+  // getLastRecordedInferenceInformation().
   bool condensation(Kernel::Clause *conclusion, Kernel::Clause *premise,
                     const Kernel::RobSubstitution &subst, unsigned removedIndex);
   bool condensation(Kernel::Clause *conclusion, Kernel::Clause *premise,
@@ -90,13 +110,13 @@ public:
 
   /** Record a candidate produced by an inference engine. All substitutions use the
    * original parent bank order and are translated to the printed conclusion. */
-  bool replayedInference(Kernel::Clause *conclusion,
+  bool recordReplayedInferenceCandidate(Kernel::Clause *conclusion,
                         const std::vector<Kernel::Clause*>& premises,
                         const Kernel::RobSubstitution& subst,
                         InferenceInformation::LiteralPositionKind kind,
                         std::vector<InferenceInformation::LiteralPosition> positions,
                         const std::vector<Kernel::Literal*>& constraints = {});
-  bool replayedInference(Kernel::Clause *conclusion,
+  bool recordReplayedInferenceCandidate(Kernel::Clause *conclusion,
                         const std::vector<Kernel::Clause*>& premises,
                         const std::vector<Kernel::Substitution>& substitutions,
                         InferenceInformation::LiteralPositionKind kind,
@@ -133,13 +153,12 @@ public:
                       Kernel::Literal* equality, Kernel::TermList lhs, Kernel::TermList rhs);
 
   void startRectifyRecording();
-  void recordRectification(const std::vector<unsigned>& sourceBinders,
-                           const std::vector<unsigned>& targetBinders,
+  void recordRectification(Kernel::VSList* sourceBinders, Kernel::VSList* targetBinders,
                            const Kernel::Substitution& renaming,
                            const std::set<unsigned>& removed);
   void endRectifyRecording(unsigned id);
 
-  const RectifyInferenceInformation* getRectifyInferenceInformation(unsigned id) const;
+  const RectifyInferenceInformation* getRectificationReplayInformation(unsigned id) const;
 
   void setCurrentGoal(Kernel::Clause *goal)
   {
@@ -168,6 +187,9 @@ public:
   
 private:
   InferenceRecorder();
+  Kernel::Substitution conclusionRenaming(const std::unordered_map<unsigned, unsigned>& varMap);
+  Kernel::TermList renameCertificateTerm(Kernel::TermList term, Kernel::Substitution& renaming,
+                                         unsigned& freshVariable);
   void populateNaturalLiterals(InferenceInformation& info,
                               const std::unordered_map<unsigned, unsigned>& varMap);
 
@@ -178,15 +200,12 @@ private:
   template <typename T>
   void populateSubstitutionsGen(std::vector<Kernel::Substitution> &substMap,
                                 const std::unordered_map<unsigned int, unsigned int> &varMap,
-                                const std::vector<Clause *> premises,
+                                const std::vector<Clause *>& premises,
                                 const T &recordedSubst,
                                 std::function<TermList(const T &, const TermList &, size_t)> applyFunc)
   {
-    // In case the variables are mapped differently, we adjust the term mapping to the original goal
-    Substitution variableSubst = Substitution();
-    for (auto [var, mappedVar] : varMap) {
-      variableSubst.bind(var, TermList::var(mappedVar));
-    }
+    Substitution variableSubst = conclusionRenaming(varMap);
+    unsigned freshVariable = _currentGoal->maxVar() + 1;
 
     substMap.resize(premises.size());
     for (size_t bank = 0; bank < premises.size(); bank++) {
@@ -194,7 +213,7 @@ private:
       while (iter.hasNext()) {
         unsigned int var = iter.next();
         TermList x = applyFunc(recordedSubst, TermList::var(var), bank);
-        TermList mapped = SubstHelper::apply(x, variableSubst);
+        TermList mapped = renameCertificateTerm(x, variableSubst, freshVariable);
         if (mapped != TermList::var(var)) {
           substMap[bank].bind(var, mapped);
         }
@@ -202,46 +221,19 @@ private:
     }
   }
 
-  template <typename T>
-  void populateSubstitutionsMergeOneBank(std::vector<Kernel::Substitution> &substMap,
-                                     const std::unordered_map<unsigned int, unsigned int> &varMap,
-                                     const std::vector<Clause *> premises,
-                                     const T &recordedSubst,
-                                     std::function<TermList(const T &, const TermList &, size_t)> applyFunc)
-  {
-    // In case the variables are mapped differently, we adjust the term mapping to the original goal
-    Substitution variableSubst = Substitution();
-    for (auto [var, mappedVar] : varMap) {
-      variableSubst.bind(var, TermList::var(mappedVar));
-    }
-
-    substMap.resize(1);
-    for (size_t bank = 0; bank < premises.size(); bank++) {
-      auto iter = premises[bank]->getVariableIterator();
-      while (iter.hasNext()) {
-        unsigned int var = iter.next();
-        TermList x = applyFunc(recordedSubst, TermList::var(var), 0);
-        TermList mapped = SubstHelper::apply(x, variableSubst);
-        if (mapped != TermList::var(var)) {
-          substMap[0].bind(var, mapped);
-        }
-      }
-    }
-  }
-
   void populateSubstitutions(std::vector<Kernel::Substitution> &substMap,
                              const std::unordered_map<unsigned int, unsigned int> &varMap,
-                             const std::vector<Kernel::Clause *> premises,
+                             const std::vector<Kernel::Clause *>& premises,
                              const RobSubstitution &recordedSubst);
 
   void populateSubstitutions(std::vector<Kernel::Substitution> &substMap,
                              const std::unordered_map<unsigned int, unsigned int> &varMap,
-                             const std::vector<Kernel::Clause *> premises,
+                             const std::vector<Kernel::Clause *>& premises,
                              const Indexing::ResultSubstitutionSP &recordedSubst);
 
   void populateSubstitutions(std::vector<Kernel::Substitution> &substMap,
                              const std::unordered_map<unsigned int, unsigned int> &varMap,
-                             const std::vector<Kernel::Clause *> premises,
+                             const std::vector<Kernel::Clause *>& premises,
                              const SubstApplicator &recordedSubst);
 
   template <typename T>
@@ -290,24 +282,6 @@ private:
     }
     // Do nothing if not same as proof step
   };
-
-  template <typename T>
-  void recordGenericSubstitutionToOneBank(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const T &recordedSubst, std::function<TermList(const T &, const TermList &, size_t)> applyFunc)
-  {
-    std::unordered_map<unsigned int, unsigned int> varMap;
-    if (isSameAsProofStep(conclusion, _currentGoal, varMap)) {
-      std::unique_ptr<InferenceInformation> info = std::make_unique<InferenceInformation>();
-      info->conclusion = conclusion;
-      info->premises = premises;
-      populateSubstitutionsMergeOneBank<T>(info->substitutionForBanksSub, varMap, premises, recordedSubst, applyFunc);
-      _inferences[id] = std::move(info);
-      _lastInferenceId = id;
-      _hasLastInference = true;
-    }
-    // Do nothing if not same as proof step
-  };
-
-  
 
   Kernel::Clause *_currentGoal = nullptr;
   std::unordered_map<unsigned int, std::unique_ptr<InferenceInformation>> _inferences;

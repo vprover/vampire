@@ -245,7 +245,14 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
 
   _activationLimit = opt.activationLimit();
 
-  _ordering = OrderingSP(Ordering::create(prb, opt));
+  // Replay must reuse the proof ordering before selectors and handlers retain
+  // references to it. Its temporary problem cannot reproduce that ordering.
+  if (env.reconstruction) {
+    _ordering = InferenceStore::instance()->ordering;
+    ASS(_ordering);
+  } else {
+    _ordering = OrderingSP(Ordering::create(prb, opt));
+  }
   InferenceStore::instance()->ordering = _ordering;
   if (!Ordering::trySetGlobalOrdering(_ordering)) {
     // this is not an error, it may just lead to lower performance (and most likely not significantly lower)

@@ -7,9 +7,7 @@
 #define __Kernel_TPTPProofPrinter__
 
 #include "InferenceStore.hpp"
-
-#include "Shell/InferenceReplay.hpp"
-#include "Shell/TPTPReplayAnnotations.hpp"
+#include "Shell/InferenceRecorder.hpp"
 
 #include <string>
 #include <vector>
@@ -33,6 +31,10 @@ struct InferenceStore::TPTPProofPrinter : InferenceStore::AbstractSATProofPrinte
 protected:
   void printStep(Unit* unit) override;
   void printSATStep(SAT::SATClause* clause) override;
+  virtual void appendInferenceReplayAnnotations(Unit*, std::string&,
+      Shell::InferenceRecorder::InferenceReplayAnnotation&) {}
+  virtual std::string avatarConversionReplayAnnotation(Unit*) const { return {}; }
+  virtual std::vector<Unit*> avatarConversionReplayDefinitions(Unit*) const { return {}; }
   std::string getRole(InferenceRule rule, UnitInputType origin);
   std::string tptpRuleName(InferenceRule rule);
   std::string unitIdToTptp(std::string unitId);
@@ -41,8 +43,6 @@ protected:
   std::string splitsToString(SplitSet* splits);
   std::string getFofString(std::string id, std::string formula, std::string inference,
                            InferenceRule rule, UnitInputType origin = UnitInputType::AXIOM);
-  std::string getFormulaString(Unit* unit);
-  std::string getClauseFormulaString(Unit* finalUnit, const std::vector<Literal*>& literals);
   bool hasNewSymbols(Unit* unit);
   std::string getNewSymbols(std::string origin, std::string symbols);
   std::string getNewSymbols(std::string origin, SymbolStack::ConstIterator symbols);
@@ -51,13 +51,11 @@ protected:
   std::string getSkolemizeMap(SymbolStack::ConstIterator symbols);
   void printOrderedClause(Unit* unit, InferenceRule orderRule, InferenceRule printedRule,
                           const std::string& inference,
-                          const Shell::TPTPReplayAnnotations::ReplayAnnotation& replay = {});
+                          const Shell::InferenceRecorder::InferenceReplayAnnotation& replay = {});
   void printSplitting(Unit* unit);
   void printGeneralSplittingComponent(Unit* unit);
 
   std::string splitPrefix;
-  Shell::InferenceReplayer _replayer;
-  bool _replay;
 };
 
 } // namespace Kernel

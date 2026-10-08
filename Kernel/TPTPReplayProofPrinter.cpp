@@ -1,49 +1,40 @@
 /*
  * This file is part of the source code of the software program
- * Vampire. It is protected by applicable
- * copyright laws.
- *
- * This source code is distributed under the licence found here
- * https://vprover.github.io/license.html
- * and in the source directory
+ * Vampire. It is protected by applicable copyright laws.
+ * It is distributed under the licence found at https://vprover.github.io/license.html
  */
-
-#include "TPTPReplayAnnotations.hpp"
-#include "CNF.hpp"
+#include "TPTPReplayProofPrinter.hpp"
 
 #include "Debug/Assertion.hpp"
+#include "Kernel/FormulaUnit.hpp"
+#include "Kernel/MLVariant.hpp"
+#include "Kernel/TermIterators.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/SharedSet.hpp"
-#include "Kernel/MLVariant.hpp"
-#include "Kernel/FormulaUnit.hpp"
-#include "Kernel/TermIterators.hpp"
-#include "Kernel/Unit.hpp"
-#include "SATSubsumption/SATSubsumptionAndResolution.hpp"
-#include "Saturation/Splitter.hpp"
-#include "Shell/InferenceReplay.hpp"
 #include "SAT/SATLiteral.hpp"
+#include "Saturation/Splitter.hpp"
+#include "Shell/ClausificationRecording.hpp"
+#include "Shell/InferenceReplay.hpp"
+#include "Shell/Options.hpp"
 
 #include <algorithm>
 #include <map>
 #include <set>
 #include <sstream>
-#include <unordered_map>
 #include <unordered_set>
-#include <utility>
 
-namespace Shell::TPTPReplayAnnotations {
+namespace Kernel {
 
-using namespace Kernel;
 using namespace Lib;
 
-static std::string tptpUnitId(Unit* unit)
+namespace {
+std::string replayUnitId(Unit* unit)
 {
-  return "f" + Int::toString(unit->number());
+  return "f" + Lib::Int::toString(unit->number());
 }
 
-namespace {
 const Saturation::AvatarConversionExtra* avatarConversionExtra(Unit* origin)
 {
   if (origin->inference().rule() != InferenceRule::THEORY_TAUTOLOGY_SAT_CONFLICT) {
@@ -59,14 +50,181 @@ bool reversedEquality(Literal* source, Literal* target)
     source->nthArgument(0)->sameContent(*target->nthArgument(1)) &&
     source->nthArgument(1)->sameContent(*target->nthArgument(0));
 }
-} // namespace
+}
 
-std::string clausificationInfo(Unit* conclusion, bool replay)
+static std::string unifierAnnotation(const Shell::InferenceRecorder::InferenceInformation* information);
+static std::string constraintsAnnotation(const Shell::InferenceRecorder::InferenceInformation* information);
+static std::string rewriteAnnotation(const Shell::InferenceRecorder::InferenceInformation* information);
+static std::string literalPositionsAnnotation(
+    Unit* conclusion, const Shell::InferenceRecorder::InferenceInformation* information);
+static std::string subsumptionResolutionAnnotation(
+    const Shell::InferenceRecorder::InferenceReplayAnnotation& replay);
+
+InferenceStore::TPTPReplayProofPrinter::TPTPReplayProofPrinter(std::ostream& out, InferenceStore* is)
+  : TPTPProofPrinter(out, is), _replay(env.options->replay())
+{
+  if (_replay) {
+    _replayer = std::make_unique<Shell::InferenceReplayer>();
+    _replayer->makeInferenceEngine(is->ordering);
+  }
+}
+
+InferenceStore::TPTPReplayProofPrinter::~TPTPReplayProofPrinter() = default;
+
+std::string formatTPTPReplayAnnotations(
+    Unit* conclusion, const Shell::InferenceRecorder::InferenceReplayAnnotation& replay)
+{
+  if (replay.removedLiteralParent) {
+    return subsumptionResolutionAnnotation(replay);
+  }
+
+  const auto* information = replay.information;
+  std::vector<std::string> annotations = {
+    unifierAnnotation(information),
+    constraintsAnnotation(information),
+    rewriteAnnotation(information),
+    literalPositionsAnnotation(conclusion, information)
+  };
+  std::string result;
+  for (const auto& annotation : annotations) {
+    if (annotation.empty()) { continue; }
+    if (!result.empty()) { result += ','; }
+    result += annotation;
+  }
+  return result;
+}
+
+static std::string unifierAnnotation(
+    const Shell::InferenceRecorder::InferenceInformation* information)
+{
+  if (!information) { return {}; }
+  std::ostringstream out;
+  out << "unifier([";
+  for (unsigned bank = 0; bank < information->substitutionForBanksSub.size(); ++bank) {
+    if (bank) { out << ','; }
+    out << "subs(";
+    if (bank < information->premises.size()) {
+      out << replayUnitId(information->premises[bank]);
+    } else {
+      out << bank;
+    }
+    out << ",[";
+    bool first = true;
+    auto substitution = information->substitutionForBanksSub[bank];
+    for (auto [variable, term] : Lib::iterTraits(substitution.items())) {
+      if (!first) { out << ','; }
+      first = false;
+      out << "b(X" << variable << ',' << term.toString() << ')';
+    }
+    out << "])";
+  }
+  out << "])";
+  return out.str();
+}
+
+static std::string constraintsAnnotation(
+    const Shell::InferenceRecorder::InferenceInformation* information)
+{
+  if (!information || information->constraints.empty()) { return {}; }
+  std::ostringstream out;
+  out << "constraints([";
+  bool first = true;
+  for (Kernel::Literal* literal : information->constraints) {
+    ASS(literal->isEquality() && literal->isNegative());
+    if (!first) { out << ','; }
+    first = false;
+    auto [left, right] = literal->eqArgs();
+    out << "disequality(" << literal->eqArgSort().toString() << ','
+        << left.toString() << ',' << right.toString() << ')';
+  }
+  out << "])";
+  return out.str();
+}
+
+static std::string rewriteAnnotation(
+    const Shell::InferenceRecorder::InferenceInformation* information)
+{
+  if (!information || !information->hasRewrite) { return {}; }
+  auto position = [&](const auto& literalPosition) {
+    return "literal(" + replayUnitId(information->premises[literalPosition.premiseIndex]) + ',' +
+           Lib::Int::toString(literalPosition.literalIndex) + ')';
+  };
+  return "rewrite([equality(" + position(information->rewriteEquality) + "),from(" +
+         information->rewriteFrom.toString() + "),to(" + information->rewriteTo.toString() + ")])";
+}
+
+static std::string literalPositionsAnnotation(
+    Unit* conclusion, const Shell::InferenceRecorder::InferenceInformation* information)
+{
+  if (!information) { return {}; }
+  std::ostringstream out;
+  auto printPosition = [&](const auto& position) {
+    out << "literal(" << replayUnitId(information->premises[position.premiseIndex])
+        << ',' << position.literalIndex << ')';
+  };
+  if (conclusion->inference().rule() == InferenceRule::FORWARD_LITERAL_REWRITING &&
+      !information->literalPositions.empty()) {
+    const auto& position = information->literalPositions[0];
+    out << "rewritten_literal(literal(" << replayUnitId(information->premises[position.premiseIndex])
+        << ',' << position.literalIndex << "))";
+  }
+
+  if (!information->literalPositions.empty()) {
+    using PositionKind = Shell::InferenceRecorder::InferenceInformation::LiteralPositionKind;
+    if (!out.str().empty()) { out << ','; }
+    switch (information->literalPositionKind) {
+    case PositionKind::REWRITTEN:
+      out << (information->literalPositions.size() == 1 ? "rewritten_literal(" : "rewritten_literals([");
+      break;
+    case PositionKind::RESOLVED:
+      out << "resolved_literals([";
+      break;
+    case PositionKind::REMOVED:
+      out << "removed_literals(";
+      break;
+    case PositionKind::NONE:
+      ASSERTION_VIOLATION;
+    }
+    bool first = true;
+    for (const auto& position : information->literalPositions) {
+      if (!first) { out << ','; }
+      first = false;
+      printPosition(position);
+    }
+    bool list = information->literalPositionKind == PositionKind::RESOLVED ||
+                (information->literalPositionKind == PositionKind::REWRITTEN &&
+                 information->literalPositions.size() != 1);
+    out << (list ? "])" : ")");
+  }
+  return out.str();
+}
+
+static std::string subsumptionResolutionAnnotation(
+    const Shell::InferenceRecorder::InferenceReplayAnnotation& replay)
+{
+  std::ostringstream out;
+  if (replay.subsumptionUnifierParent) {
+    out << "unifier([subs(" << replayUnitId(replay.subsumptionUnifierParent) << ",[";
+    bool first = true;
+    for (const auto& binding : replay.subsumptionBindings) {
+      if (!first) { out << ','; }
+      first = false;
+      out << "b(X" << binding.variable << ',' << binding.term.toString() << ')';
+    }
+    out << "])])";
+  }
+  if (out.tellp() > 0) { out << ','; }
+  out << "removed_literals(literal(" << replayUnitId(replay.removedLiteralParent)
+      << ',' << replay.removedLiteralIndex << "))";
+  return out.str();
+}
+
+std::string tptpClausificationReplayAnnotation(Unit* conclusion, bool replay)
 {
   if (!replay || !conclusion->isClause() || conclusion->inference().rule() != InferenceRule::CLAUSIFY) { return ""; }
   const auto* stored = env.proofExtra.find(conclusion);
   if (!stored) { return ""; }
-  const auto* extra = static_cast<const ClausificationExtra*>(stored);
+  const auto* extra = static_cast<const Shell::ClausificationExtra*>(stored);
   Clause* clause = conclusion->asClause();
   if (clause->length() != extra->occurrences.size()) { return ""; }
   std::vector<bool> used(extra->occurrences.size(), false);
@@ -109,7 +267,7 @@ std::string clausificationInfo(Unit* conclusion, bool replay)
   return out.str();
 }
 
-std::string avatarConversionInfo(Unit* origin)
+std::string tptpAvatarConversionReplayAnnotation(Unit* origin)
 {
   const auto* extra = avatarConversionExtra(origin);
   if (!extra) { return ""; }
@@ -120,16 +278,16 @@ std::string avatarConversionInfo(Unit* origin)
     if (!first) { out << ','; }
     first = false;
     SAT::SATLiteral positive(mapping.avatarVariable, true);
-    out << "map(literal(" << tptpUnitId(origin) << ',' << mapping.literalIndex << "),"
+    out << "map(literal(" << replayUnitId(origin) << ',' << mapping.literalIndex << "),"
         << (mapping.positive ? "positive(" : "negative(")
         << Saturation::Splitter::getFormulaStringFromLiteral(positive) << "),"
-        << tptpUnitId(mapping.definition) << ')';
+        << replayUnitId(mapping.definition) << ')';
   }
   out << "])";
   return out.str();
 }
 
-std::vector<Unit*> avatarConversionDefinitions(Unit* origin)
+std::vector<Unit*> tptpAvatarConversionReplayDefinitions(Unit* origin)
 {
   std::vector<Unit*> definitions;
   if (const auto* extra = avatarConversionExtra(origin)) {
@@ -141,189 +299,13 @@ std::vector<Unit*> avatarConversionDefinitions(Unit* origin)
   return definitions;
 }
 
-static ReplayAnnotation subsumptionResolutionInfo(Unit* us)
-{
-  if (us->inference().rule() != InferenceRule::FORWARD_SUBSUMPTION_RESOLUTION) {
-    return {};
-  }
 
-  auto parents = us->getParents();
-  if (!parents.hasNext()) {
-    return {};
-  }
-  Unit* simplifiedUnit = parents.next();
-  if (!simplifiedUnit->isClause() || !parents.hasNext()) {
-    return {};
-  }
-  Clause* simplified = simplifiedUnit->asClause();
-  Unit* sideUnit = parents.next();
-  if (!sideUnit->isClause()) {
-    return {};
-  }
-  Clause* side = sideUnit->asClause();
-  Clause* conclusion = us->asClause();
-
-  // Consume occurrences, rather than testing set membership: removing one
-  // of several equal literals still has a concrete position in the parent.
-  std::unordered_map<Literal*, unsigned> survivingOccurrences;
-  for (Literal* literal : conclusion->iterLits()) {
-    ++survivingOccurrences[literal];
-  }
-
-  for (unsigned i = 0; i < simplified->length(); ++i) {
-    Literal* candidate = (*simplified)[i];
-    unsigned& occurrences = survivingOccurrences[candidate];
-    bool survives = occurrences != 0;
-    if (survives) {
-      --occurrences;
-    }
-    if (!survives) {
-      std::vector<Literal*> naturalLiterals;
-      for (unsigned j = 0; j < simplified->length(); ++j) {
-        if (j != i) {
-          naturalLiterals.push_back((*simplified)[j]);
-        }
-      }
-      //Reconstruct with SATSubsumption
-      SATSubsumption::SATSubsumptionAndResolution satSR;
-      if (!satSR.checkSubsumptionResolutionWithLiteral(side, simplified, i)) {
-        return {"removed_literals(literal(" + tptpUnitId(simplified) + ',' + Int::toString(i) + "))",
-                nullptr, std::move(naturalLiterals)};
-      }
-      auto subst = satSR.getBindingsForSubsumptionResolutionWithLiteral();
-
-      std::ostringstream res;
-      res << "unifier([subs(" << tptpUnitId(side) << ",[";
-      bool first = true;
-      for (auto [var, term] : iterTraits(subst.items())) {
-        if (!first) {
-          res << ',';
-        }
-        first = false;
-        res << "b(X" << var << ',' << term.toString() << ')';
-      }
-      res << "])])";
-      res << ",removed_literals(literal(" << tptpUnitId(simplified) << ',' << i << "))";
-      return {res.str(), nullptr, std::move(naturalLiterals)};
-    }
-  }
-  return {};
-}
-
-ReplayAnnotation replayedUnifier(Unit* us, InferenceReplayer& replayer, bool replay)
-{
-  if (!replay || !us->isClause()) {
-    return {};
-  }
-
-  // Subsumption resolution is a simplifying inference. Replaying it
-  // mutates the replay algorithm's active index, whereas its certificate can
-  // be recovered directly from the original clauses.
-  ReplayAnnotation subsumptionInfo = subsumptionResolutionInfo(us);
-  if (!subsumptionInfo.text.empty()) {
-    return subsumptionInfo;
-  }
-
-  InferenceRecorder::instance()->setCurrentGoal(us->asClause());
-  replayer.replayInference(us);
-  const auto* info = InferenceRecorder::instance()->getLastRecordedInferenceInformation();
-  if (!info) {
-    return {};
-  }
-
-  std::ostringstream res;
-  res << "unifier([";
-  for (unsigned bank = 0; bank < info->substitutionForBanksSub.size(); bank++) {
-    if (bank) {
-      res << ',';
-    }
-    res << "subs(";
-    if (bank < info->premises.size()) {
-      res << tptpUnitId(info->premises[bank]);
-    } else {
-      res << bank;
-    }
-    res << ",[";
-    auto subst = info->substitutionForBanksSub[bank];
-    bool first = true;
-    for (auto [var, term] : iterTraits(subst.items())) {
-      if (!first) {
-        res << ',';
-      }
-      first = false;
-      res << "b(X" << var << "," << term.toString() << ")";
-    }
-    res << "])";
-  }
-  res << "])";
-
-  if (!info->constraints.empty()) {
-    res << ",constraints([";
-    bool first = true;
-    for (Literal* literal : info->constraints) {
-      ASS(literal->isEquality() && literal->isNegative());
-      if (!first) { res << ','; }
-      first = false;
-      auto [left, right] = literal->eqArgs();
-      res << "disequality(" << literal->eqArgSort().toString() << ','
-          << left.toString() << ',' << right.toString() << ')';
-    }
-    res << "])";
-  }
-  auto printPosition = [&](const auto& position) {
-    res << "literal(" << tptpUnitId(info->premises[position.premiseIndex])
-        << ',' << position.literalIndex << ')';
-  };
-  if (info->hasRewrite) {
-    res << ",rewrite([equality(";
-    printPosition(info->rewriteEquality);
-    res << "),from(" << info->rewriteFrom.toString()
-        << "),to(" << info->rewriteTo.toString() << ")])";
-  }
-  if (us->inference().rule() == InferenceRule::FORWARD_LITERAL_REWRITING &&
-      !info->literalPositions.empty()) {
-    const auto& position = info->literalPositions[0];
-    res << ",rewritten_literal(literal(" << tptpUnitId(info->premises[position.premiseIndex])
-        << ',' << position.literalIndex << "))";
-  }
-
-  if (!info->literalPositions.empty()) {
-    using PositionKind = InferenceRecorder::InferenceInformation::LiteralPositionKind;
-    switch (info->literalPositionKind) {
-    case PositionKind::REWRITTEN:
-      res << (info->literalPositions.size() == 1 ? ",rewritten_literal(" : ",rewritten_literals([");
-      break;
-    case PositionKind::RESOLVED:
-      res << ",resolved_literals([";
-      break;
-    case PositionKind::REMOVED:
-      res << ",removed_literals(";
-      break;
-    case PositionKind::NONE:
-      ASSERTION_VIOLATION;
-    }
-
-    bool first = true;
-    for (const auto &position : info->literalPositions) {
-      if (!first) {
-        res << ',';
-      }
-      first = false;
-      printPosition(position);
-    }
-    bool list = info->literalPositionKind == PositionKind::RESOLVED ||
-                (info->literalPositionKind == PositionKind::REWRITTEN && info->literalPositions.size() != 1);
-    res << (list ? "])" : ")");
-  }
-  return {res.str(), info};
-}
-
-std::string rectificationInfo(Unit* us, bool replay)
+std::string tptpRectificationReplayAnnotation(Unit* us, bool replay)
 {
   if (!replay || us->inference().rule() != InferenceRule::RECTIFY) {
     return "";
   }
-  const auto* info = InferenceRecorder::instance()->getRectifyInferenceInformation(us->number());
+  const auto* info = Shell::InferenceRecorder::instance()->getRectificationReplayInformation(us->number());
   if (!info || info->scopes.empty()) {
     return "";
   }
@@ -487,7 +469,7 @@ static std::vector<std::vector<Literal*>> avatarSplitComponents(Clause* clause)
  * this split.  SplitDefinitionExtra remains necessary to get the component
  * clause behind a definition formula.
  */
-std::string avatarSplitInstantiationInfo(Unit* conclusion)
+std::string tptpAvatarSplitInstantiationReplayAnnotation(Unit* conclusion)
 {
   if (conclusion->inference().rule() != InferenceRule::AVATAR_SPLIT_CLAUSE) {
     return "";
@@ -601,10 +583,53 @@ std::string avatarSplitInstantiationInfo(Unit* conclusion)
     // LeanChecker::avatarSplitClause.  `arg(fN,XM)` locates the
     // variable in the rewritten definition premise fN.
     result << "b(X" << sourceVariable << ",arg("
-           << tptpUnitId(target.definition) << ",X" << target.variable << "))";
+           << replayUnitId(target.definition) << ",X" << target.variable << "))";
   }
   result << "])";
   return result.str();
 }
 
-} // namespace Shell::TPTPReplayAnnotations
+
+void InferenceStore::TPTPReplayProofPrinter::appendInferenceReplayAnnotations(
+    Unit* unit, std::string& status,
+    Shell::InferenceRecorder::InferenceReplayAnnotation& replay)
+{
+  auto append = [&status](const std::string& annotation) {
+    if (annotation.empty()) { return; }
+    if (!status.empty()) { status += ','; }
+    status += annotation;
+  };
+  if (_replay) {
+    replay = Shell::InferenceRecorder::inferenceReplayAnnotation(unit, *_replayer, true);
+    append(formatTPTPReplayAnnotations(unit, replay));
+    append(tptpRectificationReplayAnnotation(unit, true));
+    append(tptpClausificationReplayAnnotation(unit, true));
+  }
+  append(tptpAvatarSplitInstantiationReplayAnnotation(unit));
+}
+
+std::string InferenceStore::TPTPReplayProofPrinter::avatarConversionReplayAnnotation(Unit* origin) const
+{
+  if (env.options->proof() != Options::Proof::TSTP_AC) { return {}; }
+  return tptpAvatarConversionReplayAnnotation(origin);
+}
+
+std::vector<Unit*> InferenceStore::TPTPReplayProofPrinter::avatarConversionReplayDefinitions(Unit* origin) const
+{
+  if (env.options->proof() != Options::Proof::TSTP_AC) { return {}; }
+  return tptpAvatarConversionReplayDefinitions(origin);
+}
+
+void InferenceStore::TPTPReplayProofPrinter::addAdditionalPremises(Unit* unit, std::vector<Unit*>& todo)
+{
+  for (Unit* definition : avatarConversionReplayDefinitions(unit)) {
+    todo.push_back(definition);
+  }
+}
+
+InferenceStore::AbstractProofPrinter* InferenceStore::createTPTPReplayProofPrinter(std::ostream& out)
+{
+  return new TPTPReplayProofPrinter(out, this);
+}
+
+} // namespace Kernel

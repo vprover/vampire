@@ -1,10 +1,12 @@
 #include "InferenceRecorder.hpp"
 
+#include "Debug/Assertion.hpp"
 #include "Indexing/DemodulationIndex.hpp"
 
 #include "Forwards.hpp"
 #include "Indexing/Index.hpp"
 #include "Inferences/InferenceEngine.hpp"
+#include "Kernel/FormulaUnit.hpp"
 #include "Kernel/MLMatcher.hpp"
 #include "Kernel/MLVariant.hpp"
 #include "Kernel/Matcher.hpp"
@@ -13,9 +15,24 @@
 #include "Kernel/Substitution.hpp"
 #include "Indexing/ResultSubstitution.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/TermIterators.hpp"
+#include "Kernel/Unit.hpp"
+#include "Lib/Environment.hpp"
+#include "Lib/Int.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/SharedSet.hpp"
+#include "SAT/SATLiteral.hpp"
+#include "SATSubsumption/SATSubsumptionAndResolution.hpp"
+#include "Saturation/Splitter.hpp"
+#include "Shell/ClausificationRecording.hpp"
 #include "Shell/EqResWithDeletion.hpp"
+#include "Shell/InferenceReplay.hpp"
 #include <algorithm>
 #include <cstddef>
+#include <map>
+#include <set>
+#include <sstream>
+#include <utility>
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -35,6 +52,38 @@ InferenceRecorder *InferenceRecorder::instance()
   return _inst;
 }
 
+Substitution InferenceRecorder::conclusionRenaming(const std::unordered_map<unsigned, unsigned>& varMap)
+{
+  Substitution renaming;
+  for (auto [source, target] : varMap) { renaming.bind(source, TermList::var(target)); }
+  if (varMap.empty()) {
+    // The identity fast path produces no explicit map. Reserve the surviving
+    // variable names before freshening variables present only in the parents.
+    auto variables = _currentGoal->getVariableIterator();
+    while (variables.hasNext()) {
+      unsigned variable = variables.next();
+      renaming.bind(variable, TermList::var(variable));
+    }
+  }
+  return renaming;
+}
+
+TermList InferenceRecorder::renameCertificateTerm(TermList term, Substitution& renaming,
+                                                 unsigned& freshVariable)
+{
+  VariableIterator variables(term);
+  while (variables.hasNext()) {
+    unsigned variable = variables.next().var();
+    TermList target;
+    if (!renaming.findBinding(variable, target)) {
+      // Eliminated variables must not alias a renamed conclusion variable,
+      // which may even have a different sort. Share fresh names across banks.
+      renaming.bind(variable, TermList::var(freshVariable++));
+    }
+  }
+  return SubstHelper::apply(term, renaming);
+}
+
 void InferenceRecorder::recordRewrite(InferenceInformation::LiteralPosition equality,
     TermList from, unsigned fromBank, TermList to, unsigned toBank)
 {
@@ -51,16 +100,42 @@ void InferenceRecorder::startRectifyRecording()
   _currentRectifyInference = std::make_unique<RectifyInferenceInformation>();
 }
 
-void InferenceRecorder::recordRectification(const std::vector<unsigned>& sourceBinders,
-                                            const std::vector<unsigned>& targetBinders,
-                                            const Substitution& renaming,
+void InferenceRecorder::recordRectification(VSList* sourceBinders, VSList* targetBinders,
+                                            const Substitution& rawRenaming,
                                             const std::set<unsigned>& removed)
 {
-  if (!_currentRectifyInference) {
-    return;
+  if (!_currentRectifyInference) { return; }
+  RectifyInferenceInformation::Scope scope;
+  scope.removed = removed;
+  std::vector<unsigned> liveSource;
+  VSList::Iterator source(sourceBinders);
+  while (source.hasNext()) {
+    unsigned variable = source.next().first;
+    scope.sourceBinders.push_back(variable);
+    if (!removed.contains(variable)) { liveSource.push_back(variable); }
   }
-  _currentRectifyInference->scopes.push_back({sourceBinders, targetBinders, renaming, removed});
+  VSList::Iterator target(targetBinders);
+  while (target.hasNext()) { scope.targetBinders.push_back(target.next().first); }
+
+  // As in leancheck's InferenceRecorder::rectify, compose the raw fresh-name
+  // map with the binder order used by Lean's printer. This recovers occurrence
+  // permutations inside terms; raw alpha-renaming alone is insufficient.
+  std::sort(liveSource.begin(), liveSource.end());
+  auto sortedTarget = scope.targetBinders;
+  std::sort(sortedTarget.begin(), sortedTarget.end());
+  ASS_EQ(liveSource.size(), sortedTarget.size());
+  Substitution canonicalTarget;
+  for (unsigned i = 0; i < liveSource.size(); ++i) {
+    canonicalTarget.bind(sortedTarget[i], TermList::var(liveSource[i]));
+  }
+  for (unsigned variable : scope.sourceBinders) {
+    TermList rectified = rawRenaming.apply(variable);
+    ASS(rectified.isVar());
+    scope.renaming.bind(variable, canonicalTarget.apply(rectified.var()));
+  }
+  _currentRectifyInference->scopes.push_back(std::move(scope));
 }
+
 
 void InferenceRecorder::endRectifyRecording(unsigned id)
 {
@@ -70,7 +145,7 @@ void InferenceRecorder::endRectifyRecording(unsigned id)
 }
 
 const InferenceRecorder::RectifyInferenceInformation*
-InferenceRecorder::getRectifyInferenceInformation(unsigned id) const
+InferenceRecorder::getRectificationReplayInformation(unsigned id) const
 {
   auto entry = _rectifyInferences.find(id);
   return entry == _rectifyInferences.end() ? nullptr : entry->second.get();
@@ -78,7 +153,7 @@ InferenceRecorder::getRectifyInferenceInformation(unsigned id) const
 
 void InferenceRecorder::populateSubstitutions(std::vector<Substitution> &substMap,
                                               const std::unordered_map<unsigned int, unsigned int> &varMap,
-                                              const std::vector<Clause *> premises,
+                                              const std::vector<Clause *>& premises,
                                               const RobSubstitution &recordedSubst)
 {
 
@@ -94,7 +169,7 @@ void InferenceRecorder::populateSubstitutions(std::vector<Substitution> &substMa
 
 void InferenceRecorder::populateSubstitutions(std::vector<Substitution> &substMap,
                                               const std::unordered_map<unsigned int, unsigned int> &varMap,
-                                              const std::vector<Clause *> premises,
+                                              const std::vector<Clause *>& premises,
                                               const ResultSubstitutionSP &recordedSubst)
 {
 
@@ -114,7 +189,7 @@ TermList applyFunc(const SubstApplicator &subst, const TermList &term, size_t ba
 }
 void InferenceRecorder::populateSubstitutions(std::vector<Substitution> &substMap,
                                               const std::unordered_map<unsigned int, unsigned int> &varMap,
-                                              const std::vector<Clause *> premises,
+                                              const std::vector<Clause *>& premises,
                                               const SubstApplicator &recordedSubst)
 {
   return populateSubstitutionsGen<SubstApplicator>(
@@ -224,7 +299,7 @@ bool InferenceRecorder::condensation(Clause *conclusion, Clause *premise,
   return info && info->conclusion == conclusion;
 }
 
-bool InferenceRecorder::replayedInference(Clause* conclusion,
+bool InferenceRecorder::recordReplayedInferenceCandidate(Clause* conclusion,
     const std::vector<Clause*>& premises, const RobSubstitution& subst,
     InferenceInformation::LiteralPositionKind kind,
     std::vector<InferenceInformation::LiteralPosition> positions,
@@ -250,7 +325,7 @@ bool InferenceRecorder::replayedInference(Clause* conclusion,
   return true;
 }
 
-bool InferenceRecorder::replayedInference(Clause* conclusion,
+bool InferenceRecorder::recordReplayedInferenceCandidate(Clause* conclusion,
     const std::vector<Clause*>& premises, const std::vector<Substitution>& substitutions,
     InferenceInformation::LiteralPositionKind kind,
     std::vector<InferenceInformation::LiteralPosition> positions)
@@ -284,7 +359,7 @@ bool InferenceRecorder::subsumptionEqualityResolution(Clause* conclusion, Clause
     unsigned variable = variables.next();
     substitution.bind(variable, SubstHelper::apply(subst.apply(TermList::var(variable), 0), inverse));
   }
-  return replayedInference(conclusion, {premise}, std::vector<Substitution>{substitution},
+  return recordReplayedInferenceCandidate(conclusion, {premise}, std::vector<Substitution>{substitution},
       InferenceInformation::LiteralPositionKind::REMOVED, {{0, removedIndex}});
 }
 
@@ -323,7 +398,7 @@ bool InferenceRecorder::unitResultingResolution(Clause* conclusion,
       }
     }
   }
-  return replayedInference(conclusion, orderedPremises, orderedSubstitutions,
+  return recordReplayedInferenceCandidate(conclusion, orderedPremises, orderedSubstitutions,
       InferenceInformation::LiteralPositionKind::RESOLVED, std::move(positions));
 }
 
@@ -344,6 +419,7 @@ void InferenceRecorder::equalityResolutionDeletion(unsigned int id, Clause *conc
 void InferenceRecorder::forwardDemodulation(unsigned int id, Clause *conclusion, const std::vector<Clause *> &premises, const SubstApplicator *appl, const DemodulatorData *data,
                                             Literal *rewrittenLit)
 {
+  ASS_EQ(premises.size(), 2);
   std::unordered_map<unsigned int, unsigned int> varMap;
   if (isSameAsProofStep(conclusion, _currentGoal, varMap)) {
     std::unique_ptr<InferenceInformation> info = std::make_unique<InferenceInformation>();
@@ -351,6 +427,7 @@ void InferenceRecorder::forwardDemodulation(unsigned int id, Clause *conclusion,
     info->premises = premises;
     info->literalPositionKind = InferenceInformation::LiteralPositionKind::REWRITTEN;
     info->literalPositions = {{0, literalPosition(premises[0], rewrittenLit)}};
+    populateNaturalLiterals(*info, varMap);
     // The matcher bindings below are for the indexed demodulator (the
     // second parent), not for the clause being rewritten.
     info->substitutionForBanksSub.resize(premises.size());
@@ -358,9 +435,13 @@ void InferenceRecorder::forwardDemodulation(unsigned int id, Clause *conclusion,
     // The replayed conclusion can be an alpha-variant of the original proof
     // step.  Values produced by `appl` use the replayed names, so translate
     // them back to the names of the printed conclusion.
-    Substitution conclusionRenaming;
-    for (auto [var, mappedVar] : varMap) {
-      conclusionRenaming.bind(var, TermList::var(mappedVar));
+    Substitution certificateRenaming = conclusionRenaming(varMap);
+    unsigned freshVariable = _currentGoal->maxVar() + 1;
+    auto mainVariables = premises[0]->getVariableIterator();
+    while (mainVariables.hasNext()) {
+      unsigned variable = mainVariables.next();
+      TermList renamed = renameCertificateTerm(TermList::var(variable), certificateRenaming, freshVariable);
+      if (renamed != TermList::var(variable)) { info->substitutionForBanksSub[0].bind(variable, renamed); }
     }
     // DemodulatorData stores the left-hand side and right-hand side after
     // normalizing variables in the left-hand side. Recreate that normalization
@@ -390,7 +471,7 @@ void InferenceRecorder::forwardDemodulation(unsigned int id, Clause *conclusion,
       auto var = iter.next();
       TermList mappedVar = normalization.apply(TermList::var(var));
       ASS(mappedVar.isVar());
-      TermList value = SubstHelper::apply(appl->apply(mappedVar.var()), conclusionRenaming);
+      TermList value = renameCertificateTerm(appl->apply(mappedVar.var()), certificateRenaming, freshVariable);
       info->substitutionForBanksSub[1].bind(var, value);
     }
 
@@ -436,7 +517,7 @@ bool InferenceRecorder::innerRewriting(Clause* conclusion, Clause* parent,
   for (unsigned i = 0; i < parent->length(); ++i) {
     if ((*parent)[i] != (*conclusion)[i]) { positions.push_back({0, i}); }
   }
-  if (!replayedInference(conclusion, {parent}, std::vector<Substitution>(1),
+  if (!recordReplayedInferenceCandidate(conclusion, {parent}, std::vector<Substitution>(1),
         InferenceInformation::LiteralPositionKind::REWRITTEN, std::move(positions))) { return false; }
   recordRewrite({0, literalPosition(parent, equality)}, lhs, 0, rhs, 0);
   return true;
@@ -605,6 +686,95 @@ bool InferenceRecorder::isSameAsProofStep(Clause *clause, Clause *goal, std::uno
   }
   return false;
 }
+
+static InferenceRecorder::InferenceReplayAnnotation subsumptionResolutionReplayAnnotation(Unit* us)
+{
+  if (us->inference().rule() != InferenceRule::FORWARD_SUBSUMPTION_RESOLUTION) {
+    return {};
+  }
+
+  auto parents = us->getParents();
+  if (!parents.hasNext()) {
+    return {};
+  }
+  Unit* simplifiedUnit = parents.next();
+  if (!simplifiedUnit->isClause() || !parents.hasNext()) {
+    return {};
+  }
+  Clause* simplified = simplifiedUnit->asClause();
+  Unit* sideUnit = parents.next();
+  if (!sideUnit->isClause()) {
+    return {};
+  }
+  Clause* side = sideUnit->asClause();
+  Clause* conclusion = us->asClause();
+
+  // Consume occurrences, rather than testing set membership: removing one
+  // of several equal literals still has a concrete position in the parent.
+  std::unordered_map<Literal*, unsigned> survivingOccurrences;
+  for (Literal* literal : conclusion->iterLits()) {
+    ++survivingOccurrences[literal];
+  }
+
+  for (unsigned i = 0; i < simplified->length(); ++i) {
+    Literal* candidate = (*simplified)[i];
+    unsigned& occurrences = survivingOccurrences[candidate];
+    bool survives = occurrences != 0;
+    if (survives) {
+      --occurrences;
+    }
+    if (!survives) {
+      std::vector<Literal*> naturalLiterals;
+      for (unsigned j = 0; j < simplified->length(); ++j) {
+        if (j != i) {
+          naturalLiterals.push_back((*simplified)[j]);
+        }
+      }
+      //Reconstruct with SATSubsumption
+      SATSubsumption::SATSubsumptionAndResolution satSR;
+      InferenceRecorder::InferenceReplayAnnotation result;
+      result.removedLiteralParent = simplified;
+      result.removedLiteralIndex = i;
+      result.naturalLiterals = std::move(naturalLiterals);
+      if (!satSR.checkSubsumptionResolutionWithLiteral(side, simplified, i)) {
+        return result;
+      }
+      auto subst = satSR.getBindingsForSubsumptionResolutionWithLiteral();
+      for (auto [var, term] : iterTraits(subst.items())) {
+        result.subsumptionBindings.push_back({var, term});
+      }
+      result.subsumptionUnifierParent = side;
+      return result;
+    }
+  }
+  return {};
+}
+
+InferenceRecorder::InferenceReplayAnnotation InferenceRecorder::inferenceReplayAnnotation(Unit* us, InferenceReplayer& replayer, bool replay)
+{
+  if (!replay || !us->isClause()) {
+    return {};
+  }
+
+  // Subsumption resolution is a simplifying inference. Replaying it
+  // mutates the replay algorithm's active index, whereas its certificate can
+  // be recovered directly from the original clauses.
+  InferenceReplayAnnotation subsumptionInfo = subsumptionResolutionReplayAnnotation(us);
+  if (subsumptionInfo.removedLiteralParent) {
+    return subsumptionInfo;
+  }
+
+  replayer.replayInference(us);
+  const auto* info = InferenceRecorder::instance()->getLastRecordedInferenceInformation();
+  if (!info) {
+    return {};
+  }
+
+  InferenceReplayAnnotation result;
+  result.information = info;
+  return result;
+}
+
 
 InferenceRecorder::InferenceRecorder()
 {

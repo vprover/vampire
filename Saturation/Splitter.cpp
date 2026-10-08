@@ -70,6 +70,7 @@ void SplitDefinitionExtra::output(std::ostream &out) const {
 
 void Splitter::recordAvatarConversion(SAT::SATClause* conversion)
 {
+  ASS(env.options->proofExtra() == Options::ProofExtra::REPLAY || env.options->proofExtra() == Options::ProofExtra::FULL)
   // Duplicate removal can wrap the original conversion in a propositional
   // inference. Record against its FO origin, not the sorted SAT positions.
   SAT::SATInference::visitFOConversions(conversion, [&](SAT::SATClause* converted) {
@@ -395,7 +396,7 @@ SAT::Status SplittingBranchSelector::processDPConflicts()
         unsatCore.reset();
         _dp->getUnsatCore(unsatCore, i);
         SATClause* conflCl = s2f.createConflictClause(unsatCore);
-        if(env.options->proofExtra() == Options::ProofExtra::AVATAR_SPLIT || env.options->proofExtra() == Options::ProofExtra::FULL){
+        if(env.options->proofExtra() == Options::ProofExtra::REPLAY || env.options->proofExtra() == Options::ProofExtra::FULL){
           _parent.recordAvatarConversion(conflCl);
         }
         _solver.addClause(conflCl);
@@ -1183,7 +1184,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
 
   if(posName == name &&
       (env.options->proofExtra() == Options::ProofExtra::FULL ||
-       env.options->proofExtra() == Options::ProofExtra::AVATAR_SPLIT))
+       env.options->proofExtra() == Options::ProofExtra::REPLAY))
     env.proofExtra.insert(def_u, new SplitDefinitionExtra(compCl));
 
   // propagate running sums:

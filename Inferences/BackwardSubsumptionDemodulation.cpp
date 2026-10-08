@@ -637,8 +637,12 @@ isRedundant:
             unsigned var = vars.next();
             subst.bind(var, binder.applyTo(TermList::var(var)));
           }
-          Shell::InferenceRecorder::instance()->subsumptionDemodulation(
-              replacement, mainCl, sideCl, subst, eqLit, dlit, lhs, rhs);
+          if (!Shell::InferenceRecorder::instance()->subsumptionDemodulation(
+                replacement, mainCl, sideCl, subst, eqLit, dlit, lhs, rhs)) {
+            replacement->destroy();
+            replacement = nullptr;
+            continue;
+          }
         }
 
 #if BSD_LOG_INFERENCES

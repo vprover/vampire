@@ -835,7 +835,7 @@ Clause* SATSubsumptionAndResolution::generateConclusion(bool forward)
   if (env.reconstruction) {
     std::vector<Substitution> substitutions(2);
     substitutions[1] = getBindingsForSubsumptionResolutionWithLiteral();
-    Shell::InferenceRecorder::instance()->replayedInference(
+    Shell::InferenceRecorder::instance()->recordReplayedInferenceCandidate(
         conclusion, {_mainPremise, _sidePremise}, substitutions,
         Shell::InferenceRecorder::InferenceInformation::LiteralPositionKind::REMOVED,
         {{0, toRemove}});

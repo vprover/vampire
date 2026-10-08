@@ -53,6 +53,7 @@ set(UNIT_TESTS
     UnitTests/tFunctionDefinitionHandler.cpp
     UnitTests/tHash.cpp
     UnitTests/tIndexManager.cpp
+    UnitTests/tInferenceReplay.cpp
     UnitTests/tInferences_AnswerLiteralProcessors.cpp
     UnitTests/tInferences_ArithmeticSubtermGeneralization.cpp
     UnitTests/tInferences_BinaryResolution.cpp
@@ -96,6 +97,7 @@ set(UNIT_TESTS
     UnitTests/tIterator.cpp
     UnitTests/tKBO.cpp
     UnitTests/tLPO.cpp
+    UnitTests/tProofPrinter.cpp
     UnitTests/tList.cpp
     UnitTests/tMap.cpp
     UnitTests/tOption.cpp
@@ -407,6 +409,8 @@ set(SOURCES
     Kernel/Inference.hpp
     Kernel/InferenceStore.cpp
     Kernel/TPTPProofPrinter.cpp
+    Kernel/TPTPReplayProofPrinter.cpp
+    Kernel/TPTPReplayProofPrinter.hpp
     Kernel/InferenceStore.hpp
     Kernel/InterpretedLiteralEvaluator.cpp
     Kernel/InterpretedLiteralEvaluator.hpp
@@ -690,6 +694,8 @@ set(SOURCES
     Shell/AnswerLiteralManager.hpp
     Shell/BlockedClauseElimination.cpp
     Shell/BlockedClauseElimination.hpp
+    Shell/ClausificationRecording.cpp
+    Shell/ClausificationRecording.hpp
     Shell/CNF.cpp
     Shell/CNF.hpp
     Shell/CommandLine.cpp
@@ -716,10 +722,10 @@ set(SOURCES
     Shell/InequalitySplitting.hpp
     Shell/ACReconstruction.cpp
     Shell/ACReconstruction.hpp
-    Shell/TPTPReplayAnnotations.cpp
-    Shell/TPTPReplayAnnotations.hpp
     Shell/InferenceRecorder.cpp
     Shell/InferenceRecorder.hpp
+    Shell/SimplificationReplay.cpp
+    Shell/SimplificationReplay.hpp
     Shell/InferenceReplay.cpp
     Shell/InferenceReplay.hpp
     Shell/InterpolantMinimizer.cpp

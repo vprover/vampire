@@ -23,7 +23,6 @@
 #include "Lib/ScopedPtr.hpp"
 
 #include "Shell/InferenceReplay.hpp"
-#include "Shell/TPTPReplayAnnotations.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/UIHelper.hpp"
 #include "Shell/SMTCheck.hpp"
@@ -31,9 +30,9 @@
 #include "Parse/TPTP.hpp"
 #include "SAT/SATInference.hpp"
 
-#include "Saturation/Splitter.hpp"
 
-#include "HOL/HOL.hpp"
+
+
 #include "Clause.hpp"
 #include "Formula.hpp"
 #include "FormulaUnit.hpp"
@@ -135,11 +134,7 @@ void InferenceStore::AbstractProofPrinter::scheduleForPrinting(Unit* us)
       ASS_NEQ(prem, next)
       todo.push_back(prem);
     }
-    if (env.options->proof() == Options::Proof::TSTP_AC) {
-      for (Unit* definition : TPTPReplayAnnotations::avatarConversionDefinitions(next)) {
-        todo.push_back(definition);
-      }
-    }
+    addAdditionalPremises(next, todo);
   }
 }
 
@@ -1089,7 +1084,6 @@ struct InferenceStore::SMTCheckPrinter
   SMTCheckPrinter(ostream& out, InferenceStore* is)
   : AbstractProofPrinter(out, is) {
     _replayer.makeInferenceEngine(this->_is->ordering);
-    SMTCheck::replayer = &(this->_replayer);
   }
   InferenceReplayer _replayer;
 
@@ -1101,7 +1095,7 @@ struct InferenceStore::SMTCheckPrinter
 
   void printStep(Unit* u) override
   {
-    SMTCheck::outputStep(out, u);
+    SMTCheck::outputStep(out, u, &_replayer);
   }
 };
 
@@ -1116,7 +1110,7 @@ InferenceStore::AbstractProofPrinter* InferenceStore::createProofPrinter(std::os
     return new ProofCheckPrinter(out, this);
   case Options::Proof::TPTP:
   case Options::Proof::TSTP_AC:
-    return new TPTPProofPrinter(out, this);
+    return createTPTPReplayProofPrinter(out);
   case Options::Proof::PROPERTY:
     return new ProofPropertyPrinter(out,this);
   case Options::Proof::OFF:

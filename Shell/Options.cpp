@@ -1310,10 +1310,10 @@ Options::Options ()
        .description = "Perform premise minimization when a sat solver finds a clause set UNSAT\n"
         "(such as with AVATAR proofs or with global subsumption).",
        .tag = OptionTag::OUTPUT})
-  , _proofExtra("proof_extra",this,ProofExtra::OFF,{"off","free","avatar_split","full"},
+  , _proofExtra("proof_extra",this,ProofExtra::OFF,{"off","free","replay","full"},
       {.description = "Add extra detail to proofs:\n "
       "- free uses known information only\n"
-      "- avatar_split records the AVATAR split-definition data needed to recover post-rewrite variable instantiations in TPTP proofs\n"
+      "- replay records the certificates needed to replay preprocessing inferences in TPTP proofs: clausification, AVATAR splitting and conversion, and the natural result order of each preprocessing inference. Required by proof mode tstp-ac\n"
       "- full may perform expensive operations to achieve this so may"
       " significantly impact on performance.\n"
       " The option is still under development and the format of extra information (mainly from full) may change between minor releases",
@@ -2164,6 +2164,8 @@ Options::Options ()
 
     _randomStrategySeed.reliesOn(_sampleStrategy.is(notEqual(std::string(""))));
     _proof.addHardConstraint(If(equal(Proof::SMTCHECK)).then(_proofExtra.is(equal(ProofExtra::FULL))));
+    // tstp-ac prints its AC bridges from the recorded replay certificates
+    _proof.addHardConstraint(If(equal(Proof::TSTP_AC)).then(_proofExtra.is(equal(ProofExtra::REPLAY))));
     _replay.onlyUsefulWith(Or(_proof.is(equal(Proof::TPTP)), _proof.is(equal(Proof::TSTP_AC))));
 
 #if VTIME_PROFILING

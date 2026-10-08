@@ -472,10 +472,10 @@ public:
   };
 
   enum class ProofExtra : unsigned int {
-    OFF,
-    FREE,
-    AVATAR_SPLIT,
-    FULL
+    OFF,     // no extra proof data
+    FREE,    // use information already available at inference time
+    REPLAY,  // record the certificates needed to replay preprocessing inferences
+    FULL     // record everything, possibly at significant run-time cost
   };
   enum class FMBSymbolOrders : unsigned int {
     OCCURRENCE,

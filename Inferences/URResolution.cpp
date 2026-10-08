@@ -14,7 +14,6 @@
 
 #include "Lib/DArray.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/Recycled.hpp"
 #include "Lib/VirtualIterator.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -202,12 +201,15 @@ struct URResolution<synthesis>::Item
     Inference inf(GeneratingInferenceMany(InferenceRule::UNIT_RESULTING_RESOLUTION, premLst));
     Clause* res;
 
-    Recycled<Renaming> normalization;
     LiteralIterator it = _ansLit ? pvi(getSingletonIterator(_ansLit)) : LiteralIterator::getEmpty();
     if(single) {
       if (!_ansLit || _ansLit->ground()) {
-        normalization->normalizeVariables(single);
-        single = normalization->apply(single);
+        // Replay skips the normalization: the recorder matches the
+        // conclusion up to a variable renaming and translates the recorded
+        // substitution values into the goal's variable names itself.
+        if (!env.reconstruction) {
+          single = Renaming::normalize(single);
+        }
       }
       res = Clause::fromIterator(concatIters(getSingletonIterator(single), std::move(it)), inf);
     }
@@ -215,16 +217,8 @@ struct URResolution<synthesis>::Item
       res = Clause::fromIterator(std::move(it), inf);
     }
     if (env.reconstruction) {
-      auto substitutions = _replayData->substitutions;
-      for (unsigned bank = 0; bank < _replayData->premises.size(); ++bank) {
-        auto variables = _replayData->premises[bank]->getVariableIterator();
-        while (variables.hasNext()) {
-          unsigned variable = variables.next();
-          substitutions[bank].rebind(variable, normalization->apply(substitutions[bank].apply(variable)));
-        }
-      }
       Shell::InferenceRecorder::instance()->unitResultingResolution(
-          res, _replayData->premises, substitutions, _replayData->positions);
+          res, _replayData->premises, _replayData->substitutions, _replayData->positions);
     }
     return res;
   }
