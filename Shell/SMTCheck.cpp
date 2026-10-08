@@ -621,7 +621,6 @@ static void factoring(std::ostream &out, SortMap &conclSorts, Clause *concl, con
 }
 
 static void equalityResolution(std::ostream &out, SortMap &conclSorts, Clause *concl, const InferenceRecorder::InferenceInformation* info) {
- 
   outputPremise(out, conclSorts, info->premises[0]->asClause(), DoSubst(info->substitutionForBanksSub[0]));
   outputConclusion(out, conclSorts, concl->asClause());
 }

@@ -17,6 +17,8 @@
 #define __InferenceStore__
 
 #include <ostream>
+#include <set>
+#include <vector>
 
 #include "Forwards.hpp"
 
@@ -37,6 +39,35 @@ class InferenceStore
 public:
   static InferenceStore* instance();
 
+  typedef List<int> IntList;
+
+  struct FullInference
+  {
+    FullInference(unsigned premCnt) : csId(0), premCnt(premCnt) { }
+
+    void* operator new(size_t,unsigned premCnt)
+    {
+      size_t size=sizeof(FullInference)+premCnt*sizeof(Unit*);
+      size-=sizeof(Unit*);
+
+      return ALLOC_KNOWN(size,"InferenceStore::FullInference");
+    }
+
+    size_t occupiedBytes()
+    {
+      size_t size=sizeof(FullInference)+premCnt*sizeof(Unit*);
+      size-=sizeof(Unit*);
+      return size;
+    }
+
+    void increasePremiseRefCounters();
+
+    int csId;
+    unsigned premCnt;
+    InferenceRule rule;
+    Unit* premises[1];
+  };
+
   SmartPtr<Ordering> ordering;
 
   void recordSplittingNameLiteral(Unit* us, Literal* lit);
@@ -48,16 +79,46 @@ public:
   void outputUnsatCore(std::ostream& out, Unit* refutation);
   void outputProof(std::ostream& out, Unit* refutation);
   void outputProof(std::ostream& out, UnitList* units);
+  /** Common proof scheduling, independent of any output format. */
+  struct AbstractProofPrinter {
+    AbstractProofPrinter(std::ostream& out, InferenceStore* is) : _is(is), out(out) {}
+    virtual ~AbstractProofPrinter() = default;
+
+    void scheduleForPrinting(Unit* us);
+    virtual void print();
+
+  protected:
+    virtual bool hideProofStep(InferenceRule rule) { return false; }
+    virtual void printStep(Unit* unit) = 0;
+
+    struct CompareUnits {
+      bool operator()(Unit* left, Unit* right) const;
+    };
+
+    InferenceStore* _is;
+    std::ostream& out;
+    std::set<Unit*, CompareUnits> proof;
+
+  };
+
   struct ProofPrinter;
 
 private:
+  /** Shared SAT traversal; concrete printers choose their own SAT syntax. */
+  struct AbstractSATProofPrinter : AbstractProofPrinter {
+    using AbstractProofPrinter::AbstractProofPrinter;
+    void print() override;
+
+  protected:
+    virtual void printSATStep(SAT::SATClause* clause) = 0;
+  };
   struct TPTPProofPrinter;
   struct Smt2ProofCheckPrinter;
   struct ProofCheckPrinter;
   struct ProofPropertyPrinter;
   struct SMTCheckPrinter;
 
-  ProofPrinter* createProofPrinter(std::ostream& out);
+  AbstractProofPrinter* createProofPrinter(std::ostream& out);
 
   DHMultiset<unsigned, FnvHash, IdentityHash> _nextClIds;
 
