@@ -406,6 +406,7 @@ set(SOURCES
     Kernel/Inference.cpp
     Kernel/Inference.hpp
     Kernel/InferenceStore.cpp
+    Kernel/TPTPProofPrinter.cpp
     Kernel/InferenceStore.hpp
     Kernel/InterpretedLiteralEvaluator.cpp
     Kernel/InterpretedLiteralEvaluator.hpp

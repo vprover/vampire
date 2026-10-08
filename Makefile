@@ -173,6 +173,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Grounder.o\
         Kernel/Inference.o\
         Kernel/InferenceStore.o\
+        Kernel/TPTPProofPrinter.o\
         Kernel/KBO.o\
         Kernel/QKbo.o\
         Kernel/ALASCA/Signature.o\
@@ -435,6 +436,7 @@ LIB_DEP = Indexing/TermSharing.o\
 	  Kernel/NumTraits.o\
 	  Kernel/Inference.o\
 	  Kernel/InferenceStore.o\
+        Kernel/TPTPProofPrinter.o\
 	  Kernel/Problem.o\
 	  Kernel/SortHelper.o\
 	  Kernel/OperatorType.o\
@@ -466,6 +468,7 @@ OTHER_CL_DEP = Indexing/ResultSubstitution.o\
 	       Kernel/FormulaTransformer.o\
 	       Kernel/Grounder.o\
 	       Kernel/InferenceStore.o\
+        Kernel/TPTPProofPrinter.o\
 	       Kernel/Matcher.o\
 	       Kernel/KBO.o\
          Kernel/SKIKBO.o\
