@@ -156,6 +156,9 @@ bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement,
           DEBUG_CODE(checkNoApplicableGeneralizations(cacheable, false);)
           continue;
         }
+        // the lookup ahead is the window in which the entries of the terms visited
+        // next -- cacheable's arguments -- can be brought in
+        cache.prefetchArguments(cacheable);
       }
 
       auto git = _index->getGeneralizations(trm.term());

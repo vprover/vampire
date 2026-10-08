@@ -37,8 +37,8 @@ void DemodulationFailureCache::reset(bool enable, bool sparseIds, unsigned overf
   std::fill(std::begin(_epochs), std::end(_epochs), 0u);
   _epochSum = 0;
   _entries.clear();
-  std::vector<OverflowSlot>().swap(_overflow);
-  std::vector<Term*>().swap(_ghost);
+  OverflowTable().swap(_overflow);
+  GhostTable().swap(_ghost);
   _overflowShift = 64;
   queries = lookupsSkipped = subtreesSkipped = failuresRecorded = 0;
   overflowFills = overflowEvictions = overflowGrowths = overflowRehashDrops = overflowLive = 0;
@@ -48,9 +48,9 @@ void DemodulationFailureCache::reset(bool enable, bool sparseIds, unsigned overf
 
 void DemodulationFailureCache::discardEntries()
 {
-  std::vector<Entry>().swap(_entries);
-  std::vector<OverflowSlot>().swap(_overflow);
-  std::vector<Term*>().swap(_ghost);
+  DenseTable().swap(_entries);
+  OverflowTable().swap(_overflow);
+  GhostTable().swap(_ghost);
   _overflowShift = 64;
   overflowLive = 0;
   wipes++;
@@ -103,6 +103,33 @@ DemodulationFailureCache::Entry* DemodulationFailureCache::findEntry(Term* t)
     return &_entries[id];
   }
   return overflowFind(t);
+}
+
+void DemodulationFailureCache::prefetchEntry(Term* t)
+{
+  unsigned id = t->getId();
+  if (id < _entries.size()) {
+    __builtin_prefetch(&_entries[id]);
+    return;
+  }
+  if (!_overflow.empty()) {
+    __builtin_prefetch(&_overflow[overflowIndex(t)]);
+  }
+}
+
+void DemodulationFailureCache::prefetchArguments(Term* t)
+{
+  for (unsigned i = t->numTypeArguments(); i < t->arity(); i++) {
+    TermList arg = *t->nthArgument(i);
+    if (arg.isVar()) {
+      continue;
+    }
+    Term* a = arg.term();
+    if (!a->shared() || a->isSpecial()) {
+      continue;
+    }
+    prefetchEntry(a);
+  }
 }
 
 size_t DemodulationFailureCache::overflowIndex(Term* t) const
@@ -171,9 +198,9 @@ DemodulationFailureCache::Entry& DemodulationFailureCache::overflowEntry(Term* t
 void DemodulationFailureCache::overflowGrow()
 {
   ASS(_overflowShift > 64 - _overflowBits); // not at the configured ceiling yet
-  std::vector<OverflowSlot> previous;
+  OverflowTable previous;
   previous.swap(_overflow);
-  std::vector<Term*> previousGhost;
+  GhostTable previousGhost;
   previousGhost.swap(_ghost);
   unsigned bits = 65 - _overflowShift;
   _overflow.resize(size_t(1) << bits);
@@ -247,6 +274,9 @@ bool DemodulationFailureCache::subtreeClean(Term* t)
   if (!failureKnown(t)) {
     return false;
   }
+  // the arguments' entries are read right below: fetch them together, so their misses
+  // overlap with the first validations instead of stalling one by one
+  prefetchArguments(t);
   // t itself finds nothing; it is clean if all its arguments are (type arguments are not visited)
   uint32_t mask = uint32_t(1) << bucket(t->functor());
   for (unsigned i = t->numTypeArguments(); i < t->arity(); i++) {

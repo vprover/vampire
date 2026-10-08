@@ -18,6 +18,9 @@
 
 #include <cstdint>
 #include <vector>
+#if defined(__linux__)
+#include <sys/mman.h>
+#endif
 
 #include "Forwards.hpp"
 #include "Kernel/Term.hpp"
@@ -25,6 +28,52 @@
 using namespace Kernel;
 
 namespace Indexing {
+
+/** Allocator for the cache's tables: serves memory aligned to huge-page boundaries and
+ * advised to the huge-page pager, so the tables' random probes cost a few TLB entries
+ * instead of page walks. The block is cut out of the raw allocation with enough slack
+ * below it to be huge-page aligned and to keep the raw pointer; the slack is never
+ * touched, so it costs address space only. */
+template<class T>
+struct HugePageAllocator
+{
+  using value_type = T;
+  static constexpr std::size_t HUGE_PAGE = std::size_t(1) << 21;
+
+  T* allocate(std::size_t n)
+  {
+    if (!n) {
+      return nullptr;
+    }
+    std::size_t bytes = n * sizeof(T);
+    // enough slack to align the block up to a huge-page boundary while keeping at least
+    // the pointer's eight bytes below it inside the allocation
+    std::size_t slack = HUGE_PAGE + 64;
+    char* raw = static_cast<char*>(::operator new(bytes + slack));
+    char* block = reinterpret_cast<char*>(
+        (reinterpret_cast<uintptr_t>(raw) + slack - 1) & ~(HUGE_PAGE - 1));
+    *reinterpret_cast<char**>(block - 8) = raw;
+#if defined(MADV_HUGEPAGE)
+    // a fault in an advised, huge-page-aligned region takes a huge page directly;
+    // regions smaller than a huge page, and the pager without huge pages, ignore it
+    madvise(block, bytes, MADV_HUGEPAGE);
+#endif
+    return reinterpret_cast<T*>(block);
+  }
+
+  void deallocate(T* p, std::size_t) noexcept
+  {
+    if (p) {
+      ::operator delete(*reinterpret_cast<char**>(reinterpret_cast<char*>(p) - 8));
+    }
+  }
+};
+
+template<class T, class U>
+bool operator==(const HugePageAllocator<T>&, const HugePageAllocator<U>&) { return true; }
+template<class T, class U>
+bool operator!=(const HugePageAllocator<T>&, const HugePageAllocator<U>&) { return false; }
+
 
 /**
  * Cache of failed generalization queries of forward demodulation (option demodulation_cache).
@@ -98,6 +147,10 @@ struct DemodulationFailureCache
   /** whether the lookups for @b t and all its subterms are known to find nothing */
   bool subtreeClean(Term* t);
   void recordFailure(Term* t);
+  /** prefetch the entries of @b t's arguments: subtreeClean validates them right after
+   *  the failure of @b t becomes known, and after a lookup for @b t itself the terms
+   *  visited next are @b t's arguments, so the lookup's latency can hide their misses */
+  void prefetchArguments(Term* t);
 
   // statistics
   uint64_t queries = 0;
@@ -144,8 +197,15 @@ private:
    *  cheap region bootstraps on occupancy and re-reference takes over beyond it */
   static constexpr unsigned OVERFLOW_BOOTSTRAP_BITS = 16;
 
+  /** the cache's tables, on huge pages (see HugePageAllocator) */
+  using DenseTable = std::vector<Entry, HugePageAllocator<Entry>>;
+  using OverflowTable = std::vector<OverflowSlot, HugePageAllocator<OverflowSlot>>;
+  using GhostTable = std::vector<Term*, HugePageAllocator<Term*>>;
+
   /** read access: the entry of @b t, or nullptr when none was recorded */
   Entry* findEntry(Term* t);
+  /** prefetch the cache line of @b t's entry, the way findEntry reads it */
+  void prefetchEntry(Term* t);
   /** write access: the entry of @b t, claiming it (evicting on collision) if needed */
   Entry& entry(Term* t);
   uint16_t sum(uint32_t mask);
@@ -164,13 +224,13 @@ private:
   // and bound the dense allocation even on runs with many ordinary shared terms.
   static constexpr unsigned MAX_DENSE_ENTRIES = 1u << 20;
   unsigned _denseIdLimit = MAX_DENSE_ENTRIES;
-  std::vector<Entry> _entries;
+  DenseTable _entries;
   unsigned _overflowBits = OVERFLOW_BITS;
-  std::vector<OverflowSlot> _overflow;
+  OverflowTable _overflow;
   /** victim shadow: _ghost[i] is the term last evicted from _overflow[i]. When that term
    *  claims its slot again it was re-referenced after eviction (a hot eviction) -- evidence
    *  that a bigger table would buy hits. Never answers a query, so it cannot change results. */
-  std::vector<Term*> _ghost;
+  GhostTable _ghost;
   /** 64 - log2 of _overflow.size(), or 64 while the table is empty */
   unsigned _overflowShift = 64;
 };
