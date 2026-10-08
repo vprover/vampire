@@ -156,29 +156,11 @@ Option<unsigned> TermList::deBruijnIndex() const {
 
 bool TermList::containsLooseDBIndex() const
 {
-  Stack<std::pair<TermList,unsigned>> todo;
-  todo.emplace(*this, 0);
+  return freeDBIndices();
+}
 
-  while (todo.isNonEmpty()) {
-    auto [curr, dep] = todo.pop();
-
-    if (curr.isVar() || (curr.term()->shared() && !curr.term()->hasDeBruijnIndex())) {
-      continue;
-    }
-
-    if (curr.deBruijnIndex().isSome()) {
-      unsigned idx = curr.deBruijnIndex().unwrap();
-      if (idx >= dep) { return true; }
-    }
-    else if (curr.isLambdaTerm()) {
-      todo.emplace(curr.lambdaBody(), dep + 1);
-    }
-    else if (curr.isApplication()) {
-      todo.emplace(curr.lhs(), dep);
-      todo.emplace(curr.rhs(), dep);
-    }
-  }
-  return false;
+List<unsigned>* TermList::freeDBIndices() const {
+  return isVar() ? List<unsigned>::empty() : term()->freeDBIndices();
 }
 
 TermList TermList::lhs() const {

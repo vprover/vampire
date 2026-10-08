@@ -293,6 +293,7 @@ public:
    * In other words, it returns true if there is a db_i in the
    * term that is not wrapped into i lambda binders. */ 
   bool containsLooseDBIndex() const;
+  List<unsigned>* freeDBIndices() const;
   TermList lhs() const;
   TermList rhs() const;
   TermList lambdaBody() const;
@@ -715,6 +716,16 @@ public:
     _kboWeight = w;
   }
 
+  List<unsigned>* freeDBIndices() const
+  {
+    return _freeDBIndices;
+  }
+
+  void setFreeDBIndices(List<unsigned>* is)
+  {
+    _freeDBIndices = is;
+  }
+
   /** Mark term as shared */
   void markShared()
   {
@@ -1002,6 +1013,7 @@ protected:
 #endif
   /** length of maximum reduction length */
   int _maxRedLen;
+  List<unsigned>* _freeDBIndices = nullptr;
   union {
     /** If _isTwoVarEquality is false, this value is valid and contains
      * number of occurrences of variables */

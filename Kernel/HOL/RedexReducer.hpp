@@ -36,7 +36,8 @@ public:
   }
 
   bool exploreSubterms(TermList orig, TermList newTerm) override {
-    return orig == newTerm && newTerm.term()->hasDeBruijnIndex();
+    // do not replace inside the substituted term, or in terms without any DB index
+    return orig == newTerm && newTerm.containsLooseDBIndex();
   }
 
 private:

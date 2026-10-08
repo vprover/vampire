@@ -66,6 +66,56 @@ void TermSharing::setPoly()
   _poly = env.higherOrder() || env.getMainProblem()->hasPolymorphicSym();
 }
 
+List<unsigned>* mergeFreeDBIndices(List<unsigned>* l1, List<unsigned>* l2)
+{
+  auto dummy = new List<unsigned>(UINT_MAX);
+  auto tail = dummy;
+
+  while (l1 && l2) {
+    if (l1->head() < l2->head()) {
+      tail->setTail(new List<unsigned>(l1->head()));
+      l1 = l1->tail();
+    } else if (l1->head() > l2->head()) {
+      tail->setTail(new List<unsigned>(l2->head()));
+      l2 = l2->tail();
+    } else {
+      tail->setTail(new List<unsigned>(l1->head()));
+      l1 = l1->tail();
+      l2 = l2->tail();
+    }
+    tail = tail->tail();
+  }
+  while (l1) {
+    tail->setTail(new List<unsigned>(l1->head()));
+    l1 = l1->tail();
+  }
+  while (l2) {
+    tail->setTail(new List<unsigned>(l2->head()));
+    l2 = l2->tail();
+  }
+
+  auto result = dummy->tail();
+  delete dummy;
+  return result;
+}
+
+List<unsigned>* copyAndDecrementFreeDBIndices(List<unsigned>* l)
+{
+  auto dummy = new List<unsigned>(UINT_MAX);
+  auto tail = dummy;
+
+  while (l) {
+    if (l->head() != 0) {
+      tail->setTail(new List<unsigned>(l->head() - 1));
+    }
+    l = l->tail();
+  }
+
+  auto result = dummy->tail();
+  delete dummy;
+  return result;
+}
+
 /**
  * pre-computes some properties that are stored for shared terms and caches them.
  * This includes things like the term's id, the number of variables, the weight, etc.
@@ -82,9 +132,19 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
     bool hasTermVar = false;
     bool hasDeBruijnIndex = t->deBruijnIndex().isSome();
     bool hasRedex = t->isRedex();
-    bool hasLambda = t->isLambdaTerm();
+    const bool isLambda = t->isLambdaTerm();
+    bool hasLambda = isLambda;
+    auto freeDBIndices = List<unsigned>::empty();
     Color color = COLOR_TRANSPARENT;
-    
+
+    if (hasDeBruijnIndex) {
+      freeDBIndices = List<unsigned>::singleton(t->deBruijnIndex().unwrap());
+    } else if (isLambda) {
+      freeDBIndices = copyAndDecrementFreeDBIndices(t->lambdaBody().freeDBIndices());
+    } else if (t->isApplication()) {
+      freeDBIndices = mergeFreeDBIndices(t->termArg(0).freeDBIndices(), t->termArg(1).freeDBIndices());
+    }
+
     unsigned typeArity = t->numTypeArguments();
     for (unsigned i = 0; i < t->arity(); i++) {
       TermList* tt = t->nthArgument(i);
@@ -130,6 +190,7 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
     t->setHasRedex(hasRedex);
     t->setHasDeBruijnIndex(hasDeBruijnIndex);
     t->setHasLambda(hasLambda);
+    t->setFreeDBIndices(freeDBIndices);
     t->setInterpretedConstantsPresence(hasInterpretedConstants);
 
     ASS_REP(!env.higherOrder() || t->isApplication() || t->isLambdaTerm() || !t->numTermArguments(), "HO term " + t->toString() + " is not appified");

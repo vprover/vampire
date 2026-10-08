@@ -34,53 +34,5 @@ TermList TermShifter::transformSubterm(TermList t) {
 
 unsigned TermShifter::minFreeDBIndex(TermList t)
 {
-  if (t.isVar()) {
-    return UINT_MAX;
-  }
-  ASS(!t.term()->isSort());
-
-  auto dbi = t.term()->deBruijnIndex();
-  if (dbi.isSome()) {
-    return dbi.unwrap();
-  }
-
-  unsigned cutoff = 0;
-  unsigned res = UINT_MAX;
-  Recycled<Stack<std::pair<const Term*, const TermList*>>> todo;
-  auto pushTodo = [&cutoff,&todo](auto t) {
-    if (t->isLambdaTerm()) {
-      cutoff++;
-    }
-    todo->emplace(t, t->termArgs());
-  };
-  pushTodo(t.term());
-
-  while (todo->isNonEmpty()) {
-    auto [curr, args] = todo->top();
-
-    if (args->isEmpty()) {
-      todo->pop();
-      if (curr->isLambdaTerm()) {
-        cutoff--;
-      }
-      continue;
-    }
-    todo->setTop({ curr, args->next() });
-
-    if (args->isVar()) {
-      continue;
-    }
-
-    auto arg = args->term();
-    dbi = arg->deBruijnIndex();
-    if (dbi.isSome()) {
-      auto index = dbi.unwrap();
-      if (index >= cutoff) {
-        res = std::min(res, index - cutoff);
-      }
-      continue;
-    }
-    pushTodo(arg);
-  }
-  return res;
+  return t.freeDBIndices() ? t.freeDBIndices()->head() : UINT_MAX;
 }
