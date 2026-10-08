@@ -115,9 +115,10 @@ Term* TermTransformer::transform(Term* term)
   toDo.push(term->args());
 
   for (;;) {
-    TermList* tt = toDo.pop();
+    TermList* tt = toDo.top();
 
     if (tt->isEmpty()) {
+      toDo.pop();
       if (terms.isEmpty()) {
         //we're done, args stack contains modified arguments
         //of the literal.
@@ -152,9 +153,8 @@ Term* TermTransformer::transform(Term* term)
       args.push(TermList(newTrm));
       modified.setTop(true);
       continue;
-    } else {
-      toDo.push(tt->next());
     }
+    toDo.setTop(tt->next());
 
     TermList tl = *tt;
 
@@ -280,8 +280,9 @@ Term* BottomUpTermTransformer::transform(Term* term)
   // cout << "transform " << term->toString() << endl;
 
   for(;;) {
-    TermList* tt=toDo.pop();
+    TermList* tt=toDo.top();
     if(tt->isEmpty()) {
+      toDo.pop();
       // cout << "empty "  << endl;
 
       if(terms.isEmpty()) {
@@ -325,9 +326,8 @@ Term* BottomUpTermTransformer::transform(Term* term)
                                              : TermList(Term::create(orig,argLst))));
       }
       continue;
-    } else {
-      toDo.push(tt->next());
     }
+    toDo.setTop(tt->next());
 
     // cout << "Non-empty: " <<  tt->toString() << endl;
 

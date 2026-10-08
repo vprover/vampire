@@ -352,8 +352,9 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
   toDo.push(trm->args());
 
   for(;;) {
-    TermList* tt=toDo.pop();
+    TermList* tt=toDo.top();
     if(tt->isEmpty()) {
+      toDo.pop();
       if(terms.isEmpty()) {
         //we're done, args stack contains modified arguments
         //of the topleve term/literal.
@@ -390,7 +391,7 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
       modified.setTop(true);
       continue;
     }
-    toDo.push(tt->next());
+    toDo.setTop(tt->next());
 
     TermList tl=*tt;
     if(tl.isOrdinaryVar()) {

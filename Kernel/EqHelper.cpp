@@ -113,19 +113,20 @@ Term* EqHelper::replace(Term* trm0, TermList tSrc, TermList tDest)
   unsigned srcWeight = tSrc.isVar() ? 1 : tSrc.term()->weight();
 
   for (;;) {
-    TermList* tt=toDo.pop();
+    TermList* tt=toDo.top();
     if (tt->isEmpty()) {
+      toDo.pop();
       if (terms.isEmpty()) {
-	//we're done, args stack contains modified arguments
-	//of the literal.
-	ASS(toDo.isEmpty());
-	break;
+        //we're done, args stack contains modified arguments
+        //of the literal.
+        ASS(toDo.isEmpty());
+        break;
       }
       Term* orig=terms.pop();
       if (!modified.pop()) {
-	args.truncate(args.length() - orig->arity());
-	args.push(TermList(orig));
-	continue;
+        args.truncate(args.length() - orig->arity());
+        args.push(TermList(orig));
+        continue;
       }
       //here we assume, that stack is an array with
       //second topmost element as &top()-1, third at
@@ -137,7 +138,7 @@ Term* EqHelper::replace(Term* trm0, TermList tSrc, TermList tDest)
       modified.setTop(true);
       continue;
     }
-    toDo.push(tt->next());
+    toDo.setTop(tt->next());
 
     TermList tl=*tt;
     if (tl == tSrc) {
