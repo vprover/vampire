@@ -28,7 +28,7 @@ TermList HOL::reduce::betaNF(TermList t, unsigned *reductions) {
 }
 
 TermList HOL::reduce::etaNF(TermList t) {
-  return EtaNormaliser::normalise(t);
+  return EtaNormaliser2().normalise(t);
 }
 
 TermList HOL::reduce::betaEtaNF(TermList t) {

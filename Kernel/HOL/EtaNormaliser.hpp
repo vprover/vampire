@@ -14,7 +14,8 @@
 #ifndef __EtaNormaliser__
 #define __EtaNormaliser__
 
-#include "Kernel/Term.hpp"
+#include "Kernel/TermTransformer.hpp"
+#include "Kernel/HOL/TermShifter.hpp"
 
 using namespace Kernel;
 
@@ -28,5 +29,37 @@ namespace EtaNormaliser {
   TermList normalise(TermList t);
   TermList transformSubterm(TermList t);
 }
+
+struct EtaNormaliser2 : public BottomUpTermTransformer
+{
+  EtaNormaliser2() : BottomUpTermTransformer(/*transformSorts=*/false) {}
+
+  TermList normalise(TermList t) { return transform(t); }
+  TermList transformSubterm(TermList t) override {
+    for (;;) {
+      if (!t.isLambdaTerm()) {
+        break;
+      }
+      auto lb = t.term()->lambdaBody();
+      if (!lb.isApplication()) {
+        break;
+      }
+      auto lhs = lb.term()->termArg(0);
+      auto rhs = lb.term()->termArg(1);
+      if (rhs.deBruijnIndex().unwrapOr(UINT_MAX) != 0) {
+        break;
+      }
+      if (lhs.freeDBIndices() && lhs.freeDBIndices()->head() == 0) {
+        break;
+      }
+      t = TermShifter::shift(lhs, -1);
+    }
+    return t;
+  }
+
+  bool alreadyTransformed(Term* t) override {
+    return !t->hasLambda();
+  }
+};
 
 #endif // __EtaNormaliser__
