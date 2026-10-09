@@ -87,10 +87,12 @@ List<unsigned>* mergeFreeDBIndices(List<unsigned>* l1, List<unsigned>* l2)
   }
   while (l1) {
     tail->setTail(new List<unsigned>(l1->head()));
+    tail = tail->tail();
     l1 = l1->tail();
   }
   while (l2) {
     tail->setTail(new List<unsigned>(l2->head()));
+    tail = tail->tail();
     l2 = l2->tail();
   }
 
@@ -107,6 +109,7 @@ List<unsigned>* copyAndDecrementFreeDBIndices(List<unsigned>* l)
   while (l) {
     if (l->head() != 0) {
       tail->setTail(new List<unsigned>(l->head() - 1));
+      tail = tail->tail();
     }
     l = l->tail();
   }
