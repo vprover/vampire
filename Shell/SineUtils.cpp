@@ -54,8 +54,7 @@ using namespace Kernel;
  */
 SineSymbolExtractor::SymId SineSymbolExtractor::getSymIdBound()
 {
-  return max(env.signature->predicates()*3-1, 
-         max(env.signature->functions()*3, env.signature->typeCons()*3));
+  return env.signature->symbolCount();
 }
 
 void SineSymbolExtractor::addSymIds(Term* term, DHSet<SymId, FnvHash, IdentityHash>& ids)
@@ -82,7 +81,7 @@ void SineSymbolExtractor::addSymIds(Term* term, DHSet<SymId, FnvHash, IdentityHa
       }
     } else {
       //all sorts should be shared
-      ids.insert(term->functor() * 3 + 1);
+      ids.insert(term->functor());
     }
 
     for (auto t : concatIters(typeArgIter(term), termArgIter(term))) {
@@ -90,20 +89,12 @@ void SineSymbolExtractor::addSymIds(Term* term, DHSet<SymId, FnvHash, IdentityHa
         addSymIds(t.term(), ids);
     }
   } else {
-    if(term->isSort()){
-      ids.insert(term->functor() * 3 + 2);
-    } else {
-      ids.insert(term->functor() * 3 + 1);
-    }
+    ids.insert(term->functor());
 
     NonVariableIterator nvi(term);
     while (nvi.hasNext()) {
       Term* t = nvi.next().term();
-      if(t->isSort()){
-        ids.insert(t->functor() * 3 + 2);
-      } else {
-        ids.insert(t->functor() * 3 + 1);
-      }
+      ids.insert(t->functor());
     }
   }
 }
@@ -115,7 +106,7 @@ void SineSymbolExtractor::addSymIds(Term* term, DHSet<SymId, FnvHash, IdentityHa
  */
 void SineSymbolExtractor::addSymIds(Literal* lit,DHSet<SymId, FnvHash, IdentityHash>& ids)
 {
-  SymId predId=lit->functor()*3;
+  SymId predId=lit->functor();
   ids.insert(predId);
 
   if (!lit->shared()) {
@@ -127,37 +118,20 @@ void SineSymbolExtractor::addSymIds(Literal* lit,DHSet<SymId, FnvHash, IdentityH
     NonVariableIterator nvi(lit);
     while (nvi.hasNext()) {
       Term *t = nvi.next().term();
-      if(t->isSort()){
-        ids.insert(t->functor() * 3 + 2);
-      } else {
-        ids.insert(t->functor() * 3 + 1);
-      }      
+      ids.insert(t->functor());
     }
   }
 } // addSymIds
 
 void SineSymbolExtractor::decodeSymId(SymId s, bool& pred, unsigned& functor)
 {
-  pred = (s%2)==0;
-  functor = s/2;
+  pred = env.signature->getSymbol(s)->isPredicate();
+  functor = s;
 }
 
 bool SineSymbolExtractor::validSymId(SymId s)
 {
-  bool pred;
-  unsigned functor;
-  decodeSymId(s, pred, functor);
-  if (pred) {
-    if (functor>=static_cast<unsigned>(env.signature->predicates())) {
-      return false;
-    }
-  }
-  else {
-    if (functor>=static_cast<unsigned>(env.signature->functions())) {
-      return false;
-    }
-  }
-  return true;
+  return s < env.signature->symbolCount();
 }
 
 /**

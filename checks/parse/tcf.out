@@ -1,8 +1,8 @@
-tcf(type_def_5, type, colour: $tType).
-tcf(func_def_0, type, red: colour).
-tcf(func_def_1, type, green: colour).
-tcf(func_def_2, type, blue: colour).
-tcf(pred_def_1, type, paint: ($i * colour) > $o).
+tcf(type_def_6, type, colour: $tType).
+tcf(func_def_7, type, red: colour).
+tcf(func_def_8, type, green: colour).
+tcf(func_def_9, type, blue: colour).
+tcf(pred_def_10, type, paint: ($i * colour) > $o).
 tcf(only_two_colours,axiom,
     ![X0 : colour,X1 : colour,X2 : colour] : ( X0 = X1 | X0 = X2 | X1 = X2 )).
 

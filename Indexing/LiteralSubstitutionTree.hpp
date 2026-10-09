@@ -40,7 +40,7 @@ class LiteralSubstitutionTree
 
 public:
   LiteralSubstitutionTree()
-    : _trees(env.signature->predicates() * 2)
+    : _trees(env.signature->symbolCount() * 2)
     { }
 
   void handle(LeafData ld, bool insert)

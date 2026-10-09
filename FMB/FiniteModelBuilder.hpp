@@ -131,9 +131,8 @@ private:
   // SAT solver used to solve constraints (a new one is used for each model size)
   ScopedPtr<SATSolver> _solver;
 
-  // if del_f[i] (resp del_p[i]) is true then that function (resp predicate) should be ignored
-  DArray<bool> del_f;
-  DArray<bool> del_p;
+  // Symbols marked here are ignored, indexed by global symbol ID.
+  DArray<bool> deletedSymbols;
 
   // Store monotonicity_info (see Monotonicity::check) for every sort detected (or made) monotonic
   DHMap<unsigned,DArray<signed char>*, FnvHash, IdentityHash> _monotonic_vampire_sorts;
@@ -167,8 +166,7 @@ private:
   // There is a implicit mapping from ground terms to SAT variables
   // These offsets give the SAT variable for the *first* grounding of each function or predicate symbol
   // Then the SAT variables for other groundings can be computed from this
-  DArray<unsigned> f_offsets;
-  DArray<unsigned> p_offsets;
+  DArray<unsigned> symbolOffsets;
 
   // do contour encoding instead of point-wise
   bool _xmass;

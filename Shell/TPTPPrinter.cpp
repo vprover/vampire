@@ -292,16 +292,18 @@ void TPTPPrinter::ensureHeadersPrinted(Unit* u)
     return;
   }
 
-  unsigned typeCons = env.signature->typeCons();
-  for(unsigned i=Signature::FIRST_USER_CON; i<typeCons; i++) {
+  auto typeCons = env.signature->typeConSymbols();
+  for (unsigned i : typeCons) {
+    if (i < Signature::FIRST_USER_CON) continue;
     outputSymbolTypeDefinitions(i, SymbolType::TYPE_CON);
   }
-  unsigned funs = env.signature->functions();
-  for(unsigned i=0; i<funs; i++) {
+  auto funs = env.signature->functionSymbols();
+  for (unsigned i : funs) {
     outputSymbolTypeDefinitions(i, SymbolType::FUNC);
   }
-  unsigned preds = env.signature->predicates();
-  for(unsigned i=1; i<preds; i++) {
+  auto preds = env.signature->predicateSymbols();
+  for (unsigned i : preds) {
+    if (i < 1) continue;
     outputSymbolTypeDefinitions(i, SymbolType::PRED);
   }
 

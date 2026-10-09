@@ -148,8 +148,8 @@ ClauseList* FunctionRelationshipInference::getCheckingClauses()
 {
   ClauseList* newClauses = 0;
 
-  unsigned initial_functions = env.signature->functions();
-  for(unsigned f=0; f < initial_functions; f++){
+  auto initial_functions = env.signature->functionSymbols();
+  for (unsigned f : initial_functions) {
 
     OperatorType* ftype = env.signature->getFunction(f)->type();
     TermList ret_srt = ftype->result();

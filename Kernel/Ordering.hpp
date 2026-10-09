@@ -224,18 +224,12 @@ protected:
 
   int predicateLevel(unsigned pred) const;
 
-  /** number of predicates in the signature at the time the order was created */
-  unsigned _predicates;
-  /** number of functions in the signature at the time the order was created */
-  unsigned _functions;
-  /** Array of predicate levels */
+  /** Global ID bound at the time the order was created. */
+  unsigned _symbols;
+  /** Predicate levels indexed by the dense predicate index. */
   DArray<int> _predicateLevels;
-  /** Array of predicate precedences */
-  DArray<int> _predicatePrecedences;
-  /** Array of function precedences */
-  DArray<int> _functionPrecedences;
-  /** Array of type con precedences */
-  DArray<int> _typeConPrecedences;
+  /** Precedences for all symbol kinds, indexed by global symbol ID. */
+  DArray<int> _symbolPrecedences;
 
   static void checkLevelAssumptions(DArray<int> const&);
 

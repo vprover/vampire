@@ -493,6 +493,7 @@ public:
   //////// member variables //////////
 
   bool _clauseCodeTree = false;
+  bool _literalCodeTree = false; // the first CHECK_FUN holds a literal header when printing
   unsigned _curTimeStamp = 0;
 
   /** maximal number of local variables in a stored term/literal (always at least 1) */

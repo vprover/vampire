@@ -18,8 +18,10 @@
 #include "Forwards.hpp"
 
 #include "Kernel/Problem.hpp"
+#include "Kernel/Signature.hpp"
 
 #include "Lib/DArray.hpp"
+#include "Lib/Environment.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/DHSet.hpp"
 #include "Lib/Stack.hpp"
@@ -126,7 +128,7 @@ private:
   bool eligible(unsigned pred) const;
   /** which side carries the (possible) multi-occurrence clauses, i.e. plays the nuclei;
    * the satellites, all with exactly one occurrence, then come from the other side */
-  bool posIsNucleus(unsigned pred) const { return _preds[pred].negMulti == 0; }
+  bool posIsNucleus(unsigned pred) const { return _preds[env.signature->predicateIndex(pred)].negMulti == 0; }
 
   /** the number of hyper-resolvents when at least one side does have multiplicities;
    * out of line, and out of estimatedTotalAfter's body, only to keep that one inlinable */
@@ -139,7 +141,7 @@ private:
    */
   double estimatedTotalAfter(unsigned pred) const
   {
-    const PredInfo &info = _preds[pred];
+    const PredInfo &info = _preds[env.signature->predicateIndex(pred)];
     double sp = info.pos.size();
     double sn = info.neg.size();
     // an overflow to infinity below simply makes the step inadmissible, which is what we want

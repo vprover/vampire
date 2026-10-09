@@ -236,11 +236,11 @@ void EqualityProxy::addCongruenceAxioms(UnitList*& units)
   LiteralStack lits;
   TermList srt;
 
-  unsigned funs = env.signature->functions();
-  for (unsigned i=0; i<funs; i++) {
+  auto funs = env.signature->functionSymbols();
+  for (unsigned i : funs) {
     const Signature::Symbol* fnSym = env.signature->getFunction(i);
     // can axiomatise equality _before_ preprocessing, so skip (some) introduced symbols
-    if(!usedFunctions[i] || fnSym->skipCongruence())
+    if(!usedFunctions[env.signature->functionIndex(i)] || fnSym->skipCongruence())
       continue;
     unsigned arity = fnSym->arity();
     if (arity == 0) {
@@ -262,13 +262,15 @@ void EqualityProxy::addCongruenceAxioms(UnitList*& units)
     UnitList::push(cl,units);
   }
 
-  unsigned preds = env.signature->predicates();
-  for (unsigned i = 1; i < preds; i++) {
+  auto preds = env.signature->predicateSymbols();
+  for (unsigned i : preds) {
+    if (i < 1) continue;
     const Signature::Symbol* predSym = env.signature->getPredicate(i);
     // can axiomatise equality _before_ preprocessing, so skip (some) introduced symbols.
     // The loop above may have created new proxy predicates, which postdate usedPredicates
     // and, occurring in no scanned clause, are not used in its sense either
-    if(i >= usedPredicates.size() || !usedPredicates[i] || predSym->skipCongruence())
+    unsigned index = env.signature->predicateIndex(i);
+    if(index >= usedPredicates.size() || !usedPredicates[index] || predSym->skipCongruence())
       continue;
     unsigned arity = predSym->arity();
     if (arity == 0) {

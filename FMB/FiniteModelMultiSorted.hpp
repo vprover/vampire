@@ -41,21 +41,20 @@ class FiniteModelMultiSorted {
   static const char INTP_TRUE = 2;
 
   // two big tables waiting to be filled with the intrepreations (of functions and predicates)
-  DArray<unsigned> _f_offsets;
-  DArray<unsigned> _p_offsets;
+  DArray<unsigned> _offsets;
   DArray<unsigned> _f_interpretation;
   DArray<char> _p_interpretation; // 0 is undef, 1 false, 2 true
 
   // candidates for the domain constants in the model printed (we use existing constants of the respective sort, but introduce a new symbol, if there is none)
   // this is not the same thing (although, maybe, these could be unified?) as _domainConstants, which are used for evaluation
-  DArray<DArray<int>> sortRepr;
+  DArray<DArray<int>> sortRepr; // indexed by dense type constructor index
 
-  // uses _sizes to fillup _f/p_offsets and _f/p_interpretation from scratch
+  // uses _sizes to fill _offsets, _f_interpretation and _p_interpretation from scratch
   // also cleans sortRepr (to be filled up from scratch)
   void initTables();
 
   // captures the encoding of the functions offsets and predicates in our tables
-  // - offsets are either _f_offsets or _p_offsets
+  // - offsets are indexed by global symbol ID
   // - s is either an f or p index from env->signature
   // - sig is the symbols corresponding type signature
   // - var is an index to use into _f_interpretation/_p_interpretation

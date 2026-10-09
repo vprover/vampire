@@ -35,8 +35,8 @@ namespace Kernel {
  */
 void collectUsedSymbols(ClauseIterator clauses, DArray<bool>& usedFunctions, DArray<bool>& usedPredicates)
 {
-  usedFunctions.init(env.signature->functions(),false);
-  usedPredicates.init(env.signature->predicates(),false);
+  usedFunctions.init(env.signature->functionCount(),false);
+  usedPredicates.init(env.signature->predicateCount(),false);
 
   DHSet<Term*, SharedTermHash, PtrIdentityHash> seen;
   Stack<Term*> todo;
@@ -46,7 +46,7 @@ void collectUsedSymbols(ClauseIterator clauses, DArray<bool>& usedFunctions, DAr
     for (unsigned i = 0; i < cl->length(); i++) {
       Literal* lit = (*cl)[i];
       ASS(lit->shared()); // so the ids the visited set hashes by are meaningful
-      usedPredicates[lit->functor()] = true;
+      usedPredicates[env.signature->predicateIndex(lit->functor())] = true;
       for (TermList* ts = lit->args(); ts->isNonEmpty(); ts = ts->next()) {
         if (ts->isTerm()) {
           todo.push(ts->term());
@@ -60,7 +60,7 @@ void collectUsedSymbols(ClauseIterator clauses, DArray<bool>& usedFunctions, DAr
         if (t->isSort() || !seen.insert(t)) {
           continue;
         }
-        usedFunctions[t->functor()] = true;
+        usedFunctions[env.signature->functionIndex(t->functor())] = true;
         for (TermList* ts = t->args(); ts->isNonEmpty(); ts = ts->next()) {
           if (ts->isTerm()) {
             todo.push(ts->term());
@@ -75,9 +75,9 @@ void SymbolCounts::countIn(ClauseIterator clauses)
 {
   TIME_TRACE("symbol counts")
 
-  functions.init(env.signature->functions(),0);
-  predicates.init(env.signature->predicates(),0);
-  typeCons.init(env.signature->typeCons(),0);
+  functions.init(env.signature->functionCount(),0);
+  predicates.init(env.signature->predicateCount(),0);
+  typeCons.init(env.signature->typeConCount(),0);
   _initialised = true;
 
   while (clauses.hasNext()) {
@@ -88,7 +88,7 @@ void SymbolCounts::countIn(ClauseIterator clauses)
       // equality is not counted: it is the one predicate every consumer of these numbers
       // wants to ignore, and Property::scan left it out too
       if (!lit->isEquality()) {
-        predicates[lit->functor()]++;
+        predicates[env.signature->predicateIndex(lit->functor())]++;
       }
       // deliberately no visited set here, see the header. SubtermIterator walks the type
       // arguments along with the rest, so the sorts inside a literal are reached as well
@@ -105,10 +105,10 @@ void SymbolCounts::countIn(ClauseIterator clauses)
         ASS(!t->isSpecial());
         if (t->isSort()) {
           // an AtomicSort stores the type constructor's number as its functor
-          typeCons[t->functor()]++;
+          typeCons[env.signature->typeConIndex(t->functor())]++;
         }
         else {
-          functions[t->functor()]++;
+          functions[env.signature->functionIndex(t->functor())]++;
         }
       }
     }

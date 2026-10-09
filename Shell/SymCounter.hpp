@@ -19,6 +19,7 @@
 #define __sym_counter__
 
 #include "Kernel/Unit.hpp"
+#include "Kernel/Signature.hpp"
 
 namespace Kernel {
   class Signature;
@@ -79,30 +80,34 @@ class SymCounter
   /** Return information about n-th predicate symbol */
   Pred& getPred (int n)
   {
-    ASS(n < _noOfPreds);
-    return _preds[n];
+    unsigned index = _signature.predicateIndex(n);
+    ASS(index < _noOfPreds);
+    return _preds[index];
   }
   /** Return information about n-th function symbol */
   FunOrTypeCon& getFun (int n)
   {
-    ASS(n < _noOfFuns);
-    return _funs[n];
+    unsigned index = _signature.functionIndex(n);
+    ASS(index < _noOfFuns);
+    return _funs[index];
   }
   /** Return information about n-th function symbol */
   FunOrTypeCon& getTypeCon (int n)
   {
-    ASS(n < _noOfTypeCons);
-    return _typeCons[n];
+    unsigned index = _signature.typeConIndex(n);
+    ASS(index < _noOfTypeCons);
+    return _typeCons[index];
   }
 
  private:
   // structure
+  Signature& _signature;
   /** Number of predicate symbols in the signature */
-  int _noOfPreds;
+  unsigned _noOfPreds;
   /** Number of function symbols in the signature */
-  int _noOfFuns;
+  unsigned _noOfFuns;
   /** Number of type constructor symbols in the signature */
-  int _noOfTypeCons;
+  unsigned _noOfTypeCons;
   /** Array to predicate counters */
   Pred* _preds;
   /** Array to function counters */

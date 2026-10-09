@@ -100,7 +100,7 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
   ASS(_introducedSkolemSyms.isNonEmpty());
   while(_introducedSkolemSyms.isNonEmpty()) {
     auto [v, t, fn] = _introducedSkolemSyms.pop();
-    auto sym = t->kind() == TermKind::SORT ? env.signature->getTypeCon(fn) : env.signature->getFunction(fn);
+    auto sym = env.signature->getSymbol(fn);
 
     InferenceStore::instance()->recordIntroducedSkolemSymbol(res, sym, v, t);
   }
@@ -527,5 +527,4 @@ FormulaList* Skolem::skolemise (FormulaList* fs)
 
   return res;
 } // Skolem::skolemise
-
 

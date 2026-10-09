@@ -53,7 +53,7 @@ Environment::Environment()
   // of creation of these sorts. The order is VITAL. 
   //
   // A number of places in the code rely on the type constructor for
-  // $i being 0, that for $o being 1 and so on.
+  // equality being 0, $i being 1, $o being 2 and so on.
   AtomicSort::defaultSort();
   AtomicSort::boolSort();
   AtomicSort::intSort();

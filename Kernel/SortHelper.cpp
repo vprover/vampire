@@ -56,13 +56,7 @@ struct CollectTask {
  */
 static OperatorType* getType(Term const* t)
 {
-  if (t->isLiteral())
-    return env.signature->getPredicate(t->functor())->type();
-
-  if (t->isSort())
-    return env.signature->getTypeCon(t->functor())->type();
-
-  return env.signature->getFunction(t->functor())->type();
+  return env.signature->getSymbol(t->functor())->type();
 } // getType
 
 /**
