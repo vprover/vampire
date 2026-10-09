@@ -218,7 +218,6 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/HOL/Create.o\
         Kernel/HOL/Convert.o\
         Kernel/HOL/Reduce.o\
-        Kernel/HOL/BetaNormaliser.o\
         Kernel/HOL/RedexReducer.o\
         Kernel/HOL/TermShifter.o\
         Kernel/HOL/EtaNormaliser.o\

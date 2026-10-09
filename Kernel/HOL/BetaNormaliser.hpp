@@ -15,28 +15,34 @@
 #define __BetaNormaliser__
 
 #include "Kernel/TermTransformer.hpp"
+#include "Kernel/HOL/RedexReducer.hpp"
 
 using namespace Kernel;
 
 // reduce a term to normal form
 // uses a applicative order reduction strategy
-// Currently use a leftmost outermost strategy
-// An innermost strategy is theoretically more efficient
-// but is difficult to write iteratively TODO
-class BetaNormaliser : public TermTransformer {
+// Currently use a leftmost innermost strategy
+struct BetaNormaliser : public BottomUpTermTransformer {
+#if VDEBUG
   unsigned reductions = 0;
-public:
-  BetaNormaliser() : TermTransformer(/*transformSorts=*/false) {}
+#endif
 
-  unsigned getReductions() const {
-    return reductions;
+  BetaNormaliser() : BottomUpTermTransformer(/*transformSorts=*/false) {}
+
+  TermList normalise(TermList t) { return transform(t); }
+
+  TermList transformSubterm(TermList t) override {
+    if (!t.isRedex()) {
+      return t;
+    }
+    DEBUG_CODE(++reductions;)
+    // a substitution can create new redexes, call transform again
+    return transform(RedexReducer().reduce(t.lhs(), t.rhs()));
   }
 
-  TermList normalise(TermList t);
-
-  TermList transformSubterm(TermList t) override;
-
-  bool exploreSubterms(TermList orig, TermList newTerm) override;
+  bool alreadyTransformed(Term* t) override {
+    return !t->hasRedex();
+  }
 };
 
 #endif // __BetaNormaliser__

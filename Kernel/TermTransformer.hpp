@@ -71,8 +71,6 @@ protected:
 
     return orig == newTerm;
   }
-
-
 };
 
 /**
@@ -87,6 +85,7 @@ protected:
 class BottomUpTermTransformer : public TermTransformerCommon {
 public:
   virtual ~BottomUpTermTransformer() {}
+  explicit BottomUpTermTransformer(const bool transformSorts = true) : transformSorts(transformSorts) {}
   Term* transform(Term* term) override;
 protected:
   virtual TermList transformSubterm(TermList trm) = 0;
@@ -99,6 +98,8 @@ protected:
   virtual bool alreadyTransformed(Term* t) { return false; }
   Formula* transform(Formula* f) override;
   TermList transform(TermList ts) override;
+
+  const bool transformSorts;
 };
 
 
