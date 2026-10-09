@@ -60,47 +60,6 @@ ForwardDemodulation<higherOrder>::ForwardDemodulation(SaturationAlgorithm& salg)
     _index(salg.getSimplifyingIndex<DemodulationLHSIndex>())
 {}
 
-#if VDEBUG
-/**
- * The cache of failed lookups must only skip terms that no demodulator generalization can
- * rewrite (and their subterms if @b subtree). Lookups that find nothing qualify, and so do
- * lookups whose every generalization is rejected by a check that does not depend on the
- * clause being simplified: the ordering check, or not being preordered in the preordered-only
- * mode. A preordered generalization always passes the ordering check, so it either rewrites
- * (and no failure is recorded) or is rejected by the redundancy check, which blocks the
- * recording; a generalization rejected only by the color or the redundancy check blocks the
- * recording as well. None of them can therefore remain for a recorded failure.
- */
-template<bool higherOrder>
-void ForwardDemodulation<higherOrder>::checkNoApplicableGeneralizations(Term* t, bool subtree)
-{
-  auto checkOne = [&](Term* s) {
-    auto git = _index->getGeneralizations(s);
-    while (git.hasNext()) {
-      auto qr = git.next();
-      ASS_REP(!qr.data->preordered, s->toString());
-      if (_useTermOrderingDiagrams) {
-        auto subs = qr.unifier;
-        qr.data->tod->init(&subs);
-        ASS_REP(_preorderedOnly || !qr.data->tod->next(), s->toString());
-      } else {
-        auto subs = qr.unifier;
-        AppliedTerm rhsApplied(qr.data->rhs, &subs, true);
-        ASS_REP(_preorderedOnly || _ord.compareUnidirectional(TermList(s), rhsApplied) != Ordering::GREATER,
-            s->toString());
-      }
-    }
-  };
-  checkOne(t);
-  if (subtree) {
-    NonVariableNonTypeIterator it(t);
-    while (it.hasNext()) {
-      checkOne(it.next());
-    }
-  }
-}
-#endif
-
 template<bool higherOrder>
 bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
@@ -147,13 +106,11 @@ bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement,
         cacheable = trm.term();
         if (cache.subtreeClean(cacheable)) {
           cache.subtreesSkipped++;
-          DEBUG_CODE(checkNoApplicableGeneralizations(cacheable, true);)
           it.right();
           continue;
         }
         if (cache.failureKnown(cacheable)) {
           cache.lookupsSkipped++;
-          DEBUG_CODE(checkNoApplicableGeneralizations(cacheable, false);)
           continue;
         }
         // the lookup ahead is the window in which the entries of the terms visited
