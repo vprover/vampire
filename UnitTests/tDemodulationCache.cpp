@@ -7,6 +7,7 @@
 #include "Test/UnitTesting.hpp"
 #include "Test/SyntaxSugar.hpp"
 #include "Indexing/DemodulationFailureCache.hpp"
+#include "Shell/Statistics.hpp"
 
 using namespace Test;
 using Indexing::DemodulationFailureCache;
@@ -92,7 +93,6 @@ TEST_FUN(variables_and_reset) {
   ASS(cache.subtreeClean(fx));
   cache.reset(false);
   ASS(!cache.enabled);
-  ASS_EQ(cache.failuresRecorded, 0);
   ASS(!cache.failureKnown(fx));
   ASS(!cache.subtreeClean(fx));
 }
@@ -196,7 +196,7 @@ TEST_FUN(overflow_table_eviction_is_exact) {
   }
   // 41 distinct terms passed through 16 slots: entries were evicted, but no
   // lookup may be answered from another term's entry
-  ASS_G(cache.overflowEvictions, 0);
+  ASS_G(env.statistics->demodulationCacheOverflowEvictions, 0);
   ASS_LE(cache.overflowLive, 16);
   unsigned known = 0;
   for (Kernel::Term* t : others) {
@@ -237,7 +237,7 @@ TEST_FUN(overflow_subtree_summaries) {
   ASS(cache.subtreeClean(ga));
   ASS(cache.subtreeClean(fga));
   ASS_EQ(cache.overflowLive, 3);
-  ASS_EQ(cache.overflowEvictions, 0);
+  ASS_EQ(env.statistics->demodulationCacheOverflowEvictions, 0);
   cache.onInsertLhs(g(x));
   ASS(cache.failureKnown(fga));
   ASS(!cache.subtreeClean(fga));
@@ -275,8 +275,8 @@ TEST_FUN(overflow_growth_and_rehash) {
   // occupancy bootstrapped the table from 4096 to 8192 slots once -- no term was
   // recorded twice, so no hot eviction could add to it; doubling is lossless
   // (every slot splits into a disjoint pair) and every entry must answer exactly
-  ASS_EQ(cache.overflowGrowths, 1);
-  ASS_EQ(cache.overflowRehashDrops, 0);
+  ASS_EQ(env.statistics->demodulationCacheOverflowGrowths, 1);
+  ASS_EQ(env.statistics->demodulationCacheOverflowRehashDrops, 0);
   unsigned known = 0;
   for (Kernel::Term* t : terms) {
     known += cache.failureKnown(t);
@@ -314,7 +314,7 @@ TEST_FUN(overflow_grows_on_hot_evictions) {
   }
   // one-time traffic fills well below the bootstrap threshold and no term was
   // evicted and recorded again: no growth, no hot evictions
-  ASS_EQ(cache.overflowGrowths, 0);
+  ASS_EQ(env.statistics->demodulationCacheOverflowGrowths, 0);
   ASS_EQ(cache.overflowHot, 0);
   for (Kernel::Term* t : terms) {
     cache.recordFailure(t);
@@ -322,7 +322,7 @@ TEST_FUN(overflow_grows_on_hot_evictions) {
   // the evicted terms came back and claimed their slots: re-reference was seen
   // and paid for growth
   ASS_G(cache.overflowHot, 0);
-  ASS_G(cache.overflowGrowths, 1);
+  ASS_G(env.statistics->demodulationCacheOverflowGrowths, 1);
   // and every live entry still answers exactly
   unsigned known = 0;
   for (Kernel::Term* t : terms) {

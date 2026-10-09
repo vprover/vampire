@@ -135,12 +135,6 @@ struct DemodulationFailureCache
   /** Start a new index. Randomized IDs require identity-based sparse storage. */
   void reset(bool enable, bool sparseIds = false, unsigned overflowBits = OVERFLOW_BITS);
   void onInsertLhs(TermList lhs);
-  /** Called once per eligible visit, before looking up any cache entries. */
-  bool beginQuery()
-  {
-    ++queries;
-    return true;
-  }
 
   /** whether the lookup for @b t is known to find nothing */
   bool failureKnown(Term* t);
@@ -152,23 +146,12 @@ struct DemodulationFailureCache
    *  visited next are @b t's arguments, so the lookup's latency can hide their misses */
   void prefetchArguments(Term* t);
 
-  // statistics
-  uint64_t queries = 0;
-  uint64_t lookupsSkipped = 0;
-  uint64_t subtreesSkipped = 0;
-  uint64_t failuresRecorded = 0;
-
-  // bounded-overflow-table statistics: slots claimed from empty, claims that evicted
-  // another term, evicted terms claiming their slot again (re-reference; the only growth
-  // signal above the bootstrap region), growths by rehashing (entries lost to rehash
-  // collisions), and the resulting number of live entries
-  uint64_t overflowFills = 0, overflowEvictions = 0, overflowHot = 0;
-  uint64_t overflowGrowths = 0, overflowRehashDrops = 0;
+  /** re-references seen by the bounded overflow table: evicted terms claiming their
+   *  slot again. The only growth signal above the bootstrap region; the surplus is
+   *  decayed by the amount kept after growing (see overflowEntry). */
+  uint64_t overflowHot = 0;
+  /** live entries in the overflow table */
   uint64_t overflowLive = 0;
-  /** total bucket bumps so far, and how often the epoch limit wiped all entries */
-  uint64_t bucketBumps = 0, wipes = 0;
-
-  void print(std::ostream& out) const;
 
 private:
   struct Entry {

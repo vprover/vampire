@@ -160,6 +160,28 @@ public:
   /** number of backward subsumption demodulations into equational tautologies */
   unsigned backwardSubsumptionDemodulationsToEqTaut = 0;
 
+  // Demodulation failure cache
+  /** number of subterm visits of forward demodulation eligible for the failure cache */
+  unsigned demodulationCacheVisits = 0;
+  /** number of visits whose demodulator lookup was skipped because failure was known */
+  unsigned demodulationCacheLookupsSkipped = 0;
+  /** number of visits where the term was skipped together with all its subterms (known clean) */
+  unsigned demodulationCacheSubtermsSkipped = 0;
+  /** number of failures recorded in the cache */
+  unsigned demodulationCacheFailuresRecorded = 0;
+  /** number of epoch bumps of the cache's buckets by demodulator left-hand sides */
+  unsigned demodulationCacheBucketBumps = 0;
+  /** number of times the epoch limit wiped all cache entries */
+  unsigned demodulationCacheEpochWipes = 0;
+  /** number of empty overflow slots claimed */
+  unsigned demodulationCacheOverflowFills = 0;
+  /** number of overflow entries evicted by colliding terms */
+  unsigned demodulationCacheOverflowEvictions = 0;
+  /** number of growths of the overflow table */
+  unsigned demodulationCacheOverflowGrowths = 0;
+  /** number of entries lost to rehash collisions while growing (should stay zero) */
+  unsigned demodulationCacheOverflowRehashDrops = 0;
+
   // Deletion inferences
   /** number of tautologies A \/ ~A */
   unsigned simpleTautologies = 0;

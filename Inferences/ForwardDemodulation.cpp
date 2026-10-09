@@ -102,15 +102,16 @@ bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement,
 
       // demodulation_cache: skip lookups (and subterms) known to find nothing
       Term* cacheable = nullptr;
-      if (!higherOrder && cache.enabled && trm.term()->shared() && !trm.term()->isSpecial() && cache.beginQuery()) {
+      if (!higherOrder && cache.enabled && trm.term()->shared() && !trm.term()->isSpecial()) {
         cacheable = trm.term();
+        env.statistics->demodulationCacheVisits++;
         if (cache.subtreeClean(cacheable)) {
-          cache.subtreesSkipped++;
+          env.statistics->demodulationCacheSubtermsSkipped++;
           it.right();
           continue;
         }
         if (cache.failureKnown(cacheable)) {
-          cache.lookupsSkipped++;
+          env.statistics->demodulationCacheLookupsSkipped++;
           continue;
         }
         // the lookup ahead is the window in which the entries of the terms visited

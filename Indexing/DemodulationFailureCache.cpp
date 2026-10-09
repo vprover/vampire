@@ -13,13 +13,12 @@
  */
 
 #include <algorithm>
-#include <iomanip>
 
-#include "Shell/UIHelper.hpp"
+#include "Lib/Environment.hpp"
+
+#include "Shell/Statistics.hpp"
 
 #include "DemodulationFailureCache.hpp"
-
-using Shell::addCommentSignForSZS;
 
 namespace Indexing {
 
@@ -40,10 +39,8 @@ void DemodulationFailureCache::reset(bool enable, bool sparseIds, unsigned overf
   OverflowTable().swap(_overflow);
   GhostTable().swap(_ghost);
   _overflowShift = 64;
-  queries = lookupsSkipped = subtreesSkipped = failuresRecorded = 0;
-  overflowFills = overflowEvictions = overflowGrowths = overflowRehashDrops = overflowLive = 0;
+  overflowLive = 0;
   overflowHot = 0;
-  bucketBumps = wipes = 0;
 }
 
 void DemodulationFailureCache::discardEntries()
@@ -53,7 +50,7 @@ void DemodulationFailureCache::discardEntries()
   GhostTable().swap(_ghost);
   _overflowShift = 64;
   overflowLive = 0;
-  wipes++;
+  env.statistics->demodulationCacheEpochWipes++;
 }
 
 void DemodulationFailureCache::onInsertLhs(TermList lhs)
@@ -64,11 +61,11 @@ void DemodulationFailureCache::onInsertLhs(TermList lhs)
       _epochs[b]++;
     }
     _epochSum += BUCKETS;
-    bucketBumps += BUCKETS;
+    env.statistics->demodulationCacheBucketBumps += BUCKETS;
   } else {
     _epochs[bucket(lhs.term()->functor())]++;
     _epochSum++;
-    bucketBumps++;
+    env.statistics->demodulationCacheBucketBumps++;
   }
   if (_epochSum >= EPOCH_LIMIT) {
     // reached by the heaviest runs (~140k bucket bumps in 30 s): wipe all entries
@@ -180,10 +177,10 @@ DemodulationFailureCache::Entry& DemodulationFailureCache::overflowEntry(Term* t
   if (slot.term != t) {
     bool hot = _ghost[idx] == t; // t was this slot's last victim: it is back
     if (slot.term) {
-      ++overflowEvictions;
+      env.statistics->demodulationCacheOverflowEvictions++;
       _ghost[idx] = slot.term; // remember the new victim
     } else {
-      ++overflowFills;
+      env.statistics->demodulationCacheOverflowFills++;
       ++overflowLive;
     }
     if (hot) {
@@ -206,14 +203,14 @@ void DemodulationFailureCache::overflowGrow()
   _overflow.resize(size_t(1) << bits);
   _ghost.assign(_overflow.size(), nullptr);
   _overflowShift = 64 - bits;
-  ++overflowGrowths;
+  env.statistics->demodulationCacheOverflowGrowths++;
   for (OverflowSlot& slot : previous) {
     if (!slot.term) {
       continue;
     }
     OverflowSlot& target = _overflow[overflowIndex(slot.term)];
     if (target.term) {
-      ++overflowRehashDrops; // unreachable: doubling splits every slot into a disjoint pair
+      env.statistics->demodulationCacheOverflowRehashDrops++; // unreachable: doubling splits every slot into a disjoint pair
       --overflowLive;
       continue;
     }
@@ -261,7 +258,7 @@ void DemodulationFailureCache::recordFailure(Term* t)
 {
   Entry& e = entry(t);
   e.failureEpoch = _epochs[bucket(t->functor())];
-  failuresRecorded++;
+  env.statistics->demodulationCacheFailuresRecorded++;
 }
 
 bool DemodulationFailureCache::subtreeClean(Term* t)
@@ -299,30 +296,6 @@ bool DemodulationFailureCache::subtreeClean(Term* t)
   e.subtreeMask = mask;
   e.subtreeSum = sum(mask);
   return true;
-}
-
-static std::ostream& line(std::ostream& out, const char* label)
-{
-  addCommentSignForSZS(out);
-  return out << "  " << std::left << std::setw(44) << label << std::right;
-}
-
-static double pct(double part, double whole) { return whole ? 100.0 * part / whole : 0.0; }
-
-void DemodulationFailureCache::print(std::ostream& out) const
-{
-  addCommentSignForSZS(out);
-  out << "Forward demodulation failure cache\n";
-  out << std::fixed << std::setprecision(2);
-  line(out, "cacheable subterm visits") << queries << "\n";
-  line(out, "lookups skipped (failure known)") << pct(lookupsSkipped, queries) << "%\n";
-  line(out, "subterms skipped with all their subterms") << pct(subtreesSkipped, queries) << "%\n";
-  line(out, "failures recorded / table size") << failuresRecorded << " / " << _entries.size() + overflowLive << "\n";
-  line(out, "overflow slots / live") << _overflow.size() << " / " << overflowLive << "\n";
-  line(out, "overflow fills / evictions / hot / growths") << overflowFills << " / " << overflowEvictions
-      << " / " << overflowHot << " / " << overflowGrowths << "\n";
-  line(out, "bucket bumps / epoch wipes") << bucketBumps << " / " << wipes << "\n";
-  out << std::defaultfloat << std::setprecision(6);
 }
 
 } // namespace Indexing

@@ -44,3 +44,4 @@ cmake-build
 **/.*.swo
 .ccls-cache
 .cache/
+/build-release

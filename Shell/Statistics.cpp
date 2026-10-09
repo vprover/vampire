@@ -23,8 +23,6 @@
 #include "Lib/Allocator.hpp"
 #include "SAT/Z3Interfacing.hpp"
 
-#include "Indexing/DemodulationFailureCache.hpp"
-
 #include "Shell/UIHelper.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -225,6 +223,18 @@ void Statistics::print(std::ostream& out)
     ENTRY("Bw subsumption demodulations to eq. taut.", backwardSubsumptionDemodulationsToEqTaut);
     ENTRY("Inner rewrites to eq. taut.", innerRewritesToEqTaut);
 
+    GROUP("DEMODULATION FAILURE CACHE");
+    ENTRY("Cacheable subterm visits", demodulationCacheVisits);
+    ENTRY("Lookups skipped (failure known)", demodulationCacheLookupsSkipped);
+    ENTRY("Subterms skipped with all their subterms", demodulationCacheSubtermsSkipped);
+    ENTRY("Failures recorded", demodulationCacheFailuresRecorded);
+    ENTRY("Bucket bumps", demodulationCacheBucketBumps);
+    ENTRY("Epoch limit wipes", demodulationCacheEpochWipes);
+    ENTRY("Overflow fills", demodulationCacheOverflowFills);
+    ENTRY("Overflow evictions", demodulationCacheOverflowEvictions);
+    ENTRY("Overflow growths", demodulationCacheOverflowGrowths);
+    ENTRY("Overflow rehash drops", demodulationCacheOverflowRehashDrops);
+
     GROUP("INDUCTION");
     ENTRY("MaxInductionDepth",maxInductionDepth);
     ENTRY("InductionApplications",inductionApplication);
@@ -307,10 +317,6 @@ void Statistics::print(std::ostream& out)
 #undef ENTRY
 #undef IPGROUP
 #undef IPENTRY
-  }
-
-  if (Indexing::DemodulationFailureCache::get().queries) {
-    Indexing::DemodulationFailureCache::get().print(out);
   }
 
   addCommentSignForSZS(out);
