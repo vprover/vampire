@@ -741,7 +741,7 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
   }
 
   void printSATStep(SATClause *cl) override {
-    out << "cnf(s" << cl->number << ", plain, ";
+    out << "cnf(s" << cl->number << ", plain, (";
     if(cl->isEmpty())
       out << "$false";
     else {
@@ -754,7 +754,7 @@ std::string getSkolemizeMap(unsigned unitNumber, It symIt){
       }
     }
 
-    out << ", inference(";
+    out << "), inference(";
     auto inference = cl->inference();
     switch(inference->getType()) {
     case SAT::SATInference::PROP_INF: {

@@ -71,7 +71,7 @@ void TPTPPrinter::printWithRole(std::string name, std::string role, Unit* u, boo
   std::string body = getBodyStr(u, includeSplitLevels);
 
   ensureHeadersPrinted(u);
-  tgt() << "tff(" << name << ", " << role << ", " << body << ")." << endl;
+  tgt() << "tff(" << name << ", " << role << ", (" << body << "))." << endl;
 }
 
 /**
@@ -328,7 +328,7 @@ std::string TPTPPrinter::toString(const Formula* formula)
 {
   static std::string names [] =
     { "", " & ", " | ", " => ", " <=> ", " <~> ",
-      "~", "!", "?", "$term", "$false", "$true", "", ""};
+      "~ ", "!", "?", "$term", "$false", "$true", "", ""};
   ASS_EQ(sizeof(names)/sizeof(std::string), NOCONN+1);
 
   std::string res;
@@ -542,6 +542,7 @@ std::string TPTPPrinter::toString (const Unit* unit, bool typedClauses)
       main = universalPrefix(unit) + "( " + main + " )";
     } else {
       prefix = "cnf";
+      main = "( " + main + " )";
     }
   }
   else {

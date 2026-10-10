@@ -174,12 +174,11 @@ std::string Formula::toString (bool topLevel) const
 
     case NOT:
       {
-        res += toString(c);
+        // always separate with a space: "~$true", "~~p" or "~?[X] : p(X)" do not tokenise as intended,
+        // and "~(p & q)" is read by Prolog as functional notation, where the argument may not be an operator of high priority
+        res += toString(c) + " ";
 
         const Formula* arg = f->uarg();
-        Connective subc = arg->connective();
-        if(subc == FORALL || subc == EXISTS || subc == NOT || subc == LITERAL)
-          res += " ";
         stack.push({arg->parenthesesRequired(c),NOCONN,arg});
 
         continue;
