@@ -201,7 +201,7 @@ namespace CoproductImpl {
         {
           this->switchN([&](auto N) {
               using A = TL::Get<N.value, typename T::Ts>;
-              this->template cast<A>().~A();
+              this->template castAt<N.value>().~A();
           });
         }
       };
@@ -228,8 +228,8 @@ namespace CoproductImpl {
           this->assignTag(other.tag());                                                   \
           this->switchN([&](auto N) {                                                     \
               using A = TL::Get<N.value, typename T::Ts>;                                 \
-              ::new(&this->template cast<A>())                                            \
-                A(MOVE(other.template cast<A>()));                                        \
+              ::new(&this->template castAt<N.value>())                                    \
+                A(MOVE(other.template castAt<N.value>()));                                \
           });                                                                             \
         }                                                                                 \
                                                                                           \
@@ -239,7 +239,7 @@ namespace CoproductImpl {
           if (this == &other) return *this;                                               \
           this->switchN([&](auto N) {                                                     \
               using A = TL::Get<N.value, typename T::Ts>;                                 \
-              this->template cast<A>().~A();                                              \
+              this->template castAt<N.value>().~A();                                      \
           });                                                                             \
           ::new(this) DefaultImpl(MOVE(other));                                           \
           return *this;                                                                   \
@@ -255,27 +255,53 @@ namespace CoproductImpl {
   }
 
 
-  template<class... Ts>
-  struct MaxSize;
+  /**
+   * Storage holding exactly one of As..., as a union rather than a byte buffer: a union
+   * tells the compiler that these types share the memory, so reading the live alternative
+   * is an ordinary member access at the right type and alias analysis stays correct.
+   * Do not go back to a `char[]` read through a cast -- that is undefined, and GCC
+   * miscompiled it here under -flto.
+   *
+   * Nothing is constructed or destroyed in the storage: Coproduct placement-news the live
+   * alternative and destroys it explicitly (see TrivialOperations). The destructor must
+   * still be *trivial* whenever every alternative is trivially destructible, or Coproduct
+   * loses its own triviality -- hence the two specialisations.
+   */
+  template<bool AllTriviallyDestructible, class... As>
+  union VariantStorage;
+
+  template<> union VariantStorage<true > {};
+  template<> union VariantStorage<false> {};
+
+  template<class A, class... As>
+  union VariantStorage<true, A, As...> {
+    A head;
+    VariantStorage<true, As...> tail;
+    VariantStorage() {} // leaves every alternative dead
+  };
+
+  template<class A, class... As>
+  union VariantStorage<false, A, As...> {
+    A head;
+    VariantStorage<false, As...> tail;
+    VariantStorage() {} // leaves every alternative dead
+    ~VariantStorage() {}
+  };
+
+  /** Reference to the idx-th alternative of a VariantStorage; constness follows the
+   *  storage. Coproduct constructs through this same path, so the alternative read is
+   *  the one that was constructed. */
+  template<unsigned idx>
+  struct StorageAt {
+    template<class S>
+    static auto& get(S& self) { return StorageAt<idx - 1>::get(self.tail); }
+  };
 
   template<>
-  struct MaxSize<>
-  { static constexpr unsigned value = 0; };
-
-  template<class T, class... Ts>
-  struct MaxSize<T, Ts...>
-  { static constexpr unsigned value = std::max<unsigned>(sizeof(T), MaxSize<Ts...>::value); };
-
-  template<class... Ts>
-  struct MaxAlign;
-
-  template<>
-  struct MaxAlign<>
-  { static constexpr unsigned value = 0; };
-
-  template<class T, class... Ts>
-  struct MaxAlign<T, Ts...>
-  { static constexpr unsigned value = std::max<unsigned>(alignof(T), MaxAlign<Ts...>::value); };
+  struct StorageAt<0> {
+    template<class S>
+    static auto& get(S& self) { return self.head; }
+  };
 
   template<class... As>
   class RawCoproduct {
@@ -301,9 +327,13 @@ namespace CoproductImpl {
 
     static_assert(nTags == 0 || nTags - 1 == ((nTags - 1) & bitMask), "bug in function neededBits");
 
-    using Bytes = char [MaxSize<As...>::value];
+    /** trivial destructibility has to be inherited by the storage; see VariantStorage */
+    static constexpr bool allTriviallyDestructible
+      = TL::All<std::is_trivially_destructible, Ts>::val;
+
+    using Storage = VariantStorage<allTriviallyDestructible, As...>;
     unsigned _tag: neededBits(nTags);
-    alignas(MaxAlign<As...>::value) Bytes _content;
+    Storage _content;
 
 
     TrivialOperations::DisableIfNeeded<TrivialOperations::CopyCons, Ts> _copyCons;
@@ -317,8 +347,9 @@ namespace CoproductImpl {
       : _tag(size)
     {
 #if __COPRODUCT_CONTENT_INIT 
-      for (unsigned i = 0; i < sizeof(Bytes); i++) {
-        _content[i] = 0xFF;
+      auto* bytes = reinterpret_cast<unsigned char*>(&_content);
+      for (unsigned i = 0; i < sizeof(Storage); i++) {
+        bytes[i] = 0xFF;
       }
 #endif // __COPRODUCT_CONTENT_INIT
     }
@@ -333,11 +364,11 @@ namespace CoproductImpl {
     )
 
 #define CONST_POLYMORPIHIC(CONST)                                                         \
-    template<class B>                                                                     \
-    B CONST& cast() CONST                                                                 \
+    template<unsigned idx>                                                                \
+    TL::Get<idx, Ts> CONST& castAt() CONST                                                \
     {                                                                                     \
-      static_assert(TL::Contains<B, TL::List<As...>>::val, "invalid cast");               \
-      return *(B CONST*)_content;                                                         \
+      static_assert(idx < size, "variant index out of bounds");                           \
+      return StorageAt<idx>::get(_content);                                               \
     }                                                                                     \
                                                                                           \
 
@@ -582,7 +613,7 @@ public:
   inline TL::Get<idx, Ts> REF unwrap() REF {                                              \
     static_assert(idx < size, "out of bounds");                                           \
     ASS_EQ(idx, tag());                                                                   \
-    return MOVE(_inner.template cast<TL::Get<idx, Ts>>());                                \
+    return MOVE(_inner.template castAt<idx>());                                           \
   }                                                                                       \
                                                                                           \
   /**                                                                                     \
@@ -633,7 +664,8 @@ public:
     static_assert(std::is_same<B, TL::Get<idx, Ts>>::value, "illegal index for variant");
 
     _inner.template assignTag<idx>();
-    ::new(&_inner._content) B(move_if_value<B>(value._self));
+    // through castAt<idx>(), so the alternative constructed is the one read back
+    ::new(&_inner.template castAt<idx>()) B(move_if_value<B>(value._self));
   }
 
   /**
