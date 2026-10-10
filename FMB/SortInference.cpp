@@ -185,10 +185,8 @@ void SortInference::doInference()
         }
         // if we didn't just add the monot_info, it should have been there already from the _assumeMonotonic branch
         ASS(!monotonic || _monotonic_vampire_sorts.findPtr(s))
-        if(_print){
-          if(monotonic && !_assumeMonotonic){
-            cout << "Input sort " << env.signature->typeConName(s) << " is monotonic" << endl;
-          }
+        if(_print && !_assumeMonotonic && _monotonic_vampire_sorts.findPtr(s)){
+          cout << "Input sort " << env.signature->typeConName(s) << " is monotonic" << endl;
         }
       }
     }

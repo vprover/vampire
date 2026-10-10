@@ -148,7 +148,8 @@ namespace Shell {
 			       _subexpressions.push(Expression(sd->getLambdaExp(), polarity));
 			       break;
 
-            case SpecialFunctor::MATCH: {
+            case SpecialFunctor::MATCH:
+            case SpecialFunctor::COND: {
               for (unsigned i = 0; i < term->arity(); i++) {
                 _subexpressions.push(Expression(*term->nthArgument(i), polarity));
               }

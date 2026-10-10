@@ -61,6 +61,12 @@ public:
   UnitList*& units() { return _units; }
   const UnitList* units() const { return _units; }
 
+  /** a snapshot of the parsed input units, taken before preprocessing starts
+      (currently only set in single-strategy mode, guarded by FMB_CHECK_MODEL_AGAINST_INPUT);
+      units are immutable, so a copy of the list itself is enough */
+  UnitList* originalInputUnits() const { return _originalInputUnits; }
+  void setOriginalInputUnits(UnitList* units) { _originalInputUnits = units; }
+
   ClauseIterator clauseIterator() const;
 
   Problem* copy(bool copyClauses=false);
@@ -249,6 +255,7 @@ private:
   void readDetailsFromProperty() const;
 
   UnitList* _units;
+  UnitList* _originalInputUnits = nullptr;
   ScopedPtr<FunctionDefinitionHandler> _fnDefHandler;
 
   bool _hadIncompleteTransformation;

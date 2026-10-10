@@ -167,7 +167,9 @@ public:
     /** $ite: FOOL level-polymorphic if-then-else */
     T_ITE,
     /** $let: FOOL level-polymorphic let-in */
-    T_LET
+    T_LET,
+    /** $cond: a flat chain of if/elif/.../else */
+    T_COND
   };
 
   /** parser state, numbers are just temporarily for debugging */
@@ -240,6 +242,8 @@ public:
     UNBIND_VARIABLES,
     /** end of an if-then-else expression */
     END_ITE,
+    /** end of a $cond expression */
+    END_COND,
     /** read tuple */
     END_TUPLE,
     /** check the end of arguments */
@@ -787,6 +791,7 @@ private:
   void type();
   void openArgumentList(Tag closer);
   void endIte();
+  void endCond();
   void letType();
   void endLetTypes();
   void definition();

@@ -43,6 +43,7 @@
 #include "Shell/GeneralSplitting.hpp"
 #include "Shell/Shuffling.hpp"
 
+#include "ArgsEnumerator.hpp"
 #include "FiniteModelMultiSorted.hpp"
 #include "ClauseFlattening.hpp"
 #include "SortInference.hpp"
@@ -487,8 +488,7 @@ void FiniteModelBuilder::init()
   // How often each symbol occurs in the clauses we have arrived at. This used to be an
   // "ugly hack" running a whole throwaway Property::scan over them, purely for the
   // usageCnts it left on the signature as a side effect.
-  SymbolCounts counts;
-  counts.countIn(pvi(concatIters(ClauseList::Iterator(_groundClauses),ClauseList::Iterator(_clauses))));
+  _symbolCounts.countIn(pvi(concatIters(ClauseList::Iterator(_groundClauses),ClauseList::Iterator(_clauses))));
 
   // record the deleted functions and predicates
   // we do this only here so that there are slots for symbols introduced in the previous preprocessing steps (definition introduction, splitting)
@@ -496,18 +496,18 @@ void FiniteModelBuilder::init()
   del_p.ensure(env.signature->predicates());
 
   for(unsigned f=0;f<env.signature->functions();f++){
-    del_f[f] = counts.functions[f]==0;
+    del_f[f] = _symbolCounts.functions[f]==0;
 #if VTRACE_FMB
     if(del_f[f]) cout << "Mark " << env.signature->functionName(f)  << " as deleted" << endl;
 #endif
   }
   for(unsigned p=1;p<env.signature->predicates();p++){ // skipping equality
-    del_p[p] = counts.predicates[p]==0;
+    del_p[p] = _symbolCounts.predicates[p]==0;
 #if VTRACE_FMB
     if(del_p[p]) {
       cout << "Mark " << env.signature->predicateName(p) << " as deleted" << endl;
       cout << "  since (bool)_prb.getEliminatedPredicates().findPtr(p) = " << (bool)_prb.getEliminatedPredicates().findPtr(p) << endl;
-      cout << "  since the clauses use it " << counts.predicates[p] << " times" << endl;
+      cout << "  since the clauses use it " << _symbolCounts.predicates[p] << " times" << endl;
     }
 #endif
   }
@@ -651,9 +651,9 @@ void FiniteModelBuilder::init()
     // most used first. Sort inference introduces fresh constants of its own after the
     // counting above, and those are simply unused as far as it is concerned.
     if(env.options->fmbSymmetryOrderSymbols() == Options::FMBSymbolOrders::USAGE){
-      auto mostUsedFirst = [&counts](unsigned f1, unsigned f2) {
-        unsigned c1 = f1 < counts.functions.size() ? counts.functions[f1] : 0;
-        unsigned c2 = f2 < counts.functions.size() ? counts.functions[f2] : 0;
+      auto mostUsedFirst = [this](unsigned f1, unsigned f2) {
+        unsigned c1 = f1 < _symbolCounts.functions.size() ? _symbolCounts.functions[f1] : 0;
+        unsigned c2 = f2 < _symbolCounts.functions.size() ? _symbolCounts.functions[f2] : 0;
         return c2 < c1;
       };
       // Let's try sorting constants and functions in the sorted signature
@@ -1575,6 +1575,16 @@ MainLoopResult FiniteModelBuilder::runImpl()
         // (as the model found may in fact be smaller than the assumed contour in some of the sort dimensions)
 
         for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
+          if (_sortedSignature->monotonicSorts[i]) {
+            // For monotonic sorts the markers carry no information about the size of the model:
+            // instances don't get marked at all (see addNewInstances) and only the weakest version
+            // of a totality clause gets generated (see addNewTotalityDefs), so the markers below
+            // the assumed one only occur in the marker ladder, which "all false" satisfies.
+            // (In other words, all the instances over 1.._distinctSortSizes[i] are asserted
+            // unconditionally here, so the assumed size is the size of the model we found.)
+            continue;
+          }
+
           unsigned j = 0;
           for (; j < _distinctSortSizes[i]; j++) {
             if (_solver->trueInAssignment(SATLiteral(marker_offsets[i]+j,0))) {
@@ -1815,8 +1825,10 @@ void FiniteModelBuilder::onModelFound()
   DArray<unsigned> vampireSortSizes;
   vampireSortSizes.ensure(env.signature->typeCons());
   for(unsigned vSort=0;vSort<env.signature->typeCons();vSort++){
-    unsigned size = 1;
-    if(env.signature->isInterpretedNonDefault(vSort) && !env.signature->isBoolCon(vSort)){ size=0;}
+    // a sort we did not model (one sort inference did not give a distinct sort to, because
+    // nothing in the problem uses it) gets no domain in the model, i.e. size 0 -- so that we
+    // don't invent a one-element domain for, say, $i in a problem that only uses declared sorts
+    unsigned size = 0;
     unsigned dsort;
     if(_sortedSignature->vampireToDistinctParent.find(vSort,dsort)){
       size = _distinctSortSizes[dsort];
@@ -1824,7 +1836,18 @@ void FiniteModelBuilder::onModelFound()
     vampireSortSizes[vSort] = size;
   }
 
-  FiniteModelMultiSorted model(vampireSortSizes.clone()); // need a clone, because FiniteModelMultiSorted may want to modify its version later
+  // Which symbols the model is about, i.e. which ones get a table (see initTables). The
+  // symbols occurring in the clauses we encoded: a symbol nothing uses has no values worth
+  // recording, and a table for it could be arbitrarily large. Anything younger than the
+  // count -- SortInference's fmbFreshConstant-s -- is past the end and so counts as unused,
+  // which is what the usageCnt this replaces answered for them too.
+  DArray<bool> usedFunctions(_symbolCounts.functions.size());
+  for(unsigned f=0;f<usedFunctions.size();f++){ usedFunctions[f] = _symbolCounts.functions[f]>0; }
+  DArray<bool> usedPredicates(_symbolCounts.predicates.size());
+  for(unsigned p=0;p<usedPredicates.size();p++){ usedPredicates[p] = _symbolCounts.predicates[p]>0; }
+
+  // need a clone, because FiniteModelMultiSorted may want to modify its version later
+  FiniteModelMultiSorted model(vampireSortSizes.clone(),std::move(usedFunctions),std::move(usedPredicates));
 
   //Record interpretation of constants and functions
   for(unsigned f=0;f<env.signature->functions();f++){
@@ -1833,27 +1856,15 @@ void FiniteModelBuilder::onModelFound()
     const Signature::Symbol* sym = env.signature->getFunction(f);
     // if (sym->introduced()) continue; // so that a sort function may enter the model (to be elimintated later)
 
+    // a symbol with no table in the model has no values to record either (and del_f, read
+    // off the very same counts, has already skipped almost all of them)
+    if(!model.funRepresented(f)) continue;
+
     //cout << "For " << env.signature->getFunction(f)->name() << endl;
     unsigned arity = env.signature->functionArity(f);
 
-    // bounding box for enumerating the arguments
-    static DArray<unsigned> maxVarSizeBig;
-    maxVarSizeBig.ensure(arity);
-
     OperatorType* tp = sym->type();
     ASS_EQ(tp->numTypeArguments(),0) // no polymorphic business in FMB
-    for(unsigned var=0;var<arity;var++){
-      unsigned vamp_srt = tp->arg(var).term()->functor();
-      maxVarSizeBig[var] = vampireSortSizes[vamp_srt];
-    }
-
-    // the actual representation of the enumeration
-    static DArray<unsigned> args;
-    args.ensure(arity);
-    // start with all 1s
-    for(unsigned i=0;i<arity;i++){
-       args[i]=1;
-    }
 
     // bounding box for querying the solver
     static DArray<unsigned> maxVarSizeSml;
@@ -1869,11 +1880,15 @@ void FiniteModelBuilder::onModelFound()
     static DArray<unsigned> grounding;
     grounding.ensure(arity+1);
 
-    for(;;) {
+    // enumerate the arguments within the bounding box given by the vampire sort sizes
+    ArgsEnumerator it(vampireSortSizes,tp,arity);
+    do {
+      const DArray<unsigned>& args = it.args();
       DEBUG_CODE(bool found=false;)
+      // iterates over possible return values (debug code checks that we find exactly one)
       for(unsigned c=1;c<=maxVarSizeSml[arity];c++){
         // create a bounded copy of the changing args in grounding
-        // (while args live within the maxVarSizeBig box,
+        // (while args live within the vampireSortSizes box,
         // grounding must only live in the maxVarSizeSml box,
         // for which the sat solver computed values)
         for(unsigned i=0;i<arity;i++) {
@@ -1890,19 +1905,7 @@ void FiniteModelBuilder::onModelFound()
         }
       }
       ASS(found)
-
-      unsigned i;
-      for(i=0;i<arity;i++) {
-        args[i]++;
-        if(args[i] <= maxVarSizeBig[i]){
-          break;
-        }
-        args[i]=1;
-      }
-      if (i == arity) {
-        break;
-      }
-    }
+    } while (it.next());
   }
 
   //Record interpretation of predicates
@@ -1912,27 +1915,14 @@ void FiniteModelBuilder::onModelFound()
     const Signature::Symbol* sym = env.signature->getPredicate(p);
     // if (sym->introduced()) continue; // so that a sort predicate may enter the model (to be elimintated later)
 
+    // see the analogous skip in the function loop above
+    if(!model.predRepresented(p)) continue;
+
     unsigned arity = env.signature->predicateArity(p);
     //cout << "Record for " << env.signature->getPredicate(p)->name() << "/" << arity << endl;
 
-    // bounding box for enumerating the arguments
-    static DArray<unsigned> maxVarSizeBig;
-    maxVarSizeBig.ensure(arity);
-
     OperatorType* tp = sym->type();
     ASS_EQ(tp->numTypeArguments(),0) // no polymorphic business in FMB
-    for(unsigned var=0;var<arity;var++){
-      unsigned vamp_srt = tp->arg(var).term()->functor();
-      maxVarSizeBig[var] = vampireSortSizes[vamp_srt];
-    }
-
-    // the actual representation of the enumeration
-    static DArray<unsigned> args;
-    args.ensure(arity);
-    // start with all 1s
-    for(unsigned i=0;i<arity;i++){
-       args[i]=1;
-    }
 
     // bounding box for querying the solver
     static DArray<unsigned> maxVarSizeSml;
@@ -1962,7 +1952,10 @@ void FiniteModelBuilder::onModelFound()
       }
     }
 
-    for(;;) {
+    // enumerate the arguments within the bounding box given by the vampire sort sizes
+    ArgsEnumerator it(vampireSortSizes,tp,arity);
+    do {
+      const DArray<unsigned>& args = it.args();
       // create a bounded copy of the changing args in grounding
 
       signed char extension_mode = 0; // start as "copy extended" (meaning overshoots go back to 1)
@@ -1988,26 +1981,140 @@ void FiniteModelBuilder::onModelFound()
         res=_solver->trueInAssignment(slit);
       }
       model.addPredicateDefinition(p,args,res);
-
-      unsigned i;
-      for(i=0;i<arity;i++) {
-        args[i]++;
-        if(args[i] <= maxVarSizeBig[i]){
-          break;
-        }
-        args[i]=1;
-      }
-      if (i == arity) {
-        break;
-      }
-    }
+    } while (it.next());
   }
 
-  model.eliminateSortFunctionsAndPredicates(_sortFunctions,_sortPredicates);
-  model.restoreEliminatedDefinitions(env.getMainProblem());
+  // the replay evaluates as it goes (materializing symbols, testing a flip's condition),
+  // and so do the self-check and the printing below (which asks about the fool constants);
+  // unlike a model read from a file, one we built ourselves has no business being partial,
+  // so an undefined value here is a bug on our side
+  try {
+    model.eliminateSortFunctionsAndPredicates(_sortFunctions,_sortPredicates);
+    // sort elimination renumbers the domain elements, so it has to happen while the model is
+    // still nothing but the tables copied above; only then is model_0 -- the model the replay
+    // starts from -- fixed, and only then is it worth completing
+    model.installTrivialLayers();
+    model.restoreEliminatedDefinitions(env.getMainProblem());
 
-  env.statistics->model = model.toString();
+#if FMB_CHECK_MODEL_AGAINST_INPUT
+    checkModelAgainstOriginalInput(model);
+#endif
+
+    env.statistics->model = model.toString();
+  } catch (UndefinedValueException& e) {
+    INVALID_OPERATION("FMB constructed a partial model: " + e.msg());
+  }
 }
+
+#if FMB_CHECK_MODEL_AGAINST_INPUT
+
+// can our evaluator handle this term / formula?
+// (the original, un-preprocessed input may still contain FOOL constructs)
+static bool evaluableFormula(Formula* f);
+
+static bool evaluableTerm(TermList tl)
+{
+  if (tl.isVar()) return true;
+  Term* t = tl.term();
+  if (t->isSpecial()) {
+    // keep this in step with the special-term switch in evaluateTerm: anything admitted
+    // here must be evaluable there, and anything evaluable there is worth admitting here,
+    // or the self-check silently skips the unit instead of checking it
+    switch (t->specialFunctor()) {
+      // a formula in term position -- that is where $true and $false at term level, and a
+      // p(a) for a p declared with an $o result sort, end up
+      case SpecialFunctor::FORMULA:
+        return evaluableFormula(t->getSpecialData()->getFormula());
+      case SpecialFunctor::ITE:
+        // the condition is off to the side; the branches are checked with the arguments below
+        if (!evaluableFormula(t->getSpecialData()->getITECondition())) return false;
+        break;
+      case SpecialFunctor::COND:
+        // conditions and branches alike are ordinary arguments
+        break;
+      default: // $let and friends
+        return false;
+    }
+  }
+  for (unsigned i = 0; i < t->arity(); i++) {
+    if (!evaluableTerm(*t->nthArgument(i))) return false;
+  }
+  return true;
+}
+
+static bool evaluableFormula(Formula* f)
+{
+  switch (f->connective()) {
+    case LITERAL: {
+      Literal* l = f->literal();
+      for (unsigned i = 0; i < l->arity(); i++) {
+        if (!evaluableTerm(*l->nthArgument(i))) return false;
+      }
+      return true;
+    }
+    case AND:
+    case OR: {
+      FormulaList::Iterator it(f->args());
+      while (it.hasNext()) {
+        if (!evaluableFormula(it.next())) return false;
+      }
+      return true;
+    }
+    case IMP:
+    case IFF:
+    case XOR:
+      return evaluableFormula(f->left()) && evaluableFormula(f->right());
+    case NOT:
+      return evaluableFormula(f->uarg());
+    case FORALL:
+    case EXISTS:
+      return evaluableFormula(f->qarg());
+    case TRUE:
+    case FALSE:
+      return true;
+    case BOOL_TERM:
+      return evaluableTerm(f->getBooleanTerm());
+    default: // $ite, $let and friends
+      return false;
+  }
+}
+
+/**
+ * The temporary in-run sanity check: evaluate every unit of the original (parsed,
+ * un-preprocessed) input in the restored model. Every unit must hold -- note that
+ * the parser negates conjectures on the fly (see the CONJECTURE case in Parse::TPTP::tag),
+ * so the snapshot contains the negated conjecture, which the model witnesses.
+ * A violation raises USER_ERROR (exit code 4).
+ */
+void FiniteModelBuilder::checkModelAgainstOriginalInput(FiniteModelMultiSorted& model)
+{
+  UnitList* original = env.getMainProblem()->originalInputUnits();
+  if (!original) {
+    cout << "% FMB model self-check skipped (no snapshot of the parsed input; not running in single-strategy mode?)" << endl;
+    return;
+  }
+
+  unsigned checked = 0, skipped = 0;
+  UnitList::Iterator uit(original);
+  while (uit.hasNext()) {
+    Unit* u = uit.next();
+    if (!u->isClause() && !evaluableFormula(u->getFormula())) {
+      skipped++;
+      continue;
+    }
+    if (!model.evaluate(u)) {
+      USER_ERROR("FMB model self-check FAILED on: " + u->toString());
+    }
+    checked++;
+  }
+  cout << "% FMB model self-check passed (" << checked << " units checked";
+  if (skipped > 0) {
+    cout << ", " << skipped << " skipped as not evaluable";
+  }
+  cout << ")" << endl;
+}
+#endif
+
 
 void FiniteModelBuilder::HackyDSAE::learnNogood(Constraint_Generator_Vals& nogood, unsigned weight)
 {

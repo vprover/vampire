@@ -471,7 +471,8 @@ Comparison Normalisation::compare(Term* t1, Term* t2)
         return comp;     
       }
 
-      case SpecialFunctor::MATCH: {
+      case SpecialFunctor::MATCH:
+      case SpecialFunctor::COND: {
         break; // comparison by arity and pairwise by arguments is done below
       }
 
