@@ -256,24 +256,16 @@ namespace CoproductImpl {
 
 
   /**
-   * Storage holding exactly one of As..., as a union rather than a byte buffer.
+   * Storage holding exactly one of As..., as a union rather than a byte buffer: a union
+   * tells the compiler that these types share the memory, so reading the live alternative
+   * is an ordinary member access at the right type and alias analysis stays correct.
+   * Do not go back to a `char[]` read through a cast -- that is undefined, and GCC
+   * miscompiled it here under -flto.
    *
-   * The point of using a union is that it tells the compiler the truth: these types share
-   * this memory. Reading the live alternative is then an ordinary member access at the
-   * right type -- no cast from char*, nothing to launder -- so type-based alias analysis
-   * stays correct, and the union also gets us the right size and alignment for free.
-   *
-   * The previous representation was `char _content[maxSize]` read back as `*(B*)_content`,
-   * which is undefined twice over: the pointer is derived from the char array rather than
-   * from the object that reused its storage, and the same bytes are written at one type and
-   * read at another. GCC exploited it as soon as -flto inlined enough for the write and the
-   * read to meet in one function body.
-   *
-   * Nothing is implicitly constructed or destroyed here. Coproduct placement-news the live
-   * alternative and destroys it explicitly (see TrivialOperations), so the destructor is a
-   * no-op -- but it has to stay *trivial* when every alternative is trivially destructible,
-   * or Coproduct would lose its own triviality. Hence the two specialisations, as in a
-   * standard-library variant.
+   * Nothing is constructed or destroyed in the storage: Coproduct placement-news the live
+   * alternative and destroys it explicitly (see TrivialOperations). The destructor must
+   * still be *trivial* whenever every alternative is trivially destructible, or Coproduct
+   * loses its own triviality -- hence the two specialisations.
    */
   template<bool AllTriviallyDestructible, class... As>
   union VariantStorage;
@@ -285,24 +277,20 @@ namespace CoproductImpl {
   union VariantStorage<true, A, As...> {
     A head;
     VariantStorage<true, As...> tail;
-    /** leaves every alternative dead; Coproduct constructs the live one */
-    VariantStorage() {}
+    VariantStorage() {} // leaves every alternative dead
   };
 
   template<class A, class... As>
   union VariantStorage<false, A, As...> {
     A head;
     VariantStorage<false, As...> tail;
-    VariantStorage() {}
-    /** the live alternative is destroyed by Coproduct, not here */
+    VariantStorage() {} // leaves every alternative dead
     ~VariantStorage() {}
   };
 
-  /**
-   * Reference to the idx-th alternative of a VariantStorage. Constness follows the
-   * storage. Note that the path taken here is the same path the placement-new in
-   * Coproduct takes, so the alternative we read is the one that was constructed.
-   */
+  /** Reference to the idx-th alternative of a VariantStorage; constness follows the
+   *  storage. Coproduct constructs through this same path, so the alternative read is
+   *  the one that was constructed. */
   template<unsigned idx>
   struct StorageAt {
     template<class S>
@@ -676,8 +664,7 @@ public:
     static_assert(std::is_same<B, TL::Get<idx, Ts>>::value, "illegal index for variant");
 
     _inner.template assignTag<idx>();
-    // construct through the same access path castAt<idx>() reads back through, so the
-    // alternative we later read is exactly the one whose lifetime started here
+    // through castAt<idx>(), so the alternative constructed is the one read back
     ::new(&_inner.template castAt<idx>()) B(move_if_value<B>(value._self));
   }
 
