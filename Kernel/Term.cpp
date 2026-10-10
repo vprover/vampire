@@ -917,7 +917,12 @@ std::string Literal::toString(bool reverseEquality) const
     }
   }
 
-  s += predicateName();
+  const std::string& name = predicateName();
+  // "~$less(X,Y)" is not valid Prolog: "~$" would be read as a single token
+  if (polarity() == 0 && name[0] == '$') {
+    s += ' ';
+  }
+  s += name;
 
   //cerr << "predicate: "<< predicateName()<<endl;
   if (_arity > 0) {
