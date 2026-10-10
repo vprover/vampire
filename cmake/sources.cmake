@@ -92,6 +92,7 @@ set(UNIT_TESTS
     UnitTests/tInferences_TautologyDeletionISE.cpp
     UnitTests/tInferences_URResolution.cpp
     UnitTests/tIntegerConstantType.cpp
+    UnitTests/tIntUnionFind.cpp
     UnitTests/tInterpretedFunctions.cpp
     UnitTests/tIterator.cpp
     UnitTests/tKBO.cpp
@@ -109,6 +110,11 @@ set(UNIT_TESTS
     UnitTests/tSATSolver.cpp
     UnitTests/tSATSubsumptionResolution.cpp
     UnitTests/tSet.cpp
+    UnitTests/tSchedules.cpp
+    UnitTests/tSharedSet.cpp
+    UnitTests/tSimpleCongruenceClosure.cpp
+    UnitTests/tSimpleCongruenceClosureModels.cpp
+    UnitTests/tStringUtils.cpp
     UnitTests/tSkipList.cpp
     UnitTests/tSignature.cpp
     UnitTests/tStack.cpp
@@ -119,6 +125,7 @@ set(UNIT_TESTS
     UnitTests/tTimeTrace.cpp
     UnitTests/tTuple.cpp
     UnitTests/tUnificationWithAbstraction.cpp
+    UnitTests/tUnificationWithAbstractionModes.cpp
     UnitTests/HOL/tHOL_Printing.cpp
     UnitTests/HOL/tHOL_BetaReduction.cpp
     UnitTests/HOL/tHOL_EtaReduction.cpp
