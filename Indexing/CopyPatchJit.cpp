@@ -23,6 +23,7 @@
 #include <asmjit/core.h>
 
 #include <cstring>
+#include <cstdint>
 #include <cstdlib>
 #include <algorithm>
 #include <unordered_map>
@@ -63,6 +64,13 @@ inline void perfMapAdd(const void* addr, size_t size, const char* fmt, ...)
 }
 static unsigned long g_emitGen = 0;
 
+//  Marker stored in _altPatchOfs[0] meaning "this op was emitted from the
+//  no-alt stencil variant, so it carries NO ALT holes at all, and slot 3 holds
+//  its emitted size". Distinct from ALT_PATCH_NONE (0xFFFF) and from every real
+//  hole offset (all < 256, the stencils top out at 246 bytes).
+static constexpr uint16_t ALT_NOALT_TAG = 0xFFFE;
+
+
 // Distance from the start of a jmpAlt site (the movabs opcode) to the return
 // address pushed by the site's 'call [rbp+bindJmpAltStub]'. All jmpAlt sites
 // share one byte-identical layout, so this is measured once during stencil
@@ -73,6 +81,8 @@ struct JitStats {
   size_t emitBlocks = 0, emitBytes = 0, emitOps = 0;
   size_t ssEmits = 0, ssBytes = 0;
   size_t ssLookups = 0, ssFound = 0;
+  size_t ssDirectStubs = 0;    // landing stubs using the direct jmp rel32 form
+  size_t ssIndirectStubs = 0;  // landing stubs left on jmp [rbp + ssDispatchStub]
   size_t frees = 0;
   size_t patchAltCalls = 0, patchAltStores = 0;
   size_t lazyCompiles = 0;
@@ -85,10 +95,21 @@ struct JitStats {
   size_t deoptViaLazy = 0;     // deopts resolved through lazyCompileHelper
   size_t deoptViaBind = 0;     // deopts resolved through bindJmpAltHelper (site left unbound)
                                //   invariant: deoptViaLazy + deoptViaBind == tierDeopts
+  size_t reemitQueued = 0;     // blocks queued for re-emission on a late alternative
+  size_t reemitBlocks = 0;     // blocks actually re-emitted
+  size_t reemitOps = 0;        // OPS re-emitted by the queue (not bytes)
+  size_t reemitTooBig = 0;     // late alternatives on blocks over the op cap
+  size_t reemitFallback = 0;   // late alternatives that fell back to the out-of-line patch
+  size_t reemitNoReferrer = 0; // re-emitted blocks with no recorded referrer (entry point, or a gap)
   size_t entryNotHead = 0;     // literal entries skipped by the eager compile because the
                                //   entry op is mid-block (ClauseCodeTree enters at litEndOp+1);
                                //   those literals run interpreted ie expected non-zero on clause trees
-  size_t treeEmpty = 0;                             
+  size_t backptrPeak = 0;      // largest live entry count any ONE tree reached
+  size_t backptrRemoves = 0;   // keys dropped; should track frees, cf unbinds
+  size_t backptrChecks = 0;    // removals that cross-checked map against scan
+  size_t backptrMismatch = 0;  // TRIPWIRE: map disagreed with the scan. Must be 0.
+  size_t backptrSets = 0;      // setReferrer calls, re-points included
+  size_t treeEmpty = 0;    
 
   // PLT-style binding of jmpAlt sites
   size_t bindCalls = 0;        // trips through the bind stub (once per site per bind epoch)
@@ -98,6 +119,8 @@ struct JitStats {
 
   size_t execRegionMB = 0;     // size of the reserved exec region actually obtained
   size_t budgetStops = 0;      // times the soft code budget refused a JIT entry
+  size_t budgetStopsLive = 0;  // of those, the ones holding live JIT backtrack
+                               // entries that had to be migrated
 
   //  Tripwires - all should stay 0 in a healthy run
   size_t deoptNullOp = 0;      // deopt with ctx->op unset: interpreter resumes at a stale op
@@ -107,6 +130,17 @@ struct JitStats {
 
   // trampoline instrumentation
   size_t btPops = 0;           // backtrack-stack pops resumed by the bt handler
+
+  size_t emitOpsByKind[7] = {0};
+  size_t emitBytesByKind[7] = {0};
+  size_t altNull = 0, altNonNull = 0;
+  size_t altFirstAppear = 0;   // ops emitted null that later got an alternative
+  size_t oolPatches = 0;       // out-of-line op copies installed
+  size_t oolBytes = 0;         // bytes in those copies (NOT counted in emitBytes)
+  size_t oolUnreachable = 0;   // copy or successor outside +-2 GB: UNSOUND (must stay 0)
+  size_t oolFailed = 0;        // could not emit the copy: UNSOUND (must stay 0)
+  size_t altLostPatch = 0;     // late alternative with nowhere to go: UNSOUND (must stay 0)
+  size_t ssLenHist[7] = {0};
 };
 
 JitStats g_jitStats;
@@ -163,6 +197,50 @@ namespace JitBudget {
   size_t codeBudget   = CopyPatchJit::CODE_BUDGET_DEFAULT;
 }
 
+//  True base address of every compiled block's allocation, keyed on its first
+//  op.
+//
+//  Needed because CodeOp::_mcode is NOT reliably the block's base: the
+//  out-of-line patch path in patchAlternative ends with op->_mcode = copy,
+//  repointing a block HEAD at a standalone out-of-line copy. Anything that
+//  frees or relocates a block must consult this map rather than _mcode.
+//  Erased by forgetBlockBase, which freeJitBlock calls.
+static std::unordered_map<const void*, void*> g_blockBase;
+
+//  JIT_REEMIT=1 replaces the out-of-line patch of the no-alt variant with
+//  whole-block re-emission.
+//
+//  An op emitted from the no-alt variant that later acquires an alternative
+//  currently gets a 158-to-182-byte out-of-line trampoline hung off its head.
+//
+//  Re-emitting the one block gets that win without the bulk pass's +1.97%
+//  instruction bill.
+static bool reemitEnabled()
+{
+  static const bool on = [] {
+    const char* s = std::getenv("JIT_REEMIT");
+    return s ? (strtoll(s, nullptr, 10) != 0) : true;
+  }();
+  return on;
+}
+
+//  Largest block worth re-emitting, in ops. JIT_REEMIT_MAX_OPS overrides.
+//
+//  Re-emission costs O(ops in the block) and buys O(patches in that block), so
+//  the ratio degrades linearly with block size.
+//
+//  Applied per block, so a large-block problem still re-emits whichever of its
+//  blocks are small and falls back to the out-of-line patch only on the rest.
+static size_t reemitMaxOps()
+{
+  static const size_t kDefault = 64;
+  static const size_t n = [] {
+    const char* s = std::getenv("JIT_REEMIT_MAX_OPS");
+    return s ? strtoull(s, nullptr, 10) : kDefault;
+  }();
+  return n;
+}
+
 void CopyPatchJit::printJitStats(std::ostream& out)
 {
   const JitStats& s = g_jitStats;
@@ -178,6 +256,11 @@ void CopyPatchJit::printJitStats(std::ostream& out)
       << " tier_deopts=" << s.tierDeopts
       << " tier_compiled=" << s.tierCompiled
       << " entry_not_head=" << s.entryNotHead
+      << " backptr_peak=" << s.backptrPeak
+      << " backptr_removes=" << s.backptrRemoves
+      << " backptr_checks=" << s.backptrChecks
+      << " backptr_mismatch=" << s.backptrMismatch
+      << " backptr_sets=" << s.backptrSets
       << " tree_empty=" << s.treeEmpty
       << " jit_instances=" << s.jitInstances
       << " deopt_nullop=" << s.deoptNullOp
@@ -189,6 +272,9 @@ void CopyPatchJit::printJitStats(std::ostream& out)
       << " lazy_compiles=" << s.lazyCompiles
       << " slabs=" << s.slabsMapped
       << " slab_bytes=" << s.slabBytes
+      //  Which THP arm ran. Verifies the intent only (that the kernel actually
+      //  backed the region with 2 MiB pages is AnonHugePages in smaps)
+      << " thp=" << (std::getenv("JIT_NO_THP") ? 0 : 1)
       << " bind_calls=" << s.bindCalls
       << " binds=" << s.binds
       << " unbinds=" << s.unbinds
@@ -199,14 +285,89 @@ void CopyPatchJit::printJitStats(std::ostream& out)
       << " code_budget_mb=" << (CopyPatchJit::codeBudget() >> 20)
       << " emitted_total_mb=" << (CopyPatchJit::emittedTotal() >> 20)
       << " budget_stops=" << s.budgetStops
+      << " budget_stops_live=" << s.budgetStopsLive
       << " budget_bailouts=" << s.budgetBailouts
       << " bt_pops=" << s.btPops
-      << std::endl;
+      << " reemit_queued=" << s.reemitQueued
+      << " reemit_blocks=" << s.reemitBlocks
+      << " reemit_ops=" << s.reemitOps
+      << " reemit_toobig=" << s.reemitTooBig
+      << " reemit_fallback=" << s.reemitFallback
+      << " reemit_noreferrer=" << s.reemitNoReferrer;
+
+  {
+    static const char* kindName[7] = {"sof","cgt","lend","cfun","avar","cvar","ss"};
+    for (unsigned i = 0; i < 7; i++) {
+      if (!s.emitOpsByKind[i]) continue;
+      out << " ops_" << kindName[i] << "=" << s.emitOpsByKind[i]
+          << " bytes_" << kindName[i] << "=" << s.emitBytesByKind[i];
+    }
+  }
+  out << " alt_null=" << s.altNull << " alt_nonnull=" << s.altNonNull
+      << " alt_first_appear=" << s.altFirstAppear
+      << " ool_patches=" << s.oolPatches
+      << " ool_bytes=" << s.oolBytes
+      << " ool_unreachable=" << s.oolUnreachable
+      << " ool_failed=" << s.oolFailed
+      << " alt_lost_patch=" << s.altLostPatch;
+
+  out << " ss_direct_stubs=" << s.ssDirectStubs
+      << " ss_indirect_stubs=" << s.ssIndirectStubs;
+  out << " ss_len_hist=";
+  for (unsigned i = 0; i < 7; i++) out << (i ? "," : "") << s.ssLenHist[i];
+
+  out << std::endl;
 }
+
+//  Block-base bookkeeping. See g_blockBase for why _mcode will not do.
+void* CopyPatchJit::blockBase(const void* firstOp)
+{
+  auto it = g_blockBase.find(firstOp);
+  return it == g_blockBase.end() ? nullptr : it->second;
+}
+
+void CopyPatchJit::forgetBlockBase(const void* firstOp)
+{
+  g_blockBase.erase(firstOp);
+}
+
+bool CopyPatchJit::reemitOn() { return reemitEnabled(); }
+
+//  Is this op in the no-alt tagged form, i.e. emitted with no ALT hole at all?
+bool CopyPatchJit::isNoAltTagged(const CodeTree::CodeOp* op)
+{
+  return op->_altPatchOfs[0] == ALT_NOALT_TAG;
+}
+
+//  The op's index within its block, stashed in slot 1 at emission.
+//
+//  Slots 0 and 3 carry the tag and the emitted size; 1 and 2 are unused in the
+//  tagged form, which is the only form this is asked about. Returns
+//  ALT_PATCH_NONE when the index did not fit, in which case the caller must
+//  fall back to the out-of-line patch.
+unsigned CopyPatchJit::noAltOpIndex(const CodeTree::CodeOp* op)
+{
+  return op->_altPatchOfs[1];
+}
+
+unsigned CopyPatchJit::altIndexUnknown() { return CodeTree::CodeOp::ALT_PATCH_NONE; }
+
+size_t CopyPatchJit::reemitBlockOpCap() { return reemitMaxOps(); }
+void   CopyPatchJit::noteReemitTooBig() { g_jitStats.reemitTooBig++; }
+
+void CopyPatchJit::noteReemitQueued()      { g_jitStats.reemitQueued++; }
+void CopyPatchJit::noteReemitFallback()    { g_jitStats.reemitFallback++; }
+void CopyPatchJit::noteReemitNoReferrer()  { g_jitStats.reemitNoReferrer++; }
+void CopyPatchJit::noteReemitBlock(size_t nOps)
+{ g_jitStats.reemitBlocks++; g_jitStats.reemitOps += nOps; }
 
 void CopyPatchJit::recordBtPops(size_t n)
 {
+  #ifdef JIT_RATE_COUNTERS
   g_jitStats.btPops += n;
+  #else
+    (void)n;
+  #endif
 }
 
 void CopyPatchJit::recordBudgetStop()
@@ -214,23 +375,49 @@ void CopyPatchJit::recordBudgetStop()
   g_jitStats.budgetStops++;
 }
 
+void CopyPatchJit::recordBudgetStopLive()
+{
+  g_jitStats.budgetStopsLive++;
+}
+
+//  The soft-budget backtrack migration. Default ON.
+static bool budgetFixEnabled()
+{
+  static const bool on = [] {
+    const char* s = std::getenv("JIT_BUDGET_FIX");
+    return s ? (strtoll(s, nullptr, 10) != 0) : true;
+  }();
+  return on;
+}
+
+bool CopyPatchJit::budgetFixOn() { return budgetFixEnabled(); }
+
 /*
  * Tiering: how many times a block has been entered, keyed on its first op.
  *
- * The count cannot live in CodeBlock - that is a variable-length Vector with
- * its CodeOp array inline at the end, so an extra member would overlap the
- * data - and CodeOp has no spare bytes. A side table is fine because it is
- * only ever touched from lazyCompileBlock, i.e. once per entry into a block
- * that is not yet compiled: ~64k lookups over an entire HWV069+1 run.
- *
- * Stale entries after a block is freed are harmless: the worst case is that a
- * newly allocated block reusing the address starts with an inflated count and
- * is compiled sooner than it deserves.
+ * Erased by forgetBlockEntries when a block is freed, which freeJitBlock calls
+ * unconditionally. Leaving an entry behind is NOT harmless: CodeBlocks are heap
+ * allocations and addresses get reused, so a fresh block inheriting a dead
+ * one's count crosses JIT_TIER_THRESHOLD early and is compiled before it has
+ * earned it. That produced five different emit_blocks readings for the same
+ * problem before the erase was added (cost analysis 28).
  */
 static std::unordered_map<const void*, unsigned> g_blockEntries;
 
 unsigned CopyPatchJit::noteBlockEntry(const void* firstOp)
 { return ++g_blockEntries[firstOp]; }
+
+//  Erase a freed block's tier count.
+//
+//  Without this, the entry survives the block and a later CodeBlock allocated
+//  at the same heap address inherits it, crossing JIT_TIER_THRESHOLD early.
+//  Erasing is also the semantically correct choice: a freshly allocated block
+//  should earn its own compilation, not inherit a dead block's credit.
+void CopyPatchJit::forgetBlockEntries(const void* firstOp)
+{
+  g_blockEntries.erase(firstOp);
+}
+
 
 bool CopyPatchJit::deoptAllowed()
 {
@@ -250,6 +437,12 @@ void* CopyPatchJit::_deoptStubAddr = nullptr;
 
 void CopyPatchJit::recordTierDeopt()   { g_jitStats.tierDeopts++; }
 void CopyPatchJit::recordEntryNotHead()   { g_jitStats.entryNotHead++; }
+void CopyPatchJit::recordBackptrPeak(size_t liveEntries)
+{ if (liveEntries > g_jitStats.backptrPeak) g_jitStats.backptrPeak = liveEntries; }
+void CopyPatchJit::recordBackptrRemove()   { g_jitStats.backptrRemoves++; }
+void CopyPatchJit::recordBackptrCheck()    { g_jitStats.backptrChecks++; }
+void CopyPatchJit::recordBackptrMismatch() { g_jitStats.backptrMismatch++; }
+void CopyPatchJit::recordBackptrSet() { g_jitStats.backptrSets++; }
 void CopyPatchJit::recordEmptyTree()  { g_jitStats.treeEmpty++; }
 void CopyPatchJit::recordDeoptNullOp()       { g_jitStats.deoptNullOp++; }
 void CopyPatchJit::recordTierCompile() { g_jitStats.tierCompiled++; }
@@ -261,6 +454,16 @@ void CopyPatchJit::setCodeBudget(size_t bytes)
   //  never raising it keeps the cap a property of the process rather than of
   //  whichever index happened to be built last.
   size_t b = bytes ? bytes : CODE_BUDGET_DEFAULT;
+
+  //  JIT_BUDGET_LIMIT=<bytes> lowers the soft budget far enough that the
+  //  crossing is reachable on a gate problem in seconds, exactly as
+  //  JIT_DEOPT_LIMIT made the deopt paths reachable
+  static const size_t envLimit = [] {
+    const char* s = std::getenv("JIT_BUDGET_LIMIT");
+    return s ? strtoull(s, nullptr, 10) : size_t(0);
+  }();
+  if (envLimit && envLimit < b) { b = envLimit; }
+
   if (b < JitBudget::codeBudget) { JitBudget::codeBudget = b; }
 }
 
@@ -396,9 +599,22 @@ void* CopyPatchJit::bindJmpAltHelper(JitExecContext* ctx, CodeTree::CodeOp* alt,
 CodeTree::CodeOp* CopyPatchJit::ssLookupHelper(JitExecContext* /*ctx*/, CodeTree::CodeOp* landingOp,
                                                FlatTerm::Entry* ftData, size_t tp)
 {
+  CodeTree::SearchStruct* ss = landingOp->getSearchStruct();
+  #ifdef JIT_RATE_COUNTERS
+    {
+      size_t len = ss->length();
+      unsigned b = len <= 2 ? 0 : len <= 4 ? 1 : len <= 8 ? 2
+                : len <= 16 ? 3 : len <= 32 ? 4 : len <= 64 ? 5 : 6;
+      g_jitStats.ssLenHist[b]++;
+    }
+  #endif
+#ifdef JIT_RATE_COUNTERS
   g_jitStats.ssLookups++;
-  CodeTree::CodeOp* target = landingOp->getSearchStruct()->getTargetOp(ftData + tp);
+#endif
+  CodeTree::CodeOp* target = ss->getTargetOp(ftData + tp);
+#ifdef JIT_RATE_COUNTERS
   if (target) g_jitStats.ssFound++;
+#endif
   return target;
 }
 
@@ -418,7 +634,6 @@ static constexpr uint64_t PH_GTERM    = 0xEE00'0000'0000'0001ULL;
 static constexpr uint64_t PH_OPPTR    = 0xFF00'0000'0000'0001ULL;
 // For the jmp-to-next-stencil, we use a raw rel32 placeholder:
 static constexpr int32_t  PH_NEXT32   = 0x7766'5544;
-
 
 //  Helper: emit 'movabs rax, imm64' as 10 raw bytes (REX.W + B8 + imm)
 //  Prevents asmjit from optimizing zero values to 'xor eax,eax'
@@ -474,6 +689,16 @@ static std::vector<uint8_t> extractCode(CodeHolder& code) {
 //  region (see ensureExecRegion). This is used when the region could not be
 //  mapped or is exhausted; sites binding across mappings then rely on the
 //  rel32 reachability guard in bindJmpAltHelper.
+
+#ifdef __linux__
+static int execThpAdvice()
+{
+  static const int advice =
+      std::getenv("JIT_NO_THP") ? MADV_NOHUGEPAGE : MADV_HUGEPAGE;
+  return advice;
+}
+#endif
+
 static void* mapExecPages(size_t size) {
 #ifdef __linux__
   const size_t TWO_MB = size_t(2) << 20;
@@ -486,7 +711,7 @@ static void* mapExecPages(size_t size) {
   ASS(((uintptr_t)aligned & (TWO_MB - 1)) == 0);
   if (size_t head = size_t(aligned - p)) munmap(p, head);
   if (size_t tail = over - size_t(aligned - p) - size) munmap(aligned + size, tail);
-  madvise(aligned, size, MADV_HUGEPAGE);
+  madvise(aligned, size, execThpAdvice());
   return aligned;
 #elif defined(__APPLE__)
   void* p = mmap(nullptr, size, PROT_READ | PROT_WRITE | PROT_EXEC,
@@ -584,7 +809,7 @@ void CopyPatchJit::ensureSlabSpace(size_t size) {
     g_execRegionUsed += cap;
     inRegion = true;
 #ifdef __linux__
-    madvise(p, cap, MADV_HUGEPAGE);
+    madvise(p, cap, execThpAdvice());
 #endif
   } else {
     //  Region exhausted (or unavailable): fall back to an individual mapping.
@@ -639,11 +864,16 @@ void* CopyPatchJit::allocExec(size_t userSize) {
   // conservative - a tree that frees and re-emits heavily still trips the
   // budget eventually, which is the safe direction to be wrong in.
   // Process-wide, so all trees draw on one budget.
+  //
+  //  NOTE: re-emission (JIT_REEMIT) charges this twice for a block it moves,
+  //  because emittedTotal counts bytes ever emitted and is never credited back
+  //  on a free.
   JitBudget::emittedTotal += totalSize;
-  size_t classIdx  = sizeClassIndex(totalSize);
-  size_t bucket    = sizeClassBucket(classIdx, totalSize);
 
   uint8_t* raw = nullptr;
+
+  size_t classIdx = sizeClassIndex(totalSize);
+  size_t bucket   = sizeClassBucket(classIdx, totalSize);
 
   // Try the free list for this size class
   if (classIdx < NUM_SIZE_CLASSES && _freeLists[classIdx]) {
@@ -661,8 +891,7 @@ void* CopyPatchJit::allocExec(size_t userSize) {
   }
 
   // Write the bucket size into the header so freeExec can find the class
-  size_t headerVal = bucket;
-  memcpy(raw, &headerVal, sizeof(size_t));
+  memcpy(raw, &bucket, sizeof(size_t));
 
   return raw + ALLOC_HEADER_SIZE;
 }
@@ -759,14 +988,45 @@ void CopyPatchJit::initialize() {
   compileSsDispatchStub();
   compileDeoptStub();
 
-  compileStencilSuccessOrFail();
-  compileStencilCheckGroundTerm();
-  compileStencilLitEnd();
-  compileStencilCheckFun();
-  compileStencilAssignVar();
-  compileStencilCheckVar();
-  // _stencils[SEARCH_STRUCT] is left empty-SearchStructs are handled
+  //  Two variants of every stencil: [0] for ops with no alternative, [1] for
+  //  ops that have one. The no-alt variant omits the pushAlt block entirely
+  //  and collapses each jmpAlt site to a bare backtrack jump. emitBlock picks
+  //  per op on op.alternative().
+  for (unsigned v = 0; v < 2; v++) {
+    const bool hasAlt = (v != 0);
+    compileStencilSuccessOrFail(hasAlt);
+    compileStencilCheckGroundTerm(hasAlt);
+    compileStencilLitEnd(hasAlt);
+    compileStencilCheckFun(hasAlt);
+    compileStencilAssignVar(hasAlt);
+    compileStencilCheckVar(hasAlt);
+  }
+  // _stencils[*][SEARCH_STRUCT] is left empty-SearchStructs are handled
   // differently (they're compiled individually, not via stencils).
+  static bool dumped = false;
+  if (!dumped && std::getenv("JIT_DUMP_STENCILS")) {
+    dumped = true;
+    static const char* nm[7] = {
+      "SUCCESS_OR_FAIL", "CHECK_GROUND_TERM", "LIT_END",
+      "CHECK_FUN", "ASSIGN_VAR", "CHECK_VAR", "SEARCH_STRUCT"
+    };
+    for (unsigned v = 0; v < 2; v++)
+    for (unsigned i = 0; i < 7; i++) {
+      const Stencil& st = _stencils[v][i];
+      if (st.code.empty()) continue;
+      int trail = -1;
+      for (const auto& h : st.holes)
+        if (h.kind == StencilHole::NEXT_REL32 && size_t(h.offset) + 4 == st.code.size())
+          trail = static_cast<int>(h.offset);
+      std::fprintf(stderr,
+        "%% STENCIL %-18s alt=%u bytes=%zu holes=%zu alt_holes=%u trailing_jmp_at=%d\n",
+        nm[i], v, st.code.size(), st.holes.size(),
+        static_cast<unsigned>(st.altHoleCount), trail);
+      for (size_t b = 0; b < st.code.size(); b++)
+        std::fprintf(stderr, "%02x%c", st.code[b], ((b + 1) % 16) ? ' ' : '\n');
+      std::fprintf(stderr, "\n");
+    }
+  }
 
   _initialized = true;
   g_jitStats.jitInstances++;
@@ -1115,31 +1375,23 @@ void CopyPatchJit::compileBindJmpAltStub() {
  * two orderings are observationally identical and this one skips the
  * push/pop round trip on the miss path.
  */
-void CopyPatchJit::compileSsDispatchStub() {
-  auto& rt = sharedRuntime();
-  CodeHolder code;
-  code.init(rt.environment(), rt.cpu_features());
-  Assembler a(&code);
+/*
+ * emitSsDispatchTail - everything after the lookup, shared by both SS stubs.
+ * Entry: rdi = &ss->landingOp, rax = target CodeOp* or 0.
+ * Never returns: jumps to the target's code, the alternative's code, or the
+ * backtrack handler.
+ */
+void CopyPatchJit::emitSsDispatchTail(void* asm_ptr)
+{
+  auto& a = *static_cast<Assembler*>(asm_ptr);
 
-  Label notFound   = a.new_label();
-  Label doPush     = a.new_label();
-  Label dispatch   = a.new_label();
-  Label go         = a.new_label();
-  Label goAlt      = a.new_label();
-  Label bt         = a.new_label();
+  Label notFound = a.new_label();
+  Label doPush   = a.new_label();
+  Label dispatch = a.new_label();
+  Label go       = a.new_label();
+  Label goAlt    = a.new_label();
+  Label bt       = a.new_label();
 
-  // --- lookup: rax = ssLookupHelper(ctx, landingOp, ftData, tp) ---
-  // Steady-state rsp is 0 mod 16; two pushes keep it 0 mod 16 at the call.
-  // The second push doubles as the save slot for rdi (landingOp*).
-  a.push(rdi);
-  a.push(rdi);
-  a.mov(rdx, r12);          // arg3 = ftData   (live register, ctx copy is stale)
-  a.mov(rcx, r13);          // arg4 = tp
-  a.mov(rsi, rdi);          // arg2 = landingOp
-  a.mov(rdi, rbp);          // arg1 = ctx
-  a.call(qword_ptr(rbp, offsetof(JitExecContext, ssLookupFunc)));
-  a.pop(rdi);
-  a.pop(rdi);               // rdi = landingOp again
   a.test(rax, rax);
   a.jz(notFound);
 
@@ -1157,14 +1409,13 @@ void CopyPatchJit::compileSsDispatchStub() {
   a.mov(qword_ptr(r15, 8), rcx);
   a.add(r15, 16);
   a.bind(dispatch);
-  // jump to target's code (lazy-compile if needed)
   a.mov(rax, qword_ptr(rdx, offsetof(CodeTree::CodeOp, _mcode)));
   a.test(rax, rax);
   a.jnz(go);
   a.mov(rcx, rdx);
   a.call(qword_ptr(rbp, offsetof(JitExecContext, lazyCompileStub)));
   a.test(rax, rax);
-  a.jz(bt);                 // pushed alt (if any) is popped by backtrack: single visit
+  a.jz(bt);                 // pushed alt (if any) is popped by backtrack
   a.bind(go);
   a.jmp(rax);
 
@@ -1173,7 +1424,7 @@ void CopyPatchJit::compileSsDispatchStub() {
   a.mov(rax, qword_ptr(rdi, offsetof(CodeTree::CodeOp, _alternative)));
   a.test(rax, rax);
   a.jz(bt);
-  a.mov(rcx, rax);          // CodeOp* for the lazy path
+  a.mov(rcx, rax);
   a.mov(rax, qword_ptr(rax, offsetof(CodeTree::CodeOp, _mcode)));
   a.test(rax, rax);
   a.jnz(goAlt);
@@ -1185,6 +1436,28 @@ void CopyPatchJit::compileSsDispatchStub() {
 
   a.bind(bt);
   a.jmp(qword_ptr(rbp, offsetof(JitExecContext, backtrackHandler)));
+}
+
+void CopyPatchJit::compileSsDispatchStub() {
+  auto& rt = sharedRuntime();
+  CodeHolder code;
+  code.init(rt.environment(), rt.cpu_features());
+  Assembler a(&code);
+
+  // --- lookup: rax = ssLookupHelper(ctx, landingOp, ftData, tp) ---
+  // Steady-state rsp is 0 mod 16; two pushes keep it 0 mod 16 at the call.
+  // The second push doubles as the save slot for rdi (landingOp*).
+  a.push(rdi);
+  a.push(rdi);
+  a.mov(rdx, r12);          // arg3 = ftData   (live register, ctx copy is stale)
+  a.mov(rcx, r13);          // arg4 = tp
+  a.mov(rsi, rdi);          // arg2 = landingOp
+  a.mov(rdi, rbp);          // arg1 = ctx
+  a.call(qword_ptr(rbp, offsetof(JitExecContext, ssLookupFunc)));
+  a.pop(rdi);
+  a.pop(rdi);               // rdi = landingOp again
+
+  emitSsDispatchTail(&a);
 
   auto bytes = extractCode(code);
   void* dest = allocExec(bytes.size());
@@ -1267,8 +1540,15 @@ void CopyPatchJit::compileDeoptStub() {
  * correct under index mutation without any patching protocol.
  only rcx, rdx, r10 survive; rax and r11 do not
  */
-void CopyPatchJit::emitPushAlt(void* asm_ptr, Stencil& s, size_t base) {
+void CopyPatchJit::emitPushAlt(void* asm_ptr, Stencil& s, size_t base, bool hasAlt) {
   auto& a = *static_cast<Assembler*>(asm_ptr);
+
+  //  NO-ALT VARIANT: the op has no alternative, so there is nothing to push.
+  //  Emit nothing at all. This removes the movabs (10 B), the test/jz (9 B)
+  //  and the whole bounds-checked push (23 B) - 42 bytes and three executed
+  //  instructions per site. 99.9% of emitted alt slots are null, so this is
+  //  the variant almost every op takes.
+  if (!hasAlt) return;
 
   size_t immOfs = emitMovAbsRcx(a, PH_ALT2) - base;
   s.holes.push_back({StencilHole::ALT_PTR_PUSH, static_cast<uint16_t>(immOfs)});
@@ -1326,8 +1606,17 @@ void CopyPatchJit::emitPushAlt(void* asm_ptr, Stencil& s, size_t base) {
  *
  * Clobbers (either form/path): rax, rcx, rdi, rsi.
  */
-void CopyPatchJit::emitJmpAlt(void* asm_ptr, Stencil& s, size_t base) {
+void CopyPatchJit::emitJmpAlt(void* asm_ptr, Stencil& s, size_t base, bool hasAlt) {
   auto& a = *static_cast<Assembler*>(asm_ptr);
+
+  //  NO-ALT VARIANT: a null alternative means this path backtracks
+  //  unconditionally, so the whole site collapses to the jump the site would
+  //  have fallen through to anyway - 3 bytes instead of 25. The jump MUST
+  //  still be emitted: it is the entire fail path.
+  if (!hasAlt) {
+    a.jmp(qword_ptr(rbp, offsetof(JitExecContext, backtrackHandler)));
+    return;
+  }
 
   size_t siteStart = a.offset();
   size_t immOfs = emitMovAbsRax(a, PH_ALT1) - base;
@@ -1363,8 +1652,8 @@ void CopyPatchJit::emitNextJump(void* asm_ptr, Stencil& s, size_t base) {
   s.holes.push_back({StencilHole::NEXT_REL32, static_cast<uint16_t>(jmpOfs + 1)});
 }
 
-void CopyPatchJit::compileStencilCheckFun() {
-  Stencil& s = _stencils[CodeTree::CHECK_FUN];
+void CopyPatchJit::compileStencilCheckFun(bool hasAlt) {
+  Stencil& s = _stencils[hasAlt][CodeTree::CHECK_FUN];
   CodeHolder code;
   auto& rt = sharedRuntime();
   code.init(rt.environment(), rt.cpu_features());
@@ -1399,7 +1688,7 @@ void CopyPatchJit::compileStencilCheckFun() {
 
   // --- Mismatch: jmpAlt ---
   a.bind(notFun);
-  emitJmpAlt(&a, s, base);
+  emitJmpAlt(&a, s, base, hasAlt);
 
   // --- Match: expand if needed, pushAlt, advance, fall through ---
   a.bind(matched);
@@ -1413,7 +1702,7 @@ void CopyPatchJit::compileStencilCheckFun() {
   a.call(qword_ptr(rbp, offsetof(JitExecContext, expandEntryFunc)));
   a.bind(noExpand);
 
-  emitPushAlt(&a, s, base);
+  emitPushAlt(&a, s, base, hasAlt);
   a.add(r13, FlatTerm::FUNCTION_ENTRY_COUNT);
   emitNextJump(&a, s, base);
 
@@ -1423,8 +1712,8 @@ void CopyPatchJit::compileStencilCheckFun() {
   s.code = extractCode(code);
 }
 
-void CopyPatchJit::compileStencilCheckGroundTerm() {
-  Stencil& s = _stencils[CodeTree::CHECK_GROUND_TERM];
+void CopyPatchJit::compileStencilCheckGroundTerm(bool hasAlt) {
+  Stencil& s = _stencils[hasAlt][CodeTree::CHECK_GROUND_TERM];
   CodeHolder code;
   auto& rt = sharedRuntime();
   code.init(rt.environment(), rt.cpu_features());
@@ -1454,22 +1743,22 @@ void CopyPatchJit::compileStencilCheckGroundTerm() {
   a.je(matched);
 
   a.bind(notFun);
-  emitJmpAlt(&a, s, base);
+  emitJmpAlt(&a, s, base, hasAlt);
 
   a.bind(matched);
   // Load FUN_RIGHT_OFS: (ft[tp+2]._content >> 3) & 0x1FFFFFFF
   a.mov(r10, qword_ptr(rax, 16));
   a.shr(r10, 3);
   a.and_(r10d, 0x1FFFFFFFu);
-  emitPushAlt(&a, s, base);
+  emitPushAlt(&a, s, base, hasAlt);
   a.add(r13, r10);
   emitNextJump(&a, s, base);
 
   s.code = extractCode(code);
 }
 
-void CopyPatchJit::compileStencilAssignVar() {
-  Stencil& s = _stencils[CodeTree::ASSIGN_VAR];
+void CopyPatchJit::compileStencilAssignVar(bool hasAlt) {
+  Stencil& s = _stencils[hasAlt][CodeTree::ASSIGN_VAR];
   CodeHolder code;
   auto& rt = sharedRuntime();
   code.init(rt.environment(), rt.cpu_features());
@@ -1494,7 +1783,7 @@ void CopyPatchJit::compileStencilAssignVar() {
   a.shl(rdx, 2);
   a.or_(rdx, 1);
 
-  emitPushAlt(&a, s, base);
+  emitPushAlt(&a, s, base, hasAlt);
 
   // Store to bindings[var].  The byte offset is a 4-byte immediate.
   // We use 'mov [r14 + disp32], rdx'-the disp32 is patchable.
@@ -1522,7 +1811,7 @@ void CopyPatchJit::compileStencilAssignVar() {
   a.shr(r10, 3);
   a.and_(r10d, 0x1FFFFFFFu);          // FUN_RIGHT_OFS
 
-  emitPushAlt(&a, s, base);
+  emitPushAlt(&a, s, base, hasAlt);
 
   // Store binding (rdx and r10 survive pushAlt-only rax,rcx clobbered)
   {
@@ -1541,8 +1830,8 @@ void CopyPatchJit::compileStencilAssignVar() {
   s.code = extractCode(code);
 }
 
-void CopyPatchJit::compileStencilCheckVar() {
-  Stencil& s = _stencils[CodeTree::CHECK_VAR];
+void CopyPatchJit::compileStencilCheckVar(bool hasAlt) {
+  Stencil& s = _stencils[hasAlt][CodeTree::CHECK_VAR];
   CodeHolder code;
   auto& rt = sharedRuntime();
   code.init(rt.environment(), rt.cpu_features());
@@ -1580,9 +1869,9 @@ void CopyPatchJit::compileStencilCheckVar() {
   a.cmp(r10, rdx);
   a.je(varMatched);
   // Mismatch
-  emitJmpAlt(&a, s, base);
+  emitJmpAlt(&a, s, base, hasAlt);
   a.bind(varMatched);
-  emitPushAlt(&a, s, base);
+  emitPushAlt(&a, s, base, hasAlt);
   a.inc(r13);
   emitNextJump(&a, s, base);
 
@@ -1592,21 +1881,21 @@ void CopyPatchJit::compileStencilCheckVar() {
   Label funMatched = a.new_label();
   a.cmp(r10, rdx);
   a.je(funMatched);
-  emitJmpAlt(&a, s, base);
+  emitJmpAlt(&a, s, base, hasAlt);
   a.bind(funMatched);
   // Load FUN_RIGHT_OFS into r10 before pushAlt
   a.mov(r10, qword_ptr(rax, 16));
   a.shr(r10, 3);
   a.and_(r10d, 0x1FFFFFFFu);
-  emitPushAlt(&a, s, base);
+  emitPushAlt(&a, s, base, hasAlt);
   a.add(r13, r10);
   emitNextJump(&a, s, base);
 
   s.code = extractCode(code);
 }
 
-void CopyPatchJit::compileStencilSuccessOrFail() {
-  Stencil& s = _stencils[CodeTree::SUCCESS_OR_FAIL];
+void CopyPatchJit::compileStencilSuccessOrFail(bool hasAlt) {
+  Stencil& s = _stencils[hasAlt][CodeTree::SUCCESS_OR_FAIL];
   CodeHolder code;
   auto& rt = sharedRuntime();
   code.init(rt.environment(), rt.cpu_features());
@@ -1623,7 +1912,7 @@ void CopyPatchJit::compileStencilSuccessOrFail() {
   a.jnz(isSuccess);
 
   // Fail: jmpAlt
-  emitJmpAlt(&a, s, base);
+  emitJmpAlt(&a, s, base, hasAlt);
 
   // Success:
   a.bind(isSuccess);
@@ -1634,7 +1923,7 @@ void CopyPatchJit::compileStencilSuccessOrFail() {
   a.jnz(notFirstRound);
 
   // First round: pushAlt, then yield success
-  emitPushAlt(&a, s, base);
+  emitPushAlt(&a, s, base, hasAlt);
 
   // Store op ptr into ctx
   size_t opOfs2 = emitMovAbsRax(a, PH_OPPTR) - base;
@@ -1644,13 +1933,13 @@ void CopyPatchJit::compileStencilSuccessOrFail() {
 
   // Not first round? ->backtrack
   a.bind(notFirstRound);
-  emitJmpAlt(&a, s, base);
+  emitJmpAlt(&a, s, base, hasAlt);
 
   s.code = extractCode(code);
 }
 
-void CopyPatchJit::compileStencilLitEnd() {
-  Stencil& s = _stencils[CodeTree::LIT_END];
+void CopyPatchJit::compileStencilLitEnd(bool hasAlt) {
+  Stencil& s = _stencils[hasAlt][CodeTree::LIT_END];
   CodeHolder code;
   auto& rt = sharedRuntime();
   code.init(rt.environment(), rt.cpu_features());
@@ -1663,11 +1952,11 @@ void CopyPatchJit::compileStencilLitEnd() {
   Label notFail = a.new_label();
   a.test(rdx, rdx);
   a.jnz(notFail);
-  emitJmpAlt(&a, s, base);
+  emitJmpAlt(&a, s, base, hasAlt);
 
   a.bind(notFail);
 
-  emitPushAlt(&a, s, base);
+  emitPushAlt(&a, s, base, hasAlt);
 
   // Store op ptr into ctx
   size_t opOfs = emitMovAbsRax(a, PH_OPPTR) - base;
@@ -1693,9 +1982,18 @@ void CopyPatchJit::emitBlock(CodeTree::CodeBlock* block) {
   size_t nOps = block->length();
   if (nOps == 0) return;
 
+
   // --- Helper: find the trailing NEXT_REL32 hole in a stencil ---
   // Returns the hole's rel32 offset, or -1 if the stencil has no NEXT_REL32.
   // The trailing jmp is the one with the highest offset (last emitted).
+  //  Which stencil variant an op takes. MUST be the same expression in
+  //  phase 1 (sizing) and phase 3 (copying): if they disagree, the computed
+  //  block size and the bytes written diverge and the code is corrupt.
+  //  op.alternative() cannot change inside this function.
+  auto variantOf = [](CodeTree::CodeOp& o) -> unsigned {
+    return o.alternative() != nullptr ? 1u : 0u;
+  };
+
   auto findTrailingNextOfs = [](const Stencil& st) -> int {
     int maxOfs = -1;
     for (const auto& h : st.holes) {
@@ -1719,7 +2017,7 @@ void CopyPatchJit::emitBlock(CodeTree::CodeBlock* block) {
     CodeTree::CodeOp& op = (*block)[i];
     unsigned instr = op._instruction();
     ASS(instr != CodeTree::SEARCH_STRUCT);
-    const Stencil& st = _stencils[instr];
+    const Stencil& st = _stencils[variantOf(op)][instr];
     size_t sz = st.code.size();
     if (i + 1 < nOps) {
       // Elide trailing jmp if present
@@ -1731,18 +2029,25 @@ void CopyPatchJit::emitBlock(CodeTree::CodeBlock* block) {
     totalSize += sz;
   }
 
-  // --- Phase 2: allocate contiguous executable memory ---
+    // --- Phase 2: allocate contiguous executable memory ---
   uint8_t* buf = static_cast<uint8_t*>(allocExec(totalSize));
   size_t cursor = 0;
   g_jitStats.emitBlocks++; g_jitStats.emitBytes += totalSize; g_jitStats.emitOps += nOps;
+
+  //  Record the block's true base. CodeOp::_mcode is not a substitute: the
+  //  out-of-line patch path in patchAlternative can repoint the HEAD's _mcode
+  //  at a standalone copy, after which _mcode no longer locates this
+  //  allocation. freeJitBlock and the re-layout pass both read this instead.
+  g_blockBase[&(*block)[0]] = buf;
 
   // --- Phase 3: copy-and-patch each op ---
   for (size_t i = 0; i < nOps; i++) {
     CodeTree::CodeOp& op = (*block)[i];
     unsigned instr = op._instruction();
-    const Stencil& st = _stencils[instr];
+    const unsigned var = variantOf(op);
+    const Stencil& st = _stencils[var][instr];
     bool isLast = (i + 1 == nOps);
-
+ 
     // Determine the trailing NEXT_REL32 offset and copy size.
     int trailingNextOfs = findTrailingNextOfs(st);
     size_t copySize;
@@ -1752,17 +2057,38 @@ void CopyPatchJit::emitBlock(CodeTree::CodeBlock* block) {
     } else {
       copySize = st.code.size();
     }
-
+ 
     // (a) Copy stencil bytes
     uint8_t* dest = buf + cursor;
     memcpy(dest, st.code.data(), copySize);
-
+    g_jitStats.emitOpsByKind[instr]++;
+    g_jitStats.emitBytesByKind[instr] += copySize;
+ 
     // Record _mcode
     op._mcode = dest;
-
+ 
     // Reset patch offsets
     for (int j = 0; j < 4; j++) {
       op._altPatchOfs[j] = CodeTree::CodeOp::ALT_PATCH_NONE;
+    }
+
+    //  No-alt variant: this body has no ALT holes, so all four slots stay
+    //  free. Tag slot 0, and stash the op's emitted size in slot 3 - that is
+    //  the only thing patchAlternative needs to locate this op's successor if
+    //  an alternative turns up later, because ops are laid out contiguously
+    //  and the BT stub follows the last one.
+    if (var == 0) {
+      op._altPatchOfs[0] = ALT_NOALT_TAG;
+      op._altPatchOfs[3] = static_cast<uint16_t>(copySize);
+      //  Slot 1 carries this op's index within its block, which is what lets
+      //  patchAlternative find the block HEAD from an interior op and queue the
+      //  whole block for re-emission (JIT_REEMIT). Slots 1 and 2 are unused in
+      //  the tagged form. 0xFFFF and 0xFFFE are taken as sentinels, so an index
+      //  that does not fit is recorded as unknown and the caller falls back to
+      //  the out-of-line patch.
+      op._altPatchOfs[1] = (i <= 0xFFFDu)
+                             ? static_cast<uint16_t>(i)
+                             : CodeTree::CodeOp::ALT_PATCH_NONE;
     }
 
     // (b) Patch holes
@@ -1791,6 +2117,7 @@ void CopyPatchJit::emitBlock(CodeTree::CodeBlock* block) {
           // bind stub; pushAlt dereferences _mcode at push time.
           uintptr_t altVal = reinterpret_cast<uintptr_t>(op.alternative());
           memcpy(target, &altVal, 8);
+          if (altVal) g_jitStats.altNonNull++; else g_jitStats.altNull++;
           // Record for future binary patching
           if (altPatchIdx < 4) {
             op._altPatchOfs[altPatchIdx++] = hole.offset;
@@ -1884,15 +2211,158 @@ void CopyPatchJit::emitSearchStruct(CodeTree::SearchStruct* ss) {
   dest[0] = 0x48; dest[1] = 0xBF;                        // movabs rdi, imm64
   uintptr_t lp = reinterpret_cast<uintptr_t>(&ss->landingOp);
   memcpy(dest + 2, &lp, 8);
-  dest[10] = 0xFF; dest[11] = 0xA5;                      // jmp [rbp + disp32]
-  uint32_t disp = static_cast<uint32_t>(offsetof(JitExecContext, ssDispatchStub));
-  memcpy(dest + 12, &disp, 4);
+  //  Jump to the shared dispatch stub DIRECTLY where it is in range: 5 bytes
+  //  instead of 6, and resolved at decode rather than through a memory operand.
+  bool direct = false;
+  if (_ssDispatchStub && !std::getenv("JIT_NO_SS_DIRECT")) {
+    int64_t rel = static_cast<int64_t>(reinterpret_cast<uintptr_t>(_ssDispatchStub))
+                - static_cast<int64_t>(reinterpret_cast<uintptr_t>(dest) + 15);
+    if (rel >= INT32_MIN && rel <= INT32_MAX) {
+      int32_t r32 = static_cast<int32_t>(rel);
+      dest[10] = 0xE9;                                   // jmp rel32
+      memcpy(dest + 11, &r32, 4);
+      dest[15] = 0x90;                                   // pad to 16
+      direct = true;
+    }
+  }
+  if (!direct) {
+    dest[10] = 0xFF; dest[11] = 0xA5;                    // jmp [rbp + disp32]
+    uint32_t disp = static_cast<uint32_t>(offsetof(JitExecContext, ssDispatchStub));
+    memcpy(dest + 12, &disp, 4);
+  }
   flushICache(dest, LANDING_STUB_SIZE);
   ss->landingOp._mcode = dest;
   perfMapAdd(dest, LANDING_STUB_SIZE, "ss_%p_n%zu", (void*)ss, ss->length());
   g_jitStats.ssEmits++; g_jitStats.ssBytes += LANDING_STUB_SIZE;
+  if (direct) g_jitStats.ssDirectStubs++; else g_jitStats.ssIndirectStubs++;
 }
 
+
+/*
+ * emitOutOfLineOp - a standalone FULL-variant copy of one op.
+ *
+ * Needed because an op emitted from the no-alt stencil variant has no ALT hole
+ * to patch when an alternative appears later. Instead of re-emitting the whole
+ * block (which would need an interior-op-to-block lookup that does not exist,
+ * and would invalidate live code) the op's first five bytes become a jmp to a
+ * fresh full-size copy, and the copy transfers to the original op's successor.
+ *
+ * Three differences from the per-op path in emitBlock:
+ *   - always the alt=1 variant, since the whole point is that an alternative
+ *     now exists;
+ *   - NO trailing-jmp elision: nothing is laid out after this copy;
+ *   - every NEXT_REL32 hole, the trailing one included, targets `successor`.
+ *
+ * Rewrites op._altPatchOfs, but only ONCE EVERY HOLE IS FILLED, so later
+ * changes to this op's alternative patch the copy through the ordinary path and
+ * a failure part-way leaves the op exactly as it was. Does NOT touch
+ * op._mcode: the caller repoints that only once the jmp has actually been
+ * written.
+ *
+ * Bytes land in oolBytes, deliberately NOT in emitBytes, so that the
+ * by-kind accounting identity (sum of bytes_* == emit_bytes - 6 per block)
+ * stays exact.
+ */
+uint8_t* CopyPatchJit::emitOutOfLineOp(CodeTree::CodeOp& op, uint8_t* successor)
+{
+  unsigned instr = op._instruction();
+  if (instr == CodeTree::SEARCH_STRUCT) return nullptr;
+  const Stencil& st = _stencils[1][instr];
+  if (st.code.empty()) return nullptr;
+
+  const size_t copySize = st.code.size();
+  uint8_t* dest = static_cast<uint8_t*>(allocExec(copySize));
+  if (!dest) return nullptr;
+  memcpy(dest, st.code.data(), copySize);
+
+  //  op._altPatchOfs is NOT touched until the hole loop has succeeded.
+  //
+  //  The NEXT_REL32 case below can still fail after some holes are filled. An
+  //  earlier version overwrote the four slots up front, so a failure there left
+  //  the op with ALT_NOALT_TAG gone and hole offsets describing a copy that was
+  //  then abandoned, while _mcode still pointed into the block. The next
+  //  patchAlternative would take the ordinary branch and try to write eight
+  //  bytes at block_base + copy_offset - caught by the site-byte check at the
+  //  bottom of patchAlternative only when the bytes there happen not to look
+  //  like 48 B8 / 48 B9 / E9.
+  //
+  //  Staging them means every failure return leaves the op exactly as it was:
+  //  still tagged, still described by its in-block code, and the caller's
+  //  ool_failed / ool_unreachable tripwire is the only consequence.
+  uint16_t staged[4] = { CodeTree::CodeOp::ALT_PATCH_NONE,
+                         CodeTree::CodeOp::ALT_PATCH_NONE,
+                         CodeTree::CodeOp::ALT_PATCH_NONE,
+                         CodeTree::CodeOp::ALT_PATCH_NONE };
+
+  int altPatchIdx = 0;
+  for (const auto& hole : st.holes) {
+    uint8_t* target = dest + hole.offset;
+
+    switch (hole.kind) {
+      case StencilHole::ALT_PTR:
+      case StencilHole::ALT_PTR_PUSH: {
+        uintptr_t altVal = reinterpret_cast<uintptr_t>(op.alternative());
+        memcpy(target, &altVal, 8);
+        if (altVal) g_jitStats.altNonNull++; else g_jitStats.altNull++;
+        if (altPatchIdx < 4) {
+          staged[altPatchIdx++] = hole.offset;
+        }
+        break;
+      }
+
+      case StencilHole::FUNCTOR_IMM32: {
+        uint32_t functor = static_cast<uint32_t>(op._arg());
+        memcpy(target, &functor, 4);
+        break;
+      }
+
+      case StencilHole::VAR_BYTE_OFS: {
+        uint32_t byteOfs = static_cast<uint32_t>(op._arg() * sizeof(TermList));
+        memcpy(target, &byteOfs, 4);
+        break;
+      }
+
+      case StencilHole::GROUND_TERM_PTR: {
+        uintptr_t termPtr = reinterpret_cast<uintptr_t>(op.getTargetTerm());
+        memcpy(target, &termPtr, 8);
+        break;
+      }
+
+      case StencilHole::OP_IMM_PTR: {
+        uintptr_t opPtr = reinterpret_cast<uintptr_t>(&op);
+        memcpy(target, &opPtr, 8);
+        break;
+      }
+
+      case StencilHole::NEXT_REL32: {
+        int64_t ipAfterJmp = static_cast<int64_t>(reinterpret_cast<uintptr_t>(target) + 4);
+        int64_t rel = static_cast<int64_t>(reinterpret_cast<uintptr_t>(successor)) - ipAfterJmp;
+        if (rel < INT32_MIN || rel > INT32_MAX) {
+          g_jitStats.oolUnreachable++;
+          //  Nothing points at the copy yet - op._altPatchOfs is staged and
+          //  _mcode is untouched - so hand the space straight back rather than
+          //  leaking it on a path that is already pathological.
+          freeExec(dest);
+          return nullptr;
+        }
+        int32_t r = static_cast<int32_t>(rel);
+        memcpy(target, &r, 4);
+        break;
+      }
+    }
+  }
+
+  //  Commit. From here the op is described by the copy, so later changes to its
+  //  alternative patch the copy through the ordinary immediate-rewrite path.
+  for (int j = 0; j < 4; j++) { op._altPatchOfs[j] = staged[j]; }
+
+  //  Counted here rather than at the memcpy above so ool_bytes means bytes of
+  //  LIVE out-of-line code. The difference is only visible on the failure
+  //  return above, which is a tripwire that must stay 0.
+  g_jitStats.oolBytes += copySize;
+
+  return dest;
+}
 
 /*
  * patchAlternative - called whenever op->_alternative changes on an op that
@@ -1916,6 +2386,63 @@ void CopyPatchJit::patchAlternative(CodeTree::CodeOp* op) {
   g_jitStats.patchAltCalls++;
   uintptr_t alt = reinterpret_cast<uintptr_t>(op->alternative());
   auto base = static_cast<uint8_t*>(op->_mcode);
+
+  //  NO-ALT FORM. This op has no ALT hole, because it was emitted from the
+  //  variant that omits the whole pushAlt/jmpAlt apparatus. Replace its first
+  //  five bytes with a jmp to a full-size out-of-line copy, which runs the real
+  //  alt logic and then transfers to this op's successor.
+  //
+  //  Safe because no stencil branches into its own first 25 bytes (verified on
+  //  all six alt=0 variants), so the five bytes being overwritten are never a
+  //  jump target. The three mangled bytes of whatever immediate started the op
+  //  are unreachable the moment byte 0 becomes a jump, and the only non-ALT
+  //  holes in the system are write-once at emission.
+  //
+  //  Assumes index mutation never interleaves with matching: nothing may be
+  //  executing inside this op while its head is rewritten. The backtrack stack
+  //  holds CodeOp* rather than _mcode (see emitPushAlt) so no stale code
+  //  address is parked anywhere, but this is the assumption the scheme rests on.
+  if (op->_altPatchOfs[0] == ALT_NOALT_TAG) {
+    if (!alt) return;                       // still null: nothing to do
+    g_jitStats.altFirstAppear++;
+
+    uint8_t* successor = base + op->_altPatchOfs[3];
+    uint8_t* copy = emitOutOfLineOp(*op, successor);
+    if (!copy) {
+      //  UNSOUND if this ever fires: the alternative is unreachable from
+      //  compiled code and the match set is incomplete. Must stay 0.
+      g_jitStats.oolFailed++;
+      return;
+    }
+
+    int64_t rel = static_cast<int64_t>(reinterpret_cast<uintptr_t>(copy))
+                - static_cast<int64_t>(reinterpret_cast<uintptr_t>(base) + 5);
+    if (rel < INT32_MIN || rel > INT32_MAX) {
+      //  Also unsound: entries via _mcode reach the copy but fall-through from
+      //  the previous op in the block does not. Must stay 0.
+      g_jitStats.oolUnreachable++;
+      op->_mcode = copy;
+      return;
+    }
+
+    int32_t r32 = static_cast<int32_t>(rel);
+    base[0] = 0xE9;
+    memcpy(base + 1, &r32, 4);
+    op->_mcode = copy;
+    g_jitStats.oolPatches++;
+    return;
+  }
+
+  //  Residual safety net: a non-null alternative on an op that is neither
+  //  tagged nor carries a hole would be silently lost. Must stay 0.
+  {
+    bool hasHole = false;
+    for (int j = 0; j < 4; j++) {
+      if (op->_altPatchOfs[j] != CodeTree::CodeOp::ALT_PATCH_NONE) { hasHole = true; break; }
+    }
+    if (alt && !hasHole) { g_jitStats.altLostPatch++; return; }
+  }
+
   for (int j = 0; j < 4; j++) {
     auto ofs = op->_altPatchOfs[j];
     if (ofs == CodeTree::CodeOp::ALT_PATCH_NONE) continue;

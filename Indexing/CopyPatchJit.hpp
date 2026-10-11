@@ -157,6 +157,8 @@ public:
   /** Count one soft-budget refusal (a JIT entry declined because this tree
    *  has emitted its full code budget). Called from CodeTree. */
   static void recordBudgetStop();
+  static void recordBudgetStopLive();
+  static bool budgetFixOn();
 
   //  ---- tiered compilation ---------------------------------------------
   //  A block is emitted only once it has been entered JIT_TIER_THRESHOLD
@@ -165,15 +167,38 @@ public:
   //  belong to blocks that are entered once and never sampled again.
   /** Bump and return this block's entry count (keyed on its first op). */
   static unsigned noteBlockEntry(const void* firstOp);
+  //  Block-base bookkeeping. CodeOp::_mcode is NOT a reliable block base: the
+  //  out-of-line patch path repoints a head's _mcode at a standalone copy.
+  static void* blockBase(const void* firstOp);
+  static void forgetBlockBase(const void* firstOp);
+  static void forgetBlockEntries(const void* firstOp);
+
   /** Address of the shared deopt stub, reachable from the static helpers that
    *  emitted code calls into. One exec region per process means one stub. */
   static void* _deoptStubAddr;
   static void recordTierDeopt();
   static void recordEntryNotHead();
+  static void recordBackptrPeak(size_t liveEntries);
+  static void recordBackptrSet();
+  static void recordBackptrRemove();
+  static void recordBackptrCheck();
+  static void recordBackptrMismatch();
   static void recordEmptyTree();
   static void recordDeoptNullOp();
   static void recordTierCompile();
   static bool deoptAllowed();
+
+    //  Re-emission of a block whose op acquired an alternative late (JIT_REEMIT).
+  static bool     reemitOn();
+  static bool     isNoAltTagged(const CodeTree::CodeOp* op);
+  static unsigned noAltOpIndex(const CodeTree::CodeOp* op);
+  static unsigned altIndexUnknown();
+  static void     noteReemitQueued();
+  static void     noteReemitFallback();
+  static void     noteReemitNoReferrer();
+  static void     noteReemitBlock(size_t bytes);
+  static size_t reemitBlockOpCap();
+  static void   noteReemitTooBig();
 
   // Non-copyable
   CopyPatchJit(const CopyPatchJit&) = delete;
@@ -288,22 +313,23 @@ public:
 
 private:
   void compileTrampoline();
-  void compileStencilCheckFun();
-  void compileStencilCheckGroundTerm();
-  void compileStencilAssignVar();
-  void compileStencilCheckVar();
-  void compileStencilSuccessOrFail();
-  void compileStencilLitEnd();
+  void compileStencilCheckFun(bool hasAlt);
+  void compileStencilCheckGroundTerm(bool hasAlt);
+  void compileStencilAssignVar(bool hasAlt);
+  void compileStencilCheckVar(bool hasAlt);
+  void compileStencilSuccessOrFail(bool hasAlt);
+  void compileStencilLitEnd(bool hasAlt);
   void compileExpandStub();
   void compileLazyCompileStub();
   void compileBindJmpAltStub();
   void compileSsDispatchStub();
   void compileDeoptStub();
+  void emitSsDispatchTail(void* asm_ptr);
 
-  void emitPushAlt(void* assembler_ptr, Stencil& s, size_t baseOffset);
-  void emitJmpAlt(void* assembler_ptr, Stencil& s, size_t baseOffset);
+  void emitPushAlt(void* assembler_ptr, Stencil& s, size_t baseOffset, bool hasAlt);
+  void emitJmpAlt(void* assembler_ptr, Stencil& s, size_t baseOffset, bool hasAlt);
   void emitNextJump(void* assembler_ptr, Stencil& s, size_t baseOffset);
-  void* allocExec(size_t size);
+  void* allocExec(size_t userSize);
   void  freeExec(void* ptr);
 
   // TODO revise this strategy, i feel like this is not optimal
@@ -355,7 +381,7 @@ private:
   void  ensureSlabSpace(size_t size);
 
   bool _initialized = false;
-  Stencil _stencils[7];
+  Stencil _stencils[2][7];
 
   TrampolineFunc _trampoline = nullptr;
 
@@ -375,6 +401,8 @@ private:
   void* _deoptStub   = nullptr;
   void* _exitHandler = nullptr;   // trampoline's epilogue, target of the above
   void* _bailoutHandler = nullptr;
+
+  uint8_t* emitOutOfLineOp(CodeTree::CodeOp& op, uint8_t* successor);
 
 };
 

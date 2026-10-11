@@ -654,6 +654,25 @@ bool CodeTree::Matcher<removing, checkRange, higherOrder>::execute()
   }
 }
 
+//  Hand the JIT's parked backtrack entries to the interpreter.
+//
+//  The two engines share the entry shape - {tp, CodeOp*}, i.e. BTPoint - so
+//  this is a copy with no translation. That is what makes deopt cheap, and it
+//  is also why forgetting to call it fails SILENTLY rather than crashing:
+//  there is nothing to validate, so the entries are simply never read.
+template<bool removing, bool checkRange, bool higherOrder>
+void CodeTree::Matcher<removing, checkRange, higherOrder>::handBacktrackStateToInterpreter()
+{
+  if constexpr (!removing && !checkRange) {
+    static_assert(sizeof(BTPoint) == 16, "JIT backtrack entries must be BTPoints");
+    for (BTPoint* p = _jitBtBuf; p != _jitBtCursor; ++p) {
+      btStack.push(*p);
+    }
+    _jitBtCursor = _jitBtBuf;
+    _deopted     = true;
+  }
+}
+
 template<bool removing, bool checkRange, bool higherOrder>
 bool CodeTree::Matcher<removing, checkRange, higherOrder>::executeMachineCode()
 {
@@ -670,11 +689,47 @@ bool CodeTree::Matcher<removing, checkRange, higherOrder>::executeMachineCode()
     case CopyPatchJit::JitMode::TermOnly:   if ( tree->_clauseCodeTree) { return execute(); } break;
     case CopyPatchJit::JitMode::Both:       break;
   }
-  // Soft code budget: refuse to enter JIT code once the process has emitted
-  // enough. Compilation is only ever triggered from inside JIT execution, so
-  // this single check bounds the JIT's memory; from here the tree runs
-  // interpreted and the proof search continues normally.
-  if (CopyPatchJit::outOfBudget()) { CopyPatchJit::recordBudgetStop(); return execute(); }
+  //  Soft code budget: refuse to enter JIT code once the process has emitted
+  //  enough. Compilation is only ever triggered from inside JIT execution, so
+  //  this single check bounds the JIT's memory; from here the tree runs
+  //  interpreted and the proof search continues normally.
+  //
+  //  THE INTERPRETER MUST BE HANDED ANY LIVE JIT BACKTRACK STATE FIRST.
+  //  Three states reach this point and only the third is unsafe:
+  //
+  //    fresh                 the retrieval has not started. init() sets the
+  //                          cursor to the base four lines after setting
+  //                          fresh, so nothing is parked.
+  //    _deopted              the previous call already migrated into btStack
+  //                          and reset the cursor, in
+  //                          handBacktrackStateToInterpreter().
+  //    neither, and the      the previous call returned from INSIDE JIT code
+  //    cursor is off base    having yielded a match, with alternatives parked
+  //                          in _jitBtBuf. A bare `return execute()` here
+  //                          makes the interpreter backtrack against an EMPTY
+  //                          btStack; backtrack() then advances to the next
+  //                          query literal and every parked alternative is
+  //                          silently dropped.
+  if (CopyPatchJit::outOfBudget()) {
+    CopyPatchJit::recordBudgetStop();
+    if constexpr (!removing && !checkRange) {
+      if (!fresh && !_deopted && _jitBtCursor != _jitBtBuf) {
+        CopyPatchJit::recordBudgetStopLive();
+        if (CopyPatchJit::budgetFixOn()) { handBacktrackStateToInterpreter(); }
+      }
+    }
+    return execute();
+  }
+
+  //  SAFE POINT. Drain before any JIT code runs: a queued block still has its
+  //  no-alt compiled form, whose fail path backtracks instead of trying the
+  //  alternative that was just added, so executing it would DROP A MATCH. The
+  //  interpreter is unaffected either way (execute() reads op->alternative()
+  //  straight from the CodeOp).
+  //
+  //  Returning early above leaves the queue intact, which is safe for the same
+  //  reason: the interpreter does not need it.
+  tree->drainReemitQueue();
 
   // Lazy compilation: compile entry block on first encounter
   if (!entry->_mcode) {
@@ -698,8 +753,8 @@ bool CodeTree::Matcher<removing, checkRange, higherOrder>::executeMachineCode()
     if (_deopted) {
       //  The previous call ended in the interpreter, so the backtrack state
       //  lives in btStack. Move it back so JIT code can own it again - the
-      //  exact inverse of the transfer in the deopt path below, and safe for
-      //  the same reason (both sides are BTPoints).
+      //  exact inverse of handBacktrackStateToInterpreter(), and safe for the
+      //  same reason (both sides are BTPoints).
       //
       //  This is what lets cold blocks warm up: each call that reaches one
       //  counts it, rather than the first deopt silencing the counter forever.
@@ -757,7 +812,9 @@ bool CodeTree::Matcher<removing, checkRange, higherOrder>::executeMachineCode()
   ctx->deopt    = 0;
 
   jitFn(ctx);
+#ifdef JIT_RATE_COUNTERS
   CopyPatchJit::recordBtPops(ctx->btPops);
+#endif
 
   if (ctx->bailout) {
     // The HARD code budget was hit inside JIT-called code, which cannot throw
@@ -798,22 +855,15 @@ bool CodeTree::Matcher<removing, checkRange, higherOrder>::executeMachineCode()
   if constexpr (!removing && !checkRange) {
     if (ctx->deopt) {
       if (!op) { CopyPatchJit::recordDeoptNullOp(); }
-      //  A cold block was reached: hand this CALL to the interpreter. The
-      //  JIT's backtrack entries are {tp, CodeOp*} pairs, i.e. BTPoints, so
-      //  they transfer unchanged.
+      //  A cold block was reached: hand this CALL to the interpreter.
       //
       //  Deopt is per call, not per matcher. Making it permanent is
       //  self-defeating: the entry counter only rises inside
       //  lazyCompileBlock, which is only reached from JIT code, so a matcher
       //  that never returns to JIT code never makes anything hot. Measured,
       //  that collapsed HWV069+1 from 113 MB of emitted code to 0.23 MB.
-      static_assert(sizeof(BTPoint) == 16, "JIT backtrack entries must be BTPoints");
-      for (BTPoint* p = _jitBtBuf; p != _jitBtCursor; ++p) {
-        btStack.push(*p);
-      }
-      _jitBtCursor = _jitBtBuf;
-      fresh    = true;   //  resume AT op instead of backtracking away from it
-      _deopted = true;   //  cleared on the next call, once the stack moves back
+      handBacktrackStateToInterpreter();   //  also sets _deopted
+      fresh = true;   //  resume AT op instead of backtracking away from it
       return execute();
     }
   }
@@ -822,7 +872,6 @@ bool CodeTree::Matcher<removing, checkRange, higherOrder>::executeMachineCode()
   _matched = false;
   return false;
 }
-
 template<bool removing, bool checkRange,bool higherOrder>
 void CodeTree::Matcher<removing, checkRange, higherOrder>::init(CodeTree* tree_, CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_, Stack<CodeOp*>* firstsInBlocks_)
 {
@@ -1334,6 +1383,7 @@ void CodeTree::incorporate(CodeStack& code)
 
   size_t clen=code.length();
   CodeOp** tailTarget = nullptr;
+  CodeOp* tailOwner = nullptr;
   bool tailIsAlternative = false;
   size_t matchedCnt;
   ILStruct* lastMatchedILS=0;
@@ -1355,6 +1405,7 @@ void CodeTree::incorporate(CodeStack& code)
             if (!*toPtr) {
               tailTarget = toPtr;
               tailIsAlternative = false;
+              tailOwner = &ss->landingOp;
               // modifiedSearchStruct = ss;   // track which struct gained a new target slot
               matchedCnt = i;
               goto matching_done;
@@ -1374,6 +1425,7 @@ void CodeTree::incorporate(CodeStack& code)
           //matching failed, we'll add the new branch here
           tailTarget = &treeOp->alternative();
           tailIsAlternative = true;
+          tailOwner = treeOp;
           matchedCnt = i;
           goto matching_done;
         }
@@ -1432,6 +1484,7 @@ void CodeTree::incorporate(CodeStack& code)
       treeOp = treeOp->alternative();
     }
     tailTarget = &treeOp->alternative();
+    tailOwner = treeOp;
     tailIsAlternative = true;
   }
 matching_done:
@@ -1443,6 +1496,9 @@ matching_done:
   CodeOp* newFirst = &(*rem)[0];
   *tailTarget = newFirst;
 
+  ASS(tailOwner);
+  setReferrer(newFirst, tailOwner);
+
   // if (modifiedSearchStruct && modifiedSearchStruct->landingOp._mcode) {
   //   // SearchStruct was already compiled but its target list changed, meaning we
   //   // have to re-emit so the compiled binary search picks up the new slot.
@@ -1452,6 +1508,7 @@ matching_done:
   if (tailIsAlternative) {
     CodeOp* owner = reinterpret_cast<CodeOp*>(reinterpret_cast<char*>(tailTarget) - offsetof(CodeOp, _alternative));
     patchAlternative(owner);
+    ASS_EQ(owner, tailOwner);
   }
 
   //truncate the part that was used and thus does not need disposing
@@ -1533,16 +1590,19 @@ void CodeTree::compressCheckOps(CodeOp* chainStart)
     res->targets.push_back(chfOps[i]);
     chfOps[i]->setAlternative(0);
     patchAlternative(chfOps[i]);
+    setReferrer(chfOps[i], &res->landingOp);
   }
 
   // Install the new SearchStruct into the chain.
   CodeOp* op=&res->landingOp;
   chainStart->setAlternative(op);
   patchAlternative(chainStart);
+  setReferrer(op, chainStart);         // op == &res->landingOp
   while(otherOps.isNonEmpty()) {
     CodeOp* next=otherOps.pop();
     op->setAlternative(next);
     patchAlternative(op);
+    setReferrer(next, op);
     op=next;
   }
   op->setAlternative(0);
@@ -1551,6 +1611,11 @@ void CodeTree::compressCheckOps(CodeOp* chainStart)
 }
 
 //////////// removal //////////////
+static bool backptrEnabled()
+{
+  static const bool on = std::getenv("JIT_NO_BACKPTR") == nullptr;
+  return on;
+}
 
 void CodeTree::optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp* removedOp)
 {
@@ -1562,6 +1627,12 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp
   ASS(firstsInBlocks->isNonEmpty());
   CodeOp* firstOp=firstsInBlocks->pop();
   for(;;) {
+    //  PHASE 1 verification state. Re-set on every iteration: the map entry for
+    //  whichever key the scan below will use must be read BEFORE dropReferrer
+    //  deletes it.
+    CodeOp* mappedReferrer = nullptr;
+    bool hadMapping = false;
+
     //firstOp is in a CodeBlock
     ASS(!firstOp->isSearchStruct());
     //op is in the CodeBlock starting at firstOp
@@ -1587,6 +1658,7 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp
       //we cannot replace it by its alternative as it is not a CodeBlock
       //(it's a SearchStruct). Therefore w will not delete it, just set
       //the first operation to fail.
+      //  The block survives and no edge changes, so firstOp keeps its entry.
       ASS_EQ(cb,_entryPoint);
       firstOp->makeFail();
       return;
@@ -1597,13 +1669,20 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp
     // Free the JIT code for this block before deallocation
     freeJitBlock(cb);
 
+    //  Read the map for firstOp, then drop it. The comparison happens after the
+    //  scan below, by which point this key no longer exists.
+    if (backptrEnabled()) {
+      hadMapping = _blockReferrer.find(firstOp, mappedReferrer);
+    }
+    dropReferrer(firstOp);
+
     if(_clauseCodeTree) {
       //delete ILStruct objects
       size_t cbLen=cb->length();
       for(size_t i=0;i<cbLen;i++) {
-	if((*cb)[i].isLitEnd()) {
-	  delete (*cb)[i].getILS();
-	}
+        if((*cb)[i].isLitEnd()) {
+          delete (*cb)[i].getILS();
+        }
       }
     }
     cb->deallocate(); //from now on we mustn't dereference firstOp
@@ -1611,6 +1690,9 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp
     if(firstsInBlocks->isEmpty()) {
       ASS(!alt || !alt->isSearchStruct());
       ASS_EQ(cb,_entryPoint);
+      //  alt becomes the entry point, and the entry point has no referrer:
+      //  entries re-read _mcode on every call, so nothing needs unbinding.
+      if (alt) dropReferrer(alt);
       _entryPoint=alt ? firstOpToCodeBlock(alt) : 0;
       return;
     }
@@ -1620,32 +1702,40 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp
 
     if(prevFirstOp->isSearchStruct()) {
       if(prevFirstOp->alternative()==firstOp) {
-	//firstOp was an alternative to the SearchStruct
-	prevFirstOp->setAlternative(alt);
-	return;
+        //firstOp was an alternative to the SearchStruct
+        if (alt) setReferrer(alt, prevFirstOp);
+        prevFirstOp->setAlternative(alt);
+        return;
       }
       auto ss = prevFirstOp->getSearchStruct();
       CodeOp** tgtPtr;
       ALWAYS(ss->getTargetOpPtr<false>(firstOpCopy, tgtPtr));
       ASS_EQ(*tgtPtr, firstOp);
       *tgtPtr=alt;
+      //  alt now sits in ss->targets[], so the SS is its referrer.
+      if (alt) setReferrer(alt, &ss->landingOp);
       if(alt) {
-	ASS( (ss->kind==SearchStruct::FN_STRUCT && alt->isCheckFun()) ||
-	    (ss->kind==SearchStruct::GROUND_TERM_STRUCT && alt->isCheckGroundTerm()) );
-	// if (ss->landingOp._mcode) { jitSearchStruct(ss); }  // Re-emit: target pointer changed
-	return;
+	      ASS( (ss->kind==SearchStruct::FN_STRUCT && alt->isCheckFun()) ||
+	      (ss->kind==SearchStruct::GROUND_TERM_STRUCT && alt->isCheckGroundTerm()) );
+        // if (ss->landingOp._mcode) { jitSearchStruct(ss); }  // Re-emit: target pointer changed
+        return;
       }
       for(size_t i=0; i<ss->length(); i++) {
-	if(ss->targets[i]!=0) {
-	  //the SearchStruct still contains something, so we won't delete it
-	  // if (ss->landingOp._mcode) { jitSearchStruct(ss); }  // Re-emit: target slot nulled
-	  return;
-	}
+        if(ss->targets[i]!=0) {
+          //the SearchStruct still contains something, so we won't delete it
+          // if (ss->landingOp._mcode) { jitSearchStruct(ss); }  // Re-emit: target slot nulled
+          return;
+        }
       }
 
       //if we're at this point, the SEARCH_STRUCT will be deleted
       firstOp=&ss->landingOp;
       alt=ss->landingOp.alternative();
+      //  firstOp is now the landingOp, so the scan below looks for whoever
+      //  points at IT. Re-read the map for the new key, then drop it - this
+      //  overwrites the capture taken above, which is correct.
+      hadMapping = _blockReferrer.find(firstOp, mappedReferrer);
+      dropReferrer(&ss->landingOp);
       freeJitSearchStruct(ss);
       ss->destroy();
 
@@ -1671,8 +1761,22 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp
     }
     pointingOp=prevOp;
 
+    //  PHASE 1: the map must agree with the scan it is meant to replace.
+    //  backptr_mismatch must stay 0. Remove this block, and the scan above,
+    //  only once that has held on the gates and a sweep.
+    {
+      if (backptrEnabled()) {
+        CopyPatchJit::recordBackptrCheck();
+        if (!hadMapping || mappedReferrer != pointingOp) {
+          CopyPatchJit::recordBackptrMismatch();
+        }
+      }
+    }
+
     pointingOp->setAlternative(alt);
     patchAlternative(pointingOp);
+    //  alt's incoming edge is now pointingOp.
+    if (alt) setReferrer(alt, pointingOp);
     if(pointingOp->isSuccess()) {
       return;
     }
@@ -1682,8 +1786,8 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp
       ASS_NEQ(prevOp->alternative(),firstOp);
 
       if(prevOp->alternative() || prevOp->isSuccess()) {
-	//there is an operation after the pointingOp that cannot be lost
-	return;
+        //there is an operation after the pointingOp that cannot be lost
+        return;
       }
       prevOp++;
     }
@@ -1764,15 +1868,20 @@ void CodeTree::jitSearchStruct(SearchStruct* ss)
 void CodeTree::freeJitBlock(CodeBlock* block)
 {
   if (!block || block->length() == 0) return;
-  // The entire block shares one contiguous JIT allocation whose base is the first op's _mcode pointer.
-  void* base = (*block)[0]._mcode;
+  //  NOT (*block)[0]._mcode: the out-of-line patch path can have repointed it
+  //  at a standalone copy, in which case that frees the copy and leaks the block.
+  void* base = CopyPatchJit::blockBase(&(*block)[0]);
   if (base) {
     _cpJit->freeCode(base);
-    // Clear _mcode on all ops so nothing can jump into freed memory
+    CopyPatchJit::forgetBlockBase(&(*block)[0]);
     for (size_t i = 0; i < block->length(); i++) {
       (*block)[i]._mcode = nullptr;
     }
   }
+  //  Unconditional, and deliberately outside the `if`: a block that was never
+  //  compiled still accumulated entry counts on its way to the threshold, and
+  //  those must not outlive it either.
+  CopyPatchJit::forgetBlockEntries(&(*block)[0]);
 }
 
 void CodeTree::freeJitSearchStruct(SearchStruct* ss)
@@ -1786,7 +1895,125 @@ void CodeTree::freeJitSearchStruct(SearchStruct* ss)
 
 void CodeTree::patchAlternative(CodeOp* op)
 {
+  //  Only the no-alt tagged form is divertible. Everything else has real ALT
+  //  holes and must go through the ordinary immediate rewrite, which is also
+  //  what unbinds a bound jmpAlt site.
+  if (queueForReemit(op)) return;
   _cpJit->patchAlternative(op);
+}
+void CodeTree::setReferrer(CodeOp* key, CodeOp* referrer)
+{
+  if (!backptrEnabled()) return;
+  ASS(key);
+  ASS(referrer);
+  _blockReferrer.set(key, referrer);
+  CopyPatchJit::recordBackptrSet();
+  CopyPatchJit::recordBackptrPeak(_blockReferrer.size());
+}
+
+void CodeTree::dropReferrer(CodeOp* key)
+{
+  if (!backptrEnabled()) return;
+  if (_blockReferrer.remove(key)) {
+    CopyPatchJit::recordBackptrRemove();
+  }
+}
+
+/**
+ * Queue op's whole block for re-emission instead of hanging an out-of-line
+ * trampoline off it. Returns true iff the caller should skip the out-of-line
+ * patch entirely.
+ */
+bool CodeTree::queueForReemit(CodeOp* op)
+{
+  if (!CopyPatchJit::reemitOn()) return false;
+  if (!op->_mcode) return false;   // never compiled
+  if (op->isSearchStruct()) return false;
+  if (!op->alternative()) return false;   // still null: nothing to do
+  if (!CopyPatchJit::isNoAltTagged(op)) return false; // has real ALT holes
+
+  const unsigned idx = CopyPatchJit::noAltOpIndex(op);
+  if (idx == CopyPatchJit::altIndexUnknown()) {
+    CopyPatchJit::noteReemitFallback();
+    return false; // index did not fit at emission
+  }
+
+  CodeOp* head = op - idx;
+  //  The head must be a block head we have a recorded base for, or we cannot
+  //  free the old allocation and must not move it.
+  if (!CopyPatchJit::blockBase(head)) {
+    CopyPatchJit::noteReemitFallback();
+    return false;
+  }
+  //  Too large to be worth re-emitting. the cost is linear in block
+  //  ops, the benefit is not. Fall back to the out-of-line patch.
+  if (firstOpToCodeBlock(head)->length() > CopyPatchJit::reemitBlockOpCap()) {
+    CopyPatchJit::noteReemitTooBig();
+    return false;
+  }
+  //  Dedupe: ops are patched repeatedly and one re-emission fixes every op in the
+  //  block at once.
+  for (size_t i = 0; i < _reemitQueue.size(); i++) {
+    if (_reemitQueue[i] == head) return true;
+  }
+  _reemitQueue.push(head);
+  CopyPatchJit::noteReemitQueued();
+  return true;
+}
+
+/**
+ * Re-emit every queued block, then unbind whatever pointed at it, then free the
+ * old allocations.
+ *
+ * WHY THE ORDER. Re-emit before freeing, because freeExec pushes onto the
+ * size-class free lists and allocExec pops from them - freeing first would hand
+ * the same addresses straight back. Unbind after re-emitting, because a
+ * referrer that is ITSELF in the queue comes back with fresh INITIAL-form sites
+ * and needs no unbinding, and patchAlternative on such a site is idempotent.
+ */
+void CodeTree::drainReemitQueue()
+{
+  if (_reemitQueue.isEmpty()) return;
+
+  static Stack<void*>  oldBases;
+  static Stack<CodeOp*> done;
+  oldBases.reset(); done.reset();
+
+  //  Phase 1: re-emit. Each block now takes the FULL variant for any op that
+  //  has an alternative, so the trampoline never gets created.
+  for (size_t i = 0; i < _reemitQueue.size(); i++) {
+    CodeOp* head = _reemitQueue[i];
+    void* oldBase = CopyPatchJit::blockBase(head);
+    if (!oldBase) { CopyPatchJit::noteReemitFallback(); continue; }
+    CodeBlock* cb = firstOpToCodeBlock(head);
+    oldBases.push(oldBase);
+    done.push(head);
+    jitBlock(cb);
+    CopyPatchJit::noteReemitBlock(cb->length());
+  }
+
+  //  Phase 2: unbind the one referrer of each moved block. The immediate it
+  //  holds is a CodeOp* and has not changed; what must be undone is any
+  //  jmp-rel32 binding to the old address, which is exactly what
+  //  patchAlternative's unbind branch does.
+  for (size_t i = 0; i < done.size(); i++) {
+    CodeOp* referrer = nullptr;
+    if (!_blockReferrer.find(done[i], referrer) || !referrer) {
+      //  The entry point has no referrer by design, and entries re-read
+      //  entry->_mcode on every call, so nothing to do.
+      CopyPatchJit::noteReemitNoReferrer();
+      continue;
+    }
+    //  A SearchStruct referrer needs nothing: emitSsDispatchTail loads the
+    //  target's _mcode at runtime
+    if (referrer->isSearchStruct()) continue;
+    _cpJit->patchAlternative(referrer);
+  }
+
+  //  Phase 3: nothing points at the old code any more.
+  while (oldBases.isNonEmpty()) { _cpJit->freeCode(oldBases.pop()); }
+
+  _reemitQueue.reset();
 }
 
 }

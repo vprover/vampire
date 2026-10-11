@@ -395,6 +395,7 @@ public:
 
     bool execute();
     bool executeMachineCode();
+    void handBacktrackStateToInterpreter();
 
     /**
      * Pointer to the current operation
@@ -547,6 +548,20 @@ public:
   void freeJitSearchStruct(SearchStruct* ss);
   void patchAlternative(CodeOp* op);
   void incorporate(CodeStack& code);
+  //  Incoming-edge bookkeeping. Defined in CodeTree.cpp, not here: CopyPatchJit
+  //  is incomplete in this header and these call its static counters.
+  void setReferrer(CodeOp* key, CodeOp* referrer);
+  void dropReferrer(CodeOp* key);
+
+  bool queueForReemit(CodeOp* op);
+  void drainReemitQueue();
+
+  /** Block heads awaiting re-emission because one of their ops acquired an
+   *  alternative after the block was compiled. Drained at the safe point in
+   *  executeMachineCode, BEFORE any JIT code runs: until then the op's compiled
+   *  fail path still backtracks instead of trying the new alternative, so
+   *  executing it would drop a match. */
+  Stack<CodeOp*> _reemitQueue;
 
   template<SearchStruct::Kind k>
   void compressCheckOps(CodeOp* chainStart);
@@ -567,6 +582,19 @@ public:
   unsigned _maxVarCnt;
 
   CodeBlock* _entryPoint;
+
+  /** Incoming edge for every reachable block head and SearchStruct landingOp.
+   *
+   *  Key:   a block head (&(*block)[0]) or a &ss->landingOp
+   *  Value: the op referring to it - either an ordinary op whose _alternative
+   *         is the key, or a &ss->landingOp meaning the key sits in that
+   *         ss->targets[]. Distinguish with value->isSearchStruct(), exactly
+   *         as optimizeMemoryAfterRemoval already branches.
+   *
+   *  _entryPoint's head has NO entry: entries re-read _mcode every call.
+   *  Invariant (one incoming edge): at most one entry per key.
+   */
+  DHMap<CodeOp*, CodeOp*> _blockReferrer;
 
   /** Copy-and-patch JIT engine: replaces the old per-block asmjit compilation.
    *  Pointer because CopyPatchJit is an incomplete type in this header. */
