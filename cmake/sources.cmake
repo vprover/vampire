@@ -506,13 +506,10 @@ set(SOURCES
     Kernel/HOL/Convert.cpp
     Kernel/HOL/Reduce.cpp
     Kernel/HOL/BetaNormaliser.hpp
-    Kernel/HOL/RedexReducer.cpp
     Kernel/HOL/RedexReducer.hpp
-    Kernel/HOL/TermShifter.cpp
     Kernel/HOL/TermShifter.hpp
     Kernel/HOL/EtaNormaliser.cpp
     Kernel/HOL/EtaNormaliser.hpp
-    Kernel/HOL/SubtermReplacer.cpp
     Kernel/HOL/SubtermReplacer.hpp
     Kernel/HOL/Unifier.cpp
     Kernel/HOL/Unifier.hpp

@@ -14,6 +14,7 @@
 #ifndef __TermShifter__
 #define __TermShifter__
 
+#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/TermTransformer.hpp"
 #include "Kernel/Term.hpp"
 
@@ -33,39 +34,35 @@ using namespace Kernel;
  *
  * See also tHOL_TermShifter.cpp for accompanying unit tests of this class.
  */
-class TermShifter : public TermTransformer
+namespace TermShifter
 {
-public:
-  explicit TermShifter(int shiftBy)
-    : TermTransformer(/*transformSorts=*/false),
-      _shiftBy(shiftBy) {}
-
   // positive value -> shift up
   // negative -> shift down
-  static TermList shift(TermList term, int shiftBy);
-  TermList transformSubterm(TermList t) override;
-
-  void onTermEntry(Term* t) override {
-    if (t->isLambdaTerm())
-      _cutOff++;
-  }
-
-  void onTermExit(Term* t) override {
-    if (t->isLambdaTerm())
-      _cutOff--;
-  }
-
-  bool exploreSubterms(TermList orig, TermList newTerm) override {
-    // already shifted, so must be DB index and won't have subterms anyway
-    return orig == newTerm && newTerm.containsLooseDBIndex();
+  inline TermList shift(TermList term, int shiftBy) {
+    return holTermTransform(term,
+      [shiftBy](TermList t, unsigned lambdaLevel) {
+        auto dbi = t.deBruijnIndex();
+        if (dbi.isSome()) {
+          unsigned index = dbi.unwrap();
+          // free index. lift
+          if (index >= lambdaLevel && shiftBy != 0) {
+            TermList sort = SortHelper::getResultSort(t.term());
+            ASS(shiftBy >= 0 || index >= std::abs(shiftBy));
+            return HOL::getDeBruijnIndex(static_cast<int>(index) + shiftBy, sort);
+          }
+        }
+        return t;
+      },
+      [](TermList orig, TermList newTerm) {
+        // already shifted, so must be DB index and won't have subterms anyway
+        return orig == newTerm && newTerm.containsLooseDBIndex();
+      });
   }
 
   // returns the index of the minimal free DB index, otherwise UINT_MAX
-  static unsigned minFreeDBIndex(TermList t);
-
-private:
-  unsigned _cutOff = 0; // any index higher than _cutOff is a free index
-  int _shiftBy; // the amount to shift a free index by
+  inline unsigned minFreeDBIndex(TermList t) {
+    return t.freeDBIndices() ? t.freeDBIndices()->head() : UINT_MAX;
+  }
 };
 
 #endif // __TermShifter__

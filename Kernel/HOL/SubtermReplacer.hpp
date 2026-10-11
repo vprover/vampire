@@ -14,7 +14,7 @@
 #ifndef __SubtermReplacer__
 #define __SubtermReplacer__
 
-#include "Kernel/TermTransformer.hpp"
+#include "Kernel/HOL/TermShifter.hpp"
 
 using namespace Kernel;
 
@@ -26,25 +26,32 @@ using namespace Kernel;
  *
  * See also tHOL_SubtermReplacer.cpp for accompanying unit tests of this class.
  */
-class SubtermReplacer : public TermTransformer {
+class SubtermReplacer {
 public:
-  SubtermReplacer(TermList what, TermList by, bool liftFree);
+  SubtermReplacer(TermList what, TermList by, bool liftFree)
+    : _what(what), _by(by), _liftFreeIndices(liftFree)
+  { ASS(what.isVar() || by.isVar() || SortHelper::getResultSort(what.term()) == SortHelper::getResultSort(by.term())); }
 
-  TermList replace(TermList t) {
-    return transform(t);
+  inline TermList replace(TermList t) {
+    return holTermTransform(t,
+      [this](TermList t, unsigned lambdaLevel) {
+        if (t == _what) {
+          if (_liftFreeIndices && lambdaLevel != 0)
+            return TermShifter::shift(_by, lambdaLevel);
+          return _by;
+        }
+
+        return t;
+      },
+      [] (TermList orig, TermList newTerm) { return orig == newTerm; }
+    );
   }
-
-  TermList transformSubterm(TermList t) override;
-
-  void onTermEntry(Term* t) override;
-  void onTermExit(Term* t) override;
 
 private:
   TermList _what;
   TermList _by;
 
   bool _liftFreeIndices; // true if need to lift free indices in _by
-  int _shiftBy = 0; // the amount to shift a free index by
 };
 
 #endif // __SubtermReplacer__

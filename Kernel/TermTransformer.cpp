@@ -100,8 +100,6 @@ Term* TermTransformerCommon::transformSpecial(Term* term)
  */
 Term* TermTransformer::transform(Term* term)
 {
-  onTermEntry(term);
-
   if (term->isSpecial()) {
     return transformSpecial(term);
   }
@@ -126,8 +124,6 @@ Term* TermTransformer::transform(Term* term)
         break;
       }
       Term* orig = terms.pop();
-
-      onTermExit(orig);
 
       ASS(!orig->isSpecial());
       if (!modified.pop()) {
@@ -185,8 +181,6 @@ Term* TermTransformer::transform(Term* term)
 
     ASS(dest.isTerm())
     Term* t = dest.term();
-
-    onTermEntry(t);
 
     ASS(!t->isSpecial())
     terms.push(t);

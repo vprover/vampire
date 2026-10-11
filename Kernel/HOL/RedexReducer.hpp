@@ -14,35 +14,38 @@
 #ifndef __RedexReducer__
 #define __RedexReducer__
 
+#include "Kernel/HOL/TermShifter.hpp"
+#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/TermTransformer.hpp"
 
 using namespace Kernel;
 
-class RedexReducer : public TermTransformer {
-public:
-  RedexReducer() : TermTransformer(/*transformSorts=*/false) {}
+namespace RedexReducer {
+  inline TermList reduce(TermList head, TermList arg) {
+    ASS(head.isLambdaTerm());
 
-  TermList reduce(TermList head, TermList arg);
-  TermList transformSubterm(TermList t) override;
-
-  void onTermEntry(Term* t) override {
-    if (t->isLambdaTerm())
-      _replace++;
+    return holTermTransform(head.lambdaBody(),
+      [arg](TermList t, unsigned lambdaLevel) {
+        if (t.deBruijnIndex().isSome()) {
+          unsigned index = t.deBruijnIndex().unwrap();
+          if (index == lambdaLevel) {
+            // any free indices in _t2 need to be lifted by the number of extra lambdas
+            // that now surround them
+            return lambdaLevel == 0 ? arg : TermShifter::shift(arg, lambdaLevel);
+          }
+          if (index > lambdaLevel) {
+            // free index. replace by index 1 less as now surrounded by one fewer lambdas
+            TermList sort = SortHelper::getResultSort(t.term());
+            return HOL::getDeBruijnIndex(index - 1, sort);
+          }
+        }
+        return t;
+      },
+      [](TermList orig, TermList newTerm) {
+        // do not replace inside the substituted term, or in terms without any DB index
+        return orig == newTerm && newTerm.containsLooseDBIndex();
+      });
   }
-
-  void onTermExit(Term* t) override {
-    if (t->isLambdaTerm())
-      _replace--;
-  }
-
-  bool exploreSubterms(TermList orig, TermList newTerm) override {
-    // do not replace inside the substituted term, or in terms without any DB index
-    return orig == newTerm && newTerm.containsLooseDBIndex();
-  }
-
-private:
-  TermList _t2; // term to replace index with (^x.t1) t2
-  unsigned _replace; // index to replace
-};
+}
 
 #endif // __RedexReducer__

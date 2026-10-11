@@ -37,7 +37,7 @@ struct BetaNormaliser : public BottomUpTermTransformer {
     }
     DEBUG_CODE(++reductions;)
     // a substitution can create new redexes, call transform again
-    return transform(RedexReducer().reduce(t.lhs(), t.rhs()));
+    return transform(RedexReducer::reduce(t.lhs(), t.rhs()));
   }
 
   bool alreadyTransformed(Term* t) override {

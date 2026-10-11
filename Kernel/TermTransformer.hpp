@@ -62,9 +62,6 @@ protected:
   Formula* transform(Formula* f) override;
   TermList transform(TermList ts) override;
 
-  virtual void onTermEntry(Term*) {}
-  virtual void onTermExit(Term*) {}
-
   // default implementation, can override if required
   virtual bool exploreSubterms(TermList orig, TermList newTerm) {
     ASS(newTerm.isTerm());
@@ -72,6 +69,84 @@ protected:
     return orig == newTerm;
   }
 };
+
+template<typename TransformFn, typename ExploreFn>
+TermList holTermTransform(TermList tl, TransformFn tfn, ExploreFn efn)
+{
+  unsigned lambdaLevel = 0;
+  // first let's try transforming ts directly
+  TermList transformed = tfn(tl, lambdaLevel);
+  if (transformed != tl) {
+    // we did transform, so we are done if we do not have to explore subterms
+    if (transformed.isVar() || !efn(tl, transformed)) {
+      return transformed;
+    }
+    tl = transformed;
+  } else if (tl.isVar()) {
+    // we didn't transform, but it's a var (no way to recurse)
+    return tl;
+  }
+  auto term = tl.term();
+
+  Stack<std::tuple<Term*,TermList*,bool>> todo(8);
+  Stack<TermList> args(8);
+
+  auto pushTodo = [&todo,&args,&lambdaLevel](Term* t) {
+    if (t->isLambdaTerm()) {
+      lambdaLevel++;
+    }
+    ASS(!t->isSort() && !t->isLiteral() && !t->isSpecial());
+    auto targs = t->args();
+    while (targs != t->termArgs()) {
+      args.push(*targs);
+      targs = targs->next();
+    }
+    todo.emplace(t, targs, false);
+  };
+  pushTodo(term);
+
+  while (todo.isNonEmpty()) {
+    auto& [orig, tt, modified] = todo.top();
+
+    if (tt->isEmpty()) {
+      if (orig->isLambdaTerm()) {
+        lambdaLevel--;
+      }
+      todo.pop();
+      //here we assume, that stack is an array with
+      //second topmost element as &top()-1, third at
+      //&top()-2, etc...
+      auto argLst = args.end() - orig->arity();
+      // potentially evil. Calls destructors on the truncated
+      // objects, which we are happily reading just below
+      args.truncate(args.length() - orig->arity());
+      if (modified) {
+        args.emplace(Term::create(orig,argLst));
+        if (todo.isNonEmpty()) {
+          get<2>(todo.top()) = true;
+        }
+      } else {
+        args.emplace(orig);
+      }
+      continue;
+    }
+    TermList tl = *tt;
+    tt = tt->next();
+
+    TermList dest = tfn(tl, lambdaLevel);
+    if (tl != dest) {
+      modified = true;
+    }
+    if (dest.isVar() || !efn(tl, dest)) {
+      args.push(dest);
+      continue;
+    }
+    pushTodo(dest.term());
+  }
+
+  ASS_EQ(args.size(), 1);
+  return args.pop();
+}
 
 /**
  * Has similar philosophy to TermTransformer, but:
