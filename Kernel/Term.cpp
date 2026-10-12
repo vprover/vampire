@@ -132,7 +132,11 @@ bool TermList::isLambdaTerm() const {
 }
 
 bool TermList::isRedex() const {
-  return isApplication() && lhs().isLambdaTerm();
+  return isTerm() && term()->isRedex();
+}
+
+bool TermList::isEtaRedex() const {
+  return isTerm() && term()->isEtaRedex();
 }
 
 bool TermList::isProxy(Proxy proxy) const {
@@ -927,6 +931,25 @@ bool Term::isLambdaTerm() const {
 
 bool Term::isRedex() const {
   return isApplication() && nthArgument(2)->isLambdaTerm();
+}
+
+bool Term::isEtaRedex() const {
+  if (!isLambdaTerm()) {
+    return false;
+  }
+  auto lb = lambdaBody();
+  if (!lb.isApplication()) {
+    return false;
+  }
+  auto lhs = lb.term()->termArg(0);
+  auto rhs = lb.term()->termArg(1);
+  if (rhs.deBruijnIndex().unwrapOr(UINT_MAX) != 0) {
+    return false;
+  }
+  if (lhs.freeDBIndices() && lhs.freeDBIndices()->head() == 0) {
+    return false;
+  }
+  return true;
 }
 
 bool Term::isProxy(Proxy proxy) const {

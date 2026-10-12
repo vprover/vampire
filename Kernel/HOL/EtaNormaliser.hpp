@@ -37,28 +37,16 @@ struct EtaNormaliser2 : public BottomUpTermTransformer
   TermList normalise(TermList t) { return transform(t); }
   TermList transformSubterm(TermList t) override {
     for (;;) {
-      if (!t.isLambdaTerm()) {
+      if (!t.isEtaRedex()) {
         break;
       }
-      auto lb = t.term()->lambdaBody();
-      if (!lb.isApplication()) {
-        break;
-      }
-      auto lhs = lb.term()->termArg(0);
-      auto rhs = lb.term()->termArg(1);
-      if (rhs.deBruijnIndex().unwrapOr(UINT_MAX) != 0) {
-        break;
-      }
-      if (lhs.freeDBIndices() && lhs.freeDBIndices()->head() == 0) {
-        break;
-      }
-      t = TermShifter::shift(lhs, -1);
+      t = TermShifter::shift(t.term()->lambdaBody().term()->termArg(0), -1);
     }
     return t;
   }
 
   bool alreadyTransformed(Term* t) override {
-    return !t->hasLambda();
+    return !t->hasEtaRedex();
   }
 };
 
