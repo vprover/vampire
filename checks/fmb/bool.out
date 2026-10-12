@@ -1,0 +1,45 @@
+% Detected minimum model sizes of [1,2]
+% Detected maximum model sizes of [max,2]
+% TRYING [1,2]
+% TRYING [2,2]
+% Finite Model Found!
+% SZS status Satisfiable for bool
+% FMB model self-check passed (3 units checked)
+% SZS output start FiniteModel for bool
+tff('declare_$i1',type,'fmb_$i_1':$i).
+tff('declare_$i2',type,'fmb_$i_2':$i).
+tff('finite_domain_$i',axiom,
+      ! [X:$i] : (
+         (X = 'fmb_$i_1') | (X = 'fmb_$i_2')
+      ) ).
+
+tff('distinct_domain_$i',axiom,
+         'fmb_$i_1' != 'fmb_$i_2'
+).
+
+tff(finite_domain_bool,axiom,
+      ! [X:$o] : (
+         (X = $false) | (X = $true)
+      ) ).
+
+tff(distinct_domain_bool,axiom,
+         $false != $true
+).
+
+tff(declare_g,type,g : ( $o * $i ) > $i).
+tff(function_g,axiom,
+           g($false,'fmb_$i_1') = 'fmb_$i_2'
+         & g($true,'fmb_$i_1') = 'fmb_$i_1'
+         & g($false,'fmb_$i_2') = 'fmb_$i_2'
+         & g($true,'fmb_$i_2') = 'fmb_$i_1'
+).
+
+tff(declare_a,type,a : $i).
+tff(a_definition,axiom,a = 'fmb_$i_1').
+tff(declare_f,type,f: ( $i ) > $o ).
+tff(predicate_f,axiom,
+           f('fmb_$i_1')
+         & ~f('fmb_$i_2')
+).
+
+% SZS output end FiniteModel for bool

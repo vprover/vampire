@@ -631,10 +631,11 @@ std::string Term::prefixToString() const
         }
         return "(^[" + varList + "] : (" + lambdaExp.toString() + "))";
       }
-      case SpecialFunctor::MATCH: {
+      case SpecialFunctor::MATCH:
         // we simply let the arguments be written out
         return "$match(";
-      }
+      case SpecialFunctor::COND:
+        return "$cond("; // likewise
       default:
         ASSERTION_VIOLATION;
     }
@@ -819,7 +820,7 @@ std::string Term::toString(bool topLevel) const
 
   std::stringstream out;
   out << prefixToString();
-  
+
   if (_arity) {
     out << Output::interleaved(',', anyArgIter(this)) << ")";
   }
@@ -1214,6 +1215,50 @@ Term *Term::createMatch(TermList sort, TermList matchedSort, unsigned int arity,
   return s;
 }
 
+Term *Term::createCond(TermList sort, unsigned int arity, TermList *elements) {
+  ASS_GE(arity,3);      // at least one (condition,value) pair
+  ASS(arity % 2 == 1);  // ... and the else
+
+  Term *s = new (arity, sizeof(SpecialTermData)) Term;
+  s->makeSymbol(toNormalFunctor(SpecialFunctor::COND), arity);
+  TermList *ss = s->args();
+  s->getSpecialData()->_condData.sort = sort;
+
+  for (unsigned i = 0; i < arity; i++) {
+    ASS(!elements[i].isEmpty());
+    *ss = elements[i];
+    ss = ss->next();
+  }
+  ASS(ss->isEmpty());
+
+  return s;
+}
+
+Term *Term::createMatchOrCond(Term *orig, TermList sort, unsigned int arity, TermList *elements) {
+  if (orig->isCond()) {
+    return createCond(sort, arity, elements);
+  }
+  ASS(orig->isMatch());
+  return createMatch(sort, orig->getSpecialData()->getMatchedSort(), arity, elements);
+}
+
+TermList Term::condToITE(Term *t)
+{
+  ASS_EQ(t->specialFunctor(), SpecialFunctor::COND);
+
+  TermList sort = t->getSpecialData()->getSort();
+  unsigned arity = t->arity();
+
+  TermList res = *t->nthArgument(arity-1); // the else
+  // fold the (condition,value) pairs in from the right, so that the leftmost
+  // condition ends up outermost and therefore wins
+  for (unsigned i = arity-1; i > 0; i -= 2) {
+    Formula *cond = BoolTermFormula::create(*t->nthArgument(i-2));
+    res = TermList(Term::createITE(cond,*t->nthArgument(i-1),res,sort));
+  }
+  return res;
+}
+
 /** Create a new complex term, copy from @b t its function symbol and arity.
  *  Initialize its arguments by a dummy special variable.
  */
@@ -1423,6 +1468,15 @@ bool Term::isBoolean() const {
       }
       case SpecialFunctor::MATCH: {
         const TermList *ts = term->nthArgument(2);
+        if (!ts->isTerm()) {
+          return false;
+        } else {
+          term = ts->term();
+          break;
+        }
+      }
+      case SpecialFunctor::COND: {
+        const TermList *ts = term->nthArgument(1); // the first value
         if (!ts->isTerm()) {
           return false;
         } else {
@@ -1865,7 +1919,8 @@ std::ostream& Kernel::operator<<(std::ostream& out, SpecialFunctor const& self)
     case SpecialFunctor::LET: return out << "LET";
     case SpecialFunctor::FORMULA: return out << "FORMULA";
     case SpecialFunctor::LAMBDA: return out << "LAMBDA";
-    case SpecialFunctor::MATCH: return out << "SPECIAL_FUNCTOR_LAST ";
+    case SpecialFunctor::COND: return out << "COND";
+    case SpecialFunctor::MATCH: return out << "MATCH";
   }
   ASSERTION_VIOLATION
 }

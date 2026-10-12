@@ -192,13 +192,16 @@ bool FormulaVarIterator::hasNext()
               break;
             }
 
-            case SpecialFunctor::MATCH: {
+            case SpecialFunctor::MATCH:
+            case SpecialFunctor::COND: {
               for (unsigned int i = 0; i < t->arity(); i++) {
                 _instructions.push(FVI_TERM_LIST);
                 _termLists.push(*t->nthArgument(i));
               }
-              _instructions.push(FVI_TERM_LIST);
-              _termLists.push(sd->getMatchedSort());
+              if (t->isMatch()) { // a $cond has no matched sort
+                _instructions.push(FVI_TERM_LIST);
+                _termLists.push(sd->getMatchedSort());
+              }
               _instructions.push(FVI_TERM_LIST);
               _termLists.push(sd->getSort());
               break;

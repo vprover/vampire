@@ -1278,13 +1278,6 @@ Options::Options ()
   , _printClausifierPremises("print_clausifier_premises",this,false,
       {.description = "Output how the clausified problem was derived.",
        .tag = OptionTag::OUTPUT})
-    // Note that while we have the code in place thanks to Giles, Geoff didn't like the functionality
-    // (and, arguably, since it in general incomplete in the sense that sometimes the domain elements are anyway necessary,
-    // it's a bit ugly for its non-uniformity and for mixing syntax - the constants - with semantics - domain elements)
-    // To sum up, we have a feature maybe nobody really likes? A candidate for removal.
-  , _replaceDomainElements("replace_domain_elements",this,false,
-      {.description = "When printing a finite model, try hard to look for constants from the original formulation to use instead of domain elements.",
-       .tag = OptionTag::OUTPUT})
   , _proof("proof",this,Proof::ON,{"off","on","proofcheck","tptp","property","smt2_proofcheck","smtcheck"},
       {.short_name = "p",
        .description = "Specifies whether proof (or similar e.g. model/saturation) will be output and in which format:\n"
@@ -2226,6 +2219,12 @@ Options::Options ()
 
     // make the next hard - RSTC will make FMB crash (as RSTC correctly does not trigger hadIncompleteTransformation; still it probably does not make sense to use ep with fmb)
     _saturationAlgorithm.addHardConstraint(If(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)).then(_equalityProxy.is(notEqual(EqualityProxy::RSTC))));
+
+    // TheoryAxioms::applyFOOL leaves out the boolean domain axiom when this is on, relying on
+    // the rule to do that job instead. FMB has no such rule, so it would happily build a
+    // boolean domain of three or more elements.
+    _FOOLParamodulation.addHardConstraint(If(equal(true)).then(
+      _saturationAlgorithm.is(notEqual(SaturationAlgorithm::FINITE_MODEL_BUILDING))));
 
     auto ProperSaturationAlgorithm = [this] {
       return Or(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)),

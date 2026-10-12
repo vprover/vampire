@@ -851,6 +851,7 @@ void PredicateDefinition::count (TermList ts,int add, Unit* unit)
       case SpecialFunctor::LAMBDA:
         NOT_IMPLEMENTED;
       case SpecialFunctor::MATCH:
+      case SpecialFunctor::COND:
         break; // args are handled later
 
     }

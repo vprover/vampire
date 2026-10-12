@@ -749,6 +749,8 @@ class Signature
     if(!_foolConstantsDefined) return false;
     return isTrue ? number==_foolTrue : number==_foolFalse;
   }
+  /** unlike getFoolConstantSymbol, does not create the constants as a side effect */
+  bool foolConstantsDefined() const { return _foolConstantsDefined; }
 
   unsigned getDefaultSort(){
     return addTypeCon("$i", 0)->number();
