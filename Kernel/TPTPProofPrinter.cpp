@@ -36,6 +36,8 @@
 #include "Shell/Options.hpp"
 #include "Shell/UIHelper.hpp"
 
+#include <algorithm>
+#include <cctype>
 #include <sstream>
 
 namespace Kernel {
@@ -188,7 +190,20 @@ std::string InferenceStore::TPTPProofPrinter::getRole(InferenceRule rule, UnitIn
 
 std::string InferenceStore::TPTPProofPrinter::tptpRuleName(InferenceRule rule)
 {
-    return StringUtils::replaceChar(ruleName(rule), ' ', '_');
+    // Rule names become TPTP atomic words. Names that are not lower words,
+    // e.g. `flex-flex_simplification` or `..._(simplifying)`, are quoted.
+    std::string name = StringUtils::replaceChar(ruleName(rule), ' ', '_');
+    bool lowerWord = !name.empty() && name[0] >= 'a' && name[0] <= 'z' &&
+      std::all_of(name.begin(), name.end(), [](char c) { return std::isalnum((unsigned char)c) || c == '_'; });
+    if (lowerWord) {
+      return name;
+    }
+    std::string quoted = "'";
+    for (char c : name) {
+      if (c == '\\' || c == '\'') { quoted += '\\'; }
+      quoted += c;
+    }
+    return quoted + "'";
   }
 
 std::string InferenceStore::TPTPProofPrinter::unitIdToTptp(std::string unitId)
@@ -385,6 +400,10 @@ void InferenceStore::TPTPProofPrinter::printStep(Unit* us)
         }
       }
       inferenceStr="file('"+std::string(axiomPath)+"','"+axiomName+"')";
+    }
+    else if (std::string certificate; !parents.hasNext() &&
+             !(certificate = parentlessReplayAnnotation(us, replay)).empty()) {
+      inferenceStr="inference("+tptpRuleName(rule)+",["+certificate+"],[])";
     }
     else if (!parents.hasNext()) {
       std::string newSymbolInfo;

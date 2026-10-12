@@ -26,6 +26,7 @@
 #include "Kernel/HOL/HOL.hpp"
 
 #include "ImitateProject.hpp"
+#include "Shell/InferenceRecorder.hpp"
 
 namespace Inferences
 {
@@ -55,9 +56,13 @@ struct ImitateProjectFn
       static HOSubstitution subst;
       subst.reset();
       subst.bind(headFlex.var(), binding);
-      results.push(Clause::fromIterator(
+      auto result = Clause::fromIterator(
         _cl->iterLits().map([](Literal* lit) { return SubstHelper::apply(lit, subst); }),
-        GeneratingInference1(rule, _cl)));
+        GeneratingInference1(rule, _cl));
+      if (env.reconstruction) {
+        Shell::InferenceRecorder::instance()->instantiation(result, _cl, headFlex.var(), binding);
+      }
+      results.push(result);
     };
 
     for (const auto& [binding, inf] : HOL::getProjAndImitBindings(flexTerm, rigidTerm, _maxVar)) {

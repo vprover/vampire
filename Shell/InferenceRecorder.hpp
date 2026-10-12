@@ -12,6 +12,7 @@
 #include "Shell/EqResWithDeletion.hpp"
 #include <functional>
 #include <memory>
+#include <optional>
 #include <set>
 #include <string>
 #include <unordered_map>
@@ -38,6 +39,31 @@ public:
       unsigned literalIndex;
     };
 
+    /** Rule-specific terms use the matched conclusion's variable names;
+     * literal indices refer to the original parent, as in literalPositions. */
+    enum class WitnessKind { EXTENSIONALITY, QUANTIFIER };
+    struct Witness {
+      WitnessKind kind;
+      unsigned literalIndex;
+      unsigned symbol;
+      std::vector<Kernel::TermList> dependencies;
+    };
+    struct BooleanCase {
+      unsigned literalIndex;
+      Kernel::TermList term;
+      bool value;
+    };
+    struct QuantifierInstance {
+      unsigned literalIndex;
+      Kernel::TermList term;
+    };
+    enum class AxiomKind { CHOICE, EXTENSIONALITY };
+    struct Axiom {
+      AxiomKind kind;
+      unsigned symbol;
+      std::vector<Kernel::TermList> arguments;
+    };
+
     Kernel::Clause *conclusion;
     std::vector<Kernel::Clause *> premises;
     std::vector<Kernel::Substitution> substitutionForBanksSub;
@@ -49,6 +75,10 @@ public:
     LiteralPosition rewriteEquality{0, 0};
     Kernel::TermList rewriteFrom;
     Kernel::TermList rewriteTo;
+    std::optional<Witness> witness;
+    std::optional<BooleanCase> booleanCase;
+    std::optional<QuantifierInstance> quantifierInstance;
+    std::optional<Axiom> axiom;
   };
 
   /** Rectification data is scoped to one quantifier. `renaming` maps a
@@ -87,6 +117,32 @@ public:
 
   // Returns the lazily initialized singleton used by the proof printers.
   static InferenceRecorder *instance();
+
+  /** Higher-order engines submit candidates only during reconstruction.
+   * Acceptance, substitution banks and variable renaming use the same
+   * machinery as the other replayed inferences. */
+  void instantiation(Kernel::Clause* conclusion, Kernel::Clause* parent,
+                     unsigned variable, Kernel::TermList binding);
+  void unifier(Kernel::Clause* conclusion, Kernel::Clause* parent,
+               const Kernel::RobSubstitution& subst, int bank);
+  void witness(InferenceInformation::WitnessKind kind, Kernel::Clause* conclusion,
+               Kernel::Clause* parent, Kernel::Literal* literal, Kernel::TermList term);
+  void booleanCase(Kernel::Clause* conclusion, Kernel::Clause* parent,
+                   Kernel::Literal* literal, Kernel::TermList term, bool value);
+  void quantifierInstance(Kernel::Clause* conclusion, Kernel::Clause* parent,
+                          const Kernel::RobSubstitution& subst, int bank,
+                          Kernel::Literal* literal, Kernel::TermList term);
+  void choiceAxiom(Kernel::Clause* axiom, Kernel::TermList op,
+                   Kernel::TermList predicate, Kernel::TermList variable);
+  void extensionalityAxiom(Kernel::Clause* axiom, Kernel::TermList diff,
+                          Kernel::TermList left, Kernel::TermList right);
+  void flexFlexClosure(Kernel::Clause* conclusion, Kernel::Clause* parent);
+
+  /** Try a witness already present in the goal. The engine reconstructs its
+   * application in the parent's variable names without allocating symbols. */
+  void setReplayWitness(Kernel::TermList term) { _replayWitness = term; }
+  Kernel::TermList replayWitness(Kernel::Literal* literal, InferenceInformation::WitnessKind kind);
+  Kernel::InferenceRule currentRule() const { return _currentGoal->inference().rule(); }
 
   void resolution(unsigned int id, Kernel::Clause *conclusion, const std::vector<Kernel::Clause *> &premises, const Indexing::ResultSubstitutionSP &recordedSubst,
                   Kernel::Literal *queryLit, Kernel::Literal *resultLit, unsigned constraintCount = 0);
@@ -164,6 +220,7 @@ public:
   {
     _currentGoal = goal;
     _hasLastInference = false;
+    _replayWitness = Kernel::TermList();
   }
 
   const InferenceInformation *getLastRecordedInferenceInformation() const
@@ -195,6 +252,13 @@ private:
 
   static InferenceRecorder *_inst;
 
+  bool recordSubstitutionCandidate(Kernel::Clause* conclusion,
+      const std::vector<Kernel::Clause*>& premises,
+      const std::vector<Kernel::Substitution>& substitutions,
+      InferenceInformation::LiteralPositionKind kind,
+      std::vector<InferenceInformation::LiteralPosition> positions,
+      Kernel::Substitution* renaming = nullptr, unsigned* freshVariable = nullptr);
+
   bool isSameAsProofStep(Kernel::Clause *c, Kernel::Clause *goal, std::unordered_map<unsigned int, unsigned int> &outVarMap);
 
   template <typename T>
@@ -202,7 +266,8 @@ private:
                                 const std::unordered_map<unsigned int, unsigned int> &varMap,
                                 const std::vector<Clause *>& premises,
                                 const T &recordedSubst,
-                                std::function<TermList(const T &, const TermList &, size_t)> applyFunc)
+                                std::function<TermList(const T &, const TermList &, size_t)> applyFunc,
+                                Substitution* outputRenaming = nullptr, unsigned* outputFreshVariable = nullptr)
   {
     Substitution variableSubst = conclusionRenaming(varMap);
     unsigned freshVariable = _currentGoal->maxVar() + 1;
@@ -219,6 +284,8 @@ private:
         }
       }
     }
+    if (outputRenaming) { *outputRenaming = std::move(variableSubst); }
+    if (outputFreshVariable) { *outputFreshVariable = freshVariable; }
   }
 
   void populateSubstitutions(std::vector<Kernel::Substitution> &substMap,
@@ -284,6 +351,7 @@ private:
   };
 
   Kernel::Clause *_currentGoal = nullptr;
+  Kernel::TermList _replayWitness;
   std::unordered_map<unsigned int, std::unique_ptr<InferenceInformation>> _inferences;
   std::unique_ptr<RectifyInferenceInformation> _currentRectifyInference;
   std::unordered_map<unsigned, std::unique_ptr<RectifyInferenceInformation>> _rectifyInferences;

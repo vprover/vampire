@@ -23,6 +23,7 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Cases.hpp"
+#include "Shell/InferenceRecorder.hpp"
 
 namespace Inferences {
 
@@ -52,7 +53,11 @@ Clause* performCases(Clause* premise, Literal* lit, TermList t)
   // Add s = false to the clause
   resLits->push(Literal::createEquality(true, t, fols, AtomicSort::boolSort()));
 
-  return Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::FOOL_PARAMODULATION, premise));
+  auto result = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::FOOL_PARAMODULATION, premise));
+  if (env.reconstruction) {
+    Shell::InferenceRecorder::instance()->booleanCase(result, premise, lit, t, /*value=*/true);
+  }
+  return result;
 }
 
 ClauseIterator Cases::generateClauses(Clause* premise)

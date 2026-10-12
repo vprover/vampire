@@ -26,12 +26,13 @@ class Choice : public GeneratingInferenceEngine
   public:
     Choice(SaturationAlgorithm&) {}
     ClauseIterator generateClauses(Clause* premise) override;
+    /** Shared axiom construction for search and parentless proof replay. */
+    static Clause* createChoiceAxiom(TermList op, TermList set);
 
   private:
     struct IsChoiceTerm;
     struct ResultFn;
     struct AxiomsIterator;
-    static Clause* createChoiceAxiom(TermList op, TermList set);
 };
 
 }

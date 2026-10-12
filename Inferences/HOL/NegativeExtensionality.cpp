@@ -20,6 +20,7 @@
 #include "Lib/Metaiterators.hpp"
 
 #include "Lib/DHMap.hpp"
+#include "Shell/InferenceRecorder.hpp"
 #include "Shell/Skolem.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -57,15 +58,14 @@ struct NegExtResultFn
     ASS(lit->isEquality());
     ASS(lit->isNegative());
 
+    auto eqSort = lit->eqArgSort();
+    if (eqSort.isVar() || !eqSort.isArrowSort()) { return nullptr; }
+    auto [lhs, rhs] = lit->eqArgs();
+    TermList alpha1 = eqSort.domain();
+    TermList alpha2 = eqSort.result();
     static DHMap<unsigned,TermList, FnvHash, IdentityHash> varSorts;
     varSorts.reset();
 
-    auto eqSort = lit->eqArgSort();
-    if (eqSort.isVar() || !eqSort.isArrowSort()) {
-      return nullptr;
-    }
-
-    auto [lhs,rhs] = lit->eqArgs();
     getVarSorts(TypedTermList(lhs, eqSort), varSorts);
     getVarSorts(TypedTermList(rhs, eqSort), varSorts);
 
@@ -86,17 +86,29 @@ struct NegExtResultFn
       }
     }
 
-    TermList alpha1 = *eqSort.term()->nthArgument(0);
-    TermList alpha2 = *eqSort.term()->nthArgument(1);
-
     TermList resultSort = alpha1;
     SortHelper::normaliseArgSorts(typeVars, termVarSorts);
     SortHelper::normaliseSort(typeVars, resultSort);
 
     auto skSymSort = AtomicSort::arrowSort(termVarSorts, resultSort);
-    auto fun = Skolem::addSkolemFunction(typeVars.size(), TermStack(), skSymSort)->number();
+    unsigned fun;
+    TermList recordedWitness;
+    if (env.reconstruction) {
+      recordedWitness = Shell::InferenceRecorder::instance()->replayWitness(lit,
+          Shell::InferenceRecorder::InferenceInformation::WitnessKind::EXTENSIONALITY);
+      if (recordedWitness.isEmpty()) { return nullptr; }
+      auto [head, args] = HOL::getHeadAndArgs(recordedWitness);
+      fun = head.term()->functor();
+      auto type = env.signature->getFunction(fun)->type();
+      if (type->arity() != typeVars.size() || type->result() != skSymSort) { return nullptr; }
+    } else {
+      fun = Skolem::addSkolemFunction(typeVars.size(), TermStack(), skSymSort)->number();
+    }
     auto head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
     auto skolemTerm = HOL::create::app(head, termVars);
+    // Replay uses the same dependency calculation as search. Reusing a
+    // symbol must not make a different dependency list an accepted candidate.
+    if (env.reconstruction && skolemTerm != recordedWitness) { return nullptr; }
 
     auto newLit = Literal::createEquality(false,
       HOL::create::app(alpha1, alpha2, lhs, skolemTerm),
@@ -109,7 +121,13 @@ struct NegExtResultFn
       resLits->push(curr == lit ? newLit : curr);
     }
 
-    return Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::NEGATIVE_EXTENSIONALITY, _cl));
+    auto result = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::NEGATIVE_EXTENSIONALITY, _cl));
+    if (env.reconstruction) {
+      Shell::InferenceRecorder::instance()->witness(
+          Shell::InferenceRecorder::InferenceInformation::WitnessKind::EXTENSIONALITY,
+          result, _cl, lit, skolemTerm);
+    }
+    return result;
   }
 private:
   Clause* _cl;

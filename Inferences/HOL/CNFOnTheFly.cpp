@@ -24,6 +24,7 @@
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/SortHelper.hpp"
 
+#include "Shell/InferenceRecorder.hpp"
 #include "Shell/Skolem.hpp"
 
 #include "CNFOnTheFly.hpp"
@@ -50,13 +51,15 @@ Literal* eqFols(TermList lhs) { return boolEq(lhs, HOL::create::bottom()); }
 
 ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaIndex* index)
 {
-  static bool eager = env.options->cnfOnTheFly() == Options::CNFOnTheFly::EAGER;
-  static bool instantiations = env.options->cnfOnTheFly() == Options::CNFOnTheFly::CONJ_EAGER;
-  static bool simp = env.options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_SIMP || instantiations;
-  static bool gen = env.options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_GEN;
-  static bool simp_except_not_be_off = env.options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_SIMP_NOT_GEN_BOOL_EQ_OFF;
-  static bool simp_except_not_and_be = env.options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_SIMP_NOT_GEN_BOOL_EQ_GEN;
-  static bool simp_except_pi_sigma_gen = env.options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_SIMP_PI_SIGMA_GEN;
+  bool eager = !env.reconstruction && env.options->cnfOnTheFly() == Options::CNFOnTheFly::EAGER;
+  bool instantiations = env.reconstruction
+    ? InferenceRecorder::instance()->currentRule() == InferenceRule::HEURISTIC_INSTANTIATION
+    : env.options->cnfOnTheFly() == Options::CNFOnTheFly::CONJ_EAGER;
+  bool simp = !env.reconstruction && (env.options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_SIMP || instantiations);
+  bool gen = !env.reconstruction && env.options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_GEN;
+  bool simp_except_not_be_off = !env.reconstruction && env.options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_SIMP_NOT_GEN_BOOL_EQ_OFF;
+  bool simp_except_not_and_be = !env.reconstruction && env.options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_SIMP_NOT_GEN_BOOL_EQ_GEN;
+  bool simp_except_pi_sigma_gen = !env.reconstruction && env.options->cnfOnTheFly() == Options::CNFOnTheFly::LAZY_SIMP_PI_SIGMA_GEN;
   // if we don't want to simplify <=>, or we want to simplify it as a generating inference, but we have reached here
   // from a simplification inference, or the opposite
   bool not_be = simp_except_not_be_off || (!generating && simp_except_not_and_be) ||
@@ -66,6 +69,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
   if(!generating && gen){ return ClauseIterator::getEmpty(); }
 
   static TermStack args;
+  ClauseStack replayCandidates;
 
   for (const auto& lit : *c) {
     auto [lhs, rhs] = lit->eqArgs();
@@ -100,6 +104,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
     }
 
     Proxy prox = env.signature->getFunction(head.term()->functor())->proxy();
+    if (env.reconstruction && prox != Proxy::PI && prox != Proxy::SIGMA) { continue; }
     // need to decide whether to continue at this point or not
     if(simp_except_pi_sigma_gen){
       if(generating && prox != Proxy::PI && prox != Proxy::SIGMA){
@@ -180,8 +185,10 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
         ClauseStack instCls;
         TermList srt = *SortHelper::getResultSort(head.term()).term()->nthArgument(0);
         TermList newTerm;
+        TermList witness;
         Proxy proxy;
         if ((prox == Proxy::PI && positive) || (prox == Proxy::SIGMA && !positive)) {
+          if (env.reconstruction && !instantiations) { continue; }
           proxy = Proxy::PI;
           newTerm = piRemoval(args[0], c, srt);
           if (instantiations && !args[0].isVar()) {
@@ -206,19 +213,32 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
                   ? boolEq(HOL::create::app(argS, tS), rhs)
                   : subst.apply(curr, 1));
               }
-              instCls.push(Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::HEURISTIC_INSTANTIATION, c)));
+              auto instance = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::HEURISTIC_INSTANTIATION, c));
+              if (env.reconstruction) {
+                Shell::InferenceRecorder::instance()->quantifierInstance(instance, c, subst, 1, lit, tS);
+              }
+              instCls.push(instance);
             }
           }
         } else {
           ASS(term.isTerm());
+          if (env.reconstruction && instantiations) { continue; }
           bool newTermCreated = false;
-          if(index){
+          if (env.reconstruction) {
+            witness = InferenceRecorder::instance()->replayWitness(lit,
+                InferenceRecorder::InferenceInformation::WitnessKind::QUANTIFIER);
+            if (witness.isEmpty() || SortHelper::getResultSort(witness.term()) != srt.domain()) { continue; }
+            newTerm = HOL::create::app(srt, args[0], witness);
+            newTermCreated = true;
+          }
+          if(index && !env.reconstruction){
             auto results = index->getSkolem(term.term());
             if(results.hasNext()){
               auto tqr = results.next();
               TermList skolemTerm = tqr.data->value;
               skolemTerm = tqr.unifier.apply(skolemTerm);
               newTerm = HOL::create::app(srt, args[0], skolemTerm);
+              witness = skolemTerm;
               newTermCreated = true;
             }
           }
@@ -228,15 +248,32 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
               index->insertFormula(TypedTermList(term.term()), skolemTerm);
             }
             newTerm = HOL::create::app(srt, args[0], skolemTerm);
+            witness = skolemTerm;
           }
           proxy = Proxy::SIGMA;
         }
-        return pvi(concatIters(iterItems(replaceLits(c, lit, proxy, false,
-          positive ? eqTroo(newTerm) : eqFols(newTerm))), getPersistentIterator(ClauseStack::Iterator(instCls))));
+        Clause* result = replaceLits(c, lit, proxy, false,
+          positive ? eqTroo(newTerm) : eqFols(newTerm));
+        if (env.reconstruction && proxy == Proxy::SIGMA) {
+          Shell::InferenceRecorder::instance()->witness(
+              Shell::InferenceRecorder::InferenceInformation::WitnessKind::QUANTIFIER,
+              result, c, lit, witness);
+        }
+        if (env.reconstruction) {
+          // Selection can reorder the recorded parent after clausification.
+          // Regenerate every quantifier candidate and let the recorder match
+          // the goal, rather than committing to the first printed literal.
+          replayCandidates.push(result);
+          for (Clause* instance : instCls) { replayCandidates.push(instance); }
+          continue;
+        }
+        return pvi(concatIters(iterItems(result), getPersistentIterator(ClauseStack::Iterator(instCls))));
       }
     }
   }
-  return ClauseIterator::getEmpty();
+  return env.reconstruction
+    ? getPersistentIterator(ClauseStack::Iterator(replayCandidates))
+    : ClauseIterator::getEmpty();
 }
 
 Clause* replaceLits(Clause* c, Literal* what, Proxy p, bool simplifying, Literal* by1, Literal* by2)

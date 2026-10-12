@@ -28,6 +28,7 @@
 #include "Kernel/OperatorType.hpp"
 
 #include "FOOLParamodulation.hpp"
+#include "Shell/InferenceRecorder.hpp"
 
 namespace Inferences {
 
@@ -122,8 +123,13 @@ ClauseIterator FOOLParamodulation::generateClauses(Clause* premise) {
   // Add s = false to the clause
   resLits->push(Literal::createEquality(true, booleanTerm, fols, AtomicSort::boolSort()));
 
-  return pvi(getSingletonIterator(Clause::fromStack(*resLits,
-          GeneratingInference1(InferenceRule::FOOL_PARAMODULATION, premise))));
+  auto result = Clause::fromStack(*resLits,
+          GeneratingInference1(InferenceRule::FOOL_PARAMODULATION, premise));
+  if (env.reconstruction) {
+    Shell::InferenceRecorder::instance()->booleanCase(result, premise, (*premise)[literalPosition],
+        booleanTerm, /*value=*/true);
+  }
+  return pvi(getSingletonIterator(result));
 }
 
 }

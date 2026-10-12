@@ -6,7 +6,9 @@
 #include "TPTPReplayProofPrinter.hpp"
 
 #include "Debug/Assertion.hpp"
+#include "Kernel/EqHelper.hpp"
 #include "Kernel/FormulaUnit.hpp"
+#include "Kernel/Matcher.hpp"
 #include "Kernel/MLVariant.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Lib/Environment.hpp"
@@ -16,6 +18,7 @@
 #include "SAT/SATLiteral.hpp"
 #include "Saturation/Splitter.hpp"
 #include "Shell/ClausificationRecording.hpp"
+#include "Shell/FunctionDefinition.hpp"
 #include "Shell/InferenceReplay.hpp"
 #include "Shell/Options.hpp"
 
@@ -43,6 +46,12 @@ const Saturation::AvatarConversionExtra* avatarConversionExtra(Unit* origin)
   return static_cast<const Saturation::AvatarConversionExtra*>(env.proofExtra.find(origin));
 }
 
+bool isConstrainedRule(InferenceRule rule)
+{
+  return rule == InferenceRule::CONSTRAINED_RESOLUTION ||
+         rule == InferenceRule::CONSTRAINED_SUPERPOSITION;
+}
+
 bool reversedEquality(Literal* source, Literal* target)
 {
   return source->isEquality() && target->isEquality() && source->header() == target->header() &&
@@ -52,8 +61,19 @@ bool reversedEquality(Literal* source, Literal* target)
 }
 }
 
+/** Print a term inside a generic annotation. Variables keep their printed
+ * clause names. In higher-order problems every other term, including sorts,
+ * is wrapped in `$thf(...)`: generic TPTP annotation terms cannot contain
+ * lambdas, applications or arrow types directly. */
+std::string tptpReplayTerm(TermList term)
+{
+  if (term.isVar() || !env.higherOrder()) { return term.toString(); }
+  return "$thf(" + term.toString() + ")";
+}
+
 static std::string unifierAnnotation(const Shell::InferenceRecorder::InferenceInformation* information);
-static std::string constraintsAnnotation(const Shell::InferenceRecorder::InferenceInformation* information);
+static std::string constraintsAnnotation(Unit* conclusion,
+    const Shell::InferenceRecorder::InferenceInformation* information);
 static std::string rewriteAnnotation(const Shell::InferenceRecorder::InferenceInformation* information);
 static std::string literalPositionsAnnotation(
     Unit* conclusion, const Shell::InferenceRecorder::InferenceInformation* information);
@@ -81,7 +101,7 @@ std::string formatTPTPReplayAnnotations(
   const auto* information = replay.information;
   std::vector<std::string> annotations = {
     unifierAnnotation(information),
-    constraintsAnnotation(information),
+    constraintsAnnotation(conclusion, information),
     rewriteAnnotation(information),
     literalPositionsAnnotation(conclusion, information)
   };
@@ -97,7 +117,7 @@ std::string formatTPTPReplayAnnotations(
 static std::string unifierAnnotation(
     const Shell::InferenceRecorder::InferenceInformation* information)
 {
-  if (!information) { return {}; }
+  if (!information || information->premises.empty()) { return {}; }
   std::ostringstream out;
   out << "unifier([";
   for (unsigned bank = 0; bank < information->substitutionForBanksSub.size(); ++bank) {
@@ -114,7 +134,7 @@ static std::string unifierAnnotation(
     for (auto [variable, term] : Lib::iterTraits(substitution.items())) {
       if (!first) { out << ','; }
       first = false;
-      out << "b(X" << variable << ',' << term.toString() << ')';
+      out << "b(X" << variable << ',' << tptpReplayTerm(term) << ')';
     }
     out << "])";
   }
@@ -122,10 +142,15 @@ static std::string unifierAnnotation(
   return out.str();
 }
 
-static std::string constraintsAnnotation(
+static std::string constraintsAnnotation(Unit* conclusion,
     const Shell::InferenceRecorder::InferenceInformation* information)
 {
-  if (!information || information->constraints.empty()) { return {}; }
+  // Constrained rules state their (possibly empty) constraint list explicitly,
+  // so the checker need not distinguish "none" from "not recorded".
+  if (!information ||
+      (information->constraints.empty() && !isConstrainedRule(conclusion->inference().rule()))) {
+    return {};
+  }
   std::ostringstream out;
   out << "constraints([";
   bool first = true;
@@ -134,8 +159,8 @@ static std::string constraintsAnnotation(
     if (!first) { out << ','; }
     first = false;
     auto [left, right] = literal->eqArgs();
-    out << "disequality(" << literal->eqArgSort().toString() << ','
-        << left.toString() << ',' << right.toString() << ')';
+    out << "disequality(" << tptpReplayTerm(literal->eqArgSort()) << ','
+        << tptpReplayTerm(left) << ',' << tptpReplayTerm(right) << ')';
   }
   out << "])";
   return out.str();
@@ -150,7 +175,7 @@ static std::string rewriteAnnotation(
            Lib::Int::toString(literalPosition.literalIndex) + ')';
   };
   return "rewrite([equality(" + position(information->rewriteEquality) + "),from(" +
-         information->rewriteFrom.toString() + "),to(" + information->rewriteTo.toString() + ")])";
+         tptpReplayTerm(information->rewriteFrom) + "),to(" + tptpReplayTerm(information->rewriteTo) + ")])";
 }
 
 static std::string literalPositionsAnnotation(
@@ -209,7 +234,7 @@ static std::string subsumptionResolutionAnnotation(
     for (const auto& binding : replay.subsumptionBindings) {
       if (!first) { out << ','; }
       first = false;
-      out << "b(X" << binding.variable << ',' << binding.term.toString() << ')';
+      out << "b(X" << binding.variable << ',' << tptpReplayTerm(binding.term) << ')';
     }
     out << "])])";
   }
@@ -217,6 +242,161 @@ static std::string subsumptionResolutionAnnotation(
   out << "removed_literals(literal(" << replayUnitId(replay.removedLiteralParent)
       << ',' << replay.removedLiteralIndex << "))";
   return out.str();
+}
+
+namespace {
+TermList replaceOccurrenceIn(TermList term, TermList from, TermList to,
+                             unsigned target, unsigned& seen, bool& done)
+{
+  if (done) { return term; }
+  if (term == from) {
+    if (seen++ == target) {
+      done = true;
+      return to;
+    }
+    return term;
+  }
+  if (term.isVar() || term.term()->isSort() || term.term()->isSpecial()) { return term; }
+  Term* original = term.term();
+  std::vector<TermList> args;
+  bool changed = false;
+  for (unsigned i = 0; i < original->arity(); ++i) {
+    TermList arg = *original->nthArgument(i);
+    args.push_back(replaceOccurrenceIn(arg, from, to, target, seen, done));
+    changed |= args.back() != arg;
+  }
+  return changed ? TermList(Term::create(original, args.data())) : term;
+}
+} // namespace
+
+Literal* replaceOccurrence(Literal* literal, TermList from, TermList to, unsigned occurrence)
+{
+  unsigned seen = 0;
+  bool done = false;
+  std::vector<TermList> args;
+  for (unsigned i = 0; i < literal->arity(); ++i) {
+    args.push_back(replaceOccurrenceIn(*literal->nthArgument(i), from, to, occurrence, seen, done));
+  }
+  return done ? Literal::create(literal, args.data()) : nullptr;
+}
+
+/**
+ * Definition unfolding by a single definition `l = r`, recovered from the
+ * parent and the natural (pre-selection) conclusion. Every rewritten
+ * literal must be the parent literal with all occurrences of one instance
+ * `l\sigma` replaced by `r\sigma`. Otherwise, if a single literal changed, a
+ * single occurrence may be selected with `occurrence(n)`. Several used
+ * definitions, nested unfolding or several instances get no certificate.
+ */
+std::string tptpDefinitionUnfoldingReplayAnnotation(Unit* conclusion)
+{
+  if (conclusion->inference().rule() != InferenceRule::DEFINITION_UNFOLDING || !conclusion->isClause()) {
+    return "";
+  }
+  if (env.options->proofExtra() != Options::ProofExtra::REPLAY) { return ""; }
+  const auto* extra = static_cast<const Shell::FunctionDefinitionExtra*>(env.proofExtra.find(conclusion));
+  if (!extra) { return ""; }
+  UnitIterator parents = conclusion->getParents();
+  if (!parents.hasNext()) { return ""; }
+  Unit* mainUnit = parents.next();
+  if (!parents.hasNext()) { return ""; }
+  // The definition is listed once per unfolded occurrence. Each position is
+  // a separate substitution bank, all instantiated identically.
+  Unit* definitionUnit = parents.next();
+  unsigned definitionBanks = 1;
+  while (parents.hasNext()) {
+    if (parents.next() != definitionUnit) { return ""; }
+    ++definitionBanks;
+  }
+  if (!mainUnit->isClause() || !definitionUnit->isClause()) { return ""; }
+  Clause* main = mainUnit->asClause();
+  Clause* definition = definitionUnit->asClause();
+  const auto& natural = extra->naturalLiterals;
+  if (definition->length() != 1 || !(*definition)[0]->isEquality() ||
+      !(*definition)[0]->isPositive() || natural.size() != main->length()) {
+    return "";
+  }
+  std::vector<unsigned> changed;
+  for (unsigned i = 0; i < natural.size(); ++i) {
+    if ((*main)[i] != natural[i]) { changed.push_back(i); }
+  }
+  if (changed.empty()) { return ""; }
+
+  Literal* equation = (*definition)[0];
+  for (unsigned side = 0; side < 2; ++side) {
+    TermList from = equation->termArg(side);
+    TermList to = equation->termArg(1 - side);
+    if (from.isVar()) { continue; }
+    std::vector<Substitution> candidates;
+    if (from.isTerm() && from.term()->ground()) {
+      candidates.emplace_back();
+    } else {
+      for (unsigned i : changed) {
+        NonVariableNonTypeIterator subterms((*main)[i]);
+        while (subterms.hasNext()) {
+          Substitution candidate;
+          if (MatchingUtils::matchTerms(from, TermList(subterms.next()), candidate)) {
+            candidates.push_back(std::move(candidate));
+          }
+        }
+      }
+    }
+    for (auto& candidate : candidates) {
+      bool closed = true;
+      VariableIterator variables(to);
+      while (variables.hasNext()) {
+        TermList value;
+        closed &= candidate.findBinding(variables.next().var(), value);
+      }
+      if (!closed) { continue; }
+      TermList fromInstance = SubstHelper::apply(from, candidate);
+      TermList toInstance = SubstHelper::apply(to, candidate);
+      bool allOccurrences = true;
+      for (unsigned i = 0; i < natural.size() && allOccurrences; ++i) {
+        allOccurrences = EqHelper::replace((*main)[i], fromInstance, toInstance) == natural[i];
+      }
+      int occurrence = -1;
+      if (!allOccurrences && changed.size() == 1) {
+        for (unsigned n = 0;; ++n) {
+          Literal* single = replaceOccurrence((*main)[changed[0]], fromInstance, toInstance, n);
+          if (!single) { break; }
+          if (single == natural[changed[0]]) {
+            occurrence = n;
+            break;
+          }
+        }
+      }
+      if (!allOccurrences && occurrence < 0) { continue; }
+
+      std::ostringstream out;
+      std::vector<std::pair<unsigned, TermList>> bindings;
+      for (auto [variable, term] : iterTraits(candidate.items())) { bindings.emplace_back(variable, term); }
+      std::sort(bindings.begin(), bindings.end(),
+                [](const auto& left, const auto& right) { return left.first < right.first; });
+      out << "unifier([subs(" << replayUnitId(main) << ",[])";
+      for (unsigned bank = 0; bank < definitionBanks; ++bank) {
+        out << ",subs(" << replayUnitId(definition) << ",[";
+        for (unsigned i = 0; i < bindings.size(); ++i) {
+          if (i) { out << ','; }
+          out << "b(X" << bindings[i].first << ',' << tptpReplayTerm(bindings[i].second) << ')';
+        }
+        out << "])";
+      }
+      out << "]),";
+      out << (changed.size() == 1 ? "rewritten_literal(" : "rewritten_literals([");
+      for (unsigned i = 0; i < changed.size(); ++i) {
+        if (i) { out << ','; }
+        out << "literal(" << replayUnitId(main) << ',' << changed[i] << ')';
+      }
+      out << (changed.size() == 1 ? ")" : "])");
+      out << ",rewrite([equality(literal(" << replayUnitId(definition) << ",0)),from("
+          << tptpReplayTerm(fromInstance) << "),to(" << tptpReplayTerm(toInstance) << ')';
+      if (occurrence >= 0) { out << ",occurrence(" << occurrence << ')'; }
+      out << "])";
+      return out.str();
+    }
+  }
+  return "";
 }
 
 std::string tptpClausificationReplayAnnotation(Unit* conclusion, bool replay)
@@ -602,10 +782,91 @@ void InferenceStore::TPTPReplayProofPrinter::appendInferenceReplayAnnotations(
   if (_replay) {
     replay = Shell::InferenceRecorder::inferenceReplayAnnotation(unit, *_replayer, true);
     append(formatTPTPReplayAnnotations(unit, replay));
+    append(higherOrderReplayAnnotation(replay.information));
     append(tptpRectificationReplayAnnotation(unit, true));
     append(tptpClausificationReplayAnnotation(unit, true));
   }
+  append(tptpDefinitionUnfoldingReplayAnnotation(unit));
   append(tptpAvatarSplitInstantiationReplayAnnotation(unit));
+}
+
+std::string InferenceStore::TPTPReplayProofPrinter::parentlessReplayAnnotation(
+    Unit* unit, Shell::InferenceRecorder::InferenceReplayAnnotation& replay)
+{
+  if (!_replay) { return {}; }
+  replay = Shell::InferenceRecorder::inferenceReplayAnnotation(unit, *_replayer, true);
+  return higherOrderReplayAnnotation(replay.information);
+}
+
+/**
+ * Format rule-specific evidence accepted by the common inference recorder.
+ * A symbol introduced by Vampire (a Skolem witness, or the builtin choice and
+ * difference operators) is announced by `new_symbols(kind,[name])` on the
+ * first printed step that uses it; later steps reuse it.
+ */
+std::string InferenceStore::TPTPReplayProofPrinter::higherOrderReplayAnnotation(
+    const Shell::InferenceRecorder::InferenceInformation* information)
+{
+  using Info = Shell::InferenceRecorder::InferenceInformation;
+  if (!information) { return {}; }
+
+  std::vector<std::string> parts;
+  bool valid = true;
+  auto symbolName = [](unsigned symbol) { return env.signature->getFunction(symbol)->name(); };
+  auto introduce = [&](const char* kind, unsigned symbol) {
+    if (_introducedSymbols.insert(symbol).second) {
+      parts.push_back(std::string("new_symbols(") + kind + ",[" + symbolName(symbol) + "])");
+    }
+  };
+  auto literalReference = [&](unsigned index) -> std::string {
+    if (information->premises.size() == 1 && index < information->premises[0]->length()) {
+      return "literal(" + replayUnitId(information->premises[0]) + "," + Int::toString(index) + ")";
+    }
+    valid = false;
+    return {};
+  };
+  auto termList = [](const std::vector<TermList>& terms) {
+    std::string result = "[";
+    for (unsigned i = 0; i < terms.size(); ++i) {
+      if (i) { result += ','; }
+      result += tptpReplayTerm(terms[i]);
+    }
+    return result + "]";
+  };
+
+  if (const auto& witness = information->witness) {
+    std::string literal = literalReference(witness->literalIndex);
+    introduce("skolem", witness->symbol);
+    parts.push_back(std::string(witness->kind == Info::WitnessKind::EXTENSIONALITY
+                                  ? "extensionality_witness(" : "quantifier_witness(") +
+                    literal + "," + symbolName(witness->symbol) + "," +
+                    termList(witness->dependencies) + ")");
+  }
+  if (const auto& instance = information->quantifierInstance) {
+    parts.push_back("quantifier_instance(" + literalReference(instance->literalIndex) + "," +
+                    tptpReplayTerm(instance->term) + ")");
+  }
+  if (const auto& booleanCase = information->booleanCase) {
+    parts.push_back("boolean_case(" + literalReference(booleanCase->literalIndex) + "," +
+                    tptpReplayTerm(booleanCase->term) + "," +
+                    (booleanCase->value ? "true" : "false") + ")");
+  }
+  if (const auto& axiom = information->axiom) {
+    bool choice = axiom->kind == Info::AxiomKind::CHOICE;
+    bool builtin = choice ? symbolName(axiom->symbol) == "vEPSILON"
+                          : axiom->symbol == env.signature->getDiff();
+    if (builtin) { introduce(choice ? "choice" : "extensionality", axiom->symbol); }
+    parts.push_back(std::string(choice ? "choice_axiom(" : "extensionality_axiom(") +
+                    symbolName(axiom->symbol) + "," + tptpReplayTerm(axiom->arguments[0]) + "," +
+                    tptpReplayTerm(axiom->arguments[1]) + ")");
+  }
+  if (!valid) { return ""; }
+  std::string result;
+  for (const auto& part : parts) {
+    if (!result.empty()) { result += ','; }
+    result += part;
+  }
+  return result;
 }
 
 std::string InferenceStore::TPTPReplayProofPrinter::avatarConversionReplayAnnotation(Unit* origin) const

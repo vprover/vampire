@@ -27,6 +27,7 @@
 #include "Shell/Options.hpp"
 
 #include <algorithm>
+#include <cctype>
 #include <sstream>
 #include <unordered_map>
 #include <unordered_set>
@@ -343,7 +344,11 @@ void printOrderedClause(std::ostream& out, Unit* us, InferenceRule orderRule, In
                    clauseOrderBridge(us, orderRule, replay.information, core, permutation);
   std::string unitId = "f" + Int::toString(us->number());
   if (hasBridge) {
-    std::string coreId = unitId + "_vh_" + StringUtils::replaceChar(ruleName(printedRule), ' ', '_');
+    // The core id must remain a TPTP lower word, even for rule names
+    // containing characters such as '-' or '('.
+    std::string coreId = unitId + "_vh_" + ruleName(printedRule);
+    std::replace_if(coreId.begin(), coreId.end(),
+                    [](char c) { return !std::isalnum((unsigned char)c) && c != '_'; }, '_');
     out << fofLine(coreId, getClauseFormulaString(core), inferenceStr) << std::endl;
     out << fofLine(unitId, getQuantifiedStr(us), acInference(coreId, permutation)) << std::endl;
   } else {

@@ -18,6 +18,7 @@
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
 #include "FlexFlexSimplify.hpp"
+#include "Shell/InferenceRecorder.hpp"
 
 using namespace Lib;
 using namespace Kernel;
@@ -34,7 +35,11 @@ Clause* FlexFlexSimplify::simplify(Clause* c)
     return c;
   }
   // all flex-flex, return the empty clause
-  return Clause::empty(SimplifyingInference1(InferenceRule::FLEX_FLEX_SIMPLIFICATION, c));
+  auto result = Clause::empty(SimplifyingInference1(InferenceRule::FLEX_FLEX_SIMPLIFICATION, c));
+  if (env.reconstruction) {
+    Shell::InferenceRecorder::instance()->flexFlexClosure(result, c);
+  }
+  return result;
 }
 
 }

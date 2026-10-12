@@ -10,12 +10,24 @@
 #include "Inferences/FastCondensation.hpp"
 #include "Inferences/ForwardDemodulation.hpp"
 #include "Inferences/ForwardSubsumptionDemodulation.hpp"
+#include "Inferences/FOOLParamodulation.hpp"
 #include "Inferences/InferenceEngine.hpp"
+#include "Inferences/HOL/CNFOnTheFly.hpp"
+#include "Inferences/HOL/Cases.hpp"
+#include "Inferences/HOL/CasesSimp.hpp"
+#include "Inferences/HOL/Choice.hpp"
+#include "Inferences/HOL/FlexFlexSimplify.hpp"
+#include "Inferences/HOL/ImitateProject.hpp"
+#include "Inferences/HOL/LeibnizEqualityElimination.hpp"
+#include "Inferences/HOL/NegativeExtensionality.hpp"
+#include "Inferences/HOL/PrimitiveInstantiation.hpp"
 #include "Inferences/InnerRewriting.hpp"
 #include "Inferences/SubsumptionEqualityResolution.hpp"
 #include "Inferences/Superposition.hpp"
 #include "Inferences/URResolution.hpp"
+#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/TermIterators.hpp"
 #include "Shell/EqResWithDeletion.hpp"
 #include "Shell/InferenceRecorder.hpp"
 
@@ -126,8 +138,11 @@ void InferenceReplayer::replayInference(Unit* goal)
     if (!parent->isClause()) { return; }
     context.push(parent->asClause());
   }
-  if (context.isEmpty()) { return; }
   Lib::ScopedLet<bool> reconstruction(env.reconstruction, true);
+  if (context.isEmpty()) {
+    replayParentlessAxiom(goal->asClause());
+    return;
+  }
 
   switch (goal->inference().rule()) {
   case InferenceRule::RESOLUTION:
@@ -139,7 +154,9 @@ void InferenceReplayer::replayInference(Unit* goal)
     runGenerating<URResolution<false>>(context); break;
   case InferenceRule::SUPERPOSITION:
   case InferenceRule::CONSTRAINED_SUPERPOSITION:
-    runGenerating<Superposition<false>>(context); break;
+    if (env.higherOrder()) { runGenerating<Superposition<true>>(context); }
+    else { runGenerating<Superposition<false>>(context); }
+    break;
   case InferenceRule::EQUALITY_RESOLUTION:
     runGenerating<EqualityResolution>(context); break;
   case InferenceRule::EQUALITY_FACTORING:
@@ -147,11 +164,15 @@ void InferenceReplayer::replayInference(Unit* goal)
   case InferenceRule::FACTORING:
     runGenerating<Factoring>(context); break;
   case InferenceRule::FORWARD_DEMODULATION:
-    runForwardsSimp<ForwardDemodulation<false>>(context); break;
+    if (env.higherOrder()) { runForwardsSimp<ForwardDemodulation<true>>(context); }
+    else { runForwardsSimp<ForwardDemodulation<false>>(context); }
+    break;
   case InferenceRule::FORWARD_SUBSUMPTION_DEMODULATION:
     runForwardsSimp<ForwardSubsumptionDemodulation<false>>(context); break;
   case InferenceRule::BACKWARD_DEMODULATION:
-    runBackwardsSimp<BackwardDemodulation<false>>(context); break;
+    if (env.higherOrder()) { runBackwardsSimp<BackwardDemodulation<true>>(context); }
+    else { runBackwardsSimp<BackwardDemodulation<false>>(context); }
+    break;
   case InferenceRule::BACKWARD_SUBSUMPTION_DEMODULATION:
     runBackwardsSimp<BackwardSubsumptionDemodulation<false>>(context); break;
   case InferenceRule::BACKWARD_SUBSUMPTION_RESOLUTION:
@@ -175,8 +196,97 @@ void InferenceReplayer::replayInference(Unit* goal)
   case InferenceRule::EQUALITY_RESOLUTION_WITH_DELETION:
     ASS_EQ(context.size(), 1);
     EqResWithDeletion().apply(context[0]); break;
+  case InferenceRule::PRIMITIVE_INSTANTIATION:
+    runGenerating<PrimitiveInstantiation>(context); break;
+  case InferenceRule::IMITATION:
+  case InferenceRule::PROJECTION:
+    runGenerating<ImitateProject>(context); break;
+  case InferenceRule::LEIBNIZ_ELIMINATION:
+    runGenerating<LeibnizEqualityElimination>(context); break;
+  case InferenceRule::FLEX_FLEX_SIMPLIFICATION:
+    ASS_EQ(context.size(), 1);
+    FlexFlexSimplify().simplify(context[0]); break;
+  case InferenceRule::FOOL_PARAMODULATION:
+    if (env.higherOrder()) { runGenerating<Cases>(context); }
+    else {
+      FOOLParamodulation rule;
+      runGenerating(rule, context);
+    }
+    break;
+  case InferenceRule::CASES_SIMP: {
+    ASS_EQ(context.size(), 1);
+    auto result = CasesSimp().simplifyMany(context[0]);
+    if (result.isSome()) {
+      auto& clauses = result.unwrap();
+      while (clauses.hasNext()) { clauses.next(); }
+    }
+    break;
+  }
+  case InferenceRule::HEURISTIC_INSTANTIATION: {
+    LazyClausificationGIE rule;
+    runGenerating(rule, context);
+    break;
+  }
+  case InferenceRule::NEGATIVE_EXTENSIONALITY:
+  case InferenceRule::SIGMA_PROXY_CLAUSIFICATION:
+  case InferenceRule::SIGMA_PROXY_CLAUSIFICATION_SIMPLIFYING:
+    replayWitnessInference(goal->asClause(), context); break;
   default:
     break; // not replayable yet
+  }
+}
+
+void InferenceReplayer::replayWitnessInference(Clause* goal, const ClauseStack& context)
+{
+  ASS_EQ(context.size(), 1);
+  // Include applications of each Skolem head, not just the symbol: a witness
+  // reused by the formula index can have arbitrary instantiated dependencies.
+  std::unordered_set<uint64_t> seen;
+  for (Literal* literal : goal->iterLits()) {
+    NonVariableNonTypeIterator terms(literal);
+    while (terms.hasNext()) {
+      TermList term(terms.next());
+      if (term.isLambdaTerm()) { continue; }
+      auto [head, args] = HOL::getHeadAndArgs(term);
+      if (!head.isTerm() || head.isLambdaTerm() ||
+          !env.signature->getFunction(head.term()->functor())->skolem() ||
+          !seen.insert(term.content()).second) { continue; }
+      InferenceRecorder::instance()->setReplayWitness(term);
+      if (goal->inference().rule() == InferenceRule::NEGATIVE_EXTENSIONALITY) {
+        runGenerating<NegativeExtensionality>(context);
+      } else {
+        LazyClausificationGIE rule;
+        runGenerating(rule, context);
+      }
+      if (InferenceRecorder::instance()->getLastRecordedInferenceInformation()) { return; }
+    }
+  }
+}
+
+void InferenceReplayer::replayParentlessAxiom(Clause* goal)
+{
+  switch (goal->inference().rule()) {
+  case InferenceRule::FUNCTIONAL_EXTENSIONALITY_AXIOM:
+    HOL::create::functionalExtensionalityAxiom();
+    break;
+  case InferenceRule::HILBERTS_CHOICE_INSTANCE:
+    for (Literal* literal : goal->iterLits()) {
+      NonVariableNonTypeIterator terms(literal);
+      while (terms.hasNext()) {
+        TermList term(terms.next());
+        if (!term.isApplication()) { continue; }
+        TermList op = term.lhs();
+        if (op.isTerm() && !op.isApplication() && !op.isLambdaTerm() &&
+            (env.signature->isChoiceOperator(op.term()->functor()) ||
+             env.signature->getFunction(op.term()->functor())->name() == "vEPSILON")) {
+          Choice::createChoiceAxiom(op, term.rhs());
+          if (InferenceRecorder::instance()->getLastRecordedInferenceInformation()) { return; }
+        }
+      }
+    }
+    break;
+  default:
+    break;
   }
 }
 

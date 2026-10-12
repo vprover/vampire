@@ -13,6 +13,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/HOL/HOL.hpp"
+#include "Shell/InferenceRecorder.hpp"
 
 using Kernel::Term;
 
@@ -152,10 +153,14 @@ Clause* HOL::create::choiceAxiom()
   auto px = app(alpha, boolS, p, TermList::var(2));
   auto pchoiceT = app(alpha, boolS, p, choiceTApplied);
 
-  return Clause::fromLiterals({
+  auto axiom = Clause::fromLiterals({
     Literal::createEquality(true, px, bottom(), boolS),
     Literal::createEquality(true, pchoiceT, top(), boolS),
   }, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::HILBERTS_CHOICE_INSTANCE));
+  if (env.reconstruction) {
+    Shell::InferenceRecorder::instance()->choiceAxiom(axiom, choiceT, p, TermList::var(2));
+  }
+  return axiom;
 }
 
 Clause* HOL::create::functionalExtensionalityAxiom()
@@ -170,10 +175,14 @@ Clause* HOL::create::functionalExtensionalityAxiom()
   auto lhs = app(alpha, beta, x, diffTApplied);
   auto rhs = app(alpha, beta, y, diffTApplied);
 
-  return Clause::fromLiterals({
+  auto axiom = Clause::fromLiterals({
     Literal::createEquality(false, lhs, rhs, beta),
     Literal::createEquality(true, x, y, AtomicSort::arrowSort(alpha, beta))
   }, TheoryAxiom(InferenceRule::FUNCTIONAL_EXTENSIONALITY_AXIOM));
+  if (env.reconstruction) {
+    Shell::InferenceRecorder::instance()->extensionalityAxiom(axiom, diffT, x, y);
+  }
+  return axiom;
 }
 
 Term* HOL::create::lambda(unsigned numArgs, const unsigned* vars, const TermList* varSorts, TypedTermList body, TermList* resultExprSort) {

@@ -22,6 +22,7 @@
 #include "Kernel/TermIterators.hpp"
 
 #include "CasesSimp.hpp"
+#include "Shell/InferenceRecorder.hpp"
 
 namespace Inferences {
 
@@ -48,7 +49,11 @@ Clause* performCaseSimp(Clause* premise, Literal* lit, TermList t, bool replaceW
   // Add new lit to the clause
   resLits->push(newLit);
 
-  return Clause::fromStack(*resLits, SimplifyingInference1(InferenceRule::CASES_SIMP, premise));
+  auto result = Clause::fromStack(*resLits, SimplifyingInference1(InferenceRule::CASES_SIMP, premise));
+  if (env.reconstruction) {
+    Shell::InferenceRecorder::instance()->booleanCase(result, premise, lit, t, replaceWithTroo);
+  }
+  return result;
 }
 
 Option<ClauseIterator> CasesSimp::simplifyMany(Clause* premise)

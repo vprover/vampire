@@ -25,6 +25,8 @@ private:
   std::unique_ptr<Saturation::SaturationAlgorithm> _alg;
 
   void replayCondensation(Kernel::Clause* premise);
+  void replayWitnessInference(Kernel::Clause* goal, const Kernel::ClauseStack& context);
+  void replayParentlessAxiom(Kernel::Clause* goal);
   template<typename Engine> void runGenerating(const Kernel::ClauseStack& context);
   template<typename Engine> void runForwardsSimp(const Kernel::ClauseStack& context);
   template<typename Engine> void runBackwardsSimp(const Kernel::ClauseStack& context);

@@ -7,6 +7,8 @@
 #include "Indexing/Index.hpp"
 #include "Inferences/InferenceEngine.hpp"
 #include "Kernel/FormulaUnit.hpp"
+#include "Kernel/HOL/HOL.hpp"
+#include "Kernel/SortHelper.hpp"
 #include "Kernel/MLMatcher.hpp"
 #include "Kernel/MLVariant.hpp"
 #include "Kernel/Matcher.hpp"
@@ -330,15 +332,231 @@ bool InferenceRecorder::recordReplayedInferenceCandidate(Clause* conclusion,
     InferenceInformation::LiteralPositionKind kind,
     std::vector<InferenceInformation::LiteralPosition> positions)
 {
+  return recordSubstitutionCandidate(conclusion, premises, substitutions, kind, std::move(positions));
+}
+
+bool InferenceRecorder::recordSubstitutionCandidate(Clause* conclusion,
+    const std::vector<Clause*>& premises, const std::vector<Substitution>& substitutions,
+    InferenceInformation::LiteralPositionKind kind,
+    std::vector<InferenceInformation::LiteralPosition> positions,
+    Substitution* renaming, unsigned* freshVariable)
+{
   ASS_EQ(premises.size(), substitutions.size());
-  recordGenericSubstitutionInference<std::vector<Substitution>>(
-      conclusion->number(), conclusion, premises, substitutions,
+  std::unordered_map<unsigned, unsigned> varMap;
+  if (!isSameAsProofStep(conclusion, _currentGoal, varMap)) { return false; }
+  auto info = std::make_unique<InferenceInformation>();
+  info->conclusion = conclusion;
+  info->premises = premises;
+  populateSubstitutionsGen<std::vector<Substitution>>(
+      info->substitutionForBanksSub, varMap, premises, substitutions,
       [](const std::vector<Substitution>& banks, const TermList& term, size_t bank) {
         return SubstHelper::apply(term, banks[bank]);
-      }, kind, std::move(positions));
-  const auto* info = getLastRecordedInferenceInformation();
-  return info && info->conclusion == conclusion;
+      }, renaming, freshVariable);
+  info->literalPositionKind = kind;
+  info->literalPositions = std::move(positions);
+  populateNaturalLiterals(*info, varMap);
+  _lastInferenceId = conclusion->number();
+  _inferences[_lastInferenceId] = std::move(info);
+  _hasLastInference = true;
+  return true;
 }
+
+void InferenceRecorder::instantiation(Clause* conclusion, Clause* parent,
+                                    unsigned variable, TermList binding)
+{
+  if (!env.reconstruction) { return; }
+  Substitution subst;
+  subst.bind(variable, binding);
+  recordReplayedInferenceCandidate(conclusion, {parent}, std::vector<Substitution>{subst},
+      InferenceInformation::LiteralPositionKind::NONE, {});
+}
+
+namespace {
+Substitution bankSubstitution(Clause* parent, const RobSubstitution& subst, int bank)
+{
+  Substitution result;
+  auto variables = parent->getVariableIterator();
+  while (variables.hasNext()) {
+    unsigned variable = variables.next();
+    result.bind(variable, subst.apply(TermList::var(variable), bank));
+  }
+  return result;
+}
+}
+
+void InferenceRecorder::unifier(Clause* conclusion, Clause* parent,
+                               const RobSubstitution& subst, int bank)
+{
+  if (!env.reconstruction) { return; }
+  recordReplayedInferenceCandidate(conclusion, {parent},
+      std::vector<Substitution>{bankSubstitution(parent, subst, bank)},
+      InferenceInformation::LiteralPositionKind::NONE, {});
+}
+
+void InferenceRecorder::witness(InferenceInformation::WitnessKind kind, Clause* conclusion,
+                               Clause* parent, Literal* literal, TermList term)
+{
+  if (!env.reconstruction) { return; }
+  Substitution renaming;
+  unsigned fresh;
+  if (!recordSubstitutionCandidate(conclusion, {parent}, std::vector<Substitution>(1),
+        InferenceInformation::LiteralPositionKind::NONE, {}, &renaming, &fresh)) { return; }
+  auto [head, args] = HOL::getHeadAndArgs(renameCertificateTerm(term, renaming, fresh));
+  ASS(head.isTerm());
+  std::vector<TermList> dependencies(args.begin(), args.end());
+  std::reverse(dependencies.begin(), dependencies.end());
+  _inferences.at(_lastInferenceId)->witness = InferenceInformation::Witness{
+      kind, literalPosition(parent, literal), head.term()->functor(), std::move(dependencies)};
+}
+
+void InferenceRecorder::booleanCase(Clause* conclusion, Clause* parent, Literal* literal,
+                                   TermList term, bool value)
+{
+  if (!env.reconstruction) { return; }
+  Substitution renaming;
+  unsigned fresh;
+  if (recordSubstitutionCandidate(conclusion, {parent}, std::vector<Substitution>(1),
+        InferenceInformation::LiteralPositionKind::NONE, {}, &renaming, &fresh)) {
+    _inferences.at(_lastInferenceId)->booleanCase = InferenceInformation::BooleanCase{
+        literalPosition(parent, literal), renameCertificateTerm(term, renaming, fresh), value};
+  }
+}
+
+void InferenceRecorder::quantifierInstance(Clause* conclusion, Clause* parent,
+    const RobSubstitution& subst, int bank, Literal* literal, TermList term)
+{
+  if (!env.reconstruction) { return; }
+  Substitution renaming;
+  unsigned fresh;
+  if (recordSubstitutionCandidate(conclusion, {parent},
+        std::vector<Substitution>{bankSubstitution(parent, subst, bank)},
+        InferenceInformation::LiteralPositionKind::NONE, {}, &renaming, &fresh)) {
+    _inferences.at(_lastInferenceId)->quantifierInstance = InferenceInformation::QuantifierInstance{
+        literalPosition(parent, literal), renameCertificateTerm(term, renaming, fresh)};
+  }
+}
+
+void InferenceRecorder::choiceAxiom(Clause* axiom, TermList op,
+                                  TermList predicate, TermList variable)
+{
+  if (!env.reconstruction || !op.isTerm()) { return; }
+  Substitution renaming;
+  unsigned fresh;
+  if (recordSubstitutionCandidate(axiom, {}, {}, InferenceInformation::LiteralPositionKind::NONE,
+        {}, &renaming, &fresh)) {
+    _inferences.at(_lastInferenceId)->axiom = InferenceInformation::Axiom{
+        InferenceInformation::AxiomKind::CHOICE, op.term()->functor(),
+        {renameCertificateTerm(predicate, renaming, fresh), renameCertificateTerm(variable, renaming, fresh)}};
+  }
+}
+
+void InferenceRecorder::extensionalityAxiom(Clause* axiom, TermList diff,
+                                          TermList left, TermList right)
+{
+  if (!env.reconstruction || !diff.isTerm()) { return; }
+  Substitution renaming;
+  unsigned fresh;
+  if (recordSubstitutionCandidate(axiom, {}, {}, InferenceInformation::LiteralPositionKind::NONE,
+        {}, &renaming, &fresh)) {
+    _inferences.at(_lastInferenceId)->axiom = InferenceInformation::Axiom{
+        InferenceInformation::AxiomKind::EXTENSIONALITY, diff.term()->functor(),
+        {renameCertificateTerm(left, renaming, fresh), renameCertificateTerm(right, renaming, fresh)}};
+  }
+}
+
+TermList InferenceRecorder::replayWitness(Literal* literal, InferenceInformation::WitnessKind kind)
+{
+  if (!env.reconstruction || !_currentGoal || _replayWitness.isEmpty()) { return {}; }
+  // Match the retained body of the transformed literal to recover the inverse
+  // variable renaming. This also handles a Skolem-index witness whose
+  // dependencies are terms or a proper subset of the parent's variables.
+  for (Literal* target : _currentGoal->iterLits()) {
+    if (!target->isEquality() || target->polarity() != literal->polarity()) { continue; }
+    for (bool reversed : {false, true}) {
+      TermList left = target->termArg(reversed ? 1 : 0);
+      TermList right = target->termArg(reversed ? 0 : 1);
+      Substitution forward;
+      bool matched = false;
+      if (kind == InferenceInformation::WitnessKind::EXTENSIONALITY) {
+        matched = left.isApplication() && right.isApplication() &&
+          left.rhs() == _replayWitness && right.rhs() == _replayWitness &&
+          MatchingUtils::matchTerms(literal->eqArgSort().result(), target->eqArgSort(), forward) &&
+          MatchingUtils::matchTerms(literal->termArg(0), left.lhs(), forward) &&
+          MatchingUtils::matchTerms(literal->termArg(1), right.lhs(), forward);
+      } else {
+        TermList source = HOL::isBool(literal->termArg(0)) ? literal->termArg(1) : literal->termArg(0);
+        auto [head, args] = HOL::getHeadAndArgs(source);
+        if (head.isTerm() && args.size() == 1 && left.isApplication() &&
+            left.rhs() == _replayWitness && HOL::isBool(right)) {
+          matched = MatchingUtils::matchTerms(SortHelper::getResultSort(head.term()).domain(),
+                                             HOL::lhsSort(left), forward) &&
+            MatchingUtils::matchTerms(args[0], left.lhs(), forward);
+        }
+      }
+      if (!matched) { continue; }
+      Substitution inverse;
+      bool renaming = true;
+      for (auto [variable, value] : iterTraits(forward.items())) {
+        if (!value.isVar() || !inverse.bind(value.var(), TermList::var(variable))) {
+          renaming = false;
+          break;
+        }
+      }
+      VariableIterator variables(_replayWitness);
+      while (renaming && variables.hasNext()) {
+        TermList value;
+        renaming = inverse.findBinding(variables.next().var(), value);
+      }
+      if (renaming) { return SubstHelper::apply(_replayWitness, inverse); }
+    }
+  }
+  return {};
+}
+
+void InferenceRecorder::flexFlexClosure(Clause* conclusion, Clause* parent)
+{
+  if (!env.reconstruction) { return; }
+  DHMap<unsigned, TermList, FnvHash, IdentityHash> sorts;
+  SortHelper::collectVariableSorts(parent, sorts);
+
+  Substitution subst;
+  std::map<uint64_t, TermList> commonValues; // final result sort -> fresh variable
+  unsigned freshVariable = parent->maxVar() + 1;
+  for (Literal* literal : parent->iterLits()) {
+    for (TermList side : {literal->termArg(0), literal->termArg(1)}) {
+      TermList head = side.head();
+      TermList bound;
+      if (!head.isVar() || subst.findBinding(head.var(), bound)) { continue; }
+      TermList sort;
+      if (!sorts.find(head.var(), sort)) { return; }
+      std::vector<TermList> domains;
+      while (sort.isArrowSort()) {
+        domains.push_back(sort.domain());
+        sort = sort.result();
+      }
+      auto [entry, fresh] = commonValues.emplace(sort.content(), TermList());
+      if (fresh) { entry->second = TermList::var(freshVariable++); }
+      TermList value = entry->second;
+      TermList valueSort = sort;
+      for (auto domain = domains.rbegin(); domain != domains.rend(); ++domain) {
+        value = HOL::create::namelessLambda(*domain, valueSort, value);
+        valueSort = AtomicSort::arrowSort(*domain, valueSort);
+      }
+      subst.bindUnbound(head.var(), value);
+    }
+  }
+  // Never assume that a flexible constraint is solvable: check the instance.
+  for (Literal* literal : parent->iterLits()) {
+    Literal* instance = SubstHelper::apply(literal, subst);
+    if (!instance->isEquality() || instance->isPositive() ||
+        HOL::reduce::betaNF(instance->termArg(0)) != HOL::reduce::betaNF(instance->termArg(1))) {
+      return;
+    }
+  }
+  recordReplayedInferenceCandidate(conclusion, {parent}, std::vector<Substitution>{subst},
+      InferenceInformation::LiteralPositionKind::NONE, {});
+}
+
 
 bool InferenceRecorder::subsumptionEqualityResolution(Clause* conclusion, Clause* premise,
     const RobSubstitution& subst, unsigned removedIndex)

@@ -29,6 +29,7 @@
 #include "Lib/DHSet.hpp"
 
 #include "Choice.hpp"
+#include "Shell/InferenceRecorder.hpp"
 
 namespace HC = HOL::create;
 
@@ -56,10 +57,14 @@ Clause* Choice::createChoiceAxiom(TermList op, TermList set)
   TermList t2 = HC::app(op, set);
   t2 =          HC::app(setSort, set, t2);
 
-  return Clause::fromLiterals({
+  auto axiom = Clause::fromLiterals({
     Literal::createEquality(true, t1, HOL::create::bottom(), AtomicSort::boolSort()),
     Literal::createEquality(true, t2, HOL::create::top(), AtomicSort::boolSort())
   }, NonspecificInference0(UnitInputType::AXIOM, InferenceRule::HILBERTS_CHOICE_INSTANCE));
+  if (env.reconstruction) {
+    Shell::InferenceRecorder::instance()->choiceAxiom(axiom, op, set, freshVar);
+  }
+  return axiom;
 }
 
 struct Choice::AxiomsIterator

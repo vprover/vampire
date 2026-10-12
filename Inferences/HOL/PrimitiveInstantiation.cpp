@@ -19,6 +19,7 @@
 
 #include "Kernel/HOL/HOL.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
+#include "Shell/InferenceRecorder.hpp"
 
 #include "PrimitiveInstantiation.hpp"
 
@@ -50,7 +51,7 @@ struct PrimitiveInstResultFn
 
   ClauseIterator operator() (Literal* lit)
   {
-    const bool pragmatic = _piSet == Options::PISet::PRAGMATIC;
+    const bool pragmatic = env.reconstruction || _piSet == Options::PISet::PRAGMATIC;
     const bool include_not_eq = _piSet == Options::PISet::ALL ||
                                  _piSet == Options::PISet::NOT_EQ_NOT_EQ;
 
@@ -80,9 +81,13 @@ struct PrimitiveInstResultFn
       static HOSubstitution subst;
       subst.reset();
       subst.bind(headFlex.var(), binding);
-      results.push(Clause::fromIterator(
+      auto result = Clause::fromIterator(
         _cl->iterLits().map([](Literal* lit) { return SubstHelper::apply(lit, subst); }),
-        GeneratingInference1(InferenceRule::PRIMITIVE_INSTANTIATION, _cl)));
+        GeneratingInference1(InferenceRule::PRIMITIVE_INSTANTIATION, _cl));
+      if (env.reconstruction) {
+        Shell::InferenceRecorder::instance()->instantiation(result, _cl, headFlex.var(), binding);
+      }
+      results.push(result);
     };
 
     // if any amongst a1 ... an is of sort $o, project that argument to the top
@@ -147,7 +152,7 @@ private:
   const TermStack& _heads;
 };
 
-PrimitiveInstantiation::PrimitiveInstantiation(SaturationAlgorithm& salg) : _piSet(salg.getOptions().piSet())
+PrimitiveInstantiation::PrimitiveInstantiation(SaturationAlgorithm& salg) : _piSet(env.reconstruction ? Options::PISet::ALL : salg.getOptions().piSet())
 {
   auto sortVar = TermList::var(0);
 

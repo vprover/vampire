@@ -34,6 +34,10 @@ protected:
   virtual void appendInferenceReplayAnnotations(Unit*, std::string&,
       Shell::InferenceRecorder::InferenceReplayAnnotation&) {}
   virtual std::string avatarConversionReplayAnnotation(Unit*) const { return {}; }
+  /** Certificate of a parentless unit. If non-empty, the unit is printed as
+   * `inference(rule,[certificate],[])` instead of `introduced(...)`. */
+  virtual std::string parentlessReplayAnnotation(Unit*,
+      Shell::InferenceRecorder::InferenceReplayAnnotation&) { return {}; }
   virtual std::vector<Unit*> avatarConversionReplayDefinitions(Unit*) const { return {}; }
   std::string getRole(InferenceRule rule, UnitInputType origin);
   std::string tptpRuleName(InferenceRule rule);

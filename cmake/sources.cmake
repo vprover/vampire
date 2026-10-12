@@ -54,6 +54,7 @@ set(UNIT_TESTS
     UnitTests/tHash.cpp
     UnitTests/tIndexManager.cpp
     UnitTests/tInferenceReplay.cpp
+    UnitTests/tHigherOrderReplay.cpp
     UnitTests/tInferences_AnswerLiteralProcessors.cpp
     UnitTests/tInferences_ArithmeticSubtermGeneralization.cpp
     UnitTests/tInferences_BinaryResolution.cpp

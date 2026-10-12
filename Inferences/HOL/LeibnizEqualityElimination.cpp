@@ -23,6 +23,7 @@
 #include "Kernel/RobSubstitution.hpp"
 
 #include "LeibnizEqualityElimination.hpp"
+#include "Shell/InferenceRecorder.hpp"
 
 namespace Inferences
 {
@@ -83,7 +84,11 @@ Clause* createConclusion(Clause* premise, Literal* newLit, Literal* posLit, Lite
       resLits->push(subst.apply(curr, 0));
     }
   }
-  return Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::LEIBNIZ_ELIMINATION, premise));
+  auto result = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::LEIBNIZ_ELIMINATION, premise));
+  if (env.reconstruction) {
+    Shell::InferenceRecorder::instance()->unifier(result, premise, subst, 0);
+  }
+  return result;
 }
 
 }
