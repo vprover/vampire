@@ -561,15 +561,17 @@ unsigned Signature::getChoice() {
   return addFunction("vEPSILON", OperatorType::getConstantsType(result, 1))->number();
 }
 
-unsigned Signature::getDeBruijnIndex(int index) {
-  ASS_GE(index, 0);
-
-  bool added = false;
-  unsigned fun = addFunction("db" + Int::toString(index), OperatorType::getConstantsType(TermList::var(0), 1), added)->number();
-  if (added) {
-    _funs[fun]->setDeBruijnIndex(index);
+unsigned Signature::getDeBruijnIndex(unsigned index) {
+  if (index >= _dbIndexSyms.size() || !_dbIndexSyms[index]) {
+    while (index >= _dbIndexSyms.size()) {
+      _dbIndexSyms.push(nullptr);
+    }
+    bool added = false;
+    _dbIndexSyms[index] = addFunction("db" + Int::toString(index), OperatorType::getConstantsType(TermList::var(0), 1), added)
+      ->setDeBruijnIndex(index);
+    ASS(added);
   }
-  return fun;
+  return _dbIndexSyms[index]->number();
 }
 
 unsigned Signature::getPlaceholder() {

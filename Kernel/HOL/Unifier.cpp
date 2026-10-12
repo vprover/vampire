@@ -13,6 +13,7 @@
  */
 
 #include "Kernel/HOL/HOL.hpp"
+#include "Kernel/HOL/RedexReducer.hpp"
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/UnificationWithAbstraction.hpp"
@@ -40,6 +41,49 @@ UnificationNode::Constraint::Constraint(TermList lhs, TermList rhs, TermList sor
   ASS(_rhs.isVar() || SortHelper::getResultSort(_rhs.term()) == _sort);
 }
 
+TermList localNormalize(TermList t, TermList sort, const Substitution& subs)
+{
+  TermStack lambdaSorts;
+  TermStack args;
+  // We want to reach a fixed point of applying the substitution
+  // on the head and then beta normalizing it if it's a lambda.
+  for (;;) {
+    if (t.isLambdaTerm()) {
+      sort = t.term()->typeArg(1);
+      if (args.isEmpty()) {
+        lambdaSorts.push(t.term()->typeArg(0));
+        t = t.lambdaBody();
+      } else {
+        // this lambda eats one argument
+        t = RedexReducer::reduce(t, args.pop());
+      }
+      continue;
+    }
+
+    if (t.isApplication()) {
+      args.push(t.rhs());
+      sort = AtomicSort::arrowSort(t.term()->typeArg(0), t.term()->typeArg(1));
+      t = t.lhs();
+      continue;
+    }
+
+    if (t.isVar()) {
+      TermList st;
+      if (subs.findBinding(t.var(), st)) {
+        t = st;
+        continue;
+      }
+    }
+    // variable or constant, nothing to do
+    break;
+  }
+  auto inner = HOL::create::app(sort, t, args, /*fromTop=*/true);
+  if (args.isNonEmpty()) {
+    sort = SortHelper::getResultSort(inner.term());
+  }
+  return HOL::create::surroundWithLambdas(inner, lambdaSorts, sort, /*fromTop=*/true);
+}
+
 bool UnificationNode::Constraint::derefHead(TermList& head, TermList& side, const Substitution& subs)
 {
   if (head.isVar()) {
@@ -55,33 +99,8 @@ bool UnificationNode::Constraint::derefHead(TermList& head, TermList& side, cons
 
 void UnificationNode::Constraint::normalize(const Substitution& subs)
 {
-  // We want to reach a fixed point of applying the substitution
-  // on the head and then beta normalizing it if it's a lambda.
-  //
-  // TODO this is very inefficient now, we only have to beta normalize
-  // any applications on the head. Use WHNF from the HOL branch.
-  bool changed;
-  do {
-    changed = false;
-    auto newLhs = HOL::reduce::betaNF(_lhs);
-    if (newLhs != _lhs) {
-      changed = true;
-      _lhs = newLhs;
-      _lhead = _lhs.head();
-    }
-    auto newRhs = HOL::reduce::betaNF(_rhs);
-    if (newRhs != _rhs) {
-      changed = true;
-      _rhs = newRhs;
-      _rhead = _rhs.head();
-    }
-    if (derefHead(_lhead, _lhs, subs)) {
-      changed = true;
-    }
-    if (derefHead(_rhead, _rhs, subs)) {
-      changed = true;
-    }
-  } while (changed);
+  _lhs = localNormalize(_lhs, _sort, subs);
+  _rhs = localNormalize(_rhs, _sort, subs);
 
   // We then alpha-eta normalize to get the same prefix on both sides.
   HOL::normaliseLambdaPrefixes(_lhs, _rhs);

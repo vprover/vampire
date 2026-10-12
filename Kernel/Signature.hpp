@@ -442,7 +442,7 @@ class Signature
   unsigned getLam();
   unsigned getDiff();
   unsigned getChoice();
-  unsigned getDeBruijnIndex(int index);
+  unsigned getDeBruijnIndex(unsigned index);
   unsigned getPlaceholder();
   unsigned getDefPred();
   /**
@@ -907,6 +907,7 @@ private:
   // TODO(HOL): these two don't belong in the signature
   DHSet<unsigned, FnvHash, IdentityHash> _choiceSymbols;
   DHSet<TermList, TermListHash, TermListHash2> _instantiations;
+  Stack<Symbol*> _dbIndexSyms;
 
   SymbolMap _funNames;
   SymbolMap _predNames;
