@@ -78,7 +78,7 @@ TermList holTermTransform(TermList tl, TransformFn tfn, ExploreFn efn)
   TermList transformed = tfn(tl, lambdaLevel);
   if (transformed != tl) {
     // we did transform, so we are done if we do not have to explore subterms
-    if (transformed.isVar() || !efn(tl, transformed)) {
+    if (transformed.isVar() || !efn(tl, transformed, lambdaLevel)) {
       return transformed;
     }
     tl = transformed;
@@ -137,7 +137,7 @@ TermList holTermTransform(TermList tl, TransformFn tfn, ExploreFn efn)
     if (tl != dest) {
       modified = true;
     }
-    if (dest.isVar() || !efn(tl, dest)) {
+    if (dest.isVar() || !efn(tl, dest, lambdaLevel)) {
       args.push(dest);
       continue;
     }

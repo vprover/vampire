@@ -43,7 +43,7 @@ public:
 
         return t;
       },
-      [] (TermList orig, TermList newTerm) { return orig == newTerm; }
+      [] (TermList orig, TermList newTerm, unsigned lambdaLevel) { return orig == newTerm; }
     );
   }
 

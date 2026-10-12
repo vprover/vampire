@@ -41,9 +41,17 @@ namespace RedexReducer {
         }
         return t;
       },
-      [](TermList orig, TermList newTerm) {
+      [](TermList orig, TermList newTerm, unsigned lambdaLevel) {
         // do not replace inside the substituted term, or in terms without any DB index
-        return orig == newTerm && newTerm.containsLooseDBIndex();
+        // return orig == newTerm && newTerm.containsLooseDBIndex();
+        if (orig != newTerm) {
+          return false;
+        }
+        auto l = newTerm.freeDBIndices();
+        while (l && l->head() < lambdaLevel) {
+          l = l->tail();
+        }
+        return l != nullptr;
       });
   }
 }

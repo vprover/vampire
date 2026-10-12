@@ -53,9 +53,16 @@ namespace TermShifter
         }
         return t;
       },
-      [](TermList orig, TermList newTerm) {
+      [](TermList orig, TermList newTerm, unsigned lambdaLevel) {
         // already shifted, so must be DB index and won't have subterms anyway
-        return orig == newTerm && newTerm.containsLooseDBIndex();
+        if (orig != newTerm) {
+          return false;
+        }
+        auto l = newTerm.freeDBIndices();
+        while (l && l->head() < lambdaLevel) {
+          l = l->tail();
+        }
+        return l != nullptr;
       });
   }
 
