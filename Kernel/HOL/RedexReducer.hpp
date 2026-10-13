@@ -14,6 +14,8 @@
 #ifndef __RedexReducer__
 #define __RedexReducer__
 
+#include "Lib/SparseSuffixIntArray.hpp"
+
 #include "Kernel/TermTransformer.hpp"
 
 using namespace Kernel;
@@ -36,8 +38,7 @@ public:
   }
 
   bool exploreSubterms(TermList orig, TermList newTerm) override {
-    return orig == newTerm && newTerm.term()->hasDeBruijnIndex();
-    // return orig == newTerm && newTerm.freeDBIndices() && newTerm.freeDBIndices()->hasHigherValuesThan(lambdaLevel);
+    return orig == newTerm && newTerm.freeDBIndices() && newTerm.freeDBIndices()->hasHigherValuesThan(_replace);
   }
 
 private:

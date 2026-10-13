@@ -14,6 +14,8 @@
 #include "Allocator.hpp"
 #include "Lib/Stack.hpp"
 
+#include <cstdint>
+
 namespace Lib {
 
 class SparseSuffixIntArray

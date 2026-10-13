@@ -81,15 +81,14 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
     bool hasInterpretedConstants=t->arity()==0 &&
       env.signature->getFunction(t->functor())->interpreted();
     bool hasTermVar = false;
-    bool hasDeBruijnIndex = t->deBruijnIndex().isSome();
-    bool hasRedex = t->isRedex();
+    bool hasBetaRedex = t->isBetaRedex();
     bool hasEtaRedex = t->isEtaRedex();
     const bool isLambda = t->isLambdaTerm();
     bool hasLambda = isLambda;
     SparseSuffixIntArray* freeDBIndices = nullptr;
     Color color = COLOR_TRANSPARENT;
 
-    if (hasDeBruijnIndex) {
+    if (t->deBruijnIndex().isSome()) {
       freeDBIndices = SparseSuffixIntArray::singleton(t->deBruijnIndex().unwrap());
     } else if (isLambda) {
       freeDBIndices = SparseSuffixIntArray::shiftByOne(t->lambdaBody().freeDBIndices());
@@ -117,8 +116,7 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
         vars += r->numVarOccs();
         weight += r->weight();
         hasTermVar |= r->hasTermVar();
-        hasDeBruijnIndex |= r->hasDeBruijnIndex();
-        hasRedex   |= r->hasRedex();
+        hasBetaRedex |= r->hasBetaRedex();
         hasEtaRedex |= r->hasEtaRedex();
         hasLambda  |= r->hasLambda();
         if (env.colorUsed) {
@@ -140,9 +138,8 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
       t->setColor(color);
     }
 
-    t->setHasRedex(hasRedex);
+    t->setHasBetaRedex(hasBetaRedex);
     t->setHasEtaRedex(hasEtaRedex);
-    t->setHasDeBruijnIndex(hasDeBruijnIndex);
     t->setHasLambda(hasLambda);
     t->setFreeDBIndices(freeDBIndices);
     t->setInterpretedConstantsPresence(hasInterpretedConstants);

@@ -132,8 +132,8 @@ bool TermList::isLambdaTerm() const {
   return !isVar() && term()->isLambdaTerm();
 }
 
-bool TermList::isRedex() const {
-  return isTerm() && term()->isRedex();
+bool TermList::isBetaRedex() const {
+  return isTerm() && term()->isBetaRedex();
 }
 
 bool TermList::isEtaRedex() const {
@@ -161,30 +161,7 @@ Option<unsigned> TermList::deBruijnIndex() const {
 
 bool TermList::containsLooseDBIndex() const
 {
-  // return freeDBIndices();
-  Stack<std::pair<TermList,unsigned>> todo;
-  todo.emplace(*this, 0);
-
-  while (todo.isNonEmpty()) {
-    auto [curr, dep] = todo.pop();
-
-    if (curr.isVar() || (curr.term()->shared() && !curr.term()->hasDeBruijnIndex())) {
-      continue;
-    }
-
-    if (curr.deBruijnIndex().isSome()) {
-      unsigned idx = curr.deBruijnIndex().unwrap();
-      if (idx >= dep) { return true; }
-    }
-    else if (curr.isLambdaTerm()) {
-      todo.emplace(curr.lambdaBody(), dep + 1);
-    }
-    else if (curr.isApplication()) {
-      todo.emplace(curr.lhs(), dep);
-      todo.emplace(curr.rhs(), dep);
-    }
-  }
-  return false;
+  return freeDBIndices();
 }
 
 SparseSuffixIntArray* TermList::freeDBIndices() const {
@@ -958,7 +935,7 @@ bool Term::isLambdaTerm() const {
   return !isSort() && !isLiteral() && !isSpecial() && env.signature->isLamFun(_functor);
 }
 
-bool Term::isRedex() const {
+bool Term::isBetaRedex() const {
   return isApplication() && nthArgument(2)->isLambdaTerm();
 }
 
