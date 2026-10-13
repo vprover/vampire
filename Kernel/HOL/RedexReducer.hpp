@@ -37,6 +37,7 @@ public:
 
   bool exploreSubterms(TermList orig, TermList newTerm) override {
     return orig == newTerm && newTerm.term()->hasDeBruijnIndex();
+    // return orig == newTerm && newTerm.freeDBIndices() && newTerm.freeDBIndices()->hasHigherValuesThan(lambdaLevel);
   }
 
 private:

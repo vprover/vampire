@@ -23,6 +23,7 @@
 #include "Kernel/HOL/HOL.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Output.hpp"
+#include "Lib/SparseSuffixIntArray.hpp"
 
 #include "Term.hpp"
 
@@ -132,7 +133,11 @@ bool TermList::isLambdaTerm() const {
 }
 
 bool TermList::isRedex() const {
-  return isApplication() && lhs().isLambdaTerm();
+  return isTerm() && term()->isRedex();
+}
+
+bool TermList::isEtaRedex() const {
+  return isTerm() && term()->isEtaRedex();
 }
 
 bool TermList::isProxy(Proxy proxy) const {
@@ -156,6 +161,7 @@ Option<unsigned> TermList::deBruijnIndex() const {
 
 bool TermList::containsLooseDBIndex() const
 {
+  // return freeDBIndices();
   Stack<std::pair<TermList,unsigned>> todo;
   todo.emplace(*this, 0);
 
@@ -179,6 +185,10 @@ bool TermList::containsLooseDBIndex() const
     }
   }
   return false;
+}
+
+SparseSuffixIntArray* TermList::freeDBIndices() const {
+  return isVar() ? nullptr : term()->freeDBIndices();
 }
 
 TermList TermList::lhs() const {
@@ -952,6 +962,25 @@ bool Term::isRedex() const {
   return isApplication() && nthArgument(2)->isLambdaTerm();
 }
 
+bool Term::isEtaRedex() const {
+  if (!isLambdaTerm()) {
+    return false;
+  }
+  auto lb = lambdaBody();
+  if (!lb.isApplication()) {
+    return false;
+  }
+  auto lhs = lb.term()->termArg(0);
+  auto rhs = lb.term()->termArg(1);
+  if (rhs.deBruijnIndex().unwrapOr(UINT_MAX) != 0) {
+    return false;
+  }
+  if (lhs.freeDBIndices() && lhs.freeDBIndices()->containsZero()) {
+    return false;
+  }
+  return true;
+}
+
 bool Term::isProxy(Proxy proxy) const {
   return !isSort() && !isLiteral() && !isSpecial() && env.signature->getFunction(_functor)->proxy() == proxy;
 }
@@ -1715,7 +1744,6 @@ Term::Term() throw()
 #if VDEBUG
    _kboInstance(nullptr),
 #endif
-   _maxRedLen(0),
    _vars(0)
 {
   info().setContent(0);

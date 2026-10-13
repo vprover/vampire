@@ -22,6 +22,7 @@
 #include "Kernel/Term.hpp"
 
 #include "Debug/TimeProfiling.hpp"
+#include "Lib/SparseSuffixIntArray.hpp"
 
 #include "TermSharing.hpp"
 
@@ -82,9 +83,20 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
     bool hasTermVar = false;
     bool hasDeBruijnIndex = t->deBruijnIndex().isSome();
     bool hasRedex = t->isRedex();
-    bool hasLambda = t->isLambdaTerm();
+    bool hasEtaRedex = t->isEtaRedex();
+    const bool isLambda = t->isLambdaTerm();
+    bool hasLambda = isLambda;
+    SparseSuffixIntArray* freeDBIndices = nullptr;
     Color color = COLOR_TRANSPARENT;
-    
+
+    if (hasDeBruijnIndex) {
+      freeDBIndices = SparseSuffixIntArray::singleton(t->deBruijnIndex().unwrap());
+    } else if (isLambda) {
+      freeDBIndices = SparseSuffixIntArray::shiftByOne(t->lambdaBody().freeDBIndices());
+    } else if (t->isApplication()) {
+      freeDBIndices = SparseSuffixIntArray::merge(t->termArg(0).freeDBIndices(), t->termArg(1).freeDBIndices());
+    }
+
     unsigned typeArity = t->numTypeArguments();
     for (unsigned i = 0; i < t->arity(); i++) {
       TermList* tt = t->nthArgument(i);
@@ -107,6 +119,7 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
         hasTermVar |= r->hasTermVar();
         hasDeBruijnIndex |= r->hasDeBruijnIndex();
         hasRedex   |= r->hasRedex();
+        hasEtaRedex |= r->hasEtaRedex();
         hasLambda  |= r->hasLambda();
         if (env.colorUsed) {
           color = static_cast<Color>(color | r->color());
@@ -128,8 +141,10 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
     }
 
     t->setHasRedex(hasRedex);
+    t->setHasEtaRedex(hasEtaRedex);
     t->setHasDeBruijnIndex(hasDeBruijnIndex);
     t->setHasLambda(hasLambda);
+    t->setFreeDBIndices(freeDBIndices);
     t->setInterpretedConstantsPresence(hasInterpretedConstants);
 
     ASS_REP(!env.higherOrder() || t->isApplication() || t->isLambdaTerm() || !t->numTermArguments(), "HO term " + t->toString() + " is not appified");

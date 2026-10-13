@@ -44,6 +44,7 @@ template <typename Key, typename Val, class Hash1, class Hash2> class DHMap;
 template <typename Val, class Hash1, class Hash2> class DHSet;
 template <typename Val, class Hash1, class Hash2> class DHMultiset;
 template <typename Val, class Hash, class Equal = std::equal_to<Val>> class Set;
+class SparseSuffixIntArray;
 };
 
 namespace Kernel

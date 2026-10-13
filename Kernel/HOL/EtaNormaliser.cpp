@@ -83,6 +83,7 @@ TermList EtaNormaliser::transformSubterm(TermList t) {
   }
 
   auto j = TermShifter::minFreeDBIndex(body);
+  // auto j = !body.freeDBIndices() ? UINT_MAX : body.freeDBIndices()->minValue();
   unsigned k = std::min({l, n, j});
 
   if (k == 0)
