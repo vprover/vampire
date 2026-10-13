@@ -571,6 +571,7 @@ set(SOURCES
     Lib/Slice.hpp
     Lib/SmartPtr.hpp
     Lib/Sort.hpp
+    Lib/SparseSuffixIntArray.hpp
     Lib/Stack.hpp
     Lib/StringUtils.cpp
     Lib/StringUtils.hpp

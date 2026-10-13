@@ -294,7 +294,7 @@ public:
    * In other words, it returns true if there is a db_i in the
    * term that is not wrapped into i lambda binders. */ 
   bool containsLooseDBIndex() const;
-  List<unsigned>* freeDBIndices() const;
+  SparseSuffixIntArray* freeDBIndices() const;
   TermList lhs() const;
   TermList rhs() const;
   TermList lambdaBody() const;
@@ -696,12 +696,6 @@ public:
     return _weight;
   }
 
-  int maxRedLength() const
-  {
-    ASS(shared());
-    return _maxRedLen;    
-  }
-
   int kboWeight(const void* kboInstance) const
   {
     ASS(_kboInstance || _kboWeight == -1);
@@ -718,12 +712,12 @@ public:
     _kboWeight = w;
   }
 
-  List<unsigned>* freeDBIndices() const
+  SparseSuffixIntArray* freeDBIndices() const
   {
     return _freeDBIndices;
   }
 
-  void setFreeDBIndices(List<unsigned>* is)
+  void setFreeDBIndices(SparseSuffixIntArray* is)
   {
     _freeDBIndices = is;
   }
@@ -750,11 +744,6 @@ public:
     ASS(shared());
     return info()._id();
   }
-  
-  void setMaxRedLen(int rl)
-  {
-    _maxRedLen = rl;
-  } // setWeight
 
   /** Set the number of variable _occurrences_ */
   void setNumVarOccs(unsigned v)
@@ -1023,9 +1012,7 @@ protected:
   /** KBO instance that uses the cached value @b _kboWeight. */
   const void* _kboInstance;
 #endif
-  /** length of maximum reduction length */
-  int _maxRedLen;
-  List<unsigned>* _freeDBIndices = nullptr;
+  SparseSuffixIntArray* _freeDBIndices = nullptr;
   union {
     /** If _isTwoVarEquality is false, this value is valid and contains
      * number of occurrences of variables */

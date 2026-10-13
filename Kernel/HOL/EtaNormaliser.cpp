@@ -62,7 +62,7 @@ TermList EtaNormaliser::normalise(TermList t) {
 
 TermList EtaNormaliser::transformSubterm(TermList t) {
   TermList body = t;
-  unsigned l = 0; // number of lambda binders
+  uint64_t l = 0; // number of lambda binders
   while (body.isLambdaTerm()) {
     ++l;
     body = body.lambdaBody();
@@ -71,7 +71,7 @@ TermList EtaNormaliser::transformSubterm(TermList t) {
   if (l == 0)
     return t; //not a lambda term, cannot eta reduce
 
-  unsigned n = 0; // number of De bruijn indices at end of term
+  uint64_t n = 0; // number of De bruijn indices at end of term
   TermList newBody = body;
   while (body.isApplication()) {
     auto dbIndex = body.rhs().deBruijnIndex();
@@ -82,8 +82,8 @@ TermList EtaNormaliser::transformSubterm(TermList t) {
     ++n;
   }
 
-  auto j = !body.freeDBIndices() ? UINT_MAX : body.freeDBIndices()->head();
-  unsigned k = std::min({l, n, j});
+  auto j = !body.freeDBIndices() ? UINT_MAX : body.freeDBIndices()->minValue();
+  uint64_t k = std::min({l, n, j});
 
   if (k == 0)
     return t;

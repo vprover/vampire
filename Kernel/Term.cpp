@@ -23,6 +23,7 @@
 #include "Kernel/HOL/HOL.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Output.hpp"
+#include "Lib/SparseSuffixIntArray.hpp"
 
 #include "Term.hpp"
 
@@ -163,8 +164,8 @@ bool TermList::containsLooseDBIndex() const
   return freeDBIndices();
 }
 
-List<unsigned>* TermList::freeDBIndices() const {
-  return isVar() ? List<unsigned>::empty() : term()->freeDBIndices();
+SparseSuffixIntArray* TermList::freeDBIndices() const {
+  return isVar() ? nullptr : term()->freeDBIndices();
 }
 
 TermList TermList::lhs() const {
@@ -946,7 +947,7 @@ bool Term::isEtaRedex() const {
   if (rhs.deBruijnIndex().unwrapOr(UINT_MAX) != 0) {
     return false;
   }
-  if (lhs.freeDBIndices() && lhs.freeDBIndices()->head() == 0) {
+  if (lhs.freeDBIndices() && lhs.freeDBIndices()->containsZero()) {
     return false;
   }
   return true;
@@ -1715,7 +1716,6 @@ Term::Term() throw()
 #if VDEBUG
    _kboInstance(nullptr),
 #endif
-   _maxRedLen(0),
    _vars(0)
 {
   info().setContent(0);
