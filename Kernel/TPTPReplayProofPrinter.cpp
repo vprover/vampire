@@ -427,13 +427,22 @@ std::string tptpClausificationReplayAnnotation(Unit* conclusion, bool replay)
     if (extra->occurrences[j].flipped != reversed) { swapped.push_back(i); }
   }
   std::ostringstream out;
-  out << "binder_mapping([";
-  for (unsigned i = 0; i < extra->binders.size(); ++i) {
-    if (i) { out << ','; }
-    auto [source, target] = extra->binders[i];
-    out << "b(X" << source << ",X" << target << ')';
+  if (extra->newcnf) {
+    out << "newcnf([";
+    for (unsigned i = 0; i < extra->newcnf->events.size(); ++i) {
+      if (i) { out << ','; }
+      out << extra->newcnf->events[i];
+    }
+    out << "],clause_index(" << extra->clauseIndex << "))";
+  } else {
+    out << "binder_mapping([";
+    for (unsigned i = 0; i < extra->binders.size(); ++i) {
+      if (i) { out << ','; }
+      auto [source, target] = extra->binders[i];
+      out << "b(X" << source << ",X" << target << ')';
+    }
+    out << "])";
   }
-  out << "])";
   auto indices = [&out](const char* name, const std::vector<unsigned>& values) {
     out << ',' << name << "([";
     for (unsigned i = 0; i < values.size(); ++i) {
@@ -784,7 +793,29 @@ void InferenceStore::TPTPReplayProofPrinter::appendInferenceReplayAnnotations(
     append(formatTPTPReplayAnnotations(unit, replay));
     append(higherOrderReplayAnnotation(replay.information));
     append(tptpRectificationReplayAnnotation(unit, true));
-    append(tptpClausificationReplayAnnotation(unit, true));
+    auto clausification = tptpClausificationReplayAnnotation(unit, true);
+    append(clausification);
+    if (!clausification.empty() && unit->inference().rule() == InferenceRule::CLAUSIFY) {
+      const auto* extra = static_cast<const Shell::ClausificationExtra*>(env.proofExtra.find(unit));
+      if (extra->newcnf) {
+        if (!extra->newcnf->symbols.empty()) { append("status(esa)"); }
+        for (const auto& [kind, name] : extra->newcnf->symbols) {
+          if (_introducedCNFSymbols.insert(name).second) {
+            append("new_symbols(" + kind + ",[" + name + "])");
+          }
+        }
+        for (const auto& mapping : extra->newcnf->skolems) { append(mapping); }
+      }
+    }
+    if (unit->inference().rule() == InferenceRule::FOOL_ELIMINATION && env.proofExtra.find(unit)) {
+      const auto* fool = static_cast<const Shell::FOOLExtra*>(env.proofExtra.find(unit));
+      std::string rewrites = "fool_rewrites([";
+      for (unsigned i = 0; i < fool->rewrites.size(); ++i) {
+        if (i) { rewrites += ','; }
+        rewrites += fool->rewrites[i];
+      }
+      append(rewrites + "])");
+    }
   }
   append(tptpDefinitionUnfoldingReplayAnnotation(unit));
   append(tptpAvatarSplitInstantiationReplayAnnotation(unit));
@@ -794,6 +825,15 @@ std::string InferenceStore::TPTPReplayProofPrinter::parentlessReplayAnnotation(
     Unit* unit, Shell::InferenceRecorder::InferenceReplayAnnotation& replay)
 {
   if (!_replay) { return {}; }
+  auto rule = unit->inference().rule();
+  if ((rule == InferenceRule::FOOL_ITE_DEFINITION || rule == InferenceRule::FOOL_LET_DEFINITION ||
+       rule == InferenceRule::FOOL_FORMULA_DEFINITION || rule == InferenceRule::FOOL_MATCH_DEFINITION) &&
+      env.proofExtra.find(unit)) {
+    const auto* fool = static_cast<const Shell::FOOLExtra*>(env.proofExtra.find(unit));
+    std::string result = fool->definition;
+    if (hasNewSymbols(unit)) { result = getNewSymbols("definition", unit) + ',' + result; }
+    return result;
+  }
   replay = Shell::InferenceRecorder::inferenceReplayAnnotation(unit, *_replayer, true);
   return higherOrderReplayAnnotation(replay.information);
 }

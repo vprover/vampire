@@ -35,6 +35,7 @@
 #include "Rectify.hpp"
 
 #include "FOOLElimination.hpp"
+#include "ClausificationRecording.hpp"
 
 using namespace std;
 using namespace Lib;
@@ -154,6 +155,7 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
   Formula* formula = rectifiedUnit->formula();
 
   _unit = rectifiedUnit;
+  _replayRewrites.clear();
   _varSorts.reset();
 
   SortHelper::collectVariableSorts(formula, _varSorts);
@@ -196,6 +198,11 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
   FormulaUnit* processedUnit = new FormulaUnit(processedFormula,
       NonspecificInferenceMany(InferenceRule::FOOL_ELIMINATION, _currentDefs));
   _currentDefs = UnitList::empty();
+  if (env.options->proofExtra() == Options::ProofExtra::REPLAY && !_replayRewrites.empty()) {
+    auto extra = new FOOLExtra();
+    extra->rewrites = std::move(_replayRewrites);
+    env.proofExtra.insert(processedUnit, extra);
+  }
 
   if (env.options->showPreprocessing()) {
     std::cout << "[PP] " << unit->toString() << endl;
@@ -229,6 +236,16 @@ Formula* FOOLElimination::convertToProxified(Formula* formula) {
 }
 
 Formula* FOOLElimination::process(Formula* formula) {
+  auto result = processImpl(formula);
+  if (env.options->proofExtra() == Options::ProofExtra::REPLAY && result != formula) {
+    auto source = replayFormula(formula);
+    auto target = replayFormula(result);
+    if (source != target) { _replayRewrites.push_back("formula_rewrite(" + source + "," + target + ")"); }
+  }
+  return result;
+}
+
+Formula* FOOLElimination::processImpl(Formula* formula) {
   switch (formula->connective()) {
     case LITERAL: {
       Literal* literal = formula->literal();
@@ -469,6 +486,16 @@ Formula* FOOLElimination::processAsFormula(TermList terms) {
  * subterms and we don't have to further process it.
  */
 void FOOLElimination::process(Term* term, Context context, TermList& termResult, Formula*& formulaResult) {
+  processImpl(term, context, termResult, formulaResult);
+  if (env.options->proofExtra() == Options::ProofExtra::REPLAY && term->isSpecial()) {
+    auto target = context == FORMULA_CONTEXT ? replayFormula(formulaResult) : replayFOOLTerm(termResult);
+    _replayRewrites.push_back(std::string("term_rewrite(") +
+      (context == FORMULA_CONTEXT ? "formula," : "term,") +
+      replayFOOLTerm(TermList(term)) + "," + target + ")");
+  }
+}
+
+void FOOLElimination::processImpl(Term* term, Context context, TermList& termResult, Formula*& formulaResult) {
   // collect free variables of the term and their sorts
   // WARNING, this list is leaked in all cases. Sometimes,
   // it becomes the quantified variables of a formula,
@@ -618,7 +645,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // add the joint definitions
         FormulaUnit* defUnit = new FormulaUnit(jointDef,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FOOL_ITE_DEFINITION));
-        addDefinition(defUnit);
+        addDefinition(defUnit, term, context);
         InferenceStore::instance()->recordIntroducedSymbol(defUnit, context == FORMULA_CONTEXT ? env.signature->getPredicate(freshSymbol) : env.signature->getFunction(freshSymbol));
 
         if (context == FORMULA_CONTEXT) {
@@ -855,7 +882,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         // add the introduced definition
         FormulaUnit* defUnit = new FormulaUnit(freshSymbolDefinition,
             NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FOOL_LET_DEFINITION));
-        addDefinition(defUnit);
+        addDefinition(defUnit, term, bindingContext);
 
         TermList contents = *term->nthArgument(0); // deliberately unprocessed here
 
@@ -938,7 +965,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
           // add the introduced definition
           FormulaUnit* defUnit = new FormulaUnit(freshSymbolDefinition,
             NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FOOL_FORMULA_DEFINITION));
-          addDefinition(defUnit);
+          addDefinition(defUnit, term, context);
 
           InferenceStore::instance()->recordIntroducedSymbol(defUnit, env.signature->getFunction(freshSymbol));
 
@@ -1015,7 +1042,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
             impl = new QuantifiedFormula(FORALL, vsfifo.list(), impl);
           }
           FormulaUnit* defUnit = new FormulaUnit(impl,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FOOL_MATCH_DEFINITION));
-          addDefinition(defUnit);
+          addDefinition(defUnit, term, context, (i - 1) / 2);
           InferenceStore::instance()->recordIntroducedSymbol(defUnit,context == FORMULA_CONTEXT ? env.signature->getPredicate(freshSymbol) : env.signature->getFunction(freshSymbol));
         }
 
@@ -1158,7 +1185,15 @@ void FOOLElimination::collectSorts(VList* vars, TermStack& typeVars,
  * Extends the list of definitions with a given unit, making sure that it
  * doesn't have FOOL subterms.
  */
-void FOOLElimination::addDefinition(FormulaUnit* def) {
+void FOOLElimination::addDefinition(FormulaUnit* def, Term* source, bool termContext, int branch) {
+  if (env.options->proofExtra() == Options::ProofExtra::REPLAY) {
+    auto extra = new FOOLExtra();
+    extra->definition = std::string("fool_definition(") + (termContext ? "term," : "formula,") +
+      replayFOOLTerm(TermList(source));
+    if (branch >= 0) { extra->definition += ",branch(" + std::to_string(branch) + ")"; }
+    extra->definition += ')';
+    env.proofExtra.insert(def, extra);
+  }
   ASS_REP(!needsElimination(def), def->toString());
 
   UnitList::push(def, _defs);

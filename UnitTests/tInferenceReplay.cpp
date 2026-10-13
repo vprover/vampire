@@ -7,6 +7,8 @@
 #include "Lib/SharedSet.hpp"
 #include "Shell/ACReconstruction.hpp"
 #include "Shell/CNF.hpp"
+#include "Shell/NewCNF.hpp"
+#include "Shell/ClausificationRecording.hpp"
 #include "Shell/InferenceReplay.hpp"
 #include "Shell/InferenceRecorder.hpp"
 #include "Shell/Options.hpp"
@@ -1093,4 +1095,113 @@ TEST_FUN(invalid_goals_and_disabled_replay_emit_no_substitution)
   ASS(renderedReplay(goal, annotation).empty());
   Shell::InferenceReplayer replayer;
   ASS(renderedReplay(goal, Shell::InferenceRecorder::inferenceReplayAnnotation(goal, replayer, false)).empty());
+}
+
+TEST_FUN(newcnf_certificate_retains_choices_and_selected_literal_occurrences)
+{
+  auto sort = AtomicSort::defaultSort();
+  DECL_DEFAULT_VARS
+  DECL_PRED(p, {sort})
+  DECL_PRED(q, {sort})
+  env.options->set("proof_extra", "replay");
+  auto body = new JunctionFormula(OR, FormulaList::cons(new AtomicFormula(p(x)),
+      FormulaList::cons(new AtomicFormula(q(x)), FormulaList::singleton(new AtomicFormula(p(x))))));
+  auto parent = new FormulaUnit(new QuantifiedFormula(FORALL, VSList::cons({0, sort}, nullptr), body),
+      FromInput(UnitInputType::AXIOM));
+  Shell::NewCNF cnf(0);
+  ClauseStack clauses;
+  cnf.clausify(parent, clauses);
+  ASS_EQ(clauses.size(), 1);
+  auto goal = clauses.pop();
+  auto& extra = env.proofExtra.get<Shell::ClausificationExtra>(goal);
+  ASS(extra.newcnf);
+  ASS_EQ(extra.newcnf->events.size(), 2);
+  // NewCNF removes the duplicate before constructing the clause.
+  ASS_EQ(goal->length(), 2);
+  ASS_EQ(extra.occurrences.size(), 2);
+  std::swap((*goal)[0], (*goal)[1]);
+  auto annotation = Kernel::tptpClausificationReplayAnnotation(goal, true);
+  ASS(annotation.find("newcnf([naming_threshold(0),for_induction(false)],clause_index(0))") == 0);
+  ASS(annotation.find("literal_permutation([1,0])") != std::string::npos);
+  ASS(annotation.find("swapped_equalities([])") != std::string::npos);
+  ASS(Kernel::tptpClausificationReplayAnnotation(goal, false).empty());
+  // A changed conclusion must not receive a partial occurrence certificate.
+  (*goal)[0] = q(x);
+  (*goal)[1] = q(x);
+  ASS(Kernel::tptpClausificationReplayAnnotation(goal, true).empty());
+}
+
+TEST_FUN(newcnf_certificate_shares_skolem_choices_and_resets_between_inputs)
+{
+  auto sort = AtomicSort::defaultSort();
+  DECL_DEFAULT_VARS
+  DECL_PRED(p, {sort})
+  DECL_PRED(q, {sort})
+  env.options->set("proof_extra", "replay");
+  auto body = new JunctionFormula(AND, FormulaList::cons(new AtomicFormula(p(x)),
+      FormulaList::singleton(new AtomicFormula(q(x)))));
+  auto parent = new FormulaUnit(new QuantifiedFormula(EXISTS, VSList::cons({0, sort}, nullptr), body),
+      FromInput(UnitInputType::AXIOM));
+  Shell::NewCNF cnf(0);
+  ClauseStack clauses;
+  cnf.clausify(parent, clauses);
+  ASS_EQ(clauses.size(), 2);
+  auto& first = env.proofExtra.get<Shell::ClausificationExtra>(clauses[0]);
+  auto& second = env.proofExtra.get<Shell::ClausificationExtra>(clauses[1]);
+  ASS(first.newcnf == second.newcnf);
+  ASS_EQ(first.newcnf->skolems.size(), 1);
+  ASS_EQ(first.newcnf->symbols.size(), 1);
+  ASS(first.clauseIndex != second.clauseIndex);
+  ASS(first.newcnf->skolems[0].find("skolemize(X0,$fot(") == 0);
+  clauses.reset();
+  auto falseParent = new FormulaUnit(Formula::falseFormula(), FromInput(UnitInputType::AXIOM));
+  cnf.clausify(falseParent, clauses);
+  auto& empty = env.proofExtra.get<Shell::ClausificationExtra>(clauses.pop());
+  ASS_EQ(empty.clauseIndex, 0);
+  ASS(empty.newcnf != first.newcnf);
+  ASS(empty.newcnf->skolems.empty());
+  ASS_EQ(first.newcnf->skolems.size(), 1);
+  for (auto mode : {"off", "full"}) {
+    env.options->set("proof_extra", mode);
+    cnf.clausify(parent, clauses);
+    while (clauses.isNonEmpty()) { ASS(!env.proofExtra.find(clauses.pop())); }
+  }
+}
+
+TEST_FUN(newcnf_certificate_records_naming_before_its_defining_clauses)
+{
+  auto sort = AtomicSort::defaultSort();
+  DECL_DEFAULT_VARS
+  DECL_PRED(p, {sort})
+  DECL_PRED(q, {sort})
+  DECL_PRED(r, {sort})
+  DECL_PRED(s, {sort})
+  DECL_PRED(t, {sort})
+  env.options->set("proof_extra", "replay");
+  auto shared = new JunctionFormula(AND, FormulaList::cons(new AtomicFormula(p(x)),
+      FormulaList::singleton(new AtomicFormula(q(x)))));
+  FormulaList* conjuncts = nullptr;
+  for (auto literal : {r(x), s(x), t(x)}) {
+    FormulaList::push(new JunctionFormula(OR, FormulaList::cons(shared,
+        FormulaList::singleton(new AtomicFormula(literal)))), conjuncts);
+  }
+  auto parent = new FormulaUnit(new JunctionFormula(AND, conjuncts), FromInput(UnitInputType::AXIOM));
+  Shell::NewCNF cnf(2);
+  ClauseStack clauses;
+  cnf.clausify(parent, clauses);
+  ASS(clauses.isNonEmpty());
+  const auto& extra = env.proofExtra.get<Shell::ClausificationExtra>(clauses[0]);
+  ASS_EQ(extra.newcnf->symbols.size(), 1);
+  ASS_EQ(extra.newcnf->symbols[0].first, "naming");
+  bool found = false;
+  for (const auto& event : extra.newcnf->events) {
+    if (event.find("formula_naming($tff(") == 0) { found = true; }
+  }
+  ASS(found);
+  // Exercise the TSTP printer and parse its formula-valued naming annotation.
+  ac(clauses[0], {}, {});
+  for (auto clause : clauses) {
+    ASS(env.proofExtra.get<Shell::ClausificationExtra>(clause).newcnf == extra.newcnf);
+    ASS(!Kernel::tptpClausificationReplayAnnotation(clause, true).empty());
+  }
 }

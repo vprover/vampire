@@ -37,6 +37,7 @@ private:
   bool _replay;
   /** Vampire-introduced symbols whose introduction was already printed. */
   std::set<unsigned> _introducedSymbols;
+  std::set<std::string> _introducedCNFSymbols;
 };
 
 } // namespace Kernel

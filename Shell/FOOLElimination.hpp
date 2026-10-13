@@ -16,6 +16,8 @@
 #define __FOOLElimination__
 
 #include "Forwards.hpp"
+#include <string>
+#include <vector>
 
 using namespace Kernel;
 using namespace Shell;
@@ -53,7 +55,8 @@ private:
   bool _polymorphic;
 
   /** Add a new definitions to _defs */
-  void addDefinition(FormulaUnit* unit);
+  void addDefinition(FormulaUnit* unit, Term* source, bool termContext, int branch = -1);
+  std::vector<std::string> _replayRewrites;
 
   /** Lexical scope of the current unit */
   DHMap<unsigned,TermList, FnvHash, IdentityHash> _varSorts;
@@ -61,6 +64,7 @@ private:
   /** Process a given part of the unit */
   FormulaList* process(FormulaList* fs);
   Formula* process(Formula* f);
+  Formula* processImpl(Formula* f);
   Formula* convertToProxified(Formula* f);
 
   // A context in one of two possible values, so we model it with bool constants
@@ -72,6 +76,7 @@ private:
   // depending on the context
   void process(TermList ts, Context context, TermList& termResult, Formula*& formulaResult);
   void process(Term* term,  Context context, TermList& termResult, Formula*& formulaResult);
+  void processImpl(Term* term, Context context, TermList& termResult, Formula*& formulaResult);
 
   // Shortcuts for process(TermList)
   TermList process(TermList terms);

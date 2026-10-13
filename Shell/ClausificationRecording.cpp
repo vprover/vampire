@@ -16,6 +16,19 @@
 namespace Shell {
 using namespace Kernel;
 
+std::string replayFormula(Formula* formula)
+{
+  return std::string(env.higherOrder() ? "$thf(" : "$tff(") + formula->toString() + ")";
+}
+
+std::string replayFOOLTerm(TermList term)
+{
+  if (term.isTerm() && term.term()->isFormula()) {
+    return replayFormula(term.term()->getSpecialData()->getFormula());
+  }
+  return std::string(env.higherOrder() ? "$thf(" : "$fot(") + term.toString() + ")";
+}
+
 namespace {
 /** Strip the explicit universal prefix, preserving the declared binder order.
  * Repeated binder names would require scope-aware renaming, outside this

@@ -23,6 +23,7 @@
 #include "Lib/SmartPtr.hpp"
 #include "Lib/DHMap.hpp"
 #include "Kernel/Substitution.hpp"
+#include "Shell/ClausificationRecording.hpp"
 #include "Kernel/Formula.hpp" //TODO AYB remove, it is not required in master
 
 #undef LOGGING
@@ -565,6 +566,11 @@ private:
   unsigned _maxVar;
 
   Substitution _skolemTypeVarSubst;
+  std::shared_ptr<NewCNFRecording> _replayRecording;
+  unsigned _replayClauseIndex = 0;
+  void recordReplayEvent(std::string event) {
+    if (_replayRecording) { _replayRecording->events.push_back(std::move(event)); }
+  }
 
   void ensureHavingVarSorts();
   TermList getVarSort(unsigned var) const;

@@ -46,6 +46,13 @@ namespace Shell {
 void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output, Substitution* subst)
 {
   _beingClausified = unit;
+  _replayRecording = env.options->proofExtra() == Options::ProofExtra::REPLAY
+    ? std::make_shared<NewCNFRecording>() : nullptr;
+  _replayClauseIndex = 0;
+  if (_replayRecording) {
+    recordReplayEvent("naming_threshold(" + std::to_string(_namingThreshold) + ")");
+    recordReplayEvent(std::string("for_induction(") + (_forInduction ? "true)" : "false)"));
+  }
 
   Formula* f = unit->formula();
 
@@ -61,7 +68,14 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output, Substitution* su
 
     case FALSE: {
       // create an empty clause and push it in the stack
-      output.push(Clause::empty(FormulaClauseTransformation(InferenceRule::CLAUSIFY,unit)));
+      auto clause = Clause::empty(FormulaClauseTransformation(InferenceRule::CLAUSIFY,unit));
+      if (_replayRecording) {
+        auto extra = new ClausificationExtra();
+        extra->newcnf = _replayRecording;
+        extra->clauseIndex = _replayClauseIndex++;
+        env.proofExtra.insert(clause, extra);
+      }
+      output.push(clause);
       return;
     }
 
@@ -416,6 +430,7 @@ unsigned NewCNF::createFreshVariable(TermList sort)
   _maxVar++;
 
   ALWAYS(_varSorts.insert(_maxVar, sort));
+  if (_replayRecording) { recordReplayEvent("fresh_variable(X" + std::to_string(_maxVar) + "," + replayFOOLTerm(sort) + ")"); }
 
   return _maxVar;
 }
@@ -429,6 +444,7 @@ void NewCNF::createFreshVariableRenaming(unsigned oldVar, unsigned freshVar)
   if (!_varSorts.insert(freshVar, sort)) {
     ASSERTION_VIOLATION_REP(freshVar);
   }
+  if (_replayRecording) { recordReplayEvent("variable_renaming(X" + std::to_string(oldVar) + ",X" + std::to_string(freshVar) + ")"); }
   if (freshVar > _maxVar) {
     _maxVar = freshVar;
   }
@@ -709,6 +725,11 @@ TermList NewCNF::eliminateLet(Term* term)
 
       unsigned tuple = env.signature->addFreshFunction(OperatorType::getConstantsType(tupleResultSort, tupleTypeArgs.size()), "tuple")->number();
       auto tupleTerm = Term::create(tuple, tupleTypeArgs);
+      if (_replayRecording) {
+        auto name = env.signature->getFunction(tuple)->name();
+        _replayRecording->symbols.emplace_back("definition", name);
+        recordReplayEvent("new_symbols(definition,[" + name + "])");
+      }
 
       // the projections take the tuple's type arguments and the tuple itself
       auto args = TermStack::fromIterator(typeArgIter(bindingLhs));
@@ -861,6 +882,11 @@ TermList NewCNF::nameLetBinding(Term* bindingLhs, TermList bindingRhs, TermList 
     ASS_EQ(args->size(), VSList::length(bindingBoundVars) + bindingFreeVars.size());
   }
 
+  if (_replayRecording && renameSymbol) {
+    auto symbol = isPredicate ? env.signature->getPredicate(freshSymbol) : env.signature->getFunction(freshSymbol);
+    _replayRecording->symbols.emplace_back("definition", symbol->name());
+    recordReplayEvent("new_symbols(definition,[" + symbol->name() + "])");
+  }
   Term* freshApplication;
 
   if (isPredicate) {
@@ -981,24 +1007,36 @@ Term* NewCNF::createSkolemTerm(unsigned var, VarSet* free)
   args.loadFromIterator(TermStack::BottomFirstIterator(*termVars));
 
   Term* res;
+  const Signature::Symbol* introducedSymbol;
   bool isPredicate = (rangeSort == AtomicSort::boolSort());
   bool isTypeVar = (rangeSort == AtomicSort::superSort());
   if (isPredicate) {
     auto symbol = Skolem::addSkolemPredicate(taArity, *termVarSorts)->markSkipCongruence();
+    introducedSymbol = symbol;
     unsigned pred = symbol->number();
     res = Term::createFormula(new AtomicFormula(Literal::create(pred, arity, true, args.begin())));
   } else if (isTypeVar) {
     ASS(termVars->isEmpty() && termVarSorts->isEmpty());
     ASS_EQ(taArity, arity);
     auto symbol = Skolem::addSkolemTypeCon(arity)->markSkipCongruence();
+    introducedSymbol = symbol;
     unsigned typeCon = symbol->number();
     res = AtomicSort::create(typeCon, arity, typeVars->begin());
   } else {
     auto symbol = Skolem::addSkolemFunction(taArity, *termVarSorts, rangeSort)->markSkipCongruence();
+    introducedSymbol = symbol;
     unsigned fun = symbol->number();
     res = Term::create(fun, arity, args.begin());
   }
 
+
+  if (_replayRecording) {
+    auto mapping = "skolemize(X" + std::to_string(var) + "," + replayFOOLTerm(TermList(res)) + ")";
+    recordReplayEvent(mapping);
+    _replayRecording->skolems.push_back(std::move(mapping));
+    _replayRecording->symbols.emplace_back("skolem", introducedSymbol->name());
+    recordReplayEvent("new_symbols(skolem,[" + introducedSymbol->name() + "])");
+  }
 
   // Store type variables and their Skolemized form in a substitution
   // which is then applied on variable sorts to get the right ones.
@@ -1238,7 +1276,13 @@ Literal* NewCNF::createNamingLiteral(Formula* f, VList* free)
 
   auto args = *typeVars;
   args.loadFromIterator(TermStack::BottomFirstIterator(*termVars));
-  return Literal::create(pred, length, true, args.begin());
+  auto literal = Literal::create(pred, length, true, args.begin());
+  if (_replayRecording) {
+    recordReplayEvent("formula_naming(" + replayFormula(f) + "," + replayFormula(new AtomicFormula(literal)) + ")");
+    _replayRecording->symbols.emplace_back("naming", symbol->name());
+    recordReplayEvent("new_symbols(naming,[" + symbol->name() + "])");
+  }
+  return literal;
 }
 
 /**
@@ -1537,7 +1581,15 @@ Clause* NewCNF::toClause(SPGenClause gc)
     resLits->push(l);
   }
 
-  return Clause::fromStack(*resLits,FormulaClauseTransformation(InferenceRule::CLAUSIFY,_beingClausified));
+  auto clause = Clause::fromStack(*resLits,FormulaClauseTransformation(InferenceRule::CLAUSIFY,_beingClausified));
+  if (_replayRecording) {
+    auto extra = new ClausificationExtra();
+    extra->newcnf = _replayRecording;
+    extra->clauseIndex = _replayClauseIndex++;
+    for (auto literal : *resLits) { extra->occurrences.push_back({literal, false}); }
+    env.proofExtra.insert(clause, extra);
+  }
+  return clause;
 }
 
 }

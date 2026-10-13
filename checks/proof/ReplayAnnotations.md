@@ -46,8 +46,9 @@ conclusion indices whose equality sides reverse the instantiated printed
 parent's sides. Empty lists and identity mappings are explicit.
 The certificate is captured at clause creation, before selection; printing
 only accounts for the final literal order and orientation. It does not replay
-clausification or search variable assignments. General formula clausification,
-vacuous binders and NewCNF are outside this certificate's current scope.
+clausification or search variable assignments. General formula clausification
+and vacuous binders are outside the old-CNF certificate's current scope.
+NewCNF has the separate creation trace described below.
 
 Substitution entries are in parent-position order. Repeated occurrences of the
 same parent name denote distinct variable banks. For unit-resulting resolution,
@@ -270,4 +271,73 @@ Tests:
 
 ```sh
 build/vtest run HigherOrderReplay
+```
+
+# FOOL preprocessing and NewCNF
+
+These annotations are captured with `--proof_extra replay` and printed with
+`--replay on` (including `--proof tstp-ac`). Capture does not change the
+preprocessing result. With replay disabled, the new annotations are omitted.
+
+FOOL elimination emits `fool_rewrites([step,...])` in recursive postorder:
+
+- `formula_rewrite($tff(source),$tff(target))` records a changed formula,
+  including Boolean coercions and equality/equivalence conversion.
+- `term_rewrite(term|formula,source,target)` records the context of a special
+  term and its replacement. Ordinary terms use `$fot(...)`; formula-as-term
+  values use `$tff(...)`. Higher-order values use `$thf(...)`.
+
+The enclosing formula steps include the effects of their already recorded
+children. These are transformation certificates, not equality assumptions:
+checking a step requires the FOOL rule and the definition premises.
+
+Parentless `fool_ite_definition`, `fool_let_definition`,
+`fool_formula_definition` and `fool_match_definition` nodes carry
+`fool_definition(term|formula,source[,branch(n)])` alongside their existing
+`new_symbols(definition,[...])`. The context of a let definition is the binding
+context; it may differ from the context of its contents. Match branch indices
+are zero-based. The displayed definition is the target of this certificate.
+The higher-order proxification path does not use these elimination hooks.
+
+NewCNF emits `newcnf([event,...],clause_index(n))`. This is a creation trace
+for rerunning NewCNF on the original formula parent, rather than an expanded
+propositional derivation. Events retain creation order and include:
+
+- `naming_threshold(n)` and `for_induction(true|false)` for the run configuration;
+- `fresh_variable(X,sort)` and `variable_renaming(X,Y)` for ITE placeholders
+  and let inlining;
+- `skolemize(X,value)` for each actual Skolem creation, with the application's
+  dependencies in their actual argument order;
+- `formula_naming($tff(body),$tff(atom))` for auxiliary predicate applications;
+- `new_symbols(kind,[name])` for fresh Skolem, naming, let and tuple symbols.
+
+Skolem cache hits do not create additional events. Boolean Skolems are
+predicates and their values use `$tff(...)`, not a function term; ordinary
+Skolems, including type constructors, use `$fot(...)`. Each output clause
+shares the completed run trace, even if it was created before the last event.
+`clause_index` selects the zero-based clause creation position. A new input
+unit starts a new trace and resets that index. Replay must retain NewCNF's
+own simplifications, including duplicate removal and Boolean case expansion.
+The trace is local to the run: its `new_symbols` entries identify the symbols
+that a rerun must reuse, rather than declaring them afresh on each proof node.
+
+At the inference level, NewCNF also prints `status(esa)`, introduces each
+recorded symbol once per printed proof, and reports its `skolemize(X,value)`
+mappings. All clauses from a run carry the mappings, since an eliminated
+Boolean Skolem may occur only in sibling clauses. The printed proof may omit
+unused siblings.
+
+NewCNF records each natural clause before literal selection. As with old CNF,
+`literal_permutation([...])` and `swapped_equalities([...])` describe the
+final printed order and orientation, consuming every recorded occurrence
+once. NewCNF does not use old CNF's `binder_mapping`: its trace explicitly
+records the fresh variables and Skolem choices instead. An altered conclusion
+that cannot be matched against the captured natural clause gets no trace.
+
+Checks:
+
+```sh
+build/vtest run InferenceReplay
+build/vtest run HigherOrderReplay
+python3 checks/proof/check_fool_replay.py build/vampire
 ```
