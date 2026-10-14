@@ -85,11 +85,31 @@ class DemodulationLHSIndex
 {
 public:
   DemodulationLHSIndex(SaturationAlgorithm& salg);
+  ~DemodulationLHSIndex() override { _live--; }
+
+  /** counts demodulator insertions over all instances */
+  static unsigned clock() { return _clock; }
+
+  /**
+   * True if no demodulator whose left-hand side has top symbol @b functor or
+   * is a variable was inserted after @b clock. Always false while more than
+   * one instance exists.
+   */
+  bool noInsertionSince(unsigned functor, unsigned clock) const
+  {
+    return _live == 1 && clock >= _lastVarInsertion &&
+      (functor >= _lastInsertion.size() || clock >= _lastInsertion[functor]);
+  }
 protected:
   void handleClause(Clause* c, bool adding) override;
 private:
   Ordering& _ord;
   const bool _preordered;
+  /** clock() at the last insertion, by top symbol of the left-hand side */
+  Stack<unsigned> _lastInsertion;
+  unsigned _lastVarInsertion = 0;
+  static unsigned _clock;
+  static unsigned _live;
 };
 
 } //namespace Indexing

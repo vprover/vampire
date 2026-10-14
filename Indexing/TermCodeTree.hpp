@@ -39,7 +39,7 @@ public:
     using Base::op;
 
     void init(const CodeTree& tree, TypedTermList t) {
-      Base::init(tree, FlatTerm::create(t));
+      Base::init(tree, FlatTerm::create(t, Base::spare()));
       _querySort = t.sort();
     }
 

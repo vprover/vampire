@@ -319,14 +319,25 @@ unsigned HashingClauseVariantIndex::computeHashAndCountVariables(TermList* ptl, 
 
   unsigned hash = termFunctorHash(t,hash_begin);
 
-  SubtermIterator sti(t);
-  while(sti.hasNext()) {
-    TermList tl = sti.next();
-
-    if (tl.isVar()) {
-      hash = computeHashAndCountVariables(tl.var(),varCnts,hash);
+  // visits subterms in the same order as SubtermIterator
+  Scratch<Stack<const TermList*>> toDo;
+  const TermList* ts = t->args();
+  for (;;) {
+    if (ts->isEmpty()) {
+      if (toDo->isEmpty()) {
+        break;
+      }
+      ts = toDo->pop();
+      continue;
+    }
+    if (ts->isVar()) {
+      hash = computeHashAndCountVariables(ts->var(),varCnts,hash);
+      ts = ts->next();
     } else {
-      hash = termFunctorHash(tl.term(),hash);
+      const Term* sub = ts->term();
+      hash = termFunctorHash(sub,hash);
+      toDo->push(ts->next());
+      ts = sub->args();
     }
   }
 
@@ -391,9 +402,8 @@ unsigned HashingClauseVariantIndex::computeHash(Literal* const * lits, unsigned 
   if (varCnts.size() > 0) {
     static Stack<unsigned char> varCntHistogram;
     varCntHistogram.reset();
-    VarCounts::Iterator it(varCnts);
-    while (it.hasNext()) {
-      varCntHistogram.push(it.next());
+    for (unsigned v : iterTraits(varCnts.seen.iter())) {
+      varCntHistogram.push(static_cast<unsigned char>(varCnts.counts[v]));
     }
 
     std::sort(varCntHistogram.begin(),varCntHistogram.end());

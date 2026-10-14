@@ -123,10 +123,37 @@ public:
       op = entry;
     }
 
+    /** the flat term of the previous query, for reuse */
+    FlatTerm* spare() {
+      FlatTerm* s = _spare;
+      _spare = nullptr;
+      return s;
+    }
+
     void reset() {
-      ft->destroy();
+      if (ft->capacity() <= MAX_SPARE_ENTRIES) {
+        if (_spare) {
+          _spare->destroy();
+        }
+        _spare = ft;
+      } else {
+        ft->destroy();
+      }
       ft = nullptr;
     }
+
+    Matcher() = default;
+    Matcher(const Matcher&) = delete;
+    Matcher& operator=(const Matcher&) = delete;
+    ~Matcher() {
+      if (_spare) {
+        _spare->destroy();
+      }
+    }
+
+  private:
+    static constexpr size_t MAX_SPARE_ENTRIES = 1 << 16;
+    FlatTerm* _spare = nullptr;
   };
 
 };
