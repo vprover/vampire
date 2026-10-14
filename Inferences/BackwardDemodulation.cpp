@@ -15,6 +15,7 @@
 #include "Lib/DHMultiset.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "Lib/Random.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Lib/VirtualIterator.hpp"
 
@@ -26,7 +27,7 @@
 #include "Kernel/Term.hpp"
 
 #include "Indexing/Index.hpp"
-#include "Indexing/TermIndex.hpp"
+#include "Indexing/ResultSubstitution.hpp"
 #include "Debug/TimeProfiling.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -56,8 +57,8 @@ namespace {
 
 struct Applicator : SubstApplicator {
   Applicator(ResultSubstitution* subst) : subst(subst) {}
-  TermList operator()(unsigned v) const override {
-    return subst->applyToBoundQuery(TermList(v,false));
+  TermList apply(unsigned v) const override {
+    return subst->applyToBoundQuery(TermList::var(v));
   }
   ResultSubstitution* subst;
 };
@@ -67,7 +68,7 @@ struct Applicator : SubstApplicator {
 template<bool higherOrder>
 struct BackwardDemodulation<higherOrder>::ResultFn
 {
-  typedef DHMultiset<unsigned> ClauseSet;
+  typedef DHMultiset<unsigned, FnvHash, IdentityHash> ClauseSet;
 
   ResultFn(Clause* cl, BackwardDemodulation& parent, const DemodulationHelper& helper)
   : _cl(cl), _helper(helper), _ordering(parent._ord)
@@ -85,6 +86,14 @@ struct BackwardDemodulation<higherOrder>::ResultFn
   BwSimplificationRecord operator() (pair<TermList,QueryRes<ResultSubstitutionSP, TermLiteralClause>> arg)
   {
     auto qr=arg.second;
+
+    // under randomized simplifications, each candidate rewrite is with this probability
+    // dropped as early as possible (saving also the applicability checks), with the same
+    // probability as in the forward variant (to be tuned)
+    constexpr double RSI_SKIP_PROB = 0.01;
+    if(env.options->randomizedSimplifications() && Random::getDouble(0.0,1.0) < RSI_SKIP_PROB) {
+      return BwSimplificationRecord(0);
+    }
 
     if( !ColorHelper::compatible(_cl->color(), qr.data->clause->color()) ) {
       //colors of premises don't match
@@ -178,7 +187,8 @@ void BackwardDemodulation<higherOrder>::perform(Clause* cl,
 	    getMappingIterator(
 		    getMapAndFlattenIterator(
 			    EqHelper::getDemodulationLHSIterator(lit, _preordered, _ord).first,
-			    [this](TypedTermList lhs){ return pvi( pushPairIntoRightIterator(lhs, _index->getInstances(lhs, true)) ); }),
+			    [this](TypedTermList lhs)
+          { return pvi( pushPairIntoRightIterator(lhs, _index->template getInstances<higherOrder>(lhs, true)) ); }),
 		    ResultFn(cl, *this, _helper)),
  	      [](BwSimplificationRecord arg){ return arg.toRemove!=0; }));
 

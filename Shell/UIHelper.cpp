@@ -28,6 +28,7 @@
 #include "Lib/ScopedLet.hpp"
 #include "Lib/Timer.hpp"
 
+#include "Kernel/Clause.hpp"
 #include "Kernel/InferenceStore.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/FormulaUnit.hpp"
@@ -103,7 +104,7 @@ void reportSpiderStatus(char status)
     cadicalVersion = cadicalVersion.substr(dashPosition + 1);
   }
 
-  std::string problemName = Lib::env.options->problemName();
+  std::string problemName = Lib::env.options->problemName;
   std::cout
     << status << " "
     << (problemName.length() == 0 ? "unknown" : problemName) << " "
@@ -433,15 +434,15 @@ void UIHelper::outputResult(std::ostream& out)
     if (szsOutputMode()) {
       out << "% SZS status " <<
         (UIHelper::haveConjecture() ? ( refutation->derivedFromGoal() ? "Theorem" : "ContradictoryAxioms" ) : "Unsatisfiable")
-	      << " for " << env.options->problemName() << endl;
+	      << " for " << env.options->problemName << endl;
     }
     if (env.options->proof() != Options::Proof::OFF) {
       if (szsOutputMode()) {
-        out << "% SZS output start Proof for " << env.options->problemName() << endl;
+        out << "% SZS output start Proof for " << env.options->problemName << endl;
       }
       InferenceStore::instance()->outputProof(out, refutation);
       if (szsOutputMode()) {
-        out << "% SZS output end Proof for " << env.options->problemName() << endl << flush;
+        out << "% SZS output end Proof for " << env.options->problemName << endl << flush;
       }
     }
     if (env.options->questionAnswering()!=Options::QuestionAnsweringMode::OFF) {
@@ -533,7 +534,7 @@ void UIHelper::outputResult(std::ostream& out)
     addCommentSignForSZS(out);
     env.statistics->explainRefutationNotFound(out);
     if ((env.options->mode() == Options::Mode::VAMPIRE) && szsOutputMode()) {
-      out << "% SZS status GaveUp for " << env.options->problemName() << endl;
+      out << "% SZS status GaveUp for " << env.options->problemName << endl;
     }
     break;
   case TerminationReason::SATISFIABLE:
@@ -573,18 +574,18 @@ void UIHelper::outputSatisfiableResult(std::ostream& out)
   //out << "Satisfiable!\n";
   if (szsOutputMode() && !satisfiableStatusWasAlreadyOutput) {
     out << "% SZS status " << ( UIHelper::haveConjecture() ? "CounterSatisfiable" : "Satisfiable" )
-	  <<" for " << env.options->problemName() << endl;
+	  <<" for " << env.options->problemName << endl;
   }
   if (env.options->proof() != Options::Proof::OFF) {
     if (!env.statistics->model.empty()) {
       if (szsOutputMode()) {
-        out << "% SZS output start FiniteModel for " << env.options->problemName() << endl;
+        out << "% SZS output start FiniteModel for " << env.options->problemName << endl;
       } else {
         out << "# Finite Model:" << endl;
       }
       out << env.statistics->model;
       if (szsOutputMode()) {
-        out << "% SZS output end FiniteModel for " << env.options->problemName() << endl;
+        out << "% SZS output end FiniteModel for " << env.options->problemName << endl;
       }
     } else {
       outputSaturatedSet(out, pvi(UnitList::Iterator(env.statistics->saturatedSet)));
@@ -599,13 +600,13 @@ void UIHelper::outputSatisfiableResult(std::ostream& out)
  * @author Andrei Voronkov
  * @since 03/07/2013 Manchester
  */
-void UIHelper::outputSymbolDeclarations(std::ostream& out)
+void UIHelper::outputSymbolDeclarations(std::ostream& out, bool tcf)
 {
-  Signature& sig = *env.signature;
+  const Signature& sig = *env.signature;
 
   unsigned typeCons = sig.typeCons();
   for (unsigned i=0; i<typeCons; ++i) {
-    outputSymbolTypeDeclarationIfNeeded(out, false, true, i);
+    outputSymbolTypeDeclarationIfNeeded(out, false, true, i, tcf);
   }
   unsigned funcs = sig.functions();
   for (unsigned i=0; i<funcs; ++i) {
@@ -614,11 +615,11 @@ void UIHelper::outputSymbolDeclarations(std::ostream& out)
         continue;
       }
     }
-    outputSymbolTypeDeclarationIfNeeded(out, true, false, i);
+    outputSymbolTypeDeclarationIfNeeded(out, true, false, i, tcf);
   }
   unsigned preds = sig.predicates();
   for (unsigned i=0; i<preds; ++i) {
-    outputSymbolTypeDeclarationIfNeeded(out, false, false, i);
+    outputSymbolTypeDeclarationIfNeeded(out, false, false, i, tcf);
   }
 } // UIHelper::outputSymbolDeclarations
 
@@ -628,9 +629,9 @@ void UIHelper::outputSymbolDeclarations(std::ostream& out)
  * @author Andrei Voronkov
  * @since 03/07/2013 Manchester
  */
-void UIHelper::outputSymbolTypeDeclarationIfNeeded(std::ostream& out, bool function, bool typeCon, unsigned symNumber)
+void UIHelper::outputSymbolTypeDeclarationIfNeeded(std::ostream& out, bool function, bool typeCon, unsigned symNumber, bool tcf)
 {
-  Signature::Symbol* sym;
+  const Signature::Symbol* sym;
 
   if(function){
     sym = env.signature->getFunction(symNumber);
@@ -641,7 +642,8 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(std::ostream& out, bool funct
   }
 
   if (typeCon && (env.signature->isArrayCon(symNumber) ||
-                  env.signature->isTupleCon(symNumber))){
+                  env.signature->isTupleCon(symNumber) ||
+                  env.signature->isArrowCon(symNumber))){
     return;
   }
 
@@ -661,14 +663,13 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(std::ostream& out, bool funct
   }
 
   if (function) {
-    TermList sort = env.signature->getFunction(symNumber)->fnType()->result();
+    TermList sort = env.signature->getFunction(symNumber)->type()->result();
     if (sort.isTupleSort()) {
       return;
     }
   }
 
-  OperatorType* type = function ? sym->fnType() :
-               (typeCon ? sym->typeConType() : sym->predType());
+  OperatorType* type = sym->type();
 
   if (type->isAllDefault()) {//TODO required
     return;
@@ -685,7 +686,9 @@ void UIHelper::outputSymbolTypeDeclarationIfNeeded(std::ostream& out, bool funct
 
   //don't output type of app. It is an internal Vampire thing
   if(!(function && env.signature->isAppFun(symNumber))){
-    out << (env.getMainProblem()->isHigherOrder() ? "thf(" : "tff(")
+    //match the fragment used for the proof steps (see
+    //InferenceStore's getFofString), so one proof does not mix languages
+    out << (env.initiallyHigherOrder() ? "thf(" : (tcf ? "tcf(" : "tff("))
         << (function ? "func" : (typeCon ?  "type" : "pred"))
         << "_def_" << symNumber << ", type, "
         << symName << ": ";

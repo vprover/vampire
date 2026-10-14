@@ -34,7 +34,7 @@ class EqHelper
 public:
   static TermList getOtherEqualitySide(Literal* eq, TermList lhs);
   static bool hasGreaterEqualitySide(Literal* eq, const Ordering& ord, TermList& lhs, TermList& rhs);
-  static VirtualIterator<Term*> getSubtermIterator(Literal* lit, const Ordering& ord, bool higherOrder);
+  template<bool higherOrder> static VirtualIterator<Term*> getSubtermIterator(Literal* lit, const Ordering& ord);
   static TermIterator getBooleanSubtermIterator(Literal* lit, const Ordering& ord);
   static VirtualIterator<TypedTermList> getLHSIterator(Literal* lit, const Ordering& ord);
   static VirtualIterator<TypedTermList> getSuperpositionLHSIterator(Literal* lit, const Ordering& ord, const Options& opt);
@@ -76,8 +76,8 @@ public:
   }
 private:
 
-  template<class SubtermIterator>
-  static VirtualIterator<ELEMENT_TYPE(SubtermIterator)> getRewritableSubtermIterator(Literal* lit, const Ordering& ord);
+  template<class SubtermIterator, class Hash1, class Hash2>
+  static VirtualIterator<typename SubtermIterator::ElementType> getRewritableSubtermIterator(Literal* lit, const Ordering& ord);
 
   struct IsNonVariable;
 

@@ -26,6 +26,7 @@
 #include "UnitTesting.hpp"
 
 #include "Kernel/Clause.hpp"
+#include "Kernel/Ordering.hpp"
 
 namespace Test {
 

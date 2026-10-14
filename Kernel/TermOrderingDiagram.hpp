@@ -21,7 +21,7 @@
 #include "Ordering.hpp"
 
 namespace Inferences {
-  template<bool higherOrder> class ForwardGroundJoinability;
+  class ForwardGroundJoinability;
 }
 
 namespace Kernel {
@@ -173,7 +173,6 @@ protected:
 
     auto asTuple() const { return std::make_tuple(constant, varCoeffPairs); }
 
-    IMPL_HASH_FROM_TUPLE(Polynomial);
     IMPL_COMPARISONS_FROM_TUPLE(Polynomial);
 
     int constant;
@@ -181,6 +180,17 @@ protected:
     // (positive first), and then by variable
     // e.g. X1 + 2 ⋅ X4 - 5 ⋅ X0 - X3
     Stack<VarCoeffPair> varCoeffPairs;
+  };
+
+  // hash a Polynomial by its constant and its variable-coefficient pairs
+  struct PolynomialHash {
+    static unsigned hash(Polynomial const& p)
+    { return TupleHash<FnvHash, StackHash<PairHash<FnvHash,FnvHash>>>::hash(p.asTuple()); }
+  };
+
+  struct PolynomialHash2 {
+    static unsigned hash(Polynomial const& p)
+    { return TupleHash<IdentityHash, LengthHash>::hash(p.asTuple()); }
   };
 
   friend std::ostream& operator<<(std::ostream& out, const Node::Tag& t);
@@ -195,7 +205,7 @@ protected:
   const SubstApplicator* _appl;
   bool _ground;
 
-  template<bool higherOrder> friend class Inferences::ForwardGroundJoinability;
+  friend class Inferences::ForwardGroundJoinability;
 
 public:
   template<class Iterator, typename ...Args>

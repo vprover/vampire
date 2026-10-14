@@ -43,6 +43,7 @@
 #include "Forwards.hpp"
 
 #include "Kernel/Ordering.hpp"
+#include "Kernel/TermPartialOrdering.hpp"
 
 #include "Lib/Stack.hpp"
 #include "Lib/SharedSet.hpp"
@@ -116,7 +117,7 @@ protected:
   static ConstraintIndex** getDataPtr(Clause* cl, bool doAllocate);
 
   // this contains the redundancy information associated with each clause
-  static DHMap<unsigned,ConstraintIndex*> clauseData;
+  static DHMap<unsigned,ConstraintIndex*, FnvHash, IdentityHash> clauseData;
 };
 
 template<bool enabled, bool orderingConstraints, bool avatarConstraints, bool literalConstraints>

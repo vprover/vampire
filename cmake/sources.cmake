@@ -51,6 +51,7 @@ set(UNIT_TESTS
     UnitTests/tDisagreement.cpp
     UnitTests/tDynamicHeap.cpp
     UnitTests/tFunctionDefinitionHandler.cpp
+    UnitTests/tHash.cpp
     UnitTests/tIndexManager.cpp
     UnitTests/tInferences_AnswerLiteralProcessors.cpp
     UnitTests/tInferences_ArithmeticSubtermGeneralization.cpp
@@ -96,7 +97,9 @@ set(UNIT_TESTS
     UnitTests/tKBO.cpp
     UnitTests/tLPO.cpp
     UnitTests/tList.cpp
+    UnitTests/tMap.cpp
     UnitTests/tOption.cpp
+    UnitTests/tPredicateElimination.cpp
     UnitTests/tOptionConstraints.cpp
     UnitTests/tQKbo.cpp
     UnitTests/tQuotientE.cpp
@@ -107,18 +110,21 @@ set(UNIT_TESTS
     UnitTests/tSATSubsumptionResolution.cpp
     UnitTests/tSet.cpp
     UnitTests/tSkipList.cpp
+    UnitTests/tSignature.cpp
     UnitTests/tStack.cpp
     UnitTests/tSyntaxSugar.cpp
     UnitTests/tTermAlgebra.cpp
     UnitTests/tTermIndex.cpp
+    UnitTests/tTermOutput.cpp
     UnitTests/tTimeTrace.cpp
+    UnitTests/tTuple.cpp
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/HOL/tHOL_Printing.cpp
     UnitTests/HOL/tHOL_BetaReduction.cpp
     UnitTests/HOL/tHOL_EtaReduction.cpp
     UnitTests/HOL/tHOL_TermShifter.cpp
     UnitTests/HOL/tHOL_SubtermReplacer.cpp
-    UnitTests/HOL/tHOL_ToPlaceholders.cpp
+    UnitTests/HOL/tHOL_Unifier.cpp
 )
 
 ################################################################
@@ -126,6 +132,7 @@ set(UNIT_TESTS
 ################################################################
 set(UNIT_TESTS_Z3
     UnitTests/tInferences_TheoryInstAndSimp.cpp
+    UnitTests/tSMTCheck.cpp
     UnitTests/tZ3Interfacing.cpp
 )
 
@@ -173,32 +180,31 @@ set(SOURCES
     Indexing/ClauseVariantIndex.hpp
     Indexing/CodeTree.cpp
     Indexing/CodeTree.hpp
-    Indexing/CodeTreeInterfaces.cpp
     Indexing/CodeTreeInterfaces.hpp
+    Indexing/DemodulationIndex.hpp
+    Indexing/DemodulationIndex.cpp
     Indexing/Index.cpp
     Indexing/Index.hpp
     Indexing/IndexManager.cpp
     Indexing/IndexManager.hpp
     Indexing/InductionFormulaIndex.cpp
     Indexing/InductionFormulaIndex.hpp
+    Indexing/LiteralCodeTree.hpp
     Indexing/LiteralIndex.cpp
     Indexing/LiteralIndex.hpp
-    Indexing/LiteralIndexingStructure.hpp
     Indexing/LiteralMiniIndex.cpp
     Indexing/LiteralMiniIndex.hpp
     Indexing/LiteralSubstitutionTree.hpp
     Indexing/ResultSubstitution.cpp
     Indexing/ResultSubstitution.hpp
     Indexing/SubstitutionTree.hpp
-    Indexing/SubstitutionTree_FastGen.hpp
     Indexing/SubstitutionTree_FastInst.hpp
     Indexing/SubstitutionTree_Nodes.hpp
     Indexing/SubstitutionTree_impl.hpp
-    Indexing/TermCodeTree.cpp
     Indexing/TermCodeTree.hpp
+    Indexing/TermOrLiteralCodeTree.hpp
     Indexing/TermIndex.cpp
     Indexing/TermIndex.hpp
-    Indexing/TermIndexingStructure.hpp
     Indexing/TermSharing.cpp
     Indexing/TermSharing.hpp
     Indexing/TermSubstitutionTree.hpp
@@ -437,6 +443,7 @@ set(SOURCES
     Kernel/PartialOrdering.hpp
     Kernel/Polynomial.cpp
     Kernel/Polynomial.hpp
+    Kernel/PolynomialBottomUpEvaluation.hpp
     Kernel/PolynomialNormalizer.cpp
     Kernel/PolynomialNormalizer.hpp
     Kernel/PolynomialNormalizer/PredicateEvaluator.hpp
@@ -465,6 +472,8 @@ set(SOURCES
     Kernel/SortHelper.hpp
     Kernel/SpassLiteralSelector.cpp
     Kernel/SpassLiteralSelector.hpp
+    Kernel/SymbolUsage.cpp
+    Kernel/SymbolUsage.hpp
     Kernel/SubformulaIterator.cpp
     Kernel/SubformulaIterator.hpp
     Kernel/SubstHelper.hpp
@@ -496,7 +505,6 @@ set(SOURCES
     Kernel/HOL/Create.cpp
     Kernel/HOL/Convert.cpp
     Kernel/HOL/Reduce.cpp
-    Kernel/HOL/BetaNormaliser.cpp
     Kernel/HOL/BetaNormaliser.hpp
     Kernel/HOL/RedexReducer.cpp
     Kernel/HOL/RedexReducer.hpp
@@ -506,8 +514,8 @@ set(SOURCES
     Kernel/HOL/EtaNormaliser.hpp
     Kernel/HOL/SubtermReplacer.cpp
     Kernel/HOL/SubtermReplacer.hpp
-    Kernel/HOL/ToPlaceholders.cpp
-    Kernel/HOL/ToPlaceholders.hpp
+    Kernel/HOL/Unifier.cpp
+    Kernel/HOL/Unifier.hpp
     Lib/Allocator.cpp
     Lib/Allocator.hpp
     Lib/Array.hpp
@@ -531,6 +539,7 @@ set(SOURCES
     Lib/Event.hpp
     Lib/Exception.cpp
     Lib/Exception.hpp
+    Lib/FlexibleTail.hpp
     Lib/Hash.hpp
     Lib/Int.cpp
     Lib/Int.hpp
@@ -682,14 +691,10 @@ set(SOURCES
     Shell/CommandLine.hpp
     Shell/DistinctGroupExpansion.cpp
     Shell/DistinctGroupExpansion.hpp
-    Shell/DistinctProcessor.cpp
-    Shell/DistinctProcessor.hpp
     Shell/EqResWithDeletion.cpp
     Shell/EqResWithDeletion.hpp
     Shell/EqualityProxy.cpp
     Shell/EqualityProxy.hpp
-    Shell/EqualityProxyMono.cpp
-    Shell/EqualityProxyMono.hpp
     Shell/FOOLElimination.cpp
     Shell/FOOLElimination.hpp
     Shell/Flattening.cpp
@@ -730,6 +735,8 @@ set(SOURCES
     Shell/PartialRedundancyHandler.hpp
     Shell/PredicateDefinition.cpp
     Shell/PredicateDefinition.hpp
+    Shell/PredicateElimination.cpp
+    Shell/PredicateElimination.hpp
     Shell/Preprocess.cpp
     Shell/Preprocess.cpp
     Shell/Preprocess.hpp

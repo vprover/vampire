@@ -461,10 +461,6 @@ void SaturationAlgorithm::onNewUsefulPropositionalClause(Clause* c)
 {
   ASS(c->isPropositional());
 
-  if (env.options->showNewPropositional()) {
-    std::cout << "[SA] new propositional: " << c->toString() << std::endl;
-  }
-
   if (_consFinder) {
     _consFinder->onNewPropositionalClause(c);
   }
@@ -1118,12 +1114,11 @@ void SaturationAlgorithm::activate(Clause* cl)
     }
   }
 
-  {
-    TIME_TRACE("splitting")
-    if (_splitter && _opt.splitAtActivation()) {
-      if (_splitter->doSplitting(cl)) {
-        return removeSelected(cl);
-      }
+  if (_splitter && _opt.splitAtActivation()) {
+    // no TIME_TRACE here: Splitter::doSplitting traces itself, and nesting the same
+    // name inside itself would double-count it in the flattened profile
+    if (_splitter->doSplitting(cl)) {
+      return removeSelected(cl);
     }
   }
 
@@ -1201,10 +1196,10 @@ void SaturationAlgorithm::doUnprocessedLoop()
   do {
     newClausesToUnprocessed();
 
+    unsigned unprocessedPops = 0;
     while (!_unprocessed->isEmpty()) {
+      unprocessedPops++;
       Clause* c = _unprocessed->pop();
-      poppedFromUnprocessed(c); // tells LRS's it might make sense to update limits
-
       ASS(!isRefutation(c));
 
       if (forwardSimplify(c)) {
@@ -1219,6 +1214,8 @@ void SaturationAlgorithm::doUnprocessedLoop()
 
       newClausesToUnprocessed();
     }
+
+    afterUnprocessedLoop(unprocessedPops); // may trigger LRS estimate update
 
     ASS(clausesFlushed());
     onAllProcessed(); // in particular, Splitter has now recomputed model which may have triggered deletions and additions
@@ -1341,7 +1338,7 @@ MainLoopResult SaturationAlgorithm::runImpl()
     while (true) {
       doOneAlgorithmStep(); // will bump env.statistics->activations by one
 
-      if (_activationLimit && env.statistics->activations > _activationLimit) {
+      if (_activationLimit && env.statistics->activations >= _activationLimit) {
         throw ActivationLimitExceededException();
       }
       if(_softTimeLimit && Timer::elapsedDeciseconds() - startTime > _softTimeLimit)
@@ -1444,7 +1441,11 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     }
     gie->addFront(new EqualityResolution(*res));
     if(opt.superposition() && !alascaTakesOver){ // in alasca we have a special superposition rule
-      gie->addFront(new Superposition(*res));
+      if (prb.isHigherOrder()) {
+        gie->addFront(new Superposition<true>(*res));
+      } else {
+        gie->addFront(new Superposition<false>(*res));
+      }
     }
   }
   else if (opt.unificationWithAbstraction() != Options::UnificationWithAbstraction::OFF) {
@@ -1460,7 +1461,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     if(prb.hasFOOL() && opt.booleanEqTrick()){
       gie->addFront(new BoolEqToDiseq(*res));
     }
-    if(true/* !opt.higherOrderUnifDepth() && !opt.applicativeUnify() */){
+    if(opt.unificationWithAbstraction() != Options::UnificationWithAbstraction::HOL || opt.higherOrderUnifDepth() == 0){
       // TODO(HOL): only add when we are not carrying out higher-order unification
       gie->addFront(new ImitateProject(*res));
     }
@@ -1500,7 +1501,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) && prb.isHigherOrder()){
     if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER && 
        env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF){
-      gie->addFront(new LazyClausificationGIE(*res));
+      gie->addFront(new LazyClausificationGIE());
     }
   }
 
@@ -1632,11 +1633,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
   if (mayHaveEquality) {
     if (opt.forwardGroundJoinability()) {
-      if (prb.isHigherOrder()) {
-        res->addExpensiveForwardSimplifierToFront<ForwardGroundJoinability<true>>();
-      } else {
-        res->addExpensiveForwardSimplifierToFront<ForwardGroundJoinability<false>>();
-      }
+      res->addExpensiveForwardSimplifierToFront<ForwardGroundJoinability>();
     }
     switch (opt.forwardDemodulation()) {
       case Options::Demodulation::ALL:
@@ -1658,11 +1655,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
 
   if (opt.forwardSubsumption()) {
     if (opt.codeTreeSubsumption()) {
-      if (prb.isHigherOrder()) {
-        res->addForwardSimplifierToFront<CodeTreeForwardSubsumptionAndResolution<true>>();
-      } else {
-        res->addForwardSimplifierToFront<CodeTreeForwardSubsumptionAndResolution<false>>();
-      }
+      res->addForwardSimplifierToFront<CodeTreeForwardSubsumptionAndResolution>();
     } else {
       res->addForwardSimplifierToFront<ForwardSubsumptionAndResolution>();
     }
@@ -1702,7 +1695,11 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   bool backSubsumption = opt.backwardSubsumption() != Options::Subsumption::OFF;
   bool backSR = opt.backwardSubsumptionResolution() != Options::Subsumption::OFF;
   if (backSubsumption || backSR) {
-    res->addBackwardSimplifierToFront<BackwardSubsumptionAndResolution>();
+    if (prb.isHigherOrder()) {
+      res->addBackwardSimplifierToFront<BackwardSubsumptionAndResolution<true>>();
+    } else {
+      res->addBackwardSimplifierToFront<BackwardSubsumptionAndResolution<false>>();
+    }
   }
 
   if (opt.mode() == Options::Mode::CONSEQUENCE_ELIMINATION) {

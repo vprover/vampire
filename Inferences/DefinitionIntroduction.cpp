@@ -14,8 +14,11 @@
 #include "DefinitionIntroduction.hpp"
 
 #include "Kernel/Clause.hpp"
+#include "Kernel/FormulaUnit.hpp"
+#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/InferenceStore.hpp"
+#include "Kernel/Renaming.hpp"
 #include "Lib/Metaiterators.hpp"
 
 struct IncompleteFunction {
@@ -34,7 +37,7 @@ static Term *lgg(Term *left, Term *right) {
   // remaining parts of the term that should be created
   std::vector<IncompleteFunction> skeleton;
   // map from left-right pairs of subterms to their variables
-  DHMap<std::pair<TermList, TermList>, unsigned> substitution;
+  DHMap<std::pair<TermList, TermList>, unsigned, PairHash<TermListHash,TermListHash>, PairHash<TermListHash2,TermListHash2>> substitution;
 
   // fresh variable where necessary
   unsigned fresh = 0;
@@ -106,14 +109,15 @@ void DefinitionIntroduction<higherOrder>::introduceDefinitionFor(Term *t) {
     return;
 
   // compute domain and range sorts
-  DHMap<unsigned, TermList> domain_sorts;
+  DHMap<unsigned, TermList, FnvHash, IdentityHash> domain_sorts;
   TermList range_sort = SortHelper::getResultSort(t);
   SortHelper::collectVariableSorts(t, domain_sorts);
 
   // reformat data
-  std::vector<TermList> domain_sort_vector;
-  std::vector<TermList> variables;
-  unsigned term_arity = 0, sort_arity = 0;
+  TermStack domain_sort_vector;
+  std::vector<TermList> variables; // contains type vars when in HOL, otherwise all vars
+  TermStack term_variables; // contains term vars when in HOL, needed by HOL::create::app
+  unsigned term_arity = 0, type_arity = 0;
 
   // OperatorType expects a canonically-renamed type
   Renaming sort_rename;
@@ -121,7 +125,7 @@ void DefinitionIntroduction<higherOrder>::introduceDefinitionFor(Term *t) {
   // first, sort variables
   for(auto [x, sort] : iterTraits(domain_sorts.items()))
     if(sort == AtomicSort::superSort()) {
-      sort_arity++;
+      type_arity++;
       variables.emplace_back(x, false);
       sort_rename.getOrBind(x);
     }
@@ -129,25 +133,50 @@ void DefinitionIntroduction<higherOrder>::introduceDefinitionFor(Term *t) {
   for(auto [x, sort] : iterTraits(domain_sorts.items()))
     if(sort != AtomicSort::superSort()) {
       term_arity++;
-      variables.emplace_back(x, false);
-      domain_sort_vector.push_back(sort_rename.apply(sort));
+      if constexpr (higherOrder) {
+        term_variables.emplace(x, false);
+      } else {
+        variables.emplace_back(x, false);
+      }
+      domain_sort_vector.push(sort_rename.apply(sort));
     }
 
   // create the equation
-  unsigned functor = env.signature->addFreshFunction(term_arity + sort_arity, "sF");
-  OperatorType *type = OperatorType::getFunctionType(
-    term_arity,
-    domain_sort_vector.data(),
-    sort_rename.apply(range_sort),
-    sort_arity
-  );
-  env.signature->getFunction(functor)->setType(type);
-  Term *def = Term::create(functor, sort_arity + term_arity, variables.data());
+  unsigned functor;
+  if constexpr (higherOrder) {
+    auto sort = AtomicSort::arrowSort(domain_sort_vector, sort_rename.apply(range_sort), /*fromTop=*/true);
+    functor = env.signature->addFreshFunction(OperatorType::getConstantsType(sort, type_arity), "sF")->number();
+  } else {
+    functor = env.signature->addFreshFunction(OperatorType::getFunctionType(
+      domain_sort_vector,
+      sort_rename.apply(range_sort),
+      type_arity
+    ), "sF")->number();
+  }
+  Term *def;
+  if constexpr (higherOrder) {
+    TermList head(Term::create(functor, type_arity, variables.data()));
+    def = HOL::create::app(head, term_variables, /*fromTop=*/false).term();
+  } else {
+    def = Term::create(functor, type_arity + term_arity, variables.data());
+  }
   Literal *eq = Literal::createEquality(true, TermList(def), TermList(t), range_sort);
 
+  // unflip equation first if needed to document original orientation for TSTP
+  Clause* definition;
+  Unit* intro;
+  NonspecificInference0 inf(UnitInputType::AXIOM, InferenceRule::FUNCTION_DEFINITION);
+  if (TermList(def) == eq->termArg(0)) {
+    definition = Clause::fromLiterals({eq}, inf);
+    intro = definition;
+  } else {
+    intro = new FormulaUnit(new AtomicFormula(eq, /*flipForPrinting=*/true), inf);
+    definition = Clause::fromLiterals({eq}, FormulaClauseTransformation(InferenceRule::REORIENT_EQUATIONS, intro));
+  }
+
   // record definition
-  auto definition = Clause::fromLiterals({eq}, NonspecificInference0(UnitInputType::AXIOM, InferenceRule::FUNCTION_DEFINITION));
-  InferenceStore::instance()->recordIntroducedSymbol(definition, SymbolType::FUNC, functor);
+  InferenceStore::instance()->recordIntroducedSymbol(intro, env.signature->getFunction(functor));
+
   _definitions.push_back(definition);
 }
 

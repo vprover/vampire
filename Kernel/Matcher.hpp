@@ -118,7 +118,6 @@ public:
   template<class Binder>
   static bool matchReversedArgs(Literal* base, Literal* instance, Binder& binder);
 
-  //typedef DHMap<unsigned,TermList,IdentityHash,DefaultHash> BindingMap;
 };
 
 /**

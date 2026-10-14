@@ -59,10 +59,10 @@ namespace Inferences {
 
   // return f is the term has the form f(x1 ... xn) and f is a term
   // algebra constructor, or nullptr otherwise
-  Signature::Symbol* termAlgebraConstructor(TermList *t)
+  const Signature::Symbol* termAlgebraConstructor(TermList *t)
   {
     if (t->isTerm()) {
-      Signature::Symbol *s = env.signature->getFunction(t->term()->functor());
+      const Signature::Symbol* s = env.signature->getFunction(t->term()->functor());
 
       if (s->termAlgebraCons()) {
         return s;
@@ -79,8 +79,8 @@ namespace Inferences {
     if (!lit->isEquality())
       return false;
 
-    Signature::Symbol *s = termAlgebraConstructor(lit->nthArgument(0));
-    Signature::Symbol *t = termAlgebraConstructor(lit->nthArgument(1));
+    const Signature::Symbol* s = termAlgebraConstructor(lit->nthArgument(0));
+    const Signature::Symbol* t = termAlgebraConstructor(lit->nthArgument(1));
 
     return (s && t && s != t);
   }
@@ -92,8 +92,8 @@ namespace Inferences {
     if (!lit->isEquality())
       return false;
 
-    Signature::Symbol *s = termAlgebraConstructor(lit->nthArgument(0));
-    Signature::Symbol *t = termAlgebraConstructor(lit->nthArgument(1));
+    const Signature::Symbol* s = termAlgebraConstructor(lit->nthArgument(0));
+    const Signature::Symbol* t = termAlgebraConstructor(lit->nthArgument(1));
 
     return (s && s == t);
   }
@@ -143,10 +143,10 @@ namespace Inferences {
       }
     }
 
-    DECL_ELEMENT_TYPE(Clause *);
+    using ElementType = Clause *;
 
     bool hasNext() { return _index < _length; }
-    OWN_ELEMENT_TYPE next()
+    ElementType next()
     {
       // from the clause f(x1 ... xn) = f(y1 .. yn) \/ C, we create
       // a new clause xi = yi \/ C. In this case, next() can be
@@ -287,11 +287,11 @@ namespace Inferences {
       _queryResults(std::move(results))
     {}
 
-    DECL_ELEMENT_TYPE(Clause *);
+    using ElementType = Clause *;
 
     bool hasNext() { return _queryResults.hasNext(); }
     
-    OWN_ELEMENT_TYPE next()
+    ElementType next()
     {
       Indexing::CycleQueryResult *qres = _queryResults.next();
 
@@ -425,7 +425,7 @@ namespace Inferences {
       }
     }
 
-    DECL_ELEMENT_TYPE(Clause *);
+    using ElementType = Clause *;
 
     bool hasNext() {
       if (!_leftSide && _subterms.isEmpty()) {
@@ -435,7 +435,7 @@ namespace Inferences {
       return (_subterms.isNonEmpty());
     }
     
-    OWN_ELEMENT_TYPE next()
+    ElementType next()
     {
       Literal *newlit = Literal::createEquality(false,
                                                 *_lit->nthArgument(_leftSide ? 0 : 1),
@@ -473,11 +473,11 @@ namespace Inferences {
       _clause(clause)
     {}
 
-    DECL_ELEMENT_TYPE(Literal *);
+    using ElementType = Literal *;
 
     bool hasNext() { return _index < _length; }
 
-    OWN_ELEMENT_TYPE next() { return (*_clause)[_index++]; }
+    ElementType next() { return (*_clause)[_index++]; }
 
   private:
     unsigned _index;

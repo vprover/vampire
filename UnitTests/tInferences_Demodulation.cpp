@@ -25,14 +25,18 @@ using namespace Test;
  */
 #define MY_SYNTAX_SUGAR                                                                                       \
   DECL_DEFAULT_VARS                                                                                           \
+  DECL_DEFAULT_SORT_VARS                                                                                      \
   DECL_VAR(u, 3)                                                                                              \
   DECL_SORT(s)                                                                                                \
+  DECL_SORT(s2)                                                                                               \
   DECL_LEFT_FUNC(left, {s}, s)                                                                                \
   DECL_RIGHT_FUNC(right, {s}, s)                                                                              \
+  DECL_POLY_CONST(h, 1, alpha)                                                                                \
   DECL_FUNC(f, {s, s}, s)                                                                                     \
   DECL_FUNC(g, {s}, s)                                                                                        \
   DECL_CONST(a, s)                                                                                            \
   DECL_CONST(b, s)                                                                                            \
+  DECL_CONST(c, s2)                                                                                           \
   DECL_PRED (p, {s})                                                                                          \
   DECL_PRED (q, {s})
 
@@ -177,6 +181,36 @@ TEST_SIMPLIFICATION(test15,
     .simplifyWith({ clause({ f(x,y) == left(y) }) })
     .toSimplify({ clause({ g(f(a,b)) == left(a) }) })
     .expected({ clause({ g(left(b)) == left(a) }) })
+)
+
+// demodulation with variable equality
+TEST_SIMPLIFICATION(test16,
+  tester()
+    .simplifyWith({ clause({ TermSugar(TermList::var(0), s) == b }) })
+    .toSimplify({ clause({ f(b,a) != a }) })
+    .expected({ clause({ b != a }) })
+)
+
+TEST_SIMPLIFICATION(test17,
+  tester()
+    .simplifyWith({ clause({ x == h(y) }) })
+    .toSimplify({ clause({ f(f(b,a),a) != a }) })
+    .expected({ clause({ h(s) != a }) })
+)
+
+TEST_SIMPLIFICATION(test18,
+  tester()
+    .simplifyWith({ clause({ y == h(x) }) })
+    .toSimplify({ clause({ f(f(b,a),a) != a }) })
+    .expected({ clause({ h(s) != a }) })
+)
+
+TEST_SIMPLIFICATION(test19,
+  tester()
+    .simplifyWith({ clause({ x == c }) })
+    .toSimplify({ clause({ f(f(b,a),a) != a }) })
+    .expected({ /* nothing */ })
+    .justifications({ /* nothing */ })
 )
 
 }

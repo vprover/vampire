@@ -18,6 +18,7 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Problem.hpp"
 
+#include "Lib/DArray.hpp"
 #include "Lib/Environment.hpp"
 #include "Shell/Options.hpp"
 

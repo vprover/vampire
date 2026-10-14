@@ -20,6 +20,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/IntUnionFind.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "Lib/Random.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Lib/Timer.hpp"
 
@@ -614,8 +615,8 @@ std::string Splitter::getFormulaStringFromName(SplitLevel compName, bool negated
 {
   if (splPrefix.empty()) {
     if(env.options->proof()==Options::Proof::TPTP){
-      unsigned spl = env.signature->addFreshFunction(0,"spl");
-      splPrefix = env.signature->functionName(spl)+"_";
+      unsigned spl = env.signature->addFreshPredicate(OperatorType::getPredicateType({}),"spl")->number();
+      splPrefix = env.signature->predicateName(spl)+"_";
     }
   }
 
@@ -914,7 +915,7 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc, bool shuffle)
 
   //Master literal of an variable is the literal
   //with lowest index, in which it appears.
-  static DHMap<unsigned, unsigned, IdentityHash, DefaultHash> varMasters;
+  static DHMap<unsigned, unsigned, IdentityHash, FnvHash> varMasters;
   varMasters.reset();
   IntUnionFind components(clen);
 
@@ -966,6 +967,11 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc, bool shuffle)
  */
 bool Splitter::doSplitting(Clause* cl)
 {
+  // Traced here rather than at the call sites: with -sac off (the default) splitting
+  // happens inside forwardSimplify and with -sac on inside activate, and one node
+  // covering both keeps the two configurations comparable.
+  TIME_TRACE(TimeTrace::SPLITTING);
+
   static bool hasStopped = false;
   if (hasStopped) {
     return false;
@@ -998,6 +1004,14 @@ bool Splitter::doSplitting(Clause* cl)
   // fills comps with components, returning if not splittable
   if(!getComponents(cl, comps, _shuffleComponents)) {
     return handleNonSplittable(cl);
+  }
+
+  // under randomized simplifications, each splitting opportunity is with this probability
+  // skipped: the clause stays in the FO loop unsplit, as if splitting was never attempted
+  // (properly non-splittable clauses are still handled above, never leaky) (to be tuned)
+  constexpr double RSI_SKIP_PROB = 0.03;
+  if(env.options->randomizedSimplifications() && Random::getDouble(0.0,1.0) < RSI_SKIP_PROB) {
+    return false;
   }
 
   static SATLiteralStack satClauseLits;
@@ -1672,7 +1686,7 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
  */
 UnitList* Splitter::preprendCurrentlyAssumedComponentClauses(UnitList* clauses)
 {
-  DHSet<unsigned> seen;
+  DHSet<unsigned, FnvHash, IdentityHash> seen;
 
   // to keep the nice order
   UnitList::FIFO res;

@@ -12,6 +12,8 @@
  * Implements class Choice.
  */
 
+#include "Debug/TimeProfiling.hpp"
+
 #include "Kernel/OperatorType.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Signature.hpp"
@@ -71,7 +73,7 @@ struct Choice::AxiomsIterator
     _choiceOps.loadFromIterator(env.signature->getChoiceOperators()->iter());
   }
 
-  DECL_ELEMENT_TYPE(Clause*);
+  using ElementType = Clause*;
 
   bool hasNext() {
     if (_curr) {
@@ -80,7 +82,7 @@ struct Choice::AxiomsIterator
 
     while (_choiceOps.isNonEmpty()) {
       auto op = _choiceOps.pop();
-      auto type = env.signature->getFunction(op)->fnType();
+      auto type = env.signature->getFunction(op)->type();
 
       static TermStack typeArgs;
       typeArgs.reset();
@@ -104,7 +106,7 @@ struct Choice::AxiomsIterator
     return false;
   }
 
-  OWN_ELEMENT_TYPE next()
+  ElementType next()
   {
     Clause* res = nullptr;
     std::swap(res, _curr);
@@ -159,10 +161,11 @@ ClauseIterator Choice::generateClauses(Clause* premise)
 {
   return pvi(premise->getSelectedLiteralIterator()
     .flatMap([](Literal* lit) {
-      return getUniquePersistentIterator(NonVariableNonTypeIterator(lit));
+      return getUniquePersistentIterator<FnvHash, PtrIdentityHash>(NonVariableNonTypeIterator(lit));
     })
     .filter(IsChoiceTerm())
-    .flatMap(ResultFn()));
+    .flatMap(ResultFn())
+    .timeTraced("choice"));
 }
 
 }
