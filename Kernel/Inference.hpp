@@ -119,8 +119,6 @@ enum class InferenceRule : unsigned char {
   ANSWER_LITERAL_INPUT_SKOLEMISATION,
   /** claim definition, definition introduced by a claim in the input */
   CLAIM_DEFINITION,
-//     /** choice_axiom (Ax)((Ey)F(x,y) -> F(x,f(x))) */
-//     CHOICE_AXIOM,
 //     /** (Ax)(F(x)->F'(x)), G[F(t)] / G[F'(t)] */
 //     MONOTONE_REPLACEMENT,
 //     /** G[(Ax)F(x)] => G[F(t)] */
@@ -204,6 +202,8 @@ enum class InferenceRule : unsigned char {
   CLAUSIFY,
   /** change the orientations of some equations in a formula */
   REORIENT_EQUATIONS,
+  /** a $distinct occurrence replaced by the corresponding disequalities */
+  DISTINCT_EXPANSION,
   /** the (preprocessing/normalisation) formula transformation marker --
     inferences between GENERIC_FORMULA_CLAUSE_TRANSFORMATION and INTERNAL_FORMULA_CLAUSE_TRANSFORMATION_LAST
     will be automatically understood as formula transformations (see also isFormulaClauseTransformation) */
@@ -224,6 +224,7 @@ enum class InferenceRule : unsigned char {
   FORWARD_SUBSUMPTION_RESOLUTION,
   /** backward subsumption resolution simplification rule */
   BACKWARD_SUBSUMPTION_RESOLUTION,
+  SUBSUMPTION_EQUALITY_RESOLUTION,
   /** forward demodulation inference */
   FORWARD_DEMODULATION,
   /** backward demodulation inference */
@@ -277,6 +278,18 @@ enum class InferenceRule : unsigned char {
   ALASCA_VIRAS_QE,
 
   BOOL_SIMP,
+  FLEX_FLEX_SIMPLIFICATION,
+  BETA_ETA_NORMALIZATION,
+
+  NOT_PROXY_CLAUSIFICATION_SIMPLIFYING,
+  AND_PROXY_CLAUSIFICATION_SIMPLIFYING,
+  OR_PROXY_CLAUSIFICATION_SIMPLIFYING,
+  IMP_PROXY_CLAUSIFICATION_SIMPLIFYING,
+  IFF_PROXY_CLAUSIFICATION_SIMPLIFYING,
+  XOR_PROXY_CLAUSIFICATION_SIMPLIFYING,
+  SIGMA_PROXY_CLAUSIFICATION_SIMPLIFYING,
+  PI_PROXY_CLAUSIFICATION_SIMPLIFYING,
+  EQUALITY_PROXY_CLAUSIFICATION_SIMPLIFYING,
 
   FUNCTION_DEFINITION_DEMODULATION,
 
@@ -338,28 +351,43 @@ enum class InferenceRule : unsigned char {
   ARG_CONG,
   INJECTIVITY,
   PRIMITIVE_INSTANTIATION,
+  IMITATION,
+  PROJECTION,
   LEIBNIZ_ELIMINATION,
-  HILBERTS_CHOICE_INSTANCE, // not considered a theory axiom at the moment (it's a HOL creature)
-  NEGATIVE_EXT,
+  NEGATIVE_EXTENSIONALITY,
+  POSITIVE_EXTENSIONALITY,
   EQ_TO_DISEQ,
-  /** The next five rules can be either simplifying or generating */
-  HOL_NOT_ELIMINATION,
-  BINARY_CONN_ELIMINATION,
-  VSIGMA_ELIMINATION,
-  VPI_ELIMINATION,
-  HOL_EQUALITY_ELIMINATION,
+  HEURISTIC_INSTANTIATION,
+  NOT_PROXY_CLAUSIFICATION,
+  AND_PROXY_CLAUSIFICATION,
+  OR_PROXY_CLAUSIFICATION,
+  IMP_PROXY_CLAUSIFICATION,
+  IFF_PROXY_CLAUSIFICATION,
+  XOR_PROXY_CLAUSIFICATION,
+  SIGMA_PROXY_CLAUSIFICATION,
+  PI_PROXY_CLAUSIFICATION,
+  EQUALITY_PROXY_CLAUSIFICATION,
 
   /** the last generating inference marker --
         inferences between GENERIC_GENERATING_INFERENCE and GENERIC_GENERATING_INFERENCE_LAST will be automatically understood generating
         (see also isGeneratingInferenceRule) */
   GENERIC_GENERATING_INFERENCE_LAST,
 
+  /** these inferences are hard to categorize, so we just have them here at the end */
+  GENERIC_NONSPECIFIC_INFERENCE,
+  /** not considered a theory axiom at the moment (it's a HOL creature) */
+  HILBERTS_CHOICE_INSTANCE,
+
   /** equality proxy replacement */
   EQUALITY_PROXY_REPLACEMENT,
   /** definition of the equality proxy predicate in the form E(x,y) <=> x=y */
-  EQUALITY_PROXY_AXIOM1,
+  EQUALITY_PROXY_DEFINITION,
   /** equality proxy axioms such as E(x,x) or ~E(x,y) \/ x=y */
-  EQUALITY_PROXY_AXIOM2,
+  EQUALITY_PROXY_AXIOM,
+  /** floor(f(X0,...,Xn)) = f(X0,...,Xn), stating that a symbol f introduced by the
+   * ALASCA integer conversion is integer-valued; not a theory axiom, as it is only
+   * valid for the freshly introduced f (a conservative extension) */
+  ALASCA_INTEGRALITY_AXIOM,
   /** unfolding by definitions f(x1,...,xn)=t */
   DEFINITION_UNFOLDING,
 
@@ -380,6 +408,8 @@ enum class InferenceRule : unsigned char {
   UNUSED_PREDICATE_DEFINITION_REMOVAL,
   /** pure predicate removal */
   PURE_PREDICATE_REMOVAL,
+  /** predicate elimination by exhaustive resolution (preprocessing) */
+  PREDICATE_ELIMINATION,
   /** inequality splitting */
   INEQUALITY_SPLITTING,
   /** inequality splitting name introduction */
@@ -446,6 +476,9 @@ enum class InferenceRule : unsigned char {
   /** sat clause representing FO clause for AVATAR */
   AVATAR_CONTRADICTION_CLAUSE,
   GENERIC_AVATAR_INFERENCE_LAST,
+
+  /** marking the last of non-specific inferences (including AVATAR inferences) */
+  GENERIC_NONSPECIFIC_INFERENCE_LAST,
 
   /** a not further specified theory axiom internally added by the class TheoryAxioms. */
   GENERIC_THEORY_AXIOM, // CAREFUL: adding rules here influences the theory_split_queue heuristic
@@ -524,6 +557,8 @@ enum class InferenceRule : unsigned char {
   INT_DB_UP_INDUCTION_AXIOM,
   INT_DB_DOWN_INDUCTION_AXIOM,
 
+  FUNCTIONAL_EXTENSIONALITY_AXIOM,
+
   /** the last theory axiom marker --
     axioms between THEORY_AXIOM and GENERIC_THEORY_AXIOM_LAST will be automatically making their respective clauses isTheoryAxiom() true */
   GENERIC_THEORY_AXIOM_LAST
@@ -562,6 +597,11 @@ inline bool isGeneratingInferenceRule(InferenceRule r) {
 inline bool isTheoryAxiomRule(InferenceRule r) {
   return (toNumber(r) > toNumber(InferenceRule::GENERIC_THEORY_AXIOM) &&
       toNumber(r) < toNumber(InferenceRule::GENERIC_THEORY_AXIOM_LAST));
+}
+
+inline bool isNonSpecificInferenceRule(InferenceRule r) {
+  return (toNumber(r) > toNumber(InferenceRule::GENERIC_NONSPECIFIC_INFERENCE) &&
+      toNumber(r) < toNumber(InferenceRule::GENERIC_NONSPECIFIC_INFERENCE_LAST));
 }
 
 std::string inputTypeName(UnitInputType type);
@@ -705,8 +745,6 @@ private:
     _rule = r;
     _included = false;
     _inductionDepth = 0;
-    _XXNarrows = 0;
-    _reductions = 0;
     _sineLevel = std::numeric_limits<decltype(_sineLevel)>::max();
     _splits = nullptr;
     _age = 0;
@@ -896,15 +934,6 @@ public:
   unsigned inductionDepth() const { return _inductionDepth; }
   void setInductionDepth(unsigned d) { _inductionDepth = d; }
 
-  unsigned xxNarrows() const { return _XXNarrows; }
-  /** used to propagate in AVATAR **/
-  void setXXNarrows(unsigned n) { _XXNarrows = n; }
-  void incXXNarrows(){ if(_XXNarrows < 8){ _XXNarrows++; } }
-
-  unsigned reductions() const { return _reductions; }
-  void setReductions(unsigned r) { _reductions = r; }
-  void increaseReductions(unsigned n){ _reductions += n; }
-
   Clause* getCausalParent() const {
     ASS_EQ((unsigned char)_kind,(unsigned char)Kind::INFERENCE_MANY)
     ASS_NEQ(_ptr2,0)
@@ -927,38 +956,6 @@ public:
   void setAge(unsigned a) { _age = a; }
 
 private:
-  Kind _kind : 2;
-
-  UnitInputType _inputType : 3;
-
-  /** The rule used */
-  InferenceRule _rule : 8;
-
-  /** true if the unit is read from a TPTP included file  */
-  bool _included : 1;
-
-  /** track whether all leafs were theory axioms only */
-  bool _isPureTheoryDescendant : 1;
-  /** Induction depth **/
-  unsigned _inductionDepth : 5;
-
-  /** Sine level computed in SineUtils and used in various heuristics.
-   * May stay uninitialized (i.e. always MAX), if not needed
-   **/
-  unsigned char _sineLevel : 8; // updated as the minimum from parents to children
-
-  /** number of XX' narrows carried out on clause */
-  unsigned _XXNarrows : 3;
-  /** number of weak reductions in the history of this clause */
-  unsigned _reductions : 30;
-
-  // aligned to 64 bits
-
-  /** age */
-  unsigned _age;
-
-  SplitSet* _splits;
-
   /**
    * General storage for all Kinds of Inference:
    * INFERENCE_012 - use ptr1 and ptr2 in sequence storing its up to two premises "left to right"
@@ -972,6 +969,29 @@ private:
   void* _ptr1;
   void* _ptr2;
 
+  SplitSet* _splits;
+
+  /** age */
+  unsigned _age;
+
+  /** The rule used */
+  InferenceRule _rule : 8;
+  /** Sine level computed in SineUtils and used in various heuristics.
+   * May stay uninitialized (i.e. always MAX), if not needed
+   **/
+  unsigned char _sineLevel : 8; // updated as the minimum from parents to children
+
+  Kind _kind : 2;
+
+  UnitInputType _inputType : 3;
+
+  /** true if the unit is read from a TPTP included file  */
+  bool _included : 1;
+
+  /** track whether all leafs were theory axioms only */
+  bool _isPureTheoryDescendant : 1;
+  /** Induction depth **/
+  unsigned _inductionDepth : 9;
 
 }; // class Inference
 

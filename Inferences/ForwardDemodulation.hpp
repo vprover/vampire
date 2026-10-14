@@ -17,7 +17,7 @@
 #define __ForwardDemodulation__
 
 #include "Forwards.hpp"
-#include "Indexing/TermIndex.hpp"
+#include "Indexing/DemodulationIndex.hpp"
 
 #include "DemodulationHelper.hpp"
 #include "InferenceEngine.hpp"
@@ -30,6 +30,7 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
+template<bool higherOrder>
 class ForwardDemodulation
 : public ForwardSimplificationEngine
 {

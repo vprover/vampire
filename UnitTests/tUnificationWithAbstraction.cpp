@@ -37,23 +37,17 @@ Clause* unit(Literal* lit)
 
 static const auto tld = [](auto t) { return TermWithoutValue(TypedTermList(t)); };
 
-
 unique_ptr<TermSubstitutionTree<TermWithoutValue>> getTermIndexHOL()
 { return std::make_unique<TermSubstitutionTree<TermWithoutValue>>(); }
 
 unique_ptr<TermSubstitutionTree<TermWithoutValue>> getTermIndex()
-{ return std::make_unique<TermSubstitutionTree<TermWithoutValue>>();
-}
+{ return std::make_unique<TermSubstitutionTree<TermWithoutValue>>(); }
 
 template<class... Args>
-Stack<Literal*> constraints(Args... args) {
-  Stack<Literal*> lits;
-  lits.loadFromIterator(iterItems<Literal*>(args...));
-  return lits;
-}
+LiteralStack constraints(Args... args)
+{ return LiteralStack::fromIterator(iterItems<Literal*>(args...)); }
 
 inline auto noConstraints() { return constraints(); } 
-
 
 auto getLiteralIndex()
 { return std::make_unique<LiteralSubstitutionTree<LiteralClause>>(); }
@@ -155,7 +149,7 @@ void checkTermMatchesWithUnifFun(TermSubstitutionTree<TermWithoutValue>& index, 
 void checkTermMatches(TermSubstitutionTree<TermWithoutValue>& index, Options::UnificationWithAbstraction uwa, bool fixedPointIteration, TypedTermList term, Stack<TermUnificationResultSpec> expected)
 {
   return checkTermMatchesWithUnifFun(index, term, expected, 
-      [&](auto& idx, auto t) { return idx.getUwa(term, uwa, fixedPointIteration); });
+      [&](auto& idx, auto t) { return idx.getUwa(term, uwa, fixedPointIteration, /*funcExt=*/false); });
 }
 
 
@@ -2452,8 +2446,8 @@ TEST_FUN(bug05) {
     DECL_POLY_CONST(a, 1, alpha)
     DECL_CONST(b, Rat)
 
-    uwa.unify(x, 2, RatTraits::sort(), 0);
-    uwa.unify(a(x), 2, b + 3, 0);
+    uwa.unifyOnce(x, 2, RatTraits::sort(), 0);
+    uwa.unifyOnce(a(x), 2, b + 3, 0);
   }
 }
 
@@ -2468,6 +2462,6 @@ TEST_FUN(bug06) {
     DECL_POLY_CONST(a, 1, alpha)
     DECL_CONST(b, Rat)
 
-    uwa.unify(a(x), 2, b + 3, 0);
+    uwa.unifyOnce(a(x), 2, b + 3, 0);
   }
 }

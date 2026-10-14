@@ -36,18 +36,6 @@ using namespace Indexing;
 using namespace Saturation;
 using namespace std;
 
-namespace {
-
-struct Applicator : SubstApplicator {
-  Applicator(ResultSubstitution* subst) : subst(subst) {}
-  TermList operator()(unsigned v) const override {
-    return subst->applyToBoundResult(v);
-  }
-  ResultSubstitution* subst;
-};
-
-} // end namespace
-
 ForwardGroundJoinability::ForwardGroundJoinability(SaturationAlgorithm& salg)
   : _ord(salg.getOrdering()),
     _index(salg.getSimplifyingIndex<DemodulationLHSIndex>())
@@ -59,7 +47,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
 {
   // cout << "trying " << *cl << endl;
 
-  static DHSet<TermList> attempted;
+  static DHSet<TermList, TermListHash, TermListHash2> attempted;
 
   if (cl->length()>1) {
     return false;
@@ -69,7 +57,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
   if (!lit->isEquality() || lit->isNegative()) {
     return false;
   }
-  DHMap<unsigned, Clause*> premiseSet;
+  DHMap<unsigned, Clause*, FnvHash, IdentityHash> premiseSet;
 
   if (EqHelper::isEqTautology(lit)) {
     premises = ClauseIterator::getEmpty();
@@ -109,7 +97,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
         continue;
       }
 
-      auto git = _index->getGeneralizations(trm.term(), /* retrieveSubstitutions */ true);
+      auto git = _index->getGeneralizations(trm.term());
       while(git.hasNext()) {
         auto qr=git.next();
         ASS_EQ(qr.data->clause->length(),1);
@@ -125,12 +113,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
         }
 
         TermList rhs = qr.data->rhs;
-
-        auto subs = qr.unifier;
-        ASS(subs->isIdentityOnQueryWhenResultBound());
-        Applicator appl(subs.ptr());
-
-        AppliedTerm rhsApplied(rhs, &appl, true);
+        AppliedTerm rhsApplied(rhs, &qr.unifier, true);
 
 #if VDEBUG
         POStruct dpo_struct(tpo);
@@ -148,7 +131,7 @@ bool ForwardGroundJoinability::perform(Clause* cl, Clause*& replacement, ClauseI
 #endif
 
         POStruct po_struct(tpo);
-        if (!TermOrderingDiagram::extendVarsGreater(qr.data->tod.get(), &appl, po_struct)) {
+        if (!TermOrderingDiagram::extendVarsGreater(qr.data->tod.get(), &qr.unifier, po_struct)) {
           // TODO this check sometimes fails when the debug code can detect the
           // extension to get GREATER due to elimination of linear expressions
           // ASS(!success);

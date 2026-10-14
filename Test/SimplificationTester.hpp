@@ -170,6 +170,8 @@ class SuccessMany
 {
   Kernel::Clause* _input = nullptr;
   Option<StackMatcher> _expected;
+  std::function<StackMatcher()> _expectedFn;
+
 public:
   SuccessMany input(Kernel::Clause* x)
   {
@@ -183,11 +185,17 @@ public:
     return *this;
   }
 
+  SuccessMany expectedFn(std::function<StackMatcher()> fn)
+  {
+    _expectedFn = fn;
+    return *this;
+  }
+
   template<typename Rule, typename Tester>
   void run() {
     Rule rule;
     auto resOp = rule.simplifyMany(_input);
-    auto exp = _expected.unwrap();
+    auto exp = _expected.unwrapOrInit(_expectedFn);
     if (resOp.isNone()) {
       std::cout  << std::endl;
       std::cout << "[     case ]: " << pretty(*_input) << std::endl;
@@ -231,6 +239,11 @@ public:
     __ALLOW_UNUSED(syntax_sugar)                                                                              \
     test.run<rule, tester>(__VA_ARGS__);                                                                      \
   }                                                                                                           \
+
+#define EXPECTED(cls)                                                                     \
+  expectedFn([&]() -> StackMatcher {                                                      \
+    return cls;                                                                           \
+  })
 
 } // namespace Simplification
 

@@ -154,6 +154,11 @@ bool BooleanSubtermIt::hasNext()
   static TermStack args;
   while(!_stack.isEmpty()){
     Term* t = _stack.pop();
+    if (t->isLambdaTerm()) {
+      // TODO: strengthen the iterator by returning subterms
+      // underneath lambdas that don't contain loose indices
+      continue;
+    }
     auto head = HOL::getHeadAndArgs(TermList(t), args);
     if(SortHelper::getResultSort(t) == AtomicSort::boolSort() && !HOL::isBool(head)){
       _next = TermList(t);
@@ -168,6 +173,33 @@ bool BooleanSubtermIt::hasNext()
     if(!_used){ return true; }
   }
   return false;
+}
+
+Term* FirstOrderSubtermIterator::next()
+{
+  _added = 0;
+  auto t = _stack.pop();
+  if (t->isLambdaTerm()) {
+    return t;
+  }
+
+  auto [head, args] = HOL::getHeadAndArgs(TermList(t));
+
+  for (unsigned i = 0; i < args.size(); i++) {
+    if (args[i].isTerm()) {
+      _added++;
+      _stack.push(args[i].term());
+    }
+  }
+  return t;
+}
+
+void FirstOrderSubtermIterator::right()
+{
+  while (_added > 0) {
+    _added--;
+    _stack.pop();
+  }
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -253,7 +285,7 @@ Term* NonVariableNonTypeIterator::next()
     taArity = 0;
     arity = 2;
   } else {
-    Signature::Symbol* sym;
+    const Signature::Symbol* sym;
     if (t->isLiteral()) {
       sym = env.signature->getPredicate(t->functor());
     } else {

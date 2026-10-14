@@ -20,7 +20,7 @@
 
 namespace Lib {
 
-template<typename T, unsigned Start=0>
+template<typename T, class Hash1, class Hash2, unsigned Start=0>
 class Numbering
 {
 public:
@@ -91,8 +91,8 @@ public:
     return out << "}";
   }
 private:
-  DHMap<T, unsigned> _map;
-  DHMap<unsigned, T> _rev;
+  DHMap<T, unsigned, Hash1, Hash2> _map;
+  DHMap<unsigned, T, FnvHash, IdentityHash> _rev;
 
   unsigned _nextNum;
 };

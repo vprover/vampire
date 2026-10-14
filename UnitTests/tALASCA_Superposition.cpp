@@ -548,7 +548,7 @@ TEST_GENERATION(bug03,
     alascaSymmetricTest()
       .inputs  ({ 
           clause({ pa(aa)   })
-        , clause({ x == sorted(y, alpha), fa(x) != fa(y) })
+        , clause({ x == sorted(y, Rat), fa(x) != fa(y) })
         })
       .expected(exactly(
           /* nothing */

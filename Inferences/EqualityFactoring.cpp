@@ -42,11 +42,9 @@ using std::pair;
 
 EqualityFactoring::EqualityFactoring(SaturationAlgorithm& salg)
   : _salg(salg)
-  , _abstractionOracle(AbstractionOracle::createOnlyHigherOrder())
-  , _uwaFixedPointIteration(env.options->unificationWithAbstractionFixedPointIteration())
-{
-
-}
+  , _abstractionOracle(_salg.getOptions().unificationWithAbstraction())
+  , _uwaFixedPointIteration(_salg.getOptions().unificationWithAbstractionFixedPointIteration())
+{}
 
 struct EqualityFactoring::IsPositiveEqualityFn
 {
@@ -96,7 +94,7 @@ struct EqualityFactoring::ResultFn
 
     TermList srt = SortHelper::getEqualityArgumentSort(sLit);
 
-    if (!absUnif.unify(srt, 0, SortHelper::getEqualityArgumentSort(fLit), 0)) {
+    if (!absUnif.unifyOnce(srt, 0, SortHelper::getEqualityArgumentSort(fLit), 0)) {
       return 0;
     }
 
@@ -107,7 +105,7 @@ struct EqualityFactoring::ResultFn
     TermList fRHS=EqHelper::getOtherEqualitySide(fLit, fLHS);
     ASS_NEQ(sLit, fLit);
 
-    if(!absUnif.unify(sLHS,0,fLHS,0)) {
+    if(!absUnif.unifyOnce(sLHS,0,fLHS,0)) {
       return 0;
     }
 

@@ -24,6 +24,7 @@
 namespace Inferences
 {
 
+template<bool higherOrder>
 class DefinitionIntroduction: public GeneratingInferenceEngine, public Index {
 public:
   DefinitionIntroduction(SaturationAlgorithm& salg) {

@@ -51,10 +51,10 @@ void Unit::onPreprocessingEnd()
 
 /** New unit of a given kind */
 Unit::Unit(Kind kind, Inference inf)
-  : _number(++_lastNumber),
+  : _inference(std::move(inf)),
+    _number(++_lastNumber),
     _kind(kind),
-    _inheritedColor(COLOR_INVALID),
-    _inference(std::move(inf))
+    _inheritedColor(COLOR_INVALID)
 {
   env.statistics->reportUnit(this,Statistics::TOTAL_CNT);
 } // Unit::Unit
@@ -238,7 +238,7 @@ UnitIterator Unit::getParents() const
 bool Unit::minimizeAncestorsAndUpdateSelectedStats()
 {
   Stack<std::pair<Unit*,bool>> todo;
-  DHSet<unsigned> done;
+  DHSet<unsigned, FnvHash, IdentityHash> done;
   bool seenInputInference = false;
 
   todo.push(make_pair(this,false));

@@ -224,15 +224,9 @@ void Inference::updateStatistics()
         */
       } else if (_ptr2 == nullptr) {
         _inductionDepth = static_cast<Unit*>(_ptr1)->inference().inductionDepth();
-        _XXNarrows = static_cast<Unit*>(_ptr1)->inference().xxNarrows();
-        _reductions = static_cast<Unit*>(_ptr1)->inference().reductions();
       } else {
         _inductionDepth = max(static_cast<Unit*>(_ptr1)->inference().inductionDepth(),
             static_cast<Unit*>(_ptr2)->inference().inductionDepth());
-        _XXNarrows = max(static_cast<Unit*>(_ptr1)->inference().xxNarrows(),
-            static_cast<Unit*>(_ptr2)->inference().xxNarrows());
-        _reductions = max(static_cast<Unit*>(_ptr1)->inference().reductions(),
-            static_cast<Unit*>(_ptr2)->inference().reductions());
       }
 
       break;
@@ -240,13 +234,9 @@ void Inference::updateStatistics()
     case Kind::SAT:
     case Kind::SAT_NEEDS_MINIMIZATION:
       _inductionDepth = 0;
-      _XXNarrows = 0;
-      _reductions = 0;
       UnitList* it = static_cast<UnitList*>(_ptr1);
       while(it) {
         _inductionDepth = max(_inductionDepth,it->head()->inference().inductionDepth());
-        _XXNarrows = max(_XXNarrows,it->head()->inference().xxNarrows());
-        _reductions = max(_reductions,it->head()->inference().reductions());
         it=it->tail();
       }
       break;
@@ -449,18 +439,26 @@ Inference::Inference(const SimplifyingInferenceMany& si) {
 
 Inference::Inference(const NonspecificInference0& gi) {
   init0(gi.inputType,gi.rule);
+
+  ASS_REP(isNonSpecificInferenceRule(gi.rule), ruleName(gi.rule));
 }
 
 Inference::Inference(const NonspecificInference1& gi) {
   init1(gi.rule,gi.premise);
+
+  ASS_REP(isNonSpecificInferenceRule(gi.rule), ruleName(gi.rule));
 }
 
 Inference::Inference(const NonspecificInference2& gi) {
   init2(gi.rule,gi.premise1,gi.premise2);
+
+  ASS_REP(isNonSpecificInferenceRule(gi.rule), ruleName(gi.rule));
 }
 
 Inference::Inference(const NonspecificInferenceMany& gi) {
   initMany(gi.rule,gi.premises);
+
+  ASS_REP(isNonSpecificInferenceRule(gi.rule), ruleName(gi.rule));
 }
 
 std::string Inference::name() const {
@@ -597,7 +595,7 @@ std::string Kernel::ruleName(InferenceRule rule)
   case InferenceRule::REMOVE_DUPLICATE_LITERALS:
     return "duplicate literal removal";
   case InferenceRule::SKOLEMIZE:
-    return "skolemisation";
+    return "skolemize";
   case InferenceRule::SKOLEM_SYMBOL_INTRODUCTION:
     return "skolem symbol introduction";
   case InferenceRule::RESOLUTION:
@@ -606,10 +604,12 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "constrained resolution";
   case InferenceRule::EQUALITY_PROXY_REPLACEMENT:
     return "equality proxy replacement";
-  case InferenceRule::EQUALITY_PROXY_AXIOM1:
+  case InferenceRule::EQUALITY_PROXY_DEFINITION:
     return "equality proxy definition";
-  case InferenceRule::EQUALITY_PROXY_AXIOM2:
+  case InferenceRule::EQUALITY_PROXY_AXIOM:
     return "equality proxy axiom";
+  case InferenceRule::ALASCA_INTEGRALITY_AXIOM:
+    return "alasca integrality axiom";
   case InferenceRule::EXTENSIONALITY_RESOLUTION:
     return "extensionality resolution";
   case InferenceRule::DEFINITION_UNFOLDING:
@@ -638,6 +638,8 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "forward subsumption resolution";
   case InferenceRule::BACKWARD_SUBSUMPTION_RESOLUTION:
     return "backward subsumption resolution";
+  case InferenceRule::SUBSUMPTION_EQUALITY_RESOLUTION:
+    return "subsumption equality resolution";
   case InferenceRule::SUPERPOSITION:
     return "superposition";
   case InferenceRule::FUNCTION_DEFINITION_REWRITING:
@@ -681,12 +683,16 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "unused predicate definition removal";
   case InferenceRule::PURE_PREDICATE_REMOVAL:
     return "pure predicate removal";
+  case InferenceRule::PREDICATE_ELIMINATION:
+    return "predicate elimination";
   case InferenceRule::INEQUALITY_SPLITTING:
     return "inequality splitting";
   case InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION:
     return "inequality splitting name introduction";
   case InferenceRule::DISTINCTNESS_AXIOM:
     return "distinctness axiom";
+  case InferenceRule::DISTINCT_EXPANSION:
+    return "distinct expansion";
   case InferenceRule::THEORY_TAUTOLOGY_SAT_CONFLICT:
     return "theory tautology sat conflict";
   case InferenceRule::THA_COMMUTATIVITY:
@@ -905,36 +911,76 @@ std::string Kernel::ruleName(InferenceRule rule)
     return "gaussian variable elimination";
   case InferenceRule::ARG_CONG:
     return "argument congruence";
-  case InferenceRule::NEGATIVE_EXT:
+  case InferenceRule::NEGATIVE_EXTENSIONALITY:
     return "negative extensionality";
+  case InferenceRule::POSITIVE_EXTENSIONALITY:
+    return "positive extensionality";
   case InferenceRule::INJECTIVITY:
     return "injectivity";
-  case InferenceRule::HOL_NOT_ELIMINATION:
+  case InferenceRule::NOT_PROXY_CLAUSIFICATION:
     return "not proxy clausification";
-  case InferenceRule::BINARY_CONN_ELIMINATION:
-    return "binary proxy clausification";
-  case InferenceRule::VSIGMA_ELIMINATION:
-    return "sigma clausification";
-  case InferenceRule::VPI_ELIMINATION:
-    return "pi clausification";
-  case InferenceRule::HOL_EQUALITY_ELIMINATION:
+  case InferenceRule::AND_PROXY_CLAUSIFICATION:
+    return "and proxy clausification";
+  case InferenceRule::OR_PROXY_CLAUSIFICATION:
+    return "or proxy clausification";
+  case InferenceRule::IMP_PROXY_CLAUSIFICATION:
+    return "imp proxy clausification";
+  case InferenceRule::IFF_PROXY_CLAUSIFICATION:
+    return "iff proxy clausification";
+  case InferenceRule::XOR_PROXY_CLAUSIFICATION:
+    return "xor proxy clausification";
+  case InferenceRule::SIGMA_PROXY_CLAUSIFICATION:
+    return "sigma proxy clausification";
+  case InferenceRule::PI_PROXY_CLAUSIFICATION:
+    return "pi proxy clausification";
+  case InferenceRule::EQUALITY_PROXY_CLAUSIFICATION:
     return "equality proxy clausification";
   case InferenceRule::BOOL_SIMP:
     return "boolean simplification";
+  case InferenceRule::FLEX_FLEX_SIMPLIFICATION:
+    return "flex-flex simplification";
+  case InferenceRule::BETA_ETA_NORMALIZATION:
+    return "beta-eta normalization";
+  case InferenceRule::NOT_PROXY_CLAUSIFICATION_SIMPLIFYING:
+    return "not proxy clausification (simplifying)";
+  case InferenceRule::AND_PROXY_CLAUSIFICATION_SIMPLIFYING:
+    return "and proxy clausification (simplifying)";
+  case InferenceRule::OR_PROXY_CLAUSIFICATION_SIMPLIFYING:
+    return "or proxy clausification (simplifying)";
+  case InferenceRule::IMP_PROXY_CLAUSIFICATION_SIMPLIFYING:
+    return "imp proxy clausification (simplifying)";
+  case InferenceRule::IFF_PROXY_CLAUSIFICATION_SIMPLIFYING:
+    return "iff proxy clausification (simplifying)";
+  case InferenceRule::XOR_PROXY_CLAUSIFICATION_SIMPLIFYING:
+    return "xor proxy clausification (simplifying)";
+  case InferenceRule::SIGMA_PROXY_CLAUSIFICATION_SIMPLIFYING:
+    return "sigma proxy clausification (simplifying)";
+  case InferenceRule::PI_PROXY_CLAUSIFICATION_SIMPLIFYING:
+    return "pi proxy clausification (simplifying)";
+  case InferenceRule::EQUALITY_PROXY_CLAUSIFICATION_SIMPLIFYING:
+    return "equality proxy clausification (simplifying)";
   case InferenceRule::EQ_TO_DISEQ:
     return "bool equality to disequality";
+  case InferenceRule::HEURISTIC_INSTANTIATION:
+    return "heuristic instantiation";
   case InferenceRule::PRIMITIVE_INSTANTIATION:
     return "primitive instantiation";
+  case InferenceRule::IMITATION:
+    return "imitation";
+  case InferenceRule::PROJECTION:
+    return "projection";
   case InferenceRule::LEIBNIZ_ELIMINATION:
     return "leibniz equality elimination";
   case InferenceRule::HILBERTS_CHOICE_INSTANCE:
-    return "Hilbert's choice axiom instance";
+    return "Hilbertian choice axiom instance";
   case InferenceRule::CASES_SIMP:
     return "cases simplifying";
   case InferenceRule::TERM_ALGEBRA_DIRECT_SUBTERMS_AXIOM:
     return "term algebra direct subterm axiom";
   case InferenceRule::TERM_ALGEBRA_SUBTERMS_TRANSITIVE_AXIOM:
     return "term algebra subterm transitivity axiom";
+  case InferenceRule::FUNCTIONAL_EXTENSIONALITY_AXIOM:
+    return "functional extensionality axiom";
     /* this cases are no actual inference rules but only markeres to separatea groups of rules */
   case InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION:
   case InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION_LAST:
@@ -946,6 +992,8 @@ std::string Kernel::ruleName(InferenceRule rule)
   case InferenceRule::GENERIC_AVATAR_INFERENCE_LAST:
   case InferenceRule::GENERIC_THEORY_AXIOM:
   case InferenceRule::GENERIC_THEORY_AXIOM_LAST:
+  case InferenceRule::GENERIC_NONSPECIFIC_INFERENCE:
+  case InferenceRule::GENERIC_NONSPECIFIC_INFERENCE_LAST:
     { /* explicitly ignoring this cases */ }
   }
 

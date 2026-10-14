@@ -206,7 +206,7 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* premise)
 #endif
         .template collect<Stack>());
 
-  auto selIdx = Lib::make_shared(Set<std::pair<unsigned, unsigned>>());
+  auto selIdx = Lib::make_shared(Set<std::pair<unsigned, unsigned>, PairHash<FnvHash,FnvHash>>());
   auto key = [&](auto& s) { return std::make_pair(s.litIdx, s.termIdx()); };
 
   DEBUG("selected summands:")
@@ -216,11 +216,11 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* premise)
   }
 
   return pvi(range(0, selected->size())
-      .flatMap([=](auto i) {
+      .flatMap([=,this](auto i) {
         return range(0, rest->size())
           .filter([=](auto j) { return (*selected)[i].litIdx != (*rest)[j].litIdx; })
           .filter([=](auto j) { return (*selected)[i].numTraits() == (*rest)[j].numTraits(); })
-          .flatMap([=](auto j) {
+          .flatMap([=,this](auto j) {
               auto& max = (*selected)[i];
               auto& other = (*rest)[j];
               return ifElseIter3(

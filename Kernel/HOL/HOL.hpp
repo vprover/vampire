@@ -18,8 +18,6 @@
 #include "Kernel/TypedTermList.hpp"
 #include "Lib/Environment.hpp"
 
-#include <optional>
-
 /**
  * This namespace contains several helper functions to deal with higher-order terms.
  */
@@ -50,6 +48,9 @@ TermList getResultAppliedToNArgs(TermList arrowSort, unsigned argNum);
 unsigned getArity(TermList sort);
 TermList getDeBruijnIndex(int index, TermList sort);
 
+void getArgSorts(TermList t, TermStack& sorts);
+TermStack getArgSorts(TermList t);
+
 void getHeadSortAndArgs(TermList term, TermList& head, TermList& headSort, TermStack& args);
 void getHeadArgsAndArgSorts(TermList t, TermList& head, TermStack& args, TermStack& argSorts);
 
@@ -64,14 +65,43 @@ inline bool canHeadReduce(const TermList& head, const TermStack& args) {
   return head.isLambdaTerm() && args.isNonEmpty();
 }
 
+/** Given two terms of the form λ x_1,...,x_m. s and λ y_1,...,y_n. t and w.l.o.g. m ≥ n,
+ ** applies η-conversion to the second term until they have the same lambda-prefix. */
+void normaliseLambdaPrefixes(TermList& t1, TermList& t2);
+
+// if flexTerm is of form X t1 t2 : i > i and t1 : int and t2 : tau
+// this function will fill stack with [i, tau, int]
+// TODO(HOL): very inelegant at the moment, need to rewrite
+TermStack getFlexHeadSorts(TermList flexTerm, TermList rigidTermSort);
+
+enum class UnificationInference {
+  PROJECTION,
+  IMITATION,
+};
+
+Stack<std::pair<TermList, UnificationInference>> getProjAndImitBindings(TermList flexTerm, TermList rigidTerm, unsigned& freshVar);
+
+TermList createGeneralBinding(TermList head, const TermStack& sorts, unsigned& freshVar, bool surround = true);
+
+// Creates abstractions of lit as described below to be used for heuristically
+// instantiating Π terms (proxified universal quantification, see CNFOnTheFly).
+//
+// If lit is of the form s ⋈ t, where ⋈ ∈ {=,≠}, s is λ x1,...,xn. f s1,...,sk,
+// and t is λ y1,...,ym. f t1,...,tl, then w.l.o.g. we create an abstracted
+// disequality λ x. s' ≠ t for each 1 ≤ i ≤ k where s' is s with si replaced with x.
+TermStack getAbstractionTerms(Literal* lit);
+
 } // namespace HOL
 
 namespace HOL::create {
   TermList app(TermList sort, TermList head, TermList arg);
   TermList app(TermList head, TermList arg);
   TermList app(TermList s1, TermList s2, TermList arg1, TermList arg2, bool shared = true);
-  TermList app(TermList sort, TermList head, const TermStack& terms);
-  TermList app(TermList head, const TermStack& terms);
+  // With head h and a stack or arguments (a1,...an) from bottom to top, we get h @ an @ ... @ a1
+  // with fromTop = true, while h @ a1 @ ... @ an with fromTop = false.
+  // TODO(HOL): I think due to the default fromTop==true, some call sites might be wrong, double check
+  TermList app(TermList sort, TermList head, const TermStack& terms, bool fromTop = true);
+  TermList app(TermList head, const TermStack& terms, bool fromTop = true);
 
   inline TermList app2(TermList sort, TermList head, TermList arg1, TermList arg2) {
     return app(app(sort, head, arg1), arg2);
@@ -83,6 +113,13 @@ namespace HOL::create {
     return app2(head.resultSort(), head, arg1, arg2);
   }
 
+  TermList top();
+  TermList bottom();
+  TermList conj();
+  TermList disj();
+  TermList imp();
+  TermList iff();
+  TermList xorP();
   TermList equality(TermList sort);
   TermList neg();
   TermList pi(TermList sort);
@@ -94,15 +131,21 @@ namespace HOL::create {
   TermList namelessLambda(TermList varSort, TermList termSort, TermList term);
   TermList namelessLambda(TermList varSort, TermList term);
 
-  TermList surroundWithLambdas(TermList t, TermStack& sorts, bool fromTop = false);
-  TermList surroundWithLambdas(TermList t, TermStack& sorts, TermList sort, bool fromTop = false);
+  // With term t and a stack or sorts (s1,...sn) from bottom to top, we get λ_{s1}...λ_{sn}.t
+  // with fromTop = true, while λ_{sn}...λ_{s1}.t with fromTop = false.
+  TermList surroundWithLambdas(TermList t, const TermStack& sorts, bool fromTop = false);
+  TermList surroundWithLambdas(TermList t, const TermStack& sorts, TermList sort, bool fromTop = false);
 
   TermList placeholder(TermList sort);
+
+  Clause* choiceAxiom();
+  Clause* functionalExtensionalityAxiom();
 } // namespace HOL::create
 
 namespace HOL::convert {
 
 TermList toNameless(TermList term);
+TermList toNameless(Formula* formula);
 
 inline TermList toNameless(Term* term) {
   return toNameless(TermList(term));

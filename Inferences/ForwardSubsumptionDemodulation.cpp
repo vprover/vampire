@@ -28,10 +28,13 @@
 
 using namespace Kernel;
 using namespace Lib;
-using namespace Inferences;
 using namespace Saturation;
 
-ForwardSubsumptionDemodulation::ForwardSubsumptionDemodulation(SaturationAlgorithm& salg)
+namespace Inferences
+{
+
+template<bool higherOrder>
+ForwardSubsumptionDemodulation<higherOrder>::ForwardSubsumptionDemodulation(SaturationAlgorithm& salg)
   : _preorderedOnly(false),
     _allowIncompleteness(false),
     _enableOrderingOptimizations(
@@ -43,7 +46,8 @@ ForwardSubsumptionDemodulation::ForwardSubsumptionDemodulation(SaturationAlgorit
     _index(salg.getSimplifyingIndex<FSDLiteralIndex>())
 {}
 
-bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
+template<bool higherOrder>
+bool ForwardSubsumptionDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
   //                        cl
   //                 vvvvvvvvvvvvvvvv
@@ -87,7 +91,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
     /**
      * Step 1: find candidate clauses for subsumption
      */
-    auto rit = _index->getGeneralizations(subsQueryLit, false, false);
+    auto rit = _index->getGeneralizations(subsQueryLit, false);
     while (rit.hasNext()) {
       auto res = rit.next();
       Clause* mcl = res.data->clause;  // left premise of FSD
@@ -204,7 +208,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
           // because it is a deletion rule; and Forward Subsumption should be performed before FSD.
 #if VDEBUG && FSD_VDEBUG_REDUNDANCY_ASSERTIONS
           if (_literalComparisonMode != Options::LiteralComparisonMode::REVERSE) {
-            OverlayBinder tmpBinder;
+            OverlayBinder<higherOrder> tmpBinder;
             matcher.getBindings(tmpBinder.base());
             ASS(SDHelper::substClauseIsSmallerOrEqual(mcl, tmpBinder, cl, _ord));
           }
@@ -229,7 +233,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
         static std::vector<bool> isMatched;
         matcher.getMatchedAltsBitmap(isMatched);
 
-        static OverlayBinder binder;
+        static OverlayBinder<higherOrder> binder;
         binder.clear();
         matcher.getBindings(binder.base());
 
@@ -311,7 +315,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
           // But note that we still need to compare the variable sets of the substituted terms below.
           Ordering::Result eqArgOrderS = eqArgOrder;
 #endif
-          OverlayBinder::UnboundVariableOffsetApplicator applicator(binder, cl_maxVar+1);
+          typename OverlayBinder<higherOrder>::UnboundVariableOffsetApplicator applicator(binder, cl_maxVar+1);
           switch (eqArgOrderS) {
             case Ordering::INCOMPARABLE:
               ASS(!_preorderedOnly);  // would've skipped earlier already
@@ -350,7 +354,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
           continue;
         }
 
-        static DHSet<TermList> attempted;  // Terms we already attempted to demodulate
+        static DHSet<TermList, TermListHash, TermListHash2> attempted;  // Terms we already attempted to demodulate
         attempted.reset();
 
         for (unsigned dli = 0; dli < cl->length(); ++dli) {
@@ -361,7 +365,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
             continue;
           }
 
-          NonVariableNonTypeIterator nvi(dlit);
+          RewritableSubtermIterator<higherOrder> nvi(dlit);
           while (nvi.hasNext()) {
             TypedTermList lhsS = nvi.next();  // named 'lhsS' because it will be matched against 'lhs'
 
@@ -404,7 +408,7 @@ bool ForwardSubsumptionDemodulation::perform(Clause* cl, Clause*& replacement, C
                 // There can be no unbound variables at this point;
                 // otherwise we would have excluded the LHS already
                 // in the ordering pre-check above
-                auto mclVarIt = mcl->getVariableIterator();  // includes vars in rhs
+                auto mclVarIt = mcl->iterVars();  // includes vars in rhs
                 while (mclVarIt.hasNext()) {
                   unsigned int var = mclVarIt.next();
                   ASS(binder.isBound(var));
@@ -636,4 +640,9 @@ isRedundant:
   }  // for (li)
 
   return false;
+}
+
+template class ForwardSubsumptionDemodulation<false>;
+template class ForwardSubsumptionDemodulation<true>;
+
 }

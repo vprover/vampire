@@ -23,7 +23,7 @@ class SortHelper {
 public:
   static TermList getResultSort(const Term* t);
   static TermList getResultSortMono(const Term* t);
-  static TermList getResultSort(TermList t, DHMap<unsigned,TermList>& varSorts);
+  static TermList getResultSort(TermList t, DHMap<unsigned,TermList, FnvHash, IdentityHash>& varSorts);
   static TermList getArgSort(Term const* t, unsigned argIndex);
   static TermList getTermArgSort(Term const* t, unsigned argIndex);
 
@@ -39,9 +39,9 @@ public:
   // DEPRECATED: this function eventually calls tryGetVariableSort above
   static TermList getVariableSort(TermList var, Term* t);
 
-  static void collectVariableSorts(Unit* u, DHMap<unsigned,TermList>& map);
-  static void collectVariableSorts(Term* t, DHMap<unsigned,TermList>& map);
-  static void collectVariableSorts(Formula* f, DHMap<unsigned,TermList>& map, bool ignoreBound = false);
+  static void collectVariableSorts(Unit* u, DHMap<unsigned,TermList, FnvHash, IdentityHash>& map, bool ignoreBound = false);
+  static void collectVariableSorts(Term* t, DHMap<unsigned,TermList, FnvHash, IdentityHash>& map);
+  static void collectVariableSorts(Formula* f, DHMap<unsigned,TermList, FnvHash, IdentityHash>& map, bool ignoreBound = false);
 
   static bool areImmediateSortsValidPoly(Term* t);
   static bool areImmediateSortsValidMono(Term* t);
@@ -65,13 +65,18 @@ public:
    * The function returns true, if all the replacement terms in the substitution
    * are shared.
    *
+   * Only worth it when the same instantiation is applied to several declared sorts
+   * and the cost of the map is amortised, as in Z3Interfacing's symbol declaration.
+   * getArgSort and getResultSort, which want one sort at a time, index into @c t
+   * directly instead -- see TypeArgApplicator in the implementation.
+   *
    * @author Ahmed Bhayat
    */
   static bool getTypeSub(const Term *t, Substitution &subst);
 
   static bool areSortsValid(Clause* cl);
   static bool areSortsValid(Term* t);
-  static bool areSortsValid(Term* t, DHMap<unsigned,TermList>& varSorts);
+  static bool areSortsValid(Term* t, DHMap<unsigned,TermList, FnvHash, IdentityHash>& varSorts);
 private:
   static bool tryGetVariableSortTerm(TermList var, Term* t, TermList& result, bool recurseToSubformulas);
 };

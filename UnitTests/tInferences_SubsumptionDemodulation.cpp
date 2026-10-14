@@ -37,7 +37,7 @@ using namespace Test;
 namespace {
 
 inline auto tester() {
-  return FwdBwdSimplification::TestCase<ForwardSubsumptionDemodulation, BackwardSubsumptionDemodulation>();
+  return FwdBwdSimplification::TestCase<ForwardSubsumptionDemodulation<false>, BackwardSubsumptionDemodulation<false>>();
 }
 
 // subsumption demodulation with preordered equation

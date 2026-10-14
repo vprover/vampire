@@ -22,10 +22,10 @@
 #include "Lib/List.hpp"
 #include "Lib/ScopedPtr.hpp"
 
-#include "Kernel/ALASCA/State.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/MainLoop.hpp"
 #include "Kernel/RCClauseStack.hpp"
+#include "Kernel/Problem.hpp"
 
 #include "Indexing/IndexManager.hpp"
 
@@ -34,6 +34,7 @@
 
 #include "Saturation/ExtensionalityClauseContainer.hpp"
 
+namespace Kernel { struct AlascaState; }
 namespace Shell { class AnswerLiteralManager; }
 
 namespace Saturation
@@ -61,6 +62,7 @@ public:
   static bool couldEqualityArise(const Problem& prb, const Options& opt) {
     // TODO: similar cases of "we might need equational reasoning later" might be relevant to theory reasoning too
     return prb.hasEquality() || (prb.hasFOOL() && opt.FOOLParamodulation()) ||
+      (prb.isHigherOrder() && (opt.cases() || opt.casesSimp())) ||
       (opt.questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS);
   }
   static bool doesAlascaTakeOver(const Problem& prb, const Options& opt) {
@@ -168,7 +170,12 @@ protected:
   virtual void beforeSelectedRemoved(Clause* cl) {};
   void onAllProcessed();
   virtual bool isComplete();
-  virtual void poppedFromUnprocessed(Clause* cl) {}; // mainly for LRS to inherit and update its estimates there
+  /*
+   * Called once per doUnprocessedLoop iteration, after unprocessed has been drained;
+   * receives the number of unprocessed pops since the last call;
+   * used by LRS to potentially update its estimates.
+  */
+  virtual void afterUnprocessedLoop(unsigned popsElapsed) {};
 
 private:
   void passiveRemovedHandler(Clause* cl);
@@ -178,6 +185,7 @@ private:
   template<typename Inference> void addForwardSimplifierToFront();
   template<typename Inference> void addExpensiveForwardSimplifierToFront();
   template<typename Inference> void addBackwardSimplifierToFront();
+  template<typename Inference> void addSimplifierToFront();
 
   LiteralSelector& getSosLiteralSelector();
 

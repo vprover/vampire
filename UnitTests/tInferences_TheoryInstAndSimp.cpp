@@ -125,7 +125,7 @@ TEST_GENERATION_WITH_SUGAR(test_03,
     Generation::SymmetricTest()
       .options(options("all"))
       .inputs({    clause({  cons(a, nil()) != cons(x, nil()), 
-          p(x)  })   })
+          p(cons(x, nil()))  })   })
       .expected(exactly(
       ))
       .premiseRedundant(false)

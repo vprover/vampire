@@ -48,8 +48,8 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-
-BackwardSubsumptionDemodulation::BackwardSubsumptionDemodulation(SaturationAlgorithm& salg)
+template<bool higherOrder>
+BackwardSubsumptionDemodulation<higherOrder>::BackwardSubsumptionDemodulation(SaturationAlgorithm& salg)
   : _ord(salg.getOrdering())
   , _index(salg.getSimplifyingIndex<BackwardSubsumptionIndex>())
   , _preorderedOnly{false}
@@ -61,7 +61,8 @@ BackwardSubsumptionDemodulation::BackwardSubsumptionDemodulation(SaturationAlgor
   , _backwardSubsumptionDemodulationMaxMatches(salg.getOptions().backwardSubsumptionDemodulationMaxMatches())
 { }
 
-void BackwardSubsumptionDemodulation::perform(Clause* sideCl, BwSimplificationRecordIterator& simplifications)
+template<bool higherOrder>
+void BackwardSubsumptionDemodulation<higherOrder>::perform(Clause* sideCl, BwSimplificationRecordIterator& simplifications)
 {
   ASSERT_VALID(*sideCl);
 
@@ -118,8 +119,8 @@ void BackwardSubsumptionDemodulation::perform(Clause* sideCl, BwSimplificationRe
   simplificationsStorage.clear();
 }  // perform
 
-
-void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Literal* candidateQueryLit, std::vector<BwSimplificationRecord>& simplifications)
+template<bool higherOrder>
+void BackwardSubsumptionDemodulation<higherOrder>::performWithQueryLit(Clause* sideCl, Literal* candidateQueryLit, std::vector<BwSimplificationRecord>& simplifications)
 {
   //   sideCl
   // vvvvvvvvvv
@@ -130,7 +131,7 @@ void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Litera
 
 #if VDEBUG
   // make sure DuplicateLiteralRemovalISE has been run on this
-  DHSet<Literal*> lits;
+  DHSet<Literal*, FnvHash, PtrIdentityHash> lits;
   for (unsigned i = 0; i < sideCl->length(); ++i) {
     ALWAYS(lits.insert((*sideCl)[i]));
   }
@@ -140,7 +141,7 @@ void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Litera
   bool mustPredActive = false;
   unsigned mustPred;
 
-  auto rit = _index->getInstances(candidateQueryLit, false, false);
+  auto rit = _index->getInstances<higherOrder>(candidateQueryLit, false, false);
   while (rit.hasNext()) {
     auto qr = rit.next();
     Clause* candidate = qr.data->clause;
@@ -243,7 +244,8 @@ void BackwardSubsumptionDemodulation::performWithQueryLit(Clause* sideCl, Litera
 
 /// Handles the matching part.
 /// Returns true iff the main premise has been simplified.
-bool BackwardSubsumptionDemodulation::simplifyCandidate(Clause* sideCl, Clause* mainCl, std::vector<BwSimplificationRecord>& simplifications)
+template<bool higherOrder>
+bool BackwardSubsumptionDemodulation<higherOrder>::simplifyCandidate(Clause* sideCl, Clause* mainCl, std::vector<BwSimplificationRecord>& simplifications)
 {
     static std::vector<LiteralList*> alts;
 
@@ -337,7 +339,8 @@ bool BackwardSubsumptionDemodulation::simplifyCandidate(Clause* sideCl, Clause* 
 
 /// Handles the rewriting part.
 /// Returns true iff the main premise has been simplified.
-bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* mainCl, MLMatcherSD const& matcher, Clause*& replacement)
+template<bool higherOrder>
+bool BackwardSubsumptionDemodulation<higherOrder>::rewriteCandidate(Clause* sideCl, Clause* mainCl, MLMatcherSD const& matcher, Clause*& replacement)
 {
   // to see why we use this have a look at the respective line in ForwardSubsumptionDemodulation
   DEBUG_CODE(static bool isAlascaOrdering = env.options->termOrdering () == Shell::Options::TermOrdering::QKBO
@@ -348,7 +351,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
     // i.e., we have subsumption.
 #if VDEBUG && BSD_VDEBUG_REDUNDANCY_ASSERTIONS
     if (_literalComparisonMode != Options::LiteralComparisonMode::REVERSE) {
-      OverlayBinder tmpBinder;
+      OverlayBinder<higherOrder> tmpBinder;
       matcher.getBindings(tmpBinder.base());
       ASS(SDHelper::substClauseIsSmallerOrEqual(sideCl, tmpBinder, mainCl, _ord));
     }
@@ -372,7 +375,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
   static std::vector<bool> isMatched;
   matcher.getMatchedAltsBitmap(isMatched);
 
-  static OverlayBinder binder;
+  static OverlayBinder<higherOrder> binder;
   binder.clear();
   matcher.getBindings(binder.base());
 
@@ -383,7 +386,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
     TermList t0 = *eqLit->nthArgument(0);
     TermList t1 = *eqLit->nthArgument(1);
 
-    OverlayBinder::UnboundVariableOffsetApplicator applicator(binder, mainCl->maxVar()+1);
+    typename OverlayBinder<higherOrder>::UnboundVariableOffsetApplicator applicator(binder, mainCl->maxVar()+1);
     switch (eqArgOrder) {
       case Ordering::INCOMPARABLE:
         ASS(!_preorderedOnly);  // would've skipped earlier already
@@ -424,7 +427,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
 
 
 
-  static DHSet<TermList> attempted;  // Terms we already attempted to demodulate
+  static DHSet<TermList, TermListHash, TermListHash2> attempted;  // Terms we already attempted to demodulate
   attempted.reset();
 
   for (unsigned dli = 0; dli < mainCl->length(); ++dli) {
@@ -435,7 +438,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
       continue;
     }
 
-    NonVariableNonTypeIterator nvi(dlit);
+    RewritableSubtermIterator<higherOrder> nvi(dlit);
     while (nvi.hasNext()) {
       TypedTermList lhsS = nvi.next();  // named 'lhsS' because it will be matched against 'lhs'
 
@@ -478,7 +481,7 @@ bool BackwardSubsumptionDemodulation::rewriteCandidate(Clause* sideCl, Clause* m
           // There can be no unbound variables at this point;
           // otherwise we would have excluded the LHS already
           // in the ordering pre-check above
-          auto mclVarIt = sideCl->getVariableIterator();  // includes vars in rhs
+          auto mclVarIt = sideCl->iterVars();  // includes vars in rhs
           while (mclVarIt.hasNext()) {
             unsigned int var = mclVarIt.next();
             ASS(binder.isBound(var));
@@ -663,5 +666,7 @@ isRedundant:
   return false;
 }  // rewriteCandidate
 
+template class BackwardSubsumptionDemodulation<false>;
+template class BackwardSubsumptionDemodulation<true>;
 
 }

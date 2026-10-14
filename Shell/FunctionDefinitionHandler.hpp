@@ -17,6 +17,8 @@
 
 #include "Forwards.hpp"
 
+#include "Lib/ScopedPtr.hpp"
+
 #include "Indexing/CodeTreeInterfaces.hpp"
 
 #include "Kernel/InductionTemplate.hpp"
@@ -97,9 +99,9 @@ public:
   auto getGeneralizations(TypedTermList t)
   {
     if (_is.isEmpty()) {
-      return VirtualIterator<QueryRes<ResultSubstitutionSP, TermLiteralClause>>::getEmpty();
+      return VirtualIterator<GenSubstitutionQR<TermLiteralClause>>::getEmpty();
     }
-    return _is->getGeneralizations(t, true);
+    return _is->getGeneralizations(t);
   }
 
   const RecursionTemplate* getRecursionTemplate(Term* t) const {
@@ -112,7 +114,7 @@ public:
 
 private:
   ScopedPtr<CodeTreeTIS<TermLiteralClause>> _is;
-  DHMap<std::pair<unsigned, SymbolType>, RecursionTemplate> _templates;
+  DHMap<std::pair<unsigned, SymbolType>, RecursionTemplate, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>> _templates;
 };
 
 /**

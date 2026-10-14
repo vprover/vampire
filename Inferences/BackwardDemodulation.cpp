@@ -9,13 +9,13 @@
  */
 /**
  * @file BackwardDemodulation.cpp
- * Implements class SLQueryBackwardSubsumption.
+ * Implements class BackwardDemodulation.
  */
-
 
 #include "Lib/DHMultiset.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "Lib/Random.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Lib/VirtualIterator.hpp"
 
@@ -27,7 +27,7 @@
 #include "Kernel/Term.hpp"
 
 #include "Indexing/Index.hpp"
-#include "Indexing/TermIndex.hpp"
+#include "Indexing/ResultSubstitution.hpp"
 #include "Debug/TimeProfiling.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -45,47 +45,30 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-BackwardDemodulation::BackwardDemodulation(SaturationAlgorithm& salg)
+template<bool higherOrder>
+BackwardDemodulation<higherOrder>::BackwardDemodulation(SaturationAlgorithm& salg)
   : _ord(salg.getOrdering()),
     _preordered(salg.getOptions().backwardDemodulation() == Options::Demodulation::PREORDERED),
-    _index(salg.getSimplifyingIndex<DemodulationSubtermIndex>()),
+    _index(salg.getSimplifyingIndex<DemodulationSubtermIndex<higherOrder>>()),
     _helper(DemodulationHelper(salg.getOptions(), &salg.getOrdering()))
 {}
-
-struct BackwardDemodulation::RemovedIsNonzeroFn
-{
-  bool operator() (BwSimplificationRecord arg)
-  {
-    return arg.toRemove!=0;
-  }
-};
-
-struct BackwardDemodulation::RewritableClausesFn
-{
-  RewritableClausesFn(DemodulationSubtermIndex* index) : _index(index) {}
-  VirtualIterator<pair<TypedTermList,QueryRes<ResultSubstitutionSP, TermLiteralClause>> > operator() (TypedTermList lhs)
-  {
-    return pvi( pushPairIntoRightIterator(lhs, _index->getInstances(lhs, true)) );
-  }
-private:
-  DemodulationSubtermIndex* _index;
-};
 
 namespace {
 
 struct Applicator : SubstApplicator {
   Applicator(ResultSubstitution* subst) : subst(subst) {}
-  TermList operator()(unsigned v) const override {
-    return subst->applyToBoundQuery(TermList(v,false));
+  TermList apply(unsigned v) const override {
+    return subst->applyToBoundQuery(TermList::var(v));
   }
   ResultSubstitution* subst;
 };
 
 } // end namespace
 
-struct BackwardDemodulation::ResultFn
+template<bool higherOrder>
+struct BackwardDemodulation<higherOrder>::ResultFn
 {
-  typedef DHMultiset<unsigned> ClauseSet;
+  typedef DHMultiset<unsigned, FnvHash, IdentityHash> ClauseSet;
 
   ResultFn(Clause* cl, BackwardDemodulation& parent, const DemodulationHelper& helper)
   : _cl(cl), _helper(helper), _ordering(parent._ord)
@@ -103,6 +86,14 @@ struct BackwardDemodulation::ResultFn
   BwSimplificationRecord operator() (pair<TermList,QueryRes<ResultSubstitutionSP, TermLiteralClause>> arg)
   {
     auto qr=arg.second;
+
+    // under randomized simplifications, each candidate rewrite is with this probability
+    // dropped as early as possible (saving also the applicability checks), with the same
+    // probability as in the forward variant (to be tuned)
+    constexpr double RSI_SKIP_PROB = 0.01;
+    if(env.options->randomizedSimplifications() && Random::getDouble(0.0,1.0) < RSI_SKIP_PROB) {
+      return BwSimplificationRecord(0);
+    }
 
     if( !ColorHelper::compatible(_cl->color(), qr.data->clause->color()) ) {
       //colors of premises don't match
@@ -179,8 +170,8 @@ private:
   const Ordering& _ordering;
 };
 
-
-void BackwardDemodulation::perform(Clause* cl,
+template<bool higherOrder>
+void BackwardDemodulation<higherOrder>::perform(Clause* cl,
 	BwSimplificationRecordIterator& simplifications)
 {
   TIME_TRACE("backward demodulation");
@@ -196,9 +187,10 @@ void BackwardDemodulation::perform(Clause* cl,
 	    getMappingIterator(
 		    getMapAndFlattenIterator(
 			    EqHelper::getDemodulationLHSIterator(lit, _preordered, _ord).first,
-			    RewritableClausesFn(_index.get())),
+			    [this](TypedTermList lhs)
+          { return pvi( pushPairIntoRightIterator(lhs, _index->template getInstances<higherOrder>(lhs, true)) ); }),
 		    ResultFn(cl, *this, _helper)),
- 	    RemovedIsNonzeroFn()) );
+ 	      [](BwSimplificationRecord arg){ return arg.toRemove!=0; }));
 
   //here we know that the getPersistentIterator evaluates all items of the
   //replacementIterator right at this point, so we can measure the time just
@@ -206,5 +198,8 @@ void BackwardDemodulation::perform(Clause* cl,
 
   simplifications=getPersistentIterator(std::move(replacementIterator));
 }
+
+template class BackwardDemodulation<true>;
+template class BackwardDemodulation<false>;
 
 }

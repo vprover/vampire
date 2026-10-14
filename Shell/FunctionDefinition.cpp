@@ -17,7 +17,11 @@
 
 #include "Debug/Assertion.hpp"
 #include "Lib/Allocator.hpp"
+#include "Lib/ArrayMap.hpp"
+#include "Lib/DArray.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/Random.hpp"
+#include "Lib/Recycled.hpp"
 #include "Lib/ScopedLet.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -119,9 +123,9 @@ struct FunctionDefinition::Def
   }
 }; // class FunctionDefintion::Def
 
-void FunctionDefinition::removeUnusedDefinitions(Problem& prb, bool inHigherOrder)
+void FunctionDefinition::removeUnusedDefinitions(Problem& prb)
 {
-  if(removeUnusedDefinitions(prb.units(), &prb, inHigherOrder)) {
+  if(removeUnusedDefinitions(prb.units(), &prb)) {
     prb.invalidateByRemoval();
   }
 }
@@ -136,7 +140,7 @@ void FunctionDefinition::removeUnusedDefinitions(Problem& prb, bool inHigherOrde
  * only in definition of an other one which is removed, the first definition
  * is removed as well.
  */
-bool FunctionDefinition::removeUnusedDefinitions(UnitList*& units, Problem* prb, bool inHigherOrder)
+bool FunctionDefinition::removeUnusedDefinitions(UnitList*& units, Problem* prb)
 {
   unsigned funs=env.signature->functions();
 
@@ -151,7 +155,7 @@ bool FunctionDefinition::removeUnusedDefinitions(UnitList*& units, Problem* prb,
     Clause* cl=static_cast<Clause*>(scanIterator.next());
     unsigned clen=cl->length();
     ASS(cl->isClause());
-    Def* d=isFunctionDefinition(cl,inHigherOrder);
+    Def* d=isFunctionDefinition(cl);
     if(d) {
       d->defCl=cl;
       if(!def[d->fun]) {
@@ -182,8 +186,16 @@ bool FunctionDefinition::removeUnusedDefinitions(UnitList*& units, Problem* prb,
     }
   }
 
+  // under randomized preprocessing, each unused definition is with this probability
+  // kept in the problem instead of being removed (to be tuned)
+  constexpr double RPR_SKIP_PROB = 0.5; // unused usually don't matter than much (TPTP eval)
+  bool rpr = env.options->randomizedPreprocessing();
+
   while(toDo.isNonEmpty()) {
     Def* d=toDo.pop();
+    if(rpr && Random::getDouble(0.0,1.0) < RPR_SKIP_PROB) {
+      continue; // d->mark stays UNTOUCHED and the definition gets reinserted below
+    }
     d->mark=Def::REMOVED;
     ASS_EQ(d->defCl->length(), 1);
     ASS_EQ(occCounter[d->fun], 1);
@@ -217,10 +229,10 @@ bool FunctionDefinition::removeUnusedDefinitions(UnitList*& units, Problem* prb,
   return modified;
 }
 
-void FunctionDefinition::removeAllDefinitions(Problem& prb, bool inHigherOrder)
+void FunctionDefinition::removeAllDefinitions(Problem& prb)
 {
   ScopedLet<Problem*> prbLet(_processedProblem, &prb);
-  if(removeAllDefinitions(prb.units(),inHigherOrder)) {
+  if(removeAllDefinitions(prb.units())) {
     prb.invalidateByRemoval();
   }
 }
@@ -239,13 +251,22 @@ void FunctionDefinition::reverse(Def* def){
  * When possible, unfold function definitions in @b units and remove them
  * Return true iff the list of units was modified.
  */
-bool FunctionDefinition::removeAllDefinitions(UnitList*& units, bool inHigherOrder)
+bool FunctionDefinition::removeAllDefinitions(UnitList*& units)
 {
+  // under randomized preprocessing, each discovered definition is with this probability
+  // ignored, i.e. kept in the problem as a plain clause and never unfolded (to be tuned)
+  constexpr double RPR_SKIP_PROB = 0.2; // TPTP eval was much more sensitive to these
+  bool rpr = env.options->randomizedPreprocessing();
+
   UnitList::DelIterator scanIterator(units);
   while(scanIterator.hasNext()) {
     Clause* cl=static_cast<Clause*>(scanIterator.next());
     ASS(cl->isClause());
-    Def* d=isFunctionDefinition(cl,inHigherOrder);
+    Def* d=isFunctionDefinition(cl);
+    if(d && rpr && Random::getDouble(0.0,1.0) < RPR_SKIP_PROB) {
+      delete d;
+      d = 0;
+    }
     if(d) {
       d->defCl=cl;
       bool inserted = false;
@@ -426,7 +447,7 @@ void FunctionDefinition::checkDefinitions(Def* def0)
         } else {
           ASS_EQ(d->mark, Def::SAFE);
         }
-      }      
+      }
     }
     if(stack.isEmpty()) {
       break;
@@ -470,7 +491,7 @@ void FunctionDefinition::assignArgOccursData(Def* updDef)
 	    "FunctionDefinition::Def::argOccurs"));
   std::memset(updDef->argOccurs, 0, updDef->lhs->arity() * sizeof(bool));
 
-  static DHMap<unsigned, unsigned, IdentityHash, DefaultHash> var2argIndex;
+  static DHMap<unsigned, unsigned, IdentityHash, FnvHash> var2argIndex;
   var2argIndex.reset();
   int argIndex=0;
   for (TermList* ts = updDef->lhs->args(); ts->isNonEmpty(); ts=ts->next()) {
@@ -528,8 +549,8 @@ void FunctionDefinition::assignArgOccursData(Def* updDef)
 
 
 typedef pair<unsigned,unsigned> BindingSpec;
-typedef DHMap<BindingSpec, TermList> BindingMap;
-typedef DHMap<BindingSpec, bool> UnfoldedSet;
+typedef DHMap<BindingSpec, TermList, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>> BindingMap;
+typedef DHMap<BindingSpec, bool, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>> UnfoldedSet;
 
 Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
 {
@@ -637,7 +658,10 @@ Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
 
     Def* d;
     //sorts can never contain definitions
-    if(!t->isSort() && !defIndex && _defs.find(t->functor(), d) && d->mark!=Def::BLOCKED) {
+    if(!t->isSort() && !defIndex && _defs.find(t->functor(), d) && d->mark!=Def::BLOCKED
+      // safeguard for HOL to avoid unsound variable capture inside lambdas
+      && (!env.higherOrder() || iterTraits(anyArgIter(t)).all([](TermList t) { return !t.containsLooseDBIndex(); })))
+    {
       ASS_EQ(d->mark, Def::UNFOLDED);
       usedDefs->push(d);
       if (env.options->showPreprocessing()) {
@@ -739,16 +763,16 @@ FunctionDefinition::~FunctionDefinition ()
  * @since 26/05/2007 Manchester
  */
 FunctionDefinition::Def*
-FunctionDefinition::isFunctionDefinition (Unit& unit, bool inHigherOrder)
+FunctionDefinition::isFunctionDefinition (Unit& unit)
 {
   if(unit.derivedFromGoal() && env.options->ignoreConjectureInPreprocessing()){
     return 0;
   }
 
   if (unit.isClause()) {
-    return isFunctionDefinition(static_cast<Clause*>(&unit), inHigherOrder);
+    return isFunctionDefinition(static_cast<Clause*>(&unit));
   }
-  return isFunctionDefinition(static_cast<FormulaUnit&>(unit), inHigherOrder);
+  return isFunctionDefinition(static_cast<FormulaUnit&>(unit));
 } // Definition::isFunctionDefinition (const Clause& c)
 
 
@@ -759,12 +783,12 @@ FunctionDefinition::isFunctionDefinition (Unit& unit, bool inHigherOrder)
  * @since 26/05/2007 Manchester modified for new data structures
  */
 FunctionDefinition::Def*
-FunctionDefinition::isFunctionDefinition (Clause* clause, bool inHigherOrder)
+FunctionDefinition::isFunctionDefinition (Clause* clause)
 {
   if (clause->length() != 1) {
     return 0;
   }
-  return isFunctionDefinition((*clause)[0],inHigherOrder);
+  return isFunctionDefinition((*clause)[0]);
 } // Definition::isFunctionDefinition (Clause* c)
 
 /**
@@ -772,7 +796,7 @@ FunctionDefinition::isFunctionDefinition (Clause* clause, bool inHigherOrder)
  * return the Def structure representing information about the definition.
  */
 FunctionDefinition::Def*
-FunctionDefinition::isFunctionDefinition (Literal* lit, bool inHigherOrder)
+FunctionDefinition::isFunctionDefinition (Literal* lit)
 {
   if (! lit->isPositive() ||
       ! lit->isEquality() ||
@@ -791,11 +815,11 @@ FunctionDefinition::isFunctionDefinition (Literal* lit, bool inHigherOrder)
     return 0;
   }
   Term* r = args->term();
-  Def* def = defines(l,r,inHigherOrder);
+  Def* def = defines(l,r);
   if (def) {
     return def;
   }
-  def = defines(r,l,inHigherOrder);
+  def = defines(r,l);
   if (def) {
     return def;
   }
@@ -818,7 +842,7 @@ FunctionDefinition::isFunctionDefinition (Literal* lit, bool inHigherOrder)
   *   and check for equality added
   */
 FunctionDefinition::Def*
-FunctionDefinition::defines (Term* lhs, Term* rhs, bool inHigherOrder)
+FunctionDefinition::defines (Term* lhs, Term* rhs)
 {
   if(!lhs->shared() || !rhs->shared()) {
     return 0;
@@ -834,58 +858,88 @@ FunctionDefinition::defines (Term* lhs, Term* rhs, bool inHigherOrder)
     return 0;
   }
 
-  if (occurs(f,*rhs)) {
-    return 0;
+  // A necessary condition for lhs to be a definition head, checked before occurs()
+  // below because that one is a full walk of rhs while this looks only at lhs's own
+  // arguments. Note lhs->args() leads with the type arguments, which are sorts rather
+  // than variables, so a polymorphic or higher-order application dies on the first one.
+  // Vacuous when lhs->arity()==0, which is what lets it sit above the arity-0 block.
+  // While here, note the largest variable number, which bounds the map used below.
+  unsigned varBound = 0;
+  for (const TermList* ts = lhs->args(); ts->isNonEmpty(); ts=ts->next()) {
+    if (! ts->isVar()) {
+      return 0;
+    }
+    if (ts->var() >= varBound) {
+      varBound = ts->var() + 1;
+    }
   }
+
+  // An arity-0 lhs passes the loop above vacuously, so for a constant these are the first
+  // real tests -- and each is O(1) where occurs() below is a full walk of rhs. None of them
+  // depends on what occurs() would answer, so they belong above it. (Only the Def returned
+  // at the end of the block has to stay below: that is what occurs() actually guards, by
+  // ruling out f = t[f], which the rhs->functor() test catches only at the top of rhs.)
+  bool isArrowSort = false;
   if (!lhs->arity()) {
     if(env.signature->isFoolConstantSymbol(true , f) ||
        env.signature->isFoolConstantSymbol(false, f)){
       return 0;
     }
     //Higher-order often contains definitions of the form f = ^x^y...
-    if (rhs->arity() && !inHigherOrder) { // c = f(...)
+    isArrowSort = SortHelper::getResultSort(lhs).isArrowSort();
+    if (rhs->arity() && !isArrowSort) { // c = f(...)
       return 0;
     }
     if (rhs->functor() == f) {
       return 0;
     }
-    if(!inHigherOrder){
-      return new Def(lhs,rhs,true,true);
-    }
+  }
+
+  if (occurs(f,*rhs)) {
+    return 0;
+  }
+  if (!lhs->arity() && !isArrowSort) {
+    return new Def(lhs,rhs,true,true);
   }
 
   int vars = 0; // counter of variables occurring in the lhs
 
-  // First, iterate subterms in lhs and check that all of them are variables
-  // and each of them occurs exactly once. counter will contain variables
-  // occurring in lhs
-  ZIArray<unsigned> counter;
+  // counter records, for each variable of lhs, whether rhs has met it yet: 1 = not yet,
+  // 2 = met once, and a second sighting means the definition is not linear. Keyed by
+  // variable number and bounded by varBound above, so a rhs variable at or past that bound
+  // cannot be one of lhs's and is rejected on the spot. Recycled because defines() is
+  // called twice per equational literal of every unit: the array is taken from a pool and
+  // reset in O(1) by a timestamp, rather than allocated and zeroed afresh each time.
+  Recycled<ArrayMap<unsigned>> counter;
+  counter->ensure(varBound);
+  counter->reset();
+
+  // Check that each of lhs's arguments occurs exactly once; that they are all variables
+  // is already known from the loop above.
   for (const TermList* ts = lhs->args(); ts->isNonEmpty(); ts=ts->next()) {
-    if (! ts->isVar()) {
+    ASS(ts->isVar());
+    unsigned w = ts->var();
+    if (counter->find(w)) { // more than one occurrence
       return 0;
     }
-    int w = ts->var();
-    if (counter[w]++) { // more than one occurrence
-      return 0;
-    }
+    counter->insert(w, 1);
     vars++;
   }
 
   bool linear = true;
   // now check that rhs contains only variables in the counter
-  // Iterate over variables in rhs and check that they
-  // are counted as 1 or 2.
-  // found will be increased by the number of different variables
-  // marked 1.
   TermVarIterator vs(rhs->args());
   while (vs.hasNext()) {
-    int v = vs.next();
-    switch (counter.get(v)) {
+    unsigned v = vs.next();
+    if (v >= varBound) { // cannot be one of lhs's variables
+      return 0;
+    }
+    switch (counter->get(v, 0u)) {
     case 0: // v does not occur in lhs
       return 0;
 
     case 1: // v occurs in lhs, it is first occurrence in rhs
-      counter[v]++;
+      counter->set(v, 2);
       vars--;
       break;
 
@@ -900,7 +954,7 @@ FunctionDefinition::defines (Term* lhs, Term* rhs, bool inHigherOrder)
   if(!lhs->arity() && !rhs->arity()){
     res->twoConstDef = true;
   }
-  
+
   return res;
 } // FunctionDefinition::defines
 
@@ -930,7 +984,7 @@ bool FunctionDefinition::occurs (unsigned f, Term& t)
  * @since 26/05/2007 Manchester, reimplemented using new datastructures
  */
 FunctionDefinition::Def*
-FunctionDefinition::isFunctionDefinition (FormulaUnit& unit, bool inHigherOrder)
+FunctionDefinition::isFunctionDefinition (FormulaUnit& unit)
 {
   Formula* f = unit.formula();
   // skip all universal quantifiers in front of the formula
@@ -941,7 +995,7 @@ FunctionDefinition::isFunctionDefinition (FormulaUnit& unit, bool inHigherOrder)
   if (f->connective() != LITERAL) {
     return 0;
   }
-  return isFunctionDefinition(f->literal(), inHigherOrder);
+  return isFunctionDefinition(f->literal());
 } // FunctionDefinition::isFunctionDefinition
 
 /**

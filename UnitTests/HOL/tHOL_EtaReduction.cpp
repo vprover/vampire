@@ -10,7 +10,6 @@
 
 #include "Kernel/HOL/HOL.hpp"
 #include "Test/HOLUtils.hpp"
-#include "Test/UnitTesting.hpp"
 
 using namespace Test::HOL;
 using HOL::convert::toNameless;

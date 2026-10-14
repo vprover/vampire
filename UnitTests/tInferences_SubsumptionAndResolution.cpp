@@ -61,7 +61,10 @@ using namespace Test;
 namespace {
 
 inline auto tester() {
-  return FwdBwdSimplification::TestCase<ForwardSubsumptionAndResolution, BackwardSubsumptionAndResolution>()
+  return FwdBwdSimplification::TestCase<
+      ForwardSubsumptionAndResolution,
+      BackwardSubsumptionAndResolution</*higherOrder=*/false>
+    >()
     .options({
       { "backward_subsumption", "on" },
       { "backward_subsumption_resolution", "on" }

@@ -32,7 +32,8 @@ using namespace Kernel;
 class ClauseCodeTree : public CodeTree
 {
 protected:
-  static void onCodeOpDestroying(CodeOp* op);
+  void onCodeOpDestroying(CodeOp* op) override;
+  void printSuccess(std::ostream& out, const CodeOp& op) const override;
   
 public:
   ClauseCodeTree();
@@ -47,7 +48,7 @@ private:
   struct InitialLiteralOrderingComparator;
 
   void optimizeLiteralOrder(DArray<Literal*>& lits);
-  void evalSharing(Literal* lit, CodeOp* startOp, size_t& sharedLen, size_t& unsharedLen, CodeOp*& nextOp);
+  void evalSharing(CodeStack& code, CodeOp* startOp, size_t& sharedLen, size_t& unsharedLen, CodeOp*& nextOp);
   static void matchCode(CodeStack& code, CodeOp* startOp, size_t& matchedCnt, CodeOp*& nextOp);
 
   //////// removal //////////
@@ -58,7 +59,7 @@ private:
   : public Matcher</*removing*/true,false>
   {
     void init(CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_,
-	ClauseCodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_);
+	    const ClauseCodeTree& tree_, Stack<CodeOp*>* firstsInBlocks_);
 
     USE_ALLOCATOR(RemovingLiteralMatcher);
   };
@@ -71,7 +72,7 @@ private:
   struct LiteralMatcher
   : public Matcher</*removing*/false,false>
   {
-    void init(CodeTree* tree, CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_, bool seekOnlySuccess=false);
+    void init(const CodeTree& tree, CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_, bool seekOnlySuccess=false);
     bool next();
     bool doEagerMatching();
 
