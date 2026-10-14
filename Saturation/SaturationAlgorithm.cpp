@@ -616,7 +616,7 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     cl->setAge(level);
   }
 
-  if (sosForAxioms || (cl->isPureTheoryDescendant() && sosForTheory)) {
+  if (sosForAxioms || (cl->isPureTheoryDescendant() && sosForTheory) || cl->inference().rule() == InferenceRule::FOOL_AXIOM_ALL_IS_TRUE_OR_FALSE) {
     addInputSOSClause(cl);
   }
   else {
