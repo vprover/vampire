@@ -1170,8 +1170,8 @@ void FOOLElimination::addDefinition(FormulaUnit* def) {
 }
 
 Formula* FOOLElimination::toEquality(TermList booleanTerm) {
-  TermList truth(Term::foolTrue());
-  Literal* equality = Literal::createEquality(true, booleanTerm, truth, AtomicSort::boolSort());
+  TermList truth(Term::foolFalse());
+  Literal* equality = Literal::createEquality(false, booleanTerm, truth, AtomicSort::boolSort());
   return new AtomicFormula(equality);
 }
 
