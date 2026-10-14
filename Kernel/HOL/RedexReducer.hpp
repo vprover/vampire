@@ -38,7 +38,7 @@ public:
   }
 
   bool exploreSubterms(TermList orig, TermList newTerm) override {
-    return orig == newTerm && newTerm.freeDBIndices() && newTerm.freeDBIndices()->hasHigherValuesThan(_replace);
+    return orig == newTerm && newTerm.freeDBIndices().hasHigherValuesThan(_replace);
   }
 
 private:

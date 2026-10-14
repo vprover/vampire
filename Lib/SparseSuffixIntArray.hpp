@@ -23,37 +23,48 @@ class SparseSuffixIntArray
 public:
   SparseSuffixIntArray(const SparseSuffixIntArray&) = delete;
   SparseSuffixIntArray& operator=(const SparseSuffixIntArray&) = delete;
-
-  inline SparseSuffixIntArray(const Stack<uint64_t>& vals) {
-    size_t size = vals.size() + 1;
-    void* mem = ALLOC_KNOWN(size * sizeof(uint64_t),"SparseSuffixIntArray");
-    _array = array_new<uint64_t>(mem, size);
-    for (unsigned i = 0; i < vals.size(); i++) {
-      _array[i] = vals[i];
-    }
-    _array[vals.size()] = 0;
+  SparseSuffixIntArray(SparseSuffixIntArray&& other) {
+    std::swap(_array, other._array);
+  }
+  SparseSuffixIntArray& operator=(SparseSuffixIntArray&& other) {
+    std::swap(_array, other._array);
+    return *this;
   }
 
-  inline uint64_t operator[](unsigned i) const {
-    return _array[i];
+  inline SparseSuffixIntArray() = default;
+
+  ~SparseSuffixIntArray() {
+    if (_array) {
+      size_t size = 1;
+      for (; _array[size]; size++) {}
+      DEALLOC_KNOWN(_array, size * sizeof(uint64_t),"CodeTree::MatchInfo");
+    }
+  }
+
+  inline bool isEmpty() const {
+    return !_array;
   }
 
   inline bool containsZero() const {
-    return _array[0] & 1UL;
+    return _array && _array[0] & 1UL;
   }
 
   inline bool hasHigherValuesThan(uint64_t val) const {
+    if (isEmpty()) {
+      return false;
+    }
     if (val < 64) {
       return (_array[0] & ~((1UL << val) - 1)) || _array[1];
     }
     size_t i = 1;
-    while (_array[i] && _array[i] < val) {
-      i++;
-    }
+    for (; _array[i] && _array[i] < val; i++) {}
     return _array[i];
   }
 
   inline uint64_t minValue() const {
+    if (isEmpty()) {
+      return UINT64_MAX;
+    }
     if (_array[0]) {
       return std::countr_zero(_array[0]);
     }
@@ -61,7 +72,7 @@ public:
     return _array[1];
   }
 
-  static inline SparseSuffixIntArray* singleton(uint64_t first_value) {
+  static inline SparseSuffixIntArray singleton(uint64_t first_value) {
     Stack<uint64_t> vals;
     vals.push(0);
     if (first_value < 64) {
@@ -69,19 +80,16 @@ public:
     } else {
       vals.push(first_value);
     }
-    return new SparseSuffixIntArray(vals);
+    return SparseSuffixIntArray(vals);
   }
 
-  static inline SparseSuffixIntArray* merge(const SparseSuffixIntArray* p1, const SparseSuffixIntArray* p2)
-  {
-    if (!p1) {
-      return p2 ? copy(*p2) : nullptr;
+  static inline SparseSuffixIntArray merge(const SparseSuffixIntArray& a1, const SparseSuffixIntArray& a2) {
+    if (a1.isEmpty()) {
+      return copy(a2);
     }
-    if (!p2) {
-      return copy(*p1);
+    if (a2.isEmpty()) {
+      return copy(a1);
     }
-    auto& a1 = *p1;
-    auto& a2 = *p2;
     Stack<uint64_t> res;
     res.push(a1[0] | a2[0]);
     size_t i1 = 1;
@@ -103,46 +111,71 @@ public:
     while (a2[i2]) {
       res.push(a2[i2++]);
     }
-    return new SparseSuffixIntArray(res);
+    return SparseSuffixIntArray(res);
   }
 
-  static inline SparseSuffixIntArray* copy(const SparseSuffixIntArray& a)
-  {
+  static inline SparseSuffixIntArray copy(const SparseSuffixIntArray& a) {
+    if (a.isEmpty()) {
+      return SparseSuffixIntArray();
+    }
     Stack<uint64_t> res;
     res.push(a[0]);
-    size_t i = 1;
-    while (a[i]) {
-      res.push(a[i++]);
+    for (size_t i = 1; a[i]; i++) {
+      res.push(a[i]);
     }
-    return new SparseSuffixIntArray(res);
+    return SparseSuffixIntArray(res);
   }
 
-  static inline SparseSuffixIntArray* shiftByOne(const SparseSuffixIntArray* p)
-  {
-    if (!p) {
-      return nullptr;
+  static inline SparseSuffixIntArray shiftByOne(const SparseSuffixIntArray& a) {
+    if (a.isEmpty()) {
+      return SparseSuffixIntArray();
     }
-    auto& a = *p;
     Stack<uint64_t> res;
     res.push(a[0] >> 1UL);
-    size_t i = 1;
-
-    while (a[i]) {
+    
+    for (size_t i = 1; a[i]; i++) {
       if (a[i] == 64) {
         res[0] = res[0] | (1UL << 63);
       } else {
         res.push(a[i]-1);
       }
-      i++;
     }
-    if (res.size() == 1 && !res[0]) {
-      return nullptr;
+    return SparseSuffixIntArray(res);
+  }
+
+  friend std::ostream& operator<<(std::ostream& out, const SparseSuffixIntArray& a) {
+    if (a.isEmpty()) {
+      return out << "<empty>";
     }
-    return new SparseSuffixIntArray(res);
+    for (size_t i = 0; a[i]; i++) {
+      out << a._array[i];
+      if (a[i+1]) {
+        out << " ";
+      }
+    }
+    return out;
   }
 
 private:
-  uint64_t* _array;
+  inline SparseSuffixIntArray(const Stack<uint64_t>& vals) {
+    if (vals.isEmpty() || (vals.size() == 1 && !vals[0])) {
+      return;
+    }
+    size_t size = vals.size() + 1;
+    void* mem = ALLOC_KNOWN(size * sizeof(uint64_t),"SparseSuffixIntArray");
+    _array = array_new<uint64_t>(mem, size);
+    _array[vals.size()] = 0;
+    for (size_t i = 0; i < vals.size(); i++) {
+      _array[i] = vals[i];
+    }
+  }
+
+  inline uint64_t operator[](unsigned i) const {
+    ASS(_array);
+    return _array[i];
+  }
+
+  uint64_t* _array = nullptr;
 };
 
 } // namespace Lib

@@ -161,11 +161,12 @@ Option<unsigned> TermList::deBruijnIndex() const {
 
 bool TermList::containsLooseDBIndex() const
 {
-  return freeDBIndices();
+  return !freeDBIndices().isEmpty();
 }
 
-SparseSuffixIntArray* TermList::freeDBIndices() const {
-  return isVar() ? nullptr : term()->freeDBIndices();
+const SparseSuffixIntArray& TermList::freeDBIndices() const {
+  static SparseSuffixIntArray empty; 
+  return isVar() ? empty : term()->freeDBIndices();
 }
 
 TermList TermList::lhs() const {
@@ -952,7 +953,7 @@ bool Term::isEtaRedex() const {
   if (rhs.deBruijnIndex().unwrapOr(UINT_MAX) != 0) {
     return false;
   }
-  if (lhs.freeDBIndices() && lhs.freeDBIndices()->containsZero()) {
+  if (lhs.freeDBIndices().containsZero()) {
     return false;
   }
   return true;

@@ -59,12 +59,12 @@ public:
 
   bool exploreSubterms(TermList orig, TermList newTerm) override {
     // already shifted, so must be DB index and won't have subterms anyway
-    return orig == newTerm && newTerm.freeDBIndices() && newTerm.freeDBIndices()->hasHigherValuesThan(_cutOff);
+    return orig == newTerm && newTerm.freeDBIndices().hasHigherValuesThan(_cutOff);
   }
 
-  // returns the index of the minimal free DB index, otherwise UINT_MAX
-  inline static unsigned minFreeDBIndex(TermList t) {
-    return t.freeDBIndices() ? t.freeDBIndices()->minValue() : UINT_MAX;
+  // returns the index of the minimal free DB index, otherwise UINT64_MAX
+  inline static uint64_t minFreeDBIndex(TermList t) {
+    return t.freeDBIndices().minValue();
   }
 
 private:

@@ -85,15 +85,14 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
     bool hasEtaRedex = t->isEtaRedex();
     const bool isLambda = t->isLambdaTerm();
     bool hasLambda = isLambda;
-    SparseSuffixIntArray* freeDBIndices = nullptr;
     Color color = COLOR_TRANSPARENT;
 
     if (t->deBruijnIndex().isSome()) {
-      freeDBIndices = SparseSuffixIntArray::singleton(t->deBruijnIndex().unwrap());
+      t->setFreeDBIndices(SparseSuffixIntArray::singleton(t->deBruijnIndex().unwrap()));
     } else if (isLambda) {
-      freeDBIndices = SparseSuffixIntArray::shiftByOne(t->lambdaBody().freeDBIndices());
+      t->setFreeDBIndices(SparseSuffixIntArray::shiftByOne(t->lambdaBody().freeDBIndices()));
     } else if (t->isApplication()) {
-      freeDBIndices = SparseSuffixIntArray::merge(t->termArg(0).freeDBIndices(), t->termArg(1).freeDBIndices());
+      t->setFreeDBIndices(SparseSuffixIntArray::merge(t->termArg(0).freeDBIndices(), t->termArg(1).freeDBIndices()));
     }
 
     unsigned typeArity = t->numTypeArguments();
@@ -141,7 +140,6 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
     t->setHasBetaRedex(hasBetaRedex);
     t->setHasEtaRedex(hasEtaRedex);
     t->setHasLambda(hasLambda);
-    t->setFreeDBIndices(freeDBIndices);
     t->setInterpretedConstantsPresence(hasInterpretedConstants);
 
     ASS_REP(!env.higherOrder() || t->isApplication() || t->isLambdaTerm() || !t->numTermArguments(), "HO term " + t->toString() + " is not appified");

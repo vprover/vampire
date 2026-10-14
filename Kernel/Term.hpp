@@ -41,6 +41,7 @@
 #include "Lib/Hash.hpp"
 #include "Lib/Coproduct.hpp"
 #include "Lib/Recycled.hpp"
+#include "Lib/SparseSuffixIntArray.hpp"
 
 // the number of bits used for "TermList::_info::distinctVars"
 #define TERM_DIST_VAR_BITS 18
@@ -294,7 +295,7 @@ public:
    * In other words, it returns true if there is a db_i in the
    * term that is not wrapped into i lambda binders. */ 
   bool containsLooseDBIndex() const;
-  SparseSuffixIntArray* freeDBIndices() const;
+  const SparseSuffixIntArray& freeDBIndices() const;
   TermList lhs() const;
   TermList rhs() const;
   TermList lambdaBody() const;
@@ -711,15 +712,11 @@ public:
     _kboWeight = w;
   }
 
-  SparseSuffixIntArray* freeDBIndices() const
-  {
-    return _freeDBIndices;
-  }
+  const SparseSuffixIntArray& freeDBIndices() const
+  { return _freeDBIndices; }
 
-  void setFreeDBIndices(SparseSuffixIntArray* is)
-  {
-    _freeDBIndices = is;
-  }
+  void setFreeDBIndices(SparseSuffixIntArray&& is)
+  { _freeDBIndices = std::move(is); }
 
   /** Mark term as shared */
   void markShared()
@@ -999,7 +996,7 @@ protected:
   /** KBO instance that uses the cached value @b _kboWeight. */
   const void* _kboInstance;
 #endif
-  SparseSuffixIntArray* _freeDBIndices = nullptr;
+  SparseSuffixIntArray _freeDBIndices;
   union {
     /** If _isTwoVarEquality is false, this value is valid and contains
      * number of occurrences of variables */
