@@ -42,11 +42,11 @@ static TermList piRemoval(TermList piTerm, Clause* clause, TermList expsrt);
 static InferenceRule convert(Proxy cnst, bool simplifying);
 static ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaIndex* index = 0);
 
-Literal* boolEq(TermList lhs, TermList rhs) {
-  return Literal::createEquality(true, lhs, rhs, AtomicSort::boolSort());
+Literal* boolEq(TermList lhs, TermList rhs, bool polarity) {
+  return Literal::createEquality(polarity, lhs, rhs, AtomicSort::boolSort());
 }
-Literal* eqTroo(TermList lhs) { return boolEq(lhs, HOL::create::top()); }
-Literal* eqFols(TermList lhs) { return boolEq(lhs, HOL::create::bottom()); }
+Literal* neqFols(TermList lhs) { return boolEq(lhs, HOL::create::bottom(), false); }
+Literal* eqFols(TermList lhs) { return boolEq(lhs, HOL::create::bottom(), true); }
 
 ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaIndex* index)
 {
@@ -82,12 +82,12 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
       //equality or diseqality between boolean terms
       if (lit->isPositive()) {
         return pvi(iterItems(
-          replaceLits(c, lit, Proxy::IFF, true, eqTroo(lhs), eqFols(rhs)),
-          replaceLits(c, lit, Proxy::IFF, true, eqFols(lhs), eqTroo(rhs))
+          replaceLits(c, lit, Proxy::IFF, true, neqFols(lhs), eqFols(rhs)),
+          replaceLits(c, lit, Proxy::IFF, true, eqFols(lhs), neqFols(rhs))
         ));
       }
       return pvi(iterItems(
-        replaceLits(c, lit, Proxy::XOR, true, eqTroo(lhs), eqTroo(rhs)),
+        replaceLits(c, lit, Proxy::XOR, true, neqFols(lhs), neqFols(rhs)),
         replaceLits(c, lit, Proxy::XOR, true, eqFols(lhs), eqFols(rhs))
       ));
     } else {
@@ -134,7 +134,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
         ASS_EQ(args.size(),2);
         if(positive){
           return pvi(iterItems(replaceLits(c, lit, prox, false,
-            eqTroo(args[0]), eqTroo(args[1]))));
+            neqFols(args[0]), neqFols(args[1]))));
         }
         return pvi(iterItems(
           replaceLits(c, lit, prox, true, eqFols(args[0])),
@@ -145,8 +145,8 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
         ASS_EQ(args.size(),2);
         if(positive){
           return pvi(iterItems(
-            replaceLits(c, lit, prox, true, eqTroo(args[0])),
-            replaceLits(c, lit, prox, true, eqTroo(args[1]))
+            replaceLits(c, lit, prox, true, neqFols(args[0])),
+            replaceLits(c, lit, prox, true, neqFols(args[1]))
           ));
         }
         return pvi(iterItems(replaceLits(c, lit, prox, false,
@@ -156,11 +156,11 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
         ASS_EQ(args.size(),2);
         if(positive){
           return pvi(iterItems(replaceLits(c, lit, prox, false,
-            eqFols(args[1]), eqTroo(args[0]))));
+            eqFols(args[1]), neqFols(args[0]))));
         }
         return pvi(iterItems(
           replaceLits(c, lit, prox, true, eqFols(args[0])),
-          replaceLits(c, lit, prox, true, eqTroo(args[1]))
+          replaceLits(c, lit, prox, true, neqFols(args[1]))
         ));
       }
       case Proxy::EQUALS: {
@@ -172,7 +172,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
       case Proxy::NOT: {
         ASS_EQ(args.size(), 1);
         return pvi(iterItems(replaceLits(c, lit, prox, false,
-          positive ? eqFols(args[0]) : eqTroo(args[0]))));
+          positive ? eqFols(args[0]) : neqFols(args[0]))));
       }
       case Proxy::PI:
       case Proxy::SIGMA: {
@@ -203,7 +203,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
               RStack<Literal*> resLits;
               for (const auto& curr : *c) {
                 resLits->push(curr == lit
-                  ? boolEq(HOL::create::app(argS, tS), rhs)
+                  ? boolEq(HOL::create::app(argS, tS), rhs, true)
                   : subst.apply(curr, 1));
               }
               instCls.push(Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::HEURISTIC_INSTANTIATION, c)));
@@ -232,7 +232,7 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
           proxy = Proxy::SIGMA;
         }
         return pvi(concatIters(iterItems(replaceLits(c, lit, proxy, false,
-          positive ? eqTroo(newTerm) : eqFols(newTerm))), getPersistentIterator(ClauseStack::Iterator(instCls))));
+          positive ? neqFols(newTerm) : eqFols(newTerm))), getPersistentIterator(ClauseStack::Iterator(instCls))));
       }
     }
   }
