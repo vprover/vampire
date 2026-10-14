@@ -394,6 +394,12 @@ Clause* BooleanEqualityNormalization::simplify(Clause* c)
 {
   RStack<Literal*> resLits;
 
+  if (c->inference().rule() == InferenceRule::FOOL_AXIOM_ALL_IS_TRUE_OR_FALSE ||
+      c->inference().rule() == InferenceRule::FOOL_AXIOM_TRUE_NEQ_FALSE)
+  {
+    return c;
+  }
+
   unsigned found = 0;
   for (const auto& lit : *c) {
     if (!lit->isEquality()) {
@@ -402,16 +408,16 @@ Clause* BooleanEqualityNormalization::simplify(Clause* c)
     }
     auto [lhs, rhs] = lit->eqArgs();
 
-    // if one side is $false, we normalize it to $true
-    if (HOL::isFalse(lhs)) {
+    // if one side is $true, we normalize it to $false
+    if (HOL::isTrue(lhs)) {
       // should apply other simplifications before this rule
-      ASS(!HOL::isBool(rhs));
+      // ASS_REP(!HOL::isBool(rhs), c->toString());
       std::swap(lhs, rhs);
-    } else if (!HOL::isFalse(rhs)) {
+    } else if (!HOL::isTrue(rhs)) {
       resLits->push(lit);
       continue;
     }
-    resLits->push(Literal::createEquality(lit->isNegative(), lhs, HOL::create::top(), AtomicSort::boolSort()));
+    resLits->push(Literal::createEquality(lit->isNegative(), lhs, HOL::create::bottom(), AtomicSort::boolSort()));
     found++;
   }
 
