@@ -1,0 +1,37 @@
+/*
+ * This file is part of the source code of the software program
+ * Vampire. It is protected by applicable
+ * copyright laws.
+ *
+ * This source code is distributed under the licence found here
+ * https://vprover.github.io/license.html
+ * and in the source directory
+ */
+/**
+ * @file BoolSimp.hpp
+ * Defines class BoolSimp.
+ */
+
+#ifndef __BOOL_SIMP__
+#define __BOOL_SIMP__
+
+#include "Forwards.hpp"
+
+#include "Inferences/InferenceEngine.hpp"
+
+namespace Inferences {
+
+class BoolSimp : public ImmediateSimplificationEngine
+{
+public:
+  Clause* simplify(Clause* premise) override;
+
+private:
+  TermList boolSimplify(Term* term);
+  TermList negate(TermList term);
+  bool complementary(TermStack args);
+};
+
+}
+
+#endif

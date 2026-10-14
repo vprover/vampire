@@ -13,6 +13,7 @@
 #include "Kernel/Clause.hpp"
 #include "Lib/IntUnionFind.hpp"
 #include "Kernel/Ordering.hpp"
+#include "Kernel/PolynomialBottomUpEvaluation.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 

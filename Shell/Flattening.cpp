@@ -18,6 +18,7 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Problem.hpp"
 
+#include "Lib/DArray.hpp"
 #include "Lib/Environment.hpp"
 #include "Shell/Options.hpp"
 
@@ -169,25 +170,20 @@ Formula* Flattening::innerFlatten (Formula* f)
     }
     
   case FORALL:
-  case EXISTS: 
+  case EXISTS:
     {
       Formula* arg = flatten(f->qarg());
       if (arg->connective() != con) {
 	if (arg == f->qarg()) {
 	  return f;
 	}
-	return new QuantifiedFormula(con,f->vars(),f->sorts(),arg);
+	return new QuantifiedFormula(con, f->vars(), arg);
       }
 
       // arg is a quantified formula with the same quantifier
-      // the sort list is either empty (if one of the parts have empty sorts) or the concatenation
-      SList* sl = SList::empty();
-      if(f->sorts() && arg->sorts()){
-        sl = SList::append(f->sorts(), arg->sorts());
-      }
+      // append the variable+sort lists
       return new QuantifiedFormula(con,
-				   VList::append(f->vars(), arg->vars()),
-                                   sl, 
+				   VSList::append(f->vars(), arg->vars()),
 				   arg->qarg());
     }
 

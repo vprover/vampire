@@ -21,6 +21,7 @@
 
 #include "Lib/List.hpp"
 #include "Lib/Coproduct.hpp"
+#include "Lib/Random.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Term.hpp"
 
@@ -98,6 +99,10 @@ public:
     // List<T>::destroy(list);
     list = res;
   }
+
+  // Shuffle a VSList while maintaining the invariant that type variables come before term variables
+  // Type variables have sort AtomicSort::superSort()
+  static void shuffleVarSort(VSList*& list);
 
   // list2 is assumed to be of the same length as list1;
   // get two new lists by shuffling the originals and leaking the old ones

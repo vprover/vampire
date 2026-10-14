@@ -24,11 +24,11 @@
 namespace Inferences
 {
 
+template<bool higherOrder>
 class DefinitionIntroduction: public GeneratingInferenceEngine, public Index {
 public:
-  void attach(SaturationAlgorithm *salg) override {
-    GeneratingInferenceEngine::attach(salg);
-    attachContainer(salg->getPassiveClauseContainer());
+  DefinitionIntroduction(SaturationAlgorithm& salg) {
+    attachContainer(salg.getPassiveClauseContainer());
   }
 
   void handleClause(Clause *cl, bool adding) override {

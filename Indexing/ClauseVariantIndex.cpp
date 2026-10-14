@@ -14,7 +14,6 @@
 
 #include "Lib/List.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/SmartPtr.hpp"
 #include "Debug/TimeProfiling.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -39,10 +38,6 @@ public:
   : _lits(lits), _length(length), _queryIndex(new LiteralMiniIndex(lits, length))
   {
   }
-  ~ResultClauseToVariantClauseFn()
-  {
-  }
-
 
   Clause* operator()(Clause* mcl)
   {
@@ -98,7 +93,7 @@ public:
 private:
   Literal* const * _lits;
   unsigned _length;
-  SmartPtr<LiteralMiniIndex> _queryIndex;
+  std::unique_ptr<LiteralMiniIndex> _queryIndex;
 };
 
 //-------------------//-------------------//-------------------//-------------------
@@ -111,7 +106,7 @@ HashingClauseVariantIndex::~HashingClauseVariantIndex()
   ClauseList* maxval = 0;
   */
 
-  DHMap<unsigned, ClauseList*>::Iterator iit(_entries);
+  DHMap<unsigned, ClauseList*, FnvHash, IdentityHash>::Iterator iit(_entries);
   while(iit.hasNext()){
     ClauseList* lst = iit.next();
 
@@ -319,7 +314,7 @@ unsigned HashingClauseVariantIndex::computeHashAndCountVariables(TermList* ptl, 
   if (t->ground()) {
     // no variables to count
     // just hash the pointer
-    return DefaultHash::hash(t, hash_begin);
+    return FnvHash::hash(t, hash_begin);
   }
 
   unsigned hash = termFunctorHash(t,hash_begin);
@@ -344,7 +339,7 @@ unsigned HashingClauseVariantIndex::computeHashAndCountVariables(Literal* l, Var
   if (l->ground()) {
     // no variables to count
     // just hash the pointer
-    return DefaultHash::hash(l, hash_begin);
+    return FnvHash::hash(l, hash_begin);
   }
 
   //cout << "will hash header " << header << endl;
@@ -352,7 +347,7 @@ unsigned HashingClauseVariantIndex::computeHashAndCountVariables(Literal* l, Var
   unsigned header = l->header();
 
   // hashes the predicate symbol and the polarity
-  unsigned hash = DefaultHash::hash(header, hash_begin);
+  unsigned hash = FnvHash::hash(header, hash_begin);
 
   if(l->isEquality()) {
     TermList* ll = l->nthArgument(0);
@@ -402,7 +397,7 @@ unsigned HashingClauseVariantIndex::computeHash(Literal* const * lits, unsigned 
     }
 
     std::sort(varCntHistogram.begin(),varCntHistogram.end());
-    hash = DefaultHash::hash(varCntHistogram, hash);
+    hash = StackHash<FnvHash>::hash(varCntHistogram, hash);
   }
 
   return hash;

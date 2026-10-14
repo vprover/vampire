@@ -15,14 +15,14 @@
 #include "EtaNormaliser.hpp"
 #include "Kernel/HOL/HOL.hpp"
 
-using Kernel::Term;
-
-
 TermList HOL::reduce::betaNF(TermList t, unsigned *reductions) {
-  auto bn = BetaNormaliser();
+  BetaNormaliser bn;
   const auto term = bn.normalise(t);
-  if (reductions != nullptr)
-    *reductions = bn.getReductions();
+#if VDEBUG
+  if (reductions != nullptr) {
+    *reductions = bn.reductions;
+  }
+#endif
 
   return term;
 }
@@ -31,6 +31,6 @@ TermList HOL::reduce::etaNF(TermList t) {
   return EtaNormaliser::normalise(t);
 }
 
-inline TermList HOL::reduce::betaEtaNF(TermList t) {
+TermList HOL::reduce::betaEtaNF(TermList t) {
   return etaNF(betaNF(t));
 }

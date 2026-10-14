@@ -27,9 +27,6 @@ using namespace Indexing; using namespace Saturation;
 template<class NumTraits>
 struct FloorFourierMotzkinConf
 {
-  FloorFourierMotzkinConf(std::shared_ptr<AlascaState> shared) 
-    : _shared(std::move(shared))
-  {  }
   static const char* name() { return "alasca floor fourier motzkin"; }
 
   using Premise0 = typename IntegerFourierMotzkin<NumTraits>::Premise0;
@@ -76,14 +73,12 @@ struct FloorFourierMotzkinConf
       return {};
     }
   }
-
-  std::shared_ptr<AlascaState> _shared;
 };
 
 template<class NumTraits>
 struct FloorFourierMotzkin : public BinInf<FloorFourierMotzkinConf<NumTraits>>  {
-  FloorFourierMotzkin(std::shared_ptr<AlascaState> state) 
-    : BinInf<FloorFourierMotzkinConf<NumTraits>>(state, FloorFourierMotzkinConf<NumTraits>(state)) {}
+  FloorFourierMotzkin(SaturationAlgorithm& salg)
+    : BinInf<FloorFourierMotzkinConf<NumTraits>>(salg, FloorFourierMotzkinConf<NumTraits>()) {}
 };
 
 } // namespace ALASCA 

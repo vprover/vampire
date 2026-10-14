@@ -44,7 +44,7 @@ public:
   struct Lhs : public SelectedEquality {
     Lhs(SelectedEquality self) : SelectedEquality(std::move(self)) {}
     static const char* name() { return "alasca demodulation lhs"; }
-    TypedTermList key() { return TypedTermList(SelectedEquality::biggerSide().term()); }
+    TypedTermList key() const { return TypedTermList(SelectedEquality::biggerSide().term()); }
 
     static auto iter(AlascaState& shared, Clause* simplifyWith) {
       return iterTraits(iterItems(simplifyWith))

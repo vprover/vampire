@@ -17,12 +17,15 @@
 #ifndef __ClauseQueue__
 #define __ClauseQueue__
 
+#include <cstdint>
+
 #if VDEBUG
 #include <ostream>
 #endif
 
 #include "Debug/Assertion.hpp"
 
+#include "Lib/FlexibleTail.hpp"
 #include "Lib/Reflection.hpp"
 
 namespace Kernel {
@@ -45,25 +48,32 @@ public:
   Clause* pop();
   /** True if the queue is empty */
   bool isEmpty() const
-  { return _left->nodes[0] == 0; }
+  { return _left->nodes()[0] == 0; }
   void output(std::ostream&) const;
 
   friend class Iterator;
 protected:
-  /** comparison of clauses */
-  virtual bool lessThan(Clause*,Clause*) = 0;
+  /** primary sort key of a clause, ties are broken by tieLessThan() */
+  virtual uint64_t key(Clause*) = 0;
+  static bool tieLessThan(Clause* c1, Clause* c2);
   /** Nodes in the skip list */
-  class Node {
+  class Node : public Lib::FlexibleTail<Node, Node *> {
   public:
+    /** key() of the clause */
+    uint64_t key;
     /** Clause at this node */
     Clause* clause;
     /** Links to other nodes on the right, can be of any length */
-    Node* nodes[1];
+    Node **nodes() { return flexibleTail(); }
+    Node *const *nodes() const { return flexibleTail(); }
   };
   /** Height of the leftmost node minus 1 */
   unsigned _height;
   /** the leftmost node with the dummy key and value */
   Node* _left;
+  /** true if the clause with key @b k goes before @b node */
+  static bool lessThan(uint64_t k, Clause* c, const Node* node)
+  { return k < node->key || (k == node->key && tieLessThan(c, node->clause)); }
 
 public:
   /** Iterator over the queue
@@ -71,7 +81,7 @@ public:
    */
   class Iterator {
   public:
-    DECL_ELEMENT_TYPE(Clause*);
+    using ElementType = Clause*;
 
     /** Create a new iterator */
     inline explicit Iterator(ClauseQueue& queue)
@@ -79,11 +89,11 @@ public:
     {}
     /** true if there is a next clause */
     inline bool hasNext() const
-    { return _current->nodes[0]; }
+    { return _current->nodes()[0]; }
     /** return the next clause */
     inline Clause* next()
     {
-      _current = _current->nodes[0];
+      _current = _current->nodes()[0];
       ASS(_current);
       return _current->clause;
     }
@@ -91,22 +101,6 @@ public:
     /** Current node */
     Node* _current;
   }; // class ClauseQueue::Iterator
-
-//  class DelIterator {
-//  public:
-//    explicit DelIterator(ClauseQueue& queue)
-//    { }
-//
-//    bool hasNext()
-//    { }
-//
-//    Clause* next()
-//    { }
-//
-//    void del()
-//    { }
-//  private:
-//  };
 }; // class ClauseQueue
 
 } // namespace Kernel

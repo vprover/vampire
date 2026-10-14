@@ -10,7 +10,6 @@
 
 #include "Shell/Options.hpp"
 #include "Kernel/HOL/HOL.hpp"
-#include "Test/UnitTesting.hpp"
 #include "Test/HOLUtils.hpp"
 
 #include <map>
@@ -116,5 +115,28 @@ HOL_TEST_FUN(hol_print_2) {
       {DB_INDICES, "(^db0 : srt > srt. ((^db1 : srt. (db0_0))))" },
       {PRETTY,     "(λy0 : srt → srt. (λy1 : srt. y1))" },
       {TPTP,       "(^[Y0 : srt > srt]: ((^[Y1 : srt]: (Y1))))" }}
+  );
+}
+
+HOL_TEST_FUN(hol_print_3) {
+  runTest(
+    D.f3.sort(),
+    { {RAW,    "(srt > (srt > (srt > srt)))" },
+      {PRETTY, "(srt → srt → srt → srt)" },
+      {TPTP,   "(srt > srt > srt > srt)"} }
+  );
+
+  runTest(
+    D.g.sort(),
+    { {RAW,    "((srt > srt) > srt)" },
+      {PRETTY, "((srt → srt) → srt)" },
+      {TPTP,   "((srt > srt) > srt)"} }
+  );
+
+  runTest(
+    D.h.sort(),
+    { {RAW,    "((srt > srt) > (srt > srt))" },
+      {PRETTY, "((srt → srt) → srt → srt)" },
+      {TPTP,   "((srt > srt) > srt > srt)"} }
   );
 }

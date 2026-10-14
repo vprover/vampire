@@ -51,13 +51,13 @@ public:
   Lit& operator[](size_type idx) noexcept
   {
     ASS(idx < m_size);
-    return m_literals[idx];
+    return *(begin() + idx);
   }
 
   Lit const& operator[](size_type idx) const noexcept
   {
     ASS(idx < m_size);
-    return m_literals[idx];
+    return *(cbegin() + idx);
   }
 
   size_type size() const noexcept

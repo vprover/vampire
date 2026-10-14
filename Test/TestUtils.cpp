@@ -114,7 +114,7 @@ std::ostream& Pretty<Literal>::prettyPrint(std::ostream& out) const
 #undef NUM_CASE
       }
     }
-    Signature::Symbol* sym = env.signature->getPredicate(func);
+    const Signature::Symbol* sym = env.signature->getPredicate(func);
     out << sym->name();
     if (sym->arity() > 0) {
       out << "(" << pretty(*lit.nthArgument(0));
@@ -184,7 +184,8 @@ void __collect(unsigned functor, Term* t, Stack<TermList>& out) {
       out.push(*trm);
     } else {
       ASS(trm->isTerm());
-      if (trm->term()->functor() == functor) {
+      // Note: the input term can be a literal as well, so let's check it
+      if (trm->term()->functor() == functor && trm->term()->isLiteral() == t->isLiteral()) {
         __collect(functor, trm->term(), out);
       } else {
         out.push(*trm);
@@ -203,7 +204,9 @@ Stack<TermList> collect(unsigned functor, Term* t) {
 template<class Comparisons>
 bool TestUtils::eqModAC_(TermList lhs, TermList rhs, Comparisons comp)
 {
-  if (lhs == rhs) { return true; }
+  // NB: deliberately no `lhs == rhs` fast path. Two syntactically identical
+  // subterms still have to agree with the renaming `comp` is building up, so
+  // returning early here lets an inconsistent renaming through.
   if (lhs.isVar() && rhs.isVar()) {
     return comp.var(lhs.var(), rhs.var());
   } else if (lhs.isTerm() && rhs.isTerm()) {
@@ -269,7 +272,7 @@ bool TestUtils::eqModACRect(Kernel::TermList lhs, Kernel::TermList rhs)
   auto vl = iterTraits(vi(new VariableIterator(lhs))).collect<Stack>();
   vl.sort();
   vl.dedup();
-  auto vr = iterTraits(vi(new VariableIterator(lhs))).collect<Stack>();
+  auto vr = iterTraits(vi(new VariableIterator(rhs))).collect<Stack>();
   vr.sort();
   vr.dedup();
 

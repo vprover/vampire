@@ -6,11 +6,17 @@ import argparse
 import insertInv
 import tempfile
 
+def make_temp_path():
+    fd, p = tempfile.mkstemp()
+    os.close(fd)
+    return p
+
 
 def cpu_count():
+    num = 1
     if sys.platform =="win32": 
         try:
-            num = int(os.environ['NUMBER_OF_PROCESORS'])
+            num = int(os.environ['NUMBER_OF_PROCESSORS'])
         except(ValueError, KeyError):
             pass
     elif sys.platform == 'darwin':
@@ -55,7 +61,7 @@ def execute_commands(cmds):
             #print list2cmdline(task)
             #processes.append(os.system(task))
             processes.append(subprocess.Popen(task, shell=True))
-        for p in processes: 
+        for p in processes[:]: 
             if done(p): 
                 if success(p):
                     processes.remove(p)
@@ -105,11 +111,11 @@ def createCommands(args):
     if arg.funcNO == None:
         arg.funcNO = 0
     if arg.input == None:
-        print "You must provide input file! "
+        print("You must provide input file! ")
         parser.print_help()
         sys.exit(1)
     if arg.analyzer == None:
-        print "You must provide the analyzer!"
+        print("You must provide the analyzer!")
         parser.print_help()
         sys.exit(1)
     if arg.outputFile == None: 
@@ -122,32 +128,32 @@ def createCom(arg,tempFileName):
         if arg.vampire == "false":
             commandLine = arg.analyzer +" -t " +str(arg.timeLimit)+ " -wno " + str(arg.whileNO) + " -fno "+ str(arg.funcNO)
             commandLine = commandLine + " " + arg.input + " | grep \"tff(inv\" | " + \
-        "sed -e \"s/tff(inv[^,]*,//g\" | sed -e \"s/claim/loop invariant/g\" | sed -e \"s/\$sum/+/g\" " 
-            commandLine = commandLine +" |sed -e \"s/\$uminus/#/g\" | sed -e \"s/-/#/g\" | sed -e \"s/\$lesseq/</g\" | sed -e \"s/\$greatereq/>/g\"" 
+        "sed -e \"s/tff(inv[^,]*,//g\" | sed -e \"s/claim/loop invariant/g\" | sed -e \"s/\\$sum/+/g\" " 
+            commandLine = commandLine +" |sed -e \"s/\\$uminus/#/g\" | sed -e \"s/-/#/g\" | sed -e \"s/\\$lesseq/</g\" | sed -e \"s/\\$greatereq/>/g\"" 
     #final step put it in the temporary OutputFile
     #modify it accordingly 
             commandLine = commandLine +  ">"+tempFileName
             os.system(commandLine)
         else:
             #create temporary file 
-            intermT = tempfile.NamedTemporaryFile()
+            intermT = make_temp_path()
             commandLine = arg.analyzer +" -t " +str(arg.timeLimit)+ " -wno " + str(arg.whileNO) + " -fno "+ str(arg.funcNO)
-            commandLine = commandLine + " " + arg.input +" | grep tff >"+ intermT.name 
+            commandLine = commandLine + " " + arg.input +" | grep tff >"+ intermT 
             os.system(commandLine)
-            intermS = tempfile.NamedTemporaryFile()
+            intermS = make_temp_path()
             #launch vampire with different strategies
-            os.system("./symel.sh "+arg.vampire+" "+intermT.name+" "+intermS.name)
-            commandLine = "cat "+intermS.name+ " | grep \"tff(inv\" | " + \
-        "sed -e \"s/tff(inv[^,]*,//g\" | sed -e \"s/claim/loop invariant/g\" | sed -e \"s/\$sum/+/g\" " 
-            commandLine = commandLine +" |sed -e \"s/\$uminus/#/g\" | sed -e \"s/-/#/g\" | sed -e \"s/\$lesseq/</g\" | sed -e \"s/\$greatereq/>/g\"" 
+            os.system("./symel.sh "+arg.vampire+" "+intermT+" "+intermS)
+            commandLine = "cat "+intermS+ " | grep \"tff(inv\" | " + \
+        "sed -e \"s/tff(inv[^,]*,//g\" | sed -e \"s/claim/loop invariant/g\" | sed -e \"s/\\$sum/+/g\" " 
+            commandLine = commandLine +" |sed -e \"s/\\$uminus/#/g\" | sed -e \"s/-/#/g\" | sed -e \"s/\\$lesseq/</g\" | sed -e \"s/\\$greatereq/>/g\"" 
     #final step put it in the temporary OutputFile
     #modify it accordingly 
             commandLine = commandLine +  ">"+tempFileName
             os.system(commandLine)
             #close all temporary files created - this action also takes care of deleting them 
-            intermT.close()
-            intermS.close()
-    except Exception,e:
+            os.unlink(intermT)
+            os.unlink(intermS)
+    except Exception as e:
         sys.exit(1)
     return commandLine 
 
@@ -219,18 +225,18 @@ def countWhilesInFunction(inst, funcNo):
 #process all the whiles in a specific function
 def workAllWhiles(parsedCmd, funcNO, sourceOrganization, fin,fout, start ):
     done = False
-    print "function number: ", funcNO 
+    print("function number: ", funcNO) 
     
     WN=1
     while not done: 
-        tempF = tempfile.NamedTemporaryFile()
+        tempF = make_temp_path()
         parsedCmd.whileNO = WN
         parsedCmd.funcNO = funcNO
-        command = createCom(parsedCmd, tempF.name)
+        command = createCom(parsedCmd, tempF)
         #os.system(command)
-        tempF.seek(0)
-        invariant = tempF.readlines()
-        tempF.close()
+        with open(tempF, "r") as tf:
+            invariant = tf.readlines()
+        os.unlink(tempF)
         invariantI = insertInv.work(invariant)
         for x in invariantI : 
             fout.write(x)
@@ -243,7 +249,7 @@ def workAllWhiles(parsedCmd, funcNO, sourceOrganization, fin,fout, start ):
                 fout.write(fin[i])
             start = stop
         # in case there is more write the rest of the file
-    print start
+    print(start)
     return start
 
 from os import path
@@ -252,29 +258,28 @@ def runAccordingToOptions(args):
     parsedCmd = createCommands(args)
     noFunc = 0
     if not path.exists(parsedCmd.analyzer) :
-        print "There is no such file ", parsedCmd.analyzer
+        print("There is no such file ", parsedCmd.analyzer)
         sys.exit(1)
     if not path.exists(parsedCmd.input) or not path.isfile(parsedCmd.input):
-        print "The input does not exist, or is not a file", parsedCmd.input
+        print("The input does not exist, or is not a file", parsedCmd.input)
         sys.exit(1)
-    with tempfile.NamedTemporaryFile() as tf:
     #in case of analyzing all the functions from the file, get the number of functions
-        p = subprocess.Popen((parsedCmd.analyzer+" -wno -1 "+parsedCmd.input).split(), stdout = subprocess.PIPE, stderr=subprocess.PIPE)
-        outp,err = p.communicate()
-        if err != "":
-            print err
-            sys.exit(-1)
-        else:
-            ff = outp.split("\n")
-        if parsedCmd.verbose == True:
-            print outp
-        
-        sourceOrganization = []
-        for x in ff : 
-            if "WHILE LOCATION:" in x:
-                sourceOrganization.append(x)
-            elif "Function number:" in x:
-                sourceOrganization.append(x)
+    p = subprocess.Popen((parsedCmd.analyzer+" -wno -1 "+parsedCmd.input).split(), stdout = subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    outp,err = p.communicate()
+    if err != "":
+        print(err)
+        sys.exit(-1)
+    else:
+        ff = outp.split("\n")
+    if parsedCmd.verbose == True:
+        print(outp)
+    
+    sourceOrganization = []
+    for x in ff : 
+        if "WHILE LOCATION:" in x:
+            sourceOrganization.append(x)
+        elif "Function number:" in x:
+            sourceOrganization.append(x)
     #occurrences of while
     noWhiles = getNoOccurance(sourceOrganization, "WHILE")
     #number of functions 
@@ -286,17 +291,17 @@ def runAccordingToOptions(args):
     #store all the information in fin
     #the case when you request a specific function and a specific while loop
     if parsedCmd.whileNO != 0 and parsedCmd.funcNO != 0:
-        tempF = tempfile.NamedTemporaryFile()
-        command = createCom(parsedCmd,tempF.name)
+        tempF = make_temp_path()
+        command = createCom(parsedCmd,tempF)
         #read output and transform it and annotate the code 
         whileLoc = whileLocationInFun(sourceOrganization,parsedCmd.funcNO, parsedCmd.whileNO)
-        tempF.seek(0)
-        invs = tempF.readlines()
+        with open(tempF, "r") as tf:
+            invs = tf.readlines()
         if len(invs) == 0:
-            print "Something went wrong... try change the timelimit, or the while number!"
+            print("Something went wrong... try change the timelimit, or the while number!")
             sys.exit(-1)
         invariant = insertInv.work(invs)
-        tempF.close()
+        os.unlink(tempF)
         fout = open(parsedCmd.outputFile,"w")
         for i in range(0, whileLoc-1):
             fout.write(fin[i])
@@ -342,21 +347,21 @@ def runAccordingToOptions(args):
         noFN = getNoOccurance(sourceOrganization, "Function")
         start = whileLocationInFun(sourceOrganization, 1, parsedCmd.whileNO)
         if start == 0: 
-            print "ERROR: there is no such while in function 1! try another one!"
+            print("ERROR: there is no such while in function 1! try another one!")
             sys.exit(-1)
         fout = open(parsedCmd.outputFile, "w")
         for i in range(0, start-1):
             fout.write(fin[i])
         for i in range(1, noFN+1):
-            tempF = tempfile.NamedTemporaryFile()
+            tempF = make_temp_path()
             parsedCmd.funcNO = i
-            command = createCom(parsedCmd, tempF.name)
+            command = createCom(parsedCmd, tempF)
             #os.system(command)
-            tempF.seek(0)
-            inv = tempF.readlines()
-            tempF.close()
+            with open(tempF, "r") as tf:
+                inv = tf.readlines()
+            os.unlink(tempF)
             if len(inv)==0:
-                print "Error: the while you try to analyze does not exist, function: ", i
+                print("Error: the while you try to analyze does not exist, function: ", i)
                 sys.exit(-1)
             invariant = insertInv.work(inv)
             for x in invariant: 

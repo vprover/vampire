@@ -12,7 +12,7 @@
  * Implements class AcyclicityIndex
  */
 
-#include "Indexing/TermIndexingStructure.hpp"
+#include "Indexing/Index.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/Signature.hpp"
@@ -22,6 +22,8 @@
 #include "Lib/Backtrackable.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Stack.hpp"
+
+#include "Indexing/TermSubstitutionTree.hpp"
 
 #include "AcyclicityIndex.hpp"
 
@@ -53,7 +55,7 @@ namespace Indexing
     }
     List<TypedTermList>::push(t, l);
   }
-  
+
   List<TypedTermList>* AcyclicityIndex::getSubterms(Term *t)
   {
     Stack<Term*> toVisit;
@@ -207,7 +209,7 @@ namespace Indexing
 
         if (aindex._sIndexes.find(sort)) {
           _index = aindex._sIndexes.get(sort);
-          _tis = aindex._tis;
+          _tis = &aindex._tis;
           if (_index->find(make_pair(queryLit, queryClause))) {
             IndexEntry *entry = _index->get(make_pair(queryLit, queryClause));
             _stack.push(CycleSearchTreeNode::unificationNode(entry->t,
@@ -221,7 +223,7 @@ namespace Indexing
       ASS_EQ(_currentDepth, _substChanges.size());
     }
     
-    DECL_ELEMENT_TYPE(CycleQueryResult*);
+    using ElementType = CycleQueryResult*;
 
     Clause *applySubstitution(Clause *c, unsigned index)
     {
@@ -264,7 +266,7 @@ namespace Indexing
     {
       // ASS(t.isTerm());
       ASS(_tis);
-      auto tqrIt = _tis->getUnifications(t);
+      auto tqrIt = _tis->getUnifications(t, /*retrieveSubstitutions=*/true);
       int index;
       while (tqrIt.hasNext()) {
         auto tqr = tqrIt.next();
@@ -358,7 +360,7 @@ namespace Indexing
       return false;
     }
     
-    OWN_ELEMENT_TYPE next()
+    ElementType next()
     {
       ASS(_nextResult);
       CycleQueryResult *res = _nextResult;
@@ -368,7 +370,7 @@ namespace Indexing
   private:
     Literal *_queryLit;
     SIndex *_index;
-    TermIndexingStructure *_tis;
+    TermSubstitutionTree<TermLiteralClause>* _tis;
     CycleQueryResult *_nextResult;
     Stack<CycleSearchTreeNode*> _stack;
     RobSubstitution *_subst;
@@ -410,7 +412,7 @@ namespace Indexing
       ULit ulit = make_pair(lit, c);
       if (!index->find(ulit)) {
         index->insert(ulit, new IndexEntry(lit, c, TypedTermList(*t,sort), getSubterms(fs->term())));
-        _tis->insert(TermLiteralClause{ TypedTermList(*t, sort), lit, c });
+        _tis.insert(TermLiteralClause{ TypedTermList(*t, sort), lit, c });
       }
     }
   }
@@ -427,7 +429,7 @@ namespace Indexing
         return;
 
       _sIndexes.get(sort)->remove(ulit);
-      _tis->remove(TermLiteralClause{ TypedTermList(*t, sort), lit, c });
+      _tis.remove(TermLiteralClause{ TypedTermList(*t, sort), lit, c });
     }
   }
 

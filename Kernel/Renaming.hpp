@@ -53,14 +53,14 @@ public:
     if (_data.findOrInsert(v, res, _nextVar)) {
       _nextVar++;
       if(v!=res) {
-	_identity = false;
+        _identity = false;
       }
     }
     return res;
   }
   unsigned get(unsigned v) const
   { return _data.get(v); }
-  bool contains(unsigned v)
+  bool contains(unsigned v) const
   { return _data.find(v); }
 
   Literal* apply(Literal* l);
@@ -107,7 +107,7 @@ private:
     Renaming* _parent;
   };
 
-  typedef DHMap<unsigned, unsigned, IdentityHash, DefaultHash> VariableMap;
+  typedef DHMap<unsigned, unsigned, IdentityHash, FnvHash> VariableMap;
   VariableMap _data;
   unsigned _nextVar;
   bool _identity;

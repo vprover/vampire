@@ -24,13 +24,12 @@
 #include "Exception.hpp"
 #include "Reflection.hpp"
 
+#include <memory>
+
 namespace Lib {
 
 ///@addtogroup Iterators
 ///@{
-
-template<typename T>
-  class VirtualIterator;
 
 /**
  * Base class of objects that provide the "virtual" core of
@@ -41,25 +40,13 @@ template<typename T>
  * @b IteratorCore objects can be used as ordinary stack allocated
  * or static iterators as well, but in that case they must not be
  * passed to a @b VirtualIterator object as an inside.
- *
- * If used as an inside of a @b VirtualIterator object, updating
- * the reference counter @b _refCnt is done by the @b VirtualIterator
- * object, as well as calling the destructor when the counter reaches
- * zero.
  */
 template<typename T>
 class IteratorCore {
 public:
-  IteratorCore(const IteratorCore&) = delete;
-  IteratorCore& operator=(const IteratorCore&) = delete;
-  IteratorCore(IteratorCore&&) = default;
-  IteratorCore& operator=(IteratorCore&&) = default;
+  using ElementType = T;
+  virtual ~IteratorCore() = default;
 
-  DECL_ELEMENT_TYPE(T);
-  /** Create new IteratorCore object */
-  IteratorCore() : _refCnt(0) {}
-  /** Destroy IteratorCore object */
-  virtual ~IteratorCore() { ASS(_refCnt==0); }
   /** Return true if there is a next element */
   virtual bool hasNext() = 0;
   /**
@@ -81,14 +68,6 @@ public:
    * returns true.
    */
   virtual size_t size() const { INVALID_OPERATION("This iterator cannot retrieve its size."); }
-
-private:
-  /**
-   * Reference counter field used by the @b VirtualIterator object
-   */
-  mutable int _refCnt;
-
-  friend class VirtualIterator<T>;
 };
 
 /**
@@ -102,7 +81,6 @@ class EmptyIterator
 public:
   USE_ALLOCATOR(EmptyIterator);
 
-  EmptyIterator() {}
   bool hasNext() override { return false; };
   T next() override { INVALID_OPERATION("next() called on EmptyIterator object"); };
   bool knowsSize() const override { return true; }
@@ -114,112 +92,25 @@ public:
  * of element retrieval through the polymorphism of @b IteratorCore objects
  *
  * @tparam T type returned by the iterator
- *
- * The @b VirtualIterator object performs reference counting on @b IteratorCore
- * objects and deletes them when the reference count drops to zero. The reference
- * count is kept in the @b IteratorCore::_refCnt field.
- *
- * @see IteratorCore
  */
 template<typename T>
-class VirtualIterator {
+class VirtualIterator final {
 public:
   USE_ALLOCATOR(VirtualIterator);
+  using ElementType = T;
 
-  DECL_ELEMENT_TYPE(T);
-
-  /** Return an empty iterator */
-  static VirtualIterator getEmpty()
-  {
-    static VirtualIterator inst(new EmptyIterator<T>());
-    return inst;
-  }
-
-  /** Return an invalid iterator */
-  static VirtualIterator getInvalid()
-  {
-    return VirtualIterator();
-  }
-
-  /**
-   * Create an uninitialized object
-   *
-   * When created with this constructor, the object must be assigned
-   * an initialized VirtualIterator object through the @b operator=(),
-   * before any of the @b hasNext(), @b next(), @b knowsSize() or @b size()
-   * functions can be called.
-   */
-  inline
-  VirtualIterator() : _core(0) {}
+  VirtualIterator() = default;
 
   /**
    * Create an object with @b core as its core.
    */
   inline
-  explicit VirtualIterator(IteratorCore<T>* core) : _core(core) { _core->_refCnt++; }
+  explicit VirtualIterator(IteratorCore<T>* core) : _core(core) {}
 
-  IGNORE_MAYBE_UNINITIALIZED(
-
-  inline
-  VirtualIterator(const VirtualIterator& obj) : _core(obj._core)
+  /** Return an empty iterator */
+  static VirtualIterator getEmpty()
   {
-    if(_core) {
-      _core->_refCnt++;
-    }
-  }
-
-  inline
-  ~VirtualIterator()
-  {
-    if(_core) {
-	_core->_refCnt--;
-	if(!_core->_refCnt) {
-	  delete _core;
-	}
-    }
-  }
-  )
-  VirtualIterator& operator=(const VirtualIterator& obj)
-  {
-    IteratorCore<T>* oldCore=_core;
-    _core=obj._core;
-    if(_core) {
-      _core->_refCnt++;
-    }
-    if(oldCore) {
-      oldCore->_refCnt--;
-      if(!oldCore->_refCnt) {
-	delete oldCore;
-      }
-    }
-    return *this;
-  }
-
-  /**
-   * Remove reference to the iterator core.
-   * Return true iff the the iterator core does not exist
-   * any more after return from this function.
-   *
-   * The returned value can be useful for asserting
-   * that the iterator core (and all resources it
-   * used) was indeed released.
-   */
-  inline
-  bool drop()
-  {
-    if(_core) {
-      _core->_refCnt--;
-      if(_core->_refCnt) {
-	_core=0;
-	return false;
-      }
-      else {
-	delete _core;
-	_core=0;
-      }
-    }
-    _core=0;
-    return true;
+    return VirtualIterator(new EmptyIterator<T>());
   }
 
   /** Return true if there is a next element */
@@ -275,7 +166,7 @@ public:
   bool isInvalid() { return !_core; }
 private:
   /** The polymorphous core of this @b VirtualIterator object */
-  IteratorCore<T>* _core;
+  std::unique_ptr<IteratorCore<T>> _core;
 };
 
 /**
@@ -300,8 +191,7 @@ class ProxyIterator
 public:
   USE_ALLOCATOR(ProxyIterator);
   DEFAULT_CONSTRUCTORS(ProxyIterator)
-  ~ProxyIterator() override {}
-  
+
   explicit ProxyIterator(Inner inn) : _inn(std::move(inn)) {}
   bool hasNext() override { return _inn.hasNext(); };
   T next() override { return _inn.next(); };
@@ -313,23 +203,17 @@ private:
  * Encapsulate an ordinary iterator object @b it into a VirtualIterator
  *
  * @tparam Inner type of the iterator to be encapsulated. It must be
- *   a class/struct that declares its element type through the
- *   DECL_ELEMENT_TYPE macro, and has functions @b hasNext() and
- *   @b next()
- *
- * @see DECL_ELEMENT_TYPE
+ *   a class/struct that declares its element type,
+ *   and has functions @b hasNext() and @b next()
  */
 template<class Inner>
 inline
-VirtualIterator<ELEMENT_TYPE(Inner)> pvi(Inner it)
+VirtualIterator<typename Inner::ElementType> pvi(Inner it)
 {
-  return VirtualIterator<ELEMENT_TYPE(Inner)>(new ProxyIterator<ELEMENT_TYPE(Inner),Inner>(std::move(it)));
+  return VirtualIterator<typename Inner::ElementType>(new ProxyIterator<typename Inner::ElementType,Inner>(std::move(it)));
 }
 
-
-
-
-///@}�
+///@}
 
 }
 

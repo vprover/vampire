@@ -19,6 +19,7 @@
 #include "Kernel/FormulaUnit.hpp"
 #include "Kernel/Signature.hpp"
 
+#include "Lib/DArray.hpp"
 #include "Lib/Environment.hpp"
 
 #include "Shell/Options.hpp"
@@ -306,7 +307,7 @@ Formula* SimplifyFalseTrue::innerSimplify (Formula* f)
       default:
 	return arg == f->qarg()
                ? f
-               : new QuantifiedFormula(con,f->vars(),f->sorts(),arg);
+               : new QuantifiedFormula(con, f->vars(), arg);
       }
     }
 

@@ -16,7 +16,6 @@
 #define __GlobalSubsumption__
 
 #include "Forwards.hpp"
-#include "Shell/Options.hpp"
 #include "Kernel/Grounder.hpp"
 #include "SAT/ProofProducingSATSolver.hpp"
 
@@ -32,13 +31,12 @@ using namespace Indexing;
 using namespace Saturation;
 using namespace SAT;
 
+// TODO consider making this an ImmediateSimplificationEngine if it really doesn't depend on any indices
 class GlobalSubsumption : public ForwardSimplificationEngine
 {
 public:
-  GlobalSubsumption(const Options& opts);
+  GlobalSubsumption(SaturationAlgorithm& salg);
 
-  void attach(SaturationAlgorithm* salg) override;
-  void detach() override;
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 
   Clause* perform(Clause* cl, Stack<Unit*>& prems);
@@ -57,12 +55,12 @@ private:
   /**
    * A map binding split levels to variables assigned to them in our SAT solver.
    */
-  DHMap<unsigned, unsigned> _splits2vars;
+  DHMap<unsigned, unsigned, FnvHash, IdentityHash> _splits2vars;
 
   /**
    * An inverse of the above map, for convenience.
    */
-  DHMap<unsigned, unsigned> _vars2splits;
+  DHMap<unsigned, unsigned, FnvHash, IdentityHash> _vars2splits;
 protected:
   unsigned splitLevelToVar(SplitLevel lev) {
     unsigned* pvar;

@@ -81,13 +81,8 @@ private:
   friend struct AlascaAxioms;
   void addAlascaAxioms();
 
-  /**
-   * TODO: we should have polymorphic array axioms only!
-   **/
-  void addBooleanArrayExtensionalityAxioms(TermList arraySort, unsigned skolem);
-  void addArrayExtensionalityAxioms(TermList arraySort, unsigned skolem);
-  void addBooleanArrayWriteAxioms(TermList arraySort);
-  void addArrayWriteAxioms(TermList arraySort);
+  void addArrayExtensionalityAxioms();
+  void addArrayWriteAxioms();
 
   void addFloorAxioms(Interpretation floor, Interpretation less, Interpretation unaryMinus,
                       Interpretation plus, TermList oneElement);

@@ -27,7 +27,6 @@
 #include "Debug/Assertion.hpp"
 
 #include "Allocator.hpp"
-#include "Lib/Reflection.hpp"
 
 namespace std
 {
@@ -54,8 +53,7 @@ public:
   class ConstIterator;
   class BottomFirstIterator;
 
-  DECL_ELEMENT_TYPE(C);
-  DECL_ITERATOR_TYPE(Iterator);
+  using ElementType = C;
 
   USE_ALLOCATOR(Stack);
 
@@ -198,8 +196,8 @@ public:
   inline
   C& operator[](size_t n)
   {
-    ASS(n >= 0);
-    ASS(_stack+n < _cursor);
+    ASS_GE(n, 0);
+    ASS_L(_stack+n, _cursor);
 
     return _stack[n];
   } // operator[]
@@ -208,8 +206,8 @@ public:
   inline
   const C& operator[](size_t n) const
   {
-    ASS(n >= 0);
-    ASS(_stack+n < _cursor);
+    ASS_GE(n, 0);
+    ASS_L(_stack+n, _cursor);
 
     return _stack[n];
   }
@@ -268,19 +266,6 @@ public:
 
     return _cursor[-1];
   } // Stack::top()
-
-  /**
-   * Return the top but one of the stack.
-   */
-  inline
-  C& scnd() const
-  {
-    ASS(_cursor > _stack + 1);
-    ASS(_cursor <= _end);
-
-    return _cursor[-2];
-  } // Stack::top()
-
 
   /**
    * Set top to a new value.
@@ -379,11 +364,6 @@ public:
     }
     self.pop(self.size() - (offs + 1));
   }
-
-  /** like Stack::dedup but moves the content out of `this` and returns the resulting Stack instead of changing the contents of this  */
-  template<class Equal = std::equal_to<C>>
-  Stack deduped(Equal eq = std::equal_to<C>{})
-  { dedup(); return std::move(*this); }
 
   template<class Less = std::less<C>>
   void sort(Less less = std::less<C>{})
@@ -533,7 +513,7 @@ public:
    */
   class RefIterator {
   public:
-    DECL_ELEMENT_TYPE(C&);
+    using ElementType = C&;
     /** create an iterator for @b s */
     inline
     explicit RefIterator (Stack& s)
@@ -612,13 +592,13 @@ public:
   class Iterator : public RefIterator {
   public:
     Iterator(Stack & s) : RefIterator(s) {}
-    DECL_ELEMENT_TYPE(C);
+    using ElementType = C;
     C next() { return RefIterator::next(); }
   };
 
   class ConstRefIterator {
   public:
-    DECL_ELEMENT_TYPE(C const&);
+    using ElementType = C const&;
     /** create an iterator for @b s */
     inline
     explicit ConstRefIterator (const Stack& s)
@@ -653,7 +633,7 @@ public:
   class ConstIterator : public ConstRefIterator {
   public:
     ConstIterator(Stack const& s) : ConstRefIterator(s) {}
-    DECL_ELEMENT_TYPE(C);
+    using ElementType = C;
     C next() { return ConstRefIterator::next(); }
   };
 
@@ -677,7 +657,7 @@ public:
    */
   class BottomFirstIterator {
   public:
-    DECL_ELEMENT_TYPE(C);
+    using ElementType = C;
     /** create an iterator for @b s */
     inline
     explicit BottomFirstIterator (const Stack& s)
@@ -721,7 +701,7 @@ public:
     StableDelIterator(const StableDelIterator&);
     StableDelIterator& operator=(const StableDelIterator&);
   public:
-    DECL_ELEMENT_TYPE(C);
+    using ElementType = C;
     /** create an iterator for @b s */
     inline
     explicit StableDelIterator (Stack& s)

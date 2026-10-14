@@ -32,12 +32,12 @@ namespace Lib
  * A fully static class for random number generation. Optimized to generate
  * random bits.
  */
-class Random 
+class Random
 {
-  /* 
-   * An entertaining talk on why using the c++11 approach is an improvement 
+  /*
+   * An entertaining talk on why using the c++11 approach is an improvement
    * over the old C style via rand():
-   * 
+   *
    * https://channel9.msdn.com/Events/GoingNative/2013/rand-Considered-Harmful
    *
    * Still, this is not reproducible across platforms
@@ -56,7 +56,7 @@ public:
   static double getDouble(double min, double max) {
     return std::uniform_real_distribution<double>(min,max)(_eng);
   }
-  
+
   /**
    * Return a random bit.
    */

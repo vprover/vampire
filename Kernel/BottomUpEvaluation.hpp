@@ -48,10 +48,10 @@ namespace Memo {
   };
 
   /** a memoization realized as a hashmap */
-  template<class Arg, class Result, class Hash = DefaultHash>
+  template<class Arg, class Result, class Hash, class Equal = std::equal_to<Arg>>
   class Hashed
   {
-    Map<Arg, Result, Hash> _memo;
+    Map<Arg, Result, Hash, Equal> _memo;
 
   public:
     Hashed() : _memo(decltype(_memo)()) {}
@@ -279,12 +279,14 @@ public:
    * recursion, but an explicit Stack.
    *
    * The term to be evaluated will be traversed using a BottomUpChildIter<Arg>, which needs to be 
-   * specialized for whatever structure you want to evaluate. Implementations for `Kernel::TermList`, and
-   * `Kernel::PolyNf` are provided below and for `z3::expr` is provided in `Z3Interfacing`. 
+   * specialized for whatever structure you want to evaluate.
+   * Implementations for `Kernel::TermList` are provided below and:
+   * - `Kernel::PolyNf` in `PolynomialBottomUpChildIter.hpp`
+   * - `z3::expr` in `Z3Interfacing`
    *
    * It is to be used as follows (this example computes the weight of a term):
    * ```
-   *  Memo::Hashed<TermList, size_t> memo;
+   *  Memo::Hashed<TermList, size_t, TermListHash> memo;
    *  ...
    *  return BottomUpEvaluation<TermList, size_t>()
    *                         // ^^^^^^^^  ^^^^^^--> result type
@@ -325,51 +327,51 @@ public:
   Result apply(Arg const& toEval) 
   {
     /* recursion state. Contains a stack of items that are being recursed on. */
-    Recycled<Stack<BottomUpChildIter<Arg>>> recState;
-    Recycled<Stack<Result>> recResults;
+    Scratch<std::tuple<Stack<BottomUpChildIter<Arg>>, Stack<Result>>> stacks;
+    auto& [recState, recResults] = *stacks;
 
-    recState->push(BottomUpChildIter<Arg>(toEval, _context));
+    recState.push(BottomUpChildIter<Arg>(toEval, _context));
 
-    while (!recState->isEmpty()) {
-      if (recState->top().hasNext(_context)) {
-        Arg t = recState->top().next(_context);
+    while (!recState.isEmpty()) {
+      if (recState.top().hasNext(_context)) {
+        Arg t = recState.top().next(_context);
 
         Option<Result> nonRec = _evNonRec(t);
         if (nonRec) {
-          recResults->push(move_if_value<Result>(*nonRec));
+          recResults.push(move_if_value<Result>(*nonRec));
 
         } else {
           Option<Result> cached = _memo.get(t);
           if (cached.isSome()) {
-            recResults->push(std::move(cached).unwrap());
+            recResults.push(std::move(cached).unwrap());
           } else {
-            recState->push(BottomUpChildIter<Arg>(t, _context));
+            recState.push(BottomUpChildIter<Arg>(t, _context));
           }
 
         }
 
       } else {
 
-        BottomUpChildIter<Arg> orig = recState->pop();
+        BottomUpChildIter<Arg> orig = recState.pop();
 
         ASS_GE(recResults.size(), orig.nChildren(_context))
         Result* argLst = orig.nChildren(_context) == 0 
           ? nullptr 
-          : static_cast<Result*>(&((*recResults)[recResults->size() - orig.nChildren(_context)]));
+          : static_cast<Result*>(&(recResults[recResults.size() - orig.nChildren(_context)]));
 
         Result eval = _memo.getOrInit(orig.self(), 
                         [&](){ return _function(orig.self(), argLst); });
 
         DEBUG_BOTTOM_UP(0, "evaluated: ", orig.self(), " -> ", eval);
-        recResults->pop(orig.nChildren(_context));
-        recResults->push(std::move(eval));
+        recResults.pop(orig.nChildren(_context));
+        recResults.push(std::move(eval));
       }
     }
-    ASS(recState->isEmpty())
+    ASS(recState.isEmpty())
 
 
-    ASS(recResults->size() == 1);
-    auto result = recResults->pop();
+    ASS(recResults.size() == 1);
+    auto result = recResults.pop();
     DEBUG_BOTTOM_UP(0, "eval result: ", toEval, " -> ", result);
     return result;
   }
@@ -410,8 +412,10 @@ struct BottomUpChildIter<Kernel::TermList>
   }
 
   bool hasNext(EmptyContext = EmptyContext()) const { return hasNext(TermListContext()); }
-  bool hasNext(TermListContext c) const
-  { return _self.isTerm() && _idx < _self.term()->numTermArguments(); }
+  bool hasNext(TermListContext ctx) const
+  { return _self.isTerm() && (ctx.ignoreTypeArgs 
+      ? _idx < _self.term()->numTermArguments()
+      : _idx < _self.term()->arity()); }
 
   unsigned nChildren(EmptyContext = EmptyContext()) const { return nChildren(TermListContext()); }
   unsigned nChildren(TermListContext c) const
@@ -500,121 +504,6 @@ Kernel::Literal* evaluateLiteralBottomUp(Kernel::Literal* const& lit, EvalFn eva
   auto memo = None<typename EvalFn::Arg, typename EvalFn::Result>();
   return evaluateLiteralBottomUp(lit, evaluateStep, memo);
 }
-
-} // namespace Lib
-
-#include "Polynomial.hpp"
-
-namespace Lib {
-// specialisation for PolyNf
-template<>
-struct BottomUpChildIter<Kernel::PolyNf>
-{
-  struct PolynomialBottomUpChildIter
-  {
-    Kernel::AnyPoly _self;
-    unsigned _idx1;
-    unsigned _idx2;
-    unsigned _nChildren;
-
-    PolynomialBottomUpChildIter(Kernel::AnyPoly self) : _self(self), _idx1(0), _idx2(0), _nChildren(0)
-    {
-      while (_idx1 < _self.nSummands() && _self.nFactors(_idx1) == 0) {
-        _idx1++;
-      }
-      for (unsigned i = 0; i < _self.nSummands(); i++) {
-        _nChildren += self.nFactors(i);
-      }
-    }
-
-    bool hasNext() const
-    { return _idx1 < _self.nSummands(); }
-
-    Kernel::PolyNf next()
-    {
-      auto out = _self.termAt(_idx1, _idx2++);
-      if (_idx2 >= _self.nFactors(_idx1)) {
-        _idx1++;
-        while (_idx1 < _self.nSummands() && _self.nFactors(_idx1) == 0) {
-          _idx1++;
-        }
-        _idx2 = 0;
-      }
-      return out;
-    }
-
-    unsigned nChildren() const
-    { return _nChildren; }
-
-    friend std::ostream& operator<<(std::ostream& out, PolynomialBottomUpChildIter const& self)
-    { return out << self._self << "@(" << self._idx1 << ", " << self._idx2 << ")"; }
-  };
-
-  struct FuncTermBottomUpChildIter
-  {
-
-    Perfect<Kernel::FuncTerm> _self;
-    unsigned _idx;
-
-    FuncTermBottomUpChildIter(Perfect<Kernel::FuncTerm> self) : _self(self), _idx(0) {}
-
-    bool hasNext() const
-    { return _idx < _self->numTermArguments(); }
-
-    Kernel::PolyNf next()
-    { return _self->arg(_idx++); }
-
-    unsigned nChildren() const
-    { return _self->numTermArguments(); }
-
-    friend std::ostream& operator<<(std::ostream& out, FuncTermBottomUpChildIter const& self)
-    { return out << self._self << "@" << self._idx; }
-  };
-
-
-  struct VariableBottomUpChildIter
-  {
-    Kernel::Variable _self;
-    VariableBottomUpChildIter(Kernel::Variable self) : _self(self) {}
-
-    bool hasNext() const
-    { return false; }
-
-    Kernel::PolyNf next()
-    { ASSERTION_VIOLATION }
-
-    unsigned nChildren() const
-    { return 0; }
-
-    friend std::ostream& operator<<(std::ostream& out, VariableBottomUpChildIter const& self)
-    { return out << self._self; }
-  };
-
-  using Inner = Coproduct<FuncTermBottomUpChildIter, VariableBottomUpChildIter, PolynomialBottomUpChildIter>;
-  Inner _self;
-
-  BottomUpChildIter(Kernel::PolyNf self, EmptyContext = EmptyContext()) : _self(self.match(
-        [&](Perfect<Kernel::FuncTerm> self) { return Inner(FuncTermBottomUpChildIter( self ));            },
-        [&](Kernel::Variable                  self) { return Inner(VariableBottomUpChildIter( self ));            },
-        [&](Kernel::AnyPoly           self) { return Inner(PolynomialBottomUpChildIter(std::move(self))); }
-      ))
-  {}
-
-  Kernel::PolyNf next(EmptyContext = EmptyContext())
-  { ALWAYS(hasNext()); return _self.apply([](auto& x) -> Kernel::PolyNf { return x.next(); }); }
-
-  bool hasNext(EmptyContext = EmptyContext()) const
-  { return _self.apply([](auto& x) { return x.hasNext(); }); }
-
-  unsigned nChildren(EmptyContext = EmptyContext()) const
-  { return _self.apply([](auto& x) { return x.nChildren(); }); }
-
-  Kernel::PolyNf self(EmptyContext = EmptyContext()) const
-  { return _self.apply([](auto& x) { return Kernel::PolyNf(x._self); }); }
-
-  friend std::ostream& operator<<(std::ostream& out, BottomUpChildIter const& self)
-  { return out << self._self; }
-};
 
 } // namespace Lib
 

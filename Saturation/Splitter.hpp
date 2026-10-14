@@ -15,6 +15,7 @@
 #ifndef __Splitter__
 #define __Splitter__
 
+#include "Lib/Comparison.hpp"
 #include "Forwards.hpp"
 
 #include "Lib/Allocator.hpp"
@@ -281,7 +282,7 @@ private:
    * Definitions of ground components C and ~C are shared and placed at the slot of C.
    * (So the key here is never odd!)
    **/
-  DHMap<SplitLevel,Unit*> _defs;
+  DHMap<SplitLevel,Unit*, FnvHash, IdentityHash> _defs;
 
   /** true if there was a clause added to the SAT solver since last call to onAllProcessed */
   bool _clausesAdded;
@@ -299,7 +300,7 @@ private:
 
   // clauses we already added to the SAT solver
   // not just optimisation: also prevents the SAT solver oscillating between two models in some cases
-  Set<SATClause *, DerefPtrHash<DefaultHash>> _already_added;
+  Set<SATClause*, DerefPtrHash<SATClauseHash>, DerefPtrEqual> _already_added;
 public:
   static std::string splPrefix;
 

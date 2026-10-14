@@ -16,7 +16,6 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Stack.hpp"
 
-#include "Indexing/IndexManager.hpp"
 #include "Indexing/LiteralIndex.hpp"
 #include "Indexing/TermIndex.hpp"
 
@@ -46,9 +45,10 @@ using namespace Saturation;
 struct LookaheadLiteralSelector::GenIteratorIterator
 {
   using TermIndex = Indexing::TermIndex<TermLiteralClause>;
-  DECL_ELEMENT_TYPE(VirtualIterator<std::tuple<>>);
+  using ElementType = VirtualIterator<std::tuple<>>;
 
-  GenIteratorIterator(Literal* lit, LookaheadLiteralSelector& parent) : stage(0), lit(lit), prepared(false), _parent(parent) {}
+  GenIteratorIterator(Literal* lit, LookaheadLiteralSelector& parent) : stage(0), lit(lit), prepared(false), _parent(parent)
+  { ASS(!env.higherOrder()); }
 
   bool hasNext()
   {
@@ -68,39 +68,34 @@ struct LookaheadLiteralSelector::GenIteratorIterator
       return false;
     }
 
-    IndexManager* imgr=salg->getIndexManager();
-    ASS(imgr);
   start:
     switch(stage) {
     case 0:  //resolution
     {
-      if(!imgr->contains(BINARY_RESOLUTION_SUBST_TREE)) { stage++; goto start; }
-      BinaryResolutionIndex* gli=static_cast<BinaryResolutionIndex*>(imgr->get(BINARY_RESOLUTION_SUBST_TREE));
-      ASS(gli);
+      auto gli = salg->tryGetGeneratingIndex<BinaryResolutionIndex>();
+      if(!gli) { stage++; goto start; }
 
       nextIt=pvi( dropElementType(gli->getUnifications(lit,true,false)) );
       break;
     }
     case 1:  //backward superposition
     {
-      if(!imgr->contains(SUPERPOSITION_SUBTERM_SUBST_TREE)) { stage++; goto start; }
-      TermIndex* bsi=static_cast<TermIndex*>(imgr->get(SUPERPOSITION_SUBTERM_SUBST_TREE));
-      ASS(bsi);
+      auto bsi = salg->tryGetGeneratingIndex<SuperpositionSubtermIndex</*higherOrder=*/false>>();
+      if(!bsi) { stage++; goto start; }
 
       nextIt=pvi( getMapAndFlattenIterator(
 	       EqHelper::getLHSIterator(lit, _parent._ord),
-	       TermUnificationRetriever(bsi)) );
+	       TermUnificationRetriever(bsi.get())) );
       break;
     }
     case 2:  //forward superposition
     {
-      if(!imgr->contains(SUPERPOSITION_LHS_SUBST_TREE)) { stage++; goto start; }
-      TermIndex* fsi=static_cast<TermIndex*>(imgr->get(SUPERPOSITION_LHS_SUBST_TREE));
-      ASS(fsi);
+      auto fsi=salg->tryGetGeneratingIndex<SuperpositionLHSIndex>();
+      if(!fsi) { stage++; goto start; }
 
       nextIt=pvi( getMapAndFlattenIterator(
-	       EqHelper::getSubtermIterator(lit, _parent._ord), //TODO update for HO superposition
-	       TermUnificationRetriever(fsi)) );
+	       EqHelper::getSubtermIterator</*higherOrder=*/false>(lit, _parent._ord), //TODO update for HO superposition
+	       TermUnificationRetriever(fsi.get())) );
       break;
     }
     case 3:  //equality resolution
@@ -139,7 +134,7 @@ struct LookaheadLiteralSelector::GenIteratorIterator
     ASS(prepared);
     prepared=false;
     stage++;
-    return nextIt;
+    return std::move(nextIt);
   }
 private:
 
@@ -199,10 +194,10 @@ Literal* LookaheadLiteralSelector::pickTheBest(Literal** lits, unsigned cnt)
   do {
     for(unsigned i=0;i<cnt;i++) {
       if(runifs[i].hasNext()) {
-	runifs[i].next();
+	      runifs[i].next();
       }
       else {
-	candidates.push(lits[i]);
+	      candidates.push(lits[i]);
       }
     }
   } while(candidates.isEmpty());
@@ -225,7 +220,7 @@ Literal* LookaheadLiteralSelector::pickTheBest(Literal** lits, unsigned cnt)
   }
 
   for(unsigned i=0;i<cnt;i++) {
-    runifs[i].drop(); //release the iterators
+    runifs[i] = VirtualIterator<std::tuple<>>(); // properly releases _core via move-assign
   }
   return res;
 }

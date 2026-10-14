@@ -130,7 +130,7 @@ const TermPartialOrdering* TermPartialOrdering::getEmpty(const Ordering& ord)
 
 const TermPartialOrdering* TermPartialOrdering::set(const TermPartialOrdering* tpo, TermOrderingConstraint con)
 {
-  static DHMap<std::tuple<const TermPartialOrdering*, TermList, TermList, Result>, const TermPartialOrdering*> cache;
+  static DHMap<std::tuple<const TermPartialOrdering*, TermList, TermList, Result>, const TermPartialOrdering*, TupleHash<FnvHash,TermListHash,TermListHash,FnvHash>, TupleHash<PtrIdentityHash,TermListHash2,TermListHash2,IdentityHash>> cache;
   const TermPartialOrdering** ptr;
   if (cache.getValuePtr(make_tuple(tpo, con.lhs, con.rhs, con.rel), ptr, nullptr)) {
     auto res = new TermPartialOrdering(*tpo);
@@ -344,10 +344,10 @@ size_t TermPartialOrdering::getIdExt(TermList t)
 
 ostream& operator<<(ostream& str, const TermPartialOrdering& tpo)
 {
-  typename Map<TermList,size_t>::Iterator it1(tpo._nodes);
+  typename Map<TermList,size_t, TermListHash>::Iterator it1(tpo._nodes);
   while (it1.hasNext()) {
     const auto& e1 = it1.next();
-    typename Map<TermList,size_t>::Iterator it2(tpo._nodes);
+    typename Map<TermList,size_t, TermListHash>::Iterator it2(tpo._nodes);
     while (it2.hasNext()) {
       const auto& e2 = it2.next();
       if (e1.value() >= e2.value()) {

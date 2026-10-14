@@ -20,7 +20,6 @@
 #include "Forwards.hpp"
 #include "OperatorType.hpp"
 
-#include "Lib/DHMap.hpp"
 #include "Lib/Exception.hpp"
 #include "Lib/Reflection.hpp"
 
@@ -39,8 +38,8 @@ template<class T>
 struct QR { T quot; T rem; };
 
 #define MK_CAST_OP(Type, OP, ToCast)                                                      \
-  friend auto operator OP(Type l, ToCast const& r) { return l OP Type(r); }               \
-  friend auto operator OP(ToCast const& l, Type r) { return Type(l) OP r; }               \
+  friend auto operator OP(Type const& l, ToCast const& r) { return l OP Type(r); }        \
+  friend auto operator OP(ToCast const& l, Type const& r) { return Type(l) OP r; }        \
 
 #define MK_CAST_OPS(Type, ToCast)                                                         \
   MK_CAST_OP(Type, *, ToCast)                                                             \
@@ -200,16 +199,19 @@ public:
   IntegerConstantType abs() const;
   IntegerConstantType log2() const;
 
-  static Comparison comparePrecedence(IntegerConstantType n1, IntegerConstantType n2);
+  static Comparison comparePrecedence(IntegerConstantType const& n1, IntegerConstantType const& n2);
   size_t hash() const;
-  auto defaultHash () const { return DefaultHash ::hash(truncate<unsigned long>()); }
-  auto defaultHash2() const { return DefaultHash2::hash(truncate<unsigned long>()); }
 
   friend std::ostream& operator<<(std::ostream& out, const IntegerConstantType& val);
   friend struct RationalConstantType;
   friend void init_mpq(mpq_t out, RationalConstantType const&);
 private:
   MK_CAST_OPS(IntegerConstantType, int)
+};
+
+struct IntegerConstantTypeHash {
+  static unsigned hash(const IntegerConstantType& value)
+  { return FnvHash::hash(value.truncate<unsigned long>()); }
 };
 
 /**
@@ -285,16 +287,13 @@ struct RationalConstantType {
 
   MK_SIGN_OPS
 
-  static Comparison comparePrecedence(RationalConstantType n1, RationalConstantType n2);
+  static Comparison comparePrecedence(RationalConstantType const& n1, RationalConstantType const& n2);
 
   friend std::ostream& operator<<(std::ostream& out, const RationalConstantType& val); 
 
   MK_CAST_OPS(RationalConstantType, int)
   MK_CAST_OPS(RationalConstantType, IntegerConstantType)
   MK_CAST_OP(RationalConstantType, /, int)
-
-  auto defaultHash () const { return HashUtils::combine(_num.defaultHash(), _den.defaultHash()); }
-  auto defaultHash2() const { return HashUtils::combine(_num.defaultHash2(), _den.defaultHash2()); }
 
 private:
   void cannonize();
@@ -305,6 +304,16 @@ private:
 
 std::ostream& operator<<(std::ostream& out, const IntegerConstantType& val); 
 
+
+// RealConstantType uses the same rational representation and hash.
+struct RationalConstantTypeHash {
+  static unsigned hash(const RationalConstantType& value)
+  {
+    return HashUtils::combine(
+      IntegerConstantTypeHash::hash(value.numerator()),
+      IntegerConstantTypeHash::hash(value.denominator()));
+  }
+};
 
 class RealConstantType : public RationalConstantType
 {
@@ -345,7 +354,7 @@ public:
   RealConstantType abs() const;
 
   size_t hash() const;
-  static Comparison comparePrecedence(RealConstantType n1, RealConstantType n2);
+  static Comparison comparePrecedence(RealConstantType const& n1, RealConstantType const& n2);
 
   /* currently we only represent rational numerals */ 
   bool isRat() const { return true;  }
@@ -480,53 +489,15 @@ public:
 
     // array functions
     ARRAY_SELECT,
-    ARRAY_BOOL_SELECT,
     ARRAY_STORE,
 
     INVALID_INTERPRETATION // LEAVE THIS AS THE LAST ELEMENT OF THE ENUM
   };
 
-  enum IndexedInterpretation {
-    FOR_NOW_EMPTY
-  };
-
-  typedef std::pair<IndexedInterpretation, unsigned> ConcreteIndexedInterpretation;
-
-  /**
-   * Interpretations represent the abstract concept of an interpreted operation vampire knows about.
-   *
-   * Some of them are polymorphic, such the ones for ARRAYs, and only become a concrete operation when supplied with OperatorType*.
-   * To identify these, MonomorphisedInterpretation (see below) can be used. However, notice that the appropriate Symbol always carries
-   * an Interpretation (if interpreted) and an OperatorType*.
-   *
-   * Other operations might be, in fact, indexed families of operations, and need an additional index (unsigned) to be specified.
-   * To keep the Symbol structure from growing for their sake, these IndexedInterpretations are instantiated to a concrete member of a family on demand
-   * and we keep track of this instantiation in _indexedInterpretations (see below). Members of _indexedInterpretations
-   * implicitly "inhabit" a range of values in Interpretation after INVALID_INTERPRETATION, so that again an
-   * Interpretation (this time >= INVALID_INTERPRETATION) and an OperatorType* are enough to identify a member of an indexed family.
-   */
-
-  typedef std::pair<Interpretation, OperatorType*> MonomorphisedInterpretation;
-
-private:
-  DHMap<ConcreteIndexedInterpretation,Interpretation> _indexedInterpretations;
-
 public:
 
   static unsigned numberOfFixedInterpretations() {
     return INVALID_INTERPRETATION;
-  }
-
-  Interpretation interpretationFromIndexedInterpretation(IndexedInterpretation ii, unsigned index)
-  {
-    ConcreteIndexedInterpretation cii = std::make_pair(ii,index);
-
-    Interpretation res;
-    if (!_indexedInterpretations.find(cii, res)) {
-      res = static_cast<Interpretation>(numberOfFixedInterpretations() + _indexedInterpretations.size());
-      _indexedInterpretations.insert(cii, res);
-    }
-    return res;
   }
 
   static bool isPlus(Interpretation i){
@@ -537,9 +508,7 @@ public:
   static unsigned getArity(Interpretation i);
   static bool isFunction(Interpretation i);
   static bool isInequality(Interpretation i);
-  static OperatorType* getNonpolymorphicOperatorType(Interpretation i);
-
-  static OperatorType* getArrayOperatorType(TermList arraySort, Interpretation i);
+  static OperatorType* getOperatorType(Interpretation i);
 
   static bool hasSingleSort(Interpretation i);
   static TermList getOperationSort(Interpretation i);
@@ -548,11 +517,8 @@ public:
   static bool isNonLinearOperation(Interpretation i);
   bool isPartiallyInterpretedFunction(Term* t);
   bool partiallyDefinedFunctionUndefinedForArgs(Term* t);
-  // static bool isPartialFunction(Interpretation i);
 
   static bool isPolymorphic(Interpretation i);
-
-  unsigned getArrayExtSkolemFunction(TermList sort);
 
   static Theory theory_obj;
   static Theory* instance();
@@ -586,7 +552,6 @@ public:
   bool isInterpretedFunction(Term* t, Interpretation itp);
   bool isInterpretedFunction(TermList t, Interpretation itp);
 
-  // bool isInterpretedPartialFunction(unsigned func);
   bool isZero(TermList t);
 
   Interpretation interpretFunction(unsigned func);
@@ -642,22 +607,14 @@ public:
   Term* representConstant(const RealConstantType& num);
 
 private:
-  Theory();
+  Theory() = default;
   static OperatorType* getConversionOperationType(Interpretation i);
 
-  DHMap<TermList,unsigned> _arraySkolemFunctions;
-
 public:
-  class Tuples {
-  public:
-    bool isConstructor(Term* t);
-    unsigned getConstructor(unsigned arity);
-    unsigned getProjectionFunctor(unsigned arity, unsigned proj);
-    bool findProjection(unsigned projFunctor, bool isPredicate, unsigned &proj);
-  };
-
-  static Theory::Tuples tuples_obj;
-  static Theory::Tuples* tuples();
+  static bool isTupleConstructor(Term* t);
+  static unsigned getTupleConstructor(unsigned arity);
+  static unsigned getTupleProjectionFunctor(unsigned arity, unsigned proj);
+  static bool findTupleProjection(unsigned projFunctor, bool isPredicate, unsigned &proj);
 };
 
 #define ANY_INTERPRETED_PREDICATE                                                         \
@@ -683,7 +640,6 @@ public:
     case Kernel::Theory::REAL_GREATER:                                                    \
     case Kernel::Theory::REAL_GREATER_EQUAL:                                              \
     case Kernel::Theory::REAL_LESS:                                                       \
-    case Kernel::Theory::ARRAY_BOOL_SELECT:                                               \
     case Kernel::Theory::REAL_LESS_EQUAL
 
 #define ANY_INTERPRETED_FUNCTION                                                          \

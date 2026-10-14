@@ -39,11 +39,9 @@ set(UNIT_TESTS
     UnitTests/tALASCA_Superposition.cpp
     UnitTests/tALASCA_TautologyDeletion.cpp
     UnitTests/tALASCA_TermFactoring.cpp
-    UnitTests/tALASCA_VIRAS.cpp
     UnitTests/tALASCA_VariableElimination.cpp
-    UnitTests/tAnswerLiteralProcessors_Synthesis.cpp
+    UnitTests/tALASCA_VIRAS.cpp
     UnitTests/tArithCompare.cpp
-    UnitTests/tArithmeticSubtermGeneralization.cpp
     UnitTests/tBinaryHeap.cpp
     UnitTests/tBottomUpEvaluation.cpp
     UnitTests/tCoproduct.cpp
@@ -52,49 +50,89 @@ set(UNIT_TESTS
     UnitTests/tDeque.cpp
     UnitTests/tDisagreement.cpp
     UnitTests/tDynamicHeap.cpp
-    UnitTests/tEqualityResolution.cpp
-    UnitTests/tForwardGroundJoinability.cpp
     UnitTests/tFunctionDefinitionHandler.cpp
-    UnitTests/tFunctionDefinitionRewriting.cpp
-    UnitTests/tGaussianElimination.cpp
-    UnitTests/tInduction.cpp
+    UnitTests/tHash.cpp
+    UnitTests/tIndexManager.cpp
+    UnitTests/tInferences_AnswerLiteralProcessors.cpp
+    UnitTests/tInferences_ArithmeticSubtermGeneralization.cpp
+    UnitTests/tInferences_BinaryResolution.cpp
+    UnitTests/tInferences_CodeTreeSubsumptionAndResolution.cpp
+    UnitTests/tInferences_Condensation.cpp
+    UnitTests/tInferences_Demodulation.cpp
+    UnitTests/tInferences_EqualityFactoring.cpp
+    UnitTests/tInferences_EqualityResolution.cpp
+    UnitTests/tInferences_Factoring.cpp
+    UnitTests/tInferences_FastCondensation.cpp
+    UnitTests/tInferences_ForwardGroundJoinability.cpp
+    UnitTests/tInferences_FunctionDefinitionRewriting.cpp
+    UnitTests/tInferences_GaussianVariableElimination.cpp
+    UnitTests/tInferences_HOL_ArgCong.cpp
+    UnitTests/tInferences_HOL_BetaEtaSimplify.cpp
+    UnitTests/tInferences_HOL_BoolEqToDiseq.cpp
+    UnitTests/tInferences_HOL_BoolSimp.cpp
+    UnitTests/tInferences_HOL_Cases.cpp
+    UnitTests/tInferences_HOL_CasesSimp.cpp
+    UnitTests/tInferences_HOL_Choice.cpp
+    UnitTests/tInferences_HOL_CNFOnTheFly.cpp
+    UnitTests/tInferences_HOL_FlexFlexSimplify.cpp
+    UnitTests/tInferences_HOL_ImitateProject.cpp
+    UnitTests/tInferences_HOL_Injectivity.cpp
+    UnitTests/tInferences_HOL_LeibnizEqualityElimination.cpp
+    UnitTests/tInferences_HOL_NegativeExtensionality.cpp
+    UnitTests/tInferences_HOL_PositiveExtensionality.cpp
+    UnitTests/tInferences_HOL_PrimitiveInstantiation.cpp
+    UnitTests/tInferences_Induction.cpp
+    UnitTests/tInferences_InferenceEngine.cpp
+    UnitTests/tInferences_InnerRewriting.cpp
+    UnitTests/tInferences_PushUnaryMinus.cpp
+    UnitTests/tInferences_SubsumptionAndResolution.cpp
+    UnitTests/tInferences_SubsumptionDemodulation.cpp
+    UnitTests/tInferences_SubsumptionEqualityResolution.cpp
+    UnitTests/tInferences_Superposition.cpp
+    UnitTests/tInferences_TautologyDeletionISE.cpp
+    UnitTests/tInferences_URResolution.cpp
     UnitTests/tIntegerConstantType.cpp
     UnitTests/tInterpretedFunctions.cpp
     UnitTests/tIterator.cpp
     UnitTests/tKBO.cpp
-    UnitTests/tKBO.hpp
     UnitTests/tLPO.cpp
     UnitTests/tList.cpp
+    UnitTests/tMap.cpp
     UnitTests/tOption.cpp
+    UnitTests/tPredicateElimination.cpp
     UnitTests/tOptionConstraints.cpp
-    UnitTests/tPushUnaryMinus.cpp
     UnitTests/tQKbo.cpp
     UnitTests/tQuotientE.cpp
     UnitTests/tRebalance.cpp
     UnitTests/tRobSubstitution.cpp
+    UnitTests/tSATClause.cpp
     UnitTests/tSATSolver.cpp
     UnitTests/tSATSubsumptionResolution.cpp
-    UnitTests/tSafeRecursion.cpp
     UnitTests/tSet.cpp
     UnitTests/tSkipList.cpp
+    UnitTests/tSignature.cpp
     UnitTests/tStack.cpp
     UnitTests/tSyntaxSugar.cpp
     UnitTests/tTermAlgebra.cpp
     UnitTests/tTermIndex.cpp
+    UnitTests/tTermOutput.cpp
     UnitTests/tTimeTrace.cpp
+    UnitTests/tTuple.cpp
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/HOL/tHOL_Printing.cpp
-    UnitTests/HOL/tBetaReduction.cpp
-    UnitTests/HOL/tEtaReduction.cpp
-    UnitTests/HOL/tTermShifter.cpp
-    UnitTests/HOL/tSubtermReplacer.cpp
+    UnitTests/HOL/tHOL_BetaReduction.cpp
+    UnitTests/HOL/tHOL_EtaReduction.cpp
+    UnitTests/HOL/tHOL_TermShifter.cpp
+    UnitTests/HOL/tHOL_SubtermReplacer.cpp
+    UnitTests/HOL/tHOL_Unifier.cpp
 )
 
 ################################################################
 # unit tests (only if Z3 enabled)
 ################################################################
 set(UNIT_TESTS_Z3
-    UnitTests/tTheoryInstAndSimp.cpp
+    UnitTests/tInferences_TheoryInstAndSimp.cpp
+    UnitTests/tSMTCheck.cpp
     UnitTests/tZ3Interfacing.cpp
 )
 
@@ -142,33 +180,31 @@ set(SOURCES
     Indexing/ClauseVariantIndex.hpp
     Indexing/CodeTree.cpp
     Indexing/CodeTree.hpp
-    Indexing/CodeTreeInterfaces.cpp
     Indexing/CodeTreeInterfaces.hpp
+    Indexing/DemodulationIndex.hpp
+    Indexing/DemodulationIndex.cpp
     Indexing/Index.cpp
     Indexing/Index.hpp
     Indexing/IndexManager.cpp
     Indexing/IndexManager.hpp
     Indexing/InductionFormulaIndex.cpp
     Indexing/InductionFormulaIndex.hpp
+    Indexing/LiteralCodeTree.hpp
     Indexing/LiteralIndex.cpp
     Indexing/LiteralIndex.hpp
-    Indexing/LiteralIndexingStructure.hpp
     Indexing/LiteralMiniIndex.cpp
     Indexing/LiteralMiniIndex.hpp
     Indexing/LiteralSubstitutionTree.hpp
-    Indexing/RequestedIndex.hpp
     Indexing/ResultSubstitution.cpp
     Indexing/ResultSubstitution.hpp
     Indexing/SubstitutionTree.hpp
-    Indexing/SubstitutionTree_FastGen.hpp
     Indexing/SubstitutionTree_FastInst.hpp
     Indexing/SubstitutionTree_Nodes.hpp
     Indexing/SubstitutionTree_impl.hpp
-    Indexing/TermCodeTree.cpp
     Indexing/TermCodeTree.hpp
+    Indexing/TermOrLiteralCodeTree.hpp
     Indexing/TermIndex.cpp
     Indexing/TermIndex.hpp
-    Indexing/TermIndexingStructure.hpp
     Indexing/TermSharing.cpp
     Indexing/TermSharing.hpp
     Indexing/TermSubstitutionTree.hpp
@@ -206,8 +242,6 @@ set(SOURCES
     Inferences/ALASCA/VirasInterfacing.hpp
     Inferences/AnswerLiteralProcessors.cpp
     Inferences/AnswerLiteralProcessors.hpp
-    Inferences/ArgCong.cpp
-    Inferences/ArgCong.hpp
     Inferences/ArithmeticSubtermGeneralization.cpp
     Inferences/ArithmeticSubtermGeneralization.cpp
     Inferences/ArithmeticSubtermGeneralization.hpp
@@ -224,22 +258,10 @@ set(SOURCES
     Inferences/BackwardSubsumptionDemodulation.hpp
     Inferences/BinaryResolution.cpp
     Inferences/BinaryResolution.hpp
-    Inferences/BoolEqToDiseq.cpp
-    Inferences/BoolEqToDiseq.hpp
-    Inferences/BoolSimp.cpp
-    Inferences/BoolSimp.hpp
-    Inferences/CNFOnTheFly.cpp
-    Inferences/CNFOnTheFly.hpp
     Inferences/Cancellation.cpp
     Inferences/Cancellation.cpp
     Inferences/Cancellation.hpp
     Inferences/Cancellation.hpp
-    Inferences/Cases.cpp
-    Inferences/Cases.hpp
-    Inferences/CasesSimp.cpp
-    Inferences/CasesSimp.hpp
-    Inferences/Choice.cpp
-    Inferences/Choice.hpp
     Inferences/CodeTreeForwardSubsumptionAndResolution.cpp
     Inferences/CodeTreeForwardSubsumptionAndResolution.hpp
     Inferences/Condensation.cpp
@@ -281,6 +303,34 @@ set(SOURCES
     Inferences/GaussianVariableElimination.hpp
     Inferences/GlobalSubsumption.cpp
     Inferences/GlobalSubsumption.hpp
+    Inferences/HOL/ArgCong.cpp
+    Inferences/HOL/ArgCong.hpp
+    Inferences/HOL/BetaEtaSimplify.cpp
+    Inferences/HOL/BetaEtaSimplify.hpp
+    Inferences/HOL/BoolEqToDiseq.cpp
+    Inferences/HOL/BoolEqToDiseq.hpp
+    Inferences/HOL/BoolSimp.cpp
+    Inferences/HOL/BoolSimp.hpp
+    Inferences/HOL/Cases.cpp
+    Inferences/HOL/Cases.hpp
+    Inferences/HOL/CasesSimp.cpp
+    Inferences/HOL/CasesSimp.hpp
+    Inferences/HOL/Choice.cpp
+    Inferences/HOL/Choice.hpp
+    Inferences/HOL/CNFOnTheFly.cpp
+    Inferences/HOL/CNFOnTheFly.hpp
+    Inferences/HOL/FlexFlexSimplify.cpp
+    Inferences/HOL/FlexFlexSimplify.hpp
+    Inferences/HOL/ImitateProject.cpp
+    Inferences/HOL/ImitateProject.hpp
+    Inferences/HOL/LeibnizEqualityElimination.cpp
+    Inferences/HOL/LeibnizEqualityElimination.hpp
+    Inferences/HOL/NegativeExtensionality.cpp
+    Inferences/HOL/NegativeExtensionality.hpp
+    Inferences/HOL/PositiveExtensionality.cpp
+    Inferences/HOL/PositiveExtensionality.hpp
+    Inferences/HOL/PrimitiveInstantiation.cpp
+    Inferences/HOL/PrimitiveInstantiation.hpp
     Inferences/Induction.cpp
     Inferences/Induction.hpp
     Inferences/InductionHelper.cpp
@@ -296,8 +346,6 @@ set(SOURCES
     Inferences/InterpretedEvaluation.cpp
     Inferences/InterpretedEvaluation.hpp
     Inferences/LfpRule.hpp
-    Inferences/NegativeExt.cpp
-    Inferences/NegativeExt.hpp
     Inferences/PolynomialEvaluation.cpp
     Inferences/PolynomialEvaluation.hpp
     Inferences/ProofExtra.cpp
@@ -306,6 +354,8 @@ set(SOURCES
     Inferences/PushUnaryMinus.hpp
     Inferences/SubsumptionDemodulationHelper.cpp
     Inferences/SubsumptionDemodulationHelper.hpp
+    Inferences/SubsumptionEqualityResolution.cpp
+    Inferences/SubsumptionEqualityResolution.hpp
     Inferences/Superposition.cpp
     Inferences/Superposition.hpp
     Inferences/TautologyDeletionISE.cpp
@@ -325,7 +375,6 @@ set(SOURCES
     Kernel/ALASCA/SelectionPrimitves.hpp
     Kernel/ALASCA/Signature.cpp
     Kernel/ALASCA/Signature.hpp
-    Kernel/ALASCA/State.cpp
     Kernel/ALASCA/State.hpp
     Kernel/BestLiteralSelector.hpp
     Kernel/BottomUpEvaluation.hpp
@@ -394,6 +443,7 @@ set(SOURCES
     Kernel/PartialOrdering.hpp
     Kernel/Polynomial.cpp
     Kernel/Polynomial.hpp
+    Kernel/PolynomialBottomUpEvaluation.hpp
     Kernel/PolynomialNormalizer.cpp
     Kernel/PolynomialNormalizer.hpp
     Kernel/PolynomialNormalizer/PredicateEvaluator.hpp
@@ -422,6 +472,8 @@ set(SOURCES
     Kernel/SortHelper.hpp
     Kernel/SpassLiteralSelector.cpp
     Kernel/SpassLiteralSelector.hpp
+    Kernel/SymbolUsage.cpp
+    Kernel/SymbolUsage.hpp
     Kernel/SubformulaIterator.cpp
     Kernel/SubformulaIterator.hpp
     Kernel/SubstHelper.hpp
@@ -453,7 +505,6 @@ set(SOURCES
     Kernel/HOL/Create.cpp
     Kernel/HOL/Convert.cpp
     Kernel/HOL/Reduce.cpp
-    Kernel/HOL/BetaNormaliser.cpp
     Kernel/HOL/BetaNormaliser.hpp
     Kernel/HOL/RedexReducer.cpp
     Kernel/HOL/RedexReducer.hpp
@@ -463,6 +514,8 @@ set(SOURCES
     Kernel/HOL/EtaNormaliser.hpp
     Kernel/HOL/SubtermReplacer.cpp
     Kernel/HOL/SubtermReplacer.hpp
+    Kernel/HOL/Unifier.cpp
+    Kernel/HOL/Unifier.hpp
     Lib/Allocator.cpp
     Lib/Allocator.hpp
     Lib/Array.hpp
@@ -486,6 +539,7 @@ set(SOURCES
     Lib/Event.hpp
     Lib/Exception.cpp
     Lib/Exception.hpp
+    Lib/FlexibleTail.hpp
     Lib/Hash.hpp
     Lib/Int.cpp
     Lib/Int.hpp
@@ -511,7 +565,6 @@ set(SOURCES
     Lib/Recycled.hpp
     Lib/Reflection.hpp
     Lib/STL.hpp
-    Lib/SafeRecursion.hpp
     Lib/ScopeGuard.hpp
     Lib/ScopedLet.hpp
     Lib/ScopedPtr.hpp
@@ -638,14 +691,10 @@ set(SOURCES
     Shell/CommandLine.hpp
     Shell/DistinctGroupExpansion.cpp
     Shell/DistinctGroupExpansion.hpp
-    Shell/DistinctProcessor.cpp
-    Shell/DistinctProcessor.hpp
     Shell/EqResWithDeletion.cpp
     Shell/EqResWithDeletion.hpp
     Shell/EqualityProxy.cpp
     Shell/EqualityProxy.hpp
-    Shell/EqualityProxyMono.cpp
-    Shell/EqualityProxyMono.hpp
     Shell/FOOLElimination.cpp
     Shell/FOOLElimination.hpp
     Shell/Flattening.cpp
@@ -686,6 +735,8 @@ set(SOURCES
     Shell/PartialRedundancyHandler.hpp
     Shell/PredicateDefinition.cpp
     Shell/PredicateDefinition.hpp
+    Shell/PredicateElimination.cpp
+    Shell/PredicateElimination.hpp
     Shell/Preprocess.cpp
     Shell/Preprocess.cpp
     Shell/Preprocess.hpp

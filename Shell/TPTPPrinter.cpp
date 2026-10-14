@@ -17,6 +17,7 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/SharedSet.hpp"
+#include "Lib/Stack.hpp"
 
 #include "Kernel/Signature.hpp"
 #include "Kernel/Clause.hpp"
@@ -70,7 +71,7 @@ void TPTPPrinter::printWithRole(std::string name, std::string role, Unit* u, boo
   std::string body = getBodyStr(u, includeSplitLevels);
 
   ensureHeadersPrinted(u);
-  tgt() << "tff(" << name << ", " << role << ", " << body << ")." << endl;
+  tgt() << "tff(" << name << ", " << role << ", (" << body << "))." << endl;
 }
 
 /**
@@ -83,7 +84,7 @@ std::string TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
 {
   std::ostringstream res;
 
-  typedef DHMap<unsigned,TermList> SortMap;
+  typedef DHMap<unsigned,TermList, FnvHash, IdentityHash> SortMap;
   static SortMap varSorts;
   varSorts.reset();
   SortHelper::collectVariableSorts(u, varSorts);
@@ -149,7 +150,8 @@ void TPTPPrinter::printTffWrapper(Unit* u, std::string bodyStr)
 {
   tgt() << "tff(";
   std::string unitName;
-  if(Parse::TPTP::findAxiomName(u, unitName)) {
+  std::filesystem::path unitPath;
+  if(Parse::TPTP::findAxiomName(u, unitName, unitPath)) {
     tgt() << unitName;
   }
   else {
@@ -182,18 +184,15 @@ void TPTPPrinter::printTffWrapper(Unit* u, std::string bodyStr)
  */
 void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType symType)
 {
-  Signature::Symbol* sym;
-  OperatorType* type;
+  const Signature::Symbol* sym;
   if(symType == SymbolType::FUNC){
     sym = env.signature->getFunction(symNumber);
-    type = sym->fnType();
   } else if(symType == SymbolType::PRED){
     sym = env.signature->getPredicate(symNumber);
-    type = sym->predType();
   } else {
     sym = env.signature->getTypeCon(symNumber);
-    type = sym->typeConType();
   }
+  auto type = sym->type();
 
   if(type->isAllDefault()) {
     return;
@@ -203,7 +202,7 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
   if(func && theory->isInterpretedConstant(symNumber)) { return; }
 
   if(sym->interpreted()) {
-    Interpretation interp = static_cast<Signature::InterpretedSymbol*>(sym)->getInterpretation();
+    Interpretation interp = static_cast<const Signature::InterpretedSymbol*>(sym)->getInterpretation();
     switch(interp) {
     case Theory::INT_SUCCESSOR:
     case Theory::INT_ABS:
@@ -249,13 +248,13 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
   unsigned i;
   List<TermList> *_usedSorts(0);
   OperatorType* type;
-  Signature::Symbol* sym;
+  const Signature::Symbol* sym;
   unsigned sorts = env.sorts->count();
   //check the sorts of the function symbols and collect information about used sorts
   for (i = 0; i < env.signature->functions(); i++) {
     if(env.signature->isTypeConOrSup(f)){ continue; }
     sym = env.signature->getFunction(i);
-    type = sym->fnType();
+    type = sym->type();
     unsigned arity = sym->arity();
     // NOTE: for function types, the last entry (i.e., type->arg(arity)) contains the type of the result
     for (unsigned i = 0; i <= arity; i++) {
@@ -266,7 +265,7 @@ void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType sym
   //check the sorts of the predicates and collect information about used sorts
   for (i = 0; i < env.signature->predicates(); i++) {
     sym = env.signature->getPredicate(i);
-    type = sym->predType();
+    type = sym->type();
     unsigned arity = sym->arity();
     if (arity > 0) {
       for (unsigned i = 0; i < arity; i++) {
@@ -329,7 +328,7 @@ std::string TPTPPrinter::toString(const Formula* formula)
 {
   static std::string names [] =
     { "", " & ", " | ", " => ", " <=> ", " <~> ",
-      "~", "!", "?", "$term", "$false", "$true", "", ""};
+      "~ ", "!", "?", "$term", "$false", "$true", "", ""};
   ASS_EQ(sizeof(names)/sizeof(std::string), NOCONN+1);
 
   std::string res;
@@ -412,27 +411,17 @@ std::string TPTPPrinter::toString(const Formula* formula)
       {
         std::string result = std::string("(") + names[c] + "[";
         bool needsComma = false;
-        VList::Iterator vs(f->vars());
-        SList::Iterator ss(f->sorts());
-        bool hasSorts = f->sorts();
+        VSList::Iterator vs(f->vars());
 
         while (vs.hasNext()) {
-          unsigned var = vs.next();
+          auto [var, t] = vs.next();
 
           if (needsComma) {
             result += ", ";
           }
           result += 'X';
           result += Int::toString(var);
-          TermList t;
-          if (hasSorts) {
-            ASS(ss.hasNext());
-            t = ss.next();
-            if (t != AtomicSort::defaultSort()) {
-              result += " : " + t.toString();
-            }
-          } else if (SortHelper::tryGetVariableSort(var, const_cast<Formula*>(f),
-              t) && t != AtomicSort::defaultSort()) {
+          if (t != AtomicSort::defaultSort()) {
             result += " : " + t.toString();
           }
           needsComma = true;
@@ -465,6 +454,42 @@ std::string TPTPPrinter::toString(const Formula* formula)
 }
 
 /**
+ * The universal prefix "![X0 : s,X1 : $i] : " binding, with their sorts, all the
+ * variables of @param unit; the empty std::string if there are none.
+ *
+ * Sorts are always spelled out (even the default $i), since making the sorts explicit
+ * is the whole point of the prefix. Type variables come first, as they must, and the
+ * remaining variables in the order of their numbers, so that the output is stable.
+ */
+std::string TPTPPrinter::universalPrefix(const Unit* unit)
+{
+  DHMap<unsigned,TermList, FnvHash, IdentityHash> varSorts;
+  SortHelper::collectVariableSorts(const_cast<Unit*>(unit), varSorts);
+  if (varSorts.isEmpty()) {
+    return "";
+  }
+
+  Stack<unsigned> vars;
+  vars.loadFromIterator(varSorts.domain());
+  vars.sort([&varSorts](unsigned v1, unsigned v2) {
+    bool t1 = varSorts.get(v1).isTerm() && varSorts.get(v1).term()->isSuper();
+    bool t2 = varSorts.get(v2).isTerm() && varSorts.get(v2).term()->isSuper();
+    return (t1 != t2) ? t1 : (v1 < v2);
+  });
+
+  std::ostringstream res;
+  res << "![";
+  for (unsigned i = 0; i < vars.size(); i++) {
+    if (i) {
+      res << ',';
+    }
+    res << 'X' << vars[i] << " : " << varSorts.get(vars[i]).toString();
+  }
+  res << "] : ";
+  return res.str();
+}
+
+/**
  * Output unit @param unit in TPTP format as a std::string
  *
  * If the unit is a formula of type @b CONJECTURE, output the
@@ -472,7 +497,7 @@ std::string TPTPPrinter::toString(const Formula* formula)
  * TPTP role conjecture. If it is a clause, just output it as
  * is, with the role negated_conjecture.
  */
-std::string TPTPPrinter::toString (const Unit* unit)
+std::string TPTPPrinter::toString (const Unit* unit, bool typedClauses)
 {
 //  const Inference* inf = unit->inference();
 //  Inference::Rule rule = inf->rule();
@@ -511,8 +536,14 @@ std::string TPTPPrinter::toString (const Unit* unit)
   }
 
   if (unit->isClause()) {
-    prefix = "cnf";
     main = static_cast<const Clause*>(unit)->toTPTPString();
+    if (typedClauses) {
+      prefix = "tcf";
+      main = universalPrefix(unit) + "( " + main + " )";
+    } else {
+      prefix = "cnf";
+      main = "( " + main + " )";
+    }
   }
   else {
     prefix = "tff";
@@ -535,7 +566,7 @@ std::string TPTPPrinter::toString (const Unit* unit)
       }
       if(quant!=f) {
 	ASS_EQ(quant->connective(),FORALL);
-        VList::destroy(static_cast<QuantifiedFormula*>(quant)->vars());
+        VSList::destroy(static_cast<QuantifiedFormula*>(quant)->vars());
 	quant->destroy();
       }
     }
@@ -545,7 +576,8 @@ std::string TPTPPrinter::toString (const Unit* unit)
   }
 
   std::string unitName;
-  if(!Parse::TPTP::findAxiomName(unit, unitName)) {
+  std::filesystem::path unitPath;
+  if(!Parse::TPTP::findAxiomName(unit, unitName, unitPath)) {
     unitName="u" + Int::toString(unit->number());
   }
 

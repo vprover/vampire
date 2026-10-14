@@ -83,7 +83,6 @@ public:
     // TODO get rid of the need for a typed term list in this case
     TypedTermList key() const { return TypedTermList((**js_u)[sIdx].first, ASig::sort()); }
     static const char* name() { return "alasca coherence lhs"; }
-    static IndexType indexType() { return Indexing::ALASCA_COHERENCE_LHS_SUBST_TREE; }
 
     static auto iter(AlascaState& shared, Clause* cl)
     {
@@ -120,7 +119,6 @@ public:
     // TODO get rid of the need for a typed term list in this case
     TypedTermList key() const { return TypedTermList((**ks_t)[sIdx].first, ASig::sort()); }
     static const char* name() { return "alasca coherence rhs"; }
-    static IndexType indexType() { return Indexing::ALASCA_COHERENCE_RHS_SUBST_TREE; }
 
     static auto iter(AlascaState& shared, Clause* cl)
     {
@@ -218,24 +216,20 @@ public:
 
 template<class NumTraits>
 struct Coherence : public BinInf<CoherenceConf<NumTraits>> {
-  Coherence(std::shared_ptr<AlascaState> shared) 
-    : BinInf<CoherenceConf<NumTraits>>(shared, {}) 
+  Coherence(SaturationAlgorithm& salg)
+    : BinInf<CoherenceConf<NumTraits>>(salg, {})
     {}
 };
 
 
 template<class NumTraits>
 struct CoherenceNormalization : SimplifyingGeneratingInference {
-  std::shared_ptr<AlascaState> shared;
-  CoherenceNormalization(std::shared_ptr<AlascaState> shared) : shared(std::move(shared)) {}
-
-  void attach(SaturationAlgorithm* salg) final { }
-
-  void detach() final { }
+  const AlascaState& _shared;
+  CoherenceNormalization(SaturationAlgorithm& salg) : _shared(salg.alascaState()) {}
 
   ClauseGenerationResult generateSimplify(Clause* premise) final {
     return ClauseGenerationResult {
-      .clauses = pvi( Superposition::Lhs::iter(*shared, premise)
+      .clauses = pvi( Superposition::Lhs::iter(_shared, premise)
                         .filter([](auto& x) { return NumTraits::isFloor(x.biggerSide()); })
                         .filterMap([this](auto x) { return apply(std::move(x)); })),
       .premiseRedundant = false,
@@ -249,7 +243,7 @@ struct CoherenceNormalization : SimplifyingGeneratingInference {
     auto floor_s = prem.biggerSide();
     auto t = prem.smallerSide();
     auto floor_t = NumTraits::floor(t);
-    if (shared->norm().equivalent(floor_s, floor_t) ) {
+    if (_shared.norm().equivalent(floor_s, floor_t) ) {
       return {};
     } else {
       return some(Clause::fromIterator(
@@ -260,10 +254,6 @@ struct CoherenceNormalization : SimplifyingGeneratingInference {
           Inference(GeneratingInference1(InferenceRule::ALASCA_COHERENCE_NORMALIZATION, prem.clause()))));
     }
   }
-
-#if VDEBUG
-  virtual void setTestIndices(Stack<Indexing::Index*> const& i) final override { }
-#endif
 };
 
 #undef DEBUG

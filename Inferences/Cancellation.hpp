@@ -20,7 +20,7 @@ class Cancellation
 : public SimplifyingGeneratingLiteralSimplification
 {
 public:
-  Cancellation(Ordering& ordering);
+  Cancellation(const Ordering& ordering);
   ~Cancellation() override;
 
   Result simplifyLiteral(Literal*) override;

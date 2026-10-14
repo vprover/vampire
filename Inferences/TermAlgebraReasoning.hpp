@@ -92,23 +92,26 @@ class NegativeInjectivityISE
   : public ImmediateSimplificationEngine
 {
 public:
+  NegativeInjectivityISE(const Ordering& ord) : _ord(ord) {}
+
   Kernel::Clause* simplify(Kernel::Clause* c) override;
 
 private:
   bool litCondition(Clause* c, unsigned i);
+
+  const Ordering& _ord;
 };
 
 class AcyclicityGIE
   : public GeneratingInferenceEngine {
 public:
-  void attach(Saturation::SaturationAlgorithm* salg) override;
-  void detach() override;
+  AcyclicityGIE(SaturationAlgorithm& salg);
   Kernel::ClauseIterator generateClauses(Kernel::Clause *c) override;
 private:
   struct AcyclicityGenIterator;
   struct AcyclicityGenFn;
-  
-  Indexing::AcyclicityIndex *_acyclIndex;
+
+  std::shared_ptr<Indexing::AcyclicityIndex> _acyclIndex;
 };
 
 class AcyclicityGIE1

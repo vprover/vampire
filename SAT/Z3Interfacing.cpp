@@ -29,11 +29,13 @@
 #include "Kernel/OperatorType.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
-#include "Kernel/BottomUpEvaluation.hpp"
+#include "Kernel/PolynomialBottomUpEvaluation.hpp"
 #include "Lib/Coproduct.hpp"
 
 #include "Shell/UIHelper.hpp"
 #include "Z3Interfacing.hpp"
+
+#include <unordered_set>
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
 
@@ -1010,6 +1012,43 @@ SATLiteralStack Z3Interfacing::failedAssumptions() {
   ASSERTION_VIOLATION
 }
 
+SATClauseList *Z3Interfacing::minimizePremises(SATClauseList *premises) {
+  // auxiliary solver to produce an unsat core
+  z3::solver solver(*_context);
+
+  // load all SAT clauses into `solver`
+  for(SATClause *cl : iterTraits(premises->iter())) {
+    // including their theory representation
+    auto repr = getRepresentation(cl);
+    // tag this clause with its number so that it can appear in the unsat core
+    auto tag = _context->constant(_context->int_symbol(cl->number), _context->bool_sort());
+    solver.add(repr.expr, tag);
+
+    // won't need tracking for definitions, they're just "ambient"
+    for(z3::expr def : repr.defs)
+      solver.add(def);
+  }
+
+  // if this fails, somehow `premises` is not enough to show unsatisfiability
+  // - good luck!
+  ALWAYS(solver.check() == z3::unsat);
+
+  // load the unsat core into a lookup of SAT clause numbers
+  z3::expr_vector core = solver.unsat_core();
+  std::unordered_set<unsigned> lookup;
+  for(z3::expr member : core) {
+    ASS(member.is_const())
+    lookup.insert(member.decl().name().to_int());
+  }
+
+  // finally look for `premises` in the unsat core
+  SATClauseList *minimised = nullptr;
+  for(SATClause *cl : iterTraits(premises->iter()))
+    if(lookup.count(cl->number))
+      SATClauseList::push(cl, minimised);
+  return minimised;
+}
+
 VarAssignment Z3Interfacing::getAssignment(unsigned var)
 {
   ASS_EQ(_status,Status::SATISFIABLE);
@@ -1039,8 +1078,8 @@ VarAssignment Z3Interfacing::getAssignment(unsigned var)
 OperatorType* operatorType(Z3Interfacing::FuncOrPredId f)
 {
   return f.isPredicate
-    ? env.signature->getPredicate(f.id)->predType()
-    : env.signature->getFunction (f.id)->fnType();
+    ? env.signature->getPredicate(f.id)->type()
+    : env.signature->getFunction (f.id)->type();
 }
 
 
@@ -1058,8 +1097,7 @@ Term* Z3Interfacing::evaluateInModel(Term* trm)
   DEBUG("model: \n", _model)
   ASS(!trm->isLiteral());
 
-  auto ev = z3_eval(getRepresentation(trm).expr);
-  ASS(getRepresentation(trm).defs.isEmpty())
+  auto ev = z3_eval(getRepresentation(trm));
   SortId sort = SortHelper::getResultSort(trm);
 
   DEBUG("z3 expr: ", ev)
@@ -1217,7 +1255,7 @@ void Z3Interfacing::createTermAlgebra(TermList sort)
   if (_createdTermAlgebras.contains(sort)) return;
 
   Stack<TermList> taSorts;        // <- stack of term algebra sorts
-  Map<SortId, unsigned> recSorts; // <- mapping term algeba -> index
+  Map<SortId, unsigned, TermListHash> recSorts; // <- mapping term algeba -> index
 
   auto subsorts = TermAlgebra::subSorts(sort);
   for (auto s : subsorts.iter()) {
@@ -1470,7 +1508,7 @@ z3::func_decl Z3Interfacing::z3Function(FuncOrPredId functor)
     // function does not yet exist, create it
     auto symb = functor.isPredicate ? env.signature->getPredicate(functor.id)
                                     : env.signature->getFunction(functor.id);
-    auto type = functor.isPredicate ? symb->predType() : symb->fnType();
+    auto type = symb->type();
 
     // polymorphic symbol application: treat f(<sorts>, ...) as f<sorts>(...) for Z3
     std::string namebuf = symb->name();
@@ -1500,9 +1538,8 @@ z3::func_decl Z3Interfacing::z3Function(FuncOrPredId functor)
  * - Translates the ground structure
  * - Some interpreted functions/predicates are handled
  */
-Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
+z3::expr Z3Interfacing::getRepresentation(Term* trm)
 {
-  Stack<z3::expr> defs;
   auto expr = BottomUpEvaluation<TermList, z3::expr>()
     .function(
       [&](TermList toEval, z3::expr* args) -> z3::expr
@@ -1511,7 +1548,7 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
         auto trm = toEval.term();
         bool isLit = trm->isLiteral();
 
-        Signature::Symbol* symb;
+        const Signature::Symbol* symb;
         SortId range_sort;
         if (isLit) {
           symb = env.signature->getPredicate(trm->functor());
@@ -1530,7 +1567,7 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
         } else {
           auto actualSort = SortHelper::getResultSort(trm);
           symb = env.signature->getFunction(trm->functor());
-          OperatorType* ftype = symb->fnType();
+          OperatorType* ftype = symb->type();
           range_sort = ftype->result();
           if (env.signature->isTermAlgebraSort(actualSort) &&  !_createdTermAlgebras.contains(actualSort) ) {
             createTermAlgebra(actualSort);
@@ -1581,12 +1618,11 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
         // - constants dealt with above
         // - unary funs/preds like is_rat interpretation unclear
         if(symb->interpreted()){
-          Interpretation interp = static_cast<Signature::InterpretedSymbol*>(symb)->getInterpretation();
+          Interpretation interp = static_cast<const Signature::InterpretedSymbol*>(symb)->getInterpretation();
 
           if (Theory::isPolymorphic(interp)) {
             switch(interp){
               case Theory::ARRAY_SELECT:
-              case Theory::ARRAY_BOOL_SELECT:
                 // select(array,index)
                 return select(args[0],args[1]);
 
@@ -1605,11 +1641,8 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
             switch(interp){
             // Numerical operations
             case Theory::INT_DIVIDES:
-              {
-              auto k = getNamingConstantFor(toEval, _context->int_sort());
-              // a divides b <-> k * a ==  b
-              return k * args[0] == args[1];
-              }
+              // a divides b <-> b mod a == 0
+              return z3::mod(args[1], args[0]) == int_zero;
 
             case Theory::INT_UNARY_MINUS:
             case Theory::RAT_UNARY_MINUS:
@@ -1735,7 +1768,7 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(Term* trm)
         return f(f.arity(), args);
       })
       .apply(TermList(trm));
-  return Representation(expr, std::move(defs));
+  return expr;
 }
 
 Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATLiteral slit)
@@ -1746,7 +1779,7 @@ Z3Interfacing::Representation Z3Interfacing::getRepresentation(SATLiteral slit)
     //cout << "getRepresentation of " << lit->toString() << endl;
     // Now translate it into an SMT object
     try{
-      auto repr = getRepresentation(lit);
+      Representation repr(getRepresentation(lit), Stack<z3::expr>());
       _exporter.apply([&expr = repr.expr](auto& exp){ exp.instantiate_expression(expr); });
 
       /* we name all literals in order to make z3 cache their truth values.
@@ -1811,7 +1844,7 @@ z3::expr Z3Interfacing::getNamingConstantFor(TermList toName, z3::sort sort)
     { return z3_declare_const("n" + toName.toString(), sort); });
 }
 
-z3::expr Z3Interfacing::getConst(Signature::Symbol* symb, z3::sort sort)
+z3::expr Z3Interfacing::getConst(const Signature::Symbol* symb, z3::sort sort)
 {
   return _constantNames.getOrInit(symb, [&]()
     // careful: keep native constants' names distinct from the above ones (hence the "c"-prefix below)

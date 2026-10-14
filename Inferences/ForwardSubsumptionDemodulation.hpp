@@ -13,7 +13,6 @@
 
 #include "InferenceEngine.hpp"
 #include "Indexing/LiteralIndex.hpp"
-#include "Indexing/RequestedIndex.hpp"
 
 namespace Inferences {
 
@@ -44,28 +43,23 @@ using namespace Saturation;
  *
  * This class implements the forward direction.
  */
+template<bool higherOrder>
 class ForwardSubsumptionDemodulation
   : public ForwardSimplificationEngine
 {
   public:
-    ForwardSubsumptionDemodulation(bool doSubsumption, bool enableOrderingOptimizations)
-      : _doSubsumption(doSubsumption)
-      , _enableOrderingOptimizations(enableOrderingOptimizations)
-    { }
+    ForwardSubsumptionDemodulation(SaturationAlgorithm& salg);
 
-    void attach(SaturationAlgorithm* salg) override;
-    void detach() override;
     bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
 
   private:
-    RequestedIndex<LiteralIndex<LiteralClause>> _unitIndex;
-    RequestedIndex<LiteralIndex<LiteralClause>> _index;
-
-    bool _preorderedOnly;
-    bool _allowIncompleteness;
-
-    bool _doSubsumption;
+    const bool _preorderedOnly;
+    const bool _allowIncompleteness;
     const bool _enableOrderingOptimizations;
+    const bool _forwardSubsumptionDemodulationMaxMatches;
+    const Options::LiteralComparisonMode _literalComparisonMode;
+    const Ordering& _ord;
+    std::shared_ptr<FSDLiteralIndex> _index;
 };
 
 

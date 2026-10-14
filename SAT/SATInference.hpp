@@ -68,6 +68,8 @@ namespace SAT {
 using namespace Kernel;
 
 class FOConversionInference;
+class PropInference;
+
 class SATInference
 {
 public:
@@ -80,6 +82,8 @@ public:
 
   // assuming this is really a `FOConversionInference`, do the cast
   FOConversionInference *foConversion();
+  // assuming this is really a `PropInference`, do the cast
+  PropInference *propInf();
 
   /**
    * Call `receive` once for each FO_CONVERSION ancestor of `cl`.
@@ -144,11 +148,17 @@ inline FOConversionInference *SATInference::foConversion() {
   return static_cast<FOConversionInference *>(this);
 }
 
+inline PropInference *SATInference::propInf() {
+  ASS_EQ(getType(), PROP_INF)
+  return static_cast<PropInference *>(this);
+}
+
+
 template<typename Receiver>
 void SATInference::visitFOConversions(SATClause* cl, Receiver receive)
 {
   static Stack<SATClause*> toDo;
-  static DHSet<SATClause*> seen;
+  static DHSet<SATClause*, FnvHash, PtrIdentityHash> seen;
   toDo.reset();
   seen.reset();
 

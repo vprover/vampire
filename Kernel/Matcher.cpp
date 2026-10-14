@@ -15,38 +15,12 @@
 #include "Lib/DHMap.hpp"
 
 #include "Matcher.hpp"
-#include "SubstHelper.hpp"
+#include "TermIterators.hpp"
 
 namespace Kernel
 {
 
 using namespace std;
-
-/**
- * Obtain a substitution by matching @b matchedInstance onto @b matchedBase
- * and return @b resultBase after application of that substitution
- *
- * @b matchedInstance must match onto @b matchedBase.
- */
-TermList MatchingUtils::getInstanceFromMatch(TermList matchedBase,
-    TermList matchedInstance, TermList resultBase)
-{
-  static Substitution subst;
-  subst.reset();
-
-  ALWAYS( matchTerms(matchedBase, matchedInstance, subst) );
-  return SubstHelper::apply(resultBase, subst);
-}
-
-Formula* MatchingUtils::getInstanceFromMatch(Literal* matchedBase,
-      Literal* matchedInstance, Formula* resultBase)
-{
-  static Substitution subst;
-  subst.reset();
-
-  ALWAYS( match(matchedBase, matchedInstance, false, subst) );
-  return SubstHelper::apply(resultBase, subst);
-}
 
 bool MatchingUtils::isVariant(Literal* l1, Literal* l2, bool complementary)
 {
@@ -81,8 +55,8 @@ bool MatchingUtils::haveReversedVariantArgs(Term* l1, Term* l2)
   ASS_EQ(l1->arity(), 2);
   ASS_EQ(l2->arity(), 2);
 
-  static DHMap<unsigned,unsigned,IdentityHash,DefaultHash> leftToRight;
-  static DHMap<unsigned,unsigned,IdentityHash,DefaultHash> rightToLeft;
+  static DHMap<unsigned,unsigned,IdentityHash,FnvHash> leftToRight;
+  static DHMap<unsigned,unsigned,IdentityHash,FnvHash> rightToLeft;
   leftToRight.reset();
   rightToLeft.reset();
 
@@ -104,8 +78,8 @@ bool MatchingUtils::haveReversedVariantArgs(Term* l1, Term* l2)
       vi( new DisagreementSetIterator(*l1->nthArgument(1),*l2->nthArgument(0)) ));
 
   VirtualIterator<pair<TermList, TermList> > dsit =
-  sortUsed ? pvi(concatIters(vi(new DisagreementSetIterator(s1,s2)), it1)) :
-             pvi(it1);
+  sortUsed ? pvi(concatIters(vi(new DisagreementSetIterator(s1,s2)), std::move(it1))) :
+             pvi(std::move(it1));
 
   while(dsit.hasNext()) {
     pair<TermList,TermList> dp=dsit.next(); //disagreement pair
@@ -136,8 +110,8 @@ bool MatchingUtils::haveVariantArgs(Term* l1, Term* l2)
     return true;
   }
 
-  static DHMap<unsigned,unsigned,IdentityHash,DefaultHash> leftToRight;
-  static DHMap<unsigned,unsigned,IdentityHash,DefaultHash> rightToLeft;
+  static DHMap<unsigned,unsigned,IdentityHash,FnvHash> leftToRight;
+  static DHMap<unsigned,unsigned,IdentityHash,FnvHash> rightToLeft;
   leftToRight.reset();
   rightToLeft.reset();
 

@@ -125,9 +125,9 @@ def work(lines):
                 finalInv = finalInv.replace(">",">=")
             linv.append(finalInv)
             i = i + 1
-        except IndexError,e:
-            print "%s main while loop" %e
-            print "tried %s records" % i
+        except IndexError as e:
+            print("%s main while loop" %e)
+            print("tried %s records" % i)
             done = True
     linv.append("*/\n")
     return linv

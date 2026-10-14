@@ -70,6 +70,7 @@ enum class ExecutionPhase {
   PREPROCESS_1,
   UNUSED_PREDICATE_DEFINITION_REMOVAL,
   BLOCKED_CLAUSE_ELIMINATION,
+  PREDICATE_ELIMINATION,
   TWEE,
   ANSWER_LITERAL,
   PREPROCESS_2,
@@ -123,6 +124,14 @@ public:
   unsigned sineIterations = 0;
   /** number of detected blocked clauses */
   unsigned blockedClauses = 0;
+  /** number of predicates eliminated by predicate elimination */
+  unsigned eliminatedPredicates = 0;
+  /** number of resolvents kept during predicate elimination */
+  unsigned predicateEliminationResolvents = 0;
+  /** number of clauses deleted as subsumed during predicate elimination */
+  unsigned predicateEliminationSubsumed = 0;
+  /** number of subsumption resolutions performed during predicate elimination */
+  unsigned predicateEliminationSRs = 0;
 
   // Induction
   unsigned maxInductionDepth = 0;
@@ -247,13 +256,13 @@ private:
   typedef std::array<unsigned,2> StatPair;
 
   /** number of input clauses */
-  StatPair inputClauses;
+  StatPair inputClauses = {};
   /** number of input formulas */
-  StatPair inputFormulas;
+  StatPair inputFormulas = {};
   /** all clauses */
-  StatPair clauses;
+  StatPair clauses = {};
   /** all formulas */
-  StatPair formulas;
+  StatPair formulas = {};
   /** inference counts indexed by InferenceRule */
   std::array<StatPair, toNumber(InferenceRule::GENERIC_THEORY_AXIOM_LAST)> inferenceCnts = {};
   /** input types indexed by UnitInputType */

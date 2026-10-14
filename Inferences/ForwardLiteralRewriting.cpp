@@ -16,8 +16,6 @@
 #include "Kernel/Ordering.hpp"
 #include "Kernel/ColorHelper.hpp"
 
-#include "Indexing/IndexManager.hpp"
-
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "ForwardLiteralRewriting.hpp"
@@ -25,32 +23,20 @@
 namespace Inferences
 {
 
-void ForwardLiteralRewriting::attach(SaturationAlgorithm* salg)
-{
-  ForwardSimplificationEngine::attach(salg);
-  _index=static_cast<RewriteRuleIndex*>(
-    _salg->getIndexManager()->request(REWRITE_RULE_SUBST_TREE) );
-}
-
-void ForwardLiteralRewriting::detach()
-{
-  _index=0;
-  _salg->getIndexManager()->release(REWRITE_RULE_SUBST_TREE);
-  ForwardSimplificationEngine::detach();
-}
-
+ForwardLiteralRewriting::ForwardLiteralRewriting(SaturationAlgorithm& salg)
+  : _ord(salg.getOrdering()),
+    _index(salg.getSimplifyingIndex<RewriteRuleIndex>())
+{}
 
 bool ForwardLiteralRewriting::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
-  Ordering& ordering = _salg->getOrdering();
-
   TIME_TRACE("forward literal rewriting");
 
   unsigned clen=cl->length();
 
   for(unsigned i=0;i<clen;i++) {
     Literal* lit=(*cl)[i];
-    auto git = _index->getGeneralizations(lit, lit->isNegative(), true);
+    auto git = _index->getGeneralizations(lit, lit->isNegative());
     while(git.hasNext()) {
       auto qr = git.next();
       Clause* counterpart=_index->getCounterpart(qr.data->clause);
@@ -68,14 +54,12 @@ bool ForwardLiteralRewriting::perform(Clause* cl, Clause*& replacement, ClauseIt
       Literal* rhs = lit->isNegative() ? rhs0 : Literal::complementaryLiteral(rhs0);
       auto subs = qr.unifier;
 
-      ASS(subs->isIdentityOnQueryWhenResultBound());
-
       //Due to the way we build the _index, we know that rhs contains only
       //variables present in qr.data->literal
       ASS(qr.data->literal->containsAllVariablesOf(rhs));
-      Literal* rhsS = subs->applyToBoundResult(rhs);
+      auto rhsS = subs.apply(rhs);
 
-      if(ordering.compare(lit, rhsS)!=Ordering::GREATER) {
+      if(_ord.compare(lit, rhsS)!=Ordering::GREATER) {
   continue;
       }
 

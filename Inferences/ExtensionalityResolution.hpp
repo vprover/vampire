@@ -38,6 +38,7 @@ class ExtensionalityResolution
 : public GeneratingInferenceEngine
 {
 public:
+  ExtensionalityResolution(SaturationAlgorithm& salg) : _salg(salg) {}
   ClauseIterator generateClauses(Clause* premise) override;
 
   static Clause* performExtensionalityResolution(
@@ -54,6 +55,8 @@ private:
   struct BackwardPairingFn;
   struct BackwardUnificationsFn;
   struct BackwardResultFn;
+
+  SaturationAlgorithm& _salg;
 };
 
 };

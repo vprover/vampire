@@ -20,7 +20,6 @@
 #include <iosfwd>
 #include <type_traits>
 #include "Debug/Assertion.hpp"
-#include "Lib/Reflection.hpp"
 
 
 namespace Lib {
@@ -292,7 +291,7 @@ public:
   }
   /** 
    * returns the value held by this option if there is one, or calls the given function f without arguments, 
-   * initializes the closuer with the returned value, and returns a reference to the value afterwards.
+   * initializes the closure with the returned value, and returns a reference to the value afterwards.
    */ 
   template<class Clsr>
   A& unwrapOrInit(Clsr f) { 
@@ -436,7 +435,7 @@ public:
     OptionIter(Option self) : _self(std::move(self)) {}
   public:
     friend class Option;
-    DECL_ELEMENT_TYPE(A);
+    using ElementType = A;
     inline bool hasNext() const { return _self.isSome(); }
     inline bool hasNext()       { return _self.isSome(); }
     inline A next() { return _self.take().unwrap(); }

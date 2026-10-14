@@ -14,7 +14,6 @@
 
 #include "Lib/Stack.hpp"
 #include "Debug/TimeProfiling.hpp"
-#include "Kernel/Ordering.hpp" 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
 
@@ -30,8 +29,9 @@ using namespace Lib;
 using namespace Kernel;
 
 
-InterpretedEvaluation::InterpretedEvaluation(bool doNormalize, Ordering& ordering) :
-  _simpl(new InterpretedLiteralEvaluator(doNormalize))
+InterpretedEvaluation::InterpretedEvaluation(bool doNormalize) :
+  // this is the one evaluator that owns Term::isEvalNormalForm()
+  _simpl(new InterpretedLiteralEvaluator(doNormalize, /* cacheNormalForms */ true))
 {
 }
 

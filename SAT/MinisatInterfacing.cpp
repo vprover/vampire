@@ -12,6 +12,8 @@
  * Implements class MinisatInterfacing
  */
 
+#include "Shell/Options.hpp"
+
 #include "MinisatInterfacing.hpp"
 
 #include "Lib/DArray.hpp"
@@ -107,6 +109,16 @@ void MinisatInterfacing<MinisatSolver>::solveModuloAssumptionsAndSetStatus(unsig
   }
 }
 
+template<typename MinisatSolver>
+MinisatInterfacing<MinisatSolver>::MinisatInterfacing(const Options& opts)
+{
+  auto seed = Random::seed();
+  ASS_NEQ(seed,0)
+  _solver.random_seed = seed;
+  _solver.shuffle_clauses = opts.randomTraversals();
+  _solver.shuffle_watches = opts.randomTraversals();
+}
+
 /**
  * Add clause into the solver.
  *
@@ -168,7 +180,7 @@ SATClauseList* MinisatInterfacing<MinisatSolver>::minimizePremiseList(SATClauseL
 {
   MinisatSolver solver;
 
-  static DHMap<int,SATClause*> var2prem;
+  static DHMap<int,SATClause*, FnvHash, IdentityHash> var2prem;
   var2prem.reset();
 
   static vec<Lit> ass; // assumptions for the final call

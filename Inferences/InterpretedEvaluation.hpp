@@ -28,7 +28,7 @@ class InterpretedEvaluation
 : public ImmediateSimplificationEngine
 {
 public:
-  InterpretedEvaluation(bool doNormalize, Ordering& ordering);
+  InterpretedEvaluation(bool doNormalize);
   ~InterpretedEvaluation() override;
 
   Clause* simplify(Clause* cl) override;

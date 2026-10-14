@@ -31,18 +31,18 @@ using namespace Kernel;
  * Example:
  * TermTransformer::shift(t, 2) ~> { "(λ. f db_0) db_2", Option<unsigned>(0) }
  *
- * See also tTermShifter.cpp for accompanying unit tests of this class.
+ * See also tHOL_TermShifter.cpp for accompanying unit tests of this class.
  */
 class TermShifter : public TermTransformer
 {
 public:
   explicit TermShifter(int shiftBy)
-    : TermTransformer(false),
+    : TermTransformer(/*transformSorts=*/false),
       _shiftBy(shiftBy) {}
 
   // positive value -> shift up
   // negative -> shift down
-  static std::pair<TermList, Option<unsigned>> shift(TermList term, int shiftBy);
+  static TermList shift(TermList term, int shiftBy);
   TermList transformSubterm(TermList t) override;
 
   void onTermEntry(Term* t) override {
@@ -60,10 +60,12 @@ public:
     return orig == newTerm && newTerm.term()->hasDeBruijnIndex();
   }
 
+  // returns the index of the minimal free DB index, otherwise UINT_MAX
+  static unsigned minFreeDBIndex(TermList t);
+
 private:
   unsigned _cutOff = 0; // any index higher than _cutOff is a free index
   int _shiftBy; // the amount to shift a free index by
-  Option<unsigned> _minFreeIndex = Option<unsigned>();
 };
 
 #endif // __TermShifter__
