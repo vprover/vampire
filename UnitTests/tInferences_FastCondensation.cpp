@@ -16,7 +16,7 @@ using namespace Test;
 
 namespace {
 
-#define MY_SIMPL_RULE   FastCondensation
+#define MY_SIMPL_RULE   FastCondensation<false>
 #define MY_SIMPL_TESTER Simplification::SimplificationTester
 
 #define MY_SYNTAX_SUGAR                                                                                       \

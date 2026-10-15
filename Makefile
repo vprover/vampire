@@ -26,7 +26,7 @@
 COMMON_FLAGS = -DVTIME_PROFILING=0
 
 DBG_FLAGS = $(COMMON_FLAGS) -g  -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging for spider
-REL_FLAGS = $(COMMON_FLAGS) -O3 -DVDEBUG=0 -DNDEBUG # no debugging
+REL_FLAGS = $(COMMON_FLAGS) -O3 -DVDEBUG=0 -DNDEBUG -flto=auto # no debugging
 
 GCOV_FLAGS = -O0 --coverage #-pedantic
 
@@ -134,7 +134,7 @@ CXX = g++
 CC = gcc
 endif
 
-CXXFLAGS = $(XFLAGS) -Wall -fno-threadsafe-statics -fno-rtti -std=c++17  $(INCLUDES) # -Wno-unknown-warning-option for clang
+CXXFLAGS = $(XFLAGS) -Wall -fno-threadsafe-statics -fno-rtti -std=c++20  $(INCLUDES) # -Wno-unknown-warning-option for clang
 CCFLAGS = -Wall -O3 -DNDBLSCR -DNLGLOG -DNDEBUG -DNCHKSOL -DNLGLPICOSAT
 
 ################################################################
@@ -200,6 +200,7 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/Signature.o\
         Kernel/SortHelper.o\
         Kernel/OperatorType.o\
+        Kernel/SymbolUsage.o\
         Kernel/SubformulaIterator.o\
         Kernel/Term.o\
         Kernel/PolynomialNormalizer.o\
@@ -217,11 +218,11 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/HOL/Create.o\
         Kernel/HOL/Convert.o\
         Kernel/HOL/Reduce.o\
-        Kernel/HOL/BetaNormaliser.o\
         Kernel/HOL/RedexReducer.o\
         Kernel/HOL/TermShifter.o\
         Kernel/HOL/EtaNormaliser.o\
         Kernel/HOL/SubtermReplacer.o\
+        Kernel/HOL/Unifier.o\
         Kernel/InterpretedLiteralEvaluator.o\
         Kernel/Rebalancing.o\
         Kernel/Rebalancing/Inverters.o\
@@ -231,14 +232,13 @@ VI_OBJ = Indexing/AcyclicityIndex.o\
          Indexing/ClauseCodeTree.o\
          Indexing/ClauseVariantIndex.o\
          Indexing/CodeTree.o\
-         Indexing/CodeTreeInterfaces.o\
+         Indexing/DemodulationIndex.o\
          Indexing/Index.o\
          Indexing/IndexManager.o\
          Indexing/InductionFormulaIndex.o\
          Indexing/LiteralIndex.o\
          Indexing/LiteralMiniIndex.o\
          Indexing/ResultSubstitution.o\
-         Indexing/TermCodeTree.o\
          Indexing/TermIndex.o\
          Indexing/TermSharing.o\
 
@@ -263,6 +263,7 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/ForwardLiteralRewriting.o\
          Inferences/ForwardSubsumptionAndResolution.o\
          Inferences/SubsumptionDemodulationHelper.o\
+         Inferences/SubsumptionEqualityResolution.o\
          Inferences/ForwardSubsumptionDemodulation.o\
          Inferences/GlobalSubsumption.o\
          Inferences/InnerRewriting.o\
@@ -290,10 +291,13 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/HOL/BetaEtaSimplify.o\
          Inferences/HOL/BoolEqToDiseq.o\
          Inferences/HOL/BoolSimp.o\
+         Inferences/HOL/Cases.o\
          Inferences/HOL/CasesSimp.o\
+         Inferences/HOL/Choice.o\
          Inferences/HOL/CNFOnTheFly.o\
          Inferences/HOL/ImitateProject.o\
          Inferences/HOL/FlexFlexSimplify.o\
+				 Inferences/HOL/LeibnizEqualityElimination.o\
          Inferences/HOL/NegativeExtensionality.o\
          Inferences/HOL/PositiveExtensionality.o\
          Inferences/HOL/PrimitiveInstantiation.o\
@@ -303,8 +307,6 @@ VINF_OBJ=Inferences/BackwardDemodulation.o\
          Inferences/Induction.o\
          Inferences/InductionHelper.o\
          Inferences/URResolution.o\
-         Inferences/Cases.o\
-         Inferences/Choice.o\
          Inferences/GaussianVariableElimination.o\
          Inferences/InterpretedEvaluation.o\
          Inferences/TheoryInstAndSimp.o\
@@ -347,11 +349,9 @@ VS_OBJ = Shell/AnswerLiteralManager.o\
          Shell/PartialRedundancyHandler.o\
          Shell/CNF.o\
          Shell/NewCNF.o\
-         Shell/DistinctProcessor.o\
          Shell/DistinctGroupExpansion.o\
          Shell/EqResWithDeletion.o\
          Shell/EqualityProxy.o\
-         Shell/EqualityProxyMono.o\
          Shell/Flattening.o\
          Shell/FunctionDefinition.o\
          Shell/FunctionDefinitionHandler.o\
@@ -389,6 +389,7 @@ VS_OBJ = Shell/AnswerLiteralManager.o\
          Shell/TheoryFlattening.o\
          Shell/TweeGoalTransformation.o\
          Shell/BlockedClauseElimination.o\
+         Shell/PredicateElimination.o\
          Shell/Token.o\
          Shell/TPTPPrinter.o\
          Shell/UIHelper.o\
@@ -496,7 +497,7 @@ all: #default make disabled
 ################################################################
 # automated generation of Vampire revision information
 
-VERSION_NUMBER = 5.0.1
+VERSION_NUMBER = 5.1.0
 
 # We extract the revision number from svn every time the svn meta-data are modified
 # (that's why there is the dependency on .svn/entries) 

@@ -12,6 +12,8 @@
  * Implements class ArgCong.
  */
 
+#include "Debug/TimeProfiling.hpp"
+
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Metaiterators.hpp"
 
@@ -19,7 +21,6 @@
 #include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/SubstHelper.hpp"
-#include "Kernel/Substitution.hpp"
 #include "Kernel/SortHelper.hpp"
 
 #include "ArgCong.hpp"
@@ -41,7 +42,7 @@ struct ArgCongResultFn
     ASS(lit->isEquality());
     ASS(lit->isPositive());
 
-    static Substitution subst;
+    static HOSubstitution subst;
 
     auto eqSort = SortHelper::getEqualityArgumentSort(lit);
     bool sortIsVar = eqSort.isVar();
@@ -103,7 +104,8 @@ ClauseIterator ArgCong::generateClauses(Clause* premise)
   return pvi(premise->getSelectedLiteralIterator()
     .filter([](Literal* l) { return l->isEquality() && l->isPositive(); })
     .map(ArgCongResultFn(premise))
-    .filter(NonzeroFn()));
+    .filter(NonzeroFn())
+    .timeTraced("argument congruence"));
 }
 
 }

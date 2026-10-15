@@ -12,6 +12,8 @@
  * Implements class ImitateProject.
  */
 
+#include "Debug/TimeProfiling.hpp"
+
 #include <utility>
 
 #include "Lib/VirtualIterator.hpp"
@@ -50,7 +52,7 @@ struct ImitateProjectFn
     TermList headFlex = flexTerm.head();
     auto pushResult = [this,headFlex](TermList binding, InferenceRule rule)
     {
-      static Substitution subst;
+      static HOSubstitution subst;
       subst.reset();
       subst.bind(headFlex.var(), binding);
       results.push(Clause::fromIterator(
@@ -62,7 +64,7 @@ struct ImitateProjectFn
       pushResult(binding, inf == HOL::UnificationInference::IMITATION ? InferenceRule::IMITATION : InferenceRule::PROJECTION);
     }
 
-    return pvi(getUniquePersistentIterator(ClauseStack::Iterator(results)));;
+    return pvi(getUniquePersistentIterator<UnitHash, UnitNumberHash>(ClauseStack::Iterator(results)));;
   }
 private:
   Clause* _cl;
@@ -78,7 +80,8 @@ ClauseIterator ImitateProject::generateClauses(Clause* premise)
       // TODO decide whether to keep check below (see NegExt)
       /*&& !SortHelper::getEqualityArgumentSort(l).isArrowSort()*/;
     })
-    .flatMap(ImitateProjectFn(premise)));
+    .flatMap(ImitateProjectFn(premise))
+    .timeTraced("imitate project"));
 }
 
 }

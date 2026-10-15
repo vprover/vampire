@@ -81,8 +81,8 @@ void test_rebalance(Literal* lit, initializer_list<expected_t> expected);
         auto xL = Trm<UninterpretedTraits>(TermList::var(0));                                                 \
         auto yL = Trm<UninterpretedTraits>(TermList::var(1));                                                 \
         auto zL = Trm<UninterpretedTraits>(TermList::var(2));                                                 \
-        env.signature->getFunction(nil .functor())->markTermAlgebraCons();                                    \
-        env.signature->getFunction(cons.functor())->markTermAlgebraCons();                                    \
+        env.signature->markTermAlgebraConstructor(nil .functor());                                            \
+        env.signature->markTermAlgebraConstructor(cons.functor());                                            \
         env.signature->addTermAlgebra(new TermAlgebra(list.sortNumber(), {                                    \
             new TermAlgebraConstructor(nil.functor(),  {}),                                                   \
             new TermAlgebraConstructor(cons.functor(),  {uncons1.functor(), uncons2.functor()}),              \

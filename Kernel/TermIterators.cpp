@@ -285,7 +285,7 @@ Term* NonVariableNonTypeIterator::next()
     taArity = 0;
     arity = 2;
   } else {
-    Signature::Symbol* sym;
+    const Signature::Symbol* sym;
     if (t->isLiteral()) {
       sym = env.signature->getPredicate(t->functor());
     } else {

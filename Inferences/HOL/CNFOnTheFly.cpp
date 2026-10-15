@@ -12,6 +12,8 @@
  * Defines classes for clausification on the fly.
  */
 
+#include "Debug/TimeProfiling.hpp"
+
 #include "Lib/Environment.hpp"
 
 #include "Kernel/Clause.hpp"
@@ -19,11 +21,10 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
+#include "Kernel/RobSubstitution.hpp"
 #include "Kernel/SortHelper.hpp"
 
 #include "Shell/Skolem.hpp"
-
-#include "Saturation/SaturationAlgorithm.hpp"
 
 #include "CNFOnTheFly.hpp"
 
@@ -38,7 +39,7 @@ static Clause* replaceLits(Clause* c, Literal* what, Proxy p, bool incAge, Liter
 static TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt);
 static TermList piRemoval(TermList piTerm, Clause* clause, TermList expsrt);
 
-static InferenceRule convert(Proxy cnst);
+static InferenceRule convert(Proxy cnst, bool simplifying);
 static ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaIndex* index = 0);
 
 Literal* boolEq(TermList lhs, TermList rhs) {
@@ -63,10 +64,6 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
 
   if(generating && (eager || simp)){ return ClauseIterator::getEmpty(); }
   if(!generating && gen){ return ClauseIterator::getEmpty(); }
-
-  if (instantiations) {
-    INVALID_OPERATION("Options::CNFOnTheFly::CONJ_EAGER not yet supported");
-  }
 
   static TermStack args;
 
@@ -180,22 +177,47 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
       case Proxy::PI:
       case Proxy::SIGMA: {
         ASS_EQ(args.size(), 1);
+        ClauseStack instCls;
         TermList srt = *SortHelper::getResultSort(head.term()).term()->nthArgument(0);
         TermList newTerm;
         Proxy proxy;
-        if((prox == Proxy::PI && positive) ||
-          (prox == Proxy::SIGMA && !positive)){
+        if ((prox == Proxy::PI && positive) || (prox == Proxy::SIGMA && !positive)) {
           proxy = Proxy::PI;
           newTerm = piRemoval(args[0], c, srt);
+          if (instantiations && !args[0].isVar()) {
+            auto insts = env.signature->getInstantiations();
+            for (const auto& t : iterTraits(insts->iter())) {
+              ASS(t.isTerm());
+              static RobSubstitution subst;
+              subst.reset();
+
+              auto tSort = SortHelper::getResultSort(t.term());
+              auto aSort = srt.domain();
+
+              if (!subst.unify(tSort,0,aSort,1)) {
+                continue;
+              }
+              auto tS = subst.apply(t, 0);
+              auto argS = subst.apply(args[0],1); 
+
+              RStack<Literal*> resLits;
+              for (const auto& curr : *c) {
+                resLits->push(curr == lit
+                  ? boolEq(HOL::create::app(argS, tS), rhs)
+                  : subst.apply(curr, 1));
+              }
+              instCls.push(Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::HEURISTIC_INSTANTIATION, c)));
+            }
+          }
         } else {
           ASS(term.isTerm());
           bool newTermCreated = false;
           if(index){
-            auto results = index->getGeneralizations(TypedTermList(term.term()), true);
+            auto results = index->getSkolem(term.term());
             if(results.hasNext()){
               auto tqr = results.next();
               TermList skolemTerm = tqr.data->value;
-              skolemTerm = tqr.unifier->applyToBoundResult(skolemTerm);
+              skolemTerm = tqr.unifier.apply(skolemTerm);
               newTerm = HOL::create::app(srt, args[0], skolemTerm);
               newTermCreated = true;
             }
@@ -209,15 +231,15 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
           }
           proxy = Proxy::SIGMA;
         }
-        return pvi(iterItems(replaceLits(c, lit, proxy, false,
-          positive ? eqTroo(newTerm) : eqFols(newTerm))));
+        return pvi(concatIters(iterItems(replaceLits(c, lit, proxy, false,
+          positive ? eqTroo(newTerm) : eqFols(newTerm))), getPersistentIterator(ClauseStack::Iterator(instCls))));
       }
     }
   }
   return ClauseIterator::getEmpty();
 }
 
-Clause* replaceLits(Clause* c, Literal* what, Proxy p, bool incAge, Literal* by1, Literal* by2)
+Clause* replaceLits(Clause* c, Literal* what, Proxy p, bool simplifying, Literal* by1, Literal* by2)
 {
   RStack<Literal*> lits;
 
@@ -227,14 +249,39 @@ Clause* replaceLits(Clause* c, Literal* what, Proxy p, bool incAge, Literal* by1
   // adding new literals at different places...
   if (by2) { lits->push(by2); }
 
-  auto out = Clause::fromStack(*lits, NonspecificInference1(convert(p), c));
-  // Can be either generating or simplifying. Therefore use NonspecificInference
-  // Age is updated in some instances, but not in others based on empirical evaluation
-  out->setAge(incAge? c->age() + 1 : c->age());
-  return out;
+  if (simplifying) {
+    return Clause::fromStack(*lits,
+      SimplifyingInference1(convert(p, simplifying), c));
+  }
+  return Clause::fromStack(*lits,
+    GeneratingInference1(convert(p, simplifying), c));
 }
 
-InferenceRule convert(Proxy cnst) {
+InferenceRule convert(Proxy cnst, bool simplifying) {
+  if (simplifying) {
+    switch(cnst){
+      case Proxy::PI:
+        return InferenceRule::PI_PROXY_CLAUSIFICATION_SIMPLIFYING;
+      case Proxy::SIGMA:
+        return InferenceRule::SIGMA_PROXY_CLAUSIFICATION_SIMPLIFYING;
+      case Proxy::EQUALS:
+        return InferenceRule::EQUALITY_PROXY_CLAUSIFICATION_SIMPLIFYING;
+      case Proxy::NOT:
+        return InferenceRule::NOT_PROXY_CLAUSIFICATION_SIMPLIFYING;
+      case Proxy::AND:
+        return InferenceRule::AND_PROXY_CLAUSIFICATION_SIMPLIFYING;
+      case Proxy::OR:
+        return InferenceRule::OR_PROXY_CLAUSIFICATION_SIMPLIFYING;
+      case Proxy::IMP:
+        return InferenceRule::IMP_PROXY_CLAUSIFICATION_SIMPLIFYING;
+      case Proxy::IFF:
+        return InferenceRule::IFF_PROXY_CLAUSIFICATION_SIMPLIFYING;
+      case Proxy::XOR:
+        return InferenceRule::XOR_PROXY_CLAUSIFICATION_SIMPLIFYING;
+      case Proxy::NOT_PROXY:
+        ASSERTION_VIOLATION;
+    }
+  }
   switch(cnst){
     case Proxy::PI:
       return InferenceRule::PI_PROXY_CLAUSIFICATION;
@@ -254,13 +301,13 @@ InferenceRule convert(Proxy cnst) {
       return InferenceRule::IFF_PROXY_CLAUSIFICATION;
     case Proxy::XOR:
       return InferenceRule::XOR_PROXY_CLAUSIFICATION;
-    default:
+    case Proxy::NOT_PROXY:
       ASSERTION_VIOLATION;
   }
 }
 
 TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt){
-  static DHMap<unsigned,TermList> varSorts;
+  static DHMap<unsigned,TermList, FnvHash, IdentityHash> varSorts;
   varSorts.reset();
 
   if(sigmaTerm.isTerm()){
@@ -287,7 +334,7 @@ TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt){
 
   unsigned var;
   TermList varSort;
-  DHMap<unsigned, TermList>::Iterator mapIt(varSorts);
+  DHMap<unsigned, TermList, FnvHash, IdentityHash>::Iterator mapIt(varSorts);
   while(mapIt.hasNext()) {
     mapIt.next(var, varSort);
     if(varSort == AtomicSort::superSort()){
@@ -305,7 +352,7 @@ TermList sigmaRemoval(TermList sigmaTerm, TermList expsrt){
 
   // TODO Double check this arrow sort, as the order changed. By the looks of it, it was also wrong here.
   TermList skSymSort = AtomicSort::arrowSort(termVarSorts, resultSort);
-  unsigned fun = Skolem::addSkolemFunction(typeVars.size(), typeVars.size(), 0, skSymSort);
+  unsigned fun = Skolem::addSkolemFunction(typeVars.size(), TermStack(), skSymSort)->number();
   TermList head = TermList(Term::create(fun, typeVars.size(), typeVars.begin()));
   TermList skolemTerm = HOL::create::app(head, termVars);
 
@@ -328,6 +375,7 @@ TermList piRemoval(TermList piTerm, Clause* clause, TermList expsrt){
 }
 
 Clause* IFFXORRewriterISE::simplify(Clause* c){
+  TIME_TRACE("iff xor rewriting");
   TermList boolSort = AtomicSort::boolSort();
 
   static TermStack args;
@@ -364,16 +412,9 @@ Clause* IFFXORRewriterISE::simplify(Clause* c){
   return c;
 }
 
-LazyClausificationGIE::LazyClausificationGIE(SaturationAlgorithm& salg)
-  : _formulaIndex(salg.getSimplifyingIndex<SkolemisingFormulaIndex>())
-{}
-
-LazyClausification::LazyClausification(SaturationAlgorithm& salg)
-  : _formulaIndex(salg.getSimplifyingIndex<SkolemisingFormulaIndex>())
-{}
-
 Option<ClauseIterator> EagerClausificationISE::simplifyMany(Clause* c)
 {
+  TIME_TRACE("eager clausification");
   auto it = produceClauses(c, false);
   if (it.hasNext()) {
     return some(it);
@@ -383,12 +424,13 @@ Option<ClauseIterator> EagerClausificationISE::simplifyMany(Clause* c)
 
 ClauseIterator LazyClausificationGIE::generateClauses(Clause* c)
 {
-  return produceClauses(c, true, _formulaIndex.get());
+  return produceClauses(c, true, &_formulaIndex);
 }
 
 ClauseIterator LazyClausification::perform(Clause* c)
 {
-  return produceClauses(c, false, _formulaIndex.get());
+  TIME_TRACE("lazy clausification");
+  return produceClauses(c, false, &_formulaIndex);
 }
 
 

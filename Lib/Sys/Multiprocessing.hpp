@@ -19,17 +19,23 @@
 
 namespace Lib::Sys {
 
-class Multiprocessing {
-public:
-  static Multiprocessing* instance();
-
-  pid_t waitForChildTermination(int& resValue);
-  pid_t fork();
-
-  void kill(pid_t child, int signal);
-  void killNoCheck(pid_t child, int signal);
-  pid_t poll_children(bool &exited, bool &signalled, int &code);
+// records how a child process died
+struct Headstone {
+  // child PID
+  pid_t pid;
+  // if the child was killed by a signal
+  bool signalled;
+  // exit code if child exited of its own accord,
+  // or the signal number used otherwise
+  int code;
 };
+
+// wrap the usual system calls
+pid_t fork();
+void kill(pid_t child, int signal);
+// wait for a child process to exit: pass -1 for any child
+// wraps waitpid
+Headstone waitForChildTermination(pid_t pid);
 
 }
 

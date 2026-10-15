@@ -91,7 +91,7 @@ bool ForwardSubsumptionDemodulation<higherOrder>::perform(Clause* cl, Clause*& r
     /**
      * Step 1: find candidate clauses for subsumption
      */
-    auto rit = _index->getGeneralizations(subsQueryLit, false, false);
+    auto rit = _index->getGeneralizations(subsQueryLit, false);
     while (rit.hasNext()) {
       auto res = rit.next();
       Clause* mcl = res.data->clause;  // left premise of FSD
@@ -208,7 +208,7 @@ bool ForwardSubsumptionDemodulation<higherOrder>::perform(Clause* cl, Clause*& r
           // because it is a deletion rule; and Forward Subsumption should be performed before FSD.
 #if VDEBUG && FSD_VDEBUG_REDUNDANCY_ASSERTIONS
           if (_literalComparisonMode != Options::LiteralComparisonMode::REVERSE) {
-            OverlayBinder tmpBinder;
+            OverlayBinder<higherOrder> tmpBinder;
             matcher.getBindings(tmpBinder.base());
             ASS(SDHelper::substClauseIsSmallerOrEqual(mcl, tmpBinder, cl, _ord));
           }
@@ -233,7 +233,7 @@ bool ForwardSubsumptionDemodulation<higherOrder>::perform(Clause* cl, Clause*& r
         static std::vector<bool> isMatched;
         matcher.getMatchedAltsBitmap(isMatched);
 
-        static OverlayBinder binder;
+        static OverlayBinder<higherOrder> binder;
         binder.clear();
         matcher.getBindings(binder.base());
 
@@ -315,7 +315,7 @@ bool ForwardSubsumptionDemodulation<higherOrder>::perform(Clause* cl, Clause*& r
           // But note that we still need to compare the variable sets of the substituted terms below.
           Ordering::Result eqArgOrderS = eqArgOrder;
 #endif
-          OverlayBinder::UnboundVariableOffsetApplicator applicator(binder, cl_maxVar+1);
+          typename OverlayBinder<higherOrder>::UnboundVariableOffsetApplicator applicator(binder, cl_maxVar+1);
           switch (eqArgOrderS) {
             case Ordering::INCOMPARABLE:
               ASS(!_preorderedOnly);  // would've skipped earlier already
@@ -354,7 +354,7 @@ bool ForwardSubsumptionDemodulation<higherOrder>::perform(Clause* cl, Clause*& r
           continue;
         }
 
-        static DHSet<TermList> attempted;  // Terms we already attempted to demodulate
+        static DHSet<TermList, TermListHash, TermListHash2> attempted;  // Terms we already attempted to demodulate
         attempted.reset();
 
         for (unsigned dli = 0; dli < cl->length(); ++dli) {
@@ -408,7 +408,7 @@ bool ForwardSubsumptionDemodulation<higherOrder>::perform(Clause* cl, Clause*& r
                 // There can be no unbound variables at this point;
                 // otherwise we would have excluded the LHS already
                 // in the ordering pre-check above
-                auto mclVarIt = mcl->getVariableIterator();  // includes vars in rhs
+                auto mclVarIt = mcl->iterVars();  // includes vars in rhs
                 while (mclVarIt.hasNext()) {
                   unsigned int var = mclVarIt.next();
                   ASS(binder.isBound(var));

@@ -16,6 +16,7 @@
 #include "Debug/Assertion.hpp"
 
 #include "Kernel/TermIterators.hpp"
+#include "Lib/DArray.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
 
@@ -210,7 +211,7 @@ Sign RationalConstantType::sign() const
   return numerator().sign(); 
 }
 
-Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, IntegerConstantType n2)
+Comparison IntegerConstantType::comparePrecedence(IntegerConstantType const& n1, IntegerConstantType const& n2)
 {
   auto cmp = mpz_cmpabs(n1._val, n2._val);
   if (cmp > 0) return Comparison::GREATER;
@@ -226,7 +227,7 @@ Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, Intege
 //
 
 RationalConstantType::RationalConstantType(InnerType num, InnerType den)
-  : _num(num), _den(den)
+  : _num(std::move(num)), _den(std::move(den))
 { cannonize(); }
 
 RationalConstantType RationalConstantType::operator+(const RationalConstantType& o) const
@@ -313,7 +314,7 @@ void RationalConstantType::cannonize()
   mpq_clear(q);
 }
  
-Comparison RationalConstantType::comparePrecedence(RationalConstantType n1, RationalConstantType n2)
+Comparison RationalConstantType::comparePrecedence(RationalConstantType const& n1, RationalConstantType const& n2)
 {
   auto prec = IntegerConstantType::comparePrecedence(n1._den, n2._den);
   if (prec != EQUAL) return prec;
@@ -325,7 +326,7 @@ Comparison RationalConstantType::comparePrecedence(RationalConstantType n1, Rati
 // RealConstantType
 //
 
-Comparison RealConstantType::comparePrecedence(RealConstantType n1, RealConstantType n2)
+Comparison RealConstantType::comparePrecedence(RealConstantType const& n1, RealConstantType const& n2)
 { return RationalConstantType::comparePrecedence(n1, n2); }
 
 Option<RationalConstantType> parseRat(const std::string& num)
@@ -1002,29 +1003,65 @@ unsigned Theory::getTupleConstructor(unsigned arity)
 
 bool Theory::isTupleConstructor(Term* t)
 {
-  return !t->isSpecial() && !t->isSort() && SortHelper::getResultSort(t).isTupleSort()
-    && getTupleConstructor(t->numTypeArguments()) == t->functor();
+  if (t->isSpecial() || t->isSort() || t->isLiteral()) {
+    return false;
+  }
+
+  // note that we must not call getTupleConstructor before we know that t is a
+  // term algebra constructor of a tuple sort: getTupleConstructor registers the
+  // tuple term algebra of the given arity as a side effect, and we do not want
+  // merely asking this question to extend the signature
+  if (!env.signature->getFunction(t->functor())->termAlgebraCons()) {
+    return false;
+  }
+
+  TermList sort = SortHelper::getResultSort(t);
+
+  if (!sort.isTupleSort()) {
+    return false;
+  }
+
+  // an n-tuple constructor has n type arguments and n term arguments, so its
+  // arity as a symbol is 2n; the arity we need here, n, is the arity of the
+  // tuple sort.  (Taking it from t's own type argument count would coincide for
+  // a genuine tuple constructor, but not for the terms we get asked about --
+  // e.g. a plain constant of a tuple sort has no type arguments at all, and
+  // getTupleConstructor(0) would then register a bogus arity-0 tuple algebra.)
+  return getTupleConstructor(sort.term()->arity()) == t->functor();
 }
 
 unsigned Theory::getTupleProjectionFunctor(unsigned arity, unsigned proj)
 {
   auto c = theory->getTupleTermAlgebra(arity)->constructor(0);
 
-  ASS_L(proj, c->arity());
+  ASS_L(proj, c->arity() - c->numTypeArguments());
 
   return c->destructorFunctor(proj);
 }
 
 // TODO: replace with a constant time algorithm
 bool Theory::findTupleProjection(unsigned projFunctor, bool isPredicate, unsigned &proj) {
-  OperatorType* projType = isPredicate ? env.signature->getPredicate(projFunctor)->predType()
-                                       : env.signature->getFunction(projFunctor)->fnType();
-
-  if (projType->arity() != 1) {
+  // tuple projections are the destructors of the tuple term algebra,
+  // and destructors are always functions (even for a Boolean component)
+  if (isPredicate) {
     return false;
   }
 
-  TermList tupleSort = projType->arg(0);
+  const Signature::Symbol* sym = env.signature->getFunction(projFunctor);
+  if (!sym->termAlgebraDest()) {
+    return false;
+  }
+
+  OperatorType* projType = sym->type();
+  unsigned numTypeArgs = projType->numTypeArguments();
+
+  // a projection takes exactly one term argument (the tuple);
+  // note that OperatorType::arity() counts the type arguments as well
+  if (projType->arity() != numTypeArgs + 1) {
+    return false;
+  }
+
+  TermList tupleSort = projType->arg(numTypeArgs);
 
   if (!tupleSort.isTupleSort()) {
     return false;
@@ -1035,7 +1072,7 @@ bool Theory::findTupleProjection(unsigned projFunctor, bool isPredicate, unsigne
   }
 
   Shell::TermAlgebraConstructor* c = env.signature->getTermAlgebraOfSort(tupleSort)->constructor(0);
-  for (unsigned i = 0; i < c->arity(); i++) {
+  for (unsigned i = 0; i < c->arity() - c->numTypeArguments(); i++) {
     if (projFunctor == c->destructorFunctor(i)) {
       proj = i;
       return true;
@@ -1209,7 +1246,7 @@ OperatorType* Theory::getOperatorType(Interpretation i)
   // (except for two variable equalities where the type argument
   // is stored as an extra in the Literal).
   if (i == Interpretation::EQUAL) {
-    return OperatorType::getPredicateType(2);
+    return OperatorType::getPredicateTypeUniformRange(2, AtomicSort::defaultSort());
   }
 
   // Array operators have two type arguments, index type and element type
@@ -1229,16 +1266,12 @@ OperatorType* Theory::getOperatorType(Interpretation i)
 
   ASS(hasSingleSort(i));
   TermList sort = getOperationSort(i);
-
   unsigned arity = getArity(i);
 
-  static DArray<TermList> domainSorts;
-  domainSorts.init(arity, sort);
-
   if (isFunction(i)) {
-    return OperatorType::getFunctionType(arity, domainSorts.array(), sort);
+    return OperatorType::getFunctionTypeUniformRange(arity, sort, sort);
   } else {
-    return OperatorType::getPredicateType(arity, domainSorts.array());
+    return OperatorType::getPredicateTypeUniformRange(arity, sort);
   }
 }
 
@@ -1255,17 +1288,13 @@ TermAlgebra* Theory::getTupleTermAlgebra(unsigned arity)
   auto args = typeVars;
   args.loadFromIterator(varRange(arity, 2*arity));
 
-  auto functor = env.signature->addFreshFunction(2*arity, "tuple");
-  auto tupleType = OperatorType::getFunctionType(arity, args.begin(), tupleSort, arity);
-  env.signature->getFunction(functor)->setType(tupleType);
-  env.signature->getFunction(functor)->markTermAlgebraCons();
+  auto tupleType = OperatorType::getFunctionType(typeVars, tupleSort, arity);
+  auto functor = env.signature->addFreshFunction(tupleType, "tuple")->markTermAlgebraCons()->number();
 
   Array<unsigned> destructors(arity);
   for (unsigned i = 0; i < arity; i++) {
-    auto destructor = env.signature->addFreshFunction(arity+1, "proj");
-    auto destSym = env.signature->getFunction(destructor);
-    destSym->setType(OperatorType::getFunctionType({ tupleSort }, typeVars[i], arity));
-    destSym->markTermAlgebraDest();
+    auto destructor = env.signature->addFreshFunction(OperatorType::getFunctionType({ tupleSort }, typeVars[i], arity), "proj")
+      ->markTermAlgebraDest()->number();
     destructors[i] = destructor;
   }
 
@@ -1406,8 +1435,8 @@ Interpretation Theory::interpretFunction(unsigned func)
 {
   ASS(isInterpretedFunction(func));
 
-  Signature::InterpretedSymbol* sym =
-      static_cast<Signature::InterpretedSymbol*>(env.signature->getFunction(func));
+  const Signature::InterpretedSymbol* sym =
+      static_cast<const Signature::InterpretedSymbol*>(env.signature->getFunction(func));
 
   return sym->getInterpretation();
 }
@@ -1436,8 +1465,8 @@ Interpretation Theory::interpretPredicate(unsigned pred)
 {
   ASS(isInterpretedPredicate(pred));
 
-  Signature::InterpretedSymbol* sym =
-      static_cast<Signature::InterpretedSymbol*>(env.signature->getPredicate(pred));
+  const Signature::InterpretedSymbol* sym =
+      static_cast<const Signature::InterpretedSymbol*>(env.signature->getPredicate(pred));
 
   return sym->getInterpretation();
 }
@@ -1472,7 +1501,7 @@ bool Theory::tryInterpretConstant(const Term* t, IntegerConstantType& res)
 
 bool Theory::tryInterpretConstant(unsigned func, IntegerConstantType& res)
 {
-  Signature::Symbol* sym = env.signature->getFunction(func);
+  const Signature::Symbol* sym = env.signature->getFunction(func);
   if (!sym->integerConstant()) {
     return false;
   }
@@ -1500,7 +1529,7 @@ bool Theory::tryInterpretConstant(const Term* t, RationalConstantType& res)
 
 bool Theory::tryInterpretConstant(unsigned func, RationalConstantType& res)
 {
-  Signature::Symbol* sym = env.signature->getFunction(func);
+  const Signature::Symbol* sym = env.signature->getFunction(func);
   if (!sym->rationalConstant()) {
     return false;
   }
@@ -1534,7 +1563,7 @@ bool Theory::tryInterpretConstant(const Term* t, RealConstantType& res)
 
 bool Theory::tryInterpretConstant(unsigned func, RealConstantType& res)
 {
-  Signature::Symbol* sym = env.signature->getFunction(func);
+  const Signature::Symbol* sym = env.signature->getFunction(func);
   if (!sym->realConstant()) {
     return false;
   }

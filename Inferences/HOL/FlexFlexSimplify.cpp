@@ -12,6 +12,8 @@
  * Implements class FlexFlexSimplify.
  */
 
+#include "Debug/TimeProfiling.hpp"
+
 #include "Kernel/Inference.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Clause.hpp"
@@ -24,6 +26,7 @@ namespace Inferences {
 
 Clause* FlexFlexSimplify::simplify(Clause* c)
 {
+  TIME_TRACE("flex flex simplification");
   if (c->isEmpty()) {
     return c;
   }

@@ -33,7 +33,9 @@ class System {
 public:
   static void setSignalHandlers();
 
-  [[noreturn]] static void terminateImmediately(int resultStatus) {
+  [[noreturn]] static void flushAndTerminateImmediately(int resultStatus) {
+    std::cout.flush();
+    std::cerr.flush();
     std::_Exit(resultStatus);
   }
 

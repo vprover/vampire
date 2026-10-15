@@ -40,7 +40,7 @@ using namespace Kernel;
 class PredicateDefinition
 {
 public:
-  typedef DHMap<unsigned, Unit*> ReplMap;
+  typedef DHMap<unsigned, Unit*, FnvHash, IdentityHash> ReplMap;
 
   PredicateDefinition();
   ~PredicateDefinition();
@@ -83,8 +83,8 @@ private:
   unsigned _predCnt;
   PredData* _preds;
 
-  DHMap<unsigned, Def*> _defs;
-  DHMap<unsigned, bool> _purePreds;
+  DHMap<unsigned, Def*, FnvHash, IdentityHash> _defs;
+  DHMap<unsigned, bool, FnvHash, IdentityHash> _purePreds;
   Stack<int> _eliminable;
   Stack<int> _pureToReplace;
 };

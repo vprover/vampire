@@ -15,11 +15,17 @@
  */
 
 
+#include "Debug/TimeProfiling.hpp"
+
+#include "Lib/Random.hpp"
 #include "Lib/ScopedLet.hpp"
 
-#include "Kernel/Unit.hpp"
+#include <cmath>
+
 #include "Kernel/Clause.hpp"
+#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Problem.hpp"
+#include "Kernel/Unit.hpp"
 
 #include "GoalGuessing.hpp"
 #include "AnswerLiteralManager.hpp"
@@ -28,7 +34,6 @@
 #include "DistinctGroupExpansion.hpp"
 #include "EqResWithDeletion.hpp"
 #include "EqualityProxy.hpp"
-#include "EqualityProxyMono.hpp"
 #include "Flattening.hpp"
 #include "FunctionDefinition.hpp"
 #include "GeneralSplitting.hpp"
@@ -53,6 +58,7 @@
 #include "TheoryFlattening.hpp"
 #include "TweeGoalTransformation.hpp"
 #include "BlockedClauseElimination.hpp"
+#include "PredicateElimination.hpp"
 
 #include "UIHelper.hpp"
 #include "Lib/List.hpp"
@@ -84,11 +90,18 @@ void Preprocess::preprocess(Problem& prb)
   }
 
   if (_options.questionAnswering()!=Options::QuestionAnsweringMode::OFF) {
-    env.statistics->phase=ExecutionPhase::ANSWER_LITERAL;
-    if (env.options->showPreprocessing())
-      std::cout << "answer literal addition" << std::endl;
+    if (prb.isHigherOrder()) {  // TODO: extend QuestionAnserting to support HOL
+       if (outputAllowed()) {
+         addCommentSignForSZS(std::cout);
+         std::cout << "WARNING: Skipping QuestionAnswering currently not compatible with higher-order inputs." << endl;
+       }
+    } else {
+      env.statistics->phase=ExecutionPhase::ANSWER_LITERAL;
+      if (env.options->showPreprocessing())
+        std::cout << "answer literal addition" << std::endl;
 
-    AnswerLiteralManager::getInstance()->addAnswerLiterals(prb);
+      AnswerLiteralManager::getInstance()->addAnswerLiterals(prb);
+    }
   }
 
   //we ensure that in the beginning we have a valid property object, to
@@ -111,6 +124,7 @@ void Preprocess::preprocess(Problem& prb)
     if (env.options->showPreprocessing())
       std::cout << "normalization" << std::endl;
 
+    TIME_TRACE("normalisation");
     Normalisation().normalise(prb);
   }
 
@@ -125,9 +139,44 @@ void Preprocess::preprocess(Problem& prb)
     Shuffling::shuffle(prb);
   }
 
+  // Distinctness is still only recorded symbolically at this point: as the $distinct
+  // marker literals left behind by the parsers, and as the distinct groups the string
+  // constants were collected into. Get rid of all of it before the real preprocessing.
+  //
+  // CAREFUL, this must stay *after* the getProperty/normalise prefix above: PortfolioMode
+  // and profileMode compute their Property on the problem as parsed, before anything runs,
+  // so eliminating $distinct any earlier would hand single-strategy mode a Property those
+  // two never see.
+  //
+  // Not for higher-order input, where the pass cannot run at all:
+  // DistinctExpander::applyLiteral descends into the arguments of any unshared literal to
+  // find a $distinct hidden inside a FOOL term, and in higher-order logic a literal
+  // holding a lambda is unshared too, so it reaches FormulaTransformer's NOT_IMPLEMENTED
+  // for SpecialFunctor::LAMBDA.
+  //
+  // Skipping is sound for the marker literals, which thf rejects outright ("$distinct is
+  // not supported in thf", Parse/TPTP.cpp). It is *not* sound for the other source of
+  // distinctness: a distinct object still parses in thf, in an equality and in a type
+  // declaration, and silently dropping the disequalities its group stands for would lose
+  // information the input asserted. Nothing in TPTP does this today, so rather than leave
+  // a trap for whoever writes the first such problem, say so.
+  if(prb.isHigherOrder()){
+    if(env.signature->hasDistinctGroups()){
+      USER_ERROR("distinct objects are not supported in higher-order problems");
+    }
+  } else if(env.signature->hasDistinctPredicates() || env.signature->hasDistinctGroups()){
+    TIME_TRACE("distinct group expansion");
+    // the two conditions are the two phases' inputs: no marker predicate was ever created
+    // means no unit can contain one, and with no group there is nothing to expand either,
+    // so for the vast majority of problems the pass has nothing to do. (Skipping it also
+    // skips the noDistinctGroupsLeft() it would end on, which is a no-op with no groups.)
+    if(env.options->showPreprocessing())
+      std::cout << "distinct group expansion" << std::endl;
+    DistinctGroupExpansion(_options.distinctGroupExpansionLimit()).apply(prb);
+  }
+
   if(_options.guessTheGoal() != Options::GoalGuess::OFF){
-    prb.invalidateProperty();
-    prb.getProperty();
+    TIME_TRACE("goal guessing");
     GoalGuessing().apply(prb);
   }
 
@@ -135,7 +184,7 @@ void Preprocess::preprocess(Problem& prb)
   if (prb.hasInterpretedOperations() || env.signature->hasTermAlgebras()){
     if (_options.theoryAxioms() != Options::TheoryAxiomLevel::OFF // we need to normalize before adding the theory axioms as they rely on only normalized symbols being present
       || !_options.alasca()) { // NOTE: Alasca wouldn't need this, but then not all axioms would necessarily be added
-      InterpretedNormalizer().apply(prb);
+      { TIME_TRACE("interpreted normalisation"); InterpretedNormalizer().apply(prb); }
     }
 
     // Add theory axioms if needed
@@ -144,6 +193,7 @@ void Preprocess::preprocess(Problem& prb)
       if (env.options->showPreprocessing())
         std::cout << "adding theory axioms" << std::endl;
 
+      TIME_TRACE("theory axioms");
       TheoryAxioms(prb).apply();
     }
   }
@@ -152,6 +202,7 @@ void Preprocess::preprocess(Problem& prb)
     if (env.options->showPreprocessing())
       std::cout << "eliminating euclidean quotient and remainder" << std::endl;
 
+    TIME_TRACE("euclidean quotient elimination");
     QuotientEPreproc().proc(prb);
   }
 
@@ -161,6 +212,7 @@ void Preprocess::preprocess(Problem& prb)
       if (env.options->showPreprocessing())
         std::cout << "FOOL elimination" << std::endl;
 
+      TIME_TRACE("FOOL elimination");
       FOOLElimination().apply(prb);
     }
   }
@@ -175,8 +227,11 @@ void Preprocess::preprocess(Problem& prb)
         std::cout << "WARNING: ignoring request to add function extensionality axiom as problem is first-order" << std::endl;
       }
     } else {
-      INVALID_OPERATION("function extensionality axiom not yet supported");
-      // LambdaConversion::addFunctionExtensionalityAxiom(prb);
+      auto funcExtAx = HOL::create::functionalExtensionalityAxiom();
+      UnitList::push(funcExtAx, prb.units());
+      if (env.options->showPreprocessing()) {
+        std::cout << "Added functional extensionality axiom: " << funcExtAx->toString() << std::endl;       
+      }
     }
   }
 
@@ -187,36 +242,19 @@ void Preprocess::preprocess(Problem& prb)
         std::cout << "WARNING: ignoring request to add choice axiom as problem is first-order" << std::endl;
       }
     } else {
-      INVALID_OPERATION("choice axiom not yet supported");
-      // LambdaConversion::addChoiceAxiom(prb);
-    }
-  }
-
-  if (env.options->addProxyAxioms()){
-    if (!prb.isHigherOrder()) {
-      if (outputAllowed()) {
-        addCommentSignForSZS(std::cout);
-        std::cout << "WARNING: ignoring request to add logical proxy axioms as problem is first-order" << std::endl;
+      auto choiceAx = HOL::create::choiceAxiom();
+      UnitList::push(choiceAx, prb.units());
+      if (env.options->showPreprocessing()) {
+        std::cout << "[PP] Added Hilbert choice axiom: " << choiceAx->toString() << std::endl;
       }
-    } else {
-      INVALID_OPERATION("proxy axioms not yet supported");
-      // LambdaConversion::addProxyAxioms(prb);
     }
-  }
-
-  // Expansion of distinct groups happens before other preprocessing
-  // If a distinct group is small enough it will add inequality to describe it
-  if(env.signature->hasDistinctGroups()){
-    if(env.options->showPreprocessing())
-      std::cout << "distinct group expansion" << std::endl;
-    DistinctGroupExpansion(_options.distinctGroupExpansionLimit()).apply(prb);
   }
 
   if (_options.sineToAge() || _options.useSineLevelSplitQueues() || (_options.sineToPredLevels() != Options::PredicateSineLevels::OFF)) {
     env.statistics->phase=ExecutionPhase::SINE_SELECTION;
 
     if (_options.sineToPredLevels() != Options::PredicateSineLevels::OFF) {
-      env.predicateSineLevels = new DHMap<unsigned,unsigned>();
+      env.predicateSineLevels = new DHMap<unsigned,unsigned, FnvHash, IdentityHash>();
     }
 
     // just to initialize ``env.clauseSineLevels'' or ``env.predicateSineLevels''
@@ -270,6 +308,7 @@ void Preprocess::preprocess(Problem& prb)
     if (env.options->showPreprocessing())
       std::cout << "unused predicate definition removal" << std::endl;
 
+    TIME_TRACE("unused predicate definition removal");
     PredicateDefinition pdRemover;
     pdRemover.removeUnusedDefinitionsAndPurePredicates(prb);
   }
@@ -278,6 +317,7 @@ void Preprocess::preprocess(Problem& prb)
     if (env.options->showPreprocessing())
       std::cout << "preprocess 2 (ennf,flatten)" << std::endl;
 
+    TIME_TRACE("preprocess 2");
     preprocess2(prb);
   }
 
@@ -295,6 +335,7 @@ void Preprocess::preprocess(Problem& prb)
     if (env.options->showPreprocessing())
       std::cout << "newCnf" << std::endl;
 
+    TIME_TRACE("new CNF");
     newCnf(prb);
   } else {
     if (prb.mayHaveFormulas() && _options.newCNF()) { // TODO: update newCNF to deal with higher-order
@@ -316,6 +357,7 @@ void Preprocess::preprocess(Problem& prb)
       if (env.options->showPreprocessing())
         std::cout << "preprocess3 (nnf, flatten, skolemize)" << std::endl;
 
+      TIME_TRACE("preprocess 3");
       preprocess3(prb);
     }
 
@@ -323,6 +365,7 @@ void Preprocess::preprocess(Problem& prb)
       if (env.options->showPreprocessing())
         std::cout << "clausify" << std::endl;
 
+      TIME_TRACE("clausification");
       clausify(prb);
     }
   }
@@ -332,6 +375,7 @@ void Preprocess::preprocess(Problem& prb)
   if (prb.hasFOOL()) {
     // This is the point to extend the signature with $$true and $$false
     // If we don't have fool then these constants get in the way (a lot).
+    TIME_TRACE("FOOL theory axioms");
     TheoryAxioms(prb).applyFOOL();
   }
 
@@ -340,6 +384,7 @@ void Preprocess::preprocess(Problem& prb)
     if (env.options->showPreprocessing())
       std::cout << "function definition elimination" << std::endl;
 
+    TIME_TRACE("function definition elimination");
     if (_options.functionDefinitionElimination() == Options::FunctionDefinitionElimination::ALL) {
       FunctionDefinition fd;
       fd.removeAllDefinitions(prb);
@@ -355,6 +400,7 @@ void Preprocess::preprocess(Problem& prb)
       std::cout << "inequality splitting" << std::endl;
 
     env.statistics->phase=ExecutionPhase::INEQUALITY_SPLITTING;
+    TIME_TRACE("inequality splitting");
     InequalitySplitting is(_options);
     is.perform(prb);
   }
@@ -382,6 +428,7 @@ void Preprocess::preprocess(Problem& prb)
      if (env.options->showPreprocessing())
       std::cout << "equality resolution with deletion" << std::endl;
 
+     TIME_TRACE("equality resolution with deletion");
      EqResWithDeletion resolver;
      resolver.apply(prb);
    }
@@ -403,6 +450,7 @@ void Preprocess::preprocess(Problem& prb)
        if (env.options->showPreprocessing())
          std::cout << "general splitting" << std::endl;
 
+       TIME_TRACE("general splitting");
        GeneralSplitting gs;
        gs.apply(prb);
      }
@@ -413,8 +461,13 @@ void Preprocess::preprocess(Problem& prb)
      if(env.options->showPreprocessing())
        std::cout << "twee goal transformation" << std::endl;
 
+     TIME_TRACE("twee goal transformation");
      TweeGoalTransformation twee;
      twee.apply(prb,(env.options->tweeGoalTransformation() == Options::TweeGoalTransformation::GROUND));
+   }
+
+   if (prb.isHigherOrder() && _options.heuristicInstantiation()) {
+     findAbstractions(prb.units());
    }
 
    if (!prb.isHigherOrder() && _options.equalityProxy()!=Options::EqualityProxy::OFF && prb.mayHaveEquality()) {
@@ -422,16 +475,14 @@ void Preprocess::preprocess(Problem& prb)
      if (env.options->showPreprocessing())
        std::cout << "equality proxy" << std::endl;
 
-     // refresh symbol usage counts, can skip unused symbols for equality proxy
-     prb.getProperty();
-     if(_options.useMonoEqualityProxy() && !prb.hasPolymorphicSym()){
-       EqualityProxyMono proxy(_options.equalityProxy());
-       proxy.apply(prb);
-     } else {
-       //default
-       EqualityProxy proxy(_options.equalityProxy());
-       proxy.apply(prb);
-     }
+     // only a problem which is polymorphic already gets the polymorphic proxy predicate;
+     // a monomorphic problem must not be turned polymorphic by preprocessing
+     // TODO: hasPolymorphicSym over-approximates; it also holds for a monomorphic problem
+     // with an equality on a non-nullary ground sort, such as list(int), which the
+     // monomorphic variant would handle just fine
+     TIME_TRACE("equality proxy");
+     EqualityProxy proxy(_options.equalityProxy(),/*poly=*/prb.hasPolymorphicSym());
+     proxy.apply(prb);
    }
 
 
@@ -445,6 +496,7 @@ void Preprocess::preprocess(Problem& prb)
        if(env.options->showPreprocessing())
          std::cout << "theory flattening" << std::endl;
 
+       TIME_TRACE("theory flattening");
        TheoryFlattening tf;
        tf.apply(prb);
      }
@@ -454,6 +506,7 @@ void Preprocess::preprocess(Problem& prb)
      if (env.options->showPreprocessing())
         std::cout << "performing integer conversion" << std::endl;
 
+     TIME_TRACE("alasca integer conversion");
      AlascaPreprocessor alasca(InequalityNormalizer::global());
      alasca.integerConversion(prb);
    }
@@ -465,6 +518,25 @@ void Preprocess::preprocess(Problem& prb)
 
      BlockedClauseElimination bce(/*force_equationally*/_options.saturationAlgorithm() == Options::SaturationAlgorithm::FINITE_MODEL_BUILDING);
      bce.apply(prb);
+   }
+
+   if (_options.predicateElimination() != Options::PredicateElimination::OFF) {
+     if (prb.isHigherOrder() || prb.hasPolymorphicSym()) { // in both cases, predicates could hide inside terms, breaking the occurrence counting
+       if (outputAllowed()) {
+         addCommentSignForSZS(std::cout);
+         std::cout << "WARNING: Not using PredicateElimination currently not compatible with polymorphic/higher-order inputs." << endl;
+       }
+     } else {
+       env.statistics->phase=ExecutionPhase::PREDICATE_ELIMINATION;
+       if (env.options->showPreprocessing())
+         std::cout << "predicate elimination" << std::endl;
+
+       PredicateElimination pel(/*forceEquationally=*/_options.saturationAlgorithm() == Options::SaturationAlgorithm::FINITE_MODEL_BUILDING,
+                                _options.predicateEliminationTotalLimit(),
+                                _options.predicateEliminationSubsumption(),
+                                _options.predicateEliminationMultiOccurrence());
+       pel.apply(prb);
+     }
    }
 
    if (_options.shuffleInput()) {
@@ -601,14 +673,21 @@ void Preprocess::naming(Problem& prb)
   ASS(_options.naming());
 
   env.statistics->phase=ExecutionPhase::NAMING;
+  int nm = _options.naming();
   UnitList::DelIterator us(prb.units());
-  //TODO fix the below
-  Naming naming(_options.naming(),false, prb.isHigherOrder()); // For now just force eprPreservingNaming to be false, should update Naming
   while (us.hasNext()) {
     Unit* u = us.next();
     if (u->isClause()) {
       continue;
     }
+    int threshold = nm;
+    if (_options.randomizedPreprocessing()) {
+      // log-uniform on [nm/2, 2*nm]: the geometric mean stays nm
+      threshold = (int)std::round(nm * std::pow(2.0, Random::getDouble(-1.0, 1.0)));
+      threshold = std::min(std::max(threshold, 2), 32767); // respect the nm option range {0} ∪ [2, 32767]
+    }
+    //TODO fix the below
+    Naming naming(threshold,false, prb.isHigherOrder()); // For now just force eprPreservingNaming to be false, should update Naming
     UnitList* defs;
     FormulaUnit* fu = static_cast<FormulaUnit*>(u);
     FormulaUnit* v = naming.apply(fu,defs);
@@ -783,4 +862,20 @@ void Preprocess::clausify(Problem& prb)
     prb.invalidateProperty();
   }
   prb.reportFormulasEliminated();
+}
+
+void Preprocess::findAbstractions(UnitList*& units)
+{
+  for (const auto& u : iterTraits(UnitList::RefIterator(units))) {
+    if (!u->derivedFromGoal()) {
+      continue;
+    }
+
+    ASS(u->isClause());
+    for (const auto& lit : *u->asClause()) {
+      for (const auto& t : HOL::getAbstractionTerms(lit)) {
+        env.signature->addInstantiation(t);
+      }
+    }
+  }
 }
