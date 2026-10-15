@@ -68,6 +68,13 @@ private:
   UnificationNode(const UnificationNode& parent, Stack<Constraint> cons);
   Stack<Constraint> decompose(unsigned index, bool includeRest) const;
 
+  enum class OracleResult {
+    OUT_OF_FRAGMENT,
+    SUCCESS,
+    FAILURE,
+  };
+  OracleResult fixpointUnify(Constraint con);
+
   unsigned _freshVar;
   const bool _funcExt;
 };
