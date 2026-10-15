@@ -25,6 +25,7 @@ using namespace Kernel;
 DemodulationHelper::DemodulationHelper(const Options& opts, const Ordering* ord)
 : _redundancyCheck(opts.demodulationRedundancyCheck() != Options::DemodulationRedundancyCheck::OFF),
   _encompassing(opts.demodulationRedundancyCheck() == Options::DemodulationRedundancyCheck::ENCOMPASS),
+  _labeled(opts.demodulationRedundancyCheck() == Options::DemodulationRedundancyCheck::LABELED),
   _ord(ord)
 {
 }
@@ -57,7 +58,7 @@ bool DemodulationHelper::isPremiseRedundant(Clause* rwCl, Literal* rwLit, TermLi
   if (_encompassing) {
     // under _encompassing, we know there are no other literals in rwCl
     return !isRenamingOn(eqApplicator,eqLHS) ||
-      (tord == Ordering::INCOMPARABLE && rwCl->number() > eqCl->number());
+      (_labeled && tord == Ordering::INCOMPARABLE && rwCl->number() > eqCl->number());
   }
 
   // return early to avoid creation of eqLitS

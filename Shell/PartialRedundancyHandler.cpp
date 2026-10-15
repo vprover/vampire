@@ -524,15 +524,19 @@ bool PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::compareWithSupe
         }
         // case 2.b.
         auto tord = _ord->compare(other, tgtTermS);
-        switch (tord) {
-          case Ordering::GREATER:
-            return true;
-          case Ordering::EQUAL:
-            return rwCl->number() > eqCl->number();
-          case Ordering::LESS:
-            return false;
-          case Ordering::INCOMPARABLE:
-            return rwCl->number() > eqCl->number() || checkOrConstrainGreater(tord, other, tgtTermS, cons);
+        if (_labeled) {
+          switch (tord) {
+            case Ordering::GREATER:
+              return true;
+            case Ordering::EQUAL:
+              return rwCl->number() > eqCl->number();
+            case Ordering::LESS:
+              return false;
+            case Ordering::INCOMPARABLE:
+              return rwCl->number() > eqCl->number() || checkOrConstrainGreater(tord, other, tgtTermS, cons);
+          }
+        } else {
+          return checkOrConstrainGreater(tord, other, tgtTermS, cons);
         }
       }
       // case 2.c.

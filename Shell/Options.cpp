@@ -685,7 +685,7 @@ Options::Options ()
        .description = "Perform condensation. If 'fast' is specified, we only perform condensations that are easy to check for.",
        .tag = OptionTag::INFERENCES})
   , _demodulationRedundancyCheck("demodulation_redundancy_check",this,
-       DemodulationRedundancyCheck::ENCOMPASS,{"off","ordering","encompass"},
+       DemodulationRedundancyCheck::ENCOMPASS,{"off","ordering","encompass", "labeled"},
       {.short_name = "drc",
        .description = "The following cases of backward and forward demodulation do not preserve completeness:\n"
        "s = t     s = t1 \\/ C \t s = t     s != t1 \\/ C\n"
@@ -693,6 +693,7 @@ Options::Options ()
        "--------------------- \t ---------------------\n"
        "t = t1 \\/ C \t\t t != t1 \\/ C\n"
        "where t > t1 and s = t > C (RHS replaced)\n"
+       "With `labeled`, we have `encompass` but we also demodulate one equation with another (equally general but incomparable) equation if one was generated earlier (labeled smaller)."
        "With `encompass`, we treat demodulations (both forward and backward) as encompassment demodulations (as defined by Duarte and Korovin in 2022's IJCAR paper).\n"
        "With `ordering`, we check this condition and don't demodulate if we could violate completeness.\n"
        "With `off`, we skip the checks, save time, but become incomplete.",

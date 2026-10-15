@@ -58,6 +58,7 @@ public:
 private:
   bool _redundancyCheck;
   bool _encompassing;
+  bool _labeled;
   const Ordering* _ord;
 };
 

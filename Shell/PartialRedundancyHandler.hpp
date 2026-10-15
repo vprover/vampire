@@ -128,6 +128,7 @@ public:
   PartialRedundancyHandlerImpl(const Options& opts, const Ordering* ord, Splitter* splitter)
     : _redundancyCheck(opts.demodulationRedundancyCheck() != Options::DemodulationRedundancyCheck::OFF),
       _encompassing(opts.demodulationRedundancyCheck() == Options::DemodulationRedundancyCheck::ENCOMPASS),
+      _labeled(opts.demodulationRedundancyCheck() == Options::DemodulationRedundancyCheck::LABELED),
       _ord(ord), _splitter(splitter) {}
 
   /** Returns false if superposition should be skipped. */
@@ -156,6 +157,7 @@ private:
 
   bool _redundancyCheck;
   bool _encompassing;
+  bool _labeled;
   const Ordering* _ord;
   Splitter* _splitter;
 };
