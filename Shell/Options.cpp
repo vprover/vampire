@@ -685,7 +685,7 @@ Options::Options ()
        .description = "Perform condensation. If 'fast' is specified, we only perform condensations that are easy to check for.",
        .tag = OptionTag::INFERENCES})
   , _demodulationRedundancyCheck("demodulation_redundancy_check",this,
-       DemodulationRedundancyCheck::ENCOMPASS,{"off","ordering","encompass", "labeled"},
+       DemodulationRedundancyCheck::LABELED,{"off","ordering","encompass", "labeled"},
       {.short_name = "drc",
        .description = "The following cases of backward and forward demodulation do not preserve completeness:\n"
        "s = t     s = t1 \\/ C \t s = t     s != t1 \\/ C\n"
