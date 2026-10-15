@@ -616,7 +616,10 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     cl->setAge(level);
   }
 
-  if (sosForAxioms || (cl->isPureTheoryDescendant() && sosForTheory)) {
+  if (sosForAxioms || (cl->isPureTheoryDescendant() && sosForTheory)
+    // TODO: This is a hack to avoid redundant self-superpositions with the Boolean
+    // exhaustiveness axiom. We should fix FOOL paramodulation and remove the axiom.
+    || cl->inference().rule() == InferenceRule::FOOL_AXIOM_ALL_IS_TRUE_OR_FALSE) {
     addInputSOSClause(cl);
   }
   else {
