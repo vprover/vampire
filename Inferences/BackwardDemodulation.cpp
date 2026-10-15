@@ -50,7 +50,7 @@ BackwardDemodulation<higherOrder>::BackwardDemodulation(SaturationAlgorithm& sal
   : _ord(salg.getOrdering()),
     _preordered(salg.getOptions().backwardDemodulation() == Options::Demodulation::PREORDERED),
     _index(salg.getSimplifyingIndex<DemodulationSubtermIndex<higherOrder>>()),
-    _helper(DemodulationHelper(salg.getOptions(), &salg.getOrdering()))
+    _helper(salg.getOptions(), salg.getOrdering())
 {}
 
 namespace {

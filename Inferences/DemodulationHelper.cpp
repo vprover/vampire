@@ -22,10 +22,10 @@ namespace Inferences {
 
 using namespace Kernel;
 
-DemodulationHelper::DemodulationHelper(const Options& opts, const Ordering* ord)
+DemodulationHelper::DemodulationHelper(const Options& opts, const Ordering& ord)
 : _redundancyCheck(opts.demodulationRedundancyCheck() != Options::DemodulationRedundancyCheck::OFF),
-  _encompassing(opts.demodulationRedundancyCheck() == Options::DemodulationRedundancyCheck::ENCOMPASS),
   _labeled(opts.demodulationRedundancyCheck() == Options::DemodulationRedundancyCheck::LABELED),
+  _encompassing(_labeled || opts.demodulationRedundancyCheck() == Options::DemodulationRedundancyCheck::ENCOMPASS),
   _ord(ord)
 {
 }
@@ -50,7 +50,7 @@ bool DemodulationHelper::isPremiseRedundant(Clause* rwCl, Literal* rwLit, TermLi
   ASS(redundancyCheckNeededForPremise(rwCl, rwLit, rwTerm));
 
   TermList other=EqHelper::getOtherEqualitySide(rwLit, rwTerm);
-  auto tord = _ord->compare(tgtTerm, other);
+  auto tord = _ord.compare(tgtTerm, other);
   if (tord == Ordering::LESS) {
     return true;
   }
@@ -78,7 +78,7 @@ bool DemodulationHelper::isPremiseRedundant(Clause* rwCl, Literal* rwLit, TermLi
   // Hence we need to check if there are any literals
   // in rwCl greater than eqLitS.
   return rwCl->iterLits().any([rwLit,this,eqLitS](Literal* lit) {
-    return lit != rwLit && _ord->compare(eqLitS, lit)==Ordering::LESS;
+    return lit != rwLit && _ord.compare(eqLitS, lit)==Ordering::LESS;
   });
 }
 

@@ -92,7 +92,7 @@ Clause* performRewriting(
 }
 
 FunctionDefinitionRewriting::FunctionDefinitionRewriting(SaturationAlgorithm& salg)
-  : _salg(salg), _helper(DemodulationHelper(salg.getOptions(), &salg.getOrdering()))
+  : _salg(salg), _helper(salg.getOptions(), salg.getOrdering())
 {}
 
 Kernel::ClauseIterator FunctionDefinitionRewriting::generateClauses(Clause *premise)
@@ -117,7 +117,7 @@ Kernel::ClauseIterator FunctionDefinitionRewriting::generateClauses(Clause *prem
 }
 
 FunctionDefinitionDemodulation::FunctionDefinitionDemodulation(SaturationAlgorithm& salg)
-  : _ord(salg.getOrdering()), _helper(salg.getOptions(), &_ord), _fnDefHandler(salg.getFunctionDefinitionHandler())
+  : _ord(salg.getOrdering()), _helper(salg.getOptions(), _ord), _fnDefHandler(salg.getFunctionDefinitionHandler())
 {}
 
 bool FunctionDefinitionDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)

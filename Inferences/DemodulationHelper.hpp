@@ -25,8 +25,7 @@ using namespace Shell;
 
 class DemodulationHelper {
 public:
-  DemodulationHelper() = default;
-  DemodulationHelper(const Options& opts, const Ordering* ord);
+  DemodulationHelper(const Options& opts, const Ordering& ord);
 
   template<typename Object>
   static bool isRenamingOn(const SubstApplicator* applicator, Object obj) {
@@ -56,10 +55,10 @@ public:
     Clause* eqCl, TermList eqLHS, const SubstApplicator* applicator) const;
 
 private:
-  bool _redundancyCheck;
-  bool _encompassing;
-  bool _labeled;
-  const Ordering* _ord;
+  const bool _redundancyCheck;
+  const bool _labeled;
+  const bool _encompassing;
+  const Ordering& _ord;
 };
 
 };
