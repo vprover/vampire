@@ -82,8 +82,7 @@ TermList EtaNormaliser::transformSubterm(TermList t) {
     ++n;
   }
 
-  auto mfi = TermShifter::shift(body, 0).second;
-  unsigned j = mfi.unwrapOr(UINT_MAX); // j is minimum free index
+  auto j = TermShifter::minFreeDBIndex(body);
   unsigned k = std::min({l, n, j});
 
   if (k == 0)
@@ -92,7 +91,7 @@ TermList EtaNormaliser::transformSubterm(TermList t) {
   for (unsigned i = 0; i < k; ++i)
     newBody = newBody.lhs();
 
-  newBody = TermShifter::shift(newBody, 0 - static_cast<int>(k)).first;
+  newBody = TermShifter::shift(newBody, 0 - static_cast<int>(k));
 
   body = t;
   for (unsigned i = 0; i < l - k; ++i)

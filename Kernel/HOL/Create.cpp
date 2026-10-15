@@ -173,7 +173,7 @@ Clause* HOL::create::functionalExtensionalityAxiom()
   return Clause::fromLiterals({
     Literal::createEquality(false, lhs, rhs, beta),
     Literal::createEquality(true, x, y, AtomicSort::arrowSort(alpha, beta))
-  }, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FUNCTIONAL_EXTENSIONALITY_AXIOM));
+  }, TheoryAxiom(InferenceRule::FUNCTIONAL_EXTENSIONALITY_AXIOM));
 }
 
 Term* HOL::create::lambda(unsigned numArgs, const unsigned* vars, const TermList* varSorts, TypedTermList body, TermList* resultExprSort) {

@@ -49,7 +49,7 @@ private:
   const bool _full;
   const bool _emptyClauseOnly;
   const bool _selectedOnly;
-  using UnitIndexType = std::conditional_t<synthesis, UnitClauseWithALLiteralIndex, UnitClauseLiteralIndex>;
+  using UnitIndexType = std::conditional_t<synthesis, UnitClauseWithALLiteralIndex, UnitClauseLiteralIndex<false>>;
   using NonUnitIndexType = std::conditional_t<synthesis, NonUnitClauseWithALLiteralIndex, NonUnitClauseLiteralIndex>;
   std::shared_ptr<UnitIndexType> _unitIndex;
   std::shared_ptr<NonUnitIndexType> _nonUnitIndex;

@@ -29,6 +29,7 @@
 #include "Term.hpp"
 #include "RobSubstitution.hpp"
 #include "Kernel/NumTraits.hpp"
+#include "Kernel/ALASCA/Signature.hpp"
 
 #include "UnificationWithAbstraction.hpp"
 #include "Kernel/SortHelper.hpp"
@@ -168,7 +169,7 @@ public:
   AcIter(unsigned function, TermSpec t, RobSubstitution const* subs) : _function(function), _todo(), _subs(subs)
   { _todo->push(std::move(t)); }
 
-  DECL_ELEMENT_TYPE(TermSpec);
+  using ElementType = TermSpec;
 
   bool hasNext() const { return !_todo->isEmpty(); }
 
@@ -312,6 +313,9 @@ Option<AbstractionOracle::AbstractionResult> hol(AbstractingUnifier* au, TermSpe
   Stack<UnificationConstraint> unifs;
   DEBUG_UNIFY(0, "decomposing ", t1, " (", t1.sort(), ") ", t2, " (", t2.sort(), ")");
   while (t1.term.isApplication()) {
+    // It can happen that the substitution tree unifies terms before their sorts
+    // due to reordering. In this case, we may get terms with the same head but
+    // different number of applications, hence the check below and after the loop.
     if (!t2.term.isApplication()) {
       return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
     }
@@ -664,7 +668,7 @@ AbstractionOracle::AbstractionResult alasca(AbstractingUnifier& au, TermSpec con
     return AbstractionResult(equalIf());
 
   } else if (nVars > 0) {
-     Recycled<DHSet<TermSpec>> shieldedVars;
+     Recycled<DHSet<TermSpec, TermSpecHash, TermSpecHash2>> shieldedVars;
      for (auto i : range(nVars, diff.size())) {
        Recycled<Stack<TermSpec>> todo;
        todo->push(diff[i].first);
@@ -790,10 +794,10 @@ struct FloorUwaState {
   RStack<Monom> mixVars;
   RStack<Monom> ratAtoms;
   RStack<Monom> intAtoms;
-  Recycled<DHSet<VarSpec>> ratVarSet;
-  Recycled<DHSet<VarSpec>> mixVarSet;
-  Recycled<DHSet<VarSpec>> intVarSet;
-  Recycled<DHSet<VarSpec>> shieldedVars;
+  Recycled<DHSet<VarSpec, VarSpecHash, VarSpecHash2>> ratVarSet;
+  Recycled<DHSet<VarSpec, VarSpecHash, VarSpecHash2>> mixVarSet;
+  Recycled<DHSet<VarSpec, VarSpecHash, VarSpecHash2>> intVarSet;
+  Recycled<DHSet<VarSpec, VarSpecHash, VarSpecHash2>> shieldedVars;
 
   bool isShielded(TermSpec t) const { return shieldedVars->find(t.varSpec()); }
   bool isMixVar(VarSpec v) const { return mixVarSet->find(v) || (intVarSet->find(v) && ratVarSet->find(v)); }
@@ -1077,7 +1081,7 @@ struct FloorUwaState {
   };
 
   auto buckets() const {
-    Recycled<Map<unsigned, Bucket>> buckets;
+    Recycled<Map<unsigned, Bucket, FnvHash>> buckets;
     ASS(ratVars->isEmpty())
     ASS(intVars->isEmpty())
     ASS(mixVars->isEmpty())
@@ -1439,7 +1443,7 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
 
     // Save encountered unification pairs to avoid
     // recomputing their unification
-    Recycled<DHSet<std::pair<TermSpec,TermSpec>>> encountered;
+    Recycled<DHSet<std::pair<TermSpec,TermSpec>, PairHash<TermSpecHash,TermSpecHash>, PairHash<TermSpecHash2,TermSpecHash2>>> encountered;
 
     Option<AbstractionOracle::AbstractionResult> absRes;
     auto doAbstract = [&](auto& l, auto& r) -> bool

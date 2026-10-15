@@ -8,8 +8,6 @@
 
 # equality_proxy
 > ep ~cat off:70,RST:2,R:3,RSTC:2,RS:3
-# mono_ep
-ep!=off > mep ~cat on:10,off:1
 
 # equality_resolution_with_deletion
 > erd ~cat on:10,off:1
@@ -35,6 +33,15 @@ $nm=NZ > nm ~sgd 0.07,2
 > $ins ~cat Z:2,NZ:1
 $ins=Z > ins ~cat 0:1
 $ins=NZ > ins ~sgd 0.4,1
+
+# predicate_elimination
+> pel ~cat off:5,on:4,multi:1
+
+# predicate_elimination_subsumption
+pel!=off > pels ~cat on:4,off:1
+
+# predicate_elimination_total_limit
+pel!=off > peltl ~uf 0.9,5.0
 
 # random_polarities
 > rp ~cat off:3,on:1
@@ -126,8 +133,6 @@ $nwc!=1 > nwc ~uf 0.5,15.0
 # introduced_symbol_precedence
 > isp ~cat top:10,bottom:1
 
-# restrict_nwc_to_goal_constants
-nwc!=1 > rnwc ~cat off:5,on:1
 
 # literal_maximality_aftercheck
 > lma ~cat off:500,on:83
@@ -278,9 +283,7 @@ alasca=off > to ~cat kbo:130,lpo:40,incomp:1
 alasca=on > to ~cat kbo:10,qkbo:20,lakbo:40,lpo:10,incomp:1
 
 # symbol_precedence
-> sp ~cat arity:100,const_min:72,frequency:130,const_frequency:49,reverse_frequency:55,reverse_arity:72,weighted_frequency:24,unary_first:28,occurrence:82,unary_frequency:14,const_max:18
-# symbol_precedence_boost
-> spb ~cat none:200,units:78,goal:91,goal_then_units:93,non_intro:14,intro:12
+> sp ~cat arity:100,const_min:72,frequency:130,const_frequency:49,reverse_frequency:55,reverse_arity:72,unary_first:28,occurrence:41,reverse_occurrence:41,unary_frequency:14,const_max:18
 
 # kbo_max_zero
 to=kbo > kmz ~cat off:200,on:1

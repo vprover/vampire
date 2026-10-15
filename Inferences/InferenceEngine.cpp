@@ -12,6 +12,8 @@
  * Implements classes for inferences.
  */
 
+#include "Debug/TimeProfiling.hpp"
+
 #include "Kernel/HOL/HOL.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/DArray.hpp"
@@ -131,6 +133,7 @@ CompositeSGI::~CompositeSGI() {
 
 Clause* ChoiceDefinitionISE::simplify(Clause* c)
 {
+  TIME_TRACE("choice definition");
   if (c->length() != 2 || !c->noSplits()) {
     return c;
   }
@@ -245,7 +248,7 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
     }
   }
   else {
-    static DHSet<Literal*> seen;
+    static DHSet<Literal*, FnvHash, PtrIdentityHash> seen;
     seen.reset();
     //here we rely on the fact that the iterator traverses the clause from
     //the first to the last literal
@@ -283,9 +286,9 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
 
 #if DEBUG_DUPLICATE_LITERALS
   {
-    static DHSet<Literal*> origLits;
+    static DHSet<Literal*, FnvHash, PtrIdentityHash> origLits;
     origLits.reset();
-    static DHSet<Literal*> newLits;
+    static DHSet<Literal*, FnvHash, PtrIdentityHash> newLits;
     newLits.reset();
     origLits.loadFromIterator(c->iterLits());
     newLits.loadFromIterator(d->iterLits());
@@ -300,6 +303,7 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
 
 Clause* TautologyDeletionISE2::simplify(Clause* c)
 {
+  TIME_TRACE("higher-order tautology deletion");
   static LiteralStack negLits;
   static LiteralStack posLits;
 

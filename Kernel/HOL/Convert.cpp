@@ -98,7 +98,7 @@ static TermList formulaToNameless(Formula *formula, const VarToIndexMap& map) {
   switch (const auto conn = formula->connective()) {
     case Connective::LITERAL: {
       const Literal *lit = formula->literal();
-      ASS(lit->isEquality()) // Is this a valid assumption?
+      ASS(lit->isEquality())
 
       auto lhs = termToNameless(*lit->nthArgument(0), map);
       auto rhs = termToNameless(*lit->nthArgument(1), map);

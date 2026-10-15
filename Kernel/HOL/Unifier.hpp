@@ -94,7 +94,7 @@ public:
   AbstractingWrapper(const AbstractingWrapper&) = delete;
   AbstractingWrapper& operator=(const AbstractingWrapper&) = delete;
 
-  DECL_ELEMENT_TYPE(AbstractingUnifier*);
+  using ElementType = AbstractingUnifier*;
 
   bool hasNext() override;
   AbstractingUnifier* next() override;
@@ -105,7 +105,6 @@ private:
   BacktrackData _localBD;
   Stack<std::pair<UnificationNode*, unsigned>> _todo;
   UnificationNode* _next = nullptr;
-
 #if VDEBUG
   const bool _funcExt;
 #endif

@@ -13,6 +13,8 @@
  * @see Cases and FOOLParamodulation classes.
  */
 
+#include "Debug/TimeProfiling.hpp"
+
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Inference.hpp"
@@ -51,12 +53,13 @@ Clause* performCaseSimp(Clause* premise, Literal* lit, TermList t, bool replaceW
 
 Option<ClauseIterator> CasesSimp::simplifyMany(Clause* premise)
 {
+  TIME_TRACE("cases simplification");
   // TODO if this is a simplification, we shouldn't perform it on all subterms, just on the first we find.
   auto it = iterTraits(premise->iterLits())
     // TODO aren't all literals equalities in the HOL setting?
     .filter([](Literal* lit){ return lit->isEquality(); })
     .flatMap([](Literal* lit) {
-      return pvi(pushPairIntoRightIterator(lit, getUniquePersistentIterator(vi(new BooleanSubtermIt(lit)))));
+      return pvi(pushPairIntoRightIterator(lit, getUniquePersistentIterator<TermListHash, TermListHash2>(vi(new BooleanSubtermIt(lit)))));
     })
     // filter out top-level terms
     .filter([](pair<Literal*, TermList> arg) {

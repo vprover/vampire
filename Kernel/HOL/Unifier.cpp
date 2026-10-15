@@ -460,7 +460,7 @@ AbstractingUnifier* AbstractingWrapper::next()
 
   _unifier->constr().reset();
   for (const auto& con : _next->_cons) {
-    ASS_REP(con.flexFlex() || con.flexRigid() || (_funcExt && (con._sort.isArrowSort() || con._sort.isBoolSort())), con);
+    ASS_REP(con.flexFlex() || con.flexRigid() || (_funcExt && con._sort.isExtensionalSort()), con);
     ASS_REP(!con._lhs.containsLooseDBIndex(), con);
     ASS_REP(!con._rhs.containsLooseDBIndex(), con);
 

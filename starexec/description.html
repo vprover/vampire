@@ -1,25 +1,18 @@
 <HR><!-------------------------------------------------------------------------------------------->
-<H2>Vampire 5.0</H2>
-Michael Rawson<BR>
-University of Southampton, UK
+<H2>Vampire 5.0.1</H2>
+Márton Hajdu<BR>
+TU Wien, Austria
 
 <P>
-Vampire 5.0 remains similar in spirit to all previous versions, but a bumper crop of changes have been merged this competition cycle.
-Various non-competition improvements to Vampire including a <EM>program synthesis</EM> mode [HAHK+24] and partial support for the polymorphic SMT-LIB 2.7 standard landed, but for the competition we mention:
+Vampire 5.0.1 remains similar in spirit to all previous versions, but a bumper crop of changes have been merged this competition cycle.
+Various non-competition improvements to Vampire landed, but for the competition we mention:
 <UL>
-<LI>ALASCA [KKRS23] for reasoning with linear arithmetic, with further VIRAS extensions [SKK24] for quantifier elimination.
-<LI>Partial redundancy calculi [HKV25].
-<LI>Stabilised and greatly enhanced runtime-specialised unidirectional term ordering checks [HCKV25].
-<LI>A variant of the ground joinability redundancy elimination rule, used in forward simplification.
-<LI>Subsumption (resolution) via code trees.
-<LI>Integration of the CaDiCaL SAT solver [BFF+24] alongside Minisat.
-<LI>More detailed output, including proofs that are (more) TSTP-compliant, reporting non-trivial preprocessing in saturations, and producing completely faithful finite models of the input.
-<LI>Portability: Vampire is much more standards-compliant and portable than previously, with much-reduced dependence on platform-specific APIs and hardware architectures, aided by C++17.
+<LI>Clause-selection guidance based on Graph and Recursive Neural Networks [Suda25]
+<LI>Higher-order support has been mostly merged with mainline Vampire, therefore our HOL support enjoys all competition-winning improvements over the last years, while remaining efficient on non-higher-order problems.
+<LI>Detailed propositional proof output via the CaDiCaL SAT solver [BFF+24].
+<LI>More detailed output, including proofs that are (more) TSTP-compliant.
+<LI>Portability: Vampire is much more standards-compliant and portable than previously, with much-reduced dependence on platform-specific APIs and hardware architectures, aided by C++20.
 </UL>
-</P>
-
-<P>
-Vampire's higher-order support remains very similar to last year, although a re-implementation intended for mainline Vampire is being merged in stages.
 </P>
 
 <H3>Architecture</H3>
@@ -36,7 +29,7 @@ Internally, Vampire works only with clausal normal form: problems not already in
 Vampire implements many preprocessing transformations, including the SInE axiom selection algorithm for large theories and blocked clause elimination.
 
 <H3>Strategies</H3>
-Vampire 5.0 provides a very large number of options for strategy selection.
+Vampire 5.0.1 provides a very large number of options for strategy selection.
 The most important ones are:
 <UL>
 <LI> Choices of saturation algorithm:
@@ -51,6 +44,9 @@ The most important ones are:
 <LI> Parameterized reduction orderings KBO and LPO.
 <LI> A number of built-in literal selection functions and different modes of comparing literals [<A HREF="http://tptp.org/cgi-bin/SeeTPTP?Category=BibTeX&File=HR+16">HR+16</A>].
 <LI> Age-weight ratio that specifies how strongly lighter clauses are preferred for inference selection. This has been extended with a layered clause selection approach [<A HREF="http://tptp.org/cgi-bin/SeeTPTP?Category=BibTeX&File=GS20">GS20</A>].
+     <UL>
+     <LI> Optionally, instead of age-weight alternation, clause selection can be fully delegated to a guiding neural network [Suda25].
+     </UL>
 <LI> The set-of-support strategy with extensions for theory reasoning.
 <LI> For theory reasoning:
      <UL>
@@ -62,39 +58,46 @@ The most important ones are:
      </UL>
 </UL>
 
+For CASC, we prepared several clause-selection guiding networks trained on the TPTP library. As described in [Suda25], we were independently checking test performance on randomly held-out fraction of the library during the training. The test performance, although lower than the train performance, is greater than that of the baseline, which means that generalization to problems similar to those used in training is achieved.
+
 <H3>Implementation</H3>
-Vampire 5.0 is implemented in C++.
+Vampire 5.0.1 is implemented in C++.
 It makes use of fixed versions of Minisat, CaDiCaL, GMP, VIRAS, and Z3.
 See the <A HREF="https://github.com/vprover/vampire/">GitHub repository</A> and associated wiki for more information.
-
+<P>
+The neural clause-selection guidance relies on the LibTorch library (v2.10), which is statically linked into the competition submission so that it can run on StarExec without requiring the library to be installed there.
+</P>
 <H3>Expected Competition Performance</H3>
-Vampire 5.0 should be an improvement on the previous version. A reasonably strong performance across all divisions is therefore expected.
-In the higher-order divisions, performance should be the same as last year.
+Vampire 5.0.1 should be an improvement on the previous version. A reasonably strong performance across all divisions is therefore expected.
 
 <H3>References</H3>
 <DL>
+<DT> Suda25
+<DD> Martin Suda (2025),
+     <STRONG>Efficient Neural Clause-Selection Reinforcement</STRONG>,
+     <EM>CADE</EM> pp. 403-422, Springer.
 <DT> Vampire25
-<DD> Filip B&aacute;rtek, Ahmed Bhayat, Robin Coutelier, M&aacute;rton Hajdu, Matthias Hetzenberger, Petra Hozzov&aacute;, Laura Kov&aacute;cs, Jakob Rath, Michael Rawson, Giles Reger, Martin Suda, Johannes Schoisswohl and Andrei Voronkov (2025),
+<DD> Filip Bártek, Ahmed Bhayat, Robin Coutelier, Márton Hajdu, Matthias Hetzenberger, Petra Hozzová, Laura Kovács, Jakob Rath, Michael Rawson, Giles Reger, Martin Suda, Johannes Schoisswohl and Andrei Voronkov (2025),
      <STRONG>The Vampire Diary</STRONG>,
      <EM>CAV</EM>, to appear.
 <DT> HAHK+24
-<DD> Petra Hozzov&aacute;, Daneshvar Amrollahi, M&aacute;rton Hajdu, Laura Kov&aacute;cs, Andrei Voronkov, and Eva Maria Wagner (2024),
+<DD> Petra Hozzová, Daneshvar Amrollahi, Márton Hajdu, Laura Kovács, Andrei Voronkov, and Eva Maria Wagner (2024),
      <STRONG>Synthesis of Recursive Programs in Saturation</STRONG>,
      <EM>IJCAR</EM>, pp. 154-171, Springer.
 <DT> KKRS23
-<DD> Konstatin Korovin, Laura Kov&aacute;cs, Giles Reger, and Johannes Schoisswohl (2023),
+<DD> Konstatin Korovin, Laura Kovács, Giles Reger, and Johannes Schoisswohl (2023),
      <STRONG>ALASCA: Reasoning in Quantified Linear Arithmetic</STRONG>,
      <EM>TACAS</EM>, pp. 647-665, Springer.
 <DT> SKK24
-<DD> Johannes Schoisswohl, Laura Kov&aacute;cs, and Konstantin Korovin (2024),
+<DD> Johannes Schoisswohl, Laura Kovács, and Konstantin Korovin (2024),
      <STRONG>VIRAS: Conflict-Driven Quantifier Elimination for Integer-Real Arithmetic</STRONG>,
      <EM>LPAR</EM>, pp. 147-164, EasyChair.
 <DT> HKV25
-<DD> M&aacute;rton Hajdu, Laura Kov&aacute;cs and Andrei Voronkov (2025),
+<DD> Márton Hajdu, Laura Kovács and Andrei Voronkov (2025),
      <STRONG>Partial Redundancy in Saturation</STRONG>,
      <EM>CADE</EM>, to appear.
 <DT> HCKV25
-<DD> M&aacute;rton Hajdu, Robin Coutelier, Laura Kov&aacute;cs and Andrei Voronkov (2025),
+<DD> Márton Hajdu, Robin Coutelier, Laura Kovács and Andrei Voronkov (2025),
      <STRONG>Term Ordering Diagrams</STRONG>,
      <EM>CADE</EM>, to appear.
 <DT> BFF+24

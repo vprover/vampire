@@ -88,7 +88,7 @@ void testUnifySuccess(TermList lhs, TermList rhs, Stack<ResultSpec> expected) {
     auto hoUnif = wrapper.next();
     auto& e = expected[i];
 
-    DHSet<VarSpec> vars;
+    DHSet<VarSpec, VarSpecHash, VarSpecHash2> vars;
     auto loadVars = [&vars](TermList t, unsigned index) {
       if (t.isVar()) {
         vars.insert(VarSpec(t, index));
@@ -845,9 +845,9 @@ TEST_UNIFY_FUNCEXT_FAIL(funcext_fail_4,
   ap(h1, {b, f()})
 )
 
-// TODO: not sure if these are valid tests, the sorts are not unified so we get ill-typed constraints,
-// but this never happens in a substitution tree where top-level sorts are unified separately
-
+// TODO: not sure if these are valid tests below, the sorts are not unified
+// so we get ill-typed constraints, but this never happens in a substitution
+// tree where top-level sorts are unified separately
 // TEST_UNIFY_FAIL(fail_10,
 //   f(),
 //   ap(f, a)

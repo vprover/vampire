@@ -102,14 +102,18 @@ void FSDLiteralIndex::handleClause(Clause* c, bool adding)
   }
 }
 
-void UnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
+template<bool forGeneralizations>
+void UnitClauseLiteralIndex<forGeneralizations>::handleClause(Clause* c, bool adding)
 {
   if(c->length()==1) {
     TIME_TRACE("unit clause index maintenance");
-    
-    handle(LiteralClause{(*c)[0], c}, adding);
+
+    std::conditional_t<forGeneralizations, GeneralizingLiteralIndex, NonGeneralizingLiteralIndex>::handle(LiteralClause{(*c)[0], c}, adding);
   }
 }
+
+template class UnitClauseLiteralIndex<false>;
+template class UnitClauseLiteralIndex<true>;
 
 void UnitClauseWithALLiteralIndex::handleClause(Clause* c, bool adding)
 {

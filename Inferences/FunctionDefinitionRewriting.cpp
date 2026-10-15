@@ -21,7 +21,6 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/SubstHelper.hpp"
 #include "Kernel/TermIterators.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -35,19 +34,9 @@ using namespace Lib;
 using namespace Kernel;
 using namespace Saturation;
 
-namespace {
-struct Applicator : SubstApplicator {
-  Applicator(ResultSubstitution* subst) : subst(subst) {}
-  TermList operator()(unsigned v) const override {
-    return subst->applyToBoundResult(v);
-  }
-  ResultSubstitution* subst;
-};
-}
-
 Clause* performRewriting(
     Clause *rwClause, Literal *rwLit, TermList rwTerm, Clause *eqClause,
-    Literal *eqLit, TermList eqLHS, ResultSubstitutionSP subst,
+    Literal *eqLit, TermList eqLHS, const GenSubstitution<TermLiteralClause>* subst,
     const DemodulationHelper* helper, bool& isEqTautology, Inference&& inf)
 {
   ASS(!eqLHS.isVar());
@@ -55,12 +44,9 @@ Clause* performRewriting(
   TermList tgtTerm = EqHelper::getOtherEqualitySide(eqLit, eqLHS);
 
   // This should be the case for code trees
-  ASS(subst->isIdentityOnQueryWhenResultBound());
-  TermList tgtTermS = subst->applyToBoundResult(tgtTerm);
+  TermList tgtTermS = subst->apply(tgtTerm);
 
-  Applicator appl(subst.ptr());
-
-  if (helper && !helper->isPremiseRedundant(rwClause,rwLit,rwTerm,tgtTermS,eqLHS,&appl)) {
+  if (helper && !helper->isPremiseRedundant(rwClause,rwLit,rwTerm,tgtTermS,eqLHS,subst)) {
     return 0;
   }
 
@@ -92,7 +78,7 @@ Clause* performRewriting(
     if (curr == eqLit) {
       continue;
     }
-    Literal* currAfter = subst->applyToBoundResult(curr);
+    Literal* currAfter = subst->apply(curr);
 
     if (EqHelper::isEqTautology(currAfter)) {
       isEqTautology = true;
@@ -114,7 +100,7 @@ Kernel::ClauseIterator FunctionDefinitionRewriting::generateClauses(Clause *prem
   return pvi(premise->iterLits()
     .flatMap([](Literal *lit) {
       NonVariableNonTypeIterator nvi(lit);
-      return pvi(pushPairIntoRightIterator(lit, getUniquePersistentIteratorFromPtr(&nvi)));
+      return pvi(pushPairIntoRightIterator(lit, getUniquePersistentIteratorFromPtr<FnvHash, PtrIdentityHash>(&nvi)));
     })
     .flatMap([this](std::pair<Literal*, Term*> arg){
       return pvi(pushPairIntoRightIterator(arg,
@@ -124,7 +110,7 @@ Kernel::ClauseIterator FunctionDefinitionRewriting::generateClauses(Clause *prem
       auto &qr = arg.second;
       bool temp;
       return (Clause*)performRewriting(premise, arg.first.first, TermList(arg.first.second), qr.data->clause,
-        qr.data->literal, qr.data->term, qr.unifier, nullptr, temp,
+        qr.data->literal, qr.data->term, &qr.unifier, nullptr, temp,
         Inference(GeneratingInference2(InferenceRule::FUNCTION_DEFINITION_REWRITING, premise, qr.data->clause)));
     })
     .filter(NonzeroFn()));
@@ -136,7 +122,7 @@ FunctionDefinitionDemodulation::FunctionDefinitionDemodulation(SaturationAlgorit
 
 bool FunctionDefinitionDemodulation::perform(Clause* cl, Clause*& replacement, ClauseIterator& premises)
 {
-  static DHSet<Term*> attempted;
+  static DHSet<Term*, FnvHash, PtrIdentityHash> attempted;
   attempted.reset();
 
   unsigned cLen = cl->length();
@@ -165,7 +151,7 @@ bool FunctionDefinitionDemodulation::perform(Clause* cl, Clause*& replacement, C
         }
         bool isEqTautology = false;
         auto res = performRewriting(
-          cl, lit, trm, qr.data->clause, qr.data->literal, qr.data->term, qr.unifier, redundancyCheck ? &_helper : nullptr,
+          cl, lit, trm, qr.data->clause, qr.data->literal, qr.data->term, &qr.unifier, redundancyCheck ? &_helper : nullptr,
           isEqTautology, Inference(SimplifyingInference2(InferenceRule::FUNCTION_DEFINITION_DEMODULATION, cl, qr.data->clause)));
         if (!res && !isEqTautology) {
           continue;

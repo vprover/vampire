@@ -29,7 +29,7 @@
 #include "Kernel/OperatorType.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
-#include "Kernel/BottomUpEvaluation.hpp"
+#include "Kernel/PolynomialBottomUpEvaluation.hpp"
 #include "Lib/Coproduct.hpp"
 
 #include "Shell/UIHelper.hpp"
@@ -1078,8 +1078,8 @@ VarAssignment Z3Interfacing::getAssignment(unsigned var)
 OperatorType* operatorType(Z3Interfacing::FuncOrPredId f)
 {
   return f.isPredicate
-    ? env.signature->getPredicate(f.id)->predType()
-    : env.signature->getFunction (f.id)->fnType();
+    ? env.signature->getPredicate(f.id)->type()
+    : env.signature->getFunction (f.id)->type();
 }
 
 
@@ -1255,7 +1255,7 @@ void Z3Interfacing::createTermAlgebra(TermList sort)
   if (_createdTermAlgebras.contains(sort)) return;
 
   Stack<TermList> taSorts;        // <- stack of term algebra sorts
-  Map<SortId, unsigned> recSorts; // <- mapping term algeba -> index
+  Map<SortId, unsigned, TermListHash> recSorts; // <- mapping term algeba -> index
 
   auto subsorts = TermAlgebra::subSorts(sort);
   for (auto s : subsorts.iter()) {
@@ -1508,7 +1508,7 @@ z3::func_decl Z3Interfacing::z3Function(FuncOrPredId functor)
     // function does not yet exist, create it
     auto symb = functor.isPredicate ? env.signature->getPredicate(functor.id)
                                     : env.signature->getFunction(functor.id);
-    auto type = functor.isPredicate ? symb->predType() : symb->fnType();
+    auto type = symb->type();
 
     // polymorphic symbol application: treat f(<sorts>, ...) as f<sorts>(...) for Z3
     std::string namebuf = symb->name();
@@ -1548,7 +1548,7 @@ z3::expr Z3Interfacing::getRepresentation(Term* trm)
         auto trm = toEval.term();
         bool isLit = trm->isLiteral();
 
-        Signature::Symbol* symb;
+        const Signature::Symbol* symb;
         SortId range_sort;
         if (isLit) {
           symb = env.signature->getPredicate(trm->functor());
@@ -1567,7 +1567,7 @@ z3::expr Z3Interfacing::getRepresentation(Term* trm)
         } else {
           auto actualSort = SortHelper::getResultSort(trm);
           symb = env.signature->getFunction(trm->functor());
-          OperatorType* ftype = symb->fnType();
+          OperatorType* ftype = symb->type();
           range_sort = ftype->result();
           if (env.signature->isTermAlgebraSort(actualSort) &&  !_createdTermAlgebras.contains(actualSort) ) {
             createTermAlgebra(actualSort);
@@ -1618,7 +1618,7 @@ z3::expr Z3Interfacing::getRepresentation(Term* trm)
         // - constants dealt with above
         // - unary funs/preds like is_rat interpretation unclear
         if(symb->interpreted()){
-          Interpretation interp = static_cast<Signature::InterpretedSymbol*>(symb)->getInterpretation();
+          Interpretation interp = static_cast<const Signature::InterpretedSymbol*>(symb)->getInterpretation();
 
           if (Theory::isPolymorphic(interp)) {
             switch(interp){
@@ -1844,7 +1844,7 @@ z3::expr Z3Interfacing::getNamingConstantFor(TermList toName, z3::sort sort)
     { return z3_declare_const("n" + toName.toString(), sort); });
 }
 
-z3::expr Z3Interfacing::getConst(Signature::Symbol* symb, z3::sort sort)
+z3::expr Z3Interfacing::getConst(const Signature::Symbol* symb, z3::sort sort)
 {
   return _constantNames.getOrInit(symb, [&]()
     // careful: keep native constants' names distinct from the above ones (hence the "c"-prefix below)

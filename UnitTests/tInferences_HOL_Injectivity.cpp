@@ -110,8 +110,9 @@ TEST_GENERATION(success_2,
       .EXPECTED(exactly(clause({ ap(inv(), {z, ap(f, {x, z})}) == x })))
     )
 
+// f is injective in its second argument, so the inverse takes the first
 TEST_GENERATION(success_3,
     Generation::AsymmetricTest()
       .input( clause({ y.sort(srt) == z, ap(f, {x, z}) != ap(f, {x, y}) }))
-      .EXPECTED(exactly(clause({ ap(inv(), {z, ap(f, {x, z})}) == x })))
+      .EXPECTED(exactly(clause({ ap(inv(), {x, ap(f, {x, z})}) == z })))
     )

@@ -1,0 +1,11 @@
+; a negated distinct must not be recorded as a distinct group
+(set-logic UF)
+(declare-sort U 0)
+(declare-fun a () U)
+(declare-fun b () U)
+(declare-fun c () U)
+(declare-fun d () U)
+(declare-fun e () U)
+(declare-fun g () U)
+(assert (not (distinct a b c d e g)))
+(check-sat)

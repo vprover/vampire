@@ -91,7 +91,7 @@ bool ForwardSubsumptionDemodulation<higherOrder>::perform(Clause* cl, Clause*& r
     /**
      * Step 1: find candidate clauses for subsumption
      */
-    auto rit = _index->getGeneralizations(subsQueryLit, false, false);
+    auto rit = _index->getGeneralizations(subsQueryLit, false);
     while (rit.hasNext()) {
       auto res = rit.next();
       Clause* mcl = res.data->clause;  // left premise of FSD
@@ -354,7 +354,7 @@ bool ForwardSubsumptionDemodulation<higherOrder>::perform(Clause* cl, Clause*& r
           continue;
         }
 
-        static DHSet<TermList> attempted;  // Terms we already attempted to demodulate
+        static DHSet<TermList, TermListHash, TermListHash2> attempted;  // Terms we already attempted to demodulate
         attempted.reset();
 
         for (unsigned dli = 0; dli < cl->length(); ++dli) {
@@ -408,7 +408,7 @@ bool ForwardSubsumptionDemodulation<higherOrder>::perform(Clause* cl, Clause*& r
                 // There can be no unbound variables at this point;
                 // otherwise we would have excluded the LHS already
                 // in the ordering pre-check above
-                auto mclVarIt = mcl->getVariableIterator();  // includes vars in rhs
+                auto mclVarIt = mcl->iterVars();  // includes vars in rhs
                 while (mclVarIt.hasNext()) {
                   unsigned int var = mclVarIt.next();
                   ASS(binder.isBound(var));

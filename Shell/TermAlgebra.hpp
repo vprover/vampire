@@ -56,7 +56,7 @@ namespace Shell {
       TermAlgebraConstructor& _self;
       unsigned _idx;
     public:
-      DECL_ELEMENT_TYPE(TermList);
+      using ElementType = TermList;
 
       IterArgSorts(TermAlgebraConstructor& ta) : _self(ta), _idx(0) {}
 
@@ -112,7 +112,7 @@ namespace Shell {
       TermAlgebra& _ta;
       unsigned _idx;
     public:
-      DECL_ELEMENT_TYPE(TermAlgebraConstructor*);
+      using ElementType = TermAlgebraConstructor*;
 
       IterCons(TermAlgebra& ta) : _ta(ta), _idx(0) {}
 
@@ -135,7 +135,7 @@ namespace Shell {
      *
      * then subSorts(atree(intp)) == { int, nat, intp, atree(intp) }
      */
-    static Lib::Set<TermList> subSorts(TermList sort);
+    static Lib::Set<TermList, TermListHash> subSorts(TermList sort);
 
     bool allowsCyclicTerms() { return _allowsCyclicTerms; }
 

@@ -25,6 +25,7 @@
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/LiteralSelector.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -88,10 +89,8 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
 
   return pvi(premise->getSelectedLiteralIterator()
     .filter([](Literal* l)  {
-      if (!l->isEquality() || l->isPositive()) {
-        return false;
-      }
-      return !funcExt || !l->eqArgSort().isExtensionalSort();
+      // equalities of arrow sort should be first dealt with by NegativeExtensionality
+      return l->isEquality() && l->isNegative() && (!funcExt || !l->eqArgSort().isExtensionalSort());
     })
     .flatMap([this,premise](Literal* lit) {
 
