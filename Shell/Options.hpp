@@ -465,7 +465,7 @@ public:
                // (3) equally general PUEs are ordered based on term ordering.
     LABELED,   // similar to encompass, but a PUE is smaller than another when
                // they are equally general ordered but incomparable equations
-               // and the label (clause number) is smaller then that of the other.
+               // and the label (clause number) is smaller than that of the other.
   };
 
   enum class TheoryAxiomLevel : unsigned int {
