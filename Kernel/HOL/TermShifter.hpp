@@ -14,7 +14,7 @@
 #ifndef __TermShifter__
 #define __TermShifter__
 
-#include "Lib/SparseSuffixIntArray.hpp"
+#include "Lib/SharedSet.hpp"
 
 #include "Kernel/TermTransformer.hpp"
 #include "Kernel/Term.hpp"
@@ -59,7 +59,7 @@ public:
 
   bool exploreSubterms(TermList orig, TermList newTerm) override {
     // already shifted, so must be DB index and won't have subterms anyway
-    return orig == newTerm && newTerm.freeDBIndices().hasHigherValuesThan(_cutOff);
+    return orig == newTerm && newTerm.freeDBIndices()->containsGreaterOrEqual(_cutOff);
   }
 
 private:

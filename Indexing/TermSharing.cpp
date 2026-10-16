@@ -17,12 +17,12 @@
 #include "Forwards.hpp"
 
 #include "Lib/Environment.hpp"
+#include "Lib/SharedSet.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 
 #include "Debug/TimeProfiling.hpp"
-#include "Lib/SparseSuffixIntArray.hpp"
 
 #include "TermSharing.hpp"
 
@@ -88,11 +88,13 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
     Color color = COLOR_TRANSPARENT;
 
     if (t->deBruijnIndex().isSome()) {
-      t->setFreeDBIndices(SparseSuffixIntArray::singleton(t->deBruijnIndex().unwrap()));
+      t->setFreeDBIndices(SharedSet<unsigned>::getSingleton(t->deBruijnIndex().unwrap()));
     } else if (isLambda) {
-      t->setFreeDBIndices(SparseSuffixIntArray::shiftByOne(t->lambdaBody().freeDBIndices()));
+      t->setFreeDBIndices(SharedSet<unsigned>::getFromIterator(t->lambdaBody().freeDBIndices()->iter()
+        .filter([](unsigned v) { return v!=0; }) // remove 0
+        .map([](unsigned v) { return v-1; }))); // decrement rest
     } else if (t->isApplication()) {
-      t->setFreeDBIndices(SparseSuffixIntArray::merge(t->termArg(0).freeDBIndices(), t->termArg(1).freeDBIndices()));
+      t->setFreeDBIndices(t->termArg(0).freeDBIndices()->getUnion(t->termArg(1).freeDBIndices()));
     }
 
     unsigned typeArity = t->numTypeArguments();
