@@ -24,6 +24,7 @@
 #include "Debug/TimeProfiling.hpp"
 
 #include "TermSharing.hpp"
+#include "Lib/SharedSet.hpp"
 
 using namespace Kernel;
 using namespace Indexing;
@@ -82,9 +83,22 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
     bool hasTermVar = false;
     bool hasDeBruijnIndex = t->deBruijnIndex().isSome();
     bool hasRedex = t->isRedex();
-    bool hasLambda = t->isLambdaTerm();
+    bool hasEtaRedex = t->isEtaRedex();
+    const bool isLambda = t->isLambdaTerm();
+    bool hasLambda = isLambda;
+    auto freeDBIndices = SharedSet<unsigned>::getEmpty();
     Color color = COLOR_TRANSPARENT;
-    
+
+    if (hasDeBruijnIndex) {
+      freeDBIndices = SharedSet<unsigned>::getSingleton(t->deBruijnIndex().unwrap());
+    } else if (isLambda) {
+      freeDBIndices = SharedSet<unsigned>::getFromIterator(t->lambdaBody().freeDBIndices()->iter()
+        .filter([](unsigned v) { return v!=0; }) // remove 0
+        .map([](unsigned v) { return v-1; })); // decrement rest
+    } else if (t->isApplication()) {
+      freeDBIndices = t->termArg(0).freeDBIndices()->getUnion(t->termArg(1).freeDBIndices());
+    }
+
     unsigned typeArity = t->numTypeArguments();
     for (unsigned i = 0; i < t->arity(); i++) {
       TermList* tt = t->nthArgument(i);
@@ -107,6 +121,7 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
         hasTermVar |= r->hasTermVar();
         hasDeBruijnIndex |= r->hasDeBruijnIndex();
         hasRedex   |= r->hasRedex();
+        hasEtaRedex |= r->hasEtaRedex();
         hasLambda  |= r->hasLambda();
         if (env.colorUsed) {
           color = static_cast<Color>(color | r->color());
@@ -128,8 +143,10 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
     }
 
     t->setHasRedex(hasRedex);
+    t->setHasEtaRedex(hasEtaRedex);
     t->setHasDeBruijnIndex(hasDeBruijnIndex);
     t->setHasLambda(hasLambda);
+    t->setFreeDBIndices(freeDBIndices);
     t->setInterpretedConstantsPresence(hasInterpretedConstants);
 
     ASS_REP(!env.higherOrder() || t->isApplication() || t->isLambdaTerm() || !t->numTermArguments(), "HO term " + t->toString() + " is not appified");

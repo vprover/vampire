@@ -64,13 +64,13 @@ public:
   }
 
   /**
-   * Return value of the maximal item in a non-empty set
+   * Return value of the minimal item in a non-empty set
    */
-  inline T maxval() const
+  inline T minval() const
   {
     ASS(!isEmpty());
 
-    return (*this)[size()-1];
+    return (*this)[0];
   }
 
   bool member(T val) const

@@ -15,6 +15,7 @@
  * @since 06/05/2007 Manchester, changed into a single class instead of three
  */
 
+#include "Lib/SharedSet.hpp"
 #include "SubstHelper.hpp"
 #include "TermIterators.hpp"
 #include "RobSubstitution.hpp"
@@ -132,7 +133,11 @@ bool TermList::isLambdaTerm() const {
 }
 
 bool TermList::isRedex() const {
-  return isApplication() && lhs().isLambdaTerm();
+  return isTerm() && term()->isRedex();
+}
+
+bool TermList::isEtaRedex() const {
+  return isTerm() && term()->isEtaRedex();
 }
 
 bool TermList::isProxy(Proxy proxy) const {
@@ -179,6 +184,10 @@ bool TermList::containsLooseDBIndex() const
     }
   }
   return false;
+}
+
+const SharedSet<unsigned>* TermList::freeDBIndices() const {
+  return isVar() ? SharedSet<unsigned>::getEmpty() : term()->freeDBIndices();
 }
 
 TermList TermList::lhs() const {
@@ -950,6 +959,25 @@ bool Term::isLambdaTerm() const {
 
 bool Term::isRedex() const {
   return isApplication() && nthArgument(2)->isLambdaTerm();
+}
+
+bool Term::isEtaRedex() const {
+  if (!isLambdaTerm()) {
+    return false;
+  }
+  auto lb = lambdaBody();
+  if (!lb.isApplication()) {
+    return false;
+  }
+  auto lhs = lb.term()->termArg(0);
+  auto rhs = lb.term()->termArg(1);
+  if (rhs.deBruijnIndex().unwrapOr(UINT_MAX) != 0) {
+    return false;
+  }
+  if (!lhs.freeDBIndices()->isEmpty() && lhs.freeDBIndices()->minval() == 0) {
+    return false;
+  }
+  return true;
 }
 
 bool Term::isProxy(Proxy proxy) const {

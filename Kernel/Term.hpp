@@ -43,7 +43,7 @@
 #include "Lib/Recycled.hpp"
 
 // the number of bits used for "TermList::_info::distinctVars"
-#define TERM_DIST_VAR_BITS 19
+#define TERM_DIST_VAR_BITS 18
 // maximum number that fits in a TERM_DIST_VAR_BITS-bit unsigned integer
 #define TERM_DIST_VAR_UNKNOWN ((1 << TERM_DIST_VAR_BITS)-1)
 
@@ -284,6 +284,7 @@ public:
   bool isApplication() const;
   bool isLambdaTerm() const;
   bool isRedex() const;
+  bool isEtaRedex() const;
   bool isProxy(Proxy proxy) const;
   bool isChoice() const;
   bool isPlaceholder() const;
@@ -293,6 +294,7 @@ public:
    * In other words, it returns true if there is a db_i in the
    * term that is not wrapped into i lambda binders. */ 
   bool containsLooseDBIndex() const;
+  const SharedSet<unsigned>* freeDBIndices() const;
   TermList lhs() const;
   TermList rhs() const;
   TermList lambdaBody() const;
@@ -366,6 +368,7 @@ private:
     BITFIELD_MEMBER(unsigned, _order, _setOrder, ARGUMENT_ORDER_BITS,
     BITFIELD_MEMBER(bool, _hasLambda, _setHasLambda, 1,
     BITFIELD_MEMBER(bool, _hasRedex, _setHasRedex, 1,
+    BITFIELD_MEMBER(bool, _hasEtaRedex, _setHasEtaRedex, 1,
     BITFIELD_MEMBER(bool, _hasDeBruijnIndex, _setHasDeBruijnIndex, 1,
     BITFIELD_MEMBER(bool, _hasTermVar, _setHasTermVar, 1,
     BITFIELD_MEMBER(bool, _sort, _setSort, 1,
@@ -374,7 +377,7 @@ private:
     BITFIELD_MEMBER(bool, _polarity, _setPolarity, 1,
     BITFIELD_MEMBER(unsigned, _tag, _setTag, TERM_TAG_BITS,
     END_BITFIELD
-  )))))))))))))
+  ))))))))))))))
   BITFIELD_PTR_GET(Term, _term, 0)
   BITFIELD_PTR_SET(Term, _setTerm, 0)
 
@@ -715,6 +718,16 @@ public:
     _kboWeight = w;
   }
 
+  const SharedSet<unsigned>* freeDBIndices() const
+  {
+    return _freeDBIndices;
+  }
+
+  void setFreeDBIndices(const SharedSet<unsigned>* is)
+  {
+    _freeDBIndices = is;
+  }
+
   /** Mark term as shared */
   void markShared()
   {
@@ -797,6 +810,7 @@ public:
   bool isLambdaTerm() const;
   /** true if the term is a redex */
   bool isRedex() const;
+  bool isEtaRedex() const;
   bool isProxy(Proxy proxy) const;
   bool isChoice() const;
   bool isPlaceholder() const;
@@ -817,6 +831,15 @@ public:
   bool hasRedex() const {
     ASS(shared())
     return info()._hasRedex();
+  }
+  void setHasEtaRedex(bool b) {
+    ASS(shared() && !isSort())
+
+    info()._setHasEtaRedex(b);
+  }
+  bool hasEtaRedex() const {
+    ASS(shared())
+    return info()._hasEtaRedex();
   }
   /** returns empty option if not a De Bruijn index and index otherwise */
   Option<unsigned> deBruijnIndex() const;
@@ -1002,6 +1025,7 @@ protected:
 #endif
   /** length of maximum reduction length */
   int _maxRedLen;
+  const SharedSet<unsigned>* _freeDBIndices = nullptr;
   union {
     /** If _isTwoVarEquality is false, this value is valid and contains
      * number of occurrences of variables */
