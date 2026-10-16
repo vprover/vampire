@@ -45,6 +45,7 @@ public:
    * If the answer is positive, it will allocate a DArray to store
    * for every predicate symbol whether it should be treated (in sort srt)
    * as false-extended (-1), copy-extended (0), or true-extended (+1).
+   * The array is indexed by Signature::predicateIndex.
    */
   DArray<signed char>* check();
 

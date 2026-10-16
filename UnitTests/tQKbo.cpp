@@ -35,7 +35,7 @@ const QKbo::Result Incomp  = QKbo::Result::INCOMPARABLE;
 using namespace Kernel;
 
 DArray<int> funcPrec() {
-  unsigned num = env.signature->functions();
+  unsigned num = env.signature->functionCount();
   DArray<int> out(num);
   out.initFromIterator(getRangeIterator(0u, num));
   return out;
@@ -44,7 +44,7 @@ DArray<int> funcPrec() {
 auto ict(int i) { return IntegerConstantType(i); }
 
 DArray<int> predPrec() {
-  unsigned num = env.signature->predicates();
+  unsigned num = env.signature->predicateCount();
   DArray<int> out(num);
   out.initFromIterator(getRangeIterator(0u, num));
   return out;

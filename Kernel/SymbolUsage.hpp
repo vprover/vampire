@@ -25,7 +25,7 @@ using namespace Lib;
 
 /**
  * Record in @c usedFunctions / @c usedPredicates which symbols occur in @c clauses.
- * Both arrays are (re)sized to the current signature and zeroed first, so a symbol
+ * Both arrays use dense category indices and are resized and zeroed first, so a symbol
  * introduced after the call is simply out of range; see the note at the definition.
  *
  * Only presence is recorded, never a count, and that is what lets the traversal stop at a
@@ -39,7 +39,7 @@ void collectUsedSymbols(ClauseIterator clauses, DArray<bool>& usedFunctions, DAr
  * How often each symbol of the signature occurs in a set of clauses.
  */
 struct SymbolCounts {
-  /** indexed by functor; an index past the end means a symbol younger than the count */
+  /** Indexed by dense category index; an index past the end postdates the count. */
   DArray<unsigned> functions;
   DArray<unsigned> predicates;
   DArray<unsigned> typeCons;

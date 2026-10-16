@@ -69,7 +69,7 @@ void GoalGuessing::apply(Problem& prb)
  */
 void GoalGuessing::countPerUnitUsage(UnitList* units)
 {
-  _perUnitUsageCount.init(env.signature->functions(),0);
+  _perUnitUsageCount.init(env.signature->functionCount(),0);
 
   UnitList::Iterator uit(units);
   while(uit.hasNext()) {
@@ -77,7 +77,7 @@ void GoalGuessing::countPerUnitUsage(UnitList* units)
 
     DHSet<unsigned, FnvHash, IdentityHash>::Iterator fit(_functorsInUnit);
     while(fit.hasNext()) {
-      _perUnitUsageCount[fit.next()]++;
+      _perUnitUsageCount[env.signature->functionIndex(fit.next())]++;
     }
   }
 }
@@ -201,8 +201,10 @@ bool GoalGuessing::apply(Literal* lit)
     it.next(); // to move past the lit symbol
     while(it.hasNext()){
       unsigned f = it.next();
-      if(f >= _perUnitUsageCount.size()){ continue; }
-      if(_perUnitUsageCount[f] <= _limit){
+      if(f >= env.signature->symbolCount() || !env.signature->getSymbol(f)->isFunction()){ continue; }
+      unsigned index = env.signature->functionIndex(f);
+      if(index >= _perUnitUsageCount.size()){ continue; }
+      if(_perUnitUsageCount[index] <= _limit){
         //cout << "IDENTIFIED AS GOAL symbol " << env.signature->functionName(f) << endl;
         return true;
       }

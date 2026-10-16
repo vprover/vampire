@@ -619,7 +619,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         // add the joint definitions
         FormulaUnit* defUnit = new FormulaUnit(jointDef,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FOOL_ITE_DEFINITION));
         addDefinition(defUnit);
-        InferenceStore::instance()->recordIntroducedSymbol(defUnit, context == FORMULA_CONTEXT ? env.signature->getPredicate(freshSymbol) : env.signature->getFunction(freshSymbol));
+        InferenceStore::instance()->recordIntroducedSymbol(defUnit, env.signature->getSymbol(freshSymbol));
 
         if (context == FORMULA_CONTEXT) {
           formulaResult = freshPredicateApplication;
@@ -862,7 +862,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         // replace occurrences of f(s1, ..., sj,t1, ..., tk) by
         // g(A1, ..., Am, s1, ..., sj,X1, ..., Xn, t1, ..., tk)
         if (renameSymbol) {
-          InferenceStore::instance()->recordIntroducedSymbol(defUnit, bindingContext == FORMULA_CONTEXT ? env.signature->getPredicate(freshSymbol) : env.signature->getFunction(freshSymbol));
+          InferenceStore::instance()->recordIntroducedSymbol(defUnit, env.signature->getSymbol(freshSymbol));
 
           if (env.options->showPreprocessing()) {
             std::cout << "[PP] FOOL replace in: " << contents.toString() << endl;
@@ -1016,7 +1016,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
           }
           FormulaUnit* defUnit = new FormulaUnit(impl,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FOOL_MATCH_DEFINITION));
           addDefinition(defUnit);
-          InferenceStore::instance()->recordIntroducedSymbol(defUnit,context == FORMULA_CONTEXT ? env.signature->getPredicate(freshSymbol) : env.signature->getFunction(freshSymbol));
+          InferenceStore::instance()->recordIntroducedSymbol(defUnit,env.signature->getSymbol(freshSymbol));
         }
 
         if (context == FORMULA_CONTEXT) {

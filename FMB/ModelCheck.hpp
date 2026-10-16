@@ -99,7 +99,7 @@ static void doCheck(UnitList* units)
   }
 
   std::cout << "Loading model..." << std::endl;
-  DArray<unsigned> sortSizesArray(env.signature->typeCons());
+  DArray<unsigned> sortSizesArray(env.signature->symbolCount());
   {
     auto it = sortSizes.items();
     while (it.hasNext()) {
