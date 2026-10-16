@@ -61,17 +61,6 @@ public:
     return _array[i];
   }
 
-  inline uint64_t minValue() const {
-    if (isEmpty()) {
-      return UINT64_MAX;
-    }
-    if (_array[0]) {
-      return std::countr_zero(_array[0]);
-    }
-    ASS(_array[1]);
-    return _array[1];
-  }
-
   static inline SparseSuffixIntArray singleton(uint64_t first_value) {
     Stack<uint64_t> vals;
     vals.push(0);

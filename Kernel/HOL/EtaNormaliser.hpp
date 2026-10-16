@@ -29,10 +29,7 @@ struct EtaNormaliser : public BottomUpTermTransformer
 
 private:
   TermList transformSubterm(TermList t) override {
-    for (;;) {
-      if (!t.isEtaRedex()) {
-        break;
-      }
+    while (t.isEtaRedex()) {
       t = TermShifter::shift(t.term()->lambdaBody().term()->termArg(0), -1);
     }
     return t;

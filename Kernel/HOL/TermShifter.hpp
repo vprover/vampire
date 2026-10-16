@@ -62,11 +62,6 @@ public:
     return orig == newTerm && newTerm.freeDBIndices().hasHigherValuesThan(_cutOff);
   }
 
-  // returns the index of the minimal free DB index, otherwise UINT64_MAX
-  inline static uint64_t minFreeDBIndex(TermList t) {
-    return t.freeDBIndices().minValue();
-  }
-
 private:
   unsigned _cutOff = 0; // any index higher than _cutOff is a free index
   int _shiftBy; // the amount to shift a free index by
