@@ -15,6 +15,8 @@
 
 #include "Debug/TimeProfiling.hpp"
 
+#include "Lib/PairUtils.hpp"
+
 #include "Kernel/Clause.hpp"
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/Inference.hpp"

@@ -357,12 +357,4 @@ std::pair<VirtualIterator<TypedTermList>,bool> EqHelper::getDemodulationLHSItera
   }
 }
 
-TermIterator EqHelper::getEqualityArgumentIterator(Literal* lit)
-{
-  ASS(lit->isEquality());
-
-  return pvi( iterItems( *lit->nthArgument(0), *lit->nthArgument(1)) );
-}
-
-
 }
