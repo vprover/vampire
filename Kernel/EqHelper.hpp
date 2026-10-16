@@ -19,7 +19,6 @@
 #include "Forwards.hpp"
 
 #include "Lib/VirtualIterator.hpp"
-#include "Lib/PairUtils.hpp"
 #include "Kernel/TypedTermList.hpp"
 
 #include "Term.hpp"
@@ -39,7 +38,6 @@ public:
   static VirtualIterator<TypedTermList> getLHSIterator(Literal* lit, const Ordering& ord);
   static VirtualIterator<TypedTermList> getSuperpositionLHSIterator(Literal* lit, const Ordering& ord, const Options& opt);
   static std::pair<VirtualIterator<TypedTermList>,bool> getDemodulationLHSIterator(Literal* lit, bool onlyPreordered, const Ordering& ord);
-  static TermIterator getEqualityArgumentIterator(Literal* lit);
 
   //WARNING, this function cannot be used when @param t is a sort.
   static Term* replace(Term* t, TermList what, TermList by);
@@ -49,26 +47,6 @@ public:
          : TermList(replace(t.term(), what, by));
   }
   static Literal* replace(Literal* lit, TermList what, TermList by);
-
-  struct LHSIteratorFn
-  {
-    LHSIteratorFn(const Ordering& ord) : _ord(ord) {}
-
-    VirtualIterator<std::pair<Literal*, TypedTermList> > operator()(Literal* lit)
-    {
-      return pvi( pushPairIntoRightIterator(lit, getLHSIterator(lit, _ord)) );
-    }
-  private:
-    const Ordering& _ord;
-  };
-
-  struct EqualityArgumentIteratorFn
-  {
-    VirtualIterator<std::pair<Literal*, TermList> > operator()(Literal* lit)
-    {
-      return pvi( pushPairIntoRightIterator(lit, getEqualityArgumentIterator(lit)) );
-    }
-  };
 
   static bool isEqTautology(Literal* lit)
   {
