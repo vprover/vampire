@@ -874,9 +874,8 @@ std::string Literal::toString(bool reverseEquality) const
       res = "(" + res + ")";
     }
 
-#ifdef VPRINT_EQ_SORT
-    res += " {" + eqArgSort().toString() + "}";
-#endif // VAMPIRE_PRINT_EQ_SORT
+    // uncomment to debug equality sorts
+    // res += " {" + eqArgSort().toString() + "}";
 
     return res;
   }

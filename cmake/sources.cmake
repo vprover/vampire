@@ -64,6 +64,7 @@ set(UNIT_TESTS
     UnitTests/tInferences_Factoring.cpp
     UnitTests/tInferences_FastCondensation.cpp
     UnitTests/tInferences_ForwardGroundJoinability.cpp
+    UnitTests/tInferences_ForwardLiteralRewriting.cpp
     UnitTests/tInferences_FunctionDefinitionRewriting.cpp
     UnitTests/tInferences_GaussianVariableElimination.cpp
     UnitTests/tInferences_HOL_ArgCong.cpp
