@@ -326,3 +326,33 @@ TEST_FUN(zero_arity_predicate_gen) {
   check_gen(  tree, a != a, Stack<Data>{});
 }
 
+
+// The code tree numbers the variables of an equality literal sort-first, so the Renaming
+// that translates the key's variables into binding slots must do the same.
+TEST_FUN(gen_equality_sort_variables_numbered_first) {
+
+  DECL_DEFAULT_VARS
+  DECL_DEFAULT_SORT_VARS
+  DECL_SORT(A)
+  DECL_SORT(B)
+  DECL_CONST(a, A)
+  DECL_CONST(b, B)
+  // k : !>[X0,X1]: X0 > X1, so in k(alpha,beta,x) = y the sort is beta, which is not
+  // the first variable met among the arguments
+  DECL_POLY_FUNC(k, 2, {alpha}, beta)
+
+  using Data = MyData<Literal*>;
+  CodeTreeLIS<Data> tree;
+  Literal* key = k(alpha, beta, x) == y;
+  Literal* query = k(A, B, a) == b;
+  tree.handle(Data(key, "k(alpha,beta,x) = y"), /*insert=*/true);
+
+  unsigned found = 0;
+  auto it = tree.getGeneralizations(query, /*complementary=*/false);
+  while (it.hasNext()) {
+    auto res = it.next();
+    ASS_EQ(res.unifier.apply(key), query)
+    found++;
+  }
+  ASS_EQ(found, 1u)
+}

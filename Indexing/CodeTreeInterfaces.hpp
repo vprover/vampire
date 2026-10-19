@@ -17,6 +17,7 @@
 
 #include "Forwards.hpp"
 #include "Kernel/SubstHelper.hpp"
+#include "Kernel/SortHelper.hpp"
 #include "Kernel/Renaming.hpp"
 
 #include "LiteralCodeTree.hpp"
@@ -30,6 +31,29 @@ namespace Indexing
 
 using namespace Kernel;
 using namespace Lib;
+
+/**
+ * Make @c r number the variables of @c key the way the code tree's compiler does,
+ * since that is what the matcher's bindings are indexed by.
+ *
+ * For an equality literal this is NOT what Renaming::normalizeVariables(const Literal*)
+ * does: CodeTree::Compiler::compile visits the equality's sort before the arguments
+ * (and so does the flat term), the Renaming visits it after them.
+ * Keep this in sync with the compiler.
+ */
+template<class Key>
+void normalizeInCodeTreeOrder(Renaming& r, Key const& key)
+{
+  if constexpr (std::is_convertible<Key, const Literal*>::value) {
+    const Literal* lit = key;
+    if (lit->isEquality()) {
+      r.normalizeVariables(SortHelper::getEqualityArgumentSort(lit));
+    }
+    r.normalizeVariables(lit);
+  } else {
+    r.normalizeVariables(key);
+  }
+}
 
 template<class Data>
 class GenSubstitution
@@ -92,7 +116,7 @@ public:
     ASS(_found);
     if constexpr (!is_indexed_data_normalized<Data>::value) {
       _resultNormalizer->reset();
-      _resultNormalizer->normalizeVariables(_found->key());
+      normalizeInCodeTreeOrder(*_resultNormalizer, _found->key());
     }
     auto out = GenSubstitutionQR<Data>(_subst, _found);
     _found = nullptr;
