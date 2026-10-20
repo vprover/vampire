@@ -109,3 +109,21 @@ TEST_GENERATION(test_hol_02,
         clause({ lam(s, x.sort(s)) != lam(s, y.sort(s)) })
       ))
     )
+
+#undef MY_SYNTAX_SUGAR
+#define MY_SYNTAX_SUGAR                               \
+  NUMBER_SUGAR(Real)                                  \
+  DECL_VAR_SORTED(x, 0, Real)                         \
+  auto minusX = TermSugar(RealTraits::linMul(RealConstantType(-1), x)); \
+  auto minusOne = TermSugar(RealTraits::linMul(RealConstantType(-1), RealTraits::constantTl(1)));
+
+// -(-x + -1) != x is true for every real x.
+TEST_GENERATION(first_order_abstraction_keeps_constraint,
+    Generation::AsymmetricTest()
+      .input(clause({ selected(-(minusX + minusOne) != x) }))
+      .options({
+        { "unification_with_abstraction", "alasca_main" },
+        { "unification_with_abstraction_fixed_point_iteration", "off" },
+      })
+      .expected(exactly(clause({ -(minusX + minusOne) != x })))
+    )

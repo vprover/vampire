@@ -95,6 +95,8 @@ public:
 private:
   AbstractingUnifier* _unifier;
   const unsigned _hoUnifDepth;
+  const bool _higherOrder;
+  bool _firstOrderPending = true;
   BacktrackData _localBD;
   Stack<std::pair<UnificationNode*, unsigned>> _todo;
   UnificationNode* _next = nullptr;

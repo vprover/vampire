@@ -70,6 +70,12 @@ public:
   AbstractionOracle(Shell::Options::UnificationWithAbstraction mode, bool funcExt = false) : _mode(mode), _funcExt(funcExt) {}
   AbstractionOracle() : AbstractionOracle(Shell::Options::UnificationWithAbstraction::OFF, /*funcExt=*/false) {}
 
+  bool isHigherOrder() const
+  {
+    return _mode == Shell::Options::UnificationWithAbstraction::HOL ||
+           _mode == Shell::Options::UnificationWithAbstraction::FUNC_EXT;
+  }
+
   struct EqualIf { 
     Recycled<Stack<UnificationConstraint>> _unify; 
     Recycled<Stack<UnificationConstraint>> _constr; 

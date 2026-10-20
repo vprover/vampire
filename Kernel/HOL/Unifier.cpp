@@ -251,11 +251,20 @@ Stack<UnificationNode::Constraint> UnificationNode::decompose(unsigned index, bo
 
 AbstractingWrapper::AbstractingWrapper(AbstractingUnifier& unifier, unsigned hoUnifDepth, bool funcExt)
   : _unifier(new AbstractingUnifier(unifier._uwa)), _hoUnifDepth(hoUnifDepth)
+  , _higherOrder(unifier._uwa.isHigherOrder())
 #if VDEBUG
   , _funcExt(funcExt)
 #endif
 {
   _unifier->subs().copy(unifier.subs());
+  if (!_higherOrder) {
+    // First-order abstraction constraints must remain in the generated clause.
+    // The HOL solver assumes applicative terms and cannot simplify them.
+    for (const auto c : unifier.constr().iter()) {
+      _unifier->constr().add(c, {});
+    }
+    return;
+  }
   Stack<UnificationNode::Constraint> cons;
   for (const auto c : unifier.constr().iter()) {
     cons.emplace(
@@ -275,6 +284,9 @@ AbstractingWrapper::~AbstractingWrapper()
 
 bool AbstractingWrapper::hasNext()
 {
+  if (!_higherOrder) {
+    return _firstOrderPending;
+  }
   if (_next) {
     return true;
   }
@@ -319,6 +331,11 @@ bool AbstractingWrapper::hasNext()
 
 AbstractingUnifier* AbstractingWrapper::next()
 {
+  if (!_higherOrder) {
+    ASS(_firstOrderPending);
+    _firstOrderPending = false;
+    return _unifier;
+  }
   ASS(_next);
   _localBD.backtrack();
   DEBUG("backtracked from previous state ", *_unifier);
