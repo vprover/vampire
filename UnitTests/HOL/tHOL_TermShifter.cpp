@@ -15,7 +15,6 @@
 using namespace Test::HOL;
 
 const auto shift = TermShifter::shift;
-const auto count = TermShifter::minFreeDBIndex;
 
 HOL_TEST_FUN(term_shifter_1) {
   const std::initializer_list<TermList> testTerms { // all terms are of type srt
@@ -80,21 +79,4 @@ HOL_TEST_FUN(term_shifter_4) {
     shift(term, 1),
     term
   )
-}
-
-HOL_TEST_FUN(term_counter_1) {
-  ASS_EQ(count(db(1)), 1);
-  ASS_EQ(count(db(1, D.srt)), 1);
-  ASS_EQ(count(app(db(1, D.fSrt), db(2, D.srt))), 1);
-}
-
-HOL_TEST_FUN(term_counter_2) {
-  for (unsigned i = 1; i < 5; ++i) {
-    ASS_EQ(count(LAM(D.srt, app(D.f, db(i)))), i-1);
-  }
-}
-
-HOL_TEST_FUN(term_counter_3) {
-  ASS_EQ(count(app(LAM(D.srt, app(D.f, db(0))), app(D.f, db(0)))), 0);
-  ASS_EQ(count(app(LAM(D.srt, app(D.f, db(0))), app(D.f, db(1)))), 1);
 }

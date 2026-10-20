@@ -16,6 +16,8 @@
 
 #include "Kernel/HOL/TermShifter.hpp"
 #include "Kernel/HOL/HOL.hpp"
+#include "Lib/SharedSet.hpp"
+
 #include "Kernel/TermTransformer.hpp"
 
 using namespace Kernel;
@@ -44,7 +46,7 @@ namespace RedexReducer {
       [](TermList orig, TermList newTerm, unsigned lambdaLevel) {
         // do not replace inside the substituted term, or in terms without any DB index
         // return orig == newTerm && newTerm.containsLooseDBIndex();
-        return orig == newTerm && newTerm.freeDBIndices() && newTerm.freeDBIndices()->hasHigherValuesThan(lambdaLevel);
+        return orig == newTerm && newTerm.freeDBIndices()->containsGreaterOrEqual(lambdaLevel);
       });
   }
 }

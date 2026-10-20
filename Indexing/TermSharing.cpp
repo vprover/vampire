@@ -17,12 +17,12 @@
 #include "Forwards.hpp"
 
 #include "Lib/Environment.hpp"
+#include "Lib/SharedSet.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
 
 #include "Debug/TimeProfiling.hpp"
-#include "Lib/SparseSuffixIntArray.hpp"
 
 #include "TermSharing.hpp"
 
@@ -81,20 +81,20 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
     bool hasInterpretedConstants=t->arity()==0 &&
       env.signature->getFunction(t->functor())->interpreted();
     bool hasTermVar = false;
-    bool hasDeBruijnIndex = t->deBruijnIndex().isSome();
-    bool hasRedex = t->isRedex();
+    bool hasBetaRedex = t->isBetaRedex();
     bool hasEtaRedex = t->isEtaRedex();
     const bool isLambda = t->isLambdaTerm();
     bool hasLambda = isLambda;
-    SparseSuffixIntArray* freeDBIndices = nullptr;
     Color color = COLOR_TRANSPARENT;
 
-    if (hasDeBruijnIndex) {
-      freeDBIndices = SparseSuffixIntArray::singleton(t->deBruijnIndex().unwrap());
+    if (t->deBruijnIndex().isSome()) {
+      t->setFreeDBIndices(SharedSet<unsigned>::getSingleton(t->deBruijnIndex().unwrap()));
     } else if (isLambda) {
-      freeDBIndices = SparseSuffixIntArray::shiftByOne(t->lambdaBody().freeDBIndices());
+      t->setFreeDBIndices(SharedSet<unsigned>::getFromIterator(t->lambdaBody().freeDBIndices()->iter()
+        .filter([](unsigned v) { return v!=0; }) // remove 0
+        .map([](unsigned v) { return v-1; }))); // decrement rest
     } else if (t->isApplication()) {
-      freeDBIndices = SparseSuffixIntArray::merge(t->termArg(0).freeDBIndices(), t->termArg(1).freeDBIndices());
+      t->setFreeDBIndices(t->termArg(0).freeDBIndices()->getUnion(t->termArg(1).freeDBIndices()));
     }
 
     unsigned typeArity = t->numTypeArguments();
@@ -117,8 +117,7 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
         vars += r->numVarOccs();
         weight += r->weight();
         hasTermVar |= r->hasTermVar();
-        hasDeBruijnIndex |= r->hasDeBruijnIndex();
-        hasRedex   |= r->hasRedex();
+        hasBetaRedex |= r->hasBetaRedex();
         hasEtaRedex |= r->hasEtaRedex();
         hasLambda  |= r->hasLambda();
         if (env.colorUsed) {
@@ -140,22 +139,9 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
       t->setColor(color);
     }
 
-    t->setHasRedex(hasRedex);
+    t->setHasBetaRedex(hasBetaRedex);
     t->setHasEtaRedex(hasEtaRedex);
-    t->setHasDeBruijnIndex(hasDeBruijnIndex);
     t->setHasLambda(hasLambda);
-    t->setFreeDBIndices(freeDBIndices);
-    // std::cout << "t " << *t << std::endl;
-    // if (!freeDBIndices) {
-    //   std::cout << "nullptr" << std::endl;
-    // } else {
-    //   std::cout << (*freeDBIndices)[0] << " ";
-    //   size_t i = 1;
-    //   while ((*freeDBIndices)[i]) {
-    //     std::cout << (*freeDBIndices)[i] << " ";
-    //   }
-    //   std::cout << std::endl;
-    // }
     t->setInterpretedConstantsPresence(hasInterpretedConstants);
 
     ASS_REP(!env.higherOrder() || t->isApplication() || t->isLambdaTerm() || !t->numTermArguments(), "HO term " + t->toString() + " is not appified");

@@ -64,6 +64,7 @@ set(UNIT_TESTS
     UnitTests/tInferences_Factoring.cpp
     UnitTests/tInferences_FastCondensation.cpp
     UnitTests/tInferences_ForwardGroundJoinability.cpp
+    UnitTests/tInferences_ForwardLiteralRewriting.cpp
     UnitTests/tInferences_FunctionDefinitionRewriting.cpp
     UnitTests/tInferences_GaussianVariableElimination.cpp
     UnitTests/tInferences_HOL_ArgCong.cpp
@@ -508,7 +509,6 @@ set(SOURCES
     Kernel/HOL/BetaNormaliser.hpp
     Kernel/HOL/RedexReducer.hpp
     Kernel/HOL/TermShifter.hpp
-    Kernel/HOL/EtaNormaliser.cpp
     Kernel/HOL/EtaNormaliser.hpp
     Kernel/HOL/SubtermReplacer.hpp
     Kernel/HOL/Unifier.cpp
@@ -571,7 +571,6 @@ set(SOURCES
     Lib/Slice.hpp
     Lib/SmartPtr.hpp
     Lib/Sort.hpp
-    Lib/SparseSuffixIntArray.hpp
     Lib/Stack.hpp
     Lib/StringUtils.cpp
     Lib/StringUtils.hpp

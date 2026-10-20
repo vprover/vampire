@@ -220,7 +220,6 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/HOL/Reduce.o\
         Kernel/HOL/RedexReducer.o\
         Kernel/HOL/TermShifter.o\
-        Kernel/HOL/EtaNormaliser.o\
         Kernel/HOL/SubtermReplacer.o\
         Kernel/HOL/Unifier.o\
         Kernel/InterpretedLiteralEvaluator.o\

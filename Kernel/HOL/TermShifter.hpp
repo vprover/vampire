@@ -14,9 +14,9 @@
 #ifndef __TermShifter__
 #define __TermShifter__
 
-#include "Lib/SparseSuffixIntArray.hpp"
-
 #include "Kernel/HOL/HOL.hpp"
+#include "Lib/SharedSet.hpp"
+
 #include "Kernel/TermTransformer.hpp"
 #include "Kernel/Term.hpp"
 
@@ -57,13 +57,8 @@ namespace TermShifter
       },
       [](TermList orig, TermList newTerm, unsigned lambdaLevel) {
         // already shifted, so must be DB index and won't have subterms anyway
-        return orig == newTerm && newTerm.freeDBIndices() && newTerm.freeDBIndices()->hasHigherValuesThan(lambdaLevel);
+        return orig == newTerm && newTerm.freeDBIndices()->containsGreaterOrEqual(lambdaLevel);
       });
-  }
-
-  // returns the index of the minimal free DB index, otherwise UINT_MAX
-  inline unsigned minFreeDBIndex(TermList t) {
-    return t.freeDBIndices() ? t.freeDBIndices()->minValue() : UINT_MAX;
   }
 };
 

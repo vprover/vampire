@@ -15,6 +15,7 @@
  * @since 06/05/2007 Manchester, changed into a single class instead of three
  */
 
+#include "Lib/SharedSet.hpp"
 #include "SubstHelper.hpp"
 #include "TermIterators.hpp"
 #include "RobSubstitution.hpp"
@@ -23,7 +24,6 @@
 #include "Kernel/HOL/HOL.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Output.hpp"
-#include "Lib/SparseSuffixIntArray.hpp"
 
 #include "Term.hpp"
 
@@ -132,8 +132,8 @@ bool TermList::isLambdaTerm() const {
   return !isVar() && term()->isLambdaTerm();
 }
 
-bool TermList::isRedex() const {
-  return isTerm() && term()->isRedex();
+bool TermList::isBetaRedex() const {
+  return isTerm() && term()->isBetaRedex();
 }
 
 bool TermList::isEtaRedex() const {
@@ -161,11 +161,11 @@ Option<unsigned> TermList::deBruijnIndex() const {
 
 bool TermList::containsLooseDBIndex() const
 {
-  return freeDBIndices();
+  return !freeDBIndices()->isEmpty();
 }
 
-SparseSuffixIntArray* TermList::freeDBIndices() const {
-  return isVar() ? nullptr : term()->freeDBIndices();
+const SharedSet<unsigned>* TermList::freeDBIndices() const {
+  return isVar() ? SharedSet<unsigned>::getEmpty() : term()->freeDBIndices();
 }
 
 TermList TermList::lhs() const {
@@ -861,9 +861,8 @@ std::string Literal::toString(bool reverseEquality) const
       res = "(" + res + ")";
     }
 
-#ifdef VPRINT_EQ_SORT
-    res += " {" + eqArgSort().toString() + "}";
-#endif // VAMPIRE_PRINT_EQ_SORT
+    // uncomment to debug equality sorts
+    // res += " {" + eqArgSort().toString() + "}";
 
     return res;
   }
@@ -935,7 +934,7 @@ bool Term::isLambdaTerm() const {
   return !isSort() && !isLiteral() && !isSpecial() && env.signature->isLamFun(_functor);
 }
 
-bool Term::isRedex() const {
+bool Term::isBetaRedex() const {
   return isApplication() && nthArgument(2)->isLambdaTerm();
 }
 
@@ -952,7 +951,7 @@ bool Term::isEtaRedex() const {
   if (rhs.deBruijnIndex().unwrapOr(UINT_MAX) != 0) {
     return false;
   }
-  if (lhs.freeDBIndices() && lhs.freeDBIndices()->containsZero()) {
+  if (!lhs.freeDBIndices()->isEmpty() && lhs.freeDBIndices()->minval() == 0) {
     return false;
   }
   return true;
@@ -1686,6 +1685,7 @@ Term::Term(const Term& t) throw()
 #if VDEBUG
     _kboInstance(nullptr),
 #endif
+    _freeDBIndices(SharedSet<unsigned>::getEmpty()),
     _vars(0)
 {
   ASS(!isSpecial()); //we do not copy special terms
@@ -1721,6 +1721,7 @@ Term::Term() throw()
 #if VDEBUG
    _kboInstance(nullptr),
 #endif
+   _freeDBIndices(SharedSet<unsigned>::getEmpty()),
    _vars(0)
 {
   info().setContent(0);

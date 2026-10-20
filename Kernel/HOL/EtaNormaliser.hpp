@@ -22,13 +22,23 @@ using namespace Kernel;
 // reduce to eta short form
 // normalises top down carrying out parallel eta reductions
 // for terms such as ^^^.f 2 1 0
-// WARNING Recursing lurks here (even during proof search!)
-// This is BAD! However, an  (efficient) iterative implementation is tricky, so
-// I am leaving for now.
-namespace EtaNormaliser {
-  TermList normalise(TermList t);
-  TermList transformSubterm(TermList t);
-}
+struct EtaNormaliser : public BottomUpTermTransformer
+{
+  EtaNormaliser() : BottomUpTermTransformer(/*transformSorts=*/false) {}
+  TermList normalise(TermList t) { return transform(t); }
+
+private:
+  TermList transformSubterm(TermList t) override {
+    while (t.isEtaRedex()) {
+      t = TermShifter::shift(t.term()->lambdaBody().term()->termArg(0), -1);
+    }
+    return t;
+  }
+
+  bool alreadyTransformed(Term* t) override {
+    return !t->hasEtaRedex();
+  }
+};
 
 struct EtaNormaliser2 : public BottomUpTermTransformer
 {
