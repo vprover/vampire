@@ -277,6 +277,7 @@ enum class InferenceRule : unsigned char {
   CASES_SIMP,
   ALASCA_VIRAS_QE,
 
+  ARG_PRUNING,
   BOOL_SIMP,
   FLEX_FLEX_SIMPLIFICATION,
   BETA_ETA_NORMALIZATION,

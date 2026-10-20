@@ -17,6 +17,7 @@ using namespace Test;
 #define MY_SYNTAX_SUGAR                            \
   DECL_SORT(s)                                     \
   DECL_DEFAULT_VARS                                \
+  DECL_CONST(f, arrow({s, s}, s))                  \
   DECL_CONST(a, s)                                 \
   DECL_CONST(b, s)                                 \
   DECL_CONST(c, s)                                 \
@@ -25,24 +26,41 @@ using namespace Test;
 #define MY_SIMPL_RULE   ArgPruning
 #define MY_SIMPL_TESTER Simplification::SimplificationTester
 
-// TEST_SIMPLIFY(fail01,
-//     Simplification::NotApplicable()
-//       .input(clause({ ap(x, {b, b}) == a, ap(x, {a, a}) != c }))
-//     )
+// occurrence with not enough arguments
+TEST_SIMPLIFY(fail01,
+    Simplification::NotApplicable()
+      .input(clause({ ap(ap(x.sort(arrow({s, s}, s)), b), b) == a, x != f }))
+    )
 
+// same argument in all occurrences, but wrong position
+TEST_SIMPLIFY(fail02,
+    Simplification::NotApplicable()
+      .input(clause({ ap(ap(x.sort(arrow({s, s}, s)), c), a) == a, ap(x.sort(arrow({s, s}, s)), a) != ap(f, c) }))
+    )
+
+// repeated arguments
 TEST_SIMPLIFY(success01,
     Simplification::Success()
       .input(clause({ ap(ap(x.sort(arrow({s, s}, s)), b), b) == a, ap(ap(x.sort(arrow({s, s}, s)), a), a) != c }))
       .expected(clause({ ap(x.sort(arrow(s, s)), b) == a, ap(x.sort(arrow(s, s)), a) != c }))
     )
 
+// same argument in all occurrences
 TEST_SIMPLIFY(success02,
     Simplification::Success()
       .input(clause({ ap(ap(x.sort(arrow({s, s}, s)), a), c) == a, ap(ap(x.sort(arrow({s, s}, s)), a), b) != c }))
       .expected(clause({ ap(x.sort(arrow(s, s)), c) == a, ap(x.sort(arrow(s, s)), a) != c }))
     )
 
+// same argument in all occurrences, one partially applied
 TEST_SIMPLIFY(success03,
+    Simplification::Success()
+      .input(clause({ ap(ap(x.sort(arrow({s, s}, s)), a), c) == a, ap(x.sort(arrow({s, s}, s)), a) != ap(f, c) }))
+      .expected(clause({ ap(x.sort(arrow(s, s)), c) == a, x != ap(f, c) }))
+    )
+
+// only one occurrence of the variables
+TEST_SIMPLIFY(success04,
     Simplification::Success()
       .input(clause({ ap(ap(x.sort(arrow({s, s}, s)), a), b) == a, ap(ap(y.sort(arrow({s, s}, s)), c), d) != c }))
       .expected(clause({ x == a, y != c }))
