@@ -33,6 +33,7 @@ set(UNIT_TESTS
     UnitTests/tALASCA_FloorElimination.cpp
     UnitTests/tALASCA_FourierMotzkin.cpp
     UnitTests/tALASCA_InequalityFactoring.cpp
+    UnitTests/tALASCA_IntegerConversion.cpp
     UnitTests/tALASCA_IntegerFourierMotzkin.cpp
     UnitTests/tALASCA_LaKbo.cpp
     UnitTests/tALASCA_Normalization.cpp
