@@ -68,6 +68,7 @@ set(UNIT_TESTS
     UnitTests/tInferences_FunctionDefinitionRewriting.cpp
     UnitTests/tInferences_GaussianVariableElimination.cpp
     UnitTests/tInferences_HOL_ArgCong.cpp
+    UnitTests/tInferences_HOL_ArgPruning.cpp
     UnitTests/tInferences_HOL_BetaEtaSimplify.cpp
     UnitTests/tInferences_HOL_BoolEqToDiseq.cpp
     UnitTests/tInferences_HOL_BoolSimp.cpp
@@ -306,6 +307,8 @@ set(SOURCES
     Inferences/GlobalSubsumption.hpp
     Inferences/HOL/ArgCong.cpp
     Inferences/HOL/ArgCong.hpp
+    Inferences/HOL/ArgPruning.cpp
+    Inferences/HOL/ArgPruning.hpp
     Inferences/HOL/BetaEtaSimplify.cpp
     Inferences/HOL/BetaEtaSimplify.hpp
     Inferences/HOL/BoolEqToDiseq.cpp
