@@ -257,8 +257,10 @@ TermOrderingDiagramUP Ordering::createTermOrderingDiagram(bool ground) const
 // PrecedenceOrdering class
 //////////////////////////////////////////////////
 
-Ordering::Result PrecedenceOrdering::compare(Literal* l1, Literal* l2) const
+Ordering::Result PrecedenceOrdering::compareLits(AppliedTerm al1, AppliedTerm al2) const
 {
+  auto l1 = static_cast<Literal*>(al1.term.term());
+  auto l2 = static_cast<Literal*>(al2.term.term());
   ASS(l1->shared());
   ASS(l2->shared());
 
@@ -271,7 +273,7 @@ Ordering::Result PrecedenceOrdering::compare(Literal* l1, Literal* l2) const
 
   if( (l1->isNegative() ^ l2->isNegative()) && (p1==p2) &&
 	  l1->weight()==l2->weight() && l1->numVarOccs()==l2->numVarOccs() &&  //this line is just optimization, so we don't check whether literals are opposite when they cannot be
-	  l1==env.sharing->tryGetOpposite(l2)) {
+	  l1==env.sharing->tryGetOpposite(l2) && al1.applicator == al2.applicator) {
     return l1->isNegative() ? LESS : GREATER;
   }
 
@@ -284,18 +286,18 @@ Ordering::Result PrecedenceOrdering::compare(Literal* l1, Literal* l2) const
 
   if(l1->isEquality()) {
     ASS(l2->isEquality())
-    return compareEqualities(l1, l2);
+    return compareEqualities(al1, al2);
   }
 
   if(_reverseLCM && (l1->isNegative() || l2->isNegative()) ) {
     if(l1->isNegative() && l2->isNegative()) {
-      return reverse(comparePredicates(l1, l2));
+      return reverse(comparePredicates(al1, al2));
     }
     else {
       return l1->isNegative() ? LESS : GREATER;
     }
   }
-  return comparePredicates(l1, l2);
+  return comparePredicates(al1, al2);
 } // PrecedenceOrdering::compare()
 
 /**

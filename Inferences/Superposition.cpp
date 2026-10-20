@@ -270,7 +270,6 @@ Clause* Superposition<higherOrder>::performSuperposition(
 
   // the first checks the reference and the second checks the stack
   auto subst = ResultSubstitution::fromSubstitution(&unifier->subs(), RetrievalAlgorithms::DefaultVarBanks::query, RetrievalAlgorithms::DefaultVarBanks::internal);
-  TermList eqLHSsort = SortHelper::getEqualityArgumentSort(eqLit);
 
   if(eqLHS.isVar()) {
     if(!checkSuperpositionFromVariable(eqClause, eqLit, eqLHS)) {
@@ -323,6 +322,17 @@ Clause* Superposition<higherOrder>::performSuperposition(
 
   const Ordering& ordering = _salg.getOrdering();
 
+  struct Applicator : public SubstApplicator {
+    Applicator(ResultSubstitution& subst, bool result) : _subst(subst), _result(result) {}
+    TermList apply(unsigned v) const override {
+      return _subst.apply(TermList::var(v), _result);
+    }
+    ResultSubstitution& _subst;
+    const bool _result;
+  };
+  Applicator eqAppl(subst.ref(), eqIsResult);
+  Applicator rwAppl(subst.ref(), !eqIsResult);
+
   TermList tgtTermS = subst->apply(tgtTerm, eqIsResult);
 
   Literal* rwLitS = subst->apply(rwLit, !eqIsResult);
@@ -366,11 +376,9 @@ Clause* Superposition<higherOrder>::performSuperposition(
     return 0;
   }
 
-  TermList eqLHSS = subst->apply(eqLHS, eqIsResult);
-
 #if VDEBUG
   if(!unifier->usesUwa()){
-    ASS_EQ(rwTermS,eqLHSS);
+    ASS_EQ(rwTermS,subst->apply(eqLHS, eqIsResult));
   }
 #endif
 
@@ -379,80 +387,81 @@ Clause* Superposition<higherOrder>::performSuperposition(
 
   static bool afterCheck = _salg.getOptions().literalMaximalityAftercheck() && _salg.getLiteralSelector().isBGComplete();
 
-  res->push(tgtLitS);
-  unsigned weight=tgtLitS->weight();
-  for(unsigned i=0;i<rwLength;i++) {
-    Literal* curr=(*rwClause)[i];
-    if(curr!=rwLit) {
-      Literal* currAfter = subst->apply(curr, !eqIsResult);
-
-      if (doSimS) {
-        currAfter = EqHelper::replace(currAfter,rwTermS,tgtTermS);
+  if (afterCheck) {
+    for (const auto& curr : rwClause->getSelectedLiteralIterator()) {
+      if (curr == rwLit) {
+        continue;
       }
-
-      if(EqHelper::isEqTautology(currAfter)) {
+      DEBUG_CODE(auto temp = ordering.compare(subst->apply(curr, !eqIsResult), rwLitS);)
+      if (ordering.compareLits(AppliedTerm(TermList(curr),&rwAppl,/*aboveVar=*/true),AppliedTerm(TermList(rwLitS))) == Ordering::GREATER) {
+        ASS_EQ(temp, Ordering::GREATER);
+        env.statistics->inferencesBlockedDueToOrderingAftercheck++;
         return nullptr;
       }
-
-      if(hasAgeLimitStrike) {
-        weight+=currAfter->weight();
-        if(passiveClauseContainer->exceedsWeightLimit(weight, numPositiveLiteralsLowerBound, inf)) {
-          RSTAT_CTR_INC("superpositions skipped for weight limit while constructing other literals");
-          env.statistics->discardedNonRedundantClauses++;
-          return nullptr;
-        }
+      ASS_NEQ(temp, Ordering::GREATER);
+    }
+    for (const auto& curr : eqClause->getSelectedLiteralIterator()) {
+      if (curr == eqLit) {
+        continue;
       }
-
-      if (afterCheck) {
-        TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK)
-        if (i < rwClause->numSelected() && ordering.compare(currAfter,rwLitS) == Ordering::GREATER) {
-          env.statistics->inferencesBlockedDueToOrderingAftercheck++;
-          return nullptr;
-        }
+      DEBUG_CODE(auto temp = Ordering::isGreaterOrEqual(ordering.compare(subst->apply(curr, eqIsResult), subst->apply(eqLit, eqIsResult))));
+      if (Ordering::isGreaterOrEqual(ordering.compareLits(AppliedTerm(TermList(curr),&eqAppl,/*aboveVar=*/true), AppliedTerm(TermList(eqLit),&eqAppl,/*aboveVar=*/true)))) {
+        ASS(temp);
+        env.statistics->inferencesBlockedDueToOrderingAftercheck++;
+        return nullptr;
       }
-
-      res->push(currAfter);
+      ASS(!temp);
     }
   }
 
-  {
-    Literal* eqLitS = 0;
-    if (afterCheck && eqClause->numSelected() > 1) {
-      TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
-      eqLitS = Literal::createEquality(true,eqLHSS,tgtTermS,eqLHSsort);
+  res->push(tgtLitS);
+  unsigned weight=tgtLitS->weight();
+  for (const auto& curr : *rwClause) {
+    if (curr == rwLit) {
+      continue;
+    }
+    Literal* currAfter = subst->apply(curr, !eqIsResult);
+
+    // TODO doing doSimS before checking maximality is incorrect
+    if (doSimS) {
+      currAfter = EqHelper::replace(currAfter,rwTermS,tgtTermS);
     }
 
-    for(unsigned i=0;i<eqLength;i++) {
-      Literal* curr=(*eqClause)[i];
-      if(curr!=eqLit) {
-        Literal* currAfter = subst->apply(curr, eqIsResult);
+    if(EqHelper::isEqTautology(currAfter)) {
+      return nullptr;
+    }
 
-        if(EqHelper::isEqTautology(currAfter)) {
-          return nullptr;
-        }
-        if(hasAgeLimitStrike) {
-          weight+=currAfter->weight();
-          if(passiveClauseContainer->exceedsWeightLimit(weight, numPositiveLiteralsLowerBound, inf)) {
-            RSTAT_CTR_INC("superpositions skipped for weight limit while constructing other literals");
-            env.statistics->discardedNonRedundantClauses++;
-            return nullptr;
-          }
-        }
-
-        if (eqLitS && i < eqClause->numSelected()) {
-          TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
-
-          Ordering::Result o = ordering.compare(currAfter,eqLitS);
-
-          if (o == Ordering::GREATER || o == Ordering::EQUAL) {
-            env.statistics->inferencesBlockedDueToOrderingAftercheck++;
-            return nullptr;
-          }
-        }
-
-        res->push(currAfter);
+    if(hasAgeLimitStrike) {
+      weight+=currAfter->weight();
+      if(passiveClauseContainer->exceedsWeightLimit(weight, numPositiveLiteralsLowerBound, inf)) {
+        RSTAT_CTR_INC("superpositions skipped for weight limit while constructing other literals");
+        env.statistics->discardedNonRedundantClauses++;
+        return nullptr;
       }
     }
+
+    res->push(currAfter);
+  }
+
+  for (const auto& curr : *eqClause) {
+    if (curr == eqLit) {
+      continue;
+    }
+    Literal* currAfter = subst->apply(curr, eqIsResult);
+
+    if(EqHelper::isEqTautology(currAfter)) {
+      return nullptr;
+    }
+    if(hasAgeLimitStrike) {
+      weight+=currAfter->weight();
+      if(passiveClauseContainer->exceedsWeightLimit(weight, numPositiveLiteralsLowerBound, inf)) {
+        RSTAT_CTR_INC("superpositions skipped for weight limit while constructing other literals");
+        env.statistics->discardedNonRedundantClauses++;
+        return nullptr;
+      }
+    }
+
+    res->push(currAfter);
   }
 
   if (!unifier->usesUwa()) {

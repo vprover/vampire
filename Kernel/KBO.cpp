@@ -733,8 +733,10 @@ KBO::KBO(Problem& prb, const Options& opts, bool qkbo)
  * of the comparison.
  * @since 07/05/2008 flight Manchester-Brussels
  */
-Ordering::Result KBO::comparePredicates(Literal* l1, Literal* l2) const
+Ordering::Result KBO::comparePredicates(AppliedTerm al1, AppliedTerm al2) const
 {
+  auto l1 = static_cast<Literal*>(al1.term.term());
+  auto l2 = static_cast<Literal*>(al2.term.term());
   ASS(l1->shared());
   ASS(l2->shared());
   ASS(!l1->isEquality());
@@ -756,17 +758,17 @@ Ordering::Result KBO::comparePredicates(Literal* l1, Literal* l2) const
     TermList* ts;
     ts=l1->args();
     while(!ts->isEmpty()) {
-      state->traverse<1,/*unidirectional=*/false>(*this, AppliedTerm(*ts));
+      state->traverse<1,/*unidirectional=*/false>(*this, AppliedTerm(*ts, al1));
       ts=ts->next();
     }
     ts=l2->args();
     while(!ts->isEmpty()) {
-      state->traverse<-1,/*unidirectional=*/false>(*this, AppliedTerm(*ts));
+      state->traverse<-1,/*unidirectional=*/false>(*this, AppliedTerm(*ts, al2));
       ts=ts->next();
     }
-    res=state->result(*this, AppliedTerm(TermList(l1)),AppliedTerm(TermList(l2)));
+    res=state->result(*this, al1, al2);
   } else {
-    res=state->traverseLexBidir(*this, AppliedTerm(TermList(l1)),AppliedTerm(TermList(l2)));
+    res=state->traverseLexBidir(*this, al1, al2);
   }
 
 #if VDEBUG

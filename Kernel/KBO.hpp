@@ -170,7 +170,7 @@ public:
 protected:
   unsigned computeWeight(AppliedTerm tt) const;
 
-  Result comparePredicates(Literal* l1, Literal* l2) const override;
+  Result comparePredicates(AppliedTerm l1, AppliedTerm l2) const override;
 
   friend struct TermOrderingDiagram;
   friend class TermOrderingDiagramKBO;

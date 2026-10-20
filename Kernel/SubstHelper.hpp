@@ -92,14 +92,8 @@ struct AppliedTerm
     if (term.isVar()) {
       return applicator->apply(term.var()).containsSubterm(var);
     }
-    VariableIterator vit(term.term());
-    while (vit.hasNext()) {
-      auto v = vit.next();
-      if (applicator->apply(v.var()).containsSubterm(var)) {
-        return true;
-      }
-    }
-    return false;
+    return iterTraits(VariableIterator(term.term()))
+      .any([this,var](TermList v) { return applicator->apply(v.var()).containsSubterm(var); });
   }
 
   TermList apply() const;

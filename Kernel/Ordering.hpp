@@ -81,6 +81,9 @@ public:
   /** Return the result of comparing @b l1 and @b l2 */
   virtual Result compare(Literal* l1,Literal* l2) const = 0;
 
+  virtual Result compareLits(AppliedTerm l1, AppliedTerm l2) const
+  { return compare(l1.apply(), l2.apply()); }
+
   /** Return the result of comparing terms (not term lists!)
    * @b t1 and @b t2 */
   virtual Result compare(TermList t1,TermList t2) const = 0;
@@ -142,18 +145,18 @@ public:
   Result getEqualityArgumentOrder(Literal* eq) const;
 protected:
 
-  Result compareEqualities(Literal* eq1, Literal* eq2) const;
+  Result compareEqualities(AppliedTerm eq1, AppliedTerm eq2) const;
 
 private:
   /**
    * Helper methods for comparing literals s1=s2 and t1=t2.
    */
-  Result compare_s1Gt1(TermList s1,TermList s2,TermList t1,TermList t2) const;
-  Result compare_s1It1(TermList s1,TermList s2,TermList t1,TermList t2) const;
-  Result compare_s1It1_s2It2(TermList s1,TermList s2,TermList t1,TermList t2) const;
-  Result compare_s1Gt1_s2It2(TermList s1,TermList s2,TermList t1,TermList t2) const;
-  Result compare_s1Gt1_s2Lt2(TermList s1,TermList s2,TermList t1,TermList t2) const;
-  Result compare_s1Gt1_s1It2_s2It1(TermList s1,TermList s2,TermList t1,TermList t2) const;
+  Result compare_s1Gt1(Result s1_t1, Result s1_t2, Result s2_t1, Result s2_t2) const;
+  Result compare_s1It1(Result s1_t1, Result s1_t2, Result s2_t1, Result s2_t2) const;
+  Result compare_s1It1_s2It2(Result s1_t1, Result s1_t2, Result s2_t1, Result s2_t2) const;
+  Result compare_s1Gt1_s2It2(Result s1_t1, Result s1_t2, Result s2_t1, Result s2_t2) const;
+  Result compare_s1Gt1_s2Lt2(Result s1_t1, Result s1_t2, Result s2_t1, Result s2_t2) const;
+  Result compare_s1Gt1_s1It2_s2It1(Result s1_t1, Result s1_t2, Result s2_t1, Result s2_t2) const;
 
   /**
    * We store orientation of equalities in this ordering inside
@@ -172,7 +175,9 @@ class PrecedenceOrdering
 public:
   PrecedenceOrdering(PrecedenceOrdering&&) = default;
   PrecedenceOrdering& operator=(PrecedenceOrdering&&) = default;
-  Result compare(Literal* l1, Literal* l2) const override;
+  Result compare(Literal* l1, Literal* l2) const override
+  { return compareLits(AppliedTerm(TermList(l1)), AppliedTerm(TermList(l2))); }
+  Result compareLits(AppliedTerm l1, AppliedTerm l2) const override;
   void show(std::ostream&) const override;
   virtual void showConcrete(std::ostream&) const = 0;
 
@@ -188,7 +193,9 @@ public:
   int predicatePrecedence(unsigned pred) const;
 protected:
   // l1 and l2 are not equalities and have the same predicate
-  virtual Result comparePredicates(Literal* l1,Literal* l2) const = 0;
+  Result comparePredicates(Literal* l1,Literal* l2) const
+  { return comparePredicates(AppliedTerm(TermList(l1)), AppliedTerm(TermList(l2))); }
+  virtual Result comparePredicates(AppliedTerm l1, AppliedTerm l2) const = 0;
   PrecedenceOrdering(const DArray<int>& funcPrec, const DArray<int>& typeConPrec, 
                      const DArray<int>& predPrec, const DArray<int>& predLevels, 
                      bool reverseLCM, bool qkboPrecedence = false);

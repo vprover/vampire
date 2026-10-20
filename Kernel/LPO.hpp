@@ -55,7 +55,7 @@ public:
   void showConcrete(std::ostream&) const override;
 
 protected:
-  Result comparePredicates(Literal* l1, Literal* l2) const override;
+  Result comparePredicates(AppliedTerm l1, AppliedTerm l2) const override;
 
   Result cLMA(AppliedTerm s, AppliedTerm t, const TermList* sl, const TermList* tl, unsigned arity) const;
   Result cMA(AppliedTerm s, AppliedTerm t, const TermList* tl, unsigned arity) const;

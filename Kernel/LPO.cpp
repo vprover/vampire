@@ -29,8 +29,10 @@ using namespace Shell;
  * Compare arguments of non-equality literals l1 and l2 and return the
  * result of the comparison.
  */
-Ordering::Result LPO::comparePredicates(Literal* l1, Literal *l2) const
+Ordering::Result LPO::comparePredicates(AppliedTerm al1, AppliedTerm al2) const
 {
+  auto l1 = static_cast<Literal*>(al1.term.term());
+  auto l2 = static_cast<Literal*>(al2.term.term());
   ASS(l1->shared());
   ASS(l2->shared());
   ASS(!l1->isEquality());
@@ -45,7 +47,7 @@ Ordering::Result LPO::comparePredicates(Literal* l1, Literal *l2) const
 
     // compare arguments in lexicographic order
     for (unsigned i = 0; i < l1->arity(); i++) {
-      Result res = compare(*l1->nthArgument(i), *l2->nthArgument(i));
+      Result res = compare(AppliedTerm(*l1->nthArgument(i),al1), AppliedTerm(*l2->nthArgument(i),al2));
       if (res != EQUAL)
         return res;
     }
