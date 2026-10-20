@@ -145,15 +145,10 @@ void FlatTerm::swapCommutativePredicateArguments()
   };
 
   size_t firstStart = 3;
-  auto sort = SortHelper::getEqualityArgumentSort(lit);
-  firstStart += sort.isVar() ? 1 : getEntryCount</*mightBeLiteral=*/false>(sort.term());
-
   size_t firstLen = getLen(firstStart);
 
   size_t secStart = firstStart+firstLen;
   size_t secLen = getLen(secStart);
-
-  ASS_EQ(secStart+secLen,_length);
 
   static DArray<Entry> buf;
   if(firstLen>secLen) {
@@ -168,6 +163,10 @@ void FlatTerm::swapCommutativePredicateArguments()
     memcpy(&_data[firstStart+secLen], &_data[firstStart], firstLen*sizeof(Entry));
     memcpy(&_data[firstStart], buf.array(), secLen*sizeof(Entry));
   }
+
+  DEBUG_CODE(auto sort = SortHelper::getEqualityArgumentSort(lit);
+  secLen += sort.isVar() ? 1 : getEntryCount</*mightBeLiteral=*/false>(sort.term());)
+  ASS_EQ(secStart+secLen,_length);
 }
 
 void FlatTerm::Entry::expand()
@@ -181,6 +180,10 @@ void FlatTerm::Entry::expand()
   Term* t = this[1]._term();
   size_t pos = FlatTerm::FUNCTION_ENTRY_COUNT;
 
+  for (unsigned i = 0; i < t->arity(); i++) {
+    pushTerm</*mightBeLiteral=*/false>(this, pos, *t->nthArgument(i));
+  }
+
   // If literal is equality, we add a type argument
   // to properly match with two variable equalities.
   // This has to be done also in the code tree.
@@ -188,9 +191,6 @@ void FlatTerm::Entry::expand()
     pushTerm</*mightBeLiteral=*/false>(this, pos, SortHelper::getEqualityArgumentSort(static_cast<Literal*>(t)));
   }
 
-  for (unsigned i = 0; i < t->arity(); i++) {
-    pushTerm</*mightBeLiteral=*/false>(this, pos, *t->nthArgument(i));
-  }
   ASS_EQ(pos,this[2]._number());
   _setTag(FUN);
 }

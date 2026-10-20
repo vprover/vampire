@@ -192,6 +192,8 @@ check_exact_output ucore/test2.out --input_syntax smtlib2 -om ucore ucore/test2.
 # Finite model building
 # sort bound detection over a function with a multi-sorted argument list
 check_szs_status Satisfiable -sa fmb -fmbdsb on fmb/detect-sort-bounds.p
+check_szs_status Satisfiable -sa fmb -newcnf off fmb/sort-inference-equality.p
+check_szs_status Satisfiable -sa fmb -newcnf on fmb/sort-inference-equality.p
 
 # Term algebra problems
 check_szs_status Unsatisfiable term-algebra/terms_distinct.smt2

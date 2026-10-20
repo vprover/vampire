@@ -980,10 +980,17 @@ void CodeTree::Compiler<forLits>::handleTerm(const Term* trm)
   if (trm->isLiteral()) {
     auto lit = static_cast<const Literal*>(trm);
     code.push(CodeOp::getTermOp(CHECK_FUN, lit->header()));
+  } else {
+    code.push(CodeOp::getTermOp(CHECK_FUN, trm->functor()));
+  }
 
-    // If literal is equality, we add a type argument
-    // to properly match with two variable equalities.
-    // This has to be done also in flat terms.
+  handleSubterms(trm, globalCounterparts);
+
+  // If literal is equality, we add a type argument
+  // to properly match with two variable equalities.
+  // This has to be done also in flat terms.
+  if (trm->isLiteral()) {
+    auto lit = static_cast<const Literal*>(trm);
     if (lit->isEquality()) {
       auto sort = SortHelper::getEqualityArgumentSort(lit);
       if (sort.isVar()) {
@@ -993,11 +1000,7 @@ void CodeTree::Compiler<forLits>::handleTerm(const Term* trm)
         handleSubterms(sort.term(), globalCounterparts);
       }
     }
-  } else {
-    code.push(CodeOp::getTermOp(CHECK_FUN, trm->functor()));
   }
-
-  handleSubterms(trm, globalCounterparts);
 
   if constexpr (forLits) {
     ASS(trm->isLiteral());  //LIT_END operation makes sense only for literals
