@@ -49,7 +49,7 @@ TEST_SIMPLIFY(success01,
 TEST_SIMPLIFY(success02,
     Simplification::Success()
       .input(clause({ ap(ap(x.sort(arrow({s, s}, s)), a), c) == a, ap(ap(x.sort(arrow({s, s}, s)), a), b) != c }))
-      .expected(clause({ ap(x.sort(arrow(s, s)), c) == a, ap(x.sort(arrow(s, s)), a) != c }))
+      .expected(clause({ ap(x.sort(arrow(s, s)), c) == a, ap(x.sort(arrow(s, s)), b) != c }))
     )
 
 // same argument in all occurrences, one partially applied
@@ -64,4 +64,18 @@ TEST_SIMPLIFY(success04,
     Simplification::Success()
       .input(clause({ ap(ap(x.sort(arrow({s, s}, s)), a), b) == a, ap(ap(y.sort(arrow({s, s}, s)), c), d) != c }))
       .expected(clause({ x == a, y != c }))
+    )
+
+// one with variables in terms: x a (f a c) b != x z (f z c) b
+TEST_SIMPLIFY(success05,
+    Simplification::Success()
+      .input(clause({ ap(ap(x.sort(arrow({s, s, s}, s)), a), {ap(f, {a, c}), b}) != ap(ap(x.sort(arrow({s, s, s}, s)), z), {ap(f, {z, c}), b}) }))
+      .expected(clause({ ap(x.sort(arrow(s, s)), a) != ap(x.sort(arrow(s, s)), z) }))
+    )
+
+// applied variables as subterms
+TEST_SIMPLIFY(success06,
+    Simplification::Success()
+      .input(clause({ ap(f, { ap(x.sort(arrow(s, s)), a), ap(x.sort(arrow(s, s)), a) }) != c }))
+      .expected(clause({ ap(f, {x, x}) != c }))
     )
