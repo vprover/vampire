@@ -57,7 +57,7 @@ BinaryResolution::BinaryResolution(SaturationAlgorithm& salg)
  */
 template<class ComputeConstraints>
 Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Clause* resultCl, Literal* resultLit,
-          ResultSubstitutionSP subs, ComputeConstraints computeConstraints, const Options& opts, bool afterCheck,
+          ResultSubstitutionSP subs, ComputeConstraints computeConstraints, const Options& opts, const bool afterCheck,
           const PassiveClauseContainer* passiveClauseContainer, Ordering* ord, LiteralSelector* ls,
           PartialRedundancyHandler const* parRedHandler)
 {
@@ -88,9 +88,6 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     return 0;
   }
 
-  unsigned clength = queryCl->length();
-  unsigned dlength = resultCl->length();
-
   // LRS-specific optimization:
   // check whether we can conclude that the resulting clause will be discarded by LRS since it does not fulfil the age/weight limits (in which case we can discard the clause)
   // we already know the age here so we can immediately conclude whether the clause fulfils the age limit
@@ -115,14 +112,12 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
   }
 
   if(hasAgeLimitStrike) {
-    for(unsigned i=0;i<clength;i++) {
-      Literal* curr=(*queryCl)[i];
+    for(const auto& curr : *queryCl) {
       if(curr!=queryLit) {
         wlb+=curr->weight();
       }
     }
-    for(unsigned i=0;i<dlength;i++) {
-      Literal* curr=(*resultCl)[i];
+    for(const auto& curr : *resultCl) {
       if(curr!=resultLit) {
         wlb+=curr->weight();
       }
@@ -134,75 +129,81 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     }
   }
 
+  struct Applicator : public SubstApplicator {
+    Applicator(ResultSubstitution& subst, bool result) : _subst(subst), _result(result) {}
+    TermList apply(unsigned v) const override {
+      return _subst.apply(TermList::var(v), _result);
+    }
+    ResultSubstitution& _subst;
+    const bool _result;
+  };
+  Applicator queryAppl(subs.ref(), false);
+  Applicator resultAppl(subs.ref(), true);
+
+  if (afterCheck) {
+    TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
+    AppliedTerm queryLitS(TermList(queryLit),&queryAppl,/*aboveVar=*/true);
+    for(const auto& curr : queryCl->getSelectedLiteralIterator()) {
+      if (curr == queryLit) {
+        continue;
+      }
+      Ordering::Result o = ord->compareLits(AppliedTerm(TermList(curr),&queryAppl,/*aboveVar=*/true),queryLitS);
+
+      if (o == Ordering::GREATER ||
+          (ls->isPositiveForSelection(curr)    // strict maximimality for positive literals
+              && o == Ordering::EQUAL)) {
+        env.statistics->inferencesBlockedDueToOrderingAftercheck++;
+        return nullptr;
+      }
+    }
+    AppliedTerm resultLitS(TermList(resultLit),&resultAppl,/*aboveVar=*/true);
+    for(const auto& curr : resultCl->getSelectedLiteralIterator()) {
+      if (curr == resultLit) {
+        continue;
+      }
+      Ordering::Result o = ord->compareLits(AppliedTerm(TermList(curr),&resultAppl,/*aboveVar=*/true),resultLitS);
+      if (o == Ordering::GREATER ||
+          (ls->isPositiveForSelection(curr)    // strict maximimality for positive literals
+              && o == Ordering::EQUAL)) {
+        env.statistics->inferencesBlockedDueToOrderingAftercheck++;
+        return nullptr;
+      }
+    }
+  }
+
   RStack<Literal*> resLits;
 
-  Literal* queryLitAfter = 0;
-  if (afterCheck && queryCl->numSelected() > 1) {
-    TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
-    queryLitAfter = subs->applyToQuery(queryLit);
-  }
-
   resLits->loadFromIterator(constraints->iterFifo());
-  for(unsigned i=0;i<clength;i++) {
-    Literal* curr=(*queryCl)[i];
-    if(curr!=queryLit) {
-      Literal* newLit = subs->applyToQuery(curr);
-      if(hasAgeLimitStrike) {
-        wlb+=newLit->weight() - curr->weight();
-        if(passiveClauseContainer->exceedsWeightLimit(wlb, numPositiveLiteralsLowerBound, inf)) {
-          RSTAT_CTR_INC("binary resolutions skipped for weight limit while building clause");
-          env.statistics->discardedNonRedundantClauses++;
-          return nullptr;
-        }
-      }
-      if (queryLitAfter && i < queryCl->numSelected()) {
-        TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
-
-        Ordering::Result o = ord->compare(newLit,queryLitAfter);
-
-        if (o == Ordering::GREATER ||
-            (ls->isPositiveForSelection(newLit)    // strict maximimality for positive literals
-                && o == Ordering::EQUAL)) {
-          env.statistics->inferencesBlockedDueToOrderingAftercheck++;
-          return nullptr;
-        }
-      }
-      resLits->push(newLit);
+  for(const auto& curr : *queryCl) {
+    if (curr == queryLit) {
+      continue;
     }
+    Literal* newLit = subs->applyToQuery(curr);
+    if(hasAgeLimitStrike) {
+      wlb+=newLit->weight() - curr->weight();
+      if(passiveClauseContainer->exceedsWeightLimit(wlb, numPositiveLiteralsLowerBound, inf)) {
+        RSTAT_CTR_INC("binary resolutions skipped for weight limit while building clause");
+        env.statistics->discardedNonRedundantClauses++;
+        return nullptr;
+      }
+    }
+    resLits->push(newLit);
   }
 
-  Literal* qrLitAfter = 0;
-  if (afterCheck && resultCl->numSelected() > 1) {
-    TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
-    qrLitAfter = subs->applyToResult(resultLit);
-  }
-
-  for(unsigned i=0;i<dlength;i++) {
-    Literal* curr=(*resultCl)[i];
-    if(curr!=resultLit) {
-      Literal* newLit = subs->applyToResult(curr);
-      if(hasAgeLimitStrike) {
-        wlb+=newLit->weight() - curr->weight();
-        if(passiveClauseContainer->exceedsWeightLimit(wlb, numPositiveLiteralsLowerBound, inf)) {
-          RSTAT_CTR_INC("binary resolutions skipped for weight limit while building clause");
-          env.statistics->discardedNonRedundantClauses++;
-          return nullptr;
-        }
-      }
-      if (qrLitAfter && i < resultCl->numSelected()) {
-        TIME_TRACE(TimeTrace::LITERAL_ORDER_AFTERCHECK);
-
-        Ordering::Result o = ord->compare(newLit,qrLitAfter);
-
-        if (o == Ordering::GREATER ||
-            (ls->isPositiveForSelection(newLit)   // strict maximimality for positive literals
-                && o == Ordering::EQUAL)) {
-          env.statistics->inferencesBlockedDueToOrderingAftercheck++;
-          return nullptr;
-        }
-      }
-      resLits->push(newLit);
+  for (const auto& curr : *resultCl) {
+    if (curr == resultLit) {
+      continue;
     }
+    Literal* newLit = subs->applyToResult(curr);
+    if(hasAgeLimitStrike) {
+      wlb+=newLit->weight() - curr->weight();
+      if(passiveClauseContainer->exceedsWeightLimit(wlb, numPositiveLiteralsLowerBound, inf)) {
+        RSTAT_CTR_INC("binary resolutions skipped for weight limit while building clause");
+        env.statistics->discardedNonRedundantClauses++;
+        return nullptr;
+      }
+    }
+    resLits->push(newLit);
   }
 
   if (nConstraints == 0 && parRedHandler) {
