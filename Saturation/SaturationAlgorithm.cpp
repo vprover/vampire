@@ -76,6 +76,7 @@
 #include "Inferences/GlobalSubsumption.hpp"
 
 #include "Inferences/HOL/ArgCong.hpp"
+#include "Inferences/HOL/ArgPruning.hpp"
 #include "Inferences/HOL/BetaEtaSimplify.hpp"
 #include "Inferences/HOL/BoolEqToDiseq.hpp"
 #include "Inferences/HOL/BoolSimp.hpp"
@@ -1759,6 +1760,8 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
   if (prb.isHigherOrder() && opt.choiceReasoning()) {
     res->addFront(new ChoiceDefinitionISE());
   }
+
+  res->addFront(new ArgPruning());
 
   if ((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) && prb.isHigherOrder()) {
     if(env.options->cnfOnTheFly() == Options::CNFOnTheFly::EAGER){

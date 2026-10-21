@@ -157,6 +157,10 @@ Clause* ArgPruning::simplify(Clause* c)
         arity--;
       }
     }
+    // not sure this is the right constraint for skipping the bad cases
+    if (iterTraits(ts.iter()).any([](TermList t) { return t.containsLooseDBIndex(); })) {
+      continue;
+    }
 
     DHSet<unsigned, FnvHash, IdentityHash> discardedIndices;
 
