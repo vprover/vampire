@@ -264,7 +264,7 @@ Ordering::Result PrecedenceOrdering::compareLits(AppliedTerm al1, AppliedTerm al
   ASS(l1->shared());
   ASS(l2->shared());
 
-  if (l1 == l2) {
+  if (al1.equalsShallow(al2)) {
     return EQUAL;
   }
 
