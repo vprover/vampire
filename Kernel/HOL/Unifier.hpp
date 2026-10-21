@@ -87,6 +87,13 @@ public:
   AbstractingWrapper(const AbstractingWrapper&) = delete;
   AbstractingWrapper& operator=(const AbstractingWrapper&) = delete;
 
+  static VirtualIterator<AbstractingUnifier*> create(AbstractingUnifier& unifier, unsigned hoUnifDepth, bool funcExt) {
+    if (env.higherOrder()) {
+      return vi(new AbstractingWrapper(unifier, hoUnifDepth, funcExt));
+    }
+    return pvi(getSingletonIterator(&unifier));
+  }
+
   using ElementType = AbstractingUnifier*;
 
   bool hasNext() override;
