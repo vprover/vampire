@@ -18,6 +18,7 @@ using namespace Test;
   DECL_SORT(s)                                     \
   DECL_DEFAULT_VARS                                \
   DECL_CONST(f, arrow({s, s}, s))                  \
+  DECL_CONST(g, arrow(arrow({s, s}, s), s))        \
   DECL_CONST(a, s)                                 \
   DECL_CONST(b, s)                                 \
   DECL_CONST(c, s)                                 \
@@ -36,6 +37,12 @@ TEST_SIMPLIFY(fail01,
 TEST_SIMPLIFY(fail02,
     Simplification::NotApplicable()
       .input(clause({ ap(ap(x.sort(arrow({s, s}, s)), c), a) == a, ap(x.sort(arrow({s, s}, s)), a) != ap(f, c) }))
+    )
+
+// variable application contains the variable itself
+TEST_SIMPLIFY(fail03,
+    Simplification::NotApplicable()
+      .input(clause({ ap(ap(x.sort(arrow({s, s}, s)), ap(g, x)), a) != c }))
     )
 
 // repeated arguments

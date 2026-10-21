@@ -108,21 +108,23 @@ Clause* ArgPruning::simplify(Clause* c)
   unsigned freshVar = c->maxVar()+1;
 
   for (const auto& l : *c) {
-    SubtermIterator sti(l);
-    while (sti.hasNext()) {
-      auto st = sti.next();
-      if (st.isTerm() && !st.isApplication()) {
-        continue;
-      }
-      auto head = st.head();
-      if (head.isTerm()) {
-        continue;
-      }
 
-      TermStack* ptr;
-      varOccurrences.getValuePtr(head.var(), ptr);
-      ptr->push(st);
-      sti.right();
+    auto [lhs, rhs] = l->eqArgs();
+    TermStack todo { lhs, rhs };
+
+    while (todo.isNonEmpty()) {
+      auto curr = todo.pop();
+      if (curr.isLambdaTerm()) {
+        todo.push(curr.lambdaBody());
+        continue;
+      }
+      auto [head, args] = HOL::getHeadAndArgs(curr);
+      if (head.isVar()) {
+        TermStack* ptr;
+        varOccurrences.getValuePtr(head.var(), ptr);
+        ptr->push(curr);
+      }
+      todo.loadFromIterator(args.iter());
     }
   }
 
