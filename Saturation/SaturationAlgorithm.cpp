@@ -619,7 +619,7 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
   if (sosForAxioms || (cl->isPureTheoryDescendant() && sosForTheory)
     // TODO: This is a hack to avoid redundant self-superpositions with the Boolean
     // exhaustiveness axiom. We should fix FOOL paramodulation and remove the axiom.
-    || cl->inference().rule() == InferenceRule::FOOL_AXIOM_ALL_IS_TRUE_OR_FALSE) {
+    /* || cl->inference().rule() == InferenceRule::FOOL_AXIOM_ALL_IS_TRUE_OR_FALSE */) {
     addInputSOSClause(cl);
   }
   else {
@@ -1143,7 +1143,10 @@ void SaturationAlgorithm::activate(Clause* cl)
   ASS_EQ(cl->store(), Clause::SELECTED);
   cl->setStore(Clause::ACTIVE);
   env.statistics->activeClauses++;
-  _active->add(cl);
+
+  if (cl->inference().rule() != InferenceRule::FOOL_AXIOM_ALL_IS_TRUE_OR_FALSE) {
+    _active->add(cl);
+  }
 
   _partialRedundancyHandler->checkEquations(cl);
 
@@ -1165,6 +1168,10 @@ void SaturationAlgorithm::activate(Clause* cl)
         onParenthood(genCl, premCl);
       }
     }
+  }
+
+  if (cl->inference().rule() == InferenceRule::FOOL_AXIOM_ALL_IS_TRUE_OR_FALSE) {
+    _active->add(cl);
   }
 
   _clauseActivationInProgress = false;
