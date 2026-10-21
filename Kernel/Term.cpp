@@ -15,6 +15,7 @@
  * @since 06/05/2007 Manchester, changed into a single class instead of three
  */
 
+#include "Lib/SharedSet.hpp"
 #include "SubstHelper.hpp"
 #include "TermIterators.hpp"
 #include "RobSubstitution.hpp"
@@ -131,8 +132,12 @@ bool TermList::isLambdaTerm() const {
   return !isVar() && term()->isLambdaTerm();
 }
 
-bool TermList::isRedex() const {
-  return isApplication() && lhs().isLambdaTerm();
+bool TermList::isBetaRedex() const {
+  return isTerm() && term()->isBetaRedex();
+}
+
+bool TermList::isEtaRedex() const {
+  return isTerm() && term()->isEtaRedex();
 }
 
 bool TermList::isProxy(Proxy proxy) const {
@@ -156,29 +161,11 @@ Option<unsigned> TermList::deBruijnIndex() const {
 
 bool TermList::containsLooseDBIndex() const
 {
-  Stack<std::pair<TermList,unsigned>> todo;
-  todo.emplace(*this, 0);
+  return !freeDBIndices()->isEmpty();
+}
 
-  while (todo.isNonEmpty()) {
-    auto [curr, dep] = todo.pop();
-
-    if (curr.isVar() || (curr.term()->shared() && !curr.term()->hasDeBruijnIndex())) {
-      continue;
-    }
-
-    if (curr.deBruijnIndex().isSome()) {
-      unsigned idx = curr.deBruijnIndex().unwrap();
-      if (idx >= dep) { return true; }
-    }
-    else if (curr.isLambdaTerm()) {
-      todo.emplace(curr.lambdaBody(), dep + 1);
-    }
-    else if (curr.isApplication()) {
-      todo.emplace(curr.lhs(), dep);
-      todo.emplace(curr.rhs(), dep);
-    }
-  }
-  return false;
+const SharedSet<unsigned>* TermList::freeDBIndices() const {
+  return isVar() ? SharedSet<unsigned>::getEmpty() : term()->freeDBIndices();
 }
 
 TermList TermList::lhs() const {
@@ -874,9 +861,8 @@ std::string Literal::toString(bool reverseEquality) const
       res = "(" + res + ")";
     }
 
-#ifdef VPRINT_EQ_SORT
-    res += " {" + eqArgSort().toString() + "}";
-#endif // VAMPIRE_PRINT_EQ_SORT
+    // uncomment to debug equality sorts
+    // res += " {" + eqArgSort().toString() + "}";
 
     return res;
   }
@@ -948,8 +934,27 @@ bool Term::isLambdaTerm() const {
   return !isSort() && !isLiteral() && !isSpecial() && env.signature->isLamFun(_functor);
 }
 
-bool Term::isRedex() const {
+bool Term::isBetaRedex() const {
   return isApplication() && nthArgument(2)->isLambdaTerm();
+}
+
+bool Term::isEtaRedex() const {
+  if (!isLambdaTerm()) {
+    return false;
+  }
+  auto lb = lambdaBody();
+  if (!lb.isApplication()) {
+    return false;
+  }
+  auto lhs = lb.term()->termArg(0);
+  auto rhs = lb.term()->termArg(1);
+  if (rhs.deBruijnIndex().unwrapOr(UINT_MAX) != 0) {
+    return false;
+  }
+  if (!lhs.freeDBIndices()->isEmpty() && lhs.freeDBIndices()->minval() == 0) {
+    return false;
+  }
+  return true;
 }
 
 bool Term::isProxy(Proxy proxy) const {
@@ -1680,6 +1685,7 @@ Term::Term(const Term& t) throw()
 #if VDEBUG
     _kboInstance(nullptr),
 #endif
+    _freeDBIndices(SharedSet<unsigned>::getEmpty()),
     _vars(0)
 {
   ASS(!isSpecial()); //we do not copy special terms
@@ -1715,7 +1721,7 @@ Term::Term() throw()
 #if VDEBUG
    _kboInstance(nullptr),
 #endif
-   _maxRedLen(0),
+   _freeDBIndices(SharedSet<unsigned>::getEmpty()),
    _vars(0)
 {
   info().setContent(0);
