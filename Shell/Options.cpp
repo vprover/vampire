@@ -1971,7 +1971,7 @@ Options::Options ()
       {.short_name = "alasca",
        .description = "Enables the Linear Arithmetic Superposition CAlculus, a calculus for linear real arithmetic with uninterpretd functions. It is described in the LPAR2023 paper \"ALASCA: Reasoning in Quantified Linear Arithmetic\"\n",
        .tag = OptionTag::INFERENCES})
-  , _viras("virtual_integer_real_arithmetic_substitution",this,true,
+  , _viras("virtual_integer_real_arithmetic_substitution",this,VVIRAS,
       {.short_name = "viras",
        .description = "Enables the VIRAS quantifier elimination to be used in ALASCA. The VIRAS method is explained in the LPAR2024 paper \"VIRAS: Conflict-Driven Quantifier Elimination for Integer-Real Arithmetic\"\n",
        .tag = OptionTag::INFERENCES,
@@ -2403,6 +2403,10 @@ Options::Options ()
             )));
 
     _viras.onlyUsefulWith(_alasca.is(equal(true)));
+#if !VVIRAS
+    // VIRAS support was disabled at build time (-DVIRAS=OFF)
+    _viras.addHardConstraint(equal(false));
+#endif
 
     _alascaDemodulation.onlyUsefulWith(_alasca.is(equal(true)));
 
