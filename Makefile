@@ -78,7 +78,7 @@ XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 
 #XFLAGS = -O6 -DVDEBUG=0 -DUSE_SYSTEM_ALLOCATION=1 -g
 
 INCLUDES= -I. -I/opt/local/include -Icadical/src -Imini-gmp-6.3.0 -Iviras/src
-Z3FLAG= -DVZ3=0
+Z3FLAG= -DVZ3=0 -DVVIRAS=1
 Z3LIB=
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g'))
 INCLUDES= -I. -Imini-gmp-6.3.0 -Iviras/src -Iz3/src/api -Iz3/src/api/c++ -I/opt/local/include -Icadical/src
@@ -87,7 +87,7 @@ INCLUDES= -I. -Imini-gmp-6.3.0 -Iviras/src -Iz3/src/api -Iz3/src/api/c++ -I/opt/
 # else
 Z3LIB= -Lz3/build -lz3
 # endif
-Z3FLAG= -DVZ3=1
+Z3FLAG= -DVZ3=1 -DVVIRAS=1
 endif
 
 ifneq (,$(filter vtest%,$(MAKECMDGOALS)))

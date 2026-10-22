@@ -34,7 +34,9 @@
 #include "Inferences/PushUnaryMinus.hpp"
 #include "Inferences/Cancellation.hpp"
 #include "Inferences/GaussianVariableElimination.hpp"
+#if VVIRAS
 #include "Inferences/ALASCA/VIRAS.hpp"
+#endif
 #include "Inferences/ALASCA/FourierMotzkin.hpp"
 #include "Inferences/ALASCA/IntegerFourierMotzkin.hpp"
 #include "Inferences/ALASCA/FloorFourierMotzkin.hpp"
@@ -1579,9 +1581,12 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     ise->addFront(new ALASCA::TautologyDeletion());
     ise->addFront(new ALASCA::Normalization());
     // TODO check when the other one is better
+#if VVIRAS
     if (opt.viras()) {
       sgi->push(new ALASCA::VirasQuantifierElimination(*res));
-    } else {
+    } else
+#endif
+    {
       sgi->push(new ALASCA::VariableElimination(*res, /* simpl */ true ));
     }
     sgi->push(new ALASCA::TermFactoring(*res));

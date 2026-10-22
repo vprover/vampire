@@ -40,7 +40,6 @@ set(UNIT_TESTS
     UnitTests/tALASCA_TautologyDeletion.cpp
     UnitTests/tALASCA_TermFactoring.cpp
     UnitTests/tALASCA_VariableElimination.cpp
-    UnitTests/tALASCA_VIRAS.cpp
     UnitTests/tArithCompare.cpp
     UnitTests/tBinaryHeap.cpp
     UnitTests/tBottomUpEvaluation.cpp
@@ -138,6 +137,22 @@ set(UNIT_TESTS_Z3
     UnitTests/tInferences_TheoryInstAndSimp.cpp
     UnitTests/tSMTCheck.cpp
     UnitTests/tZ3Interfacing.cpp
+)
+
+################################################################
+# unit tests (only if VIRAS enabled)
+################################################################
+set(UNIT_TESTS_VIRAS
+    UnitTests/tALASCA_VIRAS.cpp
+)
+
+################################################################
+# sources (only if VIRAS enabled)
+################################################################
+set(SOURCES_VIRAS
+    Inferences/ALASCA/VIRAS.cpp
+    Inferences/ALASCA/VIRAS.hpp
+    Inferences/ALASCA/VirasInterfacing.hpp
 )
 
 ################################################################
@@ -239,11 +254,8 @@ set(SOURCES
     Inferences/ALASCA/TautologyDeletion.hpp
     Inferences/ALASCA/TermFactoring.cpp
     Inferences/ALASCA/TermFactoring.hpp
-    Inferences/ALASCA/VIRAS.cpp
-    Inferences/ALASCA/VIRAS.hpp
     Inferences/ALASCA/VariableElimination.cpp
     Inferences/ALASCA/VariableElimination.hpp
-    Inferences/ALASCA/VirasInterfacing.hpp
     Inferences/AnswerLiteralProcessors.cpp
     Inferences/AnswerLiteralProcessors.hpp
     Inferences/ArithmeticSubtermGeneralization.cpp
