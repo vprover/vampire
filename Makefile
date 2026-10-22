@@ -26,7 +26,7 @@
 COMMON_FLAGS = -DVTIME_PROFILING=0
 
 DBG_FLAGS = $(COMMON_FLAGS) -g  -DVDEBUG=1 -DCHECK_LEAKS=0 # debugging for spider
-REL_FLAGS = $(COMMON_FLAGS) -O3 -DVDEBUG=0 -DNDEBUG # no debugging
+REL_FLAGS = $(COMMON_FLAGS) -O3 -DVDEBUG=0 -DNDEBUG -flto=auto # no debugging
 
 GCOV_FLAGS = -O0 --coverage #-pedantic
 
@@ -218,10 +218,8 @@ VK_OBJ= Kernel/Clause.o\
         Kernel/HOL/Create.o\
         Kernel/HOL/Convert.o\
         Kernel/HOL/Reduce.o\
-        Kernel/HOL/BetaNormaliser.o\
         Kernel/HOL/RedexReducer.o\
         Kernel/HOL/TermShifter.o\
-        Kernel/HOL/EtaNormaliser.o\
         Kernel/HOL/SubtermReplacer.o\
         Kernel/HOL/Unifier.o\
         Kernel/InterpretedLiteralEvaluator.o\

@@ -91,7 +91,7 @@ public:
   auto getUwaHOL(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration, unsigned hoUnifDepth, bool funcExt)
   {
     return pvi(iterTraits(getUwa(t, uwa, fixedPointIteration, funcExt))
-      .flatMap([hoUnifDepth,funcExt](QueryRes<AbstractingUnifier*, LeafData> qr) { return pvi(pushPairIntoRightIterator(qr, vi(new HOL::AbstractingWrapper(qr.unifier, hoUnifDepth, funcExt)))); })
+      .flatMap([hoUnifDepth,funcExt](QueryRes<AbstractingUnifier*, LeafData> qr) { return pvi(pushPairIntoRightIterator(qr, vi(new HOL::AbstractingWrapper(*qr.unifier, hoUnifDepth, funcExt)))); })
       .map([](auto arg) { return queryRes(arg.second, arg.first.data); }));
   }
 

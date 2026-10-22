@@ -134,8 +134,8 @@ class Recycled
 {
   using Self = IF_USE_PTRS(std::unique_ptr<T>,T);
   Self _self;
-  Reset _reset;
-  Keep _keep;
+  [[no_unique_address]] Reset _reset;
+  [[no_unique_address]] Keep _keep;
 
   static bool memAlive;
   static Stack<Self>& mem() {
@@ -217,6 +217,34 @@ public:
 
 template<class T, class Reset, class Keep>
 bool Recycled<T, Reset, Keep>::memAlive = true;
+
+/**
+ * Like Recycled, but cheaper for objects needed on every call of a small,
+ * possibly reentrant function: one object is kept for each nesting depth.
+ * The object is reset when taken.
+ */
+template<class T, class Reset = DefaultReset>
+class Scratch
+{
+  static inline Stack<T*> _all;
+  static inline unsigned _depth = 0;
+  T* _self;
+public:
+  Scratch()
+  {
+    if (_depth == _all.size()) {
+      _all.push(new T());
+    }
+    _self = _all[_depth++];
+    Reset()(*_self);
+  }
+  ~Scratch() { _depth--; }
+  Scratch(Scratch const&) = delete;
+  Scratch& operator=(Scratch const&) = delete;
+
+  T& operator* () { return *_self; }
+  T* operator->() { return _self; }
+};
 
 };
 

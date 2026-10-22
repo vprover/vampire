@@ -163,11 +163,11 @@ ClauseStack HOLUnificationHandler::iterate(bool& terminated)
     }
 
     if (solution.isNonEmpty()) {
-      if (solution.size()==1 && solution[0]->isNegative()) {
-        res.push(Clause::fromStack(solution, NonspecificInference0(UnitInputType::AXIOM, InferenceRule::STRUCT_INDUCTION_AXIOM_ONE)));
-      } else {
+      // if (solution.size()==1 && solution[0]->isNegative()) {
+      //   res.push(Clause::fromStack(solution, NonspecificInference0(UnitInputType::AXIOM, InferenceRule::STRUCT_INDUCTION_AXIOM_ONE)));
+      // } else {
         res.push(Clause::fromStack(solution, NonspecificInference0(UnitInputType::AXIOM, InferenceRule::HOL_UNIFIER_SOLUTION)));
-      }
+      // }
     }
   }
   terminated = _todo.isEmpty();

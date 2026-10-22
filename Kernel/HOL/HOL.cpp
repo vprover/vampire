@@ -408,7 +408,7 @@ void HOL::normaliseLambdaPrefixes(TermList& t1, TermList& t2)
   auto etaExpand = [](TermList t, TermList sort, TermStack& sorts, unsigned n){
     TermStack sorts1; // sorts of new prefix
 
-    t = TermShifter::shift(t, n).first; // lift loose indices by n
+    t = TermShifter::shift(t, n); // lift loose indices by n
 
     for(int i = n - 1; i >= 0; i--) { // append De Bruijn indices
       ASS(sort.isArrowSort());

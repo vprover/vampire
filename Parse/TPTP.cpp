@@ -358,6 +358,47 @@ void TPTP::parseImpl(State initialState)
   }
 } // TPTP::parse()
 
+void TPTP::parseInputType(const std::string& tp)
+{
+  _isQuestion = false;
+  if(_modelDefinition){
+    _lastInputType = UnitInputType::MODEL_DEFINITION;
+  }
+  else if (tp == "axiom" || tp == "plain") {
+    _lastInputType = UnitInputType::AXIOM;
+  }
+  else if(tp == "extensionality"){
+    // this will be transformed to just AXIOM after clausification
+    _lastInputType = UnitInputType::EXTENSIONALITY_AXIOM;
+  }
+  else if (tp == "definition") {
+    _lastInputType = UnitInputType::AXIOM;
+  }
+  else if (tp == "conjecture") {
+    _lastInputType = UnitInputType::CONJECTURE;
+  }
+  else if (tp == "question") {
+    _isQuestion = true;
+    _lastInputType = UnitInputType::CONJECTURE;
+  }
+  else if (tp == "negated_conjecture") {
+    _lastInputType = UnitInputType::NEGATED_CONJECTURE;
+  }
+  else if (tp == "hypothesis" || tp == "theorem" || tp == "lemma") {
+    _lastInputType = UnitInputType::ASSUMPTION;
+  }
+  else if (tp == "claim") {
+    _lastInputType = UnitInputType::CLAIM;
+  }
+  else if (tp == "assumption" || tp == "unknown" || tp == "logic") {
+    // MS: we were silently dropping these until now. I wonder why...
+    USER_ERROR("Unsupported unit type '", tp, "' found");
+  }
+  else {
+    PARSE_ERROR("unit type, such as axiom or definition expected but "s + tp + " found");
+  }
+}
+
 /**
  * Return either the content or the string for this token
  * @since 11/04/2011 Manchester
@@ -1373,45 +1414,7 @@ void TPTP::fof(bool fo)
   }
 
   consumeToken(T_COMMA);
-  std::string tp = name();
-
-  _isQuestion = false;
-  if(_modelDefinition){
-    _lastInputType = UnitInputType::MODEL_DEFINITION;
-  }
-  else if (tp == "axiom" || tp == "plain") {
-    _lastInputType = UnitInputType::AXIOM;
-  }
-  else if(tp == "extensionality"){
-    // this will be transformed to just AXIOM after clausification
-    _lastInputType = UnitInputType::EXTENSIONALITY_AXIOM;
-  }
-  else if (tp == "definition") {
-    _lastInputType = UnitInputType::AXIOM;
-  }
-  else if (tp == "conjecture") {
-    _lastInputType = UnitInputType::CONJECTURE;
-  }
-  else if (tp == "question") {
-    _isQuestion = true;
-    _lastInputType = UnitInputType::CONJECTURE;
-  }
-  else if (tp == "negated_conjecture") {
-    _lastInputType = UnitInputType::NEGATED_CONJECTURE;
-  }
-  else if (tp == "hypothesis" || tp == "theorem" || tp == "lemma") {
-    _lastInputType = UnitInputType::ASSUMPTION;
-  }
-  else if (tp == "claim") {
-    _lastInputType = UnitInputType::CLAIM;
-  }
-  else if (tp == "assumption" || tp == "unknown") {
-    // MS: we were silently dropping these until now. I wonder why...
-    USER_ERROR("Unsupported unit type '", tp, "' found");
-  }
-  else {
-    PARSE_ERROR("unit type, such as axiom or definition expected but "s + tp + " found");
-  }
+  parseInputType(name());
   consumeToken(T_COMMA);
   _states.push(END_FOF);
   _states.push(FORMULA);
@@ -1510,43 +1513,7 @@ void TPTP::tff(bool tcf)
   }
 
   _lastDialect = tcf ? Dialect::TCF : Dialect::FOF;
-  _isQuestion = false;
-  if(_modelDefinition){
-    _lastInputType = UnitInputType::MODEL_DEFINITION;
-  }
-  else if (tp == "axiom" || tp == "plain") {
-    _lastInputType = UnitInputType::AXIOM;
-  }
-  else if (tp == "extensionality"){
-    // this will be transformed to just AXIOM after clausification
-    _lastInputType = UnitInputType::EXTENSIONALITY_AXIOM;
-  }
-  else if (tp == "definition") {
-    _lastInputType = UnitInputType::AXIOM;
-  }
-  else if (tp == "conjecture") {
-    _lastInputType = UnitInputType::CONJECTURE;
-  }
-  else if (tp == "question") {
-    _isQuestion = true;
-    _lastInputType = UnitInputType::CONJECTURE;
-  }
-  else if (tp == "negated_conjecture") {
-    _lastInputType = UnitInputType::NEGATED_CONJECTURE;
-  }
-  else if (tp == "hypothesis" || tp == "theorem" || tp == "lemma") {
-    _lastInputType = UnitInputType::ASSUMPTION;
-  }
-  else if (tp == "assumption" || tp == "unknown") {
-    // MS: we were silently dropping these until now. I wonder why...
-    USER_ERROR("Unsupported unit type '", tp, "' found");
-  }
-  else if (tp == "claim") {
-    _lastInputType = UnitInputType::CLAIM;
-  }
-  else {
-    PARSE_ERROR("unit type, such as axiom or definition expected but " + tp + " found");
-  }
+  parseInputType(tp);
   consumeToken(T_COMMA);
   _states.push(END_FOF);
   _states.push(FORMULA);
@@ -3615,8 +3582,17 @@ TermList TPTP::createTypeConApplication(std::string name, unsigned arity)
 
   bool added = false;
   unsigned typeCon = env.signature->addTypeCon(name,arity,added)->number();
-  if(added)
+  if(added) {
+    if (env.signature->functionExists(name,arity)) {
+      auto type = env.signature->getFunction(env.signature->getFunctionNumber(name,arity))->type();
+      USER_ERROR("Vampire does not yet support dependent types (function '", name, ": ", type->toString(), "' was used in a type declaration).");
+    }
+    if (env.signature->predicateExists(name,arity)) {
+      auto type = env.signature->getPredicate(env.signature->getPredicateNumber(name,arity))->type();
+      USER_ERROR("Vampire does not yet support dependent types (predicate '", name, ": ", type->toString(), "' was used in a type declaration).");
+    }
     USER_ERROR("Undeclared type constructor ", name, "/", arity);
+  }
 
   auto args = nLastTermLists(arity);
   for (auto i : range(0, arity)) {

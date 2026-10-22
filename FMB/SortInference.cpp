@@ -419,8 +419,8 @@ void SortInference::doInference()
   // True if there is a positive equality on a position with this sort
   // Later we will use this to promote sorts if _expandSubsorts is true
 
-  // First check all of the predicate positions
-  for(unsigned p=0;p<env.signature->predicates();p++){
+  // Equality has no predicate-position offset; its arguments are handled above.
+  for(unsigned p=1;p<env.signature->predicates();p++){
     if(p < _del_p.size() && _del_p[p]) continue;
     unsigned offset = offset_p[p];
     unsigned arity = env.signature->predicateArity(p);

@@ -463,6 +463,9 @@ public:
     ENCOMPASS, // (1) positive unit equations (PUE) are smaller than non-PUE clauses,
                // (2) more general PUE are smaller than less general PUE, and
                // (3) equally general PUEs are ordered based on term ordering.
+    LABELED,   // similar to encompass, but a PUE is smaller than another when
+               // they are equally general ordered but incomparable equations
+               // and the label (clause number) is smaller than that of the other.
   };
 
   enum class TheoryAxiomLevel : unsigned int {

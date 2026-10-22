@@ -33,6 +33,18 @@ ClauseQueue::ClauseQueue()
   _left->nodes()[0] = 0;
 }
 
+/**
+ * Clauses with equal keys go first by input type (a larger one first),
+ * then by number.
+ */
+bool ClauseQueue::tieLessThan(Clause* c1, Clause* c2)
+{
+  if (c1->inputType() != c2->inputType()) {
+    return c2->inputType() < c1->inputType();
+  }
+  return c1->number() < c2->number();
+}
+
 /** Temporary!!! */
 ClauseQueue::~ClauseQueue ()
 {
@@ -62,6 +74,8 @@ void ClauseQueue::insert(Clause* c)
   void* mem = ALLOC_KNOWN(Node::bytesRequiredFor(h + 1), "ClauseQueue::Node");
   Node* newNode = reinterpret_cast<Node*>(mem);
   newNode->clause = c;
+  uint64_t k = key(c);
+  newNode->key = k;
 
   // left is a node with a value smaller than that of newNode and having
   // a large enough height.
@@ -71,7 +85,7 @@ void ClauseQueue::insert(Clause* c)
   unsigned lh = _height;
   for (;;) {
     Node* next = left->nodes()[lh];
-    if (next == 0 || lessThan(c,next->clause)) {
+    if (next == 0 || lessThan(k,c,next)) {
       if (lh <= h) {
 	left->nodes()[lh] = newNode;
 	newNode->nodes()[lh] = next;
@@ -94,6 +108,7 @@ bool ClauseQueue::remove(Clause* c)
 {
   unsigned h = _height;
   Node* left = _left;
+  uint64_t k = key(c);
 
   for (;;) {
     Node* next = left->nodes()[h];
@@ -118,7 +133,7 @@ bool ClauseQueue::remove(Clause* c)
       return true;
     }
 
-    if (next == 0 || lessThan(c,next->clause)) {
+    if (next == 0 || lessThan(k,c,next)) {
       if(h==0) {
 
 #if VDEBUG

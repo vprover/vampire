@@ -514,6 +514,9 @@ public:
    */
   void reset()
   {
+    if (_noOfEntries == 0) {
+      return;
+    }
     for (int i = _capacity-1;i >= 0;i--) {
       _entries[i].reset();
     }

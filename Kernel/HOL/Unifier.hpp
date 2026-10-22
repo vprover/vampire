@@ -104,7 +104,7 @@ class AbstractingWrapper
   : public IteratorCore<AbstractingUnifier*>
 {
 public:
-  AbstractingWrapper(AbstractingUnifier* unifier, unsigned hoUnifDepth, bool funcExt);
+  AbstractingWrapper(AbstractingUnifier& unifier, unsigned hoUnifDepth, bool funcExt);
   ~AbstractingWrapper() override;
   AbstractingWrapper(const AbstractingWrapper&) = delete;
   AbstractingWrapper& operator=(const AbstractingWrapper&) = delete;

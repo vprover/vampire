@@ -109,6 +109,9 @@ Term* EqHelper::replace(Term* trm0, TermList tSrc, TermList tDest)
   modified.push(false);
   toDo.push(trm0->args());
 
+  // subterms no heavier than tSrc (or ground ones, if tSrc is a variable) cannot contain it
+  unsigned srcWeight = tSrc.isVar() ? 1 : tSrc.term()->weight();
+
   for (;;) {
     TermList* tt=toDo.pop();
     if (tt->isEmpty()) {
@@ -148,6 +151,10 @@ Term* EqHelper::replace(Term* trm0, TermList tSrc, TermList tDest)
     }
     ASS(tl.isTerm());
     Term* t=tl.term();
+    if (t->weight() <= srcWeight || (tSrc.isVar() && t->ground())) {
+      args.push(tl);
+      continue;
+    }
     terms.push(t);
     modified.push(false);
     toDo.push(t->args());
@@ -349,13 +356,5 @@ std::pair<VirtualIterator<TypedTermList>,bool> EqHelper::getDemodulationLHSItera
     return { VirtualIterator<TypedTermList>::getEmpty(), isPreordered };
   }
 }
-
-TermIterator EqHelper::getEqualityArgumentIterator(Literal* lit)
-{
-  ASS(lit->isEquality());
-
-  return pvi( iterItems( *lit->nthArgument(0), *lit->nthArgument(1)) );
-}
-
 
 }
