@@ -36,8 +36,6 @@
 #include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
 
-#include "DemodulationHelper.hpp"
-
 #include "ForwardDemodulation.hpp"
 
 namespace Inferences {
@@ -53,7 +51,7 @@ ForwardDemodulation<higherOrder>::ForwardDemodulation(SaturationAlgorithm& salg)
     _encompassing(salg.getOptions().demodulationRedundancyCheck()==Options::DemodulationRedundancyCheck::ENCOMPASS),
     _useTermOrderingDiagrams(salg.getOptions().forwardDemodulationTermOrderingDiagrams()),
     _skipNonequationalLiterals(salg.getOptions().demodulationOnlyEquational()),
-    _helper(DemodulationHelper(salg.getOptions(), &salg.getOrdering())),
+    _helper(salg.getOptions(), salg.getOrdering()),
     _ord(salg.getOrdering()),
     _index(salg.getSimplifyingIndex<DemodulationLHSIndex>())
 {}
@@ -149,7 +147,7 @@ bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement,
 
         TermList rhsS = rhsApplied.apply();
 
-        if (redundancyCheck && !_helper.isPremiseRedundant(cl, lit, trm, rhsS, lhs, &subs)) {
+        if (redundancyCheck && !_helper.isPremiseRedundant(cl, lit, trm, rhsS, qr.data->clause, lhs, &subs)) {
           continue;
         }
 

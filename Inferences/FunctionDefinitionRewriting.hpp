@@ -47,7 +47,7 @@ public:
 
 private:
   const SaturationAlgorithm& _salg;
-  DemodulationHelper _helper;
+  const DemodulationHelper _helper;
 };
 
 /**
