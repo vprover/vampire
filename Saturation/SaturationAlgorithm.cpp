@@ -1761,7 +1761,9 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
     res->addFront(new ChoiceDefinitionISE());
   }
 
-  res->addFront(new ArgPruning());
+  if (prb.isHigherOrder()) {
+    res->addFront(new ArgPruning());
+  }
 
   if ((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) && prb.isHigherOrder()) {
     if(env.options->cnfOnTheFly() == Options::CNFOnTheFly::EAGER){
