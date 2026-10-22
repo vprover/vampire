@@ -141,21 +141,31 @@ endif()
 # VIRAS
 ################################################################
 
-# attempt to automatically checkout VIRAS
-if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git" AND NOT EXISTS "${PROJECT_SOURCE_DIR}/viras/.git")
-  message(STATUS "VIRAS not checked out, running git submodule update")
-  execute_process(
-    COMMAND ${GIT_EXECUTABLE} submodule update --init viras
-    WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-  )
-endif()
+option(VIRAS "build Vampire with VIRAS quantifier elimination for ALASCA" ON)
 
-# check for VIRAS
-if(NOT EXISTS "${PROJECT_SOURCE_DIR}/viras/README.md")
-  message(FATAL_ERROR "VIRAS not found")
-endif()
+if(VIRAS)
+  # attempt to automatically checkout VIRAS
+  if(GIT_FOUND AND EXISTS "${PROJECT_SOURCE_DIR}/.git" AND NOT EXISTS "${PROJECT_SOURCE_DIR}/viras/.git")
+    message(STATUS "VIRAS not checked out, running git submodule update")
+    execute_process(
+      COMMAND ${GIT_EXECUTABLE} submodule update --init viras
+      WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+    )
+  endif()
 
-include_directories(${CMAKE_CURRENT_SOURCE_DIR}/viras/src)
+  # check for VIRAS
+  if(NOT EXISTS "${PROJECT_SOURCE_DIR}/viras/README.md")
+    message(FATAL_ERROR "VIRAS not found (use -DVIRAS=OFF to build without it)")
+  endif()
+
+  include_directories(${CMAKE_CURRENT_SOURCE_DIR}/viras/src)
+  add_compile_definitions(VVIRAS=1)
+  set(SOURCES ${SOURCES} ${SOURCES_VIRAS})
+  set(UNIT_TESTS ${UNIT_TESTS} ${UNIT_TESTS_VIRAS})
+else()
+  message(STATUS "compiling without VIRAS")
+  add_compile_definitions(VVIRAS=0)
+endif()
 
 ################################################################
 # GMP
