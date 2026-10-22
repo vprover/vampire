@@ -17,7 +17,7 @@
 #define __BackwardDemodulation__
 
 #include "Forwards.hpp"
-#include "Indexing/TermIndex.hpp"
+#include "Indexing/DemodulationIndex.hpp"
 
 #include "DemodulationHelper.hpp"
 #include "InferenceEngine.hpp"
@@ -42,7 +42,7 @@ private:
   const Ordering& _ord;
   const bool _preordered;
   std::shared_ptr<DemodulationSubtermIndex<higherOrder>> _index;
-  DemodulationHelper _helper;
+  const DemodulationHelper _helper;
 };
 
 using BackwardDemodulationExtra = RewriteInferenceExtra;

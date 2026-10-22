@@ -10,6 +10,7 @@
 
 #include "SubsumptionDemodulationHelper.hpp"
 
+#include "Lib/Environment.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/MLMatcher.hpp"
 

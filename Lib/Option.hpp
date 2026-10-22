@@ -20,7 +20,6 @@
 #include <iosfwd>
 #include <type_traits>
 #include "Debug/Assertion.hpp"
-#include "Lib/Reflection.hpp"
 
 
 namespace Lib {
@@ -436,7 +435,7 @@ public:
     OptionIter(Option self) : _self(std::move(self)) {}
   public:
     friend class Option;
-    DECL_ELEMENT_TYPE(A);
+    using ElementType = A;
     inline bool hasNext() const { return _self.isSome(); }
     inline bool hasNext()       { return _self.isSome(); }
     inline A next() { return _self.take().unwrap(); }

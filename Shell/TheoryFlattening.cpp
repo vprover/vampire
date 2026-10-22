@@ -100,14 +100,7 @@ bool TheoryFlattening::apply(ClauseList*& clauses)
 Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
 {
   // Find the max variable. This will be used to introduce new variables.
-  unsigned maxVar = 0;
-  VirtualIterator<unsigned> varIt = cl->getVariableIterator();
-  while (varIt.hasNext()) {
-    unsigned var = varIt.next();
-    if (var > maxVar) {
-      maxVar = var;
-    }
-  }
+  unsigned maxVar = cl->maxVar();
 
   // The resultant lits
   Stack<Literal*> result;
@@ -123,7 +116,7 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
     else{ result.push(lit); }
   }
   
-  DHMap<Term*,unsigned> abstracted;
+  DHMap<Term*,unsigned, FnvHash, PtrIdentityHash> abstracted;
 
   // process lits
   while(!lits.isEmpty()){
@@ -165,7 +158,7 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
  * @author Giles
  */
  Literal* TheoryFlattening::replaceTopTerms(Literal* lit, Stack<Literal*>& newLits,unsigned& maxVar,
-                                            DHMap<Term*,unsigned>& abstracted)
+                                            DHMap<Term*,unsigned, FnvHash, PtrIdentityHash>& abstracted)
 {
   //cout << "replaceTopTerms " << lit->toString() << endl;
 
@@ -252,7 +245,7 @@ Clause* TheoryFlattening::apply(Clause*& cl,Stack<Literal*>& target)
  */
  Term* TheoryFlattening::replaceTopTermsInTerm(Term* term, Stack<Literal*>& newLits,
                                                unsigned& maxVar,bool interpreted,
-                                               DHMap<Term*,unsigned>& abstracted)
+                                               DHMap<Term*,unsigned, FnvHash, PtrIdentityHash>& abstracted)
 {
   //cout << "replaceTopTermsInTerm " << term->toString() << endl;
 

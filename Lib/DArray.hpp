@@ -24,7 +24,6 @@
 #include "Allocator.hpp"
 #include "Comparison.hpp"
 #include "Random.hpp"
-#include "Reflection.hpp"
 #include "VirtualIterator.hpp"
 
 namespace Lib {
@@ -42,8 +41,7 @@ public:
 
   class Iterator;
 
-  DECL_ELEMENT_TYPE(C);
-  DECL_ITERATOR_TYPE(Iterator);
+  using ElementType = C;
   /**
    * Create an array having the given @b size
    * @since 30/12/2007 Manchester
@@ -436,7 +434,7 @@ public:
   class Iterator
   {
   public:
-    DECL_ELEMENT_TYPE(C);
+    using ElementType = C;
     inline Iterator() : _next(0), _afterLast(0) {}
     inline Iterator(DArray& arr) : _next(arr._array),
     _afterLast(arr._array+arr._size) {}
@@ -449,7 +447,7 @@ public:
   class ConstIterator
   {
   public:
-    DECL_ELEMENT_TYPE(C);
+    using ElementType = C;
     inline ConstIterator() : _next(0), _afterLast(0) {}
     inline ConstIterator(const DArray& arr) : _next(arr._array),
     _afterLast(arr._array+arr._size) {}
@@ -462,7 +460,7 @@ public:
   class ReversedIterator
   {
   public:
-    DECL_ELEMENT_TYPE(C);
+    using ElementType = C;
     inline ReversedIterator(DArray& arr) : _curr(arr._array+arr._size),
     _first(arr._array) {}
     inline bool hasNext() { return _curr!=_first; }
@@ -487,12 +485,6 @@ public:
     return out;
   }
 }; // class DArray
-
-template<typename T>
-VirtualIterator<T> getContentIterator(DArray<T>& arr)
-{
-  return pvi( typename DArray<T>::Iterator(arr) );
-}
 
 } // namespace Lib
 

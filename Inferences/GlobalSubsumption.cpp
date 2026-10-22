@@ -71,7 +71,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
   assumps.reset();
 
   // lookup to retrieve the FO lits later back
-  static DHMap<SATLiteral,Literal*> lookup;
+  static DHMap<SATLiteral,Literal*, SATLiteralHash, SATLiteralHash2> lookup;
   lookup.reset();
 
   // first abstract cl's FO literals using grounder,
@@ -125,7 +125,7 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
       static LiteralStack survivors;
       survivors.reset();
 
-      static Set<SATLiteral> splitAssumps;
+      static Set<SATLiteral, SATLiteralHash> splitAssumps;
       splitAssumps.reset();
 
       for (unsigned i = 0; i < failedFinal.size(); i++) {

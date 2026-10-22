@@ -25,6 +25,7 @@
 
 #include "Kernel/Clause.hpp"
 #include "Lib/List.hpp"
+#include "Lib/Random.hpp"
 #include "Indexing/Index.hpp"
 #include "Indexing/LiteralIndex.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -60,6 +61,12 @@ void BackwardSubsumptionAndResolution<higherOrder>::perform(Clause *cl,
   if (!_subsumption && !_subsumptionResolution) {
     return;
   }
+
+  // under randomized simplifications, each subsumption resolution candidate is with this
+  // probability dropped as early as possible (saving also the SR checks); proper
+  // subsumptions are never leaky (the same prob as for the forward variant; to be tuned)
+  constexpr double RSI_SKIP_PROB = 0.02;
+  bool rsi = env.options->randomizedSimplifications();
 
   _checked.reset();
 
@@ -97,6 +104,9 @@ void BackwardSubsumptionAndResolution<higherOrder>::perform(Clause *cl,
         Clause *icl = res.data->clause;
         if (!_checked.insert(icl->number()))
           continue;
+        if (rsi && Random::getDouble(0.0,1.0) < RSI_SKIP_PROB) {
+          continue; // drop this candidate early; the next one gets a chance
+        }
         Clause *conclusion = SATSubsumption::SATSubsumptionAndResolution::getSubsumptionResolutionConclusion(icl, res.data->literal, cl, /*forward=*/false);
         ASS(conclusion)
         List<BwSimplificationRecord>::push(BwSimplificationRecord(icl, conclusion), simplificationBuffer);
@@ -144,7 +154,8 @@ void BackwardSubsumptionAndResolution<higherOrder>::perform(Clause *cl,
         continue;
       // check subsumption and setup subsumption resolution at the same time
       bool checkS = _subsumption && !_subsumptionByUnitsOnly;
-      bool checkSR = _subsumptionResolution && !_srByUnitsOnly;
+      bool checkSR = _subsumptionResolution && !_srByUnitsOnly &&
+                    !(rsi && Random::getDouble(0.0,1.0) < RSI_SKIP_PROB);
       if (checkS) {
         if (_satSubs.checkSubsumption(cl, icl, checkSR)) {
           env.statistics->backwardSubsumed++;
@@ -174,6 +185,9 @@ void BackwardSubsumptionAndResolution<higherOrder>::perform(Clause *cl,
       Clause *icl = it.next().data->clause;
       if (!_checked.insert(icl->number()))
         continue;
+      if (rsi && Random::getDouble(0.0,1.0) < RSI_SKIP_PROB) {
+        continue; // drop this candidate early; the next one gets a chance
+      }
       // check subsumption resolution
       Clause *conclusion = _satSubs.checkSubsumptionResolution(cl, icl, /*forward=*/false, false);
       if (conclusion) {

@@ -30,7 +30,7 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-bool match(TermList base, TermList instance, const DHSet<TermList>& instVars, Substitution& subst)
+bool match(TermList base, TermList instance, const DHSet<TermList, TermListHash, TermListHash2>& instVars, Substitution& subst)
 {
   Recycled<Stack<std::pair<TermList, TermList>>> todo;
   todo->emplace(base, instance);
@@ -58,7 +58,7 @@ bool match(TermList base, TermList instance, const DHSet<TermList>& instVars, Su
   return true;
 }
 
-bool match(Literal* base, Literal* instance, const DHSet<TermList>& instVars, Substitution& subst)
+bool match(Literal* base, Literal* instance, const DHSet<TermList, TermListHash, TermListHash2>& instVars, Substitution& subst)
 {
   ASS(Literal::headersMatch(base, instance, /*complementary=*/false));
 
@@ -76,7 +76,7 @@ bool match(Literal* base, Literal* instance, const DHSet<TermList>& instVars, Su
   return true;
 }
 
-bool instantiated(const DHSet<TermList>& litVars, const Substitution& subst)
+bool instantiated(const DHSet<TermList, TermListHash, TermListHash2>& litVars, const Substitution& subst)
 {
   DEBUG("instantiated ", *lit);
   return iterTraits(litVars.iter()).any([&subst](TermList var) {
@@ -90,7 +90,7 @@ bool instantiated(const DHSet<TermList>& litVars, const Substitution& subst)
   });
 }
 
-bool tryExtend(BacktrackData& bd, Substitution& subst, const DHSet<unsigned>& unchanged, const std::vector<DHSet<TermList>>& litVars, const Substitution& other, const DHSet<TermList>& unchanged2) {
+bool tryExtend(BacktrackData& bd, Substitution& subst, const DHSet<unsigned, FnvHash, IdentityHash>& unchanged, const std::vector<DHSet<TermList, TermListHash, TermListHash2>>& litVars, const Substitution& other, const DHSet<TermList, TermListHash, TermListHash2>& unchanged2) {
   // in this case we would have duplicate literal removal
   ASS(!subst.isEmpty());
   ASS(!other.isEmpty());
@@ -127,9 +127,9 @@ bool validateResult(Clause*, Clause*, const Substitution&);
  * can remove all substitutions binding them (assuming they are not bound to themselves). We perform
  * the fixpoint of finding such uninstantiable variables and removing substitutions.
  */
-void removeUninstantiable(std::vector<Stack<std::pair<Substitution, unsigned>>>& litSubsts, const std::vector<DHSet<TermList>>& litVars)
+void removeUninstantiable(std::vector<Stack<std::pair<Substitution, unsigned>>>& litSubsts, const std::vector<DHSet<TermList, TermListHash, TermListHash2>>& litVars)
 {
-  DHSet<TermList> uninstantiable;
+  DHSet<TermList, TermListHash, TermListHash2> uninstantiable;
   bool added = false;
 
   auto loadUninstantiable = [&](unsigned i) {
@@ -169,7 +169,7 @@ struct State {
   }
 
   Substitution subst;
-  DHSet<unsigned> unchanged; // indices of unchanged literals
+  DHSet<unsigned, FnvHash, IdentityHash> unchanged; // indices of unchanged literals
   unsigned litI = 0;
   int substI = -1;
 };
@@ -182,7 +182,7 @@ Clause* FasterCondensation::simplify(Clause* cl)
 
   DEBUG("cl ", *cl);
 
-  std::vector<DHSet<TermList>> litVars(cl->size());
+  std::vector<DHSet<TermList, TermListHash, TermListHash2>> litVars(cl->size());
   for (unsigned i = 0; i < cl->size(); i++) {
     auto lit = (*cl)[i];
     litVars[i].loadFromIterator(VariableIterator(lit));
@@ -306,7 +306,7 @@ Clause* FasterCondensation::simplify(Clause* cl)
 
 bool validateResult(Clause* premise, Clause* conclusion, const Substitution& subst)
 {
-  DHSet<unsigned> unbound;
+  DHSet<unsigned, FnvHash, IdentityHash> unbound;
   unbound.loadFromIterator(iterTraits(subst.items())
     .map([](auto arg) { return arg.second; })
     .flatMap([](auto t) { return iterTraits(VariableIterator(t)); })
@@ -317,7 +317,7 @@ bool validateResult(Clause* premise, Clause* conclusion, const Substitution& sub
     return false;
   }
 
-  DHSet<Literal*> resLits;
+  DHSet<Literal*, FnvHash, PtrIdentityHash> resLits;
   resLits.loadFromIterator(conclusion->iterLits());
 
   for (const auto& lit : *premise) {

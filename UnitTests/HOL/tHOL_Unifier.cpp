@@ -78,7 +78,7 @@ void testUnifySuccess(TermList lhs, TermList rhs, Stack<ResultSpec> expected) {
     ASSERTION_VIOLATION;
   }
 
-  HOL::AbstractingWrapper wrapper(&unif, UNIF_DEPTH, funcExt);
+  HOL::AbstractingWrapper wrapper(unif, UNIF_DEPTH, funcExt);
   for (unsigned i = 0; i < expected.size(); i++) {
     if (!wrapper.hasNext()) {
       std::cout << std::endl;
@@ -88,7 +88,7 @@ void testUnifySuccess(TermList lhs, TermList rhs, Stack<ResultSpec> expected) {
     auto hoUnif = wrapper.next();
     auto& e = expected[i];
 
-    DHSet<VarSpec> vars;
+    DHSet<VarSpec, VarSpecHash, VarSpecHash2> vars;
     auto loadVars = [&vars](TermList t, unsigned index) {
       if (t.isVar()) {
         vars.insert(VarSpec(t, index));
@@ -150,7 +150,7 @@ void testUnifyFail(TermList lhs, TermList rhs) {
   AbstractingUnifier unif(oracle);
 
   if (unif.unify(lhs, LEFT_BANK, rhs, RIGHT_BANK, /*fixedPointIteration=*/true)) {
-    HOL::AbstractingWrapper wrapper(&unif, UNIF_DEPTH, funcExt);
+    HOL::AbstractingWrapper wrapper(unif, UNIF_DEPTH, funcExt);
     if (wrapper.hasNext()) {
       std::cout << std::endl;
       std::cout << "expected *not* to HO unify (" << unifToStr(lhs, rhs) << ")" << std::endl;

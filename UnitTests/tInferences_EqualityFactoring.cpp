@@ -47,4 +47,24 @@ TEST_GENERATION(test02,
     .expected(none())
   )
 
+#undef MY_SYNTAX_SUGAR
+#define MY_SYNTAX_SUGAR                               \
+  DECL_SORT(s)                                        \
+  DECL_DEFAULT_VARS                                   \
+  DECL_CONST(f, arrow(s, s))                          \
+  DECL_DE_BRUIJN_INDEX(db0, 0, s)                     \
+  DECL_CONST(a, s)                                    \
+  DECL_CONST(b, s)
+
+// with higher-order unification
+TEST_GENERATION(test_hol01,
+    Generation::AsymmetricTest()
+      .input(clause({ selected(ap(x.sort(arrow(s, s)), ap(f, a)) == a), ap(f, a) == b, x != f }))
+      .expected( exactly(
+        clause({ b == ap(f, a), ap(f, a) != a, lam(s, b) != f() }),
+        clause({ ap(f, a) == b, b != a, lam(s, db0) != f() }),
+        clause({ ap(f, a) == b, b != a, lam(s, ap(f, ap(lam(s, a), db0))) != f() })
+      ))
+    )
+
 }

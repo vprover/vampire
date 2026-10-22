@@ -14,6 +14,8 @@
 #ifndef __TermShifter__
 #define __TermShifter__
 
+#include "Lib/SharedSet.hpp"
+
 #include "Kernel/TermTransformer.hpp"
 #include "Kernel/Term.hpp"
 
@@ -42,7 +44,7 @@ public:
 
   // positive value -> shift up
   // negative -> shift down
-  static std::pair<TermList, Option<unsigned>> shift(TermList term, int shiftBy);
+  static TermList shift(TermList term, int shiftBy);
   TermList transformSubterm(TermList t) override;
 
   void onTermEntry(Term* t) override {
@@ -57,13 +59,12 @@ public:
 
   bool exploreSubterms(TermList orig, TermList newTerm) override {
     // already shifted, so must be DB index and won't have subterms anyway
-    return orig == newTerm && newTerm.term()->hasDeBruijnIndex();
+    return orig == newTerm && newTerm.freeDBIndices()->containsGreaterOrEqual(_cutOff);
   }
 
 private:
   unsigned _cutOff = 0; // any index higher than _cutOff is a free index
   int _shiftBy; // the amount to shift a free index by
-  Option<unsigned> _minFreeIndex = Option<unsigned>();
 };
 
 #endif // __TermShifter__

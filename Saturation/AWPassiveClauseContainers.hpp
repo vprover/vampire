@@ -37,7 +37,7 @@ public:
   static constexpr OrdVal maxOrdVal = std::make_pair(UINT_MAX,UINT_MAX);
   OrdVal getOrdVal(Clause* cl) const;
 protected:
-  bool lessThan(Clause*,Clause*) override;
+  uint64_t key(Clause*) override;
 private:
   const Shell::Options& _opt;
 };
@@ -52,7 +52,7 @@ public:
   static constexpr OrdVal maxOrdVal = std::make_pair(UINT_MAX,UINT_MAX);
   OrdVal getOrdVal(Clause* cl) const;
 protected:
-  bool lessThan(Clause*,Clause*) override;
+  uint64_t key(Clause*) override;
 private:
   const Shell::Options& _opt;
 };

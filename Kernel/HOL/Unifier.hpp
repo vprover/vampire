@@ -82,12 +82,12 @@ class AbstractingWrapper
   : public IteratorCore<AbstractingUnifier*>
 {
 public:
-  AbstractingWrapper(AbstractingUnifier* unifier, unsigned hoUnifDepth, bool funcExt);
+  AbstractingWrapper(AbstractingUnifier& unifier, unsigned hoUnifDepth, bool funcExt);
   ~AbstractingWrapper() override;
   AbstractingWrapper(const AbstractingWrapper&) = delete;
   AbstractingWrapper& operator=(const AbstractingWrapper&) = delete;
 
-  DECL_ELEMENT_TYPE(AbstractingUnifier*);
+  using ElementType = AbstractingUnifier*;
 
   bool hasNext() override;
   AbstractingUnifier* next() override;

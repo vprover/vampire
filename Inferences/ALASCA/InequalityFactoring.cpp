@@ -206,7 +206,7 @@ ClauseIterator InequalityFactoring::generateClauses(Clause* premise)
 #endif
         .template collect<Stack>());
 
-  auto selIdx = Lib::make_shared(Set<std::pair<unsigned, unsigned>>());
+  auto selIdx = Lib::make_shared(Set<std::pair<unsigned, unsigned>, PairHash<FnvHash,FnvHash>>());
   auto key = [&](auto& s) { return std::make_pair(s.litIdx, s.termIdx()); };
 
   DEBUG("selected summands:")

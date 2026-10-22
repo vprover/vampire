@@ -62,8 +62,8 @@ namespace {
 
 inline auto tester() {
   return FwdBwdSimplification::TestCase<
-      CodeTreeForwardSubsumptionAndResolution</*higherOrder=*/false>,
-      CodeTreeBackwardSubsumptionAndResolution</*higherOrder=*/false>
+      CodeTreeForwardSubsumptionAndResolution,
+      CodeTreeBackwardSubsumptionAndResolution<false>
     >()
     .options({
       { "backward_subsumption", "on" },

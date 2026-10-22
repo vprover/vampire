@@ -17,7 +17,6 @@
 
 #include "Indexing/LiteralIndex.hpp"
 #include "Inferences/InferenceEngine.hpp"
-#include "Indexing/CodeTreeInterfaces.hpp"
 #if VDEBUG
 #include "SATSubsumption/SATSubsumptionAndResolution.hpp"
 #endif
@@ -36,8 +35,8 @@ public:
 private:
   const bool _subsumptionResolution;
   std::shared_ptr<Indexing::BackwardSubsumptionIndex> _index;
-  Indexing::ClauseCodeTree<higherOrder> _ct;
-  Lib::DHSet<unsigned> _checked;
+  Indexing::ClauseCodeTree _ct;
+  Lib::DHSet<unsigned, FnvHash, IdentityHash> _checked;
 #if VDEBUG
   SATSubsumption::SATSubsumptionAndResolution satSubs;
 #endif

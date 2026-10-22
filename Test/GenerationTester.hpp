@@ -23,6 +23,7 @@
 #include "Forwards.hpp"
 #include "Test/TestUtils.hpp"
 #include "Kernel/Clause.hpp"
+#include "Kernel/Ordering.hpp"
 #include "Lib/Coproduct.hpp"
 #include "Test/ClausePattern.hpp"
 #include "Test/BuilderPattern.hpp"

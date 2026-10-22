@@ -63,7 +63,7 @@ private:
    * It is used so that we output symbol eliminating clauses
    * after they are simplified and shown to be non-redundant.
    */
-  DHMap<unsigned,Clause*> _symElRewrites;
+  DHMap<unsigned,Clause*, FnvHash, IdentityHash> _symElRewrites;
 
   /**
    * Contains record of colors that were aliminated in
@@ -71,7 +71,7 @@ private:
    *
    * Is reset in the call to the @b onAllProcessed method.
    */
-  DHMap<unsigned,Color> _symElColors;
+  DHMap<unsigned,Color, FnvHash, IdentityHash> _symElColors;
 
 
   SaturationAlgorithm* _sa;

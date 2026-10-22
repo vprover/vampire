@@ -45,7 +45,7 @@ using namespace Saturation;
 struct LookaheadLiteralSelector::GenIteratorIterator
 {
   using TermIndex = Indexing::TermIndex<TermLiteralClause>;
-  DECL_ELEMENT_TYPE(VirtualIterator<std::tuple<>>);
+  using ElementType = VirtualIterator<std::tuple<>>;
 
   GenIteratorIterator(Literal* lit, LookaheadLiteralSelector& parent) : stage(0), lit(lit), prepared(false), _parent(parent)
   { ASS(!env.higherOrder()); }

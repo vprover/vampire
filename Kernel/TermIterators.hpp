@@ -53,7 +53,7 @@ class VariableIterator
 : public IteratorCore<TermList>
 {
 public:
-  DECL_ELEMENT_TYPE(TermList);
+  using ElementType = TermList;
   VariableIterator() : _stack(8), _used(false) {}
 
   void swap(VariableIterator& other) {

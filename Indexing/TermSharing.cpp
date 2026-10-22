@@ -17,6 +17,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/Environment.hpp"
+#include "Lib/SharedSet.hpp"
 #include "Kernel/Signature.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
@@ -45,15 +46,15 @@ TermSharing::TermSharing()
 TermSharing::~TermSharing()
 {
 #if CHECK_LEAKS
-  Set<Term*,TermSharing>::Iterator ts(_terms);
+  Set<Term*, TermSharing, Equal>::Iterator ts(_terms);
   while (ts.hasNext()) {
     ts.next()->destroy();
   }
-  Set<Literal*,TermSharing>::Iterator ls(_literals);
+  Set<Literal*, TermSharing, Equal>::Iterator ls(_literals);
   while (ls.hasNext()) {
     ls.next()->destroy();
   }
-  Set<AtomicSort*,TermSharing>::Iterator ss(_sorts);
+  Set<AtomicSort*, TermSharing, Equal>::Iterator ss(_sorts);
   while (ss.hasNext()) {
     ss.next()->destroy();
   }
@@ -63,8 +64,7 @@ TermSharing::~TermSharing()
 void TermSharing::setPoly()
 {
   // higher-order superposition can introduce polymorphism into a monomorphic problem
-  _poly = env.higherOrder() || env.getMainProblem()->hasPolymorphicSym() ||
-    (env.options->equalityProxy() != Options::EqualityProxy::OFF && !env.options->useMonoEqualityProxy());
+  _poly = env.higherOrder() || env.getMainProblem()->hasPolymorphicSym();
 }
 
 /**
@@ -82,11 +82,22 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
     bool hasInterpretedConstants=t->arity()==0 &&
       env.signature->getFunction(t->functor())->interpreted();
     bool hasTermVar = false;
-    bool hasDeBruijnIndex = t->deBruijnIndex().isSome();
-    bool hasRedex = t->isRedex();
-    bool hasLambda = t->isLambdaTerm();
+    bool hasBetaRedex = t->isBetaRedex();
+    bool hasEtaRedex = t->isEtaRedex();
+    const bool isLambda = t->isLambdaTerm();
+    bool hasLambda = isLambda;
     Color color = COLOR_TRANSPARENT;
-    
+
+    if (t->deBruijnIndex().isSome()) {
+      t->setFreeDBIndices(SharedSet<unsigned>::getSingleton(t->deBruijnIndex().unwrap()));
+    } else if (isLambda) {
+      t->setFreeDBIndices(SharedSet<unsigned>::getFromIterator(t->lambdaBody().freeDBIndices()->iter()
+        .filter([](unsigned v) { return v!=0; }) // remove 0
+        .map([](unsigned v) { return v-1; }))); // decrement rest
+    } else if (t->isApplication()) {
+      t->setFreeDBIndices(t->termArg(0).freeDBIndices()->getUnion(t->termArg(1).freeDBIndices()));
+    }
+
     unsigned typeArity = t->numTypeArguments();
     for (unsigned i = 0; i < t->arity(); i++) {
       TermList* tt = t->nthArgument(i);
@@ -108,8 +119,8 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
         fp = fp | r->fnFP();
         weight += r->weight();
         hasTermVar |= r->hasTermVar();
-        hasDeBruijnIndex |= r->hasDeBruijnIndex();
-        hasRedex   |= r->hasRedex();
+        hasBetaRedex |= r->hasBetaRedex();
+        hasEtaRedex |= r->hasEtaRedex();
         hasLambda  |= r->hasLambda();
         if (env.colorUsed) {
           color = static_cast<Color>(color | r->color());
@@ -131,8 +142,8 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
       t->setColor(color);
     }
 
-    t->setHasRedex(hasRedex);
-    t->setHasDeBruijnIndex(hasDeBruijnIndex);
+    t->setHasBetaRedex(hasBetaRedex);
+    t->setHasEtaRedex(hasEtaRedex);
     t->setHasLambda(hasLambda);
     t->setInterpretedConstantsPresence(hasInterpretedConstants);
 
@@ -351,7 +362,7 @@ bool TermSharing::argNormGt(TermList t1, TermList t2)
  * @pre s and t must be non-variable terms
  * @since 28/12/2007 Manchester
  */
-bool TermSharing::equals(const Term* s, const Term* t)
+bool TermSharing::Equal::operator()(const Term* s, const Term* t) const
 {
   if (s->functor() != t->functor())
     return false;
@@ -366,4 +377,4 @@ bool TermSharing::equals(const Term* s, const Term* t)
     tt = tt->next();
   }
   return true;
-} // TermSharing::equals
+} // TermSharing::Equal::operator()

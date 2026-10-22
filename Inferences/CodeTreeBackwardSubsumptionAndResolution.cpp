@@ -83,7 +83,7 @@ void CodeTreeBackwardSubsumptionAndResolution<higherOrder>::perform(Clause* prem
 
   auto [predFP, funFP] = calcFingerprints(premise);
 
-  static typename ClauseCodeTree<higherOrder>::ClauseMatcher cm;
+  static typename ClauseCodeTree::ClauseMatcher cm;
 
   auto check = [&](Clause* cl) {
 

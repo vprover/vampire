@@ -25,17 +25,16 @@ using namespace Shell;
 
 class DemodulationHelper {
 public:
-  DemodulationHelper() = default;
-  DemodulationHelper(const Options& opts, const Ordering* ord);
+  DemodulationHelper(const Options& opts, const Ordering& ord);
 
   template<typename Object>
   static bool isRenamingOn(const SubstApplicator* applicator, Object obj) {
-    DHSet<unsigned> domain;
-    DHSet<unsigned> range;
+    DHSet<unsigned, FnvHash, IdentityHash> domain;
+    DHSet<unsigned, FnvHash, IdentityHash> range;
     return isRenamingOn(applicator, obj, domain, range);
   }
   template<typename Object>
-  static bool isRenamingOn(const SubstApplicator* applicator, Object obj, DHSet<unsigned>& domain, DHSet<unsigned>& range)
+  static bool isRenamingOn(const SubstApplicator* applicator, Object obj, DHSet<unsigned, FnvHash, IdentityHash>& domain, DHSet<unsigned, FnvHash, IdentityHash>& range)
   {
     for (const auto& v : iterTraits(VariableIterator(obj))) {
       ASS(v.isVar());
@@ -43,7 +42,7 @@ public:
         continue;
       }
 
-      TermList vSubst = (*applicator)(v.var());
+      TermList vSubst = applicator->apply(v.var());
       if (!vSubst.isVar() || !range.insert(vSubst.var())) {
         return false;
       }
@@ -53,12 +52,13 @@ public:
 
   bool redundancyCheckNeededForPremise(Clause* rwCl, Literal* rwLit, TermList rwTerm) const;
   bool isPremiseRedundant(Clause* rwCl, Literal* rwLit, TermList rwTerm, TermList tgtTerm,
-    TermList eqLHS, const SubstApplicator* applicator) const;
+    Clause* eqCl, TermList eqLHS, const SubstApplicator* applicator) const;
 
 private:
-  bool _redundancyCheck;
-  bool _encompassing;
-  const Ordering* _ord;
+  const bool _redundancyCheck;
+  const bool _labeled;
+  const bool _encompassing;
+  const Ordering& _ord;
 };
 
 };

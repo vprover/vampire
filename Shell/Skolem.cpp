@@ -99,56 +99,31 @@ FormulaUnit* Skolem::skolemiseImpl (FormulaUnit* unit, bool appify)
 
   ASS(_introducedSkolemSyms.isNonEmpty());
   while(_introducedSkolemSyms.isNonEmpty()) {
-    auto symPair = _introducedSkolemSyms.pop();
-    auto symTerm = symPair.second;
-    
-    if(symTerm->kind()==TermKind::SORT){
-      InferenceStore::instance()->recordIntroducedSkolemSymbol(res, SymbolType::TYPE_CON, symPair.first, symPair.second); 
-    } else {
-      InferenceStore::instance()->recordIntroducedSkolemSymbol(res, Kernel::SymbolType::FUNC, symPair.first, symPair.second);
-    }
+    auto [v, t, fn] = _introducedSkolemSyms.pop();
+    auto sym = t->kind() == TermKind::SORT ? env.signature->getTypeCon(fn) : env.signature->getFunction(fn);
 
-    if(unit->derivedFromGoal()){
-      if(symTerm->kind()==TermKind::SORT){
-        env.signature->getTypeCon(symPair.second->functor())->markInGoal();
-      } else {
-        env.signature->getFunction(symPair.second->functor())->markInGoal();
-      }
-    }
+    InferenceStore::instance()->recordIntroducedSkolemSymbol(res, sym, v, t);
   }
 
   return res;
 }
 
-unsigned Skolem::addSkolemFunction(unsigned arity, unsigned taArity, TermList* domainSorts,
+Signature::Symbol* Skolem::addSkolemFunction(unsigned taArity, TermStack domainSorts,
     TermList rangeSort, const char* suffix)
 {
   //ASS(arity==0 || domainSorts!=0);
 
-  unsigned fun = env.signature->addSkolemFunction(arity, suffix);
-  Signature::Symbol* fnSym = env.signature->getFunction(fun);
-  fnSym->markSkipCongruence();
-  OperatorType* ot = OperatorType::getFunctionType(arity - taArity, domainSorts, rangeSort, taArity);
-  fnSym->setType(ot);
-  return fun;
+  return env.signature->addSkolemFunction(OperatorType::getFunctionType(domainSorts, rangeSort, taArity), suffix)->markSkipCongruence();
 }
 
-unsigned Skolem::addSkolemTypeCon(unsigned arity, const char* suffix)
+Signature::Symbol* Skolem::addSkolemTypeCon(unsigned arity)
 {
-  unsigned typeCon = env.signature->addSkolemTypeCon(arity, suffix);
-  Signature::Symbol* tcSym = env.signature->getTypeCon(typeCon);
-  OperatorType* ot = OperatorType::getTypeConType(arity);
-  tcSym->setType(ot);
-  return typeCon;
+  return env.signature->addSkolemTypeCon(arity);
 }
 
-unsigned Skolem::addSkolemPredicate(unsigned arity, unsigned taArity, TermList* domainSorts, const char* suffix)
+Signature::Symbol* Skolem::addSkolemPredicate(unsigned taArity, TermStack domainSorts, const char* suffix)
 {
-  unsigned pred = env.signature->addSkolemPredicate(arity, suffix);
-  Signature::Symbol* pSym = env.signature->getPredicate(pred);
-  OperatorType* ot = OperatorType::getPredicateType(arity - taArity, domainSorts, taArity);
-  pSym->setType(ot);
-  return pred;
+  return env.signature->addSkolemPredicate(OperatorType::getPredicateType(domainSorts, taArity), suffix);
 }
 
 void Skolem::ensureHavingVarSorts()
@@ -452,21 +427,21 @@ Formula* Skolem::skolemise (Formula* f)
           //Not the higher-order case. Create the term
           //sk(typevars, termvars).
           if(skolemisingTypeVar){
-            sym = addSkolemTypeCon(arity);
+            sym = addSkolemTypeCon(arity)->number();
             skolemTerm = AtomicSort::create(sym, arity, allVars.begin());
           } else {
-            sym = addSkolemFunction(arity, typeVars.size(), termVarSorts.begin(), rangeSort);
+            sym = addSkolemFunction(typeVars.size(), termVarSorts, rangeSort)->number();
             skolemTerm = Term::create(sym, arity, allVars.begin());
           }
         } else {
           //The higher-order case. Create the term
           //sk(typevars) @ termvar_1 @ termvar_2 @ ... @ termvar_n
           TermList skSymSort = AtomicSort::arrowSort(termVarSorts, rangeSort);
-          sym = addSkolemFunction(typeVars.size(), typeVars.size(), nullptr, skSymSort);
+          sym = addSkolemFunction(typeVars.size(), TermStack(), skSymSort)->number();
           TermList head = TermList(Term::create(sym, typeVars.size(), typeVars.begin()));
           skolemTerm = HOL::create::app(head, termVars).term();
         }
-        _introducedSkolemSyms.push(std::make_pair(v, skolemTerm));
+        _introducedSkolemSyms.emplace(v, skolemTerm, sym);
 
         env.statistics->skolemFunctions++;
 

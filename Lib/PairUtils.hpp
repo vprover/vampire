@@ -61,38 +61,17 @@ private:
  * the pair structure into the iterator I.
  */
 template<typename C, typename DIt>
-MappingIterator<DIt,PairRightPushingFn<C,ELEMENT_TYPE(DIt)> >
+MappingIterator<DIt,PairRightPushingFn<C,typename DIt::ElementType> >
   pushPairIntoRightIterator(std::pair<C, DIt > obj)
 {
-  return getMappingIterator(obj.second, PairRightPushingFn<C,ELEMENT_TYPE(DIt)>(obj.first));
+  return getMappingIterator(obj.second, PairRightPushingFn<C,typename DIt::ElementType>(obj.first));
 }
 
 template<typename C, typename DIt>
-MappingIterator<DIt,PairRightPushingFn<C,ELEMENT_TYPE(DIt)> >
+MappingIterator<DIt,PairRightPushingFn<C,typename DIt::ElementType> >
   pushPairIntoRightIterator(C c, DIt dit)
 {
-  return getMappingIterator(std::move(dit), PairRightPushingFn<C,ELEMENT_TYPE(DIt)>(c));
-}
-
-template<typename C, typename D>
-class RightPushedPair
-{
-public:
-  DECL_ELEMENT_TYPE(std::pair<C,ELEMENT_TYPE(D)>);
-  DECL_ITERATOR_TYPE(MappingIterator<ITERATOR_TYPE(D),PairRightPushingFn<C,ELEMENT_TYPE(D)> >);
-  RightPushedPair(std::pair<C,D> p) : _p(p) {}
-  std::pair<C,D> get() { return _p; }
-private:
-  std::pair<C,D> _p;
-};
-
-/** See VirtualIterator.hpp */
-template<typename C, typename DItb>
-MappingIterator<ITERATOR_TYPE(DItb),PairRightPushingFn<C,ELEMENT_TYPE(DItb)> >
-  getContentIterator(RightPushedPair<C,DItb> obj)
-{
-  return pushPairIntoRightIterator(obj.get().first,
-	  getContentIterator(obj.get().second) );
+  return getMappingIterator(std::move(dit), PairRightPushingFn<C,typename DIt::ElementType>(c));
 }
 
 ///@}

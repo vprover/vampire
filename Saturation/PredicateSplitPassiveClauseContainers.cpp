@@ -14,11 +14,13 @@
 #include <algorithm>
 #include <iterator>
 #include <limits>
+#include <numeric>
 
 #include "Shell/Options.hpp"
 #include "Kernel/Clause.hpp"
 #include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Inference.hpp"
+#include "Lib/Random.hpp"
 #include "Lib/SharedSet.hpp"
 #include "Lib/Int.hpp"
 
@@ -489,7 +491,7 @@ unsigned numOfAppVarsAndLambdas(TermList t, unsigned lambdaWeight, unsigned appl
   }
   const Term* tt = t.term();
 
-  static DHMap<const Term*,unsigned> cache;
+  static DHMap<const Term*,unsigned, FnvHash, PtrIdentityHash> cache;
   unsigned* cached;
   if (!cache.getValuePtr(tt,cached)) {
     return *cached;

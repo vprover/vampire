@@ -43,6 +43,7 @@
 #include "Forwards.hpp"
 
 #include "Kernel/Ordering.hpp"
+#include "Kernel/TermPartialOrdering.hpp"
 
 #include "Lib/Stack.hpp"
 #include "Lib/SharedSet.hpp"
@@ -116,7 +117,7 @@ protected:
   static ConstraintIndex** getDataPtr(Clause* cl, bool doAllocate);
 
   // this contains the redundancy information associated with each clause
-  static DHMap<unsigned,ConstraintIndex*> clauseData;
+  static DHMap<unsigned,ConstraintIndex*, FnvHash, IdentityHash> clauseData;
 };
 
 template<bool enabled, bool orderingConstraints, bool avatarConstraints, bool literalConstraints>
@@ -126,7 +127,8 @@ class PartialRedundancyHandlerImpl
 public:
   PartialRedundancyHandlerImpl(const Options& opts, const Ordering* ord, Splitter* splitter)
     : _redundancyCheck(opts.demodulationRedundancyCheck() != Options::DemodulationRedundancyCheck::OFF),
-      _encompassing(opts.demodulationRedundancyCheck() == Options::DemodulationRedundancyCheck::ENCOMPASS),
+      _labeled(opts.demodulationRedundancyCheck() == Options::DemodulationRedundancyCheck::LABELED),
+      _encompassing(_labeled || opts.demodulationRedundancyCheck() == Options::DemodulationRedundancyCheck::ENCOMPASS),
       _ord(ord), _splitter(splitter) {}
 
   /** Returns false if superposition should be skipped. */
@@ -154,6 +156,7 @@ private:
     LiteralSet&& lits, SplitSet* splits) const;
 
   bool _redundancyCheck;
+  bool _labeled;
   bool _encompassing;
   const Ordering* _ord;
   Splitter* _splitter;

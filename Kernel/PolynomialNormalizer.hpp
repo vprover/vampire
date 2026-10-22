@@ -73,10 +73,10 @@ inline PolyNf normalizeTerm(Term* t)
 } // namespace Kernel
 
 /** a memoization realized as a hashmap */
-template<class Arg, class Result>
+template<class Arg, class Result, class Hash, class Equal = std::equal_to<Arg>>
 struct MemoNonVars 
 {
-  Map<Arg, Result> _memo;
+  Map<Arg, Result, Hash, Equal> _memo;
 
 public:
   MemoNonVars() : _memo(decltype(_memo)()) {}

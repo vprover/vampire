@@ -13,6 +13,7 @@
  */
 
 #include "Debug/RuntimeStatistics.hpp"
+#include "Debug/TimeProfiling.hpp"
 
 #include "Indexing/ResultSubstitution.hpp"
 #include "Kernel/UnificationWithAbstraction.hpp"
@@ -64,6 +65,20 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
   DEBUG_RESOLUTION(0, "rhs: ", *resultLit, " (clause: ", resultCl->number(), ")")
   DEBUG_RESOLUTION(0, "subs: ", *subs)
   ASS(resultCl->store()==Clause::ACTIVE);//Added to check that generation only uses active clauses
+
+  // The "resolution" node wraps a lazy flatMap chain that does two quite different
+  // things -- retrieve unifiable candidates from the substitution tree, then build a
+  // resolvent from each -- and measured only their sum, 21.5% of a sweep's instructions
+  // and the largest unattributed figure in the prover. Superposition is already split
+  // this way, into "superposition" for the retrieval side and "perform superposition"
+  // for the inference; that resolution was not is an accident of where the call sits
+  // (inside a lambda) rather than a decision. With this the two rules are comparable,
+  // and what stays as "resolution" self time is retrieval.
+  //
+  // Scoped above the colour check rather than below it: refusing to build a resolvent
+  // is part of attempting one, and the age/weight pre-checks below are exactly the kind
+  // of work worth seeing.
+  TIME_TRACE("perform resolution");
 
   if(!ColorHelper::compatible(queryCl->color(),resultCl->color()) ) {
     env.statistics->inferencesSkippedDueToColors++;

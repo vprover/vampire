@@ -288,7 +288,7 @@ public:
 
   // TODO theory make sure that variables can be shielded or unshielded or not top-level contained
 
-  bool simplify(Clause* premise, Path& path, Set<TermList>& topLevelVars) {
+  bool simplify(Clause* premise, Path& path, Set<TermList, TermListHash>& topLevelVars) {
     auto baseDepth = path.depth();
     while (path.nextStep(baseDepth)) {
 #if UNSTABILITY_ABSTRACTION
@@ -306,7 +306,7 @@ public:
     return false;
   }
 
-  void collectTopLevelVars(Path& path, TermList t, Set<TermList>& topLevelVars, RStack<Path>& todoT) {
+  void collectTopLevelVars(Path& path, TermList t, Set<TermList, TermListHash>& topLevelVars, RStack<Path>& todoT) {
     if (t.isVar()) {
       topLevelVars.insert(t);
     } else {
@@ -343,7 +343,7 @@ public:
       // TODO why do we ever get the empty clause here?
       return premise;
     }
-    Set<TermList> topLevelVars;
+    Set<TermList, TermListHash> topLevelVars;
     auto todo = RStack<Path>();
     auto path = Path(premise, 0);
     for (auto lit : premise->iterLits()) {
