@@ -142,7 +142,7 @@ ClauseIterator EqualityFactoring::generateClauses(Clause* premise)
         return ClauseIterator::getEmpty();
       }
 
-      return pvi(iterTraits(vi(new HOL::AbstractingWrapper(unif, _salg.getOptions().higherOrderUnifDepth(), funcExt)))
+      return pvi(iterTraits(HOL::AbstractingWrapper::create(unif, _salg.getOptions().higherOrderUnifDepth(), funcExt))
         .map([=,this](AbstractingUnifier* unif) {
           return unifierToClause(premise, srt, sLit, sLHS, fLit, fLHS, unif, _salg.getOrdering(), _salg.getOptions().literalMaximalityAftercheck() && _salg.getLiteralSelector().isBGComplete());
         }));
