@@ -2093,6 +2093,10 @@ Options::Options ()
        .description = "Set the maximum depth (in terms of projections and imitations) that higher-order unification can descend to."
       "Once limit is reached, remaining pairs are returned as constraints.",
        .tag = OptionTag::HIGHER_ORDER})
+  , _higherOrderUnifMaxWeight("hol_unif_max_weight",this,1000,
+      {.short_name = "humw",
+       .description = "Set the maximum weight a non-zero depth higher-order unification can have, otherwise it is returned as constraints.",
+       .tag = OptionTag::HIGHER_ORDER})
   , _casesSimp("cases_simp",this,false,
       {.short_name = "cs",
        .description = "FOOL Paramodulation with two conclusion as a simplification",

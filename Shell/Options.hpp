@@ -1572,6 +1572,7 @@ public:
   bool booleanEqTrick() const { return _booleanEqTrick.actualValue; }
   bool heuristicInstantiation() const { return _heuristicInstantiation.actualValue; }
   unsigned higherOrderUnifDepth() const { return _higherOrderUnifDepth.actualValue; }
+  unsigned higherOrderUnifMaxWeight() const { return _higherOrderUnifMaxWeight.actualValue; }
   bool casesSimp() const { return _casesSimp.actualValue; }
   bool cases() const { return _cases.actualValue; }
   bool newTautologyDel() const { return _newTautologyDel.actualValue; }
@@ -1989,6 +1990,7 @@ private:
   BoolOptionValue _booleanEqTrick;
   BoolOptionValue _heuristicInstantiation;
   UnsignedOptionValue _higherOrderUnifDepth;
+  UnsignedOptionValue _higherOrderUnifMaxWeight;
   BoolOptionValue _casesSimp;
   BoolOptionValue _cases;
   BoolOptionValue _newTautologyDel;

@@ -60,6 +60,7 @@ struct UnificationNode
   /** This function should be called when we want to simplify the constraints
    * as much as possible, possibly before returning an abstraction. */
   bool simplify();
+  unsigned weight() const;
 
   Stack<Constraint> _cons;
   Substitution _subs;
@@ -82,7 +83,7 @@ class AbstractingWrapper
   : public IteratorCore<AbstractingUnifier*>
 {
 public:
-  AbstractingWrapper(AbstractingUnifier& unifier, unsigned hoUnifDepth, bool funcExt);
+  AbstractingWrapper(AbstractingUnifier& unifier, unsigned hoUnifDepth, unsigned hoUnifMaxWeight, bool funcExt);
   ~AbstractingWrapper() override;
   AbstractingWrapper(const AbstractingWrapper&) = delete;
   AbstractingWrapper& operator=(const AbstractingWrapper&) = delete;
@@ -95,6 +96,7 @@ public:
 private:
   AbstractingUnifier* _unifier;
   const unsigned _hoUnifDepth;
+  const unsigned _hoUnifMaxWeight;
   BacktrackData _localBD;
   Stack<std::pair<UnificationNode*, unsigned>> _todo;
   UnificationNode* _next = nullptr;

@@ -33,7 +33,7 @@ public:
     auto uwa = opt.unificationWithAbstraction();
     auto fpi = opt.unificationWithAbstractionFixedPointIteration();
     if constexpr (higherOrder) {
-      return _is.getUwaHOL(t, uwa, fpi, opt.higherOrderUnifDepth(), opt.functionExtensionality()==Options::FunctionExtensionality::ABSTRACTION);
+      return _is.getUwaHOL(t, uwa, fpi, opt.higherOrderUnifDepth(), opt.higherOrderUnifMaxWeight(), opt.functionExtensionality()==Options::FunctionExtensionality::ABSTRACTION);
     } else {
       return _is.getUwa(t, uwa, fpi, /*funcExt=*/false);
     }

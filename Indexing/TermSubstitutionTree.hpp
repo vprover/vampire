@@ -88,10 +88,10 @@ public:
   // This should be used on HOL problems as it has potential overhead, but it does not necessarily
   // perform HO-unification, so the `uwa` argument is still meaningful.
   // TODO(HOL): the difference between getUwa and getUwaHOL is somewhat opaque at the moment, iron this out and make the overhead small when using `uwa!=hol`.
-  auto getUwaHOL(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration, unsigned hoUnifDepth, bool funcExt)
+  auto getUwaHOL(TypedTermList t, Options::UnificationWithAbstraction uwa, bool fixedPointIteration, unsigned hoUnifDepth, unsigned hoUnifMaxWeight, bool funcExt)
   {
     return pvi(iterTraits(getUwa(t, uwa, fixedPointIteration, funcExt))
-      .flatMap([hoUnifDepth,funcExt](QueryRes<AbstractingUnifier*, LeafData> qr) { return pvi(pushPairIntoRightIterator(qr, vi(new HOL::AbstractingWrapper(*qr.unifier, hoUnifDepth, funcExt)))); })
+      .flatMap([hoUnifDepth,hoUnifMaxWeight,funcExt](QueryRes<AbstractingUnifier*, LeafData> qr) { return pvi(pushPairIntoRightIterator(qr, vi(new HOL::AbstractingWrapper(*qr.unifier, hoUnifDepth, hoUnifMaxWeight, funcExt)))); })
       .map([](auto arg) { return queryRes(arg.second, arg.first.data); }));
   }
 
