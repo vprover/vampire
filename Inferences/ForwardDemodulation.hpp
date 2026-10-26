@@ -21,6 +21,7 @@
 
 #include "DemodulationHelper.hpp"
 #include "InferenceEngine.hpp"
+#include "Kernel/TermTransformer.hpp"
 #include "ProofExtra.hpp"
 
 namespace Inferences
@@ -33,10 +34,12 @@ using namespace Saturation;
 template<bool higherOrder>
 class ForwardDemodulation
 : public ForwardSimplificationEngine
+, public BottomUpTermTransformer
 {
 public:
   ForwardDemodulation(SaturationAlgorithm& salg);
   bool perform(Clause* cl, Clause*& replacement, ClauseIterator& premises) override;
+  TermList transformSubterm(TermList t) override;
 protected:
   const bool _preorderedOnly;
   const bool _encompassing;
@@ -45,6 +48,9 @@ protected:
   const DemodulationHelper _helper;
   const Ordering& _ord;
   std::shared_ptr<DemodulationLHSIndex> _index;
+  Clause* _cl;
+  Literal* _lit;
+  DHSet<Clause*, UnitHash, UnitNumberHash> _premises;
 };
 
 using ForwardDemodulationExtra = RewriteInferenceExtra;
