@@ -1077,6 +1077,24 @@ void SaturationAlgorithm::addToPassive(Clause* cl)
 
   cl->setStore(Clause::PASSIVE);
   env.statistics->passiveClauses++;
+  _selector->select(cl);
+
+  for (const auto& genCl : iterTraits(_presup->generateClauses(cl))) {
+    addNewClause(genCl);
+    env.statistics->inductionApplication++;
+
+    Inference::Iterator iit = genCl->inference().iterator();
+    while (genCl->inference().hasNext(iit)) {
+      Unit *premUnit = genCl->inference().next(iit);
+      // Now we can get generated clauses having parents that are not clauses
+      // Indeed, from induction we can have generated clauses whose parents do
+      // not include the activated clause
+      if (premUnit->isClause()) {
+        Clause *premCl = static_cast<Clause *>(premUnit);
+        onParenthood(genCl, premCl);
+      }
+    }
+  }
 
   {
     TIME_TRACE(TimeTrace::PASSIVE_CONTAINER_MAINTENANCE);
@@ -1442,15 +1460,16 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new EqualityResolution(*res));
     if(opt.superposition() && !alascaTakesOver){ // in alasca we have a special superposition rule
       if (prb.isHigherOrder()) {
-        gie->addFront(new Superposition<true>(*res));
+        gie->addFront(new Superposition<true, false>(*res));
       } else {
-        gie->addFront(new Superposition<false>(*res));
+        gie->addFront(new Superposition<false, false>(*res));
       }
     }
   }
   else if (opt.unificationWithAbstraction() != Options::UnificationWithAbstraction::OFF) {
     gie->addFront(new EqualityResolution(*res));
   }
+  res->_presup = new Superposition<false, true>(*res);
 
   if (prb.isHigherOrder()){
     gie->addFront(new ArgCong(*res));

@@ -14,7 +14,7 @@
 
 using namespace Test;
 
-#define MY_GEN_RULE   Superposition<false>
+#define MY_GEN_RULE   Superposition<false, false>
 #define MY_GEN_TESTER Generation::GenerationTester
 
 /**
@@ -266,7 +266,7 @@ TEST_GENERATION(test_20,
 // HOL tests
 
 #undef  MY_GEN_RULE
-#define MY_GEN_RULE Superposition<true>
+#define MY_GEN_RULE Superposition<true, false>
 
 // superposition with HO-unification and constraints
 TEST_GENERATION(test_21,

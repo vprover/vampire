@@ -36,6 +36,7 @@
 
 namespace Kernel { struct AlascaState; }
 namespace Shell { class AnswerLiteralManager; }
+namespace Inferences { template<bool,bool> class Superposition; }
 
 namespace Saturation
 {
@@ -212,6 +213,7 @@ protected:
   ExtensionalityClauseContainer* _extensionality;
 
   ScopedPtr<SimplifyingGeneratingInference> _generator;
+  Superposition<false, true>* _presup;
   ScopedPtr<ImmediateSimplificationEngine> _immediateSimplifier;
   CompositeISEMany _immediateSimplifierMany;
 

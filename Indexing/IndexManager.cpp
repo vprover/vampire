@@ -44,6 +44,7 @@ SIMP_INDEX_IMPL(UnitClauseLiteralIndex<true>)
 SIMP_INDEX_IMPL(DemodulationSubtermIndex<false>)
 SIMP_INDEX_IMPL(DemodulationSubtermIndex<true>)
 SIMP_INDEX_IMPL(FSDLiteralIndex)
+SIMP_INDEX_IMPL(SuperpositionLHSIndex)
 
 GEN_INDEX_IMPL(AlascaIndex<ALASCA::CoherenceConf<NumTraits<RealConstantType>>::Lhs>)
 GEN_INDEX_IMPL(AlascaIndex<ALASCA::CoherenceConf<NumTraits<RealConstantType>>::Rhs>)

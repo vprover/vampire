@@ -28,7 +28,7 @@ using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 
-template<bool higherOrder>
+template<bool higherOrder, bool pre>
 class Superposition
 : public GeneratingInferenceEngine
 {

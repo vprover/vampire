@@ -54,15 +54,15 @@ using std::pair;
 
 namespace Inferences {
 
-template<bool higherOrder>
-Superposition<higherOrder>::Superposition(SaturationAlgorithm& salg)
+template<bool higherOrder, bool pre>
+Superposition<higherOrder, pre>::Superposition(SaturationAlgorithm& salg)
   : _salg(salg),
     _subtermIndex(salg.getGeneratingIndex<SuperpositionSubtermIndex<higherOrder>>()),
-    _lhsIndex(salg.getGeneratingIndex<SuperpositionLHSIndex>())
+    _lhsIndex(/* pre ? salg.getSimplifyingIndex<SuperpositionLHSIndex>() :  */salg.getGeneratingIndex<SuperpositionLHSIndex>())
 {}
 
-template<bool higherOrder>
-ClauseIterator Superposition<higherOrder>::generateClauses(Clause* premise)
+template<bool higherOrder, bool pre>
+ClauseIterator Superposition<higherOrder, pre>::generateClauses(Clause* premise)
 {
   auto itf = premise->getSelectedLiteralIterator()
     // Get an iterator of pairs of selected literals and rewritable subterms of those literals
@@ -128,8 +128,8 @@ ClauseIterator Superposition<higherOrder>::generateClauses(Clause* premise)
  *
  * This function also updates the statistics.
  */
-template<bool higherOrder>
-bool Superposition<higherOrder>::checkClauseColorCompatibility(Clause* eqClause, Clause* rwClause)
+template<bool higherOrder, bool pre>
+bool Superposition<higherOrder, pre>::checkClauseColorCompatibility(Clause* eqClause, Clause* rwClause)
 {
   if(ColorHelper::compatible(rwClause->color(), eqClause->color())) {
     return true;
@@ -257,8 +257,8 @@ bool earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
  * If superposition should be performed, return result of the superposition,
  * otherwise return 0.
  */
-template<bool higherOrder>
-Clause* Superposition<higherOrder>::performSuperposition(
+template<bool higherOrder, bool pre>
+Clause* Superposition<higherOrder, pre>::performSuperposition(
     Clause* rwClause, Literal* rwLit, TermList rwTerm,
     Clause* eqClause, Literal* eqLit, TermList eqLHS,
     AbstractingUnifier* unifier, bool eqIsResult)
@@ -286,6 +286,17 @@ Clause* Superposition<higherOrder>::performSuperposition(
   unsigned eqLength = eqClause->length();
 
   TermList tgtTerm = EqHelper::getOtherEqualitySide(eqLit, eqLHS);
+
+  if constexpr (pre) {
+    unsigned lhsSWeight = subst->getApplicationWeight(eqLHS, eqIsResult);
+    unsigned rhsSWeight = subst->getApplicationWeight(tgtTerm, eqIsResult);
+    unsigned rwLitWeight = subst->getApplicationWeight(rwLit, !eqIsResult);
+    if (rwLitWeight - lhsSWeight + rhsSWeight >= rwLit->weight()) {
+      env.statistics->backwardSubsumed++;
+      return nullptr;
+    }
+  }
+
 
   // LRS-specific optimization:
   // check whether we can conclude that the resulting clause will be discarded by LRS since it does not fulfil the age/weight limits (in which case we can discard the clause)
@@ -468,6 +479,18 @@ Clause* Superposition<higherOrder>::performSuperposition(
     return nullptr;
   }
 
+  unsigned resW = 0;
+  for (const auto& l : *res) {
+    resW += l->weight();
+  }
+
+  if constexpr (pre) {
+    if (resW >= rwClause->weight()) {
+      env.statistics->maxInductionDepth++;
+      return nullptr;
+    }
+  }
+
   inf_destroyer.disable(); // ownership passed to the the clause below
   auto clause = Clause::fromStack(*res, inf);
   Literal *rwAnsLit, *eqAnsLit;
@@ -494,7 +517,9 @@ Clause* Superposition<higherOrder>::performSuperposition(
   return clause;
 }
 
-template class Superposition<false>;
-template class Superposition<true>;
+template class Superposition<false, false>;
+template class Superposition<false, true>;
+template class Superposition<true, false>;
+template class Superposition<true, true>;
 
 }
