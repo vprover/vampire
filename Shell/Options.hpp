@@ -1547,7 +1547,9 @@ public:
   EvaluationMode evaluationMode() const { return _evaluationMode.actualValue; }
   ArithmeticSimplificationMode gaussianVariableElimination() const { return _gaussianVariableElimination.actualValue; }
   bool alasca() const { return _alasca.actualValue; }
+  #if VVIRAS
   bool viras() const { return _viras.actualValue; }
+  #endif
   bool alascaDemodulation() const { return _alascaDemodulation.actualValue; }
   bool alascaStrongNormalization() const { return _alascaStrongNormalization.actualValue; }
   bool alascaIntegerConversion() const { return _alascaIntegerConversion.actualValue; }
@@ -1967,7 +1969,9 @@ private:
   BoolOptionValue _pushUnaryMinus;
   ChoiceOptionValue<ArithmeticSimplificationMode> _gaussianVariableElimination;
   BoolOptionValue _alasca;
+  #if VVIRAS
   BoolOptionValue _viras;
+  #endif
   BoolOptionValue _alascaDemodulation;
   BoolOptionValue _alascaStrongNormalization;
   BoolOptionValue _alascaIntegerConversion;
