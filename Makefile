@@ -79,6 +79,7 @@ XFLAGS = -Wfatal-errors -g -DVDEBUG=1 -DCHECK_LEAKS=0 -DUSE_SYSTEM_ALLOCATION=1 
 
 INCLUDES= -I. -I/opt/local/include -Icadical/src -Imini-gmp-6.3.0 -Iviras/src
 Z3FLAG= -DVZ3=0
+VIRASFLAG= -DVVIRAS=1
 Z3LIB=
 ifeq (,$(shell echo $(MAKECMDGOALS) | sed 's/.*z3.*//g'))
 INCLUDES= -I. -Imini-gmp-6.3.0 -Iviras/src -Iz3/src/api -Iz3/src/api/c++ -I/opt/local/include -Icadical/src
@@ -91,21 +92,21 @@ Z3FLAG= -DVZ3=1
 endif
 
 ifneq (,$(filter vtest%,$(MAKECMDGOALS)))
-XFLAGS = $(DBG_FLAGS) $(Z3FLAG)
+XFLAGS = $(DBG_FLAGS) $(Z3FLAG) $(VIRASFLAG)
 endif
 ifneq (,$(filter %_dbg,$(MAKECMDGOALS)))
-XFLAGS = $(DBG_FLAGS) $(Z3FLAG)
+XFLAGS = $(DBG_FLAGS) $(Z3FLAG) $(VIRASFLAG)
 endif
 ifneq (,$(filter %_rel,$(MAKECMDGOALS)))
-XFLAGS = $(REL_FLAGS) $(Z3FLAG)
+XFLAGS = $(REL_FLAGS) $(Z3FLAG) $(VIRASFLAG)
 MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
 endif
 
 ifneq (,$(filter %_dbg_gcov,$(MAKECMDGOALS)))
-XFLAGS = $(DBG_FLAGS) $(GCOV_FLAGS) $(Z3FLAG)
+XFLAGS = $(DBG_FLAGS) $(GCOV_FLAGS) $(Z3FLAG) $(VIRASFLAG)
 endif
 ifneq (,$(filter %_rel_gcov,$(MAKECMDGOALS)))
-XFLAGS = $(REL_FLAGS) $(GCOV_FLAGS) $(Z3FLAG)
+XFLAGS = $(REL_FLAGS) $(GCOV_FLAGS) $(Z3FLAG) $(VIRASFLAG)
 MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
 endif
 
@@ -117,10 +118,10 @@ STATIC = -static
 endif
 
 ifneq (,$(filter %_dbg_static,$(MAKECMDGOALS)))
-XFLAGS = $(STATIC) $(DBG_FLAGS) $(Z3FLAG)
+XFLAGS = $(STATIC) $(DBG_FLAGS) $(Z3FLAG) $(VIRASFLAG)
 endif
 ifneq (,$(filter %_rel_static,$(MAKECMDGOALS)))
-XFLAGS = $(STATIC) $(REL_FLAGS) $(Z3FLAG)
+XFLAGS = $(STATIC) $(REL_FLAGS) $(Z3FLAG) $(VIRASFLAG)
 MINISAT_FLAGS = $(MINISAT_REL_FLAGS)
 endif
 
