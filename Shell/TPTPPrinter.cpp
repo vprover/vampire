@@ -759,7 +759,7 @@ std::string InferenceStore::TPTPProofPrinter::getRole(InferenceRule rule, UnitIn
 
 std::string InferenceStore::TPTPProofPrinter::tptpRuleName(InferenceRule rule)
 {
-    return StringUtils::replaceChar(ruleName(rule), ' ', '_');
+    return StringUtils::replaceChars<' ', '-'>(ruleName(rule), '_');
   }
 
 std::string InferenceStore::TPTPProofPrinter::unitIdToTptp(std::string unitId)
