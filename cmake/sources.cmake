@@ -101,6 +101,7 @@ set(UNIT_TESTS
     UnitTests/tMap.cpp
     UnitTests/tOption.cpp
     UnitTests/tPredicateElimination.cpp
+    UnitTests/tProofOutput.cpp
     UnitTests/tOptionConstraints.cpp
     UnitTests/tQKbo.cpp
     UnitTests/tQuotientE.cpp
@@ -767,8 +768,11 @@ set(SOURCES
     Shell/SymbolDefinitionInlining.hpp
     Shell/SymbolOccurrenceReplacement.cpp
     Shell/SymbolOccurrenceReplacement.hpp
+    Shell/TPTPConstants.hpp
     Shell/TPTPPrinter.cpp
     Shell/TPTPPrinter.hpp
+    Shell/TPTPProofPrinter.cpp
+    Shell/TPTPProofPrinter.hpp
     Shell/TermAlgebra.cpp
     Shell/TermAlgebra.hpp
     Shell/TheoryAxioms.cpp

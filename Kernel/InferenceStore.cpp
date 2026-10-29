@@ -23,7 +23,7 @@
 #include "Lib/ScopedPtr.hpp"
 
 #include "Shell/Options.hpp"
-#include "Shell/TPTPPrinter.hpp"
+#include "Shell/TPTPProofPrinter.hpp"
 #include "Shell/UIHelper.hpp"
 #include "Shell/SMTCheck.hpp"
 
@@ -348,23 +348,20 @@ protected:
       UIHelper::outputSymbolDeclarations(out);
     }
 
-    // fragment of the unpreprocessed input, see the comment in getFofString
-    std::string kind = "fof";
-    if(env.initiallyHasNonDefaultSorts()){ kind="tff"; }
-    if(env.initiallyHigherOrder()){ kind="thf"; }
+    const char* kind = TPTPOutput::proofLanguage();
 
     out << kind
-        << "(r"<< cs->number()
-    	<< ",conjecture, "
-      << getQuantifiedStr(cs)
+        << '(' << TPTPOutput::Reference{"r", cs->number()}
+    	<< ',' << TPTPOutput::Role::CONJECTURE << ", "
+      << TPTPOutput::universalClosure(cs)
     	<< " ). %"<<ruleName(rule)<<"\n";
 
     while(parents.hasNext()) {
       Unit* prem=parents.next();
       out << kind
-        << "(pr"<<prem->number()
-  	<< ",axiom, "
-    << getQuantifiedStr(prem);
+        << '(' << TPTPOutput::Reference{"pr", prem->number()}
+  	<< ',' << TPTPOutput::Role::AXIOM << ", "
+    << TPTPOutput::universalClosure(prem);
       out << " ).\n";
     }
     out << "%#\n";

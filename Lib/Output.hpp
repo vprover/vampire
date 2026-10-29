@@ -12,9 +12,11 @@
 
 #include <iosfwd>
 #include <utility>
+#include <concepts>
 #include <tuple>
 #include <string>
 #include <sstream>
+#include <type_traits>
 
 namespace std {
 template<class... As> 
@@ -23,6 +25,49 @@ std::ostream& operator<<(std::ostream& out, tuple<As...> const& self);
 
 namespace Lib {
 namespace Output {
+
+/** Anything that can be written with `out << value`. */
+template<class T>
+concept Printable = requires(std::ostream& out, T const& value) {
+  { out << value } -> std::convertible_to<std::ostream&>;
+};
+
+/** Defer writing until insertion supplies the destination stream.
+ * The callable is stored by value; any references it captures must remain valid.
+ * Usage: out << deferred([](std::ostream& out) -> std::ostream& { return out << "text"; });
+ */
+template<class Write>
+struct Deferred {
+  Write write;
+
+  friend std::ostream& operator<<(std::ostream& out, Deferred const& self)
+  { return self.write(out); }
+};
+
+template<class Write>
+Deferred<Write> deferred(Write write)
+{ return {std::move(write)}; }
+
+/** A member function that writes stored arguments to a stream. */
+template<auto Write, class Object, class... Args>
+concept MemberWriter = requires(Object* object, std::ostream& out, Args const&... args) {
+  { (object->*Write)(out, args...) } -> std::convertible_to<std::ostream&>;
+};
+
+/** Bind a stream-writing member function, owning copies of its arguments.
+ * The object itself must remain alive until the result is inserted.
+ */
+template<auto Write, class Object, class... Args>
+  requires MemberWriter<Write, Object, std::decay_t<Args>...>
+auto deferredMember(Object* object, Args&&... args)
+{
+  return deferred([object, args = std::make_tuple(std::forward<Args>(args)...)]
+      (std::ostream& out) -> std::ostream& {
+    return std::apply([&](auto const&... values) -> std::ostream& {
+      return (object->*Write)(out, values...);
+    }, args);
+  });
+}
 
 /** Newtype in order to nicely output a pointer.
  * Usage: `out << Output::ptr(ptr) << std::endl;` 
@@ -80,11 +125,11 @@ void Multiline<T>::outputIndent(std::ostream& out, unsigned indent)
 
 
 template<class Sep, class Iter>
-struct Interleaved { Sep const& sep; Iter iter; };
+struct Interleaved { Sep sep; Iter iter; };
 
 template<class Sep, class Iter>
-struct Interleaved<Sep,Iter> interleaved(Sep const& s, Iter i)
-{ return Interleaved<Sep, Iter>{s, std::move(i)}; }
+Interleaved<std::decay_t<Sep>, Iter> interleaved(Sep&& s, Iter i)
+{ return {std::forward<Sep>(s), std::move(i)}; }
 
 template<class Sep, class Iter>
 std::ostream& operator<<(std::ostream& out, Interleaved<Sep, Iter> self)

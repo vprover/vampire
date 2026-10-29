@@ -53,6 +53,24 @@ inline constexpr std::underlying_type_t<UnitInputType> toNumber(UnitInputType t)
 UnitInputType getInputType(UnitList* units);
 UnitInputType getInputType(UnitInputType t1, UnitInputType t2);
 
+/**
+ * How a unit relates to the conjecture of the input problem, see Unit::conjectureRelation().
+ *
+ * A parsed conjecture F becomes two units of input type CONJECTURE: F itself (rule INPUT)
+ * and its negation ~F (rule NEGATED_CONJECTURE). Units derived from ~F inherit that input
+ * type, so the input type alone does not tell whether a unit is negated.
+ */
+enum class ConjectureRelation {
+  /** not derived from a conjecture */
+  NONE,
+  /** the conjecture F as stated in the input; always a formula */
+  CONJECTURE,
+  /** a negated conjecture from the input, or a clause derived from ~F */
+  NEGATED_CONJECTURE,
+  /** a formula derived from ~F; negating it gives a form of the conjecture */
+  NEGATED_FORMULA,
+};
+
 /** Step-by-step guide to adding an inference to Vampire:
  *  1) Update the enum below with an entry for the new inference.
  *     The enum is sorted into simplifying, generating etc. inferences.

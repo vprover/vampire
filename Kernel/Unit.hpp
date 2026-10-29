@@ -73,6 +73,8 @@ public:
   void setInputType(UnitInputType it) { _inference.setInputType(it); }
   /** return true if inputType relates to a goal **/
   bool derivedFromGoal() const { return _inference.derivedFromGoal(); }
+  /** how this unit relates to the input conjecture, see ConjectureRelation */
+  ConjectureRelation conjectureRelation() const;
   /** see isPureTheoryDescendant in Inference.cpp */
   bool isPureTheoryDescendant() const { return _inference.isPureTheoryDescendant(); }
   /** see isTheoryAxiom in Inference.cpp */
