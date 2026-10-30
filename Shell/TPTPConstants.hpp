@@ -18,14 +18,8 @@
 namespace Shell {
 namespace TPTPOutput {
 
-/** TPTP languages, the keyword that starts each annotated formula. */
-namespace Language {
-inline constexpr const char* THF = "thf";
-inline constexpr const char* TFF = "tff";
-inline constexpr const char* TCF = "tcf";
-inline constexpr const char* FOF = "fof";
-inline constexpr const char* CNF = "cnf";
-} // namespace Language
+/** TPTP languages used for annotated formulae. */
+enum class Language { THF, TFF, TCF, FOF, CNF };
 
 /** TPTP formula roles. */
 namespace Role {

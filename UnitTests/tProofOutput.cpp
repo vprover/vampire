@@ -14,6 +14,7 @@
 #include "Test/SyntaxSugar.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/Output.hpp"
+#include "Lib/ScopeGuard.hpp"
 #include "Lib/SharedSet.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
@@ -133,7 +134,7 @@ TEST_FUN(complete_proof_step_owns_nested_fragments)
   std::ostringstream first, second;
   first << step;
   second << step;
-  const auto expected = std::string(proofLanguage()) + "(f4_D,definition,(\n"
+  const auto expected = std::string(languageName(proofLanguage())) + "(f4_D,definition,(\n"
       "  p <=> q),\n  introduced(definition,[new_symbols(definition,[p])],[predicate_definition])).\n";
   ASS_EQ(first.str(), expected);
   ASS_EQ(second.str(), expected);
@@ -155,6 +156,8 @@ static std::string printSplittingComponent(Stack<Literal*> literals, Literal* na
 
 TEST_FUN(single_literal_splitting_definition)
 {
+  // Component clause: p(X0) | name(X0).
+  // Definition body: ![X0] : (p(X0) <=> ~name(X0)); X0 is shared with the name.
   auto sort = AtomicSort::defaultSort();
   DECL_DEFAULT_VARS
   DECL_PRED(p, {sort})
@@ -166,6 +169,8 @@ TEST_FUN(single_literal_splitting_definition)
 
 TEST_FUN(splitting_definition_without_shared_variables)
 {
+  // Component clause: p(X0) | name, with a propositional naming literal.
+  // Definition body: (![X0] : p(X0)) <=> ~name; X0 is local to the component.
   auto sort = AtomicSort::defaultSort();
   DECL_DEFAULT_VARS
   DECL_PRED(p, {sort})
@@ -175,8 +180,11 @@ TEST_FUN(splitting_definition_without_shared_variables)
   ASS(output.find("( ! [X0] : p(X0) ) <=> ~name") != std::string::npos);
 }
 
-TEST_FUN(splitting_definition_preserves_order_and_deduplicates_variables)
+TEST_FUN(splitting_definition_preserves_literal_order_and_sorts_unique_variables)
 {
+  // Component clause: r(X0,X2) | p(X1) | r(X0,X2) | name(X0,X1).
+  // Definition body: ![X0,X1] : ((![X2] : (r(X0,X2) | p(X1) | r(X0,X2))) <=> ~name(X0,X1)).
+  // Bind each variable once, keep the repeated literal, and bind only X2 locally.
   auto sort = AtomicSort::defaultSort();
   DECL_DEFAULT_VARS
   DECL_PRED(p, {sort})
@@ -184,7 +192,7 @@ TEST_FUN(splitting_definition_preserves_order_and_deduplicates_variables)
   DECL_PRED(name, {sort, sort})
   Literal* namingLiteral = name(x, y);
   auto output = printSplittingComponent({r(x, z), p(y), r(x, z), namingLiteral}, namingLiteral);
-  ASS(output.find("( ! [X1,X0] : (( ! [X2] : (r(X0,X2) | p(X1) | r(X0,X2)) ) <=> ~name(X0,X1)) )")
+  ASS(output.find("( ! [X0,X1] : (( ! [X2] : (r(X0,X2) | p(X1) | r(X0,X2)) ) <=> ~name(X0,X1)) )")
       != std::string::npos);
 }
 
@@ -196,6 +204,9 @@ static std::string expectedClause(const Clause* clause, bool typed, const std::s
 
 TEST_FUN(typed_clause_prefix_sorts_variables_and_spells_out_sorts)
 {
+  // Clause: p(X1,X0), with both variables of sort $i.
+  // TCF body: ![X0 : $i,X1 : $i] : ( p(X1,X0) ); CNF body: ( p(X1,X0) ).
+  // Sort the prefix numerically without reordering the predicate's arguments.
   auto sort = AtomicSort::defaultSort();
   DECL_DEFAULT_VARS
   DECL_PRED(p, {sort, sort})
@@ -206,6 +217,8 @@ TEST_FUN(typed_clause_prefix_sorts_variables_and_spells_out_sorts)
       expectedClause(clause, false, "( p(X1,X0) )"));
 
   DECL_PRED(q, {AtomicSort::intSort(), sort})
+  // Mixed-sort clause: q(X1:$int,X0:$i).
+  // TCF body: ![X0 : $i,X1 : $int] : ( q(X1,X0) ).
   auto mixed = Clause::fromLiterals({q(y, x)}, FromInput(UnitInputType::AXIOM));
   ASS_EQ(Shell::TPTPPrinter::toString(mixed, true),
       expectedClause(mixed, true, "![X0 : $i,X1 : $int] : ( q(X1,X0) )"));
@@ -213,6 +226,8 @@ TEST_FUN(typed_clause_prefix_sorts_variables_and_spells_out_sorts)
 
 TEST_FUN(typed_clause_prefix_omits_ground_and_empty_quantifiers)
 {
+  // Ground clause p(a) prints the TCF body ( p(a) ), with no universal prefix.
+  // The empty clause prints ( $false ), also without an empty ![] binder.
   auto sort = AtomicSort::defaultSort();
   DECL_CONST(a, sort)
   DECL_PRED(p, {sort})
@@ -226,12 +241,107 @@ TEST_FUN(typed_clause_prefix_omits_ground_and_empty_quantifiers)
 
 TEST_FUN(typed_clause_prefix_puts_type_variables_before_term_variables)
 {
+  // Polymorphic clause: p(X3,X0), where X3:$tType and X0:X3.
+  // TCF body: ![X3 : $tType,X0 : X3] : ( p(X3,X0) ).
+  // Bind the type before its term variable, despite X0 having the smaller number.
   PredSugar p("p", {SortSugar(TermList::var(101))}, 1);
   SortSugar type(TermList::var(3));
   TermSugar term(TermList::var(0), type);
   auto clause = Clause::fromLiterals({p(type, term)}, FromInput(UnitInputType::AXIOM));
   ASS_EQ(Shell::TPTPPrinter::toString(clause, true),
       expectedClause(clause, true, "![X3 : $tType,X0 : X3] : ( p(X3,X0) )"));
+}
+
+TEST_FUN(typed_clause_prefix_sorts_multiple_type_variables)
+{
+  // Polymorphic clause: p(X3,X2,X0,X1), with X0:X3 and X1:X2.
+  // TCF body: ![X2 : $tType,X3 : $tType,X0 : X3,X1 : X2] : ( p(X3,X2,X0,X1) ).
+  // Sort type and term variables separately; preserve the literal's argument order.
+  PredSugar p("p", {SortSugar(TermList::var(101)), SortSugar(TermList::var(102))}, 2);
+  SortSugar a(TermList::var(3));
+  SortSugar b(TermList::var(2));
+  TermSugar x(TermList::var(0), a);
+  TermSugar y(TermList::var(1), b);
+  auto clause = Clause::fromLiterals({p(a, b, x, y)}, FromInput(UnitInputType::AXIOM));
+  ASS_EQ(Shell::TPTPPrinter::toString(clause, true),
+      expectedClause(clause, true,
+          "![X2 : $tType,X3 : $tType,X0 : X3,X1 : X2] : ( p(X3,X2,X0,X1) )"));
+}
+
+TEST_FUN(universal_closure_binds_only_free_variables)
+{
+  // Formula: ![X0] : p(X0,X1), with X1 free.
+  // FOF closure: ![X1] : (![X0] : p(X0,X1)); do not bind X0 again outside.
+  auto sort = AtomicSort::defaultSort();
+  DECL_DEFAULT_VARS
+  DECL_PRED(p, {sort, sort})
+  auto formula = new QuantifiedFormula(FORALL, VSList::singleton({0, sort}),
+      new AtomicFormula(p(x, y)));
+  FormulaUnit unit(formula, FromInput(UnitInputType::AXIOM));
+  std::ostringstream out;
+  out << universalClosure(&unit, Language::FOF);
+  ASS_EQ(out.str(), "( ! [X1] : (! [X0] : p(X0,X1)) )");
+}
+
+TEST_FUN(universal_closure_uses_target_language_for_variable_annotations)
+{
+  // Clause: p(X1,X0), with both variables of sort $i.
+  // FOF closure: ![X0,X1] : (p(X1,X0)).
+  // TFF/THF/TCF closure: ![X0 : $i,X1 : $i] : (p(X1,X0)).
+  auto sort = AtomicSort::defaultSort();
+  DECL_DEFAULT_VARS
+  DECL_PRED(p, {sort, sort})
+  auto clause = Clause::fromLiterals({p(y, x)}, FromInput(UnitInputType::AXIOM));
+  std::ostringstream fof;
+  fof << universalClosure(clause, Language::FOF);
+  ASS_EQ(fof.str(), "( ! [X0,X1] : (p(X1,X0)) )");
+  for (auto language : {Language::TFF, Language::THF, Language::TCF}) {
+    std::ostringstream typed;
+    typed << universalClosure(clause, language);
+    ASS_EQ(typed.str(), "( ! [X0 : $i,X1 : $i] : (p(X1,X0)) )");
+  }
+}
+
+TEST_FUN(typed_quantifiers_share_type_variable_order_across_languages)
+{
+  // Clause: p(X3,X2,X0,X1), with X0:X3 and X1:X2.
+  // Print only the binding list, identically for TFF, THF and TCF:
+  // X2 : $tType,X3 : $tType,X0 : X3,X1 : X2.
+  PredSugar p("p", {SortSugar(TermList::var(101)), SortSugar(TermList::var(102))}, 2);
+  SortSugar a(TermList::var(3));
+  SortSugar b(TermList::var(2));
+  TermSugar x(TermList::var(0), a);
+  TermSugar y(TermList::var(1), b);
+  auto clause = Clause::fromLiterals({p(a, b, x, y)}, FromInput(UnitInputType::AXIOM));
+  for (auto language : {Language::TFF, Language::THF, Language::TCF}) {
+    std::ostringstream out;
+    out << QuantifiedVariables(clause, language);
+    ASS_EQ(out.str(), "X2 : $tType,X3 : $tType,X0 : X3,X1 : X2");
+  }
+}
+
+TEST_FUN(thf_quantifiers_parenthesize_arrow_sorts)
+{
+  // Bind X0 of function type $i > $i; the THF binding must print X0 : ($i > $i).
+  DHMap<unsigned, TermList, FnvHash, IdentityHash> sorts;
+  sorts.insert(0, AtomicSort::arrowSort(AtomicSort::defaultSort(), AtomicSort::defaultSort()));
+  std::ostringstream out;
+  out << QuantifiedVariables(pvi(range(0u, 1u)), sorts, Language::THF);
+  ASS_EQ(out.str(), "X0 : ($i > $i)");
+}
+
+TEST_FUN(thf_closure_does_not_rebind_lambda_variables)
+{
+  // Formula: (^[X0:$i] : X0) = X1, where X1 has type $i > $i.
+  // Print only X1 : ($i > $i); X0 is already bound by the lambda.
+  auto sort = AtomicSort::defaultSort();
+  auto arrowSort = AtomicSort::arrowSort(sort, sort);
+  auto lambda = Term::createLambda(TermList::var(0), VSList::singleton({0, sort}), sort);
+  auto equality = Literal::createEquality(true, TermList(lambda), TermList::var(1), arrowSort);
+  FormulaUnit unit(new AtomicFormula(equality), FromInput(UnitInputType::AXIOM));
+  std::ostringstream out;
+  out << QuantifiedVariables(&unit, Language::THF);
+  ASS_EQ(out.str(), "X1 : ($i > $i)");
 }
 
 static void checkFormulaOutput(const Formula* formula, const std::string& expected)
@@ -290,6 +400,36 @@ TEST_FUN(formula_stream_preserves_equality_parentheses_and_boolean_terms)
   checkFormulaOutput(new BoolTermFormula(TermList::var(2)), "X2");
 }
 
+TEST_FUN(thf_unit_output_parenthesizes_applications_and_annotates_binders)
+{
+  const bool previousHigherOrder = env.higherOrder();
+  const auto previousPrinting = env.options->holPrinting();
+  ScopeGuard restore([&] {
+    env.setHigherOrder(previousHigherOrder);
+    env.options->setHolPrinting(previousPrinting);
+  });
+  env.setHigherOrder(true);
+  env.options->setHolPrinting(Shell::Options::HPrinting::TPTP);
+
+  auto sort = AtomicSort::boolSort();
+  DECL_CONST(p, sort)
+  DECL_CONST(f, arrow(sort, sort))
+  DECL_CONST(x, sort)
+  auto application = new BoolTermFormula(ap(f(), x()));
+  auto formula = new JunctionFormula(AND,
+      FormulaList::cons(new BoolTermFormula(p()), FormulaList::singleton(application)));
+  checkFormulaOutput(formula, "((f @ x) & p)");
+  // Proof bodies use Formula::toString; both renderers must preserve application parentheses.
+  ASS_EQ(formula->toString(false), Shell::TPTPPrinter::toString(formula));
+  FormulaUnit unit(formula, FromInput(UnitInputType::AXIOM));
+  ASS_EQ(Shell::TPTPPrinter::toString(&unit),
+      "thf(u" + std::to_string(unit.number()) + ",axiom,\n    ((f @ x) & p)).\n");
+
+  auto universal = new QuantifiedFormula(FORALL,
+      VSList::singleton({0, AtomicSort::defaultSort()}), new BoolTermFormula(p()));
+  checkFormulaOutput(universal, "(![X0 : $i] : (p))");
+}
+
 TEST_FUN(formula_stream_handles_deep_nesting_iteratively)
 {
   DECL_PRED(p, {})
@@ -341,6 +481,9 @@ static Inference fromNegatedConjecture(Unit* stated)
 
 TEST_FUN(conjecture_relation_distinguishes_stated_and_negated_conjectures)
 {
+  // The final clause is p, derived from negating a stated conjecture.
+  // No text is printed here: its relation must be NEGATED_CONJECTURE, even
+  // though its inherited input type is CONJECTURE (as for the negated formula).
   DECL_PRED(p, {})
   auto atom = new AtomicFormula(p());
   FormulaUnit axiom(atom, FromInput(UnitInputType::AXIOM));
@@ -399,6 +542,9 @@ TEST_FUN(unit_stream_closes_free_conjecture_variables_without_changing_input)
 
 TEST_FUN(unit_stream_preserves_clause_order_and_conjecture_role)
 {
+  // Clause: p | q, derived from the negated conjecture.
+  // Print cnf(uN,negated_conjecture,( p | q )) or tcf(uN,negated_conjecture,( p | q )).
+  // uN is the generated unit name; the ground clause needs no variable prefix.
   DECL_PRED(p, {})
   DECL_PRED(q, {})
   auto clause = Clause::fromLiterals({p(), q()}, FromInput(UnitInputType::CONJECTURE));
@@ -416,6 +562,8 @@ static std::string printNamedUnit(const char* name, const char* role, Unit* unit
 
 TEST_FUN(named_unit_stream_uses_given_name_and_role)
 {
+  // Clause: p(X0) | q. With name c and role claim, print:
+  // tcf(c,claim, ![X0 : $i] : ( p(X0) | q )).
   auto sort = AtomicSort::defaultSort();
   DECL_DEFAULT_VARS
   DECL_PRED(p, {sort})
@@ -423,6 +571,9 @@ TEST_FUN(named_unit_stream_uses_given_name_and_role)
   auto clause = Clause::fromLiterals({p(x), q()}, FromInput(UnitInputType::AXIOM));
   ASS_EQ(printNamedUnit("c", "claim", clause), "tcf(c,claim,\n    ![X0 : $i] : ( p(X0) | q )).\n");
 
+  // Clause: p(X0), under split levels 3 and 4. With split-level output enabled:
+  // tcf(s,claim, ![X0 : $i] : ( p(X0) | $splitLevel3 | $splitLevel4 )).
+  // With it disabled: tcf(s,claim, ![X0 : $i] : ( p(X0) )).
   auto split = Clause::fromLiterals({p(x)}, FromInput(UnitInputType::AXIOM));
   split->setSplits(SplitSet::getRange(3, 5));
   ASS_EQ(printNamedUnit("s", "claim", split, true),

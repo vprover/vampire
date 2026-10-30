@@ -50,7 +50,7 @@ using namespace std;
 
 namespace TPTPOutput {
 
-const char* proofLanguage()
+Language proofLanguage()
 {
   // Use the unpreprocessed input: preprocessing can remove sorts and higher
   // order features, but the proof must not claim a stronger fragment than it.
@@ -165,7 +165,7 @@ std::ostream& InferenceStore::TPTPProofPrinter::printSplits(std::ostream& out, S
 
 std::ostream& InferenceStore::TPTPProofPrinter::printFormula(std::ostream& out, Unit* unit)
 {
-  out << universalClosure(unit);
+  out << universalClosure(unit, proofLanguage());
   if (unit->isClause()) {
     SplitSet* clauseSplits = unit->asClause()->splits();
     if (clauseSplits && !clauseSplits->isEmpty()) {
@@ -397,13 +397,13 @@ std::ostream& InferenceStore::TPTPProofPrinter::printSplittingDefinition(
   }
   ASS(literals.isNonEmpty());
 
-  // FIFO preserves literal order; top-first variable iteration matches the former push-front lists.
-  auto quantifiedComponent = quantified(QuantifiedVariables(pvi(componentVariables.iterCloned()), sorts),
+  // Literal order and the separate scopes of local and naming variables are preserved.
+  auto quantifiedComponent = quantified(QuantifiedVariables(pvi(componentVariables.iterCloned()), sorts, proofLanguage()),
       disjunction(literals.iterFifo()), literals.size() > 1);
   auto definition = Output::deferred([&](std::ostream& out) -> std::ostream& {
     return out << quantifiedComponent << connectiveSymbol(IFF) << *Literal::complementaryLiteral(nameLiteral);
   });
-  return out << quantified(QuantifiedVariables(pvi(nameVariables.iterCloned()), sorts), definition);
+  return out << quantified(QuantifiedVariables(pvi(nameVariables.iterCloned()), sorts, proofLanguage()), definition);
 }
 
 } // namespace Kernel

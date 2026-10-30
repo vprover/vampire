@@ -23,7 +23,6 @@
 #include <string_view>
 
 #include "Lib/Metaiterators.hpp"
-#include "Lib/Option.hpp"
 #include "Lib/Output.hpp"
 #include "Lib/Stack.hpp"
 #include "Kernel/Connective.hpp"
@@ -46,6 +45,10 @@ const char* inputRole(UnitInputType type);
 
 /** The TPTP symbol of a connective, with the spacing used between operands. */
 const char* connectiveSymbol(Connective connective);
+
+/** The keyword that starts an annotated formula in the given language. */
+const char* languageName(Language language);
+std::ostream& operator<<(std::ostream& out, Language language);
 
 /** How to write a unit back as TPTP so that parsing the output reproduces it. */
 struct ProblemRole {
@@ -76,45 +79,46 @@ struct InputName {
   friend std::ostream& operator<<(std::ostream& out, InputName name);
 };
 
-/** The universal closure of a unit. The unit must remain alive until this is inserted. */
+/** The universal closure of a unit in the target language.
+ * The unit must remain alive until this is inserted.
+ */
 struct UniversalClosure {
-  Unit* unit;
+  const Unit* unit;
+  Language targetLanguage;
   friend std::ostream& operator<<(std::ostream& out, UniversalClosure closure);
 };
 
-inline UniversalClosure universalClosure(Unit* unit) { return {unit}; }
+inline UniversalClosure universalClosure(const Unit* unit, Language targetLanguage)
+{ return {unit, targetLanguage}; }
 
-/** The variables bound by a proof quantifier, with their sort annotations.
- * Term variables keep their iteration order; type variables precede them in reverse order.
- * The caller must ensure that the variables are unique.
+/** The variables bound by a universal quantifier in FOF, TFF, THF or TCF.
+ * Type variables precede term variables; each group is sorted by variable number.
+ * FOF omits sort annotations; typed languages always spell out sorts, including $i.
  */
 class QuantifiedVariables {
 public:
+  QuantifiedVariables(const Unit* unit, Language targetLanguage);
+  /** For proof components; the caller must supply unique variables. */
   QuantifiedVariables(VirtualIterator<unsigned> variables,
-      const DHMap<unsigned, TermList, FnvHash, IdentityHash>& sorts);
+      const DHMap<unsigned, TermList, FnvHash, IdentityHash>& sorts,
+      Language targetLanguage);
 
-  bool isEmpty() const { return _typeVariables.isEmpty() && _termVariables.isEmpty(); }
+  bool isEmpty() const { return _variables.isEmpty(); }
 
   friend std::ostream& operator<<(std::ostream& out, QuantifiedVariables const& self);
 
 private:
   struct Variable {
     unsigned number;
-    Option<TermList> sort;
-
-    friend std::ostream& operator<<(std::ostream& out, Variable const& self)
-    {
-      out << variableRef(self.number);
-      if (self.sort.isSome()) {
-        // toString() parenthesises arrow sorts, unlike operator<<.
-        out << " : " << self.sort->toString();
-      }
-      return out;
-    }
+    TermList sort;
   };
 
-  Stack<Variable> _typeVariables;
-  Stack<Variable> _termVariables;
+  void collect(VirtualIterator<unsigned> variables,
+      const DHMap<unsigned, TermList, FnvHash, IdentityHash>& sorts,
+      Language targetLanguage);
+
+  bool _typed;
+  Stack<Variable> _variables;
 };
 
 /** @b inner quantified universally over @b variables; without variables, only @b inner is written. */
@@ -281,7 +285,8 @@ public:
 
   /** With @b typedClauses, a clause is printed as a tcf() unit, i.e. with an
    *  explicit universal prefix spelling out the sort of each of its variables;
-   *  without it, as a cnf() unit. Formulas are printed as tff() either way. */
+   *  without it, as a cnf() unit. Formulas use thf() for higher-order input,
+   *  and tff() otherwise. */
   static UnitOutput unit(const Unit* unit, bool typedClauses = false)
   { return {unit, typedClauses}; }
   /** A name would silently convert to typedClauses; use namedUnit(). */
@@ -306,12 +311,11 @@ private:
       const char* role, bool typedClauses, bool includeSplitLevels);
   static std::ostream& printFormula(std::ostream& out, const Formula* formula);
 
-  /** cnf, tcf or tff, see toString(const Unit*, bool). */
-  static const char* language(const Unit* unit, bool typedClauses);
+  /** cnf, tcf, tff or thf, see toString(const Unit*, bool). */
+  static TPTPOutput::Language language(const Unit* unit, bool typedClauses);
   static std::ostream& printBody(std::ostream& out, const Unit* unit, bool typedClauses,
       bool negateFormula, bool includeSplitLevels);
 
-  static std::ostream& universalPrefix(std::ostream& out, const Unit* unit);
 };
 
 } // namespace Shell

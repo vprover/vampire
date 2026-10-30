@@ -348,20 +348,20 @@ protected:
       UIHelper::outputSymbolDeclarations(out);
     }
 
-    const char* kind = TPTPOutput::proofLanguage();
+    const auto targetLanguage = TPTPOutput::proofLanguage();
 
-    out << kind
+    out << targetLanguage
         << '(' << TPTPOutput::Reference{"r", cs->number()}
     	<< ',' << TPTPOutput::Role::CONJECTURE << ", "
-      << TPTPOutput::universalClosure(cs)
+      << TPTPOutput::universalClosure(cs, targetLanguage)
     	<< " ). %"<<ruleName(rule)<<"\n";
 
     while(parents.hasNext()) {
       Unit* prem=parents.next();
-      out << kind
+      out << targetLanguage
         << '(' << TPTPOutput::Reference{"pr", prem->number()}
   	<< ',' << TPTPOutput::Role::AXIOM << ", "
-    << TPTPOutput::universalClosure(prem);
+    << TPTPOutput::universalClosure(prem, targetLanguage);
       out << " ).\n";
     }
     out << "%#\n";

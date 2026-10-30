@@ -40,7 +40,7 @@ using namespace Kernel;
 namespace TPTPOutput {
 
 /** Language of the unpreprocessed input, preserved throughout the proof. */
-const char* proofLanguage();
+Language proofLanguage();
 
 
 

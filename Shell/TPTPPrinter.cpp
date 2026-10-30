@@ -30,7 +30,6 @@
 #include "Kernel/FormulaVarIterator.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
-#include "Kernel/TermIterators.hpp"
 #include "Kernel/Unit.hpp"
 
 #include "Parse/TPTP.hpp"
@@ -47,10 +46,11 @@ using namespace std;
 using TPTPOutput::connectiveSymbol;
 using TPTPOutput::disjunction;
 using TPTPOutput::InputName;
+using TPTPOutput::Language;
+using TPTPOutput::languageName;
 using TPTPOutput::parenthesized;
 using TPTPOutput::Reference;
 using TPTPOutput::variableRef;
-namespace Language = TPTPOutput::Language;
 
 /**
  * Return the std::string representing the formula f.
@@ -131,8 +131,8 @@ std::ostream& TPTPPrinter::printFormula(std::ostream& out, const Formula* formul
             out << ", ";
           }
           out << variableRef(var);
-          if (t != AtomicSort::defaultSort()) {
-            out << " : " << t;
+          if (t != AtomicSort::defaultSort() || env.higherOrder()) {
+            out << " : " << t.toString();
           }
           needsComma = true;
         }
@@ -141,7 +141,8 @@ std::ostream& TPTPPrinter::printFormula(std::ostream& out, const Formula* formul
         continue;
       }
     case BOOL_TERM:
-      out << f->getBooleanTerm();
+      // An application used as a formula must be parenthesised in THF.
+      out << f->getBooleanTerm().toString(/*topLevel=*/false);
       continue;
     case FALSE:
     case TRUE:
@@ -152,39 +153,6 @@ std::ostream& TPTPPrinter::printFormula(std::ostream& out, const Formula* formul
     }
   }
   return out;
-}
-
-/**
- * The universal prefix "![X0 : s,X1 : $i] : " binding, with their sorts, all the
- * variables of @param unit; nothing is written if there are none.
- *
- * Sorts are always spelled out (even the default $i), since making the sorts explicit
- * is the whole point of the prefix. Type variables come first, as they must, and the
- * remaining variables in the order of their numbers, so that the output is stable.
- */
-std::ostream& TPTPPrinter::universalPrefix(std::ostream& out, const Unit* unit)
-{
-  DHMap<unsigned,TermList, FnvHash, IdentityHash> varSorts;
-  SortHelper::collectVariableSorts(const_cast<Unit*>(unit), varSorts);
-  if (varSorts.isEmpty()) {
-    return out;
-  }
-
-  Stack<unsigned> vars;
-  vars.loadFromIterator(varSorts.domain());
-  vars.sort([&varSorts](unsigned v1, unsigned v2) {
-    bool t1 = varSorts.get(v1).isTerm() && varSorts.get(v1).term()->isSuper();
-    bool t2 = varSorts.get(v2).isTerm() && varSorts.get(v2).term()->isSuper();
-    return (t1 != t2) ? t1 : (v1 < v2);
-  });
-
-  out << "![";
-  out << TPTPOutput::commaSeparated(vars.iterFifo(), [&varSorts](unsigned x) {
-    return Lib::Output::deferred([&varSorts, x](std::ostream& out) -> std::ostream& {
-      return out << variableRef(x) << " : " << varSorts.get(x);
-    });
-  });
-  return out << "] : ";
 }
 
 /**
@@ -227,10 +195,10 @@ std::ostream& TPTPPrinter::printUnit(std::ostream& out, const Unit* unit, std::s
   return out << ").\n";
 }
 
-const char* TPTPPrinter::language(const Unit* unit, bool typedClauses)
+Language TPTPPrinter::language(const Unit* unit, bool typedClauses)
 {
   if (!unit->isClause()) {
-    return Language::TFF;
+    return env.higherOrder() ? Language::THF : Language::TFF;
   }
   if (typedClauses) {
     return Language::TCF;
@@ -249,7 +217,10 @@ std::ostream& TPTPPrinter::printBody(std::ostream& out, const Unit* unit, bool t
 {
   if (unit->isClause()) {
     const auto* clause = static_cast<const Clause*>(unit);
-    if (typedClauses) { universalPrefix(out, unit); }
+    if (typedClauses) {
+      TPTPOutput::QuantifiedVariables variables(unit, Language::TCF);
+      if (!variables.isEmpty()) { out << "![" << variables << "] : "; }
+    }
     out << "( " << disjunction(clause->iterLits());
     if (includeSplitLevels && !clause->noSplits()) {
       for (SplitLevel split : iterTraits(clause->splits()->iter())) {
@@ -288,59 +259,67 @@ std::ostream& TPTPPrinter::printBody(std::ostream& out, const Unit* unit, bool t
 
 namespace TPTPOutput {
 
-QuantifiedVariables::QuantifiedVariables(VirtualIterator<unsigned> variables,
-    const DHMap<unsigned, TermList, FnvHash, IdentityHash>& sorts)
+QuantifiedVariables::QuantifiedVariables(const Unit* unit, Language targetLanguage)
 {
+  DHMap<unsigned, TermList, FnvHash, IdentityHash> sorts;
+  SortHelper::collectVariableSorts(const_cast<Unit*>(unit), sorts, /*ignoreBound=*/true);
+  if (unit->isClause()) {
+    collect(pvi(sorts.domain()), sorts, targetLanguage);
+  } else {
+    // The sort collector also visits lambda-bound variables; bind only free variables.
+    Set<unsigned, FnvHash> variables;
+    variables.insertFromIterator(FormulaVarIterator(static_cast<const FormulaUnit*>(unit)->formula()));
+    collect(pvi(variables.iter()), sorts, targetLanguage);
+  }
+}
+
+QuantifiedVariables::QuantifiedVariables(VirtualIterator<unsigned> variables,
+    const DHMap<unsigned, TermList, FnvHash, IdentityHash>& sorts,
+    Language targetLanguage)
+{ collect(std::move(variables), sorts, targetLanguage); }
+
+void QuantifiedVariables::collect(VirtualIterator<unsigned> variables,
+    const DHMap<unsigned, TermList, FnvHash, IdentityHash>& sorts,
+    Language targetLanguage)
+{
+  ASS(targetLanguage == Language::FOF || targetLanguage == Language::TFF
+      || targetLanguage == Language::THF || targetLanguage == Language::TCF);
+  _typed = targetLanguage != Language::FOF;
   while (variables.hasNext()) {
     unsigned number = variables.next();
-    Variable variable{number, {}};
-    if (auto sort = sorts.find(number)) {
-      //a variable of a sort other than $i must always be annotated, and
-      //preprocessing is not expected to introduce such a sort into an
-      //initially untyped problem. Same predicate as Formula::toString.
-      ASS(*sort == AtomicSort::defaultSort() || env.initiallyHasNonDefaultSorts());
-      if (env.initiallyHasNonDefaultSorts()) {
-        variable.sort = some(*sort);
-      }
-    }
-    if (variable.sort.isSome() && variable.sort->isTerm() && variable.sort->term()->isSuper()) {
-      _typeVariables.push(std::move(variable));
-    } else {
-      _termVariables.push(std::move(variable));
-    }
+    TermList sort = sorts.get(number);
+    ASS(_typed || sort == AtomicSort::defaultSort());
+    _variables.push(Variable{number, sort});
   }
+  _variables.sort([](const Variable& a, const Variable& b) {
+    bool aType = a.sort.isTerm() && a.sort.term()->isSuper();
+    bool bType = b.sort.isTerm() && b.sort.term()->isSuper();
+    return aType != bType ? aType : a.number < b.number;
+  });
 }
 
 std::ostream& operator<<(std::ostream& out, QuantifiedVariables const& self)
 {
-  // Type variables are bound first; the reversal keeps the established output order.
-  out << commaSeparated(self._typeVariables.iter());
-  if (self._typeVariables.isNonEmpty() && self._termVariables.isNonEmpty()) {
-    out << ',';
-  }
-  return out << commaSeparated(self._termVariables.iterFifo());
+  auto write = [&self](std::ostream& out, const QuantifiedVariables::Variable& variable) {
+    out << variableRef(variable.number);
+    if (self._typed) {
+      // Parenthesise arrow sorts used by THF variables.
+      out << " : " << variable.sort.toString();
+    }
+  };
+  return out << commaSeparatedWith(self._variables.iterFifo(), write);
 }
 
 std::ostream& operator<<(std::ostream& out, UniversalClosure closure)
 {
-  Unit* unit = closure.unit;
-  DHMap<unsigned, TermList, FnvHash, IdentityHash> sorts;
-  SortHelper::collectVariableSorts(unit, sorts, /*ignoreBound=*/true);
-  Set<unsigned, FnvHash> variables;
-
+  const Unit* unit = closure.unit;
   if (!unit->isClause()) {
-    const Formula* formula = static_cast<FormulaUnit*>(unit)->formula();
-    variables.insertFromIterator(FormulaVarIterator(formula));
-    return out << quantified(QuantifiedVariables(pvi(variables.iter()), sorts),
-        formula);
+    const Formula* formula = static_cast<const FormulaUnit*>(unit)->formula();
+    return out << quantified(QuantifiedVariables(unit, closure.targetLanguage), formula);
   }
 
-  Clause* clause = unit->asClause();
-  for (Literal* literal : clause->iterLits()) {
-    variables.insertFromIterator(TermVarIterator(literal)); //TODO update iterator for two var lits?
-  }
-  return out << quantified(QuantifiedVariables(pvi(variables.iter()), sorts),
-      disjunction(clause->iterLits()));
+  const Clause* clause = static_cast<const Clause*>(unit);
+  return out << quantified(QuantifiedVariables(unit, closure.targetLanguage), disjunction(clause->iterLits()));
 }
 
 const char* connectiveSymbol(Connective connective)
@@ -351,6 +330,17 @@ const char* connectiveSymbol(Connective connective)
   static_assert(std::size(symbols) == NOCONN + 1, "one symbol per connective");
   return symbols[connective];
 }
+
+const char* languageName(Language language)
+{
+  static const char* const names[] = { "thf", "tff", "tcf", "fof", "cnf" };
+  static_assert(std::size(names) == static_cast<unsigned>(Language::CNF) + 1,
+      "one keyword per language");
+  return names[static_cast<unsigned>(language)];
+}
+
+std::ostream& operator<<(std::ostream& out, Language language)
+{ return out << languageName(language); }
 
 const char* inputRole(UnitInputType type)
 {
