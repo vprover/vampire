@@ -42,6 +42,13 @@ using namespace Test;
   DECL_CONST(b, s)                                    \
   DECL_CONST(c, s)                                    \
   DECL_POLY_CONST(d, 1, alpha)                        \
+  TROO                                                \
+  FOLS                                                \
+  DECL_SORT_BOOL                                      \
+  DECL_IMP_PROXY                                      \
+  DECL_AND_PROXY                                      \
+  DECL_CONST(p, arrow(Bool, Bool))                    \
+  DECL_CONST(q, Bool)
 
 #define LEFT_BANK 0
 #define RIGHT_BANK 1
@@ -112,7 +119,7 @@ void testUnifySuccess(TermList lhs, TermList rhs, Stack<ResultSpec> expected) {
       }
       vars.remove(vs);
     }
-    ASS_REP(vars.isEmpty(), vars);
+    ASS_REP(vars.isEmpty(), vars); // unexpected vars
 
     auto cons = hoUnif->computeConstraintLiterals();
     for (unsigned j = 0; j < e.constraints.size(); j++) {
@@ -434,6 +441,51 @@ TEST_UNIFY_SUCCESS(success_15,
         vsLeft(x, s),
       },
       LiteralStack()
+    }
+  }
+)
+
+// Boolean abstraction
+
+TEST_UNIFY_SUCCESS(success_16,
+  ap(p, x),
+  ap(p, ap(impP, {q, y})),
+  {
+    ResultSpec{
+      {
+        vsLeft(x, ap(impP, {q, x})),
+        vsRight(y, x),
+      },
+      LiteralStack()
+    }
+  }
+)
+
+TEST_UNIFY_SUCCESS(success_17,
+  ap(p, ap(impP, {x, q})),
+  ap(p, ap(impP, {q, y})),
+  {
+    ResultSpec{
+      {
+        vsLeft(x, x),
+        vsRight(y, y),
+      },
+      {
+        ap(impP, {x, q}) != ap(impP, {q, y})
+      }
+    }
+  }
+)
+
+TEST_UNIFY_SUCCESS(success_18,
+  ap(p, ap(impP, {q, q})),
+  ap(p, ap(andP, {troo, fols})),
+  {
+    ResultSpec{
+      VarSpecs(),
+      {
+        ap(impP, {q, q}) != ap(andP, {troo, fols})
+      }
     }
   }
 )
