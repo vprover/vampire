@@ -155,7 +155,7 @@ void UIHelper::outputSaturatedSet(std::ostream& out, UnitIterator uit)
 
   while (uit.hasNext()) {
     Unit* cl = uit.next();
-    out << TPTPPrinter::toString(cl) << endl;
+    out << TPTPPrinter::unit(cl) << endl;
   }
 
   if (szsOutputMode()) {
@@ -478,7 +478,7 @@ void UIHelper::outputResult(std::ostream& out)
       out << "Interpolant (symbol-weight minimized, weight " << interpolant->weight() << "):" << endl;
       addCommentSignForSZS(out);
       out << "SZS output start Interpolant" << endl;
-      out << TPTPPrinter::toString(interpolant) << endl;
+      out << TPTPPrinter::formula(interpolant) << endl;
       addCommentSignForSZS(out);
       out << "SZS output end Interpolant" << endl;
     }

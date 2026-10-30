@@ -29,6 +29,15 @@ template<class A> struct StringParser;
 class StringUtils {
 public:
   static std::string replaceChar(std::string str, char src, char target);
+  /** Replace each occurrence of any of Sources with target. */
+  template<char... Sources>
+  static std::string replaceChars(std::string str, char target)
+  {
+    for (char& c : str) {
+      if (((c == Sources) || ...)) { c = target; }
+    }
+    return str;
+  }
   static std::string sanitizeSuffix(std::string str);
   static bool isPositiveInteger(std::string str);
   static bool isPositiveDecimal(std::string str);

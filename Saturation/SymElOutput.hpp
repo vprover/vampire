@@ -19,8 +19,6 @@
 
 #include "Lib/DHMap.hpp"
 
-#include "Shell/TPTPPrinter.hpp"
-
 namespace Saturation {
 
 using namespace Lib;
@@ -76,7 +74,8 @@ private:
 
   SaturationAlgorithm* _sa;
 
-  TPTPPrinter _printer;
+  /** Symbol declarations are printed once, before the first symbol-eliminating clause. */
+  bool _declarationsPrinted = false;
 };
 
 }

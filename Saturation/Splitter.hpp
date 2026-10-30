@@ -301,6 +301,9 @@ private:
   // clauses we already added to the SAT solver
   // not just optimisation: also prevents the SAT solver oscillating between two models in some cases
   Set<SATClause*, DerefPtrHash<SATClauseHash>, DerefPtrEqual> _already_added;
+
+  /** In TPTP proofs, introduce the spl predicate whose name prefixes split names. */
+  static void ensureSplPrefix();
 public:
   static std::string splPrefix;
 

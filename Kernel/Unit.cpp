@@ -222,6 +222,25 @@ void Unit::assertValid()
   }
 }
 
+ConjectureRelation Unit::conjectureRelation() const
+{
+  switch (inputType()) {
+  case UnitInputType::NEGATED_CONJECTURE:
+    return ConjectureRelation::NEGATED_CONJECTURE;
+  case UnitInputType::CONJECTURE:
+    // Parsers reject clausal conjectures, so a clause always stems from ~F.
+    if (isClause()) {
+      return ConjectureRelation::NEGATED_CONJECTURE;
+    }
+    if (inference().rule() == InferenceRule::INPUT) {
+      return ConjectureRelation::CONJECTURE;
+    }
+    return ConjectureRelation::NEGATED_FORMULA;
+  default:
+    return ConjectureRelation::NONE;
+  }
+}
+
 UnitIterator Unit::getParents() const
 {
   // The unit itself stores the inference
