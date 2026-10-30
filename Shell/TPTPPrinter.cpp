@@ -179,7 +179,7 @@ std::ostream& TPTPPrinter::universalPrefix(std::ostream& out, const Unit* unit)
   });
 
   out << "![";
-  out << TPTPOutput::commaSeparated(vars.iter(), [&varSorts](unsigned x) {
+  out << TPTPOutput::commaSeparated(vars.iterFifo(), [&varSorts](unsigned x) {
     return Lib::Output::deferred([&varSorts, x](std::ostream& out) -> std::ostream& {
       return out << variableRef(x) << " : " << varSorts.get(x);
     });
