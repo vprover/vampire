@@ -283,7 +283,8 @@ public:
   /* Higher-order terms */
   bool isApplication() const;
   bool isLambdaTerm() const;
-  bool isRedex() const;
+  bool isBetaRedex() const;
+  bool isEtaRedex() const;
   bool isProxy(Proxy proxy) const;
   bool isChoice() const;
 
@@ -292,6 +293,7 @@ public:
    * In other words, it returns true if there is a db_i in the
    * term that is not wrapped into i lambda binders. */ 
   bool containsLooseDBIndex() const;
+  const SharedSet<unsigned>* freeDBIndices() const;
   TermList lhs() const;
   TermList rhs() const;
   TermList lambdaBody() const;
@@ -364,8 +366,8 @@ private:
     BITFIELD_MEMBER(uint32_t, _distinctVars, _setDistinctVars, TERM_DIST_VAR_BITS,
     BITFIELD_MEMBER(unsigned, _order, _setOrder, ARGUMENT_ORDER_BITS,
     BITFIELD_MEMBER(bool, _hasLambda, _setHasLambda, 1,
-    BITFIELD_MEMBER(bool, _hasRedex, _setHasRedex, 1,
-    BITFIELD_MEMBER(bool, _hasDeBruijnIndex, _setHasDeBruijnIndex, 1,
+    BITFIELD_MEMBER(bool, _hasBetaRedex, _setHasBetaRedex, 1,
+    BITFIELD_MEMBER(bool, _hasEtaRedex, _setHasEtaRedex, 1,
     BITFIELD_MEMBER(bool, _hasTermVar, _setHasTermVar, 1,
     BITFIELD_MEMBER(bool, _sort, _setSort, 1,
     BITFIELD_MEMBER(bool, _literal, _setLiteral, 1,
@@ -692,12 +694,6 @@ public:
     return _weight;
   }
 
-  int maxRedLength() const
-  {
-    ASS(shared());
-    return _maxRedLen;    
-  }
-
   int kboWeight(const void* kboInstance) const
   {
     ASS(_kboInstance || _kboWeight == -1);
@@ -713,6 +709,12 @@ public:
 #endif
     _kboWeight = w;
   }
+
+  const SharedSet<unsigned>* freeDBIndices() const
+  { return _freeDBIndices; }
+
+  void setFreeDBIndices(const SharedSet<unsigned>* is)
+  { _freeDBIndices = is; }
 
   /** Mark term as shared */
   void markShared()
@@ -736,11 +738,6 @@ public:
     ASS(shared());
     return info()._id();
   }
-  
-  void setMaxRedLen(int rl)
-  {
-    _maxRedLen = rl;
-  } // setWeight
 
   /** Set the number of variable _occurrences_ */
   void setNumVarOccs(unsigned v)
@@ -795,7 +792,8 @@ public:
   /** true if the term is a lambda term */
   bool isLambdaTerm() const;
   /** true if the term is a redex */
-  bool isRedex() const;
+  bool isBetaRedex() const;
+  bool isEtaRedex() const;
   bool isProxy(Proxy proxy) const;
   bool isChoice() const;
 
@@ -805,31 +803,28 @@ public:
     return *nthArgument(2);
   }
 
-  void setHasRedex(bool b) {
+  void setHasBetaRedex(bool b) {
     ASS(shared() && !isSort())
 
-    info()._setHasRedex(b);
+    info()._setHasBetaRedex(b);
   }
 
   /** true if term contains redex */
-  bool hasRedex() const {
+  bool hasBetaRedex() const {
     ASS(shared())
-    return info()._hasRedex();
+    return info()._hasBetaRedex();
+  }
+  void setHasEtaRedex(bool b) {
+    ASS(shared() && !isSort())
+
+    info()._setHasEtaRedex(b);
+  }
+  bool hasEtaRedex() const {
+    ASS(shared())
+    return info()._hasEtaRedex();
   }
   /** returns empty option if not a De Bruijn index and index otherwise */
   Option<unsigned> deBruijnIndex() const;
-
-  void setHasDeBruijnIndex(bool b) {
-    ASS(shared() && !isSort());
-    info()._setHasDeBruijnIndex(b);
-  }
-
-  /** returns true if term contains De Bruijn index */
-  bool hasDeBruijnIndex() const {
-    ASS(shared())
-
-    return info()._hasDeBruijnIndex();
-  }
 
   void setHasLambda(bool b) {
     ASS(shared() && !isSort())
@@ -998,8 +993,7 @@ protected:
   /** KBO instance that uses the cached value @b _kboWeight. */
   const void* _kboInstance;
 #endif
-  /** length of maximum reduction length */
-  int _maxRedLen;
+  const SharedSet<unsigned>* _freeDBIndices;
   union {
     /** If _isTwoVarEquality is false, this value is valid and contains
      * number of occurrences of variables */

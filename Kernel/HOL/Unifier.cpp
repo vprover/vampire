@@ -249,15 +249,15 @@ Stack<UnificationNode::Constraint> UnificationNode::decompose(unsigned index, bo
 }
 
 
-AbstractingWrapper::AbstractingWrapper(AbstractingUnifier* unifier, unsigned hoUnifDepth, bool funcExt)
-  : _unifier(new AbstractingUnifier(unifier->_uwa)), _hoUnifDepth(hoUnifDepth)
+AbstractingWrapper::AbstractingWrapper(AbstractingUnifier& unifier, unsigned hoUnifDepth, bool funcExt)
+  : _unifier(new AbstractingUnifier(unifier._uwa)), _hoUnifDepth(hoUnifDepth)
 #if VDEBUG
   , _funcExt(funcExt)
 #endif
 {
-  _unifier->subs().copy(unifier->subs());
+  _unifier->subs().copy(unifier.subs());
   Stack<UnificationNode::Constraint> cons;
-  for (const auto c : unifier->constr().iter()) {
+  for (const auto c : unifier.constr().iter()) {
     cons.emplace(
       c.lhs().toGluedTerm(_unifier->subs()),
       c.rhs().toGluedTerm(_unifier->subs()),

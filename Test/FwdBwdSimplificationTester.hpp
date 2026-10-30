@@ -30,6 +30,10 @@
 
 namespace Test {
 
+struct DummyBwdRule : BackwardSimplificationEngine {
+  void perform(Clause*, BwSimplificationRecordIterator&) { ASSERTION_VIOLATION; }
+};
+
 namespace FwdBwdSimplification {
 
 template<typename FwdRule, typename BwdRule>
@@ -186,6 +190,16 @@ public:
     __ALLOW_UNUSED(syntax_sugar)                                                          \
     auto test = __VA_ARGS__;                                                              \
     test.run();                                                                           \
+  }                                                                                       \
+
+#define TEST_FWD_SIMPLIFICATION(name, ...)                                                \
+        TEST_FWD_SIMPLIFICATION_WITH_SUGAR(name, MY_SYNTAX_SUGAR, __VA_ARGS__) 
+
+#define TEST_FWD_SIMPLIFICATION_WITH_SUGAR(name, syntax_sugar, ...)                       \
+  TEST_FUN(name) {                                                                        \
+    __ALLOW_UNUSED(syntax_sugar)                                                          \
+    auto test = __VA_ARGS__;                                                              \
+    test.runFwd();                                                                        \
   }                                                                                       \
 
 } // namespace Simplification

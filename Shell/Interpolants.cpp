@@ -23,6 +23,7 @@
 #include "Kernel/Connective.hpp"
 
 #include "Shell/Flattening.hpp"
+#include "Shell/UIHelper.hpp"
 #include "SimplifyFalseTrue.hpp"
 #include "Shell/NNF.hpp"
 
@@ -385,9 +386,14 @@ namespace Shell
         // print the depth of each ...
 
         // cout << "Number of red components: " << contributions.size() << endl;
-        cout << "Nestedness: " << justOneNoodle.implCnt << endl;
-        cout << "Before simplification: " << interpolant->toString() << endl;
-        cout << "Weight before simplification: " << interpolant->weight() << endl;
+        addCommentSignForSZS(cout);
+        cout << "Interpolant (before simplification, nestedness "
+             << justOneNoodle.implCnt << ", weight " << interpolant->weight() << "):" << endl;
+        addCommentSignForSZS(cout);
+        cout << "SZS output start Interpolant" << endl;
+        cout << interpolant->toString() << endl;
+        addCommentSignForSZS(cout);
+        cout << "SZS output end Interpolant" << endl;
 
         return Flattening::flatten(NNF::ennf(Flattening::flatten(SimplifyFalseTrue::simplify(interpolant)),true));
     }
