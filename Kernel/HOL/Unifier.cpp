@@ -127,7 +127,7 @@ Option<Stack<UnificationNode*>> UnificationNode::solve()
     // TODO(HOL): if simplify is called, this should be unnecessary
     if (curr.rigidRigid()) {
       DEBUG("rigid-rigid ", curr._lhead, " ", curr._rhead);
-      if (_funcExt && curr._sort.isArrowSort()) {
+      if (curr.extensional(_funcExt)) {
         DEBUG("extensionality with sort ", curr._sort);
         i++;
         continue;
@@ -186,7 +186,7 @@ bool UnificationNode::simplify()
 
     if (curr.rigidRigid()) {
       DEBUG("rigid-rigid ", curr._lhead, " ", curr._rhead);
-      if (_funcExt && curr._sort.isArrowSort()) {
+      if (curr.extensional(_funcExt)) {
         DEBUG("extensionality with sort ", curr._sort);
         i++;
         continue;
@@ -331,7 +331,7 @@ AbstractingUnifier* AbstractingWrapper::next()
 
   _unifier->constr().reset();
   for (const auto& con : _next->_cons) {
-    ASS_REP(con.flexFlex() || con.flexRigid() || (_funcExt && con._sort.isArrowSort()), con);
+    ASS_REP(con.flexFlex() || con.flexRigid() || con.extensional(_funcExt), con);
     ASS_REP(!con._lhs.containsLooseDBIndex(), con);
     ASS_REP(!con._rhs.containsLooseDBIndex(), con);
     auto sortS = SubstHelper::apply(con._sort, _next->_subs);
