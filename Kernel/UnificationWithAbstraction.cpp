@@ -295,6 +295,11 @@ Option<AbstractionOracle::AbstractionResult> hol(AbstractingUnifier* au, TermSpe
   ASS(!h1->term.deBruijnIndex());
   ASS(!h2->term.deBruijnIndex());
 
+  if (t1.sort().term.isBoolSort() && (!h1->term.isProxy(Proxy::NOT_PROXY) || !h2->term.isProxy(Proxy::NOT_PROXY))) {
+    DEBUG_UNIFY(0, "bool constraint abstracted ", t1, " =?= ", t2);
+    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, t1.sort()))));
+  }
+
   // if functors are different, don't abstract
   if (h1->functor() != h2->functor()) {
     return some(AbstractionOracle::AbstractionResult(AbstractionOracle::NeverEqual()));
