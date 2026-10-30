@@ -124,7 +124,6 @@ namespace HOL::create {
   TermList neg();
   TermList pi(TermList sort);
   TermList sigma(TermList sort);
-  TermList placeholder(TermList sort);
 
   Term* lambda(unsigned numArgs, const unsigned* vars, const TermList* varSorts, TypedTermList body, TermList* resultExprSort = nullptr);
 
@@ -135,8 +134,6 @@ namespace HOL::create {
   // with fromTop = true, while λ_{sn}...λ_{s1}.t with fromTop = false.
   TermList surroundWithLambdas(TermList t, const TermStack& sorts, bool fromTop = false);
   TermList surroundWithLambdas(TermList t, const TermStack& sorts, TermList sort, bool fromTop = false);
-
-  TermList placeholder(TermList sort);
 
   Clause* choiceAxiom();
   Clause* functionalExtensionalityAxiom();
