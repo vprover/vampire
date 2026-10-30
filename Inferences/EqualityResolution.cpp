@@ -92,7 +92,7 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
       // equalities of arrow sort should be first dealt with by NegativeExtensionality
       // equalities with a proxy symbol on either side should be dealt with in CNFOnTheFly
       return l->isEquality() && l->isNegative() && (!funcExt || !l->eqArgSort().isArrowSort()) &&
-        !l->termArg(0).isProxy() && !l->termArg(1).isProxy();
+        (!l->eqArgSort().isBoolSort() || (!l->termArg(0).head().isProxy() && !l->termArg(1).head().isProxy()));
     })
     .flatMap([this,premise](Literal* lit) {
 
