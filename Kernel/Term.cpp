@@ -140,6 +140,10 @@ bool TermList::isEtaRedex() const {
   return isTerm() && term()->isEtaRedex();
 }
 
+bool TermList::isProxy() const {
+  return isTerm() && !term()->isProxy(Proxy::NOT_PROXY);
+}
+
 bool TermList::isProxy(Proxy proxy) const {
   return !isVar() && term()->isProxy(proxy);
 }

@@ -90,7 +90,9 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
   return pvi(premise->getSelectedLiteralIterator()
     .filter([](Literal* l)  {
       // equalities of arrow sort should be first dealt with by NegativeExtensionality
-      return l->isEquality() && l->isNegative() && (!funcExt || !l->eqArgSort().isArrowSort());
+      // equalities with a proxy symbol on either side should be dealt with in CNFOnTheFly
+      return l->isEquality() && l->isNegative() && (!funcExt || !l->eqArgSort().isArrowSort()) &&
+        !l->termArg(0).isProxy() && !l->termArg(1).isProxy();
     })
     .flatMap([this,premise](Literal* lit) {
 
