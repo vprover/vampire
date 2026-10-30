@@ -152,10 +152,6 @@ bool TermList::isChoice() const {
   return !isVar() && term()->isChoice();
 }
 
-bool TermList::isPlaceholder() const {
-  return !isVar() && term()->isPlaceholder();
-}
-
 Option<unsigned> TermList::deBruijnIndex() const {
   if (isVar())
     return {};
@@ -935,7 +931,7 @@ bool Term::isApplication() const {
 }
 
 bool Term::isLambdaTerm() const {
-  return !isSort() && !isLiteral() && !isSpecial() && env.signature->isLamFun(_functor);
+  return !isSort() && !isLiteral() && env.signature->isLamFun(_functor);
 }
 
 bool Term::isBetaRedex() const {
@@ -962,19 +958,15 @@ bool Term::isEtaRedex() const {
 }
 
 bool Term::isProxy(Proxy proxy) const {
-  return !isSort() && !isLiteral() && !isSpecial() && env.signature->getFunction(_functor)->proxy() == proxy;
+  return !isSort() && !isLiteral() && env.signature->getFunction(_functor)->proxy() == proxy;
 }
 
 bool Term::isChoice() const {
-  return !isSort() && !isLiteral() && !isSpecial() && env.signature->isChoiceFun(_functor);
-}
-
-bool Term::isPlaceholder() const {
-  return !isSort() && !isLiteral() && !isSpecial() && env.signature->isPlaceholder(_functor);
+  return !isSort() && !isLiteral() && env.signature->isChoiceFun(_functor);
 }
 
 Option<unsigned> Term::deBruijnIndex() const {
-  if (isSort() || isLiteral() || isSpecial())
+  if (isSort() || isLiteral())
     return {};
   return env.signature->getFunction(_functor)->deBruijnIndex();
 }
