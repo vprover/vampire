@@ -40,24 +40,4 @@ private:
   }
 };
 
-struct EtaNormaliser2 : public BottomUpTermTransformer
-{
-  EtaNormaliser2() : BottomUpTermTransformer(/*transformSorts=*/false) {}
-
-  TermList normalise(TermList t) { return transform(t); }
-  TermList transformSubterm(TermList t) override {
-    for (;;) {
-      if (!t.isEtaRedex()) {
-        break;
-      }
-      t = TermShifter::shift(t.term()->lambdaBody().term()->termArg(0), -1);
-    }
-    return t;
-  }
-
-  bool alreadyTransformed(Term* t) override {
-    return !t->hasEtaRedex();
-  }
-};
-
 #endif // __EtaNormaliser__
