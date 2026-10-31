@@ -369,7 +369,7 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
       //here we assume, that stack is an array with
       //second topmost element as &top()-1, third at
       //&top()-2, etc...
-      TermList* argLst=&args.top() - (orig->arity()-1);
+      TermList* argLst = args.end() - orig->arity();
 
       bool shouldShare=!noSharing && canBeShared(argLst, orig->arity());
 
@@ -437,7 +437,7 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
     //here we assume, that stack is an array with
     //second topmost element as &top()-1, third at
     //&top()-2, etc...
-    TermList* argLst=&args.top() - (trm->arity()-1);
+    TermList* argLst = args.end() - trm->arity();
     ASS_EQ(args.size(), trm->arity());
     if(trm->isLiteral()) {
       ASS(!noSharing);
