@@ -443,7 +443,6 @@ class Signature
   unsigned getDiff();
   unsigned getChoice();
   unsigned getDeBruijnIndex(int index);
-  unsigned getPlaceholder();
   unsigned getDefPred();
   /**
    * For a function f with result type t, this introduces a predicate
@@ -682,10 +681,6 @@ class Signature
 
   bool isChoiceFun(unsigned fun) const{
     return fun == _choiceFun && _choiceFun != UINT_MAX;
-  }
-
-  bool isPlaceholder(unsigned fun) const{
-    return fun == _placeholderFun && _placeholderFun != UINT_MAX;
   }
 
   bool isDefPred(unsigned p) const {
@@ -956,7 +951,6 @@ private:
   unsigned _appFun;
   unsigned _lamFun;
   unsigned _choiceFun;
-  unsigned _placeholderFun;
   unsigned _defPred;
   DHSet<unsigned, FnvHash, IdentityHash> _fnDefPreds;
   DHMap<unsigned,unsigned, FnvHash, IdentityHash> _boolDefPreds;

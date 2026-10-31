@@ -140,16 +140,16 @@ bool TermList::isEtaRedex() const {
   return isTerm() && term()->isEtaRedex();
 }
 
+bool TermList::isProxy() const {
+  return isTerm() && !term()->isProxy(Proxy::NOT_PROXY);
+}
+
 bool TermList::isProxy(Proxy proxy) const {
   return !isVar() && term()->isProxy(proxy);
 }
 
 bool TermList::isChoice() const {
   return !isVar() && term()->isChoice();
-}
-
-bool TermList::isPlaceholder() const {
-  return !isVar() && term()->isPlaceholder();
 }
 
 Option<unsigned> TermList::deBruijnIndex() const {
@@ -963,10 +963,6 @@ bool Term::isProxy(Proxy proxy) const {
 
 bool Term::isChoice() const {
   return !isSort() && !isLiteral() && !isSpecial() && env.signature->isChoiceFun(_functor);
-}
-
-bool Term::isPlaceholder() const {
-  return !isSort() && !isLiteral() && !isSpecial() && env.signature->isPlaceholder(_functor);
 }
 
 Option<unsigned> Term::deBruijnIndex() const {

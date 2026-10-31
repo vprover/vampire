@@ -83,8 +83,13 @@ TEST_GENERATION(test_07,
 #undef MY_SYNTAX_SUGAR
 #define MY_SYNTAX_SUGAR                               \
   DECL_SORT(s)                                        \
+  DECL_SORT_BOOL                                      \
+  TROO                                                \
+  DECL_AND_PROXY                                      \
+  DECL_PI_PROXY                                       \
   DECL_DEFAULT_VARS                                   \
   DECL_CONST(f, arrow({s, s}, s))                     \
+  DECL_CONST(p, arrow(s, Bool))                       \
   DECL_DE_BRUIJN_INDEX(db0, 0, s)                     \
   DECL_CONST(a, s)                                    \
   DECL_CONST(b, s)
@@ -108,6 +113,18 @@ TEST_GENERATION(test_hol_02,
       .expected( exactly(
         clause({ lam(s, x.sort(s)) != lam(s, y.sort(s)) })
       ))
+    )
+
+// not applied to Boolean proxies
+TEST_GENERATION(test_hol_03,
+    Generation::AsymmetricTest()
+      .input(clause({ selected(ap(andP, {x, y}) != x), selected(ap(piP(s), p) != troo), selected(x != ap(p, a)) }))
+      .options({
+        { "literal_maximality_aftercheck", "off" },
+      })
+      .expected({
+        clause({ ap(andP, {ap(p, a), y}) != ap(p, a), ap(piP(s), p) != troo }),
+      })
     )
 
 #undef MY_SYNTAX_SUGAR
