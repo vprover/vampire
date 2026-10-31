@@ -116,21 +116,21 @@ Term* EqHelper::replace(Term* trm0, TermList tSrc, TermList tDest)
     TermList* tt=toDo.pop();
     if (tt->isEmpty()) {
       if (terms.isEmpty()) {
-	//we're done, args stack contains modified arguments
-	//of the literal.
-	ASS(toDo.isEmpty());
-	break;
+        //we're done, args stack contains modified arguments
+        //of the literal.
+        ASS(toDo.isEmpty());
+        break;
       }
       Term* orig=terms.pop();
       if (!modified.pop()) {
-	args.truncate(args.length() - orig->arity());
-	args.push(TermList(orig));
-	continue;
+        args.truncate(args.length() - orig->arity());
+        args.push(TermList(orig));
+        continue;
       }
       //here we assume, that stack is an array with
       //second topmost element as &top()-1, third at
       //&top()-2, etc...
-      TermList* argLst=&args.top() - (orig->arity()-1);
+      TermList* argLst = args.end() - orig->arity();
       args.truncate(args.length() - orig->arity());
 
       args.push(TermList(Term::create(orig,argLst)));
@@ -174,7 +174,7 @@ Term* EqHelper::replace(Term* trm0, TermList tSrc, TermList tDest)
   // here we assume, that stack is an array with
   // second topmost element as &top()-1, third at
   // &top()-2, etc...
-  TermList* argLst=&args.top() - (trm0->arity()-1);
+  TermList* argLst = args.end() - trm0->arity();
   if (trm0->isLiteral()) {
     Literal* lit = static_cast<Literal*>(trm0);
     ASS_EQ(args.size(), lit->arity());
