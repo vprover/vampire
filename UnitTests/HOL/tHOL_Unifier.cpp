@@ -116,16 +116,21 @@ void testUnifySuccess(TermList lhs, TermList rhs, Stack<ResultSpec> expected) {
 
     auto cons = hoUnif->computeConstraintLiterals();
     for (unsigned j = 0; j < e.constraints.size(); j++) {
+      auto [lhs,rhs] = cons[j]->eqArgs();
+      TermList lhsr = HOL::reduce::betaEtaNF(lhs);
+      TermList rhsr = HOL::reduce::betaEtaNF(rhs);
+      auto lit = Literal::createEquality(cons[j]->polarity(), lhsr, rhsr, cons[j]->eqArgSort());
       if (j >= cons.size()) {
         std::cout << std::endl;
         std::cout << "missing constraint (" << unifToStr(lhs, rhs) << ")" << std::endl;
         ASSERTION_VIOLATION;
       }
-      if (cons[j] != e.constraints[j]) {
+      if (lit != e.constraints[j]) {
         std::cout << std::endl;
         std::cout << "unifier " << i << ", constraint " << j << " mismatch" << std::endl;
-        std::cout << "actual:   " << *cons[j] << std::endl;
-        std::cout << "expected: " << *e.constraints[j] << std::endl;
+        std::cout << "actual:     " << *cons[j] << std::endl;
+        std::cout << "normalized: " << *lit << std::endl;
+        std::cout << "expected:   " << *e.constraints[j] << std::endl;
         std::cout << unifToStr(lhs, rhs) << std::endl;
         ASSERTION_VIOLATION;
       }
