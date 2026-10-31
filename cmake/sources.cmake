@@ -118,6 +118,7 @@ set(UNIT_TESTS
     UnitTests/tTermIndex.cpp
     UnitTests/tTermOutput.cpp
     UnitTests/tTimeTrace.cpp
+    UnitTests/tTimer.cpp
     UnitTests/tTuple.cpp
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/HOL/tHOL_Printing.cpp
