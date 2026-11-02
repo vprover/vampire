@@ -273,6 +273,12 @@ check_szs_status Satisfiable theory/let-nested-bool.smt2
 check_szs_status Satisfiable -newcnf on theory/let-nested-bool.smt2
 
 # Arrays
+# Explicit plus signs on TPTP integer and rational literals.
+check_szs_status Theorem --input_syntax tptp theory/plus-numerals.p
+check_szs_status Unsatisfiable --input_syntax tptp theory/plus-integer-disequality.p
+check_szs_status Unsatisfiable --input_syntax tptp theory/plus-zero-disequality.p
+check_szs_status Unsatisfiable --input_syntax tptp theory/plus-rational-disequality.p
+
 check_szs_status Unsatisfiable theory/arrays.smt2
 check_szs_status Unsatisfiable -newcnf on theory/arrays.smt2
 

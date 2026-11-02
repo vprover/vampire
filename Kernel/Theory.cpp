@@ -52,8 +52,16 @@ namespace Kernel {
 
 Option<IntegerConstantType> IntegerConstantType::parse(std::string const& str)
 {
+  const char* digits = str.c_str();
+  // GMP accepts a leading minus, but not a leading plus.
+  if (*digits == '+') {
+    ++digits;
+    if (*digits < '0' || *digits > '9') {
+      return {};
+    }
+  }
   auto out = IntegerConstantType(0);
-  if (-1 == mpz_set_str(out._val, str.c_str(), /* base */ 10)) {
+  if (-1 == mpz_set_str(out._val, digits, /* base */ 10)) {
     return {};
   } else {
     return some(out);
