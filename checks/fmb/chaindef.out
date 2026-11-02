@@ -1,0 +1,15 @@
+% SZS status Satisfiable for chaindef
+% SZS output start Saturation.
+cnf(c3,axiom,
+    p(h(a))).
+
+cnf(c4,axiom,
+    ~p(b)).
+
+% SZS output end Saturation.
+% SZS output start Definitions and Model Updates.
+for all inputs,
+    define g(X0) := h(X0)
+for all inputs,
+    define f(X0) := g(X0)
+% SZS output end Definitions and Model Updates.

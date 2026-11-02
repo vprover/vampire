@@ -44,6 +44,8 @@ set(UNIT_TESTS
     UnitTests/tArithCompare.cpp
     UnitTests/tBinaryHeap.cpp
     UnitTests/tBottomUpEvaluation.cpp
+    UnitTests/tCliqueFinder.cpp
+    UnitTests/tCond.cpp
     UnitTests/tCoproduct.cpp
     UnitTests/tDHMap.cpp
     UnitTests/tDHMultiset.cpp
@@ -114,6 +116,7 @@ set(UNIT_TESTS
     UnitTests/tSignature.cpp
     UnitTests/tStack.cpp
     UnitTests/tSyntaxSugar.cpp
+    UnitTests/tTermPrinting.cpp
     UnitTests/tTermAlgebra.cpp
     UnitTests/tTermIndex.cpp
     UnitTests/tTermOutput.cpp
@@ -159,6 +162,7 @@ set(SOURCES
     Debug/TimeProfiling.hpp
     Debug/Tracer.cpp
     Debug/Tracer.hpp
+    FMB/ArgsEnumerator.hpp
     FMB/ClauseFlattening.cpp
     FMB/ClauseFlattening.hpp
     FMB/CliqueFinder.hpp

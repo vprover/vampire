@@ -1263,7 +1263,6 @@ public:
   void setRandomSeed(unsigned seed) { _randomSeed.actualValue = seed; }
   const std::string& strategySamplerFilename() const { return _sampleStrategy.actualValue; }
   bool printClausifierPremises() const { return _printClausifierPremises.actualValue; }
-  bool replaceDomainElements() const { return _replaceDomainElements.actualValue; }
 
   // IMPORTANT, if you add a showX command then include showAll
   bool showAll() const { return _showAll.actualValue; }
@@ -1824,7 +1823,6 @@ private:
 
   StringOptionValue _printProofToFile;
   BoolOptionValue _printClausifierPremises;
-  BoolOptionValue _replaceDomainElements;
   ChoiceOptionValue<Proof> _proof;
   BoolOptionValue _minimizeSatProofs;
   ChoiceOptionValue<ProofExtra> _proofExtra;

@@ -334,12 +334,13 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
     case SpecialFunctor::LAMBDA:
       // TODO in principle this should not be so difficult to handle
       ASSERTION_VIOLATION;
-    case SpecialFunctor::MATCH: {
+    case SpecialFunctor::MATCH:
+    case SpecialFunctor::COND: {
       DArray<TermList> terms(trm->arity());
       for (unsigned i = 0; i < trm->arity(); i++) {
         terms[i] = applyImpl<ProcessSpecVars>(*trm->nthArgument(i), applicator, noSharing);
       }
-      return Term::createMatch(sd->getSort(), sd->getMatchedSort(), trm->arity(), terms.begin());
+      return Term::createMatchOrCond(trm, sd->getSort(), trm->arity(), terms.begin());
     }
     }
     ASSERTION_VIOLATION;
