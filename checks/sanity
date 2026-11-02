@@ -454,6 +454,7 @@ check_szs_status Unsatisfiable -qa synthesis synthesis/ex2-inverse_of_ixopiy.smt
 # --mode output, before preprocessing runs at all.
 check_szs_status Theorem hol/hol1.p
 check_szs_status Theorem hol/hol2.p
+check_szs_status Theorem hol/hol-bool-ext.p
 check_rejected 'distinct objects are not supported in higher-order problems' \
 	--input_syntax tptp hol/hol-distinct-object.p
 

@@ -134,12 +134,6 @@ TermList HOL::create::sigma(TermList sort) {
   return TermList(Term::create1(sigmaProxy, sort));
 }
 
-TermList HOL::create::placeholder(TermList sort) {
-  static const auto placeholder = env.signature->getPlaceholder();
-
-  return TermList(Term::create1(placeholder, sort));
-}
-
 Clause* HOL::create::choiceAxiom()
 {
   auto alpha = TermList::var(0);
