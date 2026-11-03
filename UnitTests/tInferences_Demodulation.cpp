@@ -213,4 +213,22 @@ TEST_SIMPLIFICATION(test19,
     .justifications({ /* nothing */ })
 )
 
+// encompassment does not work with equally general but incomparable equations
+TEST_SIMPLIFICATION(test20,
+  tester()
+    .simplifyWith({ clause({ g(f(x,y)) == f(x,y) }) })
+    .toSimplify({ clause({ g(f(x,y)) == f(y,x) }) })
+    .expected({ /* nothing */ })
+    .justifications({ /* nothing */ });
+)
+
+// labeled demodulates equally general but incomparable equation
+TEST_SIMPLIFICATION(test21,
+  tester()
+    .simplifyWith({ clause({ g(f(x,y)) == f(x,y) }) })
+    .toSimplify({ clause({ g(f(x,y)) == f(y,x) }) })
+    .expected({ clause({ f(x,y) == f(y,x) }) })
+    .options({ { "term_ordering", "lpo" }, { "demodulation_redundancy_check", "labeled" } });
+)
+
 }

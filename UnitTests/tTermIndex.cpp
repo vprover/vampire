@@ -8,6 +8,8 @@
  * and in the source directory
  */
 
+#include <set>
+
 #include "Indexing/CodeTreeInterfaces.hpp"
 
 #include "Test/UnitTesting.hpp"
@@ -326,3 +328,164 @@ TEST_FUN(zero_arity_predicate_gen) {
   check_gen(  tree, a != a, Stack<Data>{});
 }
 
+
+// The substitution a code tree returns is expressed in terms of the key's variables as numbered
+// by Renaming::normalizeVariables, so the code tree must number the variables of an equality
+// literal (arguments, then sort) in the same order.
+TEST_FUN(gen_equality_sort_variable_order) {
+
+  DECL_DEFAULT_VARS
+  DECL_DEFAULT_SORT_VARS
+  DECL_SORT(A)
+  DECL_SORT(B)
+  DECL_CONST(a, A)
+  DECL_CONST(b, B)
+  // k : !>[X0,X1]: X0 > X1, so in k(alpha,beta,x) = y the sort is beta, which is not
+  // the first variable met among the arguments
+  DECL_POLY_FUNC(k, 2, {alpha}, beta)
+
+  using Data = MyData<Literal*>;
+  CodeTreeLIS<Data> tree;
+  Literal* key = k(alpha, beta, x) == y;
+  Literal* query = k(A, B, a) == b;
+  tree.handle(Data(key, "k(alpha,beta,x) = y"), /*insert=*/true);
+
+  unsigned found = 0;
+  auto it = tree.getGeneralizations(query, /*complementary=*/false);
+  while (it.hasNext()) {
+    auto res = it.next();
+    ASS_EQ(res.unifier.apply(key), query)
+    found++;
+  }
+  ASS_EQ(found, 1u)
+}
+
+// Compares the generalizations the literal code tree finds for equalities (two-variable ones
+// with various sorts, reversed ones, polymorphic ones) and predicates with MatchingUtils::match,
+// and checks that the returned substitutions map the key to the query (or to its reversal).
+TEST_FUN(gen_equality_agrees_with_matching_utils) {
+
+  DECL_DEFAULT_VARS
+  DECL_DEFAULT_SORT_VARS
+  DECL_SORT(A)
+  DECL_SORT(B)
+  DECL_TYPE_CON(list, 1)
+  DECL_CONST(a, A)
+  DECL_CONST(b, B)
+  DECL_FUNC(f, {A}, A)
+  DECL_POLY_FUNC(idf, 1, {alpha}, alpha)
+  DECL_POLY_FUNC(k, 2, {alpha}, beta)
+  DECL_POLY_CONST(nil, 1, list(alpha))
+  DECL_POLY_FUNC(cons, 1, {alpha, list(alpha)}, list(alpha))
+  DECL_PRED(p, {A, A})
+
+  Stack<Literal*> keys = {
+    sorted(x, alpha) == y,
+    sorted(x, A) == y,
+    sorted(x, B) == y,
+    sorted(x, list(alpha)) == y,
+    sorted(x, list(A)) == y,
+    sorted(x, list(beta)) == y,
+    sorted(x, list(list(alpha))) == y,
+    sorted(x, alpha) == x,
+    sorted(x, alpha) != y,
+    ~(sorted(x, B) == y),
+    a == sorted(x, A),
+    idf(alpha, x) == y,
+    idf(A, x) == f(y),
+    k(alpha, beta, x) == y,
+    k(alpha, alpha, x) == y,
+    y == k(alpha, beta, x),
+    nil(alpha) == x,
+    cons(alpha, x, y) == z,
+    cons(alpha, x, nil(alpha)) == nil(alpha),
+    f(x) == x,
+    p(x, y),
+    p(x, x),
+  };
+  Stack<Literal*> queries = {
+    a == a,
+    a == f(a),
+    ~(a == a),
+    sorted(x, A) == y,
+    sorted(x, A) == x,
+    sorted(x, A) != y,
+    sorted(x, B) == y,
+    sorted(x, alpha) == y,
+    sorted(x, list(A)) == y,
+    sorted(x, list(B)) == y,
+    sorted(x, list(alpha)) == y,
+    sorted(x, list(beta)) == y,
+    sorted(x, list(list(A))) == y,
+    sorted(x, list(list(alpha))) == y,
+    a == sorted(x, A),
+    nil(A) == nil(A),
+    nil(A) == x,
+    x == nil(A),
+    nil(list(A)) == y,
+    cons(A, a, nil(A)) == nil(A),
+    nil(A) == cons(A, a, nil(A)),
+    cons(A, x, y) == z,
+    k(A, B, a) == b,
+    b == k(A, B, a),
+    y == k(A, B, x),
+    k(A, A, x) == y,
+    k(alpha, beta, x) == y,
+    k(alpha, alpha, x) == y,
+    k(list(A), list(B), x) == y,
+    idf(A, a) == a,
+    a == idf(A, a),
+    idf(A, x) == y,
+    idf(A, a) == f(a),
+    f(a) == idf(A, a),
+    f(x) == x,
+    x == f(x),
+    p(a, a),
+    p(x, y),
+    p(x, x),
+  };
+
+  using Data = MyData<Literal*>;
+  CodeTreeLIS<Data> tree;
+  for (unsigned i = 0; i < keys.size(); i++) {
+    tree.handle(Data(keys[i], std::to_string(i)), /*insert=*/true);
+  }
+
+  auto reversed = [](Literal* l) {
+    return Literal::createEquality(l->polarity(), *l->nthArgument(1), *l->nthArgument(0),
+                                   SortHelper::getEqualityArgumentSort(l));
+  };
+
+  for (auto query : queries) {
+    for (bool complementary : {false, true}) {
+      Literal* target = complementary ? Literal::complementaryLiteral(query) : query;
+
+      std::set<unsigned> found;
+      auto it = tree.getGeneralizations(query, complementary);
+      while (it.hasNext()) {
+        auto res = it.next();
+        Literal* inst = res.unifier.apply(res.data->key());
+        if (inst != target && !(target->isEquality() && inst == reversed(target))) {
+          std::cout << "wrong substitution: key " << *res.data->key() << " query " << *target
+                    << " instance " << *inst << std::endl;
+          ASSERTION_VIOLATION
+        }
+        found.insert(std::stoul(res.data->str));
+      }
+
+      std::set<unsigned> expected;
+      for (unsigned i = 0; i < keys.size(); i++) {
+        if (MatchingUtils::match(keys[i], query, complementary)) {
+          expected.insert(i);
+        }
+      }
+
+      if (found != expected) {
+        std::cout << "query " << *query << (complementary ? " (complementary)" : "") << std::endl;
+        for (auto i : found)    { if (!expected.count(i)) std::cout << "  unexpected " << *keys[i] << std::endl; }
+        for (auto i : expected) { if (!found.count(i))    std::cout << "  missing    " << *keys[i] << std::endl; }
+        ASSERTION_VIOLATION
+      }
+    }
+  }
+}

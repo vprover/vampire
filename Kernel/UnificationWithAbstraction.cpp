@@ -269,7 +269,7 @@ Option<AbstractionOracle::AbstractionResult> hol(AbstractingUnifier* au, TermSpe
   }
 
   if (funcExt) {
-    if (t1.sort().term.isExtensionalSort()) {
+    if (t1.sort().term.isArrowSort()) {
       return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, t1.sort()))));
     }
   }
@@ -294,6 +294,11 @@ Option<AbstractionOracle::AbstractionResult> hol(AbstractingUnifier* au, TermSpe
   // they cannot be DB indices as we are not dealing with lambdas
   ASS(!h1->term.deBruijnIndex());
   ASS(!h2->term.deBruijnIndex());
+
+  if (t1.sort().term.isBoolSort() && (h1->term.isProxy() || h2->term.isProxy())) {
+    DEBUG_UNIFY(0, "bool constraint abstracted ", t1, " =?= ", t2);
+    return some(AbstractionOracle::AbstractionResult(AbstractionOracle::EqualIf().constr(UnificationConstraint(t1, t2, t1.sort()))));
+  }
 
   // if functors are different, don't abstract
   if (h1->functor() != h2->functor()) {

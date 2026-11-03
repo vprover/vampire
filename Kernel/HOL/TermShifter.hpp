@@ -14,6 +14,8 @@
 #ifndef __TermShifter__
 #define __TermShifter__
 
+#include "Lib/SharedSet.hpp"
+
 #include "Kernel/TermTransformer.hpp"
 #include "Kernel/Term.hpp"
 
@@ -57,11 +59,8 @@ public:
 
   bool exploreSubterms(TermList orig, TermList newTerm) override {
     // already shifted, so must be DB index and won't have subterms anyway
-    return orig == newTerm && newTerm.term()->hasDeBruijnIndex();
+    return orig == newTerm && newTerm.freeDBIndices()->containsGreaterOrEqual(_cutOff);
   }
-
-  // returns the index of the minimal free DB index, otherwise UINT_MAX
-  static unsigned minFreeDBIndex(TermList t);
 
 private:
   unsigned _cutOff = 0; // any index higher than _cutOff is a free index

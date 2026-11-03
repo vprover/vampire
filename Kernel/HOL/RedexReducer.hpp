@@ -14,6 +14,8 @@
 #ifndef __RedexReducer__
 #define __RedexReducer__
 
+#include "Lib/SharedSet.hpp"
+
 #include "Kernel/TermTransformer.hpp"
 
 using namespace Kernel;
@@ -36,7 +38,7 @@ public:
   }
 
   bool exploreSubterms(TermList orig, TermList newTerm) override {
-    return orig == newTerm && newTerm.term()->hasDeBruijnIndex();
+    return orig == newTerm && newTerm.freeDBIndices()->containsGreaterOrEqual(_replace);
   }
 
 private:

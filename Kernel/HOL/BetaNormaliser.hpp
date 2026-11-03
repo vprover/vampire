@@ -32,7 +32,7 @@ struct BetaNormaliser : public BottomUpTermTransformer {
   TermList normalise(TermList t) { return transform(t); }
 
   TermList transformSubterm(TermList t) override {
-    if (!t.isRedex()) {
+    if (!t.isBetaRedex()) {
       return t;
     }
     DEBUG_CODE(++reductions;)
@@ -41,7 +41,7 @@ struct BetaNormaliser : public BottomUpTermTransformer {
   }
 
   bool alreadyTransformed(Term* t) override {
-    return !t->hasRedex();
+    return !t->hasBetaRedex();
   }
 };
 

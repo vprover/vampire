@@ -668,13 +668,12 @@ int main(int argc, char* argv[])
       interactiveMetamode();
     } else {
       // can only happen after reading options as it relies on `env.options`
-      Timer::reinitialise(); // start our timer, so that we also limit parsing
-
+      // start our timer, so that we also limit parsing
 #if VAMPIRE_PERF_EXISTS
-      unsigned saveInstrLimit = env.options->instructionLimit();
-      if (env.options->parsingDoesNotCount()) {
-        env.options->setInstructionLimit(0);
-      }
+      // (with parsing_does_not_count, the instruction limit starts after parsing, see below)
+      Timer::reinitialise(true, !env.options->parsingDoesNotCount());
+#else
+      Timer::reinitialise();
 #endif
 
       if (opts.inputFile().empty()) {
@@ -692,7 +691,13 @@ int main(int argc, char* argv[])
         addCommentSignForSZS(std::cout);
         std::cout << "Instructions burned parsing: " << burnedParsing << " (million)" << endl;
 
-        env.options->setInstructionLimit(saveInstrLimit+burnedParsing);
+        // 0 means no limit, also after parsing
+        unsigned instrLimit = env.options->instructionLimit();
+        if (instrLimit) {
+          instrLimit += burnedParsing;
+          env.options->setInstructionLimit(instrLimit);
+        }
+        Timer::setInstructionLimit(instrLimit);
       }
 #endif
 

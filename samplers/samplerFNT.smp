@@ -156,7 +156,7 @@ sa!=fmb > fd ~cat all:500,off:41,preordered:168
 > $drc ~cat 0:1
 fd!=off > $drc ~cat 1:1
 bd!=off > $drc ~cat 1:1
-sa!=fmb $drc=1 > drc ~cat ordering:643,encompass:554
+sa!=fmb $drc=1 > drc ~cat labeled:500,ordering:643,encompass:554
 
 # forward_demodulation_term_ordering_diagrams
 sa!=fmb fd!=off > fdtod ~cat on:1,off:1
