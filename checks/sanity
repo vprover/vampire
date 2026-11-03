@@ -273,6 +273,12 @@ check_szs_status Satisfiable theory/let-nested-bool.smt2
 check_szs_status Satisfiable -newcnf on theory/let-nested-bool.smt2
 
 # Arrays
+# Explicit plus signs on TPTP integer and rational literals.
+check_szs_status Theorem --input_syntax tptp theory/plus-numerals.p
+check_szs_status Unsatisfiable --input_syntax tptp theory/plus-integer-disequality.p
+check_szs_status Unsatisfiable --input_syntax tptp theory/plus-zero-disequality.p
+check_szs_status Unsatisfiable --input_syntax tptp theory/plus-rational-disequality.p
+
 check_szs_status Unsatisfiable theory/arrays.smt2
 check_szs_status Unsatisfiable -newcnf on theory/arrays.smt2
 
@@ -454,6 +460,7 @@ check_szs_status Unsatisfiable -qa synthesis synthesis/ex2-inverse_of_ixopiy.smt
 # --mode output, before preprocessing runs at all.
 check_szs_status Theorem hol/hol1.p
 check_szs_status Theorem hol/hol2.p
+check_szs_status Theorem hol/hol-bool-ext.p
 check_rejected 'distinct objects are not supported in higher-order problems' \
 	--input_syntax tptp hol/hol-distinct-object.p
 

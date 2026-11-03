@@ -184,7 +184,6 @@ Signature::Signature ():
     _appFun(UINT_MAX),
     _lamFun(UINT_MAX),
     _choiceFun(UINT_MAX),
-    _placeholderFun(UINT_MAX),
     _defPred(UINT_MAX),
     _termAlgebras()
 {
@@ -569,15 +568,6 @@ unsigned Signature::getDeBruijnIndex(int index) {
   if (added) {
     _funs[fun]->setDeBruijnIndex(index);
   }
-  return fun;
-}
-
-unsigned Signature::getPlaceholder() {
-  if (_placeholderFun != UINT_MAX)
-    return _placeholderFun;
-
-  unsigned fun = addFreshFunction(OperatorType::getConstantsType(TermList::var(0), 1), "ph")->number();
-  _placeholderFun = fun;
   return fun;
 }
 

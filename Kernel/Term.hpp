@@ -285,9 +285,9 @@ public:
   bool isLambdaTerm() const;
   bool isBetaRedex() const;
   bool isEtaRedex() const;
+  bool isProxy() const;
   bool isProxy(Proxy proxy) const;
   bool isChoice() const;
-  bool isPlaceholder() const;
 
   Option<unsigned> deBruijnIndex() const;
   /* Checks whether a term contains a loose, or unbound DB index.
@@ -797,7 +797,6 @@ public:
   bool isEtaRedex() const;
   bool isProxy(Proxy proxy) const;
   bool isChoice() const;
-  bool isPlaceholder() const;
 
   TermList lambdaBody() const {
     ASS(isLambdaTerm())
