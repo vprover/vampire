@@ -430,7 +430,6 @@ std::string PlainALManager::postprocessAnswerString(std::string answer)
   auto it =  _skolemNames.iter();
   while (it.hasNext()) {
     auto [skT,vName] = it.next();
-    std::string to;
     Lib::StringUtils::replaceAll(answer,skT->toString(),vName);
   }
   return answer;

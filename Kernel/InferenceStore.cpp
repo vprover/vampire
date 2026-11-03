@@ -480,7 +480,7 @@ protected:
 
   std::string tptpRuleName(InferenceRule rule)
   {
-    return StringUtils::replaceChar(ruleName(rule), ' ', '_');
+    return StringUtils::replaceNonAlphaNum(ruleName(rule), '_');
   }
 
   std::string unitIdToTptp(std::string unitId)

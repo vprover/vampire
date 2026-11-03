@@ -23,7 +23,7 @@ namespace Lib
 
 using namespace std;
 
-std::string StringUtils::replaceChar(std::string str, char src, char target)
+std::string StringUtils::replaceNonAlphaNum(std::string str, char target)
 {
   size_t len=str.size();
   static DArray<char> buf;
@@ -33,7 +33,7 @@ std::string StringUtils::replaceChar(std::string str, char src, char target)
   char* tptr=buf.array();
 
   while(*sptr) {
-    if(*sptr==src) {
+    if(!std::isalnum(*sptr)) {
       *tptr=target;
     }
     else {

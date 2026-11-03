@@ -28,7 +28,7 @@ template<class A> struct StringParser;
 
 class StringUtils {
 public:
-  static std::string replaceChar(std::string str, char src, char target);
+  static std::string replaceNonAlphaNum(std::string str, char target);
   static std::string sanitizeSuffix(std::string str);
   static bool isPositiveInteger(std::string str);
   static bool isPositiveDecimal(std::string str);
