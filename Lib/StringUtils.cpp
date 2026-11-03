@@ -98,6 +98,10 @@ bool StringUtils::isPositiveInteger(std::string str)
 {
   size_t sz = str.size();
 
+  if (sz == 0) {
+    return false;
+  }
+
   if(str[0]=='0') {
     return sz==1;
   }
@@ -112,6 +116,10 @@ bool StringUtils::isPositiveInteger(std::string str)
 bool StringUtils::isPositiveDecimal(std::string str)
 {
   size_t sz = str.size();
+
+  if (sz == 0) {
+    return false;
+  }
 
   size_t i = 0;
   if(str[0]=='0') {
