@@ -17,15 +17,10 @@
 #define __TPTPProofPrinter__
 
 #include <iosfwd>
-#include <string_view>
 #include <tuple>
 
-#include "Lib/Metaiterators.hpp"
-#include "Lib/Option.hpp"
 #include "Lib/Output.hpp"
-#include "Kernel/Connective.hpp"
 #include "Kernel/InferenceStore.hpp"
-#include "SAT/SATLiteral.hpp"
 #include "SAT/SATClause.hpp"
 #include "Shell/TPTPConstants.hpp"
 #include "Shell/TPTPPrinter.hpp"

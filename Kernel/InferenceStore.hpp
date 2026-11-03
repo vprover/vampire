@@ -18,7 +18,6 @@
 
 #include <ostream>
 #include <set>
-#include <vector>
 
 #include "Forwards.hpp"
 

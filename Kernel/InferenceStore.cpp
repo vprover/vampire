@@ -15,12 +15,10 @@
 #include "Debug/Assertion.hpp"
 #include "Lib/Allocator.hpp"
 #include "Lib/Environment.hpp"
-#include "Lib/Int.hpp"
 #include "Lib/Metaiterators.hpp"
 #include "Lib/ScopedPtr.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/Stack.hpp"
-#include "Lib/ScopedPtr.hpp"
 
 #include "Shell/Options.hpp"
 #include "Shell/TPTPProofPrinter.hpp"
@@ -30,13 +28,10 @@
 #include "Parse/TPTP.hpp"
 #include "SAT/SATInference.hpp"
 
-#include "Saturation/Splitter.hpp"
 
-#include "HOL/HOL.hpp"
 #include "Clause.hpp"
 #include "Formula.hpp"
 #include "FormulaUnit.hpp"
-#include "FormulaVarIterator.hpp"
 #include "Inference.hpp"
 #include "NumTraits.hpp"
 #include "Signature.hpp"
@@ -44,7 +39,6 @@
 
 #include "InferenceStore.hpp"
 #include "Term.hpp"
-#include "TermIterators.hpp"
 #include "Theory.hpp"
 #include "Unit.hpp"
 
