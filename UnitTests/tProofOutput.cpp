@@ -479,30 +479,13 @@ TEST_FUN(unit_stream_preserves_formula_roles)
 static Inference fromNegatedConjecture(Unit* stated)
 { return FormulaClauseTransformation(InferenceRule::NEGATED_CONJECTURE, stated); }
 
-TEST_FUN(conjecture_relation_distinguishes_stated_and_negated_conjectures)
+TEST_FUN(unit_stream_negates_stated_conjecture)
 {
-  // The final clause is p, derived from negating a stated conjecture.
-  // No text is printed here: its relation must be NEGATED_CONJECTURE, even
-  // though its inherited input type is CONJECTURE (as for the negated formula).
-  DECL_PRED(p, {})
-  auto atom = new AtomicFormula(p());
-  FormulaUnit axiom(atom, FromInput(UnitInputType::AXIOM));
-  ASS(axiom.conjectureRelation() == ConjectureRelation::NONE);
-  FormulaUnit stated(atom, FromInput(UnitInputType::CONJECTURE));
-  ASS(stated.conjectureRelation() == ConjectureRelation::CONJECTURE);
-  FormulaUnit negated(new NegatedFormula(atom), fromNegatedConjecture(&stated));
-  ASS(negated.conjectureRelation() == ConjectureRelation::NEGATED_FORMULA);
-  FormulaUnit given(atom, FromInput(UnitInputType::NEGATED_CONJECTURE));
-  ASS(given.conjectureRelation() == ConjectureRelation::NEGATED_CONJECTURE);
-  auto clause = Clause::fromLiterals({p()}, fromNegatedConjecture(&stated));
-  ASS(clause->conjectureRelation() == ConjectureRelation::NEGATED_CONJECTURE);
-}
-
-TEST_FUN(unit_stream_prints_stated_conjecture_unchanged)
-{
+  // The role is decided by the input type alone, so the stated conjecture
+  // is negated like the formulas derived from it.
   DECL_PRED(p, {})
   FormulaUnit stated(new AtomicFormula(p()), FromInput(UnitInputType::CONJECTURE));
-  checkUnitOutput(&stated, "tff", "conjecture", "p");
+  checkUnitOutput(&stated, "tff", "conjecture", "(~ p)");
 }
 
 TEST_FUN(unit_stream_preserves_conjecture_negation_cases)

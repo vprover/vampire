@@ -50,15 +50,6 @@ const char* connectiveSymbol(Connective connective);
 const char* languageName(Language language);
 std::ostream& operator<<(std::ostream& out, Language language);
 
-/** How to write a unit back as TPTP so that parsing the output reproduces it. */
-struct ProblemRole {
-  const char* role;
-  /** The unit is derived from the negated conjecture and is negated back to the conjecture. */
-  bool negateFormula;
-};
-
-ProblemRole problemRole(const Unit* unit);
-
 /** A name made of a prefix, a number and a suffix, such as f12, s3, f7_D or X0. */
 struct Reference {
   const char* prefix;

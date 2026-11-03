@@ -181,7 +181,17 @@ std::ostream& TPTPPrinter::FormulaOutput::print(std::ostream& out) const
 
 std::ostream& TPTPPrinter::printUnit(std::ostream& out, const Unit* unit, bool typedClauses)
 {
-  auto [role, negateFormula] = TPTPOutput::problemRole(unit);
+  // A clause of type CONJECTURE stems from the negated conjecture and is printed as is.
+  // A formula of type CONJECTURE is negated back to the conjecture.
+  const char* role = TPTPOutput::inputRole(unit->inputType());
+  bool negateFormula = false;
+  if (unit->inputType() == UnitInputType::CONJECTURE) {
+    if (unit->isClause()) {
+      role = TPTPOutput::Role::NEGATED_CONJECTURE;
+    } else {
+      negateFormula = true;
+    }
+  }
   out << language(unit, typedClauses) << '(' << InputName{unit, "u"} << ',' << role << ",\n    ";
   printBody(out, unit, typedClauses, negateFormula, /*includeSplitLevels=*/false);
   return out << ").\n";
@@ -356,21 +366,6 @@ const char* inputRole(UnitInputType type)
   default:
     return Role::AXIOM;
   }
-}
-
-ProblemRole problemRole(const Unit* unit)
-{
-  switch (unit->conjectureRelation()) {
-  case ConjectureRelation::CONJECTURE:
-    return {Role::CONJECTURE, false};
-  case ConjectureRelation::NEGATED_CONJECTURE:
-    return {Role::NEGATED_CONJECTURE, false};
-  case ConjectureRelation::NEGATED_FORMULA:
-    return {Role::CONJECTURE, true};
-  case ConjectureRelation::NONE:
-    break;
-  }
-  return {inputRole(unit->inputType()), false};
 }
 
 std::ostream& operator<<(std::ostream& out, SplitLiteral self)
