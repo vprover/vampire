@@ -80,18 +80,12 @@ private:
 
     inline ILStruct* getILS() { ASS(matched()); return op->getILS(); }
 
-    inline LitInfoOccupation getOccupiedLInfos() const { return occupies; }
-    inline void setOccupiedLInfos(LitInfoOccupation o) { occupies = o; }
-
-
     USE_ALLOCATOR(LiteralMatcher);
 
   private:
     bool _eagerlyMatched;
 
     Stack<CodeOp*> eagerResults;
-
-    LitInfoOccupation occupies;
 
     void recordMatch();
   };
@@ -111,6 +105,7 @@ public:
     USE_ALLOCATOR(ClauseMatcher);
 
   private:
+    LitInfoOccupation occupiedPositions();
     void enterLiteral(CodeOp* entry, bool seekOnlySuccess);
     void leaveLiteral();
     bool canEnterLiteral(CodeOp* op);
@@ -139,7 +134,6 @@ public:
      * [if sres] Non-ground literals negated
      */
     DArray<LitInfo> lInfos;
-    LitInfoOccupation occupied;
 
     Stack<Recycled<LiteralMatcher, NoReset>> lms;
   };

@@ -362,7 +362,6 @@ void ClauseCodeTree::LiteralMatcher::init(const CodeTree& tree_, CodeOp* entry_,
 
   _eagerlyMatched=false;
   eagerResults.reset();
-  occupies.reset();
 
   RSTAT_CTR_INC("LiteralMatcher::init");
   if (!seekOnlySuccess && !prepareLiteral()) {
@@ -513,7 +512,6 @@ void ClauseCodeTree::ClauseMatcher::init(ClauseCodeTree* tree_, Clause* query_, 
   query=query_;
   tree=tree_;
   sres=sres_;
-  occupied.reset();
   lms.reset();
 
 #if VDEBUG
@@ -662,10 +660,6 @@ inline bool ClauseCodeTree::ClauseMatcher::canEnterLiteral(CodeOp* op)
       lms.top()->doEagerMatching();
       RSTAT_MST_INC("match count", lms.size()-1, lms.top()->getILS()->matchCnt);
     }
-    LitInfoOccupation lmOccupied;
-    for (size_t matchIndex = 0; matchIndex < ils->matchCnt; matchIndex++) {
-      lmOccupied.occupy(lInfos[ils->getMatch(matchIndex)->liIndex]);
-    }
     for(size_t ilIndex=0;ilIndex<lms.size()-1;ilIndex++) {
       ILStruct* prevILS=lms[ilIndex]->getILS();
       if(prevILS->varCnt && !lms[ilIndex]->eagerlyMatched()) {
@@ -679,25 +673,41 @@ inline bool ClauseCodeTree::ClauseMatcher::canEnterLiteral(CodeOp* op)
         MatchInfo* mi=ils->getMatch(matchIndex);
         if(!existsCompatibleMatch(ils, mi, prevILS)) {
           ils->deleteMatch(matchIndex); //decreases ils->matchCnt
-          lmOccupied.unoccupy(lInfos[mi->liIndex]);
-        } 
+        }
       }
       if(!ils->matchCnt) {
 	return false;
       }
     }
-    if (lmOccupied.isExclusive()) {
-      lms.top()->setOccupiedLInfos(lmOccupied);
-      occupied.occupy(lmOccupied);
-    }
-  } else if (ils->matchCnt == 1) {
-    LitInfoOccupation lmOccupied;
-    lmOccupied.occupy(lInfos[ils->getMatch(0)->liIndex]);
-    lms.top()->setOccupiedLInfos(lmOccupied);
-    occupied.occupy(lmOccupied);
   }
 
   return true;
+}
+
+CodeTree::LitInfoOccupation ClauseCodeTree::ClauseMatcher::occupiedPositions()
+{
+  LitInfoOccupation occupied;
+  // A truncated set of matched positions could falsely appear to contain just one position.
+  if(query->length() > LitInfoOccupation::CAPACITY) {
+    return occupied;
+  }
+
+  for(auto& lm : lms) {
+    // A lazy matcher may still discover other positions for this LIT_END.
+    if(!lm->eagerlyMatched()) {
+      continue;
+    }
+    ILStruct* ils=lm->getILS();
+    LitInfoOccupation matchedPositions;
+    // Use surviving matches, coalescing equality orientations and polarities.
+    for(unsigned i=0; i<ils->matchCnt; i++) {
+      matchedPositions.occupy(lInfos[ils->getMatch(i)->liIndex]);
+    }
+    if(matchedPositions.isExclusive()) {
+      occupied.occupy(matchedPositions);
+    }
+  }
+  return occupied;
 }
 
 /**
@@ -735,6 +745,8 @@ void ClauseCodeTree::ClauseMatcher::enterLiteral(CodeOp* entry, bool seekOnlySuc
   }
 
   Recycled<LiteralMatcher, NoReset> lm;
+  // Derive occupancy from the active LIT_ENDs; nothing needs undoing on backtrack.
+  LitInfoOccupation occupied=seekOnlySuccess ? LitInfoOccupation() : occupiedPositions();
   lm->init(*tree, entry, lInfos.array(), linfoCnt, seekOnlySuccess, occupied);
   lms.push(std::move(lm));
 }
@@ -743,7 +755,6 @@ void ClauseCodeTree::ClauseMatcher::leaveLiteral()
 {
   ASS(lms.isNonEmpty());
 
-  occupied.unoccupy(lms.top()->getOccupiedLInfos());
   lms.pop();
 
   if(lms.isNonEmpty()) {

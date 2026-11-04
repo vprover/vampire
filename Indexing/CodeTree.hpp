@@ -306,25 +306,28 @@ public:
   typedef DArray<TermList> BindingArray;
 
   /**
-   * Indicating which LitInfo objects are occupied
+   * A set of query literal positions. 
+   * Positions outside CAPACITY are not represented.
    */
   struct LitInfoOccupation {
+    static constexpr unsigned CAPACITY = 64;
+
     static LitInfoOccupation createEmptyOccupation()
     {
       return LitInfoOccupation();
     }
 
-    inline void occupy(const LitInfo& linfo) 
+    inline void occupy(const LitInfo& linfo)
     {
-      if (linfo.litIndex < 64) {
-        bitmask |= 1 << linfo.litIndex;
+      if (linfo.litIndex < CAPACITY) {
+        bitmask |= uint64_t{1} << linfo.litIndex;
       }
     }
 
-    inline bool isOccupied(const LitInfo& linfo)
+    inline bool isOccupied(const LitInfo& linfo) const
     {
-      if (linfo.litIndex < 64) {
-        return bitmask & (1 << linfo.litIndex);
+      if (linfo.litIndex < CAPACITY) {
+        return bitmask & (uint64_t{1} << linfo.litIndex);
       }
       return false;
     }
@@ -334,26 +337,9 @@ public:
       bitmask |= other.bitmask;
     }
 
-    inline void reset()
-    {
-      bitmask = 0;
-    }
-
     inline bool isExclusive() const
     {
       return std::has_single_bit(bitmask);
-    }
-
-    inline void unoccupy(LitInfoOccupation other)
-    {
-      bitmask &= ~other.bitmask;
-    }
-
-    inline void unoccupy(const LitInfo& linfo)
-    {
-      if (linfo.litIndex < 64) {
-        bitmask &= ~(1 << linfo.litIndex);
-      }
     }
 
   private:
