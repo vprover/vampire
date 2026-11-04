@@ -94,6 +94,7 @@ TEST_OUTPUT(lambda_output,
   TEST_OUTPUT(negation_##name, checkPrinted(termF(~f), Bool, exp); \
 )
 
+TEST_PRECEDENCE_NEGATION(var, boolT(x), "~ X0")
 TEST_PRECEDENCE_NEGATION(equality, atom(a == b), "~ a = b")
 TEST_PRECEDENCE_NEGATION(predicate, atom(r(a)), "~ r(a)")
 TEST_PRECEDENCE_NEGATION(negation, ~atom(p()), "~ ~ p")
@@ -114,6 +115,7 @@ TEST_PRECEDENCE_NEGATION(xorr, xorr(atom(p()), atom(q())), "~ (p <~> q)")
   TEST_OUTPUT(conj_##name, checkPrinted(termF(conj({ atom(p()), f, atom(q()) })), Bool, exp); \
 )
 
+TEST_PRECEDENCE_CONJ(var, boolT(x), "p & X0 & q")
 TEST_PRECEDENCE_CONJ(equality, atom(a == b), "p & a = b & q")
 TEST_PRECEDENCE_CONJ(predicate, atom(r(a)), "p & r(a) & q")
 TEST_PRECEDENCE_CONJ(negation, ~atom(p()), "p & ~ p & q")
@@ -134,6 +136,7 @@ TEST_PRECEDENCE_CONJ(xorr, xorr(atom(p()), atom(q())), "p & (p <~> q) & q")
   TEST_OUTPUT(disj_##name, checkPrinted(termF(disj({ atom(p()), f, atom(q()) })), Bool, exp); \
 )
 
+TEST_PRECEDENCE_DISJ(var, boolT(x), "p | X0 | q")
 TEST_PRECEDENCE_DISJ(equality, atom(a == b), "p | a = b | q")
 TEST_PRECEDENCE_DISJ(predicate, atom(r(a)), "p | r(a) | q")
 TEST_PRECEDENCE_DISJ(negation, ~atom(p()), "p | ~ p | q")
@@ -154,6 +157,7 @@ TEST_PRECEDENCE_DISJ(xorr, xorr(atom(p()), atom(q())), "p | (p <~> q) | q")
   TEST_OUTPUT(forall_##name, checkPrinted(termF(forall(y.sort(ds), f)), Bool, exp); \
 )
 
+TEST_PRECEDENCE_FORALL(var, boolT(x), "! [X1] : X0")
 TEST_PRECEDENCE_FORALL(equality, atom(a == b), "! [X1] : a = b")
 TEST_PRECEDENCE_FORALL(predicate, atom(r(a)), "! [X1] : r(a)" )
 TEST_PRECEDENCE_FORALL(negation, ~atom(p()), "! [X1] : ~ p" )
@@ -174,6 +178,7 @@ TEST_PRECEDENCE_FORALL(xorr, xorr(atom(p()), atom(q())), "! [X1] : (p <~> q)" )
   TEST_OUTPUT(exists_##name, checkPrinted(termF(exists(y.sort(ds), f)), Bool, exp); \
 )
 
+TEST_PRECEDENCE_EXISTS(var, boolT(x), "? [X1] : X0")
 TEST_PRECEDENCE_EXISTS(equality, atom(a == b), "? [X1] : a = b")
 TEST_PRECEDENCE_EXISTS(predicate, atom(r(a)), "? [X1] : r(a)" )
 TEST_PRECEDENCE_EXISTS(negation, ~atom(p()), "? [X1] : ~ p" )
@@ -194,6 +199,7 @@ TEST_PRECEDENCE_EXISTS(xorr, xorr(atom(p()), atom(q())), "? [X1] : (p <~> q)" )
   TEST_OUTPUT(impl_left_##name, checkPrinted(termF(impl(f, atom(q()))), Bool, exp); \
 )
 
+TEST_PRECEDENCE_IMPL_LEFT(var, boolT(x), "X0 => q")
 TEST_PRECEDENCE_IMPL_LEFT(equality, atom(a == b), "a = b => q")
 TEST_PRECEDENCE_IMPL_LEFT(predicate, atom(r(a)), "r(a) => q")
 TEST_PRECEDENCE_IMPL_LEFT(negation, ~atom(p()), "~ p => q")
@@ -214,6 +220,7 @@ TEST_PRECEDENCE_IMPL_LEFT(xorr, xorr(atom(p()), atom(q())), "(p <~> q) => q")
   TEST_OUTPUT(impl_right_##name, checkPrinted(termF(impl(atom(p()), f)), Bool, exp); \
 )
 
+TEST_PRECEDENCE_IMPL_RIGHT(var, boolT(x), "p => X0")
 TEST_PRECEDENCE_IMPL_RIGHT(equality, atom(a == b), "p => a = b")
 TEST_PRECEDENCE_IMPL_RIGHT(predicate, atom(r(a)), "p => r(a)")
 TEST_PRECEDENCE_IMPL_RIGHT(negation, ~atom(p()), "p => ~ p")
@@ -234,6 +241,7 @@ TEST_PRECEDENCE_IMPL_RIGHT(xorr, xorr(atom(p()), atom(q())), "p => (p <~> q)")
   TEST_OUTPUT(equiv_##name, checkPrinted(termF(equiv(atom(p()), f)), Bool, exp); \
 )
 
+TEST_PRECEDENCE_EQUIV(var, boolT(x), "p <=> X0")
 TEST_PRECEDENCE_EQUIV(equality, atom(a == b), "p <=> a = b")
 TEST_PRECEDENCE_EQUIV(predicate, atom(r(a)), "p <=> r(a)")
 TEST_PRECEDENCE_EQUIV(negation, ~atom(p()), "p <=> ~ p")
@@ -254,6 +262,7 @@ TEST_PRECEDENCE_EQUIV(xorr, xorr(atom(p()), atom(q())), "p <=> (p <~> q)")
   TEST_OUTPUT(xor_##name, checkPrinted(termF(xorr(atom(p()), f)), Bool, exp); \
 )
 
+TEST_PRECEDENCE_XOR(var, boolT(x), "p <~> X0")
 TEST_PRECEDENCE_XOR(equality, atom(a == b), "p <~> a = b")
 TEST_PRECEDENCE_XOR(predicate, atom(r(a)), "p <~> r(a)")
 TEST_PRECEDENCE_XOR(negation, ~atom(p()), "p <~> ~ p")
@@ -274,6 +283,7 @@ TEST_PRECEDENCE_XOR(xorr, xorr(atom(p()), atom(q())), "p <~> (p <~> q)")
   TEST_OUTPUT(equality_##name, checkPrinted(termF(atom(termF(f) == termF(atom(q())))), Bool, exp); \
 )
 
+TEST_PRECEDENCE_EQUALITY(var, boolT(x), "(X0 = q)")
 TEST_PRECEDENCE_EQUALITY(equality, atom(a == b), "(a = b = q)")
 TEST_PRECEDENCE_EQUALITY(predicate, atom(r(a)), "(r(a) = q)")
 TEST_PRECEDENCE_EQUALITY(negation, ~atom(p()), "(~ p = q)")

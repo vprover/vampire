@@ -713,6 +713,11 @@ inline FormulaSugar nameF(std::string name) {
   return new NamedFormula(name);
 }
 
+// bool term
+inline FormulaSugar boolT(TermSugar t) {
+  return new BoolTermFormula(t);
+}
+
 // atom
 inline FormulaSugar atom(Lit lit) {
   return new AtomicFormula(lit);
