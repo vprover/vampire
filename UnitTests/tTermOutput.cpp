@@ -297,3 +297,58 @@ TEST_PRECEDENCE_EQUALITY(disj, disj({ atom(p()), atom(q()) }), "(p | q = q)")
 TEST_PRECEDENCE_EQUALITY(impl, impl(atom(p()), atom(q())), "(p => q = q)")
 TEST_PRECEDENCE_EQUALITY(equiv, equiv(atom(p()), atom(q())), "(p <=> q = q)")
 TEST_PRECEDENCE_EQUALITY(xorr, xorr(atom(p()), atom(q())), "(p <~> q = q)")
+
+// higher-order printing
+
+#define HOL_SUGAR                    \
+  SUGAR                              \
+  DECL_CONST(f, arrow({ds, ds}, ds)) \
+  DECL_OR_PROXY                      \
+  DECL_AND_PROXY                     \
+  DECL_IMP_PROXY                     \
+  DECL_EQ_PROXY                      \
+  DECL_IFF_PROXY                     \
+  DECL_PI_PROXY                      \
+  DECL_SIGMA_PROXY                   \
+  DECL_NOT_PROXY                     \
+  DECL_XOR_PROXY
+
+// Terms and predicate arguments use different output routines.
+static void checkPrintedHOL(TermList term, TermList sort, const std::string& expected)
+{
+  ASS_EQ(term.toString(), expected);
+
+  auto wrap = ConstSugar("wrap", arrow(sort, sort));
+  TermList wrapped = ap(wrap, {term});
+  ASS_EQ(wrapped.toString(), "(wrap @ " + expected + ")");
+}
+
+TEST_FUN(equality_application) {
+  __ALLOW_UNUSED(HOL_SUGAR);
+  env.setHigherOrder(true);
+  checkPrintedHOL(termF(atom(ap(f, {x, y}) == x)), Bool, "((((f @ X0 @ X1)) = X0))");
+}
+
+TEST_FUN(equality_lambda) {
+  __ALLOW_UNUSED(HOL_SUGAR);
+  env.setHigherOrder(true);
+  checkPrintedHOL(termF(atom(lam(ds, ap(f, x)) == y)), Bool, "(((^[Y0 : $i]: (f @ X0)) = X1))");
+}
+
+#define TEST_PARTIALLY_APPLIED_PROXY(name, proxy, exp) \
+  TEST_FUN(partially_applied_proxy_##name) {           \
+    __ALLOW_UNUSED(HOL_SUGAR);                         \
+    env.setHigherOrder(true);                          \
+    DECL_CONST(g, arrow({ds, proxy.sort()}, ds))       \
+    checkPrintedHOL(ap(g, {x, proxy}), ds, exp);       \
+}
+
+TEST_PARTIALLY_APPLIED_PROXY(orP, orP, "(g @ X0 @ |)")
+TEST_PARTIALLY_APPLIED_PROXY(andP, andP, "(g @ X0 @ &)")
+TEST_PARTIALLY_APPLIED_PROXY(impP, impP, "(g @ X0 @ =>)")
+TEST_PARTIALLY_APPLIED_PROXY(eqP, eqP(AtomicSort::defaultSort()), "(g @ X0 @ =)")
+TEST_PARTIALLY_APPLIED_PROXY(iffP, iffP, "(g @ X0 @ =)")
+TEST_PARTIALLY_APPLIED_PROXY(piP, piP(AtomicSort::defaultSort()), "(g @ X0 @ !! @ $i)")
+TEST_PARTIALLY_APPLIED_PROXY(sigmaP, sigmaP(AtomicSort::defaultSort()), "(g @ X0 @ ?? @ $i)")
+TEST_PARTIALLY_APPLIED_PROXY(notP, notP, "(g @ X0 @ ~)")
+TEST_PARTIALLY_APPLIED_PROXY(xorP, xorP, "(g @ X0 @ <~>)")
