@@ -72,7 +72,7 @@ private:
   struct LiteralMatcher
   : public Matcher</*removing*/false,false>
   {
-    void init(const CodeTree& tree, CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_, bool seekOnlySuccess=false);
+    void init(const CodeTree& tree, CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_, bool seekOnlySuccess, LitInfoOccupation occupied);
     bool next();
     bool doEagerMatching();
 
@@ -80,12 +80,18 @@ private:
 
     inline ILStruct* getILS() { ASS(matched()); return op->getILS(); }
 
+    inline LitInfoOccupation getOccupiedLInfos() const { return occupies; }
+    inline void setOccupiedLInfos(LitInfoOccupation o) { occupies = o; }
+
+
     USE_ALLOCATOR(LiteralMatcher);
 
   private:
     bool _eagerlyMatched;
 
     Stack<CodeOp*> eagerResults;
+
+    LitInfoOccupation occupies;
 
     void recordMatch();
   };
@@ -133,6 +139,7 @@ public:
      * [if sres] Non-ground literals negated
      */
     DArray<LitInfo> lInfos;
+    LitInfoOccupation occupied;
 
     Stack<Recycled<LiteralMatcher, NoReset>> lms;
   };

@@ -15,6 +15,8 @@
 #ifndef __CodeTree__
 #define __CodeTree__
 
+#include <bit>
+
 #include "Forwards.hpp"
 
 #include "Lib/Allocator.hpp"
@@ -303,6 +305,61 @@ public:
   typedef Stack<CodeOp> CodeStack;
   typedef DArray<TermList> BindingArray;
 
+  /**
+   * Indicating which LitInfo objects are occupied
+   */
+  struct LitInfoOccupation {
+    static LitInfoOccupation createEmptyOccupation()
+    {
+      return LitInfoOccupation();
+    }
+
+    inline void occupy(const LitInfo& linfo) 
+    {
+      if (linfo.litIndex < 64) {
+        bitmask |= 1 << linfo.litIndex;
+      }
+    }
+
+    inline bool isOccupied(const LitInfo& linfo)
+    {
+      if (linfo.litIndex < 64) {
+        return bitmask & (1 << linfo.litIndex);
+      }
+      return false;
+    }
+
+    inline void occupy(LitInfoOccupation other)
+    {
+      bitmask |= other.bitmask;
+    }
+
+    inline void reset()
+    {
+      bitmask = 0;
+    }
+
+    inline bool isExclusive() const
+    {
+      return std::has_single_bit(bitmask);
+    }
+
+    inline void unoccupy(LitInfoOccupation other)
+    {
+      bitmask &= ~other.bitmask;
+    }
+
+    inline void unoccupy(const LitInfo& linfo)
+    {
+      if (linfo.litIndex < 64) {
+        bitmask &= ~(1 << linfo.litIndex);
+      }
+    }
+
+  private:
+    uint64_t bitmask = 0;
+  };
+
   // This holds the parts relevant only for Matcher<true,...>
   struct RemovingBase {
     Stack<CodeOp*>* firstsInBlocks;
@@ -382,7 +439,7 @@ public:
     }
 
   protected:
-    void init(const CodeTree& tree_, CodeOp* entry_, LitInfo* linfos_ = 0,
+    void init(const CodeTree& tree_, CodeOp* entry_, LitInfoOccupation occupied_, LitInfo* linfos_ = 0,
       size_t linfoCnt_ = 0, Stack<CodeOp*>* firstsInBlocks_ = 0);
 
     bool backtrack();
@@ -436,6 +493,17 @@ public:
      * are used (they are not in TermCodeTree::TermMatcher).
      */
     size_t curLInfo;
+
+    /**
+     * First executed LitInfo object.
+     * We need this value to return only once per SUCCESS CodeOp.
+     */
+    size_t firstLInfo;
+
+    /**
+     * Bit-Mask indicating which LitInfo objects are occupied.
+     */
+    LitInfoOccupation occupied;
   };
 
   //////// auxiliary methods //////////
