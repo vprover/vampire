@@ -706,14 +706,6 @@ std::string TermList::toString(bool topLevel) const
   if (isVar()) {
     return Term::variableToString(*this);
   }
-  if (env.higherOrder() && env.options->holPrinting() == Options::HPrinting::PRETTY) {
-    if (HOL::isTrue(*this)) {
-      return "⊤";
-    }
-    if (HOL::isFalse(*this)) {
-      return "⊥";
-    }
-  }
 
   return term()->toString(topLevel);
 } // TermList::toString
@@ -841,11 +833,7 @@ std::string Literal::toString(bool reverseEquality) const
       lhss = "(" + lhss + ")";
     }
 
-    std::string eqSym = isPositive() ? " = " : " != ";
-    if (env.higherOrder() && env.options->holPrinting() == Options::HPrinting::PRETTY) {
-      eqSym = isPositive() ? " ≈ " : " ≉ ";
-    }
-    lhss += eqSym;
+    lhss += isPositive() ? " = " : " != ";
 
     auto rhs = termArg(!reverseEquality);
     std::string rhss = rhs.toString();
@@ -896,11 +884,7 @@ std::string Literal::toString(bool reverseEquality) const
   Stack<const TermList*> stack(64);
   std::string s = "";
   if (polarity() == 0) { /* negative polarity */
-    if (env.options->holPrinting() == Options::HPrinting::PRETTY) {
-      s = "¬";
-    } else {
-      s = "~";
-    }
+    s = "~";
   }
 
   const std::string& name = predicateName();
