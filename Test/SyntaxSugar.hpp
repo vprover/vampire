@@ -723,4 +723,12 @@ inline void createTermAlgebra(SortSugar sort, std::initializer_list<FuncSugar> f
   env.signature->addTermAlgebra(new TermAlgebra(sort.sugaredExpr(), cons.size(), cons.begin()));
 }
 
+////////////////////////// Sugar for special terms //////////////////////////
+
+inline TermSugar ite(Formula* condition, TermSugar thenBranch, TermSugar elseBranch)
+{
+  SortId sort = thenBranch.sort().isNonEmpty() ? thenBranch.sort() : elseBranch.sort();
+  return TermList(Term::createITE(condition, thenBranch, elseBranch, sort));
+}
+
 #endif // __TEST__SYNTAX_SUGAR__H__

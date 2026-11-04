@@ -15,7 +15,6 @@
 #define HOL_HPP
 
 #include "Kernel/Signature.hpp"
-#include "Kernel/TypedTermList.hpp"
 #include "Lib/Environment.hpp"
 
 /**
@@ -124,8 +123,6 @@ namespace HOL::create {
   TermList neg();
   TermList pi(TermList sort);
   TermList sigma(TermList sort);
-
-  Term* lambda(unsigned numArgs, const unsigned* vars, const TermList* varSorts, TypedTermList body, TermList* resultExprSort = nullptr);
 
   TermList namelessLambda(TermList varSort, TermList termSort, TermList term);
   TermList namelessLambda(TermList varSort, TermList term);

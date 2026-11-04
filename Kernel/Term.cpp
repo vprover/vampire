@@ -1122,7 +1122,7 @@ Term* Term::createITE(Formula * condition, TermList thenBranch, TermList elseBra
   *ss = elseBranch;
   ASS(ss->next()->isEmpty());
   s->getSpecialData()->_iteData.condition = condition;
-  s->getSpecialData()->_iteData.sort = branchSort;
+  s->getSpecialData()->_sort = branchSort;
   return s;
 }
 
@@ -1147,7 +1147,7 @@ Term* Term::createLet(Formula* binding, TermList body, TermList bodySort)
   *ss = body;
   ASS(ss->next()->isEmpty());
   s->getSpecialData()->_letData.binding = binding;
-  s->getSpecialData()->_letData.sort = bodySort;
+  s->getSpecialData()->_sort = bodySort;
   return s;
 }
 
@@ -1160,6 +1160,7 @@ Term* Term::createFormula(Formula* formula)
   Term* s = new(0,sizeof(SpecialTermData)) Term;
   s->makeSymbol(toNormalFunctor(SpecialFunctor::FORMULA), 0);
   s->getSpecialData()->_formulaData.formula = formula;
+  s->getSpecialData()->_sort = AtomicSort::boolSort();
   return s;
 }
 
@@ -1183,7 +1184,7 @@ Term* Term::createLambda(TermList lambdaExp, VSList* vars, TermList expSort){
   while(!revSorts.isEmpty()){
     lambdaTmSort = AtomicSort::arrowSort(revSorts.pop(), lambdaTmSort);
   }
-  s->getSpecialData()->_lambdaData.sort = lambdaTmSort;
+  s->getSpecialData()->_sort = lambdaTmSort;
   return s;
 }
 
@@ -1191,7 +1192,7 @@ Term *Term::createMatch(TermList sort, TermList matchedSort, unsigned int arity,
   Term *s = new (arity, sizeof(SpecialTermData)) Term;
   s->makeSymbol(toNormalFunctor(SpecialFunctor::MATCH), arity);
   TermList *ss = s->args();
-  s->getSpecialData()->_matchData.sort = sort;
+  s->getSpecialData()->_sort = sort;
   s->getSpecialData()->_matchData.matchedSort = matchedSort;
 
   for (unsigned i = 0; i < arity; i++) {

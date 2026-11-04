@@ -21,7 +21,6 @@
 #include "SubformulaIterator.hpp"
 #include "Term.hpp"
 #include "TermIterators.hpp"
-#include "Substitution.hpp"
 #include "SubstHelper.hpp"
 
 #include "SortHelper.hpp"
@@ -142,11 +141,14 @@ static TermList instantiate(TermList declaredSort, const Term* t, unsigned typeA
  */
 TermList SortHelper::getResultSort(const Term* t)
 {
-  ASS(!t->isSpecial());
   ASS(!t->isLiteral());
 
   if(t->isSort()){
     return TermList(AtomicSort::superSort());
+  }
+
+  if (t->isSpecial()) {
+    return t->getSpecialData()->getSort();
   }
 
   // vAPP : !>[X0,X1]: ((X0 > X1) * X0) > X1, so an application's result sort is its
@@ -170,25 +172,13 @@ TermList SortHelper::getResultSortMono(const Term* t)
   return sym->type()->result();
 }
 
-/**
- * Try get result sort of a term.
- *
- * This function can be applied also to special terms such as if-then-else.
- */
-bool SortHelper::tryGetResultSort(const Term* t, TermList& result)
-{
-  ASS(!t->isLiteral());
-
-  TermList masterVar;
-  return getResultSortOrMasterVariable(t, result, masterVar);
-}
-
 bool SortHelper::tryGetResultSort(const TermList t, TermList& result)
 {
   if (t.isVar()) {
     return false;
   }
-  return tryGetResultSort(t.term(), result);
+  result = getResultSort(t.term());
+  return true;
 }
 
 /**
@@ -196,62 +186,10 @@ bool SortHelper::tryGetResultSort(const TermList t, TermList& result)
  */
 TermList SortHelper::getResultSort(TermList t, DHMap<unsigned,TermList, FnvHash, IdentityHash>& varSorts)
 {
-  TermList res;
-  TermList masterVar;
-  if (!getResultSortOrMasterVariable(t, res, masterVar)) {
-    ASS(masterVar.isOrdinaryVar());
-    res = varSorts.get(masterVar.var());
-  }
-  return res;
-}
-
-/**
- * If sort of term @c t depends on a variable, assign the variable into
- * @c resultVar and return false. Otherwise assign the sort of the term
- * into @c resultSort and return true.
- */
-bool SortHelper::getResultSortOrMasterVariable(const Term* t, TermList& resultSort, TermList& resultVar)
-{
-  if(t->isSort()){
-    resultSort = AtomicSort::superSort();
-    return true;
-  }
-
-  if (!t->isSpecial()) {
-      resultSort = getResultSort(t);
-      return true;
-  }
-
-  switch(t->specialFunctor()) {
-    case SpecialFunctor::LET:
-    case SpecialFunctor::ITE:
-    case SpecialFunctor::MATCH:
-      resultSort = t->getSpecialData()->getSort();
-      return true;
-    case SpecialFunctor::FORMULA:
-      resultSort = AtomicSort::boolSort();
-      return true;
-    case SpecialFunctor::LAMBDA: {
-      resultSort = t->getSpecialData()->getSort();
-      return true;
-    }
-  }
-  ASSERTION_VIOLATION
-  
-} // SortHelper::getResultSortOrMasterVariable
-
-/**
- * If sort of term @c t depends on a variable, assign the variable into
- * @c resultVar and return false. Otherwise assign the sort of the term
- * into @c resultSort and return true.
- */
-bool SortHelper::getResultSortOrMasterVariable(const TermList t, TermList& resultSort, TermList& resultVar)
-{
   if (t.isVar()) {
-    resultVar = t;
-    return false;
+    return varSorts.get(t.var());
   }
-  return getResultSortOrMasterVariable(t.term(), resultSort, resultVar);
+  return getResultSort(t.term());
 }
 
 /**

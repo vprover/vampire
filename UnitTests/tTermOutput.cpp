@@ -15,6 +15,18 @@
 
 using namespace Kernel;
 
+#define SUGAR       \
+  DECL_SORT(s)      \
+  DECL_DEFAULT_VARS \
+  DECL_CONST(a, s)  \
+  DECL_CONST(b, s)  \
+
+#define TEST_OUTPUT(name, ...) \
+  TEST_FUN(name) {             \
+    __ALLOW_UNUSED(SUGAR)      \
+    __VA_ARGS__                \
+  }
+
 // Terms and predicate arguments use different output routines.
 static void checkPrinted(TermList term, TermList sort, const std::string& expected)
 {
@@ -30,63 +42,43 @@ static void checkPrinted(TermList term, TermList sort, const std::string& expect
   ASS_EQ(literal->toString(), "pred(" + expected + ",wrap(" + expected + "))");
 }
 
-TEST_FUN(ordinary_term_output)
-{
-  auto sort = AtomicSort::defaultSort();
-  DECL_CONST(a, sort)
-  DECL_FUNC(f, {sort, sort}, sort)
-  checkPrinted(a, sort, "a");
-  checkPrinted(f(a, TermList::var(0)), sort, "f(a,X0)");
-}
+TEST_OUTPUT(ordinary_term_output,
+  DECL_FUNC(f, {s, s}, s)
+  checkPrinted(a, s, "a");
+  checkPrinted(f(a, TermList::var(0)), s, "f(a,X0)");
+)
 
-TEST_FUN(ite_output)
-{
-  auto sort = AtomicSort::defaultSort();
-  DECL_CONST(a, sort)
-  DECL_CONST(b, sort)
+TEST_OUTPUT(ite_output,
   DECL_PRED(p, {})
   auto condition = new AtomicFormula(p());
-  TermList ite(Term::createITE(condition, a, b, sort));
-  checkPrinted(ite, sort, "$ite(p, a,b)");
-  TermList nested(Term::createITE(condition, ite, a, sort));
-  checkPrinted(nested, sort, "$ite(p, $ite(p, a,b),a)");
-}
+  auto inner = ite(condition, a, b);
+  checkPrinted(inner, s, "$ite(p, a,b)");
+  checkPrinted(ite(condition, inner, a), s, "$ite(p, $ite(p, a,b),a)");
+)
 
-TEST_FUN(let_output)
-{
-  auto sort = AtomicSort::defaultSort();
-  DECL_CONST(a, sort)
-  DECL_CONST(x, sort)
-  DECL_FUNC(f, {sort, sort}, sort)
-  auto binding = Formula::createDefinition(x.sugaredExpr().term(), a);
-  TermList let(Term::createLet(binding, f(x, x), sort));
-  checkPrinted(let, sort, "$let(x: $i, x := a, f(x,x))");
+TEST_OUTPUT(let_output,
+  DECL_FUNC(f, {s, s}, s)
+  auto binding = Formula::createDefinition(b.sugaredExpr().term(), a);
+  TermList let(Term::createLet(binding, f(b, b), s));
+  checkPrinted(let, s, "$let(b: s, b := a, f(b,b))");
 
-  TermList ite(Term::createITE(Formula::trueFormula(), let, a, sort));
-  checkPrinted(ite, sort, "$ite($true, $let(x: $i, x := a, f(x,x)),a)");
-  TermList nested(Term::createLet(binding, ite, sort));
-  checkPrinted(nested, sort, "$let(x: $i, x := a, $ite($true, $let(x: $i, x := a, f(x,x)),a))");
-}
+  auto inner = ite(Formula::trueFormula(), let, a);
+  checkPrinted(inner, s, "$ite($true, $let(b: s, b := a, f(b,b)),a)");
+  TermList nested(Term::createLet(binding, inner, s));
+  checkPrinted(nested, s, "$let(b: s, b := a, $ite($true, $let(b: s, b := a, f(b,b)),a))");
+)
 
-TEST_FUN(match_output)
-{
-  auto sort = AtomicSort::defaultSort();
-  DECL_CONST(a, sort)
-  DECL_CONST(b, sort)
+TEST_OUTPUT(match_output,
   TermList args[] = {a, a, b};
-  checkPrinted(TermList(Term::createMatch(sort, sort, 3, args)), sort, "$match(a,a,b)");
-}
+  checkPrinted(TermList(Term::createMatch(s, s, 3, args)), s, "$match(a,a,b)");
+)
 
-TEST_FUN(formula_term_output)
-{
-  auto sort = AtomicSort::boolSort();
-  checkPrinted(TermList(Term::createFormula(Formula::trueFormula())), sort, "$true");
-}
+TEST_OUTPUT(formula_term_output,
+  checkPrinted(TermList(Term::createFormula(Formula::trueFormula())), AtomicSort::boolSort(), "$true");
+)
 
-TEST_FUN(lambda_output)
-{
-  auto sort = AtomicSort::defaultSort();
-  auto vars = VSList::singleton({0, sort});
-  TermList lambda(Term::createLambda(TermList::var(0), vars, sort));
-  checkPrinted(lambda, AtomicSort::arrowSort(sort, sort), "(^[X0 : $i] : (X0))");
-}
+TEST_OUTPUT(lambda_output,
+  auto vars = VSList::singleton({x.sugaredExpr().var(), s});
+  TermList lambda(Term::createLambda(x, vars, s));
+  checkPrinted(lambda, arrow(s, s), "(^[X0 : s] : (X0))");
+)
