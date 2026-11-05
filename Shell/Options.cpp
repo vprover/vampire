@@ -3468,7 +3468,6 @@ void Options::readOptionsString(std::string optionsString,bool assign)
  */
 void Options::readFromEncodedOptions (std::string testId)
 {
-  ASS(!testId.empty())
   _testId.actualValue = testId;
 
   std::string ma(testId,0,3); // the first 3 characters
