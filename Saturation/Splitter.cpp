@@ -611,7 +611,7 @@ SATLiteral Splitter::getLiteralFromName(SplitLevel compName)
   return SATLiteral(var, polarity);
 }
 
-std::string Splitter::getFormulaStringFromName(SplitLevel compName, bool negated)
+void Splitter::ensureSplPrefix()
 {
   if (splPrefix.empty()) {
     if(env.options->proof()==Options::Proof::TPTP){
@@ -619,6 +619,11 @@ std::string Splitter::getFormulaStringFromName(SplitLevel compName, bool negated
       splPrefix = env.signature->predicateName(spl)+"_";
     }
   }
+}
+
+std::string Splitter::getFormulaStringFromName(SplitLevel compName, bool negated)
+{
+  ensureSplPrefix();
 
   SATLiteral lit = getLiteralFromName(compName);
   if (negated) {
@@ -628,6 +633,8 @@ std::string Splitter::getFormulaStringFromName(SplitLevel compName, bool negated
 }
 
 std::string Splitter::getFormulaStringFromLiteral(SATLiteral lit) {
+  ensureSplPrefix();
+
   if (lit.positive()) {
     return splPrefix+Lib::Int::toString(lit.var());
   } else {
