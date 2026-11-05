@@ -97,6 +97,7 @@ set(UNIT_TESTS
     UnitTests/tIterator.cpp
     UnitTests/tKBO.cpp
     UnitTests/tLPO.cpp
+    UnitTests/tLRS.cpp
     UnitTests/tList.cpp
     UnitTests/tMap.cpp
     UnitTests/tOption.cpp
@@ -114,6 +115,7 @@ set(UNIT_TESTS
     UnitTests/tSkipList.cpp
     UnitTests/tSignature.cpp
     UnitTests/tStack.cpp
+    UnitTests/tStringUtilsBytes.cpp
     UnitTests/tStringUtilsNumerals.cpp
     UnitTests/tSyntaxSugar.cpp
     UnitTests/tTermAlgebra.cpp
