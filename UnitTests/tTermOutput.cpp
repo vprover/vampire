@@ -306,10 +306,12 @@ TEST_PRECEDENCE_EQUALITY(xorr, xorr(atom(p()), atom(q())), "(p <~> q = q)")
   DECL_DEFAULT_VARS                  \
   DECL_CONST(p, Bool)                \
   DECL_CONST(q, Bool)                \
+  DECL_CONST(r, arrow({ds,ds},Bool)) \
   TermStack p_args = {p, q};         \
   DECL_CONST(a, ds)                  \
   DECL_CONST(b, ds)                  \
   TermStack t_args = {a, b};         \
+  auto t_app = ap(r, {a, x});        \
   DECL_CONST(f, arrow({ds, ds}, ds)) \
   DECL_OR_PROXY                      \
   DECL_AND_PROXY                     \
@@ -330,28 +332,49 @@ static void checkPrintedHOL(TermList term, TermList sort, const std::string& exp
   ASS_EQ(wrapped.toString(), "(wrap @ " + expected + ")");
 }
 
-TEST_FUN(equality_application) {
-  __ALLOW_UNUSED(HOL_SUGAR);
-  env.setHigherOrder(true);
-  checkPrintedHOL(termF(atom(ap(f, {x, y}) == x)), Bool, "((((f @ X0 @ X1)) = X0))");
-}
+#define TEST_OUTPUT_HOL(name, ...) \
+  TEST_FUN(name) {                 \
+    __ALLOW_UNUSED(HOL_SUGAR)      \
+    env.setHigherOrder(true);      \
+    __VA_ARGS__                    \
+  }
 
-TEST_FUN(equality_lambda) {
-  __ALLOW_UNUSED(HOL_SUGAR);
-  env.setHigherOrder(true);
+// precedences with HOL boolean terms
+
+#define TEST_APP_PRECEDENCE_HOL(name, f, exp) \
+  TEST_OUTPUT_HOL(app_precedence_##name, checkPrintedHOL(f, Bool, exp);)
+
+TEST_APP_PRECEDENCE_HOL(neg, termF(~boolT(t_app)), "(~ (r @ a @ X0))")
+TEST_APP_PRECEDENCE_HOL(conj, termF(conj({ boolT(p), boolT(t_app), boolT(q) })), "(p & (r @ a @ X0) & q)")
+TEST_APP_PRECEDENCE_HOL(disj, termF(disj({ boolT(p), boolT(t_app), boolT(q) })), "(p | (r @ a @ X0) | q)")
+TEST_APP_PRECEDENCE_HOL(forall, termF(forall(y.sort(ds), boolT(t_app))), "(! [X1] : (r @ a @ X0))")
+TEST_APP_PRECEDENCE_HOL(exists, termF(exists(y.sort(ds), boolT(t_app))), "(? [X1] : (r @ a @ X0))")
+TEST_APP_PRECEDENCE_HOL(imp_left, termF(impl(boolT(t_app), boolT(q))), "((r @ a @ X0) => q)")
+TEST_APP_PRECEDENCE_HOL(imp_right, termF(impl(boolT(p), boolT(t_app))), "(p => (r @ a @ X0))")
+TEST_APP_PRECEDENCE_HOL(equiv, termF(equiv(boolT(t_app), boolT(q))), "((r @ a @ X0) <=> q)")
+TEST_APP_PRECEDENCE_HOL(xorr, termF(xorr(boolT(t_app), boolT(q))), "((r @ a @ X0) <~> q)")
+TEST_APP_PRECEDENCE_HOL(equality, termF(atom(t_app == q)), "((q = ((r @ a @ X0))))")
+
+// application and lambda as equality arguments
+
+TEST_OUTPUT_HOL(equality_application,
+  checkPrintedHOL(termF(atom(ap(f, {x, y}) == x)), Bool, "((((f @ X0 @ X1)) = X0))");
+)
+
+TEST_OUTPUT_HOL(equality_lambda,
   checkPrintedHOL(termF(atom(lam(ds, ap(f, x)) == y)), Bool, "(((^[Y0 : $i]: (f @ X0)) = X1))");
-}
+)
+
+// proxies
 
 #define TEST_OUTPUT_PROXY(name, proxy, args, exp)           \
-  TEST_FUN(partially_applied_proxy_##name) {                \
-    __ALLOW_UNUSED(HOL_SUGAR);                              \
+  TEST_OUTPUT_HOL(partially_applied_proxy_##name,           \
     auto _args = TermStack(args);                           \
-    env.setHigherOrder(true);                               \
     auto sort = proxy.sort();                               \
     for (const auto& _ : _args) sort = sort.result();       \
     DECL_CONST(g, arrow({ds, sort}, ds))                    \
     checkPrintedHOL(ap(g, {x, ap(proxy, _args)}), ds, exp); \
-}
+  )
 
 // 0 arguments
 TEST_OUTPUT_PROXY(orP_0, orP, {}, "(g @ X0 @ |)")
