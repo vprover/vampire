@@ -313,6 +313,10 @@ check_szs_status Unsatisfiable parse/smtlib2-mutual-recursion.smt2
 check_szs_status Unsatisfiable -newcnf on parse/let-bind-variable.smt2
 check_szs_status Unsatisfiable -qa synthesis parse/assert-synth-max5.smt2
 check_szs_status Unsatisfiable parse/define-const.smt2
+check_szs_status Unsatisfiable parse/empty-symbol-sort.smt2
+check_szs_status Unsatisfiable parse/empty-symbol-constant.smt2
+check_szs_status Unsatisfiable parse/empty-symbol-function.smt2
+check_szs_status Unsatisfiable parse/empty-symbol-predicate.smt2
 
 # TPTP parser regression tests: small inputs documenting expected parser
 # behavior, one or two per fix; see the header comments in the files and the
