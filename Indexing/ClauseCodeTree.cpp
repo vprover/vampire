@@ -687,7 +687,7 @@ inline bool ClauseCodeTree::ClauseMatcher::canEnterLiteral(CodeOp* op)
 CodeTree::LitInfoOccupation ClauseCodeTree::ClauseMatcher::occupiedPositions()
 {
   LitInfoOccupation occupied;
-  // A truncated set of matched positions could falsely appear to contain just one position.
+  // A truncated domain could falsely appear to contain just one position.
   if(query->length() > LitInfoOccupation::CAPACITY) {
     return occupied;
   }
@@ -698,13 +698,13 @@ CodeTree::LitInfoOccupation ClauseCodeTree::ClauseMatcher::occupiedPositions()
       continue;
     }
     ILStruct* ils=lm->getILS();
-    LitInfoOccupation matchedPositions;
+    LitInfoOccupation domain;
     // Use surviving matches, coalescing equality orientations and polarities.
     for(unsigned i=0; i<ils->matchCnt; i++) {
-      matchedPositions.occupy(lInfos[ils->getMatch(i)->liIndex]);
+      domain.occupy(lInfos[ils->getMatch(i)->liIndex]);
     }
-    if(matchedPositions.isExclusive()) {
-      occupied.occupy(matchedPositions);
+    if(domain.isExclusive()) {
+      occupied.occupy(domain);
     }
   }
   return occupied;
@@ -745,7 +745,7 @@ void ClauseCodeTree::ClauseMatcher::enterLiteral(CodeOp* entry, bool seekOnlySuc
   }
 
   Recycled<LiteralMatcher, NoReset> lm;
-  // Derive occupancy from the active LIT_ENDs; nothing needs undoing on backtrack.
+  // Derive occupancy from the active LIT_ENDs
   LitInfoOccupation occupied=seekOnlySuccess ? LitInfoOccupation() : occupiedPositions();
   lm->init(*tree, entry, lInfos.array(), linfoCnt, seekOnlySuccess, occupied);
   lms.push(std::move(lm));

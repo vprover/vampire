@@ -306,7 +306,7 @@ public:
   typedef DArray<TermList> BindingArray;
 
   /**
-   * A set of query literal positions. 
+   * A set of query literal positions.
    * Positions outside CAPACITY are not represented.
    */
   struct LitInfoOccupation {
