@@ -896,7 +896,7 @@ public:
   enum class HPrinting : unsigned int {
     RAW = 0,
     DB_INDICES = 1,
-    TPTP = 3
+    TPTP = 2
   };
 
     //==========================================================
