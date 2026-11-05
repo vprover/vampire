@@ -371,7 +371,7 @@ SAT::Status SplittingBranchSelector::processDPConflicts()
       for(unsigned i=0; i<unsatCoreCnt; i++) {
         unsatCore.reset();
         _dp->getUnsatCore(unsatCore, i);
-        SATClause* conflCl = s2f.createConflictClause(unsatCore);
+        SATClause* conflCl = _parent.buildDPConflictClause(unsatCore);
         _solver.addClause(conflCl);
       }
 
@@ -639,6 +639,49 @@ Unit* Splitter::getDefinitionFromName(SplitLevel compName) const
 {
   // always stored positively
   return _defs.get(compName & ~1);
+}
+
+/**
+ * Build the SAT clause for an unsat core found by the decision procedure (e.g. congruence closure).
+ *
+ * The first-order conflict clause (a theory tautology) is wrapped in an AVATAR_SPLIT_CLAUSE
+ * that also cites the definitions of all the split names involved,
+ * so that these definitions end up in the proof.
+ */
+SATClause* Splitter::buildDPConflictClause(const LiteralStack& unsatCore)
+{
+  static LiteralStack foLits;
+  foLits.reset();
+  static SATLiteralStack satLits;
+  satLits.reset();
+
+  UnitList* ps = 0;
+  FormulaList* resLst = 0;
+
+  for (Literal* ul : iterTraits(unsatCore.iter())) {
+    Literal* lit = Literal::complementaryLiteral(ul);
+    foLits.push(lit);
+
+    SATLiteral slit = _sat2fo.toSAT(lit);
+    satLits.push(slit);
+
+    UnitList::push(getDefinitionFromName(getNameFromLiteral(slit)),ps);
+    FormulaList::push(new NamedFormula(getFormulaStringFromLiteral(slit)),resLst);
+  }
+
+  Clause* foConfl = Clause::fromStack(foLits,
+      NonspecificInference0(UnitInputType::AXIOM,InferenceRule::THEORY_TAUTOLOGY_SAT_CONFLICT));
+  UnitList::push(foConfl,ps); // making sure this clause is the last one pushed (for the sake of colorFromAssumedFOConversion)
+
+  Formula* f = JunctionFormula::generalJunction(OR,resLst);
+  FormulaUnit* scl = new FormulaUnit(f,NonspecificInferenceMany(InferenceRule::AVATAR_SPLIT_CLAUSE,ps));
+
+  SATClause* confl = SATClause::fromStack(satLits);
+  if(env.options->proofExtra() == Options::ProofExtra::FULL)
+    env.proofExtra.insert(scl, new SATClauseExtra(confl));
+
+  confl->setInference(new FOConversionInference(scl));
+  return SATClause::removeDuplicateLiterals(confl);
 }
 
 void Splitter::collectDependenceLits(SplitSet* splits, SATLiteralStack& acc) const

@@ -230,6 +230,8 @@ private:
 
   void collectDependenceLits(SplitSet* splits, SATLiteralStack& acc) const;
 
+  SATClause* buildDPConflictClause(const LiteralStack& unsatCore);
+
   SplitLevel addNonGroundComponent(unsigned size, Literal* const * lits, Clause* orig, Clause*& compCl);
   SplitLevel addGroundComponent(Literal* lit, Clause* orig, Clause*& compCl);
 
