@@ -1575,6 +1575,12 @@ MainLoopResult FiniteModelBuilder::runImpl()
         // (as the model found may in fact be smaller than the assumed contour in some of the sort dimensions)
 
         for (unsigned i = 0; i < _distinctSortSizes.size(); i++) {
+          // instances of a monotonic sort are not marked and only its weakest totality is added, under the top (assumed) marker;
+          // the other markers are therefore unconstrained and say nothing about which part of the domain the assignment uses
+          if (_sortedSignature->monotonicSorts[i]) {
+            continue;
+          }
+
           unsigned j = 0;
           for (; j < _distinctSortSizes[i]; j++) {
             if (_solver->trueInAssignment(SATLiteral(marker_offsets[i]+j,0))) {
