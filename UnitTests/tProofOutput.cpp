@@ -477,7 +477,7 @@ TEST_FUN(unit_stream_preserves_formula_roles)
 // Like the parser: the stated conjecture is an input unit, and the prover works on a unit
 // derived from it by negation, which inherits the input type CONJECTURE.
 static Inference fromNegatedConjecture(Unit* stated)
-{ return FormulaClauseTransformation(InferenceRule::NEGATED_CONJECTURE, stated); }
+{ return FormulaClauseTransformation(InferenceRule::CONJECTURE_NEGATION, stated); }
 
 TEST_FUN(unit_stream_negates_stated_conjecture)
 {

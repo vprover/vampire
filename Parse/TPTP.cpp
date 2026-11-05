@@ -4061,7 +4061,7 @@ void TPTP::endFof()
       ASS_EQ(freeVariables(f),VList::empty())
       f = new NegatedFormula(f);
       unit = new FormulaUnit(f,
-			     FormulaClauseTransformation(InferenceRule::NEGATED_CONJECTURE,unit));
+			     FormulaClauseTransformation(InferenceRule::CONJECTURE_NEGATION,unit));
       if (_isQuestion) {
         _questionVariableNames.insert(unit->number(),std::move(_curQuestionVarNames));
       }

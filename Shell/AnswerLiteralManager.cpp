@@ -452,11 +452,11 @@ void SynthesisALManager::getNeededUnits(Clause* refutation, ClauseStack& premise
     }
     Inference& inf = curr->inference();
     InferenceRule infRule = inf.rule();
-    if(infRule==InferenceRule::NEGATED_CONJECTURE) {
+    if(infRule==InferenceRule::CONJECTURE_NEGATION) {
       conjectures.push(curr);
     }
     if(infRule==InferenceRule::CLAUSIFY ||
-	    (curr->isClause() && (infRule==InferenceRule::INPUT || infRule==InferenceRule::NEGATED_CONJECTURE )) ){
+	    (curr->isClause() && (infRule==InferenceRule::INPUT || infRule==InferenceRule::CONJECTURE_NEGATION )) ){
       ASS(curr->isClause());
       premiseClauses.push(curr->asClause());
     }
