@@ -115,6 +115,7 @@ set(UNIT_TESTS
     UnitTests/tSignature.cpp
     UnitTests/tStack.cpp
     UnitTests/tStringUtilsBytes.cpp
+    UnitTests/tStringUtilsNumerals.cpp
     UnitTests/tSyntaxSugar.cpp
     UnitTests/tTermAlgebra.cpp
     UnitTests/tTermIndex.cpp
