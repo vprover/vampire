@@ -1641,8 +1641,8 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
           // cout << "which_sort(var) = " << srt << endl;
 
-          // skip if already maxed
-          if (_distinctSortSizes[srt] == _distinctSortMaxs[srt]) {
+          // skip if already maxed (the constraints below can push a sort past its max)
+          if (_distinctSortSizes[srt] >= _distinctSortMaxs[srt]) {
             continue;
           }
 
@@ -1674,6 +1674,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
 
           { // check distinct sort constraints (until fixpoint)
             bool updated;
+            unsigned rounds = 0;
             do {
               updated = false;
               Stack<std::pair<unsigned,unsigned>>::Iterator it1(_distinct_sort_constraints);
@@ -1686,14 +1687,22 @@ MainLoopResult FiniteModelBuilder::runImpl()
               }
 
               Stack<std::pair<unsigned,unsigned>>::Iterator it2(_strict_distinct_sort_constraints);
-              while (it1.hasNext()) {
-                std::pair<unsigned,unsigned> constr = it1.next();
+              while (it2.hasNext()) {
+                std::pair<unsigned,unsigned> constr = it2.next();
                 if (_distinctSortSizes[constr.first] <= _distinctSortSizes[constr.second]) {
                   _distinctSortSizes[constr.first] = _distinctSortSizes[constr.second]+1;
                   updated = true;
                 }
               }
 
+              // sizes propagate along paths, which settle within this many rounds unless a cycle goes through a strict constraint
+              if (updated && ++rounds >= _distinctSortSizes.size()) {
+                if(outputAllowed()){
+                  addCommentSignForSZS(cout);
+                  cout << "Problem does not have a finite model." << endl;
+                }
+                goto gave_up;
+              }
             } while (updated);
           }
 
