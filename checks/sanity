@@ -305,6 +305,12 @@ check_szs_status Unsatisfiable -ind struct -sik one -indstrhyp on induction/qrev
 check_szs_status Unsatisfiable -ind struct -nui on -indgo off -newcnf on induction/prefix-given-suffix.smt2
 
 # Parser
+check_rejected 'is not of a term algebra type' --input_syntax smtlib2 parse/match-integer.smt2
+check_rejected 'is not of a term algebra type' --input_syntax smtlib2 parse/match-boolean.smt2
+check_rejected 'is not of a term algebra type' --input_syntax smtlib2 parse/match-real.smt2
+check_rejected 'is not of a term algebra type' --input_syntax smtlib2 parse/match-uninterpreted-sort.smt2
+check_szs_status Unsatisfiable parse/match-datatype.smt2
+check_szs_status Unsatisfiable -newcnf on parse/match-datatype.smt2
 check_szs_status Unsatisfiable parse/types-funs.smt2
 check_szs_status Unsatisfiable -newcnf on parse/types-funs.smt2
 check_szs_status Unsatisfiable -t 1 parse/smtlib2-parametric-datatypes.smt2
