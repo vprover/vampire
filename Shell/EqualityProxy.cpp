@@ -255,7 +255,7 @@ void EqualityProxy::addCongruenceAxioms(UnitList*& units)
     }
     Term* t1 = Term::create(i, arity, vars1.begin());
     Term* t2 = Term::create(i, arity, vars2.begin());
-    ALWAYS(SortHelper::tryGetResultSort(t1, srt));
+    srt = SortHelper::getResultSort(t1);
     lits.push(makeProxyLiteral(true, TermList(t1), TermList(t2), srt));
 
     Clause* cl = createEqProxyAxiom(lits);
