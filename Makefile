@@ -391,6 +391,7 @@ VS_OBJ = Shell/AnswerLiteralManager.o\
          Shell/PredicateElimination.o\
          Shell/Token.o\
          Shell/TPTPPrinter.o\
+         Shell/TPTPProofPrinter.o\
          Shell/UIHelper.o\
          Shell/Lexer.o\
          Shell/Preprocess.o\
