@@ -2823,7 +2823,7 @@ void SMTLIB2::readAssertNot(LExpr* body)
 
   FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::CONJECTURE));
   fu = new FormulaUnit(new NegatedFormula(fla),
-                       FormulaClauseTransformation(InferenceRule::NEGATED_CONJECTURE, fu));
+                       FormulaClauseTransformation(InferenceRule::CONJECTURE_NEGATION, fu));
   _formulas.pushBack(fu);
 }
 
@@ -2863,7 +2863,7 @@ void SMTLIB2::readAssertSynth(LExpr* forall, LExpr* exist, LExpr* body)
   fla = new QuantifiedFormula(Connective::FORALL, fvarSorts, fla);
   FormulaUnit* fu = new FormulaUnit(fla, FromInput(UnitInputType::CONJECTURE));
   fu = new FormulaUnit(new NegatedFormula(fla),
-                       FormulaClauseTransformation(InferenceRule::NEGATED_CONJECTURE, fu));
+                       FormulaClauseTransformation(InferenceRule::CONJECTURE_NEGATION, fu));
   _formulas.pushBack(fu);
 }
 

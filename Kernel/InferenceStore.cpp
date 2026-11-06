@@ -372,7 +372,7 @@ protected:
     case InferenceRule::EQUALITY_PROXY_REPLACEMENT:
     case InferenceRule::EQUALITY_PROXY_DEFINITION:
     case InferenceRule::EQUALITY_PROXY_AXIOM:
-    case InferenceRule::NEGATED_CONJECTURE:
+    case InferenceRule::CONJECTURE_NEGATION:
     case InferenceRule::RECTIFY:
     case InferenceRule::FLATTEN:
     case InferenceRule::ENNF:
@@ -1038,7 +1038,7 @@ protected:
     case InferenceRule::EQUALITY_PROXY_REPLACEMENT:
     case InferenceRule::EQUALITY_PROXY_DEFINITION:
     case InferenceRule::EQUALITY_PROXY_AXIOM:
-    case InferenceRule::NEGATED_CONJECTURE:
+    case InferenceRule::CONJECTURE_NEGATION:
     case InferenceRule::RECTIFY:
     case InferenceRule::FLATTEN:
     case InferenceRule::ENNF:

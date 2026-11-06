@@ -111,7 +111,7 @@ enum class InferenceRule : unsigned char {
    * (see also INTERNAL_FORMULA_CLAUSE_TRANSFORMATION_LAST and isFormulaClauseTransformation below). */
   GENERIC_FORMULA_CLAUSE_TRANSFORMATION,
   /** negated conjecture from the input */
-  NEGATED_CONJECTURE,
+  CONJECTURE_NEGATION,
   /** introduction of answer literal into the conjecture */
   ANSWER_LITERAL_INJECTION,
   /** introduction of answer literal into the conjecture,
