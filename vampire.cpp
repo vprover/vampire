@@ -254,6 +254,8 @@ void outputMode(Problem* problem)
       UnitIterator parents = u->getParents();
       ALWAYS(parents.hasNext());
       u = parents.next();
+      ASS(!parents.hasNext());
+      ASS(u->inference().rule() == InferenceRule::INPUT);
     }
     std::cout << TPTPPrinter::unit(u) << "\n";
   }
