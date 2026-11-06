@@ -273,8 +273,11 @@ public:
     friend std::ostream& operator<<(std::ostream& out, FormulaOutput const& self) { return self.print(out); }
   };
 
-  /** The language a unit is printed in by default: cnf for a clause, and thf for a formula
-   *  of higher-order input, tff otherwise. */
+  /** Select the output language from the environment. Higher-order problems use THF;
+   *  otherwise, clauses use TCF/CNF and formulas use TFF/FOF according to their sorts. */
+  static TPTPOutput::Language outputLanguage(bool clausesOnly = false);
+
+  /** The default language for this unit, using the same selector as proof output. */
   static TPTPOutput::Language unitLanguage(const Unit* unit);
 
   /** The unit as an annotated formula in @b language. CNF and TCF are for clauses only; TCF

@@ -192,7 +192,10 @@ void preprocessMode(Problem* problem, bool theory)
   }
   prepro.preprocess(*prb);
 
-  std::cout << TPTPPrinter::symbolDeclarations();
+  const auto language = TPTPPrinter::outputLanguage(!theory && !prb->hasFormulas());
+  const auto declarationLanguage = language == TPTPOutput::Language::CNF || language == TPTPOutput::Language::FOF
+      ? TPTPOutput::Language::TFF : language;
+  std::cout << TPTPPrinter::symbolDeclarations(declarationLanguage);
   UnitList::Iterator units(prb->units());
   while (units.hasNext()) {
     Unit* u = units.next();
@@ -211,9 +214,9 @@ void preprocessMode(Problem* problem, bool theory)
       }
 
       FormulaUnit* fu = new FormulaUnit(f,u->inference()); // we are stealing u's inference which is not nice
-      std::cout << TPTPPrinter::unit(fu) << "\n";
+      std::cout << TPTPPrinter::unit(fu, language) << "\n";
     } else {
-      std::cout << TPTPPrinter::unit(u) << "\n";
+      std::cout << TPTPPrinter::unit(u, language) << "\n";
     }
   }
 
@@ -248,12 +251,15 @@ void outputMode(Problem* problem)
 {
   ScopedPtr<Problem> prb(problem);
 
-  std::cout << TPTPPrinter::symbolDeclarations();
+  const auto language = TPTPPrinter::outputLanguage(!prb->hasFormulas());
+  const auto declarationLanguage = language == TPTPOutput::Language::CNF || language == TPTPOutput::Language::FOF
+      ? TPTPOutput::Language::TFF : language;
+  std::cout << TPTPPrinter::symbolDeclarations(declarationLanguage);
   UnitList::Iterator units(prb->units());
 
   while (units.hasNext()) {
     Unit* u = units.next();
-    std::cout << TPTPPrinter::unit(u) << "\n";
+    std::cout << TPTPPrinter::unit(u, language) << "\n";
   }
 
   //we have successfully output all clauses, so we'll terminate with zero return value

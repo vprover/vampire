@@ -48,13 +48,7 @@ using namespace std;
 namespace TPTPOutput {
 
 Language proofLanguage()
-{
-  // Use the unpreprocessed input: preprocessing can remove sorts and higher
-  // order features, but the proof must not claim a stronger fragment than it.
-  if (env.initiallyHigherOrder()) { return Language::THF; }
-  if (env.initiallyHasNonDefaultSorts()) { return Language::TFF; }
-  return Language::FOF;
-}
+{ return TPTPPrinter::outputLanguage(); }
 
 } // namespace TPTPOutput
 

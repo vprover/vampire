@@ -212,16 +212,15 @@ std::ostream& TPTPPrinter::printUnit(std::ostream& out, const Unit* unit, std::s
   return out << ").\n";
 }
 
-Language TPTPPrinter::unitLanguage(const Unit* unit)
+Language TPTPPrinter::outputLanguage(bool clausesOnly)
 {
-  if (unit->isClause()) {
-    return Language::CNF;
-  }
-  if (env.higherOrder()) {
-    return Language::THF;
-  }
-  return Language::TFF;
+  if (env.initiallyHigherOrder() || env.higherOrder()) { return Language::THF; }
+  if (env.initiallyHasNonDefaultSorts()) { return clausesOnly ? Language::TCF : Language::TFF; }
+  return clausesOnly ? Language::CNF : Language::FOF;
 }
+
+Language TPTPPrinter::unitLanguage(const Unit* unit)
+{ return outputLanguage(unit->isClause()); }
 
 /**
  * The formula of @param unit in @param language. In CNF, a clause is written in parentheses;
@@ -290,7 +289,7 @@ std::ostream& TPTPPrinter::printBody(std::ostream& out, const Unit* unit, Langua
 
 
 TPTPPrinter::SymbolDeclarationsOutput TPTPPrinter::symbolDeclarations()
-{ return symbolDeclarations(env.higherOrder() ? Language::THF : Language::TFF); }
+{ return symbolDeclarations(outputLanguage() == Language::THF ? Language::THF : Language::TFF); }
 
 std::ostream& TPTPPrinter::SymbolDeclarationsOutput::print(std::ostream& out) const
 { return printSymbolDeclarations(out, language); }
