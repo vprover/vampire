@@ -50,10 +50,8 @@
 #include "Shell/TheoryFinder.hpp"
 #include "Shell/TPTPPrinter.hpp"
 #include "Parse/TPTP.hpp"
-#include "Shell/FOOLElimination.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
-#include "Shell/SineUtils.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -410,45 +408,10 @@ void clausifyMode(Problem* problem, bool theory)
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 } // clausifyMode
 
-void axiomSelectionMode(Problem* problem)
-{
-  ScopedPtr<Problem> prb(problem);
-
-  env.options->setSineSelection(Options::SineSelection::AXIOMS);
-
-  if (prb->hasFOOL()) {
-    FOOLElimination().apply(*prb);
-  }
-
-  // reorder units
-  if (env.options->normalize()) {
-    env.statistics->phase = ExecutionPhase::NORMALIZATION;
-    Normalisation norm;
-    norm.normalise(*prb);
-  }
-
-  env.statistics->phase = ExecutionPhase::SINE_SELECTION;
-  Shell::SineSelector(*env.options).perform(*prb);
-
-  env.statistics->phase = ExecutionPhase::FINALIZATION;
-
-  UnitList::Iterator uit(prb->units());
-  while (uit.hasNext()) {
-    Unit* u = uit.next();
-    std::cout << TPTPPrinter::unit(u) << "\n";
-  }
-
-  //we have successfully output the selected units, so we'll terminate with zero return value
-  vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-}
-
 void dispatchByMode(Problem* problem)
 {
   switch (env.options->mode())
   {
-  case Options::Mode::AXIOM_SELECTION:
-    axiomSelectionMode(problem);
-    break;
   case Options::Mode::SPIDER:
     spiderMode(problem);
     break;
