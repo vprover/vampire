@@ -308,9 +308,7 @@ std::string Clause::literalsOnlyToString() const
  */
 std::string Clause::toTPTPString() const
 {
-  std::string result = literalsOnlyToString();
-
-  return result;
+  return literalsOnlyToString();
 }
 
 /**

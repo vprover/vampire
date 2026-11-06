@@ -180,6 +180,7 @@ static std::string toStringAux(const Term& term, bool mightNeedParens, IndexVarS
   if (head.isTerm() && !head.isProxy(Proxy::EQUALS) && head.deBruijnIndex().isNone() &&
       !head.isLambdaTerm() && head.term()->arity() > 0) {
     auto t = head.term();
+    hasArgs = true; // parenthesize the term in this case too
     for (unsigned i = 0; i < t->arity(); ++i) {
       headStr += " @ " + termToStr(*t->nthArgument(i),true,st);
     }
