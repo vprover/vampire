@@ -204,12 +204,6 @@ void preprocessMode(Problem* problem, bool theory)
 
     if (theory) {
       Formula* f = u->getFormula();
-
-      // CONJECTURE as inputType is evil, as it cannot occur multiple times
-      if (u->inference().inputType() == UnitInputType::CONJECTURE) {
-        u->inference().setInputType(UnitInputType::NEGATED_CONJECTURE);
-      }
-
       FormulaUnit* fu = new FormulaUnit(f,u->inference()); // we are stealing u's inference which is not nice
       std::cout << TPTPPrinter::unit(fu) << "\n";
     } else {
@@ -255,6 +249,12 @@ void outputMode(Problem* problem)
 
   while (units.hasNext()) {
     Unit* u = units.next();
+    if (u->inference().rule() == InferenceRule::CONJECTURE_NEGATION) {
+      // the parsers negate a conjecture right away; output the one that was stated
+      UnitIterator parents = u->getParents();
+      ALWAYS(parents.hasNext());
+      u = parents.next();
+    }
     std::cout << TPTPPrinter::unit(u) << "\n";
   }
 
