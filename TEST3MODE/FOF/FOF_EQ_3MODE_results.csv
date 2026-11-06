@@ -1,9 +1,0 @@
-FileName,FO2_Status,FO2_Time,Classic_Status,Classic_Time,FO2_RemoveEq_Vampire_Status,FO2_RemoveEq_Vampire_Time
-KRS026+1.p,Satisfiable,0.111,Satisfiable,0.014,Satisfiable,0.014
-KRS040+1.p,Timeout,30,000,Timeout,30,000,Timeout,30,000
-KRS057+1.p,Satisfiable,0.677,Satisfiable,0.011,Timeout,30,000
-KRS102+1.p,Timeout,30,000,Timeout,30,000,Timeout,30,000
-KRS163+1.p,Unknown,3.628,Unsatisfiable,0.013,Satisfiable,0.013
-KRS174+1.p,Unknown,10.946,Unsatisfiable,0.015,Timeout,30,000
-KRS175+1.p,Unknown,11.408,Unsatisfiable,0.015,Timeout,30,000
-NUM395+1.p,Unknown,6.470,Unsatisfiable,0.012,Unsatisfiable,0.014

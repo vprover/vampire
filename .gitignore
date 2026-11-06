@@ -52,3 +52,22 @@ tests/tptp_raw/
 
 # ignore build obj
 /obj/
+
+# local benchmark runs and generated charts
+/TEST0/
+/TEST1/
+/TEST1.2min/
+/TEST2_2MIN/
+/TEST3_1MIN/
+/TEST3MODE/
+/TEST_grafici/
+/scripts/cactus_plot.py
+/scripts/cactus_plot_generated.py
+/scripts/initial_clauses_scatter.py
+/scripts/noeq_problem_slides.py
+/scripts/problem_runtime_plot.py
+/scripts/result_scatter.py
+/scripts/shared_cnf_cactus.py
+/scripts/shared_cnf_scatter.py
+/scripts/stat_plotter.py
+/scripts/tptp_domain_plot.py
