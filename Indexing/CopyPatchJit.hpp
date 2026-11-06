@@ -74,6 +74,8 @@ struct JitExecContext {
                                       //   where the interpreter resumes
   uint8_t          _pad2[6];          // alignment
   void*            exitHandler;       // [rbp + 208] trampoline epilogue
+  //  Per-invocation accumulator for the block-entry weighted op count
+  size_t           blockOps;          // [rbp + 216] (out: sum of block lengths over entries)
 };
 
 static_assert(offsetof(JitExecContext, ftData)           ==  0, "");
@@ -104,6 +106,7 @@ static_assert(offsetof(JitExecContext, ssDispatchStub)   == 192, "");
 static_assert(offsetof(JitExecContext, bailout)          == 200, "");
 static_assert(offsetof(JitExecContext, deopt)            == 201, "");
 static_assert(offsetof(JitExecContext, exitHandler)      == 208, "");
+static_assert(offsetof(JitExecContext, blockOps)         == 216, "");
 
 
 // --------------------------------------------------------------------------
@@ -118,6 +121,7 @@ struct StencilHole {
     GROUND_TERM_PTR, // 8 bytes: Term* for CHECK_GROUND_TERM
     OP_IMM_PTR,      // 8 bytes: CodeOp* for reading _content/writing op
     NEXT_REL32,      // 4 bytes: rel32 jump to next stencil (patched at layout)
+    BLOCK_LEN_IMM32, // 4 bytes: this block's op count, for the head counter
   };
   Kind     kind;
   uint16_t offset;  // byte offset within stencil bytes
@@ -154,6 +158,10 @@ public:
    *  JitExecContext into the global JITSTATS counters. Called from
    *  Matcher::executeMachineCode after the trampoline returns. */
   static void recordBtPops(size_t n);
+  /** Accumulate the per-invocation block-entry weighted op count read back from
+   *  the JitExecContext. Same contract as recordBtPops: called from
+   *  Matcher::executeMachineCode after the trampoline returns. */
+  static void recordBlockOps(size_t n);
   /** Count one soft-budget refusal (a JIT entry declined because this tree
    *  has emitted its full code budget). Called from CodeTree. */
   static void recordBudgetStop();
@@ -313,12 +321,12 @@ public:
 
 private:
   void compileTrampoline();
-  void compileStencilCheckFun(bool hasAlt);
-  void compileStencilCheckGroundTerm(bool hasAlt);
-  void compileStencilAssignVar(bool hasAlt);
-  void compileStencilCheckVar(bool hasAlt);
-  void compileStencilSuccessOrFail(bool hasAlt);
-  void compileStencilLitEnd(bool hasAlt);
+  void compileStencilCheckFun(bool hasAlt, bool isHead);
+  void compileStencilCheckGroundTerm(bool hasAlt, bool isHead);
+  void compileStencilAssignVar(bool hasAlt, bool isHead);
+  void compileStencilCheckVar(bool hasAlt, bool isHead);
+  void compileStencilSuccessOrFail(bool hasAlt, bool isHead);
+  void compileStencilLitEnd(bool hasAlt, bool isHead);
   void compileExpandStub();
   void compileLazyCompileStub();
   void compileBindJmpAltStub();
@@ -381,7 +389,13 @@ private:
   void  ensureSlabSpace(size_t size);
 
   bool _initialized = false;
-  Stencil _stencils[2][7];
+  //  [hasAlt][isHead][instruction]. The isHead dimension carries the
+  //  block-head counter INSIDE the stencil, which is why it is a variant
+  //  rather than a prologue prepended in emitBlock: _mcode stays the stencil
+  //  base, so _altPatchOfs[0..2] (stencil-relative, read as _mcode + ofs by
+  //  patchAlternative) and _altPatchOfs[3] (offset to the successor) remain
+  //  correct with no arithmetic anywhere. Compiled once at initialize().
+  Stencil _stencils[2][2][7];
 
   TrampolineFunc _trampoline = nullptr;
 

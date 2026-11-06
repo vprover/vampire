@@ -130,6 +130,15 @@ struct JitStats {
 
   // trampoline instrumentation
   size_t btPops = 0;           // backtrack-stack pops resumed by the bt handler
+  size_t opsExec = 0;          // entries into a compiled op. JIT_RATE_COUNTERS only.
+  size_t blockOps = 0;         // sum of block lengths over block-HEAD entries.
+                               //   The cheap stand-in for opsExec: 11 bytes per
+                               //   block instead of 13 per op. JIT_RATE_COUNTERS
+                               //   only. See emitBlockHeadCounter.
+                               //   The ONLY counter that measures how much
+                               //   COMPILED code runs: everything else is image
+                               //   size or uncompiled-path traffic (deopts,
+                               //   lazy compiles, binds)
 
   size_t emitOpsByKind[7] = {0};
   size_t emitBytesByKind[7] = {0};
@@ -288,6 +297,8 @@ void CopyPatchJit::printJitStats(std::ostream& out)
       << " budget_stops_live=" << s.budgetStopsLive
       << " budget_bailouts=" << s.budgetBailouts
       << " bt_pops=" << s.btPops
+      << " ops_exec=" << s.opsExec
+      << " block_ops=" << s.blockOps
       << " reemit_queued=" << s.reemitQueued
       << " reemit_blocks=" << s.reemitBlocks
       << " reemit_ops=" << s.reemitOps
@@ -363,8 +374,17 @@ void CopyPatchJit::noteReemitBlock(size_t nOps)
 
 void CopyPatchJit::recordBtPops(size_t n)
 {
-  #ifdef JIT_RATE_COUNTERS
+  #if defined(JIT_RATE_COUNTERS) || defined(JIT_GATE_COUNTERS)
   g_jitStats.btPops += n;
+  #else
+    (void)n;
+  #endif
+}
+
+void CopyPatchJit::recordBlockOps(size_t n)
+{
+  #if defined(JIT_RATE_COUNTERS) || defined(JIT_GATE_COUNTERS)
+  g_jitStats.blockOps += n;
   #else
     (void)n;
   #endif
@@ -634,6 +654,7 @@ static constexpr uint64_t PH_GTERM    = 0xEE00'0000'0000'0001ULL;
 static constexpr uint64_t PH_OPPTR    = 0xFF00'0000'0000'0001ULL;
 // For the jmp-to-next-stencil, we use a raw rel32 placeholder:
 static constexpr int32_t  PH_NEXT32   = 0x7766'5544;
+static constexpr uint32_t PH_BLOCKLEN = 0xCC00'0001U;
 
 //  Helper: emit 'movabs rax, imm64' as 10 raw bytes (REX.W + B8 + imm)
 //  Prevents asmjit from optimizing zero values to 'xor eax,eax'
@@ -659,6 +680,43 @@ static size_t emitMovAbsRdx(Assembler& a, uint64_t val) {
   memcpy(buf + 2, &val, 8);
   a.embed(buf, 10);
   return immOfs;
+}
+
+/*
+ * count every entry into a compiled op. 13 bytes, and ONLY under JIT_RATE_COUNTERS.
+/*
+ * emitBlockHeadCounter - one add per BLOCK ENTRY, weighted by the block's own
+ * length, accumulating the quantity cost analysis 40's model needs without
+ * paying emitOpsExecInc's 13 bytes on every op.
+ *
+ *   add qword ptr [rbp + blockOps], <block length>
+ *   48 81 85 <disp32> <imm32>     -> 11 bytes
+ */
+static void emitBlockHeadCounter(Assembler& a, Stencil& s, size_t base)
+{
+#if defined(JIT_RATE_COUNTERS) || defined(JIT_GATE_COUNTERS)
+  size_t ofs = a.offset() - base;
+  uint8_t buf[11] = { 0x48, 0x81, 0x85 };   // REX.W ADD r/m64, imm32; [rbp+disp32]
+  uint32_t disp = static_cast<uint32_t>(offsetof(JitExecContext, blockOps));
+  memcpy(buf + 3, &disp, 4);
+  memcpy(buf + 7, &PH_BLOCKLEN, 4);
+  a.embed(buf, 11);
+  //  The hole is the 4-byte immediate, 7 bytes into the instruction.
+  s.holes.push_back({StencilHole::BLOCK_LEN_IMM32,
+                     static_cast<uint16_t>(ofs + 7)});
+#else
+  (void)a; (void)s; (void)base;
+#endif
+}
+
+static void emitOpsExecInc(Assembler& a)
+{
+#ifdef JIT_RATE_COUNTERS
+  emitMovAbsRax(a, reinterpret_cast<uint64_t>(&g_jitStats.opsExec));
+  a.inc(qword_ptr(rax));
+#else
+  (void)a;
+#endif
 }
 
 
@@ -992,16 +1050,24 @@ void CopyPatchJit::initialize() {
   //  ops that have one. The no-alt variant omits the pushAlt block entirely
   //  and collapses each jmpAlt site to a bare backtrack jump. emitBlock picks
   //  per op on op.alternative().
+  //  ... and two of every one of those again for the block HEAD, which
+  //  carries the block-entry counter inside the stencil. Without
+  //  JIT_RATE_COUNTERS the head variant is byte-identical to the non-head one,
+  //  so the default build pays nothing for the extra dimension beyond 14 more
+  //  Stencil objects built once here.
   for (unsigned v = 0; v < 2; v++) {
     const bool hasAlt = (v != 0);
-    compileStencilSuccessOrFail(hasAlt);
-    compileStencilCheckGroundTerm(hasAlt);
-    compileStencilLitEnd(hasAlt);
-    compileStencilCheckFun(hasAlt);
-    compileStencilAssignVar(hasAlt);
-    compileStencilCheckVar(hasAlt);
+    for (unsigned hd = 0; hd < 2; hd++) {
+      const bool isHead = (hd != 0);
+      compileStencilSuccessOrFail(hasAlt, isHead);
+      compileStencilCheckGroundTerm(hasAlt, isHead);
+      compileStencilLitEnd(hasAlt, isHead);
+      compileStencilCheckFun(hasAlt, isHead);
+      compileStencilAssignVar(hasAlt, isHead);
+      compileStencilCheckVar(hasAlt, isHead);
+    }
   }
-  // _stencils[*][SEARCH_STRUCT] is left empty-SearchStructs are handled
+  // _stencils[*][*][SEARCH_STRUCT] is left empty-SearchStructs are handled
   // differently (they're compiled individually, not via stencils).
   static bool dumped = false;
   if (!dumped && std::getenv("JIT_DUMP_STENCILS")) {
@@ -1011,16 +1077,17 @@ void CopyPatchJit::initialize() {
       "CHECK_FUN", "ASSIGN_VAR", "CHECK_VAR", "SEARCH_STRUCT"
     };
     for (unsigned v = 0; v < 2; v++)
+    for (unsigned hd = 0; hd < 2; hd++)
     for (unsigned i = 0; i < 7; i++) {
-      const Stencil& st = _stencils[v][i];
+      const Stencil& st = _stencils[v][hd][i];
       if (st.code.empty()) continue;
       int trail = -1;
       for (const auto& h : st.holes)
         if (h.kind == StencilHole::NEXT_REL32 && size_t(h.offset) + 4 == st.code.size())
           trail = static_cast<int>(h.offset);
       std::fprintf(stderr,
-        "%% STENCIL %-18s alt=%u bytes=%zu holes=%zu alt_holes=%u trailing_jmp_at=%d\n",
-        nm[i], v, st.code.size(), st.holes.size(),
+        "%% STENCIL %-18s alt=%u head=%u bytes=%zu holes=%zu alt_holes=%u trailing_jmp_at=%d\n",
+        nm[i], v, hd, st.code.size(), st.holes.size(),
         static_cast<unsigned>(st.altHoleCount), trail);
       for (size_t b = 0; b < st.code.size(); b++)
         std::fprintf(stderr, "%02x%c", st.code[b], ((b + 1) % 16) ? ' ' : '\n');
@@ -1110,10 +1177,11 @@ void CopyPatchJit::compileTrampoline() {
   a.mov(rcx, qword_ptr(r15, 8));    // alternative CodeOp*
   a.test(rcx, rcx);
   a.jz(backtrackL);                  // null entry -> keep backtracking
-  // Instrumentation: count resumed pops (splits backtrack-dispatch traffic
-  // from jmpAlt-dispatch traffic; ~1 extra instruction per pop, remove the
-  // line for pristine timing runs if desired).
+  //  Instrumentation: count resumed pops, which splits backtrack-dispatch
+  //  traffic from jmpAlt-dispatch traffic.
+  #if defined(JIT_RATE_COUNTERS) || defined(JIT_GATE_COUNTERS)
   a.inc(qword_ptr(rbp, offsetof(JitExecContext, btPops)));
+  #endif
   a.mov(rax, qword_ptr(rcx, offsetof(CodeTree::CodeOp, _mcode)));
   a.test(rax, rax);
   a.jnz(btHaveMcode);
@@ -1652,13 +1720,15 @@ void CopyPatchJit::emitNextJump(void* asm_ptr, Stencil& s, size_t base) {
   s.holes.push_back({StencilHole::NEXT_REL32, static_cast<uint16_t>(jmpOfs + 1)});
 }
 
-void CopyPatchJit::compileStencilCheckFun(bool hasAlt) {
-  Stencil& s = _stencils[hasAlt][CodeTree::CHECK_FUN];
+void CopyPatchJit::compileStencilCheckFun(bool hasAlt, bool isHead) {
+  Stencil& s = _stencils[hasAlt][isHead][CodeTree::CHECK_FUN];
   CodeHolder code;
   auto& rt = sharedRuntime();
   code.init(rt.environment(), rt.cpu_features());
   Assembler a(&code);
   size_t base = a.offset();
+  if (isHead) emitBlockHeadCounter(a, s, base);
+  emitOpsExecInc(a);
 
   // Load ft[tp]
   a.lea(rax, ptr(r12, r13, 3));       // rax = &ftData[tp]
@@ -1712,13 +1782,15 @@ void CopyPatchJit::compileStencilCheckFun(bool hasAlt) {
   s.code = extractCode(code);
 }
 
-void CopyPatchJit::compileStencilCheckGroundTerm(bool hasAlt) {
-  Stencil& s = _stencils[hasAlt][CodeTree::CHECK_GROUND_TERM];
+void CopyPatchJit::compileStencilCheckGroundTerm(bool hasAlt, bool isHead) {
+  Stencil& s = _stencils[hasAlt][isHead][CodeTree::CHECK_GROUND_TERM];
   CodeHolder code;
   auto& rt = sharedRuntime();
   code.init(rt.environment(), rt.cpu_features());
   Assembler a(&code);
   size_t base = a.offset();
+  if (isHead) emitBlockHeadCounter(a, s, base);
+  emitOpsExecInc(a);
 
   // Load ft[tp]
   a.lea(rax, ptr(r12, r13, 3));
@@ -1757,13 +1829,15 @@ void CopyPatchJit::compileStencilCheckGroundTerm(bool hasAlt) {
   s.code = extractCode(code);
 }
 
-void CopyPatchJit::compileStencilAssignVar(bool hasAlt) {
-  Stencil& s = _stencils[hasAlt][CodeTree::ASSIGN_VAR];
+void CopyPatchJit::compileStencilAssignVar(bool hasAlt, bool isHead) {
+  Stencil& s = _stencils[hasAlt][isHead][CodeTree::ASSIGN_VAR];
   CodeHolder code;
   auto& rt = sharedRuntime();
   code.init(rt.environment(), rt.cpu_features());
   Assembler a(&code);
   size_t base = a.offset();
+  if (isHead) emitBlockHeadCounter(a, s, base);
+  emitOpsExecInc(a);
 
   // Load ft[tp]
   a.lea(rax, ptr(r12, r13, 3));
@@ -1830,13 +1904,15 @@ void CopyPatchJit::compileStencilAssignVar(bool hasAlt) {
   s.code = extractCode(code);
 }
 
-void CopyPatchJit::compileStencilCheckVar(bool hasAlt) {
-  Stencil& s = _stencils[hasAlt][CodeTree::CHECK_VAR];
+void CopyPatchJit::compileStencilCheckVar(bool hasAlt, bool isHead) {
+  Stencil& s = _stencils[hasAlt][isHead][CodeTree::CHECK_VAR];
   CodeHolder code;
   auto& rt = sharedRuntime();
   code.init(rt.environment(), rt.cpu_features());
   Assembler a(&code);
   size_t base = a.offset();
+  if (isHead) emitBlockHeadCounter(a, s, base);
+  emitOpsExecInc(a);
 
   // Load the existing binding from bindings[var]
   {
@@ -1894,13 +1970,15 @@ void CopyPatchJit::compileStencilCheckVar(bool hasAlt) {
   s.code = extractCode(code);
 }
 
-void CopyPatchJit::compileStencilSuccessOrFail(bool hasAlt) {
-  Stencil& s = _stencils[hasAlt][CodeTree::SUCCESS_OR_FAIL];
+void CopyPatchJit::compileStencilSuccessOrFail(bool hasAlt, bool isHead) {
+  Stencil& s = _stencils[hasAlt][isHead][CodeTree::SUCCESS_OR_FAIL];
   CodeHolder code;
   auto& rt = sharedRuntime();
   code.init(rt.environment(), rt.cpu_features());
   Assembler a(&code);
   size_t base = a.offset();
+  if (isHead) emitBlockHeadCounter(a, s, base);
+  emitOpsExecInc(a);
 
   // Load op._content via op pointer
   size_t opOfs = emitMovAbsRax(a, PH_OPPTR) - base;
@@ -1938,13 +2016,15 @@ void CopyPatchJit::compileStencilSuccessOrFail(bool hasAlt) {
   s.code = extractCode(code);
 }
 
-void CopyPatchJit::compileStencilLitEnd(bool hasAlt) {
-  Stencil& s = _stencils[hasAlt][CodeTree::LIT_END];
+void CopyPatchJit::compileStencilLitEnd(bool hasAlt, bool isHead) {
+  Stencil& s = _stencils[hasAlt][isHead][CodeTree::LIT_END];
   CodeHolder code;
   auto& rt = sharedRuntime();
   code.init(rt.environment(), rt.cpu_features());
   Assembler a(&code);
   size_t base = a.offset();
+  if (isHead) emitBlockHeadCounter(a, s, base);
+  emitOpsExecInc(a);
 
   size_t opOfsChk = emitMovAbsRax(a, PH_OPPTR) - base;
   s.holes.push_back({StencilHole::OP_IMM_PTR, static_cast<uint16_t>(opOfsChk)});
@@ -2017,7 +2097,7 @@ void CopyPatchJit::emitBlock(CodeTree::CodeBlock* block) {
     CodeTree::CodeOp& op = (*block)[i];
     unsigned instr = op._instruction();
     ASS(instr != CodeTree::SEARCH_STRUCT);
-    const Stencil& st = _stencils[variantOf(op)][instr];
+    const Stencil& st = _stencils[variantOf(op)][i == 0][instr];
     size_t sz = st.code.size();
     if (i + 1 < nOps) {
       // Elide trailing jmp if present
@@ -2045,7 +2125,10 @@ void CopyPatchJit::emitBlock(CodeTree::CodeBlock* block) {
     CodeTree::CodeOp& op = (*block)[i];
     unsigned instr = op._instruction();
     const unsigned var = variantOf(op);
-    const Stencil& st = _stencils[var][instr];
+    //  i == 0 picks the head variant, which carries the block-entry counter.
+    //  MUST match phase 1's index expression exactly or the sized and written
+    //  byte counts diverge and the block is corrupt.
+    const Stencil& st = _stencils[var][i == 0][instr];
     bool isLast = (i + 1 == nOps);
  
     // Determine the trailing NEXT_REL32 offset and copy size.
@@ -2128,6 +2211,15 @@ void CopyPatchJit::emitBlock(CodeTree::CodeBlock* block) {
         case StencilHole::FUNCTOR_IMM32: {
           uint32_t functor = static_cast<uint32_t>(op._arg());
           memcpy(target, &functor, 4);
+          break;
+        }
+
+        case StencilHole::BLOCK_LEN_IMM32: {
+          //  The block-head counter's immediate. Only the head variant carries
+          //  this hole, so it is reached exactly when i == 0, and nOps is this
+          //  block's length - the quantity one add per entry accumulates.
+          uint32_t len = static_cast<uint32_t>(nOps);
+          memcpy(target, &len, 4);
           break;
         }
 
@@ -2267,7 +2359,12 @@ uint8_t* CopyPatchJit::emitOutOfLineOp(CodeTree::CodeOp& op, uint8_t* successor)
 {
   unsigned instr = op._instruction();
   if (instr == CodeTree::SEARCH_STRUCT) return nullptr;
-  const Stencil& st = _stencils[1][instr];
+  //  [1][0]: the full (hasAlt) NON-head variant. An out-of-line copy is
+  //  reached by an E9 written over the original op's first five bytes, which on
+  //  a head op overwrites the block-entry counter anyway, so the copy must not
+  //  carry one - it would have no BLOCK_LEN_IMM32 patch here and would corrupt
+  //  the count. The lost counting is bounded by alt_first_appear.
+  const Stencil& st = _stencils[1][0][instr];
   if (st.code.empty()) return nullptr;
 
   const size_t copySize = st.code.size();
@@ -2331,6 +2428,19 @@ uint8_t* CopyPatchJit::emitOutOfLineOp(CodeTree::CodeOp& op, uint8_t* successor)
       case StencilHole::OP_IMM_PTR: {
         uintptr_t opPtr = reinterpret_cast<uintptr_t>(&op);
         memcpy(target, &opPtr, 8);
+        break;
+      }
+
+      case StencilHole::BLOCK_LEN_IMM32: {
+        //  Unreachable here by construction: this function copies
+        //  _stencils[1][0][instr], the NON-head variant, and only the head
+        //  variant carries this hole
+        //  Patched to 0 rather than left alone, because an unpatched immediate
+        //  keeps PH_BLOCKLEN (0xCC000001) and would add 3.4 billion to
+        //  blockOps on every entry
+        ASS(false);
+        uint32_t zero = 0;
+        memcpy(target, &zero, 4);
         break;
       }
 

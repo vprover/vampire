@@ -689,31 +689,18 @@ bool CodeTree::Matcher<removing, checkRange, higherOrder>::executeMachineCode()
     case CopyPatchJit::JitMode::TermOnly:   if ( tree->_clauseCodeTree) { return execute(); } break;
     case CopyPatchJit::JitMode::Both:       break;
   }
-  //  Soft code budget: refuse to enter JIT code once the process has emitted
-  //  enough. Compilation is only ever triggered from inside JIT execution, so
-  //  this single check bounds the JIT's memory; from here the tree runs
-  //  interpreted and the proof search continues normally.
-  //
-  //  THE INTERPRETER MUST BE HANDED ANY LIVE JIT BACKTRACK STATE FIRST.
-  //  Three states reach this point and only the third is unsafe:
-  //
-  //    fresh                 the retrieval has not started. init() sets the
-  //                          cursor to the base four lines after setting
-  //                          fresh, so nothing is parked.
-  //    _deopted              the previous call already migrated into btStack
-  //                          and reset the cursor, in
-  //                          handBacktrackStateToInterpreter().
-  //    neither, and the      the previous call returned from INSIDE JIT code
-  //    cursor is off base    having yielded a match, with alternatives parked
-  //                          in _jitBtBuf. A bare `return execute()` here
-  //                          makes the interpreter backtrack against an EMPTY
-  //                          btStack; backtrack() then advances to the next
-  //                          query literal and every parked alternative is
-  //                          silently dropped.
+  // Soft code budget: refuse to enter JIT code once the process has emitted
   if (CopyPatchJit::outOfBudget()) {
     CopyPatchJit::recordBudgetStop();
     if constexpr (!removing && !checkRange) {
-      if (!fresh && !_deopted && _jitBtCursor != _jitBtBuf) {
+      if (fresh) {
+        //  A NEW retrieval that is already over budget. Nothing in _jitBtBuf
+        //  belongs to it: the cursor may still carry entries from an earlier
+        //  retrieval that was abandoned mid-way, because the only thing that
+        //  resets it is the `fresh` branch on the JIT path below, which is
+        //  past this point and unreachable once the budget is spent.
+        _jitBtCursor = _jitBtBuf;
+      } else if (!_deopted && _jitBtCursor != _jitBtBuf) {
         CopyPatchJit::recordBudgetStopLive();
         if (CopyPatchJit::budgetFixOn()) { handBacktrackStateToInterpreter(); }
       }
@@ -808,13 +795,13 @@ bool CodeTree::Matcher<removing, checkRange, higherOrder>::executeMachineCode()
   ctx->op       = op;
   ctx->matched  = 0;
   ctx->btPops   = 0;
+  ctx->blockOps = 0;
   ctx->bailout  = 0;
   ctx->deopt    = 0;
 
   jitFn(ctx);
-#ifdef JIT_RATE_COUNTERS
   CopyPatchJit::recordBtPops(ctx->btPops);
-#endif
+  CopyPatchJit::recordBlockOps(ctx->blockOps);
 
   if (ctx->bailout) {
     // The HARD code budget was hit inside JIT-called code, which cannot throw
@@ -1848,6 +1835,27 @@ void* CodeTree::lazyCompileBlock(CodeOp* firstOp)
 #endif
 
   jitBlock(firstOpToCodeBlock(firstOp));
+
+#if JIT_TIER_THRESHOLD > 1
+  //  Retire this block's tier count the moment the block is compiled.
+  //
+  //  The count is write-only from here on: the early return at the top of this
+  //  function fires on non-null _mcode, so a compiled block never reaches
+  //  noteBlockEntry again. Leaving the entry in g_blockEntries keeps one
+  //  unordered_map node alive per block for the rest of the run, and at
+  //  threshold 2 essentially every block compiles (27,881,056 of 27,915,257
+  //  pooled on the discount campaign, 99.88%) - so 99.88% of that map is dead
+  //  weight. A libstdc++ node is ~32 bytes plus malloc rounding plus its share
+  //  of the bucket array, so the saving scales with blocks compiled.
+  //
+  //  Conditional on _mcode: if emission was refused (budget), the block must
+  //  keep its credit, or at a high threshold it would have to earn the whole
+  //  count again from zero on the next entry.
+  if (firstOp->_mcode) {
+    CopyPatchJit::forgetBlockEntries(firstOp);
+  }
+#endif
+
   return firstOp->_mcode;
 }
 
@@ -1859,8 +1867,6 @@ void CodeTree::jitBlock(CodeBlock* block)
 
 void CodeTree::jitSearchStruct(SearchStruct* ss)
 {
-  // static int count = 0;
-  // fprintf(stderr, "jitSearchStruct %d\n", ++count);
   _cpJit->initialize();
   _cpJit->emitSearchStruct(ss);
 }
