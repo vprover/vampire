@@ -39,6 +39,9 @@ public:
     return str;
   }
   static std::string sanitizeSuffix(std::string str);
+  static std::string addParens(std::string str, bool add) {
+    return (add ? "(" : "") + str + (add ? ")" : "");
+  }
   static bool isPositiveInteger(std::string str);
   static bool isPositiveDecimal(std::string str);
   static void replaceAll(std::string& where, const std::string& from, const std::string& to);

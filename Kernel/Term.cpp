@@ -23,7 +23,7 @@
 #include "Indexing/TermSharing.hpp"
 #include "Kernel/HOL/HOL.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/Output.hpp"
+#include "Lib/StringUtils.hpp"
 
 #include "Term.hpp"
 
@@ -616,7 +616,7 @@ std::string Term::prefixToString(bool mightNeedParens) const
           if (vs.hasNext())
             varList += ", ";
         }
-        return "(^[" + varList + "] : (" + lambdaExp.toString() + "))";
+        return StringUtils::addParens("^[" + varList + "] : " + lambdaExp.toString(/*mightNeedParens=*/true), mightNeedParens);
       }
       case SpecialFunctor::MATCH: {
         // we simply let the arguments be written out
@@ -726,14 +726,12 @@ std::string Term::toString(bool mightNeedParens) const
   }
 
   if (isSort() && static_cast<const AtomicSort*>(this)->isArrowSort()) {
-    ASS(arity() == 2);
-    std::string res;
+    ASS_EQ(arity(), 2);
     TermList arg1 = *(nthArgument(0));
     TermList arg2 = *(nthArgument(1));
-    res += mightNeedParens ? "(" : "";
-    res += arg1.toString(/*mightNeedParens=*/true) + " > " + arg2.toString(/*mightNeedParens=*/true);
-    res += mightNeedParens ? ")" : "";
-    return res;
+    return StringUtils::addParens(
+      arg1.toString(/*mightNeedParens=*/true) + " > " +
+      arg2.toString(/*mightNeedParens=*/true), mightNeedParens);
   }
 
 #if NICE_THEORY_OUTPUT
@@ -844,7 +842,7 @@ std::string Literal::toString(bool reverseEquality, bool mightNeedParens) const
   }
 
   if (env.signature->isDefPred(functor())) {
-    return (mightNeedParens ? "(" : "") + termArg(0).toString() + " := " + termArg(1).toString() + (mightNeedParens ? ")" : "");
+    return StringUtils::addParens(termArg(0).toString() + " := " + termArg(1).toString(), mightNeedParens);
   }
 
 #if NICE_THEORY_OUTPUT

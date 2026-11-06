@@ -83,7 +83,7 @@ TEST_OUTPUT(formula_term_output,
 TEST_OUTPUT(lambda_output,
   auto vars = VSList::singleton({x.sugaredExpr().var(), ds});
   TermList lambda(Term::createLambda(x, vars, ds));
-  checkPrinted(lambda, arrow(ds, ds), "(^[X0 : $i] : (X0))");
+  checkPrinted(lambda, arrow(ds, ds), "^[X0 : $i] : X0");
 )
 
 // formula symbol precedences
@@ -324,12 +324,12 @@ TEST_PRECEDENCE_EQUALITY(xorr, xorr(atom(p()), atom(q())), "(p <~> q) = q")
   DECL_XOR_PROXY
 
 // Terms and predicate arguments use different output routines.
-static void checkPrintedHOL(TermList term, TermList sort, const std::string& expected, bool extraParens = true)
+static void checkPrintedHOL(TermList term, TermList sort, const std::string& expected)
 {
   ASS_EQ(term.toString(), expected);
 
   TermList wrapped = ap(ConstSugar("wrap", arrow(sort, sort)), {term});
-  ASS_EQ(wrapped.toString(), std::string("wrap @ ") + (extraParens ? "(" : "") + expected + (extraParens ? ")" : ""));
+  ASS_EQ(wrapped.toString(), "wrap @ (" + expected + ")");
 }
 
 #define TEST_OUTPUT_HOL(name, ...) \
@@ -380,10 +380,10 @@ TEST_OUTPUT_HOL(equality_lambda,
 TEST_OUTPUT_PROXY(orP_0, orP, {}, "g @ X0 @ |")
 TEST_OUTPUT_PROXY(andP_0, andP, {}, "g @ X0 @ &")
 TEST_OUTPUT_PROXY(impP_0, impP, {}, "g @ X0 @ =>")
-TEST_OUTPUT_PROXY(eqP_0, eqP(AtomicSort::defaultSort()), {}, "g @ X0 @ =")
+TEST_OUTPUT_PROXY(eqP_0, eqP(ds), {}, "g @ X0 @ =")
 TEST_OUTPUT_PROXY(iffP_0, iffP, {}, "g @ X0 @ =")
-TEST_OUTPUT_PROXY(piP_0, piP(AtomicSort::defaultSort()), {}, "g @ X0 @ !! @ $i")
-TEST_OUTPUT_PROXY(sigmaP_0, sigmaP(AtomicSort::defaultSort()), {}, "g @ X0 @ ?? @ $i")
+TEST_OUTPUT_PROXY(piP_0, piP(ds), {}, "g @ X0 @ !! @ $i")
+TEST_OUTPUT_PROXY(sigmaP_0, sigmaP(ds), {}, "g @ X0 @ ?? @ $i")
 TEST_OUTPUT_PROXY(notP_0, notP, {}, "g @ X0 @ ~")
 TEST_OUTPUT_PROXY(xorP_0, xorP, {}, "g @ X0 @ <~>")
 
@@ -391,10 +391,10 @@ TEST_OUTPUT_PROXY(xorP_0, xorP, {}, "g @ X0 @ <~>")
 TEST_OUTPUT_PROXY(orP_1, orP, {p}, "g @ X0 @ (| @ p)")
 TEST_OUTPUT_PROXY(andP_1, andP, {p}, "g @ X0 @ (& @ p)")
 TEST_OUTPUT_PROXY(impP_1, impP, {p}, "g @ X0 @ (=> @ p)")
-TEST_OUTPUT_PROXY(eqP_1, eqP(AtomicSort::defaultSort()), {a}, "g @ X0 @ (= @ a)")
+TEST_OUTPUT_PROXY(eqP_1, eqP(ds), {a}, "g @ X0 @ (= @ a)")
 TEST_OUTPUT_PROXY(iffP_1, iffP, {p}, "g @ X0 @ (= @ p)")
-TEST_OUTPUT_PROXY(piP_1, piP(AtomicSort::defaultSort()), {lam(ds, p)}, "g @ X0 @ (!! @ $i @ (^[Y0 : $i]: (p)))")
-TEST_OUTPUT_PROXY(sigmaP_1, sigmaP(AtomicSort::defaultSort()), {lam(ds, p)}, "g @ X0 @ (?? @ $i @ (^[Y0 : $i]: (p)))")
+TEST_OUTPUT_PROXY(piP_1, piP(ds), {lam(ds, p)}, "g @ X0 @ (!! @ $i @ (^[Y0 : $i]: p))")
+TEST_OUTPUT_PROXY(sigmaP_1, sigmaP(ds), {lam(ds, p)}, "g @ X0 @ (?? @ $i @ (^[Y0 : $i]: p))")
 TEST_OUTPUT_PROXY(notP_1, notP, {p}, "g @ X0 @ (~ p)")
 TEST_OUTPUT_PROXY(xorP_1, xorP, {p}, "g @ X0 @ (<~> @ p)")
 
@@ -402,6 +402,6 @@ TEST_OUTPUT_PROXY(xorP_1, xorP, {p}, "g @ X0 @ (<~> @ p)")
 TEST_OUTPUT_PROXY(orP_2, orP, p_args, "g @ X0 @ (p | q)")
 TEST_OUTPUT_PROXY(andP_2, andP, p_args, "g @ X0 @ (p & q)")
 TEST_OUTPUT_PROXY(impP_2, impP, p_args, "g @ X0 @ (p => q)")
-TEST_OUTPUT_PROXY(eqP_2, eqP(AtomicSort::defaultSort()), t_args, "g @ X0 @ (a = b)")
+TEST_OUTPUT_PROXY(eqP_2, eqP(ds), t_args, "g @ X0 @ (a = b)")
 TEST_OUTPUT_PROXY(iffP_2, iffP, p_args, "g @ X0 @ (p = q)")
 TEST_OUTPUT_PROXY(xorP_2, xorP, p_args, "g @ X0 @ (p <~> q)")

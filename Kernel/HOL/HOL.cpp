@@ -13,9 +13,12 @@
 
 #include "HOL.hpp"
 
+#include "Lib/StringUtils.hpp"
+
 #include "SubtermReplacer.hpp"
 #include "TermShifter.hpp"
 #include "Kernel/Formula.hpp"
+#include "Kernel/TermIterators.hpp"
 
 using IndexVarStack = Stack<std::pair<unsigned, unsigned>>;
 using Kernel::Term;
@@ -36,7 +39,7 @@ static bool findVar(unsigned index, const IndexVarStack & st, unsigned& var) {
   return false;
 }
 
-static std::string lambdaToString(const Term::SpecialTermData* sd)
+static std::string lambdaToString(const Term::SpecialTermData* sd, bool mightNeedParens)
 {
   Kernel::VSList *vars = sd->getLambdaVars();
   TermList lambdaExp = sd->getLambdaExp();
@@ -55,7 +58,7 @@ static std::string lambdaToString(const Term::SpecialTermData* sd)
   varList += "]";
   std::string lambda = "^";
 
-  return "(" + lambda + varList + " : (" + lambdaExp.toString() + "))";
+  return StringUtils::addParens(lambda + varList + " : " + lambdaExp.toString(/*mightNeedParens=*/true), mightNeedParens);
 }
 
 static std::string toStringAux(const Term& term, bool mightNeedParens, IndexVarStack& st) {
@@ -68,8 +71,6 @@ static std::string toStringAux(const Term& term, bool mightNeedParens, IndexVarS
   auto printSetting = env.options->holPrinting();
   bool printDB = printSetting == Options::HPrinting::DB_INDICES;
 
-  std::string res;
-
   if (term.isSpecial()) {
     const auto sd = term.getSpecialData();
 
@@ -77,7 +78,7 @@ static std::string toStringAux(const Term& term, bool mightNeedParens, IndexVarS
       case SpecialFunctor::FORMULA:
         return sd->getFormula()->toString(mightNeedParens);
       case SpecialFunctor::LAMBDA:
-        return lambdaToString(sd);
+        return lambdaToString(sd, mightNeedParens);
       default:
       // currently HOL doesn't support any other specials
       ASSERTION_VIOLATION
@@ -88,28 +89,19 @@ static std::string toStringAux(const Term& term, bool mightNeedParens, IndexVarS
     ASS_EQ(term.arity(), 2);
     auto arg1 = term.nthArgument(0);
     auto arg2 = term.nthArgument(1);
-    std::string arrow = " > ";
-    res += mightNeedParens ? "(" : "";
-    res += termToStr(*arg1, true, st) + arrow + termToStr(*arg2, false, st);
-    res += mightNeedParens ? ")" : "";
-    return res;
+    return StringUtils::addParens(termToStr(*arg1, true, st) +
+      " > " + termToStr(*arg2, false, st), mightNeedParens);
   }
 
   if (term.isSort()) {
     auto sort = static_cast<const AtomicSort*>(&term);
 
     // any non-arrow sort
-    if (term.arity()) {
-      res += "(";
+    std::string res = sort->typeConName();
+    for (const auto& arg : anyArgIter(&term)) {
+      res += " @ " + termToStr(arg, true, st);
     }
-    res += sort->typeConName();
-    for (unsigned i = 0; i < term.arity(); i++) {
-      res += " @ " + termToStr(*term.nthArgument(i), true, st);
-    }
-
-    if (term.arity())
-      res += ")";
-    return res;
+    return StringUtils::addParens(res, term.arity());
   }
 
   if (term.isLambdaTerm()) {
@@ -125,11 +117,9 @@ static std::string toStringAux(const Term& term, bool mightNeedParens, IndexVarS
     newSt.push(std::make_pair(0, v));
 
     std::string sep = printDB ? ". " : ": ";
-    std::string lambda = "^";
-    std::string lbrac = "(";
-    std::string rbrac = ")";
 
-    return "(" + lambda + bvar + sep +  lbrac + termToStr(*term.nthArgument(2), false, newSt) + rbrac + ")";
+    return StringUtils::addParens("^" + bvar + sep +
+      termToStr(*term.nthArgument(2), /*mightNeedParens=*/true, newSt), mightNeedParens);
   }
 
   auto dbOption = term.deBruijnIndex();
@@ -195,13 +185,11 @@ static std::string toStringAux(const Term& term, bool mightNeedParens, IndexVarS
     }
   }
 
-  if (mightNeedParens && hasArgs)
-    res += "(";
-
   static constexpr auto proxies = std::initializer_list<Proxy> {
       Proxy::AND, Proxy::OR, Proxy::IFF, Proxy::EQUALS, Proxy::IMP, Proxy::XOR
   };
 
+  std::string res;
   if (std::any_of(proxies.begin(), proxies.end(), [&term = head](Proxy proxy) { return term.isProxy(proxy); }) &&
       args.size() == 2) {
     res += termToStr(args[1], true, st) + " " + headStr + " " + termToStr(args[0], true, st);
@@ -212,8 +200,7 @@ static std::string toStringAux(const Term& term, bool mightNeedParens, IndexVarS
       res += app + termToStr(args.pop(), true, st);
     }
   }
-  res += (mightNeedParens && hasArgs) ? ")" : "";
-  return res;
+  return StringUtils::addParens(res, mightNeedParens && hasArgs);
 }
 
 std::string HOL::toString(const Term& term, bool mightNeedParens) {

@@ -349,10 +349,10 @@ check_output_contains '(p = (f @ x))' --mode output parse/thf-eq-precedence.p
 check_output_contains '((f @ x) & p)' --mode output parse/thf-app-absorb.p
 check_output_contains '((g @ x @ y) & p)' --mode output parse/thf-app-absorb.p
 check_output_contains_once 'an unparenthesized application as a connective argument' --mode output parse/thf-app-absorb.p
-check_output_contains '(f @ (^[X0 : a] : (X0)) @ (^[X1 : b] : (X1)))' --mode output parse/thf-lambda-in-app-chain.p
+check_output_contains '(f @ (^[X0 : a] : X0) @ (^[X1 : b] : X1))' --mode output parse/thf-lambda-in-app-chain.p
 check_output_contains '(^[X0 : a] : (g @ X0)) @ y' --mode output parse/thf-lambda-in-app-chain.p
 check_output_contains '(ev @ (^[X0 : a] : (? [X1 : b] : (r @ X0 @ X1))) @ q)' --mode output parse/thf-lambda-in-app-chain.p
-check_output_contains '(((^[X0 : b] : (y)) @ w) = y)' --mode output parse/thf-lambda-in-app-chain.p
+check_output_contains '(((^[X0 : b] : y) @ w) = y)' --mode output parse/thf-lambda-in-app-chain.p
 check_output_contains '(fl @ (^[X0 : a] : (~ (r @ X0 @ w))) @ q)' --mode output parse/thf-lambda-in-app-chain.p
 check_rejected 'sort mismatch in the application x @ y' --input_syntax tptp --mode output parse/thf-ill-typed-app.p
 check_rejected 'sort mismatch in the application r | q @ x' --input_syntax tptp --mode output parse/thf-app-to-formula.p

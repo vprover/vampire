@@ -31,16 +31,16 @@ HOL_TEST_FUN(hol_print_1) {
 
   runTest(
     lam({x0F, x(1)}, x(1)),
-    { {RAW,        "(^[X0 : srt > srt, X1 : srt] : (X1))"},
-      {DB_INDICES, "(^[X0 : srt > srt, X1 : srt] : (X1))"},
-      {TPTP,       "(^[X0 : srt > srt, X1 : srt] : (X1))"} }
+    { {RAW,        "^[X0 : srt > srt, X1 : srt] : X1"},
+      {DB_INDICES, "^[X0 : srt > srt, X1 : srt] : X1"},
+      {TPTP,       "^[X0 : srt > srt, X1 : srt] : X1"} }
   );
 
   runTest(
     lam({x0F, x(1)}, app(x0F, x(1))),
-    { {RAW,        "(^[X0 : srt > srt, X1 : srt] : (vAPP(srt,srt,X0,X1)))"},
-      {DB_INDICES, "(^[X0 : srt > srt, X1 : srt] : (X0 @ X1))"},
-      {TPTP,       "(^[X0 : srt > srt, X1 : srt] : (X0 @ X1))"} }
+    { {RAW,        "^[X0 : srt > srt, X1 : srt] : vAPP(srt,srt,X0,X1)"},
+      {DB_INDICES, "^[X0 : srt > srt, X1 : srt] : (X0 @ X1)"},
+      {TPTP,       "^[X0 : srt > srt, X1 : srt] : (X0 @ X1)"} }
   );
 
   runTest(
@@ -52,16 +52,16 @@ HOL_TEST_FUN(hol_print_1) {
 
   runTest(
     lam(x(1), app(D.f, x(1))),
-    { {RAW,        "(^[X1 : srt] : (vAPP(srt,srt,f,X1)))"},
-      {DB_INDICES, "(^[X1 : srt] : (f @ X1))"},
-      {TPTP,       "(^[X1 : srt] : (f @ X1))"} }
+    { {RAW,        "^[X1 : srt] : vAPP(srt,srt,f,X1)"},
+      {DB_INDICES, "^[X1 : srt] : (f @ X1)"},
+      {TPTP,       "^[X1 : srt] : (f @ X1)"} }
   );
 
   runTest(
     lam(x1F, lam(x(1), x(1))),
-    { {RAW,        "(^[X1 : srt > srt] : ((^[X1 : srt] : (X1))))" },
-      {DB_INDICES, "(^[X1 : srt > srt] : ((^[X1 : srt] : (X1))))" },
-      {TPTP,       "(^[X1 : srt > srt] : ((^[X1 : srt] : (X1))))" } }
+    { {RAW,        "^[X1 : srt > srt] : (^[X1 : srt] : X1)" },
+      {DB_INDICES, "^[X1 : srt > srt] : (^[X1 : srt] : X1)" },
+      {TPTP,       "^[X1 : srt > srt] : (^[X1 : srt] : X1)" } }
   );
 }
 
@@ -74,15 +74,15 @@ HOL_TEST_FUN(hol_print_2) {
   runTest(
     toNameless(lam({x0F, x(1)}, x(1))),
     { {RAW,        "vLAM(srt > srt,srt > srt,vLAM(srt,srt,db0(srt)))" },
-      {DB_INDICES, "(^db0 : srt > srt. ((^db1 : srt. (db0_0))))" },
-      {TPTP,       "(^[Y0 : srt > srt]: ((^[Y1 : srt]: (Y1))))" } }
+      {DB_INDICES, "^db0 : srt > srt. (^db1 : srt. db0_0)" },
+      {TPTP,       "^[Y0 : srt > srt]: (^[Y1 : srt]: Y1)" } }
   );
 
   runTest(
     toNameless(lam({x0F, x(1)}, app(x0F, x(1)))),
     { {RAW,        "vLAM(srt > srt,srt > srt,vLAM(srt,srt,vAPP(srt,srt,db1(srt > srt),db0(srt))))" },
-      {DB_INDICES, "(^db0 : srt > srt. ((^db1 : srt. (db1_1 @ db0_0))))" },
-      {TPTP,       "(^[Y0 : srt > srt]: ((^[Y1 : srt]: (Y0 @ Y1))))" } }
+      {DB_INDICES, "^db0 : srt > srt. (^db1 : srt. (db1_1 @ db0_0))" },
+      {TPTP,       "^[Y0 : srt > srt]: (^[Y1 : srt]: (Y0 @ Y1))" } }
   );
 
   runTest(
@@ -95,15 +95,15 @@ HOL_TEST_FUN(hol_print_2) {
   runTest(
     toNameless(lam(x(1), app(D.f, x(1)))),
     { {RAW,        "vLAM(srt,srt,vAPP(srt,srt,f,db0(srt)))"},
-      {DB_INDICES, "(^db0 : srt. (f @ db0_0))"},
-      {TPTP,       "(^[Y0 : srt]: (f @ Y0))"} }
+      {DB_INDICES, "^db0 : srt. (f @ db0_0)"},
+      {TPTP,       "^[Y0 : srt]: (f @ Y0)"} }
   );
 
   runTest(
     toNameless(lam(x1F, lam(x(1), x(1)))),
     { {RAW,        "vLAM(srt > srt,srt > srt,vLAM(srt,srt,db0(srt)))" },
-      {DB_INDICES, "(^db0 : srt > srt. ((^db1 : srt. (db0_0))))" },
-      {TPTP,       "(^[Y0 : srt > srt]: ((^[Y1 : srt]: (Y1))))" }}
+      {DB_INDICES, "^db0 : srt > srt. (^db1 : srt. db0_0)" },
+      {TPTP,       "^[Y0 : srt > srt]: (^[Y1 : srt]: Y1)" }}
   );
 }
 
