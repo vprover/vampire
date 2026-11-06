@@ -192,9 +192,7 @@ void preprocessMode(Problem* problem, bool theory)
   }
   prepro.preprocess(*prb);
 
-  //outputSymbolDeclarations also deals with sorts for now
-  //UIHelper::outputSortDeclarations(std::cout);
-  UIHelper::outputSymbolDeclarations(std::cout);
+  std::cout << TPTPPrinter::symbolDeclarations();
   UnitList::Iterator units(prb->units());
   while (units.hasNext()) {
     Unit* u = units.next();
@@ -250,9 +248,7 @@ void outputMode(Problem* problem)
 {
   ScopedPtr<Problem> prb(problem);
 
-  //outputSymbolDeclarations also deals with sorts for now
-  //UIHelper::outputSortDeclarations(std::cout);
-  UIHelper::outputSymbolDeclarations(std::cout);
+  std::cout << TPTPPrinter::symbolDeclarations();
   UnitList::Iterator units(prb->units());
 
   while (units.hasNext()) {
@@ -377,9 +373,14 @@ void clausifyMode(Problem* problem, bool theory)
 
   ScopedPtr<Problem> prb(preprocessProblem(problem));
 
-  //outputSymbolDeclarations deals with sorts as well for now
-  //UIHelper::outputSortDeclarations(std::cout);
-  UIHelper::outputSymbolDeclarations(std::cout,/*tcf=*/theory);
+  // with theory, we print tcf(), i.e. the clause quantified with its variables' sorts
+  TPTPOutput::Language clauseLanguage = TPTPOutput::Language::CNF;
+  if (theory) {
+    clauseLanguage = TPTPOutput::Language::TCF;
+  }
+  const auto declarationLanguage = theory ? TPTPOutput::Language::TCF
+      : env.higherOrder() ? TPTPOutput::Language::THF : TPTPOutput::Language::TFF;
+  std::cout << TPTPPrinter::symbolDeclarations(declarationLanguage);
 
   ClauseIterator cit = prb->clauseIterator();
   bool printed_conjecture = false;
@@ -390,8 +391,7 @@ void clausifyMode(Problem* problem, bool theory)
       continue;
     }
     printed_conjecture |= cl->inputType() == UnitInputType::CONJECTURE || cl->inputType() == UnitInputType::NEGATED_CONJECTURE;
-    // with theory, we print tcf(), i.e. the clause quantified with its variables' sorts
-    std::cout << TPTPPrinter::unit(cl, theory) << "\n";
+    std::cout << TPTPPrinter::unit(cl, clauseLanguage) << "\n";
   }
   if(!printed_conjecture && UIHelper::haveConjecture()){
     unsigned p = env.signature->addFreshPredicate(0,"p")->number();
@@ -400,7 +400,7 @@ void clausifyMode(Problem* problem, bool theory)
         Literal::create(p, /* polarity */ false, {})
       }, 
       FromInput(UnitInputType::NEGATED_CONJECTURE));
-    std::cout << TPTPPrinter::unit(c, theory) << "\n";
+    std::cout << TPTPPrinter::unit(c, clauseLanguage) << "\n";
   }
 
   //we have successfully output all clauses, so we'll terminate with zero return value

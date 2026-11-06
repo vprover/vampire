@@ -30,6 +30,10 @@
 #include "Kernel/FormulaVarIterator.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/Term.hpp"
+#include "Kernel/OperatorType.hpp"
+#include "Kernel/Signature.hpp"
+#include "Kernel/Theory.hpp"
+#include "Shell/Options.hpp"
 #include "Kernel/Unit.hpp"
 
 #include "Parse/TPTP.hpp"
@@ -51,6 +55,9 @@ using TPTPOutput::languageName;
 using TPTPOutput::parenthesized;
 using TPTPOutput::Reference;
 using TPTPOutput::variableRef;
+using TPTPOutput::QuantifiedVariables;
+using TPTPOutput::quantified;
+namespace Role = TPTPOutput::Role;
 
 /**
  * Return the std::string representing the formula f.
@@ -163,23 +170,23 @@ std::ostream& TPTPPrinter::printFormula(std::ostream& out, const Formula* formul
  * TPTP role conjecture. If it is a clause, just output it as
  * is, with the role negated_conjecture.
  */
-std::string TPTPPrinter::toString(const Unit* unit, bool typedClauses)
+std::string TPTPPrinter::toString(const Unit* unit, Language language)
 {
   std::ostringstream out;
-  printUnit(out, unit, typedClauses);
+  printUnit(out, unit, language);
   return out.str();
 }
 
 std::ostream& TPTPPrinter::UnitOutput::print(std::ostream& out) const
-{ return printUnit(out, unit, typedClauses); }
+{ return printUnit(out, unit, language); }
 
 std::ostream& TPTPPrinter::NamedUnitOutput::print(std::ostream& out) const
-{ return printUnit(out, unit, name, role, typedClauses, includeSplitLevels); }
+{ return printUnit(out, unit, name, role, language, includeSplitLevels); }
 
 std::ostream& TPTPPrinter::FormulaOutput::print(std::ostream& out) const
 { return printFormula(out, formula); }
 
-std::ostream& TPTPPrinter::printUnit(std::ostream& out, const Unit* unit, bool typedClauses)
+std::ostream& TPTPPrinter::printUnit(std::ostream& out, const Unit* unit, Language language)
 {
   // A clause of type CONJECTURE stems from the negated conjecture and is printed as is.
   // A formula of type CONJECTURE is negated back to the conjecture.
@@ -192,53 +199,68 @@ std::ostream& TPTPPrinter::printUnit(std::ostream& out, const Unit* unit, bool t
       negateFormula = true;
     }
   }
-  out << language(unit, typedClauses) << '(' << InputName{unit, "u"} << ',' << role << ",\n    ";
-  printBody(out, unit, typedClauses, negateFormula, /*includeSplitLevels=*/false);
+  out << language << '(' << InputName{unit, "u"} << ',' << role << ",\n    ";
+  printBody(out, unit, language, negateFormula, /*includeSplitLevels=*/false);
   return out << ").\n";
 }
 
 std::ostream& TPTPPrinter::printUnit(std::ostream& out, const Unit* unit, std::string_view name,
-    const char* role, bool typedClauses, bool includeSplitLevels)
+    const char* role, Language language, bool includeSplitLevels)
 {
-  out << language(unit, typedClauses) << '(' << name << ',' << role << ",\n    ";
-  printBody(out, unit, typedClauses, /*negateFormula=*/false, includeSplitLevels);
+  out << language << '(' << name << ',' << role << ",\n    ";
+  printBody(out, unit, language, /*negateFormula=*/false, includeSplitLevels);
   return out << ").\n";
 }
 
-Language TPTPPrinter::language(const Unit* unit, bool typedClauses)
+Language TPTPPrinter::unitLanguage(const Unit* unit)
 {
-  if (!unit->isClause()) {
-    return env.higherOrder() ? Language::THF : Language::TFF;
+  if (unit->isClause()) {
+    return Language::CNF;
   }
-  if (typedClauses) {
-    return Language::TCF;
+  if (env.higherOrder()) {
+    return Language::THF;
   }
-  return Language::CNF;
+  return Language::TFF;
 }
 
 /**
- * The formula of @param unit. A clause is written in parentheses, preceded by its universal
- * prefix if @param typedClauses. With @param negateFormula, a formula is closed and negated.
+ * The formula of @param unit in @param language. In CNF, a clause is written in parentheses;
+ * in TCF, it is preceded by its universal prefix. In FOF, TFF and THF, the universal closure
+ * of a clause is written. With @param negateFormula, a formula is closed and negated.
  * With @param includeSplitLevels, the split levels of a clause are added as $splitLevel<n>
  * disjuncts; these are a Vampire extension, not TPTP.
  */
-std::ostream& TPTPPrinter::printBody(std::ostream& out, const Unit* unit, bool typedClauses,
+std::ostream& TPTPPrinter::printBody(std::ostream& out, const Unit* unit, Language language,
     bool negateFormula, bool includeSplitLevels)
 {
   if (unit->isClause()) {
     const auto* clause = static_cast<const Clause*>(unit);
-    if (typedClauses) {
-      TPTPOutput::QuantifiedVariables variables(unit, Language::TCF);
-      if (!variables.isEmpty()) { out << "![" << variables << "] : "; }
-    }
-    out << "( " << disjunction(clause->iterLits());
-    if (includeSplitLevels && !clause->noSplits()) {
-      for (SplitLevel split : iterTraits(clause->splits()->iter())) {
-        out << connectiveSymbol(OR) << Reference{"$splitLevel", split};
+    auto literals = Output::deferred([clause, includeSplitLevels](std::ostream& stream) -> std::ostream& {
+      stream << disjunction(clause->iterLits());
+      if (includeSplitLevels && !clause->noSplits()) {
+        for (SplitLevel split : iterTraits(clause->splits()->iter())) {
+          stream << connectiveSymbol(OR) << Reference{"$splitLevel", split};
+        }
       }
+      return stream;
+    });
+    switch (language) {
+    case Language::CNF:
+      out << "( " << literals << " )";
+      break;
+    case Language::TCF: {
+      QuantifiedVariables variables(unit, Language::TCF);
+      if (!variables.isEmpty()) { out << "![" << variables << "] : "; }
+      out << "( " << literals << " )";
+      break;
     }
-    out << " )";
+    default:
+      out << quantified(QuantifiedVariables(unit, language), literals);
+    }
   } else {
+    // Only clauses can be written in CNF or TCF.
+    ASS_NEQ(language, Language::CNF);
+    ASS_NEQ(language, Language::TCF);
     const Formula* formula = static_cast<const FormulaUnit*>(unit)->formula();
     if (!negateFormula) {
       printFormula(out, formula);
@@ -266,6 +288,103 @@ std::ostream& TPTPPrinter::printBody(std::ostream& out, const Unit* unit, bool t
   return out;
 }
 
+
+TPTPPrinter::SymbolDeclarationsOutput TPTPPrinter::symbolDeclarations()
+{ return symbolDeclarations(env.higherOrder() ? Language::THF : Language::TFF); }
+
+std::ostream& TPTPPrinter::SymbolDeclarationsOutput::print(std::ostream& out) const
+{ return printSymbolDeclarations(out, language); }
+
+namespace {
+
+/**
+ * Whether a symbol needs a TPTP type declaration. Symbols with default types, interpreted
+ * symbols, and the built-in and internal symbols of Vampire are not declared.
+ */
+bool needsTPTPTypeDeclaration(SymbolType type, unsigned number)
+{
+  Signature& sig = *env.signature;
+  switch (type) {
+  case SymbolType::TYPE_CON:
+    if (sig.isArrayCon(number) || sig.isTupleCon(number) || sig.isArrowCon(number)) {
+      return false;
+    }
+    if (sig.isDefaultSortCon(number) && (!sig.isBoolCon(number) || !env.options->showFOOL())) {
+      return false;
+    }
+    break;
+  case SymbolType::FUNC: {
+    if (!env.options->showFOOL()
+        && (sig.isFoolConstantSymbol(true, number) || sig.isFoolConstantSymbol(false, number))) {
+      return false;
+    }
+    // app is internal to Vampire
+    if (sig.isAppFun(number)) {
+      return false;
+    }
+    unsigned dummy;
+    if (Theory::findTupleProjection(number, /*predicate=*/false, dummy)) {
+      return false;
+    }
+    if (sig.getFunction(number)->type()->result().isTupleSort()) {
+      return false;
+    }
+    break;
+  }
+  case SymbolType::PRED: {
+    unsigned dummy;
+    if (Theory::findTupleProjection(number, /*predicate=*/true, dummy)) {
+      return false;
+    }
+    break;
+  }
+  }
+  const Signature::Symbol* symbol = env.signature->getSymbol(type, number);
+  return !symbol->interpreted() && !symbol->type()->isAllDefault();
+}
+
+/** The declarations of the first @b count symbols of @b type that need one.
+ *  Declaration names are @b namePrefix followed by the symbol number. */
+void printSymbolDeclarationsOfType(std::ostream& out, Language language, SymbolType type,
+    unsigned count, const char* namePrefix)
+{
+  for (unsigned number = 0; number < count; ++number) {
+    if (!needsTPTPTypeDeclaration(type, number)) {
+      continue;
+    }
+    const Signature::Symbol* symbol = env.signature->getSymbol(type, number);
+    out << language << '(' << Reference{namePrefix, number} << ',' << Role::TYPE << ',';
+    if (type == SymbolType::TYPE_CON && env.signature->isBoolCon(number)) {
+      ASS(env.options->showFOOL());
+      out << "$bool";
+    } else {
+      out << symbol->name();
+    }
+    out << ": " << *symbol->type() << ")." << endl;
+  }
+}
+
+} // namespace
+
+/**
+ * Output to @b out all symbol declarations for the current signature.
+ * Symbols having default types will not be output.
+ * @author Andrei Voronkov
+ * @since 03/07/2013 Manchester
+ */
+std::ostream& TPTPPrinter::printSymbolDeclarations(std::ostream& out, Language language)
+{
+  ASS(language == Language::TFF || language == Language::TCF || language == Language::THF);
+
+  const Signature& sig = *env.signature;
+  printSymbolDeclarationsOfType(out, language, SymbolType::TYPE_CON, sig.typeCons(),
+      "type_def_");
+  printSymbolDeclarationsOfType(out, language, SymbolType::FUNC, sig.functions(),
+      "func_def_");
+  printSymbolDeclarationsOfType(out, language, SymbolType::PRED, sig.predicates(),
+      "pred_def_");
+  return out;
+}
 
 namespace TPTPOutput {
 

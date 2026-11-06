@@ -36,7 +36,6 @@
 #include "Parse/TPTP.hpp"
 #include "SAT/SATInference.hpp"
 #include "Saturation/Splitter.hpp"
-#include "Shell/UIHelper.hpp"
 
 #include "TPTPProofPrinter.hpp"
 
@@ -103,9 +102,7 @@ void InferenceStore::TPTPProofPrinter::print()
     //typed symbol no unit ever used, whose declaration would put a tff line
     //into an otherwise fof proof
     if(env.initiallyHasNonDefaultSorts() || env.initiallyHigherOrder()){
-      //outputSymbolDeclarations also deals with sorts for now
-      //UIHelper::outputSortDeclarations(out);
-      UIHelper::outputSymbolDeclarations(out);
+      out << TPTPPrinter::symbolDeclarations(proofLanguage());
     }
     AbstractSATProofPrinter::print();
   }

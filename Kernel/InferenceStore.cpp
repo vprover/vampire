@@ -339,7 +339,7 @@ protected:
     if(env.initiallyHasNonDefaultSorts() || env.initiallyHigherOrder()){
       //outputSymbolDeclarations also deals with sorts for now
       //UIHelper::outputSortDeclarations(out);
-      UIHelper::outputSymbolDeclarations(out);
+      out << TPTPPrinter::symbolDeclarations(TPTPOutput::proofLanguage());
     }
 
     const auto targetLanguage = TPTPOutput::proofLanguage();
