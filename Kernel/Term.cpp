@@ -548,7 +548,7 @@ std::string Term::variableToString(TermList var)
  * opening '(' and any special-term data preceding the arguments.
  * For zero arity this is the complete term.
  */
-std::string Term::prefixToString() const
+std::string Term::prefixToString(bool mightNeedParens) const
 {
   if (isSpecial()) {
     const Term::SpecialTermData* sd = getSpecialData();
@@ -556,7 +556,7 @@ std::string Term::prefixToString() const
     switch(specialFunctor()) {
       case SpecialFunctor::FORMULA: {
         ASS_EQ(arity(), 0);
-        std::string formula = sd->getFormula()->toString();
+        std::string formula = sd->getFormula()->toString(mightNeedParens);
         return env.options->showFOOL() ? "$term{" + formula + "}" : formula;
       }
       case SpecialFunctor::LET: {
@@ -684,7 +684,7 @@ std::string TermList::asArgsToString() const
       continue;
     }
 
-    res += t->prefixToString();
+    res += t->prefixToString(/*mightNeedParens=*/false);
 
     if (t->arity()) {
       stack.push(t->args());
@@ -698,7 +698,7 @@ std::string TermList::asArgsToString() const
  * Write as a std::string the head of the term list.
  * @since 27/02/2008 Manchester
  */
-std::string TermList::toString(bool topLevel) const
+std::string TermList::toString(bool mightNeedParens) const
 {
   if (isEmpty()) {
     return "<empty TermList>";
@@ -707,7 +707,7 @@ std::string TermList::toString(bool topLevel) const
     return Term::variableToString(*this);
   }
 
-  return term()->toString(topLevel);
+  return term()->toString(mightNeedParens);
 } // TermList::toString
 
 
@@ -715,24 +715,24 @@ std::string TermList::toString(bool topLevel) const
  * Return the result of conversion of a term into a std::string.
  * @since 16/05/2007 Manchester
  */
-std::string Term::toString(bool topLevel) const
+std::string Term::toString(bool mightNeedParens) const
 {
   if (isSuper()) {
     return "$tType";
   }
 
   if (env.higherOrder() && env.options->holPrinting() != Options::HPrinting::RAW) {
-    return HOL::toString(*this, topLevel);
+    return HOL::toString(*this, mightNeedParens);
   }
 
-  if (isSort() && static_cast<AtomicSort *>(const_cast<Term *>(this))->isArrowSort()) {
+  if (isSort() && static_cast<const AtomicSort*>(this)->isArrowSort()) {
     ASS(arity() == 2);
     std::string res;
     TermList arg1 = *(nthArgument(0));
     TermList arg2 = *(nthArgument(1));
-    res += topLevel ? "" : "(";
-    res += arg1.toString(false) + " > " + arg2.toString();
-    res += topLevel ? "" : ")";
+    res += mightNeedParens ? "(" : "";
+    res += arg1.toString(/*mightNeedParens=*/true) + " > " + arg2.toString(/*mightNeedParens=*/true);
+    res += mightNeedParens ? ")" : "";
     return res;
   }
 
@@ -749,7 +749,7 @@ std::string Term::toString(bool topLevel) const
       return Option<std::string>(out.str());
     };
     auto binary = [&](auto sym)  {
-      auto needsPar = !topLevel;
+      auto needsPar = mightNeedParens;
       auto maybePar = [&](auto t) { 
         return t.toString(
             t.isTerm() && (
@@ -797,10 +797,10 @@ std::string Term::toString(bool topLevel) const
 #endif // NICE_THEORY_OUTPUT
 
   std::stringstream out;
-  out << prefixToString();
+  out << prefixToString(mightNeedParens);
   
   if (_arity) {
-    out << Output::interleaved(',', anyArgIter(this)) << ")";
+    out << args()->asArgsToString(); // will also print the ')'
   }
   return out.str();
 } // Term::toString
@@ -821,31 +821,19 @@ std::pair<TermList,TermList> Literal::eqArgs() const {
  * If `reverseEquality` and this is an equation, print the arguments in reverse order.
  * @since 16/05/2007 Manchester
  */
-std::string Literal::toString(bool reverseEquality) const
+std::string Literal::toString(bool reverseEquality, bool mightNeedParens) const
 {
   if (isEquality()) {
     const TermList lhs = termArg(reverseEquality);
-    std::string lhss = lhs.toString();
-
-    if (env.higherOrder() &&
-        env.options->holPrinting() != Options::HPrinting::RAW &&
-        lhs.isApplication()) {
-      lhss = "(" + lhss + ")";
-    }
+    std::string lhss = lhs.toString(/*mightNeedParens=*/true);
 
     lhss += isPositive() ? " = " : " != ";
 
     auto rhs = termArg(!reverseEquality);
-    std::string rhss = rhs.toString();
-    if (env.higherOrder() &&
-        env.options->holPrinting() != Options::HPrinting::RAW &&
-        rhs.isApplication()) {
-      rhss = "(" + rhss + ")";
-    }
+    std::string rhss = rhs.toString(/*mightNeedParens=*/true);
 
     std::string res = lhss + rhss;
-    if (env.higherOrder() ||
-        SortHelper::getEqualityArgumentSort(this).isBoolSort()) {
+    if (mightNeedParens) {
       res = "(" + res + ")";
     }
 
@@ -856,7 +844,7 @@ std::string Literal::toString(bool reverseEquality) const
   }
 
   if (env.signature->isDefPred(functor())) {
-    return termArg(0).toString() + " := " + termArg(1).toString();
+    return (mightNeedParens ? "(" : "") + termArg(0).toString() + " := " + termArg(1).toString() + (mightNeedParens ? ")" : "");
   }
 
 #if NICE_THEORY_OUTPUT

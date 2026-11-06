@@ -327,7 +327,7 @@ TEST_FUN(thf_quantifiers_parenthesize_arrow_sorts)
   sorts.insert(0, AtomicSort::arrowSort(AtomicSort::defaultSort(), AtomicSort::defaultSort()));
   std::ostringstream out;
   out << QuantifiedVariables(pvi(range(0u, 1u)), sorts, Language::THF);
-  ASS_EQ(out.str(), "X0 : ($i > $i)");
+  ASS_EQ(out.str(), "X0 : $i > $i");
 }
 
 TEST_FUN(thf_closure_does_not_rebind_lambda_variables)
@@ -341,7 +341,7 @@ TEST_FUN(thf_closure_does_not_rebind_lambda_variables)
   FormulaUnit unit(new AtomicFormula(equality), FromInput(UnitInputType::AXIOM));
   std::ostringstream out;
   out << QuantifiedVariables(&unit, Language::THF);
-  ASS_EQ(out.str(), "X1 : ($i > $i)");
+  ASS_EQ(out.str(), "X1 : $i > $i");
 }
 
 static void checkFormulaOutput(const Formula* formula, const std::string& expected)
@@ -380,12 +380,12 @@ TEST_FUN(formula_stream_preserves_quantifier_sorts_and_spacing)
   auto vars = VSList::cons({0, AtomicSort::defaultSort()},
       VSList::singleton({1, AtomicSort::intSort()}));
   checkFormulaOutput(new QuantifiedFormula(FORALL, vars, atom),
-      "(![X0, X1 : $int] : (p))");
+      "(! [X0, X1 : $int] : p)");
   auto existential = new QuantifiedFormula(EXISTS,
       VSList::singleton({2, AtomicSort::defaultSort()}), atom);
-  checkFormulaOutput(existential, "(?[X2] : (p))");
+  checkFormulaOutput(existential, "(? [X2] : p)");
   checkFormulaOutput(new QuantifiedFormula(FORALL, vars, existential),
-      "(![X0, X1 : $int] : ((?[X2] : (p))))");
+      "(! [X0, X1 : $int] : ? [X2] : p)");
 }
 
 TEST_FUN(formula_stream_preserves_equality_parentheses_and_boolean_terms)
@@ -420,14 +420,14 @@ TEST_FUN(thf_unit_output_parenthesizes_applications_and_annotates_binders)
       FormulaList::cons(new BoolTermFormula(p()), FormulaList::singleton(application)));
   checkFormulaOutput(formula, "((f @ x) & p)");
   // Proof bodies use Formula::toString; both renderers must preserve application parentheses.
-  ASS_EQ(formula->toString(false), Shell::TPTPPrinter::toString(formula));
+  ASS_EQ(formula->toString(/*mightNeedParens=*/true), Shell::TPTPPrinter::toString(formula));
   FormulaUnit unit(formula, FromInput(UnitInputType::AXIOM));
   ASS_EQ(Shell::TPTPPrinter::toString(&unit),
       "thf(u" + std::to_string(unit.number()) + ",axiom,\n    ((f @ x) & p)).\n");
 
   auto universal = new QuantifiedFormula(FORALL,
       VSList::singleton({0, AtomicSort::defaultSort()}), new BoolTermFormula(p()));
-  checkFormulaOutput(universal, "(![X0 : $i] : (p))");
+  checkFormulaOutput(universal, "(! [X0 : $i] : p)");
 }
 
 TEST_FUN(formula_stream_handles_deep_nesting_iteratively)
@@ -435,14 +435,13 @@ TEST_FUN(formula_stream_handles_deep_nesting_iteratively)
   DECL_PRED(p, {})
   Formula* formula = new AtomicFormula(p());
   const unsigned depth = 10000;
-  std::string expected;
+  std::string expected = "(";
   expected.reserve(4 * depth + 1);
   for (unsigned i = 0; i < depth; ++i) {
     formula = new NegatedFormula(formula);
-    expected += "(~ ";
+    expected += "~ ";
   }
-  expected += 'p';
-  expected.append(depth, ')');
+  expected += "p)";
   checkFormulaOutput(formula, expected);
 }
 
@@ -518,7 +517,7 @@ TEST_FUN(unit_stream_closes_free_conjecture_variables_without_changing_input)
   auto atom = new AtomicFormula(p(x));
   FormulaUnit stated(atom, FromInput(UnitInputType::CONJECTURE));
   FormulaUnit conjecture(atom, fromNegatedConjecture(&stated));
-  checkUnitOutput(&conjecture, "tff", "conjecture", "(~ (![X0] : (p(X0))))");
+  checkUnitOutput(&conjecture, "tff", "conjecture", "(~ ! [X0] : p(X0))");
   ASS(conjecture.formula() == atom);
   ASS_EQ(Shell::TPTPPrinter::toString(atom), "p(X0)");
 }

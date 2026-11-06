@@ -20,10 +20,10 @@
 using IndexVarStack = Stack<std::pair<unsigned, unsigned>>;
 using Kernel::Term;
 
-static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& st);
+static std::string toStringAux(const Term& term, bool mightNeedParens, IndexVarStack& st);
 
-static std::string termToStr(TermList t, bool topLevel, IndexVarStack& st){
-  return t.isVar() ? Term::variableToString(t) : toStringAux(*t.term(), topLevel, st);
+static std::string termToStr(TermList t, bool mightNeedParens, IndexVarStack& st){
+  return t.isVar() ? Term::variableToString(t) : toStringAux(*t.term(), mightNeedParens, st);
 }
 
 static bool findVar(unsigned index, const IndexVarStack & st, unsigned& var) {
@@ -58,7 +58,7 @@ static std::string lambdaToString(const Term::SpecialTermData* sd)
   return "(" + lambda + varList + " : (" + lambdaExp.toString() + "))";
 }
 
-static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& st) {
+static std::string toStringAux(const Term& term, bool mightNeedParens, IndexVarStack& st) {
 
   using Shell::Options;
   using namespace Kernel;
@@ -73,23 +73,25 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
   if (term.isSpecial()) {
     const auto sd = term.getSpecialData();
 
-    if (term.isFormula())
-      return sd->getFormula()->toString(topLevel);
-    if (term.isLambda())
-      return lambdaToString(sd);
-
-    // currently HOL doesn't support any other specials
-    ASSERTION_VIOLATION
+    switch (term.specialFunctor()) {
+      case SpecialFunctor::FORMULA:
+        return sd->getFormula()->toString(mightNeedParens);
+      case SpecialFunctor::LAMBDA:
+        return lambdaToString(sd);
+      default:
+      // currently HOL doesn't support any other specials
+      ASSERTION_VIOLATION
+    }
   }
 
   if (term.isArrowSort()) {
-    ASS(term.arity() == 2)
+    ASS_EQ(term.arity(), 2);
     auto arg1 = term.nthArgument(0);
     auto arg2 = term.nthArgument(1);
     std::string arrow = " > ";
-    res += topLevel ? "" : "(";
-    res += termToStr(*arg1, false, st) + arrow + termToStr(*arg2, true, st);
-    res += topLevel ? "" : ")";
+    res += mightNeedParens ? "(" : "";
+    res += termToStr(*arg1, true, st) + arrow + termToStr(*arg2, false, st);
+    res += mightNeedParens ? ")" : "";
     return res;
   }
 
@@ -102,7 +104,7 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
     }
     res += sort->typeConName();
     for (unsigned i = 0; i < term.arity(); i++) {
-      res += " @ " + termToStr(*term.nthArgument(i), false, st);
+      res += " @ " + termToStr(*term.nthArgument(i), true, st);
     }
 
     if (term.arity())
@@ -113,8 +115,8 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
   if (term.isLambdaTerm()) {
     unsigned v = st.size() ? st.top().second + 1 : 0;
     std::string bvar = "Y" + Int::toString(v);
-    bvar = "[" + bvar + " : " + termToStr(*term.nthArgument(0), true, st) + "]";
-    bvar = printDB ? "db" + Int::toString(v) + " : " + termToStr(*term.nthArgument(0), true, st) : bvar;
+    bvar = "[" + bvar + " : " + termToStr(*term.nthArgument(0), false, st) + "]";
+    bvar = printDB ? "db" + Int::toString(v) + " : " + termToStr(*term.nthArgument(0), false, st) : bvar;
 
     IndexVarStack newSt(st);
     for (auto &[fst, snd] : newSt)
@@ -127,7 +129,7 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
     std::string lbrac = "(";
     std::string rbrac = ")";
 
-    return "(" + lambda + bvar + sep +  lbrac + termToStr(*term.nthArgument(2), true, newSt) + rbrac + ")";
+    return "(" + lambda + bvar + sep +  lbrac + termToStr(*term.nthArgument(2), false, newSt) + rbrac + ")";
   }
 
   auto dbOption = term.deBruijnIndex();
@@ -145,7 +147,7 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
 
   std::string headStr;
   if (head.isVar() || (head.deBruijnIndex().isSome() && !printDB) || head.isLambdaTerm() || head.term()->isSpecial())
-    headStr = termToStr(head, false, st);
+    headStr = termToStr(head, true, st);
   else if (head.isChoice())
     headStr = "@@+";
   else if (HOL::isTrue(head))
@@ -189,11 +191,11 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
       !head.isLambdaTerm() && head.term()->arity() > 0) {
     auto t = head.term();
     for (unsigned i = 0; i < t->arity(); ++i) {
-      headStr += " @ " + termToStr(*t->nthArgument(i),false,st);
+      headStr += " @ " + termToStr(*t->nthArgument(i),true,st);
     }
   }
 
-  if (!topLevel && hasArgs)
+  if (mightNeedParens && hasArgs)
     res += "(";
 
   static constexpr auto proxies = std::initializer_list<Proxy> {
@@ -202,22 +204,22 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
 
   if (std::any_of(proxies.begin(), proxies.end(), [&term = head](Proxy proxy) { return term.isProxy(proxy); }) &&
       args.size() == 2) {
-    res += termToStr(args[1], false, st) + " " + headStr + " " + termToStr(args[0], false, st);
+    res += termToStr(args[1], true, st) + " " + headStr + " " + termToStr(args[0], true, st);
   } else {
     std::string app = head.isProxy(Proxy::NOT) ? " " : " @ ";
     res += headStr;
     while (!args.isEmpty()) {
-      res += app + termToStr(args.pop(), false, st);
+      res += app + termToStr(args.pop(), true, st);
     }
   }
-  res += (!topLevel && hasArgs) ? ")" : "";
+  res += (mightNeedParens && hasArgs) ? ")" : "";
   return res;
 }
 
-std::string HOL::toString(const Term& term, bool topLevel) {
+std::string HOL::toString(const Term& term, bool mightNeedParens) {
   IndexVarStack st;
 
-  return toStringAux(term, topLevel, st);
+  return toStringAux(term, mightNeedParens, st);
 }
 
 TermList HOL::matrix(TermList t) {

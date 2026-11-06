@@ -98,7 +98,7 @@ HOL_TEST_FUN(beta_reduction_4) {
 
   auto t1 = toNameless(term);
   ASS_EQ(termListToString(t1, Options::HPrinting::TPTP),
-         "((^[Y0 : srt > srt]: (Y0 @ a)) @ (^[Y0 : srt]: (Y0)))")
+         "(^[Y0 : srt > srt]: (Y0 @ a)) @ (^[Y0 : srt]: (Y0))")
   ASS_EQ(termListToString(t1, Options::HPrinting::RAW),
          "vAPP(srt > srt,srt,vLAM(srt > srt,srt,vAPP(srt,srt,db0(srt > srt),a)),vLAM(srt,srt,db0(srt)))")
 
@@ -108,7 +108,7 @@ HOL_TEST_FUN(beta_reduction_4) {
 
   auto t2 = toNameless(app(D.f, term));
   ASS_EQ(termListToString(t2, Options::HPrinting::TPTP),
-         "(f @ ((^[Y0 : srt > srt]: (Y0 @ a)) @ (^[Y0 : srt]: (Y0))))")
+         "f @ ((^[Y0 : srt > srt]: (Y0 @ a)) @ (^[Y0 : srt]: (Y0)))")
   ASS_EQ(termListToString(t2, Options::HPrinting::RAW),
          "vAPP(srt,srt,f,vAPP(srt > srt,srt,vLAM(srt > srt,srt,vAPP(srt,srt,db0(srt > srt),a)),vLAM(srt,srt,db0(srt))))")
   ASS_EQ(betaNF(t2, &reds), app(D.f, D.a))
@@ -116,7 +116,7 @@ HOL_TEST_FUN(beta_reduction_4) {
 
   auto t3 = toNameless(app(lam(x(0), D.f), term));
   ASS_EQ(termListToString(t3, Options::HPrinting::TPTP),
-         "((^[Y0 : srt]: (f)) @ ((^[Y0 : srt > srt]: (Y0 @ a)) @ (^[Y0 : srt]: (Y0))))")
+         "(^[Y0 : srt]: (f)) @ ((^[Y0 : srt > srt]: (Y0 @ a)) @ (^[Y0 : srt]: (Y0)))")
   ASS_EQ(termListToString(t3, Options::HPrinting::RAW),
          "vAPP(srt,srt > srt,vLAM(srt,srt > srt,f),vAPP(srt > srt,srt,vLAM(srt > srt,srt,vAPP(srt,srt,db0(srt > srt),a)),vLAM(srt,srt,db0(srt))))")
   ASS_EQ(betaNF(t3, &reds), D.f)
@@ -124,7 +124,7 @@ HOL_TEST_FUN(beta_reduction_4) {
 
   auto t4 = toNameless(app(id(), term));
   ASS_EQ(termListToString(t4, Options::HPrinting::TPTP),
-         "((^[Y0 : srt]: (Y0)) @ ((^[Y0 : srt > srt]: (Y0 @ a)) @ (^[Y0 : srt]: (Y0))))")
+         "(^[Y0 : srt]: (Y0)) @ ((^[Y0 : srt > srt]: (Y0 @ a)) @ (^[Y0 : srt]: (Y0)))")
   ASS_EQ(termListToString(t4, Options::HPrinting::RAW),
          "vAPP(srt,srt,vLAM(srt,srt,db0(srt)),vAPP(srt > srt,srt,vLAM(srt > srt,srt,vAPP(srt,srt,db0(srt > srt),a)),vLAM(srt,srt,db0(srt))))")
   ASS_EQ(betaNF(t4, &reds), D.a)

@@ -357,7 +357,7 @@ std::string Clause::toString() const
     vars.sort();
     unsigned numVars = vars.size();
     if (numVars) {
-      quantifier += "![";
+      quantifier += "! [";
       for (auto var : vars) {
         quantifier += TermList(var,false).toString() + ":" + varSortMap.get(var).toString();
         if (--numVars) {

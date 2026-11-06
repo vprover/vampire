@@ -96,19 +96,19 @@ std::string Formula::toString (Connective c)
  * @since 09/12/2003 Manchester
  * @since 11/12/2004 Manchester, true and false added
  */
-std::string Formula::toString (bool topLevel) const
+std::string Formula::toString (bool mightNeedParens) const
 {
   std::string res;
 
   // render a connective if specified, and then a Formula (or ")" of formula is nullptr)
   typedef struct {
-    bool wrapInParenthesis;
+    bool subformula;
     Connective renderConnective; // NOCONN means ""
     const Formula* theFormula;   // nullptr means render ")" instead
   } Todo;
 
   Stack<Todo> stack;
-  stack.push({!topLevel,NOCONN,this});
+  stack.emplace(/*subformula=*/false,NOCONN,this);
 
   while (stack.isNonEmpty()) {
     Todo todo = stack.pop();
@@ -128,19 +128,20 @@ std::string Formula::toString (bool topLevel) const
       continue;
     }
 
-    if (todo.wrapInParenthesis) {
+    Connective c = f->connective();
+    // literals and bool terms render the parentheses for themselves
+    if (todo.theFormula->parenthesesRequired(mightNeedParens, todo.subformula)) {
       res += "(";
-      stack.push({false,NOCONN,nullptr}); // render the final closing bracket
+      stack.emplace(/*subformula=*/true,NOCONN,nullptr); // render the final closing bracket
     }
 
-    Connective c = f->connective();
     switch (c) {
     case NAME:
       res += static_cast<const NamedFormula*>(f)->name();
       continue;
     case LITERAL: {
       auto af = static_cast<const AtomicFormula *>(f);
-      res += af->literal()->toString(af->flipForPrinting);
+      res += af->literal()->toString(af->flipForPrinting, mightNeedParens || todo.subformula);
       continue;
     }
     case AND:
@@ -150,13 +151,13 @@ std::string Formula::toString (bool topLevel) const
         // but that should not matter
 
         const FormulaList* fs = f->args();
-        ASS (FormulaList::length(fs) >= 2);
+        ASS_GE(FormulaList::length(fs), 2);
 
         while (FormulaList::isNonEmpty(fs)) {
           const Formula* arg = fs->head();
           fs = fs->tail();
           // the last argument, which will be printed first, is the only one not preceded by a rendering of con
-          stack.push({arg->parenthesesRequired(c),FormulaList::isNonEmpty(fs) ? c : NOCONN,arg});
+          stack.emplace(/*subformula=*/true,FormulaList::isNonEmpty(fs) ? c : NOCONN,arg);
         }
 
         continue;
@@ -167,8 +168,8 @@ std::string Formula::toString (bool topLevel) const
     case XOR:
       // here we can afford to keep the order right
 
-      stack.push({f->right()->parenthesesRequired(c),c,f->right()});      // second argument with con
-      stack.push({f->left()->parenthesesRequired(c),NOCONN,f->left()}); // first argument without con
+      stack.emplace(/*subformula=*/true,c,f->right());     // second argument with con
+      stack.emplace(/*subformula=*/true,NOCONN,f->left()); // first argument without con
 
       continue;
 
@@ -179,7 +180,7 @@ std::string Formula::toString (bool topLevel) const
         res += toString(c) + " ";
 
         const Formula* arg = f->uarg();
-        stack.push({arg->parenthesesRequired(c),NOCONN,arg});
+        stack.emplace(/*subformula=*/true,NOCONN,arg);
 
         continue;
       }
@@ -192,14 +193,16 @@ std::string Formula::toString (bool topLevel) const
         while (vs.hasNext()) {
           auto [var,sort] = vs.next();
           if (!first) {
-            res += ",";
+            res += ", ";
           }
           res += Term::variableToString(var);
           // a variable of a sort other than $i must always be annotated, and
           // preprocessing is not expected to introduce such a sort into an
           // initially untyped problem
-          ASS(sort == AtomicSort::defaultSort() || env.initiallyHasNonDefaultSorts());
-          if (env.initiallyHasNonDefaultSorts()) {
+          // TODO figure out which one is the correct solution
+          // ASS(sort == AtomicSort::defaultSort() || env.initiallyHasNonDefaultSorts());
+          // if (env.initiallyHasNonDefaultSorts()) {
+          if (sort != AtomicSort::defaultSort() || env.higherOrder()) {
             res += " : " + sort.toString();
           }
           first = false;
@@ -207,13 +210,13 @@ std::string Formula::toString (bool topLevel) const
         res += "] : ";
 
         const Formula* arg = f->qarg();
-        stack.push({arg->parenthesesRequired(c),NOCONN,arg});
+        stack.emplace(/*subformula=*/true,NOCONN,arg);
 
         continue;
       }
 
     case BOOL_TERM: {
-      std::string term = f->getBooleanTerm().toString();
+      std::string term = f->getBooleanTerm().toString(mightNeedParens || todo.subformula);
       res += env.options->showFOOL() ? "$formula{" + term + "}" : term;
 
       continue;
@@ -233,21 +236,22 @@ std::string Formula::toString (bool topLevel) const
 } // Formula::toString
 
 /**
- * True if the formula needs parentheses around itself
- * when in scope of outer.
+ * True if the formula needs parentheses around itself.
  *
  * @since 21/09/2002 Manchester
  * @since 11/12/2004 Manchester, true and false added
  */
-bool Formula::parenthesesRequired (Connective outer) const
+bool Formula::parenthesesRequired(bool mightNeedOuterParens, bool subformula) const
 {
-  switch (connective())
-    {
-    case LITERAL:
+  switch (connective()) {
     case NOT:
     case FORALL:
     case EXISTS:
+      // only parenthesize when top-level and outer parens are needed
+      return !subformula && mightNeedOuterParens;
+    case LITERAL:
     case BOOL_TERM:
+      // literals and bool terms are parenthesized separately
     case TRUE:
     case FALSE:
     case NAME:
@@ -258,12 +262,12 @@ bool Formula::parenthesesRequired (Connective outer) const
     case IMP:
     case IFF:
     case XOR:
-      return true;
+      // parenthesize when subformula or outer parens are needed
+      return subformula || mightNeedOuterParens;
 
     case NOCONN:
       ASSERTION_VIOLATION;
-    }
-
+  }
   ASSERTION_VIOLATION;
 } // Formula::parenthesesRequired
 

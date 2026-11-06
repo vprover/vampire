@@ -31,37 +31,37 @@ HOL_TEST_FUN(hol_print_1) {
 
   runTest(
     lam({x0F, x(1)}, x(1)),
-    { {RAW,        "(^[X0 : (srt > srt), X1 : srt] : (X1))"},
-      {DB_INDICES, "(^[X0 : (srt > srt), X1 : srt] : (X1))"},
-      {TPTP,       "(^[X0 : (srt > srt), X1 : srt] : (X1))"} }
+    { {RAW,        "(^[X0 : srt > srt, X1 : srt] : (X1))"},
+      {DB_INDICES, "(^[X0 : srt > srt, X1 : srt] : (X1))"},
+      {TPTP,       "(^[X0 : srt > srt, X1 : srt] : (X1))"} }
   );
 
   runTest(
     lam({x0F, x(1)}, app(x0F, x(1))),
-    { {RAW,        "(^[X0 : (srt > srt), X1 : srt] : (vAPP(srt,srt,X0,X1)))"},
-      {DB_INDICES, "(^[X0 : (srt > srt), X1 : srt] : ((X0 @ X1)))"},
-      {TPTP,       "(^[X0 : (srt > srt), X1 : srt] : ((X0 @ X1)))"} }
+    { {RAW,        "(^[X0 : srt > srt, X1 : srt] : (vAPP(srt,srt,X0,X1)))"},
+      {DB_INDICES, "(^[X0 : srt > srt, X1 : srt] : (X0 @ X1))"},
+      {TPTP,       "(^[X0 : srt > srt, X1 : srt] : (X0 @ X1))"} }
   );
 
   runTest(
     app(D.f, x(1)),
     { {RAW,        "vAPP(srt,srt,f,X1)"},
-      {DB_INDICES, "(f @ X1)"},
-      {TPTP,       "(f @ X1)"} }
+      {DB_INDICES, "f @ X1"},
+      {TPTP,       "f @ X1"} }
   );
 
   runTest(
     lam(x(1), app(D.f, x(1))),
     { {RAW,        "(^[X1 : srt] : (vAPP(srt,srt,f,X1)))"},
-      {DB_INDICES, "(^[X1 : srt] : ((f @ X1)))"},
-      {TPTP,       "(^[X1 : srt] : ((f @ X1)))"} }
+      {DB_INDICES, "(^[X1 : srt] : (f @ X1))"},
+      {TPTP,       "(^[X1 : srt] : (f @ X1))"} }
   );
 
   runTest(
     lam(x1F, lam(x(1), x(1))),
-    { {RAW,        "(^[X1 : (srt > srt)] : ((^[X1 : srt] : (X1))))" },
-      {DB_INDICES, "(^[X1 : (srt > srt)] : ((^[X1 : srt] : (X1))))" },
-      {TPTP,       "(^[X1 : (srt > srt)] : ((^[X1 : srt] : (X1))))" } }
+    { {RAW,        "(^[X1 : srt > srt] : ((^[X1 : srt] : (X1))))" },
+      {DB_INDICES, "(^[X1 : srt > srt] : ((^[X1 : srt] : (X1))))" },
+      {TPTP,       "(^[X1 : srt > srt] : ((^[X1 : srt] : (X1))))" } }
   );
 }
 
@@ -88,8 +88,8 @@ HOL_TEST_FUN(hol_print_2) {
   runTest(
     toNameless(app(D.f, x(1))),
     { {RAW,        "vAPP(srt,srt,f,X1)"},
-      {DB_INDICES, "(f @ X1)"},
-      {TPTP,       "(f @ X1)"} }
+      {DB_INDICES, "f @ X1"},
+      {TPTP,       "f @ X1"} }
   );
 
   runTest(
@@ -110,19 +110,19 @@ HOL_TEST_FUN(hol_print_2) {
 HOL_TEST_FUN(hol_print_3) {
   runTest(
     D.f3.sort(),
-    { {RAW,    "(srt > (srt > (srt > srt)))" },
-      {TPTP,   "(srt > srt > srt > srt)"} }
+    { {RAW,    "srt > (srt > (srt > srt))" },
+      {TPTP,   "srt > srt > srt > srt"} }
   );
 
   runTest(
     D.g.sort(),
-    { {RAW,    "((srt > srt) > srt)" },
-      {TPTP,   "((srt > srt) > srt)"} }
+    { {RAW,    "(srt > srt) > srt" },
+      {TPTP,   "(srt > srt) > srt"} }
   );
 
   runTest(
     D.h.sort(),
-    { {RAW,    "((srt > srt) > (srt > srt))" },
-      {TPTP,   "((srt > srt) > srt > srt)"} }
+    { {RAW,    "(srt > srt) > (srt > srt)" },
+      {TPTP,   "(srt > srt) > srt > srt"} }
   );
 }
