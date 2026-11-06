@@ -1,0 +1,758 @@
+\section{Risultati sperimentali}
+\label{sec:risultati_sperimentali}
+I risultati di questo capitolo sono ricalcolati dai CSV conservati in \texttt{TEST\_grafici}. La configurazione \textit{Classic} indica Vampire con saturazione Otter; \texttt{FO2} indica la procedura specializzata. La modalità \texttt{FO2\_RemoveEq} applica le trasformazioni di rimozione dell'uguaglianza e passa il problema trasformato a Vampire Otter: non è un'esecuzione congiunta dei due motori né un portafoglio di strategie. Le denominazioni delle colonne possono differire tra le campagne.
+
+Un problema è conteggiato come deciso quando il CSV registra SAT o UNSAT. Timeout, Unknown ed Error non sono decisioni. La copertura entro un limite di risorse non misura la completezza teorica del calcolo. L'accordo tra due solutori è un controllo sperimentale di coerenza, non una dimostrazione di correttezza.
+
+Nei cactus plot l'ascissa conta le istanze decise e l'ordinata riporta i tempi individuali ordinati, in secondi e in scala logaritmica; i tempi non sono cumulativi. Una curva più estesa indica maggiore copertura. Curve più basse indicano tempi inferiori, ma possono riferirsi a insiemi diversi di problemi. Gli scatter plot qui riportati mostrano, per ciascuna configurazione, il tempo in funzione della riga del CSV, con colori distinti per SAT, UNSAT, timeout e altri esiti: non sono confronti a coppie in scala log-log.
+
+
+% Fonte dei risultati: TEST_grafici/FOF_EQ/FOF_EQ_3modes_results.csv
+
+\subsubsection{Confronto su problemi FOF con uguaglianza}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/grafici/FOF_EQ/FOF_EQ_3modes_results_cactus.png}
+    \caption{Cactus plot delle configurazioni sul benchmark FOF con uguaglianza (18 istanze).}
+    \label{fig:fof_eq_cactus}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+Configurazione & SAT & UNSAT & Timeout & Altri & Decisi \\
+\midrule
+
+FO2 & 0 & 0 & 12 & 6 & 0/18 (0.0\%) \\
+
+Classic & 2 & 13 & 3 & 0 & 15/18 (83.3\%) \\
+
+RemoveEq & 1 & 0 & 17 & 0 & 1/18 (5.6\%) \\
+
+\bottomrule
+\end{tabular}
+\caption{Esiti registrati nel CSV; \textit{Altri} comprende Unknown ed Error.}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/grafici/FOF_EQ/FOF_EQ_3modes_results_scatter.png}
+    \caption{Tempi per istanza e categoria di esito sul benchmark FOF con uguaglianza. L’ascissa è l’indice della riga nel CSV; l’ordinata è logaritmica.}
+    \label{fig:fof_eq_scatter}
+\end{figure}
+
+Non vi sono istanze decise congiuntamente da FO2 e Classic; non è quindi possibile confrontarne i verdetti sul campione comune.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/grafici/FOF_EQ/FOF_EQ_3modes_results_risolti_per_dominio_conteggi.pdf}
+    \caption{Numero di problemi decisi per dominio TPTP sul benchmark FOF con uguaglianza.}
+    \label{fig:fof_eq_domini}
+\end{figure}
+
+La ripartizione per dominio (nell’ordine FO2, Classic, RemoveEq) è: KRS (7 istanze): 0/6/1; NUM (3 istanze): 0/3/0; PUZ (4 istanze): 0/2/0; SEU (2 istanze): 0/2/0; SYN (1 istanza): 0/1/0; SYO (1 istanza): 0/1/0.
+
+Classic decide 15 istanze su 18. FO2 registra 12 timeout e 6 Unknown. RemoveEq decide soltanto \texttt{KRS026+1.p}, in $58.668\,\mathrm{s}$, contro $0.054\,\mathrm{s}$ di Classic. Questi dati non sostengono il precedente giudizio di competitività della rimozione dell’uguaglianza su questo insieme. Il CSV non consente di separare il costo delle trasformazioni da quello della successiva saturazione.
+
+% Fonte dei risultati: TEST_grafici/CNF_EQ/CNF_EQ_results.csv
+
+\subsubsection{Confronto su problemi CNF con uguaglianza}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/grafici/CNF_EQ/CNF_EQ_results_cactus.png}
+    \caption{Cactus plot delle configurazioni sul benchmark CNF con uguaglianza (18 istanze).}
+    \label{fig:cnf_eq_cactus}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+Configurazione & SAT & UNSAT & Timeout & Altri & Decisi \\
+\midrule
+
+FO2 & 0 & 0 & 18 & 0 & 0/18 (0.0\%) \\
+
+Classic & 0 & 2 & 16 & 0 & 2/18 (11.1\%) \\
+
+RemoveEq & 0 & 16 & 2 & 0 & 16/18 (88.9\%) \\
+
+\bottomrule
+\end{tabular}
+\caption{Esiti registrati nel CSV; \textit{Altri} comprende Unknown ed Error.}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/grafici/CNF_EQ/CNF_EQ_results_scatter.png}
+    \caption{Tempi per istanza e categoria di esito sul benchmark CNF con uguaglianza. L’ascissa è l’indice della riga nel CSV; l’ordinata è logaritmica.}
+    \label{fig:cnf_eq_scatter}
+\end{figure}
+
+Non vi sono istanze decise congiuntamente da FO2 e Classic; non è quindi possibile confrontarne i verdetti sul campione comune.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/grafici/CNF_EQ/CNF_EQ_results_risolti_per_dominio_conteggi.png}
+    \caption{Numero di problemi decisi per dominio TPTP sul benchmark CNF con uguaglianza.}
+    \label{fig:cnf_eq_domini}
+\end{figure}
+
+La ripartizione per dominio (nell’ordine FO2, Classic, RemoveEq) è: HWV (15 istanze): 0/0/13; SYN (3 istanze): 0/2/3.
+
+FO2 esaurisce il tempo su tutte le 18 istanze; Classic decide soltanto \texttt{SYN071-1.p} e \texttt{SYN072-1.p}. RemoveEq decide queste due formule e altre 14, per un totale di 16/18 (88.9\%). Il vantaggio osservato riguarda quindi il problema trasformato seguito da Otter. Non si può descrivere il benchmark come un fallimento congiunto di tutte le configurazioni né attribuire causalmente il risultato alla sola dimensione delle formule.
+
+% Fonte dei risultati: TEST_grafici/FOF_NOEQ/FOF_NOEQ_results.csv
+
+\subsubsection{Confronto su problemi FOF senza uguaglianza}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/grafici/FOF_NO_EQ/FOF_NOEQ_results_cactus.png}
+    \caption{Cactus plot delle configurazioni sul benchmark FOF senza uguaglianza (343 istanze).}
+    \label{fig:fof_noeq_cactus}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+Configurazione & SAT & UNSAT & Timeout & Altri & Decisi \\
+\midrule
+
+FO2 & 32 & 114 & 59 & 138 & 146/343 (42.6\%) \\
+
+Classic & 38 & 149 & 156 & 0 & 187/343 (54.5\%) \\
+
+\bottomrule
+\end{tabular}
+\caption{Esiti registrati nel CSV; \textit{Altri} comprende Unknown ed Error.}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/grafici/FOF_NO_EQ/FOF_NOEQ_results_scatter.png}
+    \caption{Tempi per istanza e categoria di esito sul benchmark FOF senza uguaglianza. L’ascissa è l’indice della riga nel CSV; l’ordinata è logaritmica.}
+    \label{fig:fof_noeq_scatter}
+\end{figure}
+
+FO2 e Classic decidono congiuntamente 146 istanze; su questo insieme si registrano 0 disaccordi SAT/UNSAT.
+
+Le mediane dei tempi sul medesimo insieme sono FO2: $0.034\,\mathrm{s}$, Classic: $0.033\,\mathrm{s}$.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/grafici/FOF_NO_EQ/FOF_NOEQ_results_risolti_per_dominio_conteggi.png}
+    \caption{Numero di problemi decisi per dominio TPTP sul benchmark FOF senza uguaglianza.}
+    \label{fig:fof_noeq_domini}
+\end{figure}
+
+La ripartizione per dominio (nell’ordine FO2, Classic) è: KRS (72 istanze): 45/71; LCL (182 istanze): 17/28; MED (1 istanza): 0/1; MSC (1 istanza): 1/1; NLP (1 istanza): 0/1; PUZ (1 istanza): 1/1; SET (1 istanza): 1/1; SEV (1 istanza): 0/1; SYN (82 istanze): 81/82; SYO (1 istanza): 0/0.
+
+Classic decide 187/343 problemi (54.5\%), FO2 146/343 (42.6\%). Tutte le decisioni di FO2 appartengono all’insieme deciso da Classic: il divario è di 41 istanze. I 133 Unknown, i 59 timeout e i 5 Error di FO2 devono essere distinti, perché rappresentano arresti diversi. La concentrazione dei problemi non decisi in alcuni domini è un dato descrittivo e non una misura autonoma della loro complessità. I conteggi di estrazione e filtraggio precedentemente riportati erano contraddittori e non sono ricostruibili da questo CSV; qui si documenta soltanto l’insieme effettivamente eseguito.
+
+% Fonte dei risultati: TEST_grafici/CNF_NOEQ/CNF_NOEQ_results.csv
+
+\subsubsection{Confronto su problemi CNF senza uguaglianza}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/grafici/CNF_NO_EQ/CNF_NOEQ_results_cactus.png}
+    \caption{Cactus plot delle configurazioni sul benchmark CNF senza uguaglianza (51 istanze).}
+    \label{fig:cnf_noeq_cactus}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+Configurazione & SAT & UNSAT & Timeout & Altri & Decisi \\
+\midrule
+
+FO2 & 13 & 30 & 8 & 0 & 43/51 (84.3\%) \\
+
+Classic & 13 & 30 & 8 & 0 & 43/51 (84.3\%) \\
+
+\bottomrule
+\end{tabular}
+\caption{Esiti registrati nel CSV; \textit{Altri} comprende Unknown ed Error.}
+\end{table}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/grafici/CNF_NO_EQ/CNF_NOEQ_results_scatter.png}
+    \caption{Tempi per istanza e categoria di esito sul benchmark CNF senza uguaglianza. L’ascissa è l’indice della riga nel CSV; l’ordinata è logaritmica.}
+    \label{fig:cnf_noeq_scatter}
+\end{figure}
+
+FO2 e Classic decidono congiuntamente 43 istanze; su questo insieme si registrano 0 disaccordi SAT/UNSAT.
+
+Le mediane dei tempi sul medesimo insieme sono FO2: $0.088\,\mathrm{s}$, Classic: $0.031\,\mathrm{s}$.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/grafici/CNF_NO_EQ/CNF_NOEQ_results_risolti_per_dominio_conteggi.png}
+    \caption{Numero di problemi decisi per dominio TPTP sul benchmark CNF senza uguaglianza.}
+    \label{fig:cnf_noeq_domini}
+\end{figure}
+
+La ripartizione per dominio (nell’ordine FO2, Classic) è: KRS (1 istanza): 1/1; LAT (1 istanza): 1/1; MGT (1 istanza): 1/1; PUZ (8 istanze): 8/8; SET (1 istanza): 1/1; SWV (8 istanze): 0/0; SYN (31 istanze): 31/31.
+
+Entrambe le configurazioni decidono le medesime 43 istanze: 30 UNSAT e 13 SAT. Gli otto timeout appartengono a SWV. La mediana sul campione comune è maggiore per FO2; tale differenza descrive il costo complessivo dell’implementazione e non identifica da sola quale componente lo produca.
+
+\section{Dataset sintetici generati}
+\label{sec:dataset_sintetico_generato}
+La suite parametrica comprende famiglie che modificano vocabolario, profondità, quantificazione, uguaglianza o dominio di costruzione dei modelli. L’attribuzione al lavoro di Manuel Borgia, \textit{Generazione automatica di formule per frammenti decidibili}, è mantenuta come riferimento bibliografico\cite{ManueleBorgiaTesi}. I parametri nei nomi dei file identificano le configurazioni di generazione, non necessariamente la misura esatta della formula ottenuta. In assenza del codice e della configurazione del generatore non si assume che ogni budget coincida con il numero effettivo di operatori.
+
+Per i grafici separati SAT/UNSAT si usa la classe nominale indicata dal nome del file. Come nello script \texttt{cactus\_plot\_generated.py}, si includono soltanto le risposte coerenti con quella classe. La tabella degli esiti comprende invece tutte le decisioni registrate, anche quelle discordanti con il nome. La distinzione evita di presentare la classe nominale come un oracolo già validato.
+\subsection{Suite test2Equality e test2Mix}
+
+
+Le sei famiglie principali di test2Mix comprendono complessivamente 1665 righe di benchmark (370 + 296 + 296 + 296 + 296 + 111). I sottoinsiemi diagnostici unknown\_cand e timeout\_cand aggiungono 92 righe selezionate, portando a 1757 le righe delle otto campagne; questo totale non certifica 1757 formule distinte.
+
+% Fonte dei risultati: TEST_grafici/GENERATED/TEST2EQUALITY/denseequality/denseequality_3mode_benchmark_results.csv
+
+\subsubsection{test2Equality}
+
+La campagna comprende 370 problemi nominalmente SAT o UNSAT con uguaglianza densa. È distinta da Dense Equality di test2Mix anche quando i nomi dei file coincidono.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+Configurazione & SAT & UNSAT & Timeout & Altri & Decisi \\
+\midrule
+
+FO2 & 1 & 8 & 24 & 337 & 9/370 (2.4\%) \\
+
+Classic & 111 & 148 & 111 & 0 & 259/370 (70.0\%) \\
+
+RemoveEq & 31 & 132 & 207 & 0 & 163/370 (44.1\%) \\
+
+\bottomrule
+\end{tabular}
+\caption{Esiti registrati nel CSV; \textit{Altri} comprende Unknown ed Error.}
+\end{table}
+
+Per il cactus separato per classe, i verdetti coerenti con il nome del file sono FO2: 9, Classic: 250, FO2\_RemoveEq: 155. Le risposte discordanti con la classe nominale sono rispettivamente 0, 9, 8. Una discordanza richiede la verifica della formula e del generatore: non prova da sola un errore del solutore.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/graphics/risultati_verificati/test2equality_sat.png}
+    \includegraphics[width=\linewidth]{images/graphics/risultati_verificati/test2equality_unsat.png}
+    \caption{Cactus plot di test2Equality (370 problemi): SAT in alto e UNSAT in basso. Sono incluse le decisioni coerenti con la classe nominale.}
+    \label{fig:test2equality_generato}
+\end{figure}
+
+I risultati descrivono questa specifica campagna e non sono intercambiabili con quelli di test2Mix.
+
+% Fonte dei risultati: TEST_grafici/GENERATED/MIX/denseequality/denseequality_3mode_benchmark_results.csv
+
+\subsubsection{Dense Equality}
+
+370 problemi, con livelli nominali di uguaglianza eq10, eq16, eq20, eq26 ed eq30. La famiglia sollecita le trasformazioni e la saturazione in presenza di numerosi vincoli di uguaglianza.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+Configurazione & SAT & UNSAT & Timeout & Altri & Decisi \\
+\midrule
+
+FO2 & 0 & 0 & 368 & 2 & 0/370 (0.0\%) \\
+
+Classic & 114 & 139 & 117 & 0 & 253/370 (68.4\%) \\
+
+RemoveEq & 0 & 1 & 369 & 0 & 1/370 (0.3\%) \\
+
+\bottomrule
+\end{tabular}
+\caption{Esiti registrati nel CSV; \textit{Altri} comprende Unknown ed Error.}
+\end{table}
+
+Per il cactus separato per classe, i verdetti coerenti con il nome del file sono FO2: 0, Classic: 247, FO2\_RemoveEq: 1. Le risposte discordanti con la classe nominale sono rispettivamente 0, 6, 0. Una discordanza richiede la verifica della formula e del generatore: non prova da sola un errore del solutore.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/grafici/gen/danseequality/denseequality_3mode_benchmark_results_cactus_sat.png}
+    \includegraphics[width=\linewidth]{images/grafici/gen/danseequality/denseequality_3mode_benchmark_results_cactus_unsat.png}
+    \caption{Cactus plot di Dense Equality (370 problemi): SAT in alto e UNSAT in basso. Sono incluse le decisioni coerenti con la classe nominale.}
+    \label{fig:denseequality_generato}
+\end{figure}
+
+Il divario tra Classic e FO2 è ampio; anche RemoveEq decide una sola formula in questa campagna. La densità di uguaglianza è quindi una difficoltà empirica per queste configurazioni, senza che il CSV identifichi quale trasformazione o inferenza domini il costo.
+
+% Fonte dei risultati: TEST_grafici/GENERATED/MIX/depthscaling/depthscaling_3mode_benchmark_results.csv
+
+\subsubsection{Depth Scaling}
+
+296 problemi ai livelli d5, d8, d12 e d16. Il parametro riguarda la profondità sintattica nominale, non la densità dell’albero.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+Configurazione & SAT & UNSAT & Timeout & Altri & Decisi \\
+\midrule
+
+FO2 & 45 & 54 & 1 & 196 & 99/296 (33.4\%) \\
+
+Classic & 140 & 153 & 3 & 0 & 293/296 (99.0\%) \\
+
+RemoveEq & 117 & 134 & 45 & 0 & 251/296 (84.8\%) \\
+
+\bottomrule
+\end{tabular}
+\caption{Esiti registrati nel CSV; \textit{Altri} comprende Unknown ed Error.}
+\end{table}
+
+Per il cactus separato per classe, i verdetti coerenti con il nome del file sono FO2: 98, Classic: 287, FO2\_RemoveEq: 246. Le risposte discordanti con la classe nominale sono rispettivamente 1, 6, 5. Una discordanza richiede la verifica della formula e del generatore: non prova da sola un errore del solutore.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/grafici/gen/depthscaling/depthscaling_3mode_benchmark_results_cactus_sat.png}
+    \includegraphics[width=\linewidth]{images/grafici/gen/depthscaling/depthscaling_3mode_benchmark_results_cactus_unsat.png}
+    \caption{Cactus plot di Depth Scaling (296 problemi): SAT in alto e UNSAT in basso. Sono incluse le decisioni coerenti con la classe nominale.}
+    \label{fig:depthscaling_generato}
+\end{figure}
+
+Classic copre quasi tutto il dataset. Il numero elevato di Unknown di FO2 va distinto dai timeout: non documenta necessariamente l’esaurimento del tempo disponibile.
+
+% Fonte dei risultati: TEST_grafici/GENERATED/MIX/equalityscaling/equalityscaling_3mode_benchmark_results.csv
+
+\subsubsection{Equality Scaling}
+
+296 problemi ai livelli eq2, eq4, eq6 ed eq8, che variano il budget nominale di uguaglianza.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+Configurazione & SAT & UNSAT & Timeout & Altri & Decisi \\
+\midrule
+
+FO2 & 0 & 0 & 188 & 108 & 0/296 (0.0\%) \\
+
+Classic & 117 & 139 & 40 & 0 & 256/296 (86.5\%) \\
+
+RemoveEq & 34 & 69 & 193 & 0 & 103/296 (34.8\%) \\
+
+\bottomrule
+\end{tabular}
+\caption{Esiti registrati nel CSV; \textit{Altri} comprende Unknown ed Error.}
+\end{table}
+
+Per il cactus separato per classe, i verdetti coerenti con il nome del file sono FO2: 0, Classic: 240, FO2\_RemoveEq: 99. Le risposte discordanti con la classe nominale sono rispettivamente 0, 16, 4. Una discordanza richiede la verifica della formula e del generatore: non prova da sola un errore del solutore.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/grafici/gen/equalityscaling/equalityscaling_3mode_benchmark_results_cactus_sat.png}
+    \includegraphics[width=\linewidth]{images/grafici/gen/equalityscaling/equalityscaling_3mode_benchmark_results_cactus_unsat.png}
+    \caption{Cactus plot di Equality Scaling (296 problemi): SAT in alto e UNSAT in basso. Sono incluse le decisioni coerenti con la classe nominale.}
+    \label{fig:equalityscaling_generato}
+\end{figure}
+
+FO2 non produce decisioni in questa esecuzione. RemoveEq recupera parte delle istanze, ma rimane lontano dalla copertura di Classic. I verdetti discordanti con la classe nominale richiedono un controllo separato.
+
+% Fonte dei risultati: TEST_grafici/GENERATED/MIX/quantifierscaling/quantifierscaling_3mode_benchmark_results.csv
+
+\subsubsection{Quantifier Scaling}
+
+296 problemi ai livelli q2, q4, q6 e q8. Si modifica il budget nominale dei quantificatori.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+Configurazione & SAT & UNSAT & Timeout & Altri & Decisi \\
+\midrule
+
+FO2 & 6 & 17 & 231 & 42 & 23/296 (7.8\%) \\
+
+Classic & 125 & 144 & 27 & 0 & 269/296 (90.9\%) \\
+
+RemoveEq & 20 & 36 & 240 & 0 & 56/296 (18.9\%) \\
+
+\bottomrule
+\end{tabular}
+\caption{Esiti registrati nel CSV; \textit{Altri} comprende Unknown ed Error.}
+\end{table}
+
+Per il cactus separato per classe, i verdetti coerenti con il nome del file sono FO2: 23, Classic: 260, FO2\_RemoveEq: 54. Le risposte discordanti con la classe nominale sono rispettivamente 0, 9, 2. Una discordanza richiede la verifica della formula e del generatore: non prova da sola un errore del solutore.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/grafici/gen/quantifierscaling/quantifierscaling_3mode_benchmark_results_cactus_sat.png}
+    \includegraphics[width=\linewidth]{images/grafici/gen/quantifierscaling/quantifierscaling_3mode_benchmark_results_cactus_unsat.png}
+    \caption{Cactus plot di Quantifier Scaling (296 problemi): SAT in alto e UNSAT in basso. Sono incluse le decisioni coerenti con la classe nominale.}
+    \label{fig:quantifierscaling_generato}
+\end{figure}
+
+Prevalgono i timeout di FO2 e RemoveEq. Il CSV non registra il numero di iterazioni, quindi non sostiene l’affermazione che tutte le ricerche raggiungano il limite interno di sicurezza.
+
+% Fonte dei risultati: TEST_grafici/GENERATED/MIX/vocabscaling/vocabscaling_3mode_benchmark_results.csv
+
+\subsubsection{Vocabulary Scaling}
+
+296 problemi, suddivisi nei profili nominali di 5 predicati unari e 2 binari, 10 e 5, 15 e 8, 20 e 10. Si varia quindi la dimensione del vocabolario relazionale.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+Configurazione & SAT & UNSAT & Timeout & Altri & Decisi \\
+\midrule
+
+FO2 & 73 & 93 & 19 & 111 & 166/296 (56.1\%) \\
+
+Classic & 137 & 149 & 10 & 0 & 286/296 (96.6\%) \\
+
+RemoveEq & 120 & 137 & 39 & 0 & 257/296 (86.8\%) \\
+
+\bottomrule
+\end{tabular}
+\caption{Esiti registrati nel CSV; \textit{Altri} comprende Unknown ed Error.}
+\end{table}
+
+Per il cactus separato per classe, i verdetti coerenti con il nome del file sono FO2: 162, Classic: 279, FO2\_RemoveEq: 250. Le risposte discordanti con la classe nominale sono rispettivamente 4, 7, 7. Una discordanza richiede la verifica della formula e del generatore: non prova da sola un errore del solutore.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/graphics/risultati_verificati/vocabscaling_sat.png}
+    \includegraphics[width=\linewidth]{images/graphics/risultati_verificati/vocabscaling_unsat.png}
+    \caption{Cactus plot di Vocabulary Scaling (296 problemi): SAT in alto e UNSAT in basso. Sono incluse le decisioni coerenti con la classe nominale.}
+    \label{fig:vocabscaling_generato}
+\end{figure}
+
+RemoveEq ha una copertura maggiore di FO2 e minore di Classic. Una mediana inferiore su campioni diversi non dimostra un’accelerazione sulle stesse formule.
+
+% Fonte dei risultati: TEST_grafici/GENERATED/MIX/satbuildscaling/satbuildscaling_3mode_benchmark_results.csv
+
+\subsubsection{SATBUILD Scaling}
+
+111 problemi nominalmente soddisfacibili, ai livelli dom1, dom2 e dom3. Il parametro riguarda il dominio usato nella costruzione dei problemi SAT.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+Configurazione & SAT & UNSAT & Timeout & Altri & Decisi \\
+\midrule
+
+FO2 & 8 & 0 & 35 & 68 & 8/111 (7.2\%) \\
+
+Classic & 111 & 0 & 0 & 0 & 111/111 (100.0\%) \\
+
+RemoveEq & 71 & 0 & 40 & 0 & 71/111 (64.0\%) \\
+
+\bottomrule
+\end{tabular}
+\caption{Esiti registrati nel CSV; \textit{Altri} comprende Unknown ed Error.}
+\end{table}
+
+Per il cactus separato per classe, i verdetti coerenti con il nome del file sono FO2: 8, Classic: 111, FO2\_RemoveEq: 71. Le risposte discordanti con la classe nominale sono rispettivamente 0, 0, 0. Una discordanza richiede la verifica della formula e del generatore: non prova da sola un errore del solutore.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/grafici/gen/satbuildscaling/satbuildscaling_3mode_benchmark_results_cactus_sat.png}
+    \caption{Cactus plot di SATBUILD Scaling (111 problemi): sola classe SAT. Sono incluse le decisioni coerenti con la classe nominale.}
+    \label{fig:satbuildscaling_generato}
+\end{figure}
+
+Classic decide tutte le istanze. FO2 e RemoveEq lasciano una quota consistente non decisa: l’assenza di casi UNSAT non rende uniforme il comportamento delle configurazioni.
+
+% Fonte dei risultati: TEST_grafici/GENERATED/MIX/unknown_cand/unknown_cand_3mode_benchmark_results.csv
+
+\subsubsection{Unknown candidates}
+
+25 casi selezionati da altre famiglie per approfondire gli esiti indeterminati.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+Configurazione & SAT & UNSAT & Timeout & Altri & Decisi \\
+\midrule
+
+FO2 & 13 & 0 & 0 & 12 & 13/25 (52.0\%) \\
+
+Classic & 25 & 0 & 0 & 0 & 25/25 (100.0\%) \\
+
+RemoveEq & 23 & 0 & 2 & 0 & 23/25 (92.0\%) \\
+
+\bottomrule
+\end{tabular}
+\caption{Esiti registrati nel CSV; \textit{Altri} comprende Unknown ed Error.}
+\end{table}
+
+Per il cactus separato per classe, i verdetti coerenti con il nome del file sono FO2: 13, Classic: 25, FO2\_RemoveEq: 23. Le risposte discordanti con la classe nominale sono rispettivamente 0, 0, 0. Una discordanza richiede la verifica della formula e del generatore: non prova da sola un errore del solutore.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/graphics/risultati_verificati/unknown_cand_sat.png}
+    \caption{Cactus plot di Unknown candidates (25 problemi): sola classe SAT. Sono incluse le decisioni coerenti con la classe nominale.}
+    \label{fig:unknown_cand_generato}
+\end{figure}
+
+Essendo un sottoinsieme selezionato, non è un campione indipendente. Il nome della famiglia non implica che ogni istanza restituisca Unknown nella versione misurata.
+
+% Fonte dei risultati: TEST_grafici/GENERATED/MIX/timeout_cand/timeout_cand_3mode_benchmark_results.csv
+
+\subsubsection{Timeout candidates}
+
+67 casi selezionati da altre famiglie per approfondire gli arresti per tempo.
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+Configurazione & SAT & UNSAT & Timeout & Altri & Decisi \\
+\midrule
+
+FO2 & 0 & 7 & 52 & 8 & 7/67 (10.4\%) \\
+
+Classic & 0 & 27 & 40 & 0 & 27/67 (40.3\%) \\
+
+RemoveEq & 0 & 14 & 53 & 0 & 14/67 (20.9\%) \\
+
+\bottomrule
+\end{tabular}
+\caption{Esiti registrati nel CSV; \textit{Altri} comprende Unknown ed Error.}
+\end{table}
+
+Per il cactus separato per classe, i verdetti coerenti con il nome del file sono FO2: 7, Classic: 27, FO2\_RemoveEq: 14. Le risposte discordanti con la classe nominale sono rispettivamente 0, 0, 0. Una discordanza richiede la verifica della formula e del generatore: non prova da sola un errore del solutore.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/graphics/risultati_verificati/timeout_cand_sat.png}
+    \includegraphics[width=\linewidth]{images/graphics/risultati_verificati/timeout_cand_unsat.png}
+    \caption{Cactus plot di Timeout candidates (67 problemi): SAT in alto e UNSAT in basso. Sono incluse le decisioni coerenti con la classe nominale.}
+    \label{fig:timeout_cand_generato}
+\end{figure}
+
+Il sottoinsieme è selezionato e non va sommato alle famiglie originarie per contare formule uniche. Alcuni casi vengono decisi nella presente esecuzione: il nome descrive il criterio di selezione storico.
+
+\subsection{Benchmark generati senza uguaglianza}
+La suite senza uguaglianza comprende cinque famiglie di 96 problemi, per 480 istanze complessive. Ogni famiglia ha quattro livelli nominali di 24 problemi, ciascuno con 12 file SAT e 12 file UNSAT. Si confrontano FO2 e Classic Otter; non si aggiunge RemoveEq, poiché manca l’operatore da eliminare.
+
+Le figure aggregano SAT e UNSAT e contano tutte le decisioni registrate. Per alternazione e ramificazione si usano i CSV \texttt{structural\_120s} del 10 ottobre 2026; per profondità e quantificatori i CSV \texttt{index\_120s} della stessa data; per vocabolario il CSV base. Queste campagne non costituiscono un confronto prima/dopo delle modifiche al solutore: versioni e condizioni non sono tutte identiche. I risultati storici con budget di 5 o 10 secondi non vengono mescolati con quelli a 120 secondi.
+
+
+% Fonte dei risultati: TEST_grafici/GENERATED/NO_EQ/alternationscaling/alternationscaling_2mode_benchmark_results_20261010_structural_120s.csv
+
+\subsubsection{Alternation Scaling senza uguaglianza}
+
+I quattro profili nominali sono fa2\_ex1, fa2\_ex3, fa3\_ex2 e fa4\_ex4: variano i budget universali ed esistenziali. Il nome non certifica il numero esatto di alternanze lungo ogni ramo; questa misura richiederebbe l’analisi delle formule. La quantificazione può introdurre dipendenze dei testimoni e aumentare il lavoro di clausificazione e saturazione.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/grafici/noeqgen/aletrnationscaling/alternationscaling_2mode_benchmark_results_20261010_structural_120s_cactus.png}
+    \caption{Cactus plot di Alternation Scaling senza uguaglianza (96 istanze, SAT e UNSAT aggregati; limite di 120 secondi per modalità).}
+    \label{fig:noeq_alternationscaling}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+Configurazione & SAT & UNSAT & Timeout & Altri & Decisi \\
+\midrule
+
+FO2 & 9 & 10 & 77 & 0 & 19/96 (19.8\%) \\
+
+Classic & 37 & 24 & 35 & 0 & 61/96 (63.5\%) \\
+
+\bottomrule
+\end{tabular}
+\caption{Esiti registrati nel CSV; \textit{Altri} comprende Unknown ed Error.}
+\end{table}
+
+Le 19 istanze decise da FO2 sono tutte decise anche da Classic; si registrano 0 disaccordi tra i due verdetti. Le mediane su questo campione comune sono $0.025\,\mathrm{s}$ per FO2 e $0.029\,\mathrm{s}$ per Classic.
+
+Le decisioni per livello, nell’ordine FO2/Classic e su 24 istanze ciascuno, sono: fa2\_ex1: 6/15; fa2\_ex3: 3/16; fa3\_ex2: 7/18; fa4\_ex4: 3/12.
+
+Il preprocessing strutturale separa le definizioni quantificate, ma il fatto che non compaiano Unknown non implica che la saturazione sia rapida. I timeout restano il principale limite osservato.
+
+I verdetti discordanti con la classe indicata dal nome sono 0/1 (FO2/Classic). La concordanza tra motori non risolve l’eventuale incoerenza della classe nominale.
+
+% Fonte dei risultati: TEST_grafici/GENERATED/NO_EQ/branchingscaling/branchingscaling_2mode_benchmark_results_20261010_structural_120s.csv
+
+\subsubsection{Branching Scaling senza uguaglianza}
+
+I livelli branch4, branch8, branch12 e branch16 modificano il budget nominale di ramificazione/connettivi. Più ramificazione può produrre più clausole o alternative di ricerca; equivalenze e semplificazioni possono però ridurre il problema, quindi non si presume una crescita monotona della difficoltà.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/grafici/noeqgen/branchingscaling/branchingscaling_2mode_benchmark_results_20261010_structural_120s_cactus.png}
+    \caption{Cactus plot di Branching Scaling senza uguaglianza (96 istanze, SAT e UNSAT aggregati; limite di 120 secondi per modalità).}
+    \label{fig:noeq_branchingscaling}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+Configurazione & SAT & UNSAT & Timeout & Altri & Decisi \\
+\midrule
+
+FO2 & 7 & 8 & 81 & 0 & 15/96 (15.6\%) \\
+
+Classic & 39 & 34 & 23 & 0 & 73/96 (76.0\%) \\
+
+\bottomrule
+\end{tabular}
+\caption{Esiti registrati nel CSV; \textit{Altri} comprende Unknown ed Error.}
+\end{table}
+
+Le 15 istanze decise da FO2 sono tutte decise anche da Classic; si registrano 0 disaccordi tra i due verdetti. Le mediane su questo campione comune sono $0.075\,\mathrm{s}$ per FO2 e $0.035\,\mathrm{s}$ per Classic.
+
+Le decisioni per livello, nell’ordine FO2/Classic e su 24 istanze ciascuno, sono: branch12: 2/20; branch16: 1/18; branch4: 5/20; branch8: 7/15.
+
+La copertura di FO2 è bassa; i conteggi per livello non sono monotoni. Il risultato è compatibile con una crescita della ricerca, ma non dimostra una relazione causale con il solo numero di connettivi.
+
+I verdetti discordanti con la classe indicata dal nome sono 1/1 (FO2/Classic). La concordanza tra motori non risolve l’eventuale incoerenza della classe nominale.
+
+% Fonte dei risultati: TEST_grafici/GENERATED/NO_EQ/depthscaling/depthscaling_2mode_benchmark_results_20261010_index_120s.csv
+
+\subsubsection{Depth Scaling senza uguaglianza}
+
+I livelli d6, d10, d14 e d18 aumentano la profondità sintattica nominale. Una maggiore profondità consente più annidamento di connettivi e quantificatori, senza determinare da sola il numero finale di clausole.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/grafici/noeqgen/depthscaling/depthscaling_2mode_benchmark_results_20261010_index_120s_cactus.png}
+    \caption{Cactus plot di Depth Scaling senza uguaglianza (96 istanze, SAT e UNSAT aggregati; limite di 120 secondi per modalità).}
+    \label{fig:noeq_depthscaling}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+Configurazione & SAT & UNSAT & Timeout & Altri & Decisi \\
+\midrule
+
+FO2 & 25 & 28 & 43 & 0 & 53/96 (55.2\%) \\
+
+Classic & 43 & 43 & 10 & 0 & 86/96 (89.6\%) \\
+
+\bottomrule
+\end{tabular}
+\caption{Esiti registrati nel CSV; \textit{Altri} comprende Unknown ed Error.}
+\end{table}
+
+Le 53 istanze decise da FO2 sono tutte decise anche da Classic; si registrano 0 disaccordi tra i due verdetti. Le mediane su questo campione comune sono $0.043\,\mathrm{s}$ per FO2 e $0.034\,\mathrm{s}$ per Classic.
+
+Le decisioni per livello, nell’ordine FO2/Classic e su 24 istanze ciascuno, sono: d10: 16/23; d14: 6/18; d18: 7/21; d6: 24/24.
+
+FO2 decide tutti i casi a d6, poi la copertura cala nettamente. Il lieve recupero a d18 rispetto a d14 impedisce di descrivere l’andamento come strettamente monotono. Classic mantiene una copertura maggiore a tutti i livelli più profondi.
+
+I verdetti discordanti con la classe indicata dal nome sono 2/2 (FO2/Classic). La concordanza tra motori non risolve l’eventuale incoerenza della classe nominale.
+
+% Fonte dei risultati: TEST_grafici/GENERATED/NO_EQ/quantifierscaling/quantifierscaling_2mode_benchmark_results_20261010_index_120s.csv
+
+\subsubsection{Quantifier Scaling senza uguaglianza}
+
+I livelli q2, q4, q6 e q8 variano il budget nominale dei quantificatori. Quantificazione e dipendenze introdotte dalla skolemizzazione possono ampliare lo spazio delle inferenze anche senza uguaglianza.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/grafici/noeqgen/quantifierscaling/quantifierscaling_2mode_benchmark_results_20261010_index_120s_cactus.png}
+    \caption{Cactus plot di Quantifier Scaling senza uguaglianza (96 istanze, SAT e UNSAT aggregati; limite di 120 secondi per modalità).}
+    \label{fig:noeq_quantifierscaling}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+Configurazione & SAT & UNSAT & Timeout & Altri & Decisi \\
+\midrule
+
+FO2 & 8 & 11 & 77 & 0 & 19/96 (19.8\%) \\
+
+Classic & 29 & 25 & 42 & 0 & 54/96 (56.2\%) \\
+
+\bottomrule
+\end{tabular}
+\caption{Esiti registrati nel CSV; \textit{Altri} comprende Unknown ed Error.}
+\end{table}
+
+Le 19 istanze decise da FO2 sono tutte decise anche da Classic; si registrano 0 disaccordi tra i due verdetti. Le mediane su questo campione comune sono $0.069\,\mathrm{s}$ per FO2 e $0.026\,\mathrm{s}$ per Classic.
+
+Le decisioni per livello, nell’ordine FO2/Classic e su 24 istanze ciascuno, sono: q2: 10/24; q4: 5/18; q6: 3/7; q8: 1/5.
+
+La copertura cala a ogni livello per entrambi i motori. È il segnale più netto di difficoltà crescente nella suite, ma non isola il costo dei quantificatori da eventuali variazioni della struttura generata.
+
+I verdetti discordanti con la classe indicata dal nome sono 0/0 (FO2/Classic). La concordanza tra motori non risolve l’eventuale incoerenza della classe nominale.
+
+% Fonte dei risultati: TEST_grafici/GENERATED/NO_EQ/vocabscaling/vocabscaling_2mode_benchmark_results.csv
+
+\subsubsection{Vocabulary Scaling senza uguaglianza}
+
+I profili nominali sono 6 predicati unari e 3 binari, 12 e 6, 18 e 10, 24 e 14. Un vocabolario più ampio modifica i possibili accoppiamenti tra letterali; può aumentare la varietà delle clausole ma anche ridurre le coppie complementari, perciò non implica automaticamente maggiore difficoltà.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=\linewidth]{images/grafici/noeqgen/vocabscaling/vocabscaling_2mode_benchmark_results_cactus.png}
+    \caption{Cactus plot di Vocabulary Scaling senza uguaglianza (96 istanze, SAT e UNSAT aggregati; limite di 120 secondi per modalità).}
+    \label{fig:noeq_vocabscaling}
+\end{figure}
+
+\begin{table}[H]
+\centering
+\small
+\begin{tabular}{lrrrrr}
+\toprule
+Configurazione & SAT & UNSAT & Timeout & Altri & Decisi \\
+\midrule
+
+FO2 & 26 & 25 & 45 & 0 & 51/96 (53.1\%) \\
+
+Classic & 43 & 41 & 12 & 0 & 84/96 (87.5\%) \\
+
+\bottomrule
+\end{tabular}
+\caption{Esiti registrati nel CSV; \textit{Altri} comprende Unknown ed Error.}
+\end{table}
+
+Le 51 istanze decise da FO2 sono tutte decise anche da Classic; si registrano 0 disaccordi tra i due verdetti. Le mediane su questo campione comune sono $0.082\,\mathrm{s}$ per FO2 e $0.046\,\mathrm{s}$ per Classic.
+
+Le decisioni per livello, nell’ordine FO2/Classic e su 24 istanze ciascuno, sono: p12\_16\_2: 10/23; p18\_110\_2: 10/17; p24\_114\_2: 18/24; p6\_13\_2: 13/20.
+
+FO2 decide più della metà dei problemi, ma rimane sotto Classic. Il CSV appartiene alla campagna base: le differenze rispetto alle altre famiglie non devono essere attribuite soltanto al vocabolario, poiché manca un controllo uniforme della versione del solutore.
+
+I verdetti discordanti con la classe indicata dal nome sono 1/1 (FO2/Classic). La concordanza tra motori non risolve l’eventuale incoerenza della classe nominale.
+
+\section{Metodologia di confronto e controllo delle risorse}
+\label{sec:metodologia_fair_comparison}
+Classic Otter è eseguito con \texttt{--saturation\_algorithm otter}, \texttt{-av off}, \texttt{-updr off}, \texttt{-bs on} e \texttt{-fsr off}. Queste opzioni fissano la strategia di saturazione, disattivano AVATAR e la rimozione delle definizioni di predicati inutilizzati, attivano la backward subsumption e disattivano la forward subsumption resolution. Non certificano una simmetria completa tra implementazioni: indicizzazione, selezione dei letterali, gestione delle code e preprocessing possono differire. Non si deduce da queste impostazioni un comportamento temporale deterministico.
+
+\subsection{Limiti temporali e memoria}
+I benchmark qui selezionati adottano un limite di 120 secondi per problema e modalità. Gli script prevedono un limite di memoria di 4096 MB per processo; il CSV da solo non certifica il valore effettivo di ogni invocazione. Per la suite senza uguaglianza i tempi sono misure di tempo reale e gli script possono eseguire più worker in parallelo: carico e scheduling influenzano soprattutto i confronti su tempi molto brevi. Piccoli superamenti del limite registrati nel CSV possono dipendere dal controllo del processo e non vanno interpretati come decisioni oltre il budget.
+
+\subsection{Interpretazione e riproducibilità}
+I commenti prima di ciascuna famiglia indicano il CSV usato per rigenerare le figure. Non si sostituiscono risultati di esecuzioni storiche con quelli ottenuti da versioni successive. I CSV conservano conteggi ed esiti, ma non bastano a identificare sempre revisione del binario, hardware, seed e configurazione del generatore: una riproduzione completa richiede anche queste informazioni.
+
+Le spiegazioni strutturali proposte sono ipotesi compatibili con i dati. Per attribuire il costo a clausificazione, eliminazione dell’uguaglianza, crescita delle clausole o indicizzazione occorrono misure separate di tali fasi. La suite senza uguaglianza mostra che la sola assenza di uguaglianza non elimina i limiti pratici della ricerca, soprattutto nelle famiglie di quantificazione e ramificazione.
+

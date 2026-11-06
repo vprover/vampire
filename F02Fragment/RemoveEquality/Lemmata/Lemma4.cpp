@@ -339,6 +339,24 @@ bool extractType2(FormulaUnit *unit, std::vector<Clause *> &clauses,
   Formula *forall = unit->formula();
   if (!forall || forall->connective() != FORALL || !getSingleBoundVariable(forall, x)) return false;
   Formula *exists = forall->qarg();
+  // Lemma 3 preserves diagonal witnesses as a disjunction:
+  // forall x (A(x,x) | exists y (x!=y & A(x,y))). Restricted
+  // resolvents belong inside the distinct branch, not outside the choice.
+  if (exists && exists->connective() == OR) {
+    Formula *witness = nullptr;
+    FormulaList::Iterator branches(exists->args());
+    unsigned branchCount = 0;
+    while (branches.hasNext()) {
+      Formula *branch = branches.next();
+      ++branchCount;
+      if (branch->connective() == EXISTS) {
+        if (witness) return false;
+        witness = branch;
+      }
+    }
+    if (branchCount != 2 || !witness) return false;
+    exists = witness;
+  }
   if (!exists || exists->connective() != EXISTS || !getSingleBoundVariable(exists, y)) return false;
   Formula *matrix = exists->qarg();
 
@@ -389,6 +407,14 @@ FormulaUnit *addType2Resolvents(FormulaUnit *unit, const std::vector<Clause *> &
   if (resolvents.empty()) return unit;
   Formula *forall = unit->formula();
   Formula *exists = forall->qarg();
+  Formula *choice = exists->connective() == OR ? exists : nullptr;
+  if (choice) {
+    FormulaList::Iterator branches(choice->args());
+    while (branches.hasNext()) {
+      Formula *branch = branches.next();
+      if (branch->connective() == EXISTS) { exists = branch; break; }
+    }
+  }
   Formula *matrix = exists->qarg();
   for (Clause *resolvent : resolvents) {
     FormulaList *args = FormulaList::empty();
@@ -397,6 +423,15 @@ FormulaUnit *addType2Resolvents(FormulaUnit *unit, const std::vector<Clause *> &
     matrix = JunctionFormula::generalJunction(AND, args);
   }
   Formula *newExists = new QuantifiedFormula(EXISTS, exists->vars(), matrix);
+  if (choice) {
+    FormulaList *branches = FormulaList::empty();
+    FormulaList::Iterator it(choice->args());
+    while (it.hasNext()) {
+      Formula *branch = it.next();
+      FormulaList::push(branch == exists ? newExists : branch, branches);
+    }
+    newExists = JunctionFormula::generalJunction(OR, FormulaList::reverse(branches));
+  }
   Formula *newForall = new QuantifiedFormula(FORALL, forall->vars(), newExists);
   return new FormulaUnit(newForall, unit->inference());
 }
@@ -414,7 +449,9 @@ bool isType3RemovalCandidate(const Clause *clause)
 
 void Lemma4::applyLemma4(Kernel::Problem &prb)
 {
-  FO2Logger::logDebug("[Lemma 4] Starting restricted resolution saturation");
+  if (FO2Logger::showsDebug()) {
+    FO2Logger::logDebug("[Lemma 4] Starting restricted resolution saturation");
+  }
 
   // Lemma 4's restricted resolution uses canonical variable IDs 0 and 1.
   // Formula rectification handles quantified formulas; clause units need a
@@ -502,7 +539,11 @@ void Lemma4::applyLemma4(Kernel::Problem &prb)
     pendingType2.pop_front();
     for (Clause *type3Clause : active3) {
       std::vector<Clause *> resolvents;
-      resolveRestricted(type3Clause, parent.clause, resolvents);
+      // resolveRestricted returns variables in its left parent's namespace.
+      // Keep the existential owner on the left: swapping x/y on that owner
+      // would turn a constraint on the universal variable into one on the
+      // witness when the resolvent is inserted back into its original prefix.
+      resolveRestricted(parent.clause, type3Clause, resolvents);
       for (Clause *resolvent : resolvents) {
         Clause *guardedResolvent = simplifyType2ClauseUnderDistinct(resolvent, parent.x, parent.y);
         if (!guardedResolvent) continue;
@@ -531,7 +572,9 @@ void Lemma4::applyLemma4(Kernel::Problem &prb)
   }
 
   prb.units() = result;
-  FO2Logger::logDebug("[Lemma 4] Restricted resolution and Type 3 reduction complete");
+  if (FO2Logger::showsDebug()) {
+    FO2Logger::logDebug("[Lemma 4] Restricted resolution and Type 3 reduction complete");
+  }
 }
 
 } // namespace Lemmata

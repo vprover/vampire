@@ -341,7 +341,9 @@ bool Lemma5::decomposeType3Clause(Kernel::Clause* cl, std::vector<Kernel::Litera
  */
 void Lemma5::applyLemma5(Kernel::Problem &prb)
 {
-  FO2Logger::logDebug("[Lemma 5] INIZIO APPLICAZIONE LEMMA 5");
+  if (FO2Logger::showsDebug()) {
+    FO2Logger::logDebug("[Lemma 5] INIZIO APPLICAZIONE LEMMA 5");
+  }
 
   // Lemma 5's decomposition is expressed using the canonical variables x=0
   // and y=1. Lemma 4 may leave gaps in variable numbers (e.g. x=0,y=2), so
@@ -373,7 +375,9 @@ void Lemma5::applyLemma5(Kernel::Problem &prb)
 
     if (canTransform) {
       transformedCount++;
-      FO2Logger::logDebug("[Lemma 5] Trasformazione unita' di Tipo 3 con uguaglianza: " + unit->toString());
+      if (FO2Logger::showsDebug()) {
+        FO2Logger::logDebug("[Lemma 5] Trasformazione unita' di Tipo 3 con uguaglianza: " + unit->toString());
+      }
 
       Kernel::Formula* gammaX = createDisjunctionFromLiterals(gammaLits);
       Kernel::Formula* deltaX = createDisjunctionFromLiterals(deltaLits);
@@ -430,8 +434,12 @@ void Lemma5::applyLemma5(Kernel::Problem &prb)
 
   prb.units() = Kernel::UnitList::reverse(newUnits);
 
-  FO2Logger::logDebug("[Lemma 5] Trasformazione completata. Clausole modificate: " + std::to_string(transformedCount));
-  FO2Logger::logDebug("[Lemma 5] FINE LEMMA 5");
+  if (FO2Logger::showsDebug()) {
+    FO2Logger::logDebug("[Lemma 5] Trasformazione completata. Clausole modificate: " + std::to_string(transformedCount));
+  }
+  if (FO2Logger::showsDebug()) {
+    FO2Logger::logDebug("[Lemma 5] FINE LEMMA 5");
+  }
 }
 
 } // namespace Lemmata

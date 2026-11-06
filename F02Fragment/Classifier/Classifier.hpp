@@ -25,7 +25,8 @@ private:
   /**
    * @brief Recursive analysis of First-Order Formulas (FOF).
    * @param f Formula to analyze.
-   * @param varSet Set of quantified variables collected so far.
+   * @param varSet Output: free variables of this subformula. Each subformula
+   * must have at most two, allowing bound variables to be renamed and reused.
    * @param hasEq Flag set to true if an equality literal is encountered.
    * @return true if the formula belongs to the FO2 fragment, false otherwise.
    */

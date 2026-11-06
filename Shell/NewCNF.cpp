@@ -91,7 +91,15 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output, Substitution* su
     cout << "---------------------------------------------" << std::endl << std::endl;
 #endif
 
-    if ((_namingThreshold > 1) && occurrences.size() > _namingThreshold) {
+    // In the FO2 structural mode a quantified subformula is replaced by a
+    // predicate on its free variables before enclosing Skolem bindings are
+    // applied. Its defining implication is processed separately. Do this once:
+    // nameSubformula re-enqueues g to clausify that definition.
+    const bool quantified = g->connective() == FORALL || g->connective() == EXISTS;
+    const bool structuralName = _nameQuantifiedSubformulas && quantified &&
+      !_namedQuantifiers.contains(g);
+    if (structuralName) _namedQuantifiers.insert(g);
+    if (structuralName || ((_namingThreshold > 1) && occurrences.size() > _namingThreshold)) {
       nameSubformula(g, occurrences);
     } else {
       // TODO: currently we don't check for tautologies, as there should be none appearing (we use polarity based expansion of IFF and XOR)
@@ -124,6 +132,7 @@ void NewCNF::clausify(FormulaUnit* unit,Stack<Clause*>& output, Substitution* su
   _maxVar = 0;
   _skolemTypeVarSubst.reset();
   _freeVars.reset();
+  _namedQuantifiers.reset();
 
   { // destroy the cached substitution entries
     DHMap<BindingList*,Substitution*>::DelIterator dIt(_substitutionsByBindings);

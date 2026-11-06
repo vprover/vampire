@@ -22,6 +22,7 @@
 #include "Lib/Deque.hpp"
 #include "Lib/SmartPtr.hpp"
 #include "Lib/DHMap.hpp"
+#include "Lib/DHSet.hpp"
 #include "Kernel/Substitution.hpp"
 #include "Kernel/Formula.hpp" //TODO AYB remove, it is not required in master
 
@@ -62,8 +63,11 @@ typedef List<Binding> BindingList;
 class NewCNF
 {
 public:
-  NewCNF(unsigned namingThreshold)
+  /** Optional quantified-subformula isolation for FO2; generic callers keep
+   * the existing threshold-driven naming policy. */
+  NewCNF(unsigned namingThreshold, bool nameQuantifiedSubformulas = false)
     : _namingThreshold(namingThreshold),
+      _nameQuantifiedSubformulas(nameQuantifiedSubformulas),
       _iteInliningThreshold(namingThreshold ? (unsigned)ceil(log2(namingThreshold)) : 0),
       _collectedVarSorts(false), _maxVar(0),_forInduction(false) {}
 
@@ -71,6 +75,8 @@ public:
   void setForInduction(){ _forInduction=true; }
 private:
   unsigned _namingThreshold;
+  bool _nameQuantifiedSubformulas;
+  DHSet<Formula*> _namedQuantifiers;
   unsigned _iteInliningThreshold;
 
   FormulaUnit* _beingClausified;

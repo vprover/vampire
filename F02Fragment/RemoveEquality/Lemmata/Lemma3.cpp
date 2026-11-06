@@ -317,7 +317,9 @@ void Lemma3::applyLemma3(Kernel::Problem &prb)
     }
   }
   prb.units() = UnitList::concat(generated, prb.units());
-  FO2Logger::logDebug("[Lemma 3] Equality moved from Type 1/2/3 matrices into Scott guards.");
+  if (FO2Logger::showsDebug()) {
+    FO2Logger::logDebug("[Lemma 3] Equality moved from Type 1/2/3 matrices into Scott guards.");
+  }
 }
 
 } // namespace FO2Fragment

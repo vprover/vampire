@@ -8,6 +8,63 @@ using namespace Lib;
 
 namespace FO2Fragment {
 
+/** Find an article-style split c = R1 v R2 with disjoint variable sets. */
+bool FO2Inferences::partitionClause(Clause* clause, std::vector<Literal*>& r1, std::vector<Literal*>& r2)
+{
+  const size_t length = clause->length();
+  if (length < 2) return false;
+
+  std::vector<DHSet<unsigned>> vars(length);
+  std::vector<size_t> variableLiterals;
+  std::vector<size_t> groundLiterals;
+  for (size_t i = 0; i < length; ++i) {
+    VariableIterator it((*clause)[i]);
+    while (it.hasNext()) vars[i].insert(it.next().var());
+    if (vars[i].isEmpty()) groundLiterals.push_back(i);
+    else variableLiterals.push_back(i);
+  }
+
+  // A ground part and a variable-bearing part are disjoint by definition.
+  if (!groundLiterals.empty() && !variableLiterals.empty()) {
+    for (size_t i : groundLiterals) r1.push_back((*clause)[i]);
+    for (size_t i : variableLiterals) r2.push_back((*clause)[i]);
+    return true;
+  }
+
+  std::vector<int> component(length, -1);
+  int componentCount = 0;
+  for (size_t i : variableLiterals) {
+    if (component[i] != -1) continue;
+    component[i] = componentCount;
+    std::vector<size_t> queue{i};
+    for (size_t q = 0; q < queue.size(); ++q) {
+      const size_t current = queue[q];
+      for (size_t j : variableLiterals) {
+        if (component[j] != -1) continue;
+        bool sharesVariable = false;
+        DHSet<unsigned>::Iterator vit(vars[current]);
+        while (vit.hasNext()) {
+          if (vars[j].contains(vit.next())) { sharesVariable = true; break; }
+        }
+        if (sharesVariable) {
+          component[j] = componentCount;
+          queue.push_back(j);
+        }
+      }
+    }
+    ++componentCount;
+  }
+
+  if (componentCount < 2) return false;
+  // Put the first connected component (and any ground literals) in R1;
+  // collect all remaining components in R2. Their variable sets are disjoint.
+  for (size_t i : groundLiterals) r1.push_back((*clause)[i]);
+  for (size_t i : variableLiterals) {
+    (component[i] == 0 ? r1 : r2).push_back((*clause)[i]);
+  }
+  return !r1.empty() && !r2.empty();
+}
+
 bool FO2Inferences::resolve(const IndexedClause& icl1, size_t litIdx1,
                             const IndexedClause& icl2, size_t litIdx2,
                             IndexedClause& outResolvent)
@@ -18,6 +75,7 @@ bool FO2Inferences::resolve(const IndexedClause& icl1, size_t litIdx1,
   Literal* lit1 = icl1[litIdx1].literal;
   Literal* lit2 = icl2[litIdx2].literal;
   if (!lit1 || !lit2) return false;
+  if (lit1->functor() != lit2->functor()) return false;
 
   // Resolution requires complementary polarity
   if (lit1->polarity() == lit2->polarity()) return false;
@@ -85,6 +143,7 @@ bool FO2Inferences::factor(const IndexedClause& icl, size_t litIdx1, size_t litI
   Literal* lit1 = icl[litIdx1].literal;
   Literal* lit2 = icl[litIdx2].literal;
   if (!lit1 || !lit2) return false;
+  if (lit1->functor() != lit2->functor()) return false;
 
   // Factoring requires same polarity
   if (lit1->polarity() != lit2->polarity()) return false;
@@ -118,14 +177,45 @@ bool FO2Inferences::factor(const IndexedClause& icl, size_t litIdx1, size_t litI
   return true;
 }
 
+bool FO2Inferences::simplifyWithUnit(const IndexedClause& clause,
+                                   const IndexedClause& unit, IndexedClause& result)
+{
+  if (unit.length() != 1 || clause.length() == 0) return false;
+  Literal* premise = unit[0].literal;
+  for (size_t selected : clause.getSelectedLiteralIndices()) {
+    const auto& target = clause[selected];
+    if (target.index != unit[0].index ||
+        target.literal->functor() != premise->functor() ||
+        target.literal->polarity() == premise->polarity()) continue;
+
+    // Unification alone is insufficient: p(a) cannot shorten ~p(X) | q(X)
+    // to q(a), since that would discard the constraint on other values of X.
+    RobSubstitution matching;
+    if (!matching.match(TermList(Literal::create(premise, true)), 0,
+                        TermList(Literal::create(target.literal, true)), 1)) continue;
+
+    IndexedClause resolved, normalized;
+    if (!resolve(clause, selected, unit, 0, resolved)) continue;
+    normalizeVariables(resolved, normalized);
+    std::string reason;
+    if (!checkS2Invariant(normalized, reason) ||
+        !checkIndexInvariant(normalized, reason) ||
+        !subsumes(normalized, clause)) continue;
+    result = normalized;
+    return true;
+  }
+  return false;
+}
+
 namespace {
-static bool matchSubsumptionLiterals(size_t litIdx1, const IndexedClause& icl1, const IndexedClause& icl2, RobSubstitution& subst) {
+static bool matchSubsumptionLiterals(size_t litIdx1, const IndexedClause& icl1, const IndexedClause& icl2, RobSubstitution& subst, std::vector<bool>& used) {
   if (litIdx1 >= icl1.length()) {
     return true;
   }
 
   const IndexedLiteral& ilit1 = icl1[litIdx1];
   for (size_t j = 0; j < icl2.length(); ++j) {
+    if (used[j]) continue;
     const IndexedLiteral& ilit2 = icl2[j];
     if (ilit1.index != ilit2.index) continue;
     if (ilit1.literal->polarity() != ilit2.literal->polarity()) continue;
@@ -137,11 +227,13 @@ static bool matchSubsumptionLiterals(size_t litIdx1, const IndexedClause& icl1, 
     Literal* pos1 = Literal::create(ilit1.literal, true);
     Literal* pos2 = Literal::create(ilit2.literal, true);
     if (subst.match(TermList(pos1), 0, TermList(pos2), 1)) {
-      if (matchSubsumptionLiterals(litIdx1 + 1, icl1, icl2, subst)) {
+      used[j] = true;
+      if (matchSubsumptionLiterals(litIdx1 + 1, icl1, icl2, subst, used)) {
         subst.bdDone();
         bd.drop();
         return true;
       }
+      used[j] = false;
     }
     subst.bdDone();
     bd.backtrack();
@@ -152,11 +244,14 @@ static bool matchSubsumptionLiterals(size_t litIdx1, const IndexedClause& icl1, 
 
 bool FO2Inferences::subsumes(const IndexedClause& icl1, const IndexedClause& icl2)
 {
+  // Use occurrence-preserving (multiset) subsumption for deletion. Allowing
+  // several source literals to match one target can delete required factors.
   if (icl1.length() > icl2.length()) return false;
   if (icl1.length() == 0) return true;
 
   RobSubstitution subst;
-  return matchSubsumptionLiterals(0, icl1, icl2, subst);
+  std::vector<bool> used(icl2.length(), false);
+  return matchSubsumptionLiterals(0, icl1, icl2, subst, used);
 }
 
 bool FO2Inferences::normalizeVariables(const IndexedClause& inIcl, IndexedClause& outIcl)

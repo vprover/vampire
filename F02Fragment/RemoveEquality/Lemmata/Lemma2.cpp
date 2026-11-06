@@ -303,7 +303,9 @@ struct DefinitionBuilder {
 
 void Lemma2::applyLemma2(Kernel::Problem &prb)
 {
-  FO2Logger::logDebug("[Lemma 2] Converting formulas to Scott normal form");
+  if (FO2Logger::showsDebug()) {
+    FO2Logger::logDebug("[Lemma 2] Converting formulas to Scott normal form");
+  }
 
   UnitList *generatedDefinitions = UnitList::empty();
   UnitList::DelIterator it(prb.units());
@@ -345,7 +347,9 @@ void Lemma2::applyLemma2(Kernel::Problem &prb)
 
   prb.units() = UnitList::concat(generatedDefinitions, prb.units());
 
-  FO2Logger::logDebug("[Lemma 2] Scott normal form conversion complete");
+  if (FO2Logger::showsDebug()) {
+    FO2Logger::logDebug("[Lemma 2] Scott normal form conversion complete");
+  }
 }
 
 } // namespace FO2Fragment

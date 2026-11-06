@@ -20,6 +20,7 @@
 #include "Shell/NNF.hpp"
 #include "Shell/Flattening.hpp"
 #include "Shell/SimplifyFalseTrue.hpp"
+#include "Shell/TPTPPrinter.hpp"
 
 #include "Lib/Environment.hpp"
 
@@ -34,6 +35,9 @@
 
 #include <iostream>
 #include <string>
+#include <cstdlib>
+#include <fstream>
+#include <stdexcept>
 
 using namespace Kernel;
 using namespace Shell;
@@ -71,6 +75,15 @@ void RemoveEquality::Lemma6Application(Kernel::Problem &prb)
 }
 
 namespace {
+
+void dumpEqualityStage(Problem& prb, unsigned stage) {
+  const char* directory = std::getenv("FO2_EQUALITY_TRACE_DIR");
+  if (!directory) return;
+  std::ofstream output(std::string(directory) + "/lemma_" + std::to_string(stage) + ".p");
+  if (!output) throw std::runtime_error("Cannot write FO2_EQUALITY_TRACE_DIR snapshot");
+  UnitList::Iterator it(prb.units());
+  while (it.hasNext()) output << Shell::TPTPPrinter::toString(it.next()) << '\n';
+}
 
 Formula* normalizeEqualityFormula(Formula* f) {
   if (!f) return nullptr;
@@ -197,7 +210,9 @@ void RemoveEquality::removeEquality(Kernel::Problem &prb)
   // e.g. "Apple" != "Microsoft" must be made explicit before Lemma1 runs,
   // otherwise the distinct-object semantics are lost after equality removal.
   if (env.signature->hasDistinctGroups()) {
-    FO2Logger::logDebug("RemoveEquality: expanding distinct groups before lemmata");
+    if (FO2Logger::showsDebug()) {
+      FO2Logger::logDebug("RemoveEquality: expanding distinct groups before lemmata");
+    }
     Shell::DistinctGroupExpansion(0 /* 0 = always expand */).apply(prb);
   }
 
@@ -235,22 +250,29 @@ void RemoveEquality::removeEquality(Kernel::Problem &prb)
   FO2Logger::logPhase("Starting equality removal procedure (RemoveEquality)");
 
   FO2Logger::logLemma("BEFORE LEMMA 1", prb);
+  dumpEqualityStage(prb, 0);
   Lemma1Application(prb);
+  dumpEqualityStage(prb, 1);
 
   FO2Logger::logLemma("AFTER LEMMA 1", prb);
   Lemma2Application(prb);
+  dumpEqualityStage(prb, 2);
 
   FO2Logger::logLemma("AFTER LEMMA 2", prb);
   Lemma3Application(prb);
+  dumpEqualityStage(prb, 3);
 
   FO2Logger::logLemma("AFTER LEMMA 3", prb);
   Lemma4Application(prb);
+  dumpEqualityStage(prb, 4);
 
   FO2Logger::logLemma("AFTER LEMMA 4", prb);
   Lemma5Application(prb);
+  dumpEqualityStage(prb, 5);
 
   FO2Logger::logLemma("AFTER LEMMA 5", prb);
   Lemma6Application(prb);
+  dumpEqualityStage(prb, 6);
 
   FO2Logger::logLemma("AFTER LEMMA 6", prb);
 

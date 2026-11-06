@@ -1,0 +1,650 @@
+\chapter{Implementazione della Procedura in Vampire}
+\label{chap:implementazione_vampire}
+
+\begin{figure}[H]
+\centering
+\begin{forest}
+  for tree={
+    forked edges,
+    grow'=0,
+    draw,
+    rounded corners=2pt,
+    node options={inner sep=3pt},
+    font=\small\ttfamily,
+    s sep=5pt,
+    l sep=15pt,
+    line width=0.6pt,
+    edge={draw=gray!80!black, line width=0.6pt}
+  },
+  [F02Fragment/, fill=blue!10, font=\small\bfseries\ttfamily
+    [Classifier/, fill=gray!10
+      [Classifier.cpp]
+      [Classifier.hpp]
+    ]
+    [Preprocessor/, fill=gray!10
+      [FO2Preprocessor.cpp]
+      [FO2Preprocessor.hpp]
+    ]
+    [RemoveEquality/, fill=gray!10
+      [Lemmata/, fill=gray!20
+        [\dots]
+      ]
+      [RemoveEquality.cpp]
+      [RemoveEquality.hpp]
+    ]
+    [Resolution/, fill=gray!10
+      [FO2Inferences.cpp]
+      [FO2Inferences.hpp]
+      [FO2Resolution.cpp]
+      [FO2Resolution.hpp]
+      [FO2Solver.cpp]
+      [FO2Solver.hpp]
+    ]
+    [FO2Logger.hpp]
+    [ScottTypes.cpp]
+    [ScottTypes.hpp]
+  ]
+\end{forest}
+\caption{Albero strutturale dei moduli implementati all'interno della directory \texttt{FO2Fragment}.}
+\label{fig:albero_cartelle}
+\end{figure}
+
+Definiti i vincoli e le specifiche architetturali nel capitolo precedente, questo capitolo descrive l'implementazione dei moduli sviluppati per il frammento $FO^2_=$ nel codice sorgente di Vampire.
+
+La descrizione segue le trasformazioni logiche applicate alle unità di \texttt{Kernel::Problem}, dalla manipolazione delle formule fino alla saturazione delle clausole. Sono indicate anche le forme che il codice lascia invariate e i controlli che non modificano il problema.
+
+Le sezioni seguenti descrivono il comportamento dei moduli e i passaggi eseguiti dal codice.
+
+
+%\subsection{Componenti di Supporto}
+%A supporto delle fasi di riduzione dell'uguaglianza, è stato realizzato il modulo \texttt{ScottTypers} che tiene traccia dei nuovi simboli predicativi introdotti durante la trasformazione in Forma Normale di Scott (\ref{subsec:generazione_lemmi}). 
+%Inoltre per facilitare il debbugging è stata sviluppata la classe \texttt{FO2Logger}, che consiste in un sistema di tracciamento multilivello che consente di ispezionare lo stato del problema dopo ciascuna trasformazione.
+
+
+\section{Modulo di Preprocessing e Validazione Sintattica}
+\label{sec:modulo_preprocessing}
+
+
+L'algoritmo principale di questo modulo è \textsc{preprocess} (Algoritmo~\ref{alg:fo2_preprocess}). La procedura accetta un'istanza di \texttt{Kernel::Problem}, conserva temporaneamente le clausole già presenti e converte le unità formula in clausole.
+
+Le clausole già presenti vengono conservate e raccolte insieme ai risultati della clausificazione. Per ogni unità formula, \textsc{preprocess} esegue in sequenza:
+\begin{itemize}
+    \item semplificazione delle costanti vero/falso;
+    \item conversione in NNF e nuova semplificazione;
+    \item rettificazione delle variabili, appiattimento della formula;
+    \item clausificazione con \texttt{Shell::NewCNF(1)}, che esegue anche la skolemizzazione.
+\end{itemize}
+
+La formula viene rimossa dalla lista delle unità dopo la clausificazione. Una formula ridotta a falso produce la clausola vuota; una formula ridotta a vero viene eliminata. Al termine, tutte le clausole raccolte vengono reinserite nel problema. Questa fase prepara la forma clausale usata dai controlli successivi.
+
+\subsection{Validazione dei Vincoli del Frammento $\mathcal{S}_2$}
+
+Terminata la clausificazione, \textsc{preprocess} controlla tutte le clausole con \textsc{validateClause} (Algoritmo~\ref{alg:fo2_validate_clause}). La validazione restituisce un booleano diagnostico. Se trova una violazione, la clausola resta nel problema: la funzione non applica lo splitting dell'articolo e non lancia un'eccezione.
+
+La funzione \textsc{validateClause} controlla i quattro vincoli della Definizione 6 dell'articolo:
+
+\begin{enumerate}
+    \item \textbf{Vincolo sulle Variabili}: la clausola non deve contenere più di 2 variabili distinte.
+    
+    \item \textbf{Proprietà dei Termini Funzionali (\textit{Shallow} e \textit{Covering})}: Per ciascun argomento di ogni letterale della clausola che sia un termine composto $t = f(t_1, \dots, t_k)$, vengono verificati due sotto-requisiti:
+    \begin{itemize}
+        \item \textit{Profondità ridotta (Shallow)}: Il termine $t$ non deve contenere simboli di funzione nidificati ($t.\text{isShallow}() = \text{true}$).
+        \item \textit{Copertura (Covering)}: Se $t$ non è ground, esso deve contenere tutte le variabili presenti nella clausola complessiva. ($\text{coversAllVariables}(t, clauseVars)$)
+    \end{itemize}
+    \item \textbf{Controllo su Clausole Ground}: se contiene almeno un letterale senza variabili (anche proposizionale/nullario), tutti i letterali devono essere ground.
+
+    \item \textbf{Copertura Bivariata}: se la clausola contiene due variabili distinte, almeno un letterale deve contenere entrambe. Il controllo considera le variabili presenti negli argomenti del letterale, non richiede che il simbolo predicativo abbia arità esattamente due.
+\end{enumerate}
+
+La verifica della copertura delle variabili è implementata da \textsc{coversAllVariables} (Algoritmo~\ref{alg:covers_all_vars}) e da \textsc{containsAllVariables} (Algoritmo~\ref{alg:fo2_contains_all_variables}).
+
+\textsc{coversAllVariables} estrae con \texttt{VariableIterator} le variabili del termine funzionale e verifica che l'insieme ottenuto contenga tutte le variabili della clausola. I termini ground non richiedono questo controllo. Se una condizione fallisce, \textsc{validateClause} registra il motivo e restituisce \texttt{false}; la clausola resta nel problema. Il valore restituito da \textsc{preprocess} segnala l'esito della validazione, ma non trasforma né rifiuta le clausole non conformi e non esegue lo splitting.
+\begin{algorithm}[H]
+\caption{FO2 Preprocessing Main Pipeline}
+\label{alg:fo2_preprocess}
+\begin{algorithmic}[1]
+    \Statex \textbf{Signature:} $\textsc{preprocess}: \text{Problem}\& \to \text{Void}$
+    \Function{preprocess}{$prb$}
+        \State $it \leftarrow \text{UnitList::DelIterator}(prb.\text{units}())$
+        \State $clauses \leftarrow \text{Stack}\langle\text{Clause}*\rangle()$
+    \State $newCnf \leftarrow \text{Shell::NewCNF}(1)$
+        \State $allClauses \leftarrow \text{Stack}\langle\text{Clause}*\rangle()$
+
+        \While{$it.\text{hasNext}()$}
+            \State $u \leftarrow it.\text{next}()$
+            \If{$\neg u\to\text{isClause}()$}
+                \State $fu \leftarrow \text{static\_cast}\langle\text{FormulaUnit}*\rangle(u)$
+                \State $fu \leftarrow \text{simplifyFalseTrue}(fu)$
+                \State $fu \leftarrow \text{nnf}(fu)$
+                \State $fu \leftarrow \text{simplifyFalseTrue}(fu)$
+                \State $fu \leftarrow \text{rectify}(fu)$
+                \If{$fu.\text{formula}() = \textbf{false}$}
+                    \State $allClauses.\text{push}(\text{emptyClause}(fu))$; $it.\text{del}()$; \textbf{continue}
+                \EndIf
+                \If{$fu.\text{formula}() = \textbf{true}$}
+                    \State $it.\text{del}()$; \textbf{continue}
+                \EndIf
+                \State $fu \leftarrow \text{flatten}(fu)$
+
+                \State $clauses.\text{reset}()$
+                \State $newCnf.\text{clausify}(fu, clauses)$
+
+                \While{$\neg clauses.\text{isEmpty}()$}
+                    \State $cl \leftarrow clauses.\text{pop}()$
+                    \State $allClauses.\text{push}(cl)$
+                \EndWhile
+                \State $it.\text{del}()$
+            \EndIf
+        \EndWhile
+
+        \While{$\neg allClauses.\text{isEmpty}()$}
+            \State $prb.\text{units}().\text{push}(allClauses.\text{pop}())$
+        \EndWhile
+        \State $valid \leftarrow \textbf{true}$
+        \State $uit \leftarrow \text{UnitList::Iterator}(prb.\text{units}())$
+        \While{$uit.\text{hasNext}()$}
+            \State $u \leftarrow uit.\text{next}()$
+            \If{$u\to\text{isClause}()$}
+                \State $cl \leftarrow \text{static\_cast}\langle\text{Clause}*\rangle(u)$
+                \State $err \leftarrow \text{NULL}$
+                \If{$\neg \textsc{validateClause}(cl, err)$}
+                    \State $valid \leftarrow \textbf{false}$
+                \EndIf
+            \EndIf
+        \EndWhile
+        \State \Return $valid$
+    \EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+
+\begin{algorithm}[htpb]
+\caption{S2 Clause Validation}
+\label{alg:fo2_validate_clause}
+\begin{algorithmic}[1]
+    \Statex \textbf{Signature:} $\textsc{validateClause}: \text{Clause}* \times \text{String}\& \to \text{Boolean}$
+    \Function{validateClause}{$cl, errorMessage$}
+        \State $clauseVars \leftarrow \emptyset$
+        \State $vit \leftarrow cl\to\text{getVariableIterator}()$
+        \While{$vit.\text{hasNext}()$}
+            \State $clauseVars.\text{insert}(vit.\text{next}())$
+        \EndWhile
+    
+        \If{$|clauseVars| > 2$}
+            \State $errorMessage \leftarrow \text{"violates S2 variable bound (>2 vars)"}$
+            \State \Return \textbf{false}
+        \EndIf
+
+        \State $hasGroundLiteral \leftarrow \textbf{false}$
+        \State $hasNonGroundLiteral \leftarrow \textbf{false}$
+        \State $hasTwoVarLiteral \leftarrow \textbf{false}$
+
+        \For{$i \leftarrow 0 \textbf{ to } cl\to\text{length}() - 1$}
+            \State $lit \leftarrow (*cl)[i]$
+            \State $litVars \leftarrow \textsc{getVariables}(lit)$
+            
+            \If{$|litVars| = 0$}
+                \State $hasGroundLiteral \leftarrow \textbf{true}$
+            \ElsIf{$|litVars| > 0$}
+                \State $hasNonGroundLiteral \leftarrow \textbf{true}$
+            \EndIf
+
+            \If{$|clauseVars| = 2 \land |litVars| = 2$}
+                \State $hasTwoVarLiteral \leftarrow \textbf{true}$
+            \EndIf
+
+            \For{$a \leftarrow 0 \textbf{ to } lit\to\text{arity}() - 1$}
+                \State $tl \leftarrow lit\to\text{nthArgument}(a)$
+                \If{$tl\to\text{isTerm}()$}
+                    \State $t \leftarrow tl\to\text{term}()$
+                    \If{$\neg t\to\text{isShallow}()$}
+                        \State $errorMessage \leftarrow \text{"nested function symbols"}$
+                        \State \Return \textbf{false}
+                    \EndIf
+                    \If{$\neg t\to\text{ground}() \land \neg \textsc{coversAllVariables}(t, clauseVars)$}
+                        \State $errorMessage \leftarrow \text{"non-covering functional term"}$
+                        \State \Return \textbf{false}
+                    \EndIf
+                \EndIf
+            \EndFor
+        \EndFor
+        \If{$hasGroundLiteral \land hasNonGroundLiteral$}
+            \State $errorMessage \leftarrow \text{"clause containing ground literal is not entirely ground"}$
+            \State \Return \textbf{false}
+        \EndIf
+
+        \If{$|clauseVars| = 2 \land \neg hasTwoVarLiteral$}
+            \State $errorMessage \leftarrow \text{"2-variable clause has no literal containing all variables"}$
+            \State \Return \textbf{false}
+        \EndIf
+
+        \State \Return \textbf{true}
+    \EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[H]
+\caption{Variable Coverage Check}
+\label{alg:covers_all_vars}
+\begin{algorithmic}[1]
+    \Statex \textbf{Signature:} $\textsc{coversAllVariables}: \text{Term}* \times \text{DHSet}\langle\text{unsigned}\rangle\& \to \text{Boolean}$
+    \Function{coversAllVariables}{$t, clauseVars$}
+        \State $termVars \leftarrow \emptyset$
+        \State $vit \leftarrow \text{VariableIterator}(t)$
+        \While{$vit.\text{hasNext}()$}
+            \State $v \leftarrow vit.\text{next}()$
+            \State $termVars.\text{insert}(v.\text{var}())$
+        \EndWhile
+        
+        \State \Return $\textsc{containsAllVariables}(termVars, clauseVars)$
+    \EndFunction
+\end{algorithmic}
+\end{algorithm}
+
+\begin{algorithm}[htpb]
+\caption{Variable Coverage Check 2}
+\label{alg:fo2_contains_all_variables}
+\begin{algorithmic}[1]
+    \Statex \textbf{Signature:} $\textsc{containsAllVariables}: \text{Set}\langle\text{Var}\rangle \times \text{Set}\langle\text{Var}\rangle \to \text{Boolean}$
+    \Function{containsAllVariables}{$vars, required$}
+        \If{$|vars| < |required|$}
+            \State \Return \textbf{false}
+        \EndIf
+        
+        \For{\textbf{each } $v \in required$}
+            \If{$v \notin vars$}
+                \State \Return \textbf{false}
+            \EndIf
+        \EndFor
+        
+        \State \Return \textbf{true}
+    \EndFunction 
+\end{algorithmic}
+\end{algorithm}
+
+
+\newpage
+\section{Eliminazione dell'Uguaglianza: \\il Modulo \texttt{RemoveEquality}}
+\label{sec:remove_equality_pipeline}
+
+La classe \texttt{RemoveEquality} coordina la trasformazione. Espande prima gli eventuali gruppi di oggetti distinti TPTP, poi usa \texttt{Classifier::isFO2} per controllare il frammento e rilevare la presenza dell'uguaglianza. Se il controllo FO$^2$ fallisce, la procedura termina senza applicare i Lemmi. Se l'uguaglianza non è presente, salta la riduzione.
+
+La funzione principale \texttt{RemoveEquality::removeEquality(Kernel::Problem \&prb)} orchestra l'intera trasformazione mediante la seguente sequenza di chiamate statiche:
+
+\begin{algorithm}[H]
+\caption{FO2 Equality Removal Main Procedure}
+\label{alg:remove_equality}
+\begin{algorithmic}[1]
+    \Statex \textbf{Signature:} $\textsc{removeEquality}: \text{Problem}\& \to \text{Void}$
+    \Function{removeEquality}{$prb$}
+        \If{$prb.\text{hasDistinctGroups}()$}
+            \State $prb \leftarrow \text{DistinctGroupExpansion}(prb)$
+        \EndIf
+        \State $hasEq \leftarrow \textbf{false}$
+        \If{$\neg \textsc{isFO2}(prb.\text{units}(), hasEq)$} \State \Return \EndIf
+        \If{$\neg hasEq \land \neg prb.\text{hasEquality}()$} \State \Return \EndIf
+        \State $prb \leftarrow \text{normalizeEqualitiesInProblem}(prb)$
+        \State $prb \leftarrow \text{Rectify}(prb)$
+        \State \textsc{applyLemma1}($prb$)
+        \State \textsc{applyLemma2}($prb$)
+        \State \textsc{applyLemma3}($prb$)
+        \State \textsc{applyLemma4}($prb$)
+        \State \textsc{applyLemma5}($prb$)
+        \State \textsc{applyLemma6}($prb$)
+        \Comment{La sostituzione proxy dell'uguaglianza non è invocata.}
+    \EndFunction
+\end{algorithmic}
+\end{algorithm}
+I Lemmi aggiornano o rimpiazzano le unità del problema.
+
+% ============================================================
+\subsection{Lemma 1: Eliminazione delle Costanti Individuali}
+\label{subsec:lemma1_impl}
+
+Il Lemma 1 realizza la trasformazione della Tabella 1 dell'articolo per le forme di letterale trattate dal codice. Una mappa associa ogni costante incontrata a un predicato unario fresco $p_c$. In un'uguaglianza con una o due costanti, la routine introduce variabili per le posizioni costanti, aggiunge i corrispondenti atomi $p_c$ e conserva il letterale di uguaglianza con la polarità originaria. Nei letterali predicativi di arità uno o due, le posizioni costanti vengono trattate allo stesso modo e il predicato originale mantiene polarità e simbolo. La ricorsione visita connettivi, negazioni e quantificatori. Gli atomi nullari e i letterali non di uguaglianza di arità maggiore di due restano invariati; perciò l'implementazione copre la forma prevista per il frammento, ma non riscrive termini costanti in modo generale.
+
+L'architettura del Lemma 1 si articola su tre livelli di trasformazione:
+
+\begin{enumerate}
+    \item \textbf{Orchestrazione del Problema (\textsc{applyLemma1})}:
+    La funzione principale scansiona tutte le unità del problema (\texttt{prb.units()}) e le suddivide in base alla loro natura:
+    \begin{itemize}
+        \item \textbf{Formule (\texttt{FormulaUnit})}: invoca la funzione \textsc{replaceInFormula} sulla formula radice per processarne ricorsivamente l'albero sintattico.
+        \item \textbf{Clausole (\texttt{Clause})}: invoca la funzione \textsc{replaceInClause} per convertire i letterali della clausola ed elaborarli.
+    \end{itemize}
+    Se durante la scansione sono state individuate costanti, la mappa \texttt{constantsMap} contiene l'associazione tra ciascun simbolo di costante e il predicato fresco $p_c$. Per ogni voce la funzione aggiunge all'inizio del problema l'assioma $\exists x(p_c(x)\land\forall y(p_c(y)\to x=y))$, che impone esistenza e unicità.
+
+    \item \textbf{Elaborazione delle clausole}: ogni letterale viene avvolto in una formula atomica e passato alla stessa trasformazione ricorsiva. Se almeno un letterale cambia, la clausola viene rimpiazzata da una \texttt{FormulaUnit} contenente la disgiunzione dei letterali trasformati; se nessuno cambia, l'unità clausola resta invariata.
+
+    \item \textbf{Sostituzione ricorsiva nelle formule}: attraversa gli operatori binari, le congiunzioni, le disgiunzioni, le negazioni e i quantificatori. Solo i nodi atomici vengono sottoposti ai casi della Tabella 1:
+    \begin{itemize}
+        \item \textit{Letterali di uguaglianza}: se uno o entrambi gli argomenti sono costanti, introduce una variabile per ogni posizione costante, il relativo atomo $p_c$ e un quantificatore esistenziale. Un'uguaglianza senza costanti resta invariata.
+        \item \textit{Letterali non di uguaglianza}: per arità uno e due sostituisce le posizioni costanti con variabili esistenziali e congiunge gli atomi $p_c$ al letterale predicativo trasformato. Se non vi sono costanti o l'arità non è supportata, il letterale resta invariato.
+    \end{itemize}
+
+    \item \textbf{Generazione degli assiomi di unicità}:
+    Per garantire l'equivalenza di soddisfacibilità, per ogni predicato di costante $p_c$ introdotto viene generato l'assioma che ne impone l'esistenza e l'unicità dell'interpretazione:
+    $$\exists x \left( p_c(x) \land \forall y (p_c(y) \implies x = y) \right)$$
+\end{enumerate}
+% Inclusione degli algoritmi del Lemma 1
+\include{algorithms/Lemmata/Lemma1}
+
+% =========================================================================
+\subsection{Lemma 2: Normalizzazione di Scott e Rinominazione Sottoformule Complesse}
+\label{subsec:lemma2_impl}
+
+Il Lemma 2 lavora sulle sole unità formula; le clausole già presenti non vengono elaborate. Per ogni formula, chiama prima \texttt{Shell::Rectify::rectify} e poi \texttt{Shell::NNF::nnf}. Il \texttt{DefinitionBuilder} nomina in modo ricorsivo le sottoformule e accumula le definizioni. La trasformazione completa avviene solo quando il predicato radice può essere asserito come formula chiusa; se la radice non è nullaria o una sottoformula supera il limite di due variabili libere, l'unità originale viene lasciata nel problema e le definizioni provvisorie non vengono aggiunte.
+
+L'implementazione si articola su tre algoritmi principali:
+\begin{enumerate}
+    \item \textbf{Gestione del problema}: scorre le unità formula, rettifica e converte in NNF, quindi aggiunge al problema le definizioni generate.
+    
+    \item \textbf{Costruzione ricorsiva delle definizioni}: \texttt{DefinitionBuilder::nameFormula} restituisce direttamente i letterali atomici. Per le congiunzioni e disgiunzioni crea un predicato sulle variabili libere e aggiunge clausole universalmente quantificate che esprimono entrambe le direzioni della definizione. Per i quantificatori costruisce le clausole che collegano il predicato definitorio al corpo; il verso che richiede un testimone o un controesempio usa una formula con prefisso $\forall x\exists y$ quando la sottoformula ha una variabile libera, e con il solo esistenziale quando non ne ha.
+    \begin{itemize}
+        \item calcola le variabili libere, escludendo quelle legate dai quantificatori;
+        \item crea un predicato fresco di arità pari al numero di variabili libere, ammesso che tale numero sia al massimo due;
+        \item aggiunge le clausole definitorie e restituisce il letterale positivo che rappresenta la sottoformula.
+    \end{itemize}
+
+    \item \textbf{Asserzione radice}: quando il letterale radice è nullario, viene asserito sotto un quantificatore esistenziale su una variabile non usata nella matrice. Il codice inserisce le formule definitorie come assiomi e rimpiazza l'unità originaria con l'asserzione della radice.
+\end{enumerate}
+
+% Inclusione degli algoritmi del Lemma 2
+\include{algorithms/Lemmata/Lemma2}
+
+% =========================================================================
+\subsection{Lemma 3: Gestione dell'Uguaglianza }
+\label{subsec:lemma3_impl}
+
+Il Lemma 3 visita le unità formula e scende ricorsivamente nei congiunti esterni. Le unità clausola vengono saltate. Il riconoscimento è strutturale: per Tipo 2 richiede un quantificatore universale seguito da uno esistenziale; per Tipo 3 raccoglie due variabili legate da quantificatori universali consecutivi e richiede che il corpo finale non abbia altri quantificatori. Per Tipo 1 tratta una formula esistenziale e semplifica le uguaglianze riflessive nel suo corpo.
+
+Nel Tipo 2, la semplificazione valuta le uguaglianze tra le due variabili del prefisso e quelle riflessive. I letterali di uguaglianza che coinvolgono altri termini o variabili non riconosciuti rimangono nella matrice. Il codice poi antepone il letterale nativo $x\ne y$ alla matrice con una congiunzione. Nel Tipo 3, semplifica la matrice sotto l'ipotesi che le due variabili siano distinte e aggiunge il letterale nativo $x=y$ in disgiunzione: se il corpo è una congiunzione, il letterale viene aggiunto a ogni suo congiunto. Il Lemma 3 non converte le formule in CNF; presuppone la forma prodotta dal Lemma 2 e conserva l'uguaglianza positiva per i passaggi seguenti.
+\begin{itemize}
+    \item \textsc{simplifyEqualityUnderDistinct}: valuta le uguaglianze tra variabili reflexive e quelle tra le due variabili del prefisso di Tipo 2; le altre uguaglianze non riconosciute restano invariate.
+    
+    \item \textsc{transformScottFormula}: riconosce i prefissi di Tipo 1, 2 e 3 e applica rispettivamente la semplificazione reflexive, il guardiano negativo o il guardiano positivo.
+    
+    \item \textsc{addEqualityToCnf}: antepone il guardiano a ciascuna clausola quando la matrice è una congiunzione.
+    \item \textsc{applyLemma3}: visita le unità formula e trasforma ciascun congiunto Scott.
+\end{itemize}
+
+% Inclusione degli algoritmi del Lemma 3
+\input{algorithms/Lemmata/Lemma3}
+\newpage
+
+% =========================================================================
+\subsection{Lemma 4: Saturazione Ristretta per Clausole di Tipo 3}
+\label{subsec:lemma4_impl}
+
+Il Lemma 4 applica la risoluzione ristretta della Definizione 2 dell'articolo. Prima rettifica le unità formula e rinomina le variabili di ciascuna clausola con indici consecutivi, così che i due argomenti del pivot corrispondano agli indici canonici 0 e 1. Le clausole vengono divise in Tipo 3, se contengono un letterale non di uguaglianza che contiene entrambe le variabili, e clausole ordinarie.
+
+Per le unità formula, il codice riconosce il Tipo 3 contando due variabili quantificate universalmente e clausificando il corpo se è composto da letterali, disgiunzioni e congiunzioni. Il Tipo 2 è riconosciuto solo con un universale e un esistenziale, ciascuno con una sola variabile, e quando la matrice contiene come congiunto il letterale negativo $x\ne y$. Quel guardiano viene separato; gli altri congiunti sono convertiti in clausole e associati all'unità formula da cui provengono. Le unità che non corrispondono a queste forme restano invariate.
+\begin{itemize}
+    \item \textsc{normalizeClauseVariables}: rinomina le variabili di ciascuna clausola con indici consecutivi. Clausole con più di due variabili non vengono rinominate.
+    
+    \item \textsc{containsBothVariables} e \textsc{areComplementaryUnderRename}: individuano i pivot non di uguaglianza che contengono entrambe le variabili; i letterali sono complementari solo se hanno stesso predicato e arità, polarità opposta e argomenti identici oppure scambiati.
+    
+    \item La risoluzione ristretta non unifica né istanzia termini: ammette solo l'identità delle variabili o il loro scambio. Elimina i due pivot, applica lo scambio ai residui quando necessario, rimuove i duplicati e scarta i risolventi tautologici. La saturazione delle clausole di Tipo 3 prosegue finché non si producono nuovi risolventi.
+    
+    \item \textsc{extractType3} e \textsc{extractType2}: raccolgono le clausole dalle matrici nelle forme riconosciute sopra. Il guardiano del Tipo 2 non entra tra le clausole da risolvere.
+    
+    \item \textsc{applyLemma4}: dopo la saturazione di Tipo 3, risolve ciascuna clausola risultante con le clausole di Tipo 2. Semplifica i risolventi di Tipo 2 valutando le uguaglianze in base al guardiano di distinzione e li aggiunge alla matrice dell'unità proprietaria. Nel risultato conserva le clausole di Tipo 3 che non hanno letterali non di uguaglianza contenenti entrambe le variabili; elimina quelle che ne hanno almeno uno.
+\end{itemize}
+
+% Inclusione degli algoritmi del Lemma 4
+\input{algorithms/Lemmata/Lemma4}
+
+\newpage
+% =========================================================================
+\subsection{Lemma 5: Decomposizione in Componenti Unarie}
+\label{subsec:lemma5_impl}
+
+Il Lemma 5 inizia rettificando le unità e sostituendo le uguaglianze negative con un unico predicato binario fresco \texttt{neq}, se ne trova almeno una. Per le clausole sostituisce ogni letterale di uguaglianza negativo con \texttt{neq} positivo e aggiunge la clausola universale $\neg neq(x,x)$. Nelle formule gestisce sia i letterali di uguaglianza a polarità negativa sia la forma esplicita di negazione di un'uguaglianza positiva. Questo assioma impone l'irriflessività di \texttt{neq}; il codice non aggiunge in questa fase assiomi di simmetria o una definizione completa di \texttt{neq} come disuguaglianza.
+
+Successivamente esamina le unità una per una. Per una clausola cerca prima un'uguaglianza positiva tra due variabili distinte; le eventuali altre uguaglianze positive sono accettate solo se riguardano la stessa coppia. I letterali rimanenti devono contenere al più una delle due variabili: quelli riferiti alla prima formano $\gamma$, quelli riferiti alla seconda formano $\delta$. Un letterale senza variabili può essere assegnato a $\gamma$. Se un letterale non rispetta queste condizioni, la clausola rimane invariata. Per le formule, l'estrazione è più ristretta: riconosce disgiunzioni di letterali (eventualmente sotto quantificatori universali) e non formule arbitrarie in CNF.
+
+Quando la decomposizione riesce, le variabili della coppia vengono rinominate negli indici 0 e 1. Il codice costruisce la disgiunzione dei tre rami della trasformazione, usando le formule $\gamma$ e $\delta$ e il ramo di esistenza dell'unico elemento che non soddisfa $\gamma$. La nuova formula viene inserita come unità assiomatica al posto dell'unità originale.
+
+Le routine usate in questa trasformazione sono:
+\begin{itemize}
+    \item \textsc{isUnaryOnVar} e \textsc{renameVariable}: escludono i letterali di uguaglianza dalla classificazione, verificano che non compaiano variabili diverse da quella assegnata alla componente e rinominano tale variabile nell'indice canonico 0. I letterali nullari soddisfano il controllo per entrambe le componenti e vengono assegnati alla prima.
+    
+    \item \textsc{extractLiteralsFromFormula} estrae letterali atomici, negazioni di atomi e disgiunzioni; attraversa anche quantificatori universali. \textsc{createDisjunctionFromLiterals} ricostruisce la formula, restituendo falso se la lista è vuota.
+    
+    \item \textsc{decomposeLiterals} individua la coppia $x,y$ dall'uguaglianza positiva prima di classificare gli altri letterali, così non dipende dall'ordine con cui compaiono nella clausola. Se non trova la coppia o non riesce ad assegnare un letterale a una componente, non trasforma l'unità.
+    
+    \item \textsc{applyLemma5}: per i casi riconosciuti sostituisce la formula con i tre rami della trasformazione:
+    $$\forall x . \gamma(x) \;\lor\; \forall x . \delta(x) \;\lor\; \left( \forall x (\gamma(x) \iff \delta(x)) \land \exists x (\neg \gamma(x) \land \forall y (\neg \gamma(y) \implies x = y)) \right)$$
+\end{itemize}
+
+% Inclusione degli algoritmi del Lemma 5
+
+\input{algorithms/Lemmata/Lemma5}
+
+% =========================================================================
+\subsection{Lemma 6: Eliminazione dei Quantificatori d'Unicità ed Assiomi di Congruenza}
+\label{subsec:lemma6_impl}
+
+Il Lemma 6 visita le unità formula, non le clausole, e riconosce una forma sintattica precisa: un esistenziale il cui corpo è una congiunzione di $\neg\zeta(x)$ e di un universale con implicazione da $\neg\zeta(y)$ all'uguaglianza $x=y$. Il controllo richiede gli indici canonici 0 e 1, la polarità positiva dell'uguaglianza e l'ordine indicato degli argomenti. Le formule equivalenti ma rappresentate con ordine o struttura diversi non sono riconosciute.
+
+Per ogni occorrenza riconosciuta, il codice crea una costante fresca $e_i$ e genera una congiunzione con $\zeta(e_i)$. Per ogni predicato non di uguaglianza di arità uno aggiunge $\forall x(\zeta(x)\to(p(x)\leftrightarrow p(e_i)))$. Per ciascun predicato binario aggiunge due formule universali, una per la prima posizione e una per la seconda. I predicati di arità diversa da uno o due non ricevono assiomi di congruenza. La sottoformula di unicità viene sostituita da questa congiunzione e l'unità formula modificata viene reintrodotta come assioma. Il codice non riapplica i Lemmi 1 e 2 e non verifica che tutte le uguaglianze siano state rimosse.
+
+Nel codice sono presenti queste routine:
+\begin{itemize}
+    \item La sostituzione ricorsiva rimpiazza una variabile con il termine costante fresco nelle formule riconosciute.
+    
+    \item \textsc{lemma5Zeta}: richiede un esistenziale con corpo AND formato esattamente da un elemento negato e da un universale la cui matrice è un'implicazione; il conseguente deve essere l'uguaglianza $x_0=y_1$. Se la struttura o gli indici non coincidono, restituisce nessun risultato.
+    
+    \item \textsc{replaceUniquenessOccurrences}: visita connettivi e quantificatori delle formule, sostituisce le occorrenze riconosciute e conserva le unità che non cambiano.
+    
+    \item La generazione degli assiomi aggiunge per ogni costante fresca $e_i$ l'asserzione $\zeta_i(e_i)$ e gli assiomi di congruenza per i predicati unari e binari della signature:
+    $$\forall x . (\zeta_i(x) \implies (p(x) \iff p(e_i)))$$
+    $$\forall x \forall y . (\zeta_i(x) \implies (q(x, y) \iff q(e_i, y))) \quad\land\quad \forall x \forall y . (\zeta_i(x) \implies (q(y, x) \iff q(y, e_i)))$$
+    
+    \item \textsc{applyLemma6}: sostituisce le formule modificate e conserva le altre unità. Non rilancia altri Lemmi né certifica autonomamente che tutte le uguaglianze siano state eliminate.
+\end{itemize}
+
+% Inclusione degli algoritmi del Lemma 6
+\input{algorithms/Lemmata/Lemma6}
+
+
+\section{Modulo di Risoluzione e Decision Procedure (\texttt{Resolution})}
+\label{sec:fo2resolution_module}
+
+Il modulo \texttt{Resolution} comprende l'indicizzazione delle clausole, le inferenze indicizzate e il solver. Le sue regole di risoluzione e factoring seguono i vincoli di selezione descritti nell'articolo. La selezione effettiva è definita dai test riportati sotto; il comparatore per profondità e indice è presente nel codice, ma non partecipa a quei test.
+
+La procedura restituisce \texttt{SATISFIABLE}, \texttt{UNSATISFIABLE} oppure \texttt{UNKNOWN}. La garanzia teorica di terminazione dell'articolo richiede che gli invarianti e le condizioni di input siano rispettati; l'implementazione ha inoltre un limite di iterazioni e controlli che possono restituire \texttt{UNKNOWN}.
+
+% =========================================================================
+\subsection{Indicizzazione $\mathcal{S}_2+i$, Ordinamento $<_2$ e Selezione $\Sigma_2$ (\texttt{FO2Resolution})}
+\label{subsec:fo2resolution_impl}
+
+La classe \texttt{FO2Resolution} (file \texttt{FO2Resolution.hpp} e \texttt{FO2Resolution.cpp}) fornisce l'infrastruttura per la gestione delle clausole indicizzate (\texttt{IndexedClause}) e l'implementazione della funzione di selezione $\Sigma_2$.
+
+\begin{enumerate}
+    \item \textbf{Indicizzazione delle Clausole (\textsc{fromClause})}:
+    Come mostrato nell'Algoritmo~\ref{alg:from_clause_fo2resolution_doc}, \texttt{IndexedClause::fromClause} raccoglie le variabili della clausola e assegna a ogni letterale un indice $i \in \{0,1\}$:
+    \begin{itemize}
+        \item Se la clausola contiene due variabili distinte, ricevono indice $1$ i letterali che contengono entrambe; tutti gli altri ricevono indice $0$.
+        \item Se la clausola contiene al più una variabile libera, tutti i letterali ricevono l'indice $0$.
+    \end{itemize}
+
+    \item \textbf{Profondità}: le funzioni ausiliarie calcolano la profondità massima dei termini in un letterale. È presente anche un comparatore per profondità e indice, ma la selezione implementata non lo usa per ordinare i letterali.
+
+    \item \textbf{Funzione di Selezione $\Sigma_2$ (\textsc{isSelected})}:
+    \texttt{IndexedClause::isSelected} restituisce falso nei due casi seguenti e vero negli altri:
+    \begin{itemize}
+        \item $A$ non contiene termini funzionali, ha indice $0$ e nella clausola compare almeno un letterale di indice $1$.
+        \item $A$ non contiene termini funzionali e nella clausola compare almeno un termine funzionale.
+    \end{itemize}
+    Il controllo non consulta \texttt{compareGroundIndexedLiterals}; quindi la presenza di quella funzione non significa che l'implementazione ordini i letterali o verifichi la condizione di lifting della Definizione 5.
+\end{enumerate}
+
+% Inclusione del file di algoritmi per FO2Resolution
+\input{algorithms/Resolution/Resolution}
+
+% =========================================================================
+\subsection{Regole di Inferenza e Semplificazione (\texttt{FO2Inferences})}
+\label{subsec:fo2inferences_impl}
+
+La classe \texttt{FO2Inferences} (file \texttt{FO2Inferences.hpp} e \texttt{FO2Inferences.cpp}) applica risoluzione, factoring e sussunzione alle clausole indicizzate. La sostituzione calcolata da \texttt{RobSubstitution} viene applicata ai letterali residui; ogni letterale residuo mantiene l'indice assegnato nella clausola d'origine.
+
+\begin{itemize}
+    \item \textbf{Risoluzione indicizzata}: entrambi i pivot devono essere selezionati e avere polarità opposta. La routine rende positive le copie usate per l'unificazione, usa banche di variabili distinte per le due clausole e scarta la coppia se non è unificabile. Nel risultato rimuove duplicati identici per letterale e indice. Se due letterali residui sono complementari, il risolvente viene scartato come tautologico, anche quando i loro indici differiscono.
+
+    \item \textbf{Fattorizzazione}: richiede che il primo letterale sia selezionato e che i due letterali abbiano la stessa polarità e siano unificabili nella stessa banca di variabili. Elimina il primo letterale, applica la sostituzione al secondo e ai residui e mantiene i rispettivi indici. La routine non richiede che i due indici coincidano.
+
+    \item \textbf{Sussunzione Indicizzata (\textsc{subsumes})}:
+    La ricerca abbina ricorsivamente ogni letterale della prima clausola a un letterale della seconda con lo stesso indice, polarità e simbolo predicativo, usando il matching dei termini. Una clausola più lunga della seconda non può sussumerla; la clausola vuota sussume ogni clausola.
+
+    \item \textbf{Splitting}: non è un'inferenza di \texttt{FO2Inferences}; il solver cerca una partizione della clausola in due parti con variabili disgiunte. Se separa letterali ground da non ground, crea tali due parti; altrimenti usa le componenti connesse del grafo di condivisione delle variabili.
+\end{itemize}
+
+% Inclusione del file di algoritmi per FO2Inferences
+\input{algorithms/Resolution/Inference}
+
+% =========================================================================
+\newpage
+\subsection{Engine di Saturazione e Risoluzione (\texttt{FO2Solver})}
+\label{subsec:fo2solver_impl}
+
+La classe \texttt{FO2Solver} (file \texttt{FO2Solver.hpp} e \texttt{FO2Solver.cpp}) gestisce prima le partizioni di clausola e poi esegue la saturazione \textbf{Given-Clause} sui rami che non richiedono ulteriori partizioni. Le partizioni sono esplorate con una lista di problemi pendenti, senza chiamate ricorsive del solver.
+
+Per ogni problema pendente il solver cerca la prima clausola partizionabile. Se la clausola contiene letterali ground e letterali con variabili, crea una parte con tutti i letterali ground e una con quelli non ground. Negli altri casi costruisce le componenti connesse dei letterali collegati da variabili comuni: la prima componente forma una parte, le altre la seconda. Le variabili delle due parti sono disgiunte. Il solver costruisce due problemi derivati, in ognuno rimpiazza la clausola originale con una delle due parti, e mette entrambi nella lista di lavoro. Un ramo SAT conclude la ricerca con SAT; per concludere UNSAT devono risultare insoddisfacibili tutti i rami.
+
+Su ciascun ramo che non ha altre partizioni, la procedura segue questi passaggi:
+\begin{enumerate}
+    \item \textbf{Inizializzazione}: prima di saturare un ramo, il solver controlla la presenza di uguaglianze built-in nelle clausole; se ne trova, quel ramo riceve esito \texttt{UNKNOWN}. Nella saturazione verifica inoltre l'appartenenza iniziale a $\mathcal{S}_{2+i}$ e che i simboli funzionali abbiano arità uno; una violazione produce \texttt{UNKNOWN}. Le clausole ammesse vengono normalizzate rispetto agli indici delle variabili e inserite in \texttt{passive}. Una clausola vuota iniziale dà \texttt{UNSATISFIABLE}.
+    
+    \item \textbf{Ciclo di Saturazione}: per ogni ramo non scindibile, finché la coda \texttt{passive} contiene clausole:
+    \begin{itemize}
+        \item Estrae la clausola data (\texttt{given}). Se è la clausola vuota, interrompe la ricerca restituendo \texttt{UNSATISFIABLE}.
+        \item \textbf{Forward Subsumption}: verifica se \texttt{given} è sussunta da una clausola già attiva. In caso affermativo, la scarta.
+        \item \textbf{Backward Subsumption}: elimina dall'insieme delle clausole attive (\texttt{active}) quelle sussunte dalla clausola \texttt{given}.
+        \item \textbf{Factoring}: calcola tutti i fattori generabili da \texttt{given} ed aggiunge i risultati a \texttt{passive}.
+        \item \textbf{Risoluzione}: per ogni clausola attiva e per ogni coppia di pivot selezionati, prova entrambi gli ordinamenti delle clausole madri. Normalizza le variabili dei risolventi prima di inserirli in \texttt{passive}.
+        \item Inserisce la clausola \texttt{given} nell'insieme \texttt{active}.
+    \end{itemize}
+
+    I controlli sugli invarianti delle clausole generate registrano violazioni nei log, ma non bloccano l'inserimento del risolvente o del fattore. Di conseguenza la permanenza in $\mathcal{S}_{2+i}$ delle clausole derivate non è imposta dal monitor: dipende dalle regole e dalla selezione applicate.
+    
+    \item \textbf{Terminazione}: la clausola vuota dà \texttt{UNSATISFIABLE}. Il ciclo ha un limite di 50,000 iterazioni; raggiungerlo dà \texttt{UNKNOWN}. Se \texttt{passive} si svuota, il codice avvia il prover standard di Vampire su una copia del problema: restituisce \texttt{UNSATISFIABLE} se il motivo registrato è una refutazione e \texttt{SATISFIABLE} negli altri casi, anche se il fallback non ha prodotto una prova di soddisfacibilità. Nel ciclo FO$^2$, il solver restituisce \texttt{SATISFIABLE} se trova un ramo SAT, \texttt{UNSATISFIABLE} se tutti i rami sono UNSAT, e \texttt{UNKNOWN} se non trova rami SAT ma almeno un ramo è UNKNOWN.
+\end{enumerate}
+
+% Inclusione del file di algoritmi per FO2Solver
+\input{algorithms/Resolution/Solver}
+
+
+
+
+
+% \section{Classificazione e Filtraggio dei Problemi}
+% \label{sec:classificazione_filtraggio}
+
+% Il componente \texttt{Classifier} (Algoritmi~\ref{alg:classifier_isfo2}, \ref{alg:is_fo2_formula} e \ref{alg:is_fo2_clause}) implementa la scansione diretta della struttura ad albero restituita dal parser, validando l'appartenenza a $\mathrm{FO}^2_=$ e impostando per riferimento il flag \texttt{hasEq}.
+
+% \begin{algorithm}[H]
+% \caption{Classifier Main Dispatcher}
+% \label{alg:classifier_isfo2}
+% \begin{algorithmic}[1]
+%     \Statex \textbf{Signature:} $\textsc{isFO2}: \text{UnitList}* \times \text{Boolean}\& \to \text{Boolean}$
+%     \Function{isFO2}{$ul, hasEq$}
+%         \State $it \leftarrow \text{UnitList::Iterator}(ul)$
+%         \State $hasEq \leftarrow \textbf{false}$
+%         \While{$it.\text{hasNext}()$}
+%             \State $u \leftarrow it.\text{next}()$, $vars \leftarrow \emptyset$, $ok \leftarrow \textbf{true}$
+%             \If{$u\to\text{isClause}()$}
+%                 \State $ok \leftarrow \textsc{isFO2Clause}(u\to\text{asClause}(), vars, hasEq)$
+%             \Else
+%                 \State $ok \leftarrow \textsc{isFO2Formula}(u\to\text{getFormula}(), vars, hasEq)$
+%             \EndIf
+%             \If{$\neg ok$} \State \Return \textbf{false} \EndIf
+%         \EndWhile
+%         \State \Return \textbf{true}
+%     \EndFunction
+% \end{algorithmic}
+% \end{algorithm}
+
+% \begin{algorithm}[H]
+% \caption{Recursive FO2 Formula Recognition}
+% \label{alg:is_fo2_formula}
+% \begin{algorithmic}[1]
+%     \Statex \textbf{Signature:} $\textsc{isFO2Formula}: \text{Formula}* \times \text{DHSet}\langle\text{unsigned}\rangle\& \times \text{Boolean}\& \to \text{Boolean}$
+%     \Function{isFO2Formula}{$f, varSet, hasEq$}
+%         \Switch{$f\to\text{connective}()$}
+%             \Case{\texttt{AND}, \texttt{OR}}
+%                 \State $it \leftarrow \text{FormulaList::Iterator}(f\to\text{args}())$
+%                 \While{$it.\text{hasNext}()$}
+%                     \If{$\neg \textsc{isFO2Formula}(it.\text{next}(), varSet, hasEq)$} \State \Return \textbf{false} \EndIf
+%                 \EndWhile
+%                 \State \Return \textbf{true}
+%             \Case{\texttt{FORALL}, \texttt{EXISTS}}
+%                 \State $vit \leftarrow \text{VSList::Iterator}(f\to\text{vars}())$
+%                 \While{$vit.\text{hasNext}()$}
+%                     \State $varSet.\text{insert}(vit.\text{next}().\text{first})$
+%                 \EndWhile
+%                 \If{$varSet.\text{size}() > 2$} \State \Return \textbf{false} \EndIf
+%                 \State \Return $\textsc{isFO2Formula}(f\to\text{qarg}(), varSet, hasEq)$
+%             \Case{\texttt{BOOL\_TERM}}
+%                 \State $ts \leftarrow f\to\text{getBooleanTerm}()$
+%                 \If{$\neg ts.\text{isVar}()$} \State \Return \textbf{false} \EndIf
+%                 \State $varSet.\text{insert}(ts.\text{var}())$
+%                 \State \Return $varSet.\text{size}() \le 2$
+%             \Case{\texttt{NOT}}
+%                 \State \Return $\textsc{isFO2Formula}(f\to\text{uarg}(), varSet, hasEq)$
+%             \Case{\texttt{IMP}, \texttt{IFF}}
+%                 \State \Return $\textsc{isFO2Formula}(f\to\text{left}(), varSet, hasEq) \land \textsc{isFO2Formula}(f\to\text{right}(), varSet, hasEq)$
+%             \Case{\texttt{LITERAL}}
+%                 \State $lit \leftarrow f\to\text{literal}()$
+%                 \If{$lit = \text{NULL}$} \State \Return \textbf{false} \EndIf
+%                 \If{$lit\to\text{isEquality}()$} \State $hasEq \leftarrow \textbf{true}$ \EndIf
+%                 \For{$i \leftarrow 0 \textbf{ to } lit\to\text{arity}() - 1$}
+%                     \State $tl \leftarrow lit\to\text{nthArgument}(i)$
+%                     \If{$tl = \text{NULL}$} \State \Return \textbf{false} \EndIf
+%                     \If{$tl\to\text{isVar}()$}
+%                         \State $varSet.\text{insert}(tl\to\text{var}())$
+%                         \If{$varSet.\text{size}() > 2$} \State \Return \textbf{false} \EndIf
+%                     \ElsIf{$tl\to\text{isTerm}()$}
+%                         \State $t \leftarrow tl\to\text{term}()$
+%                         \If{$t = \text{NULL} \lor t\to\text{arity}() > 0$} \State \Return \textbf{false} \EndIf
+%                     \Else
+%                         \State \Return \textbf{false}
+%                     \EndIf
+%                 \EndFor
+%                 \State \Return \textbf{true}
+%             \Case{\texttt{TRUE}, \texttt{FALSE}} \State \Return \textbf{true}
+%             \Default \State \Return \textbf{false}
+%         \EndSwitch
+%     \EndFunction
+% \end{algorithmic}
+% \end{algorithm}
+
+% \begin{algorithm}[H]
+% \caption{FO2 Clause Analysis}
+% \label{alg:is_fo2_clause}
+% \begin{algorithmic}[1]
+%     \Statex \textbf{Signature:} $\textsc{isFO2Clause}: \text{Clause}* \times \text{DHSet}\langle\text{unsigned}\rangle\& \times \text{Boolean}\& \to \text{Boolean}$
+%     \Function{isFO2Clause}{$clause, vars, hasEq$}
+%         \For{$i \leftarrow 0 \textbf{ to } clause\to\text{length}() - 1$}
+%             \State $vars.\text{reset}()$
+%             \State $lit \leftarrow (*clause)[i]$
+%             \If{$lit = \text{NULL}$} \State \Return \textbf{false} \EndIf
+%             \If{$lit\to\text{isEquality}()$} \State $hasEq \leftarrow \textbf{true}$ \EndIf
+%             \For{$a \leftarrow 0 \textbf{ to } lit\to\text{arity}() - 1$}
+%                 \State $tl \leftarrow lit\to\text{nthArgument}(a)$
+%                 \If{$tl = \text{NULL}$} \State \Return \textbf{false} \EndIf
+%                 \If{$tl\to\text{isVar}()$}
+%                     \State $vars.\text{insert}(tl\to\text{var}())$
+%                     \If{$vars.\text{size}() > 2$} \State \Return \textbf{false} \EndIf
+%                 \ElsIf{$tl\to\text{isTerm}()$}
+%                     \State $t \leftarrow tl\to\text{term}()$
+%                     \If{$t = \text{NULL} \lor t\to\text{arity}() > 0$} \State \Return \textbf{false} \EndIf
+%                 \Else
+%                     \State \Return \textbf{false}
+%                 \EndIf
+%             \EndFor
+%         \EndFor
+%         \State \Return \textbf{true}
+%     \EndFunction
+% \end{algorithmic}
+% \end{algorithm}

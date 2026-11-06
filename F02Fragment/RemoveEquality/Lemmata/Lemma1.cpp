@@ -211,7 +211,9 @@ Formula *replaceinAtomicFormula(Formula *formula, DHMap<unsigned, unsigned> &con
 
 Formula *makeUniquenessAxiom(unsigned predicateFunctor)
 {
-  FO2Logger::logDebug("\n--- GENERAZIONE ASSIOMA DI UNICITA' ---");
+  if (FO2Logger::showsDebug()) {
+    FO2Logger::logDebug("\n--- GENERAZIONE ASSIOMA DI UNICITA' ---");
+  }
 
   const TermList sort = AtomicSort::defaultSort();
   TermList x = TermList::var(0);

@@ -9,6 +9,17 @@ namespace FO2Fragment {
 class FO2Inferences {
 public:
   /**
+   * Partition a clause into two nonempty parts with disjoint variable sets.
+   * Output vectors must initially be empty. On failure they remain empty.
+   * Preserves literal order within each part; ground-only clauses are not split.
+   * The caller must explore the parts as alternative problems, not add both
+   * as unconditional conclusions to the same saturation queue.
+   */
+  static bool partitionClause(Kernel::Clause* clause,
+                              std::vector<Kernel::Literal*>& r1,
+                              std::vector<Kernel::Literal*>& r2);
+
+  /**
    * @brief Performs resolution between selected literals of icl1 and icl2.
    * Resolves selected literal at position litIdx1 in icl1 with selected literal at position litIdx2 in icl2.
    * Resolvent literals inherit indices from parent literals.
@@ -31,6 +42,11 @@ public:
    * Returns true if icl1 subsumes icl2 (matching literals AND indices).
    */
   static bool subsumes(const IndexedClause& icl1, const IndexedClause& icl2);
+
+  // Shorten by a selected unit resolution only when the unit matches the
+  // target without instantiating its variables, and the result stays in S2+i.
+  static bool simplifyWithUnit(const IndexedClause& clause, const IndexedClause& unit,
+                               IndexedClause& result);
 
   /**
    * @brief Normalizes variable indices in an indexed clause (renaming them to 0, 1, 2... in order of appearance)

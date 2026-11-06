@@ -26,6 +26,9 @@
 #include "Indexing/TermSharing.hpp"
 
 #include "ProvingHelper.hpp"
+#include <chrono>
+#include <cstdlib>
+#include <iostream>
 
 namespace Saturation
 {
@@ -137,10 +140,14 @@ void ProvingHelper::runVampire(Problem& prb, const Options& opt)
 
   env.options->resolveAwayAutoValues(prb);
 
+  const auto searchStarted = std::chrono::steady_clock::now();
   env.statistics->phase=ExecutionPhase::SATURATION;
   ScopedPtr<MainLoop> salg(MainLoop::createFromOptions(prb, opt));
 
   MainLoopResult sres(salg->run());
+  if (std::getenv("SOLVER_SEARCH_TIMING"))
+    std::cout << "% SOLVER_SEARCH solver=classic seconds="
+      << std::chrono::duration<double>(std::chrono::steady_clock::now()-searchStarted).count() << "\n";
   env.statistics->phase=ExecutionPhase::FINALIZATION;
   Timer::disableLimitEnforcement();
   sres.updateStatistics();

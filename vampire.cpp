@@ -13,6 +13,9 @@
 
 #include <iostream>
 #include <ostream>
+#include <fstream>
+#include <chrono>
+#include <stdexcept>
 
 #if VZ3
 #include "z3++.h"
@@ -473,8 +476,21 @@ void fo2Mode(Problem* problem)
 
   FO2Fragment::FO2Logger::setVerbosity(FO2Fragment::VerbosityLevel::QUIET);
 
+  const bool prepared = std::getenv("FO2_PREPARED_CNF") != nullptr;
+  if (prepared) {
+    UnitList::Iterator input(prb->units());
+    while (input.hasNext()) {
+      Unit* unit = input.next();
+      if (!unit->isClause()) throw std::invalid_argument("FO2_PREPARED_CNF requires clauses only");
+      Clause* clause = static_cast<Clause*>(unit);
+      for (unsigned i = 0; i < clause->length(); ++i)
+        if ((*clause)[i]->isEquality())
+          throw std::invalid_argument("FO2_PREPARED_CNF requires equality-free clauses");
+    }
+    std::cout << "% FO2_PREPARED_CNF: direct FO2 solver; no classifier fallback\n";
+  }
   bool hasEq = false;
-  bool isFO2 = FO2Fragment::Classifier::isFO2(prb->units(), hasEq);
+  bool isFO2 = prepared || FO2Fragment::Classifier::isFO2(prb->units(), hasEq);
 
   if (!isFO2) {
     vampireMode(prb.release());
@@ -482,7 +498,9 @@ void fo2Mode(Problem* problem)
   }
 
   const bool inputHasEquality = hasEq || prb->hasEquality();
-  if (!inputHasEquality) {
+  if (prepared) {
+    // Prepared clauses already passed the formula transformation pipeline.
+  } else if (!inputHasEquality) {
     std::cout << "[FO2] Il problema appartiene al frammento FO2 e NON contiene uguaglianze. I lemmata vengono saltati.\n";
   } else {
     FO2Fragment::FO2Logger::logPhase("Inizio procedura di rimozione dell'uguaglianza per frammento FO2");
@@ -496,8 +514,28 @@ void fo2Mode(Problem* problem)
     }
   }
 
-  FO2Fragment::FO2Logger::logPhase("Inizio Preprocessing FO2 (NNF/Clausificazione/Scott Normal Form)");
-  bool isS2Valid = FO2Preprocessor::Preprocessor::preprocess(*prb);
+  FO2Fragment::FO2Logger::logPhase("Inizio Preprocessing FO2 (ENNF/Naming strutturale/Clausificazione)");
+  bool isS2Valid = prepared || FO2Preprocessor::Preprocessor::preprocess(*prb);
+  if (const char* path = std::getenv("FO2_EXPORT_CNF")) {
+    std::ofstream output(path);
+    if (!output) throw std::runtime_error("Cannot open FO2_EXPORT_CNF output");
+    // Untyped FO2 benchmark input: print clauses with the TPTP printer.
+    output << "% FO2 prepared equality-free clauses\n";
+    ClauseIterator clauses = prb->clauseIterator();
+    while (clauses.hasNext()) output << TPTPPrinter::toString(clauses.next()) << "\n";
+    output.close();
+    if (!output) throw std::runtime_error("Cannot write FO2_EXPORT_CNF output");
+    std::cout << "% FO2_EXPORT_CNF complete\n";
+    vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+    return;
+  }
+  // Explicit diagnostic mode: inspect preprocessing without claiming a result.
+  if (std::getenv("FO2_PREPROCESS_AUDIT")) {
+    std::cout << "% FO2 preprocessing audit only; satisfiability not evaluated.\n";
+    vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
+    return;
+  }
+
 
   if (!isS2Valid) {
     FO2Fragment::FO2Logger::logPhase("FO2 Preprocessor: clauses need validation/splitting by the FO2 solver before saturation.");
@@ -505,7 +543,11 @@ void fo2Mode(Problem* problem)
 
   FO2Fragment::FO2Logger::logAlways("STATO FINALE DEL PROBLEMA", *prb);
 
+  const auto searchStarted = std::chrono::steady_clock::now();
   FO2Fragment::FO2Result res = FO2Fragment::FO2Solver::solve(*prb);
+  if (std::getenv("SOLVER_SEARCH_TIMING"))
+    std::cout << "% SOLVER_SEARCH solver=fo2 seconds="
+      << std::chrono::duration<double>(std::chrono::steady_clock::now()-searchStarted).count() << "\n";
   if (res == FO2Fragment::FO2Result::SATISFIABLE) {
     env.statistics->terminationReason = TerminationReason::SATISFIABLE;
     std::cout << "% SZS status Satisfiable for " << env.options->problemName() << std::endl;
@@ -516,12 +558,16 @@ void fo2Mode(Problem* problem)
     FO2Fragment::FO2Logger::logPhase("FO2Solver returned UNKNOWN. Returning Unknown.");
     env.statistics->terminationReason = TerminationReason::UNKNOWN;
     std::cout << "% SZS status Unknown for " << env.options->problemName() << std::endl;
+    env.statistics->print(std::cout);
     vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
     return;
   }
 
+  env.statistics->phase = ExecutionPhase::FINALIZATION;
   if (env.statistics->refutation) {
     UIHelper::outputResult(std::cout);
+  } else {
+    env.statistics->print(std::cout);
   }
 
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
@@ -569,9 +615,9 @@ void fo2RemoveEqualityMode(Problem* problem)
   } else {
     FO2Fragment::FO2Logger::logPhase("Inizio procedura di rimozione dell'uguaglianza per frammento FO2");
     FO2Fragment::RemoveEquality::removeEquality(*prb);
-    if (prb->hasEquality()) {
-      std::cout << "% [FO2_REMOVE_EQUALITY] Equality removal left equality in the problem; Classic Otter will receive the transformed problem with equality.\n";
-    }
+    //if (prb->hasEquality()) {
+      //std::cout << "% [FO2_REMOVE_EQUALITY] Equality removal left equality in the problem; Classic Otter will receive the transformed problem with equality.\n";
+    //}
   }
 
   // Configura automaticamente l'algoritmo Otter classico per fo2_remove_equality
@@ -693,6 +739,8 @@ void fo2StepByStepMode(Problem* problem)
   double t5 = 0;
   std::string res5 = testEquisatWithClassicSolver(prb->units(), t5);
   results.push_back(res5);
+  times.push_back(t5);
+  std::cout << "[DIAGNOSTIC] " << stepNames[5] << ": " << res5 << " (" << t5 << "s)\n";
   std::cout << "--- FORMULE DOPO PASSO 5 ---\n";
   UnitList::Iterator p5It(prb->units());
   while (p5It.hasNext()) {

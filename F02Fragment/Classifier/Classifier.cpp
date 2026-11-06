@@ -39,34 +39,36 @@ bool FO2Fragment::Classifier::isFO2(UnitList *ul, bool &hasEq) {
 /**
  * Recursive analysis of FOF formulas
  * @param f Formula to analyze
- * @param varSet Set of quantified variables collected so far
+ * @param varSet Output: free variables of this subformula
  * @param hasEq Flag indicating if an equality literal was encountered
  * @return true if the formula is in the FO2 fragment, false otherwise
  */
  bool FO2Fragment::Classifier::isFO2Formula(Formula *f, DHSet<unsigned> &varSet, bool &hasEq) {
+    // Compute free variables bottom-up. Bound variables belong only to their
+    // body, and independent branches may reuse the same two variable names.
+    varSet.reset();
     switch (f->connective()){
         case AND:
         case OR: {
             FormulaList::Iterator it(f->args());
             while (it.hasNext()){
-                if (!isFO2Formula(it.next(), varSet, hasEq)) {
+                DHSet<unsigned> childVars;
+                if (!isFO2Formula(it.next(), childVars, hasEq)) {
                     return false;
                 }
+                varSet.loadFromIterator(childVars.iterator());
+                if (varSet.size() > 2) return false;
             }
             return true;
         }
         case FORALL:
         case EXISTS: {
+            if (!isFO2Formula(f->qarg(), varSet, hasEq)) return false;
             VSList::Iterator vit(f->vars());
             while (vit.hasNext()){
-                varSet.insert(vit.next().first);
+                varSet.remove(vit.next().first);
             }
-
-            if (varSet.size() > 2) {
-                return false;
-            }
-
-            return isFO2Formula(f->qarg(), varSet, hasEq);
+            return true;
         }
         case BOOL_TERM: {
             TermList ts = f->getBooleanTerm();
@@ -77,8 +79,13 @@ bool FO2Fragment::Classifier::isFO2(UnitList *ul, bool &hasEq) {
         case NOT:
             return isFO2Formula(f->uarg(), varSet, hasEq);
         case IMP:
-        case IFF:
-            return isFO2Formula(f->left(), varSet, hasEq) && isFO2Formula(f->right(), varSet, hasEq);
+        case IFF: {
+            DHSet<unsigned> rightVars;
+            if (!isFO2Formula(f->left(), varSet, hasEq) ||
+                !isFO2Formula(f->right(), rightVars, hasEq)) return false;
+            varSet.loadFromIterator(rightVars.iterator());
+            return varSet.size() <= 2;
+        }
         case LITERAL: {
             const Literal* lit = f->literal();
             if (!lit) return false;
