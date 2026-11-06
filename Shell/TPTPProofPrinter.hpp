@@ -34,7 +34,7 @@ using namespace Kernel;
 /** Formatting shared by the TPTP proof and proof-check printers. */
 namespace TPTPOutput {
 
-/** Language of the unpreprocessed input, preserved throughout the proof. */
+/** The shared TPTP output language for formulas and proof steps. */
 Language proofLanguage();
 
 
