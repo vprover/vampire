@@ -394,11 +394,14 @@ void clausifyMode(Problem* problem, bool theory)
     std::cout << TPTPPrinter::unit(cl, theory) << "\n";
   }
   if(!printed_conjecture && UIHelper::haveConjecture()){
+    // print a fake tautology conjecture for Kostya and friends
+    // (otherwise they can't tell whether the input contained a conjecture or not
+    //  which is important for reporting the SZS status)
     unsigned p = env.signature->addFreshPredicate(0,"p")->number();
     auto c = Clause::fromLiterals({
         Literal::create(p, /* polarity */ true , {}),
         Literal::create(p, /* polarity */ false, {})
-      }, 
+      },
       FromInput(UnitInputType::NEGATED_CONJECTURE));
     std::cout << TPTPPrinter::unit(c, theory) << "\n";
   }
