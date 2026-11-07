@@ -133,7 +133,7 @@ static std::string toStringAux(const Term& term, bool mightNeedParens, IndexVarS
   }
 
   auto [head, args] = HOL::getHeadAndArgs(TermList(&term));
-  bool hasArgs = args.size();
+  bool parenthesize = args.size();
 
   std::string headStr;
   if (head.isVar() || (head.deBruijnIndex().isSome() && !printDB) || head.isLambdaTerm() || head.term()->isSpecial())
@@ -165,6 +165,10 @@ static std::string toStringAux(const Term& term, bool mightNeedParens, IndexVarS
     for (const auto& [proxy, str] : proxySymbols) {
       if (proxy == functorProxy) {
         headStr = str;
+        // not fully applied proxy symbols have to be parenthesized
+        if (SortHelper::getResultSort(&term).isArrowSort()) {
+          parenthesize = true;
+        }
         foundProxy = true;
         break;
       }
@@ -180,7 +184,8 @@ static std::string toStringAux(const Term& term, bool mightNeedParens, IndexVarS
   if (head.isTerm() && !head.isProxy(Proxy::EQUALS) && head.deBruijnIndex().isNone() &&
       !head.isLambdaTerm() && head.term()->arity() > 0) {
     auto t = head.term();
-    hasArgs = true; // parenthesize the term in this case too
+    // parenthesize constants with type arguments
+    parenthesize = true;
     for (unsigned i = 0; i < t->arity(); ++i) {
       headStr += " @ " + termToStr(*t->nthArgument(i),true,st);
     }
@@ -201,7 +206,7 @@ static std::string toStringAux(const Term& term, bool mightNeedParens, IndexVarS
       res += app + termToStr(args.pop(), true, st);
     }
   }
-  return StringUtils::addParens(res, mightNeedParens && hasArgs);
+  return StringUtils::addParens(res, mightNeedParens && parenthesize);
 }
 
 std::string HOL::toString(const Term& term, bool mightNeedParens) {

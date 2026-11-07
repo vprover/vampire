@@ -377,15 +377,15 @@ TEST_OUTPUT_HOL(equality_lambda,
   )
 
 // 0 arguments
-TEST_OUTPUT_PROXY(orP_0, orP, {}, "g @ X0 @ |")
-TEST_OUTPUT_PROXY(andP_0, andP, {}, "g @ X0 @ &")
-TEST_OUTPUT_PROXY(impP_0, impP, {}, "g @ X0 @ =>")
-TEST_OUTPUT_PROXY(eqP_0, eqP(ds), {}, "g @ X0 @ =")
-TEST_OUTPUT_PROXY(iffP_0, iffP, {}, "g @ X0 @ =")
+TEST_OUTPUT_PROXY(orP_0, orP, {}, "g @ X0 @ (|)")
+TEST_OUTPUT_PROXY(andP_0, andP, {}, "g @ X0 @ (&)")
+TEST_OUTPUT_PROXY(impP_0, impP, {}, "g @ X0 @ (=>)")
+TEST_OUTPUT_PROXY(eqP_0, eqP(ds), {}, "g @ X0 @ (=)")
+TEST_OUTPUT_PROXY(iffP_0, iffP, {}, "g @ X0 @ (=)")
 TEST_OUTPUT_PROXY(piP_0, piP(ds), {}, "g @ X0 @ (!! @ $i)")
 TEST_OUTPUT_PROXY(sigmaP_0, sigmaP(ds), {}, "g @ X0 @ (?? @ $i)")
-TEST_OUTPUT_PROXY(notP_0, notP, {}, "g @ X0 @ ~")
-TEST_OUTPUT_PROXY(xorP_0, xorP, {}, "g @ X0 @ <~>")
+TEST_OUTPUT_PROXY(notP_0, notP, {}, "g @ X0 @ (~)")
+TEST_OUTPUT_PROXY(xorP_0, xorP, {}, "g @ X0 @ (<~>)")
 
 // 1 arguments
 TEST_OUTPUT_PROXY(orP_1, orP, {p}, "g @ X0 @ (| @ p)")

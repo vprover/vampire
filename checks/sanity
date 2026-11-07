@@ -361,7 +361,7 @@ check_output_contains_once "'~' applied to an unparenthesized (in)equality" --mo
 check_output_contains_once 'an unparenthesized application as a connective argument' --mode output parse/thf-non-conformity-warnings.p
 check_output_contains_once 'as an unparenthesized equality argument' --mode output parse/thf-non-conformity-warnings.p
 check_output_contains_once 'a chained equality is not legal THF' --mode output parse/thf-non-conformity-warnings.p
-check_output_contains '(g @ <~>)' --mode output parse/thf-xor-section.p
+check_output_contains '(g @ (<~>))' --mode output parse/thf-xor-section.p
 check_rejected 'formula or term expected' --input_syntax tptp --mode output parse/thf-empty-parens.p
 check_rejected 'cannot parse the ?* quantifier' --input_syntax tptp --mode output parse/thf-quant-some.p
 check_rejected 'only supports type quantification (!>) in type declarations' --input_syntax tptp --mode output parse/thf-type-quant-in-formula.p
