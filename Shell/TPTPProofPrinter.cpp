@@ -146,7 +146,7 @@ const char* InferenceStore::TPTPProofPrinter::getRole(InferenceRule rule, UnitIn
 
 std::string InferenceStore::TPTPProofPrinter::tptpRuleName(InferenceRule rule)
 {
-    return StringUtils::replaceChars<' ', '-'>(ruleName(rule), '_');
+    return StringUtils::underscoreNonAlphaNum(ruleName(rule));
 }
 
 std::ostream& InferenceStore::TPTPProofPrinter::printSplits(std::ostream& out, SplitSet* values)
