@@ -89,8 +89,8 @@ static std::string toStringAux(const Term& term, bool mightNeedParens, IndexVarS
     ASS_EQ(term.arity(), 2);
     auto arg1 = term.nthArgument(0);
     auto arg2 = term.nthArgument(1);
-    return StringUtils::addParens(termToStr(*arg1, true, st) +
-      " > " + termToStr(*arg2, false, st), mightNeedParens);
+    return StringUtils::addParens(termToStr(*arg1, /*mightNeedParens=*/true, st) +
+      " > " + termToStr(*arg2, /*mightNeedParens=*/false, st), mightNeedParens);
   }
 
   if (term.isSort()) {
@@ -99,7 +99,7 @@ static std::string toStringAux(const Term& term, bool mightNeedParens, IndexVarS
     // any non-arrow sort
     std::string res = sort->typeConName();
     for (const auto& arg : anyArgIter(&term)) {
-      res += " @ " + termToStr(arg, true, st);
+      res += " @ " + termToStr(arg, /*mightNeedParens=*/true, st);
     }
     return StringUtils::addParens(res, term.arity());
   }
@@ -107,8 +107,8 @@ static std::string toStringAux(const Term& term, bool mightNeedParens, IndexVarS
   if (term.isLambdaTerm()) {
     unsigned v = st.size() ? st.top().second + 1 : 0;
     std::string bvar = "Y" + Int::toString(v);
-    bvar = "[" + bvar + " : " + termToStr(*term.nthArgument(0), false, st) + "]";
-    bvar = printDB ? "db" + Int::toString(v) + " : " + termToStr(*term.nthArgument(0), false, st) : bvar;
+    bvar = "[" + bvar + " : " + termToStr(*term.nthArgument(0), /*mightNeedParens=*/false, st) + "]";
+    bvar = printDB ? "db" + Int::toString(v) + " : " + termToStr(*term.nthArgument(0), /*mightNeedParens=*/false, st) : bvar;
 
     IndexVarStack newSt(st);
     for (auto &[fst, snd] : newSt)
@@ -137,7 +137,7 @@ static std::string toStringAux(const Term& term, bool mightNeedParens, IndexVarS
 
   std::string headStr;
   if (head.isVar() || (head.deBruijnIndex().isSome() && !printDB) || head.isLambdaTerm() || head.term()->isSpecial())
-    headStr = termToStr(head, true, st);
+    headStr = termToStr(head, /*mightNeedParens=*/true, st);
   else if (head.isChoice())
     headStr = "@@+";
   else if (HOL::isTrue(head))
@@ -187,7 +187,7 @@ static std::string toStringAux(const Term& term, bool mightNeedParens, IndexVarS
     // parenthesize constants with type arguments
     parenthesize = true;
     for (unsigned i = 0; i < t->arity(); ++i) {
-      headStr += " @ " + termToStr(*t->nthArgument(i),true,st);
+      headStr += " @ " + termToStr(*t->nthArgument(i), /*mightNeedParens=*/true, st);
     }
   }
 
@@ -198,12 +198,13 @@ static std::string toStringAux(const Term& term, bool mightNeedParens, IndexVarS
   std::string res;
   if (std::any_of(proxies.begin(), proxies.end(), [&term = head](Proxy proxy) { return term.isProxy(proxy); }) &&
       args.size() == 2) {
-    res += termToStr(args[1], true, st) + " " + headStr + " " + termToStr(args[0], true, st);
+    res += termToStr(args[1], /*mightNeedParens=*/true, st) + " " +
+      headStr + " " + termToStr(args[0], /*mightNeedParens=*/true, st);
   } else {
     std::string app = head.isProxy(Proxy::NOT) ? " " : " @ ";
     res += headStr;
     while (!args.isEmpty()) {
-      res += app + termToStr(args.pop(), true, st);
+      res += app + termToStr(args.pop(), /*mightNeedParens=*/true, st);
     }
   }
   return StringUtils::addParens(res, mightNeedParens && parenthesize);

@@ -129,7 +129,6 @@ std::string Formula::toString (bool mightNeedParens) const
     }
 
     Connective c = f->connective();
-    // literals and bool terms render the parentheses for themselves
     if (todo.theFormula->parenthesesRequired(mightNeedParens, todo.subformula)) {
       res += "(";
       stack.emplace(/*subformula=*/true,NOCONN,nullptr); // render the final closing bracket

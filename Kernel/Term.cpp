@@ -830,10 +830,7 @@ std::string Literal::toString(bool reverseEquality, bool mightNeedParens) const
     auto rhs = termArg(!reverseEquality);
     std::string rhss = rhs.toString(/*mightNeedParens=*/true);
 
-    std::string res = lhss + rhss;
-    if (mightNeedParens) {
-      res = "(" + res + ")";
-    }
+    std::string res = StringUtils::addParens(lhss + rhss, mightNeedParens);
 
     // uncomment to debug equality sorts
     // res += " {" + eqArgSort().toString() + "}";
