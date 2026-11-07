@@ -23,11 +23,11 @@ namespace Lib
 
 using namespace std;
 
-std::string StringUtils::replaceChar(std::string str, char src, char target)
+std::string StringUtils::underscoreNonAlphaNum(std::string str)
 {
   for (char& c : str) {
-    if (c == src) {
-      c = target;
+    if (!std::isalnum(c)) {
+      c = '_';
     }
   }
   return str;

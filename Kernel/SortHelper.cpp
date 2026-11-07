@@ -352,6 +352,12 @@ static void collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermList, 
           todo.push(newTask);
         }
 
+        if (term->isTwoVarEquality()) {
+          CollectTask newTask(COLLECT_TERMLIST);
+          newTask.ts = static_cast<Literal*>(term)->twoVarEqSort();
+          newTask.contextSort = AtomicSort::superSort();
+          todo.push(newTask);
+        }
       } break;
 
       case COLLECT_TERMLIST: {
@@ -454,12 +460,6 @@ static void collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermList, 
         switch (f->connective()) {
           case LITERAL: {
             Literal* lit = f->literal();
-            if(lit->isTwoVarEquality()){
-              CollectTask newTask(COLLECT_TERMLIST);
-              newTask.ts = lit->twoVarEqSort();
-              newTask.contextSort = AtomicSort::superSort();
-              todo.push(newTask);
-            }
             CollectTask newTask(COLLECT_TERM);
             newTask.t = lit;
 

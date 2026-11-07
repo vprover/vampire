@@ -28,17 +28,11 @@ template<class A> struct StringParser;
 
 class StringUtils {
 public:
-  static std::string replaceChar(std::string str, char src, char target);
-  /** Replace each occurrence of any of Sources with target. */
-  template<char... Sources>
-  static std::string replaceChars(std::string str, char target)
-  {
-    for (char& c : str) {
-      if (((c == Sources) || ...)) { c = target; }
-    }
-    return str;
-  }
+  static std::string underscoreNonAlphaNum(std::string str);
   static std::string sanitizeSuffix(std::string str);
+  static std::string addParens(std::string str, bool add) {
+    return (add ? "(" : "") + str + (add ? ")" : "");
+  }
   static bool isPositiveInteger(std::string str);
   static bool isPositiveDecimal(std::string str);
   static void replaceAll(std::string& where, const std::string& from, const std::string& to);
