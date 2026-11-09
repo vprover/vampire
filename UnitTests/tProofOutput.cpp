@@ -567,3 +567,17 @@ TEST_FUN(named_unit_stream_uses_given_name_and_role)
   FormulaUnit negated(new NegatedFormula(new AtomicFormula(q())), fromNegatedConjecture(&stated));
   ASS_EQ(printNamedUnit("f", "conjecture", &negated), "tff(f,conjecture,\n    (~ q)).\n");
 }
+
+TEST_FUN(inference_rule_names_are_identifiers)
+{
+  for (std::underlying_type_t<InferenceRule> i = 0; i < toNumber(InferenceRule::GENERIC_THEORY_AXIOM_LAST); i++) {
+    try {
+      std::string res = ruleName(static_cast<InferenceRule>(i));
+      ASS_REP(res.size(), "rule name is empty");
+      ASS_REP(std::islower(res[0]), "rule name first character is not lowercase letter: " + res);
+      for (const auto& c : res) {
+        ASS_REP(std::isalnum(c) || c == '_', "rule name has non-[a-zA-Z0-9_] characters: " + res);
+      }
+    } catch (InvalidOperationException e) { ASS_EQ(e.msg(), "invalid inference rule"); }
+  }
+}

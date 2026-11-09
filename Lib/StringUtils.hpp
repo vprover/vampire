@@ -28,8 +28,6 @@ template<class A> struct StringParser;
 
 class StringUtils {
 public:
-  static std::string underscoreNonAlphaNum(std::string str);
-  static std::string sanitizeSuffix(std::string str);
   static std::string addParens(std::string str, bool add) {
     return (add ? "(" : "") + str + (add ? ")" : "");
   }

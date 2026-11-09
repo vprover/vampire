@@ -23,16 +23,6 @@ namespace Lib
 
 using namespace std;
 
-std::string StringUtils::underscoreNonAlphaNum(std::string str)
-{
-  for (char& c : str) {
-    if (!std::isalnum(c)) {
-      c = '_';
-    }
-  }
-  return str;
-}
-
 void StringUtils::replaceAll(std::string& where, const std::string& from, const std::string& to)
 {
   if(from.empty())
@@ -42,31 +32,6 @@ void StringUtils::replaceAll(std::string& where, const std::string& from, const 
     where.replace(start_pos, from.length(), to);
     start_pos += to.length(); // don't recurse into "to" in case "from" would be its substring
   }
-}
-
-/**
- * Sanitize std::string so that it can be used as a valid suffix in the
- * Signature::addFreshFunction() and Signature::addFreshPredicate()
- * functions.
- */
-std::string StringUtils::sanitizeSuffix(std::string str)
-{
-  for (char& c : str) {
-    switch(c) {
-    case '(':
-    case ')':
-    case '"':
-    case '\'':
-    case '$':
-    case '%':
-    case ',':
-    case '.':
-      c = '_';
-      break;
-    default: break;
-    }
-  }
-  return str;
 }
 
 bool StringUtils::isPositiveInteger(std::string str)
