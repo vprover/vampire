@@ -412,6 +412,9 @@ uwa=hol > uwa_fpi ~cat off:1,on:5
 # hol_unif_depth
 uwa=hol > hud ~ui 0,25
 
+# hol_unif_max_weight
+uwa=hol > humw ~ui 100,10000
+
 # iff_xor_rewriter
 > ixr ~cat on:100,off:21
 

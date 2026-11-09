@@ -15,6 +15,8 @@
 #ifndef __IntUnionFind__
 #define __IntUnionFind__
 
+#include <memory>
+
 #include "Stack.hpp"
 
 namespace Lib {
@@ -22,7 +24,6 @@ namespace Lib {
 class IntUnionFind {
 public:
   IntUnionFind(int cnt);
-  ~IntUnionFind();
   bool doUnion(int c1, int c2);
   int root(int c) const;
   void reset();
@@ -42,10 +43,10 @@ private:
    * Invariant: The root element is always the one with the
    * lowest number in the component.
    *
-   * Is mutable to allow path compression in the @c root function which
-   * is const.
+   * NB the @c root function is const but performs path compression,
+   * modifying the elements of @b _parents (but not the pointer itself).
    */
-  mutable int* _parents;
+  std::unique_ptr<int[]> _parents;
 
   /**
    * After call to the @b finish() method contains data about how
@@ -55,7 +56,7 @@ private:
    * @b _data[c] contains number of the next element in the same
    * component as @b c -th one, or -1 if there is no such.
    */
-  int* _data;
+  std::unique_ptr<int[]> _data;
   Stack<int> _components;
 
 public:
@@ -102,7 +103,7 @@ public:
      * later, the @b evalComponents has to be called again).
      */
     ComponentIterator(const IntUnionFind& obj)
-    : _cit(obj._components), _data(obj._data)
+    : _cit(obj._components), _data(obj._data.get())
     {
       ASS(!obj._modified); //the evalComponents function must have been called before
     }

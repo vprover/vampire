@@ -194,6 +194,11 @@ check_exact_output ucore/test2.out --input_syntax smtlib2 -om ucore ucore/test2.
 check_szs_status Satisfiable -sa fmb -fmbdsb on fmb/detect-sort-bounds.p
 check_szs_status Satisfiable -sa fmb -newcnf off fmb/sort-inference-equality.p
 check_szs_status Satisfiable -sa fmb -newcnf on fmb/sort-inference-equality.p
+# not just the status, as that is printed before the (wrong) model is even built
+check_output_contains "X = 'fmb_\$i_1' | X = 'fmb_\$i_2'" -sa fmb -fmbes contour -sas cadical fmb/contour-monotonic.p
+# strict sort constraints in contour: a cycle of them means giving up, and they may push a sort past its max
+check_szs_status GaveUp -sa fmb -fmbes contour -fmbdsb on -t 5 fmb/contour-strict-cycle.p
+check_szs_status Unsatisfiable -sa fmb -fmbes contour -fmbdsb on -t 5 fmb/contour-strict-at-max.p
 
 # Term algebra problems
 check_szs_status Unsatisfiable term-algebra/terms_distinct.smt2
@@ -273,6 +278,12 @@ check_szs_status Satisfiable theory/let-nested-bool.smt2
 check_szs_status Satisfiable -newcnf on theory/let-nested-bool.smt2
 
 # Arrays
+# Explicit plus signs on TPTP integer and rational literals.
+check_szs_status Theorem --input_syntax tptp theory/plus-numerals.p
+check_szs_status Unsatisfiable --input_syntax tptp theory/plus-integer-disequality.p
+check_szs_status Unsatisfiable --input_syntax tptp theory/plus-zero-disequality.p
+check_szs_status Unsatisfiable --input_syntax tptp theory/plus-rational-disequality.p
+
 check_szs_status Unsatisfiable theory/arrays.smt2
 check_szs_status Unsatisfiable -newcnf on theory/arrays.smt2
 
@@ -454,6 +465,7 @@ check_szs_status Unsatisfiable -qa synthesis synthesis/ex2-inverse_of_ixopiy.smt
 # --mode output, before preprocessing runs at all.
 check_szs_status Theorem hol/hol1.p
 check_szs_status Theorem hol/hol2.p
+check_szs_status Theorem hol/hol-bool-ext.p
 check_rejected 'distinct objects are not supported in higher-order problems' \
 	--input_syntax tptp hol/hol-distinct-object.p
 

@@ -140,16 +140,16 @@ bool TermList::isEtaRedex() const {
   return isTerm() && term()->isEtaRedex();
 }
 
+bool TermList::isProxy() const {
+  return isTerm() && !term()->isProxy(Proxy::NOT_PROXY);
+}
+
 bool TermList::isProxy(Proxy proxy) const {
   return !isVar() && term()->isProxy(proxy);
 }
 
 bool TermList::isChoice() const {
   return !isVar() && term()->isChoice();
-}
-
-bool TermList::isPlaceholder() const {
-  return !isVar() && term()->isPlaceholder();
 }
 
 Option<unsigned> TermList::deBruijnIndex() const {
@@ -706,14 +706,6 @@ std::string TermList::toString(bool topLevel) const
   if (isVar()) {
     return Term::variableToString(*this);
   }
-  if (env.higherOrder() && env.options->holPrinting() == Options::HPrinting::PRETTY) {
-    if (HOL::isTrue(*this)) {
-      return "⊤";
-    }
-    if (HOL::isFalse(*this)) {
-      return "⊥";
-    }
-  }
 
   return term()->toString(topLevel);
 } // TermList::toString
@@ -841,11 +833,7 @@ std::string Literal::toString(bool reverseEquality) const
       lhss = "(" + lhss + ")";
     }
 
-    std::string eqSym = isPositive() ? " = " : " != ";
-    if (env.higherOrder() && env.options->holPrinting() == Options::HPrinting::PRETTY) {
-      eqSym = isPositive() ? " ≈ " : " ≉ ";
-    }
-    lhss += eqSym;
+    lhss += isPositive() ? " = " : " != ";
 
     auto rhs = termArg(!reverseEquality);
     std::string rhss = rhs.toString();
@@ -896,11 +884,7 @@ std::string Literal::toString(bool reverseEquality) const
   Stack<const TermList*> stack(64);
   std::string s = "";
   if (polarity() == 0) { /* negative polarity */
-    if (env.options->holPrinting() == Options::HPrinting::PRETTY) {
-      s = "¬";
-    } else {
-      s = "~";
-    }
+    s = "~";
   }
 
   const std::string& name = predicateName();
@@ -963,10 +947,6 @@ bool Term::isProxy(Proxy proxy) const {
 
 bool Term::isChoice() const {
   return !isSort() && !isLiteral() && !isSpecial() && env.signature->isChoiceFun(_functor);
-}
-
-bool Term::isPlaceholder() const {
-  return !isSort() && !isLiteral() && !isSpecial() && env.signature->isPlaceholder(_functor);
 }
 
 Option<unsigned> Term::deBruijnIndex() const {
@@ -1142,7 +1122,7 @@ Term* Term::createITE(Formula * condition, TermList thenBranch, TermList elseBra
   *ss = elseBranch;
   ASS(ss->next()->isEmpty());
   s->getSpecialData()->_iteData.condition = condition;
-  s->getSpecialData()->_iteData.sort = branchSort;
+  s->getSpecialData()->_sort = branchSort;
   return s;
 }
 
@@ -1167,7 +1147,7 @@ Term* Term::createLet(Formula* binding, TermList body, TermList bodySort)
   *ss = body;
   ASS(ss->next()->isEmpty());
   s->getSpecialData()->_letData.binding = binding;
-  s->getSpecialData()->_letData.sort = bodySort;
+  s->getSpecialData()->_sort = bodySort;
   return s;
 }
 
@@ -1180,6 +1160,7 @@ Term* Term::createFormula(Formula* formula)
   Term* s = new(0,sizeof(SpecialTermData)) Term;
   s->makeSymbol(toNormalFunctor(SpecialFunctor::FORMULA), 0);
   s->getSpecialData()->_formulaData.formula = formula;
+  s->getSpecialData()->_sort = AtomicSort::boolSort();
   return s;
 }
 
@@ -1203,7 +1184,7 @@ Term* Term::createLambda(TermList lambdaExp, VSList* vars, TermList expSort){
   while(!revSorts.isEmpty()){
     lambdaTmSort = AtomicSort::arrowSort(revSorts.pop(), lambdaTmSort);
   }
-  s->getSpecialData()->_lambdaData.sort = lambdaTmSort;
+  s->getSpecialData()->_sort = lambdaTmSort;
   return s;
 }
 
@@ -1211,7 +1192,7 @@ Term *Term::createMatch(TermList sort, TermList matchedSort, unsigned int arity,
   Term *s = new (arity, sizeof(SpecialTermData)) Term;
   s->makeSymbol(toNormalFunctor(SpecialFunctor::MATCH), arity);
   TermList *ss = s->args();
-  s->getSpecialData()->_matchData.sort = sort;
+  s->getSpecialData()->_sort = sort;
   s->getSpecialData()->_matchData.matchedSort = matchedSort;
 
   for (unsigned i = 0; i < arity; i++) {

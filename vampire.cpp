@@ -213,9 +213,9 @@ void preprocessMode(Problem* problem, bool theory)
       }
 
       FormulaUnit* fu = new FormulaUnit(f,u->inference()); // we are stealing u's inference which is not nice
-      std::cout << TPTPPrinter::toString(fu) << "\n";
+      std::cout << TPTPPrinter::unit(fu) << "\n";
     } else {
-      std::cout << TPTPPrinter::toString(u) << "\n";
+      std::cout << TPTPPrinter::unit(u) << "\n";
     }
   }
 
@@ -257,7 +257,7 @@ void outputMode(Problem* problem)
 
   while (units.hasNext()) {
     Unit* u = units.next();
-    std::cout << TPTPPrinter::toString(u) << "\n";
+    std::cout << TPTPPrinter::unit(u) << "\n";
   }
 
   //we have successfully output all clauses, so we'll terminate with zero return value
@@ -391,7 +391,7 @@ void clausifyMode(Problem* problem, bool theory)
     }
     printed_conjecture |= cl->inputType() == UnitInputType::CONJECTURE || cl->inputType() == UnitInputType::NEGATED_CONJECTURE;
     // with theory, we print tcf(), i.e. the clause quantified with its variables' sorts
-    std::cout << TPTPPrinter::toString(cl,theory) << "\n";
+    std::cout << TPTPPrinter::unit(cl, theory) << "\n";
   }
   if(!printed_conjecture && UIHelper::haveConjecture()){
     unsigned p = env.signature->addFreshPredicate(0,"p")->number();
@@ -400,7 +400,7 @@ void clausifyMode(Problem* problem, bool theory)
         Literal::create(p, /* polarity */ false, {})
       }, 
       FromInput(UnitInputType::NEGATED_CONJECTURE));
-    std::cout << TPTPPrinter::toString(c,theory) << "\n";
+    std::cout << TPTPPrinter::unit(c, theory) << "\n";
   }
 
   //we have successfully output all clauses, so we'll terminate with zero return value
@@ -432,7 +432,7 @@ void axiomSelectionMode(Problem* problem)
   UnitList::Iterator uit(prb->units());
   while (uit.hasNext()) {
     Unit* u = uit.next();
-    std::cout << TPTPPrinter::toString(u) << "\n";
+    std::cout << TPTPPrinter::unit(u) << "\n";
   }
 
   //we have successfully output the selected units, so we'll terminate with zero return value
@@ -668,13 +668,12 @@ int main(int argc, char* argv[])
       interactiveMetamode();
     } else {
       // can only happen after reading options as it relies on `env.options`
-      Timer::reinitialise(); // start our timer, so that we also limit parsing
-
+      // start our timer, so that we also limit parsing
 #if VAMPIRE_PERF_EXISTS
-      unsigned saveInstrLimit = env.options->instructionLimit();
-      if (env.options->parsingDoesNotCount()) {
-        env.options->setInstructionLimit(0);
-      }
+      // (with parsing_does_not_count, the instruction limit starts after parsing, see below)
+      Timer::reinitialise(true, !env.options->parsingDoesNotCount());
+#else
+      Timer::reinitialise();
 #endif
 
       if (opts.inputFile().empty()) {
@@ -692,7 +691,13 @@ int main(int argc, char* argv[])
         addCommentSignForSZS(std::cout);
         std::cout << "Instructions burned parsing: " << burnedParsing << " (million)" << endl;
 
-        env.options->setInstructionLimit(saveInstrLimit+burnedParsing);
+        // 0 means no limit, also after parsing
+        unsigned instrLimit = env.options->instructionLimit();
+        if (instrLimit) {
+          instrLimit += burnedParsing;
+          env.options->setInstructionLimit(instrLimit);
+        }
+        Timer::setInstructionLimit(instrLimit);
       }
 #endif
 

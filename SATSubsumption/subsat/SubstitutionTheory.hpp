@@ -74,7 +74,7 @@ public:
 
     Binder(Binder&) = delete;
     Binder& operator=(Binder&) = delete;
-    Binder(Binder&&) = default;
+    Binder(Binder&&) = delete;
     Binder& operator=(Binder&&) = delete;
 
     ~Binder() noexcept
