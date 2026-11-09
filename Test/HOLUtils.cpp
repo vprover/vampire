@@ -32,16 +32,11 @@ std::string termListToString(TermList t, Options::HPrinting opt) {
 TypedTermList lam(std::initializer_list<TypedTermList> typedVars, TypedTermList body) {
   ASS(typedVars.size() > 0)
 
-  std::vector<unsigned> vars;
-  std::vector<TermList> varSorts;
-  for (const auto& term : typedVars) {
-    vars.push_back(term.var());
-    varSorts.push_back(term.sort());
+  auto vars = VSList::empty();
+  for (auto it = std::rbegin(typedVars); it != std::rend(typedVars); ++it) {
+    vars = VSList::cons({ it->var(), it->sort() }, vars);
   }
-
-  TermList sort;
-  const auto term = ::HOL::create::lambda(typedVars.size(), vars.data(), varSorts.data(), body, &sort);
-  return {TermList(term), sort};
+  return Term::createLambda(body, vars, body.sort());
 }
 
 static TermList mkAtomicSort(const std::string& name) {
@@ -49,8 +44,7 @@ static TermList mkAtomicSort(const std::string& name) {
 }
 
 static TypedTermList mkConst(const std::string& name, TermList sort) {
-  unsigned nameIndex = env.signature->addFunction(name, 0);
-  env.signature->getFunction(nameIndex)->setType(OperatorType::getFunctionType({}, sort));
+  unsigned nameIndex = env.signature->addFunction(name, OperatorType::getFunctionType({}, sort))->number();
   return {TermList(Term::createConstant(nameIndex)), sort};
 }
 

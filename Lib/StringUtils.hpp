@@ -29,6 +29,15 @@ template<class A> struct StringParser;
 class StringUtils {
 public:
   static std::string replaceChar(std::string str, char src, char target);
+  /** Replace each occurrence of any of Sources with target. */
+  template<char... Sources>
+  static std::string replaceChars(std::string str, char target)
+  {
+    for (char& c : str) {
+      if (((c == Sources) || ...)) { c = target; }
+    }
+    return str;
+  }
   static std::string sanitizeSuffix(std::string str);
   static bool isPositiveInteger(std::string str);
   static bool isPositiveDecimal(std::string str);
@@ -40,12 +49,12 @@ public:
   static void splitStr(const char* str, char delimiter, Stack<std::string>& strings);
   static void dropEmpty(Stack<std::string>& strings);
   static bool readEquality(const char* str, char eqChar, std::string& lhs, std::string& rhs);
-  static bool readEqualities(const char* str, char delimiter, char eqChar, DHMap<std::string,std::string>& pairs);
+  static bool readEqualities(const char* str, char delimiter, char eqChar, DHMap<std::string,std::string, FnvHash, LengthHash>& pairs);
   template<class A>
   static A parse(std::string const& str)
   { return StringParser<A>{}(str); }
 
-  static size_t distance(const std::string &s1, const std::string &s2);
+  static size_t distance(std::string_view s1, std::string_view s2);
 };
 
 template<> struct StringParser<int>

@@ -18,15 +18,17 @@
 TermList HOL::reduce::betaNF(TermList t, unsigned *reductions) {
   BetaNormaliser bn;
   const auto term = bn.normalise(t);
+#if VDEBUG
   if (reductions != nullptr) {
-    *reductions = bn.getReductions();
+    *reductions = bn.reductions;
   }
+#endif
 
   return term;
 }
 
 TermList HOL::reduce::etaNF(TermList t) {
-  return EtaNormaliser::normalise(t);
+  return EtaNormaliser().normalise(t);
 }
 
 TermList HOL::reduce::betaEtaNF(TermList t) {

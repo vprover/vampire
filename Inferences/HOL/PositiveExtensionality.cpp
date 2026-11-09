@@ -12,6 +12,8 @@
  * Implements class PositiveExtensionality.
  */
 
+#include "Debug/TimeProfiling.hpp"
+
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Metaiterators.hpp"
 
@@ -33,15 +35,13 @@ using namespace Saturation;
 struct PosExtResultFn
 {
   PosExtResultFn(Clause* cl) : _cl(cl) {}
-  
+
   Clause* operator() (Literal* lit) // f X = g X
   {
     ASS(lit->isEquality());
     ASS(lit->isPositive());
 
-    auto lhs = lit->termArg(0); // f X
-    auto rhs = lit->termArg(1); // g X
-
+    auto [lhs, rhs] = lit->eqArgs(); // f X and g X
     if (!lhs.isApplication() || !rhs.isApplication()) {
       return nullptr;
     }
@@ -72,7 +72,7 @@ struct PosExtResultFn
     for (const auto& curr : *_cl) {
       resLits.push(curr == lit ? newLit : curr);
     }
-  
+
     return Clause::fromStack(resLits, GeneratingInference1(InferenceRule::POSITIVE_EXTENSIONALITY, _cl)); // f = x \/ C'
   }
 private:
@@ -84,7 +84,8 @@ ClauseIterator PositiveExtensionality::generateClauses(Clause* premise)
   return pvi(premise->getSelectedLiteralIterator()
     .filter([](Literal* l){ return l->isEquality() && l->isPositive(); })
     .map(PosExtResultFn(premise))
-    .filter(NonzeroFn()));
+    .filter(NonzeroFn())
+    .timeTraced("positive extensionality"));
 }
 
 }

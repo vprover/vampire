@@ -20,6 +20,7 @@
 #include "Lib/Environment.hpp"
 #include "Lib/IntUnionFind.hpp"
 #include "Lib/Metaiterators.hpp"
+#include "Lib/Random.hpp"
 #include "Debug/TimeProfiling.hpp"
 #include "Lib/Timer.hpp"
 
@@ -50,6 +51,7 @@
 #include "DP/SimpleCongruenceClosure.hpp"
 
 #include "SaturationAlgorithm.hpp"
+#include "Shell/UIHelper.hpp"
 
 namespace Saturation
 {
@@ -77,11 +79,7 @@ void SplittingBranchSelector::init()
   SATSolver *inner;
   switch(_parent.getOptions().satSolver()){
     case Options::SatSolver::MINISAT: {
-      auto minisat = new MinisatInterfacing();
-      minisat->setSeed(Random::seed());
-      minisat->setClauseShuffling(_parent.getOptions().randomTraversals());
-      minisat->setWatchesShuffling(_parent.getOptions().randomTraversals());
-      inner = minisat;
+      inner = new MinisatInterfacing(_parent.getOptions());
       break;
     }
     case Options::SatSolver::CADICAL:
@@ -90,11 +88,18 @@ void SplittingBranchSelector::init()
 #if VZ3
     case Options::SatSolver::Z3:
       {
-        inner = new Z3Interfacing(_parent.getOptions(),_parent.satNaming(), /* unsat core */ false, _parent.getOptions().exportAvatarProblem(), _parent.getOptions().problemExportSyntax());
-        if(_parent.getOptions().satFallbackForSMT()){
-          // TODO make fallback minimizing?
-          SATSolver* fallback = new MinisatInterfacing;
-          inner = new FallbackSolverWrapper(inner, fallback);
+        if (env.higherOrder()) {
+          if (outputAllowed()) {
+            addCommentSignForSZS(std::cout);
+            std::cout << "WARNING: Z3 as SAT solver not compatible with higher-order. Using Minisat instead" << std::endl;
+          }
+          inner = new MinisatInterfacing(_parent.getOptions());
+        } else {
+          inner = new Z3Interfacing(_parent.getOptions(),_parent.satNaming(), /* unsat core */ false, _parent.getOptions().exportAvatarProblem(), _parent.getOptions().problemExportSyntax());
+          if(_parent.getOptions().satFallbackForSMT()){
+            // TODO make fallback minimizing?
+            inner = new FallbackSolverWrapper(inner, new MinisatInterfacing());
+          }
         }
       }
       break;
@@ -366,7 +371,7 @@ SAT::Status SplittingBranchSelector::processDPConflicts()
       for(unsigned i=0; i<unsatCoreCnt; i++) {
         unsatCore.reset();
         _dp->getUnsatCore(unsatCore, i);
-        SATClause* conflCl = s2f.createConflictClause(unsatCore);
+        SATClause* conflCl = _parent.buildDPConflictClause(unsatCore);
         _solver.addClause(conflCl);
       }
 
@@ -606,14 +611,19 @@ SATLiteral Splitter::getLiteralFromName(SplitLevel compName)
   return SATLiteral(var, polarity);
 }
 
-std::string Splitter::getFormulaStringFromName(SplitLevel compName, bool negated)
+void Splitter::ensureSplPrefix()
 {
   if (splPrefix.empty()) {
     if(env.options->proof()==Options::Proof::TPTP){
-      unsigned spl = env.signature->addFreshFunction(0,"spl");
-      splPrefix = env.signature->functionName(spl)+"_";
+      unsigned spl = env.signature->addFreshPredicate(OperatorType::getPredicateType({}),"spl")->number();
+      splPrefix = env.signature->predicateName(spl)+"_";
     }
   }
+}
+
+std::string Splitter::getFormulaStringFromName(SplitLevel compName, bool negated)
+{
+  ensureSplPrefix();
 
   SATLiteral lit = getLiteralFromName(compName);
   if (negated) {
@@ -623,6 +633,8 @@ std::string Splitter::getFormulaStringFromName(SplitLevel compName, bool negated
 }
 
 std::string Splitter::getFormulaStringFromLiteral(SATLiteral lit) {
+  ensureSplPrefix();
+
   if (lit.positive()) {
     return splPrefix+Lib::Int::toString(lit.var());
   } else {
@@ -634,6 +646,49 @@ Unit* Splitter::getDefinitionFromName(SplitLevel compName) const
 {
   // always stored positively
   return _defs.get(compName & ~1);
+}
+
+/**
+ * Build the SAT clause for an unsat core found by the decision procedure (e.g. congruence closure).
+ *
+ * The first-order conflict clause (a theory tautology) is wrapped in an AVATAR_SPLIT_CLAUSE
+ * that also cites the definitions of all the split names involved,
+ * so that these definitions end up in the proof.
+ */
+SATClause* Splitter::buildDPConflictClause(const LiteralStack& unsatCore)
+{
+  static LiteralStack foLits;
+  foLits.reset();
+  static SATLiteralStack satLits;
+  satLits.reset();
+
+  UnitList* ps = 0;
+  FormulaList* resLst = 0;
+
+  for (Literal* ul : iterTraits(unsatCore.iter())) {
+    Literal* lit = Literal::complementaryLiteral(ul);
+    foLits.push(lit);
+
+    SATLiteral slit = _sat2fo.toSAT(lit);
+    satLits.push(slit);
+
+    UnitList::push(getDefinitionFromName(getNameFromLiteral(slit)),ps);
+    FormulaList::push(new NamedFormula(getFormulaStringFromLiteral(slit)),resLst);
+  }
+
+  Clause* foConfl = Clause::fromStack(foLits,
+      NonspecificInference0(UnitInputType::AXIOM,InferenceRule::THEORY_TAUTOLOGY_SAT_CONFLICT));
+  UnitList::push(foConfl,ps); // making sure this clause is the last one pushed (for the sake of colorFromAssumedFOConversion)
+
+  Formula* f = JunctionFormula::generalJunction(OR,resLst);
+  FormulaUnit* scl = new FormulaUnit(f,NonspecificInferenceMany(InferenceRule::AVATAR_SPLIT_CLAUSE,ps));
+
+  SATClause* confl = SATClause::fromStack(satLits);
+  if(env.options->proofExtra() == Options::ProofExtra::FULL)
+    env.proofExtra.insert(scl, new SATClauseExtra(confl));
+
+  confl->setInference(new FOConversionInference(scl));
+  return SATClause::removeDuplicateLiterals(confl);
 }
 
 void Splitter::collectDependenceLits(SplitSet* splits, SATLiteralStack& acc) const
@@ -910,7 +965,7 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc, bool shuffle)
 
   //Master literal of an variable is the literal
   //with lowest index, in which it appears.
-  static DHMap<unsigned, unsigned, IdentityHash, DefaultHash> varMasters;
+  static DHMap<unsigned, unsigned, IdentityHash, FnvHash> varMasters;
   varMasters.reset();
   IntUnionFind components(clen);
 
@@ -962,6 +1017,11 @@ bool Splitter::getComponents(Clause* cl, Stack<LiteralStack>& acc, bool shuffle)
  */
 bool Splitter::doSplitting(Clause* cl)
 {
+  // Traced here rather than at the call sites: with -sac off (the default) splitting
+  // happens inside forwardSimplify and with -sac on inside activate, and one node
+  // covering both keeps the two configurations comparable.
+  TIME_TRACE(TimeTrace::SPLITTING);
+
   static bool hasStopped = false;
   if (hasStopped) {
     return false;
@@ -994,6 +1054,14 @@ bool Splitter::doSplitting(Clause* cl)
   // fills comps with components, returning if not splittable
   if(!getComponents(cl, comps, _shuffleComponents)) {
     return handleNonSplittable(cl);
+  }
+
+  // under randomized simplifications, each splitting opportunity is with this probability
+  // skipped: the clause stays in the FO loop unsplit, as if splitting was never attempted
+  // (properly non-splittable clauses are still handled above, never leaky) (to be tuned)
+  constexpr double RSI_SKIP_PROB = 0.03;
+  if(env.options->randomizedSimplifications() && Random::getDouble(0.0,1.0) < RSI_SKIP_PROB) {
+    return false;
   }
 
   static SATLiteralStack satClauseLits;
@@ -1668,7 +1736,7 @@ void Splitter::removeComponents(const SplitLevelStack& toRemove)
  */
 UnitList* Splitter::preprendCurrentlyAssumedComponentClauses(UnitList* clauses)
 {
-  DHSet<unsigned> seen;
+  DHSet<unsigned, FnvHash, IdentityHash> seen;
 
   // to keep the nice order
   UnitList::FIFO res;

@@ -23,10 +23,10 @@ namespace Lib{
  * A bidirectional hash map, implemented using two @c Map s under the hood. 
  * The methods behave the same as their counterparts in @c Map, with the exception that BiMap
  * asserts that every key, as well as every value is unique in this map (which is necessary to do a bijective mapping.) */
-template<class A, class B, class HashA, class HashB>
-class BiMap : Map<A,B, HashA>, Map<B, A, HashB> {
-  using Into = Map<A,B,HashA>;
-  using From = Map<B,A,HashB>;
+template<class A, class B, class HashA, class HashB, class EqualA, class EqualB>
+class BiMap : Map<A,B,HashA,EqualA>, Map<B,A,HashB,EqualB> {
+  using Into = Map<A,B,HashA,EqualA>;
+  using From = Map<B,A,HashB,EqualB>;
 public:
   BiMap() : Into(), From() {}
 

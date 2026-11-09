@@ -30,7 +30,8 @@ using namespace Kernel;
 
 
 InterpretedEvaluation::InterpretedEvaluation(bool doNormalize) :
-  _simpl(new InterpretedLiteralEvaluator(doNormalize))
+  // this is the one evaluator that owns Term::isEvalNormalForm()
+  _simpl(new InterpretedLiteralEvaluator(doNormalize, /* cacheNormalForms */ true))
 {
 }
 

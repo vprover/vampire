@@ -110,10 +110,6 @@ Term* TermTransformer::transform(Term* term)
   Stack<Term*> terms(8);
   Stack<bool> modified(8);
   Stack<TermList> args(8);
-  ASS(toDo.isEmpty());
-  ASS(terms.isEmpty());
-  modified.reset();
-  args.reset();
 
   modified.push(false);
   toDo.push(term->args());
@@ -142,7 +138,7 @@ Term* TermTransformer::transform(Term* term)
       //here we assume, that stack is an array with
       //second topmost element as &top()-1, third at
       //&top()-2, etc...
-      TermList *argLst = &args.top() - (orig->arity() - 1);
+      TermList *argLst = args.end() - orig->arity();
       args.truncate(args.length() - orig->arity()); // potentially evil. Calls destructors on the truncated objects, which we are happily reading just below
       Term* newTrm;
       if(orig->isSort()){
@@ -210,7 +206,7 @@ Term* TermTransformer::transform(Term* term)
   //here we assume, that stack is an array with
   //second topmost element as &top()-1, third at
   //&top()-2, etc...
-  TermList* argLst = &args.top() - (term->arity() - 1);
+  TermList* argLst = args.end() - term->arity();
 
   if (term->isLiteral()) {
     Literal* lit = static_cast<Literal*>(term);
@@ -258,11 +254,28 @@ Term* BottomUpTermTransformer::transform(Term* term)
     return transformSpecial(term);
   }
 
+  if (alreadyTransformed(term) || (!transformSorts && term->isSort())) {
+    return term;
+  }
+
   Stack<TermList*> toDo(8);
   Stack<Term*> terms(8);
   Stack<TermList> args(8);
 
-  toDo.push(term->args());
+  auto pushTodo = [this,&toDo,&args](Term* t) {
+    if (transformSorts) {
+      toDo.push(t->args());
+    } else {
+      auto targs = t->args();
+      while (targs != t->termArgs()) {
+        args.push(*targs);
+        targs = targs->next();
+      }
+      toDo.push(targs);
+    }
+  };
+
+  pushTodo(term);
 
   // cout << "transform " << term->toString() << endl;
 
@@ -286,19 +299,30 @@ Term* BottomUpTermTransformer::transform(Term* term)
         //here we assume, that stack is an array with
         //second topmost element as &top()-1, third at
         //&top()-2, etc...
-        argLst=&args.top() - (orig->arity()-1);
+        argLst = args.end() - orig->arity();
 
         // cout << "args.length() - orig->arity() = " << args.length() - orig->arity() << endl;
         args.truncate(args.length() - orig->arity());
+      }
+
+      // Nothing changed below orig: reuse it rather than looking it up in the
+      // sharing structure again (which would return orig anyway, at the price of
+      // hashing a term of arbitrary size). Cf. the `modified` stack in
+      // TermTransformer::transform above, which serves the same purpose.
+      bool unchanged = orig->shared();
+      for (unsigned i = 0; unchanged && i < orig->arity(); i++) {
+        unchanged = (argLst[i] == *orig->nthArgument(i));
       }
 
       if(orig->isSort()){
         //For most applications we probably dont want to transform sorts
         //however, we don't enforce that here, inheriting classes can decide
         //for themselves
-        args.push(transformSubterm(TermList(AtomicSort::create(static_cast<AtomicSort*>(orig),argLst))));
+        args.push(transformSubterm(unchanged ? TermList(orig)
+                                             : TermList(AtomicSort::create(static_cast<AtomicSort*>(orig),argLst))));
       } else {
-        args.push(transformSubterm(TermList(Term::create(orig,argLst))));
+        args.push(transformSubterm(unchanged ? TermList(orig)
+                                             : TermList(Term::create(orig,argLst))));
       }
       continue;
     } else {
@@ -313,6 +337,9 @@ Term* BottomUpTermTransformer::transform(Term* term)
       args.push(dest);
       continue;
     }
+
+    ASS(transformSorts || !tl.term()->isSort());
+
     if (tl.isTerm() && tl.term()->isSpecial()) {
       Term* td = transformSpecial(tl.term());
       args.push(TermList(td));
@@ -321,8 +348,12 @@ Term* BottomUpTermTransformer::transform(Term* term)
 
     ASS(tl.isTerm());
     Term* t=tl.term();
+    if (alreadyTransformed(t)) {
+      args.push(tl);
+      continue;
+    }
     terms.push(t);
-    toDo.push(t->args());
+    pushTodo(t);
   }
   ASS(toDo.isEmpty());
   ASS(terms.isEmpty());
@@ -332,32 +363,29 @@ Term* BottomUpTermTransformer::transform(Term* term)
   //here we assume, that stack is an array with
   //second topmost element as &top()-1, third at
   //&top()-2, etc...
-#if VDEBUG
-  // don't touch args.top() in DEBUG mode if there are actually no arguments (empty stacks don't like it)
-  TermList* argLst= args.size() ? &args.top() - (term->arity() - 1) : nullptr;
-#else // in release, it's fine too, because Literal::create won't touch the pointer in the zero arity case
-  TermList* argLst=               &args.top() - (term->arity() - 1);
-#endif
+  TermList* argLst = args.end() - term->arity();
   if (term->isLiteral()) {
     return Literal::create(static_cast<Literal*>(term), argLst);
-  } else {
-    return Term::create(term, argLst);
   }
+  if (term->isSort()) {
+    return AtomicSort::create(static_cast<AtomicSort*>(term), argLst);
+  }
+  return Term::create(term, argLst);
 }
 
 Formula* BottomUpTermTransformer::transform(Formula* f)
 {
-  static BottomUpTermTransformerFormulaTransformer ttft(*this);
+  BottomUpTermTransformerFormulaTransformer ttft(*this);
   return ttft.transform(f);
 }
 
 TermList BottomUpTermTransformer::transform(TermList ts)
 {
-  if (ts.isTerm()) {
-    return TermList(transform(ts.term()));
-  } else {
-    return transformSubterm(ts);
+  // like special arguments in transform(Term*), a special term is not passed to transformSubterm
+  if (ts.isTerm() && ts.term()->isSpecial()) {
+    return TermList(transformSpecial(ts.term()));
   }
+  return transformSubterm(ts.isTerm() ? TermList(transform(ts.term())) : ts);
 }
 
 }

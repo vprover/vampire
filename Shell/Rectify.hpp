@@ -46,6 +46,7 @@ public:
   Rectify() : _free(0), _removeUnusedVars(true) {}
   static FormulaUnit* rectify(FormulaUnit*, bool removeUnusedVars=true);
   static void rectify(UnitList*& units);
+  static std::pair<Formula*,FormulaUnit*> closeOverGivenVars(VList* vars, Formula* f, Unit* u);
 private:
   typedef std::pair<unsigned,bool> VarWithUsageInfo;
   typedef List<VarWithUsageInfo> VarUsageTrackingList;

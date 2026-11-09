@@ -16,6 +16,7 @@
 #include "Forwards.hpp"
 
 #include "Lib/Stack.hpp"
+#include "Lib/DArray.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/List.hpp"
@@ -30,6 +31,8 @@
 #include "SAT/SATLiteral.hpp"
 #include "SAT/SATClause.hpp"
 #include "SAT/MinisatInterfacing.hpp"
+
+#include "Shell/Property.hpp"
 
 #include "Monotonicity.hpp"
 
@@ -167,7 +170,7 @@ bool Monotonicity::guards(Literal* l, unsigned var, Stack<SATLiteral>& slits)
 
 
 void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const DArray<bool>& del_f,
-  DHMap<unsigned,DArray<signed char>*>& monotonic_vampire_sorts, Stack<unsigned>& sort_predicates) // may write into these
+  DHMap<unsigned,DArray<signed char>*, FnvHash, IdentityHash>& monotonic_vampire_sorts, Stack<unsigned>& sort_predicates) // may write into these
 {
   // First compute the monotonic sorts
   DArray<bool> isMonotonic(env.signature->typeCons());
@@ -192,8 +195,8 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const D
   for(unsigned s=0;s<env.signature->typeCons();s++){
     if(!isMonotonic[s]){
       std::string name = "sortPredicate_"+env.signature->typeConName(s);
-      unsigned p = env.signature->addFreshPredicate(1,name.c_str());
-      env.signature->getPredicate(p)->setType(OperatorType::getPredicateType({TermList(AtomicSort::createConstant(s))}));
+      unsigned p = env.signature->addFreshPredicate(
+        OperatorType::getPredicateType({TermList(AtomicSort::createConstant(s))}),name.c_str())->number();
       sortPredicates[s] = p;
       sort_predicates.push(p);
 
@@ -225,7 +228,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const D
     for(unsigned f=0; f < function_count; f++){
       if(del_f[f]) continue;
 
-      if(env.signature->getFunction(f)->fnType()->result() != sTerm)
+      if(env.signature->getFunction(f)->type()->result() != sTerm)
         continue;
 
       unsigned arity = env.signature->functionArity(f);
@@ -235,18 +238,17 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const D
 
       Term* fX = Term::create(f,arity,vars.begin());
       Literal* pfX = Literal::create1(p,true,TermList(fX));
-      auto fINs = Clause::fromLiterals({ pfX }, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::INPUT));
+      auto fINs = Clause::fromLiterals({ pfX }, FromInput(UnitInputType::AXIOM));
       ClauseList::push(fINs,newAxioms);
       ASS(SortHelper::areSortsValid(fINs));
     }
 
     // Next the non-empty constraint
-    unsigned skolemConstant = env.signature->addSkolemFunction(0);
-    env.signature->getFunction(skolemConstant)->setType(OperatorType::getConstantsType(sTerm));
-    // Increment usage count so it's not treated as a deleted function later
-    env.signature->getFunction(skolemConstant)->incUsageCnt();
+    unsigned skolemConstant = env.signature->addSkolemFunction(OperatorType::getConstantsType(sTerm))->number();
+    // no need to mark it as used: it occurs in the clause just below, which is appended
+    // to the clauses finite model building then counts symbol occurrences in
     Literal* psk = Literal::create1(p,true,TermList(Term::createConstant(skolemConstant)));
-    auto nonEmpty = Clause::fromLiterals({ psk }, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::INPUT));
+    auto nonEmpty = Clause::fromLiterals({ psk }, FromInput(UnitInputType::AXIOM));
     ClauseList::push(nonEmpty,newAxioms);
     ASS(SortHelper::areSortsValid(nonEmpty));
   }
@@ -261,7 +263,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const D
     static Stack<std::pair<unsigned,unsigned>> sortedVariables;
     sortedVariables.reset();
 
-    DHMap<unsigned,TermList> varSorts;
+    DHMap<unsigned,TermList, FnvHash, IdentityHash> varSorts;
     SortHelper::collectVariableSorts(cl,varSorts);
     for(unsigned v=0;v<cl->varCnt();v++){
       TermList vsrt;
@@ -328,7 +330,7 @@ public:
 };
 
 void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses,
-  DHMap<unsigned,DArray<signed char>*>& monotonic_vampire_sorts, Stack<unsigned>& sort_functions) // may write into these
+  DHMap<unsigned,DArray<signed char>*, FnvHash, IdentityHash>& monotonic_vampire_sorts, Stack<unsigned>& sort_functions) // may write into these
 {
   // First compute the monotonic sorts
   DArray<bool> isMonotonic(env.signature->typeCons());
@@ -353,11 +355,8 @@ void Monotonicity::addSortFunctions(bool withMon, ClauseList*& clauses,
   for(unsigned s=0;s<env.signature->typeCons();s++){
     if(!isMonotonic[s]){
       std::string name = "sortFunction_"+env.signature->typeConName(s);
-      unsigned f = env.signature->addFreshFunction(1,name.c_str());
       TermList sT = TermList(AtomicSort::createConstant(s));
-      env.signature->getFunction(f)->setType(OperatorType::getFunctionType({sT},sT));
-      // increment usage count so not treated as deleted
-      env.signature->getFunction(f)->incUsageCnt();
+      unsigned f = env.signature->addFreshFunction(OperatorType::getFunctionType({sT},sT),name.c_str())->number();
       sortFunctions[s] = f;
       sort_functions.push(f);
 

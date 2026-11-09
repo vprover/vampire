@@ -37,7 +37,7 @@ struct ExtensionalityClause
 
 typedef List<ExtensionalityClause> ExtensionalityClauseList;
 typedef VirtualIterator<ExtensionalityClause> ExtensionalityClauseIterator;
-typedef DHMap<TermList, ExtensionalityClauseList*> ClausesBySort;
+typedef DHMap<TermList, ExtensionalityClauseList*, TermListHash, TermListHash2> ClausesBySort;
 /**
  * Container for tracking extensionality-like clauses, i.e. clauses with exactly
  * one positive equality between variables.

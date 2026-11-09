@@ -26,8 +26,8 @@ using namespace Kernel;
 
 KBO kbo(unsigned introducedSymbolWeight, 
     unsigned variableWeight, 
-    const Map<unsigned, KboWeight>& funcs, 
-    const Map<unsigned, KboWeight>& preds) {
+    const Map<unsigned, KboWeight, FnvHash>& funcs, 
+    const Map<unsigned, KboWeight, FnvHash>& preds) {
  
   return KBO(toWeightMap<FuncSigTraits>(introducedSymbolWeight, { 
           ._variableWeight = variableWeight ,
@@ -50,7 +50,7 @@ KBO kbo(unsigned introducedSymbolWeight,
 }
 
 
-KBO kbo(const Map<unsigned, KboWeight>& funcs, const Map<unsigned, KboWeight>& preds) {
+KBO kbo(const Map<unsigned, KboWeight, FnvHash>& funcs, const Map<unsigned, KboWeight, FnvHash>& preds) {
   return kbo(1, 1, funcs, preds);
 }
 
@@ -379,6 +379,32 @@ TEST_FUN(kbo_test23) {
     weights());
 
   ASS_EQ(ord.compare(f(alpha), g(beta)), Ordering::Result::INCOMPARABLE)
+}
+
+// Type constructors and function symbols are numbered independently, so a sort
+// and a term can share a functor number. KBO::compare used to take that for the
+// same top symbol (seen as compare(complex, one_one(complex)) == EQUAL on SWV645_5).
+TEST_FUN(kbo_test24) {
+  DECL_DEFAULT_SORT_VARS
+  DECL_SORT(pad)
+
+  // pad both symbol tables so that the next type constructor
+  // and the next function symbol get the same number
+  for (unsigned i = 0; env.signature->typeCons() < env.signature->functions(); i++) {
+    TypeConstSugar(("padSort" + Int::toString(i)).c_str());
+  }
+  for (unsigned i = 0; env.signature->functions() < env.signature->typeCons(); i++) {
+    ConstSugar(("padConst" + Int::toString(i)).c_str(), pad);
+  }
+
+  DECL_SORT(srt)
+  DECL_POLY_CONST(one, 1, alpha)
+  ASS_EQ(srt.sugaredExpr().term()->functor(), one.functor())
+
+  auto ord = kbo(weights(), weights());
+
+  ASS_EQ(ord.compare(srt, one(srt)), Ordering::Result::LESS)
+  ASS_EQ(ord.compare(one(srt), srt), Ordering::Result::GREATER)
 }
 
 // isGreater tests

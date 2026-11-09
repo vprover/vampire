@@ -1,0 +1,9 @@
+tcf(u4,axiom,
+    ![X0 : $i,X1 : $i,X2 : $i] : ( f(X1) = g(X0,f(X1),X2) | a != f(f(f(b))) | f(X1) = X0 )).
+
+tcf(role_hypothesis,hypothesis,
+    ( p(h) )).
+
+tcf(role_negated_conjecture,negated_conjecture,
+    ![X0 : $i] : ( ~p(X0) )).
+

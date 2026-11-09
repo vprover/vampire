@@ -31,7 +31,7 @@ void reportSpiderFail();
 [[noreturn]] void Assertion::abortAfterViolation()
 {
   Shell::reportSpiderFail();
-  System::terminateImmediately(VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION);
+  System::flushAndTerminateImmediately(VAMP_RESULT_STATUS_UNHANDLED_EXCEPTION);
 }
 
 /**

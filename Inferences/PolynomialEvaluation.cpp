@@ -14,6 +14,7 @@
 #include "Debug/TimeProfiling.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
+#include "Kernel/PolynomialBottomUpEvaluation.hpp"
 
 #define DEBUG(...)  // DBG(__VA_ARGS__)
 using namespace Lib;
@@ -29,7 +30,8 @@ PolynomialEvaluationRule::~PolynomialEvaluationRule() {}
 PolynomialEvaluationRule::PolynomialEvaluationRule(const Ordering& ordering) 
   : SimplifyingGeneratingLiteralSimplification(InferenceRule::EVALUATION, ordering)
   // TODO we have an additional step of normalization here. simplify!
-  , _alwaysEvaluate(env.options->alasca())
+  , _alwaysEvaluate(env.options->alasca() ||
+      env.options->evaluationMode() == Shell::Options::EvaluationMode::POLYNOMIAL_FORCE)
   {}
 
 
@@ -97,7 +99,7 @@ Option<LitSimplResult> PolynomialEvaluation::tryEvalPredicate(Literal* orig, Pol
 
   auto sym = env.signature->getPredicate(orig->functor());
   if (sym->interpreted()) {
-    auto inter = static_cast<Signature::InterpretedSymbol*>(sym)->getInterpretation();
+    auto inter = static_cast<const Signature::InterpretedSymbol*>(sym)->getInterpretation();
 
     switch (inter) {
       /* polymorphic */
@@ -213,7 +215,7 @@ PolyNf simplifyPoly(AnyPoly const& p, PolyNf* ts, bool removeZeros)
 
 Option<PolyNf> PolynomialEvaluation::evaluate(PolyNf normalized) const 
 {
-  static MemoNonVars<PolyNf, PolyNf> memo;
+  static MemoNonVars<PolyNf, PolyNf, PolyNfHash> memo;
   auto out = BottomUpEvaluation<PolyNf, PolyNf>()
     .function(
         [&](PolyNf orig, PolyNf* ts) -> PolyNf 

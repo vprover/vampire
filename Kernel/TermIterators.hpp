@@ -53,7 +53,7 @@ class VariableIterator
 : public IteratorCore<TermList>
 {
 public:
-  DECL_ELEMENT_TYPE(TermList);
+  using ElementType = TermList;
   VariableIterator() : _stack(8), _used(false) {}
 
   void swap(VariableIterator& other) {
@@ -282,10 +282,9 @@ public:
   : _used(true), _stack(8)
   {
     if(term->isLiteral()){
-      TermList t0 = *term->nthArgument(0);
-      TermList t1 = *term->nthArgument(1);
-      if(!t0.isVar()){ _stack.push(t0.term()); }
-      if(!t1.isVar()){ _stack.push(t1.term()); }
+      auto [lhs, rhs] = static_cast<Literal*>(term)->eqArgs();
+      if(lhs.isTerm()){ _stack.push(lhs.term()); }
+      if(rhs.isTerm()){ _stack.push(rhs.term()); }
       return;
     }
     _stack.push(term);
@@ -617,7 +616,7 @@ class LiteralArgIterator
   Literal* _lit;
   unsigned _idx;
 public:
-  DECL_ELEMENT_TYPE(TypedTermList);
+  using ElementType = TypedTermList;
 
   LiteralArgIterator(Literal* lit) : _lit(lit), _idx(0) {}
 

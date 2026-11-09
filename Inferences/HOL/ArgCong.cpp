@@ -12,6 +12,8 @@
  * Implements class ArgCong.
  */
 
+#include "Debug/TimeProfiling.hpp"
+
 #include "Lib/VirtualIterator.hpp"
 #include "Lib/Metaiterators.hpp"
 
@@ -19,11 +21,7 @@
 #include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/SubstHelper.hpp"
-#include "Kernel/Substitution.hpp"
 #include "Kernel/SortHelper.hpp"
-#include "Kernel/Ordering.hpp"
-#include "Kernel/LiteralSelector.hpp"
-#include "Saturation/SaturationAlgorithm.hpp"
 
 #include "ArgCong.hpp"
 
@@ -37,22 +35,21 @@ using namespace Saturation;
 
 struct ArgCongResultFn
 {
-  ArgCongResultFn(Clause* cl, bool afterCheck, const Ordering& ord)
-      : /*_afterCheck(afterCheck), _ord(ord),*/ _cl(cl), _freshVar(cl->maxVar() + 1) {}
+  ArgCongResultFn(Clause* cl) : _cl(cl), _freshVar(cl->maxVar() + 1) {}
 
   Clause* operator() (Literal* lit)
   {
     ASS(lit->isEquality());
     ASS(lit->isPositive());
 
-    static Substitution subst;
+    static HOSubstitution subst;
 
     auto eqSort = SortHelper::getEqualityArgumentSort(lit);
     bool sortIsVar = eqSort.isVar();
     if(!sortIsVar && !eqSort.isArrowSort()){
       return 0;
     }
-   
+
     TermList alpha1, alpha2;
     if(eqSort.isVar()){
       subst.reset();
@@ -60,13 +57,12 @@ struct ArgCongResultFn
       alpha2 = TermList::var(_freshVar+2);
       subst.bindUnbound(eqSort.var(), AtomicSort::arrowSort(alpha1, alpha2));
     } else {
-      alpha1 = *eqSort.term()->nthArgument(0);
-      alpha2 = *eqSort.term()->nthArgument(1);
+      alpha1 = eqSort.domain();
+      alpha2 = eqSort.result();
     }
 
     auto freshVar = TermList::var(_freshVar);
-    auto lhs = lit->termArg(0);
-    auto rhs = lit->termArg(1);
+    auto [lhs, rhs] = lit->eqArgs();
     if(sortIsVar){
       lhs = SubstHelper::apply(lhs, subst);
       rhs = SubstHelper::apply(rhs, subst);
@@ -84,14 +80,8 @@ struct ArgCongResultFn
       if(curr!=lit) {
         Literal* currAfter;
 
-        if (sortIsVar /*&& _afterCheck && _cl->numSelected() > 1*/) {
+        if (sortIsVar) {
           currAfter = SubstHelper::apply(curr, subst);
-          /*
-
-          if (i < _cl->numSelected() && _ord->compare(currAfter,newLit) == Ordering::GREATER) {
-            env.statistics->inferencesBlockedDueToOrderingAftercheck++;
-            return 0;
-          }*/ //TODO reintroduce check
         } else {
           currAfter = curr;
         }
@@ -105,9 +95,6 @@ struct ArgCongResultFn
     return Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::ARG_CONG, _cl));
   }
 private:
-  // currently unused
-  // bool _afterCheck;
-  // Ordering* _ord;
   Clause* _cl;
   unsigned _freshVar;
 };
@@ -116,10 +103,9 @@ ClauseIterator ArgCong::generateClauses(Clause* premise)
 {
   return pvi(premise->getSelectedLiteralIterator()
     .filter([](Literal* l) { return l->isEquality() && l->isPositive(); })
-    .map(ArgCongResultFn(premise,
-      _salg.getOptions().literalMaximalityAftercheck() && _salg.getLiteralSelector().isBGComplete(),
-      _salg.getOrdering()))
-    .filter(NonzeroFn()));
+    .map(ArgCongResultFn(premise))
+    .filter(NonzeroFn())
+    .timeTraced("argument congruence"));
 }
 
 }

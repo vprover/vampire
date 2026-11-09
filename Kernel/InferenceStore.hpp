@@ -16,18 +16,17 @@
 #ifndef __InferenceStore__
 #define __InferenceStore__
 
-#include <utility>
 #include <ostream>
+#include <set>
 
 #include "Forwards.hpp"
 
-#include "Lib/Allocator.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/DHMultiset.hpp"
 #include "Lib/Stack.hpp"
 
-#include "Kernel/Clause.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/Signature.hpp"
 
 namespace Kernel {
 
@@ -38,64 +37,69 @@ class InferenceStore
 public:
   static InferenceStore* instance();
 
-  typedef List<int> IntList;
-
-  struct FullInference
-  {
-    FullInference(unsigned premCnt) : csId(0), premCnt(premCnt) { }
-
-    void* operator new(size_t,unsigned premCnt)
-    {
-      size_t size=sizeof(FullInference)+premCnt*sizeof(Unit*);
-      size-=sizeof(Unit*);
-
-      return ALLOC_KNOWN(size,"InferenceStore::FullInference");
-    }
-
-    size_t occupiedBytes()
-    {
-      size_t size=sizeof(FullInference)+premCnt*sizeof(Unit*);
-      size-=sizeof(Unit*);
-      return size;
-    }
-
-    void increasePremiseRefCounters();
-
-    int csId;
-    unsigned premCnt;
-    InferenceRule rule;
-    Unit* premises[1];
-  };
-
   void recordSplittingNameLiteral(Unit* us, Literal* lit);
-  void recordIntroducedSymbol(Unit* u, SymbolType st, unsigned number);
+  void recordIntroducedSymbol(Unit* u, const Signature::Symbol* sym);
+  void recordIntroducedSkolemSymbol(Unit* u, const Signature::Symbol* sym, unsigned replacedVar, Term* symTerm);
   void recordIntroducedSplitName(Unit* u, std::string name);
+
 
   void outputUnsatCore(std::ostream& out, Unit* refutation);
   void outputProof(std::ostream& out, Unit* refutation);
   void outputProof(std::ostream& out, UnitList* units);
+  /** Common proof scheduling, independent of any output format. */
+  struct AbstractProofPrinter {
+    AbstractProofPrinter(std::ostream& out, InferenceStore* is) : _is(is), out(out) {}
+    virtual ~AbstractProofPrinter() = default;
+
+    void scheduleForPrinting(Unit* us);
+    virtual void print();
+
+  protected:
+    virtual bool hideProofStep(InferenceRule rule) { return false; }
+    virtual void printStep(Unit* unit) = 0;
+
+    struct CompareUnits {
+      bool operator()(Unit* left, Unit* right) const;
+    };
+
+    InferenceStore* _is;
+    std::ostream& out;
+    std::set<Unit*, CompareUnits> proof;
+
+  };
+
   struct ProofPrinter;
 
 private:
+  /** Shared SAT traversal; concrete printers choose their own SAT syntax. */
+  struct AbstractSATProofPrinter : AbstractProofPrinter {
+    using AbstractProofPrinter::AbstractProofPrinter;
+    void print() override;
+
+  protected:
+    virtual void printSATStep(SAT::SATClause* clause) = 0;
+  };
   struct TPTPProofPrinter;
   struct Smt2ProofCheckPrinter;
   struct ProofCheckPrinter;
   struct ProofPropertyPrinter;
   struct SMTCheckPrinter;
 
-  ProofPrinter* createProofPrinter(std::ostream& out);
+  AbstractProofPrinter* createProofPrinter(std::ostream& out);
 
-  DHMultiset<unsigned> _nextClIds;
+  DHMultiset<unsigned, FnvHash, IdentityHash> _nextClIds;
 
-  DHMap<unsigned, Literal*> _splittingNameLiterals;
+  DHMap<unsigned, Literal*, FnvHash, IdentityHash> _splittingNameLiterals;
 
+  typedef Stack<const Signature::Symbol*> SymbolStack;
+  // unit id -> stack of introduced symbols (in order of introduction)
+  DHMap<unsigned,SymbolStack, FnvHash, IdentityHash> _introducedSymbols;
+  // symbol id -> existential variable name (number) that was replaced by the symbol
+  DHMap<const Signature::Symbol*, unsigned, FnvHash, PtrIdentityHash> _introducedSymbolReplacedVars;
+  // symbol id -> the term that is introduced when introducing the skolem symbol
+  DHMap<const Signature::Symbol*, Term*, FnvHash, PtrIdentityHash> _introducedSkolemSymTerms;
 
-  /** first records the type of the symbol (PRED,FUNC or TYPE_CON), second is symbol number */
-  typedef std::pair<SymbolType,unsigned> SymbolId;
-  typedef Stack<SymbolId> SymbolStack;
-  DHMap<unsigned,SymbolStack> _introducedSymbols;
-  DHMap<unsigned,std::string> _introducedSplitNames;
-
+  DHMap<unsigned,std::string, FnvHash, IdentityHash> _introducedSplitNames;
 };
 
 };

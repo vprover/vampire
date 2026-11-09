@@ -31,7 +31,7 @@ namespace Lib {
 /**
  * Minimum binary heap
  */
-template<class T, class Comparator, class ElMap = DHMap<T,size_t>, class TArg = T >
+template<class T, class Comparator, class ElMap, class TArg = T >
 class DynamicHeap {
 public:
   DynamicHeap(Comparator cmp=Comparator()) : _heap(0), _cmp(cmp) {}

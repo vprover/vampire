@@ -98,7 +98,7 @@ static TermList formulaToNameless(Formula *formula, const VarToIndexMap& map) {
   switch (const auto conn = formula->connective()) {
     case Connective::LITERAL: {
       const Literal *lit = formula->literal();
-      ASS(lit->isEquality()) // Is this a valid assumption?
+      ASS(lit->isEquality())
 
       auto lhs = termToNameless(*lit->nthArgument(0), map);
       auto rhs = termToNameless(*lit->nthArgument(1), map);
@@ -161,9 +161,9 @@ static TermList formulaToNameless(Formula *formula, const VarToIndexMap& map) {
     case Connective::BOOL_TERM:
       return termToNameless(formula->getBooleanTerm(), map);
     case Connective::TRUE:
-      return TermList(Term::foolTrue());
+      return HOL::create::top();
     case Connective::FALSE:
-      return TermList(Term::foolFalse());
+      return HOL::create::bottom();
     default:
       ASSERTION_VIOLATION;
   }
@@ -171,4 +171,9 @@ static TermList formulaToNameless(Formula *formula, const VarToIndexMap& map) {
 
 TermList HOL::convert::toNameless(TermList term) {
   return termToNameless(term, {});
+}
+
+TermList HOL::convert::toNameless(Formula* formula)
+{
+  return formulaToNameless(Formula::removeUniversalTypePrenex(formula), {});
 }

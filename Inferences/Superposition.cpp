@@ -46,21 +46,23 @@
 using namespace std;
 #endif
 
-using namespace Inferences;
 using namespace Lib;
 using namespace Kernel;
 using namespace Indexing;
 using namespace Saturation;
 using std::pair;
 
-Superposition::Superposition(SaturationAlgorithm& salg)
-  : _higherOrder(env.higherOrder()),
-    _salg(salg),
-    _subtermIndex(salg.getGeneratingIndex<SuperpositionSubtermIndex>()),
+namespace Inferences {
+
+template<bool higherOrder>
+Superposition<higherOrder>::Superposition(SaturationAlgorithm& salg)
+  : _salg(salg),
+    _subtermIndex(salg.getGeneratingIndex<SuperpositionSubtermIndex<higherOrder>>()),
     _lhsIndex(salg.getGeneratingIndex<SuperpositionLHSIndex>())
 {}
 
-ClauseIterator Superposition::generateClauses(Clause* premise)
+template<bool higherOrder>
+ClauseIterator Superposition<higherOrder>::generateClauses(Clause* premise)
 {
   auto itf = premise->getSelectedLiteralIterator()
     // Get an iterator of pairs of selected literals and rewritable subterms of those literals
@@ -68,12 +70,12 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
     // a maximal side of an equality or of a non-equational literal
     .flatMap([this](Literal* lit)
       // returns an iterator over the rewritable subterms
-      { return pushPairIntoRightIterator(lit, EqHelper::getSubtermIterator(lit, _salg.getOrdering(), _higherOrder)); })
+      { return pushPairIntoRightIterator(lit, EqHelper::getSubtermIterator<higherOrder>(lit, _salg.getOrdering())); })
 
     // Get clauses with a literal whose complement unifies with the rewritable subterm,
     // returns a pair with the original pair and the unification result (includes substitution)
     .flatMap([this](pair<Literal*, TypedTermList> arg)
-      { return pushPairIntoRightIterator(arg, _lhsIndex->getUwa(arg.second, _salg.getOptions().unificationWithAbstraction(), _salg.getOptions().unificationWithAbstractionFixedPointIteration())); })
+      { return pushPairIntoRightIterator(arg, _lhsIndex->getUwa<higherOrder>(arg.second, _salg.getOptions())); })
 
     // Perform forward superposition
     .map([this,premise](pair<pair<Literal*, TypedTermList>, QueryRes<AbstractingUnifier*, TermLiteralClause>> arg)
@@ -91,7 +93,7 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
     // Get clauses that unify with these LHSs, modulo abstraction
     .flatMap([this] (pair<Literal*, TermList> arg)
       { return pushPairIntoRightIterator(arg,
-          _subtermIndex->getUwa(TypedTermList(arg.second, SortHelper::getEqualityArgumentSort(arg.first)), _salg.getOptions().unificationWithAbstraction(), _salg.getOptions().unificationWithAbstractionFixedPointIteration())); })
+          _subtermIndex->template getUwa<higherOrder>(TypedTermList(arg.second, SortHelper::getEqualityArgumentSort(arg.first)), _salg.getOptions())); })
 
     // Perform backward superposition
     .map([this,premise](pair<pair<Literal*, TermList>, QueryRes<AbstractingUnifier*, TermLiteralClause>> arg) -> Clause*
@@ -126,7 +128,8 @@ ClauseIterator Superposition::generateClauses(Clause* premise)
  *
  * This function also updates the statistics.
  */
-bool Superposition::checkClauseColorCompatibility(Clause* eqClause, Clause* rwClause)
+template<bool higherOrder>
+bool Superposition<higherOrder>::checkClauseColorCompatibility(Clause* eqClause, Clause* rwClause)
 {
   if(ColorHelper::compatible(rwClause->color(), eqClause->color())) {
     return true;
@@ -148,7 +151,7 @@ bool Superposition::checkClauseColorCompatibility(Clause* eqClause, Clause* rwCl
  * Such situation would mean that there is no ground substitution in which
  * @c eqLHS would be the larger argument of the largest literal.
  */
-bool Superposition::checkSuperpositionFromVariable(Clause* eqClause, Literal* eqLit, TermList eqLHS)
+bool checkSuperpositionFromVariable(Clause* eqClause, Literal* eqLit, TermList eqLHS)
 {
   ASS(eqLHS.isVar());
   //if we should do rewriting, LHS cannot appear inside RHS
@@ -254,15 +257,16 @@ bool earlyWeightLimitCheck(Clause* eqClause, Literal* eqLit,
  * If superposition should be performed, return result of the superposition,
  * otherwise return 0.
  */
-Clause* Superposition::performSuperposition(
+template<bool higherOrder>
+Clause* Superposition<higherOrder>::performSuperposition(
     Clause* rwClause, Literal* rwLit, TermList rwTerm,
     Clause* eqClause, Literal* eqLit, TermList eqLHS,
     AbstractingUnifier* unifier, bool eqIsResult)
 {
   TIME_TRACE("perform superposition");
   // we want the rwClause and eqClause to be active
-  ASS(rwClause->store()==Clause::ACTIVE);
-  ASS(eqClause->store()==Clause::ACTIVE);
+  ASS_EQ(rwClause->store(),Clause::ACTIVE);
+  ASS_EQ(eqClause->store(),Clause::ACTIVE);
 
   // the first checks the reference and the second checks the stack
   auto subst = ResultSubstitution::fromSubstitution(&unifier->subs(), RetrievalAlgorithms::DefaultVarBanks::query, RetrievalAlgorithms::DefaultVarBanks::internal);
@@ -488,4 +492,9 @@ Clause* Superposition::performSuperposition(
   }
 
   return clause;
+}
+
+template class Superposition<false>;
+template class Superposition<true>;
+
 }

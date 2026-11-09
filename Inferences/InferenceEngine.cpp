@@ -12,6 +12,8 @@
  * Implements classes for inferences.
  */
 
+#include "Debug/TimeProfiling.hpp"
+
 #include "Kernel/HOL/HOL.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/DArray.hpp"
@@ -131,7 +133,8 @@ CompositeSGI::~CompositeSGI() {
 
 Clause* ChoiceDefinitionISE::simplify(Clause* c)
 {
-  if (c->length() != 2) {
+  TIME_TRACE("choice definition");
+  if (c->length() != 2 || !c->noSplits()) {
     return c;
   }
 
@@ -154,9 +157,9 @@ Clause* ChoiceDefinitionISE::simplify(Clause* c)
   return c;
 }
 
-bool ChoiceDefinitionISE::isPositive(Literal* lit) {
-  TermList lhs = *lit->nthArgument(0);
-  TermList rhs = *lit->nthArgument(1);
+bool ChoiceDefinitionISE::isPositive(Literal* lit)
+{
+  auto [lhs, rhs] = lit->eqArgs();
   if(!HOL::isBool(lhs) && !HOL::isBool(rhs)){ return false; }
   if(HOL::isBool(lhs) && HOL::isBool(rhs)){ return false; }
   if(HOL::isBool(lhs)){ 
@@ -166,10 +169,27 @@ bool ChoiceDefinitionISE::isPositive(Literal* lit) {
     return lit->polarity() == HOL::isTrue(rhs);
   }
   return false;
-};
+}
+
+bool ChoiceDefinitionISE::isNegative(Literal* lit)
+{
+  auto [lhs, rhs] = lit->eqArgs();
+  if(!HOL::isBool(lhs) && !HOL::isBool(rhs)){ return false; }
+  if(HOL::isBool(lhs) && HOL::isBool(rhs)){ return false; }
+  
+  if(HOL::isBool(lhs)){ 
+    return lit->polarity() != HOL::isTrue(lhs);
+  }
+  if(HOL::isBool(rhs)){ 
+    return lit->polarity() != HOL::isTrue(rhs);
+  }
+  return false;
+}
 
 bool ChoiceDefinitionISE::is_of_form_xy(Literal* lit, TermList& x){
   TermList term = HOL::isBool(*lit->nthArgument(0)) ? *lit->nthArgument(1) : *lit->nthArgument(0);
+
+  if(term.isLambdaTerm()){ return false; }
   
   TermStack args;
   x = HOL::getHeadAndArgs(term, args);
@@ -178,6 +198,8 @@ bool ChoiceDefinitionISE::is_of_form_xy(Literal* lit, TermList& x){
 
 bool ChoiceDefinitionISE::is_of_form_xfx(Literal* lit, TermList x, TermList& f){
   TermList term = HOL::isBool(*lit->nthArgument(0)) ? *lit->nthArgument(1) : *lit->nthArgument(0);
+
+  if(term.isLambdaTerm()){ return false; }
   
   TermStack args;
   auto head = HOL::getHeadAndArgs(term, args);
@@ -226,7 +248,7 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
     }
   }
   else {
-    static DHSet<Literal*> seen;
+    static DHSet<Literal*, FnvHash, PtrIdentityHash> seen;
     seen.reset();
     //here we rely on the fact that the iterator traverses the clause from
     //the first to the last literal
@@ -264,9 +286,9 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
 
 #if DEBUG_DUPLICATE_LITERALS
   {
-    static DHSet<Literal*> origLits;
+    static DHSet<Literal*, FnvHash, PtrIdentityHash> origLits;
     origLits.reset();
-    static DHSet<Literal*> newLits;
+    static DHSet<Literal*, FnvHash, PtrIdentityHash> newLits;
     newLits.reset();
     origLits.loadFromIterator(c->iterLits());
     newLits.loadFromIterator(d->iterLits());
@@ -281,6 +303,7 @@ Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)
 
 Clause* TautologyDeletionISE2::simplify(Clause* c)
 {
+  TIME_TRACE("higher-order tautology deletion");
   static LiteralStack negLits;
   static LiteralStack posLits;
 
@@ -289,8 +312,7 @@ Clause* TautologyDeletionISE2::simplify(Clause* c)
 
   for(unsigned i = 0; i < c->length(); i++){
     Literal* lit = (*c)[i];
-    TermList lhs = *lit->nthArgument(0);
-    TermList rhs = *lit->nthArgument(1);
+    auto [lhs, rhs] = lit->eqArgs();
     if(!lit->polarity() && HOL::isBool(lhs) && HOL::isBool(rhs) &&
       (HOL::isTrue(lhs) != HOL::isTrue(rhs))){
       //false != true

@@ -522,8 +522,8 @@ TEST_FUN(var_equalities) {
   auto& ord = lakbo();
   DECL_VAR(x0, 0)
   DECL_VAR(x1, 0)
-  x0.sort(s1);
-  x1.sort(s2);
+  x0 = x0.sort(s1);
+  x1 = x1.sort(s2);
 
   check(ord,  x0 == x0, Less, x1 == x1);
   check(ord,  x0 != x0, Less, x1 != x1);

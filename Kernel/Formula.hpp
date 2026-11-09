@@ -69,7 +69,7 @@ public:
   VSList* boundVariables () const;
 
   // output
-  std::string toString() const;
+  std::string toString(bool topLevel = true) const;
   static std::string toString(Connective con);
   bool parenthesesRequired(Connective outer) const;
   // auxiliary functions
@@ -87,6 +87,7 @@ public:
   static Formula* fromClause(Clause* cl,bool closed = true);
 
   static Formula* quantify(Formula* f);
+  static Formula* removeUniversalTypePrenex(Formula* f);
 
   static Formula* trueFormula();
   static Formula* falseFormula();

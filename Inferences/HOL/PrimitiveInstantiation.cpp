@@ -12,8 +12,9 @@
  * Implements class PrimitiveInstantiation.
  */
 
+#include "Debug/TimeProfiling.hpp"
+
 #include "Kernel/Clause.hpp"
-#include "Kernel/Substitution.hpp"
 #include "Kernel/SubstHelper.hpp"
 
 #include "Kernel/HOL/HOL.hpp"
@@ -76,7 +77,7 @@ struct PrimitiveInstResultFn
 
     auto pushResult = [this,headFlex](TermList binding)
     {
-      static Substitution subst;
+      static HOSubstitution subst;
       subst.reset();
       subst.bind(headFlex.var(), binding);
       results.push(Clause::fromIterator(
@@ -136,7 +137,7 @@ struct PrimitiveInstResultFn
       }
     }
 
-    return pvi(getUniquePersistentIterator(ClauseStack::Iterator(results)));
+    return pvi(getUniquePersistentIterator<UnitHash, UnitNumberHash>(ClauseStack::Iterator(results)));
   }
 
 private:
@@ -193,7 +194,8 @@ ClauseIterator PrimitiveInstantiation::generateClauses(Clause* premise)
   // TODO is doing this only on selected literals correct?
   return pvi(premise->getSelectedLiteralIterator()
     .filter([](Literal* l) { return l->isFlexRigid() && SortHelper::getEqualityArgumentSort(l).isBoolSort(); })
-    .flatMap(PrimitiveInstResultFn(premise, _piSet, _heads)));
+    .flatMap(PrimitiveInstResultFn(premise, _piSet, _heads))
+    .timeTraced("primitive instantiation"));
 }
 
 }

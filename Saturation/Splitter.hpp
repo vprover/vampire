@@ -15,6 +15,7 @@
 #ifndef __Splitter__
 #define __Splitter__
 
+#include "Lib/Comparison.hpp"
 #include "Forwards.hpp"
 
 #include "Lib/Allocator.hpp"
@@ -229,6 +230,8 @@ private:
 
   void collectDependenceLits(SplitSet* splits, SATLiteralStack& acc) const;
 
+  SATClause* buildDPConflictClause(const LiteralStack& unsatCore);
+
   SplitLevel addNonGroundComponent(unsigned size, Literal* const * lits, Clause* orig, Clause*& compCl);
   SplitLevel addGroundComponent(Literal* lit, Clause* orig, Clause*& compCl);
 
@@ -281,7 +284,7 @@ private:
    * Definitions of ground components C and ~C are shared and placed at the slot of C.
    * (So the key here is never odd!)
    **/
-  DHMap<SplitLevel,Unit*> _defs;
+  DHMap<SplitLevel,Unit*, FnvHash, IdentityHash> _defs;
 
   /** true if there was a clause added to the SAT solver since last call to onAllProcessed */
   bool _clausesAdded;
@@ -299,7 +302,10 @@ private:
 
   // clauses we already added to the SAT solver
   // not just optimisation: also prevents the SAT solver oscillating between two models in some cases
-  Set<SATClause *, DerefPtrHash<DefaultHash>> _already_added;
+  Set<SATClause*, DerefPtrHash<SATClauseHash>, DerefPtrEqual> _already_added;
+
+  /** In TPTP proofs, introduce the spl predicate whose name prefixes split names. */
+  static void ensureSplPrefix();
 public:
   static std::string splPrefix;
 

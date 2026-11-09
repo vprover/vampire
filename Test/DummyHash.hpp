@@ -10,6 +10,5 @@
 
 class DummyHash {
 public:
-  template<typename T> static bool equals(T o1, T o2) { return o1 == o2; }
   template<typename T> static unsigned hash(T val) { return 0; }
 };

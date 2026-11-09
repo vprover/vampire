@@ -16,8 +16,6 @@
 
 #include "Lib/BinaryHeap.hpp"
 #include "Lib/DArray.hpp"
-#include "Lib/DHMap.hpp"
-#include "Lib/Hash.hpp"
 #include "Lib/TriangularArray.hpp"
 
 #include "Clause.hpp"
@@ -32,32 +30,6 @@ namespace {
 using namespace std;
 using namespace Lib;
 using namespace Kernel;
-
-
-typedef DHMap<unsigned,unsigned, IdentityHash, DefaultHash> UUMap;
-
-
-/**
- * Binder that stores bindings into a specified array. To be used
- * with MatchingUtils template methods.
- */
-struct ArrayStoringBinder
-{
-  ArrayStoringBinder(TermList* arr, UUMap& v2pos)
-  : _arr(arr), _v2pos(v2pos) {}
-
-  bool bind(unsigned var, TermList term)
-  {
-    _arr[_v2pos.get(var)]=term;
-    return true;
-  }
-
-  void specVar(unsigned var, TermList term)
-  { ASSERTION_VIOLATION; }
-private:
-  TermList* _arr;
-  UUMap& _v2pos;
-};
 
 bool createLiteralBindings(Literal* baseLit, LiteralList const* alts, Clause* instCl, Literal* resolvedLit,
     unsigned*& boundVarData, TermList**& altBindingPtrs, TermList*& altBindingData)

@@ -34,6 +34,8 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Shell/Statistics.hpp"
+#include "Shell/TPTPPrinter.hpp"
+#include "Shell/UIHelper.hpp"
 
 #include "BackwardSubsumptionDemodulation.hpp"
 #include "SubsumptionDemodulationHelper.hpp"
@@ -131,7 +133,7 @@ void BackwardSubsumptionDemodulation<higherOrder>::performWithQueryLit(Clause* s
 
 #if VDEBUG
   // make sure DuplicateLiteralRemovalISE has been run on this
-  DHSet<Literal*> lits;
+  DHSet<Literal*, FnvHash, PtrIdentityHash> lits;
   for (unsigned i = 0; i < sideCl->length(); ++i) {
     ALWAYS(lits.insert((*sideCl)[i]));
   }
@@ -141,7 +143,7 @@ void BackwardSubsumptionDemodulation<higherOrder>::performWithQueryLit(Clause* s
   bool mustPredActive = false;
   unsigned mustPred;
 
-  auto rit = _index->getInstances(candidateQueryLit, false, false);
+  auto rit = _index->getInstances<higherOrder>(candidateQueryLit, false, false);
   while (rit.hasNext()) {
     auto qr = rit.next();
     Clause* candidate = qr.data->clause;
@@ -351,7 +353,7 @@ bool BackwardSubsumptionDemodulation<higherOrder>::rewriteCandidate(Clause* side
     // i.e., we have subsumption.
 #if VDEBUG && BSD_VDEBUG_REDUNDANCY_ASSERTIONS
     if (_literalComparisonMode != Options::LiteralComparisonMode::REVERSE) {
-      OverlayBinder tmpBinder;
+      OverlayBinder<higherOrder> tmpBinder;
       matcher.getBindings(tmpBinder.base());
       ASS(SDHelper::substClauseIsSmallerOrEqual(sideCl, tmpBinder, mainCl, _ord));
     }
@@ -375,7 +377,7 @@ bool BackwardSubsumptionDemodulation<higherOrder>::rewriteCandidate(Clause* side
   static std::vector<bool> isMatched;
   matcher.getMatchedAltsBitmap(isMatched);
 
-  static OverlayBinder binder;
+  static OverlayBinder<higherOrder> binder;
   binder.clear();
   matcher.getBindings(binder.base());
 
@@ -386,7 +388,7 @@ bool BackwardSubsumptionDemodulation<higherOrder>::rewriteCandidate(Clause* side
     TermList t0 = *eqLit->nthArgument(0);
     TermList t1 = *eqLit->nthArgument(1);
 
-    OverlayBinder::UnboundVariableOffsetApplicator applicator(binder, mainCl->maxVar()+1);
+    typename OverlayBinder<higherOrder>::UnboundVariableOffsetApplicator applicator(binder, mainCl->maxVar()+1);
     switch (eqArgOrder) {
       case Ordering::INCOMPARABLE:
         ASS(!_preorderedOnly);  // would've skipped earlier already
@@ -427,7 +429,7 @@ bool BackwardSubsumptionDemodulation<higherOrder>::rewriteCandidate(Clause* side
 
 
 
-  static DHSet<TermList> attempted;  // Terms we already attempted to demodulate
+  static DHSet<TermList, TermListHash, TermListHash2> attempted;  // Terms we already attempted to demodulate
   attempted.reset();
 
   for (unsigned dli = 0; dli < mainCl->length(); ++dli) {
@@ -481,7 +483,7 @@ bool BackwardSubsumptionDemodulation<higherOrder>::rewriteCandidate(Clause* side
           // There can be no unbound variables at this point;
           // otherwise we would have excluded the LHS already
           // in the ordering pre-check above
-          auto mclVarIt = sideCl->getVariableIterator();  // includes vars in rhs
+          auto mclVarIt = sideCl->iterVars();  // includes vars in rhs
           while (mclVarIt.hasNext()) {
             unsigned int var = mclVarIt.next();
             ASS(binder.isBound(var));
@@ -636,11 +638,11 @@ isRedundant:
         std::cout << "\% eqLitS: " << binder.applyTo(eqLit)->toString() << "\n";
         std::cout << "\% dlit: " << dlit->toString() << "\n";
         // std::cout << "\% numMatches+1: success at match #" << (numMatches+1) << "\n";
-        TPTPPrinter tptp;
+        UIHelper::outputSymbolDeclarations(std::cout);
         // NOTE: do not output the splitLevels here, because those will be set for replacement only later
-        tptp.printWithRole("side_premise", "hypothesis", sideCl, false);
-        tptp.printWithRole("main_premise", "hypothesis", mainCl, false);
-        tptp.printWithRole("conclusion  ", "conjecture", replacement, false);
+        std::cout << TPTPPrinter::namedUnit(sideCl, "side_premise", TPTPOutput::Role::HYPOTHESIS, /*typedClauses=*/true);
+        std::cout << TPTPPrinter::namedUnit(mainCl, "main_premise", TPTPOutput::Role::HYPOTHESIS, /*typedClauses=*/true);
+        std::cout << TPTPPrinter::namedUnit(replacement, "conclusion  ", TPTPOutput::Role::CONJECTURE, /*typedClauses=*/true);
         // TODO: Some problems (seems to be only the CSR category; it happens, e.g., in CSR104+4)
         //       use integer constants as sort $i but vampire parses them as $int when using tff.
         //       For these formulas we should use fof, then it works again.

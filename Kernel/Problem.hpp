@@ -151,11 +151,9 @@ public:
   bool hasNumerals() const; // meaning the interpreted constants of arithmetic theories, e.g. 1,2, 3.1415,...
   /** Problem contains let terms or formulas, or term if-then-else */
   bool hasFOOL() const;
-  bool hasCombs() const;
   bool hasLogicalProxy() const;
   bool hasBoolVar() const;
   bool hasApp() const;
-  bool hasAppliedVar() const;
   bool hasPolymorphicSym() const;
   bool quantifiesOverPolymorphicVar() const;
   bool isHigherOrder() const;
@@ -184,6 +182,18 @@ public:
   {
     invalidateProperty();
     _hasFOOL = true;
+  }
+
+  /**
+   * Report that a symbol with type arguments was introduced into the problem.
+   *
+   * Note that invalidateByRemoval() alone would not do: it leaves an already
+   * known false alone, so the problem would keep claiming to be monomorphic.
+   */
+  void reportPolymorphicSymAdded()
+  {
+    invalidateProperty();
+    _hasPolymorphicSym = true;
   }
 
   void reportFormulasAdded()
@@ -256,7 +266,6 @@ private:
   mutable MaybeBool _hasAlascaArithmetic;
   mutable MaybeBool _hasFOOL;
   mutable MaybeBool _hasApp;
-  mutable MaybeBool _hasAppliedVar;
   mutable MaybeBool _hasLogicalProxy;
   mutable MaybeBool _hasPolymorphicSym;
   mutable MaybeBool _quantifiesOverPolymorphicVar;

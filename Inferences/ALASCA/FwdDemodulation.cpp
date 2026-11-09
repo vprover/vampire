@@ -22,7 +22,7 @@ namespace Inferences {
 namespace ALASCA {
 
 FwdDemodulation::FwdDemodulation(SaturationAlgorithm& salg)
-  : _shared(salg.alascaState()), _index(salg.getSimplifyingIndex<AlascaIndex<Demodulation::Lhs>>())
+  : _shared(salg.alascaState()), _index(salg.getSimplifyingIndex<GeneralizingAlascaIndex<Demodulation::Lhs>>())
 {}
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -44,7 +44,7 @@ bool FwdDemodulation::perform(Clause* toSimplify, Clause*& replacement, ClauseIt
   Stack<Literal*> simplified;
   for (auto rhs : Rhs::iter(_shared, toSimplify)) {
     // DEBUG("simplifyable position: ", pos.term, " in ", *pos.lit)
-    for (auto lhs : _index->generalizations(rhs.term)) {
+    for (auto lhs : _index->getGeneralizations(rhs.term)) {
       auto simplified = Demodulation::apply(_shared, *lhs.data, rhs);
       if (simplified.isSome()) {
         replacement = simplified.unwrap();

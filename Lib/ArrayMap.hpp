@@ -215,7 +215,7 @@ public:
   class KeyIterator
   {
   public:
-    DECL_ELEMENT_TYPE(unsigned);
+    using ElementType = unsigned;
     KeyIterator(const ArrayMap& parent) : _parent(parent), _idx(0) {}
 
     bool hasNext()

@@ -13,8 +13,6 @@
 #include "Kernel/SubstHelper.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/Ordering.hpp"
-#include "Kernel/TermIterators.hpp"
-#include "Kernel/Ordering.hpp"
 
 #include "Shell/Options.hpp"
 
@@ -24,9 +22,10 @@ namespace Inferences {
 
 using namespace Kernel;
 
-DemodulationHelper::DemodulationHelper(const Options& opts, const Ordering* ord)
+DemodulationHelper::DemodulationHelper(const Options& opts, const Ordering& ord)
 : _redundancyCheck(opts.demodulationRedundancyCheck() != Options::DemodulationRedundancyCheck::OFF),
-  _encompassing(opts.demodulationRedundancyCheck() == Options::DemodulationRedundancyCheck::ENCOMPASS),
+  _labeled(opts.demodulationRedundancyCheck() == Options::DemodulationRedundancyCheck::LABELED),
+  _encompassing(_labeled || opts.demodulationRedundancyCheck() == Options::DemodulationRedundancyCheck::ENCOMPASS),
   _ord(ord)
 {
 }
@@ -45,45 +44,21 @@ bool DemodulationHelper::redundancyCheckNeededForPremise(Clause* rwCl, Literal* 
   return !_encompassing || (rwLit->isPositive() && (rwCl->length() == 1));
 }
 
-/**
- * Test whether the @param applicator is a renaming on the variables of @param t.
- */
-bool DemodulationHelper::isRenamingOn(const SubstApplicator* applicator, TermList t)
-{
-  DHSet<TermList> renamingDomain;
-  DHSet<TermList> renamingRange;
-
-  VariableIterator it(t);
-  while(it.hasNext()) {
-    TermList v = it.next();
-    ASS(v.isVar());
-    if (!renamingDomain.insert(v)) {
-      continue;
-    }
-
-    TermList vSubst = (*applicator)(v.var());
-    if (!vSubst.isVar()) {
-      return false;
-    }
-    if (!renamingRange.insert(vSubst)) {
-      return false;
-    }
-  }
-  return true;
-}
-
 bool DemodulationHelper::isPremiseRedundant(Clause* rwCl, Literal* rwLit, TermList rwTerm,
-  AppliedTerm tgtTerm, TermList eqLHS, const SubstApplicator* eqApplicator) const
+  AppliedTerm tgtTerm, Clause* eqCl, TermList eqLHS, const SubstApplicator* eqApplicator) const
 {
   ASS(redundancyCheckNeededForPremise(rwCl, rwLit, rwTerm));
 
-  if (_ord->compareUnidirectional(EqHelper::getOtherEqualitySide(rwLit, rwTerm), tgtTerm) == Ordering::GREATER) {
+  TermList other=EqHelper::getOtherEqualitySide(rwLit, rwTerm);
+  auto tord = _ord.compare(tgtTerm, other);
+  if (tord == Ordering::LESS) {
     return true;
   }
 
   if (_encompassing) {
     // under _encompassing, we know there are no other literals in rwCl
-    return !isRenamingOn(eqApplicator,eqLHS);
+    return !isRenamingOn(eqApplicator,eqLHS) ||
+      (_labeled && tord == Ordering::INCOMPARABLE && rwCl->number() > eqCl->number());
   }
 
   // return early to avoid creation of eqLitS
@@ -103,7 +78,7 @@ bool DemodulationHelper::isPremiseRedundant(Clause* rwCl, Literal* rwLit, TermLi
   // Hence we need to check if there are any literals
   // in rwCl greater than eqLitS.
   return rwCl->iterLits().any([rwLit,this,eqLitS](Literal* lit) {
-    return lit != rwLit && _ord->compare(eqLitS, lit)==Ordering::LESS;
+    return lit != rwLit && _ord.compare(eqLitS, lit)==Ordering::LESS;
   });
 }
 

@@ -323,6 +323,7 @@ public:
   Clause* simplify(Clause* cl) override;
 
   bool isPositive(Literal* lit);
+  bool isNegative(Literal* lit);
  
   bool is_of_form_xy(Literal* lit,  TermList& x);
   bool is_of_form_xfx(Literal* lit, TermList x, TermList& f);

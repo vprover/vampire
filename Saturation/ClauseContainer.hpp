@@ -216,7 +216,7 @@ protected:
   friend PassiveClauseContainer;
   void onLimitsUpdated(PassiveClauseContainer* limits);
 private:
-  DHMap<unsigned, Clause*> _clauses;
+  DHMap<unsigned, Clause*, FnvHash, IdentityHash> _clauses;
   // const Shell::Options& _opt;
 };
 

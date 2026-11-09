@@ -26,7 +26,6 @@
 #include "Lib/Metaiterators.hpp"
 #include "Kernel/BottomUpEvaluation.hpp"
 #include "Lib/Environment.hpp"
-#include "Kernel/Signature.hpp"
 #include "Kernel/TypedTermList.hpp"
 
 #if VDEBUG
@@ -56,9 +55,6 @@ struct VarSpec
 
   auto asTuple() const { return std::tie(_self, index); }
   IMPL_COMPARISONS_FROM_TUPLE(VarSpec)
-
-  unsigned defaultHash () const { return HashUtils::combine(_self.content(), index); }
-  unsigned defaultHash2() const { return HashUtils::combine(index, _self.content()); }
 };
 
 struct TermSpec {
@@ -69,7 +65,6 @@ struct TermSpec {
 
   auto asTuple() const -> decltype(auto) { return std::tie(term, index); }
   IMPL_COMPARISONS_FROM_TUPLE(TermSpec)
-  IMPL_HASH_FROM_TUPLE(TermSpec)
 
   TermList term;
   int index;
@@ -138,6 +133,7 @@ struct TermSpec {
   unsigned functor() const { return term.term()->functor(); }
 
   TermList toTerm(Kernel::RobSubstitution& s) const;
+  TermList toGluedTerm(Kernel::RobSubstitution& s) const;
 
 
   bool isSort() const
@@ -147,7 +143,7 @@ struct TermSpec {
   { 
     if (!isTerm()) return false;
     auto fun = env.signature->getFunction(functor());
-    auto op = fun->fnType();
+    auto op = fun->type();
     TermList res = op->result();
     return res.isVar() || res == AtomicSort::boolSort();
   }
@@ -199,6 +195,27 @@ struct TermSpec {
   }
 };
 
+// hash a VarSpec by combining the variable's content word with its bank index
+struct VarSpecHash {
+  static unsigned hash(VarSpec v) { return HashUtils::combine(v._self.content(), v.index); }
+};
+
+// secondary hash: the same two words the other way round
+struct VarSpecHash2 {
+  static unsigned hash(VarSpec v) { return HashUtils::combine(v.index, v._self.content()); }
+};
+
+// hash a TermSpec by its term and its bank index
+struct TermSpecHash {
+  static unsigned hash(TermSpec const& s)
+  { return TupleHash<TermListHash, FnvHash>::hash(s.asTuple()); }
+};
+
+struct TermSpecHash2 {
+  static unsigned hash(TermSpec const& s)
+  { return TupleHash<TermListHash2, IdentityHash>::hash(s.asTuple()); }
+};
+
 /** A wrapper around TermSpec that automatically dereferences the TermSpec with respect to some RobSubstition when 
  * used with BottomUpEvaluation.  This means for example if we evaluate some TermSpec * `g(X, Y)` in a context 
  * `{ X -> a, Y -> f(X) }` it behaves as if we would evaluate `g(a,f(a))`.  */
@@ -219,7 +236,7 @@ struct AutoDerefTermSpec
 template<class Result>
 class OnlyMemorizeNonVar 
 {
-  Map<TermSpec, Result> _memo;
+  Map<TermSpec, Result, TermSpecHash> _memo;
 public:
   OnlyMemorizeNonVar(OnlyMemorizeNonVar &&) = default;
   OnlyMemorizeNonVar& operator=(OnlyMemorizeNonVar &&) = default;
@@ -261,7 +278,6 @@ public:
   USE_ALLOCATOR(UnificationConstraint)
   auto asTuple() const -> decltype(auto) { return std::tie(_t1, _t2, _sort); }
   IMPL_COMPARISONS_FROM_TUPLE(UnificationConstraint);
-  IMPL_HASH_FROM_TUPLE(UnificationConstraint);
 
   UnificationConstraint(TermSpec t1, TermSpec t2, TermSpec sort)
   : _t1(std::move(t1)), _t2(std::move(t2)), _sort(std::move(sort))
@@ -271,6 +287,7 @@ public:
 
   TermSpec const& lhs() const { return _t1; }
   TermSpec const& rhs() const { return _t2; }
+  TermSpec const& sort() const { return _sort; }
 
   friend std::ostream& operator<<(std::ostream& out, UnificationConstraint const& self)
   { return out << self._t1 << " ?= " << self._t2; }
@@ -287,12 +304,12 @@ class RobSubstitution
   friend class AbstractingUnifier;
   friend class UnificationConstraint;
  
-  DHMap<VarSpec, TermSpec> _bindings;
-  mutable DHMap<VarSpec, unsigned> _outputVarBindings;
+  DHMap<VarSpec, TermSpec, VarSpecHash, VarSpecHash2> _bindings;
+  mutable DHMap<VarSpec, unsigned, VarSpecHash, VarSpecHash2> _outputVarBindings;
   mutable bool _startedBindingOutputVars;
   mutable unsigned _nextUnboundAvailable;
   mutable unsigned _nextGlueAvailable;
-  DHMap<TermSpec, unsigned> _gluedTerms;
+  DHMap<TermSpec, unsigned, TermSpecHash, TermSpecHash2> _gluedTerms;
   mutable OnlyMemorizeNonVar<TermList> _applyMemo;
 
 public:
@@ -338,6 +355,7 @@ public:
    * {x -> G0 + G1, G0 -> -f(y)/0, G1 -> f(y)/1}
    */
   VarSpec introGlueVar(TermSpec forTerm);
+  unsigned nextGlueVar() const { return _nextGlueAvailable; }
 
   /* TODO */
   TermSpec createTerm(unsigned functor)
@@ -403,6 +421,16 @@ public:
     _applyMemo.reset();
   }
   bool keepRecycled() const { return _bindings.keepRecycled() || _outputVarBindings.keepRecycled(); }
+  void copy(const RobSubstitution& other) {
+    reset();
+    _bindings.loadFromMap(other._bindings);
+    _outputVarBindings.loadFromMap(other._outputVarBindings);
+    _startedBindingOutputVars = other._startedBindingOutputVars;
+    _nextUnboundAvailable = other._nextUnboundAvailable;
+    _nextGlueAvailable = other._nextGlueAvailable;
+    _gluedTerms.loadFromMap(other._gluedTerms);
+    // we are probably ok without _applyMemo
+  }
 
   /**
    * Bind special variable to a specified term
@@ -420,6 +448,7 @@ public:
 
   TermList::Top getSpecialVarTop(unsigned specialVar, unsigned index) const;
   TermList apply(TermList t, int index) const;
+  TermList applyGlue(TermList t, int index);
   Literal* apply(Literal* lit, int index) const;
   TypedTermList apply(TypedTermList t, int index) const { return TypedTermList(apply(TermList(t), index), apply(t.sort(), index)); }
   Stack<Literal*> apply(Stack<Literal*> cl, int index) const;

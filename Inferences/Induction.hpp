@@ -114,11 +114,11 @@ public:
   const bool _squashSkolems;
   unsigned& _nextVar; // fresh variable counter supported by caller
 
-  DHMap<Term*, unsigned, SharedTermHash> _skolemToVarMap; // maps terms to their variable replacement
-  DHMap<unsigned,TermList> _varsReplacingSkolems;
+  DHMap<Term*, unsigned, SharedTermHash, PtrIdentityHash> _skolemToVarMap; // maps terms to their variable replacement
+  DHMap<unsigned,TermList, FnvHash, IdentityHash> _varsReplacingSkolems;
 
-  DHMap<unsigned,unsigned> _renaming; // for renaming free variables
-  DHSet<unsigned> _renamedFreeVars;
+  DHMap<unsigned,unsigned, FnvHash, IdentityHash> _renaming; // for renaming free variables
+  DHSet<unsigned, FnvHash, IdentityHash> _renamedFreeVars;
 };
 
 /**
@@ -291,17 +291,17 @@ class InductionClauseIterator
 public:
   // all the work happens in the constructor!
   InductionClauseIterator(Clause* premise, InductionHelper helper, const SaturationAlgorithm& salg,
-    TermIndex* structInductionTermIndex, InductionFormulaIndex& formulaIndex)
+    const StructInductionTermIndex* structInductionTermIndex, InductionFormulaIndex& formulaIndex)
       : _helper(helper), _opt(salg.getOptions()), _structInductionTermIndex(structInductionTermIndex),
       _formulaIndex(formulaIndex), _fnDefHandler(salg.getFunctionDefinitionHandler())
   {
     processClause(premise);
   }
 
-  DECL_ELEMENT_TYPE(Clause*);
+  using ElementType = Clause*;
 
   inline bool hasNext() { return _clauses.isNonEmpty(); }
-  inline OWN_ELEMENT_TYPE next() { 
+  inline ElementType next() { 
     return _clauses.pop();
   }
 
@@ -355,7 +355,7 @@ private:
   Stack<Clause*> _clauses;
   InductionHelper _helper;
   const Options& _opt;
-  TermIndex* _structInductionTermIndex;
+  const StructInductionTermIndex* _structInductionTermIndex;
   InductionFormulaIndex& _formulaIndex;
   FunctionDefinitionHandler& _fnDefHandler;
 };

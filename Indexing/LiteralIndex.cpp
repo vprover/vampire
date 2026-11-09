@@ -21,7 +21,6 @@
 #include "Kernel/MLVariant.hpp"
 #include "Kernel/Ordering.hpp"
 
-#include "LiteralIndexingStructure.hpp"
 #include "LiteralSubstitutionTree.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -103,14 +102,18 @@ void FSDLiteralIndex::handleClause(Clause* c, bool adding)
   }
 }
 
-void UnitClauseLiteralIndex::handleClause(Clause* c, bool adding)
+template<bool forGeneralizations>
+void UnitClauseLiteralIndex<forGeneralizations>::handleClause(Clause* c, bool adding)
 {
   if(c->length()==1) {
     TIME_TRACE("unit clause index maintenance");
-    
-    handle(LiteralClause{(*c)[0], c}, adding);
+
+    std::conditional_t<forGeneralizations, GeneralizingLiteralIndex, NonGeneralizingLiteralIndex>::handle(LiteralClause{(*c)[0], c}, adding);
   }
 }
+
+template class UnitClauseLiteralIndex<false>;
+template class UnitClauseLiteralIndex<true>;
 
 void UnitClauseWithALLiteralIndex::handleClause(Clause* c, bool adding)
 {
@@ -214,12 +217,12 @@ void RewriteRuleIndex::handleClause(Clause* c, bool adding)
     else {
       Clause* d;
       if(_counterparts.find(c->number(), d)) {
-	Literal* dgr=getGreater(d);
-	ASS(MatchingUtils::isVariant(greater, dgr, true))
-	handleEquivalence(c, greater, d, dgr, false);
+        Literal* dgr=getGreater(d);
+        ASS(MatchingUtils::isVariant(greater, dgr, true))
+        handleEquivalence(c, greater, d, dgr, false);
       }
       else {
-	_partialIndex.remove(LiteralClause{ greater, c });
+        _partialIndex.remove(LiteralClause{ greater, c });
       }
     }
   }
@@ -231,7 +234,7 @@ void RewriteRuleIndex::handleClause(Clause* c, bool adding)
         handle(LiteralClause{(*c)[0], c}, adding);
       }
       else {
-	ASS((*c)[1]->isPositive());
+        ASS((*c)[1]->isPositive());
         handle(LiteralClause{(*c)[1], c}, adding);
       }
       if(adding) {
@@ -332,7 +335,7 @@ void UnitIntegerComparisonLiteralIndex::handleClause(Clause* c, bool adding)
   Literal* lit = (*c)[0];
   ASS(lit != nullptr);
 
-  _is->handle(LiteralClause{ lit, c }, adding);
+  _is.handle(LiteralClause{ lit, c }, adding);
 }
 
 }

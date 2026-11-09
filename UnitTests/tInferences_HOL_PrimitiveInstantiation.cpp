@@ -25,9 +25,9 @@ using namespace Test;
   DECL_NOT_PROXY                                   \
   DECL_AND_PROXY                                   \
   DECL_OR_PROXY                                    \
-  DECL_EQ_PROXY(eqP)                               \
-  DECL_PI_PROXY(piP)                               \
-  DECL_SIGMA_PROXY(sgP)                            \
+  DECL_EQ_PROXY                                    \
+  DECL_PI_PROXY                                    \
+  DECL_SIGMA_PROXY                                 \
   DECL_VAR_SORTED(xs, 0, arrow(srt, Bool))         \
   DECL_VAR_SORTED(ys, 1, arrow(srt, srt))          \
   DECL_VAR_SORTED(zs, 2, arrow(srt, Bool))         \
@@ -147,7 +147,7 @@ TEST_GENERATION(success_6,
         clause({ ap(f1, {x,y}) == ap(lam(srt,troo),c) }),
         clause({ ap(f1, {x,y}) == ap(lam(srt,fols),c) }),
         clause({ ap(f1, {x,y}) == ap(lam(srt,ap(piP(z), ap(arrow({srt,z},Bool),u,db0))),c) }),
-        clause({ ap(f1, {x,y}) == ap(lam(srt,ap(sgP(z), ap(arrow({srt,z},Bool),u,db0))),c) })
+        clause({ ap(f1, {x,y}) == ap(lam(srt,ap(sigmaP(z), ap(arrow({srt,z},Bool),u,db0))),c) })
       ))
     )
 
@@ -186,7 +186,7 @@ TEST_GENERATION(success_9,
         clause({ ap(f1, {x,z}) == ap(lam(srt,ap(notP, ap(arrow(srt,Bool),u,db0))),c) }),
         clause({ ap(f1, {x,z}) == ap(lam(srt, ap(notP, ap(eqP(y), { ap(arrow(srt,y),u,db0), ap(arrow(srt,y),v,db0) }))),c) }),
         clause({ ap(f1, {x,z}) == ap(lam(srt,ap(piP(y), ap(arrow({srt,y},Bool),u,db0))),c) }),
-        clause({ ap(f1, {x,z}) == ap(lam(srt,ap(sgP(y), ap(arrow({srt,y},Bool),u,db0))),c) }),
+        clause({ ap(f1, {x,z}) == ap(lam(srt,ap(sigmaP(y), ap(arrow({srt,y},Bool),u,db0))),c) }),
         clause({ ap(f1, {x,z}) == ap(lam(srt,ap(andP, {ap(arrow(srt,Bool),u,db0), ap(arrow(srt,Bool),v,db0)})),c) }),
         clause({ ap(f1, {x,z}) == ap(lam(srt,ap(orP, {ap(arrow(srt,Bool),u,db0), ap(arrow(srt,Bool),v,db0)})),c) })
       ))

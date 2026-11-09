@@ -55,6 +55,27 @@ Rectify::VarWithUsageInfo Rectify::Renaming::getBoundAndUsage(unsigned var) cons
 }
 
 /**
+ * Assuming vars are (a non-empty list) free variables (occuring in) formula f, staged as a unit u.
+ * Creates the clore formula and a corresponding new unit documenting the CLOSURE inference.
+ * It hunts for the sorts of vars using SortHelper::collectVariableSorts.
+ */
+std::pair<Formula*,FormulaUnit*> Rectify::closeOverGivenVars(VList* vars, Formula* f, Unit* u)
+{
+  ASS(VList::isNonEmpty(vars))
+
+  DHMap<unsigned, TermList, FnvHash, IdentityHash> varSorts;
+  SortHelper::collectVariableSorts(f, varSorts);
+  VSList::FIFO vsfifo;
+  VList::Iterator vit(vars);
+  while (vit.hasNext()) {
+    unsigned v = vit.next();
+    vsfifo.pushBack({v, varSorts.get(v)});
+  }
+  f = new QuantifiedFormula(FORALL, vsfifo.list(), f);
+  return {f,new FormulaUnit(f,FormulaClauseTransformation(InferenceRule::CLOSURE,u))};
+}
+
+/**
  * Rectify the formula from this unit. If the input type of this unit
  * contains free variables, then ask Signature::sig to create an answer
  * atom.
@@ -81,15 +102,7 @@ FormulaUnit* Rectify::rectify (FormulaUnit* unit0, bool removeUnusedVars)
 
   // note that this only kicks in when rectifying formulas with free variables
   if (VList::isNonEmpty(vars)) {
-    DHMap<unsigned, TermList> varSorts;
-    SortHelper::collectVariableSorts(g, varSorts);
-    VSList::FIFO vsfifo;
-    VList::Iterator vit(vars);
-    while (vit.hasNext()) {
-      unsigned v = vit.next();
-      vsfifo.pushBack({v, varSorts.get(v)});
-    }
-    unit = new FormulaUnit(new QuantifiedFormula(FORALL, vsfifo.list(), g),FormulaClauseTransformation(InferenceRule::CLOSURE,unit));
+    std::tie(g,unit) = closeOverGivenVars(vars,g,unit);
   }
   return unit;
 } // Rectify::rectify (Unit& unit)
@@ -172,7 +185,7 @@ Term* Rectify::rectifySpecialTerm(Term* t)
     ASS_EQ(t->arity(),0);
 #if VDEBUG
     { // removing duplicates from LambdaVars would change its type, so better assert it never happens
-      DHSet<unsigned> seenVars;
+      DHSet<unsigned, FnvHash, IdentityHash> seenVars;
       VSList::Iterator dbgIt(sd->getLambdaVars());
       while (dbgIt.hasNext()) {
         ASS(seenVars.insert(dbgIt.next().first));
@@ -512,7 +525,7 @@ VSList* Rectify::rectifyBoundVars(VSList* vs)
 
   VSList* res = VSList::empty();
 
-  DHSet<int> seen;
+  DHSet<int, FnvHash, IdentityHash> seen;
   while (args.isNonEmpty()) {
     vs = args.pop();
 
