@@ -839,7 +839,8 @@ std::string Literal::toString(bool reverseEquality, bool mightNeedParens) const
   }
 
   if (env.signature->isDefPred(functor())) {
-    return StringUtils::addParens(termArg(0).toString() + " := " + termArg(1).toString(), mightNeedParens);
+    return StringUtils::addParens(termArg(0).toString(/*mightNeedParens=*/true) +
+      " := " + termArg(1).toString(/*mightNeedParens=*/true), mightNeedParens);
   }
 
 #if NICE_THEORY_OUTPUT
