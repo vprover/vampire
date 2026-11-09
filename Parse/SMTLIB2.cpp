@@ -33,7 +33,6 @@
 #include "Shell/AnswerLiteralManager.hpp"
 #include "Shell/LispLexer.hpp"
 #include "Shell/Options.hpp"
-#include "Shell/SMTLIBLogic.hpp"
 #include "Shell/TermAlgebra.hpp"
 
 #include "SMTLIB2.hpp"
@@ -63,12 +62,13 @@ using namespace std;
 
 static const char* PAR = "par";
 
-SMTLIB2::SMTLIB2(UnitList::FIFO formulaBuffer)
+SMTLIB2::SMTLIB2(UnitList::FIFO formulaBuffer, bool isVersion27)
 : _logicSet(false),
   _logic(SMTLIBLogic::UNDEFINED),
   _numeralsAreReal(false),
   _formulas(formulaBuffer),
-  _topLevelExpr(nullptr)
+  _topLevelExpr(nullptr),
+  _isVersion27(isVersion27)
 {
 }
 
@@ -617,6 +617,10 @@ SMTLIB2::TermSymbol SMTLIB2::getBuiltInTermSymbol(const std::string& str)
 
   int resInt = termSymbolNames.tryToFind(str.c_str());
   if(resInt==-1) {
+    return TS_USER_FUNCTION;
+  }
+  // SMTLIB 2.6 does not support lambdas, so users may define it
+  if (!_isVersion27 && static_cast<TermSymbol>(resInt) == TS_LAMBDA) {
     return TS_USER_FUNCTION;
   }
   return static_cast<TermSymbol>(resInt);
@@ -1744,7 +1748,7 @@ void SMTLIB2::parseQuantBegin(LExpr* exp)
 
   // the quant atom
   DEBUG_CODE(const std::string& theQuantAtom =) lRdr.readAtom();
-  ASS(theQuantAtom == FORALL || theQuantAtom == EXISTS || theQuantAtom == LAMBDA);
+  ASS(theQuantAtom == FORALL || theQuantAtom == EXISTS || (_isVersion27 && theQuantAtom == LAMBDA));
   _todo.push(make_pair(PO_QUANT,exp));
 
   // there should next be a list of sorted variables
@@ -2644,7 +2648,7 @@ SMTLIB2::ParseResult SMTLIB2::parseTermOrFormula(LExpr* body, bool isSort)
           if (fst->isAtom()) {
             std::string& id = fst->str;
 
-            if (id == FORALL || id == EXISTS || id == LAMBDA) {
+            if (id == FORALL || id == EXISTS || (_isVersion27 && id == LAMBDA)) {
               parseQuantBegin(exp);
               continue;
             }

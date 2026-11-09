@@ -48,7 +48,7 @@ private:
   static Stack<LoadedPiece> _loadedPieces;
 
   static void tryParseTPTP(std::istream& input, std::filesystem::path path);
-  static void tryParseSMTLIB2(std::istream& input);
+  static void tryParseSMTLIB2(std::istream& input, bool isVersion27);
 public:
   static void parseSingleLine(const std::string& lineToParse, Options::InputSyntax inputSyntax);
 

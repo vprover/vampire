@@ -23,6 +23,7 @@
 #include "Kernel/Term.hpp"
 
 #include "Shell/LispParser.hpp"
+#include "Shell/SMTLIBLogic.hpp"
 
 #define USER_ERROR_EXPR(msg) USER_ERROR(std::string(msg)+" in top-level expression '"+_topLevelExpr->toString()+"'")
 
@@ -44,7 +45,7 @@ public:
    *  (use this default behaviour if you do not want to collect formulas
    *  from multiple parser calls)
    */
-  SMTLIB2(UnitList::FIFO formulaBuffer = UnitList::FIFO());
+  SMTLIB2(UnitList::FIFO formulaBuffer, bool isVersion27);
 
   /** Parse from an open stream */
   void parse(std::istream& str);
@@ -199,7 +200,7 @@ private:
   /**
    * Lookup to see if std::string is a built-in TermSymbol.
    */
-  static TermSymbol getBuiltInTermSymbol(const std::string& str);
+  TermSymbol getBuiltInTermSymbol(const std::string& str);
 
   /**
    * Built-in types
@@ -567,6 +568,11 @@ private:
    * Saved for better error output.
    */
   LExpr* _topLevelExpr;
+
+  /**
+   * Stores whether using SMT-LIB 2.7 version (otherwise 2.6).
+   */
+  bool _isVersion27;
 
   /**
    * Toplevel parsing dispatch for a benchmark.

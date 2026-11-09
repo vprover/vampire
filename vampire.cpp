@@ -602,7 +602,7 @@ void interactiveMetamode()
       }
     } else if (line.rfind("smt2 ",0) == 0) {
       try {
-        UIHelper::parseSingleLine(line.substr(5),Options::InputSyntax::SMTLIB2);
+        UIHelper::parseSingleLine(line.substr(5),Options::InputSyntax::SMTLIB26); // TODO maybe do this with 2.7
         prb = UIHelper::getInputProblem();
       } catch (ParsingRelatedException& exception) {
         explainException(exception);

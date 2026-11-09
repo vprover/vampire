@@ -983,7 +983,7 @@ Options::Options ()
     "is replaced by C \\/ p(s) with the additional unit clause ~p(t) being added "
     "for fresh predicate p.",
        .tag = OptionTag::PREPROCESSING})
-  , _inputSyntax("input_syntax",this,InputSyntax::AUTO,{"smtlib2","tptp","auto"},
+  , _inputSyntax("input_syntax",this,InputSyntax::AUTO,{"smtlib26","smtlib27","tptp","auto"},
       {.description = "Input syntax. Historic input syntaxes have been removed as they are not actively maintained. Contact developers for help with these.",
        .tag = OptionTag::INPUT})
   , _instantiation("instantiation",this,false,
@@ -2800,7 +2800,7 @@ void Options::output (std::ostream& str) const
       "Supported options:\n\n"
       "\t--mode portfolio (execute a schedule of many different proof attempts)\n"
       "\t--schedule <schedule> (in portfolio mode, use the builtin <schedule>)\n"
-      "\t--input_syntax {tptp,smtlib2} (read TPTP or SMT-LIB 2.x input)\n"
+      "\t--input_syntax {tptp,smtlib26,smtlib27} (read TPTP or SMT-LIB 2.6/2.7 input)\n"
       "\t--proof tptp (use the TSTP proof format)\n"
       "\t--output_mode {smtcomp,ucore} (output only sat/unsat with an optional core)\n"
       "\t--time_limit <seconds> (limit Vampire's runtime)\n\n"

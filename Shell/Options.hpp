@@ -535,13 +535,10 @@ public:
    * @since 26/08/2009 Redmond
    */
   enum class InputSyntax : unsigned int {
-    SMTLIB2 = 0,
-    /** syntax of the TPTP prover */
-    TPTP = 1,
-    AUTO = 2
-    //HUMAN = 4,
-    //MPS = 5,
-    //NETLIB = 6
+    SMTLIB26,
+    SMTLIB27,
+    TPTP,
+    AUTO
   };
 
   /**

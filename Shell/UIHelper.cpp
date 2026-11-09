@@ -204,10 +204,10 @@ void UIHelper::tryParseTPTP(istream& input, std::filesystem::path path)
   }
 }
 
-void UIHelper::tryParseSMTLIB2(istream& input)
+void UIHelper::tryParseSMTLIB2(istream& input, bool isVersion27)
 {
   LoadedPiece& curPiece = _loadedPieces.top();
-  Parse::SMTLIB2 parser(curPiece._units);
+  Parse::SMTLIB2 parser(curPiece._units, isVersion27);
   try {
     parser.parse(input);
     Unit::onParsingEnd(); // dubious in interactiveMetamode (influences SMT goal guessing and InferenceStore::ProofPropertyPrinter)
@@ -242,8 +242,11 @@ void UIHelper::parseSingleLine(const std::string& lineToParse, Options::InputSyn
       case Options::InputSyntax::TPTP:
         tryParseTPTP(stream, "<string>");
         break;
-      case Options::InputSyntax::SMTLIB2:
-        tryParseSMTLIB2(stream);
+      case Options::InputSyntax::SMTLIB26:
+        tryParseSMTLIB2(stream, /*isVersion27=*/false);
+        break;
+      case Options::InputSyntax::SMTLIB27:
+        tryParseSMTLIB2(stream, /*isVersion27=*/true);
         break;
       case Options::InputSyntax::AUTO:
         ASSERTION_VIOLATION;
@@ -278,13 +281,18 @@ void UIHelper::parseStream(std::istream& input, std::filesystem::path path, Opti
     if (preferSMTonAuto){
       if (verbose) {
         addCommentSignForSZS(std::cout);
-        std::cout << "Running in auto input_syntax mode. Trying SMTLIB2\n";
+        std::cout << "Running in auto input_syntax mode. Trying SMTLIB2.6\n";
       }
       try {
-        tryParseSMTLIB2(input);
+        tryParseSMTLIB2(input, /*isVersion27=*/false);
       } catch (ParsingRelatedException& exception) {
-        resetParsing(exception,input,"TPTP");
-        tryParseTPTP(input, path);
+        resetParsing(exception,input,"SMTLIB2.7");
+        try {
+          tryParseSMTLIB2(input, /*isVersion27=*/true);
+        } catch (ParsingRelatedException& exception) {
+          resetParsing(exception,input,"TPTP");
+          tryParseTPTP(input, path);
+        }
       }
     } else {
       if (verbose) {
@@ -294,16 +302,24 @@ void UIHelper::parseStream(std::istream& input, std::filesystem::path path, Opti
       try {
         tryParseTPTP(input, path);
       } catch (ParsingRelatedException& exception) {
-        resetParsing(exception,input,"SMTLIB2");
-        tryParseSMTLIB2(input);
+        resetParsing(exception,input,"SMTLIB2.6");
+        try {
+          tryParseSMTLIB2(input, /*isVersion27=*/false);
+        } catch (ParsingRelatedException& exception) {
+          resetParsing(exception,input,"SMTLIB2.7");
+          tryParseSMTLIB2(input, /*isVersion27=*/true);
+        }
       }
     }
     break;
   case Options::InputSyntax::TPTP:
     tryParseTPTP(input, path);
     break;
-  case Options::InputSyntax::SMTLIB2:
-    tryParseSMTLIB2(input);
+  case Options::InputSyntax::SMTLIB26:
+    tryParseSMTLIB2(input, /*isVersion27=*/false);
+    break;
+  case Options::InputSyntax::SMTLIB27:
+    tryParseSMTLIB2(input, /*isVersion27=*/true);
     break;
   }
 }
