@@ -213,9 +213,9 @@ void preprocessMode(Problem* problem, bool theory)
       }
 
       FormulaUnit* fu = new FormulaUnit(f,u->inference()); // we are stealing u's inference which is not nice
-      std::cout << TPTPPrinter::toString(fu) << "\n";
+      std::cout << TPTPPrinter::unit(fu) << "\n";
     } else {
-      std::cout << TPTPPrinter::toString(u) << "\n";
+      std::cout << TPTPPrinter::unit(u) << "\n";
     }
   }
 
@@ -257,7 +257,7 @@ void outputMode(Problem* problem)
 
   while (units.hasNext()) {
     Unit* u = units.next();
-    std::cout << TPTPPrinter::toString(u) << "\n";
+    std::cout << TPTPPrinter::unit(u) << "\n";
   }
 
   //we have successfully output all clauses, so we'll terminate with zero return value
@@ -379,7 +379,7 @@ void clausifyMode(Problem* problem, bool theory)
 
   //outputSymbolDeclarations deals with sorts as well for now
   //UIHelper::outputSortDeclarations(std::cout);
-  UIHelper::outputSymbolDeclarations(std::cout);
+  UIHelper::outputSymbolDeclarations(std::cout,/*tcf=*/theory);
 
   ClauseIterator cit = prb->clauseIterator();
   bool printed_conjecture = false;
@@ -390,29 +390,17 @@ void clausifyMode(Problem* problem, bool theory)
       continue;
     }
     printed_conjecture |= cl->inputType() == UnitInputType::CONJECTURE || cl->inputType() == UnitInputType::NEGATED_CONJECTURE;
-    if (theory) {
-      Formula* f = Formula::fromClause(cl);
-
-      // CONJECTURE as inputType is evil, as it cannot occur multiple times
-      if (cl->inference().inputType() == UnitInputType::CONJECTURE) {
-        cl->inference().setInputType(UnitInputType::NEGATED_CONJECTURE);
-      }
-
-      FormulaUnit* fu = new FormulaUnit(f,cl->inference()); // we are stealing cl's inference, which is not nice!
-      fu->overwriteNumber(cl->number()); // we are also making sure it's number is the same as that of the original (for Kostya from Russia to CASC, with love, and back again)
-      std::cout << TPTPPrinter::toString(fu) << "\n";
-    } else {
-      std::cout << TPTPPrinter::toString(cl) << "\n";
-    }
+    // with theory, we print tcf(), i.e. the clause quantified with its variables' sorts
+    std::cout << TPTPPrinter::unit(cl, theory) << "\n";
   }
   if(!printed_conjecture && UIHelper::haveConjecture()){
-    unsigned p = env.signature->addFreshPredicate(0,"p");
+    unsigned p = env.signature->addFreshPredicate(0,"p")->number();
     auto c = Clause::fromLiterals({
         Literal::create(p, /* polarity */ true , {}),
         Literal::create(p, /* polarity */ false, {})
       }, 
-      NonspecificInference0(UnitInputType::NEGATED_CONJECTURE,InferenceRule::INPUT));
-    std::cout << TPTPPrinter::toString(c) << "\n";
+      FromInput(UnitInputType::NEGATED_CONJECTURE));
+    std::cout << TPTPPrinter::unit(c, theory) << "\n";
   }
 
   //we have successfully output all clauses, so we'll terminate with zero return value
@@ -444,7 +432,7 @@ void axiomSelectionMode(Problem* problem)
   UnitList::Iterator uit(prb->units());
   while (uit.hasNext()) {
     Unit* u = uit.next();
-    std::cout << TPTPPrinter::toString(u) << "\n";
+    std::cout << TPTPPrinter::unit(u) << "\n";
   }
 
   //we have successfully output the selected units, so we'll terminate with zero return value
@@ -680,13 +668,12 @@ int main(int argc, char* argv[])
       interactiveMetamode();
     } else {
       // can only happen after reading options as it relies on `env.options`
-      Timer::reinitialise(); // start our timer, so that we also limit parsing
-
+      // start our timer, so that we also limit parsing
 #if VAMPIRE_PERF_EXISTS
-      unsigned saveInstrLimit = env.options->instructionLimit();
-      if (env.options->parsingDoesNotCount()) {
-        env.options->setInstructionLimit(0);
-      }
+      // (with parsing_does_not_count, the instruction limit starts after parsing, see below)
+      Timer::reinitialise(true, !env.options->parsingDoesNotCount());
+#else
+      Timer::reinitialise();
 #endif
 
       if (opts.inputFile().empty()) {
@@ -704,7 +691,13 @@ int main(int argc, char* argv[])
         addCommentSignForSZS(std::cout);
         std::cout << "Instructions burned parsing: " << burnedParsing << " (million)" << endl;
 
-        env.options->setInstructionLimit(saveInstrLimit+burnedParsing);
+        // 0 means no limit, also after parsing
+        unsigned instrLimit = env.options->instructionLimit();
+        if (instrLimit) {
+          instrLimit += burnedParsing;
+          env.options->setInstructionLimit(instrLimit);
+        }
+        Timer::setInstructionLimit(instrLimit);
       }
 #endif
 

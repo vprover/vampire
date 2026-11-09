@@ -215,6 +215,43 @@ void check_eval(Lit orig_, Lit expected_) {
   NUM_TEST(Rat , name, formula, expected)                                                 \
   NUM_TEST(Real, name, formula, expected)                                                 \
 
+template<class NumTraits>
+void checkForcedNormalization()
+{
+  env.options->set("alasca", "off", /*longOpt*/ false);
+  env.options->set("evaluation", "force");
+  syntaxSugarGlobals().setNumTraits(NumTraits{});
+  DECL_DEFAULT_VARS
+  auto sort = SortSugar(NumTraits::sort());
+  DECL_PRED(p, {sort})
+  auto ord = KBO::testKBO();
+  PolynomialEvaluationRule rule(ord);
+
+  // Arithmetic rearrangement alone must reach a stable normal form in force mode.
+  auto check = [&](std::initializer_list<Lit> literals) {
+    Literal* normal = nullptr;
+    for (auto literal : literals) {
+      auto result = rule.asISE().simplify(clause({literal}));
+      ASS(result);
+      ASS_EQ(result->length(), 1);
+      if (normal) {
+        ASS_EQ((*result)[0], normal);
+      } else {
+        normal = (*result)[0];
+      }
+      ASS_EQ(rule.asISE().simplify(result), result);
+    }
+  };
+  auto add = FuncSugar(NumTraits::addF());
+  auto mul = FuncSugar(NumTraits::mulF());
+  check({ p(add(add(x,y),z)), p(add(x,add(y,z))), p(add(z,add(y,x))) });
+  check({ p(mul(mul(x,y),z)), p(mul(x,mul(y,z))), p(mul(z,mul(y,x))) });
+}
+
+TEST_FUN(force_normalizes_int) { checkForcedNormalization<IntTraits>(); }
+TEST_FUN(force_normalizes_rat) { checkForcedNormalization<RatTraits>(); }
+TEST_FUN(force_normalizes_real) { checkForcedNormalization<RealTraits>(); }
+
 /////////////////////////////////////////////// Test cases ///////////////////////////////////////////////////////
 
 ALL_NUMBERS_TEST(partial_eval_add_1,

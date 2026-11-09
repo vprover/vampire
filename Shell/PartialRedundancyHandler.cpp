@@ -14,6 +14,7 @@
 #include "Kernel/EqHelper.hpp"
 #include "Kernel/SortHelper.hpp"
 #include "Kernel/SubstHelper.hpp"
+#include "Kernel/TermOrderingDiagram.hpp"
 
 #include "Indexing/CodeTreeInterfaces.hpp"
 #include "Indexing/ResultSubstitution.hpp"
@@ -29,7 +30,7 @@ namespace Shell
 template<class T>
 bool checkVars(const TermStack& ts, T s)
 {
-  DHSet<TermList> vars;
+  DHSet<TermList, TermListHash, TermListHash2> vars;
   for (const auto& t : ts) {
     VariableIterator vit(t);
     while (vit.hasNext()) {
@@ -53,7 +54,6 @@ class PartialRedundancyHandler::ConstraintIndex
 public:
   ConstraintIndex(Clause* cl) : _varSorts()
   {
-    _clauseCodeTree=false;
 #if VDEBUG
     _cl = cl;
 #endif
@@ -91,7 +91,7 @@ private:
       Stack<CodeOp*> firstsInBlocks;
 
       FlatTerm* ft = FlatTerm::create(ts);
-      vm.init(ft, this, &firstsInBlocks);
+      vm.init(ft, *this, &firstsInBlocks);
 
       if (vm.execute()) {
         ASS(vm.op->isSuccess());
@@ -133,10 +133,10 @@ private:
 
     static SubstMatcher matcher;
     struct Applicator : public SubstApplicator {
-      TermList operator()(unsigned v) const override { return matcher.bindings[v]; }
+      TermList apply(unsigned v) const override { return matcher.bindings[v]; }
     } applicator;
 
-    matcher.init(this, ts);
+    matcher.init(*this, ts);
     EntryContainer* ec;
     while ((ec = matcher.next()))
     {
@@ -192,7 +192,7 @@ private:
   template<class Applicator>
   TermStack getInstances(Applicator applicator) const
   {
-    DHMap<unsigned,TermList>::Iterator vit(_varSorts);
+    DHMap<unsigned,TermList, FnvHash, IdentityHash>::Iterator vit(_varSorts);
     TermStack res;
     while (vit.hasNext()) {
       auto v = vit.nextKey();
@@ -201,7 +201,7 @@ private:
     return res;
   }
 
-  DHMap<unsigned,TermList> _varSorts;
+  DHMap<unsigned,TermList, FnvHash, IdentityHash> _varSorts;
 
   PartialRedundancyEntry* createEntry(const TermStack& ts, Splitter* splitter, OrderingConstraints&& ordCons, LiteralSet&& lits, SplitSet* splits) const
   {
@@ -245,12 +245,11 @@ private:
   }
 
   struct SubstMatcher
-  // TODO(HOL): consider turning higherOrder flag off for HOL
-  : public Matcher</*removing*/false,false,/*higherOrder=*/true>
+  : public Matcher</*removing*/false,/*checkRange=*/false>
   {
-    void init(CodeTree* tree, const TermStack& ts)
+    void init(const CodeTree& tree, const TermStack& ts)
     {
-      Matcher::init(tree,tree->getEntryPoint());
+      Matcher::init(tree,tree.getEntryPoint());
 
       ft = FlatTerm::create(ts);
 
@@ -281,11 +280,11 @@ private:
   };
 
   struct VariantMatcher
-  : public Matcher</*removing*/true,true,/*higherOrder=*/false>
+  : public Matcher</*removing*/true,/*checkRange=*/true>
   {
   public:
-    void init(FlatTerm* ft_, CodeTree* tree_, Stack<CodeOp*>* firstsInBlocks_) {
-      Matcher::init(tree_, tree_->getEntryPoint(), 0, 0, firstsInBlocks_);
+    void init(FlatTerm* ft_, const CodeTree& tree_, Stack<CodeOp*>* firstsInBlocks_) {
+      Matcher::init(tree_, tree_.getEntryPoint(), 0, 0, firstsInBlocks_);
       ft=ft_;
       tp=0;
       op=entry;
@@ -359,7 +358,7 @@ PartialRedundancyHandler::ConstraintIndex** PartialRedundancyHandler::getDataPtr
   return ptr;
 }
 
-DHMap<unsigned,typename PartialRedundancyHandler::ConstraintIndex*> PartialRedundancyHandler::clauseData;
+DHMap<unsigned,typename PartialRedundancyHandler::ConstraintIndex*, FnvHash, IdentityHash> PartialRedundancyHandler::clauseData;
 
 // PartialRedundancyHandlerImpl
 
@@ -524,7 +523,21 @@ bool PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::compareWithSupe
           return true;
         }
         // case 2.b.
-        return checkOrConstrainGreater(_ord->compare(other, tgtTermS), other, tgtTermS, cons);
+        auto tord = _ord->compare(other, tgtTermS);
+        if (_labeled) {
+          switch (tord) {
+            case Ordering::GREATER:
+              return true;
+            case Ordering::EQUAL:
+              return rwCl->number() > eqCl->number();
+            case Ordering::LESS:
+              return false;
+            case Ordering::INCOMPARABLE:
+              return rwCl->number() > eqCl->number() || checkOrConstrainGreater(tord, other, tgtTermS, cons);
+          }
+        } else {
+          return checkOrConstrainGreater(tord, other, tgtTermS, cons);
+        }
       }
       // case 2.c.
       if (!MatchingUtils::matchTerms(rwTerm, eqLHS)) {

@@ -25,6 +25,7 @@
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/Ordering.hpp"
 #include "Kernel/LiteralSelector.hpp"
+#include "Kernel/UnificationWithAbstraction.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -89,7 +90,9 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
   return pvi(premise->getSelectedLiteralIterator()
     .filter([](Literal* l)  {
       // equalities of arrow sort should be first dealt with by NegativeExtensionality
-      return l->isEquality() && l->isNegative() && (!funcExt || !l->eqArgSort().isArrowSort());
+      // equalities with a proxy symbol on either side should be dealt with in CNFOnTheFly
+      return l->isEquality() && l->isNegative() && (!funcExt || !l->eqArgSort().isArrowSort()) &&
+        (!l->eqArgSort().isBoolSort() || (!l->termArg(0).head().isProxy() && !l->termArg(1).head().isProxy()));
     })
     .flatMap([this,premise](Literal* lit) {
 
@@ -109,7 +112,7 @@ ClauseIterator EqualityResolution::generateClauses(Clause* premise)
         return ClauseIterator::getEmpty();
       }
 
-      return pvi(iterTraits(vi(new HOL::AbstractingWrapper(&unif, _salg.getOptions().higherOrderUnifDepth(), funcExt)))
+      return pvi(iterTraits(HOL::AbstractingWrapper::create(unif, _salg.getOptions().higherOrderUnifDepth(), funcExt))
         .map([this,premise,lit](AbstractingUnifier* unif) {
           return unifierToClause(premise, lit, unif, _salg.getOptions().literalMaximalityAftercheck() && _salg.getLiteralSelector().isBGComplete() ? &_salg.getOrdering() : nullptr);
         }));

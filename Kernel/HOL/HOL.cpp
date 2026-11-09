@@ -23,10 +23,7 @@ using Kernel::Term;
 static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& st);
 
 static std::string termToStr(TermList t, bool topLevel, IndexVarStack& st){
-  if (t.isVar())
-    return Term::variableToString(t);
-
-  return toStringAux(*t.term(), topLevel, st);
+  return t.isVar() ? Term::variableToString(t) : toStringAux(*t.term(), topLevel, st);
 }
 
 static bool findVar(unsigned index, const IndexVarStack & st, unsigned& var) {
@@ -39,12 +36,12 @@ static bool findVar(unsigned index, const IndexVarStack & st, unsigned& var) {
   return false;
 }
 
-static std::string lambdaToString(const Term::SpecialTermData* sd, bool pretty)
+static std::string lambdaToString(const Term::SpecialTermData* sd)
 {
   Kernel::VSList *vars = sd->getLambdaVars();
   TermList lambdaExp = sd->getLambdaExp();
 
-  std::string varList = pretty ? "" : "[";
+  std::string varList = "[";
 
   Kernel::VSList::Iterator vs(vars);
 
@@ -55,8 +52,8 @@ static std::string lambdaToString(const Term::SpecialTermData* sd, bool pretty)
     first = false;
     varList += Term::variableToString(v) + " : " + sort.toString();
   }
-  varList += pretty ? "" : "]";
-  std::string lambda = pretty ? "λ" : "^";
+  varList += "]";
+  std::string lambda = "^";
 
   return "(" + lambda + varList + " : (" + lambdaExp.toString() + "))";
 }
@@ -69,7 +66,6 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
   ASS(!term.isLiteral())
 
   auto printSetting = env.options->holPrinting();
-  bool pretty = printSetting == Options::HPrinting::PRETTY;
   bool printDB = printSetting == Options::HPrinting::DB_INDICES;
 
   std::string res;
@@ -78,9 +74,9 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
     const auto sd = term.getSpecialData();
 
     if (term.isFormula())
-      return sd->getFormula()->toString();
+      return sd->getFormula()->toString(topLevel);
     if (term.isLambda())
-      return lambdaToString(sd, pretty);
+      return lambdaToString(sd);
 
     // currently HOL doesn't support any other specials
     ASSERTION_VIOLATION
@@ -90,7 +86,7 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
     ASS(term.arity() == 2)
     auto arg1 = term.nthArgument(0);
     auto arg2 = term.nthArgument(1);
-    std::string arrow = pretty ? " → " : " > ";
+    std::string arrow = " > ";
     res += topLevel ? "" : "(";
     res += termToStr(*arg1, false, st) + arrow + termToStr(*arg2, true, st);
     res += topLevel ? "" : ")";
@@ -99,40 +95,25 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
 
   if (term.isSort()) {
     auto sort = static_cast<const AtomicSort*>(&term);
-    if (sort->isBoolSort() && pretty)
-      return "ο";
-    if (sort->functor() == Signature::DEFAULT_SORT_CON && pretty)
-      return "ι";
 
     // any non-arrow sort
-    res = sort->typeConName();
-    if (pretty && term.arity())
-      res += "⟨";
+    if (term.arity()) {
+      res += "(";
+    }
+    res += sort->typeConName();
     for (unsigned i = 0; i < term.arity(); i++) {
-      if (pretty && i != 0)
-        res += ", ";
-
-      if (!pretty)
-        res += " @ ";
-
-      res += termToStr(*term.nthArgument(i), pretty, st);
+      res += " @ " + termToStr(*term.nthArgument(i), false, st);
     }
 
-    if (pretty && term.arity() > 0)
-      res += "⟩";
+    if (term.arity())
+      res += ")";
     return res;
-  }
-
-  if (term.isPlaceholder()) {
-    return term.functionName() + "⟨" + term.nthArgument(0)->toString(true) + "⟩";
   }
 
   if (term.isLambdaTerm()) {
     unsigned v = st.size() ? st.top().second + 1 : 0;
-    std::string bvar = (pretty ? "y" : "Y") + Int::toString(v);
-    bvar = pretty ?
-                  bvar + " : " + termToStr(*term.nthArgument(0), true, st) :
-                  "[" + bvar + " : " + termToStr(*term.nthArgument(0), true, st) + "]";
+    std::string bvar = "Y" + Int::toString(v);
+    bvar = "[" + bvar + " : " + termToStr(*term.nthArgument(0), true, st) + "]";
     bvar = printDB ? "db" + Int::toString(v) + " : " + termToStr(*term.nthArgument(0), true, st) : bvar;
 
     IndexVarStack newSt(st);
@@ -141,20 +122,19 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
 
     newSt.push(std::make_pair(0, v));
 
-    std::string sep = pretty || printDB ? ". " : ": ";
-    std::string lambda = pretty ? "λ" : "^";
-    std::string lbrac = pretty ? "" : "(";
-    std::string rbrac = pretty ? "" : ")";
+    std::string sep = printDB ? ". " : ": ";
+    std::string lambda = "^";
+    std::string lbrac = "(";
+    std::string rbrac = ")";
 
-    res = "(" + lambda + bvar + sep +  lbrac + termToStr(*term.nthArgument(2), !pretty, newSt) + rbrac + ")";
-    return res;
+    return "(" + lambda + bvar + sep +  lbrac + termToStr(*term.nthArgument(2), true, newSt) + rbrac + ")";
   }
 
   auto dbOption = term.deBruijnIndex();
   if (dbOption.isSome() && !printDB) {
     auto db = dbOption.unwrap();
     if (unsigned var; findVar(db, st, var))
-      return (pretty ? "y" : "Y") + Int::toString(var);
+      return "Y" + Int::toString(var);
 
     // loose bound index
     return "db" + Int::toString(db);
@@ -167,32 +147,32 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
   if (head.isVar() || (head.deBruijnIndex().isSome() && !printDB) || head.isLambdaTerm() || head.term()->isSpecial())
     headStr = termToStr(head, false, st);
   else if (head.isChoice())
-    headStr = pretty ? "ε" : "@@+";
+    headStr = "@@+";
   else if (HOL::isTrue(head))
-    headStr = pretty ? "⊤" : "$true";
+    headStr = "$true";
   else if (HOL::isFalse(head))
-    headStr = pretty ? "⊥" : "$false";
+    headStr = "$false";
   else {
-    using ProxyEntry = std::tuple<Proxy, std::string_view, std::string_view>;
+    using ProxyEntry = std::pair<Proxy, std::string_view>;
 
     auto functorProxy = env.signature->getFunction(head.term()->functor())->proxy();
 
     static const std::initializer_list<ProxyEntry> proxySymbols = {
-      {Proxy::NOT,      "¬",  "~"   },
-      {Proxy::SIGMA,    "Σ",  "??"  },
-      {Proxy::PI,       "Π",  "!!"  },
-      {Proxy::AND,      "∧",  "&"   },
-      {Proxy::OR,       "∨",  "|"   },
-      {Proxy::XOR,      "⊕", "<~>" },
-      {Proxy::IMP,      "⇒", "=>"  },
-      {Proxy::IFF,      "≈",  "="   },
-      {Proxy::EQUALS,   "≈",  "="   }
+      {Proxy::NOT,      "~"   },
+      {Proxy::SIGMA,    "??"  },
+      {Proxy::PI,       "!!"  },
+      {Proxy::AND,      "&"   },
+      {Proxy::OR,       "|"   },
+      {Proxy::XOR,      "<~>" },
+      {Proxy::IMP,      "=>"  },
+      {Proxy::IFF,      "="   },
+      {Proxy::EQUALS,   "="   }
     };
 
     bool foundProxy = false;
-    for (const auto& [proxy, ifPretty, otherwise] : proxySymbols) {
+    for (const auto& [proxy, str] : proxySymbols) {
       if (proxy == functorProxy) {
-        headStr = pretty ? ifPretty : otherwise;
+        headStr = str;
         foundProxy = true;
         break;
       }
@@ -208,14 +188,9 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
   if (head.isTerm() && !head.isProxy(Proxy::EQUALS) && head.deBruijnIndex().isNone() &&
       !head.isLambdaTerm() && head.term()->arity() > 0) {
     auto t = head.term();
-    if (pretty)
-      headStr += "⟨";
     for (unsigned i = 0; i < t->arity(); ++i) {
-      headStr += pretty && i != 0 ? ", " : "";
-      headStr += !pretty ? " @ " : "";
-      headStr += termToStr(*t->nthArgument(i),pretty,st);
+      headStr += " @ " + termToStr(*t->nthArgument(i),false,st);
     }
-    if (pretty) headStr += "⟩";
   }
 
   if (!topLevel && hasArgs)
@@ -229,7 +204,7 @@ static std::string toStringAux(const Term& term, bool topLevel, IndexVarStack& s
       args.size() == 2) {
     res += termToStr(args[1], false, st) + " " + headStr + " " + termToStr(args[0], false, st);
   } else {
-    std::string app = pretty || head.isProxy(Proxy::NOT) ? " " : " @ ";
+    std::string app = head.isProxy(Proxy::NOT) ? " " : " @ ";
     res += headStr;
     while (!args.isEmpty()) {
       res += app + termToStr(args.pop(), false, st);
@@ -409,7 +384,7 @@ void HOL::normaliseLambdaPrefixes(TermList& t1, TermList& t2)
   auto etaExpand = [](TermList t, TermList sort, TermStack& sorts, unsigned n){
     TermStack sorts1; // sorts of new prefix
 
-    t = TermShifter::shift(t, n).first; // lift loose indices by n
+    t = TermShifter::shift(t, n); // lift loose indices by n
 
     for(int i = n - 1; i >= 0; i--) { // append De Bruijn indices
       ASS(sort.isArrowSort());

@@ -19,6 +19,9 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Signature.hpp"
 
+#include "Shell/TPTPPrinter.hpp"
+#include "Shell/UIHelper.hpp"
+
 #include "SymElOutput.hpp"
 
 namespace Saturation
@@ -141,7 +144,12 @@ void SymElOutput::outputSymbolElimination(Color eliminated, Clause* c)
     cname = "inv"+Int::toString(_symElNextClauseNumber);
   }
 
-  _printer.printAsClaim(cname, c);
+  if (!_declarationsPrinted) {
+    UIHelper::outputSymbolDeclarations(std::cout);
+    _declarationsPrinted = true;
+  }
+  std::cout << TPTPPrinter::namedUnit(c, cname, TPTPOutput::Role::CLAIM, /*typedClauses=*/true,
+      /*includeSplitLevels=*/true);
 
   _symElNextClauseNumber++;
 }
@@ -158,7 +166,7 @@ void SymElOutput::checkForPreprocessorSymbolElimination(Clause* cl)
 
   Color inputColor=COLOR_TRANSPARENT;
 
-  static DHMap<unsigned, Color> inputFormulaColors;
+  static DHMap<unsigned, Color, FnvHash, IdentityHash> inputFormulaColors;
   static Stack<Unit*> units;
   units.reset();
   units.push(cl);

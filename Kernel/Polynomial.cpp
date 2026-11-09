@@ -10,6 +10,7 @@
 
 #include "Kernel/Polynomial.hpp"
 #include "Kernel/PolynomialNormalizer.hpp"
+#include "Kernel/PolynomialBottomUpEvaluation.hpp"
 #include "Lib/Output.hpp"
 
 #define DEBUG(...) // DBG(__VA_ARGS__)
@@ -60,7 +61,7 @@ std::ostream& operator<<(std::ostream& out, const Kernel::FuncId& self)
   }
 }
 
-Signature::Symbol* FuncId::symbol() const 
+const Signature::Symbol* FuncId::symbol() const
 { return env.signature->getFunction(_num); }
 
 unsigned FuncId::id() const 

@@ -11,6 +11,7 @@
 #ifndef __TEST__MOCKED_SATURATION_ALGORITHM__
 #define __TEST__MOCKED_SATURATION_ALGORITHM__
 
+#include "Lib/Environment.hpp"
 #include "Saturation/Otter.hpp"
 
 namespace Test {

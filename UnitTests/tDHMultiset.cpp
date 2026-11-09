@@ -32,7 +32,7 @@ public:
 };
 
 //typedef DHMultiset<int, ConstHash, IdHash> MySet;
-typedef DHMultiset<int> MySet;
+typedef DHMultiset<int, FnvHash, IdentityHash> MySet;
 
 TEST_FUN(dhmultiset1)
 {

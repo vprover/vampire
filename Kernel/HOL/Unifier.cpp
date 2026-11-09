@@ -127,8 +127,8 @@ Option<Stack<UnificationNode*>> UnificationNode::solve()
     // TODO(HOL): if simplify is called, this should be unnecessary
     if (curr.rigidRigid()) {
       DEBUG("rigid-rigid ", curr._lhead, " ", curr._rhead);
-      if (_funcExt && curr._sort.isArrowSort()) {
-        DEBUG("extensionality with sort ", curr._sort);
+      if (curr.shouldAbstract(_funcExt)) {
+        DEBUG("abstracting");
         i++;
         continue;
       }
@@ -186,8 +186,8 @@ bool UnificationNode::simplify()
 
     if (curr.rigidRigid()) {
       DEBUG("rigid-rigid ", curr._lhead, " ", curr._rhead);
-      if (_funcExt && curr._sort.isArrowSort()) {
-        DEBUG("extensionality with sort ", curr._sort);
+      if (curr.shouldAbstract(_funcExt)) {
+        DEBUG("abstracting");
         i++;
         continue;
       }
@@ -249,15 +249,15 @@ Stack<UnificationNode::Constraint> UnificationNode::decompose(unsigned index, bo
 }
 
 
-AbstractingWrapper::AbstractingWrapper(AbstractingUnifier* unifier, unsigned hoUnifDepth, bool funcExt)
-  : _unifier(new AbstractingUnifier(unifier->_uwa)), _hoUnifDepth(hoUnifDepth)
+AbstractingWrapper::AbstractingWrapper(AbstractingUnifier& unifier, unsigned hoUnifDepth, bool funcExt)
+  : _unifier(new AbstractingUnifier(unifier._uwa)), _hoUnifDepth(hoUnifDepth)
 #if VDEBUG
   , _funcExt(funcExt)
 #endif
 {
-  _unifier->subs().copy(unifier->subs());
+  _unifier->subs().copy(unifier.subs());
   Stack<UnificationNode::Constraint> cons;
-  for (const auto c : unifier->constr().iter()) {
+  for (const auto c : unifier.constr().iter()) {
     cons.emplace(
       c.lhs().toGluedTerm(_unifier->subs()),
       c.rhs().toGluedTerm(_unifier->subs()),
@@ -331,7 +331,7 @@ AbstractingUnifier* AbstractingWrapper::next()
 
   _unifier->constr().reset();
   for (const auto& con : _next->_cons) {
-    ASS_REP(con.flexFlex() || con.flexRigid() || (_funcExt && con._sort.isArrowSort()), con);
+    ASS_REP(con.flexFlex() || con.flexRigid() || con.shouldAbstract(_funcExt), con);
     ASS_REP(!con._lhs.containsLooseDBIndex(), con);
     ASS_REP(!con._rhs.containsLooseDBIndex(), con);
     auto sortS = SubstHelper::apply(con._sort, _next->_subs);

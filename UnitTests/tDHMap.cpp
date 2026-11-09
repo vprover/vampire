@@ -11,7 +11,7 @@
 #include "Lib/DHMap.hpp"
 #include "Test/UnitTesting.hpp"
 
-typedef DHMap<unsigned, unsigned> MyMap;
+typedef DHMap<unsigned, unsigned, FnvHash, IdentityHash> MyMap;
 
 TEST_FUN(dhmap1)
 {

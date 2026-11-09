@@ -12,7 +12,6 @@
 #include "VIRAS.hpp"
 #include "Kernel/Inference.hpp"
 #include "Kernel/NumTraits.hpp"
-#include "Lib/Reflection.hpp"
 #include "Lib/Option.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
@@ -34,7 +33,7 @@ class IntoVampireIter {
 public:
   IntoVampireIter(VirasIter iter) : _iter(std::move(iter)), _next() {}
 
-  DECL_ELEMENT_TYPE(viras::iter::value_type<VirasIter>);
+  using ElementType = viras::iter::value_type<VirasIter>;
   void loadNext() {
     if (_next.isNone()) {
       _next = some(_iter.next());
@@ -79,8 +78,8 @@ template<class NumTraits>
 Option<SimplifyingGeneratingInference::ClauseGenerationResult> VirasQuantifierElimination::generateSimplify(NumTraits n, Clause* premise) {
   DEBUG(0, *premise)
   auto viras = viras::viras(VampireVirasConfig<NumTraits>{});
-  Recycled<DHSet<unsigned>> shieldedVars;
-  Recycled<DHSet<unsigned>> candidateVars;
+  Recycled<DHSet<unsigned, FnvHash, IdentityHash>> shieldedVars;
+  Recycled<DHSet<unsigned, FnvHash, IdentityHash>> candidateVars;
   Recycled<Stack<Literal*>> toElim;
   Recycled<Stack<Literal*>> otherLits;
   auto noteShielded = [&](Term* t) {
@@ -91,7 +90,7 @@ Option<SimplifyingGeneratingInference::ClauseGenerationResult> VirasQuantifierEl
     }
   };
 
-  Recycled<DHSet<unsigned>> topLevelVars;
+  Recycled<DHSet<unsigned, FnvHash, IdentityHash>> topLevelVars;
   for (auto l : premise->iterLits()) {
     Option<AlascaLiteral<NumTraits>> norm = _shared.norm().tryNormalizeInterpreted(l)
       .flatMap([](auto l) { return l.template as<AlascaLiteral<NumTraits>>().toOwned(); })

@@ -360,4 +360,69 @@ TEST_FUN(segfault02) {
   z3.solve();
 }
 
+
+namespace {
+template<class NumTraits>
+void checkEuclideanDivision(bool fractional)
+{
+  auto quotientE = FuncSugar(NumTraits::quotientEF());
+  auto remainderE = FuncSugar(NumTraits::remainderEF());
+  // Each row is {dividend, divisor, quotient, remainder}. Halving both
+  // operands leaves the quotient unchanged and halves the remainder.
+  const int cases[][4] = {
+    {7, 3, 2, 1}, {7, -3, -2, 1}, {-7, 3, -3, 2}, {-7, -3, 3, 2},
+    {1, 3, 0, 1}, {1, -3, 0, 1}, {-1, 3, -1, 2}, {-1, -3, 1, 2},
+    {6, 3, 2, 0}, {-6, -3, 2, 0}, {0, 3, 0, 0}, {0, -3, 0, 0}
+  };
+  for (const auto& row : cases) {
+    auto l = fractional ? frac(row[0], 2) : num(row[0]);
+    auto r = fractional ? frac(row[1], 2) : num(row[1]);
+    auto q = num(row[2]);
+    auto rem = fractional ? frac(row[3], 2) : num(row[3]);
+    checkStatus(Status::SATISFIABLE,
+                {quotientE(l, r) == q, remainderE(l, r) == rem});
+    checkStatus(Status::UNSATISFIABLE, {quotientE(l, r) != q});
+    checkStatus(Status::UNSATISFIABLE, {remainderE(l, r) != rem});
+  }
+}
+
+template<class NumTraits>
+void checkEuclideanDivisionByZero()
+{
+  auto quotientE = FuncSugar(NumTraits::quotientEF());
+  auto remainderE = FuncSugar(NumTraits::remainderEF());
+  // Zero-divisor results need not be integral or related to one another.
+  checkStatus(Status::SATISFIABLE,
+              {quotientE(num(1), num(0)) == frac(1, 2),
+               quotientE(num(2), num(0)) == frac(3, 2),
+               remainderE(num(1), num(0)) == num(5),
+               remainderE(num(2), num(0)) == num(-7)});
+}
+}
+
+TEST_FUN(solve__rat__euclidean_division) {
+  NUMBER_SUGAR(Rat)
+  checkEuclideanDivision<NumTraits>(true);
+}
+
+TEST_FUN(solve__real__euclidean_division) {
+  NUMBER_SUGAR(Real)
+  checkEuclideanDivision<NumTraits>(true);
+}
+
+TEST_FUN(solve__int__euclidean_division) {
+  NUMBER_SUGAR(Int)
+  checkEuclideanDivision<NumTraits>(false);
+}
+
+TEST_FUN(solve__rat__euclidean_division_by_zero) {
+  NUMBER_SUGAR(Rat)
+  checkEuclideanDivisionByZero<NumTraits>();
+}
+
+TEST_FUN(solve__real__euclidean_division_by_zero) {
+  NUMBER_SUGAR(Real)
+  checkEuclideanDivisionByZero<NumTraits>();
+}
+
 #endif // VZ3

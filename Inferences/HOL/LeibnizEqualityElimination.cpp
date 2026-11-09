@@ -12,6 +12,8 @@
  * Implements class LeibnizEqualityElimination.
  */
 
+#include "Debug/TimeProfiling.hpp"
+
 #include "Lib/Metaiterators.hpp"
 #include "Lib/VirtualIterator.hpp"
 
@@ -88,6 +90,7 @@ Clause* createConclusion(Clause* premise, Literal* newLit, Literal* posLit, Lite
 
 ClauseIterator LeibnizEqualityElimination::generateClauses(Clause* premise)
 {
+  TIME_TRACE("leibniz equality elimination");
   static TermStack args;
   TermList head;
 
@@ -157,7 +160,7 @@ afterLoop:
     clauses.push(createConclusion(premise, newLit, posLit, negLit, subst));
   }
 
-  return pvi(getUniquePersistentIterator(ClauseStack::Iterator(clauses)));
+  return pvi(getUniquePersistentIterator<UnitHash, UnitNumberHash>(ClauseStack::Iterator(clauses)));
 }
 
 }

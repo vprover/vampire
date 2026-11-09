@@ -134,12 +134,6 @@ TermList HOL::create::sigma(TermList sort) {
   return TermList(Term::create1(sigmaProxy, sort));
 }
 
-TermList HOL::create::placeholder(TermList sort) {
-  static const auto placeholder = env.signature->getPlaceholder();
-
-  return TermList(Term::create1(placeholder, sort));
-}
-
 Clause* HOL::create::choiceAxiom()
 {
   auto alpha = TermList::var(0);
@@ -173,31 +167,8 @@ Clause* HOL::create::functionalExtensionalityAxiom()
   return Clause::fromLiterals({
     Literal::createEquality(false, lhs, rhs, beta),
     Literal::createEquality(true, x, y, AtomicSort::arrowSort(alpha, beta))
-  }, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FUNCTIONAL_EXTENSIONALITY_AXIOM));
+  }, TheoryAxiom(InferenceRule::FUNCTIONAL_EXTENSIONALITY_AXIOM));
 }
-
-Term* HOL::create::lambda(unsigned numArgs, const unsigned* vars, const TermList* varSorts, TypedTermList body, TermList* resultExprSort) {
-  auto s = new (0, sizeof(Term::SpecialTermData)) Term;
-  s->makeSymbol(Term::toNormalFunctor(SpecialFunctor::LAMBDA), 0);
-
-  auto sp = s->getSpecialData();
-  sp->setLambdaExp(body.untyped());
-  sp->setLambdaExpSort(body.sort());
-
-  VSList* vsList = VSList::empty();
-  for (int i = numArgs - 1; i >= 0; i--) {
-    VSList::push({vars[i], varSorts[i]}, vsList);
-  }
-  sp->setLambdaVars(vsList);
-
-  auto lambdaSort = AtomicSort::arrowSort(numArgs, varSorts, body.sort());
-  sp->setLambdaSort(lambdaSort);
-  if (resultExprSort != nullptr)
-    *resultExprSort = lambdaSort;
-
-  return s;
-}
-
 
 TermList HOL::create::namelessLambda(TermList varSort, TermList termSort, TermList term) {
   ASS(varSort.isVar()  || varSort.term()->isSort());

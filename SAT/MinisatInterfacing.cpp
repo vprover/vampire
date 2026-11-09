@@ -180,7 +180,7 @@ SATClauseList* MinisatInterfacing<MinisatSolver>::minimizePremiseList(SATClauseL
 {
   MinisatSolver solver;
 
-  static DHMap<int,SATClause*> var2prem;
+  static DHMap<int,SATClause*, FnvHash, IdentityHash> var2prem;
   var2prem.reset();
 
   static vec<Lit> ass; // assumptions for the final call

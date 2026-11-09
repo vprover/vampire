@@ -18,6 +18,7 @@
 #include "Kernel/HOL/HOL.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/InferenceStore.hpp"
+#include "Kernel/Renaming.hpp"
 #include "Lib/Metaiterators.hpp"
 
 struct IncompleteFunction {
@@ -36,7 +37,7 @@ static Term *lgg(Term *left, Term *right) {
   // remaining parts of the term that should be created
   std::vector<IncompleteFunction> skeleton;
   // map from left-right pairs of subterms to their variables
-  DHMap<std::pair<TermList, TermList>, unsigned> substitution;
+  DHMap<std::pair<TermList, TermList>, unsigned, PairHash<TermListHash,TermListHash>, PairHash<TermListHash2,TermListHash2>> substitution;
 
   // fresh variable where necessary
   unsigned fresh = 0;
@@ -108,7 +109,7 @@ void DefinitionIntroduction<higherOrder>::introduceDefinitionFor(Term *t) {
     return;
 
   // compute domain and range sorts
-  DHMap<unsigned, TermList> domain_sorts;
+  DHMap<unsigned, TermList, FnvHash, IdentityHash> domain_sorts;
   TermList range_sort = SortHelper::getResultSort(t);
   SortHelper::collectVariableSorts(t, domain_sorts);
 
@@ -142,21 +143,16 @@ void DefinitionIntroduction<higherOrder>::introduceDefinitionFor(Term *t) {
 
   // create the equation
   unsigned functor;
-  OperatorType* type;
   if constexpr (higherOrder) {
-    functor = env.signature->addFreshFunction(type_arity, "sF");
     auto sort = AtomicSort::arrowSort(domain_sort_vector, sort_rename.apply(range_sort), /*fromTop=*/true);
-    type = OperatorType::getConstantsType(sort, type_arity);
+    functor = env.signature->addFreshFunction(OperatorType::getConstantsType(sort, type_arity), "sF")->number();
   } else {
-    functor = env.signature->addFreshFunction(type_arity + term_arity, "sF");
-    type = OperatorType::getFunctionType(
-      term_arity,
-      domain_sort_vector.begin(),
+    functor = env.signature->addFreshFunction(OperatorType::getFunctionType(
+      domain_sort_vector,
       sort_rename.apply(range_sort),
       type_arity
-    );
+    ), "sF")->number();
   }
-  env.signature->getFunction(functor)->setType(type);
   Term *def;
   if constexpr (higherOrder) {
     TermList head(Term::create(functor, type_arity, variables.data()));
@@ -179,7 +175,7 @@ void DefinitionIntroduction<higherOrder>::introduceDefinitionFor(Term *t) {
   }
 
   // record definition
-  InferenceStore::instance()->recordIntroducedSymbol(intro, SymbolType::FUNC, functor);
+  InferenceStore::instance()->recordIntroducedSymbol(intro, env.signature->getFunction(functor));
 
   _definitions.push_back(definition);
 }

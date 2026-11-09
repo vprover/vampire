@@ -26,7 +26,8 @@ namespace Timer {
   // 2. elapsed time (instructions) data should be live
   //
   // should be called exactly once per process as it internally spawns a std::thread
-  void reinitialise(bool tryInitInstructionLimiting=true);
+  // (with enforceInstructionLimit=false, no instruction limit until setInstructionLimit)
+  void reinitialise(bool tryInitInstructionLimiting=true, bool enforceInstructionLimit=true);
 
   // disables exit on resource out: call when a proof has been found!
   // permanently disabled per-process
@@ -45,12 +46,18 @@ namespace Timer {
   // instruction limiting stuff below - no-op if !VAMPIRE_PERF_EXISTS
   // whether instruction limiting succeeded
   bool instructionLimitingInPlace();
+  // change the enforced instruction limit (in millions, 0 for none)
+  void setInstructionLimit(unsigned limit);
   // elapsed instructions
   long elapsedMegaInstructions();
 
   // make sure that the instruction data is as up-to-date as possible
   // otherwise may be (slightly) stale
   void updateInstructionCount();
+
+  // exact instruction count, safe to call from any thread but costing a syscall;
+  // -1 when unavailable. For a cheap same-thread read see Lib/PerfInstructions.hpp
+  long long instructionCountAnyThread();
 };
 }
 

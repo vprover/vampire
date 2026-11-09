@@ -18,9 +18,13 @@
 
 #include "Forwards.hpp"
 
+#include "Lib/DArray.hpp"
+#include "Lib/DHSet.hpp"
+
 namespace Shell {
 
 using namespace Kernel;
+using namespace Lib;
 
 class GoalGuessing
 {
@@ -32,10 +36,20 @@ private:
   bool apply(FormulaUnit* fu);
   bool apply(Literal* lit);
 
+  void countPerUnitUsage(UnitList* units);
+  void collectFunctors(Unit* u);
+
   bool _lookInside;
   bool _checkTop;
   bool _checkSymbols;
   bool _checkPosition;
+
+  /** value of the gtg_limit option, read once in apply(Problem&) */
+  unsigned _limit;
+  /** for each function symbol, the number of units it occurs in */
+  DArray<unsigned> _perUnitUsageCount;
+  /** the function symbols of the unit currently being counted */
+  DHSet<unsigned, FnvHash, IdentityHash> _functorsInUnit;
 };
 
 };

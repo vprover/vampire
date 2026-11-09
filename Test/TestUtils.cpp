@@ -114,7 +114,7 @@ std::ostream& Pretty<Literal>::prettyPrint(std::ostream& out) const
 #undef NUM_CASE
       }
     }
-    Signature::Symbol* sym = env.signature->getPredicate(func);
+    const Signature::Symbol* sym = env.signature->getPredicate(func);
     out << sym->name();
     if (sym->arity() > 0) {
       out << "(" << pretty(*lit.nthArgument(0));

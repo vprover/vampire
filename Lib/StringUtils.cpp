@@ -25,24 +25,12 @@ using namespace std;
 
 std::string StringUtils::replaceChar(std::string str, char src, char target)
 {
-  size_t len=str.size();
-  static DArray<char> buf;
-  buf.ensure(len);
-
-  const char* sptr=str.c_str();
-  char* tptr=buf.array();
-
-  while(*sptr) {
-    if(*sptr==src) {
-      *tptr=target;
+  for (char& c : str) {
+    if (c == src) {
+      c = target;
     }
-    else {
-      *tptr=*sptr;
-    }
-    tptr++;
-    sptr++;
   }
-  return std::string(buf.array(), len);
+  return str;
 }
 
 void StringUtils::replaceAll(std::string& where, const std::string& from, const std::string& to)
@@ -63,16 +51,7 @@ void StringUtils::replaceAll(std::string& where, const std::string& from, const 
  */
 std::string StringUtils::sanitizeSuffix(std::string str)
 {
-  size_t len=str.size();
-  static DArray<char> buf;
-  buf.ensure(len);
-
-  const char* sptr=str.c_str();
-  char* tptr=buf.array();
-
-  while(*sptr) {
-    char c = *sptr;
-
+  for (char& c : str) {
     switch(c) {
     case '(':
     case ')':
@@ -86,17 +65,17 @@ std::string StringUtils::sanitizeSuffix(std::string str)
       break;
     default: break;
     }
-
-    *tptr = c;
-    tptr++;
-    sptr++;
   }
-  return std::string(buf.array(), len);
+  return str;
 }
 
 bool StringUtils::isPositiveInteger(std::string str)
 {
   size_t sz = str.size();
+
+  if (sz == 0) {
+    return false;
+  }
 
   if(str[0]=='0') {
     return sz==1;
@@ -112,6 +91,10 @@ bool StringUtils::isPositiveInteger(std::string str)
 bool StringUtils::isPositiveDecimal(std::string str)
 {
   size_t sz = str.size();
+
+  if (sz == 0) {
+    return false;
+  }
 
   size_t i = 0;
   if(str[0]=='0') {
@@ -180,7 +163,7 @@ bool StringUtils::readEquality(const char* str, char eqChar, std::string& lhs, s
 /**
  * If str doesn't contain equalities, false is returned and the content of pairs is undefined.
  */
-bool StringUtils::readEqualities(const char* str, char delimiter, char eqChar, DHMap<std::string,std::string>& pairs)
+bool StringUtils::readEqualities(const char* str, char delimiter, char eqChar, DHMap<std::string,std::string, FnvHash, LengthHash>& pairs)
 {
   static Stack<std::string> parts;
   parts.reset();
@@ -207,7 +190,7 @@ bool StringUtils::readEqualities(const char* str, char delimiter, char eqChar, D
  *
  * @author Giles
  */
-size_t StringUtils::distance(const std::string &s1, const std::string &s2)
+size_t StringUtils::distance(std::string_view s1, std::string_view s2)
 {
   const size_t m(s1.size());
   const size_t n(s2.size());
@@ -220,13 +203,13 @@ size_t StringUtils::distance(const std::string &s1, const std::string &s2)
   for( size_t k=0; k<=n; k++ ) costs[k] = k;
 
   size_t i = 0;
-  for ( std::string::const_iterator it1 = s1.begin(); it1 != s1.end(); ++it1, ++i )
+  for (auto it1 = s1.begin(); it1 != s1.end(); ++it1, ++i )
   {
     costs[0] = i+1;
     size_t corner = i;
 
     size_t j = 0;
-    for ( std::string::const_iterator it2 = s2.begin(); it2 != s2.end(); ++it2, ++j )
+    for (auto it2 = s2.begin(); it2 != s2.end(); ++it2, ++j )
     {
       size_t upper = costs[j+1];
       if( *it1 == *it2 ){costs[j+1] = corner;}

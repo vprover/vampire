@@ -22,9 +22,9 @@
 #include "Debug/Assertion.hpp"
 #include "Forwards.hpp"
 
+#include "Lib/FlexibleTail.hpp"
 #include "Lib/InverseLookup.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/Reflection.hpp"
 #include "Lib/Stack.hpp"
 
 #include "Unit.hpp"
@@ -44,18 +44,18 @@ using namespace Lib;
  * - Increase a relevant counter in the env.statistics object
  */
 class Clause
-  : public Unit
+  : public Unit, public FlexibleTail<Clause, Literal *>
 {
 private:
-  /** Should never be used, declared just to get rid of compiler warning */
-  ~Clause() { ASSERTION_VIOLATION; }
-  /** Should never be used, just that compiler requires it */
-  void operator delete(void* ptr) { ASSERTION_VIOLATION; }
+  /** Should never be used */
+  ~Clause() = delete;
+  /** Should never be used */
+  void operator delete(void* ptr) = delete;
 
   template<class VarIt>
-  void collectVars2(DHSet<unsigned>& acc);
+  void collectVars2(DHSet<unsigned, FnvHash, IdentityHash>& acc);
 public:
-  DECL_ELEMENT_TYPE(Literal*);
+  using ElementType = Literal*;
 
   /** Storage kind */
   enum Store {
@@ -122,10 +122,10 @@ public:
    * _literalPositions object is updated in call to the setSelected method).
    */
   Literal*& operator[] (int n)
-  { return _literals[n]; }
+  { return literals()[n]; }
   /** Return the (reference to) the nth literal */
   Literal*const& operator[] (int n) const
-  { return _literals[n]; }
+  { return literals()[n]; }
 
   /** Return the length (number of literals) */
   unsigned length() const { return _length; }
@@ -135,12 +135,13 @@ public:
   /** Return a pointer to the array of literals.
    * Caller should not manipulate literals, with the exception of
    * clause construction and literal selection. */
-  Literal** literals() { return _literals; }
+  Literal** literals() { return flexibleTail(); }
+  Literal *const *literals() const { return flexibleTail(); }
   // support use of clauses as an iterator
-  Literal **begin() { return _literals; }
-  Literal *const *begin() const { return _literals; }
-  Literal **end() { return _literals + _length; }
-  Literal *const *end() const { return _literals + _length; }
+  Literal **begin() { return literals(); }
+  Literal *const *begin() const { return literals(); }
+  Literal **end() { return literals() + _length; }
+  Literal *const *end() const { return literals() + _length; }
 
   /** True if the clause is empty */
   bool isEmpty() const { return _length == 0; }
@@ -257,7 +258,11 @@ public:
   bool isPropositional();
   bool isHorn();
 
+  /** the clause's variables, each reported exactly once (which costs a set and a
+   * materialised list -- prefer iterVars below when repetitions do no harm) */
   VirtualIterator<unsigned> getVariableIterator() const;
+  /** the clause's variable occurrences, i.e. lazily and with repetitions */
+  VirtualIterator<unsigned> iterVars() const;
 
   bool contains(Literal* lit);
 #if VDEBUG
@@ -328,7 +333,7 @@ public:
   unsigned splitWeight() const;
   unsigned getNumeralWeight() const;
 
-  void collectVars(DHSet<unsigned>& acc);
+  void collectVars(DHSet<unsigned, FnvHash, IdentityHash>& acc);
 
 
   unsigned varCnt();
@@ -375,15 +380,12 @@ protected:
   size_t _auxTimestamp = 0;
 
   /** a map that translates Literal* to its index in the clause */
-  InverseLookup<Literal>* _literalPositions = nullptr;
+  InverseLookup<Literal, FnvHash, PtrIdentityHash>* _literalPositions = nullptr;
 
   static size_t _auxCurrTimestamp;
 #if VDEBUG
   static bool _auxInUse;
 #endif
-
-  /** Array of literals of this unit */
-  Literal* _literals[1];
 }; // class Clause
 
 std::ostream& operator<<(std::ostream& out, Clause::Store const& clause);

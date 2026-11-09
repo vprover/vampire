@@ -18,7 +18,6 @@
 #include "Debug/Assertion.hpp"
 
 #include "Allocator.hpp"
-#include "Reflection.hpp"
 
 namespace Lib {
 
@@ -35,8 +34,7 @@ private:
 public:
   class Iterator;
 
-  DECL_ELEMENT_TYPE(C);
-  DECL_ITERATOR_TYPE(Iterator);
+  using ElementType = C;
 
   /**
    * Create a stack having initialCapacity.
@@ -288,7 +286,7 @@ public:
    */
   class Iterator {
   public:
-    DECL_ELEMENT_TYPE(C);
+    using ElementType = C;
     /** create an iterator for @b d */
     inline
     explicit Iterator (const Deque& d)
@@ -332,7 +330,7 @@ public:
    */
   class FrontToBackIterator {
   public:
-    DECL_ELEMENT_TYPE(C);
+    using ElementType = C;
     /** create an iterator for @b d */
     inline
     explicit FrontToBackIterator (Deque& d)
@@ -376,7 +374,7 @@ public:
    */
   class BackToFrontIterator {
   public:
-    DECL_ELEMENT_TYPE(C);
+    using ElementType = C;
     /** create an iterator for @b d */
     inline
     explicit BackToFrontIterator (Deque& d)

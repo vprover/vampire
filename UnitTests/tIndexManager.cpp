@@ -24,7 +24,7 @@ struct TestIndex : public Index
       ALWAYS(cls.remove(c->number()));
     }
   }
-  DHSet<unsigned> cls;
+  DHSet<unsigned, FnvHash, IdentityHash> cls;
 };
 
 GEN_INDEX_IMPL(TestIndex)

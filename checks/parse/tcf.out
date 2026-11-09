@@ -1,0 +1,23 @@
+tcf(type_def_5, type, colour: $tType).
+tcf(func_def_0, type, red: colour).
+tcf(func_def_1, type, green: colour).
+tcf(func_def_2, type, blue: colour).
+tcf(pred_def_1, type, paint: ($i * colour) > $o).
+tcf(only_two_colours,axiom,
+    ![X0 : colour,X1 : colour,X2 : colour] : ( X0 = X1 | X0 = X2 | X1 = X2 )).
+
+tcf(red_is_not_green,axiom,
+    ( red != green )).
+
+tcf(red_is_not_blue,axiom,
+    ( red != blue )).
+
+tcf(green_is_not_blue,axiom,
+    ( green != blue )).
+
+tcf(everything_is_blue,axiom,
+    ![X0 : $i] : ( paint(X0,blue) )).
+
+tcf(nothing_is_red,axiom,
+    ![X0 : $i] : ( ~paint(X0,red) )).
+

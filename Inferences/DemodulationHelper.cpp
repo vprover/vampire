@@ -22,9 +22,10 @@ namespace Inferences {
 
 using namespace Kernel;
 
-DemodulationHelper::DemodulationHelper(const Options& opts, const Ordering* ord)
+DemodulationHelper::DemodulationHelper(const Options& opts, const Ordering& ord)
 : _redundancyCheck(opts.demodulationRedundancyCheck() != Options::DemodulationRedundancyCheck::OFF),
-  _encompassing(opts.demodulationRedundancyCheck() == Options::DemodulationRedundancyCheck::ENCOMPASS),
+  _labeled(opts.demodulationRedundancyCheck() == Options::DemodulationRedundancyCheck::LABELED),
+  _encompassing(_labeled || opts.demodulationRedundancyCheck() == Options::DemodulationRedundancyCheck::ENCOMPASS),
   _ord(ord)
 {
 }
@@ -44,18 +45,20 @@ bool DemodulationHelper::redundancyCheckNeededForPremise(Clause* rwCl, Literal* 
 }
 
 bool DemodulationHelper::isPremiseRedundant(Clause* rwCl, Literal* rwLit, TermList rwTerm,
-  TermList tgtTerm, TermList eqLHS, const SubstApplicator* eqApplicator) const
+  TermList tgtTerm, Clause* eqCl, TermList eqLHS, const SubstApplicator* eqApplicator) const
 {
   ASS(redundancyCheckNeededForPremise(rwCl, rwLit, rwTerm));
 
   TermList other=EqHelper::getOtherEqualitySide(rwLit, rwTerm);
-  if (_ord->compare(tgtTerm, other) == Ordering::LESS) {
+  auto tord = _ord.compare(tgtTerm, other);
+  if (tord == Ordering::LESS) {
     return true;
   }
 
   if (_encompassing) {
     // under _encompassing, we know there are no other literals in rwCl
-    return !isRenamingOn(eqApplicator,eqLHS);
+    return !isRenamingOn(eqApplicator,eqLHS) ||
+      (_labeled && tord == Ordering::INCOMPARABLE && rwCl->number() > eqCl->number());
   }
 
   // return early to avoid creation of eqLitS
@@ -75,7 +78,7 @@ bool DemodulationHelper::isPremiseRedundant(Clause* rwCl, Literal* rwLit, TermLi
   // Hence we need to check if there are any literals
   // in rwCl greater than eqLitS.
   return rwCl->iterLits().any([rwLit,this,eqLitS](Literal* lit) {
-    return lit != rwLit && _ord->compare(eqLitS, lit)==Ordering::LESS;
+    return lit != rwLit && _ord.compare(eqLitS, lit)==Ordering::LESS;
   });
 }
 

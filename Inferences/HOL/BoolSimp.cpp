@@ -8,13 +8,14 @@
  * and in the source directory
  */
 
+#include "Debug/TimeProfiling.hpp"
+
 #include "Kernel/Clause.hpp"
+#include "Kernel/EqHelper.hpp"
 #include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Term.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/SortHelper.hpp"
-
-#include "Kernel/HOL/SubtermReplacer.hpp"
 
 #include "BoolSimp.hpp"
 
@@ -22,6 +23,7 @@ namespace Inferences {
 
 Clause* BoolSimp::simplify(Clause* premise)
 {
+  TIME_TRACE("boolean simplification");
   for (const auto& lit : *premise) {
     // Below should be safe. We can bool simplify a term that contains free indices
     for (const auto& st : iterTraits(NonVariableNonTypeIterator(lit))) {
@@ -33,9 +35,8 @@ Clause* BoolSimp::simplify(Clause* premise)
         continue;
       }
       RStack<Literal*> resLits;
-      SubtermReplacer replacer(TermList(st), simpSt, /*liftFree=*/false);
       for (const auto& curr : *premise) {
-        resLits->push(lit == curr ? replacer.transformLiteral(curr) : curr);
+        resLits->push(lit == curr ? EqHelper::replace(curr, TermList(st), simpSt) : curr);
       }
       return Clause::fromStack(*resLits, SimplifyingInference1(InferenceRule::BOOL_SIMP, premise));
     }

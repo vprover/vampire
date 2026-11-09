@@ -12,11 +12,14 @@
  * Implements class Timer.
  */
 
+#include <atomic>
 #include <iostream>
 #include <mutex>
 #include <thread>
 
+#include "Debug/TimeProfiling.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/PerfInstructions.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
 #include "System.hpp"
@@ -33,6 +36,7 @@ const auto TICK_INTERVAL = 1ms;
 #include <asm/unistd.h>
 #include <linux/perf_event.h>
 #include <sys/ioctl.h>
+#include <sys/mman.h>
 #include <unistd.h>
 
 const long long MEGA = 1 << 20;
@@ -40,6 +44,14 @@ const long long MEGA = 1 << 20;
 // static data for measuring instructions
 static int PERF_FD = -1; // the file descriptor we later read the info from
 static long long LAST_INSTRUCTION_COUNT_READ = -1;
+// the instruction limit timer_thread enforces, see Timer::setInstructionLimit
+static std::atomic<unsigned> INSTRUCTION_BUDGET{0};
+
+namespace Lib { namespace Timer {
+// The same event, mmap'd so that the main thread can read the counter with rdpmc
+// instead of a syscall; see Lib/PerfInstructions.hpp. Null when unavailable.
+perf_event_mmap_page *PERF_MMAP_PAGE = nullptr;
+}}
 
 // convenience wrapper around a syscall (cf. https://linux.die.net/man/2/perf_event_open )
 static long perf_event_open(struct perf_event_attr *hw_event, pid_t pid, int cpu, int group_fd, unsigned long flags)
@@ -79,6 +91,17 @@ static std::recursive_mutex EXIT_LOCK;
   // if we get this lock we can assume that the parent won't also try to exit
   EXIT_LOCK.lock();
 
+#if VTIME_PROFILING
+  // We are on timer_thread, and the main thread is still proving. Reporting below walks
+  // (and, in flatten(), rebuilds) the whole time trace, which the main thread mutates on
+  // every TIME_TRACE scope -- that raced badly enough to SIGSEGV about one run in five
+  // in a large sweep. Freezing the trace stops the main thread writing to it at all; the
+  // sleep gives a ScopedTimer that passed the flag check just before us time to finish
+  // appending its node.
+  TimeTrace::instance().setEnabled(false);
+  std::this_thread::sleep_for(TICK_INTERVAL);
+#endif
+
   env.statistics->terminationReason = REASON[whichLimit];
 
   // NB unsynchronised output:
@@ -101,7 +124,7 @@ static std::recursive_mutex EXIT_LOCK;
       std::cout << std::endl;
 
       if (szsOutputMode()) {
-        std::cout << STATUS[whichLimit] << (env.options ? env.options->problemName().c_str() : "unknown") << std::endl;
+        std::cout << STATUS[whichLimit] << (env.options ? env.options->problemName.c_str() : "unknown") << std::endl;
       }
     } else // the actual child
       if (env.statistics) {
@@ -109,25 +132,27 @@ static std::recursive_mutex EXIT_LOCK;
     }
   }
 
-  System::terminateImmediately(1);
+  System::flushAndTerminateImmediately(1);
 }
 
 static std::chrono::time_point<std::chrono::steady_clock> START_TIME;
 
+// The thread is detached and can outlive env.options during global cleanup,
+// so it must not read env.options: reinitialise passes in the limits instead.
 // TODO could maybe be more efficient if we special-case the no-instruction-limit case:
 // then, we could simply sleep until the time limit
-[[noreturn]] void timer_thread()
+[[noreturn]] void timer_thread(unsigned timeLimit, unsigned simulatedInstrLimit)
 {
-  unsigned limit = env.options->timeLimitInDeciseconds();
   while(true) {
-    if(limit && Timer::elapsedDeciseconds() >= limit) {
+    if(timeLimit && Timer::elapsedDeciseconds() >= timeLimit) {
       limitReached(TIME_LIMIT);
     }
 
 #if VAMPIRE_PERF_EXISTS
-    if(env.options->instructionLimit() || env.options->simulatedInstructionLimit()) {
+    unsigned instrLimit = INSTRUCTION_BUDGET.load(std::memory_order_relaxed);
+    if(instrLimit || simulatedInstrLimit) {
       Timer::updateInstructionCount();
-      if (env.options->instructionLimit() && LAST_INSTRUCTION_COUNT_READ >= MEGA*(long long)env.options->instructionLimit()) {
+      if (instrLimit && LAST_INSTRUCTION_COUNT_READ >= MEGA*(long long)instrLimit) {
         limitReached(INSTRUCTION_LIMIT);
       }
     }
@@ -142,7 +167,7 @@ static std::chrono::time_point<std::chrono::steady_clock> START_TIME;
 namespace Lib {
 namespace Timer {
 
-void reinitialise(bool tryInitInstructionLimiting) {
+void reinitialise(bool tryInitInstructionLimiting, bool enforceInstructionLimit) {
   // might (probably have) locked this in the parent process, release it for the child
   //
   // I am not sure of the semantics of placement-new for std::recursive_mutex,
@@ -184,11 +209,41 @@ void reinitialise(bool tryInitInstructionLimiting) {
     } else {
       ioctl(PERF_FD, PERF_EVENT_IOC_RESET, 0);
       ioctl(PERF_FD, PERF_EVENT_IOC_ENABLE, 0);
+
+      // Map the event's metadata page so that this thread can read the counter with
+      // rdpmc rather than a syscall (Lib/PerfInstructions.hpp). One page is enough:
+      // we want the metadata, not a sample ring buffer. Purely an optimisation, so
+      // a failure here is silent and simply leaves the fast path unavailable.
+      if (PERF_MMAP_PAGE) {
+        munmap(PERF_MMAP_PAGE, sysconf(_SC_PAGESIZE));
+        PERF_MMAP_PAGE = nullptr;
+      }
+      void *page = mmap(nullptr, sysconf(_SC_PAGESIZE), PROT_READ, MAP_SHARED, PERF_FD, 0);
+      if (page != MAP_FAILED) {
+        PERF_MMAP_PAGE = static_cast<perf_event_mmap_page *>(page);
+      }
     }
   }
 #endif
 
-  std::thread(timer_thread).detach();
+#if VTIME_PROFILING
+  // the counter exists only now, so [root] (entered at static-init time) needs its
+  // instruction reading set to the counter's origin
+  Shell::TimeTrace::instance().rebaseInstructionCounters();
+#endif
+
+  unsigned simulatedInstrLimit = 0;
+#if VAMPIRE_PERF_EXISTS
+  setInstructionLimit(enforceInstructionLimit ? env.options->instructionLimit() : 0);
+  simulatedInstrLimit = env.options->simulatedInstructionLimit();
+#endif
+  std::thread(timer_thread, env.options->timeLimitInDeciseconds(), simulatedInstrLimit).detach();
+}
+
+void setInstructionLimit(unsigned limit) {
+#if VAMPIRE_PERF_EXISTS
+  INSTRUCTION_BUDGET.store(limit, std::memory_order_relaxed);
+#endif
 }
 
 void disableLimitEnforcement() {
@@ -239,6 +294,27 @@ std::string msToSecondsString(int ms)
   return Int::toString(static_cast<float>(ms)/1000)+" s";
 }
 
+#if VAMPIRE_PERF_EXISTS
+/**
+ * Whether instructionCount() (Lib/PerfInstructions.hpp) can return a real count.
+ *
+ * Needs the mmap to have succeeded, the kernel to permit user-space reads
+ * (cap_user_rdpmc), and the PMU not to be multiplexing this event -- under
+ * multiplexing the kernel expects the count to be *scaled* by
+ * time_enabled/time_running, which turns it into an estimate and so destroys the
+ * determinism that is the whole point of counting instructions.
+ */
+bool instructionCountingAvailable()
+{
+  perf_event_mmap_page *pc = PERF_MMAP_PAGE;
+  return pc
+    && pc->cap_user_rdpmc
+    && pc->pmc_width > 0 && pc->pmc_width <= 64
+    && pc->time_enabled == pc->time_running
+    && instructionCount() >= 0;
+}
+#endif
+
 bool instructionLimitingInPlace()
 {
 #if VAMPIRE_PERF_EXISTS
@@ -254,6 +330,28 @@ long elapsedMegaInstructions() {
 #else
   return 0;
 #endif
+}
+
+/**
+ * The exact instruction count, readable from *any* thread.
+ *
+ * Unlike instructionCount() (Lib/PerfInstructions.hpp), which uses rdpmc and is
+ * therefore only valid on the thread the event is attached to, this goes through
+ * the file descriptor and so is safe for timer_thread. It costs a syscall
+ * (~560ns measured), so use it once, not per measurement.
+ *
+ * Returns -1 when instruction counting is unavailable.
+ */
+long long instructionCountAnyThread()
+{
+#if VAMPIRE_PERF_EXISTS
+  if (PERF_FD >= 0) {
+    long long value = -1;
+    if (read(PERF_FD, &value, sizeof(long long)) == sizeof(long long))
+      return value;
+  }
+#endif
+  return -1;
 }
 
 // called by the main process and timer_thread: should be thread-safe

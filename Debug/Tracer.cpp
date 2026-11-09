@@ -75,6 +75,12 @@ void Debug::Tracer::printStack() {
   else
     std::cout << "(use '--traceback on' to invoke a debugger and get a human-readable stack trace)\n";
 
+  // With no debugger attached and no handler installed (as under vtest), the default
+  // action for SIGTRAP is to terminate the process -- so anything still sitting in the
+  // stdout buffer is discarded. That silently swallows the whole assertion report
+  // whenever stdout is not a terminal (a pipe, as under ctest or CI, is fully buffered).
+  std::cout.flush();
+
   // usually causes debuggers to break here
   // if not under a debugger, ignored
   std::raise(SIGTRAP);

@@ -24,6 +24,8 @@
 #include "Kernel/Term.hpp"
 #include "Lib/ScopeGuard.hpp"
 #include "Saturation/SaturationAlgorithm.hpp"
+#include "Shell/TPTPPrinter.hpp"
+#include "Shell/UIHelper.hpp"
 #include <vector>
 
 using namespace Kernel;
@@ -91,7 +93,7 @@ bool ForwardSubsumptionDemodulation<higherOrder>::perform(Clause* cl, Clause*& r
     /**
      * Step 1: find candidate clauses for subsumption
      */
-    auto rit = _index->getGeneralizations(subsQueryLit, false, false);
+    auto rit = _index->getGeneralizations(subsQueryLit, false);
     while (rit.hasNext()) {
       auto res = rit.next();
       Clause* mcl = res.data->clause;  // left premise of FSD
@@ -354,7 +356,7 @@ bool ForwardSubsumptionDemodulation<higherOrder>::perform(Clause* cl, Clause*& r
           continue;
         }
 
-        static DHSet<TermList> attempted;  // Terms we already attempted to demodulate
+        static DHSet<TermList, TermListHash, TermListHash2> attempted;  // Terms we already attempted to demodulate
         attempted.reset();
 
         for (unsigned dli = 0; dli < cl->length(); ++dli) {
@@ -408,7 +410,7 @@ bool ForwardSubsumptionDemodulation<higherOrder>::perform(Clause* cl, Clause*& r
                 // There can be no unbound variables at this point;
                 // otherwise we would have excluded the LHS already
                 // in the ordering pre-check above
-                auto mclVarIt = mcl->getVariableIterator();  // includes vars in rhs
+                auto mclVarIt = mcl->iterVars();  // includes vars in rhs
                 while (mclVarIt.hasNext()) {
                   unsigned int var = mclVarIt.next();
                   ASS(binder.isBound(var));
@@ -600,11 +602,11 @@ isRedundant:
               std::cout << "\% eqLitS: " << binder.applyTo(eqLit)->toString() << "\n";
               std::cout << "\% dlit: " << dlit->toString() << "\n";
               std::cout << "\% numMatches+1: success at match #" << (numMatches+1) << "\n";
-              TPTPPrinter tptp;
+              UIHelper::outputSymbolDeclarations(std::cout);
               // NOTE: do not output the splitLevels here, because those will be set for replacement only later
-              tptp.printWithRole("side_premise_mcl", "hypothesis", mcl,   false);
-              tptp.printWithRole("main_premise_cl ", "hypothesis", cl,    false);
-              tptp.printWithRole("conclusion      ", "conjecture", replacement, false);
+              std::cout << TPTPPrinter::namedUnit(mcl, "side_premise_mcl", TPTPOutput::Role::HYPOTHESIS, /*typedClauses=*/true);
+              std::cout << TPTPPrinter::namedUnit(cl, "main_premise_cl ", TPTPOutput::Role::HYPOTHESIS, /*typedClauses=*/true);
+              std::cout << TPTPPrinter::namedUnit(replacement, "conclusion      ", TPTPOutput::Role::CONJECTURE, /*typedClauses=*/true);
               // TODO: Some problems (seems to be only the CSR category; it happens, e.g., in CSR104+4)
               //       use integer constants as sort $i but vampire parses them as $int when using tff.
               //       For these formulas we should use fof, then it works again.
