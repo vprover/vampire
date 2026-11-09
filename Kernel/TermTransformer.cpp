@@ -138,7 +138,7 @@ Term* TermTransformer::transform(Term* term)
       //here we assume, that stack is an array with
       //second topmost element as &top()-1, third at
       //&top()-2, etc...
-      TermList *argLst = &args.top() - (orig->arity() - 1);
+      TermList *argLst = args.end() - orig->arity();
       args.truncate(args.length() - orig->arity()); // potentially evil. Calls destructors on the truncated objects, which we are happily reading just below
       Term* newTrm;
       if(orig->isSort()){
@@ -206,7 +206,7 @@ Term* TermTransformer::transform(Term* term)
   //here we assume, that stack is an array with
   //second topmost element as &top()-1, third at
   //&top()-2, etc...
-  TermList* argLst = &args.top() - (term->arity() - 1);
+  TermList* argLst = args.end() - term->arity();
 
   if (term->isLiteral()) {
     Literal* lit = static_cast<Literal*>(term);
@@ -299,7 +299,7 @@ Term* BottomUpTermTransformer::transform(Term* term)
         //here we assume, that stack is an array with
         //second topmost element as &top()-1, third at
         //&top()-2, etc...
-        argLst=&args.top() - (orig->arity()-1);
+        argLst = args.end() - orig->arity();
 
         // cout << "args.length() - orig->arity() = " << args.length() - orig->arity() << endl;
         args.truncate(args.length() - orig->arity());
@@ -363,12 +363,7 @@ Term* BottomUpTermTransformer::transform(Term* term)
   //here we assume, that stack is an array with
   //second topmost element as &top()-1, third at
   //&top()-2, etc...
-#if VDEBUG
-  // don't touch args.top() in DEBUG mode if there are actually no arguments (empty stacks don't like it)
-  TermList* argLst= args.size() ? &args.top() - (term->arity() - 1) : nullptr;
-#else // in release, it's fine too, because Literal::create won't touch the pointer in the zero arity case
-  TermList* argLst=               &args.top() - (term->arity() - 1);
-#endif
+  TermList* argLst = args.end() - term->arity();
   if (term->isLiteral()) {
     return Literal::create(static_cast<Literal*>(term), argLst);
   }

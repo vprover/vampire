@@ -132,7 +132,9 @@ void FlatTerm::swapCommutativePredicateArguments()
   ASS_EQ((*this)[0]._number()|1, 1); //as for now, the only commutative predicate is equality
 
   ASS((*this)[1]._term()->isLiteral());
-  auto lit = static_cast<Literal*>((*this)[1]._term());
+  DEBUG_CODE(
+    auto lit = static_cast<Literal*>((*this)[1]._term());
+  )
   ASS(lit->isEquality());
 
   auto getLen = [this](size_t start) -> unsigned {
@@ -164,8 +166,10 @@ void FlatTerm::swapCommutativePredicateArguments()
     memcpy(&_data[firstStart], buf.array(), secLen*sizeof(Entry));
   }
 
-  DEBUG_CODE(auto sort = SortHelper::getEqualityArgumentSort(lit);
-  secLen += sort.isVar() ? 1 : getEntryCount</*mightBeLiteral=*/false>(sort.term());)
+  DEBUG_CODE(
+    auto sort = SortHelper::getEqualityArgumentSort(lit);
+    secLen += sort.isVar() ? 1 : getEntryCount</*mightBeLiteral=*/false>(sort.term());
+  )
   ASS_EQ(secStart+secLen,_length);
 }
 

@@ -25,24 +25,12 @@ using namespace std;
 
 std::string StringUtils::replaceChar(std::string str, char src, char target)
 {
-  size_t len=str.size();
-  static DArray<char> buf;
-  buf.ensure(len);
-
-  const char* sptr=str.c_str();
-  char* tptr=buf.array();
-
-  while(*sptr) {
-    if(*sptr==src) {
-      *tptr=target;
+  for (char& c : str) {
+    if (c == src) {
+      c = target;
     }
-    else {
-      *tptr=*sptr;
-    }
-    tptr++;
-    sptr++;
   }
-  return std::string(buf.array(), len);
+  return str;
 }
 
 void StringUtils::replaceAll(std::string& where, const std::string& from, const std::string& to)
@@ -63,16 +51,7 @@ void StringUtils::replaceAll(std::string& where, const std::string& from, const 
  */
 std::string StringUtils::sanitizeSuffix(std::string str)
 {
-  size_t len=str.size();
-  static DArray<char> buf;
-  buf.ensure(len);
-
-  const char* sptr=str.c_str();
-  char* tptr=buf.array();
-
-  while(*sptr) {
-    char c = *sptr;
-
+  for (char& c : str) {
     switch(c) {
     case '(':
     case ')':
@@ -86,17 +65,17 @@ std::string StringUtils::sanitizeSuffix(std::string str)
       break;
     default: break;
     }
-
-    *tptr = c;
-    tptr++;
-    sptr++;
   }
-  return std::string(buf.array(), len);
+  return str;
 }
 
 bool StringUtils::isPositiveInteger(std::string str)
 {
   size_t sz = str.size();
+
+  if (sz == 0) {
+    return false;
+  }
 
   if(str[0]=='0') {
     return sz==1;
@@ -112,6 +91,10 @@ bool StringUtils::isPositiveInteger(std::string str)
 bool StringUtils::isPositiveDecimal(std::string str)
 {
   size_t sz = str.size();
+
+  if (sz == 0) {
+    return false;
+  }
 
   size_t i = 0;
   if(str[0]=='0') {

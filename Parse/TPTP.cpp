@@ -3393,22 +3393,18 @@ void TPTP::midEquality()
  */
 Literal* TPTP::createEquality(bool polarity,TermList& lhs,TermList& rhs)
 {
-  TermList masterVar;
   TermList sort;
-  if (!SortHelper::getResultSortOrMasterVariable(lhs, sort, masterVar)) {
-    // Master variable is a variable whose sort determines the sort of a term.
-    // If term is a variable, the master variable is the variable itself. The
-    // trickier case is when we have an if-then-else expression with variable
-    // arguments.
+  if (lhs.isVar()) {
     SList* vs;
-    if (_variableSorts.find(masterVar.var(),vs) && vs) {
+    if (_variableSorts.find(lhs.var(),vs) && vs) {
       sort = vs->head();
     }
     else { // this may happen when free variables appear in the formula (or clause)
       sort = AtomicSort::defaultSort();
     }
+  } else {
+    sort = SortHelper::getResultSort(lhs.term());
   }
-   
   return Literal::createEquality(polarity,lhs,rhs,sort);
 } // TPTP::createEquality
 
@@ -5155,26 +5151,18 @@ unsigned TPTP::addOverloadedPredicate(std::string name,int arity,int symbolArity
  */
 TermList TPTP::sortOf(TermList t)
 {
-  for (;;) {
-    if (t.isVar()) {
-      SList* sorts;
-      if (_variableSorts.find(t.var(),sorts) && SList::isNonEmpty(sorts)) {
-        return sorts->head();
-      }
-      // there might be variables whose sort is undeclared,
-      // in this case they have the default sort
-      TermList def = AtomicSort::defaultSort();
-      bindVariable(t.var(), def);
-      return def;
+  if (t.isVar()) {
+    SList* sorts;
+    if (_variableSorts.find(t.var(),sorts) && SList::isNonEmpty(sorts)) {
+      return sorts->head();
     }
-    TermList sort;
-    TermList mvar;
-    if (SortHelper::getResultSortOrMasterVariable(t.term(), sort, mvar)) { //TODO update
-      return sort;
-    } else {
-      t = mvar;
-    }
+    // there might be variables whose sort is undeclared,
+    // in this case they have the default sort
+    TermList def = AtomicSort::defaultSort();
+    bindVariable(t.var(), def);
+    return def;
   }
+  return SortHelper::getResultSort(t.term());
 } // sortOf
 
 
