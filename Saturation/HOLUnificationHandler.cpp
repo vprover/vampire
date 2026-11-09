@@ -47,10 +47,9 @@ void HOLUnificationHandler::handleClause(Clause* cl, bool adding)
   ASS(cl->length());
   ASS(cl->numSelected());
 
-  for (unsigned i = 0; i < cl->numSelected(); i++) {
+  for (const auto& lit : cl->getSelectedLiteralIterator()) {
 
     // check if definition
-    auto lit = (*cl)[i];
     if (lit->isPositive()) {
       continue;
     }
@@ -73,11 +72,11 @@ void HOLUnificationHandler::handleClause(Clause* cl, bool adding)
 
     if (adding) {
       if (*ptr == 0) {
-        for (unsigned i = 0; i < _frozen.size(); i++) {
-          if (fn != _frozen[i]._fn) {
+        for (unsigned j = 0; j < _frozen.size(); j++) {
+          if (fn != _frozen[j]._fn) {
             continue;
           }
-          _todo.push(_frozen.swapRemove(i));
+          _todo.push(_frozen.swapRemove(j));
           break;
           // TODO maybe check here that there is exactly one such Unifier object
         }
@@ -85,11 +84,11 @@ void HOLUnificationHandler::handleClause(Clause* cl, bool adding)
       (*ptr)++;
     } else {
       if (*ptr == 1) {
-        for (unsigned i = 0; i < _todo.size(); i++) {
-          if (fn != _todo[i]._fn) {
+        for (unsigned j = 0; j < _todo.size(); j++) {
+          if (fn != _todo[j]._fn) {
             continue;
           }
-          _frozen.push(_todo.swapRemove(i));
+          _frozen.push(_todo.swapRemove(j));
           break;
           // TODO maybe check here that there is exactly one such Unifier object
         }
@@ -163,11 +162,7 @@ ClauseStack HOLUnificationHandler::iterate(bool& terminated)
     }
 
     if (solution.isNonEmpty()) {
-      // if (solution.size()==1 && solution[0]->isNegative()) {
-      //   res.push(Clause::fromStack(solution, NonspecificInference0(UnitInputType::AXIOM, InferenceRule::STRUCT_INDUCTION_AXIOM_ONE)));
-      // } else {
-        res.push(Clause::fromStack(solution, NonspecificInference0(UnitInputType::AXIOM, InferenceRule::HOL_UNIFIER_SOLUTION)));
-      // }
+      res.push(Clause::fromStack(solution, NonspecificInference0(UnitInputType::AXIOM, InferenceRule::HOL_UNIFIER_SOLUTION)));
     }
   }
   terminated = _todo.isEmpty();
