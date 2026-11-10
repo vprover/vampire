@@ -210,8 +210,7 @@ public:
   /** set the content manually - hazardous, such terms should then only be used as integers */
   void setContent(uint64_t content) { _content = content; }
 
-  // TODO this default value is probably the reason we get too many parentheses everywhere
-  std::string toString(bool topLevel = false) const;
+  std::string toString(bool mightNeedParens = false) const;
 
   friend std::ostream& operator<<(std::ostream& out, Kernel::TermList const& tl);
   /** make the term into an ordinary variable with a given number */
@@ -510,7 +509,7 @@ public:
 
   SpecialFunctor specialFunctor() const 
   { return toSpecialFunctor(functor()); }
-  std::string toString(bool topLevel = true) const;
+  std::string toString(bool mightNeedParens = false) const;
   friend std::ostream& operator<<(std::ostream& out, Kernel::Term const& tl);
   static std::string variableToString(unsigned var);
   static std::string variableToString(TermList var);
@@ -921,7 +920,7 @@ public:
   }
 
 protected:
-  std::string prefixToString() const;
+  std::string prefixToString(bool mightNeedParens) const;
 
   unsigned computeDistinctVars() const;
 
@@ -1293,7 +1292,7 @@ public:
   bool isAnswerLiteral() const;
 
   friend std::ostream& operator<<(std::ostream& out, Kernel::Literal const& tl);
-  std::string toString(bool reverseEquality = false) const;
+  std::string toString(bool reverseEquality = false, bool mightNeedParens = false) const;
 
   const std::string& predicateName() const;
 

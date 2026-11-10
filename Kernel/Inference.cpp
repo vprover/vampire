@@ -538,7 +538,7 @@ std::string Kernel::inputTypeName(UnitInputType type)
 }
 
 /**
- * Return the rule name, such as "binary resolution".
+ * Return the rule name, such as "binary_resolution".
  * @since 04/01/2008 Torrevieja
  */
 std::string Kernel::ruleName(InferenceRule rule)
@@ -547,21 +547,21 @@ std::string Kernel::ruleName(InferenceRule rule)
   case InferenceRule::INPUT:
     return "input";
   case InferenceRule::CONJECTURE_NEGATION:
-    return "conjecture negation";
+    return "conjecture_negation";
   case InferenceRule::ANSWER_LITERAL_INJECTION:
-    return "answer literal injection";
+    return "answer_literal_injection";
   case InferenceRule::ANSWER_LITERAL_RESOLVER:
-    return "answer literal resolver";
+    return "answer_literal_resolver";
   case InferenceRule::ANSWER_LITERAL_INPUT_SKOLEMISATION:
-    return "answer literal with input var skolemisation";
+    return "answer_literal_with_input_var_skolemisation";
   case InferenceRule::ANSWER_LITERAL_REMOVAL:
-    return "answer literal removal";
+    return "answer_literal_removal";
   case InferenceRule::ANSWER_LITERAL_JOIN_WITH_CONSTRAINTS:
-    return "answer literal join with constraints";
+    return "answer_literal_join_with_constraints";
   case InferenceRule::ANSWER_LITERAL_JOIN_AS_ITE:
-    return "answer literal if-then-else";
+    return "answer_literal_if_then_else";
   case InferenceRule::AVATAR_ASSERTION_REINTRODUCTION:
-    return "avatar assertion reintroduction";
+    return "avatar_assertion_reintroduction";
   case InferenceRule::RECTIFY:
     return "rectify";
   case InferenceRule::CLOSURE:
@@ -569,418 +569,414 @@ std::string Kernel::ruleName(InferenceRule rule)
   case InferenceRule::FLATTEN:
     return "flattening";
   case InferenceRule::FOOL_ELIMINATION:
-    return "fool elimination";
+    return "fool_elimination";
   case InferenceRule::FOOL_ITE_DEFINITION:
-    return "fool ite definition";
+    return "fool_ite_definition";
   case InferenceRule::FOOL_LET_DEFINITION:
-    return "fool let definition";
+    return "fool_let_definition";
   case InferenceRule::FOOL_FORMULA_DEFINITION:
-    return "fool formula definition";
+    return "fool_formula_definition";
   case InferenceRule::FOOL_MATCH_DEFINITION:
-    return "fool match definition";
+    return "fool_match_definition";
   case InferenceRule::FOOL_PARAMODULATION:
-    return "fool paramodulation";
+    return "fool_paramodulation";
   case InferenceRule::REORDER_LITERALS:
-    return "literal reordering";
+    return "literal_reordering";
   case InferenceRule::ENNF:
-    return "ennf transformation";
+    return "ennf_transformation";
   case InferenceRule::NNF:
-    return "nnf transformation";
+    return "nnf_transformation";
   case InferenceRule::CLAUSIFY:
-    return "cnf transformation";
+    return "cnf_transformation";
   case InferenceRule::REORIENT_EQUATIONS:
-    return "reorient equations";
+    return "reorient_equations";
   case InferenceRule::FORMULIFY:
     return "formulify";
   case InferenceRule::REMOVE_DUPLICATE_LITERALS:
-    return "duplicate literal removal";
+    return "duplicate_literal_removal";
   case InferenceRule::SKOLEMIZE:
     return "skolemize";
   case InferenceRule::SKOLEM_SYMBOL_INTRODUCTION:
-    return "skolem symbol introduction";
+    return "skolem_symbol_introduction";
   case InferenceRule::RESOLUTION:
     return "resolution";
   case InferenceRule::CONSTRAINED_RESOLUTION:
-    return "constrained resolution";
+    return "constrained_resolution";
   case InferenceRule::EQUALITY_PROXY_REPLACEMENT:
-    return "equality proxy replacement";
+    return "equality_proxy_replacement";
   case InferenceRule::EQUALITY_PROXY_DEFINITION:
-    return "equality proxy definition";
+    return "equality_proxy_definition";
   case InferenceRule::EQUALITY_PROXY_AXIOM:
-    return "equality proxy axiom";
+    return "equality_proxy_axiom";
   case InferenceRule::ALASCA_INTEGRALITY_AXIOM:
-    return "alasca integrality axiom";
+    return "alasca_integrality_axiom";
   case InferenceRule::EXTENSIONALITY_RESOLUTION:
-    return "extensionality resolution";
+    return "extensionality_resolution";
   case InferenceRule::DEFINITION_UNFOLDING:
-    return "definition unfolding";
+    return "definition_unfolding";
   case InferenceRule::DEFINITION_FOLDING:
-    return "definition folding";
+    return "definition_folding";
   case InferenceRule::FUNCTION_DEFINITION:
-    return "function definition";
+    return "function_definition";
   case InferenceRule::PREDICATE_DEFINITION:
-    return "predicate definition introduction";
+    return "predicate_definition_introduction";
   case InferenceRule::PREDICATE_DEFINITION_UNFOLDING:
-    return "predicate definition unfolding";
+    return "predicate_definition_unfolding";
   case InferenceRule::PREDICATE_DEFINITION_MERGING:
-    return "predicate definition merging";
-
+    return "predicate_definition_merging";
   case InferenceRule::REDUCE_FALSE_TRUE:
-    return "true and false elimination";
-
+    return "true_and_false_elimination";
   case InferenceRule::TRIVIAL_INEQUALITY_REMOVAL:
-    return "trivial inequality removal";
+    return "trivial_inequality_removal";
   case InferenceRule::FACTORING:
     return "factoring";
   case InferenceRule::CONSTRAINED_FACTORING:
-    return "constrained factoring";
+    return "constrained_factoring";
   case InferenceRule::FORWARD_SUBSUMPTION_RESOLUTION:
-    return "forward subsumption resolution";
+    return "forward_subsumption_resolution";
   case InferenceRule::BACKWARD_SUBSUMPTION_RESOLUTION:
-    return "backward subsumption resolution";
+    return "backward_subsumption_resolution";
   case InferenceRule::SUBSUMPTION_EQUALITY_RESOLUTION:
-    return "subsumption equality resolution";
+    return "subsumption_equality_resolution";
   case InferenceRule::SUPERPOSITION:
     return "superposition";
   case InferenceRule::FUNCTION_DEFINITION_REWRITING:
-    return "function definition rewriting";
+    return "function_definition_rewriting";
   case InferenceRule::FUNCTION_DEFINITION_DEMODULATION:
-    return "function definition demodulation";
+    return "function_definition_demodulation";
   case InferenceRule::CONSTRAINED_SUPERPOSITION:
-    return "constrained superposition";
+    return "constrained_superposition";
   case InferenceRule::EQUALITY_FACTORING:
-    return "equality factoring";
+    return "equality_factoring";
   case InferenceRule::EQUALITY_RESOLUTION:
   case InferenceRule::EQUALITY_RESOLUTION_WITH_DELETION:
-    return "equality resolution";
+    return "equality_resolution";
   case InferenceRule::FORWARD_DEMODULATION:
-    return "forward demodulation";
+    return "forward_demodulation";
   case InferenceRule::BACKWARD_DEMODULATION:
-    return "backward demodulation";
+    return "backward_demodulation";
   case InferenceRule::FORWARD_SUBSUMPTION_DEMODULATION:
-    return "forward subsumption demodulation";
+    return "forward_subsumption_demodulation";
   case InferenceRule::BACKWARD_SUBSUMPTION_DEMODULATION:
-    return "backward subsumption demodulation";
+    return "backward_subsumption_demodulation";
   case InferenceRule::FORWARD_LITERAL_REWRITING:
-    return "forward literal rewriting";
+    return "forward_literal_rewriting";
   case InferenceRule::INNER_REWRITING:
-    return "inner rewriting";
+    return "inner_rewriting";
   case InferenceRule::CONDENSATION:
     return "condensation";
   case InferenceRule::ALASCA_INTEGER_TRANSFORMATION:
-    return "alasca integer transformation";
+    return "alasca_integer_transformation";
   case InferenceRule::THEORY_NORMALIZATION:
-    return "theory normalization";
+    return "theory_normalization";
   case InferenceRule::POLARITY_FLIPPING:
-    return "consistent polarity flipping";
+    return "consistent_polarity_flipping";
   case InferenceRule::EVALUATION:
     return "evaluation";
   case InferenceRule::CANCELLATION:
     return "cancellation";
   case InferenceRule::INTERPRETED_SIMPLIFICATION:
-    return "interpreted simplification";
+    return "interpreted_simplification";
   case InferenceRule::UNUSED_PREDICATE_DEFINITION_REMOVAL:
-    return "unused predicate definition removal";
+    return "unused_predicate_definition_removal";
   case InferenceRule::PURE_PREDICATE_REMOVAL:
-    return "pure predicate removal";
+    return "pure_predicate_removal";
   case InferenceRule::PREDICATE_ELIMINATION:
-    return "predicate elimination";
+    return "predicate_elimination";
   case InferenceRule::INEQUALITY_SPLITTING:
-    return "inequality splitting";
+    return "inequality_splitting";
   case InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION:
-    return "inequality splitting name introduction";
+    return "inequality_splitting_name_introduction";
   case InferenceRule::DISTINCTNESS_AXIOM:
-    return "distinctness axiom";
+    return "distinctness_axiom";
   case InferenceRule::DISTINCT_EXPANSION:
-    return "distinct expansion";
+    return "distinct_expansion";
   case InferenceRule::THEORY_TAUTOLOGY_SAT_CONFLICT:
-    return "theory tautology sat conflict";
+    return "theory_tautology_sat_conflict";
   case InferenceRule::THA_COMMUTATIVITY:
-    return "tha commutativity";
+    return "tha_commutativity";
   case InferenceRule::THA_ASSOCIATIVITY:
-    return "tha associativity";
+    return "tha_associativity";
   case InferenceRule::THA_RIGHT_IDENTITY:
-    return "tha right identity";
+    return "tha_right_identity";
   case InferenceRule::THA_LEFT_IDENTITY:
-    return "tha left identity";
+    return "tha_left_identity";
   case InferenceRule::THA_INVERSE_OP_OP_INVERSES:
-    return "tha inverse op op inverses";
+    return "tha_inverse_op_op_inverses";
   case InferenceRule::THA_INVERSE_OP_UNIT:
-    return "tha inverse op unit";
+    return "tha_inverse_op_unit";
   case InferenceRule::THA_INVERSE_ASSOC:
-    return "tha inverse associativity";
+    return "tha_inverse_associativity";
   case InferenceRule::THA_NONREFLEX:
-    return "tha non-reflexivity";
+    return "tha_non_reflexivity";
   case InferenceRule::THA_TRANSITIVITY:
-    return "tha transitivity";
+    return "tha_transitivity";
   case InferenceRule::THA_ORDER_TOTALITY:
-    return "tha order totality";
+    return "tha_order_totality";
   case InferenceRule::THA_ORDER_MONOTONICITY:
-    return "tha order monotonicity";
+    return "tha_order_monotonicity";
   case InferenceRule::THA_ALASCA:
-    return "tha alasca";
+    return "tha_alasca";
   case InferenceRule::THA_PLUS_ONE_GREATER:
-    return "tha plus one greater";
+    return "tha_plus_one_greater";
   case InferenceRule::THA_ORDER_PLUS_ONE_DICHOTOMY:
-    return "tha order plus one dichotomy";
+    return "tha_order_plus_one_dichotomy";
   case InferenceRule::THA_MINUS_MINUS_X:
-    return "tha minus minus x";
+    return "tha_minus_minus_x";
   case InferenceRule::THA_TIMES_ZERO:
-    return "tha times zero";
+    return "tha_times_zero";
   case InferenceRule::THA_DISTRIBUTIVITY:
-    return "tha distributivity";
+    return "tha_distributivity";
   case InferenceRule::THA_DIVISIBILITY:
-    return "tha divisibility";
+    return "tha_divisibility";
   case InferenceRule::THA_MODULO_MULTIPLY:
-    return "tha modulo multiply";
+    return "tha_modulo_multiply";
   case InferenceRule::THA_MODULO_POSITIVE:
-    return "tha modulo positive";
+    return "tha_modulo_positive";
   case InferenceRule::THA_MODULO_SMALL:
-    return "tha modulo small";
+    return "tha_modulo_small";
   case InferenceRule::THA_DIVIDES_MULTIPLY:
-    return "tha divides multiply";
+    return "tha_divides_multiply";
   case InferenceRule::THA_NONDIVIDES_SKOLEM:
-    return "tha nondivides skolem";
+    return "tha_nondivides_skolem";
   case InferenceRule::THA_ABS_EQUALS:
-    return "tha abs equals";
+    return "tha_abs_equals";
   case InferenceRule::THA_ABS_MINUS_EQUALS:
-    return "tha abs minus equals";
+    return "tha_abs_minus_equals";
   case InferenceRule::THA_QUOTIENT_NON_ZERO:
-    return "tha quotient non-zero";
+    return "tha_quotient_non_zero";
   case InferenceRule::THA_QUOTIENT_MULTIPLY:
-    return "tha quotient multiply";
+    return "tha_quotient_multiply";
   case InferenceRule::THA_EXTRA_INTEGER_ORDERING:
-    return "tha extra integer ordering";
+    return "tha_extra_integer_ordering";
   case InferenceRule::THA_FLOOR_SMALL:
-    return "tha floor small";
+    return "tha_floor_small";
   case InferenceRule::THA_FLOOR_BIG:
-    return "tha floor big";
+    return "tha_floor_big";
   case InferenceRule::THA_CEILING_BIG:
-    return "tha ceiling big";
+    return "tha_ceiling_big";
   case InferenceRule::THA_CEILING_SMALL:
-    return "tha ceiling small";
+    return "tha_ceiling_small";
   case InferenceRule::THA_TRUNC1:
-    return "tha trunc1";
+    return "tha_trunc1";
   case InferenceRule::THA_TRUNC2:
-    return "tha trunc2";
+    return "tha_trunc2";
   case InferenceRule::THA_TRUNC3:
-    return "tha trunc3";
+    return "tha_trunc3";
   case InferenceRule::THA_TRUNC4:
-    return "tha trunc4";
+    return "tha_trunc4";
   case InferenceRule::THA_ARRAY_EXTENSIONALITY:
-    return "tha array extensionality";
+    return "tha_array_extensionality";
   case InferenceRule::THA_BOOLEAN_ARRAY_EXTENSIONALITY:
-    return "tha boolen array extensionality";
+    return "tha_boolen_array_extensionality";
   case InferenceRule::THA_BOOLEAN_ARRAY_WRITE1:
-    return "tha boolean array write1";
+    return "tha_boolean_array_write1";
   case InferenceRule::THA_BOOLEAN_ARRAY_WRITE2:
-    return "tha boolean array write2";
+    return "tha_boolean_array_write2";
   case InferenceRule::THA_ARRAY_WRITE1:
-    return "tha array write1";
+    return "tha_array_write1";
   case InferenceRule::THA_ARRAY_WRITE2:
-    return "tha array write2";
+    return "tha_array_write2";
   case InferenceRule::TERM_ALGEBRA_ACYCLICITY_AXIOM:
-    return "term algebras acyclicity axiom";
+    return "term_algebras_acyclicity_axiom";
   case InferenceRule::TERM_ALGEBRA_DISCRIMINATION_AXIOM:
-    return "term algebras discriminators axiom";
+    return "term_algebras_discriminators_axiom";
   case InferenceRule::TERM_ALGEBRA_DISTINCTNESS_AXIOM:
-    return "term algebras distinctness axiom";
+    return "term_algebras_distinctness_axiom";
   case InferenceRule::TERM_ALGEBRA_EXHAUSTIVENESS_AXIOM:
-    return "term algebras exhaustiveness axiom";
+    return "term_algebras_exhaustiveness_axiom";
   case InferenceRule::TERM_ALGEBRA_INJECTIVITY_AXIOM:
-    return "term algebras injectivity axiom";
+    return "term_algebras_injectivity_axiom";
   case InferenceRule::FOOL_AXIOM_TRUE_NEQ_FALSE:
-    return "fool distinctness axiom";
+    return "fool_distinctness_axiom";
   case InferenceRule::FOOL_AXIOM_ALL_IS_TRUE_OR_FALSE:
-    return "fool exhaustiveness axiom";
+    return "fool_exhaustiveness_axiom";
   case InferenceRule::TERM_ALGEBRA_ACYCLICITY:
-    return "term algebras acyclicity";
+    return "term_algebras_acyclicity";
   case InferenceRule::TERM_ALGEBRA_DISTINCTNESS:
-    return "term algebras distinctness";
+    return "term_algebras_distinctness";
   case InferenceRule::TERM_ALGEBRA_INJECTIVITY_GENERATING:
-    return "term algebras injectivity (generating)";
+    return "term_algebras_injectivity_generating";
   case InferenceRule::TERM_ALGEBRA_POSITIVE_INJECTIVITY_SIMPLIFYING:
-    return "term algebras positive injectivity (simplifying)";
+    return "term_algebras_positive_injectivity_simplifying";
   case InferenceRule::TERM_ALGEBRA_NEGATIVE_INJECTIVITY_SIMPLIFYING:
-    return "term algebras negative injectivity (simplifying)";
+    return "term_algebras_negative_injectivity_simplifying";
   case InferenceRule::THEORY_FLATTENING:
-    return "theory flattening";
+    return "theory_flattening";
   case InferenceRule::BOOLEAN_TERM_ENCODING:
-    return "boolean term encoding";
+    return "boolean_term_encoding";
   case InferenceRule::AVATAR_DEFINITION:
-    return "avatar definition";
+    return "avatar_definition";
   case InferenceRule::AVATAR_COMPONENT:
-    return "avatar component clause";
+    return "avatar_component_clause";
   case InferenceRule::AVATAR_REFUTATION:
-    return "avatar sat refutation";
+    return "avatar_sat_refutation";
   case InferenceRule::AVATAR_REFUTATION_SMT:
-    return "avatar smt refutation";
+    return "avatar_smt_refutation";
   case InferenceRule::AVATAR_SPLIT_CLAUSE:
-    return "avatar split clause";
+    return "avatar_split_clause";
   case InferenceRule::AVATAR_CONTRADICTION_CLAUSE:
-    return "avatar contradiction clause";
+    return "avatar_contradiction_clause";
   case InferenceRule::SAT_COLOR_ELIMINATION:
-    return "sat color elimination";
+    return "sat_color_elimination";
   case InferenceRule::GENERAL_SPLITTING_COMPONENT:
-    return "general splitting component introduction";
+    return "general_splitting_component_introduction";
   case InferenceRule::GENERAL_SPLITTING:
-    return "general splitting";
-
-
+    return "general_splitting";
   case InferenceRule::COLOR_UNBLOCKING:
-    return "color unblocking";
+    return "color_unblocking";
   case InferenceRule::UNIT_RESULTING_RESOLUTION:
-    return "unit resulting resolution";
+    return "unit_resulting_resolution";
   case InferenceRule::GLOBAL_SUBSUMPTION:
-    return "global subsumption";
+    return "global_subsumption";
   case InferenceRule::DISTINCT_EQUALITY_REMOVAL:
-    return "distinct equality removal";
+    return "distinct_equality_removal";
   case InferenceRule::CLAIM_DEFINITION:
-    return "claim definition";
+    return "claim_definition";
   case InferenceRule::FMB_FLATTENING:
-    return "flattening (finite model building)";
+    return "flattening_finite_model_building";
   case InferenceRule::FMB_FUNC_DEF:
-    return "functional definition (finite model building)";
+    return "functional_definition_finite_model_building";
   case InferenceRule::FMB_DEF_INTRO:
-    return "definition introduction (finite model building)";
+    return "definition_introduction_finite_model_building";
   case InferenceRule::ADD_SORT_PREDICATES:
-    return "add sort predicates";
+    return "add_sort_predicates";
   case InferenceRule::ADD_SORT_FUNCTIONS:
-    return "add sort functions";
+    return "add_sort_functions";
   case InferenceRule::INSTANTIATION:
     return "instantiation";
   case InferenceRule::ALASCA_VARIABLE_ELIMINATION:
-    return "alasca variable elimination";
+    return "alasca_variable_elimination";
   case InferenceRule::ALASCA_VIRAS_QE:
-    return "alasca viras quantifier elimination";
+    return "alasca_viras_quantifier_elimination";
   case InferenceRule::ALASCA_COHERENCE:
-    return "alasca coherence";
+    return "alasca_coherence";
   case InferenceRule::ALASCA_COHERENCE_NORMALIZATION:
-    return "alasca coherence normalization";
+    return "alasca_coherence_normalization";
   case InferenceRule::ALASCA_SUPERPOSITION:
-    return "alasca superposition";
+    return "alasca_superposition";
   case InferenceRule::ALASCA_LITERAL_FACTORING:
-    return "alasca inequality literal factoring";
+    return "alasca_inequality_literal_factoring";
   case InferenceRule::ALASCA_EQ_FACTORING:
-    return "alasca equality factoring";
+    return "alasca_equality_factoring";
   case InferenceRule::ALASCA_FLOOR_BOUNDS:
-    return "alasca floor bounds";
+    return "alasca_floor_bounds";
   case InferenceRule::ALASCA_TERM_FACTORING:
-    return "alasca term factoring";
+    return "alasca_term_factoring";
   case InferenceRule::ALASCA_INTEGER_FOURIER_MOTZKIN:
-    return "alasca integer fourier motzkin";
+    return "alasca_integer_fourier_motzkin";
   case InferenceRule::ALASCA_FOURIER_MOTZKIN:
-    return "alasca fourier motzkin";
+    return "alasca_fourier_motzkin";
   case InferenceRule::ALASCA_FLOOR_ELIMINATION:
-    return "alasca floor elimination";
+    return "alasca_floor_elimination";
   case InferenceRule::ALASCA_NORMALIZATION:
-    return "alasca normalization";
+    return "alasca_normalization";
   case InferenceRule::ALASCA_ABSTRACTION:
-    return "alasca abstraction";
+    return "alasca_abstraction";
   case InferenceRule::ALASCA_FWD_DEMODULATION:
-    return "alasca forward demodulation";
+    return "alasca_forward_demodulation";
   case InferenceRule::ALASCA_BWD_DEMODULATION:
-    return "lascsa backward demodulation";
+    return "lascsa_backward_demodulation";
   case InferenceRule::MODEL_NOT_FOUND:
-    return "finite model not found (exhaustively excluded all possible domain size assignments)";
+    return "finite_model_not_found_exhaustively_excluded_all_possible_domain_size_assignments";
   case InferenceRule::ARITHMETIC_SUBTERM_GENERALIZATION:
-    return "arithmetic subterm generalization";
+    return "arithmetic_subterm_generalization";
   case InferenceRule::STRUCT_INDUCTION_AXIOM_ONE:
-    return "structural induction formula (one)";
+    return "structural_induction_formula_one";
   case InferenceRule::STRUCT_INDUCTION_AXIOM_TWO:
-    return "structural induction formula (two)";
+    return "structural_induction_formula_two";
   case InferenceRule::STRUCT_INDUCTION_AXIOM_THREE:
-    return "structural induction formula (three)";
+    return "structural_induction_formula_three";
   case InferenceRule::STRUCT_INDUCTION_AXIOM_RECURSION:
-    return "structural induction formula (recursion)";
+    return "structural_induction_formula_recursion";
   case InferenceRule::INT_INF_UP_INDUCTION_AXIOM:
-    return "integer induction formula (up, infinite interval)";
+    return "integer_induction_formula_up_infinite_interval";
   case InferenceRule::INT_INF_DOWN_INDUCTION_AXIOM:
-    return "integer induction formula (down, infinite interval)";
+    return "integer_induction_formula_down_infinite_interval";
   case InferenceRule::INT_FIN_UP_INDUCTION_AXIOM:
-    return "integer induction formula (up, finite interval)";
+    return "integer_induction_formula_up_finite_interval";
   case InferenceRule::INT_FIN_DOWN_INDUCTION_AXIOM:
-    return "integer induction formula (down, finite interval)";
+    return "integer_induction_formula_down_finite_interval";
   case InferenceRule::INT_DB_UP_INDUCTION_AXIOM:
-    return "integer induction formula (up, default bound)";
+    return "integer_induction_formula_up_default_bound";
   case InferenceRule::INT_DB_DOWN_INDUCTION_AXIOM:
-    return "integer induction formula (down, default bound)";
+    return "integer_induction_formula_down_default_bound";
   case InferenceRule::INDUCTION_HYPERRESOLUTION:
-    return "induction hyperresolution";
+    return "induction_hyperresolution";
   case InferenceRule::GAUSSIAN_VARIABLE_ELIMINIATION:
-    return "gaussian variable elimination";
+    return "gaussian_variable_elimination";
   case InferenceRule::ARG_CONG:
-    return "argument congruence";
+    return "argument_congruence";
   case InferenceRule::NEGATIVE_EXTENSIONALITY:
-    return "negative extensionality";
+    return "negative_extensionality";
   case InferenceRule::POSITIVE_EXTENSIONALITY:
-    return "positive extensionality";
+    return "positive_extensionality";
   case InferenceRule::INJECTIVITY:
     return "injectivity";
   case InferenceRule::NOT_PROXY_CLAUSIFICATION:
-    return "not proxy clausification";
+    return "not_proxy_clausification";
   case InferenceRule::AND_PROXY_CLAUSIFICATION:
-    return "and proxy clausification";
+    return "and_proxy_clausification";
   case InferenceRule::OR_PROXY_CLAUSIFICATION:
-    return "or proxy clausification";
+    return "or_proxy_clausification";
   case InferenceRule::IMP_PROXY_CLAUSIFICATION:
-    return "imp proxy clausification";
+    return "imp_proxy_clausification";
   case InferenceRule::IFF_PROXY_CLAUSIFICATION:
-    return "iff proxy clausification";
+    return "iff_proxy_clausification";
   case InferenceRule::XOR_PROXY_CLAUSIFICATION:
-    return "xor proxy clausification";
+    return "xor_proxy_clausification";
   case InferenceRule::SIGMA_PROXY_CLAUSIFICATION:
-    return "sigma proxy clausification";
+    return "sigma_proxy_clausification";
   case InferenceRule::PI_PROXY_CLAUSIFICATION:
-    return "pi proxy clausification";
+    return "pi_proxy_clausification";
   case InferenceRule::EQUALITY_PROXY_CLAUSIFICATION:
-    return "equality proxy clausification";
+    return "equality_proxy_clausification";
   case InferenceRule::BOOL_SIMP:
-    return "boolean simplification";
+    return "boolean_simplification";
   case InferenceRule::FLEX_FLEX_SIMPLIFICATION:
-    return "flex-flex simplification";
+    return "flex_flex_simplification";
   case InferenceRule::BETA_ETA_NORMALIZATION:
-    return "beta-eta normalization";
+    return "beta_eta_normalization";
   case InferenceRule::NOT_PROXY_CLAUSIFICATION_SIMPLIFYING:
-    return "not proxy clausification (simplifying)";
+    return "not_proxy_clausification_simplifying";
   case InferenceRule::AND_PROXY_CLAUSIFICATION_SIMPLIFYING:
-    return "and proxy clausification (simplifying)";
+    return "and_proxy_clausification_simplifying";
   case InferenceRule::OR_PROXY_CLAUSIFICATION_SIMPLIFYING:
-    return "or proxy clausification (simplifying)";
+    return "or_proxy_clausification_simplifying";
   case InferenceRule::IMP_PROXY_CLAUSIFICATION_SIMPLIFYING:
-    return "imp proxy clausification (simplifying)";
+    return "imp_proxy_clausification_simplifying";
   case InferenceRule::IFF_PROXY_CLAUSIFICATION_SIMPLIFYING:
-    return "iff proxy clausification (simplifying)";
+    return "iff_proxy_clausification_simplifying";
   case InferenceRule::XOR_PROXY_CLAUSIFICATION_SIMPLIFYING:
-    return "xor proxy clausification (simplifying)";
+    return "xor_proxy_clausification_simplifying";
   case InferenceRule::SIGMA_PROXY_CLAUSIFICATION_SIMPLIFYING:
-    return "sigma proxy clausification (simplifying)";
+    return "sigma_proxy_clausification_simplifying";
   case InferenceRule::PI_PROXY_CLAUSIFICATION_SIMPLIFYING:
-    return "pi proxy clausification (simplifying)";
+    return "pi_proxy_clausification_simplifying";
   case InferenceRule::EQUALITY_PROXY_CLAUSIFICATION_SIMPLIFYING:
-    return "equality proxy clausification (simplifying)";
+    return "equality_proxy_clausification_simplifying";
   case InferenceRule::EQ_TO_DISEQ:
-    return "bool equality to disequality";
+    return "bool_equality_to_disequality";
   case InferenceRule::HEURISTIC_INSTANTIATION:
-    return "heuristic instantiation";
+    return "heuristic_instantiation";
   case InferenceRule::PRIMITIVE_INSTANTIATION:
-    return "primitive instantiation";
+    return "primitive_instantiation";
   case InferenceRule::IMITATION:
     return "imitation";
   case InferenceRule::PROJECTION:
     return "projection";
   case InferenceRule::LEIBNIZ_ELIMINATION:
-    return "leibniz equality elimination";
+    return "leibniz_equality_elimination";
   case InferenceRule::HILBERTS_CHOICE_INSTANCE:
-    return "Hilbertian choice axiom instance";
+    return "hilbertian_choice_axiom_instance";
   case InferenceRule::CASES_SIMP:
-    return "cases simplifying";
+    return "cases_simplifying";
   case InferenceRule::TERM_ALGEBRA_DIRECT_SUBTERMS_AXIOM:
-    return "term algebra direct subterm axiom";
+    return "term_algebra_direct_subterm_axiom";
   case InferenceRule::TERM_ALGEBRA_SUBTERMS_TRANSITIVE_AXIOM:
-    return "term algebra subterm transitivity axiom";
+    return "term_algebra_subterm_transitivity_axiom";
   case InferenceRule::FUNCTIONAL_EXTENSIONALITY_AXIOM:
-    return "functional extensionality axiom";
+    return "functional_extensionality_axiom";
     /* this cases are no actual inference rules but only markeres to separatea groups of rules */
   case InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION:
   case InferenceRule::GENERIC_FORMULA_CLAUSE_TRANSFORMATION_LAST:
@@ -997,8 +993,6 @@ std::string Kernel::ruleName(InferenceRule rule)
     { /* explicitly ignoring this cases */ }
   }
 
-  ASSERTION_VIOLATION;
-  /* moved outside of the case statement to get a compiler warning */
-  return "!UNKNOWN INFERENCE RULE!";
+  INVALID_OPERATION("invalid inference rule");
 } // Inference::name()
 

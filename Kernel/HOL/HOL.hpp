@@ -36,7 +36,7 @@ inline bool isBool(TermList term) {
   return isTrue(term) || isFalse(term);
 }
 
-std::string toString(const Term &term, bool topLevel);
+std::string toString(const Term &term, bool mightNeedParens);
 
 TermList matrix(TermList t);
 TermList getHeadAndArgs(TermList term, TermStack &args);

@@ -20,7 +20,6 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/SharedSet.hpp"
 #include "Lib/Stack.hpp"
-#include "Lib/StringUtils.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
@@ -146,7 +145,7 @@ const char* InferenceStore::TPTPProofPrinter::getRole(InferenceRule rule, UnitIn
 
 std::string InferenceStore::TPTPProofPrinter::tptpRuleName(InferenceRule rule)
 {
-    return StringUtils::replaceChars<' ', '-'>(ruleName(rule), '_');
+    return ruleName(rule);
 }
 
 std::ostream& InferenceStore::TPTPProofPrinter::printSplits(std::ostream& out, SplitSet* values)

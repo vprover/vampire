@@ -319,15 +319,15 @@ check_szs_status Unsatisfiable parse/define-const.smt2
 # corresponding commit messages for details.
 # (rejection tests pass --input_syntax tptp explicitly, so that the auto mode
 #  does not retry the failing input as SMT-LIB and garble the error message)
-check_output_contains '(p & ((q = r)))' --mode output parse/eq-precedence.p
-check_output_contains '(((p = r)) & s)' --mode output parse/eq-precedence.p
+check_output_contains '(p & (q = r))' --mode output parse/eq-precedence.p
+check_output_contains '((p = r) & s)' --mode output parse/eq-precedence.p
 # the same thing one level down, inside an argument list: an equality now resumes
 # connective parsing after itself, and the equality-argument guard no longer leaks
 # into a nested argument list. a1/a3/a6 of the file are three spellings of one
 # formula, and the single expectation below covers all three
-check_output_contains 'r(X0 = a & p(X0))' --mode output parse/term-eq-connective.p
+check_output_contains 'r((X0 = a) & p(X0))' --mode output parse/term-eq-connective.p
 check_output_contains 'd = h(p(X0) & p(a))' --mode output parse/term-eq-connective.p
-check_output_contains 'd = h(X0 = a & p(X0))' --mode output parse/term-eq-connective.p
+check_output_contains 'd = h((X0 = a) & p(X0))' --mode output parse/term-eq-connective.p
 check_output_contains '((d = X0) & p(X0))' --mode output parse/term-eq-connective.p
 check_rejected 'crlf-line-numbers.p", line 4: formula or term expected' --input_syntax tptp --mode output parse/crlf-line-numbers.p
 check_output_contains 'second_unit_parsed' --mode output parse/block-comment-star.p
@@ -339,34 +339,34 @@ check_szs_status Unsatisfiable parse/include-filtered-conjecture.p
 check_rejected 'sort mismatch in the if-then-else' --input_syntax tptp --mode output parse/ite-sort-mismatch.p
 check_rejected 'cnf(), fof(), tff(), tcf(), thf(), vampire() or include() expected' --input_syntax tptp --mode output parse/bad-unit-kind.p
 check_output_contains 'f0(X0) := $sum(X0,1)' --mode output parse/let-function-parse.p
-check_output_contains '((((q) = r)) & p)' --mode output parse/thf-eq-truncation.p
-check_output_contains '((((f @ x)) = y))' --mode output parse/thf-eq-truncation.p
-check_output_contains '(^[X0 : tree_b] : (((X0 = e_b))))' --mode output parse/thf-binder-eq.p
-check_output_contains '(![X0 : $o] : (((X0 = X0))))' --mode output parse/thf-binder-eq.p
-check_output_contains '(s & ((p = r)))' --mode output parse/thf-eq-precedence.p
-check_output_contains '(((p = q)) <=> r)' --mode output parse/thf-eq-precedence.p
-check_output_contains '((p = ((f @ x))))' --mode output parse/thf-eq-precedence.p
+check_output_contains '((q = r) & p)' --mode output parse/thf-eq-truncation.p
+check_output_contains '((f @ x) = y)' --mode output parse/thf-eq-truncation.p
+check_output_contains '(^[X0 : tree_b] : (X0 = e_b))' --mode output parse/thf-binder-eq.p
+check_output_contains '(! [X0 : $o] : (X0 = X0))' --mode output parse/thf-binder-eq.p
+check_output_contains '(s & (p = r))' --mode output parse/thf-eq-precedence.p
+check_output_contains '((p = q) <=> r)' --mode output parse/thf-eq-precedence.p
+check_output_contains '(p = (f @ x))' --mode output parse/thf-eq-precedence.p
 check_output_contains '((f @ x) & p)' --mode output parse/thf-app-absorb.p
 check_output_contains '((g @ x @ y) & p)' --mode output parse/thf-app-absorb.p
 check_output_contains_once 'an unparenthesized application as a connective argument' --mode output parse/thf-app-absorb.p
-check_output_contains '(f @ (^[X0 : a] : (X0)) @ (^[X1 : b] : (X1)))' --mode output parse/thf-lambda-in-app-chain.p
-check_output_contains '(^[X0 : a] : ((g @ X0))) @ y' --mode output parse/thf-lambda-in-app-chain.p
-check_output_contains '(ev @ (^[X0 : a] : ((? [X1 : b] : (r @ X0 @ X1)))) @ q)' --mode output parse/thf-lambda-in-app-chain.p
-check_output_contains '(((((^[X0 : b] : (y)) @ w)) = y))' --mode output parse/thf-lambda-in-app-chain.p
-check_output_contains '(fl @ (^[X0 : a] : ((~ (r @ X0 @ w)))) @ q)' --mode output parse/thf-lambda-in-app-chain.p
+check_output_contains '(f @ (^[X0 : a] : X0) @ (^[X1 : b] : X1))' --mode output parse/thf-lambda-in-app-chain.p
+check_output_contains '(^[X0 : a] : (g @ X0)) @ y' --mode output parse/thf-lambda-in-app-chain.p
+check_output_contains '(ev @ (^[X0 : a] : (? [X1 : b] : (r @ X0 @ X1))) @ q)' --mode output parse/thf-lambda-in-app-chain.p
+check_output_contains '(((^[X0 : b] : y) @ w) = y)' --mode output parse/thf-lambda-in-app-chain.p
+check_output_contains '(fl @ (^[X0 : a] : (~ (r @ X0 @ w))) @ q)' --mode output parse/thf-lambda-in-app-chain.p
 check_rejected 'sort mismatch in the application x @ y' --input_syntax tptp --mode output parse/thf-ill-typed-app.p
 check_rejected 'sort mismatch in the application r | q @ x' --input_syntax tptp --mode output parse/thf-app-to-formula.p
-check_output_contains '(~ ((p = q)))' --mode output parse/thf-not-eq.p
+check_output_contains '(~ (p = q))' --mode output parse/thf-not-eq.p
 check_output_contains_once "'~' applied to an unparenthesized (in)equality" --mode output parse/thf-non-conformity-warnings.p
 check_output_contains_once 'an unparenthesized application as a connective argument' --mode output parse/thf-non-conformity-warnings.p
 check_output_contains_once 'as an unparenthesized equality argument' --mode output parse/thf-non-conformity-warnings.p
 check_output_contains_once 'a chained equality is not legal THF' --mode output parse/thf-non-conformity-warnings.p
-check_output_contains '(g @ <~>)' --mode output parse/thf-xor-section.p
+check_output_contains '(g @ (<~>))' --mode output parse/thf-xor-section.p
 check_rejected 'formula or term expected' --input_syntax tptp --mode output parse/thf-empty-parens.p
 check_rejected 'cannot parse the ?* quantifier' --input_syntax tptp --mode output parse/thf-quant-some.p
 check_rejected 'only supports type quantification (!>) in type declarations' --input_syntax tptp --mode output parse/thf-type-quant-in-formula.p
 check_output_contains '(p(vAND) & p(vNOT))' --mode output parse/proxy-names.p
-check_output_contains '(c = vPI(c))' --mode output parse/proxy-names.p
+check_output_contains '(vPI(c) = c)' --mode output parse/proxy-names.p
 # distinct objects (doubly-quoted symbols): declarable at a user sort in tff, one
 # distinct group per sort, non-ground sorts rejected
 check_szs_status Unsatisfiable parse/distinct-objects-tff.p

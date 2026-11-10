@@ -408,6 +408,7 @@ void Property::scan(Formula* f, int polarity)
       _hasFOOL = true;
       TermList ts = f->getBooleanTerm();
       if (ts.isVar()) {
+        _hasNonDefaultSorts = true;
         addProp(PR_HAS_BOOLEAN_VARIABLES);
       }
       break;
