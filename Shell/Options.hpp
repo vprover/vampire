@@ -549,7 +549,6 @@ public:
    * @since 06/05/2007 Manchester
    */
   enum class Mode : unsigned int {
-    AXIOM_SELECTION,
     CASC,
     CLAUSIFY,
     CONSEQUENCE_ELIMINATION,
@@ -896,8 +895,7 @@ public:
   enum class HPrinting : unsigned int {
     RAW = 0,
     DB_INDICES = 1,
-    PRETTY = 2,
-    TPTP = 3
+    TPTP = 2
   };
 
     //==========================================================
@@ -1495,7 +1493,6 @@ public:
   unsigned sineGeneralityThreshold() const { return _sineGeneralityThreshold.actualValue; }
   unsigned sineToAgeGeneralityThreshold() const { return _sineToAgeGeneralityThreshold.actualValue; }
   SineSelection sineSelection() const { return _sineSelection.actualValue; }
-  void setSineSelection(SineSelection val) { _sineSelection.actualValue=val; }
   float sineTolerance() const { return _sineTolerance.actualValue; }
   float sineToAgeTolerance() const { return _sineToAgeTolerance.actualValue; }
 

@@ -51,6 +51,7 @@
 #define DECL_TYPE_CON(f, arity) auto f = TypeConSugar(#f, arity);
 #define DECL_SORT(s)        auto s = TypeConstSugar(#s);
 #define DECL_SORT_BOOL      auto Bool = SortSugar(AtomicSort::boolSort());
+#define DECL_DEFAULT_SORT   auto ds = SortSugar(AtomicSort::defaultSort());
 #define DECL_VAR(x, i) auto x = TermSugar(TermList::var(i));
 #define DECL_SORT_VAR(x, i) auto x = SortSugar(TermList::var(i));
 #define DECL_VAR_SORTED(x, i, s) auto x = TermSugar(TermList::var(i), s);
@@ -689,6 +690,92 @@ inline Clause* clause(Stack<Lit> ls)
 inline Clause* clause(std::initializer_list<Lit> ls)
 { return clause(Stack<Lit>(ls)); }
 
+struct FormulaSugar {
+  FormulaSugar(Formula* f) : _sugaredFormula(f) {}
+
+  operator Formula*() const { return _sugaredFormula; }
+
+  Formula* _sugaredFormula;
+};
+
+// true
+inline FormulaSugar trueF() {
+  return Formula::trueFormula();
+}
+
+// false
+inline FormulaSugar falseF() {
+  return Formula::falseFormula();
+}
+
+// named formula
+inline FormulaSugar nameF(std::string name) {
+  return new NamedFormula(name);
+}
+
+// bool term
+inline FormulaSugar boolT(TermSugar t) {
+  return new BoolTermFormula(t);
+}
+
+// atom
+inline FormulaSugar atom(Lit lit) {
+  return new AtomicFormula(lit);
+}
+
+// conjunction
+inline FormulaSugar conj(std::initializer_list<FormulaSugar> fs) {
+  auto l = FormulaList::empty();
+  for (const auto& f : fs) {
+    l = FormulaList::cons(f, l);
+  }
+  return FormulaSugar(JunctionFormula::generalJunction(Connective::AND, l));
+}
+
+// disjunction
+inline FormulaSugar disj(std::initializer_list<FormulaSugar> fs) {
+  auto l = FormulaList::empty();
+  for (const auto& f : fs) {
+    l = FormulaList::cons(f, l);
+  }
+  return FormulaSugar(JunctionFormula::generalJunction(Connective::OR, l));
+}
+
+// negation
+inline FormulaSugar operator~(FormulaSugar f) {
+  return FormulaSugar(new NegatedFormula(f));
+}
+
+// implication
+inline FormulaSugar impl(FormulaSugar lhs, FormulaSugar rhs) {
+  return FormulaSugar(new BinaryFormula(Connective::IMP, lhs, rhs));
+}
+
+// equivalence
+inline FormulaSugar equiv(FormulaSugar lhs, FormulaSugar rhs) {
+  return FormulaSugar(new BinaryFormula(Connective::IFF, lhs, rhs));
+}
+
+// xor
+inline FormulaSugar xorr(FormulaSugar lhs, FormulaSugar rhs) {
+  return FormulaSugar(new BinaryFormula(Connective::XOR, lhs, rhs));
+}
+
+// universal quantifier
+inline FormulaSugar forall(TermSugar v, FormulaSugar f) {
+  return FormulaSugar(new QuantifiedFormula(Connective::FORALL, VSList::singleton({ v.sugaredExpr().var(), v.sort() }), f));
+}
+
+// existential quantifier
+inline FormulaSugar exists(TermSugar v, FormulaSugar f) {
+  return FormulaSugar(new QuantifiedFormula(Connective::EXISTS, VSList::singleton({ v.sugaredExpr().var(), v.sort() }), f));
+}
+
+// term formula
+inline TermSugar termF(FormulaSugar f) {
+  return TermSugar(TermList(Term::createFormula(f)));
+}
+
 ////////////////////////// Sugar for term algebras //////////////////////////
 
 inline void createTermAlgebra(SortSugar sort, std::initializer_list<FuncSugar> fs) {
@@ -721,6 +808,14 @@ inline void createTermAlgebra(SortSugar sort, std::initializer_list<FuncSugar> f
     cons.push(new TermAlgebraConstructor(f.functor(), dtors));
   }
   env.signature->addTermAlgebra(new TermAlgebra(sort.sugaredExpr(), cons.size(), cons.begin()));
+}
+
+////////////////////////// Sugar for special terms //////////////////////////
+
+inline TermSugar ite(Formula* condition, TermSugar thenBranch, TermSugar elseBranch)
+{
+  SortId sort = thenBranch.sort().isNonEmpty() ? thenBranch.sort() : elseBranch.sort();
+  return TermList(Term::createITE(condition, thenBranch, elseBranch, sort));
 }
 
 #endif // __TEST__SYNTAX_SUGAR__H__

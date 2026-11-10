@@ -410,7 +410,7 @@ namespace Shell
             continue;
             }
 
-            if (cur->inference().rule() == InferenceRule::NEGATED_CONJECTURE) {
+            if (cur->inference().rule() == InferenceRule::CONJECTURE_NEGATION) {
             VirtualIterator<Unit*> pars = cur->getParents();
 
             // negating the conjecture is not a sound inference,
