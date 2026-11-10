@@ -477,50 +477,22 @@ TEST_FUN(unit_stream_preserves_formula_roles)
 // Like the parser: the stated conjecture is an input unit, and the prover works on a unit
 // derived from it by negation, which inherits the input type CONJECTURE.
 static Inference fromNegatedConjecture(Unit* stated)
-{ return FormulaClauseTransformation(InferenceRule::NEGATED_CONJECTURE, stated); }
+{ return FormulaClauseTransformation(InferenceRule::CONJECTURE_NEGATION, stated); }
 
-TEST_FUN(unit_stream_negates_stated_conjecture)
+TEST_FUN(unit_stream_prints_stated_conjecture_as_is)
 {
-  // The role is decided by the input type alone, so the stated conjecture
-  // is negated like the formulas derived from it.
   DECL_PRED(p, {})
   FormulaUnit stated(new AtomicFormula(p()), FromInput(UnitInputType::CONJECTURE));
-  checkUnitOutput(&stated, "tff", "conjecture", "(~ p)");
+  checkUnitOutput(&stated, "tff", "conjecture", "p");
 }
 
-TEST_FUN(unit_stream_preserves_conjecture_negation_cases)
+TEST_FUN(unit_stream_prints_derived_conjecture_as_negated_conjecture)
 {
   DECL_PRED(p, {})
   auto atom = new AtomicFormula(p());
   FormulaUnit stated(atom, FromInput(UnitInputType::CONJECTURE));
-  FormulaUnit positive(atom, fromNegatedConjecture(&stated));
-  checkUnitOutput(&positive, "tff", "conjecture", "(~ p)");
-  auto negation = new NegatedFormula(atom);
-  FormulaUnit negated(negation, fromNegatedConjecture(&stated));
-  checkUnitOutput(&negated, "tff", "conjecture", "p");
-  FormulaUnit negativeLiteral(new AtomicFormula(Literal::complementaryLiteral(p())),
-      fromNegatedConjecture(&stated));
-  checkUnitOutput(&negativeLiteral, "tff", "conjecture", "p");
-
-  auto sort = AtomicSort::defaultSort();
-  DECL_CONST(a, sort)
-  DECL_CONST(b, sort)
-  FormulaUnit negativeEquality(new AtomicFormula(Literal::createEquality(false, a, b, sort)),
-      fromNegatedConjecture(&stated));
-  checkUnitOutput(&negativeEquality, "tff", "conjecture", "a = b");
-}
-
-TEST_FUN(unit_stream_closes_free_conjecture_variables_without_changing_input)
-{
-  auto sort = AtomicSort::defaultSort();
-  DECL_DEFAULT_VARS
-  DECL_PRED(p, {sort})
-  auto atom = new AtomicFormula(p(x));
-  FormulaUnit stated(atom, FromInput(UnitInputType::CONJECTURE));
-  FormulaUnit conjecture(atom, fromNegatedConjecture(&stated));
-  checkUnitOutput(&conjecture, "tff", "conjecture", "(~ (![X0] : (p(X0))))");
-  ASS(conjecture.formula() == atom);
-  ASS_EQ(Shell::TPTPPrinter::toString(atom), "p(X0)");
+  FormulaUnit negated(new NegatedFormula(atom), fromNegatedConjecture(&stated));
+  checkUnitOutput(&negated, "tff", "negated_conjecture", "(~ p)");
 }
 
 TEST_FUN(unit_stream_preserves_clause_order_and_conjecture_role)
@@ -530,7 +502,8 @@ TEST_FUN(unit_stream_preserves_clause_order_and_conjecture_role)
   // uN is the generated unit name; the ground clause needs no variable prefix.
   DECL_PRED(p, {})
   DECL_PRED(q, {})
-  auto clause = Clause::fromLiterals({p(), q()}, FromInput(UnitInputType::CONJECTURE));
+  FormulaUnit stated(new AtomicFormula(p()), FromInput(UnitInputType::CONJECTURE));
+  auto clause = Clause::fromLiterals({p(), q()}, fromNegatedConjecture(&stated));
   checkUnitOutput(clause, "cnf", "negated_conjecture", "( p | q )");
   checkUnitOutput(clause, "tcf", "negated_conjecture", "( p | q )", true);
 }
@@ -563,7 +536,7 @@ TEST_FUN(named_unit_stream_uses_given_name_and_role)
       "tcf(s,claim,\n    ![X0 : $i] : ( p(X0) | $splitLevel3 | $splitLevel4 )).\n");
   ASS_EQ(printNamedUnit("s", "claim", split), "tcf(s,claim,\n    ![X0 : $i] : ( p(X0) )).\n");
 
-  // The role is the caller's, so a conjecture is not negated back.
+  // The role is the caller's, whatever the input type of the unit.
   FormulaUnit stated(new AtomicFormula(q()), FromInput(UnitInputType::CONJECTURE));
   FormulaUnit negated(new NegatedFormula(new AtomicFormula(q())), fromNegatedConjecture(&stated));
   ASS_EQ(printNamedUnit("f", "conjecture", &negated), "tff(f,conjecture,\n    (~ q)).\n");

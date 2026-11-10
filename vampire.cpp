@@ -50,10 +50,8 @@
 #include "Shell/TheoryFinder.hpp"
 #include "Shell/TPTPPrinter.hpp"
 #include "Parse/TPTP.hpp"
-#include "Shell/FOOLElimination.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
-#include "Shell/SineUtils.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -206,12 +204,6 @@ void preprocessMode(Problem* problem, bool theory)
 
     if (theory) {
       Formula* f = u->getFormula();
-
-      // CONJECTURE as inputType is evil, as it cannot occur multiple times
-      if (u->inference().inputType() == UnitInputType::CONJECTURE) {
-        u->inference().setInputType(UnitInputType::NEGATED_CONJECTURE);
-      }
-
       FormulaUnit* fu = new FormulaUnit(f,u->inference()); // we are stealing u's inference which is not nice
       std::cout << TPTPPrinter::unit(fu) << "\n";
     } else {
@@ -257,6 +249,14 @@ void outputMode(Problem* problem)
 
   while (units.hasNext()) {
     Unit* u = units.next();
+    if (u->inference().rule() == InferenceRule::CONJECTURE_NEGATION) {
+      // the parsers negate a conjecture right away; output the one that was stated
+      UnitIterator parents = u->getParents();
+      ALWAYS(parents.hasNext());
+      u = parents.next();
+      ASS(!parents.hasNext());
+      ASS(u->inference().rule() == InferenceRule::INPUT);
+    }
     std::cout << TPTPPrinter::unit(u) << "\n";
   }
 
@@ -394,11 +394,14 @@ void clausifyMode(Problem* problem, bool theory)
     std::cout << TPTPPrinter::unit(cl, theory) << "\n";
   }
   if(!printed_conjecture && UIHelper::haveConjecture()){
+    // print a fake tautology conjecture for Kostya and friends
+    // (otherwise they can't tell whether the input contained a conjecture or not
+    //  which is important for reporting the SZS status)
     unsigned p = env.signature->addFreshPredicate(0,"p")->number();
     auto c = Clause::fromLiterals({
         Literal::create(p, /* polarity */ true , {}),
         Literal::create(p, /* polarity */ false, {})
-      }, 
+      },
       FromInput(UnitInputType::NEGATED_CONJECTURE));
     std::cout << TPTPPrinter::unit(c, theory) << "\n";
   }
@@ -407,45 +410,10 @@ void clausifyMode(Problem* problem, bool theory)
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 } // clausifyMode
 
-void axiomSelectionMode(Problem* problem)
-{
-  ScopedPtr<Problem> prb(problem);
-
-  env.options->setSineSelection(Options::SineSelection::AXIOMS);
-
-  if (prb->hasFOOL()) {
-    FOOLElimination().apply(*prb);
-  }
-
-  // reorder units
-  if (env.options->normalize()) {
-    env.statistics->phase = ExecutionPhase::NORMALIZATION;
-    Normalisation norm;
-    norm.normalise(*prb);
-  }
-
-  env.statistics->phase = ExecutionPhase::SINE_SELECTION;
-  Shell::SineSelector(*env.options).perform(*prb);
-
-  env.statistics->phase = ExecutionPhase::FINALIZATION;
-
-  UnitList::Iterator uit(prb->units());
-  while (uit.hasNext()) {
-    Unit* u = uit.next();
-    std::cout << TPTPPrinter::unit(u) << "\n";
-  }
-
-  //we have successfully output the selected units, so we'll terminate with zero return value
-  vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-}
-
 void dispatchByMode(Problem* problem)
 {
   switch (env.options->mode())
   {
-  case Options::Mode::AXIOM_SELECTION:
-    axiomSelectionMode(problem);
-    break;
   case Options::Mode::SPIDER:
     spiderMode(problem);
     break;

@@ -19,7 +19,6 @@
 #include "Lib/DHMap.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/ScopeGuard.hpp"
 #include "Lib/Set.hpp"
 #include "Lib/SharedSet.hpp"
 #include "Lib/Stack.hpp"
@@ -158,10 +157,8 @@ std::ostream& TPTPPrinter::printFormula(std::ostream& out, const Formula* formul
 /**
  * Output unit @param unit in TPTP format as a std::string
  *
- * If the unit is a formula of type @b CONJECTURE, output the
- * negation of Vampire's internal representation with the
- * TPTP role conjecture. If it is a clause, just output it as
- * is, with the role negated_conjecture.
+ * A unit of type @b CONJECTURE gets the TPTP role conjecture if it is the
+ * conjecture as stated, and negated_conjecture if it was derived from it.
  */
 std::string TPTPPrinter::toString(const Unit* unit, bool typedClauses)
 {
@@ -181,19 +178,14 @@ std::ostream& TPTPPrinter::FormulaOutput::print(std::ostream& out) const
 
 std::ostream& TPTPPrinter::printUnit(std::ostream& out, const Unit* unit, bool typedClauses)
 {
-  // A clause of type CONJECTURE stems from the negated conjecture and is printed as is.
-  // A formula of type CONJECTURE is negated back to the conjecture.
+  // Only the conjecture as stated is a conjecture. A unit derived from it inherits the input
+  // type CONJECTURE, but stems from the negated conjecture.
   const char* role = TPTPOutput::inputRole(unit->inputType());
-  bool negateFormula = false;
-  if (unit->inputType() == UnitInputType::CONJECTURE) {
-    if (unit->isClause()) {
-      role = TPTPOutput::Role::NEGATED_CONJECTURE;
-    } else {
-      negateFormula = true;
-    }
+  if (unit->inputType() == UnitInputType::CONJECTURE && unit->inference().rule() != InferenceRule::INPUT) {
+    role = TPTPOutput::Role::NEGATED_CONJECTURE;
   }
   out << language(unit, typedClauses) << '(' << InputName{unit, "u"} << ',' << role << ",\n    ";
-  printBody(out, unit, typedClauses, negateFormula, /*includeSplitLevels=*/false);
+  printBody(out, unit, typedClauses, /*includeSplitLevels=*/false);
   return out << ").\n";
 }
 
@@ -201,7 +193,7 @@ std::ostream& TPTPPrinter::printUnit(std::ostream& out, const Unit* unit, std::s
     const char* role, bool typedClauses, bool includeSplitLevels)
 {
   out << language(unit, typedClauses) << '(' << name << ',' << role << ",\n    ";
-  printBody(out, unit, typedClauses, /*negateFormula=*/false, includeSplitLevels);
+  printBody(out, unit, typedClauses, includeSplitLevels);
   return out << ").\n";
 }
 
@@ -218,12 +210,11 @@ Language TPTPPrinter::language(const Unit* unit, bool typedClauses)
 
 /**
  * The formula of @param unit. A clause is written in parentheses, preceded by its universal
- * prefix if @param typedClauses. With @param negateFormula, a formula is closed and negated.
- * With @param includeSplitLevels, the split levels of a clause are added as $splitLevel<n>
- * disjuncts; these are a Vampire extension, not TPTP.
+ * prefix if @param typedClauses. With @param includeSplitLevels, the split levels of a clause
+ * are added as $splitLevel<n> disjuncts; these are a Vampire extension, not TPTP.
  */
 std::ostream& TPTPPrinter::printBody(std::ostream& out, const Unit* unit, bool typedClauses,
-    bool negateFormula, bool includeSplitLevels)
+    bool includeSplitLevels)
 {
   if (unit->isClause()) {
     const auto* clause = static_cast<const Clause*>(unit);
@@ -239,29 +230,7 @@ std::ostream& TPTPPrinter::printBody(std::ostream& out, const Unit* unit, bool t
     }
     out << " )";
   } else {
-    const Formula* formula = static_cast<const FormulaUnit*>(unit)->formula();
-    if (!negateFormula) {
-      printFormula(out, formula);
-    } else {
-      Formula* quantified = Formula::quantify(const_cast<Formula*>(formula));
-      ScopeGuard cleanup([&] {
-        if (quantified != formula) {
-          ASS_EQ(quantified->connective(), FORALL);
-          VSList::destroy(static_cast<QuantifiedFormula*>(quantified)->vars());
-          quantified->destroy();
-        }
-      });
-      if (quantified->connective() == NOT) {
-        ASS_EQ(quantified, formula);
-        printFormula(out, quantified->uarg());
-      } else if (quantified->connective() == LITERAL && quantified->literal()->isNegative()) {
-        ASS_EQ(quantified, formula);
-        out << *Literal::complementaryLiteral(quantified->literal());
-      } else {
-        NegatedFormula negated(quantified);
-        printFormula(out, &negated);
-      }
-    }
+    printFormula(out, static_cast<const FormulaUnit*>(unit)->formula());
   }
   return out;
 }
