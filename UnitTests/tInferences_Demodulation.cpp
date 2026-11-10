@@ -231,4 +231,12 @@ TEST_SIMPLIFICATION(test21,
     .options({ { "term_ordering", "lpo" }, { "demodulation_redundancy_check", "labeled" } });
 )
 
+TEST_SIMPLIFICATION(test22,
+  tester()
+    .simplifyWith({ clause({ f(a,b) == a }) })
+    .toSimplify({ clause({ f(a,b) != a }) })
+    .expected({ clause({ a != a }) })
+    .options({ { "term_ordering", "lpo" }, { "demodulation_redundancy_check", "ordering" } });
+)
+
 }

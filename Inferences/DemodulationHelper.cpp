@@ -51,7 +51,7 @@ bool DemodulationHelper::isPremiseRedundant(Clause* rwCl, Literal* rwLit, TermLi
 
   TermList other=EqHelper::getOtherEqualitySide(rwLit, rwTerm);
   auto tord = _ord.compare(tgtTerm, other);
-  if (tord == Ordering::LESS) {
+  if (tord == Ordering::LESS || (tord == Ordering::EQUAL && rwLit->isNegative())) {
     return true;
   }
 
