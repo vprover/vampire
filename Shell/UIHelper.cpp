@@ -145,6 +145,19 @@ void UIHelper::outputAllPremises(std::ostream& out, UnitList* units, std::string
   InferenceStore::instance()->outputProof(cerr, units);
 }
 
+/**
+ * The TPTP role of @b unit in the output modes: its input role, except that a unit
+ * derived from the conjecture stems from the negated conjecture.
+ */
+const char* UIHelper::outputRole(const Unit* unit)
+{
+  if (unit->inputType() == UnitInputType::CONJECTURE && unit->inference().rule() != InferenceRule::INPUT) {
+    return TPTPOutput::Role::NEGATED_CONJECTURE;
+  }
+  return TPTPOutput::inputRole(unit->inputType());
+}
+
+
 void UIHelper::outputSaturatedSet(std::ostream& out, UnitIterator uit)
 {
   if (szsOutputMode()) {
@@ -156,11 +169,7 @@ void UIHelper::outputSaturatedSet(std::ostream& out, UnitIterator uit)
   while (uit.hasNext()) {
     Unit* cl = uit.next();
     // A unit derived from the conjecture stems from the negated conjecture.
-    const char* role = TPTPOutput::inputRole(cl->inputType());
-    if (cl->inputType() == UnitInputType::CONJECTURE && cl->inference().rule() != InferenceRule::INPUT) {
-      role = TPTPOutput::Role::NEGATED_CONJECTURE;
-    }
-    out << TPTPPrinter::unit(cl, TPTPPrinter::unitLanguage(cl), role) << endl;
+    out << TPTPPrinter::unit(cl, TPTPPrinter::unitLanguage(cl), outputRole(cl)) << endl;
   }
 
   if (szsOutputMode()) {

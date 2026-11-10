@@ -78,6 +78,11 @@ public:
   static void outputSaturatedSet(std::ostream& out, UnitIterator uit);
   static void outputInterferences(std::ostream& out, const Problem&);
 
+  /**
+ * The TPTP role of @b unit in the output modes: its input role, except that a unit
+ * derived from the conjecture stems from the negated conjecture.
+ */
+  static const char* outputRole(const Unit* unit);
 
   /**
    * A hacky global flag distinguishing the parent and the child in portfolio modes.
