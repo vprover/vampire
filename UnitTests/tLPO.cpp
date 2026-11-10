@@ -13,9 +13,10 @@
 #include "Kernel/LPO.hpp"
 #include "Kernel/Ordering.hpp"
 
-inline void compareTwoWays(const Ordering& ord, TermSugar t1, TermSugar t2) {
-  ASS_EQ(ord.compare(t1, t2), Ordering::Result::GREATER);
-  ASS_EQ(ord.compare(t2, t1), Ordering::Result::LESS);
+template<typename Object>
+inline void compareTwoWays(const Ordering& ord, Object o1, Object o2) {
+  ASS_EQ(ord.compare(o1, o2), Ordering::Result::GREATER);
+  ASS_EQ(ord.compare(o2, o1), Ordering::Result::LESS);
 }
 
 LPO lpo() {
@@ -40,7 +41,7 @@ TEST_FUN(lpo_test01) {
  
   // !!! The declaration order of function and constant symbols will define their precedence relation !!!
   auto ord = lpo();
-  compareTwoWays(ord, g(f(x,y),c), c);
+  compareTwoWays<TermSugar>(ord, g(f(x,y),c), c);
 }
 
 TEST_FUN(lpo_test02) {
@@ -53,7 +54,7 @@ TEST_FUN(lpo_test02) {
 
   auto ord = lpo();
   compareTwoWays(ord, plus(zero,x), x);
-  compareTwoWays(ord, mult(zero,x), zero);
+  compareTwoWays<TermSugar>(ord, mult(zero,x), zero);
   compareTwoWays(ord, s(x),         x);
   compareTwoWays(ord, plus(s(x),y), s(plus(x,y)));
   compareTwoWays(ord, mult(s(x),y), plus(mult(x,y),y));
@@ -109,4 +110,13 @@ TEST_FUN(lpo_test06) {
   compareTwoWays(ord, t3, t1);
   compareTwoWays(ord, t3, t2);
   compareTwoWays(ord, t1, t2);
+}
+
+TEST_FUN(lbo_test07) {
+  DECL_DEFAULT_VARS
+  DECL_SORT(s)
+  DECL_PRED(p, {s})
+
+  auto ord = lpo();
+  compareTwoWays(ord, ~p(x), p(x));
 }
