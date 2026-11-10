@@ -1167,8 +1167,7 @@ Options::Options ()
       {.description = "An experimental interactive mode (commands to use: load <file to parse>, read <line to parse>, pop (to drop the last added set of formulas), run [options to supply], exit).",
        .experimental = true})
   , _mode("mode",this,Mode::VAMPIRE,
-                                    {"axiom_selection",
-                                        "casc",
+                                    {"casc",
                                         "clausify",
                                         "consequence_elimination",
                                         "model_check",
@@ -1187,7 +1186,7 @@ Options::Options ()
     "  -portfolio: a portfolio mode running a specified schedule (see schedule)\n"
     "  -casc, casc_sat, smtcomp - like portfolio mode, with competition-specific presets for other options, including output. "
     "If you wish to use e.g. the CASC portfolio without the presets, use --mode portfolio --schedule casc.\n"
-    "  -preprocess,axiom_selection,clausify: modes for producing output\n      for other solvers.\n"
+    "  -preprocess,clausify: modes for producing output\n      for other solvers.\n"
     "  -tpreprocess,tclausify: output modes for theory input (clauses are quantified\n      with sort information; tclausify outputs TPTP tcf).\n"
     "  -output,profile: output information about the problem\n"
     "Some modes are not currently maintained (get in touch if interested):\n"
@@ -3468,7 +3467,6 @@ void Options::readOptionsString(std::string optionsString,bool assign)
  */
 void Options::readFromEncodedOptions (std::string testId)
 {
-  ASS(!testId.empty())
   _testId.actualValue = testId;
 
   std::string ma(testId,0,3); // the first 3 characters

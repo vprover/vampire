@@ -121,7 +121,7 @@ const char* InferenceStore::TPTPProofPrinter::getRole(InferenceRule rule, UnitIn
         return Role::AXIOM;
       }
       return inputRole(origin);
-    case InferenceRule::NEGATED_CONJECTURE:
+    case InferenceRule::CONJECTURE_NEGATION:
       return Role::NEGATED_CONJECTURE;
     case InferenceRule::AVATAR_DEFINITION:
     case InferenceRule::FUNCTION_DEFINITION:
@@ -287,7 +287,7 @@ std::ostream& InferenceStore::TPTPProofPrinter::printStatus(std::ostream& out, U
   case InferenceRule::SKOLEMIZE:
     return out << statusAnnotation(Status::ESA) << ',' << newSymbols(Origin::SKOLEM, unit) << ','
         << skolemizeMap(unit);
-  case InferenceRule::NEGATED_CONJECTURE:
+  case InferenceRule::CONJECTURE_NEGATION:
     return out << statusAnnotation(Status::CTH);
   default:
     return out;

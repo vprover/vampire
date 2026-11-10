@@ -982,7 +982,7 @@ void outputStep(std::ostream &out, Unit *u)
   InferenceRule rule = u->inference().rule();
   if (
       // can't check the input
-      rule == InferenceRule::INPUT || rule == InferenceRule::NEGATED_CONJECTURE
+      rule == InferenceRule::INPUT || rule == InferenceRule::CONJECTURE_NEGATION
       // can't check skolem symbol introduction
       || rule == InferenceRule::SKOLEM_SYMBOL_INTRODUCTION
       // can't check distinctness axioms

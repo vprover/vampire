@@ -55,3 +55,38 @@ TEST_FUN(default_dependence)
   // since it does no make sense, unless extensionality_resolution is something else than the (default) off
   ASS(testOptionBad("extensionality_allow_pos_eq","true"));
 }
+
+TEST_FUN(decode_rejects_empty_strategy)
+{
+  Options options;
+  try {
+    options.readFromEncodedOptions("");
+  } catch (Lib::UserErrorException& e) {
+    ASS_EQ(e.msg(), "bad test id ");
+    return;
+  }
+  ASSERTION_VIOLATION;
+}
+
+TEST_FUN(decode_rejects_unknown_strategy)
+{
+  Options options;
+  try {
+    options.readFromEncodedOptions("unknown");
+  } catch (Lib::UserErrorException& e) {
+    ASS_EQ(e.msg(), "bad test id unknown");
+    return;
+  }
+  ASSERTION_VIOLATION;
+}
+
+TEST_FUN(decode_accepts_valid_strategy)
+{
+  Options options;
+  options.readFromEncodedOptions("dis+10_2:3_50");
+  ASS_EQ(options.saturationAlgorithm(), Options::SaturationAlgorithm::DISCOUNT);
+  ASS_EQ(options.selection(), 10);
+  ASS_EQ(options.ageRatio(), 2);
+  ASS_EQ(options.weightRatio(), 3);
+  ASS_EQ(options.timeLimitInDeciseconds(), 50);
+}

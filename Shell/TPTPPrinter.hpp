@@ -305,7 +305,7 @@ private:
   /** cnf, tcf, tff or thf, see toString(const Unit*, bool). */
   static TPTPOutput::Language language(const Unit* unit, bool typedClauses);
   static std::ostream& printBody(std::ostream& out, const Unit* unit, bool typedClauses,
-      bool negateFormula, bool includeSplitLevels);
+      bool includeSplitLevels);
 
 };
 

@@ -546,8 +546,8 @@ std::string Kernel::ruleName(InferenceRule rule)
   switch (rule) {
   case InferenceRule::INPUT:
     return "input";
-  case InferenceRule::NEGATED_CONJECTURE:
-    return "negated_conjecture";
+  case InferenceRule::CONJECTURE_NEGATION:
+    return "conjecture_negation";
   case InferenceRule::ANSWER_LITERAL_INJECTION:
     return "answer_literal_injection";
   case InferenceRule::ANSWER_LITERAL_RESOLVER:
