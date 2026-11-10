@@ -124,13 +124,13 @@ struct Quantified {
     if (self.variables.isEmpty()) {
       return out << self.inner;
     }
-    out << "( ! [" << self.variables << "] : ";
+    out << "(! [" << self.variables << "] : ";
     if (self.innerParentheses) {
       out << '(' << self.inner << ')';
     } else {
       out << self.inner;
     }
-    return out << " )";
+    return out << ')';
   }
 };
 
@@ -250,6 +250,7 @@ public:
   struct UnitOutput {
     const Unit* unit;
     TPTPOutput::Language language;
+    const char* role;
 
     std::ostream& print(std::ostream& out) const;
     friend std::ostream& operator<<(std::ostream& out, UnitOutput const& self) { return self.print(out); }
@@ -280,16 +281,17 @@ public:
   /** The default language for this unit, using the same selector as proof output. */
   static TPTPOutput::Language unitLanguage(const Unit* unit);
 
-  /** The unit as an annotated formula in @b language. CNF and TCF are for clauses only; TCF
-   *  spells out the sort of each variable in an explicit universal prefix. In FOF, TFF and
-   *  THF, a clause is printed as its universal closure. */
-  static UnitOutput unit(const Unit* unit, TPTPOutput::Language language)
-  { return {unit, language}; }
-  /** The unit in unitLanguage(unit). */
+  /** The unit as an annotated formula in @b language with @b role, named by its input name.
+   *  CNF and TCF are for clauses only; TCF spells out the sort of each variable in an
+   *  explicit universal prefix. In FOF, TFF and THF, a clause is printed as its universal
+   *  closure. */
+  static UnitOutput unit(const Unit* unit, TPTPOutput::Language language,
+      const char* role = TPTPOutput::Role::PLAIN)
+  { return {unit, language, role}; }
+  /** The unit in unitLanguage(unit), with role plain. */
   static UnitOutput unit(const Unit* unit)
-  { return {unit, unitLanguage(unit)}; }
-  /** Like unit(), but with the given name and role instead of the unit's own.
-   *  The formula is printed as it is, since the role is the caller's. With
+  { return {unit, unitLanguage(unit), TPTPOutput::Role::PLAIN}; }
+  /** Like unit(), but with the given name. With
    *  @b includeSplitLevels, a clause's split levels are added as $splitLevel<n> disjuncts. */
   static NamedUnitOutput namedUnit(const Unit* unit, std::string_view name, const char* role,
       TPTPOutput::Language language, bool includeSplitLevels = false)
@@ -298,7 +300,8 @@ public:
   { return {formula}; }
 
   /** The same text as unit(), as a string. */
-  static std::string toString(const Unit* unit, TPTPOutput::Language language);
+  static std::string toString(const Unit* unit, TPTPOutput::Language language,
+      const char* role = TPTPOutput::Role::PLAIN);
   static std::string toString(const Unit* unit)
   { return toString(unit, unitLanguage(unit)); }
   /** The same text as formula(), as a string. */
@@ -319,7 +322,8 @@ public:
   static SymbolDeclarationsOutput symbolDeclarations();
 
 private:
-  static std::ostream& printUnit(std::ostream& out, const Unit* unit, TPTPOutput::Language language);
+  static std::ostream& printUnit(std::ostream& out, const Unit* unit, TPTPOutput::Language language,
+      const char* role);
   static std::ostream& printUnit(std::ostream& out, const Unit* unit, std::string_view name,
       const char* role, TPTPOutput::Language language, bool includeSplitLevels);
   static std::ostream& printFormula(std::ostream& out, const Formula* formula);

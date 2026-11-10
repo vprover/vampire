@@ -155,7 +155,12 @@ void UIHelper::outputSaturatedSet(std::ostream& out, UnitIterator uit)
 
   while (uit.hasNext()) {
     Unit* cl = uit.next();
-    out << TPTPPrinter::unit(cl) << endl;
+    // A unit derived from the conjecture stems from the negated conjecture.
+    const char* role = TPTPOutput::inputRole(cl->inputType());
+    if (cl->inputType() == UnitInputType::CONJECTURE && cl->inference().rule() != InferenceRule::INPUT) {
+      role = TPTPOutput::Role::NEGATED_CONJECTURE;
+    }
+    out << TPTPPrinter::unit(cl, TPTPPrinter::unitLanguage(cl), role) << endl;
   }
 
   if (szsOutputMode()) {

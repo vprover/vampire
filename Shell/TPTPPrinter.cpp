@@ -72,20 +72,17 @@ std::ostream& TPTPPrinter::printFormula(std::ostream& out, const Formula* formul
 }
 
 /**
- * Output unit @param unit in TPTP format as a std::string
- *
- * A unit of type @b CONJECTURE gets the TPTP role conjecture if it is the
- * conjecture as stated, and negated_conjecture if it was derived from it.
+ * Output unit @param unit in TPTP format as a std::string, with @param role.
  */
-std::string TPTPPrinter::toString(const Unit* unit, Language language)
+std::string TPTPPrinter::toString(const Unit* unit, Language language, const char* role)
 {
   std::ostringstream out;
-  printUnit(out, unit, language);
+  printUnit(out, unit, language, role);
   return out.str();
 }
 
 std::ostream& TPTPPrinter::UnitOutput::print(std::ostream& out) const
-{ return printUnit(out, unit, language); }
+{ return printUnit(out, unit, language, role); }
 
 std::ostream& TPTPPrinter::NamedUnitOutput::print(std::ostream& out) const
 { return printUnit(out, unit, name, role, language, includeSplitLevels); }
@@ -93,14 +90,9 @@ std::ostream& TPTPPrinter::NamedUnitOutput::print(std::ostream& out) const
 std::ostream& TPTPPrinter::FormulaOutput::print(std::ostream& out) const
 { return printFormula(out, formula); }
 
-std::ostream& TPTPPrinter::printUnit(std::ostream& out, const Unit* unit, Language language)
+std::ostream& TPTPPrinter::printUnit(std::ostream& out, const Unit* unit, Language language,
+    const char* role)
 {
-  // Only the conjecture as stated is a conjecture. A unit derived from it inherits the input
-  // type CONJECTURE, but stems from the negated conjecture.
-  const char* role = TPTPOutput::inputRole(unit->inputType());
-  if (unit->inputType() == UnitInputType::CONJECTURE && unit->inference().rule() != InferenceRule::INPUT) {
-    role = TPTPOutput::Role::NEGATED_CONJECTURE;
-  }
   out << language << '(' << InputName{unit, "u"} << ',' << role << ",\n    ";
   printBody(out, unit, language, /*includeSplitLevels=*/false);
   return out << ").\n";
@@ -146,12 +138,12 @@ std::ostream& TPTPPrinter::printBody(std::ostream& out, const Unit* unit, Langua
     });
     switch (language) {
     case Language::CNF:
-      out << "( " << literals << " )";
+      out << TPTPOutput::parenthesized(literals);
       break;
     case Language::TCF: {
       QuantifiedVariables variables(unit, Language::TCF);
       if (!variables.isEmpty()) { out << "![" << variables << "] : "; }
-      out << "( " << literals << " )";
+      out << TPTPOutput::parenthesized(literals);
       break;
     }
     default:

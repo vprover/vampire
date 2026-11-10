@@ -166,7 +166,7 @@ TEST_FUN(single_literal_splitting_definition)
   DECL_PRED(name, {sort})
   Literal* namingLiteral = name(x);
   auto output = printSplittingComponent({p(x), namingLiteral}, namingLiteral);
-  ASS(output.find("( ! [X0] : (p(X0) <=> ~name(X0)) )") != std::string::npos);
+  ASS(output.find("(! [X0] : (p(X0) <=> ~name(X0)))") != std::string::npos);
 }
 
 TEST_FUN(splitting_definition_without_shared_variables)
@@ -179,7 +179,7 @@ TEST_FUN(splitting_definition_without_shared_variables)
   DECL_PRED(name, {})
   Literal* namingLiteral = name();
   auto output = printSplittingComponent({p(x), namingLiteral}, namingLiteral);
-  ASS(output.find("( ! [X0] : p(X0) ) <=> ~name") != std::string::npos);
+  ASS(output.find("(! [X0] : p(X0)) <=> ~name") != std::string::npos);
 }
 
 TEST_FUN(splitting_definition_preserves_literal_order_and_sorts_unique_variables)
@@ -194,7 +194,7 @@ TEST_FUN(splitting_definition_preserves_literal_order_and_sorts_unique_variables
   DECL_PRED(name, {sort, sort})
   Literal* namingLiteral = name(x, y);
   auto output = printSplittingComponent({r(x, z), p(y), r(x, z), namingLiteral}, namingLiteral);
-  ASS(output.find("( ! [X0,X1] : (( ! [X2] : (r(X0,X2) | p(X1) | r(X0,X2)) ) <=> ~name(X0,X1)) )")
+  ASS(output.find("(! [X0,X1] : ((! [X2] : (r(X0,X2) | p(X1) | r(X0,X2))) <=> ~name(X0,X1)))")
       != std::string::npos);
 }
 
@@ -269,57 +269,57 @@ TEST_FUN(default_unit_and_proof_languages_share_environment_flags)
 TEST_FUN(typed_clause_prefix_sorts_variables_and_spells_out_sorts)
 {
   // Clause: p(X1,X0), with both variables of sort $i.
-  // TCF body: ![X0 : $i,X1 : $i] : ( p(X1,X0) ); CNF body: ( p(X1,X0) ).
+  // TCF body: ![X0 : $i,X1 : $i] : (p(X1,X0)); CNF body: (p(X1,X0)).
   // Sort the prefix numerically without reordering the predicate's arguments.
   auto sort = AtomicSort::defaultSort();
   DECL_DEFAULT_VARS
   DECL_PRED(p, {sort, sort})
   auto clause = Clause::fromLiterals({p(y, x)}, FromInput(UnitInputType::AXIOM));
-  ASS_EQ(Shell::TPTPPrinter::toString(clause, Language::TCF),
-      expectedClause(clause, Language::TCF, "![X0 : $i,X1 : $i] : ( p(X1,X0) )"));
-  ASS_EQ(Shell::TPTPPrinter::toString(clause, Language::CNF),
-      expectedClause(clause, Language::CNF, "( p(X1,X0) )"));
+  ASS_EQ(Shell::TPTPPrinter::toString(clause, Language::TCF, Role::AXIOM),
+      expectedClause(clause, Language::TCF, "![X0 : $i,X1 : $i] : (p(X1,X0))"));
+  ASS_EQ(Shell::TPTPPrinter::toString(clause, Language::CNF, Role::AXIOM),
+      expectedClause(clause, Language::CNF, "(p(X1,X0))"));
 
   DECL_PRED(q, {AtomicSort::intSort(), sort})
   // Mixed-sort clause: q(X1:$int,X0:$i).
-  // TCF body: ![X0 : $i,X1 : $int] : ( q(X1,X0) ).
+  // TCF body: ![X0 : $i,X1 : $int] : (q(X1,X0)).
   auto mixed = Clause::fromLiterals({q(y, x)}, FromInput(UnitInputType::AXIOM));
-  ASS_EQ(Shell::TPTPPrinter::toString(mixed, Language::TCF),
-      expectedClause(mixed, Language::TCF, "![X0 : $i,X1 : $int] : ( q(X1,X0) )"));
+  ASS_EQ(Shell::TPTPPrinter::toString(mixed, Language::TCF, Role::AXIOM),
+      expectedClause(mixed, Language::TCF, "![X0 : $i,X1 : $int] : (q(X1,X0))"));
 }
 
 TEST_FUN(typed_clause_prefix_omits_ground_and_empty_quantifiers)
 {
-  // Ground clause p(a) prints the TCF body ( p(a) ), with no universal prefix.
-  // The empty clause prints ( $false ), also without an empty ![] binder.
+  // Ground clause p(a) prints the TCF body (p(a)), with no universal prefix.
+  // The empty clause prints ($false), also without an empty ![] binder.
   auto sort = AtomicSort::defaultSort();
   DECL_CONST(a, sort)
   DECL_PRED(p, {sort})
   auto ground = Clause::fromLiterals({p(a)}, FromInput(UnitInputType::AXIOM));
-  ASS_EQ(Shell::TPTPPrinter::toString(ground, Language::TCF),
-      expectedClause(ground, Language::TCF, "( p(a) )"));
+  ASS_EQ(Shell::TPTPPrinter::toString(ground, Language::TCF, Role::AXIOM),
+      expectedClause(ground, Language::TCF, "(p(a))"));
   auto empty = Clause::fromLiterals({}, FromInput(UnitInputType::AXIOM));
-  ASS_EQ(Shell::TPTPPrinter::toString(empty, Language::TCF),
-      expectedClause(empty, Language::TCF, "( $false )"));
+  ASS_EQ(Shell::TPTPPrinter::toString(empty, Language::TCF, Role::AXIOM),
+      expectedClause(empty, Language::TCF, "($false)"));
 }
 
 TEST_FUN(typed_clause_prefix_puts_type_variables_before_term_variables)
 {
   // Polymorphic clause: p(X3,X0), where X3:$tType and X0:X3.
-  // TCF body: ![X3 : $tType,X0 : X3] : ( p(X3,X0) ).
+  // TCF body: ![X3 : $tType,X0 : X3] : (p(X3,X0)).
   // Bind the type before its term variable, despite X0 having the smaller number.
   PredSugar p("p", {SortSugar(TermList::var(101))}, 1);
   SortSugar type(TermList::var(3));
   TermSugar term(TermList::var(0), type);
   auto clause = Clause::fromLiterals({p(type, term)}, FromInput(UnitInputType::AXIOM));
-  ASS_EQ(Shell::TPTPPrinter::toString(clause, Language::TCF),
-      expectedClause(clause, Language::TCF, "![X3 : $tType,X0 : X3] : ( p(X3,X0) )"));
+  ASS_EQ(Shell::TPTPPrinter::toString(clause, Language::TCF, Role::AXIOM),
+      expectedClause(clause, Language::TCF, "![X3 : $tType,X0 : X3] : (p(X3,X0))"));
 }
 
 TEST_FUN(typed_clause_prefix_sorts_multiple_type_variables)
 {
   // Polymorphic clause: p(X3,X2,X0,X1), with X0:X3 and X1:X2.
-  // TCF body: ![X2 : $tType,X3 : $tType,X0 : X3,X1 : X2] : ( p(X3,X2,X0,X1) ).
+  // TCF body: ![X2 : $tType,X3 : $tType,X0 : X3,X1 : X2] : (p(X3,X2,X0,X1)).
   // Sort type and term variables separately; preserve the literal's argument order.
   PredSugar p("p", {SortSugar(TermList::var(101)), SortSugar(TermList::var(102))}, 2);
   SortSugar a(TermList::var(3));
@@ -327,9 +327,9 @@ TEST_FUN(typed_clause_prefix_sorts_multiple_type_variables)
   TermSugar x(TermList::var(0), a);
   TermSugar y(TermList::var(1), b);
   auto clause = Clause::fromLiterals({p(a, b, x, y)}, FromInput(UnitInputType::AXIOM));
-  ASS_EQ(Shell::TPTPPrinter::toString(clause, Language::TCF),
+  ASS_EQ(Shell::TPTPPrinter::toString(clause, Language::TCF, Role::AXIOM),
       expectedClause(clause, Language::TCF,
-          "![X2 : $tType,X3 : $tType,X0 : X3,X1 : X2] : ( p(X3,X2,X0,X1) )"));
+          "![X2 : $tType,X3 : $tType,X0 : X3,X1 : X2] : (p(X3,X2,X0,X1))"));
 }
 
 TEST_FUN(universal_closure_binds_only_free_variables)
@@ -344,7 +344,7 @@ TEST_FUN(universal_closure_binds_only_free_variables)
   FormulaUnit unit(formula, FromInput(UnitInputType::AXIOM));
   std::ostringstream out;
   out << universalClosure(&unit, Language::FOF);
-  ASS_EQ(out.str(), "( ! [X1] : (! [X0] : p(X0,X1)) )");
+  ASS_EQ(out.str(), "(! [X1] : (! [X0] : p(X0,X1)))");
 }
 
 TEST_FUN(universal_closure_uses_target_language_for_variable_annotations)
@@ -358,11 +358,11 @@ TEST_FUN(universal_closure_uses_target_language_for_variable_annotations)
   auto clause = Clause::fromLiterals({p(y, x)}, FromInput(UnitInputType::AXIOM));
   std::ostringstream fof;
   fof << universalClosure(clause, Language::FOF);
-  ASS_EQ(fof.str(), "( ! [X0,X1] : (p(X1,X0)) )");
+  ASS_EQ(fof.str(), "(! [X0,X1] : (p(X1,X0)))");
   for (auto language : {Language::TFF, Language::THF, Language::TCF}) {
     std::ostringstream typed;
     typed << universalClosure(clause, language);
-    ASS_EQ(typed.str(), "( ! [X0 : $i,X1 : $i] : (p(X1,X0)) )");
+    ASS_EQ(typed.str(), "(! [X0 : $i,X1 : $i] : (p(X1,X0)))");
   }
 }
 
@@ -486,7 +486,7 @@ TEST_FUN(thf_unit_output_parenthesizes_applications_and_annotates_binders)
   // Proof bodies use Formula::toString; both renderers must preserve application parentheses.
   ASS_EQ(formula->toString(/*mightNeedParens=*/true), Shell::TPTPPrinter::toString(formula));
   FormulaUnit unit(formula, FromInput(UnitInputType::AXIOM));
-  ASS_EQ(Shell::TPTPPrinter::toString(&unit),
+  ASS_EQ(Shell::TPTPPrinter::toString(&unit, Language::THF, Role::AXIOM),
       "thf(u" + std::to_string(unit.number()) + ",axiom,\n    ((f @ x) & p)).\n");
 
   auto universal = new QuantifiedFormula(FORALL,
@@ -509,10 +509,11 @@ TEST_FUN(formula_stream_handles_deep_nesting_iteratively)
   checkFormulaOutput(formula, expected);
 }
 
-static void checkUnitOutput(const Unit* unit, const std::string& prefix, const std::string& role,
-    const std::string& body, std::optional<Language> language = std::nullopt)
+// unit() prints the role plain, whatever the input type: the role is up to namedUnit()'s caller.
+static void checkUnitOutput(const Unit* unit, const std::string& prefix, const std::string& body,
+    std::optional<Language> language = std::nullopt)
 {
-  auto expected = prefix + "(u" + std::to_string(unit->number()) + ',' + role + ",\n    " + body + ").\n";
+  auto expected = prefix + "(u" + std::to_string(unit->number()) + ",plain,\n    " + body + ").\n";
   Language printed = language.value_or(Shell::TPTPPrinter::unitLanguage(unit));
   ASS_EQ(Shell::TPTPPrinter::toString(unit, printed), expected);
   if (!language) {
@@ -526,53 +527,44 @@ static void checkUnitOutput(const Unit* unit, const std::string& prefix, const s
   ASS_EQ(out.str(), "before:" + expected + ":after");
 }
 
-TEST_FUN(unit_stream_preserves_formula_roles)
-{
-  DECL_PRED(p, {})
-  auto atom = new AtomicFormula(p());
-  FormulaUnit axiom(atom, FromInput(UnitInputType::AXIOM));
-  checkUnitOutput(&axiom, "fof", "axiom", "p");
-  checkUnitOutput(&axiom, "tff", "axiom", "p", Language::TFF);
-  FormulaUnit assumption(atom, FromInput(UnitInputType::ASSUMPTION));
-  checkUnitOutput(&assumption, "fof", "hypothesis", "p");
-  FormulaUnit extensionality(atom, FromInput(UnitInputType::EXTENSIONALITY_AXIOM));
-  checkUnitOutput(&extensionality, "fof", "extensionality", "p");
-  FormulaUnit negatedConjecture(atom, FromInput(UnitInputType::NEGATED_CONJECTURE));
-  checkUnitOutput(&negatedConjecture, "fof", "negated_conjecture", "p");
-}
-
 // Like the parser: the stated conjecture is an input unit, and the prover works on a unit
 // derived from it by negation, which inherits the input type CONJECTURE.
 static Inference fromNegatedConjecture(Unit* stated)
 { return FormulaClauseTransformation(InferenceRule::CONJECTURE_NEGATION, stated); }
 
-TEST_FUN(unit_stream_prints_stated_conjecture_as_is)
-{
-  DECL_PRED(p, {})
-  FormulaUnit stated(new AtomicFormula(p()), FromInput(UnitInputType::CONJECTURE));
-  checkUnitOutput(&stated, "fof", "conjecture", "p");
-}
-
-TEST_FUN(unit_stream_prints_derived_conjecture_as_negated_conjecture)
+TEST_FUN(unit_stream_prints_plain_role)
 {
   DECL_PRED(p, {})
   auto atom = new AtomicFormula(p());
+  FormulaUnit axiom(atom, FromInput(UnitInputType::AXIOM));
+  checkUnitOutput(&axiom, "fof", "p");
+  checkUnitOutput(&axiom, "tff", "p", Language::TFF);
   FormulaUnit stated(atom, FromInput(UnitInputType::CONJECTURE));
+  checkUnitOutput(&stated, "fof", "p");
   FormulaUnit negated(new NegatedFormula(atom), fromNegatedConjecture(&stated));
-  checkUnitOutput(&negated, "fof", "negated_conjecture", "(~ p)");
+  checkUnitOutput(&negated, "fof", "(~ p)");
 }
 
-TEST_FUN(unit_stream_preserves_clause_order_and_conjecture_role)
+TEST_FUN(unit_stream_uses_given_role)
 {
-  // Clause: p | q, derived from the negated conjecture.
-  // Print cnf(uN,negated_conjecture,( p | q )) or tcf(uN,negated_conjecture,( p | q )).
+  DECL_PRED(p, {})
+  FormulaUnit axiom(new AtomicFormula(p()), FromInput(UnitInputType::AXIOM));
+  auto expected = "fof(u" + std::to_string(axiom.number()) + ",axiom,\n    p).\n";
+  ASS_EQ(Shell::TPTPPrinter::toString(&axiom, Language::FOF, "axiom"), expected);
+  std::ostringstream out;
+  out << Shell::TPTPPrinter::unit(&axiom, Language::FOF, "axiom");
+  ASS_EQ(out.str(), expected);
+}
+
+TEST_FUN(unit_stream_preserves_clause_order)
+{
+  // Clause: p | q. Print cnf(uN,plain,(p | q)) or tcf(uN,plain,(p | q)).
   // uN is the generated unit name; the ground clause needs no variable prefix.
   DECL_PRED(p, {})
   DECL_PRED(q, {})
-  FormulaUnit stated(new AtomicFormula(p()), FromInput(UnitInputType::CONJECTURE));
-  auto clause = Clause::fromLiterals({p(), q()}, fromNegatedConjecture(&stated));
-  checkUnitOutput(clause, "cnf", "negated_conjecture", "( p | q )");
-  checkUnitOutput(clause, "tcf", "negated_conjecture", "( p | q )", Language::TCF);
+  auto clause = Clause::fromLiterals({p(), q()}, FromInput(UnitInputType::AXIOM));
+  checkUnitOutput(clause, "cnf", "(p | q)");
+  checkUnitOutput(clause, "tcf", "(p | q)", Language::TCF);
 }
 
 static std::string printNamedUnit(const char* name, const char* role, Unit* unit,
@@ -586,22 +578,22 @@ static std::string printNamedUnit(const char* name, const char* role, Unit* unit
 TEST_FUN(named_unit_stream_uses_given_name_and_role)
 {
   // Clause: p(X0) | q. With name c and role claim, print:
-  // tcf(c,claim, ![X0 : $i] : ( p(X0) | q )).
+  // tcf(c,claim, ![X0 : $i] : (p(X0) | q)).
   auto sort = AtomicSort::defaultSort();
   DECL_DEFAULT_VARS
   DECL_PRED(p, {sort})
   DECL_PRED(q, {})
   auto clause = Clause::fromLiterals({p(x), q()}, FromInput(UnitInputType::AXIOM));
-  ASS_EQ(printNamedUnit("c", "claim", clause), "tcf(c,claim,\n    ![X0 : $i] : ( p(X0) | q )).\n");
+  ASS_EQ(printNamedUnit("c", "claim", clause), "tcf(c,claim,\n    ![X0 : $i] : (p(X0) | q)).\n");
 
   // Clause: p(X0), under split levels 3 and 4. With split-level output enabled:
-  // tcf(s,claim, ![X0 : $i] : ( p(X0) | $splitLevel3 | $splitLevel4 )).
-  // With it disabled: tcf(s,claim, ![X0 : $i] : ( p(X0) )).
+  // tcf(s,claim, ![X0 : $i] : (p(X0) | $splitLevel3 | $splitLevel4)).
+  // With it disabled: tcf(s,claim, ![X0 : $i] : (p(X0))).
   auto split = Clause::fromLiterals({p(x)}, FromInput(UnitInputType::AXIOM));
   split->setSplits(SplitSet::getRange(3, 5));
   ASS_EQ(printNamedUnit("s", "claim", split, true),
-      "tcf(s,claim,\n    ![X0 : $i] : ( p(X0) | $splitLevel3 | $splitLevel4 )).\n");
-  ASS_EQ(printNamedUnit("s", "claim", split), "tcf(s,claim,\n    ![X0 : $i] : ( p(X0) )).\n");
+      "tcf(s,claim,\n    ![X0 : $i] : (p(X0) | $splitLevel3 | $splitLevel4)).\n");
+  ASS_EQ(printNamedUnit("s", "claim", split), "tcf(s,claim,\n    ![X0 : $i] : (p(X0))).\n");
 
   // The role is the caller's, whatever the input type of the unit.
   FormulaUnit stated(new AtomicFormula(q()), FromInput(UnitInputType::CONJECTURE));

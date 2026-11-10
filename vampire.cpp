@@ -167,6 +167,18 @@ void profileMode(Problem* problem)
 } // profileMode
 
 /**
+ * The TPTP role of @b unit in the output modes: its input role, except that a unit
+ * derived from the conjecture stems from the negated conjecture.
+ */
+static const char* outputRole(const Unit* unit)
+{
+  if (unit->inputType() == UnitInputType::CONJECTURE && unit->inference().rule() != InferenceRule::INPUT) {
+    return TPTPOutput::Role::NEGATED_CONJECTURE;
+  }
+  return TPTPOutput::inputRole(unit->inputType());
+}
+
+/**
  * This mode only preprocesses the input using the current preprocessing
  * options and outputs it to stdout. It is useful for either preprocessing
  * per se or also for converting one syntax to another. For the latter, the input
@@ -206,9 +218,9 @@ void preprocessMode(Problem* problem, bool theory)
     if (theory) {
       Formula* f = u->getFormula();
       FormulaUnit* fu = new FormulaUnit(f,u->inference()); // we are stealing u's inference which is not nice
-      std::cout << TPTPPrinter::unit(fu, language) << "\n";
+      std::cout << TPTPPrinter::unit(fu, language, outputRole(fu)) << "\n";
     } else {
-      std::cout << TPTPPrinter::unit(u, language) << "\n";
+      std::cout << TPTPPrinter::unit(u, language, outputRole(u)) << "\n";
     }
   }
 
@@ -259,7 +271,7 @@ void outputMode(Problem* problem)
       ASS(!parents.hasNext());
       ASS(u->inference().rule() == InferenceRule::INPUT);
     }
-    std::cout << TPTPPrinter::unit(u, language) << "\n";
+    std::cout << TPTPPrinter::unit(u, language, outputRole(u)) << "\n";
   }
 
   //we have successfully output all clauses, so we'll terminate with zero return value
@@ -397,7 +409,7 @@ void clausifyMode(Problem* problem, bool theory)
       continue;
     }
     printed_conjecture |= cl->inputType() == UnitInputType::CONJECTURE || cl->inputType() == UnitInputType::NEGATED_CONJECTURE;
-    std::cout << TPTPPrinter::unit(cl, clauseLanguage) << "\n";
+    std::cout << TPTPPrinter::unit(cl, clauseLanguage, outputRole(cl)) << "\n";
   }
   if(!printed_conjecture && UIHelper::haveConjecture()){
     // print a fake tautology conjecture for Kostya and friends
@@ -409,7 +421,7 @@ void clausifyMode(Problem* problem, bool theory)
         Literal::create(p, /* polarity */ false, {})
       },
       FromInput(UnitInputType::NEGATED_CONJECTURE));
-    std::cout << TPTPPrinter::unit(c, clauseLanguage) << "\n";
+    std::cout << TPTPPrinter::unit(c, clauseLanguage, outputRole(c)) << "\n";
   }
 
   //we have successfully output all clauses, so we'll terminate with zero return value
