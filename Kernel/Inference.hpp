@@ -977,7 +977,7 @@ private:
 
   Kind _kind : 2;
 
-  UnitInputType _inputType : 3;
+  UnitInputType _inputType : 2;
 
   /** true if the unit is read from a TPTP included file  */
   bool _included : 1;
@@ -985,7 +985,7 @@ private:
   /** track whether all leafs were theory axioms only */
   bool _isPureTheoryDescendant : 1;
   /** Induction depth **/
-  unsigned _inductionDepth : 9;
+  unsigned _inductionDepth : 10;
 
 }; // class Inference
 
