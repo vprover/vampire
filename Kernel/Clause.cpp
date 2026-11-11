@@ -57,18 +57,10 @@ Clause::Clause(Literal* const* lits, unsigned length, Inference inf)
     _length(length),
     _color(COLOR_INVALID),
     _extensionality(false),
-    _extensionalityTag(false),
     _component(false),
     _store(NONE),
     _numSelected(0)
 {
-  // MS: TODO: not sure if this belongs here and whether EXTENSIONALITY_AXIOM input types ever appear anywhere (as a vampire-extension TPTP formula role)
-  if(inference().inputType() == UnitInputType::EXTENSIONALITY_AXIOM){
-    //cout << "Setting extensionality" << endl;
-    _extensionalityTag = true;
-    inference().setInputType(UnitInputType::AXIOM);
-  }
-
   for(unsigned i = 0; i < length; i++) {
     (*this)[i] = lits[i];
   }

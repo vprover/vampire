@@ -62,6 +62,7 @@ static VSList* zipVarsSorts(VList* vars, SList* sorts) {
 #define DEBUG_SHOW_UNITS 0
 #define DEBUG_SOURCE 0
 DHMap<unsigned, std::pair<std::string, std::filesystem::path>, FnvHash, IdentityHash> TPTP::_axiomNames;
+DHSet<unsigned, FnvHash, IdentityHash> TPTP::_modelDefinitionUnits;
 DHMap<unsigned, Map<unsigned,std::string, FnvHash>, FnvHash, IdentityHash> TPTP::_questionVariableNames;
 
 //Numbers chosen to avoid clashing with connectives.
@@ -361,17 +362,12 @@ void TPTP::parseImpl(State initialState)
 void TPTP::parseInputType(const std::string& tp)
 {
   _isQuestion = false;
+  _isClaim = false;
   if(_modelDefinition){
-    _lastInputType = UnitInputType::MODEL_DEFINITION;
-  }
-  else if (tp == "axiom" || tp == "plain") {
+    // the role of a model definition is ignored, see isModelDefinition()
     _lastInputType = UnitInputType::AXIOM;
   }
-  else if(tp == "extensionality"){
-    // this will be transformed to just AXIOM after clausification
-    _lastInputType = UnitInputType::EXTENSIONALITY_AXIOM;
-  }
-  else if (tp == "definition") {
+  else if (tp == "axiom" || tp == "plain" || tp == "definition") {
     _lastInputType = UnitInputType::AXIOM;
   }
   else if (tp == "conjecture") {
@@ -388,7 +384,8 @@ void TPTP::parseInputType(const std::string& tp)
     _lastInputType = UnitInputType::ASSUMPTION;
   }
   else if (tp == "claim") {
-    _lastInputType = UnitInputType::CLAIM;
+    _isClaim = true;
+    _lastInputType = UnitInputType::AXIOM;
   }
   else if (tp == "assumption" || tp == "unknown" || tp == "logic") {
     // MS: we were silently dropping these until now. I wonder why...
@@ -4068,18 +4065,20 @@ void TPTP::endFof()
     }
     break;
 
-  case UnitInputType::CLAIM:
-    unit = processClaimFormula(unit,f,nm);
-    break;
-
   default:
     break;
+  }
+  if (_isClaim) {
+    unit = processClaimFormula(unit,f,nm);
+  }
+  if (_modelDefinition) {
+    _modelDefinitionUnits.insert(unit->number());
   }
   _units.pushBack(unit);
 } // tag
 
 /*
-* The given unit has already been parsed (and had the role CLAIM).
+* The given unit has already been parsed (and had the role claim).
 * It's actually a FormulaUnit with the formula f wrapped inside.
 * nm is the name of the claim in TPTP, but can be any other string
 * that will serve as the name of the predice we introduce:

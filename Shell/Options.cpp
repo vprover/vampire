@@ -728,7 +728,7 @@ Options::Options ()
        .description = "Perform equality resolution with deletion.",
        .tag = OptionTag::PREPROCESSING})
   , _extensionalityResolution("extensionality_resolution",this,
-                      ExtensionalityResolution::OFF,{"filter","known","tagged","off"},
+                      ExtensionalityResolution::OFF,{"filter","known","off"},
       {.short_name = "er",
        .description = "Turns on the following inference rule:\n"
       "  x=y \\/ C    s != t \\/ D\n"
@@ -736,8 +736,7 @@ Options::Options ()
       "  C{x → s, y → t} \\/ D\n"
       "Where s!=t is selected in s!=t \\/D and x=y \\/ C is a recognised as an extensionality clause - how clauses are recognised depends on the value of this option.\n"
       "If filter we attempt to recognise all extensionality clauses i.e. those that have exactly one X=Y, no inequality of the same sort as X-Y (and optionally no equality except X=Y, see extensionality_allow_pos_eq).\n"
-      "If known we only recognise a known set of extensionality clauses. At the moment this includes the standard and subset-based formulations of the set extensionality axiom, as well as the array extensionality axiom.\n"
-      "If tagged we only use formulas tagged as extensionality clauses.",
+      "If known we only recognise a known set of extensionality clauses. At the moment this includes the standard and subset-based formulations of the set extensionality axiom, as well as the array extensionality axiom.",
        .tag = OptionTag::INFERENCES})
   , _extensionalityMaxLength("extensionality_max_length",this,0,
       {.short_name = "erml",

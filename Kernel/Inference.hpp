@@ -39,13 +39,7 @@ enum class UnitInputType : unsigned char {
   /** derives from the goal */
   CONJECTURE = 2,
   /** negated conjecture */
-  NEGATED_CONJECTURE = 3,
-  /** Vampire-only, for the consequence-finding mode */
-  CLAIM = 4,
-  /** Used in parsing and preprocessing for extensionality clause tagging, should not appear in proof search */
-  EXTENSIONALITY_AXIOM = 5,
-  /** Used to separate model definitions in model_check mode, should not appear in proof search */
-  MODEL_DEFINITION = 6
+  NEGATED_CONJECTURE = 3
 };
 
 inline constexpr std::underlying_type_t<UnitInputType> toNumber(UnitInputType t) { return static_cast<std::underlying_type_t<UnitInputType>>(t); }
@@ -983,7 +977,7 @@ private:
 
   Kind _kind : 2;
 
-  UnitInputType _inputType : 3;
+  UnitInputType _inputType : 2;
 
   /** true if the unit is read from a TPTP included file  */
   bool _included : 1;
@@ -991,7 +985,7 @@ private:
   /** track whether all leafs were theory axioms only */
   bool _isPureTheoryDescendant : 1;
   /** Induction depth **/
-  unsigned _inductionDepth : 9;
+  unsigned _inductionDepth : 10;
 
 }; // class Inference
 

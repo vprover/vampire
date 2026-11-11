@@ -107,8 +107,8 @@ const char* InferenceStore::TPTPProofPrinter::getRole(InferenceRule rule, UnitIn
     }
     switch(rule) {
     case InferenceRule::INPUT:
-      // Proofs present hypotheses and extensionality axioms as axioms.
-      if (origin == UnitInputType::ASSUMPTION || origin == UnitInputType::EXTENSIONALITY_AXIOM) {
+      // Proofs present hypotheses as axioms.
+      if (origin == UnitInputType::ASSUMPTION) {
         return Role::AXIOM;
       }
       return inputRole(origin);
