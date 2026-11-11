@@ -65,7 +65,6 @@ public:
     static LitInfo getReversed(const LitInfo& li);
     static LitInfo getOpposite(const LitInfo& li);
 
-    /** Index of the literal in the query clause */
     Literal* lit;
     FlatTerm* ft;
     bool opposite;
@@ -83,7 +82,6 @@ public:
     static MatchInfo* alloc(unsigned bindCnt);
 
     void destroy(unsigned bindCnt);
-
 
     friend struct ILStruct;
 

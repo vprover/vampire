@@ -591,7 +591,7 @@ Clause* ClauseCodeTree::ClauseMatcher::next(Literal*& resolvedQueryLit)
   }
 
   for(;;) {
-    LiteralMatcher* lm = &*lms.top();
+    auto& lm = lms.top();
 
     //get next literal from the literal matcher
     bool found=lm->next();
@@ -655,8 +655,8 @@ inline bool ClauseCodeTree::ClauseMatcher::canEnterLiteral(CodeOp* op)
     for(size_t ilIndex=0;ilIndex<lms.size()-1;ilIndex++) {
       ILStruct* prevILS=lms[ilIndex]->getILS();
       if(prevILS->varCnt && !lms[ilIndex]->eagerlyMatched()) {
-	lms[ilIndex]->doEagerMatching();
-	RSTAT_MST_INC("match count", ilIndex, lms[ilIndex]->getILS()->matches.size());
+        lms[ilIndex]->doEagerMatching();
+        RSTAT_MST_INC("match count", ilIndex, lms[ilIndex]->getILS()->matches.size());
       }
 
       size_t matchIndex=ils->matches.size();
@@ -691,8 +691,7 @@ void ClauseCodeTree::ClauseMatcher::enterLiteral(CodeOp* entry, bool seekOnlySuc
   }
 
   if(lms.isNonEmpty()) {
-    Recycled<LiteralMatcher, NoReset>& prevLM = lms.top();
-    ILStruct* ils=prevLM->op->getILS();
+    auto ils = lms.top()->op->getILS();
     ASS_EQ(ils->timestamp,tree->_curTimeStamp);
     ASS(!ils->visited);
     ASS(!ils->finished);
@@ -722,8 +721,7 @@ void ClauseCodeTree::ClauseMatcher::leaveLiteral()
   lms.pop();
 
   if(lms.isNonEmpty()) {
-    LiteralMatcher* prevLM = &*lms.top();
-    ILStruct* ils=prevLM->op->getILS();
+    auto ils = lms.top()->op->getILS();
     ASS_EQ(ils->timestamp,tree->_curTimeStamp);
     ASS(ils->visited);
 
