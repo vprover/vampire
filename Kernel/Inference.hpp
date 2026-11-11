@@ -41,9 +41,7 @@ enum class UnitInputType : unsigned char {
   /** negated conjecture */
   NEGATED_CONJECTURE = 3,
   /** Vampire-only, for the consequence-finding mode */
-  CLAIM = 4,
-  /** Used to separate model definitions in model_check mode, should not appear in proof search */
-  MODEL_DEFINITION = 5
+  CLAIM = 4
 };
 
 inline constexpr std::underlying_type_t<UnitInputType> toNumber(UnitInputType t) { return static_cast<std::underlying_type_t<UnitInputType>>(t); }

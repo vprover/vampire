@@ -26,6 +26,8 @@
 #include "Kernel/Unit.hpp"
 #include "Kernel/Term.hpp"
 
+#include "Parse/TPTP.hpp"
+
 #include "FiniteModelMultiSorted.hpp"
 
 namespace FMB{
@@ -52,7 +54,7 @@ static void doCheck(UnitList* units)
     UnitList::Iterator uit(units);
     while(uit.hasNext()){
       Unit* u = uit.next();
-      if(u->inputType()!= UnitInputType::MODEL_DEFINITION) continue;
+      if(!Parse::TPTP::isModelDefinition(u)) continue;
       std::string name;
       std::filesystem::path path;
       ALWAYS(Parse::TPTP::findAxiomName(u,name,path));
@@ -140,7 +142,7 @@ static void doCheck(UnitList* units)
     UnitList::Iterator uit(units);
     while(uit.hasNext()){
       Unit* u = uit.next();
-      if(u->inputType()!= UnitInputType::MODEL_DEFINITION) continue;
+      if(!Parse::TPTP::isModelDefinition(u)) continue;
       std::string name;
       std::filesystem::path path;
       ALWAYS(Parse::TPTP::findAxiomName(u,name,path));
@@ -186,7 +188,7 @@ static void doCheck(UnitList* units)
       UnitList::Iterator uit(units);
       while(uit.hasNext()){
         Unit* u = uit.next();
-        if(u->inputType()== UnitInputType::MODEL_DEFINITION) continue;
+        if(Parse::TPTP::isModelDefinition(u)) continue;
 
         std::cout << "Checking " << u->toString() << "..." << std::endl;
         bool res = model.evaluate(u);

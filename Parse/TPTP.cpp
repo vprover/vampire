@@ -62,6 +62,7 @@ static VSList* zipVarsSorts(VList* vars, SList* sorts) {
 #define DEBUG_SHOW_UNITS 0
 #define DEBUG_SOURCE 0
 DHMap<unsigned, std::pair<std::string, std::filesystem::path>, FnvHash, IdentityHash> TPTP::_axiomNames;
+DHSet<unsigned, FnvHash, IdentityHash> TPTP::_modelDefinitionUnits;
 DHMap<unsigned, Map<unsigned,std::string, FnvHash>, FnvHash, IdentityHash> TPTP::_questionVariableNames;
 
 //Numbers chosen to avoid clashing with connectives.
@@ -362,7 +363,8 @@ void TPTP::parseInputType(const std::string& tp)
 {
   _isQuestion = false;
   if(_modelDefinition){
-    _lastInputType = UnitInputType::MODEL_DEFINITION;
+    // the role of a model definition is ignored, see isModelDefinition()
+    _lastInputType = UnitInputType::AXIOM;
   }
   else if (tp == "axiom" || tp == "plain" || tp == "definition") {
     _lastInputType = UnitInputType::AXIOM;
@@ -4067,6 +4069,9 @@ void TPTP::endFof()
 
   default:
     break;
+  }
+  if (_modelDefinition) {
+    _modelDefinitionUnits.insert(unit->number());
   }
   _units.pushBack(unit);
 } // tag

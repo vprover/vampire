@@ -223,7 +223,11 @@ void preprocessMode(Problem* problem, bool theory)
 void modelCheckMode(Problem* problem)
 {
   ScopedPtr<Problem> prb(problem);
-  
+
+  // model definitions are recorded by the TPTP parser
+  if (env.options->inputSyntax() == Options::InputSyntax::SMTLIB2) {
+    USER_ERROR("Mode model_check only supports TPTP input");
+  }
   if(env.getMainProblem()->hasPolymorphicSym() || env.getMainProblem()->isHigherOrder()){
     USER_ERROR("Polymorphic Vampire is not yet compatible with theory reasoning");
   }
