@@ -259,7 +259,7 @@ void ClauseCodeTree::remove(Clause* cl)
   }
 
   for(unsigned i=0;i<clen;i++) {
-    lInfos[i]=LitInfo(cl,i);
+    lInfos[i]=LitInfo((*cl)[i]);
   }
   incTimeStamp();
 
@@ -529,24 +529,24 @@ void ClauseCodeTree::ClauseMatcher::init(ClauseCodeTree* tree_, Clause* query_, 
 
   //we put ground literals first
   unsigned liIndex=0;
-  for(unsigned i=0;i<clen;i++) {
-    if(!(*query)[i]->ground()) {
+  for(const auto& lit : *query) {
+    if(!lit->ground()) {
       continue;
     }
-    lInfos[liIndex]=LitInfo(query,i);
+    lInfos[liIndex]=LitInfo(lit);
     liIndex++;
-    if((*query)[i]->isEquality()) {
+    if(lit->isEquality()) {
       lInfos[liIndex]=LitInfo::getReversed(lInfos[liIndex-1]);
       liIndex++;
     }
   }
-  for(unsigned i=0;i<clen;i++) {
-    if((*query)[i]->ground()) {
+  for(const auto& lit : *query) {
+    if(lit->ground()) {
       continue;
     }
-    lInfos[liIndex]=LitInfo(query,i);
+    lInfos[liIndex]=LitInfo(lit);
     liIndex++;
-    if((*query)[i]->isEquality()) {
+    if(lit->isEquality()) {
       lInfos[liIndex]=LitInfo::getReversed(lInfos[liIndex-1]);
       liIndex++;
     }
@@ -584,7 +584,7 @@ void ClauseCodeTree::ClauseMatcher::reset()
 /**
  * Return next clause matching query or 0 if there is not such
  */
-Clause* ClauseCodeTree::ClauseMatcher::next(int& resolvedQueryLit)
+Clause* ClauseCodeTree::ClauseMatcher::next(Literal*& resolvedQueryLit)
 {
   if(lms.isEmpty()) {
     return 0;
@@ -600,15 +600,15 @@ Clause* ClauseCodeTree::ClauseMatcher::next(int& resolvedQueryLit)
     if(!found) {
       leaveLiteral();
       if(lms.isEmpty()) {
-	return 0;
+        return nullptr;
       }
     }
     else if(lm->op->isSuccess()) {
       Clause* candidate=lm->op->template getSuccessResult<Clause>();
       RSTAT_MCTR_INC("candidates", lms.size()-1);
       if(checkCandidate(candidate, resolvedQueryLit)) {
-	RSTAT_MCTR_INC("candidates (success)", lms.size()-1);
-	return candidate;
+        RSTAT_MCTR_INC("candidates (success)", lms.size()-1);
+        return candidate;
       }
     }
     else if(canEnterLiteral(lm->op)) {
@@ -623,10 +623,10 @@ Clause* ClauseCodeTree::ClauseMatcher::next(int& resolvedQueryLit)
       ASS(!sres || sresLiteral==sresNoLiteral || sresLiteral<lms.size()-1);
 
       if(sres && sresLiteral==sresNoLiteral) {
-	//we check whether we haven't matched only opposite literals on the previous level
-	if(lm->getILS()->noNonOppositeMatches) {
-	  sresLiteral=lms.size()-1;
-	}
+        //we check whether we haven't matched only opposite literals on the previous level
+        if(lm->getILS()->noNonOppositeMatches) {
+          sresLiteral=lms.size()-1;
+        }
       }
 
       bool seekOnlySuccess=lms.size()==query->length();
@@ -743,7 +743,7 @@ void ClauseCodeTree::ClauseMatcher::leaveLiteral()
 
 //////////////// Multi-literal matching
 
-bool ClauseCodeTree::ClauseMatcher::checkCandidate(Clause* cl, int& resolvedQueryLit)
+bool ClauseCodeTree::ClauseMatcher::checkCandidate(Clause* cl, Literal*& resolvedQueryLit)
 {
   unsigned clen=cl->length();
   //the last matcher in mls is the one that yielded the SUCCESS operation
@@ -753,17 +753,17 @@ bool ClauseCodeTree::ClauseMatcher::checkCandidate(Clause* cl, int& resolvedQuer
   if(clen<=1) {
     //if clause doesn't have multiple literals, there is no need
     //for multi-literal matching
-    resolvedQueryLit=-1;
+    resolvedQueryLit=nullptr;
     if(sres && clen==1) {
       size_t matchCnt=lms[0]->getILS()->matches.size();
       for(size_t i=0;i<matchCnt;i++) {
         MatchInfo* mi=lms[0]->getILS()->getMatch(i);
         if(mi->lInfo->opposite) {
-          resolvedQueryLit=mi->lInfo->litIndex;
+          resolvedQueryLit=mi->lInfo->lit;
         }
         else {
           //we prefer subsumption to subsumption resolution
-          resolvedQueryLit=-1;
+          resolvedQueryLit=nullptr;
           break;
         }
       }
@@ -806,7 +806,7 @@ bool ClauseCodeTree::ClauseMatcher::checkCandidate(Clause* cl, int& resolvedQuer
 //  return newMatches && matchGlobalVars(resolvedQueryLit);
 }
 
-bool ClauseCodeTree::ClauseMatcher::matchGlobalVars(int& resolvedQueryLit)
+bool ClauseCodeTree::ClauseMatcher::matchGlobalVars(Literal*& resolvedQueryLit)
 {
   //TODO: perform _set_, not _multiset_ subsumption for subsumption resolution
 
@@ -871,13 +871,13 @@ bool ClauseCodeTree::ClauseMatcher::matchGlobalVars(int& resolvedQueryLit)
     }
   }
 
-  resolvedQueryLit=-1;
+  resolvedQueryLit=nullptr;
   if(sres) {
     for(unsigned i=0;i<clen;i++) {
       ILStruct* ils=lms[i]->getILS();
       MatchInfo* mi=ils->getMatch(matchIndex[i]);
       if(mi->lInfo->opposite) {
-        resolvedQueryLit=mi->lInfo->litIndex;
+        resolvedQueryLit=mi->lInfo->lit;
         break;
       }
     }
@@ -888,7 +888,7 @@ bool ClauseCodeTree::ClauseMatcher::matchGlobalVars(int& resolvedQueryLit)
 
 bool ClauseCodeTree::ClauseMatcher::compatible(ILStruct* bi, MatchInfo* bq, ILStruct* ni, MatchInfo* nq)
 {
-  if( bq->lInfo->litIndex==nq->lInfo->litIndex ||
+  if( bq->lInfo->lit==nq->lInfo->lit ||
       (bq->lInfo->opposite && nq->lInfo->opposite) ) {
     return false;
   }

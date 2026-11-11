@@ -59,14 +59,14 @@ public:
   struct LitInfo
   {
     LitInfo() {}
-    LitInfo(Clause* cl, unsigned litIndex);
+    LitInfo(Literal* lit);
     void dispose();
 
     static LitInfo getReversed(const LitInfo& li);
     static LitInfo getOpposite(const LitInfo& li);
 
     /** Index of the literal in the query clause */
-    unsigned litIndex;
+    Literal* lit;
     FlatTerm* ft;
     bool opposite;
   };

@@ -52,10 +52,10 @@ bool CodeTreeForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&repla
   cm.init(_ct, cl, _subsumptionResolution);
 
   Clause* premise;
-  int resolvedQueryLit;
+  Literal* resolvedQueryLit;
 
   while ((premise = cm.next(resolvedQueryLit))) {
-    if (resolvedQueryLit == -1) {
+    if (resolvedQueryLit == nullptr) {
       ASS(satSubs.checkSubsumption(premise, cl));
       premises = pvi(getSingletonIterator(premise));
       env.statistics->forwardSubsumed++;
@@ -65,18 +65,18 @@ bool CodeTreeForwardSubsumptionAndResolution::perform(Clause *cl, Clause *&repla
     if (rsi && Random::getDouble(0.0,1.0) < RSI_SKIP_PROB) {
       continue; // drop this candidate; the next match gets a chance
     }
-    ASS(satSubs.checkSubsumptionResolutionWithLiteral(premise, cl, resolvedQueryLit));
+    ASS(satSubs.checkSubsumptionResolutionWithLiteral(premise, cl, cl->getLiteralPosition(resolvedQueryLit)));
 
     LiteralStack res;
-    for (unsigned i = 0; i < cl->length(); i++) {
-      if (i == (unsigned)resolvedQueryLit) {
+    for (const auto& lit : *cl) {
+      if (lit == resolvedQueryLit) {
         continue;
       }
-      res.push((*cl)[i]);
+      res.push(lit);
     }
     replacement = Clause::fromStack(res, SimplifyingInference2(InferenceRule::FORWARD_SUBSUMPTION_RESOLUTION, cl, premise));
     if(env.options->proofExtra() == Options::ProofExtra::FULL)
-      env.proofExtra.insert(replacement, new LiteralInferenceExtra((*cl)[resolvedQueryLit]));
+      env.proofExtra.insert(replacement, new LiteralInferenceExtra(resolvedQueryLit));
     premises = pvi(getSingletonIterator(premise));
     cm.reset();
     return true;

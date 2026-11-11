@@ -738,16 +738,16 @@ bool PredicateElimination::forwardSubsumedOrResolved(Clause *cl, Clause *&replac
 
   bool subsumed = false;
   Clause *premise;
-  int resolvedQueryLit;
+  Literal* resolvedQueryLit;
   if ((premise = cm.next(resolvedQueryLit))) {
-    if (resolvedQueryLit == -1) {
+    if (resolvedQueryLit == nullptr) {
       subsumed = true;
     }
     else {
       LiteralStack res;
-      for (unsigned i = 0; i < cl->length(); i++) {
-        if (i != (unsigned)resolvedQueryLit) {
-          res.push((*cl)[i]);
+      for (const auto& lit : *cl) {
+        if (lit != resolvedQueryLit) {
+          res.push(lit);
         }
       }
       replacement = Clause::fromStack(res,

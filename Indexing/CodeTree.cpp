@@ -59,10 +59,10 @@ using namespace Kernel;
 
 //////////////// general datastructures ////////////////////
 
-CodeTree::LitInfo::LitInfo(Clause* cl, unsigned litIndex)
-: litIndex(litIndex), opposite(false)
+CodeTree::LitInfo::LitInfo(Literal* lit)
+: lit(lit), opposite(false)
 {
-  ft=FlatTerm::create(TermList((*cl)[litIndex]));
+  ft=FlatTerm::create(TermList(lit));
 }
 
 void CodeTree::LitInfo::dispose()

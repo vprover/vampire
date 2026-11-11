@@ -97,7 +97,7 @@ public:
     void reset();
     bool keepRecycled() const { return lInfos.keepRecycled(); }
 
-    Clause* next(int& resolvedQueryLit);
+    Clause* next(Literal*& resolvedQueryLit);
 
     bool matched() { return lms.isNonEmpty() && lms.top()->success(); }
     CodeOp* getSuccessOp() { ASS(matched()); return lms.top()->op; }
@@ -109,8 +109,8 @@ public:
     void leaveLiteral();
     bool canEnterLiteral(CodeOp* op);
 
-    bool checkCandidate(Clause* cl, int& resolvedQueryLit);
-    bool matchGlobalVars(int& resolvedQueryLit);
+    bool checkCandidate(Clause* cl, Literal*& resolvedQueryLit);
+    bool matchGlobalVars(Literal*& resolvedQueryLit);
     bool compatible(ILStruct* bi, MatchInfo* bq, ILStruct* ni, MatchInfo* nq);
 
     bool existsCompatibleMatch(ILStruct* si, MatchInfo* sq, ILStruct* oi);
