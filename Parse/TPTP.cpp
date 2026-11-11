@@ -364,14 +364,7 @@ void TPTP::parseInputType(const std::string& tp)
   if(_modelDefinition){
     _lastInputType = UnitInputType::MODEL_DEFINITION;
   }
-  else if (tp == "axiom" || tp == "plain") {
-    _lastInputType = UnitInputType::AXIOM;
-  }
-  else if(tp == "extensionality"){
-    // this will be transformed to just AXIOM after clausification
-    _lastInputType = UnitInputType::EXTENSIONALITY_AXIOM;
-  }
-  else if (tp == "definition") {
+  else if (tp == "axiom" || tp == "plain" || tp == "definition") {
     _lastInputType = UnitInputType::AXIOM;
   }
   else if (tp == "conjecture") {

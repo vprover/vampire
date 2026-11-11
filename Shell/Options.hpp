@@ -760,8 +760,7 @@ public:
   enum class ExtensionalityResolution : unsigned int {
     FILTER = 0,
     KNOWN = 1,
-    TAGGED = 2,
-    OFF = 3
+    OFF = 2
   };
 
   enum class SplittingLiteralPolarityAdvice : unsigned int {

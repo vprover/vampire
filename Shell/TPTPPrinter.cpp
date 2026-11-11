@@ -239,8 +239,6 @@ const char* inputRole(UnitInputType type)
     return Role::CONJECTURE;
   case UnitInputType::NEGATED_CONJECTURE:
     return Role::NEGATED_CONJECTURE;
-  case UnitInputType::EXTENSIONALITY_AXIOM:
-    return Role::EXTENSIONALITY;
   default:
     return Role::AXIOM;
   }

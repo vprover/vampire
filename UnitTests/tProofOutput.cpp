@@ -467,8 +467,6 @@ TEST_FUN(unit_stream_preserves_formula_roles)
   checkUnitOutput(&axiom, "tff", "axiom", "p", true);
   FormulaUnit assumption(atom, FromInput(UnitInputType::ASSUMPTION));
   checkUnitOutput(&assumption, "tff", "hypothesis", "p");
-  FormulaUnit extensionality(atom, FromInput(UnitInputType::EXTENSIONALITY_AXIOM));
-  checkUnitOutput(&extensionality, "tff", "extensionality", "p");
   FormulaUnit negatedConjecture(atom, FromInput(UnitInputType::NEGATED_CONJECTURE));
   checkUnitOutput(&negatedConjecture, "tff", "negated_conjecture", "p");
 }

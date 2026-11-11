@@ -530,8 +530,6 @@ std::string Kernel::inputTypeName(UnitInputType type)
       return "negated conjecture";
     case UnitInputType::CLAIM:
       return "claim";
-    case UnitInputType::EXTENSIONALITY_AXIOM:
-      return "extensionality axiom";
   default:
       return "unknown";
   }

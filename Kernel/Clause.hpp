@@ -216,7 +216,6 @@ public:
   }
 
   bool isExtensionality() const { return _extensionality; }
-  bool isTaggedExtensionality() const { return _extensionalityTag; }
   void setExtensionality(bool e) { _extensionality = e; }
 
   bool isComponent() const { return _component; }
@@ -357,14 +356,13 @@ protected:
     * becomes passive and is removed from the container, also this bit is unset.
     */
   unsigned _extensionality : 1;
-  unsigned _extensionalityTag : 1;
   /** Clause is a splitting component. */
   unsigned _component : 1;
 
   /** storage class */
   Store _store : 3;
   /** number of selected literals */
-  unsigned _numSelected : 24;
+  unsigned _numSelected : 25;
 
   /** weight */
   mutable unsigned _weight = 0;

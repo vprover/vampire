@@ -42,10 +42,8 @@ enum class UnitInputType : unsigned char {
   NEGATED_CONJECTURE = 3,
   /** Vampire-only, for the consequence-finding mode */
   CLAIM = 4,
-  /** Used in parsing and preprocessing for extensionality clause tagging, should not appear in proof search */
-  EXTENSIONALITY_AXIOM = 5,
   /** Used to separate model definitions in model_check mode, should not appear in proof search */
-  MODEL_DEFINITION = 6
+  MODEL_DEFINITION = 5
 };
 
 inline constexpr std::underlying_type_t<UnitInputType> toNumber(UnitInputType t) { return static_cast<std::underlying_type_t<UnitInputType>>(t); }
