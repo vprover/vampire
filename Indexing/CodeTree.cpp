@@ -248,25 +248,14 @@ void CodeTree::ILStruct::ensureFreshness(unsigned globalTimestamp)
     visited=false;
     finished=false;
     noNonOppositeMatches=false;
-    matchCnt=0;
+    matches.reset();
   }
 }
 
 void CodeTree::ILStruct::addMatch(unsigned liIndex, DArray<TermList>& bindingArray)
 {
-  if(matchCnt==matches.size()) {
-    matches.expand(matchCnt ? (matchCnt*2) : 4);
-    size_t newSize=matches.size();
-    for(size_t i=matchCnt;i<newSize;i++) {
-      matches[i]=0;
-    }
-  }
-  ASS_L(matchCnt,matches.size());
-  if(!matches[matchCnt]) {
-    matches[matchCnt]=MatchInfo::alloc(varCnt);
-  }
-  matches[matchCnt]->init(this, liIndex, bindingArray);
-  matchCnt++;
+  matches.push(MatchInfo::alloc(varCnt));
+  matches.top()->init(this, liIndex, bindingArray);
 }
 
 /**
@@ -279,16 +268,12 @@ void CodeTree::ILStruct::addMatch(unsigned liIndex, DArray<TermList>& bindingArr
  */
 void CodeTree::ILStruct::deleteMatch(unsigned matchIndex)
 {
-  ASS_L(matchIndex, matchCnt);
-
-  matchCnt--;
-  swap(matches[matchIndex], matches[matchCnt]);
+  matches.swapRemove(matchIndex)->destroy(varCnt);
 }
 
 CodeTree::MatchInfo*& CodeTree::ILStruct::getMatch(unsigned matchIndex)
 {
   ASS(!finished);
-  ASS_L(matchIndex, matchCnt);
   ASS(matches[matchIndex]);
 
   return matches[matchIndex];

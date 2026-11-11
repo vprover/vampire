@@ -134,14 +134,11 @@ public:
     void deleteMatch(unsigned matchIndex);
     MatchInfo*& getMatch(unsigned matchIndex);
 
-    unsigned matchCnt;
-
     /** all possible lits were tried to match */
     bool visited;
     bool finished;
     bool noNonOppositeMatches;
-  private:
-    DArray<MatchInfo*> matches;
+    Stack<MatchInfo*> matches;
   };
 
   enum Instruction

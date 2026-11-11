@@ -472,7 +472,7 @@ void ClauseCodeTree::LiteralMatcher::recordMatch()
     //no need to record matches which we already know will not lead to anything
     return;
   }
-  if(!ils->matchCnt && linfos[curLInfo].opposite) {
+  if(ils->matches.isEmpty() && linfos[curLInfo].opposite) {
     //if we're matching opposite matches, we have already tried all non-opposite ones
     ils->noNonOppositeMatches=true;
   }
@@ -656,25 +656,25 @@ inline bool ClauseCodeTree::ClauseMatcher::canEnterLiteral(CodeOp* op)
     //will check for compatibility of variable assignments
     if(ils->varCnt && !lms.top()->eagerlyMatched()) {
       lms.top()->doEagerMatching();
-      RSTAT_MST_INC("match count", lms.size()-1, lms.top()->getILS()->matchCnt);
+      RSTAT_MST_INC("match count", lms.size()-1, lms.top()->getILS()->matches.size());
     }
     for(size_t ilIndex=0;ilIndex<lms.size()-1;ilIndex++) {
       ILStruct* prevILS=lms[ilIndex]->getILS();
       if(prevILS->varCnt && !lms[ilIndex]->eagerlyMatched()) {
 	lms[ilIndex]->doEagerMatching();
-	RSTAT_MST_INC("match count", ilIndex, lms[ilIndex]->getILS()->matchCnt);
+	RSTAT_MST_INC("match count", ilIndex, lms[ilIndex]->getILS()->matches.size());
       }
 
-      size_t matchIndex=ils->matchCnt;
-      while(matchIndex!=0) {
-	matchIndex--;
-	MatchInfo* mi=ils->getMatch(matchIndex);
-	if(!existsCompatibleMatch(ils, mi, prevILS)) {
-	  ils->deleteMatch(matchIndex); //decreases ils->matchCnt
-	}
+      size_t matchIndex=ils->matches.size();
+      while (matchIndex!=0) {
+        matchIndex--;
+        MatchInfo* mi=ils->getMatch(matchIndex);
+        if(!existsCompatibleMatch(ils, mi, prevILS)) {
+          ils->deleteMatch(matchIndex); //decreases ils->matchCnt
+        }
       }
-      if(!ils->matchCnt) {
-	return false;
+      if(ils->matches.isEmpty()) {
+        return false;
       }
     }
   }
@@ -761,17 +761,17 @@ bool ClauseCodeTree::ClauseMatcher::checkCandidate(Clause* cl, int& resolvedQuer
     //for multi-literal matching
     resolvedQueryLit=-1;
     if(sres && clen==1) {
-      size_t matchCnt=lms[0]->getILS()->matchCnt;
+      size_t matchCnt=lms[0]->getILS()->matches.size();
       for(size_t i=0;i<matchCnt;i++) {
-	MatchInfo* mi=lms[0]->getILS()->getMatch(i);
-	if(lInfos[mi->liIndex].opposite) {
-	  resolvedQueryLit=lInfos[mi->liIndex].litIndex;
-	}
-	else {
-	  //we prefer subsumption to subsumption resolution
-	  resolvedQueryLit=-1;
-	  break;
-	}
+        MatchInfo* mi=lms[0]->getILS()->getMatch(i);
+        if(lInfos[mi->liIndex].opposite) {
+          resolvedQueryLit=lInfos[mi->liIndex].litIndex;
+        }
+        else {
+          //we prefer subsumption to subsumption resolution
+          resolvedQueryLit=-1;
+          break;
+        }
       }
     }
     return true;
@@ -816,9 +816,6 @@ bool ClauseCodeTree::ClauseMatcher::matchGlobalVars(int& resolvedQueryLit)
 {
   //TODO: perform _set_, not _multiset_ subsumption for subsumption resolution
 
-//  bool verbose=query->number()==58746;
-//#define VERB_OUT(x) if(verbose) {cout<<x<<endl;}
-
   unsigned clen=lms.size()-1;
 
   //remaining[j,0] contains number of matches for j-th index literal
@@ -833,22 +830,8 @@ bool ClauseCodeTree::ClauseMatcher::matchGlobalVars(int& resolvedQueryLit)
   remaining.setSide(clen);
   for(unsigned j=0;j<clen;j++) {
     ILStruct* ils=lms[j]->getILS();
-    remaining.set(j,0,ils->matchCnt);
-
-//    VERB_OUT("matches "<<ils->matches.size()<<" index:"<<j<<" vars:"<<ils->varCnt<<" linfos:"<<lInfos.size());
-//    for(unsigned y=0;y<ils->matches.size();y++) {
-//      LitInfo* linf=&lInfos[ils->matches[y]->liIndex];
-//      VERB_OUT(" match "<<y<<" liIndex:"<<ils->matches[y]->liIndex<<" op: "<<linf->opposite);
-//      VERB_OUT(" hdr: "<<(*linf->ft)[0].number());
-//    }
-//    for(unsigned x=0;x<ils->varCnt;x++) {
-//      VERB_OUT(" glob var: "<<ils->sortedGlobalVarNumbers[x]);
-//      for(unsigned y=0;y<ils->matches.size();y++) {
-//	VERB_OUT(" match "<<y<<" binding: "<<ils->matches[y]->bindings[x]);
-//      }
-//    }
+    remaining.set(j,0,ils->matches.size());
   }
-//  VERB_OUT("secOp:"<<(lms[1]->op-1)->instr()<<" "<<(lms[1]->op-1)->arg());
 
   static DArray<int> matchIndex;
   matchIndex.ensure(clen);
@@ -878,17 +861,17 @@ bool ClauseCodeTree::ClauseMatcher::matchGlobalVars(int& resolvedQueryLit)
       unsigned rem=remaining.get(j,i);
       unsigned k=0;
       while(k<rem) {
-	MatchInfo* nq=ni->getMatch(k);		//next query literal
-	if(!compatible(bi,bq,ni,nq)) {
-	  rem--;
-	  swap(ni->getMatch(k),ni->getMatch(rem));
-	  continue;
-	}
-	k++;
+        MatchInfo* nq=ni->getMatch(k);		//next query literal
+        if(!compatible(bi,bq,ni,nq)) {
+          rem--;
+          swap(ni->getMatch(k),ni->getMatch(rem));
+          continue;
+        }
+        k++;
       }
       if(rem==0) {
-	if(failLev<j) { failLev=j; }
-	goto bind_next_match;
+        if(failLev<j) { failLev=j; }
+        goto bind_next_match;
       }
       remaining.set(j,i+1,rem);
     }
@@ -900,8 +883,8 @@ bool ClauseCodeTree::ClauseMatcher::matchGlobalVars(int& resolvedQueryLit)
       ILStruct* ils=lms[i]->getILS();
       MatchInfo* mi=ils->getMatch(matchIndex[i]);
       if(lInfos[mi->liIndex].opposite) {
-	resolvedQueryLit=lInfos[mi->liIndex].litIndex;
-	break;
+        resolvedQueryLit=lInfos[mi->liIndex].litIndex;
+        break;
       }
     }
   }
@@ -956,7 +939,7 @@ bool ClauseCodeTree::ClauseMatcher::compatible(ILStruct* bi, MatchInfo* bq, ILSt
 
 bool ClauseCodeTree::ClauseMatcher::existsCompatibleMatch(ILStruct* si, MatchInfo* sq, ILStruct* targets)
 {
-  size_t tcnt=targets->matchCnt;
+  size_t tcnt=targets->matches.size();
   for(size_t i=0;i<tcnt;i++) {
     if(compatible(si,sq,targets,targets->getMatch(i))) {
       return true;
