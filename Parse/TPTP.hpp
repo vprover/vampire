@@ -563,6 +563,8 @@ private:
   Dialect _lastDialect;
   /** true if the last read unit is a question */
   bool _isQuestion = false;
+  /** true if the last read unit is a claim, see processClaimFormula() */
+  bool _isClaim = false;
   /** */
   bool _isThf;
   /** */

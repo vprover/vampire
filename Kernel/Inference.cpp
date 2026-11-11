@@ -528,8 +528,6 @@ std::string Kernel::inputTypeName(UnitInputType type)
       return "conjecture";
     case UnitInputType::NEGATED_CONJECTURE:
       return "negated conjecture";
-    case UnitInputType::CLAIM:
-      return "claim";
   default:
       return "unknown";
   }

@@ -39,9 +39,7 @@ enum class UnitInputType : unsigned char {
   /** derives from the goal */
   CONJECTURE = 2,
   /** negated conjecture */
-  NEGATED_CONJECTURE = 3,
-  /** Vampire-only, for the consequence-finding mode */
-  CLAIM = 4
+  NEGATED_CONJECTURE = 3
 };
 
 inline constexpr std::underlying_type_t<UnitInputType> toNumber(UnitInputType t) { return static_cast<std::underlying_type_t<UnitInputType>>(t); }
