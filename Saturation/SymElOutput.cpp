@@ -20,7 +20,6 @@
 #include "Kernel/Signature.hpp"
 
 #include "Shell/TPTPPrinter.hpp"
-#include "Shell/UIHelper.hpp"
 
 #include "SymElOutput.hpp"
 
@@ -145,10 +144,10 @@ void SymElOutput::outputSymbolElimination(Color eliminated, Clause* c)
   }
 
   if (!_declarationsPrinted) {
-    UIHelper::outputSymbolDeclarations(std::cout);
+    std::cout << TPTPPrinter::symbolDeclarations(TPTPOutput::Language::TCF);
     _declarationsPrinted = true;
   }
-  std::cout << TPTPPrinter::namedUnit(c, cname, TPTPOutput::Role::CLAIM, /*typedClauses=*/true,
+  std::cout << TPTPPrinter::namedUnit(c, cname, TPTPOutput::Role::CLAIM, TPTPOutput::Language::TCF,
       /*includeSplitLevels=*/true);
 
   _symElNextClauseNumber++;

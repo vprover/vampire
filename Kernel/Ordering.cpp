@@ -512,13 +512,7 @@ struct SymbolComparator {
     : _symType(symType), _noTiebreak(noTiebreak), _counts(counts) {}
 
   const Signature::Symbol* getSymbol(unsigned s) {
-    if(_symType == SymbolType::FUNC){
-      return env.signature->getFunction(s);
-    } else if (_symType == SymbolType::PRED){
-      return env.signature->getPredicate(s);
-    } else {
-      return env.signature->getTypeCon(s);
-    }
+    return env.signature->getSymbol(_symType, s);
   }
 
   unsigned getCount(unsigned s) {

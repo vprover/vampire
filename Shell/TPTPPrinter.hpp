@@ -124,13 +124,13 @@ struct Quantified {
     if (self.variables.isEmpty()) {
       return out << self.inner;
     }
-    out << "( ! [" << self.variables << "] : ";
+    out << "(! [" << self.variables << "] : ";
     if (self.innerParentheses) {
       out << '(' << self.inner << ')';
     } else {
       out << self.inner;
     }
-    return out << " )";
+    return out << ')';
   }
 };
 
@@ -240,8 +240,7 @@ auto commaSeparatedWith(Elements elements, Writer writer)
 } // namespace TPTPOutput
 
 /**
- * TPTP output of units and formulas.
- * Symbol declarations are not printed here; see UIHelper::outputSymbolDeclarations.
+ * TPTP output of units, formulas and symbol type declarations.
  */
 class TPTPPrinter {
 public:
@@ -250,7 +249,8 @@ public:
 
   struct UnitOutput {
     const Unit* unit;
-    bool typedClauses;
+    TPTPOutput::Language language;
+    const char* role;
 
     std::ostream& print(std::ostream& out) const;
     friend std::ostream& operator<<(std::ostream& out, UnitOutput const& self) { return self.print(out); }
@@ -260,7 +260,7 @@ public:
     const Unit* unit;
     std::string_view name;
     const char* role;
-    bool typedClauses;
+    TPTPOutput::Language language;
     bool includeSplitLevels;
 
     std::ostream& print(std::ostream& out) const;
@@ -274,38 +274,62 @@ public:
     friend std::ostream& operator<<(std::ostream& out, FormulaOutput const& self) { return self.print(out); }
   };
 
-  /** With @b typedClauses, a clause is printed as a tcf() unit, i.e. with an
-   *  explicit universal prefix spelling out the sort of each of its variables;
-   *  without it, as a cnf() unit. Formulas use thf() for higher-order input,
-   *  and tff() otherwise. */
-  static UnitOutput unit(const Unit* unit, bool typedClauses = false)
-  { return {unit, typedClauses}; }
-  /** A name would silently convert to typedClauses; use namedUnit(). */
-  static UnitOutput unit(const Unit* unit, const char* name) = delete;
-  /** Like unit(), but with the given name and role instead of the unit's own.
-   *  The formula is printed as it is, since the role is the caller's. With
+  /** Select the output language from the environment. Higher-order problems use THF;
+   *  otherwise, clauses use TCF/CNF and formulas use TFF/FOF according to their sorts. */
+  static TPTPOutput::Language outputLanguage(bool clausesOnly = false);
+
+  /** The default language for this unit, using the same selector as proof output. */
+  static TPTPOutput::Language unitLanguage(const Unit* unit);
+
+  /** The unit as an annotated formula in @b language with @b role, named by its input name.
+   *  CNF and TCF are for clauses only; TCF spells out the sort of each variable in an
+   *  explicit universal prefix. In FOF, TFF and THF, a clause is printed as its universal
+   *  closure. */
+  static UnitOutput unit(const Unit* unit, TPTPOutput::Language language,
+      const char* role = TPTPOutput::Role::PLAIN)
+  { return {unit, language, role}; }
+  /** The unit in unitLanguage(unit), with role plain. */
+  static UnitOutput unit(const Unit* unit)
+  { return {unit, unitLanguage(unit), TPTPOutput::Role::PLAIN}; }
+  /** Like unit(), but with the given name. With
    *  @b includeSplitLevels, a clause's split levels are added as $splitLevel<n> disjuncts. */
   static NamedUnitOutput namedUnit(const Unit* unit, std::string_view name, const char* role,
-      bool typedClauses = false, bool includeSplitLevels = false)
-  { return {unit, name, role, typedClauses, includeSplitLevels}; }
+      TPTPOutput::Language language, bool includeSplitLevels = false)
+  { return {unit, name, role, language, includeSplitLevels}; }
   static FormulaOutput formula(const Formula* formula)
   { return {formula}; }
 
   /** The same text as unit(), as a string. */
-  static std::string toString(const Unit*, bool typedClauses = false);
+  static std::string toString(const Unit* unit, TPTPOutput::Language language,
+      const char* role = TPTPOutput::Role::PLAIN);
+  static std::string toString(const Unit* unit)
+  { return toString(unit, unitLanguage(unit)); }
   /** The same text as formula(), as a string. */
   static std::string toString(const Formula*);
 
-private:
-  static std::ostream& printUnit(std::ostream& out, const Unit* unit, bool typedClauses);
-  static std::ostream& printUnit(std::ostream& out, const Unit* unit, std::string_view name,
-      const char* role, bool typedClauses, bool includeSplitLevels);
-  static std::ostream& printFormula(std::ostream& out, const Formula* formula);
+  struct SymbolDeclarationsOutput {
+    TPTPOutput::Language language;
 
-  /** cnf, tcf, tff or thf, see toString(const Unit*, bool). */
-  static TPTPOutput::Language language(const Unit* unit, bool typedClauses);
-  static std::ostream& printBody(std::ostream& out, const Unit* unit, bool typedClauses,
+    std::ostream& print(std::ostream& out) const;
+    friend std::ostream& operator<<(std::ostream& out, SymbolDeclarationsOutput const& self) { return self.print(out); }
+  };
+
+  /** Type declarations of the symbols of the signature, one per line, in @b language.
+   *  The language must be TFF, TCF or THF. Symbols with default types are not declared. */
+  static SymbolDeclarationsOutput symbolDeclarations(TPTPOutput::Language language)
+  { return {language}; }
+  /** Type declarations in THF for a higher-order problem, TFF otherwise. */
+  static SymbolDeclarationsOutput symbolDeclarations();
+
+private:
+  static std::ostream& printUnit(std::ostream& out, const Unit* unit, TPTPOutput::Language language,
+      const char* role);
+  static std::ostream& printUnit(std::ostream& out, const Unit* unit, std::string_view name,
+      const char* role, TPTPOutput::Language language, bool includeSplitLevels);
+  static std::ostream& printFormula(std::ostream& out, const Formula* formula);
+  static std::ostream& printBody(std::ostream& out, const Unit* unit, TPTPOutput::Language language,
       bool includeSplitLevels);
+  static std::ostream& printSymbolDeclarations(std::ostream& out, TPTPOutput::Language language);
 
 };
 

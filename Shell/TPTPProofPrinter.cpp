@@ -35,7 +35,6 @@
 #include "Parse/TPTP.hpp"
 #include "SAT/SATInference.hpp"
 #include "Saturation/Splitter.hpp"
-#include "Shell/UIHelper.hpp"
 
 #include "TPTPProofPrinter.hpp"
 
@@ -48,13 +47,7 @@ using namespace std;
 namespace TPTPOutput {
 
 Language proofLanguage()
-{
-  // Use the unpreprocessed input: preprocessing can remove sorts and higher
-  // order features, but the proof must not claim a stronger fragment than it.
-  if (env.initiallyHigherOrder()) { return Language::THF; }
-  if (env.initiallyHasNonDefaultSorts()) { return Language::TFF; }
-  return Language::FOF;
-}
+{ return TPTPPrinter::outputLanguage(); }
 
 } // namespace TPTPOutput
 
@@ -102,9 +95,7 @@ void InferenceStore::TPTPProofPrinter::print()
     //typed symbol no unit ever used, whose declaration would put a tff line
     //into an otherwise fof proof
     if(env.initiallyHasNonDefaultSorts() || env.initiallyHigherOrder()){
-      //outputSymbolDeclarations also deals with sorts for now
-      //UIHelper::outputSortDeclarations(out);
-      UIHelper::outputSymbolDeclarations(out);
+      out << TPTPPrinter::symbolDeclarations(proofLanguage());
     }
     AbstractSATProofPrinter::print();
   }

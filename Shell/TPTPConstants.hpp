@@ -29,6 +29,7 @@ inline constexpr const char* DEFINITION = "definition";
 inline constexpr const char* CONJECTURE = "conjecture";
 inline constexpr const char* NEGATED_CONJECTURE = "negated_conjecture";
 inline constexpr const char* PLAIN = "plain";
+inline constexpr const char* TYPE = "type";
 /** Not standard TPTP; Vampire-only, for the consequence-finding mode. */
 inline constexpr const char* CLAIM = "claim";
 } // namespace Role

@@ -622,6 +622,19 @@ class Signature
     ASS_L(n, _typeCons.length());
     return _typeCons[n];
   }
+  /** Return the function, predicate or type constructor symbol by its number */
+  inline const Symbol* getSymbol(SymbolType type, unsigned n) const
+  {
+    switch (type) {
+    case SymbolType::FUNC:
+      return getFunction(n);
+    case SymbolType::PRED:
+      return getPredicate(n);
+    case SymbolType::TYPE_CON:
+      return getTypeCon(n);
+    }
+    ASSERTION_VIOLATION;
+  }
 
   static inline bool isEqualityPredicate(unsigned p)
   {
