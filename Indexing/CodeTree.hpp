@@ -65,8 +65,6 @@ public:
     static LitInfo getReversed(const LitInfo& li);
     static LitInfo getOpposite(const LitInfo& li);
 
-    /** Index of this LitInfo in the ClauseMatcher object */
-    unsigned liIndex;
     /** Index of the literal in the query clause */
     unsigned litIndex;
     FlatTerm* ft;
@@ -76,11 +74,11 @@ public:
   struct MatchInfo : public FlexibleTail<MatchInfo, TermList>
   {
     /** Index of the matched LitInfo in the EContext */
-    unsigned liIndex;
+    const LitInfo* lInfo;
     TermList *bindings() { return flexibleTail(); }
 
   private:
-    void init(ILStruct* ils, unsigned liIndex, DArray<TermList>& bindingArray);
+    void init(ILStruct* ils, const LitInfo* lInfo, DArray<TermList>& bindingArray);
 
     static MatchInfo* alloc(unsigned bindCnt);
 
@@ -130,7 +128,7 @@ public:
     unsigned timestamp;
     //from here on, the values are valid only if the timestamp is current
 
-    void addMatch(unsigned liIndex, DArray<TermList>& bindingArray);
+    void addMatch(const LitInfo* lInfo, DArray<TermList>& bindingArray);
     void deleteMatch(unsigned matchIndex);
     MatchInfo*& getMatch(unsigned matchIndex);
 

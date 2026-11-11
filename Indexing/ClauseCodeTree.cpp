@@ -260,7 +260,6 @@ void ClauseCodeTree::remove(Clause* cl)
 
   for(unsigned i=0;i<clen;i++) {
     lInfos[i]=LitInfo(cl,i);
-    lInfos[i].liIndex=i;
   }
   incTimeStamp();
 
@@ -476,7 +475,7 @@ void ClauseCodeTree::LiteralMatcher::recordMatch()
     //if we're matching opposite matches, we have already tried all non-opposite ones
     ils->noNonOppositeMatches=true;
   }
-  ils->addMatch(linfos[curLInfo].liIndex, bindings);
+  ils->addMatch(&linfos[curLInfo], bindings);
 }
 
 
@@ -535,11 +534,9 @@ void ClauseCodeTree::ClauseMatcher::init(ClauseCodeTree* tree_, Clause* query_, 
       continue;
     }
     lInfos[liIndex]=LitInfo(query,i);
-    lInfos[liIndex].liIndex=liIndex;
     liIndex++;
     if((*query)[i]->isEquality()) {
       lInfos[liIndex]=LitInfo::getReversed(lInfos[liIndex-1]);
-      lInfos[liIndex].liIndex=liIndex;
       liIndex++;
     }
   }
@@ -548,11 +545,9 @@ void ClauseCodeTree::ClauseMatcher::init(ClauseCodeTree* tree_, Clause* query_, 
       continue;
     }
     lInfos[liIndex]=LitInfo(query,i);
-    lInfos[liIndex].liIndex=liIndex;
     liIndex++;
     if((*query)[i]->isEquality()) {
       lInfos[liIndex]=LitInfo::getReversed(lInfos[liIndex-1]);
-      lInfos[liIndex].liIndex=liIndex;
       liIndex++;
     }
   }
@@ -560,7 +555,6 @@ void ClauseCodeTree::ClauseMatcher::init(ClauseCodeTree* tree_, Clause* query_, 
     for(unsigned i=0;i<baseLICnt;i++) {
       unsigned newIndex=i+baseLICnt;
       lInfos[newIndex]=LitInfo::getOpposite(lInfos[i]);
-      lInfos[newIndex].liIndex=newIndex;
     }
     sresLiteral=sresNoLiteral;
   }
@@ -764,8 +758,8 @@ bool ClauseCodeTree::ClauseMatcher::checkCandidate(Clause* cl, int& resolvedQuer
       size_t matchCnt=lms[0]->getILS()->matches.size();
       for(size_t i=0;i<matchCnt;i++) {
         MatchInfo* mi=lms[0]->getILS()->getMatch(i);
-        if(lInfos[mi->liIndex].opposite) {
-          resolvedQueryLit=lInfos[mi->liIndex].litIndex;
+        if(mi->lInfo->opposite) {
+          resolvedQueryLit=mi->lInfo->litIndex;
         }
         else {
           //we prefer subsumption to subsumption resolution
@@ -882,8 +876,8 @@ bool ClauseCodeTree::ClauseMatcher::matchGlobalVars(int& resolvedQueryLit)
     for(unsigned i=0;i<clen;i++) {
       ILStruct* ils=lms[i]->getILS();
       MatchInfo* mi=ils->getMatch(matchIndex[i]);
-      if(lInfos[mi->liIndex].opposite) {
-        resolvedQueryLit=lInfos[mi->liIndex].litIndex;
+      if(mi->lInfo->opposite) {
+        resolvedQueryLit=mi->lInfo->litIndex;
         break;
       }
     }
@@ -894,8 +888,8 @@ bool ClauseCodeTree::ClauseMatcher::matchGlobalVars(int& resolvedQueryLit)
 
 bool ClauseCodeTree::ClauseMatcher::compatible(ILStruct* bi, MatchInfo* bq, ILStruct* ni, MatchInfo* nq)
 {
-  if( lInfos[bq->liIndex].litIndex==lInfos[nq->liIndex].litIndex ||
-      (lInfos[bq->liIndex].opposite && lInfos[nq->liIndex].opposite) ) {
+  if( bq->lInfo->litIndex==nq->lInfo->litIndex ||
+      (bq->lInfo->opposite && nq->lInfo->opposite) ) {
     return false;
   }
 

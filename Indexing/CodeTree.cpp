@@ -77,9 +77,6 @@ CodeTree::LitInfo CodeTree::LitInfo::getReversed(const LitInfo& li)
 
   LitInfo res=li;
   res.ft=ft;
-#if VDEBUG
-  res.liIndex=-1; //the liIndex has to be updated by caller
-#endif
   return res;
 }
 
@@ -95,9 +92,6 @@ CodeTree::LitInfo CodeTree::LitInfo::getOpposite(const LitInfo& li)
   LitInfo res=li;
   res.ft=ft;
   res.opposite=true;
-#if VDEBUG
-  res.liIndex=-1; //the liIndex has to be updated by caller
-#endif
   return res;
 }
 
@@ -120,9 +114,9 @@ void CodeTree::MatchInfo::destroy(unsigned bindCnt)
 }
 
 
-void CodeTree::MatchInfo::init(ILStruct* ils, unsigned liIndex_, DArray<TermList>& bindingArray)
+void CodeTree::MatchInfo::init(ILStruct* ils, const LitInfo* lInfo_, DArray<TermList>& bindingArray)
 {
-  liIndex=liIndex_;
+  lInfo=lInfo_;
   size_t bindCnt=ils->varCnt;
   if(bindCnt) {
     unsigned* perm=ils->globalVarPermutation;
@@ -252,10 +246,10 @@ void CodeTree::ILStruct::ensureFreshness(unsigned globalTimestamp)
   }
 }
 
-void CodeTree::ILStruct::addMatch(unsigned liIndex, DArray<TermList>& bindingArray)
+void CodeTree::ILStruct::addMatch(const LitInfo* lInfo, DArray<TermList>& bindingArray)
 {
   matches.push(MatchInfo::alloc(varCnt));
-  matches.top()->init(this, liIndex, bindingArray);
+  matches.top()->init(this, lInfo, bindingArray);
 }
 
 /**
