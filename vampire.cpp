@@ -190,9 +190,10 @@ void preprocessMode(Problem* problem, bool theory)
   }
   prepro.preprocess(*prb);
 
-  //outputSymbolDeclarations also deals with sorts for now
-  //UIHelper::outputSortDeclarations(std::cout);
-  UIHelper::outputSymbolDeclarations(std::cout);
+  const auto language = TPTPPrinter::outputLanguage(!theory && !prb->hasFormulas());
+  const auto declarationLanguage = language == TPTPOutput::Language::CNF || language == TPTPOutput::Language::FOF
+      ? TPTPOutput::Language::TFF : language;
+  std::cout << TPTPPrinter::symbolDeclarations(declarationLanguage);
   UnitList::Iterator units(prb->units());
   while (units.hasNext()) {
     Unit* u = units.next();
@@ -205,9 +206,9 @@ void preprocessMode(Problem* problem, bool theory)
     if (theory) {
       Formula* f = u->getFormula();
       FormulaUnit* fu = new FormulaUnit(f,u->inference()); // we are stealing u's inference which is not nice
-      std::cout << TPTPPrinter::unit(fu) << "\n";
+      std::cout << TPTPPrinter::unit(fu, language, UIHelper::outputRole(fu)) << "\n";
     } else {
-      std::cout << TPTPPrinter::unit(u) << "\n";
+      std::cout << TPTPPrinter::unit(u, language, UIHelper::outputRole(u)) << "\n";
     }
   }
 
@@ -242,9 +243,10 @@ void outputMode(Problem* problem)
 {
   ScopedPtr<Problem> prb(problem);
 
-  //outputSymbolDeclarations also deals with sorts for now
-  //UIHelper::outputSortDeclarations(std::cout);
-  UIHelper::outputSymbolDeclarations(std::cout);
+  const auto language = TPTPPrinter::outputLanguage(!prb->hasFormulas());
+  const auto declarationLanguage = language == TPTPOutput::Language::CNF || language == TPTPOutput::Language::FOF
+      ? TPTPOutput::Language::TFF : language;
+  std::cout << TPTPPrinter::symbolDeclarations(declarationLanguage);
   UnitList::Iterator units(prb->units());
 
   while (units.hasNext()) {
@@ -257,7 +259,7 @@ void outputMode(Problem* problem)
       ASS(!parents.hasNext());
       ASS(u->inference().rule() == InferenceRule::INPUT);
     }
-    std::cout << TPTPPrinter::unit(u) << "\n";
+    std::cout << TPTPPrinter::unit(u, language, UIHelper::outputRole(u)) << "\n";
   }
 
   //we have successfully output all clauses, so we'll terminate with zero return value
@@ -377,9 +379,14 @@ void clausifyMode(Problem* problem, bool theory)
 
   ScopedPtr<Problem> prb(preprocessProblem(problem));
 
-  //outputSymbolDeclarations deals with sorts as well for now
-  //UIHelper::outputSortDeclarations(std::cout);
-  UIHelper::outputSymbolDeclarations(std::cout,/*tcf=*/theory);
+  // with theory, we print tcf(), i.e. the clause quantified with its variables' sorts
+  TPTPOutput::Language clauseLanguage = TPTPOutput::Language::CNF;
+  if (theory) {
+    clauseLanguage = TPTPOutput::Language::TCF;
+  }
+  const auto declarationLanguage = theory ? TPTPOutput::Language::TCF
+      : env.higherOrder() ? TPTPOutput::Language::THF : TPTPOutput::Language::TFF;
+  std::cout << TPTPPrinter::symbolDeclarations(declarationLanguage);
 
   ClauseIterator cit = prb->clauseIterator();
   bool printed_conjecture = false;
@@ -390,8 +397,7 @@ void clausifyMode(Problem* problem, bool theory)
       continue;
     }
     printed_conjecture |= cl->inputType() == UnitInputType::CONJECTURE || cl->inputType() == UnitInputType::NEGATED_CONJECTURE;
-    // with theory, we print tcf(), i.e. the clause quantified with its variables' sorts
-    std::cout << TPTPPrinter::unit(cl, theory) << "\n";
+    std::cout << TPTPPrinter::unit(cl, clauseLanguage, UIHelper::outputRole(cl)) << "\n";
   }
   if(!printed_conjecture && UIHelper::haveConjecture()){
     // print a fake tautology conjecture for Kostya and friends
@@ -403,7 +409,7 @@ void clausifyMode(Problem* problem, bool theory)
         Literal::create(p, /* polarity */ false, {})
       },
       FromInput(UnitInputType::NEGATED_CONJECTURE));
-    std::cout << TPTPPrinter::unit(c, theory) << "\n";
+    std::cout << TPTPPrinter::unit(c, clauseLanguage, UIHelper::outputRole(c)) << "\n";
   }
 
   //we have successfully output all clauses, so we'll terminate with zero return value

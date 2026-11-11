@@ -78,10 +78,11 @@ public:
   static void outputSaturatedSet(std::ostream& out, UnitIterator uit);
   static void outputInterferences(std::ostream& out, const Problem&);
 
-  /** With @b tcf, the declarations are wrapped in tcf() rather than tff(),
-   *  so that they can accompany tcf() clauses (see <tff_atom_typing> in the TCF grammar). */
-  static void outputSymbolDeclarations(std::ostream& out, bool tcf = false);
-  static void outputSymbolTypeDeclarationIfNeeded(std::ostream& out, bool function, bool typecon, unsigned symNumber, bool tcf = false);
+  /**
+ * The TPTP role of @b unit in the output modes: its input role, except that a unit
+ * derived from the conjecture stems from the negated conjecture.
+ */
+  static const char* outputRole(const Unit* unit);
 
   /**
    * A hacky global flag distinguishing the parent and the child in portfolio modes.
