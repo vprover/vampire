@@ -344,6 +344,9 @@ public:
    */
   bool containsConjecture() const { return _containsConjecture; }
   static bool findAxiomName(const Unit* unit, std::string& name, std::filesystem::path &path);
+  /** True iff @b unit was read between vampire(model_check,model_start) and
+   *  vampire(model_check,model_end), i.e. defines the model to check in --mode model_check. */
+  static bool isModelDefinition(const Unit* unit) { return _modelDefinitionUnits.contains(unit->number()); }
   unsigned lineNumber(){ return currentFile.lineNumber; }
   std::string currentPath(){ return currentFile.path; }
 
@@ -560,6 +563,8 @@ private:
   Dialect _lastDialect;
   /** true if the last read unit is a question */
   bool _isQuestion = false;
+  /** true if the last read unit is a claim, see processClaimFormula() */
+  bool _isClaim = false;
   /** */
   bool _isThf;
   /** */
@@ -890,6 +895,8 @@ private:
 
   /** This field stores names of input units (and their file names) */
   static DHMap<unsigned, std::pair<std::string, std::filesystem::path>, FnvHash, IdentityHash> _axiomNames;
+  /** The numbers of the model definition units, see isModelDefinition() */
+  static DHSet<unsigned, FnvHash, IdentityHash> _modelDefinitionUnits;
 
   /**
    * During question parsing, we store the mapping from int variables

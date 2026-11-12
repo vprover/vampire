@@ -414,6 +414,10 @@ bool isGreaterSymmetric(const KBO& ord, TermList t1, TermList t2) {
     && ord.compareUnidirectional(AppliedTerm(t2),AppliedTerm(t1))!=Ordering::GREATER;
 }
 
+bool isGreaterSymmetricPred(const KBO& ord, Literal* l1, Literal* l2) {
+  return ord.compare(l1,l2)==Ordering::GREATER && ord.compare(l2,l1)==Ordering::LESS;
+}
+
 TEST_FUN(kbo_isGreater_test01) {
   DECL_DEFAULT_VARS
   DECL_SORT(srt)
@@ -612,5 +616,15 @@ TEST_FUN(kbo_isGreater_test17) {
   ASS(isGreaterSymmetric(ord,
     f(g(f(g(x,g(y,z))),y)),
     f(g(y,f(g(x,g(y,z)))))));
+}
+
+TEST_FUN(kbo_isGreater_test18) {
+  DECL_DEFAULT_VARS
+  DECL_SORT(s)
+  DECL_PRED(p, {s})
+
+  auto ord = kbo(1, 1, weights(), weights());
+
+  ASS(isGreaterSymmetricPred(ord, ~p(x), p(x)));
 }
 

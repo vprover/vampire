@@ -266,7 +266,7 @@ private:
   /** inference counts indexed by InferenceRule */
   std::array<StatPair, toNumber(InferenceRule::GENERIC_THEORY_AXIOM_LAST)> inferenceCnts = {};
   /** input types indexed by UnitInputType */
-  std::array<StatPair, toNumber(UnitInputType::MODEL_DEFINITION)> inputTypeCnts = {};
+  std::array<StatPair, toNumber(UnitInputType::NEGATED_CONJECTURE)+1> inputTypeCnts = {};
 }; // class Statistics
 
 } // namespace Shell

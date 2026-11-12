@@ -20,7 +20,6 @@
 #include "Lib/Metaiterators.hpp"
 #include "Lib/SharedSet.hpp"
 #include "Lib/Stack.hpp"
-#include "Lib/StringUtils.hpp"
 
 #include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
@@ -36,7 +35,6 @@
 #include "Parse/TPTP.hpp"
 #include "SAT/SATInference.hpp"
 #include "Saturation/Splitter.hpp"
-#include "Shell/UIHelper.hpp"
 
 #include "TPTPProofPrinter.hpp"
 
@@ -49,13 +47,7 @@ using namespace std;
 namespace TPTPOutput {
 
 Language proofLanguage()
-{
-  // Use the unpreprocessed input: preprocessing can remove sorts and higher
-  // order features, but the proof must not claim a stronger fragment than it.
-  if (env.initiallyHigherOrder()) { return Language::THF; }
-  if (env.initiallyHasNonDefaultSorts()) { return Language::TFF; }
-  return Language::FOF;
-}
+{ return TPTPPrinter::outputLanguage(); }
 
 } // namespace TPTPOutput
 
@@ -103,9 +95,7 @@ void InferenceStore::TPTPProofPrinter::print()
     //typed symbol no unit ever used, whose declaration would put a tff line
     //into an otherwise fof proof
     if(env.initiallyHasNonDefaultSorts() || env.initiallyHigherOrder()){
-      //outputSymbolDeclarations also deals with sorts for now
-      //UIHelper::outputSortDeclarations(out);
-      UIHelper::outputSymbolDeclarations(out);
+      out << TPTPPrinter::symbolDeclarations(proofLanguage());
     }
     AbstractSATProofPrinter::print();
   }
@@ -117,12 +107,12 @@ const char* InferenceStore::TPTPProofPrinter::getRole(InferenceRule rule, UnitIn
     }
     switch(rule) {
     case InferenceRule::INPUT:
-      // Proofs present hypotheses and extensionality axioms as axioms.
-      if (origin == UnitInputType::ASSUMPTION || origin == UnitInputType::EXTENSIONALITY_AXIOM) {
+      // Proofs present hypotheses as axioms.
+      if (origin == UnitInputType::ASSUMPTION) {
         return Role::AXIOM;
       }
       return inputRole(origin);
-    case InferenceRule::NEGATED_CONJECTURE:
+    case InferenceRule::CONJECTURE_NEGATION:
       return Role::NEGATED_CONJECTURE;
     case InferenceRule::AVATAR_DEFINITION:
     case InferenceRule::FUNCTION_DEFINITION:
@@ -146,7 +136,7 @@ const char* InferenceStore::TPTPProofPrinter::getRole(InferenceRule rule, UnitIn
 
 std::string InferenceStore::TPTPProofPrinter::tptpRuleName(InferenceRule rule)
 {
-    return StringUtils::replaceChars<' ', '-'>(ruleName(rule), '_');
+    return ruleName(rule);
 }
 
 std::ostream& InferenceStore::TPTPProofPrinter::printSplits(std::ostream& out, SplitSet* values)
@@ -288,7 +278,7 @@ std::ostream& InferenceStore::TPTPProofPrinter::printStatus(std::ostream& out, U
   case InferenceRule::SKOLEMIZE:
     return out << statusAnnotation(Status::ESA) << ',' << newSymbols(Origin::SKOLEM, unit) << ','
         << skolemizeMap(unit);
-  case InferenceRule::NEGATED_CONJECTURE:
+  case InferenceRule::CONJECTURE_NEGATION:
     return out << statusAnnotation(Status::CTH);
   default:
     return out;

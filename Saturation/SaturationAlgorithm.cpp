@@ -602,8 +602,6 @@ void SaturationAlgorithm::passiveRemovedHandler(Clause* cl)
  */
 void SaturationAlgorithm::addInputClause(Clause* cl)
 {
-  ASS_LE(toNumber(cl->inputType()),toNumber(UnitInputType::CLAIM)); // larger input types should not appear in proof search
-
   if (_symEl) {
     _symEl->onInputClause(cl);
   }

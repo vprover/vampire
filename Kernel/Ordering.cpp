@@ -272,7 +272,7 @@ Ordering::Result PrecedenceOrdering::compare(Literal* l1, Literal* l2) const
   if( (l1->isNegative() ^ l2->isNegative()) && (p1==p2) &&
 	  l1->weight()==l2->weight() && l1->numVarOccs()==l2->numVarOccs() &&  //this line is just optimization, so we don't check whether literals are opposite when they cannot be
 	  l1==env.sharing->tryGetOpposite(l2)) {
-    return l1->isNegative() ? LESS : GREATER;
+    return l1->isNegative() ? GREATER : LESS;
   }
 
   if (p1 != p2) {
@@ -512,13 +512,7 @@ struct SymbolComparator {
     : _symType(symType), _noTiebreak(noTiebreak), _counts(counts) {}
 
   const Signature::Symbol* getSymbol(unsigned s) {
-    if(_symType == SymbolType::FUNC){
-      return env.signature->getFunction(s);
-    } else if (_symType == SymbolType::PRED){
-      return env.signature->getPredicate(s);
-    } else {
-      return env.signature->getTypeCon(s);
-    }
+    return env.signature->getSymbol(_symType, s);
   }
 
   unsigned getCount(unsigned s) {

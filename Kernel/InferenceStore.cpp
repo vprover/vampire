@@ -339,7 +339,7 @@ protected:
     if(env.initiallyHasNonDefaultSorts() || env.initiallyHigherOrder()){
       //outputSymbolDeclarations also deals with sorts for now
       //UIHelper::outputSortDeclarations(out);
-      UIHelper::outputSymbolDeclarations(out);
+      out << TPTPPrinter::symbolDeclarations(TPTPOutput::proofLanguage());
     }
 
     const auto targetLanguage = TPTPOutput::proofLanguage();
@@ -372,7 +372,7 @@ protected:
     case InferenceRule::EQUALITY_PROXY_REPLACEMENT:
     case InferenceRule::EQUALITY_PROXY_DEFINITION:
     case InferenceRule::EQUALITY_PROXY_AXIOM:
-    case InferenceRule::NEGATED_CONJECTURE:
+    case InferenceRule::CONJECTURE_NEGATION:
     case InferenceRule::RECTIFY:
     case InferenceRule::FLATTEN:
     case InferenceRule::ENNF:
@@ -1038,7 +1038,7 @@ protected:
     case InferenceRule::EQUALITY_PROXY_REPLACEMENT:
     case InferenceRule::EQUALITY_PROXY_DEFINITION:
     case InferenceRule::EQUALITY_PROXY_AXIOM:
-    case InferenceRule::NEGATED_CONJECTURE:
+    case InferenceRule::CONJECTURE_NEGATION:
     case InferenceRule::RECTIFY:
     case InferenceRule::FLATTEN:
     case InferenceRule::ENNF:

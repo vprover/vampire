@@ -155,7 +155,7 @@ void Statistics::print(std::ostream& out)
   if (statpair[TOTAL_CNT]) { groups.top().addEntry(name, statpair[TOTAL_CNT], statpair[INPROOF_CNT]); }
 
     IPGROUP("INPUT");
-    for (unsigned i : range(toNumber(UnitInputType::AXIOM),toNumber(UnitInputType::MODEL_DEFINITION))) {
+    for (unsigned i : range(toNumber(UnitInputType::AXIOM),toNumber(UnitInputType::NEGATED_CONJECTURE)+1)) {
       IPENTRY(capitalize(inputTypeName(static_cast<UnitInputType>(i))), inputTypeCnts[i]);
     }
 

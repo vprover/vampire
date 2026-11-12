@@ -728,7 +728,7 @@ Options::Options ()
        .description = "Perform equality resolution with deletion.",
        .tag = OptionTag::PREPROCESSING})
   , _extensionalityResolution("extensionality_resolution",this,
-                      ExtensionalityResolution::OFF,{"filter","known","tagged","off"},
+                      ExtensionalityResolution::OFF,{"filter","known","off"},
       {.short_name = "er",
        .description = "Turns on the following inference rule:\n"
       "  x=y \\/ C    s != t \\/ D\n"
@@ -736,8 +736,7 @@ Options::Options ()
       "  C{x → s, y → t} \\/ D\n"
       "Where s!=t is selected in s!=t \\/D and x=y \\/ C is a recognised as an extensionality clause - how clauses are recognised depends on the value of this option.\n"
       "If filter we attempt to recognise all extensionality clauses i.e. those that have exactly one X=Y, no inequality of the same sort as X-Y (and optionally no equality except X=Y, see extensionality_allow_pos_eq).\n"
-      "If known we only recognise a known set of extensionality clauses. At the moment this includes the standard and subset-based formulations of the set extensionality axiom, as well as the array extensionality axiom.\n"
-      "If tagged we only use formulas tagged as extensionality clauses.",
+      "If known we only recognise a known set of extensionality clauses. At the moment this includes the standard and subset-based formulations of the set extensionality axiom, as well as the array extensionality axiom.",
        .tag = OptionTag::INFERENCES})
   , _extensionalityMaxLength("extensionality_max_length",this,0,
       {.short_name = "erml",
@@ -1167,8 +1166,7 @@ Options::Options ()
       {.description = "An experimental interactive mode (commands to use: load <file to parse>, read <line to parse>, pop (to drop the last added set of formulas), run [options to supply], exit).",
        .experimental = true})
   , _mode("mode",this,Mode::VAMPIRE,
-                                    {"axiom_selection",
-                                        "casc",
+                                    {"casc",
                                         "clausify",
                                         "consequence_elimination",
                                         "model_check",
@@ -1187,7 +1185,7 @@ Options::Options ()
     "  -portfolio: a portfolio mode running a specified schedule (see schedule)\n"
     "  -casc, casc_sat, smtcomp - like portfolio mode, with competition-specific presets for other options, including output. "
     "If you wish to use e.g. the CASC portfolio without the presets, use --mode portfolio --schedule casc.\n"
-    "  -preprocess,axiom_selection,clausify: modes for producing output\n      for other solvers.\n"
+    "  -preprocess,clausify: modes for producing output\n      for other solvers.\n"
     "  -tpreprocess,tclausify: output modes for theory input (clauses are quantified\n      with sort information; tclausify outputs TPTP tcf).\n"
     "  -output,profile: output information about the problem\n"
     "Some modes are not currently maintained (get in touch if interested):\n"
@@ -2092,6 +2090,10 @@ Options::Options ()
       {.short_name = "hud",
        .description = "Set the maximum depth (in terms of projections and imitations) that higher-order unification can descend to."
       "Once limit is reached, remaining pairs are returned as constraints.",
+       .tag = OptionTag::HIGHER_ORDER})
+  , _higherOrderUnifMaxWeight("hol_unif_max_weight",this,1000,
+      {.short_name = "humw",
+       .description = "Set the maximum weight a non-zero depth higher-order unification can have, otherwise it is returned as constraints.",
        .tag = OptionTag::HIGHER_ORDER})
   , _casesSimp("cases_simp",this,false,
       {.short_name = "cs",

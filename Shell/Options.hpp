@@ -549,7 +549,6 @@ public:
    * @since 06/05/2007 Manchester
    */
   enum class Mode : unsigned int {
-    AXIOM_SELECTION,
     CASC,
     CLAUSIFY,
     CONSEQUENCE_ELIMINATION,
@@ -761,8 +760,7 @@ public:
   enum class ExtensionalityResolution : unsigned int {
     FILTER = 0,
     KNOWN = 1,
-    TAGGED = 2,
-    OFF = 3
+    OFF = 2
   };
 
   enum class SplittingLiteralPolarityAdvice : unsigned int {
@@ -1494,7 +1492,6 @@ public:
   unsigned sineGeneralityThreshold() const { return _sineGeneralityThreshold.actualValue; }
   unsigned sineToAgeGeneralityThreshold() const { return _sineToAgeGeneralityThreshold.actualValue; }
   SineSelection sineSelection() const { return _sineSelection.actualValue; }
-  void setSineSelection(SineSelection val) { _sineSelection.actualValue=val; }
   float sineTolerance() const { return _sineTolerance.actualValue; }
   float sineToAgeTolerance() const { return _sineToAgeTolerance.actualValue; }
 
@@ -1571,6 +1568,7 @@ public:
   bool booleanEqTrick() const { return _booleanEqTrick.actualValue; }
   bool heuristicInstantiation() const { return _heuristicInstantiation.actualValue; }
   unsigned higherOrderUnifDepth() const { return _higherOrderUnifDepth.actualValue; }
+  unsigned higherOrderUnifMaxWeight() const { return _higherOrderUnifMaxWeight.actualValue; }
   bool casesSimp() const { return _casesSimp.actualValue; }
   bool cases() const { return _cases.actualValue; }
   bool newTautologyDel() const { return _newTautologyDel.actualValue; }
@@ -1991,6 +1989,7 @@ private:
   BoolOptionValue _booleanEqTrick;
   BoolOptionValue _heuristicInstantiation;
   UnsignedOptionValue _higherOrderUnifDepth;
+  UnsignedOptionValue _higherOrderUnifMaxWeight;
   BoolOptionValue _casesSimp;
   BoolOptionValue _cases;
   BoolOptionValue _newTautologyDel;
