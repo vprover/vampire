@@ -2119,7 +2119,7 @@ Options::Options ()
       {.short_name = "ixr",
        .description = "Rewrites p <=> q = $true to p <=> q and the like. It does this as an immediate simplification.",
        .tag = OptionTag::HIGHER_ORDER})
-  , _holUnifier("hol_unifier", this, false,
+  , _holUnifier("hol_unifier", this, true,
       {.short_name = "hun",
        .description = "Enable efficient HOL unification",
        .tag = OptionTag::HIGHER_ORDER})
