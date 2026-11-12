@@ -390,9 +390,8 @@ std::string Clause::toString() const
       result += std::string(",col:") + Int::toString(color());
     }
 
-    if(goalAffinity() >= GoalAffinity::CONJECTURE){
-      result += std::string(",goal:1");
-    }
+    result += std::string(",ga:") + Int::toString(toNumber(goalAffinity()));
+
     if(env.maxSineLevel > 1) { // this is a cryptic way of saying "did we run Sine to compute sine levels?"
       result += std::string(",sine:")+Int::toString((unsigned)_inference.getSineLevel());
     }
