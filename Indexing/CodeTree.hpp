@@ -313,6 +313,8 @@ public:
   struct LitInfoOccupation {
     static constexpr unsigned CAPACITY = 64;
 
+    LitInfoOccupation() {}
+
     inline void occupy(const LitInfo& linfo)
     {
       if (linfo.litIndex < CAPACITY) {

@@ -318,7 +318,7 @@ void ClauseCodeTree::remove(Clause* cl)
 void ClauseCodeTree::RemovingLiteralMatcher::init(CodeOp* entry_, LitInfo* linfos_,
     size_t linfoCnt_, const ClauseCodeTree& tree_, Stack<CodeOp*>* firstsInBlocks_)
 {
-  Matcher::init(tree_, entry_, LitInfoOccupation::createEmptyOccupation(), linfos_, linfoCnt_, firstsInBlocks_);
+  Matcher::init(tree_, entry_, LitInfoOccupation(), linfos_, linfoCnt_, firstsInBlocks_);
 
   ALWAYS(prepareLiteral());
 }
