@@ -682,8 +682,8 @@ public:
     template<class BindingFunction>
     void createBindings(TypedTermList term, bool reversed, BindingFunction bindSpecialVar)
     {
-      bindSpecialVar(0, term.sort());
-      bindSpecialVar(1, term);
+      bindSpecialVar(0, term);
+      bindSpecialVar(1, term.sort());
     }
 
     /** see createBindings(TypedTermList,...) */
@@ -692,15 +692,15 @@ public:
     {
       if (lit->isEquality()) {
 
-        bindSpecialVar(0, SortHelper::getEqualityArgumentSort(lit));
-
         if (reversed) {
-          bindSpecialVar(2,*lit->nthArgument(0));
-          bindSpecialVar(1,*lit->nthArgument(1));
-        } else {
           bindSpecialVar(1,*lit->nthArgument(0));
-          bindSpecialVar(2,*lit->nthArgument(1));
+          bindSpecialVar(0,*lit->nthArgument(1));
+        } else {
+          bindSpecialVar(0,*lit->nthArgument(0));
+          bindSpecialVar(1,*lit->nthArgument(1));
         }
+
+        bindSpecialVar(2, SortHelper::getEqualityArgumentSort(lit));
 
       } else {
 

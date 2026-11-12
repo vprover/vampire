@@ -176,7 +176,6 @@ Option<Stack<UnificationNode*>> UnificationNode::solve()
       continue;
     }
 
-    // TODO(HOL): if simplify is called, this should be unnecessary
     if (curr.rigidRigid()) {
       DEBUG("rigid-rigid ", curr._lhead, " ", curr._rhead);
       if (curr.shouldAbstract(_funcExt)) {
