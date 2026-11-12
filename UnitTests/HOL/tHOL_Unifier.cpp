@@ -53,6 +53,7 @@ using namespace Test;
 #define LEFT_BANK 0
 #define RIGHT_BANK 1
 #define UNIF_DEPTH 3
+#define UNIF_MAX_WEIGHT 100
 
 using VarSpecs = Stack<std::pair<VarSpec, TermList>>;
 
@@ -85,7 +86,7 @@ void testUnifySuccess(TermList lhs, TermList rhs, Stack<ResultSpec> expected) {
     ASSERTION_VIOLATION;
   }
 
-  HOL::AbstractingWrapper wrapper(unif, UNIF_DEPTH, funcExt);
+  HOL::AbstractingWrapper wrapper(unif, UNIF_DEPTH, UNIF_MAX_WEIGHT, funcExt);
   for (unsigned i = 0; i < expected.size(); i++) {
     if (!wrapper.hasNext()) {
       std::cout << std::endl;
@@ -157,7 +158,7 @@ void testUnifyFail(TermList lhs, TermList rhs) {
   AbstractingUnifier unif(oracle);
 
   if (unif.unify(lhs, LEFT_BANK, rhs, RIGHT_BANK, /*fixedPointIteration=*/true)) {
-    HOL::AbstractingWrapper wrapper(unif, UNIF_DEPTH, funcExt);
+    HOL::AbstractingWrapper wrapper(unif, UNIF_DEPTH, UNIF_MAX_WEIGHT, funcExt);
     if (wrapper.hasNext()) {
       std::cout << std::endl;
       std::cout << "expected *not* to HO unify (" << unifToStr(lhs, rhs) << ")" << std::endl;

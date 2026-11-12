@@ -230,6 +230,8 @@ private:
 
   void collectDependenceLits(SplitSet* splits, SATLiteralStack& acc) const;
 
+  SATClause* buildDPConflictClause(const LiteralStack& unsatCore);
+
   SplitLevel addNonGroundComponent(unsigned size, Literal* const * lits, Clause* orig, Clause*& compCl);
   SplitLevel addGroundComponent(Literal* lit, Clause* orig, Clause*& compCl);
 
@@ -301,6 +303,9 @@ private:
   // clauses we already added to the SAT solver
   // not just optimisation: also prevents the SAT solver oscillating between two models in some cases
   Set<SATClause*, DerefPtrHash<SATClauseHash>, DerefPtrEqual> _already_added;
+
+  /** In TPTP proofs, introduce the spl predicate whose name prefixes split names. */
+  static void ensureSplPrefix();
 public:
   static std::string splPrefix;
 

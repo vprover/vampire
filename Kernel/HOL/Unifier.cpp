@@ -264,6 +264,16 @@ bool UnificationNode::simplify()
   return true;
 }
 
+unsigned UnificationNode::weight() const
+{
+  unsigned w = 0;
+  for (const auto& c : _cons) {
+    w += c._lhs.weight();
+    w += c._rhs.weight();
+  }
+  return w;
+}
+
 Stack<UnificationNode::Constraint> UnificationNode::decompose(unsigned index, bool includeRest) const
 {
   DEBUG("decompose");
@@ -301,8 +311,8 @@ Stack<UnificationNode::Constraint> UnificationNode::decompose(unsigned index, bo
   return cons;
 }
 
-AbstractingWrapper::AbstractingWrapper(AbstractingUnifier& unifier, unsigned hoUnifDepth, bool funcExt)
-  : _unifier(new AbstractingUnifier(unifier._uwa)), _hoUnifDepth(hoUnifDepth)
+AbstractingWrapper::AbstractingWrapper(AbstractingUnifier& unifier, unsigned hoUnifDepth, unsigned hoUnifMaxWeight, bool funcExt)
+  : _unifier(new AbstractingUnifier(unifier._uwa)), _hoUnifDepth(hoUnifDepth), _hoUnifMaxWeight(hoUnifMaxWeight)
 #if VDEBUG
   , _funcExt(funcExt)
 #endif
@@ -316,7 +326,7 @@ AbstractingWrapper::AbstractingWrapper(AbstractingUnifier& unifier, unsigned hoU
       c.sort().toGluedTerm(_unifier->subs())
     );
   }
-  _todo.emplace(new UnificationNode(cons, _unifier->subs().nextGlueVar(), funcExt), 0);
+  _todo.emplace(new UnificationNode(cons, _unifier->subs().nextGlueVar(), funcExt), /*depth=*/0);
 }
 
 AbstractingWrapper::~AbstractingWrapper()
@@ -341,8 +351,8 @@ bool AbstractingWrapper::hasNext()
       continue;
     }
 
-    if (depth >= _hoUnifDepth) {
-      DEBUG("reached maximal depth");
+    if (depth >= _hoUnifDepth || (depth > 0 && node->weight() > _hoUnifMaxWeight)) {
+      DEBUG("reached maximal depth/weight");
       _next = node;
       return true;
     }

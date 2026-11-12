@@ -34,6 +34,7 @@
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Shell/Statistics.hpp"
+#include "Shell/TPTPPrinter.hpp"
 
 #include "BackwardSubsumptionDemodulation.hpp"
 #include "SubsumptionDemodulationHelper.hpp"
@@ -636,11 +637,11 @@ isRedundant:
         std::cout << "\% eqLitS: " << binder.applyTo(eqLit)->toString() << "\n";
         std::cout << "\% dlit: " << dlit->toString() << "\n";
         // std::cout << "\% numMatches+1: success at match #" << (numMatches+1) << "\n";
-        TPTPPrinter tptp;
+        std::cout << TPTPPrinter::symbolDeclarations(TPTPOutput::Language::TCF);
         // NOTE: do not output the splitLevels here, because those will be set for replacement only later
-        tptp.printWithRole("side_premise", "hypothesis", sideCl, false);
-        tptp.printWithRole("main_premise", "hypothesis", mainCl, false);
-        tptp.printWithRole("conclusion  ", "conjecture", replacement, false);
+        std::cout << TPTPPrinter::namedUnit(sideCl, "side_premise", TPTPOutput::Role::HYPOTHESIS, TPTPOutput::Language::TCF);
+        std::cout << TPTPPrinter::namedUnit(mainCl, "main_premise", TPTPOutput::Role::HYPOTHESIS, TPTPOutput::Language::TCF);
+        std::cout << TPTPPrinter::namedUnit(replacement, "conclusion  ", TPTPOutput::Role::CONJECTURE, TPTPOutput::Language::TCF);
         // TODO: Some problems (seems to be only the CSR category; it happens, e.g., in CSR104+4)
         //       use integer constants as sort $i but vampire parses them as $int when using tff.
         //       For these formulas we should use fof, then it works again.

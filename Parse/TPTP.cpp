@@ -62,6 +62,7 @@ static VSList* zipVarsSorts(VList* vars, SList* sorts) {
 #define DEBUG_SHOW_UNITS 0
 #define DEBUG_SOURCE 0
 DHMap<unsigned, std::pair<std::string, std::filesystem::path>, FnvHash, IdentityHash> TPTP::_axiomNames;
+DHSet<unsigned, FnvHash, IdentityHash> TPTP::_modelDefinitionUnits;
 DHMap<unsigned, Map<unsigned,std::string, FnvHash>, FnvHash, IdentityHash> TPTP::_questionVariableNames;
 
 //Numbers chosen to avoid clashing with connectives.
@@ -361,17 +362,12 @@ void TPTP::parseImpl(State initialState)
 void TPTP::parseInputType(const std::string& tp)
 {
   _isQuestion = false;
+  _isClaim = false;
   if(_modelDefinition){
-    _lastInputType = UnitInputType::MODEL_DEFINITION;
-  }
-  else if (tp == "axiom" || tp == "plain") {
+    // the role of a model definition is ignored, see isModelDefinition()
     _lastInputType = UnitInputType::AXIOM;
   }
-  else if(tp == "extensionality"){
-    // this will be transformed to just AXIOM after clausification
-    _lastInputType = UnitInputType::EXTENSIONALITY_AXIOM;
-  }
-  else if (tp == "definition") {
+  else if (tp == "axiom" || tp == "plain" || tp == "definition") {
     _lastInputType = UnitInputType::AXIOM;
   }
   else if (tp == "conjecture") {
@@ -388,7 +384,8 @@ void TPTP::parseInputType(const std::string& tp)
     _lastInputType = UnitInputType::ASSUMPTION;
   }
   else if (tp == "claim") {
-    _lastInputType = UnitInputType::CLAIM;
+    _isClaim = true;
+    _lastInputType = UnitInputType::AXIOM;
   }
   else if (tp == "assumption" || tp == "unknown" || tp == "logic") {
     // MS: we were silently dropping these until now. I wonder why...
@@ -3393,22 +3390,18 @@ void TPTP::midEquality()
  */
 Literal* TPTP::createEquality(bool polarity,TermList& lhs,TermList& rhs)
 {
-  TermList masterVar;
   TermList sort;
-  if (!SortHelper::getResultSortOrMasterVariable(lhs, sort, masterVar)) {
-    // Master variable is a variable whose sort determines the sort of a term.
-    // If term is a variable, the master variable is the variable itself. The
-    // trickier case is when we have an if-then-else expression with variable
-    // arguments.
+  if (lhs.isVar()) {
     SList* vs;
-    if (_variableSorts.find(masterVar.var(),vs) && vs) {
+    if (_variableSorts.find(lhs.var(),vs) && vs) {
       sort = vs->head();
     }
     else { // this may happen when free variables appear in the formula (or clause)
       sort = AtomicSort::defaultSort();
     }
+  } else {
+    sort = SortHelper::getResultSort(lhs.term());
   }
-   
   return Literal::createEquality(polarity,lhs,rhs,sort);
 } // TPTP::createEquality
 
@@ -4065,25 +4058,27 @@ void TPTP::endFof()
       ASS_EQ(freeVariables(f),VList::empty())
       f = new NegatedFormula(f);
       unit = new FormulaUnit(f,
-			     FormulaClauseTransformation(InferenceRule::NEGATED_CONJECTURE,unit));
+			     FormulaClauseTransformation(InferenceRule::CONJECTURE_NEGATION,unit));
       if (_isQuestion) {
         _questionVariableNames.insert(unit->number(),std::move(_curQuestionVarNames));
       }
     }
     break;
 
-  case UnitInputType::CLAIM:
-    unit = processClaimFormula(unit,f,nm);
-    break;
-
   default:
     break;
+  }
+  if (_isClaim) {
+    unit = processClaimFormula(unit,f,nm);
+  }
+  if (_modelDefinition) {
+    _modelDefinitionUnits.insert(unit->number());
   }
   _units.pushBack(unit);
 } // tag
 
 /*
-* The given unit has already been parsed (and had the role CLAIM).
+* The given unit has already been parsed (and had the role claim).
 * It's actually a FormulaUnit with the formula f wrapped inside.
 * nm is the name of the claim in TPTP, but can be any other string
 * that will serve as the name of the predice we introduce:
@@ -5155,26 +5150,18 @@ unsigned TPTP::addOverloadedPredicate(std::string name,int arity,int symbolArity
  */
 TermList TPTP::sortOf(TermList t)
 {
-  for (;;) {
-    if (t.isVar()) {
-      SList* sorts;
-      if (_variableSorts.find(t.var(),sorts) && SList::isNonEmpty(sorts)) {
-        return sorts->head();
-      }
-      // there might be variables whose sort is undeclared,
-      // in this case they have the default sort
-      TermList def = AtomicSort::defaultSort();
-      bindVariable(t.var(), def);
-      return def;
+  if (t.isVar()) {
+    SList* sorts;
+    if (_variableSorts.find(t.var(),sorts) && SList::isNonEmpty(sorts)) {
+      return sorts->head();
     }
-    TermList sort;
-    TermList mvar;
-    if (SortHelper::getResultSortOrMasterVariable(t.term(), sort, mvar)) { //TODO update
-      return sort;
-    } else {
-      t = mvar;
-    }
+    // there might be variables whose sort is undeclared,
+    // in this case they have the default sort
+    TermList def = AtomicSort::defaultSort();
+    bindVariable(t.var(), def);
+    return def;
   }
+  return SortHelper::getResultSort(t.term());
 } // sortOf
 
 

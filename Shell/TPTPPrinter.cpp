@@ -13,24 +13,30 @@
  */
 
 #include <sstream>
+#include <utility>
 
+#include "Kernel/Connective.hpp"
 #include "Lib/DHMap.hpp"
 #include "Lib/Environment.hpp"
+#include "Lib/Metaiterators.hpp"
+#include "Lib/Set.hpp"
 #include "Lib/SharedSet.hpp"
 #include "Lib/Stack.hpp"
 
-#include "Kernel/Signature.hpp"
 #include "Kernel/Clause.hpp"
-#include "Kernel/SortHelper.hpp"
-
-#include "Parse/TPTP.hpp"
-
-#include "Kernel/Term.hpp"
-#include "Kernel/Inference.hpp"
-#include "Kernel/Unit.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaUnit.hpp"
-#include "Kernel/Clause.hpp"
+#include "Kernel/FormulaVarIterator.hpp"
+#include "Kernel/SortHelper.hpp"
+#include "Kernel/Term.hpp"
+#include "Kernel/OperatorType.hpp"
+#include "Kernel/Signature.hpp"
+#include "Kernel/Theory.hpp"
+#include "Shell/Options.hpp"
+#include "Kernel/Unit.hpp"
+
+#include "Parse/TPTP.hpp"
+#include "Saturation/Splitter.hpp"
 
 #include "TPTPPrinter.hpp"
 
@@ -40,558 +46,331 @@ namespace Shell
 {
 
 using namespace std;
-TPTPPrinter::TPTPPrinter(std::ostream* tgtStream)
-: _tgtStream(tgtStream), _headersPrinted(false)
-{
-}
-
-/**
- * Print the Unit @param u to the desired output
- */
-void TPTPPrinter::print(Unit* u)
-{
-  std::string body = getBodyStr(u, true);
-
-  ensureHeadersPrinted(u);
-  printTffWrapper(u, body);
-}
-
-/**
- * Print on the desired output the Unit with the specified name
- * @param name
- * @param u
- */
-void TPTPPrinter::printAsClaim(std::string name, Unit* u)
-{
-  printWithRole(name, "claim", u);
-}
-
-void TPTPPrinter::printWithRole(std::string name, std::string role, Unit* u, bool includeSplitLevels)
-{
-  std::string body = getBodyStr(u, includeSplitLevels);
-
-  ensureHeadersPrinted(u);
-  tgt() << "tff(" << name << ", " << role << ", (" << body << "))." << endl;
-}
-
-/**
- * Return as a std::string the body of the Unit u
- * @param u
- * @param includeSplitLevels
- * @return the body std::string
- */
-std::string TPTPPrinter::getBodyStr(Unit* u, bool includeSplitLevels)
-{
-  std::ostringstream res;
-
-  typedef DHMap<unsigned,TermList, FnvHash, IdentityHash> SortMap;
-  static SortMap varSorts;
-  varSorts.reset();
-  SortHelper::collectVariableSorts(u, varSorts);
-
-  if(u->isClause()) {
-    SortMap::Iterator vit(varSorts);
-    bool quantified = vit.hasNext();
-    if(quantified) {
-      res << "![";
-      while(vit.hasNext()) {
-        unsigned var;
-        TermList varSort;
-        vit.next(var, varSort);
-
-        res << 'X' << var;
-        if(varSort!= AtomicSort::defaultSort()) {
-          res << " : " << varSort.toString();
-        }
-        if(vit.hasNext()) {
-          res << ',';
-        }
-      }
-      res << "]: (";
-    }
-
-    Clause* cl = static_cast<Clause*>(u);
-    auto cit = cl->iterLits();
-    if(!cit.hasNext()) {
-      res << "$false";
-    }
-    while(cit.hasNext()) {
-      Literal* lit = cit.next();
-      res << lit->toString();
-      if(cit.hasNext()) {
-        res << " | ";
-      }
-    }
-
-    if(quantified) {
-      res << ')';
-    }
-
-    if(includeSplitLevels && !cl->noSplits()) {
-      auto sit = cl->splits()->iter();
-      while(sit.hasNext()) {
-        SplitLevel split = sit.next();
-        res << " | " << "$splitLevel" << split;
-      }
-    }
-  }
-  else {
-    return static_cast<FormulaUnit*>(u)->formula()->toString();
-  }
-  return res.str();
-}
-
-/**
- * Surround by tff() the body of the unit u
- * @param u
- * @param bodyStr
- */
-void TPTPPrinter::printTffWrapper(Unit* u, std::string bodyStr)
-{
-  tgt() << "tff(";
-  std::string unitName;
-  std::filesystem::path unitPath;
-  if(Parse::TPTP::findAxiomName(u, unitName, unitPath)) {
-    tgt() << unitName;
-  }
-  else {
-    tgt() << "u_" << u->number();
-  }
-  tgt() << ", ";
-  switch(u->inputType()) {
-  case UnitInputType::AXIOM:
-    tgt() << "axiom"; break;
-  case UnitInputType::ASSUMPTION:
-    tgt() << "hypothesis"; break;
-  case UnitInputType::CONJECTURE:
-    tgt() << "conjecture"; break;
-  case UnitInputType::NEGATED_CONJECTURE:
-    tgt() << "negated_conjecture"; break;
-  case UnitInputType::CLAIM:
-    tgt() << "claim"; break;
-  case UnitInputType::EXTENSIONALITY_AXIOM:
-    tgt() << "extensionality"; break;
-  default:
-     ASSERTION_VIOLATION;
-  }
-  tgt() << ", " << endl << "    " << bodyStr << " )." << endl;
-}
-
-/**
- * Output the symbol definition
- * @param symNumber
- * @param function - true if the symbol is a function symbol
- */
-void TPTPPrinter::outputSymbolTypeDefinitions(unsigned symNumber, SymbolType symType)
-{
-  const Signature::Symbol* sym;
-  if(symType == SymbolType::FUNC){
-    sym = env.signature->getFunction(symNumber);
-  } else if(symType == SymbolType::PRED){
-    sym = env.signature->getPredicate(symNumber);
-  } else {
-    sym = env.signature->getTypeCon(symNumber);
-  }
-  auto type = sym->type();
-
-  if(type->isAllDefault()) {
-    return;
-  }
-
-  bool func = symType == SymbolType::FUNC ;
-  if(func && theory->isInterpretedConstant(symNumber)) { return; }
-
-  if(sym->interpreted()) {
-    Interpretation interp = static_cast<const Signature::InterpretedSymbol*>(sym)->getInterpretation();
-    switch(interp) {
-    case Theory::INT_SUCCESSOR:
-    case Theory::INT_ABS:
-    case Theory::INT_DIVIDES:
-      //for interpreted symbols that do not belong to TPTP standard we still have to output sort
-      break;
-    default:
-      return;
-    }
-  }
-
-  std::string cat = "tff(";
-  if(env.getMainProblem()->isHigherOrder()){
-    cat = "thf(";
-  }
-
-  std::string st = "func";
-  if(symType == SymbolType::PRED){
-    st = "pred";
-  } else if(symType == SymbolType::TYPE_CON){
-    st = "sort";
-  }
-
-  tgt() << cat << st << "_def_" << symNumber << ",type, "
-      << sym->name() << ": ";
-
-  tgt() <<  type->toString();
-
-  tgt() << " )." << endl;
-}
-
-/**
- * Print only the necessary headers for the sorts. This is needed in order to avoid
- * having in the TPTP problem sorts that are not used
- * @since 08/10/2012, Vienna
- * @author Ioan Dragan
- */
-/*void TPTPPrinter::ensureNecesarySorts()
-{
-  if (_headersPrinted) {
-    return;
-  }
-  unsigned i;
-  List<TermList> *_usedSorts(0);
-  OperatorType* type;
-  const Signature::Symbol* sym;
-  unsigned sorts = env.sorts->count();
-  //check the sorts of the function symbols and collect information about used sorts
-  for (i = 0; i < env.signature->functions(); i++) {
-    if(env.signature->isTypeConOrSup(f)){ continue; }
-    sym = env.signature->getFunction(i);
-    type = sym->type();
-    unsigned arity = sym->arity();
-    // NOTE: for function types, the last entry (i.e., type->arg(arity)) contains the type of the result
-    for (unsigned i = 0; i <= arity; i++) {
-      if(! List<unsigned>::member(type->arg(i), _usedSorts))
-        List<unsigned>::push(type->arg(i), _usedSorts);
-    }
-  }
-  //check the sorts of the predicates and collect information about used sorts
-  for (i = 0; i < env.signature->predicates(); i++) {
-    sym = env.signature->getPredicate(i);
-    type = sym->type();
-    unsigned arity = sym->arity();
-    if (arity > 0) {
-      for (unsigned i = 0; i < arity; i++) {
-        if(! List<unsigned>::member(type->arg(i), _usedSorts))
-          List<unsigned>::push(type->arg(i), _usedSorts);
-      }
-    }
-  }
-  //output the sort definition for the used sorts, but not for the built-in sorts
-  for (i = Sorts::FIRST_USER_SORT; i < sorts; i++) {
-    if (List<unsigned>::member(i, _usedSorts))
-      tgt() << "tff(sort_def_" << i << ",type, " << env.sorts->sortName(i)
-            	      << ": $tType" << " )." << endl;
-
-  }
-} */ //TODO fix this function. At the moment, not sure how important it is
-
-/**
- * Makes sure that only the needed headers in the @param u are printed out on the output
- */
-void TPTPPrinter::ensureHeadersPrinted(Unit* u)
-{
-  if(_headersPrinted) {
-    return;
-  }
-
-  unsigned typeCons = env.signature->typeCons();
-  for(unsigned i=Signature::FIRST_USER_CON; i<typeCons; i++) {
-    outputSymbolTypeDefinitions(i, SymbolType::TYPE_CON);
-  }
-  unsigned funs = env.signature->functions();
-  for(unsigned i=0; i<funs; i++) {
-    outputSymbolTypeDefinitions(i, SymbolType::FUNC);
-  }
-  unsigned preds = env.signature->predicates();
-  for(unsigned i=1; i<preds; i++) {
-    outputSymbolTypeDefinitions(i, SymbolType::PRED);
-  }
-
-  _headersPrinted = true;
-}
-
-/**
- * Retrieve the output stream to which vampire prints out
- */
-std::ostream& TPTPPrinter::tgt()
-{
-  if(_tgtStream) {
-    return *_tgtStream;
-  }
-  else {
-    return std::cout;
-  }
-}
+using TPTPOutput::connectiveSymbol;
+using TPTPOutput::disjunction;
+using TPTPOutput::InputName;
+using TPTPOutput::Language;
+using TPTPOutput::Reference;
+using TPTPOutput::variableRef;
+using TPTPOutput::QuantifiedVariables;
+using TPTPOutput::quantified;
+namespace Role = TPTPOutput::Role;
 
 /**
  * Return the std::string representing the formula f.
  */
 std::string TPTPPrinter::toString(const Formula* formula)
 {
-  static std::string names [] =
-    { "", " & ", " | ", " => ", " <=> ", " <~> ",
-      "~ ", "!", "?", "$term", "$false", "$true", "", ""};
-  ASS_EQ(sizeof(names)/sizeof(std::string), NOCONN+1);
+  std::ostringstream out;
+  printFormula(out, formula);
+  return out.str();
+}
 
-  std::string res;
-
-  // render a connective if specified, and then a Formula (or ")" of formula is nullptr)
-  typedef pair<Connective,const Formula*> Todo;
-  Stack<Todo> stack;
-
-  stack.push(make_pair(NOCONN,formula));
-
-  while (stack.isNonEmpty()) {
-    Todo todo = stack.pop();
-
-    // in any case start by rendering the connective passed from "above"
-    res += names[todo.first];
-
-    const Formula* f = todo.second;
-
-    if (!f) {
-      res += ")";
-      continue;
-    }
-
-    Connective c = f->connective();
-
-    switch (c) {
-    case LITERAL: {
-      std::string result = f->literal()->toString();
-      if (f->literal()->isEquality()) {
-        res += "(" + result + ")";
-      } else {
-        res += result;
-      }
-      continue;
-    }
-    case AND:
-    case OR:
-      {
-        // we will reverse the order
-        // but that should not matter
-
-        const FormulaList* fs = f->args();
-        res += "(";
-        stack.push(make_pair(NOCONN,nullptr)); // render the final closing bracket
-        while (FormulaList::isNonEmpty(fs)) {
-          const Formula* arg = fs->head();
-          fs = fs->tail();
-          // the last argument, which will be printed first, is the only one not preceded by a rendering of con
-          stack.push(make_pair(FormulaList::isNonEmpty(fs) ? c : NOCONN,arg));
-        }
-
-        continue;
-      }
-    case IMP:
-    case IFF:
-    case XOR:
-      // here we can afford to keep the order right
-
-      res += "(";
-
-      stack.push(make_pair(NOCONN,nullptr)); // render the final closing bracket
-
-      stack.push(make_pair(c,f->right())); // second argument with con
-
-      stack.push(make_pair(NOCONN,f->left())); // first argument without con
-
-      continue;
-
-    case NOT:
-      res += "(";
-
-      stack.push(make_pair(NOCONN,nullptr)); // render the final closing bracket
-
-      stack.push(make_pair(c,f->uarg()));
-
-      continue;
-
-    case FORALL:
-    case EXISTS:
-      {
-        std::string result = std::string("(") + names[c] + "[";
-        bool needsComma = false;
-        VSList::Iterator vs(f->vars());
-
-        while (vs.hasNext()) {
-          auto [var, t] = vs.next();
-
-          if (needsComma) {
-            result += ", ";
-          }
-          result += 'X';
-          result += Int::toString(var);
-          if (t != AtomicSort::defaultSort()) {
-            result += " : " + t.toString();
-          }
-          needsComma = true;
-        }
-        res += result + "] : (";
-
-        stack.push(make_pair(NOCONN,nullptr));
-        stack.push(make_pair(NOCONN,nullptr)); // here we close two brackets
-
-        stack.push(make_pair(NOCONN,f->qarg()));
-
-        continue;
-      }
-
-    case BOOL_TERM:
-      res += f->getBooleanTerm().toString();
-
-      continue;
-
-    case FALSE:
-    case TRUE:
-      res += names[c];
-
-      continue;
-    default:
-      ASSERTION_VIOLATION;
-    }
-  }
-  return res;
+std::ostream& TPTPPrinter::printFormula(std::ostream& out, const Formula* formula)
+{
+  return out << formula->toString(/*mightNeedParens=*/true);
 }
 
 /**
- * The universal prefix "![X0 : s,X1 : $i] : " binding, with their sorts, all the
- * variables of @param unit; the empty std::string if there are none.
- *
- * Sorts are always spelled out (even the default $i), since making the sorts explicit
- * is the whole point of the prefix. Type variables come first, as they must, and the
- * remaining variables in the order of their numbers, so that the output is stable.
+ * Output unit @param unit in TPTP format as a std::string, with @param role.
  */
-std::string TPTPPrinter::universalPrefix(const Unit* unit)
+std::string TPTPPrinter::toString(const Unit* unit, Language language, const char* role)
 {
-  DHMap<unsigned,TermList, FnvHash, IdentityHash> varSorts;
-  SortHelper::collectVariableSorts(const_cast<Unit*>(unit), varSorts);
-  if (varSorts.isEmpty()) {
-    return "";
-  }
-
-  Stack<unsigned> vars;
-  vars.loadFromIterator(varSorts.domain());
-  vars.sort([&varSorts](unsigned v1, unsigned v2) {
-    bool t1 = varSorts.get(v1).isTerm() && varSorts.get(v1).term()->isSuper();
-    bool t2 = varSorts.get(v2).isTerm() && varSorts.get(v2).term()->isSuper();
-    return (t1 != t2) ? t1 : (v1 < v2);
-  });
-
-  std::ostringstream res;
-  res << "![";
-  for (unsigned i = 0; i < vars.size(); i++) {
-    if (i) {
-      res << ',';
-    }
-    res << 'X' << vars[i] << " : " << varSorts.get(vars[i]).toString();
-  }
-  res << "] : ";
-  return res.str();
+  std::ostringstream out;
+  printUnit(out, unit, language, role);
+  return out.str();
 }
 
-/**
- * Output unit @param unit in TPTP format as a std::string
- *
- * If the unit is a formula of type @b CONJECTURE, output the
- * negation of Vampire's internal representation with the
- * TPTP role conjecture. If it is a clause, just output it as
- * is, with the role negated_conjecture.
- */
-std::string TPTPPrinter::toString (const Unit* unit, bool typedClauses)
+std::ostream& TPTPPrinter::UnitOutput::print(std::ostream& out) const
+{ return printUnit(out, unit, language, role); }
+
+std::ostream& TPTPPrinter::NamedUnitOutput::print(std::ostream& out) const
+{ return printUnit(out, unit, name, role, language, includeSplitLevels); }
+
+std::ostream& TPTPPrinter::FormulaOutput::print(std::ostream& out) const
+{ return printFormula(out, formula); }
+
+std::ostream& TPTPPrinter::printUnit(std::ostream& out, const Unit* unit, Language language,
+    const char* role)
 {
-//  const Inference* inf = unit->inference();
-//  Inference::Rule rule = inf->rule();
+  out << language << '(' << InputName{unit, "u"} << ',' << role << ",\n    ";
+  printBody(out, unit, language, /*includeSplitLevels=*/false);
+  return out << ").\n";
+}
 
-  std::string prefix;
-  std::string main = "";
+std::ostream& TPTPPrinter::printUnit(std::ostream& out, const Unit* unit, std::string_view name,
+    const char* role, Language language, bool includeSplitLevels)
+{
+  out << language << '(' << name << ',' << role << ",\n    ";
+  printBody(out, unit, language, includeSplitLevels);
+  return out << ").\n";
+}
 
-  bool negate_formula = false;
-  std::string kind;
-  switch (unit->inputType()) {
-  case UnitInputType::ASSUMPTION:
-    kind = "hypothesis";
-    break;
+Language TPTPPrinter::outputLanguage(bool clausesOnly)
+{
+  if (env.initiallyHigherOrder() || env.higherOrder()) { return Language::THF; }
+  if (env.initiallyHasNonDefaultSorts()) { return clausesOnly ? Language::TCF : Language::TFF; }
+  return clausesOnly ? Language::CNF : Language::FOF;
+}
 
-  case UnitInputType::CONJECTURE:
-    if(unit->isClause()) {
-      kind = "negated_conjecture";
-    }
-    else {
-      negate_formula = true;
-      kind = "conjecture";
-    }
-    break;
+Language TPTPPrinter::unitLanguage(const Unit* unit)
+{ return outputLanguage(unit->isClause()); }
 
-  case UnitInputType::EXTENSIONALITY_AXIOM:
-    kind = "extensionality";
-    break;
-
-  case UnitInputType::NEGATED_CONJECTURE:
-    kind = "negated_conjecture";
-    break;
-
-  default:
-    kind = "axiom";
-    break;
-  }
-
+/**
+ * The formula of @param unit in @param language. In CNF, a clause is written in parentheses;
+ * in TCF, it is preceded by its universal prefix. In FOF, TFF and THF, the universal closure
+ * of a clause is written. With @param includeSplitLevels, the split levels of a clause are
+ * added as $splitLevel<n> disjuncts; these are a Vampire extension, not TPTP.
+ */
+std::ostream& TPTPPrinter::printBody(std::ostream& out, const Unit* unit, Language language,
+    bool includeSplitLevels)
+{
   if (unit->isClause()) {
-    main = static_cast<const Clause*>(unit)->toTPTPString();
-    if (typedClauses) {
-      prefix = "tcf";
-      main = universalPrefix(unit) + "( " + main + " )";
-    } else {
-      prefix = "cnf";
-      main = "( " + main + " )";
+    const auto* clause = static_cast<const Clause*>(unit);
+    auto literals = Output::deferred([clause, includeSplitLevels](std::ostream& stream) -> std::ostream& {
+      stream << disjunction(clause->iterLits());
+      if (includeSplitLevels && !clause->noSplits()) {
+        for (SplitLevel split : iterTraits(clause->splits()->iter())) {
+          stream << connectiveSymbol(OR) << Reference{"$splitLevel", split};
+        }
+      }
+      return stream;
+    });
+    switch (language) {
+    case Language::CNF:
+      out << TPTPOutput::parenthesized(literals);
+      break;
+    case Language::TCF: {
+      QuantifiedVariables variables(unit, Language::TCF);
+      if (!variables.isEmpty()) { out << "![" << variables << "] : "; }
+      out << TPTPOutput::parenthesized(literals);
+      break;
     }
+    default:
+      out << quantified(QuantifiedVariables(unit, language), literals);
+    }
+  } else {
+    // Only clauses can be written in CNF or TCF.
+    ASS_NEQ(language, Language::CNF);
+    ASS_NEQ(language, Language::TCF);
+    const Formula* formula = static_cast<const FormulaUnit*>(unit)->formula();
+    printFormula(out, formula);
   }
-  else {
-    prefix = "tff";
-    const Formula* f = static_cast<const FormulaUnit*>(unit)->formula();
-    if(negate_formula) {
-      Formula* quant=Formula::quantify(const_cast<Formula*>(f));
-      if(quant->connective()==NOT) {
-	ASS_EQ(quant, f);
-	main = toString(quant->uarg());
-      }
-      else if(quant->connective()==LITERAL && quant->literal()->isNegative()){
-        ASS_EQ(quant,f);
-        Literal* comp = Literal::complementaryLiteral(quant->literal());
-        main = comp->toString();
-      }
-      else {
-	Formula* neg=new NegatedFormula(quant);
-	main = toString(neg);
-	neg->destroy();
-      }
-      if(quant!=f) {
-	ASS_EQ(quant->connective(),FORALL);
-        VSList::destroy(static_cast<QuantifiedFormula*>(quant)->vars());
-	quant->destroy();
-      }
+  return out;
+}
+
+
+TPTPPrinter::SymbolDeclarationsOutput TPTPPrinter::symbolDeclarations()
+{ return symbolDeclarations(outputLanguage() == Language::THF ? Language::THF : Language::TFF); }
+
+std::ostream& TPTPPrinter::SymbolDeclarationsOutput::print(std::ostream& out) const
+{ return printSymbolDeclarations(out, language); }
+
+namespace {
+
+/**
+ * Whether a symbol needs a TPTP type declaration. Symbols with default types, interpreted
+ * symbols, and the built-in and internal symbols of Vampire are not declared.
+ */
+bool needsTPTPTypeDeclaration(SymbolType type, unsigned number)
+{
+  Signature& sig = *env.signature;
+  switch (type) {
+  case SymbolType::TYPE_CON:
+    if (sig.isArrayCon(number) || sig.isTupleCon(number) || sig.isArrowCon(number)) {
+      return false;
     }
-    else {
-      main = toString(f);
+    if (sig.isDefaultSortCon(number) && (!sig.isBoolCon(number) || !env.options->showFOOL())) {
+      return false;
     }
+    break;
+  case SymbolType::FUNC: {
+    if (!env.options->showFOOL()
+        && (sig.isFoolConstantSymbol(true, number) || sig.isFoolConstantSymbol(false, number))) {
+      return false;
+    }
+    // app is internal to Vampire
+    if (sig.isAppFun(number)) {
+      return false;
+    }
+    unsigned dummy;
+    if (Theory::findTupleProjection(number, /*predicate=*/false, dummy)) {
+      return false;
+    }
+    if (sig.getFunction(number)->type()->result().isTupleSort()) {
+      return false;
+    }
+    break;
+  }
+  case SymbolType::PRED: {
+    unsigned dummy;
+    if (Theory::findTupleProjection(number, /*predicate=*/true, dummy)) {
+      return false;
+    }
+    break;
+  }
+  }
+  const Signature::Symbol* symbol = env.signature->getSymbol(type, number);
+  return !symbol->interpreted() && !symbol->type()->isAllDefault();
+}
+
+/** The declarations of the first @b count symbols of @b type that need one.
+ *  Declaration names are @b namePrefix followed by the symbol number. */
+void printSymbolDeclarationsOfType(std::ostream& out, Language language, SymbolType type,
+    unsigned count, const char* namePrefix)
+{
+  for (unsigned number = 0; number < count; ++number) {
+    if (!needsTPTPTypeDeclaration(type, number)) {
+      continue;
+    }
+    const Signature::Symbol* symbol = env.signature->getSymbol(type, number);
+    out << language << '(' << Reference{namePrefix, number} << ',' << Role::TYPE << ',';
+    if (type == SymbolType::TYPE_CON && env.signature->isBoolCon(number)) {
+      ASS(env.options->showFOOL());
+      out << "$bool";
+    } else {
+      out << symbol->name();
+    }
+    out << ": " << *symbol->type() << ")." << endl;
+  }
+}
+
+} // namespace
+
+/**
+ * Output to @b out all symbol declarations for the current signature.
+ * Symbols having default types will not be output.
+ * @author Andrei Voronkov
+ * @since 03/07/2013 Manchester
+ */
+std::ostream& TPTPPrinter::printSymbolDeclarations(std::ostream& out, Language language)
+{
+  ASS(language == Language::TFF || language == Language::TCF || language == Language::THF);
+
+  const Signature& sig = *env.signature;
+  printSymbolDeclarationsOfType(out, language, SymbolType::TYPE_CON, sig.typeCons(),
+      "type_def_");
+  printSymbolDeclarationsOfType(out, language, SymbolType::FUNC, sig.functions(),
+      "func_def_");
+  printSymbolDeclarationsOfType(out, language, SymbolType::PRED, sig.predicates(),
+      "pred_def_");
+  return out;
+}
+
+namespace TPTPOutput {
+
+QuantifiedVariables::QuantifiedVariables(const Unit* unit, Language targetLanguage)
+{
+  DHMap<unsigned, TermList, FnvHash, IdentityHash> sorts;
+  SortHelper::collectVariableSorts(const_cast<Unit*>(unit), sorts, /*ignoreBound=*/true);
+  if (unit->isClause()) {
+    collect(pvi(sorts.domain()), sorts, targetLanguage);
+  } else {
+    // The sort collector also visits lambda-bound variables; bind only free variables.
+    Set<unsigned, FnvHash> variables;
+    variables.insertFromIterator(FormulaVarIterator(static_cast<const FormulaUnit*>(unit)->formula()));
+    collect(pvi(variables.iter()), sorts, targetLanguage);
+  }
+}
+
+QuantifiedVariables::QuantifiedVariables(VirtualIterator<unsigned> variables,
+    const DHMap<unsigned, TermList, FnvHash, IdentityHash>& sorts,
+    Language targetLanguage)
+{ collect(std::move(variables), sorts, targetLanguage); }
+
+void QuantifiedVariables::collect(VirtualIterator<unsigned> variables,
+    const DHMap<unsigned, TermList, FnvHash, IdentityHash>& sorts,
+    Language targetLanguage)
+{
+  ASS(targetLanguage == Language::FOF || targetLanguage == Language::TFF
+      || targetLanguage == Language::THF || targetLanguage == Language::TCF);
+  _typed = targetLanguage != Language::FOF;
+  while (variables.hasNext()) {
+    unsigned number = variables.next();
+    TermList sort = sorts.get(number);
+    ASS(_typed || sort == AtomicSort::defaultSort());
+    _variables.push(Variable{number, sort});
+  }
+  _variables.sort([](const Variable& a, const Variable& b) {
+    bool aType = a.sort.isTerm() && a.sort.term()->isSuper();
+    bool bType = b.sort.isTerm() && b.sort.term()->isSuper();
+    return aType != bType ? aType : a.number < b.number;
+  });
+}
+
+std::ostream& operator<<(std::ostream& out, QuantifiedVariables const& self)
+{
+  auto write = [&self](std::ostream& out, const QuantifiedVariables::Variable& variable) {
+    out << variableRef(variable.number);
+    if (self._typed) {
+      // Parenthesise arrow sorts used by THF variables.
+      out << " : " << variable.sort.toString();
+    }
+  };
+  return out << commaSeparatedWith(self._variables.iterFifo(), write);
+}
+
+std::ostream& operator<<(std::ostream& out, UniversalClosure closure)
+{
+  const Unit* unit = closure.unit;
+  if (!unit->isClause()) {
+    const Formula* formula = static_cast<const FormulaUnit*>(unit)->formula();
+    return out << quantified(QuantifiedVariables(unit, closure.targetLanguage), formula);
   }
 
+  const Clause* clause = static_cast<const Clause*>(unit);
+  return out << quantified(QuantifiedVariables(unit, closure.targetLanguage), disjunction(clause->iterLits()));
+}
+
+const char* connectiveSymbol(Connective connective)
+{
+  static const char* const symbols[] =
+    { "", " & ", " | ", " => ", " <=> ", " <~> ",
+      "~ ", "!", "?", "$term", FALSE_CONSTANT, TRUE_CONSTANT, "", ""};
+  static_assert(std::size(symbols) == NOCONN + 1, "one symbol per connective");
+  return symbols[connective];
+}
+
+const char* languageName(Language language)
+{
+  static const char* const names[] = { "thf", "tff", "tcf", "fof", "cnf" };
+  static_assert(std::size(names) == static_cast<unsigned>(Language::CNF) + 1,
+      "one keyword per language");
+  return names[static_cast<unsigned>(language)];
+}
+
+std::ostream& operator<<(std::ostream& out, Language language)
+{ return out << languageName(language); }
+
+const char* inputRole(UnitInputType type)
+{
+  switch (type) {
+  case UnitInputType::ASSUMPTION:
+    return Role::HYPOTHESIS;
+  case UnitInputType::CONJECTURE:
+    return Role::CONJECTURE;
+  case UnitInputType::NEGATED_CONJECTURE:
+    return Role::NEGATED_CONJECTURE;
+  default:
+    return Role::AXIOM;
+  }
+}
+
+std::ostream& operator<<(std::ostream& out, SplitLiteral self)
+{
+  return out << Saturation::Splitter::getFormulaStringFromLiteral(self.literal);
+}
+
+std::ostream& operator<<(std::ostream& out, InputName name)
+{
   std::string unitName;
   std::filesystem::path unitPath;
-  if(!Parse::TPTP::findAxiomName(unit, unitName, unitPath)) {
-    unitName="u" + Int::toString(unit->number());
+  if (Parse::TPTP::findAxiomName(name.unit, unitName, unitPath)) {
+    return out << unitName;
   }
-
-  return prefix + "(" + unitName + "," + kind + ",\n"
-    + "    " + main + ").\n";
+  return out << Reference{name.fallbackPrefix, name.unit->number()};
 }
 
+} // namespace TPTPOutput
 
-std::string TPTPPrinter::toString(const Term* t){
-  NOT_IMPLEMENTED;
-}
-
-std::string TPTPPrinter::toString(const Literal* l){
-  NOT_IMPLEMENTED;
-}
-
-}
+} // namespace Shell

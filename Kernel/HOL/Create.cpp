@@ -170,29 +170,6 @@ Clause* HOL::create::functionalExtensionalityAxiom()
   }, TheoryAxiom(InferenceRule::FUNCTIONAL_EXTENSIONALITY_AXIOM));
 }
 
-Term* HOL::create::lambda(unsigned numArgs, const unsigned* vars, const TermList* varSorts, TypedTermList body, TermList* resultExprSort) {
-  auto s = new (0, sizeof(Term::SpecialTermData)) Term;
-  s->makeSymbol(Term::toNormalFunctor(SpecialFunctor::LAMBDA), 0);
-
-  auto sp = s->getSpecialData();
-  sp->setLambdaExp(body.untyped());
-  sp->setLambdaExpSort(body.sort());
-
-  VSList* vsList = VSList::empty();
-  for (int i = numArgs - 1; i >= 0; i--) {
-    VSList::push({vars[i], varSorts[i]}, vsList);
-  }
-  sp->setLambdaVars(vsList);
-
-  auto lambdaSort = AtomicSort::arrowSort(numArgs, varSorts, body.sort());
-  sp->setLambdaSort(lambdaSort);
-  if (resultExprSort != nullptr)
-    *resultExprSort = lambdaSort;
-
-  return s;
-}
-
-
 TermList HOL::create::namelessLambda(TermList varSort, TermList termSort, TermList term) {
   ASS(varSort.isVar()  || varSort.term()->isSort());
   ASS(termSort.isVar() || termSort.term()->isSort());
