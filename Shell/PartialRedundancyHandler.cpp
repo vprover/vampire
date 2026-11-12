@@ -249,7 +249,7 @@ private:
   {
     void init(const CodeTree& tree, const TermStack& ts)
     {
-      Matcher::init(tree,tree.getEntryPoint(), LitInfoOccupation());
+      Matcher::init(tree,tree.getEntryPoint());
 
       ft = FlatTerm::create(ts);
 

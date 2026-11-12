@@ -364,6 +364,9 @@ void ClauseCodeTree::LiteralMatcher::init(const CodeTree& tree_, CodeOp* entry_,
   eagerResults.reset();
 
   RSTAT_CTR_INC("LiteralMatcher::init");
+
+  // prepareLiteral might fail because all LitInfo's are occupied
+  // in that case, we still want to look for SUCCESS operations
   if (!seekOnlySuccess && !prepareLiteral()) {
     seekOnlySuccess = true;
   }
@@ -692,12 +695,12 @@ CodeTree::LitInfoOccupation ClauseCodeTree::ClauseMatcher::occupiedPositions()
     return occupied;
   }
 
-  for(auto& lm : lms) {
+  for(const auto& lm : lms) {
     // A lazy matcher may still discover other positions for this LIT_END.
     if(!lm->eagerlyMatched()) {
       continue;
     }
-    ILStruct* ils=lm->getILS();
+    const ILStruct* ils=lm->getILS();
     LitInfoOccupation domain;
     // Use surviving matches, coalescing equality orientations and polarities.
     for(unsigned i=0; i<ils->matchCnt; i++) {

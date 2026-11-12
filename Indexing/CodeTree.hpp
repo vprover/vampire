@@ -135,6 +135,7 @@ public:
     void addMatch(unsigned liIndex, DArray<TermList>& bindingArray);
     void deleteMatch(unsigned matchIndex);
     MatchInfo*& getMatch(unsigned matchIndex);
+    const MatchInfo* getMatch(unsigned matchIndex) const;
 
     unsigned matchCnt;
 
@@ -312,11 +313,6 @@ public:
   struct LitInfoOccupation {
     static constexpr unsigned CAPACITY = 64;
 
-    static LitInfoOccupation createEmptyOccupation()
-    {
-      return LitInfoOccupation();
-    }
-
     inline void occupy(const LitInfo& linfo)
     {
       if (linfo.litIndex < CAPACITY) {
@@ -425,7 +421,7 @@ public:
     }
 
   protected:
-    void init(const CodeTree& tree_, CodeOp* entry_, LitInfoOccupation occupied_, LitInfo* linfos_ = 0,
+    void init(const CodeTree& tree_, CodeOp* entry_, LitInfoOccupation occupied_ = LitInfoOccupation(), LitInfo* linfos_ = 0,
       size_t linfoCnt_ = 0, Stack<CodeOp*>* firstsInBlocks_ = 0);
 
     bool backtrack();

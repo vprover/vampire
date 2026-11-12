@@ -294,6 +294,15 @@ CodeTree::MatchInfo*& CodeTree::ILStruct::getMatch(unsigned matchIndex)
   return matches[matchIndex];
 }
 
+const CodeTree::MatchInfo* CodeTree::ILStruct::getMatch(unsigned matchIndex) const
+{
+  ASS(!finished);
+  ASS_L(matchIndex, matchCnt);
+  ASS(matches[matchIndex]);
+
+  return matches[matchIndex];
+}
+
 CodeTree::CodeOp CodeTree::CodeOp::getLitEnd(ILStruct* ils)
 {
   CodeOp res;

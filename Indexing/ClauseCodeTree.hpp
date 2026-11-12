@@ -79,6 +79,7 @@ private:
     inline bool eagerlyMatched() const { return _eagerlyMatched; }
 
     inline ILStruct* getILS() { ASS(matched()); return op->getILS(); }
+    inline const ILStruct* getILS() const { ASS(matched()); return op->getILS(); }
 
     USE_ALLOCATOR(LiteralMatcher);
 
