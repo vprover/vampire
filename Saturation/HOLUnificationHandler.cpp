@@ -60,10 +60,10 @@ void HOLUnificationHandler::handleClause(Clause* cl, bool adding)
     unsigned* ptr;
     if (lhsh.isTerm() && _fnCnts.find(lhsh.term()->functor())) {
       fn = lhsh.term()->functor();
-      ASS_EQ(rhs, HOL::create::top());
+      ASS_EQ(rhs, HOL::create::bottom());
     } else if (rhsh.isTerm() && _fnCnts.find(rhsh.term()->functor())) {
       fn = rhsh.term()->functor();
-      ASS_EQ(lhs, HOL::create::top());
+      ASS_EQ(lhs, HOL::create::bottom());
     } else {
       continue;
     }
