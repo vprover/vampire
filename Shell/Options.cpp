@@ -2123,7 +2123,7 @@ Options::Options ()
       {.short_name = "hun",
        .description = "Enable efficient HOL unification",
        .tag = OptionTag::HIGHER_ORDER})
-  , _holUnifierIterations("hol_unifier_iterations", this, 10,
+  , _holUnifierIterations("hol_unifier_iterations", this, 1,
       {.short_name = "huni",
        .description = "Number of HOL unification iterations to be performed per activation",
        .tag = OptionTag::HIGHER_ORDER})
