@@ -156,7 +156,7 @@ protected:
       }
       out << fu->formula()->toString() << ' ';
 
-      out <<"["<<cs->inference().name();
+      out <<"["<<ruleName(rule);
 
       if (rule==InferenceRule::INPUT) {
         ASS(!parents.hasNext()); //input clauses don't have parents

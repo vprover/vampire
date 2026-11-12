@@ -873,8 +873,6 @@ public:
    */
   void minimizePremises();
 
-  // returns ruleName; with goalAffinityName on top, in the case of ruleName == INPUT
-  std::string name() const;
 
   /** return the goal affinity of the unit */
   GoalAffinity goalAffinity() const { return (GoalAffinity)_goalAffinity; }

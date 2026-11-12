@@ -185,7 +185,7 @@ std::string Unit::inferenceAsString() const
 {
   const Inference& inf = inference();
 
-  std::string result = (std::string)"[" + inf.name();
+  std::string result = "[" + ruleName(inf.rule());
   SAT::SATClause *sat = inf.satPremise();
   if(sat)
     return result + " s" + Int::toString(inf.satPremise()->number) + "]";

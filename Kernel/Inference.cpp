@@ -457,14 +457,6 @@ Inference::Inference(const NonspecificInferenceMany& gi) {
   ASS_REP(isNonSpecificInferenceRule(gi.rule), ruleName(gi.rule));
 }
 
-std::string Inference::name() const {
-  if (_rule == InferenceRule::INPUT) {
-    return ruleName(_rule)+"("+goalAffinityName(_goalAffinity)+")";
-  } else {
-    return ruleName(_rule);
-  }
-}
-
 void Inference::minimizePremises()
 {
   if (_kind != Kind::SAT_NEEDS_MINIMIZATION)
@@ -986,5 +978,5 @@ std::string Kernel::ruleName(InferenceRule rule)
   }
 
   INVALID_OPERATION("invalid inference rule");
-} // Inference::name()
+} // ruleName()
 
